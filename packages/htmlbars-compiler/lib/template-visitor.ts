@@ -1,4 +1,4 @@
-var push = Array.prototype.push;
+let push = Array.prototype.push;
 
 function Frame() {
   this.parentNode = null;
@@ -75,8 +75,8 @@ TemplateVisitor.prototype.visit = function(node) {
 TemplateVisitor.prototype.Program = function(program) {
   this.programDepth++;
 
-  var parentFrame = this.getCurrentFrame();
-  var programFrame = this.pushFrame();
+  let parentFrame = this.getCurrentFrame();
+  let programFrame = this.pushFrame();
 
   programFrame.parentNode = program;
   programFrame.children = program.body;
@@ -84,7 +84,7 @@ TemplateVisitor.prototype.Program = function(program) {
   programFrame.blankChildTextNodes = [];
   programFrame.actions.push(['endProgram', [program, this.programDepth]]);
 
-  for (var i = program.body.length - 1; i >= 0; i--) {
+  for (let i = program.body.length - 1; i >= 0; i--) {
     programFrame.childIndex = i;
     this.visit(program.body[i]);
   }
@@ -103,8 +103,8 @@ TemplateVisitor.prototype.Program = function(program) {
 };
 
 TemplateVisitor.prototype.ElementNode = function(element) {
-  var parentFrame = this.getCurrentFrame();
-  var elementFrame = this.pushFrame();
+  let parentFrame = this.getCurrentFrame();
+  let elementFrame = this.pushFrame();
 
   elementFrame.parentNode = element;
   elementFrame.children = element.children;
@@ -112,7 +112,7 @@ TemplateVisitor.prototype.ElementNode = function(element) {
   elementFrame.mustacheCount += element.modifiers.length;
   elementFrame.blankChildTextNodes = [];
 
-  var actionArgs = [
+  let actionArgs = [
     element,
     parentFrame.childIndex,
     parentFrame.childCount
@@ -120,7 +120,7 @@ TemplateVisitor.prototype.ElementNode = function(element) {
 
   elementFrame.actions.push(['closeElement', actionArgs]);
 
-  for (var i = element.attributes.length - 1; i >= 0; i--) {
+  for (let i = element.attributes.length - 1; i >= 0; i--) {
     this.visit(element.attributes[i]);
   }
 
@@ -146,7 +146,7 @@ TemplateVisitor.prototype.AttrNode = function(attr) {
 };
 
 TemplateVisitor.prototype.TextNode = function(text) {
-  var frame = this.getCurrentFrame();
+  let frame = this.getCurrentFrame();
   if (text.chars === '') {
     frame.blankChildTextNodes.push(domIndexOf(frame.children, text));
   }
@@ -154,7 +154,7 @@ TemplateVisitor.prototype.TextNode = function(text) {
 };
 
 TemplateVisitor.prototype.BlockStatement = function(node) {
-  var frame = this.getCurrentFrame();
+  let frame = this.getCurrentFrame();
 
   frame.mustacheCount++;
   frame.actions.push(['block', [node, frame.childIndex, frame.childCount]]);
@@ -164,7 +164,7 @@ TemplateVisitor.prototype.BlockStatement = function(node) {
 };
 
 TemplateVisitor.prototype.ComponentNode = function(node) {
-  var frame = this.getCurrentFrame();
+  let frame = this.getCurrentFrame();
 
   frame.mustacheCount++;
   frame.actions.push(['component', [node, frame.childIndex, frame.childCount]]);
@@ -174,18 +174,18 @@ TemplateVisitor.prototype.ComponentNode = function(node) {
 
 
 TemplateVisitor.prototype.PartialStatement = function(node) {
-  var frame = this.getCurrentFrame();
+  let frame = this.getCurrentFrame();
   frame.mustacheCount++;
   frame.actions.push(['mustache', [node, frame.childIndex, frame.childCount]]);
 };
 
 TemplateVisitor.prototype.CommentStatement = function(text) {
-  var frame = this.getCurrentFrame();
+  let frame = this.getCurrentFrame();
   frame.actions.push(['comment', [text, frame.childIndex, frame.childCount]]);
 };
 
 TemplateVisitor.prototype.MustacheStatement = function(mustache) {
-  var frame = this.getCurrentFrame();
+  let frame = this.getCurrentFrame();
   frame.mustacheCount++;
   frame.actions.push(['mustache', [mustache, frame.childIndex, frame.childCount]]);
 };
@@ -197,7 +197,7 @@ TemplateVisitor.prototype.getCurrentFrame = function() {
 };
 
 TemplateVisitor.prototype.pushFrame = function() {
-  var frame = new Frame();
+  let frame = new Frame();
   this.frameStack.push(frame);
   return frame;
 };
@@ -212,10 +212,10 @@ export default TemplateVisitor;
 // Returns the index of `domNode` in the `nodes` array, skipping
 // over any nodes which do not represent DOM nodes.
 function domIndexOf(nodes, domNode) {
-  var index = -1;
+  let index = -1;
 
-  for (var i = 0; i < nodes.length; i++) {
-    var node = nodes[i];
+  for (let i = 0; i < nodes.length; i++) {
+    let node = nodes[i];
 
     if (node.type !== 'TextNode' && node.type !== 'ElementNode') {
       continue;

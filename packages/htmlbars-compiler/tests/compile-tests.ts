@@ -3,7 +3,7 @@ import { compile } from "../htmlbars-compiler/compiler";
 QUnit.module('compile: buildMeta');
 
 test('is merged into meta in template', function() {
-  var template = compile('Hi, {{name}}!', {
+  let template = compile('Hi, {{name}}!', {
     buildMeta: function() {
       return { blah: 'zorz' };
     }
@@ -13,7 +13,7 @@ test('is merged into meta in template', function() {
 });
 
 test('the program is passed to the callback function', function() {
-  var template = compile('Hi, {{name}}!', {
+  let template = compile('Hi, {{name}}!', {
     buildMeta: function(program) {
       return { loc: program.loc };
     }
@@ -23,7 +23,7 @@ test('the program is passed to the callback function', function() {
 });
 
 test('value keys are properly stringified', function() {
-  var template = compile('Hi, {{name}}!', {
+  let template = compile('Hi, {{name}}!', {
     buildMeta: function() {
       return { 'loc-derp.lol': 'zorz' };
     }
@@ -33,7 +33,7 @@ test('value keys are properly stringified', function() {
 });
 
 test('returning undefined does not throw errors', function () {
-  var template = compile('Hi, {{name}}!', {
+  let template = compile('Hi, {{name}}!', {
     buildMeta: function() {
       return;
     }
@@ -43,7 +43,7 @@ test('returning undefined does not throw errors', function () {
 });
 
 test('options are not required for `compile`', function () {
-  var template = compile('Hi, {{name}}!');
+  let template = compile('Hi, {{name}}!');
 
   ok(template.meta, 'meta is present in template, even if empty');
 });

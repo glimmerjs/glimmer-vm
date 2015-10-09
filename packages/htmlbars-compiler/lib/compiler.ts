@@ -9,17 +9,17 @@ import { Template } from "htmlbars-runtime";
  *
  * Example usage:
  *
- *     var templateSpec = compileSpec("Howdy {{name}}");
+ *     let templateSpec = compileSpec("Howdy {{name}}");
  *     // This next step is basically what plain compile does
- *     var template = new Function("return " + templateSpec)();
+ *     let template = new Function("return " + templateSpec)();
  *
  * @method compileSpec
  * @param {String} string An HTMLBars template string
  * @return {TemplateSpec} A template spec string
  */
 export function compileSpec(string, options) {
-  var ast = preprocess(string, options);
-  var program = TemplateCompiler.compile(options, ast);
+  let ast = preprocess(string, options);
+  let program = TemplateCompiler.compile(options, ast);
   return JSON.stringify(program);
 }
 
@@ -38,7 +38,7 @@ export function template(templateSpec) {
  * Example usage:
  *
  *     // Template is the hydration portion of the compiled template
- *     var template = compile("Howdy {{name}}");
+ *     let template = compile("Howdy {{name}}");
  *
  *     // Template accepts three arguments:
  *     //
@@ -53,10 +53,10 @@ export function template(templateSpec) {
  *     //
  *     import {hooks} from 'htmlbars-runtime';
  *     import {DOMHelper} from 'morph';
- *     var context = {name: 'whatever'},
+ *     let context = {name: 'whatever'},
  *         env = {hooks: hooks, dom: new DOMHelper()},
  *         contextualElement = document.body;
- *     var domFragment = template(context, env, contextualElement);
+ *     let domFragment = template(context, env, contextualElement);
  *
  * @method compile
  * @param {String} string An HTMLBars template string

@@ -205,7 +205,7 @@ function buildPosition(line, column) {
 
 function buildLoc(startLine, startColumn, endLine, endColumn, source) {
   if (arguments.length === 1) {
-    var loc = startLine;
+    let loc = startLine;
 
     if (typeof loc === 'object') {
       return {

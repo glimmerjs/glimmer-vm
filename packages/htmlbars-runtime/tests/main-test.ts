@@ -20,11 +20,11 @@ QUnit.module("htmlbars-runtime", {
 QUnit.skip("manualElement function honors namespaces", function() {
   hooks.keywords['manual-element'] = {
       render: function(morph, env, scope, params, hash, template, inverse, visitor) {
-        var attributes = {
+        let attributes = {
           version: '1.1'
         };
 
-        var layout = manualElement('svg', attributes);
+        let layout = manualElement('svg', attributes);
 
         hostBlock(morph, env, scope, template, inverse, null, visitor, function(options) {
           options.templates.template.yieldIn({ raw: layout }, hash);
@@ -36,19 +36,19 @@ QUnit.skip("manualElement function honors namespaces", function() {
       isStable: function() { return true; }
     };
 
-    var template = compile('{{#manual-element}}<linearGradient><stop offset="{{startOffset}}"></stop><stop offset="{{stopOffset}}"></stop></linearGradient>{{/manual-element}}');
-    var result = template.render({startOffset:0.1, stopOffset:0.6}, env);
+    let template = compile('{{#manual-element}}<linearGradient><stop offset="{{startOffset}}"></stop><stop offset="{{stopOffset}}"></stop></linearGradient>{{/manual-element}}');
+    let result = template.render({startOffset:0.1, stopOffset:0.6}, env);
     ok(result.fragment.childNodes[1] instanceof SVGElement);
     ok(result.fragment.childNodes[1].childNodes[0] instanceof SVGLinearGradientElement);
     equalTokens(result.fragment, '<svg version="1.1"><linearGradient><stop offset="0.1"></stop><stop offset="0.6"></stop></linearGradient></svg>');
 });
 
 test("manualElement function honors void elements", function() {
-  var attributes = {
+  let attributes = {
     class: 'foo-bar'
   };
-  var layout = manualElement('input', attributes);
-  var element = layout.buildRoot({ dom: new DOMHelper() });
+  let layout = manualElement('input', attributes);
+  let element = layout.buildRoot({ dom: new DOMHelper() });
 
   equal(element.childNodes.length, 0, 'no child nodes were added to `<input>` because it is a void tag');
   equalTokens(element, '<input class="foo-bar">');

@@ -149,8 +149,8 @@ export function wrapAccessor(home: Object, accessorName: InternedString, _origin
 }
 
 function getPropertyDescriptor(subject, name) {
-  var pd = Object.getOwnPropertyDescriptor(subject, name);
-  var proto = Object.getPrototypeOf(subject);
+  let pd = Object.getOwnPropertyDescriptor(subject, name);
+  let proto = Object.getPrototypeOf(subject);
   while (typeof pd === 'undefined' && proto !== null) {
     pd = Object.getOwnPropertyDescriptor(proto, name);
     proto = Object.getPrototypeOf(proto);

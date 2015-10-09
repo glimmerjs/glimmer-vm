@@ -4,10 +4,10 @@ import { preprocess } from "htmlbars-syntax";
 QUnit.module("TemplateCompiler");
 
 function countNamespaceChanges(template) {
-  var ast = preprocess(template);
-  var compiler = new TemplateCompiler();
-  var program = compiler.compile(ast);
-  var matches = program.match(/dom\.setNamespace/g);
+  let ast = preprocess(template);
+  let compiler = new TemplateCompiler();
+  let program = compiler.compile(ast);
+  let matches = program.match(/dom\.setNamespace/g);
   return matches ? matches.length : 0;
 }
 

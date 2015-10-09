@@ -356,8 +356,8 @@ export default class TemplateCompiler {
       return;
     }
 
-    for (var i = params.length - 1; i >= 0; i--) {
-      var param = params[i];
+    for (let i = params.length - 1; i >= 0; i--) {
+      let param = params[i];
 
       if (param.type === 'MustacheStatement') {
         this.attributeMustache([param]);
@@ -371,16 +371,16 @@ export default class TemplateCompiler {
   }
 
   prepareHash(hash) {
-    var pairs = hash.pairs;
+    let pairs = hash.pairs;
 
     if (!pairs.length) {
       this.opcode('pushLiteral', null, null);
       return;
     }
 
-    for (var i = pairs.length - 1; i >= 0; i--) {
-      var key = pairs[i].key;
-      var value = pairs[i].value;
+    for (let i = pairs.length - 1; i >= 0; i--) {
+      let key = pairs[i].key;
+      let value = pairs[i].value;
 
       assert(this[value.type], `Unimplemented ${value.type} on TemplateCompiler`);
       this[value.type](value);

@@ -115,7 +115,7 @@ export class PathReference extends PushPullReference implements IPathReference, 
   }
 
   private _parentValue() {
-    var parent = this.parent.value();
+    let parent = this.parent.value();
     this.lastParentValue = parent;
     return parent;
   }

@@ -5,9 +5,9 @@ interface InternedStringMarker {
 export type InternedString = InternedStringMarker & string;
 
 export function intern(str: string): InternedString {
-  var obj = {};
+  let obj = {};
   obj[str] = 1;
-  for (var key in obj) return <InternedString>key;
+  for (let key in obj) return <InternedString>key;
 }
 
 export function numberKey(num: number): InternedString {

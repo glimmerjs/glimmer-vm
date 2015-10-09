@@ -3,7 +3,7 @@ import { Environment, DOMHelper } from "htmlbars-runtime";
 import { merge } from "htmlbars-util";
 import { equalTokens } from "htmlbars-test-helpers";
 
-var hooks, helpers, partials, env;
+let hooks, helpers, partials, env;
 
 function registerHelper(name, callback) {
   helpers[name] = callback;
@@ -24,10 +24,10 @@ function commonSetup() {
   };
 
   registerHelper('each', function(params) {
-    var list = params[0];
+    let list = params[0];
 
-    for (var i=0, l=list.length; i<l; i++) {
-      var item = list[i];
+    for (let i=0, l=list.length; i<l; i++) {
+      let item = list[i];
       if (this.arity > 0) {
         this.yieldItem(item.key, [item]);
       }
@@ -41,14 +41,14 @@ QUnit.module("Diffing", {
 });
 
 test("Morph order is preserved when rerendering with duplicate keys", function() {
-  var template = compile(`<ul>{{#each items as |item|}}<li>{{item.name}}</li>{{/each}}</ul>`);
+  let template = compile(`<ul>{{#each items as |item|}}<li>{{item.name}}</li>{{/each}}</ul>`);
 
   let a1 = { key: "a", name: "A1" };
   let a2 = { key: "a", name: "A2" };
   let b1 = { key: "b", name: "B1" };
   let b2 = { key: "b", name: "B2" };
 
-  var result = template.render({ items: [a1, a2, b1, b2] }, env);
+  let result = template.render({ items: [a1, a2, b1, b2] }, env);
   equalTokens(result.fragment, `<ul><li>A1</li><li>A2</li><li>B1</li><li>B2</li></ul>`);
 
   let morph = result.nodes[0].morphList.firstChildMorph;
@@ -81,12 +81,12 @@ test("Morph order is preserved when rerendering with duplicate keys", function()
 });
 
 test("duplicate keys are allowed when duplicate is last morph", function() {
-  var template = compile(`<ul>{{#each items as |item|}}<li>{{item.name}}</li>{{/each}}</ul>`);
+  let template = compile(`<ul>{{#each items as |item|}}<li>{{item.name}}</li>{{/each}}</ul>`);
 
   let a1 = { key: "a", name: "A1" };
   let a2 = { key: "a", name: "A2" };
 
-  var result = template.render({ items: [ ] }, env);
+  let result = template.render({ items: [ ] }, env);
 
   result.rerender(env, { items: [ a1 ] });
   equalTokens(result.fragment, `<ul><li>A1</li></ul>`);

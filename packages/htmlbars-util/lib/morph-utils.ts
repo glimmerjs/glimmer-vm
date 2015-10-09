@@ -6,7 +6,7 @@ export function visitChildren(nodes, callback) {
   nodes = nodes.slice();
 
   while (nodes.length) {
-    var node = nodes.pop();
+    let node = nodes.pop();
     callback(node);
 
     if (node.childNodes) {
@@ -31,12 +31,12 @@ export function visitChildren(nodes, callback) {
 
 
 export function validateChildMorphs(env, morph, visitor) {
-  var morphList = morph.morphList;
+  let morphList = morph.morphList;
   if (morph.morphList) {
-    var current = morphList.firstChildMorph;
+    let current = morphList.firstChildMorph;
 
     while (current) {
-      var next = current.nextMorph;
+      let next = current.nextMorph;
       validateChildMorphs(env, current, visitor);
       current = next;
     }
@@ -44,7 +44,7 @@ export function validateChildMorphs(env, morph, visitor) {
     morph.lastResult.revalidateWith(env, undefined, undefined, visitor);
   } else if (morph.childNodes) {
     // This means that the childNodes were wired up manually
-    for (var i=0, l=morph.childNodes.length; i<l; i++) {
+    for (let i=0, l=morph.childNodes.length; i<l; i++) {
       validateChildMorphs(env, morph.childNodes[i], visitor);
     }
   }
@@ -76,7 +76,7 @@ export function dump(node) {
   if (node.childNodes) {
     map(node.childNodes, dump);
   } else if (node.firstChildMorph) {
-    var current = node.firstChildMorph;
+    let current = node.firstChildMorph;
 
     while (current) {
       dump(current);
@@ -90,7 +90,7 @@ export function dump(node) {
 }
 
 function map(nodes, cb) {
-  for (var i=0, l=nodes.length; i<l; i++) {
+  for (let i=0, l=nodes.length; i<l; i++) {
     cb(nodes[i]);
   }
 }
