@@ -1,5 +1,15 @@
 {
   "rules": {
-    "curly": false
+    "curly": false,
+    "no-unused-variable": true,
+    "no-unused-expression": true,
+    "no-var-keyword": true,
+    "no-unreachable": true,
+    "no-console": true,
+    "no-debugger": true,
+    "semicolon": true,
+    "triple-equals": true,
+    "indent": "spaces",
+    "no-trailing-whitespace": true
   }
 }

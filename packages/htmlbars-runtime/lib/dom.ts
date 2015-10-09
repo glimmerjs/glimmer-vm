@@ -2,15 +2,15 @@ import { ConcreteBounds, Bounds } from './morph';
 const SVG_NAMESPACE = 'http://www.w3.org/2000/svg';
 
 export default class DOMHelper {
-	private document: HTMLDocument;
+  private document: HTMLDocument;
   private namespace: string;
   private uselessElement: HTMLElement;
 
-	constructor(document) {
-		this.document = document;
+  constructor(document) {
+    this.document = document;
     this.namespace = null;
     this.uselessElement = this.document.createElement('div');
-	}
+  }
 
   setAttribute(element: HTMLElement, name: string, value: string) {
     element.setAttribute(name, value);
@@ -92,7 +92,7 @@ let svgBlacklist = [
   "b", "big", "blockquote", "body", "br", "center", "code", "dd", "div", "dl", "dt", "em", "embed",
   "h1", "h2", "h3", "h4", "h5", "h6", "head", "hr", "i", "img", "li", "listing", "main", "meta", "nobr",
   "ol", "p", "pre", "ruby", "s", "small", "span", "strong", "strike", "sub", "sup", "table", "tt", "u",
-  "ul", "var"].forEach(tag => BLACKLIST_TABLE[tag] = 1);
+  "ul", "let"].forEach(tag => BLACKLIST_TABLE[tag] = 1);
 
 const WHITESPACE = /[\t-\r \xA0\u1680\u180E\u2000-\u200A\u2028\u2029\u202F\u205F\u3000\uFEFF]/;
 

@@ -1,6 +1,6 @@
 import { DOMHelper } from "htmlbars-runtime";
 
-var dom;
+let dom;
 
 QUnit.module('DOM Helper (Node)', {
   afterEach: function() {
@@ -10,7 +10,7 @@ QUnit.module('DOM Helper (Node)', {
 
 if (typeof document === 'undefined') {
   test('it throws when instantiated without document', function(){
-    var throws = false;
+    let throws = false;
     try {
       dom = new DOMHelper();
     } catch (e) {
@@ -21,9 +21,9 @@ if (typeof document === 'undefined') {
 }
 
 test('it instantiates with a stub document', function(){
-  var called = false;
-  var element = {};
-  var doc = {
+  let called = false;
+  let element = {};
+  let doc = {
     createElement: function(){
       called = true;
       return element;
@@ -31,6 +31,6 @@ test('it instantiates with a stub document', function(){
   };
   dom = new DOMHelper(doc);
   ok(dom, 'dom helper can instantiate');
-  var createdElement = dom.createElement('div');
+  let createdElement = dom.createElement('div');
   equal(createdElement, element, 'dom helper calls passed stub');
 });

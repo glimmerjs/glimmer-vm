@@ -14,9 +14,9 @@ import { Scope } from './environment';
 import { Operations } from './builder';
 
 interface RenderResultOptions {
-	template: Template;
+  template: Template;
   scope: Scope;
-	morphs: Morph[];
+  morphs: Morph[];
   bounds: Bounds;
 }
 

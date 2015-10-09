@@ -3,7 +3,7 @@
 import assert from "./assert";
 
 export function merge(options, defaults) {
-  for (var prop in defaults) {
+  for (let prop in defaults) {
     if (options.hasOwnProperty(prop)) { continue; }
     options[prop] = defaults[prop];
   }
@@ -22,9 +22,9 @@ export function shallowCopy(obj) {
 }
 
 export function keySet(obj) {
-  var set = {};
+  let set = {};
 
-  for (var prop in obj) {
+  for (let prop in obj) {
     if (obj.hasOwnProperty(prop)) {
       set[prop] = true;
     }
@@ -34,9 +34,9 @@ export function keySet(obj) {
 }
 
 export function keyLength(obj) {
-  var count = 0;
+  let count = 0;
 
-  for (var prop in obj) {
+  for (let prop in obj) {
     if (obj.hasOwnProperty(prop)) {
       count++;
     }

@@ -5,7 +5,7 @@ import { compile } from "htmlbars-compiler";
 // import { hostBlock } from "../htmlbars-runtime/hooks";
 import { equalTokens } from "htmlbars-test-helpers";
 
-var hooks, helpers, partials, env;
+let hooks, helpers, partials, env;
 
 function registerHelper(name, callback) {
   helpers[name] = callback;
@@ -36,9 +36,9 @@ test("inline hook correctly handles false-like values", function() {
     return params[0];
   });
 
-  var object = { val: 'hello' };
-  var template = compile('<div>{{get val}}</div>');
-  var result = template.render(object, env);
+  let object = { val: 'hello' };
+  let template = compile('<div>{{get val}}</div>');
+  let result = template.render(object, env);
 
   equalTokens(result.fragment, '<div>hello</div>');
 
@@ -56,9 +56,9 @@ test("inline hook correctly handles false-like values", function() {
     return params[0];
   });
 
-  var object = { val: 'hello' };
-  var template = compile('<div>{{get val}}</div>');
-  var result = template.render(object, env);
+  let object = { val: 'hello' };
+  let template = compile('<div>{{get val}}</div>');
+  let result = template.render(object, env);
 
   equalTokens(result.fragment, '<div>hello</div>');
 

@@ -1,18 +1,18 @@
 import EmberObject, { computed, observer, alias } from 'htmlbars-object';
 
-var moduleOptions, originalLookup;
+let moduleOptions, originalLookup;
 
 QUnit.module('HTMLBarsObject.create', moduleOptions);
 
 QUnit.test('simple properties are set', function() {
-  var o = EmberObject.create({ ohai: 'there' });
+  let o = EmberObject.create({ ohai: 'there' });
   equal(o.get('ohai'), 'there');
 });
 
 QUnit.test('reopening a parent flushes the child', assert => {
-  var MyClass = EmberObject.extend();
+  let MyClass = EmberObject.extend();
 
-  var SubClass = MyClass.extend();
+  let SubClass = MyClass.extend();
 
   MyClass.reopen({
     hello() {
@@ -26,19 +26,19 @@ QUnit.test('reopening a parent flushes the child', assert => {
 });
 
 QUnit.test('reopening a parent flushes the child', assert => {
-  var MyClass = EmberObject.extend({
+  let MyClass = EmberObject.extend({
     hello() {
       return "original hello";
     }
   });
 
-  var SubClass = MyClass.extend({
+  let SubClass = MyClass.extend({
     hello() {
       return this._super();
     }
   });
 
-  var GrandChild = SubClass.extend({
+  let GrandChild = SubClass.extend({
     hello() {
       return this._super();
     }
@@ -57,19 +57,19 @@ QUnit.test('reopening a parent flushes the child', assert => {
 
 
 QUnit.test('reopening a parent with a computed property flushes the child', assert => {
-  var MyClass = EmberObject.extend({
+  let MyClass = EmberObject.extend({
     hello: computed(function() {
       return "original hello";
     })
   });
 
-  var SubClass = MyClass.extend({
+  let SubClass = MyClass.extend({
     hello: computed(function() {
       return this._super()
     })
   });
 
-  var GrandChild = SubClass.extend({
+  let GrandChild = SubClass.extend({
     hello: computed(function() {
       return this._super()
     })
@@ -87,7 +87,7 @@ QUnit.test('reopening a parent with a computed property flushes the child', asse
 });
 
 QUnit.skip('calls computed property setters', function() {
-  var MyClass = EmberObject.extend({
+  let MyClass = EmberObject.extend({
     foo: computed({
       get: function() {
         return 'this is not the value you\'re looking for';
@@ -98,12 +98,12 @@ QUnit.skip('calls computed property setters', function() {
     })
   });
 
-  var o = MyClass.create({ foo: 'bar' });
+  let o = MyClass.create({ foo: 'bar' });
   equal(o.get('foo'), 'bar');
 });
 
 QUnit.skip('allows bindings to be defined', function() {
-  var obj = EmberObject.create({
+  let obj = EmberObject.create({
     foo: 'foo',
     barBinding: 'foo'
   });
@@ -112,9 +112,9 @@ QUnit.skip('allows bindings to be defined', function() {
 });
 
 QUnit.skip('calls setUnknownProperty if defined', function() {
-  var setUnknownPropertyCalled = false;
+  let setUnknownPropertyCalled = false;
 
-  var MyClass = EmberObject.extend({
+  let MyClass = EmberObject.extend({
     setUnknownProperty(key, value) {
       setUnknownPropertyCalled = true;
     }
@@ -143,7 +143,7 @@ QUnit.skip('throws if you try to call _super in a method', function() {
 });
 
 QUnit.skip('throws if you try to \'mixin\' a definition', function() {
-  var myMixin = Mixin.create({
+  let myMixin = Mixin.create({
     adder(arg1, arg2) {
       return arg1 + arg2;
     }
@@ -156,7 +156,7 @@ QUnit.skip('throws if you try to \'mixin\' a definition', function() {
 
 // This test is for IE8.
 QUnit.test('property name is the same as own prototype property', function() {
-  var MyClass = EmberObject.extend({
+  let MyClass = EmberObject.extend({
     toString() { return 'MyClass'; }
   });
 
@@ -164,14 +164,14 @@ QUnit.test('property name is the same as own prototype property', function() {
 });
 
 QUnit.test('inherits properties from passed in EmberObject', function() {
-  var baseObj = EmberObject.create({ foo: 'bar' });
-  var secondaryObj = EmberObject.create(baseObj);
+  let baseObj = EmberObject.create({ foo: 'bar' });
+  let secondaryObj = EmberObject.create(baseObj);
 
   equal(secondaryObj.foo, baseObj.foo, 'Em.O.create inherits properties from EmberObject parameter');
 });
 
 QUnit.skip('throws if you try to pass anything a string as a parameter', function() {
-  var expected = 'EmberObject.create only accepts an objects.';
+  let expected = 'EmberObject.create only accepts an objects.';
 
   throws(function() {
     EmberObject.create('some-string');
@@ -179,11 +179,11 @@ QUnit.skip('throws if you try to pass anything a string as a parameter', functio
 });
 
 QUnit.test('EmberObject.create can take undefined as a parameter', function() {
-  var o = EmberObject.create(undefined);
+  let o = EmberObject.create(undefined);
   deepEqual(EmberObject.create(), o);
 });
 
 QUnit.test('EmberObject.create can take null as a parameter', function() {
-  var o = EmberObject.create(null);
+  let o = EmberObject.create(null);
   deepEqual(EmberObject.create(), o);
 });

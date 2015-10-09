@@ -6,14 +6,14 @@ import { astEqual } from "./support";
 QUnit.module("[htmlbars-syntax] Parser - AST");
 
 test("a simple piece of content", function() {
-  var t = 'some content';
+  let t = 'some content';
   astEqual(t, b.program([
     b.text('some content')
   ]));
 });
 
 test("allow simple AST to be passed", function() {
-  var ast = parse(handlebarsParse("simple"));
+  let ast = parse(handlebarsParse("simple"));
 
   astEqual(ast, b.program([
     b.text("simple")
@@ -21,7 +21,7 @@ test("allow simple AST to be passed", function() {
 });
 
 test("allow an AST with mustaches to be passed", function() {
-  var ast = parse(handlebarsParse("<h1>some</h1> ast {{foo}}"));
+  let ast = parse(handlebarsParse("<h1>some</h1> ast {{foo}}"));
 
   astEqual(ast, b.program([
     b.element("h1", [], [], [
@@ -33,14 +33,14 @@ test("allow an AST with mustaches to be passed", function() {
 });
 
 test("self-closed element", function() {
-  var t = '<g />';
+  let t = '<g />';
   astEqual(t, b.program([
     b.element("g")
   ]));
 });
 
 test("elements can have empty attributes", function() {
-  var t = '<img id="">';
+  let t = '<img id="">';
   astEqual(t, b.program([
     b.element("img", [
       b.attr("id", b.text(""))
@@ -49,14 +49,14 @@ test("elements can have empty attributes", function() {
 });
 
 test("svg content", function() {
-  var t = "<svg></svg>";
+  let t = "<svg></svg>";
   astEqual(t, b.program([
     b.element("svg")
   ]));
 });
 
 test("html content with html content inline", function() {
-  var t = '<div><p></p></div>';
+  let t = '<div><p></p></div>';
   astEqual(t, b.program([
     b.element("div", [], [], [
       b.element("p")
@@ -65,7 +65,7 @@ test("html content with html content inline", function() {
 });
 
 test("html content with svg content inline", function() {
-  var t = '<div><svg></svg></div>';
+  let t = '<div><svg></svg></div>';
   astEqual(t, b.program([
     b.element("div", [], [], [
       b.element("svg")
@@ -73,10 +73,10 @@ test("html content with svg content inline", function() {
   ]));
 });
 
-var integrationPoints = ['foreignObject', 'desc', 'title'];
+let integrationPoints = ['foreignObject', 'desc', 'title'];
 function buildIntegrationPointTest(integrationPoint){
   return function integrationPointTest(){
-    var t = '<svg><'+integrationPoint+'><div></div></'+integrationPoint+'></svg>';
+    let t = '<svg><'+integrationPoint+'><div></div></'+integrationPoint+'></svg>';
     astEqual(t, b.program([
       b.element("svg", [], [], [
         b.element(integrationPoint, [], [], [
@@ -86,7 +86,7 @@ function buildIntegrationPointTest(integrationPoint){
     ]));
   };
 }
-for (var i=0, length = integrationPoints.length; i<length; i++) {
+for (let i=0, length = integrationPoints.length; i<length; i++) {
   test(
     "svg content with html content inline for "+integrationPoints[i],
     buildIntegrationPointTest(integrationPoints[i])
@@ -94,7 +94,7 @@ for (var i=0, length = integrationPoints.length; i<length; i++) {
 }
 
 test("a piece of content with HTML", function() {
-  var t = 'some <div>content</div> done';
+  let t = 'some <div>content</div> done';
   astEqual(t, b.program([
     b.text("some "),
     b.element("div", [], [], [
@@ -105,7 +105,7 @@ test("a piece of content with HTML", function() {
 });
 
 test("a piece of Handlebars with HTML", function() {
-  var t = 'some <div>{{content}}</div> done';
+  let t = 'some <div>{{content}}</div> done';
   astEqual(t, b.program([
     b.text("some "),
     b.element("div", [], [], [
@@ -116,7 +116,7 @@ test("a piece of Handlebars with HTML", function() {
 });
 
 test("Handlebars embedded in an attribute (quoted)", function() {
-  var t = 'some <div class="{{foo}}">content</div> done';
+  let t = 'some <div class="{{foo}}">content</div> done';
   astEqual(t, b.program([
     b.text("some "),
     b.element("div", [ b.attr("class", b.concat([ b.path('foo') ])) ], [], [
@@ -127,7 +127,7 @@ test("Handlebars embedded in an attribute (quoted)", function() {
 });
 
 test("Handlebars embedded in an attribute (unquoted)", function() {
-  var t = 'some <div class={{foo}}>content</div> done';
+  let t = 'some <div class={{foo}}>content</div> done';
   astEqual(t, b.program([
     b.text("some "),
     b.element("div", [ b.attr("class", b.mustache(b.path('foo'))) ], [], [
@@ -138,7 +138,7 @@ test("Handlebars embedded in an attribute (unquoted)", function() {
 });
 
 test("Handlebars embedded in an attribute (sexprs)", function() {
-  var t = 'some <div class="{{foo (foo "abc")}}">content</div> done';
+  let t = 'some <div class="{{foo (foo "abc")}}">content</div> done';
   astEqual(t, b.program([
     b.text("some "),
     b.element("div", [
@@ -152,7 +152,7 @@ test("Handlebars embedded in an attribute (sexprs)", function() {
 
 
 test("Handlebars embedded in an attribute with other content surrounding it", function() {
-  var t = 'some <a href="http://{{link}}/">content</a> done';
+  let t = 'some <a href="http://{{link}}/">content</a> done';
   astEqual(t, b.program([
     b.text("some "),
     b.element("a", [
@@ -169,7 +169,7 @@ test("Handlebars embedded in an attribute with other content surrounding it", fu
 });
 
 test("A more complete embedding example", function() {
-  var t = "{{embed}} {{some 'content'}} " +
+  let t = "{{embed}} {{some 'content'}} " +
           "<div class='{{foo}} {{bind-class isEnabled truthy='enabled'}}'>{{ content }}</div>" +
           " {{more 'embed'}}";
   astEqual(t, b.program([
@@ -192,7 +192,7 @@ test("A more complete embedding example", function() {
 });
 
 test("Simple embedded block helpers", function() {
-  var t = "{{#if foo}}<div>{{content}}</div>{{/if}}";
+  let t = "{{#if foo}}<div>{{content}}</div>{{/if}}";
   astEqual(t, b.program([
     b.block(b.path('if'), [b.path('foo')], b.hash(), b.program([
       b.element('div', [], [], [
@@ -203,7 +203,7 @@ test("Simple embedded block helpers", function() {
 });
 
 test("Involved block helper", function() {
-  var t = '<p>hi</p> content {{#testing shouldRender}}<p>Appears!</p>{{/testing}} more <em>content</em> here';
+  let t = '<p>hi</p> content {{#testing shouldRender}}<p>Appears!</p>{{/testing}} more <em>content</em> here';
   astEqual(t, b.program([
     b.element('p', [], [], [
       b.text('hi')
@@ -223,7 +223,7 @@ test("Involved block helper", function() {
 });
 
 test("Element modifiers", function() {
-  var t = "<p {{action 'boom'}} class='bar'>Some content</p>";
+  let t = "<p {{action 'boom'}} class='bar'>Some content</p>";
   astEqual(t, b.program([
     b.element('p', [ b.attr('class', b.text('bar')) ], [
       b.elementModifier(b.path('action'), [b.string('boom')])
@@ -234,49 +234,49 @@ test("Element modifiers", function() {
 });
 
 test("Tokenizer: MustacheStatement encountered in tagName state", function() {
-  var t = "<input{{bar}}>";
+  let t = "<input{{bar}}>";
   astEqual(t, b.program([
     b.element('input', [], [ b.elementModifier(b.path('bar')) ])
   ]));
 });
 
 test("Tokenizer: MustacheStatement encountered in beforeAttributeName state", function() {
-  var t = "<input {{bar}}>";
+  let t = "<input {{bar}}>";
   astEqual(t, b.program([
     b.element('input', [], [ b.elementModifier(b.path('bar')) ])
   ]));
 });
 
 test("Tokenizer: MustacheStatement encountered in attributeName state", function() {
-  var t = "<input foo{{bar}}>";
+  let t = "<input foo{{bar}}>";
   astEqual(t, b.program([
     b.element('input', [ b.attr('foo', b.text('')) ], [ b.elementModifier(b.path('bar')) ])
   ]));
 });
 
 test("Tokenizer: MustacheStatement encountered in afterAttributeName state", function() {
-  var t = "<input foo {{bar}}>";
+  let t = "<input foo {{bar}}>";
   astEqual(t, b.program([
     b.element('input', [ b.attr('foo', b.text('')) ], [ b.elementModifier(b.path('bar')) ])
   ]));
 });
 
 test("Tokenizer: MustacheStatement encountered in afterAttributeValue state", function() {
-  var t = "<input foo=1 {{bar}}>";
+  let t = "<input foo=1 {{bar}}>";
   astEqual(t, b.program([
     b.element('input', [ b.attr('foo', b.text('1')) ], [ b.elementModifier(b.path('bar')) ])
   ]));
 });
 
 test("Tokenizer: MustacheStatement encountered in afterAttributeValueQuoted state", function() {
-  var t = "<input foo='1'{{bar}}>";
+  let t = "<input foo='1'{{bar}}>";
   astEqual(t, b.program([
     b.element('input', [ b.attr('foo', b.text('1')) ], [ b.elementModifier(b.path('bar')) ])
   ]));
 });
 
 test("Stripping - mustaches", function() {
-  var t = "foo {{~content}} bar";
+  let t = "foo {{~content}} bar";
   astEqual(t, b.program([
     b.text('foo'),
     b.mustache(b.path('content')),
@@ -292,7 +292,7 @@ test("Stripping - mustaches", function() {
 });
 
 test("Stripping - blocks", function() {
-  var t = "foo {{~#wat}}{{/wat}} bar";
+  let t = "foo {{~#wat}}{{/wat}} bar";
   astEqual(t, b.program([
     b.text('foo'),
     b.block(b.path('wat'), [], b.hash(), b.program()),
@@ -309,7 +309,7 @@ test("Stripping - blocks", function() {
 
 
 test("Stripping - programs", function() {
-  var t = "{{#wat~}} foo {{else}}{{/wat}}";
+  let t = "{{#wat~}} foo {{else}}{{/wat}}";
   astEqual(t, b.program([
     b.block(b.path('wat'), [], b.hash(), b.program([
       b.text('foo ')
@@ -339,7 +339,7 @@ test("Stripping - programs", function() {
 });
 
 test("Stripping - removes unnecessary text nodes", function() {
-  var t = "{{#each~}}\n  <li> foo </li>\n{{~/each}}";
+  let t = "{{#each~}}\n  <li> foo </li>\n{{~/each}}";
   astEqual(t, b.program([
     b.block(b.path('each'), [], b.hash(), b.program([
       b.element('li', [], [], [b.text(' foo ')])
@@ -349,7 +349,7 @@ test("Stripping - removes unnecessary text nodes", function() {
 
 // TODO: Make these throw an error.
 //test("Awkward mustache in unquoted attribute value", function() {
-//  var t = "<div class=a{{foo}}></div>";
+//  let t = "<div class=a{{foo}}></div>";
 //  astEqual(t, b.program([
 //    b.element('div', [ b.attr('class', concat([b.string("a"), b.sexpr([b.path('foo')])])) ])
 //  ]));
@@ -366,7 +366,7 @@ test("Stripping - removes unnecessary text nodes", function() {
 //});
 
 test("Components", function() {
-  var t = "<x-foo a=b c='d' e={{f}} id='{{bar}}' class='foo-{{bar}}'>{{a}}{{b}}c{{d}}</x-foo>{{e}}";
+  let t = "<x-foo a=b c='d' e={{f}} id='{{bar}}' class='foo-{{bar}}'>{{a}}{{b}}c{{d}}</x-foo>{{e}}";
   astEqual(t, b.program([
     b.component('x-foo', [
       b.attr('a', b.text('b')),
@@ -385,8 +385,8 @@ test("Components", function() {
 });
 
 test("Components with disableComponentGeneration", function() {
-  var t = "begin <x-foo>content</x-foo> finish";
-  var actual = parse(t, {
+  let t = "begin <x-foo>content</x-foo> finish";
+  let actual = parse(t, {
     disableComponentGeneration: true
   });
 
@@ -400,8 +400,8 @@ test("Components with disableComponentGeneration", function() {
 });
 
 test("Components with disableComponentGeneration === false", function() {
-  var t = "begin <x-foo>content</x-foo> finish";
-  var actual = parse(t, {
+  let t = "begin <x-foo>content</x-foo> finish";
+  let actual = parse(t, {
     disableComponentGeneration: false
   });
 
@@ -417,7 +417,7 @@ test("Components with disableComponentGeneration === false", function() {
 });
 
 test("an HTML comment", function() {
-  var t = 'before <!-- some comment --> after';
+  let t = 'before <!-- some comment --> after';
   astEqual(t, b.program([
     b.text("before "),
     b.comment(" some comment "),
@@ -426,7 +426,7 @@ test("an HTML comment", function() {
 });
 
 test("allow {{null}} to be passed as helper name", function() {
-  var ast = parse("{{null}}");
+  let ast = parse("{{null}}");
 
   astEqual(ast, b.program([
     b.mustache(b.null())
@@ -434,7 +434,7 @@ test("allow {{null}} to be passed as helper name", function() {
 });
 
 test("allow {{null}} to be passed as a param", function() {
-  var ast = parse("{{foo null}}");
+  let ast = parse("{{foo null}}");
 
   astEqual(ast, b.program([
     b.mustache(b.path('foo'), [b.null()])
@@ -442,7 +442,7 @@ test("allow {{null}} to be passed as a param", function() {
 });
 
 test("allow {{undefined}} to be passed as helper name", function() {
-  var ast = parse("{{undefined}}");
+  let ast = parse("{{undefined}}");
 
   astEqual(ast, b.program([
     b.mustache(b.undefined())
@@ -450,7 +450,7 @@ test("allow {{undefined}} to be passed as helper name", function() {
 });
 
 test("allow {{undefined}} to be passed as a param", function() {
-  var ast = parse("{{foo undefined}}");
+  let ast = parse("{{foo undefined}}");
 
   astEqual(ast, b.program([
     b.mustache(b.path('foo'), [b.undefined()])

@@ -6,7 +6,7 @@ class NotifyNode {
   public child: NotifiableReference;
   public previousSibling: NotifyNode = null;
   public nextSibling: NotifyNode = null;
-  
+
   constructor(parent, child) {
     this.parent = parent;
     this.child = child;
@@ -65,7 +65,7 @@ export abstract class PushPullReference implements Reference, ChainableReference
     this.sources.push(source.chain(this));
     return source;
   }
-  
+
   private _append(child): Unchain {
     let node = new NotifyNode(this, child);
 
