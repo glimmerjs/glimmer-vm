@@ -46,4 +46,3 @@ export default class RootReference extends PushPullReference implements IRootRef
     return '[reference Root]';
   }
 }
-

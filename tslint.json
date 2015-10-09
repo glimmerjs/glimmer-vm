@@ -8,6 +8,8 @@
     "no-console": true,
     "no-debugger": true,
     "semicolon": true,
-    "triple-equals": true
+    "triple-equals": true,
+    "indent": "spaces",
+    "no-trailing-whitespace": true
   }
 }

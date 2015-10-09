@@ -1,5 +1,5 @@
 import { indexOfArray } from "htmlbars-util";
-// Regex to validate the identifier for block parameters. 
+// Regex to validate the identifier for block parameters.
 // Based on the ID validation regex in Handlebars.
 
 let ID_INVERSE_PATTERN = /[!"#%-,\.\/;->@\[-\^`\{-~]/;

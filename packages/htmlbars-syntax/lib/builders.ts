@@ -221,7 +221,7 @@ function buildLoc(startLine, startColumn, endLine, endColumn, source) {
       source: buildSource(source),
       start: buildPosition(startLine, startColumn),
       end: buildPosition(endLine, endColumn)
-    }; 
+    };
   }
 }
 

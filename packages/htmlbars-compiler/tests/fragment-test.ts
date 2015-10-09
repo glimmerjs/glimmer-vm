@@ -44,7 +44,7 @@
            //'span has the right namespace' );
   //});
 //}
-  
+
 //test('compiles an svg element with classes', function () {
   //let ast = preprocess('<svg class="red right hand"></svg>');
   //let svgNode = fragmentFor(ast).firstChild;

@@ -6,7 +6,7 @@ export default class ForkedReference implements NotifiableReference, HasGuid {
   private chain: Destroyable;
   public _guid: number = null;
   private dirty: boolean = true;
-  
+
   constructor(reference: ChainableReference) {
     this.reference = reference;
     this._guid = null;

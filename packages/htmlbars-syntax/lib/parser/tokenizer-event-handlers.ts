@@ -65,7 +65,7 @@ export default {
 
     let tag = this.currentNode;
     tag.loc = b.loc(tagLine, tagColumn, line, column);
-    
+
     if (tag.type === 'StartTag') {
       this.finishStartTag();
 

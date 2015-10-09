@@ -70,7 +70,7 @@ test('AST plugins can be chained', function() {
 
   let ast = parse('<div></div>', {
     plugins: {
-      ast: [ 
+      ast: [
         Plugin,
         SecondaryPlugin
       ]

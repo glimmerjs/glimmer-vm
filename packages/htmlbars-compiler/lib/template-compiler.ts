@@ -422,4 +422,3 @@ export let Template = struct({
   locals: types.ARRAY,
   templates: types.ARRAY
 });
-
