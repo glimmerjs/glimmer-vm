@@ -50,19 +50,19 @@ module.exports = function() {
     include: ['*/index.d.ts'],
 
     getDestinationPath: function(relativePath) {
-      return relativePath.replace(/\/index\.d\.ts$/, '.js');
+      return relativePath.replace(/\.d\.ts$/, '.js');
     }
   });
 
   var tsTree = new Funnel('packages', {
     include: ["**/*.ts"],
-    exclude: ["**/*.d.ts"]
+    exclude: ['**/*.d.ts']
   });
 
   var jsTree = typescript(tsTree);
 
   var libTree = new Funnel(jsTree, {
-    include: ["*/lib/**/*.js"],
+    include: ["*/lib/**/*.js"]
   });
 
   var packagesTree = mergeTrees([DTSTree, libTree, HTMLTokenizer]);
@@ -98,17 +98,18 @@ module.exports = function() {
     destDir: '/tests'
   });
 
+  var shims = new Funnel('build-support/shims');
   var transpiledCompiler = transpile(compilerTree, 'transpiledLibs');
   var transpiledRuntime = transpile(runtimeTree, 'transpiledRuntime');
   var transpiledTests = transpile(testTree, 'transpiledTests');
 
-  var concatenatedCompiler = concatFiles(transpiledCompiler, {
+  var concatenatedCompiler = concatFiles(mergeTrees([transpiledCompiler, shims]), {
     inputFiles: ['**/*.js'],
     outputFile: '/amd/glimmer-compiler.amd.js',
     sourceMapConfig: { enabled: true }
   });
 
-  var concatenatedRuntime = concatFiles(transpiledRuntime, {
+  var concatenatedRuntime = concatFiles(mergeTrees([transpiledRuntime, shims]), {
     inputFiles: ['**/*.js'],
     outputFile: '/amd/glimmer-runtime.amd.js',
     sourceMapConfig: { enabled: true }

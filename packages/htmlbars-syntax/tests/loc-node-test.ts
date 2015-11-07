@@ -1,4 +1,4 @@
-import { parse } from "../htmlbars-syntax";
+import { parse } from "../index";
 
 QUnit.module("[htmlbars-syntax] Parser - Location Info");
 
