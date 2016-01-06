@@ -7,6 +7,7 @@ var getVersion = require('git-repo-version');
 var stew = require('broccoli-stew');
 var mv = stew.mv;
 var find = stew.find;
+var rename = stew.rename;
 
 function transpile(tree, label) {
   return transpileES6(tree, label, { resolveModuleSource: null, sourceMaps: 'inline' });
@@ -16,10 +17,12 @@ module.exports = function() {
   var packages = 'packages/node_modules';
 
   var bower = 'bower_components';
+  var helpers = '/glimmer-test-helpers/lib/';
 
   var demoTS = merge([
     find('demos', { include: ['**/*.ts']}),
-    mv(packages + '/glimmer-test-helpers/lib/environment.ts', 'glimmer-demos/index.ts')
+    mv(packages + helpers + 'helpers.ts', 'glimmer-demos/helpers.ts'),
+    mv(packages + helpers + 'environment.ts', 'glimmer-demos/index.ts')
   ]);
 
   var demoES6 = typescript(demoTS);
@@ -31,7 +34,9 @@ module.exports = function() {
     sourceMapConfig: { enabled: true }
   });
 
-  var benchmarkjs = find('node_modules/benchmark/{benchmark.js}');
+  var benchmarkjs = rename(find('node_modules/benchmark/{benchmark.js}'), function(relativePath) {
+    return '/benchmark.js'
+  });
   var benchHarness = 'bench';
   var bench = find(
     merge([
