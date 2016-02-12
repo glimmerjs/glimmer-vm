@@ -67,5 +67,20 @@
     <script src="../amd/glimmer-compiler.amd.js"></script>
     <script src="../amd/glimmer-runtime.amd.js"></script>
     <script src="./demos.amd.js"></script>
+    <script type="text/javascript">
+    (function () {
+      var query = window.location.search;
+      if (query === "?start") {
+        require("glimmer-demos/uptime").toggle({
+          perf: true
+        });
+      } else if (query === "?once") {
+        require("glimmer-demos/uptime").toggle({
+          perf: true,
+          initial: true
+        });
+      }
+    })();
+    </script>
   </body>
 </html>
