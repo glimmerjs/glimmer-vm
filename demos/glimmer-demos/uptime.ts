@@ -67,36 +67,71 @@ let app = env.compile(`
 let clear;
 let playing = false;
 
-export function toggle() {
+export function toggle(opts?: {
+  perf?: boolean;
+  initial?: boolean;
+}) {
   if (playing) {
+    playing = false;
     window['playpause'].innerHTML = "Play";
     clearInterval(clear);
   } else {
-    window['playpause'].innerHTML = "Pause";
-    start();
     playing = true;
+    window['playpause'].innerHTML = "Pause";
+    start(opts);
   }
 }
 
-function start() {
+function start(options: {
+  perf?: boolean;
+  initial?: boolean;
+}) {
+  let opts = options || {};
   let output = document.getElementById('output');
-
-  console.time('rendering');
+  if (opts.perf) {
+    performance.mark("renderStart");
+  } else {
+    console.time('rendering');
+  }
   env.begin();
 
   let self = new UpdatableReference({ servers: servers() });
   let result = app.render(self, env, { appendTo: output });
-
-  console.log(env['createdComponents'].length);
+  if (!opts.perf) {
+    console.log(env['createdComponents'].length);
+  }
   env.commit();
-  console.timeEnd('rendering');
+  if (opts.perf) {
+    performance.mark("renderEnd");
+    performance.measure("initialRender", "domLoading", "renderEnd");
+    performance.measure("render", "renderStart", "renderEnd");
+  } else {
+    console.timeEnd('rendering');
+  }
 
-  clear = setInterval(function() {
-    self.update({ servers: servers() });
-    console.time('updating');
-    result.rerender();
-    console.timeEnd('updating');
-  }, 50);
+  if (opts.initial) {
+    toggle();
+    setTimeout(function() {
+      // set flag so tracing automation knows it can stop tracing
+      window["initialRenderDone"] = true;
+    }, 0);
+  } else {
+    clear = setInterval(function() {
+      self.update({ servers: servers() });
+      if (opts.perf) {
+        performance.mark("updateStart");
+      } else {
+        console.time('updating');
+      }
+      result.rerender();
+      if (opts.perf) {
+        performance.mark("updateEnd");
+        performance.measure("update", "updateStart", "updateEnd");
+      } else {
+        console.timeEnd('updating');
+      }
+    }, 50);
+  }
 }
 
 function servers() {
