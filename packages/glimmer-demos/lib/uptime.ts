@@ -78,7 +78,6 @@ export function toggle() {
 
   if (playing) {
     window['playpause'].innerHTML = "Play";
-    clearInterval(clear);
     playing = false;
   } else {
     window['playpause'].innerHTML = "Pause";
@@ -102,12 +101,14 @@ function init() {
 }
 
 function start() {
-  clear = setInterval(function() {
+  requestAnimationFrame(function() {
+    if (!playing) { return; }
     serversRef.update({ servers: servers() });
     console.time('updating');
     result.rerender();
     console.timeEnd('updating');
-  }, 50);
+    start();
+  });
 }
 
 function servers() {
