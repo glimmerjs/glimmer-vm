@@ -1050,6 +1050,12 @@ QUnit.test('correct scope - simple', assert => {
    equalsElement(view.element, 'p', {}, '0');
 });
 
+QUnit.test("Nested comments", (assert) => {
+  appendViewFor("{{!--<h1>{{!--WAT --}}</h1>--}}", {});
+
+  equalsElement(view.element, 'div', {}, '');
+});
+
 QUnit.test('correct scope - complex', assert => {
   env.registerBasicComponent('sub-item', BasicComponent,
     `<p>{{@name}}</p>`
