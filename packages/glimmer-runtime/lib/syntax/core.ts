@@ -1174,7 +1174,7 @@ export class NamedArgs {
     let compiledMap = dict<CompiledExpression<Opaque>>();
 
     Object.keys(map).forEach(key => {
-      compiledMap[key] = map[key].compile(compiler, env);
+      compiledMap[key] = env.expression(key, map[key]).compile(compiler, env);
     });
 
     return CompiledNamedArgs.create({ map: compiledMap });

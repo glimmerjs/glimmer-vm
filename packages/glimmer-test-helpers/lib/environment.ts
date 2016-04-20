@@ -11,6 +11,7 @@ import {
 
   // Environment
   ParsedStatement,
+  ParsedExpression,
   Environment,
   Helper as GlimmerHelper,
   DOMHelper,
@@ -34,6 +35,7 @@ import {
 
   // Syntax Classes
   StatementSyntax,
+  ExpressionSyntax,
 
   // Concrete Syntax
   Layout,

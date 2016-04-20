@@ -135,6 +135,7 @@ export {
   default as Environment,
   Helper,
   ParsedStatement,
+  ParsedExpression,
   DynamicScope
 } from './lib/environment';
 

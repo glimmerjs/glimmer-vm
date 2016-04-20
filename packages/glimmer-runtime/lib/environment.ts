@@ -33,6 +33,7 @@ import IfSyntax from './syntax/builtins/if';
 import UnlessSyntax from './syntax/builtins/unless';
 import WithSyntax from './syntax/builtins/with';
 import EachSyntax from './syntax/builtins/each';
+import { Expression as ExpressionSyntax } from './syntax';
 
 type ScopeSlot = PathReference<Opaque> | InlineBlock;
 
@@ -121,8 +122,17 @@ export abstract class Environment {
     return intern(ensureGuid(object) + '');
   }
 
+  expression(key: string, expression: ExpressionSyntax<Opaque>): ExpressionSyntax<Opaque> {
+    return this.refineExpression(parseExpression(key, expression)) || expression;
+  }
+
   statement(statement: StatementSyntax): StatementSyntax {
     return this.refineStatement(parseStatement(statement)) || statement;
+  }
+
+  protected refineExpression(expression: ParsedExpression): ExpressionSyntax<Opaque> {
+    console.log(expression);
+    return null;
   }
 
   protected refineStatement(statement: ParsedStatement): StatementSyntax {
@@ -217,6 +227,12 @@ export interface Helper {
   (args: EvaluatedArgs): PathReference<Opaque>;
 }
 
+export interface ParsedExpression {
+  type: string;
+  key: string;
+  parts: InternedString[]
+}
+
 export interface ParsedStatement {
   isSimple: boolean;
   path: InternedString[];
@@ -225,6 +241,21 @@ export interface ParsedStatement {
   isInline: boolean;
   isBlock: boolean;
   templates: Syntax.Templates;
+}
+
+function parseExpression(key: string, expression: ExpressionSyntax<Opaque>): ParsedExpression {
+  let type = expression.type;
+  let parts;
+
+  let ref = type === 'ref' ? <Syntax.Ref>expression : null;
+  let get = type === 'get' ? <Syntax.Get>expression : null;
+
+  if (ref) {
+    parts = ref.parts;
+  } else if (get) {
+    parts = get.ref.parts
+  }
+  return { key, type, parts };
 }
 
 function parseStatement(statement: StatementSyntax): ParsedStatement {

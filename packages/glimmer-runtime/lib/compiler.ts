@@ -40,7 +40,8 @@ import OpcodeBuilder, {
 import {
   Statement as StatementSyntax,
   Attribute as AttributeSyntax,
-  StatementCompilationBuffer
+  StatementCompilationBuffer,
+  Expression as ExpressionSyntax
 } from './syntax';
 
 import {
@@ -62,6 +63,10 @@ abstract class Compiler {
     this.current = block.program.head();
     this.env = env;
     this.symbolTable = block.symbolTable;
+  }
+
+  protected compileExpression(key: string, expression: ExpressionSyntax<Opaque>) {
+    this.env.expression(key, expression);
   }
 
   protected compileStatement(statement: StatementSyntax, ops: StatementCompilationBuffer) {

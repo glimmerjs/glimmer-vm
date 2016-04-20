@@ -1662,6 +1662,14 @@ let styles = [{
   tagName: 'not-an-ember-component'
 }];
 
+QUnit.test('chads test', (assert) => {
+  env.registerEmberishCurlyComponent('foo-bar', null, `hello`);
+
+  appendViewFor('{{foo-bar class=someClass classNameBindings=someOtherClass}}', { someClass: true });
+
+  assert.ok(true);
+});
+
 styles.forEach(style => {
   QUnit.test(`non-block without attributes replaced with ${style.name}`, function() {
     env.registerEmberishGlimmerComponent('non-block', null, `  <${style.tagName}>In layout</${style.tagName}>  `);
