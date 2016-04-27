@@ -46,6 +46,7 @@ import {
 
   // Misc
   ElementOperations,
+  OpcodeBuilderDSL
 } from "glimmer-runtime";
 
 import { compile as rawCompile, compileLayout as rawCompileLayout } from "./helpers";
@@ -829,8 +830,8 @@ class IdentitySyntax extends StatementSyntax {
     this.templates = templates;
   }
 
-  compile(compiler: CompileInto) {
-    compiler.append(new EvaluateOpcode({ debug: "default", block: this.templates.default }));
+  compile(dsl: OpcodeBuilderDSL) {
+    dsl.evaluate({ debug: "default", block: this.templates.default });
   }
 }
 
@@ -846,8 +847,8 @@ class RenderInverseIdentitySyntax extends StatementSyntax {
     this.templates = templates;
   }
 
-  compile(compiler: CompileInto) {
-    compiler.append(new EvaluateOpcode({ debug: "inverse", block: this.templates.inverse }));
+  compile(dsl: OpcodeBuilderDSL) {
+    dsl.evaluate({ debug: "inverse", block: this.templates.inverse });
   }
 }
 
@@ -863,9 +864,7 @@ class WithKeywordsSyntax extends StatementSyntax {
     this.templates = templates;
   }
 
-  compile(compiler: StatementCompilationBuffer, env: Environment) {
-    let args = this.args.compile(compiler, env);
-
+  compile(dsl: OpcodeBuilderDSL, env: Environment) {
     let callback = (_vm: VM, _scope: DynamicScope) => {
       let vm = _vm as any;
       let scope = _scope as any as TestDynamicScope;
@@ -875,11 +874,13 @@ class WithKeywordsSyntax extends StatementSyntax {
       scope.set(args.named.map);
     };
 
-    compiler.append(new PutArgsOpcode({ args }));
-    compiler.append(new PushDynamicScopeOpcode());
-    compiler.append(new BindDynamicScopeOpcode(callback));
-    compiler.append(new EvaluateOpcode({ debug: "default", block: this.templates.default }));
-    compiler.append(new PopDynamicScopeOpcode());
+    let { args, templates } = this;
+
+    dsl.putArgs({ args });
+    dsl.pushDynamicScope();
+    dsl.bindDynamicScope({ callback });
+    dsl.evaluate({ debug: "default", block: templates.default });
+    dsl.popDynamicScope();
   }
 }
 
