@@ -185,13 +185,19 @@ export class CloseElementOpcode extends Opcode {
   }
 }
 
+export interface StaticAttrOptions {
+  namespace: InternedString;
+  name: InternedString;
+  value: InternedString;
+}
+
 export class StaticAttrOpcode extends Opcode {
   public type = "static-attr";
   public namespace: InternedString;
   public name: InternedString;
   public value: ValueReference<string>;
 
-  constructor({ namespace, name, value,  }: { namespace: InternedString, name: InternedString, value: InternedString }) {
+  constructor({ namespace, name, value }: StaticAttrOptions) {
     super();
     this.namespace = namespace;
     this.name = name;
@@ -482,12 +488,17 @@ function formatElement(element: Element): string {
   return JSON.stringify(`<${element.tagName.toLowerCase()} />`);
 }
 
+export interface DynamicAttrNSOptions {
+  name: InternedString;
+  namespace: InternedString;
+}
+
 export class DynamicAttrNSOpcode extends Opcode {
   public type = "dynamic-attr";
   public name: InternedString;
   public namespace: InternedString;
 
-  constructor({ name, namespace }: { name: InternedString, namespace: InternedString }) {
+  constructor({ name, namespace }: DynamicAttrNSOptions) {
     super();
     this.name = name;
     this.namespace = namespace;
@@ -515,11 +526,15 @@ export class DynamicAttrNSOpcode extends Opcode {
   }
 }
 
+export interface SimpleAttrOptions {
+  name: InternedString;
+}
+
 export class DynamicAttrOpcode extends Opcode {
   public type = "dynamic-attr";
   public name: InternedString;
 
-  constructor({ name }: { name: InternedString }) {
+  constructor({ name }: SimpleAttrOptions) {
     super();
     this.name = name;
   }
@@ -546,7 +561,7 @@ export class DynamicPropOpcode extends Opcode {
   public type = "dynamic-prop";
   public name: InternedString;
 
-  constructor({ name }: { name: InternedString }) {
+  constructor({ name }: SimpleAttrOptions) {
     super();
     this.name = name;
   }
@@ -592,6 +607,10 @@ export class PatchElementOpcode extends DOMUpdatingOpcode {
       details: operation.toJSON()
     };
   }
+}
+
+export interface CommentOptions {
+  comment: InternedString;
 }
 
 export class CommentOpcode extends Opcode {

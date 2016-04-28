@@ -15,6 +15,8 @@ import {
   ExitOpcode
 } from '../../compiled/opcodes/vm';
 
+import OpcodeBuilderDSL from '../../compiled/opcodes/builder';
+
 import * as Syntax from '../core';
 import Environment from '../../environment';
 
@@ -35,7 +37,7 @@ export default class WithSyntax extends StatementSyntax {
     return `#with ${this.args.prettyPrint()}`;
   }
 
-  compile(compiler: CompileInto & SymbolLookup, env: Environment) {
+  compile(dsl: OpcodeBuilderDSL, env: Environment) {
     //        Enter(BEGIN, END)
     // BEGIN: Noop
     //        PutArgs
@@ -48,30 +50,32 @@ export default class WithSyntax extends StatementSyntax {
     // END:   Noop
     //        Exit
 
-    let BEGIN = new LabelOpcode({ label: "BEGIN" });
-    let ELSE = new LabelOpcode({ label: "ELSE" });
-    let END = new LabelOpcode({ label: "END" });
+    let { args, templates } = this;
 
-    compiler.append(new EnterOpcode({ begin: BEGIN, end: END }));
-    compiler.append(BEGIN);
-    compiler.append(new PutArgsOpcode({ args: this.args.compile(compiler, env) }));
-    compiler.append(new TestOpcode());
+    let BEGIN = dsl.label({ label: "BEGIN" });
+    let ELSE = dsl.label({ label: "ELSE" });
+    let END = dsl.label({ label: "END" });
 
-    if (this.templates.inverse) {
-      compiler.append(new JumpUnlessOpcode({ target: ELSE }));
+    dsl.enter({ begin: BEGIN, end: END });
+    dsl.append(BEGIN);
+    dsl.putArgs({ args });
+    dsl.test();
+
+    if (templates.inverse) {
+      dsl.jumpUnless({ target: ELSE });
     } else {
-      compiler.append(new JumpUnlessOpcode({ target: END }));
+      dsl.jumpUnless({ target: END });
     }
 
-    compiler.append(new EvaluateOpcode({ debug: "default", block: this.templates.default }));
-    compiler.append(new JumpOpcode({ target: END }));
+    dsl.evaluate({ debug: "default", block: templates.default })
+    dsl.jump({ target: END });
 
-    if (this.templates.inverse) {
-      compiler.append(ELSE);
-      compiler.append(new EvaluateOpcode({ debug: "inverse", block: this.templates.inverse }));
+    if (templates.inverse) {
+      dsl.append(ELSE);
+      dsl.evaluate({ debug: "inverse", block: templates.inverse });
     }
 
-    compiler.append(END);
-    compiler.append(new ExitOpcode());
+    dsl.append(END);
+    dsl.exit();
   }
 }

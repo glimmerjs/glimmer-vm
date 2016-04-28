@@ -47,6 +47,10 @@ export {
 } from './lib/opcode-builder';
 
 export {
+  default as OpcodeBuilderDSL
+} from './lib/compiled/opcodes/builder';
+
+export {
   Block,
   BlockOptions,
   Layout,

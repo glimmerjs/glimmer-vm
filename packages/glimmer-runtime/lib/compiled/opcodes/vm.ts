@@ -24,6 +24,10 @@ export class PushChildScopeOpcode extends Opcode {
   }
 }
 
+export interface PushRootScopeOptions {
+  size: number;
+}
+
 export class PushRootScopeOpcode extends Opcode {
   public type = "push-root-scope";
   public size: number;
@@ -92,12 +96,16 @@ export class PutValueOpcode extends Opcode {
   }
 }
 
+export interface PutArgsOptions {
+  args: CompiledArgs;
+}
+
 export class PutArgsOpcode extends Opcode {
   public type = "put-args";
 
   private args: CompiledArgs;
 
-  constructor({ args }: { args: CompiledArgs }) {
+  constructor({ args }: PutArgsOptions) {
     super();
     this.args = args;
   }
@@ -118,13 +126,17 @@ export class PutArgsOpcode extends Opcode {
   }
 }
 
+export interface BindPositionalArgsOptions {
+  block: InlineBlock
+}
+
 export class BindPositionalArgsOpcode extends Opcode {
   public type = "bind-positional-args";
 
   private names: string[];
   private positional: number[];
 
-  constructor({ block }: { block: InlineBlock }) {
+  constructor({ block }: BindPositionalArgsOptions) {
     super();
 
     this.names = block.locals;
@@ -146,6 +158,10 @@ export class BindPositionalArgsOpcode extends Opcode {
       args: [`[${this.names.map(name => JSON.stringify(name)).join(", ")}]`]
     };
   }
+}
+
+export interface BindNamedArgsOptions {
+  named: Dict<number>;
 }
 
 export class BindNamedArgsOpcode extends Opcode {
@@ -185,6 +201,10 @@ export class BindNamedArgsOpcode extends Opcode {
   }
 }
 
+export interface BindBlocksOptions {
+  blocks: Dict<number>;
+}
+
 export class BindBlocksOpcode extends Opcode {
   public type = "bind-blocks";
 
@@ -209,6 +229,8 @@ export class BindBlocksOpcode extends Opcode {
   }
 }
 
+export { BindDynamicScopeCallback };
+
 export class BindDynamicScopeOpcode extends Opcode {
   public type = "bind-dynamic-scope";
 
@@ -224,11 +246,16 @@ export class BindDynamicScopeOpcode extends Opcode {
   }
 }
 
+export interface EnterOptions {
+  begin: LabelOpcode;
+  end: LabelOpcode;
+}
+
 export class EnterOpcode extends Opcode {
   public type = "enter";
   private slice: Slice<Opcode>;
 
-  constructor({ begin, end }: { begin: LabelOpcode, end: LabelOpcode }) {
+  constructor({ begin, end }: EnterOptions) {
     super();
     this.slice = new ListSlice(begin, end);
   }
@@ -262,12 +289,16 @@ export class ExitOpcode extends Opcode {
   }
 }
 
+export interface LabelOptions {
+  label?: string;
+}
+
 export class LabelOpcode extends Opcode {
   public type = "label";
 
   public label: string = null;
 
-  constructor({ label }: { label?: string }) {
+  constructor({ label }: LabelOptions) {
     super();
     if (label) this.label = label;
   }
@@ -286,6 +317,11 @@ export class LabelOpcode extends Opcode {
       args: [JSON.stringify(this.inspect())]
     };
   }
+}
+
+export interface EvaluateOptions {
+  debug: string;
+  block: InlineBlock;
 }
 
 export class EvaluateOpcode extends Opcode {
@@ -326,6 +362,10 @@ export class TestOpcode extends Opcode {
       args: ["$OPERAND"]
     };
   }
+}
+
+export interface JumpOptions {
+  target: LabelOpcode;
 }
 
 export class JumpOpcode extends Opcode {
