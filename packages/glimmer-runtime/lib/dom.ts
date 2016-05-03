@@ -53,6 +53,10 @@ class DOMHelper {
     this.uselessElement = this.document.createElement('div');
   }
 
+  getAttribute(element: Element, name: string) {
+    return element.getAttribute(name);
+  }
+
   setAttribute(element: Element, name: string, value: string) {
     element.setAttribute(name, value);
   }
