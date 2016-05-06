@@ -1,5 +1,6 @@
 import { FIXME, LinkedList, ListNode, InternedString, Opaque, dict } from 'glimmer-util';
 import { VersionedPathReference as PathReference } from './validators';
+import { ConstReference } from './const';
 
 export interface IterationItem<T> {
   key: string;
@@ -8,6 +9,7 @@ export interface IterationItem<T> {
 
 export interface AbstractIterator<T, U extends IterationItem<T>> {
   isEmpty(): boolean;
+  getPosition(): number;
   next(): U;
 }
 
@@ -136,6 +138,10 @@ export class ReferenceIterator {
   constructor(iterable: OpaqueIterable) {
     let artifacts = new IterationArtifacts(iterable);
     this.artifacts = artifacts;
+  }
+
+  getPosition(): ConstReference<number> {
+    return new ConstReference(this.iterator.getPosition());
   }
 
   next(): IterationItem<PathReference<Opaque>> {

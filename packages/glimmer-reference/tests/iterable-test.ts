@@ -85,7 +85,8 @@ class TestIterationItem implements IterationItem<Opaque> {
 
 class TestIterator implements Iterator<Opaque> {
   private array: TestItem[];
-  private position = 0;
+  private position;
+  private nextPosition = 0;
 
   constructor(array: TestItem[]) {
     this.array = array;
@@ -95,14 +96,20 @@ class TestIterator implements Iterator<Opaque> {
     return this.array.length === 0;
   }
 
+  getPosition(): number {
+    return this.position;
+  }
+
   next(): IterationItem<Opaque> {
-    let { position, array } = this;
+    let { nextPosition, array } = this;
 
-    if (position >= array.length) return null;
+    if (nextPosition >= array.length) return null;
 
-    let value = array[position];
+    this.position = nextPosition;
 
-    this.position++;
+    let value = array[nextPosition];
+
+    this.nextPosition++;
 
     return new TestIterationItem(value.key, value);
   }

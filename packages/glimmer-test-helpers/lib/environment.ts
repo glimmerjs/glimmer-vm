@@ -85,7 +85,8 @@ type KeyFor = (item: Opaque, index: number) => string;
 class ArrayIterator implements OpaqueIterator {
   private array: Opaque[];
   private keyFor: KeyFor;
-  private position = 0;
+  private nextPosition = 0;
+  private position;
 
   constructor(array: any[], keyFor: KeyFor) {
     this.array = array;
@@ -96,15 +97,21 @@ class ArrayIterator implements OpaqueIterator {
     return this.array.length === 0;
   }
 
+  getPosition(): number {
+    return this.position;
+  }
+
   next(): IterationItem<Opaque> {
-    let { position, array, keyFor } = this;
+    let { nextPosition, array, keyFor } = this;
 
-    if (position >= array.length) return null;
+    if (nextPosition >= array.length) return null;
 
-    let value = array[position];
-    let key = keyFor(value, position);
+    this.position = nextPosition;
 
-    this.position++;
+    let value = array[nextPosition];
+    let key = keyFor(value, nextPosition);
+
+    this.nextPosition++;
 
     return { key, value };
   }
@@ -113,6 +120,10 @@ class ArrayIterator implements OpaqueIterator {
 class EmptyIterator implements OpaqueIterator {
   isEmpty(): boolean {
     return true;
+  }
+
+  getPosition(): number {
+    return undefined;
   }
 
   next(): IterationItem<Opaque> {
