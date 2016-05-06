@@ -9,7 +9,7 @@ export interface IterationItem<T> {
 
 export interface AbstractIterator<T, U extends IterationItem<T>> {
   isEmpty(): boolean;
-  getPosition(): number;
+  getPosition(): number | FIXME<'user str to InternedString'>;
   next(): U;
 }
 
@@ -140,7 +140,7 @@ export class ReferenceIterator {
     this.artifacts = artifacts;
   }
 
-  getPosition(): ConstReference<number> {
+  getPosition(): ConstReference< number | FIXME<'user str to InternedString'>> {
     return new ConstReference(this.iterator.getPosition());
   }
 

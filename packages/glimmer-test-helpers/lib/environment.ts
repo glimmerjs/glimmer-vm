@@ -97,7 +97,7 @@ class ArrayIterator implements OpaqueIterator {
     return this.array.length === 0;
   }
 
-  getPosition(): number {
+  getPosition(): number | FIXME<'user str to InternedString'> {
     return this.position;
   }
 
@@ -117,12 +117,54 @@ class ArrayIterator implements OpaqueIterator {
   }
 }
 
+class KVPair implements IterationItem<Opaque> {
+  key: string;
+  value: Opaque;
+
+  constructor(key: string, value: Opaque) {
+    this.key = key;
+    this.value = value;
+  }
+};
+
+class ObjectKeysIterator implements OpaqueIterator {
+  private array: IterationItem<Opaque>[];
+  private nextPosition = 0;
+  private position;
+
+  constructor(kvPairs: KVPair[]) {
+    this.array = kvPairs;
+  }
+
+  isEmpty(): boolean {
+    return this.array.length === 0;
+  }
+
+  getPosition(): number | FIXME<'user str to InternedString'> {
+    return this.array[this.position].key;
+  }
+
+  next(): IterationItem<Opaque> {
+    let { nextPosition, array } = this;
+
+    if (nextPosition >= array.length) return null;
+
+    this.position = nextPosition;
+
+    let kvPair = array[nextPosition];
+
+    this.nextPosition++;
+
+    return kvPair;
+  }
+}
+
 class EmptyIterator implements OpaqueIterator {
   isEmpty(): boolean {
     return true;
   }
 
-  getPosition(): number {
+  getPosition(): number | FIXME<'user str to InternedString'> {
     return undefined;
   }
 
@@ -157,6 +199,10 @@ class Iterable implements AbstractIterable<Opaque, IterationItem<Opaque>, Updata
       return array.length > 0 ? new ArrayIterator(array, keyFor) : EMPTY_ITERATOR;
     } else if (iterable === undefined || iterable === null) {
       return EMPTY_ITERATOR;
+    } else if (typeof iterable === 'object') {
+      let keys = Object.keys(iterable);
+      let kvPairs = keys.map(key => new KVPair(key, iterable[key]));
+      return keys.length > 0 ? new ObjectKeysIterator(kvPairs) : EMPTY_ITERATOR;
     } else {
       throw new Error(`Don't know how to {{#each ${iterable}}}`);
     }
