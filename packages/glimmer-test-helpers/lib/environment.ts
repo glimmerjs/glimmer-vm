@@ -97,7 +97,7 @@ class ArrayIterator implements OpaqueIterator {
     return this.array.length === 0;
   }
 
-  getPosition(): number | FIXME<'user str to InternedString'> {
+  getPosition(): number {
     return this.position;
   }
 
@@ -118,8 +118,8 @@ class ArrayIterator implements OpaqueIterator {
 }
 
 class KVPair implements IterationItem<Opaque> {
-  key: string;
-  value: Opaque;
+  public key: string;
+  public value: Opaque;
 
   constructor(key: string, value: Opaque) {
     this.key = key;
@@ -140,7 +140,7 @@ class ObjectKeysIterator implements OpaqueIterator {
     return this.array.length === 0;
   }
 
-  getPosition(): number | FIXME<'user str to InternedString'> {
+  getPosition(): FIXME<'user str to InternedString'> {
     return this.array[this.position].key;
   }
 
