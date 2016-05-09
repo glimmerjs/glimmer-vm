@@ -128,7 +128,7 @@ class KVPair implements IterationItem<Opaque> {
 };
 
 class ObjectKeysIterator implements OpaqueIterator {
-  private array: IterationItem<Opaque>[];
+  private array: KVPair[];
   private nextPosition = 0;
   private position;
 

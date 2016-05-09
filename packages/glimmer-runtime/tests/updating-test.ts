@@ -52,6 +52,23 @@ function rerender(context: any = null) {
   result.rerender();
 }
 
+function getNodeByClassName(className) {
+  let itemNode = root.querySelector(`.${className}`);
+  ok(itemNode, "Expected node with class='" + className + "'");
+  return itemNode;
+}
+
+function getFirstChildOfNode(className) {
+  // {{item.name}}
+  let itemNode = getNodeByClassName(className);
+  ok(itemNode, "Expected child node of node with class='" + className + "', but no parent node found");
+
+  let childNode = itemNode && itemNode.firstChild;
+  ok(childNode, "Expected child node of node with class='" + className + "', but not child node found");
+
+  return childNode;
+}
+
 QUnit.module("Updating", {
   setup: commonSetup
 });
@@ -1263,6 +1280,71 @@ testEachHelper(
   QUnit.skip
 );
 
+test('The each helper with inverse', function () {
+  let object = { list: [] };
+  let template = compile(`<ul>{{#each list key='name' as |item|}}<li class="{{item.class}}">{{item.name}}</li>{{else}}<li class="none">none</li>{{/each}}</ul>`);
+
+  render(template, object);
+
+  let itemNode = getNodeByClassName('none');
+  let textNode = getFirstChildOfNode('none');
+
+  equalTokens(root, `<ul><li class="none">none</li></none`);
+
+  rerender(object);
+  assertStableNodes('none', 'after no-op rerender');
+
+  object = { list: [ { name: 'Foo Bar', class: "foobar" } ] };
+  rerender(object);
+
+  equalTokens(root, '<ul><li class="foobar">Foo Bar</li></ul>');
+
+  object = { list: [] };
+  rerender(object);
+
+  equalTokens(root, '<ul><li class="none">none</li></ul>');
+
+  function assertStableNodes(className, message) {
+    strictEqual(getNodeByClassName(className), itemNode, "The item node has not changed " + message);
+    strictEqual(getFirstChildOfNode(className), textNode, "The text node has not changed " + message);
+  }
+});
+
+test('The each helper yields the index of the current item', function () {
+  let tom = { name: "Tom Dale", "class": "tomdale" };
+  let yehuda = { name: "Yehuda Katz", "class": "wycats" };
+  let object = { list: [tom, yehuda] };
+  let template = compile("<ul>{{#each list key='@index' as |item index|}}<li class='{{item.class}}'>{{item.name}}<p class='index-{{index}}'>{{index}}</p></li>{{/each}}</ul>");
+
+  render(template, object);
+
+  let itemNode = getNodeByClassName('tomdale');
+  let indexNode = getNodeByClassName('index-0');
+  let nameNode = getFirstChildOfNode('tomdale');
+
+  equalTokens(root, "<ul><li class='tomdale'>Tom Dale<p class='index-0'>0</p></li><li class='wycats'>Yehuda Katz<p class='index-1'>1</p></li></ul>", "Initial render");
+
+  rerender();
+  assertStableNodes('tomdale', 0, 'after no-op rerender');
+  equalTokens(root, "<ul><li class='tomdale'>Tom Dale<p class='index-0'>0</p></li><li class='wycats'>Yehuda Katz<p class='index-1'>1</p></li></ul>", "After no-op render");
+
+  rerender();
+  assertStableNodes('tomdale', 0, 'after non-dirty rerender');
+  equalTokens(root, "<ul><li class='tomdale'>Tom Dale<p class='index-0'>0</p></li><li class='wycats'>Yehuda Katz<p class='index-1'>1</p></li></ul>", "After non-dirty render");
+
+  object = { list: [yehuda, tom] };
+  rerender(object);
+  equalTokens(root, "<ul><li class='wycats'>Yehuda Katz<p class='index-0'>0</p></li><li class='tomdale'>Tom Dale<p class='index-1'>1</p></li></ul>", "After changing list order");
+  strictEqual(getNodeByClassName(`index-0`), indexNode, "The index node has not changed after changing list order");
+
+
+  function assertStableNodes(className, index, message) {
+    strictEqual(getNodeByClassName(className), itemNode, "The item node has not changed " + message);
+    strictEqual(getNodeByClassName(`index-${index}`), indexNode, "The index node has not changed " + message);
+    strictEqual(getFirstChildOfNode(className), nameNode, "The name node has not changed " + message);
+  }
+});
+
 function testEachHelper(testName, templateSource, testMethod=QUnit.test) {
   testMethod(testName, function() {
     let template = compile(templateSource);
@@ -1272,8 +1354,8 @@ function testEachHelper(testName, templateSource, testMethod=QUnit.test) {
 
     render(template, object);
 
-    let itemNode = getItemNode('tomdale');
-    let nameNode = getNameNode('tomdale');
+    let itemNode = getNodeByClassName('tomdale');
+    let nameNode = getFirstChildOfNode('tomdale');
 
     equalTokens(root, "<ul><li class='tomdale'>Tom Dale</li><li class='wycats'>Yehuda Katz</li></ul>", "Initial render");
 
@@ -1283,7 +1365,7 @@ function testEachHelper(testName, templateSource, testMethod=QUnit.test) {
 
     rerender();
     assertStableNodes('tomdale', "after non-dirty rerender");
-    equalTokens(root, "<ul><li class='tomdale'>Tom Dale</li><li class='wycats'>Yehuda Katz</li></ul>", "After no-op re-render");
+    equalTokens(root, "<ul><li class='tomdale'>Tom Dale</li><li class='wycats'>Yehuda Katz</li></ul>", "After non-dirty re-render");
 
     object = { list: [yehuda, tom] };
     rerender(object);
@@ -1342,8 +1424,8 @@ function testEachHelper(testName, templateSource, testMethod=QUnit.test) {
     );
 
     // New node for stability check
-    itemNode = getItemNode('rwjblue');
-    nameNode = getNameNode('rwjblue');
+    itemNode = getNodeByClassName('rwjblue');
+    nameNode = getFirstChildOfNode('rwjblue');
 
     object = { list: [
       { key: "5", name: "Robert Jackson", "class": "rwjblue" }
@@ -1369,8 +1451,8 @@ function testEachHelper(testName, templateSource, testMethod=QUnit.test) {
     );
 
     // New node for stability check
-    itemNode = getItemNode('mmun');
-    nameNode = getNameNode('mmun');
+    itemNode = getNodeByClassName('mmun');
+    nameNode = getFirstChildOfNode('mmun');
 
     object = { list: [
       { key: "1", name: "Martin Muñoz", "class": "mmun" }
@@ -1387,32 +1469,8 @@ function testEachHelper(testName, templateSource, testMethod=QUnit.test) {
     equalTokens(root, "<ul><!----></ul>", "After removing the remaining entries");
 
     function assertStableNodes(className, message) {
-      strictEqual(getItemNode(className), itemNode, "The item node has not changed " + message);
-      strictEqual(getNameNode(className), nameNode, "The name node has not changed " + message);
-    }
-
-    function getItemNode(className) {
-      // <li>
-      let itemNode = root.firstChild.firstChild;
-
-      while (itemNode && itemNode['getAttribute']) {
-        if (itemNode['getAttribute']('class') === className) { break; }
-        itemNode = itemNode.nextSibling;
-      }
-
-      ok(itemNode, "Expected node with class='" + className + "'");
-      return itemNode;
-    }
-
-    function getNameNode(className) {
-      // {{item.name}}
-      let itemNode = getItemNode(className);
-      ok(itemNode, "Expected child node of node with class='" + className + "', but no parent node found");
-
-      let childNode = itemNode && itemNode.firstChild;
-      ok(childNode, "Expected child node of node with class='" + className + "', but not child node found");
-
-      return childNode;
+      strictEqual(getNodeByClassName(className), itemNode, "The item node has not changed " + message);
+      strictEqual(getFirstChildOfNode(className), nameNode, "The name node has not changed " + message);
     }
   });
 }
