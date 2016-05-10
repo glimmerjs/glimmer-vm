@@ -22,7 +22,7 @@ class Target implements IteratorSynchronizerDelegate {
   private list = new LinkedList<ListNode<BasicReference<any>>>();
   public tag = VOLATILE_TAG;
 
-  retain(key: string, item: BasicReference<any>) {
+  retain(key: string, item: BasicReference<any>, memo: BasicReference<any>) {
     if (item !== this.map[key].value) {
       throw new Error("unstable reference");
     }
@@ -30,18 +30,18 @@ class Target implements IteratorSynchronizerDelegate {
 
   done() {}
 
-  append(key: string, item: BasicReference<any>) {
+  append(key: string, item: BasicReference<any>, memo: BasicReference<any>) {
     let node = this.map[key] = new ListNode(item);
     this.list.append(node);
   }
 
-  insert(key: string, item: BasicReference<any>, before: string) {
+  insert(key: string, item: BasicReference<any>, memo: BasicReference<any>, before: string) {
     let referenceNode = before ? this.map[before] : null;
     let node = this.map[key] = new ListNode(item);
     this.list.insertBefore(node, referenceNode);
   }
 
-  move(key: string, item: BasicReference<any>, before: string) {
+  move(key: string, item: BasicReference<any>, memo: BasicReference<any>, before: string) {
     let referenceNode = before ? this.map[before] : null;
     let node = this.map[key];
 
@@ -73,20 +73,21 @@ interface TestItem {
   name: string;
 }
 
-class TestIterationItem implements IterationItem<Opaque> {
+class TestIterationItem implements IterationItem<Opaque, Opaque> {
   public key: string;
   public value: Opaque;
+  public memo: Opaque;
 
-  constructor(key: string, value: any) {
+  constructor(key: string, value: any, memo: any) {
     this.key = key;
     this.value = value;
+    this.memo = memo;
   }
 }
 
-class TestIterator implements Iterator<Opaque> {
+class TestIterator implements Iterator<Opaque, Opaque> {
   private array: TestItem[];
-  private position;
-  private nextPosition = 0;
+  private position = 0;
 
   constructor(array: TestItem[]) {
     this.array = array;
@@ -96,26 +97,20 @@ class TestIterator implements Iterator<Opaque> {
     return this.array.length === 0;
   }
 
-  getPosition(): number {
-    return this.position;
-  }
+  next(): IterationItem<Opaque, Opaque> {
+    let { position, array } = this;
 
-  next(): IterationItem<Opaque> {
-    let { nextPosition, array } = this;
+    if (position >= array.length) return null;
 
-    if (nextPosition >= array.length) return null;
+    let value = array[position];
 
-    this.position = nextPosition;
+    this.position++;
 
-    let value = array[nextPosition];
-
-    this.nextPosition++;
-
-    return new TestIterationItem(value.key, value);
+    return new TestIterationItem(value.key, value, position);
   }
 }
 
-class TestIterable implements AbstractIterable<Opaque, IterationItem<Opaque>, UpdatableReference<Opaque>> {
+class TestIterable implements AbstractIterable<Opaque, Opaque, IterationItem<Opaque, Opaque>, UpdatableReference<Opaque>, UpdatableReference<Opaque>> {
   private arrayRef: UpdatableReference<TestItem[]>;
 
   constructor(arrayRef: UpdatableReference<TestItem[]>) {
@@ -126,12 +121,20 @@ class TestIterable implements AbstractIterable<Opaque, IterationItem<Opaque>, Up
     return new TestIterator(this.arrayRef.value());
   }
 
-  referenceFor(item: TestIterationItem): UpdatableReference<Opaque> {
+  valueReferenceFor(item: TestIterationItem): UpdatableReference<Opaque> {
     return new UpdatableReference(item.value);
   }
 
-  updateReference(reference: UpdatableReference<Opaque>, item: TestIterationItem) {
+  updateValueReference(reference: UpdatableReference<Opaque>, item: TestIterationItem) {
     reference.update(item.value);
+  }
+
+  memoReferenceFor(item: TestIterationItem): UpdatableReference<Opaque> {
+    return new UpdatableReference(item.memo);
+  }
+
+  updateMemoReference(reference: UpdatableReference<Opaque>, item: TestIterationItem) {
+    reference.update(item.memo);
   }
 }
 
@@ -139,10 +142,10 @@ function initialize(arr: TestItem[]): { artifacts: IterationArtifacts, target: T
   let target = new Target();
   let reference = new UpdatableReference(arr);
   let iterator = new ReferenceIterator(new TestIterable(reference));
-  let item: IterationItem<Reference<Opaque>>;
+  let item: IterationItem<Reference<Opaque>, Reference<Opaque>>;
 
   while (item = iterator.next()) {
-    target.append(item.key, item.value);
+    target.append(item.key, item.value, item.memo);
   }
 
   return { reference, target, artifacts: iterator.artifacts };

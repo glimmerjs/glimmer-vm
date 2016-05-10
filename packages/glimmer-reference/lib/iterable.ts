@@ -1,49 +1,52 @@
 import { FIXME, LinkedList, ListNode, InternedString, Opaque, dict } from 'glimmer-util';
 import { VersionedPathReference as PathReference } from './validators';
-import { UpdatableReference } from 'glimmer-object-reference';
 
-export interface IterationItem<T> {
+export interface IterationItem<T, U> {
   key: string;
   value: T;
+  memo: U;
 }
 
-export interface AbstractIterator<T, U extends IterationItem<T>> {
+export interface AbstractIterator<T, U, V extends IterationItem<T, U>> {
   isEmpty(): boolean;
-  getPosition(): number | FIXME<'user str to InternedString'>;
-  next(): U;
+  next(): V;
 }
 
-export interface AbstractIterable<T, ItemType extends IterationItem<T>, ReferenceType extends PathReference<T>> {
-  iterate(): AbstractIterator<T, ItemType>;
-  referenceFor(item: ItemType): ReferenceType;
-  updateReference(reference: ReferenceType, item: ItemType);
+export interface AbstractIterable<T, U, ItemType extends IterationItem<T, U>, ValueReferenceType extends PathReference<T>, MemoReferenceType extends PathReference<U>> {
+  iterate(): AbstractIterator<T, U, ItemType>;
+
+  valueReferenceFor(item: ItemType): ValueReferenceType;
+  updateValueReference(reference: ValueReferenceType, item: ItemType);
+
+  memoReferenceFor(item: ItemType): MemoReferenceType;
+  updateMemoReference(reference: MemoReferenceType, item: ItemType);
 }
 
-export type Iterator<T> = AbstractIterator<T, IterationItem<T>>;
-export type Iterable<T> = AbstractIterable<T, IterationItem<T>, PathReference<T>>;
+export type Iterator<T, U> = AbstractIterator<T, U, IterationItem<T, U>>;
+export type Iterable<T, U> = AbstractIterable<T, U, IterationItem<T, U>, PathReference<T>, PathReference<U>>;
 
-type OpaqueIterationItem = IterationItem<Opaque>;
-export type OpaqueIterator = AbstractIterator<Opaque, OpaqueIterationItem>;
-export type OpaqueIterable = AbstractIterable<Opaque, OpaqueIterationItem, PathReference<Opaque>>;
+type OpaqueIterationItem = IterationItem<Opaque, Opaque>;
+export type OpaqueIterator = AbstractIterator<Opaque, Opaque, OpaqueIterationItem>;
+export type OpaqueIterable = AbstractIterable<Opaque, Opaque, OpaqueIterationItem, PathReference<Opaque>, PathReference<Opaque>>;
 
-class ListItem extends ListNode<PathReference<Opaque>> implements IterationItem<PathReference<Opaque>> {
+class ListItem extends ListNode<PathReference<Opaque>> implements IterationItem<PathReference<Opaque>, PathReference<Opaque>> {
   public key: InternedString;
+  public memo: PathReference<Opaque>;
   public retained: boolean = false;
   public seen: boolean = false;
   private iterable: OpaqueIterable;
-  public position: UpdatableReference<number | FIXME<'user string to InternedString'>>;
 
-  constructor(iterable: OpaqueIterable, result: OpaqueIterationItem, position: number | FIXME<'user string to InternedString'>) {
-    super(iterable.referenceFor(result));
+  constructor(iterable: OpaqueIterable, result: OpaqueIterationItem) {
+    super(iterable.valueReferenceFor(result));
     this.key = result.key as FIXME<'user string to InternedString'>;
     this.iterable = iterable;
-    this.position = new UpdatableReference(position);
+    this.memo = iterable.memoReferenceFor(result);
   }
 
-  update(item: OpaqueIterationItem, position: number | FIXME<'user string to InternedString'>) {
+  update(item: OpaqueIterationItem) {
     this.retained = true;
-    this.iterable.updateReference(this.value, item);
-    this.position.update(position);
+    this.iterable.updateValueReference(this.value, item);
+    this.iterable.updateMemoReference(this.memo, item);
   }
 
   shouldRemove(): boolean {
@@ -91,18 +94,18 @@ export class IterationArtifacts {
     return node && node.seen;
   }
 
-  append(item: OpaqueIterationItem, position: number | FIXME<'user string to InternedString'>): ListItem {
+  append(item: OpaqueIterationItem): ListItem {
     let { map, list, iterable } = this;
-    let node = map[item.key] = new ListItem(iterable, item, position);
+    let node = map[item.key] = new ListItem(iterable, item);
 
     list.append(node);
     return node;
   }
 
-  insertBefore(item: OpaqueIterationItem, reference: ListItem, position: number | FIXME<'user string to InternedString'>): ListItem {
+  insertBefore(item: OpaqueIterationItem, reference: ListItem): ListItem {
     let { map, list, iterable } = this;
 
-    let node = map[item.key] = new ListItem(iterable, item, position);
+    let node = map[item.key] = new ListItem(iterable, item);
     node.retained = true;
     list.insertBefore(node, reference);
     return node;
@@ -143,28 +146,23 @@ export class ReferenceIterator {
     this.artifacts = artifacts;
   }
 
-  getPosition(): UpdatableReference< number | FIXME<'user str to InternedString'>> {
-    return new UpdatableReference(this.iterator.getPosition());
-  }
-
   next(): ListItem {
     let { artifacts } = this;
 
     let iterator = (this.iterator = this.iterator || artifacts.iterate());
 
     let item = iterator.next();
-    let position = iterator.getPosition();
 
     if (!item) return null;
 
-    return artifacts.append(item, position);
+    return artifacts.append(item);
   }
 }
 
 export interface IteratorSynchronizerDelegate {
-  retain(key: InternedString, item: PathReference<any>);
-  insert(key: InternedString, item: PathReference<any>, before: InternedString, position: UpdatableReference<number | FIXME<'user string to InternedString'>>);
-  move(key: InternedString, item: PathReference<any>, before: InternedString);
+  retain(key: InternedString, item: PathReference<any>, memo: PathReference<any>);
+  insert(key: InternedString, item: PathReference<any>, memo: PathReference<any>, before: InternedString);
+  move(key: InternedString, item: PathReference<any>, memo: PathReference<any>, before: InternedString);
   delete(key: InternedString);
   done();
 }
@@ -228,47 +226,46 @@ export class IteratorSynchronizer {
     }
 
     let { key } = item;
-    let position = iterator.getPosition();
 
     if (current && current.key === key) {
-      this.nextRetain(item, position);
+      this.nextRetain(item);
     } else if (artifacts.has(key)) {
-      this.nextMove(item, position);
+      this.nextMove(item);
     } else {
-      this.nextInsert(item, position);
+      this.nextInsert(item);
     }
 
     return Phase.Append;
   }
 
-  private nextRetain(item: OpaqueIterationItem, position: number | FIXME<'user string to InternedString'>) {
+  private nextRetain(item: OpaqueIterationItem) {
     let { artifacts, current } = this;
 
-    current.update(item, position);
+    current.update(item);
     this.current = artifacts.nextNode(current);
-    this.target.retain(item.key as FIXME<'user string to InternedString'>, current.value);
+    this.target.retain(item.key as FIXME<'user string to InternedString'>, current.value, current.memo);
   }
 
-  private nextMove(item: OpaqueIterationItem, position: number | FIXME<'user string to InternedString'>) {
+  private nextMove(item: OpaqueIterationItem) {
     let { current, artifacts, target } = this;
     let { key } = item;
 
     let found = artifacts.get(item.key);
-    found.update(item, position);
+    found.update(item);
 
     if (artifacts.wasSeen(item.key)) {
       artifacts.move(found, current);
-      target.move(found.key, found.value, current ? current.key : null);
+      target.move(found.key, found.value, found.memo, current ? current.key : null);
     } else {
       this.advanceToKey(key as FIXME<'user string to InternedString'>);
     }
   }
 
-  private nextInsert(item: OpaqueIterationItem, position: number | FIXME<'user string to InternedString'>) {
+  private nextInsert(item: OpaqueIterationItem) {
     let { artifacts, target, current } = this;
 
-    let node = artifacts.insertBefore(item, current, position);
-    target.insert(node.key, node.value, current ? current.key : null, node.position);
+    let node = artifacts.insertBefore(item, current);
+    target.insert(node.key, node.value, node.memo, current ? current.key : null);
   }
 
   private startPrune(): Phase {

@@ -219,7 +219,7 @@ export class ListRevalidationDelegate implements IteratorSynchronizerDelegate {
     this.marker = marker;
   }
 
-  insert(key: InternedString, item: PathReference<any>, before: InternedString, position: UpdatableReference<number | FIXME<'user string to InternedString'>>) {
+  insert(key: InternedString, item: PathReference<any>, memo: PathReference<any>, before: InternedString) {
     let { map, opcode, updating } = this;
     let nextSibling: Node = null;
     let reference = null;
@@ -235,7 +235,7 @@ export class ListRevalidationDelegate implements IteratorSynchronizerDelegate {
     let tryOpcode;
 
     vm.execute(opcode.ops, vm => {
-      vm.frame.setArgs(EvaluatedArgs.positional([item, position]));
+      vm.frame.setArgs(EvaluatedArgs.positional([item, memo]));
       vm.frame.setOperand(item);
       vm.frame.setCondition(new ConstReference(true));
       vm.frame.setKey(key);
@@ -256,10 +256,10 @@ export class ListRevalidationDelegate implements IteratorSynchronizerDelegate {
     this.didInsert = true;
   }
 
-  retain(key: InternedString, item: PathReference<any>) {
+  retain(key: InternedString, item: PathReference<any>, memo: PathReference<any>) {
   }
 
-  move(key: InternedString, item: PathReference<any>, before: InternedString) {
+  move(key: InternedString, item: PathReference<any>, memo: PathReference<any>, before: InternedString) {
     let { map, updating } = this;
 
     let entry = map[<string>key];

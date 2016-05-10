@@ -80,13 +80,12 @@ import {
   UpdatableReference
 } from "glimmer-object-reference";
 
-type KeyFor = (item: Opaque, index: number) => string;
+type KeyFor = (item: Opaque, index: number | string) => string;
 
 class ArrayIterator implements OpaqueIterator {
   private array: Opaque[];
   private keyFor: KeyFor;
-  private nextPosition = 0;
-  private position;
+  private position = 0;
 
   constructor(array: Opaque[], keyFor: KeyFor) {
     this.array = array;
@@ -97,65 +96,53 @@ class ArrayIterator implements OpaqueIterator {
     return this.array.length === 0;
   }
 
-  getPosition(): number {
-    return this.position;
-  }
+  next(): IterationItem<Opaque, number> {
+    let { position, array, keyFor } = this;
 
-  next(): IterationItem<Opaque> {
-    let { nextPosition, array, keyFor } = this;
+    if (position >= array.length) return null;
 
-    if (nextPosition >= array.length) return null;
+    let value = array[position];
+    let key = keyFor(value, position);
+    let memo = position;
 
-    this.position = nextPosition;
+    this.position++;
 
-    let value = array[nextPosition];
-    let key = keyFor(value, nextPosition);
-
-    this.nextPosition++;
-
-    return { key, value };
+    return { key, value, memo };
   }
 }
 
-class KVPair implements IterationItem<Opaque> {
-  public key: string;
-  public value: Opaque;
-
-  constructor(key: string, value: Opaque) {
-    this.key = key;
-    this.value = value;
-  }
+type KVPair = {
+  key: string;
+  value: Opaque;
 };
 
 class ObjectKeysIterator implements OpaqueIterator {
   private array: KVPair[];
-  private nextPosition = 0;
-  private position;
+  private keyFor: KeyFor;
+  private position = 0;
 
-  constructor(kvPairs: KVPair[]) {
-    this.array = kvPairs;
+  constructor(array: KVPair[], keyFor: KeyFor) {
+    this.array = array;
+    this.keyFor = keyFor;
   }
 
   isEmpty(): boolean {
     return this.array.length === 0;
   }
 
-  getPosition(): string {
-    return this.array[this.position].key;
-  }
+  next(): IterationItem<Opaque, string> {
+    let { position, array, keyFor } = this;
 
-  next(): IterationItem<Opaque> {
-    let { nextPosition, array } = this;
+    if (position >= array.length) return null;
 
-    if (nextPosition >= array.length) return null;
+    let kvPair = array[position];
+    let value = kvPair.value;
+    let memo = kvPair.key;
+    let key = keyFor(value, memo);
 
-    this.position = nextPosition;
+    this.position++;
 
-    let kvPair = array[nextPosition];
-
-    this.nextPosition++;
-
-    return kvPair;
+    return { key, value, memo };
   }
 }
 
@@ -164,18 +151,14 @@ class EmptyIterator implements OpaqueIterator {
     return true;
   }
 
-  getPosition(): number | FIXME<'user str to InternedString'> {
-    return undefined;
-  }
-
-  next(): IterationItem<Opaque> {
+  next(): IterationItem<Opaque, Opaque> {
     throw new Error(`Cannot call next() on an empty iterator`);
   }
 }
 
 const EMPTY_ITERATOR = new EmptyIterator();
 
-class Iterable implements AbstractIterable<Opaque, IterationItem<Opaque>, UpdatableReference<Opaque>> {
+class Iterable implements AbstractIterable<Opaque, Opaque, IterationItem<Opaque, Opaque>, UpdatableReference<Opaque>, UpdatableReference<Opaque>> {
   private ref: Reference<Opaque>;
   private keyFor: KeyFor;
 
@@ -200,20 +183,28 @@ class Iterable implements AbstractIterable<Opaque, IterationItem<Opaque>, Updata
     } else if (iterable === undefined || iterable === null) {
       return EMPTY_ITERATOR;
     } else if (typeof iterable === 'object') {
-      let keys = Object.keys(iterable);
-      let kvPairs = keys.map(key => new KVPair(key, iterable[key]));
-      return keys.length > 0 ? new ObjectKeysIterator(kvPairs) : EMPTY_ITERATOR;
-    } else {
+       let keys = Object.keys(iterable);
+       let kvPairs = keys.map(key => <KVPair>{ key, value: iterable[key] });
+       return keys.length > 0 ? new ObjectKeysIterator(kvPairs, keyFor) : EMPTY_ITERATOR;
+     } else {
       throw new Error(`Don't know how to {{#each ${iterable}}}`);
     }
   }
 
-  referenceFor(item: IterationItem<Opaque>): UpdatableReference<Opaque> {
+  valueReferenceFor(item: IterationItem<Opaque, Opaque>): UpdatableReference<Opaque> {
     return new UpdatableReference(item.value);
   }
 
-  updateReference(reference: UpdatableReference<Opaque>, item: IterationItem<Opaque>) {
+  updateValueReference(reference: UpdatableReference<Opaque>, item: IterationItem<Opaque, Opaque>) {
     reference.update(item.value);
+  }
+
+  memoReferenceFor(item: IterationItem<Opaque, Opaque>): UpdatableReference<Opaque> {
+    return new UpdatableReference(item.memo);
+  }
+
+  updateMemoReference(reference: UpdatableReference<Opaque>, item: IterationItem<Opaque, Opaque>) {
+    reference.update(item.memo);
   }
 }
 
