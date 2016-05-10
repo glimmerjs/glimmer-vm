@@ -88,7 +88,7 @@ class ArrayIterator implements OpaqueIterator {
   private nextPosition = 0;
   private position;
 
-  constructor(array: any[], keyFor: KeyFor) {
+  constructor(array: Opaque[], keyFor: KeyFor) {
     this.array = array;
     this.keyFor = keyFor;
   }
@@ -140,7 +140,7 @@ class ObjectKeysIterator implements OpaqueIterator {
     return this.array.length === 0;
   }
 
-  getPosition(): FIXME<'user str to InternedString'> {
+  getPosition(): string {
     return this.array[this.position].key;
   }
 

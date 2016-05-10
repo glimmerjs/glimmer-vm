@@ -1,6 +1,6 @@
 import { FIXME, LinkedList, ListNode, InternedString, Opaque, dict } from 'glimmer-util';
 import { VersionedPathReference as PathReference } from './validators';
-import { ConstReference } from './const';
+import { UpdatableReference } from 'glimmer-object-reference';
 
 export interface IterationItem<T> {
   key: string;
@@ -31,16 +31,19 @@ class ListItem extends ListNode<PathReference<Opaque>> implements IterationItem<
   public retained: boolean = false;
   public seen: boolean = false;
   private iterable: OpaqueIterable;
+  public position: UpdatableReference<number | FIXME<'user string to InternedString'>>;
 
-  constructor(iterable: OpaqueIterable, result: OpaqueIterationItem) {
+  constructor(iterable: OpaqueIterable, result: OpaqueIterationItem, position: number | FIXME<'user string to InternedString'>) {
     super(iterable.referenceFor(result));
     this.key = result.key as FIXME<'user string to InternedString'>;
     this.iterable = iterable;
+    this.position = new UpdatableReference(position);
   }
 
-  update(item: OpaqueIterationItem) {
+  update(item: OpaqueIterationItem, position: number | FIXME<'user string to InternedString'>) {
     this.retained = true;
     this.iterable.updateReference(this.value, item);
+    this.position.update(position);
   }
 
   shouldRemove(): boolean {
@@ -88,18 +91,18 @@ export class IterationArtifacts {
     return node && node.seen;
   }
 
-  append(item: OpaqueIterationItem): ListItem {
+  append(item: OpaqueIterationItem, position: number | FIXME<'user string to InternedString'>): ListItem {
     let { map, list, iterable } = this;
+    let node = map[item.key] = new ListItem(iterable, item, position);
 
-    let node = map[item.key] = new ListItem(iterable, item);
     list.append(node);
     return node;
   }
 
-  insertBefore(item: OpaqueIterationItem, reference: ListItem): ListItem {
+  insertBefore(item: OpaqueIterationItem, reference: ListItem, position: number | FIXME<'user string to InternedString'>): ListItem {
     let { map, list, iterable } = this;
 
-    let node = map[item.key] = new ListItem(iterable, item);
+    let node = map[item.key] = new ListItem(iterable, item, position);
     node.retained = true;
     list.insertBefore(node, reference);
     return node;
@@ -140,26 +143,27 @@ export class ReferenceIterator {
     this.artifacts = artifacts;
   }
 
-  getPosition(): ConstReference< number | FIXME<'user str to InternedString'>> {
-    return new ConstReference(this.iterator.getPosition());
+  getPosition(): UpdatableReference< number | FIXME<'user str to InternedString'>> {
+    return new UpdatableReference(this.iterator.getPosition());
   }
 
-  next(): IterationItem<PathReference<Opaque>> {
+  next(): ListItem {
     let { artifacts } = this;
 
     let iterator = (this.iterator = this.iterator || artifacts.iterate());
 
     let item = iterator.next();
+    let position = iterator.getPosition();
 
     if (!item) return null;
 
-    return artifacts.append(item);
+    return artifacts.append(item, position);
   }
 }
 
 export interface IteratorSynchronizerDelegate {
   retain(key: InternedString, item: PathReference<any>);
-  insert(key: InternedString, item: PathReference<any>, before: InternedString);
+  insert(key: InternedString, item: PathReference<any>, before: InternedString, position: UpdatableReference<number | FIXME<'user string to InternedString'>>);
   move(key: InternedString, item: PathReference<any>, before: InternedString);
   delete(key: InternedString);
   done();
@@ -224,32 +228,33 @@ export class IteratorSynchronizer {
     }
 
     let { key } = item;
+    let position = iterator.getPosition();
 
     if (current && current.key === key) {
-      this.nextRetain(item);
+      this.nextRetain(item, position);
     } else if (artifacts.has(key)) {
-      this.nextMove(item);
+      this.nextMove(item, position);
     } else {
-      this.nextInsert(item);
+      this.nextInsert(item, position);
     }
 
     return Phase.Append;
   }
 
-  private nextRetain(item: OpaqueIterationItem) {
+  private nextRetain(item: OpaqueIterationItem, position: number | FIXME<'user string to InternedString'>) {
     let { artifacts, current } = this;
 
-    current.update(item);
+    current.update(item, position);
     this.current = artifacts.nextNode(current);
     this.target.retain(item.key as FIXME<'user string to InternedString'>, current.value);
   }
 
-  private nextMove(item: OpaqueIterationItem) {
+  private nextMove(item: OpaqueIterationItem, position: number | FIXME<'user string to InternedString'>) {
     let { current, artifacts, target } = this;
     let { key } = item;
 
     let found = artifacts.get(item.key);
-    found.update(item);
+    found.update(item, position);
 
     if (artifacts.wasSeen(item.key)) {
       artifacts.move(found, current);
@@ -259,11 +264,11 @@ export class IteratorSynchronizer {
     }
   }
 
-  private nextInsert(item: OpaqueIterationItem) {
+  private nextInsert(item: OpaqueIterationItem, position: number | FIXME<'user string to InternedString'>) {
     let { artifacts, target, current } = this;
 
-    let node = artifacts.insertBefore(item, current);
-    target.insert(node.key, node.value, current ? current.key : null);
+    let node = artifacts.insertBefore(item, current, position);
+    target.insert(node.key, node.value, current ? current.key : null, node.position);
   }
 
   private startPrune(): Phase {

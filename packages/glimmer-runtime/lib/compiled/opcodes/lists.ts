@@ -117,13 +117,12 @@ export class NextIterOpcode extends Opcode {
 
   evaluate(vm: VM) {
     let item = vm.frame.getIterator().next();
-    let position = vm.frame.getIterator().getPosition();
 
     if (item) {
       vm.frame.setCondition(TRUE_REF);
       vm.frame.setKey(item.key as FIXME<'user str to InternedString'>);
       vm.frame.setOperand(item.value);
-      vm.frame.setArgs(EvaluatedArgs.positional([item.value, <any>position]));
+      vm.frame.setArgs(EvaluatedArgs.positional([item.value, item.position]));
     } else {
       vm.frame.setCondition(FALSE_REF);
       vm.goto(this.end);

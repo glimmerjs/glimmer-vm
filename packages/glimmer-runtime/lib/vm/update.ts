@@ -1,7 +1,8 @@
 import { Scope, DynamicScope, Environment } from '../environment';
 import { Bounds, clear, move as moveBounds } from '../bounds';
 import { ElementStack, Tracker } from '../builder';
-import { LOGGER, Destroyable, Stack, LinkedList, InternedString, Dict, dict } from 'glimmer-util';
+import { LOGGER, Destroyable, Stack, FIXME, LinkedList, InternedString, Dict, dict } from 'glimmer-util';
+import { UpdatableReference } from 'glimmer-object-reference';
 import {
   ConstReference,
   PathReference,
@@ -218,7 +219,7 @@ export class ListRevalidationDelegate implements IteratorSynchronizerDelegate {
     this.marker = marker;
   }
 
-  insert(key: InternedString, item: PathReference<any>, before: InternedString) {
+  insert(key: InternedString, item: PathReference<any>, before: InternedString, position: UpdatableReference<number | FIXME<'user string to InternedString'>>) {
     let { map, opcode, updating } = this;
     let nextSibling: Node = null;
     let reference = null;
@@ -234,7 +235,7 @@ export class ListRevalidationDelegate implements IteratorSynchronizerDelegate {
     let tryOpcode;
 
     vm.execute(opcode.ops, vm => {
-      vm.frame.setArgs(EvaluatedArgs.positional([item]));
+      vm.frame.setArgs(EvaluatedArgs.positional([item, position]));
       vm.frame.setOperand(item);
       vm.frame.setCondition(new ConstReference(true));
       vm.frame.setKey(key);

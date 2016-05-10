@@ -1310,7 +1310,7 @@ test('The each helper with inverse', function () {
   }
 });
 
-test('The each helper yields the index of the current item', function () {
+test('The each helper yields the index of the current item current item when using the @index key', function () {
   let tom = { name: "Tom Dale", "class": "tomdale" };
   let yehuda = { name: "Yehuda Katz", "class": "wycats" };
   let object = { list: [tom, yehuda] };
@@ -1337,6 +1337,254 @@ test('The each helper yields the index of the current item', function () {
   equalTokens(root, "<ul><li class='wycats'>Yehuda Katz<p class='index-0'>0</p></li><li class='tomdale'>Tom Dale<p class='index-1'>1</p></li></ul>", "After changing list order");
   strictEqual(getNodeByClassName(`index-0`), indexNode, "The index node has not changed after changing list order");
 
+  object = { list: [
+    { name: "Martin Muñoz", class: "mmun" },
+    { name: "Kris Selden", class: "krisselden" }
+  ]};
+  rerender(object);
+  assertStableNodes('mmun', 0, "after changing the list entries, but with stable keys");
+  equalTokens(
+    root,
+    `<ul><li class='mmun'>Martin Muñoz<p class='index-0'>0</p></li><li class='krisselden'>Kris Selden<p class='index-1'>1</p></li></ul>`,
+    `After changing the list entries, but with stable keys`
+  );
+
+  object = { list: [
+    { name: "Martin Muñoz", class: "mmun" },
+    { name: "Kristoph Selden", class: "krisselden" },
+    { name: "Matthew Beale", class: "mixonic" }
+  ]};
+
+  rerender(object);
+  assertStableNodes('mmun', 0, "after adding an additional entry");
+  equalTokens(
+    root,
+    stripTight`<ul>
+      <li class='mmun'>Martin Muñoz<p class='index-0'>0</p></li>
+      <li class='krisselden'>Kristoph Selden<p class='index-1'>1</p></li>
+      <li class='mixonic'>Matthew Beale<p class='index-2'>2</p></li></ul>`,
+    `After adding an additional entry`
+  );
+
+  object = { list: [
+    { name: "Martin Muñoz", class: "mmun" },
+    { name: "Matthew Beale", class: "mixonic" }
+  ]};
+
+  rerender(object);
+  assertStableNodes('mmun', 0, "after removing the middle entry");
+  equalTokens(
+    root,
+    "<ul><li class='mmun'>Martin Muñoz<p class='index-0'>0</p></li><li class='mixonic'>Matthew Beale<p class='index-1'>1</p></li></ul>",
+    "after removing the middle entry"
+   );
+
+  object = { list: [
+    { name: "Martin Muñoz", class: "mmun" },
+    { name: "Stefan Penner", class: "stefanpenner" },
+    { name: "Robert Jackson", class: "rwjblue" }
+  ]};
+
+  rerender(object);
+  assertStableNodes('mmun', 0, "after adding two more entries");
+  equalTokens(
+    root,
+    stripTight`<ul>
+      <li class='mmun'>Martin Muñoz<p class='index-0'>0</p></li>
+      <li class='stefanpenner'>Stefan Penner<p class='index-1'>1</p></li>
+      <li class='rwjblue'>Robert Jackson<p class='index-2'>2</p></li></ul>`,
+    `After adding two more entries`
+  );
+
+  // New node for stability check
+  itemNode = getNodeByClassName('rwjblue');
+  nameNode = getFirstChildOfNode('rwjblue');
+  indexNode = getNodeByClassName('index-2');
+
+  object = { list: [
+    { name: "Robert Jackson", class: "rwjblue" }
+  ]};
+
+  rerender(object);
+  equalTokens(root, "<ul><li class='rwjblue'>Robert Jackson<p class='index-0'>0</p></li></ul>", "After removing two entries");
+
+  object = { list: [
+    { name: "Martin Muñoz", class: "mmun" },
+    { name: "Stefan Penner", class: "stefanpenner" },
+    { name: "Robert Jackson", class: "rwjblue" }
+  ]};
+
+  rerender(object);
+  equalTokens(
+    root,
+    stripTight`<ul>
+      <li class='mmun'>Martin Muñoz<p class='index-0'>0</p></li>
+      <li class='stefanpenner'>Stefan Penner<p class='index-1'>1</p></li>
+      <li class='rwjblue'>Robert Jackson<p class='index-2'>2</p></li></ul>`,
+    `After adding back entries`
+  );
+
+  // New node for stability check
+  itemNode = getNodeByClassName('mmun');
+  nameNode = getFirstChildOfNode('mmun');
+  indexNode = getNodeByClassName('index-0');
+
+  object = { list: [
+    { name: "Martin Muñoz", class: "mmun" }
+  ]};
+
+  rerender(object);
+  assertStableNodes('mmun', 0, "after removing from the back");
+  equalTokens(root, "<ul><li class='mmun'>Martin Muñoz<p class='index-0'>0</p></li></ul>", "After removing from the back");
+
+  object = { list: [] };
+
+  rerender(object);
+  strictEqual(root.firstChild.firstChild.nodeType, 8, "there are no li's after removing the remaining entry");
+  equalTokens(root, "<ul><!----></ul>", "After removing the remaining entries");
+
+
+  function assertStableNodes(className, index, message) {
+    strictEqual(getNodeByClassName(className), itemNode, "The item node has not changed " + message);
+    strictEqual(getNodeByClassName(`index-${index}`), indexNode, "The index node has not changed " + message);
+    strictEqual(getFirstChildOfNode(className), nameNode, "The name node has not changed " + message);
+  }
+});
+
+test('The each helper yields the index of the current item when using a non-@index key', function () {
+  let tom = { key: "1", name: "Tom Dale", class: "tomdale" };
+  let yehuda = { key: "2", name: "Yehuda Katz", class: "wycats" };
+  let object = { list: [tom, yehuda] };
+  let template = compile("<ul>{{#each list key='key' as |item index|}}<li class='{{item.class}}'>{{item.name}}<p class='index-{{index}}'>{{index}}</p></li>{{/each}}</ul>");
+
+  render(template, object);
+
+  let itemNode = getNodeByClassName('tomdale');
+  let indexNode = getNodeByClassName('index-0');
+  let nameNode = getFirstChildOfNode('tomdale');
+
+  equalTokens(root, "<ul><li class='tomdale'>Tom Dale<p class='index-0'>0</p></li><li class='wycats'>Yehuda Katz<p class='index-1'>1</p></li></ul>", "Initial render");
+
+  rerender();
+  assertStableNodes('tomdale', 0, 'after no-op rerender');
+  equalTokens(root, "<ul><li class='tomdale'>Tom Dale<p class='index-0'>0</p></li><li class='wycats'>Yehuda Katz<p class='index-1'>1</p></li></ul>", "After no-op render");
+
+  rerender();
+  assertStableNodes('tomdale', 0, 'after non-dirty rerender');
+  equalTokens(root, "<ul><li class='tomdale'>Tom Dale<p class='index-0'>0</p></li><li class='wycats'>Yehuda Katz<p class='index-1'>1</p></li></ul>", "After non-dirty render");
+
+  object = { list: [yehuda, tom] };
+  rerender(object);
+  equalTokens(root, "<ul><li class='wycats'>Yehuda Katz<p class='index-0'>0</p></li><li class='tomdale'>Tom Dale<p class='index-1'>1</p></li></ul>", "After changing list order");
+  strictEqual(getNodeByClassName('index-1'), indexNode, "The index node has been moved after changing list order");
+
+  object = { list: [
+    { key: "1", name: "Martin Muñoz", class: "mmun" },
+    { key: "2", name: "Kris Selden", class: "krisselden" }
+  ]};
+  rerender(object);
+  assertStableNodes('mmun', 0, "after changing the list entries, but with stable keys");
+  equalTokens(
+    root,
+    `<ul><li class='mmun'>Martin Muñoz<p class='index-0'>0</p></li><li class='krisselden'>Kris Selden<p class='index-1'>1</p></li></ul>`,
+    `After changing the list entries, but with stable keys`
+  );
+
+  object = { list: [
+    { key: "1", name: "Martin Muñoz", class: "mmun" },
+    { key: "2", name: "Kristoph Selden", class: "krisselden" },
+    { key: "3", name: "Matthew Beale", class: "mixonic" }
+  ]};
+
+  rerender(object);
+  assertStableNodes('mmun', 0, "after adding an additional entry");
+  equalTokens(
+    root,
+    stripTight`<ul>
+      <li class='mmun'>Martin Muñoz<p class='index-0'>0</p></li>
+      <li class='krisselden'>Kristoph Selden<p class='index-1'>1</p></li>
+      <li class='mixonic'>Matthew Beale<p class='index-2'>2</p></li></ul>`,
+    `After adding an additional entry`
+  );
+
+  object = { list: [
+    { key: "1", name: "Martin Muñoz", class: "mmun" },
+    { key: "3", name: "Matthew Beale", class: "mixonic" }
+  ]};
+
+  rerender(object);
+  assertStableNodes('mmun', 0, "after removing the middle entry");
+  equalTokens(
+    root,
+    "<ul><li class='mmun'>Martin Muñoz<p class='index-0'>0</p></li><li class='mixonic'>Matthew Beale<p class='index-1'>1</p></li></ul>",
+    "after removing the middle entry"
+   );
+
+  object = { list: [
+    { key: "1", name: "Martin Muñoz", class: "mmun" },
+    { key: "4", name: "Stefan Penner", class: "stefanpenner" },
+    { key: "5", name: "Robert Jackson", class: "rwjblue" }
+  ]};
+
+  rerender(object);
+  assertStableNodes('mmun', 0, "after adding two more entries");
+  equalTokens(
+    root,
+    stripTight`<ul>
+      <li class='mmun'>Martin Muñoz<p class='index-0'>0</p></li>
+      <li class='stefanpenner'>Stefan Penner<p class='index-1'>1</p></li>
+      <li class='rwjblue'>Robert Jackson<p class='index-2'>2</p></li></ul>`,
+    `After adding two more entries`
+  );
+
+  // New node for stability check
+  itemNode = getNodeByClassName('rwjblue');
+  nameNode = getFirstChildOfNode('rwjblue');
+  indexNode = getNodeByClassName('index-2');
+
+  object = { list: [
+    { key: "5", name: "Robert Jackson", class: "rwjblue" }
+  ]};
+
+  rerender(object);
+  assertStableNodes('rwjblue', 0, "after removing two entries");
+  equalTokens(root, "<ul><li class='rwjblue'>Robert Jackson<p class='index-0'>0</p></li></ul>", "After removing two entries");
+
+  object = { list: [
+    { key: "1", name: "Martin Muñoz", class: "mmun" },
+    { key: "4", name: "Stefan Penner", class: "stefanpenner" },
+    { key: "5", name: "Robert Jackson", class: "rwjblue" }
+  ]};
+
+  rerender(object);
+  assertStableNodes('rwjblue', 2, "after adding back entries");
+  equalTokens(
+    root,
+    stripTight`<ul>
+      <li class='mmun'>Martin Muñoz<p class='index-0'>0</p></li>
+      <li class='stefanpenner'>Stefan Penner<p class='index-1'>1</p></li>
+      <li class='rwjblue'>Robert Jackson<p class='index-2'>2</p></li></ul>`,
+    `After adding back entries`
+  );
+
+  // New node for stability check
+  itemNode = getNodeByClassName('mmun');
+  nameNode = getFirstChildOfNode('mmun');
+  indexNode = getNodeByClassName('index-0');
+
+  object = { list: [
+    { key: "1", name: "Martin Muñoz", class: "mmun" }
+  ]};
+
+  rerender(object);
+  assertStableNodes('mmun', 0, "after removing from the back");
+  equalTokens(root, "<ul><li class='mmun'>Martin Muñoz<p class='index-0'>0</p></li></ul>", "After removing from the back");
+
+  object = { list: [] };
+
+  rerender(object);
+  strictEqual(root.firstChild.firstChild.nodeType, 8, "there are no li's after removing the remaining entry");
+  equalTokens(root, "<ul><!----></ul>", "After removing the remaining entries");
 
   function assertStableNodes(className, index, message) {
     strictEqual(getNodeByClassName(className), itemNode, "The item node has not changed " + message);
@@ -1348,8 +1596,8 @@ test('The each helper yields the index of the current item', function () {
 function testEachHelper(testName, templateSource, testMethod=QUnit.test) {
   testMethod(testName, function() {
     let template = compile(templateSource);
-    let tom = { key: "1", name: "Tom Dale", "class": "tomdale" };
-    let yehuda = { key: "2", name: "Yehuda Katz", "class": "wycats" };
+    let tom = { key: "1", name: "Tom Dale", class: "tomdale" };
+    let yehuda = { key: "2", name: "Yehuda Katz", class: "wycats" };
     let object = { list: [ tom, yehuda ] };
 
     render(template, object);
