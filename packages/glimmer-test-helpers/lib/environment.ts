@@ -80,14 +80,14 @@ import {
   UpdatableReference
 } from "glimmer-object-reference";
 
-type KeyFor = (item: Opaque, index: number | string) => string;
+type KeyFor<T> = (item: Opaque, index: T) => string;
 
 class ArrayIterator implements OpaqueIterator {
   private array: Opaque[];
-  private keyFor: KeyFor;
+  private keyFor: KeyFor<number>;
   private position = 0;
 
-  constructor(array: Opaque[], keyFor: KeyFor) {
+  constructor(array: Opaque[], keyFor: KeyFor<number>) {
     this.array = array;
     this.keyFor = keyFor;
   }
@@ -111,33 +111,29 @@ class ArrayIterator implements OpaqueIterator {
   }
 }
 
-type KVPair = {
-  key: string;
-  value: Opaque;
-};
-
 class ObjectKeysIterator implements OpaqueIterator {
-  private array: KVPair[];
-  private keyFor: KeyFor;
+  private keys: string[];
+  private values: Opaque[];
+  private keyFor: KeyFor<string>;
   private position = 0;
 
-  constructor(array: KVPair[], keyFor: KeyFor) {
-    this.array = array;
+  constructor(keys: string[], values: Opaque[], keyFor: KeyFor<string>) {
+    this.keys = keys;
+    this.values = values;
     this.keyFor = keyFor;
   }
 
   isEmpty(): boolean {
-    return this.array.length === 0;
+    return this.keys.length === 0;
   }
 
   next(): IterationItem<Opaque, string> {
-    let { position, array, keyFor } = this;
+    let { position, keys, values, keyFor } = this;
 
-    if (position >= array.length) return null;
+    if (position >= keys.length) return null;
 
-    let kvPair = array[position];
-    let value = kvPair.value;
-    let memo = kvPair.key;
+    let value = values[position];
+    let memo = keys[position];
     let key = keyFor(value, memo);
 
     this.position++;
@@ -160,9 +156,9 @@ const EMPTY_ITERATOR = new EmptyIterator();
 
 class Iterable implements AbstractIterable<Opaque, Opaque, IterationItem<Opaque, Opaque>, UpdatableReference<Opaque>, UpdatableReference<Opaque>> {
   private ref: Reference<Opaque>;
-  private keyFor: KeyFor;
+  private keyFor: KeyFor<Opaque>;
 
-  constructor(ref: Reference<Opaque>, keyFor: KeyFor) {
+  constructor(ref: Reference<Opaque>, keyFor: KeyFor<Opaque>) {
     this.ref = ref;
     this.keyFor = keyFor;
   }
@@ -184,8 +180,7 @@ class Iterable implements AbstractIterable<Opaque, Opaque, IterationItem<Opaque,
       return EMPTY_ITERATOR;
     } else if (typeof iterable === 'object') {
        let keys = Object.keys(iterable);
-       let kvPairs = keys.map(key => <KVPair>{ key, value: iterable[key] });
-       return keys.length > 0 ? new ObjectKeysIterator(kvPairs, keyFor) : EMPTY_ITERATOR;
+       return keys.length > 0 ? new ObjectKeysIterator(keys, keys.map(key => iterable[key]), keyFor) : EMPTY_ITERATOR;
      } else {
       throw new Error(`Don't know how to {{#each ${iterable}}}`);
     }
@@ -700,7 +695,7 @@ export class TestEnvironment extends Environment {
 
   iterableFor(ref: Reference<Opaque>, args: EvaluatedArgs): OpaqueIterable {
     let keyPath = args.named.get("key" as InternedString).value();
-    let keyFor: KeyFor;
+    let keyFor: KeyFor<Opaque>;
 
     if (!keyPath) {
       throw new Error('Must specify a key for #each');

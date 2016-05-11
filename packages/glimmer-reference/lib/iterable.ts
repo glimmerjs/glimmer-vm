@@ -160,9 +160,9 @@ export class ReferenceIterator {
 }
 
 export interface IteratorSynchronizerDelegate {
-  retain(key: InternedString, item: PathReference<any>, memo: PathReference<any>);
-  insert(key: InternedString, item: PathReference<any>, memo: PathReference<any>, before: InternedString);
-  move(key: InternedString, item: PathReference<any>, memo: PathReference<any>, before: InternedString);
+  retain(key: InternedString, item: PathReference<Opaque>, memo: PathReference<Opaque>);
+  insert(key: InternedString, item: PathReference<Opaque>, memo: PathReference<Opaque>, before: InternedString);
+  move(key: InternedString, item: PathReference<Opaque>, memo: PathReference<Opaque>, before: InternedString);
   delete(key: InternedString);
   done();
 }

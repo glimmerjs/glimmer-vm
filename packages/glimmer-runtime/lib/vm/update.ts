@@ -1,8 +1,7 @@
 import { Scope, DynamicScope, Environment } from '../environment';
 import { Bounds, clear, move as moveBounds } from '../bounds';
 import { ElementStack, Tracker } from '../builder';
-import { LOGGER, Destroyable, Stack, FIXME, LinkedList, InternedString, Dict, dict } from 'glimmer-util';
-import { UpdatableReference } from 'glimmer-object-reference';
+import { LOGGER, Destroyable, Opaque, Stack, LinkedList, InternedString, Dict, dict } from 'glimmer-util';
 import {
   ConstReference,
   PathReference,
@@ -11,7 +10,6 @@ import {
   IteratorSynchronizerDelegate,
 
   // Tags
-  Revision,
   UpdatableTag,
   combineSlice,
   CONSTANT_TAG
@@ -219,7 +217,7 @@ export class ListRevalidationDelegate implements IteratorSynchronizerDelegate {
     this.marker = marker;
   }
 
-  insert(key: InternedString, item: PathReference<any>, memo: PathReference<any>, before: InternedString) {
+  insert(key: InternedString, item: PathReference<Opaque>, memo: PathReference<Opaque>, before: InternedString) {
     let { map, opcode, updating } = this;
     let nextSibling: Node = null;
     let reference = null;
@@ -256,10 +254,10 @@ export class ListRevalidationDelegate implements IteratorSynchronizerDelegate {
     this.didInsert = true;
   }
 
-  retain(key: InternedString, item: PathReference<any>, memo: PathReference<any>) {
+  retain(key: InternedString, item: PathReference<Opaque>, memo: PathReference<Opaque>) {
   }
 
-  move(key: InternedString, item: PathReference<any>, memo: PathReference<any>, before: InternedString) {
+  move(key: InternedString, item: PathReference<Opaque>, memo: PathReference<Opaque>, before: InternedString) {
     let { map, updating } = this;
 
     let entry = map[<string>key];
