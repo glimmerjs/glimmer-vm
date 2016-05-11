@@ -18,11 +18,11 @@ import { Opaque, LinkedList, ListNode, dict } from 'glimmer-util';
 QUnit.module("Reference iterables");
 
 class Target implements IteratorSynchronizerDelegate {
-  private map = dict<ListNode<BasicReference<any>>>();
-  private list = new LinkedList<ListNode<BasicReference<any>>>();
+  private map = dict<ListNode<BasicReference<Opaque>>>();
+  private list = new LinkedList<ListNode<BasicReference<Opaque>>>();
   public tag = VOLATILE_TAG;
 
-  retain(key: string, item: BasicReference<any>, memo: BasicReference<any>) {
+  retain(key: string, item: BasicReference<Opaque>, memo: BasicReference<Opaque>) {
     if (item !== this.map[key].value) {
       throw new Error("unstable reference");
     }
@@ -30,18 +30,18 @@ class Target implements IteratorSynchronizerDelegate {
 
   done() {}
 
-  append(key: string, item: BasicReference<any>, memo: BasicReference<any>) {
+  append(key: string, item: BasicReference<Opaque>, memo: BasicReference<Opaque>) {
     let node = this.map[key] = new ListNode(item);
     this.list.append(node);
   }
 
-  insert(key: string, item: BasicReference<any>, memo: BasicReference<any>, before: string) {
+  insert(key: string, item: BasicReference<Opaque>, memo: BasicReference<Opaque>, before: string) {
     let referenceNode = before ? this.map[before] : null;
     let node = this.map[key] = new ListNode(item);
     this.list.insertBefore(node, referenceNode);
   }
 
-  move(key: string, item: BasicReference<any>, memo: BasicReference<any>, before: string) {
+  move(key: string, item: BasicReference<Opaque>, memo: BasicReference<Opaque>, before: string) {
     let referenceNode = before ? this.map[before] : null;
     let node = this.map[key];
 
@@ -59,11 +59,11 @@ class Target implements IteratorSynchronizerDelegate {
     this.list.remove(node);
   }
 
-  toArray(): BasicReference<any>[] {
+  toArray(): BasicReference<Opaque>[] {
     return this.list.toArray().map(node => node.value);
   }
 
-  toValues(): any[] {
+  toValues(): Opaque[] {
     return this.toArray().map(ref => ref.value());
   }
 }
@@ -78,7 +78,7 @@ class TestIterationItem implements IterationItem<Opaque, Opaque> {
   public value: Opaque;
   public memo: Opaque;
 
-  constructor(key: string, value: any, memo: any) {
+  constructor(key: string, value: Opaque, memo: Opaque) {
     this.key = key;
     this.value = value;
     this.memo = memo;

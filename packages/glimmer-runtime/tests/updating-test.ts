@@ -59,7 +59,6 @@ function getNodeByClassName(className) {
 }
 
 function getFirstChildOfNode(className) {
-  // {{item.name}}
   let itemNode = getNodeByClassName(className);
   ok(itemNode, "Expected child node of node with class='" + className + "', but no parent node found");
 
