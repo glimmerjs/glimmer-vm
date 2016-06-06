@@ -841,15 +841,13 @@ class CurlyComponentSyntax extends StatementSyntax implements StaticComponentOpt
 class DynamicComponentReference implements PathReference<{ definition: ComponentDefinition<Opaque>, args: EvaluatedArgs }> {
   private nameRef: PathReference<Opaque>;
   private env: Environment;
-  private definition: ComponentDefinition<Opaque>;
   private args: EvaluatedArgs;
   public tag: RevisionTag;
 
-  constructor({ nameRef, env, definition, args }: { nameRef: PathReference<Opaque>, env: Environment, definition?: ComponentDefinition<Opaque>, args?: EvaluatedArgs }) {
+  constructor({ nameRef, env, curriedArgs }: { nameRef: PathReference<Opaque>, env: Environment, curriedArgs?: EvaluatedArgs }) {
     this.nameRef = nameRef;
     this.env = env;
-    this.definition = definition;
-    this.args = args;
+    this.args = curriedArgs;
     this.tag = nameRef.tag;
   }
 
@@ -858,24 +856,34 @@ class DynamicComponentReference implements PathReference<{ definition: Component
 
     let name = nameRef.value();
 
-    if (typeof name === 'string') {
-      return {
-        definition: env.getComponentDefinition([name as FIXME<'user str InternedString'> as InternedString]),
-        args: EvaluatedArgs.empty()
-      };
-    } else {
-      return null;
-    }
+    return {
+      definition: this.getComponentDefinition(name as string),
+      args: EvaluatedArgs.empty()
+    };
   }
 
-  get(path) {
-    if ('definition' === path) {
+  get(key: string): PathReference<Opaque> {
+    if ('definition' === key) {
+      let name = <string>this.nameRef.value();
 
-    } else if ('args' === path) {
-
+      if (isConst(this.nameRef)) {
+        return new ValueReference(this.getComponentDefinition(name));
+      } else {
+        return new SimplePathReference(this, <InternedString>'definition');
+      }
+    } else if ('args' === key) {
+      return new SimplePathReference(this, <InternedString>'args');
     }
 
     return UNDEFINED_REFERENCE;
+  }
+
+  getComponentDefinition(name: string) : ComponentDefinition<Opaque> {
+    if (typeof name === 'string') {
+      return this.env.getComponentDefinition([name as FIXME<'user str InternedString'> as InternedString]);
+    } else {
+      return null;
+    }
   }
 }
 

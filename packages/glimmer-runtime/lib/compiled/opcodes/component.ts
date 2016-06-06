@@ -21,15 +21,18 @@ export class PutDynamicComponentDefinitionOpcode extends Opcode {
 
   evaluate(vm: VM) {
     let metaDefinitionRef = vm.frame.getOperand();
-    let cache = isConst(metaDefinitionRef) ? undefined : new ReferenceCache(metaDefinitionRef);
-    let metaDefinition = cache ? cache.peek() : metaDefinitionRef.value();
+    let definitionRef = metaDefinitionRef.get('definition' as InternedString);
+    let curriedArgsRef = definitionRef.get('args' as InternedString);
+
+    let cache = isConst(definitionRef) ? undefined : new ReferenceCache(definitionRef);
+    let definition = cache ? cache.peek() : definitionRef.value();
 
     let args = this.args.evaluate(vm).withInternal();
-    // TODO: Insert the curried args if they exist
-    // metaDefinition.get('args').value()
+
     vm.frame.setArgs(args);
 
-    args.internal["definition"] = metaDefinition.definition; // should be a .get('definition').value()
+    args.internal["definition"] = definition;
+    args.internal["args"] = curriedArgsRef.value();
 
     if (cache) {
       vm.updateWith(new Assert(cache));
