@@ -390,6 +390,31 @@ export class TestOpcode extends Opcode {
   }
 }
 
+export class TestPropOpcode extends Opcode {
+  private prop: InternedString;
+  public type = "test-prop";
+
+  constructor(prop: InternedString) {
+    super();
+    this.prop = prop;
+  }
+
+  evaluate(vm: VM) {
+    let operand = vm.frame.getOperand();
+    // TODO: Use a simplified conversion to conditional. It should rely on basic
+    // truthiness and not be environment-specific.
+    vm.frame.setCondition(vm.env.toConditionalReference(operand.get(this.prop)));
+  }
+
+  toJSON(): OpcodeJSON {
+    return {
+      guid: this._guid,
+      type: this.type,
+      args: ["$OPERAND"]
+    };
+  }
+}
+
 export class JumpOpcode extends Opcode {
   public type = "jump";
 
