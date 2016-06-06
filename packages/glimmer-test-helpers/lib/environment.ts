@@ -51,6 +51,7 @@ import {
   // References
   ValueReference,
   ConditionalReference,
+  UNDEFINED_REFERENCE,
 
   // Misc
   ElementOperations,
@@ -837,31 +838,44 @@ class CurlyComponentSyntax extends StatementSyntax implements StaticComponentOpt
   }
 }
 
-class DynamicComponentReference implements PathReference<ComponentDefinition<Opaque>> {
+class DynamicComponentReference implements PathReference<{ definition: ComponentDefinition<Opaque>, args: EvaluatedArgs }> {
   private nameRef: PathReference<Opaque>;
   private env: Environment;
+  private definition: ComponentDefinition<Opaque>;
+  private args: EvaluatedArgs;
   public tag: RevisionTag;
 
-  constructor({ nameRef, env, args }: { nameRef: PathReference<Opaque>, env: Environment, args: EvaluatedArgs }) {
+  constructor({ nameRef, env, definition, args }: { nameRef: PathReference<Opaque>, env: Environment, definition?: ComponentDefinition<Opaque>, args?: EvaluatedArgs }) {
     this.nameRef = nameRef;
     this.env = env;
-    this.tag = args.tag;
+    this.definition = definition;
+    this.args = args;
+    this.tag = nameRef.tag;
   }
 
-  value(): ComponentDefinition<Opaque> {
+  value(): { definition: ComponentDefinition<Opaque>, args: EvaluatedArgs } {
     let { env, nameRef } = this;
 
     let name = nameRef.value();
 
     if (typeof name === 'string') {
-      return env.getComponentDefinition([name as FIXME<'user str InternedString'> as InternedString]);
+      return {
+        definition: env.getComponentDefinition([name as FIXME<'user str InternedString'> as InternedString]),
+        args: EvaluatedArgs.empty()
+      };
     } else {
       return null;
     }
   }
 
-  get() {
-    return null;
+  get(path) {
+    if ('definition' === path) {
+
+    } else if ('args' === path) {
+
+    }
+
+    return UNDEFINED_REFERENCE;
   }
 }
 
@@ -874,7 +888,7 @@ function dynamicComponentFor(vm: VM) {
 
 class DynamicComponentSyntax extends StatementSyntax implements DynamicComponentOptions {
   public definitionArgs: ArgsSyntax;
-  public definition: FunctionExpression<ComponentDefinition<Opaque>>;
+  public definition: FunctionExpression<{ definition: ComponentDefinition<Opaque>, args: EvaluatedArgs }>;
   public args: ArgsSyntax;
   public shadow: InternedString[] = null;
   public templates: Templates;
