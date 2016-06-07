@@ -27,9 +27,11 @@ export interface StaticComponentOptions {
   templates: Templates;
 }
 
+export type DynamicComponent = { definition: ComponentDefinition<Opaque>, args: EvaluatedArgs};
+
 export interface DynamicComponentOptions {
   definitionArgs: Args;
-  definition: FunctionExpression<{ definition: ComponentDefinition<Opaque>, args: EvaluatedArgs}>;
+  definition: FunctionExpression<DynamicComponent>;
   args: Args;
   shadow: InternedString[];
   templates: Templates;

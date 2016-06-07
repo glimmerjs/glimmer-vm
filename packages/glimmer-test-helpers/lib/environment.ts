@@ -32,6 +32,7 @@ import {
   ComponentManager,
   ComponentDefinition,
   ComponentLayoutBuilder,
+  DynamicComponent,
   DynamicComponentOptions,
   StaticComponentOptions,
 
@@ -838,7 +839,7 @@ class CurlyComponentSyntax extends StatementSyntax implements StaticComponentOpt
   }
 }
 
-class DynamicComponentReference implements PathReference<{ definition: ComponentDefinition<Opaque>, args: EvaluatedArgs }> {
+class DynamicComponentReference implements PathReference<DynamicComponent> {
   private nameRef: PathReference<Opaque>;
   private env: Environment;
   private args: EvaluatedArgs;
@@ -851,7 +852,7 @@ class DynamicComponentReference implements PathReference<{ definition: Component
     this.tag = nameRef.tag;
   }
 
-  value(): { definition: ComponentDefinition<Opaque>, args: EvaluatedArgs } {
+  value(): DynamicComponent {
     let { env, nameRef } = this;
 
     let name = nameRef.value();
@@ -896,7 +897,7 @@ function dynamicComponentFor(vm: VM) {
 
 class DynamicComponentSyntax extends StatementSyntax implements DynamicComponentOptions {
   public definitionArgs: ArgsSyntax;
-  public definition: FunctionExpression<{ definition: ComponentDefinition<Opaque>, args: EvaluatedArgs }>;
+  public definition: FunctionExpression<DynamicComponent>;
   public args: ArgsSyntax;
   public shadow: InternedString[] = null;
   public templates: Templates;
