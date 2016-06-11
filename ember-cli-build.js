@@ -1,3 +1,5 @@
+/* jshint node: true */
+/* jscs: disable */
 /* globals __dirname */
 
 var path = require('path');
@@ -7,7 +9,6 @@ var merge = require('broccoli-merge-trees');
 var typescript = require('broccoli-typescript-compiler');
 var transpileES6 = require('emberjs-build/lib/utils/transpile-es6');
 var handlebarsInlinedTrees = require('./build-support/handlebars-inliner');
-var getVersion = require('git-repo-version');
 var stew = require('broccoli-stew');
 var mv = stew.mv;
 var find = stew.find;
@@ -207,7 +208,17 @@ module.exports = function() {
     });
 
     finalTrees.push(loader);
+
+    var compiler = concat(merge([loader, glimmerCommon, glimmerCompiler]), {
+      header: 'function enifed() { define.apply(undefined, arguments); }\n',
+      headerFiles: ['assets/loader.js'],
+      inputFiles: ['amd/glimmer-*.amd.js'],
+      outputFile: '/node/precompiler/index.js',
+      footer: 'module.exports = require("glimmer-compiler").compileSpec;'
+    });
+
+    finalTrees.push(compiler);
   }
 
   return merge(finalTrees);
-}
+};
