@@ -865,15 +865,13 @@ class DynamicComponentReference implements PathReference<DynamicComponent> {
 
   get(key: string): PathReference<Opaque> {
     if ('definition' === key) {
-      let name = <string>this.nameRef.value();
-
       if (isConst(this.nameRef)) {
-        return new ValueReference(this.getComponentDefinition(name));
+        return new ValueReference(this.getComponentDefinition(<string>this.nameRef.value()));
       } else {
-        return new SimplePathReference(this, <InternedString>'definition');
+        return new SimplePathReference(this, 'definition' as FIXME<InternedString>);
       }
     } else if ('args' === key) {
-      return new SimplePathReference(this, <InternedString>'args');
+      return new SimplePathReference(this, 'args' as FIXME<InternedString>);
     }
 
     return UNDEFINED_REFERENCE;
@@ -881,7 +879,7 @@ class DynamicComponentReference implements PathReference<DynamicComponent> {
 
   getComponentDefinition(name: string) : ComponentDefinition<Opaque> {
     if (typeof name === 'string') {
-      return this.env.getComponentDefinition([name as FIXME<'user str InternedString'> as InternedString]);
+      return this.env.getComponentDefinition([name as FIXME<'user str InternedString'>]);
     } else {
       return null;
     }
@@ -892,7 +890,7 @@ function dynamicComponentFor(vm: VM) {
   let args = vm.getArgs();
   let nameRef = args.positional.at(0);
   let env = vm.env;
-  return new DynamicComponentReference({ nameRef, env, args });
+  return new DynamicComponentReference({ nameRef, env, curriedArgs: args });
 };
 
 class DynamicComponentSyntax extends StatementSyntax implements DynamicComponentOptions {
