@@ -4,7 +4,7 @@ import { CompiledArgs, EvaluatedArgs } from '../expressions/args';
 import { VM, UpdatingVM, BindDynamicScopeCallback } from '../../vm';
 import { Layout, InlineBlock, PartialBlock } from '../blocks';
 import { turbocharge } from '../../utils';
-import { NULL_REFERENCE } from '../../references';
+import { ConditionalReference, NULL_REFERENCE } from '../../references';
 import SymbolTable from '../../symbol-table';
 import { PathReference } from 'glimmer-reference';
 import { ValueReference } from '../expressions/value';
@@ -401,9 +401,7 @@ export class TestPropOpcode extends Opcode {
 
   evaluate(vm: VM) {
     let operand = vm.frame.getOperand();
-    // TODO: Use a simplified conversion to conditional. It should rely on basic
-    // truthiness and not be environment-specific.
-    vm.frame.setCondition(vm.env.toConditionalReference(operand.get(this.prop)));
+    vm.frame.setCondition(new ConditionalReference(operand.get(this.prop)));
   }
 
   toJSON(): OpcodeJSON {
