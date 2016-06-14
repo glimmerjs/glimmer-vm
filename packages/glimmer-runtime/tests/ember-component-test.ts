@@ -947,6 +947,34 @@ QUnit.test('initially present, then missing, then present', assert => {
   equalsElement(view.element, 'div', {}, '<p>foo bar baz</p>');
 });
 
+QUnit.test('nested closure component', assert => {
+  class FooBar extends BasicComponent {
+    public foo = 'foo';
+    public bar = 'bar';
+    public baz = null;
+
+    constructor(attrs: Attrs) {
+      super(attrs);
+      this.baz = attrs['baz'] || 'baz';
+    }
+  }
+
+  env.registerBasicComponent('foo-bar', FooBar, `<p>{{foo}} {{bar}} {{baz}}</p>`);
+
+  appendViewFor(
+    stripTight`
+      <div>
+        {{component (component "foo-bar")}}
+      </div>`
+  );
+
+  equalsElement(view.element, 'div', {}, '<p>foo bar baz</p>');
+
+  rerender();
+
+  equalsElement(view.element, 'div', {}, '<p>foo bar baz</p>');
+});
+
 module("Components - curlies - dynamic customizations");
 
 QUnit.test('dynamic tagName', assert => {
