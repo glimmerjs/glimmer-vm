@@ -79,6 +79,7 @@ import GlimmerObject, { GlimmerObjectFactory } from "glimmer-object";
 
 import {
   VOLATILE_TAG,
+  CachedReference,
   DirtyableTag,
   RevisionTag,
   Reference,
@@ -87,6 +88,7 @@ import {
   OpaqueIterable,
   AbstractIterable,
   IterationItem,
+  VersionedPathReference,
   isConst,
   combine
 } from "glimmer-reference";
@@ -631,6 +633,7 @@ export class TestEnvironment extends Environment {
 
     this.registerHelper("if", ([cond, yes, no]) => cond ? yes : no);
     this.registerHelper("unless", ([cond, yes, no]) => cond ? no : yes);
+    this.registerInternalHelper("component", ClosureComponentReference.create);
     this.registerModifier("action", new InertModifierManager());
   }
 
@@ -839,27 +842,120 @@ class CurlyComponentSyntax extends StatementSyntax implements StaticComponentOpt
   }
 }
 
+const CLOSURE_COMPONENT = 'ba564e81-ceda-4475-84a7-1c44f1c42c0e';
+
+export function isClosureComponent(object): object is ClosureComponent {
+  return object && !!object[CLOSURE_COMPONENT];
+}
+
+function positionalArgSlice(positionlArgs: EvaluatedPositionalArgs, begin?: number, end?: number) {
+  let values = positionlArgs.values;
+
+  return EvaluatedPositionalArgs.create({
+    values: values.slice(begin, end)
+  });
+}
+
+export class ClosureComponentReference extends CachedReference<ClosureComponent> implements PathReference<ClosureComponent> {
+  private args: EvaluatedArgs;
+
+  static create(args) {
+    return new ClosureComponentReference(args);
+  }
+
+  constructor(args) {
+    super();
+    this.tag = VOLATILE_TAG;
+    this.args = args;
+  }
+
+  compute() {
+    return ClosureComponent.create(this.args);
+  }
+
+  get(property: InternedString): VersionedPathReference<Opaque> {
+    return new SimplePathReference(this, property);
+  }
+}
+
+class ClosureComponent {
+  private args: EvaluatedArgs;
+
+  static create(args) {
+    return new ClosureComponent(args);
+  }
+
+  constructor(args) {
+    this[CLOSURE_COMPONENT] = true;
+    this.args = args;
+  }
+
+  getName() {
+    let parentOrName = this.args.positional.at(0).value();
+
+    if (isClosureComponent(parentOrName)) {
+      return parentOrName.getName();
+    }
+
+    return parentOrName;
+  }
+
+  getArgs() {
+    let { named, positional } = this.args;
+    let namedMap = named.map;
+    let positionalWithoutArg0 = positionalArgSlice(positional, 1);
+
+    let adjustedArgs = EvaluatedArgs.create({
+      named: named,
+      positional: positionalWithoutArg0
+    });
+
+    let parent = positional.at(0).value();
+
+    if (isClosureComponent(parent)) {
+      let parentArgs = parent.getArgs();
+
+      parentArgs.push(adjustedArgs);
+
+      return parentArgs;
+    }
+
+    return [adjustedArgs];
+  }
+}
+
 class DynamicComponentReference implements PathReference<DynamicComponent> {
   private nameRef: PathReference<Opaque>;
   private env: Environment;
   private args: EvaluatedArgs;
   public tag: RevisionTag;
 
-  constructor({ nameRef, env, curriedArgs }: { nameRef: PathReference<Opaque>, env: Environment, curriedArgs?: EvaluatedArgs }) {
+  constructor({ nameRef, env }: { nameRef: PathReference<Opaque>, env: Environment }) {
     this.nameRef = nameRef;
     this.env = env;
-    this.args = curriedArgs;
     this.tag = nameRef.tag;
   }
 
   value(): DynamicComponent {
     let { env, nameRef } = this;
+    let maybeName = nameRef.value();
+    let name: string;
+    let args: EvaluatedArgs;
 
-    let name = nameRef.value();
+    if (isClosureComponent(maybeName)) {
+      args = maybeName.getArgs();
+      name = maybeName.getName();
+
+      // At this point we can call maybeName.getArgs() to get the curried args.
+      // We can construct an EvaluatedArgs from the `named` and `positional` properties.
+      // Then they need to be merged with the invocation args.
+    } else {
+      name = maybeName as FIXME<InternedString>;
+    }
 
     return {
-      definition: this.getComponentDefinition(name as string),
-      args: EvaluatedArgs.empty()
+      definition: this.getComponentDefinition(name),
+      args
     };
   }
 
@@ -890,7 +986,7 @@ function dynamicComponentFor(vm: VM) {
   let args = vm.getArgs();
   let nameRef = args.positional.at(0);
   let env = vm.env;
-  return new DynamicComponentReference({ nameRef, env, curriedArgs: args });
+  return new DynamicComponentReference({ nameRef, env });
 };
 
 class DynamicComponentSyntax extends StatementSyntax implements DynamicComponentOptions {
