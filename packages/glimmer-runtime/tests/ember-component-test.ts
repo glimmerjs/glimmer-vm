@@ -959,20 +959,15 @@ QUnit.test('nested closure component', assert => {
     }
   }
 
-  env.registerBasicComponent('foo-bar', FooBar, `<p>{{foo}} {{bar}} {{baz}}</p>`);
+  env.registerEmberishCurlyComponent('foo-bar', FooBar, `<p>{{foo}} {{bar}} {{baz}}</p>`);
 
-  appendViewFor(
-    stripTight`
-      <div>
-        {{component (component "foo-bar")}}
-      </div>`
-  );
+  appendViewFor('{{component (component "foo-bar")}}');
 
-  equalsElement(view.element, 'div', {}, '<p>foo bar baz</p>');
+  assertEmberishElement('div', '<p>foo bar baz</p>');
 
   rerender();
 
-  equalsElement(view.element, 'div', {}, '<p>foo bar baz</p>');
+  assertEmberishElement('div', '<p>foo bar baz</p>');
 });
 
 QUnit.test('nested closure component with named parameter currying', assert => {
@@ -987,20 +982,15 @@ QUnit.test('nested closure component with named parameter currying', assert => {
     }
   }
 
-  env.registerBasicComponent('foo-bar', FooBar, `<p>{{foo}} {{bar}} {{baz}}</p>`);
+  env.registerEmberishCurlyComponent('foo-bar', FooBar, `<p>{{foo}} {{bar}} {{baz}}</p>`);
 
-  appendViewFor(
-    stripTight`
-      <div>
-        {{component (component "foo-bar" baz="alpha")}}
-      </div>`
-  );
+  appendViewFor('{{component (component "foo-bar" baz="alpha")}}');
 
-  equalsElement(view.element, 'div', {}, '<p>foo bar alpha</p>');
+  assertEmberishElement('div', '<p>foo bar alpha</p>');
 
   rerender();
 
-  equalsElement(view.element, 'div', {}, '<p>foo bar alpha</p>');
+  assertEmberishElement('div', '<p>foo bar alpha</p>');
 });
 
 QUnit.test('nested closure component with positional parameter currying', assert => {
@@ -1018,20 +1008,15 @@ QUnit.test('nested closure component with positional parameter currying', assert
     positionalParams: ['baz']
   });
 
-  env.registerBasicComponent('foo-bar', FooBar, `<p>{{foo}} {{baz}} {{bar}}</p>`);
+  env.registerEmberishCurlyComponent('foo-bar', FooBar, `<p>{{foo}} {{baz}} {{bar}}</p>`);
 
-  appendViewFor(
-    stripTight`
-      <div>
-        {{component (component "foo-bar" "alpha")}}
-      </div>`
-  );
+  appendViewFor('{{component (component "foo-bar" "alpha")}}');
 
-  equalsElement(view.element, 'div', {}, '<p>foo alpha bar</p>');
+  assertEmberishElement('div', '<p>foo alpha bar</p>');
 
   rerender();
 
-  equalsElement(view.element, 'div', {}, '<p>foo alpha bar</p>');
+  assertEmberishElement('div', '<p>foo alpha bar</p>');
 });
 
 module("Components - curlies - dynamic customizations");
