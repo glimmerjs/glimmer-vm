@@ -382,24 +382,24 @@ class EmberishGlimmerComponentManager implements ComponentManager<EmberishGlimme
 
 class ProcessedArgs {
   tag: RevisionTag;
-  named: EvaluatedNamedArgs;
-  positional: EvaluatedPositionalArgs;
+  args: EvaluatedArgs;
   positionalParamNames: Array<string>
 
   constructor(args: EvaluatedArgs, positionalParamsDefinition: string[]) {
     this.tag = args.tag;
-    this.named = args.named;
-    this.positional = args.positional;
     this.positionalParamNames = positionalParamsDefinition;
+    this.args = args;
   }
 
   value() {
-    let { named, positional, positionalParamNames } = this;
-
-    let result = this.named.value();
+    let { args, positionalParamNames } = this;
+    let { named, positional, internal } = args;
+    let result = named.value();
 
     if (positionalParamNames && positionalParamNames.length) {
-      for (let i = 0; i < positionalParamNames.length; i++) {
+      let length = positionalParamNames.length > positional.length ? positional.length : positionalParamNames.length;
+
+      for (let i = 0; i < length; i++) {
         let name = positionalParamNames[i];
         let reference = positional.at(i);
 
@@ -415,7 +415,53 @@ class ProcessedArgs {
 }
 
 function processArgs(args: EvaluatedArgs, positionalParamsDefinition: string[]) : ProcessedArgs {
-  return new ProcessedArgs(args, positionalParamsDefinition);
+  let { internal } = args;
+  let curriedArgs: Array<EvaluatedArgs> = internal && internal['args'] as Array<EvaluatedArgs>;
+  let mergedNamedStampedOverArgs = args;
+
+  if (curriedArgs) {
+    let mergedNamedArgs = {};
+
+    for (let i = 0; i < curriedArgs.length; i++) {
+      let currentArgs = curriedArgs[i];
+      let { named, positional } = currentArgs;
+
+      if (named.map) {
+        assign(mergedNamedArgs, named.map);
+      }
+
+      if (positionalParamsDefinition) {
+        for (let j = 0; j < positionalParamsDefinition.length; j++) {
+          let name = positionalParamsDefinition[j];
+          mergedNamedArgs[name] = positional.at(j);
+        }
+      }
+    }
+
+    if (positionalParamsDefinition) {
+      if (args.positional.length > 0) {
+        let length = args.positional.length < positionalParamsDefinition.length ? args.positional.length : positionalParamsDefinition.length; // Math.min?
+        for (let i = 0; i < length; i++) {
+          let name = positionalParamsDefinition[i];
+          let reference = args.positional.at(i);
+          mergedNamedArgs[name] = reference;
+        }
+      }
+    }
+
+    if (args.named.map) {
+      assign(mergedNamedArgs, args.named.map);
+    }
+
+    mergedNamedStampedOverArgs = EvaluatedArgs.create({
+      named: EvaluatedNamedArgs.create({
+        map: mergedNamedArgs
+      }),
+      positional: args.positional
+    });
+  }
+
+  return new ProcessedArgs(mergedNamedStampedOverArgs, positionalParamsDefinition);
 }
 
 const EMBERISH_GLIMMER_COMPONENT_MANAGER = new EmberishGlimmerComponentManager();
@@ -469,6 +515,10 @@ class EmberishCurlyComponentManager implements ComponentManager<EmberishCurlyCom
   }
 
   getTag(component: EmberishCurlyComponent) {
+    if (component.args) {
+      return combine([component.dirtinessTag, component.args.tag]);
+    }
+
     return component.dirtinessTag;
   }
 
