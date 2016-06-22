@@ -46,11 +46,21 @@ class DOMHelper {
   private document: HTMLDocument;
   private namespace: string;
   private uselessElement: HTMLElement;
+  private anchorElement: HTMLAnchorElement;
 
   constructor(document) {
     this.document = document;
     this.namespace = null;
     this.uselessElement = this.document.createElement('div');
+    this.anchorElement = this.document.createElement('a');
+  }
+
+  protocolForURL(url: string): string {
+    let { anchorElement } = this;
+
+    anchorElement.href = url;
+
+    return anchorElement.protocol;
   }
 
   setAttribute(element: Element, name: string, value: string) {

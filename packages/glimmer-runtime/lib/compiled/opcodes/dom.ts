@@ -17,6 +17,7 @@ import { DOMHelper } from '../../dom';
 import { NULL_REFERENCE } from '../../references';
 import { ValueReference } from '../../compiled/expressions/value';
 import { CompiledArgs, EvaluatedArgs } from '../../compiled/expressions/args';
+import { requiresSanitization, sanitizeAttributeValue } from '../../sanitize-attribute-value';
 
 export class TextOpcode extends Opcode {
   public type = "text";
@@ -401,7 +402,7 @@ export class NamespacedAttribute extends ElementPatchOperation<string> {
 }
 
 export class NonNamespacedAttribute extends ElementPatchOperation<string> {
-  private name: InternedString;
+  protected name: InternedString;
 
   static install(dom: DOMHelper, element: Element, name: InternedString, value: string) {
     if (value !== null) {
@@ -444,6 +445,35 @@ export class NonNamespacedAttribute extends ElementPatchOperation<string> {
   }
 }
 
+export class SanitizedNonNamespacedAttribute extends NonNamespacedAttribute {
+  static requiresSanitization(tagName: string, attributeName: string): boolean {
+    return requiresSanitization(tagName, attributeName);
+  }
+
+  protected install(dom: DOMHelper, element: Element, value: Opaque) {
+    let { name } = this;
+    let sanitizedValue = sanitizeAttributeValue(dom, element, name, value);
+    super.install(dom, element, sanitizedValue as FIXME<string>);
+  }
+
+  protected update(dom: DOMHelper, element: Element, value: Opaque) {
+    let { name } = this;
+    let sanitizedValue = sanitizeAttributeValue(dom, element, name, value);
+    super.update(dom, element, sanitizedValue as FIXME<string>);
+  }
+
+  toJSON(): Dict<string> {
+    let { element, name, cache } = this;
+
+    return {
+      element: formatElement(element),
+      type: 'sanitized-attribute',
+      name,
+      lastValue: JSON.stringify(cache.peek())
+    };
+  }
+}
+
 export class Property extends ElementPatchOperation<Opaque> {
   static set(dom: DOMHelper, element: Element, name: InternedString, value: Opaque) {
     dom.setProperty(element, name, value);
@@ -472,6 +502,35 @@ export class Property extends ElementPatchOperation<Opaque> {
     return {
       element: formatElement(element),
       type: 'property',
+      name,
+      lastValue: JSON.stringify(cache.peek())
+    };
+  }
+}
+
+export class SanitizedProperty extends Property {
+  static requiresSanitization(tagName: string, attributeName: string): boolean {
+    return requiresSanitization(tagName, attributeName);
+  }
+
+  protected install(dom: DOMHelper, element: Element, value: Opaque) {
+    let { name } = this;
+    let sanitizedValue = sanitizeAttributeValue(dom, element, name, value);
+    super.install(dom, element, sanitizedValue);
+  }
+
+  protected update(dom: DOMHelper, element: Element, value: Opaque) {
+    let { name } = this;
+    let sanitizedValue = sanitizeAttributeValue(dom, element, name, value);
+    super.update(dom, element, sanitizedValue);
+  }
+
+  toJSON(): Dict<string> {
+    let { element, name, cache } = this;
+
+    return {
+      element: formatElement(element),
+      type: 'sanitized-property',
       name,
       lastValue: JSON.stringify(cache.peek())
     };
