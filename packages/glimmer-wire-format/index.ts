@@ -1,4 +1,4 @@
-import { Dict, InternedString } from 'glimmer-util';
+import { Dict, InternedString, StatementMeta } from 'glimmer-util';
 
 type JsonValue =
     string
@@ -134,7 +134,7 @@ export interface SerializedTemplate {
   named: InternedString[];
   yields: InternedString[];
   blocks: SerializedBlock[];
-  meta: Object;
+  meta: StatementMeta;
 }
 
 export interface SerializedBlock {

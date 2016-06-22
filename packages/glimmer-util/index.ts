@@ -22,3 +22,7 @@ export { Stack, Dict, DictWithNumberKeys, Set, DictSet, dict } from './lib/colle
 export { EMPTY_SLICE, LinkedList, LinkedListNode, ListNode, CloneableListNode, ListSlice, Slice } from './lib/list-utils';
 
 export type FIXME<T> = any;
+
+export interface StatementMeta {
+  moduleName?: String
+};

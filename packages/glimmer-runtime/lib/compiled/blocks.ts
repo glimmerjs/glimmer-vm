@@ -1,4 +1,4 @@
-import { InternedString } from 'glimmer-util';
+import { InternedString, StatementMeta } from 'glimmer-util';
 import { OpSeq } from '../opcodes';
 import { Program } from '../syntax';
 import { Environment } from '../environment';
@@ -13,6 +13,7 @@ export interface BlockOptions {
   children: InlineBlock[];
   program: Program;
   symbolTable: SymbolTable;
+  meta: StatementMeta;
 }
 
 export class CompiledBlock {
@@ -29,12 +30,14 @@ export abstract class Block {
   public children: InlineBlock[];
   public program: Program;
   public symbolTable: SymbolTable;
+  public meta: StatementMeta = null;
   protected compiled: CompiledBlock = null;
 
   constructor(options: BlockOptions) {
     this.symbolTable = options.symbolTable || null;
     this.children = options.children;
     this.program = options.program;
+    this.meta = options.meta;
   }
 }
 

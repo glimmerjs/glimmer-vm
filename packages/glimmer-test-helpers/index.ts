@@ -10,7 +10,8 @@ export {
   isCheckedInputHTML,
   getTextContent,
   strip,
-  stripTight
+  stripTight,
+  CompileOptions
 } from './lib/helpers';
 
 export {
@@ -24,5 +25,6 @@ export {
   equalsElement,
   inspectHooks,
   regex,
-  classes
+  classes,
+  EnvironmentCompileOptions
 } from './lib/environment';

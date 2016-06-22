@@ -68,15 +68,22 @@ abstract class Compiler {
   }
 
   protected compileStatement(statement: StatementSyntax, ops: StatementCompilationBuffer) {
-    this.env.statement(statement).compile(ops, this.env, this.symbolTable);
+    this.env.statement(statement, this.symbolTable).compile(ops, this.env, this.symbolTable);
   }
 }
 
 function compileStatement(env: Environment, statement: StatementSyntax, ops: StatementCompilationBuffer, symbolTable: SymbolTable) {
-  env.statement(statement).compile(ops, env, symbolTable);
+  env.statement(statement, symbolTable).compile(ops, env, symbolTable);
 }
 
 export default Compiler;
+
+function injectMetaIntoSymbolTable(symbolTable, meta): SymbolTable {
+  if (meta) {
+    symbolTable.setMeta(meta);
+  }
+  return symbolTable;
+}
 
 export class EntryPointCompiler extends Compiler {
   private ops: StatementCompilationBuffer;
@@ -95,6 +102,7 @@ export class EntryPointCompiler extends Compiler {
 
     while (current) {
       let next = program.nextNode(current);
+      injectMetaIntoSymbolTable(this.symbolTable, block.meta);
       this.compileStatement(current, ops);
       current = next;
     }
@@ -141,6 +149,7 @@ export class InlineBlockCompiler extends Compiler {
 
     while (current) {
       let next = program.nextNode(current);
+      injectMetaIntoSymbolTable(this.symbolTable, block.meta);
       this.compileStatement(current, ops);
       current = next;
     }
@@ -165,7 +174,7 @@ export function layoutFor(definition: Component.ComponentDefinition<any>, env: E
   let layout = definition[CACHED_LAYOUT];
   if (layout) return layout;
 
-  let builder = new ComponentLayoutBuilder(env);
+  let builder = new ComponentLayoutBuilder(env, definition.name);
 
   definition['compile'](builder);
 
@@ -174,11 +183,13 @@ export function layoutFor(definition: Component.ComponentDefinition<any>, env: E
 
 class ComponentLayoutBuilder implements Component.ComponentLayoutBuilder {
   public env: Environment;
+  public moduleName: String;
 
   private inner: EmptyBuilder | WrappedBuilder | UnwrappedBuilder;
 
-  constructor(env: Environment) {
+  constructor(env: Environment, moduleName: String) {
     this.env = env;
+    this.moduleName = moduleName;
   }
 
   empty() {
@@ -194,7 +205,7 @@ class ComponentLayoutBuilder implements Component.ComponentLayoutBuilder {
   }
 
   compile(): CompiledBlock {
-    return this.inner.compile();
+    return this.inner.compile(this.moduleName);
   }
 
   get tag(): Component.ComponentTagBuilder {
@@ -221,7 +232,7 @@ class EmptyBuilder {
     throw new Error('Nope');
   }
 
-  compile(): CompiledBlock {
+  compile(moduleName: String): CompiledBlock {
     let { env } = this;
 
     let list = new CompileIntoList(env, null);
@@ -241,7 +252,7 @@ class WrappedBuilder {
     this.layout = layout;
   }
 
-  compile(): CompiledBlock {
+compile(moduleName: String): CompiledBlock {
     //========DYNAMIC
     //        PutValue(TagExpr)
     //        Test
@@ -265,6 +276,7 @@ class WrappedBuilder {
     //        Exit
 
     let { env, layout } = this;
+    layout.meta.moduleName = moduleName;
 
     let symbolTable = layout.symbolTable;
 
@@ -296,7 +308,7 @@ class WrappedBuilder {
       list.append(BindBlocksOpcode.create(layout));
     }
 
-    layout.program.forEachNode(statement => compileStatement(env, statement, list, layout.symbolTable));
+    layout.program.forEachNode(statement => compileStatement(env, statement, list, injectMetaIntoSymbolTable(layout.symbolTable, layout.meta)));
 
     if (this.tag.isDynamic) {
       let END = new LabelOpcode({ label: 'END' });
@@ -328,8 +340,10 @@ class UnwrappedBuilder {
     throw new Error('BUG: Cannot call `tag` on an UnwrappedBuilder');
   }
 
-  compile(): CompiledBlock {
+  compile(moduleName: String): CompiledBlock {
     let { env, layout } = this;
+
+    layout.meta.moduleName = moduleName;
 
     let list = new CompileIntoList(env, layout.symbolTable);
 
@@ -345,12 +359,14 @@ class UnwrappedBuilder {
     let attrsInserted = false;
 
     this.layout.program.forEachNode(statement => {
-      compileStatement(env, statement, list, layout.symbolTable);
+      compileStatement(env, statement, list, injectMetaIntoSymbolTable(layout.symbolTable, layout.meta));
 
       if (!attrsInserted && isOpenElement(statement)) {
         list.append(new DidCreateElementOpcode());
         list.append(new ShadowAttributesOpcode());
-        attrs.forEach(statement => compileStatement(env, statement, list, layout.symbolTable));
+        attrs.forEach((statement) => {
+          return compileStatement(env, statement, list, injectMetaIntoSymbolTable(layout.symbolTable, layout.meta));
+        });
         attrsInserted = true;
       }
     });

@@ -31,6 +31,8 @@ import {
 
 import { EvaluatedArgs } from './compiled/expressions/args';
 
+import SymbolTable from './symbol-table';
+
 import { InlineBlock } from './compiled/blocks';
 
 import { Destroyable, Dict, Opaque } from 'glimmer-util';
@@ -130,11 +132,11 @@ export abstract class Environment {
     return intern(ensureGuid(object) + '');
   }
 
-  statement(statement: StatementSyntax): StatementSyntax {
-    return this.refineStatement(parseStatement(statement)) || statement;
+  statement(statement: StatementSyntax, symbolTable: SymbolTable): StatementSyntax {
+    return this.refineStatement(parseStatement(statement), symbolTable) || statement;
   }
 
-  protected refineStatement(statement: ParsedStatement): StatementSyntax {
+  protected refineStatement(statement: ParsedStatement, symbolTable?: SymbolTable): StatementSyntax {
     let {
       isSimple,
       isBlock,

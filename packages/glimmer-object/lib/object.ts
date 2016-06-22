@@ -375,6 +375,7 @@ export default class GlimmerObject {
   _super = ROOT;
   _meta = null;
   _guid: number;
+  moduleName: String;
 
   init() {}
 

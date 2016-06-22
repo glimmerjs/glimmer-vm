@@ -5,6 +5,7 @@ import { Environment, DynamicScope } from './environment';
 import { ElementStack } from './builder';
 import { VM } from './vm';
 import Scanner from './scanner';
+import { StatementMeta } from 'glimmer-util';
 
 interface TemplateOptions {
   raw: EntryPoint;
@@ -33,7 +34,7 @@ export default class Template {
   }
 
   raw: EntryPoint;
-  meta: Object;
+  meta: StatementMeta;
 
   constructor({ raw }: TemplateOptions) {
     this.raw = raw;
