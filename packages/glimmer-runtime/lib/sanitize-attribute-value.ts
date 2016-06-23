@@ -2,44 +2,58 @@ import { FIXME, InternedString, Opaque } from 'glimmer-util';
 import { SafeString, isSafeString } from './upsert';
 import { DOMHelper } from './dom';
 
-const badProtocols = {
-  'javascript:': true,
-  'vbscript:': true
-};
+const badProtocols = [
+  'javascript:',
+  'vbscript:'
+];
 
-const badTags = {
-  'A': true,
-  'BODY': true,
-  'LINK': true,
-  'IMG': true,
-  'IFRAME': true,
-  'BASE': true,
-  'FORM': true
-};
+const badTags = [
+  'A',
+  'BODY',
+  'LINK',
+  'IMG',
+  'IFRAME',
+  'BASE',
+  'FORM'
+];
 
-const badTagsForDataURI = {
-  'EMBED': true
-};
+const badTagsForDataURI = [
+  'EMBED'
+];
 
-export const badAttributes = {
-  'href': true,
-  'src': true,
-  'background': true,
-  'action': true
-};
+export const badAttributes = [
+  'href',
+  'src',
+  'background',
+  'action'
+];
 
-const badAttributesForDataURI = {
-  'src': true
-};
+const badAttributesForDataURI = [
+  'src'
+];
 
-type StringType = string | SafeString;
+function has(array: Array<string>, item: string): boolean {
+  return array.indexOf(item) !== -1;
+}
+
+function checkURI(tagName: string, attribute: string): boolean {
+  return (tagName === null || has(badTags, tagName)) && has(badAttributes, attribute);
+}
+
+function checkDataURI(tagName: string, attribute: string): boolean {
+  return has(badTagsForDataURI, tagName) && has(badAttributesForDataURI, attribute);
+}
 
 export function requiresSanitization(tagName: string, attribute: string): boolean {
-  return (((tagName === null || badTags[tagName]) && badAttributes[attribute]) || (badTagsForDataURI[tagName] && badAttributesForDataURI[attribute]));
+  return checkURI(tagName, attribute) || checkDataURI(tagName, attribute);
 }
 
 export function sanitizeAttributeValue(dom: DOMHelper, element: Element, attribute: string, value: Opaque): Opaque {
   let tagName;
+
+  if (isSafeString(value)) {
+    return value.toHTML();
+  }
 
   if (!element) {
     tagName = null;
@@ -47,18 +61,14 @@ export function sanitizeAttributeValue(dom: DOMHelper, element: Element, attribu
     tagName = element.tagName.toUpperCase();
   }
 
-  if (isSafeString(value)) {
-    return value.toHTML();
-  }
-
-  if ((tagName === null || badTags[tagName]) && badAttributes[attribute]) {
-    var protocol = dom.protocolForURL(value as FIXME<string>);
-    if (badProtocols[protocol] === true) {
+  if (checkURI(tagName, attribute)) {
+    let protocol = dom.protocolForURL(value as FIXME<string>);
+    if (has(badProtocols, protocol)) {
       return `unsafe:${value}`;
     }
   }
 
-  if (badTagsForDataURI[tagName] && badAttributesForDataURI[attribute]) {
+  if (checkDataURI(tagName, attribute)) {
     return `unsafe:${value}`;
   }
 

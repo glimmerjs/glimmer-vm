@@ -94,12 +94,13 @@ class GroupedElementOperations implements ElementOperations {
     let { element } = this;
     let { tagName } = element;
 
-    if (SanitizedProperty.requiresSanitization(tagName, name)) {
+    if (SanitizedNonNamespacedAttribute.requiresSanitization(tagName, name)) {
       this.group.push(new SanitizedNonNamespacedAttribute(element, name, reference));
     } else if (tagName === 'INPUT' && name === 'value') {
       this.group.push(new EmptyStringResetingProperty(element, name, reference));
+    } else {
+      this.group.push(new NonNamespacedAttribute(element, name, reference));
     }
-    this.group.push(new NonNamespacedAttribute(element, name, reference));
   }
 
   addAttributeNS(namespace: InternedString, name: InternedString, reference: PathReference<string>) {
