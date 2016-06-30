@@ -19,9 +19,10 @@ function isMarker(node) {
   return false;
 }
 
-interface CompileOptions {
+export interface CompileOptions {
   buildMeta?: FIXME<'currently does nothing'>;
   env: Environment;
+  moduleName?: String;
 }
 
 export function compileRealSpec(string: string, options: CompileOptions): SerializedTemplate {

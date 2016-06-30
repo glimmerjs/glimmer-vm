@@ -18,6 +18,7 @@ export { ConditionalReference, NULL_REFERENCE, UNDEFINED_REFERENCE } from './lib
 export {
   Templates,
   Append,
+  Text,
   Unknown,
   StaticAttr,
   DynamicAttr,

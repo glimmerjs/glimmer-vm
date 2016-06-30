@@ -11,7 +11,7 @@ export default class TemplateCompiler {
 
     let compiler = new TemplateCompiler(options);
     let opcodes = compiler.process(templateVisitor.actions);
-    return JavaScriptCompiler.process(opcodes);
+    return JavaScriptCompiler.process(opcodes, options);
   }
 
   private options: Object;

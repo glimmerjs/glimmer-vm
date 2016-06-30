@@ -1,5 +1,5 @@
 import { assert } from "glimmer-util";
-import { Stack, DictSet, InternedString, dict } from "glimmer-util";
+import { Stack, DictSet, InternedString, dict, StatementMeta } from "glimmer-util";
 
 import {
   SerializedBlock,
@@ -32,11 +32,16 @@ export class Block {
 }
 
 export class Template extends Block {
-  public meta: Object = null;
+  public meta: StatementMeta = null;
 
   public yields = new DictSet();
   public named = new DictSet();
   public blocks: Block[] = [];
+
+  constructor(meta) {
+    super();
+    this.meta = meta;
+  }
 
   toJSON(): SerializedTemplate {
     return {
@@ -45,14 +50,14 @@ export class Template extends Block {
       named: this.named.toArray(),
       yields: this.yields.toArray(),
       blocks: this.blocks.map(b => b.toJSON()),
-      meta: null
+      meta: this.meta
     };
   }
 }
 
 export default class JavaScriptCompiler {
-  static process(opcodes): Template {
-    let compiler = new JavaScriptCompiler(opcodes);
+  static process(opcodes, options): Template {
+    let compiler = new JavaScriptCompiler(opcodes, options);
     return compiler.process();
   }
 
@@ -61,9 +66,12 @@ export default class JavaScriptCompiler {
   private opcodes: any[];
   private values: StackValue[] = [];
 
-  constructor(opcodes) {
+  constructor(opcodes, { moduleName }) {
+    let meta = {
+      moduleName
+    };
     this.opcodes = opcodes;
-    this.template = new Template();
+    this.template = new Template(meta);
   }
 
   process() {

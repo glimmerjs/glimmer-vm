@@ -54,7 +54,8 @@ import {
 
   // Misc
   ElementOperations,
-  FunctionExpression
+  FunctionExpression,
+  SymbolTable
 } from "glimmer-runtime";
 
 import {
@@ -618,6 +619,10 @@ export class TestModifierManager implements ModifierManager<TestModifier> {
   }
 }
 
+export interface EnvironmentCompileOptions {
+  moduleName?: string
+}
+
 export class TestEnvironment extends Environment {
   private helpers = dict<GlimmerHelper>();
   private modifiers = dict<ModifierManager<Opaque>>();
@@ -681,7 +686,7 @@ export class TestEnvironment extends Environment {
     return new EmberishConditionalReference(reference);
   }
 
-  refineStatement(statement: ParsedStatement): StatementSyntax {
+  refineStatement(statement: ParsedStatement, symbolTable: SymbolTable): StatementSyntax {
     let {
       isSimple,
       isBlock,
@@ -767,8 +772,11 @@ export class TestEnvironment extends Environment {
     return modifier;
   }
 
-  compile(template: string) {
-    return rawCompile(template, { env: this });
+  compile(template: string, options?: EnvironmentCompileOptions) {
+    let moduleName = (options && options.moduleName) || '-top-level';
+    let rawOptions = { env: this, moduleName};
+
+    return rawCompile(template, rawOptions);
   }
 
   compileLayout(template: string) {

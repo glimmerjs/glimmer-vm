@@ -6,6 +6,9 @@ import {
   Template,
   Environment,
   RenderResult,
+  StatementSyntax,
+  SymbolTable,
+  Text
 } from "glimmer-runtime";
 
 import {
@@ -18,7 +21,8 @@ import {
   equalsElement,
   inspectHooks,
   regex,
-  classes
+  classes,
+  EnvironmentCompileOptions
  } from "glimmer-test-helpers";
 
 import { assign } from "glimmer-util";
@@ -72,9 +76,12 @@ function module(name: string) {
 module("Components - generic - props");
 
 function appendViewFor(template: string, context: Object = {}) {
+  let compileOptions: EnvironmentCompileOptions = {
+    moduleName: '-top-level'
+  };
   class MyRootView extends EmberishRootView {
     protected env = env;
-    protected template = env.compile(template);
+    protected template = env.compile(template, compileOptions);
   }
 
   MyRootView[CLASS_META].seal();
@@ -2213,6 +2220,23 @@ QUnit.test('Curly component hooks (force recompute)', function() {
   assertFired(instance, 'willRender', 2);
   assertFired(instance, 'didUpdate', 1);
   assertFired(instance, 'didRender', 2);
+});
+
+QUnit.test('statements have proper moduleName assigned', function() {
+  expect(3);
+  class MyComponent extends EmberishGlimmerComponent {}
+
+  let original = env.statement;
+  env.statement = function(statement: StatementSyntax, symbolTable: SymbolTable) {
+    if (statement instanceof Text) {
+      equal(statement.content, symbolTable.getModuleName(), 'moduleName is correct');
+    }
+    return original.call(env, statement, symbolTable);
+  }
+
+  env.registerEmberishGlimmerComponent('my-component', inspectHooks(MyComponent), 'my-component{{yield}}');
+
+  appendViewFor('<div>-top-level{{#my-component}}-top-level{{/my-component}}</div>');
 });
 
 QUnit.test('Glimmer component hooks', function() {
