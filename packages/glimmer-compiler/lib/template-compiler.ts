@@ -96,9 +96,9 @@ export default class TemplateCompiler {
 
       if (action.value.isQuoted) {
         this.opcode('dynamicAttr', action, name);
-       } else {
-         this.opcode('dynamicProp', action, name);
-       }
+      } else {
+        this.opcode('dynamicProp', action, name);
+      }
     } else {
       this.opcode('dynamicAttr', action, name, namespace);
     }
