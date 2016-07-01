@@ -17,6 +17,7 @@ export default class TemplateCompiler {
 
     let compiler = new TemplateCompiler(options);
     let opcodes = compiler.process(templateVisitor.actions);
+
     let meta = {
       moduleName: options.moduleName
     };
@@ -93,7 +94,7 @@ export default class TemplateCompiler {
       this.opcode('staticAttr', action, name, namespace);
     } else if (action.value.type === 'MustacheStatement') {
       assert(name.indexOf(':') === -1, `Namespaced attributes cannot be set as props. Perhaps you meant ${name}="{{title}}"`);
-      this.opcode('dynamicProp', action, name);
+      this.opcode('dynamicAttr', action, name);
     } else {
       this.opcode('dynamicAttr', action, name, namespace);
     }
