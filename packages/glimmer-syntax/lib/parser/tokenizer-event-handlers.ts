@@ -190,6 +190,7 @@ export default {
 };
 
 function assembleAttributeValue(parts, isQuoted, isDynamic, line) {
+  //TODO: GJ: remove differences between quoted and unquoted
   if (isDynamic) {
     if (isQuoted) {
       return assembleConcatenatedValue(parts);
@@ -222,7 +223,11 @@ function assembleConcatenatedValue(parts) {
     }
   }
 
-  return b.concat(parts);
+  if(parts.length === 1) {
+    return parts[0];
+  } else {
+    return b.concat(parts);
+  }
 }
 
 function validateEndTag(tag, element, selfClosing) {
