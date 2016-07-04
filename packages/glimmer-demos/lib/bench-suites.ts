@@ -1,5 +1,7 @@
-import Inline from './bench-inline';
+import If from './bench-if';
+import NestedComponents from './bench-nested-components';
 
 export default {
-  Inline
+  If,
+  NestedComponents
 }
