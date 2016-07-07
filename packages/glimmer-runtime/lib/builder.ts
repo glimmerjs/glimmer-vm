@@ -15,7 +15,9 @@ import {
   EmptyStringResetingProperty,
   NamespacedAttribute,
   NonNamespacedAttribute,
-  Property
+  Property,
+  SanitizedProperty,
+  SanitizedNonNamespacedAttribute
 } from './compiled/opcodes/dom';
 
 interface FirstNode {
@@ -89,10 +91,16 @@ class GroupedElementOperations implements ElementOperations {
   }
 
   addAttribute(name: InternedString, reference: PathReference<string>) {
-    if (this.element.tagName === 'INPUT' && name === 'value') {
-      this.group.push(new EmptyStringResetingProperty(this.element, name, reference));
+    let { element } = this;
+    let { tagName } = element;
+
+    if (SanitizedNonNamespacedAttribute.requiresSanitization(tagName, name)) {
+      this.group.push(new SanitizedNonNamespacedAttribute(element, name, reference));
+    } else if (tagName === 'INPUT' && name === 'value') {
+      this.group.push(new EmptyStringResetingProperty(element, name, reference));
+    } else {
+      this.group.push(new NonNamespacedAttribute(element, name, reference));
     }
-    this.group.push(new NonNamespacedAttribute(this.element, name, reference));
   }
 
   addAttributeNS(namespace: InternedString, name: InternedString, reference: PathReference<string>) {
@@ -100,7 +108,14 @@ class GroupedElementOperations implements ElementOperations {
   }
 
   addProperty(name: InternedString, reference: PathReference<any>) {
-    this.group.push(new Property(this.element, name, reference));
+    let { element } = this;
+    let { tagName } = element;
+
+    if (SanitizedProperty.requiresSanitization(tagName, name)) {
+      this.group.push(new SanitizedProperty(element, name, reference));
+    } else {
+      this.group.push(new Property(element, name, reference));
+    }
   }
 }
 
