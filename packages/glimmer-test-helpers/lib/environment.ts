@@ -32,6 +32,7 @@ import {
   ComponentManager,
   ComponentDefinition,
   ComponentLayoutBuilder,
+  DynamicComponent,
   DynamicComponentOptions,
   StaticComponentOptions,
 
@@ -51,6 +52,7 @@ import {
   // References
   ValueReference,
   ConditionalReference,
+  UNDEFINED_REFERENCE,
 
   // Misc
   ElementOperations,
@@ -77,6 +79,7 @@ import GlimmerObject, { GlimmerObjectFactory } from "glimmer-object";
 
 import {
   VOLATILE_TAG,
+  CachedReference,
   DirtyableTag,
   RevisionTag,
   Reference,
@@ -85,6 +88,7 @@ import {
   OpaqueIterable,
   AbstractIterable,
   IterationItem,
+  VersionedPathReference,
   isConst,
   combine
 } from "glimmer-reference";
@@ -382,24 +386,24 @@ class EmberishGlimmerComponentManager implements ComponentManager<EmberishGlimme
 
 class ProcessedArgs {
   tag: RevisionTag;
-  named: EvaluatedNamedArgs;
-  positional: EvaluatedPositionalArgs;
+  args: EvaluatedArgs;
   positionalParamNames: Array<string>
 
   constructor(args: EvaluatedArgs, positionalParamsDefinition: string[]) {
     this.tag = args.tag;
-    this.named = args.named;
-    this.positional = args.positional;
     this.positionalParamNames = positionalParamsDefinition;
+    this.args = args;
   }
 
   value() {
-    let { named, positional, positionalParamNames } = this;
-
-    let result = this.named.value();
+    let { args, positionalParamNames } = this;
+    let { named, positional, internal } = args;
+    let result = named.value();
 
     if (positionalParamNames && positionalParamNames.length) {
-      for (let i = 0; i < positionalParamNames.length; i++) {
+      let length = positionalParamNames.length > positional.length ? positional.length : positionalParamNames.length;
+
+      for (let i = 0; i < length; i++) {
         let name = positionalParamNames[i];
         let reference = positional.at(i);
 
@@ -415,7 +419,53 @@ class ProcessedArgs {
 }
 
 function processArgs(args: EvaluatedArgs, positionalParamsDefinition: string[]) : ProcessedArgs {
-  return new ProcessedArgs(args, positionalParamsDefinition);
+  let { internal } = args;
+  let curriedArgs: Array<EvaluatedArgs> = internal && internal['args'] as Array<EvaluatedArgs>;
+  let mergedNamedStampedOverArgs = args;
+
+  if (curriedArgs) {
+    let mergedNamedArgs = {};
+
+    for (let i = 0; i < curriedArgs.length; i++) {
+      let currentArgs = curriedArgs[i];
+      let { named, positional } = currentArgs;
+
+      if (named.map) {
+        assign(mergedNamedArgs, named.map);
+      }
+
+      if (positionalParamsDefinition) {
+        for (let j = 0; j < positionalParamsDefinition.length; j++) {
+          let name = positionalParamsDefinition[j];
+          mergedNamedArgs[name] = positional.at(j);
+        }
+      }
+    }
+
+    if (positionalParamsDefinition) {
+      if (args.positional.length > 0) {
+        let length = args.positional.length < positionalParamsDefinition.length ? args.positional.length : positionalParamsDefinition.length; // Math.min?
+        for (let i = 0; i < length; i++) {
+          let name = positionalParamsDefinition[i];
+          let reference = args.positional.at(i);
+          mergedNamedArgs[name] = reference;
+        }
+      }
+    }
+
+    if (args.named.map) {
+      assign(mergedNamedArgs, args.named.map);
+    }
+
+    mergedNamedStampedOverArgs = EvaluatedArgs.create({
+      named: EvaluatedNamedArgs.create({
+        map: mergedNamedArgs
+      }),
+      positional: args.positional
+    });
+  }
+
+  return new ProcessedArgs(mergedNamedStampedOverArgs, positionalParamsDefinition);
 }
 
 const EMBERISH_GLIMMER_COMPONENT_MANAGER = new EmberishGlimmerComponentManager();
@@ -469,6 +519,10 @@ class EmberishCurlyComponentManager implements ComponentManager<EmberishCurlyCom
   }
 
   getTag(component: EmberishCurlyComponent) {
+    if (component.args) {
+      return combine([component.dirtinessTag, component.args.tag]);
+    }
+
     return component.dirtinessTag;
   }
 
@@ -633,6 +687,7 @@ export class TestEnvironment extends Environment {
 
     this.registerHelper("if", ([cond, yes, no]) => cond ? yes : no);
     this.registerHelper("unless", ([cond, yes, no]) => cond ? no : yes);
+    this.registerInternalHelper("component", ClosureComponentReference.create);
     this.registerModifier("action", new InertModifierManager());
   }
 
@@ -841,31 +896,143 @@ class CurlyComponentSyntax extends StatementSyntax implements StaticComponentOpt
   }
 }
 
-class DynamicComponentReference implements PathReference<ComponentDefinition<Opaque>> {
-  private nameRef: PathReference<Opaque>;
-  private env: Environment;
-  public tag: RevisionTag;
+const CLOSURE_COMPONENT = 'ba564e81-ceda-4475-84a7-1c44f1c42c0e';
 
-  constructor({ nameRef, env, args }: { nameRef: PathReference<Opaque>, env: Environment, args: EvaluatedArgs }) {
-    this.nameRef = nameRef;
-    this.env = env;
-    this.tag = args.tag;
+export function isClosureComponent(object): object is ClosureComponent {
+  return object && !!object[CLOSURE_COMPONENT];
+}
+
+function positionalArgSlice(positionlArgs: EvaluatedPositionalArgs, begin?: number, end?: number) {
+  let values = positionlArgs.values;
+
+  return EvaluatedPositionalArgs.create({
+    values: values.slice(begin, end)
+  });
+}
+
+export class ClosureComponentReference extends CachedReference<ClosureComponent> implements PathReference<ClosureComponent> {
+  private args: EvaluatedArgs;
+
+  static create(args) {
+    return new ClosureComponentReference(args);
   }
 
-  value(): ComponentDefinition<Opaque> {
+  constructor(args) {
+    super();
+    this.tag = VOLATILE_TAG;
+    this.args = args;
+  }
+
+  compute() {
+    return ClosureComponent.create(this.args);
+  }
+
+  get(property: InternedString): VersionedPathReference<Opaque> {
+    return new SimplePathReference(this, property);
+  }
+}
+
+class ClosureComponent {
+  private args: EvaluatedArgs;
+
+  static create(args) {
+    return new ClosureComponent(args);
+  }
+
+  constructor(args) {
+    this[CLOSURE_COMPONENT] = true;
+    this.args = args;
+  }
+
+  getName() {
+    let parentOrName = this.args.positional.at(0).value();
+
+    if (isClosureComponent(parentOrName)) {
+      return parentOrName.getName();
+    }
+
+    return parentOrName;
+  }
+
+  getArgs() {
+    let { named, positional } = this.args;
+    let namedMap = named.map;
+    let positionalWithoutArg0 = positionalArgSlice(positional, 1);
+
+    let adjustedArgs = EvaluatedArgs.create({
+      named: named,
+      positional: positionalWithoutArg0
+    });
+
+    let parent = positional.at(0).value();
+
+    if (isClosureComponent(parent)) {
+      let parentArgs = parent.getArgs();
+
+      parentArgs.push(adjustedArgs);
+
+      return parentArgs;
+    }
+
+    return [adjustedArgs];
+  }
+}
+
+class DynamicComponentReference implements PathReference<DynamicComponent> {
+  private nameRef: PathReference<Opaque>;
+  private env: Environment;
+  private args: EvaluatedArgs;
+  public tag: RevisionTag;
+
+  constructor({ nameRef, env }: { nameRef: PathReference<Opaque>, env: Environment }) {
+    this.nameRef = nameRef;
+    this.env = env;
+    this.tag = nameRef.tag;
+  }
+
+  value(): DynamicComponent {
     let { env, nameRef } = this;
+    let maybeName = nameRef.value();
+    let name: string;
+    let args: EvaluatedArgs;
 
-    let name = nameRef.value();
+    if (isClosureComponent(maybeName)) {
+      args = maybeName.getArgs();
+      name = maybeName.getName();
 
+      // At this point we can call maybeName.getArgs() to get the curried args.
+      // We can construct an EvaluatedArgs from the `named` and `positional` properties.
+      // Then they need to be merged with the invocation args.
+    } else {
+      name = maybeName as FIXME<InternedString>;
+    }
+
+    return {
+      definition: this.getComponentDefinition(name),
+      args
+    };
+  }
+
+  get(key: string): PathReference<Opaque> {
+    if ('definition' === key) {
+      if (isConst(this.nameRef)) {
+        return new ValueReference(this.getComponentDefinition(<string>this.nameRef.value()));
+      } else {
+        return new SimplePathReference(this, 'definition' as FIXME<InternedString>);
+      }
+    } else if ('args' === key) {
+      return new SimplePathReference(this, 'args' as FIXME<InternedString>);
+    }
+
+    return UNDEFINED_REFERENCE;
+  }
+
+  getComponentDefinition(name: string) : ComponentDefinition<Opaque> {
     if (typeof name === 'string') {
-      return env.getComponentDefinition([name as FIXME<'user str InternedString'> as InternedString]);
+      return this.env.getComponentDefinition([name as FIXME<'user str InternedString'>]);
     } else {
       return null;
     }
-  }
-
-  get() {
-    return null;
   }
 }
 
@@ -873,12 +1040,12 @@ function dynamicComponentFor(vm: VM) {
   let args = vm.getArgs();
   let nameRef = args.positional.at(0);
   let env = vm.env;
-  return new DynamicComponentReference({ nameRef, env, args });
+  return new DynamicComponentReference({ nameRef, env });
 };
 
 class DynamicComponentSyntax extends StatementSyntax implements DynamicComponentOptions {
   public definitionArgs: ArgsSyntax;
-  public definition: FunctionExpression<ComponentDefinition<Opaque>>;
+  public definition: FunctionExpression<DynamicComponent>;
   public args: ArgsSyntax;
   public shadow: InternedString[] = null;
   public templates: Templates;

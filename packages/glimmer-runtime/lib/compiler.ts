@@ -23,7 +23,8 @@ import {
   PutArgsOpcode,
   PutValueOpcode,
   JumpUnlessOpcode,
-  TestOpcode
+  TestOpcode,
+  TestPropOpcode
 } from './compiled/opcodes/vm';
 
 import * as Syntax from './syntax/core';
@@ -426,7 +427,7 @@ class ComponentBuilder {
     compiler.append(BEGIN);
     compiler.append(new PutArgsOpcode({ args: definitionArgs }));
     compiler.append(new PutValueOpcode({ expression: definition }));
-    compiler.append(new TestOpcode());
+    compiler.append(new TestPropOpcode("definition" as FIXME<'intern'>));
     compiler.append(new JumpUnlessOpcode({ target: END }));
     compiler.append(new PutDynamicComponentDefinitionOpcode({ args }));
     compiler.append(new OpenComponentOpcode({ shadow, templates }));

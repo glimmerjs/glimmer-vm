@@ -43,6 +43,7 @@ export {
 
 export {
   default as OpcodeBuilder,
+  DynamicComponent,
   DynamicComponentOptions,
   StaticComponentOptions
 } from './lib/opcode-builder';

@@ -7,6 +7,10 @@ import {
 } from './compiled/expressions/function';
 
 import {
+  EvaluatedArgs
+} from './compiled/expressions/args';
+
+import {
   Args,
   Templates,
 } from './syntax/core';
@@ -23,9 +27,11 @@ export interface StaticComponentOptions {
   templates: Templates;
 }
 
+export type DynamicComponent = { definition: ComponentDefinition<Opaque>, args: EvaluatedArgs};
+
 export interface DynamicComponentOptions {
   definitionArgs: Args;
-  definition: FunctionExpression<ComponentDefinition<Opaque>>;
+  definition: FunctionExpression<DynamicComponent>;
   args: Args;
   shadow: InternedString[];
   templates: Templates;

@@ -947,6 +947,112 @@ QUnit.test('initially present, then missing, then present', assert => {
   equalsElement(view.element, 'div', {}, '<p>foo bar baz</p>');
 });
 
+QUnit.test('nested closure component', assert => {
+  class FooBar extends EmberishCurlyComponent {
+    public foo = 'foo';
+    public bar = 'bar';
+    public baz = null;
+
+    constructor(attrs: Attrs) {
+      super(attrs);
+      this.baz = attrs['baz'] || 'baz';
+    }
+  }
+
+  env.registerEmberishCurlyComponent('foo-bar', FooBar, `<p>{{foo}} {{bar}} {{baz}}</p>`);
+
+  appendViewFor('{{component (component "foo-bar")}}');
+
+  assertEmberishElement('div', '<p>foo bar baz</p>');
+
+  rerender();
+
+  assertEmberishElement('div', '<p>foo bar baz</p>');
+});
+
+QUnit.test('nested closure component with named parameter currying', assert => {
+  class FooBar extends EmberishCurlyComponent {
+    public foo = 'foo';
+    public bar = 'bar';
+    public baz = null;
+
+    constructor(attrs: Attrs) {
+      super(attrs);
+      this.baz = attrs['baz'] || 'baz';
+    }
+  }
+
+  env.registerEmberishCurlyComponent('foo-bar', FooBar, `<p>{{foo}} {{bar}} {{baz}}</p>`);
+
+  appendViewFor('{{component (component "foo-bar" baz="alpha")}}');
+
+  assertEmberishElement('div', '<p>foo bar alpha</p>');
+
+  rerender();
+
+  assertEmberishElement('div', '<p>foo bar alpha</p>');
+});
+
+QUnit.test('nested closure component with positional parameter currying', assert => {
+  class FooBar extends EmberishCurlyComponent {
+    public foo = 'foo';
+    public bar = 'bar';
+    public baz;
+
+    constructor(attrs: Attrs) {
+      super(attrs);
+    }
+  }
+
+  FooBar.reopenClass({
+    positionalParams: ['baz']
+  });
+
+  env.registerEmberishCurlyComponent('foo-bar', FooBar, `<p>{{foo}} {{baz}} {{bar}}</p>`);
+
+  appendViewFor('{{component (component "foo-bar" "alpha")}}');
+
+  assertEmberishElement('div', '<p>foo alpha bar</p>');
+
+  rerender();
+
+  assertEmberishElement('div', '<p>foo alpha bar</p>');
+});
+
+QUnit.test('nested closure component with positional parameter currying, bound positional', assert => {
+  class FooBar extends EmberishCurlyComponent {
+    public foo = 'foo';
+    public bar = 'bar';
+    public baz;
+
+    constructor(attrs: Attrs) {
+      super(attrs);
+    }
+  }
+
+  FooBar.reopenClass({
+    positionalParams: ['baz']
+  });
+
+  env.registerEmberishCurlyComponent('foo-bar', FooBar, `<p>{{foo}} {{baz}} {{bar}}</p>`);
+
+  appendViewFor('{{component (component "foo-bar" letter)}}', {
+    letter: 'alpha'
+  });
+
+  assertEmberishElement('div', '<p>foo alpha bar</p>');
+
+  set(view, 'letter', 'beta');
+  rerender();
+
+  assertEmberishElement('div', '<p>foo beta bar</p>');
+
+  set(view, 'letter', 'alpha');
+  rerender();
+
+  assertEmberishElement('div', '<p>foo alpha bar</p>');
+});
+
 module("Components - curlies - dynamic customizations");
 
 QUnit.test('dynamic tagName', assert => {

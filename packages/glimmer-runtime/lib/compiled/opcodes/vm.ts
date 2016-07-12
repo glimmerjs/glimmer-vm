@@ -4,7 +4,7 @@ import { CompiledArgs, EvaluatedArgs } from '../expressions/args';
 import { VM, UpdatingVM, BindDynamicScopeCallback } from '../../vm';
 import { Layout, InlineBlock, PartialBlock } from '../blocks';
 import { turbocharge } from '../../utils';
-import { NULL_REFERENCE } from '../../references';
+import { ConditionalReference, NULL_REFERENCE } from '../../references';
 import SymbolTable from '../../symbol-table';
 import { PathReference } from 'glimmer-reference';
 import { ValueReference } from '../expressions/value';
@@ -379,6 +379,29 @@ export class TestOpcode extends Opcode {
 
   evaluate(vm: VM) {
     vm.frame.setCondition(vm.env.toConditionalReference(vm.frame.getOperand()));
+  }
+
+  toJSON(): OpcodeJSON {
+    return {
+      guid: this._guid,
+      type: this.type,
+      args: ["$OPERAND"]
+    };
+  }
+}
+
+export class TestPropOpcode extends Opcode {
+  private prop: InternedString;
+  public type = "test-prop";
+
+  constructor(prop: InternedString) {
+    super();
+    this.prop = prop;
+  }
+
+  evaluate(vm: VM) {
+    let operand = vm.frame.getOperand();
+    vm.frame.setCondition(new ConditionalReference(operand.get(this.prop)));
   }
 
   toJSON(): OpcodeJSON {

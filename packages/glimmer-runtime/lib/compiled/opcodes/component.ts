@@ -6,7 +6,7 @@ import { CompiledArgs, EvaluatedArgs } from '../../compiled/expressions/args';
 import { Templates } from '../../syntax/core';
 import { layoutFor } from '../../compiler';
 import { DynamicScope } from '../../environment';
-import { InternedString, Opaque } from 'glimmer-util';
+import { FIXME, InternedString, Opaque } from 'glimmer-util';
 import { ReferenceCache, Revision, combine, isConst } from 'glimmer-reference';
 
 export class PutDynamicComponentDefinitionOpcode extends Opcode {
@@ -20,13 +20,19 @@ export class PutDynamicComponentDefinitionOpcode extends Opcode {
   }
 
   evaluate(vm: VM) {
-    let definitionRef = vm.frame.getOperand();
+    let metaDefinitionRef = vm.frame.getOperand();
+    let definitionRef = metaDefinitionRef.get('definition' as FIXME<'intern'>);
+    let curriedArgsRef = metaDefinitionRef.get('args' as FIXME<'intern'>);
+
     let cache = isConst(definitionRef) ? undefined : new ReferenceCache(definitionRef);
     let definition = cache ? cache.peek() : definitionRef.value();
 
     let args = this.args.evaluate(vm).withInternal();
+
     vm.frame.setArgs(args);
+
     args.internal["definition"] = definition;
+    args.internal["args"] = curriedArgsRef.value();
 
     if (cache) {
       vm.updateWith(new Assert(cache));
