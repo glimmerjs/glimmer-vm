@@ -85,6 +85,7 @@ export abstract class EvaluatedPositionalArgs {
 
   abstract at(index: number): PathReference<any>;
   abstract value(): any[];
+  abstract slice(begin?: number, end?: number): EvaluatedPositionalArgs;
 }
 
 class NonEmptyEvaluatedPositionalArgs extends EvaluatedPositionalArgs {
@@ -109,6 +110,12 @@ class NonEmptyEvaluatedPositionalArgs extends EvaluatedPositionalArgs {
 
     return ret;
   }
+
+  slice(begin?: number, end?: number): EvaluatedPositionalArgs {
+    return EvaluatedPositionalArgs.create({
+      values: this.values.slice(begin, end)
+    });
+  }
 }
 
 export const EVALUATED_EMPTY_POSITIONAL_ARGS = new (class extends EvaluatedPositionalArgs {
@@ -122,5 +129,9 @@ export const EVALUATED_EMPTY_POSITIONAL_ARGS = new (class extends EvaluatedPosit
 
   value(): any[] {
     return [];
+  }
+
+  slice(begin?: number, end?: number): EvaluatedPositionalArgs {
+    return this;
   }
 });
