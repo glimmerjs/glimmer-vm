@@ -37,8 +37,12 @@ export function defaultPropertyChangeLists(tagName: string, attr: string) {
     return SafeHrefPropertyChangeList;
   }
 
-  if (isUserInputValue(tagName, attr)) {
+  if (isInputValue(tagName, attr)) {
     return InputValuePropertyChangeList;
+  }
+
+  if (isTextAreaValue(tagName, attr)) {
+    return TextAreaValueChangeList;
   }
 
   if (isOptionSelected(tagName, attr)) {
@@ -111,8 +115,12 @@ export const AttributeChangeList: IChangeList = new class {
   }
 };
 
-function isUserInputValue(tagName: string, attribute: string) {
-  return (tagName === 'INPUT' || tagName === 'TEXTAREA') && attribute === 'value';
+function isInputValue(tagName: string, attribute: string) {
+  return tagName === 'INPUT' && attribute === 'value';
+}
+
+function isTextAreaValue(tagName: string, attribute: string) {
+  return tagName === 'TEXTAREA' && attribute === 'value';
 }
 
 export const InputValuePropertyChangeList: IChangeList = new class {
@@ -149,6 +157,24 @@ export const OptionSelectedChangeList: IChangeList = new class {
       option.selected = false;
     } else {
       option.selected = true;
+    }
+  }
+};
+
+export const TextAreaValueChangeList: IChangeList = new class {
+  setAttribute(env: Environment, element: Element, attr: string, value: Opaque) {
+    let textArea = <HTMLTextAreaElement>element;
+    let normalizedValue = normalizeTextValue(value);
+    let textNode = env.getDOM().createTextNode(normalizedValue);
+    textArea.appendChild(textNode);
+  }
+
+  updateAttribute(env: Environment, element: Element, attr: string, value: Opaque) {
+    let textArea = <HTMLTextAreaElement>element;
+    let normalizedValue = normalizeTextValue(value);
+    let currentValue = textArea.value;
+    if (currentValue !== normalizedValue) {
+      textArea.value = normalizedValue;
     }
   }
 };
