@@ -304,7 +304,7 @@ export default class VM implements PublicVM {
   // Make sure you have opcodes that push and pop a scope around this opcode
   // if you need to change the scope.
   invokeBlock(block: InlineBlock, args: EvaluatedArgs) {
-    let compiled = block.compile(this.env);
+    let compiled = block.compile(this.env, this.dynamicScope());
     this.pushFrame({ block: compiled, args });
   }
 

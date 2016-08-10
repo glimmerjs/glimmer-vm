@@ -27,7 +27,7 @@ export interface ComponentManager<T extends Component> {
   // *after* the component instance has been created, because you might
   // want to return a different layout per-instance for optimization reasons
   // or to implement features like Ember's "late-bound" layouts.
-  layoutFor(definition: ComponentDefinition<T>, component: T, env: Environment): CompiledBlock;
+  layoutFor(definition: ComponentDefinition<T>, component: T, env: Environment, dynamicScope: DynamicScope): CompiledBlock;
 
   // Next, Glimmer asks the manager to create a reference for the `self`
   // it should use in the layout.

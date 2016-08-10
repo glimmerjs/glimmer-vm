@@ -1,6 +1,6 @@
 import { OpSeq } from '../opcodes';
 import { Program } from '../syntax';
-import { Environment } from '../environment';
+import { Environment, DynamicScope } from '../environment';
 import SymbolTable from '../symbol-table';
 import {
   BlockMeta
@@ -59,11 +59,11 @@ export class InlineBlock extends Block {
     return !!this.locals.length;
   }
 
-  compile(env: Environment): CompiledBlock {
+  compile(env: Environment, dynamicScope: DynamicScope): CompiledBlock {
     let compiled = this.compiled;
     if (compiled) return compiled;
 
-    let ops = new InlineBlockCompiler(this, env).compile();
+    let ops = new InlineBlockCompiler(this, env).compile(dynamicScope);
     return this.compiled = new CompiledBlock(ops, this.symbolTable.size);
   }
 }
@@ -95,11 +95,11 @@ export class EntryPoint extends TopLevelTemplate {
     return top;
   }
 
-  compile(env: Environment) {
+  compile(env: Environment, dynamicScope: DynamicScope) {
     let compiled = this.compiled;
     if (compiled) return compiled;
 
-    let ops = new EntryPointCompiler(this, env).compile();
+    let ops = new EntryPointCompiler(this, env).compile(dynamicScope);
     return this.compiled = new CompiledBlock(ops, this.symbolTable.size);
   }
 }

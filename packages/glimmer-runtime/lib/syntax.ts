@@ -1,6 +1,6 @@
 import { LinkedListNode, Slice } from 'glimmer-util';
 import { BlockScanner } from './scanner';
-import { Environment } from './environment';
+import { Environment, DynamicScope } from './environment';
 import { CompiledExpression } from './compiled/expressions';
 import { Opcode, OpSeq } from './opcodes';
 import { InlineBlock, Block } from './compiled/blocks';
@@ -32,9 +32,9 @@ export abstract class Statement implements LinkedListNode {
     return new (<new (any) => any>this.constructor)(this);
   }
 
-  abstract compile(opcodes: StatementCompilationBuffer, env: Environment, block: Block);
+  abstract compile(opcodes: StatementCompilationBuffer, env: Environment, block: Block, dynamicScope?: DynamicScope);
 
-  scan(scanner: BlockScanner): Statement {
+  scan(scanner: BlockScanner, dynamicScope?: DynamicScope): Statement {
     return this;
   }
 }
@@ -50,7 +50,7 @@ export abstract class Expression<T> {
 
   public abstract type: string;
 
-  abstract compile(compiler: SymbolLookup, env: Environment, parentMeta?: BlockMeta): CompiledExpression<T>;
+  abstract compile(compiler: SymbolLookup, env: Environment, parentMeta?: BlockMeta, dynamicScope?: DynamicScope): CompiledExpression<T>;
 }
 
 export interface SymbolLookup {

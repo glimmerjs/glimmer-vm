@@ -372,8 +372,9 @@ function renderContent() {
     let definition = env.getComponentDefinition([component]);
 
     let manager = definition.manager;
-    let instance = manager.create(definition, EvaluatedArgs.empty(), new TestDynamicScope(null), false);
-    let compiled = manager.layoutFor(definition, instance, env);
+    let dynamicScope = new TestDynamicScope(null);
+    let instance = manager.create(definition, EvaluatedArgs.empty(), dynamicScope, false);
+    let compiled = manager.layoutFor(definition, instance, env, dynamicScope);
 
     return compiled.ops;
   }
