@@ -69,7 +69,7 @@ import {
   CompiledExpression
 } from '../compiled/expressions';
 
-import { Environment } from '../environment';
+import { Environment, DynamicScope } from '../environment';
 
 import {
   Opaque,
@@ -167,11 +167,11 @@ export class Unknown extends ExpressionSyntax<any> {
     this.trustingMorph = !!options.unsafe;
   }
 
-  compile(compiler: SymbolLookup, env: Environment, parentMeta: BlockMeta): CompiledExpression<Opaque> {
+  compile(compiler: SymbolLookup, env: Environment, parentMeta: BlockMeta, dynamicScope: DynamicScope): CompiledExpression<Opaque> {
     let { ref } = this;
 
-    if (env.hasHelper(ref.parts, parentMeta)) {
-      return new CompiledHelper({ name: ref.parts, helper: env.lookupHelper(ref.parts, parentMeta), args: CompiledArgs.empty() });
+    if (env.hasHelper(ref.parts, parentMeta, dynamicScope)) {
+      return new CompiledHelper({ name: ref.parts, helper: env.lookupHelper(ref.parts, parentMeta, dynamicScope), args: CompiledArgs.empty() });
     } else {
       return this.ref.compile(compiler);
     }
@@ -532,10 +532,10 @@ export class OpenElement extends StatementSyntax {
     this.blockParams = options.blockParams;
   }
 
-  scan(scanner: BlockScanner): StatementSyntax {
+  scan(scanner: BlockScanner, dynamicScope: DynamicScope): StatementSyntax {
     let { tag } = this;
 
-    if (scanner.env.hasComponentDefinition([tag])) {
+    if (scanner.env.hasComponentDefinition([tag], dynamicScope)) {
       let { args, attrs } = this.parameters(scanner);
       scanner.startBlock();
       this.tagContents(scanner);
@@ -621,8 +621,8 @@ export class Component extends StatementSyntax {
     this.template = template;
   }
 
-  compile(list: CompileInto & SymbolLookup, env: Environment) {
-    let definition = env.getComponentDefinition([this.tag]);
+  compile(list: CompileInto & SymbolLookup, env: Environment, block: CompiledBlock, dynamicScope: DynamicScope) {
+    let definition = env.getComponentDefinition([this.tag], dynamicScope);
     let args = this.args.compile(list as SymbolLookup, env);
     let shadow = this.attrs;
     let templates = new Templates({ template: this.template, inverse: null });
@@ -892,10 +892,10 @@ export class Helper extends ExpressionSyntax<Opaque> {
     this.args = options.args;
   }
 
-  compile(compiler: SymbolLookup, env: Environment, parentMeta: BlockMeta): CompiledExpression<Opaque> {
-    if (env.hasHelper(this.ref.parts, parentMeta)) {
+  compile(compiler: SymbolLookup, env: Environment, parentMeta: BlockMeta, dynamicScope: DynamicScope): CompiledExpression<Opaque> {
+    if (env.hasHelper(this.ref.parts, parentMeta, dynamicScope)) {
       let { args, ref } = this;
-      return new CompiledHelper({ name: ref.parts, helper: env.lookupHelper(ref.parts, parentMeta), args: args.compile(compiler, env) });
+      return new CompiledHelper({ name: ref.parts, helper: env.lookupHelper(ref.parts, parentMeta, dynamicScope), args: args.compile(compiler, env) });
     } else {
       throw new Error(`Compile Error: ${this.ref.path().join('.')} is not a helper`);
     }

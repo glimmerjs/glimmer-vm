@@ -360,7 +360,7 @@ export class EvaluatePartialOpcode extends Opcode {
 
     let block = this.cache[name];
     if (!block) {
-      let { template } = vm.env.lookupPartial([name]);
+      let { template } = vm.env.lookupPartial([name], vm.dynamicScope());
       let scanner = new Scanner(template, vm.env);
       block = scanner.scanPartial(this.symbolTable);
     }
@@ -388,7 +388,7 @@ export class NameToPartialOpcode extends Opcode {
     let reference = vm.frame.getOperand();
     let referenceCache = new ReferenceCache(reference);
     let name: string = referenceCache.revalidate();
-    let partial = name && vm.env.hasPartial([name]) ? vm.env.lookupPartial([name]) : false;
+    let partial = name && vm.env.hasPartial([name], vm.dynamicScope()) ? vm.env.lookupPartial([name], vm.dynamicScope()) : false;
     vm.frame.setOperand(new ValueReference(partial));
 
     if (!isConst(reference)) {

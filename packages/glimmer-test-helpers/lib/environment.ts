@@ -289,14 +289,14 @@ class BasicComponentManager implements ComponentManager<BasicComponent> {
     return new klass(args.named.value());
   }
 
-  layoutFor(definition: BasicComponentDefinition, component: BasicComponent, env: TestEnvironment): CompiledBlock {
+  layoutFor(definition: BasicComponentDefinition, component: BasicComponent, env: TestEnvironment, dynamicScope: DynamicScope): CompiledBlock {
     let layout = env.compiledLayouts[definition.name];
 
     if (layout) {
       return layout;
     }
 
-    return env.compiledLayouts[definition.name] = compileLayout(new BasicComponentLayoutCompiler(definition.layoutString), env);
+    return env.compiledLayouts[definition.name] = compileLayout(new BasicComponentLayoutCompiler(definition.layoutString), env, dynamicScope);
   }
 
   getSelf(component: BasicComponent): PathReference<Opaque> {
@@ -327,14 +327,14 @@ class BasicComponentManager implements ComponentManager<BasicComponent> {
 const BASIC_COMPONENT_MANAGER = new BasicComponentManager();
 
 class StaticTaglessComponentManager extends BasicComponentManager {
-  layoutFor(definition: StaticTaglessComponentDefinition, component: BasicComponent, env: TestEnvironment): CompiledBlock {
+  layoutFor(definition: StaticTaglessComponentDefinition, component: BasicComponent, env: TestEnvironment, dynamicScope: DynamicScope): CompiledBlock {
     let layout = env.compiledLayouts[definition.name];
 
     if (layout) {
       return layout;
     }
 
-    return env.compiledLayouts[definition.name] = compileLayout(new StaticTaglessComponentLayoutCompiler(definition.layoutString), env);
+    return env.compiledLayouts[definition.name] = compileLayout(new StaticTaglessComponentLayoutCompiler(definition.layoutString), env, dynamicScope);
   }
 }
 
@@ -360,11 +360,11 @@ class EmberishGlimmerComponentManager implements ComponentManager<EmberishGlimme
     return component;
   }
 
-  layoutFor(definition: EmberishGlimmerComponentDefinition, component: EmberishGlimmerComponent, env: TestEnvironment): CompiledBlock {
+  layoutFor(definition: EmberishGlimmerComponentDefinition, component: EmberishGlimmerComponent, env: TestEnvironment, dynamicScope: DynamicScope): CompiledBlock {
     if (env.compiledLayouts[definition.name]) {
       return env.compiledLayouts[definition.name];
     }
-    return env.compiledLayouts[definition.name] = compileLayout(new EmberishGlimmerComponentLayoutCompiler(definition.layoutString), env);
+    return env.compiledLayouts[definition.name] = compileLayout(new EmberishGlimmerComponentLayoutCompiler(definition.layoutString), env, dynamicScope);
   }
 
   getSelf(component: EmberishGlimmerComponent): PathReference<Opaque> {
@@ -467,7 +467,7 @@ class EmberishCurlyComponentManager implements ComponentManager<EmberishCurlyCom
     return component;
   }
 
-  layoutFor(definition: EmberishCurlyComponentDefinition, component: EmberishCurlyComponent, env: TestEnvironment): CompiledBlock {
+  layoutFor(definition: EmberishCurlyComponentDefinition, component: EmberishCurlyComponent, env: TestEnvironment, dynamicScope: DynamicScope): CompiledBlock {
     let layout = env.compiledLayouts[definition.name];
 
     if (layout) {
@@ -481,7 +481,7 @@ class EmberishCurlyComponentManager implements ComponentManager<EmberishCurlyCom
       layoutString = component['layout'];
     }
 
-    layout = compileLayout(new EmberishCurlyComponentLayoutCompiler(layoutString), env);
+    layout = compileLayout(new EmberishCurlyComponentLayoutCompiler(layoutString), env, dynamicScope);
 
     return lateBound ? layout : (env.compiledLayouts[definition.name] = layout);
   }
@@ -678,9 +678,8 @@ export class TestEnvironment extends Environment {
     this.registerHelper("if", ([cond, yes, no]) => cond ? yes : no);
     this.registerHelper("unless", ([cond, yes, no]) => cond ? no : yes);
     this.registerModifier("action", new InertModifierManager());
-
     this.registerInternalHelper("component", (vm, args) => {
-      return new DynamicComponentReference({ nameRef: args.positional.at(0), env: vm.env, args: EvaluatedArgs.empty() });
+      return new DynamicComponentReference({ nameRef: args.positional.at(0), env: vm.env, args: EvaluatedArgs.empty(), dynamicScope: new TestDynamicScope(null) });
     });
 
     this.registerInternalHelper("hash", (vm, args) => args.named);
@@ -735,7 +734,7 @@ export class TestEnvironment extends Environment {
     return new EmberishConditionalReference(reference);
   }
 
-  refineStatement(statement: ParsedStatement, parentMeta: BlockMeta): StatementSyntax {
+  refineStatement(statement: ParsedStatement, parentMeta: BlockMeta, dynamicScope: DynamicScope): StatementSyntax {
     let {
       appendType,
       isSimple,
@@ -774,7 +773,7 @@ export class TestEnvironment extends Environment {
       return (statement.original as OptimizedAppend).deopt();
     }
 
-    return super.refineStatement(statement, parentMeta);
+    return super.refineStatement(statement, parentMeta, dynamicScope);
   }
 
   hasHelper(helperName: string[]) {
@@ -900,21 +899,23 @@ class CurlyComponentSyntax extends StatementSyntax implements StaticComponentOpt
 class DynamicComponentReference implements PathReference<ComponentDefinition<Opaque>> {
   private nameRef: PathReference<Opaque>;
   private env: Environment;
+  private dynamicScope: DynamicScope;
   public tag: RevisionTag;
 
-  constructor({ nameRef, env, args }: { nameRef: PathReference<Opaque>, env: Environment, args: EvaluatedArgs }) {
+  constructor({ nameRef, env, args, dynamicScope }: { nameRef: PathReference<Opaque>, env: Environment, args: EvaluatedArgs, dynamicScope: DynamicScope }) {
     this.nameRef = nameRef;
     this.env = env;
     this.tag = args.tag;
+    this.dynamicScope = dynamicScope;
   }
 
   value(): ComponentDefinition<Opaque> {
-    let { env, nameRef } = this;
+    let { env, nameRef, dynamicScope } = this;
 
     let name = nameRef.value();
 
     if (typeof name === 'string') {
-      return env.getComponentDefinition([name]);
+      return env.getComponentDefinition([name], dynamicScope);
     } else {
       return null;
     }
@@ -929,7 +930,8 @@ function dynamicComponentFor(vm: VM) {
   let args = vm.getArgs();
   let nameRef = args.positional.at(0);
   let env = vm.env;
-  return new DynamicComponentReference({ nameRef, env, args });
+  let dynamicScope = vm.dynamicScope();
+  return new DynamicComponentReference({ nameRef, env, args, dynamicScope });
 };
 
 class DynamicComponentSyntax extends StatementSyntax implements DynamicComponentOptions {

@@ -139,11 +139,11 @@ export abstract class Environment {
     return ensureGuid(object) + '';
   }
 
-  statement(statement: StatementSyntax, blockMeta: BlockMeta): StatementSyntax {
-    return this.refineStatement(parseStatement(statement), blockMeta) || statement;
+  statement(statement: StatementSyntax, blockMeta: BlockMeta, dynamicScope: DynamicScope): StatementSyntax {
+    return this.refineStatement(parseStatement(statement), blockMeta, dynamicScope) || statement;
   }
 
-  protected refineStatement(statement: ParsedStatement, blockMeta: BlockMeta): StatementSyntax {
+  protected refineStatement(statement: ParsedStatement, blockMeta: BlockMeta, dynamicScope: DynamicScope): StatementSyntax {
     let {
       isSimple,
       isBlock,
@@ -217,17 +217,17 @@ export abstract class Environment {
     return false;
   }
 
-  abstract hasHelper(helperName: string[], blockMeta: BlockMeta): boolean;
-  abstract lookupHelper(helperName: string[], blockMeta: BlockMeta): Helper;
+  abstract hasHelper(helperName: string[], blockMeta: BlockMeta, dynamicScope: DynamicScope): boolean;
+  abstract lookupHelper(helperName: string[], blockMeta: BlockMeta, dynamicScope: DynamicScope): Helper;
 
   attributeFor(element: Element, attr: string, reference: Reference<Opaque>, isTrusting: boolean, namespace?: string): IChangeList {
     return defaultChangeLists(element, attr, isTrusting, namespace);
   }
 
-  abstract hasPartial(partialName: string[]): boolean;
-  abstract lookupPartial(PartialName: string[]): PartialDefinition;
-  abstract hasComponentDefinition(tagName: string[]): boolean;
-  abstract getComponentDefinition(tagName: string[]): ComponentDefinition<Opaque>;
+  abstract hasPartial(partialName: string[], dynamicScope: DynamicScope): boolean;
+  abstract lookupPartial(PartialName: string[], dynamicScope: DynamicScope): PartialDefinition;
+  abstract hasComponentDefinition(tagName: string[], dynamicScope: DynamicScope): boolean;
+  abstract getComponentDefinition(tagName: string[], dynamicScope: DynamicScope): ComponentDefinition<Opaque>;
 
   abstract hasModifier(modifierName: string[]): boolean;
   abstract lookupModifier(modifierName: string[]): ModifierManager<Opaque>;

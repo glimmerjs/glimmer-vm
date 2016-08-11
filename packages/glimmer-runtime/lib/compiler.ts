@@ -2,7 +2,7 @@ import { Opaque, Slice, LinkedList } from 'glimmer-util';
 import { OpSeq, Opcode } from './opcodes';
 
 import * as Syntax from './syntax/core';
-import { Environment } from './environment';
+import { Environment, DynamicScope } from './environment';
 import SymbolTable from './symbol-table';
 import { Block, CompiledBlock, EntryPoint, InlineBlock, Layout } from './compiled/blocks';
 
@@ -43,13 +43,13 @@ abstract class Compiler {
     this.symbolTable = block.symbolTable;
   }
 
-  protected compileStatement(statement: StatementSyntax, ops: OpcodeBuilderDSL) {
-    this.env.statement(statement, this.block.meta).compile(ops, this.env, this.block);
+  protected compileStatement(statement: StatementSyntax, ops: OpcodeBuilderDSL, dynamicScope: DynamicScope) {
+    this.env.statement(statement, this.block.meta, dynamicScope).compile(ops, this.env, this.block);
   }
 }
 
-function compileStatement(env: Environment, statement: StatementSyntax, ops: OpcodeBuilderDSL, layout: Layout) {
-  env.statement(statement, layout.meta).compile(ops, env, layout);
+function compileStatement(env: Environment, statement: StatementSyntax, ops: OpcodeBuilderDSL, layout: Layout, dynamicScope: DynamicScope) {
+  env.statement(statement, layout.meta, dynamicScope).compile(ops, env, layout);
 }
 
 export default Compiler;
@@ -64,7 +64,7 @@ export class EntryPointCompiler extends Compiler {
     this.ops = new OpcodeBuilderDSL(list, template, env);
   }
 
-  compile(): OpSeq {
+  compile(dynamicScope: DynamicScope): OpSeq {
     let { block, ops } = this;
     let { program } = block;
 
@@ -72,7 +72,7 @@ export class EntryPointCompiler extends Compiler {
 
     while (current) {
       let next = program.nextNode(current);
-      this.compileStatement(current, ops);
+      this.compileStatement(current, ops, dynamicScope);
       current = next;
     }
 
@@ -107,7 +107,7 @@ export class InlineBlockCompiler extends Compiler {
     this.ops = new OpcodeBuilderDSL(list, block, env);
   }
 
-  compile(): OpSeq {
+  compile(dynamicScope: DynamicScope): OpSeq {
     let { block, ops } = this;
     let { program } = block;
 
@@ -119,7 +119,7 @@ export class InlineBlockCompiler extends Compiler {
 
     while (current) {
       let next = program.nextNode(current);
-      this.compileStatement(current, ops);
+      this.compileStatement(current, ops, dynamicScope);
       current = next;
     }
 
@@ -143,12 +143,12 @@ export interface Compilable {
   compile(builder: ComponentLayoutBuilder);
 }
 
-export function compileLayout(compilable: Compilable, env: Environment): CompiledBlock {
+export function compileLayout(compilable: Compilable, env: Environment, dynamicScope: DynamicScope): CompiledBlock {
   let builder = new ComponentLayoutBuilder(env);
 
   compilable.compile(builder);
 
-  return builder.compile();
+  return builder.compile(dynamicScope);
 }
 
 class ComponentLayoutBuilder implements Component.ComponentLayoutBuilder {
@@ -172,8 +172,8 @@ class ComponentLayoutBuilder implements Component.ComponentLayoutBuilder {
     this.inner = new UnwrappedBuilder(this.env, layout);
   }
 
-  compile(): CompiledBlock {
-    return this.inner.compile();
+  compile(dynamicScope: DynamicScope): CompiledBlock {
+    return this.inner.compile(dynamicScope);
   }
 
   get tag(): Component.ComponentTagBuilder {
@@ -200,7 +200,7 @@ class EmptyBuilder {
     throw new Error('Nope');
   }
 
-  compile(): CompiledBlock {
+  compile(dynamicScope: DynamicScope): CompiledBlock {
     let { env } = this;
 
     let list = new CompileIntoList(env, null);
@@ -220,7 +220,7 @@ class WrappedBuilder {
     this.layout = layout;
   }
 
-  compile(): CompiledBlock {
+  compile(dynamicScope: DynamicScope): CompiledBlock {
     //========DYNAMIC
     //        PutValue(TagExpr)
     //        Test
@@ -257,13 +257,13 @@ class WrappedBuilder {
       dsl.jumpUnless('BODY');
       dsl.openDynamicPrimitiveElement();
       dsl.didCreateElement();
-      this.attrs['buffer'].forEach(statement => compileStatement(env, statement, dsl, layout));
+      this.attrs['buffer'].forEach(statement => compileStatement(env, statement, dsl, layout, dynamicScope));
       dsl.label('BODY');
     } else if (this.tag.isStatic) {
       let tag = this.tag.staticTagName;
       dsl.openPrimitiveElement(tag);
       dsl.didCreateElement();
-      this.attrs['buffer'].forEach(statement => compileStatement(env, statement, dsl, layout));
+      this.attrs['buffer'].forEach(statement => compileStatement(env, statement, dsl, layout, dynamicScope));
     }
 
     if (layout.hasNamedParameters()) {
@@ -273,7 +273,7 @@ class WrappedBuilder {
     if (layout.hasYields()) {
       dsl.bindBlocksForLayout(layout);
     }
-    layout.program.forEachNode(statement => compileStatement(env, statement, dsl, layout));
+    layout.program.forEachNode(statement => compileStatement(env, statement, dsl, layout, dynamicScope));
 
     if (this.tag.isDynamic) {
       dsl.putValue(this.tag.dynamicTagName);
@@ -306,7 +306,7 @@ class UnwrappedBuilder {
     throw new Error('BUG: Cannot call `tag` on an UnwrappedBuilder');
   }
 
-  compile(): CompiledBlock {
+  compile(dynamicScope: DynamicScope): CompiledBlock {
     let { env, layout } = this;
 
     let buffer = new CompileIntoList(env, layout);
@@ -326,12 +326,12 @@ class UnwrappedBuilder {
     let attrsInserted = false;
 
     this.layout.program.forEachNode(statement => {
-      compileStatement(env, statement, dsl, layout);
+      compileStatement(env, statement, dsl, layout, dynamicScope);
 
       if (!attrsInserted && isOpenElement(statement)) {
         dsl.didCreateElement();
         dsl.shadowAttributes();
-        attrs.forEach(statement => compileStatement(env, statement, dsl, layout));
+        attrs.forEach(statement => compileStatement(env, statement, dsl, layout, dynamicScope));
         attrsInserted = true;
       }
     });
