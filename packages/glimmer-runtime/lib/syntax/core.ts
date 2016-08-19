@@ -59,6 +59,8 @@ import {
 
 import CompiledHasBlock from '../compiled/expressions/has-block';
 
+import CompiledGetDynamicVar from '../compiled/expressions/get-dynamic-var';
+
 import CompiledHasBlockParams from '../compiled/expressions/has-block-params';
 
 import CompiledHelper from '../compiled/expressions/helper';
@@ -966,6 +968,33 @@ export class HasBlockParams extends ExpressionSyntax<boolean> {
     return new CompiledHasBlockParams({
       blockName: this.blockName,
       blockSymbol: compiler.getBlockSymbol(this.blockName)
+    });
+  }
+}
+
+export class GetDynamicVar extends ExpressionSyntax<any> {
+  type = "get-dynamic-var";
+
+  static fromSpec(sexp: SerializedExpressions.GetDynamicVar): GetDynamicVar {
+    let [, varName] = sexp;
+    return new GetDynamicVar({ varName });
+  }
+
+  static build(varName: string): GetDynamicVar {
+    console.log("build a dynamic var reference");
+    return new this({ varName });
+  }
+
+  varName: string;
+
+  constructor({ varName }: { varName: string }) {
+    super();
+    this.varName = varName;
+  }
+
+  compile(compiler: SymbolLookup, env: Environment): CompiledGetDynamicVar {
+    return new CompiledGetDynamicVar({
+      varName: this.varName
     });
   }
 }

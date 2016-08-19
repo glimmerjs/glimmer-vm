@@ -180,6 +180,10 @@ export default class TemplateCompiler {
     this.opcode('hasBlockParams', action, name);
   }
 
+  getDynamicVar(varName: string) {
+    this.opcode('getDynamicVar', null, varName);
+  }
+
   builtInHelper(expr) {
     if (isHasBlock(expr)) {
       let name = assertValidHasBlock(expr);
@@ -187,6 +191,9 @@ export default class TemplateCompiler {
     } else if (isHasBlockParams(expr)) {
       let name = assertValidHasBlockParams(expr);
       this.hasBlockParams(name, expr);
+    } else if (isGetDynamicVar(expr)) {
+      let varName = assertValidGetDynamicVarParams(expr);
+      this.getDynamicVar(varName);
     }
   }
 
@@ -352,9 +359,14 @@ function isHasBlockParams({ path }) {
   return path.original === 'has-block-params';
 }
 
+function isGetDynamicVar({ path }) {
+  return path.original === '-get-dynamic-var';
+}
+
 function isBuiltInHelper(expr) {
   return isHasBlock(expr)
-      || isHasBlockParams(expr);
+      || isHasBlockParams(expr)
+      || isGetDynamicVar(expr);
 }
 
 function assertValidYield({ hash }): string {
@@ -397,4 +409,14 @@ function assertValidHasBlockParams({ params }): string {
   } else {
     throw new Error(`has-block-params only takes a single positional argument`);
   }
+}
+
+function assertValidGetDynamicVarParams({ params }): string {
+  if (params.length !== 1) {
+    throw new Error(`get-dynamic-var requires exactly one parameter (the name of the dynamic variable you wish to access)`);
+  }
+  if (params[0].type !== 'StringLiteral') {
+    throw new Error(`get-dynamic-var only accepts string literals`);
+  }
+  return params[0].value;
 }

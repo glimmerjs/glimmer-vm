@@ -184,6 +184,10 @@ export default class JavaScriptCompiler {
     this.template.yields.add(name);
   }
 
+  getDynamicVar(varName: string) {
+    this.pushValue<Expressions.GetDynamicVar>(['get-dynamic-var', varName]);
+  }
+
   /// Expressions
 
   literal(value: Expressions.Value | undefined) {

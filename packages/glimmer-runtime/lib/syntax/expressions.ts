@@ -8,6 +8,7 @@ import {
   HasBlockParams as HasBlockParamsSyntax,
   Helper as HelperSyntax,
   Unknown as UnknownSyntax,
+  GetDynamicVar as GetDynamicVarSyntax
 } from './core';
 
 import {
@@ -25,7 +26,8 @@ const {
   isHelper,
   isUnknown,
   isPrimitiveValue,
-  isUndefined
+  isUndefined,
+  isGetDynamicVar
 } = SerializedExpressions;
 
 export default function(sexp: SerializedExpression): any {
@@ -39,6 +41,7 @@ export default function(sexp: SerializedExpression): any {
   if (isUnknown(sexp)) return UnknownSyntax.fromSpec(sexp);
   if (isHasBlock(sexp)) return HasBlockSyntax.fromSpec(sexp);
   if (isHasBlockParams(sexp)) return HasBlockParamsSyntax.fromSpec(sexp);
+  if (isGetDynamicVar(sexp)) return GetDynamicVarSyntax.fromSpec(sexp);
 
   throw new Error(`Unexpected wire format: ${JSON.stringify(sexp)}`);
 };
