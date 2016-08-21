@@ -1,13 +1,15 @@
 import { Statement as StatementSyntax } from './syntax';
 
 import * as Simple from './dom/interfaces';
-import { DOMChanges, DOMTreeConstruction } from './dom/helper';
+import { normalizeProperty } from './dom/props';
+import { DOMChanges, DOMTreeConstruction, SVG_NAMESPACE } from './dom/helper';
 import { Reference, OpaqueIterable } from 'glimmer-reference';
 import { UNDEFINED_REFERENCE, ConditionalReference } from './references';
 import {
-  defaultChangeLists,
-  IChangeList
-} from './dom/change-lists';
+  defaultAttributeManagers,
+  defaultPropertyManagers,
+  IAttributeManager
+} from './dom/attribute-managers';
 
 import {
   PartialDefinition
@@ -29,6 +31,8 @@ import {
 
 import {
   Destroyable,
+  Dict,
+  dict,
   Opaque,
   HasGuid,
   ensureGuid
@@ -116,9 +120,16 @@ export class Scope {
   }
 }
 
+export interface NormalizedAttributeManager {
+  type: string;
+  name: string;
+  attributeManager: IAttributeManager;
+}
+
 export abstract class Environment {
   protected updateOperations: DOMChanges;
   protected appendOperations: DOMTreeConstruction;
+  protected normalizedAttributeManagers: Dict<NormalizedAttributeManager> = dict<NormalizedAttributeManager>();
   private createdComponents: Component[] = null;
   private createdManagers: ComponentManager<Component>[] = null;
   private updatedComponents: Component[] = null;
@@ -225,8 +236,39 @@ export abstract class Environment {
   abstract hasHelper(helperName: string[], blockMeta: BlockMeta): boolean;
   abstract lookupHelper(helperName: string[], blockMeta: BlockMeta): Helper;
 
-  attributeFor(element: Simple.Element, attr: string, isTrusting: boolean, namespace?: string): IChangeList {
-    return defaultChangeLists(element, attr, isTrusting, namespace);
+  attributeFor(element: Simple.Element, attr: string, isTrusting: boolean, namespace?: string): NormalizedAttributeManager {
+    let tagName = element.tagName;
+    let elementNS = element.namespaceURI;
+    let isSVG = elementNS === SVG_NAMESPACE;
+    let key = `${element.tagName}.${namespace ? namespace + '.' : ''}${attr}.${elementNS}`;
+
+    if (this.normalizedAttributeManagers[key]) {
+      return this.normalizedAttributeManagers[key];
+    }
+
+    if (isSVG) {
+      let attributeManager = defaultAttributeManagers(tagName, attr);
+      return this.normalizedAttributeManagers[key] = {
+        type: 'attr',
+        name: attr,
+        attributeManager
+      };
+    }
+
+    let { type, name }  = normalizeProperty(element, attr);
+    this.normalizedAttributeManagers[key] = {
+      type,
+      name,
+      attributeManager: undefined,
+    };
+
+    if (type === 'attr') {
+      this.normalizedAttributeManagers[key].attributeManager = defaultAttributeManagers(tagName, attr);
+    } else {
+      this.normalizedAttributeManagers[key].attributeManager = defaultPropertyManagers(tagName, name);
+    }
+
+    return this.normalizedAttributeManagers[key];
   }
 
   abstract hasPartial(partialName: string[], blockMeta: BlockMeta): boolean;

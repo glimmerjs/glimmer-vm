@@ -103,17 +103,16 @@ export {
 } from './lib/compiled/opcodes/dom';
 
 export {
-  IChangeList,
-  AttributeChangeList,
-  PropertyChangeList,
-  SafeHrefAttributeChangeList,
-  SafeHrefPropertyChangeList,
-  InputValuePropertyChangeList,
-  defaultChangeLists,
-  defaultAttributeChangeLists,
-  defaultPropertyChangeLists,
+  IAttributeManager,
+  AttributeManager,
+  PropertyManager,
+  SafeHrefAttributeManager,
+  SafeHrefPropertyManager,
+  InputValuePropertyManager,
+  defaultAttributeManagers,
+  defaultPropertyManagers,
   readDOMAttr
-} from './lib/dom/change-lists';
+} from './lib/dom/attribute-managers';
 
 export {
   normalizeTextValue
@@ -154,6 +153,7 @@ export { SafeString, isSafeString } from './lib/upsert';
 export {
   Scope,
   default as Environment,
+  NormalizedAttributeManager,
   Helper,
   ParsedStatement,
   DynamicScope,

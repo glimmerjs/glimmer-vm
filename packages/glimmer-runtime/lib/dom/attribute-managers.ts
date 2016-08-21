@@ -10,86 +10,67 @@ import { SVG_NAMESPACE } from './helper';
 import { normalizeTextValue } from '../compiled/opcodes/content';
 import { Environment } from '../environment';
 
-export interface IChangeList {
+export interface IAttributeManager {
   setAttribute(env: Environment, element: Simple.Element, attr: string, value: Opaque, namespace?: string): void;
   updateAttribute(env: Environment, element: Element, attr: string, value: Opaque, namespace?: string): void;
 }
 
-export function defaultChangeLists(element: Simple.Element, attr: string, isTrusting: boolean, namespace: string) {
-  let tagName = element.tagName;
-  let isSVG = element.namespaceURI === SVG_NAMESPACE;
-
-  if (isSVG) {
-    return defaultAttributeChangeLists(tagName, attr);
-  }
-
-  let { type } = normalizeProperty(element, attr);
-
-  if (type === 'attr') {
-    return defaultAttributeChangeLists(tagName, attr);
-  } else {
-    return defaultPropertyChangeLists(tagName, attr);
-  }
-}
-
-export function defaultPropertyChangeLists(tagName: string, attr: string) {
+export function defaultPropertyManagers(tagName: string, attr: string) {
   if (requiresSanitization(tagName, attr)) {
-    return SafeHrefPropertyChangeList;
+    return SafeHrefPropertyManager;
   }
 
   if (isUserInputValue(tagName, attr)) {
-    return InputValuePropertyChangeList;
+    return InputValuePropertyManager;
   }
 
   if (isOptionSelected(tagName, attr)) {
-    return OptionSelectedChangeList;
+    return OptionSelectedManager;
   }
 
-  return PropertyChangeList;
+  return PropertyManager;
 }
 
-export function defaultAttributeChangeLists(tagName: string, attr: string) {
+export function defaultAttributeManagers(tagName: string, attr: string) {
   if (requiresSanitization(tagName, attr)) {
-    return SafeHrefAttributeChangeList;
+    return SafeHrefAttributeManager;
   }
 
-  return AttributeChangeList;
+  return AttributeManager;
 }
 
 export function readDOMAttr(element: Element, attr: string) {
    let isSVG = element.namespaceURI === SVG_NAMESPACE;
-   let { type, normalized } = normalizeProperty(element, attr);
+   let { type, name } = normalizeProperty(element, attr);
 
    if (isSVG) {
-     return element.getAttribute(normalized);
+     return element.getAttribute(name);
    }
 
    if (type === 'attr') {
-     return element.getAttribute(normalized);
-   } {
-     return element[normalized];
+     return element.getAttribute(name);
+   } else {
+     return element[name];
    }
 };
 
-export const PropertyChangeList: IChangeList = {
+export const PropertyManager: IAttributeManager = {
   setAttribute(env: Environment, element: Simple.Element, attr: string, value: Opaque, namespace?: DOMNamespace) {
     if (value !== null) {
-      let normalized = attr.toLowerCase();
-      element[normalized] = normalizePropertyValue(value); // TODO: This doesn't work
+      element[attr] = normalizePropertyValue(value); // TODO: This doesn't work
     }
   },
 
   updateAttribute(env: Environment, element: Element, attr: string, value: Opaque, namespace?: DOMNamespace) {
     if (value === null) {
-      let normalized = attr.toLowerCase();
-      element[normalized] = value;
+      element[attr] = value;
     } else {
       this.setAttribute(...arguments);
     }
   }
 };
 
-export const AttributeChangeList: IChangeList = new class {
+export const AttributeManager: IAttributeManager = new class {
   setAttribute(env: Environment, element: Simple.Element, attr: string, value: Opaque, namespace?: DOMNamespace) {
     let dom = env.getAppendOperations();
 
@@ -115,7 +96,7 @@ function isUserInputValue(tagName: string, attribute: string) {
   return (tagName === 'INPUT' || tagName === 'TEXTAREA') && attribute === 'value';
 }
 
-export const InputValuePropertyChangeList: IChangeList = new class {
+export const InputValuePropertyManager: IAttributeManager = new class {
   setAttribute(env: Environment, element: Simple.Element, attr: string, value: Opaque) {
     let input = element as FIXME<HTMLInputElement, "This breaks SSR">;
     input.value = normalizeTextValue(value);
@@ -135,7 +116,7 @@ function isOptionSelected(tagName: string, attribute: string) {
   return tagName === 'OPTION' && attribute === 'selected';
 }
 
-export const OptionSelectedChangeList: IChangeList = new class {
+export const OptionSelectedManager: IAttributeManager = new class {
   setAttribute(env: Environment, element: Simple.Element, attr: string, value: Opaque) {
     if (value !== null && value !== undefined && value !== false) {
       env.getAppendOperations().setAttribute(element, 'selected', '');
@@ -153,10 +134,10 @@ export const OptionSelectedChangeList: IChangeList = new class {
   }
 };
 
-export const SafeHrefPropertyChangeList: IChangeList = new class {
+export const SafeHrefPropertyManager: IAttributeManager = new class {
   setAttribute(env: Environment, element: Simple.Element, attr: string, value: Opaque) {
     let tree = env.getAppendOperations();
-    PropertyChangeList.setAttribute(env, element, attr, sanitizeAttributeValue(env, element, attr, value));
+    PropertyManager.setAttribute(env, element, attr, sanitizeAttributeValue(env, element, attr, value));
   }
 
   updateAttribute(env: Environment, element: Element, attr: string, value: Opaque) {
@@ -164,9 +145,9 @@ export const SafeHrefPropertyChangeList: IChangeList = new class {
   }
 };
 
-export const SafeHrefAttributeChangeList: IChangeList = new class {
+export const SafeHrefAttributeManager: IAttributeManager = new class {
   setAttribute(env: Environment, element: Element, attr: string, value: Opaque) {
-    AttributeChangeList.setAttribute(env, element, attr, sanitizeAttributeValue(env, element, attr, value));
+    AttributeManager.setAttribute(env, element, attr, sanitizeAttributeValue(env, element, attr, value));
   }
 
   updateAttribute(env: Environment, element: Element, attr: string, value: Opaque) {

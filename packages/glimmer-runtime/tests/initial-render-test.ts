@@ -1,6 +1,6 @@
 import { forEach } from "glimmer-util";
 import { TestEnvironment, TestDynamicScope, normalizeInnerHTML, getTextContent, equalTokens } from "glimmer-test-helpers";
-import { Template, AttributeChangeList } from 'glimmer-runtime';
+import { Template, AttributeManager, NormalizedAttributeManager } from 'glimmer-runtime';
 import { UpdatableReference } from 'glimmer-object-reference';
 
 const SVG_NAMESPACE = 'http://www.w3.org/2000/svg';
@@ -985,10 +985,10 @@ test("Case-sensitive tag has capitalization preserved", function() {
 
 let warnings = 0;
 
-const StyleAttribute = {
+const StyleAttributeManager = {
   setAttribute(dom, element, attr, value) {
     warnings++;
-    AttributeChangeList.setAttribute(dom, element, attr, value);
+    AttributeManager.setAttribute(dom, element, attr, value);
   },
   updateAttribute() {}
 };
@@ -996,9 +996,15 @@ const StyleAttribute = {
 QUnit.module('Style attributes', {
   setup() {
     class StyleEnv extends TestEnvironment {
-      attributeFor(element, attr, isTrusting) {
+      attributeFor(element, attr, isTrusting, namespace) {
+        let key = `${element.tagName}.${namespace ? namespace + '.' : ''}${attr}.${element.namspaceURI}`;
+
         if (attr === 'style' && !isTrusting) {
-          return StyleAttribute;
+          return this.normalizedAttributeManagers[key] = {
+            type: 'attr',
+            name: attr,
+            attributeManager: StyleAttributeManager
+          } as NormalizedAttributeManager;
         }
 
         return super.attributeFor(element, attr, isTrusting);
