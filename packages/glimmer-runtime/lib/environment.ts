@@ -61,7 +61,7 @@ const DIV = 'div';
 const A = 'a';
 
 class AttributeCache {
-  private store: Array<Dict<Dict<AttributeManager>>>; // Note this the Namespace enum
+  private store: Array<Dict<Dict<AttributeManager>>>;
 
   constructor() {
     // We want to prime the cache with common shapes
@@ -69,9 +69,11 @@ class AttributeCache {
     htmlNSDict[DIV] = dict<AttributeManager>();
     htmlNSDict[DIV]['id'] = undefined;
     htmlNSDict[DIV]['class'] = undefined;
+    htmlNSDict[DIV]['role'] = undefined;
+    htmlNSDict[DIV]['style'] = undefined;
     htmlNSDict[A] = dict<AttributeManager>();
     htmlNSDict[A]['href'] = undefined;
-    this.store = new Array(6);
+    this.store = new Array(6); // Note: Each array entry represents the Namespace enum position
     this.store[0] = htmlNSDict;
   }
 
@@ -105,7 +107,7 @@ class AttributeCache {
       this.store[nsIndex] = dict<Dict<AttributeManager>>();
       this.store[nsIndex][tagName] = {};
       this.store[nsIndex][tagName][attribute] = manager;
-    } else if (!this.store[nsIndex][tagName]) {
+    } else if (typeof this.store[nsIndex][tagName] !== 'object') {
       this.store[nsIndex][tagName] = {};
       this.store[nsIndex][tagName][attribute] = manager;
     }
