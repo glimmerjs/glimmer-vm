@@ -57,8 +57,23 @@ import { PublicVM } from './vm/append';
 
 type ScopeSlot = PathReference<Opaque> | InlineBlock;
 
+const DIV = 'div';
+const A = 'a';
+
 class AttributeCache {
-  private store: Array<Dict<Dict<AttributeManager>>> = new Array(6); // Note this the Namespace enum
+  private store: Array<Dict<Dict<AttributeManager>>>; // Note this the Namespace enum
+
+  constructor() {
+    // We want to prime the cache with common shapes
+    let htmlNSDict = dict<Dict<AttributeManager>>();
+    htmlNSDict[DIV] = dict<AttributeManager>();
+    htmlNSDict[DIV]['id'] = undefined;
+    htmlNSDict[DIV]['class'] = undefined;
+    htmlNSDict[A] = dict<AttributeManager>();
+    htmlNSDict[A]['href'] = undefined;
+    this.store = new Array(6);
+    this.store[0] = htmlNSDict;
+  }
 
   get(ns: Simple.Namespace, tagName: string, attribute:string): AttributeManager {
     let nsIndex = Namespace[ns];
@@ -74,6 +89,17 @@ class AttributeCache {
 
   set(ns: Simple.Namespace, tagName: string, attribute: string, manager: AttributeManager): void {
     let nsIndex = Namespace[ns];
+
+    // Note we want to set and bail out early in common cases
+    if (nsIndex === 0 && tagName === DIV) {
+      this.store[0][DIV][attribute] = manager;
+      return;
+    }
+
+    if (nsIndex === 0 && tagName === A && attribute === 'href') {
+      this.store[0][A]['href'] = manager;
+      return;
+    }
 
     if (typeof this.store[nsIndex] !== 'object') {
       this.store[nsIndex] = dict<Dict<AttributeManager>>();
