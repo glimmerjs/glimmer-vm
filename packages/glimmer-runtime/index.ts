@@ -103,7 +103,6 @@ export {
 } from './lib/compiled/opcodes/dom';
 
 export {
-  IAttributeManager,
   AttributeManager,
   PropertyManager,
   SafeHrefAttributeManager,
@@ -153,7 +152,6 @@ export { SafeString, isSafeString } from './lib/upsert';
 export {
   Scope,
   default as Environment,
-  NormalizedAttributeManager,
   Helper,
   ParsedStatement,
   DynamicScope,
