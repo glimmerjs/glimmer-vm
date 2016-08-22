@@ -1,7 +1,7 @@
 import { Statement as StatementSyntax } from './syntax';
 import * as Simple from './dom/interfaces';
 import { normalizeProperty } from './dom/props';
-import { DOMChanges, DOMTreeConstruction, SVG_NAMESPACE } from './dom/helper';
+import { DOMChanges, DOMTreeConstruction, SVG_NAMESPACE, Namespace } from './dom/helper';
 import { Reference, OpaqueIterable } from 'glimmer-reference';
 import { UNDEFINED_REFERENCE, ConditionalReference } from './references';
 import {
@@ -31,10 +31,10 @@ import {
 import {
   Destroyable,
   Dict,
+  dict,
   Opaque,
   HasGuid,
-  ensureGuid,
-  Cache
+  ensureGuid
 } from 'glimmer-util';
 
 import {
@@ -56,6 +56,37 @@ import PartialSyntax from './syntax/builtins/partial';
 import { PublicVM } from './vm/append';
 
 type ScopeSlot = PathReference<Opaque> | InlineBlock;
+
+class AttributeCache {
+  private store: Array<Dict<Dict<AttributeManager>>> = new Array(6); // Note this the Namespace enum
+
+  get(ns: Simple.Namespace, tagName: string, attribute:string): AttributeManager {
+    let nsIndex = Namespace[ns];
+
+    if (typeof this.store[nsIndex] !== 'object' ||
+        typeof this.store[nsIndex][tagName] !== 'object' ||
+        typeof this.store[nsIndex][tagName][attribute] !== 'object') {
+      return;
+    }
+
+    return this.store[nsIndex][tagName][attribute];
+  }
+
+  set(ns: Simple.Namespace, tagName: string, attribute: string, manager: AttributeManager): void {
+    let nsIndex = Namespace[ns];
+
+    if (typeof this.store[nsIndex] !== 'object') {
+      this.store[nsIndex] = dict<Dict<AttributeManager>>();
+      this.store[nsIndex][tagName] = {};
+      this.store[nsIndex][tagName][attribute] = manager;
+    } else if (!this.store[nsIndex][tagName]) {
+      this.store[nsIndex][tagName] = {};
+      this.store[nsIndex][tagName][attribute] = manager;
+    }
+
+    this.store[nsIndex][tagName][attribute] = manager;
+  }
+}
 
 export interface DynamicScope {
   child(): DynamicScope;
@@ -122,7 +153,7 @@ export class Scope {
 export abstract class Environment {
   protected updateOperations: DOMChanges;
   protected appendOperations: DOMTreeConstruction;
-  protected normalizedAttributeManagers: Cache<AttributeManager> = new Cache<AttributeManager>();
+  protected normalizedAttributeManagers: AttributeCache = new AttributeCache();
   private createdComponents: Component[] = null;
   private createdManagers: ComponentManager<Component>[] = null;
   private updatedComponents: Component[] = null;
@@ -251,16 +282,15 @@ export abstract class Environment {
   }
 
   attributeFor(element: Simple.Element, attr: string, isTrusting: boolean, namespace?: string): AttributeManager {
-    let elementNS = element.namespaceURI;
-    let key = `${element.tagName}.${namespace ? namespace + '.' : ''}${attr}.${elementNS}`;
-
-    let normalizeProperty = this.normalizedAttributeManagers.get(key);
+    let elementNS = element.namespaceURI as Simple.Namespace;
+    let tagName = element.tagName;
+    let normalizeProperty = this.normalizedAttributeManagers.get(elementNS, tagName, attr);
 
     if (normalizeProperty) {
       return normalizeProperty;
     } else {
       normalizeProperty = this.lookupAttribute(element, attr, isTrusting, namespace);
-      this.normalizedAttributeManagers.set(key, normalizeProperty);
+      this.normalizedAttributeManagers.set(elementNS, tagName, attr, normalizeProperty);
     }
 
     return normalizeProperty;

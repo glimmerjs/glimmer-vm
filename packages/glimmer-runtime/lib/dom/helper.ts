@@ -13,8 +13,6 @@ import {
 } from '../compat/text-node-merging-fix';
 import * as Simple from './interfaces';
 
-export const SVG_NAMESPACE = 'http://www.w3.org/2000/svg';
-
 // http://www.w3.org/TR/html/syntax.html#html-integration-point
 const SVG_INTEGRATION_POINTS = { foreignObject: 1, desc: 1, title: 1 };
 
@@ -37,6 +35,17 @@ export const BLACKLIST_TABLE = Object.create(null);
 const WHITESPACE = /[\t-\r \xA0\u1680\u180E\u2000-\u200A\u2028\u2029\u202F\u205F\u3000\uFEFF]/;
 
 let doc = typeof document === 'undefined' ? undefined : document;
+
+export enum Namespace {
+  "http://www.w3.org/1999/xhtml",
+  "http://www.w3.org/1998/Math/MathML",
+  "http://www.w3.org/2000/svg",
+  "http://www.w3.org/1999/xlink",
+  "http://www.w3.org/XML/1998/namespace",
+  "http://www.w3.org/2000/xmlns/"
+}
+
+export const SVG_NAMESPACE = Namespace[2];
 
 export function isWhitespace(string: string) {
   return WHITESPACE.test(string);

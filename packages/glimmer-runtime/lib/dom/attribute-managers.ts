@@ -141,7 +141,7 @@ export class SafeHrefPropertyManager extends PropertyManager {
 }
 
 export class SafeHrefAttributeManager extends AttributeManager {
-  setAttribute(env: Environment, element: Element, value: Opaque) {
+  setAttribute(env: Environment, element: Simple.Element, value: Opaque) {
     super.setAttribute(env, element, sanitizeAttributeValue(env, element, this.name, value));
   }
 
