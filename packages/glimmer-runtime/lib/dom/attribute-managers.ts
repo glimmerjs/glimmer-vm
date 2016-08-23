@@ -12,7 +12,7 @@ import { Environment } from '../environment';
 
 export function defaultPropertyManagers(tagName: string, attr: string) {
   if (requiresSanitization(tagName, attr)) {
-    return new SafeHrefPropertyManager(attr);
+    return new SanitizingPropertyManager(attr);
   }
 
   if (isUserInputValue(tagName, attr)) {
@@ -28,7 +28,7 @@ export function defaultPropertyManagers(tagName: string, attr: string) {
 
 export function defaultAttributeManagers(tagName: string, attr: string) {
   if (requiresSanitization(tagName, attr)) {
-    return new SafeHrefAttributeManager(attr);
+    return new SanitizingAttributeManager(attr);
   }
 
   return new AttributeManager(attr);
@@ -130,7 +130,7 @@ export class OptionSelectedManager extends PropertyManager {
   }
 }
 
-export class SafeHrefPropertyManager extends PropertyManager {
+export class SanitizingPropertyManager extends PropertyManager {
   setAttribute(env: Environment, element: Simple.Element, value: Opaque) {
     super.setAttribute(env, element, sanitizeAttributeValue(env, element, this.name, value));
   }
@@ -140,7 +140,7 @@ export class SafeHrefPropertyManager extends PropertyManager {
   }
 }
 
-export class SafeHrefAttributeManager extends AttributeManager {
+export class SanitizingAttributeManager extends AttributeManager {
   setAttribute(env: Environment, element: Simple.Element, value: Opaque) {
     super.setAttribute(env, element, sanitizeAttributeValue(env, element, this.name, value));
   }

@@ -105,8 +105,8 @@ export {
 export {
   AttributeManager,
   PropertyManager,
-  SafeHrefAttributeManager,
-  SafeHrefPropertyManager,
+  SanitizingAttributeManager,
+  SanitizingPropertyManager,
   InputValuePropertyManager,
   defaultAttributeManagers,
   defaultPropertyManagers,

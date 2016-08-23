@@ -80,6 +80,14 @@ class AttributeCache {
   get(ns: Simple.Namespace, tagName: string, attribute:string): AttributeManager {
     let nsIndex = Namespace[ns];
 
+    if (typeof this.store[0][DIV][attribute] === 'object') {
+      return this.store[0][DIV][attribute];
+    }
+
+    if (typeof this.store[0][A][attribute] === 'object') {
+      return this.store[0][A][attribute];
+    }
+
     if (typeof this.store[nsIndex] !== 'object' ||
         typeof this.store[nsIndex][tagName] !== 'object' ||
         typeof this.store[nsIndex][tagName][attribute] !== 'object') {
@@ -290,6 +298,15 @@ export abstract class Environment {
 
   lookupAttribute(element: Simple.Element, attr: string, isTrusting: boolean, namespace?: string): AttributeManager {
     let tagName = element.tagName;
+    let isDIV = tagName === 'DIV';
+    let isCommonSafeAttribute = attr === 'class' ||
+                                attr === 'role'  ||
+                                attr === 'id';
+
+    if (isDIV && isCommonSafeAttribute) {
+      return new AttributeManager(attr);
+    }
+
     let elementNS = element.namespaceURI;
     let isSVG = elementNS === SVG_NAMESPACE;
 
