@@ -101,22 +101,17 @@ class AttributeCache {
     let nsIndex = Namespace[ns];
 
     // Note we want to set and bail out early in common cases
-    if (nsIndex === 0 && tagName === DIV) {
-      this.store[0][DIV][attribute] = manager;
-      return;
-    }
-
-    if (nsIndex === 0 && tagName === A && attribute === 'href') {
-      this.store[0][A]['href'] = manager;
+    if (nsIndex === 0 && (tagName === DIV || tagName === A)) {
+      this.store[0][tagName][attribute] = manager;
       return;
     }
 
     if (typeof this.store[nsIndex] !== 'object') {
       this.store[nsIndex] = dict<Dict<AttributeManager>>();
-      this.store[nsIndex][tagName] = {};
+      this.store[nsIndex][tagName] = dict<AttributeManager>();
       this.store[nsIndex][tagName][attribute] = manager;
     } else if (typeof this.store[nsIndex][tagName] !== 'object') {
-      this.store[nsIndex][tagName] = {};
+      this.store[nsIndex][tagName] = dict<AttributeManager>();
       this.store[nsIndex][tagName][attribute] = manager;
     }
 
