@@ -231,11 +231,11 @@ export abstract class Environment {
 
   abstract hasPartial(partialName: string[], blockMeta: BlockMeta): boolean;
   abstract lookupPartial(PartialName: string[], blockMeta: BlockMeta): PartialDefinition;
-  abstract hasComponentDefinition(tagName: string[]): boolean;
-  abstract getComponentDefinition(tagName: string[]): ComponentDefinition<Opaque>;
+  abstract hasComponentDefinition(tagName: string[], blockMeta: BlockMeta): boolean;
+  abstract getComponentDefinition(tagName: string[], blockMeta: BlockMeta): ComponentDefinition<Opaque>;
 
-  abstract hasModifier(modifierName: string[]): boolean;
-  abstract lookupModifier(modifierName: string[]): ModifierManager<Opaque>;
+  abstract hasModifier(modifierName: string[], blockMeta: BlockMeta): boolean;
+  abstract lookupModifier(modifierName: string[], blockMeta: BlockMeta): ModifierManager<Opaque>;
 }
 
 export default Environment;
