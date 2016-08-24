@@ -268,10 +268,10 @@ export class Modifier extends StatementSyntax {
   compile(compiler: CompileInto & SymbolLookup, env: Environment, blockMeta: BlockMeta) {
     let args = this.args.compile(compiler, env, blockMeta);
 
-    if (env.hasModifier(this.path)) {
+    if (env.hasModifier(this.path, blockMeta)) {
       compiler.append(new ModifierOpcode({
         name: this.path[0],
-        manager: env.lookupModifier(this.path),
+        manager: env.lookupModifier(this.path, blockMeta),
         args
       }));
     } else {
@@ -550,7 +550,7 @@ export class OpenElement extends StatementSyntax {
   scan(scanner: BlockScanner): StatementSyntax {
     let { tag } = this;
 
-    if (scanner.env.hasComponentDefinition([tag])) {
+    if (scanner.env.hasComponentDefinition([tag], {})) {
       let { args, attrs } = this.parameters(scanner);
       scanner.startBlock();
       this.tagContents(scanner);
@@ -643,7 +643,7 @@ export class Component extends StatementSyntax {
   }
 
   compile(list: CompileInto & SymbolLookup, env: Environment, blockMeta: BlockMeta) {
-    let definition = env.getComponentDefinition([this.tag]);
+    let definition = env.getComponentDefinition([this.tag], blockMeta);
     let args = this.args.compile(list as SymbolLookup, env, blockMeta);
     let shadow = this.attrs;
     let templates = new Templates({ template: this.template, inverse: null });
