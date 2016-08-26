@@ -21,4 +21,5 @@ export { types };
 export { Stack, Dict, DictWithNumberKeys, Set, DictSet, dict } from './lib/collections';
 export { EMPTY_SLICE, LinkedList, LinkedListNode, ListNode, CloneableListNode, ListSlice, Slice } from './lib/list-utils';
 
+export { default as Cache } from './lib/cache';
 export type FIXME<T, string> = T;

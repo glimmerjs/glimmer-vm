@@ -5,29 +5,29 @@
  * @returns {Object} { name, type }
  */
 export function normalizeProperty(element, slotName) {
-  let type, normalized;
+  let type, name;
 
   if (slotName in element) {
-    normalized = slotName;
+    name = slotName;
     type = 'prop';
   } else {
     let lower = slotName.toLowerCase();
     if (lower in element) {
       type = 'prop';
-      normalized = lower;
+      name = lower;
     } else {
       type = 'attr';
-      normalized = slotName;
+      name = slotName;
     }
   }
 
   if (type === 'prop' &&
-      (normalized.toLowerCase() === 'style' ||
-       preferAttr(element.tagName, normalized))) {
+      (name.toLowerCase() === 'style' ||
+       preferAttr(element.tagName, name))) {
     type = 'attr';
   }
 
-  return { normalized, type };
+  return { name, type };
 }
 
 export function normalizePropertyValue(value) {

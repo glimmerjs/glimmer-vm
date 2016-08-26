@@ -1,6 +1,7 @@
 import { Opcode, OpcodeJSON, UpdatingOpcode } from '../../opcodes';
 import { VM, UpdatingVM } from '../../vm';
 import * as Simple from '../../dom/interfaces';
+import { AttributeManager } from '../../dom/attribute-managers';
 import { FIX_REIFICATION } from '../../dom/interfaces';
 import { Environment, DynamicScope } from '../../environment';
 import { FIXME, Option, Opaque, Dict, dict } from 'glimmer-util';
@@ -19,7 +20,6 @@ import { ModifierManager } from '../../modifier/interfaces';
 import { NULL_REFERENCE } from '../../references';
 import { ValueReference } from '../../compiled/expressions/value';
 import { CompiledArgs, EvaluatedArgs } from '../../compiled/expressions/args';
-import { IChangeList } from '../../dom/change-lists';
 import { ElementOperations } from '../../builder';
 
 export class TextOpcode extends Opcode {
@@ -176,15 +176,15 @@ export class SimpleElementOperations implements ElementOperations {
       this.addClass(reference);
     } else {
       let attributeManager = this.env.attributeFor(element, name, isTrusting);
-      let attribute = new DynamicAttribute(element, attributeManager, name, reference);
+      let attribute = new DynamicAttribute(element, attributeManager, reference);
 
       this.addAttribute(attribute);
     }
   }
 
-  addDynamicAttributeNS(element: Simple.Element, namespace: string, name: string, reference: PathReference<string>, isTrusting: boolean) {
-    let attributeManager = this.env.attributeFor(element, name,isTrusting, namespace);
-    let nsAttribute = new DynamicAttribute(element, attributeManager, name, reference, namespace);
+  addDynamicAttributeNS(element: Simple.Element, namespace: Simple.Namespace, name: string, reference: PathReference<string>, isTrusting: boolean) {
+    let attributeManager = this.env.attributeFor(element, name, isTrusting, namespace);
+    let nsAttribute = new DynamicAttribute(element, attributeManager, reference, namespace);
 
     this.addAttribute(nsAttribute);
   }
@@ -199,7 +199,7 @@ export class SimpleElementOperations implements ElementOperations {
 
     if (classList) {
       let attributeManager = env.attributeFor(element, 'class', false);
-      let attribute = new DynamicAttribute(element, attributeManager, 'class', classList.toReference());
+      let attribute = new DynamicAttribute(element, attributeManager, classList.toReference());
       let opcode = attribute.flush(env);
 
       if (opcode) {
@@ -263,16 +263,16 @@ export class ComponentElementOperations implements ElementOperations {
       this.addClass(reference);
     } else if (this.shouldAddAttribute(name)) {
       let attributeManager = this.env.attributeFor(element, name, isTrusting);
-      let attribute = new DynamicAttribute(element, attributeManager, name, reference);
+      let attribute = new DynamicAttribute(element, attributeManager, reference);
 
       this.addAttribute(name, attribute);
     }
   }
 
-  addDynamicAttributeNS(element: Simple.Element, namespace: string, name: string, reference: PathReference<string>, isTrusting: boolean) {
+  addDynamicAttributeNS(element: Simple.Element, namespace: Simple.Namespace, name: string, reference: PathReference<string>, isTrusting: boolean) {
     if (this.shouldAddAttribute(name)) {
-      let attributeManager = this.env.attributeFor(element, name,isTrusting, namespace);
-      let nsAttribute = new DynamicAttribute(element, attributeManager, name, reference, namespace);
+      let attributeManager = this.env.attributeFor(element, name, isTrusting, namespace);
+      let nsAttribute = new DynamicAttribute(element, attributeManager, reference, namespace);
 
       this.addAttribute(name, nsAttribute);
     }
@@ -292,7 +292,7 @@ export class ComponentElementOperations implements ElementOperations {
 
     if (classList) {
       let attributeManager = env.attributeFor(element, 'class', false);
-      let attribute = new DynamicAttribute(element, attributeManager, 'class', classList.toReference());
+      let attribute = new DynamicAttribute(element, attributeManager, classList.toReference());
       let opcode = attribute.flush(env);
 
       if (opcode) {
@@ -500,32 +500,30 @@ export class StaticAttribute implements Attribute {
 
 export class DynamicAttribute implements Attribute  {
   private cache: ReferenceCache<Opaque>;
-
   public tag: RevisionTag;
+  public name: string;
 
   constructor(
     private element: Simple.Element,
-    private changeList: IChangeList,
-    public name: string,
+    private attributeManager: AttributeManager,
     private reference: Reference<Opaque>,
-    private namespace?: string
+    private namespace?: Simple.Namespace
   ) {
     this.element = element;
     this.reference = reference;
-    this.changeList = changeList;
+    this.attributeManager = attributeManager;
     this.tag = reference.tag;
-    this.name = name;
+    this.name = attributeManager.name;
     this.cache = null;
     this.namespace = namespace;
   }
 
   patch(env: Environment) {
     let { element, cache } = this;
-
     let value = cache.revalidate();
 
     if (isModified(value)) {
-      this.changeList.updateAttribute(env, element as FIXME<Element, 'needs to be reified properly'>, this.name, value, this.namespace);
+      this.attributeManager.updateAttribute(env, element as FIXME<Element, 'needs to be reified properly'>, value, this.namespace);
     }
   }
 
@@ -534,12 +532,12 @@ export class DynamicAttribute implements Attribute  {
 
     if (isConstReference(reference)) {
       let value = reference.value();
-      this.changeList.setAttribute(env, element, this.name, value, this.namespace);
+      this.attributeManager.setAttribute(env, element, value, this.namespace);
       return null;
     } else {
       let cache = this.cache = new ReferenceCache(reference);
       let value = cache.peek();
-      this.changeList.setAttribute(env, element, this.name, value, this.namespace);
+      this.attributeManager.setAttribute(env, element, value, this.namespace);
       return new PatchElementOpcode(this);
     }
   }

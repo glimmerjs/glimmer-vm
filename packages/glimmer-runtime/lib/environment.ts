@@ -1,13 +1,14 @@
 import { Statement as StatementSyntax } from './syntax';
-
 import * as Simple from './dom/interfaces';
-import { DOMChanges, DOMTreeConstruction } from './dom/helper';
+import { normalizeProperty } from './dom/props';
+import { DOMChanges, DOMTreeConstruction, SVG_NAMESPACE, Namespace } from './dom/helper';
 import { Reference, OpaqueIterable } from 'glimmer-reference';
 import { UNDEFINED_REFERENCE, ConditionalReference } from './references';
 import {
-  defaultChangeLists,
-  IChangeList
-} from './dom/change-lists';
+  defaultAttributeManagers,
+  defaultPropertyManagers,
+  AttributeManager
+} from './dom/attribute-managers';
 
 import {
   PartialDefinition
@@ -29,6 +30,8 @@ import {
 
 import {
   Destroyable,
+  Dict,
+  dict,
   Opaque,
   HasGuid,
   ensureGuid
@@ -53,6 +56,68 @@ import PartialSyntax from './syntax/builtins/partial';
 import { PublicVM } from './vm/append';
 
 type ScopeSlot = PathReference<Opaque> | InlineBlock;
+
+const DIV = 'div';
+const A = 'a';
+
+class AttributeCache {
+  private store: Array<Dict<Dict<AttributeManager>>>;
+
+  constructor() {
+    // We want to prime the cache with common shapes
+    let htmlNSDict = dict<Dict<AttributeManager>>();
+    htmlNSDict[DIV] = dict<AttributeManager>();
+    htmlNSDict[DIV]['id'] = undefined;
+    htmlNSDict[DIV]['class'] = undefined;
+    htmlNSDict[DIV]['role'] = undefined;
+    htmlNSDict[DIV]['style'] = undefined;
+    htmlNSDict[A] = dict<AttributeManager>();
+    htmlNSDict[A]['href'] = undefined;
+    this.store = new Array(6); // Note: Each array entry represents the Namespace enum position
+    this.store[0] = htmlNSDict;
+  }
+
+  get(ns: Simple.Namespace, tagName: string, attribute:string): AttributeManager {
+    let nsIndex = Namespace[ns];
+
+    if (typeof this.store[0][DIV][attribute] === 'object') {
+      return this.store[0][DIV][attribute];
+    }
+
+    if (typeof this.store[0][A][attribute] === 'object') {
+      return this.store[0][A][attribute];
+    }
+
+    if (typeof this.store[nsIndex] !== 'object' ||
+        typeof this.store[nsIndex][tagName] !== 'object' ||
+        typeof this.store[nsIndex][tagName][attribute] !== 'object') {
+      return;
+    }
+
+    return this.store[nsIndex][tagName][attribute];
+  }
+
+  set(ns: Simple.Namespace, tagName: string, attribute: string, manager: AttributeManager): void {
+    let nsIndex = Namespace[ns];
+
+    // Note we want to set and bail out early in common cases
+    if (nsIndex === 0 && (tagName === DIV || tagName === A)) {
+      this.store[0][tagName][attribute] = manager;
+      return;
+    }
+
+    if (typeof this.store[nsIndex] !== 'object') {
+      this.store[nsIndex] = dict<Dict<AttributeManager>>();
+      this.store[nsIndex][tagName] = dict<AttributeManager>();
+      this.store[nsIndex][tagName][attribute] = manager;
+    } else if (typeof this.store[nsIndex][tagName] !== 'object') {
+      this.store[nsIndex][tagName] = dict<AttributeManager>();
+      this.store[nsIndex][tagName][attribute] = manager;
+    }
+
+    this.store[nsIndex][tagName][attribute] = manager;
+  }
+}
 
 export interface DynamicScope {
   child(): DynamicScope;
@@ -119,6 +184,7 @@ export class Scope {
 export abstract class Environment {
   protected updateOperations: DOMChanges;
   protected appendOperations: DOMTreeConstruction;
+  protected normalizedAttributeManagers: AttributeCache = new AttributeCache();
   private createdComponents: Component[] = null;
   private createdManagers: ComponentManager<Component>[] = null;
   private updatedComponents: Component[] = null;
@@ -225,8 +291,49 @@ export abstract class Environment {
   abstract hasHelper(helperName: string[], blockMeta: BlockMeta): boolean;
   abstract lookupHelper(helperName: string[], blockMeta: BlockMeta): Helper;
 
-  attributeFor(element: Simple.Element, attr: string, isTrusting: boolean, namespace?: string): IChangeList {
-    return defaultChangeLists(element, attr, isTrusting, namespace);
+  lookupAttribute(element: Simple.Element, attr: string, isTrusting: boolean, namespace?: string): AttributeManager {
+    let tagName = element.tagName;
+    let isDIV = tagName === 'DIV';
+    let isCommonSafeAttribute = attr === 'class' ||
+                                attr === 'role'  ||
+                                attr === 'id';
+
+    if (isDIV && isCommonSafeAttribute) {
+      return new AttributeManager(attr);
+    }
+
+    let elementNS = element.namespaceURI;
+    let isSVG = elementNS === SVG_NAMESPACE;
+
+    if (isSVG) {
+      return defaultAttributeManagers(tagName, attr);
+    }
+
+    let { type, name }  = normalizeProperty(element, attr);
+    let attributeManager;
+
+    if (type === 'attr') {
+      attributeManager = defaultAttributeManagers(tagName, attr);
+    } else {
+      attributeManager = defaultPropertyManagers(tagName, name);
+    }
+
+    return attributeManager;
+  }
+
+  attributeFor(element: Simple.Element, attr: string, isTrusting: boolean, namespace?: string): AttributeManager {
+    let elementNS = element.namespaceURI as Simple.Namespace;
+    let tagName = element.tagName;
+    let normalizeProperty = this.normalizedAttributeManagers.get(elementNS, tagName, attr);
+
+    if (normalizeProperty) {
+      return normalizeProperty;
+    } else {
+      normalizeProperty = this.lookupAttribute(element, attr, isTrusting, namespace);
+      this.normalizedAttributeManagers.set(elementNS, tagName, attr, normalizeProperty);
+    }
+
+    return normalizeProperty;
   }
 
   abstract hasPartial(partialName: string[], blockMeta: BlockMeta): boolean;

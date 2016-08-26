@@ -103,17 +103,15 @@ export {
 } from './lib/compiled/opcodes/dom';
 
 export {
-  IChangeList,
-  AttributeChangeList,
-  PropertyChangeList,
-  SafeHrefAttributeChangeList,
-  SafeHrefPropertyChangeList,
-  InputValuePropertyChangeList,
-  defaultChangeLists,
-  defaultAttributeChangeLists,
-  defaultPropertyChangeLists,
+  AttributeManager,
+  PropertyManager,
+  SanitizingAttributeManager,
+  SanitizingPropertyManager,
+  InputValuePropertyManager,
+  defaultAttributeManagers,
+  defaultPropertyManagers,
   readDOMAttr
-} from './lib/dom/change-lists';
+} from './lib/dom/attribute-managers';
 
 export {
   normalizeTextValue

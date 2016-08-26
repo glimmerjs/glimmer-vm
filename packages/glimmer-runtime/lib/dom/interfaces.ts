@@ -52,7 +52,7 @@ export interface Text extends CharacterData {}
 export interface Comment extends CharacterData {}
 
 export interface Element extends Node {
-  namespaceURI: string;
+  namespaceURI: Namespace | string;
   tagName: string;
   firstChild: Node;
   lastChild: Node;
