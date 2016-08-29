@@ -49,6 +49,7 @@ import * as Syntax from './syntax/core';
 import IfSyntax from './syntax/builtins/if';
 import UnlessSyntax from './syntax/builtins/unless';
 import WithSyntax from './syntax/builtins/with';
+import WithDynamicVarSyntax from './syntax/builtins/with-dynamic-var';
 import EachSyntax from './syntax/builtins/each';
 import PartialSyntax from './syntax/builtins/partial';
 
@@ -174,6 +175,8 @@ export abstract class Environment {
           return new IfSyntax({ args, templates });
         case 'with':
           return new WithSyntax({ args, templates });
+        case '-with-dynamic-var':
+          return new WithDynamicVarSyntax({ args, templates });
         case 'unless':
           return new UnlessSyntax({ args, templates });
       }

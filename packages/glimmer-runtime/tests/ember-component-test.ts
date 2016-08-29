@@ -693,6 +693,43 @@ testComponent('parameterized has-block (concatted attr, default) when block not 
   expected: '<button data-has-block="is-false"></button>'
 });
 
+module('Dynamically-scoped variable accessors');
+
+testComponent('Can get and set dynamic variable', {
+  layout: '{{#-with-dynamic-var "myKeyword" @value}}{{yield}}{{/-with-dynamic-var}}',
+  invokeAs: {
+    template: '{{-get-dynamic-var "myKeyword"}}',
+    context: { value: "hello" },
+    args: { value: 'value' }
+  },
+  expected: 'hello',
+  updates: [{
+    expected: 'hello'
+  }, {
+    context: { value: 'goodbye' },
+    expected: 'goodbye'
+  }]
+});
+
+testComponent('Can shadow existing dynamic variable', {
+  layout: '{{#-with-dynamic-var "myKeyword" @outer}}<div>{{-get-dynamic-var "myKeyword"}}</div>{{#-with-dynamic-var "myKeyword" @inner}}{{yield}}{{/-with-dynamic-var}}<div>{{-get-dynamic-var "myKeyword"}}</div>{{/-with-dynamic-var}}',
+  invokeAs: {
+    template: '<div>{{-get-dynamic-var "myKeyword"}}</div>',
+    context: { outer: 'original', inner: 'shadowed' },
+    args: { outer: 'outer', inner: 'inner'}
+  },
+  expected: '<div>original</div><div>shadowed</div><div>original</div>',
+  updates: [{
+    expected: '<div>original</div><div>shadowed</div><div>original</div>'
+  }, {
+    context: { outer: 'original2', inner: 'shadowed' },
+    expected: '<div>original2</div><div>shadowed</div><div>original2</div>'
+  }, {
+    context: { outer: 'original2', inner: 'shadowed2' },
+    expected: '<div>original2</div><div>shadowed2</div><div>original2</div>'
+  }]
+});
+
 module('Components - has-block-params helper');
 
 testComponent('parameterized has-block-params (subexpr, inverse) when inverse supplied without block params', {

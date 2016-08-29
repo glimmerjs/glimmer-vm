@@ -41,6 +41,7 @@ export namespace Expressions {
   export type Get            = ['get', Path];
   export type SelfGet        = ['self-get', Path];
   export type Value          = str | number | boolean | null; // tslint:disable-line
+  export type GetDynamicVar  = ['get-dynamic-var', str];
   export type HasBlock       = ['has-block', str];
   export type HasBlockParams = ['has-block-params', str];
   export type Undefined      = ['undefined'];
@@ -56,6 +57,7 @@ export namespace Expressions {
     | Helper
     | Undefined
     | Value
+    | GetDynamicVar
     ;
 
   export interface Concat extends Array<any> {
@@ -79,6 +81,7 @@ export namespace Expressions {
   export const isHasBlock       = is<HasBlock>('has-block');
   export const isHasBlockParams = is<HasBlockParams>('has-block-params');
   export const isUndefined      = is<Undefined>('undefined');
+  export const isGetDynamicVar  = is<GetDynamicVar>('get-dynamic-var');
 
   export function isPrimitiveValue(value: any): value is Value {
     if (value === null) {
