@@ -407,11 +407,11 @@ export class ModifierOpcode extends Opcode {
   evaluate(vm: VM) {
     let { manager } = this;
     let stack = vm.stack();
-    let { constructing: element, updateOperations } = stack;
+    let { constructing: element, dom } = stack;
     let args = this.args.evaluate(vm);
     let dynamicScope = vm.dynamicScope();
 
-    let modifier = manager.install(element as FIX_REIFICATION<Element>, args, updateOperations, dynamicScope);
+    let modifier = manager.install(element as FIX_REIFICATION<Element>, args, dom, dynamicScope);
     let destructor = manager.getDestructor(modifier);
 
     if (destructor) {

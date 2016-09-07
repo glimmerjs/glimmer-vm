@@ -1,6 +1,6 @@
 import * as SimpleDOM from 'simple-dom';
 
-import { TestEnvironment, TestDynamicScope} from "glimmer-test-helpers/lib/environment";
+import { TestEnvironment, TestDynamicScope, TestModifierManager } from "glimmer-test-helpers/lib/environment";
 import { Template, Simple } from 'glimmer-runtime';
 import { UpdatableReference } from 'glimmer-object-reference';
 import NodeDOMTreeConstruction from 'glimmer-node/lib/node-dom-helper';
@@ -238,4 +238,17 @@ QUnit.test('can instantiate NodeDOMTreeConstruction without a document', functio
   helper = new NodeDOMTreeConstruction(null);
 
   assert.ok(!!helper, 'helper was instantiated without errors');
+});
+
+QUnit.test('can install modifiers', function(assert) {
+  let modifier = new TestModifierManager();
+  env.registerModifier('foo', modifier);
+
+  let template = compile('<div {{foo bar}}></div>');
+
+  render(template, {
+    bar: 'Super Metroid'
+  });
+
+  assert.equal(serializer.serialize(root), '<div><div data-modifier="installed - Super Metroid"></div></div>');
 });
