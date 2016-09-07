@@ -623,7 +623,7 @@ class HelperReference implements PathReference<Opaque> {
 }
 
 class InertModifierManager implements ModifierManager<Opaque> {
-  install(element: Element, args: EvaluatedArgs, dom: IDOMChanges): Opaque {
+  install(element: Element, args: EvaluatedArgs, dom: DOMTreeConstruction): Opaque {
     return;
   }
 
@@ -639,13 +639,13 @@ class InertModifierManager implements ModifierManager<Opaque> {
 interface TestModifier {
   element: Element;
   args: EvaluatedArgs;
-  dom: IDOMChanges;
+  dom: DOMTreeConstruction;
   destructor: Destroyable;
 }
 
 export class TestModifierManager implements ModifierManager<TestModifier> {
-  public installedElements: Element[];
-  public updatedElements: Element[];
+  public installedElements: Simple.Element[];
+  public updatedElements: Simple.Element[];
   public destroyedModifiers: TestModifier[];
 
   constructor() {
@@ -654,7 +654,7 @@ export class TestModifierManager implements ModifierManager<TestModifier> {
     this.destroyedModifiers = [];
   }
 
-  install(element: Element, args: EvaluatedArgs, dom: IDOMChanges): TestModifier {
+  install(element: Element, args: EvaluatedArgs, dom: DOMTreeConstruction): TestModifier {
     let manager = this;
     this.installedElements.push(element);
 
@@ -670,7 +670,7 @@ export class TestModifierManager implements ModifierManager<TestModifier> {
       destructor: {
         destroy() {
           manager.destroyedModifiers.push(modifier);
-          dom.removeAttribute(element, 'data-modifier');
+          element.removeAttribute('data-modifier');
         }
       }
     };
