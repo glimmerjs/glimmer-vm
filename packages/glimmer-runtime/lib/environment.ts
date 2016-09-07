@@ -201,6 +201,10 @@ export abstract class Environment {
   }
 
   commit() {
+    for (let i=0; i<this.destructors.length; i++) {
+      this.destructors[i].destroy();
+    }
+
     for (let i=0; i<this.createdComponents.length; i++) {
       let component = this.createdComponents[i];
       let manager = this.createdManagers[i];
@@ -211,10 +215,6 @@ export abstract class Environment {
       let component = this.updatedComponents[i];
       let manager = this.updatedManagers[i];
       manager.didUpdate(component);
-    }
-
-    for (let i=0; i<this.destructors.length; i++) {
-      this.destructors[i].destroy();
     }
 
     this.createdComponents = null;
