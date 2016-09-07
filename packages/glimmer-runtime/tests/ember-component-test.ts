@@ -3018,6 +3018,52 @@ QUnit.test('deeply nested destructions', function(assert) {
   ], 'destroy should be called for each item');
 });
 
+QUnit.test('cleanup of removed components happens before appending new components', function(assert) {
+  let hooks = [];
+
+  let FooBarComponent = EmberishCurlyComponent.extend({
+    tagName: 'div',
+
+    didInsertElement() {
+      this._super();
+      hooks.push(`did-insert-element:${this.attrs.name}`);
+    },
+
+    destroy() {
+      this._super();
+      hooks.push(`destroy:${this.attrs.name}`);
+    }
+  });
+
+  env.registerEmberishGlimmerComponent('foo-bar', FooBarComponent as any, `{{name}}`);
+
+  appendViewFor(stripTight`
+    {{#if showTruthy}}
+      {{foo-bar name="truthy"}}
+    {{else}}
+      {{foo-bar name="falsey"}}
+    {{/if}}
+  `, { showTruthy: true });
+
+  assert.deepEqual(hooks, ['did-insert-element:truthy'], 'renders truthy initially');
+
+  hooks = [];
+  view.rerender({ showTruthy: false });
+
+  assert.deepEqual(hooks, [
+    'destroy:truthy',
+    'did-insert-element:falsey'
+  ], 'destroys `truthy` before appending `falsey`');
+
+  hooks = [];
+  view.rerender({ showTruthy: true });
+
+  assert.deepEqual(hooks, [
+    'destroy:falsey',
+    'did-insert-element:truthy'
+  ], 'destroys `falsey` before appending `truthy`');
+});
+
 QUnit.test('components inside the root are destroyed when the render result is destroyed', function(assert) {
   let glimmerDestroyed = false;
   let curlyDestroyed = false;
