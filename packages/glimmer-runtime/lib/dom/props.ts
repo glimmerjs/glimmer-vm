@@ -31,7 +31,7 @@ export function normalizeProperty(element, slotName) {
 }
 
 export function normalizePropertyValue(value) {
-  if (value === '') {
+  if (value === '') { // WAT? Why? Because of the distinction prop/attrs? Do we need a whitelist of props/attrs?
     return true;
   }
 
