@@ -2,6 +2,25 @@
 	"version": "0.2.0",
 	"configurations": [
 		{
+			"name": "Build",
+			"type": "node",
+			"request": "launch",
+			"program": "${workspaceRoot}/node_modules/.bin/ember",
+			"stopOnEntry": false,
+			"args": ["build"],
+			"cwd": "${workspaceRoot}",
+			"preLaunchTask": null,
+			"runtimeExecutable": null,
+			"runtimeArgs": [
+				"--nolazy"
+			],
+			"env": {
+				"NODE_ENV": "development"
+			},
+			"sourceMaps": false,
+			"outDir": null
+		},
+		{
 			"name": "All packages",
 			"type": "chrome",
 			"request": "launch",

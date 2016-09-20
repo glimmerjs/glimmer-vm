@@ -15,5 +15,11 @@
   "files.trimTrailingWhitespace": true,
   "editor.renderWhitespace": true,
   "editor.insertSpaces": true,
-  "editor.tabSize": 2
+  "editor.tabSize": 2,
+  "tslint.ignoreDefinitionFiles": true,
+  "tslint.exclude": [
+    "node_modules",
+    "dist",
+    "tmp"
+  ]
 }

@@ -11,16 +11,17 @@
         "newLine": "LF",
         "noEmit": true
     },
-    "filesGlob": [
-      "packages/**.d.ts",
-      "packages/**.ts"
+    "include":[
+        "packages/benchmark/*",
+        "packages/qunit/*",
+        "packages/*/index.ts",
+        "packages/*/tests/*.ts",
+        "packages/*/tests/**/*.ts"
     ],
     "exclude": [
         "dist",
-        "demos",
         "tmp",
-        "node_modules",
-        "bower_components",
-        ".vscode"
+        "tmp_old",
+        "node_modules"
     ]
 }
