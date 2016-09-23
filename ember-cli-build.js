@@ -5,17 +5,14 @@ var funnel = require('broccoli-funnel');
 var merge = require('broccoli-merge-trees');
 var concat = require('broccoli-concat');
 var typescript = require('broccoli-typescript-compiler').typescript;
-var multiEntry = require('rollup-plugin-multi-entry');
-var MagicString = require('magic-string');
 var whatchanged = require('broccoli-whatchanged').default;
-var Babel = require('broccoli-babel-transpiler');
 var writeFile = require('broccoli-file-creator');
-var moduleResolve = require('amd-name-resolver').moduleResolve;
-
 
 var helpers = require('./build-support/generate-helpers');
 var rollup = require('./build-support/rollup');
 var funnelLib = require('./build-support/funnel-lib');
+var toAMD = require('./build-support/to-amd');
+var toES5 = require('./build-support/to-es5');
 var loadWithInlineMap = require('./build-support/rollup-plugin-load-with-inline-map');
 
 var PACKAGE_NAMES = [
@@ -209,53 +206,6 @@ module.exports = function (opts) {
 
   return merge(trees, {
     annotation: 'dist'
-  });
-}
-
-function toES5(tree) {
-  var babel = new Babel(tree, {
-    sourceMap: 'inline',
-    plugins: [
-      function (opts) {
-        let t = opts.types;
-        return {
-          pre(file) {
-            file.set("helperGenerator", function (name) {
-              return file.addImport(`babel-helpers`, name, name);
-            });
-          }
-        };
-      },
-      ['transform-es2015-template-literals', {loose: true}],
-      ['transform-es2015-arrow-functions'],
-      ['transform-es2015-destructuring', {loose: true}],
-      ['transform-es2015-spread', {loose: true}],
-      ['transform-es2015-parameters'],
-      ['transform-es2015-computed-properties', {loose: true}],
-      ['transform-es2015-shorthand-properties'],
-      ['transform-es2015-block-scoping'],
-      ['check-es2015-constants'],
-      ['transform-es2015-classes', {loose: true}],
-      ['transform-proto-to-assign']
-    ]
-  });
-  babel.cacheKey = function () {
-    var key = Babel.prototype.cacheKey.apply(this, arguments);
-    return key + "babel-helpers-version10";
-  };
-  return babel;
-}
-
-function toAMD(esTree) {
-  var babel = new Babel(esTree, {
-    moduleIds: true,
-    resolveModuleSource: moduleResolve,
-    sourceMap: 'inline',
-    plugins: ['transform-es2015-modules-amd']
-  });
-  return funnel(babel, {
-    destDir: 'named-amd',
-    annotation: 'to named-amd'
   });
 }
 

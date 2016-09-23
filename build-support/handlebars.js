@@ -1,14 +1,15 @@
-var findLib = require('./find-lib');
+var funnelLib = require('./funnel-lib');
+var toES5 = require('./to-es5');
 var rollup = require('./rollup');
 var fs = require('fs');
 
-var name = 'handlebars';
-var entry = name + '/compiler/base.js';
-var dir = findLib(name);
+var HANDLEBARS_UTIL = /\/utils.js$/;
 
-var HANDLEBARS_UTIL = /handlebars\/utils.js$/;
-
-module.exports = rollup(dir, name, entry, {
+module.exports = rollup(
+  toES5(funnelLib('handlebars', './handlebars', {
+    include: ['**/*.js']
+  })
+), 'handlebars', 'compiler/base.js', {
   plugins: [{
     load: function (id) {
       if (HANDLEBARS_UTIL.test(id)) {
