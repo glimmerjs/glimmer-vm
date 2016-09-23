@@ -232,8 +232,7 @@ function amdBundle(packages, bundleName) {
     outputFile: '/bundles/' + bundleName + '.js',
     sourceMapConfig: {
       enabled: true,
-      cache: null,
-      sourceRoot: '/'
+      cache: null
     },
     annotation: bundleName
   });
@@ -344,7 +343,7 @@ function amdBundle(packages, bundleName) {
 //     sourceMapConfig: {
 //       enabled: true,
 //       cache: null,
-//       sourceRoot: '/'
+//
 //     }
 //   });
 
