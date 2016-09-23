@@ -5,209 +5,275 @@ var funnel = require('broccoli-funnel');
 var merge = require('broccoli-merge-trees');
 var concat = require('broccoli-concat');
 var typescript = require('broccoli-typescript-compiler').typescript;
-var Rollup = require('broccoli-rollup');
 var multiEntry = require('rollup-plugin-multi-entry');
 var MagicString = require('magic-string');
 var whatchanged = require('broccoli-whatchanged').default;
+var Babel = require('broccoli-babel-transpiler');
+var writeFile = require('broccoli-file-creator');
+var moduleResolve = require('amd-name-resolver').moduleResolve;
 
-module.exports = function (opts) {
-  var packagesDir = __dirname + '/packages';
-  var src = funnel(packagesDir, {
-    include: [
-      "**/*.d.ts",
-      "*/lib/**/*.ts",
-      "*/index.ts"
-    ],
-    annotation: 'package source'
-  });
 
-  var js = typescript(src, {
-    tsconfig: {
-      "compilerOptions": {
-        target: "es5",
-        module: "es2015",
-        noEmitHelpers: true,
-        moduleResolution: "node",
-        declaration: true,
-        newLine: "LF",
-        inlineSources: true,
-        inlineSourceMap: true,
-        baseUrl: "."
-      }
-    },
-    annotation: "packages es6"
-  });
+var helpers = require('./build-support/generate-helpers');
+var rollup = require('./build-support/rollup');
+var funnelLib = require('./build-support/funnel-lib');
+var loadWithInlineMap = require('./build-support/rollup-plugin-load-with-inline-map');
 
-  var declarations = funnel(js, {
-    include: ["**/*.d.ts"],
-    annotation: "generated declarations"
-  });
+var PACKAGE_NAMES = [
+  "glimmer",
+  "glimmer-benchmarks",
+  "glimmer-compiler",
+  "glimmer-demos",
+  "glimmer-node",
+  "glimmer-object",
+  "glimmer-object-reference",
+  "glimmer-reference",
+  "glimmer-runtime",
+  "glimmer-test-helpers",
+  "glimmer-util",
+  "glimmer-wire-format",
+  "glimmer-syntax"
+];
 
-  var tests = merge([
-    funnel(packagesDir, {
-      include: [
-        "**/*.d.ts",
-        "*/tests/**/*.ts"
-      ],
-      exclude: [
-        "glimmer-node/*"
-      ],
-      annotation: "tests source"
-    }),
-    declarations
-  ], {
-    annotation: "tests source"
-  });
-  tests = typescript(tests, {
-    tsconfig: {
-      compilerOptions: {
-        target: "es5",
-        module: "amd",
-        moduleResolution: "node",
-        newLine: "LF",
-        inlineSources: true,
-        inlineSourceMap: true,
-        baseUrl : ".",
-        outFile: "named-amd/glimmer-tests.js"
-      },
-      include: ["qunit/*", "**/tests/*"],
-      exclude: ["glimmer-node"]
-    },
-    annotation: "tests amd"
-  });
+var EXTERNAL = [
+  "benchmark",
+  "handlebars",
+  "qunit",
+  "simple-dom",
+  "simple-html-tokenizer",
+  "babel-helpers"
+].concat(PACKAGE_NAMES);
 
-  var nodeTests = merge([
-    funnel(packagesDir, {
-      include: [
-        "**/*.d.ts",
-        "glimmer-node/tests/**/*.ts"
-      ],
-      annotation: "tests source"
-    }),
-    declarations
-  ], {
-    annotation: "node tests source"
-  });
-  nodeTests = typescript(nodeTests, {
-    tsconfig: {
-      compilerOptions: {
-        target: "es5",
-        module: "commonjs",
-        moduleResolution: "node",
-        newLine: "LF",
-        inlineSources: true,
-        inlineSourceMap: true,
-        baseUrl : ".",
-        outDir: "node_modules"
-      },
-      include: ["qunit/*", "**/tests/*"]
-    },
-    annotation: "node tests cjs"
-  });
-
-  var handlebars = buildLib('handlebars', 'handlebars/compiler/base.js', '.');
-  var simpleHTMLTokenizer = buildLib('simple-html-tokenizer', 'simple-html-tokenizer/index.js', '../lib');
-
-  var trees = [
-    tests,
-    nodeTests,
-    funnel('bench', {
-      include: ['*.html'],
-      destDir: 'bench'
-    }),
-    funnel('demos', {
-      include: ['*.html'],
-      destDir: 'demos'
-    }),
-    funnel('tests', {
-      include: ['*.html'],
-      destDir: 'tests'
-    }),
-    qunit('tests'),
-    funnel(path.dirname(require.resolve('loader.js')), {
-      files: ['loader.js']
-    }),
-    handlebars,
-    simpleHTMLTokenizer
-  ];
-
-  var packageNames = [
-    "glimmer",
-    "glimmer-benchmarks",
-    "glimmer-compiler",
-    "glimmer-demos",
-    "glimmer-node",
-    "glimmer-object",
-    "glimmer-object-reference",
-    "glimmer-reference",
-    "glimmer-runtime",
-    "glimmer-test-helpers",
-    "glimmer-util",
-    "glimmer-wire-format",
-    "glimmer-syntax"
-  ];
-
-  var external = [
-    "benchmark",
-    "handlebars",
-    "qunit",
-    "simple-dom",
-    "simple-html-tokenizer"
-  ].concat(packageNames);
-
-  var packages = Object.create(null);
-  packageNames.forEach(function (packageName) {
-    var tree = buildPackage(js, packageName, external);
-    packages[packageName] = tree;
-    trees.push(tree);
-  });
-
-  packages['handlebars'] = handlebars;
-  packages['simple-html-tokenizer'] = simpleHTMLTokenizer;
-  packages['glimmer-tests'] = tests;
-
-  trees.push(bundle(amdTrees(packages, [
+var AMD_BUNDLES = {
+  'glimmer-common': [
+    'babel-helpers',
     'glimmer-object',
     'glimmer-object-reference',
     'glimmer-reference',
     'glimmer-util',
     'glimmer-wire-format',
-  ]), 'glimmer-common'));
-
-  trees.push(bundle(amdTrees(packages, [
+  ],
+  'glimmer-runtime': [
+    'glimmer-runtime'
+  ],
+  'glimmer-tests': [
+    'glimmer-test-helpers',
+    'glimmer-tests'
+  ],
+  'glimmer-compiler': [
     'glimmer-syntax',
     'glimmer-compiler',
     'simple-html-tokenizer',
     'handlebars'
-  ]), 'glimmer-compiler'));
+  ]
+};
 
-  trees.push(bundle(amdTrees(packages, [
-    'glimmer-runtime'
-  ]), 'glimmer-runtime'));
+var PACKAGES_DIR = __dirname + '/packages';
 
-  trees.push(bundle(amdTrees(packages, [
-    'glimmer-test-helpers',
-    'glimmer-tests'
-  ]), 'glimmer-tests'));
+module.exports = function (opts) {
+  var packages = Object.create(null);
+  var trees = [
+    funnelLib('loader.js', {
+      include: ['loader.js'],
+      annotation: 'loader.js'
+    })
+  ];
+  var src = funnel(PACKAGES_DIR, {
+    include: [ '**/*.ts' ],
+    annotation: 'packages source'
+  });
+
+  var es2015 = typescript(src, {
+    tsconfig: {
+      compilerOptions: {
+        target: 'es2015',
+        module: 'es2015',
+        moduleResolution: 'node',
+        experimentalDecorators: true,
+        declaration: true,
+        inlineSourceMap: true,
+        inlineSources: true,
+        newLine: 'LF',
+        baseUrl: '.'
+      }
+    },
+    annotation: 'packages es'
+  });
+
+  trees.push(funnel(es2015, {
+    destDir: 'debug/es2015'
+  }));
+
+  var es = toES5(es2015);
+  var esLib = funnel(es, {
+    include: [
+      '*/index.*',
+      '*/lib/**/*.*'
+    ],
+    annotation: 'packages es lib'
+  });
+
+  trees.push(funnel(es, {
+    destDir: 'debug/es'
+  }));
+
+  var packages = Object.create(null);
+  PACKAGE_NAMES.forEach(function (name) {
+    var entry = name + '/index.js';
+    var tree = rollup(esLib, name, entry, {
+      plugins: [loadWithInlineMap()],
+      external: EXTERNAL,
+      sourceMap: true
+    });
+    packages[name] = funnelAMD(tree);
+    trees.push(tree);
+  });
+
+  packages['glimmer-tests'] = toAMD(funnel(es, {
+    include: ['glimmer-!(node)/tests/**/*.js'],
+    annotation: 'tests es'
+  }));
+
+  var handlebars = require('./build-support/handlebars');
+  packages['handlebars'] = funnelAMD(handlebars);
+  trees.push(handlebars);
+
+  var simpleHTMLTokenizer = require('./build-support/simple-html-tokenizer');
+  packages['simple-html-tokenizer'] = funnelAMD(simpleHTMLTokenizer);
+  trees.push(simpleHTMLTokenizer);
+
+  var babelHelpers = writeFile('named-amd/babel-helpers.js', helpers('amd'));
+  packages['babel-helpers'] = babelHelpers;
+  trees.push(babelHelpers);
+  trees.push(writeFile('node_modules/babel-helpers.js', helpers('cjs')));
+  trees.push(writeFile('es6/babel-helpers.js', helpers('es')));
+
+  trees.push(funnelLib('qunitjs', {
+    include: ['qunit.js', 'qunit.css'],
+    destDir: 'tests',
+    annotation: 'tests/qunit.{js|css}'
+  }));
+
+  trees.push(funnelLib('benchmark', {
+    include: ['benchmark.js'],
+    destDir: 'bench',
+    annotation: 'bench/benchmark.js'
+  }));
+
+  trees.push(funnel('bench', {
+    include: ['*.html'],
+    destDir: 'demos',
+    annotation: 'demos/*.html'
+  }));
+
+  trees.push(funnel('tests', {
+    include: ['*.html'],
+    destDir: 'tests',
+    annotation: 'tests/*.html'
+  }));
+
+  trees.push(funnel('bench', {
+    include: ['*.html'],
+    destDir: 'bench',
+    annotation: 'bench/*.html'
+  }));
+
+  // DEBUG TREE SPLIT
+  trees.push(funnel(es, {
+    include: ['glimmer-node/tests/**/*.js'],
+    annotation: 'node tests es6',
+    destDir: 'debug/node-tests'
+  }));
+
+  // typings
+  trees.push(merge([funnel(es, {
+    include: [
+      '*/index.d.ts',
+      '*/lib/**/*.d.ts'
+    ],
+    annotation: 'generated declarations',
+    destDir: 'typings'
+  }), funnel(PACKAGES_DIR, {
+    include: [
+      'handlebars/*.d.ts',
+      'simple-htmlbars-tokenizer/*.d.ts'
+    ],
+    annotation: 'static declarations',
+    destDir: 'typings'
+  })], {
+    annotation: 'declarations'
+  }));
+
+  Object.keys(AMD_BUNDLES).forEach(function (bundleName) {
+    trees.push(amdBundle(packages, bundleName));
+  });
 
   return merge(trees, {
     annotation: 'dist'
   });
 }
 
-function amdTrees(packages, packageNames) {
-  return packageNames.map(function (packageName) {
-    return funnel(packages[packageName], {
-      include: [
-        'named-amd/**/*.js',
-        'named-amd/**/*.map'
-      ]
-    });
+function toES5(tree) {
+  var babel = new Babel(tree, {
+    sourceMap: 'inline',
+    plugins: [
+      function (opts) {
+        let t = opts.types;
+        return {
+          pre(file) {
+            file.set("helperGenerator", function (name) {
+              return file.addImport(`babel-helpers`, name, name);
+            });
+          }
+        };
+      },
+      ['transform-es2015-template-literals', {loose: true}],
+      ['transform-es2015-arrow-functions'],
+      ['transform-es2015-destructuring', {loose: true}],
+      ['transform-es2015-spread', {loose: true}],
+      ['transform-es2015-parameters'],
+      ['transform-es2015-computed-properties', {loose: true}],
+      ['transform-es2015-shorthand-properties'],
+      ['transform-es2015-block-scoping'],
+      ['check-es2015-constants'],
+      ['transform-es2015-classes', {loose: true}],
+      ['transform-proto-to-assign']
+    ]
+  });
+  babel.cacheKey = function () {
+    var key = Babel.prototype.cacheKey.apply(this, arguments);
+    return key + "babel-helpers-version10";
+  };
+  return babel;
+}
+
+function toAMD(esTree) {
+  var babel = new Babel(esTree, {
+    moduleIds: true,
+    resolveModuleSource: moduleResolve,
+    sourceMap: 'inline',
+    plugins: ['transform-es2015-modules-amd']
+  });
+  return funnel(babel, {
+    destDir: 'named-amd',
+    annotation: 'to named-amd'
   });
 }
 
-function bundle(amdTrees, bundleName) {
-  return concat(merge(amdTrees, {
+function funnelAMD(tree) {
+  return funnel(tree, {
+    include: [
+      'named-amd/**/*.js',
+      'named-amd/**/*.map'
+    ],
+    annotation: 'select named-amd'
+  });
+}
+
+function amdBundle(packages, bundleName) {
+  var trees = AMD_BUNDLES[bundleName].map(function (packageName) {
+    return packages[packageName];
+  });
+  return concat(merge(trees, {
     annotation: bundleName
   }), {
     inputFiles: ['named-amd/**/*.js'],
@@ -219,101 +285,6 @@ function bundle(amdTrees, bundleName) {
     },
     annotation: bundleName
   });
-}
-
-function buildLib(name, entry, libPath) {
-  var dir = path.resolve(path.dirname(require.resolve(name)), libPath);
-  return new Rollup(dir, {
-    rollup: {
-      entry: entry,
-      plugins: [{
-        load: function (id) {
-          if (/handlebars\/utils.js$/.test(id)) {
-            let code = fs.readFileSync(id, 'utf8');
-            code = code.replace(/export var isFunction/, "export { isFunction }");
-            return {
-              code: code,
-              map: { mappings: null }
-            }
-          }
-        }
-      }],
-      targets: [{
-        format: 'cjs',
-        dest: 'node_modules/' + name + '/index.js'
-      }, {
-        format: 'amd',
-        moduleId: name,
-        dest: 'named-amd/' + name + '.js'
-      }, {
-        format: 'es',
-        dest: 'es6/' + name + '.js'
-      }]
-    },
-    annotation: name
-  });
-}
-
-function buildPackage(esTree, packageName, external) {
-  var entry = packageName + '/index.js';
-  return new Rollup(esTree, {
-    rollup: {
-      plugins: [extractInlineSourceMap()],
-      entry: entry,
-      external: external,
-      sourceMap: true,
-      targets: [{
-        format: 'cjs',
-        dest: 'node_modules/' + packageName + '/index.js'
-      }, {
-        format: 'amd',
-        moduleId: packageName,
-        dest: 'named-amd/' + packageName + '.js'
-      }, {
-        format: 'es',
-        dest: 'es6/' + packageName + '.js'
-      }]
-    }
-  });
-}
-
-var SOURCEMAP_DATA = 'sourceMappingURL=data:application/json;base64,'
-function extractInlineSourceMap() {
-  return {
-    load: function (id) {
-      var code = fs.readFileSync(id, 'utf8');
-      var index = code.lastIndexOf(SOURCEMAP_DATA);
-      var map;
-      if (index > -1) {
-        var base64 = code.slice(index + SOURCEMAP_DATA.length);
-        var json = new Buffer(base64, 'base64').toString('utf8')
-        map = JSON.parse(json);
-      }
-      return { code: code, map: map };
-    }
-  };
-}
-
-function qunit(destDir) {
-  var qunitjs = require.resolve('qunitjs');
-  return funnel(path.dirname(qunitjs), {
-    files: ['qunit.js', 'qunit.css'],
-    destDir: destDir,
-    annotation: 'qunit.{js|css}'
-  });
-}
-
-function inlineModules(entry, include) {
-  let root;
-  return {
-    resolveId: function (importee, importer) {
-      if (importer === undefined) {
-        root = importee.slice(0, -entry.length);
-      } else if (include.indexOf(importee) > -1) {
-        return root + importee + '/index.js';
-      }
-    }
-  };
 }
 
 //   var benchmarkPath = __dirname + '/node_modules/benchmark';
