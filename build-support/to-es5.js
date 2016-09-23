@@ -1,5 +1,5 @@
 var Babel = require('broccoli-babel-transpiler');
-var assign = require('assign');
+var assign = require('./assign');
 
 module.exports = function toES5(tree, _options) {
   var options = assign({}, _options);
