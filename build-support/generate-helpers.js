@@ -2,6 +2,9 @@ var get = require('babel-helpers').default;
 var generate = require('babel-generator').default;
 var t = require('babel-types');
 
+var REGEX = /if \(superClass\) Object\.setPrototypeOf \?[^;]*;/
+var REPLACE = 'if(superClass)if(Object.setPrototypeOf)Object.setPrototypeOf(subClass,superClass);else for(var p in superClass)superClass.hasOwnProperty(p)&&(subClass[p]=superClass[p]);'
+
 var HELPERS = [
   'taggedTemplateLiteralLoose',
   'possibleConstructorReturn',
@@ -11,10 +14,15 @@ var HELPERS = [
   'taggedTemplateLiteralLoose'
 ].map(function (name) {
   var ast = get(name);
-  ast.id = t.identifier(name)
+  ast.id = t.identifier(name);
+  var code = generate(ast).code;
+  if (name === 'inherits') {
+    // IE 9 and 10 fix
+    code = code.replace(/if \(superClass\) Object\.setPrototypeOf \?[^;]*;/, REPLACE);
+  }
   return {
     name: name,
-    code: generate(ast).code
+    code: code
   }
 });
 
