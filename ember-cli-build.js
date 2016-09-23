@@ -100,7 +100,9 @@ module.exports = function (opts) {
     destDir: 'debug/es2015'
   }));
 
-  var es = toES5(es2015);
+  var es = toES5(es2015, {
+    sourceMap: 'inline'
+  });
   var esLib = funnel(es, {
     include: [
       '*/index.*',
