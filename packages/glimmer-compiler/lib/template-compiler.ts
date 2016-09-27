@@ -34,9 +34,10 @@ export default class TemplateCompiler<T extends TemplateMeta> {
   }
 
   process(actions): any[] {
-    actions.forEach(([name, ...args]) => {
+    actions.forEach((action) => {
+      let name = action[0];
       if (!this[name]) { throw new Error(`Unimplemented ${name} on TemplateCompiler`); }
-      this[name](...args);
+      this[name](...action.slice(1));
     });
     return this.opcodes;
   }

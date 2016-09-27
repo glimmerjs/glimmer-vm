@@ -82,9 +82,10 @@ export default class JavaScriptCompiler<T extends TemplateMeta> {
   }
 
   process(): Template<T> {
-    this.opcodes.forEach(([opcode, ...args]) => {
+    this.opcodes.forEach((args) => {
+      let opcode = args[0];
       if (!this[opcode]) { throw new Error(`unimplemented ${opcode} on JavaScriptCompiler`); }
-      this[opcode](...args);
+      this[opcode](...args.slice(1));
     });
 
     return this.template;
