@@ -143,12 +143,15 @@ export class ElementStack implements Cursor {
     return tracker;
   }
 
-  private pushBlockTracker(tracker: Tracker) {
+  private pushBlockTracker(tracker: Tracker, isRemote = false) {
     let current = this.blockStack.current;
 
     if (current !== null) {
       current.newDestroyable(tracker);
-      current.newBounds(tracker);
+
+      if (!isRemote) {
+        current.newBounds(tracker);
+      }
     }
 
     this.blockStack.push(tracker);
@@ -197,10 +200,15 @@ export class ElementStack implements Cursor {
   }
 
   pushRemoteElement(element: Simple.Element) {
-    this.pushElement(element);
+    let tracker;
 
-    let tracker = new RemoteBlockTracker(element);
-    this.pushBlockTracker(tracker);
+    if (!element) {
+      this.pushUpdatableBlock();
+    } else {
+      tracker = new RemoteBlockTracker(element);
+      this.pushElement(element);
+      this.pushBlockTracker(tracker, true);
+    }
   }
 
   popRemoteElement() {

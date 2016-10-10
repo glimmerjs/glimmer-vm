@@ -70,90 +70,99 @@ QUnit.test('changing to falsey', function(assert) {
     stripTight`
       |{{foo}}|
       {{#-render-portal first}}[{{foo}}]{{/-render-portal}}
-      {{#-render-portal second}}[{{foo}}]{{/-render-portal}}
+      {{#-render-portal second}}[{{bar}}]{{/-render-portal}}
     `,
-    { first, second: null, foo: 'Yippie!' }
+    { first, second: null, foo: 'Yippie 1!', bar: 'Bar 1!' }
   );
 
-  equalsElement(first, 'div', {}, `[Yippie!]`);
+  equalsElement(first, 'div', {}, `[Yippie 1!]`);
   equalsElement(second, 'div', {}, ``);
-  assertAppended('|Yippie!|<!---->[Yippie!]');
+  assertAppended('|Yippie 1!|<!---->[Bar 1!]');
 
-  set(view, 'foo', 'Double Yips!');
+  set(view, 'foo', 'Double Yips 1!');
+  set(view, 'bar', 'Bar 2!');
   rerender();
 
-  equalsElement(first, 'div', {}, `[Double Yips!]`);
+  equalsElement(first, 'div', {}, `[Double Yips 1!]`);
   equalsElement(second, 'div', {}, ``);
-  assertAppended('|Double Yips!|<!---->[Double Yips!]');
+  assertAppended('|Double Yips 1!|<!---->[Bar 2!]');
 
+  set(view, 'foo', 'Double Yips 2!');
+  set(view, 'bar', 'Bar 3!');
   set(view, 'first', null);
   rerender();
 
   equalsElement(first, 'div', {}, ``);
   equalsElement(second, 'div', {}, ``);
-  assertAppended('|Double Yips!|[Double Yips!][Double Yips!]');
+  assertAppended('|Double Yips 2!|[Double Yips 2!][Bar 3!]');
 
+  set(view, 'foo', 'Double Yips 3!');
+  set(view, 'bar', 'Bar 4!');
   set(view, 'second', second);
   rerender();
 
   equalsElement(first, 'div', {}, ``);
-  equalsElement(second, 'div', {}, `[Double Yips!]`);
-  assertAppended('|Double Yips!|[Double Yips!]<!---->');
+  equalsElement(second, 'div', {}, `[Bar 4!]`);
+  assertAppended('|Double Yips 3!|[Double Yips 3!]<!---->');
 
-  set(view, 'foo', 'Yippie!');
+  set(view, 'foo', 'Yippie 2!');
+  set(view, 'bar', 'Bar 5!');
   rerender();
 
   equalsElement(first, 'div', {}, ``);
-  equalsElement(second, 'div', {}, `[Yippie!]`);
-  assertAppended('|Yippie!|[Yippie!]<!---->');
+  equalsElement(second, 'div', {}, `[Bar 5!]`);
+  assertAppended('|Yippie 2!|[Yippie 2!]<!---->');
 
+  set(view, 'foo', 'Yippie 3!');
+  set(view, 'bar', 'Bar 6!');
   set(view, 'first', first);
   set(view, 'second', null);
   rerender();
 
-  equalsElement(first, 'div', {}, `[Yippie!]`);
+  equalsElement(first, 'div', {}, `[Yippie 3!]`);
   equalsElement(second, 'div', {}, ``);
-  assertAppended('|Yippie!|<!---->[Yippie!]');
+  assertAppended('|Yippie 3!|<!---->[Bar 6!]');
 });
-/*
+
 QUnit.test('with pre-existing content', function(assert) {
   let externalElement = document.createElement('div');
   let initialContent = externalElement.innerHTML = '<p>Hello there!</p>';
 
   appendViewFor(
     stripTight`{{#-render-portal externalElement}}[{{foo}}]{{/-render-portal}}`,
-    { externalElement, foo: 'Yippie!' }
+    { externalElement, foo: 'Yippie 1!' }
   );
 
   assertAppended('<!---->');
-  equalsElement(externalElement, 'div', {}, `${initialContent}[Yippie!]`);
+  equalsElement(externalElement, 'div', {}, `${initialContent}[Yippie 1!]`);
 
-  set(view, 'foo', 'Double Yips!');
+  set(view, 'foo', 'Double Yips 1!');
   rerender();
 
   assertAppended('<!---->');
-  equalsElement(externalElement, 'div', {}, `${initialContent}[Double Yips!]`);
+  equalsElement(externalElement, 'div', {}, `${initialContent}[Double Yips 1!]`);
 
-  set(view, 'foo', 'Yippie!');
+  set(view, 'foo', 'Yippie 2!');
   rerender();
 
   assertAppended('<!---->');
-  equalsElement(externalElement, 'div', {}, `${initialContent}[Yippie!]`);
+  equalsElement(externalElement, 'div', {}, `${initialContent}[Yippie 2!]`);
 
+  set(view, 'foo', 'Yippie 3!');
   set(view, 'externalElement', null);
   rerender();
 
-  assertAppended('<!---->');
+  assertAppended('[Yippie 3!]');
   equalsElement(externalElement, 'div', {}, `${initialContent}`);
 
+  set(view, 'foo', 'Yippie 4!');
   set(view, 'externalElement', externalElement);
   rerender();
 
   assertAppended('<!---->');
-  equalsElement(externalElement, 'div', {}, `${initialContent}[Yippie!]`);
+  equalsElement(externalElement, 'div', {}, `${initialContent}[Yippie 4!]`);
 });
-*/
-/*
+
 QUnit.test('updating remote element', function(assert) {
   let first = document.createElement('div');
   let second = document.createElement('div');
@@ -199,8 +208,61 @@ QUnit.test('updating remote element', function(assert) {
   equalsElement(first, 'div', {}, ``);
   equalsElement(second, 'div', {}, `[Yippie!]`);
 });
-*/
-/*
+
+QUnit.test('changing targets maintains referential integrity', function(assert) {
+  let first = document.createElement('div');
+  first.setAttribute('id', 'first');
+  let second = document.createElement('div');
+  second.setAttribute('id', 'second');
+  let element;
+  let cachedElement;
+
+  function getViewElementById(id) {
+    if (view.element) {
+      let viewElement = view.element.matches('#stable-div') ? view.element
+        : view.element.querySelector(`${id}`);
+
+      if (viewElement) {
+        return viewElement;
+      }
+    }
+
+    return null;
+  }
+
+  appendViewFor(
+    stripTight`
+      {{#-render-portal element}}<div id="stable-div">{{foo}}</div>{{/-render-portal}}
+    `,
+    {
+      element: null,
+      foo: 'Yippie!'
+    }
+  );
+
+  assertAppended('<div id="stable-div">Yippie!</div>');
+  equalsElement(first, 'div', { id: 'first' }, ``);
+  equalsElement(second, 'div', { id: 'second' }, ``);
+  cachedElement = getViewElementById('stable-div');
+
+  set(view, 'element', first);
+  rerender();
+
+  assertAppended('<!---->');
+  equalsElement(first, 'div', { id: 'first' }, `<div id="stable-div">Yippie!</div>`);
+  equalsElement(second, 'div', { id: 'second' }, ``);
+  element = first.querySelector(`#stable-div`);
+  assert.ok(element === cachedElement, 'Moving from in-place maintained integrity');
+
+  set(view, 'element', second);
+  rerender();
+
+  equalsElement(first, 'div', { id: 'first' }, ``);
+  equalsElement(second, 'div', { id: 'second' }, `<div id="stable-div">Yippie!</div>`);
+  element = second.querySelector(`#stable-div`);
+  assert.ok(element === cachedElement, 'Moving to new destination maintained integrity');
+});
+
 QUnit.test('inside an `{{if}}', function(assert) {
   let first = document.createElement('div');
   let second = document.createElement('div');
@@ -262,8 +324,7 @@ QUnit.test('inside an `{{if}}', function(assert) {
   equalsElement(first, 'div', {}, stripTight`[Yippie!]`);
   equalsElement(second, 'div', {}, stripTight``);
 });
-*/
-/*
+
 QUnit.test('multiple', function(assert) {
   let firstElement = document.createElement('div');
   let secondElement = document.createElement('div');
@@ -312,8 +373,7 @@ QUnit.test('multiple', function(assert) {
   equalsElement(firstElement, 'div', {}, stripTight`[Hello!]`);
   equalsElement(secondElement, 'div', {}, stripTight`[World!]`);
 });
-*/
-/*
+
 QUnit.test('nesting', function(assert) {
   let firstElement = document.createElement('div');
   let secondElement = document.createElement('div');
@@ -362,8 +422,7 @@ QUnit.test('nesting', function(assert) {
   equalsElement(firstElement, 'div', {}, stripTight`[Hello!]<!---->`);
   equalsElement(secondElement, 'div', {}, stripTight`[World!]`);
 });
-*/
-/*
+
 QUnit.test('components are destroyed', function(assert) {
   let destroyed = 0;
   let DestroyMeComponent = EmberishCurlyComponent.extend({
@@ -404,4 +463,3 @@ QUnit.test('components are destroyed', function(assert) {
   equalsElement(externalElement, 'div', {}, stripTight``);
   assert.equal(destroyed, 1, 'component was destroyed');
 });
-*/

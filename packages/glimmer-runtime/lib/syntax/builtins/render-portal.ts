@@ -24,8 +24,6 @@ export default class RenderPortalSyntax extends StatementSyntax {
 
     dsl.block({ templates, args }, (dsl, BEGIN, END) => {
       dsl.putArgs(args);
-      dsl.test('simple');
-      dsl.jumpUnless(END);
       dsl.pushRemoteElement();
       dsl.evaluate('default');
       dsl.popRemoteElement();

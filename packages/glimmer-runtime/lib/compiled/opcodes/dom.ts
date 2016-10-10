@@ -70,6 +70,7 @@ export class PushRemoteElementOpcode extends Opcode {
     let reference = vm.frame.getOperand<Simple.Element>();
     let cache = isConstReference(reference) ? undefined : new ReferenceCache(reference);
     let element = cache ? cache.peek() : reference.value();
+    // debugger;
 
     vm.stack().pushRemoteElement(element);
 
@@ -87,7 +88,7 @@ export class PushRemoteElementOpcode extends Opcode {
   }
 }
 
-export class PopRemoteElementOpcode extends Opcode {
+export class PopRemoteElementOpcode extends UpdatingOpcode {
   public type = "pop-remote-element";
 
   evaluate(vm: VM) {
