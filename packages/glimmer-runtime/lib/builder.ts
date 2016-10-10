@@ -143,15 +143,12 @@ export class ElementStack implements Cursor {
     return tracker;
   }
 
-  private pushBlockTracker(tracker: Tracker, isRemote = false) {
+  private pushBlockTracker(tracker: Tracker) {
     let current = this.blockStack.current;
 
     if (current !== null) {
       current.newDestroyable(tracker);
-
-      if (!isRemote) {
-        current.newBounds(tracker);
-      }
+      current.newBounds(tracker);
     }
 
     this.blockStack.push(tracker);
@@ -203,7 +200,7 @@ export class ElementStack implements Cursor {
     this.pushElement(element);
 
     let tracker = new RemoteBlockTracker(element);
-    this.pushBlockTracker(tracker, true);
+    this.pushBlockTracker(tracker);
   }
 
   popRemoteElement() {

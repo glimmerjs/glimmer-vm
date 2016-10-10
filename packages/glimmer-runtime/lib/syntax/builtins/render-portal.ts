@@ -6,8 +6,8 @@ import OpcodeBuilderDSL from '../../compiled/opcodes/builder';
 import * as Syntax from '../core';
 import Environment from '../../environment';
 
-export default class InElementSyntax extends StatementSyntax {
-  type = "in-element-statement";
+export default class RenderPortalSyntax extends StatementSyntax {
+  type = "render-portal-statement";
 
   public args: Syntax.Args;
   public templates: Syntax.Templates;

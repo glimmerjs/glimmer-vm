@@ -42,7 +42,7 @@ import {
   ArgsSyntax,
   OptimizedAppend,
   WithDynamicVarsSyntax,
-  InElementSyntax,
+  RenderPortalSyntax,
 
   // References
   ValueReference,
@@ -797,6 +797,8 @@ export class TestEnvironment extends Environment {
           return new WithDynamicVarsSyntax({ args, templates });
         case '-in-element':
           return new InElementSyntax({ args, templates });
+        case '-render-portal':
+          return new RenderPortalSyntax({ args, templates });
       }
     }
 
