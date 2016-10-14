@@ -143,15 +143,12 @@ export class ElementStack implements Cursor {
     return tracker;
   }
 
-  private pushBlockTracker(tracker: Tracker, isRemote = false) {
+  private pushBlockTracker(tracker: Tracker) {
     let current = this.blockStack.current;
 
     if (current !== null) {
       current.newDestroyable(tracker);
-
-      if (!isRemote) {
-        current.newBounds(tracker);
-      }
+      current.newBounds(tracker);
     }
 
     this.blockStack.push(tracker);
@@ -200,10 +197,16 @@ export class ElementStack implements Cursor {
   }
 
   pushRemoteElement(element: Simple.Element) {
-    this.pushElement(element);
+    let comment = this.appendComment('portal');
+    let tracker = new RemoteBlockTracker(this.element, element, comment);
 
-    let tracker = new RemoteBlockTracker(element);
-    this.pushBlockTracker(tracker, true);
+    this.pushBlockTracker(tracker);
+
+    if (element) {
+      this.pushElement(element);
+    }
+
+    return tracker;
   }
 
   popRemoteElement() {
@@ -345,14 +348,6 @@ export class SimpleBlockTracker implements Tracker {
   }
 }
 
-class RemoteBlockTracker extends SimpleBlockTracker {
-  destroy() {
-    super.destroy();
-
-    clear(this);
-  }
-}
-
 export interface UpdatableTracker extends Tracker {
   reset(env: Environment);
 }
@@ -374,6 +369,89 @@ export class UpdatableBlockTracker extends SimpleBlockTracker implements Updatab
     this.last = null;
 
     return nextSibling;
+  }
+}
+
+export class RemoteBlockTracker extends SimpleBlockTracker {
+  private remoteParent: Simple.Element;
+  private comment: Simple.Comment;
+
+  constructor(private parent: Simple.Element, remoteParent: Simple.Element, comment: Simple.Comment) {
+    super(parent);
+
+    this.remoteParent = remoteParent;
+    this.comment = comment;
+  }
+
+  update(newParent) {
+    if (newParent === this.remoteParent) {
+      return;
+    }
+
+    // update actual bounds
+    this.remoteParent = newParent;
+    let newTarget = newParent || this.parent;
+
+    let firstNode = this._firstNode();
+    let lastNode = this._lastNode();
+
+    let lastElement = newParent ? null : this.comment.nextSibling;
+    let nextNode;
+
+    while (firstNode) {
+      nextNode = firstNode.nextSibling;
+      newTarget.insertBefore(firstNode, lastElement);
+      firstNode = firstNode !== lastNode ? nextNode : null;
+    }
+  }
+
+  parentElement() {
+    return this.parent;
+  }
+
+  firstNode() {
+    if (this.isRemote()) {
+      return this.comment;
+    }
+    return this._firstNode();
+  }
+
+  _firstNode() {
+    return this.first && this.first.firstNode();
+  }
+
+  lastNode() {
+    if (this.isRemote()) {
+      return this.comment;
+    }
+    return this._lastNode();
+  }
+
+  _lastNode() {
+    return this.last && this.last.lastNode();
+  }
+
+  isRemote() {
+    return !!this.remoteParent;
+  }
+
+  clearRemote() {
+    if (this.isRemote()) {
+      let firstNode = this._firstNode();
+      let lastNode = this._lastNode().nextSibling;
+      let parent = firstNode.parentNode;
+
+      while (firstNode && firstNode !== lastNode) {
+        let next = firstNode.nextSibling;
+        parent.removeChild(firstNode);
+        firstNode = next;
+      }
+    }
+  }
+
+  destroy() {
+    super.destroy();
+    this.clearRemote();
   }
 }
 

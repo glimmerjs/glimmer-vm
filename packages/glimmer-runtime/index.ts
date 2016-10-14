@@ -106,8 +106,8 @@ export {
 } from './lib/syntax/builtins/with-dynamic-vars';
 
 export {
-  default as InElementSyntax
-} from './lib/syntax/builtins/in-element';
+  default as RenderPortalSyntax
+} from './lib/syntax/builtins/render-portal';
 
 export { PublicVM as VM, UpdatingVM, RenderResult } from './lib/vm';
 
