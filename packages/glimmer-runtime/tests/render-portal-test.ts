@@ -232,7 +232,7 @@ QUnit.test('changing targets maintains referential integrity', function(assert) 
 
   function getViewElementById(id) {
     if (view.element) {
-      let viewElement = view.element.matches('#stable-div') ? view.element
+      let viewElement = view.element.id === 'stable-div' ? view.element
         : view.element.querySelector(`${id}`);
 
       if (viewElement) {
