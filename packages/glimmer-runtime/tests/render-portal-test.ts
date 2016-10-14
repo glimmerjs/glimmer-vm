@@ -35,7 +35,7 @@ function appendViewFor(template: string, context: Object = {}) {
   return view;
 }
 
-QUnit.module('Targeting a remote element', {
+QUnit.module('Render Portal', {
   setup() {
     env = new TestEnvironment();
   }
@@ -50,16 +50,29 @@ QUnit.test('basic', function(assert) {
   );
 
   equalsElement(externalElement, 'div', {}, stripTight`[Yippie!]`);
+  assertAppended('<!--portal-->');
 
   set(view, 'foo', 'Double Yips!');
   rerender();
 
   equalsElement(externalElement, 'div', {}, stripTight`[Double Yips!]`);
+  assertAppended('<!--portal-->');
 
   set(view, 'foo', 'Yippie!');
   rerender();
 
   equalsElement(externalElement, 'div', {}, stripTight`[Yippie!]`);
+  assertAppended('<!--portal-->');
+});
+
+QUnit.test('initialized falsey', function(assert) {
+
+  appendViewFor(
+    stripTight`{{#-render-portal externalElement}}[{{foo}}]{{/-render-portal}}`,
+    { externalElement: null, foo: 'Yippie!' }
+  );
+
+  assertAppended('<!--portal-->[Yippie!]');
 });
 
 QUnit.test('changing to falsey', function(assert) {
@@ -77,7 +90,7 @@ QUnit.test('changing to falsey', function(assert) {
 
   equalsElement(first, 'div', {}, `[Yippie 1!]`);
   equalsElement(second, 'div', {}, ``);
-  assertAppended('|Yippie 1!|<!---->[Bar 1!]');
+  assertAppended('|Yippie 1!|<!--portal--><!--portal-->[Bar 1!]');
 
   set(view, 'foo', 'Double Yips 1!');
   set(view, 'bar', 'Bar 2!');
@@ -85,7 +98,7 @@ QUnit.test('changing to falsey', function(assert) {
 
   equalsElement(first, 'div', {}, `[Double Yips 1!]`);
   equalsElement(second, 'div', {}, ``);
-  assertAppended('|Double Yips 1!|<!---->[Bar 2!]');
+  assertAppended('|Double Yips 1!|<!--portal--><!--portal-->[Bar 2!]');
 
   set(view, 'foo', 'Double Yips 2!');
   set(view, 'bar', 'Bar 3!');
@@ -94,7 +107,7 @@ QUnit.test('changing to falsey', function(assert) {
 
   equalsElement(first, 'div', {}, ``);
   equalsElement(second, 'div', {}, ``);
-  assertAppended('|Double Yips 2!|[Double Yips 2!][Bar 3!]');
+  assertAppended('|Double Yips 2!|<!--portal-->[Double Yips 2!]<!--portal-->[Bar 3!]');
 
   set(view, 'foo', 'Double Yips 3!');
   set(view, 'bar', 'Bar 4!');
@@ -103,7 +116,7 @@ QUnit.test('changing to falsey', function(assert) {
 
   equalsElement(first, 'div', {}, ``);
   equalsElement(second, 'div', {}, `[Bar 4!]`);
-  assertAppended('|Double Yips 3!|[Double Yips 3!]<!---->');
+  assertAppended('|Double Yips 3!|<!--portal-->[Double Yips 3!]<!--portal-->');
 
   set(view, 'foo', 'Yippie 2!');
   set(view, 'bar', 'Bar 5!');
@@ -111,7 +124,7 @@ QUnit.test('changing to falsey', function(assert) {
 
   equalsElement(first, 'div', {}, ``);
   equalsElement(second, 'div', {}, `[Bar 5!]`);
-  assertAppended('|Yippie 2!|[Yippie 2!]<!---->');
+  assertAppended('|Yippie 2!|<!--portal-->[Yippie 2!]<!--portal-->');
 
   set(view, 'foo', 'Yippie 3!');
   set(view, 'bar', 'Bar 6!');
@@ -121,7 +134,7 @@ QUnit.test('changing to falsey', function(assert) {
 
   equalsElement(first, 'div', {}, `[Yippie 3!]`);
   equalsElement(second, 'div', {}, ``);
-  assertAppended('|Yippie 3!|<!---->[Bar 6!]');
+  assertAppended('|Yippie 3!|<!--portal--><!--portal-->[Bar 6!]');
 });
 
 QUnit.test('with pre-existing content', function(assert) {
@@ -133,33 +146,33 @@ QUnit.test('with pre-existing content', function(assert) {
     { externalElement, foo: 'Yippie 1!' }
   );
 
-  assertAppended('<!---->');
+  assertAppended('<!--portal-->');
   equalsElement(externalElement, 'div', {}, `${initialContent}[Yippie 1!]`);
 
   set(view, 'foo', 'Double Yips 1!');
   rerender();
 
-  assertAppended('<!---->');
+  assertAppended('<!--portal-->');
   equalsElement(externalElement, 'div', {}, `${initialContent}[Double Yips 1!]`);
 
   set(view, 'foo', 'Yippie 2!');
   rerender();
 
-  assertAppended('<!---->');
+  assertAppended('<!--portal-->');
   equalsElement(externalElement, 'div', {}, `${initialContent}[Yippie 2!]`);
 
   set(view, 'foo', 'Yippie 3!');
   set(view, 'externalElement', null);
   rerender();
 
-  assertAppended('[Yippie 3!]');
+  assertAppended('<!--portal-->[Yippie 3!]');
   equalsElement(externalElement, 'div', {}, `${initialContent}`);
 
   set(view, 'foo', 'Yippie 4!');
   set(view, 'externalElement', externalElement);
   rerender();
 
-  assertAppended('<!---->');
+  assertAppended('<!--portal-->');
   equalsElement(externalElement, 'div', {}, `${initialContent}[Yippie 4!]`);
 });
 
@@ -240,7 +253,7 @@ QUnit.test('changing targets maintains referential integrity', function(assert) 
     }
   );
 
-  assertAppended('<div id="stable-div">Yippie!</div>');
+  assertAppended('<!--portal--><div id="stable-div">Yippie!</div>');
   equalsElement(first, 'div', { id: 'first' }, ``);
   equalsElement(second, 'div', { id: 'second' }, ``);
   cachedElement = getViewElementById('stable-div');
@@ -248,7 +261,7 @@ QUnit.test('changing targets maintains referential integrity', function(assert) 
   set(view, 'element', first);
   rerender();
 
-  assertAppended('<!---->');
+  assertAppended('<!--portal-->');
   equalsElement(first, 'div', { id: 'first' }, `<div id="stable-div">Yippie!</div>`);
   equalsElement(second, 'div', { id: 'second' }, ``);
   element = first.querySelector(`#stable-div`);
@@ -260,7 +273,7 @@ QUnit.test('changing targets maintains referential integrity', function(assert) 
   equalsElement(first, 'div', { id: 'first' }, ``);
   equalsElement(second, 'div', { id: 'second' }, `<div id="stable-div">Yippie!</div>`);
   element = second.querySelector(`#stable-div`);
-  assert.ok(element === cachedElement, 'Moving to new destination maintained integrity');
+  assert.equal(element, cachedElement, 'Moving to new destination maintained integrity');
 });
 
 QUnit.test('inside an `{{if}}', function(assert) {
@@ -395,31 +408,31 @@ QUnit.test('nesting', function(assert) {
     }
   );
 
-  equalsElement(firstElement, 'div', {}, stripTight`[Hello!]<!---->`);
+  equalsElement(firstElement, 'div', {}, stripTight`[Hello!]<!--portal-->`);
   equalsElement(secondElement, 'div', {}, stripTight`[World!]`);
 
   set(view, 'foo', 'GoodBye!');
   rerender();
 
-  equalsElement(firstElement, 'div', {}, stripTight`[GoodBye!]<!---->`);
+  equalsElement(firstElement, 'div', {}, stripTight`[GoodBye!]<!--portal-->`);
   equalsElement(secondElement, 'div', {}, stripTight`[World!]`);
 
   set(view, 'bar', 'Folks!');
   rerender();
 
-  equalsElement(firstElement, 'div', {}, stripTight`[GoodBye!]<!---->`);
+  equalsElement(firstElement, 'div', {}, stripTight`[GoodBye!]<!--portal-->`);
   equalsElement(secondElement, 'div', {}, stripTight`[Folks!]`);
 
   set(view, 'bar', 'World!');
   rerender();
 
-  equalsElement(firstElement, 'div', {}, stripTight`[GoodBye!]<!---->`);
+  equalsElement(firstElement, 'div', {}, stripTight`[GoodBye!]<!--portal-->`);
   equalsElement(secondElement, 'div', {}, stripTight`[World!]`);
 
   set(view, 'foo', 'Hello!');
   rerender();
 
-  equalsElement(firstElement, 'div', {}, stripTight`[Hello!]<!---->`);
+  equalsElement(firstElement, 'div', {}, stripTight`[Hello!]<!--portal-->`);
   equalsElement(secondElement, 'div', {}, stripTight`[World!]`);
 });
 

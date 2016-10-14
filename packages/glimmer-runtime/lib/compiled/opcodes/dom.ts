@@ -20,8 +20,7 @@ import { NULL_REFERENCE } from '../../references';
 import { ValueReference } from '../../compiled/expressions/value';
 import { CompiledArgs, EvaluatedArgs } from '../../compiled/expressions/args';
 import { AttributeManager } from '../../dom/attribute-managers';
-import { ElementOperations } from '../../builder';
-import { Assert } from './vm';
+import {ElementOperations, RemoteBlockTracker} from '../../builder';
 
 export class TextOpcode extends Opcode {
   public type = "text";
@@ -63,19 +62,48 @@ export class OpenPrimitiveElementOpcode extends Opcode {
   }
 }
 
-export class PushRemoteElementOpcode extends Opcode {
+export class UpdateBounds extends UpdatingOpcode {
+  public type = "update-bounds";
+  private cache: ReferenceCache<Opaque>;
+  private bounds: RemoteBlockTracker;
+  private vm: VM;
+
+  constructor(vm: VM, cache: ReferenceCache<Opaque>, bounds: RemoteBlockTracker) {
+    super();
+
+    this.vm = vm;
+    this.cache = cache;
+    this.bounds = bounds;
+  }
+
+  evaluate(vm: UpdatingVM) {
+    let { cache, bounds } = this;
+
+    if (isModified(cache.revalidate())) {
+      bounds.update(cache.peek());
+    }
+  }
+
+  toJSON(): OpcodeJSON {
+    return {
+      guid: this._guid,
+      type: this.type
+    };
+  }
+}
+
+export class PushRemoteElementOpcode extends UpdatingOpcode {
   public type = "push-remote-element";
 
   evaluate(vm: VM) {
     let reference = vm.frame.getOperand<Simple.Element>();
     let cache = isConstReference(reference) ? undefined : new ReferenceCache(reference);
     let element = cache ? cache.peek() : reference.value();
-    // debugger;
 
-    vm.stack().pushRemoteElement(element);
+    let bounds = vm.stack().pushRemoteElement(element);
 
     if (cache) {
-      vm.updateWith(new Assert(cache));
+      vm.updateWith(new UpdateBounds(vm, cache, bounds));
     }
   }
 
@@ -88,7 +116,7 @@ export class PushRemoteElementOpcode extends Opcode {
   }
 }
 
-export class PopRemoteElementOpcode extends UpdatingOpcode {
+export class PopRemoteElementOpcode extends Opcode {
   public type = "pop-remote-element";
 
   evaluate(vm: VM) {
