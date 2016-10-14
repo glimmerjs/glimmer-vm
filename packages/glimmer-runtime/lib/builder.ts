@@ -395,7 +395,7 @@ export class RemoteBlockTracker extends SimpleBlockTracker {
     let firstNode = this._firstNode();
     let lastNode = this._lastNode();
 
-    let lastElement = newParent ? newTarget.lastNode : this.comment.nextSibling;
+    let lastElement = newParent ? newTarget.lastChild : this.comment.nextSibling;
     let nextNode;
 
     while (firstNode) {
