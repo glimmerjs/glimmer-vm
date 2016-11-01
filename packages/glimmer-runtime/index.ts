@@ -106,6 +106,10 @@ export {
 } from './lib/syntax/builtins/with-dynamic-vars';
 
 export {
+  default as WithSyntax
+} from './lib/syntax/builtins/with';
+
+export {
   default as InElementSyntax
 } from './lib/syntax/builtins/in-element';
 
