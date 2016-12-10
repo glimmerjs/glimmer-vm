@@ -1,4 +1,4 @@
-import { Dict, dict } from 'glimmer-util';
+import { Option, Dict, dict } from 'glimmer-util';
 
 export const EMPTY_ARRAY = Object.freeze([]);
 export const EMPTY_DICT: Dict<any> = Object.freeze(dict<any>());
@@ -18,7 +18,7 @@ export interface Destroyable {
 export interface Range<T> {
   min(): number;
   max(): number;
-  at(index: number): T;
+  at(index: number): Option<T>;
 }
 
 export class ListRange<T> implements Range<T> {
@@ -34,7 +34,7 @@ export class ListRange<T> implements Range<T> {
     this.end = end;
   }
 
-  at(index: number): T {
+  at(index: number): Option<T> {
     if (index >= this.list.length) return null;
     return this.list[index];
   }
