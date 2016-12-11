@@ -6,6 +6,7 @@
   "main": "dist/node_modules/glimmer/index.js",
   "scripts": {
     "prepublish": "lerna bootstrap && bower install && ember build",
+    "bootstrap": "lerna bootstrap",
     "build": "ember build",
     "pretest": "ember build",
     "test": "ember test && lerna run test",

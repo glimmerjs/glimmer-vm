@@ -1,12 +1,12 @@
 {
-  "name": "glimmer-syntax",
+  "name": "glimmer-object",
   "version": "0.5.2",
   "main": "dist/commonjs/index.js",
   "module": "dist/modules/index.js",
   "jsnext:main": "dist/modules/index.js",
   "typings": "dist/commonjs/index.d.ts",
   "scripts": {
-    "build": "node ../../build/build",
+    "build": "node build/build.js",
     "prepublish": "npm run build",
     "test": "node -e 'require(\".\")'"
   },
@@ -14,11 +14,10 @@
     "dist"
   ],
   "dependencies": {
-    "handlebars": "^3.0.3",
-    "simple-html-tokenizer": "^0.2.5"
+    "glimmer-object-reference": "^0.5.2",
+    "glimmer-util": "^0.5.2"
   },
   "devDependencies": {
-    "@types/handlebars": "^4.0.31",
     "typescript": "^2.1.4"
   }
 }
