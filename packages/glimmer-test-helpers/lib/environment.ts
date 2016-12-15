@@ -992,7 +992,7 @@ class DynamicComponentSyntax extends StatementSyntax {
     super();
     this.definitionArgs = ArgsSyntax.fromPositionalArgs(args.positional.slice(0,1));
     this.definition = dynamicComponentFor;
-    this.args = ArgsSyntax.build(args.positional.slice(1), args.named, args.blocks);
+    this.args = new ArgsSyntax(args.positional.slice(1), args.named, args.blocks);
     this.symbolTable = symbolTable;
   }
 
