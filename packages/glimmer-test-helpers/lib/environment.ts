@@ -4,9 +4,9 @@ import {
   DynamicScope,
 
   // Compiler
-  CompiledBlock,
+  CompiledProgram,
   SymbolLookup,
-  SymbolTable,
+  CompilableLayout,
   compileLayout,
 
   // Environment
@@ -90,6 +90,10 @@ import {
 import {
   UpdatableReference
 } from "glimmer-object-reference";
+
+import {
+  SymbolTable
+} from 'glimmer-interfaces';
 
 import {
   TemplateMeta
@@ -298,7 +302,7 @@ class BasicComponentManager implements ComponentManager<BasicComponent> {
     return new klass(args.named.value());
   }
 
-  layoutFor(definition: BasicComponentDefinition, component: BasicComponent, env: TestEnvironment): CompiledBlock {
+  layoutFor(definition: BasicComponentDefinition, component: BasicComponent, env: TestEnvironment): CompiledProgram {
     let layout = env.compiledLayouts[definition.name];
 
     if (layout) {
@@ -342,7 +346,7 @@ class BasicComponentManager implements ComponentManager<BasicComponent> {
 const BASIC_COMPONENT_MANAGER = new BasicComponentManager();
 
 class StaticTaglessComponentManager extends BasicComponentManager {
-  layoutFor(definition: StaticTaglessComponentDefinition, component: BasicComponent, env: TestEnvironment): CompiledBlock {
+  layoutFor(definition: StaticTaglessComponentDefinition, component: BasicComponent, env: TestEnvironment): CompiledProgram {
     let layout = env.compiledLayouts[definition.name];
 
     if (layout) {
@@ -375,7 +379,7 @@ class EmberishGlimmerComponentManager implements ComponentManager<EmberishGlimme
     return component;
   }
 
-  layoutFor(definition: EmberishGlimmerComponentDefinition, component: EmberishGlimmerComponent, env: TestEnvironment): CompiledBlock {
+  layoutFor(definition: EmberishGlimmerComponentDefinition, component: EmberishGlimmerComponent, env: TestEnvironment): CompiledProgram {
     if (env.compiledLayouts[definition.name]) {
       return env.compiledLayouts[definition.name];
     }
@@ -499,7 +503,7 @@ class EmberishCurlyComponentManager implements ComponentManager<EmberishCurlyCom
     return component;
   }
 
-  layoutFor(definition: EmberishCurlyComponentDefinition, component: EmberishCurlyComponent, env: TestEnvironment): CompiledBlock {
+  layoutFor(definition: EmberishCurlyComponentDefinition, component: EmberishCurlyComponent, env: TestEnvironment): CompiledProgram {
     let layout = env.compiledLayouts[definition.name];
 
     if (layout) {
@@ -706,7 +710,7 @@ export class TestEnvironment extends Environment {
   private partials = dict<PartialDefinition<{}>>();
   private components = dict<ComponentDefinition<any>>();
   private uselessAnchor: HTMLAnchorElement;
-  public compiledLayouts = dict<CompiledBlock>();
+  public compiledLayouts = dict<CompiledProgram>();
 
   constructor(options: TestEnvironmentOptions = {
     document: document,
@@ -939,7 +943,7 @@ class CurlyComponentSyntax extends StatementSyntax {
     this.symbolTable = symbolTable;
   }
 
-  compile(b: { component: ComponentBuilder } & SymbolLookup, env: Environment) {
+  compile(b: OpcodeBuilderDSL) {
     b.component.static(this.definition, this.args, this.symbolTable, this.shadow);
   }
 }
@@ -992,7 +996,7 @@ class DynamicComponentSyntax extends StatementSyntax {
     this.symbolTable = symbolTable;
   }
 
-  compile(b: OpcodeBuilderDSL, env: Environment) {
+  compile(b: OpcodeBuilderDSL) {
     b.component.dynamic(this.definitionArgs, this.definition, this.args, this.symbolTable, this.shadow);
   }
 }
@@ -1035,7 +1039,7 @@ export class EmberishGlimmerComponentDefinition extends GenericComponentDefiniti
   public ComponentClass: EmberishGlimmerComponentFactory;
 }
 
-abstract class GenericComponentLayoutCompiler implements Compilable {
+abstract class GenericComponentLayoutCompiler implements CompilableLayout {
   constructor(private layoutString: string) {}
 
   protected compileLayout(env: Environment) {
