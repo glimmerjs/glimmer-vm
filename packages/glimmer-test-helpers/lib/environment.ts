@@ -797,49 +797,6 @@ export class TestEnvironment extends Environment {
     return macros;
   }
 
-  refineStatement(statement: ParsedStatement, symbolTable: SymbolTable): StatementSyntax {
-    let {
-      appendType,
-      isSimple,
-      isBlock,
-      isInline,
-      key,
-      args,
-      path
-    } = statement;
-
-    if (isSimple && isBlock) {
-      switch (key) {
-        case 'identity':
-          return new IdentitySyntax(args);
-        case 'render-inverse':
-          return new RenderInverseIdentitySyntax(args);
-        case '-with-dynamic-vars':
-          return new WithDynamicVarsSyntax(args);
-        case '-in-element':
-          return new InElementSyntax(args);
-      }
-    }
-
-    if (isSimple && (isInline || isBlock)) {
-      if (key === 'component') {
-        return new DynamicComponentSyntax({ args, symbolTable });
-      }
-
-      let component = this.getComponentDefinition(path, symbolTable);
-
-      if (component) {
-        return new CurlyComponentSyntax({ args, definition: component, symbolTable });
-      }
-    }
-
-    if (isInline && !isSimple && appendType !== 'helper') {
-      return (statement.original as OptimizedAppend).deopt();
-    }
-
-    return super.refineStatement(statement, symbolTable);
-  }
-
   hasHelper(helperName: string[]) {
     return helperName.length === 1 && (<string>helperName[0] in this.helpers);
   }
@@ -944,11 +901,11 @@ export class TestDynamicScope implements DynamicScope {
 class CurlyComponentSyntax extends StatementSyntax {
   public type = "curly-component";
   public definition: ComponentDefinition<any>;
-  public args: ArgsSyntax;
+  public args: BaselineSyntax.Args;
   public shadow: string[] = null;
   public symbolTable: SymbolTable;
 
-  constructor({ args, definition, symbolTable }: { args: ArgsSyntax, definition: ComponentDefinition<any>, symbolTable: SymbolTable }) {
+  constructor({ args, definition, symbolTable }: { args: BaselineSyntax.Args, definition: ComponentDefinition<any>, symbolTable: SymbolTable }) {
     super();
     this.args = args;
     this.definition = definition;
@@ -993,18 +950,19 @@ function dynamicComponentFor(vm: VM, symbolTable: SymbolTable) {
 
 class DynamicComponentSyntax extends StatementSyntax {
   public type = "dynamic-component";
-  public definitionArgs: ArgsSyntax;
+  public definitionArgs: BaselineSyntax.Args;
   public definition: FunctionExpression<ComponentDefinition<Opaque>>;
-  public args: ArgsSyntax;
+  public args: BaselineSyntax.Args;
   public shadow: string[] = null;
 
   public symbolTable: SymbolTable;
 
-  constructor({ args, symbolTable }: { args: ArgsSyntax, symbolTable: SymbolTable }) {
+  constructor({ args, symbolTable }: { args: BaselineSyntax.Args, symbolTable: SymbolTable }) {
     super();
-    this.definitionArgs = ArgsSyntax.fromPositionalArgs(args.positional.slice(0,1));
+    let [params, hash, _default, inverse] = args;
+    this.definitionArgs = args;
     this.definition = dynamicComponentFor;
-    this.args = new ArgsSyntax(args.positional.slice(1), args.named, args.blocks);
+    this.args = [params.slice(1), hash, _default, inverse];
     this.symbolTable = symbolTable;
   }
 
@@ -1203,6 +1161,20 @@ function populateBlocks(blocks: BlockMacros): BlockMacros {
       b.evaluate('default', unwrap(block));
       b.popRemoteElement();
     });
+  });
+
+  blocks.addMissing((sexp, builder) => {
+    let [, path, params, hash, _default, inverse] = sexp;
+    let table = builder.symbolTable;
+
+    let definition = builder.env.getComponentDefinition(path, builder.symbolTable);
+
+    if (definition) {
+      builder.component.static(definition, [params, hash, _default, inverse], table, []);
+      return true;
+    }
+
+    return false;
   });
 
   return blocks;
