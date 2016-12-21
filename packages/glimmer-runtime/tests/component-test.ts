@@ -61,7 +61,7 @@ class MyComponent extends BasicComponent {
   }
 }
 
-QUnit.skip('creating a new component', assert => {
+QUnit.test('creating a new component', assert => {
   let template = compile("<my-component color='{{color}}'>hello!</my-component>");
   render(template, { color: 'red' });
 
