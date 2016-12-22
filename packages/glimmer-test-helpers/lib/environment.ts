@@ -1080,11 +1080,11 @@ const { defaultBlock, inverseBlock, params, hash } = BaselineSyntax.NestedBlock;
 
 function populateBlocks(blocks: BlockMacros, inlines: InlineMacros): { blocks: BlockMacros, inlines: InlineMacros } {
   blocks.add('identity', (sexp: NestedBlockSyntax, builder: OpcodeBuilderDSL) => {
-    builder.evaluate('default', sexp[4]);
+    builder.evaluate(sexp[4]);
   });
 
   blocks.add('render-inverse', (sexp: NestedBlockSyntax, builder: OpcodeBuilderDSL) => {
-    builder.evaluate('inverse', sexp[5]);
+    builder.evaluate(sexp[5]);
   });
 
   blocks.add('-with-dynamic-vars', (sexp, builder) => {
@@ -1094,8 +1094,8 @@ function populateBlocks(blocks: BlockMacros, inlines: InlineMacros): { blocks: B
     builder.unit(b => {
       b.putArgs(args);
       b.pushDynamicScope();
-      b.bindDynamicScope(args.named.keys);
-      b.evaluate('default', unwrap(block));
+      b.bindDynamicScope(args.named.keys as string[]);
+      b.evaluate(unwrap(block));
       b.popDynamicScope();
     });
   });
@@ -1107,10 +1107,10 @@ function populateBlocks(blocks: BlockMacros, inlines: InlineMacros): { blocks: B
     builder.putArgs(args);
     builder.test('simple');
 
-    builder.block(null, b => {
+    builder.labelled(null, b => {
       b.jumpUnless('END');
       b.pushRemoteElement();
-      b.evaluate('default', unwrap(block));
+      b.evaluate(unwrap(block));
       b.popRemoteElement();
     });
   });
