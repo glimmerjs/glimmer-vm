@@ -191,11 +191,12 @@ function buildPair(key, value) {
   };
 }
 
-function buildProgram(body?, blockParams?, loc?) {
+function buildProgram(body?, blockParams?, chained?, loc?) {
   return {
     type: "Program",
     body: body || [],
     blockParams: blockParams || [],
+    chained: chained || false,
     loc: buildLoc(loc)
   };
 }

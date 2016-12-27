@@ -5,7 +5,7 @@ export default {
 
   Program: function(program) {
     let body = [];
-    let node = b.program(body, program.blockParams, program.loc);
+    let node = b.program(body, program.blockParams, program.chained, program.loc);
     let i, l = program.body.length;
 
     this.elementStack.push(node);
