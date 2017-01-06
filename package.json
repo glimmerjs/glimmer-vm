@@ -25,7 +25,6 @@
   },
   "author": "Tilde, Inc.",
   "license": "MIT",
-  "readmeFilename": "README.md",
   "dependencies": {
     "broccoli-concat": "^2.1.0",
     "broccoli-funnel": "^1.0.1",
