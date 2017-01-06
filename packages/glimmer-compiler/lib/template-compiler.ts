@@ -86,13 +86,16 @@ export default class TemplateCompiler<T extends TemplateMeta> {
   }
 
   attribute([action]) {
-    let { name, value } = action;
+    let { name, value, loc } = action;
 
     let namespace = getAttrNamespace(name);
 
     let isStatic = this.prepareAttributeValue(value);
-
-    if (name.charAt(0) === '@') {
+    let firstChar = name.charAt(0);
+    if (firstChar === '"' || firstChar === "'") {
+      throw new Error(`attribute cannot start with ${firstChar} (line ${loc.start.line}, column ${loc.start.column})`);
+    }
+    if (firstChar === '@') {
       // Arguments
       if (isStatic) {
         this.opcode('staticArg', action, name);

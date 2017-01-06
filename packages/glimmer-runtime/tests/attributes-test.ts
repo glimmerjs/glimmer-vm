@@ -668,3 +668,9 @@ test("input list attribute updates properly", () => {
 
   equalTokens(root, '<input list="bar" />');
 });
+
+test("rejects attribute names that begin with quotes", assert => {
+  assert.throws(() => {
+    compile('<div " />');
+  }, /attribute cannot start with " \(line 1, column 5\)/);
+});
