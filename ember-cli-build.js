@@ -17,18 +17,26 @@ var loadWithInlineMap = require('./build-support/rollup-plugin-load-with-inline-
 
 var PACKAGE_NAMES = [
   "glimmer",
+
   "glimmer-benchmarks",
-  "glimmer-compiler",
   "glimmer-demos",
+
+
+  "glimmer-syntax",
+  "glimmer-compiler",
+
   "glimmer-node",
+
   "glimmer-object",
   "glimmer-object-reference",
+
   "glimmer-reference",
+
   "glimmer-runtime",
-  "glimmer-test-helpers",
   "glimmer-util",
   "glimmer-wire-format",
-  "glimmer-syntax"
+
+  "glimmer-test-helpers"
 ];
 
 var EXTERNAL = [

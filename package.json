@@ -67,6 +67,7 @@
     "qunit": "^0.7.2",
     "qunit-tap": "^1.5.1",
     "qunitjs": "^1.20.0",
+    "rollup": "^0.36.0",
     "rollup-plugin-buble": "^0.13.0",
     "rollup-plugin-multi-entry": "^2.0.1",
     "simple-dom": "^0.3.0",
