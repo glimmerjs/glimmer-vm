@@ -1,24 +1,27 @@
 let visitors = {
-  Program: function(walker, node, callback) {
+  Program(walker, node, callback) {
     for (let i = 0; i < node.body.length; i++) {
       walker.visit(node.body[i], callback);
     }
   },
 
-  ElementNode: function(walker, node, callback) {
+  ElementNode(walker, node, callback) {
     for (let i = 0; i < node.children.length; i++) {
       walker.visit(node.children[i], callback);
     }
   },
 
-  BlockStatement: function(walker, node, callback) {
+  BlockStatement(walker, node, callback) {
     walker.visit(node.program, callback);
     walker.visit(node.inverse, callback);
   }
 };
 
 export default class Walker {
-  constructor(order = undefined) {
+  private order: String | undefined;
+  private stack: Array<any>;
+
+  constructor(order: String | undefined) {
     this.order = order;
     this.stack = [];
   }
