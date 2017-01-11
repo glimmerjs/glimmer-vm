@@ -618,6 +618,30 @@ export function populateBuiltins(blocks: Blocks = new Blocks(), inlines: Inlines
     });
   });
 
+  blocks.add('let', (sexp: BaselineSyntax.NestedBlock, builder: OpcodeBuilder) => {
+    //        PutArgs
+    //        Test(Environment)
+    //        Enter(BEGIN, END)
+    // BEGIN: Noop
+    //        Evaluate(default)
+    // END:   Noop
+    //        Exit
+
+    let [,, params, hash, _default] = sexp;
+    let args = compileArgs(params, hash, builder);
+
+    builder.putArgs(args);
+    builder.test('environment');
+
+    builder.labelled(null, b => {
+      if (_default) {
+        b.evaluate(_default);
+      } else {
+        throw unreachable();
+      }
+    });
+  });
+
   blocks.add('each', (sexp: BaselineSyntax.NestedBlock, builder: OpcodeBuilder) => {
     //         Enter(BEGIN, END)
     // BEGIN:  Noop
