@@ -25,7 +25,7 @@ var handlebars = new Funnel(handlebarsRoot, {
 var glimmerSyntaxRoot = __dirname + "/../packages/@glimmer/syntax";
 var handlebarsShim = rename(new Funnel(glimmerSyntaxRoot, {
     files: ['handlebars-shim.js']
-}), 'handlebars-shim.js', 'handlebars.js');
+}), 'handlebars-shim.js', 'handlebars/index.js');
 
 module.exports = {
   compiler: mergeTrees([handlebars, handlebarsShim])
