@@ -1,3 +1,5 @@
+import { Option } from '@glimmer/util';
+
 let visitors = {
   Program(walker, node, callback) {
     for (let i = 0; i < node.body.length; i++) {
@@ -18,12 +20,9 @@ let visitors = {
 };
 
 export default class Walker {
-  private order: String | undefined;
-  private stack: Array<any>;
+  private stack = [];
 
-  constructor(order: String | undefined) {
-    this.order = order;
-    this.stack = [];
+  constructor(private order: Option<string> = undefined) {
   }
 
   visit(node, callback) {
