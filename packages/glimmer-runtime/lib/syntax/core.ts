@@ -233,10 +233,10 @@ export class Modifier extends StatementSyntax {
   compile(compiler: CompileInto & SymbolLookup, env: Environment, symbolTable: SymbolTable) {
     let args = this.args.compile(compiler, env, symbolTable);
 
-    if (env.hasModifier(this.path, symbolTable)) {
+    if (env.hasModifier(this.path[0], symbolTable)) {
       compiler.append(new ModifierOpcode(
         this.path[0],
-        env.lookupModifier(this.path, symbolTable),
+        env.lookupModifier(this.path[0], symbolTable),
         args
       ));
     } else {
@@ -496,7 +496,7 @@ export class OpenElement extends StatementSyntax {
   scan(scanner: BlockScanner): StatementSyntax {
     let { tag } = this;
 
-    if (scanner.env.hasComponentDefinition([tag], this.symbolTable)) {
+    if (scanner.env.hasComponentDefinition(tag, this.symbolTable)) {
       let { args, attrs } = this.parameters(scanner);
       scanner.startBlock(this.blockParams);
       this.tagContents(scanner);
@@ -579,7 +579,7 @@ export class Component extends StatementSyntax {
   }
 
   compile(list: CompileInto & SymbolLookup, env: Environment, symbolTable: SymbolTable) {
-    let definition = env.getComponentDefinition([this.tag], symbolTable);
+    let definition = env.getComponentDefinition(this.tag, symbolTable);
     let args = this.args.compile(list as SymbolLookup, env, symbolTable);
     let shadow = this.attrs;
 
@@ -851,8 +851,8 @@ export class Unknown extends ExpressionSyntax<any> {
   compile(compiler: SymbolLookup, env: Environment, symbolTable: SymbolTable): CompiledExpression<Opaque> {
     let { ref } = this;
 
-    if (env.hasHelper(ref.parts, symbolTable)) {
-      return new CompiledHelper(ref.parts, env.lookupHelper(ref.parts, symbolTable), CompiledArgs.empty(), symbolTable);
+    if (env.hasHelper(ref.parts[0], symbolTable)) {
+      return new CompiledHelper(ref.parts, env.lookupHelper(ref.parts[0], symbolTable), CompiledArgs.empty(), symbolTable);
     } else {
       return this.ref.compile(compiler);
     }
@@ -880,9 +880,9 @@ export class Helper extends ExpressionSyntax<Opaque> {
   }
 
   compile(compiler: SymbolLookup, env: Environment, symbolTable: SymbolTable): CompiledExpression<Opaque> {
-    if (env.hasHelper(this.ref.parts, symbolTable)) {
+    if (env.hasHelper(this.ref.parts[0], symbolTable)) {
       let { args, ref } = this;
-      return new CompiledHelper(ref.parts, env.lookupHelper(ref.parts, symbolTable), args.compile(compiler, env, symbolTable), symbolTable);
+      return new CompiledHelper(ref.parts, env.lookupHelper(ref.parts[0], symbolTable), args.compile(compiler, env, symbolTable), symbolTable);
     } else {
       throw new Error(`Compile Error: ${this.ref.parts.join('.')} is not a helper`);
     }

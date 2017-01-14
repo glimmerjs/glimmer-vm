@@ -811,7 +811,7 @@ export class TestEnvironment extends Environment {
         return new DynamicComponentSyntax({ args, symbolTable });
       }
 
-      let component = this.getComponentDefinition(path, symbolTable);
+      let component = this.getComponentDefinition(path[0], symbolTable);
 
       if (component) {
         return new CurlyComponentSyntax({ args, definition: component, symbolTable });
@@ -825,16 +825,14 @@ export class TestEnvironment extends Environment {
     return super.refineStatement(statement, symbolTable);
   }
 
-  hasHelper(helperName: string[]) {
-    return helperName.length === 1 && (<string>helperName[0] in this.helpers);
+  hasHelper(helperName: string) {
+    return helperName in this.helpers;
   }
 
-  lookupHelper(helperParts: string[]) {
-    let helperName = helperParts[0];
-
+  lookupHelper(helperName: string) {
     let helper = this.helpers[helperName];
 
-    if (!helper) throw new Error(`Helper for ${helperParts.join('.')} not found.`);
+    if (!helper) throw new Error(`Helper for ${helperName} not found.`);
 
     return helper;
   }
@@ -849,24 +847,22 @@ export class TestEnvironment extends Environment {
     return partial;
   }
 
-  hasComponentDefinition(name: string[]): boolean {
-    return !!this.components[name[0]];
+  hasComponentDefinition(name: string): boolean {
+    return !!this.components[name];
   }
 
-  getComponentDefinition(name: string[], blockMeta?: TemplateMeta): ComponentDefinition<any> {
-    return this.components[name[0]];
+  getComponentDefinition(name: string, blockMeta?: TemplateMeta): ComponentDefinition<any> {
+    return this.components[name];
   }
 
-  hasModifier(modifierName: string[]): boolean {
-    return modifierName.length === 1 && (<string>modifierName[0] in this.modifiers);
+  hasModifier(modifierName: string): boolean {
+    return modifierName in this.modifiers;
   }
 
-  lookupModifier(modifierName: string[]): ModifierManager<Opaque> {
-    let [name] = modifierName;
+  lookupModifier(modifierName: string): ModifierManager<Opaque> {
+    let modifier = this.modifiers[modifierName];
 
-    let modifier = this.modifiers[name];
-
-    if(!modifier) throw new Error(`Modifier for ${modifierName.join('.')} not found.`);
+    if(!modifier) throw new Error(`Modifier for ${modifierName} not found.`);
     return modifier;
   }
 
@@ -958,7 +954,7 @@ class DynamicComponentReference implements PathReference<ComponentDefinition<Opa
     let name = nameRef.value();
 
     if (typeof name === 'string') {
-      return env.getComponentDefinition([name], this.symbolTable);
+      return env.getComponentDefinition(name, this.symbolTable);
     } else {
       return null;
     }
