@@ -1,7 +1,17 @@
-export default function build(ast) {
+export default function print(ast, source) {
+  if (typeof source === 'string') {
+    let lines = source.split(/(?:\r\n?|\n)/g);
+    return build(ast, { lines });
+  } else {
+    return build(ast);
+  }
+}
+
+function build(ast, source) {
   if(!ast) {
     return '';
   }
+
   const output = [];
 
   switch(ast.type) {
@@ -10,28 +20,28 @@ export default function build(ast) {
       if(chainBlock) {
         chainBlock.chained = true;
       }
-      const body = buildEach(ast.body).join('');
+      const body = buildEach(ast.body, source).join('');
       output.push(body);
     }
     break;
     case 'ElementNode':
       output.push('<', ast.tag);
       if(ast.attributes.length) {
-        output.push(' ', buildEach(ast.attributes).join(' '));
+        output.push(' ', buildEach(ast.attributes, source).join(' '));
       }
       if(ast.modifiers.length) {
-        output.push(' ', buildEach(ast.modifiers).join(' '));
+        output.push(' ', buildEach(ast.modifiers, source).join(' '));
       }
       if(ast.comments.length) {
-        output.push(' ', buildEach(ast.comments).join(' '));
+        output.push(' ', buildEach(ast.comments, source).join(' '));
       }
       output.push('>');
-      output.push.apply(output, buildEach(ast.children));
+      output.push.apply(output, buildEach(ast.children, source));
       output.push('</', ast.tag, '>');
     break;
     case 'AttrNode':
       output.push(ast.name, '=');
-      const value = build(ast.value);
+      const value = build(ast.value, source);
       if(ast.value.type === 'TextNode') {
         output.push('"', value, '"');
       } else {
@@ -44,7 +54,7 @@ export default function build(ast) {
         if(node.type === 'StringLiteral') {
           output.push(node.original);
         } else {
-          output.push(build(node));
+          output.push(build(node, source));
         }
       });
       output.push('"');
@@ -53,22 +63,31 @@ export default function build(ast) {
       output.push(ast.chars);
     break;
     case 'MustacheStatement': {
-      output.push(compactJoin(['{{', pathParams(ast), '}}']));
+      output.push(compactJoin(['{{', pathParams(ast, source), '}}']));
     }
     break;
     case 'MustacheCommentStatement': {
-      output.push(compactJoin(['{{!--', ast.value, '--}}']));
+      if (source) {
+        let line = source.lines[ast.loc.start.line - 1];
+        if (line.substr(ast.loc.start.column, 5) === '{{!--') {
+          output.push(compactJoin(['{{!--', ast.value, '--}}']));
+        } else {
+          output.push(compactJoin(['{{!', ast.value, '}}']));
+        }
+      } else {
+        output.push(compactJoin(['{{!--', ast.value, '--}}']));
+      }
     }
     break;
     case 'ElementModifierStatement': {
-      output.push(compactJoin(['{{', pathParams(ast), '}}']));
+      output.push(compactJoin(['{{', pathParams(ast, source), '}}']));
     }
     break;
     case 'PathExpression':
       output.push(ast.original);
     break;
     case 'SubExpression': {
-      output.push('(', pathParams(ast), ')');
+      output.push('(', pathParams(ast, source), ')');
     }
     break;
     case 'BooleanLiteral':
@@ -78,29 +97,29 @@ export default function build(ast) {
       const lines = [];
 
       if(ast.chained){
-        lines.push(['{{else ', pathParams(ast), '}}'].join(''));
+        lines.push(['{{else ', pathParams(ast, source), '}}'].join(''));
       }else{
-        lines.push(openBlock(ast));
+        lines.push(openBlock(ast, source));
       }
 
-      lines.push(build(ast.program));
+      lines.push(build(ast.program, source));
 
       if(ast.inverse) {
         if(!ast.inverse.chained){
           lines.push('{{else}}');
         }
-        lines.push(build(ast.inverse));
+        lines.push(build(ast.inverse, source));
       }
 
       if(!ast.chained){
-        lines.push(closeBlock(ast));
+        lines.push(closeBlock(ast, source));
       }
 
       output.push(lines.join(''));
     }
     break;
     case 'PartialStatement': {
-      output.push(compactJoin(['{{>', pathParams(ast), '}}']));
+      output.push(compactJoin(['{{>', pathParams(ast, source), '}}']));
     }
     break;
     case 'CommentStatement': {
@@ -125,12 +144,12 @@ export default function build(ast) {
     break;
     case 'Hash': {
       output.push(ast.pairs.map(function(pair) {
-        return build(pair);
+        return build(pair, source);
       }).join(' '));
     }
     break;
     case 'HashPair': {
-      output.push(`${ast.key}=${build(ast.value)}`);
+      output.push(`${ast.key}=${build(ast.value, source)}`);
     }
     break;
   }
@@ -147,19 +166,19 @@ function compact(array) {
   return newArray;
 }
 
-function buildEach(asts) {
+function buildEach(asts, source) {
   const output = [];
   asts.forEach(function(node) {
-    output.push(build(node));
+    output.push(build(node, source));
   });
   return output;
 }
 
-function pathParams(ast) {
-  const name = build(ast.name);
-  const path = build(ast.path);
-  const params = buildEach(ast.params).join(' ');
-  const hash = build(ast.hash);
+function pathParams(ast, source) {
+  const name = build(ast.name, source);
+  const path = build(ast.path, source);
+  const params = buildEach(ast.params, source).join(' ');
+  const hash = build(ast.hash, source);
   return compactJoin([name, path, params, hash], ' ');
 }
 
@@ -174,10 +193,10 @@ function blockParams(block) {
   }
 }
 
-function openBlock(block) {
-  return ['{{#', pathParams(block), blockParams(block), '}}'].join('');
+function openBlock(block, source) {
+  return ['{{#', pathParams(block, source), blockParams(block), '}}'].join('');
 }
 
-function closeBlock(block) {
-  return ['{{/', build(block.path), '}}'].join('');
+function closeBlock(block, source) {
+  return ['{{/', build(block.path, source), '}}'].join('');
 }

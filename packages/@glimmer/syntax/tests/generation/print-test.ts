@@ -1,7 +1,7 @@
 import { preprocess as parse, print, builders as b } from "@glimmer/syntax";
 
 function printTransform(template) {
-  return print(parse(template));
+  return print(parse(template), template);
 }
 
 function printEqual(template) {
@@ -98,7 +98,8 @@ test('HTML comment', function() {
 });
 
 test('Handlebars comment', function() {
-  equal(printTransform('{{! foo }}'), '{{!-- foo --}}');
+  printEqual('{{! foo }}');
+  printEqual('{{!-- foo --}}');
 });
 
 test('Handlebars comment: in ElementNode', function() {
