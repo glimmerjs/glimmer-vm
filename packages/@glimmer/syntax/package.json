@@ -10,8 +10,13 @@
     "prepublish": "npm run build",
     "test": "node -e 'require(\".\")'"
   },
-  "files": ["dist", "index.ts", "lib"],
+  "files": [
+    "dist",
+    "index.ts",
+    "lib"
+  ],
   "dependencies": {
+    "@glimmer/util": "^0.21.0",
     "handlebars": "^4.0.6",
     "simple-html-tokenizer": "^0.3.0"
   },
