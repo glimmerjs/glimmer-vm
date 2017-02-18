@@ -458,6 +458,30 @@ test("updating a curly with a safe and unsafe string", () => {
   equalTokens(root, '<div><p>hello world</p></div>', "original input causes no problem");
 });
 
+test("empty triple curlies should have correct bounds", () => {
+  let template = compile('BEFORE {{#if shouldDisplay}}{{{""}}}INSIDE{{{""}}}{{/if}} AFTER</div>');
+  render(template, { shouldDisplay: true });
+  let valueNode = root.firstChild.firstChild.firstChild;
+
+  equalTokens(root, '<div><p>hello world</p></div>', "Initial render");
+
+  rerender();
+
+  equalTokens(root, '<div><p>hello world</p></div>', "no change");
+  strictEqual(root.firstChild.firstChild.firstChild, valueNode, "The text node was not blown away");
+
+  object.value = unsafeString;
+  rerender();
+
+  equalTokens(root, '<div>&lt;b&gt;Big old world!&lt;/b&gt;</div>', "After replacing with unsafe string");
+  notStrictEqual(root.firstChild.firstChild, valueNode, "The text node was blown away");
+
+  object.value = safeString;
+  rerender();
+
+  equalTokens(root, '<div><p>hello world</p></div>', "original input causes no problem");
+});
+
 function makeSafeString(value: string): SafeString {
   return {
     string: value,
@@ -1752,25 +1776,35 @@ test("top-level bounds are correct when swapping order", assert => {
 
   let tom = { key: "1", name: "Tom Dale", "class": "tomdale" };
   let yehuda = { key: "2", name: "Yehuda Katz", "class": "wycats" };
-  let object = { list: [ tom, yehuda ] };
+  let object = { list: [tom, yehuda] };
 
   render(template, object);
   assertInvariants(result, "initial render");
+  equalTokens(root, "Tom DaleYehuda Katz", "initial render");
 
   rerender();
   assertInvariants(result, "after no-op rerender");
+  equalTokens(root, "Tom DaleYehuda Katz", "after no-op rerender");
 
   object = { list: [yehuda, tom] };
   rerender(object);
   assertInvariants(result, "after reordering");
+  equalTokens(root, "Yehuda KatzTom Dale", "after no-op rerender");
 
   object = { list: [tom] };
   rerender(object);
   assertInvariants(result, "after deleting from the front");
+  equalTokens(root, "Tom Dale", "after deleting from the front");
 
   object = { list: [] };
   rerender(object);
   assertInvariants(result, "after emptying the list");
+  equalTokens(root, "<!---->", "after emptying the list");
+
+  object = { list: [tom, yehuda] };
+  rerender(object);
+  assertInvariants(result, "after reset");
+  equalTokens(root, "Tom DaleYehuda Katz", "after reset");
 });
 
 test("top-level bounds are correct when toggling conditionals", assert => {
@@ -1782,17 +1816,26 @@ test("top-level bounds are correct when toggling conditionals", assert => {
 
   render(template, object);
   assertInvariants(result, "initial render");
+  equalTokens(root, "Tom Dale", "initial render");
 
   rerender();
   assertInvariants(result, "after no-op rerender");
+  equalTokens(root, "Tom Dale", "after no-op rerender");
 
   object = { item: yehuda };
   rerender(object);
   assertInvariants(result, "after replacement");
+  equalTokens(root, "Yehuda Katz", "after replacement");
 
   object = { item: null };
   rerender(object);
   assertInvariants(result, "after nulling");
+  equalTokens(root, "<!---->", "after nulling");
+
+  object = { item: tom };
+  rerender(object);
+  assertInvariants(result, "after reset");
+  equalTokens(root, "Tom Dale", "after reset");
 });
 
 test("top-level bounds are correct when changing innerHTML", assert => {
@@ -1802,17 +1845,26 @@ test("top-level bounds are correct when changing innerHTML", assert => {
 
   render(template, object);
   assertInvariants(result, "initial render");
+  equalTokens(root, "<b>inner</b>-<b>before</b>", "initial render");
 
   rerender();
   assertInvariants(result, "after no-op rerender");
+  equalTokens(root, "<b>inner</b>-<b>before</b>", "after no-op rerender");
 
   object = { html: "<p>inner-after</p>" };
   rerender(object);
   assertInvariants(result, "after replacement");
+  equalTokens(root, "<p>inner-after</p>", "after replacement");
 
   object = { html: "" };
   rerender(object);
   assertInvariants(result, "after emptying");
+  equalTokens(root, "", "after emptying");
+
+  object = { html: "<b>inner</b>-<b>before</b>" };
+  rerender(object);
+  assertInvariants(result, "after reset");
+  equalTokens(root, "<b>inner</b>-<b>before</b>", "after reset");
 });
 
 testEachHelper(

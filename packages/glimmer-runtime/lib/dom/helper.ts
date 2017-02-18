@@ -123,7 +123,7 @@ export namespace DOM {
     }
 
     insertHTMLBefore(parent: Element, html: string, reference: Node): Bounds {
-      return insertHTMLBefore(this.uselessElement, parent, reference, html);
+      return insertHTMLBefore(this.document, this.uselessElement, parent, reference, html);
     };
   }
 
@@ -195,7 +195,7 @@ export class DOMChanges {
   }
 
   insertHTMLBefore(_parent: Element, nextSibling: Node, html: string): Bounds {
-    return insertHTMLBefore(this.uselessElement, _parent, nextSibling, html);
+    return insertHTMLBefore(this.document, this.uselessElement, _parent, nextSibling, html);
   }
 
   insertNodeBefore(parent: Simple.Element, node: Simple.Node, reference: Simple.Node): Bounds {
@@ -224,7 +224,15 @@ export class DOMChanges {
   }
 }
 
-export function insertHTMLBefore(this: void, _useless: Simple.HTMLElement, _parent: Simple.Element, _nextSibling: Simple.Node, html: string): Bounds { // tslint:disable-line
+export function insertHTMLBefore(this: void, document: Simple.Document, _useless: Simple.HTMLElement, _parent: Simple.Element, _nextSibling: Simple.Node, html: string): Bounds { // tslint:disable-line
+  if (html === null || html === '') {
+    // debugger;
+    return new ConcreteBounds(_parent, null, null);
+    // let textNode = document.createTextNode('');
+    // _parent.insertBefore(textNode, _nextSibling);
+    // return new ConcreteBounds(_parent, textNode, textNode);
+  }
+
   // TypeScript vendored an old version of the DOM spec where `insertAdjacentHTML`
   // only exists on `HTMLElement` but not on `Element`. We actually work with the
   // newer version of the DOM API here (and monkey-patch this method in `./compat`
@@ -235,10 +243,6 @@ export function insertHTMLBefore(this: void, _useless: Simple.HTMLElement, _pare
 
   let prev = nextSibling ? nextSibling.previousSibling : parent.lastChild;
   let last;
-
-  if (html === null || html === '') {
-    return new ConcreteBounds(parent, null, null);
-  }
 
   if (nextSibling === null) {
     parent.insertAdjacentHTML('beforeEnd', html);
