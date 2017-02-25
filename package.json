@@ -1,7 +1,7 @@
 {
   "name": "glimmer-engine",
   "version": "0.21.2",
-  "description": "Glimmer compiles Handlebars templates into document fragments rather than string buffers",
+  "description": "Glimmer compiles Handlebars templates into document fragments rather than string buffers.",
   "license": "MIT",
   "author": "Tilde, Inc.",
   "main": "dist/node_modules/glimmer/index.js",
