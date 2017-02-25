@@ -4,7 +4,7 @@
   "main": "dist/commonjs/index.js",
   "module": "dist/modules/index.js",
   "jsnext:main": "dist/modules/index.js",
-  "typings": "index.ts",
+  "typings": "dist/modules/index.d.ts",
   "scripts": {
     "build": "node build/build.js",
     "prepublish": "npm run build",
