@@ -1,5 +1,5 @@
 import { TemplateMeta } from '../../wire-format';
-import { precompile } from "../";
+import { precompile } from "..";
 
 QUnit.module('precompile');
 
