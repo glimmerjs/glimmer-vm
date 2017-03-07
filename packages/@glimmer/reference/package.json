@@ -5,7 +5,7 @@
   "main": "dist/commonjs/index.js",
   "jsnext:main": "dist/modules/index.js",
   "module": "dist/modules/index.js",
-  "typings": "index.ts",
+  "typings": "dist/modules/index.d.ts",
   "directories": {
     "test": "tests"
   },

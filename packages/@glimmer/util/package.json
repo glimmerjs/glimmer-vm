@@ -4,7 +4,7 @@
   "description": "Common utilities used in Glimmer",
   "main": "dist/commonjs/index.js",
   "module": "dist/modules/index.js",
-  "typings": "index.ts",
+  "typings": "dist/modules/index.d.ts",
   "directories": {
     "test": "tests"
   },
