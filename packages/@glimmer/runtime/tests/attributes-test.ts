@@ -121,6 +121,26 @@ test("disable updates properly", () => {
   equalTokens(root, '<input disabled />');
 });
 
+[
+  ['<input type="range" max="10" />', '5'],
+  ['<input max="10" type="range" />', '5'],
+  ['<input min="90" type="range" />', '95'],
+  ['<input type="range" min="90" />', '95'],
+  ['<input min="30" max="50" type="range" />', '40'],
+  ['<input type="range" min="30" max="50" />', '40'],
+  ['<input max="50" min="30" type="range" />', '40'],
+  ['<input type="range" max="50" min="30" />', '40'],
+  ['<input type="range" max="50" min="30" value="43" />', '43'],
+].forEach(([input, expectedValue]) => {
+  test(`input ${input} works`, () => {
+    let template = compile(input);
+
+    render(template);
+
+    strictEqual(root.children[0].value, expectedValue);
+  });
+});
+
 test("quoted disable is always disabled", () => {
   let template = compile('<input disabled="{{enabled}}" />');
 

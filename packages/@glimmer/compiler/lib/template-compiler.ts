@@ -71,8 +71,18 @@ export default class TemplateCompiler<T extends TemplateMeta> {
 
   openElement([action]) {
     this.opcode('openElement', action, action.tag, action.blockParams);
+    let typeAttr = null;
     for (let i = 0; i < action.attributes.length; i++) {
-      this.attribute([action.attributes[i]]);
+      let attr = action.attributes[i];
+      if (attr.name.toLowerCase() === 'type') {
+        typeAttr = attr;
+        continue;
+      }
+      this.attribute([attr]);
+    }
+
+    if (typeAttr) {
+      this.attribute([typeAttr]);
     }
 
     for (let i = 0; i < action.modifiers.length; i++) {
