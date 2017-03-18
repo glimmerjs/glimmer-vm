@@ -40,3 +40,4 @@ QUnit.test('returned meta is correct', assert => {
   assert.equal(wire.meta.moduleName, 'my/module-name', 'Template has correct meta');
   assert.equal(wire.meta.metaIsOpaque, 'yes', 'Template has correct meta');
 });
+ 
