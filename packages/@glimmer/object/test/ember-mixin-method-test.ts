@@ -4,7 +4,7 @@ import { Mixin } from '@glimmer/object';
 QUnit.module('Mixin.create - Methods');
 
 QUnit.test('defining simple methods', assert => {
-  let MixinA, obj, props;
+  let MixinA, obj: any, props;
 
   props = {
     publicMethod() { return 'publicMethod'; },
@@ -21,22 +21,22 @@ QUnit.test('defining simple methods', assert => {
 });
 
 QUnit.test('overriding public methods', assert => {
-  let MixinA, MixinB, MixinD, MixinF, obj;
+  let MixinA, MixinB, MixinD, MixinF, obj: any;
 
   MixinA = Mixin.create({
     publicMethod() { return 'A'; }
   });
 
   MixinB = Mixin.create(MixinA, {
-    publicMethod() { return this._super.apply(this, arguments) + 'B'; }
+    publicMethod(this: any) { return this._super.apply(this, arguments) + 'B'; }
   });
 
   MixinD = Mixin.create(MixinA, {
-    publicMethod() { return this._super.apply(this, arguments) + 'D'; }
+    publicMethod(this: any) { return this._super.apply(this, arguments) + 'D'; }
   });
 
   MixinF = Mixin.create({
-    publicMethod() { return this._super.apply(this, arguments) + 'F'; }
+    publicMethod(this: any) { return this._super.apply(this, arguments) + 'F'; }
   });
 
   obj = {};
@@ -64,7 +64,7 @@ QUnit.test('overriding inherited objects', assert => {
   });
 
   let MixinB = Mixin.create({
-    foo() {
+    foo(this: any) {
       this._super.apply(this, arguments);
       cnt++;
     }
@@ -92,15 +92,15 @@ QUnit.test('Including the same mixin more than once will only run once', assert 
   });
 
   let MixinB = Mixin.create(MixinA, {
-    foo() { this._super.apply(this, arguments); }
+    foo(this: any) { this._super.apply(this, arguments); }
   });
 
   let MixinC = Mixin.create(MixinA, {
-    foo() { this._super.apply(this, arguments); }
+    foo(this: any) { this._super.apply(this, arguments); }
   });
 
   let MixinD = Mixin.create(MixinB, MixinC, MixinA, {
-    foo() { this._super.apply(this, arguments); }
+    foo(this: any) { this._super.apply(this, arguments); }
   });
 
   let obj = {};
@@ -115,7 +115,7 @@ QUnit.test('Including the same mixin more than once will only run once', assert 
 
 QUnit.test('_super from a single mixin with no superclass does not error', assert => {
   let MixinA = Mixin.create({
-    foo() {
+    foo(this: any) {
       this._super.apply(this, arguments);
     }
   });
@@ -132,7 +132,7 @@ QUnit.test('_super from a first-of-two mixins with no superclass function does n
   // Use remaining count of calls to ensure it doesn't loop indefinitely.
   let remaining = 3;
   let MixinA = Mixin.create({
-    foo() {
+    foo(this: any) {
       if (remaining-- > 0) {
         this._super.apply(this, arguments);
       }
@@ -140,7 +140,7 @@ QUnit.test('_super from a first-of-two mixins with no superclass function does n
   });
 
   let MixinB = Mixin.create({
-    foo() { this._super.apply(this, arguments); }
+    foo(this: any) { this._super.apply(this, arguments); }
   });
 
   let obj = {};
@@ -184,14 +184,14 @@ QUnit.test('applying several mixins at once with sup already defined causes infi
   });
 
   let MixinB = Mixin.create({
-    foo() {
+    foo(this: any) {
       this._super.apply(this, arguments);
       cnt++;
     }
   });
 
   let MixinC = Mixin.create({
-    foo() {
+    foo(this: any) {
       this._super.apply(this, arguments);
       cnt++;
     }

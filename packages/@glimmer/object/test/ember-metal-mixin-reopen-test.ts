@@ -6,7 +6,7 @@ QUnit.module('Mixin#reopen');
 QUnit.test('using reopen() to add more properties to a simple', assert => {
   let MixinA = Mixin.create({ foo: 'FOO', baz: 'BAZ' });
   MixinA.reopen({ bar: 'BAR', foo: 'FOO2' });
-  let obj = {};
+  let obj: any = {};
   MixinA.apply(obj);
 
   assert.equal(get(obj, 'foo'), 'FOO2', 'mixin() should override');
@@ -16,7 +16,7 @@ QUnit.test('using reopen() to add more properties to a simple', assert => {
 
 QUnit.test('using reopen() and calling _super where there is not a super function does not cause infinite recursion', assert => {
   let Taco = EmberObject.extend({
-    createBreakfast() {
+    createBreakfast(this: any) {
       // There is no original createBreakfast function.
       // Calling the wrapped _super function here
       // used to end in an infinite call loop
@@ -26,7 +26,7 @@ QUnit.test('using reopen() and calling _super where there is not a super functio
   });
 
   Taco.reopen({
-    createBreakfast() {
+    createBreakfast(this: any) {
       return this._super.apply(this, arguments);
     }
   });
