@@ -119,7 +119,6 @@ declare const QUnit: QUnit & {
 
 export type TestFragment = HTMLElement | { fragment: HTMLElement };
 
-
 export function equalTokens(testFragment: string | { innerHTML: string }, testHTML: string | { innerHTML: string }, message: Option<string> = null) {
   let fragTokens = generateTokens(testFragment);
   let htmlTokens = generateTokens(testHTML);
