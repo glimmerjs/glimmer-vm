@@ -101,7 +101,7 @@ export function equalHTML(node: Node | Node[], html: string) {
   equalInnerHTML(div, html);
 }
 
-function generateTokens(divOrHTML: { innerHTML: string } | string): { tokens: Token[], html: string } {
+function generateTokens(divOrHTML: { innerHTML: string } | string | null): { tokens: Token[], html: string | null } {
   let div;
   if (typeof divOrHTML === 'string') {
     div = document.createElement("div");
@@ -110,7 +110,7 @@ function generateTokens(divOrHTML: { innerHTML: string } | string): { tokens: To
     div = divOrHTML;
   }
 
-  return { tokens: tokenize(div.innerHTML), html: div.innerHTML };
+  return { tokens: div ? tokenize(div.innerHTML) : [], html: div && div.innerHTML };
 }
 
 declare const QUnit: QUnit & {
@@ -119,7 +119,7 @@ declare const QUnit: QUnit & {
 
 export type TestFragment = HTMLElement | { fragment: HTMLElement };
 
-export function equalTokens(testFragment: string | { innerHTML: string }, testHTML: string | { innerHTML: string }, message: Option<string> = null) {
+export function equalTokens(testFragment: string | { innerHTML: string } | null, testHTML: string | { innerHTML: string }, message: Option<string> = null) {
   let fragTokens = generateTokens(testFragment);
   let htmlTokens = generateTokens(testHTML);
 

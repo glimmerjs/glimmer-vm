@@ -4,7 +4,7 @@ import { Stack, getAttrNamespace } from "@glimmer/util";
 import { TemplateMeta } from "@glimmer/wire-format";
 import { AST, isLiteral } from '@glimmer/syntax';
 
-export interface CompileOptions<T extends TemplateMeta> {
+export interface CompileOptions<T> {
   meta: T;
 }
 

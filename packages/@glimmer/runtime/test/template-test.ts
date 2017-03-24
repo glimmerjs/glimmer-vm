@@ -1,7 +1,7 @@
 import { TestEnvironment } from "@glimmer/test-helpers";
 import { templateFactory } from "@glimmer/runtime";
 import { precompile } from "@glimmer/compiler";
-import { SerializedTemplateWithLazyBlock } from "@glimmer/wire-format";
+import { SerializedTemplateWithLazyBlock, TemplateMeta } from "@glimmer/wire-format";
 
 let env: TestEnvironment;
 
@@ -15,8 +15,8 @@ interface OwnerMeta {
   owner: {};
 }
 
-let serializedTemplate: SerializedTemplateWithLazyBlock<TestMeta>;
-let serializedTemplateNoId: SerializedTemplateWithLazyBlock<TestMeta>;
+let serializedTemplate: SerializedTemplateWithLazyBlock<TestMeta & TemplateMeta>;
+let serializedTemplateNoId: SerializedTemplateWithLazyBlock<TestMeta & TemplateMeta>;
 
 QUnit.module("templateFactory", {
   beforeEach() {

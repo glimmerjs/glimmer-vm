@@ -7,7 +7,7 @@ export interface TemplateIdFn {
   (src: string): Option<string>;
 }
 
-export interface PrecompileOptions<T extends TemplateMeta> extends CompileOptions<T> {
+export interface PrecompileOptions<T> extends CompileOptions<T> {
   id?: TemplateIdFn;
 }
 
@@ -52,7 +52,7 @@ const defaultId: () => TemplateIdFn = (() => {
  * @param {string} string a Glimmer template string
  * @return {string} a template javascript string
  */
-export function precompile<T extends TemplateMeta>(string: string, options?: PrecompileOptions<T>): TemplateJavascript;
+export function precompile<T>(string: string, options?: PrecompileOptions<T>): TemplateJavascript;
 export function precompile(string: string, options?: PrecompileOptions<TemplateMeta>): TemplateJavascript {
   let opts = options || {
     id: defaultId(),
