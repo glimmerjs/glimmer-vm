@@ -97,22 +97,22 @@ function top<T>(stack: T[]): T {
   return stack[stack.length - 1];
 }
 
-let Components, Glimmer, Curly, Dynamic;
+let Components, Glimmer: any, Curly: any, Dynamic: any;
 
 nestedModule("Components", hooks => {
   hooks.beforeEach(() => env = new TestEnvironment());
 
   Components = top(QUnit.config['moduleStack']);
 
-  nestedModule("Glimmer", hooks => {
+  nestedModule("Glimmer", () => {
     Glimmer = top(QUnit.config['moduleStack']);
   });
 
-  nestedModule("Curly", hooks => {
+  nestedModule("Curly", () => {
     Curly = top(QUnit.config['moduleStack']);
   });
 
-  nestedModule("Component Helper", hooks => {
+  nestedModule("Component Helper", () => {
     Dynamic = top(QUnit.config['moduleStack']);
   });
 
@@ -136,7 +136,8 @@ export function assertAppended(content: string) {
 }
 
 function assertText(expected: string) {
-  let rawText = document.querySelector('#qunit-fixture').innerText;
+  let el = document.querySelector('#qunit-fixture');
+  let rawText = el && el.textContent || "";
   let text = rawText.split(/[\r\n]/g).map((part) => {
                let p = part.replace(/\s+/g, ' ');
                return p.trim();
@@ -158,31 +159,11 @@ function assertFired(component: EmberishGlimmerComponent, name: string, count=1)
   }
 }
 
-function assertComponentElement(tagName: string, attrs: Object, contents: string);
-function assertComponentElement(tagName: string, attrs: Object);
-function assertComponentElement(tagName: string, contents: string);
-function assertComponentElement(tagName: string);
-
-function assertComponentElement(...args) {
-  let tagName, attrs, contents;
-  if (args.length === 2) {
-    if (typeof args[1] === 'string') [tagName, attrs, contents] = [args[0], {}, args[1]];
-    else [tagName, attrs, contents] = [args[0], args[1], null];
-  } else if (args.length === 1) {
-    [tagName, attrs, contents] = [args[0], {}, null];
-  } else {
-    [tagName, attrs, contents] = args;
-  }
-
-  equalsElement(view.element, tagName, attrs, contents);
-}
-
-function assertEmberishElement(tagName: string, attrs: Object, contents: string);
-function assertEmberishElement(tagName: string, attrs: Object);
-function assertEmberishElement(tagName: string, contents: string);
-function assertEmberishElement(tagName: string);
-
-function assertEmberishElement(...args) {
+function assertEmberishElement(tagName: string, attrs: Object, contents: string): void;
+function assertEmberishElement(tagName: string, attrs: Object): void;
+function assertEmberishElement(tagName: string, contents: string): void;
+function assertEmberishElement(tagName: string): void;
+function assertEmberishElement(...args: any[]) {
   let tagName, attrs, contents;
   if (args.length === 2) {
     if (typeof args[1] === 'string') [tagName, attrs, contents] = [args[0], {}, args[1]];
@@ -197,12 +178,11 @@ function assertEmberishElement(...args) {
   equalsElement(view.element, tagName, fullAttrs, contents);
 }
 
-export function assertElementIsEmberishElement(element: Element, tagName: string, attrs: Object, contents: string);
-export function assertElementIsEmberishElement(element: Element, tagName: string, attrs: Object);
-export function assertElementIsEmberishElement(element: Element, tagName: string, contents: string);
-export function assertElementIsEmberishElement(element: Element, tagName: string);
-
-export function assertElementIsEmberishElement(element: Element, ...args) {
+export function assertElementIsEmberishElement(element: Element, tagName: string, attrs: Object, contents: string): void;
+export function assertElementIsEmberishElement(element: Element, tagName: string, attrs: Object): void;
+export function assertElementIsEmberishElement(element: Element, tagName: string, contents: string): void;
+export function assertElementIsEmberishElement(element: Element, tagName: string): void;
+export function assertElementIsEmberishElement(element: Element, ...args: any[]): void {
   let tagName, attrs, contents;
   if (args.length === 2) {
     if (typeof args[1] === 'string') [tagName, attrs, contents] = [args[0], {}, args[1]];

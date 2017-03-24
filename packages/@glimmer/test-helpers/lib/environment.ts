@@ -247,6 +247,8 @@ export class EmberishCurlyComponent extends GlimmerObject {
     return super.create(args) as EmberishCurlyComponent;
   }
 
+  static positionalParams: Option<string | string[]>;
+
   recompute() {
     this.dirtinessTag.inner.dirty();
   }

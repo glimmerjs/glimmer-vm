@@ -1,48 +1,45 @@
-import { Simple, Template, RenderResult, readDOMAttr } from "../index";
+import { Simple, Template, IteratorResult, RenderResult, readDOMAttr } from "../index";
 import { TestEnvironment, TestDynamicScope, equalTokens } from "@glimmer/test-helpers";
-import { IteratorResult } from '@glimmer/runtime';
-
-import { PathReference } from "@glimmer/reference";
 import { UpdatableReference } from "@glimmer/object-reference";
-import { Opaque } from "@glimmer/util";
 
 const { assert, test } = QUnit;
 
-let root: Simple.Element;
+let root: Simple.Element & { innerHTML: string };
 let env: TestEnvironment;
 let self: UpdatableReference<any>;
-let result: IteratorResult<RenderResult>;
+let result: RenderResult;
 
 function compile(template: string) {
   return env.compile(template);
 }
 
 function rootElement() {
-  return env.getDOM().createElement('div');
+  // TODO equalTokens depends on innerHTML
+  return <Simple.Element & { innerHTML: string}>env.getDOM().createElement('div');
 }
 
 function commonSetup() {
-  env = new TestEnvironment(); // TODO: Support SimpleDOM
+  env = new TestEnvironment();
+  // TODO: Support SimpleDOM
   root = rootElement();
   root.setAttribute('debug-root', 'true');
 }
 
-function render<T>(template: Template<T>, context = {}, view: PathReference<Opaque> = null) {
+function render<T>(template: Template<T>, context = {}) {
   self = new UpdatableReference(context);
   env.begin();
   let templateIterator = template.render(self, root, new TestDynamicScope());
-
+  let iteratorResult: IteratorResult<RenderResult>;
   do {
-    result = templateIterator.next();
-  } while (!result.done);
-
-  result = result.value;
+    iteratorResult = templateIterator.next();
+  } while (!iteratorResult.done);
+  result = iteratorResult.value;
   env.commit();
   assertInvariants(result);
   return result;
 }
 
-function assertInvariants(result, msg?) {
+function assertInvariants(result: RenderResult, msg?: string) {
   assert.strictEqual(result.firstNode(), root.firstChild, `The firstNode of the result is the same as the root's firstChild${msg ? ': ' + msg : ''}`);
   assert.strictEqual(result.lastNode(), root.lastChild, `The lastNode of the result is the same as the root's lastChild${msg ? ': ' + msg : ''}`);
 }
@@ -55,7 +52,7 @@ function rerender(context: any = null) {
 }
 
 // used to obtain the resulting property value after assignment
-function nativeValueForElementProperty(tagName, property, value) {
+function nativeValueForElementProperty<T extends keyof HTMLElementTagNameMap, K extends keyof HTMLElementTagNameMap[T], V extends HTMLElementTagNameMap[T][K]>(tagName: T, property: K, value: V) {
   let element = document.createElement(tagName);
   element[property] = value;
   return element[property];
@@ -357,7 +354,7 @@ test("div[href] is not not marked as unsafe", () => {
   equalTokens(root, '<div href="javascript:foo()"></div>');
 });
 
-test("triple curlies in attribute position", assert => {
+test("triple curlies in attribute position", () => {
 
   let template = compile('<div data-bar="bar" data-foo={{{rawString}}}>Hello</div>');
 
