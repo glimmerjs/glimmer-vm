@@ -101,7 +101,7 @@ export function equalHTML(node: Node | Node[], html: string) {
   equalInnerHTML(div, html);
 }
 
-function generateTokens(divOrHTML: { innerHTML: string } | string | null): { tokens: Token[], html: string | null } {
+function generateTokens(divOrHTML: { innerHTML: string } | string | null | undefined): { tokens: Token[], html: string | null | undefined } {
   let div;
   if (typeof divOrHTML === 'string') {
     div = document.createElement("div");
@@ -119,7 +119,7 @@ declare const QUnit: QUnit & {
 
 export type TestFragment = HTMLElement | { fragment: HTMLElement };
 
-export function equalTokens(testFragment: string | { innerHTML: string } | null, testHTML: string | { innerHTML: string }, message: Option<string> = null) {
+export function equalTokens(testFragment: string | { innerHTML: string } | null | undefined, testHTML: string | { innerHTML: string } | null | undefined, message: Option<string> = null) {
   let fragTokens = generateTokens(testFragment);
   let htmlTokens = generateTokens(testHTML);
 

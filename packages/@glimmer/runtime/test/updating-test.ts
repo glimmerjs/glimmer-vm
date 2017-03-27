@@ -26,8 +26,8 @@ let env: TestEnvironment;
 let self: UpdatableReference<any>;
 let result: RenderResult;
 
-function safeGet(obj: any | null | undefined, ...keys: string[]): any | null | undefined {
-  let value = obj;
+function safeGet(obj: Object | undefined | null, ...keys: string[]): Object | undefined | null {
+  let value: {} | null | undefined = obj;
   if (!value) return value;
   for (let i = 0; i < keys.length; i++) {
     let key = keys[i];
@@ -940,6 +940,9 @@ module("[glimmer-runtime] Updating", hooks => {
     assert.strictEqual(didCreate, 1, 'didCreate: after no-op re-render');
     assert.strictEqual(didDestroy, 0, 'didDestroy: after no-op re-render');
 
+    assert.ok(reference, 'rendered');
+    if (!reference) return;
+
     reference.update(falsyValue);
     rerender();
 
@@ -959,45 +962,47 @@ module("[glimmer-runtime] Updating", hooks => {
     let object = { value: 'hello world' };
     let template = compile('<div><p>{{this.value}}</p></div>');
     render(template, object);
-    let valueNode = root.firstChild.firstChild.firstChild;
+    let getValueNode = () => safeGet(root, 'firstChild', 'firstChild', 'firstChild');
+    let valueNode = getValueNode();
 
     equalTokens(root, '<div><p>hello world</p></div>', "Initial render");
 
     rerender();
 
     equalTokens(root, '<div><p>hello world</p></div>', "no change");
-    assert.strictEqual(root.firstChild.firstChild.firstChild, valueNode, "The text node was not blown away");
+    assert.strictEqual(getValueNode(), valueNode, "The text node was not blown away");
 
     object.value = 'goodbye world';
     rerender();
 
     equalTokens(root, '<div><p>goodbye world</p></div>', "After updating and dirtying");
-    assert.strictEqual(root.firstChild.firstChild.firstChild, valueNode, "The text node was not blown away");
+    assert.strictEqual(getValueNode(), valueNode, "The text node was not blown away");
   });
 
   test("a simple implementation of a dirtying rerender", assert => {
     let object = { condition: true, value: 'hello world' };
     let template = compile('<div>{{#if condition}}<p>{{value}}</p>{{else}}<p>Nothing</p>{{/if}}</div>');
     render(template, object);
-    let valueNode = root.firstChild.firstChild.firstChild;
+    let getValueNode = () => safeGet(root, 'firstChild', 'firstChild', 'firstChild');
+    let valueNode = getValueNode();
 
     equalTokens(root, '<div><p>hello world</p></div>', "Initial render");
 
     rerender();
 
     equalTokens(root, '<div><p>hello world</p></div>', "After dirtying but not updating");
-    assert.strictEqual(root.firstChild.firstChild.firstChild, valueNode, "The text node was not blown away");
+    assert.strictEqual(getValueNode(), valueNode, "The text node was not blown away");
 
     // Even though the #if was stable, a dirty child node is updated
     object.value = 'goodbye world';
     rerender();
     equalTokens(root, '<div><p>goodbye world</p></div>', "After updating and dirtying");
-    assert.strictEqual(root.firstChild.firstChild.firstChild, valueNode, "The text node was not blown away");
+    assert.strictEqual(getValueNode(), valueNode, "The text node was not blown away");
 
     object.condition = false;
     rerender();
     equalTokens(root, '<div><p>Nothing</p></div>', "And then dirtying");
-    assert.notStrictEqual(root.firstChild.firstChild.firstChild, valueNode, "The text node was not blown away");
+    assert.notStrictEqual(getValueNode(), valueNode, "The text node was not blown away");
   });
 
   test('The if helper should consider an empty array falsy', function() {
@@ -1389,10 +1394,10 @@ module("[glimmer-runtime] Updating", hooks => {
 
     equalTokens(root, 'hello world');
     let firstNode = result.firstNode();
-    assert.equal(firstNode.nodeType, 3, "the first node of the helper should be a text node");
-    assert.equal(firstNode.nodeValue, "hello world", "its content should be hello world");
+    assert.equal(safeGet(firstNode, 'nodeType'), 3, "the first node of the helper should be a text node");
+    assert.equal(safeGet(firstNode, 'nodeValue'), "hello world", "its content should be hello world");
 
-    assert.strictEqual(firstNode.nextSibling, null, "there should only be one nodes");
+    assert.strictEqual(safeGet(firstNode, 'nextSibling'), null, "there should only be one nodes");
   });
 
   test("clean content doesn't get blown away", assert => {
@@ -1400,8 +1405,8 @@ module("[glimmer-runtime] Updating", hooks => {
     let object = { value: "hello" };
     render(template, object);
 
-    let textNode = result.firstNode().firstChild;
-    assert.equal(textNode.nodeValue, "hello");
+    let textNode = safeGet(result.firstNode(), 'firstChild');
+    assert.equal(safeGet(textNode, 'nodeValue'), "hello");
 
     object.value = "goodbye";
     rerender();
@@ -1411,21 +1416,22 @@ module("[glimmer-runtime] Updating", hooks => {
     object.value = "hello";
     rerender();
 
-    textNode = root.firstChild.firstChild;
-    assert.equal(textNode.nodeValue, "hello");
+    textNode = safeGet(root, 'firstChild', 'firstChild');
+    assert.equal(safeGet(textNode, 'nodeValue'), "hello");
   });
 
   test("helper calls follow the normal dirtying rules", assert => {
     env.registerHelper('capitalize', function(params) {
-      return params[0].toUpperCase();
+      let p = `${params[0]}`;
+      return p.toUpperCase();
     });
 
     let template = compile("<div>{{capitalize value}}</div>");
     let object = { value: "hello" };
     render(template, object);
 
-    let textNode = result.firstNode().firstChild;
-    assert.equal(textNode.nodeValue, "HELLO");
+    let textNode = safeGet(result.firstNode(), 'firstChild');
+    assert.equal(safeGet(textNode, 'nodeValue'), "HELLO");
 
     object.value = "goodbye";
     rerender();
@@ -1440,11 +1446,11 @@ module("[glimmer-runtime] Updating", hooks => {
     object.value = "GoOdByE";
     rerender();
 
-    textNode = root.firstChild.firstChild;
-    assert.equal(textNode.nodeValue, "GOODBYE");
+    textNode = safeGet(root, 'firstChild', 'firstChild');
+    assert.equal(safeGet(textNode, 'nodeValue'), "GOODBYE");
   });
 
-  test("class attribute follow the normal dirtying rules", assert => {
+  test("class attribute follow the normal dirtying rules", () => {
     let template = compile("<div class='{{value}}'>hello</div>");
     let object = { value: "world" };
 
@@ -1467,9 +1473,9 @@ module("[glimmer-runtime] Updating", hooks => {
     equalTokens(root, "<div class='world'>hello</div>", "Revalidating after dirtying");
   });
 
-  test("class attribute w/ concat follow the normal dirtying rules", assert => {
+  test("class attribute w/ concat follow the normal dirtying rules", () => {
     let template = compile("<div class='hello {{value}}'>hello</div>");
-    let object = { value: "world" };
+    let object = { value: <string | null>"world" };
     render(template, object);
 
     equalTokens(root, "<div class='hello world'>hello</div>");
@@ -1494,7 +1500,7 @@ module("[glimmer-runtime] Updating", hooks => {
     equalTokens(root, "<div class='hello world'>hello</div>");
   });
 
-  test("class attribute is removed if the binding becomes null or undefined", assert => {
+  test("class attribute is removed if the binding becomes null or undefined", () => {
     let template = compile("<div class={{value}}>hello</div>");
     let object: { value: any } = { value: "foo" };
     render(template, object);
@@ -1526,9 +1532,9 @@ module("[glimmer-runtime] Updating", hooks => {
     equalTokens(root, "<div class='foo'>hello</div>");
   });
 
-  test("attribute nodes follow the normal dirtying rules", assert => {
+  test("attribute nodes follow the normal dirtying rules", () => {
     let template = compile("<div data-value='{{value}}'>hello</div>");
-    let object = { value: "world" };
+    let object = { value: <string | null>"world" };
 
     render(template, object);
 
@@ -1554,9 +1560,9 @@ module("[glimmer-runtime] Updating", hooks => {
     equalTokens(root, "<div data-value='world'>hello</div>", "Revalidating after dirtying");
   });
 
-  test("attribute nodes w/ concat follow the normal dirtying rules", assert => {
+  test("attribute nodes w/ concat follow the normal dirtying rules", () => {
     let template = compile("<div data-value='hello {{value}}'>hello</div>");
-    let object = { value: "world" };
+    let object = { value: <string | null>"world" };
     render(template, object);
 
     equalTokens(root, "<div data-value='hello world'>hello</div>");
@@ -1581,7 +1587,7 @@ module("[glimmer-runtime] Updating", hooks => {
     equalTokens(root, "<div data-value='hello world'>hello</div>");
   });
 
-  test("attributes values are normalized correctly", assert => {
+  test("attributes values are normalized correctly", () => {
     let template = compile("<div data-value={{value}}>hello</div>");
     let object = { value: { toString() { return "world"; } } };
 
@@ -1618,7 +1624,7 @@ module("[glimmer-runtime] Updating", hooks => {
   });
 
   if (serializesNSAttributesCorrectly) {
-  test("namespaced attribute nodes follow the normal dirtying rules", assert => {
+  test("namespaced attribute nodes follow the normal dirtying rules", () => {
     let template = compile("<div xml:lang='{{lang}}'>hello</div>");
     let object = { lang: "en-us" };
 
@@ -1636,9 +1642,9 @@ module("[glimmer-runtime] Updating", hooks => {
     equalTokens(root, "<div xml:lang='en-uk'>hello</div>", "Revalidating after dirtying");
   });
 
-  test("namespaced attribute nodes w/ concat follow the normal dirtying rules", assert => {
+  test("namespaced attribute nodes w/ concat follow the normal dirtying rules", () => {
     let template = compile("<div xml:lang='en-{{locale}}'>hello</div>");
-    let object = { locale: "us" };
+    let object = { locale: <string | null>"us" };
 
     render(template, object);
 
@@ -1665,7 +1671,7 @@ module("[glimmer-runtime] Updating", hooks => {
   });
   }
 
-  test("non-standard namespaced attribute nodes follow the normal dirtying rules", assert => {
+  test("non-standard namespaced attribute nodes follow the normal dirtying rules", () => {
     let template = compile("<div epub:type='{{type}}'>hello</div>");
     let object = { type: "dedication" };
 
@@ -1683,9 +1689,9 @@ module("[glimmer-runtime] Updating", hooks => {
     equalTokens(root, "<div epub:type='backmatter'>hello</div>", "Revalidating after dirtying");
   });
 
-  test("non-standard namespaced attribute nodes w/ concat follow the normal dirtying rules", assert => {
+  test("non-standard namespaced attribute nodes w/ concat follow the normal dirtying rules", () => {
     let template = compile("<div epub:type='dedication {{type}}'>hello</div>");
-    let object = { type: "backmatter" };
+    let object = { type: <string | null>"backmatter" };
 
     render(template, object);
 
@@ -1712,7 +1718,7 @@ module("[glimmer-runtime] Updating", hooks => {
   });
 
   test("<option selected> is normalized and updated correctly", assert => {
-    function assertSelected(expectedSelected, label) {
+    function assertSelected(expectedSelected: string[], label: string) {
       let options = root.querySelectorAll('option');
       let actualSelected = [];
       for (let i = 0; i < options.length; i++) {
@@ -1738,8 +1744,8 @@ module("[glimmer-runtime] Updating", hooks => {
     let object = {
       one: true,
       two: <any>'is-true',
-      three: undefined,
-      four: null,
+      three: <boolean | null | undefined>undefined,
+      four: <string | null | undefined>null,
       five: false
     };
 
@@ -1812,7 +1818,7 @@ module("[glimmer-runtime] Updating", hooks => {
 
     let tom = { name: "Tom Dale" };
     let yehuda = { name: "Yehuda Katz" };
-    let object = { item: tom };
+    let object = { item: <null | typeof tom>tom };
 
     render(template, object);
     assertInvariants(assert, result, "initial render");
@@ -1861,7 +1867,7 @@ module("[glimmer-runtime] Updating", hooks => {
   );
 
   test('The each helper with inverse', assert => {
-    let object = { list: [] };
+    let object = { list: <Array<{ name: string, class: string }>>[] };
     let template = compile(`<ul>{{#each list key='name' as |item|}}<li class="{{item.class}}">{{item.name}}</li>{{else}}<li class="none">none</li>{{/each}}</ul>`);
 
     render(template, object);
@@ -1884,7 +1890,7 @@ module("[glimmer-runtime] Updating", hooks => {
 
     equalTokens(root, '<ul><li class="none">none</li></ul>');
 
-    function assertStableNodes(className, message) {
+    function assertStableNodes(className: string, message: string) {
       assert.strictEqual(getNodeByClassName(className), itemNode, "The item node has not changed " + message);
       assert.strictEqual(getFirstChildOfNode(className), textNode, "The text node has not changed " + message);
     }
@@ -2162,10 +2168,10 @@ module("[glimmer-runtime] Updating", hooks => {
     object = { list: [] };
 
     rerender(object);
-    assert.strictEqual(root.firstChild.firstChild.nodeType, 8, "there are no li's after removing the remaining entry");
+    assert.strictEqual(safeGet(root, 'firstChild', 'firstChild', 'nodeType'), 8, "there are no li's after removing the remaining entry");
     equalTokens(root, "<ul><!----></ul>", "After removing the remaining entries");
 
-    function assertStableNodes(className, index, message) {
+    function assertStableNodes(className: string, index: number, message: string) {
       assert.strictEqual(getNodeByClassName(className), itemNode, "The item node has not changed " + message);
       assert.strictEqual(getNodeByClassName(`index-${index}`), indexNode, "The index node has not changed " + message);
       assert.strictEqual(getFirstChildOfNode(className), nameNode, "The name node has not changed " + message);
@@ -2174,7 +2180,7 @@ module("[glimmer-runtime] Updating", hooks => {
 
   // TODO: port https://github.com/emberjs/ember.js/pull/14082
 
-  function testEachHelper(testName, templateSource, testMethod=QUnit.test) {
+  function testEachHelper(testName: string, templateSource: string, testMethod=QUnit.test) {
     testMethod(testName, assert => {
       let template = compile(templateSource);
       let tom = { key: "1", name: "Tom Dale", class: "tomdale" };
@@ -2297,7 +2303,7 @@ module("[glimmer-runtime] Updating", hooks => {
       // assert.strictEqual(root.firstChild.firstChild.nodeType, 8, "there are no li's after removing the remaining entry");
       // equalTokens(root, "<ul><!----></ul>", "After removing the remaining entries");
 
-      function assertStableNodes(className, message) {
+      function assertStableNodes(className: string, message: string) {
         assert.strictEqual(getNodeByClassName(className), itemNode, "The item node has not changed " + message);
         assert.strictEqual(getFirstChildOfNode(className), nameNode, "The name node has not changed " + message);
       }
@@ -2310,20 +2316,20 @@ QUnit.module("Updating SVG", hooks => {
 
   test("HTML namespace from root element is continued to child templates", assert => {
     let object = { hasCircle: true };
-    let getSvg = () => root.firstChild;
-    let getCircle = () => getSvg().firstChild;
+    let getSvg = () => safeGet(root, 'firstChild');
+    let getCircle = () => safeGet(getSvg(), 'firstChild');
     let template = compile('<svg>{{#if hasCircle}}<circle />{{/if}}</svg>');
     render(template, object);
 
     equalTokens(root, "<svg><circle /></svg>");
-    assert.equal(getSvg().namespaceURI, SVG_NAMESPACE);
-    assert.equal(getCircle().namespaceURI, SVG_NAMESPACE);
+    assert.equal(safeGet(getSvg(), 'namespaceURI'), SVG_NAMESPACE);
+    assert.equal(safeGet(getCircle(), 'namespaceURI'), SVG_NAMESPACE);
 
     rerender();
 
     equalTokens(root, "<svg><circle /></svg>");
-    assert.equal(getSvg().namespaceURI, SVG_NAMESPACE);
-    assert.equal(getCircle().namespaceURI, SVG_NAMESPACE);
+    assert.equal(safeGet(getSvg(), 'namespaceURI'), SVG_NAMESPACE);
+    assert.equal(safeGet(getCircle(), 'namespaceURI'), SVG_NAMESPACE);
 
     object.hasCircle = false;
     rerender();
@@ -2333,14 +2339,14 @@ QUnit.module("Updating SVG", hooks => {
     rerender({ hasCircle: true });
 
     equalTokens(root, "<svg><circle /></svg>");
-    assert.equal(getSvg().namespaceURI, SVG_NAMESPACE);
-    assert.equal(getCircle().namespaceURI, SVG_NAMESPACE);
+    assert.equal(safeGet(getSvg(), 'namespaceURI'), SVG_NAMESPACE);
+    assert.equal(safeGet(getCircle(), 'namespaceURI'), SVG_NAMESPACE);
   });
 
   test("root <foreignObject> tag is SVG namespaced", assert => {
     let object = { hasForeignObject: true };
     let getForeignObject = () => root.firstChild;
-    let getDiv = () => getForeignObject().firstChild;
+    let getDiv = () => safeGet(getForeignObject(), 'firstChild');
     let template = compile('{{#if hasForeignObject}}<foreignObject><div></div></foreignObject>{{/if}}');
     // Add an SVG node on the root that can be rendered into
     root.appendChild(env.getDOM().createElement('svg') as Element);
@@ -2348,8 +2354,8 @@ QUnit.module("Updating SVG", hooks => {
 
     render(template, object);
 
-    equalTokens(root.parentNode, "<svg><foreignObject><div></div></foreignObject></svg>");
-    assert.equal(getForeignObject().namespaceURI, SVG_NAMESPACE);
+    equalTokens(safeGet(root, 'parentNode', 'innerHTML'), "<svg><foreignObject><div></div></foreignObject></svg>");
+    assert.equal(safeGet(getForeignObject(), 'namespaceURI'), SVG_NAMESPACE);
     assert.equal(getDiv().namespaceURI, XHTML_NAMESPACE);
 
     rerender();
