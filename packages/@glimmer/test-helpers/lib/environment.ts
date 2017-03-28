@@ -64,6 +64,7 @@ import {
   Destroyable,
   Dict,
   Opaque,
+  FIXME,
   assign,
   dict,
   EMPTY_ARRAY
@@ -246,6 +247,8 @@ export class EmberishCurlyComponent extends GlimmerObject {
   static create(args: { attrs: Attrs }): EmberishCurlyComponent {
     return super.create(args) as EmberishCurlyComponent;
   }
+
+  static positionalParams: Option<string | string[]>;
 
   recompute() {
     this.dirtinessTag.inner.dirty();
@@ -775,12 +778,12 @@ export class TestEnvironment extends Environment {
     return this.registerComponent(name, definition);
   }
 
-  registerEmberishCurlyComponent(name: string, Component: EmberishCurlyComponentFactory, layout: string): ComponentDefinition<EmberishCurlyComponentDefinition> {
+  registerEmberishCurlyComponent(name: string, Component: EmberishCurlyComponentFactory | null, layout: string | null): ComponentDefinition<EmberishCurlyComponentDefinition> {
     let definition = new EmberishCurlyComponentDefinition(name, EMBERISH_CURLY_COMPONENT_MANAGER, Component, layout);
     return this.registerComponent(name, definition);
   }
 
-  registerEmberishGlimmerComponent(name: string, Component: EmberishGlimmerComponentFactory, layout: string): ComponentDefinition<EmberishGlimmerComponentDefinition> {
+  registerEmberishGlimmerComponent(name: string, Component: EmberishGlimmerComponentFactory | null, layout: string): ComponentDefinition<EmberishGlimmerComponentDefinition> {
     let definition = new EmberishGlimmerComponentDefinition(name, EMBERISH_GLIMMER_COMPONENT_MANAGER, Component, layout);
     return this.registerComponent(name, definition);
   }
@@ -933,9 +936,9 @@ export interface BasicComponentFactory {
 }
 
 export abstract class GenericComponentDefinition<T> extends ComponentDefinition<T> {
-  public layoutString: string;
+  public layoutString: string | null;
 
-  constructor(name: string, manager: ComponentManager<T>, ComponentClass: any, layout: string) {
+  constructor(name: string, manager: ComponentManager<T>, ComponentClass: any, layout: string | null) {
     super(name, manager, ComponentClass);
     this.layoutString = layout;
   }
@@ -997,9 +1000,9 @@ function EmberID(vm: VM): PathReference<string> {
 class EmberishCurlyComponentLayoutCompiler extends GenericComponentLayoutCompiler {
   compile(builder: ComponentLayoutBuilder) {
     builder.wrapLayout(this.compileLayout(builder.env));
-    builder.tag.dynamic(EmberTagName);
+    (<FIXME<any, 'commented out of interface'>>builder.tag).dynamic(EmberTagName);
     builder.attrs.static('class', 'ember-view');
-    builder.attrs.dynamic('id', EmberID);
+    (<FIXME<any, 'commented out of interface'>>builder.attrs).dynamic('id', EmberID);
   }
 }
 
@@ -1007,7 +1010,7 @@ class EmberishGlimmerComponentLayoutCompiler extends GenericComponentLayoutCompi
   compile(builder: ComponentLayoutBuilder) {
     builder.fromLayout(this.compileLayout(builder.env));
     builder.attrs.static('class', 'ember-view');
-    builder.attrs.dynamic('id', EmberID);
+    (<FIXME<any, 'commented out of interface'>>builder.attrs).dynamic('id', EmberID);
   }
 }
 
@@ -1133,10 +1136,11 @@ function hashToArgs(hash: Option<WireFormat.Core.Hash>): Option<WireFormat.Core.
   return [names, hash[1]];
 }
 
-export function equalsElement(element: Element, tagName: string, attributes: Object, content: string) {
+export function equalsElement(element: Element | null, tagName: string, attributes: Object, content: string) {
+  let elementTagName = element && element.tagName.toLowerCase();
   QUnit.assert.pushResult({
-    result: element.tagName === tagName.toUpperCase(),
-    actual: element.tagName.toLowerCase(),
+    result: elementTagName === tagName.toLowerCase(),
+    actual: elementTagName,
     expected: tagName,
     message: `expect tagName to be ${tagName}`
   });
@@ -1151,17 +1155,20 @@ export function equalsElement(element: Element, tagName: string, attributes: Obj
     let matcher: Matcher = typeof expected === 'object' && MATCHER in expected ? expected : equalsAttr(expected);
     expectedAttrs[prop] = matcher;
 
+    let elProp = element && element.getAttribute(prop);
     QUnit.assert.pushResult({
-      result: expectedAttrs[prop].match(element.getAttribute(prop)),
-      actual: matcher.fail(element.getAttribute(prop)),
-      expected: matcher.fail(element.getAttribute(prop)),
+      result: expectedAttrs[prop].match(elProp),
+      actual: matcher.fail(elProp),
+      expected: matcher.fail(elProp),
       message: `Expected element's ${prop} attribute ${matcher.expected()}`
     });
   }
 
   let actualAttributes = {};
-  for (let i = 0, l = element.attributes.length; i < l; i++) {
-    actualAttributes[element.attributes[i].name] = element.attributes[i].value;
+  if (element) {
+    for (let i = 0, l = element.attributes.length; i < l; i++) {
+      actualAttributes[element.attributes[i].name] = element.attributes[i].value;
+    }
   }
 
   if (!(element instanceof HTMLElement)) {

@@ -16,7 +16,7 @@ QUnit.test('moduleName option is passed into meta', assert => {
   let moduleName = 'It ain\'t hard to tell';
   let template = compile('Hi, {{name}}!', {
     env,
-    meta: {
+    meta: <TemplateMeta>{
       moduleName
     }
   });

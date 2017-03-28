@@ -91,9 +91,9 @@ let clientId = 0;
  * that handles lazy parsing the template and to create per env singletons
  * of the template.
  */
-export default function templateFactory<T extends TemplateMeta>(serializedTemplate: SerializedTemplateWithLazyBlock<T>): TemplateFactory<T, T>;
-export default function templateFactory<T extends TemplateMeta, U>(serializedTemplate: SerializedTemplateWithLazyBlock<T>): TemplateFactory<T, U>;
-export default function templateFactory({ id: templateId, meta, block }: SerializedTemplateWithLazyBlock<any>): TemplateFactory<{}, {}> {
+export default function templateFactory<T>(serializedTemplate: SerializedTemplateWithLazyBlock<T & TemplateMeta>): TemplateFactory<T, T>;
+export default function templateFactory<T, U>(serializedTemplate: SerializedTemplateWithLazyBlock<T & TemplateMeta>): TemplateFactory<T, U>;
+export default function templateFactory({ id: templateId, meta, block }: SerializedTemplateWithLazyBlock<any>) {
   let parsedBlock: SerializedTemplateBlock;
   let id = templateId || `client-${clientId++}`;
   let create = (env: Environment, envMeta?: {}) => {

@@ -75,9 +75,9 @@ export class Parser {
 
   }
 
-  acceptNode(node: hbs.AST.Program): Program;
-  acceptNode<U extends AST.Node>(node: hbs.AST.Node): U;
-  acceptNode(node: hbs.AST.Node): any {
+  acceptNode(node: AST.Program): Program;
+  acceptNode<U extends AST.Node>(node: AST.Node): U;
+  acceptNode(node: AST.Node): any {
     return this[node.type](node);
   }
 
@@ -85,7 +85,7 @@ export class Parser {
     return this.elementStack[this.elementStack.length - 1];
   }
 
-  sourceForNode(node: hbs.AST.Node, endNode?: { loc: hbs.AST.SourceLocation }): string {
+  sourceForNode(node: AST.Node, endNode?: { loc: AST.SourceLocation }): string {
     let firstLine = node.loc.start.line - 1;
     let currentLine = firstLine - 1;
     let firstColumn = node.loc.start.column;

@@ -1,6 +1,6 @@
 import EmberObject from '@glimmer/object';
 
-function get(obj, key) {
+function get<T, U extends keyof T>(obj: T, key: U) {
   return obj[key];
 }
 
@@ -24,7 +24,7 @@ QUnit.test('class properties inherited by subclasses', assert => {
     bar: 'BAR'
   });
 
-  let SubSub = Subclass.extend();
+  let SubSub: any = Subclass.extend();
 
   assert.equal(SubSub['foo'](), 'FOO', 'Adds method');
   assert.equal(get(SubSub, 'bar'), 'BAR', 'Adds property');

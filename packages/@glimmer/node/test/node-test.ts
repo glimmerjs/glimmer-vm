@@ -4,6 +4,7 @@ import { Template, Simple } from '@glimmer/runtime';
 import { precompile } from '@glimmer/compiler';
 import { UpdatableReference } from '@glimmer/object-reference';
 import { NodeDOMTreeConstruction } from '@glimmer/node';
+import { TemplateMeta } from '@glimmer/wire-format';
 
 let voidMap = SimpleDOM.voidMap;
 
@@ -76,7 +77,7 @@ QUnit.test("HTML tags re-rendered", function(assert) {
   let result = render(template, {});
 
   env.begin();
-  result.rerender();
+  if (result) result.rerender();
   env.commit();
 
   assert.equal(serializer.serializeChildren(root), "<h1>hello!</h1><div>content</div>");
@@ -245,7 +246,7 @@ QUnit.test("A simple block helper can return text", function(assert) {
 QUnit.test('can instantiate NodeDOMTreeConstruction without a document', function(assert) {
   // this emulates what happens in Ember when using `App.visit('/', { shouldRender: false });`
 
-  helper = new NodeDOMTreeConstruction(null);
+  helper = new NodeDOMTreeConstruction(doc);
 
   assert.ok(!!helper, 'helper was instantiated without errors');
 });
@@ -281,7 +282,7 @@ QUnit.test('generates id in node', function (assert) {
   let template = precompile('hello');
   let obj = JSON.parse(template);
   assert.equal(obj.id, '3TlrituF', 'short sha of template source');
-  template = precompile('hello', { meta: {moduleName: 'template/hello'} });
+  template = precompile('hello', { meta: <TemplateMeta>{moduleName: 'template/hello'} });
   obj = JSON.parse(template);
   assert.equal(obj.id, 'CiDxizBQ', 'short sha of template source and meta');
 });

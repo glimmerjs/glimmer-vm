@@ -1,13 +1,13 @@
 import EmberObject from '@glimmer/object';
 
-function get(obj, key) {
+function get<T, U extends keyof T>(obj: T, key: U) {
   return obj[key];
 }
 
 QUnit.module('GlimmerObject.reopen');
 
 QUnit.test('adds new properties to subclass instance', assert => {
-  let Subclass = EmberObject.extend();
+  let Subclass: any = EmberObject.extend();
   Subclass.reopen({
     foo() { return 'FOO'; },
     bar: 'BAR'
@@ -19,7 +19,7 @@ QUnit.test('adds new properties to subclass instance', assert => {
 
 QUnit.test('reopened properties inherited by subclasses', assert => {
   let Subclass = EmberObject.extend();
-  let SubSub = Subclass.extend();
+  let SubSub: any = Subclass.extend();
 
   Subclass.reopen({
     foo() { return 'FOO'; },

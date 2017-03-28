@@ -1,4 +1,5 @@
 import { preprocess as parse, print, builders as b } from "@glimmer/syntax";
+import * as WireFormat from "@glimmer/wire-format";
 
 const { test } = QUnit;
 
@@ -79,7 +80,7 @@ test('UndefinedLiteral', assert => {
 
 test('NumberLiteral', assert => {
   const ast = b.program([
-    b.mustache('foo', null,
+    b.mustache('foo', undefined,
       b.hash([b.pair('bar', b.number(5))])
     )
   ]);
@@ -88,7 +89,7 @@ test('NumberLiteral', assert => {
 
 test('BooleanLiteral', assert => {
   const ast = b.program([
-    b.mustache('foo', null,
+    b.mustache('foo', undefined,
       b.hash([b.pair('bar', b.boolean(true))])
     )
   ]);

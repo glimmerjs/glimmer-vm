@@ -101,7 +101,7 @@ export function equalHTML(node: Node | Node[], html: string) {
   equalInnerHTML(div, html);
 }
 
-function generateTokens(divOrHTML: Element | string): { tokens: Token[], html: string } {
+function generateTokens(divOrHTML: { innerHTML: string } | string | null | undefined): { tokens: Token[], html: string | null | undefined } {
   let div;
   if (typeof divOrHTML === 'string') {
     div = document.createElement("div");
@@ -110,29 +110,18 @@ function generateTokens(divOrHTML: Element | string): { tokens: Token[], html: s
     div = divOrHTML;
   }
 
-  return { tokens: tokenize(div.innerHTML), html: div.innerHTML };
+  return { tokens: div ? tokenize(div.innerHTML) : [], html: div && div.innerHTML };
 }
 
 declare const QUnit: QUnit & {
   equiv(a: any, b: any): boolean;
 };
 
-export type TestFragment = Element | { fragment: Element };
+export type TestFragment = HTMLElement | { fragment: HTMLElement };
 
-function extract(frag: TestFragment): Element {
-  if (frag['fragment'] instanceof Element) {
-    return frag['fragment'];
-  } else {
-    return frag as Element;
-  }
-}
-
-export function equalTokens(testFragment: TestFragment, testHTML: TestFragment, message: Option<string> = null) {
-  let fragment = extract(testFragment);
-  let html = extract(testHTML);
-
-  let fragTokens = generateTokens(fragment);
-  let htmlTokens = generateTokens(html);
+export function equalTokens(testFragment: string | { innerHTML: string } | null | undefined, testHTML: string | { innerHTML: string } | null | undefined, message: Option<string> = null) {
+  let fragTokens = generateTokens(testFragment);
+  let htmlTokens = generateTokens(testHTML);
 
   function normalizeTokens(token: Token) {
     if (token.type === 'StartTag') {

@@ -1,5 +1,6 @@
 import { TestEnvironment, TestDynamicScope, normalizeInnerHTML, getTextContent, equalTokens } from "@glimmer/test-helpers";
-import { Template, Simple, AttributeManager } from '@glimmer/runtime';
+import { Template, Simple, Environment, AttributeManager, RenderResult, IteratorResult } from '@glimmer/runtime';
+import { Opaque } from '@glimmer/util';
 import { module, test } from './support';
 import { UpdatableReference } from '@glimmer/object-reference';
 
@@ -7,7 +8,8 @@ const SVG_NAMESPACE = 'http://www.w3.org/2000/svg';
 const XLINK_NAMESPACE = 'http://www.w3.org/1999/xlink';
 const XHTML_NAMESPACE = 'http://www.w3.org/1999/xhtml';
 
-let env: TestEnvironment, root: HTMLElement;
+let env: TestEnvironment;
+let root: HTMLElement;
 
 function compile(template: string) {
   let out = env.compile(template);
@@ -31,36 +33,36 @@ function commonSetup(customEnv = new TestEnvironment()) {
   root = rootElement();
 }
 
-function render<T>(template: Template<T>, self: any) {
-  let result;
+function render<T>(template: Template<T>, self: any): RenderResult {
+  let templateResult: IteratorResult<RenderResult>;
   env.begin();
   let templateIterator = template.render(new UpdatableReference(self), root, new TestDynamicScope());
 
   do {
-    result = templateIterator.next();
-  } while (!result.done);
+    templateResult = templateIterator.next();
+  } while (!templateResult.done);
 
-  result = result.value;
+  let result = templateResult.value;
   env.commit();
   return result;
 }
 
-function createElement(tag: string): Element {
-  return env.getDOM().createElement(tag);
+function createElement(tag: string) {
+  return <Simple.Element & { innerHTML: string}>env.getDOM().createElement(tag);
 }
 
 module("[glimmer runtime] Initial render", tests => {
   tests.beforeEach(() => commonSetup());
 
   module("Simple HTML, inline expressions", () => {
-    test("HTML text content", assert => {
+    test("HTML text content", () => {
       let template = compile("content");
       render(template, {});
 
       equalTokens(root, "content");
     });
 
-    test("HTML tags", assert => {
+    test("HTML tags", () => {
       let template = compile("<h1>hello!</h1><div>content</div>");
       render(template, {});
 
@@ -81,14 +83,14 @@ module("[glimmer runtime] Initial render", tests => {
       equalTokens(root, "<h1>hello!</h1><div>content</div>");
     });
 
-    test("HTML attributes", assert => {
+    test("HTML attributes", () => {
       let template = compile("<div class='foo' id='bar'>content</div>");
       render(template, {});
 
       equalTokens(root, '<div class="foo" id="bar">content</div>');
     });
 
-    test("HTML tag with empty attribute", assert => {
+    test("HTML tag with empty attribute", () => {
       let template = compile("<div class=''>content</div>");
       render(template, {});
 
@@ -99,18 +101,18 @@ module("[glimmer runtime] Initial render", tests => {
       let template = compile('<input disabled>');
       render(template, {});
 
-      assert.ok(root.firstChild['disabled'], 'disabled without value set as property is true');
+      assert.ok(root.firstChild && root.firstChild['disabled'], 'disabled without value set as property is true');
     });
 
     test("Quoted attribute null values do not disable", assert => {
       let template = compile('<input disabled="{{isDisabled}}">');
       render(template, { isDisabled: null });
 
-      assert.equal(root.firstChild['disabled'], false);
+      assert.equal(root.firstChild && root.firstChild['disabled'], false);
       equalTokens(root, '<input />');
     });
 
-    test("Unquoted attribute expression with null value is not coerced", assert => {
+    test("Unquoted attribute expression with null value is not coerced", () => {
       let template = compile('<input disabled={{isDisabled}}>');
       render(template, { isDisabled: null });
 
@@ -148,14 +150,14 @@ module("[glimmer runtime] Initial render", tests => {
       assert.equal(imgNode.src, 'http://foo.com/foo.png', 'string is set to property');
     });
 
-    test("Unquoted img src attribute is not rendered when set to `null`", assert => {
+    test("Unquoted img src attribute is not rendered when set to `null`", () => {
       let template = compile('<img src={{someURL}}>');
       render(template, { someURL: null});
 
       equalTokens(root, '<img>');
     });
 
-    test("Unquoted img src attribute is not rendered when set to `undefined`", assert => {
+    test("Unquoted img src attribute is not rendered when set to `undefined`", () => {
       let template = compile('<img src={{someURL}}>');
       render(template, { someURL: undefined });
 
@@ -172,35 +174,35 @@ module("[glimmer runtime] Initial render", tests => {
       assert.equal(imgNode.src, 'http://foo.com/foo.png', 'string is set to property');
     });
 
-    test("Quoted img src attribute is not rendered when set to `null`", assert => {
+    test("Quoted img src attribute is not rendered when set to `null`", () => {
       let template = compile('<img src="{{someURL}}">');
       render(template, { someURL: null});
 
       equalTokens(root, '<img>');
     });
 
-    test("Quoted img src attribute is not rendered when set to `undefined`", assert => {
+    test("Quoted img src attribute is not rendered when set to `undefined`", () => {
       let template = compile('<img src="{{someURL}}">');
       render(template, { someURL: undefined });
 
       equalTokens(root, '<img>');
     });
 
-    test("Unquoted a href attribute is not rendered when set to `null`", assert => {
+    test("Unquoted a href attribute is not rendered when set to `null`", () => {
       let template = compile('<a href={{someURL}}></a>');
       render(template, { someURL: null});
 
       equalTokens(root, '<a></a>');
     });
 
-    test("Unquoted img src attribute is not rendered when set to `undefined`", assert => {
+    test("Unquoted img src attribute is not rendered when set to `undefined`", () => {
       let template = compile('<a href={{someURL}}></a>');
       render(template, { someURL: undefined});
 
       equalTokens(root, '<a></a>');
     });
 
-    test("Attribute expression can be followed by another attribute", assert => {
+    test("Attribute expression can be followed by another attribute", () => {
       let template = compile('<div foo="{{funstuff}}" name="Alice"></div>');
       render(template, {funstuff: "oh my"});
 
@@ -215,7 +217,7 @@ module("[glimmer runtime] Initial render", tests => {
       assert.throws(function() { compile('<img \nclass={{foo}}bar>'); }, expectedError(2));
       assert.throws(function() { compile('<div \nclass\n=\n{{foo}}&amp;bar ></div>'); }, expectedError(4));
 
-      function expectedError(line) {
+      function expectedError(line: number) {
         return new Error(
           `An unquoted attribute value must be a string or a mustache, ` +
           `preceeded by whitespace or a '=' character, and ` +
@@ -224,7 +226,7 @@ module("[glimmer runtime] Initial render", tests => {
       }
     });
 
-    test("HTML tag with data- attribute", assert => {
+    test("HTML tag with data- attribute", () => {
       let template = compile("<div data-some-data='foo'>content</div>");
       render(template, {});
       equalTokens(root, '<div data-some-data="foo">content</div>');
@@ -240,7 +242,7 @@ module("[glimmer runtime] Initial render", tests => {
       assert.equal(inputNode.checked, true, 'input tag is checked');
     });
 
-    function shouldBeVoid(tagName) {
+    function shouldBeVoid(tagName: string) {
       root.innerHTML = "";
       let html = "<" + tagName + " data-foo='bar'><p>hello</p>";
       let template = compile(html);
@@ -261,13 +263,13 @@ module("[glimmer runtime] Initial render", tests => {
       });
     }
 
-    test("Void elements are self-closing", assert => {
+    test("Void elements are self-closing", () => {
       let voidElements = "area base br col command embed hr img input keygen link meta param source track wbr";
 
       voidElements.split(" ").forEach((tagName) => shouldBeVoid(tagName));
     });
 
-    test("The compiler can handle nesting", assert => {
+    test("The compiler can handle nesting", () => {
       let html = '<div class="foo"><p><span id="bar" data-foo="bar">hi!</span></p></div>&nbsp;More content';
       let template = compile(html);
       render(template, {});
@@ -275,35 +277,35 @@ module("[glimmer runtime] Initial render", tests => {
       equalTokens(root, html);
     });
 
-    test("The compiler can handle quotes", assert => {
+    test("The compiler can handle quotes", () => {
       compilesTo('<div>"This is a title," we\'re on a boat</div>');
     });
 
-    test("The compiler can handle backslashes", assert => {
+    test("The compiler can handle backslashes", () => {
       compilesTo('<div>This is a backslash: \\</div>');
     });
 
-    test("The compiler can handle newlines", assert => {
+    test("The compiler can handle newlines", () => {
       compilesTo("<div>common\n\nbro</div>");
     });
 
-    test("The compiler can handle comments", assert => {
+    test("The compiler can handle comments", () => {
       compilesTo("<div>{{! Better not break! }}content</div>", '<div>content</div>', {});
     });
 
-    test("The compiler can handle HTML comments", assert => {
+    test("The compiler can handle HTML comments", () => {
       compilesTo('<div><!-- Just passing through --></div>');
     });
 
-    test("The compiler can handle HTML comments with mustaches in them", assert => {
+    test("The compiler can handle HTML comments with mustaches in them", () => {
       compilesTo('<div><!-- {{foo}} --></div>', '<div><!-- {{foo}} --></div>', { foo: 'bar' });
     });
 
-    test("The compiler can handle HTML comments with complex mustaches in them", assert => {
+    test("The compiler can handle HTML comments with complex mustaches in them", () => {
       compilesTo('<div><!-- {{foo bar baz}} --></div>', '<div><!-- {{foo bar baz}} --></div>', { foo: 'bar' });
     });
 
-    test("The compiler can handle HTML comments with multi-line mustaches in them", assert => {
+    test("The compiler can handle HTML comments with multi-line mustaches in them", () => {
       compilesTo('<div><!-- {{#each foo as |bar|}}\n{{bar}}\n\n{{/each}} --></div>');
     });
 
@@ -311,19 +313,19 @@ module("[glimmer runtime] Initial render", tests => {
       compilesTo('<!-- {{foo}} -->');
     });
 
-    test("The compiler can handle simple handlebars", assert => {
+    test("The compiler can handle simple handlebars", () => {
       compilesTo('<div>{{title}}</div>', '<div>hello</div>', { title: 'hello' });
     });
 
-    test("The compiler can handle escaping HTML", assert => {
+    test("The compiler can handle escaping HTML", () => {
       compilesTo('<div>{{title}}</div>', '<div>&lt;strong&gt;hello&lt;/strong&gt;</div>', { title: '<strong>hello</strong>' });
     });
 
-    test("The compiler can handle unescaped HTML", assert => {
+    test("The compiler can handle unescaped HTML", () => {
       compilesTo('<div>{{{title}}}</div>', '<div><strong>hello</strong></div>', { title: '<strong>hello</strong>' });
     });
 
-    test("The compiler can handle top-level unescaped HTML", assert => {
+    test("The compiler can handle top-level unescaped HTML", () => {
       compilesTo('{{{html}}}', '<strong>hello</strong>', { html: '<strong>hello</strong>' });
     });
 
@@ -333,7 +335,7 @@ module("[glimmer runtime] Initial render", tests => {
       root = createElement('table') as HTMLTableElement;
       render(template, context);
 
-      assert.equal(root.firstChild['tagName'], 'TBODY', "root tbody is present");
+      assert.equal(root.firstChild && root.firstChild['tagName'], 'TBODY', "root tbody is present");
     });
 
     test("The compiler can handle top-level unescaped td inside tr contextualElement", assert => {
@@ -342,7 +344,7 @@ module("[glimmer runtime] Initial render", tests => {
       root = createElement('tr') as HTMLTableRowElement;
       render(template, context);
 
-      assert.equal(root.firstChild['tagName'], 'TD', "root td is returned");
+      assert.equal(root.firstChild && root.firstChild['tagName'], 'TD', "root td is returned");
     });
 
     test("second render respects whitespace", assert => {
@@ -356,12 +358,12 @@ module("[glimmer runtime] Initial render", tests => {
       assert.equal(getTextContent(root.childNodes[2]), ' ', 'last text node contains one space character');
     });
 
-    test("Morphs are escaped correctly", assert => {
+    test("Morphs are escaped correctly", () => {
       env.registerHelper('testing-unescaped', function(params) {
         return params[0];
       });
 
-      env.registerHelper('testing-escaped', function(params, hash) {
+      env.registerHelper('testing-escaped', function(params) {
         return params[0];
       });
 
@@ -369,11 +371,11 @@ module("[glimmer runtime] Initial render", tests => {
       compilesTo('<div>{{testing-escaped "<hi>"}}</div>', '<div>&lt;hi&gt;</div>');
     });
 
-    test("Attributes can use computed values", assert => {
+    test("Attributes can use computed values", () => {
       compilesTo('<a href="{{url}}">linky</a>', '<a href="linky.html">linky</a>', { url: 'linky.html' });
     });
 
-    test("Mountain range of nesting", assert => {
+    test("Mountain range of nesting", () => {
       let context = { foo: "FOO", bar: "BAR", baz: "BAZ", boo: "BOO", brew: "BREW", bat: "BAT", flute: "FLUTE", argh: "ARGH" };
       compilesTo('{{foo}}<span></span>', 'FOO<span></span>', context);
       compilesTo('<span></span>{{foo}}', '<span></span>FOO', context);
@@ -388,7 +390,7 @@ module("[glimmer runtime] Initial render", tests => {
                 'FOO<span>BAR<a>BAZ<em>BOOBREW</em>BAT</a></span><span><span>FLUTE</span></span>ARGH', context);
     });
 
-    test("Static <div class> is preserved properly", assert => {
+    test("Static <div class> is preserved properly", () => {
       compilesTo(`
         <div class="hello world">1</div>
         <div class="goodbye world">2</div>
@@ -465,8 +467,8 @@ module("[glimmer runtime] Initial render", tests => {
         somethingFalse: false
       });
 
-      let selectNode: any = root.childNodes[1];
-      let options = Array.prototype.slice.call(selectNode.querySelectorAll('option'));
+      let selectNode = <HTMLSelectElement>(<HTMLElement>root).childNodes[1];
+      let options: HTMLOptionElement[] = Array.prototype.slice.call(selectNode.querySelectorAll('option'));
       let selected = options.filter(option => option.selected);
 
       assert.equal(selected.length, 2, 'two options are selected');
@@ -482,7 +484,7 @@ module("[glimmer runtime] Initial render", tests => {
       root = createElement('table') as HTMLTableElement;
       render(template, context);
 
-      assert.equal(root.firstChild['tagName'], 'TBODY', "root tbody is present" );
+      assert.equal(root.firstChild && root.firstChild['tagName'], 'TBODY', "root tbody is present" );
     });
 
     test("The compiler can handle unescaped tr inside fragment table", assert => {
@@ -491,12 +493,12 @@ module("[glimmer runtime] Initial render", tests => {
       render(template, context);
       let tableNode = root.firstChild;
 
-      assert.equal( tableNode.firstChild['tagName'], 'TBODY', "root tbody is present" );
+      assert.equal(tableNode && tableNode.firstChild && tableNode.firstChild['tagName'], 'TBODY', "root tbody is present" );
     });
   });
 
   module("inline helpers", () => {
-    test("The compiler can handle simple helpers", assert => {
+    test("The compiler can handle simple helpers", () => {
       env.registerHelper('testing', function(params) {
         return params[0];
       });
@@ -531,7 +533,7 @@ module("[glimmer runtime] Initial render", tests => {
       let length;
       env.registerHelper('say-hello', function(params) {
         length = params.length;
-        value = params[0];
+        value = <string>params[0];
         return 'hello';
       });
 
@@ -545,7 +547,7 @@ module("[glimmer runtime] Initial render", tests => {
       let length;
       env.registerHelper('say-hello', function(params) {
         length = params.length;
-        value = params[0];
+        value = <string>params[0];
         return 'hello';
       });
 
@@ -557,7 +559,7 @@ module("[glimmer runtime] Initial render", tests => {
     test("GH#13999 The compiler can handle components with undefined named arguments", assert => {
       let value = 'PLACEHOLDER';
       env.registerHelper('say-hello', function(_, hash) {
-        value = hash['foo'];
+        value = <string>hash['foo'];
         return 'hello';
       });
 
@@ -568,7 +570,7 @@ module("[glimmer runtime] Initial render", tests => {
     test("GH#13999 The compiler can handle components with undefined string literal named arguments", assert => {
       let value = 'PLACEHOLDER';
       env.registerHelper('say-hello', function(_, hash) {
-        value = hash['foo'];
+        value = <string>hash['foo'];
         return 'hello';
       });
 
@@ -598,7 +600,7 @@ module("[glimmer runtime] Initial render", tests => {
       assert.strictEqual(value, 'null', 'is null string literal');
     });
 
-    test("GH#13999 The compiler can handle components with undefined named arguments", assert => {
+    test("GH#13999 The compiler can handle components with undefined named arguments", () => {
       env.registerHelper('say-hello', function() {
         return 'hello';
       });
@@ -606,15 +608,15 @@ module("[glimmer runtime] Initial render", tests => {
       compilesTo('<div>{{say-hello foo=undefined}}</div>', '<div>hello</div>');
     });
 
-    test("Null curly in attributes", assert => {
+    test("Null curly in attributes", () => {
       compilesTo('<div class="foo {{null}}">hello</div>', '<div class="foo ">hello</div>');
     });
 
-    test("Null in primitive syntax", assert => {
+    test("Null in primitive syntax", () => {
       compilesTo('{{#if null}}NOPE{{else}}YUP{{/if}}', 'YUP');
     });
 
-    test("The compiler can handle sexpr helpers", assert => {
+    test("The compiler can handle sexpr helpers", () => {
       env.registerHelper('testing', function(params) {
         return params[0] + "!";
       });
@@ -622,7 +624,7 @@ module("[glimmer runtime] Initial render", tests => {
       compilesTo('<div>{{testing (testing "hello")}}</div>', '<div>hello!!</div>', {});
     });
 
-    test("The compiler can handle multiple invocations of sexprs", assert => {
+    test("The compiler can handle multiple invocations of sexprs", () => {
       env.registerHelper('testing', function(params) {
         return "" + params[0] + params[1];
       });
@@ -634,8 +636,8 @@ module("[glimmer runtime] Initial render", tests => {
       );
     });
 
-    test("The compiler passes along the hash arguments", assert => {
-      env.registerHelper('testing', function(params, hash) {
+    test("The compiler passes along the hash arguments", () => {
+      env.registerHelper('testing', function(_, hash) {
         return hash['first'] + '-' + hash['second'];
       });
 
@@ -673,7 +675,7 @@ module("[glimmer runtime] Initial render", tests => {
     });
     */
 
-    test("Attributes can be populated with helpers that generate a string", assert => {
+    test("Attributes can be populated with helpers that generate a string", () => {
       env.registerHelper('testing', function(params) {
         return params[0];
       });
@@ -689,8 +691,8 @@ module("[glimmer runtime] Initial render", tests => {
       compilesTo('<a href="{{testing url}}">linky</a>', '<a href="linky.html">linky</a>', { url: 'linky.html'});
     });
     */
-    test("Attribute helpers take a hash", assert => {
-      env.registerHelper('testing', function(params, hash) {
+    test("Attribute helpers take a hash", () => {
+      env.registerHelper('testing', function(_, hash) {
         return hash['path'];
       });
 
@@ -715,7 +717,7 @@ module("[glimmer runtime] Initial render", tests => {
       equalTokens(fragment, '<div class="nope">hi</div>');
     });
     */
-    test("Attributes containing multiple helpers are treated like a block", assert => {
+    test("Attributes containing multiple helpers are treated like a block", () => {
       env.registerHelper('testing', function(params) {
         return params[0];
       });
@@ -990,7 +992,7 @@ module("[glimmer runtime] Initial render", tests => {
   module("namespaced HTML", () => {
     test("Namespaced attribute", assert => {
       compilesTo("<svg xlink:title='svg-title'>content</svg>");
-      let svg = root.firstChild;
+      let svg = <SVGElement>root.firstChild;
       assert.equal(svg.namespaceURI, SVG_NAMESPACE);
       assert.equal(svg.attributes[0].namespaceURI, XLINK_NAMESPACE);
     });
@@ -1017,9 +1019,9 @@ module("[glimmer runtime] Initial render", tests => {
     test("<foreignObject> tag has an SVG namespace", assert => {
       compilesTo('<svg><foreignObject>Hi</foreignObject></svg>');
       let svg = root.firstChild;
-      let foreignObject = svg.firstChild;
-      assert.equal(svg.namespaceURI, SVG_NAMESPACE);
-      assert.equal(foreignObject.namespaceURI, SVG_NAMESPACE,
+      let foreignObject = svg && <SVGForeignObjectElement>svg.firstChild;
+      assert.equal(svg && svg.namespaceURI, SVG_NAMESPACE);
+      assert.equal(foreignObject && foreignObject.namespaceURI, SVG_NAMESPACE,
             "creates the foreignObject element with a namespace");
     });
 
@@ -1037,25 +1039,25 @@ module("[glimmer runtime] Initial render", tests => {
       compilesTo('<div><svg></svg></div><div></div>');
       let firstDiv = root.firstChild;
       let secondDiv = root.lastChild;
-      let svg = firstDiv.firstChild;
-      assert.equal(firstDiv.namespaceURI, XHTML_NAMESPACE,
+      let svg = firstDiv && firstDiv.firstChild;
+      assert.equal(firstDiv && firstDiv.namespaceURI, XHTML_NAMESPACE,
             "first div's namespace is xhtmlNamespace");
-      assert.equal(svg.namespaceURI, SVG_NAMESPACE,
+      assert.equal(svg && svg.namespaceURI, SVG_NAMESPACE,
             "svg's namespace is svgNamespace");
-      assert.equal(secondDiv.namespaceURI, XHTML_NAMESPACE,
+      assert.equal(secondDiv && secondDiv.namespaceURI, XHTML_NAMESPACE,
             "last div's namespace is xhtmlNamespace");
     });
 
-    test("Case-sensitive tag has capitalization preserved", assert => {
+    test("Case-sensitive tag has capitalization preserved", () => {
       compilesTo('<svg><linearGradient id="gradient"></linearGradient></svg>');
     });
   });
 });
 
 module('Style attributes', {
-  beforeEach(assert) {
+  beforeEach() {
     class StyleEnv extends TestEnvironment {
-      attributeFor(element: Simple.Element, attr: string, isTrusting: boolean, namespace?: string): AttributeManager {
+      attributeFor(element: Simple.Element, attr: string, isTrusting: boolean, _?: string): AttributeManager {
         if (attr === 'style' && !isTrusting) {
           return STYLE_ATTRIBUTE;
         }
@@ -1103,7 +1105,7 @@ module('Style attributes', {
 let warnings = 0;
 
 class StyleAttribute extends AttributeManager {
-  setAttribute(dom, element, value) {
+  setAttribute(dom: Environment, element: Simple.Element, value: Opaque) {
     warnings++;
     super.setAttribute(dom, element, value);
   }

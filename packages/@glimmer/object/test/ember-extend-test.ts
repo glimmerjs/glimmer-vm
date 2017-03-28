@@ -20,15 +20,15 @@ QUnit.test('Sub-subclass', assert => {
 QUnit.test('Overriding a method several layers deep', assert => {
   let SomeClass = EmberObject.extend({
     fooCnt: 0,
-    foo() { this.fooCnt++; },
+    foo(this: any) { this.fooCnt++; },
 
     barCnt: 0,
-    bar() { this.barCnt++; }
+    bar(this: any) { this.barCnt++; }
   });
 
   let AnotherClass = SomeClass.extend({
     barCnt: 0,
-    bar() {
+    bar(this: any) {
       this.barCnt++;
       this._super.apply(this, arguments);
     }
@@ -36,7 +36,7 @@ QUnit.test('Overriding a method several layers deep', assert => {
 
   let FinalClass = AnotherClass.extend({
     fooCnt: 0,
-    foo() {
+    foo(this: any) {
       this.fooCnt++;
       this._super.apply(this, arguments);
     }
@@ -50,7 +50,7 @@ QUnit.test('Overriding a method several layers deep', assert => {
 
   // Try overriding on create also
   obj = FinalClass.extend({
-    foo() {
+    foo(this: any) {
       this.fooCnt++;
       this._super.apply(this, arguments);
     }
@@ -74,7 +74,7 @@ QUnit.test('With concatenatedProperties', assert => {
   assert.deepEqual(yetAnother.get('things'), ['foo', 'baz'], 'subclass should have base class\' and its own');
 });
 
-function get(obj, key) {
+function get<T, U extends keyof T>(obj: T, key: U) {
   return obj[key];
 }
 
@@ -91,7 +91,7 @@ QUnit.test('With concatenatedProperties class properties', assert => {
   let some = new SomeClass();
   let another = new AnotherClass();
   let yetAnother = new YetAnotherClass();
-  assert.deepEqual(get(some.constructor, 'things'), ['foo'], 'base class should have just its value');
-  assert.deepEqual(get(another.constructor, 'things'), ['foo', 'bar'], 'subclass should have base class\' and its own');
-  assert.deepEqual(get(yetAnother.constructor, 'things'), ['foo', 'baz'], 'subclass should have base class\' and its own');
+  assert.deepEqual(get(<any>some.constructor, 'things'), ['foo'], 'base class should have just its value');
+  assert.deepEqual(get(<any>another.constructor, 'things'), ['foo', 'bar'], 'subclass should have base class\' and its own');
+  assert.deepEqual(get(<any>yetAnother.constructor, 'things'), ['foo', 'baz'], 'subclass should have base class\' and its own');
 });
