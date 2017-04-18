@@ -5,7 +5,7 @@ import { TemplateMeta } from '@glimmer/wire-format';
 import Environment, { DynamicScope } from '../environment';
 import { ElementOperations } from '../builder';
 import Bounds from '../bounds';
-import * as Simple from '../dom/interfaces';
+import { Simple } from '@glimmer/interfaces';
 import { Template } from '../template';
 
 import { Destroyable, Opaque } from '@glimmer/util';

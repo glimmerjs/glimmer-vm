@@ -1,6 +1,6 @@
 import { FIXME, Opaque, Option, Maybe } from '@glimmer/util';
 import { DOMNamespace } from './helper';
-import * as Simple from './interfaces';
+import { Simple } from '@glimmer/interfaces';
 import {
   sanitizeAttributeValue,
   requiresSanitization

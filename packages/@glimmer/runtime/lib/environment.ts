@@ -3,7 +3,7 @@ import { Blocks, Inlines, populateBuiltins } from './syntax/functions';
 
 import { Constants } from './environment/constants';
 
-import * as Simple from './dom/interfaces';
+import { Simple } from '@glimmer/interfaces';
 import { DOMChanges, DOMTreeConstruction } from './dom/helper';
 import { Reference, OpaqueIterable } from '@glimmer/reference';
 import { UNDEFINED_REFERENCE, ConditionalReference } from './references';

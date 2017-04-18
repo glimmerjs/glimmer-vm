@@ -114,7 +114,7 @@ export {
 } from './lib/modifier/interfaces';
 
 export { default as DOMChanges, DOMChanges as IDOMChanges, DOMTreeConstruction, isWhitespace, insertHTMLBefore } from './lib/dom/helper';
-import  * as Simple from './lib/dom/interfaces';
+import { Simple } from '@glimmer/interfaces';
 export { Simple };
 export { ElementStack, ElementOperations } from './lib/builder';
 export { default as Bounds, ConcreteBounds } from './lib/bounds';

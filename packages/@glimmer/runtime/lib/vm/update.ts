@@ -20,7 +20,7 @@ import {
 import { OpcodeJSON, UpdatingOpcode, UpdatingOpSeq } from '../opcodes';
 import { Constants } from '../environment/constants';
 import { DOMChanges } from '../dom/helper';
-import * as Simple from '../dom/interfaces';
+import { Simple } from '@glimmer/interfaces';
 
 import VM, { CapturedStack, EvaluationStack } from './append';
 

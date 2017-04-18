@@ -2,7 +2,7 @@ import { Opaque, Option } from '@glimmer/util';
 import { normalizeTextValue } from '../compiled/opcodes/content';
 import { isSafeString } from '../upsert';
 import { Environment } from '../environment';
-import * as Simple from './interfaces';
+import { Simple } from '@glimmer/interfaces';
 
 const badProtocols = [
   'javascript:',

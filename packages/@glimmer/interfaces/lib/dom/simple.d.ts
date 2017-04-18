@@ -37,6 +37,7 @@ export interface Node {
 }
 
 export interface Document extends Node {
+  body: Element;
   createElement(tag: string): Element;
   createElementNS(namespace: Namespace, tag: string): Element;
   createTextNode(text: string): Text;

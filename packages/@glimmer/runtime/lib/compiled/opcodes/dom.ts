@@ -1,8 +1,7 @@
 import { OpcodeJSON, UpdatingOpcode } from '../../opcodes';
 import { VM, UpdatingVM } from '../../vm';
 import { Arguments } from '../../vm/arguments';
-import * as Simple from '../../dom/interfaces';
-import { FIX_REIFICATION } from '../../dom/interfaces';
+import { Simple } from '@glimmer/interfaces';
 import { Environment } from '../../environment';
 import { FIXME, Option, Opaque, Dict, unwrap, expect } from '@glimmer/util';
 import {
@@ -332,7 +331,7 @@ APPEND_OPCODES.add(Op.Modifier, (vm, { op1: _manager }) => {
   let tag = args.tag;
   let { constructing: element, updateOperations } = vm.elements();
   let dynamicScope = vm.dynamicScope();
-  let modifier = manager.create(element as FIX_REIFICATION<Element>, args, dynamicScope, updateOperations);
+  let modifier = manager.create(element as Simple.FIX_REIFICATION<Element>, args, dynamicScope, updateOperations);
 
   args.clear();
 

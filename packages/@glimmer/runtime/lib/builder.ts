@@ -14,7 +14,7 @@ import {
   SimpleElementOperations
 } from './compiled/opcodes/dom';
 
-import * as Simple from './dom/interfaces';
+import { Simple } from '@glimmer/interfaces';
 
 export interface FirstNode {
   firstNode(): Option<Simple.Node>;

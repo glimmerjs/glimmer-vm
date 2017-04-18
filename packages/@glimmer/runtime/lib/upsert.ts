@@ -1,7 +1,6 @@
 import { Opaque, unreachable } from '@glimmer/util';
 import { DOMChanges, DOMTreeConstruction } from './dom/helper';
-import * as Simple from './dom/interfaces';
-import { FIX_REIFICATION } from './dom/interfaces';
+import { Simple } from '@glimmer/interfaces';
 import { Bounds, Cursor, SingleNodeBounds, single, clear } from './bounds';
 
 export interface SafeString {
@@ -97,7 +96,7 @@ class HTMLUpsert extends Upsert {
       let parentElement = bounds.parentElement();
       let nextSibling = clear(bounds);
 
-      this.bounds = dom.insertHTMLBefore(parentElement as FIX_REIFICATION<Element>, nextSibling as FIX_REIFICATION<Node>, value);
+      this.bounds = dom.insertHTMLBefore(parentElement as Simple.FIX_REIFICATION<Element>, nextSibling as Simple.FIX_REIFICATION<Node>, value);
 
       return true;
     } else {
@@ -127,7 +126,7 @@ class SafeStringUpsert extends Upsert {
         let parentElement = bounds.parentElement();
         let nextSibling = clear(bounds);
 
-        this.bounds = dom.insertHTMLBefore(parentElement as FIX_REIFICATION<Element>, nextSibling as FIX_REIFICATION<Node>, stringValue);
+        this.bounds = dom.insertHTMLBefore(parentElement as Simple.FIX_REIFICATION<Element>, nextSibling as Simple.FIX_REIFICATION<Node>, stringValue);
         this.lastStringValue = stringValue;
       }
 
@@ -151,7 +150,7 @@ class NodeUpsert extends Upsert {
       let parentElement = bounds.parentElement();
       let nextSibling = clear(bounds);
 
-      this.bounds = dom.insertNodeBefore(parentElement as FIX_REIFICATION<Element>, value, nextSibling as FIX_REIFICATION<Node>);
+      this.bounds = dom.insertNodeBefore(parentElement as Simple.FIX_REIFICATION<Element>, value, nextSibling as Simple.FIX_REIFICATION<Node>);
 
       return true;
     } else {

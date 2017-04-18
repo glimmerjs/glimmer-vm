@@ -12,7 +12,7 @@ import { Environment, DynamicScope } from './environment';
 import { ElementStack } from './builder';
 import { VM, RenderResult, IteratorResult } from './vm';
 import Scanner, { Program, Block } from './scanner';
-import * as Simple from './dom/interfaces';
+import { Simple } from '@glimmer/interfaces';
 
 /**
  * Environment specific template.
