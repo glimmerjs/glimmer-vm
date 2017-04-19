@@ -23,9 +23,21 @@ import { ConditionalReference } from '../../references';
 import { Environment } from '../../environment';
 import { APPEND_OPCODES, Op } from '../../opcodes';
 
-APPEND_OPCODES.add(Op.DynamicContent, (vm, { op1: append }) => {
-  let opcode = vm.constants.getOther(append) as AppendDynamicOpcode<Insertion>;
-  opcode.evaluate(vm);
+APPEND_OPCODES.add(Op.DynamicContent, (vm, { op1: trusting }) => {
+  let reference = vm.stack.pop<VersionedPathReference<Opaque>>();
+  let value = reference.value();
+
+  if (isComponentDefinition(value)) {
+
+  } else if (trusting) {
+
+  } else {
+
+  }
+
+  // let opcode = vm.constants.getOther(append) as AppendDynamicOpcode<Insertion>;
+
+  // opcode.evaluate(vm);
 });
 
 function isEmpty(value: Opaque): boolean {
