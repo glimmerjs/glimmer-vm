@@ -15,6 +15,8 @@ import {
   combine,
   isConst
 } from '@glimmer/reference';
+import { DEBUG } from '@glimmer/env-flags';
+import { expect } from '@glimmer/util';
 
 APPEND_OPCODES.add(Op.PushComponentManager, (vm, { op1: _definition }) => {
   let definition = vm.constants.getOther<ComponentDefinition<Opaque>>(_definition);
@@ -130,8 +132,13 @@ APPEND_OPCODES.add(Op.PushComponentOperations, vm => {
 APPEND_OPCODES.add(Op.DidCreateElement, (vm, { op1: _state }) => {
   let { manager, component } = vm.fetchValue<ComponentState<Opaque>>(_state);
 
-  let action = 'DidCreateElementOpcode#evaluate';
-  manager.didCreateElement(component, vm.elements().expectConstructing(action), vm.elements().expectOperations(action));
+  if (DEBUG) {
+    let msg = 'DidCreateElementOpcode#evaluate should only be called while constructing an element';
+    expect(vm.elements().constructing, msg);
+    expect(vm.elements().operations, msg);
+  }
+
+  manager.didCreateElement(component, vm.elements().constructing!, vm.elements().operations!);
 });
 
 APPEND_OPCODES.add(Op.GetComponentSelf, (vm, { op1: _state }) => {
