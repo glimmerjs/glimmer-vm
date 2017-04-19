@@ -2,7 +2,7 @@
 
 Glimmer is a flexible, low-level rendering pipeline for building a "live" DOM
 from [Handlebars][handlebars] templates that can subsequently be updated cheaply
-when data changes.
+when data changes. 
 
 It is written in [TypeScript][typescript].
 
