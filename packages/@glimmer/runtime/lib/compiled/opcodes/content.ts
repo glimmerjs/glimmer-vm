@@ -11,17 +11,23 @@ import Upsert, {
   trustingInsert
 } from '../../upsert';
 import { isComponentDefinition } from '../../component/interfaces';
-import { DOMTreeConstruction } from '../../dom/helper';
+import { DOMTreeConstruction, DOMChanges } from '../../dom/helper';
 import { OpcodeJSON, UpdatingOpcode } from '../../opcodes';
 import { VM, UpdatingVM } from '../../vm';
 import { TryOpcode } from '../../vm/update';
 import { Reference, VersionedPathReference, ReferenceCache, UpdatableTag, TagWrapper, isModified, isConst, map } from '@glimmer/reference';
 import { Option, Opaque } from '@glimmer/util';
-import { Cursor, clear } from '../../bounds';
+import { Cursor, clear, Bounds, single, SingleNodeBounds } from '../../bounds';
 import { Fragment } from '../../builder';
 import { ConditionalReference } from '../../references';
 import { Environment } from '../../environment';
 import { APPEND_OPCODES, Op } from '../../opcodes';
+import { FIX_REIFICATION } from '../../dom/interfaces';
+import { unreachable } from '@glimmer/util';
+
+export interface SafeString {
+  toHTML(): string;
+}
 
 APPEND_OPCODES.add(Op.DynamicContent, (vm, { op1: trusting }) => {
   let reference = vm.stack.pop<VersionedPathReference<Opaque>>();
@@ -41,21 +47,21 @@ APPEND_OPCODES.add(Op.DynamicContent, (vm, { op1: trusting }) => {
   }
 
   let stack = vm.elements();
-  let upsert = contentManager.insert(vm.env.getAppendOperations(), stack, reference.value());
-  let bounds = new Fragment(upsert.bounds);
+  let newBounds = contentManager.insert(vm.env.getAppendOperations(), stack, value);
+  let bounds = new Fragment(newBounds);
 
   stack.newBounds(bounds);
 
   if (cache /* i.e. !isConst(reference) */) {
-    console.log(contentManager);
-    vm.updateWith(contentManager.updateWith(vm, reference, cache, bounds, upsert));
+    vm.updateWith(contentManager.updateWith(vm, reference, cache, bounds));
   }
 });
 
 export abstract class ContentManager<T> {
   abstract normalize(reference: Reference<Opaque>): Reference<T>;
-  abstract insert(dom: DOMTreeConstruction, cursor: Cursor, value: T): Upsert;
-  abstract updateWith(_vm: VM, _reference: Reference<Opaque>, cache: ReferenceCache<T>, bounds: Fragment, upsert: Upsert): UpdatingOpcode
+  abstract insert(dom: DOMTreeConstruction, cursor: Cursor, value: T): Bounds;
+  abstract updateWith(_vm: VM, _reference: Reference<Opaque>, cache: ReferenceCache<T>, bounds: Fragment): UpdatingOpcode
+  abstract update(dom: DOMChanges, newValue: Opaque, oldValue: Opaque, bounds: Bounds): Bounds;
 }
 
 export class TrustingContentManager implements ContentManager<TrustingInsertion> {
@@ -63,28 +69,41 @@ export class TrustingContentManager implements ContentManager<TrustingInsertion>
     return map(reference, normalizeTrustedValue);
   }
 
+  insertHTML(dom: DOMTreeConstruction, cursor: Cursor, value: string) {
+    return dom.insertHTMLBefore(cursor.element, value, cursor.nextSibling);
+  }
+
   insert(dom: DOMTreeConstruction, cursor: Cursor, value: TrustingInsertion) {
-    return trustingInsert(dom, cursor, value);
+    if (isString(value)) {
+      return this.insertHTML(dom, cursor, value);
+    } else if (isNode(value)) {
+      return CAUTIOUS_CONTENT_MANAGER.insertNode(dom, cursor, value);
+    }
+
+    throw unreachable();
   }
 
-  update() {
+  updateHTML(dom: DOMChanges, value: string, bounds: Bounds) {
+    let parentElement = bounds.parentElement();
+    let nextSibling = clear(bounds);
 
+    return dom.insertHTMLBefore(parentElement as FIX_REIFICATION<Element>, nextSibling as FIX_REIFICATION<Node>, value);
   }
 
-  string(value) {
+  update(dom: DOMChanges, newValue: Opaque, _oldValue: Opaque, bounds: Bounds) {
+    if (isString(newValue)) {
+      return this.updateHTML(dom, newValue, bounds);
+    } else if (isNode(newValue)) {
+      return CAUTIOUS_CONTENT_MANAGER.updateNode(dom, newValue, bounds);
+    }
 
+    let cursor = new Cursor(bounds.parentElement(), clear(bounds));
+
+    return this.insert(dom, cursor, newValue);
   }
 
-  safeString() {
-
-  }
-
-  node() {
-
-  }
-
-  updateWith(_vm: VM, _reference: Reference<Opaque>, cache: ReferenceCache<TrustingInsertion>, bounds: Fragment, upsert: Upsert) {
-    return new OptimizedTrustingUpdateOpcode(cache, bounds, upsert);
+  updateWith(_vm: VM, _reference: Reference<Opaque>, cache: ReferenceCache<TrustingInsertion>, bounds: Fragment) {
+    return new OptimizedTrustingUpdateOpcode(cache, bounds);
   }
 }
 
@@ -93,31 +112,32 @@ export class CautiousContentManager implements ContentManager<CautiousInsertion>
     return map(reference, normalizeTrustedValue);
   }
 
-  insertText(dom, cursor, value) {
+  insertText(dom: DOMTreeConstruction, cursor: Cursor, value: string) {
     let textNode = dom.createTextNode(value);
     dom.insertBefore(cursor.element, textNode, cursor.nextSibling);
     return new SingleNodeBounds(cursor.element, textNode);
   }
 
-  insertSafeString(dom, cursor, value) {
+  insertSafeString(dom: DOMTreeConstruction, cursor: Cursor, value: SafeString) {
     let stringValue = value.toHTML();
     return dom.insertHTMLBefore(cursor.element, stringValue, cursor.nextSibling);
   }
 
-  insertNode(dom, cursor, node) {
+  insertNode(dom: DOMTreeConstruction, cursor: Cursor, node: Node) {
     dom.insertBefore(cursor.element, node, cursor.nextSibling);
     return single(cursor.element, node);
   }
 
-  updateText(value, bounds) {
+  updateText(value: string, bounds: Bounds) {
     if (isString(value)) {
-      let textNode = bounds.first();
-      textNode.nodeValue = value;
+      let textNode = bounds.firstNode();
+      textNode!.nodeValue = value;
     }
 
     return bounds;
   }
-  updateSafeString(dom, newValue, oldValue, bounds) {
+
+  updateSafeString(dom: DOMChanges, newValue: SafeString, oldValue: SafeString, bounds: Bounds) {
     let stringValue = newValue.toHTML();
     let oldStringValue = oldValue.toHTML();
 
@@ -133,19 +153,18 @@ export class CautiousContentManager implements ContentManager<CautiousInsertion>
     return bounds;
   }
 
-  updateNode(dom, value, bounds) {
+  updateNode(dom: DOMChanges, value: Node, bounds: Bounds) {
     let parentElement = bounds.parentElement();
     let nextSibling = clear(bounds);
     return dom.insertNodeBefore(parentElement as FIX_REIFICATION<Element>, value, nextSibling as FIX_REIFICATION<Node>);
   }
 
-  update(dom, newValue, oldValue, bounds) {
-
+  update(dom: DOMChanges, newValue: Opaque, oldValue: Opaque, bounds: Bounds): Bounds {
     if (isString(newValue)) {
       return this.updateText(newValue, bounds);
     } else if (isSafeString(newValue)) {
-      return this.updateSafeString(dom, newValue, oldValue, bounds);
-    } else if (isNode(value)) {
+      return this.updateSafeString(dom, newValue, oldValue as SafeString, bounds);
+    } else if (isNode(newValue)) {
       return this.updateNode(dom, newValue, bounds);
     }
 
@@ -154,20 +173,20 @@ export class CautiousContentManager implements ContentManager<CautiousInsertion>
     return this.insert(dom, cursor, newValue);
   }
 
-  insert(dom: DOMTreeConstruction, cursor: Cursor, value: CautiousInsertion) {
+  insert(dom: DOMTreeConstruction, cursor: Cursor, value: Opaque) {
     if (isString(value)) {
-      return this.insertText(dom, value, cursor);
+      return this.insertText(dom, cursor, value);
     } else if (isSafeString(value)) {
-      return this.insertSafeString(dom, value, cursor);
+      return this.insertSafeString(dom, cursor, value);
     } else if (isNode(value)) {
-      return this.insertNode(dom, value, cursor);
+      return this.insertNode(dom, cursor, value);
     }
 
-    unreachable();
+    throw unreachable();
   }
 
-  updateWith(_vm: VM, _reference: Reference<Opaque>, cache: ReferenceCache<CautiousInsertion>, bounds: Fragment, upsert: Upsert) {
-    return new OptimizedCautiousUpdateOpcode(cache, bounds, upsert);
+  updateWith(_vm: VM, _reference: Reference<Opaque>, cache: ReferenceCache<CautiousInsertion>, bounds: Fragment) {
+    return new OptimizedCautiousUpdateOpcode(cache, bounds);
   }
 }
 
@@ -337,28 +356,26 @@ export abstract class UpdateOpcode<T extends Insertion> extends UpdatingOpcode {
   constructor(
     protected cache: ReferenceCache<T>,
     protected bounds: Fragment,
-    protected upsert: Upsert
+    // protected upsert: Upsert
   ) {
     super();
     this.tag = cache.tag;
   }
 
-  protected abstract insert(dom: DOMTreeConstruction, cursor: Cursor, value: T): Upsert;
+  // evaluate(vm: UpdatingVM) {
+  //   let value = this.cache.revalidate();
+  //   if (isModified(value)) {
+  //     let { bounds, upsert } = this;
+  //     let { dom } = vm;
 
-  evaluate(vm: UpdatingVM) {
-    let value = this.cache.revalidate();
-    if (isModified(value)) {
-      let { bounds, upsert } = this;
-      let { dom } = vm;
+  //     if(!this.upsert.update(dom, value)) {
+  //       let cursor = new Cursor(bounds.parentElement(), clear(bounds));
+  //       upsert = this.upsert = this.insert(vm.env.getAppendOperations(), cursor, value as T);
+  //     }
 
-      if(!this.upsert.update(dom, value)) {
-        let cursor = new Cursor(bounds.parentElement(), clear(bounds));
-        upsert = this.upsert = this.insert(vm.env.getAppendOperations(), cursor, value as T);
-      }
-
-      bounds.update(upsert.bounds);
-    }
-  }
+  //     bounds.update(upsert.bounds);
+  //   }
+  // }
 
   toJSON(): OpcodeJSON {
     let { _guid: guid, type, cache } = this;
@@ -447,26 +464,10 @@ abstract class GuardedUpdateOpcode<T extends Insertion> extends UpdateOpcode<T> 
   }
 }
 
-export class OptimizedCautiousAppendOpcode extends AppendDynamicOpcode<CautiousInsertion> {
-  type = 'optimized-cautious-append';
-
-  protected normalize(reference: Reference<Opaque>): Reference<CautiousInsertion> {
-    return map(reference, normalizeValue);
-  }
-
-  protected insert(dom: DOMTreeConstruction, cursor: Cursor, value: CautiousInsertion): Upsert {
-    return cautiousInsert(dom, cursor, value);
-  }
-
-  protected updateWith(_vm: VM, _reference: Reference<Opaque>, cache: ReferenceCache<CautiousInsertion>, bounds: Fragment, upsert: Upsert): UpdatingOpcode {
-    return new OptimizedCautiousUpdateOpcode(cache, bounds, upsert);
-  }
-}
-
 export class OptimizedCautiousUpdateOpcode extends UpdateOpcode<CautiousInsertion> {
   type = 'optimized-cautious-update';
 
-  evaluate(vm: VM) {
+  evaluate(vm: UpdatingVM) {
     let manager = vm.contentManager(false);
     let oldValue = this.cache.peek();
     let newValue = this.cache.revalidate();
@@ -474,57 +475,53 @@ export class OptimizedCautiousUpdateOpcode extends UpdateOpcode<CautiousInsertio
       let { bounds } = this;
       let { dom } = vm;
 
-      let newBounds = manager.update(dom, newValue, oldValue, bounds);
+      let newBounds = manager.update(dom, newValue, oldValue, bounds.bounds);
       bounds.update(newBounds);
     }
   }
-
-  protected insert(dom: DOMTreeConstruction, cursor: Cursor, value: CautiousInsertion): Upsert {
-    return cautiousInsert(dom, cursor, value);
-  }
 }
 
-export class GuardedCautiousAppendOpcode extends GuardedAppendOpcode<CautiousInsertion> {
-  type = 'guarded-cautious-append';
+// export class GuardedCautiousAppendOpcode extends GuardedAppendOpcode<CautiousInsertion> {
+//   type = 'guarded-cautious-append';
 
-  protected AppendOpcode = OptimizedCautiousAppendOpcode;
+//   protected AppendOpcode = OptimizedCautiousAppendOpcode;
 
-  protected normalize(reference: Reference<Opaque>): Reference<CautiousInsertion> {
-    return map(reference, normalizeValue);
-  }
+//   protected normalize(reference: Reference<Opaque>): Reference<CautiousInsertion> {
+//     return map(reference, normalizeValue);
+//   }
 
-  protected insert(dom: DOMTreeConstruction, cursor: Cursor, value: CautiousInsertion): Upsert {
-    return cautiousInsert(dom, cursor, value);
-  }
+//   protected insert(dom: DOMTreeConstruction, cursor: Cursor, value: CautiousInsertion): Upsert {
+//     return cautiousInsert(dom, cursor, value);
+//   }
 
-  protected updateWith(_vm: VM, reference: Reference<Opaque>, cache: ReferenceCache<CautiousInsertion>, bounds: Fragment, upsert: Upsert): UpdatingOpcode {
-    return new GuardedCautiousUpdateOpcode(reference, cache, bounds, upsert);
-  }
-}
+//   protected updateWith(_vm: VM, reference: Reference<Opaque>, cache: ReferenceCache<CautiousInsertion>, bounds: Fragment, upsert: Upsert): UpdatingOpcode {
+//     return new GuardedCautiousUpdateOpcode(reference, cache, bounds, upsert);
+//   }
+// }
 
-class GuardedCautiousUpdateOpcode extends GuardedUpdateOpcode<CautiousInsertion> {
-  type = 'guarded-cautious-update';
+// class GuardedCautiousUpdateOpcode extends GuardedUpdateOpcode<CautiousInsertion> {
+//   type = 'guarded-cautious-update';
 
-  protected insert(dom: DOMTreeConstruction, cursor: Cursor, value: CautiousInsertion): Upsert {
-    return cautiousInsert(dom, cursor, value);
-  }
-}
+//   protected insert(dom: DOMTreeConstruction, cursor: Cursor, value: CautiousInsertion): Upsert {
+//     return cautiousInsert(dom, cursor, value);
+//   }
+// }
 
-export class OptimizedTrustingAppendOpcode extends AppendDynamicOpcode<TrustingInsertion> {
-  type = 'optimized-trusting-append';
+// export class OptimizedTrustingAppendOpcode extends AppendDynamicOpcode<TrustingInsertion> {
+//   type = 'optimized-trusting-append';
 
-  protected normalize(reference: Reference<Opaque>): Reference<TrustingInsertion> {
-    return map(reference, normalizeTrustedValue);
-  }
+//   protected normalize(reference: Reference<Opaque>): Reference<TrustingInsertion> {
+//     return map(reference, normalizeTrustedValue);
+//   }
 
-  protected insert(dom: DOMTreeConstruction, cursor: Cursor, value: TrustingInsertion): Upsert {
-    return trustingInsert(dom, cursor, value);
-  }
+//   protected insert(dom: DOMTreeConstruction, cursor: Cursor, value: TrustingInsertion): Upsert {
+//     return trustingInsert(dom, cursor, value);
+//   }
 
-  protected updateWith(_vm: VM, _reference: Reference<Opaque>, cache: ReferenceCache<TrustingInsertion>, bounds: Fragment, upsert: Upsert): UpdatingOpcode {
-    return new OptimizedTrustingUpdateOpcode(cache, bounds, upsert);
-  }
-}
+//   protected updateWith(_vm: VM, _reference: Reference<Opaque>, cache: ReferenceCache<TrustingInsertion>, bounds: Fragment, upsert: Upsert): UpdatingOpcode {
+//     return new OptimizedTrustingUpdateOpcode(cache, bounds);
+//   }
+// }
 
 export class OptimizedTrustingUpdateOpcode extends UpdateOpcode<TrustingInsertion> {
   type = 'optimized-trusting-update';
