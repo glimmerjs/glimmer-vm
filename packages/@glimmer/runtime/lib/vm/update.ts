@@ -46,7 +46,7 @@ export default class UpdatingVM {
 
   contentManager(trusting: boolean): ContentManager<Opaque> {
     if (trusting) {
-      return TRUSTING_CONTENT_MANAGER
+      return TRUSTING_CONTENT_MANAGER;
     } else {
       return CAUTIOUS_CONTENT_MANAGER;
     }
