@@ -138,11 +138,7 @@ STATEMENTS.add(Ops.Append, (sexp: S.Append, builder: OpcodeBuilder) => {
 
   expr(value, builder);
 
-  if (trusting) {
-    builder.trustingAppend();
-  } else {
-    builder.cautiousAppend();
-  }
+  builder.dynamicContent(trusting);
 });
 
 STATEMENTS.add(Ops.Block, (sexp: S.Block, builder) => {

@@ -7,6 +7,11 @@ import { CompiledDynamicProgram } from '../compiled/blocks';
 import { LabelOpcode, JumpIfNotModifiedOpcode, DidModifyOpcode } from '../compiled/opcodes/vm';
 import { VMState, ListBlockOpcode, TryOpcode, BlockOpcode } from './update';
 import RenderResult from './render-result';
+import {
+  TRUSTING_CONTENT_MANAGER,
+  CAUTIOUS_CONTENT_MANAGER,
+  ContentManager
+} from '../compiled/opcodes/content';
 
 import {
   APPEND_OPCODES,
@@ -322,6 +327,14 @@ export default class VM implements PublicVM {
 
   elements(): ElementStack {
     return this.elementStack;
+  }
+
+  contentManager(trusting: boolean): ContentManager<Opaque> {
+    if (trusting) {
+      return TRUSTING_CONTENT_MANAGER;
+    } else {
+      return CAUTIOUS_CONTENT_MANAGER;
+    }
   }
 
   scope(): Scope {

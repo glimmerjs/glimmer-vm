@@ -26,19 +26,70 @@ import { APPEND_OPCODES, Op } from '../../opcodes';
 APPEND_OPCODES.add(Op.DynamicContent, (vm, { op1: trusting }) => {
   let reference = vm.stack.pop<VersionedPathReference<Opaque>>();
   let value = reference.value();
+  let isTrusting = vm.constants.getOther(trusting) as boolean;
+  let contentManager = vm.contentManager(isTrusting);
 
   if (isComponentDefinition(value)) {
-
-  } else if (trusting) {
-
+    // Content deopt
   } else {
+    let normalized = contentManager.normalize(reference);
+    let value, cache;
 
+    if (isConst(reference)) {
+      value = normalized.value();
+    } else {
+      cache = new ReferenceCache(normalized);
+      value = cache.peek();
+    }
+
+    let stack = vm.elements();
+    let upsert = contentManager.insert(vm.env.getAppendOperations(), stack, value);
+    let bounds = new Fragment(upsert.bounds);
+
+    stack.newBounds(bounds);
+
+    if (cache /* i.e. !isConst(reference) */) {
+      vm.updateWith(contentManager.updateWith(vm, reference, cache, bounds, upsert));
+    }
+  }
+});
+
+export abstract class ContentManager<T> {
+  abstract normalize(reference: Reference<Opaque>): Reference<T>;
+  abstract insert(dom: DOMTreeConstruction, cursor: Cursor, value: T): Upsert;
+  abstract updateWith(_vm: VM, _reference: Reference<Opaque>, cache: ReferenceCache<T>, bounds: Fragment, upsert: Upsert): UpdatingOpcode
+}
+
+export class TrustingContentManager implements ContentManager<TrustingInsertion> {
+  normalize(reference: Reference<Opaque>) {
+    return map(reference, normalizeTrustedValue);
   }
 
-  // let opcode = vm.constants.getOther(append) as AppendDynamicOpcode<Insertion>;
+  insert(dom: DOMTreeConstruction, cursor: Cursor, value: TrustingInsertion) {
+    return trustingInsert(dom, cursor, value);
+  }
 
-  // opcode.evaluate(vm);
-});
+  updateWith(_vm: VM, _reference: Reference<Opaque>, cache: ReferenceCache<TrustingInsertion>, bounds: Fragment, upsert: Upsert) {
+    return new OptimizedTrustingUpdateOpcode(cache, bounds, upsert);
+  }
+}
+
+export class CautiousContentManager implements ContentManager<CautiousInsertion> {
+  normalize(reference: Reference<Opaque>) {
+    return map(reference, normalizeTrustedValue);
+  }
+
+  insert(dom: DOMTreeConstruction, cursor: Cursor, value: CautiousInsertion) {
+    return cautiousInsert(dom, cursor, value);
+  }
+
+  updateWith(_vm: VM, _reference: Reference<Opaque>, cache: ReferenceCache<CautiousInsertion>, bounds: Fragment, upsert: Upsert) {
+    return new OptimizedCautiousUpdateOpcode(cache, bounds, upsert);
+  }
+}
+
+export const CAUTIOUS_CONTENT_MANAGER = new CautiousContentManager();
+export const TRUSTING_CONTENT_MANAGER = new TrustingContentManager();
 
 function isEmpty(value: Opaque): boolean {
   return value === null || value === undefined || typeof value['toString'] !== 'function';
@@ -199,7 +250,7 @@ class IsComponentDefinitionReference extends ConditionalReference {
   }
 }
 
-abstract class UpdateOpcode<T extends Insertion> extends UpdatingOpcode {
+export abstract class UpdateOpcode<T extends Insertion> extends UpdatingOpcode {
   constructor(
     protected cache: ReferenceCache<T>,
     protected bounds: Fragment,
@@ -330,7 +381,7 @@ export class OptimizedCautiousAppendOpcode extends AppendDynamicOpcode<CautiousI
   }
 }
 
-class OptimizedCautiousUpdateOpcode extends UpdateOpcode<CautiousInsertion> {
+export class OptimizedCautiousUpdateOpcode extends UpdateOpcode<CautiousInsertion> {
   type = 'optimized-cautious-update';
 
   protected insert(dom: DOMTreeConstruction, cursor: Cursor, value: CautiousInsertion): Upsert {
@@ -380,7 +431,7 @@ export class OptimizedTrustingAppendOpcode extends AppendDynamicOpcode<TrustingI
   }
 }
 
-class OptimizedTrustingUpdateOpcode extends UpdateOpcode<TrustingInsertion> {
+export class OptimizedTrustingUpdateOpcode extends UpdateOpcode<TrustingInsertion> {
   type = 'optimized-trusting-update';
 
   protected insert(dom: DOMTreeConstruction, cursor: Cursor, value: TrustingInsertion): Upsert {

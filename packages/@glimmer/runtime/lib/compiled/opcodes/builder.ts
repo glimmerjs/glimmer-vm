@@ -1,7 +1,6 @@
 import * as content from './content';
 import * as vm from './vm';
 
-import { Insertion } from '../../upsert';
 import { Register } from '../../opcodes';
 import * as WireFormat from '@glimmer/wire-format';
 import { Option, Stack, Opaque, dict, expect, fillNulls, EMPTY_ARRAY } from '@glimmer/util';
@@ -183,16 +182,8 @@ export abstract class BasicOpcodeBuilder {
 
   // content
 
-  dynamicContent(Opcode: content.AppendDynamicOpcode<Insertion>) {
-    this.push(Op.DynamicContent, this.other(Opcode));
-  }
-
-  cautiousAppend() {
-    this.dynamicContent(new content.OptimizedCautiousAppendOpcode());
-  }
-
-  trustingAppend() {
-    this.dynamicContent(new content.OptimizedTrustingAppendOpcode());
+  dynamicContent(trusting: boolean) {
+    this.push(Op.DynamicContent, this.other(trusting));
   }
 
   // dom
@@ -560,15 +551,17 @@ export default class OpcodeBuilder extends BasicOpcodeBuilder {
     }
   }
 
-  guardedCautiousAppend(expression: WireFormat.Expression) {
-    expr(expression, this);
-    this.dynamicContent(new content.GuardedCautiousAppendOpcode());
-  }
+  // guardedCautiousAppend(expression: WireFormat.Expression) {
+  //   expr(expression, this);
+  //   debugger;
+  //   // this.dynamicContent(new content.GuardedCautiousAppendOpcode());
+  // }
 
-  guardedTrustingAppend(expression: WireFormat.Expression) {
-    expr(expression, this);
-    this.dynamicContent(new content.GuardedTrustingAppendOpcode());
-  }
+  // guardedTrustingAppend(expression: WireFormat.Expression) {
+  //   expr(expression, this);
+  //   debugger;
+  //   // this.dynamicContent(new content.GuardedTrustingAppendOpcode());
+  // }
 
   invokeComponent(attrs: Option<RawInlineBlock>, params: Option<WireFormat.Core.Params>, hash: Option<WireFormat.Core.Hash>, block: Option<Block>, inverse: Option<Block> = null) {
     this.initializeComponentState();
