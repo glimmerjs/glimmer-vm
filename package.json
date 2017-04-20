@@ -26,6 +26,7 @@
     "yarn:unlink": "node bin/yarn-link-all --unlink"
   },
   "dependencies": {
+    "@glimmer/env": "^0.1.5",
     "broccoli-concat": "^2.1.0",
     "broccoli-funnel": "^1.1.0",
     "broccoli-merge-trees": "^1.1.1",

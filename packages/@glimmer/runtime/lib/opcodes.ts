@@ -3,7 +3,7 @@ import { Tag } from '@glimmer/reference';
 import { VM, UpdatingVM } from './vm';
 import { Opcode, Environment } from './environment';
 import { Constants } from './environment/constants';
-import { CI, DEBUG } from '@glimmer/env-flags';
+import { CI, DEBUG } from '@glimmer/env';
 
 export interface OpcodeJSON {
   type: number | string;
