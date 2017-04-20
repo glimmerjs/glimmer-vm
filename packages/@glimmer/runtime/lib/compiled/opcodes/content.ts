@@ -25,32 +25,30 @@ import { APPEND_OPCODES, Op } from '../../opcodes';
 
 APPEND_OPCODES.add(Op.DynamicContent, (vm, { op1: trusting }) => {
   let reference = vm.stack.pop<VersionedPathReference<Opaque>>();
+  debugger;
   let value = reference.value();
   let isTrusting = vm.constants.getOther(trusting) as boolean;
   let contentManager = vm.contentManager(isTrusting);
 
-  if (isComponentDefinition(value)) {
-    // Content deopt
+  let normalized = contentManager.normalize(reference);
+  let cache: ReferenceCache<Opaque>;
+
+  if (isConst(reference)) {
+    value = normalized.value();
   } else {
-    let normalized = contentManager.normalize(reference);
-    let value, cache;
+    cache = new ReferenceCache(normalized);
+    value = cache.peek();
+  }
 
-    if (isConst(reference)) {
-      value = normalized.value();
-    } else {
-      cache = new ReferenceCache(normalized);
-      value = cache.peek();
-    }
+  let stack = vm.elements();
+  let upsert = contentManager.insert(vm.env.getAppendOperations(), stack, reference.value());
+  let bounds = new Fragment(upsert.bounds);
 
-    let stack = vm.elements();
-    let upsert = contentManager.insert(vm.env.getAppendOperations(), stack, value);
-    let bounds = new Fragment(upsert.bounds);
+  stack.newBounds(bounds);
 
-    stack.newBounds(bounds);
-
-    if (cache /* i.e. !isConst(reference) */) {
-      vm.updateWith(contentManager.updateWith(vm, reference, cache, bounds, upsert));
-    }
+  if (cache /* i.e. !isConst(reference) */) {
+    console.log(contentManager);
+    vm.updateWith(contentManager.updateWith(vm, reference, cache, bounds, upsert));
   }
 });
 
@@ -69,6 +67,22 @@ export class TrustingContentManager implements ContentManager<TrustingInsertion>
     return trustingInsert(dom, cursor, value);
   }
 
+  update() {
+
+  }
+
+  string(value) {
+
+  }
+
+  safeString() {
+
+  }
+
+  node() {
+
+  }
+
   updateWith(_vm: VM, _reference: Reference<Opaque>, cache: ReferenceCache<TrustingInsertion>, bounds: Fragment, upsert: Upsert) {
     return new OptimizedTrustingUpdateOpcode(cache, bounds, upsert);
   }
@@ -79,8 +93,66 @@ export class CautiousContentManager implements ContentManager<CautiousInsertion>
     return map(reference, normalizeTrustedValue);
   }
 
+  insertText(dom, cursor, value) {
+    let textNode = dom.createTextNode(value);
+    dom.insertBefore(cursor.element, textNode, cursor.nextSibling);
+    return new SingleNodeBounds(cursor.element, textNode);
+  }
+
+  insertSafeString(dom, cursor, value) {
+    let stringValue = value.toHTML();
+    return dom.insertHTMLBefore(cursor.element, stringValue, cursor.nextSibling);
+  }
+
+  insertNode(dom, cursor, node) {
+    dom.insertBefore(cursor.element, node, cursor.nextSibling);
+    return single(cursor.element, node);
+  }
+
+  updateText(value, bounds) {
+    if (isString(value)) {
+      let textNode = bounds.first();
+      textNode.nodeValue = value;
+    }
+
+    return bounds;
+  }
+  updateSafeString(value, bounds) {
+    let stringValue = value.toHTML();
+
+    if (stringValue !== this.lastStringValue) {
+
+      let parentElement = bounds.parentElement();
+      let nextSibling = clear(bounds);
+
+      let newBounds = dom.insertHTMLBefore(parentElement as FIX_REIFICATION<Element>, nextSibling as FIX_REIFICATION<Node>, stringValue);
+
+      return newBounds;
+      // this.lastStringValue = stringValue;
+    }
+
+    return bounds;
+  }
+
+  update(oldValue, newValue, bounds) {
+
+    if (isString(newValue)) {
+      return this.updateText(newValue, bounds);
+    } else if (isSafeString(newValue)) {
+      return this.updateSafeString(newValue, oldValue, bounds);
+    } else if (isNode(value)) {
+      return this.updateNode();
+    }
+  }
+
   insert(dom: DOMTreeConstruction, cursor: Cursor, value: CautiousInsertion) {
-    return cautiousInsert(dom, cursor, value);
+    if (isString(value)) {
+      return this.insertText(dom, value, cursor);
+    } else if (isSafeString(value)) {
+      return this.insertSafeString(dom, value, cursor);
+    } else if (isNode(value)) {
+      return this.insertNode(dom, value, cursor);
+    }
   }
 
   updateWith(_vm: VM, _reference: Reference<Opaque>, cache: ReferenceCache<CautiousInsertion>, bounds: Fragment, upsert: Upsert) {
@@ -264,7 +336,6 @@ export abstract class UpdateOpcode<T extends Insertion> extends UpdatingOpcode {
 
   evaluate(vm: UpdatingVM) {
     let value = this.cache.revalidate();
-
     if (isModified(value)) {
       let { bounds, upsert } = this;
       let { dom } = vm;
@@ -384,6 +455,20 @@ export class OptimizedCautiousAppendOpcode extends AppendDynamicOpcode<CautiousI
 export class OptimizedCautiousUpdateOpcode extends UpdateOpcode<CautiousInsertion> {
   type = 'optimized-cautious-update';
 
+  evaluate(vm: VM) {
+    let manager = vm.contentManager(false);
+    let value = this.cache.revalidate();
+    if (isModified(value)) {
+      let { bounds } = this;
+      let { dom } = vm;
+
+      // upsert  singleton
+      // bounds
+      let newBounds = manager.update(dom, value, bounds);
+      bounds.update(newBounds);
+    }
+  }
+
   protected insert(dom: DOMTreeConstruction, cursor: Cursor, value: CautiousInsertion): Upsert {
     return cautiousInsert(dom, cursor, value);
   }
@@ -434,7 +519,8 @@ export class OptimizedTrustingAppendOpcode extends AppendDynamicOpcode<TrustingI
 export class OptimizedTrustingUpdateOpcode extends UpdateOpcode<TrustingInsertion> {
   type = 'optimized-trusting-update';
 
-  protected insert(dom: DOMTreeConstruction, cursor: Cursor, value: TrustingInsertion): Upsert {
+  protected insert(dom: DOMTreeConstruction, cursor: Cursor, value: TrustingInsertion, manager: TrustingContentManager): Upsert {
+
     return trustingInsert(dom, cursor, value);
   }
 }

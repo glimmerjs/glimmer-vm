@@ -21,6 +21,11 @@ import { OpcodeJSON, UpdatingOpcode, UpdatingOpSeq } from '../opcodes';
 import { Constants } from '../environment/constants';
 import { DOMChanges } from '../dom/helper';
 import * as Simple from '../dom/interfaces';
+import {
+  TRUSTING_CONTENT_MANAGER,
+  CAUTIOUS_CONTENT_MANAGER,
+  ContentManager
+} from '../compiled/opcodes/content';
 
 import VM, { CapturedStack, EvaluationStack } from './append';
 
@@ -37,6 +42,14 @@ export default class UpdatingVM {
     this.constants = env.constants;
     this.dom = env.getDOM();
     this.alwaysRevalidate = alwaysRevalidate;
+  }
+
+  contentManager(trusting: boolean): ContentManager<Opaque> {
+    if (trusting) {
+      return TRUSTING_CONTENT_MANAGER
+    } else {
+      return CAUTIOUS_CONTENT_MANAGER;
+    }
   }
 
   execute(opcodes: UpdatingOpSeq, handler: ExceptionHandler) {
