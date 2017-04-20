@@ -117,32 +117,41 @@ export class CautiousContentManager implements ContentManager<CautiousInsertion>
 
     return bounds;
   }
-  updateSafeString(value, bounds) {
-    let stringValue = value.toHTML();
+  updateSafeString(dom, newValue, oldValue, bounds) {
+    let stringValue = newValue.toHTML();
+    let oldStringValue = oldValue.toHTML();
 
-    if (stringValue !== this.lastStringValue) {
-
+    if (stringValue !== oldStringValue) {
       let parentElement = bounds.parentElement();
       let nextSibling = clear(bounds);
 
       let newBounds = dom.insertHTMLBefore(parentElement as FIX_REIFICATION<Element>, nextSibling as FIX_REIFICATION<Node>, stringValue);
 
       return newBounds;
-      // this.lastStringValue = stringValue;
     }
 
     return bounds;
   }
 
-  update(oldValue, newValue, bounds) {
+  updateNode(dom, value, bounds) {
+    let parentElement = bounds.parentElement();
+    let nextSibling = clear(bounds);
+    return dom.insertNodeBefore(parentElement as FIX_REIFICATION<Element>, value, nextSibling as FIX_REIFICATION<Node>);
+  }
+
+  update(dom, newValue, oldValue, bounds) {
 
     if (isString(newValue)) {
       return this.updateText(newValue, bounds);
     } else if (isSafeString(newValue)) {
-      return this.updateSafeString(newValue, oldValue, bounds);
+      return this.updateSafeString(dom, newValue, oldValue, bounds);
     } else if (isNode(value)) {
-      return this.updateNode();
+      return this.updateNode(dom, newValue, bounds);
     }
+
+    let cursor = new Cursor(bounds.parentElement(), clear(bounds));
+
+    return this.insert(dom, cursor, newValue);
   }
 
   insert(dom: DOMTreeConstruction, cursor: Cursor, value: CautiousInsertion) {
@@ -153,6 +162,8 @@ export class CautiousContentManager implements ContentManager<CautiousInsertion>
     } else if (isNode(value)) {
       return this.insertNode(dom, value, cursor);
     }
+
+    unreachable();
   }
 
   updateWith(_vm: VM, _reference: Reference<Opaque>, cache: ReferenceCache<CautiousInsertion>, bounds: Fragment, upsert: Upsert) {
@@ -457,14 +468,13 @@ export class OptimizedCautiousUpdateOpcode extends UpdateOpcode<CautiousInsertio
 
   evaluate(vm: VM) {
     let manager = vm.contentManager(false);
-    let value = this.cache.revalidate();
-    if (isModified(value)) {
+    let oldValue = this.cache.peek();
+    let newValue = this.cache.revalidate();
+    if (isModified(newValue)) {
       let { bounds } = this;
       let { dom } = vm;
 
-      // upsert  singleton
-      // bounds
-      let newBounds = manager.update(dom, value, bounds);
+      let newBounds = manager.update(dom, newValue, oldValue, bounds);
       bounds.update(newBounds);
     }
   }
