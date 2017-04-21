@@ -35,8 +35,8 @@ export type Label = string;
 type TargetOpcode = Op.Jump | Op.JumpIf | Op.JumpUnless | Op.EnterList | Op.Iterate | Op.Immediate;
 
 class Labels {
-  labels = dict<number>();
-  targets: { at: number, Target: TargetOpcode, target: string }[] = [];
+  private labels = dict<number>();
+  private targets: { at: number, Target: TargetOpcode, target: string }[] = [];
 
   label(name: string, index: number) {
     this.labels[name] = index;
@@ -53,17 +53,16 @@ class Labels {
   }
 }
 
-export abstract class BasicOpcodeBuilder {
+export default class OpcodeBuilder {
   private labelsStack = new Stack<Labels>();
   public constants: Constants;
   public start: number;
+  public component: IComponentBuilder = new ComponentBuilder(this);
 
-  constructor(public env: Environment, public meta: CompilationMeta, public program: Program) {
+  constructor(public env: Environment, public meta: CompilationMeta, public program: Program = env.program) {
     this.constants = env.constants;
     this.start = program.next;
   }
-
-  abstract compile<E>(expr: Represents<E>): E;
 
   private get pos() {
     return this.program.current;
@@ -435,32 +434,6 @@ export abstract class BasicOpcodeBuilder {
     this.push(Op.InvokeDynamic, this.other(invoker));
   }
 
-  invokeStatic(block: Block, callerCount = 0): void {
-    let { parameters } = block.symbolTable;
-    let calleeCount = parameters.length;
-    let count = Math.min(callerCount, calleeCount);
-
-    this.pushFrame();
-
-    if (count) {
-      this.pushChildScope();
-
-      for (let i=0; i<count; i++) {
-        this.dup(Register.fp, callerCount - i);
-        this.setVariable(parameters[i]);
-      }
-    }
-
-    let _block = this.constants.block(block);
-    this.push(Op.InvokeStatic, _block);
-
-    if (count) {
-      this.popScope();
-    }
-
-    this.popFrame();
-  }
-
   test(testFunc: 'const' | 'simple' | 'environment' | vm.TestFunction) {
     let _func: vm.TestFunction;
 
@@ -521,89 +494,94 @@ export abstract class BasicOpcodeBuilder {
   }
 }
 
-function isCompilableExpression<E>(expr: Represents<E>): expr is CompilesInto<E> {
-  return expr && typeof expr['compile'] === 'function';
+export function compileArgs(builder: OpcodeBuilder, params: Option<WireFormat.Core.Params>, hash: Option<WireFormat.Core.Hash>, synthetic: boolean) {
+  let positional = 0;
+
+  if (params) {
+    params.forEach(p => expr(p, builder));
+    positional = params.length;
+  }
+
+  let names = EMPTY_ARRAY;
+
+  if (hash) {
+    names = hash[0];
+    hash[1].forEach(v => expr(v, builder));
+  }
+
+  builder.pushImmediate(names);
+  builder.pushArgs(positional, synthetic);
 }
 
-export default class OpcodeBuilder extends BasicOpcodeBuilder {
-  public component: IComponentBuilder;
+export function guardedCautiousAppend(builder: OpcodeBuilder, expression: WireFormat.Expression) {
+  expr(expression, builder);
+  builder.dynamicContent(new content.GuardedCautiousAppendOpcode());
+}
 
-  constructor(env: Environment, meta: CompilationMeta, program: Program = env.program) {
-    super(env, meta, program);
-    this.component = new ComponentBuilder(this);
-  }
+export function guardedTrustingAppend(builder: OpcodeBuilder, expression: WireFormat.Expression) {
+  expr(expression, builder);
+  builder.dynamicContent(new content.GuardedTrustingAppendOpcode());
+}
 
-  compileArgs(params: Option<WireFormat.Core.Params>, hash: Option<WireFormat.Core.Hash>, synthetic: boolean) {
-    let positional = 0;
+export function invokeComponent(builder: OpcodeBuilder, attrs: Option<RawInlineBlock>, params: Option<WireFormat.Core.Params>, hash: Option<WireFormat.Core.Hash>, block: Option<Block>, inverse: Option<Block> = null) {
+  builder.initializeComponentState();
 
-    if (params) {
-      params.forEach(p => expr(p, this));
-      positional = params.length;
+  builder.fetch(Register.s0);
+  builder.dup(Register.sp, 1);
+  builder.load(Register.s0);
+
+  builder.pushBlock(block);
+  builder.pushBlock(inverse);
+
+  compileArgs(builder, params, hash, false);
+  builder.prepareArgs(Register.s0);
+
+  builder.beginComponentTransaction();
+  builder.pushDynamicScope();
+  builder.createComponent(Register.s0, true, inverse === null);
+  builder.registerComponentDestructor(Register.s0);
+
+  builder.getComponentSelf(Register.s0);
+  builder.getComponentLayout(Register.s0);
+  builder.invokeDynamic(new InvokeDynamicLayout(attrs && attrs.scan()));
+  builder.popFrame();
+
+  builder.popScope();
+  builder.popDynamicScope();
+  builder.commitComponentTransaction();
+
+  builder.load(Register.s0);
+}
+
+export function template(builder: OpcodeBuilder, block: Option<WireFormat.SerializedInlineBlock>): Option<RawInlineBlock> {
+  if (!block) return null;
+  return new RawInlineBlock(builder.env, builder.meta, block.statements, block.parameters);
+}
+
+export function invokeStatic(builder: OpcodeBuilder, block: Block, callerCount = 0) {
+  let { parameters } = block.symbolTable;
+  let calleeCount = parameters.length;
+  let count = Math.min(callerCount, calleeCount);
+
+  builder.pushFrame();
+
+  if (count) {
+    builder.pushChildScope();
+
+    for (let i=0; i<count; i++) {
+      builder.dup(Register.fp, callerCount - i);
+      builder.setVariable(parameters[i]);
     }
-
-    let names = EMPTY_ARRAY;
-
-    if (hash) {
-      names = hash[0];
-      hash[1].forEach(v => expr(v, this));
-    }
-
-    this.pushImmediate(names);
-    this.pushArgs(positional, synthetic);
   }
 
-  compile<E>(expr: Represents<E>): E {
-    if (isCompilableExpression(expr)) {
-      return expr.compile(this);
-    } else {
-      return expr;
-    }
+  let _block = builder.constants.block(block);
+  builder.push(Op.InvokeStatic, _block);
+
+  if (count) {
+    builder.popScope();
   }
 
-  guardedCautiousAppend(expression: WireFormat.Expression) {
-    expr(expression, this);
-    this.dynamicContent(new content.GuardedCautiousAppendOpcode());
-  }
-
-  guardedTrustingAppend(expression: WireFormat.Expression) {
-    expr(expression, this);
-    this.dynamicContent(new content.GuardedTrustingAppendOpcode());
-  }
-
-  invokeComponent(attrs: Option<RawInlineBlock>, params: Option<WireFormat.Core.Params>, hash: Option<WireFormat.Core.Hash>, block: Option<Block>, inverse: Option<Block> = null) {
-    this.initializeComponentState();
-
-    this.fetch(Register.s0);
-    this.dup(Register.sp, 1);
-    this.load(Register.s0);
-
-    this.pushBlock(block);
-    this.pushBlock(inverse);
-
-    this.compileArgs(params, hash, false);
-    this.prepareArgs(Register.s0);
-
-    this.beginComponentTransaction();
-    this.pushDynamicScope();
-    this.createComponent(Register.s0, true, inverse === null);
-    this.registerComponentDestructor(Register.s0);
-
-    this.getComponentSelf(Register.s0);
-    this.getComponentLayout(Register.s0);
-    this.invokeDynamic(new InvokeDynamicLayout(attrs && attrs.scan()));
-    this.popFrame();
-
-    this.popScope();
-    this.popDynamicScope();
-    this.commitComponentTransaction();
-
-    this.load(Register.s0);
-  }
-
-  template(block: Option<WireFormat.SerializedInlineBlock>): Option<RawInlineBlock> {
-    if (!block) return null;
-    return new RawInlineBlock(this.env, this.meta, block.statements, block.parameters);
-  }
+  builder.popFrame();
 }
 
 export type BlockCallback = (dsl: OpcodeBuilder, BEGIN: Label, END: Label) => void;

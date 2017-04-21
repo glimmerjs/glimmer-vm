@@ -15,14 +15,14 @@ import {
   PathReference,
   combineTagged,
   isConst as isConstReference,
-  isModified
+  isModified,
 } from '@glimmer/reference';
 import { ModifierManager } from '../../modifier/interfaces';
 import { NULL_REFERENCE, PrimitiveReference } from '../../references';
 import { AttributeManager } from '../../dom/attribute-managers';
 import { ElementOperations } from '../../builder';
-import { Assert } from './vm';
 import { APPEND_OPCODES, Op as Op } from '../../opcodes';
+import { maybeConst } from '../utils';
 
 APPEND_OPCODES.add(Op.Text, (vm, { op1: text }) => {
   vm.elements().appendText(vm.constants.getString(text));
@@ -52,24 +52,8 @@ APPEND_OPCODES.add(Op.PushRemoteElement, vm => {
   let elementRef = vm.stack.pop<Reference<Simple.Element>>();
   let nextSiblingRef = vm.stack.pop<Reference<Option<Simple.Node>>>();
 
-  let element: Simple.Element;
-  let nextSibling: Option<Simple.Node>;
-
-  if (isConstReference(elementRef)) {
-    element = elementRef.value();
-  } else {
-    let cache = new ReferenceCache(elementRef);
-    element = cache.peek();
-    vm.updateWith(new Assert(cache));
-  }
-
-  if (isConstReference(nextSiblingRef)) {
-    nextSibling = nextSiblingRef.value();
-  } else {
-    let cache = new ReferenceCache(nextSiblingRef);
-    nextSibling = cache.peek();
-    vm.updateWith(new Assert(cache));
-  }
+  let element = maybeConst(vm, elementRef);
+  let nextSibling = maybeConst(vm, nextSiblingRef);
 
   vm.elements().pushRemoteElement(element, nextSibling);
 });

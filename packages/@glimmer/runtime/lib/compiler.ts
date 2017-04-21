@@ -17,7 +17,7 @@ import {
 
 import { expr } from './syntax/functions';
 
-import OpcodeBuilderDSL from './compiled/opcodes/builder';
+import OpcodeBuilderDSL, { invokeComponent, compileArgs, invokeStatic } from './compiled/opcodes/builder';
 
 import * as Component from './component/interfaces';
 
@@ -149,7 +149,7 @@ class WrappedBuilder implements InnerLayoutBuilder {
     }
 
     b.label('BODY');
-    b.invokeStatic(layout.asBlock());
+    invokeStatic(b, layout.asBlock());
 
     if (dynamicTag) {
       b.fetch(Register.s1);
@@ -251,7 +251,7 @@ export class ComponentBuilder implements IComponentBuilder {
     let { builder } = this;
 
     builder.pushComponentManager(definition);
-    builder.invokeComponent(null, params, hash, _default, inverse);
+    invokeComponent(builder, null, params, hash, _default, inverse);
   }
 
   dynamic(definitionArgs: ComponentArgs, getDefinition: DynamicComponentDefinition, args: ComponentArgs) {
@@ -274,7 +274,7 @@ export class ComponentBuilder implements IComponentBuilder {
 
     builder.returnTo('END');
 
-    builder.compileArgs(definitionArgs[0], definitionArgs[1], true);
+    compileArgs(builder, definitionArgs[0], definitionArgs[1], true);
     builder.helper(helper);
 
     builder.dup();
@@ -285,7 +285,7 @@ export class ComponentBuilder implements IComponentBuilder {
     builder.jumpUnless('ELSE');
 
     builder.pushDynamicComponentManager();
-    builder.invokeComponent(null, params, hash, block, inverse);
+    invokeComponent(builder, null, params, hash, block, inverse);
 
     builder.label('ELSE');
     builder.exit();

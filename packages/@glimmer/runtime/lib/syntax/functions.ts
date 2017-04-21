@@ -2,7 +2,7 @@ import { ScopeSlot } from '../environment';
 import { CompiledDynamicBlock, CompiledDynamicProgram } from '../compiled/blocks';
 import * as WireFormat from '@glimmer/wire-format';
 import { BlockSymbolTable, ProgramSymbolTable } from '@glimmer/interfaces';
-import OpcodeBuilder from '../compiled/opcodes/builder';
+import OpcodeBuilder, { compileArgs, template, invokeComponent, invokeStatic } from '../compiled/opcodes/builder';
 import { DynamicInvoker } from '../compiled/opcodes/vm';
 import { VM, PublicVM } from '../vm';
 import { IArguments } from '../vm/arguments';
@@ -17,8 +17,7 @@ import {
   Dict,
   dict,
   assert,
-  unwrap,
-  unreachable,
+  unwrap
 } from '@glimmer/util';
 
 import {
@@ -79,7 +78,7 @@ STATEMENTS.add(Ops.Modifier, (sexp: S.Modifier, builder: OpcodeBuilder) => {
   let [, name, params, hash] = sexp;
 
   if (env.hasModifier(name, meta.templateMeta)) {
-    builder.compileArgs(params, hash, true);
+    compileArgs(builder, params, hash, true);
     builder.modifier(env.lookupModifier(name, meta.templateMeta));
   } else {
     throw new Error(`Compile Error ${name} is not a modifier: Helpers may not be used in the element form.`);
@@ -162,10 +161,10 @@ STATEMENTS.add(Ops.Append, (sexp: S.Append, builder: OpcodeBuilder) => {
 
 STATEMENTS.add(Ops.Block, (sexp: S.Block, builder) => {
   let [, name, params, hash, _template, _inverse] = sexp;
-  let template = builder.template(_template);
-  let inverse = builder.template(_inverse);
+  let _default = template(builder, _template);
+  let inverse = template(builder, _inverse);
 
-  let templateBlock = template && template.scan();
+  let templateBlock = _default && _default.scan();
   let inverseBlock = inverse && inverse.scan();
 
   let { blocks } = builder.env.macros();
@@ -234,11 +233,11 @@ STATEMENTS.add(Ops.Component, (sexp: S.Component, builder) => {
   let [, tag, attrs, args, block] = sexp;
 
   if (builder.env.hasComponentDefinition(tag, builder.meta.templateMeta)) {
-    let child = builder.template(block);
+    let child = template(builder, block);
     let attrsBlock = new RawInlineBlock(builder.env, builder.meta, attrs, EMPTY_ARRAY);
     let definition = builder.env.getComponentDefinition(tag, builder.meta.templateMeta);
     builder.pushComponentManager(definition);
-    builder.invokeComponent(attrsBlock, null, args, child && child.scan());
+    invokeComponent(builder, attrsBlock, null, args, child && child.scan());
   } else if (block && block.parameters.length) {
     throw new Error(`Compile Error: Cannot find component ${tag}`);
   } else {
@@ -451,7 +450,7 @@ EXPRESSIONS.add(Ops.Helper, (sexp: E.Helper, builder: OpcodeBuilder) => {
   let [, name, params, hash] = sexp;
 
   if (env.hasHelper(name, meta.templateMeta)) {
-    builder.compileArgs(params, hash, true);
+    compileArgs(builder, params, hash, true);
     builder.helper(env.lookupHelper(name, meta.templateMeta));
   } else {
     throw new Error(`Compile Error: ${name} is not a helper`);
@@ -628,13 +627,13 @@ export function populateBuiltins(blocks: Blocks = new Blocks(), inlines: Inlines
 
     builder.jumpUnless('ELSE');
 
-    builder.invokeStatic(unwrap(template));
+    invokeStatic(builder, unwrap(template));
 
     if (inverse) {
       builder.jump('EXIT');
 
       builder.label('ELSE');
-      builder.invokeStatic(inverse);
+      invokeStatic(builder, inverse);
 
       builder.label('EXIT');
       builder.exit();
@@ -682,13 +681,13 @@ export function populateBuiltins(blocks: Blocks = new Blocks(), inlines: Inlines
 
     builder.jumpIf('ELSE');
 
-    builder.invokeStatic(unwrap(template));
+    invokeStatic(builder, unwrap(template));
 
     if (inverse) {
       builder.jump('EXIT');
 
       builder.label('ELSE');
-      builder.invokeStatic(inverse);
+      invokeStatic(builder, inverse);
 
       builder.label('EXIT');
       builder.exit();
@@ -737,13 +736,13 @@ export function populateBuiltins(blocks: Blocks = new Blocks(), inlines: Inlines
 
     builder.jumpUnless('ELSE');
 
-    builder.invokeStatic(unwrap(template), 1);
+    invokeStatic(builder, unwrap(template), 1);
 
     if (inverse) {
       builder.jump('EXIT');
 
       builder.label('ELSE');
-      builder.invokeStatic(inverse);
+      invokeStatic(builder, inverse);
 
       builder.label('EXIT');
       builder.exit();
@@ -816,7 +815,7 @@ export function populateBuiltins(blocks: Blocks = new Blocks(), inlines: Inlines
     builder.iterate('BREAK');
 
     builder.label('BODY');
-    builder.invokeStatic(unwrap(template), 2);
+    invokeStatic(builder, unwrap(template), 2);
     builder.pop(2);
     builder.exit();
     builder.return();
@@ -829,7 +828,7 @@ export function populateBuiltins(blocks: Blocks = new Blocks(), inlines: Inlines
       builder.jump('EXIT');
 
       builder.label('ELSE');
-      builder.invokeStatic(inverse);
+      invokeStatic(builder, inverse);
 
       builder.label('EXIT');
       builder.exit();
@@ -879,7 +878,7 @@ export function populateBuiltins(blocks: Blocks = new Blocks(), inlines: Inlines
     builder.jumpUnless('ELSE');
 
     builder.pushRemoteElement();
-    builder.invokeStatic(unwrap(template));
+    invokeStatic(builder, unwrap(template));
     builder.popRemoteElement();
 
     builder.label('ELSE');
@@ -900,10 +899,10 @@ export function populateBuiltins(blocks: Blocks = new Blocks(), inlines: Inlines
 
       builder.pushDynamicScope();
       builder.bindDynamicScope(names);
-      builder.invokeStatic(unwrap(template));
+      invokeStatic(builder, unwrap(template));
       builder.popDynamicScope();
     } else {
-      builder.invokeStatic(unwrap(template));
+      invokeStatic(builder, unwrap(template));
     }
   });
 
