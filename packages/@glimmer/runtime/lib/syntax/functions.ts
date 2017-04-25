@@ -138,27 +138,8 @@ STATEMENTS.add(Ops.Append, (sexp: S.Append, builder: OpcodeBuilder) => {
 
   expr(value, builder);
 
-  if (trusting) {
-    builder.trustingAppend();
-  } else {
-    builder.cautiousAppend();
-  }
+  builder.dynamicContent(trusting);
 });
-
-// CLIENT_SIDE.add(ClientSide.Ops.UnoptimizedAppend, (sexp: ClientSide.UnoptimizedAppend, builder) => {
-//   let [,, value, trustingMorph] = sexp;
-
-//   let { inlines } = builder.env.macros();
-//   let returned = inlines.compile(sexp, builder) || value;
-
-//   if (returned === true) return;
-
-//   if (trustingMorph) {
-//     builder.guardedTrustingAppend(returned[1]);
-//   } else {
-//     builder.guardedCautiousAppend(returned[1]);
-//   }
-// });
 
 STATEMENTS.add(Ops.Block, (sexp: S.Block, builder) => {
   let [, name, params, hash, _template, _inverse] = sexp;
