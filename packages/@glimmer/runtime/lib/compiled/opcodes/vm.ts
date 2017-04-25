@@ -4,9 +4,10 @@ import { UpdatingVM, VM } from '../../vm';
 import { SymbolTable } from '@glimmer/interfaces';
 import { Reference, ConstReference, VersionedPathReference } from '@glimmer/reference';
 import { Option, Opaque, initializeGuid } from '@glimmer/util';
-import { CONSTANT_TAG, ReferenceCache, Revision, Tag, isConst, isModified } from '@glimmer/reference';
+import { CONSTANT_TAG, ReferenceCache, Revision, Tag, isModified } from '@glimmer/reference';
 import Environment from '../../environment';
 import { APPEND_OPCODES, Op as Op } from '../../opcodes';
+import { maybeConst } from '../utils';
 
 import {
   Block
@@ -110,37 +111,13 @@ APPEND_OPCODES.add(Op.Jump, (vm, { op1: target }) => vm.goto(target));
 APPEND_OPCODES.add(Op.JumpIf, (vm, { op1: target }) => {
   let reference = vm.stack.pop<VersionedPathReference<Opaque>>();
 
-  if (isConst(reference)) {
-    if (reference.value()) {
-      vm.goto(target);
-    }
-  } else {
-    let cache = new ReferenceCache(reference);
-
-    if (cache.peek()) {
-      vm.goto(target);
-    }
-
-    vm.updateWith(new Assert(cache));
-  }
+  if(maybeConst(vm, reference)) vm.goto(target);
 });
 
 APPEND_OPCODES.add(Op.JumpUnless, (vm, { op1: target }) => {
   let reference = vm.stack.pop<VersionedPathReference<Opaque>>();
 
-  if (isConst(reference)) {
-    if (!reference.value()) {
-      vm.goto(target);
-    }
-  } else {
-    let cache = new ReferenceCache(reference);
-
-    if (!cache.peek()) {
-      vm.goto(target);
-    }
-
-    vm.updateWith(new Assert(cache));
-  }
+  if (!maybeConst(vm, reference)) vm.goto(target);
 });
 
 APPEND_OPCODES.add(Op.Return, vm => vm.return());

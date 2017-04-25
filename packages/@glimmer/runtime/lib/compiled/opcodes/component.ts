@@ -1,5 +1,4 @@
 import { APPEND_OPCODES, Op, OpcodeJSON, UpdatingOpcode } from '../../opcodes';
-import { Assert } from './vm';
 import { UpdatingVM } from '../../vm';
 import ARGS, { Arguments, IArguments } from '../../vm/arguments';
 import { Component, ComponentManager, ComponentDefinition } from '../../component/interfaces';
@@ -9,12 +8,11 @@ import { ComponentElementOperations } from './dom';
 import { Opaque } from '@glimmer/util';
 import {
   CONSTANT_TAG,
-  ReferenceCache,
   VersionedPathReference,
   Tag,
-  combine,
-  isConst
+  combine
 } from '@glimmer/reference';
+import { maybeConst } from "../utils";
 
 APPEND_OPCODES.add(Op.PushComponentManager, (vm, { op1: _definition }) => {
   let definition = vm.constants.getOther<ComponentDefinition<Opaque>>(_definition);
@@ -27,15 +25,11 @@ APPEND_OPCODES.add(Op.PushComponentManager, (vm, { op1: _definition }) => {
 APPEND_OPCODES.add(Op.PushDynamicComponentManager, vm => {
   let stack = vm.stack;
   let reference = stack.pop<VersionedPathReference<ComponentDefinition<Opaque>>>();
-  let cache = isConst(reference) ? undefined : new ReferenceCache<ComponentDefinition<Opaque>>(reference);
-  let definition = cache ? cache.peek() : reference.value();
+
+  let definition = maybeConst(vm, reference);
 
   stack.push(definition);
   stack.push(definition.manager);
-
-  if (cache) {
-    vm.updateWith(new Assert(cache));
-  }
 });
 
 interface InitialComponentState<T> {

@@ -5,7 +5,8 @@ export { default as templateFactory, TemplateFactory, Template } from './lib/tem
 export { NULL_REFERENCE, UNDEFINED_REFERENCE, PrimitiveReference, ConditionalReference } from './lib/references';
 
 export {
-   default as OpcodeBuilderDSL
+   default as OpcodeBuilderDSL,
+   invokeStatic
 } from './lib/compiled/opcodes/builder';
 
 export {
@@ -15,7 +16,7 @@ export {
 
 export {
   ComponentBuilder,
-  ComponentArgs
+  ComponentArgs,
 } from './lib/opcode-builder';
 
 export {

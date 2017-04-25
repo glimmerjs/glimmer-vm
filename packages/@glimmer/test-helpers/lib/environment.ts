@@ -2,12 +2,12 @@ import {
   // VM
   VM,
   DynamicScope,
-  Register,
 
   // Compiler
   CompilableLayout,
   CompiledDynamicProgram,
   compileLayout,
+  invokeStatic,
 
   // Environment
   Environment,
@@ -1081,11 +1081,11 @@ export function inspectHooks<T extends Component>(ComponentClass: GlimmerObjectF
 
 function populateBlocks(blocks: BlockMacros, inlines: InlineMacros): { blocks: BlockMacros, inlines: InlineMacros } {
   blocks.add('identity', (_params, _hash, template, _inverse, builder) => {
-    builder.invokeStatic(template!);
+    invokeStatic(builder, template!);
   });
 
   blocks.add('render-inverse', (_params, _hash, _template, inverse, builder) => {
-    builder.invokeStatic(inverse!);
+    invokeStatic(builder, inverse!);
   });
 
   blocks.add('component', (params, hash, template, inverse, builder) => {
