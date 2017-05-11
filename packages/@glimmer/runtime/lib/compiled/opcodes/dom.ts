@@ -23,6 +23,7 @@ import { AttributeManager } from '../../dom/attribute-managers';
 import { ElementOperations } from '../../builder';
 import { Assert } from './vm';
 import { APPEND_OPCODES, Op as Op } from '../../opcodes';
+import { DEBUG } from '@glimmer/env-flags';
 
 APPEND_OPCODES.add(Op.Text, (vm, { op1: text }) => {
   vm.elements().appendText(vm.constants.getString(text));
@@ -306,8 +307,12 @@ export class ComponentElementOperations implements ElementOperations {
 APPEND_OPCODES.add(Op.FlushElement, vm => {
   let stack = vm.elements();
 
-  let action = 'FlushElementOpcode#evaluate';
-  stack.expectOperations(action).flush(stack.expectConstructing(action), vm);
+  if (DEBUG) {
+    let msg = 'FlushElementOpcode#evaluate should only be called while constructing an element';
+    expect(stack.operations, msg);
+    expect(stack.constructing, msg);
+  }
+  stack.operations!.flush(stack.constructing!, vm);
   stack.flushElement();
 });
 

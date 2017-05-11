@@ -8,6 +8,8 @@ import { Environment } from './environment';
 
 import { VM } from './vm';
 
+import { DEBUG } from '@glimmer/env-flags';
+
 import { VersionedReference } from '@glimmer/reference';
 
 import {
@@ -112,14 +114,6 @@ export class ElementStack implements Cursor {
     this.pushSimpleBlock();
     this.elementStack.push(this.element);
     this.nextSiblingStack.push(this.nextSibling);
-  }
-
-  expectConstructing(method: string): Simple.Element {
-    return expect(this.constructing, `${method} should only be called while constructing an element`);
-  }
-
-  expectOperations(method: string): ElementOperations {
-    return expect(this.operations, `${method} should only be called while constructing an element`);
   }
 
   block(): Tracker {
@@ -254,19 +248,36 @@ export class ElementStack implements Cursor {
   }
 
   setStaticAttribute(name: string, value: string) {
-    this.expectOperations('setStaticAttribute').addStaticAttribute(this.expectConstructing('setStaticAttribute'), name, value);
+    if (DEBUG) {
+      expect(this.operations, 'setStaticAttribute should only be called while constructing an element');
+      expect(this.constructing, 'setStaticAttribute should only be called while constructing an element');
+    }
+    this.operations!.addStaticAttribute(this.constructing!, name, value);
   }
 
   setStaticAttributeNS(namespace: string, name: string, value: string) {
-    this.expectOperations('setStaticAttributeNS').addStaticAttributeNS(this.expectConstructing('setStaticAttributeNS'), namespace, name, value);
+    if (DEBUG) {
+      expect(this.operations, 'setStaticAttributeNS should only be called while constructing an element');
+      expect(this.constructing, 'setStaticAttributeNS should only be called while constructing an element');
+    }
+    this.operations!.addStaticAttributeNS(this.constructing!, namespace, name, value);
   }
 
   setDynamicAttribute(name: string, reference: VersionedReference<string>, isTrusting: boolean) {
-    this.expectOperations('setDynamicAttribute').addDynamicAttribute(this.expectConstructing('setDynamicAttribute'), name, reference, isTrusting);
+    if (DEBUG) {
+      expect(this.operations, 'setDynamicAttribute should only be called while constructing an element');
+      expect(this.constructing, 'setDynamicAttribute should only be called while constructing an element');
+    }
+    this.operations!.addDynamicAttribute(this.constructing!, name, reference, isTrusting);
   }
 
   setDynamicAttributeNS(namespace: string, name: string, reference: VersionedReference<string>, isTrusting: boolean) {
-    this.expectOperations('setDynamicAttributeNS').addDynamicAttributeNS(this.expectConstructing('setDynamicAttributeNS'), namespace, name, reference, isTrusting);
+    if (DEBUG) {
+      expect(this.operations, 'setDynamicAttributeNS should only be called while constructing an element');
+      expect(this.constructing, 'setDynamicAttributeNS should only be called while constructing an element');
+    }
+
+    this.operations!.addDynamicAttributeNS(this.constructing!, namespace, name, reference, isTrusting);
   }
 
   closeElement() {
