@@ -302,17 +302,60 @@ export class Program {
   }
 }
 
+export interface MemorySlab {
+  nextFree: number;
+  length: 0;
+  constants: Constants;
+  program: Program;
+}
+
+export class Memory {
+  private nextFree = -1;
+  _memory: MemorySlab[] = [];
+  current = -1;
+  malloc(): MemorySlab {
+    let nextFree = this.nextFree;
+    if (nextFree !== -1) {
+      this.nextFree = this._memory[nextFree].nextFree;
+      this.current = nextFree;
+      return this._memory[nextFree];
+    } else {
+      let slabAddr = this._memory.length;
+      let slab: MemorySlab = {
+        nextFree,
+        length: 0,
+        constants: new Constants(),
+        program: new Program()
+      };
+      this._memory.push(slab);
+      this.current = slabAddr;
+      return slab;
+    }
+  }
+
+  currentSlab() {
+    return this._memory[this.current];
+  }
+
+  free(ptr: number) {
+    this.nextFree = ptr;
+    this._memory[ptr].length = 0;
+    this._memory[ptr].constants.reset();
+    this._memory[ptr].nextFree = -1;
+  }
+}
+
 export abstract class Environment {
   protected updateOperations: DOMChanges;
   protected appendOperations: DOMTreeConstruction;
   private _macros: Option<{ blocks: Blocks, inlines: Inlines }> = null;
   private _transaction: Option<Transaction> = null;
-  public constants: Constants = new Constants();
-  public program = new Program();
+  public memory: Memory = new Memory();
 
   constructor({ appendOperations, updateOperations }: { appendOperations: DOMTreeConstruction, updateOperations: DOMChanges }) {
     this.appendOperations = appendOperations;
     this.updateOperations = updateOperations;
+    this.memory.malloc();
   }
 
   toConditionalReference(reference: Reference<Opaque>): Reference<boolean> {

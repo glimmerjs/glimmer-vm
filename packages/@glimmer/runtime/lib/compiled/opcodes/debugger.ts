@@ -66,8 +66,9 @@ class ScopeInspector {
 }
 
 APPEND_OPCODES.add(Op.Debugger, (vm, { op1: _symbols, op2: _evalInfo }) => {
-  let symbols = vm.constants.getOther<string[]>(_symbols);
-  let evalInfo = vm.constants.getArray(_evalInfo);
+  let { constants } = vm.memory.currentSlab();
+  let symbols = constants.getOther<string[]>(_symbols);
+  let evalInfo = constants.getArray(_evalInfo);
   let inspector = new ScopeInspector(vm.scope(), symbols, evalInfo);
   callback(vm.getSelf().value(), path => inspector.get(path).value());
 });

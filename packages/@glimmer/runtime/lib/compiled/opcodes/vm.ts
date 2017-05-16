@@ -36,7 +36,8 @@ APPEND_OPCODES.add(Op.Immediate, (vm, { op1: number }) => {
 });
 
 APPEND_OPCODES.add(Op.Constant, (vm, { op1: other }) => {
-  vm.stack.push(vm.constants.getOther(other));
+  let { constants } = vm.memory.currentSlab();
+  vm.stack.push(constants.getOther(other));
 });
 
 APPEND_OPCODES.add(Op.PrimitiveReference, (vm, { op1: primitive }) => {
@@ -49,7 +50,8 @@ APPEND_OPCODES.add(Op.PrimitiveReference, (vm, { op1: primitive }) => {
       stack.push(PrimitiveReference.create(value));
       break;
     case 1:
-      stack.push(PrimitiveReference.create(vm.constants.getString(value)));
+      let { constants } = vm.memory.currentSlab();
+      stack.push(PrimitiveReference.create(constants.getString(value)));
       break;
     case 2:
       switch (value) {
@@ -74,7 +76,8 @@ APPEND_OPCODES.add(Op.Load, (vm, { op1: register }) => vm.load(register));
 APPEND_OPCODES.add(Op.Fetch, (vm, { op1: register }) => vm.fetch(register));
 
 APPEND_OPCODES.add(Op.BindDynamicScope, (vm, { op1: _names }) => {
-  let names = vm.constants.getArray(_names);
+  let { constants } = vm.memory.currentSlab();
+  let names = constants.getArray(_names);
   vm.bindDynamicScope(names);
 });
 
@@ -93,7 +96,8 @@ APPEND_OPCODES.add(Op.CompileDynamicBlock, vm => {
 });
 
 APPEND_OPCODES.add(Op.InvokeStatic, (vm, { op1: _block }) => {
-  let block = vm.constants.getBlock(_block);
+  let { constants } = vm.memory.currentSlab();
+  let block = constants.getBlock(_block);
   let compiled = block.compileStatic(vm.env);
   vm.call(compiled.start);
 });
@@ -103,7 +107,8 @@ export interface DynamicInvoker<S extends SymbolTable> {
 }
 
 APPEND_OPCODES.add(Op.InvokeDynamic, (vm, { op1: _invoker }) => {
-  let invoker = vm.constants.getOther<DynamicInvoker<SymbolTable>>(_invoker);
+  let { constants } = vm.memory.currentSlab();
+  let invoker = constants.getOther<DynamicInvoker<SymbolTable>>(_invoker);
   let block = vm.stack.pop<Option<CompiledDynamicTemplate<SymbolTable>>>();
   invoker.invoke(vm, block);
 });
@@ -165,7 +170,8 @@ export const EnvironmentTest: TestFunction = function(ref: Reference<Opaque>, en
 APPEND_OPCODES.add(Op.Test, (vm, { op1: _func }) => {
   let stack = vm.stack;
   let operand = stack.pop();
-  let func = vm.constants.getFunction(_func);
+  let { constants } = vm.memory.currentSlab();
+  let func = constants.getFunction(_func);
   stack.push(func(operand, vm.env));
 });
 

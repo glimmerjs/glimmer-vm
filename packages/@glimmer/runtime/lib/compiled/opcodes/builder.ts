@@ -4,7 +4,7 @@ import { dict, EMPTY_ARRAY, expect, fillNulls, Stack } from '@glimmer/util';
 import * as WireFormat from '@glimmer/wire-format';
 import { ComponentBuilder } from '../../compiler';
 import { ComponentDefinition } from '../../component/interfaces';
-import Environment, { Program } from '../../environment';
+import Environment, { Program, Memory } from '../../environment';
 import {
   ConstantArray,
   ConstantBlock,
@@ -57,11 +57,14 @@ class Labels {
 export abstract class BasicOpcodeBuilder {
   public constants: Constants;
   public start: number;
+  public program: Program;
 
   private labelsStack = new Stack<Labels>();
 
-  constructor(public env: Environment, public meta: CompilationMeta, public program: Program) {
-    this.constants = env.constants;
+  constructor(public env: Environment, public meta: CompilationMeta, public memory: Memory = env.memory) {
+    let { program, constants } = memory.currentSlab();
+    this.program = program;
+    this.constants = constants;
     this.start = program.next;
   }
 
@@ -531,9 +534,18 @@ function isCompilableExpression<E>(expr: Represents<E>): expr is CompilesInto<E>
 
 export default class OpcodeBuilder extends BasicOpcodeBuilder {
   public component: IComponentBuilder;
+  private static instance: OpcodeBuilder;
 
-  constructor(env: Environment, meta: CompilationMeta, program: Program = env.program) {
-    super(env, meta, program);
+  static getInstance(env: Environment, meta: CompilationMeta, memory?: Memory) {
+    if (!OpcodeBuilder.instance) {
+      OpcodeBuilder.instance = new this(env, meta, memory);
+    }
+
+    return OpcodeBuilder.instance;
+  }
+
+  constructor(env: Environment, meta: CompilationMeta, memory: Memory = env.memory) {
+    super(env, meta, memory);
     this.component = new ComponentBuilder(this);
   }
 

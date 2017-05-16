@@ -1,5 +1,5 @@
 import { Register } from '../opcodes';
-import { Scope, DynamicScope, Environment, Opcode } from '../environment';
+import { Scope, DynamicScope, Environment, Opcode, Memory } from '../environment';
 import { ElementStack } from '../builder';
 import { Option, Destroyable, Stack, LinkedList, ListSlice, Opaque, expect } from '@glimmer/util';
 import { ReferenceIterator, PathReference, VersionedPathReference, combineSlice } from '@glimmer/reference';
@@ -15,7 +15,6 @@ import {
 } from '../opcodes';
 
 import {
-  Constants,
   ConstantString
 } from '../environment/constants';
 
@@ -102,7 +101,7 @@ export default class VM implements PublicVM {
   public updatingOpcodeStack = new Stack<LinkedList<UpdatingOpcode>>();
   public cacheGroups = new Stack<Option<UpdatingOpcode>>();
   public listBlockStack = new Stack<ListBlockOpcode>();
-  public constants: Constants;
+  public memory: Memory;
 
   public stack = EvaluationStack.empty();
 
@@ -208,7 +207,7 @@ export default class VM implements PublicVM {
     private elementStack: ElementStack,
   ) {
     this.env = env;
-    this.constants = env.constants;
+    this.memory = env.memory;
     this.elementStack = elementStack;
     this.scopeStack.push(scope);
     this.dynamicScopeStack.push(dynamicScope);
@@ -429,7 +428,8 @@ export default class VM implements PublicVM {
       return null;
     }
 
-    let program = env.program;
+    let { program } = env.memory.currentSlab();
+
     this.pc += 4;
     return program.opcode(pc);
   }
@@ -441,8 +441,10 @@ export default class VM implements PublicVM {
   bindDynamicScope(names: ConstantString[]) {
     let scope = this.dynamicScope();
 
+    let { constants } = this.memory.currentSlab();
+
     for(let i=names.length - 1; i>=0; i--) {
-      let name = this.constants.getString(names[i]);
+      let name = constants.getString(names[i]);
       scope.set(name, this.stack.pop<VersionedPathReference<Opaque>>());
     }
   }
