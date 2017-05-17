@@ -102,7 +102,7 @@ function generateTokens(divOrHTML) {
     div = divOrHTML;
   }
 
-  return { tokens: tokenize(div.innerHTML), html: div.innerHTML };
+  return { tokens: tokenize(div.innerHTML, {}), html: div.innerHTML };
 }
 
 declare const QUnit: QUnit & {
