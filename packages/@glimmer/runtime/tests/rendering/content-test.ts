@@ -29,6 +29,19 @@ class StaticContentTests extends RenderingTest {
     this.assertStableRerender();
   }
 
+  @template(`<use-the-platform><seriously-please data-foo="1">Stuff <div>Here</div></seriously-please></use-the-platform>`)
+  ['renders nested custom elements']() {
+    this.render({});
+    this.assertContent(`<use-the-platform><seriously-please data-foo="1">Stuff <div>Here</div></seriously-please></use-the-platform>`);
+    this.assertStableRerender();
+  }
+  @template(`<use-the-platform><seriously-please data-foo="1"><wheres-the-platform>Here</wheres-the-platform></seriously-please></use-the-platform>`)
+  ['renders MOAR NESTED custom elements']() {
+    this.render({});
+    this.assertContent(`<use-the-platform><seriously-please data-foo="1"><wheres-the-platform>Here</wheres-the-platform></seriously-please></use-the-platform>`);
+    this.assertStableRerender();
+  }
+
   @template(strip`
     <div class="world">
       <h1>Hello World!</h1>
