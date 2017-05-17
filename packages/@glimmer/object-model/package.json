@@ -1,6 +1,6 @@
 {
   "name": "@glimmer/object-model",
-  "version": "0.22.0",
+  "version": "0.22.1",
   "main": "dist/commonjs/index.js",
   "module": "dist/modules/index.js",
   "jsnext:main": "dist/modules/index.js",
@@ -17,8 +17,8 @@
     "lib"
   ],
   "dependencies": {
-    "@glimmer/util": "^0.22.0",
-    "@glimmer/reference": "^0.22.0"
+    "@glimmer/util": "^0.22.1",
+    "@glimmer/reference": "^0.22.1"
   },
   "devDependencies": {
     "@types/qunit": "^2.0.31",

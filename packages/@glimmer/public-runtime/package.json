@@ -1,6 +1,6 @@
 {
   "name": "@glimmer/public-runtime",
-  "version": "0.22.0",
+  "version": "0.22.1",
   "main": "dist/commonjs/index.js",
   "module": "dist/modules/index.js",
   "jsnext:main": "dist/modules/index.js",
@@ -16,11 +16,11 @@
     "lib"
   ],
   "dependencies": {
-    "@glimmer/runtime": "^0.22.0",
-    "@glimmer/util": "^0.22.0",
-    "@glimmer/reference": "^0.22.0",
-    "@glimmer/wire-format": "^0.22.0",
-    "@glimmer/interfaces": "^0.22.0"
+    "@glimmer/runtime": "^0.22.1",
+    "@glimmer/util": "^0.22.1",
+    "@glimmer/reference": "^0.22.1",
+    "@glimmer/wire-format": "^0.22.1",
+    "@glimmer/interfaces": "^0.22.1"
   },
   "devDependencies": {
     "typescript": "^2.1.4"

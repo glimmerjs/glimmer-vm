@@ -1,6 +1,6 @@
 {
   "name": "@glimmer/node",
-  "version": "0.22.0",
+  "version": "0.22.1",
   "main": "dist/commonjs/index.js",
   "module": "dist/modules/index.js",
   "jsnext:main": "dist/modules/index.js",
@@ -17,11 +17,11 @@
   ],
   "dependencies": {
     "simple-dom": "^0.3.0",
-    "@glimmer/runtime": "^0.22.0"
+    "@glimmer/runtime": "^0.22.1"
   },
   "devDependencies": {
     "typescript": "^2.1.4",
-    "@glimmer/object-reference": "^0.22.0",
-    "@glimmer/compiler": "^0.22.0"
+    "@glimmer/object-reference": "^0.22.1",
+    "@glimmer/compiler": "^0.22.1"
   }
 }
