@@ -218,7 +218,7 @@ export class InvokeDynamicLayout implements DynamicInvoker<ProgramSymbolTable> {
     if (lookup) scope.bindEvalScope(lookup);
 
     vm.pushFrame();
-    vm.call(layout!.start);
+    vm.call(layout!.slab, layout!.start);
   }
 
   toJSON() {
@@ -291,7 +291,7 @@ export class PartialInvoker implements DynamicInvoker<ProgramSymbolTable> {
     partialScope.bindPartialMap(locals);
 
     vm.pushFrame();
-    vm.call(partial.start);
+    vm.call(partial.slab, partial.start);
   }
 }
 
@@ -384,7 +384,7 @@ class InvokeDynamicYield implements DynamicInvoker<BlockSymbolTable> {
       scope.bindSymbol(locals![i], stack.fromBase<VersionedPathReference<Opaque>>(callerCount-i));
     }
 
-    vm.call(block.start);
+    vm.call(block.slab, block.start);
   }
 
   toJSON() {
@@ -934,10 +934,12 @@ export function compileStatement(statement: WireFormat.Statement, builder: Opcod
 }
 
 export function compileStatements(statements: WireFormat.Statement[], meta: CompilationMeta, env: Environment): {
+  slab: number;
   start: number;
   finalize(): number;
 } {
-  let b = new OpcodeBuilder(env, meta);
+
+  let b = new OpcodeBuilder(env, meta, env.memory);
 
   for (let statement of statements) {
     compileStatement(statement, b);

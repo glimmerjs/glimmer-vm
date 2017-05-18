@@ -19,7 +19,7 @@ import Upsert, {
 import { UpdatingVM, VM } from '../../vm';
 
 APPEND_OPCODES.add(Op.DynamicContent, (vm, { op1: append }) => {
-  let { constants } = vm.memory.currentSlab();
+  let { constants } = vm.currentSlab();
   let opcode = constants.getOther(append) as AppendDynamicOpcode<Insertion>;
   opcode.evaluate(vm);
 });

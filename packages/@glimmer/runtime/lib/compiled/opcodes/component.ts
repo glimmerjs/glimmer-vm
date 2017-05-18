@@ -18,7 +18,7 @@ import { ComponentElementOperations } from './dom';
 import { Assert } from './vm';
 
 APPEND_OPCODES.add(Op.PushComponentManager, (vm, { op1: _definition }) => {
-  let { constants } = vm.memory.currentSlab();
+  let { constants } = vm.currentSlab();
   let definition = constants.getOther<ComponentDefinition<Opaque>>(_definition);
   let stack = vm.stack;
 

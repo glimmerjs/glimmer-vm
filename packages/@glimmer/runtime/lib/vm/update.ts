@@ -18,7 +18,6 @@ import {
   INITIAL
 } from '@glimmer/reference';
 import { OpcodeJSON, UpdatingOpcode, UpdatingOpSeq } from '../opcodes';
-import { Constants } from '../environment/constants';
 import { DOMChanges } from '../dom/helper';
 import * as Simple from '../dom/interfaces';
 
@@ -28,13 +27,11 @@ export default class UpdatingVM {
   public env: Environment;
   public dom: DOMChanges;
   public alwaysRevalidate: boolean;
-  public constants: Constants;
 
   private frameStack: Stack<UpdatingVMFrame> = new Stack<UpdatingVMFrame>();
 
   constructor(env: Environment, { alwaysRevalidate = false }) {
     this.env = env;
-    this.constants = env.constants;
     this.dom = env.getDOM();
     this.alwaysRevalidate = alwaysRevalidate;
   }

@@ -312,13 +312,14 @@ export interface MemorySlab {
 export class Memory {
   private nextFree = -1;
   _memory: MemorySlab[] = [];
-  current = -1;
-  malloc(): MemorySlab {
+  // current = -1;
+  malloc(): number {
     let nextFree = this.nextFree;
     if (nextFree !== -1) {
       this.nextFree = this._memory[nextFree].nextFree;
-      this.current = nextFree;
-      return this._memory[nextFree];
+      // this.current = nextFree;
+      return nextFree;
+      // return this._memory[nextFree];
     } else {
       let slabAddr = this._memory.length;
       let slab: MemorySlab = {
@@ -328,13 +329,13 @@ export class Memory {
         program: new Program()
       };
       this._memory.push(slab);
-      this.current = slabAddr;
-      return slab;
+      // this.current = slabAddr;
+      return slabAddr;
     }
   }
 
-  currentSlab() {
-    return this._memory[this.current];
+  slab(addr: number): MemorySlab {
+    return this._memory[addr];
   }
 
   free(ptr: number) {
@@ -355,7 +356,6 @@ export abstract class Environment {
   constructor({ appendOperations, updateOperations }: { appendOperations: DOMTreeConstruction, updateOperations: DOMChanges }) {
     this.appendOperations = appendOperations;
     this.updateOperations = updateOperations;
-    this.memory.malloc();
   }
 
   toConditionalReference(reference: Reference<Opaque>): Reference<boolean> {

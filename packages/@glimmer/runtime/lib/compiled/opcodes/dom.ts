@@ -25,22 +25,22 @@ import { Arguments } from '../../vm/arguments';
 import { Assert } from './vm';
 
 APPEND_OPCODES.add(Op.Text, (vm, { op1: text }) => {
-  let { constants } = vm.memory.currentSlab();
+  let { constants } = vm.currentSlab();
   vm.elements().appendText(constants.getString(text));
 });
 
 APPEND_OPCODES.add(Op.Comment, (vm, { op1: text }) => {
-  let { constants } = vm.memory.currentSlab();
+  let { constants } = vm.currentSlab();
   vm.elements().appendComment(constants.getString(text));
 });
 
 APPEND_OPCODES.add(Op.OpenElement, (vm, { op1: tag }) => {
-  let { constants } = vm.memory.currentSlab();
+  let { constants } = vm.currentSlab();
   vm.elements().openElement(constants.getString(tag));
 });
 
 APPEND_OPCODES.add(Op.OpenElementWithOperations, (vm, { op1: tag }) => {
-  let { constants } = vm.memory.currentSlab();
+  let { constants } = vm.currentSlab();
   let tagName = constants.getString(tag);
   let operations = vm.stack.pop<ElementOperations>();
   vm.elements().openElement(tagName, operations);
@@ -318,7 +318,7 @@ APPEND_OPCODES.add(Op.FlushElement, vm => {
 APPEND_OPCODES.add(Op.CloseElement, vm => vm.elements().closeElement());
 
 APPEND_OPCODES.add(Op.StaticAttr, (vm, { op1: _name, op2: _value, op3: _namespace }) => {
-  let { constants } = vm.memory.currentSlab();
+  let { constants } = vm.currentSlab();
   let name = constants.getString(_name);
   let value = constants.getString(_value);
 
@@ -331,7 +331,7 @@ APPEND_OPCODES.add(Op.StaticAttr, (vm, { op1: _name, op2: _value, op3: _namespac
 });
 
 APPEND_OPCODES.add(Op.Modifier, (vm, { op1: _manager }) => {
-  let { constants } = vm.memory.currentSlab();
+  let { constants } = vm.currentSlab();
   let manager = constants.getOther<ModifierManager<Opaque>>(_manager);
   let stack = vm.stack;
   let args = stack.pop<Arguments>();
@@ -476,7 +476,7 @@ function formatElement(element: Simple.Element): string {
 }
 
 APPEND_OPCODES.add(Op.DynamicAttrNS, (vm, { op1: _name, op2: _namespace, op3: trusting }) => {
-  let { constants } = vm.memory.currentSlab();
+  let { constants } = vm.currentSlab();
   let name = constants.getString(_name);
   let namespace = constants.getString(_namespace);
   let reference = vm.stack.pop<VersionedReference<string>>();
@@ -484,7 +484,7 @@ APPEND_OPCODES.add(Op.DynamicAttrNS, (vm, { op1: _name, op2: _namespace, op3: tr
 });
 
 APPEND_OPCODES.add(Op.DynamicAttr, (vm, { op1: _name, op2: trusting }) => {
-  let { constants } = vm.memory.currentSlab();
+  let { constants } = vm.currentSlab();
   let name = constants.getString(_name);
   let reference = vm.stack.pop<VersionedReference<string>>();
   vm.elements().setDynamicAttribute(name, reference, !!trusting);

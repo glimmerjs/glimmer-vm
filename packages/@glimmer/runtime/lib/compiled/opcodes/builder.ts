@@ -58,12 +58,14 @@ export abstract class BasicOpcodeBuilder {
   public constants: Constants;
   public start: number;
   public program: Program;
+  public slab: number;
 
   private labelsStack = new Stack<Labels>();
 
   constructor(public env: Environment, public meta: CompilationMeta, public memory: Memory = env.memory) {
-    let { program, constants } = memory.currentSlab();
-    this.program = program;
+    let slab = this.slab = memory.malloc();
+    let { program, constants } = memory.slab(slab);
+    this.program = program
     this.constants = constants;
     this.start = program.next;
   }

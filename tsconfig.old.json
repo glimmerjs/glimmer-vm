@@ -21,19 +21,24 @@
     "strictNullChecks": true,
     "noImplicitReturns": true,
     "noImplicitThis": true,
-    "listFiles":false,
+
     "newLine": "LF",
     "noEmit": true,
+
     "paths": {
-      "@glimmer/wire-format": [
-        "@glimmer/wire-format/index.ts"
-      ],
-      "@glimmer/interfaces": [
-        "@glimmer/interfaces/index.d.ts"
-      ]
+      "*": ["*"]
     }
   },
-  "files": [
-    "packages/@glimmer/runtime/index.ts"
+  "include": [
+    "packages/**/*.ts"
+  ],
+  "exclude": [
+    "dist",
+    "demos",
+    "packages/glimmer-demos",
+    "packages/glimmer-benchmarks",
+    "tmp",
+    "node_modules",
+    ".vscode"
   ]
 }

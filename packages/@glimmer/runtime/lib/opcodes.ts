@@ -892,10 +892,10 @@ export const enum Op {
   Size
 }
 
-export function debugSlice(env: Environment, start: number, end: number) {
+export function debugSlice(env: Environment, slab: number, start: number, end: number) {
   if (!CI && DEBUG) {
     /* tslint:disable:no-console */
-    let { program, constants } = env.memory.currentSlab();
+    let { program, constants } = env.memory.slab(slab);
 
     // console is not available in IE9
     if (typeof console === 'undefined') { return; }
@@ -1074,10 +1074,10 @@ export class AppendOpcodes {
   evaluate(vm: VM, opcode: Opcode, type: number) {
     let func = this.evaluateOpcode[type];
     if (!CI && DEBUG) {
-      let { constants } = vm.memory.currentSlab();
+      let { constants } = vm.currentSlab();
       /* tslint:disable */
       let [name, params] = debug(constants, opcode.type, opcode.op1, opcode.op2, opcode.op3);
-      console.log(`${vm['pc'] - 4}. ${logOpcode(name, params)}`);
+      console.log(`slab ${vm['slab']} : ${vm['pc'] - 4}. ${logOpcode(name, params)}`);
       // console.log(...debug(vm.constants, type, opcode.op1, opcode.op2, opcode.op3));
       /* tslint:enable */
     }
@@ -1086,7 +1086,7 @@ export class AppendOpcodes {
 
     if (!CI && DEBUG) {
       /* tslint:disable */
-      console.log('%c -> pc: %d, ra: %d, fp: %d, sp: %d, s0: %O, s1: %O, t0: %O, t1: %O', 'color: orange', vm['pc'], vm['ra'], vm['fp'], vm['sp'], vm['s0'], vm['s1'], vm['t0'], vm['t1']);
+      console.log('%c -> slab: %d, pc: %d, ra: %d, fp: %d, sp: %d, s0: %O, s1: %O, t0: %O, t1: %O', 'color: orange', vm['slab'], vm['pc'], vm['ra'], vm['fp'], vm['sp'], vm['s0'], vm['s1'], vm['t0'], vm['t1']);
       console.log('%c -> eval stack', 'color: red', vm.stack.toArray());
       console.log('%c -> scope', 'color: green', vm.scope()['slots'].map(s => s && s['value'] ? s['value']() : s));
       console.log('%c -> elements', 'color: blue', vm.elements()['elementStack'].toArray());
