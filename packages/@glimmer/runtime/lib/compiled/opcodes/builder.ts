@@ -4,7 +4,7 @@ import { dict, EMPTY_ARRAY, expect, fillNulls, Stack } from '@glimmer/util';
 import * as WireFormat from '@glimmer/wire-format';
 import { ComponentBuilder } from '../../compiler';
 import { ComponentDefinition } from '../../component/interfaces';
-import Environment, { Program, Memory } from '../../environment';
+import Environment, { Program, Memory, MemorySlab } from '../../environment';
 import {
   ConstantArray,
   ConstantBlock,
@@ -62,12 +62,19 @@ export abstract class BasicOpcodeBuilder {
 
   private labelsStack = new Stack<Labels>();
 
-  constructor(public env: Environment, public meta: CompilationMeta, public memory: Memory = env.memory) {
-    let slab = this.slab = memory.malloc();
-    let { program, constants } = memory.slab(slab);
-    this.program = program
-    this.constants = constants;
-    this.start = program.next;
+  constructor(public env: Environment, public meta: CompilationMeta, public memory: Memory = env.memory, private parentSlab?: number) {
+    let memorySlab: MemorySlab;
+    if (this.parentSlab === undefined) {
+      let slab = this.slab = memory.malloc();
+      memorySlab = memory.slab(slab);
+    } else {
+      this.slab = this.parentSlab;
+      memorySlab = memory.slab(this.parentSlab);
+    }
+
+    this.program = memorySlab.program;
+    this.constants = memorySlab.constants;
+    this.start = this.program.next;
   }
 
   abstract compile<E>(expr: Represents<E>): E;
@@ -350,6 +357,8 @@ export abstract class BasicOpcodeBuilder {
   }
 
   returnTo(label: string) {
+    this.pushImmediate(this.slab);
+    this.load(Register.rslab);
     this.reserve(Op.Immediate);
     this.labels.target(this.pos, Op.Immediate, label);
     this.load(Register.ra);
@@ -536,18 +545,9 @@ function isCompilableExpression<E>(expr: Represents<E>): expr is CompilesInto<E>
 
 export default class OpcodeBuilder extends BasicOpcodeBuilder {
   public component: IComponentBuilder;
-  private static instance: OpcodeBuilder;
 
-  static getInstance(env: Environment, meta: CompilationMeta, memory?: Memory) {
-    if (!OpcodeBuilder.instance) {
-      OpcodeBuilder.instance = new this(env, meta, memory);
-    }
-
-    return OpcodeBuilder.instance;
-  }
-
-  constructor(env: Environment, meta: CompilationMeta, memory: Memory = env.memory) {
-    super(env, meta, memory);
+  constructor(env: Environment, meta: CompilationMeta, memory: Memory = env.memory, parentSlab?: number) {
+    super(env, meta, memory, parentSlab);
     this.component = new ComponentBuilder(this);
   }
 
@@ -661,7 +661,7 @@ export default class OpcodeBuilder extends BasicOpcodeBuilder {
 
   template(block: Option<WireFormat.SerializedInlineBlock>): Option<RawInlineBlock> {
     if (!block) return null;
-    return new RawInlineBlock(this.meta, block.statements, block.parameters);
+    return new RawInlineBlock(this.meta, block.statements, block.parameters, this.slab);
   }
 }
 

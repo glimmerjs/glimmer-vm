@@ -100,7 +100,7 @@ export abstract class BlockOpcode extends UpdatingOpcode implements DestroyableB
   protected stack: CapturedStack;
   protected bounds: DestroyableBounds;
 
-  constructor(public start: number, state: VMState, bounds: DestroyableBounds, children: LinkedList<UpdatingOpcode>) {
+  constructor(public slab: number, public start: number, state: VMState, bounds: DestroyableBounds, children: LinkedList<UpdatingOpcode>) {
     super();
     let { env, scope, dynamicScope, stack } = state;
     this.children = children;
@@ -158,8 +158,8 @@ export class TryOpcode extends BlockOpcode implements ExceptionHandler {
 
   protected bounds: UpdatableTracker;
 
-  constructor(start: number, state: VMState, bounds: UpdatableTracker, children: LinkedList<UpdatingOpcode>) {
-    super(start, state, bounds, children);
+  constructor(slab: number, start: number, state: VMState, bounds: UpdatableTracker, children: LinkedList<UpdatingOpcode>) {
+    super(slab, start, state, bounds, children);
     this.tag = this._tag = UpdatableTag.create(CONSTANT_TAG);
   }
 
@@ -172,7 +172,7 @@ export class TryOpcode extends BlockOpcode implements ExceptionHandler {
   }
 
   handleException() {
-    let { env, bounds, children, scope, dynamicScope, start, stack, prev, next } = this;
+    let { env, bounds, children, scope, dynamicScope, slab, start, stack, prev, next } = this;
 
     children.clear();
 
@@ -186,7 +186,7 @@ export class TryOpcode extends BlockOpcode implements ExceptionHandler {
 
     let updating = new LinkedList<UpdatingOpcode>();
 
-    vm.execute(start, vm => {
+    vm.execute(slab, start, vm => {
       vm.stack = EvaluationStack.restore(stack);
       vm.updatingOpcodeStack.push(updating);
       vm.updateWith(this);
@@ -236,13 +236,13 @@ class ListRevalidationDelegate implements IteratorSynchronizerDelegate {
     let vm = opcode.vmForInsertion(nextSibling);
     let tryOpcode: Option<TryOpcode> = null;
 
-    let { start } = opcode;
+    let { start, slab } = opcode;
 
-    vm.execute(start, vm => {
+    vm.execute(slab, start, vm => {
       map[key] = tryOpcode = vm.iterate(memo, item);
       vm.updatingOpcodeStack.push(new LinkedList<UpdatingOpcode>());
       vm.updateWith(tryOpcode);
-      vm.updatingOpcodeStack.push(tryOpcode.children);
+      vm.updatingOpcodeStack.push(tryOpcode!.children);
     });
 
     updating.insertBefore(tryOpcode!, reference);
@@ -293,8 +293,8 @@ export class ListBlockOpcode extends BlockOpcode {
   private lastIterated: Revision = INITIAL;
   private _tag: TagWrapper<UpdatableTag>;
 
-  constructor(start: number, state: VMState, bounds: Tracker, children: LinkedList<UpdatingOpcode>, artifacts: IterationArtifacts) {
-    super(start, state, bounds, children);
+  constructor(slab: number, start: number, state: VMState, bounds: Tracker, children: LinkedList<UpdatingOpcode>, artifacts: IterationArtifacts) {
+    super(slab, start, state, bounds, children);
     this.artifacts = artifacts;
     let _tag = this._tag = UpdatableTag.create(CONSTANT_TAG);
     this.tag = combine([artifacts.tag, _tag]);

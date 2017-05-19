@@ -25,6 +25,9 @@ export enum Register {
   // $0 or $pc (program counter): pointer into `program` for the next insturction; -1 means exit
   'pc',
 
+  // TODO fix docs
+  'rslab',
+
   // $1 or $ra (return address): pointer into `program` for the return
   'ra',
 
@@ -40,7 +43,7 @@ export enum Register {
 
   // $6-$7 or $t0-$t1 (temporaries): caller saved general-purpose registers
   't0',
-  't1'
+  't1',
 }
 
 export const enum Op {
@@ -1086,7 +1089,7 @@ export class AppendOpcodes {
 
     if (!CI && DEBUG) {
       /* tslint:disable */
-      console.log('%c -> slab: %d, pc: %d, ra: %d, fp: %d, sp: %d, s0: %O, s1: %O, t0: %O, t1: %O', 'color: orange', vm['slab'], vm['pc'], vm['ra'], vm['fp'], vm['sp'], vm['s0'], vm['s1'], vm['t0'], vm['t1']);
+      console.log('%c -> slab: %d, pc: %d, rslab: %d, ra: %d, fp: %d, sp: %d, s0: %O, s1: %O, t0: %O, t1: %O', 'color: orange', vm['slab'], vm['pc'], vm['rslab'], vm['ra'], vm['fp'], vm['sp'], vm['s0'], vm['s1'], vm['t0'], vm['t1']);
       console.log('%c -> eval stack', 'color: red', vm.stack.toArray());
       console.log('%c -> scope', 'color: green', vm.scope()['slots'].map(s => s && s['value'] ? s['value']() : s));
       console.log('%c -> elements', 'color: blue', vm.elements()['elementStack'].toArray());

@@ -231,7 +231,7 @@ STATEMENTS.add(Ops.Component, (sexp: S.Component, builder: OpcodeBuilder) => {
 
   if (builder.env.hasComponentDefinition(tag, builder.meta.templateMeta)) {
     let child = builder.template(block);
-    let attrsBlock = new RawInlineBlock(builder.meta, attrs, EMPTY_ARRAY);
+    let attrsBlock = new RawInlineBlock(builder.meta, attrs, EMPTY_ARRAY, builder.slab);
     let definition = builder.env.getComponentDefinition(tag, builder.meta.templateMeta);
     builder.pushComponentManager(definition);
     builder.invokeComponent(attrsBlock, null, args, child && child.scan());
@@ -933,13 +933,13 @@ export function compileStatement(statement: WireFormat.Statement, builder: Opcod
   STATEMENTS.compile(statement, builder);
 }
 
-export function compileStatements(statements: WireFormat.Statement[], meta: CompilationMeta, env: Environment): {
+export function compileStatements(statements: WireFormat.Statement[], meta: CompilationMeta, env: Environment, parentSlab?: number): {
   slab: number;
   start: number;
   finalize(): number;
 } {
 
-  let b = new OpcodeBuilder(env, meta, env.memory);
+  let b = new OpcodeBuilder(env, meta, env.memory, parentSlab);
 
   for (let statement of statements) {
     compileStatement(statement, b);

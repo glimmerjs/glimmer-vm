@@ -169,10 +169,10 @@ export default class VM implements PublicVM {
 
   // Restore $ra, $sp and $fp
   popFrame() {
+    this.sp = this.fp -1;
     this.rslab = this.stack.fromBase<number>(0);
     this.ra = this.stack.fromBase<number>(-1);
     this.fp = this.stack.fromBase<number>(-2);
-    this.sp = this.fp + 2;
   }
 
   // Jump to an address in `program`
@@ -270,7 +270,7 @@ export default class VM implements PublicVM {
     let state = this.capture(args);
     let tracker = this.elements().pushUpdatableBlock();
 
-    let tryOpcode = new TryOpcode(this.pc, state, tracker, updating);
+    let tryOpcode = new TryOpcode(this.slab, this.pc, state, tracker, updating);
 
     this.didEnter(tryOpcode);
   }
@@ -287,7 +287,7 @@ export default class VM implements PublicVM {
     // this.ip = end + 4;
     // this.frames.push(ip);
 
-    return new TryOpcode(this.pc, state, tracker, new LinkedList<UpdatingOpcode>());
+    return new TryOpcode(this.slab, this.pc, state, tracker, new LinkedList<UpdatingOpcode>());
   }
 
   enterItem(key: string, opcode: TryOpcode) {
@@ -302,7 +302,7 @@ export default class VM implements PublicVM {
     let tracker = this.elements().pushBlockList(updating);
     let artifacts = this.stack.peek<ReferenceIterator>().artifacts;
 
-    let opcode = new ListBlockOpcode(start, state, tracker, updating, artifacts);
+    let opcode = new ListBlockOpcode(this.slab, start, state, tracker, updating, artifacts);
 
     this.listBlockStack.push(opcode);
 
@@ -398,7 +398,8 @@ export default class VM implements PublicVM {
 
   /// EXECUTION
 
-  execute(start: number, initialize?: (vm: VM) => void): RenderResult {
+  execute(slab: number, start: number, initialize?: (vm: VM) => void): RenderResult {
+    this.slab = slab;
     this.pc = start;
 
     if (initialize) initialize(this);

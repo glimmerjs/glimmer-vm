@@ -7,10 +7,11 @@ export default class RawInlineBlock implements ScannableTemplate<BlockSymbolTabl
   constructor(
     private meta: CompilationMeta,
     private statements: Statement[],
-    private parameters: number[]) {
+    private parameters: number[],
+    private slab?: number) {
   }
 
   scan(): Block {
-    return new CompilableTemplate(this.statements, { parameters: this.parameters, meta: this.meta });
+    return new CompilableTemplate(this.statements, { parameters: this.parameters, meta: this.meta }, this.slab);
   }
 }
