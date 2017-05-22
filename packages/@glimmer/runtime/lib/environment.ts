@@ -340,9 +340,10 @@ export class Memory {
 
   free(ptr: number) {
     this.nextFree = ptr;
-    this._memory[ptr].length = 0;
-    this._memory[ptr].constants.reset();
-    this._memory[ptr].nextFree = -1;
+    let slab = this._memory[ptr];
+    slab.length = 0;
+    slab.constants.reset();
+    slab.nextFree = -1;
   }
 }
 

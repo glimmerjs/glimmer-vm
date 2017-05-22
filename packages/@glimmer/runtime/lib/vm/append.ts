@@ -419,7 +419,7 @@ export default class VM implements PublicVM {
     let opcode = this.nextStatement(env);
     let result: IteratorResult<RenderResult>;
     if (opcode !== null) {
-      APPEND_OPCODES.evaluate(this, opcode, opcode.type);
+      APPEND_OPCODES.evaluate(this, opcode);
       result = { done: false, value: null };
     } else {
       // Unload the stack
@@ -451,7 +451,7 @@ export default class VM implements PublicVM {
   }
 
   evaluateOpcode(opcode: Opcode) {
-    APPEND_OPCODES.evaluate(this, opcode, opcode.type);
+    APPEND_OPCODES.evaluate(this, opcode);
   }
 
   bindDynamicScope(names: ConstantString[]) {

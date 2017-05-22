@@ -1,7 +1,7 @@
 import { Opaque, Option, Dict, Slice as ListSlice, initializeGuid, fillNulls, unreachable } from '@glimmer/util';
 import { Tag } from '@glimmer/reference';
 import { VM, UpdatingVM } from './vm';
-import { Opcode, Environment } from './environment';
+import { Opcode, Environment, MemorySlab } from './environment';
 import { Constants } from './environment/constants';
 import { DEBUG, CI } from '@glimmer/local-debug-flags';
 
@@ -1065,7 +1065,7 @@ export type Operand1 = number;
 export type Operand2 = number;
 export type Operand3 = number;
 
-export type EvaluateOpcode = (vm: VM, opcode: Opcode) => void;
+export type EvaluateOpcode = (vm: VM, opcode: Opcode, memory: MemorySlab) => void;
 
 export class AppendOpcodes {
   private evaluateOpcode: EvaluateOpcode[] = fillNulls<EvaluateOpcode>(Op.Size).slice();
@@ -1074,8 +1074,8 @@ export class AppendOpcodes {
     this.evaluateOpcode[name as number] = evaluate;
   }
 
-  evaluate(vm: VM, opcode: Opcode, type: number) {
-    let func = this.evaluateOpcode[type];
+  evaluate(vm: VM, opcode: Opcode) {
+    let func = this.evaluateOpcode[opcode.type];
     if (!CI && DEBUG) {
       let { constants } = vm.currentSlab();
       /* tslint:disable */
@@ -1085,7 +1085,9 @@ export class AppendOpcodes {
       /* tslint:enable */
     }
 
-    func(vm, opcode);
+    let memory = vm.currentSlab();
+
+    func(vm, opcode, memory);
 
     if (!CI && DEBUG) {
       /* tslint:disable */

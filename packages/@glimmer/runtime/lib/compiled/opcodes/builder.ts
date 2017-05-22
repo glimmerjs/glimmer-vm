@@ -63,18 +63,17 @@ export abstract class BasicOpcodeBuilder {
   private labelsStack = new Stack<Labels>();
 
   constructor(public env: Environment, public meta: CompilationMeta, public memory: Memory = env.memory, private parentSlab?: number) {
-    let memorySlab: MemorySlab;
+    let slab: number;
     if (this.parentSlab === undefined) {
-      let slab = this.slab = memory.malloc();
-      memorySlab = memory.slab(slab);
+      slab = this.slab = memory.malloc();
     } else {
-      this.slab = this.parentSlab;
-      memorySlab = memory.slab(this.parentSlab);
+      slab = this.slab = this.parentSlab;
     }
 
-    this.program = memorySlab.program;
-    this.constants = memorySlab.constants;
-    this.start = this.program.next;
+    let { program, constants } = memory.slab(this.slab);
+    this.program = program;
+    this.constants = constants;
+    this.start = program.next;
   }
 
   abstract compile<E>(expr: Represents<E>): E;
