@@ -287,7 +287,6 @@ export abstract class Environment {
   }
 
   begin() {
-    assert(!this._transaction, 'Cannot start a nested transaction');
     this._transaction = new Transaction();
   }
 
