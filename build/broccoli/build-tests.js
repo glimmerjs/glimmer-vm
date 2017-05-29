@@ -22,8 +22,11 @@ module.exports = function(packages) {
   let testTree = merge([
     includeGlimmerAMD(amdTree),
     includeTestFiles(amdTree),
+    includeDemoFiles(amdTree),
+    includeBenchmarkFiles(amdTree),
     includeVendorDependencies(),
-    includeTestHarness()
+    includeTestHarness(),
+    includeDemoHtmls(),
   ]);
 
   return funnel(testTree, {
@@ -117,6 +120,30 @@ function includeTestFiles(amd) {
   });
 }
 
+function includeDemoFiles(amd) {
+  let demoAMD = funnel(amd, {
+    include: [
+      'glimmer-demos/**/*.js'
+    ]
+  });
+
+  return concat(demoAMD, {
+    outputFile: 'assets/demos.js'
+  });
+}
+
+function includeBenchmarkFiles(amd) {
+  let benchmarkAMD = funnel(amd, {
+    include: [
+      'glimmer-benchmarks/**/*.js'
+    ]
+  });
+
+  return concat(benchmarkAMD, {
+    outputFile: 'assets/benchmarks.js'
+  });
+}
+
 function includeVendorDependencies() {
   let simpleHTMLTokenizer = funnel('node_modules/simple-html-tokenizer/dist/es6', {
     include: ['*.js'],
@@ -156,4 +183,13 @@ function includeTestHarness() {
   ];
 
   return merge(harnessTrees);
+}
+
+function includeDemoHtmls() {
+  let htmls = funnel('demos', {
+    include: ['*.html'],
+    destDir: 'demos/',
+  });
+
+  return htmls;
 }
