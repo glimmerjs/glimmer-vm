@@ -111,7 +111,13 @@ export function init({ app, env } = compile()) {
   env.begin();
 
   serversRef = new UpdatableReference({ servers: generateServers(), fps: null });
-  result = app.render(serversRef, output, new TestDynamicScope());
+  let templateIterator = app.render(serversRef, output, new TestDynamicScope());
+
+  do {
+    result = templateIterator.next();
+  } while (!result.done);
+
+  result = result.value;
 
   env.commit();
   console.timeEnd('initial render');

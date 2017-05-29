@@ -6,6 +6,7 @@ import { UpdatableReference } from '@glimmer/object-reference';
 import { precompile } from '@glimmer/compiler';
 
 import { templateFactory } from '@glimmer/runtime';
+import { Arguments } from '@glimmer/runtime/lib/vm/arguments';
 
 const APPEND_NAMES = ["push-child-scope","pop-scope","push-dynamic-scope","pop-dynamic-scope","put","evaluate-put","put-args","bind-positional-args","bind-named-args","bind-blocks","bind-partial-args","bind-caller-scope","bind-dynamic-scope","enter","exit","evaluate","jump","jump-if","jump-unless","test","open-block","close-block","put-dynamic-component","put-component","open-component","did-create-element","shadow-attributes","did-render-layout","close-component","text","comment","dynamic-content","open-element","push-remote-element","pop-remote-element","open-component-element","open-dynamic-element","flush-element","close-element","pop-element","static-attr","modifier","dynamic-attr-ns","dynamic-attr","put-iterator","enter-list","exit-list","enter-with-key","next-iter","put-dynamic-partial","put-partial","evaluate-partial"];
 
@@ -340,13 +341,19 @@ function renderUI() {
 
   env.begin();
   let self = new UpdatableReference(ui);
-  let res = env.compile(UI).render(self, document.body, new TestDynamicScope());
+  let templateIterator = env.compile(UI).render(self, document.body, new TestDynamicScope());
+  let result;
+  do {
+    result = templateIterator.next();
+  } while (!result.done);
+  result = result.value;
+
   env.commit();
 
   rerenderUI = () => {
     self.update(ui);
     env.begin();
-    res.rerender();
+    result.rerender();
     env.commit();
   };
 }
@@ -401,7 +408,7 @@ function renderContent() {
     let definition = env.getComponentDefinition(component);
 
     let manager = definition.manager;
-    let instance = manager.create(env, definition, ARGS.empty(), new TestDynamicScope(), null, false);
+    let instance = manager.create(env, definition, new Arguments(), new TestDynamicScope(), null, false);
     let compiled = manager.layoutFor(definition, instance, env);
 
     return compiled;
@@ -425,7 +432,14 @@ function renderContent() {
 
   env.begin();
   let self = new UpdatableReference(data);
-  let res = app.render(self, div, new TestDynamicScope());
+  let templateIterator = app.render(self, div, new TestDynamicScope());
+
+  let result;
+  do {
+    result = templateIterator.next();
+  } while (!result.done);
+
+  result = result.value;
   env.commit();
 
   let entryPoint = app.asEntryPoint();
@@ -445,7 +459,7 @@ function renderContent() {
   ui.layout.wireFormat = compile($layout.value, env)._block;
   ui.layout.opcodes = layoutOps;
 
-  ui.updatingOpcodes = toJSON(res['updating']);
+  ui.updatingOpcodes = toJSON(result['updating']);
 
   ui.html = div.innerHTML;
 
@@ -455,11 +469,11 @@ function renderContent() {
   _updateContent = () => {
     self.update(JSON.parse($data.value));
     env.begin();
-    res.rerender();
+    result.rerender();
     env.commit();
     ui.template.opcodes = toJSON(eagerCompile(templateOps));
     ui.layout.opcodes = toJSON(eagerCompile(layoutOps));
-    ui.updatingOpcodes = toJSON(res['updating']);
+    ui.updatingOpcodes = toJSON(result['updating']);
     ui.html = div.innerHTML;
     rerenderUI();
   };
