@@ -33,8 +33,7 @@ import {
   Opaque,
   HasGuid,
   ensureGuid,
-  expect,
-  assert
+  expect
 } from '@glimmer/util';
 
 import {
