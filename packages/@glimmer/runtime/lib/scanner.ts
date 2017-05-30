@@ -244,18 +244,26 @@ export class RawInlineBlock {
   scan(): InlineBlock {
     let buffer: BaselineSyntax.AnyStatement[] = [];
 
-    for(let i = 0; i < this.statements.length; i++) {
-      let statement = this.statements[i];
-      if (WireFormat.Statements.isBlock(statement)) {
-        buffer.push(this.specializeBlock(statement));
-      } else if (WireFormat.Statements.isComponent(statement)) {
-        buffer.push(...this.specializeComponent(statement));
-      } else {
-        buffer.push(statement);
-      }
-    }
+    this.specializeStatements(this.statements, buffer);
 
     return new InlineBlock(buffer, this.table);
+  }
+
+  private specializeStatements(statements: SerializedStatement[], buffer: BaselineSyntax.AnyStatement[]) {
+    for(let i = 0; i < statements.length; i++) {
+      let statement = statements[i];
+      this.specializeStatement(statement, buffer);
+    }
+  }
+
+  private specializeStatement(statement: SerializedStatement, buffer: BaselineSyntax.AnyStatement[]) {
+    if (WireFormat.Statements.isBlock(statement)) {
+      buffer.push(this.specializeBlock(statement));
+    } else if (WireFormat.Statements.isComponent(statement)) {
+      buffer.push(...this.specializeComponent(statement));
+    } else {
+      buffer.push(statement);
+    }
   }
 
   private specializeBlock(block: WireFormat.Statements.Block): BaselineSyntax.ScannedBlock {
@@ -271,13 +279,14 @@ export class RawInlineBlock {
       let attrs = new RawInlineBlock(this.env, this.table, component.attrs);
       return [[Ops.ScannedComponent, tag, attrs, component.args, child]];
     } else {
-      let buf: BaselineSyntax.AnyStatement[] = [];
-      buf.push([Ops.OpenElement, tag, []]);
-      buf.push(...component.attrs);
-      buf.push([Ops.FlushElement]);
-      buf.push(...component.statements);
-      buf.push([Ops.CloseElement]);
-      return buf;
+      let buff: BaselineSyntax.AnyStatement[] = [];
+      buff.push([Ops.OpenElement, tag, []]);
+      this.specializeStatements(component.attrs, buff);
+      buff.push([Ops.FlushElement]);
+      this.specializeStatements(component.statements, buff);
+      buff.push([Ops.CloseElement]);
+
+      return buff;
     }
   }
 

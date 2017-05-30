@@ -196,29 +196,6 @@ STATEMENTS.add(Ops.ScannedBlock, (sexp: BaselineSyntax.ScannedBlock, builder) =>
   blocks.compile([Ops.NestedBlock, path, params, hash, templateBlock, inverseBlock], builder);
 });
 
-// this fixes an issue with Ember versions using glimmer-vm@0.22 when attempting
-// to use nested web components.  This is obviously not correct for angle bracket components
-// but since no consumers are currently using them with glimmer@0.22.x we are hard coding
-// support to just use the fallback case.
-STATEMENTS.add(Ops.Component, (sexp: WireFormat.Statements.Component, builder) => {
-  let [, tag, component ] = sexp;
-  let { attrs, statements } = component;
-
-  builder.openPrimitiveElement(tag);
-
-  for (let i = 0; i < attrs.length; i++) {
-    STATEMENTS.compile(attrs[i], builder);
-  }
-
-  builder.flushElement();
-
-  for (let i = 0; i < statements.length; i++) {
-    STATEMENTS.compile(statements[i], builder);
-  }
-
-  builder.closeElement();
-});
-
 STATEMENTS.add(Ops.ScannedComponent, (sexp: BaselineSyntax.ScannedComponent, builder) => {
   let [, tag, attrs, rawArgs, rawBlock] = sexp;
   let block = rawBlock && rawBlock.scan();
