@@ -50,7 +50,7 @@ export namespace Expressions {
    */
   export type MaybeLocal     = [Opcodes.MaybeLocal, Path];
 
-  export type Value          = str | number | boolean | null; // tslint:disable-line
+  export type Value          = str | number | boolean; // tslint:disable-line
   export type HasBlock       = [Opcodes.HasBlock, YieldTo];
   export type HasBlockParams = [Opcodes.HasBlockParams, YieldTo];
   export type Undefined      = [Opcodes.Undefined];
