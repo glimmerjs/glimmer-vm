@@ -35,11 +35,11 @@ APPEND_OPCODES.add(Op.Immediate, (vm, { op1: number }) => {
   vm.stack.push(number);
 });
 
-APPEND_OPCODES.add(Op.Constant, (vm, { op1: other }) => {
-  vm.stack.push(vm.constants.getOther(other));
+APPEND_OPCODES.add(Op.Constant, (vm, { op1: other }, { constants }) => {
+  vm.stack.push(constants.getOther(other));
 });
 
-APPEND_OPCODES.add(Op.PrimitiveReference, (vm, { op1: primitive }) => {
+APPEND_OPCODES.add(Op.PrimitiveReference, (vm, { op1: primitive }, { constants }) => {
   let stack = vm.stack;
   let flag = (primitive & (3 << 30)) >>> 30;
   let value = primitive & ~(3 << 30);
@@ -49,7 +49,7 @@ APPEND_OPCODES.add(Op.PrimitiveReference, (vm, { op1: primitive }) => {
       stack.push(PrimitiveReference.create(value));
       break;
     case 1:
-      stack.push(PrimitiveReference.create(vm.constants.getString(value)));
+      stack.push(PrimitiveReference.create(constants.getString(value)));
       break;
     case 2:
       switch (value) {
@@ -73,8 +73,8 @@ APPEND_OPCODES.add(Op.Load, (vm, { op1: register }) => vm.load(register));
 
 APPEND_OPCODES.add(Op.Fetch, (vm, { op1: register }) => vm.fetch(register));
 
-APPEND_OPCODES.add(Op.BindDynamicScope, (vm, { op1: _names }) => {
-  let names = vm.constants.getArray(_names);
+APPEND_OPCODES.add(Op.BindDynamicScope, (vm, { op1: _names }, { constants }) => {
+  let names = constants.getArray(_names);
   vm.bindDynamicScope(names);
 });
 
@@ -92,18 +92,18 @@ APPEND_OPCODES.add(Op.CompileDynamicBlock, vm => {
   stack.push(block ? block.compileDynamic(vm.env) : null);
 });
 
-APPEND_OPCODES.add(Op.InvokeStatic, (vm, { op1: _block }) => {
-  let block = vm.constants.getBlock(_block);
+APPEND_OPCODES.add(Op.InvokeStatic, (vm, { op1: _block }, { constants }) => {
+  let block = constants.getBlock(_block);
   let compiled = block.compileStatic(vm.env);
-  vm.call(compiled.start);
+  vm.call(compiled.slab, compiled.start);
 });
 
 export interface DynamicInvoker<S extends SymbolTable> {
   invoke(vm: VM, block: Option<CompiledDynamicTemplate<S>>): void;
 }
 
-APPEND_OPCODES.add(Op.InvokeDynamic, (vm, { op1: _invoker }) => {
-  let invoker = vm.constants.getOther<DynamicInvoker<SymbolTable>>(_invoker);
+APPEND_OPCODES.add(Op.InvokeDynamic, (vm, { op1: _invoker }, { constants }) => {
+  let invoker = constants.getOther<DynamicInvoker<SymbolTable>>(_invoker);
   let block = vm.stack.pop<Option<CompiledDynamicTemplate<SymbolTable>>>();
   invoker.invoke(vm, block);
 });
@@ -162,10 +162,10 @@ export const EnvironmentTest: TestFunction = function(ref: Reference<Opaque>, en
   return env.toConditionalReference(ref);
 };
 
-APPEND_OPCODES.add(Op.Test, (vm, { op1: _func }) => {
+APPEND_OPCODES.add(Op.Test, (vm, { op1: _func }, { constants }) => {
   let stack = vm.stack;
   let operand = stack.pop();
-  let func = vm.constants.getFunction(_func);
+  let func = constants.getFunction(_func);
   stack.push(func(operand, vm.env));
 });
 

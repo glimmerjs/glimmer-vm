@@ -13,20 +13,21 @@ export default class CompilableTemplate<S extends SymbolTable> implements ICompi
   private compiledStatic: Option<CompiledStaticTemplate> = null;
   private compiledDynamic: Option<CompiledDynamicTemplate<S>> = null;
 
-  constructor(public statements: Statement[], public symbolTable: S) {}
+  constructor(public statements: Statement[], public symbolTable: S, private parentSlab?: number) {}
 
   compileStatic(env: Environment): CompiledStaticTemplate {
     let { compiledStatic } = this;
 
     if (!compiledStatic) {
-      let builder = compileStatements(this.statements, this.symbolTable.meta, env);
+      let builder = compileStatements(this.statements, this.symbolTable.meta, env, this.parentSlab);
 
+      let slab = builder.slab;
       let start = builder.start;
       let end = builder.finalize();
 
-      debugSlice(env, start, end);
+      debugSlice(env, slab, start, end);
 
-      compiledStatic = this.compiledStatic = new CompiledStaticTemplate(start, end);
+      compiledStatic = this.compiledStatic = new CompiledStaticTemplate(slab, start, end);
     }
 
     return compiledStatic;
@@ -37,7 +38,7 @@ export default class CompilableTemplate<S extends SymbolTable> implements ICompi
 
     if (!compiledDynamic) {
       let staticBlock = this.compileStatic(env);
-      compiledDynamic = new CompiledDynamicTemplate(staticBlock.start, staticBlock.end, this.symbolTable);
+      compiledDynamic = new CompiledDynamicTemplate(staticBlock.slab, staticBlock.start, staticBlock.end, this.symbolTable);
     }
 
     return compiledDynamic;

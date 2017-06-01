@@ -9,9 +9,9 @@ import { ConcatReference } from '../expressions/concat';
 
 export type FunctionExpression<T> = (vm: PublicVM) => VersionedPathReference<T>;
 
-APPEND_OPCODES.add(Op.Helper, (vm, { op1: _helper }) => {
+APPEND_OPCODES.add(Op.Helper, (vm, { op1: _helper }, { constants }) => {
   let stack = vm.stack;
-  let helper = vm.constants.getFunction<Helper>(_helper);
+  let helper = constants.getFunction<Helper>(_helper);
   let args = stack.pop<Arguments>();
   let value = helper(vm, args);
 
@@ -20,8 +20,8 @@ APPEND_OPCODES.add(Op.Helper, (vm, { op1: _helper }) => {
   vm.stack.push(value);
 });
 
-APPEND_OPCODES.add(Op.Function, (vm, { op1: _function }) => {
-  let func = vm.constants.getFunction<FunctionExpression<Opaque>>(_function);
+APPEND_OPCODES.add(Op.Function, (vm, { op1: _function }, { constants }) => {
+  let func = constants.getFunction<FunctionExpression<Opaque>>(_function);
   vm.stack.push(func(vm));
 });
 
@@ -35,8 +35,8 @@ APPEND_OPCODES.add(Op.SetVariable, (vm, { op1: symbol }) => {
   vm.scope().bindSymbol(symbol, expr);
 });
 
-APPEND_OPCODES.add(Op.ResolveMaybeLocal, (vm, { op1: _name }) => {
-  let name = vm.constants.getString(_name);
+APPEND_OPCODES.add(Op.ResolveMaybeLocal, (vm, { op1: _name }, { constants }) => {
+  let name = constants.getString(_name);
   let locals = vm.scope().getPartialMap()!;
 
   let ref = locals[name];
@@ -51,14 +51,14 @@ APPEND_OPCODES.add(Op.RootScope, (vm, { op1: symbols, op2: bindCallerScope }) =>
   vm.pushRootScope(symbols, !!bindCallerScope);
 });
 
-APPEND_OPCODES.add(Op.GetProperty, (vm, { op1: _key }) => {
-  let key = vm.constants.getString(_key);
+APPEND_OPCODES.add(Op.GetProperty, (vm, { op1: _key }, { constants }) => {
+  let key = constants.getString(_key);
   let expr = vm.stack.pop<VersionedPathReference<Opaque>>();
   vm.stack.push(expr.get(key));
 });
 
-APPEND_OPCODES.add(Op.PushBlock, (vm, { op1: _block }) => {
-  let block = _block ? vm.constants.getBlock(_block) : null;
+APPEND_OPCODES.add(Op.PushBlock, (vm, { op1: _block }, { constants }) => {
+  let block = _block ? constants.getBlock(_block) : null;
   vm.stack.push(block);
 });
 

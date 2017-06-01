@@ -17,8 +17,8 @@ import ARGS, { Arguments, IArguments } from '../../vm/arguments';
 import { ComponentElementOperations } from './dom';
 import { Assert } from './vm';
 
-APPEND_OPCODES.add(Op.PushComponentManager, (vm, { op1: _definition }) => {
-  let definition = vm.constants.getOther<ComponentDefinition<Opaque>>(_definition);
+APPEND_OPCODES.add(Op.PushComponentManager, (vm, { op1: _definition }, { constants }) => {
+  let definition = constants.getOther<ComponentDefinition<Opaque>>(_definition);
   let stack = vm.stack;
 
   stack.push({ definition, manager: definition.manager, component: null });

@@ -1,5 +1,5 @@
 import { Register } from '../opcodes';
-import { Scope, DynamicScope, Environment, Opcode } from '../environment';
+import { Scope, DynamicScope, Environment, Opcode, Memory, MemorySlab } from '../environment';
 import { ElementStack } from '../builder';
 import { Option, Destroyable, Stack, LinkedList, ListSlice, Opaque, expect } from '@glimmer/util';
 import { ReferenceIterator, PathReference, VersionedPathReference, combineSlice } from '@glimmer/reference';
@@ -15,7 +15,6 @@ import {
 } from '../opcodes';
 
 import {
-  Constants,
   ConstantString
 } from '../environment/constants';
 
@@ -30,11 +29,11 @@ export type CapturedStack = Opaque[];
 
 export class EvaluationStack {
   static empty(): EvaluationStack {
-    return new this([], 0, -1);
+    return new this([], -3, -1);
   }
 
   static restore(snapshot: CapturedStack): EvaluationStack {
-    return new this(snapshot.slice(), 0, snapshot.length - 1);
+    return new this(snapshot.slice(), -3, snapshot.length - 1);
   }
 
   constructor(private stack: Opaque[], public fp: number, public sp: number) {
@@ -84,7 +83,8 @@ export class EvaluationStack {
   }
 
   toArray() {
-    return this.stack.slice(this.fp, this.sp + 1);
+    if (this.sp === -1) return [];
+    return this.stack.slice(Math.max(this.fp, 0), this.sp + 1);
   }
 }
 
@@ -102,13 +102,15 @@ export default class VM implements PublicVM {
   public updatingOpcodeStack = new Stack<LinkedList<UpdatingOpcode>>();
   public cacheGroups = new Stack<Option<UpdatingOpcode>>();
   public listBlockStack = new Stack<ListBlockOpcode>();
-  public constants: Constants;
+  public memory: Memory;
 
   public stack = EvaluationStack.empty();
 
   /* Registers */
 
+  public slab = -1;
   private pc = -1;
+  private rslab = -1;
   private ra = -1;
 
   private get fp(): number {
@@ -132,6 +134,10 @@ export default class VM implements PublicVM {
   public t0: any = null;
   public t1: any = null;
 
+  currentSlab(): MemorySlab {
+    return this.memory.slab(this.slab);
+  }
+
   // Fetch a value from a register onto the stack
   fetch(register: Register) {
     this.stack.push(this[Register[register]]);
@@ -154,16 +160,19 @@ export default class VM implements PublicVM {
 
   // Start a new frame and save $ra and $fp on the stack
   pushFrame() {
+    this.stack.push(this.rslab);
     this.stack.push(this.ra);
     this.stack.push(this.fp);
-    this.fp = this.sp - 1;
+    this.fp = this.sp - 2;
+    // this.fp = this.sp + 1;
   }
 
   // Restore $ra, $sp and $fp
   popFrame() {
-    this.sp = this.fp - 1;
-    this.ra = this.stack.fromBase<number>(0);
-    this.fp = this.stack.fromBase<number>(-1);
+    this.sp = this.fp -1;
+    this.rslab = this.stack.fromBase<number>(0);
+    this.ra = this.stack.fromBase<number>(-1);
+    this.fp = this.stack.fromBase<number>(-2);
   }
 
   // Jump to an address in `program`
@@ -172,18 +181,22 @@ export default class VM implements PublicVM {
   }
 
   // Save $pc into $ra, then jump to a new address in `program` (jal in MIPS)
-  call(pc: number) {
+  call(slab: number, pc: number) {
+    this.rslab = this.slab;
     this.ra = this.pc;
+    this.slab = slab;
     this.pc = pc;
   }
 
   // Put a specific `program` address in $ra
   returnTo(ra: number) {
+    this.rslab = this.slab;
     this.ra = ra;
   }
 
   // Return to the `program` address stored in $ra
   return() {
+    this.slab = this.rslab;
     this.pc = this.ra;
   }
 
@@ -196,6 +209,7 @@ export default class VM implements PublicVM {
   ) {
     let scope = Scope.root(self, program.symbolTable.symbols.length);
     let vm = new VM(env, scope, dynamicScope, elementStack);
+    vm.slab = program.slab;
     vm.pc = program.start;
     vm.updatingOpcodeStack.push(new LinkedList<UpdatingOpcode>());
     return vm;
@@ -208,7 +222,7 @@ export default class VM implements PublicVM {
     private elementStack: ElementStack,
   ) {
     this.env = env;
-    this.constants = env.constants;
+    this.memory = env.memory;
     this.elementStack = elementStack;
     this.scopeStack.push(scope);
     this.dynamicScopeStack.push(dynamicScope);
@@ -256,7 +270,7 @@ export default class VM implements PublicVM {
     let state = this.capture(args);
     let tracker = this.elements().pushUpdatableBlock();
 
-    let tryOpcode = new TryOpcode(this.pc, state, tracker, updating);
+    let tryOpcode = new TryOpcode(this.slab, this.pc, state, tracker, updating);
 
     this.didEnter(tryOpcode);
   }
@@ -273,7 +287,7 @@ export default class VM implements PublicVM {
     // this.ip = end + 4;
     // this.frames.push(ip);
 
-    return new TryOpcode(this.pc, state, tracker, new LinkedList<UpdatingOpcode>());
+    return new TryOpcode(this.slab, this.pc, state, tracker, new LinkedList<UpdatingOpcode>());
   }
 
   enterItem(key: string, opcode: TryOpcode) {
@@ -288,7 +302,7 @@ export default class VM implements PublicVM {
     let tracker = this.elements().pushBlockList(updating);
     let artifacts = this.stack.peek<ReferenceIterator>().artifacts;
 
-    let opcode = new ListBlockOpcode(start, state, tracker, updating, artifacts);
+    let opcode = new ListBlockOpcode(this.slab, start, state, tracker, updating, artifacts);
 
     this.listBlockStack.push(opcode);
 
@@ -384,7 +398,8 @@ export default class VM implements PublicVM {
 
   /// EXECUTION
 
-  execute(start: number, initialize?: (vm: VM) => void): RenderResult {
+  execute(slab: number, start: number, initialize?: (vm: VM) => void): RenderResult {
+    this.slab = slab;
     this.pc = start;
 
     if (initialize) initialize(this);
@@ -404,7 +419,7 @@ export default class VM implements PublicVM {
     let opcode = this.nextStatement(env);
     let result: IteratorResult<RenderResult>;
     if (opcode !== null) {
-      APPEND_OPCODES.evaluate(this, opcode, opcode.type);
+      APPEND_OPCODES.evaluate(this, opcode);
       result = { done: false, value: null };
     } else {
       // Unload the stack
@@ -422,27 +437,30 @@ export default class VM implements PublicVM {
     return result;
   }
 
-  private nextStatement(env: Environment): Option<Opcode> {
+  private nextStatement(_env: Environment): Option<Opcode> {
     let { pc } = this;
 
     if (pc === -1) {
       return null;
     }
 
-    let program = env.program;
+    let { program } = this.currentSlab();
+
     this.pc += 4;
     return program.opcode(pc);
   }
 
   evaluateOpcode(opcode: Opcode) {
-    APPEND_OPCODES.evaluate(this, opcode, opcode.type);
+    APPEND_OPCODES.evaluate(this, opcode);
   }
 
   bindDynamicScope(names: ConstantString[]) {
     let scope = this.dynamicScope();
 
+    let { constants } = this.currentSlab();
+
     for(let i=names.length - 1; i>=0; i--) {
-      let name = this.constants.getString(names[i]);
+      let name = constants.getString(names[i]);
       scope.set(name, this.stack.pop<VersionedPathReference<Opaque>>());
     }
   }

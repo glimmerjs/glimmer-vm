@@ -218,7 +218,7 @@ export class InvokeDynamicLayout implements DynamicInvoker<ProgramSymbolTable> {
     if (lookup) scope.bindEvalScope(lookup);
 
     vm.pushFrame();
-    vm.call(layout!.start);
+    vm.call(layout!.slab, layout!.start);
   }
 
   toJSON() {
@@ -231,7 +231,7 @@ STATEMENTS.add(Ops.Component, (sexp: S.Component, builder: OpcodeBuilder) => {
 
   if (builder.env.hasComponentDefinition(tag, builder.meta.templateMeta)) {
     let child = builder.template(block);
-    let attrsBlock = new RawInlineBlock(builder.meta, attrs, EMPTY_ARRAY);
+    let attrsBlock = new RawInlineBlock(builder.meta, attrs, EMPTY_ARRAY, builder.slab);
     let definition = builder.env.getComponentDefinition(tag, builder.meta.templateMeta);
     builder.pushComponentManager(definition);
     builder.invokeComponent(attrsBlock, null, args, child && child.scan());
@@ -291,7 +291,7 @@ export class PartialInvoker implements DynamicInvoker<ProgramSymbolTable> {
     partialScope.bindPartialMap(locals);
 
     vm.pushFrame();
-    vm.call(partial.start);
+    vm.call(partial.slab, partial.start);
   }
 }
 
@@ -384,7 +384,7 @@ class InvokeDynamicYield implements DynamicInvoker<BlockSymbolTable> {
       scope.bindSymbol(locals![i], stack.fromBase<VersionedPathReference<Opaque>>(callerCount-i));
     }
 
-    vm.call(block.start);
+    vm.call(block.slab, block.start);
   }
 
   toJSON() {
@@ -933,11 +933,13 @@ export function compileStatement(statement: WireFormat.Statement, builder: Opcod
   STATEMENTS.compile(statement, builder);
 }
 
-export function compileStatements(statements: WireFormat.Statement[], meta: CompilationMeta, env: Environment): {
+export function compileStatements(statements: WireFormat.Statement[], meta: CompilationMeta, env: Environment, parentSlab?: number): {
+  slab: number;
   start: number;
   finalize(): number;
 } {
-  let b = new OpcodeBuilder(env, meta);
+
+  let b = new OpcodeBuilder(env, meta, env.memory, parentSlab);
 
   for (let i = 0; i < statements.length; i++) {
     compileStatement(statements[i], b);

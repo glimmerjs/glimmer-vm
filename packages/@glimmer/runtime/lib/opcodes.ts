@@ -1,7 +1,7 @@
 import { Opaque, Option, Dict, Slice as ListSlice, initializeGuid, fillNulls, unreachable } from '@glimmer/util';
 import { Tag } from '@glimmer/reference';
 import { VM, UpdatingVM } from './vm';
-import { Opcode, Environment } from './environment';
+import { Opcode, Environment, MemorySlab } from './environment';
 import { Constants } from './environment/constants';
 import { DEBUG, CI } from '@glimmer/local-debug-flags';
 
@@ -25,6 +25,9 @@ export enum Register {
   // $0 or $pc (program counter): pointer into `program` for the next insturction; -1 means exit
   'pc',
 
+  // TODO fix docs
+  'rslab',
+
   // $1 or $ra (return address): pointer into `program` for the return
   'ra',
 
@@ -40,7 +43,7 @@ export enum Register {
 
   // $6-$7 or $t0-$t1 (temporaries): caller saved general-purpose registers
   't0',
-  't1'
+  't1',
 }
 
 export const enum Op {
@@ -892,10 +895,10 @@ export const enum Op {
   Size
 }
 
-export function debugSlice(env: Environment, start: number, end: number) {
+export function debugSlice(env: Environment, slab: number, start: number, end: number) {
   if (!CI && DEBUG) {
     /* tslint:disable:no-console */
-    let { program, constants } = env;
+    let { program, constants } = env.memory.slab(slab);
 
     // console is not available in IE9
     if (typeof console === 'undefined') { return; }
@@ -952,23 +955,23 @@ function json(param: Opaque) {
   return string;
 }
 
-function debug(c: Constants, op: Op, op1: number, op2: number, op3: number): [string, object] {
+function debug(c: Constants, op: Op, op1: number, op2: number, op3: number): [string, Object] {
   if (!CI && DEBUG) {
     switch (op) {
       case Op.Bug: throw unreachable();
 
-      case Op.Helper: return ['Helper', { helper: c.getFunction(op1) }];
-      case Op.Function: return ['Function', { function: c.getFunction(op1) }];
+      case Op.Helper: return ['Helper', { helper: c.has('function') ? c.getFunction(op1) : undefined }];
+      case Op.Function: return ['Function', { function: c.has('function') ? c.getFunction(op1) : undefined }];
       case Op.SetVariable: return ['SetVariable', { symbol: op1 }];
       case Op.GetVariable: return ['GetVariable', { symbol: op1 }];
-      case Op.GetProperty: return ['GetProperty', { key: c.getString(op1) }];
-      case Op.PushBlock: return ['PushBlock', { block: c.getBlock(op1) }];
+      case Op.GetProperty: return ['GetProperty', { key: c.has('string') ? c.getString(op1) : undefined }];
+      case Op.PushBlock: return ['PushBlock', { block: c.has('block') ? c.getBlock(op1) : undefined }];
       case Op.GetBlock: return ['GetBlock', { symbol: op1 }];
       case Op.HasBlock: return ['HasBlock', { block: op1 }];
       case Op.HasBlockParams: return ['HasBlockParams', { block: op1 }];
       case Op.Concat: return ['Concat', { size: op1 }];
       case Op.Immediate: return ['Immediate', { value: op1 }];
-      case Op.Constant: return ['Constant', { value: c.getOther(op1) }];
+      case Op.Constant: return ['Constant', { value: c.has('other') ? c.getOther(op1) : undefined }];
       case Op.PrimitiveReference: return ['PrimitiveReference', { primitive: op1 }];
       case Op.Dup: return ['Dup', { register: Register[op1], offset: op2 }];
       case Op.Pop: return ['Pop', { count: op1 }];
@@ -982,15 +985,15 @@ function debug(c: Constants, op: Op, op1: number, op2: number, op3: number): [st
       case Op.Return: return ['Return', {}];
 
       /// HTML
-      case Op.Text: return ['Text', { text: c.getString(op1) }];
-      case Op.Comment: return ['Comment', { comment: c.getString(op1) }];
-      case Op.DynamicContent: return ['DynamicContent', { value: c.getOther(op1) }];
-      case Op.OpenElement: return ['OpenElement', { tag: c.getString(op1) }];
-      case Op.OpenElementWithOperations: return ['OpenElementWithOperations', { tag: c.getString(op1) }];
+      case Op.Text: return ['Text', { text: c.has('string') ? c.getString(op1) : undefined }];
+      case Op.Comment: return ['Comment', { comment: c.has('string') ? c.getString(op1) : undefined }];
+      case Op.DynamicContent: return ['DynamicContent', { value: c.has('other') ? c.getOther(op1) : undefined }];
+      case Op.OpenElement: return ['OpenElement', { tag: c.has('string') ? c.getString(op1) : undefined }];
+      case Op.OpenElementWithOperations: return ['OpenElementWithOperations', { tag: c.has('string') ? c.getString(op1) : undefined }];
       case Op.OpenDynamicElement: return ['OpenDynamicElement', {}];
-      case Op.StaticAttr: return ['StaticAttr', { name: c.getString(op1), value: c.getString(op2), namespace: op3 ? c.getString(op3) : null }];
-      case Op.DynamicAttr: return ['DynamicAttr', { name: c.getString(op1), trusting: !!op2 }];
-      case Op.DynamicAttrNS: return ['DynamicAttrNS', { name: c.getString(op1), ns: c.getString(op2), trusting: !!op2 }];
+      case Op.StaticAttr: return ['StaticAttr', { name: c.has('string') ? c.getString(op1) : undefined, value: c.has('string') ? c.getString(op2) : undefined, namespace: op3 ? c.has('string') ? c.getString(op3) : undefined : null }];
+      case Op.DynamicAttr: return ['DynamicAttr', { name: c.has('string') ? c.getString(op1) : undefined, trusting: !!op2 }];
+      case Op.DynamicAttrNS: return ['DynamicAttrNS', { name: c.has('string') ? c.getString(op1) : undefined, ns: c.has('string') ? c.getString(op2) : undefined, trusting: !!op2 }];
       case Op.FlushElement: return ['FlushElement', {}];
       case Op.CloseElement: return ['CloseElement', {}];
 
@@ -1008,8 +1011,8 @@ function debug(c: Constants, op: Op, op1: number, op2: number, op3: number): [st
 
       /// VM
       case Op.CompileDynamicBlock: return ['CompileDynamicBlock', {}];
-      case Op.InvokeStatic: return ['InvokeStatic', { block: c.getBlock(op1) }];
-      case Op.InvokeDynamic: return ['InvokeDynamic', { invoker: c.getOther(op1) }];
+      case Op.InvokeStatic: return ['InvokeStatic', { block: c.has('block') ? c.getBlock(op1) : undefined }];
+      case Op.InvokeDynamic: return ['InvokeDynamic', { invoker: c.has('other') ? c.getOther(op1) : undefined }];
       case Op.Jump: return ['Jump', { to: op1 }];
       case Op.JumpIf: return ['JumpIf', { to: op1 }];
       case Op.JumpUnless: return ['JumpUnless', { to: op1 }];
@@ -1026,7 +1029,7 @@ function debug(c: Constants, op: Op, op1: number, op2: number, op3: number): [st
       case Op.Iterate: return ['Iterate', { end: op1 }];
 
       /// COMPONENTS
-      case Op.PushComponentManager: return ['PushComponentManager', { definition: c.getOther(op1) }];
+      case Op.PushComponentManager: return ['PushComponentManager', { definition: c.has('other') ? c.getOther(op1) : undefined }];
       case Op.PushDynamicComponentManager: return ['PushDynamicComponentManager', {}];
       case Op.PushArgs: return ['PushArgs', { synthetic: !!op2 }];
       case Op.PrepareArgs: return ['PrepareArgs', { state: Register[op1] }];
@@ -1042,10 +1045,10 @@ function debug(c: Constants, op: Op, op1: number, op2: number, op3: number): [st
 
       /// PARTIALS
       case Op.GetPartialTemplate: return ['CompilePartial', {}];
-      case Op.ResolveMaybeLocal: return ['ResolveMaybeLocal', { name: c.getString(op1)} ];
+      case Op.ResolveMaybeLocal: return ['ResolveMaybeLocal', { name: c.has('string') ? c.getString(op1) : undefined } ];
 
       /// DEBUGGER
-      case Op.Debugger: return ['Debugger', { symbols: c.getOther(op1), evalInfo: c.getArray(op2) }];
+      case Op.Debugger: return ['Debugger', { symbols: c.has('other') ? c.getOther(op1) : undefined, evalInfo: c.has('array') ? c.getArray(op2) : undefined }];
 
       /// STATEMENTS
 
@@ -1062,7 +1065,7 @@ export type Operand1 = number;
 export type Operand2 = number;
 export type Operand3 = number;
 
-export type EvaluateOpcode = (vm: VM, opcode: Opcode) => void;
+export type EvaluateOpcode = (vm: VM, opcode: Opcode, memory: MemorySlab) => void;
 
 export class AppendOpcodes {
   private evaluateOpcode: EvaluateOpcode[] = fillNulls<EvaluateOpcode>(Op.Size).slice();
@@ -1071,21 +1074,24 @@ export class AppendOpcodes {
     this.evaluateOpcode[name as number] = evaluate;
   }
 
-  evaluate(vm: VM, opcode: Opcode, type: number) {
-    let func = this.evaluateOpcode[type];
+  evaluate(vm: VM, opcode: Opcode) {
+    let func = this.evaluateOpcode[opcode.type];
     if (!CI && DEBUG) {
+      let { constants } = vm.currentSlab();
       /* tslint:disable */
-      let [name, params] = debug(vm.constants, opcode.type, opcode.op1, opcode.op2, opcode.op3);
-      console.log(`${vm['pc'] - 4}. ${logOpcode(name, params)}`);
+      let [name, params] = debug(constants, opcode.type, opcode.op1, opcode.op2, opcode.op3);
+      console.log(`slab ${vm['slab']} : ${vm['pc'] - 4}. ${logOpcode(name, params)}`);
       // console.log(...debug(vm.constants, type, opcode.op1, opcode.op2, opcode.op3));
       /* tslint:enable */
     }
 
-    func(vm, opcode);
+    let memory = vm.currentSlab();
+
+    func(vm, opcode, memory);
 
     if (!CI && DEBUG) {
       /* tslint:disable */
-      console.log('%c -> pc: %d, ra: %d, fp: %d, sp: %d, s0: %O, s1: %O, t0: %O, t1: %O', 'color: orange', vm['pc'], vm['ra'], vm['fp'], vm['sp'], vm['s0'], vm['s1'], vm['t0'], vm['t1']);
+      console.log('%c -> slab: %d, pc: %d, rslab: %d, ra: %d, fp: %d, sp: %d, s0: %O, s1: %O, t0: %O, t1: %O', 'color: orange', vm['slab'], vm['pc'], vm['rslab'], vm['ra'], vm['fp'], vm['sp'], vm['s0'], vm['s1'], vm['t0'], vm['t1']);
       console.log('%c -> eval stack', 'color: red', vm.stack.toArray());
       console.log('%c -> scope', 'color: green', vm.scope()['slots'].map(s => s && s['value'] ? s['value']() : s));
       console.log('%c -> elements', 'color: blue', vm.elements()['elementStack'].toArray());

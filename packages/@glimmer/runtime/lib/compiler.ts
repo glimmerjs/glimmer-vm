@@ -169,12 +169,13 @@ class WrappedBuilder implements InnerLayoutBuilder {
 
     b.stopLabels();
 
+    let slab = b.slab;
     let start = b.start;
     let end = b.finalize();
 
-    debugSlice(env, start, end);
+    debugSlice(env, slab, start, end);
 
-    return new CompiledDynamicTemplate(start, end, {
+    return new CompiledDynamicTemplate(slab, start, end, {
       meta,
       hasEval: layout.hasEval,
       symbols: layout.symbols.concat([ATTRS_BLOCK])

@@ -4,7 +4,7 @@ import { dict, EMPTY_ARRAY, expect, fillNulls, Stack } from '@glimmer/util';
 import * as WireFormat from '@glimmer/wire-format';
 import { ComponentBuilder } from '../../compiler';
 import { ComponentDefinition } from '../../component/interfaces';
-import Environment, { Program } from '../../environment';
+import Environment, { Program, Memory, MemorySlab } from '../../environment';
 import {
   ConstantArray,
   ConstantBlock,
@@ -60,11 +60,22 @@ class Labels {
 export abstract class BasicOpcodeBuilder {
   public constants: Constants;
   public start: number;
+  public program: Program;
+  public slab: number;
 
   private labelsStack = new Stack<Labels>();
 
-  constructor(public env: Environment, public meta: CompilationMeta, public program: Program) {
-    this.constants = env.constants;
+  constructor(public env: Environment, public meta: CompilationMeta, public memory: Memory = env.memory, private parentSlab?: number) {
+    let slab: number;
+    if (this.parentSlab === undefined) {
+      slab = this.slab = memory.malloc();
+    } else {
+      slab = this.slab = this.parentSlab;
+    }
+
+    let { program, constants } = memory.slab(this.slab);
+    this.program = program;
+    this.constants = constants;
     this.start = program.next;
   }
 
@@ -348,6 +359,8 @@ export abstract class BasicOpcodeBuilder {
   }
 
   returnTo(label: string) {
+    this.pushImmediate(this.slab);
+    this.load(Register.rslab);
     this.reserve(Op.Immediate);
     this.labels.target(this.pos, Op.Immediate, label);
     this.load(Register.ra);
@@ -535,8 +548,8 @@ function isCompilableExpression<E>(expr: Represents<E>): expr is CompilesInto<E>
 export default class OpcodeBuilder extends BasicOpcodeBuilder {
   public component: IComponentBuilder;
 
-  constructor(env: Environment, meta: CompilationMeta, program: Program = env.program) {
-    super(env, meta, program);
+  constructor(env: Environment, meta: CompilationMeta, memory: Memory = env.memory, parentSlab?: number) {
+    super(env, meta, memory, parentSlab);
     this.component = new ComponentBuilder(this);
   }
 
@@ -650,7 +663,7 @@ export default class OpcodeBuilder extends BasicOpcodeBuilder {
 
   template(block: Option<WireFormat.SerializedInlineBlock>): Option<RawInlineBlock> {
     if (!block) return null;
-    return new RawInlineBlock(this.meta, block.statements, block.parameters);
+    return new RawInlineBlock(this.meta, block.statements, block.parameters, this.slab);
   }
 }
 

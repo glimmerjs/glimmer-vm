@@ -302,13 +302,57 @@ export class Program {
   }
 }
 
+export interface MemorySlab {
+  nextFree: number;
+  length: 0;
+  constants: Constants;
+  program: Program;
+}
+
+export class Memory {
+  private nextFree = -1;
+  _memory: MemorySlab[] = [];
+  // current = -1;
+  malloc(): number {
+    let nextFree = this.nextFree;
+    if (nextFree !== -1) {
+      this.nextFree = this._memory[nextFree].nextFree;
+      // this.current = nextFree;
+      return nextFree;
+      // return this._memory[nextFree];
+    } else {
+      let slabAddr = this._memory.length;
+      let slab: MemorySlab = {
+        nextFree,
+        length: 0,
+        constants: new Constants(),
+        program: new Program()
+      };
+      this._memory.push(slab);
+      // this.current = slabAddr;
+      return slabAddr;
+    }
+  }
+
+  slab(addr: number): MemorySlab {
+    return this._memory[addr];
+  }
+
+  free(ptr: number) {
+    this.nextFree = ptr;
+    let slab = this._memory[ptr];
+    slab.length = 0;
+    slab.constants.reset();
+    slab.nextFree = -1;
+  }
+}
+
 export abstract class Environment {
   protected updateOperations: DOMChanges;
   protected appendOperations: DOMTreeConstruction;
   private _macros: Option<{ blocks: Blocks, inlines: Inlines }> = null;
   private _transaction: Option<Transaction> = null;
-  public constants: Constants = new Constants();
-  public program = new Program();
+  public memory: Memory = new Memory();
 
   constructor({ appendOperations, updateOperations }: { appendOperations: DOMTreeConstruction, updateOperations: DOMChanges }) {
     this.appendOperations = appendOperations;

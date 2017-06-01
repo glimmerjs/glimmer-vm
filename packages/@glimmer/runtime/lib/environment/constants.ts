@@ -1,5 +1,7 @@
 import { VersionedPathReference } from "@glimmer/reference";
 import { Opaque } from "@glimmer/interfaces";
+import { DEBUG } from '@glimmer/local-debug-flags';
+
 import { Block } from "../syntax/interfaces";
 
 export type ConstantType = 'slice' | 'block' | 'reference' | 'string' | 'number' | 'expression';
@@ -16,12 +18,12 @@ export class Constants {
   // `0` means NULL
 
   private references: VersionedPathReference<Opaque>[] = [];
-  private strings: string[] = [];
-  private expressions: Opaque[] = [];
-  private arrays: number[][] = [];
-  private blocks: Block[] = [];
-  private functions: Function[] = [];
-  private others: Opaque[] = [];
+  private strings: string[];
+  private expressions: Opaque[];
+  private arrays: number[][];
+  private blocks: Block[];
+  private functions: Function[];
+  private others: Opaque[];
 
   getReference<T extends Opaque>(value: ConstantReference): VersionedPathReference<T> {
     return this.references[value - 1] as VersionedPathReference<T>;
@@ -38,6 +40,11 @@ export class Constants {
   }
 
   string(value: string): ConstantString {
+    if (this.strings === undefined) {
+      this.strings = [value];
+      return 1;
+    }
+
     let index = this.strings.length;
     this.strings.push(value);
     return index + 1;
@@ -64,6 +71,11 @@ export class Constants {
   }
 
   array(values: number[]): ConstantArray {
+    if (this.arrays === undefined) {
+      this.arrays = [values];
+      return 1;
+    }
+
     let index = this.arrays.length;
     this.arrays.push(values);
     return index + 1;
@@ -74,6 +86,11 @@ export class Constants {
   }
 
   block(block: Block): ConstantBlock {
+    if (this.blocks === undefined) {
+      this.blocks = [block];
+      return 1;
+    }
+
     let index = this.blocks.length;
     this.blocks.push(block);
     return index + 1;
@@ -84,6 +101,11 @@ export class Constants {
   }
 
   function(f: Function): ConstantFunction {
+    if (this.functions === undefined) {
+      this.functions = [f];
+      return 1;
+    }
+
     let index = this.functions.length;
     this.functions.push(f);
     return index + 1;
@@ -94,8 +116,31 @@ export class Constants {
   }
 
   other(other: Opaque): ConstantOther {
+    if (this.others === undefined) {
+      this.others = [other];
+      return 1;
+    }
+
     let index = this.others.length;
     this.others.push(other);
     return index + 1;
+  }
+
+  has(type: string) {
+    if (DEBUG) {
+      return this[`${type}s`] !== undefined;
+    }
+
+    return false;
+  }
+
+  reset() {
+    if (this.strings !== undefined) { this.strings.length = 0; };
+    if (this.blocks !== undefined) { this.blocks.length = 0; };
+    if (this.expressions !== undefined) { this.expressions.length = 0; };
+    if (this.arrays !== undefined) { this.arrays.length = 0; }
+    if (this.functions !== undefined) { this.functions.length = 0; }
+    if (this.references !== undefined) { this.references.length = 0; }
+    if (this.others !== undefined) { this.others.length = 0; }
   }
 }

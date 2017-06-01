@@ -35,17 +35,18 @@ import { SymbolTable, ProgramSymbolTable, BlockSymbolTable } from '@glimmer/inte
  */
 
 export interface OpSlice {
+  slab: number;
   start: number;
   end: number;
 }
 
 export class CompiledStaticTemplate implements OpSlice {
-  constructor(public start: number, public end: number) {
+  constructor(public slab: number, public start: number, public end: number) {
   }
 }
 
 export class CompiledDynamicTemplate<S extends SymbolTable> implements OpSlice {
-  constructor(public start: number, public end: number, public symbolTable: S) {
+  constructor(public slab: number, public start: number, public end: number, public symbolTable: S) {
   }
 }
 
