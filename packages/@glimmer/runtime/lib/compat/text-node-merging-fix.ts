@@ -1,7 +1,4 @@
-import { Bounds } from '../bounds';
-import { DOMChanges, DOMTreeConstruction } from '../dom/helper';
-import { Option } from '@glimmer/util';
-import { INCLUDE_LEGACY } from "@glimmer/feature-flags";
+import { APPLY_TEXT_NODE_MERGING } from "@glimmer/feature-flags";
 
 // Patch:    Adjacent text node merging fix
 // Browsers: IE, Edge, Firefox w/o inspector open
@@ -15,94 +12,26 @@ import { INCLUDE_LEGACY } from "@glimmer/feature-flags";
 //           Note that this fix must only apply to the previous text node, as
 //           the base implementation of `insertHTMLBefore` already handles
 //           following text nodes correctly.
-export function domChanges(document: Option<Document>, DOMChangesClass: typeof DOMChanges): typeof DOMChanges {
-  if (INCLUDE_LEGACY) {
-    if (!document) return DOMChangesClass;
+export function fixTextNodeMerging(parent: HTMLElement, reference: Node, uselessComment: Comment) {
+  let didSetUselessComment = false;
 
-    if (!shouldApplyFix(document)) {
-      return DOMChangesClass;
+  if (APPLY_TEXT_NODE_MERGING) {
+    let nextPrevious = reference ? reference.previousSibling : parent.lastChild;
+    if (nextPrevious && nextPrevious instanceof Text) {
+      didSetUselessComment = true;
+      parent.insertBefore(uselessComment, reference);
     }
-
-    return class DOMChangesWithTextNodeMergingFix extends DOMChangesClass {
-      private uselessComment: Comment;
-
-      constructor(document: Document) {
-        super(document);
-        this.uselessComment = document.createComment('');
-      }
-
-      insertHTMLBefore(parent: HTMLElement, nextSibling: Node, html: string): Bounds {
-        if (html === null) {
-          return super.insertHTMLBefore(parent, nextSibling, html);
-        }
-
-        let didSetUselessComment = false;
-
-        let nextPrevious = nextSibling ? nextSibling.previousSibling : parent.lastChild;
-        if (nextPrevious && nextPrevious instanceof Text) {
-          didSetUselessComment = true;
-          parent.insertBefore(this.uselessComment, nextSibling);
-        }
-
-        let bounds = super.insertHTMLBefore(parent, nextSibling, html);
-
-        if (didSetUselessComment) {
-          parent.removeChild(this.uselessComment);
-        }
-
-        return bounds;
-      }
-    };
-  } else {
-    return DOMChangesClass;
   }
+
+  return didSetUselessComment;
 }
 
-export function treeConstruction(document: Option<Document>, TreeConstructionClass: typeof DOMTreeConstruction): typeof DOMTreeConstruction {
-  if (INCLUDE_LEGACY) {
-    if (!document) return TreeConstructionClass;
-
-    if (!shouldApplyFix(document)) {
-      return TreeConstructionClass;
-    }
-
-    return class TreeConstructionWithTextNodeMergingFix extends TreeConstructionClass {
-      private uselessComment: Comment;
-
-      constructor(document: Document) {
-        super(document);
-        this.uselessComment = this.createComment('') as Comment;
-      }
-
-      insertHTMLBefore(parent: HTMLElement, reference: Node, html: string): Bounds {
-        if (html === null) {
-          return super.insertHTMLBefore(parent, reference, html);
-        }
-
-        let didSetUselessComment = false;
-
-        let nextPrevious = reference ? reference.previousSibling : parent.lastChild;
-        if (nextPrevious && nextPrevious instanceof Text) {
-          didSetUselessComment = true;
-          parent.insertBefore(this.uselessComment, reference);
-        }
-
-        let bounds = super.insertHTMLBefore(parent, reference, html);
-
-        if (didSetUselessComment) {
-          parent.removeChild(this.uselessComment);
-        }
-
-        return bounds;
-      }
-    };
-  } else {
-    return TreeConstructionClass;
-  }
+export function canInsertHTML(html: string) {
+  return html === null;
 }
 
-function shouldApplyFix(document: Document) {
-  if (INCLUDE_LEGACY) {
+export function shouldFixTextNodeMerging(document: Document) {
+  if (APPLY_TEXT_NODE_MERGING) {
     let mergingTextDiv: HTMLDivElement = document.createElement('div');
 
     mergingTextDiv.innerHTML = 'first';

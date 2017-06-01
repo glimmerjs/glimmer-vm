@@ -1,20 +1,24 @@
 import { Bounds, ConcreteBounds, SingleNodeBounds } from '../bounds';
 import {
-  domChanges as domChangesTableElementFix,
-  treeConstruction as treeConstructionTableElementFix
+  shouldFixTables,
+  innerHTMLWrapper,
+  fixTables
 } from '../compat/inner-html-fix';
 import {
-  domChanges as domChangesSvgElementFix,
-  treeConstruction as treeConstructionSvgElementFix
+  shouldFixSVG,
+  canInsertIntoSVG,
+  fixSVG
 } from '../compat/svg-inner-html-fix';
 import {
-  domChanges as domChangesNodeMergingFix,
-  treeConstruction as treeConstructionNodeMergingFix
+  shouldFixTextNodeMerging,
+  canInsertHTML,
+  fixTextNodeMerging
 } from '../compat/text-node-merging-fix';
 import * as Simple from './interfaces';
 
 import { Option } from '@glimmer/util';
-import { INCLUDE_LEGACY } from "@glimmer/feature-flags";
+import { APPLY_TEXT_NODE_MERGING, APPLY_DOM_PATCHES, APPLY_TABLE_FIXES } from "@glimmer/feature-flags";
+import { emptyHTML } from "@glimmer/runtime/lib/compat/utils";
 
 export const SVG_NAMESPACE = 'http://www.w3.org/2000/svg';
 
@@ -59,6 +63,7 @@ export function moveNodesBefore(source: Simple.Node, target: Simple.Element, nex
 
 export class DOMOperations {
   protected uselessElement: HTMLElement;
+  protected uselessComment: Comment;
 
   constructor(protected document: Simple.Document) {
     this.setupUselessElement();
@@ -67,6 +72,7 @@ export class DOMOperations {
   // split into seperate method so that NodeDOMTreeConstruction
   // can override it.
   protected setupUselessElement() {
+    this.uselessComment = this.document.createComment('') as Comment;
     this.uselessElement = this.document.createElement('div') as HTMLElement;
   }
 
@@ -100,7 +106,39 @@ export class DOMOperations {
   }
 
   insertHTMLBefore(_parent: Simple.Element, nextSibling: Simple.Node, html: string): Bounds {
-    return insertHTMLBefore(this.uselessElement, _parent, nextSibling, html);
+    if (APPLY_DOM_PATCHES) {
+      let doc = this.document as Document;
+      let parent = _parent as HTMLElement;
+      let reference = nextSibling as Element;
+
+      if (shouldFixSVG(doc, SVG_NAMESPACE) && canInsertIntoSVG(parent, html, SVG_NAMESPACE)) {
+        return fixSVG(parent, this.uselessElement, html, reference);
+      } else if (APPLY_TEXT_NODE_MERGING && shouldFixTextNodeMerging(doc) && canInsertHTML(html)) {
+        let didSetUselessComment = fixTextNodeMerging(parent, reference, this.uselessComment);
+        let bounds = insertHTMLBefore(this.uselessElement, _parent, nextSibling, html);
+
+        if (didSetUselessComment) {
+          parent.removeChild(this.uselessComment);
+        }
+
+        return bounds;
+      } else if (APPLY_TABLE_FIXES && shouldFixTables(doc) && !emptyHTML(html)) {
+        let parentTag = parent.tagName.toLowerCase();
+        let wrapper = innerHTMLWrapper[parentTag];
+
+        if(wrapper === undefined) {
+          return insertHTMLBefore(this.uselessElement, parent, reference, html);
+        }
+
+        let div = document.createElement('div');
+
+        return fixTables(parent, wrapper, div, html, reference);
+      } else {
+        return insertHTMLBefore(this.uselessElement, parent, reference, html);
+      }
+    } else {
+      return insertHTMLBefore(this.uselessElement, _parent, nextSibling, html);
+    }
   }
 
   createTextNode(text: string): Simple.Text {
@@ -135,12 +173,7 @@ export namespace DOM {
     }
   }
 
-  let appliedTreeContruction = TreeConstruction;
-  appliedTreeContruction = treeConstructionNodeMergingFix(doc, appliedTreeContruction);
-  appliedTreeContruction = treeConstructionTableElementFix(doc, appliedTreeContruction);
-  appliedTreeContruction = treeConstructionSvgElementFix(doc, appliedTreeContruction, SVG_NAMESPACE);
-
-  export const DOMTreeConstruction = appliedTreeContruction;
+  export const DOMTreeConstruction = TreeConstruction;
   export type DOMTreeConstruction = TreeConstruction;
 }
 
@@ -236,15 +269,7 @@ function isDocumentFragment(node: Simple.Node): node is DocumentFragment {
   return node.nodeType === Node.DOCUMENT_FRAGMENT_NODE;
 }
 
-let helper = DOMChanges;
-
-if (INCLUDE_LEGACY) {
-  helper = domChangesNodeMergingFix(doc, helper);
-  helper = domChangesTableElementFix(doc, helper);
-  helper = domChangesSvgElementFix(doc, helper, SVG_NAMESPACE);
-}
-
-export default helper;
+export default DOMChanges;
 export const DOMTreeConstruction = DOM.DOMTreeConstruction;
 export type DOMTreeConstruction = DOM.DOMTreeConstruction;
 export { Namespace as DOMNamespace } from './interfaces';
