@@ -14,6 +14,7 @@ import {
 import * as Simple from './interfaces';
 
 import { Option } from '@glimmer/util';
+import { INCLUDE_LEGACY } from "@glimmer/feature-flags";
 
 export const SVG_NAMESPACE = 'http://www.w3.org/2000/svg';
 
@@ -237,9 +238,11 @@ function isDocumentFragment(node: Simple.Node): node is DocumentFragment {
 
 let helper = DOMChanges;
 
-helper = domChangesNodeMergingFix(doc, helper);
-helper = domChangesTableElementFix(doc, helper);
-helper = domChangesSvgElementFix(doc, helper, SVG_NAMESPACE);
+if (INCLUDE_LEGACY) {
+  helper = domChangesNodeMergingFix(doc, helper);
+  helper = domChangesTableElementFix(doc, helper);
+  helper = domChangesSvgElementFix(doc, helper, SVG_NAMESPACE);
+}
 
 export default helper;
 export const DOMTreeConstruction = DOM.DOMTreeConstruction;

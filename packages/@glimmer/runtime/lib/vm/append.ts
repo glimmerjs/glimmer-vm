@@ -18,6 +18,7 @@ import {
   Constants,
   ConstantString
 } from '../environment/constants';
+import { INCLUDE_WITH_DYNAMIC_SCOPE } from "@glimmer/feature-flags";
 
 export interface PublicVM {
   env: Environment;
@@ -439,11 +440,13 @@ export default class VM implements PublicVM {
   }
 
   bindDynamicScope(names: ConstantString[]) {
-    let scope = this.dynamicScope();
+    if (INCLUDE_WITH_DYNAMIC_SCOPE) {
+      let scope = this.dynamicScope();
 
-    for(let i=names.length - 1; i>=0; i--) {
-      let name = this.constants.getString(names[i]);
-      scope.set(name, this.stack.pop<VersionedPathReference<Opaque>>());
+      for(let i=names.length - 1; i>=0; i--) {
+        let name = this.constants.getString(names[i]);
+        scope.set(name, this.stack.pop<VersionedPathReference<Opaque>>());
+      }
     }
   }
 }

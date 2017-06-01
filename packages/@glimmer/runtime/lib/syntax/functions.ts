@@ -1,3 +1,4 @@
+import { INCLUDE_PARTIALS, INCLUDE_WITH_DYNAMIC_SCOPE } from '@glimmer/feature-flags';
 import { BlockSymbolTable, CompilationMeta, Opaque, Option, ProgramSymbolTable } from '@glimmer/interfaces';
 import {
   map,
@@ -255,104 +256,106 @@ STATEMENTS.add(Ops.Component, (sexp: S.Component, builder: OpcodeBuilder) => {
   }
 });
 
-export class PartialInvoker implements DynamicInvoker<ProgramSymbolTable> {
-  constructor(private outerSymbols: string[], private evalInfo: WireFormat.Core.EvalInfo) {}
+if (INCLUDE_PARTIALS) {
+  class PartialInvoker implements DynamicInvoker<ProgramSymbolTable> {
+    constructor(private outerSymbols: string[], private evalInfo: WireFormat.Core.EvalInfo) {}
 
-  invoke(vm: VM, _partial: Option<CompiledDynamicProgram>) {
-    let partial = unwrap(_partial);
-    let partialSymbols = partial.symbolTable.symbols;
-    let outerScope = vm.scope();
-    let partialScope = vm.pushRootScope(partialSymbols.length, false);
-    partialScope.bindCallerScope(outerScope.getCallerScope());
-    partialScope.bindEvalScope(outerScope.getEvalScope());
-    partialScope.bindSelf(outerScope.getSelf());
+    invoke(vm: VM, _partial: Option<CompiledDynamicProgram>) {
+      let partial = unwrap(_partial);
+      let partialSymbols = partial.symbolTable.symbols;
+      let outerScope = vm.scope();
+      let partialScope = vm.pushRootScope(partialSymbols.length, false);
+      partialScope.bindCallerScope(outerScope.getCallerScope());
+      partialScope.bindEvalScope(outerScope.getEvalScope());
+      partialScope.bindSelf(outerScope.getSelf());
 
-    let { evalInfo, outerSymbols } = this;
+      let { evalInfo, outerSymbols } = this;
 
-    let locals = dict<VersionedPathReference<Opaque>>();
+      let locals = dict<VersionedPathReference<Opaque>>();
 
-    for (let i = 0; i < evalInfo.length; i++) {
-      let slot = evalInfo[i];
-      let name = outerSymbols[slot - 1];
-      let ref  = outerScope.getSymbol(slot);
-      locals[name] = ref;
-    }
-
-    let evalScope = outerScope.getEvalScope()!;
-
-    for (let i = 0; i < partialSymbols.length; i++) {
-      let name = partialSymbols[i];
-      let symbol = i + 1;
-      let value = evalScope[name];
-
-      if (value !== undefined) partialScope.bind(symbol, value);
-    }
-
-    partialScope.bindPartialMap(locals);
-
-    vm.pushFrame();
-    vm.call(partial.start);
-  }
-}
-
-STATEMENTS.add(Ops.Partial, (sexp: S.Partial, builder: OpcodeBuilder) => {
-  let [, name, evalInfo] = sexp;
-
-  let { templateMeta, symbols } = builder.meta;
-
-  function helper(vm: PublicVM, args: IArguments) {
-    let { env } = vm;
-    let nameRef = args.positional.at(0);
-
-    return map(nameRef, (n) => {
-      if (typeof n === 'string' && n) {
-        if (!env.hasPartial(n, templateMeta)) {
-          throw new Error(`Could not find a partial named "${n}"`);
-        }
-
-        return env.lookupPartial(n, templateMeta);
-      } else if (n) {
-        throw new Error(`Could not find a partial named "${String(n)}"`);
-      } else {
-        return null;
+      for (let i = 0; i < evalInfo.length; i++) {
+        let slot = evalInfo[i];
+        let name = outerSymbols[slot - 1];
+        let ref  = outerScope.getSymbol(slot);
+        locals[name] = ref;
       }
-    });
+
+      let evalScope = outerScope.getEvalScope()!;
+
+      for (let i = 0; i < partialSymbols.length; i++) {
+        let name = partialSymbols[i];
+        let symbol = i + 1;
+        let value = evalScope[name];
+
+        if (value !== undefined) partialScope.bind(symbol, value);
+      }
+
+      partialScope.bindPartialMap(locals);
+
+      vm.pushFrame();
+      vm.call(partial.start);
+    }
   }
 
-  builder.startLabels();
+  STATEMENTS.add(Ops.Partial, (sexp: S.Partial, builder: OpcodeBuilder) => {
+    let [, name, evalInfo] = sexp;
 
-  builder.pushFrame();
+    let { templateMeta, symbols } = builder.meta;
 
-  builder.returnTo('END');
+    function helper(vm: PublicVM, args: IArguments) {
+      let { env } = vm;
+      let nameRef = args.positional.at(0);
 
-  expr(name, builder);
-  builder.pushImmediate(1);
-  builder.pushImmediate(EMPTY_ARRAY);
-  builder.pushArgs(true);
-  builder.helper(helper);
+      return map(nameRef, (n) => {
+        if (typeof n === 'string' && n) {
+          if (!env.hasPartial(n, templateMeta)) {
+            throw new Error(`Could not find a partial named "${n}"`);
+          }
 
-  builder.dup();
-  builder.test('simple');
+          return env.lookupPartial(n, templateMeta);
+        } else if (n) {
+          throw new Error(`Could not find a partial named "${String(n)}"`);
+        } else {
+          return null;
+        }
+      });
+    }
 
-  builder.enter(2);
+    builder.startLabels();
 
-  builder.jumpUnless('ELSE');
+    builder.pushFrame();
 
-  builder.getPartialTemplate();
-  builder.compileDynamicBlock();
-  builder.invokeDynamic(new PartialInvoker(symbols, evalInfo));
-  builder.popScope();
-  builder.popFrame();
+    builder.returnTo('END');
 
-  builder.label('ELSE');
-  builder.exit();
-  builder.return();
+    expr(name, builder);
+    builder.pushImmediate(1);
+    builder.pushImmediate(EMPTY_ARRAY);
+    builder.pushArgs(true);
+    builder.helper(helper);
 
-  builder.label('END');
-  builder.popFrame();
+    builder.dup();
+    builder.test('simple');
 
-  builder.stopLabels();
-});
+    builder.enter(2);
+
+    builder.jumpUnless('ELSE');
+
+    builder.getPartialTemplate();
+    builder.compileDynamicBlock();
+    builder.invokeDynamic(new PartialInvoker(symbols, evalInfo));
+    builder.popScope();
+    builder.popFrame();
+
+    builder.label('ELSE');
+    builder.exit();
+    builder.return();
+
+    builder.label('END');
+    builder.popFrame();
+
+    builder.stopLabels();
+  });
+}
 
 class InvokeDynamicYield implements DynamicInvoker<BlockSymbolTable> {
   constructor(private callerCount: number) {}
@@ -477,22 +480,24 @@ EXPRESSIONS.add(Ops.Get, (sexp: E.Get, builder: OpcodeBuilder) => {
   }
 });
 
-EXPRESSIONS.add(Ops.MaybeLocal, (sexp: E.MaybeLocal, builder: OpcodeBuilder) => {
-  let [, path] = sexp;
+if (INCLUDE_PARTIALS) {
+  EXPRESSIONS.add(Ops.MaybeLocal, (sexp: E.MaybeLocal, builder: OpcodeBuilder) => {
+    let [, path] = sexp;
 
-  if (builder.meta.asPartial) {
-    let head = path[0];
-    path = path.slice(1);
+    if (builder.meta.asPartial) {
+      let head = path[0];
+      path = path.slice(1);
 
-    builder.resolveMaybeLocal(head);
-  } else {
-    builder.getVariable(0);
-  }
+      builder.resolveMaybeLocal(head);
+    } else {
+      builder.getVariable(0);
+    }
 
-  for(let i = 0; i < path.length; i++) {
-    builder.getProperty(path[i]);
-  }
-});
+    for(let i = 0; i < path.length; i++) {
+      builder.getProperty(path[i]);
+    }
+  });
+}
 
 EXPRESSIONS.add(Ops.Undefined, (_sexp, builder) => {
   return builder.primitive(undefined);
@@ -911,20 +916,22 @@ export function populateBuiltins(blocks: Blocks = new Blocks(), inlines: Inlines
     builder.stopLabels();
   });
 
-  blocks.add('-with-dynamic-vars', (_params, hash, template, _inverse, builder) => {
-    if (hash) {
-      let [names, expressions] = hash;
+  if (INCLUDE_WITH_DYNAMIC_SCOPE) {
+    blocks.add('-with-dynamic-vars', (_params, hash, template, _inverse, builder) => {
+      if (hash) {
+        let [names, expressions] = hash;
 
-      compileList(expressions, builder);
+        compileList(expressions, builder);
 
-      builder.pushDynamicScope();
-      builder.bindDynamicScope(names);
-      builder.invokeStatic(unwrap(template));
-      builder.popDynamicScope();
-    } else {
-      builder.invokeStatic(unwrap(template));
-    }
-  });
+        builder.pushDynamicScope();
+        builder.bindDynamicScope(names);
+        builder.invokeStatic(unwrap(template));
+        builder.popDynamicScope();
+      } else {
+        builder.invokeStatic(unwrap(template));
+      }
+    });
+  }
 
   return { blocks, inlines };
 }

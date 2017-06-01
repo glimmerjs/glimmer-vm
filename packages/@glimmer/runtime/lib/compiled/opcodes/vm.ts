@@ -22,6 +22,7 @@ import {
   TRUE_REFERENCE,
   UNDEFINED_REFERENCE,
 } from '../../references';
+import { INCLUDE_WITH_DYNAMIC_SCOPE } from "@glimmer/feature-flags";
 
 APPEND_OPCODES.add(Op.ChildScope, vm => vm.pushChildScope());
 
@@ -73,10 +74,12 @@ APPEND_OPCODES.add(Op.Load, (vm, { op1: register }) => vm.load(register));
 
 APPEND_OPCODES.add(Op.Fetch, (vm, { op1: register }) => vm.fetch(register));
 
-APPEND_OPCODES.add(Op.BindDynamicScope, (vm, { op1: _names }) => {
-  let names = vm.constants.getArray(_names);
-  vm.bindDynamicScope(names);
-});
+if (INCLUDE_WITH_DYNAMIC_SCOPE) {
+  APPEND_OPCODES.add(Op.BindDynamicScope, (vm, { op1: _names }) => {
+    let names = vm.constants.getArray(_names);
+    vm.bindDynamicScope(names);
+  });
+}
 
 APPEND_OPCODES.add(Op.PushFrame, vm => vm.pushFrame());
 

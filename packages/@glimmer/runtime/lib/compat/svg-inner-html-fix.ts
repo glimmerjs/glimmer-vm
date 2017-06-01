@@ -1,6 +1,7 @@
 import { Bounds, ConcreteBounds } from '../bounds';
 import { moveNodesBefore, DOMChanges, DOMTreeConstruction } from '../dom/helper';
 import { Option, unwrap } from '@glimmer/util';
+import { INCLUDE_LEGACY } from "@glimmer/feature-flags";
 
 export const SVG_NAMESPACE = 'http://www.w3.org/2000/svg';
 export type SVG_NAMESPACE = typeof SVG_NAMESPACE;
@@ -17,79 +18,95 @@ export type SVG_NAMESPACE = typeof SVG_NAMESPACE;
 //           that whole string is added to a div. The created nodes are plucked
 //           out and applied to the target location on DOM.
 export function domChanges(document: Option<Document>, DOMChangesClass: typeof DOMChanges, svgNamespace: SVG_NAMESPACE): typeof DOMChanges {
-  if (!document) return DOMChangesClass;
+  if (INCLUDE_LEGACY) {
+    if (!document) return DOMChangesClass;
 
-  if (!shouldApplyFix(document, svgNamespace)) {
+    if (!shouldApplyFix(document, svgNamespace)) {
+      return DOMChangesClass;
+    }
+
+    let div = document.createElement('div');
+
+    return class DOMChangesWithSVGInnerHTMLFix extends DOMChangesClass {
+      insertHTMLBefore(parent: HTMLElement, nextSibling: Node, html: string): Bounds {
+        if (html === null || html === '') {
+          return super.insertHTMLBefore(parent, nextSibling, html);
+        }
+
+        if (parent.namespaceURI !== svgNamespace) {
+          return super.insertHTMLBefore(parent, nextSibling, html);
+        }
+
+        return fixSVG(parent, div, html, nextSibling);
+      }
+    };
+  } else {
     return DOMChangesClass;
   }
-
-  let div = document.createElement('div');
-
-  return class DOMChangesWithSVGInnerHTMLFix extends DOMChangesClass {
-    insertHTMLBefore(parent: HTMLElement, nextSibling: Node, html: string): Bounds {
-      if (html === null || html === '') {
-        return super.insertHTMLBefore(parent, nextSibling, html);
-      }
-
-      if (parent.namespaceURI !== svgNamespace) {
-        return super.insertHTMLBefore(parent, nextSibling, html);
-      }
-
-      return fixSVG(parent, div, html, nextSibling);
-    }
-  };
 }
 
 export function treeConstruction(document: Option<Document>, TreeConstructionClass: typeof DOMTreeConstruction, svgNamespace: SVG_NAMESPACE): typeof DOMTreeConstruction {
-  if (!document) return TreeConstructionClass;
+  if (INCLUDE_LEGACY) {
+    if (!document) return TreeConstructionClass;
 
-  if (!shouldApplyFix(document, svgNamespace)) {
+    if (!shouldApplyFix(document, svgNamespace)) {
+      return TreeConstructionClass;
+    }
+
+    let div = document.createElement('div');
+
+    return class TreeConstructionWithSVGInnerHTMLFix extends TreeConstructionClass {
+      insertHTMLBefore(parent: HTMLElement, reference: Node, html: string): Bounds {
+        if (html === null || html === '') {
+          return super.insertHTMLBefore(parent, reference, html);
+        }
+
+        if (parent.namespaceURI !== svgNamespace) {
+          return super.insertHTMLBefore(parent, reference, html);
+        }
+
+        return fixSVG(parent, div, html, reference);
+      }
+    };
+  } else {
     return TreeConstructionClass;
   }
-
-  let div = document.createElement('div');
-
-  return class TreeConstructionWithSVGInnerHTMLFix extends TreeConstructionClass {
-    insertHTMLBefore(parent: HTMLElement, reference: Node, html: string): Bounds {
-      if (html === null || html === '') {
-        return super.insertHTMLBefore(parent, reference, html);
-      }
-
-      if (parent.namespaceURI !== svgNamespace) {
-        return super.insertHTMLBefore(parent, reference, html);
-      }
-
-      return fixSVG(parent, div, html, reference);
-    }
-  };
 }
 
 function fixSVG(parent: Element, div: HTMLElement, html: string, reference: Node): Bounds {
-  // IE, Edge: also do not correctly support using `innerHTML` on SVG
-  // namespaced elements. So here a wrapper is used.
-  let wrappedHtml = '<svg>' + html + '</svg>';
+  if (INCLUDE_LEGACY) {
+    // IE, Edge: also do not correctly support using `innerHTML` on SVG
+    // namespaced elements. So here a wrapper is used.
+    let wrappedHtml = '<svg>' + html + '</svg>';
 
-  div.innerHTML = wrappedHtml;
+    div.innerHTML = wrappedHtml;
 
-  let [first, last] = moveNodesBefore(div.firstChild as Node, parent, reference);
-  return new ConcreteBounds(parent, first, last);
+    let [first, last] = moveNodesBefore(div.firstChild as Node, parent, reference);
+    return new ConcreteBounds(parent, first, last);
+  }
+
+  return new ConcreteBounds(parent, div.firstChild, reference.previousSibling);
 }
 
 function shouldApplyFix(document: Document, svgNamespace: SVG_NAMESPACE) {
-  let svg = document.createElementNS(svgNamespace, 'svg');
+  if (INCLUDE_LEGACY) {
+    let svg = document.createElementNS(svgNamespace, 'svg');
 
-  try {
-    svg['insertAdjacentHTML']('beforeEnd', '<circle></circle>');
-  } catch (e) {
-    // IE, Edge: Will throw, insertAdjacentHTML is unsupported on SVG
-    // Safari: Will throw, insertAdjacentHTML is not present on SVG
-  } finally {
-    // FF: Old versions will create a node in the wrong namespace
-    if (svg.childNodes.length === 1 && unwrap(svg.firstChild).namespaceURI === SVG_NAMESPACE) {
-      // The test worked as expected, no fix required
-      return false;
+    try {
+      svg['insertAdjacentHTML']('beforeEnd', '<circle></circle>');
+    } catch (e) {
+      // IE, Edge: Will throw, insertAdjacentHTML is unsupported on SVG
+      // Safari: Will throw, insertAdjacentHTML is not present on SVG
+    } finally {
+      // FF: Old versions will create a node in the wrong namespace
+      if (svg.childNodes.length === 1 && unwrap(svg.firstChild).namespaceURI === SVG_NAMESPACE) {
+        // The test worked as expected, no fix required
+        return false;
+      }
+
+      return true;
     }
-
-    return true;
   }
+
+  return;
 }

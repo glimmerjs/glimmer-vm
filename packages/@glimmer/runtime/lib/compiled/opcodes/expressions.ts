@@ -6,6 +6,7 @@ import { FALSE_REFERENCE, TRUE_REFERENCE } from '../../references';
 import { PublicVM } from '../../vm';
 import { Arguments } from '../../vm/arguments';
 import { ConcatReference } from '../expressions/concat';
+import { INCLUDE_PARTIALS } from "@glimmer/feature-flags";
 
 export type FunctionExpression<T> = (vm: PublicVM) => VersionedPathReference<T>;
 
@@ -35,17 +36,19 @@ APPEND_OPCODES.add(Op.SetVariable, (vm, { op1: symbol }) => {
   vm.scope().bindSymbol(symbol, expr);
 });
 
-APPEND_OPCODES.add(Op.ResolveMaybeLocal, (vm, { op1: _name }) => {
-  let name = vm.constants.getString(_name);
-  let locals = vm.scope().getPartialMap()!;
+if (INCLUDE_PARTIALS) {
+  APPEND_OPCODES.add(Op.ResolveMaybeLocal, (vm, { op1: _name }) => {
+    let name = vm.constants.getString(_name);
+    let locals = vm.scope().getPartialMap()!;
 
-  let ref = locals[name];
-  if (ref === undefined) {
-    ref = vm.getSelf().get(name);
-  }
+    let ref = locals[name];
+    if (ref === undefined) {
+      ref = vm.getSelf().get(name);
+    }
 
-  vm.stack.push(ref);
-});
+    vm.stack.push(ref);
+  });
+}
 
 APPEND_OPCODES.add(Op.RootScope, (vm, { op1: symbols, op2: bindCallerScope }) => {
   vm.pushRootScope(symbols, !!bindCallerScope);

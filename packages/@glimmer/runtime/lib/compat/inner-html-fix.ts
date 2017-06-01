@@ -1,6 +1,7 @@
 import { Bounds, ConcreteBounds } from '../bounds';
 import { moveNodesBefore, DOMChanges, DOMTreeConstruction } from '../dom/helper';
 import { Option } from '@glimmer/util';
+import { INCLUDE_LEGACY } from "@glimmer/feature-flags";
 
 interface Wrapper {
   depth: number;
@@ -8,14 +9,17 @@ interface Wrapper {
   after: string;
 }
 
-let innerHTMLWrapper = {
-  colgroup: { depth: 2, before: '<table><colgroup>', after: '</colgroup></table>' },
-  table:    { depth: 1, before: '<table>', after: '</table>' },
-  tbody:    { depth: 2, before: '<table><tbody>', after: '</tbody></table>' },
-  tfoot:    { depth: 2, before: '<table><tfoot>', after: '</tfoot></table>' },
-  thead:    { depth: 2, before: '<table><thead>', after: '</thead></table>' },
-  tr:       { depth: 3, before: '<table><tbody><tr>', after: '</tr></tbody></table>' }
-};
+let innerHTMLWrapper = {};
+if (INCLUDE_LEGACY) {
+  innerHTMLWrapper = {
+    colgroup: { depth: 2, before: '<table><colgroup>', after: '</colgroup></table>' },
+    table:    { depth: 1, before: '<table>', after: '</table>' },
+    tbody:    { depth: 2, before: '<table><tbody>', after: '</tbody></table>' },
+    tfoot:    { depth: 2, before: '<table><tfoot>', after: '</tfoot></table>' },
+    thead:    { depth: 2, before: '<table><thead>', after: '</thead></table>' },
+    tr:       { depth: 3, before: '<table><tbody><tr>', after: '</tr></tbody></table>' }
+  };
+}
 
 // Patch:    innerHTML Fix
 // Browsers: IE9
@@ -25,85 +29,101 @@ let innerHTMLWrapper = {
 //           wrapped innerHTML on a div, then move the unwrapped nodes into the
 //           target position.
 export function domChanges(document: Option<Document>, DOMChangesClass: typeof DOMChanges): typeof DOMChanges {
-  if (!document) return DOMChangesClass;
+  if (INCLUDE_LEGACY) {
+    if (!document) return DOMChangesClass;
 
-  if (!shouldApplyFix(document)) {
+    if (!shouldApplyFix(document)) {
+      return DOMChangesClass;
+    }
+
+    let div = document.createElement('div');
+
+    return class DOMChangesWithInnerHTMLFix extends DOMChangesClass {
+      insertHTMLBefore(parent: HTMLElement, nextSibling: Node, html: string): Bounds {
+        if (html === null || html === '') {
+          return super.insertHTMLBefore(parent, nextSibling, html);
+        }
+
+        let parentTag = parent.tagName.toLowerCase();
+        let wrapper = innerHTMLWrapper[parentTag];
+
+        if(wrapper === undefined) {
+          return super.insertHTMLBefore(parent, nextSibling, html);
+        }
+
+        return fixInnerHTML(parent, wrapper, div, html, nextSibling);
+      }
+    };
+  } else {
     return DOMChangesClass;
   }
-
-  let div = document.createElement('div');
-
-  return class DOMChangesWithInnerHTMLFix extends DOMChangesClass {
-    insertHTMLBefore(parent: HTMLElement, nextSibling: Node, html: string): Bounds {
-      if (html === null || html === '') {
-        return super.insertHTMLBefore(parent, nextSibling, html);
-      }
-
-      let parentTag = parent.tagName.toLowerCase();
-      let wrapper = innerHTMLWrapper[parentTag];
-
-      if(wrapper === undefined) {
-        return super.insertHTMLBefore(parent, nextSibling, html);
-      }
-
-      return fixInnerHTML(parent, wrapper, div, html, nextSibling);
-    }
-  };
 }
 
 export function treeConstruction(document: Option<Document>, DOMTreeConstructionClass: typeof DOMTreeConstruction): typeof DOMTreeConstruction {
-  if (!document) return DOMTreeConstructionClass;
+  if (INCLUDE_LEGACY) {
+    if (!document) return DOMTreeConstructionClass;
 
-  if (!shouldApplyFix(document)) {
+    if (!shouldApplyFix(document)) {
+      return DOMTreeConstructionClass;
+    }
+
+    let div = document.createElement('div');
+
+    return class DOMTreeConstructionWithInnerHTMLFix extends DOMTreeConstructionClass {
+      insertHTMLBefore(parent: HTMLElement, referenceNode: Node, html: string): Bounds {
+        if (html === null || html === '') {
+          return super.insertHTMLBefore(parent, referenceNode, html);
+        }
+
+        let parentTag = parent.tagName.toLowerCase();
+        let wrapper = innerHTMLWrapper[parentTag];
+
+        if(wrapper === undefined) {
+          return super.insertHTMLBefore(parent, referenceNode, html);
+        }
+
+        return fixInnerHTML(parent, wrapper, div, html, referenceNode);
+      }
+    };
+  } else {
     return DOMTreeConstructionClass;
   }
-
-  let div = document.createElement('div');
-
-  return class DOMTreeConstructionWithInnerHTMLFix extends DOMTreeConstructionClass {
-    insertHTMLBefore(parent: HTMLElement, referenceNode: Node, html: string): Bounds {
-      if (html === null || html === '') {
-        return super.insertHTMLBefore(parent, referenceNode, html);
-      }
-
-      let parentTag = parent.tagName.toLowerCase();
-      let wrapper = innerHTMLWrapper[parentTag];
-
-      if(wrapper === undefined) {
-        return super.insertHTMLBefore(parent, referenceNode, html);
-      }
-
-      return fixInnerHTML(parent, wrapper, div, html, referenceNode);
-    }
-  };
 }
 
 function fixInnerHTML(parent: HTMLElement, wrapper: Wrapper, div: HTMLElement, html: string, reference: Node): Bounds {
-  let wrappedHtml = wrapper.before + html + wrapper.after;
+  if (INCLUDE_LEGACY) {
+    let wrappedHtml = wrapper.before + html + wrapper.after;
 
-  div.innerHTML = wrappedHtml;
+    div.innerHTML = wrappedHtml;
 
-  let parentNode: Node = div;
+    let parentNode: Node = div;
 
-  for (let i=0; i<wrapper.depth; i++) {
-    parentNode = parentNode.childNodes[0];
+    for (let i=0; i<wrapper.depth; i++) {
+      parentNode = parentNode.childNodes[0];
+    }
+
+    let [first, last] = moveNodesBefore(parentNode, parent, reference);
+    return new ConcreteBounds(parent, first, last);
+  } else {
+    return new ConcreteBounds(parent, div.firstChild, reference.lastChild);
   }
-
-  let [first, last] = moveNodesBefore(parentNode, parent, reference);
-  return new ConcreteBounds(parent, first, last);
 }
 
 function shouldApplyFix(document: Document) {
-  let table = document.createElement('table');
-  try {
-    table.innerHTML = '<tbody></tbody>';
-  } catch (e) {
-  } finally {
-    if (table.childNodes.length !== 0) {
-      // It worked as expected, no fix required
-      return false;
+  if (INCLUDE_LEGACY) {
+    let table = document.createElement('table');
+    try {
+      table.innerHTML = '<tbody></tbody>';
+    } catch (e) {
+    } finally {
+      if (table.childNodes.length !== 0) {
+        // It worked as expected, no fix required
+        return false;
+      }
     }
+
+    return true;
   }
 
-  return true;
+  return;
 }
