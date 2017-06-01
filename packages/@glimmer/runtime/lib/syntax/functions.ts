@@ -883,7 +883,7 @@ export function populateBuiltins(blocks: Blocks = new Blocks(), inlines: Inlines
         throw new Error(`SYNTAX ERROR: #-in-element does not take a \`${keys[0]}\` option`);
       }
     } else {
-      expr(null, builder);
+      builder.primitive(null);
     }
 
     expr(params[0], builder);
