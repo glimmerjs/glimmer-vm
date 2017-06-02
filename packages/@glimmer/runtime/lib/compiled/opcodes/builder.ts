@@ -1,6 +1,6 @@
 
 import { CompilationMeta, Opaque, Option, SymbolTable } from '@glimmer/interfaces';
-import { dict, EMPTY_ARRAY, expect, fillNulls, Stack, typePos } from '@glimmer/util';
+import { dict, EMPTY_ARRAY, expect, Stack, typePos } from '@glimmer/util';
 import * as WireFormat from '@glimmer/wire-format';
 import { ComponentBuilder } from '../../compiler';
 import { ComponentDefinition } from '../../component/interfaces';
@@ -70,18 +70,12 @@ export abstract class BasicOpcodeBuilder {
     this.start = this.heap.malloc();
   }
 
-  abstract compile<E>(expr: Represents<E>): E;
-
   private get pos() {
     return typePos(this.heap.size());
   }
 
   private get nextPos() {
     return this.heap.size();
-  }
-
-  upvars<T extends [Opaque]>(count: number): T {
-    return fillNulls(count) as T;
   }
 
   reserve(name: Op) {
@@ -132,37 +126,13 @@ export abstract class BasicOpcodeBuilder {
     this.push(Op.PushDynamicComponentManager);
   }
 
-  prepareArgs(state: Register) {
-    this.push(Op.PrepareArgs, state);
-  }
-
   createComponent(state: Register, hasDefault: boolean, hasInverse: boolean) {
     let flag = (hasDefault === true ? 1 : 0) | ((hasInverse === true ? 1 : 0) << 1);
     this.push(Op.CreateComponent, flag, state);
   }
 
-  registerComponentDestructor(state: Register) {
-    this.push(Op.RegisterComponentDestructor, state);
-  }
-
-  beginComponentTransaction() {
-    this.push(Op.BeginComponentTransaction);
-  }
-
-  commitComponentTransaction() {
-    this.push(Op.CommitComponentTransaction);
-  }
-
   pushComponentOperations() {
     this.push(Op.PushComponentOperations);
-  }
-
-  getComponentSelf(state: Register) {
-    this.push(Op.GetComponentSelf, state);
-  }
-
-  getComponentLayout(state: Register ) {
-    this.push(Op.GetComponentLayout, state);
   }
 
   didCreateElement(state: Register) {
@@ -280,10 +250,6 @@ export abstract class BasicOpcodeBuilder {
 
   // expressions
 
-  setVariable(symbol: number) {
-    this.push(Op.SetVariable, symbol);
-  }
-
   getVariable(symbol: number) {
     this.push(Op.GetVariable, symbol);
   }
@@ -340,14 +306,6 @@ export abstract class BasicOpcodeBuilder {
 
   label(name: string) {
     this.labels.label(name, this.nextPos);
-  }
-
-  pushRootScope(symbols: number, bindCallerScope: boolean) {
-    this.push(Op.RootScope, symbols, (bindCallerScope ? 1 : 0));
-  }
-
-  pushChildScope() {
-    this.push(Op.ChildScope);
   }
 
   popScope() {
@@ -450,11 +408,11 @@ export abstract class BasicOpcodeBuilder {
     this.pushFrame();
 
     if (count) {
-      this.pushChildScope();
+      this.push(Op.ChildScope);
 
       for (let i = 0; i < count; i++) {
         this.dup(Register.fp, callerCount - i);
-        this.setVariable(parameters[i]);
+        this.push(Op.SetVariable, parameters[i]);
       }
     }
 
@@ -517,10 +475,6 @@ export abstract class BasicOpcodeBuilder {
     return this.constants.array(names);
   }
 
-  protected symbols(symbols: number[]): ConstantArray {
-    return this.constants.array(symbols);
-  }
-
   protected other(value: Opaque): ConstantOther {
     return this.constants.other(value);
   }
@@ -532,10 +486,6 @@ export abstract class BasicOpcodeBuilder {
   protected func(func: Function): ConstantFunction {
     return this.constants.function(func);
   }
-}
-
-function isCompilableExpression<E>(expr: Represents<E>): expr is CompilesInto<E> {
-  return typeof expr === 'object' && expr !== null && typeof (expr as CompilesInto<E>).compile === 'function';
 }
 
 export default class OpcodeBuilder extends BasicOpcodeBuilder {
@@ -570,14 +520,6 @@ export default class OpcodeBuilder extends BasicOpcodeBuilder {
 
     this.pushImmediate(names);
     this.pushArgs(synthetic);
-  }
-
-  compile<E>(expr: Represents<E>): E {
-    if (isCompilableExpression(expr)) {
-      return expr.compile(this);
-    } else {
-      return expr;
-    }
   }
 
   guardedAppend(expression: WireFormat.Expression, trusting: boolean) {
@@ -635,21 +577,21 @@ export default class OpcodeBuilder extends BasicOpcodeBuilder {
     this.pushBlock(inverse);
 
     this.compileArgs(params, hash, false);
-    this.prepareArgs(Register.s0);
+    this.push(Op.PrepareArgs, Register.s0);
 
-    this.beginComponentTransaction();
+    this.push(Op.BeginComponentTransaction);
     this.pushDynamicScope();
     this.createComponent(Register.s0, block !== null, inverse !== null);
-    this.registerComponentDestructor(Register.s0);
+    this.push(Op.RegisterComponentDestructor, Register.s0);
 
-    this.getComponentSelf(Register.s0);
-    this.getComponentLayout(Register.s0);
+    this.push(Op.GetComponentSelf, Register.s0);
+    this.push(Op.GetComponentLayout, Register.s0);
     this.invokeDynamic(new InvokeDynamicLayout(attrs && attrs.scan()));
     this.popFrame();
 
     this.popScope();
     this.popDynamicScope();
-    this.commitComponentTransaction();
+    this.push(Op.CommitComponentTransaction);
 
     this.load(Register.s0);
   }
@@ -659,5 +601,3 @@ export default class OpcodeBuilder extends BasicOpcodeBuilder {
     return new RawInlineBlock(this.meta, block.statements, block.parameters);
   }
 }
-
-export type BlockCallback = (dsl: OpcodeBuilder, BEGIN: Label, END: Label) => void;

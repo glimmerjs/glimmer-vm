@@ -1,4 +1,3 @@
-import { VersionedPathReference } from "@glimmer/reference";
 import { Opaque } from "@glimmer/interfaces";
 import { Block } from "../syntax/interfaces";
 
