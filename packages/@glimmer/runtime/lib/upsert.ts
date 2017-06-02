@@ -1,5 +1,5 @@
 import { Opaque, unreachable } from '@glimmer/util';
-import { Bounds, clear, Cursor, single, SingleNodeBounds } from './bounds';
+import { Bounds, clear, Cursor, SingleNodeBounds } from './bounds';
 import { DOMChanges, DOMTreeConstruction } from './dom/helper';
 import * as Simple from './dom/interfaces';
 import { FIX_REIFICATION } from './dom/interfaces';
@@ -141,7 +141,8 @@ class SafeStringUpsert extends Upsert {
 class NodeUpsert extends Upsert {
   static insert(dom: DOMTreeConstruction, cursor: Cursor, node: Simple.Node): Upsert {
     dom.insertBefore(cursor.element as Element, node as Node, cursor.nextSibling as Node);
-    return new NodeUpsert(single(cursor.element, node));
+    let single = new SingleNodeBounds(cursor.element, node);
+    return new NodeUpsert(single);
   }
 
   update(dom: DOMChanges, value: Insertion): boolean {

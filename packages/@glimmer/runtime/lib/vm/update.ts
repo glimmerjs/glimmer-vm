@@ -74,10 +74,6 @@ export default class UpdatingVM {
     this.frame.handleException();
     this.frameStack.pop();
   }
-
-  evaluateOpcode(opcode: UpdatingOpcode) {
-    opcode.evaluate(this);
-  }
 }
 
 export interface ExceptionHandler {

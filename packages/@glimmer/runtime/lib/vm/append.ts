@@ -43,10 +43,6 @@ export class EvaluationStack {
     }
   }
 
-  isEmpty() {
-    return this.sp === -1;
-  }
-
   push(value: Opaque): void {
     this.stack[++this.sp] = value;
   }
@@ -92,9 +88,9 @@ export type IteratorResult<T> = {
   done: false;
   value: null;
 } | {
-  done: true;
-  value: T;
-};
+    done: true;
+    value: T;
+  };
 
 export default class VM implements PublicVM {
   private dynamicScopeStack = new Stack<DynamicScope>();
@@ -146,11 +142,6 @@ export default class VM implements PublicVM {
   // Fetch a value from a register
   fetchValue<T>(register: Register): T {
     return this[Register[register]];
-  }
-
-  // Load a value into a register
-  loadValue<T>(register: Register, value: T) {
-    this[Register[register]] = value;
   }
 
   // Start a new frame and save $ra and $fp on the stack
@@ -439,14 +430,10 @@ export default class VM implements PublicVM {
     return program.opcode(pc);
   }
 
-  evaluateOpcode(opcode: Opcode) {
-    APPEND_OPCODES.evaluate(this, opcode, opcode.type);
-  }
-
   bindDynamicScope(names: ConstantString[]) {
     let scope = this.dynamicScope();
 
-    for(let i=names.length - 1; i>=0; i--) {
+    for (let i = names.length - 1; i >= 0; i--) {
       let name = this.constants.getString(names[i]);
       scope.set(name, this.stack.pop<VersionedPathReference<Opaque>>());
     }
