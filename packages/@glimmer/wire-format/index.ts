@@ -125,7 +125,7 @@ export namespace Statements {
   export type Yield         = [Opcodes.Yield, YieldTo, Option<Params>];
   export type Partial       = [Opcodes.Partial, Expression, Core.EvalInfo];
   export type DynamicArg    = [Opcodes.DynamicArg, str, Expression];
-  export type StaticArg     = [Opcodes.StaticArg, str, Expression];
+  export type StaticArg     = [Opcodes.StaticArg, str, Expressions.Value];
   export type TrustingAttr  = [Opcodes.TrustingAttr, str, Expression, str];
   export type Debugger      = [Opcodes.Debugger, Core.EvalInfo];
   export type ClientSide    = [Opcodes.ClientSideStatement, any];

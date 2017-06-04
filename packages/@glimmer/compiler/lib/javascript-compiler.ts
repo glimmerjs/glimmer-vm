@@ -253,7 +253,7 @@ export default class JavaScriptCompiler<T extends TemplateMeta> {
   }
 
   staticArg(name: str) {
-    let value = this.popValue<Expression>();
+    let value = this.popValue<Expressions.Value>();
     this.push([Ops.StaticArg, name, value]);
   }
 
