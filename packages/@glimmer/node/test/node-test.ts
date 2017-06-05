@@ -38,7 +38,7 @@ function commonSetup() {
 function render<T>(template: Template<T>, self: any) {
   let result;
   env.begin();
-  let templateIterator = template.render(new UpdatableReference(self), root, new TestDynamicScope());
+  let templateIterator = template.render({ self: new UpdatableReference(self), parentNode: root, dynamicScope: new TestDynamicScope() });
 
   do {
     result = templateIterator.next();

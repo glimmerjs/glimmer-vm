@@ -1,7 +1,7 @@
 import { Opaque } from '@glimmer/interfaces';
 import { isConst, isModified, map, Reference, ReferenceCache, VersionedPathReference } from '@glimmer/reference';
 import { clear, Cursor } from '../../bounds';
-import { Fragment } from '../../builder';
+import { Fragment } from '../../vm/element-builder';
 import { isComponentDefinition } from '../../component/interfaces';
 import { DOMTreeConstruction } from '../../dom/helper';
 import { APPEND_OPCODES, Op, OpcodeJSON, UpdatingOpcode } from '../../opcodes';

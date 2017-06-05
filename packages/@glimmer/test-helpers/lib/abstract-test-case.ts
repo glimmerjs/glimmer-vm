@@ -105,7 +105,7 @@ export class RenderingTest {
 
     this.context = rootObject;
 
-    let templateIterator = this.template.render(root, appendTo, new TestDynamicScope());
+    let templateIterator = this.template.render({ self: root, parentNode: appendTo, dynamicScope: new TestDynamicScope() });
 
     let result;
     do {

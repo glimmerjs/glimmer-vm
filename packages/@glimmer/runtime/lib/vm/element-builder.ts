@@ -1,20 +1,20 @@
-import Bounds, { Cursor, DestroyableBounds, clear } from './bounds';
+import Bounds, { Cursor, DestroyableBounds, clear } from '../bounds';
 
-import { DOMChanges, DOMTreeConstruction } from './dom/helper';
+import { DOMChanges, DOMTreeConstruction } from '../dom/helper';
 
 import { Option, Destroyable, Stack, LinkedList, LinkedListNode, assert, expect } from '@glimmer/util';
 
-import { Environment } from './environment';
+import { Environment } from '../environment';
 
-import { VM } from './vm';
+import { VM } from '../vm';
 
 import { VersionedReference } from '@glimmer/reference';
 
 import {
   SimpleElementOperations
-} from './compiled/opcodes/dom';
+} from '../compiled/opcodes/dom';
 
-import * as Simple from './dom/interfaces';
+import * as Simple from '../dom/interfaces';
 
 export interface FirstNode {
   firstNode(): Option<Simple.Node>;
@@ -72,7 +72,46 @@ export class Fragment implements Bounds {
   }
 }
 
-export class ElementStack implements Cursor {
+export interface DOMStack {
+  popElement(): void;
+  openElement(tag: string, _operations?: ElementOperations): Simple.Element;
+  flushElement(): void;
+  appendText(string: string): Simple.Text;
+  appendComment(string: string): Simple.Comment;
+  setStaticAttribute(name: string, value: string): void;
+  setStaticAttributeNS(namespace: string, name: string, value: string): void;
+  setDynamicAttribute(name: string, reference: VersionedReference<string>, isTrusting: boolean): void;
+  setDynamicAttributeNS(namespace: string, name: string, reference: VersionedReference<string>, isTrusting: boolean): void;
+  closeElement(): void;
+}
+
+export interface ElementStack extends Cursor, DOMStack {
+  nextSibling: Option<Simple.Node>;
+  dom: DOMTreeConstruction;
+  updateOperations: DOMChanges;
+  constructing: Option<Simple.Element>;
+  operations: Option<ElementOperations>;
+  element: Simple.Element;
+  env: Environment;
+
+  // TODO: ?
+  expectConstructing(method: string): Simple.Element;
+  expectOperations(method: string): ElementOperations;
+
+  block(): Tracker;
+
+  pushSimpleBlock(): Tracker;
+  pushUpdatableBlock(): UpdatableTracker;
+  pushBlockList(list: LinkedList<LinkedListNode & Bounds & Destroyable>): Tracker;
+  popBlock(): Tracker;
+  pushRemoteElement(element: Simple.Element, nextSibling: Option<Simple.Node>): void;
+  popRemoteElement(): void;
+
+  newDestroyable(d: Destroyable): void;
+  newBounds(bounds: Bounds): void;
+}
+
+export class NewElementStack implements ElementStack {
   public nextSibling: Option<Simple.Node>;
   public dom: DOMTreeConstruction;
   public updateOperations: DOMChanges;
@@ -88,13 +127,13 @@ export class ElementStack implements Cursor {
   private defaultOperations: ElementOperations;
 
   static forInitialRender(env: Environment, parentNode: Simple.Element, nextSibling: Option<Simple.Node>) {
-    return new ElementStack(env, parentNode, nextSibling);
+    return new NewElementStack(env, parentNode, nextSibling);
   }
 
   static resume(env: Environment, tracker: Tracker, nextSibling: Option<Simple.Node>) {
     let parentNode = tracker.parentElement();
 
-    let stack = new ElementStack(env, parentNode, nextSibling);
+    let stack = new NewElementStack(env, parentNode, nextSibling);
     stack.pushBlockTracker(tracker);
 
     return stack;

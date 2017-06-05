@@ -1,6 +1,6 @@
 import { Register } from '../opcodes';
 import { Scope, DynamicScope, Environment, Opcode, Handle, Heap } from '../environment';
-import { ElementStack } from '../builder';
+import { ElementStack } from './element-builder';
 import { Option, Destroyable, Stack, LinkedList, ListSlice, Opaque, expect, typePos } from '@glimmer/util';
 import { ReferenceIterator, PathReference, VersionedPathReference, combineSlice } from '@glimmer/reference';
 import { CompiledDynamicProgram } from '../compiled/blocks';

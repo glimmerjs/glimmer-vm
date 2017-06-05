@@ -7,12 +7,21 @@ import {
   Statements,
   TemplateMeta,
 } from '@glimmer/wire-format';
-import { ElementStack } from './builder';
+import { NewElementStack } from './vm/element-builder';
+import { RehydrateBuilder } from './vm/rehydrate-builder';
 import * as Simple from './dom/interfaces';
 import { DynamicScope, Environment } from './environment';
 import Scanner from './scanner';
 import { Block, Program } from './syntax/interfaces';
 import { IteratorResult, RenderResult, VM } from './vm';
+
+export interface RenderOptions {
+  self: PathReference<Opaque>;
+  parentNode: Simple.Element;
+  nextSibling?: Option<Simple.Node>;
+  dynamicScope: DynamicScope;
+  rehydrate?: boolean;
+}
 
 /**
  * Environment specific template.
@@ -39,7 +48,7 @@ export interface Template<T> {
   /**
    * Helper to render template as root entry point.
    */
-  render(self: PathReference<Opaque>, appendTo: Simple.Element, dynamicScope: DynamicScope): TemplateIterator;
+  render(options: RenderOptions): TemplateIterator;
 
   // internal casts, these are lazily created and cached
   asEntryPoint(): Program;
@@ -121,10 +130,10 @@ class ScannableTemplate implements Template<TemplateMeta> {
     this.hasEval = rawBlock.hasEval;
   }
 
-  render(self: PathReference<Opaque>, appendTo: Simple.Element, dynamicScope: DynamicScope) {
+  render({ self, parentNode, dynamicScope, rehydrate }: RenderOptions) {
     let { env } = this;
 
-    let elementStack = ElementStack.forInitialRender(env, appendTo, null);
+    let elementStack = rehydrate ? RehydrateBuilder.forInitialRender(env, parentNode, null) : NewElementStack.forInitialRender(env, parentNode, null);
     let compiled = this.asEntryPoint().compileDynamic(env);
     let vm = VM.initial(env, self, dynamicScope, elementStack, compiled);
     return new TemplateIterator(vm);

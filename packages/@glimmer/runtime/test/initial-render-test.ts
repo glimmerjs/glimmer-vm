@@ -44,7 +44,7 @@ function commonSetup(customEnv = new TestEnvironment()) {
 function render<T>(template: Template<T>, self: any) {
   let result: RenderResult;
   env.begin();
-  let templateIterator = template.render(new UpdatableReference(self), root, new TestDynamicScope());
+  let templateIterator = template.render({ self: new UpdatableReference(self), parentNode: root, dynamicScope: new TestDynamicScope() });
   let iteratorResult: IteratorResult<RenderResult>;
   do {
     iteratorResult = templateIterator.next();
