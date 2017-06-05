@@ -1,6 +1,8 @@
 import { Bounds, ConcreteBounds } from '../bounds';
 import { moveNodesBefore } from '../dom/helper';
 import { unwrap } from '@glimmer/util';
+import { insertHTMLBefore } from './insert-html-before';
+import { emptyHTML } from "@glimmer/runtime/lib/compat/utils";
 
 export const SVG_NAMESPACE = 'http://www.w3.org/2000/svg';
 export type SVG_NAMESPACE = typeof SVG_NAMESPACE;
@@ -16,7 +18,7 @@ export type SVG_NAMESPACE = typeof SVG_NAMESPACE;
 //           approach is used. A pre/post SVG tag is added to the string, then
 //           that whole string is added to a div. The created nodes are plucked
 //           out and applied to the target location on DOM.
-export function fixSVG(parent: Element, div: HTMLElement, html: string, reference: Node): Bounds {
+function fixSVG(parent: Element, html: string, reference: Node, div: HTMLElement): Bounds {
   // IE, Edge: also do not correctly support using `innerHTML` on SVG
   // namespaced elements. So here a wrapper is used.
   let wrappedHtml = '<svg>' + html + '</svg>';
@@ -44,4 +46,16 @@ export function needsSVGInnerHTMLFix(document: Document, svgNamespace: SVG_NAMES
 
     return true;
   }
+}
+
+export function fix(parent: HTMLElement, reference: Node, html: string, uselessElement: HTMLElement): Bounds {
+  if (emptyHTML(html)) {
+    return insertHTMLBefore(parent, reference, html, uselessElement);
+  }
+
+  if (parent.namespaceURI !== SVG_NAMESPACE) {
+    return insertHTMLBefore(parent, reference, html, uselessElement);
+  }
+
+  return fixSVG(parent, html, reference, uselessElement);
 }

@@ -1,5 +1,8 @@
 import { Bounds, ConcreteBounds } from '../bounds';
 import { moveNodesBefore } from '../dom/helper';
+import { emptyHTML } from './utils';
+import { insertHTMLBefore } from './insert-html-before';
+import { fix as svgFix } from './svg-inner-html-fix';
 
 export interface Wrapper {
   depth: number;
@@ -7,7 +10,7 @@ export interface Wrapper {
   after: string;
 }
 
-export const innerHTMLWrapper = {
+const innerHTMLWrapper = {
   colgroup: { depth: 2, before: '<table><colgroup>', after: '</colgroup></table>' },
   table:    { depth: 1, before: '<table>', after: '</table>' },
   tbody:    { depth: 2, before: '<table><tbody>', after: '</tbody></table>' },
@@ -23,7 +26,7 @@ export const innerHTMLWrapper = {
 // Fix:      Wrap the innerHTML we are about to set in its parents, apply the
 //           wrapped innerHTML on a div, then move the unwrapped nodes into the
 //           target position.
-export function fixInnerHTML(parent: HTMLElement, wrapper: Wrapper, div: HTMLElement, html: string, reference: Node): Bounds {
+function fixInnerHTML(parent: HTMLElement, wrapper: Wrapper, div: HTMLElement, html: string, reference: Node): Bounds {
   let wrappedHtml = wrapper.before + html + wrapper.after;
 
   div.innerHTML = wrappedHtml;
@@ -51,4 +54,18 @@ export function needsInnerHTMLFix(document: Document) {
   }
 
   return true;
+}
+
+export function fix(parent: HTMLElement, reference: Node, html: string, uselessElement: HTMLElement): Bounds {
+  if (emptyHTML(html)) {
+    return insertHTMLBefore(parent, reference, html, uselessElement);
+  }
+  let parentTag = parent.tagName.toLowerCase();
+  let wrapper = innerHTMLWrapper[parentTag];
+
+  if(wrapper === undefined) {
+    return svgFix(parent, reference, html, uselessElement);
+  }
+
+  return fixInnerHTML(parent, wrapper, uselessElement, html, reference);
 }

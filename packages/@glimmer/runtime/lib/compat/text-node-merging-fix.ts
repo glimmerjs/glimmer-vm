@@ -1,3 +1,5 @@
+import { fix as fixInnerHTML } from './inner-html-fix';
+import { Bounds } from "@glimmer/runtime";
 // Patch:    Adjacent text node merging fix
 // Browsers: IE, Edge, Firefox w/o inspector open
 // Reason:   These browsers will merge adjacent text nodes. For exmaple given
@@ -10,7 +12,7 @@
 //           Note that this fix must only apply to the previous text node, as
 //           the base implementation of `insertHTMLBefore` already handles
 //           following text nodes correctly.
-export function fixTextNodeMerging(parent: HTMLElement, reference: Node, uselessComment: Comment) {
+function fixTextNodeMerging(parent: HTMLElement, reference: Node, uselessComment: Comment) {
   let didSetUselessComment = false;
   let nextPrevious = reference ? reference.previousSibling : parent.lastChild;
   if (nextPrevious && nextPrevious instanceof Text) {
@@ -33,4 +35,19 @@ export function needsTextNodeFix(document: Document) {
   }
 
   return true;
+}
+
+export function fix(parent: HTMLElement, reference: Node, html: string, uselessElement: HTMLElement, uselessComment: Comment): Bounds {
+  if (html === null) {
+    return fixInnerHTML(parent, reference, html, uselessElement);
+  }
+
+  let didSetUselessComment = fixTextNodeMerging(parent, reference, uselessComment);
+  let bounds = fixInnerHTML(parent, reference, html, uselessElement);
+
+  if (didSetUselessComment) {
+    parent.removeChild(uselessComment);
+  }
+
+  return bounds;
 }
