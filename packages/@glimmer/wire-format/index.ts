@@ -29,9 +29,9 @@ export function is<T>(variant: number): (value: any) => value is T {
 export namespace Core {
   export type Expression = Expressions.Expression;
 
-  export type Path          = str[];
+  export type Path          = number[];
   export type Params        = Expression[];
-  export type Hash          = Option<[str[], Expression[]]>;
+  export type Hash          = Option<[number[], Expression[]]>;
   export type Args          = [Params, Hash];
   export type EvalInfo      = number[];
 }
@@ -41,7 +41,7 @@ export namespace Expressions {
   export type Params = Core.Params;
   export type Hash = Core.Hash;
 
-  export type Unknown        = [Opcodes.Unknown, str];
+  export type Unknown        = [Opcodes.Unknown, number];
   export type Get            = [Opcodes.Get, number, Path];
 
   /**
@@ -78,7 +78,7 @@ export namespace Expressions {
 
   export interface Helper extends Array<any> {
     [0]: Opcodes.Helper;
-    [1]: str;
+    [1]: number;
     [2]: Params;
     [3]: Hash;
   }
@@ -111,22 +111,22 @@ export namespace Statements {
   export type Hash = Core.Hash;
   export type Path = Core.Path;
 
-  export type Text          = [Opcodes.Text, str];
+  export type Text          = [Opcodes.Text, number];
   export type Append        = [Opcodes.Append, Expression, boolean];
-  export type Comment       = [Opcodes.Comment, str];
-  export type Modifier      = [Opcodes.Modifier, str, Params, Hash];
-  export type Block         = [Opcodes.Block, str, Params, Hash, Option<SerializedInlineBlock>, Option<SerializedInlineBlock>];
-  export type Component     = [Opcodes.Component, str, Attribute[], Hash, Option<SerializedInlineBlock>];
-  export type OpenElement   = [Opcodes.OpenElement, str];
+  export type Comment       = [Opcodes.Comment, number];
+  export type Modifier      = [Opcodes.Modifier, number, Params, Hash];
+  export type Block         = [Opcodes.Block, number, Params, Hash, Option<SerializedInlineBlock>, Option<SerializedInlineBlock>];
+  export type Component     = [Opcodes.Component, number, Attribute[], Hash, Option<SerializedInlineBlock>];
+  export type OpenElement   = [Opcodes.OpenElement, number];
   export type FlushElement  = [Opcodes.FlushElement];
   export type CloseElement  = [Opcodes.CloseElement];
-  export type StaticAttr    = [Opcodes.StaticAttr, str, Expression, Option<str>];
-  export type DynamicAttr   = [Opcodes.DynamicAttr, str, Expression, Option<str>];
+  export type StaticAttr    = [Opcodes.StaticAttr, number, Expression, Option<str>];
+  export type DynamicAttr   = [Opcodes.DynamicAttr, number, Expression, Option<str>];
   export type Yield         = [Opcodes.Yield, YieldTo, Option<Params>];
   export type Partial       = [Opcodes.Partial, Expression, Core.EvalInfo];
-  export type DynamicArg    = [Opcodes.DynamicArg, str, Expression];
-  export type StaticArg     = [Opcodes.StaticArg, str, Expression];
-  export type TrustingAttr  = [Opcodes.TrustingAttr, str, Expression, str];
+  export type DynamicArg    = [Opcodes.DynamicArg, number, Expression];
+  export type StaticArg     = [Opcodes.StaticArg, number, Expression];
+  export type TrustingAttr  = [Opcodes.TrustingAttr, number, Expression, str];
   export type Debugger      = [Opcodes.Debugger, Core.EvalInfo];
   export type ClientSide    = [Opcodes.ClientSideStatement, any];
 
@@ -194,7 +194,7 @@ export namespace Statements {
     return isAttribute(val) || isArgument(val);
   }
 
-  export function getParameterName(s: Parameter): string {
+  export function getParameterName(s: Parameter): number {
     return s[1];
   }
 }
@@ -232,6 +232,7 @@ export interface SerializedTemplateBlock extends SerializedBlock {
  */
 export interface SerializedTemplate<T extends TemplateMeta> {
   block: SerializedTemplateBlock;
+  strings: string[];
   meta: T;
 }
 
@@ -240,12 +241,15 @@ export interface SerializedTemplate<T extends TemplateMeta> {
  */
 export type SerializedTemplateBlockJSON = string;
 
+export type SerializedStringsJSON = string;
+
 /**
  * A JSON object containing the SerializedTemplateBlock as JSON and TemplateMeta.
  */
 export interface SerializedTemplateWithLazyBlock<T extends TemplateMeta> {
   id?: Option<string>;
   block: SerializedTemplateBlockJSON;
+  strings: SerializedStringsJSON;
   meta: T;
 }
 

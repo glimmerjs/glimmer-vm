@@ -116,15 +116,33 @@ export class ComponentBlock extends Block {
 export class Template<T extends TemplateMeta> {
   public block: TemplateBlock;
 
-  constructor(symbols: ProgramSymbolTable, public meta: T) {
+  constructor(symbols: ProgramSymbolTable, public strings: StringMap, public meta: T) {
     this.block = new TemplateBlock(symbols);
   }
 
   toJSON(): SerializedTemplate<T> {
     return {
+      strings: this.strings.toJSON(),
       block: this.block.toJSON(),
       meta: this.meta
     };
+  }
+}
+
+export class StringMap {
+  strings: string[] = [];
+
+  get(string: string): number {
+    let foundIndex = this.strings.indexOf(string);
+    if (foundIndex > -1) {
+      return foundIndex;
+    }
+
+    return this.strings.push(string) - 1;
+  }
+
+  toJSON() {
+    return this.strings;
   }
 }
 
@@ -138,10 +156,11 @@ export default class JavaScriptCompiler<T extends TemplateMeta> {
   private blocks = new Stack<Block>();
   private opcodes: any[];
   private values: StackValue[] = [];
+  private strings: StringMap = new StringMap();
 
   constructor(opcodes: any[], symbols: ProgramSymbolTable, meta: T) {
     this.opcodes = opcodes;
-    this.template = new Template(symbols, meta);
+    this.template = new Template(symbols, this.strings, meta);
   }
 
   get currentBlock(): Block {
@@ -181,7 +200,8 @@ export default class JavaScriptCompiler<T extends TemplateMeta> {
   /// Statements
 
   text(content: string) {
-    this.push([Ops.Text, content]);
+    let contentIndex = this.strings.get(content);
+    this.push([Ops.Text, contentIndex]);
   }
 
   append(trusted: boolean) {
@@ -189,17 +209,21 @@ export default class JavaScriptCompiler<T extends TemplateMeta> {
   }
 
   comment(value: string) {
-    this.push([Ops.Comment, value]);
+    let valueIndex = this.strings.get(value);
+
+    this.push([Ops.Comment, valueIndex]);
   }
 
   modifier(name: string) {
+    let nameIndex = this.strings.get(name);
     let params = this.popValue<Params>();
     let hash = this.popValue<Hash>();
 
-    this.push([Ops.Modifier, name, params, hash]);
+    this.push([Ops.Modifier, nameIndex, params, hash]);
   }
 
   block(name: string, template: number, inverse: number) {
+    let nameIndex = this.strings.get(name);
     let params = this.popValue<Params>();
     let hash = this.popValue<Hash>();
 
@@ -207,7 +231,7 @@ export default class JavaScriptCompiler<T extends TemplateMeta> {
     assert(typeof template !== 'number' || blocks[template] !== null, 'missing block in the compiler');
     assert(typeof inverse !== 'number' || blocks[inverse] !== null, 'missing block in the compiler');
 
-    this.push([Ops.Block, name, params, hash, blocks[template], blocks[inverse]]);
+    this.push([Ops.Block, nameIndex, params, hash, blocks[template], blocks[inverse]]);
   }
 
   openElement(element: AST.ElementNode) {
@@ -218,7 +242,8 @@ export default class JavaScriptCompiler<T extends TemplateMeta> {
     } else if (element.blockParams.length > 0) {
       throw new Error(`Compile Error: <${element.tag}> is not a component and doesn't support block parameters`);
     } else {
-      this.push([Ops.OpenElement, tag]);
+      let tagIndex = this.strings.get(tag);
+      this.push([Ops.OpenElement, tagIndex]);
     }
   }
 
@@ -231,35 +256,46 @@ export default class JavaScriptCompiler<T extends TemplateMeta> {
 
     if (tag.indexOf('-') !== -1) {
       let [attrs, args, block] = this.endComponent();
-      this.push([Ops.Component, tag, attrs, args, block]);
+      let tagIndex = this.strings.get(tag);
+      this.push([Ops.Component, tagIndex, attrs, args, block]);
     } else {
       this.push([Ops.CloseElement]);
     }
   }
 
   staticAttr(name: str, namespace: str) {
+    let nameIndex = this.strings.get(name);
     let value = this.popValue<Expression>();
-    this.push([Ops.StaticAttr, name, value, namespace]);
+
+    this.push([Ops.StaticAttr, nameIndex, value, namespace]);
   }
 
   dynamicAttr(name: str, namespace: str) {
+    let nameIndex = this.strings.get(name);
     let value = this.popValue<Expression>();
-    this.push([Ops.DynamicAttr, name, value, namespace]);
+
+    this.push([Ops.DynamicAttr, nameIndex, value, namespace]);
   }
 
   trustingAttr(name: str, namespace: str) {
+    let nameIndex = this.strings.get(name);
     let value = this.popValue<Expression>();
-    this.push([Ops.TrustingAttr, name, value, namespace]);
+
+    this.push([Ops.TrustingAttr, nameIndex, value, namespace]);
   }
 
   staticArg(name: str) {
+    let nameIndex = this.strings.get(name);
     let value = this.popValue<Expression>();
-    this.push([Ops.StaticArg, name, value]);
+
+    this.push([Ops.StaticArg, nameIndex, value]);
   }
 
   dynamicArg(name: str) {
+    let nameIndex = this.strings.get(name);
     let value = this.popValue<Expression>();
-    this.push([Ops.DynamicArg, name, value]);
+
+    this.push([Ops.DynamicArg, nameIndex, value]);
   }
 
   yield(to: number) {
@@ -297,15 +333,22 @@ export default class JavaScriptCompiler<T extends TemplateMeta> {
   }
 
   unknown(name: string) {
-    this.pushValue<Expressions.Unknown>([Ops.Unknown, name]);
+    let nameIndex = this.strings.get(name);
+    this.pushValue<Expressions.Unknown>([Ops.Unknown, nameIndex]);
   }
 
   get(head: number, path: string[]) {
-    this.pushValue<Expressions.Get>([Ops.Get, head, path]);
+    let { strings } = this;
+    let pathIndexes = path.map(str => strings.get(str));
+
+    this.pushValue<Expressions.Get>([Ops.Get, head, pathIndexes]);
   }
 
   maybeLocal(path: string[]) {
-    this.pushValue<Expressions.MaybeLocal>([Ops.MaybeLocal, path]);
+    let { strings } = this;
+    let pathIndexes = path.map(str => strings.get(str));
+
+    this.pushValue<Expressions.MaybeLocal>([Ops.MaybeLocal, pathIndexes]);
   }
 
   concat() {
@@ -313,10 +356,11 @@ export default class JavaScriptCompiler<T extends TemplateMeta> {
   }
 
   helper(name: string) {
+    let nameIndex = this.strings.get(name);
     let params = this.popValue<Params>();
     let hash = this.popValue<Hash>();
 
-    this.pushValue<Expressions.Helper>([Ops.Helper, name, params, hash]);
+    this.pushValue<Expressions.Helper>([Ops.Helper, nameIndex, params, hash]);
   }
 
   /// Stack Management Opcodes
@@ -345,11 +389,13 @@ export default class JavaScriptCompiler<T extends TemplateMeta> {
   prepareObject(size: number) {
     assert(this.values.length >= size, `Expected ${size} values on the stack, found ${this.values.length}`);
 
-    let keys: string[] = new Array(size);
+    let keys: number[] = new Array(size);
     let values: Expression[] = new Array(size);
 
     for (let i = 0; i < size; i++) {
-      keys[i] = this.popValue<str>();
+      let key = this.popValue<str>();
+      let keyIndex = this.strings.get(key);
+      keys[i] = keyIndex;
       values[i] = this.popValue<Expression>();
     }
 
