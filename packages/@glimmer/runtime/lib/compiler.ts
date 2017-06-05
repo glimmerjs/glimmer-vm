@@ -73,9 +73,11 @@ class ComponentLayoutBuilder implements Component.ComponentLayoutBuilder {
 
 class WrappedBuilder implements InnerLayoutBuilder {
   public tag = new ComponentTagBuilder();
-  public attrs = new ComponentAttrsBuilder();
+  public attrs: ComponentAttrsBuilder;
 
-  constructor(public env: Environment, private layout: Template<TemplateMeta>) {}
+  constructor(public env: Environment, private layout: Template<TemplateMeta>) {
+     this.attrs = new ComponentAttrsBuilder(layout);
+  }
 
   compile(): CompiledDynamicProgram {
     //========DYNAMIC
@@ -107,7 +109,7 @@ class WrappedBuilder implements InnerLayoutBuilder {
     //        Exit
 
     let { env, layout } = this;
-    let meta = { templateMeta: layout.meta, symbols: layout.symbols, asPartial: false };
+    let meta = { templateMeta: layout.meta, symbols: layout.symbols, strings: layout.strings, asPartial: false };
 
     let dynamicTag = this.tag.getDynamic();
     let staticTag = this.tag.getStatic();
@@ -186,9 +188,11 @@ class WrappedBuilder implements InnerLayoutBuilder {
 }
 
 class UnwrappedBuilder implements InnerLayoutBuilder {
-  public attrs = new ComponentAttrsBuilder();
+  public attrs: ComponentAttrsBuilder;
 
-  constructor(public env: Environment, private componentName: string, private layout: Template<TemplateMeta>) {}
+  constructor(public env: Environment, private componentName: string, private layout: Template<TemplateMeta>) {
+    this.attrs = new ComponentAttrsBuilder(layout);
+  }
 
   get tag(): Component.ComponentTagBuilder {
     throw new Error('BUG: Cannot call `tag` on an UnwrappedBuilder');
@@ -232,12 +236,28 @@ class ComponentTagBuilder implements Component.ComponentTagBuilder {
 class ComponentAttrsBuilder implements Component.ComponentAttrsBuilder {
   public buffer: WireFormat.Statements.Attribute[] = [];
 
+  constructor(private layout: Template<TemplateMeta>) {}
+
   static(name: string, value: string) {
-    this.buffer.push([Ops.StaticAttr, name, value, null]);
+    let nameIndex = this.getStringIndex(name);
+    this.buffer.push([Ops.StaticAttr, nameIndex, value, null]);
   }
 
   dynamic(name: string, value: FunctionExpression<string>) {
-    this.buffer.push([Ops.DynamicAttr, name, [Ops.ClientSideExpression, ClientSide.Ops.FunctionExpression, value], null]);
+    let nameIndex = this.getStringIndex(name);
+
+    this.buffer.push([Ops.DynamicAttr, nameIndex, [Ops.ClientSideExpression, ClientSide.Ops.FunctionExpression, value], null]);
+  }
+
+  private getStringIndex(string: string) {
+    let { strings } = this.layout;
+
+    let index = strings.indexOf(string);
+    if (index === -1) {
+      index = strings.push(string) - 1;
+    }
+
+    return index;
   }
 }
 

@@ -54,11 +54,15 @@ const STATEMENTS = new Compilers<WireFormat.Statement>();
 const CLIENT_SIDE = new Compilers<ClientSide.ClientSideStatement>(1);
 
 STATEMENTS.add(Ops.Text, (sexp: S.Text, builder: OpcodeBuilder) => {
-  builder.text(sexp[1]);
+  let text = builder.getString(sexp[1]);
+
+  builder.text(text);
 });
 
 STATEMENTS.add(Ops.Comment, (sexp: S.Comment, builder: OpcodeBuilder) => {
-  builder.comment(sexp[1]);
+  let comment = builder.getString(sexp[1]);
+
+  builder.comment(comment);
 });
 
 STATEMENTS.add(Ops.CloseElement, (_sexp: S.CloseElement, builder: OpcodeBuilder) => {
@@ -71,7 +75,8 @@ STATEMENTS.add(Ops.FlushElement, (_sexp: S.FlushElement, builder: OpcodeBuilder)
 
 STATEMENTS.add(Ops.Modifier, (sexp: S.Modifier, builder: OpcodeBuilder) => {
   let { env, meta } = builder;
-  let [, name, params, hash] = sexp;
+  let [, nameIndex, params, hash] = sexp;
+  let name = builder.getString(nameIndex);
 
   if (env.hasModifier(name, meta.templateMeta)) {
     builder.compileArgs(params, hash, true);
@@ -82,7 +87,9 @@ STATEMENTS.add(Ops.Modifier, (sexp: S.Modifier, builder: OpcodeBuilder) => {
 });
 
 STATEMENTS.add(Ops.StaticAttr, (sexp: S.StaticAttr, builder: OpcodeBuilder) => {
-  let [, name, value, namespace] = sexp;
+  let [, nameIndex, value, namespace] = sexp;
+  let name = builder.getString(nameIndex);
+
   builder.staticAttr(name, namespace, value as string);
 });
 
@@ -95,7 +102,8 @@ STATEMENTS.add(Ops.TrustingAttr, (sexp: S.DynamicAttr, builder: OpcodeBuilder) =
 });
 
 function dynamicAttr(sexp: S.DynamicAttr | S.TrustingAttr, trusting: boolean, builder: OpcodeBuilder) {
-  let [, name, value, namespace] = sexp;
+  let [, nameIndex, value, namespace] = sexp;
+  let name = builder.getString(nameIndex);
 
   expr(value, builder);
 
@@ -107,7 +115,9 @@ function dynamicAttr(sexp: S.DynamicAttr | S.TrustingAttr, trusting: boolean, bu
 }
 
 STATEMENTS.add(Ops.OpenElement, (sexp: S.OpenElement, builder: OpcodeBuilder) => {
-  builder.openPrimitiveElement(sexp[1]);
+  let tagName = builder.getString(sexp[1]);
+
+  builder.openPrimitiveElement(tagName);
 });
 
 CLIENT_SIDE.add(ClientSide.Ops.OpenComponentElement, (sexp: ClientSide.OpenComponentElement, builder: OpcodeBuilder) => {
@@ -147,7 +157,8 @@ STATEMENTS.add(Ops.Append, (sexp: S.Append, builder: OpcodeBuilder) => {
 });
 
 STATEMENTS.add(Ops.Block, (sexp: S.Block, builder: OpcodeBuilder) => {
-  let [, name, params, hash, _template, _inverse] = sexp;
+  let [, nameIndex, params, hash, _template, _inverse] = sexp;
+  let name = builder.getString(nameIndex);
   let template = builder.template(_template);
   let inverse = builder.template(_inverse);
 
@@ -224,7 +235,8 @@ export class InvokeDynamicLayout implements DynamicInvoker<ProgramSymbolTable> {
 }
 
 STATEMENTS.add(Ops.Component, (sexp: S.Component, builder: OpcodeBuilder) => {
-  let [, tag, attrs, args, block] = sexp;
+  let [, tagIndex, attrs, args, block] = sexp;
+  let tag = builder.getString(tagIndex);
 
   if (builder.env.hasComponentDefinition(tag, builder.meta.templateMeta)) {
     let child = builder.template(block);
@@ -430,10 +442,11 @@ export function expr(expression: WireFormat.Expression, builder: OpcodeBuilder):
 }
 
 EXPRESSIONS.add(Ops.Unknown, (sexp: E.Unknown, builder: OpcodeBuilder) => {
-  let name = sexp[1];
+  let [, nameIndex ] = sexp;
+  let name = builder.getString(sexp[1]);
 
   if (builder.env.hasHelper(name, builder.meta.templateMeta)) {
-    EXPRESSIONS.compile([Ops.Helper, name, EMPTY_ARRAY, null], builder);
+    EXPRESSIONS.compile([Ops.Helper, nameIndex, EMPTY_ARRAY, null], builder);
   } else if (builder.meta.asPartial) {
     builder.resolveMaybeLocal(name);
   } else {
@@ -456,7 +469,8 @@ CLIENT_SIDE_EXPRS.add(ClientSide.Ops.FunctionExpression, (sexp: ClientSide.Funct
 
 EXPRESSIONS.add(Ops.Helper, (sexp: E.Helper, builder: OpcodeBuilder) => {
   let { env, meta } = builder;
-  let [, name, params, hash] = sexp;
+  let [, nameIndex, params, hash] = sexp;
+  let name = builder.getString(nameIndex);
 
   if (env.hasHelper(name, meta.templateMeta)) {
     builder.compileArgs(params, hash, true);
@@ -470,7 +484,8 @@ EXPRESSIONS.add(Ops.Get, (sexp: E.Get, builder: OpcodeBuilder) => {
   let [, head, path] = sexp;
   builder.getVariable(head);
   for (let i = 0; i < path.length; i++) {
-    builder.getProperty(path[i]);
+    let part = builder.getString(path[i]);
+    builder.getProperty(part);
   }
 });
 
@@ -478,7 +493,8 @@ EXPRESSIONS.add(Ops.MaybeLocal, (sexp: E.MaybeLocal, builder: OpcodeBuilder) => 
   let [, path] = sexp;
 
   if (builder.meta.asPartial) {
-    let head = path[0];
+    let headIndex = path[0];
+    let head = builder.getString(headIndex);
     path = path.slice(1);
 
     builder.resolveMaybeLocal(head);
@@ -487,7 +503,8 @@ EXPRESSIONS.add(Ops.MaybeLocal, (sexp: E.MaybeLocal, builder: OpcodeBuilder) => 
   }
 
   for(let i = 0; i < path.length; i++) {
-    builder.getProperty(path[i]);
+    let part = builder.getString(path[i]);
+    builder.getProperty(part);
   }
 });
 
@@ -582,11 +599,13 @@ export class Inlines {
     let hash: Option<C.Hash>;
 
     if (value[0] === Ops.Helper) {
-      name = value[1];
+      let nameIndex = value[1];
+      name = builder.getString(nameIndex);
       params = value[2];
       hash = value[3];
     } else if (value[0] === Ops.Unknown) {
-      name = value[1];
+      let nameIndex = value[1];
+      name = builder.getString(nameIndex);
       params = hash = null;
     } else {
       return ['expr', value];
@@ -806,7 +825,7 @@ export function populateBuiltins(blocks: Blocks = new Blocks(), inlines: Inlines
 
     builder.returnTo('END');
 
-    if (hash && hash[0][0] === 'key') {
+    if (hash && builder.getString(hash[0][0]) === 'key') {
       expr(hash[1][0], builder);
     } else {
       builder.primitive(null);
@@ -876,7 +895,7 @@ export function populateBuiltins(blocks: Blocks = new Blocks(), inlines: Inlines
     if (hash && hash[0].length) {
       let [ keys, values ] = hash;
 
-      if (keys.length === 1 && keys[0] === 'nextSibling') {
+      if (keys.length === 1 && builder.getString(keys[0]) === 'nextSibling') {
         expr(values[0], builder);
       } else {
         throw new Error(`SYNTAX ERROR: #-in-element does not take a \`${keys[0]}\` option`);
@@ -910,7 +929,11 @@ export function populateBuiltins(blocks: Blocks = new Blocks(), inlines: Inlines
 
   blocks.add('-with-dynamic-vars', (_params, hash, template, _inverse, builder) => {
     if (hash) {
-      let [names, expressions] = hash;
+      let [nameIndexes, expressions] = hash;
+      let names: string[] = new Array(nameIndexes.length);
+      for (let i = 0; i < nameIndexes.length; i++) {
+        names[i] = builder.getString(nameIndexes[i]);
+      }
 
       compileList(expressions, builder);
 

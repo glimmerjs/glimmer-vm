@@ -6,6 +6,7 @@ export interface Symbols {
 
 export interface CompilationMeta {
   symbols: string[];
+  strings: string[];
   templateMeta: TemplateMeta;
   asPartial: boolean;
 }
