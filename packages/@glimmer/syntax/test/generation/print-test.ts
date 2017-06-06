@@ -72,6 +72,14 @@ test('BlockStatement: inline', function() {
   printEqual('{{#if foo}}<p>{{foo}}</p>{{/if}}');
 });
 
+test('BlockStatement: inverse with program', function() {
+  printEqual('{{#foo}}<p></p>{{else}}<span></span>{{/foo}}');
+});
+
+test('BlockStatement: inverse without program', function() {
+  printEqual('{{^foo}}<p></p>{{/foo}}');
+});
+
 test('UndefinedLiteral', assert => {
   const ast = b.program([b.mustache(b.undefined())]);
   assert.equal(print(ast), '{{undefined}}');
