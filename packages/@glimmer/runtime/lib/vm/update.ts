@@ -1,6 +1,6 @@
 import { Scope, DynamicScope, Environment, Handle } from '../environment';
 import { DestroyableBounds, clear, move as moveBounds } from '../bounds';
-import { NewElementStack, Tracker, UpdatableTracker } from './element-builder';
+import { NewElementBuilder, Tracker, UpdatableTracker } from './element-builder';
 import { Option, Opaque, Stack, LinkedList, Dict, dict, expect } from '@glimmer/util';
 import {
   PathReference,
@@ -179,7 +179,7 @@ export class TryOpcode extends BlockOpcode implements ExceptionHandler {
 
     children.clear();
 
-    let elementStack = NewElementStack.resume(
+    let elementStack = NewElementBuilder.resume(
       env,
       bounds,
       bounds.reset(env)
@@ -336,7 +336,7 @@ export class ListBlockOpcode extends BlockOpcode {
   vmForInsertion(nextSibling: Option<Simple.Node>): VM {
     let { env, scope, dynamicScope } = this;
 
-    let elementStack = NewElementStack.forInitialRender(
+    let elementStack = NewElementBuilder.forInitialRender(
       this.env,
       this.bounds.parentElement(),
       nextSibling

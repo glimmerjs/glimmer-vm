@@ -63,13 +63,6 @@ module("[glimmer runtime] Initial render", tests => {
   tests.beforeEach(() => commonSetup());
 
   module("Simple HTML, inline expressions", () => {
-    test("HTML text content", () => {
-      let template = compile("content");
-      render(template, {});
-
-      equalTokens(root, "content");
-    });
-
     test("HTML tags", () => {
       let template = compile("<h1>hello!</h1><div>content</div>");
       render(template, {});

@@ -3,7 +3,7 @@ import { Tag, VersionedPathReference } from '@glimmer/reference';
 import { Destroyable } from '@glimmer/util';
 import { TemplateMeta } from '@glimmer/wire-format';
 import Bounds from '../bounds';
-import { ElementOperations } from '../builder';
+import { ElementOperations } from '../vm/element-builder';
 import { CompiledDynamicProgram } from '../compiled/blocks';
 import * as Simple from '../dom/interfaces';
 import Environment, { DynamicScope } from '../environment';

@@ -1,4 +1,3 @@
-
 import {
   CachedReference,
   combineTagged,
@@ -12,7 +11,7 @@ import {
   VersionedReference,
 } from '@glimmer/reference';
 import { Dict, expect, FIXME, Opaque, Option, unwrap } from '@glimmer/util';
-import { ElementOperations } from '../../builder';
+import { ElementOperations } from '../../vm/element-builder';
 import { AttributeManager } from '../../dom/attribute-managers';
 import * as Simple from '../../dom/interfaces';
 import { FIX_REIFICATION } from '../../dom/interfaces';

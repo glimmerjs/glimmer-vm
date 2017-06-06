@@ -73,6 +73,8 @@ export class Fragment implements Bounds {
 }
 
 export interface DOMStack {
+  pushRemoteElement(element: Simple.Element, nextSibling: Option<Simple.Node>): void;
+  popRemoteElement(): void;
   popElement(): void;
   openElement(tag: string, _operations?: ElementOperations): Simple.Element;
   flushElement(): void;
@@ -104,14 +106,12 @@ export interface ElementStack extends Cursor, DOMStack {
   pushUpdatableBlock(): UpdatableTracker;
   pushBlockList(list: LinkedList<LinkedListNode & Bounds & Destroyable>): Tracker;
   popBlock(): Tracker;
-  pushRemoteElement(element: Simple.Element, nextSibling: Option<Simple.Node>): void;
-  popRemoteElement(): void;
 
   newDestroyable(d: Destroyable): void;
   newBounds(bounds: Bounds): void;
 }
 
-export class NewElementStack implements ElementStack {
+export class NewElementBuilder implements ElementStack {
   public nextSibling: Option<Simple.Node>;
   public dom: DOMTreeConstruction;
   public updateOperations: DOMChanges;
@@ -124,16 +124,16 @@ export class NewElementStack implements ElementStack {
   private nextSiblingStack = new Stack<Option<Simple.Node>>();
   private blockStack = new Stack<Tracker>();
 
-  private defaultOperations: ElementOperations;
+  protected defaultOperations: ElementOperations;
 
   static forInitialRender(env: Environment, parentNode: Simple.Element, nextSibling: Option<Simple.Node>) {
-    return new NewElementStack(env, parentNode, nextSibling);
+    return new this(env, parentNode, nextSibling);
   }
 
   static resume(env: Environment, tracker: Tracker, nextSibling: Option<Simple.Node>) {
     let parentNode = tracker.parentElement();
 
-    let stack = new NewElementStack(env, parentNode, nextSibling);
+    let stack = new this(env, parentNode, nextSibling);
     stack.pushBlockTracker(tracker);
 
     return stack;
@@ -276,12 +276,16 @@ export class NewElementStack implements ElementStack {
     this.block().newBounds(bounds);
   }
 
+  newNode<T extends Simple.Node>(node: T): T {
+    this.block().newNode(node);
+    return node;
+  }
+
   appendText(string: string): Simple.Text {
     let { dom } = this;
     let text = dom.createTextNode(string);
     dom.insertBefore(this.element, text, this.nextSibling);
-    this.block().newNode(text);
-    return text;
+    return this.newNode(text);
   }
 
   appendComment(string: string): Simple.Comment {

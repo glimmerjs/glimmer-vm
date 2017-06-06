@@ -1,105 +1,87 @@
-import Bounds from '../bounds';
+import { NewElementBuilder, ElementStack, ElementOperations } from "./element-builder";
+
+// import Bounds from '../bounds';
 import { Environment } from '../environment';
-import { ElementStack, ElementOperations, Tracker, UpdatableTracker } from "./element-builder";
-import { DOMChanges, DOMTreeConstruction } from '../dom/helper';
+// import { NewElementBuilder, ElementStack, ElementOperations, Tracker, UpdatableTracker } from "./element-builder";
+// import { DOMChanges, DOMTreeConstruction } from '../dom/helper';
 import * as Simple from '../dom/interfaces';
 import { Option } from "@glimmer/interfaces";
-import { LinkedList, LinkedListNode, Destroyable } from "@glimmer/util";
 import { VersionedReference } from "@glimmer/reference";
+// import { LinkedList, LinkedListNode, Destroyable } from "@glimmer/util";
+// import { VersionedReference } from "@glimmer/reference";
 
-export class RehydrateBuilder implements ElementStack {
-  static forInitialRender(env: Environment, parentNode: Simple.Element, nextSibling: Option<Simple.Node>) {
-    return new RehydrateBuilder(env, parentNode, nextSibling);
+export class RehydrateBuilder extends NewElementBuilder implements ElementStack {
+  private candidate: Option<Simple.Node>;
+
+  constructor(env: Environment, parentNode: Simple.Element, nextSibling: Option<Simple.Node>) {
+    super(env, parentNode, nextSibling);
+    if (nextSibling) throw new Error("Rehydration with nextSibling not supported");
+    this.candidate = parentNode.firstChild;
   }
 
-  dom: DOMTreeConstruction;
-  updateOperations: DOMChanges;
-  constructing: Option<Simple.Element>;
-  operations: Option<ElementOperations>;
+  appendText(string: string): Simple.Text {
+    let { candidate } = this;
 
-  constructor(public env: Environment, public element: Simple.Element, public nextSibling: Option<Simple.Node> = null) {}
-
-  expectConstructing(_method: string): Element {
-    throw new Error('Method not implemented.');
+    if (candidate && isTextNode(candidate)) {
+      candidate.nodeValue = string;
+      this.newNode(candidate);
+      return candidate;
+    } else {
+      return super.appendText(string);
+    }
   }
 
-  expectOperations(_method: string): ElementOperations {
-    throw new Error('Method not implemented.');
+  appendComment(string: string): Simple.Comment {
+    throw unimplemented();
   }
 
-  block(): Tracker {
-    throw new Error('Method not implemented.');
+  openElement(tag: string, _operations?: ElementOperations): Simple.Element {
+    throw unimplemented();
   }
 
-  pushSimpleBlock(): Tracker {
-    throw new Error('Method not implemented.');
+  flushElement() {
+    throw unimplemented();
   }
 
-  pushUpdatableBlock(): UpdatableTracker {
-    throw new Error('Method not implemented.');
+  pushRemoteElement(element: Simple.Element, nextSibling: Option<Simple.Node> = null) {
+    throw unimplemented();
   }
 
-  pushBlockList(_list: LinkedList<LinkedListNode & Bounds & Destroyable>): Tracker {
-    throw new Error('Method not implemented.');
+  popRemoteElement() {
+    throw unimplemented();
   }
 
-  popBlock(): Tracker {
-    throw new Error('Method not implemented.');
+  setStaticAttribute(name: string, value: string) {
+    throw unimplemented();
   }
 
-  pushRemoteElement(_element: Element, _nextSibling: Node | null): void {
-    throw new Error('Method not implemented.');
+  setStaticAttributeNS(namespace: string, name: string, value: string) {
+    throw unimplemented();
   }
 
-  popRemoteElement(): void {
-    throw new Error('Method not implemented.');
+  setDynamicAttribute(name: string, reference: VersionedReference<string>, isTrusting: boolean) {
+    throw unimplemented();
   }
 
-  newDestroyable(_d: Destroyable): void {
-    throw new Error('Method not implemented.');
+  setDynamicAttributeNS(namespace: string, name: string, reference: VersionedReference<string>, isTrusting: boolean) {
+    throw unimplemented();
   }
 
-  newBounds(_bounds: Bounds): void {
-    throw new Error('Method not implemented.');
+  closeElement() {
+    throw unimplemented();
   }
 
-  popElement(): void {
-    throw new Error('Method not implemented.');
+  newNode<T extends Simple.Node>(node: T): T {
+    super.newNode(node);
+    this.candidate = node.nextSibling;
+    return node;
   }
+}
 
-  openElement(_tag: string, _operations ?: ElementOperations | undefined): Element {
-    throw new Error('Method not implemented.');
-  }
+function isTextNode(node: Simple.Node): node is Simple.Text {
+  return node.nodeType === 3;
+}
 
-  flushElement(): void {
-    throw new Error('Method not implemented.');
-  }
-
-  appendText(_string: string): Text {
-    throw new Error('Method not implemented.');
-  }
-
-  appendComment(_string: string): Comment {
-    throw new Error('Method not implemented.');
-  }
-
-  setStaticAttribute(_name: string, _value: string): void {
-    throw new Error('Method not implemented.');
-  }
-
-  setStaticAttributeNS(_namespace: string, _name: string, _value: string): void {
-    throw new Error('Method not implemented.');
-  }
-
-  setDynamicAttribute(_name: string, _reference: VersionedReference<string>, _isTrusting: boolean): void {
-    throw new Error('Method not implemented.');
-  }
-
-  setDynamicAttributeNS(_namespace: string, _name: string, _reference: VersionedReference<string>, _isTrusting: boolean): void {
-    throw new Error('Method not implemented.');
-  }
-
-  closeElement(): void {
-    throw new Error('Method not implemented.');
-  }
+function unimplemented() {
+  return new Error('Not implemented');
 }

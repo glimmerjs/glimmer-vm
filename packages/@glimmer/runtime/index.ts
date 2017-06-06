@@ -1,6 +1,6 @@
 import './lib/bootstrap';
 
-export { default as templateFactory, TemplateFactory, Template } from './lib/template';
+export { default as templateFactory, TemplateFactory, Template, TemplateIterator, RenderOptions } from './lib/template';
 
 export { NULL_REFERENCE, UNDEFINED_REFERENCE, PrimitiveReference, ConditionalReference } from './lib/references';
 
@@ -112,5 +112,5 @@ export {
 export { default as DOMChanges, DOMChanges as IDOMChanges, DOMTreeConstruction, isWhitespace, insertHTMLBefore } from './lib/dom/helper';
 import * as Simple from './lib/dom/interfaces';
 export { Simple };
-export { ElementStack, NewElementStack, ElementOperations } from './lib/vm/element-builder';
+export { ElementStack, NewElementBuilder, ElementOperations } from './lib/vm/element-builder';
 export { default as Bounds, ConcreteBounds } from './lib/bounds';

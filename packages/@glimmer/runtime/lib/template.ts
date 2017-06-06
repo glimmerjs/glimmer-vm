@@ -7,7 +7,7 @@ import {
   Statements,
   TemplateMeta,
 } from '@glimmer/wire-format';
-import { NewElementStack } from './vm/element-builder';
+import { NewElementBuilder } from './vm/element-builder';
 import { RehydrateBuilder } from './vm/rehydrate-builder';
 import * as Simple from './dom/interfaces';
 import { DynamicScope, Environment } from './environment';
@@ -133,7 +133,7 @@ class ScannableTemplate implements Template<TemplateMeta> {
   render({ self, parentNode, dynamicScope, rehydrate }: RenderOptions) {
     let { env } = this;
 
-    let elementStack = rehydrate ? RehydrateBuilder.forInitialRender(env, parentNode, null) : NewElementStack.forInitialRender(env, parentNode, null);
+    let elementStack = rehydrate ? RehydrateBuilder.forInitialRender(env, parentNode, null) : NewElementBuilder.forInitialRender(env, parentNode, null);
     let compiled = this.asEntryPoint().compileDynamic(env);
     let vm = VM.initial(env, self, dynamicScope, elementStack, compiled);
     return new TemplateIterator(vm);
