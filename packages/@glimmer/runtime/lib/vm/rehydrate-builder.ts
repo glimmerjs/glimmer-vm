@@ -36,7 +36,18 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementStack 
   }
 
   openElement(tag: string, _operations?: ElementOperations): Simple.Element {
-    throw unimplemented();
+    let { candidate } = this;
+
+    if (candidate && isElement(candidate) && candidate.tagName === tag.toUpperCase()) {
+      // workaround argument.length transpile of arg initializer
+      let operations = _operations === undefined ? this.defaultOperations : _operations;
+
+      this.constructing = candidate;
+      this.operations = operations;
+      return candidate;
+    } else {
+      return super.openElement(tag, _operations);
+    }
   }
 
   flushElement() {
@@ -80,6 +91,10 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementStack 
 
 function isTextNode(node: Simple.Node): node is Simple.Text {
   return node.nodeType === 3;
+}
+
+function isElement(node: Simple.Node): node is Simple.Element {
+  return node.nodeType === 1;
 }
 
 function unimplemented() {

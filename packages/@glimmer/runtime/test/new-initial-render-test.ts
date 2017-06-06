@@ -14,6 +14,11 @@ abstract class RenderTest {
     equalTokens(this.rootElement, "content");
   }
 
+  @test "HTML tags"() {
+    this.render(this.compile("<h1>hello!</h1><div>content</div>"), {});
+    equalTokens(this.rootElement, "<h1>hello!</h1><div>content</div>");
+  }
+
   protected compile(template: string): Template<Opaque> {
     return this.env.compile(template);
   }
