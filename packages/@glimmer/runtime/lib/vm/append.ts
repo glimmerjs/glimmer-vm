@@ -374,7 +374,7 @@ export default class VM implements PublicVM {
   }
 
   newDestroyable(d: Destroyable) {
-    this.elements().newDestroyable(d);
+    this.elements().didAddDestroyable(d);
   }
 
   /// SCOPE HELPERS

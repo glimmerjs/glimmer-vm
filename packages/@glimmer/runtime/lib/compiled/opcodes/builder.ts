@@ -20,9 +20,7 @@ import { FunctionExpressionCallback } from '../../syntax/client-side';
 import { expr, InvokeDynamicLayout } from '../../syntax/functions';
 import { Block } from '../../syntax/interfaces';
 import RawInlineBlock from '../../syntax/raw-block';
-import { Insertion } from '../../upsert';
 import { IsComponentDefinitionReference } from '../opcodes/content';
-import * as content from './content';
 import * as vm from './vm';
 
 export interface CompilesInto<E> {
@@ -191,16 +189,8 @@ export abstract class BasicOpcodeBuilder {
 
   // content
 
-  dynamicContent(Opcode: content.AppendDynamicOpcode<Insertion>) {
-    this.push(Op.DynamicContent, this.other(Opcode));
-  }
-
-  cautiousAppend() {
-    this.dynamicContent(new content.OptimizedCautiousAppendOpcode());
-  }
-
-  trustingAppend() {
-    this.dynamicContent(new content.OptimizedTrustingAppendOpcode());
+  dynamicContent(isTrusting: boolean) {
+    this.push(Op.DynamicContent, isTrusting ? 1 : 0);
   }
 
   // dom
@@ -609,11 +599,7 @@ export default class OpcodeBuilder extends BasicOpcodeBuilder {
 
     this.label('ELSE');
 
-    if (trusting) {
-      this.trustingAppend();
-    } else {
-      this.cautiousAppend();
-    }
+    this.dynamicContent(trusting);
 
     this.exit();
 

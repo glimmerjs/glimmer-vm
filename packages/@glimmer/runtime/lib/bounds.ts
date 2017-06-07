@@ -50,7 +50,7 @@ export function bounds(parent: Simple.Element, first: Simple.Node, last: Simple.
   return new ConcreteBounds(parent, first, last);
 }
 
-export function single(parent: Simple.Element, node: Simple.Node): Bounds {
+export function single(parent: Simple.Element, node: Simple.Node): SingleNodeBounds {
   return new SingleNodeBounds(parent, node);
 }
 

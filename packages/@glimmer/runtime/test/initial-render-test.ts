@@ -63,54 +63,6 @@ module("[glimmer runtime] Initial render", tests => {
   tests.beforeEach(() => commonSetup());
 
   module("Simple HTML, inline expressions", () => {
-    test("HTML tags", () => {
-      let template = compile("<h1>hello!</h1><div>content</div>");
-      render(template, {});
-
-      equalTokens(root, "<h1>hello!</h1><div>content</div>");
-    });
-
-    test("HTML tags re-rendered", assert => {
-      let template = compile("<h1>hello!</h1><div>content</div>");
-      let result = render(template, {});
-
-      let oldFirstChild = root.firstChild;
-
-      env.begin();
-      result.rerender();
-      env.commit();
-
-      assert.strictEqual(root.firstChild, oldFirstChild);
-      equalTokens(root, "<h1>hello!</h1><div>content</div>");
-    });
-
-    test("HTML attributes", () => {
-      let template = compile("<div class='foo' id='bar'>content</div>");
-      render(template, {});
-
-      equalTokens(root, '<div class="foo" id="bar">content</div>');
-    });
-
-    test("HTML tag with empty attribute", () => {
-      let template = compile("<div class=''>content</div>");
-      render(template, {});
-
-      equalTokens(root, "<div class=''>content</div>");
-    });
-
-    test("HTML boolean attribute 'disabled'", () => {
-      let template = compile('<input disabled>');
-      render(template, {});
-      assertNodeProperty(root.firstChild, 'input', 'disabled', true);
-    });
-
-    test("Quoted attribute null values do not disable", () => {
-      let template = compile('<input disabled="{{isDisabled}}">');
-      render(template, { isDisabled: null });
-      assertNodeProperty(root.firstChild, 'input', 'disabled', false);
-      equalTokens(root, '<input />');
-    });
-
     test("Unquoted attribute expression with null value is not coerced", () => {
       let template = compile('<input disabled={{isDisabled}}>');
       render(template, { isDisabled: null });

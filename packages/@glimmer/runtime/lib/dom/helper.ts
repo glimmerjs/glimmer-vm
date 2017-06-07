@@ -98,7 +98,7 @@ export class DOMOperations {
     parent.insertBefore(node, reference);
   }
 
-  insertHTMLBefore(_parent: Simple.Element, nextSibling: Simple.Node, html: string): Bounds {
+  insertHTMLBefore(_parent: Simple.Element, nextSibling: Option<Simple.Node>, html: string): Bounds {
     return insertHTMLBefore(this.uselessElement, _parent, nextSibling, html);
   }
 

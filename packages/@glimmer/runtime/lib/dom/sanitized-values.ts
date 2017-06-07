@@ -1,6 +1,5 @@
 import { Opaque, Option } from '@glimmer/util';
-import { normalizeTextValue } from '../compiled/opcodes/content';
-import { isSafeString } from '../upsert';
+import { normalizeAttributeValue, isSafeString } from '../dom/normalize';
 import { Environment } from '../environment';
 import * as Simple from './interfaces';
 
@@ -68,7 +67,7 @@ export function sanitizeAttributeValue(env: Environment, element: Simple.Element
     tagName = element.tagName.toUpperCase();
   }
 
-  let str = normalizeTextValue(value);
+  let str = normalizeAttributeValue(value);
 
   if (checkURI(tagName, attribute)) {
     let protocol = env.protocolForURL(str);

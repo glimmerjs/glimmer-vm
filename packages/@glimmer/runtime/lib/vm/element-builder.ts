@@ -1,6 +1,7 @@
-import Bounds, { Cursor, DestroyableBounds, clear } from '../bounds';
+import { clear, Cursor, DestroyableBounds, single, SingleNodeBounds, Bounds } from '../bounds';
 
 import { DOMChanges, DOMTreeConstruction } from '../dom/helper';
+import { isString, isSafeString, isNode, isEmpty } from '../dom/normalize';
 
 import { Option, Destroyable, Stack, LinkedList, LinkedListNode, assert, expect } from '@glimmer/util';
 
@@ -15,6 +16,7 @@ import {
 } from '../compiled/opcodes/dom';
 
 import * as Simple from '../dom/interfaces';
+import { Opaque } from "@glimmer/interfaces";
 
 export interface FirstNode {
   firstNode(): Option<Simple.Node>;
@@ -46,6 +48,52 @@ export interface ElementOperations {
   addDynamicAttribute(element: Simple.Element, name: string, value: VersionedReference<string>, isTrusting: boolean): void;
   addDynamicAttributeNS(element: Simple.Element, namespace: string, name: string, value: VersionedReference<string>, isTrusting: boolean): void;
   flush(element: Simple.Element, vm: VM): void;
+}
+
+export abstract class DynamicContent {
+  abstract update(env: Environment, value: Opaque): DynamicContent;
+
+  protected abstract bounds: Bounds;
+
+  protected retry(env: Environment, value: Opaque): DynamicContent {
+    let { bounds } = this;
+    let parentElement = bounds.parentElement();
+    let nextSibling = clear(bounds);
+
+    let stack = new NewElementBuilder(env, parentElement, nextSibling);
+
+    return stack.appendCautiousDynamicContent(value);
+  }
+}
+
+class DynamicTextContent extends DynamicContent {
+  constructor(protected bounds: SingleNodeBounds, private lastValue: string) {
+    super();
+  }
+
+  update(env: Environment, value: Opaque): DynamicContent {
+    let { lastValue } = this;
+
+    if (value === lastValue) return this;
+    if (isNode(value) || isSafeString(value)) return this.retry(env, value);
+
+    let normalized: string;
+
+    if (isEmpty(value)) {
+      normalized = '';
+    } else if (isString(value)) {
+      normalized = value;
+    } else {
+      normalized = String(value);
+    }
+
+    if (normalized !== lastValue) {
+      let textNode = this.bounds.firstNode();
+      textNode.nodeValue = this.lastValue = normalized;
+    }
+
+    return this;
+  }
 }
 
 export class Fragment implements Bounds {
@@ -80,6 +128,8 @@ export interface DOMStack {
   flushElement(): void;
   appendText(string: string): Simple.Text;
   appendComment(string: string): Simple.Comment;
+  appendTrustingDynamicContent(reference: Opaque): DynamicContent;
+  appendCautiousDynamicContent(reference: Opaque): DynamicContent;
   setStaticAttribute(name: string, value: string): void;
   setStaticAttributeNS(namespace: string, name: string, value: string): void;
   setDynamicAttribute(name: string, reference: VersionedReference<string>, isTrusting: boolean): void;
@@ -107,8 +157,8 @@ export interface ElementStack extends Cursor, DOMStack {
   pushBlockList(list: LinkedList<LinkedListNode & Bounds & Destroyable>): Tracker;
   popBlock(): Tracker;
 
-  newDestroyable(d: Destroyable): void;
-  newBounds(bounds: Bounds): void;
+  didAddDestroyable(d: Destroyable): void;
+  didAppendBounds(bounds: Bounds): void;
 }
 
 export class NewElementBuilder implements ElementStack {
@@ -226,7 +276,7 @@ export class NewElementBuilder implements ElementStack {
   openElement(tag: string, _operations?: ElementOperations): Simple.Element {
     // workaround argument.length transpile of arg initializer
     let operations = _operations === undefined ? this.defaultOperations : _operations;
-    let element = this.dom.createElement(tag, this.element);
+    let element = this.__openElement(tag);
 
     this.constructing = element;
     this.operations = operations;
@@ -234,17 +284,25 @@ export class NewElementBuilder implements ElementStack {
     return element;
   }
 
+  __openElement(tag: string): Simple.Element {
+    return this.dom.createElement(tag, this.element);
+  }
+
   flushElement() {
-    let parent  = this.element;
+    let parent = this.element;
     let element = expect(this.constructing, `flushElement should only be called when constructing an element`);
 
-    this.dom.insertBefore(parent, element, this.nextSibling);
+    this.__flushElement(parent, element);
 
     this.constructing = null;
     this.operations = null;
 
     this.pushElement(element, null);
-    this.block().openElement(element);
+    this.didOpenElement(element);
+  }
+
+  __flushElement(parent: Simple.Element, constructing: Simple.Element) {
+    this.dom.insertBefore(parent, constructing, this.nextSibling);
   }
 
   pushRemoteElement(element: Simple.Element, nextSibling: Option<Simple.Node> = null) {
@@ -259,7 +317,7 @@ export class NewElementBuilder implements ElementStack {
     this.popElement();
   }
 
-  private pushElement(element: Simple.Element, nextSibling: Option<Simple.Node>) {
+  protected pushElement(element: Simple.Element, nextSibling: Option<Simple.Node>) {
     this.element = element;
     this.elementStack.push(element);
     // LOGGER.debug(`-> element stack ${this.elementStack.toArray().map(e => e.tagName).join(', ')}`);
@@ -268,32 +326,117 @@ export class NewElementBuilder implements ElementStack {
     this.nextSiblingStack.push(nextSibling);
   }
 
-  newDestroyable(d: Destroyable) {
+  didAddDestroyable(d: Destroyable) {
     this.block().newDestroyable(d);
   }
 
-  newBounds(bounds: Bounds) {
+  didAppendBounds(bounds: Bounds) {
     this.block().newBounds(bounds);
   }
 
-  newNode<T extends Simple.Node>(node: T): T {
+  didAppendNode<T extends Simple.Node>(node: T): T {
     this.block().newNode(node);
     return node;
   }
 
+  didOpenElement(element: Simple.Element): Simple.Element {
+    this.block().openElement(element);
+    return element;
+  }
+
+  willCloseElement() {
+    this.block().closeElement();
+  }
+
   appendText(string: string): Simple.Text {
-    let { dom } = this;
-    let text = dom.createTextNode(string);
-    dom.insertBefore(this.element, text, this.nextSibling);
-    return this.newNode(text);
+    return this.didAppendNode(this.__appendText(string));
+  }
+
+  __appendText(text: string): Simple.Text {
+    let { dom, element, nextSibling } = this;
+    let node = dom.createTextNode(text);
+    dom.insertBefore(element, node, nextSibling);
+    return node;
+  }
+
+  appendTrustingDynamicContent(value: Opaque): DynamicContent {
+    if (isNode(value)) {
+      this.dom.insertBefore(this.element, value, this.nextSibling);
+      let bounds = single(this.element, value);
+      return {
+        bounds,
+        update() {
+          return true;
+        }
+      };
+    } else {
+      let normalized: string;
+
+      if (isEmpty(value)) {
+        normalized = '';
+      } else if (isSafeString(value)) {
+        normalized = value.toHTML();
+      } else if (isString(value)) {
+        normalized = value;
+      } else {
+        normalized = String(value);
+      }
+
+      let bounds = this.dom.insertHTMLBefore(this.element, this.nextSibling, normalized);
+      return {
+        bounds,
+        update() {
+          return true;
+        }
+      };
+    }
+  }
+
+  appendCautiousDynamicContent(value: Opaque): DynamicContent {
+    if (isNode(value)) {
+      this.dom.insertBefore(this.element, value, this.nextSibling);
+      return {
+        bounds: single(this.element, value),
+        update() {
+          return true;
+        }
+      };
+    } else if (isSafeString(value)) {
+      let normalized = value.toHTML();
+      let bounds = this.dom.insertHTMLBefore(this.element, this.nextSibling, normalized);
+      return {
+        bounds,
+        update() {
+          return true;
+        }
+      };
+    } else {
+      let normalized: string;
+
+      if (isEmpty(value)) {
+        normalized = '';
+      } else if (isString(value)) {
+        normalized = value;
+      } else {
+        normalized = String(value);
+      }
+
+      let textNode = this.appendText(normalized);
+      let bounds = single(this.element, textNode);
+
+      return new DynamicTextContent(bounds, normalized);
+    }
   }
 
   appendComment(string: string): Simple.Comment {
-    let { dom } = this;
-    let comment = dom.createComment(string);
-    dom.insertBefore(this.element, comment, this.nextSibling);
-    this.block().newNode(comment);
-    return comment;
+    return this.didAppendNode(this.__appendComment(string));
+  }
+
+  __appendComment(string: string): Simple.Comment {
+    let { dom, element, nextSibling } = this;
+    let node = dom.createComment(string);
+    dom.insertBefore(element, node, nextSibling);
+    return node;
   }
 
   setStaticAttribute(name: string, value: string) {
@@ -313,7 +456,7 @@ export class NewElementBuilder implements ElementStack {
   }
 
   closeElement() {
-    this.block().closeElement();
+    this.willCloseElement();
     this.popElement();
   }
 }

@@ -8,22 +8,6 @@ export interface SafeString {
   toHTML(): string;
 }
 
-export function isSafeString(value: Opaque): value is SafeString {
-  return typeof value === 'object' && value !== null && typeof (value as any).toHTML === 'function';
-}
-
-export function isNode(value: Opaque): value is Node {
-  return typeof value === 'object' && value !== null && typeof (value as any).nodeType === 'number';
-}
-
-export function isString(value: Opaque): value is string {
-  return typeof value === 'string';
-}
-
-export type Insertion = CautiousInsertion | TrustingInsertion;
-export type CautiousInsertion = string | SafeString | Node;
-export type TrustingInsertion = string | Node;
-
 abstract class Upsert {
   constructor(public bounds: Bounds) {
   }
@@ -32,31 +16,6 @@ abstract class Upsert {
 }
 
 export default Upsert;
-
-export function cautiousInsert(dom: DOMTreeConstruction, cursor: Cursor, value: CautiousInsertion): Upsert {
-  if (isString(value)) {
-    return TextUpsert.insert(dom, cursor, value);
-  }
-  if (isSafeString(value)) {
-    return SafeStringUpsert.insert(dom, cursor, value);
-  }
-  if (isNode(value)) {
-    return NodeUpsert.insert(dom, cursor, value);
-  }
-
-  throw unreachable();
-}
-
-export function trustingInsert(dom: DOMTreeConstruction, cursor: Cursor, value: TrustingInsertion): Upsert {
-  if (isString(value)) {
-    return HTMLUpsert.insert(dom, cursor, value);
-  }
-  if (isNode(value)) {
-    return NodeUpsert.insert(dom, cursor, value);
-  }
-
-  throw unreachable();
-}
 
 class TextUpsert extends Upsert {
   static insert(dom: DOMTreeConstruction, cursor: Cursor, value: string): Upsert {

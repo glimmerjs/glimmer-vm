@@ -6,7 +6,8 @@ import { Environment } from '../environment';
 // import { DOMChanges, DOMTreeConstruction } from '../dom/helper';
 import * as Simple from '../dom/interfaces';
 import { Option } from "@glimmer/interfaces";
-import { VersionedReference } from "@glimmer/reference";
+// import { VersionedReference } from "@glimmer/reference";
+import { expect } from "@glimmer/util";
 // import { LinkedList, LinkedListNode, Destroyable } from "@glimmer/util";
 // import { VersionedReference } from "@glimmer/reference";
 
@@ -19,39 +20,49 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementStack 
     this.candidate = parentNode.firstChild;
   }
 
-  appendText(string: string): Simple.Text {
+  __appendText(string: string): Simple.Text {
     let { candidate } = this;
 
     if (candidate && isTextNode(candidate)) {
       candidate.nodeValue = string;
-      this.newNode(candidate);
       return candidate;
     } else {
-      return super.appendText(string);
+      return super.__appendText(string);
     }
   }
 
-  appendComment(string: string): Simple.Comment {
-    throw unimplemented();
+  __appendComment(string: string): Simple.Text {
+    let { candidate } = this;
+
+    if (candidate && isComment(candidate)) {
+      candidate.nodeValue = string;
+      return candidate;
+    } else {
+      this.candidate = null;
+      return super.__appendComment(string);
+    }
   }
 
-  openElement(tag: string, _operations?: ElementOperations): Simple.Element {
+  __openElement(tag: string, _operations?: ElementOperations): Simple.Element {
     let { candidate } = this;
 
     if (candidate && isElement(candidate) && candidate.tagName === tag.toUpperCase()) {
-      // workaround argument.length transpile of arg initializer
-      let operations = _operations === undefined ? this.defaultOperations : _operations;
-
-      this.constructing = candidate;
-      this.operations = operations;
       return candidate;
     } else {
-      return super.openElement(tag, _operations);
+      this.candidate = null;
+      return super.__openElement(tag);
     }
   }
 
-  flushElement() {
-    throw unimplemented();
+  __flushElement(parent: Simple.Element, constructing: Simple.Element) {
+    if (!this.candidate) {
+      super.flushElement();
+    }
+  }
+
+  willCloseElement() {
+    this.candidate = this.element.nextSibling;
+    super.willCloseElement();
   }
 
   pushRemoteElement(element: Simple.Element, nextSibling: Option<Simple.Node> = null) {
@@ -62,35 +73,42 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementStack 
     throw unimplemented();
   }
 
-  setStaticAttribute(name: string, value: string) {
-    throw unimplemented();
-  }
+  // TODO: Remove unseen attributes
+  // setStaticAttribute(name: string, value: string) {
+  //   throw unimplemented();
+  // }
 
-  setStaticAttributeNS(namespace: string, name: string, value: string) {
-    throw unimplemented();
-  }
+  // setStaticAttributeNS(namespace: string, name: string, value: string) {
+  //   throw unimplemented();
+  // }
 
-  setDynamicAttribute(name: string, reference: VersionedReference<string>, isTrusting: boolean) {
-    throw unimplemented();
-  }
+  // setDynamicAttribute(name: string, reference: VersionedReference<string>, isTrusting: boolean) {
+  //   throw unimplemented();
+  // }
 
-  setDynamicAttributeNS(namespace: string, name: string, reference: VersionedReference<string>, isTrusting: boolean) {
-    throw unimplemented();
-  }
+  // setDynamicAttributeNS(namespace: string, name: string, reference: VersionedReference<string>, isTrusting: boolean) {
+  //   throw unimplemented();
+  // }
 
-  closeElement() {
-    throw unimplemented();
-  }
-
-  newNode<T extends Simple.Node>(node: T): T {
-    super.newNode(node);
+  didAppendNode<T extends Simple.Node>(node: T): T {
+    super.didAppendNode(node);
     this.candidate = node.nextSibling;
     return node;
+  }
+
+  didOpenElement(element: Simple.Element): Simple.Element {
+    super.didOpenElement(element);
+    this.candidate = element.firstChild;
+    return element;
   }
 }
 
 function isTextNode(node: Simple.Node): node is Simple.Text {
   return node.nodeType === 3;
+}
+
+function isComment(node: Simple.Node): node is Simple.Comment {
+  return node.nodeType === 8;
 }
 
 function isElement(node: Simple.Node): node is Simple.Element {

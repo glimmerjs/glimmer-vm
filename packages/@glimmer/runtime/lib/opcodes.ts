@@ -359,19 +359,10 @@ export const enum Op {
   /**
    * Operation: Append a Dynamic node based on .
    * Format:
-   *   (DynamicContent contents:#DynamicContent)
+   *   (DynamicContent isTrusting:boolean)
    * Operand Stack:
    *   ..., VersionedPathReference →
    *   ...
-   * Description:
-   *   Dynamic content can produce any kind of Node or an
-   *   fragment of HTML. If the VersionedPathReference
-   *   changes to a different kind of content, the original
-   *   node(s) are cleared and replaced with the value of
-   *   the new content.
-   *
-   *   The dynamic content can also produce a component
-   *   definition, which requires more fancy footwork.
    */
   DynamicContent,
 
@@ -1121,7 +1112,7 @@ export abstract class AbstractOpcode {
 }
 
 export abstract class UpdatingOpcode extends AbstractOpcode {
-  public tag: Tag;
+  public abstract tag: Tag;
 
   next: Option<UpdatingOpcode> = null;
   prev: Option<UpdatingOpcode> = null;

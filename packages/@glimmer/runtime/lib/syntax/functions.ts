@@ -141,7 +141,7 @@ STATEMENTS.add(Ops.Append, (sexp: S.Append, builder: OpcodeBuilder) => {
       builder.guardedAppend(value, false);
     } else {
       expr(value, builder);
-      builder.cautiousAppend();
+      builder.dynamicContent(false);
     }
   }
 });
