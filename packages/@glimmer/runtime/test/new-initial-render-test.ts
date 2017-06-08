@@ -4,7 +4,8 @@ import { TestEnvironment, equalTokens, TestDynamicScope } from "@glimmer/test-he
 import { UpdatableReference } from "@glimmer/object-reference";
 import { expect, dict } from "@glimmer/util";
 
-type NodesSnapshot = Node[];
+type IndividualSnapshot = 'up' | 'down' | Node;
+type NodesSnapshot = IndividualSnapshot[];
 
 abstract class RenderTest {
   protected abstract element: HTMLElement;
@@ -141,6 +142,43 @@ abstract class RenderTest {
     this.assertStableNodes();
   }
 
+  @test "Node curlies"() {
+    let title = document.createElement('span');
+    title.innerText = 'hello';
+    this.render('<div>{{title}}</div>', { title });
+    this.assertHTML('<div><span>hello</span></div>');
+    this.assertStableRerender();
+
+    let title2 = document.createElement('span');
+    title2.innerText = 'goodbye';
+    this.rerender({ title: title2 });
+    this.assertHTML('<div><span>goodbye</span></div>');
+    this.assertStableNodes({ except: title });
+
+    let title3 = document.createTextNode('');
+    this.rerender({ title: title3 });
+    this.assertHTML('<div></div>');
+    this.assertStableNodes({ except: title2 });
+
+    this.rerender({ title });
+    this.assertHTML('<div><span>hello</span></div>');
+    this.assertStableNodes({ except: title3 });
+  }
+
+  @test "Safe HTML curlies"() {
+    let title = { toHTML() { return '<span>hello</span> <em>world</em>' } }
+    this.render('<div>{{title}}</div>', { title });
+    this.assertHTML('<div><span>hello</span> <em>world</em></div>');
+    this.assertStableRerender();
+  }
+
+  @test "Triple curlies"() {
+    let title = '<span>hello</span> <em>world</em>';
+    this.render('<div>{{{title}}}</div>', { title });
+    this.assertHTML('<div><span>hello</span> <em>world</em></div>');
+    this.assertStableRerender();
+  }
+
   protected compile(template: string): Template<Opaque> {
     return this.env.compile(template);
   }
@@ -170,7 +208,7 @@ abstract class RenderTest {
   }
 
   private takeSnapshot() {
-    let snapshot: Node[] = this.snapshot = [];
+    let snapshot: (Node | 'up' | 'down')[] = this.snapshot = [];
 
     let node = this.element.firstChild;
 
@@ -178,10 +216,12 @@ abstract class RenderTest {
       snapshot.push(node);
 
       if (node.firstChild) {
+        snapshot.push('down');
         node = node.firstChild;
       } else if (node.nextSibling) {
         node = node.nextSibling;
       } else {
+        snapshot.push('up');
         node = node.parentNode!.nextSibling;
       }
     }
@@ -203,19 +243,24 @@ abstract class RenderTest {
     return callback();
   }
 
-  protected assertStableNodes() {
-    let oldSnapshot = this.snapshot;
-    let newSnapshot = this.takeSnapshot();
+  protected assertStableNodes({ except: _except }: { except: Set<Node> | Node | Node[] } = { except: new Set() }) {
+    let except: Set<Node>;
 
-    this.assert.strictEqual(newSnapshot.length, oldSnapshot.length, 'Same number of nodes');
-
-    for (let i = 0; i < oldSnapshot.length; i++) {
-      this.assertSameNode(newSnapshot[i], oldSnapshot[i]);
+    if (Array.isArray(_except)) {
+      except = new Set(_except);
+    } else if (_except instanceof Set) {
+      except = _except;
+    } else {
+      except = new Set([_except]);
     }
-  }
 
-  private assertSameNode(actual: Node, expected: Node) {
-    this.assert.strictEqual(actual, expected, 'DOM node stability');
+    let { oldSnapshot, newSnapshot } = normalize(this.snapshot, this.takeSnapshot(), except);
+
+    if (oldSnapshot.length === newSnapshot.length && oldSnapshot.every((item, index) => item === newSnapshot[index])) {
+      return;
+    }
+
+    this.assert.deepEqual(oldSnapshot, newSnapshot, "DOM nodes are stable");
   }
 }
 
@@ -249,18 +294,19 @@ module("Rehydration Tests", class extends RenderTest {
     renderTemplate(new TestEnvironment(), template, {
       self: new UpdatableReference(this.context),
       parentNode: this.element,
-      dynamicScope: new TestDynamicScope()
+      dynamicScope: new TestDynamicScope(),
+      mode: 'serialize'
     });
 
     // Remove adjacent/empty text nodes
-    this.element.normalize();
+    this.element.innerHTML = this.element.innerHTML;
 
     // Client-side rehydration
     return renderTemplate(this.env, template, {
       self: new UpdatableReference(this.context),
       parentNode: this.element,
       dynamicScope: new TestDynamicScope(),
-      rehydrate: true
+      mode: 'rehydrate'
     });
   }
 });
@@ -305,14 +351,68 @@ function renderTemplate(env: TestEnvironment, template: Template<Opaque>, option
   return result;
 }
 
-function isMarker(node: Node) {
-  if (node instanceof Comment && node.textContent === '') {
-    return true;
+function normalize(oldSnapshot: NodesSnapshot, newSnapshot: NodesSnapshot, except: Set<Node>) {
+  let oldIterator = new SnapshotIterator(oldSnapshot);
+  let newIterator = new SnapshotIterator(newSnapshot);
+
+  let normalizedOld = [];
+  let normalizedNew = [];
+
+  while (true) {
+    let next = oldIterator.peek();
+
+    if (next === null && newIterator.peek() === null) break;
+
+    if (next instanceof Node && except.has(next)) {
+      oldIterator.skip();
+      newIterator.skip();
+    } else {
+      normalizedOld.push(oldIterator.next());
+      normalizedNew.push(newIterator.next());
+    }
   }
 
-  if (node instanceof Text && node.textContent === '') {
-    return true;
+  return { oldSnapshot: normalizedOld, newSnapshot: normalizedNew };
+}
+
+class SnapshotIterator {
+  private depth = 0;
+  private pos = 0;
+
+  constructor(private snapshot: NodesSnapshot) {
   }
 
-  return false;
+  peek(): Option<IndividualSnapshot> {
+    if (this.pos >= this.snapshot.length) return null;
+    return this.snapshot[this.pos];
+  }
+
+  next(): Option<IndividualSnapshot> {
+    if (this.pos >= this.snapshot.length) return null;
+    return this.nextNode() || null;
+  }
+
+  skip(): void {
+    let skipUntil = this.depth;
+    this.nextNode();
+
+    if (this.snapshot[this.pos] === 'down') {
+      do { this.nextNode(); } while (this.depth !== skipUntil)
+
+      // unconsume 'up'
+      this.pos--;
+    }
+  }
+
+  private nextNode(): IndividualSnapshot {
+    let token = this.snapshot[this.pos++];
+
+    if (token === 'down') {
+      this.depth++;
+    } else if (token === 'up') {
+      this.depth--;
+    }
+
+    return token;
+  }
 }

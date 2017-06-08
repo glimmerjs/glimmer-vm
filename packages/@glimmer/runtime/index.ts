@@ -42,10 +42,6 @@ export {
 } from './lib/opcodes';
 
 export {
-  normalizeTextValue
-} from './lib/compiled/opcodes/content';
-
-export {
   setDebuggerCallback,
   resetDebuggerCallback,
   DebugCallback
@@ -81,7 +77,7 @@ export {
   ICapturedNamedArguments as CapturedNamedArguments,
 } from './lib/vm/arguments';
 
-export { SafeString, isSafeString } from './lib/upsert';
+export { SafeString } from './lib/upsert';
 
 export {
   Scope,
@@ -112,5 +108,5 @@ export {
 export { default as DOMChanges, DOMChanges as IDOMChanges, DOMTreeConstruction, isWhitespace, insertHTMLBefore } from './lib/dom/helper';
 import * as Simple from './lib/dom/interfaces';
 export { Simple };
-export { ElementStack, NewElementBuilder, ElementOperations } from './lib/vm/element-builder';
+export { ElementBuilder, NewElementBuilder, ElementOperations } from './lib/vm/element-builder';
 export { default as Bounds, ConcreteBounds } from './lib/bounds';

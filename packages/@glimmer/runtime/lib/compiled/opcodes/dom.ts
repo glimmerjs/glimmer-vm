@@ -484,6 +484,8 @@ APPEND_OPCODES.add(Op.DynamicAttr, (vm, { op1: _name, op2: trusting }) => {
 export class PatchElementOpcode extends UpdatingOpcode {
   public type = 'patch-element';
 
+  public tag: Tag;
+
   private operation: DynamicAttribute;
 
   constructor(operation: DynamicAttribute) {

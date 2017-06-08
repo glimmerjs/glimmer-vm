@@ -46,7 +46,7 @@ export class SingleNodeBounds implements Bounds {
   lastNode() { return this.node; }
 }
 
-export function bounds(parent: Simple.Element, first: Simple.Node, last: Simple.Node): Bounds {
+export function bounds(parent: Simple.Element, first: Simple.Node, last: Simple.Node): ConcreteBounds {
   return new ConcreteBounds(parent, first, last);
 }
 

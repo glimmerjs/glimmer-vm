@@ -158,6 +158,8 @@ APPEND_OPCODES.add(Op.CommitComponentTransaction, vm => vm.commitCacheGroup());
 export class UpdateComponentOpcode extends UpdatingOpcode {
   public type = 'update-component';
 
+  public tag: Tag;
+
   constructor(
     tag: Tag,
     private name: string,

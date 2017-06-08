@@ -1,23 +1,64 @@
-import { NewElementBuilder, ElementStack, ElementOperations } from "./element-builder";
+import { NewElementBuilder, ElementBuilder, ElementOperations } from "./element-builder";
 
-// import Bounds from '../bounds';
 import { Environment } from '../environment';
-// import { NewElementBuilder, ElementStack, ElementOperations, Tracker, UpdatableTracker } from "./element-builder";
-// import { DOMChanges, DOMTreeConstruction } from '../dom/helper';
+import Bounds, { bounds } from '../bounds';
 import * as Simple from '../dom/interfaces';
-import { Option } from "@glimmer/interfaces";
-// import { VersionedReference } from "@glimmer/reference";
+import { Option, Opaque } from "@glimmer/interfaces";
+import { DynamicContentWrapper } from './content/dynamic';
 import { expect } from "@glimmer/util";
-// import { LinkedList, LinkedListNode, Destroyable } from "@glimmer/util";
-// import { VersionedReference } from "@glimmer/reference";
 
-export class RehydrateBuilder extends NewElementBuilder implements ElementStack {
+export class RehydrateBuilder extends NewElementBuilder implements ElementBuilder {
   private candidate: Option<Simple.Node>;
 
   constructor(env: Environment, parentNode: Simple.Element, nextSibling: Option<Simple.Node>) {
     super(env, parentNode, nextSibling);
     if (nextSibling) throw new Error("Rehydration with nextSibling not supported");
     this.candidate = parentNode.firstChild;
+  }
+
+  __appendNode(node: Simple.Node): Simple.Node {
+    let { candidate } = this;
+
+    if (candidate) {
+      return candidate;
+    } else {
+      return super.__appendNode(node);
+    }
+  }
+
+  __appendHTML(html: string): Bounds {
+    let candidateBounds = this.markerBounds();
+
+    if (candidateBounds) {
+      let first = candidateBounds.firstNode()!;
+      let last = candidateBounds.lastNode()!;
+
+      let newBounds = bounds(this.element, first.nextSibling!, last.previousSibling!)
+
+      remove(first);
+      remove(last);
+
+      return newBounds;
+    } else {
+      return super.__appendHTML(html);
+    }
+  }
+
+  private markerBounds(): Option<Bounds> {
+    let { candidate } = this;
+
+    if (candidate && isMarker(candidate)) {
+      let first = candidate;
+      let last = expect(first.nextSibling, `BUG: serialization markers must be paired`);
+
+      while (last && !isMarker(last)) {
+        last = expect(last.nextSibling, `BUG: serialization markers must be paired`);
+      }
+
+      return bounds(this.element, first, last);
+    } else {
+      return null;
+    }
   }
 
   __appendText(string: string): Simple.Text {
@@ -58,6 +99,12 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementStack 
     if (!this.candidate) {
       super.flushElement();
     }
+  }
+
+  appendCautiousDynamicContent(value: Opaque): DynamicContentWrapper {
+    let content = super.appendCautiousDynamicContent(value);
+    content.update(this.env, value);
+    return content;
   }
 
   willCloseElement() {
@@ -113,6 +160,15 @@ function isComment(node: Simple.Node): node is Simple.Comment {
 
 function isElement(node: Simple.Node): node is Simple.Element {
   return node.nodeType === 1;
+}
+
+function isMarker(node: Simple.Node): boolean {
+  return node.nodeType === 8 && node.nodeValue === '%glimmer%';
+}
+
+function remove(node: Simple.Node): void {
+  let element = expect(node.parentNode, `cannot remove a detached node`) as Simple.Element;
+  element.removeChild(node);
 }
 
 function unimplemented() {

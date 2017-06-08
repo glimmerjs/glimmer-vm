@@ -1,6 +1,6 @@
 import { Opaque } from '@glimmer/interfaces';
 import { isConst, Reference, VersionedPathReference, Tag, VersionedReference } from '@glimmer/reference';
-import { DynamicContent } from '../../vm/element-builder';
+import { DynamicContent } from '../../vm/content/dynamic';
 import { isComponentDefinition } from '../../component/interfaces';
 import { APPEND_OPCODES, Op, UpdatingOpcode } from '../../opcodes';
 import { ConditionalReference } from '../../references';

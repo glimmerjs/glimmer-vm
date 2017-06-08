@@ -7,8 +7,9 @@ import {
   Statements,
   TemplateMeta,
 } from '@glimmer/wire-format';
-import { NewElementBuilder } from './vm/element-builder';
+import { ElementBuilder, NewElementBuilder } from './vm/element-builder';
 import { RehydrateBuilder } from './vm/rehydrate-builder';
+import { SerializeBuilder } from './vm/serialize-builder';
 import * as Simple from './dom/interfaces';
 import { DynamicScope, Environment } from './environment';
 import Scanner from './scanner';
@@ -20,7 +21,7 @@ export interface RenderOptions {
   parentNode: Simple.Element;
   nextSibling?: Option<Simple.Node>;
   dynamicScope: DynamicScope;
-  rehydrate?: boolean;
+  mode?: 'rehydrate' | 'serialize';
 }
 
 /**
@@ -130,12 +131,20 @@ class ScannableTemplate implements Template<TemplateMeta> {
     this.hasEval = rawBlock.hasEval;
   }
 
-  render({ self, parentNode, dynamicScope, rehydrate }: RenderOptions) {
+  render({ self, parentNode, dynamicScope, mode }: RenderOptions) {
     let { env } = this;
 
-    let elementStack = rehydrate ? RehydrateBuilder.forInitialRender(env, parentNode, null) : NewElementBuilder.forInitialRender(env, parentNode, null);
+    let elementBuilder: ElementBuilder;
+
+    switch (mode) {
+      case undefined: elementBuilder = NewElementBuilder.forInitialRender(env, parentNode, null); break;
+      case 'rehydrate': elementBuilder = RehydrateBuilder.forInitialRender(env, parentNode, null); break;
+      case 'serialize': elementBuilder = SerializeBuilder.forInitialRender(env, parentNode, null); break;
+      default: throw new Error('unreachable');
+    }
+
     let compiled = this.asEntryPoint().compileDynamic(env);
-    let vm = VM.initial(env, self, dynamicScope, elementStack, compiled);
+    let vm = VM.initial(env, self, dynamicScope, elementBuilder, compiled);
     return new TemplateIterator(vm);
   }
 

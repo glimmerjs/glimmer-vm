@@ -1,4 +1,4 @@
-import { clear, Cursor, DestroyableBounds, single, SingleNodeBounds, Bounds } from '../bounds';
+import { clear, Cursor, DestroyableBounds, single, Bounds } from '../bounds';
 
 import { DOMChanges, DOMTreeConstruction } from '../dom/helper';
 import { isString, isSafeString, isNode, isEmpty } from '../dom/normalize';
@@ -10,6 +10,11 @@ import { Environment } from '../environment';
 import { VM } from '../vm';
 
 import { VersionedReference } from '@glimmer/reference';
+
+import { DynamicContent, DynamicContentWrapper } from './content/dynamic';
+import DynamicTextContent from './content/text';
+import DynamicNodeContent from './content/node';
+import DynamicHTMLContent, { DynamicTrustedHTMLContent } from './content/html';
 
 import {
   SimpleElementOperations
@@ -50,52 +55,6 @@ export interface ElementOperations {
   flush(element: Simple.Element, vm: VM): void;
 }
 
-export abstract class DynamicContent {
-  abstract update(env: Environment, value: Opaque): DynamicContent;
-
-  protected abstract bounds: Bounds;
-
-  protected retry(env: Environment, value: Opaque): DynamicContent {
-    let { bounds } = this;
-    let parentElement = bounds.parentElement();
-    let nextSibling = clear(bounds);
-
-    let stack = new NewElementBuilder(env, parentElement, nextSibling);
-
-    return stack.appendCautiousDynamicContent(value);
-  }
-}
-
-class DynamicTextContent extends DynamicContent {
-  constructor(protected bounds: SingleNodeBounds, private lastValue: string) {
-    super();
-  }
-
-  update(env: Environment, value: Opaque): DynamicContent {
-    let { lastValue } = this;
-
-    if (value === lastValue) return this;
-    if (isNode(value) || isSafeString(value)) return this.retry(env, value);
-
-    let normalized: string;
-
-    if (isEmpty(value)) {
-      normalized = '';
-    } else if (isString(value)) {
-      normalized = value;
-    } else {
-      normalized = String(value);
-    }
-
-    if (normalized !== lastValue) {
-      let textNode = this.bounds.firstNode();
-      textNode.nodeValue = this.lastValue = normalized;
-    }
-
-    return this;
-  }
-}
-
 export class Fragment implements Bounds {
   private bounds: Bounds;
 
@@ -128,8 +87,8 @@ export interface DOMStack {
   flushElement(): void;
   appendText(string: string): Simple.Text;
   appendComment(string: string): Simple.Comment;
-  appendTrustingDynamicContent(reference: Opaque): DynamicContent;
-  appendCautiousDynamicContent(reference: Opaque): DynamicContent;
+  appendTrustingDynamicContent(reference: Opaque): DynamicContentWrapper;
+  appendCautiousDynamicContent(reference: Opaque): DynamicContentWrapper;
   setStaticAttribute(name: string, value: string): void;
   setStaticAttributeNS(namespace: string, name: string, value: string): void;
   setDynamicAttribute(name: string, reference: VersionedReference<string>, isTrusting: boolean): void;
@@ -137,7 +96,7 @@ export interface DOMStack {
   closeElement(): void;
 }
 
-export interface ElementStack extends Cursor, DOMStack {
+export interface ElementBuilder extends Cursor, DOMStack {
   nextSibling: Option<Simple.Node>;
   dom: DOMTreeConstruction;
   updateOperations: DOMChanges;
@@ -161,7 +120,7 @@ export interface ElementStack extends Cursor, DOMStack {
   didAppendBounds(bounds: Bounds): void;
 }
 
-export class NewElementBuilder implements ElementStack {
+export class NewElementBuilder implements ElementBuilder {
   public nextSibling: Option<Simple.Node>;
   public dom: DOMTreeConstruction;
   public updateOperations: DOMChanges;
@@ -330,8 +289,9 @@ export class NewElementBuilder implements ElementStack {
     this.block().newDestroyable(d);
   }
 
-  didAppendBounds(bounds: Bounds) {
+  didAppendBounds(bounds: Bounds): Bounds {
     this.block().newBounds(bounds);
+    return bounds;
   }
 
   didAppendNode<T extends Simple.Node>(node: T): T {
@@ -359,16 +319,31 @@ export class NewElementBuilder implements ElementStack {
     return node;
   }
 
-  appendTrustingDynamicContent(value: Opaque): DynamicContent {
+  appendNode(node: Simple.Node): Simple.Node {
+    return this.didAppendNode(this.__appendNode(node));
+  }
+
+  __appendNode(node: Simple.Node): Simple.Node {
+    this.dom.insertBefore(this.element, node, this.nextSibling);
+    return node;
+  }
+
+  appendHTML(html: string): Bounds {
+    return this.didAppendBounds(this.__appendHTML(html));
+  }
+
+  __appendHTML(html: string): Bounds {
+    return this.dom.insertHTMLBefore(this.element, this.nextSibling, html);
+  }
+
+  appendTrustingDynamicContent(value: Opaque): DynamicContentWrapper {
+    return new DynamicContentWrapper(this.__appendTrustingDynamicContent(value));
+  }
+
+  __appendTrustingDynamicContent(value: Opaque): DynamicContent {
     if (isNode(value)) {
-      this.dom.insertBefore(this.element, value, this.nextSibling);
-      let bounds = single(this.element, value);
-      return {
-        bounds,
-        update() {
-          return true;
-        }
-      };
+      let node = this.appendNode(value);
+      return new DynamicNodeContent(single(this.element, node), node);
     } else {
       let normalized: string;
 
@@ -382,34 +357,24 @@ export class NewElementBuilder implements ElementStack {
         normalized = String(value);
       }
 
-      let bounds = this.dom.insertHTMLBefore(this.element, this.nextSibling, normalized);
-      return {
-        bounds,
-        update() {
-          return true;
-        }
-      };
+      let bounds = this.appendHTML(normalized);
+      return new DynamicTrustedHTMLContent(bounds, normalized);
     }
   }
 
-  appendCautiousDynamicContent(value: Opaque): DynamicContent {
+  appendCautiousDynamicContent(value: Opaque): DynamicContentWrapper {
+    return new DynamicContentWrapper(this.__appendCautiousDynamicContent(value));
+  }
+
+  __appendCautiousDynamicContent(value: Opaque): DynamicContent {
     if (isNode(value)) {
-      this.dom.insertBefore(this.element, value, this.nextSibling);
-      return {
-        bounds: single(this.element, value),
-        update() {
-          return true;
-        }
-      };
+      let node = this.appendNode(value);
+      return new DynamicNodeContent(single(this.element, node), node);
     } else if (isSafeString(value)) {
       let normalized = value.toHTML();
-      let bounds = this.dom.insertHTMLBefore(this.element, this.nextSibling, normalized);
-      return {
-        bounds,
-        update() {
-          return true;
-        }
-      };
+      let bounds = this.appendHTML(normalized);
+      // let bounds = this.dom.insertHTMLBefore(this.element, this.nextSibling, normalized);
+      return new DynamicHTMLContent(bounds, value);
     } else {
       let normalized: string;
 
@@ -467,7 +432,7 @@ export interface Tracker extends DestroyableBounds {
   newNode(node: Simple.Node): void;
   newBounds(bounds: Bounds): void;
   newDestroyable(d: Destroyable): void;
-  finalize(stack: ElementStack): void;
+  finalize(stack: ElementBuilder): void;
 }
 
 export class SimpleBlockTracker implements Tracker {
@@ -534,7 +499,7 @@ export class SimpleBlockTracker implements Tracker {
     this.destroyables.push(d);
   }
 
-  finalize(stack: ElementStack) {
+  finalize(stack: ElementBuilder) {
     if (!this.first) {
       stack.appendComment('');
     }
@@ -616,6 +581,6 @@ class BlockListTracker implements Tracker {
   newDestroyable(_d: Destroyable) {
   }
 
-  finalize(_stack: ElementStack) {
+  finalize(_stack: ElementBuilder) {
   }
 }

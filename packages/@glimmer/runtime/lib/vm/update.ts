@@ -15,7 +15,8 @@ import {
   TagWrapper,
   combineSlice,
   CONSTANT_TAG,
-  INITIAL
+  INITIAL,
+  Tag
 } from '@glimmer/reference';
 import { OpcodeJSON, UpdatingOpcode, UpdatingOpSeq } from '../opcodes';
 import { Constants } from '../environment/constants';
@@ -157,6 +158,8 @@ export abstract class BlockOpcode extends UpdatingOpcode implements DestroyableB
 export class TryOpcode extends BlockOpcode implements ExceptionHandler {
   public type = "try";
 
+  public tag: Tag;
+
   private _tag: TagWrapper<UpdatableTag>;
 
   protected bounds: UpdatableTracker;
@@ -292,6 +295,7 @@ export class ListBlockOpcode extends BlockOpcode {
   public type = "list-block";
   public map = dict<BlockOpcode>();
   public artifacts: IterationArtifacts;
+  public tag: Tag;
 
   private lastIterated: Revision = INITIAL;
   private _tag: TagWrapper<UpdatableTag>;

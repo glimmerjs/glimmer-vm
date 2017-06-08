@@ -7,7 +7,6 @@ import {
 } from './sanitized-values';
 import { normalizeProperty } from './props';
 import { SVG_NAMESPACE } from './helper';
-import { normalizeTextValue } from '../compiled/opcodes/content';
 import { Environment } from '../environment';
 
 export function defaultManagers(element: Simple.Element, attr: string, _isTrusting: boolean, _namespace: Option<string>): AttributeManager {
@@ -155,15 +154,15 @@ function isUserInputValue(tagName: string, attribute: string) {
 class InputValuePropertyManager extends AttributeManager {
   setAttribute(_env: Environment, element: Simple.Element, value: Opaque) {
     let input = element as FIXME<HTMLInputElement, "This breaks SSR">;
-    input.value = normalizeTextValue(value);
+    input.value = normalizeAttributeValue(value)!;
   }
 
   updateAttribute(_env: Environment, element: Element, value: Opaque) {
     let input = <HTMLInputElement>element;
     let currentValue = input.value;
-    let normalizedValue = normalizeTextValue(value);
+    let normalizedValue = normalizeAttributeValue(value);
     if (currentValue !== normalizedValue) {
-      input.value = normalizedValue;
+      input.value = normalizedValue!;
     }
   }
 }
