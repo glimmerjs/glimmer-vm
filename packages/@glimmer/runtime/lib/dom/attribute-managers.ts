@@ -8,6 +8,7 @@ import {
 import { normalizeProperty } from './props';
 import { SVG_NAMESPACE } from './helper';
 import { Environment } from '../environment';
+import { normalizeAttributeValue as normalizeStringValue } from '../dom/normalize';
 
 export function defaultManagers(element: Simple.Element, attr: string, _isTrusting: boolean, _namespace: Option<string>): AttributeManager {
   let tagName = element.tagName;
@@ -154,13 +155,13 @@ function isUserInputValue(tagName: string, attribute: string) {
 class InputValuePropertyManager extends AttributeManager {
   setAttribute(_env: Environment, element: Simple.Element, value: Opaque) {
     let input = element as FIXME<HTMLInputElement, "This breaks SSR">;
-    input.value = normalizeAttributeValue(value)!;
+    input.value = normalizeStringValue(value)!;
   }
 
   updateAttribute(_env: Environment, element: Element, value: Opaque) {
     let input = <HTMLInputElement>element;
     let currentValue = input.value;
-    let normalizedValue = normalizeAttributeValue(value);
+    let normalizedValue = normalizeStringValue(value);
     if (currentValue !== normalizedValue) {
       input.value = normalizedValue!;
     }

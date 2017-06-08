@@ -593,7 +593,7 @@ module("[glimmer-runtime] Updating", hooks => {
     }, {
       input: makeElement('p', 'hello'),
       expected: '<div><p>hello</p></div>',
-      description: 'DOM node containing and element with text'
+      description: 'DOM node containing an element with text'
     }, {
       input: makeFragment([makeElement('p', 'one'), makeElement('p', 'two')]),
       expected: '<div><p>one</p><p>two</p></div>',

@@ -1,6 +1,6 @@
 import { Opaque } from '@glimmer/interfaces';
 import { isConst, Reference, VersionedPathReference, Tag, VersionedReference } from '@glimmer/reference';
-import { DynamicContent } from '../../vm/content/dynamic';
+import { DynamicContentWrapper } from '../../vm/content/dynamic';
 import { isComponentDefinition } from '../../component/interfaces';
 import { APPEND_OPCODES, Op, UpdatingOpcode } from '../../opcodes';
 import { ConditionalReference } from '../../references';
@@ -19,7 +19,7 @@ export class IsComponentDefinitionReference extends ConditionalReference {
 APPEND_OPCODES.add(Op.DynamicContent, (vm, { op1: isTrusting }) => {
   let reference = vm.stack.pop<VersionedPathReference<Opaque>>();
   let value = reference.value();
-  let content: DynamicContent;
+  let content: DynamicContentWrapper;
 
   if (isTrusting) {
     content = vm.elements().appendTrustingDynamicContent(value);
@@ -35,13 +35,13 @@ APPEND_OPCODES.add(Op.DynamicContent, (vm, { op1: isTrusting }) => {
 class UpdateDynamicContentOpcode extends UpdatingOpcode {
   public tag: Tag;
 
-  constructor(private reference: VersionedReference<Opaque>, private content: DynamicContent) {
+  constructor(private reference: VersionedReference<Opaque>, private content: DynamicContentWrapper) {
     super();
     this.tag = reference.tag;
   }
 
   evaluate(vm: UpdatingVM): void {
     let { content, reference } = this;
-    this.content = content.update(vm.env, reference.value());
+    content.update(vm.env, reference.value());
   }
 }

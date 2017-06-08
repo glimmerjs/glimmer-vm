@@ -33,7 +33,7 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
       let first = candidateBounds.firstNode()!;
       let last = candidateBounds.lastNode()!;
 
-      let newBounds = bounds(this.element, first.nextSibling!, last.previousSibling!)
+      let newBounds = bounds(this.element, first.nextSibling!, last.previousSibling!);
 
       remove(first);
       remove(last);
@@ -97,7 +97,7 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
 
   __flushElement(parent: Simple.Element, constructing: Simple.Element) {
     if (!this.candidate) {
-      super.flushElement();
+      super.__flushElement(parent, constructing);
     }
   }
 
@@ -141,6 +141,13 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
     super.didAppendNode(node);
     this.candidate = node.nextSibling;
     return node;
+  }
+
+  didAppendBounds(bounds: Bounds): Bounds {
+    super.didAppendBounds(bounds);
+    let last = bounds.lastNode();
+    this.candidate = last && last.nextSibling;
+    return bounds;
   }
 
   didOpenElement(element: Simple.Element): Simple.Element {

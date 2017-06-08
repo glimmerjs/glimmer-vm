@@ -337,13 +337,15 @@ export class NewElementBuilder implements ElementBuilder {
   }
 
   appendTrustingDynamicContent(value: Opaque): DynamicContentWrapper {
-    return new DynamicContentWrapper(this.__appendTrustingDynamicContent(value));
+    let wrapper = new DynamicContentWrapper(this.__appendTrustingDynamicContent(value));
+    this.didAppendBounds(wrapper);
+    return wrapper;
   }
 
   __appendTrustingDynamicContent(value: Opaque): DynamicContent {
     if (isNode(value)) {
-      let node = this.appendNode(value);
-      return new DynamicNodeContent(single(this.element, node), node);
+      let node = this.__appendNode(value);
+      return new DynamicNodeContent(single(this.element, node), node, true);
     } else {
       let normalized: string;
 
@@ -357,24 +359,26 @@ export class NewElementBuilder implements ElementBuilder {
         normalized = String(value);
       }
 
-      let bounds = this.appendHTML(normalized);
-      return new DynamicTrustedHTMLContent(bounds, normalized);
+      let bounds = this.__appendHTML(normalized);
+      return new DynamicTrustedHTMLContent(bounds, normalized, true);
     }
   }
 
   appendCautiousDynamicContent(value: Opaque): DynamicContentWrapper {
-    return new DynamicContentWrapper(this.__appendCautiousDynamicContent(value));
+    let wrapper = new DynamicContentWrapper(this.__appendCautiousDynamicContent(value));
+    this.didAppendBounds(wrapper.bounds);
+    return wrapper;
   }
 
   __appendCautiousDynamicContent(value: Opaque): DynamicContent {
     if (isNode(value)) {
-      let node = this.appendNode(value);
-      return new DynamicNodeContent(single(this.element, node), node);
+      let node = this.__appendNode(value);
+      return new DynamicNodeContent(single(this.element, node), node, false);
     } else if (isSafeString(value)) {
       let normalized = value.toHTML();
-      let bounds = this.appendHTML(normalized);
+      let bounds = this.__appendHTML(normalized);
       // let bounds = this.dom.insertHTMLBefore(this.element, this.nextSibling, normalized);
-      return new DynamicHTMLContent(bounds, value);
+      return new DynamicHTMLContent(bounds, value, false);
     } else {
       let normalized: string;
 
@@ -386,10 +390,10 @@ export class NewElementBuilder implements ElementBuilder {
         normalized = String(value);
       }
 
-      let textNode = this.appendText(normalized);
+      let textNode = this.__appendText(normalized);
       let bounds = single(this.element, textNode);
 
-      return new DynamicTextContent(bounds, normalized);
+      return new DynamicTextContent(bounds, normalized, false);
     }
   }
 

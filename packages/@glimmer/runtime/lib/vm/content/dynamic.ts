@@ -1,6 +1,6 @@
 import Environment from '../../environment';
 import Bounds, { clear } from '../../bounds';
-import { Opaque } from "@glimmer/interfaces";
+import { Opaque, Simple, Option } from "@glimmer/interfaces";
 import { NewElementBuilder } from '../element-builder';
 
 export interface DynamicContent {
@@ -9,6 +9,8 @@ export interface DynamicContent {
 }
 
 export default abstract class DynamicContentBase implements DynamicContent {
+  constructor(protected trusting: boolean) {}
+
   abstract update(env: Environment, value: Opaque): DynamicContent;
 
   public abstract bounds: Bounds;
@@ -20,11 +22,27 @@ export default abstract class DynamicContentBase implements DynamicContent {
 
     let stack = new NewElementBuilder(env, parentElement, nextSibling);
 
-    return stack.appendCautiousDynamicContent(value);
+    if (this.trusting) {
+      return stack.__appendTrustingDynamicContent(value);
+    } else {
+      return stack.__appendCautiousDynamicContent(value);
+    }
   }
 }
 
-export class DynamicContentWrapper implements DynamicContent {
+export class DynamicContentWrapper implements DynamicContent, Bounds {
+  parentElement(): Simple.Element {
+    return this.bounds.parentElement();
+  }
+
+  firstNode(): Option<Simple.Node> {
+    return this.bounds.firstNode();
+  }
+
+  lastNode(): Option<Simple.Node> {
+    return this.bounds.lastNode();
+  }
+
   public bounds: Bounds;
 
   constructor(private inner: DynamicContent) {

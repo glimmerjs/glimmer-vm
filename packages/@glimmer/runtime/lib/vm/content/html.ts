@@ -5,8 +5,8 @@ import { isSafeString, SafeString, normalizeTrustedValue } from '../../dom/norma
 import { Opaque } from "@glimmer/interfaces";
 
 export default class DynamicHTMLContent extends DynamicContentBase {
-  constructor(public bounds: Bounds, private lastValue: SafeString) {
-    super();
+  constructor(public bounds: Bounds, private lastValue: SafeString, trusted: boolean) {
+    super(trusted);
   }
 
   update(env: Environment, value: Opaque): DynamicContent {
@@ -24,8 +24,8 @@ export default class DynamicHTMLContent extends DynamicContentBase {
 }
 
 export class DynamicTrustedHTMLContent extends DynamicContentBase {
-  constructor(public bounds: Bounds, private lastValue: string) {
-    super();
+  constructor(public bounds: Bounds, private lastValue: string, trusted: boolean) {
+    super(trusted);
   }
 
   update(env: Environment, value: Opaque): DynamicContent {

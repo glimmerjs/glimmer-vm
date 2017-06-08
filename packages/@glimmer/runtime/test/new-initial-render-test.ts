@@ -166,7 +166,7 @@ abstract class RenderTest {
   }
 
   @test "Safe HTML curlies"() {
-    let title = { toHTML() { return '<span>hello</span> <em>world</em>' } }
+    let title = { toHTML() { return '<span>hello</span> <em>world</em>'; } };
     this.render('<div>{{title}}</div>', { title });
     this.assertHTML('<div><span>hello</span> <em>world</em></div>');
     this.assertStableRerender();
@@ -397,7 +397,7 @@ class SnapshotIterator {
     this.nextNode();
 
     if (this.snapshot[this.pos] === 'down') {
-      do { this.nextNode(); } while (this.depth !== skipUntil)
+      do { this.nextNode(); } while (this.depth !== skipUntil);
 
       // unconsume 'up'
       this.pos--;

@@ -59,4 +59,3 @@ export function isNode(value: Opaque): value is Node {
 export function isString(value: Opaque): value is string {
   return typeof value === 'string';
 }
-

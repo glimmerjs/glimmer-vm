@@ -5,8 +5,8 @@ import { isNode, isSafeString, isEmpty, isString } from '../../dom/normalize';
 import { Opaque } from "@glimmer/interfaces";
 
 export default class DynamicTextContent extends DynamicContentBase {
-  constructor(public bounds: SingleNodeBounds, private lastValue: string) {
-    super();
+  constructor(public bounds: SingleNodeBounds, private lastValue: string, trusted: boolean) {
+    super(trusted);
   }
 
   update(env: Environment, value: Opaque): DynamicContent {
