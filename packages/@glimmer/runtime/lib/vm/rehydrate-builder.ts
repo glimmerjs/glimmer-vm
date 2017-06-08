@@ -16,12 +16,22 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
     this.candidate = parentNode.firstChild;
   }
 
+  reportMismatch(node: Opaque) {
+    // console.log(`MISMATCH`, `expected`, this.candidate, `got`, node);
+  }
+
+  reportMatch() {
+    // console.log(`   MATCH`, this.candidate);
+  }
+
   __appendNode(node: Simple.Node): Simple.Node {
     let { candidate } = this;
 
     if (candidate) {
+      this.reportMatch();
       return candidate;
     } else {
+      this.reportMismatch(node);
       return super.__appendNode(node);
     }
   }
@@ -30,6 +40,7 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
     let candidateBounds = this.markerBounds();
 
     if (candidateBounds) {
+      this.reportMatch();
       let first = candidateBounds.firstNode()!;
       let last = candidateBounds.lastNode()!;
 
@@ -65,9 +76,15 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
     let { candidate } = this;
 
     if (candidate && isTextNode(candidate)) {
+      this.reportMatch();
       candidate.nodeValue = string;
       return candidate;
+    } else if (candidate && isSeparator(candidate)) {
+      this.candidate = candidate.nextSibling;
+      remove(candidate);
+      return this.__appendText(string);
     } else {
+      this.reportMismatch(string);
       return super.__appendText(string);
     }
   }
@@ -76,9 +93,11 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
     let { candidate } = this;
 
     if (candidate && isComment(candidate)) {
+      this.reportMatch();
       candidate.nodeValue = string;
       return candidate;
     } else {
+      this.reportMismatch(string);
       this.candidate = null;
       return super.__appendComment(string);
     }
@@ -88,8 +107,10 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
     let { candidate } = this;
 
     if (candidate && isElement(candidate) && candidate.tagName === tag.toUpperCase()) {
+      this.reportMatch();
       return candidate;
     } else {
+      this.reportMismatch(tag);
       this.candidate = null;
       return super.__openElement(tag);
     }
@@ -97,6 +118,7 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
 
   __flushElement(parent: Simple.Element, constructing: Simple.Element) {
     if (!this.candidate) {
+      this.reportMismatch(null);
       super.__flushElement(parent, constructing);
     }
   }
@@ -138,6 +160,7 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
   // }
 
   didAppendNode<T extends Simple.Node>(node: T): T {
+    console.log(node);
     super.didAppendNode(node);
     this.candidate = node.nextSibling;
     return node;
@@ -171,6 +194,10 @@ function isElement(node: Simple.Node): node is Simple.Element {
 
 function isMarker(node: Simple.Node): boolean {
   return node.nodeType === 8 && node.nodeValue === '%glimmer%';
+}
+
+function isSeparator(node: Simple.Node): boolean {
+  return node.nodeType === 8 && node.nodeValue === '%sep%';
 }
 
 function remove(node: Simple.Node): void {

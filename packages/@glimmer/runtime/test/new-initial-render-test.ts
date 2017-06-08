@@ -179,6 +179,72 @@ abstract class RenderTest {
     this.assertStableRerender();
   }
 
+  @test "Simple blocks"() {
+    this.render('<div>{{#if admin}}<p>{{user}}</p>{{/if}}!</div>', { admin: true, user: 'chancancode' });
+    this.assertHTML('<div><p>chancancode</p>!</div>');
+    this.assertStableRerender();
+
+    let p = this.element.firstChild!.firstChild!;
+
+    this.rerender({ admin: false });
+    this.assertHTML('<div><!---->!</div>');
+    this.assertStableNodes({ except: p });
+
+    let comment = this.element.firstChild!.firstChild!;
+
+    this.rerender({ admin: true });
+    this.assertHTML('<div><p>chancancode</p>!</div>');
+    this.assertStableNodes({ except: comment });
+  }
+
+  @test "Nested blocks"() {
+    this.render('<div>{{#if admin}}{{#if access}}<p>{{user}}</p>{{/if}}{{/if}}!</div>', { admin: true, access: true, user: 'chancancode' });
+    this.assertHTML('<div><p>chancancode</p>!</div>');
+    this.assertStableRerender();
+
+    let p = this.element.firstChild!.firstChild!;
+
+    this.rerender({ admin: false });
+    this.assertHTML('<div><!---->!</div>');
+    this.assertStableNodes({ except: p });
+
+    let comment = this.element.firstChild!.firstChild!;
+
+    this.rerender({ admin: true });
+    this.assertHTML('<div><p>chancancode</p>!</div>');
+    this.assertStableNodes({ except: comment });
+
+    p = this.element.firstChild!.firstChild!;
+
+    this.rerender({ access: false });
+    this.assertHTML('<div><!---->!</div>');
+    this.assertStableNodes({ except: p });
+  }
+
+
+  @test "Loops"() {
+    this.render('<div>{{#each people key="handle" as |p|}}<span>{{p.handle}}</span> - {{p.name}}{{/each}}</div>', {
+      people: [
+        { handle: 'tomdale', name: 'Tom Dale' },
+        { handle: 'chancancode', name: 'Godfrey Chan' },
+        { handle: 'wycats', name: 'Yehuda Katz' }
+      ]
+    });
+
+    this.assertHTML('<div><span>tomdale</span> - Tom Dale<span>chancancode</span> - Godfrey Chan<span>wycats</span> - Yehuda Katz</div>');
+    this.assertStableRerender();
+
+    this.rerender({
+      people: [
+        { handle: 'tomdale', name: 'Thomas Dale' },
+        { handle: 'wycats', name: 'Yehuda Katz' }
+      ]
+    });
+
+    this.assertHTML('<div><span>tomdale</span> - Thomas Dale<span>wycats</span> - Yehuda Katz</div>');
+  }
+
+
   protected compile(template: string): Template<Opaque> {
     return this.env.compile(template);
   }
@@ -211,18 +277,30 @@ abstract class RenderTest {
     let snapshot: (Node | 'up' | 'down')[] = this.snapshot = [];
 
     let node = this.element.firstChild;
+    let upped = false;
 
     while (node && node !== this.element) {
-      snapshot.push(node);
-
-      if (node.firstChild) {
-        snapshot.push('down');
-        node = node.firstChild;
-      } else if (node.nextSibling) {
-        node = node.nextSibling;
+      if (upped) {
+        if (node.nextSibling) {
+          node = node.nextSibling;
+          upped = false;
+        } else {
+          snapshot.push('up');
+          node = node.parentNode;
+        }
       } else {
-        snapshot.push('up');
-        node = node.parentNode!.nextSibling;
+        snapshot.push(node);
+
+        if (node.firstChild) {
+          snapshot.push('down');
+          node = node.firstChild;
+        } else if (node.nextSibling) {
+          node = node.nextSibling;
+        } else {
+          snapshot.push('up');
+          node = node.parentNode;
+          upped = true;
+        }
       }
     }
 
@@ -398,9 +476,6 @@ class SnapshotIterator {
 
     if (this.snapshot[this.pos] === 'down') {
       do { this.nextNode(); } while (this.depth !== skipUntil);
-
-      // unconsume 'up'
-      this.pos--;
     }
   }
 
