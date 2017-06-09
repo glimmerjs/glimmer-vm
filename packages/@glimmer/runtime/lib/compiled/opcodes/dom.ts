@@ -11,7 +11,7 @@ import {
   VersionedReference,
 } from '@glimmer/reference';
 import { Dict, expect, FIXME, Opaque, Option, unwrap } from '@glimmer/util';
-import { ElementOperations } from '../../vm/element-builder';
+import { ElementOperations, NewElementBuilder } from '../../vm/element-builder';
 import { AttributeManager } from '../../dom/attribute-managers';
 import * as Simple from '../../dom/interfaces';
 import { FIX_REIFICATION } from '../../dom/interfaces';
@@ -130,19 +130,19 @@ export class SimpleElementOperations implements ElementOperations {
   private opcodes: Option<UpdatingOpcode[]> = null;
   private classList: Option<ClassList> = null;
 
-  constructor(private env: Environment) {
+  constructor(private env: Environment, private builder: NewElementBuilder) {
   }
 
   addStaticAttribute(element: Simple.Element, name: string, value: string) {
     if (name === 'class') {
       this.addClass(PrimitiveReference.create(value));
     } else {
-      this.env.getAppendOperations().setAttribute(element, name, value);
+      this.builder.__setAttribute(name, value);
     }
   }
 
   addStaticAttributeNS(element: Simple.Element, namespace: string, name: string, value: string) {
-    this.env.getAppendOperations().setAttribute(element, name, value, namespace);
+    this.builder.__setAttributeNS(name, value, namespace);
   }
 
   addDynamicAttribute(element: Simple.Element, name: string, reference: Reference<string>, isTrusting: boolean) {
@@ -386,7 +386,7 @@ export interface Attribute {
 
 export class StaticAttribute implements Attribute {
   constructor(
-    private element: Simple.Element,
+    public element: Simple.Element,
     public name: string,
     private value: string,
     private namespace?: string,
@@ -398,71 +398,85 @@ export class StaticAttribute implements Attribute {
   }
 }
 
-export class DynamicAttribute implements Attribute  {
-  public tag: Tag;
+export interface DynamicAttribute {
+  update(env: Environment, value: Opaque): DynamicAttribute;
+}
 
-  private cache: Option<ReferenceCache<Opaque>> = null;
+export class DynamicAttribute {
+  constructor(private element: Simple.Element, private name: string, private lastValue: string) {}
 
-  constructor(
-    private element: Simple.Element,
-    private attributeManager: AttributeManager,
-    public name: string,
-    private reference: Reference<Opaque>,
-    private namespace?: Simple.Namespace,
-  ) {
-    this.tag = reference.tag;
-  }
+  update(env: Environment, value: Opaque): DynamicAttribute {
+    let { lastValue } = this;
 
-  patch(env: Environment) {
-    let { element, cache } = this;
-
-    let value = expect(cache, 'must patch after flush').revalidate();
-
-    if (isModified(value)) {
-      this.attributeManager.updateAttribute(env, element as FIXME<Element, 'needs to be reified properly'>, value, this.namespace);
-    }
-  }
-
-  flush(env: Environment): Option<UpdatingOpcode> {
-    let { reference, element } = this;
-
-    if (isConstReference(reference)) {
-      let value = reference.value();
-      this.attributeManager.setAttribute(env, element, value, this.namespace);
-      return null;
-    } else {
-      let cache = this.cache = new ReferenceCache(reference);
-      let value = cache.peek();
-      this.attributeManager.setAttribute(env, element, value, this.namespace);
-      return new PatchElementOpcode(this);
-    }
-  }
-
-  toJSON(): Dict<Option<string>> {
-    let { element, namespace, name, cache } = this;
-
-    let formattedElement = formatElement(element);
-    let lastValue = expect(cache, 'must serialize after flush').peek() as string;
-
-    if (namespace) {
-      return {
-        element: formattedElement,
-        lastValue,
-        name,
-        namespace,
-        type: 'attribute',
-      };
-    }
-
-    return {
-      element: formattedElement,
-      lastValue,
-      name,
-      namespace: namespace === undefined ? null : namespace,
-      type: 'attribute',
-    };
+    if (value === lastValue) return this;
   }
 }
+
+// export class DynamicAttribute implements Attribute  {
+//   public tag: Tag;
+
+//   private cache: Option<ReferenceCache<Opaque>> = null;
+
+//   constructor(
+//     private element: Simple.Element,
+//     private attributeManager: AttributeManager,
+//     public name: string,
+//     private reference: Reference<Opaque>,
+//     private namespace?: Simple.Namespace,
+//   ) {
+//     this.tag = reference.tag;
+//   }
+
+//   patch(env: Environment) {
+//     let { element, cache } = this;
+
+//     let value = expect(cache, 'must patch after flush').revalidate();
+
+//     if (isModified(value)) {
+//       this.attributeManager.updateAttribute(env, element as FIXME<Element, 'needs to be reified properly'>, value, this.namespace);
+//     }
+//   }
+
+//   flush(env: Environment): Option<UpdatingOpcode> {
+//     let { reference, element } = this;
+
+//     if (isConstReference(reference)) {
+//       let value = reference.value();
+//       this.attributeManager.setAttribute(env, element, value, this.namespace);
+//       return null;
+//     } else {
+//       let cache = this.cache = new ReferenceCache(reference);
+//       let value = cache.peek();
+//       this.attributeManager.setAttribute(env, element, value, this.namespace);
+//       return new PatchElementOpcode(this);
+//     }
+//   }
+
+//   toJSON(): Dict<Option<string>> {
+//     let { element, namespace, name, cache } = this;
+
+//     let formattedElement = formatElement(element);
+//     let lastValue = expect(cache, 'must serialize after flush').peek() as string;
+
+//     if (namespace) {
+//       return {
+//         element: formattedElement,
+//         lastValue,
+//         name,
+//         namespace,
+//         type: 'attribute',
+//       };
+//     }
+
+//     return {
+//       element: formattedElement,
+//       lastValue,
+//       name,
+//       namespace: namespace === undefined ? null : namespace,
+//       type: 'attribute',
+//     };
+//   }
+// }
 
 function formatElement(element: Simple.Element): string {
   return JSON.stringify(`<${element.tagName.toLowerCase()} />`);

@@ -142,23 +142,6 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
     throw unimplemented();
   }
 
-  // TODO: Remove unseen attributes
-  // setStaticAttribute(name: string, value: string) {
-  //   throw unimplemented();
-  // }
-
-  // setStaticAttributeNS(namespace: string, name: string, value: string) {
-  //   throw unimplemented();
-  // }
-
-  // setDynamicAttribute(name: string, reference: VersionedReference<string>, isTrusting: boolean) {
-  //   throw unimplemented();
-  // }
-
-  // setDynamicAttributeNS(namespace: string, name: string, reference: VersionedReference<string>, isTrusting: boolean) {
-  //   throw unimplemented();
-  // }
-
   didAppendNode<T extends Simple.Node>(node: T): T {
     console.log(node);
     super.didAppendNode(node);

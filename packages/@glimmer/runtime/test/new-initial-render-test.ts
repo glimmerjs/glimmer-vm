@@ -221,7 +221,6 @@ abstract class RenderTest {
     this.assertStableNodes({ except: p });
   }
 
-
   @test "Loops"() {
     this.render('<div>{{#each people key="handle" as |p|}}<span>{{p.handle}}</span> - {{p.name}}{{/each}}</div>', {
       people: [
@@ -243,7 +242,6 @@ abstract class RenderTest {
 
     this.assertHTML('<div><span>tomdale</span> - Thomas Dale<span>wycats</span> - Yehuda Katz</div>');
   }
-
 
   protected compile(template: string): Template<Opaque> {
     return this.env.compile(template);

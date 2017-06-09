@@ -121,16 +121,13 @@ export interface ElementBuilder extends Cursor, DOMStack {
 }
 
 export class NewElementBuilder implements ElementBuilder {
-  public nextSibling: Option<Simple.Node>;
   public dom: DOMTreeConstruction;
   public updateOperations: DOMChanges;
   public constructing: Option<Simple.Element> = null;
   public operations: Option<ElementOperations> = null;
-  public element: Simple.Element;
   public env: Environment;
 
-  private elementStack = new Stack<Simple.Element>();
-  private nextSiblingStack = new Stack<Option<Simple.Node>>();
+  private cursorStack = new Stack<Cursor>();
   private blockStack = new Stack<Tracker>();
 
   protected defaultOperations: ElementOperations;
@@ -149,17 +146,23 @@ export class NewElementBuilder implements ElementBuilder {
   }
 
   constructor(env: Environment, parentNode: Simple.Element, nextSibling: Option<Simple.Node>) {
+    this.cursorStack.push(new Cursor(parentNode, nextSibling));
+
     this.env = env;
     this.dom = env.getAppendOperations();
     this.updateOperations = env.getDOM();
-    this.element = parentNode;
-    this.nextSibling = nextSibling;
 
     this.defaultOperations = new SimpleElementOperations(env);
 
     this.pushSimpleBlock();
-    this.elementStack.push(this.element);
-    this.nextSiblingStack.push(this.nextSibling);
+  }
+
+  get element(): Simple.Element {
+    return this.cursorStack.current!.element;
+  }
+
+  get nextSibling(): Option<Simple.Node> {
+    return this.cursorStack.current!.nextSibling;
   }
 
   expectConstructing(method: string): Simple.Element {
@@ -175,16 +178,8 @@ export class NewElementBuilder implements ElementBuilder {
   }
 
   popElement() {
-    let { elementStack, nextSiblingStack }  = this;
-
-    let topElement = elementStack.pop();
-    nextSiblingStack.pop();
-    // LOGGER.debug(`-> element stack ${this.elementStack.toArray().map(e => e.tagName).join(', ')}`);
-
-    this.element = expect(elementStack.current, "can't pop past the last element");
-    this.nextSibling = nextSiblingStack.current;
-
-    return topElement;
+    this.cursorStack.pop();
+    expect(this.cursorStack.current, "can't pop past the last element");
   }
 
   pushSimpleBlock(): Tracker {
@@ -206,7 +201,7 @@ export class NewElementBuilder implements ElementBuilder {
       current.newDestroyable(tracker);
 
       if (!isRemote) {
-        current.newBounds(tracker);
+        current.didAppendBounds(tracker);
       }
     }
 
@@ -220,7 +215,7 @@ export class NewElementBuilder implements ElementBuilder {
 
     if (current !== null) {
       current.newDestroyable(tracker);
-      current.newBounds(tracker);
+      current.didAppendBounds(tracker);
     }
 
     this.blockStack.push(tracker);
@@ -277,12 +272,7 @@ export class NewElementBuilder implements ElementBuilder {
   }
 
   protected pushElement(element: Simple.Element, nextSibling: Option<Simple.Node>) {
-    this.element = element;
-    this.elementStack.push(element);
-    // LOGGER.debug(`-> element stack ${this.elementStack.toArray().map(e => e.tagName).join(', ')}`);
-
-    this.nextSibling = nextSibling;
-    this.nextSiblingStack.push(nextSibling);
+    this.cursorStack.push(new Cursor(element, nextSibling));
   }
 
   didAddDestroyable(d: Destroyable) {
@@ -290,12 +280,12 @@ export class NewElementBuilder implements ElementBuilder {
   }
 
   didAppendBounds(bounds: Bounds): Bounds {
-    this.block().newBounds(bounds);
+    this.block().didAppendBounds(bounds);
     return bounds;
   }
 
   didAppendNode<T extends Simple.Node>(node: T): T {
-    this.block().newNode(node);
+    this.block().didAppendNode(node);
     return node;
   }
 
@@ -412,8 +402,16 @@ export class NewElementBuilder implements ElementBuilder {
     this.expectOperations('setStaticAttribute').addStaticAttribute(this.expectConstructing('setStaticAttribute'), name, value);
   }
 
+  __setAttribute(name: string, value: string) {
+    this.dom.setAttribute(this.element, name, value);
+  }
+
   setStaticAttributeNS(namespace: string, name: string, value: string) {
     this.expectOperations('setStaticAttributeNS').addStaticAttributeNS(this.expectConstructing('setStaticAttributeNS'), namespace, name, value);
+  }
+
+  __setAttributeNS(name: string, value: string, namespace: string) {
+    this.dom.setAttribute(this.element, name, value, namespace);
   }
 
   setDynamicAttribute(name: string, reference: VersionedReference<string>, isTrusting: boolean) {
@@ -433,8 +431,8 @@ export class NewElementBuilder implements ElementBuilder {
 export interface Tracker extends DestroyableBounds {
   openElement(element: Simple.Element): void;
   closeElement(): void;
-  newNode(node: Simple.Node): void;
-  newBounds(bounds: Bounds): void;
+  didAppendNode(node: Simple.Node): void;
+  didAppendBounds(bounds: Bounds): void;
   newDestroyable(d: Destroyable): void;
   finalize(stack: ElementBuilder): void;
 }
@@ -470,7 +468,7 @@ export class SimpleBlockTracker implements Tracker {
   }
 
   openElement(element: Element) {
-    this.newNode(element);
+    this.didAppendNode(element);
     this.nesting++;
   }
 
@@ -478,7 +476,7 @@ export class SimpleBlockTracker implements Tracker {
     this.nesting--;
   }
 
-  newNode(node: Node) {
+  didAppendNode(node: Node) {
     if (this.nesting !== 0) return;
 
     if (!this.first) {
@@ -488,7 +486,7 @@ export class SimpleBlockTracker implements Tracker {
     this.last = new Last(node);
   }
 
-  newBounds(bounds: Bounds) {
+  didAppendBounds(bounds: Bounds) {
     if (this.nesting !== 0) return;
 
     if (!this.first) {
@@ -575,11 +573,11 @@ class BlockListTracker implements Tracker {
     assert(false, 'Cannot closeElement directly inside a block list');
   }
 
-  newNode(_node: Node) {
+  didAppendNode(_node: Node) {
     assert(false, 'Cannot create a new node directly inside a block list');
   }
 
-  newBounds(_bounds: Bounds) {
+  didAppendBounds(_bounds: Bounds) {
   }
 
   newDestroyable(_d: Destroyable) {
