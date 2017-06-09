@@ -121,7 +121,13 @@ export function init() {
   env.begin();
 
   serversRef = new UpdatableReference({ model });
-  result = app.render(serversRef, output, new TestDynamicScope());
+  let templateIterator = app.render(serversRef, output, new TestDynamicScope());
+
+  do {
+    result = templateIterator.next();
+  } while (!result.done);
+
+  result = result.value;
 
   env.commit();
   console.timeEnd('initial render');
@@ -144,8 +150,6 @@ export function toggle() {
 function start() {
   playing = true;
 
-  env.begin();
-
   let lastFrame = null;
   let fpsMeter = new ExponentialMovingAverage(2/121);
 
@@ -158,7 +162,10 @@ function start() {
       fps = Math.round(fpsMeter.push(1000 / (thisFrame - lastFrame)));
     }
 
+    env.begin();
     result.rerender();
+    env.commit();
+
     clear = requestAnimationFrame(callback);
     lastFrame = thisFrame;
   };

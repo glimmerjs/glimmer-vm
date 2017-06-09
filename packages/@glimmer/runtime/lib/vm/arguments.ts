@@ -72,11 +72,6 @@ export class Arguments implements IArguments {
   public positional: IPositionalArguments = new PositionalArguments();
   public named: INamedArguments = new NamedArguments();
 
-  empty() {
-    this.setup(null as any as EvaluationStack, true);
-    return this;
-  }
-
   setup(stack: EvaluationStack, synthetic: boolean) {
     this.stack = stack;
 

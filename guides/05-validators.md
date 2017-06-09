@@ -74,7 +74,7 @@ let titleReference: Reference<string> = {
   }
 };
 
-let seperatorReference: Reference<string> = {
+let separatorReference: Reference<string> = {
   value() {
     return ': ';
   }
@@ -90,7 +90,7 @@ let result: Reference<string> = (
   new UppercaseReference(
     new ConcatReference(
       titleReference,
-      seperatorReference,
+      separatorReference,
       subtitleReference
     )
   )

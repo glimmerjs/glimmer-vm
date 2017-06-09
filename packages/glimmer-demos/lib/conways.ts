@@ -5,7 +5,7 @@ import { UpdatableReference } from '@glimmer/object-reference';
 // const app = `{{#each world.cells key="key" as |cell|}}<organism-cell class="{{if cell.isAlive "alive" ""}}" style="top: {{cell.y}}0px; left: {{cell.x}}0px"/>{{/each}}`;
 
 // Component version
-const app = `<div class="world">{{#each world.cells key="key" as |cell|}}<organism-cell-component cell={{cell}} />{{/each}}</div>`;
+const app = `<div class="world">{{#each world.cells key="key" as |cell|}}<organism-cell-component @cell={{cell}} />{{/each}}</div>`;
 
 let env = new TestEnvironment();
 
@@ -24,7 +24,13 @@ export function startGlimmer() {
   let world = getWorld();
   env.begin();
   self = new UpdatableReference({ world });
-  res = env.compile(app).render(self, document.body, new TestDynamicScope());
+  let templateIterator = env.compile(app).render(self, document.body, new TestDynamicScope());
+
+  do {
+    res = templateIterator.next();
+  } while (!res.done);
+  res = res.value;
+
   env.commit();
 
   requestAnimationFrame(rerenderGlimmer);
