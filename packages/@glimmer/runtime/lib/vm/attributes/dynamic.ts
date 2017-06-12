@@ -1,15 +1,10 @@
 import { Simple, Option, Opaque, FIXME } from "@glimmer/interfaces";
 import Environment from '../../environment';
-import { NewElementBuilder as DOM } from '../element-builder';
+import { ElementBuilder } from '../element-builder';
 import { sanitizeAttributeValue, requiresSanitization } from '../../dom/sanitized-values';
 import { normalizeProperty } from '../../dom/props';
 import { SVG_NAMESPACE } from '../../dom/helper';
-
-export interface Attribute {
-  element: Simple.Element;
-  name: string;
-  namespace: Option<string>;
-}
+import { Attribute, AttributeOperation } from './index';
 
 export interface DynamicAttributeFactory {
   new(attribute: Attribute): DynamicAttribute;
@@ -55,15 +50,15 @@ export function defaultDynamicProperty(tagName: string, name: string): DynamicAt
   return DefaultDynamicAttribute;
 }
 
-export abstract class DynamicAttribute {
+export abstract class DynamicAttribute implements AttributeOperation {
   constructor(public attribute: Attribute) {}
 
-  abstract set(dom: DOM, value: Opaque, env: Environment): void;
+  abstract set(dom: ElementBuilder, value: Opaque, env: Environment): void;
   abstract update(value: Opaque, env: Environment): void;
 }
 
 export class SimpleDynamicAttribute extends DynamicAttribute {
-  set(dom: DOM, value: Opaque): void {
+  set(dom: ElementBuilder, value: Opaque): void {
     let normalizedValue = normalizeStringValue(value);
 
     if (normalizedValue !== null) {
@@ -84,7 +79,7 @@ export class SimpleDynamicAttribute extends DynamicAttribute {
 }
 
 export class NamespacedDynamicAttribute extends DynamicAttribute {
-  set(dom: DOM, value: Opaque): void {
+  set(dom: ElementBuilder, value: Opaque): void {
     let normalizedValue = normalizeStringValue(value);
 
     if (normalizedValue !== null) {
@@ -105,7 +100,7 @@ export class NamespacedDynamicAttribute extends DynamicAttribute {
 }
 
 export class DefaultDynamicAttribute extends DynamicAttribute {
-  set(dom: DOM, value: Opaque, env: Environment): void {
+  set(dom: ElementBuilder, value: Opaque, env: Environment): void {
     if (value !== null && value !== undefined) {
       let { element, name } = this.attribute;
       element[name] = value;
@@ -136,7 +131,7 @@ export class DefaultDynamicAttribute extends DynamicAttribute {
 }
 
 export class SafeDefaultDynamicAttribute extends DefaultDynamicAttribute {
-  set(dom: DOM, value: Opaque, env: Environment): void {
+  set(dom: ElementBuilder, value: Opaque, env: Environment): void {
     let { element, name } = this.attribute;
     let sanitized = sanitizeAttributeValue(env, element, name, value);
     super.set(dom, sanitized, env);
@@ -150,7 +145,7 @@ export class SafeDefaultDynamicAttribute extends DefaultDynamicAttribute {
 }
 
 export class InputValueDynamicAttribute extends DefaultDynamicAttribute {
-  set(dom: DOM, value: Opaque) {
+  set(dom: ElementBuilder, value: Opaque) {
     let input = this.attribute.element as FIXME<HTMLInputElement, "This breaks SSR">;
     input.value = normalizeStringValue(value)!;
   }
@@ -166,7 +161,7 @@ export class InputValueDynamicAttribute extends DefaultDynamicAttribute {
 }
 
 export class OptionSelectedDynamicAttribute extends DefaultDynamicAttribute {
-  set(dom: DOM, value: Opaque): void {
+  set(dom: ElementBuilder, value: Opaque): void {
     if (value !== null && value !== undefined && value !== false) {
       let option = <HTMLOptionElement>this.attribute.element;
       option.selected = true;

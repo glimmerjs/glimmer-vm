@@ -1,27 +1,27 @@
 import {
-  CachedReference,
-  combineTagged,
   isConst as isConstReference,
-  isModified,
   PathReference,
   Reference,
   ReferenceCache,
   Revision,
   Tag,
   VersionedReference,
+  isConst,
 } from '@glimmer/reference';
-import { Dict, expect, FIXME, Opaque, Option, unwrap } from '@glimmer/util';
-import { ElementOperations, NewElementBuilder } from '../../vm/element-builder';
-import { AttributeManager } from '../../dom/attribute-managers';
-import * as Simple from '../../dom/interfaces';
+import { Opaque, Option, unwrap, unreachable } from '@glimmer/util';
+import { ElementOperations, ElementBuilder } from '../../vm/element-builder';
+import { Simple } from '@glimmer/interfaces';
 import { FIX_REIFICATION } from '../../dom/interfaces';
+import { normalizeStringValue } from '../../dom/normalize';
 import { Environment } from '../../environment';
 import { ModifierManager } from '../../modifier/interfaces';
 import { APPEND_OPCODES, Op, OpcodeJSON, UpdatingOpcode } from '../../opcodes';
-import { NULL_REFERENCE, PrimitiveReference } from '../../references';
+import { PrimitiveReference } from '../../references';
 import { UpdatingVM, VM } from '../../vm';
 import { Arguments } from '../../vm/arguments';
 import { Assert } from './vm';
+import { DynamicAttribute } from '../../vm/attributes/dynamic';
+import { AttributeOperation, Attribute } from '../../vm/attributes/index';
 
 APPEND_OPCODES.add(Op.Text, (vm, { op1: text }) => {
   vm.elements().appendText(vm.constants.getString(text));
@@ -75,67 +75,37 @@ APPEND_OPCODES.add(Op.PushRemoteElement, vm => {
 
 APPEND_OPCODES.add(Op.PopRemoteElement, vm => vm.elements().popRemoteElement());
 
-class ClassList {
-  private list: Option<Array<Reference<string>>> = null;
-  private isConst = true;
+class DynamicClass implements AttributeOperation {
+  constructor(public attribute: Attribute & { name: 'class' }, private list: Simple.TokenList, private lastValue: string) {}
 
-  append(reference: Reference<string>) {
-    let { list, isConst } = this;
-
-    if (list === null) list = this.list = [];
-
-    list.push(reference);
-    this.isConst = isConst && isConstReference(reference);
+  set(dom: ElementBuilder, value: Opaque) {
+    dom.__addClass(normalizeStringValue(value));
   }
 
-  toReference(): Reference<Option<string>> {
-    let { list, isConst } = this;
+  update(value: Opaque) {
+    let { list, lastValue } = this;
+    let newValue = normalizeStringValue(value);
 
-    if (!list) return NULL_REFERENCE;
-
-    if (isConst) return PrimitiveReference.create(toClassName(list));
-
-    return new ClassListReference(list);
+    if (lastValue === newValue) {
+      return;
+    } else if (lastValue && !newValue) {
+      list.remove(lastValue);
+    } else if (!lastValue && newValue) {
+      list.add(newValue);
+    } else {
+      throw unreachable();
+    }
   }
-
-}
-
-class ClassListReference extends CachedReference<Option<string>> {
-  public tag: Tag;
-  private list: Array<Reference<string>> = [];
-
-  constructor(list: Array<Reference<string>>) {
-    super();
-    this.tag = combineTagged(list);
-    this.list = list;
-  }
-
-  protected compute(): Option<string> {
-    return toClassName(this.list);
-  }
-}
-
-function toClassName(list: Array<Reference<string>>): Option<string> {
-  let ret: Opaque[] = [];
-
-  for (let i = 0; i < list.length; i++) {
-    let value: FIXME<Opaque, 'use Opaque and normalize'> = list[i].value();
-    if (value !== false && value !== null && value !== undefined) ret.push(value);
-  }
-
-  return (ret.length === 0) ? null : ret.join(' ');
 }
 
 export class SimpleElementOperations implements ElementOperations {
-  private opcodes: Option<UpdatingOpcode[]> = null;
-  private classList: Option<ClassList> = null;
-
-  constructor(private env: Environment, private builder: NewElementBuilder) {
+  constructor(private env: Environment, private builder: ElementBuilder) {
   }
 
   addStaticAttribute(element: Simple.Element, name: string, value: string) {
     if (name === 'class') {
-      this.addClass(PrimitiveReference.create(value));
+      let classList = this.env.getAppendOperations().getClassList(element);
+      classList.add(value);
     } else {
       this.builder.__setAttribute(name, value);
     }
@@ -145,78 +115,43 @@ export class SimpleElementOperations implements ElementOperations {
     this.builder.__setAttributeNS(name, value, namespace);
   }
 
-  addDynamicAttribute(element: Simple.Element, name: string, reference: Reference<string>, isTrusting: boolean) {
+  addDynamicAttribute(element: Simple.Element, name: string, reference: Reference<string>, isTrusting: boolean): DynamicAttribute {
     if (name === 'class') {
-      this.addClass(reference);
+      let value = reference.value();
+      let classList = this.env.getAppendOperations().getClassList(element);
+      classList.add(value);
+
+      return new DynamicClass({ element, name, namespace: null }, this.env.getAppendOperations().getClassList(element), value);
+
     } else {
       let DynamicAttribute = this.env.attributeFor(element, name, isTrusting);
       let dynamicAttribute = new DynamicAttribute({ element, name, namespace: null });
 
       let value = reference.value();
-      dynamicAttribute.set(this.builder, value, this.env);
+      this.builder.__setAttribute(name, value);
 
-      this.addAttribute(dynamicAttribute);
+      return dynamicAttribute;
     }
   }
 
   addDynamicAttributeNS(element: Simple.Element, namespace: Simple.Namespace, name: string, reference: PathReference<string>, isTrusting: boolean) {
-    let attributeManager = this.env.attributeFor(element, name, isTrusting, namespace);
-    let nsAttribute = new DynamicAttribute(element, attributeManager, name, reference, namespace);
+    let DynamicAttribute = this.env.attributeFor(element, name, isTrusting);
+    let dynamicAttribute = new DynamicAttribute({ element, name, namespace });
 
-    this.addAttribute(nsAttribute);
+    let value = reference.value();
+    this.builder.__setAttribute(name, value);
+
+    return dynamicAttribute;
   }
 
   flush(element: Simple.Element, vm: VM) {
-    let { env } = vm;
-    let { opcodes, classList } = this;
-
-    for (let i = 0; opcodes && i < opcodes.length; i++) {
-      vm.updateWith(opcodes[i]);
-    }
-
-    if (classList) {
-      let attributeManager = env.attributeFor(element, 'class', false);
-      let attribute = new DynamicAttribute(element, attributeManager, 'class', classList.toReference());
-      let opcode = attribute.flush(env);
-
-      if (opcode) {
-        vm.updateWith(opcode);
-      }
-    }
-
-    this.opcodes = null;
-    this.classList = null;
-  }
-
-  private addClass(reference: Reference<string>) {
-    let { classList } = this;
-
-    if (!classList) {
-      classList = this.classList = new ClassList();
-    }
-
-    classList.append(reference);
-  }
-
-  private addAttribute(attribute: DynamicAttribute) {
-    let opcode = attribute.flush(this.env);
-
-    if (opcode) {
-      let { opcodes } = this;
-
-      if (!opcodes) {
-        opcodes = this.opcodes = [];
-      }
-
-      opcodes.push(opcode);
-    }
   }
 }
 
 export class ComponentElementOperations implements ElementOperations {
   private attributeNames: Option<string[]> = null;
-  private attributes: Option<Attribute[]> = null;
-  private classList: Option<ClassList> = null;
+  private attributes: Option<DynamicAttribute[]> = null;
+  private classList: Option<ConstructingClassList> = null;
 
   constructor(private env: Environment) {
   }
@@ -239,10 +174,12 @@ export class ComponentElementOperations implements ElementOperations {
     if (name === 'class') {
       this.addClass(reference);
     } else if (this.shouldAddAttribute(name)) {
-      let attributeManager = this.env.attributeFor(element, name, isTrusting);
-      let attribute = new DynamicAttribute(element, attributeManager, name, reference);
+      let DynamicAttribute = this.env.attributeFor(element, name, isTrusting);
+      let attribute = new DynamicAttribute({ element, name, namespace: null });
 
       this.addAttribute(name, attribute);
+
+      return attribute;
     }
   }
 
@@ -286,13 +223,13 @@ export class ComponentElementOperations implements ElementOperations {
     let { classList } = this;
 
     if (!classList) {
-      classList = this.classList = new ClassList();
+      classList = this.classList = new ConstructingClassList();
     }
 
     classList.append(reference);
   }
 
-  private addAttribute(name: string, attribute: Attribute) {
+  private addAttribute(name: string, attribute: DynamicAttribute) {
     let { attributeNames, attributes } = this;
 
     if (!attributeNames) {
@@ -314,18 +251,6 @@ APPEND_OPCODES.add(Op.FlushElement, vm => {
 });
 
 APPEND_OPCODES.add(Op.CloseElement, vm => vm.elements().closeElement());
-
-APPEND_OPCODES.add(Op.StaticAttr, (vm, { op1: _name, op2: _value, op3: _namespace }) => {
-  let name = vm.constants.getString(_name);
-  let value = vm.constants.getString(_value);
-
-  if (_namespace) {
-    let namespace = vm.constants.getString(_namespace);
-    vm.elements().setStaticAttributeNS(namespace, name, value);
-  } else {
-    vm.elements().setStaticAttribute(name, value);
-  }
-});
 
 APPEND_OPCODES.add(Op.Modifier, (vm, { op1: _manager }) => {
   let manager = vm.constants.getOther<ModifierManager<Opaque>>(_manager);
@@ -382,146 +307,53 @@ export class UpdateModifierOpcode extends UpdatingOpcode {
   }
 }
 
-export interface Attribute {
-  name: string;
-  flush(env: Environment): Option<UpdatingOpcode>;
-}
+APPEND_OPCODES.add(Op.StaticAttr, (vm, { op1: _name, op2: _value, op3: _namespace }) => {
+  let name = vm.constants.getString(_name);
+  let value = vm.constants.getString(_value);
 
-export class StaticAttribute implements Attribute {
-  constructor(
-    public element: Simple.Element,
-    public name: string,
-    private value: string,
-    private namespace?: string,
-  ) {}
-
-  flush(env: Environment): Option<UpdatingOpcode> {
-    env.getAppendOperations().setAttribute(this.element, this.name, this.value, this.namespace);
-    return null;
+  if (_namespace) {
+    let namespace = vm.constants.getString(_namespace);
+    vm.elements().setStaticAttributeNS(namespace, name, value);
+  } else {
+    vm.elements().setStaticAttribute(name, value);
   }
-}
-
-export interface DynamicAttribute {
-  update(env: Environment, value: Opaque): DynamicAttribute;
-}
-
-export class DynamicAttribute {
-  constructor(private element: Simple.Element, private name: string, private lastValue: string) {}
-
-  update(env: Environment, value: Opaque): DynamicAttribute {
-    let { lastValue } = this;
-
-    if (value === lastValue) return this;
-  }
-}
-
-// export class DynamicAttribute implements Attribute  {
-//   public tag: Tag;
-
-//   private cache: Option<ReferenceCache<Opaque>> = null;
-
-//   constructor(
-//     private element: Simple.Element,
-//     private attributeManager: AttributeManager,
-//     public name: string,
-//     private reference: Reference<Opaque>,
-//     private namespace?: Simple.Namespace,
-//   ) {
-//     this.tag = reference.tag;
-//   }
-
-//   patch(env: Environment) {
-//     let { element, cache } = this;
-
-//     let value = expect(cache, 'must patch after flush').revalidate();
-
-//     if (isModified(value)) {
-//       this.attributeManager.updateAttribute(env, element as FIXME<Element, 'needs to be reified properly'>, value, this.namespace);
-//     }
-//   }
-
-//   flush(env: Environment): Option<UpdatingOpcode> {
-//     let { reference, element } = this;
-
-//     if (isConstReference(reference)) {
-//       let value = reference.value();
-//       this.attributeManager.setAttribute(env, element, value, this.namespace);
-//       return null;
-//     } else {
-//       let cache = this.cache = new ReferenceCache(reference);
-//       let value = cache.peek();
-//       this.attributeManager.setAttribute(env, element, value, this.namespace);
-//       return new PatchElementOpcode(this);
-//     }
-//   }
-
-//   toJSON(): Dict<Option<string>> {
-//     let { element, namespace, name, cache } = this;
-
-//     let formattedElement = formatElement(element);
-//     let lastValue = expect(cache, 'must serialize after flush').peek() as string;
-
-//     if (namespace) {
-//       return {
-//         element: formattedElement,
-//         lastValue,
-//         name,
-//         namespace,
-//         type: 'attribute',
-//       };
-//     }
-
-//     return {
-//       element: formattedElement,
-//       lastValue,
-//       name,
-//       namespace: namespace === undefined ? null : namespace,
-//       type: 'attribute',
-//     };
-//   }
-// }
-
-function formatElement(element: Simple.Element): string {
-  return JSON.stringify(`<${element.tagName.toLowerCase()} />`);
-}
+});
 
 APPEND_OPCODES.add(Op.DynamicAttrNS, (vm, { op1: _name, op2: _namespace, op3: trusting }) => {
   let name = vm.constants.getString(_name);
   let namespace = vm.constants.getString(_namespace);
   let reference = vm.stack.pop<VersionedReference<string>>();
-  vm.elements().setDynamicAttributeNS(namespace, name, reference, !!trusting);
+
+  let attribute = vm.elements().setDynamicAttribute(namespace, name, reference, !!trusting);
+
+  if (!isConst(reference)) {
+    vm.updateWith(new UpdateDynamicAttributeOpcode(reference, attribute));
+  }
 });
 
 APPEND_OPCODES.add(Op.DynamicAttr, (vm, { op1: _name, op2: trusting }) => {
   let name = vm.constants.getString(_name);
-  let reference = vm.stack.pop<VersionedReference<string>>();
-  vm.elements().setDynamicAttribute(name, reference, !!trusting);
+  let reference = vm.stack.pop<VersionedReference<Opaque>>();
+
+  let attribute = vm.elements().setDynamicAttribute(name, reference, !!trusting);
+
+  if (!isConst(reference)) {
+    vm.updateWith(new UpdateDynamicAttributeOpcode(reference, attribute));
+  }
 });
 
-export class PatchElementOpcode extends UpdatingOpcode {
+export class UpdateDynamicAttributeOpcode extends UpdatingOpcode {
   public type = 'patch-element';
 
   public tag: Tag;
 
-  private operation: DynamicAttribute;
-
-  constructor(operation: DynamicAttribute) {
+  constructor(private reference: VersionedReference<Opaque>, private attribute: DynamicAttribute) {
     super();
-    this.tag = operation.tag;
-    this.operation = operation;
+    this.tag = reference.tag;
   }
 
   evaluate(vm: UpdatingVM) {
-    this.operation.patch(vm.env);
-  }
-
-  toJSON(): OpcodeJSON {
-    let { _guid, type, operation } = this;
-
-    return {
-      details: operation.toJSON(),
-      guid: _guid,
-      type,
-    };
+    let { attribute, reference } = this;
+    attribute.update(reference.value(), vm.env);
   }
 }

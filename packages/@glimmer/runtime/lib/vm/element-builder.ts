@@ -16,6 +16,8 @@ import DynamicTextContent from './content/text';
 import DynamicNodeContent from './content/node';
 import DynamicHTMLContent, { DynamicTrustedHTMLContent } from './content/html';
 
+import { DynamicAttribute } from './attributes/dynamic';
+
 import {
   SimpleElementOperations
 } from '../compiled/opcodes/dom';
@@ -50,8 +52,8 @@ class Last {
 export interface ElementOperations {
   addStaticAttribute(element: Simple.Element, name: string, value: string): void;
   addStaticAttributeNS(element: Simple.Element, namespace: string, name: string, value: string): void;
-  addDynamicAttribute(element: Simple.Element, name: string, value: VersionedReference<string>, isTrusting: boolean): void;
-  addDynamicAttributeNS(element: Simple.Element, namespace: string, name: string, value: VersionedReference<string>, isTrusting: boolean): void;
+  addDynamicAttribute(element: Simple.Element, name: string, value: VersionedReference<string>, isTrusting: boolean): DynamicAttribute;
+  addDynamicAttributeNS(element: Simple.Element, namespace: string, name: string, value: VersionedReference<string>, isTrusting: boolean): DynamicAttribute;
   flush(element: Simple.Element, vm: VM): void;
 }
 
@@ -89,14 +91,27 @@ export interface DOMStack {
   appendComment(string: string): Simple.Comment;
   appendTrustingDynamicContent(reference: Opaque): DynamicContentWrapper;
   appendCautiousDynamicContent(reference: Opaque): DynamicContentWrapper;
-  setStaticAttribute(name: string, value: string): void;
-  setStaticAttributeNS(namespace: string, name: string, value: string): void;
-  setDynamicAttribute(name: string, reference: VersionedReference<string>, isTrusting: boolean): void;
-  setDynamicAttributeNS(namespace: string, name: string, reference: VersionedReference<string>, isTrusting: boolean): void;
+  setAttribute(name: string, value: string, namespace?: string): void;
+  addClass(value: string): void;
+  setDynamicAttribute(name: string, value: VersionedReference<Opaque>, isTrusting: boolean, namespace?: string): DynamicAttribute;
+  addDynamicClass(value: VersionedReference<Opaque>): DynamicAttribute;
   closeElement(): void;
 }
 
-export interface ElementBuilder extends Cursor, DOMStack {
+export interface TreeOperations {
+  __openElement(tag: string): Simple.Element;
+  __flushElement(parent: Simple.Element, constructing: Simple.Element): void;
+  __appendText(text: string): Simple.Text;
+  __appendComment(string: string): Simple.Comment;
+  __appendNode(node: Simple.Node): Simple.Node;
+  __appendHTML(html: string): Bounds;
+  __appendTrustingDynamicContent(value: Opaque): DynamicContent;
+  __appendCautiousDynamicContent(value: Opaque): DynamicContent;
+  __setAttribute(name: string, value: string, namespace?: string): void;
+  __addClass(value: string): void;
+}
+
+export interface ElementBuilder extends Cursor, DOMStack, TreeOperations {
   nextSibling: Option<Simple.Node>;
   dom: DOMTreeConstruction;
   updateOperations: DOMChanges;
@@ -152,7 +167,7 @@ export class NewElementBuilder implements ElementBuilder {
     this.dom = env.getAppendOperations();
     this.updateOperations = env.getDOM();
 
-    this.defaultOperations = new SimpleElementOperations(env);
+    this.defaultOperations = new SimpleElementOperations(env, this);
 
     this.pushSimpleBlock();
   }
@@ -398,28 +413,31 @@ export class NewElementBuilder implements ElementBuilder {
     return node;
   }
 
-  setStaticAttribute(name: string, value: string) {
-    this.expectOperations('setStaticAttribute').addStaticAttribute(this.expectConstructing('setStaticAttribute'), name, value);
-  }
-
-  __setAttribute(name: string, value: string) {
-    this.dom.setAttribute(this.element, name, value);
-  }
-
-  setStaticAttributeNS(namespace: string, name: string, value: string) {
-    this.expectOperations('setStaticAttributeNS').addStaticAttributeNS(this.expectConstructing('setStaticAttributeNS'), namespace, name, value);
-  }
-
-  __setAttributeNS(name: string, value: string, namespace: string) {
+  __setAttribute(name: string, value: string, namespace?: string) {
     this.dom.setAttribute(this.element, name, value, namespace);
   }
 
-  setDynamicAttribute(name: string, reference: VersionedReference<string>, isTrusting: boolean) {
-    this.expectOperations('setDynamicAttribute').addDynamicAttribute(this.expectConstructing('setDynamicAttribute'), name, reference, isTrusting);
+  __addClass(value: string) {
+    this.dom.getClassList(this.element).add(value);
   }
 
-  setDynamicAttributeNS(namespace: string, name: string, reference: VersionedReference<string>, isTrusting: boolean) {
-    this.expectOperations('setDynamicAttributeNS').addDynamicAttributeNS(this.expectConstructing('setDynamicAttributeNS'), namespace, name, reference, isTrusting);
+  setAttribute(name: string, value: string, namespace?: string) {
+    this.__setAttribute(name, value, namespace);
+  }
+
+  setDynamicAttribute(name: string, value: Opaque, trusting: boolean, namespace?: string): DynamicAttribute {
+    let DynamicAttribute = this.env.attributeFor(this.element, name, trusting, namespace);
+    let attribute = new DynamicAttribute({ element: this.element, name, namespace: namespace || null });
+
+    attribute.set(this, value, this.env);
+  }
+
+  addClass(value: string): void {
+    this.__addClass(value);
+  }
+
+  addDynamicClass(value: Opaque): DynamicAttribute {
+    let attribute = new DynamicClass
   }
 
   closeElement() {

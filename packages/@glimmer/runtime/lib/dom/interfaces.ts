@@ -47,6 +47,15 @@ export interface CharacterData extends Node {
   data: string;
 }
 
+export interface TokenList {
+  [index: number]: string;
+  length: number;
+
+  add(s: string): void;
+  remove(s: string): void;
+  contains(s: string): boolean;
+}
+
 export interface Text extends CharacterData {}
 
 export interface Comment extends CharacterData {}
