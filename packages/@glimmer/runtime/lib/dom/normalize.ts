@@ -8,7 +8,7 @@ export type Insertion = CautiousInsertion | TrustingInsertion;
 export type CautiousInsertion = string | SafeString | Node;
 export type TrustingInsertion = string | Node;
 
-export function normalizeAttributeValue(value: Opaque): string {
+export function normalizeStringValue(value: Opaque): string {
   if (isEmpty(value)) {
     return '';
   }

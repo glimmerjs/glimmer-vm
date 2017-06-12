@@ -149,10 +149,13 @@ export class SimpleElementOperations implements ElementOperations {
     if (name === 'class') {
       this.addClass(reference);
     } else {
-      let attributeManager = this.env.attributeFor(element, name, isTrusting);
-      let attribute = new DynamicAttribute(element, attributeManager, name, reference);
+      let DynamicAttribute = this.env.attributeFor(element, name, isTrusting);
+      let dynamicAttribute = new DynamicAttribute({ element, name, namespace: null });
 
-      this.addAttribute(attribute);
+      let value = reference.value();
+      dynamicAttribute.set(this.builder, value, this.env);
+
+      this.addAttribute(dynamicAttribute);
     }
   }
 
@@ -195,7 +198,7 @@ export class SimpleElementOperations implements ElementOperations {
     classList.append(reference);
   }
 
-  private addAttribute(attribute: Attribute) {
+  private addAttribute(attribute: DynamicAttribute) {
     let opcode = attribute.flush(this.env);
 
     if (opcode) {
