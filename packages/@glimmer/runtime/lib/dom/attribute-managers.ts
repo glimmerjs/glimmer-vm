@@ -149,7 +149,7 @@ class SafePropertyManager extends PropertyManager {
 }
 
 function isUserInputValue(tagName: string, attribute: string) {
-  return (tagName === 'INPUT' || tagName === 'TEXTAREA') && attribute === 'value';
+  return (tagName.toUpperCase() === 'INPUT' || tagName.toUpperCase() === 'TEXTAREA') && attribute === 'value';
 }
 
 class InputValuePropertyManager extends AttributeManager {
@@ -171,7 +171,7 @@ class InputValuePropertyManager extends AttributeManager {
 export const INPUT_VALUE_PROPERTY_MANAGER: AttributeManager = new InputValuePropertyManager('value');
 
 function isOptionSelected(tagName: string, attribute: string) {
-  return tagName === 'OPTION' && attribute === 'selected';
+  return tagName.toUpperCase() === 'OPTION' && attribute === 'selected';
 }
 
 class OptionSelectedManager extends PropertyManager {
