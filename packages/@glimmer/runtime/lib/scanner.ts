@@ -107,5 +107,7 @@ function decorateTopLevelElement(
   buffer.push([Ops.ClientSideStatement, ClientSide.Ops.OpenComponentElement, tagName]);
   buffer.push([Ops.ClientSideStatement, ClientSide.Ops.DidCreateElement]);
   buffer.push([Ops.Yield, attrsSymbol, EMPTY_ARRAY]);
+  buffer.push([Ops.ClientSideStatement, ClientSide.Ops.SetComponentAttrs, true]);
   buffer.push(...attrs);
+  buffer.push([Ops.ClientSideStatement, ClientSide.Ops.SetComponentAttrs, false]);
 }

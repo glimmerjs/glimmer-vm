@@ -61,6 +61,7 @@ export abstract class BasicOpcodeBuilder {
   public start: Handle;
 
   private labelsStack = new Stack<Labels>();
+  private isComponentAttrs = false;
 
   constructor(public env: Environment, public meta: CompilationMeta, public program: Program) {
     this.constants = program.constants;
@@ -97,6 +98,10 @@ export abstract class BasicOpcodeBuilder {
     this.push(Op.Return);
     this.heap.finishMalloc(this.start);
     return this.start;
+  }
+
+  setComponentAttrs(enabled: boolean): void {
+    this.isComponentAttrs = enabled;
   }
 
   // args
@@ -222,21 +227,25 @@ export abstract class BasicOpcodeBuilder {
   staticAttr(_name: string, _namespace: Option<string>, _value: string) {
     let name = this.constants.string(_name);
     let namespace = _namespace ? this.constants.string(_namespace) : 0;
-    let value = this.constants.string(_value);
 
-    this.push(Op.StaticAttr, name, value, namespace);
+    if (this.isComponentAttrs) {
+      this.primitive(_value);
+      this.push(Op.ComponentAttr, name, 1, namespace);
+    } else {
+      let value = this.constants.string(_value);
+      this.push(Op.StaticAttr, name, value, namespace);
+    }
   }
 
-  dynamicAttrNS(_name: string, _namespace: string, trusting: boolean) {
+  dynamicAttr(_name: string, _namespace: Option<string>, trusting: boolean) {
     let name = this.constants.string(_name);
-    let namespace = this.constants.string(_namespace);
+    let namespace = _namespace ? this.constants.string(_namespace) : 0;
 
-    this.push(Op.DynamicAttrNS, name, namespace, (trusting === true ? 1 : 0));
-  }
-
-  dynamicAttr(_name: string, trusting: boolean) {
-    let name = this.constants.string(_name);
-    this.push(Op.DynamicAttr, name, (trusting === true ? 1 : 0));
+    if (this.isComponentAttrs) {
+      this.push(Op.ComponentAttr, name, (trusting === true ? 1 : 0), namespace);
+    } else {
+      this.push(Op.DynamicAttr, name, (trusting === true ? 1 : 0), namespace);
+    }
   }
 
   comment(_comment: string) {

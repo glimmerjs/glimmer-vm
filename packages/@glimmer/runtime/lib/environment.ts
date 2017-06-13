@@ -456,7 +456,7 @@ export abstract class Environment {
     transaction.commit();
   }
 
-  attributeFor(element: Simple.Element, attr: string, isTrusting: boolean, namespace?: string): DynamicAttributeFactory {
+  attributeFor(element: Simple.Element, attr: string, isTrusting: boolean, namespace: Option<string>): DynamicAttributeFactory {
     return defaultDynamicAttributes(element, attr);
   }
 

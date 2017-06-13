@@ -69,6 +69,12 @@ export {
 export { PublicVM as VM, UpdatingVM, RenderResult, IteratorResult } from './lib/vm';
 
 export {
+  SimpleDynamicAttribute,
+  DynamicAttributeFactory,
+  DynamicAttribute
+} from './lib/vm/attributes/dynamic';
+
+export {
   IArguments as Arguments,
   ICapturedArguments as CapturedArguments,
   IPositionalArguments as PositionalArguments,

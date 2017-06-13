@@ -7,10 +7,19 @@ import {
   assertNodeTagName,
   assertNodeProperty,
 } from "@glimmer/test-helpers";
-import { Environment, Template, Simple, AttributeManager, IteratorResult, RenderResult } from '@glimmer/runtime';
 import { module, test } from './support';
 import { UpdatableReference } from '@glimmer/object-reference';
-import { Opaque } from '@glimmer/interfaces';
+import { Opaque, Option } from '@glimmer/interfaces';
+
+import {
+  Template,
+  Simple,
+  DynamicAttributeFactory,
+  IteratorResult,
+  RenderResult,
+  ElementBuilder,
+  SimpleDynamicAttribute
+} from '@glimmer/runtime';
 
 const SVG_NAMESPACE = 'http://www.w3.org/2000/svg';
 const XLINK_NAMESPACE = 'http://www.w3.org/1999/xlink';
@@ -1023,12 +1032,12 @@ module("[glimmer runtime] Initial render", tests => {
 module('Style attributes', {
   beforeEach() {
     class StyleEnv extends TestEnvironment {
-      attributeFor(element: Simple.Element, attr: string, isTrusting: boolean): AttributeManager {
+      attributeFor(element: Simple.Element, attr: string, isTrusting: boolean, namespace: Option<string>): DynamicAttributeFactory {
         if (attr === 'style' && !isTrusting) {
-          return STYLE_ATTRIBUTE;
+          return StyleAttribute;
         }
 
-        return super.attributeFor(element, attr, isTrusting);
+        return super.attributeFor(element, attr, isTrusting, namespace);
       }
     }
 
@@ -1070,13 +1079,11 @@ module('Style attributes', {
 
 let warnings = 0;
 
-class StyleAttribute extends AttributeManager {
-  setAttribute(env: Environment, element: Simple.Element, value: Opaque) {
+class StyleAttribute extends SimpleDynamicAttribute {
+  set(dom: ElementBuilder, value: Opaque): void {
     warnings++;
-    super.setAttribute(env, element, value);
+    super.set(dom, value);
   }
 
-  updateAttribute() {}
+  update() {}
 }
-
-const STYLE_ATTRIBUTE = new StyleAttribute('style');

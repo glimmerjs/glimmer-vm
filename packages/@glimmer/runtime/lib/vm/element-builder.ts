@@ -18,10 +18,6 @@ import DynamicHTMLContent, { DynamicTrustedHTMLContent } from './content/html';
 
 import { DynamicAttribute } from './attributes/dynamic';
 
-import {
-  SimpleElementOperations
-} from '../compiled/opcodes/dom';
-
 import * as Simple from '../dom/interfaces';
 import { Opaque } from "@glimmer/interfaces";
 
@@ -91,10 +87,8 @@ export interface DOMStack {
   appendComment(string: string): Simple.Comment;
   appendTrustingDynamicContent(reference: Opaque): DynamicContentWrapper;
   appendCautiousDynamicContent(reference: Opaque): DynamicContentWrapper;
-  setAttribute(name: string, value: string, namespace?: string): void;
-  addClass(value: string): void;
-  setDynamicAttribute(name: string, value: VersionedReference<Opaque>, isTrusting: boolean, namespace?: string): DynamicAttribute;
-  addDynamicClass(value: VersionedReference<Opaque>): DynamicAttribute;
+  setStaticAttribute(name: string, value: string, namespace: Option<string>): void;
+  setDynamicAttribute(name: string, value: Opaque, isTrusting: boolean, namespace: Option<string>): DynamicAttribute;
   closeElement(): void;
 }
 
@@ -107,8 +101,7 @@ export interface TreeOperations {
   __appendHTML(html: string): Bounds;
   __appendTrustingDynamicContent(value: Opaque): DynamicContent;
   __appendCautiousDynamicContent(value: Opaque): DynamicContent;
-  __setAttribute(name: string, value: string, namespace?: string): void;
-  __addClass(value: string): void;
+  __setAttribute(name: string, value: string, namespace: Option<string>): void;
 }
 
 export interface ElementBuilder extends Cursor, DOMStack, TreeOperations {
@@ -145,8 +138,6 @@ export class NewElementBuilder implements ElementBuilder {
   private cursorStack = new Stack<Cursor>();
   private blockStack = new Stack<Tracker>();
 
-  protected defaultOperations: ElementOperations;
-
   static forInitialRender(env: Environment, parentNode: Simple.Element, nextSibling: Option<Simple.Node>) {
     return new this(env, parentNode, nextSibling);
   }
@@ -166,8 +157,6 @@ export class NewElementBuilder implements ElementBuilder {
     this.env = env;
     this.dom = env.getAppendOperations();
     this.updateOperations = env.getDOM();
-
-    this.defaultOperations = new SimpleElementOperations(env, this);
 
     this.pushSimpleBlock();
   }
@@ -244,11 +233,13 @@ export class NewElementBuilder implements ElementBuilder {
 
   openElement(tag: string, _operations?: ElementOperations): Simple.Element {
     // workaround argument.length transpile of arg initializer
-    let operations = _operations === undefined ? this.defaultOperations : _operations;
+    if (_operations) {
+      this.operations = _operations;
+    }
+
     let element = this.__openElement(tag);
 
     this.constructing = element;
-    this.operations = operations;
 
     return element;
   }
@@ -413,31 +404,22 @@ export class NewElementBuilder implements ElementBuilder {
     return node;
   }
 
-  __setAttribute(name: string, value: string, namespace?: string) {
-    this.dom.setAttribute(this.element, name, value, namespace);
+  __setAttribute(name: string, value: string, namespace: Option<string>) {
+    this.dom.setAttribute(this.constructing!, name, value, namespace);
   }
 
-  __addClass(value: string) {
-    this.dom.getClassList(this.element).add(value);
-  }
-
-  setAttribute(name: string, value: string, namespace?: string) {
+  setStaticAttribute(name: string, value: string, namespace: Option<string>) {
     this.__setAttribute(name, value, namespace);
   }
 
-  setDynamicAttribute(name: string, value: Opaque, trusting: boolean, namespace?: string): DynamicAttribute {
-    let DynamicAttribute = this.env.attributeFor(this.element, name, trusting, namespace);
-    let attribute = new DynamicAttribute({ element: this.element, name, namespace: namespace || null });
+  setDynamicAttribute(name: string, value: Opaque, trusting: boolean, namespace: Option<string>): DynamicAttribute {
+    let element = this.constructing!;
+    let DynamicAttribute = this.env.attributeFor(element, name, trusting, namespace);
+    let attribute = new DynamicAttribute({ element, name, namespace: namespace || null });
 
     attribute.set(this, value, this.env);
-  }
 
-  addClass(value: string): void {
-    this.__addClass(value);
-  }
-
-  addDynamicClass(value: Opaque): DynamicAttribute {
-    let attribute = new DynamicClass
+    return attribute;
   }
 
   closeElement() {

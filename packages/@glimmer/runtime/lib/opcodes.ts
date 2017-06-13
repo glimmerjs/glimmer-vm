@@ -416,7 +416,7 @@ export const enum Op {
    *   at the top of the stack.
    *
    * Format:
-   *   (DynamicAttr name:#string trusting:boolean)
+   *   (DynamicAttr name:#string trusting:boolean namespace:Option<#string>)
    * Operand Stack:
    *   ..., VersionedPathReference →
    *   ...
@@ -432,15 +432,12 @@ export const enum Op {
    *   at the top of the stack.
    *
    * Format:
-   *   (DynamicAttrNS name:#string namespace:#string trusting:boolean)
+   *   (ComponentAtr name:#string trusting:boolean namespace:Option<#string>)
    * Operand Stack:
    *   ..., VersionedPathReference →
    *   ...
-   * Description:
-   *   If `trusting` is false, the host may sanitize the attribute
-   *   based upon known risks.
    */
-  DynamicAttrNS,
+  ComponentAttr,
 
   /**
    * Operation: Finish setting attributes on the current element.
@@ -991,8 +988,8 @@ function debug(c: Constants, op: Op, op1: number, op2: number, op3: number): [st
       case Op.OpenElementWithOperations: return ['OpenElementWithOperations', { tag: c.getString(op1) }];
       case Op.OpenDynamicElement: return ['OpenDynamicElement', {}];
       case Op.StaticAttr: return ['StaticAttr', { name: c.getString(op1), value: c.getString(op2), namespace: op3 ? c.getString(op3) : null }];
-      case Op.DynamicAttr: return ['DynamicAttr', { name: c.getString(op1), trusting: !!op2 }];
-      case Op.DynamicAttrNS: return ['DynamicAttrNS', { name: c.getString(op1), ns: c.getString(op2), trusting: !!op2 }];
+      case Op.DynamicAttr: return ['DynamicAttr', { name: c.getString(op1), trusting: !!op2, namespace: op3 ? c.getString(op3) : null }];
+      case Op.ComponentAttr: return ['ComponentAttr', { name: c.getString(op1), trusting: !!op2, namespace: op3 ? c.getString(op3) : null }];
       case Op.FlushElement: return ['FlushElement', {}];
       case Op.CloseElement: return ['CloseElement', {}];
 
@@ -1090,7 +1087,7 @@ export class AppendOpcodes {
       console.log('%c -> pc: %d, ra: %d, fp: %d, sp: %d, s0: %O, s1: %O, t0: %O, t1: %O', 'color: orange', vm['pc'], vm['ra'], vm['fp'], vm['sp'], vm['s0'], vm['s1'], vm['t0'], vm['t1']);
       console.log('%c -> eval stack', 'color: red', vm.stack.toArray());
       console.log('%c -> scope', 'color: green', vm.scope()['slots'].map(s => s && s['value'] ? s['value']() : s));
-      console.log('%c -> elements', 'color: blue', vm.elements()['elementStack'].toArray());
+      console.log('%c -> elements', 'color: blue', vm.elements()['cursorStack']['stack'].map((c: any) => c.element));
       /* tslint:enable */
     }
   }

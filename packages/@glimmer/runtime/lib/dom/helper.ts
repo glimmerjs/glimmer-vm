@@ -109,14 +109,6 @@ export class DOMOperations {
   createComment(data: string): Simple.Comment {
     return this.document.createComment(data);
   }
-
-  getClassList(element: Simple.Element): Simple.TokenList {
-    if (element instanceof Element) {
-      return element.classList;
-    } else {
-      throw new Error(`You're using a DOM without classList, so you will need to implement getClassList`);
-    }
-  }
 }
 
 export namespace DOM {
@@ -133,7 +125,7 @@ export namespace DOM {
       return this.document.createElementNS(namespace, tag);
     }
 
-    setAttribute(element: Element, name: string, value: string, namespace?: string) {
+    setAttribute(element: Element, name: string, value: string, namespace?: Option<string>) {
       if (namespace) {
         element.setAttributeNS(namespace, name, value);
       } else {

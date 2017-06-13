@@ -8,7 +8,7 @@ import {
 import { normalizeProperty } from './props';
 import { SVG_NAMESPACE } from './helper';
 import { Environment } from '../environment';
-import { normalizeStringValue as normalizeStringValue } from '../dom/normalize';
+import { isEmpty, normalizeStringValue as normalizeStringValue } from '../dom/normalize';
 
 export function defaultManagers(element: Simple.Element, attr: string, _isTrusting: boolean, _namespace: Option<string>): AttributeManager {
   let tagName = element.tagName;
@@ -120,7 +120,7 @@ export class PropertyManager extends AttributeManager {
 };
 
 function normalizeAttributeValue(value: Opaque): Option<string> {
-  if (value === false || value === undefined || value === null) {
+  if (value === false || isEmpty(value)) {
     return null;
   }
   if (value === true) {

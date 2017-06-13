@@ -28,15 +28,15 @@ export function defaultDynamicAttributes(element: Simple.Element, attr: string):
 
 export function defaultDynamicAttribute(tagName: string, name: string): DynamicAttributeFactory {
   if (requiresSanitization(tagName, name)) {
-    return SafeDefaultDynamicAttribute;
+    throw new Error(`ASSERT: All sanitized properties are not 'attr'`);
   } else {
-    return DefaultDynamicAttribute;
+    return SimpleDynamicAttribute;
   }
 }
 
 export function defaultDynamicProperty(tagName: string, name: string): DynamicAttributeFactory {
   if (requiresSanitization(tagName, name)) {
-    return SafeDefaultDynamicAttribute;
+    return SafeDynamicProperty;
   }
 
   if (isUserInputValue(tagName, name)) {
@@ -47,7 +47,7 @@ export function defaultDynamicProperty(tagName: string, name: string): DynamicAt
     return OptionSelectedDynamicAttribute;
   }
 
-  return DefaultDynamicAttribute;
+  return DefaultDynamicProperty;
 }
 
 export abstract class DynamicAttribute implements AttributeOperation {
@@ -62,7 +62,8 @@ export class SimpleDynamicAttribute extends DynamicAttribute {
     let normalizedValue = normalizeStringValue(value);
 
     if (normalizedValue !== null) {
-      dom.__setAttribute(this.attribute.name, normalizedValue);
+      let { name, namespace } = this.attribute;
+      dom.__setAttribute(name, normalizedValue, namespace);
     }
   }
 
@@ -78,28 +79,7 @@ export class SimpleDynamicAttribute extends DynamicAttribute {
   }
 }
 
-export class NamespacedDynamicAttribute extends DynamicAttribute {
-  set(dom: ElementBuilder, value: Opaque): void {
-    let normalizedValue = normalizeStringValue(value);
-
-    if (normalizedValue !== null) {
-      dom.__setAttributeNS(this.attribute.name, normalizedValue, this.attribute.namespace!);
-    }
-  }
-
-  update(value: Opaque): void {
-    let normalizedValue = normalizeStringValue(value);
-    let { element, name, namespace } = this.attribute;
-
-    if (normalizedValue === null) {
-      element.removeAttributeNS(namespace!, name);
-    } else {
-      element.setAttributeNS(namespace!, name, normalizedValue);
-    }
-  }
-}
-
-export class DefaultDynamicAttribute extends DynamicAttribute {
+export class DefaultDynamicProperty extends DynamicAttribute {
   set(dom: ElementBuilder, value: Opaque, env: Environment): void {
     if (value !== null && value !== undefined) {
       let { element, name } = this.attribute;
@@ -130,7 +110,7 @@ export class DefaultDynamicAttribute extends DynamicAttribute {
   }
 }
 
-export class SafeDefaultDynamicAttribute extends DefaultDynamicAttribute {
+export class SafeDynamicProperty extends DefaultDynamicProperty {
   set(dom: ElementBuilder, value: Opaque, env: Environment): void {
     let { element, name } = this.attribute;
     let sanitized = sanitizeAttributeValue(env, element, name, value);
@@ -144,7 +124,7 @@ export class SafeDefaultDynamicAttribute extends DefaultDynamicAttribute {
   }
 }
 
-export class InputValueDynamicAttribute extends DefaultDynamicAttribute {
+export class InputValueDynamicAttribute extends DefaultDynamicProperty {
   set(dom: ElementBuilder, value: Opaque) {
     let input = this.attribute.element as FIXME<HTMLInputElement, "This breaks SSR">;
     input.value = normalizeStringValue(value)!;
@@ -160,7 +140,7 @@ export class InputValueDynamicAttribute extends DefaultDynamicAttribute {
   }
 }
 
-export class OptionSelectedDynamicAttribute extends DefaultDynamicAttribute {
+export class OptionSelectedDynamicAttribute extends DefaultDynamicProperty {
   set(dom: ElementBuilder, value: Opaque): void {
     if (value !== null && value !== undefined && value !== false) {
       let option = <HTMLOptionElement>this.attribute.element;
@@ -188,7 +168,7 @@ function isUserInputValue(tagName: string, attribute: string) {
 }
 
 function normalizeStringValue(value: Opaque): Option<string> {
-  if (value === false || value === undefined || value === null) {
+  if (value === false || value === undefined || value === null || typeof value.toString === 'undefined') {
     return null;
   }
   if (value === true) {
