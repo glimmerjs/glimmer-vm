@@ -1,10 +1,10 @@
 import DynamicContentBase, { DynamicContent } from './dynamic';
-import { SingleNodeBounds } from '../../bounds';
+import Bounds from '../../bounds';
 import Environment from '../../environment';
 import { Opaque, Simple } from "@glimmer/interfaces";
 
 export default class DynamicNodeContent extends DynamicContentBase {
-  constructor(public bounds: SingleNodeBounds, private lastValue: Simple.Node, trusting: boolean) {
+  constructor(public bounds: Bounds, private lastValue: Simple.Node, trusting: boolean) {
     super(trusting);
   }
 

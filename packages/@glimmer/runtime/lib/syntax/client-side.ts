@@ -9,6 +9,7 @@ export enum Ops {
   SetComponentAttrs,
   DidRenderLayout,
   FunctionExpression,
+  Debugger
 }
 
 import ClientSideStatement = WireFormatOps.ClientSideStatement;

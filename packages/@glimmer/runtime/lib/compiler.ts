@@ -141,9 +141,13 @@ class WrappedBuilder implements InnerLayoutBuilder {
 
       let attrs = this.attrs.buffer;
 
+      b.setComponentAttrs(true);
+
       for (let i=0; i<attrs.length; i++) {
         compileStatement(attrs[i], b);
       }
+
+      b.setComponentAttrs(false);
 
       b.flushElement();
     }

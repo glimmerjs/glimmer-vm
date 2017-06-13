@@ -112,7 +112,5 @@ export {
 } from './lib/modifier/interfaces';
 
 export { default as DOMChanges, DOMChanges as IDOMChanges, DOMTreeConstruction, isWhitespace, insertHTMLBefore } from './lib/dom/helper';
-import * as Simple from './lib/dom/interfaces';
-export { Simple };
 export { ElementBuilder, NewElementBuilder, ElementOperations } from './lib/vm/element-builder';
 export { default as Bounds, ConcreteBounds } from './lib/bounds';

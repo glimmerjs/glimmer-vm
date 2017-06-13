@@ -1,12 +1,12 @@
-import { Opaque } from "@glimmer/interfaces";
+import { Opaque, Simple } from "@glimmer/interfaces";
 
 export interface SafeString {
   toHTML(): string;
 }
 
 export type Insertion = CautiousInsertion | TrustingInsertion;
-export type CautiousInsertion = string | SafeString | Node;
-export type TrustingInsertion = string | Node;
+export type CautiousInsertion = string | SafeString | Simple.Node;
+export type TrustingInsertion = string | Simple.Node;
 
 export function normalizeStringValue(value: Opaque): string {
   if (isEmpty(value)) {
@@ -52,8 +52,12 @@ export function isSafeString(value: Opaque): value is SafeString {
   return typeof value === 'object' && value !== null && typeof (value as any).toHTML === 'function';
 }
 
-export function isNode(value: Opaque): value is Node {
+export function isNode(value: Opaque): value is Simple.Node {
   return typeof value === 'object' && value !== null && typeof (value as any).nodeType === 'number';
+}
+
+export function isFragment(value: Opaque): value is Simple.DocumentFragment {
+  return isNode(value) && value.nodeType === 11;
 }
 
 export function isString(value: Opaque): value is string {

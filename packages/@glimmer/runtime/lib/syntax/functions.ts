@@ -123,6 +123,11 @@ CLIENT_SIDE.add(ClientSide.Ops.SetComponentAttrs, (sexp: ClientSide.SetComponent
   builder.setComponentAttrs(sexp[2]);
 });
 
+CLIENT_SIDE.add(ClientSide.Ops.Debugger, () => {
+  // tslint:disable-next-line:no-debugger
+  debugger;
+});
+
 CLIENT_SIDE.add(ClientSide.Ops.DidRenderLayout, (_sexp: ClientSide.DidRenderLayout, builder: OpcodeBuilder) => {
   builder.didRenderLayout(Register.s0);
 });

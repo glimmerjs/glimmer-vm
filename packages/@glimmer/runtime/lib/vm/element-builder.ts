@@ -1,13 +1,11 @@
-import { clear, Cursor, DestroyableBounds, single, Bounds } from '../bounds';
+import { clear, Cursor, DestroyableBounds, single, Bounds, bounds } from '../bounds';
 
 import { DOMChanges, DOMTreeConstruction } from '../dom/helper';
-import { isString, isSafeString, isNode, isEmpty } from '../dom/normalize';
+import { isString, isSafeString, isNode, isFragment, isEmpty } from '../dom/normalize';
 
 import { Option, Destroyable, Stack, LinkedList, LinkedListNode, assert, expect } from '@glimmer/util';
 
 import { Environment } from '../environment';
-
-import { VM } from '../vm';
 
 import { VersionedReference } from '@glimmer/reference';
 
@@ -18,8 +16,7 @@ import DynamicHTMLContent, { DynamicTrustedHTMLContent } from './content/html';
 
 import { DynamicAttribute } from './attributes/dynamic';
 
-import * as Simple from '../dom/interfaces';
-import { Opaque } from "@glimmer/interfaces";
+import { Opaque, Simple } from "@glimmer/interfaces";
 
 export interface FirstNode {
   firstNode(): Option<Simple.Node>;
@@ -46,11 +43,7 @@ class Last {
 }
 
 export interface ElementOperations {
-  addStaticAttribute(element: Simple.Element, name: string, value: string): void;
-  addStaticAttributeNS(element: Simple.Element, namespace: string, name: string, value: string): void;
-  addDynamicAttribute(element: Simple.Element, name: string, value: VersionedReference<string>, isTrusting: boolean): DynamicAttribute;
-  addDynamicAttributeNS(element: Simple.Element, namespace: string, name: string, value: VersionedReference<string>, isTrusting: boolean): DynamicAttribute;
-  flush(element: Simple.Element, vm: VM): void;
+  setAttribute(name: string, value: VersionedReference<Opaque>, trusting: boolean, namespace: Option<string>): void;
 }
 
 export class Fragment implements Bounds {
@@ -324,6 +317,22 @@ export class NewElementBuilder implements ElementBuilder {
     return node;
   }
 
+  appendFragment(fragment: Simple.DocumentFragment): Bounds {
+    return this.didAppendBounds(this.__appendFragment(fragment));
+  }
+
+  __appendFragment(fragment: Simple.DocumentFragment): Bounds {
+    let first = fragment.firstChild;
+
+    if (first) {
+      let ret = bounds(this.element, first, fragment.lastChild!);
+      this.dom.insertBefore(this.element, fragment, this.nextSibling);
+      return ret;
+    } else {
+      return single(this.element, this.__appendComment(''));
+    }
+  }
+
   appendHTML(html: string): Bounds {
     return this.didAppendBounds(this.__appendHTML(html));
   }
@@ -339,7 +348,10 @@ export class NewElementBuilder implements ElementBuilder {
   }
 
   __appendTrustingDynamicContent(value: Opaque): DynamicContent {
-    if (isNode(value)) {
+    if (isFragment(value)) {
+      let bounds = this.__appendFragment(value);
+      return new DynamicNodeContent(bounds, value, true);
+    } else if (isNode(value)) {
       let node = this.__appendNode(value);
       return new DynamicNodeContent(single(this.element, node), node, true);
     } else {
@@ -367,7 +379,10 @@ export class NewElementBuilder implements ElementBuilder {
   }
 
   __appendCautiousDynamicContent(value: Opaque): DynamicContent {
-    if (isNode(value)) {
+    if (isFragment(value)) {
+      let bounds = this.__appendFragment(value);
+      return new DynamicNodeContent(bounds, value, false);
+    } else if (isNode(value)) {
       let node = this.__appendNode(value);
       return new DynamicNodeContent(single(this.element, node), node, false);
     } else if (isSafeString(value)) {

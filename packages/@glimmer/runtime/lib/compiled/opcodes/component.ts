@@ -169,7 +169,7 @@ class ComponentElementOperations {
 
       let attribute = vm.elements().setDynamicAttribute(name, reference.value(), trusting, namespace);
 
-      if (isConst(reference)) {
+      if (!isConst(reference)) {
         vm.updateWith(new UpdateDynamicAttributeOpcode(reference, attribute));
       }
     }
@@ -189,7 +189,7 @@ class ClassListReference implements VersionedReference<Option<string>> {
     let { list } = this;
 
     for (let i=0; i<list.length; i++) {
-      let value = normalizeStringValue(list[i]);
+      let value = normalizeStringValue(list[i].value());
       if (value) ret.push(value);
     }
 
@@ -198,10 +198,11 @@ class ClassListReference implements VersionedReference<Option<string>> {
 }
 
 APPEND_OPCODES.add(Op.DidCreateElement, (vm, { op1: _state }) => {
-  // let { manager, component } = vm.fetchValue<ComponentState<Opaque>>(_state);
+  let { manager, component } = vm.fetchValue<ComponentState<Opaque>>(_state);
+  let operations = window['COMPONENT_OPERATIONS'];
 
-  // let action = 'DidCreateElementOpcode#evaluate';
-  // manager.didCreateElement(component, vm.elements().expectConstructing(action), vm.elements().expectOperations(action));
+  let action = 'DidCreateElementOpcode#evaluate';
+  manager.didCreateElement(component, vm.elements().expectConstructing(action), operations);
 });
 
 APPEND_OPCODES.add(Op.GetComponentSelf, (vm, { op1: _state }) => {
