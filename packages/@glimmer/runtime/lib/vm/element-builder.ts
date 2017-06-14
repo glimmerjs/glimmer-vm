@@ -419,11 +419,11 @@ export class NewElementBuilder implements ElementBuilder {
     return node;
   }
 
-  __setAttribute(name: string, value: string, namespace: Option<string>) {
+  __setAttribute(name: string, value: string, namespace: Option<string>): void {
     this.dom.setAttribute(this.constructing!, name, value, namespace);
   }
 
-  setStaticAttribute(name: string, value: string, namespace: Option<string>) {
+  setStaticAttribute(name: string, value: string, namespace: Option<string>): void {
     this.__setAttribute(name, value, namespace);
   }
 

@@ -70,10 +70,21 @@ export interface Comment extends CharacterData {
   nodeType: NodeType.Comment;
 }
 
+export interface Attribute {
+  name: string;
+  value: string;
+}
+
+export interface Attributes {
+  [index: number]: Attribute;
+  length: number;
+}
+
 export interface Element extends Node {
   nodeType: NodeType.Element;
   namespaceURI: Option<string>;
   tagName: string;
+  attributes: Attributes;
   removeAttribute(name: string): void;
   removeAttributeNS(namespaceURI: string, name: string): void;
   setAttribute(name: string, value: string): void;

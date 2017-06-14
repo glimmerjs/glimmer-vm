@@ -2,13 +2,13 @@ import { NewElementBuilder, ElementBuilder, ElementOperations } from "./element-
 
 import { Environment } from '../environment';
 import Bounds, { bounds } from '../bounds';
-import * as Simple from '../dom/interfaces';
-import { Option, Opaque } from "@glimmer/interfaces";
+import { Simple, Option, Opaque } from "@glimmer/interfaces";
 import { DynamicContentWrapper } from './content/dynamic';
 import { expect } from "@glimmer/util";
 
 export class RehydrateBuilder extends NewElementBuilder implements ElementBuilder {
   private candidate: Option<Simple.Node>;
+  private unmatchedAttributes: Option<Simple.Attribute[]> = null;
 
   constructor(env: Environment, parentNode: Simple.Element, nextSibling: Option<Simple.Node>) {
     super(env, parentNode, nextSibling);
@@ -89,7 +89,7 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
     }
   }
 
-  __appendComment(string: string): Simple.Text {
+  __appendComment(string: string): Simple.Comment {
     let { candidate } = this;
 
     if (candidate && isComment(candidate)) {
@@ -108,6 +108,7 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
 
     if (candidate && isElement(candidate) && candidate.tagName === tag.toUpperCase()) {
       this.reportMatch();
+      this.unmatchedAttributes = [].slice.call(candidate.attributes);
       return candidate;
     } else {
       this.reportMismatch(tag);
@@ -116,8 +117,27 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
     }
   }
 
-  __flushElement(parent: Simple.Element, constructing: Simple.Element) {
-    if (!this.candidate) {
+  __setAttribute(name: string, value: string, namespace: Option<string>): void {
+    let unmatched = this.unmatchedAttributes!;
+    let attr = unmatched.find(a => a.name === name);
+
+    if (attr) {
+      attr.value = value;
+      unmatched.splice(unmatched.indexOf(attr), 1);
+    } else {
+      super.__setAttribute(name, value, namespace);
+    }
+  }
+
+  __flushElement(parent: Simple.Element, constructing: Simple.Element): void {
+    let { candidate, unmatchedAttributes: unmatched } = this;
+
+    if (candidate) {
+      for (let i=0; i<unmatched!.length; i++) {
+        this.constructing!.removeAttribute(unmatched![i].name);
+      }
+      this.unmatchedAttributes = null;
+    } else {
       this.reportMismatch(null);
       super.__flushElement(parent, constructing);
     }
