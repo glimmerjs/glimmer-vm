@@ -111,7 +111,7 @@ STATEMENTS.add(Ops.OpenElement, (sexp: S.OpenElement, builder: OpcodeBuilder) =>
 });
 
 CLIENT_SIDE.add(ClientSide.Ops.OpenComponentElement, (sexp: ClientSide.OpenComponentElement, builder: OpcodeBuilder) => {
-  builder.pushComponentOperations();
+  builder.putComponentOperations();
   builder.openElementWithOperations(sexp[2]);
 });
 

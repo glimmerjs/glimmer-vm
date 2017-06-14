@@ -103,7 +103,6 @@ export interface ElementBuilder extends Cursor, DOMStack, TreeOperations {
   dom: DOMTreeConstruction;
   updateOperations: DOMChanges;
   constructing: Option<Simple.Element>;
-  operations: Option<ElementOperations>;
   element: Simple.Element;
   env: Environment;
 
@@ -225,12 +224,7 @@ export class NewElementBuilder implements ElementBuilder {
     return expect(this.blockStack.pop(), "Expected popBlock to return a block");
   }
 
-  openElement(tag: string, _operations?: ElementOperations): Simple.Element {
-    // workaround argument.length transpile of arg initializer
-    if (_operations) {
-      this.operations = _operations;
-    }
-
+  openElement(tag: string): Simple.Element {
     let element = this.__openElement(tag);
 
     this.constructing = element;

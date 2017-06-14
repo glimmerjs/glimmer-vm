@@ -129,10 +129,10 @@ class WrappedBuilder implements InnerLayoutBuilder {
       b.jumpUnless('BODY');
 
       b.fetch(Register.s1);
-      b.pushComponentOperations();
+      b.putComponentOperations();
       b.openDynamicElement();
     } else if (staticTag) {
-      b.pushComponentOperations();
+      b.putComponentOperations();
       b.openElementWithOperations(staticTag);
     }
 

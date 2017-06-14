@@ -9,11 +9,10 @@ import {
 } from "@glimmer/test-helpers";
 import { module, test } from './support';
 import { UpdatableReference } from '@glimmer/object-reference';
-import { Opaque, Option } from '@glimmer/interfaces';
+import { Simple, Opaque, Option } from '@glimmer/interfaces';
 
 import {
   Template,
-  Simple,
   DynamicAttributeFactory,
   IteratorResult,
   RenderResult,

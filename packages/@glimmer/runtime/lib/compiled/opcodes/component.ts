@@ -14,7 +14,7 @@ import {
 import Bounds from '../../bounds';
 import { Component, ComponentDefinition, ComponentManager } from '../../component/interfaces';
 import { DynamicScope } from '../../environment';
-import { APPEND_OPCODES, Op, OpcodeJSON, UpdatingOpcode } from '../../opcodes';
+import { APPEND_OPCODES, Op, OpcodeJSON, UpdatingOpcode, Register } from '../../opcodes';
 import { UpdatingVM, VM } from '../../vm';
 import ARGS, { Arguments, IArguments } from '../../vm/arguments';
 import { Assert } from './vm';
@@ -124,10 +124,8 @@ APPEND_OPCODES.add(Op.BeginComponentTransaction, vm => {
   vm.elements().pushSimpleBlock();
 });
 
-APPEND_OPCODES.add(Op.PushComponentOperations, vm => {
-  window['COMPONENT_OPERATIONS'] = new ComponentElementOperations();
-  vm.stack.push(null);
-  // vm.stack.push(new ComponentElementOperations());
+APPEND_OPCODES.add(Op.PutComponentOperations, vm => {
+  vm.loadValue(Register.t0, new ComponentElementOperations());
 });
 
 APPEND_OPCODES.add(Op.ComponentAttr, (vm, { op1: _name, op2: trusting, op3: _namespace }) => {
@@ -135,7 +133,7 @@ APPEND_OPCODES.add(Op.ComponentAttr, (vm, { op1: _name, op2: trusting, op3: _nam
   let reference = vm.stack.pop<VersionedReference<Opaque>>();
   let namespace = _namespace ? vm.constants.getString(_namespace) : null;
 
-  (window['COMPONENT_OPERATIONS'] as ComponentElementOperations).setAttribute(name, reference, !!trusting, namespace);
+  vm.fetchValue<ComponentElementOperations>(Register.t0).setAttribute(name, reference, !!trusting, namespace);
 });
 
 interface DeferredAttribute {
@@ -144,7 +142,7 @@ interface DeferredAttribute {
   trusting: boolean;
 }
 
-class ComponentElementOperations {
+export class ComponentElementOperations {
   private attributes = dict<DeferredAttribute>();
   private classes: VersionedReference<Opaque>[] = [];
 
@@ -199,7 +197,7 @@ class ClassListReference implements VersionedReference<Option<string>> {
 
 APPEND_OPCODES.add(Op.DidCreateElement, (vm, { op1: _state }) => {
   let { manager, component } = vm.fetchValue<ComponentState<Opaque>>(_state);
-  let operations = window['COMPONENT_OPERATIONS'];
+  let operations = vm.fetchValue<ComponentElementOperations>(Register.t0);
 
   let action = 'DidCreateElementOpcode#evaluate';
   manager.didCreateElement(component, vm.elements().expectConstructing(action), operations);

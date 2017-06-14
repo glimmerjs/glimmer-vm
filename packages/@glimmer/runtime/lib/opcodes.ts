@@ -773,12 +773,12 @@ export const enum Op {
    * Operation: Push a new ElementOperations for the current component.
    *
    * Format:
-   *   (PushComponentOperations)
+   *   (PutComponentOperations)
    * Operand Stack:
    *   ... →
    *   ...
    */
-  PushComponentOperations,
+  PutComponentOperations,
 
   /**
    * Operation: Push the component's `self` onto the stack.
@@ -1031,7 +1031,7 @@ function debug(c: Constants, op: Op, op1: number, op2: number, op3: number): [st
       case Op.PrepareArgs: return ['PrepareArgs', { state: Register[op1] }];
       case Op.CreateComponent: return ['CreateComponent', { flags: op1, state: Register[op2] }];
       case Op.RegisterComponentDestructor: return ['RegisterComponentDestructor', {}];
-      case Op.PushComponentOperations: return ['PushComponentOperations', {}];
+      case Op.PutComponentOperations: return ['PutComponentOperations', {}];
       case Op.GetComponentSelf: return ['GetComponentSelf', { state: Register[op1] }];
       case Op.GetComponentLayout: return ['GetComponentLayout', { state: Register[op1] }];
       case Op.BeginComponentTransaction: return ['BeginComponentTransaction', {}];

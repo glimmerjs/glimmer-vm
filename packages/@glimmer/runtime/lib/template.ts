@@ -1,4 +1,4 @@
-import { Opaque, Option } from '@glimmer/interfaces';
+import { Simple, Opaque, Option } from '@glimmer/interfaces';
 import { PathReference } from '@glimmer/reference';
 import { assign, EMPTY_ARRAY } from '@glimmer/util';
 import {
@@ -10,7 +10,6 @@ import {
 import { ElementBuilder, NewElementBuilder } from './vm/element-builder';
 import { RehydrateBuilder } from './vm/rehydrate-builder';
 import { SerializeBuilder } from './vm/serialize-builder';
-import * as Simple from './dom/interfaces';
 import { DynamicScope, Environment } from './environment';
 import Scanner from './scanner';
 import { Block, Program } from './syntax/interfaces';

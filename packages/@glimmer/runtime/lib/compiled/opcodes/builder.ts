@@ -156,8 +156,8 @@ export abstract class BasicOpcodeBuilder {
     this.push(Op.CommitComponentTransaction);
   }
 
-  pushComponentOperations() {
-    this.push(Op.PushComponentOperations);
+  putComponentOperations() {
+    this.push(Op.PutComponentOperations);
   }
 
   getComponentSelf(state: Register) {

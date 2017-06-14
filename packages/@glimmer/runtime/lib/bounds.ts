@@ -1,4 +1,4 @@
-import * as Simple from './dom/interfaces';
+import { Simple } from '@glimmer/interfaces';
 import { Option, Destroyable } from '@glimmer/util';
 
 export interface Bounds {

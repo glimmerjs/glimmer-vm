@@ -26,17 +26,6 @@ export {
 } from './lib/compiled/blocks';
 
 export {
-  AttributeManager as IAttributeManager,
-  AttributeManager,
-  PropertyManager,
-  INPUT_VALUE_PROPERTY_MANAGER,
-  defaultManagers,
-  defaultAttributeManagers,
-  defaultPropertyManagers,
-  readDOMAttr
-} from './lib/dom/attribute-managers';
-
-export {
   Register,
   debugSlice
 } from './lib/opcodes';
@@ -111,6 +100,7 @@ export {
   ModifierManager
 } from './lib/modifier/interfaces';
 
-export { default as DOMChanges, DOMChanges as IDOMChanges, DOMTreeConstruction, isWhitespace, insertHTMLBefore } from './lib/dom/helper';
+export { default as DOMChanges, SVG_NAMESPACE, DOMChanges as IDOMChanges, DOMTreeConstruction, isWhitespace, insertHTMLBefore } from './lib/dom/helper';
+export { normalizeProperty } from './lib/dom/props';
 export { ElementBuilder, NewElementBuilder, ElementOperations } from './lib/vm/element-builder';
 export { default as Bounds, ConcreteBounds } from './lib/bounds';

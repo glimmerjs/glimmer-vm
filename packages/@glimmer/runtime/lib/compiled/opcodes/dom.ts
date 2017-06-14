@@ -8,15 +8,14 @@ import {
   isConst,
 } from '@glimmer/reference';
 import { Opaque, Option } from '@glimmer/util';
-import { ElementOperations } from '../../vm/element-builder';
 import { Simple } from '@glimmer/interfaces';
-import { FIX_REIFICATION } from '../../dom/interfaces';
 import { ModifierManager } from '../../modifier/interfaces';
-import { APPEND_OPCODES, Op, OpcodeJSON, UpdatingOpcode } from '../../opcodes';
+import { APPEND_OPCODES, Op, OpcodeJSON, UpdatingOpcode, Register } from '../../opcodes';
 import { UpdatingVM } from '../../vm';
 import { Arguments } from '../../vm/arguments';
 import { Assert } from './vm';
 import { DynamicAttribute } from '../../vm/attributes/dynamic';
+import { ComponentElementOperations } from './component';
 
 APPEND_OPCODES.add(Op.Text, (vm, { op1: text }) => {
   vm.elements().appendText(vm.constants.getString(text));
@@ -32,14 +31,12 @@ APPEND_OPCODES.add(Op.OpenElement, (vm, { op1: tag }) => {
 
 APPEND_OPCODES.add(Op.OpenElementWithOperations, (vm, { op1: tag }) => {
   let tagName = vm.constants.getString(tag);
-  let operations = vm.stack.pop<ElementOperations>();
-  vm.elements().openElement(tagName, operations);
+  vm.elements().openElement(tagName);
 });
 
 APPEND_OPCODES.add(Op.OpenDynamicElement, vm => {
-  let operations = vm.stack.pop<ElementOperations>();
   let tagName = vm.stack.pop<Reference<string>>().value();
-  vm.elements().openElement(tagName, operations);
+  vm.elements().openElement(tagName);
 });
 
 APPEND_OPCODES.add(Op.PushRemoteElement, vm => {
@@ -71,9 +68,11 @@ APPEND_OPCODES.add(Op.PushRemoteElement, vm => {
 APPEND_OPCODES.add(Op.PopRemoteElement, vm => vm.elements().popRemoteElement());
 
 APPEND_OPCODES.add(Op.FlushElement, vm => {
-  if (window['COMPONENT_OPERATIONS']) {
-    window['COMPONENT_OPERATIONS'].flush(vm);
-    window['COMPONENT_OPERATIONS'] = null;
+  let operations = vm.fetchValue<ComponentElementOperations>(Register.t0);
+
+  if (operations) {
+    operations.flush(vm);
+    vm.loadValue(Register.t0, null);
   }
 
   vm.elements().flushElement();
@@ -88,7 +87,7 @@ APPEND_OPCODES.add(Op.Modifier, (vm, { op1: _manager }) => {
   let tag = args.tag;
   let { constructing: element, updateOperations } = vm.elements();
   let dynamicScope = vm.dynamicScope();
-  let modifier = manager.create(element as FIX_REIFICATION<Element>, args, dynamicScope, updateOperations);
+  let modifier = manager.create(element as Simple.FIX_REIFICATION<Element>, args, dynamicScope, updateOperations);
 
   args.clear();
 
