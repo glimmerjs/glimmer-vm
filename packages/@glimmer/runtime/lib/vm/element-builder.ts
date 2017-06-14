@@ -95,6 +95,7 @@ export interface TreeOperations {
   __appendTrustingDynamicContent(value: Opaque): DynamicContent;
   __appendCautiousDynamicContent(value: Opaque): DynamicContent;
   __setAttribute(name: string, value: string, namespace: Option<string>): void;
+  __setProperty(name: string, value: Opaque): void;
 }
 
 export interface ElementBuilder extends Cursor, DOMStack, TreeOperations {
@@ -421,6 +422,10 @@ export class NewElementBuilder implements ElementBuilder {
 
   __setAttribute(name: string, value: string, namespace: Option<string>): void {
     this.dom.setAttribute(this.constructing!, name, value, namespace);
+  }
+
+  __setProperty(name: string, value: Opaque): void {
+    this.constructing![name] = value;
   }
 
   setStaticAttribute(name: string, value: string, namespace: Option<string>): void {

@@ -1,4 +1,4 @@
-import { Simple, Option, Opaque, FIXME } from "@glimmer/interfaces";
+import { Simple, Option, Opaque } from "@glimmer/interfaces";
 import Environment from '../../environment';
 import { ElementBuilder } from '../element-builder';
 import { sanitizeAttributeValue, requiresSanitization } from '../../dom/sanitized-values';
@@ -82,8 +82,8 @@ export class SimpleDynamicAttribute extends DynamicAttribute {
 export class DefaultDynamicProperty extends DynamicAttribute {
   set(dom: ElementBuilder, value: Opaque, env: Environment): void {
     if (value !== null && value !== undefined) {
-      let { element, name } = this.attribute;
-      element[name] = value;
+      let { name } = this.attribute;
+      dom.__setProperty(name, value);
     }
   }
 
@@ -126,8 +126,7 @@ export class SafeDynamicProperty extends DefaultDynamicProperty {
 
 export class InputValueDynamicAttribute extends DefaultDynamicProperty {
   set(dom: ElementBuilder, value: Opaque) {
-    let input = this.attribute.element as FIXME<HTMLInputElement, "This breaks SSR">;
-    input.value = normalizeStringValue(value)!;
+    dom.__setProperty('value', normalizeStringValue(value));
   }
 
   update(value: Opaque) {
@@ -143,8 +142,7 @@ export class InputValueDynamicAttribute extends DefaultDynamicProperty {
 export class OptionSelectedDynamicAttribute extends DefaultDynamicProperty {
   set(dom: ElementBuilder, value: Opaque): void {
     if (value !== null && value !== undefined && value !== false) {
-      let option = <HTMLOptionElement>this.attribute.element;
-      option.selected = true;
+      dom.__setProperty('selected', true);
     }
   }
 

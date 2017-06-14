@@ -129,6 +129,17 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
     }
   }
 
+  __setProperty(name: string, value: string): void {
+    let unmatched = this.unmatchedAttributes!;
+    let attr = unmatched.find(a => a.name === name);
+
+    if (attr) {
+      unmatched.splice(unmatched.indexOf(attr), 1);
+    }
+
+    super.__setProperty(name, value);
+  }
+
   __flushElement(parent: Simple.Element, constructing: Simple.Element): void {
     let { candidate, unmatchedAttributes: unmatched } = this;
 
