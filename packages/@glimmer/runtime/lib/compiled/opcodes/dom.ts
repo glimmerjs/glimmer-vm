@@ -2,6 +2,7 @@
 import {
   CachedReference,
   combineTagged,
+  CONSTANT_TAG,
   isConst as isConstReference,
   isModified,
   PathReference,
@@ -343,11 +344,13 @@ APPEND_OPCODES.add(Op.Modifier, (vm, { op1: _manager }) => {
     vm.newDestroyable(destructor);
   }
 
-  vm.updateWith(new UpdateModifierOpcode(
-    tag,
-    manager,
-    modifier,
-  ));
+  if (tag !== CONSTANT_TAG) {
+    vm.updateWith(new UpdateModifierOpcode(
+      tag,
+      manager,
+      modifier,
+    ));
+  }
 });
 
 export class UpdateModifierOpcode extends UpdatingOpcode {
