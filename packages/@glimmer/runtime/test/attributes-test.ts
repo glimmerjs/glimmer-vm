@@ -38,7 +38,7 @@ function readDOMAttr(element: Element, attr: string) {
 function render<T>(template: Template<T>, context = {}) {
   self = new UpdatableReference(context);
   env.begin();
-  let templateIterator = template.render({ self, parentNode: root, dynamicScope: new TestDynamicScope() });
+  let templateIterator = template.render({ env, self, parentNode: root, dynamicScope: new TestDynamicScope() });
   let iteratorResult: IteratorResult<RenderResult>;
   do {
     iteratorResult = templateIterator.next();

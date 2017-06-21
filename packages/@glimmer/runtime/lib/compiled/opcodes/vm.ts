@@ -1,4 +1,5 @@
-import { Opaque, Option, SymbolTable } from '@glimmer/interfaces';
+import { Op } from '@glimmer/vm';
+import { Opaque, Option, BlockSymbolTable } from '@glimmer/interfaces';
 import { ConstReference, Reference, VersionedPathReference } from '@glimmer/reference';
 import {
   CONSTANT_TAG,
@@ -9,19 +10,12 @@ import {
   Tag,
 } from '@glimmer/reference';
 import { initializeGuid } from '@glimmer/util';
-import Environment from '../../environment';
-import { APPEND_OPCODES, Op, OpcodeJSON, UpdatingOpcode } from '../../opcodes';
-import { Block } from '../../syntax/interfaces';
-import { UpdatingVM, VM } from '../../vm';
-import { CompiledDynamicTemplate } from '../blocks';
-
-import {
-  FALSE_REFERENCE,
-  NULL_REFERENCE,
-  PrimitiveReference,
-  TRUE_REFERENCE,
-  UNDEFINED_REFERENCE,
-} from '../../references';
+import Environment, { Handle } from '../../environment';
+import { APPEND_OPCODES, OpcodeJSON, UpdatingOpcode } from '../../opcodes';
+import { Primitive, PrimitiveReference } from '../../references';
+import { CompilableTemplate } from '../../syntax/interfaces';
+import { UpdatingVM } from '../../vm';
+import { Arguments } from '../../vm/arguments';
 
 APPEND_OPCODES.add(Op.ChildScope, vm => vm.pushChildScope());
 
@@ -31,35 +25,36 @@ APPEND_OPCODES.add(Op.PushDynamicScope, vm => vm.pushDynamicScope());
 
 APPEND_OPCODES.add(Op.PopDynamicScope, vm => vm.popDynamicScope());
 
-APPEND_OPCODES.add(Op.Immediate, (vm, { op1: number }) => {
-  vm.stack.push(number);
-});
-
 APPEND_OPCODES.add(Op.Constant, (vm, { op1: other }) => {
   vm.stack.push(vm.constants.getOther(other));
 });
 
-APPEND_OPCODES.add(Op.PrimitiveReference, (vm, { op1: primitive }) => {
+APPEND_OPCODES.add(Op.Primitive, (vm, { op1: primitive }) => {
   let stack = vm.stack;
   let flag = (primitive & (3 << 30)) >>> 30;
   let value = primitive & ~(3 << 30);
 
   switch (flag) {
     case 0:
-      stack.push(PrimitiveReference.create(value));
+      stack.push(value);
       break;
     case 1:
-      stack.push(PrimitiveReference.create(vm.constants.getString(value)));
+      stack.push(vm.constants.getString(value));
       break;
     case 2:
       switch (value) {
-        case 0: stack.push(FALSE_REFERENCE); break;
-        case 1: stack.push(TRUE_REFERENCE); break;
-        case 2: stack.push(NULL_REFERENCE); break;
-        case 3: stack.push(UNDEFINED_REFERENCE); break;
+        case 0: stack.push(false); break;
+        case 1: stack.push(true); break;
+        case 2: stack.push(null); break;
+        case 3: stack.push(undefined); break;
       }
       break;
   }
+});
+
+APPEND_OPCODES.add(Op.PrimitiveReference, vm => {
+  let stack = vm.stack;
+  stack.push(PrimitiveReference.create(stack.pop<Primitive>()));
 });
 
 APPEND_OPCODES.add(Op.Dup, (vm, { op1: register, op2: offset }) => {
@@ -86,26 +81,46 @@ APPEND_OPCODES.add(Op.Enter, (vm, { op1: args }) => vm.enter(args));
 
 APPEND_OPCODES.add(Op.Exit, (vm) => vm.exit());
 
-APPEND_OPCODES.add(Op.CompileDynamicBlock, vm => {
+APPEND_OPCODES.add(Op.CompileBlock, vm => {
   let stack = vm.stack;
-  let block = stack.pop<Block>();
-  stack.push(block ? block.compileDynamic(vm.env) : null);
+  let block = stack.pop<Option<CompilableTemplate> | 0>();
+  stack.push(block ? block.compileStatic().handle : null);
 });
 
-APPEND_OPCODES.add(Op.InvokeStatic, (vm, { op1: _block }) => {
-  let block = vm.constants.getBlock(_block);
-  let compiled = block.compileStatic(vm.env);
-  vm.call(compiled.handle);
-});
+APPEND_OPCODES.add(Op.InvokeStatic, vm => vm.call(vm.stack.pop<Handle>()));
 
-export interface DynamicInvoker<S extends SymbolTable> {
-  invoke(vm: VM, block: Option<CompiledDynamicTemplate<S>>): void;
-}
+APPEND_OPCODES.add(Op.InvokeYield, vm => {
+  let { stack } = vm;
 
-APPEND_OPCODES.add(Op.InvokeDynamic, (vm, { op1: _invoker }) => {
-  let invoker = vm.constants.getOther<DynamicInvoker<SymbolTable>>(_invoker);
-  let block = vm.stack.pop<Option<CompiledDynamicTemplate<SymbolTable>>>();
-  invoker.invoke(vm, block);
+  let handle = stack.pop<Option<Handle>>();
+  let table = stack.pop<Option<BlockSymbolTable>>();
+  let args = stack.pop<Arguments>();
+
+  if (!table) {
+    args.clear();
+
+    // To balance the pop{Frame,Scope}
+    vm.pushFrame();
+    vm.pushCallerScope();
+
+    return;
+  }
+
+  let locals = table.parameters;
+  let localsCount = locals.length;
+
+  vm.pushCallerScope(localsCount > 0);
+
+  let scope = vm.scope();
+
+  for (let i=0; i<localsCount; i++) {
+    scope.bindSymbol(locals![i], args.at(i));
+  }
+
+  args.clear();
+
+  vm.pushFrame();
+  vm.call(handle!);
 });
 
 APPEND_OPCODES.add(Op.Jump, (vm, { op1: target }) => vm.goto(target));

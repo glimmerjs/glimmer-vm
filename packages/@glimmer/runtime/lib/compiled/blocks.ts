@@ -44,7 +44,7 @@ export class CompiledStaticTemplate implements OpSlice {
   }
 }
 
-export class CompiledDynamicTemplate<S extends SymbolTable> implements OpSlice {
+export class CompiledDynamicTemplate<S extends SymbolTable = SymbolTable> implements OpSlice {
   constructor(public handle: Handle, public symbolTable: S) {
   }
 }

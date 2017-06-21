@@ -1,7 +1,8 @@
 import { Opaque } from '@glimmer/interfaces';
 import { VersionedPathReference } from '@glimmer/reference';
+import { Op } from '@glimmer/vm';
 import { Helper } from '../../environment';
-import { APPEND_OPCODES, Op } from '../../opcodes';
+import { APPEND_OPCODES } from '../../opcodes';
 import { FALSE_REFERENCE, TRUE_REFERENCE } from '../../references';
 import { PublicVM } from '../../vm';
 import { Arguments } from '../../vm/arguments';
@@ -9,9 +10,9 @@ import { ConcatReference } from '../expressions/concat';
 
 export type FunctionExpression<T> = (vm: PublicVM) => VersionedPathReference<T>;
 
-APPEND_OPCODES.add(Op.Helper, (vm, { op1: _helper }) => {
+APPEND_OPCODES.add(Op.Helper, (vm, { op1: specifier }) => {
   let stack = vm.stack;
-  let helper = vm.constants.getFunction<Helper>(_helper);
+  let helper = vm.constants.resolveSpecifier<Helper>(specifier);
   let args = stack.pop<Arguments>();
   let value = helper(vm, args);
 
@@ -57,13 +58,17 @@ APPEND_OPCODES.add(Op.GetProperty, (vm, { op1: _key }) => {
   vm.stack.push(expr.get(key));
 });
 
-APPEND_OPCODES.add(Op.PushBlock, (vm, { op1: _block }) => {
-  let block = _block ? vm.constants.getBlock(_block) : null;
-  vm.stack.push(block);
-});
-
 APPEND_OPCODES.add(Op.GetBlock, (vm, { op1: _block }) => {
-  vm.stack.push(vm.scope().getBlock(_block));
+  let { stack } = vm;
+  let block = vm.scope().getBlock(_block);
+
+  if (block) {
+    stack.push(block[1]);
+    stack.push(block[0]);
+  } else {
+    stack.push(null);
+    stack.push(null);
+  }
 });
 
 APPEND_OPCODES.add(Op.HasBlock, (vm, { op1: _block }) => {
@@ -73,7 +78,7 @@ APPEND_OPCODES.add(Op.HasBlock, (vm, { op1: _block }) => {
 
 APPEND_OPCODES.add(Op.HasBlockParams, (vm, { op1: _block }) => {
   let block = vm.scope().getBlock(_block);
-  let hasBlockParams = block && block.symbolTable.parameters.length;
+  let hasBlockParams = block && block[1].parameters.length;
   vm.stack.push(hasBlockParams ? TRUE_REFERENCE : FALSE_REFERENCE);
 });
 

@@ -1,31 +1,46 @@
 import {
   Option,
   SymbolTable,
+  Resolver
 } from '@glimmer/interfaces';
 import { Statement } from '@glimmer/wire-format';
 import { CompiledDynamicTemplate, CompiledStaticTemplate } from '../compiled/blocks';
-import Environment from '../environment';
+import { Program } from '../environment';
 import { debugSlice } from '../opcodes';
 import { compileStatements } from './functions';
 import { DEBUG } from '@glimmer/local-debug-flags';
 import { CompilableTemplate as ICompilableTemplate } from './interfaces';
+import { Macros } from '../syntax/macros';
+
+export interface CompilationOptions {
+  resolver: Resolver;
+  program: Program;
+  macros: Macros;
+}
+
+export interface InputCompilationOptions {
+  resolver: Resolver<any>;
+  program: Program;
+  macros: Macros;
+}
 
 export default class CompilableTemplate<S extends SymbolTable> implements ICompilableTemplate<S> {
   private compiledStatic: Option<CompiledStaticTemplate> = null;
   private compiledDynamic: Option<CompiledDynamicTemplate<S>> = null;
 
-  constructor(public statements: Statement[], public symbolTable: S) {}
+  constructor(public statements: Statement[], public symbolTable: S, private options: CompilationOptions) {}
 
-  compileStatic(env: Environment): CompiledStaticTemplate {
-    let { compiledStatic } = this;
+  compileStatic(): CompiledStaticTemplate {
+    let { compiledStatic, options } = this;
+
     if (!compiledStatic) {
-      let builder = compileStatements(this.statements, this.symbolTable.meta, env);
-      builder.finalize();
-      let handle = builder.start;
+      let builder = compileStatements(this.statements, this.symbolTable.meta, options);
+      let handle = builder.finalize();
       if (DEBUG) {
-        let start = env.program.heap.size() - env.program.heap.sizeof(handle);
-        let end = start + env.program.heap.sizeof(handle);
-        debugSlice(env, start, end);
+        let { program, program: { heap } } = options;
+        let start = heap.getaddr(handle);
+        let end = start + heap.sizeof(handle);
+        debugSlice(program, start, end);
       }
       compiledStatic = this.compiledStatic = new CompiledStaticTemplate(handle);
     }
@@ -33,10 +48,10 @@ export default class CompilableTemplate<S extends SymbolTable> implements ICompi
     return compiledStatic;
   }
 
-  compileDynamic(env: Environment): CompiledDynamicTemplate<S> {
+  compileDynamic(): CompiledDynamicTemplate<S> {
     let { compiledDynamic } = this;
     if (!compiledDynamic) {
-      let staticBlock = this.compileStatic(env);
+      let staticBlock = this.compileStatic();
       compiledDynamic = new CompiledDynamicTemplate(staticBlock.handle, this.symbolTable);
     }
 

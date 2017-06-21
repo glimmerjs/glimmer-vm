@@ -1,29 +1,27 @@
-import { Opaque, CompilationMeta } from '@glimmer/interfaces';
-import Environment from './environment';
+import { Register } from '@glimmer/vm';
+import { CompilationMeta, Specifier } from '@glimmer/interfaces';
 import { CompiledDynamicProgram, CompiledDynamicTemplate } from './compiled/blocks';
 import { Maybe, Option } from '@glimmer/util';
 import { Ops, TemplateMeta } from '@glimmer/wire-format';
 import { Template } from './template';
-import { Register, debugSlice } from './opcodes';
+import { debugSlice } from './opcodes';
 import { ATTRS_BLOCK, compileStatement } from './syntax/functions';
 import * as ClientSide from './syntax/client-side';
+import { CompilationOptions, InputCompilationOptions } from './syntax/compilable-template';
 
 import {
   ComponentArgs,
-  ComponentBuilder as IComponentBuilder,
-  DynamicComponentDefinition
+  ComponentBuilder as IComponentBuilder
 } from './opcode-builder';
 
 import { expr } from './syntax/functions';
 
-import OpcodeBuilderDSL from './compiled/opcodes/builder';
+import OpcodeBuilderDSL, { LazyOpcodeBuilder } from './compiled/opcodes/builder';
 
 import * as Component from './component/interfaces';
 
 import * as WireFormat from '@glimmer/wire-format';
 
-import { PublicVM } from './vm/append';
-import { IArguments } from './vm/arguments';
 import { FunctionExpression } from "./compiled/opcodes/expressions";
 import { DEBUG } from "@glimmer/local-debug-flags";
 
@@ -31,8 +29,8 @@ export interface CompilableLayout {
   compile(builder: Component.ComponentLayoutBuilder): void;
 }
 
-export function compileLayout(compilable: CompilableLayout, env: Environment): CompiledDynamicProgram {
-  let builder = new ComponentLayoutBuilder(env);
+export function compileLayout(compilable: CompilableLayout, options: InputCompilationOptions): CompiledDynamicProgram {
+  let builder = new ComponentLayoutBuilder(options);
 
   compilable.compile(builder);
 
@@ -48,14 +46,14 @@ interface InnerLayoutBuilder {
 class ComponentLayoutBuilder implements Component.ComponentLayoutBuilder {
   private inner: InnerLayoutBuilder;
 
-  constructor(public env: Environment) {}
+  constructor(public options: CompilationOptions) {}
 
   wrapLayout(layout: Template<TemplateMeta>) {
-    this.inner = new WrappedBuilder(this.env, layout);
+    this.inner = new WrappedBuilder(this.options, layout);
   }
 
   fromLayout(componentName: string, layout: Template<TemplateMeta>) {
-    this.inner = new UnwrappedBuilder(this.env, componentName, layout);
+    this.inner = new UnwrappedBuilder(this.options, componentName, layout);
   }
 
   compile(): CompiledDynamicProgram {
@@ -75,7 +73,7 @@ class WrappedBuilder implements InnerLayoutBuilder {
   public tag = new ComponentTagBuilder();
   public attrs = new ComponentAttrsBuilder();
 
-  constructor(public env: Environment, private layout: Template<TemplateMeta>) {}
+  constructor(public options: CompilationOptions, private layout: Template<TemplateMeta>) {}
 
   compile(): CompiledDynamicProgram {
     //========DYNAMIC
@@ -106,13 +104,13 @@ class WrappedBuilder implements InnerLayoutBuilder {
     //        DidRenderLayout
     //        Exit
 
-    let { env, layout } = this;
+    let { options, layout } = this;
     let meta = { templateMeta: layout.meta, symbols: layout.symbols, asPartial: false };
 
     let dynamicTag = this.tag.getDynamic();
     let staticTag = this.tag.getStatic();
 
-    let b = builder(env, meta);
+    let b = builder(options, meta);
 
     b.startLabels();
 
@@ -153,7 +151,7 @@ class WrappedBuilder implements InnerLayoutBuilder {
     }
 
     b.label('BODY');
-    b.invokeStatic(layout.asBlock());
+    b.invokeStaticBlock(layout.asBlock());
 
     if (dynamicTag) {
       b.fetch(Register.s1);
@@ -174,14 +172,16 @@ class WrappedBuilder implements InnerLayoutBuilder {
 
     b.stopLabels();
 
-    let start = b.start;
-    let end = b.finalize();
+    let handle = b.finalize();
 
     if (DEBUG) {
-      debugSlice(env, env.program.heap.getaddr(start), env.program.heap.getaddr(end));
+      let { program, program: { heap } } = options;
+      let start = heap.getaddr(handle);
+      let end = start + heap.sizeof(handle);
+      debugSlice(program, start, end);
     }
 
-    return new CompiledDynamicTemplate(start, {
+    return new CompiledDynamicTemplate(handle, {
       meta,
       hasEval: layout.hasEval,
       symbols: layout.symbols.concat([ATTRS_BLOCK])
@@ -192,15 +192,15 @@ class WrappedBuilder implements InnerLayoutBuilder {
 class UnwrappedBuilder implements InnerLayoutBuilder {
   public attrs = new ComponentAttrsBuilder();
 
-  constructor(public env: Environment, private componentName: string, private layout: Template<TemplateMeta>) {}
+  constructor(public env: CompilationOptions, private componentName: string, private layout: Template<TemplateMeta>) {}
 
   get tag(): Component.ComponentTagBuilder {
     throw new Error('BUG: Cannot call `tag` on an UnwrappedBuilder');
   }
 
   compile(): CompiledDynamicProgram {
-    let { env, layout } = this;
-    return layout.asLayout(this.componentName, this.attrs.buffer).compileDynamic(env);
+    let { layout } = this;
+    return layout.asLayout(this.componentName, this.attrs.buffer).compileDynamic();
   }
 }
 
@@ -246,64 +246,21 @@ class ComponentAttrsBuilder implements Component.ComponentAttrsBuilder {
 }
 
 export class ComponentBuilder implements IComponentBuilder {
-  private env: Environment;
+  private env: CompilationOptions;
 
   constructor(private builder: OpcodeBuilderDSL) {
-    this.env = builder.env;
+    this.env = builder.options;
   }
 
-  static(definition: Component.ComponentDefinition<Opaque>, args: ComponentArgs) {
+  static(definition: Specifier, args: ComponentArgs) {
     let [params, hash, _default, inverse] = args;
     let { builder } = this;
 
     builder.pushComponentManager(definition);
-    builder.invokeComponent(null, params, hash, _default, inverse);
-  }
-
-  dynamic(definitionArgs: ComponentArgs, getDefinition: DynamicComponentDefinition, args: ComponentArgs) {
-    let [params, hash, block, inverse] = args;
-    let { builder } = this;
-
-    if (!definitionArgs || definitionArgs.length === 0) {
-      throw new Error("Dynamic syntax without an argument");
-    }
-
-    let meta = this.builder.meta.templateMeta;
-
-    function helper(vm: PublicVM, a: IArguments) {
-      return getDefinition(vm, a, meta);
-    }
-
-    builder.startLabels();
-
-    builder.pushFrame();
-
-    builder.returnTo('END');
-
-    builder.compileArgs(definitionArgs[0], definitionArgs[1], true);
-    builder.helper(helper);
-
-    builder.dup();
-    builder.test('simple');
-
-    builder.enter(2);
-
-    builder.jumpUnless('ELSE');
-
-    builder.pushDynamicComponentManager();
-    builder.invokeComponent(null, params, hash, block, inverse);
-
-    builder.label('ELSE');
-    builder.exit();
-    builder.return();
-
-    builder.label('END');
-    builder.popFrame();
-
-    builder.stopLabels();
+    builder.invokeComponent(null, params, hash, false, _default, inverse);
   }
 }
 
-export function builder(env: Environment, meta: CompilationMeta) {
-  return new OpcodeBuilderDSL(env, meta);
+export function builder(env: CompilationOptions, meta: CompilationMeta) {
+  return new LazyOpcodeBuilder(env, meta);
 }

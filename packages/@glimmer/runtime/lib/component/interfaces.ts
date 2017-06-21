@@ -1,4 +1,5 @@
-import { Simple, Dict, Opaque, Option } from '@glimmer/interfaces';
+import { CompilationOptions } from '../syntax/compilable-template';
+import { Simple, Dict, Opaque, Option, Unique } from '@glimmer/interfaces';
 import { Tag, VersionedPathReference } from '@glimmer/reference';
 import { Destroyable } from '@glimmer/util';
 import { TemplateMeta } from '@glimmer/wire-format';
@@ -9,7 +10,7 @@ import Environment, { DynamicScope } from '../environment';
 import { Template } from '../template';
 import { IArguments } from '../vm/arguments';
 
-export type Component = Opaque;
+export type Component = Unique<'Component'>;
 export type ComponentClass = any;
 
 export interface PreparedArguments {
@@ -17,7 +18,7 @@ export interface PreparedArguments {
   named: Dict<VersionedPathReference<Opaque>>;
 }
 
-export interface ComponentManager<T extends Component> {
+export interface ComponentManager<T = Component> {
   // First, the component manager is asked to prepare the arguments needed
   // for `create`. This allows for things like closure components where the
   // args need to be curried before constructing the instance of the state
@@ -82,7 +83,7 @@ export interface ComponentManager<T extends Component> {
 }
 
 export interface ComponentLayoutBuilder {
-  env: Environment;
+  options: CompilationOptions;
   tag: ComponentTagBuilder;
   attrs: ComponentAttrsBuilder;
 
@@ -102,19 +103,17 @@ export interface ComponentAttrsBuilder {
 
 const COMPONENT_DEFINITION_BRAND = 'COMPONENT DEFINITION [id=e59c754e-61eb-4392-8c4a-2c0ac72bfcd4]';
 
-export function isComponentDefinition(obj: Opaque): obj is ComponentDefinition<Opaque> {
+export function isComponentDefinition(obj: Opaque): obj is ComponentDefinition {
   return typeof obj === 'object' && obj !== null && obj[COMPONENT_DEFINITION_BRAND];
 }
 
-export abstract class ComponentDefinition<T> {
+export abstract class ComponentDefinition<T = Component> {
   public name: string; // for debugging
   public manager: ComponentManager<T>;
-  public ComponentClass: ComponentClass;
 
-  constructor(name: string, manager: ComponentManager<T>, ComponentClass: ComponentClass) {
+  constructor(name: string, manager: ComponentManager<T>) {
     this[COMPONENT_DEFINITION_BRAND] = true;
     this.name = name;
     this.manager = manager;
-    this.ComponentClass = ComponentClass;
   }
 }

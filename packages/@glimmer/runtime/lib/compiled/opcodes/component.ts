@@ -1,10 +1,7 @@
-import { normalizeStringValue } from '../../dom/normalize';
-import { UpdateDynamicAttributeOpcode } from './dom';
-import { Opaque, Option } from '@glimmer/interfaces';
+import { Opaque, Option, Dict, BlockSymbolTable, Resolver } from '@glimmer/interfaces';
 import {
   combineTagged,
   CONSTANT_TAG,
-  ReferenceCache,
   Tag,
   VersionedReference,
   VersionedPathReference,
@@ -12,56 +9,194 @@ import {
   isConstTag
 } from '@glimmer/reference';
 import Bounds from '../../bounds';
-import { Component, ComponentDefinition, ComponentManager } from '../../component/interfaces';
-import { DynamicScope } from '../../environment';
-import { APPEND_OPCODES, Op, OpcodeJSON, UpdatingOpcode, Register } from '../../opcodes';
+import { Component, ComponentDefinition, ComponentManager, isComponentDefinition } from '../../component/interfaces';
+import { normalizeStringValue } from '../../dom/normalize';
+import { DynamicScope, Handle, ScopeBlock, ScopeSlot } from '../../environment';
+import { APPEND_OPCODES, OpcodeJSON, UpdatingOpcode } from '../../opcodes';
+import { UNDEFINED_REFERENCE } from '../../references';
+import { ATTRS_BLOCK } from '../../syntax/functions';
 import { UpdatingVM, VM } from '../../vm';
-import ARGS, { Arguments, IArguments } from '../../vm/arguments';
-import { Assert } from './vm';
-import { dict } from "@glimmer/util";
+import { Arguments, IArguments, ICapturedArguments } from '../../vm/arguments';
+import { UpdateDynamicAttributeOpcode } from './dom';
+import { dict, assert } from "@glimmer/util";
+import { Op, Register } from '@glimmer/vm';
+import { TemplateMeta } from "@glimmer/wire-format";
 
-APPEND_OPCODES.add(Op.PushComponentManager, (vm, { op1: _definition }) => {
-  let definition = vm.constants.getOther<ComponentDefinition<Opaque>>(_definition);
-  let stack = vm.stack;
+const ARGS = new Arguments();
 
-  stack.push({ definition, manager: definition.manager, component: null });
-});
+function resolveComponent(resolver: Resolver, name: string, meta: TemplateMeta): ComponentDefinition {
+  let specifier = resolver.lookupComponent(name, meta);
+  assert(specifier, `Could not find a component named "${name}"`);
+  return resolver.resolve<ComponentDefinition>(specifier!);
+}
 
-APPEND_OPCODES.add(Op.PushDynamicComponentManager, vm => {
-  let stack = vm.stack;
-  let reference = stack.pop<VersionedPathReference<ComponentDefinition<Opaque>>>();
-  let cache = isConst(reference) ? undefined : new ReferenceCache<ComponentDefinition<Opaque>>(reference);
-  let definition = cache ? cache.peek() : reference.value();
+class CurryComponentReference implements VersionedPathReference<Option<ComponentDefinition>> {
+  public tag: Tag;
+  private lastValue: Opaque;
+  private lastDefinition: Option<ComponentDefinition>;
 
-  stack.push({ definition, manager: definition.manager, component: null });
-
-  if (cache) {
-    vm.updateWith(new Assert(cache));
+  constructor(
+    private inner: VersionedReference<Opaque>,
+    private resolver: Resolver,
+    private meta: TemplateMeta,
+    private args: Option<ICapturedArguments>
+  ) {
+    this.tag = inner.tag;
+    this.lastValue = null;
+    this.lastDefinition = null;
   }
+
+  value(): Option<ComponentDefinition> {
+    let { inner, lastValue } = this;
+
+    let value = inner.value();
+
+    if (value === lastValue) {
+      return this.lastDefinition;
+    }
+
+    let definition: Option<ComponentDefinition> = null;
+
+    if (isComponentDefinition(value)) {
+      definition = value;
+    } else if(typeof value === 'string' && value) {
+      let { resolver, meta } = this;
+      definition = resolveComponent(resolver, value, meta);
+    }
+
+    definition = this.curry(definition);
+
+    this.lastValue = value;
+    this.lastDefinition = definition;
+
+    return definition;
+  }
+
+  get(): VersionedPathReference<Opaque> {
+    return UNDEFINED_REFERENCE;
+  }
+
+  private curry(definition: Option<ComponentDefinition>): Option<ComponentDefinition> {
+    let { args } = this;
+
+    if (!definition || !args) {
+      return definition;
+    }
+
+    return new CurriedComponentDefinition(definition, args);
+  }
+}
+
+const CURRIED_COMPONENT_DEFINITION_BRAND = 'CURRIED COMPONENT DEFINITION [id=6f00feb9-a0ef-4547-99ea-ac328f80acea]';
+
+function isCurriedComponentDefinition(definition: ComponentDefinition): definition is CurriedComponentDefinition {
+  return definition[CURRIED_COMPONENT_DEFINITION_BRAND];
+}
+
+class CurriedComponentDefinition extends ComponentDefinition {
+  constructor(protected inner: ComponentDefinition, protected args: ICapturedArguments) {
+    super(CURRIED_COMPONENT_DEFINITION_BRAND, null as any);
+    this[CURRIED_COMPONENT_DEFINITION_BRAND] = true;
+  }
+
+  unwrap(args: Arguments): ComponentDefinition {
+    args.realloc(this.offset);
+
+    let definition: ComponentDefinition = this;
+
+    while (isCurriedComponentDefinition(definition)) {
+      let { args: { positional, named }, inner } = definition;
+
+      args.positional.prepend(positional);
+      args.named.merge(named);
+
+      definition = inner;
+    }
+
+    return definition;
+  }
+
+  protected get offset(): number {
+    let { inner, args: { positional: { length } } } = this;
+    return isCurriedComponentDefinition(inner) ? length + inner.offset : length;
+  }
+}
+
+APPEND_OPCODES.add(Op.CurryComponent, (vm, { op1: _meta }) => {
+  let stack = vm.stack;
+
+  let args = stack.pop<Arguments>();
+  let captured: Option<ICapturedArguments> = null;
+
+  if (args.length) {
+    captured = args.capture();
+    args.clear();
+  }
+
+  let meta = vm.constants.getSerializable<TemplateMeta>(_meta);
+  let resolver = vm.constants.resolver;
+  let definition = stack.pop<VersionedReference<Opaque>>();
+
+  stack.push(new CurryComponentReference(definition, resolver, meta, captured));
 });
 
-interface InitialComponentState<T> {
-  definition: ComponentDefinition<T>;
-  manager: ComponentManager<T>;
+APPEND_OPCODES.add(Op.PushComponentManager, (vm, { op1: specifier }) => {
+  let definition = vm.constants.resolveSpecifier<ComponentDefinition>(specifier);
+  let stack = vm.stack;
+
+  stack.push({ definition, manager: definition.manager, component: null });
+});
+
+APPEND_OPCODES.add(Op.PushDynamicComponentManager, (vm, { op1: _meta }) => {
+  let stack = vm.stack;
+
+  let value = stack.pop<VersionedPathReference<Opaque>>().value();
+  let definition: ComponentDefinition;
+
+  if (isComponentDefinition(value)) {
+    definition = value;
+  } else {
+    assert(typeof value === 'string', `Could not find a component named "${String(value)}"`);
+
+    let { constants, constants: { resolver } } = vm;
+    let meta = constants.getSerializable<TemplateMeta>(_meta);
+    definition = resolveComponent(resolver, value as string, meta);
+  }
+
+  stack.push({ definition, manager: definition.manager, component: null });
+});
+
+interface InitialComponentState {
+  definition: ComponentDefinition;
+  manager: ComponentManager;
   component: null;
 }
 
-export interface ComponentState<T> {
-  definition: ComponentDefinition<T>;
-  manager: ComponentManager<T>;
-  component: T;
+export interface ComponentState {
+  definition: ComponentDefinition;
+  manager: ComponentManager;
+  component: Component;
 }
 
-APPEND_OPCODES.add(Op.PushArgs, (vm, { op1: synthetic }) => {
+APPEND_OPCODES.add(Op.PushArgs, (vm, { op1: _names, op2: positionalCount, op3: synthetic }) => {
   let stack = vm.stack;
-  ARGS.setup(stack, !!synthetic);
+  let names = vm.constants.getStringArray(_names);
+  ARGS.setup(stack, names, positionalCount, !!synthetic);
   stack.push(ARGS);
 });
 
 APPEND_OPCODES.add(Op.PrepareArgs, (vm, { op1: _state }) => {
   let stack = vm.stack;
-  let { definition, manager } = vm.fetchValue<InitialComponentState<Opaque>>(_state);
+  let state = vm.fetchValue<InitialComponentState>(_state);
+
   let args = stack.pop<Arguments>();
+
+  let { definition, manager } = state;
+
+  if (isCurriedComponentDefinition(definition)) {
+    state.definition = definition = definition.unwrap(args);
+    state.manager = manager = definition.manager;
+  }
 
   let preparedArgs = manager.prepareArgs(definition, args);
 
@@ -76,38 +211,32 @@ APPEND_OPCODES.add(Op.PrepareArgs, (vm, { op1: _state }) => {
       stack.push(positional[i]);
     }
 
-    stack.push(positionalCount);
-
     let names = Object.keys(named);
-    let namedCount = names.length;
-    let atNames = [];
 
-    for (let i = 0; i < namedCount; i++) {
-      let value = named[names[i]];
-      let atName = `@${names[i]}`;
-
-      stack.push(value);
-      atNames.push(atName);
+    for (let i = 0; i < names.length; i++) {
+      stack.push(named[names[i]]);
     }
 
-    stack.push(atNames);
-    args.setup(stack, false);
+    args.setup(stack, names, positionalCount, true);
   }
 
   stack.push(args);
 });
 
 APPEND_OPCODES.add(Op.CreateComponent, (vm, { op1: flags, op2: _state }) => {
-  let definition: ComponentDefinition<Opaque>;
-  let manager: ComponentManager<Opaque>;
-  let args = vm.stack.pop<IArguments>();
+  let definition: ComponentDefinition;
+  let manager: ComponentManager;
+  let args = vm.stack.peek<IArguments>();
   let dynamicScope = vm.dynamicScope();
-  let state = { definition, manager } = vm.fetchValue<InitialComponentState<Opaque>>(_state);
+  let state = { definition, manager } = vm.fetchValue<InitialComponentState>(_state);
 
   let hasDefaultBlock = flags & 1;
 
   let component = manager.create(vm.env, definition, args, dynamicScope, vm.getSelf(), !!hasDefaultBlock);
-  (state as ComponentState<typeof component>).component = component;
+
+  // We want to reuse the `state` POJO here, because we know that the opcodes
+  // only transition at exactly one place.
+  (state as any as ComponentState).component = component;
 
   let tag = manager.getTag(component);
 
@@ -117,7 +246,7 @@ APPEND_OPCODES.add(Op.CreateComponent, (vm, { op1: flags, op2: _state }) => {
 });
 
 APPEND_OPCODES.add(Op.RegisterComponentDestructor, (vm, { op1: _state }) => {
-  let { manager, component } = vm.fetchValue<ComponentState<Opaque>>(_state);
+  let { manager, component } = vm.fetchValue<ComponentState>(_state);
 
   let destructor = manager.getDestructor(component);
   if (destructor) vm.newDestroyable(destructor);
@@ -200,7 +329,7 @@ class ClassListReference implements VersionedReference<Option<string>> {
 }
 
 APPEND_OPCODES.add(Op.DidCreateElement, (vm, { op1: _state }) => {
-  let { manager, component } = vm.fetchValue<ComponentState<Opaque>>(_state);
+  let { manager, component } = vm.fetchValue<ComponentState>(_state);
   let operations = vm.fetchValue<ComponentElementOperations>(Register.t0);
 
   let action = 'DidCreateElementOpcode#evaluate';
@@ -208,17 +337,70 @@ APPEND_OPCODES.add(Op.DidCreateElement, (vm, { op1: _state }) => {
 });
 
 APPEND_OPCODES.add(Op.GetComponentSelf, (vm, { op1: _state }) => {
-  let state = vm.fetchValue<ComponentState<Opaque>>(_state);
-  vm.stack.push(state.manager.getSelf(state.component));
+  let { manager, component } = vm.fetchValue<ComponentState>(_state);
+  vm.stack.push(manager.getSelf(component));
 });
 
-APPEND_OPCODES.add(Op.GetComponentLayout, (vm, { op1: _state }) => {
-  let { manager, definition, component } = vm.fetchValue<ComponentState<Opaque>>(_state);
-  vm.stack.push(manager.layoutFor(definition, component, vm.env));
+APPEND_OPCODES.add(Op.InvokeComponentLayout, (vm, { op1: _state }) => {
+  let { stack } = vm;
+  let { manager, definition, component } = vm.fetchValue<ComponentState>(_state);
+  let block = manager.layoutFor(definition, component, vm.env);
+  let { symbolTable: { symbols, hasEval }, handle } = block;
+
+  {
+    let scope = vm.pushRootScope(symbols.length + 1, true);
+    scope.bindSelf(stack.pop<VersionedPathReference<Opaque>>());
+
+    let args = vm.stack.pop<Arguments>();
+
+    let lookup: Option<Dict<ScopeSlot>> = null;
+    let $eval: Option<number> = -1;
+
+    if (hasEval) {
+      $eval = symbols.indexOf('$eval') + 1;
+      lookup = dict<ScopeSlot>();
+    }
+
+    let callerNames = args.named.atNames;
+
+    for (let i=callerNames.length - 1; i>=0; i--) {
+      let atName = callerNames[i];
+      let symbol = symbols.indexOf(callerNames[i]);
+      let value = args.named.get(atName, false);
+
+      if (symbol !== -1) scope.bindSymbol(symbol + 1, value);
+      if (hasEval) lookup![atName] = value;
+    }
+
+    args.clear();
+
+    let bindBlock = (name: string) => {
+      let symbol = symbols.indexOf(name);
+      let handle = stack.pop<Option<Handle>>();
+      let table = stack.pop<Option<BlockSymbolTable>>();
+
+      let block: Option<ScopeBlock> = table ? [handle!, table] : null;
+
+      if (symbol !== -1) {
+        scope.bindBlock(symbol + 1, block);
+      }
+
+      if (lookup) lookup[name] = block;
+    };
+
+    bindBlock(ATTRS_BLOCK);
+    bindBlock('&inverse');
+    bindBlock('&default');
+
+    if (lookup) scope.bindEvalScope(lookup);
+
+    vm.pushFrame();
+    vm.call(handle!);
+  }
 });
 
 APPEND_OPCODES.add(Op.DidRenderLayout, (vm, { op1: _state }) => {
-  let { manager, component } = vm.fetchValue<ComponentState<Opaque>>(_state);
+  let { manager, component } = vm.fetchValue<ComponentState>(_state);
   let bounds = vm.elements().popBlock();
 
   manager.didRenderLayout(component, bounds);
