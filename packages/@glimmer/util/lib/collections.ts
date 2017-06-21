@@ -8,7 +8,6 @@ export interface Dict<T> {
 export interface Set<T> {
   add(value: T): Set<T>;
   delete(value: T): void;
-  forEach(callback: (item: T) => void): void;
 }
 
 let proto = Object.create(null, {
@@ -50,18 +49,6 @@ export class DictSet<T extends SetMember> implements Set<T> {
   delete(obj: T) {
     if (typeof obj === 'string') delete this.dict[<any>obj];
     else if ((obj as any)._guid) delete this.dict[(obj as any)._guid];
-  }
-
-  forEach(callback: (item: T) => void) {
-    let { dict } = this;
-    let dictKeys = Object.keys(dict);
-    for (let i = 0; dictKeys.length; i++) {
-      callback(dict[dictKeys[i]]);
-    }
-  }
-
-  toArray(): string[] {
-    return Object.keys(this.dict);
   }
 }
 

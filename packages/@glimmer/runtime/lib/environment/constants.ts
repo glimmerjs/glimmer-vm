@@ -1,4 +1,3 @@
-import { VersionedPathReference } from "@glimmer/reference";
 import { Opaque } from "@glimmer/interfaces";
 import { Block } from "../syntax/interfaces";
 
@@ -15,23 +14,11 @@ export type ConstantOther = number;
 export class Constants {
   // `0` means NULL
 
-  private references: VersionedPathReference<Opaque>[] = [];
   private strings: string[] = [];
-  private expressions: Opaque[] = [];
   private arrays: number[][] = [];
   private blocks: Block[] = [];
   private functions: Function[] = [];
   private others: Opaque[] = [];
-
-  getReference<T extends Opaque>(value: ConstantReference): VersionedPathReference<T> {
-    return this.references[value - 1] as VersionedPathReference<T>;
-  }
-
-  reference(value: VersionedPathReference<Opaque>): ConstantReference {
-    let index = this.references.length;
-    this.references.push(value);
-    return index + 1;
-  }
 
   getString(value: ConstantString): string {
     return this.strings[value - 1];
@@ -43,24 +30,8 @@ export class Constants {
     return index + 1;
   }
 
-  getExpression<T>(value: ConstantExpression): T {
-    return this.expressions[value - 1] as T;
-  }
-
   getArray(value: ConstantArray): number[] {
     return this.arrays[value - 1];
-  }
-
-  getNames(value: ConstantArray): string[] {
-    let _names: string[] = [];
-    let names = this.getArray(value);
-
-    for (let i = 0; i < names.length; i++) {
-      let n = names[i];
-      _names[i] = this.getString(n);
-    }
-
-    return _names;
   }
 
   array(values: number[]): ConstantArray {
