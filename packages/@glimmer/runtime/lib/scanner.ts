@@ -1,13 +1,13 @@
+import { CompilationOptions } from './syntax/compilable-template';
 import { CompilationMeta } from '@glimmer/interfaces';
 import { EMPTY_ARRAY, assert, unreachable } from '@glimmer/util';
 import * as WireFormat from '@glimmer/wire-format';
-import Environment from './environment';
 import * as ClientSide from './syntax/client-side';
 import CompilableTemplate from './syntax/compilable-template';
 import { ATTRS_BLOCK } from './syntax/functions';
 import {
   Block,
-  Program,
+  TopLevelBlock,
 } from './syntax/interfaces';
 import Ops = WireFormat.Ops;
 import { TemplateMeta } from "@glimmer/wire-format";
@@ -15,10 +15,10 @@ import { TemplateMeta } from "@glimmer/wire-format";
 export type DeserializedStatement = WireFormat.Statement | WireFormat.Statements.Attribute | WireFormat.Statements.Argument;
 
 export default class Scanner {
-  constructor(private block: WireFormat.SerializedTemplateBlock, private env: Environment) {
+  constructor(private block: WireFormat.SerializedTemplateBlock, private env: CompilationOptions) {
   }
 
-  scanEntryPoint(meta: CompilationMeta): Program {
+  scanEntryPoint(meta: CompilationMeta): TopLevelBlock {
     let { block } = this;
     let { statements, symbols, hasEval } = block;
     return new CompilableTemplate(statements, { meta, symbols, hasEval });
@@ -30,7 +30,7 @@ export default class Scanner {
     return new CompilableTemplate(statements, { meta, parameters: EMPTY_ARRAY });
   }
 
-  scanLayout(meta: CompilationMeta, attrs: WireFormat.Statements.Attribute[], componentName?: string): Program {
+  scanLayout(meta: CompilationMeta, attrs: WireFormat.Statements.Attribute[], componentName?: string): TopLevelBlock {
     let { block } = this;
     let { symbols, hasEval } = block;
 
@@ -52,7 +52,7 @@ class LayoutScanner {
   private statements: WireFormat.Statement[];
   private meta: TemplateMeta;
 
-  constructor(block: WireFormat.SerializedTemplateBlock, private env: Environment, meta: CompilationMeta, private attrs: WireFormat.Statements.Attribute[], private componentName?: string) {
+  constructor(block: WireFormat.SerializedTemplateBlock, private env: CompilationOptions, meta: CompilationMeta, private attrs: WireFormat.Statements.Attribute[], private componentName?: string) {
     let { statements, symbols } = block;
     this.statements = statements;
     this.symbols = symbols;
@@ -107,13 +107,13 @@ class LayoutScanner {
   private processTopLevelComponent(statement: WireFormat.Statements.Component, buffer: WireFormat.Statement[]) {
     let [, tagName, attrs, , block] = statement;
 
-    if (this.env.hasComponentDefinition(tagName, this.meta) && tagName !== this.componentName) {
+    if (this.env.resolver.lookupComponent(tagName, this.meta) && tagName !== this.componentName) {
       buffer.push(statement);
       this.state = LayoutState.AfterFlush;
       return;
     }
 
-    assert(!this.env.hasComponentDefinition(tagName, this.meta) || tagName === this.componentName, `Cannot use a component (<${tagName}>) as the top-level element in the layout of <${this.componentName}>`);
+    assert(!this.env.resolver.lookupComponent(tagName, this.meta) || tagName === this.componentName, `Cannot use a component (<${tagName}>) as the top-level element in the layout of <${this.componentName}>`);
 
     this.state = LayoutState.InTopLevel;
 

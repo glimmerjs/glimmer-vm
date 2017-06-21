@@ -1,24 +1,18 @@
+import { Register } from '@glimmer/vm';
 import { BlockSymbolTable, CompilationMeta, Opaque, Option, ProgramSymbolTable } from '@glimmer/interfaces';
-import {
-  map,
-  VersionedPathReference,
-} from '@glimmer/reference';
-import {
-  assert,
-  Dict,
-  dict,
-  EMPTY_ARRAY,
-  unwrap,
-} from '@glimmer/util';
+import { map, VersionedPathReference } from '@glimmer/reference';
+import { assert, Dict, dict, EMPTY_ARRAY, unwrap } from '@glimmer/util';
 import * as WireFormat from '@glimmer/wire-format';
+import { ModifierManager } from '../..';
 import { CompiledDynamicBlock, CompiledDynamicProgram } from '../compiled/blocks';
 import OpcodeBuilder from '../compiled/opcodes/builder';
 import { DynamicInvoker } from '../compiled/opcodes/vm';
-import Environment, { ScopeSlot, Handle } from '../environment';
-import { Register } from '../opcodes';
+import { ComponentDefinition } from '../component/interfaces';
+import { Handle, Helper, ScopeSlot } from '../environment';
 import * as ClientSide from '../syntax/client-side';
 import { PublicVM, VM } from '../vm';
 import { IArguments } from '../vm/arguments';
+import { CompilationOptions } from './compilable-template';
 import { Block } from './interfaces';
 import RawInlineBlock from './raw-block';
 import Ops = WireFormat.Ops;
@@ -70,12 +64,14 @@ STATEMENTS.add(Ops.FlushElement, (_sexp: S.FlushElement, builder: OpcodeBuilder)
 });
 
 STATEMENTS.add(Ops.Modifier, (sexp: S.Modifier, builder: OpcodeBuilder) => {
-  let { env, meta } = builder;
+  let { options, meta } = builder;
   let [, name, params, hash] = sexp;
 
-  if (env.hasModifier(name, meta.templateMeta)) {
+  let specifier = options.resolver.lookupModifier(name, meta.templateMeta);
+
+  if (specifier) {
     builder.compileArgs(params, hash, true);
-    builder.modifier(env.lookupModifier(name, meta.templateMeta));
+    builder.modifier(options.resolver.resolve<ModifierManager>(specifier));
   } else {
     throw new Error(`Compile Error ${name} is not a modifier: Helpers may not be used in the element form.`);
   }
@@ -135,7 +131,7 @@ CLIENT_SIDE.add(ClientSide.Ops.DidRenderLayout, (_sexp: ClientSide.DidRenderLayo
 STATEMENTS.add(Ops.Append, (sexp: S.Append, builder: OpcodeBuilder) => {
   let [, value, trusting] = sexp;
 
-  let { inlines } = builder.env.macros();
+  let { inlines } = builder.options.macros;
   let returned = inlines.compile(sexp, builder) || value;
 
   if (returned === true) return;
@@ -163,7 +159,7 @@ STATEMENTS.add(Ops.Block, (sexp: S.Block, builder: OpcodeBuilder) => {
   let templateBlock = template && template.scan();
   let inverseBlock = inverse && inverse.scan();
 
-  let { blocks } = builder.env.macros();
+  let { blocks } = builder.options.macros;
   blocks.compile(name, params, hash, templateBlock, inverseBlock, builder);
 });
 
@@ -235,7 +231,10 @@ export class InvokeDynamicLayout implements DynamicInvoker<ProgramSymbolTable> {
 STATEMENTS.add(Ops.Component, (sexp: S.Component, builder: OpcodeBuilder) => {
   let [, tag, _attrs, args, block] = sexp;
 
-  if (builder.env.hasComponentDefinition(tag, builder.meta.templateMeta)) {
+  let resolver = builder.options.resolver;
+  let specifier = resolver.lookupComponent(tag, builder.meta.templateMeta);
+
+  if (specifier) {
     let child = builder.template(block);
     let attrs: WireFormat.Statement[] = [
       [Ops.ClientSideStatement, ClientSide.Ops.SetComponentAttrs, true],
@@ -243,7 +242,7 @@ STATEMENTS.add(Ops.Component, (sexp: S.Component, builder: OpcodeBuilder) => {
       [Ops.ClientSideStatement, ClientSide.Ops.SetComponentAttrs, false]
     ];
     let attrsBlock = new RawInlineBlock(builder.meta, attrs, EMPTY_ARRAY);
-    let definition = builder.env.getComponentDefinition(tag, builder.meta.templateMeta);
+    let definition = resolver.resolve<ComponentDefinition>(specifier); // builder.env.lookupComponentDefinition(tag, builder.meta.templateMeta);
     builder.pushComponentManager(definition);
     builder.invokeComponent(attrsBlock, null, args, child && child.scan());
   } else if (block && block.parameters.length) {
@@ -309,19 +308,20 @@ export class PartialInvoker implements DynamicInvoker<ProgramSymbolTable> {
 STATEMENTS.add(Ops.Partial, (sexp: S.Partial, builder: OpcodeBuilder) => {
   let [, name, evalInfo] = sexp;
 
-  let { templateMeta, symbols } = builder.meta;
+  let { meta: { templateMeta, symbols }, options: { resolver } } = builder;
 
   function helper(vm: PublicVM, args: IArguments) {
-    let { env } = vm;
     let nameRef = args.positional.at(0);
 
     return map(nameRef, (n) => {
       if (typeof n === 'string' && n) {
-        if (!env.hasPartial(n, templateMeta)) {
+        let specifier = resolver.lookupPartial(n, templateMeta);
+
+        if (!specifier) {
           throw new Error(`Could not find a partial named "${n}"`);
         }
 
-        return env.lookupPartial(n, templateMeta);
+        return resolver.resolve(specifier);
       } else if (n) {
         throw new Error(`Could not find a partial named "${String(n)}"`);
       } else {
@@ -444,11 +444,15 @@ export function expr(expression: WireFormat.Expression, builder: OpcodeBuilder):
 }
 
 EXPRESSIONS.add(Ops.Unknown, (sexp: E.Unknown, builder: OpcodeBuilder) => {
+  let { options: { resolver }, meta } = builder;
   let name = sexp[1];
 
-  if (builder.env.hasHelper(name, builder.meta.templateMeta)) {
-    EXPRESSIONS.compile([Ops.Helper, name, EMPTY_ARRAY, null], builder);
-  } else if (builder.meta.asPartial) {
+  let specifier = resolver.lookupHelper(name, meta.templateMeta);
+
+  if (specifier) {
+    builder.compileArgs(null, null, true);
+    builder.helper(resolver.resolve<Helper>(specifier));
+  } else if (meta.asPartial) {
     builder.resolveMaybeLocal(name);
   } else {
     builder.getVariable(0);
@@ -469,12 +473,14 @@ CLIENT_SIDE_EXPRS.add(ClientSide.Ops.FunctionExpression, (sexp: ClientSide.Funct
 });
 
 EXPRESSIONS.add(Ops.Helper, (sexp: E.Helper, builder: OpcodeBuilder) => {
-  let { env, meta } = builder;
+  let { options: { resolver }, meta } = builder;
   let [, name, params, hash] = sexp;
 
-  if (env.hasHelper(name, meta.templateMeta)) {
+  let specifier = resolver.lookupHelper(name, meta.templateMeta);
+
+  if (specifier) {
     builder.compileArgs(params, hash, true);
-    builder.helper(env.lookupHelper(name, meta.templateMeta));
+    builder.helper(resolver.resolve<Helper>(specifier));
   } else {
     throw new Error(`Compile Error: ${name} is not a helper`);
   }
@@ -944,7 +950,7 @@ export function compileStatement(statement: WireFormat.Statement, builder: Opcod
   STATEMENTS.compile(statement, builder);
 }
 
-export function compileStatements(statements: WireFormat.Statement[], meta: CompilationMeta, env: Environment): {
+export function compileStatements(statements: WireFormat.Statement[], meta: CompilationMeta, env: CompilationOptions): {
   start: Handle;
   finalize(): Handle;
 } {

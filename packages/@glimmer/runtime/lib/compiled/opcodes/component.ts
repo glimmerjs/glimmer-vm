@@ -14,14 +14,15 @@ import {
 import Bounds from '../../bounds';
 import { Component, ComponentDefinition, ComponentManager } from '../../component/interfaces';
 import { DynamicScope } from '../../environment';
-import { APPEND_OPCODES, Op, OpcodeJSON, UpdatingOpcode, Register } from '../../opcodes';
+import { APPEND_OPCODES, OpcodeJSON, UpdatingOpcode } from '../../opcodes';
 import { UpdatingVM, VM } from '../../vm';
 import ARGS, { Arguments, IArguments } from '../../vm/arguments';
 import { Assert } from './vm';
 import { dict } from "@glimmer/util";
+import { Op, Register } from '@glimmer/vm';
 
 APPEND_OPCODES.add(Op.PushComponentManager, (vm, { op1: _definition }) => {
-  let definition = vm.constants.getOther<ComponentDefinition<Opaque>>(_definition);
+  let definition = vm.constants.getOther<ComponentDefinition>(_definition);
   let stack = vm.stack;
 
   stack.push({ definition, manager: definition.manager, component: null });
@@ -29,8 +30,8 @@ APPEND_OPCODES.add(Op.PushComponentManager, (vm, { op1: _definition }) => {
 
 APPEND_OPCODES.add(Op.PushDynamicComponentManager, vm => {
   let stack = vm.stack;
-  let reference = stack.pop<VersionedPathReference<ComponentDefinition<Opaque>>>();
-  let cache = isConst(reference) ? undefined : new ReferenceCache<ComponentDefinition<Opaque>>(reference);
+  let reference = stack.pop<VersionedPathReference<ComponentDefinition>>();
+  let cache = isConst(reference) ? undefined : new ReferenceCache<ComponentDefinition>(reference);
   let definition = cache ? cache.peek() : reference.value();
 
   stack.push({ definition, manager: definition.manager, component: null });
@@ -40,16 +41,16 @@ APPEND_OPCODES.add(Op.PushDynamicComponentManager, vm => {
   }
 });
 
-interface InitialComponentState<T> {
-  definition: ComponentDefinition<T>;
-  manager: ComponentManager<T>;
+interface InitialComponentState {
+  definition: ComponentDefinition;
+  manager: ComponentManager;
   component: null;
 }
 
-export interface ComponentState<T> {
-  definition: ComponentDefinition<T>;
-  manager: ComponentManager<T>;
-  component: T;
+export interface ComponentState {
+  definition: ComponentDefinition;
+  manager: ComponentManager;
+  component: Component;
 }
 
 APPEND_OPCODES.add(Op.PushArgs, (vm, { op1: synthetic }) => {
@@ -60,7 +61,7 @@ APPEND_OPCODES.add(Op.PushArgs, (vm, { op1: synthetic }) => {
 
 APPEND_OPCODES.add(Op.PrepareArgs, (vm, { op1: _state }) => {
   let stack = vm.stack;
-  let { definition, manager } = vm.fetchValue<InitialComponentState<Opaque>>(_state);
+  let { definition, manager } = vm.fetchValue<InitialComponentState>(_state);
   let args = stack.pop<Arguments>();
 
   let preparedArgs = manager.prepareArgs(definition, args);
@@ -98,16 +99,19 @@ APPEND_OPCODES.add(Op.PrepareArgs, (vm, { op1: _state }) => {
 });
 
 APPEND_OPCODES.add(Op.CreateComponent, (vm, { op1: flags, op2: _state }) => {
-  let definition: ComponentDefinition<Opaque>;
-  let manager: ComponentManager<Opaque>;
+  let definition: ComponentDefinition;
+  let manager: ComponentManager;
   let args = vm.stack.pop<IArguments>();
   let dynamicScope = vm.dynamicScope();
-  let state = { definition, manager } = vm.fetchValue<InitialComponentState<Opaque>>(_state);
+  let state = { definition, manager } = vm.fetchValue<InitialComponentState>(_state);
 
   let hasDefaultBlock = flags & 1;
 
   let component = manager.create(vm.env, definition, args, dynamicScope, vm.getSelf(), !!hasDefaultBlock);
-  (state as ComponentState<typeof component>).component = component;
+
+  // We want to reuse the `state` POJO here, because we know that the opcodes
+  // only transition at exactly one place.
+  (state as any as ComponentState).component = component;
 
   let tag = manager.getTag(component);
 
@@ -117,7 +121,7 @@ APPEND_OPCODES.add(Op.CreateComponent, (vm, { op1: flags, op2: _state }) => {
 });
 
 APPEND_OPCODES.add(Op.RegisterComponentDestructor, (vm, { op1: _state }) => {
-  let { manager, component } = vm.fetchValue<ComponentState<Opaque>>(_state);
+  let { manager, component } = vm.fetchValue<ComponentState>(_state);
 
   let destructor = manager.getDestructor(component);
   if (destructor) vm.newDestroyable(destructor);
@@ -200,7 +204,7 @@ class ClassListReference implements VersionedReference<Option<string>> {
 }
 
 APPEND_OPCODES.add(Op.DidCreateElement, (vm, { op1: _state }) => {
-  let { manager, component } = vm.fetchValue<ComponentState<Opaque>>(_state);
+  let { manager, component } = vm.fetchValue<ComponentState>(_state);
   let operations = vm.fetchValue<ComponentElementOperations>(Register.t0);
 
   let action = 'DidCreateElementOpcode#evaluate';
@@ -208,17 +212,17 @@ APPEND_OPCODES.add(Op.DidCreateElement, (vm, { op1: _state }) => {
 });
 
 APPEND_OPCODES.add(Op.GetComponentSelf, (vm, { op1: _state }) => {
-  let state = vm.fetchValue<ComponentState<Opaque>>(_state);
+  let state = vm.fetchValue<ComponentState>(_state);
   vm.stack.push(state.manager.getSelf(state.component));
 });
 
 APPEND_OPCODES.add(Op.GetComponentLayout, (vm, { op1: _state }) => {
-  let { manager, definition, component } = vm.fetchValue<ComponentState<Opaque>>(_state);
+  let { manager, definition, component } = vm.fetchValue<ComponentState>(_state);
   vm.stack.push(manager.layoutFor(definition, component, vm.env));
 });
 
 APPEND_OPCODES.add(Op.DidRenderLayout, (vm, { op1: _state }) => {
-  let { manager, component } = vm.fetchValue<ComponentState<Opaque>>(_state);
+  let { manager, component } = vm.fetchValue<ComponentState>(_state);
   let bounds = vm.elements().popBlock();
 
   manager.didRenderLayout(component, bounds);

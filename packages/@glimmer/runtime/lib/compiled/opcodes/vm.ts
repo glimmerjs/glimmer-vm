@@ -1,3 +1,5 @@
+import { CompilationOptions } from '../../syntax/compilable-template';
+import { Op } from '@glimmer/vm';
 import { Opaque, Option, SymbolTable } from '@glimmer/interfaces';
 import { ConstReference, Reference, VersionedPathReference } from '@glimmer/reference';
 import {
@@ -10,10 +12,10 @@ import {
 } from '@glimmer/reference';
 import { initializeGuid } from '@glimmer/util';
 import Environment from '../../environment';
-import { APPEND_OPCODES, Op, OpcodeJSON, UpdatingOpcode } from '../../opcodes';
+import { APPEND_OPCODES, OpcodeJSON, UpdatingOpcode } from '../../opcodes';
 import { Block } from '../../syntax/interfaces';
 import { UpdatingVM, VM } from '../../vm';
-import { CompiledDynamicTemplate } from '../blocks';
+import { CompiledDynamicTemplate, CompiledStaticTemplate } from '../blocks';
 
 import {
   FALSE_REFERENCE,
@@ -86,16 +88,22 @@ APPEND_OPCODES.add(Op.Enter, (vm, { op1: args }) => vm.enter(args));
 
 APPEND_OPCODES.add(Op.Exit, (vm) => vm.exit());
 
-APPEND_OPCODES.add(Op.CompileDynamicBlock, vm => {
+APPEND_OPCODES.add(Op.CompileDynamicBlock, (vm, { op1: _options }) => {
   let stack = vm.stack;
   let block = stack.pop<Block>();
-  stack.push(block ? block.compileDynamic(vm.env) : null);
+  let options = vm.constants.getOther<CompilationOptions>(_options);
+  stack.push(block ? block.compileDynamic(options) : null);
 });
 
-APPEND_OPCODES.add(Op.InvokeStatic, (vm, { op1: _block }) => {
+APPEND_OPCODES.add(Op.CompileStaticBlock, (vm, { op1: _block, op2: _options }) => {
   let block = vm.constants.getBlock(_block);
-  let compiled = block.compileStatic(vm.env);
-  vm.call(compiled.handle);
+  let options = vm.constants.getOther<CompilationOptions>(_options);
+  vm.stack.push(block.compileStatic(options));
+});
+
+APPEND_OPCODES.add(Op.InvokeStatic, (vm) => {
+  let block = vm.stack.pop<CompiledStaticTemplate>();
+  vm.call(block.handle);
 });
 
 export interface DynamicInvoker<S extends SymbolTable> {

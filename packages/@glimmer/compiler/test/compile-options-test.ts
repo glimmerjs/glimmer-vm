@@ -1,5 +1,5 @@
 import { TemplateMeta } from '@glimmer/wire-format';
-import { TestEnvironment, compile } from "@glimmer/test-helpers";
+import { TestEnvironment } from "@glimmer/test-helpers";
 import { precompile } from "@glimmer/compiler";
 
 let env: TestEnvironment;
@@ -14,12 +14,7 @@ QUnit.module('Compile options', {
 
 QUnit.test('moduleName option is passed into meta', assert => {
   let moduleName = 'It ain\'t hard to tell';
-  let template = compile('Hi, {{name}}!', {
-    env,
-    meta: {
-      moduleName
-    }
-  });
+  let template = env.compile('Hi, {{name}}!', { moduleName });
   assert.equal(template.meta.moduleName, moduleName, 'Template has the moduleName');
 });
 

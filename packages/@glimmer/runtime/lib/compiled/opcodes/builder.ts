@@ -1,10 +1,9 @@
-
 import { CompilationMeta, Opaque, Option, SymbolTable } from '@glimmer/interfaces';
 import { dict, EMPTY_ARRAY, expect, fillNulls, Stack, typePos } from '@glimmer/util';
 import * as WireFormat from '@glimmer/wire-format';
 import { ComponentBuilder } from '../../compiler';
 import { ComponentDefinition } from '../../component/interfaces';
-import Environment, { Program, Heap, Handle } from '../../environment';
+import { Program, Heap, Handle } from '../../environment';
 import {
   ConstantArray,
   ConstantBlock,
@@ -15,12 +14,13 @@ import {
 } from '../../environment/constants';
 import { ModifierManager } from '../../modifier/interfaces';
 import { ComponentBuilder as IComponentBuilder } from '../../opcode-builder';
-import { Op, Register } from '../../opcodes';
+import { Op, Register } from '@glimmer/vm';
 import { FunctionExpressionCallback } from '../../syntax/client-side';
 import { expr, InvokeDynamicLayout } from '../../syntax/functions';
 import { Block } from '../../syntax/interfaces';
 import RawInlineBlock from '../../syntax/raw-block';
 import { IsComponentDefinitionReference } from '../opcodes/content';
+import { CompilationOptions } from '../../syntax/compilable-template';
 import * as vm from './vm';
 
 export interface CompilesInto<E> {
@@ -63,7 +63,7 @@ export abstract class BasicOpcodeBuilder {
   private labelsStack = new Stack<Labels>();
   private isComponentAttrs = false;
 
-  constructor(public env: Environment, public meta: CompilationMeta, public program: Program) {
+  constructor(public options: CompilationOptions, public meta: CompilationMeta, public program: Program) {
     this.constants = program.constants;
     this.heap = program.heap;
     this.start = this.heap.malloc();
@@ -127,7 +127,7 @@ export abstract class BasicOpcodeBuilder {
 
   // components
 
-  pushComponentManager(definition: ComponentDefinition<Opaque>) {
+  pushComponentManager(definition: ComponentDefinition) {
     this.push(Op.PushComponentManager, this.other(definition));
   }
 
@@ -434,7 +434,8 @@ export abstract class BasicOpcodeBuilder {
   }
 
   compileDynamicBlock(): void {
-    this.push(Op.CompileDynamicBlock);
+    let options = this.constants.other(this.options);
+    this.push(Op.CompileDynamicBlock, options);
   }
 
   invokeDynamic(invoker: vm.DynamicInvoker<SymbolTable>): void {
@@ -458,7 +459,9 @@ export abstract class BasicOpcodeBuilder {
     }
 
     let _block = this.constants.block(block);
-    this.push(Op.InvokeStatic, _block);
+    let _options = this.constants.other(this.options);
+    this.push(Op.CompileStaticBlock, _block, _options);
+    this.push(Op.InvokeStatic);
 
     if (count) {
       this.popScope();
@@ -540,7 +543,7 @@ function isCompilableExpression<E>(expr: Represents<E>): expr is CompilesInto<E>
 export default class OpcodeBuilder extends BasicOpcodeBuilder {
   public component: IComponentBuilder;
 
-  constructor(env: Environment, meta: CompilationMeta, program: Program = env.program) {
+  constructor(env: CompilationOptions, meta: CompilationMeta, program: Program = env.program) {
     super(env, meta, program);
     this.component = new ComponentBuilder(this);
   }

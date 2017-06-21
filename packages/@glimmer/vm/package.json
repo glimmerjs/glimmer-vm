@@ -1,0 +1,19 @@
+{
+  "name": "@glimmer/vm",
+  "version": "0.25.1",
+  "description": "The core Glimmer VM",
+  "repository": "https://github.com/glimmerjs/glimmer-vm/tree/master/packages/@glimmer/vm",
+  "license": "MIT",
+  "dependencies": {
+    "@glimmer/util": "^0.25.1",
+    "@glimmer/reference": "^0.25.1",
+    "@glimmer/object": "^0.25.1",
+    "@glimmer/object-reference": "^0.25.1",
+    "@glimmer/wire-format": "^0.25.1",
+    "@glimmer/interfaces": "^0.25.1"
+  },
+  "devDependencies": {
+    "@types/qunit": "^2.0.31",
+    "typescript": "^2.2.0"
+  }
+}

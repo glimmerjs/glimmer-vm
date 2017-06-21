@@ -18,16 +18,13 @@ import {
   TestModifierManager,
 } from "@glimmer/test-helpers";
 import { assign } from "@glimmer/util";
-import {
-  RenderResult,
-  Template,
-} from "../index";
+import { RenderResult, Template } from '../index';
 import { assert, module as nestedModule } from './support';
 
 export class EmberishRootView extends EmberObject {
   public element: Element;
 
-  protected template: Template<undefined>;
+  protected template: Template;
   protected result: RenderResult;
 
   private parent: Element;
@@ -44,7 +41,7 @@ export class EmberishRootView extends EmberObject {
   appendTo(selector: string) {
     let element = this.parent = document.querySelector(selector)!;
     let self = new UpdatableReference(this);
-    let templateIterator = this.template.render({ self, parentNode: element, dynamicScope: new TestDynamicScope() });
+    let templateIterator = this.template.render({ env: this.env, self, parentNode: element, dynamicScope: new TestDynamicScope() });
 
     let result;
     do {
@@ -3030,7 +3027,7 @@ QUnit.test('it does not work on optimized appends', () => {
 
   env.registerEmberishCurlyComponent('foo-bar', FooBar, 'foo bar');
 
-  let definition = env.getComponentDefinition(['foo-bar'] as any);
+  let definition = env.resolveComponentDefinition('foo-bar', {});
 
   appendViewFor('{{foo}}', { foo: definition });
 
@@ -3054,7 +3051,7 @@ QUnit.test('it works on unoptimized appends (dot paths)', () => {
 
   env.registerEmberishCurlyComponent('foo-bar', FooBar, 'foo bar');
 
-  let definition = env.getComponentDefinition(['foo-bar'] as any);
+  let definition = env.resolveComponentDefinition('foo-bar', {});
 
   appendViewFor('{{foo.bar}}', { foo: { bar: definition } });
 
@@ -3086,7 +3083,7 @@ QUnit.test('it works on unoptimized appends (this paths)', () => {
 
   env.registerEmberishCurlyComponent('foo-bar', FooBar, 'foo bar');
 
-  let definition = env.getComponentDefinition(['foo-bar'] as any);
+  let definition = env.resolveComponentDefinition('foo-bar', {});
 
   appendViewFor('{{this.foo}}', { foo: definition });
 
@@ -3118,7 +3115,7 @@ QUnit.test('it works on unoptimized appends when initially not a component (dot 
 
   env.registerEmberishCurlyComponent('foo-bar', FooBar, 'foo bar');
 
-  let definition = env.getComponentDefinition(['foo-bar'] as any);
+  let definition = env.resolveComponentDefinition('foo-bar', {});
 
   appendViewFor('{{foo.bar}}', { foo: { bar: 'lol' } });
 
@@ -3146,7 +3143,7 @@ QUnit.test('it works on unoptimized appends when initially not a component (this
 
   env.registerEmberishCurlyComponent('foo-bar', FooBar, 'foo bar');
 
-  let definition = env.getComponentDefinition(['foo-bar'] as any);
+  let definition = env.resolveComponentDefinition('foo-bar', {});
 
   appendViewFor('{{this.foo}}', { foo: 'lol' });
 

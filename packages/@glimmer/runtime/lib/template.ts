@@ -1,3 +1,4 @@
+import { CompilationOptions, InputCompilationOptions } from './syntax/compilable-template';
 import { Simple, Opaque, Option } from '@glimmer/interfaces';
 import { PathReference } from '@glimmer/reference';
 import { assign, EMPTY_ARRAY } from '@glimmer/util';
@@ -12,10 +13,11 @@ import { RehydrateBuilder } from './vm/rehydrate-builder';
 import { SerializeBuilder } from './vm/serialize-builder';
 import { DynamicScope, Environment } from './environment';
 import Scanner from './scanner';
-import { Block, Program } from './syntax/interfaces';
+import { Block, TopLevelBlock } from './syntax/interfaces';
 import { IteratorResult, RenderResult, VM } from './vm';
 
 export interface RenderOptions {
+  env: Environment;
   self: PathReference<Opaque>;
   parentNode: Simple.Element;
   nextSibling?: Option<Simple.Node>;
@@ -26,7 +28,7 @@ export interface RenderOptions {
 /**
  * Environment specific template.
  */
-export interface Template<T> {
+export interface Template<T extends TemplateMeta = TemplateMeta> {
   /**
    * Template identifier, if precompiled will be the id of the
    * precompiled template.
@@ -51,9 +53,9 @@ export interface Template<T> {
   render(options: RenderOptions): TemplateIterator;
 
   // internal casts, these are lazily created and cached
-  asEntryPoint(): Program;
-  asLayout(componentName: string, attrs?: Statements.Attribute[]): Program;
-  asPartial(): Program;
+  asEntryPoint(): TopLevelBlock;
+  asLayout(componentName: string, attrs?: Statements.Attribute[]): TopLevelBlock;
+  asPartial(): TopLevelBlock;
   asBlock(): Block;
 }
 
@@ -75,7 +77,7 @@ export interface TemplateFactory<T, U> {
    *
    * @param {Environment} env glimmer Environment
    */
-  create(env: Environment): Template<T>;
+  create(env: InputCompilationOptions): Template<T>;
   /**
    * Used to create an environment specific singleton instance
    * of the template.
@@ -83,7 +85,7 @@ export interface TemplateFactory<T, U> {
    * @param {Environment} env glimmer Environment
    * @param {Object} meta environment specific injections into meta
    */
-  create(env: Environment, meta: U): Template<T & U>;
+  create(env: InputCompilationOptions, meta: U): Template<T & U>;
 }
 
 export class TemplateIterator {
@@ -105,7 +107,7 @@ export default function templateFactory<T extends TemplateMeta, U>(serializedTem
 export default function templateFactory({ id: templateId, meta, block }: SerializedTemplateWithLazyBlock<any>): TemplateFactory<{}, {}> {
   let parsedBlock: SerializedTemplateBlock;
   let id = templateId || `client-${clientId++}`;
-  let create = (env: Environment, envMeta?: {}) => {
+  let create = (env: CompilationOptions, envMeta?: {}) => {
     let newMeta = envMeta ? assign({}, envMeta, meta) : meta;
     if (!parsedBlock) {
       parsedBlock = JSON.parse(block);
@@ -116,23 +118,21 @@ export default function templateFactory({ id: templateId, meta, block }: Seriali
 }
 
 class ScannableTemplate implements Template<TemplateMeta> {
-  private entryPoint: Option<Program> = null;
-  private layout: Option<Program> = null;
-  private partial: Option<Program> = null;
+  private entryPoint: Option<TopLevelBlock> = null;
+  private layout: Option<TopLevelBlock> = null;
+  private partial: Option<TopLevelBlock> = null;
   private block: Option<Block> = null;
   private scanner: Scanner;
   public symbols: string[];
   public hasEval: boolean;
 
-  constructor(public id: string, public meta: TemplateMeta, private env: Environment, rawBlock: SerializedTemplateBlock) {
-    this.scanner = new Scanner(rawBlock, env);
+  constructor(public id: string, public meta: TemplateMeta, private options: CompilationOptions, rawBlock: SerializedTemplateBlock) {
+    this.scanner = new Scanner(rawBlock, options);
     this.symbols = rawBlock.symbols;
     this.hasEval = rawBlock.hasEval;
   }
 
-  render({ self, parentNode, dynamicScope, mode }: RenderOptions) {
-    let { env } = this;
-
+  render({ env, self, parentNode, dynamicScope, mode }: RenderOptions) {
     let elementBuilder: ElementBuilder;
 
     switch (mode) {
@@ -142,22 +142,22 @@ class ScannableTemplate implements Template<TemplateMeta> {
       default: throw new Error('unreachable');
     }
 
-    let compiled = this.asEntryPoint().compileDynamic(env);
-    let vm = VM.initial(env, self, dynamicScope, elementBuilder, compiled);
+    let compiled = this.asEntryPoint().compileDynamic(this.options);
+    let vm = VM.initial(this.options.program, env, self, dynamicScope, elementBuilder, compiled);
     return new TemplateIterator(vm);
   }
 
-  asEntryPoint(): Program {
+  asEntryPoint(): TopLevelBlock {
     if (!this.entryPoint) this.entryPoint = this.scanner.scanEntryPoint(this.compilationMeta());
     return this.entryPoint;
   }
 
-  asLayout(componentName: string, attrs?: Statements.Attribute[]): Program {
+  asLayout(componentName: string, attrs?: Statements.Attribute[]): TopLevelBlock {
     if (!this.layout) this.layout = this.scanner.scanLayout(this.compilationMeta(), attrs || EMPTY_ARRAY, componentName);
     return this.layout;
   }
 
-  asPartial(): Program {
+  asPartial(): TopLevelBlock {
     if (!this.partial) this.partial = this.scanner.scanEntryPoint(this.compilationMeta(true));
     return this.partial;
   }

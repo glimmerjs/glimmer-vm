@@ -1,7 +1,8 @@
 import { Opaque } from '@glimmer/interfaces';
 import { VersionedPathReference } from '@glimmer/reference';
+import { Op } from '@glimmer/vm';
 import { Helper } from '../../environment';
-import { APPEND_OPCODES, Op } from '../../opcodes';
+import { APPEND_OPCODES } from '../../opcodes';
 import { FALSE_REFERENCE, TRUE_REFERENCE } from '../../references';
 import { PublicVM } from '../../vm';
 import { Arguments } from '../../vm/arguments';

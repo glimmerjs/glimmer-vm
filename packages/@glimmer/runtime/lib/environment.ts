@@ -1,26 +1,19 @@
 import { VersionedPathReference } from '@glimmer/reference';
-import { Blocks, Inlines, populateBuiltins } from './syntax/functions';
 
 import { Constants } from './environment/constants';
 
-import { Simple } from '@glimmer/interfaces';
 import { DOMChanges, DOMTreeConstruction } from './dom/helper';
 import { Reference, OpaqueIterable } from '@glimmer/reference';
 import { UNDEFINED_REFERENCE, ConditionalReference } from './references';
 import { DynamicAttributeFactory, defaultDynamicAttributes } from './vm/attributes/dynamic';
 
 import {
-  PartialDefinition
-} from './partial';
-
-import {
   Component,
   ComponentManager,
-  ComponentDefinition
 } from './component/interfaces';
 
 import {
-  ModifierManager
+  ModifierManager, Modifier
 } from './modifier/interfaces';
 
 import {
@@ -34,16 +27,13 @@ import {
   expect
 } from '@glimmer/util';
 
-import {
-  TemplateMeta
-} from '@glimmer/wire-format';
-
 import { Block } from './syntax/interfaces';
 
 import { PublicVM } from './vm/append';
 
 import { IArguments } from './vm/arguments';
 import { DEBUG } from "@glimmer/local-debug-flags";
+import { Simple } from "@glimmer/interfaces";
 
 export type ScopeSlot = VersionedPathReference<Opaque> | Option<Block>;
 
@@ -163,32 +153,32 @@ export class Scope {
 }
 
 class Transaction {
-  public scheduledInstallManagers: ModifierManager<Opaque>[] = [];
-  public scheduledInstallModifiers: Object[] = [];
-  public scheduledUpdateModifierManagers: ModifierManager<Opaque>[] = [];
-  public scheduledUpdateModifiers: Object[] = [];
+  public scheduledInstallManagers: ModifierManager[] = [];
+  public scheduledInstallModifiers: Modifier[] = [];
+  public scheduledUpdateModifierManagers: ModifierManager[] = [];
+  public scheduledUpdateModifiers: Modifier[] = [];
   public createdComponents: Component[] = [];
-  public createdManagers: ComponentManager<Component>[] = [];
+  public createdManagers: ComponentManager[] = [];
   public updatedComponents: Component[] = [];
-  public updatedManagers: ComponentManager<Component>[] = [];
+  public updatedManagers: ComponentManager[] = [];
   public destructors: Destroyable[] = [];
 
-  didCreate<T>(component: T, manager: ComponentManager<T>) {
+  didCreate(component: Component, manager: ComponentManager) {
     this.createdComponents.push(component);
     this.createdManagers.push(manager);
   }
 
-  didUpdate<T>(component: T, manager: ComponentManager<T>) {
+  didUpdate(component: Component, manager: ComponentManager) {
     this.updatedComponents.push(component);
     this.updatedManagers.push(manager);
   }
 
-  scheduleInstallModifier<T>(modifier: T, manager: ModifierManager<T>) {
+  scheduleInstallModifier(modifier: Modifier, manager: ModifierManager) {
     this.scheduledInstallManagers.push(manager);
     this.scheduledInstallModifiers.push(modifier);
   }
 
-  scheduleUpdateModifier<T>(modifier: T, manager: ModifierManager<T>) {
+  scheduleUpdateModifier(modifier: Modifier, manager: ModifierManager) {
     this.scheduledUpdateModifierManagers.push(manager);
     this.scheduledUpdateModifiers.push(modifier);
   }
@@ -394,9 +384,7 @@ export class Program {
 export abstract class Environment {
   protected updateOperations: DOMChanges;
   protected appendOperations: DOMTreeConstruction;
-  private _macros: Option<{ blocks: Blocks, inlines: Inlines }> = null;
   private _transaction: Option<Transaction> = null;
-  public program = new Program();
 
   constructor({ appendOperations, updateOperations }: { appendOperations: DOMTreeConstruction, updateOperations: DOMChanges }) {
     this.appendOperations = appendOperations;
@@ -426,19 +414,19 @@ export abstract class Environment {
     return expect(this._transaction!, 'must be in a transaction');
   }
 
-  didCreate<T>(component: T, manager: ComponentManager<T>) {
+  didCreate(component: Component, manager: ComponentManager) {
     this.transaction.didCreate(component, manager);
   }
 
-  didUpdate<T>(component: T, manager: ComponentManager<T>) {
+  didUpdate(component: Component, manager: ComponentManager) {
     this.transaction.didUpdate(component, manager);
   }
 
-  scheduleInstallModifier<T>(modifier: T, manager: ModifierManager<T>) {
+  scheduleInstallModifier(modifier: Modifier, manager: ModifierManager) {
     this.transaction.scheduleInstallModifier(modifier, manager);
   }
 
-  scheduleUpdateModifier<T>(modifier: T, manager: ModifierManager<T>) {
+  scheduleUpdateModifier(modifier: Modifier, manager: ModifierManager) {
     this.transaction.scheduleUpdateModifier(modifier, manager);
   }
 
@@ -455,31 +443,6 @@ export abstract class Environment {
   attributeFor(element: Simple.Element, attr: string, _isTrusting: boolean, _namespace: Option<string> = null): DynamicAttributeFactory {
     return defaultDynamicAttributes(element, attr);
   }
-
-  macros(): { blocks: Blocks, inlines: Inlines } {
-    let macros = this._macros;
-    if (!macros) {
-      this._macros = macros = this.populateBuiltins();
-    }
-
-    return macros;
-  }
-
-  populateBuiltins(): { blocks: Blocks, inlines: Inlines } {
-    return populateBuiltins();
-  }
-
-  abstract hasHelper(helperName: string, meta: TemplateMeta): boolean;
-  abstract lookupHelper(helperName: string, meta: TemplateMeta): Helper;
-
-  abstract hasModifier(modifierName: string, meta: TemplateMeta): boolean;
-  abstract lookupModifier(modifierName: string, meta: TemplateMeta): ModifierManager<Opaque>;
-
-  abstract hasComponentDefinition(tagName: string, meta: TemplateMeta): boolean;
-  abstract getComponentDefinition(tagName: string, meta: TemplateMeta): ComponentDefinition<Opaque>;
-
-  abstract hasPartial(partialName: string, meta: TemplateMeta): boolean;
-  abstract lookupPartial(PartialName: string, meta: TemplateMeta): PartialDefinition<TemplateMeta>;
 }
 
 export default Environment;

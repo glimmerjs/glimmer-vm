@@ -1,6 +1,7 @@
 import { VersionedPathReference } from '@glimmer/reference';
 import { TemplateMeta } from '@glimmer/wire-format';
-import { APPEND_OPCODES, Op } from '../../opcodes';
+import { Op } from '@glimmer/vm';
+import { APPEND_OPCODES } from '../../opcodes';
 import { PartialDefinition } from '../../partial';
 
 APPEND_OPCODES.add(Op.GetPartialTemplate, vm => {

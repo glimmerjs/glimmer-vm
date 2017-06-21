@@ -1,5 +1,7 @@
 import './lib/bootstrap';
 
+export { InputCompilationOptions } from './lib/syntax/compilable-template';
+
 export { default as templateFactory, TemplateFactory, Template, TemplateIterator, RenderOptions } from './lib/template';
 
 export { NULL_REFERENCE, UNDEFINED_REFERENCE, PrimitiveReference, ConditionalReference } from './lib/references';
@@ -26,7 +28,6 @@ export {
 } from './lib/compiled/blocks';
 
 export {
-  Register,
   debugSlice
 } from './lib/opcodes';
 
@@ -52,8 +53,12 @@ export {
 export {
   CompilableTemplate,
   Block,
-  Program
+  TopLevelBlock
 } from './lib/syntax/interfaces';
+
+export {
+  Macros
+} from './lib/syntax/macros';
 
 export { PublicVM as VM, UpdatingVM, RenderResult, IteratorResult } from './lib/vm';
 
@@ -79,6 +84,7 @@ export {
   default as Environment,
   Helper,
   DynamicScope,
+  Program
 } from './lib/environment';
 
 export {

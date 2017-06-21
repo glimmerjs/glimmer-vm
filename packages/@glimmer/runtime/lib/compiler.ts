@@ -1,12 +1,13 @@
-import { Opaque, CompilationMeta } from '@glimmer/interfaces';
-import Environment from './environment';
+import { Register } from '@glimmer/vm';
+import { CompilationMeta } from '@glimmer/interfaces';
 import { CompiledDynamicProgram, CompiledDynamicTemplate } from './compiled/blocks';
 import { Maybe, Option } from '@glimmer/util';
 import { Ops, TemplateMeta } from '@glimmer/wire-format';
 import { Template } from './template';
-import { Register, debugSlice } from './opcodes';
+import { debugSlice } from './opcodes';
 import { ATTRS_BLOCK, compileStatement } from './syntax/functions';
 import * as ClientSide from './syntax/client-side';
+import { CompilationOptions, InputCompilationOptions } from './syntax/compilable-template';
 
 import {
   ComponentArgs,
@@ -31,8 +32,8 @@ export interface CompilableLayout {
   compile(builder: Component.ComponentLayoutBuilder): void;
 }
 
-export function compileLayout(compilable: CompilableLayout, env: Environment): CompiledDynamicProgram {
-  let builder = new ComponentLayoutBuilder(env);
+export function compileLayout(compilable: CompilableLayout, options: InputCompilationOptions): CompiledDynamicProgram {
+  let builder = new ComponentLayoutBuilder(options);
 
   compilable.compile(builder);
 
@@ -48,14 +49,14 @@ interface InnerLayoutBuilder {
 class ComponentLayoutBuilder implements Component.ComponentLayoutBuilder {
   private inner: InnerLayoutBuilder;
 
-  constructor(public env: Environment) {}
+  constructor(public options: CompilationOptions) {}
 
   wrapLayout(layout: Template<TemplateMeta>) {
-    this.inner = new WrappedBuilder(this.env, layout);
+    this.inner = new WrappedBuilder(this.options, layout);
   }
 
   fromLayout(componentName: string, layout: Template<TemplateMeta>) {
-    this.inner = new UnwrappedBuilder(this.env, componentName, layout);
+    this.inner = new UnwrappedBuilder(this.options, componentName, layout);
   }
 
   compile(): CompiledDynamicProgram {
@@ -75,7 +76,7 @@ class WrappedBuilder implements InnerLayoutBuilder {
   public tag = new ComponentTagBuilder();
   public attrs = new ComponentAttrsBuilder();
 
-  constructor(public env: Environment, private layout: Template<TemplateMeta>) {}
+  constructor(public env: CompilationOptions, private layout: Template<TemplateMeta>) {}
 
   compile(): CompiledDynamicProgram {
     //========DYNAMIC
@@ -192,7 +193,7 @@ class WrappedBuilder implements InnerLayoutBuilder {
 class UnwrappedBuilder implements InnerLayoutBuilder {
   public attrs = new ComponentAttrsBuilder();
 
-  constructor(public env: Environment, private componentName: string, private layout: Template<TemplateMeta>) {}
+  constructor(public env: CompilationOptions, private componentName: string, private layout: Template<TemplateMeta>) {}
 
   get tag(): Component.ComponentTagBuilder {
     throw new Error('BUG: Cannot call `tag` on an UnwrappedBuilder');
@@ -246,13 +247,13 @@ class ComponentAttrsBuilder implements Component.ComponentAttrsBuilder {
 }
 
 export class ComponentBuilder implements IComponentBuilder {
-  private env: Environment;
+  private env: CompilationOptions;
 
   constructor(private builder: OpcodeBuilderDSL) {
-    this.env = builder.env;
+    this.env = builder.options;
   }
 
-  static(definition: Component.ComponentDefinition<Opaque>, args: ComponentArgs) {
+  static(definition: Component.ComponentDefinition, args: ComponentArgs) {
     let [params, hash, _default, inverse] = args;
     let { builder } = this;
 
@@ -269,9 +270,10 @@ export class ComponentBuilder implements IComponentBuilder {
     }
 
     let meta = this.builder.meta.templateMeta;
+    let resolver = this.builder.options.resolver;
 
     function helper(vm: PublicVM, a: IArguments) {
-      return getDefinition(vm, a, meta);
+      return getDefinition(vm, a, meta, resolver);
     }
 
     builder.startLabels();
@@ -304,6 +306,6 @@ export class ComponentBuilder implements IComponentBuilder {
   }
 }
 
-export function builder(env: Environment, meta: CompilationMeta) {
+export function builder(env: CompilationOptions, meta: CompilationMeta) {
   return new OpcodeBuilderDSL(env, meta);
 }

@@ -1,14 +1,28 @@
 import {
   Option,
   SymbolTable,
+  Resolver
 } from '@glimmer/interfaces';
 import { Statement } from '@glimmer/wire-format';
 import { CompiledDynamicTemplate, CompiledStaticTemplate } from '../compiled/blocks';
-import Environment from '../environment';
+import { Program } from '../environment';
 import { debugSlice } from '../opcodes';
 import { compileStatements } from './functions';
 import { DEBUG } from '@glimmer/local-debug-flags';
 import { CompilableTemplate as ICompilableTemplate } from './interfaces';
+import { Macros } from '../syntax/macros';
+
+export interface CompilationOptions {
+  resolver: Resolver;
+  program: Program;
+  macros: Macros;
+}
+
+export interface InputCompilationOptions {
+  resolver: Resolver<any>;
+  program: Program;
+  macros: Macros;
+}
 
 export default class CompilableTemplate<S extends SymbolTable> implements ICompilableTemplate<S> {
   private compiledStatic: Option<CompiledStaticTemplate> = null;
@@ -16,7 +30,7 @@ export default class CompilableTemplate<S extends SymbolTable> implements ICompi
 
   constructor(public statements: Statement[], public symbolTable: S) {}
 
-  compileStatic(env: Environment): CompiledStaticTemplate {
+  compileStatic(env: CompilationOptions): CompiledStaticTemplate {
     let { compiledStatic } = this;
     if (!compiledStatic) {
       let builder = compileStatements(this.statements, this.symbolTable.meta, env);
@@ -33,7 +47,7 @@ export default class CompilableTemplate<S extends SymbolTable> implements ICompi
     return compiledStatic;
   }
 
-  compileDynamic(env: Environment): CompiledDynamicTemplate<S> {
+  compileDynamic(env: CompilationOptions): CompiledDynamicTemplate<S> {
     let { compiledDynamic } = this;
     if (!compiledDynamic) {
       let staticBlock = this.compileStatic(env);
