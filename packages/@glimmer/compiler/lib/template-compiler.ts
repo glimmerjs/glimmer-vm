@@ -258,23 +258,23 @@ export default class TemplateCompiler<T extends TemplateMeta> {
   }
 
   StringLiteral(action: AST.StringLiteral) {
-    this.opcode('literal', null, action.value);
+    this.opcode('literal', action, action.value);
   }
 
   BooleanLiteral(action: AST.BooleanLiteral) {
-    this.opcode('literal', null, action.value);
+    this.opcode('literal', action, action.value);
   }
 
   NumberLiteral(action: AST.NumberLiteral) {
-    this.opcode('literal', null, action.value);
+    this.opcode('literal', action, action.value);
   }
 
   NullLiteral(action: AST.NullLiteral) {
-    this.opcode('literal', null, action.value);
+    this.opcode('literal', action, action.value);
   }
 
   UndefinedLiteral(action: AST.UndefinedLiteral) {
-    this.opcode('literal', null, action.value);
+    this.opcode('literal', action, action.value);
   }
 
   /// Utilities
@@ -329,7 +329,7 @@ export default class TemplateCompiler<T extends TemplateMeta> {
       this.opcode('literal', null, key);
     }
 
-    this.opcode('prepareObject', null, pairs.length);
+    this.opcode('prepareObject', hash, pairs.length);
   }
 
   prepareAttributeValue(value: AST.AttrNode['value']) {
@@ -356,11 +356,11 @@ export default class TemplateCompiler<T extends TemplateMeta> {
       if (part.type === 'MustacheStatement') {
         this.attributeMustache([part]);
       } else if (part.type === 'TextNode') {
-        this.opcode('literal', null, part.chars);
+        this.opcode('literal', part, part.chars);
       }
     }
 
-    this.opcode('prepareArray', null, parts.length);
+    this.opcode('prepareArray', parts, parts.length);
   }
 
   attributeMustache([action]: [AST.MustacheStatement]) {

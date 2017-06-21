@@ -43,10 +43,11 @@ export default class Scanner {
     for (let i = 0; i < statements.length; i++) {
       let statement = statements[i];
       if (WireFormat.Statements.isComponent(statement)) {
-        let tagName = statement[1];
+        let tagNameIndex = statement[1];
+        let tagName = meta.strings[tagNameIndex];
         if (!this.env.hasComponentDefinition(tagName, meta.templateMeta)) {
           if (toplevel !== undefined) {
-            newStatements.push([Ops.OpenElement, tagName]);
+            newStatements.push([Ops.OpenElement, tagNameIndex]);
           } else {
             toplevel = tagName;
             decorateTopLevelElement(tagName, symbols, attrs, newStatements);
@@ -63,7 +64,8 @@ export default class Scanner {
         }
       } else {
         if (toplevel === undefined && WireFormat.Statements.isOpenElement(statement)) {
-          toplevel = statement[1];
+          let [,tagNameIndex] = statement;
+          toplevel = meta.strings[tagNameIndex];
           inTopLevel = true;
           decorateTopLevelElement(toplevel, symbols, attrs, newStatements);
         } else {

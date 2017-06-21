@@ -80,6 +80,10 @@ export abstract class BasicOpcodeBuilder {
     return this.heap.size();
   }
 
+  getString(index: number) {
+    return this.meta.strings[index];
+  }
+
   upvars<T extends [Opaque]>(count: number): T {
     return fillNulls(count) as T;
   }
@@ -561,10 +565,14 @@ export default class OpcodeBuilder extends BasicOpcodeBuilder {
     let names = EMPTY_ARRAY;
 
     if (hash) {
-      names = hash[0];
-      let val = hash[1];
-      for (let i = 0; i < val.length; i++) {
-        expr(val[i], this);
+      let [nameIndexes, values] = hash;
+      names = new Array(nameIndexes.length);
+      for (let i = 0; i < nameIndexes.length; i++) {
+        names[i] = this.getString(nameIndexes[i]);
+      }
+
+      for (let i = 0; i < values.length; i++) {
+        expr(values[i], this);
       }
     }
 

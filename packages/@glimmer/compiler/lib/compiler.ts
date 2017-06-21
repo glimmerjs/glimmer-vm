@@ -60,12 +60,14 @@ const defaultOptions: PrecompileOptions<TemplateMeta> = {
 export function precompile<T extends TemplateMeta>(string: string, options?: PrecompileOptions<T>): TemplateJavascript;
 export function precompile(string: string, options: PrecompileOptions<TemplateMeta> = defaultOptions): TemplateJavascript {
   let ast = preprocess(string, options);
-  let { block, meta } = TemplateCompiler.compile(options, ast);
+  let { block, meta, strings } = TemplateCompiler.compile(options, ast);
   let idFn = options.id || defaultId;
   let blockJSON = JSON.stringify(block.toJSON());
+  let stringsJSON = JSON.stringify(strings);
   let templateJSONObject: SerializedTemplateWithLazyBlock<TemplateMeta> = {
     id: idFn(JSON.stringify(meta) + blockJSON),
     block: blockJSON,
+    strings: stringsJSON,
     meta
   };
 

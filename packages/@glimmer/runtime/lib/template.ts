@@ -37,6 +37,11 @@ export interface Template<T> {
   symbols: string[];
 
   /**
+   * Strings used within the template.
+   */
+  strings: string[];
+
+  /**
    * Helper to render template as root entry point.
    */
   render(self: PathReference<Opaque>, appendTo: Simple.Element, dynamicScope: DynamicScope): TemplateIterator;
@@ -93,15 +98,21 @@ let clientId = 0;
  */
 export default function templateFactory<T extends TemplateMeta>(serializedTemplate: SerializedTemplateWithLazyBlock<T>): TemplateFactory<T, T>;
 export default function templateFactory<T extends TemplateMeta, U>(serializedTemplate: SerializedTemplateWithLazyBlock<T>): TemplateFactory<T, U>;
-export default function templateFactory({ id: templateId, meta, block }: SerializedTemplateWithLazyBlock<any>): TemplateFactory<{}, {}> {
+export default function templateFactory({ id: templateId, meta, block, strings }: SerializedTemplateWithLazyBlock<any>): TemplateFactory<{}, {}> {
   let parsedBlock: SerializedTemplateBlock;
+  let parsedStrings: string[];
+
   let id = templateId || `client-${clientId++}`;
   let create = (env: Environment, envMeta?: {}) => {
     let newMeta = envMeta ? assign({}, envMeta, meta) : meta;
     if (!parsedBlock) {
       parsedBlock = JSON.parse(block);
     }
-    return new ScannableTemplate(id, newMeta, env, parsedBlock);
+    if (!parsedStrings) {
+      parsedStrings = JSON.parse(strings);
+    }
+
+    return new ScannableTemplate(id, newMeta, parsedStrings, env, parsedBlock);
   };
   return { id, meta, create };
 }
@@ -115,7 +126,7 @@ class ScannableTemplate implements Template<TemplateMeta> {
   public symbols: string[];
   public hasEval: boolean;
 
-  constructor(public id: string, public meta: TemplateMeta, private env: Environment, rawBlock: SerializedTemplateBlock) {
+  constructor(public id: string, public meta: TemplateMeta, public strings: string[], private env: Environment, rawBlock: SerializedTemplateBlock) {
     this.scanner = new Scanner(rawBlock, env);
     this.symbols = rawBlock.symbols;
     this.hasEval = rawBlock.hasEval;
@@ -151,6 +162,6 @@ class ScannableTemplate implements Template<TemplateMeta> {
   }
 
   private compilationMeta(asPartial = false) {
-    return { templateMeta: this.meta, symbols: this.symbols, asPartial };
+    return { templateMeta: this.meta, symbols: this.symbols, strings: this.strings, asPartial };
   }
 }

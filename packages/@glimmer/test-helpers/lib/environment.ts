@@ -92,7 +92,7 @@ import {
 import * as WireFormat from '@glimmer/wire-format';
 
 import {
-  BlockSymbolTable, ProgramSymbolTable, unsafe
+  BlockSymbolTable, ProgramSymbolTable, unsafe, CompilationMeta
 } from "@glimmer/interfaces";
 import { TemplateMeta } from "@glimmer/wire-format";
 
@@ -1126,7 +1126,7 @@ function populateBlocks(blocks: BlockMacros, inlines: InlineMacros): { blocks: B
 
   blocks.add('component', (params, hash, template, inverse, builder) => {
     let definitionArgs: ComponentArgs = [params.slice(0, 1), null, null, null];
-    let args: ComponentArgs = [params.slice(1), hashToArgs(hash), template, inverse];
+    let args: ComponentArgs = [params.slice(1), hashToArgs(builder.meta, hash), template, inverse];
     builder.component.dynamic(definitionArgs, dynamicComponentFor, args);
     return true;
   });
@@ -1139,7 +1139,7 @@ function populateBlocks(blocks: BlockMacros, inlines: InlineMacros): { blocks: B
     let definition = builder.env.getComponentDefinition(name, builder.meta.templateMeta);
 
     if (definition) {
-      builder.component.static(definition, [params, hashToArgs(hash), template, inverse]);
+      builder.component.static(definition, [params, hashToArgs(builder.meta, hash), template, inverse]);
       return true;
     }
 
@@ -1148,7 +1148,7 @@ function populateBlocks(blocks: BlockMacros, inlines: InlineMacros): { blocks: B
 
   inlines.add('component', (_name, params, hash, builder) => {
     let definitionArgs: ComponentArgs = [params!.slice(0, 1), null, null, null];
-    let args: ComponentArgs = [params!.slice(1), hashToArgs(hash), null, null];
+    let args: ComponentArgs = [params!.slice(1), hashToArgs(builder.meta, hash), null, null];
     builder.component.dynamic(definitionArgs, dynamicComponentFor, args);
     return true;
   });
@@ -1157,7 +1157,7 @@ function populateBlocks(blocks: BlockMacros, inlines: InlineMacros): { blocks: B
     let definition = builder.env.getComponentDefinition(name, builder.meta.templateMeta);
 
     if (definition) {
-      builder.component.static(definition, [params!, hashToArgs(hash), null, null]);
+      builder.component.static(definition, [params!, hashToArgs(builder.meta, hash), null, null]);
       return true;
     }
 
@@ -1167,9 +1167,21 @@ function populateBlocks(blocks: BlockMacros, inlines: InlineMacros): { blocks: B
   return { blocks, inlines };
 }
 
-function hashToArgs(hash: Option<WireFormat.Core.Hash>): Option<WireFormat.Core.Hash> {
+function hashToArgs(meta: CompilationMeta, hash: Option<WireFormat.Core.Hash>): Option<WireFormat.Core.Hash> {
   if (hash === null) return null;
-  let names = hash[0].map(key => `@${key}`);
+  let { strings } = meta;
+  let names = hash[0].map(keyIndex => {
+    let key = strings[keyIndex];
+    let prefixedKey = `@${key}`;
+
+    let prefixedKeyIndex = strings.indexOf(prefixedKey);
+    if (prefixedKeyIndex === -1) {
+      prefixedKeyIndex = strings.push(prefixedKey) - 1;
+    }
+
+    return prefixedKeyIndex;
+  });
+
   return [names, hash[1]];
 }
 
