@@ -14,17 +14,17 @@ export type ConstantOther = number;
 const UNRESOLVED = {};
 
 export class Constants {
-  constructor(private resolver: Resolver) {}
+  constructor(public resolver: Resolver) {}
 
   // `0` means NULL
 
   private references: VersionedPathReference<Opaque>[] = [];
   private strings: string[] = [];
-  private expressions: Opaque[] = [];
   private arrays: number[][] = [];
   private tables: SymbolTable[] = [];
   private functions: Function[] = [];
   private specifiers: Specifier[] = [];
+  private serializables: Opaque[] = [];
   private resolved: Opaque[] = [];
 
   getReference<T extends Opaque>(value: ConstantReference): VersionedPathReference<T> {
@@ -47,17 +47,9 @@ export class Constants {
     return index + 1;
   }
 
-  getExpression<T>(value: ConstantExpression): T {
-    return this.expressions[value - 1] as T;
-  }
-
-  getArray(value: ConstantArray): number[] {
-    return this.arrays[value - 1];
-  }
-
-  getNames(value: ConstantArray): string[] {
-    let _names: string[] = [];
+  getStringArray(value: ConstantArray): string[] {
     let names = this.getArray(value);
+    let _names: string[] = new Array(names.length);
 
     for (let i = 0; i < names.length; i++) {
       let n = names[i];
@@ -65,6 +57,20 @@ export class Constants {
     }
 
     return _names;
+  }
+
+  stringArray(strings: string[]): ConstantArray {
+    let _strings: ConstantString[] = new Array(strings.length);
+
+    for (let i = 0; i < strings.length; i++) {
+      _strings[i] = this.string(strings[i]);
+    }
+
+    return this.array(_strings);
+  }
+
+  getArray(value: ConstantArray): number[] {
+    return this.arrays[value - 1];
   }
 
   array(values: number[]): ConstantArray {
@@ -108,6 +114,16 @@ export class Constants {
     let index = this.specifiers.length;
     this.specifiers.push(specifier);
     this.resolved.push(UNRESOLVED);
+    return index + 1;
+  }
+
+  getSerializable<T>(s: number): T {
+    return this.serializable[s - 1] as T;
+  }
+
+  serializable(value: Opaque): number {
+    let index = this.serializables.length;
+    this.serializables.push(value);
     return index + 1;
   }
 }

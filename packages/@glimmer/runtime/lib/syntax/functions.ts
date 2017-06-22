@@ -1,15 +1,10 @@
 import { Register } from '@glimmer/vm';
-import { BlockSymbolTable, CompilationMeta, Opaque, Option, ProgramSymbolTable } from '@glimmer/interfaces';
-import { map, VersionedPathReference } from '@glimmer/reference';
-import { assert, Dict, dict, EMPTY_ARRAY, unwrap } from '@glimmer/util';
+import { CompilationMeta, Option } from '@glimmer/interfaces';
+import { assert, dict, EMPTY_ARRAY, unwrap } from '@glimmer/util';
 import * as WireFormat from '@glimmer/wire-format';
-import { ModifierManager } from '../..';
 import OpcodeBuilder, { LazyOpcodeBuilder } from '../compiled/opcodes/builder';
-import { DynamicInvoker } from '../compiled/opcodes/vm';
-import { Handle, Helper, ScopeSlot } from '../environment';
+import { Handle } from '../environment';
 import * as ClientSide from '../syntax/client-side';
-import { PublicVM, VM } from '../vm';
-import { IArguments } from '../vm/arguments';
 import { CompilationOptions } from './compilable-template';
 import { Block } from './interfaces';
 import RawInlineBlock from './raw-block';
@@ -62,14 +57,14 @@ STATEMENTS.add(Ops.FlushElement, (_sexp: S.FlushElement, builder: OpcodeBuilder)
 });
 
 STATEMENTS.add(Ops.Modifier, (sexp: S.Modifier, builder: OpcodeBuilder) => {
-  let { options, meta } = builder;
+  let { options: { resolver }, meta } = builder;
   let [, name, params, hash] = sexp;
 
-  let specifier = options.resolver.lookupModifier(name, meta.templateMeta);
+  let specifier = resolver.lookupModifier(name, meta.templateMeta);
 
   if (specifier) {
     builder.compileArgs(params, hash, true);
-    builder.modifier(options.resolver.resolve<ModifierManager>(specifier));
+    builder.modifier(specifier);
   } else {
     throw new Error(`Compile Error ${name} is not a modifier: Helpers may not be used in the element form.`);
   }
@@ -161,71 +156,6 @@ STATEMENTS.add(Ops.Block, (sexp: S.Block, builder: OpcodeBuilder) => {
   blocks.compile(name, params, hash, templateBlock, inverseBlock, builder);
 });
 
-export class InvokeDynamicLayout implements DynamicInvoker<ProgramSymbolTable> {
-  constructor(private attrs: Option<Block>) {}
-
-  invoke(vm: VM, table: Option<ProgramSymbolTable>, handle: Option<Handle>) {
-    let { symbols, hasEval } = table!;
-    let stack = vm.stack;
-
-    let scope = vm.pushRootScope(symbols.length + 1, true);
-    scope.bindSelf(stack.pop<VersionedPathReference<Opaque>>());
-
-    scope.bindBlock(symbols.indexOf(ATTRS_BLOCK) + 1, this.attrs);
-
-    let lookup: Option<Dict<ScopeSlot>> = null;
-    let $eval: Option<number> = -1;
-
-    if (hasEval) {
-      $eval = symbols.indexOf('$eval') + 1;
-      lookup = dict<ScopeSlot>();
-    }
-
-    let callerNames = stack.pop<string[]>();
-
-    for (let i=callerNames.length - 1; i>=0; i--) {
-      let symbol = symbols.indexOf(callerNames[i]);
-      let value = stack.pop<VersionedPathReference<Opaque>>();
-
-      if (symbol !== -1) scope.bindSymbol(symbol + 1, value);
-      if (hasEval) lookup![callerNames[i]] = value;
-    }
-
-    let numPositionalArgs = stack.pop<number>();
-
-    assert(typeof numPositionalArgs === 'number', '[BUG] Incorrect value of positional argument count found during invoke-dynamic-layout.');
-
-    // Currently we don't support accessing positional args in templates, so just throw them away
-    stack.pop(numPositionalArgs);
-
-    let inverseSymbol = symbols.indexOf('&inverse');
-    let inverse = stack.pop<Option<Block>>();
-
-    if (inverseSymbol !== -1) {
-      scope.bindBlock(inverseSymbol + 1, inverse);
-    }
-
-    if (lookup) lookup['&inverse'] = inverse;
-
-    let defaultSymbol = symbols.indexOf('&default');
-    let defaultBlock = stack.pop<Option<Block>>();
-
-    if (defaultSymbol !== -1) {
-      scope.bindBlock(defaultSymbol + 1, defaultBlock);
-    }
-
-    if (lookup) lookup['&default'] = defaultBlock;
-    if (lookup) scope.bindEvalScope(lookup);
-
-    vm.pushFrame();
-    vm.call(handle!);
-  }
-
-  toJSON() {
-    return { GlimmerDebug: '<invoke-dynamic-layout>' };
-  }
-}
-
 STATEMENTS.add(Ops.Component, (sexp: S.Component, builder: OpcodeBuilder) => {
   let [, tag, _attrs, args, block] = sexp;
 
@@ -239,7 +169,7 @@ STATEMENTS.add(Ops.Component, (sexp: S.Component, builder: OpcodeBuilder) => {
       ..._attrs,
       [Ops.ClientSideStatement, ClientSide.Ops.SetComponentAttrs, false]
     ];
-    let attrsBlock = new RawInlineBlock(builder.meta, attrs, EMPTY_ARRAY);
+    let attrsBlock = new RawInlineBlock(attrs, EMPTY_ARRAY, builder.meta, builder.options);
     builder.pushComponentManager(specifier);
     builder.invokeComponent(attrsBlock, null, args, child && child.scan());
   } else if (block && block.parameters.length) {
@@ -262,69 +192,10 @@ STATEMENTS.add(Ops.Component, (sexp: S.Component, builder: OpcodeBuilder) => {
   }
 });
 
-export class PartialInvoker implements DynamicInvoker<ProgramSymbolTable> {
-  constructor(private outerSymbols: string[], private evalInfo: WireFormat.Core.EvalInfo) {}
-
-  invoke(vm: VM, table: Option<ProgramSymbolTable>,  handle: Option<Handle>) {
-    let partialSymbols = table!.symbols;
-    let outerScope = vm.scope();
-    let partialScope = vm.pushRootScope(partialSymbols.length, false);
-    partialScope.bindCallerScope(outerScope.getCallerScope());
-    partialScope.bindEvalScope(outerScope.getEvalScope());
-    partialScope.bindSelf(outerScope.getSelf());
-
-    let { evalInfo, outerSymbols } = this;
-
-    let locals = dict<VersionedPathReference<Opaque>>();
-
-    for (let i = 0; i < evalInfo.length; i++) {
-      let slot = evalInfo[i];
-      let name = outerSymbols[slot - 1];
-      let ref  = outerScope.getSymbol(slot);
-      locals[name] = ref;
-    }
-
-    let evalScope = outerScope.getEvalScope()!;
-
-    for (let i = 0; i < partialSymbols.length; i++) {
-      let name = partialSymbols[i];
-      let symbol = i + 1;
-      let value = evalScope[name];
-
-      if (value !== undefined) partialScope.bind(symbol, value);
-    }
-
-    partialScope.bindPartialMap(locals);
-
-    vm.pushFrame();
-    vm.call(handle!);
-  }
-}
-
 STATEMENTS.add(Ops.Partial, (sexp: S.Partial, builder: OpcodeBuilder) => {
   let [, name, evalInfo] = sexp;
 
-  let { meta: { templateMeta, symbols }, options: { resolver } } = builder;
-
-  function helper(vm: PublicVM, args: IArguments) {
-    let nameRef = args.positional.at(0);
-
-    return map(nameRef, (n) => {
-      if (typeof n === 'string' && n) {
-        let specifier = resolver.lookupPartial(n, templateMeta);
-
-        if (!specifier) {
-          throw new Error(`Could not find a partial named "${n}"`);
-        }
-
-        return resolver.resolve(specifier);
-      } else if (n) {
-        throw new Error(`Could not find a partial named "${String(n)}"`);
-      } else {
-        return null;
-      }
-    });
-  }
+  let { meta: { templateMeta, symbols } } = builder;
 
   builder.startLabels();
 
@@ -333,10 +204,6 @@ STATEMENTS.add(Ops.Partial, (sexp: S.Partial, builder: OpcodeBuilder) => {
   builder.returnTo('END');
 
   expr(name, builder);
-  builder.primitive(1);
-  builder.pushConstant(EMPTY_ARRAY);
-  builder.pushArgs(true);
-  builder.helper(helper);
 
   builder.dup();
   builder.test('simple');
@@ -345,8 +212,7 @@ STATEMENTS.add(Ops.Partial, (sexp: S.Partial, builder: OpcodeBuilder) => {
 
   builder.jumpUnless('ELSE');
 
-  builder.getPartialTemplate();
-  builder.invokeDynamic(new PartialInvoker(symbols, evalInfo));
+  builder.invokePartial(templateMeta, symbols, evalInfo);
   builder.popScope();
   builder.popFrame();
 
@@ -359,43 +225,6 @@ STATEMENTS.add(Ops.Partial, (sexp: S.Partial, builder: OpcodeBuilder) => {
 
   builder.stopLabels();
 });
-
-export class InvokeDynamicYield implements DynamicInvoker<BlockSymbolTable> {
-  constructor(private callerCount: number) {}
-
-  invoke(vm: VM, table: Option<BlockSymbolTable>, handle: Option<Handle>) {
-    let { callerCount } = this;
-    let stack = vm.stack;
-
-    if (!table) {
-      // To balance the pop{Frame,Scope}
-      vm.pushFrame();
-      vm.pushCallerScope();
-
-      return;
-    }
-
-    let locals = table.parameters; // always present in inline blocks
-
-    let calleeCount = locals ? locals.length : 0;
-    let count = Math.min(callerCount, calleeCount);
-
-    vm.pushFrame();
-    vm.pushCallerScope(calleeCount > 0);
-
-    let scope = vm.scope();
-
-    for (let i=0; i<count; i++) {
-      scope.bindSymbol(locals![i], stack.fromBase<VersionedPathReference<Opaque>>(callerCount-i));
-    }
-
-    vm.call(handle!);
-  }
-
-  toJSON() {
-    return { GlimmerDebug: `<invoke-dynamic-yield caller-count=${this.callerCount}>` };
-  }
-}
 
 STATEMENTS.add(Ops.Yield, (sexp: WireFormat.Statements.Yield, builder: OpcodeBuilder) => {
   let [, to, params] = sexp;
@@ -435,7 +264,7 @@ EXPRESSIONS.add(Ops.Unknown, (sexp: E.Unknown, builder: OpcodeBuilder) => {
 
   if (specifier) {
     builder.compileArgs(null, null, true);
-    builder.helper(resolver.resolve<Helper>(specifier));
+    builder.helper(specifier);
   } else if (meta.asPartial) {
     builder.resolveMaybeLocal(name);
   } else {
@@ -464,7 +293,7 @@ EXPRESSIONS.add(Ops.Helper, (sexp: E.Helper, builder: OpcodeBuilder) => {
 
   if (specifier) {
     builder.compileArgs(params, hash, true);
-    builder.helper(resolver.resolve<Helper>(specifier));
+    builder.helper(specifier);
   } else {
     throw new Error(`Compile Error: ${name} is not a helper`);
   }

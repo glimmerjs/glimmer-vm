@@ -1,5 +1,5 @@
 import { Op } from '@glimmer/vm';
-import { Opaque, Option, SymbolTable } from '@glimmer/interfaces';
+import { Opaque, Option, BlockSymbolTable } from '@glimmer/interfaces';
 import { ConstReference, Reference, VersionedPathReference } from '@glimmer/reference';
 import {
   CONSTANT_TAG,
@@ -12,13 +12,10 @@ import {
 import { initializeGuid } from '@glimmer/util';
 import Environment, { Handle } from '../../environment';
 import { APPEND_OPCODES, OpcodeJSON, UpdatingOpcode } from '../../opcodes';
+import { Primitive, PrimitiveReference } from '../../references';
 import { CompilableTemplate } from '../../syntax/interfaces';
-import { UpdatingVM, VM } from '../../vm';
-
-import {
-  Primitive,
-  PrimitiveReference
-} from '../../references';
+import { UpdatingVM } from '../../vm';
+import { Arguments } from '../../vm/arguments';
 
 APPEND_OPCODES.add(Op.ChildScope, vm => vm.pushChildScope());
 
@@ -92,15 +89,38 @@ APPEND_OPCODES.add(Op.CompileBlock, vm => {
 
 APPEND_OPCODES.add(Op.InvokeStatic, vm => vm.call(vm.stack.pop<Handle>()));
 
-export interface DynamicInvoker<S extends SymbolTable> {
-  invoke(vm: VM, table: Option<S>, handle: Option<Handle>): void;
-}
+APPEND_OPCODES.add(Op.InvokeYield, vm => {
+  let { stack } = vm;
 
-APPEND_OPCODES.add(Op.InvokeDynamic, (vm, { op1: _invoker }) => {
-  let invoker = vm.constants.getOther<DynamicInvoker<SymbolTable>>(_invoker);
-  let handle = vm.stack.pop<Option<Handle>>();
-  let table = vm.stack.pop<Option<SymbolTable>>();
-  invoker.invoke(vm, table, handle);
+  let handle = stack.pop<Option<Handle>>();
+  let table = stack.pop<Option<BlockSymbolTable>>();
+  let args = stack.pop<Arguments>();
+
+  if (!table) {
+    // To balance the pop{Frame,Scope}
+    vm.pushFrame();
+    vm.pushCallerScope();
+
+    args.clear();
+
+    return;
+  }
+
+  let locals = table.parameters;
+  let localsCount = locals.length;
+
+  vm.pushFrame();
+  vm.pushCallerScope(localsCount > 0);
+
+  let scope = vm.scope();
+
+  for (let i=0; i<localsCount; i++) {
+    scope.bindSymbol(locals![i], args.at(i));
+  }
+
+  args.clear();
+
+  vm.call(handle!);
 });
 
 APPEND_OPCODES.add(Op.Jump, (vm, { op1: target }) => vm.goto(target));

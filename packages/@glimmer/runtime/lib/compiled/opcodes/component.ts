@@ -1,6 +1,4 @@
-import { normalizeStringValue } from '../../dom/normalize';
-import { UpdateDynamicAttributeOpcode } from './dom';
-import { Opaque, Option } from '@glimmer/interfaces';
+import { Opaque, Option, Dict } from '@glimmer/interfaces';
 import {
   combineTagged,
   CONSTANT_TAG,
@@ -13,11 +11,15 @@ import {
 } from '@glimmer/reference';
 import Bounds from '../../bounds';
 import { Component, ComponentDefinition, ComponentManager } from '../../component/interfaces';
-import { DynamicScope } from '../../environment';
+import { normalizeStringValue } from '../../dom/normalize';
+import { DynamicScope, ScopeSlot } from '../../environment';
 import { APPEND_OPCODES, OpcodeJSON, UpdatingOpcode } from '../../opcodes';
 import { UpdatingVM, VM } from '../../vm';
 import ARGS, { Arguments, IArguments } from '../../vm/arguments';
+import { UpdateDynamicAttributeOpcode } from './dom';
 import { Assert } from './vm';
+import { ATTRS_BLOCK } from '../../syntax/functions';
+import { Block } from '../../syntax/interfaces';
 import { dict } from "@glimmer/util";
 import { Op, Register } from '@glimmer/vm';
 
@@ -53,9 +55,10 @@ export interface ComponentState {
   component: Component;
 }
 
-APPEND_OPCODES.add(Op.PushArgs, (vm, { op1: synthetic }) => {
+APPEND_OPCODES.add(Op.PushArgs, (vm, { op1: _names, op2: positionalCount, op3: synthetic }) => {
   let stack = vm.stack;
-  ARGS.setup(stack, !!synthetic);
+  let names = vm.constants.getSerializable<string[]>(_names);
+  ARGS.setup(stack, names, positionalCount, !!synthetic);
   stack.push(ARGS);
 });
 
@@ -77,22 +80,13 @@ APPEND_OPCODES.add(Op.PrepareArgs, (vm, { op1: _state }) => {
       stack.push(positional[i]);
     }
 
-    stack.push(positionalCount);
-
     let names = Object.keys(named);
-    let namedCount = names.length;
-    let atNames = [];
 
-    for (let i = 0; i < namedCount; i++) {
-      let value = named[names[i]];
-      let atName = `@${names[i]}`;
-
-      stack.push(value);
-      atNames.push(atName);
+    for (let i = 0; i < names.length; i++) {
+      stack.push(named[names[i]]);
     }
 
-    stack.push(atNames);
-    args.setup(stack, false);
+    args.setup(stack, names, positionalCount, true);
   }
 
   stack.push(args);
@@ -118,6 +112,9 @@ APPEND_OPCODES.add(Op.CreateComponent, (vm, { op1: flags, op2: _state }) => {
   if (!isConstTag(tag)) {
     vm.updateWith(new UpdateComponentOpcode(tag, definition.name, component, manager, dynamicScope));
   }
+
+  // Don't commit this
+  vm.stack.push(args);
 });
 
 APPEND_OPCODES.add(Op.RegisterComponentDestructor, (vm, { op1: _state }) => {
@@ -212,16 +209,63 @@ APPEND_OPCODES.add(Op.DidCreateElement, (vm, { op1: _state }) => {
 });
 
 APPEND_OPCODES.add(Op.GetComponentSelf, (vm, { op1: _state }) => {
-  let state = vm.fetchValue<ComponentState>(_state);
-  vm.stack.push(state.manager.getSelf(state.component));
+  let { manager, component } = vm.fetchValue<ComponentState>(_state);
+  vm.stack.push(manager.getSelf(component));
 });
 
-APPEND_OPCODES.add(Op.GetComponentLayout, (vm, { op1: _state }) => {
+APPEND_OPCODES.add(Op.InvokeComponentLayout, (vm, { op1: _state }) => {
+  let { stack } = vm;
   let { manager, definition, component } = vm.fetchValue<ComponentState>(_state);
   let block = manager.layoutFor(definition, component, vm.env);
+  let { symbolTable: { symbols, hasEval }, handle } = block;
 
-  vm.stack.push(block.symbolTable);
-  vm.stack.push(block.handle);
+  {
+    let scope = vm.pushRootScope(symbols.length + 1, true);
+    scope.bindSelf(stack.pop<VersionedPathReference<Opaque>>());
+
+    let args = vm.stack.pop<Arguments>();
+
+    let lookup: Option<Dict<ScopeSlot>> = null;
+    let $eval: Option<number> = -1;
+
+    if (hasEval) {
+      $eval = symbols.indexOf('$eval') + 1;
+      lookup = dict<ScopeSlot>();
+    }
+
+    let callerNames = args.named.names;
+
+    for (let i=callerNames.length - 1; i>=0; i--) {
+      let name = callerNames[i];
+      let symbol = symbols.indexOf(callerNames[i]);
+      let value = args.get(name);
+
+      if (symbol !== -1) scope.bindSymbol(symbol + 1, value);
+      if (hasEval) lookup![name] = value;
+    }
+
+    args.clear();
+
+    function bindBlock(name: string) {
+      let symbol = symbols.indexOf(name);
+      let block = stack.pop<Option<Block>>();
+
+      if (symbol !== -1) {
+        scope.bindBlock(symbol + 1, block);
+      }
+
+      if (lookup) lookup[name] = block;
+    }
+
+    bindBlock(ATTRS_BLOCK);
+    bindBlock('&inverse');
+    bindBlock('&default');
+
+    if (lookup) scope.bindEvalScope(lookup);
+
+    vm.pushFrame();
+    vm.call(handle!);
+  }
 });
 
 APPEND_OPCODES.add(Op.DidRenderLayout, (vm, { op1: _state }) => {

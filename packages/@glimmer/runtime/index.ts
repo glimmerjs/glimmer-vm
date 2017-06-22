@@ -46,7 +46,6 @@ export {
   Inlines as InlineMacros,
   BlockMacro,
   MissingBlockMacro,
-  compileList,
   expr as compileExpression
 } from './lib/syntax/functions';
 

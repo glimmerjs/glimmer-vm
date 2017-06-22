@@ -134,7 +134,7 @@ function debug(c: Constants, op: Op, op1: number, op2: number, op3: number): [st
       /// VM
       case Op.CompileBlock: return ['CompileBlock', {}];
       case Op.InvokeStatic: return ['InvokeStatic', {}];
-      case Op.InvokeDynamic: return ['InvokeDynamic', { invoker: c.getOther(op1) }];
+      case Op.InvokeYield: return ['InvokeYield', {}];
       case Op.Jump: return ['Jump', { to: op1 }];
       case Op.JumpIf: return ['JumpIf', { to: op1 }];
       case Op.JumpUnless: return ['JumpUnless', { to: op1 }];
@@ -159,14 +159,14 @@ function debug(c: Constants, op: Op, op1: number, op2: number, op3: number): [st
       case Op.RegisterComponentDestructor: return ['RegisterComponentDestructor', {}];
       case Op.PutComponentOperations: return ['PutComponentOperations', {}];
       case Op.GetComponentSelf: return ['GetComponentSelf', { state: Register[op1] }];
-      case Op.GetComponentLayout: return ['GetComponentLayout', { state: Register[op1] }];
+      case Op.InvokeComponentLayout: return ['InvokeComponentLayout', { state: Register[op1] }];
       case Op.BeginComponentTransaction: return ['BeginComponentTransaction', {}];
       case Op.CommitComponentTransaction: return ['CommitComponentTransaction', {}];
       case Op.DidCreateElement: return ['DidCreateElement', { state: Register[op1] }];
       case Op.DidRenderLayout: return ['DidRenderLayout', {}];
 
       /// PARTIALS
-      case Op.GetPartialTemplate: return ['CompilePartial', {}];
+      case Op.InvokePartial: return ['InvokePartial', { templateMeta: c.getSerializable(op1), symbols: c.getStringArray(op2), evalInfo: c.getArray(op3) }];
       case Op.ResolveMaybeLocal: return ['ResolveMaybeLocal', { name: c.getString(op1)} ];
 
       /// DEBUGGER

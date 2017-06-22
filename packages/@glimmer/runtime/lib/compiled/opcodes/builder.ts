@@ -1,4 +1,4 @@
-import { CompilationMeta, Opaque, Option, SymbolTable, Specifier } from '@glimmer/interfaces';
+import { CompilationMeta, Opaque, Option, Specifier } from '@glimmer/interfaces';
 import { dict, EMPTY_ARRAY, expect, fillNulls, Stack, typePos } from '@glimmer/util';
 import { Op, Register } from '@glimmer/vm';
 import * as WireFormat from '@glimmer/wire-format';
@@ -11,16 +11,16 @@ import {
   ConstantString,
   LazyConstants,
 } from '../../environment/constants';
-import { ModifierManager } from '../../modifier/interfaces';
 import { ComponentBuilder as IComponentBuilder } from '../../opcode-builder';
 import { Primitive } from '../../references';
 import { FunctionExpressionCallback } from '../../syntax/client-side';
 import { CompilationOptions } from '../../syntax/compilable-template';
-import { expr, InvokeDynamicLayout, InvokeDynamicYield } from '../../syntax/functions';
+import { expr } from '../../syntax/functions';
 import { Block } from '../../syntax/interfaces';
 import RawInlineBlock from '../../syntax/raw-block';
 import { IsComponentDefinitionReference } from '../opcodes/content';
 import * as vm from './vm';
+import { TemplateMeta } from "@glimmer/wire-format";
 
 export interface CompilesInto<E> {
   compile(builder: OpcodeBuilder): E;
@@ -104,8 +104,9 @@ export abstract class OpcodeBuilder {
 
   // args
 
-  pushArgs(synthetic: boolean) {
-    this.push(Op.PushArgs, synthetic === true ? 1 : 0);
+  pushArgs(names: string[], positionalCount: number, synthetic: boolean) {
+    let serialized = this.constants.serializable(names);
+    this.push(Op.PushArgs, serialized, positionalCount, synthetic === true ? 1 : 0);
   }
 
   // helpers
@@ -121,10 +122,6 @@ export abstract class OpcodeBuilder {
   stopLabels() {
     let label = expect(this.labelsStack.pop(), 'unbalanced push and pop labels');
     label.patch(this.program);
-  }
-
-  protected other(...args: any[]): any {
-    throw "lol";
   }
 
   // components
@@ -166,8 +163,8 @@ export abstract class OpcodeBuilder {
     this.push(Op.GetComponentSelf, state);
   }
 
-  getComponentLayout(state: Register ) {
-    this.push(Op.GetComponentLayout, state);
+  invokeComponentLayout(state: Register ) {
+    this.push(Op.InvokeComponentLayout, state);
   }
 
   didCreateElement(state: Register) {
@@ -180,8 +177,12 @@ export abstract class OpcodeBuilder {
 
   // partial
 
-  getPartialTemplate() {
-    this.push(Op.GetPartialTemplate);
+  invokePartial(meta: TemplateMeta, symbols: string[], evalInfo: number[]) {
+    let _meta = this.constants.serializable(meta);
+    let _symbols = this.constants.stringArray(symbols);
+    let _evalInfo = this.constants.array(evalInfo);
+
+    this.push(Op.InvokePartial, _meta, _symbols, _evalInfo);
   }
 
   resolveMaybeLocal(name: string) {
@@ -191,7 +192,7 @@ export abstract class OpcodeBuilder {
   // debugger
 
   debugger(symbols: string[], evalInfo: number[]) {
-    this.push(Op.Debugger, this.other(symbols), this.constants.array(evalInfo));
+    this.push(Op.Debugger, this.constants.serializable(symbols), this.constants.array(evalInfo));
   }
 
   // content
@@ -255,8 +256,8 @@ export abstract class OpcodeBuilder {
     this.push(Op.Comment, comment);
   }
 
-  modifier(_definition: ModifierManager<Opaque>) {
-    this.push(Op.Modifier, this.other(_definition));
+  modifier(specifier: Specifier) {
+    this.push(Op.Modifier, this.constants.specifier(specifier));
   }
 
   // lists
@@ -404,8 +405,8 @@ export abstract class OpcodeBuilder {
     this.push(Op.PrimitiveReference);
   }
 
-  helper(func: Function) {
-    this.push(Op.Helper, this.func(func));
+  helper(helper: Specifier) {
+    this.push(Op.Helper, this.constants.specifier(helper));
   }
 
   abstract pushBlock(block: Option<Block>): void;
@@ -439,12 +440,8 @@ export abstract class OpcodeBuilder {
     this.push(Op.InvokeStatic);
   }
 
-  invokeDynamic(invoker: vm.DynamicInvoker<SymbolTable>): void {
-    this.push(Op.InvokeDynamic, this.other(invoker));
-  }
-
-  invokeYield(count: number): void {
-    this.invokeDynamic(new InvokeDynamicYield(count));
+  invokeYield(): void {
+    this.push(Op.InvokeYield);
   }
 
   test(testFunc: 'const' | 'simple' | 'environment' | vm.TestFunction) {
@@ -520,7 +517,6 @@ export abstract class OpcodeBuilder {
 
   compileArgs(params: Option<WireFormat.Core.Params>, hash: Option<WireFormat.Core.Hash>, synthetic: boolean) {
     let count = this.compileParams(params);
-    this.primitive(count);
 
     let names: string[] = EMPTY_ARRAY;
 
@@ -532,8 +528,7 @@ export abstract class OpcodeBuilder {
       }
     }
 
-    this.pushConstant(names);
-    this.pushArgs(synthetic);
+    this.pushArgs(names, count, synthetic);
   }
 
   compile<E>(expr: Represents<E>): E {
@@ -613,16 +608,11 @@ export abstract class OpcodeBuilder {
   }
 
   yield(to: number, params: Option<WireFormat.Core.Params>) {
-    let count = this.compileParams(params);
-
+    this.compileArgs(params, null, false);
     this.getBlock(to);
-    this.invokeYield(count);
+    this.invokeYield();
     this.popScope();
     this.popFrame();
-
-    if (count) {
-      this.pop(count);
-    }
   }
 
   invokeComponent(attrs: Option<RawInlineBlock>, params: Option<WireFormat.Core.Params>, hash: Option<WireFormat.Core.Hash>, block: Option<Block>, inverse: Option<Block> = null) {
@@ -632,6 +622,7 @@ export abstract class OpcodeBuilder {
 
     this.pushDynamicBlock(block);
     this.pushDynamicBlock(inverse);
+    this.pushDynamicBlock(attrs && attrs.scan());
 
     this.compileArgs(params, hash, false);
     this.prepareArgs(Register.s0);
@@ -642,8 +633,7 @@ export abstract class OpcodeBuilder {
     this.registerComponentDestructor(Register.s0);
 
     this.getComponentSelf(Register.s0);
-    this.getComponentLayout(Register.s0);
-    this.invokeDynamic(new InvokeDynamicLayout(attrs && attrs.scan()));
+    this.invokeComponentLayout(Register.s0);
     this.popFrame();
 
     this.popScope();
@@ -660,7 +650,7 @@ export abstract class OpcodeBuilder {
 
   template(block: Option<WireFormat.SerializedInlineBlock>): Option<RawInlineBlock> {
     if (!block) return null;
-    return new RawInlineBlock(this.meta, block.statements, block.parameters);
+    return new RawInlineBlock(block.statements, block.parameters, this.meta, this.options);
   }
 }
 
@@ -675,7 +665,7 @@ export class LazyOpcodeBuilder extends OpcodeBuilder {
 
   pushSymbolTable(block: Option<Block>) {
     if (block) {
-      this.pushConstant(block.symbolTable);
+      this.pushOther(block.symbolTable);
     } else {
       this.primitive(null);
     }
@@ -683,18 +673,18 @@ export class LazyOpcodeBuilder extends OpcodeBuilder {
 
   pushBlock(block: Option<Block>) {
     if (block) {
-      this.pushConstant(block);
+      this.pushOther(block);
     } else {
       this.primitive(null);
     }
   }
 
-  invokeYield(count: number) {
+  invokeYield() {
     this.compileBlock();
-    super.invokeYield(count);
+    super.invokeYield();
   }
 
-  protected pushConstant<T>(value: T) {
+  protected pushOther<T>(value: T) {
     this.push(Op.Constant, this.other(value));
   }
 

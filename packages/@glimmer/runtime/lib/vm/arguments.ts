@@ -9,9 +9,7 @@ import { PrimitiveReference, UNDEFINED_REFERENCE } from '../references';
   The calling convention is:
 
   * 0-N positional arguments at the bottom (left-to-right)
-  * number of positional args
   * 0-N named arguments next
-  * an array of names on top
 */
 
 export interface IArguments {
@@ -73,18 +71,15 @@ export class Arguments implements IArguments {
   public named: INamedArguments = new NamedArguments();
 
   empty() {
-    this.setup(null as any as EvaluationStack, true);
+    this.setup(null as any as EvaluationStack, EMPTY_ARRAY, 0, true);
     return this;
   }
 
-  setup(stack: EvaluationStack, synthetic: boolean) {
+  setup(stack: EvaluationStack, names: string[], positionalCount: number, synthetic: boolean) {
     this.stack = stack;
 
-    let names = stack.fromTop<string[]>(0);
     let namedCount = names.length;
-
-    let positionalCount = stack.fromTop<number>(namedCount + 1);
-    let start = positionalCount + namedCount + 2;
+    let start = positionalCount + namedCount;
 
     let positional = this.positional as PositionalArguments;
     positional.setup(stack, start, positionalCount);
@@ -120,7 +115,7 @@ export class Arguments implements IArguments {
 
   clear(): void {
     let { stack, length } = this;
-    stack.pop(length + 2);
+    stack.pop(length);
   }
 }
 

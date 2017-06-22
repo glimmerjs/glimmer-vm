@@ -24,7 +24,7 @@ export const enum Op {
    * Format:
    *   (Helper helper:#Function)
    * Operand Stack:
-   *   ..., Arguments →
+   *   ..., VersionedPathReference..., Arguments →
    *   ..., VersionedPathReference
    */
   Helper,
@@ -454,14 +454,14 @@ export const enum Op {
   InvokeStatic,
 
   /**
-   * Operation: Evaluate the block at the top of the stack.
+   * Operation: Yield to a block.
    * Format:
-   *   (InvokeDynamic invoker:#FunctionInvoker)
+   *   (InvokeYield)
    * Operand Stack:
-   *   ..., InlineBlock, [ VersionedPathReference... ], VersionedPathReference →
+   *   ..., VersionedPathReference..., Arguments, SymbolTable, Handle →
    *   ...
    */
-  InvokeDynamic,
+  InvokeYield,
 
   /**
    * Operation: Jump to the specified offset.
@@ -737,15 +737,15 @@ export const enum Op {
   GetComponentSelf,
 
   /**
-   * Operation: Get a slice of opcodes to invoke.
+   * Operation: Invoke the layout returned by the manager.
    *
    * Format:
-   *   (GetComponentLayout state:u32)
+   *   (InvokeComponentLayout state:u32)
    * Operand Stack:
    *   ... →
-   *   ..., Layout
+   *   ...
    */
-  GetComponentLayout,
+  InvokeComponentLayout,
 
   /**
    * Operation: Begin a new cache group
@@ -794,15 +794,15 @@ export const enum Op {
   /// PARTIALS
 
   /**
-   * Operation: Extract the template from a partial definition
+   * Operation: Lookup and invoke a partial template.
    *
    * Format:
-   *   (GetPartialTemplate)
+   *   (InvokePartial templateMeta:TemplateMeta symbols:#Array<#string> evalInfo:#Array<number>)
    * Operand Stack:
-   *   ..., PartialDefinition →
-   *   ..., Program
+   *   ..., VersionedPathReference<string> →
+   *   ...
    */
-  GetPartialTemplate,
+  InvokePartial,
 
   /**
    * Operation:

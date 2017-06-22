@@ -10,9 +10,9 @@ import { ConcatReference } from '../expressions/concat';
 
 export type FunctionExpression<T> = (vm: PublicVM) => VersionedPathReference<T>;
 
-APPEND_OPCODES.add(Op.Helper, (vm, { op1: _helper }) => {
+APPEND_OPCODES.add(Op.Helper, (vm, { op1: specifier }) => {
   let stack = vm.stack;
-  let helper = vm.constants.getFunction<Helper>(_helper);
+  let helper = vm.constants.resolveSpecifier<Helper>(specifier);
   let args = stack.pop<Arguments>();
   let value = helper(vm, args);
 
