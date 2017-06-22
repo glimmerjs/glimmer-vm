@@ -4,10 +4,8 @@ import { map, VersionedPathReference } from '@glimmer/reference';
 import { assert, Dict, dict, EMPTY_ARRAY, unwrap } from '@glimmer/util';
 import * as WireFormat from '@glimmer/wire-format';
 import { ModifierManager } from '../..';
-import { CompiledDynamicBlock, CompiledDynamicProgram } from '../compiled/blocks';
-import OpcodeBuilder from '../compiled/opcodes/builder';
+import OpcodeBuilder, { LazyOpcodeBuilder } from '../compiled/opcodes/builder';
 import { DynamicInvoker } from '../compiled/opcodes/vm';
-import { ComponentDefinition } from '../component/interfaces';
 import { Handle, Helper, ScopeSlot } from '../environment';
 import * as ClientSide from '../syntax/client-side';
 import { PublicVM, VM } from '../vm';
@@ -166,8 +164,8 @@ STATEMENTS.add(Ops.Block, (sexp: S.Block, builder: OpcodeBuilder) => {
 export class InvokeDynamicLayout implements DynamicInvoker<ProgramSymbolTable> {
   constructor(private attrs: Option<Block>) {}
 
-  invoke(vm: VM, layout: Option<CompiledDynamicProgram>) {
-    let { symbols, hasEval } = layout!.symbolTable as ProgramSymbolTable;
+  invoke(vm: VM, table: Option<ProgramSymbolTable>, handle: Option<Handle>) {
+    let { symbols, hasEval } = table!;
     let stack = vm.stack;
 
     let scope = vm.pushRootScope(symbols.length + 1, true);
@@ -220,7 +218,7 @@ export class InvokeDynamicLayout implements DynamicInvoker<ProgramSymbolTable> {
     if (lookup) scope.bindEvalScope(lookup);
 
     vm.pushFrame();
-    vm.call(layout!.handle);
+    vm.call(handle!);
   }
 
   toJSON() {
@@ -242,8 +240,7 @@ STATEMENTS.add(Ops.Component, (sexp: S.Component, builder: OpcodeBuilder) => {
       [Ops.ClientSideStatement, ClientSide.Ops.SetComponentAttrs, false]
     ];
     let attrsBlock = new RawInlineBlock(builder.meta, attrs, EMPTY_ARRAY);
-    let definition = resolver.resolve<ComponentDefinition>(specifier); // builder.env.lookupComponentDefinition(tag, builder.meta.templateMeta);
-    builder.pushComponentManager(definition);
+    builder.pushComponentManager(specifier);
     builder.invokeComponent(attrsBlock, null, args, child && child.scan());
   } else if (block && block.parameters.length) {
     throw new Error(`Compile Error: Cannot find component ${tag}`);
@@ -268,9 +265,8 @@ STATEMENTS.add(Ops.Component, (sexp: S.Component, builder: OpcodeBuilder) => {
 export class PartialInvoker implements DynamicInvoker<ProgramSymbolTable> {
   constructor(private outerSymbols: string[], private evalInfo: WireFormat.Core.EvalInfo) {}
 
-  invoke(vm: VM, _partial: Option<CompiledDynamicProgram>) {
-    let partial = unwrap(_partial);
-    let partialSymbols = partial.symbolTable.symbols;
+  invoke(vm: VM, table: Option<ProgramSymbolTable>,  handle: Option<Handle>) {
+    let partialSymbols = table!.symbols;
     let outerScope = vm.scope();
     let partialScope = vm.pushRootScope(partialSymbols.length, false);
     partialScope.bindCallerScope(outerScope.getCallerScope());
@@ -301,7 +297,7 @@ export class PartialInvoker implements DynamicInvoker<ProgramSymbolTable> {
     partialScope.bindPartialMap(locals);
 
     vm.pushFrame();
-    vm.call(partial.handle);
+    vm.call(handle!);
   }
 }
 
@@ -337,8 +333,8 @@ STATEMENTS.add(Ops.Partial, (sexp: S.Partial, builder: OpcodeBuilder) => {
   builder.returnTo('END');
 
   expr(name, builder);
-  builder.pushImmediate(1);
-  builder.pushImmediate(EMPTY_ARRAY);
+  builder.primitive(1);
+  builder.pushConstant(EMPTY_ARRAY);
   builder.pushArgs(true);
   builder.helper(helper);
 
@@ -350,7 +346,6 @@ STATEMENTS.add(Ops.Partial, (sexp: S.Partial, builder: OpcodeBuilder) => {
   builder.jumpUnless('ELSE');
 
   builder.getPartialTemplate();
-  builder.compileDynamicBlock();
   builder.invokeDynamic(new PartialInvoker(symbols, evalInfo));
   builder.popScope();
   builder.popFrame();
@@ -365,14 +360,14 @@ STATEMENTS.add(Ops.Partial, (sexp: S.Partial, builder: OpcodeBuilder) => {
   builder.stopLabels();
 });
 
-class InvokeDynamicYield implements DynamicInvoker<BlockSymbolTable> {
+export class InvokeDynamicYield implements DynamicInvoker<BlockSymbolTable> {
   constructor(private callerCount: number) {}
 
-  invoke(vm: VM, block: Option<CompiledDynamicBlock>) {
+  invoke(vm: VM, table: Option<BlockSymbolTable>, handle: Option<Handle>) {
     let { callerCount } = this;
     let stack = vm.stack;
 
-    if (!block) {
+    if (!table) {
       // To balance the pop{Frame,Scope}
       vm.pushFrame();
       vm.pushCallerScope();
@@ -380,7 +375,6 @@ class InvokeDynamicYield implements DynamicInvoker<BlockSymbolTable> {
       return;
     }
 
-    let table = block.symbolTable;
     let locals = table.parameters; // always present in inline blocks
 
     let calleeCount = locals ? locals.length : 0;
@@ -395,7 +389,7 @@ class InvokeDynamicYield implements DynamicInvoker<BlockSymbolTable> {
       scope.bindSymbol(locals![i], stack.fromBase<VersionedPathReference<Opaque>>(callerCount-i));
     }
 
-    vm.call(block.handle);
+    vm.call(handle!);
   }
 
   toJSON() {
@@ -406,17 +400,7 @@ class InvokeDynamicYield implements DynamicInvoker<BlockSymbolTable> {
 STATEMENTS.add(Ops.Yield, (sexp: WireFormat.Statements.Yield, builder: OpcodeBuilder) => {
   let [, to, params] = sexp;
 
-  let count = compileList(params, builder);
-
-  builder.getBlock(to);
-  builder.compileDynamicBlock();
-  builder.invokeDynamic(new InvokeDynamicYield(count));
-  builder.popScope();
-  builder.popFrame();
-
-  if (count) {
-    builder.pop(count);
-  }
+  builder.yield(to, params);
 });
 
 STATEMENTS.add(Ops.Debugger, (sexp: WireFormat.Statements.Debugger, builder: OpcodeBuilder) => {
@@ -439,7 +423,7 @@ export function expr(expression: WireFormat.Expression, builder: OpcodeBuilder):
   if (Array.isArray(expression)) {
     EXPRESSIONS.compile(expression, builder);
   } else {
-    builder.primitive(expression);
+    builder.primitiveReference(expression);
   }
 }
 
@@ -512,7 +496,7 @@ EXPRESSIONS.add(Ops.MaybeLocal, (sexp: E.MaybeLocal, builder: OpcodeBuilder) => 
 });
 
 EXPRESSIONS.add(Ops.Undefined, (_sexp, builder) => {
-  return builder.primitive(undefined);
+  return builder.primitiveReference(undefined);
 });
 
 EXPRESSIONS.add(Ops.HasBlock, (sexp: E.HasBlock, builder: OpcodeBuilder) => {
@@ -526,16 +510,6 @@ EXPRESSIONS.add(Ops.HasBlockParams, (sexp: E.HasBlockParams, builder: OpcodeBuil
 EXPRESSIONS.add(Ops.ClientSideExpression, (sexp: E.ClientSide, builder: OpcodeBuilder) => {
   CLIENT_SIDE_EXPRS.compile(sexp as ClientSide.ClientSideExpression, builder);
 });
-
-export function compileList(params: Option<WireFormat.Expression[]>, builder: OpcodeBuilder): number {
-  if (!params) return 0;
-
-  for (let i = 0; i < params.length; i++) {
-    expr(params[i], builder);
-  }
-
-  return params.length;
-}
 
 export type BlockMacro = (params: C.Params, hash: C.Hash, template: Option<Block>, inverse: Option<Block>, builder: OpcodeBuilder) => void;
 export type MissingBlockMacro = (name: string, params: C.Params, hash: C.Hash, template: Option<Block>, inverse: Option<Block>, builder: OpcodeBuilder) => void;
@@ -664,13 +638,13 @@ export function populateBuiltins(blocks: Blocks = new Blocks(), inlines: Inlines
 
     builder.jumpUnless('ELSE');
 
-    builder.invokeStatic(unwrap(template));
+    builder.invokeStaticBlock(unwrap(template));
 
     if (inverse) {
       builder.jump('EXIT');
 
       builder.label('ELSE');
-      builder.invokeStatic(inverse);
+      builder.invokeStaticBlock(inverse);
 
       builder.label('EXIT');
       builder.exit();
@@ -718,13 +692,13 @@ export function populateBuiltins(blocks: Blocks = new Blocks(), inlines: Inlines
 
     builder.jumpIf('ELSE');
 
-    builder.invokeStatic(unwrap(template));
+    builder.invokeStaticBlock(unwrap(template));
 
     if (inverse) {
       builder.jump('EXIT');
 
       builder.label('ELSE');
-      builder.invokeStatic(inverse);
+      builder.invokeStaticBlock(inverse);
 
       builder.label('EXIT');
       builder.exit();
@@ -773,13 +747,13 @@ export function populateBuiltins(blocks: Blocks = new Blocks(), inlines: Inlines
 
     builder.jumpUnless('ELSE');
 
-    builder.invokeStatic(unwrap(template), 1);
+    builder.invokeStaticBlock(unwrap(template), 1);
 
     if (inverse) {
       builder.jump('EXIT');
 
       builder.label('ELSE');
-      builder.invokeStatic(inverse);
+      builder.invokeStaticBlock(inverse);
 
       builder.label('EXIT');
       builder.exit();
@@ -829,7 +803,7 @@ export function populateBuiltins(blocks: Blocks = new Blocks(), inlines: Inlines
     if (hash && hash[0][0] === 'key') {
       expr(hash[1][0], builder);
     } else {
-      builder.primitive(null);
+      builder.primitiveReference(null);
     }
 
     expr(params[0], builder);
@@ -852,7 +826,7 @@ export function populateBuiltins(blocks: Blocks = new Blocks(), inlines: Inlines
     builder.iterate('BREAK');
 
     builder.label('BODY');
-    builder.invokeStatic(unwrap(template), 2);
+    builder.invokeStaticBlock(unwrap(template), 2);
     builder.pop(2);
     builder.exit();
     builder.return();
@@ -865,7 +839,7 @@ export function populateBuiltins(blocks: Blocks = new Blocks(), inlines: Inlines
       builder.jump('EXIT');
 
       builder.label('ELSE');
-      builder.invokeStatic(inverse);
+      builder.invokeStaticBlock(inverse);
 
       builder.label('EXIT');
       builder.exit();
@@ -915,7 +889,7 @@ export function populateBuiltins(blocks: Blocks = new Blocks(), inlines: Inlines
     builder.jumpUnless('ELSE');
 
     builder.pushRemoteElement();
-    builder.invokeStatic(unwrap(template));
+    builder.invokeStaticBlock(unwrap(template));
     builder.popRemoteElement();
 
     builder.label('ELSE');
@@ -932,14 +906,14 @@ export function populateBuiltins(blocks: Blocks = new Blocks(), inlines: Inlines
     if (hash) {
       let [names, expressions] = hash;
 
-      compileList(expressions, builder);
+      builder.compileParams(expressions);
 
       builder.pushDynamicScope();
       builder.bindDynamicScope(names);
-      builder.invokeStatic(unwrap(template));
+      builder.invokeStaticBlock(unwrap(template));
       builder.popDynamicScope();
     } else {
-      builder.invokeStatic(unwrap(template));
+      builder.invokeStaticBlock(unwrap(template));
     }
   });
 
@@ -954,7 +928,7 @@ export function compileStatements(statements: WireFormat.Statement[], meta: Comp
   start: Handle;
   finalize(): Handle;
 } {
-  let b = new OpcodeBuilder(env, meta);
+  let b = new LazyOpcodeBuilder(env, meta);
 
   for (let i = 0; i < statements.length; i++) {
     compileStatement(statements[i], b);

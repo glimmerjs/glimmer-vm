@@ -33,7 +33,7 @@ import { PublicVM } from './vm/append';
 
 import { IArguments } from './vm/arguments';
 import { DEBUG } from "@glimmer/local-debug-flags";
-import { Simple } from "@glimmer/interfaces";
+import { Simple, Unique } from "@glimmer/interfaces";
 
 export type ScopeSlot = VersionedPathReference<Opaque> | Option<Block>;
 
@@ -249,9 +249,7 @@ export class Opcode {
   }
 }
 
-export interface Handle {
-  "[is-handle]": true;
-}
+export type Handle = Unique<"Handle">;
 
 type unsafe = any;
 

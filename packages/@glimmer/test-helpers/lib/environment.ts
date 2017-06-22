@@ -823,11 +823,11 @@ class TestMacros extends Macros {
     let { blocks, inlines} = this;
 
     blocks.add('identity', (_params, _hash, template, _inverse, builder) => {
-      builder.invokeStatic(template!);
+      builder.invokeStaticBlock(template!);
     });
 
     blocks.add('render-inverse', (_params, _hash, _template, inverse, builder) => {
-      builder.invokeStatic(inverse!);
+      builder.invokeStaticBlock(inverse!);
     });
 
     blocks.add('component', (params, hash, template, inverse, builder) => {
@@ -847,8 +847,7 @@ class TestMacros extends Macros {
       let specifier = resolver.lookupComponent(name, builder.meta.templateMeta);
 
       if (specifier) {
-        let definition = resolver.resolve<ComponentDefinition>(specifier);
-        builder.component.static(definition, [params, hashToArgs(hash), template, inverse]);
+        builder.component.static(specifier, [params, hashToArgs(hash), template, inverse]);
         return true;
       }
 
@@ -867,8 +866,7 @@ class TestMacros extends Macros {
       let specifier = resolver.lookupComponent(name, builder.meta.templateMeta);
 
       if (specifier) {
-        let definition = resolver.resolve<ComponentDefinition>(specifier);
-        builder.component.static(definition, [params!, hashToArgs(hash), null, null]);
+        builder.component.static(specifier, [params!, hashToArgs(hash), null, null]);
         return true;
       }
 

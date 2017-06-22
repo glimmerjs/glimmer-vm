@@ -7,5 +7,7 @@ import { PartialDefinition } from '../../partial';
 APPEND_OPCODES.add(Op.GetPartialTemplate, vm => {
   let stack = vm.stack;
   let definition = stack.pop<VersionedPathReference<PartialDefinition<TemplateMeta>>>();
-  stack.push(definition.value().template.asPartial());
+  let { symbolTable, handle } = definition.value().getPartial();
+  stack.push(symbolTable);
+  stack.push(handle);
 });

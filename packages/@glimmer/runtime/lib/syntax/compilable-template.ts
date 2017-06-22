@@ -28,18 +28,19 @@ export default class CompilableTemplate<S extends SymbolTable> implements ICompi
   private compiledStatic: Option<CompiledStaticTemplate> = null;
   private compiledDynamic: Option<CompiledDynamicTemplate<S>> = null;
 
-  constructor(public statements: Statement[], public symbolTable: S) {}
+  constructor(public statements: Statement[], public symbolTable: S, private options: CompilationOptions) {}
 
-  compileStatic(env: CompilationOptions): CompiledStaticTemplate {
-    let { compiledStatic } = this;
+  compileStatic(): CompiledStaticTemplate {
+    let { compiledStatic, options } = this;
+
     if (!compiledStatic) {
-      let builder = compileStatements(this.statements, this.symbolTable.meta, env);
+      let builder = compileStatements(this.statements, this.symbolTable.meta, options);
       builder.finalize();
       let handle = builder.start;
       if (DEBUG) {
-        let start = env.program.heap.size() - env.program.heap.sizeof(handle);
-        let end = start + env.program.heap.sizeof(handle);
-        debugSlice(env, start, end);
+        let start = options.program.heap.size() - options.program.heap.sizeof(handle);
+        let end = start + options.program.heap.sizeof(handle);
+        debugSlice(options, start, end);
       }
       compiledStatic = this.compiledStatic = new CompiledStaticTemplate(handle);
     }
@@ -47,10 +48,10 @@ export default class CompilableTemplate<S extends SymbolTable> implements ICompi
     return compiledStatic;
   }
 
-  compileDynamic(env: CompilationOptions): CompiledDynamicTemplate<S> {
+  compileDynamic(): CompiledDynamicTemplate<S> {
     let { compiledDynamic } = this;
     if (!compiledDynamic) {
-      let staticBlock = this.compileStatic(env);
+      let staticBlock = this.compileStatic();
       compiledDynamic = new CompiledDynamicTemplate(staticBlock.handle, this.symbolTable);
     }
 

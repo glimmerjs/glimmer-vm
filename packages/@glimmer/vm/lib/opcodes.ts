@@ -90,16 +90,6 @@ export const enum Op {
   GetProperty,
 
   /**
-   * Operation: Push the specified constant block onto the stack.
-   * Format:
-   *   (PushBlock block:Option<#InlineBlock>)
-   * Operand Stack:
-   *   ... →
-   *   ..., Option<InlineBlock>
-   */
-  PushBlock,
-
-  /**
    * Operation: Push the specified bound block onto the stack.
    * Format:
    *   (GetBlock block:u32)
@@ -149,17 +139,6 @@ export const enum Op {
 
   /**
    * Operation:
-   *   Push a number onto the stack.
-   * Format:
-   *   (Immediate number:u32)
-   * Operand Stack:
-   *   ... →
-   *   ..., number
-   */
-  Immediate,
-
-  /**
-   * Operation:
    *   Push an Object constant onto the stack that is not
    *   a JavaScript primitive.
    * Format:
@@ -186,6 +165,17 @@ export const enum Op {
    *   00: number
    *   01: string
    *   10: true | false | null | undefined
+   */
+  Primitive,
+
+  /**
+   * Operation: Convert the top of the stack into a primitive reference.
+   *
+   * Format:
+   *   (PrimitiveReference)
+   * Operand Stack:
+   *   ..., Primitive →
+   *   ..., VersionedPathReference<Primitive>
    */
   PrimitiveReference,
 
@@ -446,22 +436,12 @@ export const enum Op {
   /**
    * Operation: Compile the InlineBlock at the top of the stack.
    * Format:
-   *   (CompileDynamicBlock options:#CompileOptions)
+   *   (CompileBlock)
    * Operand Stack:
-   *   ..., InlineBlock →
-   *   ..., CompiledDynamicBlock
+   *   ..., CompilableBlock →
+   *   ..., Handle
    */
-  CompileDynamicBlock,
-
-  /**
-   * Operation: Compile the InlineBlock at the top of the stack.
-   * Format:
-   *   (CompileStaticBlock block:#InlineBlock options:#CompileOptions)
-   * Operand Stack:
-   *   ... →
-   *   ..., CompiledStaticBlock
-   */
-  CompileStaticBlock,
+  CompileBlock,
 
   /**
    * Operation: Evaluate the specified block.

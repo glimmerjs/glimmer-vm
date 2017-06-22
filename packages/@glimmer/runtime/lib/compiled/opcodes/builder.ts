@@ -1,26 +1,25 @@
-import { CompilationMeta, Opaque, Option, SymbolTable } from '@glimmer/interfaces';
+import { CompilationMeta, Opaque, Option, SymbolTable, Specifier } from '@glimmer/interfaces';
 import { dict, EMPTY_ARRAY, expect, fillNulls, Stack, typePos } from '@glimmer/util';
+import { Op, Register } from '@glimmer/vm';
 import * as WireFormat from '@glimmer/wire-format';
-import { ComponentBuilder } from '../../compiler';
-import { ComponentDefinition } from '../../component/interfaces';
-import { Program, Heap, Handle } from '../../environment';
+import { Handle, Heap, Program } from '../../environment';
 import {
   ConstantArray,
-  ConstantBlock,
   ConstantFunction,
   ConstantOther,
   Constants,
   ConstantString,
+  LazyConstants,
 } from '../../environment/constants';
 import { ModifierManager } from '../../modifier/interfaces';
 import { ComponentBuilder as IComponentBuilder } from '../../opcode-builder';
-import { Op, Register } from '@glimmer/vm';
+import { Primitive } from '../../references';
 import { FunctionExpressionCallback } from '../../syntax/client-side';
-import { expr, InvokeDynamicLayout } from '../../syntax/functions';
+import { CompilationOptions } from '../../syntax/compilable-template';
+import { expr, InvokeDynamicLayout, InvokeDynamicYield } from '../../syntax/functions';
 import { Block } from '../../syntax/interfaces';
 import RawInlineBlock from '../../syntax/raw-block';
 import { IsComponentDefinitionReference } from '../opcodes/content';
-import { CompilationOptions } from '../../syntax/compilable-template';
 import * as vm from './vm';
 
 export interface CompilesInto<E> {
@@ -31,7 +30,7 @@ export type Represents<E> = CompilesInto<E> | E;
 
 export type Label = string;
 
-type TargetOpcode = Op.Jump | Op.JumpIf | Op.JumpUnless | Op.EnterList | Op.Iterate | Op.Immediate | Op.ReturnTo;
+type TargetOpcode = Op.Jump | Op.JumpIf | Op.JumpUnless | Op.EnterList | Op.Iterate | Op.ReturnTo;
 
 class Labels {
   labels = dict<number>();
@@ -55,21 +54,20 @@ class Labels {
   }
 }
 
-export abstract class BasicOpcodeBuilder {
+export abstract class OpcodeBuilder {
   public constants: Constants;
   public heap: Heap;
   public start: Handle;
 
   private labelsStack = new Stack<Labels>();
   private isComponentAttrs = false;
+  public component: IComponentBuilder;
 
-  constructor(public options: CompilationOptions, public meta: CompilationMeta, public program: Program) {
+  constructor(public options: CompilationOptions, public meta: CompilationMeta, public program: Program = options.program) {
     this.constants = program.constants;
     this.heap = program.heap;
     this.start = this.heap.malloc();
   }
-
-  abstract compile<E>(expr: Represents<E>): E;
 
   private get pos() {
     return typePos(this.heap.size());
@@ -125,10 +123,14 @@ export abstract class BasicOpcodeBuilder {
     label.patch(this.program);
   }
 
+  protected other(...args: any[]): any {
+    throw "lol";
+  }
+
   // components
 
-  pushComponentManager(definition: ComponentDefinition) {
-    this.push(Op.PushComponentManager, this.other(definition));
+  pushComponentManager(specifier: Specifier) {
+    this.push(Op.PushComponentManager, this.constants.specifier(specifier));
   }
 
   pushDynamicComponentManager() {
@@ -189,7 +191,7 @@ export abstract class BasicOpcodeBuilder {
   // debugger
 
   debugger(symbols: string[], evalInfo: number[]) {
-    this.push(Op.Debugger, this.constants.other(symbols), this.constants.array(evalInfo));
+    this.push(Op.Debugger, this.other(symbols), this.constants.array(evalInfo));
   }
 
   // content
@@ -229,7 +231,7 @@ export abstract class BasicOpcodeBuilder {
     let namespace = _namespace ? this.constants.string(_namespace) : 0;
 
     if (this.isComponentAttrs) {
-      this.primitive(_value);
+      this.primitiveReference(_value);
       this.push(Op.ComponentAttr, name, 1, namespace);
     } else {
       let value = this.constants.string(_value);
@@ -366,11 +368,7 @@ export abstract class BasicOpcodeBuilder {
     this.push(Op.PopDynamicScope);
   }
 
-  pushImmediate<T>(value: T) {
-    this.push(Op.Constant, this.other(value));
-  }
-
-  primitive(_primitive: string | number | null | undefined | boolean) {
+  primitive(_primitive: Primitive) {
     let flag: 0 | 1 | 2 = 0;
     let primitive: number;
     switch (typeof _primitive) {
@@ -398,16 +396,20 @@ export abstract class BasicOpcodeBuilder {
         throw new Error('Invalid primitive passed to pushPrimitive');
     }
 
-    this.push(Op.PrimitiveReference, (flag << 30) | primitive);
+    this.push(Op.Primitive, (flag << 30) | primitive);
+  }
+
+  primitiveReference(primitive: Primitive) {
+    this.primitive(primitive);
+    this.push(Op.PrimitiveReference);
   }
 
   helper(func: Function) {
     this.push(Op.Helper, this.func(func));
   }
 
-  pushBlock(block: Option<Block>) {
-    this.push(Op.PushBlock, this.block(block));
-  }
+  abstract pushBlock(block: Option<Block>): void;
+  abstract pushSymbolTable(block: Option<Block>): void;
 
   bindDynamicScope(_names: string[]) {
     this.push(Op.BindDynamicScope, this.names(_names));
@@ -433,41 +435,16 @@ export abstract class BasicOpcodeBuilder {
     this.push(Op.PopFrame);
   }
 
-  compileDynamicBlock(): void {
-    let options = this.constants.other(this.options);
-    this.push(Op.CompileDynamicBlock, options);
+  invokeStatic(): void {
+    this.push(Op.InvokeStatic);
   }
 
   invokeDynamic(invoker: vm.DynamicInvoker<SymbolTable>): void {
     this.push(Op.InvokeDynamic, this.other(invoker));
   }
 
-  invokeStatic(block: Block, callerCount = 0): void {
-    let { parameters } = block.symbolTable;
-    let calleeCount = parameters.length;
-    let count = Math.min(callerCount, calleeCount);
-
-    this.pushFrame();
-
-    if (count) {
-      this.pushChildScope();
-
-      for (let i = 0; i < count; i++) {
-        this.dup(Register.fp, callerCount - i);
-        this.setVariable(parameters[i]);
-      }
-    }
-
-    let _block = this.constants.block(block);
-    let _options = this.constants.other(this.options);
-    this.push(Op.CompileStaticBlock, _block, _options);
-    this.push(Op.InvokeStatic);
-
-    if (count) {
-      this.popScope();
-    }
-
-    this.popFrame();
+  invokeYield(count: number): void {
+    this.invokeDynamic(new InvokeDynamicYield(count));
   }
 
   test(testFunc: 'const' | 'simple' | 'environment' | vm.TestFunction) {
@@ -504,6 +481,8 @@ export abstract class BasicOpcodeBuilder {
     this.labels.target(this.pos, Op.JumpUnless, target);
   }
 
+  // internal helpers
+
   string(_string: string): ConstantString {
     return this.constants.string(_string);
   }
@@ -523,44 +502,27 @@ export abstract class BasicOpcodeBuilder {
     return this.constants.array(symbols);
   }
 
-  protected other(value: Opaque): ConstantOther {
-    return this.constants.other(value);
-  }
-
-  protected block(block: Option<Block>): ConstantBlock {
-    return block ? this.constants.block(block) : 0;
-  }
-
   protected func(func: Function): ConstantFunction {
     return this.constants.function(func);
   }
-}
 
-function isCompilableExpression<E>(expr: Represents<E>): expr is CompilesInto<E> {
-  return typeof expr === 'object' && expr !== null && typeof (expr as CompilesInto<E>).compile === 'function';
-}
+  // convenience methods
 
-export default class OpcodeBuilder extends BasicOpcodeBuilder {
-  public component: IComponentBuilder;
+  compileParams(params: Option<WireFormat.Core.Params>) {
+    if (!params) return 0;
 
-  constructor(env: CompilationOptions, meta: CompilationMeta, program: Program = env.program) {
-    super(env, meta, program);
-    this.component = new ComponentBuilder(this);
+    for (let i = 0; i < params.length; i++) {
+      expr(params[i], this);
+    }
+
+    return params.length;
   }
 
   compileArgs(params: Option<WireFormat.Core.Params>, hash: Option<WireFormat.Core.Hash>, synthetic: boolean) {
-    let positional = 0;
+    let count = this.compileParams(params);
+    this.primitive(count);
 
-    if (params) {
-      for (let i = 0; i < params.length; i++) {
-        expr(params[i], this);
-      }
-      positional = params.length;
-    }
-
-    this.pushImmediate(positional);
-
-    let names = EMPTY_ARRAY;
+    let names: string[] = EMPTY_ARRAY;
 
     if (hash) {
       names = hash[0];
@@ -570,7 +532,7 @@ export default class OpcodeBuilder extends BasicOpcodeBuilder {
       }
     }
 
-    this.pushImmediate(names);
+    this.pushConstant(names);
     this.pushArgs(synthetic);
   }
 
@@ -580,6 +542,32 @@ export default class OpcodeBuilder extends BasicOpcodeBuilder {
     } else {
       return expr;
     }
+  }
+
+  invokeStaticBlock(block: Block, callerCount = 0): void {
+    let { parameters } = block.symbolTable;
+    let calleeCount = parameters.length;
+    let count = Math.min(callerCount, calleeCount);
+
+    this.pushFrame();
+
+    if (count) {
+      this.pushChildScope();
+
+      for (let i = 0; i < count; i++) {
+        this.dup(Register.fp, callerCount - i);
+        this.setVariable(parameters[i]);
+      }
+    }
+
+    this.pushBlock(block);
+    this.invokeStatic();
+
+    if (count) {
+      this.popScope();
+    }
+
+    this.popFrame();
   }
 
   guardedAppend(expression: WireFormat.Expression, trusting: boolean) {
@@ -624,13 +612,26 @@ export default class OpcodeBuilder extends BasicOpcodeBuilder {
     this.stopLabels();
   }
 
+  yield(to: number, params: Option<WireFormat.Core.Params>) {
+    let count = this.compileParams(params);
+
+    this.getBlock(to);
+    this.invokeYield(count);
+    this.popScope();
+    this.popFrame();
+
+    if (count) {
+      this.pop(count);
+    }
+  }
+
   invokeComponent(attrs: Option<RawInlineBlock>, params: Option<WireFormat.Core.Params>, hash: Option<WireFormat.Core.Hash>, block: Option<Block>, inverse: Option<Block> = null) {
     this.fetch(Register.s0);
     this.dup(Register.sp, 1);
     this.load(Register.s0);
 
-    this.pushBlock(block);
-    this.pushBlock(inverse);
+    this.pushDynamicBlock(block);
+    this.pushDynamicBlock(inverse);
 
     this.compileArgs(params, hash, false);
     this.prepareArgs(Register.s0);
@@ -652,10 +653,61 @@ export default class OpcodeBuilder extends BasicOpcodeBuilder {
     this.load(Register.s0);
   }
 
+  pushDynamicBlock(block: Option<Block>): void {
+    this.pushSymbolTable(block);
+    this.pushBlock(block);
+  }
+
   template(block: Option<WireFormat.SerializedInlineBlock>): Option<RawInlineBlock> {
     if (!block) return null;
     return new RawInlineBlock(this.meta, block.statements, block.parameters);
   }
 }
+
+export default OpcodeBuilder;
+
+function isCompilableExpression<E>(expr: Represents<E>): expr is CompilesInto<E> {
+  return typeof expr === 'object' && expr !== null && typeof (expr as CompilesInto<E>).compile === 'function';
+}
+
+export class LazyOpcodeBuilder extends OpcodeBuilder {
+  public constants: LazyConstants;
+
+  pushSymbolTable(block: Option<Block>) {
+    if (block) {
+      this.pushConstant(block.symbolTable);
+    } else {
+      this.primitive(null);
+    }
+  }
+
+  pushBlock(block: Option<Block>) {
+    if (block) {
+      this.pushConstant(block);
+    } else {
+      this.primitive(null);
+    }
+  }
+
+  invokeYield(count: number) {
+    this.compileBlock();
+    super.invokeYield(count);
+  }
+
+  protected pushConstant<T>(value: T) {
+    this.push(Op.Constant, this.other(value));
+  }
+
+  protected compileBlock() {
+    this.push(Op.CompileBlock);
+  }
+
+  protected other(value: Opaque): ConstantOther {
+    return this.constants.other(value);
+  }
+}
+
+// export class EagerOpcodeBuilder extends OpcodeBuilder {
+// }
 
 export type BlockCallback = (dsl: OpcodeBuilder, BEGIN: Label, END: Label) => void;

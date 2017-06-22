@@ -1,5 +1,5 @@
 import { Register } from '@glimmer/vm';
-import { CompilationMeta } from '@glimmer/interfaces';
+import { CompilationMeta, Specifier } from '@glimmer/interfaces';
 import { CompiledDynamicProgram, CompiledDynamicTemplate } from './compiled/blocks';
 import { Maybe, Option } from '@glimmer/util';
 import { Ops, TemplateMeta } from '@glimmer/wire-format';
@@ -17,7 +17,7 @@ import {
 
 import { expr } from './syntax/functions';
 
-import OpcodeBuilderDSL from './compiled/opcodes/builder';
+import OpcodeBuilderDSL, { LazyOpcodeBuilder } from './compiled/opcodes/builder';
 
 import * as Component from './component/interfaces';
 
@@ -154,7 +154,8 @@ class WrappedBuilder implements InnerLayoutBuilder {
     }
 
     b.label('BODY');
-    b.invokeStatic(layout.asBlock());
+    b.pushBlock(layout.asBlock());
+    b.invokeStatic();
 
     if (dynamicTag) {
       b.fetch(Register.s1);
@@ -200,8 +201,8 @@ class UnwrappedBuilder implements InnerLayoutBuilder {
   }
 
   compile(): CompiledDynamicProgram {
-    let { env, layout } = this;
-    return layout.asLayout(this.componentName, this.attrs.buffer).compileDynamic(env);
+    let { layout } = this;
+    return layout.asLayout(this.componentName, this.attrs.buffer).compileDynamic();
   }
 }
 
@@ -253,7 +254,7 @@ export class ComponentBuilder implements IComponentBuilder {
     this.env = builder.options;
   }
 
-  static(definition: Component.ComponentDefinition, args: ComponentArgs) {
+  static(definition: Specifier, args: ComponentArgs) {
     let [params, hash, _default, inverse] = args;
     let { builder } = this;
 
@@ -307,5 +308,5 @@ export class ComponentBuilder implements IComponentBuilder {
 }
 
 export function builder(env: CompilationOptions, meta: CompilationMeta) {
-  return new OpcodeBuilderDSL(env, meta);
+  return new LazyOpcodeBuilder(env, meta);
 }

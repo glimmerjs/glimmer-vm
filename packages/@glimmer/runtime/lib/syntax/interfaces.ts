@@ -1,4 +1,3 @@
-import { CompilationOptions } from './compilable-template';
 import {
   BlockSymbolTable,
   ProgramSymbolTable,
@@ -9,10 +8,10 @@ import {
   CompiledStaticTemplate,
 } from '../compiled/blocks';
 
-export interface CompilableTemplate<S extends SymbolTable> {
+export interface CompilableTemplate<S extends SymbolTable = SymbolTable> {
   symbolTable: S;
-  compileStatic(env: CompilationOptions): CompiledStaticTemplate;
-  compileDynamic(env: CompilationOptions): CompiledDynamicTemplate<S>;
+  compileStatic(): CompiledStaticTemplate;
+  compileDynamic(): CompiledDynamicTemplate<S>;
 }
 
 export type Block = CompilableTemplate<BlockSymbolTable>;

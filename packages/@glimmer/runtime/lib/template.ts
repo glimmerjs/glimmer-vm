@@ -107,12 +107,12 @@ export default function templateFactory<T extends TemplateMeta, U>(serializedTem
 export default function templateFactory({ id: templateId, meta, block }: SerializedTemplateWithLazyBlock<any>): TemplateFactory<{}, {}> {
   let parsedBlock: SerializedTemplateBlock;
   let id = templateId || `client-${clientId++}`;
-  let create = (env: CompilationOptions, envMeta?: {}) => {
+  let create = (options: CompilationOptions, envMeta?: {}) => {
     let newMeta = envMeta ? assign({}, envMeta, meta) : meta;
     if (!parsedBlock) {
       parsedBlock = JSON.parse(block);
     }
-    return new ScannableTemplate(id, newMeta, env, parsedBlock);
+    return new ScannableTemplate(id, newMeta, options, parsedBlock);
   };
   return { id, meta, create };
 }
@@ -142,7 +142,7 @@ class ScannableTemplate implements Template<TemplateMeta> {
       default: throw new Error('unreachable');
     }
 
-    let compiled = this.asEntryPoint().compileDynamic(this.options);
+    let compiled = this.asEntryPoint().compileDynamic();
     let vm = VM.initial(this.options.program, env, self, dynamicScope, elementBuilder, compiled);
     return new TemplateIterator(vm);
   }

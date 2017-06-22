@@ -87,14 +87,13 @@ function debug(c: Constants, op: Op, op1: number, op2: number, op3: number): [st
       case Op.SetVariable: return ['SetVariable', { symbol: op1 }];
       case Op.GetVariable: return ['GetVariable', { symbol: op1 }];
       case Op.GetProperty: return ['GetProperty', { key: c.getString(op1) }];
-      case Op.PushBlock: return ['PushBlock', { block: c.getBlock(op1) }];
       case Op.GetBlock: return ['GetBlock', { symbol: op1 }];
       case Op.HasBlock: return ['HasBlock', { block: op1 }];
       case Op.HasBlockParams: return ['HasBlockParams', { block: op1 }];
       case Op.Concat: return ['Concat', { size: op1 }];
-      case Op.Immediate: return ['Immediate', { value: op1 }];
       case Op.Constant: return ['Constant', { value: c.getOther(op1) }];
-      case Op.PrimitiveReference: return ['PrimitiveReference', { primitive: op1 }];
+      case Op.Primitive: return ['Primitive', { primitive: op1 }];
+      case Op.PrimitiveReference: return ['PrimitiveReference', {}];
       case Op.Dup: return ['Dup', { register: Register[op1], offset: op2 }];
       case Op.Pop: return ['Pop', { count: op1 }];
       case Op.Load: return ['Load', { register: Register[op1] }];
@@ -110,7 +109,7 @@ function debug(c: Constants, op: Op, op1: number, op2: number, op3: number): [st
       /// HTML
       case Op.Text: return ['Text', { text: c.getString(op1) }];
       case Op.Comment: return ['Comment', { comment: c.getString(op1) }];
-      case Op.DynamicContent: return ['DynamicContent', { value: c.getOther(op1) }];
+      case Op.DynamicContent: return ['DynamicContent', { trusting: !!op1 }];
       case Op.OpenElement: return ['OpenElement', { tag: c.getString(op1) }];
       case Op.OpenElementWithOperations: return ['OpenElementWithOperations', { tag: c.getString(op1) }];
       case Op.OpenDynamicElement: return ['OpenDynamicElement', {}];
@@ -133,8 +132,7 @@ function debug(c: Constants, op: Op, op1: number, op2: number, op3: number): [st
       case Op.PopDynamicScope: return ['PopDynamicScope', {}];
 
       /// VM
-      case Op.CompileStaticBlock: return ['CompileStaticBlock', { block: c.getBlock(op1), options: c.getOther(op2) }];
-      case Op.CompileDynamicBlock: return ['CompileDynamicBlock', { options: c.getOther(op1) }];
+      case Op.CompileBlock: return ['CompileBlock', {}];
       case Op.InvokeStatic: return ['InvokeStatic', {}];
       case Op.InvokeDynamic: return ['InvokeDynamic', { invoker: c.getOther(op1) }];
       case Op.Jump: return ['Jump', { to: op1 }];

@@ -15,28 +15,28 @@ import { TemplateMeta } from "@glimmer/wire-format";
 export type DeserializedStatement = WireFormat.Statement | WireFormat.Statements.Attribute | WireFormat.Statements.Argument;
 
 export default class Scanner {
-  constructor(private block: WireFormat.SerializedTemplateBlock, private env: CompilationOptions) {
+  constructor(private block: WireFormat.SerializedTemplateBlock, private options: CompilationOptions) {
   }
 
   scanEntryPoint(meta: CompilationMeta): TopLevelBlock {
-    let { block } = this;
+    let { block, options } = this;
     let { statements, symbols, hasEval } = block;
-    return new CompilableTemplate(statements, { meta, symbols, hasEval });
+    return new CompilableTemplate(statements, { meta, symbols, hasEval }, options);
   }
 
   scanBlock(meta: CompilationMeta): Block {
-    let { block } = this;
+    let { block, options } = this;
     let { statements } = block;
-    return new CompilableTemplate(statements, { meta, parameters: EMPTY_ARRAY });
+    return new CompilableTemplate(statements, { meta, parameters: EMPTY_ARRAY }, options);
   }
 
   scanLayout(meta: CompilationMeta, attrs: WireFormat.Statements.Attribute[], componentName?: string): TopLevelBlock {
-    let { block } = this;
+    let { block, options } = this;
     let { symbols, hasEval } = block;
 
-    let scanner = new LayoutScanner(block, this.env, meta, attrs, componentName);
+    let scanner = new LayoutScanner(block, this.options, meta, attrs, componentName);
 
-    return new CompilableTemplate(scanner.scan(), { meta, hasEval, symbols });
+    return new CompilableTemplate(scanner.scan(), { meta, hasEval, symbols }, options);
   }
 }
 

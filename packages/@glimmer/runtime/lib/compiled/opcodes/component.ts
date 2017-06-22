@@ -21,8 +21,8 @@ import { Assert } from './vm';
 import { dict } from "@glimmer/util";
 import { Op, Register } from '@glimmer/vm';
 
-APPEND_OPCODES.add(Op.PushComponentManager, (vm, { op1: _definition }) => {
-  let definition = vm.constants.getOther<ComponentDefinition>(_definition);
+APPEND_OPCODES.add(Op.PushComponentManager, (vm, { op1: specifier }) => {
+  let definition = vm.constants.resolveSpecifier<ComponentDefinition>(specifier);
   let stack = vm.stack;
 
   stack.push({ definition, manager: definition.manager, component: null });
@@ -218,7 +218,10 @@ APPEND_OPCODES.add(Op.GetComponentSelf, (vm, { op1: _state }) => {
 
 APPEND_OPCODES.add(Op.GetComponentLayout, (vm, { op1: _state }) => {
   let { manager, definition, component } = vm.fetchValue<ComponentState>(_state);
-  vm.stack.push(manager.layoutFor(definition, component, vm.env));
+  let block = manager.layoutFor(definition, component, vm.env);
+
+  vm.stack.push(block.symbolTable);
+  vm.stack.push(block.handle);
 });
 
 APPEND_OPCODES.add(Op.DidRenderLayout, (vm, { op1: _state }) => {

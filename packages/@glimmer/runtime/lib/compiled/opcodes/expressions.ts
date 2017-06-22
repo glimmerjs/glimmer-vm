@@ -58,11 +58,6 @@ APPEND_OPCODES.add(Op.GetProperty, (vm, { op1: _key }) => {
   vm.stack.push(expr.get(key));
 });
 
-APPEND_OPCODES.add(Op.PushBlock, (vm, { op1: _block }) => {
-  let block = _block ? vm.constants.getBlock(_block) : null;
-  vm.stack.push(block);
-});
-
 APPEND_OPCODES.add(Op.GetBlock, (vm, { op1: _block }) => {
   vm.stack.push(vm.scope().getBlock(_block));
 });
