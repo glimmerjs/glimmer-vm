@@ -1,4 +1,4 @@
-import { Opaque, Option, Dict, BlockSymbolTable } from '@glimmer/interfaces';
+import { Opaque, Option, Dict, BlockSymbolTable, Resolver } from '@glimmer/interfaces';
 import {
   combineTagged,
   CONSTANT_TAG,
@@ -11,15 +11,134 @@ import {
 import Bounds from '../../bounds';
 import { Component, ComponentDefinition, ComponentManager, isComponentDefinition } from '../../component/interfaces';
 import { normalizeStringValue } from '../../dom/normalize';
-import { DynamicScope, ScopeSlot, Handle, ScopeBlock } from '../../environment';
+import { DynamicScope, Handle, ScopeBlock, ScopeSlot } from '../../environment';
 import { APPEND_OPCODES, OpcodeJSON, UpdatingOpcode } from '../../opcodes';
+import { UNDEFINED_REFERENCE } from '../../references';
 import { ATTRS_BLOCK } from '../../syntax/functions';
 import { UpdatingVM, VM } from '../../vm';
-import ARGS, { Arguments, IArguments } from '../../vm/arguments';
+import { Arguments, IArguments, ICapturedArguments } from '../../vm/arguments';
 import { UpdateDynamicAttributeOpcode } from './dom';
 import { dict, assert } from "@glimmer/util";
 import { Op, Register } from '@glimmer/vm';
 import { TemplateMeta } from "@glimmer/wire-format";
+
+const ARGS = new Arguments();
+
+function resolveComponent(resolver: Resolver, name: string, meta: TemplateMeta): ComponentDefinition {
+  let specifier = resolver.lookupComponent(name, meta);
+  assert(specifier, `Could not find a component named "${name}"`);
+  return resolver.resolve<ComponentDefinition>(specifier!);
+}
+
+class CurryComponentReference implements VersionedPathReference<Option<ComponentDefinition>> {
+  public tag: Tag;
+  private lastValue: Opaque;
+  private lastDefinition: Option<ComponentDefinition>;
+
+  constructor(
+    private inner: VersionedReference<Opaque>,
+    private resolver: Resolver,
+    private meta: TemplateMeta,
+    private args: Option<ICapturedArguments>
+  ) {
+    this.tag = inner.tag;
+    this.lastValue = null;
+    this.lastDefinition = null;
+  }
+
+  value(): Option<ComponentDefinition> {
+    let { inner, lastValue } = this;
+
+    let value = inner.value();
+
+    if (value === lastValue) {
+      return this.lastDefinition;
+    }
+
+    let definition: Option<ComponentDefinition> = null;
+
+    if (isComponentDefinition(value)) {
+      definition = value;
+    } else if(typeof value === 'string' && value) {
+      let { resolver, meta } = this;
+      definition = resolveComponent(resolver, value, meta);
+    }
+
+    definition = this.curry(definition);
+
+    this.lastValue = value;
+    this.lastDefinition = definition;
+
+    return definition;
+  }
+
+  get(): VersionedPathReference<Opaque> {
+    return UNDEFINED_REFERENCE;
+  }
+
+  private curry(definition: Option<ComponentDefinition>): Option<ComponentDefinition> {
+    let { args } = this;
+
+    if (!definition || !args) {
+      return definition;
+    }
+
+    return new CurriedComponentDefinition(definition, args);
+  }
+}
+
+const CURRIED_COMPONENT_DEFINITION_BRAND = 'CURRIED COMPONENT DEFINITION [id=6f00feb9-a0ef-4547-99ea-ac328f80acea]';
+
+function isCurriedComponentDefinition(definition: ComponentDefinition): definition is CurriedComponentDefinition {
+  return definition[CURRIED_COMPONENT_DEFINITION_BRAND];
+}
+
+class CurriedComponentDefinition extends ComponentDefinition {
+  constructor(protected inner: ComponentDefinition, protected args: ICapturedArguments) {
+    super(CURRIED_COMPONENT_DEFINITION_BRAND, null as any);
+    this[CURRIED_COMPONENT_DEFINITION_BRAND] = true;
+  }
+
+  unwrap(args: Arguments): ComponentDefinition {
+    args.realloc(this.offset);
+
+    let definition: ComponentDefinition = this;
+
+    while (isCurriedComponentDefinition(definition)) {
+      let { args: { positional, named }, inner } = definition;
+
+      args.positional.prepend(positional);
+      args.named.merge(named);
+
+      definition = inner;
+    }
+
+    return definition;
+  }
+
+  protected get offset(): number {
+    let { inner, args: { positional: { length } } } = this;
+    return isCurriedComponentDefinition(inner) ? length + inner.offset : length;
+  }
+}
+
+APPEND_OPCODES.add(Op.CurryComponent, (vm, { op1: _meta }) => {
+  let stack = vm.stack;
+
+  let args = stack.pop<Arguments>();
+  let captured: Option<ICapturedArguments> = null;
+
+  if (args.length) {
+    captured = args.capture();
+    args.clear();
+  }
+
+  let meta = vm.constants.getSerializable<TemplateMeta>(_meta);
+  let resolver = vm.constants.resolver;
+  let definition = stack.pop<VersionedReference<Opaque>>();
+
+  stack.push(new CurryComponentReference(definition, resolver, meta, captured));
+});
 
 APPEND_OPCODES.add(Op.PushComponentManager, (vm, { op1: specifier }) => {
   let definition = vm.constants.resolveSpecifier<ComponentDefinition>(specifier);
@@ -40,13 +159,8 @@ APPEND_OPCODES.add(Op.PushDynamicComponentManager, (vm, { op1: _meta }) => {
     assert(typeof value === 'string', `Could not find a component named "${String(value)}"`);
 
     let { constants, constants: { resolver } } = vm;
-
     let meta = constants.getSerializable<TemplateMeta>(_meta);
-    let specifier = resolver.lookupComponent(value as string, meta);
-
-    assert(specifier, `Could not find a component named "${value as string}"`);
-
-    definition = resolver.resolve<ComponentDefinition>(specifier!);
+    definition = resolveComponent(resolver, value as string, meta);
   }
 
   stack.push({ definition, manager: definition.manager, component: null });
@@ -73,8 +187,16 @@ APPEND_OPCODES.add(Op.PushArgs, (vm, { op1: _names, op2: positionalCount, op3: s
 
 APPEND_OPCODES.add(Op.PrepareArgs, (vm, { op1: _state }) => {
   let stack = vm.stack;
-  let { definition, manager } = vm.fetchValue<InitialComponentState>(_state);
+  let state = vm.fetchValue<InitialComponentState>(_state);
+
   let args = stack.pop<Arguments>();
+
+  let { definition, manager } = state;
+
+  if (isCurriedComponentDefinition(definition)) {
+    state.definition = definition = definition.unwrap(args);
+    state.manager = manager = definition.manager;
+  }
 
   let preparedArgs = manager.prepareArgs(definition, args);
 
@@ -104,7 +226,7 @@ APPEND_OPCODES.add(Op.PrepareArgs, (vm, { op1: _state }) => {
 APPEND_OPCODES.add(Op.CreateComponent, (vm, { op1: flags, op2: _state }) => {
   let definition: ComponentDefinition;
   let manager: ComponentManager;
-  let args = vm.stack.pop<IArguments>();
+  let args = vm.stack.peek<IArguments>();
   let dynamicScope = vm.dynamicScope();
   let state = { definition, manager } = vm.fetchValue<InitialComponentState>(_state);
 
@@ -121,9 +243,6 @@ APPEND_OPCODES.add(Op.CreateComponent, (vm, { op1: flags, op2: _state }) => {
   if (!isConstTag(tag)) {
     vm.updateWith(new UpdateComponentOpcode(tag, definition.name, component, manager, dynamicScope));
   }
-
-  // Don't commit this
-  vm.stack.push(args);
 });
 
 APPEND_OPCODES.add(Op.RegisterComponentDestructor, (vm, { op1: _state }) => {

@@ -24,7 +24,7 @@ export const enum Op {
    * Format:
    *   (Helper helper:#Function)
    * Operand Stack:
-   *   ..., VersionedPathReference..., Arguments →
+   *   ..., [VersionedPathReference ...], Arguments →
    *   ..., VersionedPathReference
    */
   Helper,
@@ -458,7 +458,7 @@ export const enum Op {
    * Format:
    *   (InvokeYield)
    * Operand Stack:
-   *   ..., VersionedPathReference..., Arguments, SymbolTable, Handle →
+   *   ..., [VersionedPathReference ...], Arguments, SymbolTable, Handle →
    *   ...
    */
   InvokeYield,
@@ -636,6 +636,17 @@ export const enum Op {
   /// COMPONENTS
 
   /**
+   * Operation: Curry a component definition for a later invocation.
+   *
+   * Format:
+   *   (CurryComponent templateMeta:#TemplateMeta)
+   * Operand Stack:
+   *   ..., VersionedPathReference, [VersionedPathReference ...], Arguments →
+   *   ..., { VersionedPathReference, TemplateMeta, CapturedArguments }
+   */
+  CurryComponent,
+
+  /**
    * Operation: Push an appropriate component manager onto the stack.
    *
    * Format:
@@ -654,8 +665,8 @@ export const enum Op {
    * Format:
    *   (PushDynamicComponentManager templateMeta:#TemplateMeta)
    * Operand Stack:
-   *   ... VersionedPathReference<Opaque> →
-   *   ..., ComponentDefinition, ComponentManager
+   *   ..., VersionedPathReference<Opaque> →
+   *   ..., { ComponentDefinition, ComponentManager }
    */
   PushDynamicComponentManager,
 
@@ -663,11 +674,11 @@ export const enum Op {
    * Operation: Push a user representation of args onto the stack.
    *
    * Format:
-   *   (PushArgs synthetic:boolean)
+   *   (PushArgs names:#Array<#string> positionalCount:u32 synthetic:#boolean)
    *
    * Operand Stack:
-   *   ..., [VersionedPathReference ...], number, [VersionedPathReference ...], #Array<string> →
-   *   ..., [VersionedPathReference ...], number, [VersionedPathReference ...], #Array<string>, Arguments
+   *   ..., [VersionedPathReference ...]  →
+   *   ..., [VersionedPathReference ...], Arguments
    *
    * Description:
    *   This arguments object is only necessary when calling into

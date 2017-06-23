@@ -586,7 +586,6 @@ export abstract class OpcodeBuilder {
     this.jumpUnless('ELSE');
 
     this.pushDynamicComponentManager(this.meta.templateMeta);
-
     this.invokeComponent(null, null, null, false, null, null);
 
     this.exit();
@@ -644,7 +643,7 @@ export abstract class OpcodeBuilder {
     this.load(Register.s0);
   }
 
-  dynamicComponent(definition: WireFormat.Expression, attrs: Option<RawInlineBlock>, params: Option<WireFormat.Core.Params>, hash: WireFormat.Core.Hash, synthetic: boolean, block: Option<Block>, inverse: Option<Block> = null) {
+  dynamicComponent(definition: WireFormat.Expression, /* TODO: attrs: Option<RawInlineBlock>, */ params: Option<WireFormat.Core.Params>, hash: WireFormat.Core.Hash, synthetic: boolean, block: Option<Block>, inverse: Option<Block> = null) {
     this.startLabels();
 
     this.pushFrame();
@@ -661,7 +660,7 @@ export abstract class OpcodeBuilder {
     this.jumpUnless('ELSE');
 
     this.pushDynamicComponentManager(this.meta.templateMeta);
-    this.invokeComponent(attrs, params, hash, true, block, inverse);
+    this.invokeComponent(null, params, hash, true, block, inverse);
 
     this.label('ELSE');
     this.exit();
@@ -671,6 +670,14 @@ export abstract class OpcodeBuilder {
     this.popFrame();
 
     this.stopLabels();
+  }
+
+  curryComponent(definition: WireFormat.Expression, /* TODO: attrs: Option<RawInlineBlock>, */ params: Option<WireFormat.Core.Params>, hash: WireFormat.Core.Hash, synthetic: boolean) {
+    let meta = this.meta.templateMeta;
+
+    expr(definition, this);
+    this.compileArgs(params, hash, synthetic);
+    this.push(Op.CurryComponent, this.constants.serializable(meta));
   }
 
   pushYieldableBlock(block: Option<Block>): void {

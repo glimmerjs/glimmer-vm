@@ -4,7 +4,6 @@ import { Tag } from '@glimmer/reference';
 import { VM, UpdatingVM } from './vm';
 import { Opcode, Program } from './environment';
 import { Constants } from './environment/constants';
-import { CompilationOptions } from './syntax/compilable-template';
 import { DEBUG, CI } from '@glimmer/local-debug-flags';
 
 export interface OpcodeJSON {
@@ -150,8 +149,9 @@ function debug(c: Constants, op: Op, op1: number, op2: number, op3: number): [st
       case Op.Iterate: return ['Iterate', { end: op1 }];
 
       /// COMPONENTS
-      case Op.PushComponentManager: return ['PushComponentManager', { definition: c.getOther(op1) }];
-      case Op.PushDynamicComponentManager: return ['PushDynamicComponentManager', {}];
+      case Op.CurryComponent: return ['CurryComponent', { meta: c.getSerializable(op1) }];
+      case Op.PushComponentManager: return ['PushComponentManager', { definition: c.resolveSpecifier(op1) }];
+      case Op.PushDynamicComponentManager: return ['PushDynamicComponentManager', { meta: c.getSerializable(op1) }];
       case Op.PushArgs: return ['PushArgs', { names: c.getStringArray(op1), positionals: op2, synthetic: !!op3 }];
       case Op.PrepareArgs: return ['PrepareArgs', { state: Register[op1] }];
       case Op.CreateComponent: return ['CreateComponent', { flags: op1, state: Register[op2] }];
@@ -169,7 +169,7 @@ function debug(c: Constants, op: Op, op1: number, op2: number, op3: number): [st
       case Op.ResolveMaybeLocal: return ['ResolveMaybeLocal', { name: c.getString(op1)} ];
 
       /// DEBUGGER
-      case Op.Debugger: return ['Debugger', { symbols: c.getOther(op1), evalInfo: c.getArray(op2) }];
+      case Op.Debugger: return ['Debugger', { symbols: c.getStringArray(op1), evalInfo: c.getArray(op2) }];
 
       /// STATEMENTS
 

@@ -43,9 +43,7 @@ import {
   getDynamicVar,
 
   Template,
-  isComponentDefinition,
   CompiledDynamicTemplate,
-  NULL_REFERENCE,
   templateFactory,
   Macros,
   TopLevelBlock,
@@ -737,7 +735,7 @@ export interface TestEnvironmentOptions {
 export type CompiledDynamicBlock = CompiledDynamicTemplate<BlockSymbolTable>;
 export type CompiledDynamicProgram = CompiledDynamicTemplate<ProgramSymbolTable>;
 
-export type LookupType = 'helper' | 'modifier' | 'component' | 'partial' | 'other';
+export type LookupType = 'helper' | 'modifier' | 'component' | 'partial';
 
 export interface TestSpecifier<T extends LookupType = LookupType> {
   type: T;
@@ -765,28 +763,18 @@ export class TestResolver implements Resolver<TestSpecifier, TemplateMeta> {
     helper: new TypedRegistry<GlimmerHelper>(),
     modifier: new TypedRegistry<ModifierManager>(),
     partial: new TypedRegistry<PartialDefinition>(),
-    component: new TypedRegistry<ComponentDefinition>(),
-    other: new TypedRegistry<any>()
+    component: new TypedRegistry<ComponentDefinition>()
   };
-
-  private id = 0;
 
   register(type: 'helper', name: string, value: GlimmerHelper): void;
   register(type: 'modifier', name: string, value: ModifierManager): void;
   register(type: 'partial', name: string, value: PartialDefinition): void;
   register(type: 'component', name: string, value: ComponentDefinition): void;
-  register(type: 'other', name: string, value: any): void;
   register(type: LookupType, name: string, value: any): void {
     (this.registry[type] as TypedRegistry<any>).register(name, value);
   }
 
   lookup(type: LookupType, name: string, meta: TemplateMeta): Option<TestSpecifier> {
-    if (type === 'helper' && name === 'component') {
-      let name = `${this.id++}`;
-      this.register('other', name, (_vm: VM, args: Arguments) => new DynamicComponentReference(args.at(0), meta, this));
-      return { type: 'other', name };
-    }
-
     if (this.registry[type].has(name)) {
       return { type, name };
     } else {
@@ -811,7 +799,7 @@ export class TestResolver implements Resolver<TestSpecifier, TemplateMeta> {
   }
 
   resolve<T>(specifier: TestSpecifier): T {
-    return this.registry[specifier.type].get(specifier.name);
+    return this.registry[specifier.type].get(specifier.name) as any as T;
   }
 }
 
@@ -1021,35 +1009,6 @@ export class TestDynamicScope implements DynamicScope {
 
   child(): TestDynamicScope {
     return new TestDynamicScope(this.bucket);
-  }
-}
-
-export class DynamicComponentReference implements VersionedPathReference<Option<ComponentDefinition>> {
-  public tag: Tag;
-  private resolver: Resolver;
-
-  constructor(private nameRef: PathReference<Opaque>, private meta: WireFormat.TemplateMeta, resolver: Resolver<any>) {
-    this.tag = nameRef.tag;
-    this.resolver = resolver;
-  }
-
-  value(): Option<ComponentDefinition> {
-    let { nameRef, meta } = this;
-
-    let nameOrDef = nameRef.value();
-
-    if (typeof nameOrDef === 'string') {
-      let specifier = this.resolver.lookupComponent(nameOrDef, meta);
-      return specifier && this.resolver.resolve<ComponentDefinition>(specifier);
-    } else if (isComponentDefinition(nameOrDef)) {
-      return nameOrDef;
-    }
-
-    return null;
-  }
-
-  get(): VersionedPathReference<Opaque> {
-    return NULL_REFERENCE;
   }
 }
 

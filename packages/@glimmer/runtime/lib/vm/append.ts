@@ -65,8 +65,12 @@ export class EvaluationStack {
     return this.stack[this.sp] as T;
   }
 
-  at<T>(offset: number, base = this.fp): T {
+  get<T>(offset: number, base = this.fp): T {
     return this.stack[base + offset] as T;
+  }
+
+  set(value: Opaque, offset: number, base = this.fp) {
+    this.stack[base + offset] = value;
   }
 
   slice<T = Opaque>(start: number, end: number): T[] {
@@ -171,8 +175,8 @@ export default class VM implements PublicVM {
   // Restore $ra, $sp and $fp
   popFrame() {
     this.sp = this.fp - 1;
-    this.ra = this.stack.at<number>(0);
-    this.fp = this.stack.at<number>(1);
+    this.ra = this.stack.get<number>(0);
+    this.fp = this.stack.get<number>(1);
   }
 
   // Jump to an address in `program`

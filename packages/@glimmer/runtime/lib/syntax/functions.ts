@@ -289,6 +289,15 @@ EXPRESSIONS.add(Ops.Helper, (sexp: E.Helper, builder: OpcodeBuilder) => {
   let { options: { resolver }, meta } = builder;
   let [, name, params, hash] = sexp;
 
+  // TODO: triage this in the WF compiler
+  if (name === 'component') {
+    assert(params.length, 'SYNTAX ERROR: component helper requires at least one argument');
+
+    let [definition, ...restArgs] = params;
+    builder.curryComponent(definition, restArgs, hash, true);
+    return;
+  }
+
   let specifier = resolver.lookupHelper(name, meta.templateMeta);
 
   if (specifier) {
@@ -747,17 +756,17 @@ export function populateBuiltins(blocks: Blocks = new Blocks(), inlines: Inlines
   });
 
   blocks.add('component', (_params, hash, template, inverse, builder) => {
-    assert(_params && _params.length, `SYNTAX ERROR: #component requires at least one argument`);
+    assert(_params && _params.length, 'SYNTAX ERROR: #component requires at least one argument');
 
     let [definition, ...params] = _params!;
-    builder.dynamicComponent(definition, null, params, hash, true, template, inverse);
+    builder.dynamicComponent(definition, params, hash, true, template, inverse);
   });
 
   inlines.add('component', (_name, _params, hash, builder) => {
-    assert(_params && _params.length, `SYNTAX ERROR: component helper requires at least one argument`);
+    assert(_params && _params.length, 'SYNTAX ERROR: component helper requires at least one argument');
 
     let [definition, ...params] = _params!;
-    builder.dynamicComponent(definition, null, params, hash, true, null, null);
+    builder.dynamicComponent(definition, params, hash, true, null, null);
 
     return true;
   });

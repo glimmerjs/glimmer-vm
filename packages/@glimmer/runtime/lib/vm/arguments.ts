@@ -102,6 +102,10 @@ export class Arguments implements IArguments {
     return combineTagged([this.positional, this.named]);
   }
 
+  get base(): number {
+    return this.positional.base;
+  }
+
   get length(): number {
     return this.positional.length + this.named.length;
   }
@@ -112,6 +116,21 @@ export class Arguments implements IArguments {
 
   get<T extends VersionedPathReference<Opaque>>(name: string): T {
     return this.named.get<T>(name);
+  }
+
+  realloc(offset: number) {
+    if (offset > 0) {
+      let { positional, named, stack, base, length } = this;
+      let newBase = base + offset;
+
+      for(let i=length-1; i>=0; i--) {
+        stack.set(stack.get(i, base), i, newBase);
+      }
+
+      positional.base = newBase;
+      named.base += offset;
+      stack.sp += offset;
+    }
   }
 
   capture(): ICapturedArguments {
@@ -130,10 +149,10 @@ export class Arguments implements IArguments {
 }
 
 export class PositionalArguments implements IPositionalArguments {
+  public base = 0;
   public length = 0;
 
   private stack: EvaluationStack = null as any;
-  private base = 0;
 
   private _tag: Option<Tag> = null;
   private _references: Option<VersionedPathReference<Opaque>[]> = null;
@@ -169,11 +188,29 @@ export class PositionalArguments implements IPositionalArguments {
       return UNDEFINED_REFERENCE as unsafe as T;
     }
 
-    return stack.at<T>(position, base);
+    return stack.get<T>(position, base);
   }
 
   capture(): ICapturedPositionalArguments {
     return new CapturedPositionalArguments(this.tag, this.references);
+  }
+
+  prepend(other: ICapturedPositionalArguments) {
+    let additions = other.length;
+
+    if (additions > 0) {
+      let { base, length, stack } = this;
+
+      this.base = base = base - additions;
+      this.length = length + additions;
+
+      for (let i = 0; i < additions; i++) {
+        stack.set(other.at(i), i, base);
+      }
+
+      this._tag = null;
+      this._references = null;
+    }
   }
 
   private get references(): VersionedPathReference<Opaque>[] {
@@ -225,10 +262,10 @@ class CapturedPositionalArguments implements ICapturedPositionalArguments {
 }
 
 export class NamedArguments implements INamedArguments {
+  public base = 0;
   public length = 0;
 
   private stack: EvaluationStack;
-  private base = 0;
 
   private _tag: Option<Tag> = null;
   private _references: Option<VersionedPathReference<Opaque>[]> = null;
@@ -245,7 +282,7 @@ export class NamedArguments implements INamedArguments {
       this._tag = CONSTANT_TAG;
       this._references = EMPTY_ARRAY;
       this._names = EMPTY_ARRAY;
-      this._references = EMPTY_ARRAY;
+      this._atNames = EMPTY_ARRAY;
     } else {
       this._tag = null;
       this._references = null;
@@ -299,11 +336,36 @@ export class NamedArguments implements INamedArguments {
       return UNDEFINED_REFERENCE as unsafe as T;
     }
 
-    return stack.at<T>(idx, base);
+    return stack.get<T>(idx, base);
   }
 
   capture(): ICapturedNamedArguments {
     return new CapturedNamedArguments(this.tag, this.names, this.references);
+  }
+
+  merge(other: ICapturedNamedArguments) {
+    let { length: extras } = other;
+
+    if (extras > 0) {
+      let { names, length, stack } = this;
+      let { names: extraNames } = other;
+
+      for (let i = 0; i < extras; i++) {
+        let name = extraNames[i];
+        let idx = names.indexOf(name);
+
+        if (idx === -1) {
+          length = names.push(name);
+          stack.push(other.references[i]);
+        }
+      }
+
+      this.length = length;
+      this._tag = null;
+      this._references = null;
+      this._names = names;
+      this._atNames = null;
+    }
   }
 
   private get references(): VersionedPathReference<Opaque>[] {
@@ -383,5 +445,3 @@ class CapturedNamedArguments implements ICapturedNamedArguments {
     return out;
   }
 }
-
-export default new Arguments();
