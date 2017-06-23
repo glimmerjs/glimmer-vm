@@ -746,51 +746,20 @@ export function populateBuiltins(blocks: Blocks = new Blocks(), inlines: Inlines
     }
   });
 
-  function dynamicComponent([definition, ...params]: WireFormat.Core.Params, hash: WireFormat.Core.Hash, template: Option<Block>, inverse: Option<Block>, builder: OpcodeBuilder) {
-    builder.startLabels();
+  blocks.add('component', (_params, hash, template, inverse, builder) => {
+    assert(_params && _params.length, `SYNTAX ERROR: #component requires at least one argument`);
 
-    builder.pushFrame();
-
-    builder.returnTo('END');
-
-    expr(definition, builder);
-
-    builder.dup();
-    builder.test('simple');
-
-    builder.enter(2);
-
-    builder.jumpUnless('ELSE');
-
-    builder.pushDynamicComponentManager(builder.meta.templateMeta);
-    builder.invokeComponent(null, params, hash, true, template, inverse);
-
-    builder.label('ELSE');
-    builder.exit();
-    builder.return();
-
-    builder.label('END');
-    builder.popFrame();
-
-    builder.stopLabels();
-  }
-
-  inlines.add('component', (_name, params, hash, builder) => {
-    if (!params || params.length < 1) {
-      throw new Error(`SYNTAX ERROR: component helper requires at least one argument`);
-    }
-
-    dynamicComponent(params, hash, null, null, builder);
-
-    return true;
+    let [definition, ...params] = _params!;
+    builder.dynamicComponent(definition, null, params, hash, true, template, inverse);
   });
 
-  blocks.add('component', (params, hash, template, inverse, builder) => {
-    if (!params || params.length < 1) {
-      throw new Error(`SYNTAX ERROR: #component requires at least one argument`);
-    }
+  inlines.add('component', (_name, _params, hash, builder) => {
+    assert(_params && _params.length, `SYNTAX ERROR: component helper requires at least one argument`);
 
-    dynamicComponent(params, hash, template, inverse, builder);
+    let [definition, ...params] = _params!;
+    builder.dynamicComponent(definition, null, params, hash, true, null, null);
+
+    return true;
   });
 
   return { blocks, inlines };

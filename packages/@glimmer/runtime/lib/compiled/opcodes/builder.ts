@@ -616,7 +616,7 @@ export abstract class OpcodeBuilder {
     this.popFrame();
   }
 
-  invokeComponent(attrs: Option<RawInlineBlock>, params: Option<WireFormat.Core.Params>, hash: Option<WireFormat.Core.Hash>, synthetic: boolean, block: Option<Block>, inverse: Option<Block> = null) {
+  invokeComponent(attrs: Option<RawInlineBlock>, params: Option<WireFormat.Core.Params>, hash: WireFormat.Core.Hash, synthetic: boolean, block: Option<Block>, inverse: Option<Block> = null) {
     this.fetch(Register.s0);
     this.dup(Register.sp, 1);
     this.load(Register.s0);
@@ -642,6 +642,35 @@ export abstract class OpcodeBuilder {
     this.commitComponentTransaction();
 
     this.load(Register.s0);
+  }
+
+  dynamicComponent(definition: WireFormat.Expression, attrs: Option<RawInlineBlock>, params: Option<WireFormat.Core.Params>, hash: WireFormat.Core.Hash, synthetic: boolean, block: Option<Block>, inverse: Option<Block> = null) {
+    this.startLabels();
+
+    this.pushFrame();
+
+    this.returnTo('END');
+
+    expr(definition, this);
+
+    this.dup();
+    this.test('simple');
+
+    this.enter(2);
+
+    this.jumpUnless('ELSE');
+
+    this.pushDynamicComponentManager(this.meta.templateMeta);
+    this.invokeComponent(attrs, params, hash, true, block, inverse);
+
+    this.label('ELSE');
+    this.exit();
+    this.return();
+
+    this.label('END');
+    this.popFrame();
+
+    this.stopLabels();
   }
 
   pushYieldableBlock(block: Option<Block>): void {
