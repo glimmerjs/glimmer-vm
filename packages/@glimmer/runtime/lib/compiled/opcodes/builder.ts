@@ -660,7 +660,7 @@ export abstract class OpcodeBuilder {
     this.jumpUnless('ELSE');
 
     this.pushDynamicComponentManager(this.meta.templateMeta);
-    this.invokeComponent(null, params, hash, true, block, inverse);
+    this.invokeComponent(null, params, hash, synthetic, block, inverse);
 
     this.label('ELSE');
     this.exit();

@@ -74,7 +74,6 @@ import {
   OpaqueIterable,
   AbstractIterable,
   IterationItem,
-  VersionedPathReference,
   combine,
   isConst
 } from "@glimmer/reference";
@@ -774,7 +773,7 @@ export class TestResolver implements Resolver<TestSpecifier, TemplateMeta> {
     (this.registry[type] as TypedRegistry<any>).register(name, value);
   }
 
-  lookup(type: LookupType, name: string, meta: TemplateMeta): Option<TestSpecifier> {
+  lookup(type: LookupType, name: string, _meta: TemplateMeta): Option<TestSpecifier> {
     if (this.registry[type].has(name)) {
       return { type, name };
     } else {

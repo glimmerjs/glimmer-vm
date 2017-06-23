@@ -424,7 +424,7 @@ export default class VM implements PublicVM {
 
   next(): IteratorResult<RenderResult> {
     let { env, program, updatingOpcodeStack, elementStack } = this;
-    let opcode = this.nextStatement(env);
+    let opcode = this.nextStatement();
     let result: IteratorResult<RenderResult>;
     if (opcode !== null) {
       APPEND_OPCODES.evaluate(this, opcode, opcode.type);
@@ -446,15 +446,16 @@ export default class VM implements PublicVM {
     return result;
   }
 
-  private nextStatement(env: Environment): Option<Opcode> {
-    let { pc } = this;
+  private nextStatement(): Option<Opcode> {
+    let { pc, program } = this;
 
     if (pc === -1) {
       return null;
     }
 
     this.pc += 4;
-    return this.program.opcode(pc);
+
+    return program.opcode(pc);
   }
 
   evaluateOpcode(opcode: Opcode) {
