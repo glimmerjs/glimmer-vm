@@ -374,7 +374,7 @@ APPEND_OPCODES.add(Op.InvokeComponentLayout, (vm, { op1: _state }) => {
 
     args.clear();
 
-    function bindBlock(name: string) {
+    let bindBlock = (name: string) => {
       let symbol = symbols.indexOf(name);
       let handle = stack.pop<Option<Handle>>();
       let table = stack.pop<Option<BlockSymbolTable>>();
@@ -386,7 +386,7 @@ APPEND_OPCODES.add(Op.InvokeComponentLayout, (vm, { op1: _state }) => {
       }
 
       if (lookup) lookup[name] = block;
-    }
+    };
 
     bindBlock(ATTRS_BLOCK);
     bindBlock('&inverse');
