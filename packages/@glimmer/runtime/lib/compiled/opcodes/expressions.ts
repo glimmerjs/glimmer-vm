@@ -21,11 +21,6 @@ APPEND_OPCODES.add(Op.Helper, (vm, { op1: specifier }) => {
   vm.stack.push(value);
 });
 
-APPEND_OPCODES.add(Op.Function, (vm, { op1: _function }) => {
-  let func = vm.constants.getFunction<FunctionExpression<Opaque>>(_function);
-  vm.stack.push(func(vm));
-});
-
 APPEND_OPCODES.add(Op.GetVariable, (vm, { op1: symbol }) => {
   let expr = vm.referenceForSymbol(symbol);
   vm.stack.push(expr);

@@ -96,7 +96,7 @@ export {
   ComponentManager,
   ComponentDefinition,
   ComponentLayoutBuilder,
-  ComponentAttrsBuilder,
+  ComponentManagerWithDynamicTagName,
   PreparedArguments,
   isComponentDefinition
 } from './lib/component/interfaces';

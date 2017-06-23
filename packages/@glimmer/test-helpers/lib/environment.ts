@@ -47,7 +47,8 @@ import {
   templateFactory,
   Macros,
   TopLevelBlock,
-  Program
+  Program,
+  ComponentManagerWithDynamicTagName
 } from "@glimmer/runtime";
 
 import {
@@ -413,8 +414,11 @@ class EmberishGlimmerComponentManager implements ComponentManager<EmberishGlimme
     return new UpdatableReference(component);
   }
 
-  didCreateElement({ component }: EmberishGlimmerStateBucket, element: Element): void {
+  didCreateElement({ component }: EmberishGlimmerStateBucket, element: Element, operations: ElementOperations): void {
     component.element = element;
+
+    operations.setAttribute('id', PrimitiveReference.create(`ember${component._guid}`), false, null);
+    operations.setAttribute('class', PrimitiveReference.create('ember-view'), false, null);
   }
 
   didRenderLayout({ component }: EmberishGlimmerStateBucket, bounds: Bounds): void {
@@ -457,7 +461,7 @@ const EMBERISH_GLIMMER_COMPONENT_MANAGER = new EmberishGlimmerComponentManager()
 
 const BaseEmberishCurlyComponent = EmberishCurlyComponent.extend() as typeof EmberishCurlyComponent;
 
-class EmberishCurlyComponentManager implements ComponentManager<EmberishCurlyComponent> {
+class EmberishCurlyComponentManager implements ComponentManagerWithDynamicTagName<EmberishCurlyComponent> {
   prepareArgs(definition: EmberishCurlyComponentDefinition, args: Arguments): Option<PreparedArguments> {
     const { positionalParams } = definition.ComponentClass || BaseEmberishCurlyComponent;
 
@@ -548,8 +552,21 @@ class EmberishCurlyComponentManager implements ComponentManager<EmberishCurlyCom
     return new UpdatableReference(component);
   }
 
+  getTagName({ tagName }: EmberishCurlyComponent): Option<string> {
+    if (tagName) {
+      return tagName;
+    } else if (tagName === null) {
+      return 'div';
+    } else {
+      return null;
+    }
+  }
+
   didCreateElement(component: EmberishCurlyComponent, element: Element, operations: ElementOperations): void {
     component.element = element;
+
+    operations.setAttribute('id', PrimitiveReference.create(`ember${component._guid}`), false, null);
+    operations.setAttribute('class', PrimitiveReference.create('ember-view'), false, null);
 
     let bindings = component.attributeBindings;
     let rootRef = new UpdatableReference(component);
@@ -1086,24 +1103,10 @@ class StaticTaglessComponentLayoutCompiler extends GenericComponentLayoutCompile
   }
 }
 
-function EmberTagName(vm: VM): PathReference<string> {
-  let self = vm.getSelf().value() as Object;
-  let tagName: string = self['tagName'];
-  tagName = tagName === '' ? null : self['tagName'] || 'div';
-  return PrimitiveReference.create(tagName);
-}
-
-function EmberID(vm: VM): PathReference<string> {
-  let self = vm.getSelf().value() as { _guid: string };
-  return PrimitiveReference.create(`ember${self._guid}`);
-}
-
 class EmberishCurlyComponentLayoutCompiler extends GenericComponentLayoutCompiler {
   compile(builder: ComponentLayoutBuilder) {
     builder.wrapLayout(this.compileLayout());
-    (builder.tag as any).dynamic(EmberTagName);
-    builder.attrs.static('class', 'ember-view');
-    (builder.attrs as any).dynamic('id', EmberID);
+    builder.tag.dynamic();
   }
 }
 
@@ -1114,8 +1117,6 @@ class EmberishGlimmerComponentLayoutCompiler extends GenericComponentLayoutCompi
 
   compile(builder: ComponentLayoutBuilder) {
     builder.fromLayout(this.componentName, this.compileLayout());
-    builder.attrs.static('class', 'ember-view');
-    (builder.attrs as any).dynamic('id', EmberID);
   }
 }
 

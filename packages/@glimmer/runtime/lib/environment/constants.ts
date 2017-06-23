@@ -7,7 +7,6 @@ export type ConstantExpression = number;
 export type ConstantSlice = number;
 export type ConstantBlock = number;
 export type ConstantSymbolTable = number;
-export type ConstantFunction = number;
 export type ConstantArray = number;
 export type ConstantOther = number;
 
@@ -22,7 +21,6 @@ export class Constants {
   private strings: string[] = [];
   private arrays: number[][] = [];
   private tables: SymbolTable[] = [];
-  private functions: Function[] = [];
   private specifiers: Specifier[] = [];
   private serializables: Opaque[] = [];
   private resolved: Opaque[] = [];
@@ -76,16 +74,6 @@ export class Constants {
   array(values: number[]): ConstantArray {
     let index = this.arrays.length;
     this.arrays.push(values);
-    return index + 1;
-  }
-
-  getFunction<T extends Function>(value: ConstantFunction): T {
-    return this.functions[value - 1] as T;
-  }
-
-  function(f: Function): ConstantFunction {
-    let index = this.functions.length;
-    this.functions.push(f);
     return index + 1;
   }
 

@@ -82,10 +82,15 @@ export interface ComponentManager<T = Component> {
   getDestructor(component: T): Option<Destroyable>;
 }
 
+export interface ComponentManagerWithDynamicTagName<T = Component> extends ComponentManager<T> {
+  // If the component asks for the dynamic tag name capability, ask for
+  // the tag name to use. (Only used in the "WrappedBuilder".)
+  getTagName(component: T): Option<string>;
+}
+
 export interface ComponentLayoutBuilder {
   options: CompilationOptions;
   tag: ComponentTagBuilder;
-  attrs: ComponentAttrsBuilder;
 
   wrapLayout(layout: Template<TemplateMeta>): void;
   fromLayout(componentName: string, layout: Template<TemplateMeta>): void;
@@ -93,12 +98,7 @@ export interface ComponentLayoutBuilder {
 
 export interface ComponentTagBuilder {
   static(tagName: string): void;
-  // dynamic(tagName: FunctionExpression<string>): void;
-}
-
-export interface ComponentAttrsBuilder {
-  static(name: string, value: string): void;
-  // dynamic(name: string, value: FunctionExpression<string>): void;
+  dynamic(): void;
 }
 
 const COMPONENT_DEFINITION_BRAND = 'COMPONENT DEFINITION [id=e59c754e-61eb-4392-8c4a-2c0ac72bfcd4]';

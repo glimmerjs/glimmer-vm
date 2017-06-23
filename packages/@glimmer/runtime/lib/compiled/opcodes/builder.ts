@@ -5,7 +5,6 @@ import * as WireFormat from '@glimmer/wire-format';
 import { Handle, Heap, Program } from '../../environment';
 import {
   ConstantArray,
-  ConstantFunction,
   ConstantOther,
   Constants,
   ConstantString,
@@ -13,13 +12,10 @@ import {
 } from '../../environment/constants';
 import { ComponentBuilder as IComponentBuilder } from '../../opcode-builder';
 import { Primitive } from '../../references';
-import { FunctionExpressionCallback } from '../../syntax/client-side';
 import { CompilationOptions } from '../../syntax/compilable-template';
 import { expr } from '../../syntax/functions';
 import { Block } from '../../syntax/interfaces';
 import RawInlineBlock from '../../syntax/raw-block';
-import { IsComponentDefinitionReference } from '../opcodes/content';
-import * as vm from './vm';
 import { TemplateMeta } from "@glimmer/wire-format";
 import { ComponentBuilder } from "../../compiler";
 
@@ -164,6 +160,10 @@ export abstract class OpcodeBuilder {
     this.push(Op.GetComponentSelf, state);
   }
 
+  getComponentTagName(state: Register) {
+    this.push(Op.GetComponentTagName, state);
+  }
+
   invokeComponentLayout(state: Register ) {
     this.push(Op.InvokeComponentLayout, state);
   }
@@ -233,7 +233,7 @@ export abstract class OpcodeBuilder {
     let namespace = _namespace ? this.constants.string(_namespace) : 0;
 
     if (this.isComponentAttrs) {
-      this.primitiveReference(_value);
+      this.pushPrimitiveReference(_value);
       this.push(Op.ComponentAttr, name, 1, namespace);
     } else {
       let value = this.constants.string(_value);
@@ -309,10 +309,6 @@ export abstract class OpcodeBuilder {
 
   concat(size: number) {
     this.push(Op.Concat, size);
-  }
-
-  function(f: FunctionExpressionCallback<Opaque>) {
-    this.push(Op.Function, this.func(f));
   }
 
   load(register: Register) {
@@ -401,8 +397,12 @@ export abstract class OpcodeBuilder {
     this.push(Op.Primitive, (flag << 30) | primitive);
   }
 
-  primitiveReference(primitive: Primitive) {
+  pushPrimitiveReference(primitive: Primitive) {
     this.primitive(primitive);
+    this.primitiveReference();
+  }
+
+  primitiveReference() {
     this.push(Op.PrimitiveReference);
   }
 
@@ -445,23 +445,8 @@ export abstract class OpcodeBuilder {
     this.push(Op.InvokeYield);
   }
 
-  test(testFunc: 'const' | 'simple' | 'environment' | vm.TestFunction) {
-    let _func: vm.TestFunction;
-
-    if (testFunc === 'const') {
-      _func = vm.ConstTest;
-    } else if (testFunc === 'simple') {
-      _func = vm.SimpleTest;
-    } else if (testFunc === 'environment') {
-      _func = vm.EnvironmentTest;
-    } else if (typeof testFunc === 'function') {
-      _func = testFunc;
-    } else {
-      throw new Error('unreachable');
-    }
-
-    let func = this.constants.function(_func);
-    this.push(Op.Test, func);
+  toBoolean() {
+    this.push(Op.ToBoolean);
   }
 
   jump(target: string) {
@@ -498,10 +483,6 @@ export abstract class OpcodeBuilder {
 
   protected symbols(symbols: number[]): ConstantArray {
     return this.constants.array(symbols);
-  }
-
-  protected func(func: Function): ConstantFunction {
-    return this.constants.function(func);
   }
 
   // convenience methods
@@ -576,10 +557,7 @@ export abstract class OpcodeBuilder {
     expr(expression, this);
 
     this.dup();
-
-    this.test((reference) => {
-      return IsComponentDefinitionReference.create(reference);
-    });
+    this.isComponent();
 
     this.enter(2);
 
@@ -653,7 +631,6 @@ export abstract class OpcodeBuilder {
     expr(definition, this);
 
     this.dup();
-    this.test('simple');
 
     this.enter(2);
 
@@ -670,6 +647,10 @@ export abstract class OpcodeBuilder {
     this.popFrame();
 
     this.stopLabels();
+  }
+
+  isComponent() {
+    this.push(Op.IsComponent);
   }
 
   curryComponent(definition: WireFormat.Expression, /* TODO: attrs: Option<RawInlineBlock>, */ params: Option<WireFormat.Core.Params>, hash: WireFormat.Core.Hash, synthetic: boolean) {

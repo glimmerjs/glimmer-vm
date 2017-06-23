@@ -6,10 +6,17 @@ import {
   VersionedReference,
   VersionedPathReference,
   isConst,
-  isConstTag
+  isConstTag,
+  Reference
 } from '@glimmer/reference';
 import Bounds from '../../bounds';
-import { Component, ComponentDefinition, ComponentManager, isComponentDefinition } from '../../component/interfaces';
+import {
+  Component,
+  ComponentDefinition,
+  ComponentManager,
+  ComponentManagerWithDynamicTagName,
+  isComponentDefinition
+} from '../../component/interfaces';
 import { normalizeStringValue } from '../../dom/normalize';
 import { DynamicScope, Handle, ScopeBlock, ScopeSlot } from '../../environment';
 import { APPEND_OPCODES, OpcodeJSON, UpdatingOpcode } from '../../opcodes';
@@ -17,6 +24,7 @@ import { UNDEFINED_REFERENCE } from '../../references';
 import { ATTRS_BLOCK } from '../../syntax/functions';
 import { UpdatingVM, VM } from '../../vm';
 import { Arguments, IArguments, ICapturedArguments } from '../../vm/arguments';
+import { IsComponentDefinitionReference } from './content';
 import { UpdateDynamicAttributeOpcode } from './dom';
 import { dict, assert } from "@glimmer/util";
 import { Op, Register } from '@glimmer/vm';
@@ -122,6 +130,12 @@ class CurriedComponentDefinition extends ComponentDefinition {
   }
 }
 
+APPEND_OPCODES.add(Op.IsComponent, vm => {
+  let stack = vm.stack;
+
+  stack.push(IsComponentDefinitionReference.create(stack.pop<Reference>()));
+});
+
 APPEND_OPCODES.add(Op.CurryComponent, (vm, { op1: _meta }) => {
   let stack = vm.stack;
 
@@ -172,9 +186,9 @@ interface InitialComponentState {
   component: null;
 }
 
-export interface ComponentState {
+export interface ComponentState<M extends ComponentManager = ComponentManager> {
   definition: ComponentDefinition;
-  manager: ComponentManager;
+  manager: M;
   component: Component;
 }
 
@@ -339,6 +353,11 @@ APPEND_OPCODES.add(Op.DidCreateElement, (vm, { op1: _state }) => {
 APPEND_OPCODES.add(Op.GetComponentSelf, (vm, { op1: _state }) => {
   let { manager, component } = vm.fetchValue<ComponentState>(_state);
   vm.stack.push(manager.getSelf(component));
+});
+
+APPEND_OPCODES.add(Op.GetComponentTagName, (vm, { op1: _state }) => {
+  let { manager, component } = vm.fetchValue<ComponentState<ComponentManagerWithDynamicTagName>>(_state);
+  vm.stack.push(manager.getTagName(component));
 });
 
 APPEND_OPCODES.add(Op.InvokeComponentLayout, (vm, { op1: _state }) => {

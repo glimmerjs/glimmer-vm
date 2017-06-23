@@ -81,7 +81,6 @@ function debug(c: Constants, op: Op, op1: number, op2: number, op3: number): [st
       case Op.Bug: throw unreachable();
 
       case Op.Helper: return ['Helper', { helper: c.resolveSpecifier(op1) }];
-      case Op.Function: return ['Function', { function: c.getFunction(op1) }];
       case Op.SetVariable: return ['SetVariable', { symbol: op1 }];
       case Op.GetVariable: return ['GetVariable', { symbol: op1 }];
       case Op.GetProperty: return ['GetProperty', { key: c.getString(op1) }];
@@ -140,7 +139,7 @@ function debug(c: Constants, op: Op, op1: number, op2: number, op3: number): [st
       case Op.PopFrame: return ['PopFrame', {}];
       case Op.Enter: return ['Enter', { args: op1 }];
       case Op.Exit: return ['Exit', {}];
-      case Op.Test: return ['ToBoolean', {}];
+      case Op.ToBoolean: return ['ToBoolean', {}];
 
       /// LISTS
       case Op.EnterList: return ['EnterList', { start: op1 }];
@@ -149,6 +148,7 @@ function debug(c: Constants, op: Op, op1: number, op2: number, op3: number): [st
       case Op.Iterate: return ['Iterate', { end: op1 }];
 
       /// COMPONENTS
+      case Op.IsComponent: return ['IsComponent', {}];
       case Op.CurryComponent: return ['CurryComponent', { meta: c.getSerializable(op1) }];
       case Op.PushComponentManager: return ['PushComponentManager', { definition: c.resolveSpecifier(op1) }];
       case Op.PushDynamicComponentManager: return ['PushDynamicComponentManager', { meta: c.getSerializable(op1) }];
@@ -158,6 +158,7 @@ function debug(c: Constants, op: Op, op1: number, op2: number, op3: number): [st
       case Op.RegisterComponentDestructor: return ['RegisterComponentDestructor', {}];
       case Op.PutComponentOperations: return ['PutComponentOperations', {}];
       case Op.GetComponentSelf: return ['GetComponentSelf', { state: Register[op1] }];
+      case Op.GetComponentTagName: return ['GetComponentTagName', { state: Register[op1] }];
       case Op.InvokeComponentLayout: return ['InvokeComponentLayout', { state: Register[op1] }];
       case Op.BeginComponentTransaction: return ['BeginComponentTransaction', {}];
       case Op.CommitComponentTransaction: return ['CommitComponentTransaction', {}];
