@@ -388,11 +388,11 @@ export abstract class Environment {
     this.updateOperations = updateOperations;
   }
 
-  toConditionalReference(reference: Reference<Opaque>): Reference<boolean> {
+  toConditionalReference(reference: Reference): Reference<boolean> {
     return new ConditionalReference(reference);
   }
 
-  abstract iterableFor(reference: Reference<Opaque>, key: string): OpaqueIterable;
+  abstract iterableFor(reference: Reference, key: string): OpaqueIterable;
   abstract protocolForURL(s: string): string;
 
   getAppendOperations(): DOMTreeConstruction { return this.appendOperations; }

@@ -206,7 +206,6 @@ STATEMENTS.add(Ops.Partial, (sexp: S.Partial, builder: OpcodeBuilder) => {
   expr(name, builder);
 
   builder.dup();
-  builder.test('simple');
 
   builder.enter(2);
 
@@ -243,7 +242,6 @@ STATEMENTS.add(Ops.ClientSideStatement, (sexp: WireFormat.Statements.ClientSide,
 });
 
 const EXPRESSIONS = new Compilers<WireFormat.TupleExpression>();
-const CLIENT_SIDE_EXPRS = new Compilers<ClientSide.ClientSideExpression>(1);
 
 import E = WireFormat.Expressions;
 import C = WireFormat.Core;
@@ -252,7 +250,7 @@ export function expr(expression: WireFormat.Expression, builder: OpcodeBuilder):
   if (Array.isArray(expression)) {
     EXPRESSIONS.compile(expression, builder);
   } else {
-    builder.primitiveReference(expression);
+    builder.pushPrimitiveReference(expression);
   }
 }
 
@@ -280,10 +278,6 @@ EXPRESSIONS.add(Ops.Concat, ((sexp: E.Concat, builder: OpcodeBuilder) => {
   }
   builder.concat(parts.length);
 }) as any);
-
-CLIENT_SIDE_EXPRS.add(ClientSide.Ops.FunctionExpression, (sexp: ClientSide.FunctionExpression, builder: OpcodeBuilder) => {
-  builder.function(sexp[2]);
-});
 
 EXPRESSIONS.add(Ops.Helper, (sexp: E.Helper, builder: OpcodeBuilder) => {
   let { options: { resolver }, meta } = builder;
@@ -334,7 +328,7 @@ EXPRESSIONS.add(Ops.MaybeLocal, (sexp: E.MaybeLocal, builder: OpcodeBuilder) => 
 });
 
 EXPRESSIONS.add(Ops.Undefined, (_sexp, builder) => {
-  return builder.primitiveReference(undefined);
+  return builder.pushPrimitiveReference(undefined);
 });
 
 EXPRESSIONS.add(Ops.HasBlock, (sexp: E.HasBlock, builder: OpcodeBuilder) => {
@@ -343,10 +337,6 @@ EXPRESSIONS.add(Ops.HasBlock, (sexp: E.HasBlock, builder: OpcodeBuilder) => {
 
 EXPRESSIONS.add(Ops.HasBlockParams, (sexp: E.HasBlockParams, builder: OpcodeBuilder) => {
   builder.hasBlockParams(sexp[1]);
-});
-
-EXPRESSIONS.add(Ops.ClientSideExpression, (sexp: E.ClientSide, builder: OpcodeBuilder) => {
-  CLIENT_SIDE_EXPRS.compile(sexp as ClientSide.ClientSideExpression, builder);
 });
 
 export type BlockMacro = (params: C.Params, hash: C.Hash, template: Option<Block>, inverse: Option<Block>, builder: OpcodeBuilder) => void;
@@ -470,7 +460,7 @@ export function populateBuiltins(blocks: Blocks = new Blocks(), inlines: Inlines
 
     expr(params[0], builder);
 
-    builder.test('environment');
+    builder.toBoolean();
 
     builder.enter(1);
 
@@ -524,7 +514,7 @@ export function populateBuiltins(blocks: Blocks = new Blocks(), inlines: Inlines
 
     expr(params[0], builder);
 
-    builder.test('environment');
+    builder.toBoolean();
 
     builder.enter(1);
 
@@ -579,7 +569,7 @@ export function populateBuiltins(blocks: Blocks = new Blocks(), inlines: Inlines
     expr(params[0], builder);
 
     builder.dup();
-    builder.test('environment');
+    builder.toBoolean();
 
     builder.enter(2);
 
@@ -641,7 +631,7 @@ export function populateBuiltins(blocks: Blocks = new Blocks(), inlines: Inlines
     if (hash && hash[0][0] === 'key') {
       expr(hash[1][0], builder);
     } else {
-      builder.primitiveReference(null);
+      builder.pushPrimitiveReference(null);
     }
 
     expr(params[0], builder);
@@ -720,7 +710,6 @@ export function populateBuiltins(blocks: Blocks = new Blocks(), inlines: Inlines
     expr(params[0], builder);
 
     builder.dup();
-    builder.test('simple');
 
     builder.enter(3);
 

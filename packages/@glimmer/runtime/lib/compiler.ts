@@ -2,11 +2,10 @@ import { Register } from '@glimmer/vm';
 import { CompilationMeta, Specifier } from '@glimmer/interfaces';
 import { CompiledDynamicProgram, CompiledDynamicTemplate } from './compiled/blocks';
 import { Maybe, Option } from '@glimmer/util';
-import { Ops, TemplateMeta } from '@glimmer/wire-format';
+import { TemplateMeta } from '@glimmer/wire-format';
 import { Template } from './template';
 import { debugSlice } from './opcodes';
-import { ATTRS_BLOCK, compileStatement } from './syntax/functions';
-import * as ClientSide from './syntax/client-side';
+import { ATTRS_BLOCK } from './syntax/functions';
 import { CompilationOptions, InputCompilationOptions } from './syntax/compilable-template';
 
 import {
@@ -14,15 +13,10 @@ import {
   ComponentBuilder as IComponentBuilder
 } from './opcode-builder';
 
-import { expr } from './syntax/functions';
-
 import OpcodeBuilderDSL, { LazyOpcodeBuilder } from './compiled/opcodes/builder';
 
 import * as Component from './component/interfaces';
 
-import * as WireFormat from '@glimmer/wire-format';
-
-import { FunctionExpression } from "./compiled/opcodes/expressions";
 import { DEBUG } from "@glimmer/local-debug-flags";
 
 export interface CompilableLayout {
@@ -39,7 +33,6 @@ export function compileLayout(compilable: CompilableLayout, options: InputCompil
 
 interface InnerLayoutBuilder {
   tag: Component.ComponentTagBuilder;
-  attrs: Component.ComponentAttrsBuilder;
   compile(): CompiledDynamicProgram;
 }
 
@@ -63,15 +56,10 @@ class ComponentLayoutBuilder implements Component.ComponentLayoutBuilder {
   get tag(): Component.ComponentTagBuilder {
     return this.inner.tag;
   }
-
-  get attrs(): Component.ComponentAttrsBuilder {
-    return this.inner.attrs;
-  }
 }
 
 class WrappedBuilder implements InnerLayoutBuilder {
   public tag = new ComponentTagBuilder();
-  public attrs = new ComponentAttrsBuilder();
 
   constructor(public options: CompilationOptions, private layout: Template<TemplateMeta>) {}
 
@@ -107,7 +95,7 @@ class WrappedBuilder implements InnerLayoutBuilder {
     let { options, layout } = this;
     let meta = { templateMeta: layout.meta, symbols: layout.symbols, asPartial: false };
 
-    let dynamicTag = this.tag.getDynamic();
+    let dynamicTag = this.tag.isDynamic;
     let staticTag = this.tag.getStatic();
 
     let b = builder(options, meta);
@@ -117,12 +105,11 @@ class WrappedBuilder implements InnerLayoutBuilder {
     if (dynamicTag) {
       b.fetch(Register.s1);
 
-      expr(dynamicTag, b);
+      b.getComponentTagName(Register.s0);
+      b.primitiveReference();
 
       b.dup();
       b.load(Register.s1);
-
-      b.test('simple');
 
       b.jumpUnless('BODY');
 
@@ -136,17 +123,6 @@ class WrappedBuilder implements InnerLayoutBuilder {
 
     if (dynamicTag || staticTag) {
       b.didCreateElement(Register.s0);
-
-      let attrs = this.attrs.buffer;
-
-      b.setComponentAttrs(true);
-
-      for (let i=0; i<attrs.length; i++) {
-        compileStatement(attrs[i], b);
-      }
-
-      b.setComponentAttrs(false);
-
       b.flushElement();
     }
 
@@ -155,7 +131,6 @@ class WrappedBuilder implements InnerLayoutBuilder {
 
     if (dynamicTag) {
       b.fetch(Register.s1);
-      b.test('simple');
       b.jumpUnless('END');
       b.closeElement();
     } else if (staticTag) {
@@ -190,8 +165,6 @@ class WrappedBuilder implements InnerLayoutBuilder {
 }
 
 class UnwrappedBuilder implements InnerLayoutBuilder {
-  public attrs = new ComponentAttrsBuilder();
-
   constructor(public env: CompilationOptions, private componentName: string, private layout: Template<TemplateMeta>) {}
 
   get tag(): Component.ComponentTagBuilder {
@@ -200,7 +173,7 @@ class UnwrappedBuilder implements InnerLayoutBuilder {
 
   compile(): CompiledDynamicProgram {
     let { layout } = this;
-    return layout.asLayout(this.componentName, this.attrs.buffer).compileDynamic();
+    return layout.asLayout(this.componentName).compileDynamic();
   }
 }
 
@@ -208,13 +181,6 @@ class ComponentTagBuilder implements Component.ComponentTagBuilder {
   public isDynamic: Option<boolean> = null;
   public isStatic: Option<boolean> = null;
   public staticTagName: Option<string> = null;
-  public dynamicTagName: Option<WireFormat.Expression> = null;
-
-  getDynamic(): Maybe<WireFormat.Expression> {
-    if (this.isDynamic) {
-      return this.dynamicTagName;
-    }
-  }
 
   getStatic(): Maybe<string> {
     if (this.isStatic) {
@@ -227,21 +193,8 @@ class ComponentTagBuilder implements Component.ComponentTagBuilder {
     this.staticTagName = tagName;
   }
 
-  dynamic(tagName: FunctionExpression<string>) {
+  dynamic() {
     this.isDynamic = true;
-    this.dynamicTagName = [Ops.ClientSideExpression, ClientSide.Ops.FunctionExpression, tagName];
-  }
-}
-
-class ComponentAttrsBuilder implements Component.ComponentAttrsBuilder {
-  public buffer: WireFormat.Statements.Attribute[] = [];
-
-  static(name: string, value: string) {
-    this.buffer.push([Ops.StaticAttr, name, value, null]);
-  }
-
-  dynamic(name: string, value: FunctionExpression<string>) {
-    this.buffer.push([Ops.DynamicAttr, name, [Ops.ClientSideExpression, ClientSide.Ops.FunctionExpression, value], null]);
   }
 }
 

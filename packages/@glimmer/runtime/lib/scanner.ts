@@ -30,11 +30,11 @@ export default class Scanner {
     return new CompilableTemplate(statements, { meta, parameters: EMPTY_ARRAY }, options);
   }
 
-  scanLayout(meta: CompilationMeta, attrs: WireFormat.Statements.Attribute[], componentName?: string): TopLevelBlock {
+  scanLayout(meta: CompilationMeta, componentName?: string): TopLevelBlock {
     let { block, options } = this;
     let { symbols, hasEval } = block;
 
-    let scanner = new LayoutScanner(block, this.options, meta, attrs, componentName);
+    let scanner = new LayoutScanner(block, this.options, meta, componentName);
 
     return new CompilableTemplate(scanner.scan(), { meta, hasEval, symbols }, options);
   }
@@ -52,7 +52,7 @@ class LayoutScanner {
   private statements: WireFormat.Statement[];
   private meta: TemplateMeta;
 
-  constructor(block: WireFormat.SerializedTemplateBlock, private env: CompilationOptions, meta: CompilationMeta, private attrs: WireFormat.Statements.Attribute[], private componentName?: string) {
+  constructor(block: WireFormat.SerializedTemplateBlock, private env: CompilationOptions, meta: CompilationMeta, private componentName?: string) {
     let { statements, symbols } = block;
     this.statements = statements;
     this.symbols = symbols;
@@ -152,11 +152,10 @@ class LayoutScanner {
     assert(!WireFormat.Statements.isModifier(statement), `Cannot use element modifiers ({{${statement[1]} ...}}) in the top-level element in the layout of <${this.componentName}>`);
 
     if (WireFormat.Statements.isFlushElement(statement)) {
-      let { symbols, attrs } = this;
+      let { symbols } = this;
       this.state = LayoutState.AfterFlush;
 
       let attrsSymbol = symbols.push(ATTRS_BLOCK);
-      buffer.push(...attrs);
       buffer.push([Ops.Yield, attrsSymbol, EMPTY_ARRAY]);
       buffer.push([Ops.ClientSideStatement, ClientSide.Ops.SetComponentAttrs, false]);
     }

@@ -1,6 +1,6 @@
 import { Op } from '@glimmer/vm';
 import { Opaque, Option, BlockSymbolTable } from '@glimmer/interfaces';
-import { ConstReference, Reference, VersionedPathReference } from '@glimmer/reference';
+import { Reference, VersionedPathReference } from '@glimmer/reference';
 import {
   CONSTANT_TAG,
   isConst,
@@ -10,7 +10,7 @@ import {
   Tag,
 } from '@glimmer/reference';
 import { initializeGuid } from '@glimmer/util';
-import Environment, { Handle } from '../../environment';
+import { Handle } from '../../environment';
 import { APPEND_OPCODES, OpcodeJSON, UpdatingOpcode } from '../../opcodes';
 import { Primitive, PrimitiveReference } from '../../references';
 import { CompilableTemplate } from '../../syntax/interfaces';
@@ -166,25 +166,9 @@ APPEND_OPCODES.add(Op.ReturnTo, (vm, { op1: relative }) => {
   vm.returnTo(relative);
 });
 
-export type TestFunction = (ref: Reference<Opaque>, env: Environment) => Reference<boolean>;
-
-export const ConstTest: TestFunction = function(ref: Reference<Opaque>, _env: Environment): Reference<boolean> {
-  return new ConstReference(!!ref.value());
-};
-
-export const SimpleTest: TestFunction = function(ref: Reference<Opaque>, _env: Environment): Reference<boolean> {
-  return ref as Reference<boolean>;
-};
-
-export const EnvironmentTest: TestFunction = function(ref: Reference<Opaque>, env: Environment): Reference<boolean> {
-  return env.toConditionalReference(ref);
-};
-
-APPEND_OPCODES.add(Op.Test, (vm, { op1: _func }) => {
-  let stack = vm.stack;
-  let operand = stack.pop();
-  let func = vm.constants.getFunction(_func);
-  stack.push(func(operand, vm.env));
+APPEND_OPCODES.add(Op.ToBoolean, vm => {
+  let { env, stack } = vm;
+  stack.push(env.toConditionalReference(stack.pop<Reference>()));
 });
 
 export class Assert extends UpdatingOpcode {

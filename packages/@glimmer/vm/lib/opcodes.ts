@@ -30,16 +30,6 @@ export const enum Op {
   Helper,
 
   /**
-   * Operation: Push function onto the stack.
-   * Format:
-   *   (Function function:#Function)
-   * Operand Stack:
-   *   ... →
-   *   ..., #Function
-   */
-  Function,
-
-  /**
    * Operation:
    *   Bind a variable represented by a symbol from
    *   a caller supplied argument.
@@ -563,14 +553,12 @@ export const enum Op {
    * Operation: Convert the top of the stack into a boolean reference.
    *
    * Format:
-   *   (Test test:#function)
+   *   (ToBoolean)
    * Operand Stack:
    *   ..., VersionedPathReference<Opaque> →
    *   ..., VersionedPathReference<bool>
-   * Description:
-   *   TODO: ToBoolean should be global in the env
    */
-  Test,
+  ToBoolean,
 
   /// LISTS
 
@@ -634,6 +622,17 @@ export const enum Op {
   Iterate,
 
   /// COMPONENTS
+
+  /**
+   * Operation: Test whether a reference contains a component definition.
+   *
+   * Format:
+   *   (IsComponent)
+   * Operand Stack:
+   *   ..., VersionedPathReference<Opaque> →
+   *   ..., VersionedPathReference<boolean>
+   */
+  IsComponent,
 
   /**
    * Operation: Curry a component definition for a later invocation.
@@ -746,6 +745,17 @@ export const enum Op {
    *   ..., VersionedPathReference
    */
   GetComponentSelf,
+
+  /**
+   * Operation: Push the component's `self` onto the stack.
+   *
+   * Format:
+   *   (GetComponentTagName state:u32)
+   * Operand Stack:
+   *   ... →
+   *   ..., Option<string>
+   */
+  GetComponentTagName,
 
   /**
    * Operation: Invoke the layout returned by the manager.

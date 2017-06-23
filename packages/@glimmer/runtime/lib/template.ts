@@ -1,11 +1,10 @@
 import { CompilationOptions, InputCompilationOptions } from './syntax/compilable-template';
 import { Simple, Opaque, Option } from '@glimmer/interfaces';
 import { PathReference } from '@glimmer/reference';
-import { assign, EMPTY_ARRAY } from '@glimmer/util';
+import { assign } from '@glimmer/util';
 import {
   SerializedTemplateBlock,
   SerializedTemplateWithLazyBlock,
-  Statements,
   TemplateMeta,
 } from '@glimmer/wire-format';
 import { ElementBuilder, NewElementBuilder } from './vm/element-builder';
@@ -54,7 +53,7 @@ export interface Template<T extends TemplateMeta = TemplateMeta> {
 
   // internal casts, these are lazily created and cached
   asEntryPoint(): TopLevelBlock;
-  asLayout(componentName: string, attrs?: Statements.Attribute[]): TopLevelBlock;
+  asLayout(componentName: string): TopLevelBlock;
   asPartial(): TopLevelBlock;
   asBlock(): Block;
 }
@@ -152,8 +151,8 @@ class ScannableTemplate implements Template<TemplateMeta> {
     return this.entryPoint;
   }
 
-  asLayout(componentName: string, attrs?: Statements.Attribute[]): TopLevelBlock {
-    if (!this.layout) this.layout = this.scanner.scanLayout(this.compilationMeta(), attrs || EMPTY_ARRAY, componentName);
+  asLayout(componentName: string): TopLevelBlock {
+    if (!this.layout) this.layout = this.scanner.scanLayout(this.compilationMeta(), componentName);
     return this.layout;
   }
 
