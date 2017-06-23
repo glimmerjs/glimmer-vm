@@ -21,6 +21,7 @@ import RawInlineBlock from '../../syntax/raw-block';
 import { IsComponentDefinitionReference } from '../opcodes/content';
 import * as vm from './vm';
 import { TemplateMeta } from "@glimmer/wire-format";
+import { ComponentBuilder } from "../../compiler";
 
 export interface CompilesInto<E> {
   compile(builder: OpcodeBuilder): E;
@@ -61,7 +62,7 @@ export abstract class OpcodeBuilder {
 
   private labelsStack = new Stack<Labels>();
   private isComponentAttrs = false;
-  public component: IComponentBuilder;
+  public component: IComponentBuilder = new ComponentBuilder(this);
 
   constructor(public options: CompilationOptions, public meta: CompilationMeta, public program: Program = options.program) {
     this.constants = program.constants;
@@ -105,7 +106,7 @@ export abstract class OpcodeBuilder {
   // args
 
   pushArgs(names: string[], positionalCount: number, synthetic: boolean) {
-    let serialized = this.constants.serializable(names);
+    let serialized = this.constants.stringArray(names);
     this.push(Op.PushArgs, serialized, positionalCount, synthetic === true ? 1 : 0);
   }
 
@@ -130,8 +131,8 @@ export abstract class OpcodeBuilder {
     this.push(Op.PushComponentManager, this.constants.specifier(specifier));
   }
 
-  pushDynamicComponentManager() {
-    this.push(Op.PushDynamicComponentManager);
+  pushDynamicComponentManager(meta: TemplateMeta) {
+    this.push(Op.PushDynamicComponentManager, this.constants.serializable(meta));
   }
 
   prepareArgs(state: Register) {
@@ -192,7 +193,7 @@ export abstract class OpcodeBuilder {
   // debugger
 
   debugger(symbols: string[], evalInfo: number[]) {
-    this.push(Op.Debugger, this.constants.serializable(symbols), this.constants.array(evalInfo));
+    this.push(Op.Debugger, this.constants.stringArray(symbols), this.constants.array(evalInfo));
   }
 
   // content
@@ -584,9 +585,9 @@ export abstract class OpcodeBuilder {
 
     this.jumpUnless('ELSE');
 
-    this.pushDynamicComponentManager();
+    this.pushDynamicComponentManager(this.meta.templateMeta);
 
-    this.invokeComponent(null, null, null, null, null);
+    this.invokeComponent(null, null, null, false, null, null);
 
     this.exit();
 
@@ -615,16 +616,16 @@ export abstract class OpcodeBuilder {
     this.popFrame();
   }
 
-  invokeComponent(attrs: Option<RawInlineBlock>, params: Option<WireFormat.Core.Params>, hash: Option<WireFormat.Core.Hash>, block: Option<Block>, inverse: Option<Block> = null) {
+  invokeComponent(attrs: Option<RawInlineBlock>, params: Option<WireFormat.Core.Params>, hash: Option<WireFormat.Core.Hash>, synthetic: boolean, block: Option<Block>, inverse: Option<Block> = null) {
     this.fetch(Register.s0);
     this.dup(Register.sp, 1);
     this.load(Register.s0);
 
-    this.pushDynamicBlock(block);
-    this.pushDynamicBlock(inverse);
-    this.pushDynamicBlock(attrs && attrs.scan());
+    this.pushYieldableBlock(block);
+    this.pushYieldableBlock(inverse);
+    this.pushYieldableBlock(attrs && attrs.scan());
 
-    this.compileArgs(params, hash, false);
+    this.compileArgs(params, hash, synthetic);
     this.prepareArgs(Register.s0);
 
     this.beginComponentTransaction();
@@ -643,7 +644,7 @@ export abstract class OpcodeBuilder {
     this.load(Register.s0);
   }
 
-  pushDynamicBlock(block: Option<Block>): void {
+  pushYieldableBlock(block: Option<Block>): void {
     this.pushSymbolTable(block);
     this.pushBlock(block);
   }
@@ -682,6 +683,11 @@ export class LazyOpcodeBuilder extends OpcodeBuilder {
   invokeYield() {
     this.compileBlock();
     super.invokeYield();
+  }
+
+  invokeStatic() {
+    this.compileBlock();
+    super.invokeStatic();
   }
 
   protected pushOther<T>(value: T) {

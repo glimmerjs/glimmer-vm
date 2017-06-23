@@ -65,12 +65,12 @@ export class EvaluationStack {
     return this.stack[this.sp] as T;
   }
 
-  fromBase<T>(offset: number): T {
-    return this.stack[this.fp - offset] as T;
+  at<T>(offset: number, base = this.fp): T {
+    return this.stack[base + offset] as T;
   }
 
-  fromTop<T>(offset: number): T {
-    return this.stack[this.sp - offset] as T;
+  slice<T = Opaque>(start: number, end: number): T[] {
+    return this.stack.slice(start, end) as T[];
   }
 
   capture(items: number): CapturedStack {
@@ -171,8 +171,8 @@ export default class VM implements PublicVM {
   // Restore $ra, $sp and $fp
   popFrame() {
     this.sp = this.fp - 1;
-    this.ra = this.stack.fromBase<number>(0);
-    this.fp = this.stack.fromBase<number>(-1);
+    this.ra = this.stack.at<number>(0);
+    this.fp = this.stack.at<number>(1);
   }
 
   // Jump to an address in `program`
@@ -182,9 +182,8 @@ export default class VM implements PublicVM {
 
   // Save $pc into $ra, then jump to a new address in `program` (jal in MIPS)
   call(handle: Handle) {
-    let pc = this.heap.getaddr(handle);
     this.ra = this.pc;
-    this.pc = pc;
+    this.pc = this.heap.getaddr(handle);
   }
 
   // Put a specific `program` address in $ra

@@ -84,7 +84,7 @@ APPEND_OPCODES.add(Op.Exit, (vm) => vm.exit());
 APPEND_OPCODES.add(Op.CompileBlock, vm => {
   let stack = vm.stack;
   let block = stack.pop<Option<CompilableTemplate> | 0>();
-  stack.push(block ? block.compileStatic() : null);
+  stack.push(block ? block.compileStatic().handle : null);
 });
 
 APPEND_OPCODES.add(Op.InvokeStatic, vm => vm.call(vm.stack.pop<Handle>()));
@@ -97,11 +97,11 @@ APPEND_OPCODES.add(Op.InvokeYield, vm => {
   let args = stack.pop<Arguments>();
 
   if (!table) {
+    args.clear();
+
     // To balance the pop{Frame,Scope}
     vm.pushFrame();
     vm.pushCallerScope();
-
-    args.clear();
 
     return;
   }
@@ -109,7 +109,6 @@ APPEND_OPCODES.add(Op.InvokeYield, vm => {
   let locals = table.parameters;
   let localsCount = locals.length;
 
-  vm.pushFrame();
   vm.pushCallerScope(localsCount > 0);
 
   let scope = vm.scope();
@@ -120,6 +119,7 @@ APPEND_OPCODES.add(Op.InvokeYield, vm => {
 
   args.clear();
 
+  vm.pushFrame();
   vm.call(handle!);
 });
 

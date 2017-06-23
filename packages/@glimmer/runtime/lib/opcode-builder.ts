@@ -27,5 +27,4 @@ export interface DynamicComponentDefinition {
 
 export interface ComponentBuilder {
   static(definition: Specifier, args: ComponentArgs): void;
-  dynamic(definitionArgs: ComponentArgs, getDefinition: DynamicComponentDefinition, args: ComponentArgs): void;
 }

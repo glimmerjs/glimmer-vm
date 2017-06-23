@@ -2,7 +2,7 @@ import { Opaque, Option, Dict, Slice as ListSlice, initializeGuid, fillNulls, un
 import { Op, Register } from '@glimmer/vm';
 import { Tag } from '@glimmer/reference';
 import { VM, UpdatingVM } from './vm';
-import { Opcode } from './environment';
+import { Opcode, Program } from './environment';
 import { Constants } from './environment/constants';
 import { CompilationOptions } from './syntax/compilable-template';
 import { DEBUG, CI } from '@glimmer/local-debug-flags';
@@ -16,10 +16,9 @@ export interface OpcodeJSON {
   children?: OpcodeJSON[];
 }
 
-export function debugSlice(env: CompilationOptions, start: number, end: number) {
+export function debugSlice(program: Program, start: number, end: number) {
   if (!CI && DEBUG) {
     /* tslint:disable:no-console */
-    let { program } = env;
     let { constants } = program;
 
     // console is not available in IE9
@@ -82,7 +81,7 @@ function debug(c: Constants, op: Op, op1: number, op2: number, op3: number): [st
     switch (op) {
       case Op.Bug: throw unreachable();
 
-      case Op.Helper: return ['Helper', { helper: c.getFunction(op1) }];
+      case Op.Helper: return ['Helper', { helper: c.resolveSpecifier(op1) }];
       case Op.Function: return ['Function', { function: c.getFunction(op1) }];
       case Op.SetVariable: return ['SetVariable', { symbol: op1 }];
       case Op.GetVariable: return ['GetVariable', { symbol: op1 }];
@@ -153,7 +152,7 @@ function debug(c: Constants, op: Op, op1: number, op2: number, op3: number): [st
       /// COMPONENTS
       case Op.PushComponentManager: return ['PushComponentManager', { definition: c.getOther(op1) }];
       case Op.PushDynamicComponentManager: return ['PushDynamicComponentManager', {}];
-      case Op.PushArgs: return ['PushArgs', { synthetic: !!op2 }];
+      case Op.PushArgs: return ['PushArgs', { names: c.getStringArray(op1), positionals: op2, synthetic: !!op3 }];
       case Op.PrepareArgs: return ['PrepareArgs', { state: Register[op1] }];
       case Op.CreateComponent: return ['CreateComponent', { flags: op1, state: Register[op2] }];
       case Op.RegisterComponentDestructor: return ['RegisterComponentDestructor', {}];

@@ -1,10 +1,10 @@
-import { Register } from '@glimmer/vm';
 import { CompilationMeta, Option } from '@glimmer/interfaces';
 import { assert, dict, EMPTY_ARRAY, unwrap } from '@glimmer/util';
+import { Register } from '@glimmer/vm';
 import * as WireFormat from '@glimmer/wire-format';
 import OpcodeBuilder, { LazyOpcodeBuilder } from '../compiled/opcodes/builder';
 import { Handle } from '../environment';
-import * as ClientSide from '../syntax/client-side';
+import * as ClientSide from './client-side';
 import { CompilationOptions } from './compilable-template';
 import { Block } from './interfaces';
 import RawInlineBlock from './raw-block';
@@ -171,7 +171,7 @@ STATEMENTS.add(Ops.Component, (sexp: S.Component, builder: OpcodeBuilder) => {
     ];
     let attrsBlock = new RawInlineBlock(attrs, EMPTY_ARRAY, builder.meta, builder.options);
     builder.pushComponentManager(specifier);
-    builder.invokeComponent(attrsBlock, null, args, child && child.scan());
+    builder.invokeComponent(attrsBlock, null, args, false, child && child.scan());
   } else if (block && block.parameters.length) {
     throw new Error(`Compile Error: Cannot find component ${tag}`);
   } else {
@@ -744,6 +744,53 @@ export function populateBuiltins(blocks: Blocks = new Blocks(), inlines: Inlines
     } else {
       builder.invokeStaticBlock(unwrap(template));
     }
+  });
+
+  function dynamicComponent([definition, ...params]: WireFormat.Core.Params, hash: WireFormat.Core.Hash, template: Option<Block>, inverse: Option<Block>, builder: OpcodeBuilder) {
+    builder.startLabels();
+
+    builder.pushFrame();
+
+    builder.returnTo('END');
+
+    expr(definition, builder);
+
+    builder.dup();
+    builder.test('simple');
+
+    builder.enter(2);
+
+    builder.jumpUnless('ELSE');
+
+    builder.pushDynamicComponentManager(builder.meta.templateMeta);
+    builder.invokeComponent(null, params, hash, true, template, inverse);
+
+    builder.label('ELSE');
+    builder.exit();
+    builder.return();
+
+    builder.label('END');
+    builder.popFrame();
+
+    builder.stopLabels();
+  }
+
+  inlines.add('component', (_name, params, hash, builder) => {
+    if (!params || params.length < 1) {
+      throw new Error(`SYNTAX ERROR: component helper requires at least one argument`);
+    }
+
+    dynamicComponent(params, hash, null, null, builder);
+
+    return true;
+  });
+
+  blocks.add('component', (params, hash, template, inverse, builder) => {
+    if (!params || params.length < 1) {
+      throw new Error(`SYNTAX ERROR: #component requires at least one argument`);
+    }
+
+    dynamicComponent(params, hash, template, inverse, builder);
   });
 
   return { blocks, inlines };

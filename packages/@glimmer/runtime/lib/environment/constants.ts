@@ -100,11 +100,12 @@ export class Constants {
   }
 
   resolveSpecifier<T>(s: number): T {
-    let resolved = this.resolved[s];
+    let index = s - 1;
+    let resolved = this.resolved[index];
 
     if (resolved === UNRESOLVED) {
-      let specifier = this.specifiers[s];
-      resolved = this.resolved[s] = this.resolver.resolve(specifier);
+      let specifier = this.specifiers[index];
+      resolved = this.resolved[index] = this.resolver.resolve(specifier);
     }
 
     return resolved as T;

@@ -35,12 +35,12 @@ export default class CompilableTemplate<S extends SymbolTable> implements ICompi
 
     if (!compiledStatic) {
       let builder = compileStatements(this.statements, this.symbolTable.meta, options);
-      builder.finalize();
-      let handle = builder.start;
+      let handle = builder.finalize();
       if (DEBUG) {
-        let start = options.program.heap.size() - options.program.heap.sizeof(handle);
-        let end = start + options.program.heap.sizeof(handle);
-        debugSlice(options, start, end);
+        let { program, program: { heap } } = options;
+        let start = heap.getaddr(handle);
+        let end = start + heap.sizeof(handle);
+        debugSlice(program, start, end);
       }
       compiledStatic = this.compiledStatic = new CompiledStaticTemplate(handle);
     }

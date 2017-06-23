@@ -1,6 +1,6 @@
 import { VersionedPathReference } from '@glimmer/reference';
 
-import { Constants } from './environment/constants';
+import { Constants, LazyConstants } from './environment/constants';
 
 import { DOMChanges, DOMTreeConstruction } from './dom/helper';
 import { Reference, OpaqueIterable } from '@glimmer/reference';
@@ -27,15 +27,14 @@ import {
   expect
 } from '@glimmer/util';
 
-import { Block } from './syntax/interfaces';
-
 import { PublicVM } from './vm/append';
 
 import { IArguments } from './vm/arguments';
 import { DEBUG } from "@glimmer/local-debug-flags";
-import { Simple, Unique } from "@glimmer/interfaces";
+import { Simple, Unique, Resolver, BlockSymbolTable } from "@glimmer/interfaces";
 
-export type ScopeSlot = VersionedPathReference<Opaque> | Option<Block>;
+export type ScopeBlock = [Handle, BlockSymbolTable];
+export type ScopeSlot = VersionedPathReference<Opaque> | Option<ScopeBlock>;
 
 export interface DynamicScope {
   get(key: string): VersionedPathReference<Opaque>;
@@ -87,8 +86,8 @@ export class Scope {
     return this.get<VersionedPathReference<Opaque>>(symbol);
   }
 
-  getBlock(symbol: number): Block {
-    return this.get<Block>(symbol);
+  getBlock(symbol: number): ScopeBlock {
+    return this.get<ScopeBlock>(symbol);
   }
 
   getEvalScope(): Option<Dict<ScopeSlot>> {
@@ -111,8 +110,8 @@ export class Scope {
     this.set<VersionedPathReference<Opaque>>(symbol, value);
   }
 
-  bindBlock(symbol: number, value: Option<Block>) {
-    this.set<Option<Block>>(symbol, value);
+  bindBlock(symbol: number, value: Option<ScopeBlock>) {
+    this.set<Option<ScopeBlock>>(symbol, value);
   }
 
   bindEvalScope(map: Option<Dict<ScopeSlot>>) {
@@ -367,10 +366,10 @@ export class Program {
   public constants: Constants;
   public heap: Heap;
 
-  constructor() {
+  constructor(resolver: Resolver<any>) {
     this.heap = new Heap();
     this._opcode = new Opcode(this.heap);
-    this.constants = new Constants();
+    this.constants = new LazyConstants(resolver);
   }
 
   opcode(offset: number): Opcode {

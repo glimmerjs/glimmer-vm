@@ -652,9 +652,9 @@ export const enum Op {
    *   a runtime-resolved component definition.
    *
    * Format:
-   *   (PushDynamicComponentManager)
+   *   (PushDynamicComponentManager templateMeta:#TemplateMeta)
    * Operand Stack:
-   *   ... Reference<ComponentDefinition> →
+   *   ... VersionedPathReference<Opaque> →
    *   ..., ComponentDefinition, ComponentManager
    */
   PushDynamicComponentManager,
@@ -797,7 +797,7 @@ export const enum Op {
    * Operation: Lookup and invoke a partial template.
    *
    * Format:
-   *   (InvokePartial templateMeta:TemplateMeta symbols:#Array<#string> evalInfo:#Array<number>)
+   *   (InvokePartial templateMeta:#TemplateMeta symbols:#Array<#string> evalInfo:#Array<number>)
    * Operand Stack:
    *   ..., VersionedPathReference<string> →
    *   ...

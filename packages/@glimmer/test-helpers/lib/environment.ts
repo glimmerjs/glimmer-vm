@@ -26,7 +26,6 @@ import {
   ComponentManager,
   ComponentDefinition,
   ComponentLayoutBuilder,
-  ComponentArgs,
   PreparedArguments,
 
   // Arguments
@@ -830,13 +829,6 @@ class TestMacros extends Macros {
       builder.invokeStaticBlock(inverse!);
     });
 
-    blocks.add('component', (params, hash, template, inverse, builder) => {
-      let definitionArgs: ComponentArgs = [params.slice(0, 1), null, null, null];
-      let args: ComponentArgs = [params.slice(1), hashToArgs(hash), template, inverse];
-      builder.component.dynamic(definitionArgs, dynamicComponentFor, args);
-      return true;
-    });
-
     blocks.addMissing((name, params, hash, template, inverse, builder) => {
       if (!params) {
         params = [];
@@ -854,13 +846,6 @@ class TestMacros extends Macros {
       return false;
     });
 
-    inlines.add('component', (_name, params, hash, builder) => {
-      let definitionArgs: ComponentArgs = [params!.slice(0, 1), null, null, null];
-      let args: ComponentArgs = [params!.slice(1), hashToArgs(hash), null, null];
-      builder.component.dynamic(definitionArgs, dynamicComponentFor, args);
-      return true;
-    });
-
     inlines.addMissing((name, params, hash, builder) => {
       let resolver = builder.options.resolver;
       let specifier = resolver.lookupComponent(name, builder.meta.templateMeta);
@@ -876,8 +861,8 @@ class TestMacros extends Macros {
 }
 
 export class TestEnvironment extends Environment {
-  private program = new Program();
   public resolver = new TestResolver();
+  private program = new Program(this.resolver);
   private uselessAnchor: HTMLAnchorElement;
   public compiledLayouts = dict<CompiledDynamicProgram>();
 
@@ -1067,11 +1052,6 @@ export class DynamicComponentReference implements VersionedPathReference<Option<
     return NULL_REFERENCE;
   }
 }
-
-function dynamicComponentFor(vm: VM, args: Arguments, meta: WireFormat.TemplateMeta, resolver: Resolver) {
-  let nameRef = args.positional.at(0);
-  return new DynamicComponentReference(nameRef, meta, resolver);
-};
 
 export interface BasicComponentFactory {
   new (attrs: Dict<any>): BasicComponent;

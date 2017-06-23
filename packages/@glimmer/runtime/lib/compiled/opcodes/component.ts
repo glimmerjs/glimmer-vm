@@ -1,8 +1,7 @@
-import { Opaque, Option, Dict } from '@glimmer/interfaces';
+import { Opaque, Option, Dict, BlockSymbolTable } from '@glimmer/interfaces';
 import {
   combineTagged,
   CONSTANT_TAG,
-  ReferenceCache,
   Tag,
   VersionedReference,
   VersionedPathReference,
@@ -10,18 +9,17 @@ import {
   isConstTag
 } from '@glimmer/reference';
 import Bounds from '../../bounds';
-import { Component, ComponentDefinition, ComponentManager } from '../../component/interfaces';
+import { Component, ComponentDefinition, ComponentManager, isComponentDefinition } from '../../component/interfaces';
 import { normalizeStringValue } from '../../dom/normalize';
-import { DynamicScope, ScopeSlot } from '../../environment';
+import { DynamicScope, ScopeSlot, Handle, ScopeBlock } from '../../environment';
 import { APPEND_OPCODES, OpcodeJSON, UpdatingOpcode } from '../../opcodes';
+import { ATTRS_BLOCK } from '../../syntax/functions';
 import { UpdatingVM, VM } from '../../vm';
 import ARGS, { Arguments, IArguments } from '../../vm/arguments';
 import { UpdateDynamicAttributeOpcode } from './dom';
-import { Assert } from './vm';
-import { ATTRS_BLOCK } from '../../syntax/functions';
-import { Block } from '../../syntax/interfaces';
-import { dict } from "@glimmer/util";
+import { dict, assert } from "@glimmer/util";
 import { Op, Register } from '@glimmer/vm';
+import { TemplateMeta } from "@glimmer/wire-format";
 
 APPEND_OPCODES.add(Op.PushComponentManager, (vm, { op1: specifier }) => {
   let definition = vm.constants.resolveSpecifier<ComponentDefinition>(specifier);
@@ -30,17 +28,28 @@ APPEND_OPCODES.add(Op.PushComponentManager, (vm, { op1: specifier }) => {
   stack.push({ definition, manager: definition.manager, component: null });
 });
 
-APPEND_OPCODES.add(Op.PushDynamicComponentManager, vm => {
+APPEND_OPCODES.add(Op.PushDynamicComponentManager, (vm, { op1: _meta }) => {
   let stack = vm.stack;
-  let reference = stack.pop<VersionedPathReference<ComponentDefinition>>();
-  let cache = isConst(reference) ? undefined : new ReferenceCache<ComponentDefinition>(reference);
-  let definition = cache ? cache.peek() : reference.value();
+
+  let value = stack.pop<VersionedPathReference<Opaque>>().value();
+  let definition: ComponentDefinition;
+
+  if (isComponentDefinition(value)) {
+    definition = value;
+  } else {
+    assert(typeof value === 'string', `Could not find a component named "${String(value)}"`);
+
+    let { constants, constants: { resolver } } = vm;
+
+    let meta = constants.getSerializable<TemplateMeta>(_meta);
+    let specifier = resolver.lookupComponent(value as string, meta);
+
+    assert(specifier, `Could not find a component named "${value as string}"`);
+
+    definition = resolver.resolve<ComponentDefinition>(specifier!);
+  }
 
   stack.push({ definition, manager: definition.manager, component: null });
-
-  if (cache) {
-    vm.updateWith(new Assert(cache));
-  }
 });
 
 interface InitialComponentState {
@@ -57,7 +66,7 @@ export interface ComponentState {
 
 APPEND_OPCODES.add(Op.PushArgs, (vm, { op1: _names, op2: positionalCount, op3: synthetic }) => {
   let stack = vm.stack;
-  let names = vm.constants.getSerializable<string[]>(_names);
+  let names = vm.constants.getStringArray(_names);
   ARGS.setup(stack, names, positionalCount, !!synthetic);
   stack.push(ARGS);
 });
@@ -233,22 +242,25 @@ APPEND_OPCODES.add(Op.InvokeComponentLayout, (vm, { op1: _state }) => {
       lookup = dict<ScopeSlot>();
     }
 
-    let callerNames = args.named.names;
+    let callerNames = args.named.atNames;
 
     for (let i=callerNames.length - 1; i>=0; i--) {
-      let name = callerNames[i];
+      let atName = callerNames[i];
       let symbol = symbols.indexOf(callerNames[i]);
-      let value = args.get(name);
+      let value = args.named.get(atName, false);
 
       if (symbol !== -1) scope.bindSymbol(symbol + 1, value);
-      if (hasEval) lookup![name] = value;
+      if (hasEval) lookup![atName] = value;
     }
 
     args.clear();
 
     function bindBlock(name: string) {
       let symbol = symbols.indexOf(name);
-      let block = stack.pop<Option<Block>>();
+      let handle = stack.pop<Option<Handle>>();
+      let table = stack.pop<Option<BlockSymbolTable>>();
+
+      let block: Option<ScopeBlock> = table ? [handle!, table] : null;
 
       if (symbol !== -1) {
         scope.bindBlock(symbol + 1, block);

@@ -59,7 +59,16 @@ APPEND_OPCODES.add(Op.GetProperty, (vm, { op1: _key }) => {
 });
 
 APPEND_OPCODES.add(Op.GetBlock, (vm, { op1: _block }) => {
-  vm.stack.push(vm.scope().getBlock(_block));
+  let { stack } = vm;
+  let block = vm.scope().getBlock(_block);
+
+  if (block) {
+    stack.push(block[1]);
+    stack.push(block[0]);
+  } else {
+    stack.push(null);
+    stack.push(null);
+  }
 });
 
 APPEND_OPCODES.add(Op.HasBlock, (vm, { op1: _block }) => {
@@ -69,7 +78,7 @@ APPEND_OPCODES.add(Op.HasBlock, (vm, { op1: _block }) => {
 
 APPEND_OPCODES.add(Op.HasBlockParams, (vm, { op1: _block }) => {
   let block = vm.scope().getBlock(_block);
-  let hasBlockParams = block && block.symbolTable.parameters.length;
+  let hasBlockParams = block && block[1].parameters.length;
   vm.stack.push(hasBlockParams ? TRUE_REFERENCE : FALSE_REFERENCE);
 });
 

@@ -11,8 +11,7 @@ import { CompilationOptions, InputCompilationOptions } from './syntax/compilable
 
 import {
   ComponentArgs,
-  ComponentBuilder as IComponentBuilder,
-  DynamicComponentDefinition
+  ComponentBuilder as IComponentBuilder
 } from './opcode-builder';
 
 import { expr } from './syntax/functions';
@@ -23,8 +22,6 @@ import * as Component from './component/interfaces';
 
 import * as WireFormat from '@glimmer/wire-format';
 
-import { PublicVM } from './vm/append';
-import { IArguments } from './vm/arguments';
 import { FunctionExpression } from "./compiled/opcodes/expressions";
 import { DEBUG } from "@glimmer/local-debug-flags";
 
@@ -76,7 +73,7 @@ class WrappedBuilder implements InnerLayoutBuilder {
   public tag = new ComponentTagBuilder();
   public attrs = new ComponentAttrsBuilder();
 
-  constructor(public env: CompilationOptions, private layout: Template<TemplateMeta>) {}
+  constructor(public options: CompilationOptions, private layout: Template<TemplateMeta>) {}
 
   compile(): CompiledDynamicProgram {
     //========DYNAMIC
@@ -107,13 +104,13 @@ class WrappedBuilder implements InnerLayoutBuilder {
     //        DidRenderLayout
     //        Exit
 
-    let { env, layout } = this;
+    let { options, layout } = this;
     let meta = { templateMeta: layout.meta, symbols: layout.symbols, asPartial: false };
 
     let dynamicTag = this.tag.getDynamic();
     let staticTag = this.tag.getStatic();
 
-    let b = builder(env, meta);
+    let b = builder(options, meta);
 
     b.startLabels();
 
@@ -154,8 +151,7 @@ class WrappedBuilder implements InnerLayoutBuilder {
     }
 
     b.label('BODY');
-    b.pushBlock(layout.asBlock());
-    b.invokeStatic();
+    b.invokeStaticBlock(layout.asBlock());
 
     if (dynamicTag) {
       b.fetch(Register.s1);
@@ -176,14 +172,16 @@ class WrappedBuilder implements InnerLayoutBuilder {
 
     b.stopLabels();
 
-    let start = b.start;
-    let end = b.finalize();
+    let handle = b.finalize();
 
     if (DEBUG) {
-      debugSlice(env, env.program.heap.getaddr(start), env.program.heap.getaddr(end));
+      let { program, program: { heap } } = options;
+      let start = heap.getaddr(handle);
+      let end = start + heap.sizeof(handle);
+      debugSlice(program, start, end);
     }
 
-    return new CompiledDynamicTemplate(start, {
+    return new CompiledDynamicTemplate(handle, {
       meta,
       hasEval: layout.hasEval,
       symbols: layout.symbols.concat([ATTRS_BLOCK])
@@ -259,51 +257,7 @@ export class ComponentBuilder implements IComponentBuilder {
     let { builder } = this;
 
     builder.pushComponentManager(definition);
-    builder.invokeComponent(null, params, hash, _default, inverse);
-  }
-
-  dynamic(definitionArgs: ComponentArgs, getDefinition: DynamicComponentDefinition, args: ComponentArgs) {
-    let [params, hash, block, inverse] = args;
-    let { builder } = this;
-
-    if (!definitionArgs || definitionArgs.length === 0) {
-      throw new Error("Dynamic syntax without an argument");
-    }
-
-    let meta = this.builder.meta.templateMeta;
-    let resolver = this.builder.options.resolver;
-
-    function helper(vm: PublicVM, a: IArguments) {
-      return getDefinition(vm, a, meta, resolver);
-    }
-
-    builder.startLabels();
-
-    builder.pushFrame();
-
-    builder.returnTo('END');
-
-    builder.compileArgs(definitionArgs[0], definitionArgs[1], true);
-    builder.helper(helper);
-
-    builder.dup();
-    builder.test('simple');
-
-    builder.enter(2);
-
-    builder.jumpUnless('ELSE');
-
-    builder.pushDynamicComponentManager();
-    builder.invokeComponent(null, params, hash, block, inverse);
-
-    builder.label('ELSE');
-    builder.exit();
-    builder.return();
-
-    builder.label('END');
-    builder.popFrame();
-
-    builder.stopLabels();
+    builder.invokeComponent(null, params, hash, false, _default, inverse);
   }
 }
 
