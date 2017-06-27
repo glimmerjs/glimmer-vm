@@ -82,6 +82,7 @@ function debug(c: Constants, op: Op, op1: number, op2: number, op3: number): [st
 
       case Op.Helper: return ['Helper', { helper: c.resolveSpecifier(op1) }];
       case Op.SetVariable: return ['SetVariable', { symbol: op1 }];
+      case Op.SetBlock: return ['SetBlock', { symbol: op1 }];
       case Op.GetVariable: return ['GetVariable', { symbol: op1 }];
       case Op.GetProperty: return ['GetProperty', { key: c.getString(op1) }];
       case Op.GetBlock: return ['GetBlock', { symbol: op1 }];
@@ -159,7 +160,8 @@ function debug(c: Constants, op: Op, op1: number, op2: number, op3: number): [st
       case Op.PutComponentOperations: return ['PutComponentOperations', {}];
       case Op.GetComponentSelf: return ['GetComponentSelf', { state: Register[op1] }];
       case Op.GetComponentTagName: return ['GetComponentTagName', { state: Register[op1] }];
-      case Op.InvokeComponentLayout: return ['InvokeComponentLayout', { state: Register[op1] }];
+      case Op.GetComponentLayout: return ['GetComponentLayout', { state: Register[op1] }];
+      case Op.InvokeComponentLayout: return ['InvokeComponentLayout', {}];
       case Op.BeginComponentTransaction: return ['BeginComponentTransaction', {}];
       case Op.CommitComponentTransaction: return ['CommitComponentTransaction', {}];
       case Op.DidCreateElement: return ['DidCreateElement', { state: Register[op1] }];

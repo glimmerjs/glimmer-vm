@@ -1,7 +1,7 @@
-import { Opaque } from '@glimmer/interfaces';
+import { Opaque, Option, BlockSymbolTable } from '@glimmer/interfaces';
 import { VersionedPathReference } from '@glimmer/reference';
 import { Op } from '@glimmer/vm';
-import { Helper } from '../../environment';
+import { Helper, Handle, ScopeBlock } from '../../environment';
 import { APPEND_OPCODES } from '../../opcodes';
 import { FALSE_REFERENCE, TRUE_REFERENCE } from '../../references';
 import { PublicVM } from '../../vm';
@@ -29,6 +29,14 @@ APPEND_OPCODES.add(Op.GetVariable, (vm, { op1: symbol }) => {
 APPEND_OPCODES.add(Op.SetVariable, (vm, { op1: symbol }) => {
   let expr = vm.stack.pop<VersionedPathReference<Opaque>>();
   vm.scope().bindSymbol(symbol, expr);
+});
+
+APPEND_OPCODES.add(Op.SetBlock, (vm, { op1: symbol }) => {
+  let handle = vm.stack.pop<Option<Handle>>();
+  let table = vm.stack.pop<Option<BlockSymbolTable>>();
+  let block: Option<ScopeBlock> = table ? [handle!, table] : null;
+
+  vm.scope().bindBlock(symbol, block);
 });
 
 APPEND_OPCODES.add(Op.ResolveMaybeLocal, (vm, { op1: _name }) => {

@@ -1,4 +1,4 @@
-import { Opaque, Option, Dict, BlockSymbolTable, Resolver } from '@glimmer/interfaces';
+import { Opaque, Option, Dict, BlockSymbolTable, Resolver, ProgramSymbolTable, Specifier } from '@glimmer/interfaces';
 import {
   combineTagged,
   CONSTANT_TAG,
@@ -15,7 +15,9 @@ import {
   ComponentDefinition,
   ComponentManager,
   ComponentManagerWithDynamicTagName,
-  isComponentDefinition
+  isComponentDefinition,
+  hasStaticLayout,
+  hasDynamicLayout
 } from '../../component/interfaces';
 import { normalizeStringValue } from '../../dom/normalize';
 import { DynamicScope, Handle, ScopeBlock, ScopeSlot } from '../../environment';
@@ -26,7 +28,8 @@ import { UpdatingVM, VM } from '../../vm';
 import { Arguments, IArguments, ICapturedArguments } from '../../vm/arguments';
 import { IsComponentDefinitionReference } from './content';
 import { UpdateDynamicAttributeOpcode } from './dom';
-import { dict, assert } from "@glimmer/util";
+import { LOLWUT } from '../blocks';
+import { dict, assert, unreachable } from "@glimmer/util";
 import { Op, Register } from '@glimmer/vm';
 import { TemplateMeta } from "@glimmer/wire-format";
 
@@ -203,9 +206,13 @@ APPEND_OPCODES.add(Op.PrepareArgs, (vm, { op1: _state }) => {
   let stack = vm.stack;
   let state = vm.fetchValue<InitialComponentState>(_state);
 
-  let args = stack.pop<Arguments>();
-
   let { definition, manager } = state;
+
+  if (definition.capabilities.prepareArgs !== true) {
+    return;
+  }
+
+  let args = stack.pop<Arguments>();
 
   if (isCurriedComponentDefinition(definition)) {
     state.definition = definition = definition.unwrap(args);
@@ -240,11 +247,16 @@ APPEND_OPCODES.add(Op.PrepareArgs, (vm, { op1: _state }) => {
 APPEND_OPCODES.add(Op.CreateComponent, (vm, { op1: flags, op2: _state }) => {
   let definition: ComponentDefinition;
   let manager: ComponentManager;
-  let args = vm.stack.peek<IArguments>();
   let dynamicScope = vm.dynamicScope();
   let state = { definition, manager } = vm.fetchValue<InitialComponentState>(_state);
 
   let hasDefaultBlock = flags & 1;
+
+  let args: Option<IArguments> = null;
+
+  if (definition.capabilities.createArgs) {
+    args = vm.stack.peek<IArguments>();
+  }
 
   let component = manager.create(vm.env, definition, args, dynamicScope, vm.getSelf(), !!hasDefaultBlock);
 
@@ -360,11 +372,30 @@ APPEND_OPCODES.add(Op.GetComponentTagName, (vm, { op1: _state }) => {
   vm.stack.push(manager.getTagName(component));
 });
 
-APPEND_OPCODES.add(Op.InvokeComponentLayout, (vm, { op1: _state }) => {
+APPEND_OPCODES.add(Op.GetComponentLayout, (vm, { op1: _state }) => {
+  let { manager, definition, component } = vm.fetchValue<ComponentState<ComponentManagerWithDynamicTagName>>(_state);
+  let { constants: { resolver }, stack } = vm;
+  let specifier: Specifier;
+
+  if (hasStaticLayout(definition, manager)) {
+    specifier = manager.getLayout(definition, resolver);
+  } else if (hasDynamicLayout(definition, manager)) {
+    specifier = manager.getLayout(component, resolver);
+  } else {
+    throw unreachable();
+  }
+
+  let { symbolTable, zomg } = resolver.resolve<LOLWUT>(specifier);
+
+  stack.push(symbolTable);
+  stack.push(zomg);
+});
+
+APPEND_OPCODES.add(Op.InvokeComponentLayout, vm => {
   let { stack } = vm;
-  let { manager, definition, component } = vm.fetchValue<ComponentState>(_state);
-  let block = manager.layoutFor(definition, component, vm.env);
-  let { symbolTable: { symbols, hasEval }, handle } = block;
+
+  let handle = stack.pop<Handle>();
+  let { symbols, hasEval } = stack.pop<ProgramSymbolTable>();
 
   {
     let scope = vm.pushRootScope(symbols.length + 1, true);

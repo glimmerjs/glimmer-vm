@@ -1,11 +1,10 @@
 import { CompilationOptions } from '../syntax/compilable-template';
-import { Simple, Dict, Opaque, Option, Unique } from '@glimmer/interfaces';
+import { Simple, Dict, Opaque, Option, Unique, Specifier, Resolver } from '@glimmer/interfaces';
 import { Tag, VersionedPathReference } from '@glimmer/reference';
 import { Destroyable } from '@glimmer/util';
 import { TemplateMeta } from '@glimmer/wire-format';
 import Bounds from '../bounds';
 import { ElementOperations } from '../vm/element-builder';
-import { CompiledDynamicProgram } from '../compiled/blocks';
 import Environment, { DynamicScope } from '../environment';
 import { Template } from '../template';
 import { IArguments } from '../vm/arguments';
@@ -28,13 +27,7 @@ export interface ComponentManager<T = Component> {
   // Then, the component manager is asked to create a bucket of state for
   // the supplied arguments. From the perspective of Glimmer, this is
   // an opaque token, but in practice it is probably a component object.
-  create(env: Environment, definition: ComponentDefinition<T>, args: IArguments, dynamicScope: DynamicScope, caller: VersionedPathReference<Opaque>, hasDefaultBlock: boolean): T;
-
-  // Return the compiled layout to use for this component. This is called
-  // *after* the component instance has been created, because you might
-  // want to return a different layout per-instance for optimization reasons
-  // or to implement features like Ember's "late-bound" layouts.
-  layoutFor(definition: ComponentDefinition<T>, component: T, env: Environment): CompiledDynamicProgram;
+  create(env: Environment, definition: ComponentDefinition<T>, args: Option<IArguments>, dynamicScope: DynamicScope, caller: VersionedPathReference<Opaque>, hasDefaultBlock: boolean): T;
 
   // Next, Glimmer asks the manager to create a reference for the `self`
   // it should use in the layout.
@@ -88,6 +81,26 @@ export interface ComponentManagerWithDynamicTagName<T = Component> extends Compo
   getTagName(component: T): Option<string>;
 }
 
+export interface WithStaticLayout<T = Component> extends ComponentManager<T> {
+  getLayout<Specifier>(definition: ComponentDefinition<T>, resolver: Resolver<Specifier>): Specifier;
+}
+
+export function hasStaticLayout(definition: ComponentDefinition, _: ComponentManager): _ is WithStaticLayout {
+  return definition.capabilities.dynamicLayout === false;
+}
+
+export interface WithDynamicLayout<T = Component> extends ComponentManager<T> {
+  // Return the compiled layout to use for this component. This is called
+  // *after* the component instance has been created, because you might
+  // want to return a different layout per-instance for optimization reasons
+  // or to implement features like Ember's "late-bound" layouts.
+  getLayout<Specifier>(component: T, resolver: Resolver<Specifier>): Specifier;
+}
+
+export function hasDynamicLayout(definition: ComponentDefinition, _: ComponentManager): _ is WithDynamicLayout {
+  return definition.capabilities.dynamicLayout === true;
+}
+
 export interface ComponentLayoutBuilder {
   options: CompilationOptions;
   tag: ComponentTagBuilder;
@@ -107,9 +120,22 @@ export function isComponentDefinition(obj: Opaque): obj is ComponentDefinition {
   return typeof obj === 'object' && obj !== null && obj[COMPONENT_DEFINITION_BRAND];
 }
 
+export interface ComponentCapabilities {
+  dynamicLayout: boolean;
+  prepareArgs: boolean;
+  createArgs: boolean;
+}
+
+const ALL_CAPABILITIES: ComponentCapabilities = {
+  dynamicLayout: true,
+  prepareArgs: true,
+  createArgs: true
+};
+
 export abstract class ComponentDefinition<T = Component> {
   public name: string; // for debugging
   public manager: ComponentManager<T>;
+  public capabilities: ComponentCapabilities = ALL_CAPABILITIES;
 
   constructor(name: string, manager: ComponentManager<T>) {
     this[COMPONENT_DEFINITION_BRAND] = true;

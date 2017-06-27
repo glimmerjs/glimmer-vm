@@ -1,5 +1,5 @@
 import { TemplateMeta } from '@glimmer/wire-format';
-import { CompiledDynamicProgram } from './compiled/blocks';
+import { CompiledDynamicTopLevel } from './compiled/blocks';
 import { Template } from './template';
 
 export class PartialDefinition<T extends TemplateMeta = TemplateMeta> {
@@ -9,7 +9,7 @@ export class PartialDefinition<T extends TemplateMeta = TemplateMeta> {
   ) {
   }
 
-  getPartial(): CompiledDynamicProgram {
+  getPartial(): CompiledDynamicTopLevel {
     return this.template.asPartial().compileDynamic();
   }
 }

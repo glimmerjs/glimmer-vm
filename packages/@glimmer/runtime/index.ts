@@ -1,6 +1,6 @@
 import './lib/bootstrap';
 
-export { InputCompilationOptions } from './lib/syntax/compilable-template';
+export { CompilationOptions, InputCompilationOptions } from './lib/syntax/compilable-template';
 
 export { default as templateFactory, TemplateFactory, Template, TemplateIterator, RenderOptions } from './lib/template';
 
@@ -24,7 +24,9 @@ export {
   CompiledStaticTemplate,
   CompiledDynamicTemplate,
   CompiledDynamicBlock,
-  CompiledDynamicProgram
+  CompiledDynamicTopLevel,
+  LOLWUT,
+  ZOMG
 } from './lib/compiled/blocks';
 
 export {
@@ -80,6 +82,7 @@ export { SafeString } from './lib/upsert';
 
 export {
   Scope,
+  Handle,
   default as Environment,
   Helper,
   DynamicScope,
@@ -92,12 +95,15 @@ export {
 
 export {
   Component,
+  ComponentCapabilities,
   ComponentClass,
   ComponentManager,
   ComponentDefinition,
   ComponentLayoutBuilder,
   ComponentManagerWithDynamicTagName,
   PreparedArguments,
+  WithDynamicLayout,
+  WithStaticLayout,
   isComponentDefinition
 } from './lib/component/interfaces';
 

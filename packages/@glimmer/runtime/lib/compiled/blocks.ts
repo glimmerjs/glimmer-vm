@@ -1,4 +1,4 @@
-import { SymbolTable, ProgramSymbolTable, BlockSymbolTable } from '@glimmer/interfaces';
+import { SymbolTable, ProgramSymbolTable, BlockSymbolTable, Unique } from '@glimmer/interfaces';
 import { Handle } from '../environment';
 
 /**
@@ -49,5 +49,12 @@ export class CompiledDynamicTemplate<S extends SymbolTable = SymbolTable> implem
   }
 }
 
+export type ZOMG = Unique<"ZOMG">;
+
+export interface LOLWUT<T extends SymbolTable = SymbolTable> {
+  symbolTable: T;
+  zomg: ZOMG;
+}
+
 export type CompiledDynamicBlock = CompiledDynamicTemplate<BlockSymbolTable>;
-export type CompiledDynamicProgram = CompiledDynamicTemplate<ProgramSymbolTable>;
+export type CompiledDynamicTopLevel = CompiledDynamicTemplate<ProgramSymbolTable>;

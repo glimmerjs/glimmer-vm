@@ -1,6 +1,6 @@
 import { Register } from '@glimmer/vm';
-import { CompilationMeta, Specifier } from '@glimmer/interfaces';
-import { CompiledDynamicProgram, CompiledDynamicTemplate } from './compiled/blocks';
+import { CompilationMeta, Specifier, ProgramSymbolTable } from '@glimmer/interfaces';
+import { CompiledDynamicTopLevel, CompiledDynamicTemplate, LOLWUT, ZOMG } from './compiled/blocks';
 import { Maybe, Option } from '@glimmer/util';
 import { TemplateMeta } from '@glimmer/wire-format';
 import { Template } from './template';
@@ -23,17 +23,19 @@ export interface CompilableLayout {
   compile(builder: Component.ComponentLayoutBuilder): void;
 }
 
-export function compileLayout(compilable: CompilableLayout, options: InputCompilationOptions): CompiledDynamicProgram {
+export function compileLayout(compilable: CompilableLayout, options: InputCompilationOptions): LOLWUT<ProgramSymbolTable> {
   let builder = new ComponentLayoutBuilder(options);
 
   compilable.compile(builder);
 
-  return builder.compile();
+  let { symbolTable, handle } = builder.compile();
+
+  return { symbolTable, zomg: { compileStatic() { return { handle }; } } as any as ZOMG };
 }
 
 interface InnerLayoutBuilder {
   tag: Component.ComponentTagBuilder;
-  compile(): CompiledDynamicProgram;
+  compile(): CompiledDynamicTopLevel;
 }
 
 class ComponentLayoutBuilder implements Component.ComponentLayoutBuilder {
@@ -49,7 +51,7 @@ class ComponentLayoutBuilder implements Component.ComponentLayoutBuilder {
     this.inner = new UnwrappedBuilder(this.options, componentName, layout);
   }
 
-  compile(): CompiledDynamicProgram {
+  compile(): CompiledDynamicTopLevel {
     return this.inner.compile();
   }
 
@@ -63,7 +65,7 @@ class WrappedBuilder implements InnerLayoutBuilder {
 
   constructor(public options: CompilationOptions, private layout: Template<TemplateMeta>) {}
 
-  compile(): CompiledDynamicProgram {
+  compile(): CompiledDynamicTopLevel {
     //========DYNAMIC
     //        PutValue(TagExpr)
     //        Test
@@ -147,7 +149,7 @@ class WrappedBuilder implements InnerLayoutBuilder {
 
     b.stopLabels();
 
-    let handle = b.finalize();
+    let handle = b.commit(options.program.heap);
 
     if (DEBUG) {
       let { program, program: { heap } } = options;
@@ -171,7 +173,7 @@ class UnwrappedBuilder implements InnerLayoutBuilder {
     throw new Error('BUG: Cannot call `tag` on an UnwrappedBuilder');
   }
 
-  compile(): CompiledDynamicProgram {
+  compile(): CompiledDynamicTopLevel {
     let { layout } = this;
     return layout.asLayout(this.componentName).compileDynamic();
   }

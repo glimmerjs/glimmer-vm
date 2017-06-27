@@ -7,7 +7,7 @@ import {
 
   // Compiler
   CompilableLayout,
-  CompiledDynamicProgram,
+  CompiledDynamicTopLevel,
   compileLayout,
 
   // Environment
@@ -23,10 +23,12 @@ import {
 
   // Components
   Component,
+  ComponentCapabilities,
   ComponentManager,
   ComponentDefinition,
   ComponentLayoutBuilder,
   PreparedArguments,
+  WithStaticLayout,
 
   // Arguments
   Arguments,
@@ -48,7 +50,8 @@ import {
   Macros,
   TopLevelBlock,
   Program,
-  ComponentManagerWithDynamicTagName
+  ComponentManagerWithDynamicTagName,
+  LOLWUT
 } from "@glimmer/runtime";
 
 import {
@@ -58,7 +61,8 @@ import {
   Opaque,
   assign,
   dict,
-  EMPTY_ARRAY
+  EMPTY_ARRAY,
+  unreachable
 } from '@glimmer/util';
 
 import GlimmerObject from "@glimmer/object";
@@ -230,13 +234,8 @@ export type Attrs = Dict<any>;
 export type AttrsDiff = { oldAttrs: Option<Attrs>, newAttrs: Attrs };
 
 export class BasicComponent {
-  public attrs: Attrs;
   public element: Element;
   public bounds: Bounds;
-
-  constructor(attrs: Attrs) {
-    this.attrs = attrs;
-  }
 }
 
 export class EmberishCurlyComponent extends GlimmerObject {
@@ -296,57 +295,45 @@ export class EmberishGlimmerComponent extends GlimmerObject {
   didRender() { }
 }
 
-export interface BasicStateBucket {
-  args: CapturedNamedArguments;
-  component: BasicComponent;
-}
-
-class BasicComponentManager implements ComponentManager<BasicStateBucket> {
+class BasicComponentManager implements WithStaticLayout<BasicComponent> {
   prepareArgs(): null {
-    return null;
+    throw unreachable();
   }
 
-  create(_env: Environment, definition: BasicComponentDefinition, _args: Arguments): BasicStateBucket {
-    let args = _args.named.capture();
+  create(_env: Environment, definition: BasicComponentDefinition): BasicComponent {
     let klass = definition.ComponentClass || BasicComponent;
-    let component = new klass(args.value());
-
-    return { args, component };
+    return new klass();
   }
 
-  layoutFor(definition: BasicComponentDefinition, _bucket: BasicStateBucket, env: TestEnvironment): CompiledDynamicProgram {
-    let layout = env.compiledLayouts[definition.name];
+  getLayout({ layout }: BasicComponentDefinition, resolver: TestResolver): TestSpecifier {
+    let specifier = resolver.lookupTemplate(layout);
 
-    if (layout) {
-      return layout;
+    if (!specifier) {
+      throw new Error(`Layout not found: ${layout}`)
     }
 
-    let compiler = new BasicComponentLayoutCompiler(definition.name, definition.layoutString, env);
-
-    return env.compiledLayouts[definition.name] = compileLayout(compiler, env.compileOptions);
+    return specifier;
   }
 
-  getSelf({ component }: BasicStateBucket): PathReference<Opaque> {
+  getSelf(component: BasicComponent): PathReference<Opaque> {
     return new UpdatableReference(component);
   }
 
-  getTag({ args: { tag } }: BasicStateBucket): Tag {
-    return tag;
+  getTag(): Tag {
+    return CONSTANT_TAG;
   }
 
-  didCreateElement({ component }: BasicStateBucket, element: Element): void {
+  didCreateElement(component: BasicComponent, element: Element): void {
     component.element = element;
   }
 
-  didRenderLayout({ component }: BasicStateBucket, bounds: Bounds): void {
+  didRenderLayout(component: BasicComponent, bounds: Bounds): void {
     component.bounds = bounds;
   }
 
   didCreate(): void { }
 
-  update({ component, args } : BasicStateBucket): void {
-    component.attrs = args.value();
-  }
+  update(): void { }
 
   didUpdateLayout(): void { }
 
@@ -360,7 +347,7 @@ class BasicComponentManager implements ComponentManager<BasicStateBucket> {
 const BASIC_COMPONENT_MANAGER = new BasicComponentManager();
 
 class StaticTaglessComponentManager extends BasicComponentManager {
-  layoutFor(definition: StaticTaglessComponentDefinition, _component: BasicStateBucket, env: TestEnvironment): CompiledDynamicProgram {
+  layoutFor(definition: StaticTaglessComponentDefinition, _component: BasicStateBucket, env: TestEnvironment): CompiledDynamicTopLevel {
     let layout = env.compiledLayouts[definition.name];
 
     if (layout) {
@@ -403,7 +390,7 @@ class EmberishGlimmerComponentManager implements ComponentManager<EmberishGlimme
     return combine([tag, dirtinessTag]);
   }
 
-  layoutFor(definition: EmberishGlimmerComponentDefinition, _component: EmberishGlimmerStateBucket, env: TestEnvironment): CompiledDynamicProgram {
+  layoutFor(definition: EmberishGlimmerComponentDefinition, _component: EmberishGlimmerStateBucket, env: TestEnvironment): CompiledDynamicTopLevel {
     if (env.compiledLayouts[definition.name]) {
       return env.compiledLayouts[definition.name];
     }
@@ -529,7 +516,7 @@ class EmberishCurlyComponentManager implements ComponentManagerWithDynamicTagNam
     return combine([tag, dirtinessTag]);
   }
 
-  layoutFor(definition: EmberishCurlyComponentDefinition, component: EmberishCurlyComponent, env: TestEnvironment): CompiledDynamicProgram {
+  layoutFor(definition: EmberishCurlyComponentDefinition, component: EmberishCurlyComponent, env: TestEnvironment): CompiledDynamicTopLevel {
     let layout = env.compiledLayouts[definition.name];
 
     if (layout) {
@@ -751,7 +738,7 @@ export interface TestEnvironmentOptions {
 export type CompiledDynamicBlock = CompiledDynamicTemplate<BlockSymbolTable>;
 export type CompiledDynamicProgram = CompiledDynamicTemplate<ProgramSymbolTable>;
 
-export type LookupType = 'helper' | 'modifier' | 'component' | 'partial';
+export type LookupType = 'helper' | 'modifier' | 'component' | 'partial' | 'template';
 
 export interface TestSpecifier<T extends LookupType = LookupType> {
   type: T;
@@ -779,15 +766,18 @@ export class TestResolver implements Resolver<TestSpecifier, TemplateMeta> {
     helper: new TypedRegistry<GlimmerHelper>(),
     modifier: new TypedRegistry<ModifierManager>(),
     partial: new TypedRegistry<PartialDefinition>(),
-    component: new TypedRegistry<ComponentDefinition>()
+    component: new TypedRegistry<ComponentDefinition>(),
+    template: new TypedRegistry<LOLWUT>()
   };
 
-  register(type: 'helper', name: string, value: GlimmerHelper): void;
-  register(type: 'modifier', name: string, value: ModifierManager): void;
-  register(type: 'partial', name: string, value: PartialDefinition): void;
-  register(type: 'component', name: string, value: ComponentDefinition): void;
-  register(type: LookupType, name: string, value: any): void {
+  register(type: 'helper', name: string, value: GlimmerHelper): TestSpecifier;
+  register(type: 'modifier', name: string, value: ModifierManager): TestSpecifier;
+  register(type: 'partial', name: string, value: PartialDefinition): TestSpecifier;
+  register(type: 'component', name: string, value: ComponentDefinition): TestSpecifier;
+  register(type: 'template', name: string, value: LOLWUT): TestSpecifier;
+  register(type: LookupType, name: string, value: any): TestSpecifier {
     (this.registry[type] as TypedRegistry<any>).register(name, value);
+    return { type, name };
   }
 
   lookup(type: LookupType, name: string, _meta: TemplateMeta): Option<TestSpecifier> {
@@ -796,6 +786,10 @@ export class TestResolver implements Resolver<TestSpecifier, TemplateMeta> {
     } else {
       return null;
     }
+  }
+
+  lookupTemplate(name: string): Option<TestSpecifier> {
+    return this.lookup('template', name, {});
   }
 
   lookupHelper(name: string, meta: TemplateMeta): Option<TestSpecifier> {
@@ -814,7 +808,7 @@ export class TestResolver implements Resolver<TestSpecifier, TemplateMeta> {
     return this.lookup('partial', name, meta);
   }
 
-  resolve<T>(specifier: TestSpecifier): T {
+    resolve<T>(specifier: TestSpecifier): T {
     return this.registry[specifier.type].get(specifier.name) as any as T;
   }
 }
@@ -868,7 +862,7 @@ export class TestEnvironment extends Environment {
   public resolver = new TestResolver();
   private program = new Program(this.resolver);
   private uselessAnchor: HTMLAnchorElement;
-  public compiledLayouts = dict<CompiledDynamicProgram>();
+  public compiledLayouts = dict<CompiledDynamicTopLevel>();
 
   public compileOptions: InputCompilationOptions = {
     resolver: this.resolver,
@@ -928,7 +922,10 @@ export class TestEnvironment extends Environment {
   }
 
   registerBasicComponent(name: string, Component: BasicComponentFactory, layout: string): ComponentDefinition<BasicComponentDefinition> {
-    let definition = new BasicComponentDefinition(name, BASIC_COMPONENT_MANAGER, Component, layout);
+    let compiler = new BasicComponentLayoutCompiler(name, layout, this);
+    this.resolver.register("template", name, compileLayout(compiler, this.compileOptions));
+
+    let definition = new BasicComponentDefinition(name, BASIC_COMPONENT_MANAGER, Component, name);
     return this.registerComponent(name, definition);
   }
 
@@ -1029,17 +1026,12 @@ export class TestDynamicScope implements DynamicScope {
 }
 
 export interface BasicComponentFactory {
-  new (attrs: Dict<any>): BasicComponent;
+  new (): BasicComponent;
 }
 
 export abstract class GenericComponentDefinition<T> extends ComponentDefinition<T> {
-  public ComponentClass: any;
-  public layoutString: string | null;
-
-  constructor(name: string, manager: ComponentManager<T>, ComponentClass: any, layout: string | null) {
+  constructor(name: string, manager: ComponentManager<T>, public ComponentClass: any, public layout: string) {
     super(name, manager);
-    this.ComponentClass = ComponentClass;
-    this.layoutString = layout;
   }
 
   toJSON() {
@@ -1047,10 +1039,13 @@ export abstract class GenericComponentDefinition<T> extends ComponentDefinition<
   }
 }
 
-export class BasicComponentDefinition extends GenericComponentDefinition<BasicStateBucket> {
-  public layoutString: string;
-
+export class BasicComponentDefinition extends GenericComponentDefinition<BasicComponent> {
   public ComponentClass: BasicComponentFactory;
+  public capabilities: ComponentCapabilities = {
+    dynamicLayout: false,
+    prepareArgs: false,
+    createArgs: false
+  };
 }
 
 class StaticTaglessComponentDefinition extends GenericComponentDefinition<BasicStateBucket> {

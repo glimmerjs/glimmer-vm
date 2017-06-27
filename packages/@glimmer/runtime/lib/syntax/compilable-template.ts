@@ -35,7 +35,7 @@ export default class CompilableTemplate<S extends SymbolTable> implements ICompi
 
     if (!compiledStatic) {
       let builder = compileStatements(this.statements, this.symbolTable.meta, options);
-      let handle = builder.finalize();
+      let handle = builder.commit(options.program.heap);
       if (DEBUG) {
         let { program, program: { heap } } = options;
         let start = heap.getaddr(handle);

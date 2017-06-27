@@ -1060,23 +1060,12 @@ testComponent('parameterized has-block-params (concatted attr, default) when blo
 module("Components - curlies - dynamic component");
 
 QUnit.test('initially missing, then present, then missing', () => {
-  class FooBar extends BasicComponent {
-    public foo = 'foo';
-    public bar = 'bar';
-    public baz = null;
-
-    constructor(attrs: Attrs) {
-      super(attrs);
-      this.baz = attrs['baz'] || 'baz';
-    }
-  }
-
-  env.registerBasicComponent('foo-bar', FooBar, `<p>{{foo}} {{bar}} {{baz}}</p>`);
+  env.registerBasicComponent('foo-bar', BasicComponent, `<p>{{@arg1}}</p>`);
 
   appendViewFor(
     stripTight`
       <div>
-        {{component something}}
+        {{component something arg1="hello"}}
       </div>`,
     {
       something: undefined
@@ -1088,7 +1077,7 @@ QUnit.test('initially missing, then present, then missing', () => {
   set(view, 'something', 'foo-bar');
   rerender();
 
-  equalsElement(view.element, 'div', {}, '<p>foo bar baz</p>');
+  equalsElement(view.element, 'div', {}, '<p>hello</p>');
 
   set(view, 'something', undefined);
   rerender();

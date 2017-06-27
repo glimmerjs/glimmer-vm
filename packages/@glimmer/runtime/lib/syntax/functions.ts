@@ -1,9 +1,11 @@
-import { CompilationMeta, Option } from '@glimmer/interfaces';
+import { CompilationMeta, Option, ProgramSymbolTable } from '@glimmer/interfaces';
 import { assert, dict, EMPTY_ARRAY, unwrap } from '@glimmer/util';
 import { Register } from '@glimmer/vm';
 import * as WireFormat from '@glimmer/wire-format';
 import OpcodeBuilder, { LazyOpcodeBuilder } from '../compiled/opcodes/builder';
-import { Handle } from '../environment';
+import { LOLWUT } from '../compiled/blocks';
+import { Handle, Heap } from '../environment';
+import { ComponentDefinition, hasStaticLayout } from '../component/interfaces';
 import * as ClientSide from './client-side';
 import { CompilationOptions } from './compilable-template';
 import { Block } from './interfaces';
@@ -159,19 +161,32 @@ STATEMENTS.add(Ops.Block, (sexp: S.Block, builder: OpcodeBuilder) => {
 STATEMENTS.add(Ops.Component, (sexp: S.Component, builder: OpcodeBuilder) => {
   let [, tag, _attrs, args, block] = sexp;
 
-  let resolver = builder.options.resolver;
+  let options = builder.options;
+  let resolver = options.resolver;
   let specifier = resolver.lookupComponent(tag, builder.meta.templateMeta);
 
   if (specifier) {
-    let child = builder.template(block);
+    let definition = resolver.resolve<ComponentDefinition>(specifier);
+    let manager = definition.manager;
+
     let attrs: WireFormat.Statement[] = [
       [Ops.ClientSideStatement, ClientSide.Ops.SetComponentAttrs, true],
       ..._attrs,
       [Ops.ClientSideStatement, ClientSide.Ops.SetComponentAttrs, false]
     ];
     let attrsBlock = new RawInlineBlock(attrs, EMPTY_ARRAY, builder.meta, builder.options);
-    builder.pushComponentManager(specifier);
-    builder.invokeComponent(attrsBlock, null, args, false, child && child.scan());
+    let child = builder.template(block);
+
+    if (hasStaticLayout(definition, manager)) {
+      let specifier = manager.getLayout(definition, resolver);
+      let layout = resolver.resolve<LOLWUT<ProgramSymbolTable>>(specifier);
+
+      builder.pushComponentManager(specifier);
+      builder.invokeStaticComponent(definition, layout, attrsBlock, null, args, false, child && child.scan());
+    } else {
+      builder.pushComponentManager(specifier);
+      builder.invokeComponent(attrsBlock, null, args, false, child && child.scan());
+    }
   } else if (block && block.parameters.length) {
     throw new Error(`Compile Error: Cannot find component ${tag}`);
   } else {
@@ -767,10 +782,7 @@ export function compileStatement(statement: WireFormat.Statement, builder: Opcod
   STATEMENTS.compile(statement, builder);
 }
 
-export function compileStatements(statements: WireFormat.Statement[], meta: CompilationMeta, env: CompilationOptions): {
-  start: Handle;
-  finalize(): Handle;
-} {
+export function compileStatements(statements: WireFormat.Statement[], meta: CompilationMeta, env: CompilationOptions): { commit(heap: Heap): Handle } {
   let b = new LazyOpcodeBuilder(env, meta);
 
   for (let i = 0; i < statements.length; i++) {
