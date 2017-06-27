@@ -1,12 +1,13 @@
-import { CompilationMeta, Option } from '@glimmer/interfaces';
+import { CompilationMeta, Option, ProgramSymbolTable } from '@glimmer/interfaces';
 import { assert, dict, EMPTY_ARRAY, unwrap } from '@glimmer/util';
 import { Register } from '@glimmer/vm';
 import * as WireFormat from '@glimmer/wire-format';
 import OpcodeBuilder, { LazyOpcodeBuilder } from '../compiled/opcodes/builder';
-import { Handle } from '../environment';
+import { Handle, Heap } from '../environment';
+import { hasStaticLayout } from '../component/interfaces';
+import { CompilationOptions, ComponentDefinition } from '../internal-interfaces';
 import * as ClientSide from './client-side';
-import { CompilationOptions } from './compilable-template';
-import { Block } from './interfaces';
+import { BlockSyntax } from './interfaces';
 import RawInlineBlock from './raw-block';
 import Ops = WireFormat.Ops;
 
@@ -159,19 +160,32 @@ STATEMENTS.add(Ops.Block, (sexp: S.Block, builder: OpcodeBuilder) => {
 STATEMENTS.add(Ops.Component, (sexp: S.Component, builder: OpcodeBuilder) => {
   let [, tag, _attrs, args, block] = sexp;
 
-  let resolver = builder.options.resolver;
+  let options = builder.options;
+  let resolver = options.resolver;
   let specifier = resolver.lookupComponent(tag, builder.meta.templateMeta);
 
   if (specifier) {
-    let child = builder.template(block);
+    let definition = resolver.resolve<ComponentDefinition>(specifier);
+    let manager = definition.manager;
+
     let attrs: WireFormat.Statement[] = [
       [Ops.ClientSideStatement, ClientSide.Ops.SetComponentAttrs, true],
       ..._attrs,
       [Ops.ClientSideStatement, ClientSide.Ops.SetComponentAttrs, false]
     ];
     let attrsBlock = new RawInlineBlock(attrs, EMPTY_ARRAY, builder.meta, builder.options);
-    builder.pushComponentManager(specifier);
-    builder.invokeComponent(attrsBlock, null, args, false, child && child.scan());
+    let child = builder.template(block);
+
+    if (hasStaticLayout(definition, manager)) {
+      let layoutSpecifier = manager.getLayout(definition, resolver);
+      let layout = resolver.resolve<{ symbolTable: ProgramSymbolTable, template: Handle }>(layoutSpecifier);
+
+      builder.pushComponentManager(specifier);
+      builder.invokeStaticComponent(definition, layout, attrsBlock, null, args, false, child && child.scan());
+    } else {
+      builder.pushComponentManager(specifier);
+      builder.invokeComponent(attrsBlock, null, args, false, child && child.scan());
+    }
   } else if (block && block.parameters.length) {
     throw new Error(`Compile Error: Cannot find component ${tag}`);
   } else {
@@ -339,8 +353,8 @@ EXPRESSIONS.add(Ops.HasBlockParams, (sexp: E.HasBlockParams, builder: OpcodeBuil
   builder.hasBlockParams(sexp[1]);
 });
 
-export type BlockMacro = (params: C.Params, hash: C.Hash, template: Option<Block>, inverse: Option<Block>, builder: OpcodeBuilder) => void;
-export type MissingBlockMacro = (name: string, params: C.Params, hash: C.Hash, template: Option<Block>, inverse: Option<Block>, builder: OpcodeBuilder) => void;
+export type BlockMacro = (params: C.Params, hash: C.Hash, template: Option<BlockSyntax>, inverse: Option<BlockSyntax>, builder: OpcodeBuilder) => void;
+export type MissingBlockMacro = (name: string, params: C.Params, hash: C.Hash, template: Option<BlockSyntax>, inverse: Option<BlockSyntax>, builder: OpcodeBuilder) => void;
 
 export class Blocks {
   private names = dict<number>();
@@ -356,7 +370,7 @@ export class Blocks {
     this.missing = func;
   }
 
-  compile(name: string, params: C.Params, hash: C.Hash, template: Option<Block>, inverse: Option<Block>, builder: OpcodeBuilder): void {
+  compile(name: string, params: C.Params, hash: C.Hash, template: Option<BlockSyntax>, inverse: Option<BlockSyntax>, builder: OpcodeBuilder): void {
     let index = this.names[name];
 
     if (index === undefined) {
@@ -767,10 +781,7 @@ export function compileStatement(statement: WireFormat.Statement, builder: Opcod
   STATEMENTS.compile(statement, builder);
 }
 
-export function compileStatements(statements: WireFormat.Statement[], meta: CompilationMeta, env: CompilationOptions): {
-  start: Handle;
-  finalize(): Handle;
-} {
+export function compileStatements(statements: WireFormat.Statement[], meta: CompilationMeta, env: CompilationOptions): { commit(heap: Heap): Handle } {
   let b = new LazyOpcodeBuilder(env, meta);
 
   for (let i = 0; i < statements.length; i++) {

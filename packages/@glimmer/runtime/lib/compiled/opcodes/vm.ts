@@ -11,10 +11,11 @@ import {
 } from '@glimmer/reference';
 import { initializeGuid } from '@glimmer/util';
 import { Handle } from '../../environment';
+import { LazyConstants } from '../../environment/constants';
 import { APPEND_OPCODES, OpcodeJSON, UpdatingOpcode } from '../../opcodes';
 import { Primitive, PrimitiveReference } from '../../references';
 import { CompilableTemplate } from '../../syntax/interfaces';
-import { UpdatingVM } from '../../vm';
+import { VM, UpdatingVM } from '../../vm';
 import { Arguments } from '../../vm/arguments';
 
 APPEND_OPCODES.add(Op.ChildScope, vm => vm.pushChildScope());
@@ -25,7 +26,7 @@ APPEND_OPCODES.add(Op.PushDynamicScope, vm => vm.pushDynamicScope());
 
 APPEND_OPCODES.add(Op.PopDynamicScope, vm => vm.popDynamicScope());
 
-APPEND_OPCODES.add(Op.Constant, (vm, { op1: other }) => {
+APPEND_OPCODES.add(Op.Constant, (vm: VM & { constants: LazyConstants }, { op1: other }) => {
   vm.stack.push(vm.constants.getOther(other));
 });
 
@@ -84,7 +85,7 @@ APPEND_OPCODES.add(Op.Exit, (vm) => vm.exit());
 APPEND_OPCODES.add(Op.CompileBlock, vm => {
   let stack = vm.stack;
   let block = stack.pop<Option<CompilableTemplate> | 0>();
-  stack.push(block ? block.compileStatic().handle : null);
+  stack.push(block ? block.compile() : null);
 });
 
 APPEND_OPCODES.add(Op.InvokeStatic, vm => vm.call(vm.stack.pop<Handle>()));

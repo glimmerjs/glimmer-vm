@@ -8,6 +8,8 @@ export interface Dict<T> {
   [key: string]: T;
 }
 
-interface Unique<T> {
-  "ada0f31f-27f7-4ab0-bc03-0005387c9d5f": T;
+export interface Unique<T> {
+  "Unique [id=ada0f31f-27f7-4ab0-bc03-0005387c9d5f]": T;
 }
+
+export type Recast<T, U> = (T & U) | U;

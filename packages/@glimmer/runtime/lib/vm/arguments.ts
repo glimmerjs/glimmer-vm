@@ -1,7 +1,7 @@
 import { EvaluationStack } from './append';
 import { dict, EMPTY_ARRAY } from '@glimmer/util';
 import { combineTagged } from '@glimmer/reference';
-import { Dict, Opaque, Option, unsafe } from '@glimmer/interfaces';
+import { Dict, Opaque, Option, unsafe, Recast } from '@glimmer/interfaces';
 import { Tag, VersionedPathReference, CONSTANT_TAG } from '@glimmer/reference';
 import { PrimitiveReference, UNDEFINED_REFERENCE } from '../references';
 
@@ -71,7 +71,9 @@ export class Arguments implements IArguments {
   public named = new NamedArguments();
 
   empty() {
-    this.setup(null as any as EvaluationStack, EMPTY_ARRAY, 0, true);
+    // because the size is 0, there is definitely no need to look at the
+    // evaluation stack.
+    this.setup(null as Recast<null, EvaluationStack>, EMPTY_ARRAY, 0, true);
     return this;
   }
 

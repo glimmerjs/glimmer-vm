@@ -1,7 +1,5 @@
 import './lib/bootstrap';
 
-export { InputCompilationOptions } from './lib/syntax/compilable-template';
-
 export { default as templateFactory, TemplateFactory, Template, TemplateIterator, RenderOptions } from './lib/template';
 
 export { NULL_REFERENCE, UNDEFINED_REFERENCE, PrimitiveReference, ConditionalReference } from './lib/references';
@@ -12,20 +10,14 @@ export {
 
 export {
   CompilableLayout,
-  compileLayout
+  ComponentLayoutBuilder,
+  scanLayout
 } from './lib/compiler';
 
 export {
   ComponentBuilder,
   ComponentArgs
 } from './lib/opcode-builder';
-
-export {
-  CompiledStaticTemplate,
-  CompiledDynamicTemplate,
-  CompiledDynamicBlock,
-  CompiledDynamicProgram
-} from './lib/compiled/blocks';
 
 export {
   debugSlice
@@ -51,8 +43,8 @@ export {
 
 export {
   CompilableTemplate,
-  Block,
-  TopLevelBlock
+  BlockSyntax,
+  TopLevelSyntax
 } from './lib/syntax/interfaces';
 
 export {
@@ -80,10 +72,12 @@ export { SafeString } from './lib/upsert';
 
 export {
   Scope,
+  Handle,
   default as Environment,
   Helper,
   DynamicScope,
-  Program
+  Program,
+  CompilationOptions
 } from './lib/environment';
 
 export {
@@ -91,13 +85,13 @@ export {
 } from './lib/partial';
 
 export {
-  Component,
-  ComponentClass,
+  ComponentCapabilities,
   ComponentManager,
   ComponentDefinition,
-  ComponentLayoutBuilder,
-  ComponentManagerWithDynamicTagName,
+  WithDynamicTagName,
   PreparedArguments,
+  WithDynamicLayout,
+  WithStaticLayout,
   isComponentDefinition
 } from './lib/component/interfaces';
 

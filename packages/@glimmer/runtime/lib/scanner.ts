@@ -1,4 +1,3 @@
-import { CompilationOptions } from './syntax/compilable-template';
 import { CompilationMeta } from '@glimmer/interfaces';
 import { EMPTY_ARRAY, assert, unreachable } from '@glimmer/util';
 import * as WireFormat from '@glimmer/wire-format';
@@ -6,11 +5,12 @@ import * as ClientSide from './syntax/client-side';
 import CompilableTemplate from './syntax/compilable-template';
 import { ATTRS_BLOCK } from './syntax/functions';
 import {
-  Block,
-  TopLevelBlock,
+  BlockSyntax,
+  TopLevelSyntax,
 } from './syntax/interfaces';
 import Ops = WireFormat.Ops;
 import { TemplateMeta } from "@glimmer/wire-format";
+import { CompilationOptions } from './internal-interfaces';
 
 export type DeserializedStatement = WireFormat.Statement | WireFormat.Statements.Attribute | WireFormat.Statements.Argument;
 
@@ -18,19 +18,19 @@ export default class Scanner {
   constructor(private block: WireFormat.SerializedTemplateBlock, private options: CompilationOptions) {
   }
 
-  scanEntryPoint(meta: CompilationMeta): TopLevelBlock {
+  scanEntryPoint(meta: CompilationMeta): TopLevelSyntax {
     let { block, options } = this;
     let { statements, symbols, hasEval } = block;
     return new CompilableTemplate(statements, { meta, symbols, hasEval }, options);
   }
 
-  scanBlock(meta: CompilationMeta): Block {
+  scanBlock(meta: CompilationMeta): BlockSyntax {
     let { block, options } = this;
     let { statements } = block;
     return new CompilableTemplate(statements, { meta, parameters: EMPTY_ARRAY }, options);
   }
 
-  scanLayout(meta: CompilationMeta, componentName?: string): TopLevelBlock {
+  scanLayout(meta: CompilationMeta, componentName?: string): TopLevelSyntax {
     let { block, options } = this;
     let { symbols, hasEval } = block;
 

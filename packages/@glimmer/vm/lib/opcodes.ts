@@ -31,18 +31,6 @@ export const enum Op {
 
   /**
    * Operation:
-   *   Bind a variable represented by a symbol from
-   *   a caller supplied argument.
-   * Format:
-   *   (SetVariable symbol:u32 offsetFromBase:u32)
-   * Operand Stack:
-   *   ... →
-   *   ...
-   */
-  BindVariable,
-
-  /**
-   * Operation:
    *   Bind the variable represented by a symbol from
    *   the value at the top of the stack.
    * Format:
@@ -52,6 +40,17 @@ export const enum Op {
    *   ...
    */
   SetVariable,
+
+  /**
+   * Operation:
+   *   Bind the block at the top of the stack.
+   * Format:
+   *   (SetBlock symbol:u32)
+   * Operand Stack:
+   *   ..., SymbolTable, Handle →
+   *   ...
+   */
+  SetBlock,
 
   /**
    * Operation:
@@ -758,12 +757,23 @@ export const enum Op {
   GetComponentTagName,
 
   /**
+   * Operation: Get the component layout from the manager.
+   *
+   * Format:
+   *   (GetComponentLayout state:u32)
+   * Operand Stack:
+   *   ... →
+   *   ..., ProgramSymbolTable, Handle
+   */
+  GetComponentLayout,
+
+  /**
    * Operation: Invoke the layout returned by the manager.
    *
    * Format:
-   *   (InvokeComponentLayout state:u32)
+   *   (InvokeComponentLayout)
    * Operand Stack:
-   *   ... →
+   *   ..., ProgramSymbolTable, Handle →
    *   ...
    */
   InvokeComponentLayout,

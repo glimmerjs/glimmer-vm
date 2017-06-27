@@ -1,4 +1,4 @@
-import { Opaque, Option, Dict, BlockSymbolTable, Resolver } from '@glimmer/interfaces';
+import { Opaque, Option, Dict, BlockSymbolTable, ProgramSymbolTable, Recast } from '@glimmer/interfaces';
 import {
   combineTagged,
   CONSTANT_TAG,
@@ -11,22 +11,25 @@ import {
 } from '@glimmer/reference';
 import Bounds from '../../bounds';
 import {
-  Component,
-  ComponentDefinition,
-  ComponentManager,
-  ComponentManagerWithDynamicTagName,
-  isComponentDefinition
+  WithDynamicTagName,
+  isComponentDefinition,
+  hasStaticLayout,
+  hasDynamicLayout,
+  CurriedComponentDefinition,
+  isCurriedComponentDefinition
 } from '../../component/interfaces';
 import { normalizeStringValue } from '../../dom/normalize';
 import { DynamicScope, Handle, ScopeBlock, ScopeSlot } from '../../environment';
 import { APPEND_OPCODES, OpcodeJSON, UpdatingOpcode } from '../../opcodes';
+import { AbstractTemplate } from './builder';
 import { UNDEFINED_REFERENCE } from '../../references';
 import { ATTRS_BLOCK } from '../../syntax/functions';
 import { UpdatingVM, VM } from '../../vm';
 import { Arguments, IArguments, ICapturedArguments } from '../../vm/arguments';
 import { IsComponentDefinitionReference } from './content';
 import { UpdateDynamicAttributeOpcode } from './dom';
-import { dict, assert } from "@glimmer/util";
+import { Resolver, Specifier, ComponentDefinition, ComponentManager, Component } from '../../internal-interfaces';
+import { dict, assert, unreachable } from "@glimmer/util";
 import { Op, Register } from '@glimmer/vm';
 import { TemplateMeta } from "@glimmer/wire-format";
 
@@ -35,7 +38,7 @@ const ARGS = new Arguments();
 function resolveComponent(resolver: Resolver, name: string, meta: TemplateMeta): ComponentDefinition {
   let specifier = resolver.lookupComponent(name, meta);
   assert(specifier, `Could not find a component named "${name}"`);
-  return resolver.resolve<ComponentDefinition>(specifier!);
+  return resolver.resolve(specifier!);
 }
 
 class CurryComponentReference implements VersionedPathReference<Option<ComponentDefinition>> {
@@ -95,41 +98,6 @@ class CurryComponentReference implements VersionedPathReference<Option<Component
   }
 }
 
-const CURRIED_COMPONENT_DEFINITION_BRAND = 'CURRIED COMPONENT DEFINITION [id=6f00feb9-a0ef-4547-99ea-ac328f80acea]';
-
-function isCurriedComponentDefinition(definition: ComponentDefinition): definition is CurriedComponentDefinition {
-  return definition[CURRIED_COMPONENT_DEFINITION_BRAND];
-}
-
-class CurriedComponentDefinition extends ComponentDefinition {
-  constructor(protected inner: ComponentDefinition, protected args: ICapturedArguments) {
-    super(CURRIED_COMPONENT_DEFINITION_BRAND, null as any);
-    this[CURRIED_COMPONENT_DEFINITION_BRAND] = true;
-  }
-
-  unwrap(args: Arguments): ComponentDefinition {
-    args.realloc(this.offset);
-
-    let definition: ComponentDefinition = this;
-
-    while (isCurriedComponentDefinition(definition)) {
-      let { args: { positional, named }, inner } = definition;
-
-      args.positional.prepend(positional);
-      args.named.merge(named);
-
-      definition = inner;
-    }
-
-    return definition;
-  }
-
-  protected get offset(): number {
-    let { inner, args: { positional: { length } } } = this;
-    return isCurriedComponentDefinition(inner) ? length + inner.offset : length;
-  }
-}
-
 APPEND_OPCODES.add(Op.IsComponent, vm => {
   let stack = vm.stack;
 
@@ -186,9 +154,9 @@ interface InitialComponentState {
   component: null;
 }
 
-export interface ComponentState<M extends ComponentManager = ComponentManager> {
+interface ComponentState {
   definition: ComponentDefinition;
-  manager: M;
+  manager: ComponentManager;
   component: Component;
 }
 
@@ -203,9 +171,13 @@ APPEND_OPCODES.add(Op.PrepareArgs, (vm, { op1: _state }) => {
   let stack = vm.stack;
   let state = vm.fetchValue<InitialComponentState>(_state);
 
-  let args = stack.pop<Arguments>();
-
   let { definition, manager } = state;
+
+  if (definition.capabilities.prepareArgs !== true) {
+    return;
+  }
+
+  let args = stack.pop<Arguments>();
 
   if (isCurriedComponentDefinition(definition)) {
     state.definition = definition = definition.unwrap(args);
@@ -240,17 +212,22 @@ APPEND_OPCODES.add(Op.PrepareArgs, (vm, { op1: _state }) => {
 APPEND_OPCODES.add(Op.CreateComponent, (vm, { op1: flags, op2: _state }) => {
   let definition: ComponentDefinition;
   let manager: ComponentManager;
-  let args = vm.stack.peek<IArguments>();
   let dynamicScope = vm.dynamicScope();
   let state = { definition, manager } = vm.fetchValue<InitialComponentState>(_state);
 
   let hasDefaultBlock = flags & 1;
 
+  let args: Option<IArguments> = null;
+
+  if (definition.capabilities.createArgs) {
+    args = vm.stack.peek<IArguments>();
+  }
+
   let component = manager.create(vm.env, definition, args, dynamicScope, vm.getSelf(), !!hasDefaultBlock);
 
   // We want to reuse the `state` POJO here, because we know that the opcodes
   // only transition at exactly one place.
-  (state as any as ComponentState).component = component;
+  (state as Recast<InitialComponentState, ComponentState>).component = component;
 
   let tag = manager.getTag(component);
 
@@ -356,15 +333,34 @@ APPEND_OPCODES.add(Op.GetComponentSelf, (vm, { op1: _state }) => {
 });
 
 APPEND_OPCODES.add(Op.GetComponentTagName, (vm, { op1: _state }) => {
-  let { manager, component } = vm.fetchValue<ComponentState<ComponentManagerWithDynamicTagName>>(_state);
-  vm.stack.push(manager.getTagName(component));
+  let { manager, component } = vm.fetchValue<ComponentState>(_state);
+  vm.stack.push((manager as Recast<ComponentManager, WithDynamicTagName<Component>>).getTagName(component));
 });
 
-APPEND_OPCODES.add(Op.InvokeComponentLayout, (vm, { op1: _state }) => {
-  let { stack } = vm;
+APPEND_OPCODES.add(Op.GetComponentLayout, (vm, { op1: _state }) => {
   let { manager, definition, component } = vm.fetchValue<ComponentState>(_state);
-  let block = manager.layoutFor(definition, component, vm.env);
-  let { symbolTable: { symbols, hasEval }, handle } = block;
+  let { constants: { resolver }, stack } = vm;
+  let specifier: Specifier;
+
+  if (hasStaticLayout(definition, manager)) {
+    specifier = manager.getLayout(definition, resolver) as Specifier;
+  } else if (hasDynamicLayout(definition, manager)) {
+    specifier = manager.getLayout(component, resolver) as Specifier;
+  } else {
+    throw unreachable();
+  }
+
+  let layout = resolver.resolve<AbstractTemplate<ProgramSymbolTable>>(specifier);
+
+  stack.push(layout.symbolTable);
+  stack.push(layout);
+});
+
+APPEND_OPCODES.add(Op.InvokeComponentLayout, vm => {
+  let { stack } = vm;
+
+  let handle = stack.pop<Handle>();
+  let { symbols, hasEval } = stack.pop<ProgramSymbolTable>();
 
   {
     let scope = vm.pushRootScope(symbols.length + 1, true);
@@ -438,7 +434,7 @@ export class UpdateComponentOpcode extends UpdatingOpcode {
     public tag: Tag,
     private name: string,
     private component: Component,
-    private manager: ComponentManager<Component>,
+    private manager: ComponentManager,
     private dynamicScope: DynamicScope,
   ) {
     super();
@@ -464,7 +460,7 @@ export class DidUpdateLayoutOpcode extends UpdatingOpcode {
   public tag: Tag = CONSTANT_TAG;
 
   constructor(
-    private manager: ComponentManager<Component>,
+    private manager: ComponentManager,
     private component: Component,
     private bounds: Bounds,
   ) {

@@ -8,11 +8,6 @@ import { UNDEFINED_REFERENCE, ConditionalReference } from './references';
 import { DynamicAttributeFactory, defaultDynamicAttributes } from './vm/attributes/dynamic';
 
 import {
-  Component,
-  ComponentManager,
-} from './component/interfaces';
-
-import {
   ModifierManager, Modifier
 } from './modifier/interfaces';
 
@@ -29,9 +24,12 @@ import {
 
 import { PublicVM } from './vm/append';
 
+import { Macros } from './syntax/macros';
 import { IArguments } from './vm/arguments';
 import { DEBUG } from "@glimmer/local-debug-flags";
-import { Simple, Unique, Resolver, BlockSymbolTable } from "@glimmer/interfaces";
+import { Simple, Unique, Resolver, BlockSymbolTable, Recast } from "@glimmer/interfaces";
+import { Component, ComponentManager } from "@glimmer/runtime/lib/internal-interfaces";
+import { TemplateMeta } from "@glimmer/wire-format";
 
 export type ScopeBlock = [Handle, BlockSymbolTable];
 export type ScopeSlot = VersionedPathReference<Opaque> | Option<ScopeBlock>;
@@ -134,20 +132,20 @@ export class Scope {
     return new Scope(this.slots.slice(), this.callerScope, this.evalScope, this.partialMap);
   }
 
-  private get<T>(index: number): T {
+  private get<T extends ScopeSlot>(index: number): T {
     if (index >= this.slots.length) {
       throw new RangeError(`BUG: cannot get $${index} from scope; length=${this.slots.length}`);
     }
 
-    return this.slots[index] as any as T;
+    return this.slots[index] as T;
   }
 
-  private set<T>(index: number, value: T): void {
+  private set<T extends ScopeSlot>(index: number, value: T): void {
     if (index >= this.slots.length) {
       throw new RangeError(`BUG: cannot get $${index} from scope; length=${this.slots.length}`);
     }
 
-    this.slots[index] = value as any;
+    this.slots[index] = value;
   }
 }
 
@@ -250,8 +248,6 @@ export class Opcode {
 
 export type Handle = Unique<"Handle">;
 
-type unsafe = any;
-
 enum TableSlotState {
   Allocated,
   Freed,
@@ -289,13 +285,13 @@ export class Heap {
     this.table.push(this.offset, 0, 0);
     let handle = this.handle;
     this.handle += 3;
-    return handle as unsafe as Handle;
+    return handle as Recast<number, Handle>;
   }
 
   finishMalloc(handle: Handle): void {
-    let start = this.table[handle as unsafe as number];
+    let start = this.table[handle as Recast<Handle, number>];
     let finish = this.offset;
-    this.table[(handle as unsafe as number) + 1] = finish - start;
+    this.table[(handle as Recast<Handle, number>) + 1] = finish - start;
   }
 
   size(): number {
@@ -306,25 +302,25 @@ export class Heap {
   // may move it. However, it is legal to use this address
   // multiple times between compactions.
   getaddr(handle: Handle): number {
-    return this.table[handle as unsafe as number];
+    return this.table[handle as Recast<Handle, number>];
   }
 
   gethandle(address: number): Handle {
     this.table.push(address, 0, TableSlotState.Pointer);
     let handle = this.handle;
     this.handle += 3;
-    return handle as unsafe as Handle;
+    return handle as Recast<number, Handle>;
   }
 
   sizeof(handle: Handle): number {
     if (DEBUG) {
-      return this.table[(handle as unsafe as number) + 1];
+      return this.table[(handle as Recast<Handle, number>) + 1];
     }
     return -1;
   }
 
   free(handle: Handle): void {
-    this.table[(handle as unsafe as number) + 2] = 1;
+    this.table[(handle as Recast<Handle, number>) + 2] = 1;
   }
 
   compact(): void {
@@ -376,6 +372,12 @@ export class Program {
     this._opcode.offset = offset;
     return this._opcode;
   }
+}
+
+export interface CompilationOptions<T extends TemplateMeta, Specifier, R extends Resolver<Specifier, T>> {
+  resolver: R;
+  program: Program;
+  macros: Macros;
 }
 
 export abstract class Environment {
