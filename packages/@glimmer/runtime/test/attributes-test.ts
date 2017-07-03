@@ -1,4 +1,3 @@
-import { UpdatableReference } from "@glimmer/object-reference";
 import { IteratorResult } from '@glimmer/runtime';
 import { equalTokens, TestDynamicScope, TestEnvironment } from "@glimmer/test-helpers";
 import { SVG_NAMESPACE, RenderResult, Template, normalizeProperty, clientBuilder } from "@glimmer/runtime";
@@ -6,16 +5,12 @@ import { SVG_NAMESPACE, RenderResult, Template, normalizeProperty, clientBuilder
 // Mine for sure
 import { Opaque } from "@glimmer/interfaces";
 import { RenderTest, module, renderTemplate, test } from '@glimmer/test-helpers';
+import { UpdatableReference } from "@glimmer/object-reference";
 
 let root: HTMLElement;
 let env: TestEnvironment;
 let self: UpdatableReference<any>;
 let result: RenderResult;
-
-/*
-function compile(template: string) {
-  return env.compile(template);
-}
 
 function readDOMAttr(element: Element, attr: string) {
   let isSVG = element.namespaceURI === SVG_NAMESPACE;
@@ -32,6 +27,7 @@ function readDOMAttr(element: Element, attr: string) {
   }
 };
 
+/*
 function render(template: Template, context = {}) {
   self = new UpdatableReference(context);
   env.begin();
@@ -76,12 +72,6 @@ function nativeValueForElementProperty<T extends keyof HTMLElementTagNameMap, P 
 class AttributesTests extends RenderTest {
   protected element: HTMLElement;
 
-  constructor(env = new TestEnvironment()) {
-    super(env);
-    this.element = env.getDOM().createElement('div') as HTMLDivElement;
-    //this.element.setAttribute('debug-root', 'true');
-  }
-
   @test "helpers shadow self"() {
     this.registerHelper('foo', function() {
       return "hello";
@@ -100,6 +90,119 @@ class AttributesTests extends RenderTest {
     this.assertStableNodes();
   }
 
+  @test "disable updates properly"() {
+    this.render('<input disabled={{enabled}} />', { enabled: true });
+    this.assertHTML('<input disabled />');
+    this.assertStableRerender();
+
+    this.rerender({ enabled: false });
+    this.assertHTML('<input />');
+    this.assertStableNodes();
+
+    this.rerender({ enabled: 'wat' });
+    this.assertHTML('<input disabled />');
+    this.assertStableNodes();
+
+    this.rerender({ enabled: null });
+    this.assertHTML('<input />');
+    this.assertStableNodes();
+
+    this.rerender({ enabled: true });
+    this.assertHTML('<input disabled />');
+    this.assertStableNodes();
+
+    this.rerender({ enabled: undefined });
+    this.assertHTML('<input />');
+    this.assertStableNodes();
+
+    this.rerender({ enabled: true });
+    this.assertHTML('<input disabled />');
+    this.assertStableNodes();
+  }
+
+  @test "Quoted disabled is always disabled if a not-null, not-undefined value is given"() {
+    this.render('<input disabled="{{enabled}}" />', { enabled: true });
+    this.assertHTML('<input disabled />');
+    this.assertStableRerender();
+
+    this.rerender({ enabled: false });
+    this.assertHTML('<input disabled />');
+    this.assertStableNodes();
+
+    this.rerender({ enabled: 'wat' });
+    this.assertHTML('<input disabled />');
+    this.assertStableNodes();
+
+    this.rerender({ enabled: null });
+    this.assertHTML('<input />');
+    this.assertStableNodes();
+
+    this.rerender({ enabled: true });
+    this.assertHTML('<input disabled />');
+    this.assertStableNodes();
+
+    this.rerender({ enabled: undefined });
+    this.assertHTML('<input />');
+    this.assertStableNodes();
+
+    this.rerender({ enabled: true });
+    this.assertHTML('<input disabled />');
+    this.assertStableNodes();
+  }
+
+  @test "disabled without an explicit value is truthy"(){
+    this.render('<input disabled />');
+    this.assertHTML('<input disabled />');
+    this.assert.ok(readDOMAttr(this.element.firstChild as Element, 'disabled'));
+
+    this.assertStableRerender();
+    this.assert.ok(readDOMAttr(this.element.firstChild as Element, 'disabled'));
+  }
+
+  @test "a[href] marks javascript: protocol as unsafe"() {
+    this.render('<a href="{{foo}}"></a>', {
+      foo: 'javascript:foo()'
+    });
+    this.assertHTML('<a href="unsafe:javascript:foo()"></a>');
+    this.assertStableRerender();
+
+    this.rerender({ foo: 'example.com' });
+    this.assertHTML('<a href="example.com"></a>');
+    this.assertStableNodes();
+
+    this.rerender({ foo: 'javascript:foo()' });
+    this.assertHTML('<a href="unsafe:javascript:foo()"></a>');
+    this.assertStableNodes();
+  }
+
+  @test "a[href] marks javascript: protocol as unsafe, http as safe"() {
+    this.render('<a href="{{foo}}"></a>', { foo: 'javascript:foo()' });
+    this.assertHTML('<a href="unsafe:javascript:foo()"></a>');
+    this.assertStableRerender();
+
+    this.rerender({ foo: 'http://foo.bar' });
+    this.assertHTML('<a href="http://foo.bar"></a>');
+    this.assertStableNodes();
+
+    this.rerender({ foo: 'javascript:foo()' });
+    this.assertHTML('<a href="unsafe:javascript:foo()"></a>');
+    this.assertStableNodes();
+  }
+
+  @test "a[href] marks javascript: protocol as unsafe on updates"() {
+    this.render('<a href="{{foo}}"></a>', { foo: 'http://foo.bar' });
+    this.assertHTML('<a href="http://foo.bar"></a>');
+    this.assertStableRerender();
+
+    this.rerender({ foo: 'javascript:foo()' });
+    this.assertHTML('<a href="unsafe:javascript:foo()"></a>');
+    this.assertStableNodes();
+
+    this.rerender({ foo: 'http://foo.bar' });
+    this.assertHTML('<a href="http://foo.bar"></a>');
+    this.assertStableNodes();
+  }
+
   renderTemplate(template: Template<Opaque>): RenderResult {
     this.populateHelpers();
     return renderTemplate(this.env, template, {
@@ -113,135 +216,6 @@ class AttributesTests extends RenderTest {
 module("Attributes Test", AttributesTests);
 
 /*
-test("disable updates properly", () => {
-  let template = compile('<input disabled={{enabled}} />');
-
-  let context = { enabled: true };
-  render(template, context);
-
-  equalTokens(root, '<input disabled />');
-
-  rerender({ enabled: false });
-
-  equalTokens(root, '<input />');
-
-  rerender({ enabled: 'wat' });
-
-  equalTokens(root, '<input disabled />');
-
-  rerender({ enabled: null });
-
-  equalTokens(root, '<input />');
-
-  rerender({ enabled: true });
-
-  equalTokens(root, '<input disabled />');
-
-  rerender({ enabled: undefined });
-
-  equalTokens(root, '<input />');
-
-  rerender({ enabled: true });
-
-  equalTokens(root, '<input disabled />');
-});
-
-test("quoted disable is always disabled", () => {
-  let template = compile('<input disabled="{{enabled}}" />');
-
-  let context = { enabled: true };
-  render(template, context);
-
-  equalTokens(root, '<input disabled />');
-
-  rerender({ enabled: false });
-
-  equalTokens(root, '<input disabled />');
-
-  rerender({ enabled: 'wat' });
-
-  equalTokens(root, '<input disabled />');
-
-  rerender({ enabled: null });
-
-  equalTokens(root, '<input />');
-
-  rerender({ enabled: true });
-
-  equalTokens(root, '<input disabled />');
-
-  rerender({ enabled: undefined });
-
-  equalTokens(root, '<input />');
-
-  rerender({ enabled: true });
-
-  equalTokens(root, '<input disabled />');
-});
-
-test("disable without an explicit value is truthy", assert => {
-  let template = compile('<input disabled />');
-
-  render(template, {});
-
-  equalTokens(root, '<input disabled />');
-
-  assert.ok(readDOMAttr(root.firstChild as Element, 'disabled'));
-
-  rerender();
-
-  equalTokens(root, '<input disabled />');
-
-  assert.ok(readDOMAttr(root.firstChild as Element, 'disabled'));
-});
-
-test("a[href] marks javascript: protocol as unsafe", () => {
-  let template = compile('<a href="{{foo}}"></a>');
-
-  let context = { foo: 'javascript:foo()' };
-  render(template, context);
-
-  equalTokens(root, '<a href="unsafe:javascript:foo()"></a>');
-
-  rerender();
-
-  equalTokens(root, '<a href="unsafe:javascript:foo()"></a>');
-});
-
-test("a[href] marks javascript: protocol as unsafe, http as safe", () => {
-  let template = compile('<a href="{{foo}}"></a>');
-
-  let context = { foo: 'javascript:foo()' };
-  render(template, context);
-
-  equalTokens(root, '<a href="unsafe:javascript:foo()"></a>');
-
-  rerender({ foo: 'http://foo.bar' });
-
-  equalTokens(root, '<a href="http://foo.bar"></a>');
-
-  rerender({ foo: 'javascript:foo()' });
-
-  equalTokens(root, '<a href="unsafe:javascript:foo()"></a>');
-});
-
-test("a[href] marks javascript: protocol as unsafe on updates", () => {
-  let template = compile('<a href="{{foo}}"></a>');
-
-  let context = { foo: 'http://foo.bar' };
-  render(template, context);
-
-  equalTokens(root, '<a href="http://foo.bar"></a>');
-
-  rerender({ foo: 'javascript:foo()' });
-
-  equalTokens(root, '<a href="unsafe:javascript:foo()"></a>');
-
-  rerender({ foo: 'http://foo.bar' });
-
-  equalTokens(root, '<a href="http://foo.bar"></a>');
-});
-
 test("a[href] marks vbscript: protocol as unsafe", () => {
   let template = compile('<a href="{{foo}}"></a>');
 
