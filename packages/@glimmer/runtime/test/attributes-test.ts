@@ -3,21 +3,18 @@ import { IteratorResult } from '@glimmer/runtime';
 import { equalTokens, TestDynamicScope, TestEnvironment } from "@glimmer/test-helpers";
 import { SVG_NAMESPACE, RenderResult, Template, normalizeProperty, clientBuilder } from "@glimmer/runtime";
 
-const { assert, test } = QUnit;
+// Mine for sure
+import { Opaque } from "@glimmer/interfaces";
+import { RenderTest, module, renderTemplate, test } from '@glimmer/test-helpers';
 
 let root: HTMLElement;
 let env: TestEnvironment;
 let self: UpdatableReference<any>;
 let result: RenderResult;
 
+/*
 function compile(template: string) {
   return env.compile(template);
-}
-
-function commonSetup() {
-  env = new TestEnvironment(); // TODO: Support SimpleDOM
-  root = document.createElement('div');
-  root.setAttribute('debug-root', 'true');
 }
 
 function readDOMAttr(element: Element, attr: string) {
@@ -74,36 +71,48 @@ function nativeValueForElementProperty<T extends keyof HTMLElementTagNameMap, P 
   element[property] = value;
   return element[property];
 }
+*/
 
-QUnit.module("Attributes", {
-  beforeEach: commonSetup
-});
+class AttributesTests extends RenderTest {
+  protected element: HTMLElement;
 
-test("helpers shadow self", () => {
-  env.registerHelper('foo', function() {
-    return "hello";
-  });
+  constructor(env = new TestEnvironment()) {
+    super(env);
+    this.element = env.getDOM().createElement('div') as HTMLDivElement;
+    //this.element.setAttribute('debug-root', 'true');
+  }
 
-  let template = compile('<div data-test="{{foo}}"></div>');
+  @test "helpers shadow self"() {
+    this.registerHelper('foo', function() {
+      return "hello";
+    });
 
-  let context = { foo: 'bye' };
-  render(template, context);
+    this.render('<div data-test="{{foo}}"></div>', { foo: 'bye' });
+    this.assertHTML('<div data-test="hello"></div>');
+    this.assertStableRerender();
 
-  equalTokens(root, '<div data-test="hello"></div>');
+    this.rerender({ foo: 'bar' });
+    this.assertHTML('<div data-test="hello"></div>');
+    this.assertStableNodes();
 
-  rerender();
+    this.rerender({ foo: 'bye' });
+    this.assertHTML('<div data-test="hello"></div>');
+    this.assertStableNodes();
+  }
 
-  equalTokens(root, '<div data-test="hello"></div>');
+  renderTemplate(template: Template<Opaque>): RenderResult {
+    this.populateHelpers();
+    return renderTemplate(this.env, template, {
+      self: new UpdatableReference(this.context),
+      parentNode: this.element,
+      dynamicScope: new TestDynamicScope()
+    });
+  }
+}
 
-  rerender({ foo: 'bar' });
+module("Attributes Test", AttributesTests);
 
-  equalTokens(root, '<div data-test="hello"></div>');
-
-  rerender({ foo: 'bye' });
-
-  equalTokens(root, '<div data-test="hello"></div>');
-});
-
+/*
 test("disable updates properly", () => {
   let template = compile('<input disabled={{enabled}} />');
 
@@ -700,3 +709,4 @@ test("input list attribute updates properly", () => {
 
   equalTokens(root, '<input list="bar" />');
 });
+*/
