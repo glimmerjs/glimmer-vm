@@ -1086,18 +1086,7 @@ QUnit.test('initially missing, then present, then missing', () => {
 });
 
 QUnit.test('initially present, then missing, then present', () => {
-  class FooBar extends BasicComponent {
-    public foo = 'foo';
-    public bar = 'bar';
-    public baz = null;
-
-    constructor(attrs: Attrs) {
-      super(attrs);
-      this.baz = attrs['baz'] || 'baz';
-    }
-  }
-
-  env.registerBasicComponent('foo-bar', FooBar, `<p>{{foo}} {{bar}} {{baz}}</p>`);
+  env.registerBasicComponent('foo-bar', BasicComponent, `<p>foo bar baz</p>`);
 
   appendViewFor(
     stripTight`
@@ -1513,15 +1502,9 @@ QUnit.test('correct scope - self', () => {
   class FooBar extends BasicComponent {
     public foo = 'foo';
     public bar = 'bar';
-    public baz = null;
-
-    constructor(attrs: Attrs) {
-      super(attrs);
-      this.baz = attrs['baz'] || 'baz';
-    }
   }
 
-  env.registerBasicComponent('foo-bar', FooBar, `<p>{{foo}} {{bar}} {{baz}}</p>`);
+  env.registerBasicComponent('foo-bar', FooBar, `<p>{{foo}} {{bar}} {{@baz}}</p>`);
 
   appendViewFor(
     stripTight`
@@ -1534,7 +1517,7 @@ QUnit.test('correct scope - self', () => {
 
   equalsElement(view.element, 'div', {},
     stripTight`
-        <p>foo bar baz</p>
+        <p>foo bar </p>
         <p>foo bar zomg</p>`
   );
 });
@@ -1559,12 +1542,12 @@ module('Curly Components - positional arguments');
 
 QUnit.test('static named positional parameters', function () {
   class SampleComponent extends EmberishCurlyComponent {
-    static positionalParams = ['name', 'age'];
+    static positionalParams = ['person', 'age'];
   }
 
   SampleComponent[CLASS_META].seal();
 
-  env.registerEmberishCurlyComponent('sample-component', SampleComponent, '{{name}}{{age}}');
+  env.registerEmberishCurlyComponent('sample-component', SampleComponent, '{{person}}{{age}}');
 
   appendViewFor('{{sample-component "Quint" 4}}');
 
@@ -1575,10 +1558,10 @@ QUnit.test('dynamic named positional parameters', function () {
   let SampleComponent = EmberishCurlyComponent.extend();
 
   SampleComponent.reopenClass({
-    positionalParams: ['name', 'age']
+    positionalParams: ['person', 'age']
   });
 
-  env.registerEmberishCurlyComponent('sample-component', SampleComponent as any, '{{name}}{{age}}');
+  env.registerEmberishCurlyComponent('sample-component', SampleComponent as any, '{{person}}{{age}}');
 
   appendViewFor('{{sample-component myName myAge}}', {
     myName: 'Quint',
@@ -3049,7 +3032,7 @@ module('late bound layout');
 
 QUnit.test('can bind the layout late', () => {
   class FooBar extends EmberishCurlyComponent {
-    layout = 'Swap - {{yield}}';
+    layout = env.registerTemplate('my-dynamic-layout', 'Swap - {{yield}}');
   }
 
   env.registerEmberishCurlyComponent('foo-bar', FooBar, null);

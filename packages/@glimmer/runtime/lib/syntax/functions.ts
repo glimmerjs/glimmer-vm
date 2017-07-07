@@ -178,8 +178,8 @@ STATEMENTS.add(Ops.Component, (sexp: S.Component, builder: OpcodeBuilder) => {
     let child = builder.template(block);
 
     if (hasStaticLayout(definition, manager)) {
-      let specifier = manager.getLayout(definition, resolver);
-      let layout = resolver.resolve<LOLWUT<ProgramSymbolTable>>(specifier);
+      let layoutSpecifier = manager.getLayout(definition, resolver);
+      let layout = resolver.resolve<LOLWUT<ProgramSymbolTable>>(layoutSpecifier);
 
       builder.pushComponentManager(specifier);
       builder.invokeStaticComponent(definition, layout, attrsBlock, null, args, false, child && child.scan());

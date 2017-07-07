@@ -717,9 +717,6 @@ export abstract class OpcodeBuilder {
           }
 
           break;
-
-        default:
-          throw unreachable(`Unexpected symbol: ${symbol}`);
       }
     }
 
@@ -739,7 +736,7 @@ export abstract class OpcodeBuilder {
 
     this.pushLOLWUT(layout);
     this.resolveZOMG();
-    this.invokeStatic();
+    this.push(Op.InvokeStatic);
     this.popFrame();
 
     this.popScope();

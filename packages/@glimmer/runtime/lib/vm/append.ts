@@ -1,7 +1,7 @@
 import { Register } from '@glimmer/vm';
 import { Scope, DynamicScope, Environment, Opcode, Handle, Heap, Program } from '../environment';
 import { ElementBuilder } from './element-builder';
-import { Option, Destroyable, Stack, LinkedList, ListSlice, Opaque, expect, typePos } from '@glimmer/util';
+import { Option, Destroyable, Stack, LinkedList, ListSlice, Opaque, expect, typePos, assert } from '@glimmer/util';
 import { ReferenceIterator, PathReference, VersionedPathReference, combineSlice } from '@glimmer/reference';
 import { CompiledDynamicTopLevel } from '../compiled/blocks';
 import { LabelOpcode, JumpIfNotModifiedOpcode, DidModifyOpcode } from '../compiled/opcodes/vm';
@@ -121,6 +121,7 @@ export default class VM implements PublicVM {
   }
 
   set pc(value: number) {
+    assert(typeof value === 'number' && value >= -1, `invalid pc: ${value}`);
     this._pc = value;
   }
 
