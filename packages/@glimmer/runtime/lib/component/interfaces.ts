@@ -1,5 +1,5 @@
 import { CompilationOptions } from '../syntax/compilable-template';
-import { Simple, Dict, Opaque, Option, Unique, Specifier, Resolver } from '@glimmer/interfaces';
+import { Simple, Dict, Opaque, Option, Unique, Resolver } from '@glimmer/interfaces';
 import { Tag, VersionedPathReference } from '@glimmer/reference';
 import { Destroyable } from '@glimmer/util';
 import { TemplateMeta } from '@glimmer/wire-format';

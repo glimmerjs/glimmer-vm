@@ -12,22 +12,13 @@ export {
 
 export {
   CompilableLayout,
-  compileLayout
+  scanLayout
 } from './lib/compiler';
 
 export {
   ComponentBuilder,
   ComponentArgs
 } from './lib/opcode-builder';
-
-export {
-  CompiledStaticTemplate,
-  CompiledDynamicTemplate,
-  CompiledDynamicBlock,
-  CompiledDynamicTopLevel,
-  LOLWUT,
-  ZOMG
-} from './lib/compiled/blocks';
 
 export {
   debugSlice
@@ -53,8 +44,8 @@ export {
 
 export {
   CompilableTemplate,
-  Block,
-  TopLevelBlock
+  BlockSyntax,
+  TopLevelSyntax
 } from './lib/syntax/interfaces';
 
 export {

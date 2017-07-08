@@ -3,7 +3,6 @@ import { Scope, DynamicScope, Environment, Opcode, Handle, Heap, Program } from 
 import { ElementBuilder } from './element-builder';
 import { Option, Destroyable, Stack, LinkedList, ListSlice, Opaque, expect, typePos, assert } from '@glimmer/util';
 import { ReferenceIterator, PathReference, VersionedPathReference, combineSlice } from '@glimmer/reference';
-import { CompiledDynamicTopLevel } from '../compiled/blocks';
 import { LabelOpcode, JumpIfNotModifiedOpcode, DidModifyOpcode } from '../compiled/opcodes/vm';
 import { VMState, ListBlockOpcode, TryOpcode, BlockOpcode } from './update';
 import RenderResult from './render-result';
@@ -18,6 +17,7 @@ import {
   Constants,
   ConstantString
 } from '../environment/constants';
+import { ProgramSymbolTable } from "@glimmer/interfaces";
 
 export interface PublicVM {
   env: Environment;
@@ -207,11 +207,12 @@ export default class VM implements PublicVM {
     self: PathReference<Opaque>,
     dynamicScope: DynamicScope,
     elementStack: ElementBuilder,
-    block: CompiledDynamicTopLevel
+    symbolTable: ProgramSymbolTable,
+    handle: Handle
   ) {
-    let scope = Scope.root(self, block.symbolTable.symbols.length);
+    let scope = Scope.root(self, symbolTable.symbols.length);
     let vm = new VM(program, env, scope, dynamicScope, elementStack);
-    vm.pc = vm.heap.getaddr(block.handle);
+    vm.pc = vm.heap.getaddr(handle);
     vm.updatingOpcodeStack.push(new LinkedList<UpdatingOpcode>());
     return vm;
   }

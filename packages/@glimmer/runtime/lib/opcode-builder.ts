@@ -9,12 +9,12 @@ import {
 
 import * as WireFormat from '@glimmer/wire-format';
 
-import { Block } from './syntax/interfaces';
+import { BlockSyntax } from './syntax/interfaces';
 
 import { PublicVM } from './vm/append';
 import { Resolver, Specifier } from "@glimmer/interfaces";
 
-export type ComponentArgs = [WireFormat.Core.Params, WireFormat.Core.Hash, Option<Block>, Option<Block>];
+export type ComponentArgs = [WireFormat.Core.Params, WireFormat.Core.Hash, Option<BlockSyntax>, Option<BlockSyntax>];
 
 export interface DynamicComponentDefinition {
   (

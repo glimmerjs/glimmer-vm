@@ -12,7 +12,7 @@ import { RehydrateBuilder } from './vm/rehydrate-builder';
 import { SerializeBuilder } from './vm/serialize-builder';
 import { DynamicScope, Environment } from './environment';
 import Scanner from './scanner';
-import { Block, TopLevelBlock } from './syntax/interfaces';
+import { BlockSyntax, TopLevelSyntax } from './syntax/interfaces';
 import { IteratorResult, RenderResult, VM } from './vm';
 
 export interface RenderOptions {
@@ -52,10 +52,10 @@ export interface Template<T extends TemplateMeta = TemplateMeta> {
   render(options: RenderOptions): TemplateIterator;
 
   // internal casts, these are lazily created and cached
-  asEntryPoint(): TopLevelBlock;
-  asLayout(componentName: string): TopLevelBlock;
-  asPartial(): TopLevelBlock;
-  asBlock(): Block;
+  asEntryPoint(): TopLevelSyntax;
+  asLayout(componentName: string): TopLevelSyntax;
+  asPartial(): TopLevelSyntax;
+  asBlock(): BlockSyntax;
 }
 
 export interface TemplateFactory<T, U> {
@@ -117,10 +117,10 @@ export default function templateFactory({ id: templateId, meta, block }: Seriali
 }
 
 class ScannableTemplate implements Template<TemplateMeta> {
-  private entryPoint: Option<TopLevelBlock> = null;
-  private layout: Option<TopLevelBlock> = null;
-  private partial: Option<TopLevelBlock> = null;
-  private block: Option<Block> = null;
+  private entryPoint: Option<TopLevelSyntax> = null;
+  private layout: Option<TopLevelSyntax> = null;
+  private partial: Option<TopLevelSyntax> = null;
+  private block: Option<BlockSyntax> = null;
   private scanner: Scanner;
   public symbols: string[];
   public hasEval: boolean;
@@ -141,27 +141,28 @@ class ScannableTemplate implements Template<TemplateMeta> {
       default: throw new Error('unreachable');
     }
 
-    let compiled = this.asEntryPoint().compileDynamic();
-    let vm = VM.initial(this.options.program, env, self, dynamicScope, elementBuilder, compiled);
+    let entryPoint = this.asEntryPoint();
+    let handle = entryPoint.compile();
+    let vm = VM.initial(this.options.program, env, self, dynamicScope, elementBuilder, entryPoint.symbolTable, handle);
     return new TemplateIterator(vm);
   }
 
-  asEntryPoint(): TopLevelBlock {
+  asEntryPoint(): TopLevelSyntax {
     if (!this.entryPoint) this.entryPoint = this.scanner.scanEntryPoint(this.compilationMeta());
     return this.entryPoint;
   }
 
-  asLayout(componentName: string): TopLevelBlock {
+  asLayout(componentName: string): TopLevelSyntax {
     if (!this.layout) this.layout = this.scanner.scanLayout(this.compilationMeta(), componentName);
     return this.layout;
   }
 
-  asPartial(): TopLevelBlock {
+  asPartial(): TopLevelSyntax {
     if (!this.partial) this.partial = this.scanner.scanEntryPoint(this.compilationMeta(true));
     return this.partial;
   }
 
-  asBlock(): Block {
+  asBlock(): BlockSyntax {
     if (!this.block) this.block = this.scanner.scanBlock(this.compilationMeta());
     return this.block;
   }

@@ -14,9 +14,8 @@ import { ComponentBuilder as IComponentBuilder } from '../../opcode-builder';
 import { Primitive } from '../../references';
 import { CompilationOptions } from '../../syntax/compilable-template';
 import { expr, ATTRS_BLOCK } from '../../syntax/functions';
-import { Block, CompilableTemplate } from '../../syntax/interfaces';
+import { BlockSyntax, CompilableTemplate } from '../../syntax/interfaces';
 import RawInlineBlock from '../../syntax/raw-block';
-import { LOLWUT, ZOMG } from '../blocks';
 import { TemplateMeta } from "@glimmer/wire-format";
 import { ComponentBuilder } from "../../compiler";
 import { ComponentDefinition } from '../../component/interfaces';
@@ -51,7 +50,11 @@ class Labels {
   }
 }
 
-export abstract class OpcodeBuilder {
+export interface AbstractTemplate<S extends SymbolTable = SymbolTable> {
+  symbolTable: S;
+}
+
+export abstract class OpcodeBuilder<Layout extends AbstractTemplate<ProgramSymbolTable> = AbstractTemplate<ProgramSymbolTable>> {
   public constants: Constants;
 
   private buffer: number[] = [];
@@ -527,7 +530,7 @@ export abstract class OpcodeBuilder {
     this.pushArgs(names, count, synthetic);
   }
 
-  invokeStaticBlock(block: Block, callerCount = 0): void {
+  invokeStaticBlock(block: BlockSyntax, callerCount = 0): void {
     let { parameters } = block.symbolTable;
     let calleeCount = parameters.length;
     let count = Math.min(callerCount, calleeCount);
@@ -544,6 +547,7 @@ export abstract class OpcodeBuilder {
     }
 
     this.pushBlock(block);
+    this.resolveBlock();
     this.invokeStatic();
 
     if (count) {
@@ -594,12 +598,13 @@ export abstract class OpcodeBuilder {
   yield(to: number, params: Option<WireFormat.Core.Params>) {
     this.compileArgs(params, null, false);
     this.getBlock(to);
+    this.resolveBlock();
     this.invokeYield();
     this.popScope();
     this.popFrame();
   }
 
-  invokeComponent(attrs: Option<RawInlineBlock>, params: Option<WireFormat.Core.Params>, hash: WireFormat.Core.Hash, synthetic: boolean, block: Option<Block>, inverse: Option<Block> = null) {
+  invokeComponent(attrs: Option<RawInlineBlock>, params: Option<WireFormat.Core.Params>, hash: WireFormat.Core.Hash, synthetic: boolean, block: Option<BlockSyntax>, inverse: Option<BlockSyntax> = null) {
     this.fetch(Register.s0);
     this.dup(Register.sp, 1);
     this.load(Register.s0);
@@ -619,7 +624,7 @@ export abstract class OpcodeBuilder {
     this.getComponentSelf(Register.s0);
 
     this.getComponentLayout(Register.s0);
-    this.resolveZOMG();
+    this.resolveLayout();
     this.invokeComponentLayout();
     this.popFrame();
 
@@ -630,9 +635,9 @@ export abstract class OpcodeBuilder {
     this.load(Register.s0);
   }
 
-  invokeStaticComponent(definition: ComponentDefinition, layout: LOLWUT<ProgramSymbolTable>, attrs: Option<RawInlineBlock>, params: Option<WireFormat.Core.Params>, hash: WireFormat.Core.Hash, synthetic: boolean, block: Option<Block>, inverse: Option<Block> = null) {
-    let { symbolTable } = layout;
+  invokeStaticComponent(definition: ComponentDefinition, layout: Layout, attrs: Option<RawInlineBlock>, params: Option<WireFormat.Core.Params>, hash: WireFormat.Core.Hash, synthetic: boolean, block: Option<BlockSyntax>, inverse: Option<BlockSyntax> = null) {
     let { capabilities } = definition;
+    let { symbolTable } = layout;
 
     let bailOut =
       symbolTable.hasEval ||
@@ -665,7 +670,7 @@ export abstract class OpcodeBuilder {
 
       switch (symbol.charAt(0)) {
         case '&':
-          let callerBlock: Option<Block> = null;
+          let callerBlock: Option<BlockSyntax> = null;
 
           if (symbol === '&default') {
             callerBlock = block;
@@ -724,9 +729,10 @@ export abstract class OpcodeBuilder {
 
     this.pushFrame();
 
-    this.pushLOLWUT(layout);
-    this.resolveZOMG();
-    this.push(Op.InvokeStatic);
+    this.pushSymbolTable(layout.symbolTable);
+    this.pushLayout(layout);
+    this.resolveLayout();
+    this.invokeStatic();
     this.popFrame();
 
     this.popScope();
@@ -736,7 +742,7 @@ export abstract class OpcodeBuilder {
     this.load(Register.s0);
   }
 
-  dynamicComponent(definition: WireFormat.Expression, /* TODO: attrs: Option<RawInlineBlock>, */ params: Option<WireFormat.Core.Params>, hash: WireFormat.Core.Hash, synthetic: boolean, block: Option<Block>, inverse: Option<Block> = null) {
+  dynamicComponent(definition: WireFormat.Expression, /* TODO: attrs: Option<RawInlineBlock>, */ params: Option<WireFormat.Core.Params>, hash: WireFormat.Core.Hash, synthetic: boolean, block: Option<BlockSyntax>, inverse: Option<BlockSyntax> = null) {
     this.startLabels();
 
     this.pushFrame();
@@ -776,17 +782,13 @@ export abstract class OpcodeBuilder {
     this.push(Op.CurryComponent, this.constants.serializable(meta));
   }
 
-  pushLOLWUT(lolwut: Option<LOLWUT>) {
-    this.pushSymbolTable(lolwut && lolwut.symbolTable);
-    this.pushZOMG(lolwut && lolwut.zomg);
-  }
-
-  abstract pushBlock(block: Option<CompilableTemplate>): void; // TODO: delete me
+  abstract pushBlock(block: Option<BlockSyntax>): void;
+  abstract resolveBlock(): void;
+  abstract pushLayout(layout: Option<Layout>): void;
+  abstract resolveLayout(): void;
   abstract pushSymbolTable(block: Option<SymbolTable>): void;
-  abstract pushZOMG(zomg: Option<ZOMG>): void;
-  abstract resolveZOMG(): void;
 
-  pushYieldableBlock(block: Option<Block>): void {
+  pushYieldableBlock(block: Option<BlockSyntax>): void {
     this.pushSymbolTable(block && block.symbolTable);
     this.pushBlock(block);
   }
@@ -799,7 +801,7 @@ export abstract class OpcodeBuilder {
 
 export default OpcodeBuilder;
 
-export class LazyOpcodeBuilder extends OpcodeBuilder {
+export class LazyOpcodeBuilder extends OpcodeBuilder<CompilableTemplate<ProgramSymbolTable>> {
   public constants: LazyConstants;
 
   pushSymbolTable(symbolTable: Option<SymbolTable>) {
@@ -810,7 +812,7 @@ export class LazyOpcodeBuilder extends OpcodeBuilder {
     }
   }
 
-  pushBlock(block: Option<Block>) {
+  pushBlock(block: Option<BlockSyntax>): void {
     if (block) {
       this.pushOther(block);
     } else {
@@ -818,34 +820,24 @@ export class LazyOpcodeBuilder extends OpcodeBuilder {
     }
   }
 
-  pushZOMG(zomg: Option<ZOMG>) {
-    if (zomg) {
-      this.pushOther(zomg);
+  resolveBlock(): void {
+    this.push(Op.CompileBlock);
+  }
+
+  pushLayout(layout: Option<CompilableTemplate<ProgramSymbolTable>>) {
+    if (layout) {
+      this.pushOther(layout);
     } else {
       this.primitive(null);
     }
   }
 
-  resolveZOMG() {
+  resolveLayout(): void {
     this.push(Op.CompileBlock);
-  }
-
-  invokeYield() {
-    this.compileBlock();
-    super.invokeYield();
-  }
-
-  invokeStatic() {
-    this.compileBlock();
-    super.invokeStatic();
   }
 
   protected pushOther<T>(value: T) {
     this.push(Op.Constant, this.other(value));
-  }
-
-  protected compileBlock() {
-    this.push(Op.CompileBlock);
   }
 
   protected other(value: Opaque): ConstantOther {

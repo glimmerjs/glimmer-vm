@@ -3,7 +3,6 @@ import EmberObject, {
 } from "@glimmer/object";
 import { CLASS_META, setProperty as set, UpdatableReference } from '@glimmer/object-reference';
 import {
-  Attrs,
   BasicComponent,
   classes,
   EmberishCurlyComponent,

@@ -3,7 +3,7 @@ import { Op, Register } from '@glimmer/vm';
 import { Tag } from '@glimmer/reference';
 import { VM, UpdatingVM } from './vm';
 import { Opcode, Program } from './environment';
-import { Constants } from './environment/constants';
+import { Constants, LazyConstants } from './environment/constants';
 import { DEBUG, CI } from '@glimmer/local-debug-flags';
 
 export interface OpcodeJSON {
@@ -89,7 +89,7 @@ function debug(c: Constants, op: Op, op1: number, op2: number, op3: number): [st
       case Op.HasBlock: return ['HasBlock', { block: op1 }];
       case Op.HasBlockParams: return ['HasBlockParams', { block: op1 }];
       case Op.Concat: return ['Concat', { size: op1 }];
-      case Op.Constant: return ['Constant', { value: c.getOther(op1) }];
+      case Op.Constant: return ['Constant', { value: (c as LazyConstants).getOther(op1) }];
       case Op.Primitive: return ['Primitive', { primitive: op1 }];
       case Op.PrimitiveReference: return ['PrimitiveReference', {}];
       case Op.Dup: return ['Dup', { register: Register[op1], offset: op2 }];

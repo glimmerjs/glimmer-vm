@@ -7,8 +7,7 @@ import {
 
   // Compiler
   CompilableLayout,
-  CompiledDynamicTopLevel,
-  compileLayout,
+  scanLayout,
 
   // Environment
   Environment,
@@ -45,15 +44,15 @@ import {
   getDynamicVar,
 
   Template,
-  CompiledDynamicTemplate,
   templateFactory,
   Macros,
-  TopLevelBlock,
+  TopLevelSyntax,
   Program,
   ComponentManagerWithDynamicTagName,
-  LOLWUT,
   WithDynamicLayout,
-  CompilationOptions
+  CompilationOptions,
+  Handle,
+  CompilableTemplate
 } from "@glimmer/runtime";
 
 import {
@@ -91,9 +90,11 @@ import {
 
 import * as WireFormat from '@glimmer/wire-format';
 
-import { Simple, BlockSymbolTable, ProgramSymbolTable, Resolver } from "@glimmer/interfaces";
+import { Simple, Resolver, Unique, ProgramSymbolTable } from "@glimmer/interfaces";
 import { TemplateMeta } from "@glimmer/wire-format";
 import { precompile } from "@glimmer/compiler";
+
+export type _ = Unique<any>;
 
 type KeyFor<T> = (item: Opaque, index: T) => string;
 
@@ -727,11 +728,8 @@ export class TestModifierManager implements ModifierManager<TestModifier> {
 export interface TestEnvironmentOptions {
   document?: Simple.Document;
   appendOperations?: DOMTreeConstruction;
-  program?: TopLevelBlock;
+  program?: TopLevelSyntax;
 }
-
-export type CompiledDynamicBlock = CompiledDynamicTemplate<BlockSymbolTable>;
-export type CompiledDynamicProgram = CompiledDynamicTemplate<ProgramSymbolTable>;
 
 export type LookupType = 'helper' | 'modifier' | 'component' | 'partial' | 'template' | 'template-source';
 
@@ -762,7 +760,7 @@ export class TestResolver implements Resolver<TestSpecifier, TemplateMeta> {
     modifier: new TypedRegistry<ModifierManager>(),
     partial: new TypedRegistry<PartialDefinition>(),
     component: new TypedRegistry<ComponentDefinition>(),
-    template: new TypedRegistry<LOLWUT>(),
+    template: new TypedRegistry<CompilableTemplate<ProgramSymbolTable>>(),
     'template-source': new TypedRegistry<string>()
   };
 
@@ -772,7 +770,7 @@ export class TestResolver implements Resolver<TestSpecifier, TemplateMeta> {
   register(type: 'modifier', name: string, value: ModifierManager): TestSpecifier;
   register(type: 'partial', name: string, value: PartialDefinition): TestSpecifier;
   register(type: 'component', name: string, value: ComponentDefinition): TestSpecifier;
-  register(type: 'template', name: string, value: LOLWUT): TestSpecifier;
+  register(type: 'template', name: string, value: CompilableTemplate<ProgramSymbolTable>): TestSpecifier;
   register(type: 'template-source', name: string, value: string): TestSpecifier;
   register(type: LookupType, name: string, value: any): TestSpecifier {
     (this.registry[type] as TypedRegistry<any>).register(name, value);
@@ -798,7 +796,7 @@ export class TestResolver implements Resolver<TestSpecifier, TemplateMeta> {
     let source = this.resolve<string>(sourceSpecifier);
     let compiler = new Compiler(componentName, source);
 
-    return this.register('template', templateName, compileLayout(compiler, this.options));
+    return this.register('template', templateName, scanLayout(compiler, this.options));
   }
 
   lookupHelper(name: string, meta: TemplateMeta): Option<TestSpecifier> {
@@ -871,7 +869,7 @@ export class TestEnvironment extends Environment {
   public resolver = new TestResolver();
   private program = new Program(this.resolver);
   private uselessAnchor: HTMLAnchorElement;
-  public compiledLayouts = dict<CompiledDynamicTopLevel>();
+  public compiledLayouts = dict<Handle>();
 
   public compileOptions: InputCompilationOptions = {
     resolver: this.resolver,

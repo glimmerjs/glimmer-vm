@@ -1,12 +1,12 @@
 import { Register } from '@glimmer/vm';
 import { CompilationMeta, Specifier, ProgramSymbolTable } from '@glimmer/interfaces';
-import { CompiledDynamicTopLevel, CompiledDynamicTemplate, LOLWUT, ZOMG } from './compiled/blocks';
 import { Maybe, Option } from '@glimmer/util';
 import { TemplateMeta } from '@glimmer/wire-format';
 import { Template } from './template';
 import { debugSlice } from './opcodes';
 import { ATTRS_BLOCK } from './syntax/functions';
-import { CompilationOptions, InputCompilationOptions } from './syntax/compilable-template';
+import { Handle } from './environment';
+import { CompilationOptions, InputCompilationOptions, ICompilableTemplate } from './syntax/compilable-template';
 
 import {
   ComponentArgs,
@@ -23,19 +23,17 @@ export interface CompilableLayout {
   compile(builder: Component.ComponentLayoutBuilder): void;
 }
 
-export function compileLayout(compilable: CompilableLayout, options: InputCompilationOptions): LOLWUT<ProgramSymbolTable> {
+export function scanLayout(compilable: CompilableLayout, options: InputCompilationOptions): ICompilableTemplate<ProgramSymbolTable> {
   let builder = new ComponentLayoutBuilder(options);
 
   compilable.compile(builder);
 
-  let { symbolTable, handle } = builder.compile();
-
-  return { symbolTable, zomg: { compileStatic() { return { handle }; } } as any as ZOMG };
+  return builder.scan();
 }
 
 interface InnerLayoutBuilder {
   tag: Component.ComponentTagBuilder;
-  compile(): CompiledDynamicTopLevel;
+  scan(): ICompilableTemplate<ProgramSymbolTable>;
 }
 
 class ComponentLayoutBuilder implements Component.ComponentLayoutBuilder {
@@ -51,8 +49,8 @@ class ComponentLayoutBuilder implements Component.ComponentLayoutBuilder {
     this.inner = new UnwrappedBuilder(this.options, componentName, layout);
   }
 
-  compile(): CompiledDynamicTopLevel {
-    return this.inner.compile();
+  scan(): ICompilableTemplate<ProgramSymbolTable> {
+    return this.inner.scan();
   }
 
   get tag(): Component.ComponentTagBuilder {
@@ -60,12 +58,26 @@ class ComponentLayoutBuilder implements Component.ComponentLayoutBuilder {
   }
 }
 
-class WrappedBuilder implements InnerLayoutBuilder {
+class WrappedBuilder implements InnerLayoutBuilder, ICompilableTemplate<ProgramSymbolTable> {
   public tag = new ComponentTagBuilder();
+  public symbolTable: ProgramSymbolTable;
+  private meta: { templateMeta: TemplateMeta, symbols: string[], asPartial: false };
 
-  constructor(public options: CompilationOptions, private layout: Template<TemplateMeta>) {}
+  constructor(public options: CompilationOptions, private layout: Template<TemplateMeta>) {
+    let meta = this.meta = { templateMeta: layout.meta, symbols: layout.symbols, asPartial: false };
 
-  compile(): CompiledDynamicTopLevel {
+    this.symbolTable = {
+      meta,
+      hasEval: layout.hasEval,
+      symbols: layout.symbols.concat([ATTRS_BLOCK])
+    };
+  }
+
+  scan(): ICompilableTemplate<ProgramSymbolTable> {
+    return this;
+  }
+
+  compile(): Handle {
     //========DYNAMIC
     //        PutValue(TagExpr)
     //        Test
@@ -158,24 +170,19 @@ class WrappedBuilder implements InnerLayoutBuilder {
       debugSlice(program, start, end);
     }
 
-    return new CompiledDynamicTemplate(handle, {
-      meta,
-      hasEval: layout.hasEval,
-      symbols: layout.symbols.concat([ATTRS_BLOCK])
-    });
+    return handle;
   }
 }
 
 class UnwrappedBuilder implements InnerLayoutBuilder {
-  constructor(public env: CompilationOptions, private componentName: string, private layout: Template<TemplateMeta>) {}
+  constructor(public env: CompilationOptions, private componentName: string, private rawLayout: Template<TemplateMeta>) {}
 
   get tag(): Component.ComponentTagBuilder {
     throw new Error('BUG: Cannot call `tag` on an UnwrappedBuilder');
   }
 
-  compile(): CompiledDynamicTopLevel {
-    let { layout } = this;
-    return layout.asLayout(this.componentName).compileDynamic();
+  scan(): ICompilableTemplate<ProgramSymbolTable> {
+    return this.rawLayout.asLayout(this.componentName);
   }
 }
 

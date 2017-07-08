@@ -3,12 +3,11 @@ import { assert, dict, EMPTY_ARRAY, unwrap } from '@glimmer/util';
 import { Register } from '@glimmer/vm';
 import * as WireFormat from '@glimmer/wire-format';
 import OpcodeBuilder, { LazyOpcodeBuilder } from '../compiled/opcodes/builder';
-import { LOLWUT } from '../compiled/blocks';
 import { Handle, Heap } from '../environment';
 import { ComponentDefinition, hasStaticLayout } from '../component/interfaces';
 import * as ClientSide from './client-side';
 import { CompilationOptions } from './compilable-template';
-import { Block } from './interfaces';
+import { BlockSyntax } from './interfaces';
 import RawInlineBlock from './raw-block';
 import Ops = WireFormat.Ops;
 
@@ -179,7 +178,7 @@ STATEMENTS.add(Ops.Component, (sexp: S.Component, builder: OpcodeBuilder) => {
 
     if (hasStaticLayout(definition, manager)) {
       let layoutSpecifier = manager.getLayout(definition, resolver);
-      let layout = resolver.resolve<LOLWUT<ProgramSymbolTable>>(layoutSpecifier);
+      let layout = resolver.resolve<{ symbolTable: ProgramSymbolTable, template: Handle }>(layoutSpecifier);
 
       builder.pushComponentManager(specifier);
       builder.invokeStaticComponent(definition, layout, attrsBlock, null, args, false, child && child.scan());
@@ -354,8 +353,8 @@ EXPRESSIONS.add(Ops.HasBlockParams, (sexp: E.HasBlockParams, builder: OpcodeBuil
   builder.hasBlockParams(sexp[1]);
 });
 
-export type BlockMacro = (params: C.Params, hash: C.Hash, template: Option<Block>, inverse: Option<Block>, builder: OpcodeBuilder) => void;
-export type MissingBlockMacro = (name: string, params: C.Params, hash: C.Hash, template: Option<Block>, inverse: Option<Block>, builder: OpcodeBuilder) => void;
+export type BlockMacro = (params: C.Params, hash: C.Hash, template: Option<BlockSyntax>, inverse: Option<BlockSyntax>, builder: OpcodeBuilder) => void;
+export type MissingBlockMacro = (name: string, params: C.Params, hash: C.Hash, template: Option<BlockSyntax>, inverse: Option<BlockSyntax>, builder: OpcodeBuilder) => void;
 
 export class Blocks {
   private names = dict<number>();
@@ -371,7 +370,7 @@ export class Blocks {
     this.missing = func;
   }
 
-  compile(name: string, params: C.Params, hash: C.Hash, template: Option<Block>, inverse: Option<Block>, builder: OpcodeBuilder): void {
+  compile(name: string, params: C.Params, hash: C.Hash, template: Option<BlockSyntax>, inverse: Option<BlockSyntax>, builder: OpcodeBuilder): void {
     let index = this.names[name];
 
     if (index === undefined) {

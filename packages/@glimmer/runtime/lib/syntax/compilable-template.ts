@@ -4,8 +4,7 @@ import {
   Resolver
 } from '@glimmer/interfaces';
 import { Statement } from '@glimmer/wire-format';
-import { CompiledDynamicTemplate, CompiledStaticTemplate } from '../compiled/blocks';
-import { Program } from '../environment';
+import { Program, Handle } from '../environment';
 import { debugSlice } from '../opcodes';
 import { compileStatements } from './functions';
 import { DEBUG } from '@glimmer/local-debug-flags';
@@ -24,37 +23,29 @@ export interface InputCompilationOptions {
   macros: Macros;
 }
 
+export { ICompilableTemplate };
+
 export default class CompilableTemplate<S extends SymbolTable> implements ICompilableTemplate<S> {
-  private compiledStatic: Option<CompiledStaticTemplate> = null;
-  private compiledDynamic: Option<CompiledDynamicTemplate<S>> = null;
+  private compiled: Option<Handle> = null;
 
   constructor(public statements: Statement[], public symbolTable: S, private options: CompilationOptions) {}
 
-  compileStatic(): CompiledStaticTemplate {
-    let { compiledStatic, options } = this;
+  compile(): Handle {
+    let { compiled } = this;
+    if (compiled !== null) return compiled;
 
-    if (!compiledStatic) {
-      let builder = compileStatements(this.statements, this.symbolTable.meta, options);
-      let handle = builder.commit(options.program.heap);
-      if (DEBUG) {
-        let { program, program: { heap } } = options;
-        let start = heap.getaddr(handle);
-        let end = start + heap.sizeof(handle);
-        debugSlice(program, start, end);
-      }
-      compiledStatic = this.compiledStatic = new CompiledStaticTemplate(handle);
+    let { options } = this;
+
+    let builder = compileStatements(this.statements, this.symbolTable.meta, options);
+    let handle = builder.commit(options.program.heap);
+
+    if (DEBUG) {
+      let { program, program: { heap } } = options;
+      let start = heap.getaddr(handle);
+      let end = start + heap.sizeof(handle);
+      debugSlice(program, start, end);
     }
 
-    return compiledStatic;
-  }
-
-  compileDynamic(): CompiledDynamicTemplate<S> {
-    let { compiledDynamic } = this;
-    if (!compiledDynamic) {
-      let staticBlock = this.compileStatic();
-      compiledDynamic = new CompiledDynamicTemplate(staticBlock.handle, this.symbolTable);
-    }
-
-    return compiledDynamic;
+    return (this.compiled = handle);
   }
 }

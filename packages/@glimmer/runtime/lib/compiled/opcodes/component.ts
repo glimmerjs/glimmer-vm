@@ -22,13 +22,13 @@ import {
 import { normalizeStringValue } from '../../dom/normalize';
 import { DynamicScope, Handle, ScopeBlock, ScopeSlot } from '../../environment';
 import { APPEND_OPCODES, OpcodeJSON, UpdatingOpcode } from '../../opcodes';
+import { AbstractTemplate } from './builder';
 import { UNDEFINED_REFERENCE } from '../../references';
 import { ATTRS_BLOCK } from '../../syntax/functions';
 import { UpdatingVM, VM } from '../../vm';
 import { Arguments, IArguments, ICapturedArguments } from '../../vm/arguments';
 import { IsComponentDefinitionReference } from './content';
 import { UpdateDynamicAttributeOpcode } from './dom';
-import { LOLWUT } from '../blocks';
 import { dict, assert, unreachable } from "@glimmer/util";
 import { Op, Register } from '@glimmer/vm';
 import { TemplateMeta } from "@glimmer/wire-format";
@@ -385,10 +385,10 @@ APPEND_OPCODES.add(Op.GetComponentLayout, (vm, { op1: _state }) => {
     throw unreachable();
   }
 
-  let { symbolTable, zomg } = resolver.resolve<LOLWUT>(specifier);
+  let layout = resolver.resolve<AbstractTemplate<ProgramSymbolTable>>(specifier);
 
-  stack.push(symbolTable);
-  stack.push(zomg);
+  stack.push(layout.symbolTable);
+  stack.push(layout);
 });
 
 APPEND_OPCODES.add(Op.InvokeComponentLayout, vm => {
