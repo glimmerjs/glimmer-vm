@@ -1,0 +1,6 @@
+- Input experiment
+- Lazy-only opcodes / what is eager mode?
+- There is no more DynamicBlock (push symbol table instead)
+- ZOMG / LOLWUT -> delete other overlapping concepts
+- compileLayout
+- low-pri: unify unwrapped builder and raw template
