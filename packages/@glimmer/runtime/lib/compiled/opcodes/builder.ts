@@ -25,8 +25,6 @@ export interface CompilesInto<E> {
   compile(builder: OpcodeBuilder): E;
 }
 
-export type Represents<E> = CompilesInto<E> | E;
-
 export type Label = string;
 
 type TargetOpcode = Op.Jump | Op.JumpIf | Op.JumpUnless | Op.EnterList | Op.Iterate | Op.ReturnTo;
@@ -529,14 +527,6 @@ export abstract class OpcodeBuilder {
     this.pushArgs(names, count, synthetic);
   }
 
-  compile<E>(expr: Represents<E>): E {
-    if (isCompilableExpression(expr)) {
-      return expr.compile(this);
-    } else {
-      return expr;
-    }
-  }
-
   invokeStaticBlock(block: Block, callerCount = 0): void {
     let { parameters } = block.symbolTable;
     let calleeCount = parameters.length;
@@ -808,10 +798,6 @@ export abstract class OpcodeBuilder {
 }
 
 export default OpcodeBuilder;
-
-function isCompilableExpression<E>(expr: Represents<E>): expr is CompilesInto<E> {
-  return typeof expr === 'object' && expr !== null && typeof (expr as CompilesInto<E>).compile === 'function';
-}
 
 export class LazyOpcodeBuilder extends OpcodeBuilder {
   public constants: LazyConstants;
