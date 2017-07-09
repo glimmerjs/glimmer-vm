@@ -41,7 +41,7 @@ APPEND_OPCODES.add(Op.Constant, (vm, { op1: other }) => {
 
 APPEND_OPCODES.add(Op.PrimitiveReference, (vm, { op1: primitive }) => {
   let stack = vm.stack;
-  let flag = (primitive & (3 << 30)) >>> 30;
+  let flag = primitive >>> 30;
   let value = primitive & ~(3 << 30);
 
   switch (flag) {
