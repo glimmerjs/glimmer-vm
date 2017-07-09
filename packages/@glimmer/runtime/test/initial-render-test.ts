@@ -510,6 +510,14 @@ module("[glimmer runtime] Initial render", tests => {
       compilesTo('<div>{{testing title}}</div>', '<div>hello</div>', { title: 'hello' });
     });
 
+    test("The compiler can handle simple helpers with float and negative number parameters", () => {
+      env.registerHelper('testing', function(params, hash) {
+        return params[0] as number - (hash['arg1'] as number);
+      });
+      render(compile('<div>{{testing -1 arg1=0.234}}</div>'), {});
+      equalTokens(root, '<div>-1.234</div>');
+    });
+
     test("GH#13999 The compiler can handle simple helpers with inline null parameter", assert => {
       let value;
       env.registerHelper('say-hello', function(params) {
