@@ -7,11 +7,6 @@ import { Opaque } from "@glimmer/interfaces";
 import { RenderTest, module, renderTemplate, test } from '@glimmer/test-helpers';
 import { UpdatableReference } from "@glimmer/object-reference";
 
-let root: HTMLElement;
-let env: TestEnvironment;
-let self: UpdatableReference<any>;
-let result: RenderResult;
-
 function readDOMAttr(element: Element, attr: string) {
   let isSVG = element.namespaceURI === SVG_NAMESPACE;
   let { type, normalized } = normalizeProperty(element, attr);
@@ -70,7 +65,6 @@ function nativeValueForElementProperty<T extends keyof HTMLElementTagNameMap, P 
 */
 
 class AttributesTests extends RenderTest {
-  protected element: HTMLElement;
 
   @test "helpers shadow self"() {
     this.registerHelper('foo', function() {
@@ -158,189 +152,141 @@ class AttributesTests extends RenderTest {
     this.assertStableRerender();
     this.assert.ok(readDOMAttr(this.element.firstChild as Element, 'disabled'));
   }
-
-  @test "a[href] marks javascript: protocol as unsafe"() {
-    this.render('<a href="{{foo}}"></a>', {
-      foo: 'javascript:foo()'
-    });
-    this.assertHTML('<a href="unsafe:javascript:foo()"></a>');
-    this.assertStableRerender();
-
-    this.rerender({ foo: 'example.com' });
-    this.assertHTML('<a href="example.com"></a>');
-    this.assertStableNodes();
-
-    this.rerender({ foo: 'javascript:foo()' });
-    this.assertHTML('<a href="unsafe:javascript:foo()"></a>');
-    this.assertStableNodes();
-  }
-
-  @test "a[href] marks javascript: protocol as unsafe, http as safe"() {
-    this.render('<a href="{{foo}}"></a>', { foo: 'javascript:foo()' });
-    this.assertHTML('<a href="unsafe:javascript:foo()"></a>');
-    this.assertStableRerender();
-
-    this.rerender({ foo: 'http://foo.bar' });
-    this.assertHTML('<a href="http://foo.bar"></a>');
-    this.assertStableNodes();
-
-    this.rerender({ foo: 'javascript:foo()' });
-    this.assertHTML('<a href="unsafe:javascript:foo()"></a>');
-    this.assertStableNodes();
-  }
-
-  @test "a[href] marks javascript: protocol as unsafe on updates"() {
-    this.render('<a href="{{foo}}"></a>', { foo: 'http://foo.bar' });
-    this.assertHTML('<a href="http://foo.bar"></a>');
-    this.assertStableRerender();
-
-    this.rerender({ foo: 'javascript:foo()' });
-    this.assertHTML('<a href="unsafe:javascript:foo()"></a>');
-    this.assertStableNodes();
-
-    this.rerender({ foo: 'http://foo.bar' });
-    this.assertHTML('<a href="http://foo.bar"></a>');
-    this.assertStableNodes();
-  }
-
-  renderTemplate(template: Template<Opaque>): RenderResult {
-    this.populateHelpers();
-    return renderTemplate(this.env, template, {
-      self: new UpdatableReference(this.context),
-      parentNode: this.element,
-      dynamicScope: new TestDynamicScope()
-    });
-  }
 }
 
 module("Attributes Test", AttributesTests);
 
+abstract class BoundValuesToSpecialAttributeTests extends RenderTest {
+  protected abstract tag : string;
+  protected abstract attr : string;
+  protected isEmptyElement = false;
+  protected selfClosing = true;
+
+  @test "marks javascript: protocol as unsafe"() {
+    this.render(this.tmplt('{{foo}}'), {
+      foo: 'javascript:foo()'
+    });
+    this.assertHTML(this.tmplt('unsafe:javascript:foo()'));
+    this.assertStableRerender();
+
+    this.rerender({ foo: 'example.com' });
+    this.assertHTML(this.tmplt('example.com'));
+    this.assertStableNodes();
+
+    this.rerender({ foo: 'javascript:foo()' });
+    this.assertHTML(this.tmplt('unsafe:javascript:foo()'));
+    this.assertStableNodes();
+  }
+
+  @test "marks javascript: protocol as unsafe, http as safe"() {
+    this.render(this.tmplt('{{foo}}'), { foo: 'javascript:foo()' });
+    this.assertHTML(this.tmplt('unsafe:javascript:foo()'));
+    this.assertStableRerender();
+
+    this.rerender({ foo: 'http://foo.bar' });
+    this.assertHTML(this.tmplt('http://foo.bar'));
+    this.assertStableNodes();
+
+    this.rerender({ foo: 'javascript:foo()' });
+    this.assertHTML(this.tmplt('unsafe:javascript:foo()'));
+    this.assertStableNodes();
+  }
+
+  @test "marks javascript: protocol as unsafe on updates"() {
+    this.render(this.tmplt('{{foo}}'), { foo: 'http://foo.bar' });
+    this.assertHTML(this.tmplt('http://foo.bar', true));
+    this.assertStableRerender();
+
+    this.rerender({ foo: 'javascript:foo()' });
+    this.assertHTML(this.tmplt('unsafe:javascript:foo()'));
+    this.assertStableNodes();
+
+    this.rerender({ foo: 'http://foo.bar' });
+    this.assertHTML(this.tmplt('http://foo.bar'));
+    this.assertStableNodes();
+  }
+
+  @test "marks vbscript: protocol as unsafe"() {
+    this.render(this.tmplt('{{foo}}'), { foo: 'vbscript:foo()' });
+    this.assertHTML(this.tmplt('unsafe:vbscript:foo()', true));
+    this.assertStableRerender();
+
+    this.rerender({ foo: 'example.com' });
+    this.assertHTML(this.tmplt('example.com', true));
+    this.assertStableNodes();
+
+    this.rerender({ foo: 'vbscript:foo()' });
+    this.assertHTML(this.tmplt('unsafe:vbscript:foo()', true));
+    this.assertStableNodes();
+  }
+
+  @test "can be removed by setting to `null`"() {
+    this.render(this.tmplt('{{foo}}', false), { foo: 'http://foo.bar/derp.jpg' });
+    this.assertHTML(this.tmplt('http://foo.bar/derp.jpg'));
+    this.assertStableRerender();
+
+    this.rerender({ foo: null });
+    this.assertHTML(this.emptyElementTemplate());
+    this.assertStableNodes();
+
+    this.rerender({ foo: 'http://foo.bar/derp.jpg' });
+    this.assertHTML(this.tmplt('http://foo.bar/derp.jpg'));
+    this.assertStableNodes();
+  }
+
+  @test "can be removed by setting to `undefined`"() {
+    this.render(this.tmplt('{{foo}}', false), { foo: 'http://foo.bar/derp.jpg' });
+    this.assertHTML(this.tmplt('http://foo.bar/derp.jpg'));
+    this.assertStableRerender();
+
+    this.rerender({ foo: undefined });
+    this.assertHTML(this.emptyElementTemplate());
+    this.assertStableNodes();
+
+    this.rerender({ foo: 'http://foo.bar/derp.jpg' });
+    this.assertHTML(this.tmplt('http://foo.bar/derp.jpg'));
+    this.assertStableNodes();
+  }
+
+  protected emptyElementTemplate() : string {
+    let template = `<${this.tag}>`;
+    if (!this.isEmptyElement) {
+      template += `</${this.tag}>`;
+    }
+
+    return template;
+  }
+
+  protected tmplt(valueForAttr : string, quoteValue = true) : string {
+    let value = valueForAttr;
+    if (quoteValue) {
+      value = `"${value}"`;
+    }
+    let template = `<${this.tag} ${this.attr}=${value}`;
+    if (this.isEmptyElement) {
+      if (this.selfClosing) {
+        template += ` />`;
+      }
+    } else {
+      template += `></${this.tag}>`;
+    }
+
+    return template;
+  }
+}
+
+module("Attribute a[href]", class extends BoundValuesToSpecialAttributeTests {
+  tag = 'a';
+  attr = 'href';
+});
+
+module("Attribute img[src]", class extends BoundValuesToSpecialAttributeTests {
+  protected tag = 'img';
+  protected attr = 'src';
+  protected isEmptyElement = true;
+  protected isSelfClosing = false;
+});
 /*
-test("a[href] marks vbscript: protocol as unsafe", () => {
-  let template = compile('<a href="{{foo}}"></a>');
-
-  let context = { foo: 'vbscript:foo()' };
-  render(template, context);
-
-  equalTokens(root, '<a href="unsafe:vbscript:foo()"></a>');
-
-  rerender();
-
-  equalTokens(root, '<a href="unsafe:vbscript:foo()"></a>');
-});
-
-test("a[href] can be removed by setting to `null`", () => {
-  let template = compile('<a href={{foo}}></a>');
-
-  let context = { foo: 'http://foo.bar/derp.jpg' };
-  render(template, context);
-
-  equalTokens(root, '<a href="http://foo.bar/derp.jpg"></a>');
-
-  rerender({ foo: null });
-
-  equalTokens(root, '<a></a>');
-});
-
-test("a[href] can be removed by setting to `undefined`", () => {
-  let template = compile('<a href={{foo}}></a>');
-
-  let context = { foo: 'http://foo.bar/derp.jpg' };
-  render(template, context);
-
-  equalTokens(root, '<a href="http://foo.bar/derp.jpg"></a>');
-
-  rerender({ foo: undefined });
-
-  equalTokens(root, '<a></a>');
-});
-
-test("img[src] marks javascript: protocol as unsafe", () => {
-  let template = compile('<img src="{{foo}}">');
-
-  let context = { foo: 'javascript:foo()' };
-  render(template, context);
-
-  equalTokens(root, '<img src="unsafe:javascript:foo()">');
-
-  rerender();
-
-  equalTokens(root, '<img src="unsafe:javascript:foo()">');
-});
-
-test("img[src] marks javascript: protocol as unsafe on updates", () => {
-  let template = compile('<img src="{{foo}}">');
-
-  let context = { foo: 'http://foo.bar/derp.jpg' };
-  render(template, context);
-
-  equalTokens(root, '<img src="http://foo.bar/derp.jpg">');
-
-  rerender({ foo: 'javascript:foo()' });
-
-  equalTokens(root, '<img src="unsafe:javascript:foo()">');
-
-  rerender();
-
-  equalTokens(root, '<img src="unsafe:javascript:foo()">');
-});
-
-test("img[src] marks javascript: protocol as unsafe, http as safe", () => {
-  let template = compile('<img src="{{foo}}">');
-
-  let context = { foo: 'javascript:foo()' };
-  render(template, context);
-
-  equalTokens(root, '<img src="unsafe:javascript:foo()">');
-
-  rerender({ foo: 'http://foo.bar' });
-
-  equalTokens(root, '<img src="http://foo.bar">');
-
-  rerender({ foo: 'javascript:foo()' });
-
-  equalTokens(root, '<img src="unsafe:javascript:foo()">');
-});
-
-test("img[src] marks vbscript: protocol as unsafe", () => {
-  let template = compile('<img src="{{foo}}">');
-
-  let context = { foo: 'vbscript:foo()' };
-  render(template, context);
-
-  equalTokens(root, '<img src="unsafe:vbscript:foo()">');
-
-  rerender();
-
-  equalTokens(root, '<img src="unsafe:vbscript:foo()">');
-});
-
-test("img[src] can be removed by setting to `null`", () => {
-  let template = compile('<img src={{foo}}>');
-
-  let context = { foo: 'http://foo.bar/derp.jpg' };
-  render(template, context);
-
-  equalTokens(root, '<img src="http://foo.bar/derp.jpg">');
-
-  rerender({ foo: null });
-
-  equalTokens(root, '<img>');
-});
-
-test("img[src] can be removed by setting to `undefined`", () => {
-  let template = compile('<img src={{foo}}>');
-
-  let context = { foo: 'http://foo.bar/derp.jpg' };
-  render(template, context);
-
-  equalTokens(root, '<img src="http://foo.bar/derp.jpg">');
-
-  rerender({ foo: undefined });
-
-  equalTokens(root, '<img>');
-});
-
 test("div[href] is not not marked as unsafe", () => {
   let template = compile('<div href="{{foo}}"></div>');
 
