@@ -1,12 +1,5 @@
-import { IteratorResult } from '@glimmer/runtime';
-import { equalTokens, TestDynamicScope, TestEnvironment } from "@glimmer/test-helpers";
-import { SVG_NAMESPACE, RenderResult, Template, normalizeProperty, clientBuilder } from "@glimmer/runtime";
-
-// Mine for sure
-import { Opaque } from "@glimmer/interfaces";
-import { RenderTest, module, renderTemplate, test } from '@glimmer/test-helpers';
-import { UpdatableReference } from "@glimmer/object-reference";
-
+import { RenderTest, module, test } from '@glimmer/test-helpers';
+import { SVG_NAMESPACE, normalizeProperty } from "../index";
 
 class AttributesTests extends RenderTest {
 
