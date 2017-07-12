@@ -41,28 +41,21 @@ QUnit.module('Targeting a remote element', {
 });
 
 class InElementTests extends RenderTests {
+  @test "Renders curlies into external element"() {
+    let externalElement = document.createElement("div");
+    this.render("{{#-in-element externalElement}}[{{foo}}]{{/-in-element}}", { externalElement, foo: "Yippie!" });
+    equalsElement(externalElement, "div", {}, "[Yippie!]");
+    this.assertStableRerender();
+
+    this.rerender({ foo: "Double Yups!" });
+    equalsElement(externalElement, "div", {}, "[Double Yups!]");
+    this.assertStableNodes();
+
+    this.rerender({ foo: "Yippie!" });
+    equalsElement(externalElement, "div", {}, "[Yippie!]");
+    this.assertStableNodes();
+  }
 };
-
-QUnit.test('basic', function() {
-  let externalElement = document.createElement('div');
-
-  appendViewFor(
-    stripTight`{{#-in-element externalElement}}[{{foo}}]{{/-in-element}}`,
-    { externalElement, foo: 'Yippie!' }
-  );
-
-  equalsElement(externalElement, 'div', {}, stripTight`[Yippie!]`);
-
-  set(view, 'foo', 'Double Yips!');
-  rerender();
-
-  equalsElement(externalElement, 'div', {}, stripTight`[Double Yips!]`);
-
-  set(view, 'foo', 'Yippie!');
-  rerender();
-
-  equalsElement(externalElement, 'div', {}, stripTight`[Yippie!]`);
-});
 
 QUnit.test('changing to falsey', function() {
   let first = document.createElement('div');
