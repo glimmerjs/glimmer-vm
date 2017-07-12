@@ -3,7 +3,10 @@ import {
   stripTight,
   equalsElement,
   EmberishCurlyComponent,
-  BasicComponent
+  BasicComponent,
+  RenderTests,
+  module,
+  test
  } from "@glimmer/test-helpers";
 
 import {
@@ -36,6 +39,9 @@ QUnit.module('Targeting a remote element', {
     env = new TestEnvironment();
   }
 });
+
+class InElementTests extends RenderTests {
+};
 
 QUnit.test('basic', function() {
   let externalElement = document.createElement('div');
@@ -485,3 +491,5 @@ QUnit.test('components are destroyed', function(assert) {
   equalsElement(externalElement, 'div', {}, stripTight``);
   assert.equal(destroyed, 1, 'component was destroyed');
 });
+
+module("#-in-element Test", InElementTests);
