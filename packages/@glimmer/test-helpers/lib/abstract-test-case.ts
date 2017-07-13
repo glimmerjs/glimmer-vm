@@ -183,16 +183,18 @@ export abstract class AbstractRenderTest {
     let { args = {}, attributes = {}, template, inverse, name = TEST_COMPONENT, blockParams = [] } = blueprint;
     let componentArgs = this.buildArgs(args, "@");
     let componentBlockParams = this.buildBlockParams(blockParams);
-    let inv = this.buildInverse(inverse!);
+    // let inv = this.buildInverse(inverse!);
     let attrs = this.buildAttributes(attributes);
     let invocation = `<${name} ${componentArgs} ${attrs} ${componentBlockParams} ${template
-      ? `>${template}${inv}</${name}>`
+      ? `>${template}</${name}>`
       : "/>"}`;
+      console.log(invocation);
     return invocation;
   }
   private buildGlimmerComponent(blueprint: ComponentBlueprint): string {
     let { tag = "div", layout, name = TEST_COMPONENT } = blueprint;
     let invocation = this.angleBracketComponent(blueprint);
+    this.assert.ok(true, `generated glimmer layout as ${`<${tag}>${layout}</${tag}>`}`)
     this.registerComponent("Glimmer", name, `<${tag}>${layout}</${tag}>`);
     this.assert.ok(true, `generated glimmer invocation as ${invocation}`);
     return invocation;
@@ -208,7 +210,7 @@ export abstract class AbstractRenderTest {
     let componentArgs = this.buildArgs(args);
     let componentBlockParams = this.buildBlockParams(blockParams);
     let inv = this.buildInverse(inverse!);
-    let invocation = `${template ? "{{#" : "{{"}${name} ${componentArgs} ${componentBlockParams}}}${template
+    let invocation = `${template ? "{{#" : "{{"}${name} ${componentArgs} ${componentBlockParams}${template
       ? `${template}`
       : ""}${inv}${template ? `{{/${name}}}` : "}}"}`;
     this.registerComponent("Curly", name, layout);
@@ -237,7 +239,7 @@ export abstract class AbstractRenderTest {
     let inv = this.buildInverse(inverse!);
     let invocation = `${template
       ? "{{#"
-      : "{{"}component componentName ${componentArgs} ${componentBlockParams}}}${template
+      : "{{"}component componentName ${componentArgs} ${componentBlockParams}${template
       ? `${template}`
       : ""}${inv}${template ? `{{/component}}` : "}}"}`;
     this.registerComponent("Curly", name, layout);
@@ -348,7 +350,7 @@ export abstract class AbstractRenderTest {
     equalTokens(this.element, html);
   }
 
-  protected assertComponent(content: string, attrs: Object) {
+  protected assertComponent(content: string, attrs: Object = {}) {
     let element = this.element.firstChild as HTMLDivElement;
     assertEmberishElement(element, "div", attrs, content);
   }
