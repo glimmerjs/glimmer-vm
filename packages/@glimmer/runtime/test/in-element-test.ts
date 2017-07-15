@@ -78,7 +78,7 @@ class InElementTests extends RenderTests {
     equalsElement(first, "div", {}, "[Double Yips!]");
     equalsElement(second, "div", {}, "");
     this.assertHTML("|Double Yips!|<!----><!---->");
-    this.assertStableRerender();
+    this.assertStableNodes();
 
     this.rerender({ first: null });
     equalsElement(first, "div", {}, "");
