@@ -127,46 +127,41 @@ class InElementTests extends RenderTests {
     this.assertHTML("<!---->");
     this.assertStableRerender();
   }
+
+  @test "With nextSibling"() {
+    let externalElement = document.createElement("div");
+    externalElement.innerHTML = "<b>Hello</b><em>there!</em>";
+
+    this.render(
+      stripTight`{{#-in-element externalElement nextSibling=nextSibling}}[{{foo}}]{{/-in-element}}`,
+      { externalElement, nextSibling: externalElement.lastChild, foo: "Yippie!" }
+    );
+
+    equalsElement(externalElement, "div", {}, "<b>Hello</b>[Yippie!]<em>there!</em>");
+    this.assertHTML("<!---->");
+    this.assertStableRerender();
+
+    this.rerender({ foo: "Double Yips!" });
+    equalsElement(externalElement, "div", {}, "<b>Hello</b>[Double Yips!]<em>there!</em>");
+    this.assertHTML("<!---->");
+    this.assertStableNodes();
+
+    this.rerender({ nextSibling: null });
+    equalsElement(externalElement, "div", {}, "<b>Hello</b><em>there!</em>[Double Yips!]");
+    this.assertHTML("<!---->");
+    this.assertStableRerender();
+
+    this.rerender({ externalElement: null });
+    equalsElement(externalElement, "div", {}, "<b>Hello</b><em>there!</em>");
+    this.assertHTML("<!---->");
+    this.assertStableRerender();
+
+    this.rerender({ externalElement, nextSibling: externalElement.lastChild, foo: "Yippie!" });
+    equalsElement(externalElement, "div", {}, "<b>Hello</b>[Yippie!]<em>there!</em>");
+    this.assertHTML("<!---->");
+    this.assertStableRerender();
+  }
 };
-
-QUnit.test('with nextSibling', function() {
-  let externalElement = document.createElement('div');
-  externalElement.innerHTML = '<b>Hello</b><em>there!</em>';
-
-  appendViewFor(
-    stripTight`{{#-in-element externalElement nextSibling=nextSibling}}[{{foo}}]{{/-in-element}}`,
-    { externalElement, nextSibling: externalElement.lastChild, foo: 'Yippie!' }
-  );
-
-  assertAppended('<!---->');
-  equalsElement(externalElement, 'div', {}, `<b>Hello</b>[Yippie!]<em>there!</em>`);
-
-  set(view, 'foo', 'Double Yips!');
-  rerender();
-
-  assertAppended('<!---->');
-  equalsElement(externalElement, 'div', {}, `<b>Hello</b>[Double Yips!]<em>there!</em>`);
-
-  set(view, 'nextSibling', null);
-  rerender();
-
-  assertAppended('<!---->');
-  equalsElement(externalElement, 'div', {}, `<b>Hello</b><em>there!</em>[Double Yips!]`);
-
-  set(view, 'externalElement', null);
-  rerender();
-
-  assertAppended('<!---->');
-  equalsElement(externalElement, 'div', {}, `<b>Hello</b><em>there!</em>`);
-
-  set(view, 'foo', 'Yippie!');
-  set(view, 'externalElement', externalElement);
-  set(view, 'nextSibling', externalElement.lastChild);
-  rerender();
-
-  assertAppended('<!---->');
-  equalsElement(externalElement, 'div', {}, `<b>Hello</b>[Yippie!]<em>there!</em>`);
-});
 
 QUnit.test('updating remote element', function() {
   let first = document.createElement('div');
