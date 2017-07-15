@@ -161,53 +161,58 @@ class InElementTests extends RenderTests {
     this.assertHTML("<!---->");
     this.assertStableRerender();
   }
+
+  @test "Updating remote element"() {
+    let first = document.createElement("div");
+    let second = document.createElement("div");
+
+    this.render(
+      stripTight`{{#-in-element externalElement}}[{{foo}}]{{/-in-element}}`,
+      { externalElement: first, foo: "Yippie!" }
+    );
+
+    equalsElement(first, "div", {}, "[Yippie!]");
+    equalsElement(second, "div", {}, "");
+    this.assertHTML("<!---->");
+    this.assertStableRerender();
+
+    this.rerender({ foo: "Double Yips!" });
+    equalsElement(first, "div", {}, "[Double Yips!]");
+    equalsElement(second, "div", {}, "");
+    this.assertHTML("<!---->");
+    this.assertStableNodes();
+
+    this.rerender({ foo: "Yippie!" });
+    equalsElement(first, "div", {}, "[Yippie!]");
+    equalsElement(second, "div", {}, "");
+    this.assertHTML("<!---->");
+    this.assertStableNodes();
+
+    this.rerender({ externalElement: second });
+    equalsElement(first, "div", {}, "");
+    equalsElement(second, "div", {}, "[Yippie!]");
+    this.assertHTML("<!---->");
+    this.assertStableRerender();
+
+    this.rerender({ foo: "Double Yips!" });
+    equalsElement(first, "div", {}, "");
+    equalsElement(second, "div", {}, "[Double Yips!]");
+    this.assertHTML("<!---->");
+    this.assertStableNodes();
+
+    this.rerender({ foo: "Yay!" });
+    equalsElement(first, "div", {}, "");
+    equalsElement(second, "div", {}, "[Yay!]");
+    this.assertHTML("<!---->");
+    this.assertStableNodes();
+
+    this.rerender({ externalElement: first, foo: "Yippie!" });
+    equalsElement(first, "div", {}, "[Yippie!]");
+    equalsElement(second, "div", {}, "");
+    this.assertHTML("<!---->");
+    this.assertStableRerender();
+  }
 };
-
-QUnit.test('updating remote element', function() {
-  let first = document.createElement('div');
-  let second = document.createElement('div');
-
-  appendViewFor(
-    stripTight`{{#-in-element targetElement}}[{{foo}}]{{/-in-element}}`,
-    {
-      targetElement: first,
-      foo: 'Yippie!'
-    }
-  );
-
-  equalsElement(first, 'div', {}, `[Yippie!]`);
-  equalsElement(second, 'div', {}, ``);
-
-  set(view, 'foo', 'Double Yips!');
-  rerender();
-
-  equalsElement(first, 'div', {}, `[Double Yips!]`);
-  equalsElement(second, 'div', {}, ``);
-
-  set(view, 'foo', 'Yippie!');
-  rerender();
-
-  equalsElement(first, 'div', {}, `[Yippie!]`);
-  equalsElement(second, 'div', {}, ``);
-
-  set(view, 'targetElement', second);
-  rerender();
-
-  equalsElement(first, 'div', {}, ``);
-  equalsElement(second, 'div', {}, `[Yippie!]`);
-
-  set(view, 'foo', 'Double Yips!');
-  rerender();
-
-  equalsElement(first, 'div', {}, ``);
-  equalsElement(second, 'div', {}, `[Double Yips!]`);
-
-  set(view, 'foo', 'Yippie!');
-  rerender();
-
-  equalsElement(first, 'div', {}, ``);
-  equalsElement(second, 'div', {}, `[Yippie!]`);
-});
 
 QUnit.test('inside an `{{if}}', function() {
   let first = document.createElement('div');
