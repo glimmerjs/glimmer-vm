@@ -55,61 +55,50 @@ class InElementTests extends RenderTests {
     equalsElement(externalElement, "div", {}, "[Yippie!]");
     this.assertStableNodes();
   }
+
+  @test "Changing to falsey"() {
+    let first = document.createElement("div");
+    let second = document.createElement("div");
+
+    this.render(
+      stripTight`
+        |{{foo}}|
+        {{#-in-element first}}[{{foo}}]{{/-in-element}}
+        {{#-in-element second}}[{{foo}}]{{/-in-element}}
+      `,
+      { first, second: null, foo: "Yippie!" }
+    );
+
+    equalsElement(first, "div", {}, "[Yippie!]");
+    equalsElement(second, "div", {}, "");
+    this.assertHTML("|Yippie!|<!----><!---->");
+    this.assertStableRerender();
+
+    this.rerender({ foo: "Double Yips!" });
+    equalsElement(first, "div", {}, "[Double Yips!]");
+    equalsElement(second, "div", {}, "");
+    this.assertHTML("|Double Yips!|<!----><!---->");
+    this.assertStableRerender();
+
+    this.rerender({ first: null });
+    equalsElement(first, "div", {}, "");
+    equalsElement(second, "div", {}, "");
+    this.assertHTML("|Double Yips!|<!----><!---->");
+    this.assertStableRerender();
+
+    this.rerender({ second });
+    equalsElement(first, "div", {}, "");
+    equalsElement(second, "div", {}, "[Double Yips!]");
+    this.assertHTML("|Double Yips!|<!----><!---->");
+    this.assertStableRerender();
+
+    this.rerender({ first, second: null, foo: "Yippie!" });
+    equalsElement(first, "div", {}, "[Yippie!]");
+    equalsElement(second, "div", {}, "");
+    this.assertHTML("|Yippie!|<!----><!---->");
+    this.assertStableRerender();
+  }
 };
-
-QUnit.test('changing to falsey', function() {
-  let first = document.createElement('div');
-  let second = document.createElement('div');
-
-  appendViewFor(
-    stripTight`
-      |{{foo}}|
-      {{#-in-element first}}[{{foo}}]{{/-in-element}}
-      {{#-in-element second}}[{{foo}}]{{/-in-element}}
-    `,
-    { first, second: null, foo: 'Yippie!' }
-  );
-
-  equalsElement(first, 'div', {}, `[Yippie!]`);
-  equalsElement(second, 'div', {}, ``);
-  assertAppended('|Yippie!|<!----><!---->');
-
-  set(view, 'foo', 'Double Yips!');
-  rerender();
-
-  equalsElement(first, 'div', {}, `[Double Yips!]`);
-  equalsElement(second, 'div', {}, ``);
-  assertAppended('|Double Yips!|<!----><!---->');
-
-  set(view, 'first', null);
-  rerender();
-
-  equalsElement(first, 'div', {}, ``);
-  equalsElement(second, 'div', {}, ``);
-  assertAppended('|Double Yips!|<!----><!---->');
-
-  set(view, 'second', second);
-  rerender();
-
-  equalsElement(first, 'div', {}, ``);
-  equalsElement(second, 'div', {}, `[Double Yips!]`);
-  assertAppended('|Double Yips!|<!----><!---->');
-
-  set(view, 'foo', 'Yippie!');
-  rerender();
-
-  equalsElement(first, 'div', {}, ``);
-  equalsElement(second, 'div', {}, `[Yippie!]`);
-  assertAppended('|Yippie!|<!----><!---->');
-
-  set(view, 'first', first);
-  set(view, 'second', null);
-  rerender();
-
-  equalsElement(first, 'div', {}, `[Yippie!]`);
-  equalsElement(second, 'div', {}, ``);
-  assertAppended('|Yippie!|<!----><!---->');
-});
 
 QUnit.test('with pre-existing content', function() {
   let externalElement = document.createElement('div');
