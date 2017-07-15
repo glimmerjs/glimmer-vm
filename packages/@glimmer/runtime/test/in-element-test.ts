@@ -98,44 +98,36 @@ class InElementTests extends RenderTests {
     this.assertHTML("|Yippie!|<!----><!---->");
     this.assertStableRerender();
   }
+
+  @test "With pre-existing content"() {
+    let externalElement = document.createElement("div");
+    let initialContent = externalElement.innerHTML = "<p>Hello there!</p>";
+
+    this.render(
+      stripTight`{{#-in-element externalElement}}[{{foo}}]{{/-in-element}}`,
+      { externalElement, foo: "Yippie!" }
+    );
+
+    equalsElement(externalElement, "div", {}, `${initialContent}[Yippie!]`);
+    this.assertHTML("<!---->");
+    this.assertStableRerender();
+
+    this.rerender({ foo: "Double Yips!" });
+    equalsElement(externalElement, "div", {}, `${initialContent}[Double Yips!]`);
+    this.assertHTML("<!---->");
+    this.assertStableNodes();
+
+    this.rerender({ externalElement: null });
+    equalsElement(externalElement, "div", {}, `${initialContent}`);
+    this.assertHTML("<!---->");
+    this.assertStableRerender();
+
+    this.rerender({ externalElement, foo: "Yippie!" });
+    equalsElement(externalElement, "div", {}, `${initialContent}[Yippie!]`);
+    this.assertHTML("<!---->");
+    this.assertStableRerender();
+  }
 };
-
-QUnit.test('with pre-existing content', function() {
-  let externalElement = document.createElement('div');
-  let initialContent = externalElement.innerHTML = '<p>Hello there!</p>';
-
-  appendViewFor(
-    stripTight`{{#-in-element externalElement}}[{{foo}}]{{/-in-element}}`,
-    { externalElement, foo: 'Yippie!' }
-  );
-
-  assertAppended('<!---->');
-  equalsElement(externalElement, 'div', {}, `${initialContent}[Yippie!]`);
-
-  set(view, 'foo', 'Double Yips!');
-  rerender();
-
-  assertAppended('<!---->');
-  equalsElement(externalElement, 'div', {}, `${initialContent}[Double Yips!]`);
-
-  set(view, 'foo', 'Yippie!');
-  rerender();
-
-  assertAppended('<!---->');
-  equalsElement(externalElement, 'div', {}, `${initialContent}[Yippie!]`);
-
-  set(view, 'externalElement', null);
-  rerender();
-
-  assertAppended('<!---->');
-  equalsElement(externalElement, 'div', {}, `${initialContent}`);
-
-  set(view, 'externalElement', externalElement);
-  rerender();
-
-  assertAppended('<!---->');
-  equalsElement(externalElement, 'div', {}, `${initialContent}[Yippie!]`);
-});
 
 QUnit.test('with nextSibling', function() {
   let externalElement = document.createElement('div');
