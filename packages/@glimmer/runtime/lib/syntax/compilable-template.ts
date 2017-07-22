@@ -1,27 +1,14 @@
 import {
   Option,
-  SymbolTable,
-  Resolver
+  SymbolTable
 } from '@glimmer/interfaces';
 import { Statement } from '@glimmer/wire-format';
-import { Program, Handle } from '../environment';
+import { Handle } from '../environment';
 import { debugSlice } from '../opcodes';
 import { compileStatements } from './functions';
 import { DEBUG } from '@glimmer/local-debug-flags';
 import { CompilableTemplate as ICompilableTemplate } from './interfaces';
-import { Macros } from '../syntax/macros';
-
-export interface CompilationOptions {
-  resolver: Resolver;
-  program: Program;
-  macros: Macros;
-}
-
-export interface InputCompilationOptions {
-  resolver: Resolver<any>;
-  program: Program;
-  macros: Macros;
-}
+import { CompilationOptions } from '../internal-interfaces';
 
 export { ICompilableTemplate };
 

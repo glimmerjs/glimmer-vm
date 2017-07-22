@@ -1,11 +1,11 @@
 import { TestEnvironment } from "@glimmer/test-helpers";
 import { templateFactory } from "@glimmer/runtime";
 import { precompile } from "@glimmer/compiler";
-import { SerializedTemplateWithLazyBlock } from "@glimmer/wire-format";
+import { SerializedTemplateWithLazyBlock, TemplateMeta } from "@glimmer/wire-format";
 
 let env: TestEnvironment;
 
-interface TestMeta {
+interface TestMeta extends TemplateMeta {
   version: number;
   lang: string;
   moduleName: string;

@@ -1,7 +1,8 @@
 import { BlockSymbolTable, CompilationMeta } from '@glimmer/interfaces';
 import { Statement } from '@glimmer/wire-format';
-import CompilableTemplate, { CompilationOptions } from './compilable-template';
+import CompilableTemplate from './compilable-template';
 import { BlockSyntax, ScannableTemplate } from './interfaces';
+import { CompilationOptions } from '../internal-interfaces';
 
 export default class RawInlineBlock implements ScannableTemplate<BlockSymbolTable> {
   constructor(

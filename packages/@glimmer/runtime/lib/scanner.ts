@@ -1,4 +1,3 @@
-import { CompilationOptions } from './syntax/compilable-template';
 import { CompilationMeta } from '@glimmer/interfaces';
 import { EMPTY_ARRAY, assert, unreachable } from '@glimmer/util';
 import * as WireFormat from '@glimmer/wire-format';
@@ -11,6 +10,7 @@ import {
 } from './syntax/interfaces';
 import Ops = WireFormat.Ops;
 import { TemplateMeta } from "@glimmer/wire-format";
+import { CompilationOptions } from './internal-interfaces';
 
 export type DeserializedStatement = WireFormat.Statement | WireFormat.Statements.Attribute | WireFormat.Statements.Argument;
 

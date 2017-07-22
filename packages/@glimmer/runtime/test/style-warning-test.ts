@@ -21,7 +21,7 @@ function rootElement(): HTMLDivElement {
   return env.getDOM().createElement('div') as HTMLDivElement;
 }
 
-function render<T>(template: Template<T>, self: any) {
+function render(template: Template, self: any) {
   let result: RenderResult;
   env.begin();
   let templateIterator = template.render({ env, self: new UpdatableReference(self), parentNode: root, dynamicScope: new TestDynamicScope() });

@@ -12,7 +12,7 @@ import * as WireFormat from '@glimmer/wire-format';
 import { BlockSyntax } from './syntax/interfaces';
 
 import { PublicVM } from './vm/append';
-import { Resolver, Specifier } from "@glimmer/interfaces";
+import { Specifier, Resolver } from './internal-interfaces';
 
 export type ComponentArgs = [WireFormat.Core.Params, WireFormat.Core.Hash, Option<BlockSyntax>, Option<BlockSyntax>];
 

@@ -1,12 +1,13 @@
 import { Register } from '@glimmer/vm';
-import { CompilationMeta, Specifier, ProgramSymbolTable } from '@glimmer/interfaces';
+import { CompilationMeta, ProgramSymbolTable, Opaque } from '@glimmer/interfaces';
 import { Maybe, Option } from '@glimmer/util';
 import { TemplateMeta } from '@glimmer/wire-format';
 import { Template } from './template';
 import { debugSlice } from './opcodes';
 import { ATTRS_BLOCK } from './syntax/functions';
-import { Handle } from './environment';
-import { CompilationOptions, InputCompilationOptions, ICompilableTemplate } from './syntax/compilable-template';
+import { Handle, CompilationOptions } from './environment';
+import { ICompilableTemplate } from './syntax/compilable-template';
+import { CompilationOptions as InternalCompilationOptions, Specifier } from './internal-interfaces';
 
 import {
   ComponentArgs,
@@ -15,16 +16,27 @@ import {
 
 import OpcodeBuilderDSL, { LazyOpcodeBuilder } from './compiled/opcodes/builder';
 
-import * as Component from './component/interfaces';
-
 import { DEBUG } from "@glimmer/local-debug-flags";
 
-export interface CompilableLayout {
-  compile(builder: Component.ComponentLayoutBuilder): void;
+export interface CompilableLayout<O extends CompilationOptions<any, any, any>> {
+  compile(builder: ComponentLayoutBuilder<O>): void;
 }
 
-export function scanLayout(compilable: CompilableLayout, options: InputCompilationOptions): ICompilableTemplate<ProgramSymbolTable> {
-  let builder = new ComponentLayoutBuilder(options);
+export interface ComponentLayoutBuilder<O extends CompilationOptions<any, any, any>> {
+  options: O;
+  tag: ComponentTagBuilder;
+
+  wrapLayout(layout: Template<TemplateMeta>): void;
+  fromLayout(componentName: string, layout: Template<TemplateMeta>): void;
+}
+
+export interface ComponentTagBuilder {
+  static(tagName: string): void;
+  dynamic(): void;
+}
+
+export function scanLayout<O extends CompilationOptions<any, any, any>>(compilable: CompilableLayout<O>, options: O): ICompilableTemplate<ProgramSymbolTable> {
+  let builder = new ConcreteComponentLayoutBuilder(options);
 
   compilable.compile(builder);
 
@@ -32,14 +44,14 @@ export function scanLayout(compilable: CompilableLayout, options: InputCompilati
 }
 
 interface InnerLayoutBuilder {
-  tag: Component.ComponentTagBuilder;
+  tag: ComponentTagBuilder;
   scan(): ICompilableTemplate<ProgramSymbolTable>;
 }
 
-class ComponentLayoutBuilder implements Component.ComponentLayoutBuilder {
+class ConcreteComponentLayoutBuilder<O extends CompilationOptions<any, any, any>> implements ComponentLayoutBuilder<O> {
   private inner: InnerLayoutBuilder;
 
-  constructor(public options: CompilationOptions) {}
+  constructor(public options: O) {}
 
   wrapLayout(layout: Template<TemplateMeta>) {
     this.inner = new WrappedBuilder(this.options, layout);
@@ -53,17 +65,17 @@ class ComponentLayoutBuilder implements Component.ComponentLayoutBuilder {
     return this.inner.scan();
   }
 
-  get tag(): Component.ComponentTagBuilder {
+  get tag(): ComponentTagBuilder {
     return this.inner.tag;
   }
 }
 
 class WrappedBuilder implements InnerLayoutBuilder, ICompilableTemplate<ProgramSymbolTable> {
-  public tag = new ComponentTagBuilder();
+  public tag = new ConcreteComponentTagBuilder();
   public symbolTable: ProgramSymbolTable;
   private meta: { templateMeta: TemplateMeta, symbols: string[], asPartial: false };
 
-  constructor(public options: CompilationOptions, private layout: Template<TemplateMeta>) {
+  constructor(public options: InternalCompilationOptions, private layout: Template<TemplateMeta>) {
     let meta = this.meta = { templateMeta: layout.meta, symbols: layout.symbols, asPartial: false };
 
     this.symbolTable = {
@@ -175,9 +187,9 @@ class WrappedBuilder implements InnerLayoutBuilder, ICompilableTemplate<ProgramS
 }
 
 class UnwrappedBuilder implements InnerLayoutBuilder {
-  constructor(public env: CompilationOptions, private componentName: string, private rawLayout: Template<TemplateMeta>) {}
+  constructor(public options: InternalCompilationOptions, private componentName: string, private rawLayout: Template<TemplateMeta>) {}
 
-  get tag(): Component.ComponentTagBuilder {
+  get tag(): ComponentTagBuilder {
     throw new Error('BUG: Cannot call `tag` on an UnwrappedBuilder');
   }
 
@@ -186,7 +198,7 @@ class UnwrappedBuilder implements InnerLayoutBuilder {
   }
 }
 
-class ComponentTagBuilder implements Component.ComponentTagBuilder {
+class ConcreteComponentTagBuilder implements ComponentTagBuilder {
   public isDynamic: Option<boolean> = null;
   public isStatic: Option<boolean> = null;
   public staticTagName: Option<string> = null;
@@ -208,21 +220,21 @@ class ComponentTagBuilder implements Component.ComponentTagBuilder {
 }
 
 export class ComponentBuilder implements IComponentBuilder {
-  private env: CompilationOptions;
+  private options: InternalCompilationOptions;
 
   constructor(private builder: OpcodeBuilderDSL) {
-    this.env = builder.options;
+    this.options = builder.options;
   }
 
-  static(definition: Specifier, args: ComponentArgs) {
+  static(definition: Opaque, args: ComponentArgs) {
     let [params, hash, _default, inverse] = args;
     let { builder } = this;
 
-    builder.pushComponentManager(definition);
+    builder.pushComponentManager(definition as Specifier);
     builder.invokeComponent(null, params, hash, false, _default, inverse);
   }
 }
 
-export function builder(env: CompilationOptions, meta: CompilationMeta) {
-  return new LazyOpcodeBuilder(env, meta);
+function builder(options: InternalCompilationOptions, meta: CompilationMeta) {
+  return new LazyOpcodeBuilder(options, meta);
 }

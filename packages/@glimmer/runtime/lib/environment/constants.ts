@@ -1,5 +1,6 @@
 import { VersionedPathReference } from "@glimmer/reference";
-import { Opaque, SymbolTable, Specifier, Resolver } from "@glimmer/interfaces";
+import { Opaque, SymbolTable } from "@glimmer/interfaces";
+import { Specifier, Resolver } from '../internal-interfaces';
 
 export type ConstantReference =  number;
 export type ConstantString = number;

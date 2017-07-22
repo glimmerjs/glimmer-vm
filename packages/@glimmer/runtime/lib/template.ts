@@ -1,4 +1,3 @@
-import { CompilationOptions, InputCompilationOptions } from './syntax/compilable-template';
 import { Simple, Opaque, Option } from '@glimmer/interfaces';
 import { PathReference } from '@glimmer/reference';
 import { assign } from '@glimmer/util';
@@ -10,10 +9,11 @@ import {
 import { ElementBuilder, NewElementBuilder } from './vm/element-builder';
 import { RehydrateBuilder } from './vm/rehydrate-builder';
 import { SerializeBuilder } from './vm/serialize-builder';
-import { DynamicScope, Environment } from './environment';
+import { DynamicScope, Environment, CompilationOptions as PublicCompilationOptions } from './environment';
 import Scanner from './scanner';
 import { BlockSyntax, TopLevelSyntax } from './syntax/interfaces';
 import { IteratorResult, RenderResult, VM } from './vm';
+import { CompilationOptions } from './internal-interfaces';
 
 export interface RenderOptions {
   env: Environment;
@@ -58,7 +58,7 @@ export interface Template<T extends TemplateMeta = TemplateMeta> {
   asBlock(): BlockSyntax;
 }
 
-export interface TemplateFactory<T, U> {
+export interface TemplateFactory<T extends TemplateMeta, U> {
   /**
    * Template identifier, if precompiled will be the id of the
    * precompiled template.
@@ -76,7 +76,7 @@ export interface TemplateFactory<T, U> {
    *
    * @param {Environment} env glimmer Environment
    */
-  create(env: InputCompilationOptions): Template<T>;
+  create(env: PublicCompilationOptions<any, any, any>): Template<T>;
   /**
    * Used to create an environment specific singleton instance
    * of the template.
@@ -84,7 +84,7 @@ export interface TemplateFactory<T, U> {
    * @param {Environment} env glimmer Environment
    * @param {Object} meta environment specific injections into meta
    */
-  create(env: InputCompilationOptions, meta: U): Template<T & U>;
+  create(env: PublicCompilationOptions<any, any, any>, meta: U): Template<T & U>;
 }
 
 export class TemplateIterator {

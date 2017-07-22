@@ -1,7 +1,5 @@
 import './lib/bootstrap';
 
-export { CompilationOptions, InputCompilationOptions } from './lib/syntax/compilable-template';
-
 export { default as templateFactory, TemplateFactory, Template, TemplateIterator, RenderOptions } from './lib/template';
 
 export { NULL_REFERENCE, UNDEFINED_REFERENCE, PrimitiveReference, ConditionalReference } from './lib/references';
@@ -12,6 +10,7 @@ export {
 
 export {
   CompilableLayout,
+  ComponentLayoutBuilder,
   scanLayout
 } from './lib/compiler';
 
@@ -77,7 +76,8 @@ export {
   default as Environment,
   Helper,
   DynamicScope,
-  Program
+  Program,
+  CompilationOptions
 } from './lib/environment';
 
 export {
@@ -85,13 +85,10 @@ export {
 } from './lib/partial';
 
 export {
-  Component,
   ComponentCapabilities,
-  ComponentClass,
   ComponentManager,
   ComponentDefinition,
-  ComponentLayoutBuilder,
-  ComponentManagerWithDynamicTagName,
+  WithDynamicTagName,
   PreparedArguments,
   WithDynamicLayout,
   WithStaticLayout,

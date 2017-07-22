@@ -1,4 +1,4 @@
-import { CompilationMeta, Opaque, Option, Specifier, ProgramSymbolTable, SymbolTable } from '@glimmer/interfaces';
+import { CompilationMeta, Opaque, Option, ProgramSymbolTable, SymbolTable, Unique } from '@glimmer/interfaces';
 import { dict, EMPTY_ARRAY, expect, fillNulls, Stack, typePos, unreachable } from '@glimmer/util';
 import { Op, Register } from '@glimmer/vm';
 import * as WireFormat from '@glimmer/wire-format';
@@ -12,13 +12,13 @@ import {
 } from '../../environment/constants';
 import { ComponentBuilder as IComponentBuilder } from '../../opcode-builder';
 import { Primitive } from '../../references';
-import { CompilationOptions } from '../../syntax/compilable-template';
 import { expr, ATTRS_BLOCK } from '../../syntax/functions';
 import { BlockSyntax, CompilableTemplate } from '../../syntax/interfaces';
 import RawInlineBlock from '../../syntax/raw-block';
 import { TemplateMeta } from "@glimmer/wire-format";
 import { ComponentBuilder } from "../../compiler";
 import { ComponentDefinition } from '../../component/interfaces';
+import { CompilationOptions, Specifier } from "../../internal-interfaces";
 
 export interface CompilesInto<E> {
   compile(builder: OpcodeBuilder): E;
@@ -635,7 +635,7 @@ export abstract class OpcodeBuilder<Layout extends AbstractTemplate<ProgramSymbo
     this.load(Register.s0);
   }
 
-  invokeStaticComponent(definition: ComponentDefinition, layout: Layout, attrs: Option<RawInlineBlock>, params: Option<WireFormat.Core.Params>, hash: WireFormat.Core.Hash, synthetic: boolean, block: Option<BlockSyntax>, inverse: Option<BlockSyntax> = null) {
+  invokeStaticComponent(definition: ComponentDefinition<Unique<'Component'>>, layout: Layout, attrs: Option<RawInlineBlock>, params: Option<WireFormat.Core.Params>, hash: WireFormat.Core.Hash, synthetic: boolean, block: Option<BlockSyntax>, inverse: Option<BlockSyntax> = null) {
     let { capabilities } = definition;
     let { symbolTable } = layout;
 
