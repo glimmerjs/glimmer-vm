@@ -1,44 +1,13 @@
 import {
-  TestEnvironment,
   stripTight,
   equalsElement,
   EmberishCurlyComponent,
-  BasicComponent,
   RenderTests,
   module,
   test
  } from "@glimmer/test-helpers";
 
-import {
-  assertAppended,
-  assertElementIsEmberishElement,
-  EmberishRootView
-} from './ember-component-test';
-
 import { setProperty as set } from '@glimmer/object-reference';
-
-let view: EmberishRootView;
-let env: TestEnvironment;
-
-function rerender() {
-  view.rerender();
-}
-
-function appendViewFor(template: string, context: Object = {}) {
-  view = new EmberishRootView(env, template, context);
-
-  env.begin();
-  view.appendTo('#qunit-fixture');
-  env.commit();
-
-  return view;
-}
-
-QUnit.module('Targeting a remote element', {
-  beforeEach() {
-    env = new TestEnvironment();
-  }
-});
 
 class InElementTests extends RenderTests {
   @test "Renders curlies into external element"() {
