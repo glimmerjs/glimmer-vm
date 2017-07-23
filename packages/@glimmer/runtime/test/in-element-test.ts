@@ -375,56 +375,58 @@ class InElementTests extends RenderTests {
     this.assertHTML("<!----><!----><!--->");
     this.assertStableRerender();
   }
-};
 
-QUnit.test('nesting', function() {
-  let firstElement = document.createElement('div');
-  let secondElement = document.createElement('div');
+  @test "Nesting"() {
+    let firstElement = document.createElement("div");
+    let secondElement = document.createElement("div");
 
-  appendViewFor(
-    stripTight`
-      {{#-in-element firstElement}}
-        [{{foo}}]
-        {{#-in-element secondElement}}
-          [{{bar}}]
+    this.render(
+      stripTight`
+        {{#-in-element firstElement}}
+          [{{foo}}]
+          {{#-in-element secondElement}}
+            [{{bar}}]
+          {{/-in-element}}
         {{/-in-element}}
-      {{/-in-element}}
-      `,
-    {
-      firstElement,
-      secondElement,
-      foo: 'Hello!',
-      bar: 'World!'
-    }
-  );
+        `,
+      {
+        firstElement,
+        secondElement,
+        foo: "Hello!",
+        bar: "World!"
+      }
+    );
 
-  equalsElement(firstElement, 'div', {}, stripTight`[Hello!]<!---->`);
-  equalsElement(secondElement, 'div', {}, stripTight`[World!]`);
+    equalsElement(firstElement, "div", {}, stripTight`[Hello!]<!---->`);
+    equalsElement(secondElement, "div", {}, stripTight`[World!]`);
+    this.assertHTML("<!---->");
+    this.assertStableRerender();
 
-  set(view, 'foo', 'GoodBye!');
-  rerender();
+    this.rerender({ foo: "GoodBye!" });
+    equalsElement(firstElement, "div", {}, stripTight`[GoodBye!]<!---->`);
+    equalsElement(secondElement, "div", {}, stripTight`[World!]`);
+    this.assertHTML("<!---->");
+    this.assertStableRerender();
 
-  equalsElement(firstElement, 'div', {}, stripTight`[GoodBye!]<!---->`);
-  equalsElement(secondElement, 'div', {}, stripTight`[World!]`);
+    this.rerender({ bar: "Folks!" });
+    equalsElement(firstElement, "div", {}, stripTight`[GoodBye!]<!---->`);
+    equalsElement(secondElement, "div", {}, stripTight`[Folks!]`);
+    this.assertHTML("<!---->");
+    this.assertStableRerender();
 
-  set(view, 'bar', 'Folks!');
-  rerender();
+    this.rerender({ bar: "World!" });
+    equalsElement(firstElement, "div", {}, stripTight`[GoodBye!]<!---->`);
+    equalsElement(secondElement, "div", {}, stripTight`[World!]`);
+    this.assertHTML("<!---->");
+    this.assertStableRerender();
 
-  equalsElement(firstElement, 'div', {}, stripTight`[GoodBye!]<!---->`);
-  equalsElement(secondElement, 'div', {}, stripTight`[Folks!]`);
-
-  set(view, 'bar', 'World!');
-  rerender();
-
-  equalsElement(firstElement, 'div', {}, stripTight`[GoodBye!]<!---->`);
-  equalsElement(secondElement, 'div', {}, stripTight`[World!]`);
-
-  set(view, 'foo', 'Hello!');
-  rerender();
-
-  equalsElement(firstElement, 'div', {}, stripTight`[Hello!]<!---->`);
-  equalsElement(secondElement, 'div', {}, stripTight`[World!]`);
-});
+    this.rerender({ foo: "Hello!" });
+    equalsElement(firstElement, "div", {}, stripTight`[Hello!]<!---->`);
+    equalsElement(secondElement, "div", {}, stripTight`[World!]`);
+    this.assertHTML("<!---->");
+    this.assertStableRerender();
+  }
+};
 
 QUnit.test('components are destroyed', function(assert) {
   let destroyed = 0;
