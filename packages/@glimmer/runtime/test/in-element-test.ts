@@ -276,56 +276,52 @@ class InElementTests extends RenderTests {
     this.assertHTML("<!----><!---->");
     this.assertStableRerender();
   }
+
+  @test "Multiple"() {
+    let firstElement = document.createElement('div');
+    let secondElement = document.createElement('div');
+
+    this.render(
+      stripTight`
+        {{#-in-element firstElement}}
+          [{{foo}}]
+        {{/-in-element}}
+        {{#-in-element secondElement}}
+          [{{bar}}]
+        {{/-in-element}}
+        `,
+      {
+        firstElement,
+        secondElement,
+        foo: "Hello!",
+        bar: "World!"
+      }
+    );
+
+    equalsElement(firstElement, "div", {}, stripTight`[Hello!]`);
+    equalsElement(secondElement, "div", {}, stripTight`[World!]`);
+    this.assertHTML("<!----><!---->");
+    this.assertStableRerender();
+
+    this.rerender({ foo: "GoodBye!" });
+    equalsElement(firstElement, "div", {}, stripTight`[GoodBye!]`);
+    equalsElement(secondElement, "div", {}, stripTight`[World!]`);
+    this.assertHTML("<!----><!---->");
+    this.assertStableRerender();
+
+    this.rerender({ bar: "Folks!" });
+    equalsElement(firstElement, "div", {}, stripTight`[GoodBye!]`);
+    equalsElement(secondElement, "div", {}, stripTight`[Folks!]`);
+    this.assertHTML("<!----><!---->");
+    this.assertStableRerender();
+
+    this.rerender({ foo: "Hello!", bar: "World!" });
+    equalsElement(firstElement, "div", {}, stripTight`[Hello!]`);
+    equalsElement(secondElement, "div", {}, stripTight`[World!]`);
+    this.assertHTML("<!----><!---->");
+    this.assertStableRerender();
+  }
 };
-
-QUnit.test('multiple', function() {
-  let firstElement = document.createElement('div');
-  let secondElement = document.createElement('div');
-
-  appendViewFor(
-    stripTight`
-      {{#-in-element firstElement}}
-        [{{foo}}]
-      {{/-in-element}}
-      {{#-in-element secondElement}}
-        [{{bar}}]
-      {{/-in-element}}
-      `,
-    {
-      firstElement,
-      secondElement,
-      foo: 'Hello!',
-      bar: 'World!'
-    }
-  );
-
-  equalsElement(firstElement, 'div', {}, stripTight`[Hello!]`);
-  equalsElement(secondElement, 'div', {}, stripTight`[World!]`);
-
-  set(view, 'foo', 'GoodBye!');
-  rerender();
-
-  equalsElement(firstElement, 'div', {}, stripTight`[GoodBye!]`);
-  equalsElement(secondElement, 'div', {}, stripTight`[World!]`);
-
-  set(view, 'bar', 'Folks!');
-  rerender();
-
-  equalsElement(firstElement, 'div', {}, stripTight`[GoodBye!]`);
-  equalsElement(secondElement, 'div', {}, stripTight`[Folks!]`);
-
-  set(view, 'bar', 'World!');
-  rerender();
-
-  equalsElement(firstElement, 'div', {}, stripTight`[GoodBye!]`);
-  equalsElement(secondElement, 'div', {}, stripTight`[World!]`);
-
-  set(view, 'foo', 'Hello!');
-  rerender();
-
-  equalsElement(firstElement, 'div', {}, stripTight`[Hello!]`);
-  equalsElement(secondElement, 'div', {}, stripTight`[World!]`);
-});
 
 QUnit.test('inside a loop', function() {
   class FooBar extends BasicComponent { }
