@@ -321,58 +321,61 @@ class InElementTests extends RenderTests {
     this.assertHTML("<!----><!---->");
     this.assertStableRerender();
   }
+
+  @test "Inside a loop"() {
+    this.registerComponent("Basic", "foo-bar", "<p>{{@value}}</p>");
+
+    let roots = [
+      { id: 0, element: document.createElement('div'), value: 'foo' },
+      { id: 1, element: document.createElement('div'), value: 'bar' },
+      { id: 2, element: document.createElement('div'), value: 'baz' },
+    ];
+
+    this.render(
+      stripTight`
+        {{~#each roots key="id" as |root|~}}
+          {{~#-in-element root.element ~}}
+            {{component 'foo-bar' value=root.value}}
+          {{~/-in-element~}}
+        {{~/each}}
+        `,
+      {
+        roots
+      }
+    );
+
+    equalsElement(roots[0].element, 'div', {}, '<p>foo</p>');
+    equalsElement(roots[1].element, 'div', {}, '<p>bar</p>');
+    equalsElement(roots[2].element, 'div', {}, '<p>baz</p>');
+    this.assertHTML("<!----><!----><!--->");
+    this.assertStableRerender();
+
+    set(roots[0], "value", "qux!");
+    this.rerender();
+    equalsElement(roots[0].element, 'div', {}, '<p>qux!</p>');
+    equalsElement(roots[1].element, 'div', {}, '<p>bar</p>');
+    equalsElement(roots[2].element, 'div', {}, '<p>baz</p>');
+    this.assertHTML("<!----><!----><!--->");
+    this.assertStableRerender();
+
+    set(roots[1], "value", "derp");
+    this.rerender();
+    equalsElement(roots[0].element, 'div', {}, '<p>qux!</p>');
+    equalsElement(roots[1].element, 'div', {}, '<p>derp</p>');
+    equalsElement(roots[2].element, 'div', {}, '<p>baz</p>');
+    this.assertHTML("<!----><!----><!--->");
+    this.assertStableRerender();
+
+    set(roots[0], "value", "foo");
+    set(roots[1], "value", "bar");
+    this.rerender();
+    equalsElement(roots[0].element, 'div', {}, '<p>foo</p>');
+    equalsElement(roots[1].element, 'div', {}, '<p>bar</p>');
+    equalsElement(roots[2].element, 'div', {}, '<p>baz</p>');
+    this.assertHTML("<!----><!----><!--->");
+    this.assertStableRerender();
+  }
 };
-
-QUnit.test('inside a loop', function() {
-  class FooBar extends BasicComponent { }
-
-  env.registerBasicComponent('foo-bar', FooBar, `<p>{{@value}}</p>`);
-
-  let roots = [
-    { id: 0, element: document.createElement('div'), value: 'foo' },
-    { id: 1, element: document.createElement('div'), value: 'bar' },
-    { id: 2, element: document.createElement('div'), value: 'baz' },
-  ];
-
-  appendViewFor(
-    stripTight`
-      {{~#each roots key="id" as |root|~}}
-        {{~#-in-element root.element ~}}
-          {{component 'foo-bar' value=root.value}}
-        {{~/-in-element~}}
-      {{~/each}}
-      `,
-    {
-      roots
-    }
-  );
-
-  equalsElement(roots[0].element, 'div', {}, '<p>foo</p>');
-  equalsElement(roots[1].element, 'div', {}, '<p>bar</p>');
-  equalsElement(roots[2].element, 'div', {}, '<p>baz</p>');
-
-  set(roots[0], 'value', 'qux!');
-  rerender();
-
-  equalsElement(roots[0].element, 'div', {}, '<p>qux!</p>');
-  equalsElement(roots[1].element, 'div', {}, '<p>bar</p>');
-  equalsElement(roots[2].element, 'div', {}, '<p>baz</p>');
-
-  set(roots[1], 'value', 'derp');
-  rerender();
-
-  equalsElement(roots[0].element, 'div', {}, '<p>qux!</p>');
-  equalsElement(roots[1].element, 'div', {}, '<p>derp</p>');
-  equalsElement(roots[2].element, 'div', {}, '<p>baz</p>');
-
-  set(roots[0], 'value', 'foo');
-  set(roots[1], 'value', 'bar');
-  rerender();
-
-  equalsElement(roots[0].element, 'div', {}, '<p>foo</p>');
-  equalsElement(roots[1].element, 'div', {}, '<p>bar</p>');
-  equalsElement(roots[2].element, 'div', {}, '<p>baz</p>');
-});
 
 QUnit.test('nesting', function() {
   let firstElement = document.createElement('div');
