@@ -212,69 +212,71 @@ class InElementTests extends RenderTests {
     this.assertHTML("<!---->");
     this.assertStableRerender();
   }
+
+  @test "Inside an '{{if}}'"() {
+    let first = document.createElement("div");
+    let second = document.createElement("div");
+
+    this.render(
+      stripTight`
+        {{#if showFirst}}
+          {{#-in-element first}}[{{foo}}]{{/-in-element}}
+        {{/if}}
+        {{#if showSecond}}
+          {{#-in-element second}}[{{foo}}]{{/-in-element}}
+        {{/if}}
+      `,
+      {
+        first,
+        second,
+        showFirst: true,
+        showSecond: false,
+        foo: 'Yippie!'
+      }
+    );
+
+    equalsElement(first, "div", {}, stripTight`[Yippie!]`);
+    equalsElement(second, "div", {}, stripTight``);
+    this.assertHTML("<!----><!---->");
+    this.assertStableRerender();
+
+    this.rerender({ showFirst: false });
+    equalsElement(first, "div", {}, stripTight``);
+    equalsElement(second, "div", {}, stripTight``);
+    this.assertHTML("<!----><!---->");
+    this.assertStableRerender();
+
+    this.rerender({ showSecond: true });
+    equalsElement(first, "div", {}, stripTight``);
+    equalsElement(second, "div", {}, stripTight`[Yippie!]`);
+    this.assertHTML("<!----><!---->");
+    this.assertStableRerender();
+
+    this.rerender({ foo: 'Double Yips!' });
+    equalsElement(first, "div", {}, stripTight``);
+    equalsElement(second, "div", {}, stripTight`[Double Yips!]`);
+    this.assertHTML("<!----><!---->");
+    this.assertStableRerender();
+
+    this.rerender({ showSecond: false });
+    equalsElement(first, "div", {}, stripTight``);
+    equalsElement(second, "div", {}, stripTight``);
+    this.assertHTML("<!----><!---->");
+    this.assertStableRerender();
+
+    this.rerender({ showFirst: true });
+    equalsElement(first, "div", {}, stripTight`[Double Yips!]`);
+    equalsElement(second, "div", {}, stripTight``);
+    this.assertHTML("<!----><!---->");
+    this.assertStableRerender();
+
+    this.rerender({ foo: 'Yippie!' });
+    equalsElement(first, "div", {}, stripTight`[Yippie!]`);
+    equalsElement(second, "div", {}, stripTight``);
+    this.assertHTML("<!----><!---->");
+    this.assertStableRerender();
+  }
 };
-
-QUnit.test('inside an `{{if}}', function() {
-  let first = document.createElement('div');
-  let second = document.createElement('div');
-
-  appendViewFor(
-    stripTight`
-      {{#if showFirst}}
-        {{#-in-element first}}[{{foo}}]{{/-in-element}}
-      {{/if}}
-      {{#if showSecond}}
-        {{#-in-element second}}[{{foo}}]{{/-in-element}}
-      {{/if}}
-    `,
-    {
-      first,
-      second,
-      showFirst: true,
-      showSecond: false,
-      foo: 'Yippie!'
-    }
-  );
-
-  equalsElement(first, 'div', {}, stripTight`[Yippie!]`);
-  equalsElement(second, 'div', {}, stripTight``);
-
-  set(view, 'showFirst', false);
-  rerender();
-
-  equalsElement(first, 'div', {}, stripTight``);
-  equalsElement(second, 'div', {}, stripTight``);
-
-  set(view, 'showSecond', true);
-  rerender();
-
-  equalsElement(first, 'div', {}, stripTight``);
-  equalsElement(second, 'div', {}, stripTight`[Yippie!]`);
-
-  set(view, 'foo', 'Double Yips!');
-  rerender();
-
-  equalsElement(first, 'div', {}, stripTight``);
-  equalsElement(second, 'div', {}, stripTight`[Double Yips!]`);
-
-  set(view, 'showSecond', false);
-  rerender();
-
-  equalsElement(first, 'div', {}, stripTight``);
-  equalsElement(second, 'div', {}, stripTight``);
-
-  set(view, 'showFirst', true);
-  rerender();
-
-  equalsElement(first, 'div', {}, stripTight`[Double Yips!]`);
-  equalsElement(second, 'div', {}, stripTight``);
-
-  set(view, 'foo', 'Yippie!');
-  rerender();
-
-  equalsElement(first, 'div', {}, stripTight`[Yippie!]`);
-  equalsElement(second, 'div', {}, stripTight``);
-});
 
 QUnit.test('multiple', function() {
   let firstElement = document.createElement('div');
