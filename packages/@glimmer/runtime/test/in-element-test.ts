@@ -426,47 +426,47 @@ class InElementTests extends RenderTests {
     this.assertHTML("<!---->");
     this.assertStableRerender();
   }
+
+  @test "Components are destroyed"() {
+    let destroyed = 0;
+    let DestroyMeComponent = EmberishCurlyComponent.extend({
+      destroy(this: EmberishCurlyComponent) {
+        this._super();
+        destroyed++;
+      }
+    });
+    this.env.registerEmberishGlimmerComponent("destroy-me", DestroyMeComponent as any, "destroy me!");
+    let externalElement = document.createElement("div");
+
+    this.render(
+      stripTight`
+        {{#if showExternal}}
+          {{#-in-element externalElement}}[{{destroy-me}}]{{/-in-element}}
+        {{/if}}
+      `,
+      {
+        externalElement,
+        showExternal: false,
+      }
+    );
+
+    equalsElement(externalElement, "div", {}, stripTight``);
+    this.assert.equal(destroyed, 0, "component was destroyed");
+    this.assertHTML("<!---->");
+    this.assertStableRerender();
+
+    this.rerender({ showExternal: true });
+    equalsElement(externalElement, "div", {}, stripTight`[destroy me!]`);
+    this.assert.equal(destroyed, 0, "component was destroyed");
+    this.assertHTML("<!---->");
+    this.assertStableRerender();
+
+    this.rerender({ showExternal: false });
+    equalsElement(externalElement, "div", {}, stripTight``);
+    this.assert.equal(destroyed, 1, "component was destroyed");
+    this.assertHTML("<!---->");
+    this.assertStableRerender();
+  }
 };
-
-QUnit.test('components are destroyed', function(assert) {
-  let destroyed = 0;
-  let DestroyMeComponent = EmberishCurlyComponent.extend({
-    destroy(this: EmberishCurlyComponent) {
-      this._super();
-      destroyed++;
-    }
-  });
-
-  env.registerEmberishCurlyComponent('destroy-me', DestroyMeComponent as any, 'destroy me!');
-
-  let externalElement = document.createElement('div');
-
-  appendViewFor(
-    stripTight`
-      {{#if showExternal}}
-        {{#-in-element externalElement}}[{{destroy-me}}]{{/-in-element}}
-      {{/if}}
-    `,
-    {
-      externalElement,
-      showExternal: false,
-    }
-  );
-
-  equalsElement(externalElement, 'div', {}, stripTight``);
-  assert.equal(destroyed, 0, 'component was destroyed');
-
-  set(view, 'showExternal', true);
-  rerender();
-
-  assertElementIsEmberishElement(externalElement.firstElementChild!, 'div', { }, 'destroy me!');
-  assert.equal(destroyed, 0, 'component was destroyed');
-
-  set(view, 'showExternal', false);
-  rerender();
-
-  equalsElement(externalElement, 'div', {}, stripTight``);
-  assert.equal(destroyed, 1, 'component was destroyed');
-});
 
 module("#-in-element Test", InElementTests);
