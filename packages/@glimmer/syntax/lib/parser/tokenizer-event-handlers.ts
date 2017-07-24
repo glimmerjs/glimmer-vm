@@ -331,11 +331,54 @@ export interface PreprocessOptions {
   };
 }
 
-export function preprocess(html: string, options?: PreprocessOptions): AST.Program {
+function guid() {
+  let i = 0;
+  return () => `%cursor:${i++}%`;
+}
+
+function insertRemoteCursor(_env: PreprocessOptions & { syntax: Syntax } & { plugins: undefined }): ASTPlugin {
+  let g = guid();
+  let { builders: b } = syntax;
+
+  return {
+    name: 'serialize-remote',
+    visitor: {
+      BlockStatement(node: AST.BlockStatement) {
+        if(node.path.original === 'in-element') {
+          let hasNextSibling = false;
+
+          node.hash.pairs.forEach((pair) => {
+            if (pair.key === 'guid') {
+              throw new SyntaxError('Cannot pass `guid` from user space', node.loc);
+            }
+
+            if (pair.key === 'nextSibling') {
+              hasNextSibling = true;
+            }
+          });
+
+          let guid = b.literal('StringLiteral', g());
+          let guidPair = b.pair('guid', guid);
+
+          node.hash.pairs.unshift(guidPair);
+
+          if (!hasNextSibling) {
+            let nullLiteral = b.literal('NullLiteral', null);
+            let nextSibling = b.pair('nextSibling', nullLiteral);
+            node.hash.pairs.push(nextSibling);
+          }
+        }
+      }
+    }
+  };
+}
+
+export function preprocess(html: string, options: PreprocessOptions = {}): AST.Program {
   let ast = (typeof html === 'object') ? html : handlebars.parse(html);
   let program = new TokenizerEventHandlers(html, options).acceptNode(ast);
 
-  if (options && options.plugins && options.plugins.ast) {
+  if (options.plugins && options.plugins.ast) {
+    options.plugins.ast.push(insertRemoteCursor);
     for (let i = 0, l = options.plugins.ast.length; i < l; i++) {
       let transform = options.plugins.ast[i];
       let env = assign({}, options, { syntax }, { plugins: undefined });
@@ -344,6 +387,9 @@ export function preprocess(html: string, options?: PreprocessOptions): AST.Progr
 
       traverse(program, pluginResult.visitor);
     }
+  } else {
+    let result = insertRemoteCursor({ syntax, plugins: undefined });
+    traverse(program, result.visitor);
   }
 
   return program;

@@ -67,7 +67,7 @@ export class Fragment implements Bounds {
 }
 
 export interface DOMStack {
-  pushRemoteElement(element: Simple.Element, nextSibling: Option<Simple.Node>): void;
+  pushRemoteElement(element: Simple.Element, guid: string, nextSibling: Option<Simple.Node>): void;
   popRemoteElement(): void;
   popElement(): void;
   openElement(tag: string, _operations?: ElementOperations): Simple.Element;
@@ -244,9 +244,8 @@ export class NewElementBuilder implements ElementBuilder {
     this.popElement();
   }
 
-  pushRemoteElement(element: Simple.Element, nextSibling: Option<Simple.Node> = null) {
+  pushRemoteElement(element: Simple.Element, _guid: string, nextSibling: Option<Simple.Node> = null) {
     this.pushElement(element, nextSibling);
-
     let tracker = new RemoteBlockTracker(element);
     this.pushBlockTracker(tracker, true);
   }

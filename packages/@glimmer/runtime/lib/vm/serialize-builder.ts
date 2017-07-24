@@ -2,9 +2,19 @@ import { NewElementBuilder, ElementBuilder } from "./element-builder";
 
 import Bounds, { bounds, currentNode } from '../bounds';
 import { Simple } from "@glimmer/interfaces";
+import { Option } from "@glimmer/util";
 
 export class SerializeBuilder extends NewElementBuilder implements ElementBuilder {
   private serializeBlockDepth = 0;
+
+  pushRemoteElement(element: Simple.Element, cursorId: string,  nextSibling: Option<Simple.Node> = null) {
+    let { dom } = this;
+    let script = dom.createElement('script');
+    script.setAttribute('id', cursorId);
+
+    dom.insertBefore(element, script, nextSibling);
+    super.pushRemoteElement(element, cursorId, nextSibling);
+  }
 
   __openBlock(): void {
     let depth = this.serializeBlockDepth++;

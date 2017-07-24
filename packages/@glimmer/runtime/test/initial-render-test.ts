@@ -6,15 +6,13 @@ import {
   test,
   strip,
   assertNodeTagName,
-  EMPTY,
-  OPEN,
-  CLOSE,
   renderTemplate,
   TestEnvironment,
   equalTokens,
   Content,
   TestDynamicScope,
-  content
+  content,
+  blockStack
 } from "@glimmer/test-helpers";
 import * as SimpleDOM from "simple-dom";
 import { NodeDOMTreeConstruction } from "@glimmer/node";
@@ -395,11 +393,13 @@ abstract class RenderingTest extends RenderTests {
       </select>
     `);
 
-    let selectNode: any = this.element.childNodes[1];
-    this.assert.equal(selectNode.selectedIndex, 1);
     this.assertStableRerender();
 
+    let selectNode: any = this.element.childNodes[0];
+    this.assert.equal(selectNode.selectedIndex, 1);
+
     this.rerender({ selected: false });
+
     this.assertHTML(strip`
       <select>
         <option>1</option>
@@ -407,7 +407,7 @@ abstract class RenderingTest extends RenderTests {
         <option>3</option>
       </select>
     `);
-    selectNode = this.element.childNodes[1];
+    selectNode = this.element.childNodes[0];
 
     if (IE9_SELECT_QUIRK) {
       this.assert.equal(selectNode.selectedIndex, -1);
@@ -425,7 +425,7 @@ abstract class RenderingTest extends RenderTests {
         <option>3</option>
       </select>
     `);
-    selectNode = this.element.childNodes[1];
+    selectNode = this.element.childNodes[0];
 
     if (IE9_SELECT_QUIRK) {
       this.assert.equal(selectNode.selectedIndex, -1);
@@ -443,7 +443,7 @@ abstract class RenderingTest extends RenderTests {
         <option>3</option>
       </select>
     `);
-    selectNode = this.element.childNodes[1];
+    selectNode = this.element.childNodes[0];
     this.assert.equal(selectNode.selectedIndex, 1);
     this.assertStableNodes();
   }
@@ -1081,9 +1081,9 @@ abstract class RenderingTest extends RenderTests {
 }
 
 class Rehydration extends RenderingTest {
-  public serialized: string;
-  public doc: any;
-
+  element: HTMLDivElement;
+  serialized: string;
+  doc: any;
   setupServer(template: string = this.template) {
     let doc = this.doc = new SimpleDOM.Document();
     let env = new TestEnvironment({
@@ -1094,7 +1094,7 @@ class Rehydration extends RenderingTest {
     this.setup({ template, env });
   }
 
-  setupClient(template: string = this.template) {
+  setupClient(template: string = this.template, delegate?: { setRoot: (potentialRoot: HTMLElement) => HTMLElement }) {
     let env = new TestEnvironment();
     this.doc = document;
     let div = this.doc.createElement("div");
@@ -1102,7 +1102,13 @@ class Rehydration extends RenderingTest {
     expect(this.serialized, "Should have serialized HTML from `this.renderServerSide()`");
 
     div.innerHTML = this.serialized;
-    this.element = div;
+
+    if (delegate) {
+      this.element = delegate.setRoot(div) as HTMLDivElement;
+    } else {
+      this.element = div;
+    }
+
     this.setup({ template, env });
   }
 
@@ -1114,17 +1120,25 @@ class Rehydration extends RenderingTest {
 
   assertServerOutput(..._expected: Content[]) {
     let serialized = this.serialize();
-    equalTokens(serialized, content(['<main>', OPEN, ..._expected, CLOSE, '</main>']));
+    equalTokens(serialized, content([..._expected]));
     this.serialized = serialized;
   }
 
-  renderServerSide(context?: Dict<Opaque>): void {
+  renderServerSide(context?: Dict<Opaque>, root?: any): void {
     if (context) {
       this.context = context;
     }
-    this.setupServer();
     this.populateHelpers();
-    this.element = this.doc.createElement("main") as HTMLDivElement;
+
+    let shouldAppend = false;
+
+    if (root) {
+      this.element = root;
+    } else {
+      shouldAppend = true;
+      this.element = this.doc.createElement("main") as HTMLDivElement;
+    }
+
     let template = expect(this.template, "Must set up a template before calling renderServerSide");
     // Emulate server-side render
     renderTemplate(template, {
@@ -1135,7 +1149,9 @@ class Rehydration extends RenderingTest {
       mode: "serialize"
     });
 
-    this.doc.appendChild(this.element);
+    if (shouldAppend) {
+      this.doc.body.appendChild(this.element);
+    }
 
     this.takeSnapshot();
     this.serialized = this.serialize();
@@ -1151,9 +1167,9 @@ class Rehydration extends RenderingTest {
     if (context) {
       this.context = context;
     }
-    this.setupClient();
+
     this.populateHelpers();
-    this.element = this.doc.createElement("div") as HTMLDivElement;
+
     let template = expect(this.template, "Must set up a template before calling renderClientSide");
     // Client-side rehydration
     this.renderResult = renderTemplate(template, {
@@ -1167,7 +1183,9 @@ class Rehydration extends RenderingTest {
 
   renderTemplate(template: string): RenderResult {
     this.template = template;
+    this.setupServer();
     this.renderServerSide();
+    this.setupClient();
     this.renderClientSide();
     return this.renderResult!;
   }
@@ -1175,7 +1193,14 @@ class Rehydration extends RenderingTest {
   @test "mismatched text nodes"() {
     this.setupServer("{{content}}");
     this.renderServerSide({ content: 'hello' });
-    this.assertServerOutput("hello");
+    let b = blockStack();
+    this.assertServerOutput(strip`
+      <main>
+        ${b(0)}
+        hello
+        ${b(0)}
+      </main>
+    `);
 
     this.setupClient();
 
@@ -1187,7 +1212,14 @@ class Rehydration extends RenderingTest {
   @test "mismatched text nodes (server-render empty)"() {
     this.setupServer("{{content}} world");
     this.renderServerSide({ content: '' });
-    this.assertServerOutput(EMPTY, " world");
+    let b = blockStack();
+    this.assertServerOutput(strip`
+      <main>
+      ${b(0)}
+      <!--%empty%--> world
+      ${b(0)}
+      </main>
+    `);
 
     this.setupClient();
 
@@ -1202,7 +1234,17 @@ class Rehydration extends RenderingTest {
   @test "mismatched elements"() {
     this.setupServer("{{#if admin}}<div>hi admin</div>{{else}}<p>HAXOR</p>{{/if}}");
     this.renderServerSide({ admin: true });
-    this.assertServerOutput(OPEN, "<div>hi admin</div>", CLOSE);
+    let b = blockStack();
+
+    this.assertServerOutput(strip`
+      <main>
+        ${b(0)}
+        ${b(1)}
+        <div>hi admin</div>
+        ${b(1)}
+        ${b(0)}
+      </main>
+    `);
 
     this.setupClient();
 
@@ -1214,7 +1256,16 @@ class Rehydration extends RenderingTest {
   @test "extra nodes at the end"() {
     this.setupServer("{{#if admin}}<div>hi admin</div>{{else}}<div>HAXOR{{stopHaxing}}</div>{{/if}}");
     this.renderServerSide({ admin: false, stopHaxing: 'stahp' });
-    this.assertServerOutput(OPEN, "<div>HAXOR<!--%sep%-->stahp</div>", CLOSE);
+    let b = blockStack();
+    this.assertServerOutput(strip`
+      <main>
+        ${b(0)}
+        ${b(1)}
+        <div>HAXOR<!--%sep%-->stahp</div>
+        ${b(1)}
+        ${b(0)}
+      </main>
+    `);
 
     this.setupClient();
     this.renderClientSide({ admin: true });
@@ -1227,7 +1278,14 @@ class Rehydration extends RenderingTest {
 
     let node = this.env.getAppendOperations().createTextNode('hello');
     this.renderServerSide({ node });
-    this.assertServerOutput('<div>hello</div>');
+    let b = blockStack();
+    this.assertServerOutput(strip`
+      <main>
+      ${b(0)}
+      <div>hello</div>
+      ${b(0)}
+      </main>
+    `);
 
     this.setupClient();
 
@@ -1244,6 +1302,94 @@ class Rehydration extends RenderingTest {
     this.rerender({ node: clientNode });
     this.assertHTML('<div>hello</div>');
     this.assertStableNodes({ except: clientNode2 as Text });
+  }
+
+  @test "in-element rehydrates properly"() {
+    this.setupServer('<outer>{{#in-element remote}}<inner>Wat Wat</inner>{{/in-element}}</outer>');
+    let remote = this.doc.createElement('remote');
+    let app = this.doc.createElement('app');
+
+    this.doc.body.appendChild(app);
+    this.doc.body.appendChild(remote);
+    this.renderServerSide({ remote }, app);
+    let b = blockStack();
+
+    this.assertServerOutput(strip`
+      <app>
+        ${b(0)}
+        <outer>
+          ${b(1)}
+          <!---->
+          ${b(1)}
+        </outer>
+        ${b(0)}
+      </app>
+      <remote>
+        <script id="%cursor:0%"></script>
+        ${b(2)}
+        <inner>Wat Wat</inner>
+        ${b(2)}
+      </remote>
+    `);
+
+    let root: HTMLDivElement;
+    this.setupClient(undefined, {
+      setRoot(potentialRoot: HTMLDivElement) {
+        root = potentialRoot;
+        remote = potentialRoot.querySelector('remote');
+        return potentialRoot.firstChild as HTMLElement;
+      }
+    });
+
+    this.renderClientSide({ remote });
+
+    this.element = root!;
+    this.assertHTML(strip`
+      <app>
+        <outer><!----></outer>
+      </app>
+      <remote>
+        <inner>Wat Wat</inner>
+      </remote>
+    `);
+
+    this.element = root!.firstChild as HTMLDivElement;
+
+    this.assertStableRerender();
+
+    let otherRemote = this.doc.createElement('other-remote');
+
+    this.rerender({ remote: otherRemote });
+
+    this.element = root!;
+    this.assertHTML(strip`
+      <app>
+        <outer><!----></outer>
+      </app>
+      <remote></remote>
+    `);
+
+    this.assert.equal(otherRemote.outerHTML, strip`
+      <other-remote>
+        <inner>Wat Wat</inner>
+      </other-remote>
+    `);
+
+    this.element = root!.firstChild as HTMLDivElement;
+
+    this.rerender({ remote });
+
+    this.element = root!;
+    this.assertHTML(strip`
+      <app>
+        <outer><!----></outer>
+      </app>
+      <remote>
+        <inner>Wat Wat</inner>
+      </remote>
+    `);
+
+    this.element = root!.firstChild as HTMLDivElement;
   }
 }
 
