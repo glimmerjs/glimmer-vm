@@ -1,4 +1,4 @@
-import {  Opaque, Option } from '@glimmer/interfaces';
+import { Opaque, Option } from '@glimmer/interfaces';
 import { ConstReference, PathReference, Reference, Tag } from '@glimmer/reference';
 
 export type Primitive = undefined | null | boolean | number | string;
@@ -13,11 +13,16 @@ export class PrimitiveReference<T extends Primitive> extends ConstReference<T> i
       return TRUE_REFERENCE as PrimitiveReference<T>;
     } else if (value === false) {
       return FALSE_REFERENCE as PrimitiveReference<T>;
-    } else if (typeof value === 'number') {
-      return new ValueReference(value as number) as PrimitiveReference<T>;
     } else {
-      return new StringReference(value as string) as any as PrimitiveReference<T>;
+      let type = typeof value;
+      if (type === 'number') {
+        return new ValueReference(value as number) as PrimitiveReference<T>;
+      } else if (type === 'string') {
+        return new StringReference(value as string) as any as PrimitiveReference<T>;
+      }
     }
+
+    return UNDEFINED_REFERENCE as PrimitiveReference<T>;
   }
 
   protected constructor(value: T) {
