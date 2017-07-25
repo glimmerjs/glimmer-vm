@@ -1,42 +1,19 @@
-import { TestEnvironment, equalTokens, TestDynamicScope } from "@glimmer/test-helpers";
-import { test, module } from "@glimmer/runtime/test/support";
-import { Template, RenderResult, DynamicAttributeFactory, SimpleDynamicAttribute, ElementBuilder } from "@glimmer/runtime";
-import { UpdatableReference } from "@glimmer/object-reference";
-import { Option, Simple, Opaque } from "@glimmer/interfaces";
+import { RenderTests, module, test } from "@glimmer/test-helpers";
 
-let env: TestEnvironment;
-let root: HTMLElement;
+abstract class StyleWarningTest extends RenderTests {
 
-function compile(template: string) {
-  let out = env.compile(template);
-  return out;
-}
+  /* TODO
+    Still need to figure out how to pass StyleEnv to constructor as arg for RenderTests Class
 
-function commonSetup(customEnv = new TestEnvironment()) {
-  env = customEnv; // TODO: Support SimpleDOM
-  root = rootElement();
-}
+    class StyleAttribute extends SimpleDynamicAttribute {
+      set(dom: ElementBuilder, value: Opaque, env: TestEnvironment): void {
+        warnings++;
+        super.set(dom, value, env);
+      }
 
-function rootElement(): HTMLDivElement {
-  return env.getDOM().createElement('div') as HTMLDivElement;
-}
+      update() {}
+    }
 
-function render<T>(template: Template<T>, self: any) {
-  let result: RenderResult;
-  env.begin();
-  let templateIterator = template.render({ self: new UpdatableReference(self), parentNode: root, dynamicScope: new TestDynamicScope() });
-  let iteratorResult: IteratorResult<RenderResult>;
-  do {
-    iteratorResult = templateIterator.next() as IteratorResult<RenderResult>;
-  } while (!iteratorResult.done);
-
-  result = iteratorResult.value;
-  env.commit();
-  return result;
-}
-
-module('Style attributes', {
-  beforeEach() {
     class StyleEnv extends TestEnvironment {
       attributeFor(element: Simple.Element, attr: string, isTrusting: boolean, namespace: Option<string>): DynamicAttributeFactory {
         if (attr === 'style' && !isTrusting) {
@@ -47,49 +24,18 @@ module('Style attributes', {
       }
     }
 
-    commonSetup(new StyleEnv());
+    https://github.com/glimmerjs/glimmer-vm/blob/af9294247738503612b707546475a06ba4fdfa0e/packages/%40glimmer/test-helpers/lib/abstract-test-case.ts#L299
+  */
 
-  },
-  afterEach() {
-    warnings = 0;
+  @test "using a static inline style on an element does not give you a warning"() {
+    this.render(`<div style="background: {{color}}">Thing</div>`, { color: 'red' });
+    this.assertHTML(`<div style="background: red">Thing</div>`);
+    this.assertStableRerender();
+
+    this.rerender({ color: 'blue' });
+    this.assertHTML(`<div style="background: blue">Thing</div>`);
+    this.assertStableNodes();
   }
-}, () => {
-  test(`using a static inline style on an element does not give you a warning`, function(assert) {
-    let template = compile(`<div style="background: red">Thing</div>`);
-    render(template, {});
-
-    assert.strictEqual(warnings, 0);
-
-    equalTokens(root, '<div style="background: red">Thing</div>', "initial render");
-  });
-
-  test(`triple curlies are trusted`, function(assert) {
-    let template = compile(`<div foo={{foo}} style={{{styles}}}>Thing</div>`);
-    render(template, {styles: 'background: red'});
-
-    assert.strictEqual(warnings, 0);
-
-    equalTokens(root, '<div style="background: red">Thing</div>', "initial render");
-  });
-
-  test(`using a static inline style on an namespaced element does not give you a warning`, function(assert) {
-    let template = compile(`<svg xmlns:svg="http://www.w3.org/2000/svg" style="background: red" />`);
-
-    render(template, {});
-
-    assert.strictEqual(warnings, 0);
-
-    equalTokens(root, '<svg xmlns:svg="http://www.w3.org/2000/svg" style="background: red"></svg>', "initial render");
-  });
-});
-
-let warnings = 0;
-
-class StyleAttribute extends SimpleDynamicAttribute {
-  set(dom: ElementBuilder, value: Opaque, env: TestEnvironment): void {
-    warnings++;
-    super.set(dom, value, env);
-  }
-
-  update() {}
 }
+
+module("Style Warnings Test", StyleWarningTest);
