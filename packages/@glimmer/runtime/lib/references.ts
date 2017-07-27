@@ -1,7 +1,8 @@
 import { Opaque, Option, Recast } from '@glimmer/interfaces';
 import { ConstReference, PathReference, Reference, Tag } from '@glimmer/reference';
+import { Handle } from "@glimmer/runtime";
 
-export type Primitive = undefined | null | boolean | number | string;
+export type Primitive = undefined | null | boolean | number | string | Handle;
 
 export class PrimitiveReference<T extends Primitive> extends ConstReference<T> implements PathReference<T> {
   static create<T extends Primitive>(value: T): PrimitiveReference<T> {

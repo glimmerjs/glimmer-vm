@@ -782,7 +782,13 @@ export function compileStatement(statement: WireFormat.Statement, builder: Opcod
 }
 
 export function compileStatements(statements: WireFormat.Statement[], meta: CompilationMeta, env: CompilationOptions): { commit(heap: Heap): Handle } {
-  let b = new EagerOpcodeBuilder(env, meta);
+  let b;
+
+  if (location.search.indexOf('lazy') > -1) {
+    b = new LazyOpcodeBuilder(env, meta);
+  } else {
+    b = new EagerOpcodeBuilder(env, meta);
+  }
 
   for (let i = 0; i < statements.length; i++) {
     compileStatement(statements[i], b);

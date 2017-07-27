@@ -236,5 +236,11 @@ export class ComponentBuilder implements IComponentBuilder {
 }
 
 function builder(options: InternalCompilationOptions, meta: CompilationMeta) {
-  return new EagerOpcodeBuilder(options, meta);
+  let b;
+  if (location.search.indexOf('lazy') > -1) {
+    b = new LazyOpcodeBuilder(options, meta);
+  } else {
+    b = new EagerOpcodeBuilder(options, meta);
+  }
+  return b;
 }
