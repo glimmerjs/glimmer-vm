@@ -353,6 +353,13 @@ export class Heap {
 
     this.offset = this.offset - compactedSize;
   }
+
+  dangerouslyEvict() {
+    let heap = this.heap;
+    this.heap = [];
+    this.table = [];
+    return heap;
+  }
 }
 
 export class Program {

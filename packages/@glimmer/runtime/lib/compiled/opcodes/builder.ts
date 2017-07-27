@@ -82,6 +82,11 @@ export abstract class OpcodeBuilder<Layout extends AbstractTemplate<ProgramSymbo
     this.push(name, 0, 0, 0);
   }
 
+  fill(...args: number[]) {
+    let { buffer } = this;
+    buffer.push(...args);
+  }
+
   push(name: Op, op1 = 0, op2 = 0, op3 = 0) {
     let { buffer } = this;
     buffer.push(name);
@@ -845,7 +850,45 @@ export class LazyOpcodeBuilder extends OpcodeBuilder<CompilableTemplate<ProgramS
   }
 }
 
-// export class EagerOpcodeBuilder extends OpcodeBuilder {
-// }
+export class EagerOpcodeBuilder extends OpcodeBuilder {
+    protected other(value: Opaque): ConstantOther {
+    return this.constants.other(value);
+  }
+    protected pushOther<T>(value: T) {
+    this.push(Op.Constant, this.other(value));
+  }
+  pushSymbolTable(symbolTable: Option<SymbolTable>) {
+    if (symbolTable) {
+      this.pushOther(symbolTable);
+    } else {
+      this.primitive(null);
+    }
+  }
+
+  pushLayout(layout: Option<CompilableTemplate<ProgramSymbolTable>>) {
+    if (layout) {
+      layout.compile();
+      let heap = this.options.program.heap;
+      this.fill(...heap.dangerouslyEvict());
+    }
+  }
+
+  resolveLayout() {
+
+  }
+
+  pushBlock(block: Option<BlockSyntax>) {
+    if (block) {
+
+      block.compile();
+      let heap = this.options.program.heap;
+
+      this.fill(...heap.dangerouslyEvict());
+    }
+  }
+  resolveBlock() {
+    debugger;
+  }
+}
 
 export type BlockCallback = (dsl: OpcodeBuilder, BEGIN: Label, END: Label) => void;

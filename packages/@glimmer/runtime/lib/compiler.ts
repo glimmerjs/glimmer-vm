@@ -14,7 +14,7 @@ import {
   ComponentBuilder as IComponentBuilder
 } from './opcode-builder';
 
-import OpcodeBuilderDSL, { LazyOpcodeBuilder } from './compiled/opcodes/builder';
+import OpcodeBuilderDSL, { LazyOpcodeBuilder, EagerOpcodeBuilder } from "./compiled/opcodes/builder";
 
 import { DEBUG } from "@glimmer/local-debug-flags";
 
@@ -236,5 +236,5 @@ export class ComponentBuilder implements IComponentBuilder {
 }
 
 function builder(options: InternalCompilationOptions, meta: CompilationMeta) {
-  return new LazyOpcodeBuilder(options, meta);
+  return new EagerOpcodeBuilder(options, meta);
 }

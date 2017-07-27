@@ -2,7 +2,7 @@ import { CompilationMeta, Option, ProgramSymbolTable } from '@glimmer/interfaces
 import { assert, dict, EMPTY_ARRAY, unwrap } from '@glimmer/util';
 import { Register } from '@glimmer/vm';
 import * as WireFormat from '@glimmer/wire-format';
-import OpcodeBuilder, { LazyOpcodeBuilder } from '../compiled/opcodes/builder';
+import OpcodeBuilder, { LazyOpcodeBuilder, EagerOpcodeBuilder } from "../compiled/opcodes/builder";
 import { Handle, Heap } from '../environment';
 import { hasStaticLayout } from '../component/interfaces';
 import { CompilationOptions, ComponentDefinition } from '../internal-interfaces';
@@ -782,7 +782,7 @@ export function compileStatement(statement: WireFormat.Statement, builder: Opcod
 }
 
 export function compileStatements(statements: WireFormat.Statement[], meta: CompilationMeta, env: CompilationOptions): { commit(heap: Heap): Handle } {
-  let b = new LazyOpcodeBuilder(env, meta);
+  let b = new EagerOpcodeBuilder(env, meta);
 
   for (let i = 0; i < statements.length; i++) {
     compileStatement(statements[i], b);
