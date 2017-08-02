@@ -1,23 +1,28 @@
-import { CompilationMeta, Opaque, Option, ProgramSymbolTable, SymbolTable, Unique } from '@glimmer/interfaces';
+import { CompilationMeta, Opaque, Option, ProgramSymbolTable, SymbolTable } from '@glimmer/interfaces';
 import { dict, EMPTY_ARRAY, expect, fillNulls, Stack, typePos, unreachable } from '@glimmer/util';
 import { Op, Register } from '@glimmer/vm';
 import * as WireFormat from '@glimmer/wire-format';
-import { Handle, Heap, Program } from '../../environment';
-import {
-  ConstantArray,
-  Constants,
-  ConstantString,
-  LazyConstants,
-} from '../../environment/constants';
-import { ComponentBuilder as IComponentBuilder } from '../../opcode-builder';
-import { Primitive } from '../../references';
-import { expr, ATTRS_BLOCK } from '../../syntax/functions';
-import { BlockSyntax, CompilableTemplate } from '../../syntax/interfaces';
-import RawInlineBlock from '../../syntax/raw-block';
 import { TemplateMeta } from "@glimmer/wire-format";
-import { ComponentBuilder } from "../../compiler";
-import { ComponentDefinition } from '../../component/interfaces';
-import { Specifier } from "../../internal-interfaces";
+
+import {
+  Handle,
+  Heap,
+  LazyConstants,
+  Primitive,
+  BlockSyntax,
+  CompilableTemplate,
+  Constants,
+  RawInlineBlock,
+  Specifier,
+  Program,
+  ComponentBuilder,
+  ComponentCapabilities
+} from './interfaces';
+
+import {
+  ATTRS_BLOCK,
+  expr
+} from './syntax';
 
 export interface CompilesInto<E> {
   compile(builder: OpcodeBuilder): E;
@@ -59,9 +64,8 @@ export abstract class OpcodeBuilder<Layout extends AbstractTemplate<ProgramSymbo
   private buffer: number[] = [];
   private labelsStack = new Stack<Labels>();
   private isComponentAttrs = false;
-  public component: IComponentBuilder = new ComponentBuilder(this);
 
-  constructor(public program: Program, public meta: CompilationMeta) {
+  constructor(public program: Program, public meta: CompilationMeta, public component: ComponentBuilder) {
     this.constants = program.constants;
   }
 
@@ -482,11 +486,11 @@ export abstract class OpcodeBuilder<Layout extends AbstractTemplate<ProgramSymbo
 
   // internal helpers
 
-  string(_string: string): ConstantString {
+  string(_string: string): number {
     return this.constants.string(_string);
   }
 
-  protected names(_names: string[]): ConstantArray {
+  protected names(_names: string[]): number {
     let names: number[] = [];
 
     for (let i = 0; i < _names.length; i++) {
@@ -497,7 +501,7 @@ export abstract class OpcodeBuilder<Layout extends AbstractTemplate<ProgramSymbo
     return this.constants.array(names);
   }
 
-  protected symbols(symbols: number[]): ConstantArray {
+  protected symbols(symbols: number[]): number {
     return this.constants.array(symbols);
   }
 
@@ -635,8 +639,7 @@ export abstract class OpcodeBuilder<Layout extends AbstractTemplate<ProgramSymbo
     this.load(Register.s0);
   }
 
-  invokeStaticComponent(definition: ComponentDefinition<Unique<'Component'>>, layout: Layout, attrs: Option<RawInlineBlock>, params: Option<WireFormat.Core.Params>, hash: WireFormat.Core.Hash, synthetic: boolean, block: Option<BlockSyntax>, inverse: Option<BlockSyntax> = null) {
-    let { capabilities } = definition;
+  invokeStaticComponent(capabilities: ComponentCapabilities, layout: Layout, attrs: Option<RawInlineBlock>, params: Option<WireFormat.Core.Params>, hash: WireFormat.Core.Hash, synthetic: boolean, block: Option<BlockSyntax>, inverse: Option<BlockSyntax> = null) {
     let { symbolTable } = layout;
 
     let bailOut =
@@ -796,7 +799,9 @@ export abstract class OpcodeBuilder<Layout extends AbstractTemplate<ProgramSymbo
 
   template(block: Option<WireFormat.SerializedInlineBlock>): Option<RawInlineBlock> {
     if (!block) return null;
-    return new RawInlineBlock(block.statements, block.parameters, this.meta, this.options);
+
+    // TODO: DI the Concrete RawInlineBlock
+    return new RawInlineBlock(block.statements, block.parameters, this.meta, this.program);
   }
 }
 

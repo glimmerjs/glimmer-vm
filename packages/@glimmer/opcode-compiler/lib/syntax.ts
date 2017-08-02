@@ -3,11 +3,10 @@ import { assert, dict, EMPTY_ARRAY, unwrap } from '@glimmer/util';
 import { Register } from '@glimmer/vm';
 import * as WireFormat from '@glimmer/wire-format';
 import OpcodeBuilder, { LazyOpcodeBuilder } from '../compiled/opcodes/builder';
-import { Handle, Heap, Program } from '../environment';
-import { hasStaticLayout } from '../component/interfaces';
-import { CompilationOptions, ComponentDefinition } from '../internal-interfaces';
+import { Handle, Heap } from './interfaces';
+import { ComponentDefinition } from '../internal-interfaces';
 import * as ClientSide from './client-side';
-import { BlockSyntax } from './interfaces';
+import { BlockSyntax, CompilationOptions } from './interfaces';
 import RawInlineBlock from './raw-block';
 import Ops = WireFormat.Ops;
 
@@ -780,8 +779,8 @@ export function compileStatement(statement: WireFormat.Statement, builder: Opcod
   STATEMENTS.compile(statement, builder);
 }
 
-export function compileStatements(statements: WireFormat.Statement[], meta: CompilationMeta, program: Program): { commit(heap: Heap): Handle } {
-  let b = new LazyOpcodeBuilder(program, meta);
+export function compileStatements(statements: WireFormat.Statement[], meta: CompilationMeta, env: CompilationOptions): { commit(heap: Heap): Handle } {
+  let b = new LazyOpcodeBuilder(env, meta);
 
   for (let i = 0; i < statements.length; i++) {
     compileStatement(statements[i], b);
