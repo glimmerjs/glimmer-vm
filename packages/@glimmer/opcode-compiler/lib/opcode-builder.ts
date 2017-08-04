@@ -699,6 +699,7 @@ export abstract class OpcodeBuilder<Layout extends AbstractTemplate<ProgramSymbo
 
     this.beginComponentTransaction();
     this.pushDynamicScope();
+
     this.createComponent(Register.s0, block !== null, inverse !== null);
     this.registerComponentDestructor(Register.s0);
 
@@ -751,6 +752,8 @@ export abstract class OpcodeBuilder<Layout extends AbstractTemplate<ProgramSymbo
           if (index !== -1) {
             expr(values[index], this);
             bindings.push({ symbol: i + 1, isBlock: false });
+          } else {
+            // TODO: Is this a bug?
           }
 
           break;

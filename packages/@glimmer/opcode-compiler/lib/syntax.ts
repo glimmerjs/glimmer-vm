@@ -181,6 +181,93 @@ STATEMENTS.add(Ops.Component, (sexp: S.Component, builder: OpcodeBuilder) => {
     if (capabilities.dynamicLayout === false) {
       let layout = lookup.getLayout(tag, meta)!;
 
+      // <FooBar />
+      // lookup.getLayout('FooBar', { moduleId: 'ui/components/Foo/Bar/Baz' });
+      // - ui/components/Foo/Bar/FooBar
+      // - ui/components/FooBar
+      //
+      // {{component FooBar}}
+
+      /// COMPILE TIME ///
+
+      /**
+       * {
+       *   ui: {
+       *     components: {
+       *       Foo: { Bar: { FooBar: <template> }}
+       *       FooBar: <template>
+       *     }
+       *   }
+       * }
+       */
+
+      /**
+       * globals:
+       * {
+       *   FooBar: { source: string, meta: TemplateMeta }
+       * }
+       *
+       * =>
+       *
+       *
+       * import { FooBar } from '...';
+       *
+       * export let lookup = {
+       *  FooBar: { handle: Handle, meta: TemplateMeta, componentClass: FooBar }
+       * }
+       *
+       * import FooBar from "./FooBar";
+       *
+       * @component({
+       *   template: '{{component whatvs}} <FooBar />',
+       *   components: [FooBar]
+       * })
+       * class X {
+       *   static template = hbs`<FooBar /> {{component whatevs}}`;
+       *   static components = [ FooBar ];
+       *   static iMightUse = [ FooBar, BazBat, ... ] // only if you use {{component}}
+       * }
+       *
+       * compile(<ui/component/Foo/Bar/Baz>, globals, {
+       *   local: {
+       *     FooBar: <template>
+       *   }
+       * })
+       *
+       * compile(<ui/component/Foo/Bar/Baz, (componentName, templateMeta) => {
+       *   // make sure you don't compile the same template multiple times
+       * })
+       * some-addon::FooBar
+       * bundleCompiler.generateComponentMap({ 'FooBar': 'ui/components/FooBar' })
+       */
+
+      /// RUNTIME ///
+
+      /**
+       * instead of:
+       *
+       * env.resolver.lookupTemplate('FooBar', templateMeta);
+       *
+       * do:
+       *
+       * lookup('FooBar', serializedLocalComponents) || lookup('FooBar', serializedGlobalComponents);
+       *
+       * class ComponentManager {
+       *   getScope(definition: ): TemplateScope;
+       * }
+       */
+
+      /**
+       * Changes:
+       *
+       * - ComponentDefinition is just an abstract static StateBucket
+       * - instead of environment.getComponentDefinition, manager.getComponentDefinition(name, templateMeta);
+       * - getCapabilities and getLayout belongs on the component manager
+       * - a template is a { handle, symbolTable, templateMeta, manager }, so
+       * - the process of invoking a template is getComponentDefinition(name, templateMeta) -> onward
+       * - with one exception: we use getScope() as the starting point for looking up more components
+       */
+
       builder.pushComponentManager(specifier);
       builder.invokeStaticComponent(capabilities, layout, attrsBlock, null, args, false, child && child);
     } else {
