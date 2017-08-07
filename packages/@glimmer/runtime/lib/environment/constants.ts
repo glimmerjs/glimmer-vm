@@ -1,4 +1,4 @@
-import { Opaque, SymbolTable } from "@glimmer/interfaces";
+import { Opaque } from "@glimmer/interfaces";
 import { Specifier, Resolver } from '../internal-interfaces';
 
 export type ConstantString = number;
@@ -18,7 +18,6 @@ export class Constants {
 
   private strings: string[] = [];
   private arrays: number[][] = [];
-  private tables: SymbolTable[] = [];
   private specifiers: Specifier[] = [];
   private serializables: Opaque[] = [];
   private resolved: Opaque[] = [];
@@ -28,7 +27,13 @@ export class Constants {
   }
 
   string(value: string): ConstantString {
-    let index = this.strings.length;
+    let index = this.strings.indexOf(value);
+
+    if (index > -1) {
+      return index + 1;
+    }
+
+    index = this.strings.length;
     this.strings.push(value);
     return index + 1;
   }
@@ -65,16 +70,6 @@ export class Constants {
     return index + 1;
   }
 
-  getSymbolTable<T extends SymbolTable>(value: ConstantSymbolTable): T {
-    return this.tables[value - 1] as T;
-  }
-
-  table(t: SymbolTable): ConstantSymbolTable {
-    let index = this.tables.length;
-    this.tables.push(t);
-    return index + 1;
-  }
-
   resolveSpecifier<T>(s: number): T {
     let index = s - 1;
     let resolved = this.resolved[index];
@@ -99,7 +94,13 @@ export class Constants {
   }
 
   serializable(value: Opaque): number {
-    let index = this.serializables.length;
+    let index = this.serializables.indexOf(value);
+
+    if (index > -1) {
+      return index + 1;
+    }
+
+    index = this.serializables.length;
     this.serializables.push(value);
     return index + 1;
   }
@@ -113,7 +114,11 @@ export class LazyConstants extends Constants {
   }
 
   other(other: Opaque): ConstantOther {
-    let index = this.others.length;
+    let index = this.others.indexOf(other);
+    if (index > -1) {
+      return index + 1;
+    }
+    index = this.others.length;
     this.others.push(other);
     return index + 1;
   }
