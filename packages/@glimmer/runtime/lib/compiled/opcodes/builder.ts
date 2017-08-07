@@ -12,6 +12,7 @@ import {
   ConstantOther,
   Constants,
   ConstantString,
+  ConstantFloat
 } from '../../environment/constants';
 import { ModifierManager } from '../../modifier/interfaces';
 import { ComponentBuilder as IComponentBuilder } from '../../opcode-builder';
@@ -372,28 +373,33 @@ export abstract class BasicOpcodeBuilder {
   }
 
   primitive(_primitive: string | number | null | undefined | boolean) {
-    let flag: 0 | 1 | 2 = 0;
+    let flag: 0 | 1 | 2 | 3 = 0;
     let primitive: number;
     switch (typeof _primitive) {
       case 'number':
-        primitive = _primitive as number;
+        if (_primitive as number % 1 === 0 && _primitive as number > 0) {
+          primitive = _primitive as number;
+        } else {
+          primitive = this.float(_primitive as number);
+          flag = 1;
+        }
         break;
       case 'string':
         primitive = this.string(_primitive as string);
-        flag = 1;
+        flag = 2;
         break;
       case 'boolean':
         primitive = (_primitive as any) | 0;
-        flag = 2;
+        flag = 3;
         break;
       case 'object':
         // assume null
         primitive = 2;
-        flag = 2;
+        flag = 3;
         break;
       case 'undefined':
         primitive = 3;
-        flag = 2;
+        flag = 3;
         break;
       default:
         throw new Error('Invalid primitive passed to pushPrimitive');
@@ -504,6 +510,10 @@ export abstract class BasicOpcodeBuilder {
 
   string(_string: string): ConstantString {
     return this.constants.string(_string);
+  }
+
+  float(num: number): ConstantFloat {
+    return this.constants.float(num);
   }
 
   protected names(_names: string[]): ConstantArray {
