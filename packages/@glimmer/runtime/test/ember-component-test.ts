@@ -14,7 +14,7 @@ import {
   TestEnvironment,
 } from "@glimmer/test-helpers";
 import { assign } from "@glimmer/util";
-import { RenderResult, Template } from '../index';
+import { RenderResult, Template, elementBuilder as builder } from '@glimmer/runtime';
 import { assert } from './support';
 
 export class EmberishRootView extends EmberObject {
@@ -37,7 +37,8 @@ export class EmberishRootView extends EmberObject {
   appendTo(selector: string) {
     let element = this.parent = document.querySelector(selector)!;
     let self = new UpdatableReference(this);
-    let templateIterator = this.template.renderLayout({ env: this.env, self, cursor: { element, nextSibling: null }, dynamicScope: new TestDynamicScope() });
+    let elementBuilder = builder(document, { element, nextSibling: null });
+    let templateIterator = this.template.renderLayout({ elementBuilder, env: this.env, self, dynamicScope: new TestDynamicScope() });
 
     let result;
     do {

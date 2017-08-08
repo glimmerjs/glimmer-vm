@@ -11,12 +11,13 @@ export default class RenderResult implements DestroyableBounds, ExceptionHandler
     public env: Environment,
     private program: RuntimeProgram<Opaque>,
     private updating: LinkedList<UpdatingOpcode>,
-    private bounds: DestroyableBounds
+    private bounds: DestroyableBounds,
+    private document: Simple.Document
   ) {}
 
   rerender({ alwaysRevalidate = false } = { alwaysRevalidate: false }) {
     let { env, program, updating } = this;
-    let vm = new UpdatingVM(env, program, { alwaysRevalidate });
+    let vm = new UpdatingVM(this.document as Document, env, program, { alwaysRevalidate });
     vm.execute(updating, this);
   }
 

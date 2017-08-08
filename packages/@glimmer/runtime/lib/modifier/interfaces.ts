@@ -1,5 +1,5 @@
 import { IArguments } from '../vm/arguments';
-import { DOMChanges } from '../dom/helper';
+import { DOMChanges, DOMTreeConstruction } from "../dom/helper";
 import { DynamicScope } from '../environment';
 import { Destroyable } from '@glimmer/util';
 import { Option, Unique } from "@glimmer/interfaces";
@@ -9,7 +9,7 @@ export type Modifier = Unique<"ModifierStateBucker">;
 
 export interface ModifierManager<T = Modifier> {
   // Create is meant to only produce the state bucket
-  create(element: Element, args: IArguments, dynamicScope: DynamicScope, dom: DOMChanges): T;
+  create(element: Element, args: IArguments, dynamicScope: DynamicScope, appendOperations: DOMTreeConstruction,  updateOperations: DOMChanges): T;
 
   // Convert the opaque modifier into a `RevisionTag` that determins when
   // the modifier's update hooks need to be called (if at all).

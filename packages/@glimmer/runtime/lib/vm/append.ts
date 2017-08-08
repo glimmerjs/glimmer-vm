@@ -280,7 +280,7 @@ export default class VM<Specifier> implements PublicVM {
     let state = this.capture(args);
     let tracker = this.elements().pushUpdatableBlock();
 
-    let tryOpcode = new TryOpcode(this.heap.gethandle(this.pc), state, tracker, updating);
+    let tryOpcode = new TryOpcode(this.heap.gethandle(this.pc), state, tracker, updating, this.elementStack.document());
 
     this.didEnter(tryOpcode);
   }
@@ -297,7 +297,7 @@ export default class VM<Specifier> implements PublicVM {
     // this.ip = end + 4;
     // this.frames.push(ip);
 
-    return new TryOpcode(this.heap.gethandle(this.pc), state, tracker, new LinkedList<UpdatingOpcode>());
+    return new TryOpcode(this.heap.gethandle(this.pc), state, tracker, new LinkedList<UpdatingOpcode>(), this.elementStack.document());
   }
 
   enterItem(key: string, opcode: TryOpcode) {
@@ -442,7 +442,8 @@ export default class VM<Specifier> implements PublicVM {
           env,
           program,
           expect(updatingOpcodeStack.pop(), 'there should be a final updating opcode stack'),
-          elementStack.popBlock()
+          elementStack.popBlock(),
+          elementStack.document()
         )
       };
     }

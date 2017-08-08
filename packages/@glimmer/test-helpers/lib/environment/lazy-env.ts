@@ -4,8 +4,8 @@ import { AbstractTestEnvironment } from './env';
 import { UserHelper, HelperReference } from './helper';
 import { InertModifierManager } from './modifier';
 import { TestMacros } from './generic/macros';
-import { Option, RuntimeResolver, Opaque, Maybe, Simple } from "@glimmer/interfaces";
-import { Helper as GlimmerHelper, DOMTreeConstruction, TopLevelSyntax, ModifierManager, PartialDefinition, ComponentSpec, CompilationOptions, templateFactory, Template, IDOMChanges, DOMChanges, VM, Arguments, getDynamicVar, CurriedComponentDefinition, curry, Invocation } from "@glimmer/runtime";
+import { Option, RuntimeResolver, Opaque, Simple } from "@glimmer/interfaces";
+import { Helper as GlimmerHelper, DOMTreeConstruction, TopLevelSyntax, ModifierManager, PartialDefinition, ComponentSpec, CompilationOptions, templateFactory, Template, IDOMChanges, VM, Arguments, getDynamicVar, CurriedComponentDefinition, curry, Invocation } from "@glimmer/runtime";
 import { TemplateOptions, LazyOpcodeBuilder, OpcodeBuilderConstructor } from "@glimmer/opcode-compiler";
 import { dict } from "@glimmer/util";
 import { precompile } from "@glimmer/compiler";
@@ -147,8 +147,8 @@ export class TestEnvironment extends AbstractTestEnvironment<TestSpecifier> {
     Builder: LazyOpcodeBuilder as OpcodeBuilderConstructor
   };
 
-  constructor(options?: TestEnvironmentOptions) {
-    super(testOptions(options));
+  constructor() {
+    super();
     // recursive field, so "unsafely" set one half late (but before the resolver is actually used)
     this.resolver['options'] = this.compileOptions;
     this.registerHelper("if", ([cond, yes, no]) => cond ? yes : no);
@@ -258,22 +258,4 @@ export class TestEnvironment extends AbstractTestEnvironment<TestSpecifier> {
     this.resolver.register('component', name, { definition, manager: definition.manager });
     return definition;
   }
-}
-
-function testOptions(options: Maybe<TestEnvironmentOptions>) {
-  let document: Maybe<Simple.Document> = options ? options.document : undefined;
-  let appendOperations: Maybe<DOMTreeConstruction> = options && options.appendOperations;
-  let updateOperations: Maybe<IDOMChanges> = options && options.updateOperations;
-
-  if (!document) document = window.document;
-
-  if (!appendOperations) {
-    appendOperations = new DOMTreeConstruction(document);
-  }
-
-  if (!updateOperations) {
-    updateOperations = new DOMChanges(document as HTMLDocument);
-  }
-
-  return { appendOperations, updateOperations };
 }

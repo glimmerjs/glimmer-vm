@@ -1,26 +1,25 @@
-import Environment from '../../environment';
 import Bounds, { clear } from '../../bounds';
 import { Opaque, Simple, Option } from "@glimmer/interfaces";
-import { NewElementBuilder } from '../element-builder';
+import { elementBuilder } from '../element-builder';
 
 export interface DynamicContent {
   bounds: Bounds;
-  update(env: Environment, value: Opaque): DynamicContent;
+  update(value: Opaque): DynamicContent;
 }
 
 abstract class DynamicContentBase implements DynamicContent {
-  constructor(protected trusting: boolean) {}
+  constructor(protected doc: Simple.Document, protected trusting: boolean) {}
 
-  abstract update(env: Environment, value: Opaque): DynamicContent;
+  abstract update(value: Opaque): DynamicContent;
 
   public abstract bounds: Bounds;
 
-  protected retry(env: Environment, value: Opaque): DynamicContent {
+  protected retry(value: Opaque): DynamicContent {
     let { bounds } = this;
     let parentElement = bounds.parentElement();
     let nextSibling = clear(bounds);
 
-    let stack = NewElementBuilder.forInitialRender(env, { element: parentElement, nextSibling });
+    let stack = elementBuilder(this.doc, { element: parentElement, nextSibling });
 
     if (this.trusting) {
       return stack.__appendTrustingDynamicContent(value);
@@ -51,8 +50,8 @@ export class DynamicContentWrapper implements DynamicContent, Bounds {
     this.bounds = inner.bounds;
   }
 
-  update(env: Environment, value: Opaque): DynamicContentWrapper {
-    let inner = this.inner = this.inner.update(env, value);
+  update(value: Opaque): DynamicContentWrapper {
+    let inner = this.inner = this.inner.update(value);
     this.bounds = inner.bounds;
     return this;
   }

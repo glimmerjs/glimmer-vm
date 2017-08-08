@@ -41,8 +41,8 @@ class UpdateDynamicContentOpcode extends UpdatingOpcode {
     this.tag = reference.tag;
   }
 
-  evaluate(vm: UpdatingVM): void {
+  evaluate(_vm: UpdatingVM): void {
     let { content, reference } = this;
-    content.update(vm.env, reference.value());
+    content.update(reference.value());
   }
 }

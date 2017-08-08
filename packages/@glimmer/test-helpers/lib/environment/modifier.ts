@@ -1,5 +1,5 @@
 
-import { ModifierManager, CapturedArguments, IDOMChanges, Arguments, DynamicScope } from "@glimmer/runtime";
+import { ModifierManager, CapturedArguments, IDOMChanges, Arguments, DynamicScope, DOMTreeConstruction } from "@glimmer/runtime";
 import { Opaque, Option } from "@glimmer/interfaces";
 import { Tag, CONSTANT_TAG } from "@glimmer/reference";
 import { Destroyable } from "@glimmer/util";
@@ -24,7 +24,8 @@ export class TestModifier {
   constructor(
     public element: Element,
     public args: CapturedArguments,
-    public dom: IDOMChanges
+    public appendOperations: DOMTreeConstruction,
+    public updateOperations: IDOMChanges
   ) { }
 }
 
@@ -33,28 +34,28 @@ export class TestModifierManager implements ModifierManager<TestModifier> {
   public updatedElements: Element[] = [];
   public destroyedModifiers: TestModifier[] = [];
 
-  create(element: Element, args: Arguments, _dynamicScope: DynamicScope, dom: IDOMChanges): TestModifier {
-    return new TestModifier(element, args.capture(), dom);
+  create(element: Element, args: Arguments, _dynamicScope: DynamicScope, appendOperations: DOMTreeConstruction, updateOperations: IDOMChanges): TestModifier {
+    return new TestModifier(element, args.capture(), appendOperations, updateOperations);
   }
 
   getTag({ args: { tag } }: TestModifier): Tag {
     return tag;
   }
 
-  install({ element, args, dom }: TestModifier) {
+  install({ element, args, appendOperations }: TestModifier) {
     this.installedElements.push(element);
 
     let param = args.positional.at(0).value();
-    dom.setAttribute(element, 'data-modifier', `installed - ${param}`);
+    appendOperations.setAttribute(element, 'data-modifier', `installed - ${param}`);
 
     return;
   }
 
-  update({ element, args, dom }: TestModifier) {
+  update({ element, args, updateOperations }: TestModifier) {
     this.updatedElements.push(element);
 
     let param = args.positional.at(0).value();
-    dom.setAttribute(element, 'data-modifier', `updated - ${param}`);
+    updateOperations.setAttribute(element, 'data-modifier', `updated - ${param}`);
 
     return;
   }
@@ -63,8 +64,8 @@ export class TestModifierManager implements ModifierManager<TestModifier> {
     return {
       destroy: () => {
         this.destroyedModifiers.push(modifier);
-        let { element, dom } = modifier;
-        dom.removeAttribute(element, 'data-modifier');
+        let { element, updateOperations } = modifier;
+        updateOperations.removeAttribute(element, 'data-modifier');
       }
     };
   }

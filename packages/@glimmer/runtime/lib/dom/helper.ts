@@ -143,7 +143,7 @@ export namespace DOM {
 export class DOMChanges extends DOMOperations {
   protected namespace: Option<string>;
 
-  constructor(protected document: HTMLDocument) {
+  constructor(public document: HTMLDocument) {
     super(document);
     this.namespace = null;
   }
