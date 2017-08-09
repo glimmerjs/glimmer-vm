@@ -256,7 +256,7 @@ export abstract class AbstractRenderTest {
     let { tag = "div", layout, name = GLIMMER_TEST_COMPONENT } = blueprint;
     let invocation = this.buildAngleBracketComponent(blueprint);
     this.assert.ok(true, `generated glimmer layout as ${`<${tag}>${layout}</${tag}>`}`);
-    this.registerComponent("Glimmer", name, `<${tag}>${layout}</${tag}>`);
+    this.registerComponent("Glimmer", name, `<${tag} ...attributes>${layout}</${tag}>`);
     this.assert.ok(true, `generated glimmer invocation as ${invocation}`);
     return invocation;
   }
@@ -456,6 +456,7 @@ export abstract class AbstractRenderTest {
   protected assertComponent(content: string, attrs: Object = {}) {
     let element = this.element.firstChild as HTMLDivElement;
     assertEmberishElement(element, "div", attrs, content);
+    this.takeSnapshot();
   }
 
   private runTask<T>(callback: () => T): T {
@@ -736,11 +737,15 @@ function componentModule(name: string, klass: typeof AbstractRenderTest & Functi
     fragment: []
   };
 
-  function createTest(prop: string, test: any, skip = false) {
+  function createTest(prop: string, test: any, skip: boolean) {
+    let shouldSkip: boolean;
+    if (skip === true || test.skip === true) {
+      shouldSkip = true;
+    }
     return (type: ComponentKind, klass: typeof AbstractRenderTest & Function) => {
       let instance = new klass();
       instance.testType = type;
-      if (skip) {
+      if (shouldSkip) {
         QUnit.skip(`${type.toLowerCase()}: ${prop}`, assert => test.call(instance, assert));
       } else {
         QUnit.test(`${type.toLowerCase()}: ${prop}`, assert => test.call(instance, assert));
