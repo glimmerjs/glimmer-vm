@@ -117,6 +117,11 @@ export abstract class AbstractRenderTest {
 
   constructor(protected env = new TestEnvironment()) {}
 
+  reset() {
+    this.element.innerHTML = '';
+    this.env = new TestEnvironment();
+  }
+
   registerHelper(name: string, helper: UserHelper) {
     this.helpers[name] = helper;
   }
@@ -456,6 +461,7 @@ export abstract class AbstractRenderTest {
   protected assertComponent(content: string, attrs: Object = {}) {
     let element = this.element.firstChild as HTMLDivElement;
     assertEmberishElement(element, "div", attrs, content);
+    this.takeSnapshot();
   }
 
   private runTask<T>(callback: () => T): T {
