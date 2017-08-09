@@ -17,6 +17,7 @@ env:
 matrix:
   fast_finish: true
 before_script:
+  - yarn global add qunitjs
   - yarn run sauce:connect
 script:
   - yarn run problems
