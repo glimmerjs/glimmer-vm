@@ -294,11 +294,11 @@ data-barf="herpy"
 test("element dynamic attribute", function() {
   let ast = parse(`<img src={{blah}}>`);
 
-  let [div] = ast.body;
-  if (assertNodeType(div, 'ElementNode')) {
-    let [src] = div.attributes;
+  let [img] = ast.body;
+  if (assertNodeType(img, 'ElementNode')) {
+    let [src] = img.attributes;
     locEqual(src, 1, 5, 1, 17);
-    let value = src.value;
+    let { value } = src;
     locEqual(value, 1, 9, 1, 17);
   }
 });
