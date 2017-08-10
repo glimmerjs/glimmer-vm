@@ -2005,6 +2005,7 @@ QUnit.test('component helper can curry arguments', () => {
     `
 
   );
+
   assertText(stripTight`
     1. [outer 1]
     2. [outer 2]
