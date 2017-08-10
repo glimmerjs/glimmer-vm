@@ -450,7 +450,7 @@ export abstract class AbstractRenderTest {
   }
 
   protected assertHTML(html: string) {
-    equalTokens(this.element, html);
+    equalTokens(this.element, html, html);
   }
 
   protected assertComponent(content: string, attrs: Object = {}) {
