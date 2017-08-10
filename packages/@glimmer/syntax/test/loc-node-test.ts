@@ -291,6 +291,18 @@ data-barf="herpy"
   }
 });
 
+test("element dynamic attribute", function() {
+  let ast = parse(`<img src={{blah}}>`);
+
+  let [div] = ast.body;
+  if (assertNodeType(div, 'ElementNode')) {
+    let [src] = div.attributes;
+    locEqual(src, 1, 5, 1, 17);
+    let value = src.value;
+    locEqual(value, 1, 9, 1, 17);
+  }
+});
+
 test("concat statement", function() {
   let ast = parse(`
     <div data-foo="{{if foo
