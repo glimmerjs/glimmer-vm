@@ -31,3 +31,9 @@ export {
   IteratorSynchronizer,
   IteratorSynchronizerDelegate
 } from './lib/iterable';
+
+export {
+  tracked,
+  tagForProperty,
+  UntrackedPropertyError
+} from './lib/tracked';
