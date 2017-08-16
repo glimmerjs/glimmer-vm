@@ -523,7 +523,7 @@ export const CLASSES = {
   Dynamic: EmberishCurlyComponent,
   Basic: BasicComponent,
   Fragment: BasicComponent
-}
+};
 
 export type ComponentTypes = typeof CLASSES;
 
