@@ -270,7 +270,7 @@ class HasBlockParamHelperTests extends AbstractRenderTest {
       template: 'block here'
     });
 
-    this.assertComponent('<button data-has-block-params="is-false"></button>>');
+    this.assertComponent('<button data-has-block-params="is-false"></button>');
     this.assertStableRerender();
   }
 
@@ -280,7 +280,7 @@ class HasBlockParamHelperTests extends AbstractRenderTest {
       layout: '<button data-has-block-params="is-{{has-block-params}}"></button>'
     });
 
-    this.assertComponent('<button data-has-block-params="is-false"></button>>');
+    this.assertComponent('<button data-has-block-params="is-false"></button>');
     this.assertStableRerender();
   }
 }
