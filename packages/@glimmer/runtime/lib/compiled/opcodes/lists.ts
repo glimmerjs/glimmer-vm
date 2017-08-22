@@ -7,7 +7,10 @@ import {
   Tag,
   VersionedPathReference,
 } from '@glimmer/reference';
-import { APPEND_OPCODES } from '../../opcodes';
+import { VM } from '../../vm';
+import { Opcode } from '../../environment';
+
+export const LIST_MAPPINGS = {};
 
 class IterablePresenceReference implements Reference<boolean> {
   public tag: Tag;
@@ -23,7 +26,7 @@ class IterablePresenceReference implements Reference<boolean> {
   }
 }
 
-APPEND_OPCODES.add(Op.PutIterator, vm => {
+export function PutIterator(vm: VM) {
   let stack = vm.stack;
   let listRef = stack.pop<VersionedPathReference<Opaque>>();
   let key = stack.pop<VersionedPathReference<string>>();
@@ -32,15 +35,21 @@ APPEND_OPCODES.add(Op.PutIterator, vm => {
 
   stack.push(iterator);
   stack.push(new IterablePresenceReference(iterator.artifacts));
-});
+}
 
-APPEND_OPCODES.add(Op.EnterList, (vm, { op1: relativeStart }) => {
+LIST_MAPPINGS[Op.PutIterator] = PutIterator;
+
+export function EnterList(vm: VM, { op1: relativeStart }: Opcode) {
   vm.enterList(relativeStart);
-});
+}
 
-APPEND_OPCODES.add(Op.ExitList, vm => vm.exitList());
+LIST_MAPPINGS[Op.EnterList] = EnterList;
 
-APPEND_OPCODES.add(Op.Iterate, (vm, { op1: breaks }) => {
+export function ExitList(vm: VM) { vm.exitList(); }
+
+LIST_MAPPINGS[Op.ExitList] = ExitList;
+
+export function Iterate(vm: VM, { op1: breaks }: Opcode) {
   let stack = vm.stack;
   let item = stack.peek<ReferenceIterator>().next();
 
@@ -50,4 +59,6 @@ APPEND_OPCODES.add(Op.Iterate, (vm, { op1: breaks }) => {
   } else {
     vm.goto(breaks);
   }
-});
+}
+
+LIST_MAPPINGS[Op.Iterate] = Iterate;

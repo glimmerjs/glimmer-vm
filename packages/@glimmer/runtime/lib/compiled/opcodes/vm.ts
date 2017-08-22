@@ -11,27 +11,47 @@ import {
   Tag
 } from '@glimmer/reference';
 import { initializeGuid } from '@glimmer/util';
-import { Handle } from '../../environment';
+import { Handle, Opcode } from '../../environment';
 import { LazyConstants } from '../../environment/constants';
-import { APPEND_OPCODES, UpdatingOpcode } from '../../opcodes';
-import { Primitive, PrimitiveReference, PrimitiveType } from '../../references';
+import { UpdatingOpcode } from '../../updating-opcodes';
+import { Primitive as IPrimitive, PrimitiveReference as PrimitiveKlass, PrimitiveType } from '../../references';
 import { CompilableTemplate } from '../../syntax/interfaces';
 import { VM, UpdatingVM } from '../../vm';
 import { Arguments } from '../../vm/arguments';
 
-APPEND_OPCODES.add(Op.ChildScope, vm => vm.pushChildScope());
+export const VM_MAPPINGS = {};
 
-APPEND_OPCODES.add(Op.PopScope, vm => vm.popScope());
+export function Bug() { throw new Error('You compiled an operation that the VM does not know how to handle.'); }
 
-APPEND_OPCODES.add(Op.PushDynamicScope, vm => vm.pushDynamicScope());
+VM_MAPPINGS[Op.Bug] = Bug;
 
-APPEND_OPCODES.add(Op.PopDynamicScope, vm => vm.popDynamicScope());
+export function Size() { console.log(`Glimmer has ${Op.Size} opcodes.`); }
 
-APPEND_OPCODES.add(Op.Constant, (vm: VM & { constants: LazyConstants }, { op1: other }) => {
+VM_MAPPINGS[Op.Size] = Size;
+
+export function ChildScope(vm: VM) { vm.pushChildScope(); }
+
+VM_MAPPINGS[Op.ChildScope] = ChildScope;
+
+export function PopScope(vm: VM) { vm.popScope(); }
+
+VM_MAPPINGS[Op.PopScope] = PopScope;
+
+export function PushDynamicScope(vm: VM) { vm.pushDynamicScope(); }
+
+VM_MAPPINGS[Op.PushDynamicScope] = PushDynamicScope;
+
+export function PopDynamicScope(vm: VM) { vm.popDynamicScope(); }
+
+VM_MAPPINGS[Op.PopDynamicScope] = PopDynamicScope;
+
+export function Constant(vm: VM & { constants: LazyConstants }, { op1: other }: Opcode) {
   vm.stack.push(vm.constants.getOther(other));
-});
+}
 
-APPEND_OPCODES.add(Op.Primitive, (vm, { op1: primitive }) => {
+VM_MAPPINGS[Op.Constant] = Constant;
+
+export function Primitive(vm: VM, { op1: primitive }: Opcode) {
   let stack = vm.stack;
   let flag: PrimitiveType = primitive & 7; // 111
   let value = primitive >> 3;
@@ -55,46 +75,72 @@ APPEND_OPCODES.add(Op.Primitive, (vm, { op1: primitive }) => {
       }
       break;
   }
-});
+}
 
-APPEND_OPCODES.add(Op.PrimitiveReference, vm => {
+VM_MAPPINGS[Op.Primitive] = Primitive;
+
+export function PrimitiveReference(vm: VM) {
   let stack = vm.stack;
-  stack.push(PrimitiveReference.create(stack.pop<Primitive>()));
-});
+  stack.push(PrimitiveKlass.create(stack.pop<IPrimitive>()));
+}
 
-APPEND_OPCODES.add(Op.Dup, (vm, { op1: register, op2: offset }) => {
+VM_MAPPINGS[Op.PrimitiveReference] = PrimitiveReference;
+
+export function Dup(vm: VM, { op1: register, op2: offset }: Opcode) {
   let position = vm.fetchValue<number>(register) - offset;
   vm.stack.dup(position);
-});
+}
 
-APPEND_OPCODES.add(Op.Pop, (vm, { op1: count }) => vm.stack.pop(count));
+VM_MAPPINGS[Op.Dup] = Dup;
 
-APPEND_OPCODES.add(Op.Load, (vm, { op1: register }) => vm.load(register));
+export function Pop(vm: VM, { op1: count }: Opcode) { vm.stack.pop(count); }
 
-APPEND_OPCODES.add(Op.Fetch, (vm, { op1: register }) => vm.fetch(register));
+VM_MAPPINGS[Op.Pop] = Pop;
 
-APPEND_OPCODES.add(Op.BindDynamicScope, (vm, { op1: _names }) => {
+export function Load(vm: VM, { op1: register }: Opcode) { vm.load(register); }
+
+VM_MAPPINGS[Op.Load] = Load;
+
+export function Fetch(vm: VM, { op1: register }: Opcode) { vm.fetch(register); }
+
+VM_MAPPINGS[Op.Fetch] = Fetch;
+
+export function BindDynamicScope(vm: VM, { op1: _names }: Opcode) {
   let names = vm.constants.getArray(_names);
   vm.bindDynamicScope(names);
-});
+}
 
-APPEND_OPCODES.add(Op.PushFrame, vm => vm.pushFrame());
+VM_MAPPINGS[Op.BindDynamicScope] = BindDynamicScope;
 
-APPEND_OPCODES.add(Op.PopFrame, vm => vm.popFrame());
+export function PushFrame(vm: VM) { vm.pushFrame(); }
 
-APPEND_OPCODES.add(Op.Enter, (vm, { op1: args }) => vm.enter(args));
+VM_MAPPINGS[Op.PushFrame] = PushFrame;
 
-APPEND_OPCODES.add(Op.Exit, (vm) => vm.exit());
+export function PopFrame(vm: VM) { vm.popFrame(); }
 
-APPEND_OPCODES.add(Op.CompileBlock, vm => {
+VM_MAPPINGS[Op.PopFrame] = PopFrame;
+
+export function Enter(vm: VM, { op1: args }: Opcode) { vm.enter(args); }
+
+VM_MAPPINGS[Op.Enter] = Enter;
+
+export function Exit(vm: VM) { vm.exit(); }
+
+VM_MAPPINGS[Op.Exit] = Exit;
+
+export function CompileBlock(vm: VM) {
   let stack = vm.stack;
   let block = stack.pop<Option<CompilableTemplate> | 0>();
   stack.push(block ? block.compile() : null);
-});
+}
 
-APPEND_OPCODES.add(Op.InvokeStatic, vm => vm.call(vm.stack.pop<Handle>()));
+VM_MAPPINGS[Op.CompileBlock] = CompileBlock;
 
-APPEND_OPCODES.add(Op.InvokeYield, vm => {
+export function InvokeStatic(vm: VM) { vm.call(vm.stack.pop<Handle>()); }
+
+VM_MAPPINGS[Op.InvokeStatic] = InvokeStatic;
+
+export function InvokeYield(vm: VM) {
   let { stack } = vm;
 
   let handle = stack.pop<Option<Handle>>();
@@ -126,11 +172,15 @@ APPEND_OPCODES.add(Op.InvokeYield, vm => {
 
   vm.pushFrame();
   vm.call(handle!);
-});
+}
 
-APPEND_OPCODES.add(Op.Jump, (vm, { op1: target }) => vm.goto(target));
+VM_MAPPINGS[Op.InvokeYield] = InvokeYield;
 
-APPEND_OPCODES.add(Op.JumpIf, (vm, { op1: target }) => {
+export function Jump(vm: VM, { op1: target }: Opcode) { vm.goto(target); }
+
+VM_MAPPINGS[Op.Jump] = Jump;
+
+export function JumpIf(vm: VM, { op1: target }: Opcode) {
   let reference = vm.stack.pop<VersionedPathReference<Opaque>>();
 
   if (isConst(reference)) {
@@ -146,9 +196,11 @@ APPEND_OPCODES.add(Op.JumpIf, (vm, { op1: target }) => {
 
     vm.updateWith(new Assert(cache));
   }
-});
+}
 
-APPEND_OPCODES.add(Op.JumpUnless, (vm, { op1: target }) => {
+VM_MAPPINGS[Op.JumpIf] = JumpIf;
+
+export function JumpUnless(vm: VM, { op1: target }: Opcode) {
   let reference = vm.stack.pop<VersionedPathReference<Opaque>>();
 
   if (isConst(reference)) {
@@ -164,17 +216,26 @@ APPEND_OPCODES.add(Op.JumpUnless, (vm, { op1: target }) => {
 
     vm.updateWith(new Assert(cache));
   }
-});
+}
 
-APPEND_OPCODES.add(Op.Return, vm => vm.return());
-APPEND_OPCODES.add(Op.ReturnTo, (vm, { op1: relative }) => {
+VM_MAPPINGS[Op.JumpUnless] = JumpUnless;
+
+export function Return(vm: VM) { vm.return(); }
+
+VM_MAPPINGS[Op.Return] = Return;
+
+export function ReturnTo(vm: VM, { op1: relative }: Opcode) {
   vm.returnTo(relative);
-});
+}
 
-APPEND_OPCODES.add(Op.ToBoolean, vm => {
+VM_MAPPINGS[Op.ReturnTo] = ReturnTo;
+
+export function ToBoolean(vm: VM) {
   let { env, stack } = vm;
   stack.push(env.toConditionalReference(stack.pop<Reference>()));
-});
+}
+
+VM_MAPPINGS[Op.ToBoolean] = ToBoolean;
 
 export class Assert extends UpdatingOpcode {
   public type = 'assert';

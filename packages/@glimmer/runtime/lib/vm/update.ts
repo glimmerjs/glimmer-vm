@@ -18,7 +18,7 @@ import {
   INITIAL,
   Tag
 } from '@glimmer/reference';
-import { UpdatingOpcode, UpdatingOpSeq } from '../opcodes';
+import { UpdatingOpcode } from '../updating-opcodes';
 import { Constants } from '../environment/constants';
 import { DOMChanges } from '../dom/helper';
 import { Simple } from '@glimmer/interfaces';
@@ -40,7 +40,7 @@ export default class UpdatingVM {
     this.alwaysRevalidate = alwaysRevalidate;
   }
 
-  execute(opcodes: UpdatingOpSeq, handler: ExceptionHandler) {
+  execute(opcodes: LinkedList<UpdatingOpcode>, handler: ExceptionHandler) {
     let { frameStack } = this;
 
     this.try(opcodes, handler);
@@ -67,7 +67,7 @@ export default class UpdatingVM {
     this.frame.goto(op);
   }
 
-  try(ops: UpdatingOpSeq, handler: Option<ExceptionHandler>) {
+  try(ops: LinkedList<UpdatingOpcode>, handler: Option<ExceptionHandler>) {
     this.frameStack.push(new UpdatingVMFrame(this, ops, handler));
   }
 
@@ -317,7 +317,7 @@ export class ListBlockOpcode extends BlockOpcode {
 class UpdatingVMFrame {
   private current: Option<UpdatingOpcode>;
 
-  constructor(private vm: UpdatingVM, private ops: UpdatingOpSeq, private exceptionHandler: Option<ExceptionHandler>) {
+  constructor(private vm: UpdatingVM, private ops: LinkedList<UpdatingOpcode>, private exceptionHandler: Option<ExceptionHandler>) {
     this.vm = vm;
     this.ops = ops;
     this.current = ops.head();
