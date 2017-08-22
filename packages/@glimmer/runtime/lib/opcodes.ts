@@ -1,10 +1,11 @@
-import { Opaque, Option, Slice as ListSlice, initializeGuid, fillNulls, unreachable, typePos } from '@glimmer/util';
+import { Opaque, Option, Slice as ListSlice, initializeGuid, unreachable, typePos } from '@glimmer/util';
 import { Op, Register } from '@glimmer/vm';
 import { Tag } from '@glimmer/reference';
 import { VM, UpdatingVM } from './vm';
 import { Opcode, Program } from './environment';
 import { Constants, LazyConstants } from './environment/constants';
 import { DEBUG } from '@glimmer/local-debug-flags';
+import { operations } from './compiled/opcodes/index';
 
 export function debugSlice(program: Program, start: number, end: number) {
   if (DEBUG) {
@@ -184,14 +185,10 @@ export type Operand3 = number;
 export type EvaluateOpcode = (vm: VM, opcode: Opcode) => void;
 
 export class AppendOpcodes {
-  private evaluateOpcode: EvaluateOpcode[] = fillNulls<EvaluateOpcode>(Op.Size).slice();
-
-  add<Name extends Op>(name: Name, evaluate: EvaluateOpcode): void {
-    this.evaluateOpcode[name as number] = evaluate;
-  }
+  constructor(private operations: EvaluateOpcode[]) {}
 
   evaluate(vm: VM, opcode: Opcode, type: number) {
-    let func = this.evaluateOpcode[type];
+    let func = this.operations[type];
     if (DEBUG) {
       /* tslint:disable */
       let [name, params] = debug(vm.constants, opcode.type, opcode.op1, opcode.op2, opcode.op3);
@@ -213,7 +210,7 @@ export class AppendOpcodes {
   }
 }
 
-export const APPEND_OPCODES = new AppendOpcodes();
+export const APPEND_OPCODES = new AppendOpcodes(operations);
 
 export abstract class AbstractOpcode {
   public type: string;

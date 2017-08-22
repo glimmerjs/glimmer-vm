@@ -20,8 +20,8 @@ import {
   WithElementHook,
 } from '../../component/interfaces';
 import { normalizeStringValue } from '../../dom/normalize';
-import { DynamicScope, Handle, ScopeBlock, ScopeSlot } from '../../environment';
-import { APPEND_OPCODES, UpdatingOpcode } from '../../opcodes';
+import { DynamicScope, Handle, ScopeBlock, ScopeSlot, Opcode } from '../../environment';
+import { UpdatingOpcode } from '../../opcodes';
 import { AbstractTemplate } from './builder';
 import { UNDEFINED_REFERENCE } from '../../references';
 import { ATTRS_BLOCK } from '../../syntax/functions';
@@ -35,6 +35,8 @@ import { Op, Register } from '@glimmer/vm';
 import { TemplateMeta } from "@glimmer/wire-format";
 
 const ARGS = new Arguments();
+
+export const COMPONENT_MAPPINGS = {};
 
 function resolveComponent(resolver: Resolver, name: string, meta: TemplateMeta): ComponentDefinition {
   let specifier = resolver.lookupComponent(name, meta);
@@ -99,13 +101,14 @@ class CurryComponentReference implements VersionedPathReference<Option<Component
   }
 }
 
-APPEND_OPCODES.add(Op.IsComponent, vm => {
+export function IsComponent(vm: VM) {
   let stack = vm.stack;
-
   stack.push(IsComponentDefinitionReference.create(stack.pop<Reference>()));
-});
+}
 
-APPEND_OPCODES.add(Op.CurryComponent, (vm, { op1: _meta }) => {
+COMPONENT_MAPPINGS[Op.IsComponent] = IsComponent;
+
+export function CurryComponent(vm: VM, { op1: _meta }: Opcode) {
   let stack = vm.stack;
 
   let args = stack.pop<Arguments>();
@@ -121,16 +124,20 @@ APPEND_OPCODES.add(Op.CurryComponent, (vm, { op1: _meta }) => {
   let definition = stack.pop<VersionedReference<Opaque>>();
 
   stack.push(new CurryComponentReference(definition, resolver, meta, captured));
-});
+}
 
-APPEND_OPCODES.add(Op.PushComponentManager, (vm, { op1: specifier }) => {
+COMPONENT_MAPPINGS[Op.CurryComponent] = CurryComponent;
+
+export function PushComponentManager(vm: VM, { op1: specifier }: Opcode) {
   let definition = vm.constants.resolveSpecifier<ComponentDefinition>(specifier);
   let stack = vm.stack;
 
   stack.push({ definition, manager: definition.manager, component: null });
-});
+}
 
-APPEND_OPCODES.add(Op.PushDynamicComponentManager, (vm, { op1: _meta }) => {
+COMPONENT_MAPPINGS[Op.PushComponentManager] = PushComponentManager;
+
+export function PushDynamicComponentManager(vm: VM, { op1: _meta }: Opcode) {
   let stack = vm.stack;
 
   let value = stack.pop<VersionedPathReference<Opaque>>().value();
@@ -147,7 +154,9 @@ APPEND_OPCODES.add(Op.PushDynamicComponentManager, (vm, { op1: _meta }) => {
   }
 
   stack.push({ definition, manager: definition.manager, component: null });
-});
+}
+
+COMPONENT_MAPPINGS[Op.PushDynamicComponentManager] = PushDynamicComponentManager;
 
 interface InitialComponentState {
   definition: ComponentDefinition;
@@ -161,14 +170,16 @@ interface ComponentState {
   component: Component;
 }
 
-APPEND_OPCODES.add(Op.PushArgs, (vm, { op1: _names, op2: positionalCount, op3: synthetic }) => {
+export function PushArgs(vm: VM, { op1: _names, op2: positionalCount, op3: synthetic }: Opcode) {
   let stack = vm.stack;
   let names = vm.constants.getStringArray(_names);
   ARGS.setup(stack, names, positionalCount, !!synthetic);
   stack.push(ARGS);
-});
+}
 
-APPEND_OPCODES.add(Op.PrepareArgs, (vm, { op1: _state }) => {
+COMPONENT_MAPPINGS[Op.PushArgs] = PushArgs;
+
+export function PrepareArgs(vm: VM, { op1: _state }: Opcode) {
   let stack = vm.stack;
   let state = vm.fetchValue<InitialComponentState>(_state);
 
@@ -208,9 +219,11 @@ APPEND_OPCODES.add(Op.PrepareArgs, (vm, { op1: _state }) => {
   }
 
   stack.push(args);
-});
+}
 
-APPEND_OPCODES.add(Op.CreateComponent, (vm, { op1: flags, op2: _state }) => {
+COMPONENT_MAPPINGS[Op.PrepareArgs] = PrepareArgs;
+
+export function CreateComponent(vm: VM, { op1: flags, op2: _state }: Opcode) {
   let definition: ComponentDefinition;
   let manager: ComponentManager;
   let dynamicScope = vm.dynamicScope();
@@ -235,31 +248,41 @@ APPEND_OPCODES.add(Op.CreateComponent, (vm, { op1: flags, op2: _state }) => {
   if (!isConstTag(tag)) {
     vm.updateWith(new UpdateComponentOpcode(tag, component, manager, dynamicScope));
   }
-});
+}
 
-APPEND_OPCODES.add(Op.RegisterComponentDestructor, (vm, { op1: _state }) => {
+COMPONENT_MAPPINGS[Op.CreateComponent] = CreateComponent;
+
+export function RegisterComponentDestructor(vm: VM, { op1: _state }: Opcode) {
   let { manager, component } = vm.fetchValue<ComponentState>(_state);
 
   let destructor = manager.getDestructor(component);
   if (destructor) vm.newDestroyable(destructor);
-});
+}
 
-APPEND_OPCODES.add(Op.BeginComponentTransaction, vm => {
+COMPONENT_MAPPINGS[Op.RegisterComponentDestructor] = RegisterComponentDestructor;
+
+export function BeginComponentTransaction(vm: VM) {
   vm.beginCacheGroup();
   vm.elements().pushSimpleBlock();
-});
+}
 
-APPEND_OPCODES.add(Op.PutComponentOperations, vm => {
+COMPONENT_MAPPINGS[Op.BeginComponentTransaction] = BeginComponentTransaction;
+
+export function PutComponentOperations(vm: VM) {
   vm.loadValue(Register.t0, new ComponentElementOperations());
-});
+}
 
-APPEND_OPCODES.add(Op.ComponentAttr, (vm, { op1: _name, op2: trusting, op3: _namespace }) => {
+COMPONENT_MAPPINGS[Op.PutComponentOperations] = PutComponentOperations;
+
+export function ComponentAttr(vm: VM, { op1: _name, op2: trusting, op3: _namespace }: Opcode) {
   let name = vm.constants.getString(_name);
   let reference = vm.stack.pop<VersionedReference<Opaque>>();
   let namespace = _namespace ? vm.constants.getString(_namespace) : null;
 
   vm.fetchValue<ComponentElementOperations>(Register.t0).setAttribute(name, reference, !!trusting, namespace);
-});
+}
+
+COMPONENT_MAPPINGS[Op.ComponentAttr] = ComponentAttr;
 
 interface DeferredAttribute {
   value: VersionedReference<Opaque>;
@@ -320,25 +343,31 @@ class ClassListReference implements VersionedReference<Option<string>> {
   }
 }
 
-APPEND_OPCODES.add(Op.DidCreateElement, (vm, { op1: _state }) => {
+export function DidCreateElement(vm: VM, { op1: _state }: Opcode) {
   let { manager, component } = vm.fetchValue<ComponentState>(_state);
   let operations = vm.fetchValue<ComponentElementOperations>(Register.t0);
 
   let action = 'DidCreateElementOpcode#evaluate';
   (manager as WithElementHook<Component>).didCreateElement(component, vm.elements().expectConstructing(action), operations);
-});
+}
 
-APPEND_OPCODES.add(Op.GetComponentSelf, (vm, { op1: _state }) => {
+COMPONENT_MAPPINGS[Op.DidCreateElement] = DidCreateElement;
+
+export function GetComponentSelf(vm: VM, { op1: _state }: Opcode) {
   let { manager, component } = vm.fetchValue<ComponentState>(_state);
   vm.stack.push(manager.getSelf(component));
-});
+}
 
-APPEND_OPCODES.add(Op.GetComponentTagName, (vm, { op1: _state }) => {
+COMPONENT_MAPPINGS[Op.GetComponentSelf] = GetComponentSelf;
+
+export function GetComponentTagName(vm: VM, { op1: _state }: Opcode) {
   let { manager, component } = vm.fetchValue<ComponentState>(_state);
   vm.stack.push((manager as Recast<ComponentManager, WithDynamicTagName<Component>>).getTagName(component));
-});
+}
 
-APPEND_OPCODES.add(Op.GetComponentLayout, (vm, { op1: _state }) => {
+COMPONENT_MAPPINGS[Op.GetComponentTagName] = GetComponentTagName;
+
+export function GetComponentLayout(vm: VM, { op1: _state }: Opcode) {
   let { manager, definition, component } = vm.fetchValue<ComponentState>(_state);
   let { constants: { resolver }, stack } = vm;
   let specifier: Specifier;
@@ -355,9 +384,11 @@ APPEND_OPCODES.add(Op.GetComponentLayout, (vm, { op1: _state }) => {
 
   stack.push(layout.symbolTable);
   stack.push(layout);
-});
+}
 
-APPEND_OPCODES.add(Op.InvokeComponentLayout, vm => {
+COMPONENT_MAPPINGS[Op.GetComponentLayout] = GetComponentLayout;
+
+export function InvokeComponentLayout(vm:VM) {
   let { stack } = vm;
 
   let handle = stack.pop<Handle>();
@@ -413,9 +444,11 @@ APPEND_OPCODES.add(Op.InvokeComponentLayout, vm => {
     vm.pushFrame();
     vm.call(handle!);
   }
-});
+}
 
-APPEND_OPCODES.add(Op.DidRenderLayout, (vm, { op1: _state }) => {
+COMPONENT_MAPPINGS[Op.InvokeComponentLayout] = InvokeComponentLayout;
+
+export function DidRenderLayout(vm: VM, { op1: _state }: Opcode) {
   let { manager, component } = vm.fetchValue<ComponentState>(_state);
   let bounds = vm.elements().popBlock();
 
@@ -424,9 +457,13 @@ APPEND_OPCODES.add(Op.DidRenderLayout, (vm, { op1: _state }) => {
   vm.env.didCreate(component, manager);
 
   vm.updateWith(new DidUpdateLayoutOpcode(manager, component, bounds));
-});
+}
 
-APPEND_OPCODES.add(Op.CommitComponentTransaction, vm => vm.commitCacheGroup());
+COMPONENT_MAPPINGS[Op.DidRenderLayout] = DidRenderLayout;
+
+export function CommitComponentTransaction(vm: VM) { vm.commitCacheGroup(); }
+
+COMPONENT_MAPPINGS[Op.CommitComponentTransaction] = CommitComponentTransaction;
 
 export class UpdateComponentOpcode extends UpdatingOpcode {
   public type = 'update-component';

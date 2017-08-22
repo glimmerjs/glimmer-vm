@@ -1,12 +1,15 @@
 import { VersionedReference, VersionedPathReference } from '@glimmer/reference';
 import { TemplateMeta } from '@glimmer/wire-format';
 import { Op } from '@glimmer/vm';
-import { APPEND_OPCODES } from '../../opcodes';
 import { PartialDefinition } from '../../partial';
 import { assert, dict } from "@glimmer/util";
 import { Opaque } from "@glimmer/interfaces";
+import { VM } from '../../vm';
+import { Opcode } from '../../environment';
 
-APPEND_OPCODES.add(Op.InvokePartial, (vm, { op1: _meta, op2: _symbols, op3: _evalInfo }) => {
+export const PARTIAL_MAPPINGS = {};
+
+export function InvokePartial(vm: VM, { op1: _meta, op2: _symbols, op3: _evalInfo }: Opcode) {
   let { constants, constants: { resolver }, stack } = vm;
 
   let name = stack.pop<VersionedReference</*Opaque*/ string>>().value();
@@ -56,4 +59,6 @@ APPEND_OPCODES.add(Op.InvokePartial, (vm, { op1: _meta, op2: _symbols, op3: _eva
     vm.pushFrame();
     vm.call(handle!);
   }
-});
+}
+
+PARTIAL_MAPPINGS[Op.InvokePartial] = InvokePartial;

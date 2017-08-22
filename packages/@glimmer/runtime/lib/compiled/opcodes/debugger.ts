@@ -1,11 +1,13 @@
 import { Opaque } from '@glimmer/interfaces';
 import { VersionedPathReference } from '@glimmer/reference';
 import { dict } from '@glimmer/util';
-import { Scope } from '../../environment';
-import { APPEND_OPCODES } from '../../opcodes';
+import { Scope, Opcode } from '../../environment';
 import { Op } from '@glimmer/vm';
+import { VM } from '../../vm';
 
 export type DebugGet = ((path: string) => Opaque);
+
+export const DEBUG_MAPPINGS = {};
 
 export type DebugCallback = ((context: Opaque, get: DebugGet) => void);
 
@@ -66,9 +68,11 @@ class ScopeInspector {
   }
 }
 
-APPEND_OPCODES.add(Op.Debugger, (vm, { op1: _symbols, op2: _evalInfo }) => {
+export function Debugger(vm: VM, { op1: _symbols, op2: _evalInfo }: Opcode) {
   let symbols = vm.constants.getStringArray(_symbols);
   let evalInfo = vm.constants.getArray(_evalInfo);
   let inspector = new ScopeInspector(vm.scope(), symbols, evalInfo);
   callback(vm.getSelf().value(), path => inspector.get(path).value());
-});
+};
+
+DEBUG_MAPPINGS[Op.Debugger] = Debugger;

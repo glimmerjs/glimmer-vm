@@ -10,32 +10,41 @@ import {
 import { Opaque, Option } from '@glimmer/util';
 import { Simple } from '@glimmer/interfaces';
 import { Op, Register } from '@glimmer/vm';
-import { Modifier, ModifierManager } from '../../modifier/interfaces';
-import { APPEND_OPCODES, UpdatingOpcode } from '../../opcodes';
-import { UpdatingVM } from '../../vm';
+import { Modifier as IModifier, ModifierManager } from '../../modifier/interfaces';
+import { UpdatingOpcode } from '../../opcodes';
+import { UpdatingVM, VM } from '../../vm';
 import { Arguments } from '../../vm/arguments';
 import { Assert } from './vm';
 import { DynamicAttribute } from '../../vm/attributes/dynamic';
 import { ComponentElementOperations } from './component';
+import { Opcode }from '../../environment';
 
-APPEND_OPCODES.add(Op.Text, (vm, { op1: text }) => {
+export const DOM_MAPPINGS = {};
+
+export function Text(vm: VM, { op1: text }: Opcode) {
   vm.elements().appendText(vm.constants.getString(text));
-});
+}
 
-APPEND_OPCODES.add(Op.Comment, (vm, { op1: text }) => {
+DOM_MAPPINGS[Op.Text] = Text;
+
+export function Comment(vm: VM, { op1: text }: Opcode) {
   vm.elements().appendComment(vm.constants.getString(text));
-});
+}
 
-APPEND_OPCODES.add(Op.OpenElement, (vm, { op1: tag }) => {
+DOM_MAPPINGS[Op.Comment] = Comment;
+
+export function OpenElement(vm: VM, { op1: tag }: Opcode) {
   vm.elements().openElement(vm.constants.getString(tag));
-});
+}
 
-APPEND_OPCODES.add(Op.OpenDynamicElement, vm => {
+export function OpenDynamicElement(vm: VM) {
   let tagName = vm.stack.pop<Reference<string>>().value();
   vm.elements().openElement(tagName);
-});
+}
 
-APPEND_OPCODES.add(Op.PushRemoteElement, vm => {
+DOM_MAPPINGS[Op.OpenDynamicElement] = OpenDynamicElement;
+
+export function PushRemoteElement(vm: VM) {
   let elementRef = vm.stack.pop<Reference<Simple.Element>>();
   let nextSiblingRef = vm.stack.pop<Reference<Option<Simple.Node>>>();
 
@@ -59,11 +68,15 @@ APPEND_OPCODES.add(Op.PushRemoteElement, vm => {
   }
 
   vm.elements().pushRemoteElement(element, nextSibling);
-});
+}
 
-APPEND_OPCODES.add(Op.PopRemoteElement, vm => vm.elements().popRemoteElement());
+DOM_MAPPINGS[Op.PushRemoteElement] = PushRemoteElement;
 
-APPEND_OPCODES.add(Op.FlushElement, vm => {
+export function PopRemoteElement(vm: VM){ vm.elements().popRemoteElement(); }
+
+DOM_MAPPINGS[Op.PopRemoteElement] = PopRemoteElement;
+
+export function FlushElement(vm: VM) {
   let operations = vm.fetchValue<ComponentElementOperations>(Register.t0);
 
   if (operations) {
@@ -72,11 +85,15 @@ APPEND_OPCODES.add(Op.FlushElement, vm => {
   }
 
   vm.elements().flushElement();
-});
+}
 
-APPEND_OPCODES.add(Op.CloseElement, vm => vm.elements().closeElement());
+DOM_MAPPINGS[Op.FlushElement] = FlushElement;
 
-APPEND_OPCODES.add(Op.Modifier, (vm, { op1: specifier }) => {
+export function CloseElement(vm: VM) { vm.elements().closeElement(); }
+
+DOM_MAPPINGS[Op.CloseElement] = CloseElement;
+
+export function Modifier(vm: VM, { op1: specifier }: Opcode) {
   let manager = vm.constants.resolveSpecifier<ModifierManager>(specifier);
   let stack = vm.stack;
   let args = stack.pop<Arguments>();
@@ -102,7 +119,9 @@ APPEND_OPCODES.add(Op.Modifier, (vm, { op1: specifier }) => {
       modifier
     ));
   }
-});
+}
+
+DOM_MAPPINGS[Op.Modifier] = Modifier;
 
 export class UpdateModifierOpcode extends UpdatingOpcode {
   public type = 'update-modifier';
@@ -111,7 +130,7 @@ export class UpdateModifierOpcode extends UpdatingOpcode {
   constructor(
     public tag: Tag,
     private manager: ModifierManager,
-    private modifier: Modifier,
+    private modifier: IModifier,
   ) {
     super();
     this.lastUpdated = tag.value();
@@ -127,17 +146,17 @@ export class UpdateModifierOpcode extends UpdatingOpcode {
   }
 }
 
-// APPEND_OPCODES.add(Op.ComponentAttr, )
-
-APPEND_OPCODES.add(Op.StaticAttr, (vm, { op1: _name, op2: _value, op3: _namespace }) => {
+export function StaticAttr(vm: VM, { op1: _name, op2: _value, op3: _namespace }: Opcode) {
   let name = vm.constants.getString(_name);
   let value = vm.constants.getString(_value);
   let namespace = _namespace ? vm.constants.getString(_namespace) : null;
 
   vm.elements().setStaticAttribute(name, value, namespace);
-});
+}
 
-APPEND_OPCODES.add(Op.DynamicAttr, (vm, { op1: _name, op2: trusting, op3: _namespace }) => {
+DOM_MAPPINGS[Op.StaticAttr] = StaticAttr;
+
+export function DynamicAttr(vm: VM, { op1: _name, op2: trusting, op3: _namespace }: Opcode) {
   let name = vm.constants.getString(_name);
   let reference = vm.stack.pop<VersionedReference<Opaque>>();
   let value = reference.value();
@@ -148,7 +167,9 @@ APPEND_OPCODES.add(Op.DynamicAttr, (vm, { op1: _name, op2: trusting, op3: _names
   if (!isConst(reference)) {
     vm.updateWith(new UpdateDynamicAttributeOpcode(reference, attribute));
   }
-});
+}
+
+DOM_MAPPINGS[Op.DynamicAttr] = DynamicAttr;
 
 export class UpdateDynamicAttributeOpcode extends UpdatingOpcode {
   public type = 'patch-element';

@@ -3,9 +3,12 @@ import { isConst, Reference, VersionedPathReference, Tag, VersionedReference } f
 import { Op } from '@glimmer/vm';
 import { DynamicContentWrapper } from '../../vm/content/dynamic';
 import { isComponentDefinition } from '../../component/interfaces';
-import { APPEND_OPCODES, UpdatingOpcode } from '../../opcodes';
+import { UpdatingOpcode } from '../../opcodes';
 import { ConditionalReference } from '../../references';
-import { UpdatingVM } from '../../vm';
+import { UpdatingVM, VM } from '../../vm';
+import { Opcode } from '../../environment';
+
+export const CONTENT_MAPPINGS = {};
 
 export class IsComponentDefinitionReference extends ConditionalReference {
   static create(inner: Reference<Opaque>): IsComponentDefinitionReference {
@@ -17,7 +20,7 @@ export class IsComponentDefinitionReference extends ConditionalReference {
   }
 }
 
-APPEND_OPCODES.add(Op.DynamicContent, (vm, { op1: isTrusting }) => {
+export function DynamicContent(vm: VM, { op1: isTrusting }: Opcode) {
   let reference = vm.stack.pop<VersionedPathReference<Opaque>>();
   let value = reference.value();
   let content: DynamicContentWrapper;
@@ -31,7 +34,9 @@ APPEND_OPCODES.add(Op.DynamicContent, (vm, { op1: isTrusting }) => {
   if (!isConst(reference)) {
     vm.updateWith(new UpdateDynamicContentOpcode(reference, content));
   }
-});
+}
+
+CONTENT_MAPPINGS[Op.DynamicContent] = DynamicContent;
 
 class UpdateDynamicContentOpcode extends UpdatingOpcode {
   public tag: Tag;
