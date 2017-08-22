@@ -1,7 +1,6 @@
-import { Opaque, Option, Slice as ListSlice, initializeGuid, unreachable, typePos } from '@glimmer/util';
+import { Opaque, Option, unreachable, typePos } from '@glimmer/util';
 import { Op, Register } from '@glimmer/vm';
-import { Tag } from '@glimmer/reference';
-import { VM, UpdatingVM } from './vm';
+import { VM } from './vm';
 import { Opcode, Program } from './environment';
 import { Constants, LazyConstants } from './environment/constants';
 import { DEBUG } from '@glimmer/local-debug-flags';
@@ -211,23 +210,3 @@ export class AppendOpcodes {
 }
 
 export const APPEND_OPCODES = new AppendOpcodes(operations);
-
-export abstract class AbstractOpcode {
-  public type: string;
-  public _guid: number;
-
-  constructor() {
-    initializeGuid(this);
-  }
-}
-
-export abstract class UpdatingOpcode extends AbstractOpcode {
-  public abstract tag: Tag;
-
-  next: Option<UpdatingOpcode> = null;
-  prev: Option<UpdatingOpcode> = null;
-
-  abstract evaluate(vm: UpdatingVM): void;
-}
-
-export type UpdatingOpSeq = ListSlice<UpdatingOpcode>;

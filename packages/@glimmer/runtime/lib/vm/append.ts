@@ -10,9 +10,9 @@ import RenderResult from './render-result';
 import { DEBUG } from '@glimmer/local-debug-flags';
 
 import {
-  APPEND_OPCODES,
-  UpdatingOpcode
+  APPEND_OPCODES
 } from '../opcodes';
+import { UpdatingOpcode } from '../updating-opcodes';
 
 import {
   Constants,

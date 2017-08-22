@@ -13,13 +13,21 @@ import {
 import { initializeGuid } from '@glimmer/util';
 import { Handle, Opcode } from '../../environment';
 import { LazyConstants } from '../../environment/constants';
-import { UpdatingOpcode } from '../../opcodes';
+import { UpdatingOpcode } from '../../updating-opcodes';
 import { Primitive as IPrimitive, PrimitiveReference as PrimitiveKlass, PrimitiveType } from '../../references';
 import { CompilableTemplate } from '../../syntax/interfaces';
 import { VM, UpdatingVM } from '../../vm';
 import { Arguments } from '../../vm/arguments';
 
 export const VM_MAPPINGS = {};
+
+export function Bug() { throw new Error('You compiled an operation that the VM does not know how to handle.'); }
+
+VM_MAPPINGS[Op.Bug] = Bug;
+
+export function Size() { console.log(`Glimmer has ${Op.Size} opcodes.`); }
+
+VM_MAPPINGS[Op.Size] = Size;
 
 export function ChildScope(vm: VM) { vm.pushChildScope(); }
 

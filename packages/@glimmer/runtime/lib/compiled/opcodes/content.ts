@@ -3,7 +3,7 @@ import { isConst, Reference, VersionedPathReference, Tag, VersionedReference } f
 import { Op } from '@glimmer/vm';
 import { DynamicContentWrapper } from '../../vm/content/dynamic';
 import { isComponentDefinition } from '../../component/interfaces';
-import { UpdatingOpcode } from '../../opcodes';
+import { UpdatingOpcode } from '../../updating-opcodes';
 import { ConditionalReference } from '../../references';
 import { UpdatingVM, VM } from '../../vm';
 import { Opcode } from '../../environment';

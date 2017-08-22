@@ -21,7 +21,7 @@ import {
 } from '../../component/interfaces';
 import { normalizeStringValue } from '../../dom/normalize';
 import { DynamicScope, Handle, ScopeBlock, ScopeSlot, Opcode } from '../../environment';
-import { UpdatingOpcode } from '../../opcodes';
+import { UpdatingOpcode } from '../../updating-opcodes';
 import { AbstractTemplate } from './builder';
 import { UNDEFINED_REFERENCE } from '../../references';
 import { ATTRS_BLOCK } from '../../syntax/functions';

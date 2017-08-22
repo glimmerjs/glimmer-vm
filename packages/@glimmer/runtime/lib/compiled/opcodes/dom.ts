@@ -11,7 +11,7 @@ import { Opaque, Option } from '@glimmer/util';
 import { Simple } from '@glimmer/interfaces';
 import { Op, Register } from '@glimmer/vm';
 import { Modifier as IModifier, ModifierManager } from '../../modifier/interfaces';
-import { UpdatingOpcode } from '../../opcodes';
+import { UpdatingOpcode } from '../../updating-opcodes';
 import { UpdatingVM, VM } from '../../vm';
 import { Arguments } from '../../vm/arguments';
 import { Assert } from './vm';
@@ -36,6 +36,8 @@ DOM_MAPPINGS[Op.Comment] = Comment;
 export function OpenElement(vm: VM, { op1: tag }: Opcode) {
   vm.elements().openElement(vm.constants.getString(tag));
 }
+
+DOM_MAPPINGS[Op.OpenElement] = OpenElement;
 
 export function OpenDynamicElement(vm: VM) {
   let tagName = vm.stack.pop<Reference<string>>().value();
