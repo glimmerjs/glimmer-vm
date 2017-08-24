@@ -237,9 +237,9 @@ class TagsCombinator extends CachedTag {
   }
 }
 
-  register(TagsCombinator);
+register(TagsCombinator);
 
-  export class UpdatableTag extends CachedTag {
+export class UpdatableTag extends CachedTag {
   static create(tag: Tag): TagWrapper<UpdatableTag> {
     return new TagWrapper(this.id, new UpdatableTag(tag));
   }
@@ -253,10 +253,6 @@ class TagsCombinator extends CachedTag {
     this.lastUpdated = INITIAL;
   }
 
-  protected compute(): Revision {
-    return Math.max(this.lastUpdated, this.tag.value());
-  }
-
   update(tag: Tag) {
     if (tag !== this.tag) {
       this.tag = tag;
@@ -264,19 +260,23 @@ class TagsCombinator extends CachedTag {
       this.invalidate();
     }
   }
+
+  protected compute(): Revision {
+    return Math.max(this.lastUpdated, this.tag.value());
+  }
 }
 
-  register(UpdatableTag);
+register(UpdatableTag);
 
 //////////
 
-  export interface VersionedReference<T = Opaque> extends Reference<T>, Tagged {}
+export interface VersionedReference<T = Opaque> extends Reference<T>, Tagged {}
 
-  export interface VersionedPathReference<T = Opaque> extends PathReference<T>, Tagged {
+export interface VersionedPathReference<T = Opaque> extends PathReference<T>, Tagged {
   get(property: string): VersionedPathReference<Opaque>;
 }
 
-  export abstract class CachedReference<T> implements VersionedReference<T> {
+export abstract class CachedReference<T> implements VersionedReference<T> {
   abstract tag: Tag;
 
   private lastRevision: Option<Revision> = null;
@@ -302,9 +302,9 @@ class TagsCombinator extends CachedTag {
 
 //////////
 
-  export type Mapper<T, U> = (value: T) => U;
+export type Mapper<T, U> = (value: T) => U;
 
-  class MapperReference<T, U> extends CachedReference<U> {
+class MapperReference<T, U> extends CachedReference<U> {
   tag: Tag;
 
   private reference: VersionedReference<T>;
@@ -323,13 +323,13 @@ class TagsCombinator extends CachedTag {
   }
 }
 
-  export function map<T, U>(reference: VersionedReference<T>, mapper: Mapper<T, U>): VersionedReference<U> {
+export function map<T, U>(reference: VersionedReference<T>, mapper: Mapper<T, U>): VersionedReference<U> {
   return new MapperReference<T, U>(reference, mapper);
 }
 
 //////////
 
-  export class ReferenceCache<T> implements Tagged {
+export class ReferenceCache<T> implements Tagged {
   tag: Tag;
 
   private reference: VersionedReference<T>;
@@ -380,12 +380,12 @@ class TagsCombinator extends CachedTag {
   }
 }
 
-  export type Validation<T> = T | NotModified;
+export type Validation<T> = T | NotModified;
 
-  export type NotModified = 'adb3b78e-3d22-4e4b-877a-6317c2c5c145';
+export type NotModified = 'adb3b78e-3d22-4e4b-877a-6317c2c5c145';
 
-  const NOT_MODIFIED: NotModified = 'adb3b78e-3d22-4e4b-877a-6317c2c5c145';
+const NOT_MODIFIED: NotModified = 'adb3b78e-3d22-4e4b-877a-6317c2c5c145';
 
-  export function isModified<T>(value: Validation<T>): value is T {
+export function isModified<T>(value: Validation<T>): value is T {
   return value !== NOT_MODIFIED;
 }
