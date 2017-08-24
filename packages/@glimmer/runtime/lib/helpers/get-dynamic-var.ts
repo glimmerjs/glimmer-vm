@@ -1,11 +1,11 @@
-import { Helper, DynamicScope } from '../environment';
+import { CONSTANT_TAG, PathReference, Tag, TagWrapper, UpdatableTag, combine } from '@glimmer/reference';
+import { Opaque } from '@glimmer/util';
+import { DynamicScope, Helper } from '../environment';
 import { PublicVM } from '../vm/append';
 import { IArguments } from '../vm/arguments';
-import { CONSTANT_TAG, Tag, PathReference, UpdatableTag, TagWrapper, combine } from '@glimmer/reference';
-import { Opaque } from '@glimmer/util';
 
 class DynamicVarReference implements PathReference<Opaque> {
-  public tag: Tag;
+  tag: Tag;
   private varTag: TagWrapper<UpdatableTag>;
 
   constructor(private scope: DynamicScope, private nameRef: PathReference<Opaque>) {

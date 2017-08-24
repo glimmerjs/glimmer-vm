@@ -1,8 +1,8 @@
-import { CompileTimeProgram, CompileTimeConstants } from './interfaces';
-import { Option, Opaque, SymbolTable, Recast } from '@glimmer/interfaces';
-import { Op, Register } from '@glimmer/vm';
+import { Opaque, Option, Recast, SymbolTable } from '@glimmer/interfaces';
 import { DEBUG } from '@glimmer/local-debug-flags';
-import { unreachable } from "@glimmer/util";
+import { unreachable } from '@glimmer/util';
+import { Op, Register } from '@glimmer/vm';
+import { CompileTimeConstants, CompileTimeProgram } from './interfaces';
 
 export interface DebugConstants {
   getString(value: number): string;
@@ -30,7 +30,7 @@ export function debugSlice(program: CompileTimeProgram, start: number, end: numb
 
     (console as any).group(`%c${start}:${end}`, 'color: #999');
 
-    for (let i=start; i<end; i= i + 4) {
+    for (let i = start; i < end; i = i + 4) {
       let { type, op1, op2, op3 } = program.opcode(i);
       let [name, params] = debug(constants as Recast<CompileTimeConstants, DebugConstants>, type, op1, op2, op3);
       console.log(`${i}. ${logOpcode(name, params)}`);
@@ -62,7 +62,7 @@ function json(param: Opaque) {
     let string;
     try {
       string = JSON.stringify(param);
-    } catch(e) {
+    } catch (e) {
       return '<cannot generate JSON>';
     }
 

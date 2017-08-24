@@ -1,27 +1,27 @@
 import { CLASS_META } from '@glimmer/object-reference';
-import { Dict, dict, assign } from '@glimmer/util';
+import { Dict, assign, dict } from '@glimmer/util';
 import GlimmerObject, {
-  GlimmerObjectFactory,
   ClassMeta,
+  GlimmerObjectFactory,
   InstanceMeta,
   turbocharge
 } from './object';
 
+import { Option } from '@glimmer/interfaces';
 import { ROOT } from './utils';
-import { Option } from "@glimmer/interfaces";
 
 const { isArray } = Array;
 
-export const DESCRIPTOR = "5d90f84f-908e-4a42-9749-3d0f523c262c";
-export const BLUEPRINT  = "8d97cf5f-db9e-48d8-a6b2-7a75b7170805";
+export const DESCRIPTOR = '5d90f84f-908e-4a42-9749-3d0f523c262c';
+export const BLUEPRINT  = '8d97cf5f-db9e-48d8-a6b2-7a75b7170805';
 
 export abstract class Descriptor {
-  "5d90f84f-908e-4a42-9749-3d0f523c262c" = true;
+  '5d90f84f-908e-4a42-9749-3d0f523c262c' = true;
   abstract define(prototype: Object, key: string, home: Object): void;
 }
 
 export abstract class Blueprint {
-  "8d97cf5f-db9e-48d8-a6b2-7a75b7170805" = true;
+  '8d97cf5f-db9e-48d8-a6b2-7a75b7170805' = true;
   abstract descriptor(target: Object, key: string, classMeta: ClassMeta): Descriptor;
 }
 
@@ -38,16 +38,16 @@ export class Mixin {
   private mergedProperties: string[] = [];
   private dependencies: Mixin[] = [];
 
-  static create(...args: (Mixin | Extensions)[]) {
+  static create(...args: Array<Mixin | Extensions>) {
     let extensions = args[args.length - 1];
 
     if (args.length === 0) {
       return new this({}, []);
     } else if (extensions instanceof Mixin) {
-      return new this({}, <Mixin[]>args);
+      return new this({}, args as Mixin[]);
     } else {
       let deps = args.slice(0, -1).map(toMixin);
-      return new this(<Extensions>extensions, deps);
+      return new this(extensions as Extensions, deps);
     }
   }
 
@@ -86,11 +86,11 @@ export class Mixin {
       let rawConcat = extensions.concatenatedProperties;
 
       if (isArray(rawConcat)) {
-        concat = (<string[]>rawConcat).slice();
+        concat = (rawConcat as string[]).slice();
       } else if (rawConcat === null || rawConcat === undefined) {
         concat = [];
       } else {
-        concat = [<string>rawConcat];
+        concat = [rawConcat as string];
       }
 
       delete extensions.concatenatedProperties;
@@ -102,11 +102,11 @@ export class Mixin {
       let rawMerged = extensions.mergedProperties;
 
       if (isArray(rawMerged)) {
-        merged = (<string[]>rawMerged).slice();
+        merged = (rawMerged as string[]).slice();
       } else if (rawMerged === null || rawMerged === undefined) {
         merged = [];
       } else {
-        merged = [<string>rawMerged];
+        merged = [rawMerged as string];
       }
 
       delete extensions.mergedProperties;
@@ -178,18 +178,18 @@ export class Mixin {
 
     Object.keys(this.extensions).forEach(key => {
       let extension: Blueprint = this.extensions![key];
-      let desc = extension.descriptor(target, <string>key, meta);
-      desc.define(target, <string>key, parent);
+      let desc = extension.descriptor(target, key as string, meta);
+      desc.define(target, key as string, parent);
     });
 
-    new ValueDescriptor({ value: ROOT }).define(target, <string>'_super');
+    new ValueDescriptor({ value: ROOT }).define(target, '_super' as string);
   }
 }
 
 export type Extension = Mixin | Extensions;
 
 export function extend<T extends GlimmerObject>(Parent: GlimmerObjectFactory<T>, ...extensions: Extension[]): GlimmerObjectFactory<any> {
-  let Super = <typeof GlimmerObject>Parent;
+  let Super = Parent as typeof GlimmerObject;
 
   let Subclass = class extends Super {};
   Subclass[CLASS_META] = InstanceMeta.fromParent(Parent[CLASS_META]);
@@ -217,16 +217,16 @@ export function relinkSubclasses(Parent: GlimmerObjectFactory<any>) {
 
 export function toMixin(extension: Extension): Mixin {
   if (extension instanceof Mixin) return extension;
-  else return new Mixin(<Object>extension, []);
+  else return new Mixin(extension as Object, []);
 }
 
 class ValueDescriptor extends Descriptor {
-  public enumerable: boolean;
-  public configurable: boolean;
-  public writable: boolean;
-  public value: any;
+  enumerable: boolean;
+  configurable: boolean;
+  writable: boolean;
+  value: any;
 
-  constructor({ enumerable=true, configurable=true, writable=true, value }: PropertyDescriptor) {
+  constructor({ enumerable= true, configurable= true, writable= true, value }: PropertyDescriptor) {
     super();
     this.enumerable = enumerable;
     this.configurable = configurable;
@@ -245,12 +245,12 @@ class ValueDescriptor extends Descriptor {
 }
 
 export class DataBlueprint extends Blueprint {
-  public enumerable: boolean;
-  public configurable: boolean;
-  public value: any;
-  public writable: boolean;
+  enumerable: boolean;
+  configurable: boolean;
+  value: any;
+  writable: boolean;
 
-  constructor({ enumerable=true, configurable=true, writable=true, value }: PropertyDescriptor) {
+  constructor({ enumerable= true, configurable= true, writable= true, value }: PropertyDescriptor) {
     super();
     this.enumerable = enumerable;
     this.configurable = configurable;
@@ -261,12 +261,12 @@ export class DataBlueprint extends Blueprint {
   descriptor(_target: Object, key: string, classMeta: ClassMeta): Descriptor {
     let { enumerable, configurable, writable, value } = this;
 
-    if (classMeta.hasConcatenatedProperty(<string>key)) {
-      classMeta.addConcatenatedProperty(<string>key, value);
-      value = classMeta.getConcatenatedProperty(<string>key);
-    } else if (classMeta.hasMergedProperty(<string>key)) {
-      classMeta.addMergedProperty(<string>key, value);
-      value = classMeta.getMergedProperty(<string>key);
+    if (classMeta.hasConcatenatedProperty(key as string)) {
+      classMeta.addConcatenatedProperty(key as string, value);
+      value = classMeta.getConcatenatedProperty(key as string);
+    } else if (classMeta.hasMergedProperty(key as string)) {
+      classMeta.addMergedProperty(key as string, value);
+      value = classMeta.getMergedProperty(key as string);
     }
 
     return new ValueDescriptor({ enumerable, configurable, writable, value });
@@ -274,12 +274,12 @@ export class DataBlueprint extends Blueprint {
 }
 
 export abstract class AccessorBlueprint extends Blueprint {
-  public enumerable: boolean;
-  public configurable: boolean;
+  enumerable: boolean;
+  configurable: boolean;
   get: () => any;
   set: (value: any) => void;
 
-  constructor({ enumerable=true, configurable=true, get, set }: PropertyDescriptor & { get: any, set: any }) {
+  constructor({ enumerable= true, configurable= true, get, set }: PropertyDescriptor & { get: any, set: any }) {
     super();
     this.enumerable = enumerable;
     this.configurable = configurable;
@@ -312,7 +312,7 @@ class MethodBlueprint extends DataBlueprint {
 }
 
 export function wrapMethod(home: Object, methodName: string, original: (...args: any[]) => any) {
-  if (!(<string>methodName in home)) return maybeWrap(original);
+  if (!(methodName as string in home)) return maybeWrap(original);
 
   let superMethod = home[methodName];
 
@@ -329,7 +329,7 @@ export function wrapMethod(home: Object, methodName: string, original: (...args:
     }
   };
 
-  (<any>func).__wrapped = true;
+  (func as any).__wrapped = true;
 
   return func;
 }

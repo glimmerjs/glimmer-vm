@@ -1,5 +1,7 @@
-import { Opaque, Option, BlockSymbolTable } from '@glimmer/interfaces';
+import { BlockSymbolTable, Opaque, Option } from '@glimmer/interfaces';
+import { VMHandle } from '@glimmer/opcode-compiler';
 import { VersionedPathReference } from '@glimmer/reference';
+import { assert } from '@glimmer/util';
 import { Op } from '@glimmer/vm';
 import { Helper, ScopeBlock } from '../../environment';
 import { APPEND_OPCODES } from '../../opcodes';
@@ -7,8 +9,6 @@ import { FALSE_REFERENCE, TRUE_REFERENCE } from '../../references';
 import { PublicVM } from '../../vm';
 import { Arguments } from '../../vm/arguments';
 import { ConcatReference } from '../expressions/concat';
-import { VMHandle } from "@glimmer/opcode-compiler";
-import { assert } from "@glimmer/util";
 import { stackAssert } from './assert';
 
 export type FunctionExpression<T> = (vm: PublicVM) => VersionedPathReference<T>;
@@ -85,7 +85,7 @@ APPEND_OPCODES.add(Op.HasBlock, (vm, { op1: _block }) => {
   vm.stack.push(hasBlock ? TRUE_REFERENCE : FALSE_REFERENCE);
 });
 
-APPEND_OPCODES.add(Op.HasBlockParams, (vm) => {
+APPEND_OPCODES.add(Op.HasBlockParams, vm => {
   vm.stack.pop<VMHandle>();
   let table = vm.stack.pop<Option<BlockSymbolTable>>();
 

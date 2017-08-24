@@ -1,11 +1,11 @@
-import { IArguments } from '../vm/arguments';
+import { Option, Unique } from '@glimmer/interfaces';
+import { Tag } from '@glimmer/reference';
+import { Destroyable } from '@glimmer/util';
 import { DOMChanges } from '../dom/helper';
 import { DynamicScope } from '../environment';
-import { Destroyable } from '@glimmer/util';
-import { Option, Unique } from "@glimmer/interfaces";
-import { Tag } from '@glimmer/reference';
+import { IArguments } from '../vm/arguments';
 
-export type Modifier = Unique<"ModifierStateBucker">;
+export type Modifier = Unique<'ModifierStateBucker'>;
 
 export interface ModifierManager<T = Modifier> {
   // Create is meant to only produce the state bucket

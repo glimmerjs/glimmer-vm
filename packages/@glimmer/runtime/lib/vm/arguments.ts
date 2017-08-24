@@ -1,9 +1,9 @@
-import { EvaluationStack } from './append';
-import { dict, EMPTY_ARRAY } from '@glimmer/util';
-import { combineTagged } from '@glimmer/reference';
 import { Dict, Opaque, Option, unsafe } from '@glimmer/interfaces';
-import { Tag, VersionedPathReference, CONSTANT_TAG } from '@glimmer/reference';
+import { combineTagged } from '@glimmer/reference';
+import { CONSTANT_TAG, Tag, VersionedPathReference } from '@glimmer/reference';
+import { EMPTY_ARRAY, dict } from '@glimmer/util';
 import { PrimitiveReference, UNDEFINED_REFERENCE } from '../references';
+import { EvaluationStack } from './append';
 
 /*
   The calling convention is:
@@ -39,7 +39,7 @@ export interface IPositionalArguments {
 export interface ICapturedPositionalArguments extends VersionedPathReference<Opaque[]> {
   tag: Tag;
   length: number;
-  references: VersionedPathReference<Opaque>[];
+  references: Array<VersionedPathReference<Opaque>>;
   at<T extends VersionedPathReference<Opaque>>(position: number): T;
   value(): Opaque[];
 }
@@ -58,7 +58,7 @@ export interface ICapturedNamedArguments extends VersionedPathReference<Dict<Opa
   map: Dict<VersionedPathReference<Opaque>>;
   names: string[];
   length: number;
-  references: VersionedPathReference<Opaque>[];
+  references: Array<VersionedPathReference<Opaque>>;
   has(name: string): boolean;
   get<T extends VersionedPathReference<Opaque>>(name: string): T;
   value(): Dict<Opaque>;
@@ -66,8 +66,8 @@ export interface ICapturedNamedArguments extends VersionedPathReference<Dict<Opa
 
 export class Arguments implements IArguments {
   private stack: EvaluationStack = null as any;
-  public positional = new PositionalArguments();
-  public named = new NamedArguments();
+  positional = new PositionalArguments();
+  named = new NamedArguments();
 
   setup(stack: EvaluationStack, names: string[], positionalCount: number, synthetic: boolean) {
     this.stack = stack;
@@ -113,7 +113,7 @@ export class Arguments implements IArguments {
       let { positional, named, stack, base, length } = this;
       let newBase = base + offset;
 
-      for(let i=length-1; i>=0; i--) {
+      for (let i = length - 1; i >= 0; i--) {
         stack.set(stack.get(i, base), i, newBase);
       }
 
@@ -139,13 +139,13 @@ export class Arguments implements IArguments {
 }
 
 export class PositionalArguments implements IPositionalArguments {
-  public base = 0;
-  public length = 0;
+  base = 0;
+  length = 0;
 
   private stack: EvaluationStack = null as any;
 
   private _tag: Option<Tag> = null;
-  private _references: Option<VersionedPathReference<Opaque>[]> = null;
+  private _references: Option<Array<VersionedPathReference<Opaque>>> = null;
 
   setup(stack: EvaluationStack, base: number, length: number) {
     this.stack = stack;
@@ -203,7 +203,7 @@ export class PositionalArguments implements IPositionalArguments {
     }
   }
 
-  private get references(): VersionedPathReference<Opaque>[] {
+  private get references(): Array<VersionedPathReference<Opaque>> {
     let references = this._references;
 
     if (!references) {
@@ -222,7 +222,7 @@ class CapturedPositionalArguments implements ICapturedPositionalArguments {
 
   constructor(
     public tag: Tag,
-    public references: VersionedPathReference<Opaque>[],
+    public references: Array<VersionedPathReference<Opaque>>,
     public length = references.length
   ) {}
 
@@ -256,13 +256,13 @@ class CapturedPositionalArguments implements ICapturedPositionalArguments {
 }
 
 export class NamedArguments implements INamedArguments {
-  public base = 0;
-  public length = 0;
+  base = 0;
+  length = 0;
 
   private stack: EvaluationStack;
 
   private _tag: Option<Tag> = null;
-  private _references: Option<VersionedPathReference<Opaque>[]> = null;
+  private _references: Option<Array<VersionedPathReference<Opaque>>> = null;
 
   private _names: Option<string[]> = EMPTY_ARRAY;
   private _atNames: Option<string[]> = EMPTY_ARRAY;
@@ -362,7 +362,7 @@ export class NamedArguments implements INamedArguments {
     }
   }
 
-  private get references(): VersionedPathReference<Opaque>[] {
+  private get references(): Array<VersionedPathReference<Opaque>> {
     let references = this._references;
 
     if (!references) {
@@ -383,13 +383,13 @@ export class NamedArguments implements INamedArguments {
 }
 
 class CapturedNamedArguments implements ICapturedNamedArguments {
-  public length: number;
+  length: number;
   private _map: Option<Dict<VersionedPathReference<Opaque>>>;
 
   constructor(
     public tag: Tag,
     public names: string[],
-    public references: VersionedPathReference<Opaque>[]
+    public references: Array<VersionedPathReference<Opaque>>
   ) {
     this.length = names.length;
     this._map = null;

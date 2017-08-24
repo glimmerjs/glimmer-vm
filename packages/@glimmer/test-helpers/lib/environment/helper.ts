@@ -1,14 +1,14 @@
 
-import { Opaque, Dict } from "@glimmer/interfaces";
-import { PathReference, Tag, VOLATILE_TAG, Reference } from "@glimmer/reference";
-import { CapturedArguments, Arguments } from "@glimmer/runtime";
+import { Dict, Opaque } from '@glimmer/interfaces';
+import { PathReference, Reference, Tag, VOLATILE_TAG } from '@glimmer/reference';
+import { Arguments, CapturedArguments } from '@glimmer/runtime';
 
 export type UserHelper = (args: ReadonlyArray<Opaque>, named: Dict<Opaque>) => Opaque;
 
 export class HelperReference implements PathReference<Opaque> {
   private helper: UserHelper;
   private args: CapturedArguments;
-  public tag: Tag = VOLATILE_TAG;
+  tag: Tag = VOLATILE_TAG;
 
   constructor(helper: UserHelper, args: Arguments) {
     this.helper = helper;
@@ -29,7 +29,7 @@ export class HelperReference implements PathReference<Opaque> {
 export class SimplePathReference<T> implements PathReference<T> {
   private parent: Reference<T>;
   private property: string;
-  public tag: Tag = VOLATILE_TAG;
+  tag: Tag = VOLATILE_TAG;
 
   constructor(parent: Reference<T>, property: string) {
     this.parent = parent;

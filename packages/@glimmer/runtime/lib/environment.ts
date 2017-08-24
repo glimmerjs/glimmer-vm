@@ -1,20 +1,20 @@
 import { VersionedPathReference } from '@glimmer/reference';
 
+import { OpaqueIterable, Reference } from '@glimmer/reference';
 import { DOMChanges, DOMTreeConstruction } from './dom/helper';
-import { Reference, OpaqueIterable } from '@glimmer/reference';
-import { UNDEFINED_REFERENCE, ConditionalReference } from './references';
+import { ConditionalReference, UNDEFINED_REFERENCE } from './references';
 import { DynamicAttributeFactory, defaultDynamicAttributes } from './vm/attributes/dynamic';
 
 import {
-  ModifierManager, Modifier
+  Modifier, ModifierManager
 } from './modifier/interfaces';
 
 import {
-  Dict,
-  Option,
   Destroyable,
-  Opaque,
+  Dict,
   HasGuid,
+  Opaque,
+  Option,
   assert,
   ensureGuid,
   expect
@@ -22,11 +22,11 @@ import {
 
 import { PublicVM } from './vm/append';
 
-import { Macros, OpcodeBuilderConstructor, VMHandle } from "@glimmer/opcode-compiler";
+import { BlockSymbolTable, RuntimeResolver, Simple } from '@glimmer/interfaces';
+import { Macros, OpcodeBuilderConstructor, VMHandle } from '@glimmer/opcode-compiler';
+import { Program } from '@glimmer/program';
+import { Component, ComponentManager } from '@glimmer/runtime/lib/internal-interfaces';
 import { IArguments } from './vm/arguments';
-import { Simple, RuntimeResolver, BlockSymbolTable } from "@glimmer/interfaces";
-import { Component, ComponentManager } from "@glimmer/runtime/lib/internal-interfaces";
-import { Program } from "@glimmer/program";
 
 export type ScopeBlock = [VMHandle, BlockSymbolTable];
 export type ScopeSlot = VersionedPathReference<Opaque> | Option<ScopeBlock>;
@@ -39,7 +39,7 @@ export interface DynamicScope {
 
 export class Scope {
   static root(self: VersionedPathReference<Opaque>, size = 0) {
-    let refs: VersionedPathReference<Opaque>[] = new Array(size + 1);
+    let refs: Array<VersionedPathReference<Opaque>> = new Array(size + 1);
 
     for (let i = 0; i <= size; i++) {
       refs[i] = UNDEFINED_REFERENCE;
@@ -49,7 +49,7 @@ export class Scope {
   }
 
   static sized(size = 0) {
-    let refs: VersionedPathReference<Opaque>[] = new Array(size + 1);
+    let refs: Array<VersionedPathReference<Opaque>> = new Array(size + 1);
 
     for (let i = 0; i <= size; i++) {
       refs[i] = UNDEFINED_REFERENCE;
@@ -147,15 +147,15 @@ export class Scope {
 }
 
 class Transaction {
-  public scheduledInstallManagers: ModifierManager[] = [];
-  public scheduledInstallModifiers: Modifier[] = [];
-  public scheduledUpdateModifierManagers: ModifierManager[] = [];
-  public scheduledUpdateModifiers: Modifier[] = [];
-  public createdComponents: Component[] = [];
-  public createdManagers: ComponentManager[] = [];
-  public updatedComponents: Component[] = [];
-  public updatedManagers: ComponentManager[] = [];
-  public destructors: Destroyable[] = [];
+  scheduledInstallManagers: ModifierManager[] = [];
+  scheduledInstallModifiers: Modifier[] = [];
+  scheduledUpdateModifierManagers: ModifierManager[] = [];
+  scheduledUpdateModifiers: Modifier[] = [];
+  createdComponents: Component[] = [];
+  createdManagers: ComponentManager[] = [];
+  updatedComponents: Component[] = [];
+  updatedManagers: ComponentManager[] = [];
+  destructors: Destroyable[] = [];
 
   didCreate(component: Component, manager: ComponentManager) {
     this.createdComponents.push(component);
@@ -184,7 +184,7 @@ class Transaction {
   commit() {
     let { createdComponents, createdManagers } = this;
 
-    for (let i=0; i<createdComponents.length; i++) {
+    for (let i = 0; i < createdComponents.length; i++) {
       let component = createdComponents[i];
       let manager = createdManagers[i];
       manager.didCreate(component);
@@ -192,7 +192,7 @@ class Transaction {
 
     let { updatedComponents, updatedManagers } = this;
 
-    for (let i=0; i<updatedComponents.length; i++) {
+    for (let i = 0; i < updatedComponents.length; i++) {
       let component = updatedComponents[i];
       let manager = updatedManagers[i];
       manager.didUpdate(component);
@@ -200,7 +200,7 @@ class Transaction {
 
     let { destructors } = this;
 
-    for (let i=0; i<destructors.length; i++) {
+    for (let i = 0; i < destructors.length; i++) {
       destructors[i].destroy();
     }
 
@@ -295,6 +295,4 @@ export abstract class Environment {
 
 export default Environment;
 
-export interface Helper {
-  (vm: PublicVM, args: IArguments): VersionedPathReference<Opaque>;
-}
+export type Helper = (vm: PublicVM, args: IArguments) => VersionedPathReference<Opaque>;

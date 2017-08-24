@@ -1,16 +1,16 @@
-import { GenericComponentDefinition } from './shared';
-import { BasicComponentFactory, BasicComponentDefinition, BASIC_COMPONENT_MANAGER, StaticTaglessComponentDefinition, STATIC_TAGLESS_COMPONENT_MANAGER, EmberishCurlyComponentFactory, EmberishCurlyComponentDefinition, EMBERISH_CURLY_COMPONENT_MANAGER, EmberishGlimmerComponentFactory, EmberishCurlyComponent, EmberishGlimmerComponentDefinition, EMBERISH_GLIMMER_COMPONENT_MANAGER, EmberishGlimmerComponent } from './components';
+import { precompile } from '@glimmer/compiler';
+import { Maybe, Opaque, Option, RuntimeResolver, Simple } from '@glimmer/interfaces';
+import { LazyOpcodeBuilder, OpcodeBuilderConstructor, TemplateOptions } from '@glimmer/opcode-compiler';
+import { LazyConstants, Program } from '@glimmer/program';
+import { Arguments, CompilationOptions, ComponentSpec, CurriedComponentDefinition, DOMChanges, DOMTreeConstruction, Helper as GlimmerHelper, IDOMChanges, Invocation, ModifierManager, PartialDefinition, Template, TopLevelSyntax, VM, curry, getDynamicVar, templateFactory } from '@glimmer/runtime';
+import { dict } from '@glimmer/util';
+import { BASIC_COMPONENT_MANAGER, BasicComponentDefinition, BasicComponentFactory, EMBERISH_CURLY_COMPONENT_MANAGER, EMBERISH_GLIMMER_COMPONENT_MANAGER, EmberishCurlyComponent, EmberishCurlyComponentDefinition, EmberishCurlyComponentFactory, EmberishGlimmerComponent, EmberishGlimmerComponentDefinition, EmberishGlimmerComponentFactory, STATIC_TAGLESS_COMPONENT_MANAGER, StaticTaglessComponentDefinition } from './components';
 import { AbstractTestEnvironment } from './env';
-import { UserHelper, HelperReference } from './helper';
-import { InertModifierManager } from './modifier';
 import { TestMacros } from './generic/macros';
-import { Option, RuntimeResolver, Opaque, Maybe, Simple } from "@glimmer/interfaces";
-import { Helper as GlimmerHelper, DOMTreeConstruction, TopLevelSyntax, ModifierManager, PartialDefinition, ComponentSpec, CompilationOptions, templateFactory, Template, IDOMChanges, DOMChanges, VM, Arguments, getDynamicVar, CurriedComponentDefinition, curry, Invocation } from "@glimmer/runtime";
-import { TemplateOptions, LazyOpcodeBuilder, OpcodeBuilderConstructor } from "@glimmer/opcode-compiler";
-import { dict } from "@glimmer/util";
-import { precompile } from "@glimmer/compiler";
-import { LazyConstants, Program } from "@glimmer/program";
-import { LookupResolver } from "./lookup";
+import { HelperReference, UserHelper } from './helper';
+import { LookupResolver } from './lookup';
+import { InertModifierManager } from './modifier';
+import { GenericComponentDefinition } from './shared';
 
 export interface TestSpecifier<T extends LookupType = LookupType> {
   type: T;
@@ -65,14 +65,14 @@ class TypedRegistry<T> {
 export type TestCompilationOptions = CompilationOptions<TestSpecifier, TestResolver>;
 
 export class TestResolver implements RuntimeResolver<TestSpecifier> {
-  private handleLookup: TypedRegistry<Opaque>[] = [];
+  private handleLookup: Array<TypedRegistry<Opaque>> = [];
 
   private registry = {
-    helper: new TypedRegistry<GlimmerHelper>(),
-    modifier: new TypedRegistry<ModifierManager>(),
-    partial: new TypedRegistry<PartialDefinition>(),
-    component: new TypedRegistry<ComponentSpec>(),
-    template: new TypedRegistry<Invocation>(),
+    'helper': new TypedRegistry<GlimmerHelper>(),
+    'modifier': new TypedRegistry<ModifierManager>(),
+    'partial': new TypedRegistry<PartialDefinition>(),
+    'component': new TypedRegistry<ComponentSpec>(),
+    'template': new TypedRegistry<Invocation>(),
     'template-source': new TypedRegistry<string>()
   };
 
@@ -137,10 +137,10 @@ export class TestResolver implements RuntimeResolver<TestSpecifier> {
 }
 
 export class TestEnvironment extends AbstractTestEnvironment<TestSpecifier> {
-  public resolver = new TestResolver();
+  resolver = new TestResolver();
   protected program = new Program(new LazyConstants(this.resolver));
 
-  public compileOptions: TemplateOptions<TestSpecifier> = {
+  compileOptions: TemplateOptions<TestSpecifier> = {
     lookup: new LookupResolver(this.resolver),
     program: this.program,
     macros: new TestMacros(),
@@ -150,22 +150,22 @@ export class TestEnvironment extends AbstractTestEnvironment<TestSpecifier> {
   constructor(options?: TestEnvironmentOptions) {
     super(testOptions(options));
     // recursive field, so "unsafely" set one half late (but before the resolver is actually used)
-    this.resolver['options'] = this.compileOptions;
-    this.registerHelper("if", ([cond, yes, no]) => cond ? yes : no);
-    this.registerHelper("unless", ([cond, yes, no]) => cond ? no : yes);
-    this.registerInternalHelper("-get-dynamic-var", getDynamicVar);
-    this.registerModifier("action", new InertModifierManager());
+    this.resolver.options = this.compileOptions;
+    this.registerHelper('if', ([cond, yes, no]) => cond ? yes : no);
+    this.registerHelper('unless', ([cond, yes, no]) => cond ? no : yes);
+    this.registerInternalHelper('-get-dynamic-var', getDynamicVar);
+    this.registerModifier('action', new InertModifierManager());
 
-    this.registerInternalHelper("hash", (_vm: VM, args: Arguments) => args.capture().named);
+    this.registerInternalHelper('hash', (_vm: VM, args: Arguments) => args.capture().named);
   }
 
   registerTemplate(name: string, source: string): { name: string, handle: number } {
-    return { name, handle: this.resolver.register("template-source", name, source) };
+    return { name, handle: this.resolver.register('template-source', name, source) };
   }
 
   registerBasicComponent(name: string, Component: BasicComponentFactory, layoutSource: string): void {
     if (name.indexOf('-') !== -1) {
-      throw new Error("DEPRECATED: dasherized components");
+      throw new Error('DEPRECATED: dasherized components');
     }
 
     let layout = this.registerTemplate(name, layoutSource);
@@ -194,7 +194,7 @@ export class TestEnvironment extends AbstractTestEnvironment<TestSpecifier> {
 
   registerEmberishGlimmerComponent(name: string, Component: Option<EmberishGlimmerComponentFactory>, layoutSource: string): void {
     if (name.indexOf('-') !== -1) {
-      throw new Error("DEPRECATED: dasherized components");
+      throw new Error('DEPRECATED: dasherized components');
     }
 
     let layout = this.registerTemplate(name, layoutSource);

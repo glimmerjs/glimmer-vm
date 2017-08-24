@@ -1,10 +1,10 @@
-import { Option, Dict, Slice as ListSlice, initializeGuid, fillNulls, typePos } from '@glimmer/util';
-import { Op } from '@glimmer/vm';
-import { Tag } from '@glimmer/reference';
-import { debug, logOpcode } from "@glimmer/opcode-compiler";
-import { Opcode, Opaque } from "@glimmer/interfaces";
-import { VM, UpdatingVM } from './vm';
+import { Opaque, Opcode } from '@glimmer/interfaces';
 import { DEBUG } from '@glimmer/local-debug-flags';
+import { debug, logOpcode } from '@glimmer/opcode-compiler';
+import { Tag } from '@glimmer/reference';
+import { Dict, Option, Slice as ListSlice, fillNulls, initializeGuid, typePos } from '@glimmer/util';
+import { Op } from '@glimmer/vm';
+import { UpdatingVM, VM } from './vm';
 
 export interface OpcodeJSON {
   type: number | string;
@@ -55,8 +55,8 @@ export class AppendOpcodes {
 export const APPEND_OPCODES = new AppendOpcodes();
 
 export abstract class AbstractOpcode {
-  public type: string;
-  public _guid: number;
+  type: string;
+  _guid: number;
 
   constructor() {
     initializeGuid(this);
@@ -68,7 +68,7 @@ export abstract class AbstractOpcode {
 }
 
 export abstract class UpdatingOpcode extends AbstractOpcode {
-  public abstract tag: Tag;
+  abstract tag: Tag;
 
   next: Option<UpdatingOpcode> = null;
   prev: Option<UpdatingOpcode> = null;

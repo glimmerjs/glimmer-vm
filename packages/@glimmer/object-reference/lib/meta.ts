@@ -5,23 +5,23 @@ import { MetaOptions } from './types';
 import { Dict, DictSet, HasGuid, Set, dict } from '@glimmer/util';
 
 import {
-  RootReferenceFactory,
-  PathReferenceFactory,
   Meta as IMeta,
-  RootReference as IRootReference
+  PathReferenceFactory,
+  RootReference as IRootReference,
+  RootReferenceFactory
 } from './types';
 
 import { PathReference as IPathReference, VOLATILE_TAG } from '@glimmer/reference';
 
+import { Option } from '@glimmer/interfaces';
 import { InnerReferenceFactory } from './references/descriptors';
-import { Option } from "@glimmer/interfaces";
 
 const NOOP_DESTROY = { destroy() {} };
 
 class ConstPath implements IPathReference<any> {
   private parent: any;
   private property: string;
-  public tag = VOLATILE_TAG;
+  tag = VOLATILE_TAG;
 
   constructor(parent: any, _property: string) {
     this.parent = parent;
@@ -41,7 +41,7 @@ class ConstPath implements IPathReference<any> {
 
 class ConstRoot implements IRootReference<any> {
   private inner: any;
-  public tag = VOLATILE_TAG;
+  tag = VOLATILE_TAG;
 
   constructor(value: any) {
     this.inner = value;
@@ -59,11 +59,11 @@ class ConstRoot implements IRootReference<any> {
   }
 
   referenceFromParts(_parts: string[]): IPathReference<any> {
-    throw new Error("Not implemented");
+    throw new Error('Not implemented');
   }
 
   chainFor(_prop: string): IPathReference<any> {
-    throw new Error("Not implemented");
+    throw new Error('Not implemented');
   }
 
   get(prop: string): IPathReference<any> {
@@ -83,7 +83,7 @@ class ConstMeta /*implements IMeta*/ {
   }
 }
 
-export const CLASS_META = "df8be4c8-4e89-44e2-a8f9-550c8dacdca7";
+export const CLASS_META = 'df8be4c8-4e89-44e2-a8f9-550c8dacdca7';
 
 const hasOwnProperty = Object.hasOwnProperty;
 
@@ -91,7 +91,7 @@ class Meta implements IMeta, HasGuid {
   static for(obj: any): IMeta {
     if (obj === null || obj === undefined) return new Meta(obj, {});
     if (hasOwnProperty.call(obj, '_meta') && obj._meta) return obj._meta;
-    if (!Object.isExtensible(obj)) return <any>new ConstMeta(obj);
+    if (!Object.isExtensible(obj)) return new ConstMeta(obj) as any;
 
     let MetaToUse: typeof Meta = Meta;
 
@@ -118,7 +118,7 @@ class Meta implements IMeta, HasGuid {
   private DefaultPathReferenceFactory: InnerReferenceFactory<any>;
   private rootCache: IRootReference<any>;
   private references: Option<Dict<DictSet<IPathReference<any> & HasGuid>>> = null;
-  public _guid: number;
+  _guid: number;
   protected slots: Option<Dict<any>> = null;
   protected referenceTypes: Option<Dict<InnerReferenceFactory<any>>> = null;
   protected propertyMetadata: Option<Dict<any>> = null;

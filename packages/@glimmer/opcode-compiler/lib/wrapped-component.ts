@@ -1,25 +1,25 @@
+import { BlockSymbolTable, ProgramSymbolTable } from '@glimmer/interfaces';
 import { Register } from '@glimmer/vm';
-import { ProgramSymbolTable, BlockSymbolTable } from '@glimmer/interfaces';
 
 import {
-  VMHandle,
   ComponentArgs,
   ComponentBuilder as IComponentBuilder,
   ComponentCapabilities,
-  ParsedLayout
+  ParsedLayout,
+  VMHandle
 } from './interfaces';
 
-import { CompileOptions } from './syntax';
 import CompilableTemplate, { ICompilableTemplate } from './compilable-template';
 import { debugSlice } from './debug';
 import { OpcodeBuilder } from './opcode-builder';
+import { CompileOptions } from './syntax';
 import { ATTRS_BLOCK } from './syntax';
 
-import { DEBUG } from "@glimmer/local-debug-flags";
-import { EMPTY_ARRAY } from "@glimmer/util";
+import { DEBUG } from '@glimmer/local-debug-flags';
+import { EMPTY_ARRAY } from '@glimmer/util';
 
 export class WrappedBuilder<Specifier> implements ICompilableTemplate<ProgramSymbolTable> {
-  public symbolTable: ProgramSymbolTable;
+  symbolTable: ProgramSymbolTable;
   private referer: Specifier;
 
   constructor(public options: CompileOptions<Specifier>, private layout: ParsedLayout<Specifier>, private capabilities: ComponentCapabilities) {

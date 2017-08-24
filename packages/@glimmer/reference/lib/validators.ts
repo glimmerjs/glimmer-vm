@@ -1,5 +1,5 @@
+import { LinkedListNode, Opaque, Option, Slice } from '@glimmer/util';
 import Reference, { PathReference } from './reference';
-import { Opaque, Option, Slice, LinkedListNode } from '@glimmer/util';
 
 //////////
 
@@ -21,7 +21,7 @@ export interface Tagged {
 export type Revision = number;
 
 export const CONSTANT: Revision = 0;
-export const INITIAL:  Revision = 1;
+export const INITIAL: Revision = 1;
 export const VOLATILE: Revision = NaN;
 
 export abstract class RevisionTag implements EntityTag<Revision> {
@@ -34,8 +34,8 @@ export abstract class RevisionTag implements EntityTag<Revision> {
   }
 }
 
-const VALUE: ((tag: Option<RevisionTag>) => Revision)[] = [];
-const VALIDATE: ((tag: Option<RevisionTag>, snapshot: Revision) => boolean)[] = [];
+const VALUE: Array<(tag: Option<RevisionTag>) => Revision> = [];
+const VALIDATE: Array<(tag: Option<RevisionTag>, snapshot: Revision) => boolean> = [];
 
 export class TagWrapper<T extends RevisionTag | null> {
   constructor(private type: number, public inner: T) {}
@@ -53,7 +53,7 @@ export class TagWrapper<T extends RevisionTag | null> {
 
 export type Tag = TagWrapper<RevisionTag | null>;
 
-function register(Type: { create(...args: any[]): Tag, id: number }) {
+function register(Type: { id: number, create(...args: any[]): Tag }) {
   let type = VALUE.length;
   VALUE.push((tag: RevisionTag) => tag.value());
   VALIDATE.push((tag: RevisionTag, snapshot: Revision) => tag.validate(snapshot));
@@ -115,7 +115,7 @@ register(DirtyableTag);
 export function combineTagged(tagged: ReadonlyArray<Tagged>): Tag {
   let optimized: Tag[] = [];
 
-  for (let i=0, l=tagged.length; i<l; i++) {
+  for (let i = 0, l = tagged.length; i < l; i++) {
     let tag = tagged[i].tag;
     if (tag === VOLATILE_TAG) return VOLATILE_TAG;
     if (tag === CONSTANT_TAG) continue;
@@ -130,7 +130,7 @@ export function combineSlice(slice: Slice<Tagged & LinkedListNode>): Tag {
 
   let node = slice.head();
 
-  while(node !== null) {
+  while (node !== null) {
     let tag = node.tag;
 
     if (tag === VOLATILE_TAG) return VOLATILE_TAG;
@@ -145,7 +145,7 @@ export function combineSlice(slice: Slice<Tagged & LinkedListNode>): Tag {
 export function combine(tags: Tag[]): Tag {
   let optimized: Tag[] = [];
 
-  for (let i=0, l=tags.length; i<l; i++) {
+  for (let i = 0, l = tags.length; i < l; i++) {
     let tag = tags[i];
     if (tag === VOLATILE_TAG) return VOLATILE_TAG;
     if (tag === CONSTANT_TAG) continue;
@@ -165,7 +165,7 @@ function _combine(tags: Tag[]): Tag {
       return TagsPair.create(tags[0], tags[1]);
     default:
       return TagsCombinator.create(tags);
-  };
+  }
 }
 
 export abstract class CachedTag extends RevisionTag {
@@ -228,7 +228,7 @@ class TagsCombinator extends CachedTag {
 
     let max = -1;
 
-    for (let i=0; i<tags.length; i++) {
+    for (let i = 0; i < tags.length; i++) {
       let value = tags[i].value();
       max = Math.max(value, max);
     }
@@ -237,9 +237,9 @@ class TagsCombinator extends CachedTag {
   }
 }
 
-register(TagsCombinator);
+  register(TagsCombinator);
 
-export class UpdatableTag extends CachedTag {
+  export class UpdatableTag extends CachedTag {
   static create(tag: Tag): TagWrapper<UpdatableTag> {
     return new TagWrapper(this.id, new UpdatableTag(tag));
   }
@@ -266,18 +266,18 @@ export class UpdatableTag extends CachedTag {
   }
 }
 
-register(UpdatableTag);
+  register(UpdatableTag);
 
 //////////
 
-export interface VersionedReference<T = Opaque> extends Reference<T>, Tagged {}
+  export interface VersionedReference<T = Opaque> extends Reference<T>, Tagged {}
 
-export interface VersionedPathReference<T = Opaque> extends PathReference<T>, Tagged {
+  export interface VersionedPathReference<T = Opaque> extends PathReference<T>, Tagged {
   get(property: string): VersionedPathReference<Opaque>;
 }
 
-export abstract class CachedReference<T> implements VersionedReference<T> {
-  public abstract tag: Tag;
+  export abstract class CachedReference<T> implements VersionedReference<T> {
+  abstract tag: Tag;
 
   private lastRevision: Option<Revision> = null;
   private lastValue: Option<T> = null;
@@ -302,10 +302,10 @@ export abstract class CachedReference<T> implements VersionedReference<T> {
 
 //////////
 
-export type Mapper<T, U> = (value: T) => U;
+  export type Mapper<T, U> = (value: T) => U;
 
-class MapperReference<T, U> extends CachedReference<U> {
-  public tag: Tag;
+  class MapperReference<T, U> extends CachedReference<U> {
+  tag: Tag;
 
   private reference: VersionedReference<T>;
   private mapper: Mapper<T, U>;
@@ -323,14 +323,14 @@ class MapperReference<T, U> extends CachedReference<U> {
   }
 }
 
-export function map<T, U>(reference: VersionedReference<T>, mapper: Mapper<T, U>): VersionedReference<U> {
+  export function map<T, U>(reference: VersionedReference<T>, mapper: Mapper<T, U>): VersionedReference<U> {
   return new MapperReference<T, U>(reference, mapper);
 }
 
 //////////
 
-export class ReferenceCache<T> implements Tagged {
-  public tag: Tag;
+  export class ReferenceCache<T> implements Tagged {
+  tag: Tag;
 
   private reference: VersionedReference<T>;
   private lastValue: Option<T> = null;
@@ -380,12 +380,12 @@ export class ReferenceCache<T> implements Tagged {
   }
 }
 
-export type Validation<T> = T | NotModified;
+  export type Validation<T> = T | NotModified;
 
-export type NotModified = "adb3b78e-3d22-4e4b-877a-6317c2c5c145";
+  export type NotModified = 'adb3b78e-3d22-4e4b-877a-6317c2c5c145';
 
-const NOT_MODIFIED: NotModified = "adb3b78e-3d22-4e4b-877a-6317c2c5c145";
+  const NOT_MODIFIED: NotModified = 'adb3b78e-3d22-4e4b-877a-6317c2c5c145';
 
-export function isModified<T>(value: Validation<T>): value is T {
+  export function isModified<T>(value: Validation<T>): value is T {
   return value !== NOT_MODIFIED;
 }

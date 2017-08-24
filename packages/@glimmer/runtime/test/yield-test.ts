@@ -1,4 +1,4 @@
-import { module, AbstractRenderTest, test } from '@glimmer/test-helpers';
+import { AbstractRenderTest, module, test } from '@glimmer/test-helpers';
 
 class YieldTests extends AbstractRenderTest {
   @test
@@ -30,7 +30,7 @@ class YieldTests extends AbstractRenderTest {
         template: 'Hello{{result}}{{outer}}',
         inverse: 'Goodbye{{outer}}'
       },
-      { activated: false, outer: "outer" }
+      { activated: false, outer: 'outer' }
     );
 
     this.assertComponent('No:Goodbyeouter');
@@ -86,7 +86,7 @@ class YieldTests extends AbstractRenderTest {
   }
 
   @test
-  "yielding primatives"() {
+  'yielding primatives'() {
     [
       {
         value: 'true',
@@ -117,12 +117,12 @@ class YieldTests extends AbstractRenderTest {
       this.assertComponent(`${output}-`);
       this.assertStableRerender();
       this.element.innerHTML = '';
-      this.delegate['resetEnv']();
+      this.delegate.resetEnv();
     });
   }
 
   @test
-  "yield inside a conditional on the component"() {
+  'yield inside a conditional on the component'() {
     this.render({
       layout: 'In layout -- {{#if @predicate}}{{yield}}{{/if}}',
       template: 'In template',

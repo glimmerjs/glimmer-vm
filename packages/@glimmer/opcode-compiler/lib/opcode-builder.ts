@@ -1,20 +1,20 @@
-import { Opaque, Option, ProgramSymbolTable, SymbolTable, Recast, BlockSymbolTable } from '@glimmer/interfaces';
-import { dict, EMPTY_ARRAY, expect, fillNulls, Stack, typePos, unreachable } from '@glimmer/util';
+import { BlockSymbolTable, Opaque, Option, ProgramSymbolTable, Recast, SymbolTable } from '@glimmer/interfaces';
+import { PrimitiveType } from '@glimmer/program';
+import { EMPTY_ARRAY, Stack, dict, expect, fillNulls, typePos, unreachable } from '@glimmer/util';
 import { Op, Register } from '@glimmer/vm';
 import * as WireFormat from '@glimmer/wire-format';
-import { SerializedInlineBlock } from "@glimmer/wire-format";
-import { PrimitiveType } from "@glimmer/program";
+import { SerializedInlineBlock } from '@glimmer/wire-format';
 
 import {
-  VMHandle as VMHandle,
-  CompileTimeHeap,
-  CompileTimeLazyConstants,
-  Primitive,
   CompilableBlock,
   CompileTimeConstants,
+  CompileTimeHeap,
+  CompileTimeLazyConstants,
   CompileTimeProgram,
   ComponentCapabilities,
-  ParsedLayout
+  ParsedLayout,
+  Primitive,
+  VMHandle as VMHandle
 } from './interfaces';
 
 import {
@@ -75,20 +75,20 @@ export interface CompileTimeLookup<Specifier> {
 
 export interface OpcodeBuilderConstructor {
   new<Specifier>(program: CompileTimeProgram,
-      lookup: CompileTimeLookup<Specifier>,
-      meta: Opaque,
-      macros: Macros,
-      containingLayout: ParsedLayout,
-      asPartial: boolean): OpcodeBuilder<Specifier>;
+                 lookup: CompileTimeLookup<Specifier>,
+                 meta: Opaque,
+                 macros: Macros,
+                 containingLayout: ParsedLayout,
+                 asPartial: boolean): OpcodeBuilder<Specifier>;
 }
 
 export abstract class OpcodeBuilder<Specifier> {
-  public constants: CompileTimeConstants;
+  constants: CompileTimeConstants;
 
   private buffer: number[] = [];
   private labelsStack = new Stack<Labels>();
   private isComponentAttrs = false;
-  public component: ComponentBuilder<Specifier> = new ComponentBuilder(this);
+  component: ComponentBuilder<Specifier> = new ComponentBuilder(this);
 
   constructor(
     public program: CompileTimeProgram,
@@ -538,7 +538,7 @@ export abstract class OpcodeBuilder<Specifier> {
 
     for (let i = 0; i < _names.length; i++) {
       let n = _names[i];
-      names[i]= this.constants.string(n);
+      names[i] = this.constants.string(n);
     }
 
     return this.constants.array(names);
@@ -741,7 +741,7 @@ export abstract class OpcodeBuilder<Specifier> {
 
     this.registerComponentDestructor(Register.s0);
 
-    let bindings: { symbol: number, isBlock: boolean }[] = [];
+    let bindings: Array<{ symbol: number, isBlock: boolean }> = [];
 
     this.getComponentSelf(Register.s0);
     bindings.push({ symbol: 0, isBlock: false });
@@ -891,7 +891,7 @@ export abstract class OpcodeBuilder<Specifier> {
 export default OpcodeBuilder;
 
 export class LazyOpcodeBuilder<Specifier> extends OpcodeBuilder<Specifier> {
-  public constants: CompileTimeLazyConstants;
+  constants: CompileTimeLazyConstants;
 
   pushBlock(block: Option<CompilableBlock>): void {
     if (block) {

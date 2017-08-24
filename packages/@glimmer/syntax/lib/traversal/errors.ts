@@ -1,5 +1,5 @@
-import * as AST from '../types/nodes';
 import { Option } from '@glimmer/interfaces';
+import * as AST from '../types/nodes';
 
 export interface TraversalError extends Error {
   constructor: TraversalErrorConstructor;
@@ -13,7 +13,7 @@ export interface TraversalErrorConstructor {
   readonly prototype: TraversalError;
 }
 
-const TraversalError: TraversalErrorConstructor = (function () {
+const TraversalError: TraversalErrorConstructor = (function() {
   TraversalError.prototype = Object.create(Error.prototype);
   TraversalError.prototype.constructor = TraversalError;
 
@@ -32,23 +32,23 @@ const TraversalError: TraversalErrorConstructor = (function () {
 
 export default TraversalError;
 
-export function cannotRemoveNode(node: AST.Node, parent:AST.Node, key: string) {
+export function cannotRemoveNode(node: AST.Node, parent: AST.Node, key: string) {
   return new TraversalError(
-    "Cannot remove a node unless it is part of an array",
+    'Cannot remove a node unless it is part of an array',
     node, parent, key
   );
 }
 
 export function cannotReplaceNode(node: AST.Node, parent: AST.Node, key: string) {
   return new TraversalError(
-    "Cannot replace a node with multiple nodes unless it is part of an array",
+    'Cannot replace a node with multiple nodes unless it is part of an array',
     node, parent, key
   );
 }
 
 export function cannotReplaceOrRemoveInKeyHandlerYet(node: AST.Node, key: string) {
   return new TraversalError(
-    "Replacing and removing in key handlers is not yet supported.",
+    'Replacing and removing in key handlers is not yet supported.',
     node, null, key
   );
 }

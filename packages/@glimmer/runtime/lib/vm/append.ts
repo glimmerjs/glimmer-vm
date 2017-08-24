@@ -1,22 +1,22 @@
-import { ICapturedArguments } from './arguments';
-import { Register } from '@glimmer/vm';
-import { Scope, DynamicScope, Environment } from '../environment';
-import { ElementBuilder } from './element-builder';
-import { Option, Destroyable, Stack, LinkedList, ListSlice, Opaque, expect, typePos, assert } from '@glimmer/util';
-import { ReferenceIterator, PathReference, VersionedPathReference, combineSlice } from '@glimmer/reference';
-import { LabelOpcode, JumpIfNotModifiedOpcode, DidModifyOpcode } from '../compiled/opcodes/vm';
-import { VMState, ListBlockOpcode, TryOpcode, BlockOpcode } from './update';
-import RenderResult from './render-result';
 import { DEBUG } from '@glimmer/local-debug-flags';
+import { PathReference, ReferenceIterator, VersionedPathReference, combineSlice } from '@glimmer/reference';
+import { Destroyable, LinkedList, ListSlice, Opaque, Option, Stack, assert, expect, typePos } from '@glimmer/util';
+import { Register } from '@glimmer/vm';
+import { DidModifyOpcode, JumpIfNotModifiedOpcode, LabelOpcode } from '../compiled/opcodes/vm';
+import { DynamicScope, Environment, Scope } from '../environment';
+import { ICapturedArguments } from './arguments';
+import { ElementBuilder } from './element-builder';
+import RenderResult from './render-result';
+import { BlockOpcode, ListBlockOpcode, TryOpcode, VMState } from './update';
 
 import {
   APPEND_OPCODES,
   UpdatingOpcode
 } from '../opcodes';
 
-import { Opcode } from "@glimmer/interfaces";
-import { Heap, RuntimeProgram as Program, RuntimeConstants, RuntimeProgram } from "@glimmer/program";
-import { VMHandle as VMHandle } from "@glimmer/opcode-compiler";
+import { Opcode } from '@glimmer/interfaces';
+import { VMHandle as VMHandle } from '@glimmer/opcode-compiler';
+import { Heap, RuntimeConstants, RuntimeProgram, RuntimeProgram as Program } from '@glimmer/program';
 
 export interface PublicVM {
   env: Environment;
@@ -98,13 +98,13 @@ export type IteratorResult<T> = {
 export default class VM<Specifier> implements PublicVM {
   private dynamicScopeStack = new Stack<DynamicScope>();
   private scopeStack = new Stack<Scope>();
-  public updatingOpcodeStack = new Stack<LinkedList<UpdatingOpcode>>();
-  public cacheGroups = new Stack<Option<UpdatingOpcode>>();
-  public listBlockStack = new Stack<ListBlockOpcode>();
-  public constants: RuntimeConstants<Specifier>;
-  public heap: Heap;
+  updatingOpcodeStack = new Stack<LinkedList<UpdatingOpcode>>();
+  cacheGroups = new Stack<Option<UpdatingOpcode>>();
+  listBlockStack = new Stack<ListBlockOpcode>();
+  constants: RuntimeConstants<Specifier>;
+  heap: Heap;
 
-  public stack = EvaluationStack.empty();
+  stack = EvaluationStack.empty();
 
   /* Registers */
 
@@ -136,10 +136,10 @@ export default class VM<Specifier> implements PublicVM {
     this.stack.sp = sp;
   }
 
-  public s0: any = null;
-  public s1: any = null;
-  public t0: any = null;
-  public t1: any = null;
+  s0: any = null;
+  s1: any = null;
+  t0: any = null;
+  t1: any = null;
 
   // Fetch a value from a register onto the stack
   fetch(register: Register) {
@@ -259,7 +259,7 @@ export default class VM<Specifier> implements PublicVM {
     //        DidModify
     // END:   Noop
 
-    let END = new LabelOpcode("END");
+    let END = new LabelOpcode('END');
 
     let opcodes = this.updating();
     let marker = this.cacheGroups.pop();
@@ -464,7 +464,7 @@ export default class VM<Specifier> implements PublicVM {
   bindDynamicScope(names: number[]) {
     let scope = this.dynamicScope();
 
-    for(let i=names.length - 1; i>=0; i--) {
+    for (let i = names.length - 1; i >= 0; i--) {
       let name = this.constants.getString(names[i]);
       scope.set(name, this.stack.pop<VersionedPathReference<Opaque>>());
     }

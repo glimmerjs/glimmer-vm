@@ -1,5 +1,5 @@
-import { metaFor, setProperty } from "@glimmer/object-reference";
-import { Reference } from "@glimmer/reference";
+import { metaFor, setProperty } from '@glimmer/object-reference';
+import { Reference } from '@glimmer/reference';
 
 //function computed(obj, name, getter, depStrings) {
   //Object.defineProperty(obj, name, {
@@ -18,13 +18,13 @@ function addObserver(obj: any, _: string, path: string) {
   return metaFor(obj).root().referenceFromParts(path.split('.'));
 }
 
-QUnit.module("references");
+QUnit.module('references');
 
-QUnit.test("basic reference data flow", function() {
-  let obj1 = { label: "obj1", model: { person: { name: { first: "Yehuda", last: "Katz" } } } };
-  let obj2 = { label: "obj2", model: { person: { name: obj1.model.person.name } } };
-  let obj3 = { label: "obj3", model: { person: obj1.model.person } };
-  let obj4 = { label: "obj4", model: obj1.model };
+QUnit.test('basic reference data flow', function() {
+  let obj1 = { label: 'obj1', model: { person: { name: { first: 'Yehuda', last: 'Katz' } } } };
+  let obj2 = { label: 'obj2', model: { person: { name: obj1.model.person.name } } };
+  let obj3 = { label: 'obj3', model: { person: obj1.model.person } };
+  let obj4 = { label: 'obj4', model: obj1.model };
 
   let originalPerson = obj1.model.person;
 
@@ -56,10 +56,10 @@ QUnit.test("basic reference data flow", function() {
     addObserver(obj4.model.person.name, 'obj4.model.person.name', 'first')
   ];
 
-  allDirty(o1, "Yehuda");
-  allDirty(o2, "Yehuda");
-  allDirty(o3, "Yehuda");
-  allDirty(o4, "Yehuda");
+  allDirty(o1, 'Yehuda');
+  allDirty(o2, 'Yehuda');
+  allDirty(o3, 'Yehuda');
+  allDirty(o4, 'Yehuda');
 
   allClean(o1);
   allClean(o2);
@@ -68,33 +68,33 @@ QUnit.test("basic reference data flow", function() {
 
   setProperty(obj1.model, 'person', { name: { first: 'Godfrey', last: 'Chan' } });
 
-  isDirty(o1[0], "Godfrey");
-  isDirty(o1[1], "Godfrey");
+  isDirty(o1[0], 'Godfrey');
+  isDirty(o1[1], 'Godfrey');
   isClean(o1[2]);
   isClean(o1[3]);
 
   allClean(o2);
   allClean(o3);
 
-  isDirty(o4[0], "Godfrey");
-  isDirty(o4[1], "Godfrey");
+  isDirty(o4[0], 'Godfrey');
+  isDirty(o4[1], 'Godfrey');
   isClean(o4[2]);
   isClean(o4[3]);
 
-  setProperty(originalPerson.name, 'first', "Godhuda");
+  setProperty(originalPerson.name, 'first', 'Godhuda');
 
   isClean(o1[0]);
   isClean(o1[1]);
-  isDirty(o1[2], "Godhuda");
-  isDirty(o1[3], "Godhuda");
+  isDirty(o1[2], 'Godhuda');
+  isDirty(o1[3], 'Godhuda');
 
-  allDirty(o2, "Godhuda");
-  allDirty(o3, "Godhuda");
+  allDirty(o2, 'Godhuda');
+  allDirty(o3, 'Godhuda');
 
   isClean(o4[0]);
   isClean(o4[1]);
-  isDirty(o4[2], "Godhuda");
-  isDirty(o4[3], "Godhuda");
+  isDirty(o4[2], 'Godhuda');
+  isDirty(o4[3], 'Godhuda');
 
   setProperty(obj1.model, 'person', undefined);
 
@@ -113,25 +113,25 @@ QUnit.test("basic reference data flow", function() {
 
   setProperty(obj1.model, 'person', originalPerson);
 
-  isDirty(o1[0], "Godhuda");
-  isDirty(o1[1], "Godhuda");
+  isDirty(o1[0], 'Godhuda');
+  isDirty(o1[1], 'Godhuda');
   isClean(o1[2]);
   isClean(o1[3]);
 
   allClean(o2);
   allClean(o3);
 
-  isDirty(o4[0], "Godhuda");
-  isDirty(o4[1], "Godhuda");
+  isDirty(o4[0], 'Godhuda');
+  isDirty(o4[1], 'Godhuda');
   isClean(o4[2]);
   isClean(o4[3]);
 });
 
-QUnit.test("test data flow that goes through primitive wrappers", function() {
-  let obj1 = { label: "obj1", model: { person: { name: { first: "Yehuda", last: "Katz" } } } };
-  let obj2 = { label: "obj2", model: { person: { name: obj1.model.person.name } } };
-  let obj3 = { label: "obj3", model: { person: obj1.model.person } };
-  let obj4 = { label: "obj4", model: obj1.model };
+QUnit.test('test data flow that goes through primitive wrappers', function() {
+  let obj1 = { label: 'obj1', model: { person: { name: { first: 'Yehuda', last: 'Katz' } } } };
+  let obj2 = { label: 'obj2', model: { person: { name: obj1.model.person.name } } };
+  let obj3 = { label: 'obj3', model: { person: obj1.model.person } };
+  let obj4 = { label: 'obj4', model: obj1.model };
 
   let originalPerson = obj1.model.person;
 
@@ -188,7 +188,7 @@ QUnit.test("test data flow that goes through primitive wrappers", function() {
   isClean(o4[2]);
   isClean(o4[3]);
 
-  setProperty(originalPerson.name, 'first', "God-huda");
+  setProperty(originalPerson.name, 'first', 'God-huda');
 
   isClean(o1[0]);
   isClean(o1[1]);
@@ -236,17 +236,17 @@ QUnit.test("test data flow that goes through primitive wrappers", function() {
 
 function isDirty<T>(ref: Reference<T>, newValue: T) {
   // ok(ref.isDirty(), ref.label() + " is dirty");
-  QUnit.assert.ok(ref.value() === newValue, (ref as any).label() + " has new value " + newValue);
+  QUnit.assert.ok(ref.value() === newValue, (ref as any).label() + ' has new value ' + newValue);
 }
 
 function isClean<T>(_: Reference<T>) {
   // clean references are allowed to report dirty
 }
 
-function allDirty<T>(refs: Reference<T>[], newValue: T) {
+function allDirty<T>(refs: Array<Reference<T>>, newValue: T) {
   refs.forEach(function(ref) { isDirty(ref, newValue); });
 }
 
-function allClean<T>(refs: Reference<T>[]) {
+function allClean<T>(refs: Array<Reference<T>>) {
   refs.forEach(function(ref) { isClean(ref); });
 }

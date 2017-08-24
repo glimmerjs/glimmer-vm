@@ -1,8 +1,8 @@
-import { AbstractRenderTest, module, test } from "@glimmer/test-helpers";
+import { AbstractRenderTest, module, test } from '@glimmer/test-helpers';
 
 class ShadowingTests extends AbstractRenderTest {
   @test({ kind: 'glimmer' })
-  "normal outer attributes are reflected"() {
+  'normal outer attributes are reflected'() {
     this.render({
       layout: 'In layout - someProp: {{@someProp}}',
       args: { someProp: '"something here"' }
@@ -13,7 +13,7 @@ class ShadowingTests extends AbstractRenderTest {
   }
 
   @test({ kind: 'glimmer' })
-  "shadowing - normal outer attributes clobber inner attributes"() {
+  'shadowing - normal outer attributes clobber inner attributes'() {
     this.render({
       layout: 'Hello!',
       layoutAttributes: { 'data-name': '"Godfrey"', 'data-foo': '"foo"' },
@@ -26,7 +26,7 @@ class ShadowingTests extends AbstractRenderTest {
   }
 
   @test({ kind: 'glimmer' })
-  "outer attributes with concat are reflected"() {
+  'outer attributes with concat are reflected'() {
     this.render({
       layout: 'In layout - someProp: {{@someProp}}',
       args: { someProp: 'someProp' }
@@ -49,7 +49,7 @@ class ShadowingTests extends AbstractRenderTest {
   }
 
   @test({ kind: 'glimmer' })
-  "outer attributes with concat clobber inner attributes"() {
+  'outer attributes with concat clobber inner attributes'() {
     this.render({
       layoutAttributes: { 'data-name': 'Godfrey', 'data-foo': 'foo' },
       layout: 'Hello!',
@@ -73,7 +73,7 @@ class ShadowingTests extends AbstractRenderTest {
   }
 
   @test({ kind: 'glimmer' })
-  "outer attributes clobber inner attributes with concat"() {
+  'outer attributes clobber inner attributes with concat'() {
     this.render({
       layoutAttributes: { 'data-name': '{{@name}}', 'data-foo': '"{{@foo}}-bar"' },
       layout: 'Hello!',
@@ -98,4 +98,4 @@ class ShadowingTests extends AbstractRenderTest {
   }
 }
 
-module("Glimmer Component - shadowing", ShadowingTests, { componentModule: true });
+module('Glimmer Component - shadowing', ShadowingTests, { componentModule: true });

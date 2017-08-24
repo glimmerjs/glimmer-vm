@@ -1,36 +1,36 @@
-import { Scope, DynamicScope, Environment } from '../environment';
-import { DestroyableBounds, clear, move as moveBounds } from '../bounds';
-import { NewElementBuilder, Tracker, UpdatableTracker } from './element-builder';
-import { Option, Opaque, Stack, LinkedList, Dict, dict, expect } from '@glimmer/util';
+import { Simple } from '@glimmer/interfaces';
 import {
-  PathReference,
-  IterationArtifacts,
-  IteratorSynchronizer,
-  IteratorSynchronizerDelegate,
-
-  // Tags
-  combine,
-  Revision,
-  UpdatableTag,
-  TagWrapper,
-  combineSlice,
   CONSTANT_TAG,
   INITIAL,
-  Tag
-} from '@glimmer/reference';
-import { OpcodeJSON, UpdatingOpcode, UpdatingOpSeq } from '../opcodes';
-import { DOMChanges } from '../dom/helper';
-import { Simple } from '@glimmer/interfaces';
+  IterationArtifacts,
+  IteratorSynchronizer,
 
+  // Tags
+  IteratorSynchronizerDelegate,
+  PathReference,
+  Revision,
+  Tag,
+  TagWrapper,
+  UpdatableTag,
+  combine,
+  combineSlice
+} from '@glimmer/reference';
+import { Dict, LinkedList, Opaque, Option, Stack, dict, expect } from '@glimmer/util';
+import { DestroyableBounds, clear, move as moveBounds } from '../bounds';
+import { DOMChanges } from '../dom/helper';
+import { DynamicScope, Environment, Scope } from '../environment';
+import { OpcodeJSON, UpdatingOpSeq, UpdatingOpcode } from '../opcodes';
+import { NewElementBuilder, Tracker, UpdatableTracker } from './element-builder';
+
+import { VMHandle } from '@glimmer/opcode-compiler';
+import { RuntimeConstants as Constants, RuntimeProgram as Program } from '@glimmer/program';
 import VM, { CapturedStack, EvaluationStack } from './append';
-import { RuntimeConstants as Constants, RuntimeProgram as Program } from "@glimmer/program";
-import { VMHandle } from "@glimmer/opcode-compiler";
 
 export default class UpdatingVM<Specifier = Opaque> {
-  public env: Environment;
-  public dom: DOMChanges;
-  public alwaysRevalidate: boolean;
-  public constants: Constants<Specifier>;
+  env: Environment;
+  dom: DOMChanges;
+  alwaysRevalidate: boolean;
+  constants: Constants<Specifier>;
 
   private frameStack: Stack<UpdatingVMFrame> = new Stack<UpdatingVMFrame>();
 
@@ -91,10 +91,10 @@ export interface VMState {
 }
 
 export abstract class BlockOpcode extends UpdatingOpcode implements DestroyableBounds {
-  public type = "block";
-  public next = null;
-  public prev = null;
-  public children: LinkedList<UpdatingOpcode>;
+  type = 'block';
+  next = null;
+  prev = null;
+  children: LinkedList<UpdatingOpcode>;
 
   protected bounds: DestroyableBounds;
 
@@ -131,10 +131,10 @@ export abstract class BlockOpcode extends UpdatingOpcode implements DestroyableB
     this.state.env.didDestroy(this.bounds);
   }
 
-  toJSON() : OpcodeJSON {
+  toJSON(): OpcodeJSON {
     let details = dict<string>();
 
-    details["guid"] = `${this._guid}`;
+    details.guid = `${this._guid}`;
 
     return {
       guid: this._guid,
@@ -146,9 +146,9 @@ export abstract class BlockOpcode extends UpdatingOpcode implements DestroyableB
 }
 
 export class TryOpcode extends BlockOpcode implements ExceptionHandler {
-  public type = "try";
+  type = 'try';
 
-  public tag: Tag;
+  tag: Tag;
 
   private _tag: TagWrapper<UpdatableTag>;
 
@@ -193,12 +193,12 @@ export class TryOpcode extends BlockOpcode implements ExceptionHandler {
     this.next = next;
   }
 
-  toJSON() : OpcodeJSON {
+  toJSON(): OpcodeJSON {
     let json = super.toJSON();
 
-    let details = json["details"];
+    let details = json.details;
     if (!details) {
-      details = json["details"] = {};
+      details = json.details = {};
     }
 
     return super.toJSON();
@@ -214,7 +214,7 @@ class ListRevalidationDelegate implements IteratorSynchronizerDelegate {
 
   constructor(private opcode: ListBlockOpcode, private marker: Simple.Comment) {
     this.map = opcode.map;
-    this.updating = opcode['children'];
+    this.updating = opcode.children;
   }
 
   insert(key: string, item: PathReference<Opaque>, memo: PathReference<Opaque>, before: string) {
@@ -224,7 +224,7 @@ class ListRevalidationDelegate implements IteratorSynchronizerDelegate {
 
     if (before) {
       reference = map[before];
-      nextSibling = reference['bounds'].firstNode();
+      nextSibling = reference.bounds.firstNode();
     } else {
       nextSibling = this.marker;
     }
@@ -282,10 +282,10 @@ class ListRevalidationDelegate implements IteratorSynchronizerDelegate {
 }
 
 export class ListBlockOpcode extends BlockOpcode {
-  public type = "list-block";
-  public map = dict<BlockOpcode>();
-  public artifacts: IterationArtifacts;
-  public tag: Tag;
+  type = 'list-block';
+  map = dict<BlockOpcode>();
+  artifacts: IterationArtifacts;
+  tag: Tag;
 
   private lastIterated: Revision = INITIAL;
   private _tag: TagWrapper<UpdatableTag>;
@@ -313,7 +313,7 @@ export class ListBlockOpcode extends BlockOpcode {
       let { dom } = vm;
 
       let marker = dom.createComment('');
-      dom.insertAfter(bounds.parentElement(), marker, expect(bounds.lastNode(), "can't insert after an empty bounds"));
+      dom.insertAfter(bounds.parentElement(), marker, expect(bounds.lastNode(), 'can\'t insert after an empty bounds'));
 
       let target = new ListRevalidationDelegate(this, marker);
       let synchronizer = new IteratorSynchronizer({ target, artifacts });
@@ -338,20 +338,20 @@ export class ListBlockOpcode extends BlockOpcode {
     return VM.resume(state, elementStack);
   }
 
-  toJSON() : OpcodeJSON {
+  toJSON(): OpcodeJSON {
     let json = super.toJSON();
     let map = this.map;
 
     let inner = Object.keys(map).map(key => {
       return `${JSON.stringify(key)}: ${map[key]._guid}`;
-    }).join(", ");
+    }).join(', ');
 
-    let details = json["details"];
+    let details = json.details;
     if (!details) {
-      details = json["details"] = {};
+      details = json.details = {};
     }
 
-    details["map"] = `{${inner}}`;
+    details.map = `{${inner}}`;
 
     return json;
   }

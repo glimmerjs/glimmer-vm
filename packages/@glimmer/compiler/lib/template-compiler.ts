@@ -1,10 +1,10 @@
-import TemplateVisitor, { SymbolTable, Action } from "./template-visitor";
-import JavaScriptCompiler, { Template } from "./javascript-compiler";
-import { Stack } from "@glimmer/util";
-import { assert, expect } from "@glimmer/util";
-import { AST, isLiteral, SyntaxError } from '@glimmer/syntax';
+import { Opaque } from '@glimmer/interfaces';
+import { AST, SyntaxError, isLiteral } from '@glimmer/syntax';
+import { Stack } from '@glimmer/util';
+import { assert, expect } from '@glimmer/util';
+import JavaScriptCompiler, { Template } from './javascript-compiler';
+import TemplateVisitor, { Action, SymbolTable } from './template-visitor';
 import { getAttrNamespace } from './utils';
-import { Opaque } from "@glimmer/interfaces";
 
 export interface CompileOptions {
   meta: Opaque;
@@ -21,7 +21,7 @@ export default class TemplateCompiler {
 
     let compiler = new TemplateCompiler(options);
     let opcodes = compiler.process(templateVisitor.actions);
-    return JavaScriptCompiler.process(opcodes, ast['symbols']);
+    return JavaScriptCompiler.process(opcodes, ast.symbols);
   }
 
   private options: CompileOptions;
@@ -48,7 +48,7 @@ export default class TemplateCompiler {
   }
 
   startProgram(program: [AST.Program]) {
-    this.symbolStack.push(program[0]['symbols']);
+    this.symbolStack.push(program[0].symbols);
     this.opcode('startProgram', program, program);
   }
 
@@ -58,7 +58,7 @@ export default class TemplateCompiler {
   }
 
   startBlock(program: [AST.Program]) {
-    this.symbolStack.push(program[0]['symbols']);
+    this.symbolStack.push(program[0].symbols);
     this.templateId++;
     this.opcode('startBlock', program, program);
   }
@@ -103,7 +103,7 @@ export default class TemplateCompiler {
       this.modifier([action.modifiers[i]]);
     }
     this.opcode('flushElement', null);
-    this.symbolStack.push(action['symbols']);
+    this.symbolStack.push(action.symbols);
   }
 
   closeElement([action]: [AST.ElementNode]) {
@@ -433,7 +433,7 @@ function isBuiltInHelper(path: AST.PathExpression) {
 }
 
 function isArg(path: AST.PathExpression): boolean {
-  return !!path['data'];
+  return !!path.data;
 }
 
 function assertIsSimplePath(path: AST.PathExpression, loc: AST.SourceLocation, context: string) {

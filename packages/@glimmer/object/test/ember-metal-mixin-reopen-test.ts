@@ -36,7 +36,7 @@ QUnit.test('using reopen() and calling _super where there is not a super functio
   let result;
   try {
     result = taco.createBreakfast();
-  } catch(e) {
+  } catch (e) {
     result = 'Your breakfast was interrupted by an infinite stack error.';
     throw e;
   }

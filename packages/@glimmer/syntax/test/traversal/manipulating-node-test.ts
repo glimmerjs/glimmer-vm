@@ -1,16 +1,16 @@
-import { astEqual } from '../support';
 import {
-  preprocess as parse,
-  traverse,
-  builders as b,
   AST,
+  builders as b,
   cannotRemoveNode,
-  cannotReplaceNode
-} from "@glimmer/syntax";
+  cannotReplaceNode,
+  preprocess as parse,
+  traverse
+} from '@glimmer/syntax';
+import { astEqual } from '../support';
 
 QUnit.module('[glimmer-syntax] Traversal - manipulating');
 
-(["enter", "exit"] as Array<"enter" | "exit">).forEach((eventName) => {
+(['enter', 'exit'] as Array<'enter' | 'exit'>).forEach(eventName => {
   QUnit.test(`[${eventName}] Replacing self in a key (returning null)`, assert => {
     let ast = parse(`<x y={{z}} />`);
     let el = ast.body[0] as AST.ElementNode;
@@ -221,7 +221,7 @@ QUnit.test('Should recurrsively walk the transformed node', () => {
   let ast = parse(`{{x}}{{y}}{{z}}`);
 
   traverse(ast, {
-    MustacheStatement: function(node) {
+    MustacheStatement(node) {
       if (node.path.original === 'x') {
         return b.mustache('y');
       } else if (node.path.original === 'y') {
@@ -238,7 +238,7 @@ QUnit.test('Should recurrsively walk the keys in the transformed node', () => {
   let ast = parse(`{{#foo}}{{#bar}}{{baz}}{{/bar}}{{else}}{{#bar}}{{bat}}{{/bar}}{{/foo}}`);
 
   traverse(ast, {
-    BlockStatement: function(node) {
+    BlockStatement(node) {
       if (node.path.original === 'foo') {
         return b.block(b.path('x-foo'), node.params, node.hash, node.program, node.inverse, node.loc);
       } else if (node.path.original === 'bar') {
@@ -247,7 +247,7 @@ QUnit.test('Should recurrsively walk the keys in the transformed node', () => {
       return;
     },
 
-    MustacheStatement: function(node) {
+    MustacheStatement(node) {
       if (node.path.original === 'baz') {
         return b.mustache('x-baz');
       } else if (node.path.original === 'bat') {

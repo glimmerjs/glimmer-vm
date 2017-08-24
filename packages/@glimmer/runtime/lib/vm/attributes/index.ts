@@ -1,6 +1,6 @@
-import { Simple, Option, Opaque } from "@glimmer/interfaces";
-import { ElementBuilder } from '../element-builder';
+import { Opaque, Option, Simple } from '@glimmer/interfaces';
 import { Environment } from '../../environment';
+import { ElementBuilder } from '../element-builder';
 
 export interface Attribute {
   element: Simple.Element;

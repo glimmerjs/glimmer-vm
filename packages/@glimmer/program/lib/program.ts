@@ -1,9 +1,9 @@
 
-import { Recast } from "@glimmer/interfaces";
-import { DEBUG } from "@glimmer/local-debug-flags";
-import { Constants, WriteOnlyConstants, RuntimeConstants } from './constants';
+import { Recast } from '@glimmer/interfaces';
+import { DEBUG } from '@glimmer/local-debug-flags';
+import { CompileTimeProgram, VMHandle } from '@glimmer/opcode-compiler';
+import { Constants, RuntimeConstants, WriteOnlyConstants } from './constants';
 import { Opcode } from './opcode';
-import { VMHandle, CompileTimeProgram } from "@glimmer/opcode-compiler";
 
 enum TableSlotState {
   Allocated,
@@ -102,7 +102,7 @@ export class Heap {
     let compactedSize = 0;
     let { table, table: { length }, heap } = this;
 
-    for (let i=0; i<length; i+=ENTRY_SIZE) {
+    for (let i = 0; i < length; i += ENTRY_SIZE) {
       let offset = table[i];
       let size = table[i + SIZE_OFFSET];
       let state = table[i + STATE_OFFSET];
@@ -116,7 +116,7 @@ export class Heap {
         table[i + STATE_OFFSET] = TableSlotState.Purged;
         compactedSize += size;
       } else if (state === TableSlotState.Allocated) {
-        for (let j=offset; j<=i+size; j++) {
+        for (let j = offset; j <= i + size; j++) {
           heap[j - compactedSize] = heap[j];
         }
 
@@ -165,5 +165,5 @@ export class RuntimeProgram<Specifier> {
 }
 
 export class Program<Specifier> extends WriteOnlyProgram {
-  public constants: Constants<Specifier>;
+  constants: Constants<Specifier>;
 }

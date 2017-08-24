@@ -1,6 +1,6 @@
 import { AST } from '@glimmer/syntax';
+import { Dict, Option, dict, expect, unreachable } from '@glimmer/util';
 import { Core } from '@glimmer/wire-format';
-import { Dict, Option, dict, unreachable, expect } from '@glimmer/util';
 
 export abstract class SymbolTable {
   static top(): ProgramSymbolTable {
@@ -24,7 +24,7 @@ export abstract class SymbolTable {
 }
 
 export class ProgramSymbolTable extends SymbolTable {
-  public symbols: string[] = [];
+  symbols: string[] = [];
 
   private size = 1;
   private named = dict<number>();
@@ -161,15 +161,15 @@ export class BlockSymbolTable extends SymbolTable {
  */
 
 class Frame {
-  public parentNode: Option<Object> = null;
-  public children: Option<AST.Node[]> = null;
-  public childIndex: Option<number> = null;
-  public childCount: Option<number> = null;
-  public childTemplateCount = 0;
-  public mustacheCount = 0;
-  public actions: Action[] = [];
-  public blankChildTextNodes: Option<number[]> = null;
-  public symbols: Option<SymbolTable> = null;
+  parentNode: Option<Object> = null;
+  children: Option<AST.Node[]> = null;
+  childIndex: Option<number> = null;
+  childCount: Option<number> = null;
+  childTemplateCount = 0;
+  mustacheCount = 0;
+  actions: Action[] = [];
+  blankChildTextNodes: Option<number[]> = null;
+  symbols: Option<SymbolTable> = null;
 }
 
 export namespace Action {
@@ -202,7 +202,7 @@ export type Action = Action.Action;
 
 export default class TemplateVisitor {
   private frameStack: Frame[] = [];
-  public actions: Action[] = [];
+  actions: Action[] = [];
   private programDepth = -1;
 
   visit(node: AST.BaseNode) {
@@ -218,9 +218,9 @@ export default class TemplateVisitor {
     let programFrame = this.pushFrame();
 
     if (!parentFrame) {
-      program['symbols'] = SymbolTable.top();
+      program.symbols = SymbolTable.top();
     } else {
-      program['symbols'] = parentFrame.symbols!.child(program.blockParams);
+      program.symbols = parentFrame.symbols!.child(program.blockParams);
     }
 
     let startType: string, endType: string;
@@ -238,7 +238,7 @@ export default class TemplateVisitor {
     programFrame.childCount = program.body.length;
     programFrame.blankChildTextNodes = [];
     programFrame.actions.push([endType, [program, this.programDepth]] as Action);
-    programFrame.symbols = program['symbols'];
+    programFrame.symbols = program.symbols;
 
     for (let i = program.body.length - 1; i >= 0; i--) {
       programFrame.childIndex = i;
@@ -267,7 +267,7 @@ export default class TemplateVisitor {
     elementFrame.childCount = element.children.length;
     elementFrame.mustacheCount += element.modifiers.length;
     elementFrame.blankChildTextNodes = [];
-    elementFrame.symbols = element['symbols'] = parentFrame.symbols!.child(element.blockParams);
+    elementFrame.symbols = element.symbols = parentFrame.symbols!.child(element.blockParams);
 
     let actionArgs: [AST.ElementNode, number, number] = [
       element,
@@ -301,7 +301,7 @@ export default class TemplateVisitor {
     if (attr.value.type !== 'TextNode') {
       this.currentFrame.mustacheCount++;
     }
-  };
+  }
 
   TextNode(text: AST.TextNode) {
     let frame = this.currentFrame;
@@ -309,7 +309,7 @@ export default class TemplateVisitor {
       frame.blankChildTextNodes!.push(domIndexOf(frame.children!, text));
     }
     frame.actions.push(['text', [text, frame.childIndex, frame.childCount]] as Action);
-  };
+  }
 
   BlockStatement(node: AST.BlockStatement) {
     let frame = this.currentFrame;
@@ -319,33 +319,33 @@ export default class TemplateVisitor {
 
     if (node.inverse) { this.visit(node.inverse); }
     if (node.program) { this.visit(node.program); }
-  };
+  }
 
   PartialStatement(node: AST.PartialStatement) {
     let frame = this.currentFrame;
     frame.mustacheCount++;
     frame.actions.push(['mustache', [node, frame.childIndex, frame.childCount]] as Action);
-  };
+  }
 
   CommentStatement(text: AST.CommentStatement) {
     let frame = this.currentFrame;
     frame.actions.push(['comment', [text, frame.childIndex, frame.childCount]] as Action);
-  };
+  }
 
   MustacheCommentStatement() {
     // Intentional empty: Handlebars comments should not affect output.
-  };
+  }
 
   MustacheStatement(mustache: AST.MustacheStatement) {
     let frame = this.currentFrame;
     frame.mustacheCount++;
     frame.actions.push(['mustache', [mustache, frame.childIndex, frame.childCount]] as Action);
-  };
+  }
 
   // Frame helpers
 
   private get currentFrame(): Frame {
-    return expect(this.getCurrentFrame(), "Expected a current frame");
+    return expect(this.getCurrentFrame(), 'Expected a current frame');
   }
 
   private getCurrentFrame(): Option<Frame> {

@@ -23,7 +23,7 @@ export function assign(obj: any) {
 export function fillNulls<T>(count: number): T[] {
   let arr = new Array(count);
 
-  for (let i=0; i<count; i++) {
+  for (let i = 0; i < count; i++) {
     arr[i] = null;
   }
 

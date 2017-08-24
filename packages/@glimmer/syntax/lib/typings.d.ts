@@ -1,8 +1,8 @@
-declare module "handlebars/compiler/base" {
+declare module 'handlebars/compiler/base' {
   export function parse(html: string): any;
 }
 
-declare module "simple-html-tokenizer" {
+declare module 'simple-html-tokenizer' {
   export const HTML5NamedCharRefs: CharRef;
 
   export class EntityParser {

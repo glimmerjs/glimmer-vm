@@ -1,7 +1,7 @@
 import { Heap } from './program';
 
 export class Opcode {
-  public offset = 0;
+  offset = 0;
   constructor(private heap: Heap) {}
 
   get type() {

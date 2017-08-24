@@ -1,11 +1,11 @@
-import { KeyFor, Iterable } from './iterable';
+import { Iterable, KeyFor } from './iterable';
 
-import { Environment, DOMTreeConstruction, IDOMChanges, PrimitiveReference, ConditionalReference } from "@glimmer/runtime";
-import { dict } from "@glimmer/util";
-import { Dict, RuntimeResolver, Opaque } from "@glimmer/interfaces";
-import { VMHandle } from "@glimmer/opcode-compiler";
-import { Program } from "@glimmer/program";
-import { Reference, isConst, OpaqueIterable } from "@glimmer/reference";
+import { Dict, Opaque, RuntimeResolver } from '@glimmer/interfaces';
+import { VMHandle } from '@glimmer/opcode-compiler';
+import { Program } from '@glimmer/program';
+import { OpaqueIterable, Reference, isConst } from '@glimmer/reference';
+import { ConditionalReference, DOMTreeConstruction, Environment, IDOMChanges, PrimitiveReference } from '@glimmer/runtime';
+import { dict } from '@glimmer/util';
 
 export interface EnvironmentOptions {
   appendOperations: DOMTreeConstruction;
@@ -13,7 +13,7 @@ export interface EnvironmentOptions {
 }
 
 export abstract class AbstractTestEnvironment<Specifier> extends Environment {
-  public compiledLayouts: Dict<VMHandle> = dict();
+  compiledLayouts: Dict<VMHandle> = dict();
 
   protected abstract program: Program<Specifier>;
   protected abstract resolver: RuntimeResolver<Specifier>;

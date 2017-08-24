@@ -1,8 +1,8 @@
 import { Opaque, Option } from '@glimmer/interfaces';
-import { CachedReference, combineTagged, PathReference, Tag } from '@glimmer/reference';
+import { CachedReference, PathReference, Tag, combineTagged } from '@glimmer/reference';
 
 export class ConcatReference extends CachedReference<Option<string>> {
-  public tag: Tag;
+  tag: Tag;
 
   constructor(private parts: Array<PathReference<Opaque>>) {
     super();

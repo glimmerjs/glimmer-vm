@@ -1,6 +1,6 @@
-import { Bounds, ConcreteBounds } from '../bounds';
-import { moveNodesBefore, DOMChanges, DOMTreeConstruction } from '../dom/helper';
 import { Option } from '@glimmer/util';
+import { Bounds, ConcreteBounds } from '../bounds';
+import { DOMChanges, DOMTreeConstruction, moveNodesBefore } from '../dom/helper';
 
 interface Wrapper {
   depth: number;
@@ -42,7 +42,7 @@ export function domChanges(document: Option<Document>, DOMChangesClass: typeof D
       let parentTag = parent.tagName.toLowerCase();
       let wrapper = innerHTMLWrapper[parentTag];
 
-      if(wrapper === undefined) {
+      if (wrapper === undefined) {
         return super.insertHTMLBefore(parent, nextSibling, html);
       }
 
@@ -69,7 +69,7 @@ export function treeConstruction(document: Option<Document>, DOMTreeConstruction
       let parentTag = parent.tagName.toLowerCase();
       let wrapper = innerHTMLWrapper[parentTag];
 
-      if(wrapper === undefined) {
+      if (wrapper === undefined) {
         return super.insertHTMLBefore(parent, referenceNode, html);
       }
 
@@ -85,7 +85,7 @@ function fixInnerHTML(parent: HTMLElement, wrapper: Wrapper, div: HTMLElement, h
 
   let parentNode: Node = div;
 
-  for (let i=0; i<wrapper.depth; i++) {
+  for (let i = 0; i < wrapper.depth; i++) {
     parentNode = parentNode.childNodes[0];
   }
 

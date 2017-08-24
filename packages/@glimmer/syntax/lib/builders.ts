@@ -1,5 +1,5 @@
-import * as AST from './types/nodes';
 import { Option } from '@glimmer/interfaces';
+import * as AST from './types/nodes';
 
 // Statements
 
@@ -11,7 +11,7 @@ function buildMustache(path: BuilderPath | AST.Literal, params?: AST.Expression[
   }
 
   return {
-    type: "MustacheStatement",
+    type: 'MustacheStatement',
     path,
     params: params || [],
     hash: hash || buildHash([]),
@@ -22,7 +22,7 @@ function buildMustache(path: BuilderPath | AST.Literal, params?: AST.Expression[
 
 function buildBlock(path: BuilderPath, params: Option<AST.Expression[]>, hash: Option<AST.Hash>, program: AST.Program, inverse?: Option<AST.Program>, loc?: AST.SourceLocation): AST.BlockStatement {
   return {
-    type: "BlockStatement",
+    type: 'BlockStatement',
     path: buildPath(path),
     params: params || [],
     hash: hash || buildHash([]),
@@ -34,7 +34,7 @@ function buildBlock(path: BuilderPath, params: Option<AST.Expression[]>, hash: O
 
 function buildElementModifier(path: BuilderPath, params?: AST.Expression[], hash?: AST.Hash, loc?: Option<AST.SourceLocation>): AST.ElementModifierStatement {
   return {
-    type: "ElementModifierStatement",
+    type: 'ElementModifierStatement',
     path: buildPath(path),
     params: params || [],
     hash: hash || buildHash([]),
@@ -44,8 +44,8 @@ function buildElementModifier(path: BuilderPath, params?: AST.Expression[], hash
 
 function buildPartial(name: AST.PathExpression, params?: AST.Expression[], hash?: AST.Hash, indent?: string, loc?: AST.SourceLocation): AST.PartialStatement {
   return {
-    type: "PartialStatement",
-    name: name,
+    type: 'PartialStatement',
+    name,
     params: params || [],
     hash: hash || buildHash([]),
     indent: indent || '',
@@ -56,23 +56,23 @@ function buildPartial(name: AST.PathExpression, params?: AST.Expression[], hash?
 
 function buildComment(value: string, loc?: AST.SourceLocation): AST.CommentStatement {
   return {
-    type: "CommentStatement",
-    value: value,
+    type: 'CommentStatement',
+    value,
     loc: buildLoc(loc || null)
   };
 }
 
 function buildMustacheComment(value: string, loc?: AST.SourceLocation): AST.MustacheCommentStatement {
   return {
-    type: "MustacheCommentStatement",
-    value: value,
+    type: 'MustacheCommentStatement',
+    value,
     loc: buildLoc(loc || null)
   };
 }
 
-function buildConcat(parts: (AST.TextNode | AST.MustacheStatement)[], loc?: AST.SourceLocation): AST.ConcatStatement {
+function buildConcat(parts: Array<AST.TextNode | AST.MustacheStatement>, loc?: AST.SourceLocation): AST.ConcatStatement {
   return {
-    type: "ConcatStatement",
+    type: 'ConcatStatement',
     parts: parts || [],
     loc: buildLoc(loc || null)
   };
@@ -91,8 +91,8 @@ function buildElement(tag: string, attributes?: AST.AttrNode[], modifiers?: AST.
   }
 
   return {
-    type: "ElementNode",
-    tag: tag || "",
+    type: 'ElementNode',
+    tag: tag || '',
     attributes: attributes || [],
     blockParams: [],
     modifiers: modifiers || [],
@@ -104,17 +104,17 @@ function buildElement(tag: string, attributes?: AST.AttrNode[], modifiers?: AST.
 
 function buildAttr(name: string, value: AST.AttrNode['value'], loc?: AST.SourceLocation): AST.AttrNode {
   return {
-    type: "AttrNode",
-    name: name,
-    value: value,
+    type: 'AttrNode',
+    name,
+    value,
     loc: buildLoc(loc || null)
   };
 }
 
 function buildText(chars?: string, loc?: AST.SourceLocation): AST.TextNode {
   return {
-    type: "TextNode",
-    chars: chars || "",
+    type: 'TextNode',
+    chars: chars || '',
     loc: buildLoc(loc || null)
   };
 }
@@ -123,7 +123,7 @@ function buildText(chars?: string, loc?: AST.SourceLocation): AST.TextNode {
 
 function buildSexpr(path: AST.PathExpression, params?: AST.Expression[], hash?: AST.Hash, loc?: AST.SourceLocation): AST.SubExpression {
   return {
-    type: "SubExpression",
+    type: 'SubExpression',
     path: buildPath(path),
     params: params || [],
     hash: hash || buildHash([]),
@@ -143,7 +143,7 @@ function buildPath(original: BuilderPath, loc?: AST.SourceLocation): AST.PathExp
   }
 
   return {
-    type: "PathExpression",
+    type: 'PathExpression',
     original,
     this: thisHead,
     parts,
@@ -165,7 +165,7 @@ function buildLiteral<T extends AST.Literal>(type: T['type'], value: T['value'],
 
 function buildHash(pairs?: AST.HashPair[], loc?: AST.SourceLocation): AST.Hash {
   return {
-    type: "Hash",
+    type: 'Hash',
     pairs: pairs || [],
     loc: buildLoc(loc || null)
   };
@@ -173,8 +173,8 @@ function buildHash(pairs?: AST.HashPair[], loc?: AST.SourceLocation): AST.Hash {
 
 function buildPair(key: string, value: AST.Expression, loc?: AST.SourceLocation): AST.HashPair {
   return {
-    type: "HashPair",
-    key: key,
+    type: 'HashPair',
+    key,
     value,
     loc: buildLoc(loc || null)
   };
@@ -182,7 +182,7 @@ function buildPair(key: string, value: AST.Expression, loc?: AST.SourceLocation)
 
 function buildProgram(body?: AST.Statement[], blockParams?: string[], loc?: AST.SourceLocation): AST.Program {
   return {
-    type: "Program",
+    type: 'Program',
     body: body || [],
     blockParams: blockParams || [],
     loc: buildLoc(loc || null)
@@ -202,7 +202,7 @@ function buildPosition(line: number, column: number) {
 
 export const SYNTHETIC: AST.SourceLocation = { source: '(synthetic)', start: { line: 1, column: 0 }, end: { line: 1, column: 0 } };
 
-function buildLoc(loc:Option<AST.SourceLocation>): AST.SourceLocation;
+function buildLoc(loc: Option<AST.SourceLocation>): AST.SourceLocation;
 function buildLoc(startLine: number, startColumn: number, endLine?: number, endColumn?: number, source?: string): AST.SourceLocation;
 
 function buildLoc(...args: any[]): AST.SourceLocation {

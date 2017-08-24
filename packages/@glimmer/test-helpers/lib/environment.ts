@@ -1,7 +1,7 @@
 import {
   // VM
   DynamicScope,
-} from "@glimmer/runtime";
+} from '@glimmer/runtime';
 
 import {
   Dict,
@@ -12,9 +12,9 @@ import {
 
 import {
   PathReference
-} from "@glimmer/reference";
+} from '@glimmer/reference';
 
-import { Unique } from "@glimmer/interfaces";
+import { Unique } from '@glimmer/interfaces';
 
 export type _ = Unique<any>;
 
@@ -61,47 +61,47 @@ export function inspectHooks<T>(ComponentClass: T): T {
 
     didInitAttrs(this: any) {
       this._super(...arguments);
-      this.hooks['didInitAttrs']++;
+      this.hooks.didInitAttrs++;
     },
 
     didUpdateAttrs(this: any) {
       this._super(...arguments);
-      this.hooks['didUpdateAttrs']++;
+      this.hooks.didUpdateAttrs++;
     },
 
     didReceiveAttrs(this: any) {
       this._super(...arguments);
-      this.hooks['didReceiveAttrs']++;
+      this.hooks.didReceiveAttrs++;
     },
 
     willInsertElement(this: any) {
       this._super(...arguments);
-      this.hooks['willInsertElement']++;
+      this.hooks.willInsertElement++;
     },
 
     willUpdate(this: any) {
       this._super(...arguments);
-      this.hooks['willUpdate']++;
+      this.hooks.willUpdate++;
     },
 
     willRender(this: any) {
       this._super(...arguments);
-      this.hooks['willRender']++;
+      this.hooks.willRender++;
     },
 
     didInsertElement(this: any) {
       this._super(...arguments);
-      this.hooks['didInsertElement']++;
+      this.hooks.didInsertElement++;
     },
 
     didUpdate(this: any) {
       this._super(...arguments);
-      this.hooks['didUpdate']++;
+      this.hooks.didUpdate++;
     },
 
     didRender(this: any) {
       this._super(...arguments);
-      this.hooks['didRender']++;
+      this.hooks.didRender++;
     }
   });
 }
@@ -154,7 +154,7 @@ export function equalsElement(element: Element | null, tagName: string, attribut
           result: element instanceof HTMLElement,
           actual: null,
           expected: null,
-          message: "Element must be an HTML Element, not an SVG Element"
+          message: 'Element must be an HTML Element, not an SVG Element'
         });
   } else {
     QUnit.assert.pushResult({
@@ -176,26 +176,26 @@ export function equalsElement(element: Element | null, tagName: string, attribut
 }
 
 interface Matcher {
-  "3d4ef194-13be-4ccf-8dc7-862eea02c93e": boolean;
+  '3d4ef194-13be-4ccf-8dc7-862eea02c93e': boolean;
   match(actual: any): boolean;
   fail(actual: any): string;
   expected(): string;
 }
 
-export const MATCHER = "3d4ef194-13be-4ccf-8dc7-862eea02c93e";
+export const MATCHER = '3d4ef194-13be-4ccf-8dc7-862eea02c93e';
 
 export function equalsAttr(expected: any) {
   return {
-    "3d4ef194-13be-4ccf-8dc7-862eea02c93e": true,
-    match(actual: any) {
+    '3d4ef194-13be-4ccf-8dc7-862eea02c93e': true,
+    'match'(actual: any) {
       return expected === actual;
     },
 
-    expected() {
+    'expected'() {
       return `to equal ${expected}`;
     },
 
-    fail(actual: any) {
+    'fail'(actual: any) {
       return `${actual} did not equal ${expected}`;
     }
   };
@@ -203,16 +203,16 @@ export function equalsAttr(expected: any) {
 
 export function equals<T>(expected: T) {
   return {
-    "3d4ef194-13be-4ccf-8dc7-862eea02c93e": true,
-    match(actual: T) {
+    '3d4ef194-13be-4ccf-8dc7-862eea02c93e': true,
+    'match'(actual: T) {
       return expected === actual;
     },
 
-    expected() {
+    'expected'() {
       return `to equal ${expected}`;
     },
 
-    fail(actual: T) {
+    'fail'(actual: T) {
       return `${actual} did not equal ${expected}`;
     }
   };
@@ -220,14 +220,14 @@ export function equals<T>(expected: T) {
 
 export function regex(r: RegExp) {
   return {
-    "3d4ef194-13be-4ccf-8dc7-862eea02c93e": true,
-    match(v: string) {
+    '3d4ef194-13be-4ccf-8dc7-862eea02c93e': true,
+    'match'(v: string) {
       return r.test(v);
     },
-    expected() {
+    'expected'() {
       return `to match ${r}`;
     },
-    fail(actual: string) {
+    'fail'(actual: string) {
       return `${actual} did not match ${r}`;
     }
   };
@@ -235,14 +235,14 @@ export function regex(r: RegExp) {
 
 export function classes(expected: string) {
   return {
-    "3d4ef194-13be-4ccf-8dc7-862eea02c93e": true,
-    match(actual: string) {
+    '3d4ef194-13be-4ccf-8dc7-862eea02c93e': true,
+    'match'(actual: string) {
       return actual && (expected.split(' ').sort().join(' ') === actual.split(' ').sort().join(' '));
     },
-    expected() {
+    'expected'() {
       return `to include '${expected}'`;
     },
-    fail(actual: string) {
+    'fail'(actual: string) {
       return `'${actual}'' did not match '${expected}'`;
     }
   };

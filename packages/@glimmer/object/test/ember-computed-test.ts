@@ -1,12 +1,8 @@
-import GlimmerObject, { computed, observer, alias } from '..';
+import GlimmerObject, { alias, computed, observer } from '..';
 
-interface Get {
-  (obj: any, key: string): any;
-}
+type Get = (obj: any, key: string) => any;
 
-interface Set {
-  (obj: any, key: string, value: any): void;
-}
+type Set = (obj: any, key: string, value: any) => void;
 
 let emberGet = function aget(x: any, y: string) { return x[y]; };
 let emberSet = function aset(x: any, y: string, z: any) { return (x[y] = z); };

@@ -1,10 +1,10 @@
-import { Option, LinkedList } from '@glimmer/util';
-import Environment from '../environment';
+import { Opaque, Simple } from '@glimmer/interfaces';
+import { RuntimeProgram } from '@glimmer/program';
+import { LinkedList, Option } from '@glimmer/util';
 import { DestroyableBounds, clear } from '../bounds';
-import UpdatingVM, { ExceptionHandler } from './update';
+import Environment from '../environment';
 import { UpdatingOpcode } from '../opcodes';
-import { Simple, Opaque } from '@glimmer/interfaces';
-import { RuntimeProgram } from "@glimmer/program";
+import UpdatingVM, { ExceptionHandler } from './update';
 
 export default class RenderResult implements DestroyableBounds, ExceptionHandler {
   constructor(
@@ -33,7 +33,7 @@ export default class RenderResult implements DestroyableBounds, ExceptionHandler
   }
 
   handleException() {
-    throw "this should never happen";
+    throw new Error('this should never happen');
   }
 
   destroy() {

@@ -1,22 +1,14 @@
 import { ComputedReferenceBlueprint, Meta } from '@glimmer/object-reference';
-import { EMPTY_CACHE, ClassMeta } from './object';
-import { Descriptor, Blueprint } from './mixin';
+import { Blueprint, Descriptor } from './mixin';
+import { ClassMeta, EMPTY_CACHE } from './object';
 
-export interface ComputedGetCallback {
-  (): any;
-}
+export type ComputedGetCallback = () => any;
 
-export interface LegacyComputedGetCallback {
-  (key: string): any;
-}
+export type LegacyComputedGetCallback = (key: string) => any;
 
-export interface ComputedSetCallback {
-  (val: any): any;
-}
+export type ComputedSetCallback = (val: any) => any;
 
-export interface LegacyComputedSetCallback {
-  (key: string, val: any): any;
-}
+export type LegacyComputedSetCallback = (key: string, val: any) => any;
 
 export interface ComputedDescriptor {
   get?: ComputedGetCallback | LegacyComputedGetCallback;
@@ -63,7 +55,7 @@ class Computed implements Descriptor {
   configurable: boolean;
 
   private accessor: ComputedDescriptor;
-  "5d90f84f-908e-4a42-9749-3d0f523c262c" = true;
+  '5d90f84f-908e-4a42-9749-3d0f523c262c' = true;
 
   constructor(accessor: ComputedDescriptor) {
     this.accessor = accessor;
@@ -90,7 +82,7 @@ function wrapAccessor(home: Object, accessorName: string, _desc: ComputedDescrip
   if (get && get.length > 0) {
     originalGet = function(this: any) { return (get as any).call(this, accessorName); };
   } else {
-    originalGet = <ComputedGetCallback>_desc.get;
+    originalGet = _desc.get as ComputedGetCallback;
   }
 
   let set = _desc.set;
@@ -100,7 +92,7 @@ function wrapAccessor(home: Object, accessorName: string, _desc: ComputedDescrip
       return (set as any).call(this, accessorName, value);
     };
   } else {
-    originalSet = <ComputedGetCallback>_desc.set;
+    originalSet = _desc.set as ComputedGetCallback;
   }
 
   let cacheGet = function(this: any) {
@@ -188,12 +180,12 @@ export function computed(...args: any[]) {
 
   if (typeof last === 'function') {
     return new ComputedBlueprint({
-      get: <ComputedGetCallback | LegacyComputedGetCallback>last
+      get: last as ComputedGetCallback | LegacyComputedGetCallback
     }).property(...deps);
   } else if (typeof last === 'object') {
-    return new ComputedBlueprint(<ComputedDescriptor>last).property(...deps);
+    return new ComputedBlueprint(last as ComputedDescriptor).property(...deps);
   } else {
-    throw new TypeError("computed expects a function or an object as last argument");
+    throw new TypeError('computed expects a function or an object as last argument');
   }
 }
 

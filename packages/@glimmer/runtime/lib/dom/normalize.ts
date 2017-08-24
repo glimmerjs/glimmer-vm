@@ -1,4 +1,4 @@
-import { Opaque, Simple } from "@glimmer/interfaces";
+import { Opaque, Simple } from '@glimmer/interfaces';
 
 export interface SafeString {
   toHTML(): string;

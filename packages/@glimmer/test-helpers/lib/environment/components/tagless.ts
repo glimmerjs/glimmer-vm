@@ -1,8 +1,8 @@
-import { createTemplate, GenericComponentDefinition } from '../shared';
-import { BasicComponentManager, BasicComponentDefinition, BasicComponentFactory, BasicComponent } from './basic';
+import { ComponentCapabilities, WrappedBuilder } from '@glimmer/opcode-compiler';
+import { Invocation } from '@glimmer/runtime';
 import { TestResolver } from '../lazy-env';
-import { WrappedBuilder, ComponentCapabilities } from "@glimmer/opcode-compiler";
-import { Invocation } from "@glimmer/runtime";
+import { GenericComponentDefinition, createTemplate } from '../shared';
+import { BasicComponent, BasicComponentDefinition, BasicComponentFactory, BasicComponentManager } from './basic';
 
 export class StaticTaglessComponentManager extends BasicComponentManager {
   getLayout(definition: BasicComponentDefinition, resolver: TestResolver): Invocation {
@@ -26,8 +26,8 @@ export class StaticTaglessComponentManager extends BasicComponentManager {
 export const STATIC_TAGLESS_COMPONENT_MANAGER = new StaticTaglessComponentManager();
 
 export class StaticTaglessComponentDefinition extends GenericComponentDefinition<BasicComponent> {
-  public ComponentClass: BasicComponentFactory;
-  public capabilities: ComponentCapabilities = {
+  ComponentClass: BasicComponentFactory;
+  capabilities: ComponentCapabilities = {
     staticDefinitions: false,
     dynamicLayout: false,
     dynamicTag: false,

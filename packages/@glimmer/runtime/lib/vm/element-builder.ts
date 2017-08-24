@@ -1,22 +1,22 @@
-import { clear, Cursor, DestroyableBounds, single, Bounds, bounds } from '../bounds';
+import { Bounds, Cursor, DestroyableBounds, bounds, clear, single } from '../bounds';
 
 import { DOMChanges, DOMTreeConstruction } from '../dom/helper';
-import { isString, isSafeString, isNode, isFragment, isEmpty } from '../dom/normalize';
+import { isEmpty, isFragment, isNode, isSafeString, isString } from '../dom/normalize';
 
-import { Option, Destroyable, Stack, LinkedList, LinkedListNode, assert, expect } from '@glimmer/util';
+import { Destroyable, LinkedList, LinkedListNode, Option, Stack, assert, expect } from '@glimmer/util';
 
 import { Environment } from '../environment';
 
 import { VersionedReference } from '@glimmer/reference';
 
 import { DynamicContent, DynamicContentWrapper } from './content/dynamic';
-import DynamicTextContent from './content/text';
-import DynamicNodeContent from './content/node';
 import DynamicHTMLContent, { DynamicTrustedHTMLContent } from './content/html';
+import DynamicNodeContent from './content/node';
+import DynamicTextContent from './content/text';
 
 import { DynamicAttribute } from './attributes/dynamic';
 
-import { Opaque, Simple } from "@glimmer/interfaces";
+import { Opaque, Simple } from '@glimmer/interfaces';
 
 export interface FirstNode {
   firstNode(): Option<Simple.Node>;
@@ -119,11 +119,11 @@ export interface ElementBuilder extends Cursor, DOMStack, TreeOperations {
 }
 
 export class NewElementBuilder implements ElementBuilder {
-  public dom: DOMTreeConstruction;
-  public updateOperations: DOMChanges;
-  public constructing: Option<Simple.Element> = null;
-  public operations: Option<ElementOperations> = null;
-  public env: Environment;
+  dom: DOMTreeConstruction;
+  updateOperations: DOMChanges;
+  constructing: Option<Simple.Element> = null;
+  operations: Option<ElementOperations> = null;
+  env: Environment;
 
   private cursorStack = new Stack<Cursor>();
   private blockStack = new Stack<Tracker>();
@@ -165,12 +165,12 @@ export class NewElementBuilder implements ElementBuilder {
   }
 
   block(): Tracker {
-    return expect(this.blockStack.current, "Expected a current block tracker");
+    return expect(this.blockStack.current, 'Expected a current block tracker');
   }
 
   popElement() {
     this.cursorStack.pop();
-    expect(this.cursorStack.current, "can't pop past the last element");
+    expect(this.cursorStack.current, 'can\'t pop past the last element');
   }
 
   pushSimpleBlock(): Tracker {
@@ -204,7 +204,7 @@ export class NewElementBuilder implements ElementBuilder {
   popBlock(): Tracker {
     this.block().finalize(this);
     this.__closeBlock();
-    return expect(this.blockStack.pop(), "Expected popBlock to return a block");
+    return expect(this.blockStack.pop(), 'Expected popBlock to return a block');
   }
 
   __openBlock(): void {}
@@ -459,7 +459,7 @@ export class SimpleBlockTracker implements Tracker {
     let { destroyables } = this;
 
     if (destroyables && destroyables.length) {
-      for (let i=0; i<destroyables.length; i++) {
+      for (let i = 0; i < destroyables.length; i++) {
         destroyables[i].destroy();
       }
     }
@@ -535,7 +535,7 @@ export class UpdatableBlockTracker extends SimpleBlockTracker implements Updatab
     let { destroyables } = this;
 
     if (destroyables && destroyables.length) {
-      for (let i=0; i<destroyables.length; i++) {
+      for (let i = 0; i < destroyables.length; i++) {
         env.didDestroy(destroyables[i]);
       }
     }

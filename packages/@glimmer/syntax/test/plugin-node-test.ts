@@ -1,10 +1,10 @@
 import {
-  preprocess,
+  AST,
+  ASTPluginBuilder,
+  ASTPluginEnvironment,
   Syntax,
   Walker,
-  AST,
-  ASTPluginEnvironment,
-  ASTPluginBuilder
+  preprocess
 } from '@glimmer/syntax';
 
 const { test } = QUnit;
@@ -93,7 +93,7 @@ test('AST plugins can be chained', assert => {
       name: 'first',
       visitor: {
         Program(program: AST.Program) {
-          program['isFromFirstPlugin'] = true;
+          program.isFromFirstPlugin = true;
         }
       }
     };
@@ -104,9 +104,9 @@ test('AST plugins can be chained', assert => {
       name: 'second',
       visitor: {
         Program(node: AST.Program) {
-          assert.equal(node['isFromFirstPlugin'], true, 'AST from first plugin is passed to second');
+          assert.equal(node.isFromFirstPlugin, true, 'AST from first plugin is passed to second');
 
-          node['isFromSecondPlugin'] = true;
+          node.isFromSecondPlugin = true;
         }
       }
     };
@@ -117,9 +117,9 @@ test('AST plugins can be chained', assert => {
       name: 'third',
       visitor: {
         Program(node: AST.Program) {
-          assert.equal(node['isFromSecondPlugin'], true, 'AST from second plugin is passed to third');
+          assert.equal(node.isFromSecondPlugin, true, 'AST from second plugin is passed to third');
 
-          node['isFromThirdPlugin'] = true;
+          node.isFromThirdPlugin = true;
         }
       }
     };
@@ -131,5 +131,5 @@ test('AST plugins can be chained', assert => {
     }
   });
 
-  assert.equal(ast['isFromThirdPlugin'], true, 'return value from last AST transform is used');
+  assert.equal(ast.isFromThirdPlugin, true, 'return value from last AST transform is used');
 });

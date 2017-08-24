@@ -1,8 +1,8 @@
-import DynamicContentBase, { DynamicContent } from './dynamic';
+import { Opaque } from '@glimmer/interfaces';
 import Bounds from '../../bounds';
+import { SafeString, isSafeString, normalizeTrustedValue } from '../../dom/normalize';
 import Environment from '../../environment';
-import { isSafeString, SafeString, normalizeTrustedValue } from '../../dom/normalize';
-import { Opaque } from "@glimmer/interfaces";
+import DynamicContentBase, { DynamicContent } from './dynamic';
 
 export default class DynamicHTMLContent extends DynamicContentBase {
   constructor(public bounds: Bounds, private lastValue: SafeString, trusted: boolean) {

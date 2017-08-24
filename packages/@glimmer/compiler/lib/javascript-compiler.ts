@@ -1,17 +1,17 @@
-import * as WireFormat from '@glimmer/wire-format';
-import { assert } from "@glimmer/util";
-import { Stack, DictSet, Option, expect } from "@glimmer/util";
 import { AST } from '@glimmer/syntax';
+import { assert } from '@glimmer/util';
+import { DictSet, Option, Stack, expect } from '@glimmer/util';
+import * as WireFormat from '@glimmer/wire-format';
 import { BlockSymbolTable, ProgramSymbolTable } from './template-visitor';
 
 import {
-  SerializedTemplateBlock,
   Core,
-  Statement,
-  Statements,
   Expression,
   Expressions,
-  Ops
+  Ops,
+  SerializedTemplateBlock,
+  Statement,
+  Statements
 } from '@glimmer/wire-format';
 
 export type str = string;
@@ -21,7 +21,7 @@ export type Path = Core.Path;
 export type StackValue = Expression | Params | Hash | str;
 
 export abstract class Block {
-  public statements: Statement[] = [];
+  statements: Statement[] = [];
 
   abstract toJSON(): Object;
 
@@ -44,11 +44,11 @@ export class InlineBlock extends Block {
 }
 
 export class TemplateBlock extends Block {
-  public type = "template";
-  public yields = new DictSet<string>();
-  public named = new DictSet<string>();
-  public blocks: WireFormat.SerializedInlineBlock[] = [];
-  public hasEval = false;
+  type = 'template';
+  yields = new DictSet<string>();
+  named = new DictSet<string>();
+  blocks: WireFormat.SerializedInlineBlock[] = [];
+  hasEval = false;
 
   constructor(private symbolTable: ProgramSymbolTable) {
     super();
@@ -68,10 +68,10 @@ export class TemplateBlock extends Block {
 }
 
 export class ComponentBlock extends Block {
-  public attributes: Statements.Attribute[] = [];
-  public arguments: Statements.Argument[] = [];
+  attributes: Statements.Attribute[] = [];
+  arguments: Statements.Argument[] = [];
   private inParams = true;
-  public positionals: number[] = [];
+  positionals: number[] = [];
 
   constructor(private table: BlockSymbolTable) {
     super();
@@ -112,7 +112,7 @@ export class ComponentBlock extends Block {
 }
 
 export class Template {
-  public block: TemplateBlock;
+  block: TemplateBlock;
 
   constructor(symbols: ProgramSymbolTable) {
     this.block = new TemplateBlock(symbols);
@@ -155,7 +155,7 @@ export default class JavaScriptCompiler {
   /// Nesting
 
   startBlock([program]: [AST.Program]) {
-    let block: Block = new InlineBlock(program['symbols']);
+    let block: Block = new InlineBlock(program.symbols);
     this.blocks.push(block);
   }
 
@@ -333,13 +333,13 @@ export default class JavaScriptCompiler {
   /// Stack Management Opcodes
 
   startComponent(element: AST.ElementNode) {
-    let component = new ComponentBlock(element['symbols']);
+    let component = new ComponentBlock(element.symbols);
     this.blocks.push(component);
   }
 
   endComponent(): [WireFormat.Statements.Attribute[], WireFormat.Core.Hash, Option<WireFormat.SerializedInlineBlock>] {
     let component = this.blocks.pop();
-    assert(component instanceof ComponentBlock, "Compiler bug: endComponent() should end a component");
+    assert(component instanceof ComponentBlock, 'Compiler bug: endComponent() should end a component');
     return (component as ComponentBlock).toJSON();
   }
 
@@ -382,7 +382,7 @@ export default class JavaScriptCompiler {
   }
 
   popValue<T extends StackValue>(): T {
-    assert(this.values.length, "No expression found on stack");
+    assert(this.values.length, 'No expression found on stack');
     return this.values.pop() as T;
   }
 }

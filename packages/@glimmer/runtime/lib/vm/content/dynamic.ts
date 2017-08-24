@@ -1,6 +1,6 @@
-import Environment from '../../environment';
+import { Opaque, Option, Simple } from '@glimmer/interfaces';
 import Bounds, { clear } from '../../bounds';
-import { Opaque, Simple, Option } from "@glimmer/interfaces";
+import Environment from '../../environment';
 import { NewElementBuilder } from '../element-builder';
 
 export interface DynamicContent {
@@ -13,7 +13,7 @@ abstract class DynamicContentBase implements DynamicContent {
 
   abstract update(env: Environment, value: Opaque): DynamicContent;
 
-  public abstract bounds: Bounds;
+  abstract bounds: Bounds;
 
   protected retry(env: Environment, value: Opaque): DynamicContent {
     let { bounds } = this;
@@ -45,7 +45,7 @@ export class DynamicContentWrapper implements DynamicContent, Bounds {
     return this.bounds.lastNode();
   }
 
-  public bounds: Bounds;
+  bounds: Bounds;
 
   constructor(private inner: DynamicContent) {
     this.bounds = inner.bounds;

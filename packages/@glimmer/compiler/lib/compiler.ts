@@ -1,12 +1,10 @@
-import { preprocess } from "@glimmer/syntax";
-import TemplateCompiler, { CompileOptions } from "./template-compiler";
-import { SerializedTemplateWithLazyBlock, TemplateJavascript, TemplateMeta } from "@glimmer/wire-format";
-import { Option } from "@glimmer/interfaces";
-import { PreprocessOptions } from "@glimmer/syntax";
+import { Option } from '@glimmer/interfaces';
+import { preprocess } from '@glimmer/syntax';
+import { PreprocessOptions } from '@glimmer/syntax';
+import { SerializedTemplateWithLazyBlock, TemplateJavascript, TemplateMeta } from '@glimmer/wire-format';
+import TemplateCompiler, { CompileOptions } from './template-compiler';
 
-export interface TemplateIdFn {
-  (src: string): Option<string>;
-}
+export type TemplateIdFn = (src: string) => Option<string>;
 
 export interface PrecompileOptions extends CompileOptions, PreprocessOptions {
   id?: TemplateIdFn;
@@ -25,10 +23,10 @@ export const defaultId: TemplateIdFn = (() => {
         let hash = crypto.createHash('sha1');
         hash.update(src, 'utf8');
         // trim to 6 bytes of data (2^48 - 1)
-        return hash.digest('base64').substring(0,8);
+        return hash.digest('base64').substring(0, 8);
       };
 
-      idFn("test");
+      idFn('test');
 
       return idFn;
     } catch (e) {

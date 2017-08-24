@@ -1,4 +1,4 @@
-import { preprocess as parse, traverse, AST } from "@glimmer/syntax";
+import { AST, preprocess as parse, traverse } from '@glimmer/syntax';
 
 function traversalEqual(node: AST.Node, expectedTraversal: Array<[string, AST.Node]>) {
   let actualTraversal: Array<[string, AST.BaseNode]> = [];
@@ -30,7 +30,7 @@ function traversalEqual(node: AST.Node, expectedTraversal: Array<[string, AST.No
     }
   }
 
-  QUnit.assert.ok(nodesEqual, "Actual nodes match expected nodes");
+  QUnit.assert.ok(nodesEqual, 'Actual nodes match expected nodes');
 }
 
 QUnit.module('[glimmer-syntax] Traversal - visiting keys');

@@ -1,23 +1,23 @@
-import b, { SYNTHETIC } from "../builders";
-import { appendChild, parseElementBlockParams } from "../utils";
-import { HandlebarsNodeVisitors } from './handlebars-node-visitors';
-import * as AST from "../types/nodes";
-import SyntaxError from '../errors/syntax-error';
-import { Tag } from "../parser";
-import builders from "../builders";
-import traverse, { NodeVisitor } from "../traversal/traverse";
-import print from "../generation/print";
-import Walker from "../traversal/walker";
-import * as handlebars from "handlebars";
+import { Recast } from '@glimmer/interfaces';
 import { assign } from '@glimmer/util';
-import { Recast } from "@glimmer/interfaces";
+import * as handlebars from 'handlebars';
+import b, { SYNTHETIC } from '../builders';
+import builders from '../builders';
+import SyntaxError from '../errors/syntax-error';
+import print from '../generation/print';
+import { Tag } from '../parser';
+import traverse, { NodeVisitor } from '../traversal/traverse';
+import Walker from '../traversal/walker';
+import * as AST from '../types/nodes';
+import { appendChild, parseElementBlockParams } from '../utils';
+import { HandlebarsNodeVisitors } from './handlebars-node-visitors';
 
 const voidMap: {
   [tagName: string]: boolean
 } = Object.create(null);
 
-let voidTagNames = "area base br col command embed hr img input keygen link meta param source track wbr";
-voidTagNames.split(" ").forEach(tagName => {
+let voidTagNames = 'area base br col command embed hr img input keygen link meta param source track wbr';
+voidTagNames.split(' ').forEach(tagName => {
   voidMap[tagName] = true;
 });
 
@@ -32,7 +32,7 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
   // Comment
 
   beginComment() {
-    this.currentNode = b.comment("");
+    this.currentNode = b.comment('');
     this.currentNode.loc = {
       source: null,
       start: b.pos(this.tagOpenLine, this.tagOpenColumn),
@@ -81,7 +81,7 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
   beginStartTag() {
     this.currentNode = {
       type: 'StartTag',
-      name: "",
+      name: '',
       attributes: [],
       modifiers: [],
       comments: [],
@@ -93,7 +93,7 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
   beginEndTag() {
     this.currentNode = {
       type: 'EndTag',
-      name: "",
+      name: '',
       attributes: [],
       modifiers: [],
       comments: [],
@@ -165,7 +165,7 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
     }
 
     this.currentAttribute = {
-      name: "",
+      name: '',
       parts: [],
       isQuoted: false,
       isDynamic: false,
@@ -234,9 +234,9 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
   reportSyntaxError(message: string) {
     throw new SyntaxError(`Syntax error at line ${this.tokenizer.line} col ${this.tokenizer.column}: ${message}`, b.loc(this.tokenizer.line, this.tokenizer.column));
   }
-};
+}
 
-function assembleAttributeValue(parts: (AST.MustacheStatement | AST.TextNode)[], isQuoted: boolean, isDynamic: boolean, line: number) {
+function assembleAttributeValue(parts: Array<AST.MustacheStatement | AST.TextNode>, isQuoted: boolean, isDynamic: boolean, line: number) {
   if (isDynamic) {
     if (isQuoted) {
       return assembleConcatenatedValue(parts);
@@ -253,16 +253,16 @@ function assembleAttributeValue(parts: (AST.MustacheStatement | AST.TextNode)[],
       }
     }
   } else {
-    return parts.length > 0 ? parts[0] : b.text("");
+    return parts.length > 0 ? parts[0] : b.text('');
   }
 }
 
-function assembleConcatenatedValue(parts: (AST.MustacheStatement | AST.TextNode)[]) {
+function assembleConcatenatedValue(parts: Array<AST.MustacheStatement | AST.TextNode>) {
   for (let i = 0; i < parts.length; i++) {
     let part: AST.BaseNode = parts[i];
 
     if (part.type !== 'MustacheStatement' && part.type !== 'TextNode') {
-      throw new SyntaxError("Unsupported node in quoted attribute value: " + part['type'], part.loc);
+      throw new SyntaxError('Unsupported node in quoted attribute value: ' + part.type, part.loc);
     }
   }
 
@@ -276,19 +276,19 @@ function validateEndTag(tag: Tag<'StartTag' | 'EndTag'>, element: AST.ElementNod
     // EngTag is also called by StartTag for void and self-closing tags (i.e.
     // <input> or <br />, so we need to check for that here. Otherwise, we would
     // throw an error for those cases.
-    error = "Invalid end tag " + formatEndTagInfo(tag) + " (void elements cannot have end tags).";
+    error = 'Invalid end tag ' + formatEndTagInfo(tag) + ' (void elements cannot have end tags).';
   } else if (element.tag === undefined) {
-    error = "Closing tag " + formatEndTagInfo(tag) + " without an open tag.";
+    error = 'Closing tag ' + formatEndTagInfo(tag) + ' without an open tag.';
   } else if (element.tag !== tag.name) {
-    error = "Closing tag " + formatEndTagInfo(tag) + " did not match last open tag `" + element.tag + "` (on line " +
-            element.loc.start.line + ").";
+    error = 'Closing tag ' + formatEndTagInfo(tag) + ' did not match last open tag `' + element.tag + '` (on line ' +
+            element.loc.start.line + ').';
   }
 
   if (error) { throw new SyntaxError(error, element.loc); }
 }
 
 function formatEndTagInfo(tag: Tag<'StartTag' | 'EndTag'>) {
-  return "`" + tag.name + "` (on line " + tag.loc.end.line + ")";
+  return '`' + tag.name + '` (on line ' + tag.loc.end.line + ')';
 }
 
 export interface Syntax {
@@ -311,9 +311,7 @@ export const syntax: Syntax = {
   ASTPlugins can make changes to the Glimmer template AST before
   compilation begins.
 */
-export interface ASTPluginBuilder {
-  (env: ASTPluginEnvironment): ASTPlugin;
-}
+export type ASTPluginBuilder = (env: ASTPluginEnvironment) => ASTPlugin;
 
 export interface ASTPlugin {
   name: string;

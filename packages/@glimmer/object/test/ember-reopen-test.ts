@@ -13,7 +13,7 @@ QUnit.test('adds new properties to subclass instance', assert => {
     bar: 'BAR'
   });
 
-  assert.equal(new Subclass()['foo'](), 'FOO', 'Adds method');
+  assert.equal(new Subclass().foo(), 'FOO', 'Adds method');
   assert.equal(get(new Subclass(), 'bar'), 'BAR', 'Adds property');
 });
 
@@ -26,7 +26,7 @@ QUnit.test('reopened properties inherited by subclasses', assert => {
     bar: 'BAR'
   });
 
-  assert.equal(new SubSub()['foo'](), 'FOO', 'Adds method');
+  assert.equal(new SubSub().foo(), 'FOO', 'Adds method');
   assert.equal(get(new SubSub(), 'bar'), 'BAR', 'Adds property');
 });
 

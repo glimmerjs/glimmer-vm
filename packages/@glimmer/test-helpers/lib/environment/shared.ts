@@ -1,11 +1,11 @@
-import { Dict, Option, Opaque } from "@glimmer/interfaces";
-import { ComponentCapabilities, ParsedLayout } from "@glimmer/opcode-compiler";
-import { ComponentManager } from "@glimmer/runtime";
-import { SerializedTemplateWithLazyBlock, SerializedTemplateBlock, TemplateMeta } from "@glimmer/wire-format";
-import { precompile } from "@glimmer/compiler";
+import { precompile } from '@glimmer/compiler';
+import { Dict, Opaque, Option } from '@glimmer/interfaces';
+import { ComponentCapabilities, ParsedLayout } from '@glimmer/opcode-compiler';
+import { ComponentManager } from '@glimmer/runtime';
+import { SerializedTemplateBlock, SerializedTemplateWithLazyBlock, TemplateMeta } from '@glimmer/wire-format';
 
 export type Attrs = Dict<any>;
-export type AttrsDiff = { oldAttrs: Option<Attrs>, newAttrs: Attrs };
+export interface AttrsDiff { oldAttrs: Option<Attrs>, newAttrs: Attrs }
 
 export interface Definition {
   capabilities: ComponentCapabilities;

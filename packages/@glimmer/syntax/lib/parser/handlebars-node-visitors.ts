@@ -1,11 +1,11 @@
-import b from "../builders";
-import { appendChild, isLiteral, printLiteral } from "../utils";
-import * as AST from '../types/nodes';
-import * as HandlebarsAST from '../types/handlebars-ast';
-import { Parser, Tag, Attribute } from '../parser';
+import { Recast } from '@glimmer/interfaces';
+import { Option } from '@glimmer/util';
+import b from '../builders';
 import SyntaxError from '../errors/syntax-error';
-import { Option } from "@glimmer/util";
-import { Recast } from "@glimmer/interfaces";
+import { Attribute, Parser, Tag } from '../parser';
+import * as HandlebarsAST from '../types/handlebars-ast';
+import * as AST from '../types/nodes';
+import { appendChild, isLiteral, printLiteral } from '../utils';
 
 export abstract class HandlebarsNodeVisitors extends Parser {
   abstract appendToCommentData(s: string): void;
@@ -30,20 +30,20 @@ export abstract class HandlebarsNodeVisitors extends Parser {
     if (poppedNode !== node) {
       let elementNode = poppedNode as AST.ElementNode;
 
-      throw new SyntaxError("Unclosed element `" + elementNode.tag + "` (on line " + elementNode.loc!.start.line + ").", elementNode.loc);
+      throw new SyntaxError('Unclosed element `' + elementNode.tag + '` (on line ' + elementNode.loc!.start.line + ').', elementNode.loc);
     }
 
     return node;
   }
 
   BlockStatement(block: HandlebarsAST.BlockStatement) {
-    if (this.tokenizer['state'] === 'comment') {
+    if (this.tokenizer.state === 'comment') {
       this.appendToCommentData(this.sourceForNode(block));
       return;
     }
 
-    if (this.tokenizer['state'] !== 'comment' && this.tokenizer['state'] !== 'data' && this.tokenizer['state'] !== 'beforeData') {
-      throw new SyntaxError("A block may only be used inside an HTML element or another block.", block.loc);
+    if (this.tokenizer.state !== 'comment' && this.tokenizer.state !== 'data' && this.tokenizer.state !== 'beforeData') {
+      throw new SyntaxError('A block may only be used inside an HTML element or another block.', block.loc);
     }
 
     let { path, params, hash } = acceptCallNodes(this, block);
@@ -58,7 +58,7 @@ export abstract class HandlebarsNodeVisitors extends Parser {
   MustacheStatement(rawMustache: HandlebarsAST.MustacheStatement) {
     let { tokenizer } = this;
 
-    if (tokenizer['state'] === 'comment') {
+    if (tokenizer.state === 'comment') {
       this.appendToCommentData(this.sourceForNode(rawMustache));
       return;
     }
@@ -82,34 +82,34 @@ export abstract class HandlebarsNodeVisitors extends Parser {
 
     switch (tokenizer.state) {
       // Tag helpers
-      case "tagName":
+      case 'tagName':
         addElementModifier(this.currentStartTag, mustache);
-        tokenizer.state = "beforeAttributeName";
+        tokenizer.state = 'beforeAttributeName';
         break;
-      case "beforeAttributeName":
+      case 'beforeAttributeName':
         addElementModifier(this.currentStartTag, mustache);
         break;
-      case "attributeName":
-      case "afterAttributeName":
+      case 'attributeName':
+      case 'afterAttributeName':
         this.beginAttributeValue(false);
         this.finishAttributeValue();
         addElementModifier(this.currentStartTag, mustache);
-        tokenizer.state = "beforeAttributeName";
+        tokenizer.state = 'beforeAttributeName';
         break;
-      case "afterAttributeValueQuoted":
+      case 'afterAttributeValueQuoted':
         addElementModifier(this.currentStartTag, mustache);
-        tokenizer.state = "beforeAttributeName";
+        tokenizer.state = 'beforeAttributeName';
         break;
 
       // Attribute values
-      case "beforeAttributeValue":
+      case 'beforeAttributeValue':
         this.beginAttributeValue(false);
         appendDynamicAttributeValuePart(this.currentAttribute!, mustache);
         tokenizer.state = 'attributeValueUnquoted';
         break;
-      case "attributeValueDoubleQuoted":
-      case "attributeValueSingleQuoted":
-      case "attributeValueUnquoted":
+      case 'attributeValueDoubleQuoted':
+      case 'attributeValueSingleQuoted':
+      case 'attributeValueUnquoted':
         appendDynamicAttributeValuePart(this.currentAttribute!, mustache);
         break;
 
@@ -141,7 +141,7 @@ export abstract class HandlebarsNodeVisitors extends Parser {
     let comment = b.mustacheComment(value, loc);
 
     switch (tokenizer.state) {
-      case "beforeAttributeName":
+      case 'beforeAttributeName':
         this.currentStartTag.comments.push(comment);
         break;
 
@@ -268,7 +268,7 @@ function calculateRightStrippedOffsets(original: string, value: string) {
     // if it is empty, just return the count of newlines
     // in original
     return {
-      lines: original.split("\n").length - 1,
+      lines: original.split('\n').length - 1,
       columns: 0
     };
   }

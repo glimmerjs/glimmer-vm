@@ -1,15 +1,15 @@
-import { Template, RenderResult, IteratorResult } from "@glimmer/runtime";
+import { UpdatableReference } from '@glimmer/object-reference';
+import { IteratorResult, RenderResult, Template } from '@glimmer/runtime';
 import {
   BasicComponent,
   EmberishCurlyComponent,
-  TestEnvironment,
   TestDynamicScope,
-  equalTokens,
+  TestEnvironment,
   equalSnapshots,
+  equalTokens,
   generateSnapshot,
   strip
-} from "@glimmer/test-helpers";
-import { UpdatableReference } from "@glimmer/object-reference";
+} from '@glimmer/test-helpers';
 import { Opaque } from '@glimmer/util';
 
 let env: TestEnvironment;
@@ -26,7 +26,7 @@ function commonSetup() {
   root = document.createElement('div');
 }
 
-function render(template: Template, context={}) {
+function render(template: Template, context= {}) {
   self = new UpdatableReference(context);
   env.begin();
   let templateIterator = template.renderLayout({ env, self, cursor: { element: root, nextSibling: null }, dynamicScope: new TestDynamicScope() });
@@ -60,11 +60,11 @@ function rerender(context: any = null, params: RerenderParams = { assertStable: 
 }
 
 function assertInvariants(result: RenderResult) {
-  QUnit.assert.strictEqual(result.firstNode(), root.firstChild, "The firstNode of the result is the same as the root's firstChild");
-  QUnit.assert.strictEqual(result.lastNode(), root.lastChild, "The lastNode of the result is the same as the root's lastChild");
+  QUnit.assert.strictEqual(result.firstNode(), root.firstChild, 'The firstNode of the result is the same as the root\'s firstChild');
+  QUnit.assert.strictEqual(result.lastNode(), root.lastChild, 'The lastNode of the result is the same as the root\'s lastChild');
 }
 
-QUnit.module("Partials", {
+QUnit.module('Partials', {
   beforeEach: commonSetup
 });
 

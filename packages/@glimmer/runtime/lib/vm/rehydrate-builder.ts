@@ -1,10 +1,10 @@
-import { NewElementBuilder, ElementBuilder, ElementOperations } from "./element-builder";
+import { ElementBuilder, ElementOperations, NewElementBuilder } from './element-builder';
 
-import { Environment } from '../environment';
+import { Opaque, Option, Simple } from '@glimmer/interfaces';
+import { assert, expect } from '@glimmer/util';
 import Bounds, { bounds } from '../bounds';
-import { Simple, Option, Opaque } from "@glimmer/interfaces";
+import { Environment } from '../environment';
 import { DynamicContentWrapper } from './content/dynamic';
-import { expect, assert } from "@glimmer/util";
 
 export class RehydrateBuilder extends NewElementBuilder implements ElementBuilder {
   // The node that will be compared against the last operation
@@ -17,7 +17,7 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
 
   constructor(env: Environment, parentNode: Simple.Element, nextSibling: Option<Simple.Node>) {
     super(env, parentNode, nextSibling);
-    if (nextSibling) throw new Error("Rehydration with nextSibling not supported");
+    if (nextSibling) throw new Error('Rehydration with nextSibling not supported');
     this._candidate = parentNode.firstChild;
   }
 
@@ -234,7 +234,7 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
     let { unmatchedAttributes: unmatched } = this;
 
     if (unmatched) {
-      for (let i=0; i<unmatched.length; i++) {
+      for (let i = 0; i < unmatched.length; i++) {
         this.constructing!.removeAttribute(unmatched[i].name);
       }
       this.unmatchedAttributes = null;

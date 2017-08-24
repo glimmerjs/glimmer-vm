@@ -1,9 +1,9 @@
-import { AbstractRenderTest, test, module, TestEnvironment } from "@glimmer/test-helpers";
+import { AbstractRenderTest, TestEnvironment, module, test } from '@glimmer/test-helpers';
 
 class CompileErrorTests extends AbstractRenderTest {
   protected env = new TestEnvironment();
 
-  @test "A helpful error message is provided for unclosed elements"() {
+  @test 'A helpful error message is provided for unclosed elements'() {
     this.assert.throws(() => {
       this.env.compile('\n<div class="my-div" \n foo={{bar}}>\n<span>\n</span>\n');
     }, /Unclosed element `div` \(on line 2\)\./);
@@ -13,73 +13,73 @@ class CompileErrorTests extends AbstractRenderTest {
     }, /Unclosed element `span` \(on line 3\)\./);
   }
 
-  @test "A helpful error message is provided for unmatched end tags"() {
+  @test 'A helpful error message is provided for unmatched end tags'() {
     this.assert.throws(() => {
-      this.env.compile("</p>");
+      this.env.compile('</p>');
     }, /Closing tag `p` \(on line 1\) without an open tag\./);
 
     this.assert.throws(() => {
-      this.env.compile("<em>{{ foo }}</em> \n {{ bar }}\n</div>");
+      this.env.compile('<em>{{ foo }}</em> \n {{ bar }}\n</div>');
     }, /Closing tag `div` \(on line 3\) without an open tag\./);
   }
 
-  @test "A helpful error message is provided for end tags for void elements"() {
+  @test 'A helpful error message is provided for end tags for void elements'() {
     this.assert.throws(() => {
-      this.env.compile("<input></input>");
+      this.env.compile('<input></input>');
     }, /Invalid end tag `input` \(on line 1\) \(void elements cannot have end tags\)./);
 
     this.assert.throws(() => {
-      this.env.compile("<div>\n  <input></input>\n</div>");
+      this.env.compile('<div>\n  <input></input>\n</div>');
     }, /Invalid end tag `input` \(on line 2\) \(void elements cannot have end tags\)./);
 
     this.assert.throws(() => {
-      this.env.compile("\n\n</br>");
+      this.env.compile('\n\n</br>');
     }, /Invalid end tag `br` \(on line 3\) \(void elements cannot have end tags\)./);
   }
 
-  @test "A helpful error message is provided for end tags with attributes"() {
+  @test 'A helpful error message is provided for end tags with attributes'() {
     this.assert.throws(() => {
       this.env.compile('<div>\nSomething\n\n</div foo="bar">');
     }, /Invalid end tag: closing tag must not have attributes, in `div` \(on line 4\)\./);
   }
 
-  @test "A helpful error message is provided for mismatched start/end tags"() {
+  @test 'A helpful error message is provided for mismatched start/end tags'() {
     this.assert.throws(() => {
-      this.env.compile("<div>\n<p>\nSomething\n\n</div>");
+      this.env.compile('<div>\n<p>\nSomething\n\n</div>');
     }, /Closing tag `div` \(on line 5\) did not match last open tag `p` \(on line 2\)\./);
   }
 
-  @test "error line numbers include comment lines"() {
+  @test 'error line numbers include comment lines'() {
     this.assert.throws(() => {
-      this.env.compile("<div>\n<p>\n{{! some comment}}\n\n</div>");
+      this.env.compile('<div>\n<p>\n{{! some comment}}\n\n</div>');
     }, /Closing tag `div` \(on line 5\) did not match last open tag `p` \(on line 2\)\./);
   }
 
-  @test "error line numbers include mustache only lines"() {
+  @test 'error line numbers include mustache only lines'() {
     this.assert.throws(() => {
-      this.env.compile("<div>\n<p>\n{{someProp}}\n\n</div>");
+      this.env.compile('<div>\n<p>\n{{someProp}}\n\n</div>');
     }, /Closing tag `div` \(on line 5\) did not match last open tag `p` \(on line 2\)\./);
   }
 
-  @test "error line numbers include block lines"() {
+  @test 'error line numbers include block lines'() {
     this.assert.throws(() => {
-      this.env.compile("<div>\n<p>\n{{#some-comment}}\n{{/some-comment}}\n</div>");
+      this.env.compile('<div>\n<p>\n{{#some-comment}}\n{{/some-comment}}\n</div>');
     }, /Closing tag `div` \(on line 5\) did not match last open tag `p` \(on line 2\)\./);
   }
 
-  @test "error line numbers include whitespace control mustaches"() {
+  @test 'error line numbers include whitespace control mustaches'() {
     this.assert.throws(() => {
-      this.env.compile("<div>\n<p>\n{{someProp~}}\n\n</div>{{some-comment}}");
+      this.env.compile('<div>\n<p>\n{{someProp~}}\n\n</div>{{some-comment}}');
     }, /Closing tag `div` \(on line 5\) did not match last open tag `p` \(on line 2\)\./);
   }
 
-  @test "error line numbers include multiple mustache lines"() {
+  @test 'error line numbers include multiple mustache lines'() {
     this.assert.throws(() => {
-      this.env.compile("<div>\n<p>\n{{some-comment}}</div>{{some-comment}}");
+      this.env.compile('<div>\n<p>\n{{some-comment}}</div>{{some-comment}}');
     }, /Closing tag `div` \(on line 3\) did not match last open tag `p` \(on line 2\)\./);
   }
 
-  @test "Unquoted attribute with expression throws an exception"() {
+  @test 'Unquoted attribute with expression throws an exception'() {
     this.assert.throws(() => this.env.compile('<img class=foo{{bar}}>'), expectedError(1));
     this.assert.throws(() => this.env.compile('<img class={{foo}}{{bar}}>'), expectedError(1));
     this.assert.throws(() => this.env.compile('<img \nclass={{foo}}bar>'), expectedError(2));
@@ -95,4 +95,4 @@ class CompileErrorTests extends AbstractRenderTest {
   }
 }
 
-module("Rendering Error Cases", CompileErrorTests);
+module('Rendering Error Cases', CompileErrorTests);

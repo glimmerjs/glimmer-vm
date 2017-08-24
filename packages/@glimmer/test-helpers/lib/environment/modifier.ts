@@ -1,8 +1,8 @@
 
-import { ModifierManager, CapturedArguments, IDOMChanges, Arguments, DynamicScope } from "@glimmer/runtime";
-import { Opaque, Option } from "@glimmer/interfaces";
-import { Tag, CONSTANT_TAG } from "@glimmer/reference";
-import { Destroyable } from "@glimmer/util";
+import { Opaque, Option } from '@glimmer/interfaces';
+import { CONSTANT_TAG, Tag } from '@glimmer/reference';
+import { Arguments, CapturedArguments, DynamicScope, IDOMChanges, ModifierManager } from '@glimmer/runtime';
+import { Destroyable } from '@glimmer/util';
 
 export class InertModifierManager implements ModifierManager<Opaque> {
   create() { }
@@ -29,9 +29,9 @@ export class TestModifier {
 }
 
 export class TestModifierManager implements ModifierManager<TestModifier> {
-  public installedElements: Element[] = [];
-  public updatedElements: Element[] = [];
-  public destroyedModifiers: TestModifier[] = [];
+  installedElements: Element[] = [];
+  updatedElements: Element[] = [];
+  destroyedModifiers: TestModifier[] = [];
 
   create(element: Element, args: Arguments, _dynamicScope: DynamicScope, dom: IDOMChanges): TestModifier {
     return new TestModifier(element, args.capture(), dom);

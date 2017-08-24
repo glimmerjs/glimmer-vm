@@ -1,10 +1,10 @@
 import {
   Option,
-  SymbolTable,
-  ProgramSymbolTable
+  ProgramSymbolTable,
+  SymbolTable
 } from '@glimmer/interfaces';
-import { Statement, SerializedTemplateBlock } from '@glimmer/wire-format';
 import { DEBUG } from '@glimmer/local-debug-flags';
+import { SerializedTemplateBlock, Statement } from '@glimmer/wire-format';
 import { debugSlice } from './debug';
 import { VMHandle } from './interfaces';
 import { CompilableTemplate as ICompilableTemplate, ParsedLayout } from './interfaces';

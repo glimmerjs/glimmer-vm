@@ -107,7 +107,7 @@ export interface TextNode extends BaseNode {
 
 export interface ConcatStatement extends BaseNode {
   type: 'ConcatStatement';
-  parts: (TextNode | MustacheStatement)[];
+  parts: Array<TextNode | MustacheStatement>;
 }
 
 export type Expression = SubExpression | PathExpression | Literal;

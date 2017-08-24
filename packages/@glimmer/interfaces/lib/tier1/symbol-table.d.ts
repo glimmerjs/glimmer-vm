@@ -1,6 +1,6 @@
-import { Option, Dict } from '../core';
+import { Opaque } from '@glimmer/interfaces';
 import { TemplateMeta } from '@glimmer/wire-format';
-import { Opaque } from "@glimmer/interfaces";
+import { Dict, Option } from '../core';
 
 export interface Symbols {
 }

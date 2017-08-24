@@ -1,10 +1,10 @@
-import { ASTPluginBuilder, preprocess } from "@glimmer/syntax";
-import { TemplateCompiler } from "@glimmer/compiler";
-import { CompilableTemplate, Macros, OpcodeBuilderConstructor, ComponentCapabilities, CompileTimeLookup, CompileOptions, VMHandle, ICompilableTemplate, EagerOpcodeBuilder } from "@glimmer/opcode-compiler";
-import { WriteOnlyProgram, WriteOnlyConstants, ConstantPool } from "@glimmer/program";
-import { Option, ProgramSymbolTable, Recast, Dict } from "@glimmer/interfaces";
-import { SerializedTemplateBlock } from "@glimmer/wire-format";
-import { expect, dict, assert } from "@glimmer/util";
+import { TemplateCompiler } from '@glimmer/compiler';
+import { Dict, Option, ProgramSymbolTable, Recast } from '@glimmer/interfaces';
+import { CompilableTemplate, CompileOptions, CompileTimeLookup, ComponentCapabilities, EagerOpcodeBuilder, ICompilableTemplate, Macros, OpcodeBuilderConstructor, VMHandle } from '@glimmer/opcode-compiler';
+import { ConstantPool, WriteOnlyConstants, WriteOnlyProgram } from '@glimmer/program';
+import { ASTPluginBuilder, preprocess } from '@glimmer/syntax';
+import { assert, dict, expect } from '@glimmer/util';
+import { SerializedTemplateBlock } from '@glimmer/wire-format';
 
 export interface BundleCompileOptions {
   plugins: ASTPluginBuilder[];
@@ -22,7 +22,7 @@ const SPECIFIERS = dict<Dict<Specifier>>();
 type AddedTemplate = SerializedTemplateBlock | ICompilableTemplate<ProgramSymbolTable>;
 
 function isCompilableTemplate(v: AddedTemplate): v is ICompilableTemplate<ProgramSymbolTable> {
-  return typeof v['compile'] === 'function';
+  return typeof v.compile === 'function';
 }
 
 export function specifierFor(module: ModuleName, name: NamedExport): Specifier {
@@ -40,11 +40,11 @@ export function specifierFor(module: ModuleName, name: NamedExport): Specifier {
 }
 
 export class SpecifierMap {
-  public bySpecifier = new Map<Specifier, number>();
-  public byHandle = new Map<number, Specifier>();
+  bySpecifier = new Map<Specifier, number>();
+  byHandle = new Map<number, Specifier>();
 
-  public byVMHandle = new Map<number, Specifier>();
-  public vmHandleBySpecifier = new Map<Specifier, number>();
+  byVMHandle = new Map<number, Specifier>();
+  vmHandleBySpecifier = new Map<Specifier, number>();
 }
 
 export interface BundleCompilerOptions {
@@ -238,10 +238,10 @@ class BundlingLookup implements CompileTimeLookup<Specifier> {
   }
 
   lookupComponent(_name: string, _meta: Specifier): Option<number> {
-    throw new Error("Method not implemented.");
+    throw new Error('Method not implemented.');
   }
 
   lookupPartial(_name: string, _meta: Specifier): Option<number> {
-    throw new Error("Method not implemented.");
+    throw new Error('Method not implemented.');
   }
 }

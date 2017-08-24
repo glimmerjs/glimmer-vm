@@ -1,6 +1,6 @@
-import { Bounds, ConcreteBounds } from '../bounds';
-import { moveNodesBefore, DOMChanges, DOMTreeConstruction } from '../dom/helper';
 import { Option, unwrap } from '@glimmer/util';
+import { Bounds, ConcreteBounds } from '../bounds';
+import { DOMChanges, DOMTreeConstruction, moveNodesBefore } from '../dom/helper';
 
 export const SVG_NAMESPACE = 'http://www.w3.org/2000/svg';
 export type SVG_NAMESPACE = typeof SVG_NAMESPACE;
@@ -79,7 +79,7 @@ function shouldApplyFix(document: Document, svgNamespace: SVG_NAMESPACE) {
   let svg = document.createElementNS(svgNamespace, 'svg');
 
   try {
-    svg['insertAdjacentHTML']('beforeend', '<circle></circle>');
+    svg.insertAdjacentHTML('beforeend', '<circle></circle>');
   } catch (e) {
     // IE, Edge: Will throw, insertAdjacentHTML is unsupported on SVG
     // Safari: Will throw, insertAdjacentHTML is not present on SVG

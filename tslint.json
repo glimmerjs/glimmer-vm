@@ -1,21 +1,25 @@
 {
+  "extends": "tslint:recommended",
+  "defaultSeverity": "warning",
   "rules": {
-    "curly": false,
-    "no-var-keyword": true,
-    "indent": [true, "spaces"],
-    "label-position": true,
-    "no-consecutive-blank-lines": [
-      true
+    "ordered-imports": [
+      true,
+      {
+        "import-sources-order": "lowercase-last",
+        "named-imports-order": "lowercase-last"
+      }
     ],
-    "no-construct": true,
-    "no-debugger": true,
-    "no-duplicate-variable": true,
-    "no-inferrable-types": [true],
-    "no-trailing-whitespace": true,
-    "no-unused-expression": true,
-    "semicolon": [true, "always"],
-    "triple-equals": true,
-    "class-name": true,
-    "no-require-imports": true
+    "arrow-parens": [true, "ban-single-arg-parens"],
+    "curly": [true, "ignore-same-line"],
+    "interface-name": [true, "never-prefix"],
+    "max-classes-per-file": [false],
+    "member-access": [true, "no-public"],
+    "no-empty-interface": false,
+    "object-literal-sort-keys": false,
+    "prefer-const": false,
+    "prefer-for-of": false,
+    "quotemark": [true, "single"],
+    "trailing-comma": [true, "never"],
+    "variable-name": [true, "ban-keywords", "check-format", "allow-leading-underscore", "allow-pascal-case"]
   }
 }

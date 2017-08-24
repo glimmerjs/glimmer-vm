@@ -1,6 +1,6 @@
-import * as AST from './types/nodes';
-import { Option } from "@glimmer/interfaces";
+import { Option } from '@glimmer/interfaces';
 import SyntaxError from './errors/syntax-error';
+import * as AST from './types/nodes';
 
 // Regex to validate the identifier for block parameters.
 // Based on the ID validation regex in Handlebars.

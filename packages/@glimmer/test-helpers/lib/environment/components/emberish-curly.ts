@@ -1,13 +1,13 @@
-import { ComponentCapabilities, WrappedBuilder } from "@glimmer/opcode-compiler";
-import { Option, Opaque } from "@glimmer/interfaces";
-import GlimmerObject from "@glimmer/object";
-import { Tag, combine, PathReference, TagWrapper, DirtyableTag } from "@glimmer/reference";
-import { EMPTY_ARRAY, assign, Destroyable } from "@glimmer/util";
-import { Environment, Arguments, WithDynamicTagName, PreparedArguments, WithDynamicLayout, PrimitiveReference, ElementOperations, Bounds, CapturedNamedArguments, DynamicScope, Invocation } from "@glimmer/runtime";
-import { UpdatableReference } from "@glimmer/object-reference";
+import { Opaque, Option } from '@glimmer/interfaces';
+import GlimmerObject from '@glimmer/object';
+import { UpdatableReference } from '@glimmer/object-reference';
+import { ComponentCapabilities, WrappedBuilder } from '@glimmer/opcode-compiler';
+import { DirtyableTag, PathReference, Tag, TagWrapper, combine } from '@glimmer/reference';
+import { Arguments, Bounds, CapturedNamedArguments, DynamicScope, ElementOperations, Environment, Invocation, PreparedArguments, PrimitiveReference, WithDynamicLayout, WithDynamicTagName } from '@glimmer/runtime';
+import { Destroyable, EMPTY_ARRAY, assign } from '@glimmer/util';
 
-import { Attrs, GenericComponentDefinition, GenericComponentManager, createTemplate, AttrsDiff } from "../shared";
-import { TestSpecifier, TestResolver } from '../lazy-env';
+import { TestResolver, TestSpecifier } from '../lazy-env';
+import { Attrs, AttrsDiff, GenericComponentDefinition, GenericComponentManager, createTemplate } from '../shared';
 
 export interface EmberishCurlyComponentFactory {
   positionalParams: Option<string | string[]>;
@@ -25,9 +25,9 @@ const CURLY_CAPABILITIES: ComponentCapabilities = {
 };
 
 export class EmberishCurlyComponentDefinition extends GenericComponentDefinition<EmberishCurlyComponent> {
-  public ComponentClass: EmberishCurlyComponentFactory;
+  ComponentClass: EmberishCurlyComponentFactory;
 
-  public capabilities: ComponentCapabilities = CURLY_CAPABILITIES;
+  capabilities: ComponentCapabilities = CURLY_CAPABILITIES;
 }
 
 export class AbstractEmberishCurlyComponentManager extends GenericComponentManager implements WithDynamicTagName<EmberishCurlyComponent> {
@@ -51,7 +51,7 @@ export class AbstractEmberishCurlyComponentManager extends GenericComponentManag
       let named = Object.assign({}, args.named.capture().map);
       let count = Math.min(positionalParams.length, args.positional.length);
 
-      for (let i=0; i<count; i++) {
+      for (let i = 0; i < count; i++) {
         let name = positionalParams[i];
 
         if (named[name]) {
@@ -82,7 +82,7 @@ export class AbstractEmberishCurlyComponentManager extends GenericComponentManag
       component.layout = { name: component.name, handle: definition.layout };
     }
 
-    let dyn: Option<string[]> = definition.ComponentClass ? definition.ComponentClass['fromDynamicScope'] : null;
+    let dyn: Option<string[]> = definition.ComponentClass ? definition.ComponentClass.fromDynamicScope : null;
 
     if (dyn) {
       for (let i = 0; i < dyn.length; i++) {
@@ -198,18 +198,18 @@ export class EmberishCurlyComponentManager extends AbstractEmberishCurlyComponen
 }
 
 export class EmberishCurlyComponent extends GlimmerObject {
-  public static positionalParams: string[] | string;
+  static positionalParams: string[] | string;
 
-  public dirtinessTag: TagWrapper<DirtyableTag> = DirtyableTag.create();
-  public layout: { name: string, handle: number };
-  public name: string;
-  public tagName: Option<string> = null;
-  public attributeBindings: Option<string[]> = null;
-  public attrs: Attrs;
-  public element: Element;
-  public bounds: Bounds;
-  public parentView: Option<EmberishCurlyComponent> = null;
-  public args: CapturedNamedArguments;
+  dirtinessTag: TagWrapper<DirtyableTag> = DirtyableTag.create();
+  layout: { name: string, handle: number };
+  name: string;
+  tagName: Option<string> = null;
+  attributeBindings: Option<string[]> = null;
+  attrs: Attrs;
+  element: Element;
+  bounds: Bounds;
+  parentView: Option<EmberishCurlyComponent> = null;
+  args: CapturedNamedArguments;
 
   static create(args: { attrs: Attrs }): EmberishCurlyComponent {
     return super.create(args) as EmberishCurlyComponent;

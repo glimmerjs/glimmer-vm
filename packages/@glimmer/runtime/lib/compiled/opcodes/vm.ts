@@ -1,24 +1,24 @@
-import { Op } from '@glimmer/vm';
-import { Opaque, Option, BlockSymbolTable, Recast } from '@glimmer/interfaces';
+import { BlockSymbolTable, Opaque, Option, Recast } from '@glimmer/interfaces';
+import { VMHandle } from '@glimmer/opcode-compiler';
+import { LazyConstants, PrimitiveType } from '@glimmer/program';
 import {
-  VersionedPathReference,
   CONSTANT_TAG,
-  isConst,
-  isModified,
+  Reference,
   ReferenceCache,
   Revision,
-  Reference,
-  Tag
+  Tag,
+  VersionedPathReference,
+  isConst,
+  isModified
 } from '@glimmer/reference';
-import { initializeGuid, assert } from '@glimmer/util';
-import { stackAssert } from './assert';
+import { assert, initializeGuid } from '@glimmer/util';
+import { Op } from '@glimmer/vm';
 import { APPEND_OPCODES, OpcodeJSON, UpdatingOpcode } from '../../opcodes';
 import { Primitive, PrimitiveReference } from '../../references';
 import { CompilableTemplate } from '../../syntax/interfaces';
-import { VM, UpdatingVM } from '../../vm';
+import { UpdatingVM, VM } from '../../vm';
 import { Arguments } from '../../vm/arguments';
-import { LazyConstants, PrimitiveType } from "@glimmer/program";
-import { VMHandle } from "@glimmer/opcode-compiler";
+import { stackAssert } from './assert';
 
 APPEND_OPCODES.add(Op.ChildScope, vm => vm.pushChildScope());
 
@@ -85,7 +85,7 @@ APPEND_OPCODES.add(Op.PopFrame, vm => vm.popFrame());
 
 APPEND_OPCODES.add(Op.Enter, (vm, { op1: args }) => vm.enter(args));
 
-APPEND_OPCODES.add(Op.Exit, (vm) => vm.exit());
+APPEND_OPCODES.add(Op.Exit, vm => vm.exit());
 
 APPEND_OPCODES.add(Op.PushSymbolTable, (vm, { op1: _table }) => {
   let stack = vm.stack;
@@ -129,7 +129,7 @@ APPEND_OPCODES.add(Op.InvokeYield, vm => {
 
   let scope = vm.scope();
 
-  for (let i=0; i<localsCount; i++) {
+  for (let i = 0; i < localsCount; i++) {
     scope.bindSymbol(locals![i], args.at(i));
   }
 
@@ -188,9 +188,9 @@ APPEND_OPCODES.add(Op.ToBoolean, vm => {
 });
 
 export class Assert extends UpdatingOpcode {
-  public type = 'assert';
+  type = 'assert';
 
-  public tag: Tag;
+  tag: Tag;
 
   private cache: ReferenceCache<Opaque>;
 
@@ -229,9 +229,9 @@ export class Assert extends UpdatingOpcode {
 }
 
 export class JumpIfNotModifiedOpcode extends UpdatingOpcode {
-  public type = 'jump-if-not-modified';
+  type = 'jump-if-not-modified';
 
-  public tag: Tag;
+  tag: Tag;
 
   private lastRevision: Revision;
 
@@ -263,9 +263,9 @@ export class JumpIfNotModifiedOpcode extends UpdatingOpcode {
 }
 
 export class DidModifyOpcode extends UpdatingOpcode {
-  public type = 'did-modify';
+  type = 'did-modify';
 
-  public tag: Tag;
+  tag: Tag;
 
   constructor(private target: JumpIfNotModifiedOpcode) {
     super();
@@ -278,10 +278,10 @@ export class DidModifyOpcode extends UpdatingOpcode {
 }
 
 export class LabelOpcode implements UpdatingOpcode {
-  public tag: Tag = CONSTANT_TAG;
-  public type = 'label';
-  public label: Option<string> = null;
-  public _guid: number;
+  tag: Tag = CONSTANT_TAG;
+  type = 'label';
+  label: Option<string> = null;
+  _guid: number;
 
   prev: any = null;
   next: any = null;

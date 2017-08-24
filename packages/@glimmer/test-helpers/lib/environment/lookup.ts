@@ -1,7 +1,7 @@
-import { ComponentCapabilities, ICompilableTemplate } from "@glimmer/opcode-compiler";
-import { ProgramSymbolTable, Option } from "@glimmer/interfaces";
-import { assert } from "@glimmer/util";
-import { ComponentSpec, WithStaticLayout } from "@glimmer/runtime";
+import { Option, ProgramSymbolTable } from '@glimmer/interfaces';
+import { ComponentCapabilities, ICompilableTemplate } from '@glimmer/opcode-compiler';
+import { ComponentSpec, WithStaticLayout } from '@glimmer/runtime';
+import { assert } from '@glimmer/util';
 import { TestResolver, TestSpecifier } from './lazy-env';
 
 export class LookupResolver {

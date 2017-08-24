@@ -1,4 +1,4 @@
-import { preprocess as parse, Walker } from "@glimmer/syntax";
+import { Walker, preprocess as parse } from '@glimmer/syntax';
 
 function compareWalkedNodes(html: string, expected: string[]) {
   let ast = parse(html);

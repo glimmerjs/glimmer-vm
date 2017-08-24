@@ -1,6 +1,6 @@
 import { alias } from '@glimmer/object';
-import{ Meta } from '@glimmer/object-reference';
-import { get, set, defineProperty } from './support';
+import { Meta } from '@glimmer/object-reference';
+import { defineProperty, get, set } from './support';
 
 let obj: any;
 let count: number;
@@ -42,7 +42,7 @@ QUnit.test('should observe the alias', assert => {
   shouldBeClean(ref);
 
   set(obj.foo, 'faz', 'FAZ');
-  shouldBeDirty(ref, "after setting the property the alias is for");
+  shouldBeDirty(ref, 'after setting the property the alias is for');
   assert.equal(ref.value(), 'FAZ');
 });
 
@@ -60,10 +60,10 @@ QUnit.test('old dependent keys should not trigger property changes', assert => {
   defineProperty(obj1, 'baz', alias('bar')); // redefine baz
 
   let ref = observe(obj1, 'baz');
-  assert.equal(ref.value(), null, "The value starts out null");
+  assert.equal(ref.value(), null, 'The value starts out null');
 
   set(obj1, 'foo', 'FOO');
-  assert.equal(ref.value(), 'FOO', "And it sees the new value");
+  assert.equal(ref.value(), 'FOO', 'And it sees the new value');
 
   set(obj1, 'foo', 'OOF');
 });

@@ -1,7 +1,7 @@
-import { NewElementBuilder, ElementBuilder } from "./element-builder";
+import { ElementBuilder, NewElementBuilder } from './element-builder';
 
+import { Simple } from '@glimmer/interfaces';
 import Bounds, { bounds, currentNode } from '../bounds';
-import { Simple } from "@glimmer/interfaces";
 
 export class SerializeBuilder extends NewElementBuilder implements ElementBuilder {
   private serializeBlockDepth = 0;

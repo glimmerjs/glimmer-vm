@@ -2,8 +2,8 @@
 // as well as methods vs props.  We are just keeping these for testing; the
 // current impl doesn't care about the differences as much...
 
-import { mixin } from './support';
 import { Mixin } from '@glimmer/object';
+import { mixin } from './support';
 
 let PrivateProperty = Mixin.create({
   _foo: '_FOO'

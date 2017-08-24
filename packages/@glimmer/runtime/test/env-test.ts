@@ -1,4 +1,4 @@
-import { TestEnvironment } from "@glimmer/test-helpers";
+import { TestEnvironment } from '@glimmer/test-helpers';
 
 QUnit.module('env');
 
@@ -16,8 +16,8 @@ QUnit.test('ensure commit cleans up when it can', assert => {
   Object.defineProperty(env, 'transaction', {
     get() {
       return {
-        scheduledInstallManagers() : void { },
-        commit() : void {
+        scheduledInstallManagers(): void { },
+        commit(): void {
           throw new Error('something failed');
         }
       };

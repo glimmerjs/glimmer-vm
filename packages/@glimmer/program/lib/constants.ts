@@ -1,5 +1,5 @@
-import { Opaque, SymbolTable, RuntimeResolver } from "@glimmer/interfaces";
-import { CompileTimeConstants } from "@glimmer/opcode-compiler";
+import { Opaque, RuntimeResolver, SymbolTable } from '@glimmer/interfaces';
+import { CompileTimeConstants } from '@glimmer/opcode-compiler';
 
 const UNRESOLVED = {};
 

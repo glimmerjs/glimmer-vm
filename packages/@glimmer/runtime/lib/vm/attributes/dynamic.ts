@@ -1,11 +1,11 @@
-import { Simple, Option, Opaque } from "@glimmer/interfaces";
+import { Opaque, Option, Simple } from '@glimmer/interfaces';
+import { SVG_NAMESPACE } from '../../dom/helper';
+import { normalizeStringValue } from '../../dom/normalize';
+import { normalizeProperty } from '../../dom/props';
+import { requiresSanitization, sanitizeAttributeValue } from '../../dom/sanitized-values';
 import Environment from '../../environment';
 import { ElementBuilder } from '../element-builder';
-import { sanitizeAttributeValue, requiresSanitization } from '../../dom/sanitized-values';
-import { normalizeProperty } from '../../dom/props';
-import { SVG_NAMESPACE } from '../../dom/helper';
 import { Attribute, AttributeOperation } from './index';
-import { normalizeStringValue } from '../../dom/normalize';
 
 export interface DynamicAttributeFactory {
   new(attribute: Attribute): DynamicAttribute;
@@ -145,7 +145,7 @@ export class InputValueDynamicAttribute extends DefaultDynamicProperty {
   }
 
   update(value: Opaque) {
-    let input = <HTMLInputElement>this.attribute.element;
+    let input = this.attribute.element as HTMLInputElement;
     let currentValue = input.value;
     let normalizedValue = normalizeStringValue(value);
     if (currentValue !== normalizedValue) {
@@ -162,7 +162,7 @@ export class OptionSelectedDynamicAttribute extends DefaultDynamicProperty {
   }
 
   update(value: Opaque): void {
-    let option = <HTMLOptionElement>this.attribute.element;
+    let option = this.attribute.element as HTMLOptionElement;
 
     if (value) {
       option.selected = true;

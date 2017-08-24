@@ -1,10 +1,10 @@
-import { EMPTY_CACHE } from '../utils';
+import { Option } from '@glimmer/interfaces';
+import { PathReference as IPathReference, Reference, Tag, VOLATILE_TAG } from '@glimmer/reference';
 import { dict } from '@glimmer/util';
-import Meta from '../meta';
-import { PropertyReference } from './descriptors';
-import { VOLATILE_TAG, PathReference as IPathReference, Reference, Tag } from '@glimmer/reference';
 import { Dict, HasGuid } from '@glimmer/util';
-import { Option } from "@glimmer/interfaces";
+import Meta from '../meta';
+import { EMPTY_CACHE } from '../utils';
+import { PropertyReference } from './descriptors';
 
 export default class PathReference<T> implements IPathReference<T>, HasGuid {
   private parent: IPathReference<any>;
@@ -13,8 +13,8 @@ export default class PathReference<T> implements IPathReference<T>, HasGuid {
   private inner: Option<Reference<T>> = null;
   private chains: Option<Dict<PathReference<any>>> = null;
   private lastParentValue: any = EMPTY_CACHE;
-  public _guid = 0;
-  public tag: Tag = VOLATILE_TAG;
+  _guid = 0;
+  tag: Tag = VOLATILE_TAG;
 
   constructor(parent: IPathReference<T>, property: string) {
     this.parent = parent;
@@ -45,7 +45,7 @@ export default class PathReference<T> implements IPathReference<T>, HasGuid {
 
   get(prop: string): IPathReference<any> {
     let chains = this._getChains();
-    if (<string>prop in chains) return chains[prop];
+    if (prop as string in chains) return chains[prop];
     return (chains[prop] = new PathReference(this, prop));
   }
 

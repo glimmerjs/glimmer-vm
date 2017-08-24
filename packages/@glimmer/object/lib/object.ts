@@ -1,28 +1,28 @@
 import {
-  Meta,
   InnerReferenceFactory,
+  Meta,
   PropertyReference
 } from '@glimmer/object-reference';
-import { Dict, dict, assign, initializeGuid } from '@glimmer/util';
+import { Dict, assign, dict, initializeGuid } from '@glimmer/util';
 import {
   Mixin,
   extend as extendClass,
-  toMixin,
   relinkSubclasses,
+  toMixin,
   wrapMethod
 } from './mixin';
 
 const { isArray } = Array;
 
+import { Option } from '@glimmer/interfaces';
 import { ROOT } from './utils';
-import { Option } from "@glimmer/interfaces";
 
 export const EMPTY_CACHE = function EMPTY_CACHE() {};
 
-const CLASS_META = "df8be4c8-4e89-44e2-a8f9-550c8dacdca7";
+const CLASS_META = 'df8be4c8-4e89-44e2-a8f9-550c8dacdca7';
 
 export interface ObjectWithMixins {
-  "df8be4c8-4e89-44e2-a8f9-550c8dacdca7": ClassMeta;
+  'df8be4c8-4e89-44e2-a8f9-550c8dacdca7': ClassMeta;
   _meta: Meta;
 }
 
@@ -40,7 +40,7 @@ export interface GlimmerObjectFactory<T> {
   reopenClass<U>(extensions: U): void;
   metaForProperty(property: string): Object;
   eachComputedProperty(callback: (s: string, o: Object) => void): void;
-  "df8be4c8-4e89-44e2-a8f9-550c8dacdca7": InstanceMeta;
+  'df8be4c8-4e89-44e2-a8f9-550c8dacdca7': InstanceMeta;
 }
 
 export function turbocharge<T>(obj: T): T {
@@ -51,7 +51,7 @@ export function turbocharge<T>(obj: T): T {
 
 abstract class SealedMeta extends Meta {
   addReferenceTypeFor(..._args: any[]): InnerReferenceFactory<any> {
-    throw new Error("Cannot modify reference types on a sealed meta");
+    throw new Error('Cannot modify reference types on a sealed meta');
   }
 }
 
@@ -65,9 +65,9 @@ export class ClassMeta {
   private mixins: Mixin[] = [];
   private appliedMixins: Mixin[] = [];
   private staticMixins: Mixin[] = [];
-  private subclasses: GlimmerObjectFactory<any>[] = [];
+  private subclasses: Array<GlimmerObjectFactory<any>> = [];
   private slots: string[] = [];
-  public InstanceMetaConstructor: Option<typeof Meta> = null;
+  InstanceMetaConstructor: Option<typeof Meta> = null;
 
   static fromParent(parent: Option<ClassMeta>) {
     let meta = new this();
@@ -76,8 +76,8 @@ export class ClassMeta {
   }
 
   static for(object: ObjectWithMixins | InstanceWithMixins): Option<ClassMeta> {
-    if (CLASS_META in object) return (<ObjectWithMixins>object)[CLASS_META];
-    else if (object.constructor) return (<InstanceWithMixins>object).constructor[CLASS_META] || null;
+    if (CLASS_META in object) return (object as ObjectWithMixins)[CLASS_META];
+    else if (object.constructor) return (object as InstanceWithMixins).constructor[CLASS_META] || null;
     else return null;
   }
 
@@ -169,7 +169,7 @@ export class ClassMeta {
 
   hasConcatenatedProperty(property: string): boolean {
     if (!this.hasConcatenatedProperties) return false;
-    return <string>property in this.concatenatedProperties;
+    return property as string in this.concatenatedProperties;
   }
 
   getConcatenatedProperty(property: string): any[] {
@@ -177,13 +177,13 @@ export class ClassMeta {
   }
 
   getConcatenatedProperties(): string[] {
-    return <string[]>Object.keys(this.concatenatedProperties);
+    return Object.keys(this.concatenatedProperties) as string[];
   }
 
   addConcatenatedProperty(property: string, value: any) {
     this.hasConcatenatedProperties = true;
 
-    if (<string>property in this.concatenatedProperties) {
+    if (property as string in this.concatenatedProperties) {
       let val = this.concatenatedProperties[property].concat(value);
       this.concatenatedProperties[property] = val;
     } else {
@@ -193,7 +193,7 @@ export class ClassMeta {
 
   hasMergedProperty(property: string): boolean {
     if (!this.hasMergedProperties) return false;
-    return <string>property in this.mergedProperties;
+    return property as string in this.mergedProperties;
   }
 
   getMergedProperty(property: string): Object {
@@ -201,7 +201,7 @@ export class ClassMeta {
   }
 
   getMergedProperties(): string[] {
-    return <string[]>Object.keys(this.mergedProperties);
+    return Object.keys(this.mergedProperties) as string[];
   }
 
   addMergedProperty(property: string, value: Object) {
@@ -211,7 +211,7 @@ export class ClassMeta {
       throw new Error(`You passed in \`${JSON.stringify(value)}\` as the value for \`foo\` but \`foo\` cannot be an Array`);
     }
 
-    if (<string>property in this.mergedProperties && this.mergedProperties[property] && value) {
+    if (property as string in this.mergedProperties && this.mergedProperties[property] && value) {
       this.mergedProperties[property] = mergeMergedProperties(value, this.mergedProperties[property]);
     } else {
       value = value === null ? value : value || {};
@@ -280,7 +280,7 @@ export class ClassMeta {
 
     this.InstanceMetaConstructor = class extends SealedMeta {
       protected slots: Slots = new Slots();
-      public referenceTypes: Dict<InnerReferenceFactory<any>> = referenceTypes;
+      referenceTypes: Dict<InnerReferenceFactory<any>> = referenceTypes;
 
       getReferenceTypes() {
         return this.referenceTypes;
@@ -315,10 +315,10 @@ function mergeMergedProperties(attrs: Object, parent: Object) {
 }
 
 export class InstanceMeta extends ClassMeta {
-  public "df8be4c8-4e89-44e2-a8f9-550c8dacdca7": ClassMeta = ClassMeta.fromParent(null);
+  'df8be4c8-4e89-44e2-a8f9-550c8dacdca7': ClassMeta = ClassMeta.fromParent(null);
 
   static fromParent(parent: Option<InstanceMeta>): InstanceMeta {
-    return <InstanceMeta>super.fromParent(parent);
+    return super.fromParent(parent) as InstanceMeta;
   }
 
   reset(parent: InstanceMeta) {
@@ -333,7 +333,7 @@ export class InstanceMeta extends ClassMeta {
 }
 
 export default class GlimmerObject {
-  static "df8be4c8-4e89-44e2-a8f9-550c8dacdca7": InstanceMeta = InstanceMeta.fromParent(null);
+  static 'df8be4c8-4e89-44e2-a8f9-550c8dacdca7': InstanceMeta = InstanceMeta.fromParent(null);
   static isClass = true;
 
   static extend(): GlimmerObjectFactory<any> & typeof GlimmerObject;
@@ -383,7 +383,7 @@ export default class GlimmerObject {
 
   constructor(attrs?: Object | null) {
     if (attrs) assign(this, attrs);
-    (<typeof GlimmerObject>this.constructor)[CLASS_META].init(this, attrs || null);
+    (this.constructor as typeof GlimmerObject)[CLASS_META].init(this, attrs || null);
     this._super = ROOT;
     initializeGuid(this);
     this.init();

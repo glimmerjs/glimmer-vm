@@ -1,5 +1,5 @@
-import * as Simple from './simple';
 import { Option } from '../core';
+import * as Simple from './simple';
 
 export interface Bounds {
   // a method to future-proof for wormholing; may not be needed ultimately

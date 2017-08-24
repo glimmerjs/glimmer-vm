@@ -1,19 +1,19 @@
-import { AbstractRenderTest, test } from "../abstract-test-case";
+import { AbstractRenderTest, test } from '../abstract-test-case';
 import { classes } from '../environment';
 
 export class EmberishComponentTests extends AbstractRenderTest {
   @test
-  "non-block without properties"() {
+  'non-block without properties'() {
     this.render({
       layout: 'In layout'
     });
 
-     this.assertComponent('In layout');
-     this.assertStableRerender();
+    this.assertComponent('In layout');
+    this.assertStableRerender();
   }
 
   @test
-  "block without properties"() {
+  'block without properties'() {
     this.render({
       layout: 'In layout -- {{yield}}',
       template: 'In template'
@@ -24,7 +24,7 @@ export class EmberishComponentTests extends AbstractRenderTest {
   }
 
   @test
-  "yield inside a conditional on the component"() {
+  'yield inside a conditional on the component'() {
     this.render({
       layout: 'In layout -- {{#if @predicate}}{{yield}}{{/if}}',
       template: 'In template',
@@ -44,7 +44,7 @@ export class EmberishComponentTests extends AbstractRenderTest {
   }
 
   @test
-  "non-block with properties on attrs"() {
+  'non-block with properties on attrs'() {
     this.render({
       layout: 'In layout - someProp: {{@someProp}}',
       args: { someProp: '"something here"'}
@@ -55,7 +55,7 @@ export class EmberishComponentTests extends AbstractRenderTest {
   }
 
   @test
-  "block with properties on attrs"() {
+  'block with properties on attrs'() {
     this.render({
       layout: 'In layout - someProp: {{@someProp}} - {{yield}}',
       template: 'In template',
@@ -67,7 +67,7 @@ export class EmberishComponentTests extends AbstractRenderTest {
   }
 
   @test({ skip: true, kind: 'curly' })
-  "with ariaRole specified"() {
+  'with ariaRole specified'() {
     this.render({
       layout: 'Here!',
       attributes: { id: '"aria-test"', ariaRole: '"main"' }
@@ -78,7 +78,7 @@ export class EmberishComponentTests extends AbstractRenderTest {
   }
 
   @test({ skip: true, kind: 'curly' })
-  "with ariaRole and class specified"() {
+  'with ariaRole and class specified'() {
     this.render({
       layout: 'Here!',
       attributes: { id: '"aria-test"', class: '"foo"', ariaRole: '"main"' }
@@ -89,7 +89,7 @@ export class EmberishComponentTests extends AbstractRenderTest {
   }
 
   @test({ skip: true, kind: 'curly' })
-  "with ariaRole specified as an outer binding"() {
+  'with ariaRole specified as an outer binding'() {
     this.render({
       layout: 'Here!',
       attributes: { id: '"aria-test"', class: '"foo"', ariaRole: 'ariaRole' }
@@ -100,7 +100,7 @@ export class EmberishComponentTests extends AbstractRenderTest {
   }
 
   @test({ skip: true, kind: 'glimmer' })
-  "glimmer component with role specified as an outer binding and copied"() {
+  'glimmer component with role specified as an outer binding and copied'() {
     this.render({
       layout: 'Here!',
       attributes: { id: '"aria-test"', role: 'myRole' }

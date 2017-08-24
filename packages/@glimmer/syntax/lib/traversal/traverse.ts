@@ -1,11 +1,11 @@
+import { Option } from '@glimmer/interfaces';
+import * as nodes from '../types/nodes';
 import visitorKeys from '../types/visitor-keys';
 import {
   cannotRemoveNode,
   cannotReplaceNode,
   cannotReplaceOrRemoveInKeyHandlerYet
 } from './errors';
-import * as nodes from '../types/nodes';
-import { Option } from "@glimmer/interfaces";
 
 export type NodeHandler<T extends nodes.Node> = NodeHandlerFunction<T> | EnterExitNodeHandler<T>;
 
@@ -17,9 +17,7 @@ export interface NodeVisitor extends SpecificNodeVisitor {
   All?: NodeHandler<nodes.Node>;
 }
 
-export interface NodeHandlerFunction<T extends nodes.Node> {
-  (this: null, node: T): any | null | undefined;
-}
+export type NodeHandlerFunction<T extends nodes.Node> = (this: null, node: T) => any | null | undefined;
 
 export interface EnterExitNodeHandler<T extends nodes.Node> {
   enter?: NodeHandlerFunction<T>;
@@ -31,8 +29,8 @@ function visitNode(visitor: NodeVisitor, node: nodes.Node): any {
   let handler: Option<NodeHandler<nodes.Node>> = visitor[node.type] || visitor.All || null;
   let result;
 
-  if (handler && handler['enter']) {
-    result = handler['enter'].call(null, node);
+  if (handler && handler.enter) {
+    result = handler.enter.call(null, node);
   }
 
   if (result !== undefined && result !== null) {
@@ -52,8 +50,8 @@ function visitNode(visitor: NodeVisitor, node: nodes.Node): any {
       visitKey(visitor, handler as any, node as any, keys[i]);
     }
 
-    if (handler && handler['exit']) {
-      result = handler['exit'].call(null, node);
+    if (handler && handler.exit) {
+      result = handler.exit.call(null, node);
     }
   }
 

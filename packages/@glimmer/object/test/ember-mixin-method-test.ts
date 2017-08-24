@@ -1,5 +1,5 @@
-import { mixin } from './support';
 import { Mixin } from '@glimmer/object';
+import { mixin } from './support';
 
 QUnit.module('Mixin.create - Methods');
 
@@ -80,11 +80,11 @@ QUnit.test('overriding inherited objects', assert => {
   MixinB.apply(objB);
 
   cnt = 0;
-  objB['foo']();
+  objB.foo();
   assert.equal(cnt, 2, 'should invoke both methods');
 
   cnt = 0;
-  objA['foo']();
+  objA.foo();
   assert.equal(cnt, 1, 'should not screw w/ parent obj');
 });
 
@@ -111,7 +111,7 @@ QUnit.test('Including the same mixin more than once will only run once', assert 
   MixinA.apply(obj); // try to apply again..
 
   cnt = 0;
-  obj['foo']();
+  obj.foo();
 
   assert.equal(cnt, 1, 'should invoke MixinA.foo one time');
 });
@@ -126,7 +126,7 @@ QUnit.test('_super from a single mixin with no superclass does not error', asser
   let obj = {};
   MixinA.apply(obj);
 
-  obj['foo']();
+  obj.foo();
   assert.ok(true);
 });
 
@@ -150,7 +150,7 @@ QUnit.test('_super from a first-of-two mixins with no superclass function does n
   MixinA.apply(obj);
   MixinB.apply(obj);
 
-  obj['foo']();
+  obj.foo();
   assert.ok(true);
 });
 
@@ -205,6 +205,6 @@ QUnit.test('applying several mixins at once with sup already defined causes infi
   mixin(obj, MixinB, MixinC); // must be more than one mixin
 
   cnt = 0;
-  obj['foo']();
+  obj.foo();
   assert.equal(cnt, 3, 'should invoke all 3 methods');
 });

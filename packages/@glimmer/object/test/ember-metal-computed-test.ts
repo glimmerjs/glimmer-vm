@@ -1,5 +1,5 @@
-import { Mixin, get, set, mixin } from './support';
 import { computed } from '@glimmer/object';
+import { Mixin, get, mixin, set } from './support';
 
 function K(this: any) { return this; }
 
@@ -69,15 +69,15 @@ QUnit.test('calling set on overridden computed properties', assert => {
 
   SuperMixin = Mixin.create({
     aProp: computed({
-      get: function() { superGetOccurred = true; },
-      set: function() { superSetOccurred = true; }
+      get() { superGetOccurred = true; },
+      set() { superSetOccurred = true; }
     })
   });
 
   SubMixin = Mixin.create(SuperMixin, {
     aProp: computed({
-      get: function() { return this._super.apply(this, arguments); },
-      set: function() { return this._super.apply(this, arguments); }
+      get() { return this._super.apply(this, arguments); },
+      set() { return this._super.apply(this, arguments); }
     })
   });
 
@@ -113,12 +113,12 @@ QUnit.test('setter behavior works properly when overriding computed properties',
   let MixinB = Mixin.create({
     cpWithSetter2: computed({
       get: K,
-      set: function() { cpWasCalled = true; }
+      set() { cpWasCalled = true; }
     }),
 
     cpWithSetter3: computed({
       get: K,
-      set: function() { cpWasCalled = true; }
+      set() { cpWasCalled = true; }
     }),
 
     cpWithoutSetter: computed(function() {

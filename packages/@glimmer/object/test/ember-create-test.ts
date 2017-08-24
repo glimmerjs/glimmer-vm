@@ -16,19 +16,19 @@ QUnit.test('reopening a parent flushes the child', assert => {
 
   MyClass.reopen({
     hello() {
-      return "hello";
+      return 'hello';
     }
   });
 
   let sub: any = SubClass.create();
 
-  assert.equal(sub.hello(), "hello");
+  assert.equal(sub.hello(), 'hello');
 });
 
 QUnit.test('reopening a parent flushes the child', assert => {
   let MyClass = EmberObject.extend({
     hello() {
-      return "original hello";
+      return 'original hello';
     }
   });
 
@@ -46,19 +46,19 @@ QUnit.test('reopening a parent flushes the child', assert => {
 
   MyClass.reopen({
     hello(this: any) {
-      return this._super() + " new hello";
+      return this._super() + ' new hello';
     }
   });
 
   let sub: any = GrandChild.create();
 
-  assert.equal(sub.hello(), "original hello new hello");
+  assert.equal(sub.hello(), 'original hello new hello');
 });
 
 QUnit.test('reopening a parent with a computed property flushes the child', assert => {
   let MyClass = EmberObject.extend({
     hello: computed(function() {
-      return "original hello";
+      return 'original hello';
     })
   });
 
@@ -76,22 +76,22 @@ QUnit.test('reopening a parent with a computed property flushes the child', asse
 
   MyClass.reopen({
     hello: computed(function(this: any) {
-      return this._super() + " new hello";
+      return this._super() + ' new hello';
     })
   });
 
   let sub: any = GrandChild.create();
 
-  assert.equal(sub.hello, "original hello new hello");
+  assert.equal(sub.hello, 'original hello new hello');
 });
 
 QUnit.test('calls computed property setters', assert => {
   let MyClass = EmberObject.extend({
     foo: computed({
-      get: function() {
+      get() {
         return 'this is not the value you\'re looking for';
       },
-      set: function(_, value) {
+      set(_, value) {
         return value;
       }
     })
@@ -114,5 +114,5 @@ QUnit.test('inherits properties from passed in EmberObject', assert => {
   let baseObj = EmberObject.create({ foo: 'bar' });
   let secondaryObj = EmberObject.create(baseObj);
 
-  assert.equal(secondaryObj['foo'], baseObj['foo'], 'Em.O.create inherits properties from EmberObject parameter');
+  assert.equal(secondaryObj.foo, baseObj.foo, 'Em.O.create inherits properties from EmberObject parameter');
 });

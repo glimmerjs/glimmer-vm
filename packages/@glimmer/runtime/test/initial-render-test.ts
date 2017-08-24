@@ -1,19 +1,19 @@
-import { Opaque, Dict, Option } from "@glimmer/interfaces";
+import { Dict, Opaque, Option } from '@glimmer/interfaces';
 import {
-  module,
-  test,
-  EMPTY,
-  OPEN,
   CLOSE,
-  TestEnvironment,
-  equalTokens,
   Content,
-  content,
+  EMPTY,
   InitialRenderSuite,
+  OPEN,
   RehydrationDelegate,
-  rawModule
-} from "@glimmer/test-helpers";
-import { expect } from "@glimmer/util";
+  TestEnvironment,
+  content,
+  equalTokens,
+  module,
+  rawModule,
+  test
+} from '@glimmer/test-helpers';
+import { expect } from '@glimmer/util';
 
 class RenderTests extends InitialRenderSuite {
   name = 'client';
@@ -40,50 +40,50 @@ class Rehydration extends InitialRenderSuite {
     equalTokens(output, content([OPEN, ..._expected, CLOSE]));
   }
 
-  @test "mismatched text nodes"() {
+  @test 'mismatched text nodes'() {
     let template = '{{content}}';
     this.renderServerSide(template, { content: 'hello' });
-    this.assertServerOutput("hello");
+    this.assertServerOutput('hello');
 
     this.renderClientSide(template, { content: 'goodbye' });
-    this.assertHTML("goodbye");
+    this.assertHTML('goodbye');
     this.assertStableRerender();
   }
 
-  @test "mismatched text nodes (server-render empty)"() {
-    let template = "{{content}} world";
+  @test 'mismatched text nodes (server-render empty)'() {
+    let template = '{{content}} world';
     this.renderServerSide(template, { content: '' });
-    this.assertServerOutput(EMPTY, " world");
+    this.assertServerOutput(EMPTY, ' world');
 
     this.renderClientSide(template, { content: 'hello' });
-    this.assertHTML("hello world");
+    this.assertHTML('hello world');
 
     // TODO: handle %empty% in the testing DSL
     // this.assertStableNodes();
     this.assertStableRerender();
   }
 
-  @test "mismatched elements"() {
-    let template = "{{#if admin}}<div>hi admin</div>{{else}}<p>HAXOR</p>{{/if}}";
+  @test 'mismatched elements'() {
+    let template = '{{#if admin}}<div>hi admin</div>{{else}}<p>HAXOR</p>{{/if}}';
     this.renderServerSide(template, { admin: true });
-    this.assertServerOutput(OPEN, "<div>hi admin</div>", CLOSE);
+    this.assertServerOutput(OPEN, '<div>hi admin</div>', CLOSE);
 
     this.renderClientSide(template, { admin: false });
-    this.assertHTML("<p>HAXOR</p>");
+    this.assertHTML('<p>HAXOR</p>');
     this.assertStableRerender();
   }
 
-  @test "extra nodes at the end"() {
-    let template = "{{#if admin}}<div>hi admin</div>{{else}}<div>HAXOR{{stopHaxing}}</div>{{/if}}";
+  @test 'extra nodes at the end'() {
+    let template = '{{#if admin}}<div>hi admin</div>{{else}}<div>HAXOR{{stopHaxing}}</div>{{/if}}';
     this.renderServerSide(template, { admin: false, stopHaxing: 'stahp' });
-    this.assertServerOutput(OPEN, "<div>HAXOR<!--%sep%-->stahp</div>", CLOSE);
+    this.assertServerOutput(OPEN, '<div>HAXOR<!--%sep%-->stahp</div>', CLOSE);
 
     this.renderClientSide(template, { admin: true });
-    this.assertHTML("<div>hi admin</div>");
+    this.assertHTML('<div>hi admin</div>');
     this.assertStableRerender();
   }
 
-  @test "Node curlies"() {
+  @test 'Node curlies'() {
     let template = '<div>{{node}}</div>';
 
     let env = this.delegate.serverEnv;
@@ -109,5 +109,5 @@ class Rehydration extends InitialRenderSuite {
   }
 }
 
-rawModule("Rehydration Tests", Rehydration, RehydrationDelegate);
-module("Initial Render Tests", RenderTests);
+rawModule('Rehydration Tests', Rehydration, RehydrationDelegate);
+module('Initial Render Tests', RenderTests);

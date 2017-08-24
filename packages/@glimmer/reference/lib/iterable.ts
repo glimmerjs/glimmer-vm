@@ -1,5 +1,5 @@
 import { LinkedList, ListNode, Opaque, Option, dict, expect } from '@glimmer/util';
-import { VersionedPathReference as PathReference, Tag } from './validators';
+import { Tag, VersionedPathReference as PathReference } from './validators';
 
 export interface IterationItem<T, U> {
   key: string;
@@ -33,10 +33,10 @@ export type OpaqueIterable = AbstractIterable<Opaque, Opaque, OpaqueIterationIte
 export type OpaquePathReferenceIterationItem = IterationItem<OpaquePathReference, OpaquePathReference>;
 
 export class ListItem extends ListNode<OpaquePathReference> implements OpaqueIterationItem {
-  public key: string;
-  public memo: OpaquePathReference;
-  public retained = false;
-  public seen = false;
+  key: string;
+  memo: OpaquePathReference;
+  retained = false;
+  seen = false;
   private iterable: OpaqueIterable;
 
   constructor(iterable: OpaqueIterable, result: OpaqueIterationItem) {
@@ -63,7 +63,7 @@ export class ListItem extends ListNode<OpaquePathReference> implements OpaqueIte
 }
 
 export class IterationArtifacts {
-  public tag: Tag;
+  tag: Tag;
 
   private iterable: OpaqueIterable;
   private iterator: Option<OpaqueIterator>;
@@ -142,7 +142,7 @@ export class IterationArtifacts {
 }
 
 export class ReferenceIterator {
-  public artifacts: IterationArtifacts;
+  artifacts: IterationArtifacts;
   private iterator: Option<OpaqueIterator> = null;
 
   // if anyone needs to construct this object with something other than

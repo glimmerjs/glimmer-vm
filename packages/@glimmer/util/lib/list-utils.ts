@@ -6,9 +6,9 @@ export interface LinkedListNode {
 }
 
 export class ListNode<T> implements LinkedListNode {
-  public next: Option<ListNode<T>> = null;
-  public prev: Option<ListNode<T>> = null;
-  public value: T;
+  next: Option<ListNode<T>> = null;
+  prev: Option<ListNode<T>> = null;
+  value: T;
 
   constructor(value: T) {
     this.value = value;
@@ -47,15 +47,15 @@ export class LinkedList<T extends LinkedListNode> implements Slice<T> {
   }
 
   nextNode(node: T): T {
-    return <trust>node.next;
+    return node.next as trust;
   }
 
   forEachNode(callback: (node: T) => void) {
     let node = this._head;
 
     while (node !== null) {
-      callback(<trust>node);
-      node = <trust>node.next;
+      callback(node as trust);
+      node = node.next as trust;
     }
   }
 
@@ -88,10 +88,10 @@ export class LinkedList<T extends LinkedListNode> implements Slice<T> {
 
   remove(node: T): T {
     if (node.prev) node.prev.next = node.next;
-    else this._head = <trust>node.next;
+    else this._head = node.next as trust;
 
     if (node.next) node.next.prev = node.prev;
-    else this._tail = <trust>node.prev;
+    else this._tail = node.prev as trust;
 
     return node;
   }

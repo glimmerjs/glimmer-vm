@@ -1,39 +1,39 @@
-import { Opaque, Option, Dict, ProgramSymbolTable, Recast, RuntimeResolver, BlockSymbolTable } from '@glimmer/interfaces';
+import { BlockSymbolTable, Dict, Opaque, Option, ProgramSymbolTable, Recast, RuntimeResolver } from '@glimmer/interfaces';
+import { ATTRS_BLOCK, VMHandle } from '@glimmer/opcode-compiler';
 import {
-  combineTagged,
   CONSTANT_TAG,
+  Reference,
   Tag,
-  VersionedReference,
   VersionedPathReference,
+  VersionedReference,
+  combineTagged,
   isConst,
-  isConstTag,
-  Reference
+  isConstTag
 } from '@glimmer/reference';
+import { assert, dict, unreachable } from '@glimmer/util';
+import { Op, Register } from '@glimmer/vm';
+import { TemplateMeta } from '@glimmer/wire-format';
 import Bounds from '../../bounds';
 import {
+  ComponentSpec,
   CurriedComponentDefinition,
-  hasDynamicLayout,
-  hasStaticLayout,
-  isCurriedComponentDefinition,
+  PublicComponentSpec,
   WithDynamicTagName,
   WithElementHook,
-  ComponentSpec,
-  PublicComponentSpec
+  hasDynamicLayout,
+  hasStaticLayout,
+  isCurriedComponentDefinition
 } from '../../component/interfaces';
 import { normalizeStringValue } from '../../dom/normalize';
 import { DynamicScope, ScopeBlock, ScopeSlot } from '../../environment';
+import { Component, ComponentDefinition, ComponentManager } from '../../internal-interfaces';
 import { APPEND_OPCODES, UpdatingOpcode } from '../../opcodes';
 import { UNDEFINED_REFERENCE } from '../../references';
 import { UpdatingVM, VM } from '../../vm';
 import { Arguments, IArguments, ICapturedArguments } from '../../vm/arguments';
+import { stackAssert } from './assert';
 import { IsCurriedComponentDefinitionReference } from './content';
 import { UpdateDynamicAttributeOpcode } from './dom';
-import { ComponentDefinition, ComponentManager, Component } from '../../internal-interfaces';
-import { dict, assert, unreachable } from "@glimmer/util";
-import { Op, Register } from '@glimmer/vm';
-import { TemplateMeta } from "@glimmer/wire-format";
-import { ATTRS_BLOCK, VMHandle } from '@glimmer/opcode-compiler';
-import { stackAssert } from './assert';
 
 const ARGS = new Arguments();
 
@@ -48,7 +48,7 @@ export function curry(spec: PublicComponentSpec, args: Option<ICapturedArguments
 }
 
 class CurryComponentReference<Specifier> implements VersionedPathReference<Option<CurriedComponentDefinition>> {
-  public tag: Tag;
+  tag: Tag;
   private lastValue: Opaque;
   private lastDefinition: Option<CurriedComponentDefinition>;
 
@@ -201,7 +201,7 @@ APPEND_OPCODES.add(Op.PrepareArgs, (vm, { op1: _state }) => {
   let args: Arguments;
 
   if (isCurriedComponentDefinition(definition)) {
-    assert(!manager, "If the component definition was curried, we don't yet have a manager");
+    assert(!manager, 'If the component definition was curried, we don\'t yet have a manager');
 
     args = stack.pop<Arguments>();
 
@@ -301,7 +301,7 @@ interface DeferredAttribute {
 
 export class ComponentElementOperations {
   private attributes = dict<DeferredAttribute>();
-  private classes: VersionedReference<Opaque>[] = [];
+  private classes: Array<VersionedReference<Opaque>> = [];
 
   setAttribute(name: string, value: VersionedReference<Opaque>, trusting: boolean, namespace: Option<string>) {
     let deferred = { value, namespace, trusting };
@@ -332,9 +332,9 @@ export class ComponentElementOperations {
 }
 
 class ClassListReference implements VersionedReference<Option<string>> {
-  public tag: Tag;
+  tag: Tag;
 
-  constructor(private list: VersionedReference<Opaque>[]) {
+  constructor(private list: Array<VersionedReference<Opaque>>) {
     this.tag = combineTagged(list);
     this.list = list;
   }
@@ -343,7 +343,7 @@ class ClassListReference implements VersionedReference<Option<string>> {
     let ret: string[] = [];
     let { list } = this;
 
-    for (let i=0; i<list.length; i++) {
+    for (let i = 0; i < list.length; i++) {
       let value = normalizeStringValue(list[i].value());
       if (value) ret.push(value);
     }
@@ -411,7 +411,7 @@ APPEND_OPCODES.add(Op.InvokeComponentLayout, vm => {
 
     let callerNames = args.named.atNames;
 
-    for (let i=callerNames.length - 1; i>=0; i--) {
+    for (let i = callerNames.length - 1; i >= 0; i--) {
       let atName = callerNames[i];
       let symbol = symbols.indexOf(callerNames[i]);
       let value = args.named.get(atName, false);
@@ -463,7 +463,7 @@ APPEND_OPCODES.add(Op.DidRenderLayout, (vm, { op1: _state }) => {
 APPEND_OPCODES.add(Op.CommitComponentTransaction, vm => vm.commitCacheGroup());
 
 export class UpdateComponentOpcode extends UpdatingOpcode {
-  public type = 'update-component';
+  type = 'update-component';
 
   constructor(
     public tag: Tag,
@@ -482,8 +482,8 @@ export class UpdateComponentOpcode extends UpdatingOpcode {
 }
 
 export class DidUpdateLayoutOpcode extends UpdatingOpcode {
-  public type = 'did-update-layout';
-  public tag: Tag = CONSTANT_TAG;
+  type = 'did-update-layout';
+  tag: Tag = CONSTANT_TAG;
 
   constructor(
     private manager: ComponentManager,

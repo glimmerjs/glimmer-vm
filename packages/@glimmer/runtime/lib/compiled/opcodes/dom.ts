@@ -1,3 +1,4 @@
+import { Simple } from '@glimmer/interfaces';
 import {
   Reference,
   ReferenceCache,
@@ -8,15 +9,14 @@ import {
   isConstTag
 } from '@glimmer/reference';
 import { Opaque, Option } from '@glimmer/util';
-import { Simple } from '@glimmer/interfaces';
 import { Op, Register } from '@glimmer/vm';
 import { Modifier, ModifierManager } from '../../modifier/interfaces';
 import { APPEND_OPCODES, OpcodeJSON, UpdatingOpcode } from '../../opcodes';
 import { UpdatingVM } from '../../vm';
 import { Arguments } from '../../vm/arguments';
-import { Assert } from './vm';
 import { DynamicAttribute } from '../../vm/attributes/dynamic';
 import { ComponentElementOperations } from './component';
+import { Assert } from './vm';
 
 APPEND_OPCODES.add(Op.Text, (vm, { op1: text }) => {
   vm.elements().appendText(vm.constants.getString(text));
@@ -110,7 +110,7 @@ APPEND_OPCODES.add(Op.Modifier, (vm, { op1: handle }) => {
 });
 
 export class UpdateModifierOpcode extends UpdatingOpcode {
-  public type = 'update-modifier';
+  type = 'update-modifier';
   private lastUpdated: Revision;
 
   constructor(
@@ -163,9 +163,9 @@ APPEND_OPCODES.add(Op.DynamicAttr, (vm, { op1: _name, op2: trusting, op3: _names
 });
 
 export class UpdateDynamicAttributeOpcode extends UpdatingOpcode {
-  public type = 'patch-element';
+  type = 'patch-element';
 
-  public tag: Tag;
+  tag: Tag;
 
   constructor(private reference: VersionedReference<Opaque>, private attribute: DynamicAttribute) {
     super();

@@ -1,10 +1,10 @@
-import { Option, Opaque } from '@glimmer/interfaces';
-import { assert, dict, unwrap, EMPTY_ARRAY } from '@glimmer/util';
+import { Opaque, Option } from '@glimmer/interfaces';
+import { EMPTY_ARRAY, assert, dict, unwrap } from '@glimmer/util';
 import { Register } from '@glimmer/vm';
 import * as WireFormat from '@glimmer/wire-format';
 import * as ClientSide from './client-side';
-import OpcodeBuilder, { CompileTimeLookup, OpcodeBuilderConstructor } from "./opcode-builder";
 import { CompilableBlock, CompileTimeProgram } from './interfaces';
+import OpcodeBuilder, { CompileTimeLookup, OpcodeBuilderConstructor } from './opcode-builder';
 
 import Ops = WireFormat.Ops;
 
@@ -15,7 +15,7 @@ export const ATTRS_BLOCK = '&attrs';
 
 class Compilers<T extends TupleSyntax> {
   private names = dict<number>();
-  private funcs: CompilerFunction<T, Opaque>[] = [];
+  private funcs: Array<CompilerFunction<T, Opaque>> = [];
 
   constructor(private offset = 0) {}
 
@@ -329,7 +329,7 @@ EXPRESSIONS.add(Ops.MaybeLocal, (sexp: E.MaybeLocal, builder) => {
     builder.getVariable(0);
   }
 
-  for(let i = 0; i < path.length; i++) {
+  for (let i = 0; i < path.length; i++) {
     builder.getProperty(path[i]);
   }
 });
@@ -347,8 +347,8 @@ EXPRESSIONS.add(Ops.HasBlockParams, (sexp: E.HasBlockParams, builder) => {
 });
 
 export class Macros {
-  public blocks: Blocks;
-  public inlines: Inlines;
+  blocks: Blocks;
+  inlines: Inlines;
 
   constructor() {
     let { blocks, inlines } = populateBuiltins();
@@ -362,7 +362,7 @@ export type MissingBlockMacro<Specifier> = (name: string, params: C.Params, hash
 
 export class Blocks {
   private names = dict<number>();
-  private funcs: BlockMacro<Opaque>[] = [];
+  private funcs: Array<BlockMacro<Opaque>> = [];
   private missing: MissingBlockMacro<Opaque>;
 
   add<Specifier>(name: string, func: BlockMacro<Specifier>) {
@@ -396,7 +396,7 @@ export type AppendMacro<Specifier> = (name: string, params: Option<C.Params>, ha
 
 export class Inlines {
   private names = dict<number>();
-  private funcs: AppendMacro<Opaque>[] = [];
+  private funcs: Array<AppendMacro<Opaque>> = [];
   private missing: AppendMacro<Opaque>;
 
   add<Specifier>(name: string, func: AppendMacro<Specifier>) {

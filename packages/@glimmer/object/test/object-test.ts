@@ -2,11 +2,11 @@ import GlimmerObject, { computed } from '@glimmer/object';
 import { UpdatableReference, metaFor, setProperty } from '@glimmer/object-reference';
 import { Reference } from '@glimmer/reference';
 
-let Wrapper = <any>GlimmerObject.extend({
+let Wrapper = GlimmerObject.extend({
   fullName: computed(function(this: any) {
     return this.model && this.model.fullName;
   }).property('model.fullName')
-});
+}) as any;
 
 let Model = GlimmerObject.extend({
   fullName: computed(function(this: any) {
@@ -32,7 +32,7 @@ QUnit.test('the simple object model allows you to derive references', function()
   let obj1 = new Wrapper({
     model: new Model({
       person: new Person({
-        name: new Name({ first: "Yehuda", last: "Katz" })
+        name: new Name({ first: 'Yehuda', last: 'Katz' })
       })
     })
   });
@@ -62,10 +62,10 @@ QUnit.test('the simple object model allows you to derive references', function()
   let o3 = referencesFor(obj3);
   let o4 = referencesFor(obj4);
 
-  allDirty(o1, "Yehuda");
-  allDirty(o2, "Yehuda");
-  allDirty(o3, "Yehuda");
-  allDirty(o4, "Yehuda");
+  allDirty(o1, 'Yehuda');
+  allDirty(o2, 'Yehuda');
+  allDirty(o3, 'Yehuda');
+  allDirty(o4, 'Yehuda');
 
   allClean(o1);
   allClean(o2);
@@ -74,33 +74,33 @@ QUnit.test('the simple object model allows you to derive references', function()
 
   setProperty(obj1.model, 'person', new Person({ name: new Name({ first: 'Godfrey', last: 'Chan' }) }));
 
-  isDirty(o1[0], "Godfrey");
-  isDirty(o1[1], "Godfrey");
+  isDirty(o1[0], 'Godfrey');
+  isDirty(o1[1], 'Godfrey');
   isClean(o1[2]);
   isClean(o1[3]);
 
   allClean(o2);
   allClean(o3);
 
-  isDirty(o4[0], "Godfrey");
-  isDirty(o4[1], "Godfrey");
+  isDirty(o4[0], 'Godfrey');
+  isDirty(o4[1], 'Godfrey');
   isClean(o4[2]);
   isClean(o4[3]);
 
-  setProperty(originalPerson.name, 'first', "Godhuda");
+  setProperty(originalPerson.name, 'first', 'Godhuda');
 
   isClean(o1[0]);
   isClean(o1[1]);
-  isDirty(o1[2], "Godhuda");
-  isDirty(o1[3], "Godhuda");
+  isDirty(o1[2], 'Godhuda');
+  isDirty(o1[3], 'Godhuda');
 
-  allDirty(o2, "Godhuda");
-  allDirty(o3, "Godhuda");
+  allDirty(o2, 'Godhuda');
+  allDirty(o3, 'Godhuda');
 
   isClean(o4[0]);
   isClean(o4[1]);
-  isDirty(o4[2], "Godhuda");
-  isDirty(o4[3], "Godhuda");
+  isDirty(o4[2], 'Godhuda');
+  isDirty(o4[3], 'Godhuda');
 
   setProperty(obj1.model, 'person', undefined);
 
@@ -119,16 +119,16 @@ QUnit.test('the simple object model allows you to derive references', function()
 
   setProperty(obj1.model, 'person', originalPerson);
 
-  isDirty(o1[0], "Godhuda");
-  isDirty(o1[1], "Godhuda");
+  isDirty(o1[0], 'Godhuda');
+  isDirty(o1[1], 'Godhuda');
   isClean(o1[2]);
   isClean(o1[3]);
 
   allClean(o2);
   allClean(o3);
 
-  isDirty(o4[0], "Godhuda");
-  isDirty(o4[1], "Godhuda");
+  isDirty(o4[0], 'Godhuda');
+  isDirty(o4[1], 'Godhuda');
   isClean(o4[2]);
   isClean(o4[3]);
 
@@ -146,28 +146,28 @@ function root<T>(obj: T): UpdatableReference<T> {
   return metaFor(obj).root() as UpdatableReference<T>;
 }
 
-QUnit.test("Simple computed properties", assert => {
-  let name = <any>new Name({ first: "Godfrey", last: "Chan" });
+QUnit.test('Simple computed properties', assert => {
+  let name = new Name({ first: 'Godfrey', last: 'Chan' }) as any;
 
   let ref = metaFor(name).root().get('fullName');
 
-  assert.equal(name.fullName, "Godfrey Chan");
-  assert.equal(ref.value(), "Godfrey Chan");
+  assert.equal(name.fullName, 'Godfrey Chan');
+  assert.equal(ref.value(), 'Godfrey Chan');
   isClean(ref);
 
-  setProperty(name, 'first', "Godhuda");
+  setProperty(name, 'first', 'Godhuda');
   isDirty(ref, 'Godhuda Chan');
 
-  assert.equal(name.fullName, "Godhuda Chan");
-  assert.equal(ref.value(), "Godhuda Chan");
+  assert.equal(name.fullName, 'Godhuda Chan');
+  assert.equal(ref.value(), 'Godhuda Chan');
   isClean(ref);
 });
 
-QUnit.test("Computed properties", assert => {
+QUnit.test('Computed properties', assert => {
   let obj1 = new Wrapper({
     model: new Model({
       person: new Person({
-        name: new Name({ first: "Yehuda", last: "Katz" })
+        name: new Name({ first: 'Yehuda', last: 'Katz' })
       })
     })
   });
@@ -175,20 +175,20 @@ QUnit.test("Computed properties", assert => {
   let originalPerson = obj1.model.person;
   let ref = metaFor(obj1).root().get('fullName');
 
-  assert.equal(obj1.fullName, "Yehuda Katz");
-  assert.equal(ref.value(), "Yehuda Katz");
+  assert.equal(obj1.fullName, 'Yehuda Katz');
+  assert.equal(ref.value(), 'Yehuda Katz');
   isClean(ref);
 
   setProperty(obj1.model, 'person', new Person({ name: new Name({ first: 'Godfrey', last: 'Chan' }) }));
-  isDirty(ref, "Godfrey Chan");
-  assert.equal(obj1.fullName, "Godfrey Chan");
-  assert.equal(ref.value(), "Godfrey Chan");
+  isDirty(ref, 'Godfrey Chan');
+  assert.equal(obj1.fullName, 'Godfrey Chan');
+  assert.equal(ref.value(), 'Godfrey Chan');
   isClean(ref);
 
-  setProperty(originalPerson.name, 'first', "Godhuda");
-  isDirty(ref, "Godfrey Chan");
-  assert.equal(obj1.fullName, "Godfrey Chan");
-  assert.equal(ref.value(), "Godfrey Chan");
+  setProperty(originalPerson.name, 'first', 'Godhuda');
+  isDirty(ref, 'Godfrey Chan');
+  assert.equal(obj1.fullName, 'Godfrey Chan');
+  assert.equal(ref.value(), 'Godfrey Chan');
   isClean(ref);
 
   setProperty(obj1.model, 'person', undefined);
@@ -198,24 +198,24 @@ QUnit.test("Computed properties", assert => {
   isClean(ref);
 
   setProperty(obj1.model, 'person', originalPerson);
-  isDirty(ref, "Godhuda Katz");
-  assert.equal(obj1.fullName, "Godhuda Katz");
-  assert.equal(ref.value(), "Godhuda Katz");
+  isDirty(ref, 'Godhuda Katz');
+  assert.equal(obj1.fullName, 'Godhuda Katz');
+  assert.equal(ref.value(), 'Godhuda Katz');
   isClean(ref);
 });
 
 function isDirty<T>(ref: Reference<T>, newValue: T) {
-  QUnit.assert.ok(ref.value() === newValue, (ref as any).label() + " has new value " + newValue);
+  QUnit.assert.ok(ref.value() === newValue, (ref as any).label() + ' has new value ' + newValue);
 }
 
 function isClean<T>(_: Reference<T>) {
   // clean references are allowed to report dirty
 }
 
-function allDirty<T>(refs: Reference<T>[], newValue: T) {
+function allDirty<T>(refs: Array<Reference<T>>, newValue: T) {
   refs.forEach(function(ref) { isDirty(ref, newValue); });
 }
 
-function allClean<T>(refs: Reference<T>[]) {
+function allClean<T>(refs: Array<Reference<T>>) {
   refs.forEach(function(ref) { isClean(ref); });
 }

@@ -1,7 +1,7 @@
-import { Opaque, Option } from '@glimmer/util';
-import { normalizeStringValue, isSafeString } from '../dom/normalize';
-import { Environment } from '../environment';
 import { Simple } from '@glimmer/interfaces';
+import { Opaque, Option } from '@glimmer/util';
+import { isSafeString, normalizeStringValue } from '../dom/normalize';
+import { Environment } from '../environment';
 
 const badProtocols = [
   'javascript:',
@@ -33,7 +33,7 @@ const badAttributesForDataURI = [
   'src'
 ];
 
-function has(array: Array<string>, item: string): boolean {
+function has(array: string[], item: string): boolean {
   return array.indexOf(item) !== -1;
 }
 

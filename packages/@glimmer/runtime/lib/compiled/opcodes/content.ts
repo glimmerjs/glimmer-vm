@@ -1,11 +1,11 @@
-import { isCurriedComponentDefinition } from '../../component/interfaces';
 import { Opaque } from '@glimmer/interfaces';
-import { isConst, Reference, VersionedPathReference, Tag, VersionedReference } from '@glimmer/reference';
+import { Reference, Tag, VersionedPathReference, VersionedReference, isConst } from '@glimmer/reference';
 import { Op } from '@glimmer/vm';
-import { DynamicContentWrapper } from '../../vm/content/dynamic';
+import { isCurriedComponentDefinition } from '../../component/interfaces';
 import { APPEND_OPCODES, UpdatingOpcode } from '../../opcodes';
 import { ConditionalReference } from '../../references';
 import { UpdatingVM } from '../../vm';
+import { DynamicContentWrapper } from '../../vm/content/dynamic';
 
 export class IsCurriedComponentDefinitionReference extends ConditionalReference {
   static create(inner: Reference<Opaque>): IsCurriedComponentDefinitionReference {
@@ -34,7 +34,7 @@ APPEND_OPCODES.add(Op.DynamicContent, (vm, { op1: isTrusting }) => {
 });
 
 class UpdateDynamicContentOpcode extends UpdatingOpcode {
-  public tag: Tag;
+  tag: Tag;
 
   constructor(private reference: VersionedReference<Opaque>, private content: DynamicContentWrapper) {
     super();

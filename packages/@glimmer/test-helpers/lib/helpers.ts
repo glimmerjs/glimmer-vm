@@ -1,8 +1,8 @@
-import { precompile as rawPrecompile, PrecompileOptions } from "@glimmer/compiler";
-import { Opaque, Option } from "@glimmer/interfaces";
-import { Environment } from "@glimmer/runtime";
+import { PrecompileOptions, precompile as rawPrecompile } from '@glimmer/compiler';
+import { Opaque, Option } from '@glimmer/interfaces';
+import { Environment } from '@glimmer/runtime';
 import * as WireFormat from '@glimmer/wire-format';
-import { tokenize } from "simple-html-tokenizer";
+import { tokenize } from 'simple-html-tokenizer';
 
 // For Phantom
 function toObject(val: Opaque) {
@@ -45,8 +45,8 @@ if (typeof Object.assign !== 'function') {
 export const assign = Object.assign;
 
 function isMarker(node: Node) {
-  const TextNode = window['Text'] as typeof Text;
-  const CommentNode = window['Comment'] as typeof Comment;
+  const TextNode = window.Text as typeof Text;
+  const CommentNode = window.Comment as typeof Comment;
   if (node instanceof CommentNode && node.textContent === '') {
     return true;
   }
@@ -80,7 +80,7 @@ export function equalInnerHTML(fragment: { innerHTML: string }, html: string, me
 
 export function equalHTML(node: Node | Node[], html: string) {
   let fragment: DocumentFragment | Node;
-  if (!node['nodeType'] && node['length']) {
+  if (!node.nodeType && node.length) {
     fragment = document.createDocumentFragment();
     while (node[0]) {
       fragment.appendChild(node[0]);
@@ -89,7 +89,7 @@ export function equalHTML(node: Node | Node[], html: string) {
     fragment = node as Node;
   }
 
-  let div = document.createElement("div");
+  let div = document.createElement('div');
   div.appendChild(fragment.cloneNode(true));
 
   equalInnerHTML(div, html);
@@ -98,15 +98,15 @@ export function equalHTML(node: Node | Node[], html: string) {
 function generateTokens(divOrHTML: Element | string) {
   let div;
   if (typeof divOrHTML === 'string') {
-    div = document.createElement("div");
+    div = document.createElement('div');
     div.innerHTML = divOrHTML;
   } else {
     div = divOrHTML;
   }
 
   const tokens = tokenize(div.innerHTML);
-  tokens.forEach((token) => {
-    if (token.type === "StartTag" && token.attributes) {
+  tokens.forEach(token => {
+    if (token.type === 'StartTag' && token.attributes) {
       token.attributes.sort((a, b) => {
         if (a[0] > b[0]) { return 1; }
         if (a[0] < b[0]) { return -1; }
@@ -115,7 +115,7 @@ function generateTokens(divOrHTML: Element | string) {
     }
   });
 
-  return { tokens: tokens, html: div.innerHTML };
+  return { tokens, html: div.innerHTML };
 }
 
 declare const QUnit: QUnit & {
@@ -168,14 +168,14 @@ export function equalSnapshots(a: Node[], b: Node[]) {
 }
 
 // detect side-effects of cloning svg elements in IE9-11
-let ieSVGInnerHTML = (function () {
+let ieSVGInnerHTML = (function() {
   if (typeof document === 'undefined' || !document.createElementNS) {
     return false;
   }
   let div = document.createElement('div');
   let node = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
   div.appendChild(node);
-  let clone = <HTMLDivElement>div.cloneNode(true);
+  let clone = div.cloneNode(true) as HTMLDivElement;
   return clone.innerHTML === '<svg xmlns="http://www.w3.org/2000/svg" />';
 })();
 
@@ -267,6 +267,6 @@ export function assertNodeTagName<T extends keyof ElementTagNameMap, U extends E
 
 export function assertNodeProperty<T extends keyof ElementTagNameMap, P extends keyof ElementTagNameMap[T], V extends HTMLElementTagNameMap[T][P]>(node: Node | null, tagName: T, prop: P, value: V) {
   if (assertNodeTagName(node, tagName)) {
-    QUnit.assert.strictEqual(node[prop], value);;
+    QUnit.assert.strictEqual(node[prop], value); 
   }
 }

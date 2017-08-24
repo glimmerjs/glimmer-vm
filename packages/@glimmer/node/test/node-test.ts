@@ -1,9 +1,9 @@
-import * as SimpleDOM from 'simple-dom';
-import { TestEnvironment, TestDynamicScope } from "@glimmer/test-helpers";
-import { Template } from '@glimmer/runtime';
-import { Simple } from '@glimmer/interfaces';
 import { precompile } from '@glimmer/compiler';
+import { Simple } from '@glimmer/interfaces';
 import { UpdatableReference } from '@glimmer/object-reference';
+import { Template } from '@glimmer/runtime';
+import { TestDynamicScope, TestEnvironment } from '@glimmer/test-helpers';
+import * as SimpleDOM from 'simple-dom';
 import { NodeDOMTreeConstruction } from '..';
 
 let voidMap = SimpleDOM.voidMap;
@@ -56,83 +56,83 @@ function module(name: string) {
   });
 }
 
-module("Server-side rendering in Node.js");
+module('Server-side rendering in Node.js');
 
-QUnit.test("HTML text content", function(assert) {
-  let template = compile("content");
+QUnit.test('HTML text content', function(assert) {
+  let template = compile('content');
   render(template, {});
 
   assert.equal(serializer.serializeChildren(root), 'content');
 });
 
-QUnit.test("HTML tags", function(assert) {
-  let template = compile("<h1>hello!</h1><div>content</div>");
+QUnit.test('HTML tags', function(assert) {
+  let template = compile('<h1>hello!</h1><div>content</div>');
   render(template, {});
 
-  assert.equal(serializer.serializeChildren(root), "<h1>hello!</h1><div>content</div>");
+  assert.equal(serializer.serializeChildren(root), '<h1>hello!</h1><div>content</div>');
 });
 
-QUnit.test("HTML tags re-rendered", function(assert) {
-  let template = compile("<h1>hello!</h1><div>content</div>");
+QUnit.test('HTML tags re-rendered', function(assert) {
+  let template = compile('<h1>hello!</h1><div>content</div>');
   let result = render(template, {});
 
   env.begin();
   result!.rerender();
   env.commit();
 
-  assert.equal(serializer.serializeChildren(root), "<h1>hello!</h1><div>content</div>");
+  assert.equal(serializer.serializeChildren(root), '<h1>hello!</h1><div>content</div>');
 });
 
-QUnit.test("HTML attributes", function(assert) {
-  let template = compile("<div id='bar' class='foo'>content</div>");
+QUnit.test('HTML attributes', function(assert) {
+  let template = compile('<div id=\'bar\' class=\'foo\'>content</div>');
   render(template, {});
 
   assert.equal(serializer.serializeChildren(root), '<div id="bar" class="foo">content</div>');
 });
 
-QUnit.test("HTML tag with empty attribute", function(assert) {
-  let template = compile("<div class=''>content</div>");
+QUnit.test('HTML tag with empty attribute', function(assert) {
+  let template = compile('<div class=\'\'>content</div>');
   render(template, {});
 
-  assert.equal(serializer.serializeChildren(root), "<div class>content</div>");
+  assert.equal(serializer.serializeChildren(root), '<div class>content</div>');
 });
 
-QUnit.test("HTML boolean attribute 'disabled'", function(assert) {
+QUnit.test('HTML boolean attribute \'disabled\'', function(assert) {
   let template = compile('<input disabled>');
   render(template, {});
 
   assert.equal(serializer.serializeChildren(root), '<input disabled>', 'disabled without value set as property is true');
 });
 
-QUnit.test("Quoted attribute expression is removed when null", function(assert) {
+QUnit.test('Quoted attribute expression is removed when null', function(assert) {
   let template = compile('<input disabled="{{isDisabled}}">');
   render(template, { isDisabled: null });
 
   assert.equal(serializer.serializeChildren(root), '<input>', 'string of "null" set as property');
 });
 
-QUnit.test("Unquoted attribute expression with null value is not coerced", function(assert) {
+QUnit.test('Unquoted attribute expression with null value is not coerced', function(assert) {
   let template = compile('<input disabled={{isDisabled}}>');
   render(template, { isDisabled: null });
 
   assert.equal(serializer.serializeChildren(root), '<input>');
 });
 
-QUnit.test("Attribute expression can be followed by another attribute", function(assert) {
+QUnit.test('Attribute expression can be followed by another attribute', function(assert) {
   let template = compile('<div foo="{{funstuff}}" name="Alice"></div>');
-  render(template, {funstuff: "oh my"});
+  render(template, {funstuff: 'oh my'});
 
   assert.equal(serializer.serializeChildren(root), '<div foo="oh my" name="Alice"></div>');
 });
 
-QUnit.test("HTML tag with data- attribute", function(assert) {
-  let template = compile("<div data-some-data='foo'>content</div>");
+QUnit.test('HTML tag with data- attribute', function(assert) {
+  let template = compile('<div data-some-data=\'foo\'>content</div>');
   render(template, {});
 
   assert.ok(serializer.serializeChildren(root), '<div data-some-data="foo">content</div>');
 });
 
-QUnit.test("The compiler can handle nesting", function(assert) {
+QUnit.test('The compiler can handle nesting', function(assert) {
   let html = '<div class="foo"><p><span id="bar" data-foo="bar">hi!</span></p></div>&nbsp;More content';
   let template = compile(html);
   render(template, {});
@@ -141,28 +141,28 @@ QUnit.test("The compiler can handle nesting", function(assert) {
   assert.equal(serializer.serializeChildren(root), '<div class="foo"><p><span id="bar" data-foo="bar">hi!</span></p></div> More content');
 });
 
-QUnit.test("The compiler can handle comments", function(assert) {
+QUnit.test('The compiler can handle comments', function(assert) {
   let html = '<div><!-- Just passing through --></div>';
   let template = compile(html);
   render(template, {});
   assert.equal(serializer.serializeChildren(root), html);
 });
 
-QUnit.test("The compiler can handle HTML comments with mustaches in them", function(assert) {
+QUnit.test('The compiler can handle HTML comments with mustaches in them', function(assert) {
   let template = compile('<div><!-- {{foo}} --></div>');
   render(template, { foo: 'bar' });
 
   assert.equal(serializer.serializeChildren(root), '<div><!-- {{foo}} --></div>');
 });
 
-QUnit.test("The compiler can handle HTML comments with complex mustaches in them", function(assert) {
+QUnit.test('The compiler can handle HTML comments with complex mustaches in them', function(assert) {
   let template = compile('<div><!-- {{foo bar baz}} --></div>');
   render(template, { foo: 'bar' });
 
   assert.equal(serializer.serializeChildren(root), '<div><!-- {{foo bar baz}} --></div>');
 });
 
-QUnit.test("The compiler can handle HTML comments with multi-line mustaches in them", function(assert) {
+QUnit.test('The compiler can handle HTML comments with multi-line mustaches in them', function(assert) {
   let html = '<div><!-- {{#each foo as |bar|}}\n{{bar}}\n\n{{/each}} --></div>';
   let template = compile(html);
   render(template, { foo: 'bar' });
@@ -170,7 +170,7 @@ QUnit.test("The compiler can handle HTML comments with multi-line mustaches in t
   assert.equal(serializer.serializeChildren(root), html);
 });
 
-QUnit.test("The compiler can handle comments with no parent element", function(assert) {
+QUnit.test('The compiler can handle comments with no parent element', function(assert) {
   let html = '<!-- {{foo}} -->';
   let template = compile(html);
   render(template, { foo: 'bar' });
@@ -178,28 +178,28 @@ QUnit.test("The compiler can handle comments with no parent element", function(a
   assert.equal(serializer.serializeChildren(root), html);
 });
 
-QUnit.test("The compiler can handle simple handlebars", function(assert) {
+QUnit.test('The compiler can handle simple handlebars', function(assert) {
   let template = compile('<div>{{title}}</div>');
   render(template, { title: 'hello' });
 
   assert.equal(serializer.serializeChildren(root), '<div>hello</div>');
 });
 
-QUnit.test("The compiler can handle escaping HTML", function(assert) {
+QUnit.test('The compiler can handle escaping HTML', function(assert) {
   let template = compile('<div>{{title}}</div>');
   render(template, { title: '<strong>hello</strong>' });
 
   assert.equal(serializer.serializeChildren(root), '<div>&lt;strong&gt;hello&lt;/strong&gt;</div>');
 });
 
-QUnit.test("The compiler can handle unescaped HTML", function(assert) {
+QUnit.test('The compiler can handle unescaped HTML', function(assert) {
   let template = compile('<div>{{{title}}}</div>');
   render(template, { title: '<strong>hello</strong>' });
 
   assert.equal(serializer.serializeChildren(root), '<div><strong>hello</strong></div>');
 });
 
-QUnit.test("Unescaped helpers render correctly", function(assert) {
+QUnit.test('Unescaped helpers render correctly', function(assert) {
   env.registerHelper('testing-unescaped', function(params) {
     return params[0];
   });
@@ -219,7 +219,7 @@ QUnit.test('Null literals do not have representation in DOM', function(assert) {
   assert.equal(serializer.serialize(root), '<div></div>');
 });
 
-QUnit.test("Attributes can be populated with helpers that generate a string", function(assert) {
+QUnit.test('Attributes can be populated with helpers that generate a string', function(assert) {
   env.registerHelper('testing', function(params) {
     return params[0];
   });
@@ -231,13 +231,13 @@ QUnit.test("Attributes can be populated with helpers that generate a string", fu
   assert.equal(serializer.serialize(root), '<div><a href="linky.html">linky</a></div>');
 });
 
-QUnit.test("Elements inside a yielded block", function(assert) {
+QUnit.test('Elements inside a yielded block', function(assert) {
   let template = compile('{{#if true}}<div id="test">123</div>{{/if}}');
   render(template, {});
   assert.equal(serializer.serialize(root), '<div><div id="test">123</div></div>');
 });
 
-QUnit.test("A simple block helper can return text", function(assert) {
+QUnit.test('A simple block helper can return text', function(assert) {
   let template = compile('{{#if true}}test{{else}}not shown{{/if}}');
   render(template, {});
   assert.equal(serializer.serialize(root), '<div>test</div>');
@@ -251,7 +251,7 @@ QUnit.test('can instantiate NodeDOMTreeConstruction without a document', functio
   assert.ok(!!helper, 'helper was instantiated without errors');
 });
 
-QUnit.test("SVG: basic element", function(assert) {
+QUnit.test('SVG: basic element', function(assert) {
   let template = `
     <svg xmlns="http://www.w3.org/2000/svg">
       <rect x="10" y="10" height="100" width="100" style="stroke:#ff0000; fill: #0000ff"></rect>
@@ -262,7 +262,7 @@ QUnit.test("SVG: basic element", function(assert) {
   assert.equal(serializer.serializeChildren(root), template);
 });
 
-QUnit.test("SVG: element with xlink:href", function(assert) {
+QUnit.test('SVG: element with xlink:href', function(assert) {
   let template = `
     <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
       <rect x=".01" y=".01" width="4.98" height="2.98" fill="none" stroke="blue" stroke-width=".03"></rect>
@@ -278,7 +278,7 @@ QUnit.test("SVG: element with xlink:href", function(assert) {
 
 module('default template id');
 
-QUnit.test('generates id in node', function (assert) {
+QUnit.test('generates id in node', function(assert) {
   let template = precompile('hello');
   let obj = JSON.parse(template);
   assert.equal(obj.id, 'zgnsoV7o', 'short sha of template source');

@@ -1,3 +1,4 @@
+import { Simple } from '@glimmer/interfaces';
 import { Bounds, ConcreteBounds } from '../bounds';
 import {
   domChanges as domChangesTableElementFix,
@@ -11,7 +12,6 @@ import {
   domChanges as domChangesNodeMergingFix,
   treeConstruction as treeConstructionNodeMergingFix
 } from '../compat/text-node-merging-fix';
-import { Simple } from '@glimmer/interfaces';
 
 import { Option } from '@glimmer/util';
 
@@ -30,10 +30,10 @@ const SVG_INTEGRATION_POINTS = { foreignObject: 1, desc: 1, title: 1 };
 export const BLACKLIST_TABLE = Object.create(null);
 
 ([
-  "b", "big", "blockquote", "body", "br", "center", "code", "dd", "div", "dl", "dt", "em", "embed",
-  "h1", "h2", "h3", "h4", "h5", "h6", "head", "hr", "i", "img", "li", "listing", "main", "meta", "nobr",
-  "ol", "p", "pre", "ruby", "s", "small", "span", "strong", "strike", "sub", "sup", "table", "tt", "u",
-  "ul", "var"
+  'b', 'big', 'blockquote', 'body', 'br', 'center', 'code', 'dd', 'div', 'dl', 'dt', 'em', 'embed',
+  'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'head', 'hr', 'i', 'img', 'li', 'listing', 'main', 'meta', 'nobr',
+  'ol', 'p', 'pre', 'ruby', 's', 'small', 'span', 'strong', 'strike', 'sub', 'sup', 'table', 'tt', 'u',
+  'ul', 'var'
 ]).forEach(tag => BLACKLIST_TABLE[tag] = 1);
 
 const WHITESPACE = /[\t-\r \xA0\u1680\u180E\u2000-\u200A\u2028\u2029\u202F\u205F\u3000\uFEFF]/;

@@ -1,5 +1,10 @@
-import { Cursor } from './bounds';
 import { Opaque, Option } from '@glimmer/interfaces';
+import {
+  CompilableTemplate,
+  ParsedLayout,
+  TemplateOptions
+} from '@glimmer/opcode-compiler';
+import { RuntimeProgram } from '@glimmer/program';
 import { PathReference } from '@glimmer/reference';
 import { assign } from '@glimmer/util';
 import {
@@ -7,19 +12,14 @@ import {
   SerializedTemplateWithLazyBlock,
   Statement
 } from '@glimmer/wire-format';
-import { NewElementBuilder } from './vm/element-builder';
-import { RehydrateBuilder } from './vm/rehydrate-builder';
-import { SerializeBuilder } from './vm/serialize-builder';
+import { Cursor } from './bounds';
 import { DynamicScope, Environment } from './environment';
 import { TopLevelSyntax } from './syntax/interfaces';
 import { IteratorResult, RenderResult, VM } from './vm';
 import { EMPTY_ARGS, ICapturedArguments } from './vm/arguments';
-import {
-  CompilableTemplate,
-  ParsedLayout,
-  TemplateOptions
-} from "@glimmer/opcode-compiler";
-import { RuntimeProgram } from "@glimmer/program";
+import { NewElementBuilder } from './vm/element-builder';
+import { RehydrateBuilder } from './vm/rehydrate-builder';
+import { SerializeBuilder } from './vm/serialize-builder';
 
 export interface RenderLayoutOptions {
   env: Environment;
@@ -120,10 +120,10 @@ export default function templateFactory({ id: templateId, meta, block }: Seriali
 export class ScannableTemplate<Specifier = Opaque> implements Template<Specifier> {
   private layout: Option<TopLevelSyntax> = null;
   private partial: Option<TopLevelSyntax> = null;
-  public symbols: string[];
-  public hasEval: boolean;
-  public id: string;
-  public referer: Specifier;
+  symbols: string[];
+  hasEval: boolean;
+  id: string;
+  referer: Specifier;
   private statements: Statement[];
 
   constructor(private options: TemplateOptions<Specifier>, private parsedLayout: ParsedLayout<Specifier>) {

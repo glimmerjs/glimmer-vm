@@ -1,7 +1,7 @@
-import { CONSTANT_TAG, VersionedReference, Tag } from './validators';
+import { CONSTANT_TAG, Tag, VersionedReference } from './validators';
 
 export class ConstReference<T> implements VersionedReference<T> {
-  public tag: Tag = CONSTANT_TAG;
+  tag: Tag = CONSTANT_TAG;
 
   constructor(protected inner: T) { }
 

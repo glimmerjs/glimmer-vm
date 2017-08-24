@@ -6,85 +6,85 @@ function unreachable(): never {
 }
 
 export default function build(ast: HBS.Node): string {
-  if(!ast) {
+  if (!ast) {
     return '';
   }
   const output: string[] = [];
 
-  switch(ast.type) {
+  switch (ast.type) {
     case 'Program': {
-      const chainBlock = ast['chained'] && ast.body[0];
-      if(chainBlock) {
-        chainBlock['chained'] = true;
+      const chainBlock = ast.chained && ast.body[0];
+      if (chainBlock) {
+        chainBlock.chained = true;
       }
       const body = buildEach(ast.body).join('');
       output.push(body);
     }
-    break;
+                    break;
     case 'ElementNode':
       output.push('<', ast.tag);
-      if(ast.attributes.length) {
+      if (ast.attributes.length) {
         output.push(' ', buildEach(ast.attributes).join(' '));
       }
-      if(ast.modifiers.length) {
+      if (ast.modifiers.length) {
         output.push(' ', buildEach(ast.modifiers).join(' '));
       }
-      if(ast.comments.length) {
+      if (ast.comments.length) {
         output.push(' ', buildEach(ast.comments).join(' '));
       }
       output.push('>');
       output.push.apply(output, buildEach(ast.children));
       output.push('</', ast.tag, '>');
-    break;
+      break;
     case 'AttrNode':
       output.push(ast.name, '=');
       const value = build(ast.value);
-      if(ast.value.type === 'TextNode') {
+      if (ast.value.type === 'TextNode') {
         output.push('"', value, '"');
       } else {
         output.push(value);
       }
-    break;
+      break;
     case 'ConcatStatement':
       output.push('"');
       ast.parts.forEach((node: any) => {
-        if(node.type === 'StringLiteral') {
+        if (node.type === 'StringLiteral') {
           output.push(node.original);
         } else {
           output.push(build(node));
         }
       });
       output.push('"');
-    break;
+      break;
     case 'TextNode':
       output.push(ast.chars);
-    break;
+      break;
     case 'MustacheStatement': {
       output.push(compactJoin(['{{', pathParams(ast), '}}']));
     }
-    break;
+                              break;
     case 'MustacheCommentStatement': {
       output.push(compactJoin(['{{!--', ast.value, '--}}']));
     }
-    break;
+                                     break;
     case 'ElementModifierStatement': {
       output.push(compactJoin(['{{', pathParams(ast), '}}']));
     }
-    break;
+                                     break;
     case 'PathExpression':
       output.push(ast.original);
-    break;
+      break;
     case 'SubExpression': {
       output.push('(', pathParams(ast), ')');
     }
-    break;
+                          break;
     case 'BooleanLiteral':
       output.push(ast.value ? 'true' : 'false');
-    break;
+      break;
     case 'BlockStatement': {
       const lines: string[] = [];
 
-      if(ast['chained']){
+      if (ast.chained){
         lines.push(['{{else ', pathParams(ast), '}}'].join(''));
       }else{
         lines.push(openBlock(ast));
@@ -92,62 +92,62 @@ export default function build(ast: HBS.Node): string {
 
       lines.push(build(ast.program));
 
-      if(ast.inverse) {
-        if(!ast.inverse['chained']){
+      if (ast.inverse) {
+        if (!ast.inverse.chained){
           lines.push('{{else}}');
         }
         lines.push(build(ast.inverse));
       }
 
-      if(!ast['chained']){
+      if (!ast.chained){
         lines.push(closeBlock(ast));
       }
 
       output.push(lines.join(''));
     }
-    break;
+                           break;
     case 'PartialStatement': {
       output.push(compactJoin(['{{>', pathParams(ast), '}}']));
     }
-    break;
+                             break;
     case 'CommentStatement': {
       output.push(compactJoin(['<!--', ast.value, '-->']));
     }
-    break;
+                             break;
     case 'StringLiteral': {
       output.push(`"${ast.value}"`);
     }
-    break;
+                          break;
     case 'NumberLiteral': {
       output.push(String(ast.value));
     }
-    break;
+                          break;
     case 'UndefinedLiteral': {
       output.push('undefined');
     }
-    break;
+                             break;
     case 'NullLiteral': {
       output.push('null');
     }
-    break;
+                        break;
     case 'Hash': {
       output.push(ast.pairs.map(pair => {
         return build(pair);
       }).join(' '));
     }
-    break;
+                 break;
     case 'HashPair': {
       output.push(`${ast.key}=${build(ast.value)}`);
     }
-    break;
+                     break;
   }
   return output.join('');
 }
 
-function compact(array: Option<string>[]): string[] {
+function compact(array: Array<Option<string>>): string[] {
   const newArray: any[] = [];
   array.forEach(a => {
-    if(typeof(a) !== 'undefined' && a !== null && a !== '') {
+    if (typeof(a) !== 'undefined' && a !== null && a !== '') {
       newArray.push(a);
     }
   });
@@ -182,13 +182,13 @@ function pathParams(ast: HBS.Node): string {
   return compactJoin([path, buildEach(ast.params).join(' '), build(ast.hash)], ' ');
 }
 
-function compactJoin(array: Option<string>[], delimiter?: string): string {
+function compactJoin(array: Array<Option<string>>, delimiter?: string): string {
   return compact(array).join(delimiter || '');
 }
 
 function blockParams(block: HBS.BlockStatement): Option<string> {
   const params = block.program.blockParams;
-  if(params.length) {
+  if (params.length) {
     return ` as |${params.join(' ')}|`;
   }
 

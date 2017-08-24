@@ -1,10 +1,10 @@
-import { VersionedReference, VersionedPathReference } from '@glimmer/reference';
-import { TemplateMeta } from '@glimmer/wire-format';
+import { Opaque } from '@glimmer/interfaces';
+import { VersionedPathReference, VersionedReference } from '@glimmer/reference';
+import { assert, dict } from '@glimmer/util';
 import { Op } from '@glimmer/vm';
+import { TemplateMeta } from '@glimmer/wire-format';
 import { APPEND_OPCODES } from '../../opcodes';
 import { PartialDefinition } from '../../partial';
-import { assert, dict } from "@glimmer/util";
-import { Opaque } from "@glimmer/interfaces";
 
 APPEND_OPCODES.add(Op.InvokePartial, (vm, { op1: _meta, op2: _symbols, op3: _evalInfo }) => {
   let { constants, constants: { resolver }, stack } = vm;

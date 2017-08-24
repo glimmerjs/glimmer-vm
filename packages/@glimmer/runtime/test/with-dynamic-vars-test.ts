@@ -1,8 +1,8 @@
-import { module, AbstractRenderTest, test } from "@glimmer/test-helpers";
+import { AbstractRenderTest, module, test } from '@glimmer/test-helpers';
 
 class WithDynamicVarsTests extends AbstractRenderTest {
   @test
-  "Can get and set dynamic variable"() {
+  'Can get and set dynamic variable'() {
     this.render({
       layout: '{{#-with-dynamic-vars myKeyword=@value}}{{yield}}{{/-with-dynamic-vars}}',
       template: '{{-get-dynamic-var "myKeyword"}}',
@@ -22,12 +22,12 @@ class WithDynamicVarsTests extends AbstractRenderTest {
   }
 
   @test
-  "Can get and set dynamic variable with bound names"() {
+  'Can get and set dynamic variable with bound names'() {
     this.render({
       layout: '{{#-with-dynamic-vars myKeyword=@value1 secondKeyword=@value2}}{{yield}}{{/-with-dynamic-vars}}',
       template: '{{keyword}}-{{-get-dynamic-var keyword}}',
-      args: { value1: "value1", value2: "value2" }
-    }, { value1: "hello", value2: "goodbye", keyword: "myKeyword" });
+      args: { value1: 'value1', value2: 'value2' }
+    }, { value1: 'hello', value2: 'goodbye', keyword: 'myKeyword' });
 
     this.assertComponent('myKeyword-hello');
     this.assertStableRerender();
@@ -40,7 +40,7 @@ class WithDynamicVarsTests extends AbstractRenderTest {
     this.assertComponent('secondKeyword-goodbye!');
     this.assertStableNodes();
 
-    this.rerender({ value1: "hello", value2: "goodbye", keyword: "myKeyword" });
+    this.rerender({ value1: 'hello', value2: 'goodbye', keyword: 'myKeyword' });
     this.assertComponent('myKeyword-hello');
     this.assertStableNodes();
   }
@@ -71,4 +71,4 @@ class WithDynamicVarsTests extends AbstractRenderTest {
 
 }
 
-module("Dynamically-scoped variable accessors", WithDynamicVarsTests, { componentModule: true });
+module('Dynamically-scoped variable accessors', WithDynamicVarsTests, { componentModule: true });

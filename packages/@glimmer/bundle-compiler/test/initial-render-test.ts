@@ -1,30 +1,52 @@
-import { Opaque, RuntimeResolver as IRuntimeResolver, Option, Dict, Recast, Simple, ProgramSymbolTable } from "@glimmer/interfaces";
+import { BundleCompiler, CompilerDelegate, Specifier, SpecifierMap, specifierFor } from '@glimmer/bundle-compiler';
 import {
-  TestDynamicScope,
-  UserHelper,
-  HelperReference,
-  TestMacros,
-  RenderDelegate,
-  InitialRenderSuite,
-  BasicComponents,
-  AbstractTestEnvironment,
-  renderSync,
-  EmberishComponentTests,
+  Dict,
+  Opaque,
+  Option,
+  ProgramSymbolTable,
+  Recast,
+  RuntimeResolver as IRuntimeResolver,
+  Simple
+} from '@glimmer/interfaces';
+import { UpdatableReference } from '@glimmer/object-reference';
+import { ComponentCapabilities, ICompilableTemplate, VMHandle, WrappedBuilder } from '@glimmer/opcode-compiler';
+import { Program, RuntimeConstants, RuntimeProgram, WriteOnlyProgram } from '@glimmer/program';
+import { CONSTANT_TAG, PathReference, Tag } from '@glimmer/reference';
+import {
+  Bounds,
+  ComponentManager,
+  ComponentSpec,
+  DOMChanges,
+  DOMTreeConstruction,
+  Environment,
+  Helper,
+  Invocation,
+  LowLevelVM,
+  RenderResult,
+  TemplateIterator,
+  WithStaticLayout,
+  elementBuilder
+} from '@glimmer/runtime';
+import {
+  AbstractEmberishCurlyComponentManager,
   AbstractEmberishGlimmerComponentManager,
-  rawModule,
+  AbstractTestEnvironment,
+  BasicComponents,
+  ComponentKind,
+  EmberishComponentTests,
+  EmberishCurlyComponent,
   EmberishGlimmerComponent,
   EnvironmentOptions,
-  EmberishCurlyComponent,
-  ComponentKind,
-  AbstractEmberishCurlyComponentManager
-} from "@glimmer/test-helpers";
-import { BundleCompiler, CompilerDelegate, Specifier, SpecifierMap, specifierFor } from "@glimmer/bundle-compiler";
-import { WrappedBuilder, ComponentCapabilities, VMHandle, ICompilableTemplate } from "@glimmer/opcode-compiler";
-import { Program, RuntimeProgram, WriteOnlyProgram, RuntimeConstants } from "@glimmer/program";
-import { elementBuilder, LowLevelVM, TemplateIterator, RenderResult, Helper, Environment, WithStaticLayout, Bounds, ComponentManager, DOMTreeConstruction, DOMChanges, ComponentSpec, Invocation } from "@glimmer/runtime";
-import { UpdatableReference } from "@glimmer/object-reference";
-import { dict, unreachable, assert } from "@glimmer/util";
-import { PathReference, CONSTANT_TAG, Tag } from "@glimmer/reference";
+  HelperReference,
+  InitialRenderSuite,
+  RenderDelegate,
+  TestDynamicScope,
+  TestMacros,
+  UserHelper,
+  rawModule,
+  renderSync
+} from '@glimmer/test-helpers';
+import { assert, dict, unreachable } from '@glimmer/util';
 
 class BundledClientEnvironment extends AbstractTestEnvironment<Opaque> {
   protected program: Program<Opaque>;
@@ -46,10 +68,10 @@ export class RuntimeResolver implements IRuntimeResolver<Specifier> {
   constructor(private map: SpecifierMap, private modules: Modules) {}
 
   lookupHelper(_name: string, _meta: Opaque): Option<number> {
-    throw new Error("Method not implemented.");
+    throw new Error('Method not implemented.');
   }
   lookupModifier(_name: string, _meta: Opaque): Option<number> {
-    throw new Error("Method not implemented.");
+    throw new Error('Method not implemented.');
   }
 
   lookupComponent(name: string, referer: Specifier): Option<ComponentSpec> {
@@ -62,7 +84,7 @@ export class RuntimeResolver implements IRuntimeResolver<Specifier> {
   }
 
   lookupPartial(_name: string, _meta: Opaque): Option<number> {
-    throw new Error("Method not implemented.");
+    throw new Error('Method not implemented.');
   }
 
   resolve<U>(specifier: number): U {
@@ -78,16 +100,16 @@ export class RuntimeResolver implements IRuntimeResolver<Specifier> {
 export type ModuleType = 'component' | 'helper' | 'modifier' | 'partial' | 'other';
 
 export class Module {
-  constructor(private dict: Dict<Opaque>, public type: ModuleType) {
-    Object.freeze(this.dict);
+  constructor(private map: Dict<Opaque>, public type: ModuleType) {
+    Object.freeze(this.map);
   }
 
   has(key: string) {
-    return key in this.dict;
+    return key in this.map;
   }
 
   get(key: string): Opaque {
-    return this.dict[key];
+    return this.map[key];
   }
 }
 
@@ -128,7 +150,12 @@ export class Modules {
 }
 
 class BundlingDelegate implements CompilerDelegate {
-  constructor(private components: Dict<CompileTimeComponent>, private modules: Modules, private compileTimeModules: Modules, private compile: (specifier: Specifier) => VMHandle) {}
+  constructor(
+    private components: Dict<CompileTimeComponent>,
+    private modules: Modules,
+    private compileTimeModules: Modules,
+    private compile: (specifier: Specifier) => VMHandle
+  ) {}
 
   hasComponentInScope(componentName: string, referer: Specifier): boolean {
     let name = this.modules.resolve(componentName, referer, 'ui/components');
@@ -170,19 +197,19 @@ class BundlingDelegate implements CompilerDelegate {
     return false;
   }
   resolveModifierSpecifier(_modifierName: string, _referer: Specifier): Specifier {
-    throw new Error("Method not implemented.");
+    throw new Error('Method not implemented.');
   }
   hasPartialInScope(_partialName: string, _referer: Specifier): boolean {
     return false;
   }
   resolvePartialSpecifier(_partialName: string, _referer: Specifier): Specifier {
-    throw new Error("Method not implemented.");
+    throw new Error('Method not implemented.');
   }
 }
 
 export class BasicComponent {
-  public element: Option<Simple.Element>;
-  public bounds: Option<Bounds>;
+  element: Option<Simple.Element>;
+  bounds: Option<Bounds>;
 }
 
 const EMPTY_CAPABILITIES = {
@@ -195,7 +222,9 @@ const EMPTY_CAPABILITIES = {
   elementHook: false
 };
 
-export class BasicComponentManager implements WithStaticLayout<BasicComponent, typeof BasicComponent, Specifier, RuntimeResolver> {
+export class BasicComponentManager
+  implements WithStaticLayout<BasicComponent, typeof BasicComponent, Specifier, RuntimeResolver> {
+
   getCapabilities(_definition: typeof BasicComponent) {
     return EMPTY_CAPABILITIES;
   }
@@ -229,20 +258,22 @@ export class BasicComponentManager implements WithStaticLayout<BasicComponent, t
     component.bounds = bounds;
   }
 
-  didCreate(): void { }
+  didCreate(): void { /* noop */ }
 
-  update(): void { }
+  update(): void { /* noop */ }
 
-  didUpdateLayout(): void { }
+  didUpdateLayout(): void { /* noop */ }
 
-  didUpdate(): void { }
+  didUpdate(): void { /* noop */ }
 
   getDestructor(): null {
     return null;
   }
 }
 
-class BundledEmberishGlimmerComponentManager extends AbstractEmberishGlimmerComponentManager<Specifier, RuntimeResolver> {
+class BundledEmberishGlimmerComponentManager
+  extends AbstractEmberishGlimmerComponentManager<Specifier, RuntimeResolver> {
+
   getLayout(): Invocation {
     throw unreachable();
   }
@@ -318,7 +349,7 @@ class BundlingRenderDelegate implements RenderDelegate {
     let module = `ui/components/${name}`;
 
     switch (type) {
-      case "Basic":
+      case 'Basic':
         this.components[module] = {
           type,
           definition: class {} as RegisteredComponentDefinition,
@@ -327,7 +358,7 @@ class BundlingRenderDelegate implements RenderDelegate {
           template: layout
         };
         return;
-      case "Glimmer":
+      case 'Glimmer':
         this.components[module] = {
           type,
           definition: {
@@ -341,8 +372,8 @@ class BundlingRenderDelegate implements RenderDelegate {
           template: layout
         };
         return;
-      case "Dynamic":
-      case "Curly":
+      case 'Dynamic':
+      case 'Curly':
         this.components[module] = {
           type,
           definition: {
@@ -370,9 +401,12 @@ class BundlingRenderDelegate implements RenderDelegate {
 
   renderTemplate(template: string, context: Dict<Opaque>, element: HTMLElement): RenderResult {
     let macros = new TestMacros();
-    let delegate: BundlingDelegate = new BundlingDelegate(this.components, this.modules, this.compileTimeModules, specifier => {
-      return compiler.compileSpecifier(specifier);
-    });
+
+    let delegate: BundlingDelegate =
+      new BundlingDelegate(this.components, this.modules, this.compileTimeModules, specifier => {
+        return compiler.compileSpecifier(specifier);
+      });
+
     let program = new WriteOnlyProgram();
     let compiler = new BundleCompiler(delegate, { macros, program });
 
@@ -384,17 +418,17 @@ class BundlingRenderDelegate implements RenderDelegate {
       assert(key.indexOf('ui/components') !== -1, `Expected component key to start with ui/components, got ${key}.`);
 
       let component = components[key];
-      let spec = specifierFor(key, 'default');
+      let specifier = specifierFor(key, 'default');
 
       let block;
       let symbolTable;
 
-      if (component.type === "Curly" || component.type === "Dynamic") {
-        let block = compiler.preprocess(spec, component.template);
-        let options = compiler.compileOptions(spec);
-        let parsedLayout = { block, referer: spec };
+      if (component.type === 'Curly' || component.type === 'Dynamic') {
+        let preprocessedBlock = compiler.preprocess(specifier, component.template);
+        let options = compiler.compileOptions(specifier);
+        let parsedLayout = { block: preprocessedBlock, referer: specifier };
         let wrapped = new WrappedBuilder(options, parsedLayout, EMBERISH_CURLY_CAPABILITIES);
-        compiler.addCustom(spec, wrapped);
+        compiler.addCustom(specifier, wrapped);
 
         compileTimeModules.register(key, 'other', {
           default: wrapped.symbolTable
@@ -402,7 +436,7 @@ class BundlingRenderDelegate implements RenderDelegate {
 
         symbolTable = wrapped.symbolTable;
       } else {
-        block = compiler.add(spec, component.template);
+        block = compiler.add(specifier, component.template);
 
         symbolTable = {
           hasEval: block.hasEval,
@@ -415,11 +449,15 @@ class BundlingRenderDelegate implements RenderDelegate {
         });
       }
 
+      let defaultExport: Opaque;
+
       if (component.definition.symbolTable) {
-        modules.register(key, 'component', { default: { definition: { ...component.definition, symbolTable }, manager: component.manager } });
+        defaultExport = { definition: { ...component.definition, symbolTable }, manager: component.manager };
       } else {
-        modules.register(key, 'component', { default: { definition: component.definition, manager: component.manager } });
+        defaultExport = { definition: component.definition, manager: component.manager };
       }
+
+      modules.register(key, 'component', { default: defaultExport });
     });
 
     compiler.compile();
@@ -441,7 +479,19 @@ class BundlingRenderDelegate implements RenderDelegate {
     return renderSync(env, iterator);  }
 }
 
-// module("[Bundle Compiler] Rehydration Tests", Rehydration);
-rawModule("[Bundle Compiler] Initial Render Tests", InitialRenderSuite, BundlingRenderDelegate);
-rawModule("[Bundle Compiler] Basic Components", BasicComponents, BundlingRenderDelegate, { componentModule: true });
-rawModule('[Bundle Compiler] Emberish Components', EmberishComponentTests, BundlingRenderDelegate, { componentModule: true });
+rawModule('[Bundle Compiler] Initial Render Tests',
+  InitialRenderSuite,
+  BundlingRenderDelegate
+);
+
+rawModule('[Bundle Compiler] Basic Components',
+  BasicComponents,
+  BundlingRenderDelegate,
+  { componentModule: true }
+);
+
+rawModule('[Bundle Compiler] Emberish Components',
+  EmberishComponentTests,
+  BundlingRenderDelegate,
+  { componentModule: true }
+);

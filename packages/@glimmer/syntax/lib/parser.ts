@@ -1,13 +1,13 @@
-import {
-  EventedTokenizer,
-  EntityParser,
-  HTML5NamedCharRefs as namedCharRefs
-} from "simple-html-tokenizer";
-import { Program } from "./types/nodes";
-import * as AST from "./types/nodes";
-import * as HandlebarsAST from './types/handlebars-ast';
 import { Option } from '@glimmer/interfaces';
 import { assert, expect } from '@glimmer/util';
+import {
+  EntityParser,
+  EventedTokenizer,
+  HTML5NamedCharRefs as namedCharRefs
+} from 'simple-html-tokenizer';
+import * as HandlebarsAST from './types/handlebars-ast';
+import { Program } from './types/nodes';
+import * as AST from './types/nodes';
 
 const entityParser = new EntityParser(namedCharRefs);
 
@@ -25,7 +25,7 @@ export interface Tag<T extends 'StartTag' | 'EndTag'> {
 
 export interface Attribute {
   name: string;
-  parts: (AST.MustacheStatement | AST.TextNode)[];
+  parts: Array<AST.MustacheStatement | AST.TextNode>;
   isQuoted: boolean;
   isDynamic: boolean;
   start: AST.Position;
@@ -37,18 +37,18 @@ export class Parser {
   protected elementStack: Element[] = [];
   private options: Object;
   private source: string[];
-  public currentAttribute: Option<Attribute> = null;
-  public currentNode: Option<AST.CommentStatement | AST.TextNode | Tag<'StartTag' | 'EndTag'>> = null;
-  public tokenizer = new EventedTokenizer(this, entityParser);
+  currentAttribute: Option<Attribute> = null;
+  currentNode: Option<AST.CommentStatement | AST.TextNode | Tag<'StartTag' | 'EndTag'>> = null;
+  tokenizer = new EventedTokenizer(this, entityParser);
 
   constructor(source: string, options: Object = {}) {
     this.options = options;
 
-    this.tokenizer['states'].tagOpen = function() {
+    this.tokenizer.states.tagOpen = function() {
       let char = this.consume();
-      if (char === "!") {
+      if (char === '!') {
         this.state = 'markupDeclaration';
-      } else if (char === "/") {
+      } else if (char === '/') {
         this.state = 'endTagOpen';
       } else if (/[A-Za-z]/.test(char)) {
         this.state = 'tagName';
@@ -57,7 +57,7 @@ export class Parser {
       }
     };
 
-    this.tokenizer['states'].endTagOpen = function () {
+    this.tokenizer.states.endTagOpen = function() {
       let char = this.consume();
       if (/[A-Za-z]/.test(char)) {
         this.state = 'tagName';

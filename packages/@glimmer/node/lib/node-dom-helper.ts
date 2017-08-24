@@ -1,6 +1,6 @@
-import * as SimpleDOM from 'simple-dom';
-import { DOMTreeConstruction, Bounds, ConcreteBounds } from '@glimmer/runtime';
 import { Simple } from '@glimmer/interfaces';
+import { Bounds, ConcreteBounds, DOMTreeConstruction } from '@glimmer/runtime';
+import * as SimpleDOM from 'simple-dom';
 
 export default class NodeDOMTreeConstruction extends DOMTreeConstruction {
   protected document: SimpleDOM.Document;

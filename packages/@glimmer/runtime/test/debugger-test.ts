@@ -1,15 +1,15 @@
-import { UpdatableReference } from "@glimmer/object-reference";
+import { UpdatableReference } from '@glimmer/object-reference';
 import {
   IteratorResult,
   RenderResult,
+  Template,
   resetDebuggerCallback,
   setDebuggerCallback,
-  Template,
-} from "@glimmer/runtime";
+} from '@glimmer/runtime';
 import {
   TestDynamicScope,
   TestEnvironment,
-} from "@glimmer/test-helpers";
+} from '@glimmer/test-helpers';
 import { Opaque } from '@glimmer/util';
 
 let env: TestEnvironment;
@@ -26,7 +26,7 @@ function commonSetup() {
   root = document.createElement('div');
 }
 
-function render(template: Template, context={}) {
+function render(template: Template, context= {}) {
   self = new UpdatableReference(context);
   env.begin();
   let templateIterator = template.renderLayout({ env, self, cursor: { element: root, nextSibling: null }, dynamicScope: new TestDynamicScope() });
@@ -40,7 +40,7 @@ function render(template: Template, context={}) {
   return result;
 }
 
-QUnit.module("Debugger", {
+QUnit.module('Debugger', {
   beforeEach: commonSetup,
   afterEach() {
     resetDebuggerCallback();

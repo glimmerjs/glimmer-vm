@@ -1,14 +1,14 @@
 
-import { ComponentCapabilities, TemplateOptions } from "@glimmer/opcode-compiler";
-import { CapturedNamedArguments, ComponentManager, WithStaticLayout, Environment, Arguments, PrimitiveReference, ElementOperations, Bounds, ScannableTemplate, Invocation } from "@glimmer/runtime";
-import { RuntimeResolver, Opaque, Option } from "@glimmer/interfaces";
-import { PathReference, Tag, combine, TagWrapper, DirtyableTag } from "@glimmer/reference";
-import { UpdatableReference } from "@glimmer/object-reference";
-import GlimmerObject from "@glimmer/object";
+import { Opaque, Option, RuntimeResolver } from '@glimmer/interfaces';
+import GlimmerObject from '@glimmer/object';
+import { UpdatableReference } from '@glimmer/object-reference';
+import { ComponentCapabilities, TemplateOptions } from '@glimmer/opcode-compiler';
+import { DirtyableTag, PathReference, Tag, TagWrapper, combine } from '@glimmer/reference';
+import { Arguments, Bounds, CapturedNamedArguments, ComponentManager, ElementOperations, Environment, Invocation, PrimitiveReference, ScannableTemplate, WithStaticLayout } from '@glimmer/runtime';
 
-import { GenericComponentManager, GenericComponentDefinition, Attrs, AttrsDiff, createTemplate } from '../shared';
-import { TestSpecifier, TestResolver } from '../lazy-env';
-import { Destroyable } from "@glimmer/util";
+import { Destroyable } from '@glimmer/util';
+import { TestResolver, TestSpecifier } from '../lazy-env';
+import { Attrs, AttrsDiff, GenericComponentDefinition, GenericComponentManager, createTemplate } from '../shared';
 
 export interface EmberishGlimmerStateBucket {
   args: CapturedNamedArguments;
@@ -107,11 +107,11 @@ export class EmberishGlimmerComponentManager extends AbstractEmberishGlimmerComp
 export const EMBERISH_GLIMMER_COMPONENT_MANAGER = new EmberishGlimmerComponentManager();
 
 export class EmberishGlimmerComponent extends GlimmerObject {
-  public dirtinessTag: TagWrapper<DirtyableTag> = DirtyableTag.create();
-  public attrs: Attrs;
-  public element: Element;
-  public bounds: Bounds;
-  public parentView: Option<EmberishGlimmerComponent> = null;
+  dirtinessTag: TagWrapper<DirtyableTag> = DirtyableTag.create();
+  attrs: Attrs;
+  element: Element;
+  bounds: Bounds;
+  parentView: Option<EmberishGlimmerComponent> = null;
 
   static create(args: { attrs: Attrs }): EmberishGlimmerComponent {
     return super.create(args) as EmberishGlimmerComponent;
@@ -137,9 +137,9 @@ export interface EmberishGlimmerComponentFactory {
 }
 
 export class EmberishGlimmerComponentDefinition extends GenericComponentDefinition<EmberishGlimmerStateBucket> {
-  public ComponentClass: EmberishGlimmerComponentFactory;
+  ComponentClass: EmberishGlimmerComponentFactory;
 
-  public capabilities: ComponentCapabilities = {
+  capabilities: ComponentCapabilities = {
     staticDefinitions: false,
     dynamicLayout: false,
     dynamicTag: true,

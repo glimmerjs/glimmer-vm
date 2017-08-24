@@ -1,12 +1,12 @@
-import { GenericComponentManager, createTemplate, GenericComponentDefinition } from '../shared';
-import { TestSpecifier, TestResolver } from '../lazy-env';
+import { TestResolver, TestSpecifier } from '../lazy-env';
+import { GenericComponentDefinition, GenericComponentManager, createTemplate } from '../shared';
 
-import { WithStaticLayout, Environment, ScannableTemplate, Bounds, Invocation } from "@glimmer/runtime";
-import { unreachable } from "@glimmer/util";
-import { TemplateOptions, ComponentCapabilities } from "@glimmer/opcode-compiler";
-import { PathReference, Tag, CONSTANT_TAG } from "@glimmer/reference";
-import { Opaque } from "@glimmer/interfaces";
-import { UpdatableReference } from "@glimmer/object-reference";
+import { Opaque } from '@glimmer/interfaces';
+import { UpdatableReference } from '@glimmer/object-reference';
+import { ComponentCapabilities, TemplateOptions } from '@glimmer/opcode-compiler';
+import { CONSTANT_TAG, PathReference, Tag } from '@glimmer/reference';
+import { Bounds, Environment, Invocation, ScannableTemplate, WithStaticLayout } from '@glimmer/runtime';
+import { unreachable } from '@glimmer/util';
 
 export class BasicComponentManager extends GenericComponentManager implements WithStaticLayout<BasicComponent, BasicComponentDefinition, TestSpecifier, TestResolver> {
   prepareArgs(): null {
@@ -70,9 +70,9 @@ export interface BasicComponentFactory {
 }
 
 export class BasicComponentDefinition extends GenericComponentDefinition<BasicComponent> {
-  public name: string;
-  public ComponentClass: BasicComponentFactory;
-  public capabilities: ComponentCapabilities = {
+  name: string;
+  ComponentClass: BasicComponentFactory;
+  capabilities: ComponentCapabilities = {
     staticDefinitions: false,
     dynamicLayout: false,
     dynamicTag: false,
@@ -84,6 +84,6 @@ export class BasicComponentDefinition extends GenericComponentDefinition<BasicCo
 }
 
 export class BasicComponent {
-  public element: Element;
-  public bounds: Bounds;
+  element: Element;
+  bounds: Bounds;
 }

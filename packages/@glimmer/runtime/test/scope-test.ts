@@ -1,8 +1,8 @@
-import { AbstractRenderTest, module, test, stripTight } from "@glimmer/test-helpers";
+import { AbstractRenderTest, module, stripTight, test } from '@glimmer/test-helpers';
 
 class ScopeTests extends AbstractRenderTest {
   @test
-  "correct scope - conflicting local names"() {
+  'correct scope - conflicting local names'() {
     this.render({
       layout: stripTight`
         {{#with @a as |item|}}{{@a}}: {{item}},
@@ -18,7 +18,7 @@ class ScopeTests extends AbstractRenderTest {
   }
 
   @test
-  "correct scope - conflicting block param and attr names"() {
+  'correct scope - conflicting block param and attr names'() {
     this.render({
       layout: 'Outer: {{@conflict}} {{#with @item as |conflict|}}Inner: {{@conflict}} Block: {{conflict}}{{/with}}',
       args: { item: '"from block"', conflict: '"from attr"' }

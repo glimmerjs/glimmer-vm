@@ -1,11 +1,11 @@
-import { Simple, Dict, Opaque, Option, RuntimeResolver, Unique, ProgramSymbolTable } from '@glimmer/interfaces';
+import { Dict, Opaque, Option, ProgramSymbolTable, RuntimeResolver, Simple, Unique } from '@glimmer/interfaces';
+import { ComponentCapabilities, VMHandle } from '@glimmer/opcode-compiler';
 import { Tag, VersionedPathReference } from '@glimmer/reference';
 import { Destroyable } from '@glimmer/util';
-import { ComponentCapabilities, VMHandle } from '@glimmer/opcode-compiler';
 import Bounds from '../bounds';
-import { ElementOperations } from '../vm/element-builder';
 import Environment, { DynamicScope } from '../environment';
-import { IArguments, ICapturedArguments, Arguments } from '../vm/arguments';
+import { Arguments, IArguments, ICapturedArguments } from '../vm/arguments';
+import { ElementOperations } from '../vm/element-builder';
 
 export interface PreparedArguments {
   positional: Array<VersionedPathReference<Opaque>>;
