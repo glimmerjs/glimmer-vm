@@ -1,6 +1,6 @@
 import './lib/bootstrap';
 
-export { default as templateFactory, ScannableTemplate, TemplateFactory, Template, TemplateIterator, RenderLayoutOptions, elementBuilder } from './lib/template';
+export { default as templateFactory, ScannableTemplate, TemplateFactory, Template, TemplateIterator, RenderLayoutOptions } from './lib/template';
 
 export { NULL_REFERENCE, UNDEFINED_REFERENCE, PrimitiveReference, ConditionalReference } from './lib/references';
 
@@ -72,5 +72,6 @@ export {
 
 export { default as DOMChanges, SVG_NAMESPACE, DOMChanges as IDOMChanges, DOMTreeConstruction, isWhitespace, insertHTMLBefore } from './lib/dom/helper';
 export { normalizeProperty } from './lib/dom/props';
-export { ElementBuilder, NewElementBuilder, ElementOperations } from './lib/vm/element-builder';
+export { rehydratingBuilder } from './lib/vm/rehydrate-builder';
+export { ElementBuilder, NewElementBuilder, elementBuilder, ElementOperations } from './lib/vm/element-builder';
 export { default as Bounds, ConcreteBounds } from './lib/bounds';

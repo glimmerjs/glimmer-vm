@@ -1,7 +1,7 @@
 import { UpdatableReference } from "@glimmer/object-reference";
 import { IteratorResult } from '@glimmer/runtime';
 import { equalTokens, TestDynamicScope, TestEnvironment } from "@glimmer/test-helpers";
-import { SVG_NAMESPACE, RenderResult, Template, normalizeProperty } from "@glimmer/runtime";
+import { elementBuilder as builder, SVG_NAMESPACE, RenderResult, Template, normalizeProperty } from "@glimmer/runtime";
 
 const { assert, test } = QUnit;
 
@@ -39,7 +39,8 @@ function render(template: Template, context = {}) {
   self = new UpdatableReference(context);
   env.begin();
   let cursor = { element: root, nextSibling: null };
-  let templateIterator = template.renderLayout({ env, self, cursor, dynamicScope: new TestDynamicScope() });
+  let elementBuilder = builder(document, cursor);
+  let templateIterator = template.renderLayout({ elementBuilder, env, self, dynamicScope: new TestDynamicScope() });
   let iteratorResult: IteratorResult<RenderResult>;
   do {
     iteratorResult = templateIterator.next();

@@ -1,5 +1,4 @@
 import { Simple, Option, Opaque } from "@glimmer/interfaces";
-import Environment from '../../environment';
 import { ElementBuilder } from '../element-builder';
 import { sanitizeAttributeValue, requiresSanitization } from '../../dom/sanitized-values';
 import { normalizeProperty } from '../../dom/props';
@@ -8,7 +7,7 @@ import { Attribute, AttributeOperation } from './index';
 import { normalizeStringValue } from '../../dom/normalize';
 
 export interface DynamicAttributeFactory {
-  new(attribute: Attribute): DynamicAttribute;
+  new(builder: ElementBuilder, attribute: Attribute): DynamicAttribute;
 }
 
 export function defaultDynamicAttributes(element: Simple.Element, attr: string): DynamicAttributeFactory {
@@ -52,23 +51,23 @@ export function defaultDynamicProperty(tagName: string, name: string): DynamicAt
 }
 
 export abstract class DynamicAttribute implements AttributeOperation {
-  constructor(public attribute: Attribute) {}
+  constructor(protected builder: ElementBuilder, public attribute: Attribute) {}
 
-  abstract set(dom: ElementBuilder, value: Opaque, env: Environment): void;
-  abstract update(value: Opaque, env: Environment): void;
+  abstract set(value: Opaque): void;
+  abstract update(value: Opaque): void;
 }
 
 export class SimpleDynamicAttribute extends DynamicAttribute {
-  set(dom: ElementBuilder, value: Opaque, _env: Environment): void {
+  set(value: Opaque): void {
     let normalizedValue = normalizeValue(value);
 
     if (normalizedValue !== null) {
       let { name, namespace } = this.attribute;
-      dom.__setAttribute(name, normalizedValue, namespace);
+      this.builder.__setAttribute(name, normalizedValue, namespace);
     }
   }
 
-  update(value: Opaque, _env: Environment): void {
+  update(value: Opaque): void {
     let normalizedValue = normalizeValue(value);
     let { element, name } = this.attribute;
 
@@ -81,14 +80,14 @@ export class SimpleDynamicAttribute extends DynamicAttribute {
 }
 
 export class DefaultDynamicProperty extends DynamicAttribute {
-  set(dom: ElementBuilder, value: Opaque, _env: Environment): void {
+  set(value: Opaque): void {
     if (value !== null && value !== undefined) {
       let { name } = this.attribute;
-      dom.__setProperty(name, value);
+      this.builder.__setProperty(name, value);
     }
   }
 
-  update(value: Opaque, _env: Environment): void {
+  update(value: Opaque): void {
     let { element, name } = this.attribute;
 
     element[name] = value;
@@ -112,36 +111,36 @@ export class DefaultDynamicProperty extends DynamicAttribute {
 }
 
 export class SafeDynamicProperty extends DefaultDynamicProperty {
-  set(dom: ElementBuilder, value: Opaque, env: Environment): void {
+  set(value: Opaque): void {
     let { element, name } = this.attribute;
-    let sanitized = sanitizeAttributeValue(env, element, name, value);
-    super.set(dom, sanitized, env);
+    let sanitized = sanitizeAttributeValue(this.builder, element, name, value);
+    super.set(sanitized);
   }
 
-  update(value: Opaque, env: Environment): void {
+  update(value: Opaque): void {
     let { element, name } = this.attribute;
-    let sanitized = sanitizeAttributeValue(env, element, name, value);
-    super.update(sanitized, env);
+    let sanitized = sanitizeAttributeValue(this.builder, element, name, value);
+    super.update(sanitized);
   }
 }
 
 export class SafeDynamicAttribute extends SimpleDynamicAttribute {
-  set(dom: ElementBuilder, value: Opaque, env: Environment): void {
+  set(value: Opaque): void {
     let { element, name } = this.attribute;
-    let sanitized = sanitizeAttributeValue(env, element, name, value);
-    super.set(dom, sanitized, env);
+    let sanitized = sanitizeAttributeValue(this.builder, element, name, value);
+    super.set(sanitized);
   }
 
-  update(value: Opaque, env: Environment): void {
+  update(value: Opaque): void {
     let { element, name } = this.attribute;
-    let sanitized = sanitizeAttributeValue(env, element, name, value);
-    super.update(sanitized, env);
+    let sanitized = sanitizeAttributeValue(this.builder, element, name, value);
+    super.update(sanitized);
   }
 }
 
 export class InputValueDynamicAttribute extends DefaultDynamicProperty {
-  set(dom: ElementBuilder, value: Opaque) {
-    dom.__setProperty('value', normalizeStringValue(value));
+  set(value: Opaque) {
+    this.builder.__setProperty('value', normalizeStringValue(value));
   }
 
   update(value: Opaque) {
@@ -155,9 +154,9 @@ export class InputValueDynamicAttribute extends DefaultDynamicProperty {
 }
 
 export class OptionSelectedDynamicAttribute extends DefaultDynamicProperty {
-  set(dom: ElementBuilder, value: Opaque): void {
+  set(value: Opaque): void {
     if (value !== null && value !== undefined && value !== false) {
-      dom.__setProperty('selected', true);
+      this.builder.__setProperty('selected', true);
     }
   }
 

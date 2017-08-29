@@ -1,9 +1,8 @@
 import { VersionedPathReference } from '@glimmer/reference';
 
-import { DOMChanges, DOMTreeConstruction } from './dom/helper';
+import { DOMChanges } from './dom/helper';
 import { Reference, OpaqueIterable } from '@glimmer/reference';
 import { UNDEFINED_REFERENCE, ConditionalReference } from './references';
-import { DynamicAttributeFactory, defaultDynamicAttributes } from './vm/attributes/dynamic';
 
 import {
   ModifierManager, Modifier
@@ -24,7 +23,7 @@ import { PublicVM } from './vm/append';
 
 import { Macros, OpcodeBuilderConstructor, VMHandle } from "@glimmer/opcode-compiler";
 import { IArguments } from './vm/arguments';
-import { Simple, RuntimeResolver, BlockSymbolTable } from "@glimmer/interfaces";
+import { RuntimeResolver, BlockSymbolTable } from "@glimmer/interfaces";
 import { Component, ComponentManager } from "@glimmer/runtime/lib/internal-interfaces";
 import { Program } from "@glimmer/program";
 
@@ -231,23 +230,13 @@ export interface CompilationOptions<Specifier, R extends RuntimeResolver<Specifi
 
 export abstract class Environment {
   protected updateOperations: DOMChanges;
-  protected appendOperations: DOMTreeConstruction;
   private _transaction: Option<Transaction> = null;
-
-  constructor({ appendOperations, updateOperations }: { appendOperations: DOMTreeConstruction, updateOperations: DOMChanges }) {
-    this.appendOperations = appendOperations;
-    this.updateOperations = updateOperations;
-  }
 
   toConditionalReference(reference: Reference): Reference<boolean> {
     return new ConditionalReference(reference);
   }
 
   abstract iterableFor(reference: Reference, key: string): OpaqueIterable;
-  abstract protocolForURL(s: string): string;
-
-  getAppendOperations(): DOMTreeConstruction { return this.appendOperations; }
-  getDOM(): DOMChanges { return this.updateOperations; }
 
   getIdentity(object: HasGuid): string {
     return ensureGuid(object) + '';
@@ -286,10 +275,6 @@ export abstract class Environment {
     let transaction = this.transaction;
     this._transaction = null;
     transaction.commit();
-  }
-
-  attributeFor(element: Simple.Element, attr: string, _isTrusting: boolean, _namespace: Option<string> = null): DynamicAttributeFactory {
-    return defaultDynamicAttributes(element, attr);
   }
 }
 

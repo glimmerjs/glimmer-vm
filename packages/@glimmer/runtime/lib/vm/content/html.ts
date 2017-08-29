@@ -1,15 +1,14 @@
 import DynamicContentBase, { DynamicContent } from './dynamic';
 import Bounds from '../../bounds';
-import Environment from '../../environment';
 import { isSafeString, SafeString, normalizeTrustedValue } from '../../dom/normalize';
-import { Opaque } from "@glimmer/interfaces";
+import { Opaque, Simple } from "@glimmer/interfaces";
 
 export default class DynamicHTMLContent extends DynamicContentBase {
-  constructor(public bounds: Bounds, private lastValue: SafeString, trusted: boolean) {
-    super(trusted);
+  constructor(doc: Simple.Document, public bounds: Bounds, private lastValue: SafeString, trusted: boolean) {
+    super(doc, trusted);
   }
 
-  update(env: Environment, value: Opaque): DynamicContent {
+  update(value: Opaque): DynamicContent {
     let { lastValue } = this;
 
     if (value === lastValue) return this;
@@ -19,22 +18,22 @@ export default class DynamicHTMLContent extends DynamicContentBase {
       return this;
     }
 
-    return this.retry(env, value);
+    return this.retry(value);
   }
 }
 
 export class DynamicTrustedHTMLContent extends DynamicContentBase {
-  constructor(public bounds: Bounds, private lastValue: string, trusted: boolean) {
-    super(trusted);
+  constructor(doc: Simple.Document, public bounds: Bounds, private lastValue: string, trusted: boolean) {
+    super(doc, trusted);
   }
 
-  update(env: Environment, value: Opaque): DynamicContent {
+  update(value: Opaque): DynamicContent {
     let { lastValue } = this;
 
     if (value === lastValue) return this;
     let newValue = normalizeTrustedValue(value);
     if (newValue === lastValue) return this;
 
-    return this.retry(env, value);
+    return this.retry(value);
   }
 }

@@ -87,18 +87,18 @@ class Rehydration extends InitialRenderSuite {
     let template = '<div>{{node}}</div>';
 
     let env = this.delegate.serverEnv;
-    let node = env.getAppendOperations().createTextNode('hello');
+    let node = this.delegate.serverDoc.createTextNode('hello');
     this.renderServerSide(template, { node });
     this.assertServerOutput('<div>hello</div>');
 
     env = this.delegate.clientEnv;
-    let clientNode = env.getDOM().createTextNode('hello');
+    let clientNode = this.delegate.clientDoc.createTextNode('hello');
     this.context = { node: clientNode };
     this.renderClientSide(template, { node: clientNode });
     this.assertHTML('<div>hello</div>', 'first clean rerender');
     this.assertStableRerender();
 
-    let clientNode2 = env.getDOM().createTextNode('goodbye');
+    let clientNode2 = this.delegate.clientDoc.createTextNode('goodbye');
     this.rerender({ node: clientNode2 });
     this.assertHTML('<div>goodbye</div>', 'rerender after node update');
     this.assertStableNodes({ except: clientNode as Text });

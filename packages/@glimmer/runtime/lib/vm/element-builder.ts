@@ -15,7 +15,7 @@ import DynamicNodeContent from './content/node';
 import DynamicHTMLContent, { DynamicTrustedHTMLContent } from './content/html';
 
 import { DynamicAttribute } from './attributes/dynamic';
-
+import { DynamicAttributeFactory, defaultDynamicAttributes } from './attributes/dynamic';
 import { Opaque, Simple } from "@glimmer/interfaces";
 
 export interface FirstNode {
@@ -99,10 +99,9 @@ export interface TreeOperations {
 export interface ElementBuilder extends Cursor, DOMStack, TreeOperations {
   nextSibling: Option<Simple.Node>;
   dom: DOMTreeConstruction;
-  updateOperations: DOMChanges;
+  updateOperations: Option<DOMChanges>;
   constructing: Option<Simple.Element>;
   element: Simple.Element;
-  env: Environment;
 
   // TODO: ?
   expectConstructing(method: string): Simple.Element;
@@ -116,40 +115,61 @@ export interface ElementBuilder extends Cursor, DOMStack, TreeOperations {
 
   didAddDestroyable(d: Destroyable): void;
   didAppendBounds(bounds: Bounds): void;
+  protocolForURL(url: string): string;
+  attributeFor(element: Simple.Element, attr: string, _isTrusting: boolean, namespace: Option<string>): DynamicAttributeFactory;
+  document(): Simple.Document;
+}
+
+// Public API
+export function elementBuilder(doc: Simple.Document = document, cursor: Cursor): ElementBuilder {
+  return NewElementBuilder.forInitialRender(doc, cursor);
 }
 
 export class NewElementBuilder implements ElementBuilder {
   public dom: DOMTreeConstruction;
-  public updateOperations: DOMChanges;
+  public updateOperations: Option<DOMChanges>;
   public constructing: Option<Simple.Element> = null;
   public operations: Option<ElementOperations> = null;
-  public env: Environment;
+  private uselessAnchor: HTMLAnchorElement;
 
   private cursorStack = new Stack<Cursor>();
   private blockStack = new Stack<Tracker>();
 
-  static forInitialRender(env: Environment, cursor: Cursor) {
-    let builder = new this(env, cursor.element, cursor.nextSibling);
+  static forInitialRender(doc: Simple.Document, cursor: Cursor) {
+    let builder = new this(doc, cursor);
     builder.pushSimpleBlock();
     return builder;
   }
 
-  static resume(env: Environment, tracker: Tracker, nextSibling: Option<Simple.Node>) {
+  static resume(doc: Simple.Document, tracker: Tracker, nextSibling: Option<Simple.Node>) {
     let parentNode = tracker.parentElement();
 
-    let stack = new this(env, parentNode, nextSibling);
+    let stack = new this(doc, new Cursor(parentNode, nextSibling));
     stack.pushSimpleBlock();
     stack.pushBlockTracker(tracker);
 
     return stack;
   }
 
-  constructor(env: Environment, parentNode: Simple.Element, nextSibling: Option<Simple.Node>) {
-    this.cursorStack.push(new Cursor(parentNode, nextSibling));
+  constructor(protected doc: Simple.Document, cursor: Cursor) {
+    this.cursorStack.push(cursor);
 
-    this.env = env;
-    this.dom = env.getAppendOperations();
-    this.updateOperations = env.getDOM();
+    this.dom = new DOMTreeConstruction(doc);
+    this.uselessAnchor = this.dom.createElement('a') as HTMLAnchorElement;
+    this.updateOperations = new DOMChanges(doc as Document);
+  }
+
+  protocolForURL(url: string): string {
+    this.uselessAnchor.href = url;
+    return this.uselessAnchor.protocol;
+  }
+
+  attributeFor(element: Simple.Element, attr: string, _isTrusting: boolean, _namespace: Option<string> = null): DynamicAttributeFactory {
+    return defaultDynamicAttributes(element, attr);
+  }
+
+  document(): Simple.Document {
+    return this.doc;
   }
 
   get element(): Simple.Element {
@@ -278,7 +298,7 @@ export class NewElementBuilder implements ElementBuilder {
     this.popElement();
   }
 
-  protected pushElement(element: Simple.Element, nextSibling: Option<Simple.Node>) {
+  pushElement(element: Simple.Element, nextSibling: Option<Simple.Node>) {
     this.cursorStack.push(new Cursor(element, nextSibling));
   }
 
@@ -346,10 +366,10 @@ export class NewElementBuilder implements ElementBuilder {
   __appendTrustingDynamicContent(value: Opaque): DynamicContent {
     if (isFragment(value)) {
       let bounds = this.__appendFragment(value);
-      return new DynamicNodeContent(bounds, value, true);
+      return new DynamicNodeContent(this.doc, bounds, value, true);
     } else if (isNode(value)) {
       let node = this.__appendNode(value);
-      return new DynamicNodeContent(single(this.element, node), node, true);
+      return new DynamicNodeContent(this.doc, single(this.element, node), node, true);
     } else {
       let normalized: string;
 
@@ -364,7 +384,7 @@ export class NewElementBuilder implements ElementBuilder {
       }
 
       let bounds = this.__appendHTML(normalized);
-      return new DynamicTrustedHTMLContent(bounds, normalized, true);
+      return new DynamicTrustedHTMLContent(this.doc, bounds, normalized, true);
     }
   }
 
@@ -377,15 +397,15 @@ export class NewElementBuilder implements ElementBuilder {
   __appendCautiousDynamicContent(value: Opaque): DynamicContent {
     if (isFragment(value)) {
       let bounds = this.__appendFragment(value);
-      return new DynamicNodeContent(bounds, value, false);
+      return new DynamicNodeContent(this.doc, bounds, value, false);
     } else if (isNode(value)) {
       let node = this.__appendNode(value);
-      return new DynamicNodeContent(single(this.element, node), node, false);
+      return new DynamicNodeContent(this.doc, single(this.element, node), node, false);
     } else if (isSafeString(value)) {
       let normalized = value.toHTML();
       let bounds = this.__appendHTML(normalized);
-      // let bounds = this.dom.insertHTMLBefore(this.element, this.nextSibling, normalized);
-      return new DynamicHTMLContent(bounds, value, false);
+
+      return new DynamicHTMLContent(this.doc, bounds, value, false);
     } else {
       let normalized: string;
 
@@ -400,7 +420,7 @@ export class NewElementBuilder implements ElementBuilder {
       let textNode = this.__appendText(normalized);
       let bounds = single(this.element, textNode);
 
-      return new DynamicTextContent(bounds, normalized, false);
+      return new DynamicTextContent(this.doc, bounds, normalized, false);
     }
   }
 
@@ -429,10 +449,10 @@ export class NewElementBuilder implements ElementBuilder {
 
   setDynamicAttribute(name: string, value: Opaque, trusting: boolean, namespace: Option<string>): DynamicAttribute {
     let element = this.constructing!;
-    let DynamicAttribute = this.env.attributeFor(element, name, trusting, namespace);
-    let attribute = new DynamicAttribute({ element, name, namespace: namespace || null });
+    let DynamicAttribute = this.attributeFor(element, name, trusting, namespace);
+    let attribute = new DynamicAttribute(this, { element, name, namespace: namespace || null });
 
-    attribute.set(this, value, this.env);
+    attribute.set(value);
 
     return attribute;
   }

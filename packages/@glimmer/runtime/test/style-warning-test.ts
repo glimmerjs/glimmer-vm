@@ -1,6 +1,12 @@
 import { TestEnvironment, equalTokens, TestDynamicScope } from "@glimmer/test-helpers";
 import { test, module } from "@glimmer/runtime/test/support";
-import { Template, RenderResult, DynamicAttributeFactory, SimpleDynamicAttribute, ElementBuilder } from "@glimmer/runtime";
+import {
+  Template,
+  RenderResult,
+  DynamicAttributeFactory,
+  SimpleDynamicAttribute,
+  NewElementBuilder
+} from "@glimmer/runtime";
 import { UpdatableReference } from "@glimmer/object-reference";
 import { Option, Simple, Opaque } from "@glimmer/interfaces";
 
@@ -18,13 +24,24 @@ function commonSetup(customEnv = new TestEnvironment()) {
 }
 
 function rootElement(): HTMLDivElement {
-  return env.getDOM().createElement('div') as HTMLDivElement;
+  return document.createElement('div') as HTMLDivElement;
+}
+
+class TestElementBuilder extends NewElementBuilder {
+  attributeFor(element: Simple.Element, attr: string, isTrusting: boolean, namespace: Option<string>): DynamicAttributeFactory {
+    if (attr === 'style' && !isTrusting) {
+      return StyleAttribute;
+    }
+
+    return super.attributeFor(element, attr, isTrusting, namespace);
+  }
 }
 
 function render(template: Template, self: any) {
   let result: RenderResult;
   env.begin();
-  let templateIterator = template.renderLayout({ env, self: new UpdatableReference(self), cursor: { element: root, nextSibling: null }, dynamicScope: new TestDynamicScope() });
+  let elementBuilder = TestElementBuilder.forInitialRender(document, { element: root, nextSibling: null });
+  let templateIterator = template.renderLayout({ elementBuilder, env, self: new UpdatableReference(self), dynamicScope: new TestDynamicScope() });
   let iteratorResult: IteratorResult<RenderResult>;
   do {
     iteratorResult = templateIterator.next() as IteratorResult<RenderResult>;
@@ -37,18 +54,7 @@ function render(template: Template, self: any) {
 
 module('Style attributes', {
   beforeEach() {
-    class StyleEnv extends TestEnvironment {
-      attributeFor(element: Simple.Element, attr: string, isTrusting: boolean, namespace: Option<string>): DynamicAttributeFactory {
-        if (attr === 'style' && !isTrusting) {
-          return StyleAttribute;
-        }
-
-        return super.attributeFor(element, attr, isTrusting, namespace);
-      }
-    }
-
-    commonSetup(new StyleEnv());
-
+    commonSetup();
   },
   afterEach() {
     warnings = 0;
@@ -86,9 +92,9 @@ module('Style attributes', {
 let warnings = 0;
 
 class StyleAttribute extends SimpleDynamicAttribute {
-  set(dom: ElementBuilder, value: Opaque, env: TestEnvironment): void {
+  set(value: Opaque): void {
     warnings++;
-    super.set(dom, value, env);
+    super.set(value);
   }
 
   update() { }

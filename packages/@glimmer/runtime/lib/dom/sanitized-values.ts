@@ -1,7 +1,7 @@
 import { Opaque, Option } from '@glimmer/util';
 import { normalizeStringValue, isSafeString } from '../dom/normalize';
-import { Environment } from '../environment';
 import { Simple } from '@glimmer/interfaces';
+import { ElementBuilder } from '../vm/element-builder';
 
 const badProtocols = [
   'javascript:',
@@ -50,7 +50,7 @@ export function requiresSanitization(tagName: string, attribute: string): boolea
   return checkURI(tagName, attribute) || checkDataURI(tagName, attribute);
 }
 
-export function sanitizeAttributeValue(env: Environment, element: Simple.Element, attribute: string, value: Opaque): Opaque {
+export function sanitizeAttributeValue(builder: ElementBuilder, element: Simple.Element, attribute: string, value: Opaque): Opaque {
   let tagName: Option<string> = null;
 
   if (value === null || value === undefined) {
@@ -70,7 +70,7 @@ export function sanitizeAttributeValue(env: Environment, element: Simple.Element
   let str = normalizeStringValue(value);
 
   if (checkURI(tagName, attribute)) {
-    let protocol = env.protocolForURL(str);
+    let protocol = builder.protocolForURL(str);
     if (has(badProtocols, protocol)) {
       return `unsafe:${str}`;
     }

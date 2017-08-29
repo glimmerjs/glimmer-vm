@@ -1,7 +1,6 @@
 import { PathReference, Tagged, TagWrapper, RevisionTag, DirtyableTag, Tag } from "@glimmer/reference";
-import { RenderResult, RenderLayoutOptions, TemplateIterator, Environment } from "@glimmer/runtime";
+import { RenderResult, RenderLayoutOptions, elementBuilder as builder, TemplateIterator, Environment, rehydratingBuilder } from "@glimmer/runtime";
 import { Opaque, Dict, dict, expect } from "@glimmer/util";
-import { NodeDOMTreeConstruction } from "@glimmer/node";
 import { Option } from "@glimmer/interfaces";
 import { UpdatableReference } from "@glimmer/object-reference";
 import { assign, equalTokens, normalizeInnerHTML } from "./helpers";
@@ -15,6 +14,7 @@ import {
 import { UserHelper } from './environment/helper';
 import { EmberishGlimmerComponent, EmberishCurlyComponent, BasicComponent } from './environment/components';
 import * as SimpleDOM from "simple-dom";
+import { serializeBuilder } from "@glimmer/node";
 
 export const OPEN: { marker: "open-block" } = { marker: "open-block" };
 export const CLOSE: { marker: "close-block" } = { marker: "close-block" };
@@ -497,7 +497,7 @@ export class TestEnvironmentRenderDelegate implements RenderDelegate {
   }
 
   getInitialElement(): HTMLElement {
-    return this.env.getAppendOperations().createElement('div') as HTMLElement;
+    return document.createElement('div') as HTMLElement;
   }
 
   registerComponent<K extends ComponentKind, L extends ComponentKind>(type: K, _testType: L, name: string, layout: string, Class?: ComponentTypes[K]) {
@@ -510,10 +510,11 @@ export class TestEnvironmentRenderDelegate implements RenderDelegate {
 
   renderTemplate(template: string, context: Dict<Opaque>, element: HTMLElement): RenderResult {
     let { env } = this;
+    let elementBuilder = builder(document, { element: element, nextSibling: null });
     return renderTemplate(template, {
+      elementBuilder,
       env,
       self: new UpdatableReference(context),
-      cursor: { element, nextSibling: null },
       dynamicScope: new TestDynamicScope()
     });
   }
@@ -555,32 +556,28 @@ export class RehydrationDelegate implements RenderDelegate {
 
   public clientEnv: TestEnvironment;
   public serverEnv: TestEnvironment;
+  public clientDoc = document;
+  public serverDoc = new SimpleDOM.Document();
 
   constructor() {
     this.clientEnv = new TestEnvironment();
-
-    let doc = new SimpleDOM.Document();
-
-    this.serverEnv = new TestEnvironment({
-      document: doc,
-      appendOperations: new NodeDOMTreeConstruction(doc)
-    });
+    this.serverEnv = new TestEnvironment();
   }
 
   getInitialElement(): HTMLElement {
-    return this.clientEnv.getAppendOperations().createElement('div') as HTMLElement;
+    return document.createElement('div') as HTMLElement;
   }
 
   renderServerSide(template: string, context: Dict<Opaque>, takeSnapshot: () => void): string {
     let env = this.serverEnv;
-    let element = env.getAppendOperations().createElement("div") as HTMLDivElement;
+    let document = this.serverDoc;
+    let element = document.createElement("div") as HTMLDivElement;
     // Emulate server-side render
     renderTemplate(template, {
       env,
       self: new UpdatableReference(context),
-      cursor: { element, nextSibling: null },
       dynamicScope: new TestDynamicScope(),
-      mode: 'serialize'
+      elementBuilder: serializeBuilder(document, { element, nextSibling: null })
     });
 
     takeSnapshot();
@@ -595,13 +592,13 @@ export class RehydrationDelegate implements RenderDelegate {
 
   renderClientSide(template: string, context: Dict<Opaque>, element: HTMLElement): RenderResult {
     let env = this.clientEnv;
+    let document = this.clientDoc;
     // Client-side rehydration
     return renderTemplate(template, {
       env,
       self: new UpdatableReference(context),
-      cursor: { element, nextSibling: null },
+      elementBuilder: rehydratingBuilder(document, { element, nextSibling: null }),
       dynamicScope: new TestDynamicScope(),
-      mode: 'rehydrate'
     });
   }
 
