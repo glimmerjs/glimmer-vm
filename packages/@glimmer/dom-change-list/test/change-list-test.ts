@@ -1,5 +1,5 @@
 import {
-  DOMTreeConstruction
+  DOMTreeConstruction, NodeTokens
 } from '@glimmer/dom-change-list';
 
 import * as SimpleDOM from "simple-dom";
@@ -14,12 +14,14 @@ const XLINK: Simple.Namespace = "http://www.w3.org/1999/xlink";
 export class ChangeListTest extends TestCase {
   protected document: Simple.Document;
   protected parent: Simple.Element | Simple.DocumentFragment;
-  protected tree: DOMTreeConstruction;
+  protected tree: Builder;
+  protected construction: DOMTreeConstruction;
 
   before() {
     this.document = new SimpleDOM.Document();
     this.parent = document.createElement('div');
-    this.tree = new DOMTreeConstruction(document);
+    this.construction = new DOMTreeConstruction(document);
+    this.tree = new Builder(this.construction);
   }
 
   @test "appendText"() {
@@ -52,7 +54,7 @@ export class ChangeListTest extends TestCase {
     tree.setAttribute('class', 'chad');
     tree.closeElement();
 
-    this.shouldEqual(`<span class="chad"></span>`)
+    this.shouldEqual(`<span class="chad"></span>`);
   }
 
   @test "nested elements"() {
@@ -92,20 +94,81 @@ export class ChangeListTest extends TestCase {
     this.shouldEqualNS('<svg:svg><svg:a fill="red" xlink:href="linky"></svg:a></svg:svg>');
   }
 
-  protected append() {
-    this.tree.appendTo(this.parent);
+  protected append(): NodeTokens {
+    return this.construction.appendTo(this.parent);
   }
 
-  protected shouldEqual(expected: string) {
-    this.append();
-    let actual = toHTML(this.parent);
-    QUnit.assert.equal(actual, expected);
+  protected shouldEqual(expectedHTML: string) {
+    let tokens = this.append();
+    let actualHTML = toHTML(this.parent);
+    QUnit.assert.equal(actualHTML, expectedHTML);
+
+    let { expected, actual } = this.tree.reify(tokens);
+
+    QUnit.assert.deepEqual(actual, expected);
   }
 
   protected shouldEqualNS(expected: string) {
     this.append();
     let actual = toHTMLNS(this.parent);
     QUnit.assert.equal(actual, expected);
+  }
+}
+
+export interface ExpectedToken {
+  type: 'element' | 'text' | 'comment';
+  value: string;
+}
+
+export class Builder {
+  private expected: ExpectedToken[] = [];
+
+  constructor(private tree: DOMTreeConstruction) {}
+
+  openElement(tag: string, namespace?: Simple.Namespace) {
+    let token = this.tree.openElement(tag, namespace);
+    this.expected[token] = { type: 'element', value: tag.toUpperCase() };
+  }
+
+  closeElement() {
+    this.tree.closeElement();
+  }
+
+  setAttribute(name: string, value: string, namespace?: Simple.Namespace) {
+    this.tree.setAttribute(name, value, namespace);
+  }
+
+  appendText(text: string) {
+    let token = this.tree.appendText(text);
+    this.expected[token] = { type: 'text', value: text };
+  }
+
+  appendComment(text: string) {
+    let token = this.tree.appendComment(text);
+    this.expected[token] = { type: 'comment', value: text };
+  }
+
+  reify(tokens: NodeTokens): { actual: ExpectedToken[], expected: ExpectedToken[] } {
+    let actual: ExpectedToken[] = [];
+    let { expected } = this;
+
+    for (let i=0; i<expected.length; i++) {
+      let reified = tokens.reify(i);
+
+      switch(reified.nodeType) {
+        case 1:
+          actual.push({ type: 'element', value: reified['tagName'] });
+          break;
+        case 3:
+          actual.push({ type: 'text', value: reified.nodeValue! });
+          break;
+        case 8:
+          actual.push({ type: 'comment', value: reified.nodeValue! });
+          break;
+      }
+    }
+
+    return { expected, actual };
   }
 }
 

@@ -340,8 +340,11 @@ export default class VM<Specifier> implements PublicVM {
     this.listBlockStack.pop();
   }
 
-  updateWith(opcode: UpdatingOpcode) {
+  updateWith(opcode: UpdatingOpcode, reifying = false) {
     this.updating().append(opcode);
+
+    if (reifying) {
+    }
   }
 
   listBlock(): ListBlockOpcode {

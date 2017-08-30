@@ -146,6 +146,14 @@ export class Scope {
   }
 }
 
+interface NodeTokens {
+  get(token: number): Simple.Node;
+}
+
+interface Reifiable {
+  reify(tokens: NodeTokens): void;
+}
+
 class Transaction {
   public scheduledInstallManagers: ModifierManager[] = [];
   public scheduledInstallModifiers: Modifier[] = [];
@@ -156,6 +164,11 @@ class Transaction {
   public updatedComponents: Component[] = [];
   public updatedManagers: ComponentManager[] = [];
   public destructors: Destroyable[] = [];
+  public reifiables: Reifiable[] = [];
+
+  shouldReify(opcode: Reifiable) {
+    this.reifiables.push(opcode);
+  }
 
   didCreate(component: Component, manager: ComponentManager) {
     this.createdComponents.push(component);

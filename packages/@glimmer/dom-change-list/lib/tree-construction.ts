@@ -5,9 +5,9 @@ import { HTML, OperationsBuilder, run } from './dom-operations';
 // https://github.com/whatwg/dom/issues/270
 
 export class DOMTreeConstruction {
-  private tokens = new NodeTokens();
   private ops: number[] = [];
   private builder: OperationsBuilder;
+  private token = 0;
 
   constructor(private document: Simple.Document) {
     this.builder = new OperationsBuilder(this.ops);
@@ -15,6 +15,7 @@ export class DOMTreeConstruction {
 
   openElement(name: string, ns: Simple.Namespace = HTML): NodeToken {
     this.builder.openElement(name, ns);
+    return this.token++;
   }
 
   closeElement() {
@@ -23,20 +24,22 @@ export class DOMTreeConstruction {
 
   appendText(text: string) {
     this.builder.appendText(text);
+    return this.token++;
   }
 
   appendComment(text: string) {
     this.builder.appendComment(text);
+    return this.token++;
   }
 
   setAttribute(name: string, value: string, namespace: Simple.Namespace = HTML) {
     this.builder.setAttribute(name, value, namespace);
   }
 
-  appendTo(parent: Simple.Element | Simple.DocumentFragment): Iterable<void> {
+  appendTo(parent: Simple.Element | Simple.DocumentFragment): NodeTokens {
     let { ops, constants } = this.builder.finish();
 
-    run(ops, {
+    return run(ops, {
       document: this.document,
       parent,
       nextSibling: null,

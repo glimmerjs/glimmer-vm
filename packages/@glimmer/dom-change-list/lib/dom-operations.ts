@@ -1,6 +1,6 @@
 import { Simple, Option } from '@glimmer/interfaces';
 import { dict, assert } from '@glimmer/util';
-import { NodeToken } from './node-tokens';
+import { NodeToken, NodeTokens } from './node-tokens';
 
 export enum ConstructionOperation {
   OpenElement,
@@ -99,6 +99,7 @@ interface ConstructionState {
   readonly document: Simple.Document;
   readonly nextSibling: Option<Simple.Node>;
   readonly elements: Parent[]; // mutable
+  readonly tokens: NodeTokens;
 
   parent: Parent;
   constants: ReadonlyArray<string>;
@@ -117,10 +118,13 @@ export interface RunOptions {
 export function run(opcodes: ReadonlyArray<number>, options: RunOptions) {
   let offset = 0;
   let end = opcodes.length;
-  let state = {
+  let tokens = new NodeTokens();
+
+  let state: ConstructionState = {
     ...options,
     elements: [options.parent],
-    constructing: null
+    constructing: null,
+    tokens
   };
 
   while (offset < end) {
@@ -147,6 +151,8 @@ export function run(opcodes: ReadonlyArray<number>, options: RunOptions) {
 
     offset += size + 1;
   }
+
+  return tokens;
 }
 
 type ConstructionFunction = ((state: ConstructionState, ...args: number[]) => void);
@@ -160,6 +166,7 @@ const ConstructionOperations: ConstructionFunction[] = [
 
     let el = document.createElementNS(constants[namespace] as Simple.Namespace, constants[tag]);
     state.constructing = el;
+    state.tokens.register(el);
   },
 
   /* (CloseElement) */
@@ -193,14 +200,16 @@ const ConstructionOperations: ConstructionFunction[] = [
     let parentElement = constructing ? flush(state) : parent;
     let textNode = document.createTextNode(constants[text]);
     parentElement.insertBefore(textNode, nextSibling);
+    state.tokens.register(textNode);
   },
 
   /* (AppendComment text) */
   (state, text) => {
     let { constants, document, parent, nextSibling } = state;
     let parentElement = state.constructing ? flush(state) : parent;
-    let textNode = document.createComment(constants[text]);
-    parentElement.insertBefore(textNode, nextSibling);
+    let commentNode = document.createComment(constants[text]);
+    parentElement.insertBefore(commentNode, nextSibling);
+    state.tokens.register(commentNode);
   },
 
   /* (AppendHTML text) */

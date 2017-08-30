@@ -56,7 +56,7 @@ export function module(
         QUnit.test(prop, assert => new klass().run(test, assert));
       }
     }
-  }
+  };
 }
 
 export abstract class TestCase {
