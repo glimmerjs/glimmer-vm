@@ -1,12 +1,16 @@
 import DynamicContentBase, { DynamicContent } from './dynamic';
-import { SingleNodeBounds } from '../../bounds';
+import { ReifiableBounds } from '../../bounds';
 import Environment from '../../environment';
 import { isNode, isSafeString, isEmpty, isString } from '../../dom/normalize';
-import { Opaque } from "@glimmer/interfaces";
+import { Opaque, Reifiable, NodeTokens } from "@glimmer/interfaces";
 
-export default class DynamicTextContent extends DynamicContentBase {
-  constructor(public bounds: SingleNodeBounds, private lastValue: string, trusted: boolean) {
+export default class DynamicTextContent extends DynamicContentBase implements Reifiable {
+  constructor(public bounds: ReifiableBounds, private lastValue: string, trusted: boolean) {
     super(trusted);
+  }
+
+  reify(tokens: NodeTokens) {
+    this.bounds.reify(tokens);
   }
 
   update(env: Environment, value: Opaque): DynamicContent {

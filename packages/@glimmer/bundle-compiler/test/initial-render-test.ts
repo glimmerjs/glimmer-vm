@@ -29,7 +29,7 @@ import {
 import { BundleCompiler, CompilerDelegate, Specifier, SpecifierMap, specifierFor, LookupMap } from "@glimmer/bundle-compiler";
 import { WrappedBuilder, ComponentCapabilities, VMHandle, ICompilableTemplate } from "@glimmer/opcode-compiler";
 import { Program, RuntimeProgram, WriteOnlyConstants, WriteOnlyProgram, RuntimeConstants } from "@glimmer/program";
-import { elementBuilder, LowLevelVM, TemplateIterator, RenderResult, Helper, Environment, WithStaticLayout, Bounds, ComponentManager, DOMTreeConstruction, DOMChanges, ComponentSpec, Invocation, getDynamicVar, Helper as GlimmerHelper, } from "@glimmer/runtime";
+import { elementBuilder, LowLevelVM, TemplateIterator, RenderResult, Helper, Environment, WithStaticLayout, Bounds, ComponentManager, DOMChanges, ComponentSpec, Invocation, getDynamicVar, Helper as GlimmerHelper, } from "@glimmer/runtime";
 import { UpdatableReference } from "@glimmer/object-reference";
 import { dict, unreachable, assert, assign } from "@glimmer/util";
 import { PathReference, CONSTANT_TAG, Tag } from "@glimmer/reference";
@@ -40,10 +40,9 @@ class BundledClientEnvironment extends AbstractTestEnvironment<Opaque> {
 
   constructor(options?: EnvironmentOptions) {
     if (!options) {
-      let document = window.document;
-      let appendOperations = new DOMTreeConstruction(document);
+      let document = window.document as Simple.Document;
       let updateOperations = new DOMChanges(document as HTMLDocument);
-      options = { appendOperations, updateOperations };
+      options = { document, updateOperations };
     }
 
     super(options);
@@ -337,8 +336,12 @@ class BundlingRenderDelegate implements RenderDelegate {
     this.env = new BundledClientEnvironment();
   }
 
+  getDocument(): Simple.Document {
+    return this.env.document;
+  }
+
   getInitialElement(): HTMLElement {
-    return this.env.getAppendOperations().createElement('div') as HTMLElement;
+    return this.env.document.createElement('div') as HTMLElement;
   }
 
   registerComponent(type: ComponentKind, testType: ComponentKind, name: string, layout: string, Class?: Opaque): void {

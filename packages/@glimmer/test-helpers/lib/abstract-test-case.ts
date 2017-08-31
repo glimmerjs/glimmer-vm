@@ -1,8 +1,7 @@
 import { PathReference, Tagged, TagWrapper, RevisionTag, DirtyableTag, Tag } from "@glimmer/reference";
 import { RenderResult, RenderLayoutOptions, TemplateIterator, Environment } from "@glimmer/runtime";
 import { Opaque, Dict, dict, expect } from "@glimmer/util";
-import { NodeDOMTreeConstruction } from "@glimmer/node";
-import { Option } from "@glimmer/interfaces";
+import { Option, Simple } from "@glimmer/interfaces";
 import { UpdatableReference } from "@glimmer/object-reference";
 import { assign, equalTokens, normalizeInnerHTML } from "./helpers";
 import { TestEnvironment } from './environment/lazy-env';
@@ -15,6 +14,7 @@ import {
 import { UserHelper } from './environment/helper';
 import { EmberishGlimmerComponent, EmberishCurlyComponent, BasicComponent } from './environment/components';
 import * as SimpleDOM from "simple-dom";
+import { TreeBuilder } from "@glimmer/dom-change-list";
 
 export const OPEN: { marker: "open-block" } = { marker: "open-block" };
 export const CLOSE: { marker: "close-block" } = { marker: "close-block" };
@@ -104,6 +104,7 @@ type IndividualSnapshot = 'up' | 'down' | Node;
 type NodesSnapshot = IndividualSnapshot[];
 
 export interface RenderDelegate {
+  getDocument(): Simple.Document;
   getInitialElement(): HTMLElement;
   registerComponent<K extends ComponentKind, L extends ComponentKind>(type: K, testType: L, name: string, layout: string, Class?: ComponentTypes[K]): void;
   registerHelper(name: string, helper: UserHelper): void;
@@ -111,7 +112,8 @@ export interface RenderDelegate {
 }
 
 export class AbstractRenderTest {
-  protected element: HTMLElement;
+  protected builder: TreeBuilder;
+  protected appendTo: HTMLElement;
   protected assert = QUnit.assert;
   protected context: Dict<Opaque> = dict<Opaque>();
   protected renderResult: Option<RenderResult> = null;
@@ -120,7 +122,8 @@ export class AbstractRenderTest {
   private snapshot: NodesSnapshot = [];
 
   constructor(protected delegate: RenderDelegate) {
-    this.element = delegate.getInitialElement();
+    this.appendTo = delegate.getInitialElement();
+    this.builder = new TreeBuilder();
   }
 
   registerHelper(name: string, helper: UserHelper) {
@@ -155,6 +158,11 @@ export class AbstractRenderTest {
     }
 
     return invocation;
+  }
+
+  protected get element(): HTMLElement {
+    this.builder.appendTo(this.appendTo, this.delegate.getDocument());
+    return this.appendTo;
   }
 
   private buildArgs(args: Object): string {
@@ -490,14 +498,18 @@ export class AbstractRenderTest {
 }
 
 export class TestEnvironmentRenderDelegate implements RenderDelegate {
-  constructor(protected env: TestEnvironment = new TestEnvironment()) {}
+  constructor(protected env: TestEnvironment = new TestEnvironment()) { }
 
   resetEnv() {
     this.env = new TestEnvironment();
   }
 
   getInitialElement(): HTMLElement {
-    return this.env.getAppendOperations().createElement('div') as HTMLElement;
+    return this.env.document.createElement('div') as HTMLElement;
+  }
+
+  getDocument(): Simple.Document {
+    return this.env.document;
   }
 
   registerComponent<K extends ComponentKind, L extends ComponentKind>(type: K, _testType: L, name: string, layout: string, Class?: ComponentTypes[K]) {
@@ -562,18 +574,21 @@ export class RehydrationDelegate implements RenderDelegate {
     let doc = new SimpleDOM.Document();
 
     this.serverEnv = new TestEnvironment({
-      document: doc,
-      appendOperations: new NodeDOMTreeConstruction(doc)
+      document: doc
     });
   }
 
   getInitialElement(): HTMLElement {
-    return this.clientEnv.getAppendOperations().createElement('div') as HTMLElement;
+    return this.clientEnv.document.createElement('div') as HTMLElement;
+  }
+
+  getDocument(): Simple.Document {
+    return this.clientEnv.document;
   }
 
   renderServerSide(template: string, context: Dict<Opaque>, takeSnapshot: () => void): string {
     let env = this.serverEnv;
-    let element = env.getAppendOperations().createElement("div") as HTMLDivElement;
+    let element = env.document.createElement("div") as HTMLDivElement;
     // Emulate server-side render
     renderTemplate(template, {
       env,

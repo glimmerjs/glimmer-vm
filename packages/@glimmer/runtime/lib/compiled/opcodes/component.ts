@@ -273,7 +273,7 @@ APPEND_OPCODES.add(Op.RegisterComponentDestructor, (vm, { op1: _state }) => {
   let { manager, component } = vm.fetchValue<ComponentState>(_state);
 
   let destructor = manager.getDestructor(component);
-  if (destructor) vm.newDestroyable(destructor);
+  if (destructor) vm.elements().addDestructor(destructor);
 });
 
 APPEND_OPCODES.add(Op.BeginComponentTransaction, vm => {

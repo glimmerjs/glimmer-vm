@@ -167,7 +167,7 @@ export function compilable<Specifier>(layout: ParsedLayout<Specifier>, options: 
 
 export function elementBuilder({ mode, env, cursor }: Pick<RenderLayoutOptions, 'mode' | 'env' | 'cursor'>) {
   switch (mode) {
-    case 'client': return NewElementBuilder.forInitialRender(env, cursor);
+    case 'client': return new NewElementBuilder(env, cursor);
     case 'rehydrate': return RehydrateBuilder.forInitialRender(env, cursor);
     case 'serialize': return SerializeBuilder.forInitialRender(env, cursor);
     default: throw new Error('unreachable');

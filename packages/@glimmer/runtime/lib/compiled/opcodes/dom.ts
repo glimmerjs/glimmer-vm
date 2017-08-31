@@ -17,6 +17,8 @@ import { Arguments } from '../../vm/arguments';
 import { Assert } from './vm';
 import { DynamicAttribute } from '../../vm/attributes/dynamic';
 import { ComponentElementOperations } from './component';
+import Environment from '../../environment';
+import { ElementBuilder } from '../../vm/element-builder';
 
 APPEND_OPCODES.add(Op.Text, (vm, { op1: text }) => {
   vm.elements().appendText(vm.constants.getString(text));
@@ -95,7 +97,7 @@ APPEND_OPCODES.add(Op.Modifier, (vm, { op1: handle }) => {
   let destructor = manager.getDestructor(modifier);
 
   if (destructor) {
-    vm.newDestroyable(destructor);
+    vm.elements().addDestructor(destructor);
   }
 
   let tag = manager.getTag(modifier);
@@ -139,7 +141,7 @@ APPEND_OPCODES.add(Op.StaticAttr, (vm, { op1: _name, op2: _value, op3: _namespac
   let value = vm.constants.getString(_value);
   let namespace = _namespace ? vm.constants.getString(_namespace) : null;
 
-  vm.elements().setStaticAttribute(name, value, namespace);
+  vm.elements().setAttribute(name, value, namespace);
 });
 
 APPEND_OPCODES.add(Op.DynamicAttr, (vm, { op1: _name, op2: trusting, op3: _namespace }) => {
@@ -148,12 +150,25 @@ APPEND_OPCODES.add(Op.DynamicAttr, (vm, { op1: _name, op2: trusting, op3: _names
   let value = reference.value();
   let namespace = _namespace ? vm.constants.getString(_namespace) : null;
 
-  let attribute = vm.elements().setDynamicAttribute(name, value, !!trusting, namespace);
+  let attribute = setDynamicAttribute(vm.env, vm.elements(), name, value, namespace, !!trusting)
 
   if (!isConst(reference)) {
     vm.updateWith(new UpdateDynamicAttributeOpcode(reference, attribute));
   }
 });
+
+export function setDynamicAttribute(env: Environment, builder: ElementBuilder, name: string, value: Opaque, namespace: Option<string>, trusting: boolean) {
+  let { tree: { currentTag, currentNamespace }} = builder;
+  let constructing = builder.constructing;
+
+  let DynamicAttribute = env.attributeFor(currentTag!, currentNamespace!, name, trusting);
+  let attribute = new DynamicAttribute({ element: constructing!, name, namespace: namespace as Simple.Namespace || null });
+
+  attribute.set(builder, value, env);
+  env.shouldReify(attribute);
+
+  return attribute;
+}
 
 export class UpdateDynamicAttributeOpcode extends UpdatingOpcode {
   public type = 'patch-element';

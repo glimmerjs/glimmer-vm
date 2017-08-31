@@ -1,6 +1,6 @@
 import { VersionedPathReference } from '@glimmer/reference';
 
-import { DOMChanges, DOMTreeConstruction } from './dom/helper';
+import { DOMChanges } from './dom/helper';
 import { Reference, OpaqueIterable } from '@glimmer/reference';
 import { UNDEFINED_REFERENCE, ConditionalReference } from './references';
 import { DynamicAttributeFactory, defaultDynamicAttributes } from './vm/attributes/dynamic';
@@ -24,7 +24,7 @@ import { PublicVM } from './vm/append';
 
 import { Macros, OpcodeBuilderConstructor, VMHandle } from "@glimmer/opcode-compiler";
 import { IArguments } from './vm/arguments';
-import { Simple, RuntimeResolver, BlockSymbolTable } from "@glimmer/interfaces";
+import { Simple, RuntimeResolver, BlockSymbolTable, NodeTokens, Reifiable } from "@glimmer/interfaces";
 import { Component, ComponentManager } from "@glimmer/runtime/lib/internal-interfaces";
 import { Program } from "@glimmer/program";
 
@@ -146,14 +146,6 @@ export class Scope {
   }
 }
 
-interface NodeTokens {
-  get(token: number): Simple.Node;
-}
-
-interface Reifiable {
-  reify(tokens: NodeTokens): void;
-}
-
 class Transaction {
   public scheduledInstallManagers: ModifierManager[] = [];
   public scheduledInstallModifiers: Modifier[] = [];
@@ -165,6 +157,7 @@ class Transaction {
   public updatedManagers: ComponentManager[] = [];
   public destructors: Destroyable[] = [];
   public reifiables: Reifiable[] = [];
+  public nodeTokens: Option<NodeTokens> = null;
 
   shouldReify(opcode: Reifiable) {
     this.reifiables.push(opcode);
@@ -232,6 +225,13 @@ class Transaction {
       let modifier = scheduledUpdateModifiers[i];
       manager.update(modifier);
     }
+
+    let { reifiables } = this;
+
+    for (let i = 0; i < reifiables.length; i++) {
+      let reifiable = reifiables[i];
+      reifiable.reify(expect(this.nodeTokens, 'transaction must be finalized with NodeTokens'));
+    }
   }
 }
 
@@ -244,13 +244,14 @@ export interface CompilationOptions<Specifier, R extends RuntimeResolver<Specifi
 
 export abstract class Environment {
   protected updateOperations: DOMChanges;
-  protected appendOperations: DOMTreeConstruction;
   private _transaction: Option<Transaction> = null;
 
-  constructor({ appendOperations, updateOperations }: { appendOperations: DOMTreeConstruction, updateOperations: DOMChanges }) {
-    this.appendOperations = appendOperations;
+  constructor({ document, updateOperations }: { document: Simple.Document, updateOperations: DOMChanges }) {
     this.updateOperations = updateOperations;
+    this.document = document;
   }
+
+  public document: Simple.Document;
 
   toConditionalReference(reference: Reference): Reference<boolean> {
     return new ConditionalReference(reference);
@@ -259,7 +260,6 @@ export abstract class Environment {
   abstract iterableFor(reference: Reference, key: string): OpaqueIterable;
   abstract protocolForURL(s: string): string;
 
-  getAppendOperations(): DOMTreeConstruction { return this.appendOperations; }
   getDOM(): DOMChanges { return this.updateOperations; }
 
   getIdentity(object: HasGuid): string {
@@ -273,6 +273,14 @@ export abstract class Environment {
 
   private get transaction(): Transaction {
     return expect(this._transaction!, 'must be in a transaction');
+  }
+
+  finalize(tokens: NodeTokens) {
+    this.transaction.nodeTokens = tokens;
+  }
+
+  shouldReify(reifiable: Reifiable) {
+    this.transaction.shouldReify(reifiable);
   }
 
   didCreate(component: Component, manager: ComponentManager) {
@@ -301,8 +309,8 @@ export abstract class Environment {
     transaction.commit();
   }
 
-  attributeFor(element: Simple.Element, attr: string, _isTrusting: boolean, _namespace: Option<string> = null): DynamicAttributeFactory {
-    return defaultDynamicAttributes(element, attr);
+  attributeFor(tag: string, namespace: Simple.Namespace, attr: string, _isTrusting: boolean): DynamicAttributeFactory {
+    return defaultDynamicAttributes(this.document, tag, namespace, attr);
   }
 }
 

@@ -23,15 +23,13 @@ function compile(template: string) {
 }
 
 function rootElement(): Simple.Element {
-  return env.getAppendOperations().createElement('div');
+  return env.document.createElement('div');
 }
 
 function commonSetup() {
   doc = new SimpleDOM.Document();
-  helper = new NodeDOMTreeConstruction(doc);
   env = new TestEnvironment({
-    document: doc,
-    appendOperations: helper
+    document: doc
   });
   root = rootElement();
 }

@@ -120,6 +120,8 @@ export function run(opcodes: ReadonlyArray<number>, options: RunOptions) {
   let end = opcodes.length;
   let tokens = new NodeTokens();
 
+  tokens.register(options.parent);
+
   let state: ConstructionState = {
     ...options,
     elements: [options.parent],

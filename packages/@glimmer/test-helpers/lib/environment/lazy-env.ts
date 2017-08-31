@@ -5,7 +5,7 @@ import { UserHelper, HelperReference } from './helper';
 import { InertModifierManager } from './modifier';
 import { TestMacros } from './generic/macros';
 import { Option, RuntimeResolver, Opaque, Maybe, Simple } from "@glimmer/interfaces";
-import { Helper as GlimmerHelper, DOMTreeConstruction, TopLevelSyntax, ModifierManager, PartialDefinition, ComponentSpec, CompilationOptions, templateFactory, Template, IDOMChanges, DOMChanges, VM, Arguments, getDynamicVar, CurriedComponentDefinition, curry, Invocation } from "@glimmer/runtime";
+import { Helper as GlimmerHelper, TopLevelSyntax, ModifierManager, PartialDefinition, ComponentSpec, CompilationOptions, templateFactory, Template, IDOMChanges, DOMChanges, VM, Arguments, getDynamicVar, CurriedComponentDefinition, curry, Invocation } from "@glimmer/runtime";
 import { TemplateOptions, LazyOpcodeBuilder, OpcodeBuilderConstructor } from "@glimmer/opcode-compiler";
 import { dict } from "@glimmer/util";
 import { precompile } from "@glimmer/compiler";
@@ -19,7 +19,6 @@ export interface TestSpecifier<T extends LookupType = LookupType> {
 
 export interface TestEnvironmentOptions {
   document?: Simple.Document;
-  appendOperations?: DOMTreeConstruction;
   updateOperations?: IDOMChanges;
   program?: TopLevelSyntax;
 }
@@ -262,18 +261,13 @@ export class TestEnvironment extends AbstractTestEnvironment<TestSpecifier> {
 
 function testOptions(options: Maybe<TestEnvironmentOptions>) {
   let document: Maybe<Simple.Document> = options ? options.document : undefined;
-  let appendOperations: Maybe<DOMTreeConstruction> = options && options.appendOperations;
   let updateOperations: Maybe<IDOMChanges> = options && options.updateOperations;
 
   if (!document) document = window.document;
-
-  if (!appendOperations) {
-    appendOperations = new DOMTreeConstruction(document);
-  }
 
   if (!updateOperations) {
     updateOperations = new DOMChanges(document as HTMLDocument);
   }
 
-  return { appendOperations, updateOperations };
+  return { document, updateOperations };
 }

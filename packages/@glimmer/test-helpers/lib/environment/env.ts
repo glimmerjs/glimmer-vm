@@ -1,14 +1,14 @@
 import { KeyFor, Iterable } from './iterable';
 
-import { Environment, DOMTreeConstruction, IDOMChanges, PrimitiveReference, ConditionalReference } from "@glimmer/runtime";
+import { Environment, IDOMChanges, PrimitiveReference, ConditionalReference } from "@glimmer/runtime";
 import { dict } from "@glimmer/util";
-import { Dict, RuntimeResolver, Opaque } from "@glimmer/interfaces";
+import { Dict, RuntimeResolver, Opaque, Simple } from "@glimmer/interfaces";
 import { VMHandle } from "@glimmer/opcode-compiler";
 import { Program } from "@glimmer/program";
 import { Reference, isConst, OpaqueIterable } from "@glimmer/reference";
 
 export interface EnvironmentOptions {
-  appendOperations: DOMTreeConstruction;
+  document: Simple.Document;
   updateOperations: IDOMChanges;
 }
 

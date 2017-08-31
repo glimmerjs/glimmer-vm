@@ -159,6 +159,8 @@ export class TryOpcode extends BlockOpcode implements ExceptionHandler {
 
     children.clear();
 
+    let tracker = bounds.clear();
+
     let elementStack = NewElementBuilder.resume(
       state.env,
       bounds,
@@ -306,7 +308,7 @@ export class ListBlockOpcode extends BlockOpcode {
   vmForInsertion(nextSibling: Option<Simple.Node>): VM<Opaque> {
     let { bounds, state } = this;
 
-    let elementStack = NewElementBuilder.forInitialRender(
+    let elementStack = new NewElementBuilder(
       state.env,
       { element: bounds.parentElement(), nextSibling }
     );

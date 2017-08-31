@@ -1,5 +1,5 @@
 import { Opaque } from '@glimmer/util';
-import { Simple } from '@glimmer/interfaces';
+import { Simple } from "@glimmer/interfaces";
 
 /*
  * @method normalizeProperty
@@ -7,8 +7,10 @@ import { Simple } from '@glimmer/interfaces';
  * @param slotName {String}
  * @returns {Object} { name, type }
  */
-export function normalizeProperty(element: Simple.Element, slotName: string) {
+export function normalizeProperty(tag: string, namespace: Simple.Namespace, slotName: string, document: Simple.Document) {
   let type, normalized;
+
+  let element = document.createElementNS(namespace, tag);
 
   if (slotName in element) {
     normalized = slotName;
@@ -26,7 +28,7 @@ export function normalizeProperty(element: Simple.Element, slotName: string) {
 
   if (type === 'prop' &&
       (normalized.toLowerCase() === 'style' ||
-       preferAttr(element.tagName, normalized))) {
+       preferAttr(tag, normalized))) {
     type = 'attr';
   }
 

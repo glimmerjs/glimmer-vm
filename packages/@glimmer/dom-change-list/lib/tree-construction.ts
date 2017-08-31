@@ -7,9 +7,9 @@ import { HTML, OperationsBuilder, run } from './dom-operations';
 export class DOMTreeConstruction {
   private ops: number[] = [];
   private builder: OperationsBuilder;
-  private token = 0;
+  private token = 1;
 
-  constructor(private document: Simple.Document) {
+  constructor() {
     this.builder = new OperationsBuilder(this.ops);
   }
 
@@ -36,11 +36,11 @@ export class DOMTreeConstruction {
     this.builder.setAttribute(name, value, namespace);
   }
 
-  appendTo(parent: Simple.Element | Simple.DocumentFragment): NodeTokens {
+  appendTo(parent: Simple.Element | Simple.DocumentFragment, owner: Simple.Document): NodeTokens {
     let { ops, constants } = this.builder.finish();
 
     return run(ops, {
-      document: this.document,
+      document: owner,
       parent,
       nextSibling: null,
       constants: constants

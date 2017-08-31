@@ -14,7 +14,7 @@ import {
   UpdatingOpcode
 } from '../opcodes';
 
-import { Opcode } from "@glimmer/interfaces";
+import { Opcode, Reifiable, Recast } from "@glimmer/interfaces";
 import { Heap, RuntimeProgram as Program, RuntimeConstants, RuntimeProgram } from "@glimmer/program";
 import { VMHandle as VMHandle } from "@glimmer/opcode-compiler";
 
@@ -22,6 +22,7 @@ export interface PublicVM {
   env: Environment;
   dynamicScope(): DynamicScope;
   getSelf(): PathReference<Opaque>;
+  elements(): ElementBuilder;
   newDestroyable(d: Destroyable): void;
 }
 
@@ -278,7 +279,7 @@ export default class VM<Specifier> implements PublicVM {
     let updating = new LinkedList<UpdatingOpcode>();
 
     let state = this.capture(args);
-    let tracker = this.elements().pushUpdatableBlock();
+    let tracker = this.elements().openBlock();
 
     let tryOpcode = new TryOpcode(this.heap.gethandle(this.pc), state, tracker, updating);
 
@@ -291,7 +292,7 @@ export default class VM<Specifier> implements PublicVM {
     stack.push(memo);
 
     let state = this.capture(2);
-    let tracker = this.elements().pushUpdatableBlock();
+    let tracker = this.elements().openBlock();
 
     // let ip = this.ip;
     // this.ip = end + 4;
@@ -327,7 +328,7 @@ export default class VM<Specifier> implements PublicVM {
   }
 
   exit() {
-    this.elements().popBlock();
+    this.elements().closeBlock();
     this.updatingOpcodeStack.pop();
 
     let parent = this.updating().tail() as BlockOpcode;
@@ -340,10 +341,13 @@ export default class VM<Specifier> implements PublicVM {
     this.listBlockStack.pop();
   }
 
+  updateWith(opcode: UpdatingOpcode): void;
+  updateWith(opcode: UpdatingOpcode & Reifiable, reifying: true): void;
   updateWith(opcode: UpdatingOpcode, reifying = false) {
     this.updating().append(opcode);
 
     if (reifying) {
+      this.env.shouldReify(opcode as Recast<UpdatingOpcode, Reifiable>);
     }
   }
 
@@ -398,7 +402,7 @@ export default class VM<Specifier> implements PublicVM {
   }
 
   newDestroyable(d: Destroyable) {
-    this.elements().didAddDestroyable(d);
+    this.elements().addDestructor(d);
   }
 
   /// SCOPE HELPERS
@@ -439,13 +443,16 @@ export default class VM<Specifier> implements PublicVM {
       // Unload the stack
       this.stack.reset();
 
+      let tokens = this.elements().appendTo(this.env.document);
+      this.env.finalize(tokens);
+
       result = {
         done: true,
         value: new RenderResult(
           env,
           program,
           expect(updatingOpcodeStack.pop(), 'there should be a final updating opcode stack'),
-          elementStack.popBlock()
+          elementStack.closeBlock()
         )
       };
     }

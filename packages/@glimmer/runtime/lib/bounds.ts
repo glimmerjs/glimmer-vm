@@ -1,5 +1,5 @@
-import { Simple } from '@glimmer/interfaces';
-import { Option, Destroyable } from '@glimmer/util';
+import { Simple, NodeToken, Reifiable, NodeTokens } from '@glimmer/interfaces';
+import { Option, Destroyable, expect } from '@glimmer/util';
 
 export interface Bounds {
   // a method to future-proof for wormholing; may not be needed ultimately
@@ -46,6 +46,36 @@ export class SingleNodeBounds implements Bounds {
   parentElement() { return this.parentNode; }
   firstNode() { return this.node; }
   lastNode() { return this.node; }
+}
+
+export class ReifiableBounds implements Reifiable, Bounds {
+  private parent: Option<Simple.Element>;
+  private first: Option<Simple.Node>;
+  private last: Option<Simple.Node>;
+
+  constructor(private parentToken: NodeToken, private firstToken: NodeToken, private lastToken: NodeToken) {}
+
+  reify(tokens: NodeTokens) {
+    this.parent = tokens.reify<Simple.Element>(this.parentToken);
+    this.first = tokens.reify(this.firstToken);
+    this.last = tokens.reify(this.lastToken);
+  }
+
+  parentElement() {
+    return expect(this.parent, 'Invalid unreified bounds');
+  }
+
+  firstNode() {
+    return expect(this.first, 'Invalid unreified bounds');
+  }
+
+  lastNode() {
+    return expect(this.last, 'Invalid unreified bounds');
+  }
+}
+
+export function tokenBounds(parent: NodeToken, first: NodeToken, last: NodeToken = first) {
+  return new ReifiableBounds(parent, first, last);
 }
 
 export function bounds(parent: Simple.Element, first: Simple.Node, last: Simple.Node): ConcreteBounds {

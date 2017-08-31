@@ -1,11 +1,12 @@
 import { isCurriedComponentDefinition } from '../../component/interfaces';
-import { Opaque } from '@glimmer/interfaces';
+import { Opaque, Reifiable, NodeTokens } from '@glimmer/interfaces';
 import { isConst, Reference, VersionedPathReference, Tag, VersionedReference } from '@glimmer/reference';
 import { Op } from '@glimmer/vm';
-import { DynamicContentWrapper } from '../../vm/content/dynamic';
+import { DynamicContentWrapper, DynamicContent } from '../../vm/content/dynamic';
 import { APPEND_OPCODES, UpdatingOpcode } from '../../opcodes';
 import { ConditionalReference } from '../../references';
 import { UpdatingVM } from '../../vm';
+import { appendCautiousDynamicContent } from '../../vm/content/dynamic-content-helpers';
 
 export class IsCurriedComponentDefinitionReference extends ConditionalReference {
   static create(inner: Reference<Opaque>): IsCurriedComponentDefinitionReference {
@@ -20,20 +21,22 @@ export class IsCurriedComponentDefinitionReference extends ConditionalReference 
 APPEND_OPCODES.add(Op.DynamicContent, (vm, { op1: isTrusting }) => {
   let reference = vm.stack.pop<VersionedPathReference<Opaque>>();
   let value = reference.value();
-  let content: DynamicContentWrapper;
+  let content: DynamicContent;
 
   if (isTrusting) {
     content = vm.elements().appendTrustingDynamicContent(value);
   } else {
-    content = vm.elements().appendCautiousDynamicContent(value);
+    content = appendCautiousDynamicContent(value, vm.elements().parent!, vm.elements().tree);
   }
 
+  let wrapper = new DynamicContentWrapper(content);
+
   if (!isConst(reference)) {
-    vm.updateWith(new UpdateDynamicContentOpcode(reference, content));
+    vm.updateWith(new UpdateDynamicContentOpcode(reference, wrapper), true);
   }
 });
 
-class UpdateDynamicContentOpcode extends UpdatingOpcode {
+class UpdateDynamicContentOpcode extends UpdatingOpcode implements Reifiable {
   public tag: Tag;
 
   constructor(private reference: VersionedReference<Opaque>, private content: DynamicContentWrapper) {
@@ -44,5 +47,9 @@ class UpdateDynamicContentOpcode extends UpdatingOpcode {
   evaluate(vm: UpdatingVM): void {
     let { content, reference } = this;
     content.update(vm.env, reference.value());
+  }
+
+  reify(tokens: NodeTokens) {
+    this.content.reify(tokens);
   }
 }

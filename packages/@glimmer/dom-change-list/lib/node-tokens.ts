@@ -1,8 +1,8 @@
-import { Simple } from '@glimmer/interfaces';
+import { Simple, NodeTokens as INodeTokens } from '@glimmer/interfaces';
 
 export type NodeToken = number;
 
-export class NodeTokens {
+export class NodeTokens implements INodeTokens {
   private nodes: Simple.Node[] = [];
 
   register(node: Simple.Node): NodeToken {
@@ -11,7 +11,7 @@ export class NodeTokens {
     return token;
   }
 
-  reify(token: NodeToken): Simple.Node {
-    return this.nodes[token];
+  reify<N extends Simple.Node>(token: NodeToken): N {
+    return this.nodes[token] as N;
   }
 }

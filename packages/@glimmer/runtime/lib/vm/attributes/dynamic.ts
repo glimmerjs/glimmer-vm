@@ -1,29 +1,27 @@
-import { Simple, Option, Opaque } from "@glimmer/interfaces";
+import { Simple, Option, Opaque, NodeTokens, NodeToken } from "@glimmer/interfaces";
 import Environment from '../../environment';
 import { ElementBuilder } from '../element-builder';
 import { sanitizeAttributeValue, requiresSanitization } from '../../dom/sanitized-values';
 import { normalizeProperty } from '../../dom/props';
 import { SVG_NAMESPACE } from '../../dom/helper';
-import { Attribute, AttributeOperation } from './index';
+import { AppendAttribute, UpdateAttribute, AttributeOperation } from './index';
 import { normalizeStringValue } from '../../dom/normalize';
 
 export interface DynamicAttributeFactory {
-  new(attribute: Attribute): DynamicAttribute;
+  new(attribute: AppendAttribute): DynamicAttribute;
 }
 
-export function defaultDynamicAttributes(element: Simple.Element, attr: string): DynamicAttributeFactory {
-  let { tagName, namespaceURI } = element;
-
-  if (namespaceURI === SVG_NAMESPACE) {
-    return defaultDynamicAttribute(tagName, attr);
+export function defaultDynamicAttributes(document: Simple.Document, tag: string, namespace: Simple.Namespace, attr: string): DynamicAttributeFactory {
+  if (namespace === SVG_NAMESPACE) {
+    return defaultDynamicAttribute(tag, attr);
   }
 
-  let { type, normalized } = normalizeProperty(element, attr);
+  let { type, normalized } = normalizeProperty(tag, namespace, attr, document);
 
   if (type === 'attr') {
-    return defaultDynamicAttribute(tagName, normalized);
+    return defaultDynamicAttribute(tag, normalized);
   } else {
-    return defaultDynamicProperty(tagName, normalized);
+    return defaultDynamicProperty(tag, normalized);
   }
 }
 
@@ -52,10 +50,13 @@ export function defaultDynamicProperty(tagName: string, name: string): DynamicAt
 }
 
 export abstract class DynamicAttribute implements AttributeOperation {
-  constructor(public attribute: Attribute) {}
+  protected element: Option<Simple.Element> = null;
+
+  constructor(public attribute: AppendAttribute) {}
 
   abstract set(dom: ElementBuilder, value: Opaque, env: Environment): void;
   abstract update(value: Opaque, env: Environment): void;
+  abstract reify(tokens: NodeTokens): void;
 }
 
 export class SimpleDynamicAttribute extends DynamicAttribute {
@@ -64,19 +65,24 @@ export class SimpleDynamicAttribute extends DynamicAttribute {
 
     if (normalizedValue !== null) {
       let { name, namespace } = this.attribute;
-      dom.__setAttribute(name, normalizedValue, namespace);
+      dom.setAttribute(name, normalizedValue, namespace || undefined);
     }
   }
 
   update(value: Opaque, _env: Environment): void {
     let normalizedValue = normalizeValue(value);
-    let { element, name } = this.attribute;
+    let { name } = this.attribute;
+    let element = this.element!;
 
     if (normalizedValue === null) {
       element.removeAttribute(name);
     } else {
       element.setAttribute(name, normalizedValue);
     }
+  }
+
+  reify(tokens: NodeTokens) {
+    this.element = tokens.reify(this.attribute.element) as Simple.Element;
   }
 }
 

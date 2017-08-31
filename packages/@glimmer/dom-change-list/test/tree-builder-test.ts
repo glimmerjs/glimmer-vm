@@ -1,28 +1,27 @@
 import {
-  DOMTreeConstruction, NodeTokens
+  DOMTreeConstruction, NodeTokens, TreeBuilder
 } from '@glimmer/dom-change-list';
 
 import * as SimpleDOM from "simple-dom";
 import { Simple } from "@glimmer/interfaces";
 
 import { TestCase, module, test } from './test-case';
-import { Builder as TestBuilder, toHTML, toHTMLNS } from './support';
+import { XLINK, Builder as TestBuilder, toHTML, toHTMLNS } from './support';
 
-const SVG: Simple.Namespace = "http://www.w3.org/2000/svg";
-const XLINK: Simple.Namespace = "http://www.w3.org/1999/xlink";
-
-@module('[dom-change-list] DOMTreeConstruction')
+@module('[dom-change-list] TreeBuilder')
 export class ChangeListTest extends TestCase {
   protected document: Simple.Document;
   protected parent: Simple.Element | Simple.DocumentFragment;
   protected tree: Builder;
+  protected builder: TreeBuilder;
   protected construction: DOMTreeConstruction;
 
   before() {
     this.document = new SimpleDOM.Document();
     this.parent = document.createElement('div');
     this.construction = new DOMTreeConstruction();
-    this.tree = new Builder(this.construction);
+    this.builder = new TreeBuilder(this.construction);
+    this.tree = new Builder(this.builder);
   }
 
   @test "appendText"() {
@@ -76,7 +75,7 @@ export class ChangeListTest extends TestCase {
   @test "namespaced elements"() {
     let { tree } = this;
 
-    tree.openElement('svg', SVG);
+    tree.openElement('svg');
     tree.closeElement();
 
     this.shouldEqualNS('<svg:svg></svg:svg>');
@@ -85,8 +84,8 @@ export class ChangeListTest extends TestCase {
   @test "namespaced attributes"() {
     let { tree } = this;
 
-    tree.openElement('svg', SVG);
-    tree.openElement('a', SVG);
+    tree.openElement('svg');
+    tree.openElement('a');
     tree.setAttribute('fill', 'red');
     tree.setAttribute('href', 'linky', XLINK);
     tree.closeElement();
@@ -118,10 +117,10 @@ export class ChangeListTest extends TestCase {
 }
 
 export class Builder extends TestBuilder {
-  protected tree: DOMTreeConstruction;
+  protected tree: TreeBuilder;
 
-  openElement(tag: string, namespace?: Simple.Namespace) {
-    let token = this.tree.openElement(tag, namespace);
+  openElement(tag: string) {
+    let token = this.tree.openElement(tag);
     this.expected[token] = { type: 'element', value: tag.toUpperCase() };
   }
 }
