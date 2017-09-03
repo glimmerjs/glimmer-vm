@@ -30,11 +30,11 @@ export default class NodeDOMTreeConstruction extends DOMTreeConstruction {
     this.document.nodesCache[tag] = this.document.createElement(tag);
     return this.getNodeFromCache(tag);
   }
-  
+
   hasNodeInCache(tag: string) {
     return this.document.nodesCache && this.document.nodesCache[tag];
   }
-  
+
   getNodeFromCache(tag:string) {
     return this.document.nodesCache[tag].cloneNode(false);
   }
