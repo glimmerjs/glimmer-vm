@@ -23,9 +23,25 @@ export default class NodeDOMTreeConstruction extends DOMTreeConstruction {
     return new ConcreteBounds(parent, first, last);
   }
 
+  createNodeCache(tag: string) {
+    if (!this.document.nodesCache) {
+      this.document.nodesCache = {};
+    }
+    this.document.nodesCache[tag] = this.document.createElement(tag);
+    return this.getNodeFromCache(tag);
+  }
+  
+  hasNodeInCache(tag: string) {
+    return this.document.nodesCache && this.document.nodesCache[tag];
+  }
+  
+  getNodeFromCache(tag:string) {
+    return this.document.nodesCache[tag].cloneNode(false);
+  }
+
   // override to avoid SVG detection/work when in node (this is not needed in SSR)
   createElement(tag: string) {
-    return this.document.createElement(tag);
+    return this.hasNodeInCache(tag) ? this.getNodeFromCache(tag) : this.createNodeCache(tag);
   }
 
   // override to avoid namespace shenanigans when in node (this is not needed in SSR)
