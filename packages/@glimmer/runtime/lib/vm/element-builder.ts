@@ -66,13 +66,19 @@ export class Fragment implements Bounds {
   }
 }
 
+export const enum Position {
+  None = 0b00,
+  Last = 0b01,
+  First = 0b10
+}
+
 export interface DOMStack {
   pushRemoteElement(element: Simple.Element, nextSibling: Option<Simple.Node>): void;
   popRemoteElement(): void;
   popElement(): void;
   openElement(tag: string, _operations?: ElementOperations): Simple.Element;
   flushElement(): void;
-  appendText(string: string): Simple.Text;
+  appendText(string: string, position: Position): Simple.Text;
   appendComment(string: string): Simple.Comment;
   appendTrustingDynamicContent(reference: Opaque): DynamicContentWrapper;
   appendCautiousDynamicContent(reference: Opaque): DynamicContentWrapper;
@@ -291,8 +297,8 @@ export class NewElementBuilder implements ElementBuilder {
     return bounds;
   }
 
-  didAppendNode<T extends Simple.Node>(node: T): T {
-    this.block().didAppendNode(node);
+  didAppendNode<T extends Simple.Node>(node: T, position?: Position): T {
+    this.block().didAppendNode(node, position);
     return node;
   }
 
@@ -305,8 +311,9 @@ export class NewElementBuilder implements ElementBuilder {
     this.block().closeElement();
   }
 
-  appendText(string: string): Simple.Text {
-    return this.didAppendNode(this.__appendText(string));
+  appendText(string: string, position: Position): Simple.Text {
+    let text = this.__appendText(string);
+    return this.didAppendNode(text, position);
   }
 
   __appendText(text: string): Simple.Text {
@@ -441,7 +448,7 @@ export class NewElementBuilder implements ElementBuilder {
 export interface Tracker extends DestroyableBounds {
   openElement(element: Simple.Element): void;
   closeElement(): void;
-  didAppendNode(node: Simple.Node): void;
+  didAppendNode(node: Simple.Node, position?: Position): void;
   didAppendBounds(bounds: Bounds): void;
   newDestroyable(d: Destroyable): void;
   finalize(stack: ElementBuilder): void;
@@ -452,6 +459,9 @@ export class SimpleBlockTracker implements Tracker {
   protected last: Option<LastNode> = null;
   protected destroyables: Option<Destroyable[]> = null;
   protected nesting = 0;
+
+  // Temporary
+  protected expectedLast: Option<Node> = null;
 
   constructor(private parent: Simple.Element){}
 
@@ -486,7 +496,23 @@ export class SimpleBlockTracker implements Tracker {
     this.nesting--;
   }
 
-  didAppendNode(node: Node) {
+  didAppendNode(node: Node, position?: Position) {
+    if (position !== undefined) {
+      switch (position) {
+        case Position.None:
+          if (this.nesting !== 0) break;
+          if (!this.first) throw new Error(`Expected ${printNode(node)} to be in none position, but was actually first`);
+          break;
+        case Position.First:
+          if (this.nesting !== 0) throw new Error(`Expected ${printNode(node)} to be in first position, but had no position`);
+          if (this.first) throw new Error(`Expected ${printNode(node)} to be in first position, but already saw the first element`);
+          break;
+        case Position.Last:
+          this.expectedLast = node;
+          break;
+      }
+    }
+
     if (this.nesting !== 0) return;
 
     if (!this.first) {
@@ -512,6 +538,12 @@ export class SimpleBlockTracker implements Tracker {
   }
 
   finalize(stack: ElementBuilder) {
+    if (this.expectedLast !== null && !this.last) {
+      throw new Error(`Expected last node to be ${this.expectedLast} but tracked no nodes`);
+    } else if (this.expectedLast !== null && this.last && this.last.lastNode() !== this.expectedLast) {
+      throw new Error(`Expected last node to be ${this.expectedLast} but tracked ${this.last.lastNode()}`);
+    }
+
     if (!this.first) {
       stack.appendComment('');
     }
@@ -594,5 +626,17 @@ class BlockListTracker implements Tracker {
   }
 
   finalize(_stack: ElementBuilder) {
+  }
+}
+
+function printNode(node: Node) {
+  if (node.nodeType === 1) {
+    return (node as HTMLElement).cloneNode().outerHTML;
+  } else if (node.nodeType === 3) {
+    return `<text>${node.nodeValue}</text>`;
+  } else if (node.nodeType === 8) {
+    return `<!--${node.nodeValue}-->`;
+  } else {
+    return String(node);
   }
 }

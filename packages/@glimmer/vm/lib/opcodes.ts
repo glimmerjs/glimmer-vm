@@ -273,40 +273,51 @@ export const enum Op {
   /**
    * Operation: Append a Text node with value `contents`
    * Format:
-   *   (Text contents:#string)
+   *   (Text contents:#string position:Position)
    * Operand Stack:
    *   ... →
    *   ...
+   * Description:
+   *   position:
+   *     00: -
+   *     01: last
+   *     10: first
    */
   Text,
 
   /**
    * Operation: Append a Comment node with value `contents`
    * Format:
-   *   (Comment contents:#string)
+   *   (Comment contents:#string position:Position)
    * Operand Stack:
    *   ... →
    *   ...
+   * Description:
+   *   position: same as Text
    */
   Comment,
 
   /**
    * Operation: Append a Dynamic node based on .
    * Format:
-   *   (DynamicContent isTrusting:boolean)
+   *   (DynamicContent isTrusting:boolean first:boolean)
    * Operand Stack:
    *   ..., VersionedPathReference →
    *   ...
+   * Description:
+   *   position: same as Text
    */
   DynamicContent,
 
   /**
    * Operation: Open a new Element named `tag`.
    * Format:
-   *   (OpenElement tag:#string)
+   *   (OpenElement tag:#string first:boolean)
    * Operand Stack:
    *   ... →
    *   ...
+   * Description:
+   *   position: same as Text
    */
   OpenElement,
 
@@ -315,10 +326,12 @@ export const enum Op {
    *   Open a new Element named `tag` with special operations provided
    *   on the stack.
    * Format:
-   *   (OpenElementWithOperations tag:#string)
+   *   (OpenElementWithOperations tag:#string position:Position)
    * Operand Stack:
    *   ..., ElementOperations →
    *   ...
+   * Description:
+   *   position: same as Text
    */
   OpenElementWithOperations,
 
@@ -327,10 +340,12 @@ export const enum Op {
    *   Open a new Element with a name on the stack and with special
    *   operations provided on the stack.
    * Format:
-   *   (OpenDynamicElement)
+   *   (OpenDynamicElement position:Position)
    * Operand Stack:
    *   ..., string, ElementOperations →
    *   ...
+   * Description:
+   *   position: same as Text
    */
   OpenDynamicElement,
 
@@ -537,7 +552,7 @@ export const enum Op {
    *   if one of its inputs changes.
    *
    * Format:
-   *   (Enter args:u32)
+   *   (OpenBlock args:u32)
    * Operand Stack:
    *   ... →
    *   ...
@@ -550,14 +565,14 @@ export const enum Op {
    *
    *   TODO: Save and restore.
    */
-  Enter,
+  OpenBlock,
 
   /**
    * Operation:
    *   Finish tracking the current block.
    *
    * Format:
-   *   (Exit)
+   *   (CloseBlock)
    * Operand Stack:
    *   ... →
    *   ...
@@ -566,7 +581,7 @@ export const enum Op {
    *   block must check to determine whether it's safe to
    *   skip running the contents.
    */
-  Exit,
+  CloseBlock,
 
   /**
    * Operation: Convert the top of the stack into a boolean reference.

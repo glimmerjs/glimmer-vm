@@ -206,7 +206,7 @@ STATEMENTS.add(Ops.Partial, (sexp: S.Partial, builder) => {
 
   builder.dup();
 
-  builder.enter(2);
+  builder.openBlock(2);
 
   builder.jumpUnless('ELSE');
 
@@ -215,7 +215,7 @@ STATEMENTS.add(Ops.Partial, (sexp: S.Partial, builder) => {
   builder.popFrame();
 
   builder.label('ELSE');
-  builder.exit();
+  builder.closeBlock();
   builder.return();
 
   builder.label('END');
@@ -262,7 +262,7 @@ export function expr<Specifier>(expression: WireFormat.Expression, builder: Opco
 }
 
 EXPRESSIONS.add(Ops.Unknown, (sexp: E.Unknown, builder) => {
-  let { lookup, asPartial, referer } = builder;
+  let { lookup, kind, referer } = builder;
   let name = sexp[1];
 
   let specifier = lookup.lookupHelper(name, referer);
@@ -270,7 +270,7 @@ EXPRESSIONS.add(Ops.Unknown, (sexp: E.Unknown, builder) => {
   if (specifier !== null) {
     builder.compileArgs(null, null, true);
     builder.helper(specifier);
-  } else if (asPartial) {
+  } else if (kind === 'partial') {
     builder.resolveMaybeLocal(name);
   } else {
     builder.getVariable(0);
@@ -320,7 +320,7 @@ EXPRESSIONS.add(Ops.Get, (sexp: E.Get, builder) => {
 EXPRESSIONS.add(Ops.MaybeLocal, (sexp: E.MaybeLocal, builder) => {
   let [, path] = sexp;
 
-  if (builder.asPartial) {
+  if (builder.kind === 'partial') {
     let head = path[0];
     path = path.slice(1);
 
@@ -480,7 +480,7 @@ export function populateBuiltins(blocks: Blocks = new Blocks(), inlines: Inlines
 
     builder.toBoolean();
 
-    builder.enter(1);
+    builder.openBlock(1);
 
     builder.jumpUnless('ELSE');
 
@@ -493,11 +493,11 @@ export function populateBuiltins(blocks: Blocks = new Blocks(), inlines: Inlines
       builder.invokeStaticBlock(inverse);
 
       builder.label('EXIT');
-      builder.exit();
+      builder.closeBlock();
       builder.return();
     } else {
       builder.label('ELSE');
-      builder.exit();
+      builder.closeBlock();
       builder.return();
     }
 
@@ -534,7 +534,7 @@ export function populateBuiltins(blocks: Blocks = new Blocks(), inlines: Inlines
 
     builder.toBoolean();
 
-    builder.enter(1);
+    builder.openBlock(1);
 
     builder.jumpIf('ELSE');
 
@@ -547,11 +547,11 @@ export function populateBuiltins(blocks: Blocks = new Blocks(), inlines: Inlines
       builder.invokeStaticBlock(inverse);
 
       builder.label('EXIT');
-      builder.exit();
+      builder.closeBlock();
       builder.return();
     } else {
       builder.label('ELSE');
-      builder.exit();
+      builder.closeBlock();
       builder.return();
     }
 
@@ -589,7 +589,7 @@ export function populateBuiltins(blocks: Blocks = new Blocks(), inlines: Inlines
     builder.dup();
     builder.toBoolean();
 
-    builder.enter(2);
+    builder.openBlock(2);
 
     builder.jumpUnless('ELSE');
 
@@ -602,11 +602,11 @@ export function populateBuiltins(blocks: Blocks = new Blocks(), inlines: Inlines
       builder.invokeStaticBlock(inverse);
 
       builder.label('EXIT');
-      builder.exit();
+      builder.closeBlock();
       builder.return();
     } else {
       builder.label('ELSE');
-      builder.exit();
+      builder.closeBlock();
       builder.return();
     }
 
@@ -654,7 +654,7 @@ export function populateBuiltins(blocks: Blocks = new Blocks(), inlines: Inlines
 
     expr(params[0], builder);
 
-    builder.enter(2);
+    builder.openBlock(2);
 
     builder.putIterator();
 
@@ -674,7 +674,7 @@ export function populateBuiltins(blocks: Blocks = new Blocks(), inlines: Inlines
     builder.label('BODY');
     builder.invokeStaticBlock(unwrap(template), 2);
     builder.pop(2);
-    builder.exit();
+    builder.closeBlock();
     builder.return();
 
     builder.label('BREAK');
@@ -688,11 +688,11 @@ export function populateBuiltins(blocks: Blocks = new Blocks(), inlines: Inlines
       builder.invokeStaticBlock(inverse);
 
       builder.label('EXIT');
-      builder.exit();
+      builder.closeBlock();
       builder.return();
     } else {
       builder.label('ELSE');
-      builder.exit();
+      builder.closeBlock();
       builder.return();
     }
 
@@ -729,7 +729,7 @@ export function populateBuiltins(blocks: Blocks = new Blocks(), inlines: Inlines
 
     builder.dup();
 
-    builder.enter(3);
+    builder.openBlock(3);
 
     builder.jumpUnless('ELSE');
 
@@ -738,7 +738,7 @@ export function populateBuiltins(blocks: Blocks = new Blocks(), inlines: Inlines
     builder.popRemoteElement();
 
     builder.label('ELSE');
-    builder.exit();
+    builder.closeBlock();
     builder.return();
 
     builder.label('END');
@@ -796,6 +796,6 @@ export interface TemplateOptions<Specifier> {
 }
 
 export interface CompileOptions<Specifier> extends TemplateOptions<Specifier> {
-  asPartial: boolean;
+  kind: 'partial' | 'inline' | 'top-level';
   referer: Specifier;
 }

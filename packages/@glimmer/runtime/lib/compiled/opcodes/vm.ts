@@ -83,9 +83,9 @@ APPEND_OPCODES.add(Op.PushFrame, vm => vm.pushFrame());
 
 APPEND_OPCODES.add(Op.PopFrame, vm => vm.popFrame());
 
-APPEND_OPCODES.add(Op.Enter, (vm, { op1: args }) => vm.enter(args));
+APPEND_OPCODES.add(Op.OpenBlock, (vm, { op1: args }) => vm.openBlock(args));
 
-APPEND_OPCODES.add(Op.Exit, (vm) => vm.exit());
+APPEND_OPCODES.add(Op.CloseBlock, (vm) => vm.closeBlock());
 
 APPEND_OPCODES.add(Op.PushSymbolTable, (vm, { op1: _table }) => {
   let stack = vm.stack;

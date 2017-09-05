@@ -109,12 +109,12 @@ export function debug(c: DebugConstants, op: Op, op1: number, op2: number, op3: 
       case Op.ReturnTo: return ['ReturnTo', { offset: op1 }];
 
       /// HTML
-      case Op.Text: return ['Text', { text: c.getString(op1) }];
-      case Op.Comment: return ['Comment', { comment: c.getString(op1) }];
-      case Op.DynamicContent: return ['DynamicContent', { trusting: !!op1 }];
-      case Op.OpenElement: return ['OpenElement', { tag: c.getString(op1) }];
-      case Op.OpenElementWithOperations: return ['OpenElementWithOperations', { tag: c.getString(op1) }];
-      case Op.OpenDynamicElement: return ['OpenDynamicElement', {}];
+      case Op.Text: return ['Text', { text: c.getString(op1), position: getPosition(op2) }];
+      case Op.Comment: return ['Comment', { comment: c.getString(op1), position: getPosition(op2) }];
+      case Op.DynamicContent: return ['DynamicContent', { trusting: !!op1, position: getPosition(op2) }];
+      case Op.OpenElement: return ['OpenElement', { tag: c.getString(op1), position: getPosition(op2) }];
+      case Op.OpenElementWithOperations: return ['OpenElementWithOperations', { tag: c.getString(op1), position: getPosition(op2) }];
+      case Op.OpenDynamicElement: return ['OpenDynamicElement', { position: getPosition(op1) }];
       case Op.StaticAttr: return ['StaticAttr', { name: c.getString(op1), value: c.getString(op2), namespace: op3 ? c.getString(op3) : null }];
       case Op.DynamicAttr: return ['DynamicAttr', { name: c.getString(op1), trusting: !!op2, namespace: op3 ? c.getString(op3) : null }];
       case Op.ComponentAttr: return ['ComponentAttr', { name: c.getString(op1), trusting: !!op2, namespace: op3 ? c.getString(op3) : null }];
@@ -144,8 +144,8 @@ export function debug(c: DebugConstants, op: Op, op1: number, op2: number, op3: 
       case Op.JumpUnless: return ['JumpUnless', { to: op1 }];
       case Op.PushFrame: return ['PushFrame', {}];
       case Op.PopFrame: return ['PopFrame', {}];
-      case Op.Enter: return ['Enter', { args: op1 }];
-      case Op.Exit: return ['Exit', {}];
+      case Op.OpenBlock: return ['OpenBlock', { args: op1 }];
+      case Op.CloseBlock: return ['CloseBlock', {}];
       case Op.ToBoolean: return ['ToBoolean', {}];
 
       /// LISTS
@@ -189,4 +189,13 @@ export function debug(c: DebugConstants, op: Op, op1: number, op2: number, op3: 
   }
 
   return ['', {}];
+}
+
+function getPosition(position: number): string {
+  switch (position) {
+    case 0b00: return '<middle>';
+    case 0b01: return '<last>';
+    case 0b10: return '<first>';
+    default: throw new Error('BUG: unexpected position');
+  }
 }

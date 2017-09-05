@@ -79,7 +79,7 @@ export interface OpcodeBuilderConstructor {
       meta: Opaque,
       macros: Macros,
       containingLayout: ParsedLayout,
-      asPartial: boolean): OpcodeBuilder<Specifier>;
+      kind: 'partial' | 'inline' | 'top-level'): OpcodeBuilder<Specifier>;
 }
 
 export abstract class OpcodeBuilder<Specifier> {
@@ -90,13 +90,16 @@ export abstract class OpcodeBuilder<Specifier> {
   private isComponentAttrs = false;
   public component: ComponentBuilder<Specifier> = new ComponentBuilder(this);
 
+  private sawFirstNode = false;
+  private possibleLastNode: Option<number> = null;
+
   constructor(
     public program: CompileTimeProgram,
     public lookup: CompileTimeLookup<Specifier>,
     public referer: Specifier,
     public macros: Macros,
     public containingLayout: ParsedLayout,
-    public asPartial: boolean
+    public kind: 'partial' | 'inline' | 'top-level'
   ) {
     this.constants = program.constants;
   }
@@ -255,20 +258,32 @@ export abstract class OpcodeBuilder<Specifier> {
 
   // dom
 
+  protected domPosition(): number {
+    let position = 0;
+
+    if (!this.sawFirstNode) {
+      this.sawFirstNode = true;
+      position |= 0b10;
+      this.possibleLastNode = this.buffer.length + 2;
+    }
+
+    return position;
+  }
+
   text(text: string) {
-    this.push(Op.Text, this.constants.string(text));
+    this.push(Op.Text, this.constants.string(text), this.domPosition());
   }
 
   openPrimitiveElement(tag: string) {
-    this.push(Op.OpenElement, this.constants.string(tag));
+    this.push(Op.OpenElement, this.constants.string(tag), this.domPosition());
   }
 
   openElementWithOperations(tag: string) {
-    this.push(Op.OpenElementWithOperations, this.constants.string(tag));
+    this.push(Op.OpenElementWithOperations, this.constants.string(tag), this.domPosition());
   }
 
   openDynamicElement() {
-    this.push(Op.OpenDynamicElement);
+    this.push(Op.OpenDynamicElement, this.domPosition());
   }
 
   flushElement() {
@@ -305,7 +320,7 @@ export abstract class OpcodeBuilder<Specifier> {
 
   comment(_comment: string) {
     let comment = this.constants.string(_comment);
-    this.push(Op.Comment, comment);
+    this.push(Op.Comment, comment, this.domPosition());
   }
 
   modifier(specifier: Specifier) {
@@ -480,12 +495,13 @@ export abstract class OpcodeBuilder<Specifier> {
     this.push(Op.BindDynamicScope, this.names(_names));
   }
 
-  enter(args: number) {
-    this.push(Op.Enter, args);
+  openBlock(args: number) {
+    this.domPosition();
+    this.push(Op.OpenBlock, args);
   }
 
-  exit() {
-    this.push(Op.Exit);
+  closeBlock() {
+    this.push(Op.CloseBlock);
   }
 
   return() {
@@ -558,7 +574,7 @@ export abstract class OpcodeBuilder<Specifier> {
       macros: this.macros,
       Builder: this.constructor as OpcodeBuilderConstructor,
       lookup: this.lookup,
-      asPartial: this.asPartial,
+      kind: this.kind,
       referer: this.referer
     };
 
@@ -636,14 +652,14 @@ export abstract class OpcodeBuilder<Specifier> {
     this.dup();
     this.isComponent();
 
-    this.enter(2);
+    this.openBlock(2);
 
     this.jumpUnless('ELSE');
 
     this.pushDynamicComponentManager(this.referer);
     this.invokeComponent(null, null, null, false, null, null);
 
-    this.exit();
+    this.closeBlock();
 
     this.return();
 
@@ -651,7 +667,7 @@ export abstract class OpcodeBuilder<Specifier> {
 
     this.dynamicContent(trusting);
 
-    this.exit();
+    this.closeBlock();
 
     this.return();
 
@@ -832,7 +848,7 @@ export abstract class OpcodeBuilder<Specifier> {
 
     this.dup();
 
-    this.enter(2);
+    this.openBlock(2);
 
     this.jumpUnless('ELSE');
 
@@ -840,7 +856,7 @@ export abstract class OpcodeBuilder<Specifier> {
     this.invokeComponent(null, params, hash, synthetic, block, inverse);
 
     this.label('ELSE');
-    this.exit();
+    this.closeBlock();
     this.return();
 
     this.label('END');

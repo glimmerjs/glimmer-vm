@@ -32,9 +32,9 @@ export default class CompilableTemplate<S extends SymbolTable, Specifier> implem
 
     let { options, statements, containingLayout } = this;
     let { referer } = containingLayout;
-    let { program, lookup, macros, asPartial, Builder } = options;
+    let { program, lookup, macros, kind, Builder } = options;
 
-    let builder = new Builder(program, lookup, referer, macros, containingLayout, asPartial);
+    let builder = new Builder(program, lookup, referer, macros, containingLayout, kind);
 
     for (let i = 0; i < statements.length; i++) {
       compileStatement(statements[i], builder);

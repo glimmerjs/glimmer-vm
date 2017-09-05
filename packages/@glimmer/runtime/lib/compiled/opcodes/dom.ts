@@ -18,8 +18,8 @@ import { Assert } from './vm';
 import { DynamicAttribute } from '../../vm/attributes/dynamic';
 import { ComponentElementOperations } from './component';
 
-APPEND_OPCODES.add(Op.Text, (vm, { op1: text }) => {
-  vm.elements().appendText(vm.constants.getString(text));
+APPEND_OPCODES.add(Op.Text, (vm, { op1: text, op2: position }) => {
+  vm.elements().appendText(vm.constants.getString(text), position);
 });
 
 APPEND_OPCODES.add(Op.OpenElementWithOperations, (vm, { op1: tag }) => {

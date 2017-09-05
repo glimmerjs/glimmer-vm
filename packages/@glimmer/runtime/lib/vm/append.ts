@@ -274,7 +274,7 @@ export default class VM<Specifier> implements PublicVM {
     opcodes.append(END);
   }
 
-  enter(args: number) {
+  openBlock(args: number) {
     let updating = new LinkedList<UpdatingOpcode>();
 
     let state = this.capture(args);
@@ -326,7 +326,7 @@ export default class VM<Specifier> implements PublicVM {
     this.updatingOpcodeStack.push(opcode.children);
   }
 
-  exit() {
+  closeBlock() {
     this.elements().popBlock();
     this.updatingOpcodeStack.pop();
 
@@ -336,7 +336,7 @@ export default class VM<Specifier> implements PublicVM {
   }
 
   exitList() {
-    this.exit();
+    this.closeBlock();
     this.listBlockStack.pop();
   }
 
