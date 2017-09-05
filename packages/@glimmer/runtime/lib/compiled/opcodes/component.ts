@@ -1,4 +1,4 @@
-import { Opaque, Option, Dict, ProgramSymbolTable, Recast, RuntimeResolver, BlockSymbolTable } from '@glimmer/interfaces';
+import { Opaque, Option, Dict, ProgramSymbolTable, Recast, RuntimeResolver, BlockSymbolTable, Present } from '@glimmer/interfaces';
 import {
   combineTagged,
   CONSTANT_TAG,
@@ -29,11 +29,11 @@ import { Arguments, IArguments, ICapturedArguments } from '../../vm/arguments';
 import { IsCurriedComponentDefinitionReference } from './content';
 import { UpdateDynamicAttributeOpcode } from './dom';
 import { ComponentDefinition, ComponentManager, Component } from '../../internal-interfaces';
-import { dict, assert, unreachable } from "@glimmer/util";
+import { dict, assert, unreachable, stackCheck, Check } from "@glimmer/util";
 import { Op, Register } from '@glimmer/vm';
 import { TemplateMeta } from "@glimmer/wire-format";
 import { ATTRS_BLOCK, VMHandle } from '@glimmer/opcode-compiler';
-import { stackAssert } from './assert';
+import { Invocation } from "@glimmer/runtime";
 
 const ARGS = new Arguments();
 
@@ -46,6 +46,98 @@ function resolveComponent<Specifier>(resolver: RuntimeResolver<Specifier>, name:
 export function curry(spec: PublicComponentSpec, args: Option<ICapturedArguments> = null): CurriedComponentDefinition {
   return new CurriedComponentDefinition(spec as ComponentSpec, args);
 }
+
+class ManagerChecker extends Check {
+  validate(value: any): value is ComponentManager {
+    return value.getCapabilities !== undefined;
+  }
+  throw(value: any): void {
+    super.throw(value, 'component manager');
+  }
+}
+
+class VoidChecker extends Check {
+  validate(value: any): value is Present {
+    return value !== undefined && value !== null;
+  }
+  throw(value: any): void {
+    super.throw(value, 'present');
+  }
+}
+
+class HandleChecker extends Check {
+  validate(value: any): value is VMHandle {
+    return this.type(value) === 'number';
+  }
+
+  throw(value: any): void {
+    super.throw(value, 'handle');
+  }
+}
+
+class ReferenceCheck extends Check {
+  validate(value: any): value is Reference {
+    return value.value !== undefined && typeof value.value === 'function';
+  }
+
+  throw(value: any): void {
+    super.throw(value, 'reference');
+  }
+}
+
+class DefinitionCheck extends Check {
+  validate(value: any): value is ComponentDefinition {
+    return value.specifier !== undefined || value.capabilities !== undefined || isCurriedComponentDefinition(value);
+  }
+  throw(value: any): void {
+    super.throw(value, 'definition');
+  }
+}
+
+class SymbolTableCheck extends Check {
+  validate(value: any): value is ProgramSymbolTable {
+    return value.hasEval !== undefined && Array.isArray(value.symbols);
+  }
+  throw(value: any): void {
+    super.throw(value, 'symbol table');
+  }
+}
+
+class InvocationCheck extends Check {
+  validate(value: any): value is Invocation  {
+    return new HandleChecker().validate(value.handle) && new SymbolTableCheck().validate(value.symbolTable);
+  }
+
+  throw(value: any): void {
+    super.throw(value, 'invocation');
+  }
+}
+
+class ArgumentsCheck extends Check {
+  validate(value: any): value is Arguments {
+    return value.named !== undefined && value.positional !== undefined;
+  }
+
+  throw(value: any) {
+    super.throw(value, 'arguments');
+  }
+}
+
+class TagNameCheck extends Check {
+  validate(value: any): value is string {
+    return this.type(value) === 'string' || value === null;
+  }
+  throw(value: any) { super.throw(value, 'tag name or null'); }
+}
+
+const isVMHandle = new HandleChecker();
+const notVoid = new VoidChecker();
+const isManager = new ManagerChecker();
+const isReference = new ReferenceCheck();
+const isDefinition = new DefinitionCheck();
+const isInvocation = new InvocationCheck();
+const isArguments = new ArgumentsCheck();
+const isTagName = new TagNameCheck();
 
 class CurryComponentReference<Specifier> implements VersionedPathReference<Option<CurriedComponentDefinition>> {
   public tag: Tag;
@@ -109,25 +201,32 @@ class CurryComponentReference<Specifier> implements VersionedPathReference<Optio
 APPEND_OPCODES.add(Op.IsComponent, vm => {
   let stack = vm.stack;
 
-  stack.push(IsCurriedComponentDefinitionReference.create(stack.pop<Reference>()));
+  let reference = stack.pop<Reference>();
+  if (stackCheck(reference, isReference)) {
+    stack.push(IsCurriedComponentDefinitionReference.create(reference));
+  }
 });
 
 APPEND_OPCODES.add(Op.CurryComponent, (vm, { op1: _meta }) => {
   let stack = vm.stack;
 
   let args = stack.pop<Arguments>();
-  let captured: Option<ICapturedArguments> = null;
+  if (stackCheck(args, isArguments)) {
+    let captured: Option<ICapturedArguments> = null;
 
-  if (args.length) {
-    captured = args.capture();
-    args.clear();
+    if (args.length) {
+      captured = args.capture();
+      args.clear();
+    }
+
+    let meta = vm.constants.getSerializable<TemplateMeta>(_meta);
+    let resolver = vm.constants.resolver;
+    let definitionReference = stack.pop<VersionedReference<Opaque>>();
+
+    if (stackCheck(definitionReference, isReference)) {
+      stack.push(new CurryComponentReference(definitionReference, resolver, meta, captured));
+    }
   }
-
-  let meta = vm.constants.getSerializable<TemplateMeta>(_meta);
-  let resolver = vm.constants.resolver;
-  let definition = stack.pop<VersionedReference<Opaque>>();
-
-  stack.push(new CurryComponentReference(definition, resolver, meta, captured));
 });
 
 APPEND_OPCODES.add(Op.PushComponentSpec, (vm, { op1: handle }) => {
@@ -138,7 +237,9 @@ APPEND_OPCODES.add(Op.PushComponentSpec, (vm, { op1: handle }) => {
   let stack = vm.stack;
 
   let { definition, manager } = spec;
-  stack.push({ definition, manager, component: null });
+  if (stackCheck(definition, isDefinition) && stackCheck(manager, isManager)) {
+    stack.push({ definition, manager, component: null });
+  }
 });
 
 APPEND_OPCODES.add(Op.PushDynamicComponentManager, (vm, { op1: _meta }) => {
@@ -165,7 +266,9 @@ APPEND_OPCODES.add(Op.PushDynamicComponentManager, (vm, { op1: _meta }) => {
     throw unreachable();
   }
 
-  stack.push({ definition, manager, component: null });
+  if (stackCheck(definition, isDefinition)) {
+    stack.push({ definition, manager, component: null });
+  }
 });
 
 interface InitialComponentState {
@@ -190,7 +293,9 @@ APPEND_OPCODES.add(Op.PushArgs, (vm, { op1: _names, op2: positionalCount, op3: s
   let stack = vm.stack;
   let names = vm.constants.getStringArray(_names);
   ARGS.setup(stack, names, positionalCount, !!synthetic);
-  stack.push(ARGS);
+  if (stackCheck(ARGS, isArguments)) {
+    stack.push(ARGS);
+  }
 });
 
 APPEND_OPCODES.add(Op.PrepareArgs, (vm, { op1: _state }) => {
@@ -198,6 +303,7 @@ APPEND_OPCODES.add(Op.PrepareArgs, (vm, { op1: _state }) => {
   let state = vm.fetchValue<InitialComponentState>(_state);
 
   let { definition, manager } = state;
+  stackCheck(definition, isDefinition);
   let args: Arguments;
 
   if (isCurriedComponentDefinition(definition)) {
@@ -205,11 +311,15 @@ APPEND_OPCODES.add(Op.PrepareArgs, (vm, { op1: _state }) => {
 
     args = stack.pop<Arguments>();
 
-    let { manager: curriedManager, definition: curriedDefinition } = definition.unwrap(args);
-    state.manager = manager = curriedManager as ComponentManager;
-    state.definition = definition = curriedDefinition;
+    if (stackCheck(args, isArguments)) {
+      let { manager: curriedManager, definition: curriedDefinition } = definition.unwrap(args);
+      state.manager = manager = curriedManager as ComponentManager;
+      state.definition = definition = curriedDefinition;
+    }
+
   } else {
     args = stack.pop<Arguments>();
+    stackCheck(args, isArguments);
   }
 
   if (manager!.getCapabilities(definition).prepareArgs !== true) {
@@ -254,6 +364,7 @@ APPEND_OPCODES.add(Op.CreateComponent, (vm, { op1: flags, op2: _state }) => {
 
   if (manager.getCapabilities(definition).createArgs) {
     args = vm.stack.peek<IArguments>();
+    stackCheck(args, isArguments);
   }
 
   let component = manager.create(vm.env, definition, args, dynamicScope, vm.getSelf(), !!hasDefaultBlock);
@@ -271,9 +382,10 @@ APPEND_OPCODES.add(Op.CreateComponent, (vm, { op1: flags, op2: _state }) => {
 
 APPEND_OPCODES.add(Op.RegisterComponentDestructor, (vm, { op1: _state }) => {
   let { manager, component } = vm.fetchValue<ComponentState>(_state);
-
-  let destructor = manager.getDestructor(component);
-  if (destructor) vm.newDestroyable(destructor);
+  if (stackCheck(manager, isManager)) {
+    let destructor = manager.getDestructor(component);
+    if (destructor) vm.newDestroyable(destructor);
+  }
 });
 
 APPEND_OPCODES.add(Op.BeginComponentTransaction, vm => {
@@ -290,7 +402,9 @@ APPEND_OPCODES.add(Op.ComponentAttr, (vm, { op1: _name, op2: trusting, op3: _nam
   let reference = vm.stack.pop<VersionedReference<Opaque>>();
   let namespace = _namespace ? vm.constants.getString(_namespace) : null;
 
-  vm.fetchValue<ComponentElementOperations>(Register.t0).setAttribute(name, reference, !!trusting, namespace);
+  if (stackCheck(reference, isReference)) {
+    vm.fetchValue<ComponentElementOperations>(Register.t0).setAttribute(name, reference, !!trusting, namespace);
+  }
 });
 
 interface DeferredAttribute {
@@ -362,12 +476,20 @@ APPEND_OPCODES.add(Op.DidCreateElement, (vm, { op1: _state }) => {
 
 APPEND_OPCODES.add(Op.GetComponentSelf, (vm, { op1: _state }) => {
   let { manager, component } = vm.fetchValue<ComponentState>(_state);
-  vm.stack.push(manager.getSelf(component));
+  let reference = manager.getSelf(component);
+  if (stackCheck(reference, isReference)) {
+    vm.stack.push(reference);
+  }
 });
 
 APPEND_OPCODES.add(Op.GetComponentTagName, (vm, { op1: _state }) => {
   let { manager, component } = vm.fetchValue<ComponentState>(_state);
-  vm.stack.push((manager as Recast<ComponentManager, WithDynamicTagName<Component>>).getTagName(component));
+  let tagName = (manager as Recast<ComponentManager, WithDynamicTagName<Component>>).getTagName(component);
+
+  console.log(stackCheck(tagName, isTagName));
+  if (stackCheck(tagName, isTagName)) {
+    vm.stack.push(tagName);
+  }
 });
 
 // Dynamic Invocation Only
@@ -376,16 +498,20 @@ APPEND_OPCODES.add(Op.GetComponentLayout, (vm, { op1: _state }) => {
   let { constants: { resolver }, stack } = vm;
   let invoke: { handle: VMHandle, symbolTable: ProgramSymbolTable };
 
-  if (hasStaticLayout(definition, manager)) {
-    invoke = manager.getLayout(definition, resolver);
-  } else if (hasDynamicLayout(definition, manager)) {
-    invoke = manager.getLayout(component, resolver);
-  } else {
-    throw unreachable();
-  }
+  if (stackCheck(manager, isManager) && stackCheck(definition, isDefinition)) {
+    if (hasStaticLayout(definition, manager)) {
+      invoke = manager.getLayout(definition, resolver);
+    } else if (hasDynamicLayout(definition, manager)) {
+      invoke = manager.getLayout(component, resolver);
+    } else {
+      throw unreachable();
+    }
 
-  stack.push(invoke.symbolTable);
-  stack.push(invoke.handle);
+    if (stackCheck(invoke, isInvocation)) {
+      stack.push(invoke.symbolTable);
+      stack.push(invoke.handle);
+    }
+  }
 });
 
 // Dynamic Invocation Only
@@ -393,6 +519,9 @@ APPEND_OPCODES.add(Op.InvokeComponentLayout, vm => {
   let { stack } = vm;
 
   let handle = stack.pop<VMHandle>();
+
+  if (stackCheck(handle, isVMHandle)) {}
+
   let { symbols, hasEval } = stack.pop<ProgramSymbolTable>();
 
   {
@@ -427,8 +556,6 @@ APPEND_OPCODES.add(Op.InvokeComponentLayout, vm => {
       let handle = stack.pop<Option<VMHandle>>();
       let table = stack.pop<Option<BlockSymbolTable>>();
 
-      assert(table === null || (table && typeof table === 'object' && Array.isArray(table.parameters)), stackAssert('Option<BlockSymbolTable>', table));
-
       let block: Option<ScopeBlock> = table ? [handle!, table] : null;
 
       if (symbol !== -1) {
@@ -451,13 +578,15 @@ APPEND_OPCODES.add(Op.InvokeComponentLayout, vm => {
 
 APPEND_OPCODES.add(Op.DidRenderLayout, (vm, { op1: _state }) => {
   let { manager, component } = vm.fetchValue<ComponentState>(_state);
-  let bounds = vm.elements().popBlock();
+  if (stackCheck(manager, isManager) && stackCheck(component, notVoid)) {
+    let bounds = vm.elements().popBlock();
 
-  manager.didRenderLayout(component, bounds);
+    manager.didRenderLayout(component, bounds);
 
-  vm.env.didCreate(component, manager);
+    vm.env.didCreate(component, manager);
 
-  vm.updateWith(new DidUpdateLayoutOpcode(manager, component, bounds));
+    vm.updateWith(new DidUpdateLayoutOpcode(manager, component, bounds));
+  }
 });
 
 APPEND_OPCODES.add(Op.CommitComponentTransaction, vm => vm.commitCacheGroup());

@@ -1,24 +1,21 @@
-export interface Checker<T> {
-  validate(value: T): boolean;
-  throw(value: any): void;
+import { debugAssert as assert } from './assert';
+
+export interface Checker {
+  validate(value: any): boolean;
+  throw(value: any, message?: string): void;
 }
 
-const NumberChecker = class implements Checker<number> {
-  validate(value: number): value is number {
-    return this.type(value) === 'number';
+export abstract class Check implements Checker {
+  abstract validate(value: any): boolean;
+  throw(value: any, message: string) {
+    assert(message, 'Must pass a message from subclasses');
+    throw new Error(`Expecting the value to be ${message} but instead got ${String(value)}.`);
   }
-
-  type(value: number) { return typeof value; }
-
-  throw(value: number) {
-    throw new Error(`Expecting value to be number but was ${this.type(value)}`)
-  }
+  type(value: any) { return typeof value; }
 }
 
-export const IsNumber = new NumberChecker();
-
-export function stackCheck<T>(value: T, checker: Checker<T>): T | void {
+export function stackCheck<T>(value: T, checker: Checker): boolean | void {
   let valid = checker.validate(value);
-  if (valid) return value as T;
+  if (valid) return true;
   checker.throw(value);
 }

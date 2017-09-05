@@ -12,6 +12,7 @@ export { Stack, Dict, Set, DictSet, dict } from './lib/collections';
 export { EMPTY_SLICE, LinkedList, LinkedListNode, ListNode, CloneableListNode, ListSlice, Slice } from './lib/list-utils';
 export { default as A, EMPTY_ARRAY } from './lib/array-utils';
 export { HAS_NATIVE_WEAKMAP } from './lib/weakmap';
+export { stackCheck, Checker, Check } from './lib/stack-check';
 
 export type TSISSUE<T, S extends string> = T;
 export type FIXME<T, S extends string> = T;
