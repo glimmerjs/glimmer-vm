@@ -1,6 +1,6 @@
 import { ASTPluginBuilder, preprocess } from "@glimmer/syntax";
 import { TemplateCompiler } from "@glimmer/compiler";
-import { CompilableTemplate, Macros, OpcodeBuilderConstructor, ComponentCapabilities, CompileTimeLookup, CompileOptions, VMHandle, ICompilableTemplate, EagerOpcodeBuilder } from "@glimmer/opcode-compiler";
+import { CompilableTemplate, Macros, OpcodeBuilderConstructor, ComponentCapabilities, CompileTimeLookup, CompileOptions, VMHandle, ICompilableTemplate, EagerOpcodeBuilder, CompileKind } from "@glimmer/opcode-compiler";
 import { WriteOnlyProgram, WriteOnlyConstants, ConstantPool } from "@glimmer/program";
 import { Option, ProgramSymbolTable, Recast, Dict, Opaque } from "@glimmer/interfaces";
 import { SerializedTemplateBlock } from "@glimmer/wire-format";
@@ -152,7 +152,7 @@ export class BundleCompiler {
     };
   }
 
-  compileOptions(specifier: Specifier, asPartial = false): CompileOptions<Specifier> {
+  compileOptions(specifier: Specifier, kind: CompileKind = 'top-level'): CompileOptions<Specifier> {
     let { program, macros, Builder } = this;
     let lookup = new BundlingLookup(this.delegate, this.specifiers);
 
@@ -161,7 +161,7 @@ export class BundleCompiler {
       macros,
       Builder,
       lookup,
-      asPartial,
+      kind,
       referer: specifier
     };
   }

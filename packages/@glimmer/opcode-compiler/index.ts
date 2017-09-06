@@ -3,6 +3,7 @@ export * from './lib/interfaces';
 export {
   ATTRS_BLOCK,
   CompileOptions,
+  CompileKind,
   Macros,
   TemplateOptions
 } from './lib/syntax';

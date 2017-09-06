@@ -63,10 +63,10 @@ export class WrappedBuilder<Specifier> implements ICompilableTemplate<ProgramSym
     //        Exit
 
     let { options, layout, referer } = this;
-    let { program, lookup, macros, asPartial } = options;
+    let { program, lookup, macros, kind } = options;
     let { Builder } = options;
 
-    let b = new Builder(program, lookup, referer, macros, layout, asPartial);
+    let b = new Builder(program, lookup, referer, macros, layout, kind);
 
     b.startLabels();
 

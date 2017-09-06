@@ -115,6 +115,9 @@ export interface ElementBuilder extends Cursor, DOMStack, TreeOperations {
 
   block(): Tracker;
 
+  // openBlock(): DynamicBlock;
+  // closeBlock(): ClosedDynamicBlock;
+
   pushSimpleBlock(): Tracker;
   pushUpdatableBlock(): UpdatableTracker;
   pushBlockList(list: LinkedList<LinkedListNode & Bounds & Destroyable>): Tracker;
@@ -218,12 +221,6 @@ export class NewElementBuilder implements ElementBuilder {
 
   openElement(tag: string): Simple.Element {
     let element = this.__openElement(tag);
-    // let isTableElement = tag === 'td' || tag === 'tr' || tag === 'th';
-
-    // if (isTableElement && this.element.tagName !== 'TBODY') {
-    //   let tbody = this.dom.createElement('tbody');
-    //   this.pushElement(tbody, null);
-    // }
 
     if (tag === 'tbody' && this.element.tagName === 'TBODY') {
       this.popElement();
@@ -445,6 +442,55 @@ export class NewElementBuilder implements ElementBuilder {
   }
 }
 
+export class DynamicBlock {
+  private destructors: Destroyable[] = [];
+  private first: Option<Simple.Node> = null;
+  private last: Option<Simple.Node> = null;
+
+  constructor(private parent: Simple.Element) {}
+
+  addDestructor(d: Destroyable): void {
+    this.destructors.push(d);
+  }
+
+  firstNode(node: Simple.Node): void {
+    this.first = node;
+  }
+
+  lastNode(node: Simple.Node): void {
+    this.first = node;
+  }
+
+  close(): ClosedDynamicBlock {
+    return new ClosedDynamicBlock(this.destructors, this.parent, this.first!, this.last!);
+  }
+}
+
+export class ClosedDynamicBlock implements Destroyable, Bounds {
+  constructor(
+    private destructors: ReadonlyArray<Destroyable>,
+    private parent: Simple.Element,
+    private first: Simple.Node,
+    private last: Simple.Node
+  ) {}
+
+  parentElement(): Simple.Element {
+    return this.parent;
+  }
+
+  firstNode(): Option<Simple.Node> {
+    return this.first;
+  }
+
+  lastNode(): Option<Simple.Node> {
+    return this.last;
+  }
+
+  destroy(): void {
+    this.destructors.forEach(d => d.destroy());
+  }
+}
+
 export interface Tracker extends DestroyableBounds {
   openElement(element: Simple.Element): void;
   closeElement(): void;
@@ -631,7 +677,7 @@ class BlockListTracker implements Tracker {
 
 function printNode(node: Node) {
   if (node.nodeType === 1) {
-    return (node as HTMLElement).cloneNode().outerHTML;
+    return (node as HTMLElement).cloneNode()['outerHTML'];
   } else if (node.nodeType === 3) {
     return `<text>${node.nodeValue}</text>`;
   } else if (node.nodeType === 8) {

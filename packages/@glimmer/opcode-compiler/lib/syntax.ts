@@ -4,7 +4,7 @@ import { Register } from '@glimmer/vm';
 import * as WireFormat from '@glimmer/wire-format';
 import * as ClientSide from './client-side';
 import OpcodeBuilder, { CompileTimeLookup, OpcodeBuilderConstructor } from "./opcode-builder";
-import { CompilableBlock, CompileTimeProgram } from './interfaces';
+import { CompileTimeProgram } from './interfaces';
 
 import Ops = WireFormat.Ops;
 
@@ -149,15 +149,10 @@ STATEMENTS.add(Ops.Append, (sexp: S.Append, builder) => {
 });
 
 STATEMENTS.add(Ops.Block, (sexp: S.Block, builder) => {
-  let [, name, params, hash, _template, _inverse] = sexp;
-  let template = builder.template(_template);
-  let inverse = builder.template(_inverse);
-
-  let templateBlock = template && template;
-  let inverseBlock = inverse && inverse;
+  let [, name, params, hash, template, inverse] = sexp;
 
   let { blocks } = builder.macros;
-  blocks.compile(name, params, hash, templateBlock, inverseBlock, builder);
+  blocks.compile(name, params, hash, template, inverse, builder);
 });
 
 STATEMENTS.add(Ops.Component, (sexp: S.Component, builder) => {
@@ -174,14 +169,14 @@ STATEMENTS.add(Ops.Component, (sexp: S.Component, builder) => {
       ..._attrs,
       [Ops.ClientSideStatement, ClientSide.Ops.SetComponentAttrs, false]
     ];
-    let attrsBlock = builder.inlineBlock({ statements: attrs, parameters: EMPTY_ARRAY });
-    let child = builder.template(block);
+    let attrsBlock = builder.inlineBlock({ statements: attrs, parameters: EMPTY_ARRAY }, false);
+    let child = builder.template(block, false);
 
     if (capabilities.dynamicLayout === false) {
       let layout = lookup.getLayout(handle)!;
 
       builder.pushComponentSpec(handle);
-      builder.invokeStaticComponent(capabilities, layout, attrsBlock, null, args, false, child && child);
+      builder.invokeStaticComponent(capabilities, layout, attrsBlock, null, args, false, child);
     } else {
       builder.pushComponentSpec(handle);
       builder.invokeComponent(attrsBlock, null, args, false, child && child);
@@ -357,8 +352,8 @@ export class Macros {
   }
 }
 
-export type BlockMacro<Specifier> = (params: C.Params, hash: C.Hash, template: Option<CompilableBlock>, inverse: Option<CompilableBlock>, builder: OpcodeBuilder<Specifier>) => void;
-export type MissingBlockMacro<Specifier> = (name: string, params: C.Params, hash: C.Hash, template: Option<CompilableBlock>, inverse: Option<CompilableBlock>, builder: OpcodeBuilder<Specifier>) => void;
+export type BlockMacro<Specifier> = (params: C.Params, hash: C.Hash, template: Option<WireFormat.SerializedInlineBlock>, inverse: Option<WireFormat.SerializedInlineBlock>, builder: OpcodeBuilder<Specifier>) => void;
+export type MissingBlockMacro<Specifier> = (name: string, params: C.Params, hash: C.Hash, template: Option<WireFormat.SerializedInlineBlock>, inverse: Option<WireFormat.SerializedInlineBlock>, builder: OpcodeBuilder<Specifier>) => void;
 
 export class Blocks {
   private names = dict<number>();
@@ -374,7 +369,7 @@ export class Blocks {
     this.missing = func;
   }
 
-  compile<Specifier>(name: string, params: C.Params, hash: C.Hash, template: Option<CompilableBlock>, inverse: Option<CompilableBlock>, builder: OpcodeBuilder<Specifier>): void {
+  compile<Specifier>(name: string, params: C.Params, hash: C.Hash, template: Option<WireFormat.SerializedInlineBlock>, inverse: Option<WireFormat.SerializedInlineBlock>, builder: OpcodeBuilder<Specifier>): void {
     let index = this.names[name];
 
     if (index === undefined) {
@@ -484,13 +479,13 @@ export function populateBuiltins(blocks: Blocks = new Blocks(), inlines: Inlines
 
     builder.jumpUnless('ELSE');
 
-    builder.invokeStaticBlock(unwrap(template));
+    builder.invokeStaticBlock(builder.template(unwrap(template), true));
 
     if (inverse) {
       builder.jump('EXIT');
 
       builder.label('ELSE');
-      builder.invokeStaticBlock(inverse);
+      builder.invokeStaticBlock(builder.template(inverse, true));
 
       builder.label('EXIT');
       builder.closeBlock();
@@ -538,13 +533,13 @@ export function populateBuiltins(blocks: Blocks = new Blocks(), inlines: Inlines
 
     builder.jumpIf('ELSE');
 
-    builder.invokeStaticBlock(unwrap(template));
+    builder.invokeStaticBlock(builder.template(unwrap(template), true));
 
     if (inverse) {
       builder.jump('EXIT');
 
       builder.label('ELSE');
-      builder.invokeStaticBlock(inverse);
+      builder.invokeStaticBlock(builder.template(inverse, true));
 
       builder.label('EXIT');
       builder.closeBlock();
@@ -593,13 +588,13 @@ export function populateBuiltins(blocks: Blocks = new Blocks(), inlines: Inlines
 
     builder.jumpUnless('ELSE');
 
-    builder.invokeStaticBlock(unwrap(template), 1);
+    builder.invokeStaticBlock(builder.template(unwrap(template), true), 1);
 
     if (inverse) {
       builder.jump('EXIT');
 
       builder.label('ELSE');
-      builder.invokeStaticBlock(inverse);
+      builder.invokeStaticBlock(builder.template(inverse, true));
 
       builder.label('EXIT');
       builder.closeBlock();
@@ -672,7 +667,7 @@ export function populateBuiltins(blocks: Blocks = new Blocks(), inlines: Inlines
     builder.iterate('BREAK');
 
     builder.label('BODY');
-    builder.invokeStaticBlock(unwrap(template), 2);
+    builder.invokeStaticBlock(builder.template(unwrap(template), true), 2);
     builder.pop(2);
     builder.closeBlock();
     builder.return();
@@ -685,7 +680,7 @@ export function populateBuiltins(blocks: Blocks = new Blocks(), inlines: Inlines
       builder.jump('EXIT');
 
       builder.label('ELSE');
-      builder.invokeStaticBlock(inverse);
+      builder.invokeStaticBlock(builder.template(inverse, true));
 
       builder.label('EXIT');
       builder.closeBlock();
@@ -734,7 +729,7 @@ export function populateBuiltins(blocks: Blocks = new Blocks(), inlines: Inlines
     builder.jumpUnless('ELSE');
 
     builder.pushRemoteElement();
-    builder.invokeStaticBlock(unwrap(template));
+    builder.invokeStaticBlock(builder.template(unwrap(template), true));
     builder.popRemoteElement();
 
     builder.label('ELSE');
@@ -755,17 +750,19 @@ export function populateBuiltins(blocks: Blocks = new Blocks(), inlines: Inlines
 
       builder.pushDynamicScope();
       builder.bindDynamicScope(names);
-      builder.invokeStaticBlock(unwrap(template));
+      builder.invokeStaticBlock(builder.template(unwrap(template), true));
       builder.popDynamicScope();
     } else {
-      builder.invokeStaticBlock(unwrap(template));
+      builder.invokeStaticBlock(builder.template(unwrap(template), true));
     }
   });
 
-  blocks.add('component', (_params, hash, template, inverse, builder) => {
+  blocks.add('component', (_params, hash, _template, _inverse, builder) => {
     assert(_params && _params.length, 'SYNTAX ERROR: #component requires at least one argument');
 
     let [definition, ...params] = _params!;
+    let template = builder.template(_template, true);
+    let inverse = builder.template(_inverse, true);
     builder.dynamicComponent(definition, params, hash, true, template, inverse);
   });
 
@@ -795,7 +792,9 @@ export interface TemplateOptions<Specifier> {
   lookup: CompileTimeLookup<Specifier>;
 }
 
+export type CompileKind = 'partial' | 'tracked-inline' | 'static-inline' | 'top-level';
+
 export interface CompileOptions<Specifier> extends TemplateOptions<Specifier> {
-  kind: 'partial' | 'inline' | 'top-level';
+  kind: CompileKind;
   referer: Specifier;
 }

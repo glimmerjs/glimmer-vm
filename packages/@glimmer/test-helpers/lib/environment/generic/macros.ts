@@ -10,14 +10,14 @@ export class TestMacros extends Macros {
     let { blocks, inlines} = this;
 
     blocks.add('identity', (_params, _hash, template, _inverse, builder) => {
-      builder.invokeStaticBlock(template!);
+      builder.invokeStaticBlock(builder.template(template!, true));
     });
 
     blocks.add('render-inverse', (_params, _hash, _template, inverse, builder) => {
-      builder.invokeStaticBlock(inverse!);
+      builder.invokeStaticBlock(builder.template(inverse!, true));
     });
 
-    blocks.addMissing((name, params, hash, template, inverse, builder) => {
+    blocks.addMissing((name, params, hash, _template, _inverse, builder) => {
       if (!params) {
         params = [];
       }
@@ -27,6 +27,8 @@ export class TestMacros extends Macros {
       let specifier = lookup.lookupComponentSpec(name, builder.referer);
 
       if (specifier !== null) {
+        let template = builder.template(_template, true);
+        let inverse = builder.template(_inverse, true);
         builder.component.static(specifier, [params, hashToArgs(hash), template, inverse]);
         return true;
       }

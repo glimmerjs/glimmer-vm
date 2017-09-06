@@ -20,7 +20,8 @@ import {
 import {
   ATTRS_BLOCK,
   Macros,
-  expr
+  expr,
+  CompileKind
 } from './syntax';
 
 import CompilableTemplate, { ICompilableTemplate } from './compilable-template';
@@ -79,7 +80,7 @@ export interface OpcodeBuilderConstructor {
       meta: Opaque,
       macros: Macros,
       containingLayout: ParsedLayout,
-      kind: 'partial' | 'inline' | 'top-level'): OpcodeBuilder<Specifier>;
+      kind: CompileKind): OpcodeBuilder<Specifier>;
 }
 
 export abstract class OpcodeBuilder<Specifier> {
@@ -99,7 +100,7 @@ export abstract class OpcodeBuilder<Specifier> {
     public referer: Specifier,
     public macros: Macros,
     public containingLayout: ParsedLayout,
-    public kind: 'partial' | 'inline' | 'top-level'
+    public kind: CompileKind
   ) {
     this.constants = program.constants;
   }
@@ -253,7 +254,7 @@ export abstract class OpcodeBuilder<Specifier> {
   // content
 
   dynamicContent(isTrusting: boolean) {
-    this.push(Op.DynamicContent, isTrusting ? 1 : 0);
+    this.push(Op.DynamicContent, isTrusting ? 1 : 0, this.domPosition());
   }
 
   // dom
@@ -261,7 +262,7 @@ export abstract class OpcodeBuilder<Specifier> {
   protected domPosition(): number {
     let position = 0;
 
-    if (!this.sawFirstNode) {
+    if (this.kind !== 'static-inline' && !this.sawFirstNode) {
       this.sawFirstNode = true;
       position |= 0b10;
       this.possibleLastNode = this.buffer.length + 2;
@@ -520,8 +521,16 @@ export abstract class OpcodeBuilder<Specifier> {
     this.push(Op.InvokeVirtual);
   }
 
-  invokeYield(): void {
+  invokeYield(position: number): void {
+    if (position & 0b10) {
+      this.push(Op.OpenBlock);
+    }
+
     this.push(Op.InvokeYield);
+
+    if (position & 0b10) {
+      this.push(Op.CloseBlock);
+    }
   }
 
   toBoolean() {
@@ -566,7 +575,7 @@ export abstract class OpcodeBuilder<Specifier> {
 
   // convenience methods
 
-  inlineBlock(block: SerializedInlineBlock): CompilableBlock {
+  inlineBlock(block: SerializedInlineBlock, isTracked: boolean): CompilableBlock {
     let { parameters, statements } = block;
     let symbolTable = { parameters, referer: this.containingLayout.referer };
     let options = {
@@ -574,7 +583,7 @@ export abstract class OpcodeBuilder<Specifier> {
       macros: this.macros,
       Builder: this.constructor as OpcodeBuilderConstructor,
       lookup: this.lookup,
-      kind: this.kind,
+      kind: (isTracked ? 'tracked-inline' : 'static-inline') as CompileKind,
       referer: this.referer
     };
 
@@ -682,7 +691,7 @@ export abstract class OpcodeBuilder<Specifier> {
     this.compileArgs(params, null, false);
     this.getBlock(to);
     this.resolveBlock();
-    this.invokeYield();
+    this.invokeYield(this.domPosition());
     this.popScope();
     this.popFrame();
   }
@@ -897,10 +906,13 @@ export abstract class OpcodeBuilder<Specifier> {
     this.pushBlock(block);
   }
 
-  template(block: Option<WireFormat.SerializedInlineBlock>): Option<CompilableBlock> {
+  template(block: null, isTracked: boolean): null;
+  template(block: WireFormat.SerializedInlineBlock, isTracked: boolean): CompilableBlock;
+  template(block: Option<WireFormat.SerializedInlineBlock>, isTracked: boolean): Option<CompilableBlock>;
+  template(block: Option<WireFormat.SerializedInlineBlock>, isTracked: boolean): Option<CompilableBlock> {
     if (!block) return null;
 
-    return this.inlineBlock(block);
+    return this.inlineBlock(block, isTracked);
   }
 }
 

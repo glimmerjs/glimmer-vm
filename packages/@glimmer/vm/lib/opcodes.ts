@@ -300,7 +300,7 @@ export const enum Op {
   /**
    * Operation: Append a Dynamic node based on .
    * Format:
-   *   (DynamicContent isTrusting:boolean first:boolean)
+   *   (DynamicContent isTrusting:boolean position:Position)
    * Operand Stack:
    *   ..., VersionedPathReference →
    *   ...
@@ -312,7 +312,7 @@ export const enum Op {
   /**
    * Operation: Open a new Element named `tag`.
    * Format:
-   *   (OpenElement tag:#string first:boolean)
+   *   (OpenElement tag:#string position:Position)
    * Operand Stack:
    *   ... →
    *   ...

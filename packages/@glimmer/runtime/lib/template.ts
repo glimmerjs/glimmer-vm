@@ -17,7 +17,8 @@ import { EMPTY_ARGS, ICapturedArguments } from './vm/arguments';
 import {
   CompilableTemplate,
   ParsedLayout,
-  TemplateOptions
+  TemplateOptions,
+  CompileKind
 } from "@glimmer/opcode-compiler";
 import { RuntimeProgram } from "@glimmer/program";
 
@@ -148,19 +149,19 @@ export class ScannableTemplate<Specifier = Opaque> implements Template<Specifier
 
   asLayout(): TopLevelSyntax {
     if (this.layout) return this.layout;
-    return this.layout = compilable(this.parsedLayout, this.options, false);
+    return this.layout = compilable(this.parsedLayout, this.options, 'top-level');
   }
 
   asPartial(): TopLevelSyntax {
     if (this.partial) return this.partial;
-    return this.partial = compilable(this.parsedLayout, this.options, true);
+    return this.partial = compilable(this.parsedLayout, this.options, 'partial');
   }
 }
 
-export function compilable<Specifier>(layout: ParsedLayout<Specifier>, options: TemplateOptions<Opaque>, asPartial: boolean) {
+export function compilable<Specifier>(layout: ParsedLayout<Specifier>, options: TemplateOptions<Opaque>, kind: CompileKind) {
   let { block, referer } = layout;
   let { hasEval, symbols } = block;
-  let compileOptions = assign({}, options, { asPartial, referer });
+  let compileOptions = assign({}, options, { kind, referer });
 
   return new CompilableTemplate(block.statements, layout, compileOptions, { referer, hasEval, symbols });
 }
