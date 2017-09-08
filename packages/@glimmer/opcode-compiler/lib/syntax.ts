@@ -4,7 +4,7 @@ import { Register } from '@glimmer/vm';
 import * as WireFormat from '@glimmer/wire-format';
 import * as ClientSide from './client-side';
 import OpcodeBuilder, { CompileTimeLookup, OpcodeBuilderConstructor } from "./opcode-builder";
-import { CompilableBlock, CompileTimeProgram } from './interfaces';
+import { CompilableBlock, CompileTimeProgram, Macros as IMacros, InlineMacro, BlockMacro as IBlockMacro } from './interfaces';
 
 import Ops = WireFormat.Ops;
 
@@ -346,7 +346,7 @@ EXPRESSIONS.add(Ops.HasBlockParams, (sexp: E.HasBlockParams, builder) => {
   builder.hasBlockParams(sexp[1]);
 });
 
-export class Macros {
+export class Macros implements IMacros {
   public blocks: Blocks;
   public inlines: Inlines;
 
@@ -360,7 +360,7 @@ export class Macros {
 export type BlockMacro<Specifier> = (params: C.Params, hash: C.Hash, template: Option<CompilableBlock>, inverse: Option<CompilableBlock>, builder: OpcodeBuilder<Specifier>) => void;
 export type MissingBlockMacro<Specifier> = (name: string, params: C.Params, hash: C.Hash, template: Option<CompilableBlock>, inverse: Option<CompilableBlock>, builder: OpcodeBuilder<Specifier>) => void;
 
-export class Blocks {
+export class Blocks implements IBlockMacro {
   private names = dict<number>();
   private funcs: BlockMacro<Opaque>[] = [];
   private missing: MissingBlockMacro<Opaque>;
@@ -394,7 +394,7 @@ export const BLOCKS = new Blocks();
 export type AppendSyntax = S.Append;
 export type AppendMacro<Specifier> = (name: string, params: Option<C.Params>, hash: Option<C.Hash>, builder: OpcodeBuilder<Specifier>) => ['expr', WireFormat.Expression] | true | false;
 
-export class Inlines {
+export class Inlines implements InlineMacro {
   private names = dict<number>();
   private funcs: AppendMacro<Opaque>[] = [];
   private missing: AppendMacro<Opaque>;

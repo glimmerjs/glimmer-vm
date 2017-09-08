@@ -1,6 +1,5 @@
 import { Unique, Opaque, SymbolTable, Option, BlockSymbolTable, Opcode } from "@glimmer/interfaces";
-import { Core, SerializedTemplateBlock } from "@glimmer/wire-format";
-import { Macros } from './syntax';
+import { Core, SerializedTemplateBlock, Statements as S, Expression as E } from "@glimmer/wire-format";
 
 export type VMHandle = Unique<"Handle">;
 
@@ -22,6 +21,24 @@ export interface ComponentCapabilities {
   createArgs: boolean;
   attributeHook: boolean;
   elementHook: boolean;
+}
+
+export interface Macros {
+  blocks: Macro;
+  inlines: Macro;
+}
+
+export interface Macro {
+  add(name: string, func: Opaque): void;
+  addMissing(func: Opaque): void;
+}
+
+export interface BlockMacro extends Macro {
+  compile(name: string, params: Core.Params, hash: Core.Hash, template: Option<CompilableBlock>, inverse: Option<CompilableBlock>, builder: Opaque): void;
+}
+
+export interface InlineMacro extends Macro {
+  compile(sexp: S.Append, builder: Opaque): ['expr', E] | true;
 }
 
 export interface EagerResolver<Specifier> {
