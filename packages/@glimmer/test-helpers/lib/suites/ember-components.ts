@@ -4,7 +4,6 @@ import { EmberishGlimmerComponent } from "../environment/components/emberish-gli
 import { EmberishCurlyComponent } from '../environment/components/emberish-curly';
 
 export class EmberishComponentTests extends AbstractRenderTest {
-  @skip
   @test({ kind: 'glimmer' })
   "[BUG: Load to s0 is wrong]"() {
     class MainComponent extends EmberishGlimmerComponent {
@@ -13,7 +12,7 @@ export class EmberishComponentTests extends AbstractRenderTest {
     this.registerComponent('Glimmer', 'Main', '<div><HelloWorld @name={{salutation}} /></div>', MainComponent);
     this.registerComponent('Glimmer', 'HelloWorld', '<h1>Hello {{@name}}!</h1>');
     this.render('<Main />');
-    this.assertHTML('<h1>Hello Glimmer!</h1>');
+    this.assertHTML('<div><h1>Hello Glimmer!</h1></div>');
   }
 
   @skip
