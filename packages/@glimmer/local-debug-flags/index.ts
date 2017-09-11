@@ -7,3 +7,5 @@ export const DEBUG = (() => {
 })();
 
 export const DEVMODE = true;
+
+export const OPCODE_PRINTER = true;

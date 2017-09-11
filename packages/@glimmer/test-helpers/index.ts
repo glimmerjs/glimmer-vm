@@ -55,3 +55,5 @@ export * from './lib/environment/lookup';
 export * from './lib/environment/ssr-env';
 
 export * from './lib/environment/bundle-compiler';
+
+export * from './lib/environment/opcode-printer';

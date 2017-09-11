@@ -20,7 +20,7 @@ export class OpcodePrinter {
     registerComponent(this.components, type, testType, name, layout, Class);
   }
 
-  print(name: string, template: string): GoldenCase {
+  print(template: string): Golden {
     let delegate = new BundlingDelegate(this.components, this.modules, this.compileTimeModules, specifier => {
       return this.compiler.compileSpecifier(specifier);
     });
@@ -32,11 +32,9 @@ export class OpcodePrinter {
     this.process(spec, template);
     let handle = this.compiler.getSpecifierMap().vmHandleBySpecifier.get(spec)! as Recast<number, VMHandle>;
     return {
-      [name]: {
-        snippet: template,
-        opcodes: printHeap(program, handle),
-        constantPool: program.constants.toPool()
-      }
+      snippet: template,
+      opcodes: printHeap(program, handle),
+      constantPool: program.constants.toPool()
     };
   }
 
@@ -56,8 +54,8 @@ export class OpcodePrinter {
           setup(this);
           /* tslint:enable:no-require-imports */
         }
-        let newGolden = this.print(name, snippet);
-        assign(newCases.cases, newGolden);
+        let newGolden = this.print(snippet);
+        newCases.cases[name] = assign(newCases.cases, newGolden);
       });
       fs.writeFileSync(path, JSON.stringify(newCases));
     }
@@ -127,6 +125,7 @@ function printHeap(program: WriteOnlyProgram, handle: VMHandle): string[] {
   let { constants } = program;
   let _size = 0;
 
+  console.log(start, end);
   let out = [];
   for (let i=start; i < end; i = i + _size) {
     let { type, op1, op2, op3, size } = program.opcode(i);
@@ -134,7 +133,7 @@ function printHeap(program: WriteOnlyProgram, handle: VMHandle): string[] {
     out.push(`${i}. ${logOpcode(name, params)}`);
     _size = size;
   }
-
+  console.log(out);
   return out;
 }
 
