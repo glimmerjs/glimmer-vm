@@ -224,54 +224,7 @@ export class BundlingRenderDelegate implements RenderDelegate {
   }
 
   registerComponent(type: ComponentKind, testType: ComponentKind, name: string, layout: string, Class?: Opaque): void {
-    let module = `ui/components/${name}`;
-
-    switch (type) {
-      case "Basic":
-        class Basic {
-          static specifier = specifierFor(`ui/components/${name}`, 'default');
-        }
-        this.components[module] = {
-          type,
-          definition: Basic as RegisteredComponentDefinition,
-          manager: BASIC_MANAGER,
-          capabilities: EMPTY_CAPABILITIES,
-          template: layout
-        };
-        return;
-      case "Glimmer":
-        this.components[module] = {
-          type,
-          definition: {
-            name,
-            specifier: specifierFor(`ui/components/${name}`, 'default'),
-            capabilities: EMBERISH_GLIMMER_CAPABILITIES,
-            ComponentClass: Class || EmberishGlimmerComponent
-          },
-          capabilities: EMBERISH_GLIMMER_CAPABILITIES,
-          manager: EMBERISH_GLIMMER_COMPONENT_MANAGER,
-          template: layout
-        };
-        return;
-      case "Dynamic":
-      case "Curly":
-        this.components[module] = {
-          type,
-          definition: {
-            name,
-            symbolTable: testType === 'Dynamic',
-            specifier: specifierFor(`ui/components/${name}`, 'default'),
-            capabilities: EMBERISH_CURLY_CAPABILITIES,
-            ComponentClass: Class || EmberishCurlyComponent
-          },
-          capabilities: EMBERISH_CURLY_CAPABILITIES,
-          manager: EMBERISH_CURLY_COMPONENT_MANAGER,
-          template: layout
-        };
-        return;
-      default:
-        throw new Error(`Not implemented in the Bundle Compiler yet: ${type}`);
-    }
+    registerComponent(this.components, type, testType, name, layout, Class);
   }
 
   registerHelper(name: string, helper: UserHelper): void {
@@ -364,5 +317,56 @@ export class BundlingRenderDelegate implements RenderDelegate {
 export class NodeBundlingRenderDelegate extends BundlingRenderDelegate {
   constructor(env = new NodeEnv({ document: new SimpleDOM.Document() })) {
     super(env);
+  }
+}
+
+export function registerComponent(components: Object, type: ComponentKind, testType: ComponentKind, name: string, layout: string, Class?: Opaque): void {
+  let module = `ui/components/${name}`;
+
+  switch (type) {
+    case "Basic":
+      class Basic {
+        static specifier = specifierFor(`ui/components/${name}`, 'default');
+      }
+      components[module] = {
+        type,
+        definition: Basic as RegisteredComponentDefinition,
+        manager: BASIC_MANAGER,
+        capabilities: EMPTY_CAPABILITIES,
+        template: layout
+      };
+      return;
+    case "Glimmer":
+      components[module] = {
+        type,
+        definition: {
+          name,
+          specifier: specifierFor(`ui/components/${name}`, 'default'),
+          capabilities: EMBERISH_GLIMMER_CAPABILITIES,
+          ComponentClass: Class || EmberishGlimmerComponent
+        },
+        capabilities: EMBERISH_GLIMMER_CAPABILITIES,
+        manager: EMBERISH_GLIMMER_COMPONENT_MANAGER,
+        template: layout
+      };
+      return;
+    case "Dynamic":
+    case "Curly":
+      components[module] = {
+        type,
+        definition: {
+          name,
+          symbolTable: testType === 'Dynamic',
+          specifier: specifierFor(`ui/components/${name}`, 'default'),
+          capabilities: EMBERISH_CURLY_CAPABILITIES,
+          ComponentClass: Class || EmberishCurlyComponent
+        },
+        capabilities: EMBERISH_CURLY_CAPABILITIES,
+        manager: EMBERISH_CURLY_COMPONENT_MANAGER,
+        template: layout
+      };
+      return;
+    default:
+      throw new Error(`Not implemented in the Bundle Compiler yet: ${type}`);
   }
 }
