@@ -1,6 +1,6 @@
 
 import { Recast, VMHandle } from "@glimmer/interfaces";
-import { DEBUG } from "@glimmer/local-debug-flags";
+import { OPCODE_PRINTER } from "@glimmer/local-debug-flags";
 import { Constants, WriteOnlyConstants, RuntimeConstants } from './constants';
 import { Opcode } from './opcode';
 import { CompileTimeProgram } from "@glimmer/opcode-compiler";
@@ -77,7 +77,7 @@ export class Heap {
   }
 
   sizeof(handle: VMHandle): number {
-    if (DEBUG) {
+    if (OPCODE_PRINTER) {
       return this.table[(handle as Recast<VMHandle, number>) + SIZE_OFFSET];
     }
     return -1;

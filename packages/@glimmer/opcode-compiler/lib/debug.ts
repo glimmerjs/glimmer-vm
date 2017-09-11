@@ -1,7 +1,7 @@
 import { CompileTimeProgram, CompileTimeConstants } from './interfaces';
 import { Option, Opaque, SymbolTable, Recast } from '@glimmer/interfaces';
 import { METADATA, Op, Register } from '@glimmer/vm';
-import { DEBUG } from '@glimmer/local-debug-flags';
+import { OPCODE_PRINTER, DEBUG } from '@glimmer/local-debug-flags';
 import { unreachable, dict } from "@glimmer/util";
 import { Primitive } from "@glimmer/debug";
 import { PrimitiveType } from "@glimmer/program";
@@ -57,7 +57,7 @@ export function logOpcode(type: string, params: Option<Object>): string | void {
 }
 
 function json(param: Opaque) {
-  if (DEBUG) {
+  if (OPCODE_PRINTER) {
     if (typeof param === 'function') {
       return '<function>';
     }

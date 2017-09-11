@@ -5,7 +5,8 @@
   "dependencies": {
     "@glimmer/util": "^0.27.0",
     "@glimmer/interfaces": "^0.27.0",
-    "@glimmer/encoder": "^0.27.0"
+    "@glimmer/encoder": "^0.27.0",
+    "@glimmer/local-debug-flags": "^0.27.0"
   },
   "devDependencies": {
     "typescript": "^2.2.0"

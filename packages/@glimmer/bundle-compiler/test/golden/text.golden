@@ -1,0 +1,19 @@
+{
+  "cases": {
+    "Text": {
+      "snippet": "Hello World",
+      "opcodes": [
+        "0. (Text text=\"Hello World\")",
+        "2. (Return)"
+      ],
+      "constantPool": {
+        "strings": ["Hello World"],
+        "arrays": [],
+        "tables": [],
+        "handles": [],
+        "serializables": [],
+        "floats": []
+      }
+    }
+  }
+}

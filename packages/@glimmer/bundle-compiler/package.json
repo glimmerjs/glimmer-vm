@@ -14,6 +14,7 @@
   },
   "devDependencies": {
     "typescript": "^2.2.0",
-    "@glimmer/runtime": "^0.27.0"
+    "@glimmer/runtime": "^0.27.0",
+    "glob": "^7.1.2"
   }
 }

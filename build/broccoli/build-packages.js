@@ -157,7 +157,8 @@ function transpileCommonJS(pkgName, esVersion, tree) {
           source: '@glimmer/local-debug-flags',
           flags: {
             DEVMODE: false,
-            DEBUG: false
+            DEBUG: false,
+            OPCODE_PRINTER: true
           }
         },
         debugTools: {
