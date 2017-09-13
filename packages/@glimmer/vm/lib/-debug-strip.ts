@@ -235,10 +235,10 @@ OPCODE_METADATA(Op.InvokeStatic, {
   operands: 1
 });
 
-OPCODE_METADATA(Op.InvokeYield, clearsArgs({
+OPCODE_METADATA(Op.InvokeYield, {
   name: 'InvokeYield',
-  argsPosition: 2
-}));
+  stackChange: -1
+});
 
 OPCODE_METADATA(Op.Jump, {
   name: 'Jump',

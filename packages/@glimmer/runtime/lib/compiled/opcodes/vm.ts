@@ -135,7 +135,6 @@ APPEND_OPCODES.add(Op.InvokeYield, vm => {
   let args = check(stack.pop(), CheckInstanceof(Arguments));
 
   if (table === null) {
-    args.clear();
 
     // To balance the pop{Frame,Scope}
     vm.pushFrame();
@@ -161,8 +160,6 @@ APPEND_OPCODES.add(Op.InvokeYield, vm => {
   for (let i=0; i<localsCount; i++) {
     scope.bindSymbol(locals![i], args.at(i));
   }
-
-  args.clear();
 
   vm.pushFrame();
   vm.call(handle!);
