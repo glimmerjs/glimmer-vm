@@ -92,7 +92,7 @@ export default function build(ast: HBS.Node): string {
 
       lines.push(build(ast.program));
 
-      if(ast.inverse) {
+      if(ast.inverse && ast.program) {
         if(!ast.inverse['chained']){
           lines.push('{{else}}');
         }
@@ -187,8 +187,8 @@ function compactJoin(array: Option<string>[], delimiter?: string): string {
 }
 
 function blockParams(block: HBS.BlockStatement): Option<string> {
-  const params = block.program.blockParams;
-  if(params.length) {
+  const params = block.program && block.program.blockParams;
+  if(params && params.length) {
     return ` as |${params.join(' ')}|`;
   }
 
@@ -196,7 +196,8 @@ function blockParams(block: HBS.BlockStatement): Option<string> {
 }
 
 function openBlock(block: HBS.BlockStatement): string {
-  return ['{{#', pathParams(block), blockParams(block), '}}'].join('');
+  const blockSymbol = block.inverse && !block.program ? '^' : '#';
+  return [`{{${blockSymbol}`, pathParams(block), blockParams(block), '}}'].join('');
 }
 
 function closeBlock(block: any): string {
