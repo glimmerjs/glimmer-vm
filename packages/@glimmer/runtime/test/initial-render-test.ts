@@ -13,7 +13,10 @@ import {
   RehydrationDelegate,
   rawModule,
   strip,
-  blockStack
+  blockStack,
+  ComponentBlueprint,
+  GLIMMER_TEST_COMPONENT,
+  assertEmberishElement
 } from "@glimmer/test-helpers";
 import { expect } from "@glimmer/util";
 
@@ -27,14 +30,14 @@ class AbstractRehydrationTests extends InitialRenderSuite {
   protected delegate: RehydrationDelegate;
   protected serverOutput: Option<string>;
 
-  renderServerSide(template: string, context: Dict<Opaque>): void {
-    this.serverOutput = this.delegate.renderServerSide(template, context, () => this.takeSnapshot());
+  renderServerSide(template: string | ComponentBlueprint, context: Dict<Opaque>): void {
+    this.serverOutput = this.delegate.renderServerSide(template as string, context, () => this.takeSnapshot());
     this.element.innerHTML = this.serverOutput;
   }
 
-  renderClientSide(template: string, context: Dict<Opaque>): void {
+  renderClientSide(template: string | ComponentBlueprint, context: Dict<Opaque>): void {
     this.context = context;
-    this.renderResult = this.delegate.renderClientSide(template, context, this.element);
+    this.renderResult = this.delegate.renderClientSide(template as string, context, this.element);
   }
 
   assertRehydrationStats({ blocksRemoved: blocks, nodesRemoved: nodes}: { blocksRemoved: number, nodesRemoved: number }) {
@@ -338,5 +341,274 @@ class Rehydration extends AbstractRehydrationTests {
   }
 }
 
+class RehydratingComponents extends AbstractRehydrationTests {
+  _buildComponent(blueprint: ComponentBlueprint, properties: Dict<Opaque> = {}) {
+    let template = this.buildComponent(blueprint);
+    if (this.testType === "Dynamic" && properties["componentName"] === undefined) {
+      properties["componentName"] = blueprint.name || GLIMMER_TEST_COMPONENT;
+    }
+    return template;
+  }
+
+  assertServerComponent(html: string, attrs: Object = {}) {
+    if (this.testType === 'Dynamic') {
+      assertEmberishElement(this.element.childNodes[3] as HTMLElement, 'div', attrs, html);
+    } else {
+      assertEmberishElement(this.element.childNodes[2] as HTMLElement, 'div', attrs, html);
+    }
+  }
+
+  renderServerSide(blueprint: ComponentBlueprint, properties: Dict<Opaque> = {}) {
+    let template = this._buildComponent(blueprint, properties);
+    super.renderServerSide(template, properties);
+  }
+
+  renderClientSide(blueprint: ComponentBlueprint, properties: Dict<Opaque> = {}) {
+    let template = this._buildComponent(blueprint, properties);
+    super.renderClientSide(template, properties);
+  }
+
+  @test
+  "Component invocations"() {
+    let layout = 'Hello {{@name}}';
+    let args = { name: 'name' };
+    this.renderServerSide({
+      layout,
+      args,
+    }, { name: 'Filewatcher' });
+    let b = blockStack();
+    let id = this.testType === 'Dynamic' ? 3 : 2;
+    this.assertServerComponent(`Hello ${b(id)}Filewatcher${b(id)}`);
+
+    this.renderClientSide({
+      layout,
+      args,
+    }, { name: 'Filewatcher' });
+    this.assertRehydrationStats({ blocksRemoved: 0, nodesRemoved: 0 });
+    this.assertComponent('Hello Filewatcher');
+    this.assertStableRerender();
+  }
+
+  @test
+  "Mismatched Component invocations"() {
+    let layout = 'Hello {{@name}}';
+    let args = { name: 'name' };
+    this.renderServerSide({
+      layout,
+      args,
+    }, { name: 'Filewatcher' });
+    let b = blockStack();
+    let id = this.testType === 'Dynamic' ? 3 : 2;
+    this.assertServerComponent(`Hello ${b(id)}Filewatcher${b(id)}`);
+
+    this.renderClientSide({
+      layout,
+      args,
+    }, { name: 'Chad' });
+    this.assertRehydrationStats({ blocksRemoved: 0, nodesRemoved: 0 });
+    this.assertComponent('Hello Chad');
+    this.assertStableRerender();
+  }
+
+  @test
+  "Component invocations with block params"() {
+    let layout = 'Hello {{yield @name}}';
+    let template = '{{name}}';
+    let blockParams = ['name'];
+    let args = { name: 'name' };
+
+    this.renderServerSide({
+      layout,
+      template,
+      args,
+      blockParams
+    }, { name: 'Filewatcher' });
+    let b = blockStack();
+    let id = this.testType === 'Dynamic' ? 3 : 2;
+    this.assertServerComponent(`Hello ${b(id)}Filewatcher${b(id)}`);
+
+    this.renderClientSide({
+      layout,
+      template,
+      args,
+      blockParams
+    }, { name: 'Filewatcher' });
+    this.assertRehydrationStats({ blocksRemoved: 0, nodesRemoved: 0 });
+    this.assertComponent('Hello Filewatcher');
+    this.assertStableRerender();
+  }
+
+  @test
+  "Mismatched Component invocations with block params"() {
+    let layout = 'Hello {{yield @name}}';
+    let template = '{{name}}';
+    let blockParams = ['name'];
+    let args = { name: 'name' };
+
+    this.renderServerSide({
+      layout,
+      template,
+      args,
+      blockParams
+    }, { name: 'Filewatcher' });
+    let b = blockStack();
+    let id = this.testType === 'Dynamic' ? 3 : 2;
+    this.assertServerComponent(`Hello ${b(id)}Filewatcher${b(id)}`);
+
+    this.renderClientSide({
+      layout,
+      template,
+      args,
+      blockParams
+    }, { name: 'Chad' });
+    this.assertRehydrationStats({ blocksRemoved: 0, nodesRemoved: 0 });
+    this.assertComponent('Hello Chad');
+    this.assertStableRerender();
+  }
+
+  @test
+  "Component invocations with template"() {
+    let layout = 'Hello {{yield}}';
+    let template = 'Filewatcher';
+    this.renderServerSide({
+      layout,
+      template
+    }, { name: 'Filewatcher' });
+    this.assertServerComponent(`Hello <!--%sep%-->Filewatcher`);
+
+    this.renderClientSide({
+      layout,
+      template
+    });
+    this.assertRehydrationStats({ blocksRemoved: 0, nodesRemoved: 0 });
+    this.assertComponent('Hello Filewatcher');
+    this.assertStableRerender();
+  }
+
+  @test
+  "Mismatched Component invocations with template"() {
+    let layout = 'Hello {{yield}}';
+    let template = 'Filewatcher';
+    this.renderServerSide({
+      layout,
+      template
+    });
+    this.assertServerComponent(`Hello <!--%sep%-->Filewatcher`);
+
+    this.renderClientSide({
+      layout,
+      template: 'Chad'
+    });
+    this.assertRehydrationStats({ blocksRemoved: 0, nodesRemoved: 0 });
+    this.assertComponent('Hello Chad');
+    this.assertStableRerender();
+  }
+
+  @test
+  "Component invocations with empty args"() {
+    let layout = 'Hello {{@foo}}';
+    this.renderServerSide({
+      layout,
+    });
+    let b = blockStack();
+    let id = this.testType === 'Dynamic' ? 3 : 2;
+    this.assertServerComponent(`Hello ${b(id)}<!--%empty%-->${b(id)}`);
+
+    this.renderClientSide({
+      layout
+    });
+    this.assertRehydrationStats({ blocksRemoved: 0, nodesRemoved: 0 });
+    this.assertComponent('Hello ');
+    this.assertStableRerender();
+  }
+
+  @test
+  "Multiple invocations"() {
+    let name;
+    let template;
+
+    let emberishComponent = false;
+    if (this.testType === 'Dynamic' || this.testType === 'Curly') {
+      name = 'foo-bar';
+      template = '{{#foo-bar}}World{{/foo-bar}}';
+      emberishComponent = true;
+    } else {
+      name = 'FooBar';
+      template = '<FooBar>World</FooBar>';
+    }
+
+    this.registerComponent(this.testType, name, 'Hello {{yield}}');
+    let layout = `{{yield}}`;
+    this.renderServerSide({
+      layout,
+      template
+    });
+    let b = blockStack();
+    if (emberishComponent) {
+      // injects wrapper elements
+      this.assert.ok(this.element.querySelector('div'));
+      this.assert.ok(this.element.querySelector('.ember-view'));
+      this.assert.equal(this.element.textContent, 'Hello World');
+    } else {
+      this.assertServerComponent(`${b(2)}Hello <!--%sep%-->World${b(2)}`);
+    }
+
+    this.renderClientSide({
+      layout,
+      template
+    });
+    this.assertRehydrationStats({ blocksRemoved: 0, nodesRemoved: 0 });
+    this.assert.equal(this.element.textContent, 'Hello World');
+    this.assertStableRerender();
+  }
+
+  @test
+  "Mismatched Multiple invocations"() {
+    let name;
+    let template;
+
+    let emberishComponent = false;
+    if (this.testType === 'Dynamic' || this.testType === 'Curly') {
+      name = 'foo-bar';
+      template = '{{#foo-bar}}World{{/foo-bar}}';
+      emberishComponent = true;
+    } else {
+      name = 'FooBar';
+      template = '<FooBar>World</FooBar>';
+    }
+
+    this.registerComponent(this.testType, name, 'Hello {{yield}}');
+    let layout = `{{yield}}`;
+    this.renderServerSide({
+      layout,
+      template
+    });
+    let b = blockStack();
+    if (emberishComponent) {
+      // injects wrapper elements
+      this.assert.ok(this.element.querySelector('div'));
+      this.assert.ok(this.element.querySelector('.ember-view'));
+      this.assert.equal(this.element.textContent, 'Hello World');
+    } else {
+      this.assertServerComponent(`${b(2)}Hello <!--%sep%-->World${b(2)}`);
+    }
+
+    if (this.testType === 'Dynamic' || this.testType === 'Curly') {
+      template = '{{#foo-bar}}Chad{{/foo-bar}}';
+    } else {
+      template = '<FooBar>Chad</FooBar>';
+    }
+
+    this.renderClientSide({
+      layout,
+      template
+    });
+    this.assertRehydrationStats({ blocksRemoved: 0, nodesRemoved: 0 });
+    this.assert.equal(this.element.textContent, 'Hello Chad');
+    this.assertStableRerender();
+  }
+}
+
 rawModule("Rehydration Tests", Rehydration, RehydrationDelegate);
+rawModule('Rehydrating components', RehydratingComponents, RehydrationDelegate, { componentModule: true });
 module("Initial Render Tests", RenderTests);
