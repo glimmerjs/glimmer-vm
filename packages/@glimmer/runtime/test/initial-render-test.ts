@@ -22,7 +22,7 @@ class RenderTests extends InitialRenderSuite {
   protected env: TestEnvironment = new TestEnvironment();
 }
 
-class Rehydration extends InitialRenderSuite {
+class AbstractRehydrationTests extends InitialRenderSuite {
   name = 'rehydration';
   protected delegate: RehydrationDelegate;
   protected serverOutput: Option<string>;
@@ -37,17 +37,19 @@ class Rehydration extends InitialRenderSuite {
     this.renderResult = this.delegate.renderClientSide(template, context, this.element);
   }
 
-  assertRehydrationStats({ blocksRemoved: blocks, nodesRemoved :nodes}: { blocksRemoved: number, nodesRemoved: number }) {
+  assertRehydrationStats({ blocksRemoved: blocks, nodesRemoved: nodes}: { blocksRemoved: number, nodesRemoved: number }) {
     let { clearedNodes, clearedBlocks } = this.delegate.rehydrationStats;
-    this.assert.equal(blocks, clearedBlocks.length, 'cleared blocks');
-    this.assert.equal(nodes, clearedNodes.length, 'cleared nodes');
+    this.assert.equal(clearedBlocks.length, blocks, `cleared ${clearedBlocks.length} blocks, ${clearedBlocks.join(', ')}`);
+    this.assert.equal(clearedNodes.length, nodes, 'cleared nodes');
   }
 
   assertServerOutput(..._expected: Content[]) {
     let output = expect(this.serverOutput, 'must renderServerSide before calling assertServerOutput');
     equalTokens(output, content([OPEN, ..._expected, CLOSE]));
   }
+}
 
+class Rehydration extends AbstractRehydrationTests {
   @test "mismatched text nodes"() {
     let template = '{{content}}';
     this.renderServerSide(template, { content: 'hello' });
@@ -147,6 +149,148 @@ class Rehydration extends InitialRenderSuite {
     // The removal is the serialized cursor e.g. <script id="%cursor:1%"></script>
     this.assertRehydrationStats({ blocksRemoved: 0, nodesRemoved: 1 });
     this.assert.equal(clientRemote.innerHTML, '<inner>Wat Wat</inner>');
+  }
+
+  @test "svg elements"() {
+    let template = '<svg>{{#if isTrue}}<circle />{{/if}}</svg><p>Hello</p>';
+    this.renderServerSide(template, { isTrue: true });
+    let b = blockStack();
+    this.assertHTML(strip`
+      ${b(0)}
+      <svg>
+        ${b(1)}
+        <circle />
+        ${b(1)}
+      </svg>
+      <p>Hello</p>
+      ${b(0)}
+    `);
+
+    this.renderClientSide(template, { isTrue: true });
+    this.assertRehydrationStats({ blocksRemoved: 0, nodesRemoved: 0 });
+    this.assertHTML(strip`
+      <svg>
+      <circle />
+      </svg>
+      <p>Hello</p>
+    `);
+    this.assertStableRerender();
+  }
+
+  @test "clearing bounds"() {
+    let template = strip`
+      {{#if isTrue}}
+        {{#each items key="id" as |item i|}}
+          <p>{{item}}-{{i}}</p>
+        {{/each}}
+      {{/if}}
+    `;
+    this.renderServerSide(template, { isTrue: true, items: [1, 2] });
+    let b = blockStack();
+    this.assertHTML(strip`
+      ${b(0)}
+      ${b(1)}
+      ${b(2)}
+      ${b(3)}
+      ${b(4)}
+      <p>
+        ${b(5)}
+        1
+        ${b(5)}
+        -
+        ${b(5)}
+        0
+        ${b(5)}
+      </p>
+      ${b(4)}
+      ${b(4)}
+      <p>
+        ${b(5)}
+        2
+        ${b(5)}
+        -
+        ${b(5)}
+        1
+        ${b(5)}
+      </p>
+      ${b(4)}
+      ${b(3)}
+      ${b(2)}
+      ${b(1)}
+      ${b(0)}
+    `);
+
+    this.renderClientSide(template, { isTrue: false, items: [3, 4] });
+    // Removes the block and each <p>
+    this.assertRehydrationStats({ blocksRemoved: 1, nodesRemoved: 2 });
+    this.assertHTML('<!---->');
+    this.assertStableRerender();
+  }
+
+  @test "top-level clearing bounds"() {
+    let template = strip`
+      <top>
+      {{#if isTrue}}
+        <inside>
+        {{#each items key="id" as |item i|}}
+          <p>{{item}}-{{i}}</p>
+        {{/each}}
+        </inside>
+      {{/if}}
+      </top>
+      {{#if isFalse}}
+        {{#each items key="id" as |item i|}}
+          <p>{{item}}-{{i}}</p>
+        {{/each}}
+      {{/if}}
+    `;
+    this.renderServerSide(template, { isTrue: true, items: [1, 2], isFalse: false });
+    let b = blockStack();
+    this.assertHTML(strip`
+      ${b(0)}
+      <top>
+        ${b(1)}
+        <inside>
+          ${b(2)}
+          ${b(3)}
+          ${b(4)}
+          <p>
+            ${b(5)}
+            1
+            ${b(5)}
+            -
+            ${b(5)}
+            0
+            ${b(5)}
+          </p>
+          ${b(4)}
+          ${b(4)}
+          <p>
+            ${b(5)}
+            2
+            ${b(5)}
+            -
+            ${b(5)}
+            1
+            ${b(5)}
+          </p>
+          ${b(4)}
+          ${b(3)}
+          ${b(2)}
+        </inside>
+        ${b(1)}
+      </top>
+      ${b(1)}
+      <!---->
+      ${b(1)}
+      ${b(0)}
+    `);
+
+    this.renderClientSide(template, { isTrue: false, items: [3, 4], isFalse: true });
+    // Clears block markers for both and removes `inside`
+    this.assertRehydrationStats({ blocksRemoved: 2, nodesRemoved: 1 });
+    this.assertHTML('<top><!----></top><p>3-0</p><p>4-1</p>');
+    this.assertStableRerender();
   }
 
   @test "#each rehydration"() {
