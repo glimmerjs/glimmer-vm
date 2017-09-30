@@ -4,7 +4,7 @@ import { Environment } from '../environment';
 import Bounds, { bounds, Cursor } from '../bounds';
 import { Simple, Option, Opaque } from "@glimmer/interfaces";
 import { DynamicContentWrapper } from './content/dynamic';
-import { expect, assert, Stack } from "@glimmer/util";
+import { expect, Stack } from "@glimmer/util";
 import { SVG_NAMESPACE } from '../dom/helper';
 
 export class RehydrateBuilder extends NewElementBuilder implements ElementBuilder {
@@ -56,19 +56,27 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
       current = this.remove(current);
     }
 
-    assert(current && isComment(current) && getCloseBlockDepth(current) === depth, 'An opening block should be paired with a closing block comment');
-
-    this.candidateStack.push(this.remove(current!));
+    if (current) {
+      this.candidateStack.push(this.remove(current));
+    }
   }
 
   __openBlock(): void {
     let { candidate } = this;
-
     if (candidate) {
       if (isComment(candidate)) {
         let depth = getOpenBlockDepth(candidate);
         if (depth !== null) this.blockDepth = depth;
-        this.candidateStack.push(this.remove(candidate));
+        let nextCandidate = this.remove(candidate);
+
+        this.candidateStack.push(nextCandidate);
+
+        if (nextCandidate && isComment(nextCandidate) && isCloseBlock(nextCandidate as Simple.Comment)) {
+          // Block was opened on client that was closed on server
+          this.clearBlock(this.blockDepth);
+          return;
+        }
+
         return;
       } else {
         this.clearMismatch(candidate);
@@ -82,7 +90,16 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
     if (candidate) {
       if (isComment(candidate)) {
         let depth = getCloseBlockDepth(candidate);
+
         if (depth !== null) this.blockDepth = depth - 1;
+
+        if (isOpenBlock(candidate)) {
+          // Block was closed on client that was open on server
+          this.candidateStack.push(candidate);
+          this.clearBlock(this.blockDepth);
+          return;
+        }
+
         this.candidateStack.push(this.remove(candidate));
         return;
       } else {
@@ -329,9 +346,23 @@ function getCloseBlockDepth(node: Simple.Comment): Option<number> {
     return null;
   }
 }
-
 function isElement(node: Simple.Node): node is Simple.Element {
   return node.nodeType === 1;
+}
+
+function isOpenBlock(node: Simple.Comment): boolean {
+  return node.nodeValue!.charAt(1) === '+';
+}
+
+function isCloseBlock(node: Simple.Comment): boolean {
+  return node.nodeValue!.charAt(1) === '-';
+}
+
+function isSameNodeType(candidate: Simple.Element, tag: string) {
+  if (candidate.namespaceURI === SVG_NAMESPACE) {
+    return candidate.tagName === tag;
+  }
+  return candidate.tagName === tag.toUpperCase();
 }
 
 function isMarker(node: Simple.Node): boolean {
@@ -344,12 +375,6 @@ function isSeparator(node: Simple.Node): boolean {
 
 function isEmpty(node: Simple.Node): boolean {
   return node.nodeType === 8 && node.nodeValue === '%empty%';
-}
-function isSameNodeType(candidate: Simple.Element, tag: string) {
-  if (candidate.namespaceURI === SVG_NAMESPACE) {
-    return candidate.tagName === tag;
-  }
-  return candidate.tagName === tag.toUpperCase();
 }
 
 function findByName(array: Simple.Attribute[], name: string): Simple.Attribute | undefined {
