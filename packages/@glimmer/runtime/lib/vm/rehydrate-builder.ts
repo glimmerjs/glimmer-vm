@@ -7,10 +7,13 @@ import { DynamicContentWrapper } from './content/dynamic';
 import { expect, Stack, assert } from "@glimmer/util";
 import { SVG_NAMESPACE } from "@glimmer/runtime";
 
-
 class DebugStack extends Stack<Option<Simple.Node>> {
   push(n: Option<Simple.Node>) {
-    // debugger;
+    console.log('Pushing:', n);
+
+    if (this['stack'].indexOf(n) > -1) {
+      debugger;
+    }
     // if (n && n.nodeValue && n.nodeValue.indexOf('block:6') > -1) {
 
     // }
@@ -19,16 +22,12 @@ class DebugStack extends Stack<Option<Simple.Node>> {
 
   pop() {
     let n = super.pop();
-    // debugger;
+    console.log('Poping:', n);
     return n;
   }
 }
 
 export class RehydrateBuilder extends NewElementBuilder implements ElementBuilder {
-<<<<<<< HEAD
-=======
-  // The last node that matched
->>>>>>> WIP
   private unmatchedAttributes: Option<Simple.Attribute[]> = null;
   private blockDepth = 0;
   private candidateStack = new DebugStack();
@@ -41,7 +40,10 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
 
   get candidate(): Option<Simple.Node> {
     let candidate = this.candidateStack.pop();
+    console.log(`candidate`, candidate);
     if (!candidate) return null;
+
+    return candidate;
 
     if (isComment(candidate) && getCloseBlockDepth(candidate) === this.blockDepth) {
       return null;
@@ -89,7 +91,6 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
         let depth = getOpenBlockDepth(candidate);
         if (depth !== null) this.blockDepth = depth;
         this.candidateStack.push(this.remove(candidate));
-
         // if (nextCandidate && isComment(nextCandidate) && isCloseBlock(nextCandidate as Simple.Comment)) {
         //   // Block was opened on client that was closed on server
         //   this.clearBlock(this.blockDepth);
@@ -112,14 +113,19 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
 
         if (depth !== null) this.blockDepth = depth - 1;
 
-        // if (isOpenBlock(candidate)) {
-        //   // Block was closed on client that was open on server
-        //   this.candidateStack.push(candidate); // TODO
-        //   this.clearBlock(this.blockDepth);
-        //   return;
-        // }
+        if (isOpenBlock(candidate)) {
+          // Block was closed on client that was open on server
+          this.candidateStack.push(candidate); // TODO
+          this.clearBlock(this.blockDepth);
+          return;
+        }
 
-        this.candidateStack.push(this.remove(candidate));
+        let nextCandidate = this.remove(candidate);
+
+        if (nextCandidate && nextCandidate !== this.candidateStack.current) {
+          this.candidateStack.push(nextCandidate);
+        }
+
         return;
       } else {
         this.clearMismatch(candidate);
@@ -159,9 +165,9 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
   }
 
   protected remove(node: Simple.Node): Option<Simple.Node> {
-    console.log(node.nodeValue);
     let element = expect(node.parentNode, `cannot remove a detached node`) as Simple.Element;
     let next = node.nextSibling;
+    console.log('Removing', node);
     element.removeChild(node);
     return next;
   }
@@ -292,7 +298,9 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
       this.clearMismatch(candidate);
     }
 
-    this.candidateStack.push(this.element.nextSibling);
+    if (this.candidateStack.current !== this.element.nextSibling) {
+      this.candidateStack.push(this.element.nextSibling);
+    }
     super.willCloseElement();
   }
 
@@ -326,7 +334,11 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
   didAppendBounds(bounds: Bounds): Bounds {
     super.didAppendBounds(bounds);
     let last = bounds.lastNode();
-    this.candidateStack.push(last && last.nextSibling);
+    if (last && last.nextSibling !== this.candidateStack.current) {
+      this.candidateStack.push(last && last.nextSibling);
+    } else {
+      debugger;
+    }
     return bounds;
   }
 

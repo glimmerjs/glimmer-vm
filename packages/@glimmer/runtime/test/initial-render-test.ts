@@ -291,7 +291,7 @@ class Rehydration extends AbstractRehydrationTests {
 
     this.renderClientSide(template, { isTrue: false, items: [3, 4], isFalse: true });
     // Clears block markers for both and removes `inside`
-    this.assertRehydrationStats({ blocksRemoved: 2, nodesRemoved: 1 });
+    this.assertRehydrationStats({ blocksRemoved: 0, nodesRemoved: 1 });
     this.assertHTML('<top><!----></top><p>3-0</p><p>4-1</p>');
     this.assertStableRerender();
   }
