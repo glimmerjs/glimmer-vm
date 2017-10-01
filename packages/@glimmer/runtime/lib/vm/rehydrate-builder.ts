@@ -107,6 +107,7 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
   __closeBlock(): void {
     let candidate = this.candidateStack.pop();
 
+    debugger;
     if (candidate) {
       if (isComment(candidate)) {
         let depth = getCloseBlockDepth(candidate);
@@ -120,11 +121,23 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
           return;
         }
 
+
         let nextCandidate = this.remove(candidate);
 
-        if (nextCandidate && nextCandidate !== this.candidateStack.current) {
-          this.candidateStack.push(nextCandidate);
-        }
+
+        this.candidateStack.push(nextCandidate);
+
+        console.log(nextCandidate, this.candidateStack.current, nextCandidate === this.candidateStack.current)
+        // if (nextCandidate === null && !isComment(nextCandidate)) {
+        //   this.candidateStack.push(nextCandidate);
+        //   return;
+        // }
+
+        // if (nextCandidate && nextCandidate !== this.candidateStack.current) {
+        //   this.candidateStack.push(nextCandidate);
+        //   return;
+        // }
+
 
         return;
       } else {
@@ -237,6 +250,11 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
       this.candidateStack.push(_candidate.nextSibling);
       return _candidate;
     } else if (_candidate) {
+
+      if (isOpenBlock(_candidate)) {
+        this.candidateStack.push(_candidate);
+      }
+
       this.clearMismatch(_candidate);
     }
 
@@ -295,12 +313,17 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
     let { candidate } = this;
 
     if (candidate) {
-      this.clearMismatch(candidate);
+      if (!(isCloseBlock(candidate) || isOpenBlock(candidate))) {
+        this.clearMismatch(candidate);
+      } else {
+        debugger;
+      }
     }
 
     if (this.candidateStack.current !== this.element.nextSibling) {
       this.candidateStack.push(this.element.nextSibling);
     }
+
     super.willCloseElement();
   }
 
@@ -335,9 +358,7 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
     super.didAppendBounds(bounds);
     let last = bounds.lastNode();
     if (last && last.nextSibling !== this.candidateStack.current) {
-      this.candidateStack.push(last && last.nextSibling);
-    } else {
-      debugger;
+      this.candidateStack.push(last.nextSibling);
     }
     return bounds;
   }
@@ -380,12 +401,12 @@ function isElement(node: Simple.Node): node is Simple.Element {
   return node.nodeType === 1;
 }
 
-function isOpenBlock(node: Simple.Comment): boolean {
-  return node.nodeValue!.charAt(1) === '+';
+function isOpenBlock(node: Simple.Node): boolean {
+  return node.nodeType === 8 && node.nodeValue!.charAt(1) === '+';
 }
 
-function isCloseBlock(node: Simple.Comment): boolean {
-  return node.nodeValue!.charAt(1) === '-';
+function isCloseBlock(node: Simple.Node): boolean {
+  return node.nodeType === 8 && node.nodeValue!.charAt(1) === '-';
 }
 
 function isSameNodeType(candidate: Simple.Element, tag: string) {
