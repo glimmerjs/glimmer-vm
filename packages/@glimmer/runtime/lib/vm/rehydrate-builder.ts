@@ -4,13 +4,34 @@ import { Environment } from '../environment';
 import Bounds, { bounds, Cursor } from '../bounds';
 import { Simple, Option, Opaque } from "@glimmer/interfaces";
 import { DynamicContentWrapper } from './content/dynamic';
-import { expect, Stack } from "@glimmer/util";
+import { expect, Stack, assert } from "@glimmer/util";
 import { SVG_NAMESPACE } from "@glimmer/runtime";
 
+
+class DebugStack extends Stack<Option<Simple.Node>> {
+  push(n: Option<Simple.Node>) {
+    // debugger;
+    // if (n && n.nodeValue && n.nodeValue.indexOf('block:6') > -1) {
+
+    // }
+    super.push(n);
+  }
+
+  pop() {
+    let n = super.pop();
+    // debugger;
+    return n;
+  }
+}
+
 export class RehydrateBuilder extends NewElementBuilder implements ElementBuilder {
+<<<<<<< HEAD
+=======
+  // The last node that matched
+>>>>>>> WIP
   private unmatchedAttributes: Option<Simple.Attribute[]> = null;
   private blockDepth = 0;
-  private candidateStack = new Stack<Option<Simple.Node>>();
+  private candidateStack = new DebugStack();
 
   constructor(env: Environment, parentNode: Simple.Element, nextSibling: Option<Simple.Node>) {
     super(env, parentNode, nextSibling);
@@ -56,9 +77,9 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
       current = this.remove(current);
     }
 
-    if (current) {
-      this.candidateStack.push(this.remove(current));
-    }
+    assert(current && isComment(current) && getCloseBlockDepth(current) === depth, 'An opening block should be paired with a closing block comment');
+
+    this.candidateStack.push(this.remove(current!));
   }
 
   __openBlock(): void {
@@ -67,15 +88,13 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
       if (isComment(candidate)) {
         let depth = getOpenBlockDepth(candidate);
         if (depth !== null) this.blockDepth = depth;
-        let nextCandidate = this.remove(candidate);
+        this.candidateStack.push(this.remove(candidate));
 
-        this.candidateStack.push(nextCandidate);
-
-        if (nextCandidate && isComment(nextCandidate) && isCloseBlock(nextCandidate as Simple.Comment)) {
-          // Block was opened on client that was closed on server
-          this.clearBlock(this.blockDepth);
-          return;
-        }
+        // if (nextCandidate && isComment(nextCandidate) && isCloseBlock(nextCandidate as Simple.Comment)) {
+        //   // Block was opened on client that was closed on server
+        //   this.clearBlock(this.blockDepth);
+        //   return;
+        // }
 
         return;
       } else {
@@ -93,12 +112,12 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
 
         if (depth !== null) this.blockDepth = depth - 1;
 
-        if (isOpenBlock(candidate)) {
-          // Block was closed on client that was open on server
-          this.candidateStack.push(candidate);
-          this.clearBlock(this.blockDepth);
-          return;
-        }
+        // if (isOpenBlock(candidate)) {
+        //   // Block was closed on client that was open on server
+        //   this.candidateStack.push(candidate); // TODO
+        //   this.clearBlock(this.blockDepth);
+        //   return;
+        // }
 
         this.candidateStack.push(this.remove(candidate));
         return;
@@ -140,6 +159,7 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
   }
 
   protected remove(node: Simple.Node): Option<Simple.Node> {
+    console.log(node.nodeValue);
     let element = expect(node.parentNode, `cannot remove a detached node`) as Simple.Element;
     let next = node.nextSibling;
     element.removeChild(node);
@@ -206,7 +226,6 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
 
   __openElement(tag: string, _operations?: ElementOperations): Simple.Element {
     let _candidate = this.candidateStack.pop();
-
     if (_candidate && isElement(_candidate) && isSameNodeType(_candidate, tag)) {
       this.unmatchedAttributes = [].slice.call(_candidate.attributes);
       this.candidateStack.push(_candidate.nextSibling);
@@ -250,7 +269,6 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
 
   __flushElement(parent: Simple.Element, constructing: Simple.Element): void {
     let { unmatchedAttributes: unmatched } = this;
-
     if (unmatched) {
       for (let i=0; i<unmatched.length; i++) {
         this.constructing!.removeAttribute(unmatched[i].name);

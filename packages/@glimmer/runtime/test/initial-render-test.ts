@@ -607,6 +607,194 @@ class RehydratingComponents extends AbstractRehydrationTests {
     this.assert.equal(this.element.textContent, 'Hello Chad');
     this.assertStableRerender();
   }
+
+  @test
+  "interacting with builtins"() {
+    let layout = strip`
+      <ul>
+        {{#each @items key="id" as |item i|}}
+          {{#if item.show}}
+            <li>{{item.name}}</li>
+          {{else}}
+            {{yield i}}
+          {{/if}}
+        {{/each}}
+      </ul>`;
+    this.registerHelper('even', (params: number[]) => params[0] % 2 === 0);
+    let template = '{{#if (even i)}}<FooBar @count={{i}} />{{/if}}';
+    this.registerComponent('Fragment', 'FooBar', '<li>{{@count}}</li>');
+    let blockParams = ['i'];
+    let args = { items: 'items' };
+
+    this.renderServerSide({
+      layout,
+      template,
+      blockParams,
+      args
+    }, {
+      items: [
+        { show: true, name: 'Industry' },
+        { show: false, name: 'Standard' },
+        { show: false, name: 'Components' }
+      ]
+    });
+
+    let b = blockStack();
+
+    let id = (num: number) => this.testType === 'Dynamic' ? num + 1 : num;
+
+    this.assertServerComponent(strip`
+      <ul>
+        ${b(id(2))}
+        ${b(id(3))}
+
+        ${b(id(4))}
+        ${b(id(5))}
+        <li>
+          ${b(id(6))}
+          Industry
+          ${b(id(6))}
+        </li>
+        ${b(id(5))}
+        ${b(id(4))}
+
+        ${b(id(4))}
+        ${b(id(5))}
+        ${b(id(6))}
+        <!---->
+        ${b(id(6))}
+        ${b(id(5))}
+        ${b(id(4))}
+
+        ${b(id(4))}
+        ${b(id(5))}
+        ${b(id(6))}
+        ${b(id(7))}
+        <li>
+          ${b(id(8))}
+          2
+          ${b(id(8))}
+        </li>
+        ${b(id(7))}
+        ${b(id(6))}
+        ${b(id(5))}
+        ${b(id(4))}
+
+        ${b(id(3))}
+        ${b(id(2))}
+      </ul>
+    `);
+
+    this.renderClientSide({
+      layout,
+      template,
+      blockParams,
+      args
+    }, {
+      items: [
+        { show: true, name: 'Industry' },
+        { show: false, name: 'Standard' },
+        { show: false, name: 'Components' }
+      ]
+    });
+
+    this.assertComponent('<ul><li>Industry</li><!----><li>2</li></ul>');
+    this.assertRehydrationStats({ blocksRemoved: 0, nodesRemoved: 0 });
+    this.assertStableRerender();
+  }
+
+  @test
+  "mismatched interacting with builtins"() {
+    let layout = strip`
+      <ul>
+        {{#each @items key="id" as |item i|}}
+          {{#if item.show}}
+            <li>{{item.name}}</li>
+          {{else}}
+            {{yield i}}
+          {{/if}}
+        {{/each}}
+      </ul>`;
+    this.registerHelper('even', (params: number[]) => params[0] % 2 === 0);
+    let template = '{{#if (even i)}}<FooBar @count={{i}} />{{/if}}';
+    this.registerComponent('Fragment', 'FooBar', '<li>{{@count}}</li>');
+    let blockParams = ['i'];
+    let args = { items: 'items' };
+
+    this.renderServerSide({
+      layout,
+      template,
+      blockParams,
+      args
+    }, {
+      items: [
+        { show: true, name: 'Industry' },
+        { show: false, name: 'Standard' },
+        { show: false, name: 'Components' }
+      ]
+    });
+
+    let b = blockStack();
+
+    let id = (num: number) => this.testType === 'Dynamic' ? num + 1 : num;
+
+    this.assertServerComponent(strip`
+      <ul>
+        ${b(id(2))}
+        ${b(id(3))}
+
+        ${b(id(4))}
+        ${b(id(5))}
+        <li>
+          ${b(id(6))}
+          Industry
+          ${b(id(6))}
+        </li>
+        ${b(id(5))}
+        ${b(id(4))}
+
+        ${b(id(4))}
+        ${b(id(5))}
+        ${b(id(6))}
+        <!---->
+        ${b(id(6))}
+        ${b(id(5))}
+        ${b(id(4))}
+
+        ${b(id(4))}
+        ${b(id(5))}
+        ${b(id(6))}
+        ${b(id(7))}
+        <li>
+          ${b(id(8))}
+          2
+          ${b(id(8))}
+        </li>
+        ${b(id(7))}
+        ${b(id(6))}
+        ${b(id(5))}
+        ${b(id(4))}
+
+        ${b(id(3))}
+        ${b(id(2))}
+      </ul>
+    `);
+
+    this.renderClientSide({
+      layout,
+      template,
+      blockParams,
+      args
+    }, {
+      items: [
+        { show: true, name: 'Industry' },
+        { show: true, name: 'Standard' },
+        { show: true, name: 'Components' }
+      ]
+    });
+
+    this.assertComponent('<ul><li>Industry</li><li>Standard</li><li>Components</li></ul>');
+  }
 }
 
 rawModule("Rehydration Tests", Rehydration, RehydrationDelegate);
