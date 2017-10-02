@@ -12,14 +12,14 @@ let config = {
       "protocol": "tap"
      }
   },
+  "browser_start_timeout": 30,
   "browser_args": {
     "Chrome": {
       "mode": "ci",
       "args": [
         '--disable-gpu',
         '--headless',
-        '--remote-debugging-port=9222',
-        '--window-size=1440,900'
+        '--remote-debugging-port=0'
       ]
     }
   },

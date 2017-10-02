@@ -5,32 +5,12 @@ import Bounds, { bounds, Cursor } from '../bounds';
 import { Simple, Option, Opaque } from "@glimmer/interfaces";
 import { DynamicContentWrapper } from './content/dynamic';
 import { expect, Stack, assert } from "@glimmer/util";
-import { SVG_NAMESPACE } from "@glimmer/runtime";
-
-class DebugStack extends Stack<Option<Simple.Node>> {
-  push(n: Option<Simple.Node>) {
-    console.log('Pushing:', n);
-
-    if (this['stack'].indexOf(n) > -1) {
-      debugger;
-    }
-    // if (n && n.nodeValue && n.nodeValue.indexOf('block:6') > -1) {
-
-    // }
-    super.push(n);
-  }
-
-  pop() {
-    let n = super.pop();
-    console.log('Poping:', n);
-    return n;
-  }
-}
+import { SVG_NAMESPACE } from '../dom/helper';
 
 export class RehydrateBuilder extends NewElementBuilder implements ElementBuilder {
   private unmatchedAttributes: Option<Simple.Attribute[]> = null;
   private blockDepth = 0;
-  private candidateStack = new DebugStack();
+  private candidateStack = new Stack<Option<Simple.Node>>();
 
   constructor(env: Environment, parentNode: Simple.Element, nextSibling: Option<Simple.Node>) {
     super(env, parentNode, nextSibling);
@@ -40,16 +20,9 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
 
   get candidate(): Option<Simple.Node> {
     let candidate = this.candidateStack.pop();
-    console.log(`candidate`, candidate);
     if (!candidate) return null;
 
     return candidate;
-
-    if (isComment(candidate) && getCloseBlockDepth(candidate) === this.blockDepth) {
-      return null;
-    } else {
-      return candidate;
-    }
   }
 
   private clearMismatch(candidate: Simple.Node) {
@@ -91,12 +64,6 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
         let depth = getOpenBlockDepth(candidate);
         if (depth !== null) this.blockDepth = depth;
         this.candidateStack.push(this.remove(candidate));
-        // if (nextCandidate && isComment(nextCandidate) && isCloseBlock(nextCandidate as Simple.Comment)) {
-        //   // Block was opened on client that was closed on server
-        //   this.clearBlock(this.blockDepth);
-        //   return;
-        // }
-
         return;
       } else {
         this.clearMismatch(candidate);
@@ -107,7 +74,6 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
   __closeBlock(): void {
     let candidate = this.candidateStack.pop();
 
-    debugger;
     if (candidate) {
       if (isComment(candidate)) {
         let depth = getCloseBlockDepth(candidate);
@@ -116,29 +82,12 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
 
         if (isOpenBlock(candidate)) {
           // Block was closed on client that was open on server
-          this.candidateStack.push(candidate); // TODO
+          this.candidateStack.push(candidate);
           this.clearBlock(this.blockDepth);
           return;
         }
 
-
-        let nextCandidate = this.remove(candidate);
-
-
-        this.candidateStack.push(nextCandidate);
-
-        console.log(nextCandidate, this.candidateStack.current, nextCandidate === this.candidateStack.current)
-        // if (nextCandidate === null && !isComment(nextCandidate)) {
-        //   this.candidateStack.push(nextCandidate);
-        //   return;
-        // }
-
-        // if (nextCandidate && nextCandidate !== this.candidateStack.current) {
-        //   this.candidateStack.push(nextCandidate);
-        //   return;
-        // }
-
-
+        this.candidateStack.push(this.remove(candidate));
         return;
       } else {
         this.clearMismatch(candidate);
@@ -180,7 +129,6 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
   protected remove(node: Simple.Node): Option<Simple.Node> {
     let element = expect(node.parentNode, `cannot remove a detached node`) as Simple.Element;
     let next = node.nextSibling;
-    console.log('Removing', node);
     element.removeChild(node);
     return next;
   }
@@ -245,6 +193,7 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
 
   __openElement(tag: string, _operations?: ElementOperations): Simple.Element {
     let _candidate = this.candidateStack.pop();
+
     if (_candidate && isElement(_candidate) && isSameNodeType(_candidate, tag)) {
       this.unmatchedAttributes = [].slice.call(_candidate.attributes);
       this.candidateStack.push(_candidate.nextSibling);
@@ -299,7 +248,13 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
       }
       this.unmatchedAttributes = null;
     } else {
-      super.__flushElement(parent, constructing);
+      let nextSibling = null;
+
+      if (parent.firstChild !== null) {
+        nextSibling = this.candidateStack.current;
+      }
+
+      this.dom.insertBefore(parent, constructing, nextSibling);
     }
   }
 
@@ -315,8 +270,6 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
     if (candidate) {
       if (!(isCloseBlock(candidate) || isOpenBlock(candidate))) {
         this.clearMismatch(candidate);
-      } else {
-        debugger;
       }
     }
 
