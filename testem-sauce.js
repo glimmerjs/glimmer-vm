@@ -50,17 +50,21 @@ module.exports = {
     "Node",
     "Chrome"
   ],
+  "browser_start_timeout": 300,
   "browser_args": {
-    "Chrome": [
-      '--disable-gpu',
-      '--headless',
-      '--remote-debugging-port=9222',
-      '--window-size=1440,900'
-    ]
+    "Chrome": {
+      "mode": "ci",
+      "args": [
+        '--disable-gpu',
+        '--headless',
+        '--remote-debugging-port=9222',
+        '--window-size=1440,900'
+      ]
+    }
   },
   "launch_in_ci": [
-    "Node",
     "Chrome",
+    "Node",
     "SL_Chrome_Current",
     "SL_Chrome_Last",
     "SL_Firefox_Current",

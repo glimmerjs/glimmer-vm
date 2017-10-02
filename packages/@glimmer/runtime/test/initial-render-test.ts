@@ -13,7 +13,10 @@ import {
   RehydrationDelegate,
   rawModule,
   strip,
-  blockStack
+  blockStack,
+  ComponentBlueprint,
+  GLIMMER_TEST_COMPONENT,
+  assertEmberishElement
 } from "@glimmer/test-helpers";
 import { expect } from "@glimmer/util";
 
@@ -22,32 +25,34 @@ class RenderTests extends InitialRenderSuite {
   protected env: TestEnvironment = new TestEnvironment();
 }
 
-class Rehydration extends InitialRenderSuite {
+class AbstractRehydrationTests extends InitialRenderSuite {
   name = 'rehydration';
   protected delegate: RehydrationDelegate;
   protected serverOutput: Option<string>;
 
-  renderServerSide(template: string, context: Dict<Opaque>): void {
-    this.serverOutput = this.delegate.renderServerSide(template, context, () => this.takeSnapshot());
+  renderServerSide(template: string | ComponentBlueprint, context: Dict<Opaque>): void {
+    this.serverOutput = this.delegate.renderServerSide(template as string, context, () => this.takeSnapshot());
     this.element.innerHTML = this.serverOutput;
   }
 
-  renderClientSide(template: string, context: Dict<Opaque>): void {
+  renderClientSide(template: string | ComponentBlueprint, context: Dict<Opaque>): void {
     this.context = context;
-    this.renderResult = this.delegate.renderClientSide(template, context, this.element);
+    this.renderResult = this.delegate.renderClientSide(template as string, context, this.element);
   }
 
-  assertRehydrationStats({ blocksRemoved: blocks, nodesRemoved :nodes}: { blocksRemoved: number, nodesRemoved: number }) {
+  assertRehydrationStats({ blocksRemoved: blocks, nodesRemoved: nodes}: { blocksRemoved: number, nodesRemoved: number }) {
     let { clearedNodes, clearedBlocks } = this.delegate.rehydrationStats;
-    this.assert.equal(blocks, clearedBlocks.length, 'cleared blocks');
-    this.assert.equal(nodes, clearedNodes.length, 'cleared nodes');
+    this.assert.equal(clearedBlocks.length, blocks, `cleared ${clearedBlocks.length} blocks, ${clearedBlocks.join(', ')}`);
+    this.assert.equal(clearedNodes.length, nodes, 'cleared nodes');
   }
 
   assertServerOutput(..._expected: Content[]) {
     let output = expect(this.serverOutput, 'must renderServerSide before calling assertServerOutput');
     equalTokens(output, content([OPEN, ..._expected, CLOSE]));
   }
+}
 
+class Rehydration extends AbstractRehydrationTests {
   @test "mismatched text nodes"() {
     let template = '{{content}}';
     this.renderServerSide(template, { content: 'hello' });
@@ -149,6 +154,148 @@ class Rehydration extends InitialRenderSuite {
     this.assert.equal(clientRemote.innerHTML, '<inner>Wat Wat</inner>');
   }
 
+  @test "svg elements"() {
+    let template = '<svg>{{#if isTrue}}<circle />{{/if}}</svg><p>Hello</p>';
+    this.renderServerSide(template, { isTrue: true });
+    let b = blockStack();
+    this.assertHTML(strip`
+      ${b(0)}
+      <svg>
+        ${b(1)}
+        <circle />
+        ${b(1)}
+      </svg>
+      <p>Hello</p>
+      ${b(0)}
+    `);
+
+    this.renderClientSide(template, { isTrue: true });
+    this.assertRehydrationStats({ blocksRemoved: 0, nodesRemoved: 0 });
+    this.assertHTML(strip`
+      <svg>
+      <circle />
+      </svg>
+      <p>Hello</p>
+    `);
+    this.assertStableRerender();
+  }
+
+  @test "clearing bounds"() {
+    let template = strip`
+      {{#if isTrue}}
+        {{#each items key="id" as |item i|}}
+          <p>{{item}}-{{i}}</p>
+        {{/each}}
+      {{/if}}
+    `;
+    this.renderServerSide(template, { isTrue: true, items: [1, 2] });
+    let b = blockStack();
+    this.assertHTML(strip`
+      ${b(0)}
+      ${b(1)}
+      ${b(2)}
+      ${b(3)}
+      ${b(4)}
+      <p>
+        ${b(5)}
+        1
+        ${b(5)}
+        -
+        ${b(5)}
+        0
+        ${b(5)}
+      </p>
+      ${b(4)}
+      ${b(4)}
+      <p>
+        ${b(5)}
+        2
+        ${b(5)}
+        -
+        ${b(5)}
+        1
+        ${b(5)}
+      </p>
+      ${b(4)}
+      ${b(3)}
+      ${b(2)}
+      ${b(1)}
+      ${b(0)}
+    `);
+
+    this.renderClientSide(template, { isTrue: false, items: [3, 4] });
+    // Removes the block and each <p>
+    this.assertRehydrationStats({ blocksRemoved: 1, nodesRemoved: 2 });
+    this.assertHTML('<!---->');
+    this.assertStableRerender();
+  }
+
+  @test "top-level clearing bounds"() {
+    let template = strip`
+      <top>
+      {{#if isTrue}}
+        <inside>
+        {{#each items key="id" as |item i|}}
+          <p>{{item}}-{{i}}</p>
+        {{/each}}
+        </inside>
+      {{/if}}
+      </top>
+      {{#if isFalse}}
+        {{#each items key="id" as |item i|}}
+          <p>{{item}}-{{i}}</p>
+        {{/each}}
+      {{/if}}
+    `;
+    this.renderServerSide(template, { isTrue: true, items: [1, 2], isFalse: false });
+    let b = blockStack();
+    this.assertHTML(strip`
+      ${b(0)}
+      <top>
+        ${b(1)}
+        <inside>
+          ${b(2)}
+          ${b(3)}
+          ${b(4)}
+          <p>
+            ${b(5)}
+            1
+            ${b(5)}
+            -
+            ${b(5)}
+            0
+            ${b(5)}
+          </p>
+          ${b(4)}
+          ${b(4)}
+          <p>
+            ${b(5)}
+            2
+            ${b(5)}
+            -
+            ${b(5)}
+            1
+            ${b(5)}
+          </p>
+          ${b(4)}
+          ${b(3)}
+          ${b(2)}
+        </inside>
+        ${b(1)}
+      </top>
+      ${b(1)}
+      <!---->
+      ${b(1)}
+      ${b(0)}
+    `);
+
+    this.renderClientSide(template, { isTrue: false, items: [3, 4], isFalse: true });
+    // Clears block markers for both and removes `inside`
+    this.assertRehydrationStats({ blocksRemoved: 0, nodesRemoved: 1 });
+    this.assertHTML('<top><!----></top><p>3-0</p><p>4-1</p>');
+    this.assertStableRerender();
+  }
+
   @test "#each rehydration"() {
     let template = "{{#each items key='id' as |item|}}<p>{{item}}</p>{{/each}}";
     this.renderServerSide(template, { items: [1, 2, 3] });
@@ -194,5 +341,572 @@ class Rehydration extends InitialRenderSuite {
   }
 }
 
+class RehydratingComponents extends AbstractRehydrationTests {
+  _buildComponent(blueprint: ComponentBlueprint, properties: Dict<Opaque> = {}) {
+    let template = this.buildComponent(blueprint);
+    if (this.testType === "Dynamic" && properties["componentName"] === undefined) {
+      properties["componentName"] = blueprint.name || GLIMMER_TEST_COMPONENT;
+    }
+    return template;
+  }
+
+  assertServerComponent(html: string, attrs: Object = {}) {
+    if (this.testType === 'Dynamic') {
+      assertEmberishElement(this.element.childNodes[3] as HTMLElement, 'div', attrs, html);
+    } else {
+      assertEmberishElement(this.element.childNodes[2] as HTMLElement, 'div', attrs, html);
+    }
+  }
+
+  renderServerSide(blueprint: ComponentBlueprint, properties: Dict<Opaque> = {}) {
+    let template = this._buildComponent(blueprint, properties);
+    super.renderServerSide(template, properties);
+  }
+
+  renderClientSide(blueprint: ComponentBlueprint, properties: Dict<Opaque> = {}) {
+    let template = this._buildComponent(blueprint, properties);
+    super.renderClientSide(template, properties);
+  }
+
+  @test
+  "Component invocations"() {
+    let layout = 'Hello {{@name}}';
+    let args = { name: 'name' };
+    this.renderServerSide({
+      layout,
+      args,
+    }, { name: 'Filewatcher' });
+    let b = blockStack();
+    let id = this.testType === 'Dynamic' ? 3 : 2;
+    this.assertServerComponent(`Hello ${b(id)}Filewatcher${b(id)}`);
+
+    this.renderClientSide({
+      layout,
+      args,
+    }, { name: 'Filewatcher' });
+    this.assertRehydrationStats({ blocksRemoved: 0, nodesRemoved: 0 });
+    this.assertComponent('Hello Filewatcher');
+    this.assertStableRerender();
+  }
+
+  @test
+  "Mismatched Component invocations"() {
+    let layout = 'Hello {{@name}}';
+    let args = { name: 'name' };
+    this.renderServerSide({
+      layout,
+      args,
+    }, { name: 'Filewatcher' });
+    let b = blockStack();
+    let id = this.testType === 'Dynamic' ? 3 : 2;
+    this.assertServerComponent(`Hello ${b(id)}Filewatcher${b(id)}`);
+
+    this.renderClientSide({
+      layout,
+      args,
+    }, { name: 'Chad' });
+    this.assertRehydrationStats({ blocksRemoved: 0, nodesRemoved: 0 });
+    this.assertComponent('Hello Chad');
+    this.assertStableRerender();
+  }
+
+  @test
+  "Component invocations with block params"() {
+    let layout = 'Hello {{yield @name}}';
+    let template = '{{name}}';
+    let blockParams = ['name'];
+    let args = { name: 'name' };
+
+    this.renderServerSide({
+      layout,
+      template,
+      args,
+      blockParams
+    }, { name: 'Filewatcher' });
+    let b = blockStack();
+    let id = this.testType === 'Dynamic' ? 3 : 2;
+    this.assertServerComponent(`Hello ${b(id)}Filewatcher${b(id)}`);
+
+    this.renderClientSide({
+      layout,
+      template,
+      args,
+      blockParams
+    }, { name: 'Filewatcher' });
+    this.assertRehydrationStats({ blocksRemoved: 0, nodesRemoved: 0 });
+    this.assertComponent('Hello Filewatcher');
+    this.assertStableRerender();
+  }
+
+  @test
+  "Mismatched Component invocations with block params"() {
+    let layout = 'Hello {{yield @name}}';
+    let template = '{{name}}';
+    let blockParams = ['name'];
+    let args = { name: 'name' };
+
+    this.renderServerSide({
+      layout,
+      template,
+      args,
+      blockParams
+    }, { name: 'Filewatcher' });
+    let b = blockStack();
+    let id = this.testType === 'Dynamic' ? 3 : 2;
+    this.assertServerComponent(`Hello ${b(id)}Filewatcher${b(id)}`);
+
+    this.renderClientSide({
+      layout,
+      template,
+      args,
+      blockParams
+    }, { name: 'Chad' });
+    this.assertRehydrationStats({ blocksRemoved: 0, nodesRemoved: 0 });
+    this.assertComponent('Hello Chad');
+    this.assertStableRerender();
+  }
+
+  @test
+  "Component invocations with template"() {
+    let layout = 'Hello {{yield}}';
+    let template = 'Filewatcher';
+    this.renderServerSide({
+      layout,
+      template
+    }, { name: 'Filewatcher' });
+    this.assertServerComponent(`Hello <!--%sep%-->Filewatcher`);
+
+    this.renderClientSide({
+      layout,
+      template
+    });
+    this.assertRehydrationStats({ blocksRemoved: 0, nodesRemoved: 0 });
+    this.assertComponent('Hello Filewatcher');
+    this.assertStableRerender();
+  }
+
+  @test
+  "Mismatched Component invocations with template"() {
+    let layout = 'Hello {{yield}}';
+    let template = 'Filewatcher';
+    this.renderServerSide({
+      layout,
+      template
+    });
+    this.assertServerComponent(`Hello <!--%sep%-->Filewatcher`);
+
+    this.renderClientSide({
+      layout,
+      template: 'Chad'
+    });
+    this.assertRehydrationStats({ blocksRemoved: 0, nodesRemoved: 0 });
+    this.assertComponent('Hello Chad');
+    this.assertStableRerender();
+  }
+
+  @test
+  "Component invocations with empty args"() {
+    let layout = 'Hello {{@foo}}';
+    this.renderServerSide({
+      layout,
+    });
+    let b = blockStack();
+    let id = this.testType === 'Dynamic' ? 3 : 2;
+    this.assertServerComponent(`Hello ${b(id)}<!--%empty%-->${b(id)}`);
+
+    this.renderClientSide({
+      layout
+    });
+    this.assertRehydrationStats({ blocksRemoved: 0, nodesRemoved: 0 });
+    this.assertComponent('Hello ');
+    this.assertStableRerender();
+  }
+
+  @test
+  "Multiple invocations"() {
+    let name;
+    let template;
+
+    let emberishComponent = false;
+    if (this.testType === 'Dynamic' || this.testType === 'Curly') {
+      name = 'foo-bar';
+      template = '{{#foo-bar}}World{{/foo-bar}}';
+      emberishComponent = true;
+    } else {
+      name = 'FooBar';
+      template = '<FooBar>World</FooBar>';
+    }
+
+    this.registerComponent(this.testType, name, 'Hello {{yield}}');
+    let layout = `{{yield}}`;
+    this.renderServerSide({
+      layout,
+      template
+    });
+    let b = blockStack();
+    if (emberishComponent) {
+      // injects wrapper elements
+      this.assert.ok(this.element.querySelector('div'));
+      this.assert.ok(this.element.querySelector('.ember-view'));
+      this.assert.equal(this.element.textContent, 'Hello World');
+    } else {
+      this.assertServerComponent(`${b(2)}Hello <!--%sep%-->World${b(2)}`);
+    }
+
+    this.renderClientSide({
+      layout,
+      template
+    });
+    this.assertRehydrationStats({ blocksRemoved: 0, nodesRemoved: 0 });
+    this.assert.equal(this.element.textContent, 'Hello World');
+    this.assertStableRerender();
+  }
+
+  @test
+  "Mismatched Multiple invocations"() {
+    let name;
+    let template;
+
+    let emberishComponent = false;
+    if (this.testType === 'Dynamic' || this.testType === 'Curly') {
+      name = 'foo-bar';
+      template = '{{#foo-bar}}World{{/foo-bar}}';
+      emberishComponent = true;
+    } else {
+      name = 'FooBar';
+      template = '<FooBar>World</FooBar>';
+    }
+
+    this.registerComponent(this.testType, name, 'Hello {{yield}}');
+    let layout = `{{yield}}`;
+    this.renderServerSide({
+      layout,
+      template
+    });
+    let b = blockStack();
+    if (emberishComponent) {
+      // injects wrapper elements
+      this.assert.ok(this.element.querySelector('div'));
+      this.assert.ok(this.element.querySelector('.ember-view'));
+      this.assert.equal(this.element.textContent, 'Hello World');
+    } else {
+      this.assertServerComponent(`${b(2)}Hello <!--%sep%-->World${b(2)}`);
+    }
+
+    if (this.testType === 'Dynamic' || this.testType === 'Curly') {
+      template = '{{#foo-bar}}Chad{{/foo-bar}}';
+    } else {
+      template = '<FooBar>Chad</FooBar>';
+    }
+
+    this.renderClientSide({
+      layout,
+      template
+    });
+    this.assertRehydrationStats({ blocksRemoved: 0, nodesRemoved: 0 });
+    this.assert.equal(this.element.textContent, 'Hello Chad');
+    this.assertStableRerender();
+  }
+
+  @test
+  "interacting with builtins"() {
+    let layout = strip`
+      <ul>
+        {{#each @items key="id" as |item i|}}
+          {{#if item.show}}
+            <li>{{item.name}}</li>
+          {{else}}
+            {{yield i}}
+          {{/if}}
+        {{/each}}
+      </ul>`;
+    this.registerHelper('even', (params: number[]) => params[0] % 2 === 0);
+    let template = '{{#if (even i)}}<FooBar @count={{i}} />{{/if}}';
+    this.registerComponent('Fragment', 'FooBar', '<li>{{@count}}</li>');
+    let blockParams = ['i'];
+    let args = { items: 'items' };
+
+    this.renderServerSide({
+      layout,
+      template,
+      blockParams,
+      args
+    }, {
+      items: [
+        { show: true, name: 'Industry' },
+        { show: false, name: 'Standard' },
+        { show: false, name: 'Components' }
+      ]
+    });
+
+    let b = blockStack();
+
+    let id = (num: number) => this.testType === 'Dynamic' ? num + 1 : num;
+
+    this.assertServerComponent(strip`
+      <ul>
+        ${b(id(2))}
+        ${b(id(3))}
+
+        ${b(id(4))}
+        ${b(id(5))}
+        <li>
+          ${b(id(6))}
+          Industry
+          ${b(id(6))}
+        </li>
+        ${b(id(5))}
+        ${b(id(4))}
+
+        ${b(id(4))}
+        ${b(id(5))}
+        ${b(id(6))}
+        <!---->
+        ${b(id(6))}
+        ${b(id(5))}
+        ${b(id(4))}
+
+        ${b(id(4))}
+        ${b(id(5))}
+        ${b(id(6))}
+        ${b(id(7))}
+        <li>
+          ${b(id(8))}
+          2
+          ${b(id(8))}
+        </li>
+        ${b(id(7))}
+        ${b(id(6))}
+        ${b(id(5))}
+        ${b(id(4))}
+
+        ${b(id(3))}
+        ${b(id(2))}
+      </ul>
+    `);
+
+    this.renderClientSide({
+      layout,
+      template,
+      blockParams,
+      args
+    }, {
+      items: [
+        { show: true, name: 'Industry' },
+        { show: false, name: 'Standard' },
+        { show: false, name: 'Components' }
+      ]
+    });
+
+    this.assertComponent('<ul><li>Industry</li><!----><li>2</li></ul>');
+    this.assertRehydrationStats({ blocksRemoved: 0, nodesRemoved: 0 });
+    this.assertStableRerender();
+  }
+
+  @test
+  "mismatched interacting with builtins"() {
+    let layout = strip`
+      <ul>
+        {{#each @items key="id" as |item i|}}
+          {{#if item.show}}
+            <li>{{item.name}}</li>
+          {{else}}
+            {{yield i}}
+          {{/if}}
+        {{/each}}
+      </ul>`;
+    this.registerHelper('even', (params: number[]) => params[0] % 2 === 0);
+    let template = '{{#if (even i)}}<FooBar @count={{i}} />{{/if}}';
+    this.registerComponent('Fragment', 'FooBar', '<li>{{@count}}</li>');
+    let blockParams = ['i'];
+    let args = { items: 'items' };
+
+    this.renderServerSide({
+      layout,
+      template,
+      blockParams,
+      args
+    }, {
+      items: [
+        { show: true, name: 'Industry' },
+        { show: false, name: 'Standard' },
+        { show: false, name: 'Components' }
+      ]
+    });
+
+    let b = blockStack();
+
+    let id = (num: number) => this.testType === 'Dynamic' ? num + 1 : num;
+
+    this.assertServerComponent(strip`
+      <ul>
+        ${b(id(2))}
+        ${b(id(3))}
+
+        ${b(id(4))}
+        ${b(id(5))}
+        <li>
+          ${b(id(6))}
+          Industry
+          ${b(id(6))}
+        </li>
+        ${b(id(5))}
+        ${b(id(4))}
+
+        ${b(id(4))}
+        ${b(id(5))}
+        ${b(id(6))}
+        <!---->
+        ${b(id(6))}
+        ${b(id(5))}
+        ${b(id(4))}
+
+        ${b(id(4))}
+        ${b(id(5))}
+        ${b(id(6))}
+        ${b(id(7))}
+        <li>
+          ${b(id(8))}
+          2
+          ${b(id(8))}
+        </li>
+        ${b(id(7))}
+        ${b(id(6))}
+        ${b(id(5))}
+        ${b(id(4))}
+
+        ${b(id(3))}
+        ${b(id(2))}
+      </ul>
+    `);
+
+    this.renderClientSide({
+      layout,
+      template,
+      blockParams,
+      args
+    }, {
+      items: [
+        { show: true, name: 'Industry' },
+        { show: true, name: 'Standard' },
+        { show: true, name: 'Components' }
+      ]
+    });
+
+    this.assertRehydrationStats({ blocksRemoved: 1, nodesRemoved: 1 });
+    this.assertComponent('<ul><li>Industry</li><li>Standard</li><li>Components</li></ul>');
+  }
+
+  @test
+  "2mismatched interacting with builtins"() {
+    let layout = strip`
+      <ul>
+        {{#each @items key="id" as |item i|}}
+          {{#if item.show}}
+            <li>{{item.name}}</li>
+          {{else}}
+            {{yield i}}
+          {{/if}}
+        {{/each}}
+      </ul>
+      <ul>
+        {{#each @things key="id" as |item i|}}
+          {{#if item.show}}
+            <li>{{item.name}}</li>
+          {{else}}
+            {{yield i}}
+          {{/if}}
+        {{/each}}
+      </ul>
+    `;
+    this.registerHelper('even', (params: number[]) => params[0] % 2 === 0);
+    let template = '{{#if (even i)}}<FooBar @count={{i}} />{{/if}}';
+    this.registerComponent('Fragment', 'FooBar', '<li>{{@count}}</li>');
+    let blockParams = ['i'];
+    let args = { items: 'items', things: 'things' };
+
+    this.renderServerSide({
+      layout,
+      template,
+      blockParams,
+      args
+    }, {
+      items: [
+        { show: true, name: 'Industry' },
+        { show: false, name: 'Standard' },
+        { show: false, name: 'Components' }
+      ]
+    });
+
+    let b = blockStack();
+
+    let id = (num: number) => this.testType === 'Dynamic' ? num + 1 : num;
+
+    this.assertServerComponent(strip`
+      <ul>
+        ${b(id(2))}
+        ${b(id(3))}
+
+        ${b(id(4))}
+        ${b(id(5))}
+        <li>
+          ${b(id(6))}
+          Industry
+          ${b(id(6))}
+        </li>
+        ${b(id(5))}
+        ${b(id(4))}
+
+        ${b(id(4))}
+        ${b(id(5))}
+        ${b(id(6))}
+        <!---->
+        ${b(id(6))}
+        ${b(id(5))}
+        ${b(id(4))}
+
+        ${b(id(4))}
+        ${b(id(5))}
+        ${b(id(6))}
+        ${b(id(7))}
+        <li>
+          ${b(id(8))}
+          2
+          ${b(id(8))}
+        </li>
+        ${b(id(7))}
+        ${b(id(6))}
+        ${b(id(5))}
+        ${b(id(4))}
+
+        ${b(id(3))}
+        ${b(id(2))}
+      </ul>
+      <ul>
+        ${b(id(2))}
+        <!---->
+        ${b(id(2))}
+      </ul>
+    `);
+
+    this.renderClientSide({
+      layout,
+      template,
+      blockParams,
+      args
+    }, {
+      things: [
+        { show: true, name: 'Industry' },
+        { show: true, name: 'Standard' },
+        { show: false, name: 'Components' }
+      ]
+    });
+
+    this.assertRehydrationStats({ blocksRemoved: 1, nodesRemoved: 2 });
+    this.assertComponent('<ul><!----></ul><ul><li>Industry</li><li>Standard</li><li>2</li></ul>');
+  }
+}
+
 rawModule("Rehydration Tests", Rehydration, RehydrationDelegate);
+rawModule('Rehydrating components', RehydratingComponents, RehydrationDelegate, { componentModule: true });
 module("Initial Render Tests", RenderTests);

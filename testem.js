@@ -12,6 +12,7 @@ let config = {
       "protocol": "tap"
      }
   },
+  "browser_start_timeout": 300,
   "browser_args": {
     "Chrome": {
       "mode": "ci",

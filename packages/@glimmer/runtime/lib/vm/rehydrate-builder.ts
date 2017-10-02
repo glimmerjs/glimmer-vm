@@ -4,7 +4,8 @@ import { Environment } from '../environment';
 import Bounds, { bounds, Cursor } from '../bounds';
 import { Simple, Option, Opaque } from "@glimmer/interfaces";
 import { DynamicContentWrapper } from './content/dynamic';
-import { expect, assert, Stack } from "@glimmer/util";
+import { expect, Stack, assert } from "@glimmer/util";
+import { SVG_NAMESPACE } from '../dom/helper';
 
 export class RehydrateBuilder extends NewElementBuilder implements ElementBuilder {
   private unmatchedAttributes: Option<Simple.Attribute[]> = null;
@@ -21,11 +22,7 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
     let candidate = this.candidateStack.pop();
     if (!candidate) return null;
 
-    if (isComment(candidate) && getCloseBlockDepth(candidate) === this.blockDepth) {
-      return null;
-    } else {
-      return candidate;
-    }
+    return candidate;
   }
 
   private clearMismatch(candidate: Simple.Node) {
@@ -62,7 +59,6 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
 
   __openBlock(): void {
     let { candidate } = this;
-
     if (candidate) {
       if (isComment(candidate)) {
         let depth = getOpenBlockDepth(candidate);
@@ -81,7 +77,16 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
     if (candidate) {
       if (isComment(candidate)) {
         let depth = getCloseBlockDepth(candidate);
+
         if (depth !== null) this.blockDepth = depth - 1;
+
+        if (isOpenBlock(candidate)) {
+          // Block was closed on client that was open on server
+          this.candidateStack.push(candidate);
+          this.clearBlock(this.blockDepth);
+          return;
+        }
+
         this.candidateStack.push(this.remove(candidate));
         return;
       } else {
@@ -189,11 +194,16 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
   __openElement(tag: string, _operations?: ElementOperations): Simple.Element {
     let _candidate = this.candidateStack.pop();
 
-    if (_candidate && isElement(_candidate) && _candidate.tagName === tag.toUpperCase()) {
+    if (_candidate && isElement(_candidate) && isSameNodeType(_candidate, tag)) {
       this.unmatchedAttributes = [].slice.call(_candidate.attributes);
       this.candidateStack.push(_candidate.nextSibling);
       return _candidate;
     } else if (_candidate) {
+
+      if (isOpenBlock(_candidate)) {
+        this.candidateStack.push(_candidate);
+      }
+
       this.clearMismatch(_candidate);
     }
 
@@ -232,14 +242,19 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
 
   __flushElement(parent: Simple.Element, constructing: Simple.Element): void {
     let { unmatchedAttributes: unmatched } = this;
-
     if (unmatched) {
       for (let i=0; i<unmatched.length; i++) {
         this.constructing!.removeAttribute(unmatched[i].name);
       }
       this.unmatchedAttributes = null;
     } else {
-      super.__flushElement(parent, constructing);
+      let nextSibling = null;
+
+      if (parent.firstChild !== null) {
+        nextSibling = this.candidateStack.current;
+      }
+
+      this.dom.insertBefore(parent, constructing, nextSibling);
     }
   }
 
@@ -253,10 +268,15 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
     let { candidate } = this;
 
     if (candidate) {
-      this.clearMismatch(candidate);
+      if (!(isCloseBlock(candidate) || isOpenBlock(candidate))) {
+        this.clearMismatch(candidate);
+      }
     }
 
-    this.candidateStack.push(this.element.nextSibling);
+    if (this.candidateStack.current !== this.element.nextSibling) {
+      this.candidateStack.push(this.element.nextSibling);
+    }
+
     super.willCloseElement();
   }
 
@@ -290,7 +310,9 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
   didAppendBounds(bounds: Bounds): Bounds {
     super.didAppendBounds(bounds);
     let last = bounds.lastNode();
-    this.candidateStack.push(last && last.nextSibling);
+    if (last && last.nextSibling !== this.candidateStack.current) {
+      this.candidateStack.push(last.nextSibling);
+    }
     return bounds;
   }
 
@@ -328,9 +350,23 @@ function getCloseBlockDepth(node: Simple.Comment): Option<number> {
     return null;
   }
 }
-
 function isElement(node: Simple.Node): node is Simple.Element {
   return node.nodeType === 1;
+}
+
+function isOpenBlock(node: Simple.Node): boolean {
+  return node.nodeType === 8 && node.nodeValue!.charAt(1) === '+';
+}
+
+function isCloseBlock(node: Simple.Node): boolean {
+  return node.nodeType === 8 && node.nodeValue!.charAt(1) === '-';
+}
+
+function isSameNodeType(candidate: Simple.Element, tag: string) {
+  if (candidate.namespaceURI === SVG_NAMESPACE) {
+    return candidate.tagName === tag;
+  }
+  return candidate.tagName === tag.toUpperCase();
 }
 
 function isMarker(node: Simple.Node): boolean {
