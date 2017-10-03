@@ -32,8 +32,6 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
           current = this.remove(current);
           i++;
         }
-
-        if (i >= 1) this.clearBlock(); // TODO FIX ME
       } else {
         // assert current.parentNode === lastMatched
         while (current !== null) {
@@ -267,22 +265,24 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
     throw new Error('Cannot find serialized cursor for `in-element`');
   }
 
-  clearBlock() {}
-
   pushRemoteElement(element: Simple.Element, cursorId: string, _nextSibling: Option<Simple.Node> = null) {
     let marker = this.getMarker(element, cursorId);
 
     if (marker.parentNode === element) {
       let candidate = marker.nextSibling;
       this.remove(marker);
-      // this.candidateStack.push(candidate);
-      // this.candidateStack.push(this.candidate);
+      // TODO
+      // assert nextSibling is a closing block
+      this.cursorStack.current!.nextSibling = this.candidate;
+      this.candidate = candidate;
+
       super.pushRemoteElement(element, cursorId, _nextSibling);
     }
   }
 
   popRemoteElement() {
     super.popRemoteElement();
+    this.candidate = this.nextSibling!.nextSibling;
     // this.candidateStack.pop();
     // this.candidateStack.pop();
   }
