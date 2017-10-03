@@ -9,86 +9,75 @@ import { SVG_NAMESPACE } from '../dom/helper';
 
 export class RehydrateBuilder extends NewElementBuilder implements ElementBuilder {
   private unmatchedAttributes: Option<Simple.Attribute[]> = null;
+  private depth = 0;
   private blockDepth = 0;
-  private candidateStack = new Stack<Option<Simple.Node>>();
+  private openCandidates = new Stack<Simple.Node>();
+  private candidate: Option<Simple.Node> = null;
 
   constructor(env: Environment, parentNode: Simple.Element, nextSibling: Option<Simple.Node>) {
     super(env, parentNode, nextSibling);
     if (nextSibling) throw new Error("Rehydration with nextSibling not supported");
-    this.candidateStack.push(parentNode.firstChild);
-  }
-
-  get candidate(): Option<Simple.Node> {
-    let candidate = this.candidateStack.pop();
-    if (!candidate) return null;
-
-    if (isComment(candidate) && getCloseBlockDepth(candidate) === this.blockDepth) {
-      return null;
-    } else {
-      return candidate;
-    }
+    this.candidate = parentNode.firstChild;
+    // todo assert we have +block:0
   }
 
   private clearMismatch(candidate: Simple.Node) {
-    if (isComment(candidate)) {
-      let depth = getOpenBlockDepth(candidate);
-
-      if (depth !== null) {
-        this.clearBlock(depth);
-        return;
-      }
-    }
-
     let current: Option<Simple.Node> = candidate;
-    let until = this.nextSibling;
+    let openCandidate = this.openCandidates.current;
+    if (openCandidate !== null) {
+      if (isComment(openCandidate)) {
+        let openDepth = getOpenBlockDepth(openCandidate);
+        let i = 0;
+        while (current && !(isComment(current) && getCloseBlockDepth(current) === openDepth)) {
+          current = this.remove(current);
+          i++;
+        }
 
-    while (current && current !== until) {
-      current = this.remove(current);
-    }
-
-    this.candidateStack.push(null);
-  }
-
-  protected clearBlock(depth: number) {
-    let current: Option<Simple.Node> = this.candidateStack.pop();
-
-    while (current && !(isComment(current) && getCloseBlockDepth(current) === depth)) {
-      current = this.remove(current);
-    }
-
-    assert(current && isComment(current) && getCloseBlockDepth(current) === depth, 'An opening block should be paired with a closing block comment');
-
-    this.candidateStack.push(this.remove(current!));
+        if (i > 1) this.clearBlock(); // TODO FIX ME
+      } else {
+        // assert current.parentNode === lastMatched
+        while (current !== null) {
+          current = this.remove(current);
+        }
+      }
+      // current cursor parentNode should be openCandidate if element
+      // or openCandidate.parentNode if comment
+      this.cursorStack.current!.nextSibling = current;
+    } // else we should always have at least block 0 or we didn't SSR and not safe to clear
+    this.candidate = null;
   }
 
   __openBlock(): void {
     let { candidate } = this;
 
     if (candidate) {
-      if (isComment(candidate)) {
-        let depth = getOpenBlockDepth(candidate);
-        if (depth !== null) this.blockDepth = depth;
-        this.candidateStack.push(this.remove(candidate));
-        return;
+      if (isComment(candidate) && getOpenBlockDepth(candidate) === this.blockDepth) {
+        this.openCandidates.push(candidate);
+        this.candidate = this.remove(candidate);
       } else {
+        this.candidate = null;
         this.clearMismatch(candidate);
       }
     }
+    this.depth++;
+    this.blockDepth++;
   }
 
   __closeBlock(): void {
-    let candidate = this.candidateStack.pop();
-
-    if (candidate) {
-      if (isComment(candidate)) {
-        let depth = getCloseBlockDepth(candidate);
-        if (depth !== null) this.blockDepth = depth - 1;
-        this.candidateStack.push(this.remove(candidate));
-        return;
-      } else {
+    if (this.depth === this.openCandidates.size) {
+      let { candidate } = this;
+      if (candidate !== null) {
         this.clearMismatch(candidate);
       }
+      this.openCandidates.pop();
+      // assert close block for this depth
+      this.candidate = this.remove(this.nextSibling!);
+    } else  {
+      // asert this.candidate ===nulll
     }
+
+    this.depth--;
+    this.blockDepth--;
   }
 
   __appendNode(node: Simple.Node): Simple.Node {
@@ -130,7 +119,7 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
   }
 
   private markerBounds(): Option<Bounds> {
-    let _candidate = this.candidateStack.pop();
+    let _candidate = this.candidate;
 
     if (_candidate && isMarker(_candidate)) {
       let first = _candidate;
@@ -152,15 +141,15 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
     if (candidate) {
       if (isTextNode(candidate)) {
         candidate.nodeValue = string;
-        this.candidateStack.push(candidate.nextSibling);
+        this.candidate = candidate.nextSibling;
         return candidate;
       } else if (candidate && (isSeparator(candidate) || isEmpty(candidate))) {
-        this.candidateStack.push(candidate.nextSibling);
+        this.candidate = candidate.nextSibling;
         this.remove(candidate);
         return this.__appendText(string);
       } else if (isEmpty(candidate)) {
         let next = this.remove(candidate);
-        this.candidateStack.push(next);
+        this.candidate = next;
         let text = this.dom.createTextNode(string);
         this.dom.insertBefore(this.element, text, next);
         return text;
@@ -174,11 +163,11 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
   }
 
   __appendComment(string: string): Simple.Comment {
-    let _candidate = this.candidateStack.pop();
-
+    let _candidate = this.candidate;
     if (_candidate && isComment(_candidate)) {
+      // TODO should not rehydrated a special comment
       _candidate.nodeValue = string;
-      this.candidateStack.push(_candidate.nextSibling);
+      this.candidate =_candidate.nextSibling;
       return _candidate;
     } else if (_candidate) {
       this.clearMismatch(_candidate);
@@ -188,11 +177,14 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
   }
 
   __openElement(tag: string, _operations?: ElementOperations): Simple.Element {
-    let _candidate = this.candidateStack.pop();
+    let _candidate = this.candidate;
+
+    this.depth++;
 
     if (_candidate && isElement(_candidate) && isSameNodeType(_candidate, tag)) {
       this.unmatchedAttributes = [].slice.call(_candidate.attributes);
-      this.candidateStack.push(_candidate.nextSibling);
+      this.openCandidates.push(_candidate);
+      this.candidate = _candidate.firstChild;
       return _candidate;
     } else if (_candidate) {
       this.clearMismatch(_candidate);
@@ -257,7 +249,13 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
       this.clearMismatch(candidate);
     }
 
-    this.candidateStack.push(this.element.nextSibling);
+    if (this.depth === this.openCandidates.size) {
+      this.openCandidates.pop();
+    }
+
+    this.depth--;
+
+    this.candidate = this.element.nextSibling;
     super.willCloseElement();
   }
 
@@ -270,34 +268,35 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
     throw new Error('Cannot find serialized cursor for `in-element`');
   }
 
+  clearBlock() {}
+
   pushRemoteElement(element: Simple.Element, cursorId: string, _nextSibling: Option<Simple.Node> = null) {
     let marker = this.getMarker(element, cursorId);
 
     if (marker.parentNode === element) {
       let candidate = marker.nextSibling;
       this.remove(marker);
-      this.candidateStack.push(candidate);
-      this.candidateStack.push(this.candidate);
+      // this.candidateStack.push(candidate);
+      // this.candidateStack.push(this.candidate);
       super.pushRemoteElement(element, cursorId, _nextSibling);
     }
   }
 
   popRemoteElement() {
     super.popRemoteElement();
-    this.candidateStack.pop();
-    this.candidateStack.pop();
+    // this.candidateStack.pop();
+    // this.candidateStack.pop();
   }
 
   didAppendBounds(bounds: Bounds): Bounds {
     super.didAppendBounds(bounds);
-    let last = bounds.lastNode();
-    this.candidateStack.push(last && last.nextSibling);
+    // let last = bounds.lastNode();
+    //this.candidateStack.push(last && last.nextSibling);
     return bounds;
   }
 
   didOpenElement(element: Simple.Element): Simple.Element {
     super.didOpenElement(element);
-    this.candidateStack.push(element.firstChild);
     return element;
   }
 }

@@ -125,7 +125,7 @@ export class NewElementBuilder implements ElementBuilder {
   public operations: Option<ElementOperations> = null;
   public env: Environment;
 
-  private cursorStack = new Stack<Cursor>();
+  protected cursorStack = new Stack<Cursor>();
   private blockStack = new Stack<Tracker>();
 
   static forInitialRender(env: Environment, cursor: Cursor) {
