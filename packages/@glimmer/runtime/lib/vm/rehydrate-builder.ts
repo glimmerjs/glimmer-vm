@@ -33,7 +33,7 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
           i++;
         }
 
-        if (i > 1) this.clearBlock(); // TODO FIX ME
+        if (i >= 1) this.clearBlock(); // TODO FIX ME
       } else {
         // assert current.parentNode === lastMatched
         while (current !== null) {
@@ -290,8 +290,8 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
 
   didAppendBounds(bounds: Bounds): Bounds {
     super.didAppendBounds(bounds);
-    // let last = bounds.lastNode();
-    //this.candidateStack.push(last && last.nextSibling);
+    let last = bounds.lastNode();
+    this.candidate = last && last.nextSibling;
     return bounds;
   }
 

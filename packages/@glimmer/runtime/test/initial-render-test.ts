@@ -83,7 +83,7 @@ class Rehydration extends AbstractRehydrationTests {
     this.assertServerOutput(OPEN, "<div>hi admin</div>", CLOSE);
 
     this.renderClientSide(template, { admin: false });
-    this.assertRehydrationStats({ blocksRemoved: 0, nodesRemoved: 1 });
+    this.assertRehydrationStats({ blocksRemoved: 1, nodesRemoved: 1 });
     this.assertHTML("<p>HAXOR</p>");
     this.assertStableRerender();
   }
