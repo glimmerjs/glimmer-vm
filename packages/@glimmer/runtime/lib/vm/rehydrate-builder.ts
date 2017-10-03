@@ -173,20 +173,27 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
     return super.__appendComment(string);
   }
 
-  __openElement(tag: string, _operations?: ElementOperations): Simple.Element {
+  __openElement(tag: string, operations?: ElementOperations): Simple.Element {
     let _candidate = this.candidate;
 
-    this.depth++;
 
     if (_candidate && isElement(_candidate) && isSameNodeType(_candidate, tag)) {
       this.unmatchedAttributes = [].slice.call(_candidate.attributes);
       this.openCandidates.push(_candidate);
       this.candidate = _candidate.firstChild;
+
+    this.depth++;
       return _candidate;
     } else if (_candidate) {
+      if (isElement(_candidate) && _candidate.tagName === 'TBODY') {
+        this.candidate = _candidate.firstChild;
+        // this.openCandidates.push(_candidate);
+        return this.__openElement(tag, operations);
+      }
       this.clearMismatch(_candidate);
     }
 
+    this.depth++;
     return super.__openElement(tag);
   }
 

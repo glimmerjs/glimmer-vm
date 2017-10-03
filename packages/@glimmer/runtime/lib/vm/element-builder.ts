@@ -210,6 +210,7 @@ export class NewElementBuilder implements ElementBuilder {
   __openBlock(): void {}
   __closeBlock(): void {}
 
+  // todo return seems unused
   openElement(tag: string): Simple.Element {
     let element = this.__openElement(tag);
     this.constructing = element;

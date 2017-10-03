@@ -16,6 +16,7 @@ function currentNode(cursor: ElementBuilder | { element: Simple.Element, nextSib
 
 class SerializeBuilder extends NewElementBuilder implements ElementBuilder {
   private serializeBlockDepth = 0;
+  private inTable = false;
 
   __openBlock(): void {
     let depth = this.serializeBlockDepth++;
@@ -30,6 +31,7 @@ class SerializeBuilder extends NewElementBuilder implements ElementBuilder {
   }
 
   __appendHTML(html: string): Bounds {
+    // Do we need to run the html tokenizer here?
     let first = this.__appendComment('%glimmer%');
     super.__appendHTML(html);
     let last = this.__appendComment('%glimmer%');
@@ -46,6 +48,30 @@ class SerializeBuilder extends NewElementBuilder implements ElementBuilder {
     }
 
     return super.__appendText(string);
+  }
+
+  closeElement() {
+    if (this.element['needsExtraClose'] === true) {
+      this.element['needsExtraClose'] = false;
+      super.closeElement();
+    }
+
+    super.closeElement();
+  }
+
+  openElement(tag: string) {
+
+    if (tag === 'tr') {
+      if (this.element.tagName !== 'TBODY') {
+        this.openElement('tbody');
+        this.constructing!['needsExtraClose'] = true;
+        this.flushElement();
+      }
+
+      this.inTable = false;
+    }
+
+    return super.openElement(tag);
   }
 
   pushRemoteElement(element: Simple.Element, cursorId: string,  nextSibling: Option<Simple.Node> = null) {

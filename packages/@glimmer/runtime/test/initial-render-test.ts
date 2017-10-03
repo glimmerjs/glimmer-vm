@@ -52,6 +52,17 @@ class AbstractRehydrationTests extends InitialRenderSuite {
 }
 
 class Rehydration extends AbstractRehydrationTests {
+
+  @test "table with omitted tbody"() {
+    let template = '<table><tr><td>standards</td></tr></table>';
+    this.renderServerSide(template, {});
+    this.assertServerOutput('<table><tbody><tr><td>standards</td></tr></tbody></table>');
+    this.renderClientSide(template, {});
+    this.assertHTML('<table><tbody><tr><td>standards</td></tr></tbody></table>');
+    this.assertRehydrationStats({ nodesRemoved: 0 });
+    this.assertStableNodes();
+  }
+
   @test "mismatched text nodes"() {
     let template = '{{content}}';
     this.renderServerSide(template, { content: 'hello' });
@@ -823,7 +834,7 @@ class RehydratingComponents extends AbstractRehydrationTests {
   }
 
   @test
-  "2mismatched interacting with builtins"() {
+  "mismatched blocks interacting with builtins"() {
     let layout = strip`
       <ul>
         {{#each @items key="id" as |item i|}}
@@ -928,8 +939,7 @@ class RehydratingComponents extends AbstractRehydrationTests {
   }
 }
 
+
 rawModule("Rehydration Tests", Rehydration, RehydrationDelegate);
 module("Initial Render Tests", RenderTests);
 rawModule('Rehydrating components', RehydratingComponents, RehydrationDelegate, { componentModule: true });
-rawModule("Rehydration Tests", Rehydration, RehydrationDelegate);
-module("Initial Render Tests", RenderTests);
