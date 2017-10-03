@@ -176,13 +176,12 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
   __openElement(tag: string, operations?: ElementOperations): Simple.Element {
     let _candidate = this.candidate;
 
-
     if (_candidate && isElement(_candidate) && isSameNodeType(_candidate, tag)) {
       this.unmatchedAttributes = [].slice.call(_candidate.attributes);
       this.openCandidates.push(_candidate);
       this.candidate = _candidate.firstChild;
 
-    this.depth++;
+      this.depth++;
       return _candidate;
     } else if (_candidate) {
       if (isElement(_candidate) && _candidate.tagName === 'TBODY') {

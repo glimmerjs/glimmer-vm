@@ -939,7 +939,6 @@ class RehydratingComponents extends AbstractRehydrationTests {
   }
 }
 
-
 rawModule("Rehydration Tests", Rehydration, RehydrationDelegate);
 module("Initial Render Tests", RenderTests);
 rawModule('Rehydrating components', RehydratingComponents, RehydrationDelegate, { componentModule: true });
