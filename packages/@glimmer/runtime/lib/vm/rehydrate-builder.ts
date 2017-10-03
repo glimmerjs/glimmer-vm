@@ -18,7 +18,7 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
     super(env, parentNode, nextSibling);
     if (nextSibling) throw new Error("Rehydration with nextSibling not supported");
     this.candidate = parentNode.firstChild;
-    // todo assert we have +block:0
+    assert(this.candidate && isComment(this.candidate) && this.candidate.nodeValue === '%+block:0%', 'Must have opening comment <!--%+block:0%--> for rehydration.');
   }
 
   private clearMismatch(candidate: Simple.Node) {
@@ -43,7 +43,8 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
       // current cursor parentNode should be openCandidate if element
       // or openCandidate.parentNode if comment
       this.cursorStack.current!.nextSibling = current;
-    } // else we should always have at least block 0 or we didn't SSR and not safe to clear
+    }
+    // else we should always have at least block 0 or we didn't SSR and not safe to clear
     this.candidate = null;
   }
 
@@ -72,8 +73,6 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
       this.openCandidates.pop();
       // assert close block for this depth
       this.candidate = this.remove(this.nextSibling!);
-    } else  {
-      // asert this.candidate ===nulll
     }
 
     this.depth--;

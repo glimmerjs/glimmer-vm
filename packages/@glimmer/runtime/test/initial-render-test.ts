@@ -106,7 +106,6 @@ class Rehydration extends AbstractRehydrationTests {
     let node = env.getAppendOperations().createTextNode('hello');
     this.renderServerSide(template, { node });
     this.assertServerOutput('<div>hello</div>');
-    debugger;
     env = this.delegate.clientEnv;
     let clientNode = env.getDOM().createTextNode('hello');
     this.context = { node: clientNode };
@@ -218,8 +217,6 @@ class Rehydration extends AbstractRehydrationTests {
       ${b(1)}
       ${b(0)}
     `);
-
-    debugger;
 
     this.renderClientSide(template, { isTrue: false, items: [3, 4] });
     // Removes the block and each <p>
@@ -339,5 +336,7 @@ class Rehydration extends AbstractRehydrationTests {
   }
 }
 
+rawModule("Rehydration Tests", Rehydration, RehydrationDelegate);
+module("Initial Render Tests", RenderTests);
 rawModule("Rehydration Tests", Rehydration, RehydrationDelegate);
 module("Initial Render Tests", RenderTests);

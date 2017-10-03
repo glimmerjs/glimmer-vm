@@ -89,7 +89,7 @@ function buildElement(tag: string, attributes?: AST.AttrNode[], modifiers?: AST.
     loc = comments;
     comments = [];
   }
-  debugger;
+
   return {
     type: "ElementNode",
     tag: tag || "",
