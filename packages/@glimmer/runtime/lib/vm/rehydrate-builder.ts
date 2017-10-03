@@ -7,6 +7,19 @@ import { DynamicContentWrapper } from './content/dynamic';
 import { expect, assert, Stack } from "@glimmer/util";
 import { SVG_NAMESPACE } from '../dom/helper';
 
+class RehydratingCursor extends Cursor {
+  private state = true;
+  get isOpen() { return this.state; }
+
+  public open() {
+    this.state = true;
+  }
+
+  public close() {
+    this.state = false;
+  }
+}
+
 export class RehydrateBuilder extends NewElementBuilder implements ElementBuilder {
   private unmatchedAttributes: Option<Simple.Attribute[]> = null;
   private depth = 0;
@@ -19,6 +32,10 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
     if (nextSibling) throw new Error("Rehydration with nextSibling not supported");
     this.candidate = parentNode.firstChild;
     assert(this.candidate && isComment(this.candidate) && this.candidate.nodeValue === '%+block:0%', 'Must have opening comment <!--%+block:0%--> for rehydration.');
+  }
+
+  pushElement(element: Simple.Element, nextSibling: Option<Simple.Node>) {
+    this.cursorStack.push(new RehydratingCursor(element, nextSibling));
   }
 
   private clearMismatch(candidate: Simple.Node) {

@@ -145,7 +145,7 @@ export class NewElementBuilder implements ElementBuilder {
   }
 
   constructor(env: Environment, parentNode: Simple.Element, nextSibling: Option<Simple.Node>) {
-    this.cursorStack.push(new Cursor(parentNode, nextSibling));
+    this.pushElement(parentNode, nextSibling);
 
     this.env = env;
     this.dom = env.getAppendOperations();
