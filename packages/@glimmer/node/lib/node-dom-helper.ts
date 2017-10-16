@@ -2,6 +2,8 @@ import * as SimpleDOM from 'simple-dom';
 import { DOMTreeConstruction, Bounds, ConcreteBounds } from '@glimmer/runtime';
 import { Simple } from '@glimmer/interfaces';
 
+const nodesCache = {};
+
 export default class NodeDOMTreeConstruction extends DOMTreeConstruction {
   protected document: SimpleDOM.Document;
   constructor(doc: Simple.Document) {
@@ -23,9 +25,22 @@ export default class NodeDOMTreeConstruction extends DOMTreeConstruction {
     return new ConcreteBounds(parent, first, last);
   }
 
+  createNodeCache(tag: string) {
+    nodesCache[tag] = this.document.createElement(tag);
+    return this.getNodeFromCache(tag);
+  }
+
+  hasNodeInCache(tag: string) {
+    return nodesCache.hasOwnProperty(tag);
+  }
+
+  getNodeFromCache(tag:string) {
+    return nodesCache[tag].cloneNode(false);
+  }
+
   // override to avoid SVG detection/work when in node (this is not needed in SSR)
   createElement(tag: string) {
-    return this.document.createElement(tag);
+    return this.hasNodeInCache(tag) ? this.getNodeFromCache(tag) : this.createNodeCache(tag);
   }
 
   // override to avoid namespace shenanigans when in node (this is not needed in SSR)
