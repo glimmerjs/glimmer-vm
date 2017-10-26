@@ -116,7 +116,7 @@ function gitCommitAndTag() {
 }
 
 function confirmPublish() {
-  distTag = semver.prerelease(newVersion) ? 'next' : 'latest';
+  distTag = 'old';
 
   console.log(chalk.blue("Version"), newVersion);
   console.log(chalk.blue("Dist Tag"), distTag);
