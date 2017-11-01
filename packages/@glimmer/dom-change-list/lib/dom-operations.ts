@@ -184,7 +184,7 @@ const ConstructionOperations: ConstructionFunction[] = [
 
     assert(constructing !== null, 'SetAttribute can only be invoked when an element is being constructed');
 
-    constructing!.setAttributeNS(constants[namespace] as Simple.Namespace, constants[name], constants[value]);
+    constructing!.setAttributeNS!(constants[namespace] as Simple.Namespace, constants[name], constants[value]);
   },
 
   /* (AppendText text) */

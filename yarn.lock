@@ -6703,9 +6703,9 @@ silent-error@^1.0.0, silent-error@^1.0.1:
   dependencies:
     debug "^2.2.0"
 
-simple-dom@^0.3.0:
-  version "0.3.2"
-  resolved "https://registry.yarnpkg.com/simple-dom/-/simple-dom-0.3.2.tgz#0663d10f1556f1500551d518f56e3aba0871371d"
+simple-dom@^1.3.0:
+  version "1.3.0"
+  resolved "https://registry.yarnpkg.com/simple-dom/-/simple-dom-1.3.0.tgz#8473e0d34e340544b061410dba3faf4f1b7aa282"
 
 simple-fmt@~0.1.0:
   version "0.1.0"

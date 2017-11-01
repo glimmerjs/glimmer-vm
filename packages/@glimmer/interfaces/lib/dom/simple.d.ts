@@ -9,7 +9,7 @@ export type Namespace =
   | "http://www.w3.org/XML/1998/namespace"
   | "http://www.w3.org/2000/xmlns/";
 
-export enum NodeType {
+export const enum NodeType {
   Element = 1,
   Attribute = 2,
   Text = 3,
@@ -50,10 +50,6 @@ export interface Document extends Node {
   createComment(data: string): Comment;
 }
 
-export interface CharacterData extends Node {
-  data: string;
-}
-
 export interface TokenList {
   [index: number]: string;
   length: number;
@@ -63,11 +59,11 @@ export interface TokenList {
   contains(s: string): boolean;
 }
 
-export interface Text extends CharacterData {
+export interface Text extends Node {
   nodeType: NodeType.Text;
 }
 
-export interface Comment extends CharacterData {
+export interface Comment extends Node {
   nodeType: NodeType.Comment;
 }
 
@@ -86,13 +82,13 @@ export interface Attributes {
 
 export interface Element extends Node {
   nodeType: NodeType.Element;
-  namespaceURI: Option<string>;
+  namespaceURI?: Option<string>;
   tagName: string;
   attributes: Attributes;
   removeAttribute(name: string): void;
-  removeAttributeNS(namespaceURI: string, name: string): void;
+  removeAttributeNS?(namespaceURI: string, name: string): void;
   setAttribute(name: string, value: string): void;
-  setAttributeNS(namespaceURI: string, qualifiedName: string, value: string): void;
+  setAttributeNS?(namespaceURI: string, qualifiedName: string, value: string): void;
   insertBefore(node: Node, reference: Option<Node>): void;
   removeChild(node: Node): void;
 }

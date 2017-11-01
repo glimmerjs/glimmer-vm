@@ -109,7 +109,7 @@ export class DefaultDynamicProperty extends DynamicAttribute {
     let { element, name, namespace } = this.attribute;
 
     if (namespace) {
-      element.removeAttributeNS(namespace, name);
+      element.removeAttributeNS!(namespace, name);
     } else {
       element.removeAttribute(name);
     }
