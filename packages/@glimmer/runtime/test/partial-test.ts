@@ -330,6 +330,38 @@ QUnit.test('nested dynamic partial with dynamic content', () => {
   equalTokens(root, `Before <div>Testing wat are <div>Nested you doing?</div></div> After`);
 });
 
+QUnit.test('nested partials within nested `{{#with}}` blocks', () => {
+  env.registerPartial('person2-partial', strip`
+    {{#with 'Ben' as |person2|}}
+      Hi {{person1}} (aged {{age}}) and {{person2}}. {{partial 'person3-partial'}}
+    {{/with}}
+  `);
+
+  env.registerPartial('person3-partial', strip`
+    {{#with 'Alex' as |person3|}}
+      Hi {{person1}} (aged {{age}}), {{person2}} and {{person3}}.
+    {{/with}}
+  `);
+
+  env.registerPartial('person4-partial', strip`
+    {{#with 'Sarah' as |person4|}}
+      Hi {{person1}} (aged {{age}}), {{person2}}, {{person3}} and {{person4}}.
+    {{/with}}
+  `);
+
+  let template = compile(strip`
+    {{#with 'Sophie' as |person1|}}
+      Hi {{person1}} (aged {{age}}). {{partial 'person2-partial'}}
+    {{/with}}
+  `);
+
+  render(template, { age: 0 });
+
+  equalTokens(root, `Hi Sophie (aged 0). Hi Sophie (aged 0) and Ben. Hi Sophie (aged 0), Ben and Alex. Hi Sophie (aged 0), Ben, Alex and Sarah.`);
+  rerender({ age: 0 }, { assertStable: true });
+  equalTokens(root, `Hi Sophie (aged 0). Hi Sophie (aged 0) and Ben. Hi Sophie (aged 0), Ben and Alex. Hi Sophie (aged 0), Ben, Alex and Sarah.`);
+});
+
 QUnit.test('dynamic partial with falsy value does not render', () => {
   let template = compile(`Before {{partial name}} After`);
 
