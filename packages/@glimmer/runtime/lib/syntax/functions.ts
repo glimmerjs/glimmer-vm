@@ -5,7 +5,6 @@ import {
 } from '@glimmer/reference';
 import {
   assert,
-  assign,
   Dict,
   dict,
   EMPTY_ARRAY,
@@ -260,18 +259,15 @@ export class PartialInvoker implements DynamicInvoker<ProgramSymbolTable> {
     let partial = unwrap(_partial);
     let partialSymbols = partial.symbolTable.symbols;
     let outerScope = vm.scope();
-    let outerEvalScope = outerScope.getEvalScope();
+    let evalScope = outerScope.getEvalScope();
     let partialScope = vm.pushRootScope(partialSymbols.length, false);
     partialScope.bindCallerScope(outerScope.getCallerScope());
-    partialScope.bindEvalScope(outerEvalScope);
+    partialScope.bindEvalScope(evalScope);
     partialScope.bindSelf(outerScope.getSelf());
 
     let { evalInfo, outerSymbols } = this;
 
-    let locals = outerScope.getPartialMap();
-    if (locals === null) {
-      locals = dict<VersionedPathReference<Opaque>>();
-    }
+    let locals = Object.create(outerScope.getPartialMap());
 
     for (let i = 0; i < evalInfo.length; i++) {
       let slot = evalInfo[i];
@@ -280,18 +276,14 @@ export class PartialInvoker implements DynamicInvoker<ProgramSymbolTable> {
       locals[name] = ref;
     }
 
-    if (outerEvalScope === null) {
-      outerEvalScope = {};
-    }
+    if (evalScope) {
+      for (let i = 0; i < partialSymbols.length; i++) {
+        let name = partialSymbols[i];
+        let symbol = i + 1;
+        let value = evalScope[name];
 
-    let mergedScope = assign(outerEvalScope, locals);
-
-    for (let i = 0; i < partialSymbols.length; i++) {
-      let name = partialSymbols[i];
-      let symbol = i + 1;
-      let value = mergedScope[name];
-
-      if (value !== undefined) partialScope.bind(symbol, value);
+        if (value !== undefined) partialScope.bind(symbol, value);
+      }
     }
 
     partialScope.bindPartialMap(locals);
