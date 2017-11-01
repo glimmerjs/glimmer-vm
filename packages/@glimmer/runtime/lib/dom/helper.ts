@@ -121,7 +121,7 @@ export namespace DOM {
 
     setAttribute(element: Element, name: string, value: string, namespace: Option<string> = null) {
       if (namespace) {
-        element.setAttributeNS(namespace, name, value);
+        element.setAttributeNS!(namespace, name, value);
       } else {
         element.setAttribute(name, value);
       }
