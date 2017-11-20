@@ -2,11 +2,12 @@ import { Option, Dict, Slice as ListSlice, initializeGuid, fillNulls, unreachabl
 import { recordStackSize } from '@glimmer/debug';
 import { Op } from '@glimmer/vm';
 import { Tag } from '@glimmer/reference';
-import { debug, logOpcode } from "@glimmer/opcode-compiler";
 import { METADATA } from "@glimmer/vm";
 import { Opcode, Opaque } from "@glimmer/interfaces";
 import { VM, UpdatingVM } from './vm';
 import { DEBUG, DEVMODE } from '@glimmer/local-debug-flags';
+
+declare const requirejs: any;
 
 export interface OpcodeJSON {
   type: number | string;
@@ -33,6 +34,7 @@ export class AppendOpcodes {
   evaluate(vm: VM<Opaque>, opcode: Opcode, type: number) {
     let func = this.evaluateOpcode[type];
     if (DEBUG) {
+      let { debug, logOpcode } = requirejs("@glimmer/opcode-compiler");
       /* tslint:disable */
       let [name, params] = debug(vm.constants, opcode.type, opcode.op1, opcode.op2, opcode.op3);
       // console.log(`${typePos(vm['pc'])}.`);
@@ -67,6 +69,7 @@ export class AppendOpcodes {
     func(vm, opcode);
 
     if (DEVMODE) {
+      let { debug, logOpcode } = requirejs("@glimmer/opcode-compiler");
       let metadata = METADATA[type];
       if (metadata !== null) {
         if (typeof metadata.stackChange === 'number') {

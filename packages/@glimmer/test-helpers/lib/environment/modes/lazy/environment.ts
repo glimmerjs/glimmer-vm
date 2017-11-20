@@ -4,11 +4,8 @@ import {
   DOMTreeConstruction,
   TopLevelSyntax,
   ModifierManager,
-  PartialDefinition,
   ComponentDefinition,
   CompilationOptions,
-  templateFactory,
-  Template,
   IDOMChanges,
   DOMChanges,
   VM,
@@ -18,7 +15,7 @@ import {
   curry,
   ComponentManager
 } from "@glimmer/runtime";
-import { TemplateOptions, LazyOpcodeBuilder, OpcodeBuilderConstructor } from "@glimmer/opcode-compiler";
+import { TemplateOptions, LazyOpcodeBuilder, OpcodeBuilderConstructor, templateFactory, Template, PartialDefinition } from "@glimmer/opcode-compiler";
 import { precompile } from "@glimmer/compiler";
 import { LazyConstants, Program } from "@glimmer/program";
 

@@ -1,5 +1,6 @@
 import { PathReference, Tagged, TagWrapper, RevisionTag, DirtyableTag, Tag } from "@glimmer/reference";
-import { RenderResult, RenderLayoutOptions, TemplateIterator, Environment, Cursor, ElementBuilder } from "@glimmer/runtime";
+import { RenderResult, TemplateIterator, Environment, Cursor, ElementBuilder } from "@glimmer/runtime";
+import { RenderLayoutOptions } from '@glimmer/opcode-compiler';
 import { Opaque, Dict, dict, expect } from "@glimmer/util";
 import { NodeDOMTreeConstruction, serializeBuilder } from "@glimmer/node";
 import { Option, Simple } from "@glimmer/interfaces";

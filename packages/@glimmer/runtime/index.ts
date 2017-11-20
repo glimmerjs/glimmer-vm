@@ -1,6 +1,6 @@
 import './lib/bootstrap';
 
-export { default as templateFactory, ScannableTemplate, TemplateFactory, Template, TemplateIterator, RenderLayoutOptions } from './lib/template';
+export { TemplateIterator } from './lib/template';
 
 export { NULL_REFERENCE, UNDEFINED_REFERENCE, PrimitiveReference, ConditionalReference } from './lib/references';
 
@@ -35,6 +35,7 @@ export {
   ICapturedPositionalArguments as CapturedPositionalArguments,
   INamedArguments as NamedArguments,
   ICapturedNamedArguments as CapturedNamedArguments,
+  EMPTY_ARGS
 } from './lib/vm/arguments';
 
 export { SafeString } from './lib/upsert';
@@ -47,10 +48,6 @@ export {
   DynamicScope,
   CompilationOptions
 } from './lib/environment';
-
-export {
-  PartialDefinition
-} from './lib/partial';
 
 export {
   DEFAULT_CAPABILITIES,

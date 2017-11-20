@@ -1,4 +1,5 @@
-import { Template, RenderResult, IteratorResult, clientBuilder } from "@glimmer/runtime";
+import { RenderResult, IteratorResult, clientBuilder } from "@glimmer/runtime";
+import { Template } from '@glimmer/opcode-compiler';
 import {
   BasicComponent,
   EmberishCurlyComponent,

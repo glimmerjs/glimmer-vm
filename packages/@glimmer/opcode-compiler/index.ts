@@ -17,6 +17,15 @@ export {
   SimpleOpcodeBuilder
 } from './lib/opcode-builder';
 
+export { PartialDefinition } from './lib/partial-template';
+
+export {
+  Template,
+  default as templateFactory,
+  ScannableTemplate,
+  RenderLayoutOptions
+} from './lib/template';
+
 export {
   default as CompilableTemplate,
   ICompilableTemplate
