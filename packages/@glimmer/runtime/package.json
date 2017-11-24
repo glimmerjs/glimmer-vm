@@ -11,7 +11,6 @@
     "@glimmer/object-reference": "^0.30.2",
     "@glimmer/wire-format": "^0.30.2",
     "@glimmer/interfaces": "^0.30.2",
-    "@glimmer/opcode-compiler": "^0.30.2",
     "@glimmer/program": "^0.30.2",
     "@glimmer/vm": "^0.30.2"
   },

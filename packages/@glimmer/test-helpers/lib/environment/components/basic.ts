@@ -1,6 +1,7 @@
 import { createTemplate } from '../shared';
 
-import { WithStaticLayout, Environment, ScannableTemplate, Bounds, Invocation } from '@glimmer/runtime';
+import { WithStaticLayout, Environment, Bounds, Invocation } from '@glimmer/runtime';
+import { ScannableTemplate } from '@glimmer/opcode-compiler';
 import { unreachable, expect } from '@glimmer/util';
 import { TemplateOptions } from '@glimmer/opcode-compiler';
 import { PathReference, Tag, CONSTANT_TAG } from '@glimmer/reference';

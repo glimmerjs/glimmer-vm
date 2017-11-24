@@ -1,8 +1,9 @@
 import { TestEnvironment, equalTokens, TestDynamicScope } from "@glimmer/test-helpers";
 import { test, module } from "@glimmer/runtime/test/support";
-import { Template, RenderResult, DynamicAttributeFactory, SimpleDynamicAttribute, ElementBuilder, clientBuilder } from "@glimmer/runtime";
+import { RenderResult, DynamicAttributeFactory, SimpleDynamicAttribute, ElementBuilder, clientBuilder } from "@glimmer/runtime";
 import { UpdatableReference } from "@glimmer/object-reference";
 import { Option, Simple, Opaque } from "@glimmer/interfaces";
+import { Template } from '@glimmer/opcode-compiler';
 
 let env: TestEnvironment;
 let root: HTMLElement;

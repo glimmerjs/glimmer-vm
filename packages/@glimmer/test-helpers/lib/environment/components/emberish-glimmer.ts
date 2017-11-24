@@ -1,6 +1,6 @@
 
-import { TemplateOptions, TemplateMeta } from "@glimmer/opcode-compiler";
-import { CapturedNamedArguments, ComponentManager, WithStaticLayout, Environment, Arguments, PrimitiveReference, ElementOperations, Bounds, ScannableTemplate, Invocation } from "@glimmer/runtime";
+import { TemplateOptions, TemplateMeta, ScannableTemplate } from "@glimmer/opcode-compiler";
+import { CapturedNamedArguments, ComponentManager, WithStaticLayout, Environment, Arguments, PrimitiveReference, ElementOperations, Bounds, Invocation } from "@glimmer/runtime";
 import { Opaque, Option, ComponentCapabilities } from "@glimmer/interfaces";
 import { PathReference, Tag, combine, TagWrapper, DirtyableTag } from "@glimmer/reference";
 import { UpdatableReference } from "@glimmer/object-reference";
