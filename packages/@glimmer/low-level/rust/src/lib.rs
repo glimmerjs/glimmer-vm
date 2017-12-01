@@ -1,4 +1,4 @@
-#![feature(link_llvm_intrinsics, allocator_api)]
+#![feature(link_llvm_intrinsics)]
 
 #[no_mangle]
 pub extern fn add(a: u32, b: u32) -> u32 {
@@ -12,7 +12,7 @@ use stack::Stack;
 
 #[no_mangle]
 pub extern fn stack_new() -> usize {
-    Stack::new().into_usize()
+    Stack::new().map(|s| s.into_usize()).unwrap_or(0)
 }
 
 #[no_mangle]

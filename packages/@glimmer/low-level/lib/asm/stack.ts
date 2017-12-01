@@ -9,25 +9,27 @@ export class Stack {
 
   constructor() {
     this.stack = rust.stack_new();
+    if (this.stack === 0) {
+      throw new Error('failed to allocate a new stack in Rust');
+    }
   }
 
   copy(from: u32, to: u32) {
     if (rust.stack_copy(this.stack, from, to) === 0) {
-      // TODO: report this error?
+      throw new Error('failed to allocate memory or indexes out of bounds');
     }
   }
 
   // TODO: how to model u64 argument?
   writeRaw(pos: u32, value: u64): void {
-    console.log(this.stack, pos, value);
     if (rust.stack_write_raw(this.stack, pos, value) === 0) {
-      // TODO: report this error?
+      throw new Error('failed to allocate more memory');
     }
   }
 
   writeSmi(pos: u32, value: i32): void {
     if (rust.stack_write(this.stack, pos, value) === 0) {
-      // TODO: report this error?
+      throw new Error('failed to allocate more memory');
     }
   }
 

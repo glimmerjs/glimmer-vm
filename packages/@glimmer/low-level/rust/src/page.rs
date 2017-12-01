@@ -1,4 +1,4 @@
-use std::heap::{Alloc, Heap, AllocErr};
+use std::ptr;
 
 pub const PAGE_SIZE: usize = 64 * 1024;
 pub type Page = [u8; PAGE_SIZE];
@@ -25,10 +25,11 @@ pub fn alloc() -> *mut Page {
         if NEXT_FREE.is_null() {
             let cur = current_memory() as usize;
             grow_memory(1);
-            if current_memory() as usize == cur {
-                Heap.oom(AllocErr::invalid_input("oom"))
+            if cur == current_memory() as usize {
+                ptr::null_mut()
+            } else {
+                (cur * PAGE_SIZE) as *mut Page
             }
-            (cur * PAGE_SIZE) as *mut Page
         } else {
             let ret = NEXT_FREE;
             NEXT_FREE = (*ret).next;
