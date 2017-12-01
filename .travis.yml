@@ -14,6 +14,11 @@ before_install:
   - curl -o- -L https://yarnpkg.com/install.sh | bash -s -- --version 0.27.5
   - export PATH="$HOME/.yarn/bin:$PATH"
   - npm install -g qunitjs
+  - curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain nightly -y
+  - export PATH=$PATH:$HOME/.cargo/bin
+  - rustup target add wasm32-unknown-unknown
+  - cargo install --git https://github.com/alexcrichton/wasm-gc --debug
+  - rustc -V
 env:
   global:
     - CHROME_BIN=/usr/bin/google-chrome
