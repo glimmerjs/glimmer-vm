@@ -53,6 +53,7 @@
     "broccoli-merge-trees": "^1.1.1",
     "broccoli-persistent-filter": "^1.2.13",
     "broccoli-rollup": "^2.0.0",
+    "broccoli-rust2wasm": "^0.3.0",
     "broccoli-source": "^1.1.0",
     "broccoli-tslinter": "^2.0.0",
     "broccoli-typescript-compiler": "^2.0.0",

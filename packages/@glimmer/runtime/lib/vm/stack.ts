@@ -10,20 +10,6 @@ const MASK = 0x7FFFFFFF;
 export class InnerStack {
   constructor(private inner = new WasmStack(), private js: Opaque[] = []) {}
 
-  slice(start?: number, end?: number): InnerStack {
-    let inner: WasmStack;
-
-    if (typeof start === 'number' && typeof end === 'number') {
-      inner = this.inner.slice(start, end);
-    } else if (typeof start === 'number' && end === undefined) {
-      inner = this.inner.sliceFrom(start);
-    } else {
-      inner = this.inner.clone();
-    }
-
-    return new InnerStack(inner, this.js.slice(start, end));
-  }
-
   sliceInner<T = Opaque>(start: number, end: number): T[] {
     let out = [];
 
@@ -156,10 +142,6 @@ export default class EvaluationStack {
 
   set(value: Opaque, offset: number, base = this.fp) {
     this.stack.write(base + offset, value);
-  }
-
-  slice(start: number, end: number): InnerStack {
-    return this.stack.slice(start, end);
   }
 
   sliceArray<T = Opaque>(start: number, end: number): T[] {

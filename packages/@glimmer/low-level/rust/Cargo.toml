@@ -1,0 +1,12 @@
+[package]
+name = "rust"
+version = "0.1.0"
+authors = []
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+
+[profile.dev]
+opt-level = 2
