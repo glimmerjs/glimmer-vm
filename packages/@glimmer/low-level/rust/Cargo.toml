@@ -10,3 +10,8 @@ crate-type = ["cdylib"]
 
 [profile.dev]
 opt-level = 2
+panic = 'abort'
+
+[profile.release]
+opt-level = 's'
+panic = 'abort'
