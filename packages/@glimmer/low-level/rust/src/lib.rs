@@ -66,8 +66,3 @@ fn decode(val: u64) -> i32 {
 pub unsafe extern fn stack_reset(stack: usize) {
     Stack::with_stack(stack, |s| s.reset())
 }
-
-#[no_mangle]
-pub unsafe extern fn stack_len(stack: usize) -> u32 {
-    Stack::with_stack(stack, |s| s.len())
-}

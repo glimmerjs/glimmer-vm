@@ -11,5 +11,4 @@ export const {
   stack_read_raw,
   stack_read,
   stack_reset,
-  stack_len,
 } = mod;

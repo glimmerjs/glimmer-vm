@@ -7,6 +7,5 @@ declare const Mod: (imports: any) => {
   stack_read_raw(stack: number, at: number): number;
   stack_read(stack: number, at: number): number;
   stack_reset(stack: number): void;
-  stack_len(stack: number): number;
 };
 export default Mod;

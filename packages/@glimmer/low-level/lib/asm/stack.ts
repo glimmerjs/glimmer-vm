@@ -45,8 +45,4 @@ export class Stack {
   reset(): void {
     rust.stack_reset(this.stack);
   }
-
-  len(): number {
-    return rust.stack_len(this.stack);
-  }
 }

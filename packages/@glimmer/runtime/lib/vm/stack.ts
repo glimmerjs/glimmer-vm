@@ -59,10 +59,6 @@ export class InnerStack {
   reset(): void {
     this.inner.reset();
   }
-
-  get length(): number {
-    return this.inner.len();
-  }
 }
 
 export default class EvaluationStack {

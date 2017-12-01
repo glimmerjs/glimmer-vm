@@ -80,10 +80,6 @@ impl Stack {
         }
     }
 
-    pub fn len(&self) -> u32 {
-        0 // uhh ...
-    }
-
     pub fn reset(&mut self) {
         unsafe {
             let mut cur = self.head;
