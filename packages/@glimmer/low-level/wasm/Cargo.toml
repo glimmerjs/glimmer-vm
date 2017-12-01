@@ -1,0 +1,12 @@
+[package]
+name = "wasm"
+version = "0.1.0"
+authors = ["Kris Selden <kris.selden@gmail.com>"]
+
+[lib]
+crate-type = ["cdylib"]
+
+[profile.dev]
+opt-level = 1
+
+[dependencies]
