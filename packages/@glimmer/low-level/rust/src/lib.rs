@@ -1,10 +1,5 @@
 #![feature(link_llvm_intrinsics)]
 
-#[no_mangle]
-pub extern fn add(a: u32, b: u32) -> u32 {
-    a + b
-}
-
 mod page;
 mod stack;
 
