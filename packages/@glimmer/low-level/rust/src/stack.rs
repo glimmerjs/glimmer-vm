@@ -1,4 +1,5 @@
 use std::mem;
+use std::ptr;
 
 use page;
 
@@ -36,21 +37,27 @@ fn decode(val: u32) -> i32 {
 
 impl Stack {
     pub fn new() -> Stack {
-        Stack { head: page::alloc() as *mut Node }
+        Stack { head: node() }
     }
 
     pub fn into_usize(self) -> usize {
+        let ret = self.as_usize();
+        mem::forget(self);
+        return ret
+    }
+
+    pub fn as_usize(&self) -> usize {
         self.head as usize
     }
 
-    pub unsafe fn free_usize(stack: usize) {
-        drop(Stack { head: stack as *mut Node });
+    pub unsafe fn from_usize(stack: usize) -> Stack {
+        Stack { head: stack as *mut Node }
     }
 
     pub unsafe fn with_stack<F, R>(stack: usize, f: F) -> R
         where F: FnOnce(&mut Stack) -> R
     {
-        let mut tmp = Stack { head: stack as *mut Node };
+        let mut tmp = Stack::from_usize(stack);
         let ret = f(&mut tmp);
         mem::forget(tmp);
         return ret
@@ -73,10 +80,11 @@ impl Stack {
         unsafe {
             let mut at = at as usize;
             let mut cur = self.head;
+            debug_assert!(!cur.is_null());
             while at >= (*cur).data.len() {
                 at -= (*cur).data.len();
                 if (*cur).next.is_null() {
-                    (*cur).next = page::alloc() as *mut Node;
+                    (*cur).next = node();
                 }
                 cur = (*cur).next;
             }
@@ -92,6 +100,7 @@ impl Stack {
         unsafe {
             let mut at = at as usize;
             let mut cur = self.head;
+            debug_assert!(!cur.is_null());
             while at >= (*cur).data.len() {
                 at -= (*cur).data.len();
                 cur = (*cur).next;
@@ -104,35 +113,16 @@ impl Stack {
     }
 
     pub fn reset(&mut self) {
-        unsafe {
-            let mut cur = self.head;
-            while !cur.is_null() {
-                for slot in (*cur).data.iter_mut() {
-                    *slot = 0;
-                }
-                cur = (*cur).next;
-            }
-        }
+        // err... what should this do?
     }
 }
 
-impl Clone for Stack {
-    fn clone(&self) -> Stack {
-        unsafe {
-            let ret = Stack { head: page::alloc() as *mut Node };
-            let mut a = ret.head;
-            let mut b = self.head;
-            loop {
-                (*a).data = (*b).data;
-                if (*b).next.is_null() {
-                    break
-                }
-                b = (*b).next;
-                (*a).next = page::alloc() as *mut Node;
-                a = (*a).next;
-            }
-            return ret
-        }
+fn node() -> *mut Node {
+    assert!(mem::size_of::<Node>() <= page::PAGE_SIZE);
+    unsafe {
+        let page = page::alloc() as *mut Node;
+        (*page).next = ptr::null_mut();
+        return page
     }
 }
 

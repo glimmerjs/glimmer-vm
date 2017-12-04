@@ -22,7 +22,6 @@ import { UpdatingOpcode, UpdatingOpSeq } from '../opcodes';
 import { DOMChanges } from '../dom/helper';
 import { Simple } from '@glimmer/interfaces';
 
-import EvaluationStack from './stack';
 import VM from './append';
 import { RuntimeConstants as Constants, RuntimeProgram as Program } from "@glimmer/program";
 
@@ -170,7 +169,7 @@ export class TryOpcode extends BlockOpcode implements ExceptionHandler {
     let updating = new LinkedList<UpdatingOpcode>();
 
     vm.execute(start, vm => {
-      vm.stack = EvaluationStack.restore(state.stack);
+      vm.stack.restore(state.stack);
       vm.updatingOpcodeStack.push(updating);
       vm.updateWith(this);
       vm.updatingOpcodeStack.push(children);

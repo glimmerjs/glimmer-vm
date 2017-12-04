@@ -1,21 +1,8 @@
 import { Heap, Opcode } from "@glimmer/program";
 import { Option, Opaque } from "@glimmer/interfaces";
-import { APPEND_OPCODES } from "../opcodes";
+import EvaluationStack from './stack';
 import VM from './append';
-import { DEVMODE } from "@glimmer/local-debug-flags";
-import { Op } from "@glimmer/vm";
-
-export interface Stack {
-  sp: number;
-  fp: number;
-
-  pushSmi(value: number): void;
-  pushEncodedImmediate(value: number): void;
-
-  getSmi(position: number): number;
-  peekSmi(offset?: number): number;
-  popSmi(): number;
-}
+import { wasm } from '@glimmer/low-level';
 
 export interface Program {
   opcode(offset: number): Opcode;
@@ -27,112 +14,81 @@ export interface Externs {
 }
 
 export default class LowLevelVM {
-  public currentOpSize = 0;
+  private wasmVM: number; // TODO: need to free this somewhere
+  public stack: EvaluationStack;
 
   constructor(
-    public stack: Stack,
     public heap: Heap,
     public program: Program,
     public externs: Externs,
-    public pc = -1,
-    public ra = -1
-  ) {}
+  ) {
+    // note that the two 0's here indicate the heap/program, but they're passed
+    // elsewhere for now so they're just dummy values
+    this.wasmVM = wasm.low_level_vm_new(0, 0);
+
+    // TODO: this is more sketchy memory management! We own `this.wasmVM` yet
+    // we're giving it off to the evaluation stack as well. That's mostly to
+    // just get things working for now, but we probably don't want to do
+    // that in the future and either use things like `Rc` in Rust or some
+    // other slightly more principled memory management scheme.
+    this.stack = new EvaluationStack(this.wasmVM);
+  }
+
+  get currentOpSize() {
+    return wasm.low_level_vm_current_op_size(this.wasmVM);
+  }
+
+  get pc() {
+    return wasm.low_level_vm_pc(this.wasmVM);
+  }
+
+  set pc(pc) {
+    wasm.low_level_vm_set_pc(this.wasmVM, pc);
+  }
+
+  get ra() {
+    return wasm.low_level_vm_ra(this.wasmVM);
+  }
+
+  set ra(ra) {
+    wasm.low_level_vm_set_ra(this.wasmVM, ra);
+  }
 
   // Start a new frame and save $ra and $fp on the stack
   pushFrame() {
-    this.stack.pushSmi(this.ra);
-    this.stack.pushSmi(this.stack.fp);
-    this.stack.fp = this.stack.sp - 1;
+    wasm.low_level_vm_push_frame(this.wasmVM);
   }
 
   // Restore $ra, $sp and $fp
   popFrame() {
-    this.stack.sp = this.stack.fp - 1;
-    this.ra = this.stack.getSmi(0);
-    this.stack.fp = this.stack.getSmi(1);
+    wasm.low_level_vm_pop_frame(this.wasmVM);
   }
 
   // Jump to an address in `program`
   goto(offset: number) {
-    let addr = (this.pc + offset) - this.currentOpSize;
-    this.pc = addr;
+    wasm.low_level_vm_goto(this.wasmVM, offset);
   }
 
   // Save $pc into $ra, then jump to a new address in `program` (jal in MIPS)
   call(handle: number) {
-    this.ra = this.pc;
-    this.pc = this.heap.getaddr(handle);
+    wasm.low_level_vm_call(this.wasmVM, handle);
   }
 
   // Put a specific `program` address in $ra
   returnTo(offset: number) {
-    let addr = (this.pc + offset) - this.currentOpSize;
-    this.ra = addr;
+    wasm.low_level_vm_return_to(this.wasmVM, offset);
   }
 
   // Return to the `program` address stored in $ra
   return() {
-    this.pc = this.ra;
+    wasm.low_level_vm_return(this.wasmVM);
   }
 
   nextStatement(): Option<Opcode> {
-    let { pc, program } = this;
-
-    if (pc === -1) {
-      return null;
-    }
-
-    // We have to save off the current operations size so that
-    // when we do a jump we can calculate the correct offset
-    // to where we are going. We can't simply ask for the size
-    // in a jump because we have have already incremented the
-    // program counter to the next instruction prior to executing.
-    let { size } = this.program.opcode(pc);
-    let operationSize = this.currentOpSize = size;
-    this.pc += operationSize;
-
-    return program.opcode(pc);
+    return wasm.low_level_vm_next_statement(this.wasmVM, this.heap, this.program);
   }
 
   evaluateOuter(opcode: Opcode, vm: VM<Opaque>) {
-    if (DEVMODE) {
-      let { externs: { debugBefore, debugAfter } } = this;
-      let state = debugBefore(opcode);
-      this.evaluateInner(opcode, vm);
-      debugAfter(opcode, state);
-    } else {
-      this.evaluateInner(opcode, vm);
-    }
-  }
-
-  evaluateInner(opcode: Opcode, vm: VM<Opaque>) {
-    if (opcode.isMachine) {
-      this.evaluateMachine(opcode);
-    } else {
-      this.evaluateSyscall(opcode, vm);
-    }
-  }
-
-  evaluateMachine(opcode: Opcode) {
-    switch (opcode.type) {
-      case Op.PushFrame:
-        return this.pushFrame();
-      case Op.PopFrame:
-        return this.popFrame();
-      case Op.InvokeStatic:
-        return this.call(opcode.op1);
-      case Op.InvokeVirtual:
-        return this.call(this.stack.popSmi());
-      case Op.Jump:
-        return this.goto(opcode.op1);
-      case Op.Return:
-        return this.return();
-      case Op.ReturnTo:
-        return this.returnTo(opcode.op1);
-    }
-  }
-
-  evaluateSyscall(opcode: Opcode, vm: VM<Opaque>) {
-    APPEND_OPCODES.evaluate(vm, opcode, opcode.type);
+    wasm.low_level_vm_evaluate(this.wasmVM, vm, this.externs, this.heap, opcode);
   }
 }

@@ -37,6 +37,19 @@ export {
   ICapturedNamedArguments as CapturedNamedArguments,
 } from './lib/vm/arguments';
 
+export {
+  Externs as WasmExterns,
+  Program as WasmProgram,
+} from './lib/vm/low-level';
+
+export {
+  APPEND_OPCODES as WASM_APPEND_OPCODES,
+} from './lib/opcodes';
+
+export {
+  default as WasmVM,
+} from './lib/vm/append';
+
 export { SafeString } from './lib/upsert';
 
 export {

@@ -5,10 +5,7 @@ export type u32 = number;
 export type i32 = number;
 
 export class Stack {
-  private stack: number;
-
-  constructor() {
-    this.stack = rust.stack_new();
+  constructor(private stack: number) {
   }
 
   copy(from: u32, to: u32) {

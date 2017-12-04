@@ -2,13 +2,18 @@ import { DEBUG } from '@glimmer/local-debug-flags';
 import { Opaque } from '@glimmer/interfaces';
 import { PrimitiveType } from '@glimmer/program';
 import { unreachable } from '@glimmer/util';
-import { Stack as WasmStack } from '@glimmer/low-level';
+import { wasm, Stack as WasmStack } from '@glimmer/low-level';
 
 const HI   = 0x80000000;
 const MASK = 0x7FFFFFFF;
 
 export class InnerStack {
-  constructor(private inner = new WasmStack(), private js: Opaque[] = []) {}
+  private inner: WasmStack;
+  private js: Opaque[] =[];
+
+  constructor(stack: number) {
+    this.inner = new WasmStack(stack);
+  }
 
   sliceInner<T = Opaque>(start: number, end: number): T[] {
     let out = [];
@@ -62,24 +67,48 @@ export class InnerStack {
 }
 
 export default class EvaluationStack {
-  static empty(): EvaluationStack {
-    return new this(new InnerStack(), 0, -1);
-  }
+  private stack: InnerStack;
 
-  static restore(snapshot: Opaque[]): EvaluationStack {
-    let stack = new InnerStack();
-
-    for (let i=0; i<snapshot.length; i++) {
-      stack.write(i, snapshot[i]);
-    }
-
-    return new this(stack, 0, snapshot.length - 1);
-  }
-
-  constructor(private stack: InnerStack, public fp: number, public sp: number) {
+  constructor(private wasmVM: number) {
+    // TODO: this is super sketchy! We're extracing a borrowed pointer,
+    // `wasm_stack`, from the actual `wasmVM` instance and then we're stashing
+    // that away in a separate object so we can frob it as well. This isn't a
+    // great interface because if the `wasmVM` is destroyed then it invalidates
+    // the `wasm_stack`. Hopefully that doesn't happen?
+    //
+    // The memory here probably needs to be managed better either by creating a
+    // fully owned copy like a `Rc` on the Rust side to send to our `InnerStack`
+    // or otherwise the `wasm_stack` needs to stay encapsulated in the
+    // `LowLevelVM`, the true owner of `wasmVM`.
+    let wasm_stack = wasm.low_level_vm_stack(wasmVM);
+    this.stack = new InnerStack(wasm_stack);
     if (DEBUG) {
       Object.seal(this);
     }
+  }
+
+  restore(snapshot: Opaque[]): void {
+    for (let i=0; i<snapshot.length; i++) {
+      this.stack.write(i, snapshot[i]);
+    }
+    this.fp = 0;
+    this.sp = snapshot.length - 1;
+  }
+
+  get fp(): number {
+    return wasm.low_level_vm_fp(this.wasmVM);
+  }
+
+  set fp(fp: number) {
+    wasm.low_level_vm_set_fp(this.wasmVM, fp);
+  }
+
+  get sp(): number {
+    return wasm.low_level_vm_sp(this.wasmVM);
+  }
+
+  set sp(sp: number) {
+    wasm.low_level_vm_set_sp(this.wasmVM, sp);
   }
 
   push(value: Opaque): void {

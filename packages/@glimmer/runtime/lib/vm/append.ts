@@ -48,7 +48,7 @@ export default class VM<TemplateMeta> implements PublicVM {
   public heap: Heap;
 
   get stack(): EvaluationStack {
-    return this.inner.stack as EvaluationStack;
+    return this.inner.stack;
   }
 
   set stack(value: EvaluationStack) {
@@ -56,10 +56,6 @@ export default class VM<TemplateMeta> implements PublicVM {
   }
 
   /* Registers */
-
-  set currentOpSize(value: number) {
-    this.inner.currentOpSize = value;
-  }
 
   get currentOpSize(): number {
     return this.inner.currentOpSize;
@@ -217,7 +213,7 @@ export default class VM<TemplateMeta> implements PublicVM {
     this.elementStack = elementStack;
     this.scopeStack.push(scope);
     this.dynamicScopeStack.push(dynamicScope);
-    this.inner = new LowLevelVM(EvaluationStack.empty(), this.heap, program, {
+    this.inner = new LowLevelVM(this.heap, program, {
       debugBefore: (opcode: Opcode): DebugState => {
         return APPEND_OPCODES.debugBefore(this, opcode, opcode.type);
       },
