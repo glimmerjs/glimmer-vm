@@ -12,13 +12,8 @@ struct Node {
 }
 
 impl Stack {
-    pub fn new() -> Option<Stack> {
-        let page = page::alloc() as *mut Node;
-        if page.is_null() {
-            None
-        } else {
-            Some(Stack { head: page })
-        }
+    pub fn new() -> Stack {
+        Stack { head: page::alloc() as *mut Node }
     }
 
     pub fn into_usize(self) -> usize {
@@ -55,9 +50,6 @@ impl Stack {
                 if (*cur).next.is_null() {
                     (*cur).next = page::alloc() as *mut Node;
                 }
-                if (*cur).next.is_null() {
-                    return Err(())
-                }
                 cur = (*cur).next;
             }
             (*cur).data[at] = val;
@@ -89,6 +81,26 @@ impl Stack {
                 }
                 cur = (*cur).next;
             }
+        }
+    }
+}
+
+impl Clone for Stack {
+    fn clone(&self) -> Stack {
+        unsafe {
+            let ret = Stack { head: page::alloc() as *mut Node };
+            let mut a = ret.head;
+            let mut b = self.head;
+            loop {
+                (*a).data = (*b).data;
+                if (*b).next.is_null() {
+                    break
+                }
+                b = (*b).next;
+                (*a).next = page::alloc() as *mut Node;
+                a = (*a).next;
+            }
+            return ret
         }
     }
 }

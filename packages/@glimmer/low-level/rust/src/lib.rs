@@ -1,4 +1,4 @@
-#![feature(link_llvm_intrinsics)]
+#![feature(link_llvm_intrinsics, allocator_api)]
 
 mod page;
 mod stack;
@@ -7,7 +7,7 @@ use stack::Stack;
 
 #[no_mangle]
 pub extern fn stack_new() -> usize {
-    Stack::new().map(|s| s.into_usize()).unwrap_or(0)
+    Stack::new().into_usize()
 }
 
 #[no_mangle]
