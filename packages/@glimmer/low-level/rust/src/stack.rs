@@ -8,7 +8,30 @@ pub struct Stack {
 
 struct Node {
     next: *mut Node,
-    data: [u64; page::PAGE_SIZE / 8 - 1],
+    data: [u32; page::PAGE_SIZE / 8 - 1],
+}
+
+const NUMBER: u32 = 0b000;
+const NEGATIVE: u32 = 0b100;
+const MASK: u32 = 0b111;
+
+fn encode(val: i32) -> u32 {
+    let (val, flags) = if val < 0 {
+        ((-val) as u32, NEGATIVE)
+    } else {
+        (val as u32, NUMBER)
+    };
+    debug_assert!(val & (0b111 << 29) == 0);
+    (val << 3) | flags
+}
+
+fn decode(val: u32) -> i32 {
+    let payload = val >> 3;
+    match val & MASK {
+        NUMBER => payload as i32,
+        NEGATIVE => -(payload as i32),
+        _ => 0, // TODO: panic?
+    }
 }
 
 impl Stack {
@@ -34,14 +57,19 @@ impl Stack {
     }
 
     pub fn copy(&mut self, from: u32, to: u32) -> Result<(), ()> {
-        let val = match self.read(from) {
+        let val = match self.read_raw(from) {
             Some(val) => val,
             None => return Err(()),
         };
-        self.write(to, val)
+        self.write_raw(to, val);
+        Ok(())
     }
 
-    pub fn write(&mut self, at: u32, val: u64) -> Result<(), ()> {
+    pub fn write(&mut self, at: u32, val: i32) {
+        self.write_raw(at, encode(val))
+    }
+
+    pub fn write_raw(&mut self, at: u32, val: u32) {
         unsafe {
             let mut at = at as usize;
             let mut cur = self.head;
@@ -53,11 +81,14 @@ impl Stack {
                 cur = (*cur).next;
             }
             (*cur).data[at] = val;
-            Ok(())
         }
     }
 
-    pub fn read(&self, at: u32) -> Option<u64> {
+    pub fn read(&self, at: u32) -> Option<i32> {
+        Some(decode(self.read_raw(at)?))
+    }
+
+    pub fn read_raw(&self, at: u32) -> Option<u32> {
         unsafe {
             let mut at = at as usize;
             let mut cur = self.head;

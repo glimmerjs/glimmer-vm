@@ -19,16 +19,11 @@ export class Stack {
 
   // TODO: how to model u64 argument?
   writeRaw(pos: u32, value: u64): void {
-    console.log(this.stack, pos, value);
-    if (rust.stack_write_raw(this.stack, pos, value) === 0) {
-      // TODO: report this error?
-    }
+    rust.stack_write_raw(this.stack, pos, value);
   }
 
   writeSmi(pos: u32, value: i32): void {
-    if (rust.stack_write(this.stack, pos, value) === 0) {
-      // TODO: report this error?
-    }
+    rust.stack_write(this.stack, pos, value);
   }
 
   // TODO: partially decoded enum?
