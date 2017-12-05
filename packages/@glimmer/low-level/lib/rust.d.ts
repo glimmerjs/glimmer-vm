@@ -1,5 +1,10 @@
 // These functions are all declared in `src/lib.rs` with `#[no_mangle]` and
 // similar-ish signatures.
+//
+// TODO: this file should really be generated from the Rust source code, we've
+// already been bitten once when these definitions disagreed with the Rust
+// definitions!
+
 declare const Mod: (imports: any) => {
   stack_new(): number;
   stack_free(stack: number): void;
