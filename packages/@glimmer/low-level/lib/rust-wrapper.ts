@@ -142,6 +142,13 @@ export const {
 export function low_level_vm_next_statement(vm: number,
                                             heap: Heap,
                                             program: WasmProgram) {
+  // TODO: there should be a better way of handling these JS objects going
+  // across these functions. The `heap` and `program` passed in here are
+  // transferred across this function call via the globals above and are again
+  // used when wasm calls back into JS.
+  //
+  // Eventually though there may be multiple disconnected applications using the
+  // same glimmer library so this may not cut it.
   try {
     set_heap(heap);
     set_program(program);
