@@ -70,6 +70,7 @@ pub unsafe extern fn low_level_vm_free(vm: *mut LowLevelVM) {
     BigBox::from_raw(vm as *mut LowLevelVM);
 }
 
+// TODO: should these functions deal with `&mut LowLevelVM` instead of `*mut`?
 #[no_mangle]
 pub unsafe extern fn low_level_vm_next_statement(vm: *mut LowLevelVM) -> u32 {
     match (*vm).next_statement() {
