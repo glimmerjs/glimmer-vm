@@ -113,7 +113,9 @@ impl Stack {
     }
 
     pub fn reset(&mut self) {
-        // err... what should this do?
+        unsafe {
+            free_node((*self.head).next);
+        }
     }
 }
 
@@ -126,15 +128,18 @@ fn node() -> *mut Node {
     }
 }
 
+unsafe fn free_node(mut node: *mut Node) {
+    while !node.is_null() {
+        let next = (*node).next;
+        page::free(node as *mut page::Page);
+        node = next;
+    }
+}
+
 impl Drop for Stack {
     fn drop(&mut self) {
         unsafe {
-            let mut cur = self.head;
-            while !cur.is_null() {
-                let next = (*cur).next;
-                page::free(cur as *mut page::Page);
-                cur = next;
-            }
+            free_node(self.head);
         }
     }
 }
