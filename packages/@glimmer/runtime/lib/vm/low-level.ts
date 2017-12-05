@@ -34,23 +34,23 @@ export default class LowLevelVM {
     this.stack = new EvaluationStack(this.wasmVM);
   }
 
-  get currentOpSize() {
+  get currentOpSize(): number {
     return wasm.low_level_vm_current_op_size(this.wasmVM);
   }
 
-  get pc() {
+  get pc(): number {
     return wasm.low_level_vm_pc(this.wasmVM);
   }
 
-  set pc(pc) {
+  set pc(pc: number) {
     wasm.low_level_vm_set_pc(this.wasmVM, pc);
   }
 
-  get ra() {
+  get ra(): number {
     return wasm.low_level_vm_ra(this.wasmVM);
   }
 
-  set ra(ra) {
+  set ra(ra: number) {
     wasm.low_level_vm_set_ra(this.wasmVM, ra);
   }
 
