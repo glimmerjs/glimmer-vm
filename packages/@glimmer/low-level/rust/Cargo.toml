@@ -9,7 +9,7 @@ crate-type = ["cdylib"]
 [dependencies]
 
 [profile.dev]
-opt-level = 's'
+opt-level = 2
 panic = 'abort'
 
 # Eventually these should all be enabled in the `dev` profile but for now they
