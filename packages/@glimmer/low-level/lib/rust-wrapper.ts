@@ -17,26 +17,22 @@ let PROGRAM: Option<WasmProgram> = null;
 let VM: Option<WasmVM<Opaque>> = null;
 
 function set_vm(vm: WasmVM<Opaque>) {
-  if (VM !== null)
-    throw new Error('vm is already set');
+  assert(VM === null, 'vm is already set');
   VM = vm;
 }
 
 function set_program(program: WasmProgram) {
-  if (PROGRAM !== null)
-    throw new Error('program is already set');
+  assert(PROGRAM === null, 'program is already set');
   PROGRAM = program;
 }
 
 function set_externs(externs: WasmExterns) {
-  if (EXTERNS !== null)
-    throw new Error('externs is already set');
+  assert(EXTERNS === null, 'externs is already set');
   EXTERNS = externs;
 }
 
 function set_heap(heap: Heap) {
-  if (HEAP !== null)
-    throw new Error('heap is already set');
+  assert(HEAP === null, 'heap is already set');
   HEAP = heap;
 }
 
