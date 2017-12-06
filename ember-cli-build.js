@@ -26,23 +26,37 @@ module.exports = function(_options) {
     destDir: 'packages/@glimmer'
   });
 
+  let wasmTree = new Rust('packages/@glimmer/low-level/rust', {
+    generateWrapper: true,
+    generateTypescript: true,
+  });
+
+  // The rust compilation will emit a `*.d.ts` file which describes the JS
+  // interface of the wasm module, so let's pull that in to feed it into
+  // typescript.
+  let wasmTypeDefinitions = funnel(wasmTree, {
+    destDir: 'packages/@glimmer/low-level/lib',
+  });
+  tsTree = merge([tsTree, wasmTypeDefinitions]);
+
   // Second, compile all of the TypeScript into ES2017 JavaScript. Because the
   // TypeScript compiler understands the project as a whole, it's faster to do
   // this once and use the transpiled JavaScript as the input to any further
   // transformations.
   let jsTree = typescript(tsTree);
 
+  // The rust compilation *also* emitted a `*.js` file which is what we actually
+  // want in terms of compiling it all together, so let's pull that into the
+  // output of the typescript tree to make sure the module can actually get
+  // resolved!
+  let wasmRuntimeFiles = funnel(wasmTree, {
+    destDir: '@glimmer/low-level/lib',
+  });
+  jsTree = merge([jsTree, wasmRuntimeFiles]);
+
   // The TypeScript compiler doesn't emit `.d.ts` files, so we need to manually
   // merge them back into our JavaScript output.
   jsTree = mergeDefinitionFiles(jsTree);
-
-  let wasmTree = new Rust('packages/@glimmer/low-level/rust', {
-    generateWrapper: true,
-  });
-  wasmTree = funnel(wasmTree, {
-    destDir: '@glimmer/low-level/lib',
-  });
-  jsTree = merge([jsTree, wasmTree]);
 
   // Glimmer includes a number of assertions and logging information that can be
   // stripped from production builds for better runtime performance.
