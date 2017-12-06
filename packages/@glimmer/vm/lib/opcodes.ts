@@ -977,5 +977,5 @@ export const enum Op {
   Debugger,
 
   /** The size of the opcode list */
-  Size
+  Size,
 }
