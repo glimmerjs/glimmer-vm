@@ -262,8 +262,9 @@ impl LowLevelVM {
                 let op1 = to_i32(opcode.op1(&self.heap));
                 self.return_to(op1)
             }
-            _ => {
-                debug_assert!(!opcode.is_machine(&self.heap));
+            op => {
+                debug_assert!(!opcode.is_machine(&self.heap),
+                              "bad opcode {:?}", op);
             }
         }
     }

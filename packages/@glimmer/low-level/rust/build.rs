@@ -11,6 +11,10 @@ fn main() {
 
     let mut variants = Vec::new();
     for line in contents.lines() {
+        let line = match line.find("//") {
+            Some(i) => &line[..i],
+            None => line,
+        };
         let line = line.trim();
         if line.ends_with(",") && !line.contains(" ") {
             variants.push(&line[..line.len() - 1]);
@@ -19,6 +23,7 @@ fn main() {
 
     let mut contents = String::new();
     contents.push_str("#[repr(u32)]\n");
+    contents.push_str("#[derive(Debug, Copy, Clone)]\n");
     contents.push_str("pub enum Op {\n");
     for v in variants {
         contents.push_str(&format!("    {},\n", v));
