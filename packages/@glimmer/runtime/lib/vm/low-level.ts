@@ -91,4 +91,11 @@ export default class LowLevelVM {
   evaluateOuter(opcode: Opcode, vm: VM<Opaque>) {
     wasm.low_level_vm_evaluate(this.wasmVM, vm, this.externs, this.heap, opcode);
   }
+
+  dropWasm() {
+    const wasmVM = this.wasmVM;
+    this.wasmVM = 0;
+    this.stack.dropWasm();
+    wasm.low_level_vm_free(wasmVM);
+  }
 }

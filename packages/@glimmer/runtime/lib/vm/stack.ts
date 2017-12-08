@@ -64,6 +64,10 @@ export class InnerStack {
   reset(): void {
     this.inner.reset();
   }
+
+  dropWasm() {
+    this.inner.dropWasm();
+  }
 }
 
 export default class EvaluationStack {
@@ -185,6 +189,12 @@ export default class EvaluationStack {
 
   toArray() {
     return this.stack.sliceInner(this.fp, this.sp + 1);
+  }
+
+  dropWasm() {
+    // we don't actually own this, so we just forget about it.
+    this.wasmVM = 0;
+    this.stack.dropWasm();
   }
 }
 

@@ -35,4 +35,9 @@ export class Stack {
   reset(): void {
     rust.stack_reset(this.stack);
   }
+
+  dropWasm() {
+    // we don't actually own this, so we just forget about it
+    this.stack = 0;
+  }
 }
