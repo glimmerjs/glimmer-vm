@@ -3,6 +3,7 @@ import { Option, Opaque } from "@glimmer/interfaces";
 import EvaluationStack from './stack';
 import VM from './append';
 import { wasm } from '@glimmer/low-level';
+import { DEVMODE } from "@glimmer/local-debug-flags";
 
 export interface Program {
   opcode(offset: number): Opcode;
@@ -24,7 +25,7 @@ export default class LowLevelVM {
   ) {
     // note that this 0 here indicate the heap, but it's passed elsewhere for
     // now so it's just a dummy values
-    this.wasmVM = wasm.low_level_vm_new(0);
+    this.wasmVM = wasm.low_level_vm_new(0, DEVMODE ? 1 : 0);
 
     // TODO: this is more sketchy memory management! We own `this.wasmVM` yet
     // we're giving it off to the evaluation stack as well. That's mostly to

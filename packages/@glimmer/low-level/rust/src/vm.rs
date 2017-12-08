@@ -87,16 +87,18 @@ pub struct LowLevelVM {
     current_op_size: i32,
     stack: Stack,
     heap: Heap,
+    devmode: bool,
 }
 
 impl LowLevelVM {
-    pub fn new(heap: Heap, stack: Stack) -> LowLevelVM {
+    pub fn new(heap: Heap, stack: Stack, devmode: bool) -> LowLevelVM {
         LowLevelVM {
             pc: -1,
             ra: -1,
             current_op_size: 0,
             stack,
             heap,
+            devmode,
         }
     }
 
@@ -196,7 +198,7 @@ impl LowLevelVM {
     }
 
     pub fn evaluate_outer(&mut self, opcode: Opcode, vm: u32) {
-        let state = if cfg!(debug_assertions) || true /* needed for tests? */ {
+        let state = if self.devmode {
             Some(unsafe {
                 ffi::low_level_vm_debug_before(opcode.offset())
             })

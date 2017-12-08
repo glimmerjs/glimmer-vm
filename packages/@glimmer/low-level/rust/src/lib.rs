@@ -59,11 +59,11 @@ pub unsafe extern fn stack_reset(stack: usize) {
 }
 
 #[no_mangle]
-pub unsafe extern fn low_level_vm_new(heap: u32) -> *mut LowLevelVM {
+pub unsafe extern fn low_level_vm_new(heap: u32, devmode: u32) -> *mut LowLevelVM {
     let stack = Stack::new();
     let stack = vm::Stack::new(0, -1, stack);
     let heap = Heap::new(heap);
-    let vm = BigBox::new(LowLevelVM::new(heap, stack));
+    let vm = BigBox::new(LowLevelVM::new(heap, stack, devmode != 0));
     BigBox::into_raw(vm)
 }
 
