@@ -1,5 +1,3 @@
-use std::heap::{Alloc, Heap, AllocErr};
-
 pub const PAGE_SIZE: usize = 64 * 1024;
 pub type Page = [u8; PAGE_SIZE];
 
@@ -26,7 +24,7 @@ pub fn alloc() -> *mut Page {
             let cur = current_memory() as usize;
             grow_memory(1);
             if current_memory() as usize == cur {
-                Heap.oom(AllocErr::invalid_input("oom"))
+                ::debug::abort();
             }
             (cur * PAGE_SIZE) as *mut Page
         } else {

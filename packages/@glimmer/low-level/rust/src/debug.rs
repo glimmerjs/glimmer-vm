@@ -3,6 +3,7 @@
 #![allow(dead_code, unused_macros)]
 
 use std::fmt;
+use std::heap::{Alloc, Heap, AllocErr};
 
 use ffi;
 
@@ -54,7 +55,6 @@ pub fn _panic2(args: &fmt::Arguments, &(file, line): &(&str, u32)) -> ! {
 
 pub fn abort() -> ! {
     // This is a pretty bad message but we won't see it anyway, so just need to
-    // panic!
-    None::<u32>.unwrap();
-    loop {}
+    // abort!
+    Heap.oom(AllocErr::invalid_input(""))
 }
