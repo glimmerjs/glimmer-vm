@@ -23,17 +23,6 @@ macro_rules! bail_if_zero {
 }
 
 #[no_mangle]
-pub extern fn stack_new() -> usize {
-    Stack::new().into_usize()
-}
-
-#[no_mangle]
-pub unsafe extern fn stack_free(stack: usize) {
-    bail_if_zero!(stack);
-    drop(Stack::from_usize(stack));
-}
-
-#[no_mangle]
 pub unsafe extern fn stack_copy(stack: usize, from: u32, to: u32) -> u32 {
     bail_if_zero!(stack);
     Stack::with_stack(stack, |s| s.copy(from, to)).is_ok() as u32

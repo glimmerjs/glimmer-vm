@@ -96,8 +96,6 @@ const mod = instantiate(imports);
 
 // reexport most exported functions in the module
 export const {
-  stack_new,
-  stack_free,
   stack_copy,
   stack_write_raw,
   stack_write,
