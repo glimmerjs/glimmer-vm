@@ -78,23 +78,6 @@ impl Heap {
     }
 }
 
-pub struct Program {
-    handle: u32,
-}
-
-impl Program {
-    pub fn new(handle: u32) -> Program {
-        Program { handle }
-    }
-
-    pub fn opcode(&self, offset: u32) -> Opcode {
-        let offset = unsafe {
-            ffi::low_level_vm_program_opcode(self.handle, offset)
-        };
-        Opcode::new(offset)
-    }
-}
-
 pub struct LowLevelVM {
     // Right now these are encoded as `i32` because the "exit" address is
     // encoded as -1, but these may wish to change in the future to a `u32`
@@ -104,18 +87,16 @@ pub struct LowLevelVM {
     current_op_size: i32,
     stack: Stack,
     heap: Heap,
-    program: Program,
 }
 
 impl LowLevelVM {
-    pub fn new(heap: Heap, program: Program, stack: Stack) -> LowLevelVM {
+    pub fn new(heap: Heap, stack: Stack) -> LowLevelVM {
         LowLevelVM {
             pc: -1,
             ra: -1,
             current_op_size: 0,
             stack,
             heap,
-            program,
         }
     }
 
@@ -208,7 +189,7 @@ impl LowLevelVM {
         // to where we are going. We can't simply ask for the size
         // in a jump because we have have already incremented the
         // program counter to the next instruction prior to executing.
-        let opcode = self.program.opcode(to_u32(self.pc));
+        let opcode = Opcode::new(to_u32(self.pc));
         self.current_op_size = to_i32(opcode.size(&self.heap));
         self.pc += self.current_op_size;
         Some(opcode)

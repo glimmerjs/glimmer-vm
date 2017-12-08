@@ -7,23 +7,17 @@
 
 import instantiate from "./rust"; // this is the fn to instantiate the module
 import { Heap, Opcode } from "@glimmer/program";
-import { WasmExterns, WasmProgram, WasmVM, WASM_APPEND_OPCODES } from "@glimmer/runtime";
+import { WasmExterns, WasmVM, WASM_APPEND_OPCODES } from "@glimmer/runtime";
 import { Option, Opaque } from "@glimmer/interfaces";
 import { assert } from "@glimmer/util";
 
 let EXTERNS: Option<WasmExterns> = null;
 let HEAP: Option<Heap> = null;
-let PROGRAM: Option<WasmProgram> = null;
 let VM: Option<WasmVM<Opaque>> = null;
 
 function set_vm(vm: WasmVM<Opaque>) {
   assert(VM === null, 'vm is already set');
   VM = vm;
-}
-
-function set_program(program: WasmProgram) {
-  assert(PROGRAM === null, 'program is already set');
-  PROGRAM = program;
 }
 
 function set_externs(externs: WasmExterns) {
@@ -74,12 +68,6 @@ const imports = {
         throw new Error("vm should have been set already");
       let op = makeOpcode(opcode);
       WASM_APPEND_OPCODES.evaluate(VM, op, op.type);
-    },
-
-    low_level_vm_program_opcode(_program: number, offset: number): number {
-      if (PROGRAM === null)
-        throw new Error("program should have been set already");
-      return PROGRAM.opcode(offset).offset;
     },
 
     low_level_vm_heap_get_addr(_handle: number, at: number): number {
@@ -139,9 +127,7 @@ export const {
 // Wrap a few functions to set our globals in this module above so while Rust is
 // executing we have access to the various JS objects passed in.
 
-export function low_level_vm_next_statement(vm: number,
-                                            heap: Heap,
-                                            program: WasmProgram) {
+export function low_level_vm_next_statement(vm: number, heap: Heap) {
   // TODO: there should be a better way of handling these JS objects going
   // across these functions. The `heap` and `program` passed in here are
   // transferred across this function call via the globals above and are again
@@ -151,7 +137,6 @@ export function low_level_vm_next_statement(vm: number,
   // same glimmer library so this may not cut it.
   try {
     set_heap(heap);
-    set_program(program);
     let opcode = mod.low_level_vm_next_statement(vm);
     if (opcode === -1) {
       return null;
@@ -162,7 +147,6 @@ export function low_level_vm_next_statement(vm: number,
     }
   } finally {
     HEAP = null;
-    PROGRAM = null;
     DEBUG_STATE = null;
   }
 }

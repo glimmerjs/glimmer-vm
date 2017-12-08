@@ -22,9 +22,9 @@ export default class LowLevelVM {
     public program: Program,
     public externs: Externs,
   ) {
-    // note that the two 0's here indicate the heap/program, but they're passed
-    // elsewhere for now so they're just dummy values
-    this.wasmVM = wasm.low_level_vm_new(0, 0);
+    // note that this 0 here indicate the heap, but it's passed elsewhere for
+    // now so it's just a dummy values
+    this.wasmVM = wasm.low_level_vm_new(0);
 
     // TODO: this is more sketchy memory management! We own `this.wasmVM` yet
     // we're giving it off to the evaluation stack as well. That's mostly to
@@ -85,7 +85,7 @@ export default class LowLevelVM {
   }
 
   nextStatement(): Option<Opcode> {
-    return wasm.low_level_vm_next_statement(this.wasmVM, this.heap, this.program);
+    return wasm.low_level_vm_next_statement(this.wasmVM, this.heap);
   }
 
   evaluateOuter(opcode: Opcode, vm: VM<Opaque>) {

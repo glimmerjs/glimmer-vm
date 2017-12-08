@@ -13,7 +13,7 @@ mod boxed;
 use boxed::BigBox;
 use opcode::Opcode;
 use stack::Stack;
-use vm::{Heap, Program, LowLevelVM};
+use vm::{Heap, LowLevelVM};
 
 #[no_mangle]
 pub extern fn stack_new() -> usize {
@@ -56,12 +56,11 @@ pub unsafe extern fn stack_reset(stack: usize) {
 }
 
 #[no_mangle]
-pub unsafe extern fn low_level_vm_new(heap: u32, program: u32) -> *mut LowLevelVM {
+pub unsafe extern fn low_level_vm_new(heap: u32) -> *mut LowLevelVM {
     let stack = Stack::new();
     let stack = vm::Stack::new(0, -1, stack);
     let heap = Heap::new(heap);
-    let program = Program::new(program);
-    let vm = BigBox::new(LowLevelVM::new(heap, program, stack));
+    let vm = BigBox::new(LowLevelVM::new(heap, stack));
     BigBox::into_raw(vm)
 }
 
