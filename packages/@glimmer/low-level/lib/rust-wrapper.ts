@@ -5,7 +5,7 @@
 // exported directly from the WebAssembly module but a few are wrapped in a
 // relatively low-level interface here.
 
-import instantiate from "./rust"; // this is the fn to instantiate the module
+import { default as instantiate, Exports } from "./rust"; // this is the fn to instantiate the module
 import { Heap, Opcode } from "@glimmer/program";
 import { WasmExterns, WasmVM, WASM_APPEND_OPCODES } from "@glimmer/runtime";
 import { Option, Opaque } from "@glimmer/interfaces";
@@ -84,7 +84,7 @@ const imports = {
 
     // currently only used when debugging
     debug_println(ptr: number, len: number): void {
-      let mem = new Uint8Array(mod.memory.buffer);
+      let mem = new Uint8Array(wasm.memory.buffer);
       let slice = mem.slice(ptr, ptr + len);
       let s = new TextDecoder("utf-8").decode(slice);
       console.log(s);
@@ -92,35 +92,7 @@ const imports = {
   },
 };
 
-const mod = instantiate(imports);
-
-// reexport most exported functions in the module
-export const {
-  stack_copy,
-  stack_write_raw,
-  stack_write,
-  stack_read_raw,
-  stack_read,
-  stack_reset,
-  low_level_vm_new,
-  low_level_vm_free,
-  low_level_vm_current_op_size,
-  low_level_vm_pc,
-  low_level_vm_set_pc,
-  low_level_vm_ra,
-  low_level_vm_set_ra,
-  low_level_vm_fp,
-  low_level_vm_set_fp,
-  low_level_vm_sp,
-  low_level_vm_set_sp,
-  low_level_vm_push_frame,
-  low_level_vm_pop_frame,
-  low_level_vm_return_to,
-  low_level_vm_return,
-  low_level_vm_call,
-  low_level_vm_goto,
-  low_level_vm_stack,
-} = mod;
+export const wasm: Exports = instantiate(imports);
 
 // Wrap a few functions to set our globals in this module above so while Rust is
 // executing we have access to the various JS objects passed in.
@@ -135,7 +107,7 @@ export function low_level_vm_next_statement(vm: number, heap: Heap) {
   // same glimmer library so this may not cut it.
   try {
     set_heap(heap);
-    let opcode = mod.low_level_vm_next_statement(vm);
+    let opcode = wasm.low_level_vm_next_statement(vm);
     if (opcode === -1) {
       return null;
     } else {
@@ -158,7 +130,7 @@ export function low_level_vm_evaluate(vm: number,
     set_vm(vm2);
     set_externs(externs);
     set_heap(heap);
-    mod.low_level_vm_evaluate(vm, opcode.offset, 0);
+    wasm.low_level_vm_evaluate(vm, opcode.offset, 0);
   } finally {
     VM = null;
     EXTERNS = null;
