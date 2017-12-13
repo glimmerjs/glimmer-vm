@@ -2,6 +2,7 @@ pub const PAGE_SIZE: usize = 64 * 1024;
 pub type Page = [u8; PAGE_SIZE];
 
 static mut NEXT_FREE: *mut List = 0 as *mut _;
+static mut ALLOCATED_PAGES: u32 = 0;
 
 struct List {
     next: *mut List,
@@ -20,6 +21,7 @@ extern {
 
 pub fn alloc() -> *mut Page {
     unsafe {
+        ALLOCATED_PAGES += 1;
         if NEXT_FREE.is_null() {
             let cur = current_memory() as usize;
             grow_memory(1);
@@ -39,4 +41,12 @@ pub unsafe fn free(page: *mut Page) {
     let page = page as *mut List;
     (*page).next = NEXT_FREE;
     NEXT_FREE = page;
+    debug_assert!(ALLOCATED_PAGES > 0);
+    ALLOCATED_PAGES -= 1;
+}
+
+pub fn num_allocated() -> u32 {
+    unsafe {
+        ALLOCATED_PAGES
+    }
 }

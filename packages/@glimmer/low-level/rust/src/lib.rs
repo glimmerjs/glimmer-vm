@@ -187,3 +187,8 @@ pub unsafe extern fn low_level_vm_stack(vm: *mut LowLevelVM) -> usize {
     bail_if_zero!(vm);
     (*vm).stack().as_inner_usize()
 }
+
+#[no_mangle]
+pub extern fn page_num_allocated() -> u32 {
+    page::num_allocated()
+}

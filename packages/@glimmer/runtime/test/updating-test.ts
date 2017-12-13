@@ -4,6 +4,7 @@ import { ConstReference } from "@glimmer/reference";
 import { UpdatableReference } from "@glimmer/object-reference";
 import { Opaque } from "@glimmer/util";
 import { test, module, assert } from './support';
+import { wasm } from '@glimmer/low-level';
 
 const SVG_NAMESPACE = 'http://www.w3.org/2000/svg';
 const XLINK_NAMESPACE = 'http://www.w3.org/1999/xlink';
@@ -79,8 +80,16 @@ function assertInvariants(assert: Assert, result: RenderResult, msg?: string) {
   assert.strictEqual(result.lastNode(), root.lastChild, `The lastNode of the result is the same as the root's lastChild${msg ? ': ' + msg : ''}`);
 }
 
+let ALLOCS = 0;
+
 module("[glimmer-runtime] Updating", hooks => {
-  hooks.beforeEach(() => commonSetup());
+  hooks.beforeEach(() => {
+    ALLOCS = wasm.page_num_allocated();
+    commonSetup();
+  });
+  hooks.afterEach(() => {
+    assert.strictEqual(wasm.page_num_allocated() - ALLOCS, 0);
+  });
 
   test("updating a single curly", assert => {
     let object = { value: 'hello world' };
