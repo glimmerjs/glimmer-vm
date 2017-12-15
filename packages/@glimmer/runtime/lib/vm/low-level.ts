@@ -1,17 +1,13 @@
-import { Heap, Opcode } from "@glimmer/program";
+import { Heap, Opcode, Externs } from "@glimmer/program";
 import { Option, Opaque } from "@glimmer/interfaces";
 import EvaluationStack from './stack';
 import VM from './append';
 import { wasm, wasm_wrapper } from '@glimmer/low-level';
 import { DEVMODE } from "@glimmer/local-debug-flags";
+import { APPEND_OPCODES } from '../opcodes';
 
 export interface Program {
   opcode(offset: number): Opcode;
-}
-
-export interface Externs {
-  debugBefore(opcode: Opcode): Opaque;
-  debugAfter(opcode: Opcode, state: Opaque): void;
 }
 
 export default class LowLevelVM {
@@ -90,7 +86,12 @@ export default class LowLevelVM {
   }
 
   evaluateOuter(opcode: Opcode, vm: VM<Opaque>) {
-    wasm_wrapper.low_level_vm_evaluate(this.wasmVM, vm, this.externs, this.heap, opcode);
+    wasm_wrapper.low_level_vm_evaluate(this.wasmVM,
+      vm,
+      this.externs,
+      this.heap,
+      opcode,
+      APPEND_OPCODES);
   }
 
   dropWasm() {

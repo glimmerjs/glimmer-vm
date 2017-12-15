@@ -6,21 +6,23 @@
 // relatively low-level interface here.
 
 import { default as instantiate, Exports } from "./rust"; // this is the fn to instantiate the module
-import { Heap, Opcode } from "@glimmer/program";
-import { WasmExterns, WasmVM, WASM_APPEND_OPCODES } from "@glimmer/runtime";
+import { Heap, Opcode, Externs, Opcodes } from "@glimmer/program";
 import { Option, Opaque } from "@glimmer/interfaces";
 import { assert } from "@glimmer/util";
 
-let EXTERNS: Option<WasmExterns> = null;
-let HEAP: Option<Heap> = null;
-let VM: Option<WasmVM<Opaque>> = null;
+export type VM = Opaque;
 
-function set_vm(vm: WasmVM<Opaque>) {
-  assert(VM === null, 'vm is already set');
-  VM = vm;
+let EXTERNS: Option<Externs> = null;
+let HEAP: Option<Heap> = null;
+let VM_SINGLETON: Option<VM> = null;
+let OPCODES: Option<Opcodes> = null;
+
+function set_vm(vm: VM) {
+  assert(VM_SINGLETON === null, 'vm is already set');
+  VM_SINGLETON = vm;
 }
 
-function set_externs(externs: WasmExterns) {
+function set_externs(externs: Externs) {
   assert(EXTERNS === null, 'externs is already set');
   EXTERNS = externs;
 }
@@ -28,6 +30,11 @@ function set_externs(externs: WasmExterns) {
 function set_heap(heap: Heap) {
   assert(HEAP === null, 'heap is already set');
   HEAP = heap;
+}
+
+function set_opcodes(opcodes: Opcodes) {
+  assert(OPCODES === null, 'opcodes are already set');
+  OPCODES = opcodes;
 }
 
 let DEBUG_STATE: any = null;
@@ -64,10 +71,12 @@ const imports = {
     },
 
     low_level_vm_evaluate_syscall(_vm: number, opcode: number): void {
-      if (VM === null)
+      if (VM_SINGLETON === null)
         throw new Error("vm should have been set already");
+      if (OPCODES === null)
+        throw new Error("opcodes should have been set already");
       let op = makeOpcode(opcode);
-      WASM_APPEND_OPCODES.evaluate(VM, op, op.type);
+      OPCODES.evaluate(VM_SINGLETON, op, op.type);
     },
 
     low_level_vm_heap_get_addr(_handle: number, at: number): number {
@@ -122,19 +131,22 @@ export function low_level_vm_next_statement(vm: number, heap: Heap) {
 }
 
 export function low_level_vm_evaluate(vm: number,
-                                      vm2: WasmVM<Opaque>,
-                                      externs: WasmExterns,
+                                      vm2: VM,
+                                      externs: Externs,
                                       heap: Heap,
-                                      opcode: Opcode) {
+                                      opcode: Opcode,
+                                      opcodes: Opcodes): void {
   try {
     set_vm(vm2);
     set_externs(externs);
     set_heap(heap);
+    set_opcodes(opcodes);
     wasm.low_level_vm_evaluate(vm, opcode.offset, 0);
   } finally {
-    VM = null;
+    VM_SINGLETON = null;
     EXTERNS = null;
     HEAP = null;
     DEBUG_STATE = null;
+    OPCODES = null;
   }
 }

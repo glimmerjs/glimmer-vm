@@ -4,6 +4,16 @@ import { DEBUG } from "@glimmer/local-debug-flags";
 import { Constants, WriteOnlyConstants, RuntimeConstants, ConstantPool } from './constants';
 import { Opcode } from './opcode';
 import { assert } from "@glimmer/util";
+import { Opaque } from "@glimmer/interfaces";
+
+export interface Opcodes {
+  evaluate(vm: Opaque, opcode: Opcode, type: number): void;
+}
+
+export interface Externs {
+  debugBefore(opcode: Opcode): Opaque;
+  debugAfter(opcode: Opcode, state: Opaque): void;
+}
 
 enum TableSlotState {
   Allocated,
