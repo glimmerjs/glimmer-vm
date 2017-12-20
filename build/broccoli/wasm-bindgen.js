@@ -26,15 +26,7 @@ class WasmBindgen extends Plugin {
         outputWasm,
       ];
 
-      // execFileSync("wasm-bindgen", args);
-      const cargo_args = [
-        "+nightly",
-        "run",
-        "--manifest-path",
-        "/home/alex/code/wasm-bindgen/crates/wasm-bindgen-cli/Cargo.toml",
-        "--",
-      ];
-      execFileSync("cargo", cargo_args.concat(args));
+      execFileSync("wasm-bindgen", args);
     }
   }
 }
