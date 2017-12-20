@@ -2,7 +2,7 @@ import { DEBUG } from '@glimmer/local-debug-flags';
 import { Opaque } from '@glimmer/interfaces';
 import { PrimitiveType } from '@glimmer/program';
 import { unreachable } from '@glimmer/util';
-import { wasm, Stack as WasmStack } from '@glimmer/low-level';
+import { wasm, Stack as WasmStack, WasmLowLevelVM } from '@glimmer/low-level';
 
 const HI   = 0x80000000;
 const MASK = 0x7FFFFFFF;
@@ -73,7 +73,7 @@ export class InnerStack {
 export default class EvaluationStack {
   private stack: InnerStack;
 
-  constructor(private wasmVM: number) {
+  constructor(private wasmVM: WasmLowLevelVM) {
     // TODO: this is super sketchy! We're extracing a borrowed pointer,
     // `wasm_stack`, from the actual `wasmVM` instance and then we're stashing
     // that away in a separate object so we can frob it as well. This isn't a
@@ -100,19 +100,19 @@ export default class EvaluationStack {
   }
 
   get fp(): number {
-    return wasm.exports.low_level_vm_fp(this.wasmVM);
+    return this.wasmVM.fp();
   }
 
   set fp(fp: number) {
-    wasm.exports.low_level_vm_set_fp(this.wasmVM, fp);
+    this.wasmVM.set_fp(fp);
   }
 
   get sp(): number {
-    return wasm.exports.low_level_vm_sp(this.wasmVM);
+    return this.wasmVM.sp();
   }
 
   set sp(sp: number) {
-    wasm.exports.low_level_vm_set_sp(this.wasmVM, sp);
+    this.wasmVM.set_sp(sp);
   }
 
   push(value: Opaque): void {
@@ -192,8 +192,6 @@ export default class EvaluationStack {
   }
 
   dropWasm() {
-    // we don't actually own this, so we just forget about it.
-    this.wasmVM = 0;
     this.stack.dropWasm();
   }
 }

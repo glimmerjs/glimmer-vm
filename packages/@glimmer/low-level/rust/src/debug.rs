@@ -37,9 +37,7 @@ pub fn _println(a: &fmt::Arguments) {
     }
 
     let s = a.to_string();
-    unsafe {
-        ffi::debug_println(s.as_ptr(), s.len());
-    }
+    ffi::debug_println(&s);
 }
 
 #[cold]

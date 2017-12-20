@@ -2,7 +2,7 @@ import { Heap, Opcode, Externs } from "@glimmer/program";
 import { Option, Opaque } from "@glimmer/interfaces";
 import EvaluationStack from './stack';
 import VM from './append';
-import { wasm, wasm_wrapper } from '@glimmer/low-level';
+import { wasm, WasmLowLevelVM } from '@glimmer/low-level';
 import { DEVMODE } from "@glimmer/local-debug-flags";
 import { APPEND_OPCODES } from '../opcodes';
 
@@ -11,7 +11,7 @@ export interface Program {
 }
 
 export default class LowLevelVM {
-  private wasmVM: number; // TODO: need to free this somewhere
+  private wasmVM: WasmLowLevelVM; // TODO: need to free this somewhere
   public stack: EvaluationStack;
 
   constructor(
@@ -21,7 +21,7 @@ export default class LowLevelVM {
   ) {
     // note that this 0 here indicate the heap, but it's passed elsewhere for
     // now so it's just a dummy values
-    this.wasmVM = wasm.exports.low_level_vm_new(0, DEVMODE ? 1 : 0);
+    this.wasmVM = wasm.exports.LowLevelVM.new(heap, APPEND_OPCODES, externs, DEVMODE);
 
     // TODO: this is more sketchy memory management! We own `this.wasmVM` yet
     // we're giving it off to the evaluation stack as well. That's mostly to
@@ -32,72 +32,70 @@ export default class LowLevelVM {
   }
 
   get currentOpSize(): number {
-    return wasm.exports.low_level_vm_current_op_size(this.wasmVM);
+    return this.wasmVM.current_op_size();
   }
 
   get pc(): number {
-    return wasm.exports.low_level_vm_pc(this.wasmVM);
+    return this.wasmVM.pc();
   }
 
   set pc(pc: number) {
-    wasm.exports.low_level_vm_set_pc(this.wasmVM, pc);
+    this.wasmVM.set_pc(pc);
   }
 
   get ra(): number {
-    return wasm.exports.low_level_vm_ra(this.wasmVM);
+    return this.wasmVM.ra();
   }
 
   set ra(ra: number) {
-    wasm.exports.low_level_vm_set_ra(this.wasmVM, ra);
+    this.wasmVM.set_ra(ra);
   }
 
   // Start a new frame and save $ra and $fp on the stack
   pushFrame() {
-    wasm.exports.low_level_vm_push_frame(this.wasmVM);
+    this.wasmVM.push_frame();
   }
 
   // Restore $ra, $sp and $fp
   popFrame() {
-    wasm.exports.low_level_vm_pop_frame(this.wasmVM);
+    this.wasmVM.pop_frame();
   }
 
   // Jump to an address in `program`
   goto(offset: number) {
-    wasm.exports.low_level_vm_goto(this.wasmVM, offset);
+    this.wasmVM.goto(offset);
   }
 
   // Save $pc into $ra, then jump to a new address in `program` (jal in MIPS)
   call(handle: number) {
-    wasm.exports.low_level_vm_call(this.wasmVM, handle);
+    this.wasmVM.call(handle);
   }
 
   // Put a specific `program` address in $ra
   returnTo(offset: number) {
-    wasm.exports.low_level_vm_return_to(this.wasmVM, offset);
+    this.wasmVM.return_to(offset);
   }
 
   // Return to the `program` address stored in $ra
   return() {
-    wasm.exports.low_level_vm_return(this.wasmVM);
+    this.wasmVM.return_();
   }
 
   nextStatement(): Option<Opcode> {
-    return wasm_wrapper.low_level_vm_next_statement(this.wasmVM, this.heap);
+    const next = this.wasmVM.next_statement();
+    if (next === -1)
+      return null;
+    let opcode = new Opcode(this.heap);
+    opcode.offset = next;
+    return opcode;
   }
 
   evaluateOuter(opcode: Opcode, vm: VM<Opaque>) {
-    wasm_wrapper.low_level_vm_evaluate(this.wasmVM,
-      vm,
-      this.externs,
-      this.heap,
-      opcode,
-      APPEND_OPCODES);
+    this.wasmVM.evaluate_outer(opcode.offset, vm);
   }
 
   dropWasm() {
-    const wasmVM = this.wasmVM;
-    this.wasmVM = 0;
     this.stack.dropWasm();
-    wasm.exports.low_level_vm_free(wasmVM);
+    this.wasmVM.free();
   }
 }

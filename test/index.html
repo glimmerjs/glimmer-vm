@@ -68,7 +68,7 @@
         requireModule(entry)
       };
     });
-    require('@glimmer/low-level').wasm_wrapper.booted.then(() => {
+    require('@glimmer/low-level').booted.then(() => {
       QUnit.start();
     });
   </script>
