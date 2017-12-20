@@ -95,7 +95,6 @@ export default class LowLevelVM {
   }
 
   dropWasm() {
-    this.stack.dropWasm();
     this.wasmVM.free();
   }
 }

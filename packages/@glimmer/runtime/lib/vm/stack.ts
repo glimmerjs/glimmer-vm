@@ -2,17 +2,15 @@ import { DEBUG } from '@glimmer/local-debug-flags';
 import { Opaque } from '@glimmer/interfaces';
 import { PrimitiveType } from '@glimmer/program';
 import { unreachable } from '@glimmer/util';
-import { wasm, Stack as WasmStack, WasmLowLevelVM } from '@glimmer/low-level';
+import { WasmLowLevelVM } from '@glimmer/low-level';
 
 const HI   = 0x80000000;
 const MASK = 0x7FFFFFFF;
 
 export class InnerStack {
-  private inner: WasmStack;
   private js: Opaque[] =[];
 
-  constructor(stack: number) {
-    this.inner = new WasmStack(stack);
+  constructor(private wasmVM: WasmLowLevelVM) {
   }
 
   sliceInner<T = Opaque>(start: number, end: number): T[] {
@@ -26,29 +24,29 @@ export class InnerStack {
   }
 
   copy(from: number, to: number): void {
-    this.inner.copy(from, to);
+    this.wasmVM.stack_copy(from, to);
   }
 
   write(pos: number, value: Opaque): void {
     if (isImmediate(value)) {
-      this.inner.writeRaw(pos, encodeImmediate(value));
+      this.wasmVM.stack_write_raw(pos, encodeImmediate(value));
     } else {
       let idx = this.js.length;
       this.js.push(value);
-      this.inner.writeRaw(pos, idx | HI);
+      this.wasmVM.stack_write_raw(pos, idx | HI);
     }
   }
 
   writeSmi(pos: number, value: number): void {
-    this.inner.writeSmi(pos, value);
+    this.wasmVM.stack_write(pos, value);
   }
 
   writeImmediate(pos: number, value: number): void {
-    this.inner.writeRaw(pos, value);
+    this.wasmVM.stack_write_raw(pos, value);
   }
 
   get<T>(pos: number): T {
-    let value = this.inner.getRaw(pos);
+    let value = this.wasmVM.stack_read_raw(pos);
 
     if (value & HI) {
       return this.js[value & MASK] as T;
@@ -58,15 +56,11 @@ export class InnerStack {
   }
 
   getSmi(pos: number): number {
-    return this.inner.getSmi(pos);
+    return this.wasmVM.stack_read(pos);
   }
 
   reset(): void {
-    this.inner.reset();
-  }
-
-  dropWasm() {
-    this.inner.dropWasm();
+    this.wasmVM.stack_reset();
   }
 }
 
@@ -74,18 +68,7 @@ export default class EvaluationStack {
   private stack: InnerStack;
 
   constructor(private wasmVM: WasmLowLevelVM) {
-    // TODO: this is super sketchy! We're extracing a borrowed pointer,
-    // `wasm_stack`, from the actual `wasmVM` instance and then we're stashing
-    // that away in a separate object so we can frob it as well. This isn't a
-    // great interface because if the `wasmVM` is destroyed then it invalidates
-    // the `wasm_stack`. Hopefully that doesn't happen?
-    //
-    // The memory here probably needs to be managed better either by creating a
-    // fully owned copy like a `Rc` on the Rust side to send to our `InnerStack`
-    // or otherwise the `wasm_stack` needs to stay encapsulated in the
-    // `LowLevelVM`, the true owner of `wasmVM`.
-    let wasm_stack = wasm.exports.low_level_vm_stack(wasmVM);
-    this.stack = new InnerStack(wasm_stack);
+    this.stack = new InnerStack(wasmVM);
     if (DEBUG) {
       Object.seal(this);
     }
@@ -189,10 +172,6 @@ export default class EvaluationStack {
 
   toArray() {
     return this.stack.sliceInner(this.fp, this.sp + 1);
-  }
-
-  dropWasm() {
-    this.stack.dropWasm();
   }
 }
 

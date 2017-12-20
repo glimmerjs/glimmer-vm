@@ -284,6 +284,30 @@ wasm_bindgen! {
                                                &self.heap.handle,
                                                opcode.offset())
         }
+
+        pub fn stack_copy(&self, from: u32, to: u32) -> bool {
+            self.stack.borrow_mut().inner.copy(from, to).is_ok()
+        }
+
+        pub fn stack_write_raw(&self, at: u32, val: u32) {
+            self.stack.borrow_mut().inner.write_raw(at, val);
+        }
+
+        pub fn stack_write(&self, at: u32, val: i32) {
+            self.stack.borrow_mut().inner.write(at, val);
+        }
+
+        pub fn stack_read_raw(&self, at: u32) -> u32 {
+            self.stack.borrow().inner.read_raw(at).unwrap_or(0)
+        }
+
+        pub fn stack_read(&self, at: u32) -> i32 {
+            self.stack.borrow().inner.read(at).unwrap_or(0)
+        }
+
+        pub fn stack_reset(&self) {
+            self.stack.borrow_mut().inner.reset();
+        }
     }
 }
 

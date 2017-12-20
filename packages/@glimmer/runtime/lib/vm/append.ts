@@ -422,7 +422,7 @@ export default class VM<TemplateMeta> implements PublicVM {
     } else {
       // Unload the stack
       this.stack.reset();
-      this.dropWasm();
+      this.inner.dropWasm();
 
       result = {
         done: true,
@@ -444,9 +444,5 @@ export default class VM<TemplateMeta> implements PublicVM {
       let name = this.constants.getString(names[i]);
       scope.set(name, this.stack.pop<VersionedPathReference<Opaque>>());
     }
-  }
-
-  dropWasm() {
-    this.inner.dropWasm();
   }
 }
