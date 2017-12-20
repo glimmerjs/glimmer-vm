@@ -18,6 +18,7 @@ before_install:
   - export PATH=$PATH:$HOME/.cargo/bin
   - rustup target add wasm32-unknown-unknown
   - cargo install --git https://github.com/alexcrichton/wasm-gc --debug
+  - cargo install --git https://github.com/alexcrichton/wasm-bindgen --debug
   - rustc -V
 env:
   global:
