@@ -11,7 +11,7 @@ export interface Program {
 }
 
 export default class LowLevelVM {
-  private wasmVM: WasmLowLevelVM; // TODO: need to free this somewhere
+  private wasmVM: WasmLowLevelVM;
   public stack: EvaluationStack;
 
   constructor(
@@ -19,15 +19,7 @@ export default class LowLevelVM {
     public program: Program,
     public externs: Externs,
   ) {
-    // note that this 0 here indicate the heap, but it's passed elsewhere for
-    // now so it's just a dummy values
     this.wasmVM = wasm.exports.LowLevelVM.new(heap, APPEND_OPCODES, externs, DEVMODE);
-
-    // TODO: this is more sketchy memory management! We own `this.wasmVM` yet
-    // we're giving it off to the evaluation stack as well. That's mostly to
-    // just get things working for now, but we probably don't want to do
-    // that in the future and either use things like `Rc` in Rust or some
-    // other slightly more principled memory management scheme.
     this.stack = new EvaluationStack(this.wasmVM);
   }
 
