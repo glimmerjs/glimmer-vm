@@ -7,6 +7,8 @@ authors = []
 crate-type = ["cdylib"]
 
 [dependencies]
+#wasm-bindgen = { git = 'https://github.com/alexcrichton/wasm-bindgen' }
+wasm-bindgen = { path = "/home/alex/code/wasm-bindgen" }
 
 [profile.dev]
 opt-level = 's'

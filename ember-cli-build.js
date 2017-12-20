@@ -3,7 +3,11 @@
 const merge = require('broccoli-merge-trees');
 const funnel = require('broccoli-funnel');
 const { typescript } = require('broccoli-typescript-compiler');
-const Rust = require('broccoli-rust2wasm').default;
+const compileRust = require('./build/broccoli/compile-rust');
+const wasmGc = require('./build/broccoli/wasm-gc');
+const wasmOpt = require('./build/broccoli/wasm-opt');
+const wasmBindgen = require('./build/broccoli/wasm-bindgen');
+const encodeWasmAsBase64 = require('./build/broccoli/encode-wasm-as-base64');
 
 const buildTests = require('./build/broccoli/build-tests');
 const buildPackages = require('./build/broccoli/build-packages.js');
@@ -26,12 +30,30 @@ module.exports = function(_options) {
     destDir: 'packages/@glimmer'
   });
 
-  let wasmTree = new Rust('packages/@glimmer/low-level/rust', {
-    generateWrapper: true,
-    generateTypescript: true,
-  });
+  // Next up let's handle the Rust code which we'll compile to wasm. There's a
+  // few discreet steps here that we're doing:
+  //
+  // * First up we actually compile the rust code. This will emit one file, a
+  //   wasm file
+  // * Next we do some postprocessing on this wasm file, executing tools like
+  //   `wasm-gc` and `wasm-opt` to make it a little smaller.
+  // * After that we execute `wasm-bindgen` which will read the wasm file and
+  //   generate a typescript module corresponding to what the wasm exposes.
+  // * Finally we'll do a "poor man's include" of the wasm into the JS module
+  //   system by creating a module that simply contains the base64 encoded
+  //   string of the wasm module itself.
+  //
+  // These are then all weaved below to the right location to ensure everything
+  // matches up.c
+  let wasmTree = compileRust('packages/@glimmer/low-level/rust', PRODUCTION);
+  wasmTree = wasmGc(wasmTree);
+  if (PRODUCTION)
+    wasmTree = wasmOpt(wasmTree);
+  wasmTree = wasmBindgen(wasmTree);
+  let wasmAsBase64 = encodeWasmAsBase64(wasmTree);
+  wasmTree = merge([wasmTree, wasmAsBase64]);
 
-  // The rust compilation will emit a `*.d.ts` file which describes the JS
+  // The base64 encoding will emit a `*.d.ts` file which describes the JS
   // interface of the wasm module, so let's pull that in to feed it into
   // typescript.
   let wasmTypeDefinitions = funnel(wasmTree, {
@@ -45,11 +67,11 @@ module.exports = function(_options) {
   // transformations.
   let jsTree = typescript(tsTree);
 
-  // The rust compilation *also* emitted a `*.js` file which is what we actually
-  // want in terms of compiling it all together, so let's pull that into the
-  // output of the typescript tree to make sure the module can actually get
-  // resolved!
-  let wasmRuntimeFiles = funnel(wasmTree, {
+  // The base64 encoding step *also* emitted a `*.js` file which is what we
+  // actually want in terms of compiling it all together, so let's pull that
+  // into the output of the typescript tree to make sure the module can
+  // actually get resolved!
+  let wasmRuntimeFiles = funnel(wasmAsBase64, {
     destDir: '@glimmer/low-level/lib',
   });
   jsTree = merge([jsTree, wasmRuntimeFiles]);

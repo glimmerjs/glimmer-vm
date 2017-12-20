@@ -5,10 +5,11 @@
 // exported directly from the WebAssembly module but a few are wrapped in a
 // relatively low-level interface here.
 
-import { default as instantiate, Exports } from "./rust"; // this is the fn to instantiate the module
+import { instantiate, Exports } from "./rust"; // this is the fn to instantiate the module
 import { Heap, Opcode, Externs, Opcodes } from "@glimmer/program";
 import { Option, Opaque } from "@glimmer/interfaces";
 import { assert } from "@glimmer/util";
+import { default as wasm_bytes } from "./rust-contents";
 
 export type VM = Opaque;
 
@@ -93,7 +94,7 @@ const imports = {
 
     // currently only used when debugging
     debug_println(ptr: number, len: number): void {
-      let mem = new Uint8Array(wasm.memory.buffer);
+      let mem = new Uint8Array(wasm.extra.memory.buffer);
       let slice = mem.slice(ptr, ptr + len);
       let s = new TextDecoder("utf-8").decode(slice);
       console.log(s);
@@ -101,7 +102,13 @@ const imports = {
   },
 };
 
-export const wasm: Exports = instantiate(imports);
+export let wasm: Exports;
+export const booted: Promise<boolean> = wasm_bytes
+  .then(bytes => instantiate(bytes, imports))
+  .then(exports => {
+    wasm = exports;
+    return true;
+  });
 
 // Wrap a few functions to set our globals in this module above so while Rust is
 // executing we have access to the various JS objects passed in.
