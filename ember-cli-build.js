@@ -49,7 +49,7 @@ module.exports = function(_options) {
   wasmTree = wasmGc(wasmTree);
   if (PRODUCTION)
     wasmTree = wasmOpt(wasmTree);
-  wasmTree = wasmBindgen(wasmTree);
+  wasmTree = wasmBindgen(wasmTree, PRODUCTION);
   let wasmAsBase64 = encodeWasmAsBase64(wasmTree);
   wasmTree = merge([wasmTree, wasmAsBase64]);
 

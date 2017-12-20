@@ -25,14 +25,18 @@ class WasmBindgen extends Plugin {
         "--output-wasm",
         outputWasm,
       ];
+      if (!this.production)
+        args.push("--debug");
 
       execFileSync("wasm-bindgen", args);
     }
   }
 }
 
-module.exports = function(inputPath) {
-  return new WasmBindgen([inputPath]);
+module.exports = function(inputPath, production) {
+  let pass = new WasmBindgen([inputPath]);
+  pass.production = production;
+  return pass;
 }
 
 
