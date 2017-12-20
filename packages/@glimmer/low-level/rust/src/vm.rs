@@ -1,6 +1,9 @@
 use core::cell::Cell;
 
 use wasm_bindgen::prelude::*;
+
+// TODO: don't use this private internal, this should be vendored here or
+//       officially exposed upstream in `wasm_bindgen`.
 use wasm_bindgen::__rt::WasmRefCell as RefCell;
 
 use boxed::BigBox as Box; // hack to get `wasm_bindgen` working
