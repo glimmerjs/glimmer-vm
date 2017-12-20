@@ -4,9 +4,9 @@
 //!
 //! TODO: remove this with a more efficient allocator or just use `Box`.
 
-use std::mem;
-use std::ops::{Deref, DerefMut};
-use std::ptr;
+use core::mem;
+use core::ops::{Deref, DerefMut};
+use core::ptr;
 
 use page::{self, Page};
 

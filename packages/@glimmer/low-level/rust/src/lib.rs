@@ -1,5 +1,10 @@
 #![feature(link_llvm_intrinsics, allocator_api, proc_macro)]
 
+// We're optimizing for code size, so don't accidentally use any libstd
+// abstractions
+#![no_std]
+extern crate std as _std; // ensure we link correctly though by still using libstd
+
 extern crate wasm_bindgen;
 
 use wasm_bindgen::prelude::*;

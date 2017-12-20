@@ -2,8 +2,8 @@
 
 #![allow(dead_code, unused_macros)]
 
-use std::fmt;
-use std::heap::{Alloc, Heap, AllocErr};
+use core::fmt;
+use _std::heap::{Alloc, Heap, AllocErr};
 
 use ffi;
 
@@ -29,6 +29,8 @@ macro_rules! panic {
 }
 
 pub fn _println(a: &fmt::Arguments) {
+    use _std::prelude::v1::*;
+
     if !cfg!(debug_assertions) {
         return
     }
