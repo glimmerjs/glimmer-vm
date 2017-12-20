@@ -84,11 +84,11 @@ let ALLOCS = 0;
 
 module("[glimmer-runtime] Updating", hooks => {
   hooks.beforeEach(() => {
-    ALLOCS = wasm.page_num_allocated();
+    ALLOCS = wasm.exports.page_num_allocated();
     commonSetup();
   });
   hooks.afterEach(() => {
-    assert.strictEqual(wasm.page_num_allocated() - ALLOCS, 0);
+    assert.strictEqual(wasm.exports.page_num_allocated() - ALLOCS, 0);
   });
 
   test("updating a single curly", assert => {

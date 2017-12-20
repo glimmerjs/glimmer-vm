@@ -14,13 +14,6 @@ wasm-bindgen = { path = "/home/alex/code/wasm-bindgen" }
 opt-level = 's'
 panic = 'abort'
 
-# Eventually these should all be enabled in the `dev` profile but for now they
-# cause the wasm binary output to be too large to be compiled synchronously in
-# Chrome, so we turn them all off to get a smaller output (like in release mode)
-debug = false
-debug-assertions = false
-overflow-checks = false
-
 [profile.release]
 opt-level = 's'
 panic = 'abort'

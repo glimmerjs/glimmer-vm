@@ -40,6 +40,7 @@
   </script>
 
   <script>
+    QUnit.config.autostart = false;
     QUnit.config.urlConfig.push({
       id: "notslint",
       label: "Disable TSLint",
@@ -66,6 +67,9 @@
         if (notslint && entry.match(/\.lint-test$/)) return;
         requireModule(entry)
       };
+    });
+    require('@glimmer/low-level').wasm_wrapper.booted.then(() => {
+      QUnit.start();
     });
   </script>
 </body>

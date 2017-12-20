@@ -94,7 +94,7 @@ const imports = {
 
     // currently only used when debugging
     debug_println(ptr: number, len: number): void {
-      let mem = new Uint8Array(wasm.extra.memory.buffer);
+      let mem = new Uint8Array(wasm.exports.extra.memory.buffer);
       let slice = mem.slice(ptr, ptr + len);
       let s = new TextDecoder("utf-8").decode(slice);
       console.log(s);
@@ -102,11 +102,11 @@ const imports = {
   },
 };
 
-export let wasm: Exports;
+export let wasm: { exports: Exports } = {} as {exports:Exports};
 export const booted: Promise<boolean> = wasm_bytes
   .then(bytes => instantiate(bytes, imports))
   .then(exports => {
-    wasm = exports;
+    wasm.exports = exports;
     return true;
   });
 
@@ -123,7 +123,7 @@ export function low_level_vm_next_statement(vm: number, heap: Heap) {
   // same glimmer library so this may not cut it.
   try {
     set_heap(heap);
-    let opcode = wasm.low_level_vm_next_statement(vm);
+    let opcode = wasm.exports.low_level_vm_next_statement(vm);
     if (opcode === -1) {
       return null;
     } else {
@@ -148,7 +148,7 @@ export function low_level_vm_evaluate(vm: number,
     set_externs(externs);
     set_heap(heap);
     set_opcodes(opcodes);
-    wasm.low_level_vm_evaluate(vm, opcode.offset, 0);
+    wasm.exports.low_level_vm_evaluate(vm, opcode.offset, 0);
   } finally {
     VM_SINGLETON = null;
     EXTERNS = null;

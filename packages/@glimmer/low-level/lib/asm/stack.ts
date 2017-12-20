@@ -9,31 +9,31 @@ export class Stack {
   }
 
   copy(from: u32, to: u32) {
-    if (wasm.stack_copy(this.stack, from, to) === 0) {
+    if (wasm.exports.stack_copy(this.stack, from, to) === 0) {
       // TODO: report this error?
     }
   }
 
   // TODO: how to model u64 argument?
   writeRaw(pos: u32, value: u64): void {
-    wasm.stack_write_raw(this.stack, pos, value);
+    wasm.exports.stack_write_raw(this.stack, pos, value);
   }
 
   writeSmi(pos: u32, value: i32): void {
-    wasm.stack_write(this.stack, pos, value);
+    wasm.exports.stack_write(this.stack, pos, value);
   }
 
   // TODO: partially decoded enum?
   getRaw(pos: u32): u32 {
-    return wasm.stack_read_raw(this.stack, pos);
+    return wasm.exports.stack_read_raw(this.stack, pos);
   }
 
   getSmi(pos: u32): i32 {
-    return wasm.stack_read(this.stack, pos);
+    return wasm.exports.stack_read(this.stack, pos);
   }
 
   reset(): void {
-    wasm.stack_reset(this.stack);
+    wasm.exports.stack_reset(this.stack);
   }
 
   dropWasm() {

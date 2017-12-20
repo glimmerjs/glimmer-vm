@@ -84,7 +84,7 @@ export default class EvaluationStack {
     // fully owned copy like a `Rc` on the Rust side to send to our `InnerStack`
     // or otherwise the `wasm_stack` needs to stay encapsulated in the
     // `LowLevelVM`, the true owner of `wasmVM`.
-    let wasm_stack = wasm.low_level_vm_stack(wasmVM);
+    let wasm_stack = wasm.exports.low_level_vm_stack(wasmVM);
     this.stack = new InnerStack(wasm_stack);
     if (DEBUG) {
       Object.seal(this);
@@ -100,19 +100,19 @@ export default class EvaluationStack {
   }
 
   get fp(): number {
-    return wasm.low_level_vm_fp(this.wasmVM);
+    return wasm.exports.low_level_vm_fp(this.wasmVM);
   }
 
   set fp(fp: number) {
-    wasm.low_level_vm_set_fp(this.wasmVM, fp);
+    wasm.exports.low_level_vm_set_fp(this.wasmVM, fp);
   }
 
   get sp(): number {
-    return wasm.low_level_vm_sp(this.wasmVM);
+    return wasm.exports.low_level_vm_sp(this.wasmVM);
   }
 
   set sp(sp: number) {
-    wasm.low_level_vm_set_sp(this.wasmVM, sp);
+    wasm.exports.low_level_vm_set_sp(this.wasmVM, sp);
   }
 
   push(value: Opaque): void {
