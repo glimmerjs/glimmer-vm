@@ -3,7 +3,8 @@
 #![allow(dead_code, unused_macros)]
 
 use core::fmt;
-use _std::heap::{Alloc, Heap, AllocErr};
+
+use wasm_bindgen;
 
 use ffi;
 
@@ -56,7 +57,5 @@ pub fn _panic2(args: &fmt::Arguments, &(file, line): &(&str, u32)) -> ! {
 }
 
 pub fn abort() -> ! {
-    // This is a pretty bad message but we won't see it anyway, so just need to
-    // abort!
-    Heap.oom(AllocErr::invalid_input(""))
+    wasm_bindgen::throw("rust had to abort")
 }

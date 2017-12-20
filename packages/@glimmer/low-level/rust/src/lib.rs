@@ -1,4 +1,4 @@
-#![feature(link_llvm_intrinsics, allocator_api, proc_macro)]
+#![feature(link_llvm_intrinsics, proc_macro)]
 
 // We're optimizing for code size, so don't accidentally use any libstd
 // abstractions
