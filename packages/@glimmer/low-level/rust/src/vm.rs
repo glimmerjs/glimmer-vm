@@ -225,7 +225,6 @@ wasm_bindgen! {
         fn _evaluate_outer(&self, opcode: Opcode, vm: &JsObject) {
             let state = if self.devmode {
                 Some(ffi::low_level_vm_debug_before(&self.externs,
-                                                    &self.heap.handle,
                                                     opcode.offset()))
             } else {
                 None
@@ -235,7 +234,6 @@ wasm_bindgen! {
 
             if let Some(state) = state {
                 ffi::low_level_vm_debug_after(&self.externs,
-                                              &self.heap.handle,
                                               state,
                                               opcode.offset());
             }
@@ -281,7 +279,6 @@ wasm_bindgen! {
         fn evaluate_syscall(&self, opcode: Opcode, vm: &JsObject) {
             ffi::low_level_vm_evaluate_syscall(&self.syscalls,
                                                vm,
-                                               &self.heap.handle,
                                                opcode.offset())
         }
 

@@ -6,49 +6,32 @@
 // relatively low-level interface here.
 
 import { instantiate, Exports } from "./rust"; // this is the fn to instantiate the module
-import { Heap, Opcode, Externs, Opcodes } from "@glimmer/program";
-import { Opaque } from "@glimmer/interfaces";
 import { default as wasm_bytes } from "./rust-contents";
-
-export type VM = Opaque;
-
-function makeOpcode(offset: number, heap: Heap): Opcode {
-  let opcode = new Opcode(heap);
-  opcode.offset = offset;
-  return opcode;
-}
 
 // Construct the array of imports needed to instantiate the WebAssembly module.
 //
 // These imports are all required by `src/ffi.rs` from Rust code and are
 // basically how Rust will talk back to JS during its execution.
 const imports = {
-  low_level_vm_debug_before(externs: Externs,
-                            heap: Heap,
-                            opcode: number): any {
-    return externs.debugBefore(makeOpcode(opcode, heap));
+  low_level_vm_debug_before(externs: any, offset: number): any {
+    return externs.debugBefore(offset);
   },
 
-  low_level_vm_debug_after(externs: Externs,
-                           heap: Heap,
+  low_level_vm_debug_after(externs: any,
                            state: any,
-                           opcode: number): void {
-    externs.debugAfter(makeOpcode(opcode, heap), state);
+                           offset: number): void {
+    externs.debugAfter(offset, state);
   },
 
-  low_level_vm_evaluate_syscall(syscalls: Opcodes,
-                                vm: VM,
-                                heap: Heap,
-                                opcode: number): void {
-    let op = makeOpcode(opcode, heap);
-    syscalls.evaluate(vm, op, op.type);
+  low_level_vm_evaluate_syscall(syscalls: any, vm: any, offset: number): void {
+    syscalls.evaluate(vm, offset);
   },
 
-  low_level_vm_heap_get_addr(heap: Heap, at: number): number {
+  low_level_vm_heap_get_addr(heap: any, at: number): number {
     return heap.getaddr(at);
   },
 
-  low_level_vm_heap_get_by_addr(heap: Heap, at: number): number {
+  low_level_vm_heap_get_by_addr(heap: any, at: number): number {
     return heap.getbyaddr(at);
   },
 

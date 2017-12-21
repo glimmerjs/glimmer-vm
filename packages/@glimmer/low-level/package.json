@@ -3,7 +3,6 @@
   "version": "0.30.5",
   "repository": "https://github.com/glimmerjs/glimmer-vm/tree/master/packages/@glimmer/low-level",
   "dependencies": {
-    "@glimmer/program": "^0.30.3"
   },
   "devDependencies": {
     "typescript": "^2.2.0"

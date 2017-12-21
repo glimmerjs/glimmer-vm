@@ -214,11 +214,15 @@ export default class VM<TemplateMeta> implements PublicVM {
     this.scopeStack.push(scope);
     this.dynamicScopeStack.push(dynamicScope);
     this.inner = new LowLevelVM(this.heap, program, {
-      debugBefore: (opcode: Opcode): DebugState => {
+      debugBefore: (offset: number): DebugState => {
+        let opcode = new Opcode(program.heap);
+        opcode.offset = offset;
         return APPEND_OPCODES.debugBefore(this, opcode, opcode.type);
       },
 
-      debugAfter: (opcode: Opcode, state: DebugState): void => {
+      debugAfter: (offset: number, state: DebugState): void => {
+        let opcode = new Opcode(program.heap);
+        opcode.offset = offset;
         APPEND_OPCODES.debugAfter(this, opcode, opcode.type, state);
       }
     });

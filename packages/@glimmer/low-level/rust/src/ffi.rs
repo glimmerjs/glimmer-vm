@@ -6,13 +6,11 @@ wasm_bindgen! {
     extern "JS" {
         pub fn low_level_vm_debug_before(
             externs: &JsObject,
-            heap: &JsObject,
             opcode: u32,
         ) -> JsObject;
 
         pub fn low_level_vm_debug_after(
             externs: &JsObject,
-            heap: &JsObject,
             state: JsObject,
             opcode: u32,
         );
@@ -20,7 +18,6 @@ wasm_bindgen! {
         pub fn low_level_vm_evaluate_syscall(
             syscalls: &JsObject,
             vm: &JsObject,
-            heap: &JsObject,
             opcode: u32,
         );
 

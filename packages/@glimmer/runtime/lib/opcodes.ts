@@ -4,7 +4,8 @@ import { Op } from '@glimmer/vm';
 import { Tag } from '@glimmer/reference';
 import { debug, logOpcode } from "@glimmer/opcode-compiler";
 import { METADATA } from "@glimmer/vm";
-import { Opcode, Opaque } from "@glimmer/interfaces";
+import { Opaque } from "@glimmer/interfaces";
+import { Opcode } from "@glimmer/program";
 import { LowLevelVM, VM, UpdatingVM } from './vm';
 import { DEBUG, DEVMODE } from '@glimmer/local-debug-flags';
 
@@ -107,7 +108,10 @@ export class AppendOpcodes {
     }
   }
 
-  evaluate(vm: VM<Opaque>, opcode: Opcode, type: number) {
+  evaluate(vm: VM<Opaque>, offset: number) {
+    let opcode = new Opcode(vm.heap);
+    opcode.offset = offset;
+    let type = opcode.type;
     let operation = this.evaluateOpcode[type];
 
     if (operation.syscall) {

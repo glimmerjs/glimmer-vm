@@ -7,12 +7,12 @@ import { assert } from "@glimmer/util";
 import { Opaque } from "@glimmer/interfaces";
 
 export interface Opcodes {
-  evaluate(vm: Opaque, opcode: Opcode, type: number): void;
+  evaluate(vm: Opaque, offset: number): void;
 }
 
 export interface Externs {
-  debugBefore(opcode: Opcode): Opaque;
-  debugAfter(opcode: Opcode, state: Opaque): void;
+  debugBefore(offset: number): Opaque;
+  debugAfter(offset: number, state: Opaque): void;
 }
 
 enum TableSlotState {
