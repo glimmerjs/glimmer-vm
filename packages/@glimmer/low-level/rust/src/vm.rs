@@ -126,7 +126,7 @@ wasm_bindgen! {
             self.ra.get()
         }
 
-        pub fn set_ra(&mut self, ra: i32) {
+        pub fn set_ra(&self, ra: i32) {
             self.ra.set(ra);
         }
 
@@ -134,7 +134,7 @@ wasm_bindgen! {
             self.pc.get()
         }
 
-        pub fn set_pc(&mut self, pc: i32) {
+        pub fn set_pc(&self, pc: i32) {
             self.pc.set(pc);
         }
 
@@ -142,15 +142,15 @@ wasm_bindgen! {
             self.stack.borrow().fp()
         }
 
-        pub fn set_fp(&mut self, fp: i32) {
-            self.stack.get_mut().set_fp(fp);
+        pub fn set_fp(&self, fp: i32) {
+            self.stack.borrow_mut().set_fp(fp);
         }
 
         pub fn sp(&self) -> i32 {
             self.stack.borrow().sp()
         }
 
-        pub fn set_sp(&self, sp: i32) { // TODO: should be `&mut self`
+        pub fn set_sp(&self, sp: i32) {
             self.stack.borrow_mut().set_sp(sp);
         }
 
@@ -195,14 +195,14 @@ wasm_bindgen! {
             self.pc.set(self.ra.get());
         }
 
-        pub fn next_statement(&mut self) -> u32 {
+        pub fn next_statement(&self) -> u32 {
             match self._next_statement() {
                 Some(opcode) => opcode.offset(),
                 None => u32::max_value(),
             }
         }
 
-        fn _next_statement(&mut self) -> Option<Opcode> {
+        fn _next_statement(&self) -> Option<Opcode> {
             if self.pc.get() == -1 {
                 return None
             }
@@ -302,8 +302,8 @@ wasm_bindgen! {
             self.stack.borrow().inner.read(at).unwrap_or(0)
         }
 
-        pub fn stack_reset(&mut self) {
-            self.stack.get_mut().inner.reset();
+        pub fn stack_reset(&self) {
+            self.stack.borrow_mut().inner.reset();
         }
     }
 }
