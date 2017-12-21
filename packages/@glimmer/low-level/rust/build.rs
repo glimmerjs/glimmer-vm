@@ -26,8 +26,8 @@ fn main() {
     contents.push_str("#[allow(dead_code)]\n");
     contents.push_str("#[derive(Debug, Copy, Clone)]\n");
     contents.push_str("pub enum Op {\n");
-    for v in variants {
-        contents.push_str(&format!("    {},\n", v));
+    for (i, v) in variants.iter().enumerate() {
+        contents.push_str(&format!("    {} = {},\n", v, i));
     }
     contents.push_str("}\n");
 
