@@ -6,7 +6,7 @@ import { debug, logOpcode } from "@glimmer/opcode-compiler";
 import { METADATA } from "@glimmer/vm";
 import { Opaque } from "@glimmer/interfaces";
 import { Opcode } from "@glimmer/program";
-import { LowLevelVM, VM, UpdatingVM } from './vm';
+import { VM, UpdatingVM } from './vm';
 import { DEBUG, DEVMODE } from '@glimmer/local-debug-flags';
 
 export interface OpcodeJSON {
@@ -23,19 +23,14 @@ export type Operand2 = number;
 export type Operand3 = number;
 
 export type Syscall = (vm: VM<Opaque>, opcode: Opcode) => void;
-export type MachineOpcode = (vm: LowLevelVM, opcode: Opcode) => void;
-
-export type Evaluate = { syscall: true, evaluate: Syscall } | { syscall: false, evaluate: MachineOpcode };
 
 export type DebugState = { sp: number, state: Opaque };
 
 export class AppendOpcodes {
-  private evaluateOpcode: Evaluate[] = fillNulls<Evaluate>(Op.Size).slice();
+  private evaluateOpcode: Syscall[] = fillNulls<Syscall>(Op.Size).slice();
 
-  add<Name extends Op>(name: Name, evaluate: Syscall): void;
-  add<Name extends Op>(name: Name, evaluate: MachineOpcode, kind: 'machine'): void;
-  add<Name extends Op>(name: Name, evaluate: Syscall | MachineOpcode, kind = 'syscall'): void {
-    this.evaluateOpcode[name as number] = { syscall: kind === 'syscall', evaluate } as Evaluate;
+  add<Name extends Op>(name: Name, evaluate: Syscall): void {
+    this.evaluateOpcode[name as number] = evaluate;
   }
 
   debugBefore(vm: VM<Opaque>, opcode: Opcode, type: number): DebugState {
@@ -113,14 +108,8 @@ export class AppendOpcodes {
     opcode.offset = offset;
     let type = opcode.type;
     let operation = this.evaluateOpcode[type];
-
-    if (operation.syscall) {
-      assert(!opcode.isMachine, `BUG: Mismatch between operation.syscall (${operation.syscall}) and opcode.isMachine (${opcode.isMachine}) for ${opcode.type}`);
-      operation.evaluate(vm, opcode);
-    } else {
-      assert(opcode.isMachine, `BUG: Mismatch between operation.syscall (${operation.syscall}) and opcode.isMachine (${opcode.isMachine}) for ${opcode.type}`);
-      operation.evaluate(vm.inner, opcode);
-    }
+    assert(!opcode.isMachine, `BUG: Mismatch between operation.syscall (true) and opcode.isMachine (${opcode.isMachine}) for ${opcode.type}`);
+    operation(vm, opcode);
   }
 }
 

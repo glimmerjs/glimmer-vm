@@ -5,10 +5,11 @@ import { ElementBuilder } from './element-builder';
 import { Option, Destroyable, Stack, LinkedList, ListSlice, Opaque, expect, assert } from '@glimmer/util';
 import { ReferenceIterator, PathReference, VersionedPathReference, combineSlice } from '@glimmer/reference';
 import { LabelOpcode, JumpIfNotModifiedOpcode, DidModifyOpcode } from '../compiled/opcodes/vm';
-import LowLevelVM from './low-level';
 import { VMState, ListBlockOpcode, TryOpcode, BlockOpcode } from './update';
 import RenderResult from './render-result';
 import EvaluationStack from './stack';
+import { wasm, WasmLowLevelVM } from '@glimmer/low-level';
+import { DEVMODE } from '@glimmer/local-debug-flags';
 
 import {
   APPEND_OPCODES,
@@ -40,42 +41,35 @@ export type IteratorResult<T> = {
 export default class VM<TemplateMeta> implements PublicVM {
   private dynamicScopeStack = new Stack<DynamicScope>();
   private scopeStack = new Stack<Scope>();
-  public inner: LowLevelVM;
+  public wasmVM: WasmLowLevelVM;
+  public stack: EvaluationStack;
   public updatingOpcodeStack = new Stack<LinkedList<UpdatingOpcode>>();
   public cacheGroups = new Stack<Option<UpdatingOpcode>>();
   public listBlockStack = new Stack<ListBlockOpcode>();
   public constants: RuntimeConstants<TemplateMeta>;
   public heap: Heap;
 
-  get stack(): EvaluationStack {
-    return this.inner.stack;
-  }
-
-  set stack(value: EvaluationStack) {
-    this.inner.stack = value;
-  }
-
   /* Registers */
 
   get currentOpSize(): number {
-    return this.inner.currentOpSize;
+    return this.wasmVM.current_op_size();
   }
 
   get pc(): number {
-    return this.inner.pc;
+    return this.wasmVM.pc();
   }
 
   set pc(value: number) {
     assert(typeof value === 'number' && value >= -1, `invalid pc: ${value}`);
-    this.inner.pc = value;
+    this.wasmVM.set_pc(value);
   }
 
   get ra(): number {
-    return this.inner.ra;
+    return this.wasmVM.ra();
   }
 
   set ra(value: number) {
-    this.inner.ra = value;
+    this.wasmVM.set_ra(value);
   }
 
   private get fp(): number {
@@ -126,32 +120,32 @@ export default class VM<TemplateMeta> implements PublicVM {
 
   // Start a new frame and save $ra and $fp on the stack
   pushFrame() {
-    this.inner.pushFrame();
+    this.wasmVM.push_frame();
   }
 
   // Restore $ra, $sp and $fp
   popFrame() {
-    this.inner.popFrame();
+    this.wasmVM.pop_frame();
   }
 
   // Jump to an address in `program`
   goto(offset: number) {
-    this.inner.goto(offset);
+    this.wasmVM.goto(offset);
   }
 
   // Save $pc into $ra, then jump to a new address in `program` (jal in MIPS)
   call(handle: number) {
-    this.inner.call(handle);
+    this.wasmVM.call(handle);
   }
 
   // Put a specific `program` address in $ra
   returnTo(offset: number) {
-    this.inner.returnTo(offset);
+    this.wasmVM.return_to(offset);
   }
 
   // Return to the `program` address stored in $ra
   return() {
-    this.inner.return();
+    this.wasmVM.return_();
   }
 
   /**
@@ -213,7 +207,8 @@ export default class VM<TemplateMeta> implements PublicVM {
     this.elementStack = elementStack;
     this.scopeStack.push(scope);
     this.dynamicScopeStack.push(dynamicScope);
-    this.inner = new LowLevelVM(this.heap, program, {
+
+    let externs = {
       debugBefore: (offset: number): DebugState => {
         let opcode = new Opcode(program.heap);
         opcode.offset = offset;
@@ -225,7 +220,9 @@ export default class VM<TemplateMeta> implements PublicVM {
         opcode.offset = offset;
         APPEND_OPCODES.debugAfter(this, opcode, opcode.type, state);
       }
-    });
+    };
+    this.wasmVM = wasm.exports.LowLevelVM.new(this.heap, APPEND_OPCODES, externs, DEVMODE);
+    this.stack = new EvaluationStack(this.wasmVM);
   }
 
   capture(args: number): VMState {
@@ -418,15 +415,13 @@ export default class VM<TemplateMeta> implements PublicVM {
 
   next(): IteratorResult<RenderResult> {
     let { env, program, updatingOpcodeStack, elementStack } = this;
-    let opcode = this.inner.nextStatement();
+    let opcode = this.wasmVM.next_statement();
     let result: IteratorResult<RenderResult>;
-    if (opcode !== null) {
-      this.inner.evaluateOuter(opcode, this);
+    if (opcode !== -1) {
+      this.wasmVM.evaluate_outer(opcode, this);
       result = { done: false, value: null };
     } else {
-      // Unload the stack
-      this.stack.reset();
-      this.inner.dropWasm();
+      this.wasmVM.free();
 
       result = {
         done: true,

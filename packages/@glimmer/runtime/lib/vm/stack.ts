@@ -166,10 +166,6 @@ export default class EvaluationStack {
     return this.stack.sliceInner(start, end);
   }
 
-  reset() {
-    this.stack.reset();
-  }
-
   toArray() {
     return this.stack.sliceInner(this.fp, this.sp + 1);
   }
