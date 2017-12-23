@@ -165,7 +165,7 @@ wasm_bindgen! {
         }
 
         // Restore $ra, $sp and $fp
-        pub fn pop_frame(&self) {
+        fn pop_frame(&self) {
             let mut stack = self.stack.borrow_mut();
             let fp = stack.fp();
             stack.set_sp(fp - 1);
@@ -186,12 +186,12 @@ wasm_bindgen! {
         }
 
         // Put a specific `program` address in $ra
-        pub fn return_to(&self, offset: i32) {
+        fn return_to(&self, offset: i32) {
             self.ra.set(self.pc.get() + offset - self.current_op_size.get());
         }
 
         // Return to the `program` address stored in $ra
-        pub fn return_(&self) {
+        fn return_(&self) {
             self.pc.set(self.ra.get());
         }
 

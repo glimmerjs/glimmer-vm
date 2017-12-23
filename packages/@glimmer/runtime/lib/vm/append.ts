@@ -123,11 +123,6 @@ export default class VM<TemplateMeta> implements PublicVM {
     this.wasmVM.push_frame();
   }
 
-  // Restore $ra, $sp and $fp
-  popFrame() {
-    this.wasmVM.pop_frame();
-  }
-
   // Jump to an address in `program`
   goto(offset: number) {
     this.wasmVM.goto(offset);
@@ -136,16 +131,6 @@ export default class VM<TemplateMeta> implements PublicVM {
   // Save $pc into $ra, then jump to a new address in `program` (jal in MIPS)
   call(handle: number) {
     this.wasmVM.call(handle);
-  }
-
-  // Put a specific `program` address in $ra
-  returnTo(offset: number) {
-    this.wasmVM.return_to(offset);
-  }
-
-  // Return to the `program` address stored in $ra
-  return() {
-    this.wasmVM.return_();
   }
 
   /**
