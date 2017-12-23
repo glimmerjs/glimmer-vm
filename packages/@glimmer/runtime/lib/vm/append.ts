@@ -403,18 +403,16 @@ export default class VM<TemplateMeta> implements PublicVM {
 
     if (initialize) initialize(this);
 
-    let result: IteratorResult<RenderResult>;
+    return this.executeAll();
+  }
 
-    while (true) {
-      result = this.next();
-      if (result.done) break;
-    }
-
-    return result.value as RenderResult;
+  executeAll(): RenderResult {
+    this.wasmVM.evaluate_all(this);
+    this.wasmVM.free();
+    return this.lastResult();
   }
 
   next(): IteratorResult<RenderResult> {
-    let { env, program, updatingOpcodeStack, elementStack } = this;
     let opcode = this.wasmVM.next_statement();
     let result: IteratorResult<RenderResult>;
     if (opcode !== -1) {
@@ -422,18 +420,22 @@ export default class VM<TemplateMeta> implements PublicVM {
       result = { done: false, value: null };
     } else {
       this.wasmVM.free();
-
       result = {
         done: true,
-        value: new RenderResult(
-          env,
-          program,
-          expect(updatingOpcodeStack.pop(), 'there should be a final updating opcode stack'),
-          elementStack.popBlock()
-        )
+        value: this.lastResult(),
       };
     }
     return result;
+  }
+
+  private lastResult(): RenderResult {
+    let { env, program, updatingOpcodeStack, elementStack } = this;
+    return new RenderResult(
+      env,
+      program,
+      expect(updatingOpcodeStack.pop(), 'there should be a final updating opcode stack'),
+      elementStack.popBlock()
+    );
   }
 
   bindDynamicScope(names: number[]) {

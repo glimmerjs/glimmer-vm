@@ -195,6 +195,12 @@ wasm_bindgen! {
             self.pc.set(self.ra.get());
         }
 
+        pub fn evaluate_all(&self, vm: &JsObject) {
+            while let Some(opcode) = self._next_statement() {
+                self._evaluate_outer(opcode, vm);
+            }
+        }
+
         pub fn next_statement(&self) -> u32 {
             match self._next_statement() {
                 Some(opcode) => opcode.offset(),

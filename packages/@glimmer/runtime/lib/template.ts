@@ -89,6 +89,9 @@ export class TemplateIterator {
   next(): IteratorResult<RenderResult> {
     return this.vm.next();
   }
+  finish(): RenderResult {
+    return this.vm.executeAll();
+  }
 }
 
 let clientId = 0;
