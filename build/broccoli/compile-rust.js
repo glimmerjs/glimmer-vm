@@ -22,15 +22,19 @@ class Rust extends Plugin {
       args.push("--release");
     }
 
+    let targetDir = process.env.CARGO_TARGET_DIR;
+    if (!targetDir)
+      targetDir = this.cachePath;
+
     execFileSync("cargo", args, {
       cwd: this.inputPaths[0],
       env: Object.assign({}, process.env, {
-        CARGO_TARGET_DIR: this.cachePath,
+        CARGO_TARGET_DIR: targetDir,
       }),
     });
 
     const name = this.crateName();
-    const cargoOutput = path.join(this.cachePath, "wasm32-unknown-unknown", config, `${name}.wasm`);
+    const cargoOutput = path.join(targetDir, "wasm32-unknown-unknown", config, `${name}.wasm`);
     const wasm = fs.readFileSync(cargoOutput);
     const outputFile = path.join(this.outputPath, `${name}.wasm`);
     fs.writeFileSync(outputFile, wasm);

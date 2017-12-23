@@ -1,5 +1,6 @@
 /dist
 /node_modules
+/target
 tmp
 
 npm-debug.log
