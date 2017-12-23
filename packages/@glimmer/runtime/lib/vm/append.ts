@@ -413,10 +413,8 @@ export default class VM<TemplateMeta> implements PublicVM {
   }
 
   next(): IteratorResult<RenderResult> {
-    let opcode = this.wasmVM.next_statement();
     let result: IteratorResult<RenderResult>;
-    if (opcode !== -1) {
-      this.wasmVM.evaluate_outer(opcode, this);
+    if (this.wasmVM.evaluate_one(this)) {
       result = { done: false, value: null };
     } else {
       this.wasmVM.free();

@@ -196,19 +196,19 @@ wasm_bindgen! {
         }
 
         pub fn evaluate_all(&self, vm: &JsObject) {
-            while let Some(opcode) = self._next_statement() {
-                self._evaluate_outer(opcode, vm);
+            while self.evaluate_one(vm) {
+                // ...
             }
         }
 
-        pub fn next_statement(&self) -> u32 {
-            match self._next_statement() {
-                Some(opcode) => opcode.offset(),
-                None => u32::max_value(),
+        pub fn evaluate_one(&self, vm: &JsObject) -> bool {
+            match self.next_statement() {
+                Some(opcode) => { self.evaluate_outer(opcode, vm); true }
+                None => false,
             }
         }
 
-        fn _next_statement(&self) -> Option<Opcode> {
+        fn next_statement(&self) -> Option<Opcode> {
             if self.pc.get() == -1 {
                 return None
             }
@@ -224,11 +224,7 @@ wasm_bindgen! {
             Some(opcode)
         }
 
-        pub fn evaluate_outer(&self, opcode: u32, vm: &JsObject) {
-            self._evaluate_outer(Opcode::new(opcode), vm)
-        }
-
-        fn _evaluate_outer(&self, opcode: Opcode, vm: &JsObject) {
+        fn evaluate_outer(&self, opcode: Opcode, vm: &JsObject) {
             let state = if self.devmode {
                 Some(ffi::low_level_vm_debug_before(&self.externs,
                                                     opcode.offset()))
