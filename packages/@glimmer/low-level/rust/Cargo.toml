@@ -13,10 +13,6 @@ wasm-bindgen = { git = 'https://github.com/alexcrichton/wasm-bindgen' }
 opt-level = 's'
 panic = 'abort'
 
-debug-assertions = false
-overflow-checks = false
-debug = false
-
 [profile.release]
 opt-level = 's'
 panic = 'abort'
