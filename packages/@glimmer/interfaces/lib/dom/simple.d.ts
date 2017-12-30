@@ -28,8 +28,6 @@ export const enum NodeType {
 // meant to be efficient to use on the server and all operations
 // must be fully serializable to HTML as a transport.
 export interface Node {
-  namespaceURI: Option<string>;
-
   nextSibling: Option<Node>;
   previousSibling: Option<Node>;
   parentNode: Option<Node>;
@@ -49,7 +47,6 @@ export interface DocumentFragment extends Node {
 export interface Document extends Node {
   nodeType: NodeType.Document;
   createElement(tag: string): Element;
-  createElementNS(namespace: Namespace, tag: string): Element;
   createTextNode(text: string): Text;
   createComment(data: string): Comment;
 }
@@ -65,9 +62,7 @@ export interface Comment extends Node {
 export interface Attribute {
   specified: boolean;
   name: string;
-  prefix: Option<string>;
   value: string;
-  namespaceURI: Option<string>;
 }
 
 export interface Attributes {
@@ -80,7 +75,5 @@ export interface Element extends Node {
   tagName: string;
   attributes: Attributes;
   removeAttribute(name: string): void;
-  removeAttributeNS(namespaceURI: string, name: string): void;
   setAttribute(name: string, value: string): void;
-  setAttributeNS(namespaceURI: string, qualifiedName: string, value: string): void;
 }

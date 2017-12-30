@@ -532,7 +532,7 @@ export class RehydrationDelegate implements RenderDelegate {
   constructor() {
     this.clientEnv = new LazyTestEnvironment();
 
-    let doc = new SimpleDOM.Document();
+    let doc: Simple.Document = new SimpleDOM.Document();
 
     this.serverEnv = new LazyTestEnvironment({
       document: doc,

@@ -19,7 +19,7 @@ export class ChangeListTest extends TestCase {
   protected construction: DOMTreeConstruction;
 
   before() {
-    this.document = new SimpleDOM.Document();
+    let document = this.document = new SimpleDOM.Document();
     this.parent = document.createElement('div');
     this.construction = new DOMTreeConstruction();
     this.tree = new Builder(this.construction);
