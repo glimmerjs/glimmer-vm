@@ -11,3 +11,4 @@ export * from './suites/with-dynamic-vars';
 export * from './suites/yield';
 export * from './suites/ssr';
 export * from './suites/each';
+export * from './suites/react';
