@@ -41,7 +41,7 @@ export type IteratorResult<T> = {
 export default class VM<TemplateMeta> implements PublicVM {
   private dynamicScopeStack = new Stack<DynamicScope>();
   private scopeStack = new Stack<Scope>();
-  public wasmVM: WasmLowLevelVM;
+  private wasmVM: WasmLowLevelVM;
   public stack: EvaluationStack;
   public updatingOpcodeStack = new Stack<LinkedList<UpdatingOpcode>>();
   public cacheGroups = new Stack<Option<UpdatingOpcode>>();
