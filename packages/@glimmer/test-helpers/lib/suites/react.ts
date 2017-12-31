@@ -1,5 +1,4 @@
-// FIXME: cycle here
-// import { Simple } from '@glimmer/interfaces';
+import { Simple } from '@glimmer/interfaces';
 import { Opaque, Dict, Option } from "@glimmer/util";
 import { RenderTest, test } from "../render-test";
 import { strip, equalInnerHTML } from "../helpers";
@@ -49,10 +48,12 @@ function childrenFor(element: Simple.Element): React.Component[] {
 }
 
 function isElement(maybe: Simple.Node): maybe is Simple.Element {
+  // FIXME: cycle here
   return maybe.nodeType === 1; // Simple.NodeType.Element;
 }
 
 function isText(maybe: Simple.Node): maybe is Simple.Text {
+  // FIXME: cycle here
   return maybe.nodeType === 3; // Simple.NodeType.Text;
 }
 
