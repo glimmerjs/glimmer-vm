@@ -10,22 +10,9 @@
 // for consumption elsewhere.
 #![feature(proc_macro)]
 
-// We're optimizing for code size, so don't accidentally use any libstd
-// abstractions
-#![no_std]
-extern crate std as _std; // ensure we link correctly though by still using libstd
-
 extern crate wasm_bindgen;
 
 use wasm_bindgen::prelude::*;
-
-// an unfortunate hack for now to get wasm_bindgen working which expects
-// `std`-relative paths
-mod std {
-    pub use core::slice;
-    pub use core::str;
-    pub use core::mem;
-}
 
 #[macro_use]
 mod debug;
@@ -35,7 +22,6 @@ pub mod stack;
 pub mod vm;
 pub mod opcode;
 pub mod ffi;
-pub mod boxed;
 
 wasm_bindgen! {
     pub fn page_num_allocated() -> u32 {

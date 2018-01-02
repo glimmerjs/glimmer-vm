@@ -13,6 +13,12 @@ wasm-bindgen = { git = 'https://github.com/alexcrichton/wasm-bindgen' }
 opt-level = 's'
 panic = 'abort'
 
+# to see the release binary in development (for size reasons mostly) uncomment
+# these lines
+#debug = false
+#overflow-checks = false
+#debug-assertions = false
+
 [profile.release]
 opt-level = 's'
 panic = 'abort'

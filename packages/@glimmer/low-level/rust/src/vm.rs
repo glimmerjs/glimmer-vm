@@ -1,4 +1,4 @@
-use core::cell::Cell;
+use std::cell::Cell;
 
 use wasm_bindgen::prelude::*;
 
@@ -6,7 +6,6 @@ use wasm_bindgen::prelude::*;
 //       officially exposed upstream in `wasm_bindgen`.
 use wasm_bindgen::__rt::WasmRefCell as RefCell;
 
-use boxed::BigBox as Box; // hack to get `wasm_bindgen` working
 use ffi;
 use opcode::{Opcode, Op};
 use stack;

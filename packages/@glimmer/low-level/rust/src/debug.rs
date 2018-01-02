@@ -2,7 +2,7 @@
 
 #![allow(dead_code, unused_macros)]
 
-use core::fmt;
+use std::fmt;
 
 use wasm_bindgen;
 
@@ -30,8 +30,6 @@ macro_rules! panic {
 }
 
 pub fn _println(a: &fmt::Arguments) {
-    use _std::prelude::v1::*;
-
     if !cfg!(debug_assertions) {
         return
     }
