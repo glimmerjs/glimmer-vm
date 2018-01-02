@@ -1,11 +1,11 @@
 use std::mem;
 
-use vm::Heap;
+use heap::Heap;
 
 const ARG_SHIFT: u32 = 8;
-const TYPE_MASK: u32        = 0b0000000011111111;
-const OPERAND_LEN_MASK: u32 = 0b0000001100000000;
-const MACHINE_MASK: u32     = 0b0000010000000000;
+const TYPE_MASK: u16        = 0b0000000011111111;
+const OPERAND_LEN_MASK: u16 = 0b0000001100000000;
+const MACHINE_MASK: u16     = 0b0000010000000000;
 
 include!(concat!(env!("OUT_DIR"), "/op.rs"));
 
@@ -23,7 +23,7 @@ impl Opcode {
         self.offset
     }
 
-    pub fn size(&self, heap: &Heap) -> u32 {
+    pub fn size(&self, heap: &Heap) -> u16 {
         let raw_type = heap.get_by_addr(self.offset);
         ((raw_type & OPERAND_LEN_MASK) >> ARG_SHIFT) + 1
     }
@@ -35,7 +35,7 @@ impl Opcode {
 
     pub fn op(&self, heap: &Heap) -> Op {
         let num = heap.get_by_addr(self.offset) & TYPE_MASK;
-        if num >= Op::Size as u32 {
+        if num >= Op::Size as u16 {
             if cfg!(debug_assertions) {
                 panic!("invalid opcode type at {}: {}", self.offset, num);
             }
@@ -45,17 +45,17 @@ impl Opcode {
         }
     }
 
-    pub fn op1(&self, heap: &Heap) -> u32 {
+    pub fn op1(&self, heap: &Heap) -> u16 {
         heap.get_by_addr(self.offset + 1)
     }
 
     #[allow(dead_code)]
-    pub fn op2(&self, heap: &Heap) -> u32 {
+    pub fn op2(&self, heap: &Heap) -> u16 {
         heap.get_by_addr(self.offset + 2)
     }
 
     #[allow(dead_code)]
-    pub fn op3(&self, heap: &Heap) -> u32 {
+    pub fn op3(&self, heap: &Heap) -> u16 {
         heap.get_by_addr(self.offset + 3)
     }
 }

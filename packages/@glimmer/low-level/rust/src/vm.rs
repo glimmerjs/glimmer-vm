@@ -1,34 +1,18 @@
+use std::rc::Rc;
+
 use wasm_bindgen::prelude::*;
 
 use ffi;
 use gbox::GBox;
+use heap::Heap;
 use my_ref_cell::MyRefCell;
 use opcode::{Opcode, Op};
 use stack::Stack;
 use track::Tracked;
-use {to_u32, to_i32};
-
-pub struct Heap {
-    handle: JsObject,
-}
-
-impl Heap {
-    pub fn new(handle: JsObject) -> Heap {
-        Heap { handle }
-    }
-
-    pub fn get_addr(&self, at: u32) -> i32 {
-        ffi::low_level_vm_heap_get_addr(&self.handle, at)
-    }
-
-    pub fn get_by_addr(&self, at: u32) -> u32 {
-        ffi::low_level_vm_heap_get_by_addr(&self.handle, at)
-    }
-}
+use to_u32;
 
 pub struct VM {
     stack: Stack,
-    heap: Heap,
 
     // Right now these are encoded as `i32` because the "exit" address is
     // encoded as -1, but these may wish to change in the future to a `u32`
@@ -54,15 +38,13 @@ pub const T1: usize = 7;
 pub const V0: usize = 8;
 
 impl VM {
-    fn new(heap: JsObject) -> VM {
+    fn new() -> VM {
         let stack = Stack::new(0, -1);
-        let heap = Heap::new(heap);
         VM {
             pc: -1,
             ra: -1,
             current_op_size: 0,
             stack: stack,
-            heap,
             boxed_registers: [GBox::null(); 5],
             _tracked: Tracked::new(),
         }
@@ -121,9 +103,9 @@ impl VM {
     }
 
     // Save $pc into $ra, then jump to a new address in `program` (jal in MIPS)
-    fn call(&mut self, handle: u32) {
+    fn call(&mut self, handle: u32, heap: &mut Heap) {
         self.ra = self.pc;
-        self.pc = self.heap.get_addr(handle);
+        self.pc = heap.get_addr(handle);
     }
 
     // Put a specific `program` address in $ra
@@ -136,7 +118,7 @@ impl VM {
         self.pc = self.ra;
     }
 
-    fn next_statement(&mut self) -> Option<Opcode> {
+    fn next_statement(&mut self, heap: &mut Heap) -> Option<Opcode> {
         if self.pc == -1 {
             return None
         }
@@ -147,60 +129,60 @@ impl VM {
         // in a jump because we have have already incremented the
         // program counter to the next instruction prior to executing.
         let opcode = Opcode::new(to_u32(self.pc));
-        self.current_op_size = to_i32(opcode.size(&self.heap));
+        self.current_op_size = opcode.size(heap).into();
         self.pc = self.pc + self.current_op_size;
         Some(opcode)
     }
 
-    fn evaluate(&mut self, opcode: Opcode) -> bool {
-        match opcode.op(&self.heap) {
+    fn evaluate(&mut self, opcode: Opcode, heap: &mut Heap) -> bool {
+        match opcode.op(heap) {
             Op::PushFrame => self.push_frame(),
             Op::PopFrame => self.pop_frame(),
             Op::InvokeStatic => {
-                let op1 = opcode.op1(&self.heap);
-                self.call(op1)
+                let op1 = opcode.op1(heap);
+                self.call(op1.into(), heap)
             }
             Op::InvokeVirtual => {
                 let addr = self.stack.pop(1).unwrap_i32();
-                self.call(to_u32(addr))
+                self.call(to_u32(addr), heap)
             }
             Op::Jump => {
-                let op1 = to_i32(opcode.op1(&self.heap));
+                let op1 = opcode.op1(heap).into();
                 self.goto(op1)
             }
             Op::Return => self.return_(),
             Op::ReturnTo => {
-                let op1 = to_i32(opcode.op1(&self.heap));
+                let op1 = opcode.op1(heap).into();
                 self.return_to(op1)
             }
 
             Op::Pop => {
-                let count = opcode.op1(&self.heap);
-                self.stack.pop(to_i32(count));
+                let count = opcode.op1(heap);
+                self.stack.pop(count.into());
             }
 
             Op::Dup => {
-                let register = opcode.op1(&self.heap) as usize;
-                let offset = to_i32(opcode.op2(&self.heap));
+                let register = opcode.op1(heap) as usize;
+                let offset: i32 = opcode.op2(heap).into();
 
                 let position = self.register(register).unwrap_i32() - offset;
                 self.stack.dup(position);
             }
 
             Op::Load => {
-                let register = opcode.op1(&self.heap) as usize;
+                let register = opcode.op1(heap) as usize;
                 let value = self.stack.pop(1);
                 self.set_register(register, value);
             }
 
             Op::Fetch => {
-                let register = opcode.op1(&self.heap) as usize;
+                let register = opcode.op1(heap) as usize;
                 let value = self.register(register);
                 self.stack.push(value);
             }
 
             op => {
-                debug_assert!(!opcode.is_machine(&self.heap),
+                debug_assert!(!opcode.is_machine(heap),
                               "bad opcode {:?}", op);
                 return false
             }
@@ -213,6 +195,7 @@ impl VM {
 wasm_bindgen! {
     pub struct LowLevelVM {
         inner: MyRefCell<VM>,
+        heap: Rc<MyRefCell<Heap>>,
         devmode: bool,
         syscalls: JsObject,
         externs: JsObject,
@@ -224,10 +207,11 @@ wasm_bindgen! {
                    externs: JsObject,
                    devmode: bool) -> LowLevelVM {
             LowLevelVM {
-                inner: MyRefCell::new(VM::new(heap)),
+                inner: MyRefCell::new(VM::new()),
                 devmode,
                 syscalls,
                 externs,
+                heap: Rc::new(MyRefCell::new(Heap::new(heap))),
             }
         }
 
@@ -284,7 +268,7 @@ wasm_bindgen! {
         }
 
         pub fn call(&self, handle: u32) {
-            self.inner.borrow_mut().call(handle)
+            self.inner.borrow_mut().call(handle, &mut *self.heap.borrow_mut())
         }
 
         pub fn evaluate_all(&self, vm: &JsObject) {
@@ -294,19 +278,25 @@ wasm_bindgen! {
         }
 
         pub fn evaluate_one(&self, vm: &JsObject) -> bool {
-            let opcode = match self.inner.borrow_mut().next_statement() {
+            let next = {
+                let mut heap = self.heap.borrow_mut();
+                self.inner.borrow_mut().next_statement(&mut *heap)
+            };
+            let opcode = match next {
                 Some(opcode) => opcode,
                 None => return false,
             };
 
             let state = if self.devmode {
-                Some(ffi::low_level_vm_debug_before(&self.externs,
-                                                    opcode.offset()))
+                Some(ffi::low_level_vm_debug_before(&self.externs, opcode.offset()))
             } else {
                 None
             };
 
-            let complete = self.inner.borrow_mut().evaluate(opcode);
+            let complete = self.inner.borrow_mut().evaluate(
+                opcode,
+                &mut *self.heap.borrow_mut(),
+            );
             if !complete {
                 ffi::low_level_vm_evaluate_syscall(&self.syscalls,
                                                    vm,

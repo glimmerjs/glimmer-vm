@@ -79,7 +79,12 @@ impl Stack {
         let mut at = at as usize;
         loop {
             let tmp = cur;
-            let me = tmp.get_or_insert_with(node);
+            let me = tmp.get_or_insert_with(|| {
+                Box::new(Node {
+                    data: [0; NODE_SIZE],
+                    next: None,
+                })
+            });
             if at < me.data.len() {
                 me.data[at] = val.bits();
                 return
@@ -106,11 +111,4 @@ impl Stack {
     pub fn reset(&mut self) {
         self.head = None;
     }
-}
-
-fn node() -> Box<Node> {
-    Box::new(Node {
-        data: [0; NODE_SIZE],
-        next: None,
-    })
 }

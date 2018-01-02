@@ -22,7 +22,7 @@ wasm_bindgen! {
         );
 
         pub fn low_level_vm_heap_get_addr(heap: &JsObject, at: u32) -> i32;
-        pub fn low_level_vm_heap_get_by_addr(heap: &JsObject, at: u32) -> u32;
+        pub fn low_level_vm_heap_get_by_addr(heap: &JsObject, at: u32) -> u16;
         pub fn debug_println(msg: &str);
     }
 }

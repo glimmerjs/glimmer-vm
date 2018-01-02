@@ -22,7 +22,7 @@ fn main() {
     }
 
     let mut contents = String::new();
-    contents.push_str("#[repr(u32)]\n");
+    contents.push_str("#[repr(u16)]\n");
     contents.push_str("#[allow(dead_code)]\n");
     contents.push_str("#[derive(Debug, Copy, Clone)]\n");
     contents.push_str("pub enum Op {\n");

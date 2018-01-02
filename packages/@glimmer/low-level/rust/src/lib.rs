@@ -9,24 +9,20 @@ use wasm_bindgen::prelude::*;
 
 #[macro_use]
 mod debug;
+mod track;
+mod my_ref_cell;
+mod gbox;
 
 pub mod stack;
 pub mod vm;
 pub mod opcode;
 pub mod ffi;
-mod track;
-mod my_ref_cell;
-mod gbox;
+pub mod heap;
 
 wasm_bindgen! {
     pub fn num_allocated() -> usize {
         track::total()
     }
-}
-
-fn to_i32(a: u32) -> i32 {
-    debug_assert!(a < (i32::max_value() as u32));
-    a as i32
 }
 
 fn to_u32(a: i32) -> u32 {

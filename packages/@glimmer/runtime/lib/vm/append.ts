@@ -141,7 +141,6 @@ export default class VM<TemplateMeta> implements PublicVM {
     this.elementStack = elementStack;
     this.scopeStack.push(scope);
     this.dynamicScopeStack.push(dynamicScope);
-
     let externs = {
       debugBefore: (offset: number): DebugState => {
         let opcode = new Opcode(program.heap);
@@ -155,11 +154,16 @@ export default class VM<TemplateMeta> implements PublicVM {
         APPEND_OPCODES.debugAfter(this, opcode, opcode.type, state);
       }
     };
-    this.wasmVM = wasm.exports.LowLevelVM.new(this.heap, APPEND_OPCODES, externs, DEVMODE);
+    this.wasmVM = wasm.exports.LowLevelVM.new(
+      this.heap,
+      APPEND_OPCODES,
+      externs,
+      DEVMODE,
+    );
     this.stack = new EvaluationStack(this.wasmVM, this.cx);
   }
 
-  capture(args: number): VMState {
+  private capture(args: number): VMState {
     return {
       env: this.env,
       program: this.program,
@@ -274,7 +278,7 @@ export default class VM<TemplateMeta> implements PublicVM {
     return expect(this.listBlockStack.current, 'expected a list block');
   }
 
-  updating(): LinkedList<UpdatingOpcode> {
+  private updating(): LinkedList<UpdatingOpcode> {
     return expect(this.updatingOpcodeStack.current, 'expected updating opcode on the updating opcode stack');
   }
 
@@ -345,7 +349,7 @@ export default class VM<TemplateMeta> implements PublicVM {
 
   executeAll(): RenderResult {
     this.wasmVM.evaluate_all(this);
-    this.wasmVM.free();
+    this.freeWasm();
     return this.lastResult();
   }
 
@@ -354,7 +358,7 @@ export default class VM<TemplateMeta> implements PublicVM {
     if (this.wasmVM.evaluate_one(this)) {
       result = { done: false, value: null };
     } else {
-      this.wasmVM.free();
+      this.freeWasm();
       result = {
         done: true,
         value: this.lastResult(),
@@ -371,6 +375,10 @@ export default class VM<TemplateMeta> implements PublicVM {
       expect(updatingOpcodeStack.pop(), 'there should be a final updating opcode stack'),
       elementStack.popBlock()
     );
+  }
+
+  private freeWasm() {
+    this.wasmVM.free();
   }
 
   bindDynamicScope(names: number[]) {
