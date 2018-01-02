@@ -15,7 +15,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "proc-macro2"
-version = "0.1.5"
+version = "0.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "unicode-xid 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -24,9 +24,9 @@ dependencies = [
 [[package]]
 name = "quote"
 version = "0.3.15"
-source = "git+https://github.com/dtolnay/quote#07deeb57c037879d67071339b4279ec3f4661a40"
+source = "git+https://github.com/dtolnay/quote#0625b2fe07ff9dd206bbd802462bb0932cd1955e"
 dependencies = [
- "proc-macro2 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "proc-macro2 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -43,22 +43,22 @@ dependencies = [
 
 [[package]]
 name = "serde"
-version = "1.0.24"
+version = "1.0.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "serde_derive"
-version = "1.0.24"
+version = "1.0.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "quote 0.3.15 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde_derive_internals 0.18.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_derive_internals 0.19.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "syn 0.11.11 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "serde_derive_internals"
-version = "0.18.0"
+version = "0.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "syn 0.11.11 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -67,23 +67,22 @@ dependencies = [
 
 [[package]]
 name = "serde_json"
-version = "1.0.8"
+version = "1.0.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "dtoa 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "itoa 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "num-traits 0.1.41 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde 1.0.24 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde 1.0.27 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "syn"
 version = "0.11.11"
-source = "git+https://github.com/dtolnay/syn#475288add0ce718da85a74b4072ab8eccdc54ef0"
+source = "git+https://github.com/dtolnay/syn#cfd94bb48f418affc71e712759a23428a9713bcc"
 dependencies = [
- "proc-macro2 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "proc-macro2 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "quote 0.3.15 (git+https://github.com/dtolnay/quote)",
- "synom 0.11.3 (git+https://github.com/dtolnay/syn)",
  "unicode-xid 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -95,15 +94,6 @@ dependencies = [
  "quote 0.3.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "synom 0.11.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "unicode-xid 0.0.4 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "synom"
-version = "0.11.3"
-source = "git+https://github.com/dtolnay/syn#475288add0ce718da85a74b4072ab8eccdc54ef0"
-dependencies = [
- "proc-macro2 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
- "quote 0.3.15 (git+https://github.com/dtolnay/quote)",
 ]
 
 [[package]]
@@ -127,7 +117,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "wasm-bindgen"
 version = "0.1.0"
-source = "git+https://github.com/alexcrichton/wasm-bindgen#b548239e020bd5e19f3906b223492b0dcfa2498e"
+source = "git+https://github.com/alexcrichton/wasm-bindgen#5c0f9613f61dd80e5477540fbb9c9b56e51ce722"
 dependencies = [
  "wasm-bindgen-macro 0.1.0 (git+https://github.com/alexcrichton/wasm-bindgen)",
 ]
@@ -135,39 +125,37 @@ dependencies = [
 [[package]]
 name = "wasm-bindgen-macro"
 version = "0.1.0"
-source = "git+https://github.com/alexcrichton/wasm-bindgen#b548239e020bd5e19f3906b223492b0dcfa2498e"
+source = "git+https://github.com/alexcrichton/wasm-bindgen#5c0f9613f61dd80e5477540fbb9c9b56e51ce722"
 dependencies = [
- "proc-macro2 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "proc-macro2 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "quote 0.3.15 (git+https://github.com/dtolnay/quote)",
- "serde_json 1.0.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_json 1.0.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "syn 0.11.11 (git+https://github.com/dtolnay/syn)",
- "synom 0.11.3 (git+https://github.com/dtolnay/syn)",
  "wasm-bindgen-shared 0.1.0 (git+https://github.com/alexcrichton/wasm-bindgen)",
 ]
 
 [[package]]
 name = "wasm-bindgen-shared"
 version = "0.1.0"
-source = "git+https://github.com/alexcrichton/wasm-bindgen#b548239e020bd5e19f3906b223492b0dcfa2498e"
+source = "git+https://github.com/alexcrichton/wasm-bindgen#5c0f9613f61dd80e5477540fbb9c9b56e51ce722"
 dependencies = [
- "serde 1.0.24 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde_derive 1.0.24 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde 1.0.27 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_derive 1.0.27 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [metadata]
 "checksum dtoa 0.4.2 (registry+https://github.com/rust-lang/crates.io-index)" = "09c3753c3db574d215cba4ea76018483895d7bff25a31b49ba45db21c48e50ab"
 "checksum itoa 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)" = "8324a32baf01e2ae060e9de58ed0bc2320c9a2833491ee36cd3b4c414de4db8c"
 "checksum num-traits 0.1.41 (registry+https://github.com/rust-lang/crates.io-index)" = "cacfcab5eb48250ee7d0c7896b51a2c5eec99c1feea5f32025635f5ae4b00070"
-"checksum proc-macro2 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)" = "664cf07c77946b4f17705f5fc9811ddd4581141df9e4a950c06d3c8587283071"
+"checksum proc-macro2 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)" = "061ffaa2834e478b583b216d688c9835f5a68a97e6b0ce1ac27e4ec998863ee7"
 "checksum quote 0.3.15 (git+https://github.com/dtolnay/quote)" = "<none>"
 "checksum quote 0.3.15 (registry+https://github.com/rust-lang/crates.io-index)" = "7a6e920b65c65f10b2ae65c831a81a073a89edd28c7cce89475bff467ab4167a"
-"checksum serde 1.0.24 (registry+https://github.com/rust-lang/crates.io-index)" = "1c57ab4ec5fa85d08aaf8ed9245899d9bbdd66768945b21113b84d5f595cb6a1"
-"checksum serde_derive 1.0.24 (registry+https://github.com/rust-lang/crates.io-index)" = "02c92ea07b6e49b959c1481804ebc9bfd92d3c459f1274c9a9546829e42a66ce"
-"checksum serde_derive_internals 0.18.0 (registry+https://github.com/rust-lang/crates.io-index)" = "75c6aac7b99801a16db5b40b7bf0d7e4ba16e76fbf231e32a4677f271cac0603"
-"checksum serde_json 1.0.8 (registry+https://github.com/rust-lang/crates.io-index)" = "7cf5b0b5b4bd22eeecb7e01ac2e1225c7ef5e4272b79ee28a8392a8c8489c839"
+"checksum serde 1.0.27 (registry+https://github.com/rust-lang/crates.io-index)" = "db99f3919e20faa51bb2996057f5031d8685019b5a06139b1ce761da671b8526"
+"checksum serde_derive 1.0.27 (registry+https://github.com/rust-lang/crates.io-index)" = "f4ba7591cfe93755e89eeecdbcc668885624829b020050e6aec99c2a03bd3fd0"
+"checksum serde_derive_internals 0.19.0 (registry+https://github.com/rust-lang/crates.io-index)" = "6e03f1c9530c3fb0a0a5c9b826bdd9246a5921ae995d75f512ac917fc4dd55b5"
+"checksum serde_json 1.0.9 (registry+https://github.com/rust-lang/crates.io-index)" = "c9db7266c7d63a4c4b7fe8719656ccdd51acf1bed6124b174f933b009fb10bcb"
 "checksum syn 0.11.11 (git+https://github.com/dtolnay/syn)" = "<none>"
 "checksum syn 0.11.11 (registry+https://github.com/rust-lang/crates.io-index)" = "d3b891b9015c88c576343b9b3e41c2c11a51c219ef067b264bd9c8aa9b441dad"
-"checksum synom 0.11.3 (git+https://github.com/dtolnay/syn)" = "<none>"
 "checksum synom 0.11.3 (registry+https://github.com/rust-lang/crates.io-index)" = "a393066ed9010ebaed60b9eafa373d4b1baac186dd7e008555b0f702b51945b6"
 "checksum unicode-xid 0.0.4 (registry+https://github.com/rust-lang/crates.io-index)" = "8c1f860d7d29cf02cb2f3f359fd35991af3d30bac52c57d265a3c461074cb4dc"
 "checksum unicode-xid 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "fc72304796d0818e357ead4e000d19c9c174ab23dc11093ac919054d20a6a7fc"
