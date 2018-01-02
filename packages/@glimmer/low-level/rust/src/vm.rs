@@ -2,14 +2,11 @@ use std::cell::Cell;
 
 use wasm_bindgen::prelude::*;
 
-// TODO: don't use this private internal, this should be vendored here or
-//       officially exposed upstream in `wasm_bindgen`.
-use wasm_bindgen::__rt::WasmRefCell as RefCell;
-
 use ffi;
 use opcode::{Opcode, Op};
 use stack;
 use track::Tracked;
+use my_ref_cell::MyRefCell;
 
 pub struct Stack {
     fp: i32,
@@ -87,7 +84,7 @@ wasm_bindgen! {
         pc: Cell<i32>,
         ra: Cell<i32>,
         current_op_size: Cell<i32>,
-        stack: RefCell<Stack>,
+        stack: MyRefCell<Stack>,
         heap: Heap,
         devmode: bool,
         syscalls: JsObject,
@@ -107,7 +104,7 @@ wasm_bindgen! {
                 pc: Cell::new(-1),
                 ra: Cell::new(-1),
                 current_op_size: Cell::new(0),
-                stack: RefCell::new(stack),
+                stack: MyRefCell::new(stack),
                 heap,
                 devmode,
                 syscalls,
