@@ -1,17 +1,15 @@
-use std::mem;
-use std::ptr;
-
-use page;
 use track::Tracked;
 
+const NODE_SIZE: usize = 4096;
+
 pub struct Stack {
-    head: *mut Node,
+    head: Option<Box<Node>>,
     _tracked: Tracked,
 }
 
 struct Node {
-    next: *mut Node,
-    data: [u32; page::PAGE_SIZE / 8 - 1],
+    data: [u32; NODE_SIZE],
+    next: Option<Box<Node>>,
 }
 
 const NUMBER: u32 = 0b000;
@@ -40,7 +38,7 @@ fn decode(val: u32) -> i32 {
 impl Stack {
     pub fn new() -> Stack {
         Stack {
-            head: node(),
+            head: None,
             _tracked: Tracked::new(),
         }
     }
@@ -59,18 +57,17 @@ impl Stack {
     }
 
     pub fn write_raw(&mut self, at: u32, val: u32) {
-        unsafe {
-            let mut at = at as usize;
-            let mut cur = self.head;
-            debug_assert!(!cur.is_null());
-            while at >= (*cur).data.len() {
-                at -= (*cur).data.len();
-                if (*cur).next.is_null() {
-                    (*cur).next = node();
-                }
-                cur = (*cur).next;
+        let mut cur = &mut self.head;
+        let mut at = at as usize;
+        loop {
+            let tmp = cur;
+            let me = tmp.get_or_insert_with(node);
+            if at < NODE_SIZE {
+                me.data[at] = val;
+                return
             }
-            (*cur).data[at] = val;
+            at -= NODE_SIZE;
+            cur = &mut me.next;
         }
     }
 
@@ -79,49 +76,27 @@ impl Stack {
     }
 
     pub fn read_raw(&self, at: u32) -> Option<u32> {
-        unsafe {
-            let mut at = at as usize;
-            let mut cur = self.head;
-            debug_assert!(!cur.is_null());
-            while at >= (*cur).data.len() {
-                at -= (*cur).data.len();
-                cur = (*cur).next;
-                if cur.is_null() {
-                    return None
-                }
+        let mut cur = &self.head;
+        let mut at = at as usize;
+        loop {
+            let tmp = cur;
+            let me = tmp.as_ref()?;
+            if at < NODE_SIZE {
+                return Some(me.data[at])
             }
-            Some((*cur).data[at])
+            at -= NODE_SIZE;
+            cur = &me.next;
         }
     }
 
     pub fn reset(&mut self) {
-        unsafe {
-            free_node((*self.head).next);
-        }
+        self.head = None;
     }
 }
 
-fn node() -> *mut Node {
-    assert!(mem::size_of::<Node>() <= page::PAGE_SIZE);
-    unsafe {
-        let page = page::alloc() as *mut Node;
-        (*page).next = ptr::null_mut();
-        return page
-    }
-}
-
-unsafe fn free_node(mut node: *mut Node) {
-    while !node.is_null() {
-        let next = (*node).next;
-        page::free(node as *mut page::Page);
-        node = next;
-    }
-}
-
-impl Drop for Stack {
-    fn drop(&mut self) {
-        unsafe {
-            free_node(self.head);
-        }
-    }
+fn node() -> Box<Node> {
+    Box::new(Node {
+        data: [0; NODE_SIZE],
+        next: None,
+    })
 }

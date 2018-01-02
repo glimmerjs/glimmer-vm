@@ -12,12 +12,13 @@ wasm-bindgen = { git = 'https://github.com/alexcrichton/wasm-bindgen' }
 [profile.dev]
 opt-level = 's'
 panic = 'abort'
+incremental = false # TODO: this fix should go upstream in rustc itself
 
 # to see the release binary in development (for size reasons mostly) uncomment
 # these lines
-debug = false
-overflow-checks = false
-debug-assertions = false
+#debug = false
+#overflow-checks = false
+#debug-assertions = false
 
 [profile.release]
 opt-level = 's'
