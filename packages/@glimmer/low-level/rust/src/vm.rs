@@ -9,6 +9,7 @@ use wasm_bindgen::__rt::WasmRefCell as RefCell;
 use ffi;
 use opcode::{Opcode, Op};
 use stack;
+use track::Tracked;
 
 pub struct Stack {
     fp: i32,
@@ -58,10 +59,6 @@ impl Stack {
         debug_assert!(ret.is_some()); // this should be an in-bounds read
         ret.unwrap_or(0)
     }
-
-    pub fn as_inner_usize(&self) -> usize {
-        self.inner.as_usize()
-    }
 }
 
 pub struct Heap {
@@ -95,6 +92,7 @@ wasm_bindgen! {
         devmode: bool,
         syscalls: JsObject,
         externs: JsObject,
+        _tracked: Tracked,
     }
 
     impl LowLevelVM {
@@ -114,6 +112,7 @@ wasm_bindgen! {
                 devmode,
                 syscalls,
                 externs,
+                _tracked: Tracked::new(),
             }
         }
 
@@ -306,12 +305,6 @@ wasm_bindgen! {
         pub fn stack_reset(&self) {
             self.stack.borrow_mut().inner.reset();
         }
-    }
-}
-
-impl LowLevelVM {
-    pub fn stack_inner_usize(&self) -> usize {
-        self.stack.borrow().as_inner_usize()
     }
 }
 

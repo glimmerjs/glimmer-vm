@@ -22,9 +22,10 @@ pub mod stack;
 pub mod vm;
 pub mod opcode;
 pub mod ffi;
+mod track;
 
 wasm_bindgen! {
-    pub fn page_num_allocated() -> u32 {
-        page::num_allocated()
+    pub fn num_allocated() -> usize {
+        track::total()
     }
 }

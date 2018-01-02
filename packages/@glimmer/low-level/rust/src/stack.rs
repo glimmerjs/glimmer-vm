@@ -2,9 +2,11 @@ use std::mem;
 use std::ptr;
 
 use page;
+use track::Tracked;
 
 pub struct Stack {
     head: *mut Node,
+    _tracked: Tracked,
 }
 
 struct Node {
@@ -37,30 +39,10 @@ fn decode(val: u32) -> i32 {
 
 impl Stack {
     pub fn new() -> Stack {
-        Stack { head: node() }
-    }
-
-    pub fn into_usize(self) -> usize {
-        let ret = self.as_usize();
-        mem::forget(self);
-        return ret
-    }
-
-    pub fn as_usize(&self) -> usize {
-        self.head as usize
-    }
-
-    pub unsafe fn from_usize(stack: usize) -> Stack {
-        Stack { head: stack as *mut Node }
-    }
-
-    pub unsafe fn with_stack<F, R>(stack: usize, f: F) -> R
-        where F: FnOnce(&mut Stack) -> R
-    {
-        let mut tmp = Stack::from_usize(stack);
-        let ret = f(&mut tmp);
-        mem::forget(tmp);
-        return ret
+        Stack {
+            head: node(),
+            _tracked: Tracked::new(),
+        }
     }
 
     pub fn copy(&mut self, from: u32, to: u32) -> Result<(), ()> {
