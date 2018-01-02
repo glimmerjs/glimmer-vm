@@ -156,7 +156,7 @@ export default class VM<TemplateMeta> implements PublicVM {
     };
     this.cx = new Context();
     this.wasmVM = wasm.exports.LowLevelVM.new(
-      this.heap,
+      this.heap._wasmHeap(),
       APPEND_OPCODES,
       externs,
       this.cx,
@@ -351,21 +351,31 @@ export default class VM<TemplateMeta> implements PublicVM {
   }
 
   executeAll(): RenderResult {
-    this.wasmVM.evaluate_all(this);
-    this.freeWasm();
+    try {
+      this.wasmVM.evaluate_all(this);
+    } finally {
+      this.freeWasm();
+    }
     return this.lastResult();
   }
 
   next(): IteratorResult<RenderResult> {
     let result: IteratorResult<RenderResult>;
-    if (this.wasmVM.evaluate_one(this)) {
-      result = { done: false, value: null };
-    } else {
-      this.freeWasm();
-      result = {
-        done: true,
-        value: this.lastResult(),
-      };
+    let failed = true;
+    try {
+      if (this.wasmVM.evaluate_one(this)) {
+        result = { done: false, value: null };
+      } else {
+        this.freeWasm();
+        result = {
+          done: true,
+          value: this.lastResult(),
+        };
+      }
+      failed = false;
+    } finally {
+      if (failed)
+        this.freeWasm();
     }
     return result;
   }

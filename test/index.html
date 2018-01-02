@@ -68,7 +68,41 @@
         requireModule(entry)
       };
     });
-    require('@glimmer/low-level').booted.then(() => {
+
+    // Here we've got some trickiness for working with wasm. There's a few
+    // things we need to account for with this:
+    //
+    // * First, the wasm can take some time to compile. We can't run any tests
+    //   until it's done, so we use the `booted` promise to actually kick off
+    //   the QUnit tests.
+    //
+    // * Next, some wasm-managed heap items aren't actually freed in JS. For
+    //   example the heap (`WasmHeap`) is never freed in JS. Normal glimmer
+    //   programs never need to free it anyway, and otherwise the object here
+    //   is managed by the JS GC so we don't know when it's deallocated.
+    //   Unfortunately for tests though we create enough programs that it blows
+    //   the 2GB memory limit for wasm if we don't free anything, so we have
+    //   a workaround here which frees all instances of `WasmHeap` after each
+    //   test has completed. Nothing like making our own arena!
+    //
+    // * Finally we want to ensure that there aren't any memory leaks in wasm,
+    //   so here we register a callback before/after each test to verify
+    //   that the amount of memory in use is the same before and after each
+    //   test.
+
+    var numAllocated = 0;
+    var lowLevel = require('@glimmer/low-level');
+    var freeAllWasmPrograms = require('@glimmer/program').freeAllWasmPrograms;
+
+    QUnit.testStart(function() {
+      numAllocated = lowLevel.wasm.exports.num_allocated();
+    });
+    QUnit.testDone(function(details) {
+      freeAllWasmPrograms();
+      if (lowLevel.wasm.exports.num_allocated() != numAllocated)
+        throw new Error("the test " + details.name + " didn't free all wasm memory")
+    });
+    lowLevel.booted.then(() => {
       QUnit.start();
     });
   </script>

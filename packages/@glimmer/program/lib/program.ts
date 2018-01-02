@@ -1,10 +1,10 @@
 
 import { CompileTimeProgram, Recast, VMHandle, RuntimeResolver, CompileTimeHeap } from "@glimmer/interfaces";
-import { DEBUG } from "@glimmer/local-debug-flags";
 import { Constants, WriteOnlyConstants, RuntimeConstants, ConstantPool } from './constants';
 import { Opcode } from './opcode';
 import { assert } from "@glimmer/util";
 import { Opaque } from "@glimmer/interfaces";
+import { wasm, WasmHeap } from '@glimmer/low-level';
 
 export interface Opcodes {
   evaluate(vm: Opaque, offset: number): void;
@@ -15,27 +15,7 @@ export interface Externs {
   debugAfter(offset: number, state: Opaque): void;
 }
 
-enum TableSlotState {
-  Allocated,
-  Freed,
-  Purged,
-  Pointer
-}
-
-const ENTRY_SIZE = 2;
-const INFO_OFFSET = 1;
 const MAX_SIZE = 0b1111111111111111;
-const SIZE_MASK =  0b00000000000000001111111111111111;
-const SCOPE_MASK = 0b00111111111111110000000000000000;
-const STATE_MASK = 0b11000000000000000000000000000000;
-
-function encodeTableInfo(size: number, scopeSize: number, state: number) {
-  return size | (scopeSize << 16) | state << 30;
-}
-
-function changeState(info: number, newState: number) {
-  return info | newState << 30;
-}
 
 export interface SerializedHeap {
   buffer: ArrayBuffer;
@@ -44,6 +24,16 @@ export interface SerializedHeap {
 }
 
 export type Placeholder = [number, () => number];
+
+// See comment in `test/index.html` for why we keep track of this and why it
+// exists.
+let WASM_PROGRAMS: WasmHeap[] = [];
+
+export function freeAllWasmPrograms() {
+  for (let i = 0; i < WASM_PROGRAMS.length; i++)
+    WASM_PROGRAMS[i].free();
+  WASM_PROGRAMS = [];
+}
 
 /**
  * The Heap is responsible for dynamically allocating
@@ -66,130 +56,87 @@ export type Placeholder = [number, () => number];
  * over them as you will have a bad memory access exception.
  */
 export class Heap implements CompileTimeHeap {
-  private heap: Uint16Array | Array<number>;
   private placeholders: Placeholder[] = [];
-  private table: number[];
-  private offset = 0;
-  private handle = 0;
+  private wasmHeap: WasmHeap;
 
   constructor(serializedHeap?: SerializedHeap) {
+    this.wasmHeap = wasm.exports.WasmHeap.new();
+    WASM_PROGRAMS.push(this.wasmHeap);
     if (serializedHeap) {
       let { buffer, table, handle } = serializedHeap;
-      this.heap = new Uint16Array(buffer);
-      this.table = table;
-      this.offset = this.heap.length;
-      this.handle = handle;
+      let heap = new Uint16Array(buffer);
+      let ptr = this.wasmHeap.reserve(heap.length);
+      (new Uint16Array(wasm.exports.extra.memory.buffer)).set(heap, ptr / 2);
+      this.wasmHeap.set_offset(heap.length);
+
+      // TODO: are these copies too slow?
+      for (let i = 0; i < table.length; i++) {
+        this.wasmHeap.table_write_raw(i, table[i]);
+      }
+      this.wasmHeap.set_table_len(table.length);
+      this.wasmHeap.set_handle(handle);
     } else {
-      this.heap = new Uint16Array(0x100000);
-      this.table = [];
+      this.wasmHeap.reserve(0x100000);
     }
   }
 
+  _wasmHeap(): WasmHeap {
+    return this.wasmHeap;
+  }
+
   push(item: number): void {
-    this.heap[this.offset++] = item;
+    this.wasmHeap.push(item);
   }
 
   getbyaddr(address: number): number {
-    return this.heap[address];
+    return this.wasmHeap.get_by_addr(address);
   }
 
   setbyaddr(address: number, value: number) {
-    this.heap[address] = value;
+    return this.wasmHeap.set_by_addr(address, value);
   }
 
   malloc(): number {
-    this.table.push(this.offset, 0);
-    let handle = this.handle;
-    this.handle += ENTRY_SIZE;
-    return handle;
+    return this.wasmHeap.malloc_handle();
   }
 
   finishMalloc(handle: number, scopeSize: number): void {
-    let start = this.table[handle];
-    let finish = this.offset;
-    let instructionSize = finish - start;
-    let info = encodeTableInfo(instructionSize, scopeSize, TableSlotState.Allocated);
-    this.table[handle + INFO_OFFSET] = info;
+    return this.wasmHeap.finish_malloc(handle, scopeSize);
   }
 
   size(): number {
-    return this.offset;
+    return this.wasmHeap.size();
   }
 
   // It is illegal to close over this address, as compaction
   // may move it. However, it is legal to use this address
   // multiple times between compactions.
   getaddr(handle: number): number {
-    return this.table[handle];
+    return this.wasmHeap.get_addr(handle);
   }
 
   gethandle(address: number): number {
-    this.table.push(address, encodeTableInfo(0, 0, TableSlotState.Pointer));
-    let handle = this.handle;
-    this.handle += ENTRY_SIZE;
-    return handle;
+    return this.wasmHeap.get_handle(address);
   }
 
   sizeof(handle: number): number {
-    if (DEBUG) {
-      let info = this.table[(handle as Recast<VMHandle, number>) + INFO_OFFSET];
-      return info & SIZE_MASK;
-    }
-    return -1;
+    return this.wasmHeap.size_of(handle);
   }
 
   scopesizeof(handle: number): number {
-    let info = this.table[(handle as Recast<VMHandle, number>) + INFO_OFFSET];
-    return (info & SCOPE_MASK) >> 16;
+    return this.wasmHeap.scope_size_of(handle);
   }
 
   free(handle: VMHandle): void {
-    let info = this.table[(handle as Recast<VMHandle, number>) + INFO_OFFSET];
-    this.table[(handle as Recast<VMHandle, number>) + INFO_OFFSET] = changeState(info, TableSlotState.Freed);
+    return this.wasmHeap.free_handle(handle as Recast<VMHandle, number>);
   }
 
-  /**
-   * The heap uses the [Mark-Compact Algorithm](https://en.wikipedia.org/wiki/Mark-compact_algorithm) to shift
-   * reachable memory to the bottom of the heap and freeable
-   * memory to the top of the heap. When we have shifted all
-   * the reachable memory to the top of the heap, we move the
-   * offset to the next free position.
-   */
   compact(): void {
-    let compactedSize = 0;
-    let { table, table: { length }, heap } = this;
-
-    for (let i=0; i<length; i+=ENTRY_SIZE) {
-      let offset = table[i];
-      let info = table[i + INFO_OFFSET];
-      let size = info & SIZE_MASK;
-      let state = info & STATE_MASK >> 30;
-
-      if (state === TableSlotState.Purged) {
-        continue;
-      } else if (state === TableSlotState.Freed) {
-        // transition to "already freed" aka "purged"
-        // a good improvement would be to reuse
-        // these slots
-        table[i + INFO_OFFSET] = changeState(info, TableSlotState.Purged);
-        compactedSize += size;
-      } else if (state === TableSlotState.Allocated) {
-        for (let j=offset; j<=i+size; j++) {
-          heap[j - compactedSize] = heap[j];
-        }
-
-        table[i] = offset - compactedSize;
-      } else if (state === TableSlotState.Pointer) {
-        table[i] = offset - compactedSize;
-      }
-    }
-
-    this.offset = this.offset - compactedSize;
+    this.wasmHeap.compact();
   }
 
   pushPlaceholder(valueFunc: () => number): void {
-    let address = this.offset++;
-    this.heap[address] = MAX_SIZE;
+    const address = this.wasmHeap.push_placeholder();
     this.placeholders.push([address, valueFunc]);
   }
 
@@ -207,12 +154,22 @@ export class Heap implements CompileTimeHeap {
   capture(): SerializedHeap {
     this.patchPlaceholders();
 
+    let table = [];
+    let len = this.wasmHeap.table_len();
+    for (let i = 0; i < len; i++) {
+      table.push(this.wasmHeap.table_read_raw(i));
+    }
+
     // Only called in eager mode
-    let buffer = slice(this.heap, 0, this.offset);
+    let dst = new Uint16Array(this.size());
+    let start = this.wasmHeap.heap() / 2;
+    let end = start + this.size();
+    let src = (new Uint16Array(wasm.exports.extra.memory.buffer)).slice(start, end);
+    dst.set(src);
     return {
-      handle: this.handle,
-      table: this.table,
-      buffer: buffer as ArrayBuffer
+      handle: this.wasmHeap.handle(),
+      table: table,
+      buffer: dst.buffer as ArrayBuffer
     };
   }
 }
@@ -256,22 +213,4 @@ export class RuntimeProgram<TemplateMeta> {
 
 export class Program<TemplateMeta> extends WriteOnlyProgram {
   public constants: Constants<TemplateMeta>;
-}
-
-function slice(arr: Uint16Array | number[], start: number, end: number) {
-  if (arr instanceof Uint16Array) {
-    if (arr.slice !== undefined) {
-      return arr.slice(start, end).buffer;
-    }
-
-    let ret = new Uint16Array(end);
-
-    for (; start < end; start++) {
-      ret[start]  = arr[start];
-    }
-
-    return ret.buffer;
-  }
-
-  return null;
 }

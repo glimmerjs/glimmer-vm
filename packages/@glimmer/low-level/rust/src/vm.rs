@@ -5,7 +5,7 @@ use wasm_bindgen::prelude::*;
 use component::Component;
 use ffi;
 use gbox::{GBox, GBOX_NULL, Value};
-use heap::Heap;
+use heap::{WasmHeap, Heap};
 use my_ref_cell::MyRefCell;
 use opcode::{Opcode, Op};
 use stack::Stack;
@@ -309,7 +309,7 @@ wasm_bindgen! {
     }
 
     impl LowLevelVM {
-        pub fn new(heap: JsObject,
+        pub fn new(heap: &WasmHeap,
                    syscalls: JsObject,
                    externs: JsObject,
                    context: JsObject,
@@ -319,7 +319,7 @@ wasm_bindgen! {
                 devmode,
                 syscalls,
                 externs,
-                heap: Rc::new(MyRefCell::new(Heap::new(heap))),
+                heap: heap.0.clone(),
             }
         }
 
