@@ -907,13 +907,7 @@ export function renderTemplate(template: string, options: RenderLayoutOptions & 
 export function renderSync(env: Environment, iterator: TemplateIterator) {
   env.begin();
 
-  let iteratorResult: IteratorResult<RenderResult>;
-
-  do {
-    iteratorResult = iterator.next() as IteratorResult<RenderResult>;
-  } while (!iteratorResult.done);
-
-  let result = iteratorResult.value;
+  let result = iterator.finish();
 
   env.commit();
 
