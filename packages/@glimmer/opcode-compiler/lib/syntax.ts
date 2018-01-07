@@ -619,6 +619,40 @@ export function populateBuiltins(blocks: Blocks = new Blocks(), inlines: Inlines
     builder.stopLabels();
   });
 
+  blocks.add('let', (params, _hash, template, _inverse, builder) => {
+    //        PutArgs
+    //        Test(Environment)
+    //        Enter(BEGIN, END)
+    // BEGIN: Noop
+    //        Evaluate(default)
+    // END:   Noop
+    //        Exit
+
+    if (!params || params.length < 1) {
+      throw new Error(`SYNTAX ERROR: #let requires at least one argument`);
+    }
+
+    builder.startLabels();
+
+    builder.pushFrame();
+
+    builder.returnTo('END');
+
+    builder.expr(params[0]);
+
+    builder.dup();
+    builder.toBoolean();
+
+    builder.enter(2);
+
+    builder.invokeStaticBlock(unwrap(template), 1);
+
+    builder.label('END');
+    builder.popFrame();
+
+    builder.stopLabels();
+  });
+
   blocks.add('each', (params, hash, template, inverse, builder) => {
     //         Enter(BEGIN, END)
     // BEGIN:  Noop
