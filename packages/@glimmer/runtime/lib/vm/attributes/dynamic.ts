@@ -39,12 +39,13 @@ export function defaultDynamicProperty(tagName: string, name: string): DynamicAt
   if (requiresSanitization(tagName, name)) {
     return SafeDynamicProperty;
   }
+  let normalizedTagName = normalizeTagName(tagName);
 
-  if (isUserInputValue(tagName, name)) {
+  if (isUserInputValue(normalizedTagName, name)) {
     return InputValueDynamicAttribute;
   }
 
-  if (isOptionSelected(tagName, name)) {
+  if (isOptionSelected(normalizedTagName, name)) {
     return OptionSelectedDynamicAttribute;
   }
 
@@ -183,6 +184,10 @@ function isOptionSelected(tagName: string, attribute: string) {
 
 function isUserInputValue(tagName: string, attribute: string) {
   return (tagName === 'INPUT' || tagName === 'TEXTAREA') && attribute === 'value';
+}
+
+function normalizeTagName(tagName: string) {
+  return tagName.toUpperCase();
 }
 
 function normalizeValue(value: Opaque): Option<string> {
