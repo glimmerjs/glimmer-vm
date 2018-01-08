@@ -178,11 +178,11 @@ export class OptionSelectedDynamicAttribute extends DefaultDynamicProperty {
 }
 
 function isOptionSelected(tagName: string, attribute: string) {
-  return tagName === 'OPTION' && attribute === 'selected';
+  return tagName.toUpperCase() === 'OPTION' && attribute === 'selected';
 }
 
 function isUserInputValue(tagName: string, attribute: string) {
-  return (tagName === 'INPUT' || tagName === 'TEXTAREA') && attribute === 'value';
+  return (tagName.toUpperCase() === 'INPUT' || tagName.toUpperCase() === 'TEXTAREA') && attribute === 'value';
 }
 
 function normalizeValue(value: Opaque): Option<string> {
