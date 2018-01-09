@@ -51,10 +51,6 @@ export default class VM<TemplateMeta> implements PublicVM {
 
   /* Registers */
 
-  get currentOpSize(): number {
-    return this.wasmVM.current_op_size();
-  }
-
   get pc(): number {
     return this.wasmVM.pc();
   }
@@ -285,7 +281,7 @@ export default class VM<TemplateMeta> implements PublicVM {
     let tracker = this.elements().pushBlockList(updating);
     let artifacts = this.stack.peek<ReferenceIterator>().artifacts;
 
-    let addr = (this.pc + relativeStart) - this.currentOpSize;
+    let addr = (this.pc + relativeStart) - this.wasmVM.current_op_size();
     let start = this.heap.gethandle(addr);
 
     let opcode = new ListBlockOpcode(start, state, tracker, updating, artifacts);
