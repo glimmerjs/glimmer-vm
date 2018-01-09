@@ -8,6 +8,7 @@ const HI   = 0x80000000;
 const MASK = 0x7FFFFFFF;
 
 export default class EvaluationStack {
+  // TODO: `pop` is never called on this, but it's a stack...
   private js: Opaque[] = [];
 
   constructor(private wasmVM: WasmLowLevelVM) {
