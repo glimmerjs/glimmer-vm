@@ -83,6 +83,10 @@ impl Stack {
         ret.unwrap_or(0)
     }
 
+    pub fn pop(&mut self, count: i32) {
+        self.sp -= count;
+    }
+
     pub fn copy(&mut self, from: u32, to: u32) -> Result<(), ()> {
         let val = match self.read_raw(from) {
             Some(val) => val,

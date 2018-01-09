@@ -189,7 +189,7 @@ wasm_bindgen! {
         fn evaluate_inner(&self, opcode: Opcode, vm: &JsObject) {
             if opcode.is_machine(&self.heap) {
                 self.evaluate_machine(opcode)
-            } else {
+            } else if !self.evaluate_syscall_in_rust(opcode, vm) {
                 self.evaluate_syscall(opcode, vm)
             }
         }
@@ -252,5 +252,20 @@ wasm_bindgen! {
         pub fn stack_reset(&self) {
             self.stack.borrow_mut().reset();
         }
+    }
+}
+
+impl LowLevelVM {
+    fn evaluate_syscall_in_rust(&self, opcode: Opcode, _vm: &JsObject) -> bool {
+        match opcode.op(&self.heap) {
+            Op::Pop => {
+                let count = opcode.op1(&self.heap);
+                let mut stack = self.stack.borrow_mut();
+                stack.pop(to_i32(count));
+            }
+            _ => return false
+        }
+
+        true
     }
 }

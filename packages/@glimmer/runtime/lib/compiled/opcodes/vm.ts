@@ -66,10 +66,6 @@ APPEND_OPCODES.add(Op.Dup, (vm, { op1: register, op2: offset }) => {
   vm.stack.dup(position);
 });
 
-APPEND_OPCODES.add(Op.Pop, (vm, { op1: count }) => {
-  vm.stack.pop(count);
-});
-
 APPEND_OPCODES.add(Op.Load, (vm, { op1: register }) => {
   vm.load(register);
 });
