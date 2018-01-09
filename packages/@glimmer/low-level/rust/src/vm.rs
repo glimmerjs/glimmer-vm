@@ -4,59 +4,10 @@ use wasm_bindgen::prelude::*;
 
 use ffi;
 use opcode::{Opcode, Op};
-use stack;
+use stack::Stack;
 use track::Tracked;
 use my_ref_cell::MyRefCell;
-
-pub struct Stack {
-    fp: i32,
-    sp: i32,
-    inner: stack::Stack,
-}
-
-impl Stack {
-    pub fn new(fp: i32, sp: i32, stack: stack::Stack) -> Stack {
-        Stack {
-            fp,
-            sp,
-            inner: stack,
-        }
-    }
-
-    pub fn fp(&self) -> i32 {
-        self.fp
-    }
-
-    pub fn set_fp(&mut self, fp: i32) {
-        self.fp = fp;
-    }
-
-    pub fn sp(&self) -> i32 {
-        self.sp
-    }
-
-    pub fn set_sp(&mut self, sp: i32) {
-        self.sp = sp;
-    }
-
-    pub fn push_smi(&mut self, val: i32) {
-        self.sp += 1;
-        self.inner.write(to_u32(self.sp), val)
-    }
-
-    pub fn pop_smi(&mut self) -> i32 {
-        let ret = self.inner.read(to_u32(self.sp));
-        self.sp -= 1;
-        debug_assert!(ret.is_some()); // this should be an in-bounds read
-        ret.unwrap_or(0)
-    }
-
-    pub fn get_smi(&mut self, offset: u32) -> i32 {
-        let ret = self.inner.read(to_u32(self.fp) + offset);
-        debug_assert!(ret.is_some()); // this should be an in-bounds read
-        ret.unwrap_or(0)
-    }
-}
+use {to_u32, to_i32};
 
 pub struct Heap {
     handle: JsObject,
@@ -97,8 +48,7 @@ wasm_bindgen! {
                    syscalls: JsObject,
                    externs: JsObject,
                    devmode: bool) -> LowLevelVM {
-            let stack = stack::Stack::new();
-            let stack = Stack::new(0, -1, stack);
+            let stack = Stack::new(0, -1);
             let heap = Heap::new(heap);
             LowLevelVM {
                 pc: Cell::new(-1),
@@ -280,37 +230,27 @@ wasm_bindgen! {
         }
 
         pub fn stack_copy(&self, from: u32, to: u32) -> bool {
-            self.stack.borrow_mut().inner.copy(from, to).is_ok()
+            self.stack.borrow_mut().copy(from, to).is_ok()
         }
 
         pub fn stack_write_raw(&self, at: u32, val: u32) {
-            self.stack.borrow_mut().inner.write_raw(at, val);
+            self.stack.borrow_mut().write_raw(at, val);
         }
 
         pub fn stack_write(&self, at: u32, val: i32) {
-            self.stack.borrow_mut().inner.write(at, val);
+            self.stack.borrow_mut().write(at, val);
         }
 
         pub fn stack_read_raw(&self, at: u32) -> u32 {
-            self.stack.borrow().inner.read_raw(at).unwrap_or(0)
+            self.stack.borrow().read_raw(at).unwrap_or(0)
         }
 
         pub fn stack_read(&self, at: u32) -> i32 {
-            self.stack.borrow().inner.read(at).unwrap_or(0)
+            self.stack.borrow().read(at).unwrap_or(0)
         }
 
         pub fn stack_reset(&self) {
-            self.stack.borrow_mut().inner.reset();
+            self.stack.borrow_mut().reset();
         }
     }
-}
-
-fn to_i32(a: u32) -> i32 {
-    debug_assert!(a < (i32::max_value() as u32));
-    a as i32
-}
-
-fn to_u32(a: i32) -> u32 {
-    debug_assert!(a >= 0);
-    a as u32
 }

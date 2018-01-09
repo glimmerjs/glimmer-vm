@@ -1,9 +1,12 @@
 use track::Tracked;
+use to_u32;
 
 const NODE_SIZE: usize = 4096;
 
 pub struct Stack {
     head: Option<Box<Node>>,
+    fp: i32,
+    sp: i32,
     _tracked: Tracked,
 }
 
@@ -36,11 +39,48 @@ fn decode(val: u32) -> i32 {
 }
 
 impl Stack {
-    pub fn new() -> Stack {
+    pub fn new(fp: i32, sp: i32) -> Stack {
         Stack {
             head: None,
+            fp,
+            sp,
             _tracked: Tracked::new(),
         }
+    }
+
+    pub fn fp(&self) -> i32 {
+        self.fp
+    }
+
+    pub fn set_fp(&mut self, fp: i32) {
+        self.fp = fp;
+    }
+
+    pub fn sp(&self) -> i32 {
+        self.sp
+    }
+
+    pub fn set_sp(&mut self, sp: i32) {
+        self.sp = sp;
+    }
+
+    pub fn push_smi(&mut self, val: i32) {
+        self.sp += 1;
+        let pos = to_u32(self.sp);
+        self.write(pos, val)
+    }
+
+    pub fn pop_smi(&mut self) -> i32 {
+        let ret = self.read(to_u32(self.sp));
+        self.sp -= 1;
+        debug_assert!(ret.is_some()); // this should be an in-bounds read
+        ret.unwrap_or(0)
+    }
+
+    pub fn get_smi(&mut self, offset: u32) -> i32 {
+        let ret = self.read(to_u32(self.fp) + offset);
+        debug_assert!(ret.is_some()); // this should be an in-bounds read
+        ret.unwrap_or(0)
     }
 
     pub fn copy(&mut self, from: u32, to: u32) -> Result<(), ()> {
