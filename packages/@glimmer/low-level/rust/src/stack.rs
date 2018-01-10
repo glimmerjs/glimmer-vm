@@ -1,5 +1,6 @@
-use track::Tracked;
+use gbox::GBox;
 use to_u32;
+use track::Tracked;
 
 const NODE_SIZE: usize = 4096;
 
@@ -18,16 +19,6 @@ struct Node {
 const NUMBER: u32 = 0b000;
 const NEGATIVE: u32 = 0b100;
 const MASK: u32 = 0b111;
-
-fn encode(val: i32) -> u32 {
-    let (val, flags) = if val < 0 {
-        ((-val) as u32, NEGATIVE)
-    } else {
-        (val as u32, NUMBER)
-    };
-    debug_assert!(val & (0b111 << 29) == 0);
-    (val << 3) | flags
-}
 
 fn decode(val: u32) -> i32 {
     let payload = val >> 3;
@@ -97,7 +88,7 @@ impl Stack {
     }
 
     pub fn write(&mut self, at: u32, val: i32) {
-        self.write_raw(at, encode(val))
+        self.write_raw(at, GBox::i32(val).bits())
     }
 
     pub fn write_raw(&mut self, at: u32, val: u32) {

@@ -2,7 +2,7 @@ import { ICapturedArguments } from './arguments';
 import { Register } from '@glimmer/vm';
 import { Scope, DynamicScope, Environment } from '../environment';
 import { ElementBuilder } from './element-builder';
-import { Option, Destroyable, Stack, LinkedList, ListSlice, Opaque, expect, assert } from '@glimmer/util';
+import { Option, Destroyable, Stack, LinkedList, ListSlice, Opaque, expect } from '@glimmer/util';
 import { ReferenceIterator, PathReference, VersionedPathReference, combineSlice } from '@glimmer/reference';
 import { LabelOpcode, JumpIfNotModifiedOpcode, DidModifyOpcode } from '../compiled/opcodes/vm';
 import { VMState, ListBlockOpcode, TryOpcode, BlockOpcode } from './update';
@@ -10,6 +10,7 @@ import RenderResult from './render-result';
 import EvaluationStack from './stack';
 import { wasm, WasmLowLevelVM } from '@glimmer/low-level';
 import { DEVMODE } from '@glimmer/local-debug-flags';
+import { Context } from './gbox';
 
 import {
   APPEND_OPCODES,
@@ -42,6 +43,7 @@ export default class VM<TemplateMeta> implements PublicVM {
   private dynamicScopeStack = new Stack<DynamicScope>();
   private scopeStack = new Stack<Scope>();
   private wasmVM: WasmLowLevelVM;
+  private cx = new Context();
   public stack: EvaluationStack;
   public updatingOpcodeStack = new Stack<LinkedList<UpdatingOpcode>>();
   public cacheGroups = new Stack<Option<UpdatingOpcode>>();
@@ -51,71 +53,24 @@ export default class VM<TemplateMeta> implements PublicVM {
 
   /* Registers */
 
-  get pc(): number {
-    return this.wasmVM.pc();
-  }
-
-  set pc(value: number) {
-    assert(typeof value === 'number' && value >= -1, `invalid pc: ${value}`);
-    this.wasmVM.set_pc(value);
-  }
-
-  get ra(): number {
-    return this.wasmVM.ra();
-  }
-
-  set ra(value: number) {
-    this.wasmVM.set_ra(value);
-  }
-
-  private get fp(): number {
-    return this.stack.fp;
-  }
-
-  private set fp(fp: number) {
-    this.stack.fp = fp;
-  }
-
-  private get sp(): number {
-    return this.stack.sp;
-  }
-
-  private set sp(sp: number) {
-    this.stack.sp = sp;
-  }
-
-  // get s0(): any {
-  //   return this.wasmVM.register(Register.s0);
-  // }
-  //
-  // set s0(s: any) {
-  //   this.wasmVM.set_register(Register.s0, s);
-  // }
-
-  public s0: any = null;
-  public s1: any = null;
-  public t0: any = null;
-  public t1: any = null;
-  public v0: any = null;
-
   // Fetch a value from a register onto the stack
   fetch(register: Register) {
-    this.stack.push(this[Register[register]]);
+    this.stack.push(this.fetchValue(register));
   }
 
   // Load a value from the stack into a register
   load(register: Register) {
-    this[Register[register]] = this.stack.pop();
+    this.loadValue(register, this.stack.pop());
   }
 
   // Fetch a value from a register
   fetchValue<T>(register: Register): T {
-    return this[Register[register]];
+    return this.cx.decode(this.wasmVM.register(register));
   }
 
   // Load a value into a register
   loadValue<T>(register: Register, value: T) {
-    this[Register[register]] = value;
+    this.wasmVM.set_register(register, this.cx.encode(value));
   }
 
   /**
@@ -158,7 +113,7 @@ export default class VM<TemplateMeta> implements PublicVM {
     }
 
     let vm = new VM(program, env, scope, dynamicScope, elementStack);
-    vm.pc = vm.heap.getaddr(handle);
+    vm.wasmVM.set_pc(vm.heap.getaddr(handle));
     vm.updatingOpcodeStack.push(new LinkedList<UpdatingOpcode>());
     return vm;
   }
@@ -257,7 +212,8 @@ export default class VM<TemplateMeta> implements PublicVM {
     let state = this.capture(args);
     let tracker = this.elements().pushUpdatableBlock();
 
-    let tryOpcode = new TryOpcode(this.heap.gethandle(this.pc), state, tracker, updating);
+    let pc = this.wasmVM.pc();
+    let tryOpcode = new TryOpcode(this.heap.gethandle(pc), state, tracker, updating);
 
     this.didEnter(tryOpcode);
   }
@@ -274,7 +230,8 @@ export default class VM<TemplateMeta> implements PublicVM {
     // this.ip = end + 4;
     // this.frames.push(ip);
 
-    return new TryOpcode(this.heap.gethandle(this.pc), state, tracker, new LinkedList<UpdatingOpcode>());
+    let pc = this.wasmVM.pc();
+    return new TryOpcode(this.heap.gethandle(pc), state, tracker, new LinkedList<UpdatingOpcode>());
   }
 
   enterItem(key: string, opcode: TryOpcode) {
@@ -289,7 +246,8 @@ export default class VM<TemplateMeta> implements PublicVM {
     let tracker = this.elements().pushBlockList(updating);
     let artifacts = this.stack.peek<ReferenceIterator>().artifacts;
 
-    let addr = (this.pc + relativeStart) - this.wasmVM.current_op_size();
+    let pc = this.wasmVM.pc();
+    let addr = (pc + relativeStart) - this.wasmVM.current_op_size();
     let start = this.heap.gethandle(addr);
 
     let opcode = new ListBlockOpcode(start, state, tracker, updating, artifacts);
@@ -388,7 +346,7 @@ export default class VM<TemplateMeta> implements PublicVM {
   /// EXECUTION
 
   execute(start: number, initialize?: (vm: VM<TemplateMeta>) => void): RenderResult {
-    this.pc = this.heap.getaddr(start);
+    this.wasmVM.set_pc(this.heap.getaddr(start));
 
     if (initialize) initialize(this);
 

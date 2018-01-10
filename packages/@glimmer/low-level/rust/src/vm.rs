@@ -75,7 +75,7 @@ impl VM {
             FP => GBox::i32(self.stack.fp()),
             SP => GBox::i32(self.stack.sp()),
             _ => {
-                let reg = self.boxed_registers.get(i - SP);
+                let reg = self.boxed_registers.get(i - S0);
                 debug_assert!(reg.is_some());
                 reg.cloned().unwrap_or(GBox::null())
             }
@@ -89,7 +89,7 @@ impl VM {
             FP => self.stack.set_fp(val.unwrap_i32()),
             SP => self.stack.set_sp(val.unwrap_i32()),
             _ => {
-                match self.boxed_registers.get_mut(i - SP) {
+                match self.boxed_registers.get_mut(i - S0) {
                     Some(slot) => *slot = val,
                     None => panic!("invalid register index: {}", i),
                 }
