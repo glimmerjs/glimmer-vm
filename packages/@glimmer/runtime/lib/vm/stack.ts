@@ -75,10 +75,6 @@ export default class EvaluationStack {
     this.wasmVM.stack_write_raw(++this.sp, this.cx.nullValue());
   }
 
-  dup(position = this.sp): void {
-    this.wasmVM.stack_copy(position, ++this.sp);
-  }
-
   copy(from: number, to: number): void {
     this.wasmVM.stack_copy(from, to);
   }

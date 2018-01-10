@@ -61,11 +61,6 @@ APPEND_OPCODES.add(Op.PrimitiveReference, vm => {
   stack.push(PrimitiveReference.create(check(stack.pop(), CheckPrimitive)));
 });
 
-APPEND_OPCODES.add(Op.Dup, (vm, { op1: register, op2: offset }) => {
-  let position = check(vm.fetchValue(register), CheckNumber) - offset;
-  vm.stack.dup(position);
-});
-
 APPEND_OPCODES.add(Op.Load, (vm, { op1: register }) => {
   vm.load(register);
 });

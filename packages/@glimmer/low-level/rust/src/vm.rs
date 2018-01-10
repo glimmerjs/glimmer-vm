@@ -187,6 +187,15 @@ impl VM {
                 let count = opcode.op1(&self.heap);
                 self.stack.pop(to_i32(count));
             }
+
+            Op::Dup => {
+                let register = opcode.op1(&self.heap) as usize;
+                let offset = to_i32(opcode.op2(&self.heap));
+
+                let position = self.register(register).unwrap_i32() - offset;
+                self.stack.dup(position);
+            }
+
             _ => return false
         }
 

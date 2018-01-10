@@ -78,6 +78,12 @@ impl Stack {
         self.sp -= count;
     }
 
+    pub fn dup(&mut self, from: i32) {
+        let to = self.sp + 1;
+        drop(self.copy(to_u32(from), to_u32(to)));
+        self.sp = to;
+    }
+
     pub fn copy(&mut self, from: u32, to: u32) -> Result<(), ()> {
         let val = match self.read_raw(from) {
             Some(val) => val,
