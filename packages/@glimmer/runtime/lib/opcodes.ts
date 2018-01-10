@@ -1,6 +1,6 @@
 import { Option, Dict, Slice as ListSlice, initializeGuid, fillNulls, unreachable, assert } from '@glimmer/util';
 import { recordStackSize } from '@glimmer/debug';
-import { Op } from '@glimmer/vm';
+import { Register, Op } from '@glimmer/vm';
 import { Tag } from '@glimmer/reference';
 import { debug, logOpcode } from "@glimmer/opcode-compiler";
 import { METADATA } from "@glimmer/vm";
@@ -38,7 +38,8 @@ export class AppendOpcodes {
       /* tslint:disable */
       let [name, params] = debug(vm.constants, opcode.type, opcode.op1, opcode.op2, opcode.op3);
       // console.log(`${typePos(vm['pc'])}.`);
-      console.log(`${vm['pc'] - opcode.size}. ${logOpcode(name, params)}`);
+      let pc = vm.fetchValue(Register.pc) as number;
+      console.log(`${pc - opcode.size}. ${logOpcode(name, params)}`);
 
       let debugParams = [];
       for (let prop in params) {
@@ -86,12 +87,23 @@ export class AppendOpcodes {
     if (metadata && metadata.check && typeof expectedChange! === 'number' && expectedChange! !== actualChange) {
       let [name, params] = debug(vm.constants, opcode.type, opcode.op1, opcode.op2, opcode.op3);
 
-      throw new Error(`Error in ${name}:\n\n${(vm['pc'] + (opcode.size))}. ${logOpcode(name, params)}\n\nStack changed by ${actualChange}, expected ${expectedChange!}`);
+      let pc = vm.fetchValue(Register.pc) as number;
+      throw new Error(`Error in ${name}:\n\n${(pc + (opcode.size))}. ${logOpcode(name, params)}\n\nStack changed by ${actualChange}, expected ${expectedChange!}`);
     }
 
     if (DEBUG) {
       /* tslint:disable */
-      console.log('%c -> pc: %d, ra: %d, fp: %d, sp: %d, s0: %O, s1: %O, t0: %O, t1: %O, v0: %O', 'color: orange', vm['pc'], vm['ra'], vm['fp'], vm['sp'], vm['s0'], vm['s1'], vm['t0'], vm['t1'], vm['v0']);
+      console.log('%c -> pc: %d, ra: %d, fp: %d, sp: %d, s0: %O, s1: %O, t0: %O, t1: %O, v0: %O', 'color: orange',
+        vm.fetchValue(Register.pc),
+        vm.fetchValue(Register.ra),
+        vm.fetchValue(Register.fp),
+        vm.fetchValue(Register.sp),
+        vm.fetchValue(Register.s0),
+        vm.fetchValue(Register.s1),
+        vm.fetchValue(Register.t0),
+        vm.fetchValue(Register.t1),
+        vm.fetchValue(Register.v0),
+      );
       console.log('%c -> eval stack', 'color: red', vm.stack.toArray());
       if (vm['scopeStack'].current === null) {
         console.log('%c -> scope', 'color: green', "null");
