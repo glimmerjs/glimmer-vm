@@ -84,6 +84,14 @@ export default class VM<TemplateMeta> implements PublicVM {
     this.stack.sp = sp;
   }
 
+  // get s0(): any {
+  //   return this.wasmVM.register(Register.s0);
+  // }
+  //
+  // set s0(s: any) {
+  //   this.wasmVM.set_register(Register.s0, s);
+  // }
+
   public s0: any = null;
   public s1: any = null;
   public t0: any = null;

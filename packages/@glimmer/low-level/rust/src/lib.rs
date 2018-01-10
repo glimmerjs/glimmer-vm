@@ -16,6 +16,7 @@ pub mod opcode;
 pub mod ffi;
 mod track;
 mod my_ref_cell;
+mod gbox;
 
 wasm_bindgen! {
     pub fn num_allocated() -> usize {
