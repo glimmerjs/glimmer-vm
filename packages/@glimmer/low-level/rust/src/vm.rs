@@ -152,8 +152,7 @@ impl VM {
         Some(opcode)
     }
 
-    fn evaluate_machine(&mut self, opcode: Opcode) {
-        debug_assert!(opcode.is_machine(&self.heap));
+    fn evaluate(&mut self, opcode: Opcode) -> bool {
         match opcode.op(&self.heap) {
             Op::PushFrame => self.push_frame(),
             Op::PopFrame => self.pop_frame(),
@@ -174,15 +173,7 @@ impl VM {
                 let op1 = to_i32(opcode.op1(&self.heap));
                 self.return_to(op1)
             }
-            op => {
-                debug_assert!(!opcode.is_machine(&self.heap),
-                              "bad opcode {:?}", op);
-            }
-        }
-    }
 
-    fn evaluate_syscall_in_rust(&mut self, opcode: Opcode, _vm: &JsObject) -> bool {
-        match opcode.op(&self.heap) {
             Op::Pop => {
                 let count = opcode.op1(&self.heap);
                 self.stack.pop(to_i32(count));
@@ -196,7 +187,11 @@ impl VM {
                 self.stack.dup(position);
             }
 
-            _ => return false
+            op => {
+                debug_assert!(!opcode.is_machine(&self.heap),
+                              "bad opcode {:?}", op);
+                return false
+            }
         }
 
         true
@@ -299,16 +294,11 @@ wasm_bindgen! {
                 None
             };
 
-            {
-                let mut inner = self.inner.borrow_mut();
-                if opcode.is_machine(&inner.heap) {
-                    inner.evaluate_machine(opcode)
-                } else if !inner.evaluate_syscall_in_rust(opcode, vm) {
-                    drop(inner);
-                    ffi::low_level_vm_evaluate_syscall(&self.syscalls,
-                                                       vm,
-                                                       opcode.offset())
-                }
+            let complete = self.inner.borrow_mut().evaluate(opcode);
+            if !complete {
+                ffi::low_level_vm_evaluate_syscall(&self.syscalls,
+                                                   vm,
+                                                   opcode.offset())
             }
 
             if let Some(state) = state {
