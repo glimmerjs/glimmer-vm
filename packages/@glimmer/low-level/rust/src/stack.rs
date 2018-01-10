@@ -80,11 +80,11 @@ impl Stack {
         loop {
             let tmp = cur;
             let me = tmp.get_or_insert_with(node);
-            if at < NODE_SIZE {
+            if at < me.data.len() {
                 me.data[at] = val.bits();
                 return
             }
-            at -= NODE_SIZE;
+            at -= me.data.len();
             cur = &mut me.next;
         }
     }
@@ -95,10 +95,10 @@ impl Stack {
         loop {
             let tmp = cur;
             let me = tmp.as_ref()?;
-            if at < NODE_SIZE {
+            if at < me.data.len() {
                 return Some(GBox::from_bits(me.data[at]))
             }
-            at -= NODE_SIZE;
+            at -= me.data.len();
             cur = &me.next;
         }
     }
