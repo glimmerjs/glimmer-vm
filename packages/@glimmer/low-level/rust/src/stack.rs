@@ -16,19 +16,6 @@ struct Node {
     next: Option<Box<Node>>,
 }
 
-const NUMBER: u32 = 0b000;
-const NEGATIVE: u32 = 0b100;
-const MASK: u32 = 0b111;
-
-fn decode(val: u32) -> i32 {
-    let payload = val >> 3;
-    match val & MASK {
-        NUMBER => payload as i32,
-        NEGATIVE => -(payload as i32),
-        _ => 0, // TODO: panic?
-    }
-}
-
 impl Stack {
     pub fn new(fp: i32, sp: i32) -> Stack {
         Stack {
@@ -55,27 +42,16 @@ impl Stack {
         self.sp = sp;
     }
 
-    pub fn push_smi(&mut self, val: i32) {
+    pub fn push(&mut self, val: GBox) {
         self.sp += 1;
         let pos = to_u32(self.sp);
         self.write(pos, val)
     }
 
-    pub fn pop_smi(&mut self) -> i32 {
-        let ret = self.read(to_u32(self.sp));
-        self.sp -= 1;
-        debug_assert!(ret.is_some()); // this should be an in-bounds read
-        ret.unwrap_or(0)
-    }
-
-    pub fn get_smi(&mut self, offset: u32) -> i32 {
-        let ret = self.read(to_u32(self.fp) + offset);
-        debug_assert!(ret.is_some()); // this should be an in-bounds read
-        ret.unwrap_or(0)
-    }
-
-    pub fn pop(&mut self, count: i32) {
+    pub fn pop(&mut self, count: i32) -> GBox {
+        let top = self.read(to_u32(self.sp));
         self.sp -= count;
+        return top.unwrap_or(GBox::null())
     }
 
     pub fn dup(&mut self, from: i32) {
@@ -84,27 +60,28 @@ impl Stack {
         self.sp = to;
     }
 
+    pub fn get(&mut self, offset: u32) -> GBox {
+        self.read(to_u32(self.fp) + offset)
+            .unwrap_or(GBox::i32(0))
+    }
+
     pub fn copy(&mut self, from: u32, to: u32) -> Result<(), ()> {
-        let val = match self.read_raw(from) {
+        let val = match self.read(from) {
             Some(val) => val,
             None => return Err(()),
         };
-        self.write_raw(to, val);
+        self.write(to, val);
         Ok(())
     }
 
-    pub fn write(&mut self, at: u32, val: i32) {
-        self.write_raw(at, GBox::i32(val).bits())
-    }
-
-    pub fn write_raw(&mut self, at: u32, val: u32) {
+    pub fn write(&mut self, at: u32, val: GBox) {
         let mut cur = &mut self.head;
         let mut at = at as usize;
         loop {
             let tmp = cur;
             let me = tmp.get_or_insert_with(node);
             if at < NODE_SIZE {
-                me.data[at] = val;
+                me.data[at] = val.bits();
                 return
             }
             at -= NODE_SIZE;
@@ -112,18 +89,14 @@ impl Stack {
         }
     }
 
-    pub fn read(&self, at: u32) -> Option<i32> {
-        Some(decode(self.read_raw(at)?))
-    }
-
-    pub fn read_raw(&self, at: u32) -> Option<u32> {
+    pub fn read(&self, at: u32) -> Option<GBox> {
         let mut cur = &self.head;
         let mut at = at as usize;
         loop {
             let tmp = cur;
             let me = tmp.as_ref()?;
             if at < NODE_SIZE {
-                return Some(me.data[at])
+                return Some(GBox::from_bits(me.data[at]))
             }
             at -= NODE_SIZE;
             cur = &me.next;

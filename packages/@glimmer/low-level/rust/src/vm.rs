@@ -99,9 +99,9 @@ impl VM {
 
     // Start a new frame and save $ra and $fp on the stack
     fn push_frame(&mut self) {
-        self.stack.push_smi(self.ra);
+        self.stack.push(GBox::i32(self.ra));
         let fp = self.stack.fp();
-        self.stack.push_smi(fp);
+        self.stack.push(GBox::i32(fp));
         let sp = self.stack.sp();
         self.stack.set_fp(sp - 1);
     }
@@ -110,8 +110,8 @@ impl VM {
     fn pop_frame(&mut self) {
         let fp = self.stack.fp();
         self.stack.set_sp(fp - 1);
-        self.ra = self.stack.get_smi(0);
-        let fp = self.stack.get_smi(1);
+        self.ra = self.stack.get(0).unwrap_i32();
+        let fp = self.stack.get(1).unwrap_i32();
         self.stack.set_fp(fp);
     }
 
@@ -162,7 +162,7 @@ impl VM {
                 self.call(op1)
             }
             Op::InvokeVirtual => {
-                let addr = self.stack.pop_smi();
+                let addr = self.stack.pop(1).unwrap_i32();
                 self.call(to_u32(addr))
             }
             Op::Jump => {
@@ -324,19 +324,23 @@ wasm_bindgen! {
         }
 
         pub fn stack_write_raw(&self, at: u32, val: u32) {
-            self.inner.borrow_mut().stack.write_raw(at, val);
+            self.inner.borrow_mut().stack.write(at, GBox::from_bits(val));
         }
 
         pub fn stack_write(&self, at: u32, val: i32) {
-            self.inner.borrow_mut().stack.write(at, val);
+            self.inner.borrow_mut().stack.write(at, GBox::i32(val));
         }
 
         pub fn stack_read_raw(&self, at: u32) -> u32 {
-            self.inner.borrow().stack.read_raw(at).unwrap_or(0)
+            self.inner.borrow().stack.read(at)
+                .map(|g| g.bits())
+                .unwrap_or(0)
         }
 
         pub fn stack_read(&self, at: u32) -> i32 {
-            self.inner.borrow().stack.read(at).unwrap_or(0)
+            self.inner.borrow().stack.read(at)
+                .map(|g| g.unwrap_i32())
+                .unwrap_or(0)
         }
 
         pub fn stack_reset(&self) {
