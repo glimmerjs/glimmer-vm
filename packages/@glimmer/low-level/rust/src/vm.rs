@@ -187,6 +187,18 @@ impl VM {
                 self.stack.dup(position);
             }
 
+            Op::Load => {
+                let register = opcode.op1(&self.heap) as usize;
+                let value = self.stack.pop(1);
+                self.set_register(register, value);
+            }
+
+            Op::Fetch => {
+                let register = opcode.op1(&self.heap) as usize;
+                let value = self.register(register);
+                self.stack.push(value);
+            }
+
             op => {
                 debug_assert!(!opcode.is_machine(&self.heap),
                               "bad opcode {:?}", op);

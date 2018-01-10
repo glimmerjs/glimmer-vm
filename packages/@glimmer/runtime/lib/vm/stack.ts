@@ -4,10 +4,7 @@ import { WasmLowLevelVM } from '@glimmer/low-level';
 import { Context } from './gbox';
 
 export default class EvaluationStack {
-  private cx: Context;
-
-  constructor(private wasmVM: WasmLowLevelVM) {
-    this.cx = new Context();
+  constructor(private wasmVM: WasmLowLevelVM, private cx: Context) {
     if (DEBUG) {
       Object.seal(this);
     }

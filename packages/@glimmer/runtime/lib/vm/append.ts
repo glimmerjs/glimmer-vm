@@ -53,16 +53,6 @@ export default class VM<TemplateMeta> implements PublicVM {
 
   /* Registers */
 
-  // Fetch a value from a register onto the stack
-  fetch(register: Register) {
-    this.stack.push(this.fetchValue(register));
-  }
-
-  // Load a value from the stack into a register
-  load(register: Register) {
-    this.loadValue(register, this.stack.pop());
-  }
-
   // Fetch a value from a register
   fetchValue<T>(register: Register): T {
     return this.cx.decode(this.wasmVM.register(register));
@@ -166,7 +156,7 @@ export default class VM<TemplateMeta> implements PublicVM {
       }
     };
     this.wasmVM = wasm.exports.LowLevelVM.new(this.heap, APPEND_OPCODES, externs, DEVMODE);
-    this.stack = new EvaluationStack(this.wasmVM);
+    this.stack = new EvaluationStack(this.wasmVM, this.cx);
   }
 
   capture(args: number): VMState {

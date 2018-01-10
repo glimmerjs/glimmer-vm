@@ -61,14 +61,6 @@ APPEND_OPCODES.add(Op.PrimitiveReference, vm => {
   stack.push(PrimitiveReference.create(check(stack.pop(), CheckPrimitive)));
 });
 
-APPEND_OPCODES.add(Op.Load, (vm, { op1: register }) => {
-  vm.load(register);
-});
-
-APPEND_OPCODES.add(Op.Fetch, (vm, { op1: register }) => {
-  vm.fetch(register);
-});
-
 APPEND_OPCODES.add(Op.BindDynamicScope, (vm, { op1: _names }) => {
   let names = vm.constants.getArray(_names);
   vm.bindDynamicScope(names);

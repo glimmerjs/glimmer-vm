@@ -86,7 +86,9 @@ export class Context {
           break;
     }
 
-    return this.stack[a >> TAG_SIZE];
+    const idx = a >> TAG_SIZE;
+    assert(idx < this.stack.length, 'out of bounds gbox index');
+    return this.stack[idx];
   }
 
   private encodeSmi(primitive: number) {
