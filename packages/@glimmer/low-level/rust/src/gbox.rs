@@ -34,7 +34,13 @@ impl GBox {
     }
 
     pub fn i32(i: i32) -> GBox {
-        GBox::from_bits(encode_smi(i))
+        let (val, tag) = if i < 0 {
+            ((-i) as u32, TAG_NEGATIVE)
+        } else {
+            (i as u32, TAG_NUMBER)
+        };
+        debug_assert!(val & (TAG_MASK << (32 - TAG_SIZE)) == 0);
+        GBox::from_bits((val << 3) | tag)
     }
 
     pub fn from_bits(bits: u32) -> GBox {
@@ -69,14 +75,4 @@ impl GBox {
             tag => panic!("invalid tag: 0b{:b}", tag),
         }
     }
-}
-
-pub fn encode_smi(val: i32) -> u32 {
-    let (val, flags) = if val < 0 {
-        ((-val) as u32, TAG_NEGATIVE)
-    } else {
-        (val as u32, TAG_NUMBER)
-    };
-    debug_assert!(val & (TAG_MASK << (32 - TAG_SIZE)) == 0);
-    (val << 3) | flags
 }
