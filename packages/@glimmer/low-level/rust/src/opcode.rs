@@ -35,14 +35,8 @@ impl Opcode {
 
     pub fn op(&self, heap: &Heap) -> Op {
         let num = heap.get_by_addr(self.offset) & TYPE_MASK;
-        if num >= Op::Size as u16 {
-            if cfg!(debug_assertions) {
-                panic!("invalid opcode type at {}: {}", self.offset, num);
-            }
-            Op::Bug
-        } else {
-            unsafe { mem::transmute(num) }
-        }
+        assert!(num <= Op::Size as u16);
+        unsafe { mem::transmute(num) }
     }
 
     pub fn op1(&self, heap: &Heap) -> u16 {
