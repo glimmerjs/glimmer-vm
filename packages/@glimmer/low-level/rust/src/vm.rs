@@ -205,14 +205,6 @@ wasm_bindgen! {
             to_u32(self.inner.borrow().current_op_size)
         }
 
-        pub fn ra(&self) -> i32 {
-            self.inner.borrow().ra
-        }
-
-        pub fn set_ra(&self, ra: i32) {
-            self.inner.borrow_mut().ra = ra;
-        }
-
         pub fn pc(&self) -> i32 {
             self.inner.borrow().pc
         }
