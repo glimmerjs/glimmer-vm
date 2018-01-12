@@ -27,15 +27,15 @@ pub struct VM {
 }
 
 // these should all stay in sync with `registers.ts`
-pub const PC: usize = 0;
-pub const RA: usize = 1;
-pub const FP: usize = 2;
-pub const SP: usize = 3;
-pub const S0: usize = 4;
-pub const S1: usize = 5;
-pub const T0: usize = 6;
-pub const T1: usize = 7;
-pub const V0: usize = 8;
+pub const PC: u16 = 0;
+pub const RA: u16 = 1;
+pub const FP: u16 = 2;
+pub const SP: u16 = 3;
+pub const S0: u16 = 4;
+pub const S1: u16 = 5;
+pub const T0: u16 = 6;
+pub const T1: u16 = 7;
+pub const V0: u16 = 8;
 
 impl VM {
     fn new() -> VM {
@@ -50,28 +50,28 @@ impl VM {
         }
     }
 
-    fn register(&self, i: usize) -> GBox {
+    fn register(&self, i: u16) -> GBox {
         match i {
             PC => GBox::i32(self.pc),
             RA => GBox::i32(self.ra),
             FP => GBox::i32(self.stack.fp()),
             SP => GBox::i32(self.stack.sp()),
             _ => {
-                let reg = self.boxed_registers.get(i - S0);
+                let reg = self.boxed_registers.get((i - S0) as usize);
                 debug_assert!(reg.is_some());
                 reg.cloned().unwrap_or(GBox::null())
             }
         }
     }
 
-    fn set_register(&mut self, i: usize, val: GBox) {
+    fn set_register(&mut self, i: u16, val: GBox) {
         match i {
             PC => self.pc = val.unwrap_i32(),
             RA => self.ra = val.unwrap_i32(),
             FP => self.stack.set_fp(val.unwrap_i32()),
             SP => self.stack.set_sp(val.unwrap_i32()),
             _ => {
-                match self.boxed_registers.get_mut(i - S0) {
+                match self.boxed_registers.get_mut((i - S0) as usize) {
                     Some(slot) => *slot = val,
                     None => panic!("invalid register index: {}", i),
                 }
@@ -138,46 +138,32 @@ impl VM {
         match opcode.op(heap) {
             Op::PushFrame => self.push_frame(),
             Op::PopFrame => self.pop_frame(),
-            Op::InvokeStatic => {
-                let op1 = opcode.op1(heap);
-                self.call(op1.into(), heap)
-            }
+            Op::InvokeStatic => self.call(opcode.op1(heap).into(), heap),
             Op::InvokeVirtual => {
                 let addr = self.stack.pop(1).unwrap_i32();
                 self.call(to_u32(addr), heap)
             }
-            Op::Jump => {
-                let op1 = opcode.op1(heap).into();
-                self.goto(op1)
-            }
+            Op::Jump => self.goto(opcode.op1(heap).into()),
             Op::Return => self.return_(),
-            Op::ReturnTo => {
-                let op1 = opcode.op1(heap).into();
-                self.return_to(op1)
-            }
+            Op::ReturnTo => self.return_to(opcode.op1(heap).into()),
 
             Op::Pop => {
-                let count = opcode.op1(heap);
-                self.stack.pop(count.into());
+                self.stack.pop(opcode.op1(heap).into());
             }
 
             Op::Dup => {
-                let register = opcode.op1(heap) as usize;
+                let position = self.register(opcode.op1(heap)).unwrap_i32();
                 let offset: i32 = opcode.op2(heap).into();
-
-                let position = self.register(register).unwrap_i32() - offset;
-                self.stack.dup(position);
+                self.stack.dup(position - offset);
             }
 
             Op::Load => {
-                let register = opcode.op1(heap) as usize;
                 let value = self.stack.pop(1);
-                self.set_register(register, value);
+                self.set_register(opcode.op1(heap), value);
             }
 
             Op::Fetch => {
-                let register = opcode.op1(heap) as usize;
-                let value = self.register(register);
+                let value = self.register(opcode.op1(heap));
                 self.stack.push(value);
             }
 
@@ -251,11 +237,11 @@ wasm_bindgen! {
             self.inner.borrow_mut().stack.set_sp(sp)
         }
 
-        pub fn register(&self, i: usize) -> u32 {
+        pub fn register(&self, i: u16) -> u32 {
             self.inner.borrow().register(i).bits()
         }
 
-        pub fn set_register(&self, i: usize, val: u32) {
+        pub fn set_register(&self, i: u16, val: u32) {
             self.inner.borrow_mut().set_register(i, GBox::from_bits(val));
         }
 
