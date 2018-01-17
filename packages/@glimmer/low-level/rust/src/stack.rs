@@ -1,6 +1,7 @@
 use gbox::GBox;
 use to_u32;
 use track::Tracked;
+use util;
 
 const NODE_SIZE: usize = 4096;
 
@@ -11,9 +12,10 @@ pub struct Stack {
     _tracked: Tracked,
 }
 
-struct Node {
-    data: [u32; NODE_SIZE],
-    next: Option<Box<Node>>,
+linked_list_node! {
+    struct Node {
+        data: [u32 = 0; NODE_SIZE],
+    }
 }
 
 impl Stack {
@@ -75,37 +77,11 @@ impl Stack {
     }
 
     pub fn write(&mut self, at: u32, val: GBox) {
-        let mut cur = &mut self.head;
-        let mut at = at as usize;
-        loop {
-            let tmp = cur;
-            let me = tmp.get_or_insert_with(|| {
-                Box::new(Node {
-                    data: [0; NODE_SIZE],
-                    next: None,
-                })
-            });
-            if at < me.data.len() {
-                me.data[at] = val.bits();
-                return
-            }
-            at -= me.data.len();
-            cur = &mut me.next;
-        }
+        util::list_write(&mut self.head, at, val.bits());
     }
 
     pub fn read(&self, at: u32) -> Option<GBox> {
-        let mut cur = &self.head;
-        let mut at = at as usize;
-        loop {
-            let tmp = cur;
-            let me = tmp.as_ref()?;
-            if at < me.data.len() {
-                return Some(GBox::from_bits(me.data[at]))
-            }
-            at -= me.data.len();
-            cur = &me.next;
-        }
+        util::list_read(&self.head, at).cloned().map(GBox::from_bits)
     }
 
     pub fn reset(&mut self) {

@@ -2,10 +2,11 @@
 //
 // TODO: use a build script to do that automaticcally
 
-const TAG_NUMBER: u32 = 0b000;
+const TAG_NUMBER: u32          = 0b000;
 const TAG_BOOLEAN_OR_VOID: u32 = 0b011;
-const TAG_NEGATIVE: u32 = 0b100;
-const TAG_ANY: u32 = 0b101;
+const TAG_NEGATIVE: u32        = 0b100;
+const TAG_ANY: u32             = 0b101;
+const TAG_COMPONENT: u32       = 0b110;
 
 const TAG_SIZE: usize = 3;
 const TAG_MASK: u32 = (1 << TAG_SIZE) - 1;
@@ -14,6 +15,8 @@ const IMM_FALSE: u32 = (0 << TAG_SIZE) | TAG_BOOLEAN_OR_VOID;
 const IMM_TRUE: u32 = (1 << TAG_SIZE) | TAG_BOOLEAN_OR_VOID;
 const IMM_NULL: u32 = (2 << TAG_SIZE) | TAG_BOOLEAN_OR_VOID;
 const IMM_UNDEF: u32 = (3 << TAG_SIZE) | TAG_BOOLEAN_OR_VOID;
+
+pub const GBOX_NULL: GBox = GBox { bits: IMM_NULL };
 
 #[derive(Copy, Clone)]
 pub struct GBox {
@@ -25,6 +28,7 @@ pub enum Value {
     Null,
     Undef,
     Bool(bool),
+    Component(u32),
     Other(GBox),
 }
 
@@ -41,6 +45,11 @@ impl GBox {
         };
         debug_assert!(val & (TAG_MASK << (32 - TAG_SIZE)) == 0);
         GBox::from_bits((val << 3) | tag)
+    }
+
+    pub fn component(idx: u32) -> GBox {
+        debug_assert!(idx & (TAG_MASK << (32 - TAG_SIZE)) == 0);
+        GBox::from_bits((idx << 3) | TAG_COMPONENT)
     }
 
     pub fn from_bits(bits: u32) -> GBox {
@@ -72,6 +81,7 @@ impl GBox {
                 }
             }
             TAG_ANY => Value::Other(*self),
+            TAG_COMPONENT => Value::Component(self.bits >> TAG_SIZE),
             tag => panic!("invalid tag: 0b{:b}", tag),
         }
     }

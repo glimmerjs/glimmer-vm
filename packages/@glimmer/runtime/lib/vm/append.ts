@@ -43,7 +43,7 @@ export default class VM<TemplateMeta> implements PublicVM {
   private dynamicScopeStack = new Stack<DynamicScope>();
   private scopeStack = new Stack<Scope>();
   private wasmVM: WasmLowLevelVM;
-  private cx = new Context();
+  private cx: Context;
   public stack: EvaluationStack;
   public updatingOpcodeStack = new Stack<LinkedList<UpdatingOpcode>>();
   public cacheGroups = new Stack<Option<UpdatingOpcode>>();
@@ -160,6 +160,7 @@ export default class VM<TemplateMeta> implements PublicVM {
       externs,
       DEVMODE,
     );
+    this.cx = new Context(this.wasmVM);
     this.stack = new EvaluationStack(this.wasmVM, this.cx);
   }
 

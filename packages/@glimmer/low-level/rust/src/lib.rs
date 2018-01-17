@@ -9,9 +9,13 @@ use wasm_bindgen::prelude::*;
 
 #[macro_use]
 mod debug;
+#[macro_use]
+mod util;
+
 mod track;
 mod my_ref_cell;
 mod gbox;
+mod component;
 
 pub mod stack;
 pub mod vm;

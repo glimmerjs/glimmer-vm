@@ -154,13 +154,6 @@ APPEND_OPCODES.add(Op.ResolveDynamicComponent, (vm, { op1: _meta }) => {
   expectStackChange(vm.stack, 0, 'ResolveDynamicComponent');
 });
 
-APPEND_OPCODES.add(Op.PushDynamicComponentInstance, (vm) => {
-  let { stack } = vm;
-  let definition = stack.pop();
-  stack.push({ definition, manager: null, state: null, handle: null, table: null });
-  expectStackChange(vm.stack, 0, 'PushDynamicComponentInstance');
-});
-
 APPEND_OPCODES.add(Op.PushCurriedComponent, (vm, { op1: _meta }) => {
   let stack = vm.stack;
 

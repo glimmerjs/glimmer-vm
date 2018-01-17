@@ -2,14 +2,16 @@ use std::rc::Rc;
 
 use wasm_bindgen::prelude::*;
 
+use component::Component;
 use ffi;
-use gbox::GBox;
+use gbox::{GBox, GBOX_NULL};
 use heap::Heap;
 use my_ref_cell::MyRefCell;
 use opcode::{Opcode, Op};
 use stack::Stack;
-use track::Tracked;
 use to_u32;
+use track::Tracked;
+use util;
 
 pub struct VM {
     stack: Stack,
@@ -23,7 +25,33 @@ pub struct VM {
 
     boxed_registers: [GBox; 5],
 
+    // Right now for many component-related opcodes we need to manage instances
+    // of `ComponentInstance`. This implementation currently moves management of
+    // that structure into Rust, and this `components` field is basically a
+    // vector of `Component` structs.
+    //
+    // Indices into this list are stored into a `GBox` (tagged appropriately)
+    // and are then accessed indirectly in JS when they're decoded (any writes
+    // and reads in JS end up coming back to this list).
+    //
+    // The `components_len` field just tracks basically the next position to
+    // write at. This is a pretty jank vector (it's a linked list)
+    components: Option<Box<Components>>,
+    components_len: u32,
+
     _tracked: Tracked,
+}
+
+linked_list_node! {
+    struct Components {
+        data: [Component = Component {
+            definition: GBOX_NULL,
+            manager: GBOX_NULL,
+            state: GBOX_NULL,
+            handle: GBOX_NULL,
+            table: GBOX_NULL,
+        }; 128],
+    }
 }
 
 // these should all stay in sync with `registers.ts`
@@ -46,6 +74,8 @@ impl VM {
             current_op_size: 0,
             stack: stack,
             boxed_registers: [GBox::null(); 5],
+            components: None,
+            components_len: 0,
             _tracked: Tracked::new(),
         }
     }
@@ -167,6 +197,18 @@ impl VM {
                 self.stack.push(value);
             }
 
+            Op::PushDynamicComponentInstance => {
+                let definition = self.stack.pop(1);
+                let idx = self.push_component(Component {
+                    definition,
+                    manager: GBox::null(),
+                    state: GBox::null(),
+                    handle: GBox::null(),
+                    table: GBox::null(),
+                });
+                self.stack.push(GBox::component(idx));
+            }
+
             op => {
                 debug_assert!(!opcode.is_machine(heap),
                               "bad opcode {:?}", op);
@@ -176,7 +218,31 @@ impl VM {
 
         true
     }
+
+    fn push_component(&mut self, component: Component) -> u32 {
+        let ret = self.components_len;
+        util::list_write(&mut self.components, ret, component);
+        self.components_len += 1;
+        return ret
+    }
+
+    fn component(&self, component: u32) -> Option<&Component> {
+        util::list_read(&self.components, component)
+    }
+
+    fn component_mut(&mut self, component: u32) -> Option<&mut Component> {
+        util::list_read_mut(&mut self.components, component)
+    }
 }
+
+// Keep in sync with `gbox.ts`
+//
+// TODO: auto-generate this list
+const FIELD_DEFINITION: u32 = 0;
+const FIELD_MANAGER: u32 = 1;
+const FIELD_STATE: u32 = 2;
+const FIELD_HANDLE: u32 = 3;
+const FIELD_TABLE: u32 = 4;
 
 wasm_bindgen! {
     pub struct LowLevelVM {
@@ -315,6 +381,41 @@ wasm_bindgen! {
 
         pub fn stack_reset(&self) {
             self.inner.borrow_mut().stack.reset();
+        }
+
+        pub fn component_field(&self, component: u32, field: u32) -> u32 {
+            let me = self.inner.borrow();
+            let component = match me.component(component) {
+                Some(c) => c,
+                None => return GBox::null().bits(),
+            };
+
+            match field {
+                FIELD_DEFINITION => component.definition.bits(),
+                FIELD_MANAGER => component.manager.bits(),
+                FIELD_STATE => component.state.bits(),
+                FIELD_HANDLE => component.handle.bits(),
+                FIELD_TABLE => component.table.bits(),
+                _ => GBox::null().bits(),
+            }
+        }
+
+        pub fn set_component_field(&self, component: u32, field: u32, gbox: u32) {
+            let val = GBox::from_bits(gbox);
+            let mut me = self.inner.borrow_mut();
+            let component = match me.component_mut(component) {
+                Some(c) => c,
+                None => return,
+            };
+
+            match field {
+                FIELD_DEFINITION => component.definition = val,
+                FIELD_MANAGER => component.manager = val,
+                FIELD_STATE => component.state = val,
+                FIELD_HANDLE => component.handle = val,
+                FIELD_TABLE => component.table = val,
+                _ => {}
+            }
         }
     }
 }

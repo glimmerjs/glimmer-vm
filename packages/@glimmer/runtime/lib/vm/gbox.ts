@@ -8,6 +8,17 @@
 // agree.
 
 import { assert } from '@glimmer/util';
+import { DEBUG } from '@glimmer/local-debug-flags';
+import { WasmLowLevelVM } from '@glimmer/low-level';
+import { ComponentInstance } from "../compiled/opcodes/component";
+import {
+  ComponentDefinition,
+  InternalComponentManager,
+} from '../component/interfaces';
+import {
+  ProgramSymbolTable,
+  ComponentInstanceState,
+} from '@glimmer/interfaces';
 
 // Note that these need to stay in sync with `constants.ts`
 //
@@ -18,6 +29,7 @@ enum Tag {
   BOOLEAN_OR_VOID = 0b011,
   NEGATIVE        = 0b100,
   ANY             = 0b101,
+  COMPONENT       = 0b110,
 }
 
 const TAG_SIZE = 3;
@@ -33,8 +45,10 @@ enum Immediates {
 }
 
 export class Context {
+  private stack: any[] = [];
+
   // TODO: `pop` is never called on this, but it's a stack...
-  constructor(private stack: any[] = []) {}
+  constructor(private wasmVM: WasmLowLevelVM) {}
 
   nullValue(): number {
     return Immediates.Null;
@@ -82,6 +96,8 @@ export class Context {
           return undefined;
         case Tag.ANY:
           break;
+        case Tag.COMPONENT:
+          return this.decodeComponent(a >> TAG_SIZE);
         default:
           break;
     }
@@ -109,5 +125,72 @@ export class Context {
   private encodeNumberAndTag(a: number, tag: number): number {
     assert(a < (1 << (32 - TAG_SIZE)), 'number too big');
     return (a << TAG_SIZE) | tag;
+  }
+
+  private decodeComponent(idx: number): ComponentInstance {
+    return new ComponentInstanceProxy(idx, this.wasmVM, this);
+  }
+}
+
+const FIELD_DEFINITION = 0;
+const FIELD_MANAGER = 1;
+const FIELD_STATE = 2;
+const FIELD_HANDLE = 3;
+const FIELD_TABLE = 4;
+
+class ComponentInstanceProxy implements ComponentInstance {
+  constructor(private idx: number, private vm: WasmLowLevelVM, private cx: Context) {
+    if (DEBUG) {
+      Object.seal(this);
+    }
+  }
+
+  private field(idx: number): any {
+    const gbox = this.vm.component_field(this.idx, idx);
+    return this.cx.decode(gbox);
+  }
+
+  private set_field(idx: number, val: any) {
+    this.vm.set_component_field(this.idx, idx, this.cx.encode(val));
+  }
+
+  get definition(): ComponentDefinition {
+    return this.field(FIELD_DEFINITION) as ComponentDefinition;
+  }
+
+  set definition(d: ComponentDefinition) {
+    this.set_field(FIELD_DEFINITION, d);
+  }
+
+  get manager(): InternalComponentManager {
+    return this.field(FIELD_MANAGER) as InternalComponentManager;
+  }
+
+  set manager(v: InternalComponentManager) {
+    this.set_field(FIELD_MANAGER, v);
+  }
+
+  get state(): ComponentInstanceState {
+    return this.field(FIELD_STATE) as ComponentInstanceState;
+  }
+
+  set state(v: ComponentInstanceState) {
+    this.set_field(FIELD_STATE, v);
+  }
+
+  get handle(): number {
+    return this.field(FIELD_HANDLE) as number;
+  }
+
+  set handle(v: number) {
+    this.set_field(FIELD_HANDLE, v);
+  }
+
+  get table(): ProgramSymbolTable {
+    return this.field(FIELD_TABLE) as ProgramSymbolTable;
+  }
+
+  set table(v: ProgramSymbolTable) {
+    this.set_field(FIELD_TABLE, v);
   }
 }
