@@ -29,7 +29,7 @@ pub enum Value {
     Undef,
     Bool(bool),
     Component(u32),
-    Other(GBox),
+    Other(u32),
 }
 
 impl GBox {
@@ -80,7 +80,7 @@ impl GBox {
                     bits => panic!("invalid boolean or void tag: 0x{:x}", bits),
                 }
             }
-            TAG_ANY => Value::Other(*self),
+            TAG_ANY => Value::Other(self.bits >> TAG_SIZE),
             TAG_COMPONENT => Value::Component(self.bits >> TAG_SIZE),
             tag => panic!("invalid tag: 0b{:b}", tag),
         }

@@ -4,7 +4,7 @@ use wasm_bindgen::prelude::*;
 
 use component::Component;
 use ffi;
-use gbox::{GBox, GBOX_NULL};
+use gbox::{GBox, GBOX_NULL, Value};
 use heap::Heap;
 use my_ref_cell::MyRefCell;
 use opcode::{Opcode, Op};
@@ -14,6 +14,7 @@ use track::Tracked;
 use util;
 
 pub struct VM {
+    context: JsObject,
     stack: Stack,
 
     // Right now these are encoded as `i32` because the "exit" address is
@@ -66,9 +67,10 @@ pub const T1: u16 = 7;
 pub const V0: u16 = 8;
 
 impl VM {
-    fn new() -> VM {
+    fn new(cx: JsObject) -> VM {
         let stack = Stack::new(0, -1);
         VM {
+            context: cx,
             pc: -1,
             ra: -1,
             current_op_size: 0,
@@ -209,6 +211,20 @@ impl VM {
                 self.stack.push(GBox::component(idx));
             }
 
+            Op::PopulateLayout => {
+                let handle = self.stack.pop(1);
+                let table = self.stack.pop(1);
+
+                let component = self.register(opcode.op1(heap));
+                let component = self.unwrap_component(component);
+                let component = self.component_mut(component);
+                debug_assert!(component.is_some());
+                if let Some(c) = component {
+                    c.handle = handle;
+                    c.table = table;
+                }
+            }
+
             op => {
                 debug_assert!(!opcode.is_machine(heap),
                               "bad opcode {:?}", op);
@@ -233,16 +249,55 @@ impl VM {
     fn component_mut(&mut self, component: u32) -> Option<&mut Component> {
         util::list_read_mut(&mut self.components, component)
     }
+
+    /// Unwrap the component index from a `gbox`, panicking if the `GBox` isn't
+    /// actually a component.
+    fn unwrap_component(&mut self, gbox: GBox) -> u32 {
+        let idx = match gbox.value() {
+            Value::Component(idx) => return idx, // yay that was easy!
+            Value::Other(idx) => idx,            // see below
+            _ => panic!("not a component or object"),
+        };
+
+        // Ok at this point we've found that our `GBox` actually represents a
+        // JS object which we otherwise don't have access to. Currently, though,
+        // not all component creation happens in Rust/Wasm so this arbitrary
+        // object probably actually is a component!
+        //
+        // At this point we need the index in Rust so what we'll do is transfer
+        // the source of truth about this component's state from JS to Rust. To
+        // do this we ask JS what the component fields are (all the `GBox`
+        // instances). Once we've got all those values we call `push_component`
+        // to allocate the component inside our `VM`.
+        //
+        // Note that JS is also taking care to make sure that it understands
+        // that the source of truth for this object now lives here, in Rust, as
+        // opposed to JS.
+        let mut fields = [1u32; 5];
+        ffi::low_level_vm_load_component(
+            &self.context,
+            idx,
+            fields.as_mut_ptr(),
+            self.components_len,
+        );
+        self.push_component(Component {
+            definition: GBox::from_bits(fields[FIELD_DEFINITION]),
+            manager: GBox::from_bits(fields[FIELD_MANAGER]),
+            state: GBox::from_bits(fields[FIELD_STATE]),
+            handle: GBox::from_bits(fields[FIELD_HANDLE]),
+            table: GBox::from_bits(fields[FIELD_TABLE]),
+        })
+    }
 }
 
 // Keep in sync with `gbox.ts`
 //
 // TODO: auto-generate this list
-const FIELD_DEFINITION: u32 = 0;
-const FIELD_MANAGER: u32 = 1;
-const FIELD_STATE: u32 = 2;
-const FIELD_HANDLE: u32 = 3;
-const FIELD_TABLE: u32 = 4;
+const FIELD_DEFINITION: usize = 0;
+const FIELD_MANAGER: usize = 1;
+const FIELD_STATE: usize = 2;
+const FIELD_HANDLE: usize = 3;
+const FIELD_TABLE: usize = 4;
 
 wasm_bindgen! {
     pub struct LowLevelVM {
@@ -257,9 +312,10 @@ wasm_bindgen! {
         pub fn new(heap: JsObject,
                    syscalls: JsObject,
                    externs: JsObject,
+                   context: JsObject,
                    devmode: bool) -> LowLevelVM {
             LowLevelVM {
-                inner: MyRefCell::new(VM::new()),
+                inner: MyRefCell::new(VM::new(context)),
                 devmode,
                 syscalls,
                 externs,
@@ -383,11 +439,11 @@ wasm_bindgen! {
             self.inner.borrow_mut().stack.reset();
         }
 
-        pub fn component_field(&self, component: u32, field: u32) -> u32 {
+        pub fn component_field(&self, component: u32, field: usize) -> u32 {
             let me = self.inner.borrow();
             let component = match me.component(component) {
                 Some(c) => c,
-                None => return GBox::null().bits(),
+                None => panic!("invalid component index"),
             };
 
             match field {
@@ -396,16 +452,16 @@ wasm_bindgen! {
                 FIELD_STATE => component.state.bits(),
                 FIELD_HANDLE => component.handle.bits(),
                 FIELD_TABLE => component.table.bits(),
-                _ => GBox::null().bits(),
+                _ => panic!("invalid component field"),
             }
         }
 
-        pub fn set_component_field(&self, component: u32, field: u32, gbox: u32) {
+        pub fn set_component_field(&self, component: u32, field: usize, gbox: u32) {
             let val = GBox::from_bits(gbox);
             let mut me = self.inner.borrow_mut();
             let component = match me.component_mut(component) {
                 Some(c) => c,
-                None => return,
+                None => panic!("invalid component index"),
             };
 
             match field {
@@ -414,7 +470,7 @@ wasm_bindgen! {
                 FIELD_STATE => component.state = val,
                 FIELD_HANDLE => component.handle = val,
                 FIELD_TABLE => component.table = val,
-                _ => {}
+                _ => panic!("invalid comopnent field"),
             }
         }
     }

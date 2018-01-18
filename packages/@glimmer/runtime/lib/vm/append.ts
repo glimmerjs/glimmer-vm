@@ -154,13 +154,15 @@ export default class VM<TemplateMeta> implements PublicVM {
         APPEND_OPCODES.debugAfter(this, opcode, opcode.type, state);
       }
     };
+    this.cx = new Context();
     this.wasmVM = wasm.exports.LowLevelVM.new(
       this.heap,
       APPEND_OPCODES,
       externs,
+      this.cx,
       DEVMODE,
     );
-    this.cx = new Context(this.wasmVM);
+    this.cx._vm = this.wasmVM;
     this.stack = new EvaluationStack(this.wasmVM, this.cx);
   }
 

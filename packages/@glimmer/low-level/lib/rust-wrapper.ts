@@ -35,6 +35,11 @@ const imports = {
     return heap.getbyaddr(at);
   },
 
+  low_level_vm_load_component(cx: any, gbox: number, ptr: number, component: number): void {
+    const buf = new Uint32Array(wasm.exports.extra.memory.buffer);
+    cx.loadComponent(gbox, buf, ptr / 4, component);
+  },
+
   debug_println: console.log,
 };
 

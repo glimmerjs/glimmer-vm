@@ -46,9 +46,9 @@ enum Immediates {
 
 export class Context {
   private stack: any[] = [];
+  public _vm: WasmLowLevelVM;
 
-  // TODO: `pop` is never called on this, but it's a stack...
-  constructor(private wasmVM: WasmLowLevelVM) {}
+  constructor() {}
 
   nullValue(): number {
     return Immediates.Null;
@@ -127,8 +127,49 @@ export class Context {
     return (a << TAG_SIZE) | tag;
   }
 
-  private decodeComponent(idx: number): ComponentInstance {
-    return new ComponentInstanceProxy(idx, this.wasmVM, this);
+  private decodeComponent(component_idx: number): ComponentInstance {
+    return new ComponentInstanceProxy(component_idx, this._vm, this);
+  }
+
+  // This is a bit of a tricky function, and it's currently only called from
+  // wasm. The purpose here is to transfer the source of truth about a
+  // `ComponentInstance` from JS to wasm.
+  //
+  // To do this we've got a whole bunch of arguments:
+  //
+  // * `idx` this is the index in our stack of the actual JS object we're
+  //   transferring. This index comes from a decoded `GBox` in Rust.
+  // * `buf` is the memory buffer for wasm, and `offset` is the offset into it
+  //   which we'll be writing to.
+  // * `component` is the encoded component number that Rust will be assigning
+  //   the component it's loading.
+  //
+  // Here what we do is load the component from our stack, and the tricky part
+  // is then we overwrite it in the stack! This means that any other lingering
+  // references to this component will also be updated to use Rust instead of
+  // using the original JS value.
+  //
+  // TODO: This crucially relies on the fact that the component isn't actually
+  //       stored anywhere but here. If it's stored somewhere else then the
+  //       owner of that storage will start using stale values after this...
+  loadComponent(idx: number, buf: Uint32Array, offset: number, component: number) {
+    const obj = this.stack[idx];
+    this.stack[idx] = this.decodeComponent(component);
+
+    buf[offset + FIELD_DEFINITION] = this.encode(obj.definition);
+    buf[offset + FIELD_MANAGER] = this.encode(obj.manager);
+    buf[offset + FIELD_STATE] = this.encode(obj.state);
+    buf[offset + FIELD_HANDLE] = this.encode(obj.handle);
+    buf[offset + FIELD_TABLE] = this.encode(obj.table);
+
+    // hopefully catch any "use after free" bugs
+    if (DEBUG) {
+      obj.definition = undefined;
+      obj.manager = undefined;
+      obj.state = undefined;
+      obj.handle = undefined;
+      obj.table = undefined;
+    }
   }
 }
 
