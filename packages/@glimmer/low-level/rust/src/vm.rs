@@ -201,7 +201,7 @@ impl VM {
 
             Op::PushDynamicComponentInstance => {
                 let definition = self.stack.pop(1);
-                let idx = self.push_component(Component {
+                let idx = self.add_component(Component {
                     definition,
                     manager: GBox::null(),
                     state: GBox::null(),
@@ -212,8 +212,8 @@ impl VM {
             }
 
             Op::PopulateLayout => {
-                let handle = self.stack.pop(1);
-                let table = self.stack.pop(1);
+                let handle = self.stack.pop(1); // CheckHandle
+                let table = self.stack.pop(1); // CheckProgramSymbolTable
 
                 let component = self.register(opcode.op1(heap));
                 let component = self.unwrap_component(component);
@@ -235,7 +235,7 @@ impl VM {
         true
     }
 
-    fn push_component(&mut self, component: Component) -> u32 {
+    fn add_component(&mut self, component: Component) -> u32 {
         let ret = self.components_len;
         util::list_write(&mut self.components, ret, component);
         self.components_len += 1;
@@ -267,7 +267,7 @@ impl VM {
         // At this point we need the index in Rust so what we'll do is transfer
         // the source of truth about this component's state from JS to Rust. To
         // do this we ask JS what the component fields are (all the `GBox`
-        // instances). Once we've got all those values we call `push_component`
+        // instances). Once we've got all those values we call `add_component`
         // to allocate the component inside our `VM`.
         //
         // Note that JS is also taking care to make sure that it understands
@@ -280,7 +280,7 @@ impl VM {
             fields.as_mut_ptr(),
             self.components_len,
         );
-        self.push_component(Component {
+        self.add_component(Component {
             definition: GBox::from_bits(fields[FIELD_DEFINITION]),
             manager: GBox::from_bits(fields[FIELD_MANAGER]),
             state: GBox::from_bits(fields[FIELD_STATE]),
