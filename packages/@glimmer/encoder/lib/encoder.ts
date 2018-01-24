@@ -1,4 +1,5 @@
 import { Op } from "@glimmer/vm";
+import { CompileTimeHeap } from "@glimmer/interfaces";
 
 export const ARG_SHIFT = 8;
 const MAX_SIZE                = 0b1111111111111111;
@@ -10,9 +11,14 @@ export const MACHINE_MASK     = 0b0000010000000000;
 export type Operand = number | (() => number);
 
 export class InstructionEncoder {
-  constructor(public buffer: Operand[]) {}
-  typePos = 0;
-  size = 0;
+  public typePos: number;
+  public size: number;
+
+  constructor(public buffer: Operand[]) {
+    this.size = this.buffer.length;
+    this.typePos = this.buffer.length - 1;
+  }
+
   encode(type: Op, machine: 0 | typeof MACHINE_MASK, ...operands: Operand[]) {
     if (type > TYPE_SIZE) {
       throw new Error(`Opcode type over 8-bits. Got ${type}.`);
@@ -34,6 +40,24 @@ export class InstructionEncoder {
 
   compact(program: number[]) {
     return String.fromCharCode(...program);
+  }
+
+  commit(heap: CompileTimeHeap, scopeSize: number) {
+    let { buffer } = this;
+
+    // TODO: change the whole malloc API and do something more efficient
+    let handle = heap.malloc();
+
+    for (let i = 0; i < buffer.length; i++) {
+      let value = buffer[i];
+      typeof value === 'function' ?
+        heap.pushPlaceholder(value) :
+        heap.push(value);
+    }
+
+    heap.finishMalloc(handle, scopeSize);
+
+    return handle;
   }
 
   patch(position: number, operand: number) {

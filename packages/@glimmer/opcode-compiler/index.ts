@@ -12,9 +12,10 @@ export {
   CompileTimeLookup,
   LazyOpcodeBuilder,
   EagerOpcodeBuilder,
+  SimpleOpcodeBuilder,
   OpcodeBuilder,
   OpcodeBuilderConstructor,
-  SimpleOpcodeBuilder,
+  AbstractOpcodeBuilder,
   STDLib
 } from './lib/opcode-builder';
 

@@ -16,7 +16,6 @@ import {
   ICompilableTemplate,
   EagerOpcodeBuilder,
   TemplateOptions,
-  SimpleOpcodeBuilder,
   STDLib
 } from "@glimmer/opcode-compiler";
 import {
@@ -34,6 +33,7 @@ import DebugConstants from "./debug-constants";
 import ExternalModuleTable from "./external-module-table";
 import CompilerDelegate from "./compiler-delegate";
 import CompilerResolver from "./compiler-resolver";
+import { SimpleOpcodeBuilder } from "@glimmer/opcode-compiler";
 
 export interface BundleCompileOptions {
   plugins: ASTPluginBuilder[];

@@ -101,8 +101,8 @@ export interface OpcodeBuilderConstructor {
       stdLib?: STDLib): OpcodeBuilder<TemplateMeta>;
 }
 
-export class SimpleOpcodeBuilder {
-  protected encoder = new InstructionEncoder([]);
+export abstract class AbstractOpcodeBuilder {
+  protected abstract encoder: InstructionEncoder;
 
   push(name: Op, ...ops: Operand[]) {
     this.encoder.encode(name, 0, ...ops);
@@ -115,21 +115,7 @@ export class SimpleOpcodeBuilder {
   commit(heap: CompileTimeHeap, scopeSize: number): number {
     this.pushMachine(Op.Return);
 
-    let { buffer } = this.encoder;
-
-    // TODO: change the whole malloc API and do something more efficient
-    let handle = heap.malloc();
-
-    for (let i = 0; i < buffer.length; i++) {
-      let value = buffer[i];
-      typeof value === 'function' ?
-        heap.pushPlaceholder(value) :
-        heap.push(value);
-    }
-
-    heap.finishMalloc(handle, scopeSize);
-
-    return handle;
+    return this.encoder.commit(heap, scopeSize);
   }
 
   reserve(name: Op, size = 1) {
@@ -294,7 +280,11 @@ export class SimpleOpcodeBuilder {
 
 export type VMHandlePlaceholder = [number, () => VMHandle];
 
-export abstract class OpcodeBuilder<Locator> extends SimpleOpcodeBuilder {
+export class SimpleOpcodeBuilder extends AbstractOpcodeBuilder {
+  public encoder = new InstructionEncoder([]);
+}
+
+export abstract class OpcodeBuilder<Locator> extends AbstractOpcodeBuilder {
   public constants: CompileTimeConstants;
   public component: ComponentBuilder<Locator> = new ComponentBuilder(this);
 
@@ -1080,7 +1070,34 @@ export abstract class OpcodeBuilder<Locator> extends SimpleOpcodeBuilder {
 
 export default OpcodeBuilder;
 
+class LazyBuffers {
+  private buffers: Operand[][] = [];
+  private next = 0;
+
+  push(): Operand[] {
+    if (this.next === this.buffers.length) {
+      let buffer: Operand[] = [];
+      this.buffers.push(buffer);
+      this.next = this.buffers.length;
+      return buffer;
+    } else {
+      let buffer = this.buffers[this.next];
+      this.next++;
+      return buffer;
+    }
+  }
+
+  pop(): void {
+    this.buffers[this.next - 1].length = 0;
+    this.next--;
+  }
+}
+
+const LAZY_BUFFERS = new LazyBuffers();
+
 export class LazyOpcodeBuilder<TemplateMeta> extends OpcodeBuilder<TemplateMeta> {
+  protected encoder = new InstructionEncoder(LAZY_BUFFERS.push());
+
   public constants: CompileTimeLazyConstants;
 
   pushBlock(block: Option<CompilableBlock>): void {
@@ -1113,6 +1130,12 @@ export class LazyOpcodeBuilder<TemplateMeta> extends OpcodeBuilder<TemplateMeta>
     this.pushMachine(Op.InvokeVirtual);
   }
 
+  commit(heap: CompileTimeHeap, scopeSize: number): number {
+    let handle = super.commit(heap, scopeSize);
+    LAZY_BUFFERS.pop();
+    return handle;
+  }
+
   protected pushOther<T>(value: T) {
     this.push(Op.Constant, this.other(value));
   }
@@ -1123,6 +1146,8 @@ export class LazyOpcodeBuilder<TemplateMeta> extends OpcodeBuilder<TemplateMeta>
 }
 
 export class EagerOpcodeBuilder<TemplateMeta> extends OpcodeBuilder<TemplateMeta> {
+  protected encoder = new InstructionEncoder([]);
+
   pushBlock(block: Option<ICompilableTemplate<BlockSymbolTable>>): void {
     let handle = block ? block.compile(this.stdLib) as Recast<VMHandle, number> : null;
     this.primitive(handle);
