@@ -14,16 +14,11 @@ class WasmBindgen extends Plugin {
       if (path.extname(name) !== '.wasm') {
         continue;
       }
-      const filename = path.basename(name);
-      const filestem = path.basename(name, '.wasm');
-      const outputTs = path.join(this.outputPath, `${filestem}.ts`);
-      const outputWasm = path.join(this.outputPath, filename);
       const args = [
         full_path,
-        "--output-ts",
-        outputTs,
-        "--output-wasm",
-        outputWasm,
+        "--out-dir",
+        this.outputPath,
+        "--typescript",
       ];
       if (!this.production)
         args.push("--debug");

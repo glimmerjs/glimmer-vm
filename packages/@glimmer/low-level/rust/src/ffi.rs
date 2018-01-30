@@ -3,6 +3,7 @@
 use wasm_bindgen::prelude::*;
 
 wasm_bindgen! {
+    #[wasm_module = "./rust-imports"]
     extern "JS" {
         pub fn low_level_vm_debug_before(
             externs: &JsObject,

@@ -1,5 +1,4 @@
-import { wasm, booted } from './lib/rust-wrapper';
-import { LowLevelVM as WasmLowLevelVM } from './lib/rust';
-import { WasmHeap } from './lib/rust';
+import { booted, memory as wasmMemory } from './lib/rust_wasm';
+import { LowLevelVM as WasmLowLevelVM, WasmHeap, num_allocated } from './lib/rust';
 
-export { wasm, booted, WasmLowLevelVM, WasmHeap };
+export { booted, WasmLowLevelVM, WasmHeap, wasmMemory, num_allocated };

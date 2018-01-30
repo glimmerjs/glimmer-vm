@@ -4,7 +4,7 @@ import { Constants, WriteOnlyConstants, RuntimeConstants, ConstantPool } from '.
 import { Opcode } from './opcode';
 import { assert } from "@glimmer/util";
 import { Opaque } from "@glimmer/interfaces";
-import { wasm, WasmHeap } from '@glimmer/low-level';
+import { WasmHeap, wasmMemory } from '@glimmer/low-level';
 
 export interface Opcodes {
   evaluate(vm: Opaque, offset: number): void;
@@ -60,13 +60,13 @@ export class Heap implements CompileTimeHeap {
   private wasmHeap: WasmHeap;
 
   constructor(serializedHeap?: SerializedHeap) {
-    this.wasmHeap = wasm.exports.WasmHeap.new();
+    this.wasmHeap = WasmHeap.new();
     WASM_PROGRAMS.push(this.wasmHeap);
     if (serializedHeap) {
       let { buffer, table, handle } = serializedHeap;
       let heap = new Uint16Array(buffer);
       let ptr = this.wasmHeap.reserve(heap.length);
-      (new Uint16Array(wasm.exports.extra.memory.buffer)).set(heap, ptr / 2);
+      (new Uint16Array(wasmMemory.buffer)).set(heap, ptr / 2);
       this.wasmHeap.set_offset(heap.length);
 
       // TODO: are these copies too slow?
@@ -164,7 +164,7 @@ export class Heap implements CompileTimeHeap {
     let dst = new Uint16Array(this.size());
     let start = this.wasmHeap.heap() / 2;
     let end = start + this.size();
-    let src = (new Uint16Array(wasm.exports.extra.memory.buffer)).slice(start, end);
+    let src = (new Uint16Array(wasmMemory.buffer)).slice(start, end);
     dst.set(src);
     return {
       handle: this.wasmHeap.handle(),

@@ -71,7 +71,7 @@ module.exports = function(_options) {
   // actually want in terms of compiling it all together, so let's pull that
   // into the output of the typescript tree to make sure the module can
   // actually get resolved!
-  let wasmRuntimeFiles = funnel(wasmAsBase64, {
+  let wasmRuntimeFiles = funnel(wasmTree, {
     destDir: '@glimmer/low-level/lib',
   });
   jsTree = merge([jsTree, wasmRuntimeFiles]);

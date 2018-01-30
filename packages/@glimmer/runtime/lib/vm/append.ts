@@ -8,7 +8,7 @@ import { LabelOpcode, JumpIfNotModifiedOpcode, DidModifyOpcode } from '../compil
 import { VMState, ListBlockOpcode, TryOpcode, BlockOpcode } from './update';
 import RenderResult from './render-result';
 import EvaluationStack from './stack';
-import { wasm, WasmLowLevelVM } from '@glimmer/low-level';
+import { WasmLowLevelVM } from '@glimmer/low-level';
 import { DEVMODE } from '@glimmer/local-debug-flags';
 import { Context } from './gbox';
 
@@ -155,7 +155,7 @@ export default class VM<TemplateMeta> implements PublicVM {
       }
     };
     this.cx = new Context();
-    this.wasmVM = wasm.exports.LowLevelVM.new(
+    this.wasmVM = WasmLowLevelVM.new(
       this.heap._wasmHeap(),
       APPEND_OPCODES,
       externs,

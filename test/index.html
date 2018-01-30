@@ -95,11 +95,11 @@
     var freeAllWasmPrograms = require('@glimmer/program').freeAllWasmPrograms;
 
     QUnit.testStart(function() {
-      numAllocated = lowLevel.wasm.exports.num_allocated();
+      numAllocated = lowLevel.num_allocated();
     });
     QUnit.testDone(function(details) {
       freeAllWasmPrograms();
-      if (lowLevel.wasm.exports.num_allocated() != numAllocated)
+      if (lowLevel.num_allocated() != numAllocated)
         throw new Error("the test " + details.name + " didn't free all wasm memory")
     });
     lowLevel.booted.then(() => {
