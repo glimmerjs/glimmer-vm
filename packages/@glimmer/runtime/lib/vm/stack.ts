@@ -60,14 +60,6 @@ export default class EvaluationStack {
     this.wasmVM.stack_write(++this.sp, value);
   }
 
-  pushImmediate(value: null | undefined | number | boolean): void {
-    this.wasmVM.stack_write_raw(++this.sp, this.cx.encode(value));
-  }
-
-  pushEncodedImmediate(value: number): void {
-    this.wasmVM.stack_write_raw(++this.sp, value);
-  }
-
   pushNull(): void {
     this.wasmVM.stack_write_raw(++this.sp, this.cx.nullValue());
   }

@@ -19,6 +19,7 @@ import {
   ProgramSymbolTable,
   ComponentInstanceState,
 } from '@glimmer/interfaces';
+import VM from './append';
 
 // Note that these need to stay in sync with `constants.ts`
 //
@@ -30,10 +31,19 @@ enum Tag {
   NEGATIVE        = 0b100,
   ANY             = 0b101,
   COMPONENT       = 0b110,
+  CONSTANT        = 0b111,
+}
+
+enum ConstantTag {
+  STRING   = 0b00,
+  FLOAT    = 0b01,
+  NEGATIVE = 0b10,
 }
 
 const TAG_SIZE = 3;
 const TAG_MASK = (1 << TAG_SIZE) - 1;
+const CONSTANT_TAG_SIZE = 2;
+const CONSTANT_TAG_MASK = (1 << CONSTANT_TAG_SIZE) - 1;
 
 // TODO: these are special values that can't be changed, presumably need to say
 // in sync with those in `opcode-builder.ts`? These should be deduplicated?
@@ -46,9 +56,8 @@ enum Immediates {
 
 export class Context {
   private stack: any[] = [];
-  public _vm: WasmLowLevelVM;
 
-  constructor() {}
+  constructor(private vm: VM<any>) {}
 
   nullValue(): number {
     return Immediates.Null;
@@ -98,6 +107,8 @@ export class Context {
           break;
         case Tag.COMPONENT:
           return this.decodeComponent(a >> TAG_SIZE);
+        case Tag.CONSTANT:
+          return this.decodeConstant(a >> TAG_SIZE);
         default:
           break;
     }
@@ -128,7 +139,20 @@ export class Context {
   }
 
   private decodeComponent(component_idx: number): ComponentInstance {
-    return new ComponentInstanceProxy(component_idx, this._vm, this);
+    return new ComponentInstanceProxy(component_idx, this.vm.wasm(), this);
+  }
+
+  private decodeConstant(bits: number): any {
+    switch (bits & CONSTANT_TAG_MASK) {
+      case ConstantTag.STRING:
+        return this.vm.constants.getString(bits >> CONSTANT_TAG_SIZE);
+      case ConstantTag.FLOAT:
+        return this.vm.constants.getFloat(bits >> CONSTANT_TAG_SIZE);
+      case ConstantTag.NEGATIVE:
+        return this.vm.constants.getNegative(bits >> CONSTANT_TAG_SIZE);
+      default:
+        throw new Error("invalid constant encoding in gbox");
+    }
   }
 
   // This is a bit of a tricky function, and it's currently only called from

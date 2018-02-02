@@ -17,7 +17,7 @@ import { PrimitiveReference } from '../../references';
 import { CompilableTemplate } from '../../syntax/interfaces';
 import { VM, UpdatingVM } from '../../vm';
 import { Arguments } from '../../vm/arguments';
-import { LazyConstants, PrimitiveType } from "@glimmer/program";
+import { LazyConstants } from "@glimmer/program";
 import { CheckReference, CheckScope } from './-debug-strip';
 
 APPEND_OPCODES.add(Op.ChildScope, vm => vm.pushChildScope());
@@ -30,30 +30,6 @@ APPEND_OPCODES.add(Op.PopDynamicScope, vm => vm.popDynamicScope());
 
 APPEND_OPCODES.add(Op.Constant, (vm: VM<Opaque> & { constants: LazyConstants }, { op1: other }) => {
   vm.stack.push(vm.constants.getOther(other));
-});
-
-APPEND_OPCODES.add(Op.Primitive, (vm, { op1: primitive }) => {
-  let stack = vm.stack;
-  let flag = primitive & 7; // 111
-  let value = primitive >> 3;
-
-  switch (flag) {
-    case PrimitiveType.NUMBER:
-      stack.push(value);
-      break;
-    case PrimitiveType.FLOAT:
-      stack.push(vm.constants.getFloat(value));
-      break;
-    case PrimitiveType.STRING:
-      stack.push(vm.constants.getString(value));
-      break;
-    case PrimitiveType.BOOLEAN_OR_VOID:
-      stack.pushEncodedImmediate(primitive);
-      break;
-    case PrimitiveType.NEGATIVE:
-      stack.push(vm.constants.getNegative(value));
-      break;
-  }
 });
 
 APPEND_OPCODES.add(Op.PrimitiveReference, vm => {

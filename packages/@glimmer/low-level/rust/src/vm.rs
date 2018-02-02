@@ -225,6 +225,33 @@ impl VM {
                 }
             }
 
+            Op::Primitive => {
+                let primitive = opcode.op1(heap);
+
+                // keep in sync with program/lib/constants.ts
+                const NUMBER: u16 = 0b000;
+                const FLOAT: u16 = 0b001;
+                const STRING: u16 = 0b010;
+                const BOOLEAN_OR_VOID: u16 = 0b011;
+                const NEGATIVE: u16 = 0b100;
+
+                let flag = primitive & 0b111;
+                let value = primitive >> 3;
+                let gbox = match flag {
+                    NUMBER => GBox::i32(value.into()),
+                    FLOAT => GBox::constant_float(value.into()),
+                    STRING => GBox::constant_string(value.into()),
+                    NEGATIVE => GBox::constant_negative(value.into()),
+
+                    // TODO: should probably decouple the encoding of immediates
+                    // for this opcode and the encoding of `GBox.
+                    BOOLEAN_OR_VOID => GBox::from_bits(primitive.into()),
+
+                    flag => panic!("unknown primitive flag: {:#b}", flag),
+                };
+                self.stack.push(gbox);
+            }
+
             op => {
                 debug_assert!(!opcode.is_machine(heap),
                               "bad opcode {:?}", op);

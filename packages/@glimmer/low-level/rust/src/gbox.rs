@@ -7,9 +7,16 @@ const TAG_BOOLEAN_OR_VOID: u32 = 0b011;
 const TAG_NEGATIVE: u32        = 0b100;
 const TAG_ANY: u32             = 0b101;
 const TAG_COMPONENT: u32       = 0b110;
+const TAG_CONSTANT: u32        = 0b111;
 
 const TAG_SIZE: usize = 3;
 const TAG_MASK: u32 = (1 << TAG_SIZE) - 1;
+const CONSTANT_TAG_SIZE: usize = 2;
+const CONSTANT_TAG_MASK: u32 = (1 << CONSTANT_TAG_SIZE) - 1;
+
+const CONSTANT_STRING: u32   = 0b00;
+const CONSTANT_FLOAT: u32    = 0b01;
+const CONSTANT_NEGATIVE: u32 = 0b10;
 
 const IMM_FALSE: u32 = (0 << TAG_SIZE) | TAG_BOOLEAN_OR_VOID;
 const IMM_TRUE: u32 = (1 << TAG_SIZE) | TAG_BOOLEAN_OR_VOID;
@@ -30,6 +37,14 @@ pub enum Value {
     Bool(bool),
     Component(u32),
     Other(u32),
+    ConstantString(u32),
+    ConstantFloat(u32),
+    ConstantNegative(u32),
+}
+
+fn assert_constant_idx_ok(idx: u32) {
+    let shift = TAG_SIZE + CONSTANT_TAG_SIZE;
+    debug_assert_eq!((idx << shift) >> shift, idx);
 }
 
 impl GBox {
@@ -44,16 +59,36 @@ impl GBox {
             (i as u32, TAG_NUMBER)
         };
         debug_assert!(val & (TAG_MASK << (32 - TAG_SIZE)) == 0);
-        GBox::from_bits((val << 3) | tag)
+        GBox::from_bits((val << TAG_SIZE) | tag)
     }
 
     pub fn component(idx: u32) -> GBox {
         debug_assert!(idx & (TAG_MASK << (32 - TAG_SIZE)) == 0);
-        GBox::from_bits((idx << 3) | TAG_COMPONENT)
+        GBox::from_bits((idx << TAG_SIZE) | TAG_COMPONENT)
     }
 
     pub fn from_bits(bits: u32) -> GBox {
         GBox { bits: bits }
+    }
+
+    pub fn constant_string(idx: u32) -> GBox {
+        assert_constant_idx_ok(idx);
+        GBox::constant(idx, CONSTANT_STRING)
+    }
+
+    pub fn constant_float(idx: u32) -> GBox {
+        assert_constant_idx_ok(idx);
+        GBox::constant(idx, CONSTANT_FLOAT)
+    }
+
+    pub fn constant_negative(idx: u32) -> GBox {
+        assert_constant_idx_ok(idx);
+        GBox::constant(idx, CONSTANT_NEGATIVE)
+    }
+
+    fn constant(idx: u32, tag: u32) -> GBox {
+        let bits = (idx << CONSTANT_TAG_SIZE) | tag;
+        GBox::from_bits((bits << TAG_SIZE) | TAG_CONSTANT)
     }
 
     pub fn bits(&self) -> u32 {
@@ -82,6 +117,16 @@ impl GBox {
             }
             TAG_ANY => Value::Other(self.bits >> TAG_SIZE),
             TAG_COMPONENT => Value::Component(self.bits >> TAG_SIZE),
+            TAG_CONSTANT => {
+                let bits = self.bits >> TAG_SIZE;
+                let idx = bits >> CONSTANT_TAG_SIZE;
+                match bits & CONSTANT_TAG_MASK {
+                    CONSTANT_STRING => Value::ConstantString(idx),
+                    CONSTANT_FLOAT => Value::ConstantFloat(idx),
+                    CONSTANT_NEGATIVE => Value::ConstantNegative(idx),
+                    tag => panic!("invalid constant tag: 0b{:b}", tag),
+                }
+            }
             tag => panic!("invalid tag: 0b{:b}", tag),
         }
     }

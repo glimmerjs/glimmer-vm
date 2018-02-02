@@ -154,7 +154,7 @@ export default class VM<TemplateMeta> implements PublicVM {
         APPEND_OPCODES.debugAfter(this, opcode, opcode.type, state);
       }
     };
-    this.cx = new Context();
+    this.cx = new Context(this);
     this.wasmVM = WasmLowLevelVM.new(
       this.heap._wasmHeap(),
       APPEND_OPCODES,
@@ -162,8 +162,11 @@ export default class VM<TemplateMeta> implements PublicVM {
       this.cx,
       DEVMODE,
     );
-    this.cx._vm = this.wasmVM;
     this.stack = new EvaluationStack(this.wasmVM, this.cx);
+  }
+
+  wasm(): WasmLowLevelVM {
+    return this.wasmVM;
   }
 
   private capture(args: number): VMState {
