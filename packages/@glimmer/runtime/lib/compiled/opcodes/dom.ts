@@ -20,20 +20,20 @@ import { ComponentElementOperations } from './component';
 import { CheckReference, CheckArguments } from './-debug-strip';
 
 APPEND_OPCODES.add(Op.Text, (vm, { op1: text }) => {
-  vm.elements().appendText(vm.constants.getString(text));
+  vm.instructions.appendText(vm.constants.getString(text));
 });
 
 APPEND_OPCODES.add(Op.Comment, (vm, { op1: text }) => {
-  vm.elements().appendComment(vm.constants.getString(text));
+  vm.instructions.appendComment(vm.constants.getString(text));
 });
 
 APPEND_OPCODES.add(Op.OpenElement, (vm, { op1: tag }) => {
-  vm.elements().openElement(vm.constants.getString(tag));
+  vm.instructions.openElement(vm.constants.getString(tag));
 });
 
 APPEND_OPCODES.add(Op.OpenDynamicElement, vm => {
   let tagName = check(check(vm.stack.pop(), CheckReference).value(), CheckString);
-  vm.elements().openElement(tagName);
+  vm.instructions.openElement(tagName);
 });
 
 APPEND_OPCODES.add(Op.PushRemoteElement, vm => {
@@ -61,11 +61,11 @@ APPEND_OPCODES.add(Op.PushRemoteElement, vm => {
     vm.updateWith(new Assert(cache));
   }
 
-  vm.elements().pushRemoteElement(element, guid, nextSibling);
+  vm.instructions.pushRemoteElement(element, guid, nextSibling);
 });
 
 APPEND_OPCODES.add(Op.PopRemoteElement, vm => {
-  vm.elements().popRemoteElement();
+  vm.instructions.popRemoteElement();
 });
 
 APPEND_OPCODES.add(Op.FlushElement, vm => {

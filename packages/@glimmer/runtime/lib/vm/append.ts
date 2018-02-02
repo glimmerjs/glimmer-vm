@@ -11,6 +11,8 @@ import EvaluationStack from './stack';
 import { WasmLowLevelVM } from '@glimmer/low-level';
 import { DEVMODE } from '@glimmer/local-debug-flags';
 import { Context } from './gbox';
+import InstructionListExecutor from './instruction-list/executor';
+import InstructionListEncoder from './instruction-list/encoder';
 
 import {
   APPEND_OPCODES,
@@ -44,7 +46,9 @@ export default class VM<TemplateMeta> implements PublicVM {
   private scopeStack = new Stack<Scope>();
   private wasmVM: WasmLowLevelVM;
   private cx: Context;
+  private executor: InstructionListExecutor;
   public stack: EvaluationStack;
+  public instructions: InstructionListEncoder;
   public updatingOpcodeStack = new Stack<LinkedList<UpdatingOpcode>>();
   public cacheGroups = new Stack<Option<UpdatingOpcode>>();
   public listBlockStack = new Stack<ListBlockOpcode>();
@@ -154,7 +158,9 @@ export default class VM<TemplateMeta> implements PublicVM {
         APPEND_OPCODES.debugAfter(this, opcode, opcode.type, state);
       }
     };
-    this.cx = new Context(this);
+    let cx = this.cx = new Context(this);
+    this.executor = new InstructionListExecutor(elementStack, cx);
+    this.instructions = new InstructionListEncoder(cx);
     this.wasmVM = WasmLowLevelVM.new(
       this.heap._wasmHeap(),
       APPEND_OPCODES,
@@ -333,6 +339,11 @@ export default class VM<TemplateMeta> implements PublicVM {
     this.elements().didAddDestroyable(d);
   }
 
+  flushInstructions() {
+    if (!this.instructions.offset) { return; }
+    this.executor.execute(this.instructions.finalize());
+  }
+
   /// SCOPE HELPERS
 
   getSelf(): PathReference<any> {
@@ -359,6 +370,7 @@ export default class VM<TemplateMeta> implements PublicVM {
     } finally {
       this.freeWasm();
     }
+
     return this.lastResult();
   }
 

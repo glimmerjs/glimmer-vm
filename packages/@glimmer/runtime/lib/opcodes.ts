@@ -122,6 +122,7 @@ export class AppendOpcodes {
     let operation = this.evaluateOpcode[type];
     assert(!opcode.isMachine, `BUG: Mismatch between operation.syscall (true) and opcode.isMachine (${opcode.isMachine}) for ${opcode.type}`);
     operation(vm, opcode);
+    vm.flushInstructions();
   }
 }
 
