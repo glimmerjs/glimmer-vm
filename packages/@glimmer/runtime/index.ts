@@ -84,3 +84,6 @@ export { normalizeProperty } from './lib/dom/props';
 export { ElementBuilder, NewElementBuilder, ElementOperations, clientBuilder } from './lib/vm/element-builder';
 export { rehydrationBuilder, RehydrateBuilder } from './lib/vm/rehydrate-builder';
 export { default as Bounds, ConcreteBounds, Cursor } from './lib/bounds';
+export { default as InstructionListExecutor } from './lib/vm/instruction-list/executor';
+export { default as InstructionListEncoder } from './lib/vm/instruction-list/encoder';
+export { Context } from './lib/vm/gbox';
