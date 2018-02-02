@@ -18,7 +18,7 @@ export const enum Instruction {
  * execution, avoiding costly context switches.
  */
 export default class InstructionListExecutor {
-  constructor(public elementBuilder: ElementBuilder, public cx: Context) { }
+  constructor(private elementBuilder: ElementBuilder, private cx: Context) { }
 
   execute(buf: ArrayBuffer) {
     const list = new Uint32Array(buf);
@@ -47,7 +47,7 @@ export default class InstructionListExecutor {
           elementBuilder.pushRemoteElement(op1, op2, stack.pop());
           break;
         case Instruction.PopRemoteElement:
-          elementBuilder.popRemoteElement(op1, op2, stack.pop());
+          elementBuilder.popRemoteElement();
           break;
       }
     }

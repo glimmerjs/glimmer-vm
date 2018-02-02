@@ -6,6 +6,7 @@ use component::Component;
 use ffi;
 use gbox::{GBox, GBOX_NULL, Value};
 use heap::{WasmHeap, Heap};
+use instructions::Encoder;
 use my_ref_cell::MyRefCell;
 use opcode::{Opcode, Op};
 use stack::Stack;
@@ -16,6 +17,7 @@ use util;
 pub struct VM {
     context: JsObject,
     stack: Stack,
+    instructions: Encoder,
 
     // Right now these are encoded as `i32` because the "exit" address is
     // encoded as -1, but these may wish to change in the future to a `u32`
@@ -78,6 +80,7 @@ impl VM {
             boxed_registers: [GBox::null(); 5],
             components: None,
             components_len: 0,
+            instructions: Encoder::new(),
             _tracked: Tracked::new(),
         }
     }
@@ -250,6 +253,28 @@ impl VM {
                     flag => panic!("unknown primitive flag: {:#b}", flag),
                 };
                 self.stack.push(gbox);
+            }
+
+            Op::Text => {
+                let text = opcode.op1(heap);
+                let val = GBox::constant_string(text.into());
+                self.instructions.append_text(val);
+            }
+
+            Op::Comment => {
+                let text = opcode.op1(heap);
+                let val = GBox::constant_string(text.into());
+                self.instructions.append_comment(val);
+            }
+
+            Op::OpenElement => {
+                let tag = opcode.op1(heap);
+                let val = GBox::constant_string(tag.into());
+                self.instructions.open_element(val);
+            }
+
+            Op::PopRemoteElement => {
+                self.instructions.pop_remote_element();
             }
 
             op => {
@@ -499,6 +524,24 @@ wasm_bindgen! {
                 FIELD_TABLE => component.table = val,
                 _ => panic!("invalid comopnent field"),
             }
+        }
+
+        pub fn instruction_encode(&self, component: u32, op1: u32, op2: u32) {
+            self.inner.borrow_mut()
+                .instructions
+                .encode(component, GBox::from_bits(op1), GBox::from_bits(op2))
+        }
+
+        pub fn instruction_ptr(&self) -> *const u32 {
+            self.inner.borrow_mut()
+                .instructions
+                .as_ptr()
+        }
+
+        pub fn instruction_finalize(&self) -> usize {
+            self.inner.borrow_mut()
+                .instructions
+                .finalize()
         }
     }
 }

@@ -64,7 +64,6 @@ impl Heap {
 
     pub fn get_by_addr(&self, at: u32) -> u16 {
         let val = self.get_ref(at as usize).map(|x| *x);
-        debug_assert!(val.is_some());
         val.unwrap_or(0)
     }
 

@@ -52,6 +52,10 @@ impl GBox {
         GBox::from_bits(IMM_NULL)
     }
 
+    pub fn undefined() -> GBox {
+        GBox::from_bits(IMM_UNDEF)
+    }
+
     pub fn i32(i: i32) -> GBox {
         let (val, tag) = if i < 0 {
             ((-i) as u32, TAG_NEGATIVE)

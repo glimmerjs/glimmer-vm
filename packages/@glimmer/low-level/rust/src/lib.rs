@@ -22,6 +22,7 @@ pub mod vm;
 pub mod opcode;
 pub mod ffi;
 pub mod heap;
+pub mod instructions;
 
 wasm_bindgen! {
     pub fn num_allocated() -> usize {

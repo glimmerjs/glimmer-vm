@@ -116,13 +116,13 @@ export class AppendOpcodes {
   }
 
   evaluate(vm: VM<Opaque>, offset: number) {
+    vm.flushInstructions();
     let opcode = new Opcode(vm.heap);
     opcode.offset = offset;
     let type = opcode.type;
     let operation = this.evaluateOpcode[type];
     assert(!opcode.isMachine, `BUG: Mismatch between operation.syscall (true) and opcode.isMachine (${opcode.isMachine}) for ${opcode.type}`);
     operation(vm, opcode);
-    vm.flushInstructions();
   }
 }
 

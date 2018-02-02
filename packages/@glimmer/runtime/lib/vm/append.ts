@@ -8,7 +8,7 @@ import { LabelOpcode, JumpIfNotModifiedOpcode, DidModifyOpcode } from '../compil
 import { VMState, ListBlockOpcode, TryOpcode, BlockOpcode } from './update';
 import RenderResult from './render-result';
 import EvaluationStack from './stack';
-import { WasmLowLevelVM } from '@glimmer/low-level';
+import { WasmLowLevelVM, wasmMemory } from '@glimmer/low-level';
 import { DEVMODE } from '@glimmer/local-debug-flags';
 import { Context } from './gbox';
 import InstructionListExecutor from './instruction-list/executor';
@@ -160,7 +160,6 @@ export default class VM<TemplateMeta> implements PublicVM {
     };
     let cx = this.cx = new Context(this);
     this.executor = new InstructionListExecutor(elementStack, cx);
-    this.instructions = new InstructionListEncoder(cx);
     this.wasmVM = WasmLowLevelVM.new(
       this.heap._wasmHeap(),
       APPEND_OPCODES,
@@ -169,6 +168,7 @@ export default class VM<TemplateMeta> implements PublicVM {
       DEVMODE,
     );
     this.stack = new EvaluationStack(this.wasmVM, this.cx);
+    this.instructions = new InstructionListEncoder(this.wasmVM, cx);
   }
 
   wasm(): WasmLowLevelVM {
@@ -340,8 +340,13 @@ export default class VM<TemplateMeta> implements PublicVM {
   }
 
   flushInstructions() {
-    if (!this.instructions.offset) { return; }
-    this.executor.execute(this.instructions.finalize());
+    const ptr = this.wasmVM.instruction_ptr();
+    const instructions = this.wasmVM.instruction_finalize();
+    if (instructions === 0)
+      return;
+
+    let buf = wasmMemory.buffer.slice(ptr, ptr + instructions * 4);
+    this.executor.execute(buf);
   }
 
   /// SCOPE HELPERS
@@ -368,6 +373,7 @@ export default class VM<TemplateMeta> implements PublicVM {
     try {
       this.wasmVM.evaluate_all(this);
     } finally {
+      this.flushInstructions();
       this.freeWasm();
     }
 
@@ -378,7 +384,9 @@ export default class VM<TemplateMeta> implements PublicVM {
     let result: IteratorResult<RenderResult>;
     let failed = true;
     try {
-      if (this.wasmVM.evaluate_one(this)) {
+      const ret = this.wasmVM.evaluate_one(this);
+      this.flushInstructions();
+      if (ret) {
         result = { done: false, value: null };
       } else {
         this.freeWasm();

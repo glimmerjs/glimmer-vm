@@ -19,18 +19,6 @@ import { DynamicAttribute } from '../../vm/attributes/dynamic';
 import { ComponentElementOperations } from './component';
 import { CheckReference, CheckArguments } from './-debug-strip';
 
-APPEND_OPCODES.add(Op.Text, (vm, { op1: text }) => {
-  vm.instructions.appendText(vm.constants.getString(text));
-});
-
-APPEND_OPCODES.add(Op.Comment, (vm, { op1: text }) => {
-  vm.instructions.appendComment(vm.constants.getString(text));
-});
-
-APPEND_OPCODES.add(Op.OpenElement, (vm, { op1: tag }) => {
-  vm.instructions.openElement(vm.constants.getString(tag));
-});
-
 APPEND_OPCODES.add(Op.OpenDynamicElement, vm => {
   let tagName = check(check(vm.stack.pop(), CheckReference).value(), CheckString);
   vm.instructions.openElement(tagName);
@@ -62,10 +50,6 @@ APPEND_OPCODES.add(Op.PushRemoteElement, vm => {
   }
 
   vm.instructions.pushRemoteElement(element, guid, nextSibling);
-});
-
-APPEND_OPCODES.add(Op.PopRemoteElement, vm => {
-  vm.instructions.popRemoteElement();
 });
 
 APPEND_OPCODES.add(Op.FlushElement, vm => {
