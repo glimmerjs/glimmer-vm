@@ -20,6 +20,7 @@ import {
   ComponentInstanceState,
 } from '@glimmer/interfaces';
 import VM from './append';
+import { isConst } from "@glimmer/reference";
 
 // Note that these need to stay in sync with `constants.ts`
 //
@@ -40,8 +41,13 @@ enum ConstantTag {
   NEGATIVE = 0b10,
 }
 
+enum ObjectTag {
+  CONST_REFERENCE = 0b1000
+}
+
 const TAG_SIZE = 3;
 const TAG_MASK = (1 << TAG_SIZE) - 1;
+const OBJECT_TAG_SIZE = 1;
 const CONSTANT_TAG_SIZE = 2;
 const CONSTANT_TAG_MASK = (1 << CONSTANT_TAG_SIZE) - 1;
 
@@ -113,9 +119,13 @@ export class Context {
           break;
     }
 
-    const idx = a >> TAG_SIZE;
+    const idx = a >> TAG_SIZE >> OBJECT_TAG_SIZE;
     assert(idx < this.stack.length, 'out of bounds gbox index');
     return this.stack[idx];
+  }
+
+  isConstReference(gbox: number): boolean {
+    return !!(gbox & ObjectTag.CONST_REFERENCE);
   }
 
   private encodeSmi(primitive: number) {
@@ -130,7 +140,9 @@ export class Context {
   private encodeObject(a: any): number {
     const idx = this.stack.length;
     this.stack.push(a);
-    return this.encodeNumberAndTag(idx, Tag.ANY);
+
+    const flags = isConst(a) ? ObjectTag.CONST_REFERENCE : 0;
+    return (idx << TAG_SIZE << OBJECT_TAG_SIZE) | Tag.ANY | flags;
   }
 
   private encodeNumberAndTag(a: number, tag: number): number {
