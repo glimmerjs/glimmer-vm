@@ -11,6 +11,10 @@ const TAG_CONSTANT: u32        = 0b111;
 
 const TAG_SIZE: usize = 3;
 const TAG_MASK: u32 = (1 << TAG_SIZE) - 1;
+
+const OBJECT_TAG_CONST_REFERENCE: u32 = 0b1000;
+const OBJECT_TAG_SIZE: usize = 1;
+
 const CONSTANT_TAG_SIZE: usize = 2;
 const CONSTANT_TAG_MASK: u32 = (1 << CONSTANT_TAG_SIZE) - 1;
 
@@ -119,7 +123,7 @@ impl GBox {
                     bits => panic!("invalid boolean or void tag: 0x{:x}", bits),
                 }
             }
-            TAG_ANY => Value::Other(self.bits >> TAG_SIZE),
+            TAG_ANY => Value::Other(self.bits >> TAG_SIZE >> OBJECT_TAG_SIZE),
             TAG_COMPONENT => Value::Component(self.bits >> TAG_SIZE),
             TAG_CONSTANT => {
                 let bits = self.bits >> TAG_SIZE;
@@ -133,5 +137,9 @@ impl GBox {
             }
             tag => panic!("invalid tag: 0b{:b}", tag),
         }
+    }
+
+    pub fn is_const(&self) -> bool {
+        (self.bits & OBJECT_TAG_CONST_REFERENCE) != 0
     }
 }

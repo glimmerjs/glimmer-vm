@@ -1,20 +1,17 @@
 import {
-  Reference,
-  ReferenceCache,
   Revision,
   Tag,
   VersionedReference,
   isConst,
   isConstTag
 } from '@glimmer/reference';
-import { Opaque, Option } from '@glimmer/util';
-import { expectStackChange, check, CheckString, CheckElement, CheckNode, CheckOption, CheckInstanceof } from '@glimmer/debug';
+import { Opaque } from '@glimmer/util';
+import { expectStackChange, check, CheckString, CheckOption, CheckInstanceof } from '@glimmer/debug';
 import { Simple } from '@glimmer/interfaces';
 import { Op, Register } from '@glimmer/vm';
 import { Modifier, ModifierManager } from '../../modifier/interfaces';
 import { APPEND_OPCODES, UpdatingOpcode } from '../../opcodes';
 import { UpdatingVM } from '../../vm';
-import { Assert } from './vm';
 import { DynamicAttribute } from '../../vm/attributes/dynamic';
 import { ComponentElementOperations } from './component';
 import { CheckReference, CheckArguments } from './-debug-strip';
@@ -22,34 +19,6 @@ import { CheckReference, CheckArguments } from './-debug-strip';
 APPEND_OPCODES.add(Op.OpenDynamicElement, vm => {
   let tagName = check(check(vm.stack.pop(), CheckReference).value(), CheckString);
   vm.instructions.openElement(tagName);
-});
-
-APPEND_OPCODES.add(Op.PushRemoteElement, vm => {
-  let elementRef = check(vm.stack.pop(), CheckReference);
-  let nextSiblingRef = check(vm.stack.pop(), CheckReference);
-  let guidRef = check(vm.stack.pop(), CheckReference);
-
-  let element: Simple.Element;
-  let nextSibling: Option<Simple.Node>;
-  let guid = guidRef.value() as string;
-
-  if (isConst(elementRef)) {
-    element = check(elementRef.value(), CheckElement);
-  } else {
-    let cache = new ReferenceCache(elementRef as Reference<Simple.Element>);
-    element = check(cache.peek(), CheckElement);
-    vm.updateWith(new Assert(cache));
-  }
-
-  if (isConst(nextSiblingRef)) {
-    nextSibling = check(nextSiblingRef.value(), CheckOption(CheckNode));
-  } else {
-    let cache = new ReferenceCache(nextSiblingRef as Reference<Option<Simple.Node>>);
-    nextSibling = check(cache.peek(), CheckOption(CheckNode));
-    vm.updateWith(new Assert(cache));
-  }
-
-  vm.instructions.pushRemoteElement(element, guid, nextSibling);
 });
 
 APPEND_OPCODES.add(Op.FlushElement, vm => {

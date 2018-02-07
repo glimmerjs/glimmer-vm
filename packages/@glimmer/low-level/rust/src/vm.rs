@@ -273,6 +273,22 @@ impl VM {
                 self.instructions.open_element(val);
             }
 
+            Op::PushRemoteElement => {
+                let element = self.stack.pop(1); // CheckReference
+                let next_sibling = self.stack.pop(1); // CheckReference
+                let guid = self.stack.pop(1); // CheckReference
+
+                if !element.is_const() {
+                    self.instructions.update_with_reference(element)
+                }
+
+                if !next_sibling.is_const() {
+                    self.instructions.update_with_reference(next_sibling)
+                }
+
+                self.instructions.push_remote_element(element, guid, next_sibling);
+            }
+
             Op::PopRemoteElement => {
                 self.instructions.pop_remote_element();
             }

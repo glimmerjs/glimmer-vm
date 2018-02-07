@@ -1,6 +1,7 @@
 /dist
 /node_modules
 /target
+packages/@glimmer/low-level/rust/target/
 tmp
 
 npm-debug.log

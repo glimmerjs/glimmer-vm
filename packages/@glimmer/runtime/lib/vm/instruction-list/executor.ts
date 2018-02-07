@@ -1,5 +1,9 @@
+import { ReferenceCache, Reference } from "@glimmer/reference";
 import { ElementBuilder } from '../element-builder';
 import { Context } from '../gbox';
+import { VM } from '../../vm';
+import { Assert } from '../../compiled/opcodes/vm';
+import { Opaque } from "@glimmer/interfaces";
 
 export const enum Instruction {
   Push,
@@ -7,7 +11,8 @@ export const enum Instruction {
   AppendComment,
   OpenElement,
   PushRemoteElement,
-  PopRemoteElement
+  PopRemoteElement,
+  UpdateWithReference
 }
 
 /**
@@ -18,11 +23,15 @@ export const enum Instruction {
  * execution, avoiding costly context switches.
  */
 export default class InstructionListExecutor {
-  constructor(private elementBuilder: ElementBuilder, private cx: Context) { }
+  constructor(
+    private vm: VM<Opaque>,
+    private elementBuilder: ElementBuilder,
+    private cx: Context
+  ) { }
 
   execute(buf: ArrayBuffer) {
     const list = new Uint32Array(buf);
-    const { elementBuilder, cx } = this;
+    const { elementBuilder, cx, vm } = this;
     const stack: any[] = [];
 
     for (let i = 0; i < list.length; i += 3) {
@@ -44,12 +53,21 @@ export default class InstructionListExecutor {
           elementBuilder.openElement(op1);
           break;
         case Instruction.PushRemoteElement:
-          elementBuilder.pushRemoteElement(op1, op2, stack.pop());
+          elementBuilder.pushRemoteElement(op1.value(), op2.value(), stack.pop().value());
           break;
         case Instruction.PopRemoteElement:
           elementBuilder.popRemoteElement();
           break;
+        case Instruction.UpdateWithReference:
+          updateWithReference(vm, op1);
+          break;
       }
     }
   }
+}
+
+function updateWithReference(vm: VM<Opaque>, ref: Reference<Opaque>): void {
+  let cache = new ReferenceCache(ref);
+  cache.peek();
+  vm.updateWith(new Assert(cache));
 }
