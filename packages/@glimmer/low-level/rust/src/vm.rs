@@ -293,6 +293,10 @@ impl VM {
                 self.instructions.pop_remote_element();
             }
 
+            Op::CloseElement => {
+                self.instructions.close_element();
+            }
+
             op => {
                 debug_assert!(!opcode.is_machine(heap),
                               "bad opcode {:?}", op);

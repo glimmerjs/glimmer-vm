@@ -6,7 +6,7 @@ import {
   isConstTag
 } from '@glimmer/reference';
 import { Opaque } from '@glimmer/util';
-import { expectStackChange, check, CheckString, CheckOption, CheckInstanceof } from '@glimmer/debug';
+import { check, CheckString, CheckOption, CheckInstanceof } from '@glimmer/debug';
 import { Simple } from '@glimmer/interfaces';
 import { Op, Register } from '@glimmer/vm';
 import { Modifier, ModifierManager } from '../../modifier/interfaces';
@@ -30,12 +30,6 @@ APPEND_OPCODES.add(Op.FlushElement, vm => {
   }
 
   vm.elements().flushElement();
-});
-
-APPEND_OPCODES.add(Op.CloseElement, vm => {
-  vm.elements().closeElement();
-
-  expectStackChange(vm.stack, 0, 'CloseElement');
 });
 
 APPEND_OPCODES.add(Op.Modifier, (vm, { op1: handle }) => {

@@ -12,7 +12,8 @@ export const enum Instruction {
   OpenElement,
   PushRemoteElement,
   PopRemoteElement,
-  UpdateWithReference
+  UpdateWithReference,
+  CloseElement,
 }
 
 /**
@@ -60,6 +61,9 @@ export default class InstructionListExecutor {
           break;
         case Instruction.UpdateWithReference:
           updateWithReference(vm, op1);
+          break;
+        case Instruction.CloseElement:
+          elementBuilder.closeElement();
           break;
       }
     }
