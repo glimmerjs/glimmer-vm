@@ -159,7 +159,7 @@ export default class VM<TemplateMeta> implements PublicVM {
       }
     };
     let cx = this.cx = new Context(this);
-    this.executor = new InstructionListExecutor(elementStack, cx);
+    this.executor = new InstructionListExecutor(this, elementStack, cx);
     this.wasmVM = WasmLowLevelVM.new(
       this.heap._wasmHeap(),
       APPEND_OPCODES,

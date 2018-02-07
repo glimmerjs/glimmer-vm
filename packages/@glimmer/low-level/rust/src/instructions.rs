@@ -14,6 +14,7 @@ const APPEND_COMMENT: u32 = 2;
 const OPEN_ELEMENT: u32 = 3;
 const PUSH_REMOTE_ELEMENT: u32 = 4;
 const POP_REMOTE_ELEMENT: u32 = 5;
+const UPDATE_WITH_REFERENCE: u32 = 6;
 
 impl Encoder {
     pub fn new() -> Encoder {
@@ -73,5 +74,9 @@ impl Encoder {
 
     pub fn pop_remote_element(&mut self) {
         self.encode(POP_REMOTE_ELEMENT, GBox::undefined(), GBox::undefined())
+    }
+
+    pub fn update_with_reference(&mut self, reference: GBox) {
+        self.encode(UPDATE_WITH_REFERENCE, reference, GBox::undefined())
     }
 }

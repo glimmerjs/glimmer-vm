@@ -1,4 +1,3 @@
-import { Simple, Option } from '@glimmer/interfaces';
 import { Context } from '../gbox';
 import { Instruction as I } from './executor';
 import { WasmLowLevelVM } from '@glimmer/low-level';
@@ -13,10 +12,5 @@ export default class InstructionListEncoder {
 
   openElement(tagName: string) {
     this.encode(I.OpenElement, tagName);
-  }
-
-  pushRemoteElement(element: Simple.Element, guid: string, nextSibling: Option<Simple.Node>) {
-    this.encode(I.Push, nextSibling);
-    this.encode(I.PushRemoteElement, element, guid);
   }
 }
