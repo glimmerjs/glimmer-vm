@@ -371,7 +371,8 @@ export default class VM<TemplateMeta> implements PublicVM {
 
   executeAll(): RenderResult {
     try {
-      this.wasmVM.evaluate_all(this);
+      if (this.wasmVM.evaluate_all(this) === 2)
+        this.raiseLastVmException();
     } finally {
       this.flushInstructions();
       this.freeWasm();
@@ -385,8 +386,10 @@ export default class VM<TemplateMeta> implements PublicVM {
     let failed = true;
     try {
       const ret = this.wasmVM.evaluate_one(this);
+      if (ret === 2)
+        this.raiseLastVmException();
       this.flushInstructions();
-      if (ret) {
+      if (ret === 0) {
         result = { done: false, value: null };
       } else {
         this.freeWasm();
@@ -411,6 +414,10 @@ export default class VM<TemplateMeta> implements PublicVM {
       expect(updatingOpcodeStack.pop(), 'there should be a final updating opcode stack'),
       elementStack.popBlock()
     );
+  }
+
+  private raiseLastVmException() {
+    throw this.wasmVM.last_exception();
   }
 
   private freeWasm() {

@@ -15,7 +15,7 @@ use track::Tracked;
 use util;
 
 pub struct VM {
-    context: JsObject,
+    context: JsValue,
     stack: Stack,
     instructions: Encoder,
 
@@ -69,7 +69,7 @@ pub const T1: u16 = 7;
 pub const V0: u16 = 8;
 
 impl VM {
-    fn new(cx: JsObject) -> VM {
+    fn new(cx: JsValue) -> VM {
         let stack = Stack::new(0, -1);
         VM {
             context: cx,
@@ -355,19 +355,21 @@ wasm_bindgen! {
     pub struct LowLevelVM {
         inner: MyRefCell<VM>,
         heap: Rc<MyRefCell<Heap>>,
+        last_error: MyRefCell<Option<JsValue>>,
         devmode: bool,
-        syscalls: JsObject,
-        externs: JsObject,
+        syscalls: JsValue,
+        externs: JsValue,
     }
 
     impl LowLevelVM {
         pub fn new(heap: &WasmHeap,
-                   syscalls: JsObject,
-                   externs: JsObject,
-                   context: JsObject,
+                   syscalls: JsValue,
+                   externs: JsValue,
+                   context: JsValue,
                    devmode: bool) -> LowLevelVM {
             LowLevelVM {
                 inner: MyRefCell::new(VM::new(context)),
+                last_error: MyRefCell::new(None),
                 devmode,
                 syscalls,
                 externs,
@@ -423,20 +425,23 @@ wasm_bindgen! {
             self.inner.borrow_mut().call(handle, &mut *self.heap.borrow_mut())
         }
 
-        pub fn evaluate_all(&self, vm: &JsObject) {
-            while self.evaluate_one(vm) {
-                // ...
+        pub fn evaluate_all(&self, vm: &JsValue) -> u32 {
+            loop {
+                let r = self.evaluate_one(vm);
+                if r != 0 {
+                    return r
+                }
             }
         }
 
-        pub fn evaluate_one(&self, vm: &JsObject) -> bool {
+        pub fn evaluate_one(&self, vm: &JsValue) -> u32 {
             let next = {
                 let mut heap = self.heap.borrow_mut();
                 self.inner.borrow_mut().next_statement(&mut *heap)
             };
             let opcode = match next {
                 Some(opcode) => opcode,
-                None => return false,
+                None => return 1,
             };
 
             let state = if self.devmode {
@@ -450,9 +455,13 @@ wasm_bindgen! {
                 &mut *self.heap.borrow_mut(),
             );
             if !complete {
-                ffi::low_level_vm_evaluate_syscall(&self.syscalls,
-                                                   vm,
-                                                   opcode.offset())
+                let res = ffi::low_level_vm_evaluate_syscall(&self.syscalls,
+                                                             vm,
+                                                             opcode.offset());
+                if let Err(e) = res {
+                    *self.last_error.borrow_mut() = Some(e);
+                    return 2
+                }
             }
 
             if let Some(state) = state {
@@ -460,7 +469,14 @@ wasm_bindgen! {
                                               state,
                                               opcode.offset());
             }
-            return true
+            return 0
+        }
+
+        pub fn last_exception(&self) -> JsValue {
+            self.last_error
+                .borrow_mut()
+                .take()
+                .unwrap_or(self.syscalls.clone())
         }
 
         pub fn stack_copy(&self, from: u32, to: u32) -> bool {
