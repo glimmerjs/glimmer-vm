@@ -1,17 +1,22 @@
 import { ReferenceCache, Reference } from "@glimmer/reference";
+import { Opaque } from "@glimmer/interfaces";
 import { ElementBuilder } from '../element-builder';
 import { Context } from '../gbox';
 import { VM } from '../../vm';
 import { Assert } from '../../compiled/opcodes/vm';
-import { Opaque } from "@glimmer/interfaces";
+import { ComponentElementOperations } from '../../compiled/opcodes/component';
 
 export const enum Instruction {
   Push,
   AppendText,
   AppendComment,
   OpenElement,
+  OpenDynamicElement,
+  FlushElementOperations,
+  FlushElement,
   PushRemoteElement,
   PopRemoteElement,
+  CloseElement,
   UpdateWithReference
 }
 
@@ -52,11 +57,23 @@ export default class InstructionListExecutor {
         case Instruction.OpenElement:
           elementBuilder.openElement(op1);
           break;
+        case Instruction.OpenDynamicElement:
+          elementBuilder.openElement(op1.value());
+          break;
         case Instruction.PushRemoteElement:
           elementBuilder.pushRemoteElement(op1.value(), op2.value(), stack.pop().value());
           break;
         case Instruction.PopRemoteElement:
           elementBuilder.popRemoteElement();
+          break;
+        case Instruction.FlushElementOperations:
+          (op1 as ComponentElementOperations).flush(vm);
+          break;
+        case Instruction.FlushElement:
+          elementBuilder.flushElement();
+          break;
+        case Instruction.CloseElement:
+          elementBuilder.closeElement();
           break;
         case Instruction.UpdateWithReference:
           updateWithReference(vm, op1);
