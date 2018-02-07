@@ -4,7 +4,6 @@ import { Context } from '../gbox';
 import { VM } from '../../vm';
 import { Assert } from '../../compiled/opcodes/vm';
 import { Opaque } from "@glimmer/interfaces";
-import { check, CheckOption, CheckInstanceof } from '@glimmer/debug';
 import { ComponentElementOperations } from '../../compiled/opcodes/component';
 
 export const enum Instruction {
@@ -12,11 +11,13 @@ export const enum Instruction {
   AppendText,
   AppendComment,
   OpenElement,
+  OpenDynamicElement,
+  FlushElementOperations,
+  FlushElement,
   PushRemoteElement,
   PopRemoteElement,
-  UpdateWithReference,
   CloseElement,
-  FlushElement,
+  UpdateWithReference
 }
 
 /**
@@ -56,11 +57,17 @@ export default class InstructionListExecutor {
         case Instruction.OpenElement:
           elementBuilder.openElement(op1);
           break;
+        case Instruction.OpenDynamicElement:
+          elementBuilder.openElement(op1.value());
+          break;
         case Instruction.PushRemoteElement:
           elementBuilder.pushRemoteElement(op1.value(), op2.value(), stack.pop().value());
           break;
         case Instruction.PopRemoteElement:
           elementBuilder.popRemoteElement();
+          break;
+        case Instruction.FlushElementOperations:
+          (op1 as ComponentElementOperations).flush(vm);
           break;
         case Instruction.UpdateWithReference:
           updateWithReference(vm, op1);
@@ -69,9 +76,6 @@ export default class InstructionListExecutor {
           elementBuilder.closeElement();
           break;
         case Instruction.FlushElement:
-          let operations = check(op1, CheckOption(CheckInstanceof(ComponentElementOperations)));
-          if (operations)
-            operations.flush(vm);
           elementBuilder.flushElement();
           break;
       }

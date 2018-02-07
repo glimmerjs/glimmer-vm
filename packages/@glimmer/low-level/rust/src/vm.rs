@@ -273,6 +273,26 @@ impl VM {
                 self.instructions.open_element(val);
             }
 
+            Op::OpenDynamicElement => {
+                let tag = self.stack.pop(1);
+                self.instructions.open_dynamic_element(tag);
+            }
+
+            Op::FlushElement => {
+                let operations = self.register(T0);
+
+                if operations.value() != Value::Null {
+                    self.instructions.flush_element_operations(operations);
+                    self.set_register(T0, GBox::null())
+                }
+
+                self.instructions.flush_element();
+            }
+
+            Op::CloseElement => {
+                self.instructions.close_element();
+            }
+
             Op::PushRemoteElement => {
                 let element = self.stack.pop(1); // CheckReference
                 let next_sibling = self.stack.pop(1); // CheckReference
@@ -291,16 +311,6 @@ impl VM {
 
             Op::PopRemoteElement => {
                 self.instructions.pop_remote_element();
-            }
-
-            Op::CloseElement => {
-                self.instructions.close_element();
-            }
-
-            Op::FlushElement => {
-                let operations = self.register(T0);
-                self.set_register(T0, GBox::null());
-                self.instructions.flush_element(operations);
             }
 
             op => {

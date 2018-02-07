@@ -6,7 +6,7 @@ import {
   isConstTag
 } from '@glimmer/reference';
 import { Opaque } from '@glimmer/util';
-import { check, CheckString } from '@glimmer/debug';
+import { check } from '@glimmer/debug';
 import { Simple } from '@glimmer/interfaces';
 import { Op } from '@glimmer/vm';
 import { Modifier, ModifierManager } from '../../modifier/interfaces';
@@ -14,11 +14,6 @@ import { APPEND_OPCODES, UpdatingOpcode } from '../../opcodes';
 import { UpdatingVM } from '../../vm';
 import { DynamicAttribute } from '../../vm/attributes/dynamic';
 import { CheckReference, CheckArguments } from './-debug-strip';
-
-APPEND_OPCODES.add(Op.OpenDynamicElement, vm => {
-  let tagName = check(check(vm.stack.pop(), CheckReference).value(), CheckString);
-  vm.instructions.openElement(tagName);
-});
 
 APPEND_OPCODES.add(Op.Modifier, (vm, { op1: handle }) => {
   let manager = vm.constants.resolveHandle<ModifierManager>(handle);

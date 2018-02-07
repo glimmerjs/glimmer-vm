@@ -12,11 +12,13 @@ const PUSH: u32 = 0;
 const APPEND_TEXT: u32 = 1;
 const APPEND_COMMENT: u32 = 2;
 const OPEN_ELEMENT: u32 = 3;
-const PUSH_REMOTE_ELEMENT: u32 = 4;
-const POP_REMOTE_ELEMENT: u32 = 5;
-const UPDATE_WITH_REFERENCE: u32 = 6;
-const CLOSE_ELEMENT: u32 = 7;
-const FLUSH_ELEMENT: u32 = 8;
+const OPEN_DYNAMIC_ELEMENT: u32 = 4;
+const FLUSH_ELEMENT_OPERATIONS: u32 = 5;
+const FLUSH_ELEMENT: u32 = 6;
+const PUSH_REMOTE_ELEMENT: u32 = 7;
+const POP_REMOTE_ELEMENT: u32 = 8;
+const CLOSE_ELEMENT: u32 = 9;
+const UPDATE_WITH_REFERENCE: u32 = 10;
 
 impl Encoder {
     pub fn new() -> Encoder {
@@ -66,6 +68,22 @@ impl Encoder {
         self.encode(OPEN_ELEMENT, tag_name, GBox::undefined())
     }
 
+    pub fn open_dynamic_element(&mut self, tag: GBox) {
+        self.encode(OPEN_DYNAMIC_ELEMENT, tag, GBox::undefined());
+    }
+
+    pub fn flush_element_operations(&mut self, operations: GBox) {
+        self.encode(FLUSH_ELEMENT_OPERATIONS, operations, GBox::undefined());
+    }
+
+    pub fn flush_element(&mut self) {
+        self.encode(FLUSH_ELEMENT, GBox::undefined(), GBox::undefined());
+    }
+
+    pub fn close_element(&mut self) {
+        self.encode(CLOSE_ELEMENT, GBox::undefined(), GBox::undefined());
+    }
+
     pub fn push_remote_element(&mut self,
                                element: GBox,
                                guid: GBox,
@@ -80,13 +98,5 @@ impl Encoder {
 
     pub fn update_with_reference(&mut self, reference: GBox) {
         self.encode(UPDATE_WITH_REFERENCE, reference, GBox::undefined())
-    }
-
-    pub fn close_element(&mut self) {
-        self.encode(CLOSE_ELEMENT, GBox::undefined(), GBox::undefined())
-    }
-
-    pub fn flush_element(&mut self, operations: GBox) {
-        self.encode(FLUSH_ELEMENT, operations, GBox::undefined())
     }
 }

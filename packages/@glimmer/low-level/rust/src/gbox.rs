@@ -34,6 +34,7 @@ pub struct GBox {
     bits: u32,
 }
 
+#[derive(PartialEq)]
 pub enum Value {
     Integer(i32),
     Null,
