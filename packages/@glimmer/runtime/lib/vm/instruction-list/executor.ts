@@ -4,6 +4,8 @@ import { Context } from '../gbox';
 import { VM } from '../../vm';
 import { Assert } from '../../compiled/opcodes/vm';
 import { Opaque } from "@glimmer/interfaces";
+import { check, CheckOption, CheckInstanceof } from '@glimmer/debug';
+import { ComponentElementOperations } from '../../compiled/opcodes/component';
 
 export const enum Instruction {
   Push,
@@ -14,6 +16,7 @@ export const enum Instruction {
   PopRemoteElement,
   UpdateWithReference,
   CloseElement,
+  FlushElement,
 }
 
 /**
@@ -64,6 +67,12 @@ export default class InstructionListExecutor {
           break;
         case Instruction.CloseElement:
           elementBuilder.closeElement();
+          break;
+        case Instruction.FlushElement:
+          let operations = check(op1, CheckOption(CheckInstanceof(ComponentElementOperations)));
+          if (operations)
+            operations.flush(vm);
+          elementBuilder.flushElement();
           break;
       }
     }

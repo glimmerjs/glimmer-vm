@@ -297,6 +297,12 @@ impl VM {
                 self.instructions.close_element();
             }
 
+            Op::FlushElement => {
+                let operations = self.register(T0);
+                self.set_register(T0, GBox::null());
+                self.instructions.flush_element(operations);
+            }
+
             op => {
                 debug_assert!(!opcode.is_machine(heap),
                               "bad opcode {:?}", op);

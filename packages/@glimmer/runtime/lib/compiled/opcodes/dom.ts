@@ -6,30 +6,18 @@ import {
   isConstTag
 } from '@glimmer/reference';
 import { Opaque } from '@glimmer/util';
-import { check, CheckString, CheckOption, CheckInstanceof } from '@glimmer/debug';
+import { check, CheckString } from '@glimmer/debug';
 import { Simple } from '@glimmer/interfaces';
-import { Op, Register } from '@glimmer/vm';
+import { Op } from '@glimmer/vm';
 import { Modifier, ModifierManager } from '../../modifier/interfaces';
 import { APPEND_OPCODES, UpdatingOpcode } from '../../opcodes';
 import { UpdatingVM } from '../../vm';
 import { DynamicAttribute } from '../../vm/attributes/dynamic';
-import { ComponentElementOperations } from './component';
 import { CheckReference, CheckArguments } from './-debug-strip';
 
 APPEND_OPCODES.add(Op.OpenDynamicElement, vm => {
   let tagName = check(check(vm.stack.pop(), CheckReference).value(), CheckString);
   vm.instructions.openElement(tagName);
-});
-
-APPEND_OPCODES.add(Op.FlushElement, vm => {
-  let operations = check(vm.fetchValue(Register.t0), CheckOption(CheckInstanceof(ComponentElementOperations)));
-
-  if (operations) {
-    operations.flush(vm);
-    vm.loadValue(Register.t0, null);
-  }
-
-  vm.elements().flushElement();
 });
 
 APPEND_OPCODES.add(Op.Modifier, (vm, { op1: handle }) => {

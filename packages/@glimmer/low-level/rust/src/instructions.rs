@@ -16,6 +16,7 @@ const PUSH_REMOTE_ELEMENT: u32 = 4;
 const POP_REMOTE_ELEMENT: u32 = 5;
 const UPDATE_WITH_REFERENCE: u32 = 6;
 const CLOSE_ELEMENT: u32 = 7;
+const FLUSH_ELEMENT: u32 = 8;
 
 impl Encoder {
     pub fn new() -> Encoder {
@@ -83,5 +84,9 @@ impl Encoder {
 
     pub fn close_element(&mut self) {
         self.encode(CLOSE_ELEMENT, GBox::undefined(), GBox::undefined())
+    }
+
+    pub fn flush_element(&mut self, operations: GBox) {
+        self.encode(FLUSH_ELEMENT, operations, GBox::undefined())
     }
 }
