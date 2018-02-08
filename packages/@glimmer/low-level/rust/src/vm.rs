@@ -387,213 +387,213 @@ const FIELD_STATE: usize = 2;
 const FIELD_HANDLE: usize = 3;
 const FIELD_TABLE: usize = 4;
 
-wasm_bindgen! {
-    pub struct LowLevelVM {
-        inner: MyRefCell<VM>,
-        heap: Rc<MyRefCell<Heap>>,
-        last_error: MyRefCell<Option<JsValue>>,
-        devmode: bool,
-        syscalls: JsValue,
-        externs: JsValue,
+#[wasm_bindgen]
+pub struct LowLevelVM {
+    inner: MyRefCell<VM>,
+    heap: Rc<MyRefCell<Heap>>,
+    last_error: MyRefCell<Option<JsValue>>,
+    devmode: bool,
+    syscalls: JsValue,
+    externs: JsValue,
+}
+
+#[wasm_bindgen]
+impl LowLevelVM {
+    pub fn new(heap: &WasmHeap,
+               syscalls: JsValue,
+               externs: JsValue,
+               context: JsValue,
+               devmode: bool) -> LowLevelVM {
+        LowLevelVM {
+            inner: MyRefCell::new(VM::new(context)),
+            last_error: MyRefCell::new(None),
+            devmode,
+            syscalls,
+            externs,
+            heap: heap.0.clone(),
+        }
     }
 
-    impl LowLevelVM {
-        pub fn new(heap: &WasmHeap,
-                   syscalls: JsValue,
-                   externs: JsValue,
-                   context: JsValue,
-                   devmode: bool) -> LowLevelVM {
-            LowLevelVM {
-                inner: MyRefCell::new(VM::new(context)),
-                last_error: MyRefCell::new(None),
-                devmode,
-                syscalls,
-                externs,
-                heap: heap.0.clone(),
+    pub fn current_op_size(&self) -> u32 {
+        to_u32(self.inner.borrow().current_op_size)
+    }
+
+    pub fn pc(&self) -> i32 {
+        self.inner.borrow().pc
+    }
+
+    pub fn set_pc(&self, pc: i32) {
+        self.inner.borrow_mut().pc = pc;
+    }
+
+    pub fn fp(&self) -> i32 {
+        self.inner.borrow().stack.fp()
+    }
+
+    pub fn set_fp(&self, fp: i32) {
+        self.inner.borrow_mut().stack.set_fp(fp)
+    }
+
+    pub fn sp(&self) -> i32 {
+        self.inner.borrow().stack.sp()
+    }
+
+    pub fn set_sp(&self, sp: i32) {
+        self.inner.borrow_mut().stack.set_sp(sp)
+    }
+
+    pub fn register(&self, i: u16) -> u32 {
+        self.inner.borrow().register(i).bits()
+    }
+
+    pub fn set_register(&self, i: u16, val: u32) {
+        self.inner.borrow_mut().set_register(i, GBox::from_bits(val));
+    }
+
+    pub fn push_frame(&self) {
+        self.inner.borrow_mut().push_frame()
+    }
+
+    pub fn goto(&self, offset: i32) {
+        self.inner.borrow_mut().goto(offset)
+    }
+
+    pub fn call(&self, handle: u32) {
+        self.inner.borrow_mut().call(handle, &mut *self.heap.borrow_mut())
+    }
+
+    pub fn evaluate_all(&self, vm: &JsValue) -> u32 {
+        loop {
+            let r = self.evaluate_one(vm);
+            if r != 0 {
+                return r
+            }
+        }
+    }
+
+    pub fn evaluate_one(&self, vm: &JsValue) -> u32 {
+        let next = {
+            let mut heap = self.heap.borrow_mut();
+            self.inner.borrow_mut().next_statement(&mut *heap)
+        };
+        let opcode = match next {
+            Some(opcode) => opcode,
+            None => return 1,
+        };
+
+        let state = if self.devmode {
+            Some(ffi::low_level_vm_debug_before(&self.externs, opcode.offset()))
+        } else {
+            None
+        };
+
+        let complete = self.inner.borrow_mut().evaluate(
+            opcode,
+            &mut *self.heap.borrow_mut(),
+        );
+        if !complete {
+            let res = ffi::low_level_vm_evaluate_syscall(&self.syscalls,
+                                                         vm,
+                                                         opcode.offset());
+            if let Err(e) = res {
+                *self.last_error.borrow_mut() = Some(e);
+                return 2
             }
         }
 
-        pub fn current_op_size(&self) -> u32 {
-            to_u32(self.inner.borrow().current_op_size)
+        if let Some(state) = state {
+            ffi::low_level_vm_debug_after(&self.externs,
+                                          state,
+                                          opcode.offset());
         }
+        return 0
+    }
 
-        pub fn pc(&self) -> i32 {
-            self.inner.borrow().pc
+    pub fn last_exception(&self) -> JsValue {
+        self.last_error
+            .borrow_mut()
+            .take()
+            .unwrap_or(self.syscalls.clone())
+    }
+
+    pub fn stack_copy(&self, from: u32, to: u32) -> bool {
+        self.inner.borrow_mut().stack.copy(from, to).is_ok()
+    }
+
+    pub fn stack_write_raw(&self, at: u32, val: u32) {
+        self.inner.borrow_mut().stack.write(at, GBox::from_bits(val));
+    }
+
+    pub fn stack_write(&self, at: u32, val: i32) {
+        self.inner.borrow_mut().stack.write(at, GBox::i32(val));
+    }
+
+    pub fn stack_read_raw(&self, at: u32) -> u32 {
+        self.inner.borrow().stack.read(at)
+            .map(|g| g.bits())
+            .unwrap_or(0)
+    }
+
+    pub fn stack_read(&self, at: u32) -> i32 {
+        self.inner.borrow().stack.read(at)
+            .map(|g| g.unwrap_i32())
+            .unwrap_or(0)
+    }
+
+    pub fn stack_reset(&self) {
+        self.inner.borrow_mut().stack.reset();
+    }
+
+    pub fn component_field(&self, component: u32, field: usize) -> u32 {
+        let me = self.inner.borrow();
+        let component = match me.component(component) {
+            Some(c) => c,
+            None => panic!("invalid component index"),
+        };
+
+        match field {
+            FIELD_DEFINITION => component.definition.bits(),
+            FIELD_MANAGER => component.manager.bits(),
+            FIELD_STATE => component.state.bits(),
+            FIELD_HANDLE => component.handle.bits(),
+            FIELD_TABLE => component.table.bits(),
+            _ => panic!("invalid component field"),
         }
+    }
 
-        pub fn set_pc(&self, pc: i32) {
-            self.inner.borrow_mut().pc = pc;
+    pub fn set_component_field(&self, component: u32, field: usize, gbox: u32) {
+        let val = GBox::from_bits(gbox);
+        let mut me = self.inner.borrow_mut();
+        let component = match me.component_mut(component) {
+            Some(c) => c,
+            None => panic!("invalid component index"),
+        };
+
+        match field {
+            FIELD_DEFINITION => component.definition = val,
+            FIELD_MANAGER => component.manager = val,
+            FIELD_STATE => component.state = val,
+            FIELD_HANDLE => component.handle = val,
+            FIELD_TABLE => component.table = val,
+            _ => panic!("invalid comopnent field"),
         }
+    }
 
-        pub fn fp(&self) -> i32 {
-            self.inner.borrow().stack.fp()
-        }
+    pub fn instruction_encode(&self, component: u32, op1: u32, op2: u32) {
+        self.inner.borrow_mut()
+            .instructions
+            .encode(component, GBox::from_bits(op1), GBox::from_bits(op2))
+    }
 
-        pub fn set_fp(&self, fp: i32) {
-            self.inner.borrow_mut().stack.set_fp(fp)
-        }
+    pub fn instruction_ptr(&self) -> *const u32 {
+        self.inner.borrow_mut()
+            .instructions
+            .as_ptr()
+    }
 
-        pub fn sp(&self) -> i32 {
-            self.inner.borrow().stack.sp()
-        }
-
-        pub fn set_sp(&self, sp: i32) {
-            self.inner.borrow_mut().stack.set_sp(sp)
-        }
-
-        pub fn register(&self, i: u16) -> u32 {
-            self.inner.borrow().register(i).bits()
-        }
-
-        pub fn set_register(&self, i: u16, val: u32) {
-            self.inner.borrow_mut().set_register(i, GBox::from_bits(val));
-        }
-
-        pub fn push_frame(&self) {
-            self.inner.borrow_mut().push_frame()
-        }
-
-        pub fn goto(&self, offset: i32) {
-            self.inner.borrow_mut().goto(offset)
-        }
-
-        pub fn call(&self, handle: u32) {
-            self.inner.borrow_mut().call(handle, &mut *self.heap.borrow_mut())
-        }
-
-        pub fn evaluate_all(&self, vm: &JsValue) -> u32 {
-            loop {
-                let r = self.evaluate_one(vm);
-                if r != 0 {
-                    return r
-                }
-            }
-        }
-
-        pub fn evaluate_one(&self, vm: &JsValue) -> u32 {
-            let next = {
-                let mut heap = self.heap.borrow_mut();
-                self.inner.borrow_mut().next_statement(&mut *heap)
-            };
-            let opcode = match next {
-                Some(opcode) => opcode,
-                None => return 1,
-            };
-
-            let state = if self.devmode {
-                Some(ffi::low_level_vm_debug_before(&self.externs, opcode.offset()))
-            } else {
-                None
-            };
-
-            let complete = self.inner.borrow_mut().evaluate(
-                opcode,
-                &mut *self.heap.borrow_mut(),
-            );
-            if !complete {
-                let res = ffi::low_level_vm_evaluate_syscall(&self.syscalls,
-                                                             vm,
-                                                             opcode.offset());
-                if let Err(e) = res {
-                    *self.last_error.borrow_mut() = Some(e);
-                    return 2
-                }
-            }
-
-            if let Some(state) = state {
-                ffi::low_level_vm_debug_after(&self.externs,
-                                              state,
-                                              opcode.offset());
-            }
-            return 0
-        }
-
-        pub fn last_exception(&self) -> JsValue {
-            self.last_error
-                .borrow_mut()
-                .take()
-                .unwrap_or(self.syscalls.clone())
-        }
-
-        pub fn stack_copy(&self, from: u32, to: u32) -> bool {
-            self.inner.borrow_mut().stack.copy(from, to).is_ok()
-        }
-
-        pub fn stack_write_raw(&self, at: u32, val: u32) {
-            self.inner.borrow_mut().stack.write(at, GBox::from_bits(val));
-        }
-
-        pub fn stack_write(&self, at: u32, val: i32) {
-            self.inner.borrow_mut().stack.write(at, GBox::i32(val));
-        }
-
-        pub fn stack_read_raw(&self, at: u32) -> u32 {
-            self.inner.borrow().stack.read(at)
-                .map(|g| g.bits())
-                .unwrap_or(0)
-        }
-
-        pub fn stack_read(&self, at: u32) -> i32 {
-            self.inner.borrow().stack.read(at)
-                .map(|g| g.unwrap_i32())
-                .unwrap_or(0)
-        }
-
-        pub fn stack_reset(&self) {
-            self.inner.borrow_mut().stack.reset();
-        }
-
-        pub fn component_field(&self, component: u32, field: usize) -> u32 {
-            let me = self.inner.borrow();
-            let component = match me.component(component) {
-                Some(c) => c,
-                None => panic!("invalid component index"),
-            };
-
-            match field {
-                FIELD_DEFINITION => component.definition.bits(),
-                FIELD_MANAGER => component.manager.bits(),
-                FIELD_STATE => component.state.bits(),
-                FIELD_HANDLE => component.handle.bits(),
-                FIELD_TABLE => component.table.bits(),
-                _ => panic!("invalid component field"),
-            }
-        }
-
-        pub fn set_component_field(&self, component: u32, field: usize, gbox: u32) {
-            let val = GBox::from_bits(gbox);
-            let mut me = self.inner.borrow_mut();
-            let component = match me.component_mut(component) {
-                Some(c) => c,
-                None => panic!("invalid component index"),
-            };
-
-            match field {
-                FIELD_DEFINITION => component.definition = val,
-                FIELD_MANAGER => component.manager = val,
-                FIELD_STATE => component.state = val,
-                FIELD_HANDLE => component.handle = val,
-                FIELD_TABLE => component.table = val,
-                _ => panic!("invalid comopnent field"),
-            }
-        }
-
-        pub fn instruction_encode(&self, component: u32, op1: u32, op2: u32) {
-            self.inner.borrow_mut()
-                .instructions
-                .encode(component, GBox::from_bits(op1), GBox::from_bits(op2))
-        }
-
-        pub fn instruction_ptr(&self) -> *const u32 {
-            self.inner.borrow_mut()
-                .instructions
-                .as_ptr()
-        }
-
-        pub fn instruction_finalize(&self) -> usize {
-            self.inner.borrow_mut()
-                .instructions
-                .finalize()
-        }
+    pub fn instruction_finalize(&self) -> usize {
+        self.inner.borrow_mut()
+            .instructions
+            .finalize()
     }
 }

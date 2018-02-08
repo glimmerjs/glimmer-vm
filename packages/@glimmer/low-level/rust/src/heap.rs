@@ -207,102 +207,102 @@ impl Heap {
     }
 }
 
-wasm_bindgen! {
-    pub struct WasmHeap(pub Rc<MyRefCell<Heap>>);
+#[wasm_bindgen]
+pub struct WasmHeap(pub Rc<MyRefCell<Heap>>);
 
-    impl WasmHeap {
-        pub fn new() -> WasmHeap {
-            WasmHeap(Rc::new(MyRefCell::new(Heap::new())))
-        }
+#[wasm_bindgen]
+impl WasmHeap {
+    pub fn new() -> WasmHeap {
+        WasmHeap(Rc::new(MyRefCell::new(Heap::new())))
+    }
 
-        pub fn push(&self, item: u16) {
-            self.0.borrow_mut().push(item)
-        }
+    pub fn push(&self, item: u16) {
+        self.0.borrow_mut().push(item)
+    }
 
-        pub fn get_by_addr(&self, at: u32) -> u16 {
-            self.0.borrow_mut().get_by_addr(at)
-        }
+    pub fn get_by_addr(&self, at: u32) -> u16 {
+        self.0.borrow_mut().get_by_addr(at)
+    }
 
-        pub fn set_by_addr(&self, at: u32, item: u16) {
-            self.0.borrow_mut().set_by_addr(at, item)
-        }
+    pub fn set_by_addr(&self, at: u32, item: u16) {
+        self.0.borrow_mut().set_by_addr(at, item)
+    }
 
-        pub fn malloc_handle(&self) -> u32 {
-            self.0.borrow_mut().malloc_handle()
-        }
+    pub fn malloc_handle(&self) -> u32 {
+        self.0.borrow_mut().malloc_handle()
+    }
 
-        pub fn finish_malloc(&self, handle: u32, scope_size: u32) {
-            self.0.borrow_mut().finish_malloc(handle, scope_size);
-        }
+    pub fn finish_malloc(&self, handle: u32, scope_size: u32) {
+        self.0.borrow_mut().finish_malloc(handle, scope_size);
+    }
 
-        pub fn size(&self) -> u32 {
-            self.0.borrow().size()
-        }
+    pub fn size(&self) -> u32 {
+        self.0.borrow().size()
+    }
 
-        pub fn get_addr(&self, at: u32) -> i32 {
-            self.0.borrow().get_addr(at)
-        }
+    pub fn get_addr(&self, at: u32) -> i32 {
+        self.0.borrow().get_addr(at)
+    }
 
-        pub fn get_handle(&self, address: u32) -> u32 {
-            self.0.borrow_mut().get_handle(address)
-        }
+    pub fn get_handle(&self, address: u32) -> u32 {
+        self.0.borrow_mut().get_handle(address)
+    }
 
-        pub fn size_of(&self, handle: u32) -> i32 {
-            self.0.borrow().size_of(handle)
-        }
+    pub fn size_of(&self, handle: u32) -> i32 {
+        self.0.borrow().size_of(handle)
+    }
 
-        pub fn scope_size_of(&self, handle: u32) -> u32 {
-            self.0.borrow().scope_size_of(handle)
-        }
+    pub fn scope_size_of(&self, handle: u32) -> u32 {
+        self.0.borrow().scope_size_of(handle)
+    }
 
-        pub fn free_handle(&self, handle: u32) {
-            self.0.borrow_mut().free_handle(handle)
-        }
+    pub fn free_handle(&self, handle: u32) {
+        self.0.borrow_mut().free_handle(handle)
+    }
 
-        pub fn compact(&self) {
-            self.0.borrow_mut().compact()
-        }
+    pub fn compact(&self) {
+        self.0.borrow_mut().compact()
+    }
 
-        pub fn push_placeholder(&self) -> u32 {
-            self.0.borrow_mut().push_placeholder()
-        }
+    pub fn push_placeholder(&self) -> u32 {
+        self.0.borrow_mut().push_placeholder()
+    }
 
-        pub fn table_len(&self) -> u32 {
-            self.0.borrow().table_len
-        }
+    pub fn table_len(&self) -> u32 {
+        self.0.borrow().table_len
+    }
 
-        pub fn set_table_len(&self, table_len: u32) {
-            debug_assert!(table_len % 2 == 0);
-            let mut heap = self.0.borrow_mut();
-            heap.table_len = table_len;
-        }
+    pub fn set_table_len(&self, table_len: u32) {
+        debug_assert!(table_len % 2 == 0);
+        let mut heap = self.0.borrow_mut();
+        heap.table_len = table_len;
+    }
 
-        pub fn table_read_raw(&self, pos: u32) -> u32 {
-            self.0.borrow().table_read_raw(pos)
-        }
+    pub fn table_read_raw(&self, pos: u32) -> u32 {
+        self.0.borrow().table_read_raw(pos)
+    }
 
-        pub fn table_write_raw(&self, pos: u32, val: u32) {
-            self.0.borrow_mut().table_write_raw(pos, val)
-        }
+    pub fn table_write_raw(&self, pos: u32, val: u32) {
+        self.0.borrow_mut().table_write_raw(pos, val)
+    }
 
-        pub fn handle(&self) -> u32 {
-            self.0.borrow().handle
-        }
+    pub fn handle(&self) -> u32 {
+        self.0.borrow().handle
+    }
 
-        pub fn heap(&self) -> *const u16 {
-            self.0.borrow().heap.as_ptr()
-        }
+    pub fn heap(&self) -> *const u16 {
+        self.0.borrow().heap.as_ptr()
+    }
 
-        pub fn set_handle(&self, handle: u32) {
-            self.0.borrow_mut().handle = handle;
-        }
+    pub fn set_handle(&self, handle: u32) {
+        self.0.borrow_mut().handle = handle;
+    }
 
-        pub fn set_offset(&self, offset: u32) {
-            self.0.borrow_mut().offset = offset;
-        }
+    pub fn set_offset(&self, offset: u32) {
+        self.0.borrow_mut().offset = offset;
+    }
 
-        pub fn reserve(&self, size: u32) -> *mut u16 {
-            self.0.borrow_mut().reserve(size)
-        }
+    pub fn reserve(&self, size: u32) -> *mut u16 {
+        self.0.borrow_mut().reserve(size)
     }
 }

@@ -24,10 +24,10 @@ pub mod ffi;
 pub mod heap;
 pub mod instructions;
 
-wasm_bindgen! {
-    pub fn num_allocated() -> usize {
-        track::total()
-    }
+#[no_mangle]
+#[wasm_bindgen]
+pub extern fn num_allocated() -> usize {
+    track::total()
 }
 
 fn to_u32(a: i32) -> u32 {
