@@ -20,6 +20,8 @@ const POP_REMOTE_ELEMENT: u32 = 8;
 const CLOSE_ELEMENT: u32 = 9;
 const UPDATE_WITH_REFERENCE: u32 = 10;
 const STATIC_ATTR: u32 = 11;
+const DYNAMIC_ATTR: u32 = 12;
+const DYNAMIC_ATTR_WITH_CONST: u32 = 13;
 
 impl Encoder {
     pub fn new() -> Encoder {
@@ -104,5 +106,25 @@ impl Encoder {
     pub fn static_attr(&mut self, name: GBox, value: GBox, namespace: GBox) {
         self.encode(PUSH, namespace, GBox::undefined());
         self.encode(STATIC_ATTR, name, value);
+    }
+
+    pub fn dynamic_attr(&mut self,
+                        name: GBox,
+                        value_reference: GBox,
+                        trusting: GBox,
+                        namespace: GBox) {
+        self.encode(PUSH, namespace, GBox::undefined());
+        self.encode(PUSH, trusting, GBox::undefined());
+        self.encode(DYNAMIC_ATTR, name, value_reference);
+    }
+
+    pub fn dynamic_attr_with_const(&mut self,
+                                   name: GBox,
+                                   value_reference: GBox,
+                                   trusting: GBox,
+                                   namespace: GBox) {
+        self.encode(PUSH, namespace, GBox::undefined());
+        self.encode(PUSH, trusting, GBox::undefined());
+        self.encode(DYNAMIC_ATTR_WITH_CONST, name, value_reference);
     }
 }

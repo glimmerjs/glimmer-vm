@@ -323,6 +323,29 @@ impl VM {
                 self.instructions.static_attr(name, value, namespace);
             }
 
+            Op::DynamicAttr => {
+                let name = GBox::constant_string(opcode.op1(heap).into());
+                let reference = self.stack.pop(1); // CheckReference
+                let trusting = opcode.op2(heap);
+                let namespace = match opcode.op3(heap) {
+                    0 => GBox::null(),
+                    n => GBox::constant_string(n.into()),
+                };
+                let trusting = GBox::bool(trusting != 0);
+
+                if reference.is_const() {
+                    self.instructions.dynamic_attr_with_const(name,
+                                                              reference,
+                                                              trusting,
+                                                              namespace);
+                } else {
+                    self.instructions.dynamic_attr(name,
+                                                   reference,
+                                                   trusting,
+                                                   namespace);
+                }
+            }
+
             op => {
                 debug_assert!(!opcode.is_machine(heap),
                               "bad opcode {:?}", op);

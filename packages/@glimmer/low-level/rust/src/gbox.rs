@@ -71,6 +71,14 @@ impl GBox {
         GBox::from_bits((val << TAG_SIZE) | tag)
     }
 
+    pub fn bool(b: bool) -> GBox {
+        if b {
+            GBox { bits: IMM_TRUE }
+        } else {
+            GBox { bits: IMM_FALSE }
+        }
+    }
+
     pub fn component(idx: u32) -> GBox {
         debug_assert!(idx & (TAG_MASK << (32 - TAG_SIZE)) == 0);
         GBox::from_bits((idx << TAG_SIZE) | TAG_COMPONENT)

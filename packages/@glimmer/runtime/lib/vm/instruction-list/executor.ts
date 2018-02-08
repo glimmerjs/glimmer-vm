@@ -5,6 +5,7 @@ import { VM } from '../../vm';
 import { Assert } from '../../compiled/opcodes/vm';
 import { Opaque } from "@glimmer/interfaces";
 import { ComponentElementOperations } from '../../compiled/opcodes/component';
+import { UpdateDynamicAttributeOpcode } from '../../compiled/opcodes/dom';
 
 export const enum Instruction {
   Push,
@@ -19,6 +20,8 @@ export const enum Instruction {
   CloseElement,
   UpdateWithReference,
   StaticAttr,
+  DynamicAttr,
+  DynamicAttrWithConst,
 }
 
 /**
@@ -81,6 +84,13 @@ export default class InstructionListExecutor {
           break;
         case Instruction.StaticAttr:
           elementBuilder.setStaticAttribute(op1, op2, stack.pop());
+          break;
+        case Instruction.DynamicAttr:
+          const attr = elementBuilder.setDynamicAttribute(op1, op2.value(), stack.pop(), stack.pop());
+          vm.updateWith(new UpdateDynamicAttributeOpcode(op2, attr));
+          break;
+        case Instruction.DynamicAttrWithConst:
+          elementBuilder.setDynamicAttribute(op1, op2.value(), stack.pop(), stack.pop());
           break;
       }
     }
