@@ -64,14 +64,6 @@ export class UpdateModifierOpcode extends UpdatingOpcode {
   }
 }
 
-APPEND_OPCODES.add(Op.StaticAttr, (vm, { op1: _name, op2: _value, op3: _namespace }) => {
-  let name = vm.constants.getString(_name);
-  let value = vm.constants.getString(_value);
-  let namespace = _namespace ? vm.constants.getString(_namespace) : null;
-
-  vm.elements().setStaticAttribute(name, value, namespace);
-});
-
 APPEND_OPCODES.add(Op.DynamicAttr, (vm, { op1: _name, op2: trusting, op3: _namespace }) => {
   let name = vm.constants.getString(_name);
   let reference = check(vm.stack.pop(), CheckReference);

@@ -313,6 +313,16 @@ impl VM {
                 self.instructions.pop_remote_element();
             }
 
+            Op::StaticAttr => {
+                let name = GBox::constant_string(opcode.op1(heap).into());
+                let value = GBox::constant_string(opcode.op2(heap).into());
+                let namespace = match opcode.op3(heap) {
+                    0 => GBox::null(),
+                    n => GBox::constant_string(n.into()),
+                };
+                self.instructions.static_attr(name, value, namespace);
+            }
+
             op => {
                 debug_assert!(!opcode.is_machine(heap),
                               "bad opcode {:?}", op);

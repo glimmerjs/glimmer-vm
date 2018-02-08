@@ -17,7 +17,8 @@ export const enum Instruction {
   PushRemoteElement,
   PopRemoteElement,
   CloseElement,
-  UpdateWithReference
+  UpdateWithReference,
+  StaticAttr,
 }
 
 /**
@@ -77,6 +78,9 @@ export default class InstructionListExecutor {
           break;
         case Instruction.FlushElement:
           elementBuilder.flushElement();
+          break;
+        case Instruction.StaticAttr:
+          elementBuilder.setStaticAttribute(op1, op2, stack.pop());
           break;
       }
     }

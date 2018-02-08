@@ -19,6 +19,7 @@ const PUSH_REMOTE_ELEMENT: u32 = 7;
 const POP_REMOTE_ELEMENT: u32 = 8;
 const CLOSE_ELEMENT: u32 = 9;
 const UPDATE_WITH_REFERENCE: u32 = 10;
+const STATIC_ATTR: u32 = 11;
 
 impl Encoder {
     pub fn new() -> Encoder {
@@ -98,5 +99,10 @@ impl Encoder {
 
     pub fn update_with_reference(&mut self, reference: GBox) {
         self.encode(UPDATE_WITH_REFERENCE, reference, GBox::undefined())
+    }
+
+    pub fn static_attr(&mut self, name: GBox, value: GBox, namespace: GBox) {
+        self.encode(PUSH, namespace, GBox::undefined());
+        self.encode(STATIC_ATTR, name, value);
     }
 }
