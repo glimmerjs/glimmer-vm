@@ -23,3 +23,4 @@ incremental = false # TODO: this fix should go upstream in rustc itself
 [profile.release]
 opt-level = 's'
 panic = 'abort'
+lto = true
