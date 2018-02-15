@@ -380,16 +380,18 @@ export default class TemplateCompiler {
 
   prepareConcatParts(parts: AST.ConcatStatement['parts']) {
     for (let i = parts.length - 1; i >= 0; i--) {
-      let part = parts[i];
-
-      if (part.type === 'MustacheStatement') {
-        this.attributeMustache([part]);
-      } else if (part.type === 'TextNode') {
-        this.opcode('literal', null, part.chars);
-      }
+      this.prepareConcatPart(parts[i]);
     }
 
     this.opcode('prepareArray', null, parts.length);
+  }
+
+  prepareConcatPart(part: AST.TextNode | AST.MustacheStatement) {
+    if (part.type === 'MustacheStatement') {
+      this.attributeMustache([part]);
+    } else if (part.type === 'TextNode') {
+      this.opcode('literal', null, part.chars);
+    }
   }
 
   attributeMustache([action]: [AST.MustacheStatement]) {
