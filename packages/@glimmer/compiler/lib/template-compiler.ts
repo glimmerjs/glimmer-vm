@@ -372,24 +372,34 @@ export default class TemplateCompiler {
         this.attributeMustache([value]);
         return false;
       case 'ConcatStatement':
-        this.prepareConcatParts(value.parts);
-        this.opcode('concat', value);
-        return false;
+        if (value.parts.length === 1) {
+          return this.prepareConcatPart(value.parts[0]);
+
+        } else {
+          this.prepareConcatParts(value.parts);
+          this.opcode('concat', value);
+          return false;
+        }
     }
   }
 
   prepareConcatParts(parts: AST.ConcatStatement['parts']) {
     for (let i = parts.length - 1; i >= 0; i--) {
-      let part = parts[i];
-
-      if (part.type === 'MustacheStatement') {
-        this.attributeMustache([part]);
-      } else if (part.type === 'TextNode') {
-        this.opcode('literal', null, part.chars);
-      }
+      this.prepareConcatPart(parts[i]);
     }
 
     this.opcode('prepareArray', null, parts.length);
+  }
+
+  prepareConcatPart(part: AST.TextNode | AST.MustacheStatement): boolean {
+    switch (part.type) {
+      case 'MustacheStatement':
+        this.attributeMustache([part]);
+        return false;
+      case 'TextNode':
+        this.opcode('literal', null, part.chars);
+        return true;
+    }
   }
 
   attributeMustache([action]: [AST.MustacheStatement]) {
