@@ -1,8 +1,8 @@
-import { Environment, DOMTreeConstruction, IDOMChanges, PrimitiveReference, ConditionalReference } from '@glimmer/runtime';
+import { Environment, DOMTreeConstruction, IDOMChanges, ConditionalReference } from '@glimmer/runtime';
 import { dict } from '@glimmer/util';
 import { Dict, RuntimeResolver, Opaque, VMHandle } from '@glimmer/interfaces';
 import { Program } from '@glimmer/program';
-import { Reference, isConst, OpaqueIterable } from '@glimmer/reference';
+import { Reference, PrimitiveReference, isConst, OpaqueIterable } from '@glimmer/reference';
 
 import { KeyFor, Iterable } from './iterable';
 

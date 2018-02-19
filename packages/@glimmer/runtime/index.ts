@@ -2,7 +2,7 @@ import './lib/bootstrap';
 
 export { default as renderMain, TemplateIterator } from './lib/render';
 
-export { NULL_REFERENCE, UNDEFINED_REFERENCE, PrimitiveReference, ConditionalReference } from './lib/references';
+export { ConditionalReference } from './lib/references';
 
 export {
   setDebuggerCallback,

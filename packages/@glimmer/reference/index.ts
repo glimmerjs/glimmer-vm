@@ -11,6 +11,7 @@ export {
   ListItem
 } from './lib/iterable';
 
+export * from './lib/path';
 export * from './lib/validators';
 
 export {

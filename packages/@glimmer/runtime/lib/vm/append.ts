@@ -2,7 +2,7 @@ import { Register } from '@glimmer/vm';
 import { Scope, DynamicScope, Environment } from '../environment';
 import { ElementBuilder } from './element-builder';
 import { Option, Destroyable, Stack, LinkedList, ListSlice, Opaque, expect, assert } from '@glimmer/util';
-import { ReferenceIterator, PathReference, VersionedPathReference, combineSlice } from '@glimmer/reference';
+import { UNDEFINED_REFERENCE, ReferenceIterator, PathReference, VersionedPathReference, combineSlice } from '@glimmer/reference';
 import { LabelOpcode, JumpIfNotModifiedOpcode, DidModifyOpcode } from '../compiled/opcodes/vm';
 import LowLevelVM, { Program } from './low-level';
 import { VMState, ListBlockOpcode, TryOpcode, BlockOpcode } from './update';
@@ -14,10 +14,6 @@ import {
   UpdatingOpcode,
   DebugState
 } from '../opcodes';
-
-import {
-  UNDEFINED_REFERENCE
-} from '../references';
 
 import { Heap, Opcode } from "@glimmer/program";
 import { RuntimeResolver } from "@glimmer/interfaces";

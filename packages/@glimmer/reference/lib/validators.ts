@@ -168,6 +168,21 @@ function _combine(tags: Tag[]): Tag {
   }
 }
 
+export function pair(a: Tag, b: Tag): Tag {
+  let aConst = isConstTag(a);
+  let bConst = isConstTag(b);
+
+  if (aConst && bConst) {
+    return CONSTANT_TAG;
+  } else if (aConst) {
+    return b;
+  } else if (bConst) {
+    return a;
+  } else {
+    return TagsPair.create(a, b);
+  }
+}
+
 export abstract class CachedTag extends RevisionTag {
   private lastChecked: Option<Revision> = null;
   private lastValue: Option<Revision> = null;

@@ -1,8 +1,8 @@
 import { Option, Opaque, ProgramSymbolTable, ComponentCapabilities, ModuleLocator } from '@glimmer/interfaces';
 import GlimmerObject from '@glimmer/object';
-import { Tag, combine, PathReference, TagWrapper, DirtyableTag } from '@glimmer/reference';
+import { PrimitiveReference, Tag, combine, PathReference, TagWrapper, DirtyableTag } from '@glimmer/reference';
 import { EMPTY_ARRAY, assign, Destroyable, expect } from '@glimmer/util';
-import { Environment, Arguments, WithDynamicTagName, PreparedArguments, WithDynamicLayout, PrimitiveReference, ElementOperations, Bounds, CapturedNamedArguments, DynamicScope, Invocation } from '@glimmer/runtime';
+import { Environment, Arguments, WithDynamicTagName, PreparedArguments, WithDynamicLayout, ElementOperations, Bounds, CapturedNamedArguments, DynamicScope, Invocation } from '@glimmer/runtime';
 import { UpdatableReference } from '@glimmer/object-reference';
 
 import { Attrs, createTemplate, AttrsDiff } from '../shared';

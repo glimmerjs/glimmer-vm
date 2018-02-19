@@ -1,9 +1,8 @@
 import EvaluationStack from './stack';
 import { dict, EMPTY_ARRAY } from '@glimmer/util';
-import { combineTagged } from '@glimmer/reference';
+import { PrimitiveReference, UNDEFINED_REFERENCE, combineTagged } from '@glimmer/reference';
 import { Dict, Opaque, Option, unsafe, BlockSymbolTable } from '@glimmer/interfaces';
 import { Tag, VersionedPathReference, CONSTANT_TAG } from '@glimmer/reference';
-import { PrimitiveReference, UNDEFINED_REFERENCE } from '../references';
 import { ScopeBlock, Scope, BlockValue } from '../environment';
 import { CheckBlockSymbolTable, check, CheckHandle, CheckOption, CheckOr } from '@glimmer/debug';
 import { CheckPathReference, CheckCompilableBlock, CheckScope } from '../compiled/opcodes/-debug-strip';

@@ -1,4 +1,4 @@
-import { Reference, PathReference, OpaqueIterable } from '@glimmer/reference';
+import { UNDEFINED_REFERENCE, Reference, PathReference, OpaqueIterable } from '@glimmer/reference';
 import { Macros, OpcodeBuilderConstructor } from '@glimmer/opcode-compiler';
 import { Simple, RuntimeResolver, CompilableBlock, BlockSymbolTable } from '@glimmer/interfaces';
 import { Program } from "@glimmer/program";
@@ -14,7 +14,7 @@ import {
 import { DOMChanges, DOMTreeConstruction } from './dom/helper';
 import { PublicVM } from './vm/append';
 import { IArguments } from './vm/arguments';
-import { UNDEFINED_REFERENCE, ConditionalReference } from './references';
+import { ConditionalReference } from './references';
 import { DynamicAttributeFactory, defaultDynamicAttributes } from './vm/attributes/dynamic';
 import {
   ModifierManager, Modifier

@@ -1,5 +1,5 @@
 
-import { Reference, PathReference, Tag } from '@glimmer/reference';
+import { UNDEFINED_REFERENCE, Reference, PathReference, Tag } from '@glimmer/reference';
 import { Option, Opaque } from '@glimmer/util';
 import { RuntimeResolver } from '@glimmer/interfaces';
 
@@ -7,7 +7,6 @@ import { ICapturedArguments } from '../vm/arguments';
 import { ComponentDefinition } from '../component/interfaces';
 import { CurriedComponentDefinition, isCurriedComponentDefinition } from '../component/curried-component';
 import { resolveComponent } from '../component/resolve';
-import { UNDEFINED_REFERENCE } from '../references';
 
 export default class CurryComponentReference<TemplateMeta> implements PathReference<Option<CurriedComponentDefinition>> {
   public tag: Tag;

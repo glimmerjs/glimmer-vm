@@ -1,9 +1,8 @@
 import { Opaque, Option } from '@glimmer/interfaces';
-import { VersionedPathReference } from '@glimmer/reference';
+import { FALSE_REFERENCE, TRUE_REFERENCE, VersionedPathReference } from '@glimmer/reference';
 import { Op, Register } from '@glimmer/vm';
 import { Scope, ScopeBlock } from '../../environment';
 import { APPEND_OPCODES } from '../../opcodes';
-import { FALSE_REFERENCE, TRUE_REFERENCE } from '../../references';
 import { PublicVM } from '../../vm';
 import { ConcatReference } from '../expressions/concat';
 import { assert } from "@glimmer/util";

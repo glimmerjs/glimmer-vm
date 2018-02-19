@@ -4,6 +4,7 @@ import {
   CONSTANT_TAG,
   isConst,
   isModified,
+  PrimitiveReference,
   ReferenceCache,
   Revision,
   Tag
@@ -13,7 +14,6 @@ import { CheckNumber, check, CheckInstanceof, CheckOption, CheckBlockSymbolTable
 import { stackAssert } from './assert';
 import { APPEND_OPCODES, UpdatingOpcode } from '../../opcodes';
 import { Scope } from '../../environment';
-import { PrimitiveReference } from '../../references';
 import { VM, UpdatingVM } from '../../vm';
 import { Arguments } from '../../vm/arguments';
 import { LazyConstants, PrimitiveType } from "@glimmer/program";

@@ -2,8 +2,8 @@ import { module, test, EagerTestEnvironment } from "@glimmer/test-helpers";
 import { BundleCompiler, CompilerDelegate } from "@glimmer/bundle-compiler";
 import { RuntimeResolver, ComponentCapabilities, Option } from "@glimmer/interfaces";
 import { RuntimeProgram } from "@glimmer/program";
-import { LowLevelVM, NewElementBuilder, ComponentManager, MINIMAL_CAPABILITIES, ARGS, UNDEFINED_REFERENCE, PrimitiveReference } from "@glimmer/runtime";
-import { CONSTANT_TAG, VersionedPathReference, Tag } from "@glimmer/reference";
+import { LowLevelVM, NewElementBuilder, ComponentManager, MINIMAL_CAPABILITIES, ARGS } from "@glimmer/runtime";
+import { UNDEFINED_REFERENCE, PrimitiveReference, CONSTANT_TAG, VersionedPathReference, Tag } from "@glimmer/reference";
 import { Destroyable } from "@glimmer/util";
 
 class TestCompilerDelegate implements CompilerDelegate<{}> {
