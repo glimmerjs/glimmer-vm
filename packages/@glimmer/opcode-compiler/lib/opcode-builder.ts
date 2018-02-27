@@ -1,16 +1,18 @@
 import {
   Opaque,
   Option,
-  ProgramSymbolTable,
-  SymbolTable,
   Recast,
   VMHandle,
-  BlockSymbolTable,
   ComponentCapabilities,
+  CompilableTemplate,
+  CompilableBlock,
+  CompilableProgram,
   CompileTimeConstants,
   CompileTimeProgram,
   CompileTimeLazyConstants,
-  CompileTimeHeap
+  CompileTimeHeap,
+  STDLib,
+  SymbolTable,
 } from "@glimmer/interfaces";
 import { dict, EMPTY_ARRAY, expect, Stack, unreachable } from '@glimmer/util';
 import { Op, Register } from '@glimmer/vm';
@@ -20,7 +22,6 @@ import { PrimitiveType } from "@glimmer/program";
 
 import {
   Primitive,
-  CompilableBlock,
   ParsedLayout
 } from './interfaces';
 
@@ -31,17 +32,12 @@ import {
   expressionCompiler
 } from './syntax';
 
-import CompilableTemplate, { ICompilableTemplate, PLACEHOLDER_HANDLE } from './compilable-template';
+import CompilableTemplateImpl, { PLACEHOLDER_HANDLE } from './compilable-template';
 
 import {
   ComponentBuilder
 } from './wrapped-component';
-import { InstructionEncoder, Operand, MACHINE_MASK } from "@glimmer/encoder";
-
-export interface STDLib {
-  main: number;
-  guardedAppend: number;
-}
+import { InstructionEncoder, Operand, OpcodeSize } from "@glimmer/encoder";
 
 export type Label = string;
 
@@ -67,13 +63,9 @@ class Labels {
   }
 }
 
-export interface AbstractTemplate<S extends SymbolTable = SymbolTable> {
-  symbolTable: S;
-}
-
 export interface CompileTimeLookup<TemplateMeta> {
   getCapabilities(handle: number): ComponentCapabilities;
-  getLayout(handle: number): Option<ICompilableTemplate<ProgramSymbolTable>>;
+  getLayout(handle: number): Option<CompilableProgram>;
 
   // This interface produces module locators (and indicates if a name is present), but does not
   // produce any actual objects. The main use-case for producing objects is handled above,
@@ -104,12 +96,30 @@ export interface OpcodeBuilderConstructor {
 export class SimpleOpcodeBuilder {
   protected encoder = new InstructionEncoder([]);
 
-  push(name: Op, ...ops: Operand[]) {
-    this.encoder.encode(name, 0, ...ops);
+  push(name: Op): void;
+  push(name: Op, arg1: Operand): void;
+  push(name: Op, arg1: Operand, arg2: Operand): void;
+  push(name: Op, arg1: Operand, arg2: Operand, arg3: Operand): void;
+  push(name: Op) {
+    switch (arguments.length) {
+      case 1:  return this.encoder.encode(name, 0);
+      case 2:  return this.encoder.encode(name, 0, arguments[1]);
+      case 3:  return this.encoder.encode(name, 0, arguments[1], arguments[2]);
+      default: return this.encoder.encode(name, 0, arguments[1], arguments[2], arguments[3]);
+    }
   }
 
-  pushMachine(name: Op, ...ops: Operand[]) {
-    this.encoder.encode(name, MACHINE_MASK, ...ops);
+  pushMachine(name: Op): void;
+  pushMachine(name: Op, arg1: Operand): void;
+  pushMachine(name: Op, arg1: Operand, arg2: Operand): void;
+  pushMachine(name: Op, arg1: Operand, arg2: Operand, arg3: Operand): void;
+  pushMachine(name: Op) {
+    switch (arguments.length) {
+      case 1:  return this.encoder.encode(name, OpcodeSize.MACHINE_MASK);
+      case 2:  return this.encoder.encode(name, OpcodeSize.MACHINE_MASK, arguments[1]);
+      case 3:  return this.encoder.encode(name, OpcodeSize.MACHINE_MASK, arguments[1], arguments[2]);
+      default: return this.encoder.encode(name, OpcodeSize.MACHINE_MASK, arguments[1], arguments[2], arguments[3]);
+    }
   }
 
   commit(heap: CompileTimeHeap, scopeSize: number): number {
@@ -132,22 +142,12 @@ export class SimpleOpcodeBuilder {
     return handle;
   }
 
-  reserve(name: Op, size = 1) {
-    let reservedOperands = [];
-    for (let i = 0; i < size; i++) {
-      reservedOperands[i] = -1;
-    }
-
-    this.push(name, ...reservedOperands);
+  reserve(name: Op) {
+    this.encoder.encode(name, 0, -1);
   }
 
-  reserveMachine(name: Op, size = 1) {
-    let reservedOperands = [];
-    for (let i = 0; i < size; i++) {
-      reservedOperands[i] = -1;
-    }
-
-    this.pushMachine(name, ...reservedOperands);
+  reserveMachine(name: Op) {
+    this.encoder.encode(name, OpcodeSize.MACHINE_MASK, -1);
   }
 
   ///
@@ -557,11 +557,11 @@ export abstract class OpcodeBuilder<Locator> extends SimpleOpcodeBuilder {
           if (_primitive as number > -1) {
             primitive = _primitive as number;
           } else {
-            primitive = this.negative(_primitive as number);
+            primitive = this.constants.number(_primitive as number);
             type = PrimitiveType.NEGATIVE;
           }
         } else {
-          primitive = this.float(_primitive as number);
+          primitive = this.constants.number(_primitive as number);
           type = PrimitiveType.FLOAT;
         }
         break;
@@ -586,15 +586,16 @@ export abstract class OpcodeBuilder<Locator> extends SimpleOpcodeBuilder {
         throw new Error('Invalid primitive passed to pushPrimitive');
     }
 
-    this.push(Op.Primitive, primitive << 3 | type);
+    let immediate = this.sizeImmediate(primitive << 3 | type, primitive);
+    this.push(Op.Primitive, immediate);
   }
 
-  float(num: number): number {
-    return this.constants.float(num);
-  }
+  sizeImmediate(shifted: number, primitive: number) {
+    if (shifted >= OpcodeSize.MAX_SIZE || shifted < 0) {
+      return this.constants.number(primitive) << 3 | PrimitiveType.BIG_NUM;
+    }
 
-  negative(num: number): number {
-    return this.constants.negative(num);
+    return shifted;
   }
 
   pushPrimitiveReference(primitive: Primitive) {
@@ -680,7 +681,7 @@ export abstract class OpcodeBuilder<Locator> extends SimpleOpcodeBuilder {
       referrer: this.referrer
     };
 
-    return new CompilableTemplate(statements, this.containingLayout, options, symbolTable);
+    return new CompilableTemplateImpl(statements, this.containingLayout, options, symbolTable);
   }
 
   evalSymbols(): Option<string[]> {
@@ -855,7 +856,7 @@ export abstract class OpcodeBuilder<Locator> extends SimpleOpcodeBuilder {
     this.push(Op.PopulateLayout, state);
   }
 
-  invokeComponent(attrs: Option<CompilableBlock>, params: Option<WireFormat.Core.Params>, hash: WireFormat.Core.Hash, synthetic: boolean, block: Option<CompilableBlock>, inverse: Option<CompilableBlock> = null, layout?: ICompilableTemplate<ProgramSymbolTable>) {
+  invokeComponent(attrs: Option<CompilableBlock>, params: Option<WireFormat.Core.Params>, hash: WireFormat.Core.Hash, synthetic: boolean, block: Option<CompilableBlock>, inverse: Option<CompilableBlock> = null, layout?: CompilableProgram) {
     this.fetch(Register.s0);
     this.dup(Register.sp, 1);
     this.load(Register.s0);
@@ -882,7 +883,7 @@ export abstract class OpcodeBuilder<Locator> extends SimpleOpcodeBuilder {
     this.load(Register.s0);
   }
 
-  invokeStaticComponent(capabilities: ComponentCapabilities, layout: ICompilableTemplate<ProgramSymbolTable>, attrs: Option<CompilableBlock>, params: Option<WireFormat.Core.Params>, hash: WireFormat.Core.Hash, synthetic: boolean, block: Option<CompilableBlock>, inverse: Option<CompilableBlock> = null) {
+  invokeStaticComponent(capabilities: ComponentCapabilities, layout: CompilableProgram, attrs: Option<CompilableBlock>, params: Option<WireFormat.Core.Params>, hash: WireFormat.Core.Hash, synthetic: boolean, block: Option<CompilableBlock>, inverse: Option<CompilableBlock> = null) {
     let { symbolTable } = layout;
 
     let bailOut =
@@ -1044,8 +1045,8 @@ export abstract class OpcodeBuilder<Locator> extends SimpleOpcodeBuilder {
 
   abstract pushBlock(block: Option<CompilableBlock>): void;
   abstract resolveBlock(): void;
-  abstract pushLayout(layout: Option<ICompilableTemplate<ProgramSymbolTable>>): void;
-  abstract invokeStatic(block: ICompilableTemplate<SymbolTable>): void;
+  abstract pushLayout(layout: Option<CompilableProgram>): void;
+  abstract invokeStatic(block: CompilableTemplate): void;
   abstract resolveLayout(): void;
 
   pushSymbolTable(table: Option<SymbolTable>): void {
@@ -1091,7 +1092,7 @@ export class LazyOpcodeBuilder<TemplateMeta> extends OpcodeBuilder<TemplateMeta>
     this.push(Op.CompileBlock);
   }
 
-  pushLayout(layout: Option<CompilableTemplate<ProgramSymbolTable, TemplateMeta>>) {
+  pushLayout(layout: Option<CompilableProgram>) {
     if (layout) {
       this.pushOther(layout);
     } else {
@@ -1103,7 +1104,7 @@ export class LazyOpcodeBuilder<TemplateMeta> extends OpcodeBuilder<TemplateMeta>
     this.push(Op.CompileBlock);
   }
 
-  invokeStatic(compilable: ICompilableTemplate<SymbolTable>): void {
+  invokeStatic(compilable: CompilableTemplate): void {
     this.pushOther(compilable);
     this.push(Op.CompileBlock);
     this.pushMachine(Op.InvokeVirtual);
@@ -1119,7 +1120,7 @@ export class LazyOpcodeBuilder<TemplateMeta> extends OpcodeBuilder<TemplateMeta>
 }
 
 export class EagerOpcodeBuilder<TemplateMeta> extends OpcodeBuilder<TemplateMeta> {
-  pushBlock(block: Option<ICompilableTemplate<BlockSymbolTable>>): void {
+  pushBlock(block: Option<CompilableBlock>): void {
     let handle = block ? block.compile(this.stdLib) as Recast<VMHandle, number> : null;
     this.primitive(handle);
   }
@@ -1128,7 +1129,7 @@ export class EagerOpcodeBuilder<TemplateMeta> extends OpcodeBuilder<TemplateMeta
     return;
   }
 
-  pushLayout(layout: Option<CompilableTemplate<ProgramSymbolTable, TemplateMeta>>): void {
+  pushLayout(layout: Option<CompilableProgram>): void {
     if (layout) {
       this.primitive(layout.compile(this.stdLib) as Recast<VMHandle, number>);
     } else {
@@ -1138,7 +1139,7 @@ export class EagerOpcodeBuilder<TemplateMeta> extends OpcodeBuilder<TemplateMeta
 
   resolveLayout() {}
 
-  invokeStatic(compilable: ICompilableTemplate<SymbolTable>): void {
+  invokeStatic(compilable: CompilableTemplate): void {
     let handle = compilable.compile();
 
     // If the handle for the invoked component is not yet known (for example,

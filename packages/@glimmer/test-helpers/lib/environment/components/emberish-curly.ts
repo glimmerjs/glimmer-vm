@@ -1,5 +1,4 @@
-import { WrappedBuilder } from '@glimmer/opcode-compiler';
-import { Option, Opaque, ProgramSymbolTable, ComponentCapabilities } from '@glimmer/interfaces';
+import { Option, Opaque, ProgramSymbolTable, ComponentCapabilities, ModuleLocator } from '@glimmer/interfaces';
 import GlimmerObject from '@glimmer/object';
 import { Tag, combine, PathReference, TagWrapper, DirtyableTag } from '@glimmer/reference';
 import { EMPTY_ARRAY, assign, Destroyable, expect } from '@glimmer/util';
@@ -10,7 +9,6 @@ import { Attrs, createTemplate, AttrsDiff } from '../shared';
 import LazyRuntimeResolver from '../modes/lazy/runtime-resolver';
 import EagerRuntimeResolver from '../modes/eager/runtime-resolver';
 import { TestComponentDefinitionState, TemplateMeta } from '../components';
-import { ModuleLocator } from '@glimmer/bundle-compiler';
 
 export class EmberishCurlyComponent extends GlimmerObject {
   public static positionalParams: string[] | string = [];
@@ -103,8 +101,9 @@ export class EmberishCurlyComponentManager implements
     }
 
     return resolver.compileTemplate(handle, layout.name, (source, options) => {
-      let template = createTemplate(source);
-      let builder = new WrappedBuilder(assign({}, options, { asPartial: false, referrer: null }), template, CURLY_CAPABILITIES);
+      let factory = createTemplate(source);
+      let template = factory.create(options);
+      let builder = template.asWrappedLayout();
       return {
         handle: builder.compile(),
         symbolTable: builder.symbolTable

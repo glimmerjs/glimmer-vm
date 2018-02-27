@@ -1,8 +1,6 @@
-import { ProgramSymbolTable, ComponentCapabilities } from "@glimmer/interfaces";
-import { ICompilableTemplate, CompileOptions } from "@glimmer/opcode-compiler";
+import { ComponentCapabilities, CompilableProgram, ModuleLocator } from "@glimmer/interfaces";
+import { CompileOptions } from "@glimmer/opcode-compiler";
 import { SerializedTemplateBlock } from "@glimmer/wire-format";
-
-import { ModuleLocator } from "./module-locators";
 
 /**
  * A CompilerDelegate helps the BundleCompiler map external references it finds
@@ -73,7 +71,7 @@ export default interface CompilerDelegate<TemplateMeta> {
     locator: TemplateMeta,
     block: SerializedTemplateBlock,
     options: CompileOptions<TemplateMeta>
-  ): ICompilableTemplate<ProgramSymbolTable>;
+  ): CompilableProgram;
 
   /**
    * During compilation, the compiler will ask the delegate about each possible

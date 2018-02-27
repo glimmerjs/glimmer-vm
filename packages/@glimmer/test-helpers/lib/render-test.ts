@@ -1,5 +1,5 @@
 import { PathReference, Tagged, TagWrapper, RevisionTag, DirtyableTag, Tag } from "@glimmer/reference";
-import { RenderResult, RenderLayoutOptions, TemplateIterator, Environment, Cursor, ElementBuilder } from "@glimmer/runtime";
+import { RenderResult, TemplateIterator, Environment, Cursor, ElementBuilder } from "@glimmer/runtime";
 import { Opaque, Dict, dict, expect } from "@glimmer/util";
 import { NodeDOMTreeConstruction, serializeBuilder } from "@glimmer/node";
 import { Option, Simple } from "@glimmer/interfaces";
@@ -10,7 +10,6 @@ import { assign, equalTokens, normalizeInnerHTML } from "./helpers";
 import LazyTestEnvironment from './environment/modes/lazy/environment';
 import LazyRenderDelegate from "./environment/modes/lazy/render-delegate";
 import {
-  TestDynamicScope,
   equalsElement,
   classes,
   regex
@@ -22,8 +21,8 @@ import { debugRehydration } from "./environment/modes/rehydration/debug-builder"
 
 export const OPEN: { marker: "open-block" } = { marker: "open-block" };
 export const CLOSE: { marker: "close-block" } = { marker: "close-block" };
-export const SEP: { marker: "sep" } = { marker: "sep" };
-export const EMPTY: { marker: "empty" } = { marker: "empty" };
+export const SEP: { marker: "|" } = { marker: "|" };
+export const EMPTY: { marker: " " } = { marker: " " };
 export const GLIMMER_TEST_COMPONENT = "TestComponent";
 const CURLY_TEST_COMPONENT = "test-component";
 
@@ -552,17 +551,14 @@ export class RehydrationDelegate implements RenderDelegate {
     return serializeBuilder(env, cursor);
   }
 
-  renderServerSide(template: string, context: Dict<Opaque>, takeSnapshot: () => void): string {
+  renderServerSide(template: string, context: Dict<Opaque>, takeSnapshot: () => void, element: Element | undefined = undefined): string {
     let env = this.serverEnv;
-    let element = env.getAppendOperations().createElement("div") as HTMLDivElement;
+    element = element || env.getAppendOperations().createElement("div") as HTMLDivElement;
     let cursor = { element, nextSibling: null };
     // Emulate server-side render
-    renderTemplate(template, {
-      env,
-      self: this.getSelf(context),
-      dynamicScope: new TestDynamicScope(),
-      builder: this.getElementBuilder(env, cursor)
-    });
+    renderTemplate(template,
+      env, this.getSelf(context),
+      this.getElementBuilder(env, cursor));
 
     takeSnapshot();
     return this.serialize(element);
@@ -583,12 +579,11 @@ export class RehydrationDelegate implements RenderDelegate {
     // Client-side rehydration
     let cursor = { element, nextSibling: null };
     let builder = this.getElementBuilder(env, cursor);
-    let result = renderTemplate(template, {
+    let result = renderTemplate(template,
       env,
-      self: this.getSelf(context),
-      dynamicScope: new TestDynamicScope(),
+      this.getSelf(context),
       builder
-    });
+    );
 
     this.rehydrationStats = {
       clearedNodes: builder['clearedNodes']
@@ -897,10 +892,9 @@ function isTestFunction(
   return typeof value === 'function' && value.isTest;
 }
 
-export function renderTemplate(template: string, options: RenderLayoutOptions & { env: LazyTestEnvironment }) {
-  let { env } = options;
-
-  let iterator = env.compile(template).renderLayout(options);
+export function renderTemplate(src: string, env: LazyTestEnvironment, self: PathReference<Opaque>, builder: ElementBuilder) {
+  let template = env.compile(src);
+  let iterator = env.renderMain(template, self, builder);
   return renderSync(env, iterator);
 }
 
@@ -922,9 +916,9 @@ export function content(list: Content[]): string {
     if (typeof item === 'string') {
       out.push(item);
     } else if (item.marker === 'open-block') {
-      out.push(`<!--%+block:${depth++}%-->`);
+      out.push(`<!--%+b:${depth++}%-->`);
     } else if (item.marker === 'close-block') {
-      out.push(`<!--%-block:${--depth}%-->`);
+      out.push(`<!--%-b:${--depth}%-->`);
     } else {
       out.push(`<!--%${item.marker}%-->`);
     }

@@ -1,5 +1,4 @@
 import { Opaque, Unique } from './core';
-import { SymbolTable } from './tier1/symbol-table';
 
 export interface Opcode {
   offset: number;
@@ -39,8 +38,7 @@ export interface CompileTimeConstants {
   array(values: number[]): number;
   handle(locator: Opaque): number;
   serializable(value: Opaque): number;
-  float(value: number): number;
-  negative(value: number): number;
+  number(value: number): number;
 }
 
 export interface CompileTimeLazyConstants extends CompileTimeConstants {

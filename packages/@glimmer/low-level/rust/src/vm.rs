@@ -202,17 +202,17 @@ impl VM {
                 self.stack.push(value);
             }
 
-            Op::PushDynamicComponentInstance => {
-                let definition = self.stack.pop(1);
-                let idx = self.add_component(Component {
-                    definition,
-                    manager: GBox::null(),
-                    state: GBox::null(),
-                    handle: GBox::null(),
-                    table: GBox::null(),
-                });
-                self.stack.push(GBox::component(idx));
-            }
+            // Op::PushDynamicComponentInstance => {
+            //     let definition = self.stack.pop(1);
+            //     let idx = self.add_component(Component {
+            //         definition,
+            //         manager: GBox::null(),
+            //         state: GBox::null(),
+            //         handle: GBox::null(),
+            //         table: GBox::null(),
+            //     });
+            //     self.stack.push(GBox::component(idx));
+            // }
 
             Op::PopulateLayout => {
                 let handle = self.stack.pop(1); // CheckHandle
@@ -237,14 +237,16 @@ impl VM {
                 const STRING: u16 = 0b010;
                 const BOOLEAN_OR_VOID: u16 = 0b011;
                 const NEGATIVE: u16 = 0b100;
+                const BIG_NUM: u16 = 0b101;
 
                 let flag = primitive & 0b111;
                 let value = primitive >> 3;
                 let gbox = match flag {
                     NUMBER => GBox::i32(value.into()),
-                    FLOAT => GBox::constant_float(value.into()),
+                    FLOAT => GBox::constant_number(value.into()),
                     STRING => GBox::constant_string(value.into()),
-                    NEGATIVE => GBox::constant_negative(value.into()),
+                    NEGATIVE => GBox::constant_number(value.into()),
+                    BIG_NUM => GBox::constant_number(value.into()),
 
                     // TODO: should probably decouple the encoding of immediates
                     // for this opcode and the encoding of `GBox.

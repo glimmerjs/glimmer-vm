@@ -1,4 +1,3 @@
-import { ICapturedArguments } from './arguments';
 import { Register } from '@glimmer/vm';
 import { Scope, DynamicScope, Environment } from '../environment';
 import { ElementBuilder } from './element-builder';
@@ -24,7 +23,8 @@ import {
   UNDEFINED_REFERENCE
 } from '../references';
 
-import { Heap, RuntimeProgram as Program, RuntimeConstants, RuntimeProgram, Opcode } from "@glimmer/program";
+import { Heap, Opcode } from "@glimmer/program";
+import { RuntimeResolver } from "@glimmer/interfaces";
 
 export interface PublicVM {
   env: Environment;
@@ -41,7 +41,23 @@ export type IteratorResult<T> = {
   value: T;
 };
 
-export default class VM<TemplateMeta> implements PublicVM {
+export interface Constants<T> {
+  resolver: RuntimeResolver<T>;
+  getNumber(value: number): number;
+  getString(handle: number): string;
+  getStringArray(value: number): string[];
+  getArray(value: number): number[];
+  resolveHandle<T>(index: number): T;
+  getSerializable<T>(s: number): T;
+}
+
+export interface RuntimeProgram<T> {
+  heap: Heap;
+  constants: Constants<T>;
+  opcode(offset: number): Opcode;
+}
+
+export default class VM<T> implements PublicVM {
   private dynamicScopeStack = new Stack<DynamicScope>();
   private scopeStack = new Stack<Scope>();
   private wasmVM: WasmLowLevelVM;
@@ -52,7 +68,7 @@ export default class VM<TemplateMeta> implements PublicVM {
   public updatingOpcodeStack = new Stack<LinkedList<UpdatingOpcode>>();
   public cacheGroups = new Stack<Option<UpdatingOpcode>>();
   public listBlockStack = new Stack<ListBlockOpcode>();
-  public constants: RuntimeConstants<TemplateMeta>;
+  public constants: Constants<T>;
   public heap: Heap;
 
   /* Registers */
@@ -90,30 +106,24 @@ export default class VM<TemplateMeta> implements PublicVM {
    * End of migrated.
    */
 
-  static initial<TemplateMeta>(
-    program: RuntimeProgram<TemplateMeta>,
+  static initial<T>(
+    program: RuntimeProgram<T>,
     env: Environment,
     self: PathReference<Opaque>,
-    args: Option<ICapturedArguments>,
     dynamicScope: DynamicScope,
     elementStack: ElementBuilder,
     handle: number
   ) {
     let scopeSize = program.heap.scopesizeof(handle);
     let scope = Scope.root(self, scopeSize);
-
-    if (args) {
-
-    }
-
     let vm = new VM(program, env, scope, dynamicScope, elementStack);
     vm.wasmVM.set_pc(vm.heap.getaddr(handle));
     vm.updatingOpcodeStack.push(new LinkedList<UpdatingOpcode>());
     return vm;
   }
 
-  static empty<TemplateMeta>(
-    program: RuntimeProgram<TemplateMeta>,
+  static empty<T>(
+    program: RuntimeProgram<T>,
     env: Environment,
     elementStack: ElementBuilder
   ) {
@@ -133,7 +143,7 @@ export default class VM<TemplateMeta> implements PublicVM {
   }
 
   constructor(
-    private program: Program<TemplateMeta>,
+    private program: RuntimeProgram<T>,
     public env: Environment,
     scope: Scope,
     dynamicScope: DynamicScope,
@@ -178,7 +188,7 @@ export default class VM<TemplateMeta> implements PublicVM {
   private capture(args: number): VMState {
     return {
       env: this.env,
-      program: this.program,
+      program: this.program as any,
       dynamicScope: this.dynamicScope(),
       scope: this.scope(),
       stack: this.stack.capture(args)
@@ -361,7 +371,7 @@ export default class VM<TemplateMeta> implements PublicVM {
 
   /// EXECUTION
 
-  execute(start: number, initialize?: (vm: VM<TemplateMeta>) => void): RenderResult {
+  execute(start: number, initialize?: (vm: VM<T>) => void): RenderResult {
     this.wasmVM.set_pc(this.heap.getaddr(start));
 
     if (initialize) initialize(this);

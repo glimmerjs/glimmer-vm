@@ -21,6 +21,7 @@ import {
 } from '@glimmer/interfaces';
 import VM from './append';
 import { isConst } from "@glimmer/reference";
+import { CapabilityFlags } from "../capabilities";
 
 // Note that these need to stay in sync with `constants.ts`
 //
@@ -37,8 +38,7 @@ enum Tag {
 
 enum ConstantTag {
   STRING   = 0b00,
-  FLOAT    = 0b01,
-  NEGATIVE = 0b10,
+  NUMBER   = 0b01,
 }
 
 enum ObjectTag {
@@ -72,7 +72,7 @@ export class Context {
   encode(a: any): number {
     switch (typeof a) {
       case 'number':
-        if (a as number % 1 === 0)
+        if (a as number % 1 === 0 && Math.abs(a as number) < 0x80000000)
           return this.encodeSmi(a as number);
         break;
       case 'boolean':
@@ -158,10 +158,8 @@ export class Context {
     switch (bits & CONSTANT_TAG_MASK) {
       case ConstantTag.STRING:
         return this.vm.constants.getString(bits >> CONSTANT_TAG_SIZE);
-      case ConstantTag.FLOAT:
-        return this.vm.constants.getFloat(bits >> CONSTANT_TAG_SIZE);
-      case ConstantTag.NEGATIVE:
-        return this.vm.constants.getNegative(bits >> CONSTANT_TAG_SIZE);
+      case ConstantTag.NUMBER:
+        return this.vm.constants.getNumber(bits >> CONSTANT_TAG_SIZE);
       default:
         throw new Error("invalid constant encoding in gbox");
     }
@@ -214,6 +212,7 @@ const FIELD_MANAGER = 1;
 const FIELD_STATE = 2;
 const FIELD_HANDLE = 3;
 const FIELD_TABLE = 4;
+const FIELD_CAPABILITIES = 4;
 
 class ComponentInstanceProxy implements ComponentInstance {
   constructor(private idx: number, private vm: WasmLowLevelVM, private cx: Context) {
@@ -245,6 +244,14 @@ class ComponentInstanceProxy implements ComponentInstance {
 
   set manager(v: InternalComponentManager) {
     this.set_field(FIELD_MANAGER, v);
+  }
+
+  get capabilities(): CapabilityFlags {
+    return this.field(FIELD_CAPABILITIES) as CapabilityFlags;
+  }
+
+  set capabilities(v: CapabilityFlags) {
+    this.set_field(FIELD_CAPABILITIES, v);
   }
 
   get state(): ComponentInstanceState {

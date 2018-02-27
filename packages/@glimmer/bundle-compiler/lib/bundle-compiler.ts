@@ -5,19 +5,22 @@ import { SerializedTemplateBlock } from "@glimmer/wire-format";
 import {
   ProgramSymbolTable,
   Recast,
+  STDLib,
   VMHandle,
-  Unique
+  Unique,
+  ModuleLocator,
+  TemplateLocator,
+  CompilableProgram,
+  CompilableTemplate
 } from "@glimmer/interfaces";
 import {
-  CompilableTemplate,
+  CompilableTemplate as CompilableTemplateImpl,
   Macros,
   OpcodeBuilderConstructor,
   CompileOptions,
-  ICompilableTemplate,
   EagerOpcodeBuilder,
   TemplateOptions,
   SimpleOpcodeBuilder,
-  STDLib
 } from "@glimmer/opcode-compiler";
 import {
   WriteOnlyProgram,
@@ -25,11 +28,7 @@ import {
   SerializedHeap
 } from "@glimmer/program";
 
-import {
-  ModuleLocator,
-  ModuleLocatorMap,
-  TemplateLocator
-} from "./module-locators";
+import ModuleLocatorMap from "./module-locator-map";
 import DebugConstants from "./debug-constants";
 import ExternalModuleTable from "./external-module-table";
 import CompilerDelegate from "./compiler-delegate";
@@ -84,6 +83,9 @@ export interface PartialTemplateLocator<TemplateMeta> extends ModuleLocator {
   kind?: 'template';
 }
 
+// to make --declaration happy
+export { CompilableTemplate };
+
 /**
  * The BundleCompiler is used to compile all of the component templates in a
  * Glimmer program into binary bytecode.
@@ -98,9 +100,7 @@ export interface PartialTemplateLocator<TemplateMeta> extends ModuleLocator {
  * can be loaded and run in the browser.
  */
 export default class BundleCompiler<TemplateMeta> {
-  public compilableTemplates = new ModuleLocatorMap<
-    ICompilableTemplate<ProgramSymbolTable>
-  >();
+  public compilableTemplates = new ModuleLocatorMap<CompilableProgram>();
   public compiledBlocks = new ModuleLocatorMap<SerializedTemplateBlock, TemplateLocator<TemplateMeta>>();
   public meta = new ModuleLocatorMap<TemplateMeta>();
 
@@ -133,7 +133,7 @@ export default class BundleCompiler<TemplateMeta> {
     this.compiledBlocks.set(locator, block);
 
     let compileOptions = this.compileOptions(locator);
-    let compilableTemplate = CompilableTemplate.topLevel(block, compileOptions);
+    let compilableTemplate = CompilableTemplateImpl.topLevel(block, compileOptions);
 
     this.addCompilableTemplate(locator, compilableTemplate);
 
@@ -145,7 +145,7 @@ export default class BundleCompiler<TemplateMeta> {
    */
   addCompilableTemplate(
     _locator: PartialTemplateLocator<TemplateMeta>,
-    template: ICompilableTemplate<ProgramSymbolTable>
+    template: CompilableProgram
   ): void {
     let locator = normalizeLocator(_locator);
 

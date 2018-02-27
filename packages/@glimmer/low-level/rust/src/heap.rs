@@ -9,9 +9,9 @@ use util;
 
 enum State {
     Allocated,
-    Pointer,
     Freed,
     Purged,
+    Pointer,
 }
 
 fn encode_table_info(size: u32, scope_size: u32, state: State) -> u32 {

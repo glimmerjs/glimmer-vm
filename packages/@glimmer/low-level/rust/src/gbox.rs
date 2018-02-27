@@ -19,8 +19,7 @@ const CONSTANT_TAG_SIZE: usize = 2;
 const CONSTANT_TAG_MASK: u32 = (1 << CONSTANT_TAG_SIZE) - 1;
 
 const CONSTANT_STRING: u32   = 0b00;
-const CONSTANT_FLOAT: u32    = 0b01;
-const CONSTANT_NEGATIVE: u32 = 0b10;
+const CONSTANT_NUMBER: u32   = 0b01;
 
 const IMM_FALSE: u32 = (0 << TAG_SIZE) | TAG_BOOLEAN_OR_VOID;
 const IMM_TRUE: u32 = (1 << TAG_SIZE) | TAG_BOOLEAN_OR_VOID;
@@ -43,8 +42,7 @@ pub enum Value {
     Component(u32),
     Other(u32),
     ConstantString(u32),
-    ConstantFloat(u32),
-    ConstantNegative(u32),
+    ConstantNumber(u32),
 }
 
 fn assert_constant_idx_ok(idx: u32) {
@@ -93,14 +91,9 @@ impl GBox {
         GBox::constant(idx, CONSTANT_STRING)
     }
 
-    pub fn constant_float(idx: u32) -> GBox {
+    pub fn constant_number(idx: u32) -> GBox {
         assert_constant_idx_ok(idx);
-        GBox::constant(idx, CONSTANT_FLOAT)
-    }
-
-    pub fn constant_negative(idx: u32) -> GBox {
-        assert_constant_idx_ok(idx);
-        GBox::constant(idx, CONSTANT_NEGATIVE)
+        GBox::constant(idx, CONSTANT_NUMBER)
     }
 
     fn constant(idx: u32, tag: u32) -> GBox {
@@ -139,8 +132,7 @@ impl GBox {
                 let idx = bits >> CONSTANT_TAG_SIZE;
                 match bits & CONSTANT_TAG_MASK {
                     CONSTANT_STRING => Value::ConstantString(idx),
-                    CONSTANT_FLOAT => Value::ConstantFloat(idx),
-                    CONSTANT_NEGATIVE => Value::ConstantNegative(idx),
+                    CONSTANT_NUMBER => Value::ConstantNumber(idx),
                     tag => panic!("invalid constant tag: 0b{:b}", tag),
                 }
             }
