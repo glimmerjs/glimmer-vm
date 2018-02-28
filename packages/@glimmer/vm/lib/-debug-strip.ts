@@ -19,6 +19,7 @@ export type DebugBeforeFunction = (opcode: Opcode, vm: VM) => Opaque;
 export type OperandType =
     'handle'
   | 'i32'
+  | 'to'
   | 'str'
   | 'option-str'
   | 'str-array'
@@ -44,6 +45,10 @@ function Handle(name: string): Operand {
 
 function I32(name: string): Operand {
   return { type: 'i32', name };
+}
+
+function TO(name: string): Operand {
+  return { type: 'to', name };
 }
 
 function Bool(name: string): Operand {
@@ -212,22 +217,32 @@ OPCODE_METADATA(Op.InvokeYield, {
 
 OPCODE_METADATA(Op.Jump, {
   name: 'Jump',
-  ops: [I32('to')],
+  ops: [TO('to')],
   operands: 1
 });
 
 OPCODE_METADATA(Op.JumpIf, {
   name: 'JumpIf',
-  ops: [I32('to')],
+  ops: [TO('to')],
   operands: 1,
   stackChange: -1
 });
 
 OPCODE_METADATA(Op.JumpUnless, {
   name: 'JumpUnless',
-  ops: [I32('to')],
+  ops: [TO('to')],
   operands: 1,
   stackChange: -1
+});
+
+OPCODE_METADATA(Op.JumpEq, {
+  name: 'JumpEq',
+  ops: [TO('to'), I32('comparison')],
+  operands: 2
+});
+
+OPCODE_METADATA(Op.AssertSame, {
+  name: 'AssertSame'
 });
 
 OPCODE_METADATA(Op.PushFrame, {
@@ -244,6 +259,23 @@ OPCODE_METADATA(Op.PopFrame, {
 
   stackChange({ state }: { state: { sp: number, fp: number } }) {
     return state.fp - state.sp - 1;
+  }
+});
+
+OPCODE_METADATA(Op.PushSmallFrame, {
+  name: 'PushSmallFrame',
+  stackChange: 1
+});
+
+OPCODE_METADATA(Op.PopSmallFrame, {
+  name: 'PopFrame',
+
+  before(_opcode: Opcode, vm: VM): { sp: number, fp: number } {
+    return { sp: vm.stack.sp, fp: vm.stack.fp };
+  },
+
+  stackChange({ state }: { state: { sp: number, fp: number } }) {
+    return state.fp - state.sp;
   }
 });
 
@@ -269,6 +301,10 @@ OPCODE_METADATA(Op.RootScope, {
   operands: 2
 });
 
+OPCODE_METADATA(Op.VirtualRootScope, {
+  name: 'VirtualRootScope'
+});
+
 OPCODE_METADATA(Op.ChildScope, {
   name: 'ChildScope'
 });
@@ -283,7 +319,7 @@ OPCODE_METADATA(Op.Return, {
 
 OPCODE_METADATA(Op.ReturnTo, {
   name: 'ReturnTo',
-  ops: [I32('offset')],
+  ops: [TO('offset')],
   operands: 1
 });
 
@@ -291,6 +327,11 @@ OPCODE_METADATA(Op.ReturnTo, {
 
 OPCODE_METADATA(Op.IsComponent, {
   name: 'IsComponent'
+});
+
+OPCODE_METADATA(Op.ContentType, {
+  name: 'ContentType',
+  stackChange: 1
 });
 
 OPCODE_METADATA(Op.CurryComponent, {
@@ -313,6 +354,11 @@ OPCODE_METADATA(Op.PushArgs, {
   name: 'PushArgs',
   ops: [StrArray('names'), I32('positionals'), Bool('synthetic')],
   operands: 3,
+  stackChange: 1
+});
+
+OPCODE_METADATA(Op.PushEmptyArgs, {
+  name: 'PushEmptyArgs',
   stackChange: 1
 });
 
@@ -361,6 +407,18 @@ OPCODE_METADATA(Op.GetComponentLayout, {
   ops: [Register('state')],
   operands: 1,
   stackChange: 2
+});
+
+OPCODE_METADATA(Op.SetupForEval, {
+  name: 'SetupForEval',
+  ops: [Register('state')],
+  operands: 1
+});
+
+OPCODE_METADATA(Op.BindEvalScope, {
+  name: 'BindEvalScope',
+  ops: [Register('state')],
+  operands: 1
 });
 
 OPCODE_METADATA(Op.InvokeComponentLayout, {
@@ -424,10 +482,33 @@ OPCODE_METADATA(Op.Comment, {
   operands: 1
 });
 
-OPCODE_METADATA(Op.DynamicContent, {
-  name: 'DynamicContent',
-  ops: [Bool('trusting')],
-  operands: 0,
+OPCODE_METADATA(Op.AppendHTML, {
+  name: 'AppendHTML',
+  stackChange: -1
+});
+
+OPCODE_METADATA(Op.AppendSafeHTML, {
+  name: 'AppendSafeHTML',
+  stackChange: -1
+});
+
+OPCODE_METADATA(Op.AppendDocumentFragment, {
+  name: 'AppendDocumentFragment',
+  stackChange: -1
+});
+
+OPCODE_METADATA(Op.AppendNode, {
+  name: 'AppendNode',
+  stackChange: -1
+});
+
+OPCODE_METADATA(Op.AppendOther, {
+  name: 'AppendNode',
+  stackChange: -1
+});
+
+OPCODE_METADATA(Op.AppendText, {
+  name: 'AppendText',
   stackChange: -1
 });
 
@@ -520,6 +601,11 @@ OPCODE_METADATA(Op.PrimitiveReference, {
   name: 'PrimitiveReference'
 });
 
+OPCODE_METADATA(Op.ReifyU32, {
+  name: 'ReifyU32',
+  stackChange: 1
+});
+
 OPCODE_METADATA(Op.Dup, {
   name: 'Dup',
   ops: [Register('register'), I32('offset')],
@@ -557,6 +643,18 @@ OPCODE_METADATA(Op.Helper, {
   ops: [Handle('helper')],
   operands: 1,
   stackChange: -1
+});
+
+OPCODE_METADATA(Op.SetNamedVariables, {
+  name: 'SetNamedVariables',
+  ops: [Register('register')],
+  operands: 1
+});
+
+OPCODE_METADATA(Op.SetBlocks, {
+  name: 'SetBlocks',
+  ops: [Register('register')],
+  operands: 1
 });
 
 OPCODE_METADATA(Op.SetVariable, {

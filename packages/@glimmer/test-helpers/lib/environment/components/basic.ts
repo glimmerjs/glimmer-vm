@@ -2,14 +2,13 @@ import { createTemplate } from '../shared';
 
 import { WithStaticLayout, Environment, Bounds, Invocation } from '@glimmer/runtime';
 import { unreachable, expect } from '@glimmer/util';
-import { TemplateOptions } from '@glimmer/opcode-compiler';
 import { PathReference, Tag, CONSTANT_TAG } from '@glimmer/reference';
 import { ComponentCapabilities, Opaque } from '@glimmer/interfaces';
 import { UpdatableReference } from '@glimmer/object-reference';
 
 import LazyRuntimeResolver from '../modes/lazy/runtime-resolver';
 import EagerRuntimeResolver from '../modes/eager/runtime-resolver';
-import { TestComponentDefinitionState, TemplateMeta } from '../components';
+import { TestComponentDefinitionState } from '../components';
 
 export class BasicComponent {
   public element: Element;
@@ -26,7 +25,11 @@ export const BASIC_CAPABILITIES: ComponentCapabilities = {
   prepareArgs: false,
   createArgs: false,
   attributeHook: false,
-  elementHook: false
+  elementHook: false,
+  dynamicScope: false,
+  createCaller: false,
+  updateHook: false,
+  createInstance: true
 };
 
 export class BasicComponentManager implements WithStaticLayout<BasicComponent, TestComponentDefinitionState, Opaque, LazyRuntimeResolver> {
@@ -47,9 +50,9 @@ export class BasicComponentManager implements WithStaticLayout<BasicComponent, T
     let { name } = state;
 
     if (resolver instanceof LazyRuntimeResolver) {
-      let compile = (source: string, options: TemplateOptions<TemplateMeta>) => {
+      let compile = (source: string) => {
         let template = createTemplate(source);
-        let layout = template.create(options).asLayout();
+        let layout = template.create(resolver.compiler).asLayout();
         return {
           handle: layout.compile(),
           symbolTable: layout.symbolTable

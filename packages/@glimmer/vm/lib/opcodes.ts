@@ -31,6 +31,30 @@ export const enum Op {
 
   /**
    * Operation:
+   *   Bind the named arguments in the Arguments to the symbols
+   *   specified by the symbol table in the component state at register.
+   * Format:
+   *   (SetNamedVariables register:u32)
+   * Operand Stack:
+   *   ..., Arguments →
+   *   ...
+   */
+  SetNamedVariables,
+
+  /**
+   * Operation:
+   *   Bind the blocks in the Arguments to the symbols specified by the
+   *   symbol table in the component state at register.
+   * Format:
+   *   (SetBlocks register:u32)
+   * Operand Stack:
+   *   ..., Arguments →
+   *   ...
+   */
+  SetBlocks,
+
+  /**
+   * Operation:
    *   Bind the variable represented by a symbol from
    *   the value at the top of the stack.
    * Format:
@@ -169,6 +193,17 @@ export const enum Op {
   PrimitiveReference,
 
   /**
+   * Operation: Convert the top of the stack into a number.
+   *
+   * Format:
+   *   (ReifyU32)
+   * Operand Stack:
+   *   ..., VersionedPathReference<u32> →
+   *   ..., VersionedPathReference<u32>, u32
+   */
+  ReifyU32,
+
+  /**
    * Operation: Duplicate and push item from an offset in the stack.
    * Format:
    *   (Dup register:u32, offset:u32)
@@ -224,6 +259,20 @@ export const enum Op {
    *   the caller scope (for yielding blocks).
    */
   RootScope,
+
+  /**
+   * Operation: Push a new root scope onto the scope stack.
+   *
+   * Format:
+   *   (VirtualRootScope register:u32)
+   * Operand Stack:
+   *   ... →
+   *   ...
+   * Description:
+   *   The symbol count is determined by the component state in
+   *   the specified register.
+   */
+  VirtualRootScope,
 
   /**
    * Operation: Push a new child scope onto the scope stack.
@@ -291,14 +340,64 @@ export const enum Op {
   Comment,
 
   /**
-   * Operation: Append a Dynamic node based on .
+   * Operation: Append content as HTML.
    * Format:
-   *   (DynamicContent isTrusting:boolean)
+   *   (AppendHTML)
    * Operand Stack:
-   *   ..., VersionedPathReference →
+   *   ..., VersionedPathReference<string> →
    *   ...
    */
-  DynamicContent,
+  AppendHTML,
+
+  /**
+   * Operation: Append SafeHTML as HTML.
+   * Format:
+   *   (AppendSafeHTML)
+   * Operand Stack:
+   *   ..., VersionedPathReference<SafeHTML> →
+   *   ...
+   */
+  AppendSafeHTML,
+
+  /**
+   * Operation: Append DocumentFragment.
+   * Format:
+   *   (AppendFragment)
+   * Operand Stack:
+   *   ..., VersionedPathReference<DocumentFragment> →
+   *   ...
+   */
+  AppendDocumentFragment,
+
+  /**
+   * Operation: Append Node.
+   * Format:
+   *   (AppendFragment)
+   * Operand Stack:
+   *   ..., VersionedPathReference<Node> →
+   *   ...
+   */
+  AppendNode,
+
+  /**
+   * Operation: Append an unknown value.
+   * Format:
+   *   (AppendOther)
+   * Operand Stack:
+   *   ..., VersionedPathReference<Opaque> →
+   *   ...
+   */
+  AppendOther,
+
+  /**
+   * Operation: Append content as text.
+   * Format:
+   *   (AppendText)
+   * Operand Stack:
+   *   ..., VersionedPathReference<string> →
+   *   ...
+   */
+  AppendText,
 
   /**
    * Operation: Open a new Element named `tag`.
@@ -508,6 +607,33 @@ export const enum Op {
   JumpUnless,
 
   /**
+   * Operation:
+   *   Jump to the specified offset if the value at
+   *   the top of the stack is the same as the
+   *   comparison.
+   *
+   * Format:
+   *   (JumpEq to:i32 comparison:i32)
+   * Operand Stack:
+   *   ..., u32 →
+   *   ..., u32
+   */
+  JumpEq,
+
+  /**
+   * Operation:
+   *   Validate that the value at the top of the stack
+   *   hasn't changed.
+   *
+   * Format:
+   *   (AssertSame)
+   * Operand Stack:
+   *   ..., VersionedPathReference<u32> →
+   *   ..., VersionedPathReference<u32>
+   */
+  AssertSame,
+
+  /**
    * Operation: Push a stack frame
    *
    * Format:
@@ -530,6 +656,28 @@ export const enum Op {
   PopFrame,
 
   /**
+   * Operation: Push a small stack frame
+   *
+   * Format:
+   *   (PushSmallFrame)
+   * Operand Stack:
+   *   ... →
+   *   $fp
+   */
+  PushSmallFrame,
+
+  /**
+   * Operation: Pop a stack frame
+   *
+   * Format:
+   *   (PopSmallFrame)
+   * Operand Stack:
+   *   $fp →
+   *   ...
+   */
+  PopSmallFrame,
+
+  /**
    * Operation:
    *   Start tracking a new output block that could change
    *   if one of its inputs changes.
@@ -541,9 +689,9 @@ export const enum Op {
    *   ...
    * Description:
    *   Soon after this opcode, one of Jump, JumpIf,
-   *   or JumpUnless will produce an updating assertion.
-   *   If that assertion fails, the appending VM will
-   *   be re-entered, and the instructions from `from`
+   *   JumpUnless, or JumpEq will produce an updating
+   *   assertion. If that assertion fails, the appending
+   *   VM will be re-entered, and the instructions from `from`
    *   to `to` will be executed.
    *
    *   TODO: Save and restore.
@@ -663,13 +811,24 @@ export const enum Op {
   IsComponent,
 
   /**
+   * Operation: Push the content type onto the stack.
+   *
+   * Format:
+   *   (ContentType)
+   * Operand Stack:
+   *   ..., VersionedPathReference<Opaque> →
+   *   ..., VersionedPathReference<Opaque>, VersionedPathReference<ContentType>
+   */
+  ContentType,
+
+  /**
    * Operation: Curry a component definition for a later invocation.
    *
    * Format:
-   *   (CurryComponent templateMeta:#TemplateMeta)
+   *   (CurryComponent templateMeta:#Locator)
    * Operand Stack:
    *   ..., VersionedPathReference, [VersionedPathReference ...], Arguments →
-   *   ..., { VersionedPathReference, TemplateMeta, CapturedArguments }
+   *   ..., { VersionedPathReference, Locator, CapturedArguments }
    */
   CurryComponent,
 
@@ -715,7 +874,7 @@ export const enum Op {
    *   Push a resolved component definition onto the stack
    *
    * Format:
-   *   (ResolveDynamicComponent templateMeta:#TemplateMeta)
+   *   (ResolveDynamicComponent templateMeta:#Locator)
    * Operand Stack:
    *   ..., VersionedPathReference<Opaque> →
    *   ..., ComponentDefinition
@@ -740,6 +899,18 @@ export const enum Op {
    *   illegal.
    */
   PushArgs,
+
+  /**
+   * Operation: Push empty args onto the stack
+   *
+   * Format:
+   *   (EmptyArgs)
+   *
+   * OperandStack:
+   *   ... →
+   *   ..., Arguments
+   */
+  PushEmptyArgs,
 
   /**
    * Operation: Pops Arguments from the stack and clears the next N args.
@@ -858,6 +1029,28 @@ export const enum Op {
   GetComponentLayout,
 
   /**
+   * Operation: Populate the eval lookup if necessary.
+   *
+   * Format:
+   *   (SetupForEval state:register)
+   * Operand Stack:
+   *   ... →
+   *   ...
+   */
+  SetupForEval,
+
+  /**
+   * Operation: Populate the eval lookup if necessary.
+   *
+   * Format:
+   *   (SetupForEval state:register)
+   * Operand Stack:
+   *   ... →
+   *   ...
+   */
+  BindEvalScope,
+
+  /**
    * Operation:
    *   Populate the state register with the layout currently
    *   on the stack.
@@ -931,7 +1124,7 @@ export const enum Op {
    * Operation: Lookup and invoke a partial template.
    *
    * Format:
-   *   (InvokePartial templateMeta:#TemplateMeta symbols:#Array<#string> evalInfo:#Array<number>)
+   *   (InvokePartial templateMeta:#Locator symbols:#Array<#string> evalInfo:#Array<number>)
    * Operand Stack:
    *   ..., VersionedPathReference<string> →
    *   ...

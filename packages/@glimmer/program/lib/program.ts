@@ -189,10 +189,10 @@ export class WriteOnlyProgram implements CompileTimeProgram {
   }
 }
 
-export class RuntimeProgram<TemplateMeta> {
+export class RuntimeProgram<Locator> {
   [key: number]: never;
 
-  static hydrate<TemplateMeta>(rawHeap: SerializedHeap, pool: ConstantPool, resolver: RuntimeResolver<TemplateMeta>) {
+  static hydrate<Locator>(rawHeap: SerializedHeap, pool: ConstantPool, resolver: RuntimeResolver<Locator>) {
     let heap = new Heap(rawHeap);
     let constants = new RuntimeConstants(resolver, pool);
 
@@ -201,7 +201,7 @@ export class RuntimeProgram<TemplateMeta> {
 
   private _opcode: Opcode;
 
-  constructor(public constants: RuntimeConstants<TemplateMeta>, public heap: Heap) {
+  constructor(public constants: RuntimeConstants<Locator>, public heap: Heap) {
     this._opcode = new Opcode(this.heap);
   }
 
@@ -211,6 +211,6 @@ export class RuntimeProgram<TemplateMeta> {
   }
 }
 
-export class Program<TemplateMeta> extends WriteOnlyProgram {
-  public constants: Constants<TemplateMeta>;
+export class Program<Locator> extends WriteOnlyProgram {
+  public constants: Constants<Locator>;
 }

@@ -75,8 +75,9 @@ export class Scope {
     return this.get<PathReference<Opaque>>(symbol);
   }
 
-  getBlock(symbol: number): ScopeBlock {
-    return this.get<ScopeBlock>(symbol);
+  getBlock(symbol: number): Option<ScopeBlock> {
+    let block = this.get(symbol);
+    return block === UNDEFINED_REFERENCE ? null : block as ScopeBlock;
   }
 
   getEvalScope(): Option<Dict<ScopeSlot>> {
@@ -216,9 +217,9 @@ class Transaction {
   }
 }
 
-export interface CompilationOptions<TemplateMeta, R extends RuntimeResolver<TemplateMeta>> {
+export interface CompilationOptions<Locator, R extends RuntimeResolver<Locator>> {
   resolver: R;
-  program: Program<TemplateMeta>;
+  program: Program<Locator>;
   macros: Macros;
   Builder: OpcodeBuilderConstructor;
 }

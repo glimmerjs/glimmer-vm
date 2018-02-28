@@ -11,7 +11,7 @@ import {
   RootReference as IRootReference
 } from './types';
 
-import { PathReference as IPathReference, VOLATILE_TAG } from '@glimmer/reference';
+import { PathReference as IPathReference, CURRENT_TAG } from '@glimmer/reference';
 
 import { InnerReferenceFactory } from './references/descriptors';
 
@@ -20,7 +20,7 @@ const NOOP_DESTROY = { destroy() {} };
 class ConstPath implements IPathReference<any> {
   private parent: any;
   private property: string;
-  public tag = VOLATILE_TAG;
+  public tag = CURRENT_TAG;
 
   constructor(parent: any, _property: string) {
     this.parent = parent;
@@ -40,7 +40,7 @@ class ConstPath implements IPathReference<any> {
 
 class ConstRoot implements IRootReference<any> {
   private inner: any;
-  public tag = VOLATILE_TAG;
+  public tag = CURRENT_TAG;
 
   constructor(value: any) {
     this.inner = value;
@@ -114,7 +114,6 @@ class Meta implements IMeta, HasGuid {
 
   private object: any;
   private RootReferenceFactory: RootReferenceFactory<any>;
-  private DefaultPathReferenceFactory: InnerReferenceFactory<any>;
   private rootCache: IRootReference<any>;
   private references: Option<Dict<DictSet<IPathReference<any> & HasGuid>>> = null;
   public _guid: number;
@@ -122,10 +121,9 @@ class Meta implements IMeta, HasGuid {
   protected referenceTypes: Option<Dict<InnerReferenceFactory<any>>> = null;
   protected propertyMetadata: Option<Dict<any>> = null;
 
-  constructor(object: any, { RootReferenceFactory, DefaultPathReferenceFactory }: MetaOptions) {
+  constructor(object: any, { RootReferenceFactory }: MetaOptions) {
     this.object = object;
     this.RootReferenceFactory = (RootReferenceFactory || RootReference) as RootReferenceFactory<any>;
-    this.DefaultPathReferenceFactory = DefaultPathReferenceFactory || PropertyReference;
   }
 
   addReference(property: string, reference: IPathReference<any> & HasGuid) {

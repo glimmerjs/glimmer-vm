@@ -18,10 +18,13 @@ import {
 import {
   ProgramSymbolTable,
   ComponentInstanceState,
+  Option,
+  Dict
 } from '@glimmer/interfaces';
 import VM from './append';
 import { isConst } from "@glimmer/reference";
 import { CapabilityFlags } from "../capabilities";
+import { ScopeSlot } from '../environment';
 
 // Note that these need to stay in sync with `constants.ts`
 //
@@ -195,6 +198,8 @@ export class Context {
     buf[offset + FIELD_STATE] = this.encode(obj.state);
     buf[offset + FIELD_HANDLE] = this.encode(obj.handle);
     buf[offset + FIELD_TABLE] = this.encode(obj.table);
+    buf[offset + FIELD_CAPABILITIES] = this.encode(obj.capabilities);
+    buf[offset + FIELD_LOOKUP] = this.encode(obj.lookup);
 
     // hopefully catch any "use after free" bugs
     if (DEBUG) {
@@ -203,6 +208,8 @@ export class Context {
       obj.state = undefined;
       obj.handle = undefined;
       obj.table = undefined;
+      obj.capabilities = undefined;
+      obj.lookup = undefined;
     }
   }
 }
@@ -212,7 +219,8 @@ const FIELD_MANAGER = 1;
 const FIELD_STATE = 2;
 const FIELD_HANDLE = 3;
 const FIELD_TABLE = 4;
-const FIELD_CAPABILITIES = 4;
+const FIELD_CAPABILITIES = 5;
+const FIELD_LOOKUP = 6;
 
 class ComponentInstanceProxy implements ComponentInstance {
   constructor(private idx: number, private vm: WasmLowLevelVM, private cx: Context) {
@@ -276,5 +284,13 @@ class ComponentInstanceProxy implements ComponentInstance {
 
   set table(v: ProgramSymbolTable) {
     this.set_field(FIELD_TABLE, v);
+  }
+
+  get lookup(): Option<Dict<ScopeSlot>> {
+    return this.field(FIELD_LOOKUP) as Option<Dict<ScopeSlot>>;
+  }
+
+  set lookup(l: Option<Dict<ScopeSlot>>) {
+    this.set_field(FIELD_LOOKUP, l);
   }
 }

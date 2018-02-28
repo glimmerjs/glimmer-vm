@@ -36,11 +36,11 @@ export class AppendOpcodes {
 
   debugBefore(vm: VM<Opaque>, opcode: Opcode, type: number): DebugState {
     if (DEBUG) {
+      let pos = vm.fetchValue(Register.pc) as number - opcode.size;
       /* tslint:disable */
-      let [name, params] = debug(vm.constants, opcode.type, opcode.op1, opcode.op2, opcode.op3);
+      let [name, params] = debug(pos, vm.constants, opcode.type, opcode.op1, opcode.op2, opcode.op3);
       // console.log(`${typePos(vm['pc'])}.`);
-      let pc = vm.fetchValue(Register.pc) as number;
-      console.log(`${pc - opcode.size}. ${logOpcode(name, params)}`);
+      console.log(`${pos}. ${logOpcode(name, params)}`);
 
       let debugParams = [];
       for (let prop in params) {
@@ -87,9 +87,10 @@ export class AppendOpcodes {
     if (DEBUG) {
       let actualChange = vm.stack.sp - sp!;
       if (metadata && metadata.check && typeof expectedChange! === 'number' && expectedChange! !== actualChange) {
-        let [name, params] = debug(vm.constants, opcode.type, opcode.op1, opcode.op2, opcode.op3);
+        let pos = vm.fetchValue(Register.pc) as number + opcode.size;
+        let [name, params] = debug(pos, vm.constants, opcode.type, opcode.op1, opcode.op2, opcode.op3);
 
-        throw new Error(`Error in ${name}:\n\n${(vm['pc'] + (opcode.size))}. ${logOpcode(name, params)}\n\nStack changed by ${actualChange}, expected ${expectedChange!}`);
+        throw new Error(`Error in ${name}:\n\n${pos}. ${logOpcode(name, params)}\n\nStack changed by ${actualChange}, expected ${expectedChange!}`);
       }
 
       /* tslint:disable */

@@ -36,6 +36,15 @@ APPEND_OPCODES.add(Op.PrimitiveReference, vm => {
   stack.push(PrimitiveReference.create(check(stack.pop(), CheckPrimitive)));
 });
 
+APPEND_OPCODES.add(Op.ReifyU32, vm => {
+  let stack = vm.stack;
+  stack.push(check(stack.peek(), CheckReference).value());
+});
+
+APPEND_OPCODES.add(Op.Pop, (vm, { op1: count }) => {
+  vm.stack.pop(count);
+});
+
 APPEND_OPCODES.add(Op.BindDynamicScope, (vm, { op1: _names }) => {
   let names = vm.constants.getArray(_names);
   vm.bindDynamicScope(names);
@@ -148,12 +157,34 @@ APPEND_OPCODES.add(Op.JumpUnless, (vm, { op1: target }) => {
   }
 });
 
+APPEND_OPCODES.add(Op.JumpEq, (vm, { op1: target, op2: comparison }) => {
+  let other = check(vm.stack.peek(), CheckNumber);
+
+  if (other === comparison) {
+    vm.goto(target);
+  }
+});
+
+APPEND_OPCODES.add(Op.AssertSame, vm => {
+  let reference = check(vm.stack.peek(), CheckReference);
+
+  if (!isConst(reference)) {
+    vm.updateWith(Assert.initialize(new ReferenceCache(reference)));
+  }
+});
+
 APPEND_OPCODES.add(Op.ToBoolean, vm => {
   let { env, stack } = vm;
   stack.push(env.toConditionalReference(check(stack.pop(), CheckReference)));
 });
 
 export class Assert extends UpdatingOpcode {
+  static initialize(cache: ReferenceCache<Opaque>): Assert {
+    let assert = new Assert(cache);
+    cache.peek();
+    return assert;
+  }
+
   public type = 'assert';
 
   public tag: Tag;

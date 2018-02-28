@@ -7,4 +7,6 @@ pub struct Component {
     pub state: GBox,
     pub handle: GBox,
     pub table: GBox,
+    pub capabilities: u32,
+    pub lookup: GBox,
 }

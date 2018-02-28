@@ -53,6 +53,8 @@ linked_list_node! {
             state: GBOX_NULL,
             handle: GBOX_NULL,
             table: GBOX_NULL,
+            capabilities: 0,
+            lookup: GBOX_NULL
         }; 128],
     }
 }
@@ -396,7 +398,7 @@ impl VM {
         // Note that JS is also taking care to make sure that it understands
         // that the source of truth for this object now lives here, in Rust, as
         // opposed to JS.
-        let mut fields = [1u32; 5];
+        let mut fields = [1u32; 7];
         ffi::low_level_vm_load_component(
             &self.context,
             idx,
@@ -409,6 +411,8 @@ impl VM {
             state: GBox::from_bits(fields[FIELD_STATE]),
             handle: GBox::from_bits(fields[FIELD_HANDLE]),
             table: GBox::from_bits(fields[FIELD_TABLE]),
+            capabilities: fields[FIELD_CAPABILITIES],
+            lookup: GBox::from_bits(fields[FIELD_LOOKUP]),
         })
     }
 }
@@ -421,6 +425,8 @@ const FIELD_MANAGER: usize = 1;
 const FIELD_STATE: usize = 2;
 const FIELD_HANDLE: usize = 3;
 const FIELD_TABLE: usize = 4;
+const FIELD_CAPABILITIES: usize = 5;
+const FIELD_LOOKUP: usize = 6;
 
 #[wasm_bindgen]
 pub struct LowLevelVM {
@@ -592,8 +598,20 @@ impl LowLevelVM {
             FIELD_STATE => component.state.bits(),
             FIELD_HANDLE => component.handle.bits(),
             FIELD_TABLE => component.table.bits(),
+            FIELD_CAPABILITIES => component.capabilities,
+            FIELD_LOOKUP => component.lookup.bits(),
             _ => panic!("invalid component field"),
         }
+    }
+
+    pub fn set_capabilities(&self, component: u32, capabilities: u32) {
+        let mut me = self.inner.borrow_mut();
+        let component = match me.component_mut(component) {
+            Some(c) => c,
+            None => panic!("invalid component index"),
+        };
+
+        component.capabilities = capabilities;
     }
 
     pub fn set_component_field(&self, component: u32, field: usize, gbox: u32) {
@@ -610,7 +628,8 @@ impl LowLevelVM {
             FIELD_STATE => component.state = val,
             FIELD_HANDLE => component.handle = val,
             FIELD_TABLE => component.table = val,
-            _ => panic!("invalid comopnent field"),
+            FIELD_LOOKUP => component.lookup = val,
+            _ => panic!("invalid component field"),
         }
     }
 
