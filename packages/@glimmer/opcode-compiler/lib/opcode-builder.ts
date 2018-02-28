@@ -858,7 +858,7 @@ export abstract class OpcodeBuilder<Locator = Opaque> extends StdOpcodeBuilder {
   }
 
   dynamicComponent(definition: WireFormat.Expression, /* TODO: attrs: Option<RawInlineBlock>, */ params: Option<WireFormat.Core.Params>, hash: WireFormat.Core.Hash, synthetic: boolean, block: Option<CompilableBlock>, inverse: Option<CompilableBlock> = null) {
-    this.try({
+    this.replayable({
       args: () => {
         this.expr(definition);
         this.dup();
@@ -1188,7 +1188,7 @@ export abstract class OpcodeBuilder<Locator = Opaque> extends StdOpcodeBuilder {
    * encountered, the program jumps to -1 rather than the END label,
    * and the PopFrame opcode is not needed.
    */
-  try({ args, body }: { args(): number, body(): void }): void {
+  replayable({ args, body }: { args(): number, body(): void }): void {
     // Start a new label frame, to give END and RETURN
     // a unique meaning.
     this.startLabels();
@@ -1255,8 +1255,8 @@ export abstract class OpcodeBuilder<Locator = Opaque> extends StdOpcodeBuilder {
    * routine, as it can reuse the DOM block and is always only a single
    * frame deep.
    */
-  tryIf({ args, ifTrue, ifFalse }: { args(): number, ifTrue(): void, ifFalse?(): void }) {
-    this.try({
+  replayableIf({ args, ifTrue, ifFalse }: { args(): number, ifTrue(): void, ifFalse?(): void }) {
+    this.replayable({
       args,
 
       body: () => {
