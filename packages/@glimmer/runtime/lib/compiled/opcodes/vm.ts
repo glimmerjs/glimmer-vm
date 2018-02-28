@@ -41,10 +41,6 @@ APPEND_OPCODES.add(Op.ReifyU32, vm => {
   stack.push(check(stack.peek(), CheckReference).value());
 });
 
-APPEND_OPCODES.add(Op.Pop, (vm, { op1: count }) => {
-  vm.stack.pop(count);
-});
-
 APPEND_OPCODES.add(Op.BindDynamicScope, (vm, { op1: _names }) => {
   let names = vm.constants.getArray(_names);
   vm.bindDynamicScope(names);
