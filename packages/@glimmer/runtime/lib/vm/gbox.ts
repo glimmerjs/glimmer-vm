@@ -191,6 +191,15 @@ export class Context {
   //       owner of that storage will start using stale values after this...
   loadComponent(idx: number, buf: Uint32Array, offset: number, component: number) {
     const obj = this.stack[idx];
+
+    // If this component has already been loaded into Rust it'll be an instance
+    // of our `ComponentInstanceProxy` below. If we detect that no need to make
+    // another so re-inform Rust what index it's at and then let it know that
+    // we didn't do anything else here.
+    if (obj instanceof ComponentInstanceProxy) {
+      buf[offset] = obj.idx;
+      return false;
+    }
     this.stack[idx] = this.decodeComponent(component);
 
     buf[offset + FIELD_DEFINITION] = this.encode(obj.definition);
@@ -211,6 +220,7 @@ export class Context {
       obj.capabilities = undefined;
       obj.lookup = undefined;
     }
+    return true;
   }
 }
 
@@ -223,7 +233,7 @@ const FIELD_CAPABILITIES = 5;
 const FIELD_LOOKUP = 6;
 
 class ComponentInstanceProxy implements ComponentInstance {
-  constructor(private idx: number, private vm: WasmLowLevelVM, private cx: Context) {
+  constructor(public idx: number, private vm: WasmLowLevelVM, private cx: Context) {
     if (DEBUG) {
       Object.seal(this);
     }

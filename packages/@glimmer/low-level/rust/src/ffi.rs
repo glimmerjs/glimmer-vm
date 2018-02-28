@@ -29,5 +29,5 @@ extern {
         obj_idx: u32,
         fields: *mut u32,
         component_idx: u32,
-    );
+    ) -> bool;
 }

@@ -227,6 +227,18 @@ impl VM {
             //     self.stack.push(GBox::component(idx));
             // }
 
+            // Dynamic Invocation Only
+            Op::InvokeComponentLayout => {
+                let state = opcode.op1(heap);
+                let component = self.register(state);
+                let component = self.unwrap_component(component);
+                let handle = match self.component(component) {
+                    Some(i) => i.handle,
+                    None => panic!("invalid component handle"),
+                };
+                self.call(to_u32(handle.unwrap_i32()), heap);
+            }
+
             Op::PopulateLayout => {
                 let handle = self.stack.pop(1); // CheckHandle
                 let table = self.stack.pop(1); // CheckProgramSymbolTable
@@ -410,12 +422,18 @@ impl VM {
         // that the source of truth for this object now lives here, in Rust, as
         // opposed to JS.
         let mut fields = [1u32; 7];
-        ffi::low_level_vm_load_component(
+        let loaded = ffi::low_level_vm_load_component(
             &self.context,
             idx,
             fields.as_mut_ptr(),
             self.components_len,
         );
+
+        // If our "js object" was actually already translated to a component
+        // earlier by us then we return that index
+        if !loaded {
+            return fields[0]
+        }
         self.add_component(Component {
             definition: GBox::from_bits(fields[FIELD_DEFINITION]),
             manager: GBox::from_bits(fields[FIELD_MANAGER]),

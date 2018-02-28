@@ -563,13 +563,6 @@ APPEND_OPCODES.add(Op.SetBlocks, (vm, { op1: _state }) => {
   bindBlock('&default', 'main', state, blocks, vm);
 });
 
-// Dynamic Invocation Only
-APPEND_OPCODES.add(Op.InvokeComponentLayout, (vm, { op1: _state }) => {
-  let state = check(vm.fetchValue(_state), CheckFinishedComponentInstance);
-
-  vm.call(state.handle!);
-});
-
 APPEND_OPCODES.add(Op.DidRenderLayout, (vm, { op1: _state }) => {
   let { manager, state } = check(vm.fetchValue(_state), CheckComponentInstance);
   let bounds = vm.elements().popBlock();
