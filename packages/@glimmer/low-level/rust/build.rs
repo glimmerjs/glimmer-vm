@@ -5,8 +5,24 @@ use std::path::PathBuf;
 
 fn main() {
     let mut contents = String::new();
-    println!("cargo:rerun-if-changed=../../vm/lib/opcodes.ts");
-    File::open("../../vm/lib/opcodes.ts").unwrap()
+    let cwd = env::current_dir().unwrap();
+
+    // We want to find a path in the original source tree to parse that and
+    // print out the same opcodes in Rust. Most of the time we're symlinked so
+    // we'll find it relative to the actual `rust` source directory, but on
+    // platforms like Windows broccoli will put us into a temporary build
+    // directory. If that's the case try a few candidates to find this file to
+    // see which works.
+    let path1 = PathBuf::from("../../vm/lib/opcodes.ts");
+    let path2 = cwd.join("../../packages/@glimmer/vm/lib/opcodes.ts");
+    let path = if path1.exists() {
+        path1
+    } else {
+        assert!(path2.exists());
+        path2
+    };
+    println!("cargo:rerun-if-changed={}", path.display());
+    File::open(&path).unwrap()
         .read_to_string(&mut contents).unwrap();
 
     let mut variants = Vec::new();
