@@ -21,8 +21,6 @@ import {
   expectStackChange,
   CheckInstanceof,
   CheckFunction,
-  CheckHandle,
-  CheckProgramSymbolTable,
   CheckInterface,
 } from '@glimmer/debug';
 
@@ -496,18 +494,6 @@ APPEND_OPCODES.add(Op.Main, (vm, { op1: register }) => {
   };
 
   vm.loadValue(register, state);
-});
-
-APPEND_OPCODES.add(Op.PopulateLayout, (vm, { op1: _state }) => {
-  let { stack } = vm;
-
-  let handle = check(stack.pop(), CheckHandle);
-  let table = check(stack.pop(), CheckProgramSymbolTable);
-
-  let state = check(vm.fetchValue(_state), CheckComponentInstance);
-
-  state.handle = handle;
-  state.table = table;
 });
 
 APPEND_OPCODES.add(Op.VirtualRootScope, (vm, { op1: _state }) => {

@@ -245,12 +245,12 @@ impl VM {
 
                 let component = self.register(opcode.op1(heap));
                 let component = self.unwrap_component(component);
-                let component = self.component_mut(component);
-                debug_assert!(component.is_some());
-                if let Some(c) = component {
-                    c.handle = handle;
-                    c.table = table;
-                }
+                let component = match self.component_mut(component) {
+                    Some(i) => i,
+                    None => panic!("invalid component handle"),
+                };
+                component.handle = handle;
+                component.table = table;
             }
 
             Op::Primitive => {
