@@ -84,6 +84,10 @@ impl Stack {
         util::list_read(&self.head, at).cloned().map(GBox::from_bits)
     }
 
+    pub fn peek(&self, offset: u32) -> Option<GBox> {
+        self.read(to_u32(self.sp) - offset)
+    }
+
     pub fn reset(&mut self) {
         self.head = None;
     }

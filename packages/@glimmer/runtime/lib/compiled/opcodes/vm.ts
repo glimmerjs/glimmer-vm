@@ -153,14 +153,6 @@ APPEND_OPCODES.add(Op.JumpUnless, (vm, { op1: target }) => {
   }
 });
 
-APPEND_OPCODES.add(Op.JumpEq, (vm, { op1: target, op2: comparison }) => {
-  let other = check(vm.stack.peek(), CheckNumber);
-
-  if (other === comparison) {
-    vm.goto(target);
-  }
-});
-
 APPEND_OPCODES.add(Op.AssertSame, vm => {
   let reference = check(vm.stack.peek(), CheckReference);
 

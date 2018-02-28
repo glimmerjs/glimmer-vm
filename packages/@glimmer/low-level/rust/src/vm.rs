@@ -204,6 +204,17 @@ impl VM {
                 self.stack.push(value);
             }
 
+            Op::JumpEq => {
+                let target = opcode.op1(heap);
+                let comparison = opcode.op2(heap);
+                let other = self.stack.peek(0)
+                    .map(|i| i.unwrap_i32())
+                    .unwrap_or(0);
+                if other == comparison.into() {
+                    self.goto(target.into());
+                }
+            }
+
             // Op::PushDynamicComponentInstance => {
             //     let definition = self.stack.pop(1);
             //     let idx = self.add_component(Component {
