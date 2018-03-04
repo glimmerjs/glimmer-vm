@@ -315,8 +315,12 @@ export class NewElementBuilder implements ElementBuilder {
   }
 
   appendDynamicHTML(value: string): void {
-    let bounds = this.trustedContent(value);
-    this.didAppendBounds(bounds);
+    if (value === '') {
+      this.appendDynamicText(value);
+    } else {
+      let bounds = this.trustedContent(value);
+      this.didAppendBounds(bounds);
+    }
   }
 
   appendDynamicText(value: string): Simple.Text {

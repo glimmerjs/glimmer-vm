@@ -195,4 +195,18 @@ export class EachSuite extends RenderTest {
     this.assertHTML('No thing Chad');
     this.assertStableNodes();
   }
+
+  @test
+  'Safe String can be removed'() {
+    this.render(`{{#each items key="@index" as |item|}}{{item}}{{/each}}`, {
+      items: [{ toHTML: () => '' }]
+    });
+
+    this.assertHTML('');
+    this.assertStableRerender();
+
+    this.rerender({ items: [''] });
+    this.assertHTML('');
+    this.assertStableNodes();
+  }
 }

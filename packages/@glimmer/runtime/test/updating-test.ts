@@ -731,25 +731,25 @@ module("[glimmer-runtime] Updating", hooks => {
     let input = {
       value: ''
     };
-    let template = compile('<div>{{{value}}}</div>');
+    let template = compile('<div>{{{value}}}...</div>');
 
     render(template, input);
 
-    equalTokens(root, '<div></div>', "Initial render");
+    equalTokens(root, '<div>...</div>', "Initial render");
 
     rerender();
 
-    equalTokens(root, '<div></div>', "no change");
+    equalTokens(root, '<div>...</div>', "no change");
 
     input.value = '<b>Bold and spicy</b>';
     rerender();
 
-    equalTokens(root, '<div><b>Bold and spicy</b></div>', "markup is updated");
+    equalTokens(root, '<div><b>Bold and spicy</b>...</div>', "markup is updated");
 
     input.value = '';
     rerender();
 
-    equalTokens(root, '<div></div>', "back to empty string");
+    equalTokens(root, '<div>...</div>', "back to empty string");
   });
 
   class ValueReference<T> extends ConstReference<T> {

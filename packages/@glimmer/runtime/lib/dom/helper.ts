@@ -161,7 +161,7 @@ export function insertHTMLBefore(this: void, useless: HTMLElement, _parent: Simp
   let last: Simple.Node | null;
 
   if (html === null || html === '') {
-    return new ConcreteBounds(parent, null, null);
+    throw new Error('Empty strings should be added as text, not HTML');
   }
 
   if (nextSibling === null) {
