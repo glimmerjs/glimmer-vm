@@ -1,2 +1,2 @@
-export { booted, memory as wasmMemory } from './lib/rust_wasm';
+export { booted, memory as wasmMemory } from './lib/rust_bg';
 export { LowLevelVM as WasmLowLevelVM, WasmHeap, num_allocated } from './lib/rust';

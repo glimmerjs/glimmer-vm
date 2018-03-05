@@ -1,4 +1,4 @@
-import { memory } from "./rust_wasm";
+import { memory } from "./rust_bg";
 
 // Construct the array of imports needed to instantiate the WebAssembly module.
 //
