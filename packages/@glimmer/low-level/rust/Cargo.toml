@@ -10,12 +10,12 @@ crate-type = ["cdylib"]
 wasm-bindgen = { git = 'https://github.com/alexcrichton/wasm-bindgen' }
 
 [profile.dev]
-opt-level = 's'
 panic = 'abort'
-incremental = false # TODO: this fix should go upstream in rustc itself
 
 # to see the release binary in development (for size reasons mostly) uncomment
 # these lines
+#opt-level = 's'
+#lto = 's'
 #debug = false
 #overflow-checks = false
 #debug-assertions = false
