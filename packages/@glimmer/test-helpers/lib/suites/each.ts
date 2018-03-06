@@ -202,7 +202,7 @@ export class EachSuite extends RenderTest {
       items: [{ toHTML: () => '' }]
     });
 
-    this.assertHTML('');
+    this.assertHTML('<!---->');
     this.assertStableRerender();
 
     this.rerender({ items: [''] });

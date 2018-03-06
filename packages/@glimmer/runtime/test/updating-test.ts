@@ -628,11 +628,11 @@ module("[glimmer-runtime] Updating", hooks => {
       description: 'string containing HTML'
     }, {
       input: null,
-      expected: '<div></div>',
+      expected: '<div><!----></div>',
       description: 'null literal'
     }, {
       input: undefined,
-      expected: '<div></div>',
+      expected: '<div><!----></div>',
       description: 'undefined literal'
     }, {
       input: makeSafeString('<b>hello</b>'),
@@ -735,11 +735,11 @@ module("[glimmer-runtime] Updating", hooks => {
 
     render(template, input);
 
-    equalTokens(root, '<div>...</div>', "Initial render");
+    equalTokens(root, '<div><!---->...</div>', "Initial render");
 
     rerender();
 
-    equalTokens(root, '<div>...</div>', "no change");
+    equalTokens(root, '<div><!---->...</div>', "no change");
 
     input.value = '<b>Bold and spicy</b>';
     rerender();
@@ -749,7 +749,7 @@ module("[glimmer-runtime] Updating", hooks => {
     input.value = '';
     rerender();
 
-    equalTokens(root, '<div>...</div>', "back to empty string");
+    equalTokens(root, '<div><!---->...</div>', "back to empty string");
   });
 
   class ValueReference<T> extends ConstReference<T> {
