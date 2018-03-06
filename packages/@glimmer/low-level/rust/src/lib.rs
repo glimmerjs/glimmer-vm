@@ -24,9 +24,8 @@ pub mod ffi;
 pub mod heap;
 pub mod instructions;
 
-#[no_mangle]
 #[wasm_bindgen]
-pub extern fn num_allocated() -> usize {
+pub fn num_allocated() -> usize {
     track::total()
 }
 
