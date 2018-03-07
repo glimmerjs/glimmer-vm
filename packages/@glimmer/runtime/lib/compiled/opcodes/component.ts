@@ -513,7 +513,7 @@ APPEND_OPCODES.add(Op.PopulateLayout, (vm, { op1: _state }) => {
 APPEND_OPCODES.add(Op.VirtualRootScope, (vm, { op1: _state }) => {
   let { symbols } = check(vm.fetchValue(_state), CheckFinishedComponentInstance).table;
 
-  vm.pushRootScope(symbols.length + 1, true);
+  vm.pushRootScope(symbols.length);
 });
 
 APPEND_OPCODES.add(Op.SetupForEval, (vm, { op1: _state }) => {
@@ -531,14 +531,24 @@ APPEND_OPCODES.add(Op.SetNamedVariables, (vm, { op1: _state }) => {
 
   let args = check(vm.stack.peek(), CheckArguments);
   let callerNames = args.named.atNames;
+  let callee = state.table.symbols;
 
-  for (let i=callerNames.length - 1; i>=0; i--) {
-    let atName = callerNames[i];
-    let symbol = state.table.symbols.indexOf(callerNames[i]);
-    let value = args.named.get(atName, false);
+  for (let i = 0; i < callee.length; i++) {
+    let symbol = callee[i];
 
-    if (symbol !== -1) scope.bindSymbol(symbol + 1, value);
-    if (state.lookup) state.lookup[atName] = value;
+    if (symbol[0] === '@') {
+      let value = args.named.get(symbol, false);
+      scope.bindSymbol(i + 1, value);
+      if (state.lookup) state.lookup[symbol] = value;
+    }
+  }
+
+  if (state.lookup) {
+    for (let i = callerNames.length - 1; i >= 0; i--) {
+      let atName = callerNames[i];
+      let value = args.named.get(atName, false);
+      state.lookup[atName] = value;
+    }
   }
 });
 

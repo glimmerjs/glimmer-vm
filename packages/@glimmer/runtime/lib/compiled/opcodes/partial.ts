@@ -28,9 +28,8 @@ APPEND_OPCODES.add(Op.InvokePartial, (vm, { op1: _meta, op2: _symbols, op3: _eva
   {
     let partialSymbols = symbolTable.symbols;
     let outerScope = vm.scope();
-    let partialScope = vm.pushRootScope(partialSymbols.length, false);
+    let partialScope = vm.pushRootScope(partialSymbols.length);
     let evalScope = outerScope.getEvalScope();
-    partialScope.bindCallerScope(outerScope.getCallerScope());
     partialScope.bindEvalScope(evalScope);
     partialScope.bindSelf(outerScope.getSelf());
 

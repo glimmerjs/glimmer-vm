@@ -1,5 +1,5 @@
 import { Register } from '@glimmer/vm';
-import { Scope, DynamicScope, Environment } from '../environment';
+import { ReifiedScope, DynamicScope, Environment, Scope } from '../environment';
 import { ElementBuilder } from './element-builder';
 import { Option, Destroyable, Stack, LinkedList, ListSlice, Opaque, expect, assert } from '@glimmer/util';
 import { ReferenceIterator, PathReference, VersionedPathReference, combineSlice } from '@glimmer/reference';
@@ -187,7 +187,7 @@ export default class VM<T> implements PublicVM {
     handle: number
   ) {
     let scopeSize = program.heap.scopesizeof(handle);
-    let scope = Scope.root(self, scopeSize);
+    let scope = ReifiedScope.root(self, scopeSize);
     let vm = new VM({ program, env }, scope, dynamicScope, elementStack);
     vm.pc = vm.heap.getaddr(handle);
     vm.updatingOpcodeStack.push(new LinkedList<UpdatingOpcode>());
@@ -205,7 +205,7 @@ export default class VM<T> implements PublicVM {
       child() { return dynamicScope; }
     };
 
-    let vm = new VM({ program, env }, Scope.root(UNDEFINED_REFERENCE, 0), dynamicScope, elementStack);
+    let vm = new VM({ program, env }, ReifiedScope.root(UNDEFINED_REFERENCE, 0), dynamicScope, elementStack);
     vm.updatingOpcodeStack.push(new LinkedList<UpdatingOpcode>());
     return vm;
   }
@@ -216,7 +216,7 @@ export default class VM<T> implements PublicVM {
 
   constructor(
     private runtime: Runtime,
-    scope: Scope,
+    scope: ReifiedScope,
     dynamicScope: DynamicScope,
     private elementStack: ElementBuilder,
   ) {
@@ -247,7 +247,7 @@ export default class VM<T> implements PublicVM {
   capture(args: number): VMState {
     return {
       dynamicScope: this.dynamicScope(),
-      scope: this.scope(),
+      scope: this.scope().capture(),
       stack: this.stack.capture(args)
     };
   }
@@ -380,9 +380,8 @@ export default class VM<T> implements PublicVM {
     return child;
   }
 
-  pushRootScope(size: number, bindCaller: boolean): Scope {
-    let scope = Scope.sized(size);
-    if (bindCaller) scope.bindCallerScope(this.scope());
+  pushRootScope(size: number): ReifiedScope {
+    let scope = ReifiedScope.sized(size);
     this.scopeStack.push(scope);
     return scope;
   }

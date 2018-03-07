@@ -103,7 +103,11 @@ export class AppendOpcodes {
       if (vm['scopeStack'].current === null) {
         console.log('%c -> scope', 'color: green', "null");
       } else {
-        console.log('%c -> scope', 'color: green', vm.scope()['slots'].map(s => s && s['value'] ? s['value']() : s));
+        console.log('%c -> scope', 'color: green', vm.scope()['slots'].map((s: any) =>{
+          if (s === undefined) return new class EMPTY {};
+          if (s && s['value']) return s['value']();
+          return s;
+        }));
       }
       console.log('%c -> elements', 'color: blue', vm.elements()['cursorStack']['stack'].map((c: any) => c.element));
       /* tslint:enable */

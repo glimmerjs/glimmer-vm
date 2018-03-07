@@ -35,7 +35,7 @@ export {
 export { SafeString } from './lib/upsert';
 
 export {
-  Scope,
+  ReifiedScope,
   default as Environment,
   DefaultEnvironment,
   Helper,

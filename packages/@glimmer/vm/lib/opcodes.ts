@@ -78,6 +78,17 @@ export const enum Op {
 
   /**
    * Operation:
+   *   Copy `size` stack elements into the scope.
+   * Format:
+   *   (ProxyStackScope)
+   * Operand Stack:
+   *   ... →
+   *   ...
+   */
+  ProxyStackScope,
+
+  /**
+   * Operation:
    *   Push the contents of the variable represented by
    *   a symbol (a positional or named argument) onto
    *   the stack.
@@ -510,6 +521,16 @@ export const enum Op {
   CompileBlock,
 
   /**
+   * Operation: Compile the InlineBlock inside the current ScopeBlock.
+   * Format:
+   *   (CompileBlock)
+   * Operand Stack:
+   *   ..., ScopeBlock<CompilableTemplate> →
+   *   ..., ScopeBlock<Handle>
+   */
+  CompileScopeBlock,
+
+  /**
    * Operation: Push a scope onto the stack.
    * Format:
    *   (PushBlockScope #Scope)
@@ -518,6 +539,16 @@ export const enum Op {
    *   ..., Scope
    */
   PushBlockScope,
+
+  /**
+   * Operation: Turn block parts into a block.
+   * Format:
+   *   (ReifyBlock)
+   * Operand Stack:
+   *   ..., SymbolTable, Scope, Handle →
+   *   ..., Block
+   */
+  ReifyBlock,
 
   /**
    * Operation: Push a symbol table onto the stack.

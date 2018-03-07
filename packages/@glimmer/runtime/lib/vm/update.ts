@@ -1,4 +1,4 @@
-import { Scope, DynamicScope, Environment } from '../environment';
+import { ReifiedScope, DynamicScope, Environment } from '../environment';
 import { DestroyableBounds, clear, move as moveBounds } from '../bounds';
 import { NewElementBuilder, Tracker, UpdatableTracker } from './element-builder';
 import { Option, Opaque, Stack, LinkedList, Dict, dict, expect } from '@glimmer/util';
@@ -90,11 +90,11 @@ export interface ExceptionHandler {
  */
 export interface Runtime {
   env: Environment;
-  program: RuntimeProgram<Opaque>
+  program: RuntimeProgram<Opaque>;
 }
 
 export interface VMState {
-  scope: Scope;
+  scope: ReifiedScope;
   dynamicScope: DynamicScope;
   stack: Opaque[];
 }

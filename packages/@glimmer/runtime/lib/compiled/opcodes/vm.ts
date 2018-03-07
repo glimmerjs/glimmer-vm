@@ -1,5 +1,5 @@
 import { Op } from '@glimmer/vm';
-import { CompilableTemplate, Opaque, Option, Recast, VMHandle } from '@glimmer/interfaces';
+import { CompilableTemplate, Opaque, Option,  } from '@glimmer/interfaces';
 import {
   CONSTANT_TAG,
   isConst,
@@ -8,16 +8,15 @@ import {
   Revision,
   Tag
 } from '@glimmer/reference';
-import { initializeGuid, assert } from '@glimmer/util';
-import { CheckNumber, check, CheckInstanceof, CheckOption, CheckBlockSymbolTable, CheckHandle, CheckPrimitive } from '@glimmer/debug';
-import { stackAssert } from './assert';
+import { initializeGuid } from '@glimmer/util';
+import { CheckNumber, check, CheckInstanceof, CheckOption, CheckBlockSymbolTable, CheckHandle, CheckPrimitive, CheckOr } from '@glimmer/debug';
 import { APPEND_OPCODES, UpdatingOpcode } from '../../opcodes';
-import { Scope } from '../../environment';
+import { ScopeBlock } from '../../environment';
 import { PrimitiveReference } from '../../references';
 import { VM, UpdatingVM } from '../../vm';
 import { Arguments } from '../../vm/arguments';
 import { LazyConstants, PrimitiveType } from "@glimmer/program";
-import { CheckReference, CheckScope } from './-debug-strip';
+import { CheckReference, CheckScope, CheckCompilableBlock } from './-debug-strip';
 
 APPEND_OPCODES.add(Op.ChildScope, vm => vm.pushChildScope());
 
@@ -108,32 +107,48 @@ APPEND_OPCODES.add(Op.PushBlockScope, (vm) => {
   stack.push(vm.scope());
 });
 
+APPEND_OPCODES.add(Op.ReifyBlock, vm => {
+  let { stack } = vm;
+
+  let handle = check(stack.pop(), CheckOption(CheckOr(CheckHandle, CheckCompilableBlock)));
+  let scope = check(stack.pop(), CheckOption(CheckScope));
+  let table = check(stack.pop(), CheckOption(CheckBlockSymbolTable));
+
+  if (handle !== null) {
+    stack.push([handle, scope, table]);
+  } else {
+    stack.push(null);
+  }
+});
+
 APPEND_OPCODES.add(Op.CompileBlock, vm => {
   let stack = vm.stack;
-  let block = stack.pop<Option<CompilableTemplate> | 0>();
+  let block = stack.pop<Option<CompilableTemplate>>();
 
-  if (block) {
-    stack.pushSmi(block.compile() as Recast<VMHandle, number>);
-  } else {
-    stack.pushNull();
+  stack.push(block ? block.compile() : null);
+});
+
+APPEND_OPCODES.add(Op.CompileScopeBlock, vm => {
+  let stack = vm.stack;
+  let block = stack.peek<Option<ScopeBlock>>();
+
+  if (block && typeof block[0] !== 'number') {
+    block[0] = check(block[0], CheckCompilableBlock).compile();
   }
-
-  check(vm.stack.peek(), CheckOption(CheckNumber));
 });
 
 APPEND_OPCODES.add(Op.InvokeYield, vm => {
   let { stack } = vm;
 
-  let handle = check(stack.pop(), CheckOption(CheckHandle));
-  let scope = check(stack.pop(), CheckOption(CheckScope)) as Option<Scope>; // FIXME(mmun): shouldn't need to cast this
-  let table = check(stack.pop(), CheckOption(CheckBlockSymbolTable));
+  let block = stack.pop();
 
-  assert(table === null || (table && typeof table === 'object' && Array.isArray(table.parameters)), stackAssert('Option<BlockSymbolTable>', table));
+  let handle = block && check(block[0], CheckHandle);
+  let scope = block && check(block[1], CheckScope);
+  let table = block && check(block[2], CheckBlockSymbolTable);
 
   let args = check(stack.pop(), CheckInstanceof(Arguments));
 
   if (table === null) {
-
     // To balance the pop{Frame,Scope}
     vm.pushFrame();
     vm.pushScope(scope!); // Could be null but it doesnt matter as it is immediatelly popped.
@@ -150,7 +165,7 @@ APPEND_OPCODES.add(Op.InvokeYield, vm => {
     if (localsCount > 0) {
       invokingScope = invokingScope.child();
 
-      for (let i=0; i<localsCount; i++) {
+      for (let i = 0; i < localsCount; i++) {
         invokingScope.bindSymbol(locals![i], args.at(i));
       }
     }
@@ -301,7 +316,7 @@ export class LabelOpcode implements UpdatingOpcode {
     this.label = label;
   }
 
-  evaluate() {}
+  evaluate() { }
 
   inspect(): string {
     return `${this.label} [${this._guid}]`;

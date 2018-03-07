@@ -1,12 +1,13 @@
 import EvaluationStack from './stack';
 import { dict, EMPTY_ARRAY } from '@glimmer/util';
 import { combineTagged } from '@glimmer/reference';
-import { Dict, Opaque, Option, unsafe, BlockSymbolTable } from '@glimmer/interfaces';
+import { Dict, Opaque, Option, unsafe } from '@glimmer/interfaces';
 import { Tag, VersionedPathReference, CONSTANT_TAG } from '@glimmer/reference';
 import { PrimitiveReference, UNDEFINED_REFERENCE } from '../references';
-import { ScopeBlock, Scope, BlockValue } from '../environment';
+import { ScopeBlock } from '../environment';
 import { CheckBlockSymbolTable, check, CheckHandle, CheckOption, CheckOr } from '@glimmer/debug';
 import { CheckPathReference, CheckCompilableBlock, CheckScope } from '../compiled/opcodes/-debug-strip';
+import { DEBUG } from '@glimmer/local-debug-flags';
 
 /*
   The calling convention is:
@@ -123,7 +124,7 @@ export class Arguments implements IArguments {
 
     let blocks = this.blocks;
     let blocksCount = blockNames.length;
-    let blocksBase = positionalBase - (blocksCount * 3);
+    let blocksBase = positionalBase - blocksCount;
 
     blocks.setup(stack, blocksBase, blocksCount, blockNames);
   }
@@ -137,7 +138,7 @@ export class Arguments implements IArguments {
   }
 
   get length(): number {
-    return this.positional.length + this.named.length + (this.blocks.length * 3);
+    return this.positional.length + this.named.length + this.blocks.length;
   }
 
   at<T extends VersionedPathReference<Opaque>>(pos: number): T {
@@ -533,15 +534,15 @@ export class BlockArguments implements IBlockArguments {
     }
   }
 
-  get values(): BlockValue[] {
+  get values(): ScopeBlock[] {
     let values = this.internalValues;
 
     if (!values) {
       let { base, length, stack } = this;
-      values = this.internalValues = stack.sliceArray<number>(base, base + length * 3);
+      values = this.internalValues = stack.sliceArray<number>(base, base + length);
     }
 
-    return values;
+    return values as any as ScopeBlock[];
   }
 
   has(name: string): boolean {
@@ -557,11 +558,15 @@ export class BlockArguments implements IBlockArguments {
       return null;
     }
 
-    let table = check(stack.get(idx * 3, base), CheckOption(CheckBlockSymbolTable));
-    let scope = check(stack.get(idx * 3 + 1, base), CheckOption(CheckScope)) as Option<Scope>; // FIXME(mmun): shouldn't need to cast this
-    let handle = check(stack.get(idx * 3 + 2, base), CheckOption(CheckOr(CheckHandle, CheckCompilableBlock)));
+    let block = stack.get(idx, base);
 
-    return handle === null ? null : [handle, scope!, table!];
+    if (block !== null && DEBUG) {
+      check(block[0], CheckOr(CheckOption(CheckHandle), CheckCompilableBlock));
+      check(block[1], CheckScope);
+      check(block[2], CheckOption(CheckBlockSymbolTable));
+    }
+
+    return block as Option<ScopeBlock>;
   }
 
   capture(): ICapturedBlockArguments {
@@ -575,7 +580,7 @@ class CapturedBlockArguments implements ICapturedBlockArguments {
 
   constructor(
     public names: string[],
-    public values: BlockValue[]
+    public values: ScopeBlock[]
   ) {
     this.length = names.length;
   }
@@ -589,11 +594,7 @@ class CapturedBlockArguments implements ICapturedBlockArguments {
 
     if (idx === -1) return null;
 
-    return [
-      this.values[idx * 3 + 2] as number,
-      this.values[idx * 3 + 1] as Scope,
-      this.values[idx * 3] as BlockSymbolTable
-    ];
+    return this.values[idx];
   }
 }
 

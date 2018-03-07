@@ -20,8 +20,9 @@ import {
   ModifierManager, Modifier
 } from './modifier/interfaces';
 import { Component, ComponentManager } from "./internal-interfaces";
+import EvaluationStack from './vm/stack';
 
-export type ScopeBlock = [number | CompilableBlock, Scope, BlockSymbolTable];
+export type ScopeBlock = [number | CompilableBlock, ReifiedScope, BlockSymbolTable];
 export type BlockValue = ScopeBlock[0 | 1 | 2];
 export type ScopeSlot = Option<PathReference<Opaque>> | Option<ScopeBlock>;
 
@@ -31,41 +32,14 @@ export interface DynamicScope {
   child(): DynamicScope;
 }
 
-export class Scope {
-  static root(self: PathReference<Opaque>, size = 0) {
-    let refs: PathReference<Opaque>[] = new Array(size + 1);
+export abstract class Scope {
+  protected abstract get<T extends ScopeSlot>(slot: number): T;
+  protected abstract set<T extends ScopeSlot>(slot: number, value: T): void;
 
-    for (let i = 0; i <= size; i++) {
-      refs[i] = UNDEFINED_REFERENCE;
-    }
+  protected evalScope: Option<Dict<ScopeSlot>>;
+  protected partialMap: Option<Dict<PathReference<Opaque>>>;
 
-    return new Scope(refs, null, null, null).init({ self });
-  }
-
-  static sized(size = 0) {
-    let refs: PathReference<Opaque>[] = new Array(size + 1);
-
-    for (let i = 0; i <= size; i++) {
-      refs[i] = UNDEFINED_REFERENCE;
-    }
-
-    return new Scope(refs, null, null, null);
-  }
-
-  constructor(
-    // the 0th slot is `self`
-    private slots: ScopeSlot[],
-    private callerScope: Option<Scope>,
-    // named arguments and blocks passed to a layout that uses eval
-    private evalScope: Option<Dict<ScopeSlot>>,
-    // locals in scope when the partial was invoked
-    private partialMap: Option<Dict<PathReference<Opaque>>>) {
-  }
-
-  init({ self }: { self: PathReference<Opaque> }): this {
-    this.slots[0] = self;
-    return this;
-  }
+  abstract capture(): ReifiedScope;
 
   getSelf(): PathReference<Opaque> {
     return this.get<PathReference<Opaque>>(0);
@@ -77,7 +51,8 @@ export class Scope {
 
   getBlock(symbol: number): Option<ScopeBlock> {
     let block = this.get(symbol);
-    return block === UNDEFINED_REFERENCE ? null : block as ScopeBlock;
+    // TODO: There is a deeper issue here -- why isn't the block bound?
+    return block === undefined || block === UNDEFINED_REFERENCE ? null : block as ScopeBlock;
   }
 
   getEvalScope(): Option<Dict<ScopeSlot>> {
@@ -112,19 +87,57 @@ export class Scope {
     this.partialMap = map;
   }
 
-  bindCallerScope(scope: Option<Scope>) {
-    this.callerScope = scope;
+  abstract child(): Scope;
+}
+
+export class ReifiedScope extends Scope {
+  static root(self: PathReference<Opaque>, size = 0) {
+    let refs: PathReference<Opaque>[] = new Array(size + 1);
+
+    refs[0] = self;
+
+    for (let i = 1; i <= size; i++) {
+      // will be imminently filled in with the correct value
+      refs[i] = undefined as any;
+    }
+
+    return new ReifiedScope(refs, null, null);
   }
 
-  getCallerScope(): Option<Scope> {
-    return this.callerScope;
+  static sized(size = 0) {
+    let refs: PathReference<Opaque>[] = new Array(size + 1);
+
+    for (let i = 0; i <= size; i++) {
+      // will be imminently filled in with the correct value
+      refs[i] = undefined as any;
+    }
+
+    return new ReifiedScope(refs, null, null);
   }
 
-  child(): Scope {
-    return new Scope(this.slots.slice(), this.callerScope, this.evalScope, this.partialMap);
+  constructor(
+    // the 0th slot is `self`
+    private slots: ScopeSlot[],
+    // named arguments and blocks passed to a layout that uses eval
+    protected evalScope: Option<Dict<ScopeSlot>>,
+    // locals in scope when the partial was invoked
+    protected partialMap: Option<Dict<PathReference<Opaque>>>) {
+      super();
   }
 
-  private get<T extends ScopeSlot>(index: number): T {
+  capture(): ReifiedScope {
+    return this;
+  }
+
+  bindAll(slots: ScopeSlot[]): void {
+    this.slots = slots;
+  }
+
+  child(): ReifiedScope {
+    return new ReifiedScope(this.slots.slice(), this.evalScope, this.partialMap);
+  }
+
+  protected get<T extends ScopeSlot>(index: number): T {
     if (index >= this.slots.length) {
       throw new RangeError(`BUG: cannot get $${index} from scope; length=${this.slots.length}`);
     }
@@ -132,12 +145,41 @@ export class Scope {
     return this.slots[index] as T;
   }
 
-  private set<T extends ScopeSlot>(index: number, value: T): void {
+  protected set<T extends ScopeSlot>(index: number, value: T): void {
     if (index >= this.slots.length) {
       throw new RangeError(`BUG: cannot get $${index} from scope; length=${this.slots.length}`);
     }
 
     this.slots[index] = value;
+  }
+}
+
+export class ProxyStackScope extends Scope {
+  constructor(private stack: EvaluationStack, private fp: number, private sp: number) {
+    super();
+  }
+
+  // DEBUG
+  get slots(): ScopeSlot[] {
+    return this.stack.sliceArray(this.fp + 2, this.sp);
+  }
+
+  capture(): ReifiedScope {
+    let slots = this.stack.sliceArray(this.fp + 2, this.sp);
+    return new ReifiedScope(slots as ScopeSlot[], this.evalScope, this.partialMap);
+  }
+
+  protected get<T extends ScopeSlot>(slot: number): T {
+    return this.stack.get(2 + slot, this.fp);
+  }
+
+  protected set(): void {
+    throw new Error("Cannot bind on ProxyStackScope");
+  }
+
+  child(): Scope {
+    let slots = this.stack.sliceArray(this.fp + 2, this.sp);
+    return new ReifiedScope(slots as ScopeSlot[], this.evalScope, this.partialMap);
   }
 }
 

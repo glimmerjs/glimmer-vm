@@ -199,6 +199,10 @@ OPCODE_METADATA(Op.CompileBlock, {
   name: 'CompileBlock'
 });
 
+OPCODE_METADATA(Op.CompileScopeBlock, {
+  name: 'CompileScopeBlock'
+});
+
 OPCODE_METADATA(Op.InvokeVirtual, {
   name: 'InvokeVirtual',
   stackChange: -1
@@ -211,8 +215,7 @@ OPCODE_METADATA(Op.InvokeStatic, {
 });
 
 OPCODE_METADATA(Op.InvokeYield, {
-  name: 'InvokeYield',
-  stackChange: -2
+  name: 'InvokeYield'
 });
 
 OPCODE_METADATA(Op.Jump, {
@@ -294,12 +297,6 @@ OPCODE_METADATA(Op.ToBoolean, {
 });
 
 /// PRELUDE & EXIT ///
-
-OPCODE_METADATA(Op.RootScope, {
-  name: 'RootScope',
-  ops: [I32('symbols'), Bool('bindCallerScope')],
-  operands: 2
-});
 
 OPCODE_METADATA(Op.VirtualRootScope, {
   name: 'VirtualRootScope'
@@ -422,8 +419,7 @@ OPCODE_METADATA(Op.BindEvalScope, {
 });
 
 OPCODE_METADATA(Op.InvokeComponentLayout, {
-  name: 'InvokeComponentLayout',
-  stackChange: -2
+  name: 'InvokeComponentLayout'
 });
 
 OPCODE_METADATA(Op.PopulateLayout, {
@@ -663,7 +659,11 @@ OPCODE_METADATA(Op.SetBlock, {
   name: 'SetBlock',
   ops: [ScopeSymbol('symbol')],
   operands: 1,
-  stackChange: -3
+  stackChange: -1
+});
+
+OPCODE_METADATA(Op.ProxyStackScope, {
+  name: 'ProxyStackScope'
 });
 
 OPCODE_METADATA(Op.GetVariable, {
@@ -683,7 +683,12 @@ OPCODE_METADATA(Op.GetBlock, {
   name: 'GetBlock',
   ops: [ScopeBlock('block')],
   operands: 1,
-  stackChange: 3
+  stackChange: 1
+});
+
+OPCODE_METADATA(Op.ReifyBlock, {
+  name: 'ReifyBlock',
+  stackChange: -2
 });
 
 OPCODE_METADATA(Op.HasBlock, {
@@ -696,7 +701,7 @@ OPCODE_METADATA(Op.HasBlock, {
 OPCODE_METADATA(Op.HasBlockParams, {
   name: 'HasBlockParams',
   ops: [ScopeBlock('block')],
-  stackChange: -2
+  stackChange: 0
 });
 
 OPCODE_METADATA(Op.Concat, {
