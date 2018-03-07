@@ -84,6 +84,7 @@ export abstract class Scope {
   }
 
   bindPartialMap(map: Dict<PathReference<Opaque>>) {
+    // debugger;
     this.partialMap = map;
   }
 
@@ -157,6 +158,8 @@ export class ReifiedScope extends Scope {
 export class ProxyStackScope extends Scope {
   constructor(private stack: EvaluationStack, private fp: number, private sp: number) {
     super();
+    this.partialMap = null;
+    this.evalScope = null;
   }
 
   // DEBUG

@@ -386,8 +386,9 @@ export default class VM<T> implements PublicVM {
     return scope;
   }
 
-  pushScope(scope: Scope) {
+  pushScope(scope: Scope): Scope {
     this.scopeStack.push(scope);
+    return scope;
   }
 
   popScope() {

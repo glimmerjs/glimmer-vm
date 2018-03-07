@@ -43,18 +43,6 @@ export const enum Op {
 
   /**
    * Operation:
-   *   Bind the blocks in the Arguments to the symbols specified by the
-   *   symbol table in the component state at register.
-   * Format:
-   *   (SetBlocks register:u32)
-   * Operand Stack:
-   *   ..., Arguments →
-   *   ...
-   */
-  SetBlocks,
-
-  /**
-   * Operation:
    *   Bind the variable represented by a symbol from
    *   the value at the top of the stack.
    * Format:
@@ -255,35 +243,6 @@ export const enum Op {
   Fetch,
 
   /// PRELUDE & EXIT
-
-  /**
-   * Operation: Push a new root scope onto the scope stack.
-   *
-   * Format:
-   *   (RootScope symbols:u32 bindCallerScope:bool)
-   * Operand Stack:
-   *   ... →
-   *   ...
-   * Description:
-   *   A root scope has no parent scope, and therefore inherits no lexical
-   *   variables. If `bindCallerScope` is `true`, the current scope remembers
-   *   the caller scope (for yielding blocks).
-   */
-  RootScope,
-
-  /**
-   * Operation: Push a new root scope onto the scope stack.
-   *
-   * Format:
-   *   (VirtualRootScope register:u32)
-   * Operand Stack:
-   *   ... →
-   *   ...
-   * Description:
-   *   The symbol count is determined by the component state in
-   *   the specified register.
-   */
-  VirtualRootScope,
 
   /**
    * Operation: Push a new child scope onto the scope stack.
@@ -1048,28 +1007,6 @@ export const enum Op {
    *   ..., ProgramSymbolTable, Handle
    */
   GetComponentLayout,
-
-  /**
-   * Operation: Populate the eval lookup if necessary.
-   *
-   * Format:
-   *   (SetupForEval state:register)
-   * Operand Stack:
-   *   ... →
-   *   ...
-   */
-  SetupForEval,
-
-  /**
-   * Operation: Populate the eval lookup if necessary.
-   *
-   * Format:
-   *   (SetupForEval state:register)
-   * Operand Stack:
-   *   ... →
-   *   ...
-   */
-  BindEvalScope,
 
   /**
    * Operation:

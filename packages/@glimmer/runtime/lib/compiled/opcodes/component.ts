@@ -27,10 +27,10 @@ import {
 } from '@glimmer/debug';
 
 import Bounds from '../../bounds';
-import { DynamicScope, ScopeSlot } from '../../environment';
+import { DynamicScope, ScopeSlot, ProxyStackScope } from '../../environment';
 import { APPEND_OPCODES, UpdatingOpcode } from '../../opcodes';
 import { UpdatingVM, VM } from '../../vm';
-import { Arguments, IArguments, BlockArguments } from '../../vm/arguments';
+import { Arguments, IArguments } from '../../vm/arguments';
 import { IsCurriedComponentDefinitionReference, ContentTypeReference } from './content';
 import { UpdateDynamicAttributeOpcode } from './dom';
 import { Component } from '../../internal-interfaces';
@@ -59,6 +59,7 @@ import {
   CheckComponentInstance,
   CheckFinishedComponentInstance
 } from './-debug-strip';
+import { UNDEFINED_REFERENCE } from '../../references';
 
 export const ARGS = new Arguments();
 
@@ -510,67 +511,66 @@ APPEND_OPCODES.add(Op.PopulateLayout, (vm, { op1: _state }) => {
   state.table = table;
 });
 
-APPEND_OPCODES.add(Op.VirtualRootScope, (vm, { op1: _state }) => {
-  let { symbols } = check(vm.fetchValue(_state), CheckFinishedComponentInstance).table;
+const BLOCK_NAMES = {
+  '&attrs': 'attrs',
+  '&inverse': 'else',
+  '&default': 'main'
+};
 
-  vm.pushRootScope(symbols.length);
-});
-
-APPEND_OPCODES.add(Op.SetupForEval, (vm, { op1: _state }) => {
-  let state = check(vm.fetchValue(_state), CheckFinishedComponentInstance);
-
-  if (state.table.hasEval) {
-    let lookup = state.lookup = dict<ScopeSlot>();
-    vm.scope().bindEvalScope(lookup);
-  }
-});
+const AMP_NAMES = {
+  'attrs': '&attrs',
+  'else': '&inverse',
+  'main': '&default'
+};
 
 APPEND_OPCODES.add(Op.SetNamedVariables, (vm, { op1: _state }) => {
   let state = check(vm.fetchValue(_state), CheckFinishedComponentInstance);
-  let scope = vm.scope();
 
-  let args = check(vm.stack.peek(), CheckArguments);
+  let lookup = state.table.hasEval ? dict<ScopeSlot>() : null;
+
+  let args = check(vm.stack.peek(1), CheckArguments);
+
+  let fp = vm.stack.sp - 2;
+
   let callerNames = args.named.atNames;
   let callee = state.table.symbols;
+  let { blocks } = args;
 
   for (let i = 0; i < callee.length; i++) {
     let symbol = callee[i];
 
     if (symbol[0] === '@') {
       let value = args.named.get(symbol, false);
-      scope.bindSymbol(i + 1, value);
-      if (state.lookup) state.lookup[symbol] = value;
+      vm.stack.push(value);
+    } else if (symbol[0] === '&') {
+      let blockName = BLOCK_NAMES[symbol];
+      let block = blocks.get(blockName);
+      vm.stack.push(block);
+    } else {
+      vm.stack.push(UNDEFINED_REFERENCE);
     }
   }
 
-  if (state.lookup) {
+  // vm.popScope();
+  let scope = vm.pushScope(new ProxyStackScope(vm.stack, fp, vm.stack.sp));
+
+  if (lookup) {
     for (let i = callerNames.length - 1; i >= 0; i--) {
       let atName = callerNames[i];
       let value = args.named.get(atName, false);
-      state.lookup[atName] = value;
+      lookup[atName] = value;
     }
+
+    let blockNames = blocks.names;
+
+    for (let i = 0; i < blockNames.length; i++) {
+      let name = blockNames[i];
+      let value = args.blocks.get(name);
+      lookup[AMP_NAMES[name]] = value;
+    }
+
+    scope.bindEvalScope(lookup);
   }
-});
-
-function bindBlock(symbolName: string, blockName: string, state: ComponentInstance, blocks: BlockArguments, vm: VM<Opaque>) {
-  let symbol = state.table.symbols.indexOf(symbolName);
-
-  let block = blocks.get(blockName);
-
-  if (symbol !== -1) {
-    vm.scope().bindBlock(symbol + 1, block);
-  }
-
-  if (state.lookup) state.lookup[symbolName] = block;
-};
-
-APPEND_OPCODES.add(Op.SetBlocks, (vm, { op1: _state }) => {
-  let state = check(vm.fetchValue(_state), CheckFinishedComponentInstance);
-  let { blocks } = check(vm.stack.peek(), CheckArguments);
-
-  bindBlock('&attrs', 'attrs', state, blocks, vm);
-  bindBlock('&inverse', 'else', state, blocks, vm);
-  bindBlock('&default', 'main', state, blocks, vm);
 });
 
 // Dynamic Invocation Only

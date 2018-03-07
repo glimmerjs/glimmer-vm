@@ -187,10 +187,6 @@ export class StdOpcodeBuilder {
     this.push(Op.PopRemoteElement);
   }
 
-  pushVirtualRootScope(register: Register) {
-    this.push(Op.VirtualRootScope, register);
-  }
-
   pushChildScope() {
     this.push(Op.ChildScope);
   }
@@ -226,10 +222,6 @@ export class StdOpcodeBuilder {
 
   getComponentLayout(state: Register) {
     this.push(Op.GetComponentLayout, state);
-  }
-
-  setupForEval(state: Register) {
-    this.push(Op.SetupForEval, state);
   }
 
   invokeComponentLayout(state: Register) {
@@ -287,13 +279,7 @@ export class StdOpcodeBuilder {
     this.registerComponentDestructor(Register.s0);
 
     this.getComponentSelf(Register.s0);
-
-    this.pushVirtualRootScope(Register.s0);
-    this.setVariable(0);
-    this.setupForEval(Register.s0);
     this.setNamedVariables(Register.s0);
-    this.setBlocks(Register.s0);
-    this.pop();
     this.invokeComponentLayout(Register.s0);
     this.didRenderLayout(Register.s0);
     this.popFrame();
@@ -388,10 +374,6 @@ export class StdOpcodeBuilder {
 
   setNamedVariables(state: Register) {
     this.push(Op.SetNamedVariables, state);
-  }
-
-  setBlocks(state: Register) {
-    this.push(Op.SetBlocks, state);
   }
 
   setVariable(symbol: number) {
