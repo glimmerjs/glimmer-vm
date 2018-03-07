@@ -19,6 +19,7 @@ class WasmBindgen extends Plugin {
         "--out-dir",
         this.outputPath,
         "--typescript",
+        "--nodejs-runtime-detect",
       ];
       if (!this.production)
         args.push("--debug");
