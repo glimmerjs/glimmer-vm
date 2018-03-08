@@ -156,32 +156,35 @@ export class ReifiedScope extends Scope {
 }
 
 export class ProxyStackScope extends Scope {
-  constructor(private stack: EvaluationStack, private fp: number, private sp: number) {
+  private sp: number;
+
+  constructor(private stack: EvaluationStack, private fp: number, sp: number) {
     super();
+    this.sp = sp + 1;
     this.partialMap = null;
     this.evalScope = null;
   }
 
   // DEBUG
   get slots(): ScopeSlot[] {
-    return this.stack.sliceArray(this.fp + 2, this.sp);
+    return this.stack.sliceArray(this.fp, this.sp);
   }
 
   capture(): ReifiedScope {
-    let slots = this.stack.sliceArray(this.fp + 2, this.sp);
+    let slots = this.stack.sliceArray(this.fp, this.sp);
     return new ReifiedScope(slots as ScopeSlot[], this.evalScope, this.partialMap);
   }
 
   protected get<T extends ScopeSlot>(slot: number): T {
-    return this.stack.get(2 + slot, this.fp);
+    return this.stack.get(slot, this.fp);
   }
 
-  protected set(): void {
+  protected set<T extends ScopeSlot>(slot: number, value: T): void {
     throw new Error("Cannot bind on ProxyStackScope");
   }
 
   child(): Scope {
-    let slots = this.stack.sliceArray(this.fp + 2, this.sp);
+    let slots = this.stack.sliceArray(this.fp, this.sp);
     return new ReifiedScope(slots as ScopeSlot[], this.evalScope, this.partialMap);
   }
 }

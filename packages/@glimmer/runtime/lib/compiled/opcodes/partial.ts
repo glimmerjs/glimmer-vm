@@ -6,6 +6,8 @@ import { assert, Dict } from "@glimmer/util";
 import { check } from '@glimmer/debug';
 import { Opaque } from "@glimmer/interfaces";
 import { CheckReference } from './-debug-strip';
+import { UNDEFINED_REFERENCE } from '../../references';
+import { ProxyStackScope } from '../../environment';
 
 APPEND_OPCODES.add(Op.InvokePartial, (vm, { op1: _meta, op2: _symbols, op3: _evalInfo }) => {
   let { constants, constants: { resolver }, stack } = vm;
@@ -28,11 +30,16 @@ APPEND_OPCODES.add(Op.InvokePartial, (vm, { op1: _meta, op2: _symbols, op3: _eva
   {
     let partialSymbols = symbolTable.symbols;
     let outerScope = vm.scope();
-    let partialScope = vm.pushRootScope(partialSymbols.length);
-    let evalScope = outerScope.getEvalScope();
-    partialScope.bindEvalScope(evalScope);
-    partialScope.bindSelf(outerScope.getSelf());
 
+    let evalScope = outerScope.getEvalScope();
+
+    // self is always first on the stack
+    vm.stack.push(outerScope.getSelf());
+
+    // point at the current $sp
+    let fp = vm.stack.sp;
+
+    // create a new partial map for this invocation
     let locals = Object.create(outerScope.getPartialMap()) as Dict<VersionedPathReference<Opaque>>;
 
     for (let i = 0; i < evalInfo.length; i++) {
@@ -45,14 +52,17 @@ APPEND_OPCODES.add(Op.InvokePartial, (vm, { op1: _meta, op2: _symbols, op3: _eva
     if (evalScope) {
       for (let i = 0; i < partialSymbols.length; i++) {
         let name = partialSymbols[i];
-        let symbol = i + 1;
-        let value = evalScope[name];
-
-        if (value !== undefined) partialScope.bind(symbol, value);
+        vm.stack.push(evalScope[name]);
+      }
+    } else {
+      for (let i = 0; i < partialSymbols.length; i++) {
+        vm.stack.push(UNDEFINED_REFERENCE);
       }
     }
 
-    partialScope.bindPartialMap(locals);
+    let scope = vm.pushScope(new ProxyStackScope(vm.stack, fp, vm.stack.sp));
+    scope.bindEvalScope(evalScope);
+    scope.bindPartialMap(locals);
 
     vm.pushFrame(); // sp += 2
     vm.call(vmHandle!);

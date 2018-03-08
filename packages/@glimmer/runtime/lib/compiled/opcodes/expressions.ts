@@ -45,7 +45,8 @@ APPEND_OPCODES.add(Op.SetBlock, (vm, { op1: symbol }) => {
 APPEND_OPCODES.add(Op.ProxyStackScope, vm => {
   let { stack } = vm;
 
-  vm.pushScope(new ProxyStackScope(stack, stack.fp, stack.sp));
+  // Don't include the saved off $ra and $fp
+  vm.pushScope(new ProxyStackScope(stack, stack.fp + 2, stack.sp));
 });
 
 APPEND_OPCODES.add(Op.ResolveMaybeLocal, (vm, { op1: _name }) => {

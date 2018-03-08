@@ -528,9 +528,12 @@ APPEND_OPCODES.add(Op.SetNamedVariables, (vm, { op1: _state }) => {
 
   let lookup = state.table.hasEval ? dict<ScopeSlot>() : null;
 
-  let args = check(vm.stack.peek(1), CheckArguments);
+  // self is already on the stack
+  let fp = vm.stack.sp;
 
-  let fp = vm.stack.sp - 2;
+  // the ARGS object, which includes the mapping of the caller's names to
+  // its offsets, is behind self.
+  let args = check(vm.stack.peek(1), CheckArguments);
 
   let callerNames = args.named.atNames;
   let callee = state.table.symbols;
@@ -551,7 +554,6 @@ APPEND_OPCODES.add(Op.SetNamedVariables, (vm, { op1: _state }) => {
     }
   }
 
-  // vm.popScope();
   let scope = vm.pushScope(new ProxyStackScope(vm.stack, fp, vm.stack.sp));
 
   if (lookup) {
