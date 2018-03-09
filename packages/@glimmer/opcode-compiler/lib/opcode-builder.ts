@@ -159,10 +159,6 @@ export class StdOpcodeBuilder {
     this.push(Op.AppendNode);
   }
 
-  appendOther() {
-    this.push(Op.AppendOther);
-  }
-
   appendText() {
     this.push(Op.AppendText);
   }
@@ -577,11 +573,6 @@ export class StdOpcodeBuilder {
       when(ContentType.Node, () => {
         this.assertSame();
         this.appendNode();
-      });
-
-      when(ContentType.Other, () => {
-        this.assertSame();
-        this.appendOther();
       });
     });
   }
@@ -1170,7 +1161,7 @@ export abstract class OpcodeBuilder<Locator = Opaque> extends StdOpcodeBuilder {
    *
    * # Updating Execution
    *
-   * Updating execution for this `try` occurs if the `body` added an
+   * Updating execution for this `replayable` occurs if the `body` added an
    * assertion, via one of the `JumpIf`, `JumpUnless` or `AssertSame` opcodes.
    *
    * If, during updating executon, the assertion fails, the initial VM is
@@ -1241,11 +1232,11 @@ export abstract class OpcodeBuilder<Locator = Opaque> extends StdOpcodeBuilder {
   }
 
   /**
-   * A specialized version of the `try` convenience that allows the
+   * A specialized version of the `replayable` convenience that allows the
    * caller to provide different code based upon whether the item at
    * the top of the stack is true or false.
    *
-   * As in `try`, the `ifTrue` and `ifFalse` code can invoke `return`.
+   * As in `replayable`, the `ifTrue` and `ifFalse` code can invoke `return`.
    *
    * During the initial execution, a `return` will continue execution
    * in the cleanup code, which finalizes the current DOM block and pops
