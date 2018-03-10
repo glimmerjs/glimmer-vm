@@ -400,7 +400,7 @@ export default class VM<T> implements PublicVM {
     let result: IteratorResult<RenderResult>;
     let failed = true;
     try {
-      const ret = this.wasmVM.evaluate_one(this);
+      const ret = this.wasmVM.evaluate_some(this);
       if (ret === 2)
         this.raiseLastVmException();
       this.flushInstructions();

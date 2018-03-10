@@ -467,6 +467,13 @@ pub struct LowLevelVM {
     externs: JsValue,
 }
 
+enum EvalResult {
+    Exception,
+    Finished,
+    DidSyscall,
+    Ok,
+}
+
 #[wasm_bindgen]
 impl LowLevelVM {
     pub fn new(heap: &WasmHeap,
@@ -534,21 +541,34 @@ impl LowLevelVM {
 
     pub fn evaluate_all(&self, vm: &JsValue) -> u32 {
         loop {
-            let r = self.evaluate_one(vm);
-            if r != 0 {
-                return r
+            match self.evaluate_one(vm) {
+                EvalResult::Exception => return 2,
+                EvalResult::Finished => return 1,
+                EvalResult::DidSyscall |
+                EvalResult::Ok => {}
             }
         }
     }
 
-    pub fn evaluate_one(&self, vm: &JsValue) -> u32 {
+    pub fn evaluate_some(&self, vm: &JsValue) -> u32 {
+        loop {
+            match self.evaluate_one(vm) {
+                EvalResult::Exception => return 2,
+                EvalResult::Finished => return 1,
+                EvalResult::DidSyscall => return 0,
+                EvalResult::Ok => {}
+            }
+        }
+    }
+
+    fn evaluate_one(&self, vm: &JsValue) -> EvalResult {
         let next = {
             let mut heap = self.heap.borrow_mut();
             self.inner.borrow_mut().next_statement(&mut *heap)
         };
         let opcode = match next {
             Some(opcode) => opcode,
-            None => return 1,
+            None => return EvalResult::Finished,
         };
 
         let state = if self.devmode {
@@ -561,13 +581,15 @@ impl LowLevelVM {
             opcode,
             &mut *self.heap.borrow_mut(),
         );
+        let mut ret = EvalResult::Ok;
         if !complete {
+            ret = EvalResult::DidSyscall;
             let res = ffi::low_level_vm_evaluate_syscall(&self.syscalls,
                                                          vm,
                                                          opcode.offset());
             if let Err(e) = res {
                 *self.last_error.borrow_mut() = Some(e);
-                return 2
+                return EvalResult::Exception;
             }
         }
 
@@ -576,7 +598,7 @@ impl LowLevelVM {
                                           state,
                                           opcode.offset());
         }
-        return 0
+        return ret
     }
 
     pub fn last_exception(&self) -> JsValue {
