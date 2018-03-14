@@ -17,7 +17,7 @@ class WasmOpt extends Plugin {
       }
       const filename = path.basename(name);
       const outputFile = path.join(this.outputPath, filename);
-      const args = ["-Os", full_path, "-o", outputFile];
+      const args = ["-Oz", full_path, "-o", outputFile];
 
       try {
         execFileSync("wasm-opt", args);
