@@ -12,11 +12,12 @@ class WasmOpt extends Plugin {
     const filenames = fs.readdirSync(this.inputPaths[0]);
     for (const name of filenames) {
       const full_path = path.join(this.inputPaths[0], name);
-      if (path.extname(name) !== '.wasm') {
-        continue;
-      }
       const filename = path.basename(name);
       const outputFile = path.join(this.outputPath, filename);
+      if (path.extname(name) !== '.wasm') {
+        fs.copyFileSync(full_path, outputFile);
+        continue;
+      }
       const args = ["-Oz", full_path, "-o", outputFile];
 
       try {

@@ -47,9 +47,9 @@ module.exports = function(_options) {
   // matches up.c
   let wasmTree = compileRust('packages/@glimmer/low-level/rust', PRODUCTION);
   wasmTree = wasmGc(wasmTree);
+  wasmTree = wasmBindgen(wasmTree, PRODUCTION);
   if (PRODUCTION)
     wasmTree = wasmOpt(wasmTree);
-  wasmTree = wasmBindgen(wasmTree, PRODUCTION);
   let wasmAsBase64 = encodeWasmAsBase64(wasmTree);
   wasmTree = merge([wasmTree, wasmAsBase64]);
 
