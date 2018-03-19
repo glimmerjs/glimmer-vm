@@ -179,7 +179,7 @@ export class ProxyStackScope extends Scope {
     return this.stack.get(slot, this.fp);
   }
 
-  protected set<T extends ScopeSlot>(slot: number, value: T): void {
+  protected set<T extends ScopeSlot>(_slot: number, _value: T): void {
     throw new Error("Cannot bind on ProxyStackScope");
   }
 
