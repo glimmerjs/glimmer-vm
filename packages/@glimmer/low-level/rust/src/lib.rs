@@ -1,7 +1,7 @@
 // This unstable feature is currently used for the `wasm_bindgen` macro which
 // allows us to define Rust code and have TypeScript automatically generated
 // for consumption elsewhere.
-#![feature(proc_macro)]
+#![feature(proc_macro, wasm_custom_section, wasm_import_module)]
 
 extern crate wasm_bindgen;
 

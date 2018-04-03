@@ -155,11 +155,15 @@ export default class VM<T> implements PublicVM {
     this.scopeStack.push(scope);
     this.dynamicScopeStack.push(dynamicScope);
     let externs = {
-      debugBefore: (opcode: Opcode): DebugState => {
+      debugBefore: (offset: number): DebugState => {
+        let opcode = new Opcode(runtime.program.heap);
+        opcode.offset = offset;
         return APPEND_OPCODES.debugBefore(this, opcode, opcode.type);
       },
 
-      debugAfter: (opcode: Opcode, state: DebugState): void => {
+      debugAfter: (offset: number, state: DebugState): void => {
+        let opcode = new Opcode(runtime.program.heap);
+        opcode.offset = offset;
         APPEND_OPCODES.debugAfter(this, opcode, opcode.type, state);
       }
     };

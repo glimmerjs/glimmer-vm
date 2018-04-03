@@ -194,7 +194,11 @@ impl Heap {
     pub fn reserve(&mut self, size: u32) -> *mut u16 {
         // don't let heap sizes get too too big
         let size = cmp::min(size, u32::max_value() / 16) as usize;
-        self.heap = vec![0; size].into_boxed_slice();
+        unsafe {
+            let mut heap = Vec::with_capacity(size);
+            heap.set_len(size);
+            self.heap = heap.into_boxed_slice();
+        }
         self.heap.as_mut_ptr()
     }
 

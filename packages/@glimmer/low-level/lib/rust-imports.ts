@@ -9,8 +9,8 @@ export function low_level_vm_debug_before(externs: any, offset: number): any {
 }
 
 export function low_level_vm_debug_after(externs: any,
-                         state: any,
-                         offset: number): void {
+                                         state: any,
+                                         offset: number): void {
   externs.debugAfter(offset, state);
 }
 
