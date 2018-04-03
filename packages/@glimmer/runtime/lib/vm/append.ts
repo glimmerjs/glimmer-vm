@@ -4,7 +4,7 @@ import { ElementBuilder } from './element-builder';
 import { Option, Destroyable, Stack, LinkedList, ListSlice, Opaque, expect } from '@glimmer/util';
 import { ReferenceIterator, PathReference, VersionedPathReference, combineSlice } from '@glimmer/reference';
 import { LabelOpcode, JumpIfNotModifiedOpcode, DidModifyOpcode } from '../compiled/opcodes/vm';
-import { VMState, ListBlockOpcode, TryOpcode, BlockOpcode } from './update';
+import { VMState, ListBlockOpcode, TryOpcode, BlockOpcode, Runtime } from './update';
 import RenderResult from './render-result';
 import EvaluationStack from './stack';
 import { WasmLowLevelVM, wasmMemory } from '@glimmer/low-level';
@@ -117,7 +117,7 @@ export default class VM<T> implements PublicVM {
   ) {
     let scopeSize = program.heap.scopesizeof(handle);
     let scope = Scope.root(self, scopeSize);
-    let vm = new VM(program, env, scope, dynamicScope, elementStack);
+    let vm = new VM({ program, env }, scope, dynamicScope, elementStack);
     vm.wasmVM.set_pc(vm.heap.getaddr(handle));
     vm.updatingOpcodeStack.push(new LinkedList<UpdatingOpcode>());
     return vm;
@@ -134,38 +134,32 @@ export default class VM<T> implements PublicVM {
       child() { return dynamicScope; }
     };
 
-    let vm = new VM(program, env, Scope.root(UNDEFINED_REFERENCE, 0), dynamicScope, elementStack);
+    let vm = new VM({ program, env }, Scope.root(UNDEFINED_REFERENCE, 0), dynamicScope, elementStack);
     vm.updatingOpcodeStack.push(new LinkedList<UpdatingOpcode>());
     return vm;
   }
 
-  static resume({ program, env, scope, dynamicScope }: VMState, stack: ElementBuilder) {
-    return new VM(program, env, scope, dynamicScope, stack);
+  static resume({ scope, dynamicScope }: VMState, runtime: Runtime, stack: ElementBuilder) {
+    return new VM(runtime, scope, dynamicScope, stack);
   }
 
   constructor(
-    private program: RuntimeProgram<T>,
-    public env: Environment,
+    private runtime: Runtime,
     scope: Scope,
     dynamicScope: DynamicScope,
     private elementStack: ElementBuilder,
   ) {
-    this.env = env;
-    this.heap = program.heap;
-    this.constants = program.constants;
+    this.heap = this.program.heap;
+    this.constants = this.program.constants;
     this.elementStack = elementStack;
     this.scopeStack.push(scope);
     this.dynamicScopeStack.push(dynamicScope);
     let externs = {
-      debugBefore: (offset: number): DebugState => {
-        let opcode = new Opcode(program.heap);
-        opcode.offset = offset;
+      debugBefore: (opcode: Opcode): DebugState => {
         return APPEND_OPCODES.debugBefore(this, opcode, opcode.type);
       },
 
-      debugAfter: (offset: number, state: DebugState): void => {
-        let opcode = new Opcode(program.heap);
-        opcode.offset = offset;
+      debugAfter: (opcode: Opcode, state: DebugState): void => {
         APPEND_OPCODES.debugAfter(this, opcode, opcode.type, state);
       }
     };
@@ -186,10 +180,16 @@ export default class VM<T> implements PublicVM {
     return this.wasmVM;
   }
 
+  get program(): RuntimeProgram<Opaque> {
+    return this.runtime.program;
+  }
+
+  get env(): Environment {
+    return this.runtime.env;
+  }
+
   private capture(args: number): VMState {
     return {
-      env: this.env,
-      program: this.program as any,
       dynamicScope: this.dynamicScope(),
       scope: this.scope(),
       stack: this.stack.capture(args)
@@ -230,7 +230,7 @@ export default class VM<T> implements PublicVM {
     let tracker = this.elements().pushUpdatableBlock();
 
     let pc = this.wasmVM.pc();
-    let tryOpcode = new TryOpcode(this.heap.gethandle(pc), state, tracker, updating);
+    let tryOpcode = new TryOpcode(this.heap.gethandle(pc), state, this.runtime, tracker, updating);
 
     this.didEnter(tryOpcode);
   }
@@ -248,7 +248,7 @@ export default class VM<T> implements PublicVM {
     // this.frames.push(ip);
 
     let pc = this.wasmVM.pc();
-    return new TryOpcode(this.heap.gethandle(pc), state, tracker, new LinkedList<UpdatingOpcode>());
+    return new TryOpcode(this.heap.gethandle(pc), state, this.runtime, tracker, new LinkedList<UpdatingOpcode>());
   }
 
   enterItem(key: string, opcode: TryOpcode) {
@@ -267,7 +267,7 @@ export default class VM<T> implements PublicVM {
     let addr = (pc + relativeStart) - this.wasmVM.current_op_size();
     let start = this.heap.gethandle(addr);
 
-    let opcode = new ListBlockOpcode(start, state, tracker, updating, artifacts);
+    let opcode = new ListBlockOpcode(start, state, this.runtime, tracker, updating, artifacts);
 
     this.listBlockStack.push(opcode);
 

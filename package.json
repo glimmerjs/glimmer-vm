@@ -1,6 +1,6 @@
 {
   "name": "glimmer-engine",
-  "version": "0.33.0",
+  "version": "0.33.4",
   "description": "Glimmer compiles Handlebars templates into document fragments rather than string buffers",
   "license": "MIT",
   "author": "Tilde, Inc.",
@@ -35,7 +35,7 @@
     "babel-plugin-debug-macros": "^0.1.11",
     "handlebars": "^4.0.6",
     "simple-dom": "^0.3.0",
-    "simple-html-tokenizer": "^0.4.1"
+    "simple-html-tokenizer": "^0.5.0"
   },
   "devDependencies": {
     "@glimmer/build": "^0.8.2",
