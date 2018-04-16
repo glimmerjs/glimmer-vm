@@ -126,13 +126,13 @@ function confirmPublish() {
       console.log(chalk.red("Aborting"));
     }
 
-    packages.forEach(package => {
-      execWithSideEffects(`npm publish --tag ${distTag}`, {
+    packages.filter(pkg => !pkg.private).forEach(package => {
+      execWithSideEffects(`npm publish --tag old --access public`, {
         cwd: package.absolutePath
       });
     });
 
-    execWithSideEffects(`git push origin master --tags`);
+    execWithSideEffects(`git push origin release-0-25 --tags`);
 
     console.log(chalk.green(`\nv${newVersion} deployed!`));
     console.log(chalk.green('Done.'));
