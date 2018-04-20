@@ -1,5 +1,5 @@
 import { Register } from '@glimmer/vm';
-import { ProgramSymbolTable, CompilableProgram, CompilableBlock } from '@glimmer/interfaces';
+import { ProgramSymbolTable, CompilableProgram, CompilableBlock, Option } from '@glimmer/interfaces';
 
 import {
   ComponentArgs,
@@ -19,6 +19,7 @@ import { EMPTY_ARRAY } from "@glimmer/util";
 export class WrappedBuilder<TemplateMeta> implements CompilableProgram {
   public symbolTable: ProgramSymbolTable;
   private referrer: TemplateMeta;
+  private compiled: Option<number> = null;
 
   constructor(public options: CompileOptions<TemplateMeta>, private layout: ParsedLayout<TemplateMeta>) {
     let { block } = layout;
@@ -30,6 +31,8 @@ export class WrappedBuilder<TemplateMeta> implements CompilableProgram {
   }
 
   compile(): number {
+    if (this.compiled !== null) return this.compiled;
+
     //========DYNAMIC
     //        PutValue(TagExpr)
     //        Test
@@ -104,7 +107,7 @@ export class WrappedBuilder<TemplateMeta> implements CompilableProgram {
       debugSlice(program, start, end);
     }
 
-    return handle;
+    return (this.compiled = handle);
   }
 }
 
