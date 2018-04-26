@@ -476,3 +476,33 @@ test("Handlebars decorator block should error", function(assert) {
     parse("{{#* foo}}{{/foo}}");
   }, new Error(`Handlebars decorator blocks are not supported: "{{#* foo" at L1:C0`));
 });
+
+// https://html.spec.whatwg.org/multipage/syntax.html#element-restrictions
+test("strips leading newline from <pre> data", function() {
+  let ast = parse("<pre>\nhello</pre>");
+  astEqual(ast, b.program([
+    b.element("pre", [], [], [
+      b.text("hello")
+    ])
+  ]));
+});
+
+// https://html.spec.whatwg.org/multipage/syntax.html#element-restrictions
+test("strips leading newline from <PRE> data", function() {
+  let ast = parse("<PRE>\nhello</PRE>");
+  astEqual(ast, b.program([
+    b.element("PRE", [], [], [
+      b.text("hello")
+    ])
+  ]));
+});
+
+// https://html.spec.whatwg.org/multipage/syntax.html#element-restrictions
+test("strips leading newline from <textarea> data", function() {
+  let ast = parse("<textarea>\nhello</textarea>");
+  astEqual(ast, b.program([
+    b.element("textarea", [], [], [
+      b.text("hello")
+    ])
+  ]));
+});

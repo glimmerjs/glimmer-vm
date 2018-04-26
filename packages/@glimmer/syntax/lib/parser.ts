@@ -50,6 +50,7 @@ export abstract class Parser {
   abstract finishData(): void;
   abstract tagOpen(): void;
   abstract beginData(): void;
+  abstract appendLeadingNewlineToData(): void;
   abstract appendToData(char: string): void;
   abstract beginStartTag(): void;
   abstract appendToTagName(char: string): void;
