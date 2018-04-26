@@ -60,6 +60,20 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
     };
   }
 
+  appendLeadingNewlineToData() {
+    let currentElement = this.currentElement();
+    if (currentElement.type === 'ElementNode') {
+      let tag = currentElement.tag.toLowerCase();
+      if (tag === 'pre' || tag === 'textarea') {
+        // A newline immediately following a <pre> or <textarea> start
+        // tag must be dropped, per
+        // https://html.spec.whatwg.org/multipage/syntax.html#element-restrictions
+        return;
+      }
+    }
+    this.appendToData('\n');
+  }
+
   appendToData(char: string) {
     this.currentData.chars += char;
   }
