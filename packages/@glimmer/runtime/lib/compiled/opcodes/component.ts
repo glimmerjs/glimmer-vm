@@ -13,7 +13,7 @@ import { Component, ComponentDefinition, ComponentManager } from '../../componen
 import { DynamicScope } from '../../environment';
 import { APPEND_OPCODES, Op, OpcodeJSON, UpdatingOpcode } from '../../opcodes';
 import { UpdatingVM } from '../../vm';
-import ARGS, { Arguments, IArguments } from '../../vm/arguments';
+import { Arguments, IArguments } from '../../vm/arguments';
 import { ComponentElementOperations } from './dom';
 import { Assert } from './vm';
 
@@ -51,8 +51,8 @@ export interface ComponentState<T> {
 
 APPEND_OPCODES.add(Op.PushArgs, (vm, { op1: synthetic }) => {
   let stack = vm.stack;
-  ARGS.setup(stack, !!synthetic);
-  stack.push(ARGS);
+  vm.args.setup(stack, !!synthetic);
+  stack.push(vm.args);
 });
 
 APPEND_OPCODES.add(Op.PrepareArgs, (vm, { op1: _state }) => {

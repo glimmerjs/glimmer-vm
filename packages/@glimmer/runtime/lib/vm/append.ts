@@ -8,6 +8,7 @@ import { LabelOpcode, JumpIfNotModifiedOpcode, DidModifyOpcode } from '../compil
 import { VMState, ListBlockOpcode, TryOpcode, BlockOpcode } from './update';
 import RenderResult from './render-result';
 import { DEBUG } from '@glimmer/local-debug-flags';
+import { Arguments } from "./arguments";
 
 import {
   APPEND_OPCODES,
@@ -104,6 +105,7 @@ export default class VM implements PublicVM {
   public listBlockStack = new Stack<ListBlockOpcode>();
   public constants: Constants;
   public heap: Heap;
+  public args: Arguments;
 
   public stack = EvaluationStack.empty();
 
@@ -215,6 +217,7 @@ export default class VM implements PublicVM {
     this.elementStack = elementStack;
     this.scopeStack.push(scope);
     this.dynamicScopeStack.push(dynamicScope);
+    this.args = new Arguments();
   }
 
   capture(args: number): VMState {

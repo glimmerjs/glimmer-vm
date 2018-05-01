@@ -68,7 +68,7 @@ export interface ICapturedNamedArguments extends VersionedPathReference<Dict<Opa
 }
 
 export class Arguments implements IArguments {
-  private stack: EvaluationStack = null as any;
+  private stack: EvaluationStack | null = null;
   public positional: IPositionalArguments = new PositionalArguments();
   public named: INamedArguments = new NamedArguments();
 
@@ -120,7 +120,7 @@ export class Arguments implements IArguments {
 
   clear(): void {
     let { stack, length } = this;
-    stack.pop(length + 2);
+    if (stack !== null) stack.pop(length + 2);
   }
 }
 
@@ -370,5 +370,3 @@ class CapturedNamedArguments implements ICapturedNamedArguments {
     return out;
   }
 }
-
-export default new Arguments();
