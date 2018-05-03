@@ -160,15 +160,14 @@ export function insertHTMLBefore(this: void, useless: HTMLElement, _parent: Simp
   let prev = nextSibling ? nextSibling.previousSibling : parent.lastChild;
   let last: Simple.Node | null;
 
-  if (html === null || html === '') {
-    return new ConcreteBounds(parent, null, null);
-  }
+  // Add a comment instead of an empty string, so that we can keep track of it properly
+  let htmlToAdd = (html === null || html === '') ? '<!---->' : html;
 
   if (nextSibling === null) {
-    parent.insertAdjacentHTML('beforeend', html);
+    parent.insertAdjacentHTML('beforeend', htmlToAdd);
     last = parent.lastChild;
   } else if (nextSibling instanceof HTMLElement) {
-    nextSibling.insertAdjacentHTML('beforebegin', html);
+    nextSibling.insertAdjacentHTML('beforebegin', htmlToAdd);
     last = nextSibling.previousSibling;
   } else {
     // Non-element nodes do not support insertAdjacentHTML, so add an
@@ -177,7 +176,7 @@ export function insertHTMLBefore(this: void, useless: HTMLElement, _parent: Simp
     // This also protects Edge, IE and Firefox w/o the inspector open
     // from merging adjacent text nodes. See ./compat/text-node-merging-fix.ts
     parent.insertBefore(useless, nextSibling);
-    useless.insertAdjacentHTML('beforebegin', html);
+    useless.insertAdjacentHTML('beforebegin', htmlToAdd);
     last = useless.previousSibling;
     parent.removeChild(useless);
   }
