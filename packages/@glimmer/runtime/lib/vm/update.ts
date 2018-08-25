@@ -76,9 +76,6 @@ export default class UpdatingVM<T = Opaque> {
 
     this.try(opcodes, handler);
 
-    // const deadline = 10;
-    // let executionTime = performance.now();
-
     while (true) {
       if (frameStack.isEmpty()) break;
 
