@@ -14,6 +14,12 @@ export default class RenderResult<T = Opaque> implements DestroyableBounds, Exce
     private bounds: DestroyableBounds
   ) {}
 
+  async rerenderAsync({ alwaysRevalidate = false } = { alwaysRevalidate: false }) {
+    let { env, program, updating } = this;
+    let vm = new UpdatingVM(env, program, { alwaysRevalidate });
+    return await vm.executeAsync(updating, this);
+  }
+
   rerender({ alwaysRevalidate = false } = { alwaysRevalidate: false }) {
     let { env, program, updating } = this;
     let vm = new UpdatingVM(env, program, { alwaysRevalidate });

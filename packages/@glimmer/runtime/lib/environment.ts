@@ -257,10 +257,16 @@ export abstract class Environment {
   }
 
   didCreate(component: Component, manager: ComponentManager) {
+    if (!this.transaction) {
+      return;
+    }
     this.transaction.didCreate(component, manager);
   }
 
   didUpdate(component: Component, manager: ComponentManager) {
+    if (!this.transaction) {
+      return;
+    }
     this.transaction.didUpdate(component, manager);
   }
 
@@ -273,10 +279,16 @@ export abstract class Environment {
   }
 
   didDestroy(d: Destroyable) {
+    if (!this.transaction) {
+      return;
+    }
     this.transaction.didDestroy(d);
   }
 
   commit() {
+    if (!this.transaction) {
+      return;
+    }
     let transaction = this.transaction;
     this._transaction = null;
     transaction.commit();

@@ -40,10 +40,44 @@ export default class UpdatingVM<T = Opaque> {
     this.alwaysRevalidate = alwaysRevalidate;
   }
 
+  async executeAsync(opcodes: UpdatingOpSeq, handler: ExceptionHandler) {
+    let { frameStack } = this;
+
+    this.try(opcodes, handler);
+
+    const deadline = 10;
+    let executionTime = performance.now();
+
+    while (true) {
+      if (frameStack.isEmpty()) break;
+
+      let opcode = this.frame.nextStatement();
+
+      if (opcode === null) {
+        this.frameStack.pop();
+        continue;
+      }
+
+      opcode.evaluate(this);
+
+      if (performance.now() - deadline > executionTime) {
+        await new Promise(resolve => {
+          setTimeout(() => {
+            executionTime = performance.now();
+            resolve();
+          });
+        });
+      }
+    }
+  }
+
   execute(opcodes: UpdatingOpSeq, handler: ExceptionHandler) {
     let { frameStack } = this;
 
     this.try(opcodes, handler);
+
+    // const deadline = 10;
+    // let executionTime = performance.now();
 
     while (true) {
       if (frameStack.isEmpty()) break;
