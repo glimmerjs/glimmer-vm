@@ -138,21 +138,38 @@ function confirmPublish() {
       return;
     }
 
-    cli.question(chalk.green('\nPlease provide OTP token '), token => {
-      let otp = token.trim();
+    publishWithOtpToken();
+  });
+}
+let flip = true;
+function publishWithOtpToken() {
+  cli.question(chalk.green('\nPlease provide OTP token '), token => {
+    let otp = token.trim();
 
-      packages.filter(pkg => !pkg.private).forEach(package => {
+    let lastIndex = 0;
+    try {
+      packages.filter(pkg => !pkg.private).forEach((package, i) => {
+        lastIndex = i;
+        if (i === 4 && flip) {
+          flip = false
+          throw new Error('PUT 401');
+        }
         execWithSideEffects(`npm publish --tag ${distTag} --access public --otp ${otp}`, {
           cwd: package.absolutePath
         });
       });
+    } catch (e) {
+      if (e.message.indexOf('PUT 401') > -1) {
+        packages = packages.slice(lastIndex, packages.length);
+        return publishWithOtpToken();
+      }
+    }
 
-      execWithSideEffects(`git push origin master --tags`);
+    execWithSideEffects(`git push origin master --tags`);
 
-      console.log(chalk.green(`\nv${newVersion} deployed!`));
-      console.log(chalk.green('Done.'));
-      cli.close();
-    });
+    console.log(chalk.green(`\nv${newVersion} deployed!`));
+    console.log(chalk.green('Done.'));
+    cli.close();
   });
 }
 
