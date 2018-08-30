@@ -141,7 +141,6 @@ function confirmPublish() {
     publishWithOtpToken();
   });
 }
-let flip = true;
 function publishWithOtpToken() {
   cli.question(chalk.green('\nPlease provide OTP token '), token => {
     let otp = token.trim();
@@ -150,10 +149,6 @@ function publishWithOtpToken() {
     try {
       packages.filter(pkg => !pkg.private).forEach((package, i) => {
         lastIndex = i;
-        if (i === 4 && flip) {
-          flip = false
-          throw new Error('PUT 401');
-        }
         execWithSideEffects(`npm publish --tag ${distTag} --access public --otp ${otp}`, {
           cwd: package.absolutePath
         });

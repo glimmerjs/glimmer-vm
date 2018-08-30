@@ -18,6 +18,7 @@ export class InertModifierManager
   create(
     _element: Element,
     _state: InertModifierDefinitionState,
+    _manager: InertModifierManager,
     _args: Arguments,
     _dynamicScope: DynamicScope,
     _dom: any
@@ -51,6 +52,7 @@ export class TestModifier {
   constructor(
     public element: Element,
     public state: TestModifierDefinitionState,
+    public manager: TestModifierManager,
     public args: CapturedArguments,
     public dom: IDOMChanges
   ) {}
@@ -76,11 +78,12 @@ export class TestModifierManager
   create(
     element: Element,
     state: TestModifierDefinitionState,
+    manager: TestModifierManager,
     args: Arguments,
     _dynamicScope: DynamicScope,
     dom: IDOMChanges
   ) {
-    return new TestModifier(element, state, args.capture(), dom);
+    return new TestModifier(element, state, manager, args.capture(), dom);
   }
 
   getTag({ args: { tag } }: TestModifier): Tag {

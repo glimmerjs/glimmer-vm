@@ -16,6 +16,7 @@ import {
   isArgument,
   isAttribute,
   isAttrSplat,
+  isModifier,
 } from '@glimmer/wire-format';
 import { Processor, CompilerOps, OpName, Op } from './compiler-ops';
 
@@ -92,6 +93,8 @@ export class ComponentBlock extends Block {
         this.attributes.push(statement);
       } else if (isAttrSplat(statement)) {
         this.attributes.push(statement);
+      } else if (isModifier(statement)) {
+        throw new Error('Compile Error: Element modifiers are not allowed in components');
       } else {
         throw new Error('Compile Error: only parameters allowed before flush-element');
       }
@@ -204,11 +207,14 @@ export default class JavaScriptCompiler
     this.push([Ops.Comment, value]);
   }
 
-  modifier(name: string) {
+  openModifier(name: string) {
     let params = this.popValue<Params>();
     let hash = this.popValue<Hash>();
+    this.push([Ops.OpenModifier, name, params, hash]);
+  }
 
-    this.push([Ops.Modifier, name, params, hash]);
+  closeModifier() {
+    this.push([Ops.CloseModifier]);
   }
 
   block([name, template, inverse]: [string, number, Option<number>]) {
@@ -266,9 +272,6 @@ export default class JavaScriptCompiler
   }
 
   closeComponent(_element: AST.ElementNode) {
-    if (_element.modifiers.length > 0) {
-      throw new Error('Compile Error: Element modifiers are not allowed in components');
-    }
     let [tag, attrs, args, block] = this.endComponent();
 
     this.push([Ops.Component, tag, attrs, args, block]);

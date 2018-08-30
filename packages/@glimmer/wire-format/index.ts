@@ -89,7 +89,8 @@ export namespace Statements {
   export type Text = [Opcodes.Text, str];
   export type Append = [Opcodes.Append, Expression, boolean];
   export type Comment = [Opcodes.Comment, str];
-  export type Modifier = [Opcodes.Modifier, str, Params, Hash];
+  export type OpenModifier = [Opcodes.OpenModifier, str, Params, Hash];
+  export type CloseModifier = [Opcodes.CloseModifier];
   export type Block = [
     Opcodes.Block,
     str,
@@ -133,7 +134,8 @@ export namespace Statements {
     | Text
     | Append
     | Comment
-    | Modifier
+    | OpenModifier
+    | CloseModifier
     | Block
     | Component
     | DynamicComponent
@@ -221,6 +223,7 @@ export type TemplateJavascript = string;
 // Statements
 export const isFlushElement = is<Statements.FlushElement>(Opcodes.FlushElement);
 export const isAttrSplat = is<Statements.AttrSplat>(Opcodes.AttrSplat);
+export const isModifier = is<Statements.OpenModifier>(Opcodes.OpenModifier);
 
 export function isAttribute(val: Statement): val is Statements.Attribute {
   return (

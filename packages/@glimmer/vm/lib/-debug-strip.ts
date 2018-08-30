@@ -194,6 +194,15 @@ OPCODE_METADATA(Op.PushSymbolTable, {
   stackChange: 1,
 });
 
+OPCODE_METADATA(Op.OpenModifier, {
+  name: 'OpenModifier',
+});
+
+OPCODE_METADATA(Op.CloseModifier, {
+  name: 'CloseModifier',
+  stackChange: -1,
+});
+
 OPCODE_METADATA(Op.PushBlockScope, {
   name: 'PushBlockScope',
   stackChange: 1,

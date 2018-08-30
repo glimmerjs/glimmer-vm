@@ -169,7 +169,8 @@ export class SymbolAllocator
   staticAttr(_op: [string, Option<string>]) {}
   trustingAttr(_op: [string, Option<string>]) {}
   dynamicAttr(_op: [string, Option<string>]) {}
-  modifier(_op: string) {}
+  openModifier(_op: string) {}
+  closeModifier() {}
   append(_op: boolean) {}
   block(_op: [string, number, Option<number>]) {}
   literal(_op: string | boolean | number | null | undefined) {}

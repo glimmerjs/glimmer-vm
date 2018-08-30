@@ -745,6 +745,7 @@ export abstract class OpcodeBuilder<Locator = Opaque> extends StdOpcodeBuilder {
     });
 
     this.load(Register.s0);
+    this.pop();
   }
 
   invokeStaticComponent(
@@ -879,6 +880,7 @@ export abstract class OpcodeBuilder<Locator = Opaque> extends StdOpcodeBuilder {
     this.commitComponentTransaction();
 
     this.load(Register.s0);
+    this.pop();
   }
 
   dynamicComponent(
@@ -1112,14 +1114,18 @@ export abstract class OpcodeBuilder<Locator = Opaque> extends StdOpcodeBuilder {
     this.push(Op.OpenElement, this.constants.string(tag));
   }
 
-  modifier(
+  openModifier(
     locator: Locator,
     params: Option<WireFormat.Core.Params>,
     hash: Option<WireFormat.Core.Hash>
   ) {
     this.pushFrame();
     this.compileArgs(params, hash, null, true);
-    this.push(Op.Modifier, this.constants.handle(locator));
+    this.push(Op.OpenModifier, this.constants.handle(locator));
+  }
+
+  closeModifier() {
+    this.push(Op.CloseModifier);
     this.popFrame();
   }
 

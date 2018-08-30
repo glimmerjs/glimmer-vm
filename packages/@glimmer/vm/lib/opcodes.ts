@@ -472,6 +472,8 @@ export const enum Op {
    */
   CloseElement,
 
+  OpenModifier,
+  CloseModifier,
   /// MODIFIER
   Modifier, // (ConstantString, ConstantOther<ModifierManager>, ConstantExpression)
 

@@ -113,6 +113,10 @@ export default class TemplateCompiler {
       this.attribute([typeAttr]);
     }
 
+    action.modifiers.forEach(modifier => {
+      this.openModifier(modifier);
+    });
+
     this.opcode(['flushElement', action], null);
   }
 
@@ -121,12 +125,10 @@ export default class TemplateCompiler {
       this.opcode(['closeDynamicComponent', action], action);
     } else if (isComponent(action)) {
       this.opcode(['closeComponent', action], action);
-    } else if (action.modifiers.length > 0) {
-      for (let i = 0; i < action.modifiers.length; i++) {
-        this.modifier([action.modifiers[i]]);
-      }
-      this.opcode(['closeElement', action], action);
     } else {
+      action.modifiers.forEach(_modifier => {
+        this.closeModifier();
+      });
       this.opcode(['closeElement', action], action);
     }
   }
@@ -164,15 +166,14 @@ export default class TemplateCompiler {
     }
   }
 
-  modifier([action]: [AST.ElementModifierStatement]) {
-    assertIsSimplePath(action.path, action.loc, 'modifier');
+  openModifier(modifier: AST.ElementModifierStatement) {
+    assertIsSimplePath(modifier.path, modifier.loc, 'modifier');
+    this.prepareHelper(modifier);
+    this.opcode(['openModifier', modifier.path.parts[0]], null);
+  }
 
-    let {
-      path: { parts },
-    } = action;
-
-    this.prepareHelper(action);
-    this.opcode(['modifier', parts[0]], action);
+  closeModifier() {
+    this.opcode(['closeModifier', null]);
   }
 
   mustache([action]: [AST.MustacheStatement]) {

@@ -20,7 +20,6 @@ class ModifierTests extends RenderTest {
   @test
   'Element modifier with hooks'(assert: Assert) {
     assert.expect(4);
-
     this.registerModifier(
       'foo',
       class {
@@ -244,6 +243,28 @@ class ModifierTests extends RenderTest {
     }
     this.registerModifier('foo', Foo);
     this.render('<div {{foo baz bar=bar}}></div>', { bar: 'bar', baz: 'baz' });
+    this.rerender({ bar: 'foo', baz: 'foo' });
+  }
+
+  @test
+  'interaction with components'(assert: Assert) {
+    assert.expect(12);
+    class Foo extends BaseModifier {
+      didInsertElement([baz]: string[], { bar }: Dict<string>) {
+        assert.equal(bar, 'bar');
+        assert.equal(baz, 'baz');
+      }
+      didUpdate([foo]: string[], { bar }: Dict<string>) {
+        assert.equal(bar, 'foo');
+        assert.equal(foo, 'foo');
+      }
+    }
+    this.registerModifier('foo', Foo);
+    this.registerComponent('Glimmer', 'Foo', 'hello');
+    this.render(
+      '<Foo /><div {{foo baz bar=bar}} {{foo baz bar=bar}}><Foo /><p {{foo baz bar=bar}}></p><Foo /></div>',
+      { bar: 'bar', baz: 'baz' }
+    );
     this.rerender({ bar: 'foo', baz: 'foo' });
   }
 }

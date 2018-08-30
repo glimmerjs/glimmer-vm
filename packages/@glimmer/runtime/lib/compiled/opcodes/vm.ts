@@ -77,6 +77,7 @@ APPEND_OPCODES.add(Op.ReifyU32, vm => {
 });
 
 APPEND_OPCODES.add(Op.Dup, (vm, { op1: register, op2: offset }) => {
+  debugger;
   let position = check(vm.fetchValue(register), CheckNumber) - offset;
   vm.stack.dup(position);
 });

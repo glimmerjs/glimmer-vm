@@ -33,6 +33,7 @@ export interface ModifierManager<ModifierInstanceState, ModifierDefinitionState>
   create(
     element: Element,
     state: ModifierDefinitionState,
+    manager: ModifierManager<Opaque, Opaque>,
     args: IArguments,
     dynamicScope: DynamicScope,
     dom: DOMChanges

@@ -16,6 +16,8 @@ export interface CompilerOps<Variable> {
   openElement: AST.ElementNode;
   openComponent: AST.ElementNode;
   openSplattedElement: AST.ElementNode;
+  openModifier: string;
+  closeModifier: string;
   flushElement: AST.ElementNode;
   closeElement: AST.ElementNode;
   closeComponent: AST.ElementNode;
@@ -26,7 +28,6 @@ export interface CompilerOps<Variable> {
   staticAttr: [string, Option<string>];
   trustingAttr: [string, Option<string>];
   dynamicAttr: [string, Option<string>];
-  modifier: string;
   append: boolean;
   block: [string, number, Option<number>];
   get: [Variable, string[]]; // path

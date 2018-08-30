@@ -66,19 +66,22 @@ export function statementCompiler(): Compilers<WireFormat.Statement> {
     builder.flushElement();
   });
 
-  STATEMENTS.add(Ops.Modifier, (sexp: S.Modifier, builder) => {
+  STATEMENTS.add(Ops.OpenModifier, (sexp: S.OpenModifier, builder) => {
     let { referrer } = builder;
     let [, name, params, hash] = sexp;
-
     let handle = builder.compiler.resolveModifier(name, referrer);
 
     if (handle !== null) {
-      builder.modifier(handle, params, hash);
+      builder.openModifier(handle, params, hash);
     } else {
       throw new Error(
         `Compile Error ${name} is not a modifier: Helpers may not be used in the element form.`
       );
     }
+  });
+
+  STATEMENTS.add(Ops.CloseModifier, (_sexp: S.CloseModifier, builder) => {
+    builder.closeModifier();
   });
 
   STATEMENTS.add(Ops.StaticAttr, (sexp: S.StaticAttr, builder) => {

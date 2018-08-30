@@ -17,7 +17,7 @@ import {
   CheckOption,
   CheckInstanceof,
 } from '@glimmer/debug';
-import { Simple } from '@glimmer/interfaces';
+import { Simple, Recast } from '@glimmer/interfaces';
 import { Op, Register } from '@glimmer/vm';
 import {
   ModifierDefinition,
@@ -30,6 +30,10 @@ import { Assert } from './vm';
 import { DynamicAttribute } from '../../vm/attributes/dynamic';
 import { ComponentElementOperations } from './component';
 import { CheckReference, CheckArguments } from './-debug-strip';
+
+export interface PopulatedModifierInstance {
+  manager: InternalModifierManager;
+}
 
 APPEND_OPCODES.add(Op.Text, (vm, { op1: text }) => {
   vm.elements().appendText(vm.constants.getString(text));
@@ -100,31 +104,39 @@ APPEND_OPCODES.add(Op.CloseElement, vm => {
   expectStackChange(vm.stack, 0, 'CloseElement');
 });
 
-APPEND_OPCODES.add(Op.Modifier, (vm, { op1: handle }) => {
+APPEND_OPCODES.add(Op.OpenModifier, (vm, { op1: handle }) => {
   let { manager, state } = vm.constants.resolveHandle<ModifierDefinition>(handle);
+  let { constructing: element, updateOperations } = vm.elements();
   let stack = vm.stack;
   let args = check(stack.pop(), CheckArguments);
-  let { element, updateOperations } = vm.elements();
   let dynamicScope = vm.dynamicScope();
   let modifier = manager.create(
     element as Simple.FIX_REIFICATION<Element>,
     state,
+    manager,
     args,
     dynamicScope,
     updateOperations
   );
 
+  let tag = manager.getTag(modifier);
+
+  if (!isConstTag(tag)) {
+    vm.updateWith(new UpdateModifierOpcode(tag, manager, modifier));
+  }
+
+  stack.push(modifier);
+});
+
+APPEND_OPCODES.add(Op.CloseModifier, vm => {
+  let { stack } = vm;
+  let modifier = stack.pop<ModifierInstanceState>();
+  let { manager } = modifier as Recast<ModifierInstanceState, PopulatedModifierInstance>;
   vm.env.scheduleInstallModifier(modifier, manager);
   let destructor = manager.getDestructor(modifier);
 
   if (destructor) {
     vm.newDestroyable(destructor);
-  }
-
-  let tag = manager.getTag(modifier);
-
-  if (!isConstTag(tag)) {
-    vm.updateWith(new UpdateModifierOpcode(tag, manager, modifier));
   }
 });
 
