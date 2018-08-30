@@ -247,6 +247,23 @@ class ModifierTests extends RenderTest {
   }
 
   @test
+  'pre insertion hooks'(assert: Assert) {
+    assert.expect(3);
+    class Foo extends BaseModifier {
+      willInsertElement() {
+        assert.ok(this.element);
+        assert.equal(this.element!.parentNode, undefined, 'not in dom');
+      }
+
+      didInsertElement() {
+        assert.ok(this.element!.parentNode);
+      }
+    }
+    this.registerModifier('foo', Foo);
+    this.render('<div {{foo}}></div>');
+  }
+
+  @test
   'interaction with components'(assert: Assert) {
     assert.expect(12);
     class Foo extends BaseModifier {

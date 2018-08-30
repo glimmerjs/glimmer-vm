@@ -64,6 +64,7 @@ export interface TestModifierConstructor {
 
 export interface TestModifierInstance {
   element?: Simple.Element;
+  willInsertElement?(): void;
   didInsertElement(_params: Opaque[], _hash: Dict<Opaque>): void;
   didUpdate(_params: Opaque[], _hash: Dict<Opaque>): void;
   willDestroyElement(): void;
@@ -83,6 +84,10 @@ export class TestModifierManager
     _dynamicScope: DynamicScope,
     dom: IDOMChanges
   ) {
+    if (state.instance && state.instance.willInsertElement) {
+      state.instance.element = element;
+      state.instance.willInsertElement();
+    }
     return new TestModifier(element, state, manager, args.capture(), dom);
   }
 
