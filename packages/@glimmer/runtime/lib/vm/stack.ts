@@ -3,6 +3,7 @@ import { Opaque } from '@glimmer/interfaces';
 import { PrimitiveType } from '@glimmer/program';
 import { unreachable } from '@glimmer/util';
 import { Stack as WasmStack } from '@glimmer/low-level';
+import { Stack } from '@glimmer/interfaces';
 
 const HI = 0x80000000;
 const MASK = 0x7fffffff;
@@ -80,7 +81,7 @@ export class InnerStack {
   }
 }
 
-export default class EvaluationStack {
+export default class EvaluationStack implements Stack {
   static empty(): EvaluationStack {
     return new this(new InnerStack(), 0, -1);
   }
