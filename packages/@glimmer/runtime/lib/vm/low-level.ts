@@ -1,21 +1,9 @@
 import { Heap, Opcode } from '@glimmer/program';
-import { Option, Opaque } from '@glimmer/interfaces';
+import { Option, Opaque, Stack } from '@glimmer/interfaces';
 import { APPEND_OPCODES } from '../opcodes';
 import VM from './append';
 import { DEVMODE } from '@glimmer/local-debug-flags';
 import { Op } from '@glimmer/vm';
-
-export interface Stack {
-  sp: number;
-  fp: number;
-
-  pushSmi(value: number): void;
-  pushEncodedImmediate(value: number): void;
-
-  getSmi(position: number): number;
-  peekSmi(offset?: number): number;
-  popSmi(): number;
-}
 
 export interface Program {
   opcode(offset: number): Opcode;
