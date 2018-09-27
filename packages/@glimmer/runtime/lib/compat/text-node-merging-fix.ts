@@ -30,7 +30,7 @@ export function domChanges(document: Option<Document>, DOMChangesClass: typeof D
     }
 
     insertHTMLBefore(parent: HTMLElement, nextSibling: Node, html: string): Bounds {
-      if (html === null) {
+      if (html === '') {
         return super.insertHTMLBefore(parent, nextSibling, html);
       }
 
@@ -69,7 +69,7 @@ export function treeConstruction(document: Option<Document>, TreeConstructionCla
     }
 
     insertHTMLBefore(parent: HTMLElement, reference: Node, html: string): Bounds {
-      if (html === null) {
+      if (html === '') {
         return super.insertHTMLBefore(parent, reference, html);
       }
 
