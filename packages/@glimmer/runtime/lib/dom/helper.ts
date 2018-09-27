@@ -66,6 +66,29 @@ export const BLACKLIST_TABLE = Object.create(null);
   'var',
 ].forEach(tag => (BLACKLIST_TABLE[tag] = 1));
 
+export const BOOLEAN_ATTRIBUTES = Object.create(null);
+
+[
+  'async',
+  'autofocus',
+  'autoplay',
+  'checked',
+  'controls',
+  'default',
+  'defer',
+  'disabled',
+  'hidden',
+  'ismap',
+  'loop',
+  'multiple',
+  'muted',
+  'novalidate',
+  'open',
+  'readonly',
+  'required',
+  'reversed',
+].forEach(attribute => (BOOLEAN_ATTRIBUTES[attribute] = 1));
+
 const WHITESPACE = /[\t-\r \xA0\u1680\u180E\u2000-\u200A\u2028\u2029\u202F\u205F\u3000\uFEFF]/;
 
 let doc: Option<Document> = typeof document === 'undefined' ? null : document;
