@@ -1,6 +1,6 @@
 import { Bounds, ConcreteBounds } from '../bounds';
 import { moveNodesBefore, DOMChanges, DOMTreeConstruction } from '../dom/helper';
-import { Option, unwrap } from '@glimmer/util';
+import { Option, unwrap, assert } from '@glimmer/util';
 
 export const SVG_NAMESPACE = 'http://www.w3.org/2000/svg';
 export type SVG_NAMESPACE = typeof SVG_NAMESPACE;
@@ -27,7 +27,7 @@ export function domChanges(document: Option<Document>, DOMChangesClass: typeof D
 
   return class DOMChangesWithSVGInnerHTMLFix extends DOMChangesClass {
     insertHTMLBefore(parent: HTMLElement, nextSibling: Node, html: string): Bounds {
-      if (html === null || html === '') {
+      if (html === '') {
         return super.insertHTMLBefore(parent, nextSibling, html);
       }
 
@@ -51,7 +51,7 @@ export function treeConstruction(document: Option<Document>, TreeConstructionCla
 
   return class TreeConstructionWithSVGInnerHTMLFix extends TreeConstructionClass {
     insertHTMLBefore(parent: HTMLElement, reference: Node, html: string): Bounds {
-      if (html === null || html === '') {
+      if (html === '') {
         return super.insertHTMLBefore(parent, reference, html);
       }
 
@@ -65,13 +65,31 @@ export function treeConstruction(document: Option<Document>, TreeConstructionCla
 }
 
 function fixSVG(parent: Element, div: HTMLElement, html: string, reference: Node): Bounds {
-  // IE, Edge: also do not correctly support using `innerHTML` on SVG
-  // namespaced elements. So here a wrapper is used.
-  let wrappedHtml = '<svg>' + html + '</svg>';
+  assert(html !== '', 'html cannot be empty');
 
-  div.innerHTML = wrappedHtml;
+  let source: Node;
 
-  let [first, last] = moveNodesBefore(div.firstChild as Node, parent, reference);
+  // This is important, because decendants of the <foreignObject> integration
+  // point are parsed in the HTML namespace
+  if (parent.tagName.toUpperCase() === 'FOREIGNOBJECT') {
+    // IE, Edge: also do not correctly support using `innerHTML` on SVG
+    // namespaced elements. So here a wrapper is used.
+    let wrappedHtml = '<svg><foreignObject>' + html + '</foreignObject></svg>';
+
+    div.innerHTML = wrappedHtml;
+
+    source = div.firstChild!.firstChild!;
+  } else {
+    // IE, Edge: also do not correctly support using `innerHTML` on SVG
+    // namespaced elements. So here a wrapper is used.
+    let wrappedHtml = '<svg>' + html + '</svg>';
+
+    div.innerHTML = wrappedHtml;
+
+    source = div.firstChild!;
+  }
+
+  let [first, last] = moveNodesBefore(source, parent, reference);
   return new ConcreteBounds(parent, first, last);
 }
 

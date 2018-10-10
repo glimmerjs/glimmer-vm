@@ -13,7 +13,7 @@ import {
 } from '../compat/text-node-merging-fix';
 import * as Simple from './interfaces';
 
-import { Option } from '@glimmer/util';
+import { Option, assert } from '@glimmer/util';
 
 export const SVG_NAMESPACE = 'http://www.w3.org/2000/svg';
 
@@ -98,8 +98,12 @@ export class DOMOperations {
     parent.insertBefore(node, reference);
   }
 
-  insertHTMLBefore(_parent: Simple.Element, nextSibling: Simple.Node, html: string): Bounds {
-    return insertHTMLBefore(this.uselessElement, _parent, nextSibling, html);
+  insertHTMLBefore(parent: Simple.Element, nextSibling: Simple.Node, html: string): Bounds {
+    if (html === '') {
+      return insertEmptyCommentBefore(this.document, parent, nextSibling);
+    } else {
+      return insertHTMLBefore(this.uselessElement, parent, nextSibling, html);
+    }
   }
 
   createTextNode(text: string): Simple.Text {
@@ -193,21 +197,21 @@ export class DOMChanges extends DOMOperations {
   }
 }
 
+export function insertEmptyCommentBefore(this: void, document: Simple.Document, parent: Simple.Element, nextSibling: Option<Simple.Node>): Bounds {
+  let comment = document.createComment('');
+  parent.insertBefore(comment, nextSibling);
+  return new ConcreteBounds(parent, comment, comment);
+}
+
 export function insertHTMLBefore(this: void, _useless: Simple.Element, _parent: Simple.Element, _nextSibling: Option<Simple.Node>, html: string): Bounds { // tslint:disable-line
-  // TypeScript vendored an old version of the DOM spec where `insertAdjacentHTML`
-  // only exists on `HTMLElement` but not on `Element`. We actually work with the
-  // newer version of the DOM API here (and monkey-patch this method in `./compat`
-  // when we detect older browsers). This is a hack to work around this limitation.
-  let parent = _parent as HTMLElement;
-  let useless = _useless as HTMLElement;
-  let nextSibling = _nextSibling as Node;
+  assert(html !== '', 'html cannot be empty');
+
+  let parent = _parent as Element;
+  let useless = _useless as Element;
+  let nextSibling = _nextSibling as Option<Node>;
 
   let prev = nextSibling ? nextSibling.previousSibling : parent.lastChild;
   let last: Simple.Node | null;
-
-  if (html === null || html === '') {
-    return new ConcreteBounds(parent, null, null);
-  }
 
   if (nextSibling === null) {
     parent.insertAdjacentHTML('beforeend', html);

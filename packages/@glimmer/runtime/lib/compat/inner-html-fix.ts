@@ -1,6 +1,6 @@
 import { Bounds, ConcreteBounds } from '../bounds';
 import { moveNodesBefore, DOMChanges, DOMTreeConstruction } from '../dom/helper';
-import { Option } from '@glimmer/util';
+import { Option, assert } from '@glimmer/util';
 
 interface Wrapper {
   depth: number;
@@ -35,7 +35,7 @@ export function domChanges(document: Option<Document>, DOMChangesClass: typeof D
 
   return class DOMChangesWithInnerHTMLFix extends DOMChangesClass {
     insertHTMLBefore(parent: HTMLElement, nextSibling: Node, html: string): Bounds {
-      if (html === null || html === '') {
+      if (html === '') {
         return super.insertHTMLBefore(parent, nextSibling, html);
       }
 
@@ -62,7 +62,7 @@ export function treeConstruction(document: Option<Document>, DOMTreeConstruction
 
   return class DOMTreeConstructionWithInnerHTMLFix extends DOMTreeConstructionClass {
     insertHTMLBefore(parent: HTMLElement, referenceNode: Node, html: string): Bounds {
-      if (html === null || html === '') {
+      if (html === '') {
         return super.insertHTMLBefore(parent, referenceNode, html);
       }
 
@@ -79,6 +79,8 @@ export function treeConstruction(document: Option<Document>, DOMTreeConstruction
 }
 
 function fixInnerHTML(parent: HTMLElement, wrapper: Wrapper, div: HTMLElement, html: string, reference: Node): Bounds {
+  assert(html !== '', 'html cannot be empty');
+
   let wrappedHtml = wrapper.before + html + wrapper.after;
 
   div.innerHTML = wrappedHtml;
