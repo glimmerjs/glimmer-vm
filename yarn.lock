@@ -2033,7 +2033,7 @@ broccoli-typescript-compiler@2.1.1:
     typescript "~2.6.1"
     walk-sync "^0.3.2"
 
-broccoli-typescript-compiler@^2.3.0:
+broccoli-typescript-compiler@~2.3.0:
   version "2.3.0"
   resolved "https://registry.yarnpkg.com/broccoli-typescript-compiler/-/broccoli-typescript-compiler-2.3.0.tgz#7922a553b55055138ae0d8b76abec0580d254dd0"
   integrity sha1-eSKlU7VQVROK4Ni3ar7AWA0lTdA=
@@ -10436,11 +10436,6 @@ typedarray@^0.0.6:
   version "0.0.6"
   resolved "https://registry.yarnpkg.com/typedarray/-/typedarray-0.0.6.tgz#867ac74e3864187b1d3d47d996a78ec5c8830777"
   integrity sha1-hnrHTjhkGHsdPUfZlqeOxciDB3c=
-
-typescript@^2.8.3:
-  version "2.9.2"
-  resolved "https://registry.yarnpkg.com/typescript/-/typescript-2.9.2.tgz#1cbf61d05d6b96269244eb6a3bce4bd914e0f00c"
-  integrity sha512-Gr4p6nFNaoufRIY4NMdpQRNmgxVIGMs4Fcu/ujdYk3nAZqk7supzBE9idmvfZIlH/Cuj//dvi+019qEue9lV0w==
 
 typescript@~2.6.1:
   version "2.6.2"
