@@ -1,7 +1,7 @@
 import { HasGuid, ensureGuid } from './guid';
 import { Option } from './platform-utils';
 
-export interface Dict<T> {
+export interface Dict<T = unknown> {
   [index: string]: T;
 }
 

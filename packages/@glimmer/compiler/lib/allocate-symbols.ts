@@ -54,7 +54,7 @@ export class SymbolAllocator
   }
 
   startProgram(op: AST.Program) {
-    this.symbolStack.push(op['symbols']);
+    this.symbolStack.push((op as any)['symbols']);
   }
 
   endProgram(_op: null) {
@@ -62,7 +62,7 @@ export class SymbolAllocator
   }
 
   startBlock(op: AST.Program) {
-    this.symbolStack.push(op['symbols']);
+    this.symbolStack.push((op as any)['symbols']);
   }
 
   endBlock(_op: null) {
@@ -70,7 +70,7 @@ export class SymbolAllocator
   }
 
   openNamedBlock(op: AST.ElementNode) {
-    this.symbolStack.push(op['symbols']);
+    this.symbolStack.push((op as any)['symbols']);
   }
 
   closeNamedBlock(_op: AST.ElementNode) {
@@ -78,7 +78,7 @@ export class SymbolAllocator
   }
 
   flushElement(op: AST.ElementNode) {
-    this.symbolStack.push(op['symbols']);
+    this.symbolStack.push((op as any)['symbols']);
   }
 
   closeElement(_op: AST.ElementNode) {

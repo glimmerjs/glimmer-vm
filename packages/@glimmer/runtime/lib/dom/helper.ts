@@ -1,14 +1,14 @@
 import { ConcreteBounds } from '../bounds';
 import { applySVGInnerHTMLFix } from '../compat/svg-inner-html-fix';
 import { applyTextNodeMergingFix } from '../compat/text-node-merging-fix';
-import { Simple, Bounds } from '@glimmer/interfaces';
+import { Simple, Bounds, Dict } from '@glimmer/interfaces';
 
 import { Option, expect } from '@glimmer/util';
 
 export const SVG_NAMESPACE = 'http://www.w3.org/2000/svg';
 
 // http://www.w3.org/TR/html/syntax.html#html-integration-point
-const SVG_INTEGRATION_POINTS = { foreignObject: 1, desc: 1, title: 1 };
+const SVG_INTEGRATION_POINTS: Dict<1 | undefined> = { foreignObject: 1, desc: 1, title: 1 };
 
 // http://www.w3.org/TR/html/syntax.html#adjust-svg-attributes
 // TODO: Adjust SVG attributes
@@ -113,7 +113,7 @@ export class DOMOperations {
 
     if (context) {
       isElementInSVGNamespace = context.namespaceURI === SVG_NAMESPACE || tag === 'svg';
-      isHTMLIntegrationPoint = SVG_INTEGRATION_POINTS[context.tagName];
+      isHTMLIntegrationPoint = !!SVG_INTEGRATION_POINTS[context.tagName];
     } else {
       isElementInSVGNamespace = tag === 'svg';
       isHTMLIntegrationPoint = false;

@@ -4,9 +4,10 @@ import {
   EmberishComponentTests,
   EagerRenderDelegate,
   test,
+  RenderDelegate,
 } from '@glimmer/test-helpers';
 
-class BundleCompilerEmberTests extends EmberishComponentTests {
+class BundleCompilerEmberTests<D extends RenderDelegate> extends EmberishComponentTests<D> {
   @test({ kind: 'glimmer' })
   'should not serialize the locator with static component helpers'() {
     this.registerComponent(

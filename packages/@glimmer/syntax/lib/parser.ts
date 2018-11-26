@@ -103,7 +103,7 @@ export abstract class Parser {
   acceptNode(node: HandlebarsAST.Program): Program;
   acceptNode<U extends AST.Node>(node: HandlebarsAST.Node): U;
   acceptNode(node: HandlebarsAST.Node): any {
-    return this[node.type](node);
+    return (this as any)[node.type](node);
   }
 
   currentElement(): Element {

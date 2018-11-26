@@ -51,7 +51,7 @@ export class ClassMeta {
   private propertyMetadata = dict<any>();
   private concatenatedProperties = dict<any[]>();
   private hasConcatenatedProperties = false;
-  private mergedProperties = dict<Object>();
+  private mergedProperties = dict<object>();
   private hasMergedProperties = false;
   private mixins: Mixin[] = [];
   private appliedMixins: Mixin[] = [];
@@ -73,7 +73,7 @@ export class ClassMeta {
     else return null;
   }
 
-  init(object: GlimmerObject, attrs: Option<Object>) {
+  init(object: GlimmerObject, attrs: Option<Dict<unknown>>) {
     if (typeof attrs !== 'object' || attrs === null) return;
 
     if (this.hasConcatenatedProperties) {
@@ -81,7 +81,7 @@ export class ClassMeta {
       for (let prop in concatProps) {
         if (prop in attrs) {
           let concat = concatProps[prop].slice();
-          object[prop] = concat.concat(attrs[prop]);
+          (object as any)[prop] = concat.concat(attrs[prop]);
         }
       }
     }
@@ -91,7 +91,7 @@ export class ClassMeta {
       for (let prop in mergedProps) {
         if (prop in attrs) {
           let merged = assign({}, mergedProps[prop]);
-          object[prop] = assign(merged, attrs[prop]);
+          (object as any)[prop] = assign(merged, attrs[prop]);
         }
       }
     }
@@ -196,7 +196,7 @@ export class ClassMeta {
     return Object.keys(this.mergedProperties) as string[];
   }
 
-  addMergedProperty(property: string, value: Object) {
+  addMergedProperty(property: string, value: unknown) {
     this.hasMergedProperties = true;
 
     if (isArray(value)) {
@@ -209,12 +209,12 @@ export class ClassMeta {
 
     if ((property as string) in this.mergedProperties && this.mergedProperties[property] && value) {
       this.mergedProperties[property] = mergeMergedProperties(
-        value,
+        value as Dict<(...args: any[]) => any>,
         this.mergedProperties[property]
       );
     } else {
       value = value === null ? value : value || {};
-      this.mergedProperties[property] = value;
+      this.mergedProperties[property] = value as object;
     }
   }
 
@@ -274,7 +274,7 @@ export class ClassMeta {
     class Slots {
       constructor() {
         slots.forEach(name => {
-          this[name] = EMPTY_CACHE;
+          (this as any)[name] = EMPTY_CACHE;
         });
       }
     }
@@ -300,7 +300,7 @@ export class ClassMeta {
   }
 }
 
-function mergeMergedProperties(attrs: Object, parent: Object) {
+function mergeMergedProperties(attrs: Dict<(...args: any[]) => any>, parent: Dict<unknown>) {
   let merged = assign({}, parent);
 
   for (let prop in attrs) {
@@ -334,6 +334,8 @@ export class InstanceMeta extends ClassMeta {
 }
 
 export default class GlimmerObject {
+  [key: string]: unknown;
+
   static 'df8be4c8-4e89-44e2-a8f9-550c8dacdca7': InstanceMeta = InstanceMeta.fromParent(null);
   static isClass = true;
 
@@ -394,11 +396,11 @@ export default class GlimmerObject {
   }
 
   get(key: string): any {
-    return this[key];
+    return (this as any)[key];
   }
 
   set(key: string, value: any) {
-    this[key] = value;
+    (this as any)[key] = value;
     bump();
   }
 

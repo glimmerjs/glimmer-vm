@@ -1,6 +1,7 @@
 import { RenderTest, test } from '../render-test';
+import RenderDelegate from '../render-delegate';
 
-export class EachSuite extends RenderTest {
+export class EachSuite<D extends RenderDelegate> extends RenderTest<D> {
   @test
   'basic #each'() {
     let list = [1, 2, 3, 4];

@@ -1,4 +1,4 @@
-import { Opaque, Simple } from '@glimmer/interfaces';
+import { Simple, UserValue } from '@glimmer/interfaces';
 
 export interface SafeString {
   toHTML(): string;
@@ -8,14 +8,14 @@ export type Insertion = CautiousInsertion | TrustingInsertion;
 export type CautiousInsertion = string | SafeString | Simple.Node;
 export type TrustingInsertion = string | Simple.Node;
 
-export function normalizeStringValue(value: Opaque): string {
+export function normalizeStringValue(value: UserValue): string {
   if (isEmpty(value)) {
     return '';
   }
   return String(value);
 }
 
-export function normalizeTrustedValue(value: Opaque): TrustingInsertion {
+export function normalizeTrustedValue(value: UserValue): TrustingInsertion {
   if (isEmpty(value)) {
     return '';
   }
@@ -31,28 +31,28 @@ export function normalizeTrustedValue(value: Opaque): TrustingInsertion {
   return String(value);
 }
 
-export function shouldCoerce(value: Opaque) {
+export function shouldCoerce(value: UserValue) {
   return (
     isString(value) || isEmpty(value) || typeof value === 'boolean' || typeof value === 'number'
   );
 }
 
-export function isEmpty(value: Opaque): boolean {
+export function isEmpty(value: UserValue | string): boolean {
   return value === null || value === undefined || typeof value.toString !== 'function';
 }
 
-export function isSafeString(value: Opaque): value is SafeString {
+export function isSafeString(value: unknown): value is SafeString {
   return typeof value === 'object' && value !== null && typeof (value as any).toHTML === 'function';
 }
 
-export function isNode(value: Opaque): value is Simple.Node {
+export function isNode(value: unknown): value is Simple.Node {
   return typeof value === 'object' && value !== null && typeof (value as any).nodeType === 'number';
 }
 
-export function isFragment(value: Opaque): value is Simple.DocumentFragment {
+export function isFragment(value: unknown): value is Simple.DocumentFragment {
   return isNode(value) && value.nodeType === 11;
 }
 
-export function isString(value: Opaque): value is string {
+export function isString(value: unknown): value is string {
   return typeof value === 'string';
 }

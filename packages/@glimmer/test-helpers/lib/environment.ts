@@ -119,7 +119,7 @@ function extract(element: EqualsElement): DebugElement {
 export function equalsElement(
   input: EqualsElement,
   tagName: string,
-  attributes: Object,
+  attributes: Dict<string>,
   content: string | null
 ) {
   let { element, description } = extract(input);
@@ -160,7 +160,7 @@ export function equalsElement(
     });
   }
 
-  let actualAttributes = {};
+  let actualAttributes = dict();
   if (element) {
     for (let i = 0, l = element.attributes.length; i < l; i++) {
       actualAttributes[element.attributes[i].name] = element.attributes[i].value;

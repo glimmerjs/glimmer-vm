@@ -11,7 +11,7 @@ import {
 export interface Checker<T> {
   type: T;
 
-  validate(value: Opaque): value is T;
+  validate(value: unknown): value is T;
   expected(): string;
 }
 
@@ -137,7 +137,7 @@ class PropertyChecker<T> implements Checker<T> {
     return Object.keys(this.checkers).every(k => {
       if (!(k in obj)) return false;
 
-      let value = obj[k];
+      let value = (obj as Dict<unknown>)[k];
       let checker = this.checkers[k];
 
       return checker.validate(value);

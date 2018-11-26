@@ -28,25 +28,26 @@ export {
 export { SimpleDynamicAttribute, DynamicAttribute } from './lib/vm/attributes/dynamic';
 
 export {
-  IArguments as Arguments,
-  ICapturedArguments as CapturedArguments,
-  IPositionalArguments as PositionalArguments,
-  ICapturedPositionalArguments as CapturedPositionalArguments,
-  INamedArguments as NamedArguments,
-  ICapturedNamedArguments as CapturedNamedArguments,
+  ReadonlyArguments as Arguments,
+  ReadonlyCapturedArguments as CapturedArguments,
+  ReadonlyPositionalArguments as PositionalArguments,
+  ReadonlyCapturedPositionalArguments as CapturedPositionalArguments,
+  ReadonlyNamedArguments as NamedArguments,
+  ReadonlyCapturedNamedArguments as CapturedNamedArguments,
   EMPTY_ARGS,
 } from './lib/vm/arguments';
 
 export { SafeString } from './lib/upsert';
 
 export {
-  Scope,
   default as Environment,
   DefaultEnvironment,
   Helper,
   DynamicScope,
   CompilationOptions,
 } from './lib/environment';
+
+export { Scope } from './lib/scope';
 
 export {
   DEFAULT_CAPABILITIES,
@@ -80,7 +81,7 @@ export {
 } from './lib/dom/helper';
 export { normalizeProperty } from './lib/dom/props';
 export {
-  ElementBuilder,
+  MutElementBuilder,
   NewElementBuilder,
   ElementOperations,
   clientBuilder,

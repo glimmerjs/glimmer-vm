@@ -1,4 +1,4 @@
-import { LazyRenderDelegate, RenderTest } from '@glimmer/test-helpers';
+import { LazyRenderDelegate, RenderTest, TEST_TYPE } from '@glimmer/test-helpers';
 
 let renderTests: RenderTest;
 QUnit.module('Render Tests: buildComponent', {
@@ -8,7 +8,7 @@ QUnit.module('Render Tests: buildComponent', {
 });
 
 QUnit.test('Can build basic glimmer invocation', assert => {
-  renderTests['testType'] = 'Glimmer';
+  renderTests[TEST_TYPE] = 'Glimmer';
   let invocation = renderTests.buildComponent({
     layout: 'Hello',
   });
@@ -17,7 +17,7 @@ QUnit.test('Can build basic glimmer invocation', assert => {
 });
 
 QUnit.test('Can build glimmer invocation with template', assert => {
-  renderTests['testType'] = 'Glimmer';
+  renderTests[TEST_TYPE] = 'Glimmer';
   let invocation = renderTests.buildComponent({
     layout: 'Hello {{yield}}',
     template: 'World',
@@ -27,7 +27,7 @@ QUnit.test('Can build glimmer invocation with template', assert => {
 });
 
 QUnit.test('Can build glimmer invocation with args', assert => {
-  renderTests['testType'] = 'Glimmer';
+  renderTests[TEST_TYPE] = 'Glimmer';
   let invocation = renderTests.buildComponent({
     layout: 'Hello {{yield}}',
     template: 'World',
@@ -41,7 +41,7 @@ QUnit.test('Can build glimmer invocation with args', assert => {
 });
 
 QUnit.test('Can build glimmer invocation with attributes', assert => {
-  renderTests['testType'] = 'Glimmer';
+  renderTests[TEST_TYPE] = 'Glimmer';
   let invocation = renderTests.buildComponent({
     layout: 'Hello {{yield}}',
     template: 'World',
@@ -56,7 +56,7 @@ QUnit.test('Can build glimmer invocation with attributes', assert => {
 });
 
 QUnit.test('Can build glimmer invocation with custom tag name', assert => {
-  renderTests['testType'] = 'Glimmer';
+  renderTests[TEST_TYPE] = 'Glimmer';
   let invocation = renderTests.buildComponent({
     name: 'LolWat',
     layout: 'Hello {{yield}}',
@@ -72,7 +72,7 @@ QUnit.test('Can build glimmer invocation with custom tag name', assert => {
 });
 
 QUnit.test('Can build glimmer invocation with block params', assert => {
-  renderTests['testType'] = 'Glimmer';
+  renderTests[TEST_TYPE] = 'Glimmer';
   let invocation = renderTests.buildComponent({
     name: 'Lol',
     layout: 'Hello {{yield}}',
@@ -89,7 +89,7 @@ QUnit.test('Can build glimmer invocation with block params', assert => {
 });
 
 QUnit.test('Can build basic curly invocation', assert => {
-  renderTests['testType'] = 'Curly';
+  renderTests[TEST_TYPE] = 'Curly';
   let invocation = renderTests.buildComponent({
     layout: 'Hello',
   });
@@ -98,7 +98,7 @@ QUnit.test('Can build basic curly invocation', assert => {
 });
 
 QUnit.test('Can build curly invocation with template', assert => {
-  renderTests['testType'] = 'Curly';
+  renderTests[TEST_TYPE] = 'Curly';
   let invocation = renderTests.buildComponent({
     layout: 'Hello {{yield}}',
     template: 'World',
@@ -108,7 +108,7 @@ QUnit.test('Can build curly invocation with template', assert => {
 });
 
 QUnit.test('Can build curly invocation with args', assert => {
-  renderTests['testType'] = 'Curly';
+  renderTests[TEST_TYPE] = 'Curly';
   let invocation = renderTests.buildComponent({
     layout: 'Hello {{yield}}',
     template: 'World',
@@ -119,7 +119,7 @@ QUnit.test('Can build curly invocation with args', assert => {
 });
 
 QUnit.test('Can build curly invocation with attributes throws', assert => {
-  renderTests['testType'] = 'Curly';
+  renderTests[TEST_TYPE] = 'Curly';
 
   assert.throws(() => {
     renderTests.buildComponent({
@@ -132,7 +132,7 @@ QUnit.test('Can build curly invocation with attributes throws', assert => {
 });
 
 QUnit.test("Can build curly invocation with 'attributes' in args", assert => {
-  renderTests['testType'] = 'Curly';
+  renderTests[TEST_TYPE] = 'Curly';
   let invocation = renderTests.buildComponent({
     layout: 'Hello {{yield}}',
     template: 'World',
@@ -146,7 +146,7 @@ QUnit.test("Can build curly invocation with 'attributes' in args", assert => {
 });
 
 QUnit.test('Can build curly invocation with custom tag name', assert => {
-  renderTests['testType'] = 'Curly';
+  renderTests[TEST_TYPE] = 'Curly';
   let invocation = renderTests.buildComponent({
     name: 'lol-wat',
     layout: 'Hello {{yield}}',
@@ -161,7 +161,7 @@ QUnit.test('Can build curly invocation with custom tag name', assert => {
 });
 
 QUnit.test('Can build curly invocation with block params', assert => {
-  renderTests['testType'] = 'Curly';
+  renderTests[TEST_TYPE] = 'Curly';
   let invocation = renderTests.buildComponent({
     name: 'lol-wat',
     layout: 'Hello {{yield}}',
@@ -177,7 +177,7 @@ QUnit.test('Can build curly invocation with block params', assert => {
 });
 
 QUnit.test('Can build curly invocation with else', assert => {
-  renderTests['testType'] = 'Curly';
+  renderTests[TEST_TYPE] = 'Curly';
   let invocation = renderTests.buildComponent({
     name: 'lol-wat',
     layout: 'Hello {{yield}}',
@@ -194,7 +194,7 @@ QUnit.test('Can build curly invocation with else', assert => {
 });
 
 QUnit.test('Can build basic dynamic invocation', assert => {
-  renderTests['testType'] = 'Dynamic';
+  renderTests[TEST_TYPE] = 'Dynamic';
   let invocation = renderTests.buildComponent({
     layout: 'Hello',
   });
@@ -203,7 +203,7 @@ QUnit.test('Can build basic dynamic invocation', assert => {
 });
 
 QUnit.test('Can build dynamic invocation with template', assert => {
-  renderTests['testType'] = 'Dynamic';
+  renderTests[TEST_TYPE] = 'Dynamic';
   let invocation = renderTests.buildComponent({
     layout: 'Hello {{yield}}',
     template: 'World',
@@ -213,7 +213,7 @@ QUnit.test('Can build dynamic invocation with template', assert => {
 });
 
 QUnit.test('Can build dynamic invocation with args', assert => {
-  renderTests['testType'] = 'Dynamic';
+  renderTests[TEST_TYPE] = 'Dynamic';
   let invocation = renderTests.buildComponent({
     layout: 'Hello {{yield}}',
     template: 'World',
@@ -227,7 +227,7 @@ QUnit.test('Can build dynamic invocation with args', assert => {
 });
 
 QUnit.test('Can build dynamic invocation with custom tag name', assert => {
-  renderTests['testType'] = 'Dynamic';
+  renderTests[TEST_TYPE] = 'Dynamic';
   let invocation = renderTests.buildComponent({
     name: 'lol-wat',
     layout: 'Hello {{yield}}',
@@ -242,7 +242,7 @@ QUnit.test('Can build dynamic invocation with custom tag name', assert => {
 });
 
 QUnit.test('Can build dynamic invocation with block params', assert => {
-  renderTests['testType'] = 'Dynamic';
+  renderTests[TEST_TYPE] = 'Dynamic';
   let invocation = renderTests.buildComponent({
     name: 'lol-wat',
     layout: 'Hello {{yield}}',
@@ -258,7 +258,7 @@ QUnit.test('Can build dynamic invocation with block params', assert => {
 });
 
 QUnit.test('Can build dynamic invocation with else', assert => {
-  renderTests['testType'] = 'Dynamic';
+  renderTests[TEST_TYPE] = 'Dynamic';
   let invocation = renderTests.buildComponent({
     name: 'lol-wat',
     layout: 'Hello {{yield}}',
@@ -275,7 +275,7 @@ QUnit.test('Can build dynamic invocation with else', assert => {
 });
 
 QUnit.test('Can build basic component invocation', assert => {
-  renderTests['testType'] = 'Basic';
+  renderTests[TEST_TYPE] = 'Basic';
   let invocation = renderTests.buildComponent({
     layout: 'Hello',
   });
@@ -284,7 +284,7 @@ QUnit.test('Can build basic component invocation', assert => {
 });
 
 QUnit.test('Can build basic component invocation with template', assert => {
-  renderTests['testType'] = 'Basic';
+  renderTests[TEST_TYPE] = 'Basic';
   let invocation = renderTests.buildComponent({
     layout: 'Hello {{yield}}',
     template: 'World',
@@ -294,7 +294,7 @@ QUnit.test('Can build basic component invocation with template', assert => {
 });
 
 QUnit.test('Can build basic component invocation with args', assert => {
-  renderTests['testType'] = 'Basic';
+  renderTests[TEST_TYPE] = 'Basic';
   let invocation = renderTests.buildComponent({
     layout: 'Hello {{yield}}',
     template: 'World',
@@ -308,7 +308,7 @@ QUnit.test('Can build basic component invocation with args', assert => {
 });
 
 QUnit.test('Can build basic component invocation with attributes', assert => {
-  renderTests['testType'] = 'Basic';
+  renderTests[TEST_TYPE] = 'Basic';
   let invocation = renderTests.buildComponent({
     layout: 'Hello {{yield}}',
     template: 'World',
@@ -323,7 +323,7 @@ QUnit.test('Can build basic component invocation with attributes', assert => {
 });
 
 QUnit.test('Can build basic component invocation with custom tag name', assert => {
-  renderTests['testType'] = 'Basic';
+  renderTests[TEST_TYPE] = 'Basic';
   let invocation = renderTests.buildComponent({
     name: 'Lol',
     layout: 'Hello {{yield}}',
@@ -339,7 +339,7 @@ QUnit.test('Can build basic component invocation with custom tag name', assert =
 });
 
 QUnit.test('Can build basic component invocation with block params', assert => {
-  renderTests['testType'] = 'Basic';
+  renderTests[TEST_TYPE] = 'Basic';
   let invocation = renderTests.buildComponent({
     name: 'Lol',
     layout: 'Hello {{yield}}',

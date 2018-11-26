@@ -19,214 +19,295 @@ import {
   CheckPrimitive,
 } from '@glimmer/debug';
 import { stackAssert } from './assert';
-import { APPEND_OPCODES, UpdatingOpcode } from '../../opcodes';
+import { APPEND_OPCODES, UpdatingOpcode, OpcodeKind } from '../../opcodes';
 import { PrimitiveReference } from '../../references';
-import { VM, UpdatingVM } from '../../vm';
-import { Arguments } from '../../vm/arguments';
+import { UpdatingVM } from '../../vm';
 import { LazyConstants, PrimitiveType } from '@glimmer/program';
 import { CheckReference, CheckScope } from './-debug-strip';
 import { CONSTANTS } from '../../symbols';
 
-APPEND_OPCODES.add(Op.ChildScope, vm => vm.pushChildScope());
+APPEND_OPCODES.add(Op.ChildScope, vm => vm.pushChildScope(), OpcodeKind.Mut);
 
-APPEND_OPCODES.add(Op.PopScope, vm => vm.popScope());
+APPEND_OPCODES.add(Op.PopScope, vm => vm.popScope(), OpcodeKind.Mut);
 
-APPEND_OPCODES.add(Op.PushDynamicScope, vm => vm.pushDynamicScope());
+APPEND_OPCODES.add(Op.PushDynamicScope, vm => vm.pushDynamicScope(), OpcodeKind.Mut);
 
-APPEND_OPCODES.add(Op.PopDynamicScope, vm => vm.popDynamicScope());
+APPEND_OPCODES.add(Op.PopDynamicScope, vm => vm.popDynamicScope(), OpcodeKind.Mut);
 
-APPEND_OPCODES.add(Op.Constant, (vm: VM<Opaque>, { op1: other }) => {
-  vm.stack.push((vm[CONSTANTS] as LazyConstants).getOther(other));
-});
+APPEND_OPCODES.add(
+  Op.Constant,
+  (vm, { op1: other }) => {
+    vm.stack.push((vm[CONSTANTS] as LazyConstants).getOther(other));
+  },
+  OpcodeKind.Mut
+);
 
-APPEND_OPCODES.add(Op.Primitive, (vm, { op1: primitive }) => {
-  let stack = vm.stack;
-  let flag = primitive & 7; // 111
-  let value = primitive >> 3;
+APPEND_OPCODES.add(
+  Op.Primitive,
+  (vm, { op1: primitive }) => {
+    let stack = vm.stack;
+    let flag = primitive & 7; // 111
+    let value = primitive >> 3;
 
-  switch (flag) {
-    case PrimitiveType.NUMBER:
-      stack.push(value);
-      break;
-    case PrimitiveType.FLOAT:
-      stack.push(vm[CONSTANTS].getNumber(value));
-      break;
-    case PrimitiveType.STRING:
-      stack.push(vm[CONSTANTS].getString(value));
-      break;
-    case PrimitiveType.BOOLEAN_OR_VOID:
-      stack.pushEncodedImmediate(primitive);
-      break;
-    case PrimitiveType.NEGATIVE:
-      stack.push(vm[CONSTANTS].getNumber(value));
-      break;
-    case PrimitiveType.BIG_NUM:
-      stack.push(vm[CONSTANTS].getNumber(value));
-      break;
-  }
-});
+    switch (flag) {
+      case PrimitiveType.NUMBER:
+        stack.push(value);
+        break;
+      case PrimitiveType.FLOAT:
+        stack.push(vm[CONSTANTS].getNumber(value));
+        break;
+      case PrimitiveType.STRING:
+        stack.push(vm[CONSTANTS].getString(value));
+        break;
+      case PrimitiveType.BOOLEAN_OR_VOID:
+        stack.pushEncodedImmediate(primitive);
+        break;
+      case PrimitiveType.NEGATIVE:
+        stack.push(vm[CONSTANTS].getNumber(value));
+        break;
+      case PrimitiveType.BIG_NUM:
+        stack.push(vm[CONSTANTS].getNumber(value));
+        break;
+    }
+  },
+  OpcodeKind.Mut
+);
 
-APPEND_OPCODES.add(Op.PrimitiveReference, vm => {
-  let stack = vm.stack;
-  stack.push(PrimitiveReference.create(check(stack.pop(), CheckPrimitive)));
-});
+APPEND_OPCODES.add(
+  Op.PrimitiveReference,
+  vm => {
+    let stack = vm.stack;
+    stack.push(PrimitiveReference.create(check(stack.pop(), CheckPrimitive)));
+  },
+  OpcodeKind.Mut
+);
 
-APPEND_OPCODES.add(Op.ReifyU32, vm => {
-  let stack = vm.stack;
-  stack.push(check(stack.peek(), CheckReference).value());
-});
+APPEND_OPCODES.add(
+  Op.ReifyU32,
+  vm => {
+    let stack = vm.stack;
+    stack.push(check(stack.peek(), CheckReference).value());
+  },
+  OpcodeKind.Mut
+);
 
-APPEND_OPCODES.add(Op.Dup, (vm, { op1: register, op2: offset }) => {
-  let position = check(vm.fetchValue(register), CheckNumber) - offset;
-  vm.stack.dup(position);
-});
+APPEND_OPCODES.add(
+  Op.Dup,
+  (vm, { op1: register, op2: offset }) => {
+    let position = check(vm.fetchValue(register), CheckNumber) - offset;
+    vm.stack.dup(position);
+  },
+  OpcodeKind.Mut
+);
 
-APPEND_OPCODES.add(Op.Pop, (vm, { op1: count }) => {
-  vm.stack.pop(count);
-});
+APPEND_OPCODES.add(
+  Op.Pop,
+  (vm, { op1: count }) => {
+    vm.stack.popN(count);
+  },
+  OpcodeKind.Mut
+);
 
-APPEND_OPCODES.add(Op.Load, (vm, { op1: register }) => {
-  vm.load(register);
-});
+APPEND_OPCODES.add(
+  Op.Load,
+  (vm, { op1: register }) => {
+    vm.load(register);
+  },
+  OpcodeKind.Mut
+);
 
-APPEND_OPCODES.add(Op.Fetch, (vm, { op1: register }) => {
-  vm.fetch(register);
-});
+APPEND_OPCODES.add(
+  Op.Fetch,
+  (vm, { op1: register }) => {
+    vm.fetch(register);
+  },
+  OpcodeKind.Mut
+);
 
-APPEND_OPCODES.add(Op.BindDynamicScope, (vm, { op1: _names }) => {
-  let names = vm[CONSTANTS].getArray(_names);
-  vm.bindDynamicScope(names);
-});
+APPEND_OPCODES.add(
+  Op.BindDynamicScope,
+  (vm, { op1: _names }) => {
+    let names = vm[CONSTANTS].getArray(_names);
+    vm.bindDynamicScope(names);
+  },
+  OpcodeKind.Mut
+);
 
-APPEND_OPCODES.add(Op.Enter, (vm, { op1: args }) => {
-  vm.enter(args);
-});
+APPEND_OPCODES.add(
+  Op.Enter,
+  (vm, { op1: args }) => {
+    vm.enter(args);
+  },
+  OpcodeKind.Mut
+);
 
-APPEND_OPCODES.add(Op.Exit, vm => {
-  vm.exit();
-});
+APPEND_OPCODES.add(
+  Op.Exit,
+  vm => {
+    vm.exit();
+  },
+  OpcodeKind.Mut
+);
 
-APPEND_OPCODES.add(Op.PushSymbolTable, (vm, { op1: _table }) => {
-  let stack = vm.stack;
-  stack.push(vm[CONSTANTS].getSerializable(_table));
-});
+APPEND_OPCODES.add(
+  Op.PushSymbolTable,
+  (vm, { op1: _table }) => {
+    let stack = vm.stack;
+    stack.push(vm[CONSTANTS].getSerializable(_table));
+  },
+  OpcodeKind.Mut
+);
 
-APPEND_OPCODES.add(Op.PushBlockScope, vm => {
-  let stack = vm.stack;
-  stack.push(vm.scope());
-});
+APPEND_OPCODES.add(
+  Op.PushBlockScope,
+  vm => {
+    let stack = vm.stack;
+    stack.push(vm.scope);
+  },
+  OpcodeKind.Mut
+);
 
-APPEND_OPCODES.add(Op.CompileBlock, vm => {
-  let stack = vm.stack;
-  let block = stack.pop<Option<CompilableTemplate> | 0>();
+APPEND_OPCODES.add(
+  Op.CompileBlock,
+  vm => {
+    let stack = vm.stack;
+    let block = stack.pop<Option<CompilableTemplate> | 0>();
 
-  if (block) {
-    stack.pushSmi(block.compile() as Recast<VMHandle, number>);
-  } else {
-    stack.pushNull();
-  }
+    if (block) {
+      stack.pushSmi(block.compile() as Recast<VMHandle, number>);
+    } else {
+      stack.pushNull();
+    }
 
-  check(vm.stack.peek(), CheckOption(CheckNumber));
-});
+    check(vm.stack.peek(), CheckOption(CheckNumber));
+  },
+  OpcodeKind.Mut
+);
 
-APPEND_OPCODES.add(Op.InvokeYield, vm => {
-  let { stack } = vm;
+APPEND_OPCODES.add(
+  Op.InvokeYield,
+  vm => {
+    let { stack } = vm;
 
-  let handle = check(stack.pop(), CheckOption(CheckHandle));
-  let scope = check(stack.pop(), CheckOption(CheckScope));
-  let table = check(stack.pop(), CheckOption(CheckBlockSymbolTable));
+    let handle = check(stack.pop(), CheckOption(CheckHandle));
+    let scope = check(stack.pop(), CheckOption(CheckScope));
+    let table = check(stack.pop(), CheckOption(CheckBlockSymbolTable));
 
-  assert(
-    table === null || (table && typeof table === 'object' && Array.isArray(table.parameters)),
-    stackAssert('Option<BlockSymbolTable>', table)
-  );
+    assert(
+      table === null || (table && typeof table === 'object' && Array.isArray(table.parameters)),
+      stackAssert('Option<BlockSymbolTable>', table)
+    );
 
-  let args = check(stack.pop(), CheckInstanceof(Arguments));
+    let args = check(stack.pop(), CheckInstanceof(ReadonlyArguments));
 
-  if (table === null) {
-    // To balance the pop{Frame,Scope}
-    vm.pushFrame();
-    vm.pushScope(scope!); // Could be null but it doesnt matter as it is immediatelly popped.
-    return;
-  }
+    if (table === null) {
+      // To balance the pop{Frame,Scope}
+      vm.pushFrame();
+      vm.pushScope(scope!); // Could be null but it doesnt matter as it is immediatelly popped.
+      return;
+    }
 
-  let invokingScope = scope!;
+    let invokingScope = scope!;
 
-  // If necessary, create a child scope
-  {
-    let locals = table.parameters;
-    let localsCount = locals.length;
+    // If necessary, create a child scope
+    {
+      let locals = table.parameters;
+      let localsCount = locals.length;
 
-    if (localsCount > 0) {
-      invokingScope = invokingScope.child();
+      if (localsCount > 0) {
+        let childScope = invokingScope.child();
 
-      for (let i = 0; i < localsCount; i++) {
-        invokingScope.bindSymbol(locals![i], args.at(i));
+        for (let i = 0; i < localsCount; i++) {
+          childScope.bindSymbol(locals![i], args.at(i));
+        }
+
+        invokingScope = childScope;
       }
     }
-  }
 
-  vm.pushFrame();
-  vm.pushScope(invokingScope);
-  vm.call(handle!);
-});
+    vm.pushFrame();
+    vm.pushScope(invokingScope);
+    vm.call(handle!);
+  },
+  OpcodeKind.Mut
+);
 
-APPEND_OPCODES.add(Op.JumpIf, (vm, { op1: target }) => {
-  let reference = check(vm.stack.pop(), CheckReference);
+APPEND_OPCODES.add(
+  Op.JumpIf,
+  (vm, { op1: target }) => {
+    let reference = check(vm.stack.pop(), CheckReference);
 
-  if (isConst(reference)) {
-    if (reference.value()) {
+    if (isConst(reference)) {
+      if (reference.value()) {
+        vm.goto(target);
+      }
+    } else {
+      let cache = new ReferenceCache(reference);
+
+      if (cache.peek()) {
+        vm.goto(target);
+      }
+
+      vm.updateWith(new Assert(cache));
+    }
+  },
+  OpcodeKind.Mut
+);
+
+APPEND_OPCODES.add(
+  Op.JumpUnless,
+  (vm, { op1: target }) => {
+    let reference = check(vm.stack.pop(), CheckReference);
+
+    if (isConst(reference)) {
+      if (!reference.value()) {
+        vm.goto(target);
+      }
+    } else {
+      let cache = new ReferenceCache(reference);
+
+      if (!cache.peek()) {
+        vm.goto(target);
+      }
+
+      vm.updateWith(new Assert(cache));
+    }
+  },
+  OpcodeKind.Mut
+);
+
+APPEND_OPCODES.add(
+  Op.JumpEq,
+  (vm, { op1: target, op2: comparison }) => {
+    let other = check(vm.stack.peek(), CheckNumber);
+
+    if (other === comparison) {
       vm.goto(target);
     }
-  } else {
-    let cache = new ReferenceCache(reference);
+  },
+  OpcodeKind.Mut
+);
 
-    if (cache.peek()) {
-      vm.goto(target);
+APPEND_OPCODES.add(
+  Op.AssertSame,
+  vm => {
+    let reference = check(vm.stack.peek(), CheckReference);
+
+    if (!isConst(reference)) {
+      vm.updateWith(Assert.initialize(new ReferenceCache(reference)));
     }
+  },
+  OpcodeKind.Mut
+);
 
-    vm.updateWith(new Assert(cache));
-  }
-});
-
-APPEND_OPCODES.add(Op.JumpUnless, (vm, { op1: target }) => {
-  let reference = check(vm.stack.pop(), CheckReference);
-
-  if (isConst(reference)) {
-    if (!reference.value()) {
-      vm.goto(target);
-    }
-  } else {
-    let cache = new ReferenceCache(reference);
-
-    if (!cache.peek()) {
-      vm.goto(target);
-    }
-
-    vm.updateWith(new Assert(cache));
-  }
-});
-
-APPEND_OPCODES.add(Op.JumpEq, (vm, { op1: target, op2: comparison }) => {
-  let other = check(vm.stack.peek(), CheckNumber);
-
-  if (other === comparison) {
-    vm.goto(target);
-  }
-});
-
-APPEND_OPCODES.add(Op.AssertSame, vm => {
-  let reference = check(vm.stack.peek(), CheckReference);
-
-  if (!isConst(reference)) {
-    vm.updateWith(Assert.initialize(new ReferenceCache(reference)));
-  }
-});
-
-APPEND_OPCODES.add(Op.ToBoolean, vm => {
-  let { env, stack } = vm;
-  stack.push(env.toConditionalReference(check(stack.pop(), CheckReference)));
-});
+APPEND_OPCODES.add(
+  Op.ToBoolean,
+  vm => {
+    let { env, stack } = vm;
+    stack.push(env.toConditionalReference(check(stack.pop(), CheckReference)));
+  },
+  OpcodeKind.Mut
+);
 
 export class Assert extends UpdatingOpcode {
   static initialize(cache: ReferenceCache<Opaque>): Assert {

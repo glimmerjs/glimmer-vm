@@ -96,7 +96,7 @@ export interface DOMStack {
   setStaticAttribute(name: string, value: string, namespace: Option<string>): void;
   setDynamicAttribute(
     name: string,
-    value: Opaque,
+    value: unknown,
     isTrusting: boolean,
     namespace: Option<string>
   ): DynamicAttribute;
@@ -116,17 +116,23 @@ export interface TreeOperations {
   __setProperty(name: string, value: Opaque): void;
 }
 
-export interface ElementBuilder extends Cursor, DOMStack, TreeOperations {
-  nextSibling: Option<Simple.Node>;
-  dom: DOMTreeConstruction;
-  updateOperations: DOMChanges;
-  constructing: Option<Simple.Element>;
-  element: Simple.Element;
-  env: Environment;
+export interface ReadonlyElementBuilder {
+  readonly dom: DOMTreeConstruction;
+  readonly updateOperations: DOMChanges;
+  readonly constructing: Option<Simple.Element>;
+  readonly element: Simple.Element;
+  readonly env: Environment;
 
   block(): LiveBlock;
   debugBlocks(): LiveBlock[];
+}
 
+export interface MutElementBuilder
+  extends ReadonlyElementBuilder,
+    Cursor,
+    DOMStack,
+    TreeOperations {
+  readonly nextSibling: Option<Simple.Node>;
   pushSimpleBlock(): LiveBlock;
   pushUpdatableBlock(): UpdatableBlock;
   pushBlockList(list: LinkedList<LinkedListNode & Bounds>): LiveBlockList;
@@ -135,7 +141,7 @@ export interface ElementBuilder extends Cursor, DOMStack, TreeOperations {
   didAppendBounds(bounds: Bounds): void;
 }
 
-export class NewElementBuilder implements ElementBuilder {
+export class NewElementBuilder implements MutElementBuilder {
   public dom: DOMTreeConstruction;
   public updateOperations: DOMChanges;
   public constructing: Option<Simple.Element> = null;
@@ -389,7 +395,7 @@ export class NewElementBuilder implements ElementBuilder {
   }
 
   __setProperty(name: string, value: Opaque): void {
-    this.constructing![name] = value;
+    (this.constructing as any)![name] = value;
   }
 
   setStaticAttribute(name: string, value: string, namespace: Option<string>): void {
@@ -414,7 +420,7 @@ export interface LiveBlock extends Bounds {
   closeElement(): void;
   didAppendNode(node: Simple.Node): void;
   didAppendBounds(bounds: Bounds): void;
-  finalize(stack: ElementBuilder): void;
+  finalize(stack: MutElementBuilder): void;
   [DESTROY]?(): void;
 }
 
@@ -477,7 +483,7 @@ export class SimpleLiveBlock implements LiveBlock {
     this.last = bounds;
   }
 
-  finalize(stack: ElementBuilder) {
+  finalize(stack: MutElementBuilder) {
     if (this.first === null) {
       stack.appendComment('');
     }
@@ -551,11 +557,11 @@ class LiveBlockList implements LiveBlock {
 
   didAppendBounds(_bounds: Bounds) {}
 
-  finalize(_stack: ElementBuilder) {
+  finalize(_stack: MutElementBuilder) {
     assert(this.boundList.head() !== null, 'boundsList cannot be empty');
   }
 }
 
-export function clientBuilder(env: Environment, cursor: Cursor): ElementBuilder {
+export function clientBuilder(env: Environment, cursor: Cursor): MutElementBuilder {
   return NewElementBuilder.forInitialRender(env, cursor);
 }

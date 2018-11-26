@@ -2,8 +2,9 @@ import { RenderTest, test, assertElement, assertEmberishElement, Count } from '.
 import { classes } from '../environment';
 import { strip, equalTokens } from '../helpers';
 import { EmberishGlimmerComponent, EmberishCurlyComponent } from '../../index';
+import RenderDelegate from '../render-delegate';
 
-export class EmberishComponentTests extends RenderTest {
+export class EmberishComponentTests<D extends RenderDelegate> extends RenderTest<D> {
   @test({ kind: 'glimmer' })
   '[BUG: #644 popping args should be balanced]'() {
     class MainComponent extends EmberishGlimmerComponent {
@@ -303,6 +304,8 @@ export class EmberishComponentTests extends RenderTest {
   @test({ kind: 'curly' })
   'invoking wrapped layout via angle brackets - invocation attributes merges classes'() {
     class FooBar extends EmberishCurlyComponent {
+      class: string;
+
       constructor() {
         super(...arguments);
         this.attributeBindings = ['class'];

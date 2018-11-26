@@ -1,6 +1,7 @@
 import { RenderTest, test } from '../render-test';
+import RenderDelegate from '../render-delegate';
 
-export class HasBlockSuite extends RenderTest {
+export class HasBlockSuite extends RenderTest<RenderDelegate> {
   @test({ kind: 'curly' })
   'parameterized has-block (subexpr, else) when else supplied'() {
     this.render({

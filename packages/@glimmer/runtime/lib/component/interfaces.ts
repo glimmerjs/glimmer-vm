@@ -11,8 +11,8 @@ import {
 import { Tag, VersionedPathReference } from '@glimmer/reference';
 import Bounds from '../bounds';
 import { ElementOperations } from '../vm/element-builder';
-import Environment, { DynamicScope } from '../environment';
-import { IArguments } from '../vm/arguments';
+import { ReadonlyDynamicScope, ReadonlyEnvironment } from '../environment';
+import { ReadonlyArguments } from '../vm/arguments';
 import { CurriedComponentDefinition } from './curried-component';
 import { SymbolDestroyable, Destroyable } from '@glimmer/util';
 
@@ -45,17 +45,17 @@ export interface ComponentManager<ComponentInstanceState, ComponentDefinitionSta
   // for `create`. This allows for things like closure components where the
   // args need to be curried before constructing the instance of the state
   // bucket.
-  prepareArgs(state: ComponentDefinitionState, args: IArguments): Option<PreparedArguments>;
+  prepareArgs(state: ComponentDefinitionState, args: ReadonlyArguments): Option<PreparedArguments>;
 
   // Then, the component manager is asked to create a bucket of state for
   // the supplied arguments. From the perspective of Glimmer, this is
   // an opaque token, but in practice it is probably a component object.
   create(
-    env: Environment,
+    env: ReadonlyEnvironment,
     state: ComponentDefinitionState,
-    args: Option<IArguments>,
-    dynamicScope: Option<DynamicScope>,
-    caller: Option<VersionedPathReference<Opaque>>,
+    args: Option<ReadonlyArguments>,
+    dynamicScope: Option<ReadonlyDynamicScope>,
+    caller: Option<VersionedPathReference<unknown>>,
     hasDefaultBlock: boolean
   ): ComponentInstanceState;
 
@@ -79,7 +79,7 @@ export interface ComponentManager<ComponentInstanceState, ComponentDefinitionSta
 
   // When the component's tag has invalidated, the manager's `update` hook is
   // called.
-  update(state: ComponentInstanceState, dynamicScope: Option<DynamicScope>): void;
+  update(state: ComponentInstanceState, dynamicScope: Option<ReadonlyDynamicScope>): void;
 
   // This hook is run after the entire layout has been updated.
   //

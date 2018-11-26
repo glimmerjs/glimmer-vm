@@ -1,5 +1,6 @@
 export * from './lib/destroy';
 export * from './lib/lifetimes';
+export * from './lib/values';
 export * from './lib/platform-utils';
 export { default as assert } from './lib/assert';
 

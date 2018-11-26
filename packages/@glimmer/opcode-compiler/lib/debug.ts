@@ -56,7 +56,7 @@ export function logOpcode(type: string, params: Option<Object>): string | void {
 
   if (params) {
     let args = Object.keys(params)
-      .map(p => ` ${p}=${json(params[p])}`)
+      .map(p => ` ${p}=${json((params as any)[p])}`)
       .join('');
     out += args;
   }

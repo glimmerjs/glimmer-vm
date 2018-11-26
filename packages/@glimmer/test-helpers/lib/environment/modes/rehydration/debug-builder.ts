@@ -1,4 +1,4 @@
-import { RehydrateBuilder, ElementBuilder, Environment, Cursor } from '@glimmer/runtime';
+import { RehydrateBuilder, MutElementBuilder, Environment, Cursor } from '@glimmer/runtime';
 import { Simple } from '@glimmer/interfaces';
 
 export class DebugRehydrationBuilder extends RehydrateBuilder {
@@ -23,6 +23,6 @@ export class DebugRehydrationBuilder extends RehydrateBuilder {
   }
 }
 
-export function debugRehydration(env: Environment, cursor: Cursor): ElementBuilder {
+export function debugRehydration(env: Environment, cursor: Cursor): MutElementBuilder {
   return DebugRehydrationBuilder.forInitialRender(env, cursor);
 }

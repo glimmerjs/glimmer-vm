@@ -1,6 +1,12 @@
 import { Dict, Opaque } from '@glimmer/util';
 import { Simple } from '@glimmer/interfaces';
-import { RenderResult, clientBuilder, Environment, Cursor, ElementBuilder } from '@glimmer/runtime';
+import {
+  RenderResult,
+  clientBuilder,
+  Environment,
+  Cursor,
+  MutElementBuilder,
+} from '@glimmer/runtime';
 import { UpdatableReference } from '@glimmer/object-reference';
 
 import LazyTestEnvironment from './environment';
@@ -18,6 +24,7 @@ import { TestModifierConstructor } from '../../modifier';
 declare const module: any;
 
 export default class LazyRenderDelegate implements RenderDelegate {
+  static readonly isEager = false;
   constructor(protected env: LazyTestEnvironment = new LazyTestEnvironment()) {}
 
   resetEnv() {
@@ -50,7 +57,7 @@ export default class LazyRenderDelegate implements RenderDelegate {
     this.env.registerHelper(name, helper);
   }
 
-  getElementBuilder(env: Environment, cursor: Cursor): ElementBuilder {
+  getElementBuilder(env: Environment, cursor: Cursor): MutElementBuilder {
     return clientBuilder(env, cursor);
   }
 

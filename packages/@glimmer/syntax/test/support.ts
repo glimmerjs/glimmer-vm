@@ -10,11 +10,11 @@ function normalizeNode(obj: AST.Node | Array<AST.Node>): AST.Node | Array<AST.No
       }
     } else {
       newObj = {};
-      let keys = Object.keys(obj);
+      let keys = (Object.keys(obj) as unknown) as keyof typeof obj;
       for (let i = 0; i < keys.length; i++) {
         let key = keys[i];
         if (key === 'loc') continue;
-        newObj[key] = normalizeNode(obj[key]);
+        newObj[key] = normalizeNode((obj as any)[key]);
       }
     }
     return newObj;

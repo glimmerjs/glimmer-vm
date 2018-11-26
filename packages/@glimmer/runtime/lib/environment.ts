@@ -1,19 +1,15 @@
 import { Reference, PathReference, OpaqueIterable } from '@glimmer/reference';
 import { Macros, OpcodeBuilderConstructor } from '@glimmer/opcode-compiler';
-import { Simple, RuntimeResolver, CompilableBlock, BlockSymbolTable } from '@glimmer/interfaces';
+import { Simple, RuntimeResolver } from '@glimmer/interfaces';
 import { Program } from '@glimmer/program';
-import { Dict, Option, Opaque, assert, expect, Drop, DROP } from '@glimmer/util';
+import { Option, Opaque, assert, expect, Drop, DROP } from '@glimmer/util';
 
 import { DOMChanges, DOMTreeConstruction } from './dom/helper';
 import { PublicVM } from './vm/append';
-import { IArguments } from './vm/arguments';
-import { UNDEFINED_REFERENCE, ConditionalReference } from './references';
+import { ReadonlyArguments } from './vm/arguments';
+import { ConditionalReference } from './references';
 import { DynamicAttribute, dynamicAttribute } from './vm/attributes/dynamic';
 import { Component, ComponentManager, ModifierManager, Modifier } from './internal-interfaces';
-
-export type ScopeBlock = [number | CompilableBlock, Scope, BlockSymbolTable];
-export type BlockValue = ScopeBlock[0 | 1 | 2];
-export type ScopeSlot = Option<PathReference<Opaque>> | Option<ScopeBlock>;
 
 export interface DynamicScope {
   get(key: string): PathReference<Opaque>;
@@ -21,114 +17,13 @@ export interface DynamicScope {
   child(): DynamicScope;
 }
 
-export class Scope {
-  static root(self: PathReference<Opaque>, size = 0) {
-    let refs: PathReference<Opaque>[] = new Array(size + 1);
+export interface ReadonlyDynamicScope {
+  get(key: string): PathReference<Opaque>;
+  child(): DynamicScope;
+}
 
-    for (let i = 0; i <= size; i++) {
-      refs[i] = UNDEFINED_REFERENCE;
-    }
-
-    return new Scope(refs, null, null, null).init({ self });
-  }
-
-  static sized(size = 0) {
-    let refs: PathReference<Opaque>[] = new Array(size + 1);
-
-    for (let i = 0; i <= size; i++) {
-      refs[i] = UNDEFINED_REFERENCE;
-    }
-
-    return new Scope(refs, null, null, null);
-  }
-
-  constructor(
-    // the 0th slot is `self`
-    private slots: ScopeSlot[],
-    private callerScope: Option<Scope>,
-    // named arguments and blocks passed to a layout that uses eval
-    private evalScope: Option<Dict<ScopeSlot>>,
-    // locals in scope when the partial was invoked
-    private partialMap: Option<Dict<PathReference<Opaque>>>
-  ) {}
-
-  init({ self }: { self: PathReference<Opaque> }): this {
-    this.slots[0] = self;
-    return this;
-  }
-
-  getSelf(): PathReference<Opaque> {
-    return this.get<PathReference<Opaque>>(0);
-  }
-
-  getSymbol(symbol: number): PathReference<Opaque> {
-    return this.get<PathReference<Opaque>>(symbol);
-  }
-
-  getBlock(symbol: number): Option<ScopeBlock> {
-    let block = this.get(symbol);
-    return block === UNDEFINED_REFERENCE ? null : (block as ScopeBlock);
-  }
-
-  getEvalScope(): Option<Dict<ScopeSlot>> {
-    return this.evalScope;
-  }
-
-  getPartialMap(): Option<Dict<PathReference<Opaque>>> {
-    return this.partialMap;
-  }
-
-  bind(symbol: number, value: ScopeSlot) {
-    this.set(symbol, value);
-  }
-
-  bindSelf(self: PathReference<Opaque>) {
-    this.set<PathReference<Opaque>>(0, self);
-  }
-
-  bindSymbol(symbol: number, value: PathReference<Opaque>) {
-    this.set(symbol, value);
-  }
-
-  bindBlock(symbol: number, value: Option<ScopeBlock>) {
-    this.set<Option<ScopeBlock>>(symbol, value);
-  }
-
-  bindEvalScope(map: Option<Dict<ScopeSlot>>) {
-    this.evalScope = map;
-  }
-
-  bindPartialMap(map: Dict<PathReference<Opaque>>) {
-    this.partialMap = map;
-  }
-
-  bindCallerScope(scope: Option<Scope>) {
-    this.callerScope = scope;
-  }
-
-  getCallerScope(): Option<Scope> {
-    return this.callerScope;
-  }
-
-  child(): Scope {
-    return new Scope(this.slots.slice(), this.callerScope, this.evalScope, this.partialMap);
-  }
-
-  private get<T extends ScopeSlot>(index: number): T {
-    if (index >= this.slots.length) {
-      throw new RangeError(`BUG: cannot get $${index} from scope; length=${this.slots.length}`);
-    }
-
-    return this.slots[index] as T;
-  }
-
-  private set<T extends ScopeSlot>(index: number, value: T): void {
-    if (index >= this.slots.length) {
-      throw new RangeError(`BUG: cannot get $${index} from scope; length=${this.slots.length}`);
-    }
-
-    this.slots[index] = value;
-  }
+export interface MutDynamicScope {
+  set(key: string, reference: PathReference<Opaque>): PathReference<Opaque>;
 }
 
 class Transaction {
@@ -221,7 +116,9 @@ export interface EnvironmentOptions {
 
 const TRANSACTION = Symbol('TRANSACTION');
 
-export abstract class Environment {
+export interface ReadonlyEnvironment {}
+
+export abstract class Environment implements ReadonlyEnvironment {
   protected updateOperations: DOMChanges;
   protected appendOperations: DOMTreeConstruction;
   private [TRANSACTION]: Option<Transaction> = null;
@@ -323,5 +220,5 @@ export abstract class DefaultEnvironment extends Environment {
 export default Environment;
 
 export interface Helper {
-  (vm: PublicVM, args: IArguments): PathReference<Opaque>;
+  (vm: PublicVM, args: ReadonlyArguments): PathReference<Opaque>;
 }

@@ -1,6 +1,6 @@
 import { VersionedPathReference } from '@glimmer/reference';
 import { BrandedComponentDefinition } from './component/interfaces';
-import { IArguments } from './vm/arguments';
+import { ReadonlyArguments } from './vm/arguments';
 
 import { Option } from '@glimmer/util';
 
@@ -12,7 +12,7 @@ import { RuntimeResolver } from '@glimmer/interfaces';
 export interface DynamicComponentDefinition<Locator> {
   (
     vm: PublicVM,
-    args: IArguments,
+    args: ReadonlyArguments,
     meta: WireFormat.TemplateMeta,
     resolver: RuntimeResolver<Locator>
   ): VersionedPathReference<Option<BrandedComponentDefinition>>;

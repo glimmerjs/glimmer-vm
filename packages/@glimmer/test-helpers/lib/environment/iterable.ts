@@ -5,10 +5,10 @@ import {
   Tag,
   Reference,
 } from '@glimmer/reference';
-import { Opaque, Option } from '@glimmer/interfaces';
+import { Opaque, Option, UserValue } from '@glimmer/interfaces';
 import { UpdatableReference } from '@glimmer/object-reference';
 
-export type KeyFor<T> = (item: Opaque, index: T) => string;
+export type KeyFor<T = unknown> = (item: UserValue, index: T) => string;
 
 export class Iterable
   implements
@@ -20,10 +20,10 @@ export class Iterable
       UpdatableReference<Opaque>
     > {
   public tag: Tag;
-  private ref: Reference<Opaque>;
-  private keyFor: KeyFor<Opaque>;
+  private ref: Reference<unknown>;
+  private keyFor: KeyFor<unknown>;
 
-  constructor(ref: Reference<Opaque>, keyFor: KeyFor<Opaque>) {
+  constructor(ref: Reference<unknown>, keyFor: KeyFor<unknown>) {
     this.tag = ref.tag;
     this.ref = ref;
     this.keyFor = keyFor;
@@ -39,7 +39,7 @@ export class Iterable
     } else if (iterable === undefined || iterable === null) {
       return EMPTY_ITERATOR;
     } else if (iterable.forEach !== undefined) {
-      let array: Opaque[] = [];
+      let array: UserValue[] = [];
       for (let i = 0; i < iterable.length; i++) {
         array.push(iterable[i]);
       }
@@ -48,7 +48,7 @@ export class Iterable
       let keys = Object.keys(iterable);
 
       if (keys.length > 0) {
-        let values: Opaque[] = [];
+        let values: UserValue[] = [];
 
         for (let i = 0; i < keys.length; i++) {
           let key = keys[i];
@@ -93,11 +93,11 @@ class EmptyIterator implements OpaqueIterator {
 
 class ObjectKeysIterator implements OpaqueIterator {
   private keys: string[];
-  private values: Opaque[];
-  private keyFor: KeyFor<string>;
+  private values: Array<UserValue>;
+  private keyFor: KeyFor<unknown>;
   private position = 0;
 
-  constructor(keys: string[], values: Opaque[], keyFor: KeyFor<string>) {
+  constructor(keys: string[], values: Array<UserValue>, keyFor: KeyFor<unknown>) {
     this.keys = keys;
     this.values = values;
     this.keyFor = keyFor;
@@ -123,11 +123,11 @@ class ObjectKeysIterator implements OpaqueIterator {
 }
 
 class ArrayIterator implements OpaqueIterator {
-  private array: Opaque[];
+  private array: UserValue[];
   private keyFor: KeyFor<number>;
   private position = 0;
 
-  constructor(array: Opaque[], keyFor: KeyFor<number>) {
+  constructor(array: UserValue[], keyFor: KeyFor<number>) {
     this.array = array;
     this.keyFor = keyFor;
   }

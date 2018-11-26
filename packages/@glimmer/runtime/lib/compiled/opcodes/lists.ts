@@ -1,6 +1,6 @@
 import { Op } from '@glimmer/vm';
 import { IterationArtifacts, Reference, ReferenceIterator, Tag } from '@glimmer/reference';
-import { APPEND_OPCODES } from '../../opcodes';
+import { APPEND_OPCODES, OpcodeKind } from '../../opcodes';
 import { CheckPathReference } from './-debug-strip';
 import { check, expectStackChange, CheckInstanceof } from '@glimmer/debug';
 
@@ -18,35 +18,51 @@ class IterablePresenceReference implements Reference<boolean> {
   }
 }
 
-APPEND_OPCODES.add(Op.PutIterator, vm => {
-  let stack = vm.stack;
-  let listRef = check(stack.pop(), CheckPathReference);
-  let key = check(stack.pop(), CheckPathReference);
-  let iterable = vm.env.iterableFor(listRef, key.value());
-  let iterator = new ReferenceIterator(iterable);
+APPEND_OPCODES.add(
+  Op.PutIterator,
+  vm => {
+    let stack = vm.stack;
+    let listRef = check(stack.pop(), CheckPathReference);
+    let key = check(stack.pop(), CheckPathReference);
+    let iterable = vm.env.iterableFor(listRef, key.value());
+    let iterator = new ReferenceIterator(iterable);
 
-  stack.push(iterator);
-  stack.push(new IterablePresenceReference(iterator.artifacts));
-});
+    stack.push(iterator);
+    stack.push(new IterablePresenceReference(iterator.artifacts));
+  },
+  OpcodeKind.Mut
+);
 
-APPEND_OPCODES.add(Op.EnterList, (vm, { op1: relativeStart }) => {
-  vm.enterList(relativeStart);
-});
+APPEND_OPCODES.add(
+  Op.EnterList,
+  (vm, { op1: relativeStart }) => {
+    vm.enterList(relativeStart);
+  },
+  OpcodeKind.Mut
+);
 
-APPEND_OPCODES.add(Op.ExitList, vm => {
-  vm.exitList();
-});
+APPEND_OPCODES.add(
+  Op.ExitList,
+  vm => {
+    vm.exitList();
+  },
+  OpcodeKind.Mut
+);
 
-APPEND_OPCODES.add(Op.Iterate, (vm, { op1: breaks }) => {
-  let stack = vm.stack;
-  let item = check(stack.peek(), CheckInstanceof(ReferenceIterator)).next();
+APPEND_OPCODES.add(
+  Op.Iterate,
+  (vm, { op1: breaks }) => {
+    let stack = vm.stack;
+    let item = check(stack.peek(), CheckInstanceof(ReferenceIterator)).next();
 
-  if (item) {
-    let tryOpcode = vm.iterate(item.memo, item.value);
-    vm.enterItem(item.key, tryOpcode);
-  } else {
-    vm.goto(breaks);
-  }
+    if (item) {
+      let tryOpcode = vm.iterate(item.memo, item.value);
+      vm.enterItem(item.key, tryOpcode);
+    } else {
+      vm.goto(breaks);
+    }
 
-  expectStackChange(vm.stack, item ? 2 : 0, 'Iterate');
-});
+    expectStackChange(vm.stack, item ? 2 : 0, 'Iterate');
+  },
+  OpcodeKind.Mut
+);

@@ -1,7 +1,14 @@
-import { module, test, EagerRenderDelegate, Count } from '@glimmer/test-helpers';
+import {
+  module,
+  test,
+  EagerRenderDelegate,
+  Count,
+  RenderTest,
+  RenderDelegate,
+} from '@glimmer/test-helpers';
 import { PrimitiveReference } from '@glimmer/runtime';
 
-export class EntryPointTest {
+export class EntryPointTest<D extends RenderDelegate> extends RenderTest<D> {
   readonly count = new Count();
 
   @test

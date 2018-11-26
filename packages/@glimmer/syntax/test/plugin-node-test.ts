@@ -88,12 +88,16 @@ test('can support the legacy AST transform API via ASTPlugin', assert => {
 test('AST plugins can be chained', assert => {
   assert.expect(3);
 
+  let firstPlugin = new WeakSet();
+  let secondPlugin = new WeakSet();
+  let thirdPlugin = new WeakSet();
+
   let first = () => {
     return {
       name: 'first',
       visitor: {
         Program(program: AST.Program) {
-          program['isFromFirstPlugin'] = true;
+          firstPlugin.add(program);
         },
       },
     };
@@ -104,13 +108,9 @@ test('AST plugins can be chained', assert => {
       name: 'second',
       visitor: {
         Program(node: AST.Program) {
-          assert.equal(
-            node['isFromFirstPlugin'],
-            true,
-            'AST from first plugin is passed to second'
-          );
+          assert.equal(firstPlugin.has(node), 'AST from first plugin is passed to second');
 
-          node['isFromSecondPlugin'] = true;
+          secondPlugin.add(node);
         },
       },
     };
@@ -121,13 +121,9 @@ test('AST plugins can be chained', assert => {
       name: 'third',
       visitor: {
         Program(node: AST.Program) {
-          assert.equal(
-            node['isFromSecondPlugin'],
-            true,
-            'AST from second plugin is passed to third'
-          );
+          assert.equal(secondPlugin.has(node), true, 'AST from second plugin is passed to third');
 
-          node['isFromThirdPlugin'] = true;
+          thirdPlugin.add(node);
         },
       },
     };
@@ -139,5 +135,5 @@ test('AST plugins can be chained', assert => {
     },
   });
 
-  assert.equal(ast['isFromThirdPlugin'], true, 'return value from last AST transform is used');
+  assert.equal(thirdPlugin.has(ast), 'return value from last AST transform is used');
 });

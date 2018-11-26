@@ -215,7 +215,7 @@ export default class JavaScriptCompiler
   /// Nesting
 
   startBlock(program: AST.Program) {
-    this.startInlineBlock(program['symbols']);
+    this.startInlineBlock((program as any)['symbols']);
   }
 
   endBlock() {
@@ -282,12 +282,12 @@ export default class JavaScriptCompiler
       this.options && this.options.customizeComponentName
         ? this.options.customizeComponentName(element.tag)
         : element.tag;
-    let component = new ComponentBlock(tag, element['symbols'], element.selfClosing);
+    let component = new ComponentBlock(tag, (element as any)['symbols'], element.selfClosing);
     this.blocks.push(component);
   }
 
   openNamedBlock(element: AST.ElementNode) {
-    let block: Block = new NamedBlock(element.tag, element['symbols']);
+    let block: Block = new NamedBlock(element.tag, (element as any)['symbols']);
     this.blocks.push(block);
   }
 

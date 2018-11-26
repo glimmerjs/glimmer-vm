@@ -1,6 +1,6 @@
-import { IArguments } from '../vm/arguments';
+import { ReadonlyArguments } from '../vm/arguments';
 import { DOMChanges } from '../dom/helper';
-import { DynamicScope } from '../environment';
+import { DynamicScope, ReadonlyDynamicScope } from '../environment';
 import { SymbolDestroyable, Destroyable } from '@glimmer/util';
 import { Opaque, Option, Unique } from '@glimmer/interfaces';
 import { Tag } from '@glimmer/reference';
@@ -33,8 +33,8 @@ export interface ModifierManager<ModifierInstanceState, ModifierDefinitionState>
   create(
     element: Element,
     state: ModifierDefinitionState,
-    args: IArguments,
-    dynamicScope: DynamicScope,
+    args: ReadonlyArguments,
+    dynamicScope: ReadonlyDynamicScope,
     dom: DOMChanges
   ): ModifierInstanceState;
 

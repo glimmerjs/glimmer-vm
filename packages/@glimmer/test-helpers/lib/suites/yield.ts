@@ -143,7 +143,7 @@ export class YieldSuite extends RenderTest {
       this.assertComponent(`${output}-`);
       this.assertStableRerender();
       this.element.innerHTML = '';
-      this.delegate['resetEnv']();
+      this.delegate.resetEnv();
     });
   }
 

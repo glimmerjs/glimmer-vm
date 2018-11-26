@@ -1,6 +1,6 @@
 import { Simple, Option, Opaque } from '@glimmer/interfaces';
 import Environment from '../../environment';
-import { ElementBuilder } from '../element-builder';
+import { MutElementBuilder } from '../element-builder';
 import { sanitizeAttributeValue, requiresSanitization } from '../../dom/sanitized-values';
 import { normalizeProperty } from '../../dom/props';
 import { SVG_NAMESPACE } from '../../dom/helper';
@@ -63,12 +63,12 @@ function buildDynamicProperty(
 export abstract class DynamicAttribute implements AttributeOperation {
   constructor(public attribute: Attribute) {}
 
-  abstract set(dom: ElementBuilder, value: Opaque, env: Environment): void;
+  abstract set(dom: MutElementBuilder, value: Opaque, env: Environment): void;
   abstract update(value: Opaque, env: Environment): void;
 }
 
 export class SimpleDynamicAttribute extends DynamicAttribute {
-  set(dom: ElementBuilder, value: Opaque, _env: Environment): void {
+  set(dom: MutElementBuilder, value: Opaque, _env: Environment): void {
     let normalizedValue = normalizeValue(value);
 
     if (normalizedValue !== null) {
@@ -95,7 +95,7 @@ export class DefaultDynamicProperty extends DynamicAttribute {
   }
 
   value: Opaque;
-  set(dom: ElementBuilder, value: Opaque, _env: Environment): void {
+  set(dom: MutElementBuilder, value: Opaque, _env: Environment): void {
     if (value !== null && value !== undefined) {
       this.value = value;
       dom.__setProperty(this.normalizedName, value);
@@ -128,7 +128,7 @@ export class DefaultDynamicProperty extends DynamicAttribute {
 }
 
 export class SafeDynamicProperty extends DefaultDynamicProperty {
-  set(dom: ElementBuilder, value: Opaque, env: Environment): void {
+  set(dom: MutElementBuilder, value: Opaque, env: Environment): void {
     let { element, name } = this.attribute;
     let sanitized = sanitizeAttributeValue(env, element, name, value);
     super.set(dom, sanitized, env);
@@ -142,7 +142,7 @@ export class SafeDynamicProperty extends DefaultDynamicProperty {
 }
 
 export class SafeDynamicAttribute extends SimpleDynamicAttribute {
-  set(dom: ElementBuilder, value: Opaque, env: Environment): void {
+  set(dom: MutElementBuilder, value: Opaque, env: Environment): void {
     let { element, name } = this.attribute;
     let sanitized = sanitizeAttributeValue(env, element, name, value);
     super.set(dom, sanitized, env);
@@ -156,7 +156,7 @@ export class SafeDynamicAttribute extends SimpleDynamicAttribute {
 }
 
 export class InputValueDynamicAttribute extends DefaultDynamicProperty {
-  set(dom: ElementBuilder, value: Opaque) {
+  set(dom: MutElementBuilder, value: Opaque) {
     dom.__setProperty('value', normalizeStringValue(value));
   }
 
@@ -171,7 +171,7 @@ export class InputValueDynamicAttribute extends DefaultDynamicProperty {
 }
 
 export class OptionSelectedDynamicAttribute extends DefaultDynamicProperty {
-  set(dom: ElementBuilder, value: Opaque): void {
+  set(dom: MutElementBuilder, value: Opaque): void {
     if (value !== null && value !== undefined && value !== false) {
       dom.__setProperty('selected', true);
     }

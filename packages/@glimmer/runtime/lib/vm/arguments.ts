@@ -1,10 +1,10 @@
-import EvaluationStack from './stack';
+import { ReadonlyEvaluationStack } from './stack';
 import { dict, EMPTY_ARRAY } from '@glimmer/util';
 import { combineTagged } from '@glimmer/reference';
 import { Dict, Opaque, Option, unsafe, BlockSymbolTable } from '@glimmer/interfaces';
 import { Tag, VersionedPathReference, CONSTANT_TAG } from '@glimmer/reference';
 import { PrimitiveReference, UNDEFINED_REFERENCE } from '../references';
-import { ScopeBlock, Scope, BlockValue } from '../environment';
+import { ScopeBlock, Scope, BlockValue } from '../scope';
 import { CheckBlockSymbolTable, check, CheckHandle, CheckOption, CheckOr } from '@glimmer/debug';
 import {
   CheckPathReference,
@@ -20,31 +20,43 @@ import {
   * 0-N named arguments next
 */
 
-export interface IArguments {
-  tag: Tag;
-  length: number;
-  positional: IPositionalArguments;
-  named: INamedArguments;
+export interface ReadonlyArguments {
+  readonly tag: Tag;
+  readonly length: number;
+  readonly positional: ReadonlyPositionalArguments;
+  readonly named: ReadonlyNamedArguments;
+  readonly blocks: ReadonlyBlockArguments;
 
+  empty(stack: ReadonlyEvaluationStack): ReadonlyArguments;
   at<T extends VersionedPathReference<Opaque>>(pos: number): T;
-  capture(): ICapturedArguments;
+  capture(): ReadonlyCapturedArguments;
 }
 
-export interface ICapturedArguments {
+export interface MutArguments extends ReadonlyArguments {
+  setup(
+    stack: ReadonlyEvaluationStack,
+    names: string[],
+    blockNames: string[],
+    positionalCount: number,
+    synthetic: boolean
+  ): void;
+}
+
+export interface ReadonlyCapturedArguments {
   tag: Tag;
   length: number;
-  positional: ICapturedPositionalArguments;
-  named: ICapturedNamedArguments;
+  positional: ReadonlyCapturedPositionalArguments;
+  named: ReadonlyCapturedNamedArguments;
 }
 
-export interface IPositionalArguments {
+export interface ReadonlyPositionalArguments {
   tag: Tag;
   length: number;
   at<T extends VersionedPathReference<Opaque>>(position: number): T;
-  capture(): ICapturedPositionalArguments;
+  capture(): ReadonlyCapturedPositionalArguments;
 }
 
-export interface ICapturedPositionalArguments extends VersionedPathReference<Opaque[]> {
+export interface ReadonlyCapturedPositionalArguments extends VersionedPathReference<Opaque[]> {
   tag: Tag;
   length: number;
   references: VersionedPathReference<Opaque>[];
@@ -52,18 +64,20 @@ export interface ICapturedPositionalArguments extends VersionedPathReference<Opa
   value(): Opaque[];
 }
 
-export interface INamedArguments {
-  tag: Tag;
-  names: string[];
-  length: number;
+export interface ReadonlyNamedArguments {
+  readonly tag: Tag;
+  readonly atNames: ReadonlyArray<string>;
+  readonly names: ReadonlyArray<string>;
+  readonly length: number;
   has(name: string): boolean;
-  get<T extends VersionedPathReference<Opaque>>(name: string): T;
-  capture(): ICapturedNamedArguments;
+  get<T extends VersionedPathReference<Opaque>>(name: string, synthetic?: boolean): T;
+  capture(): ReadonlyCapturedNamedArguments;
 }
 
-export interface IBlockArguments {
-  names: string[];
-  length: number;
+export interface ReadonlyBlockArguments {
+  readonly names: ReadonlyArray<string>;
+  readonly length: number;
+  readonly values: ReadonlyArray<BlockValue>;
   has(name: string): boolean;
   get(name: string): Option<ScopeBlock>;
   capture(): ICapturedBlockArguments;
@@ -76,7 +90,7 @@ export interface ICapturedBlockArguments {
   get(name: string): Option<ScopeBlock>;
 }
 
-export interface ICapturedNamedArguments extends VersionedPathReference<Dict<Opaque>> {
+export interface ReadonlyCapturedNamedArguments extends VersionedPathReference<Dict<Opaque>> {
   tag: Tag;
   map: Dict<VersionedPathReference<Opaque>>;
   names: string[];
@@ -87,13 +101,13 @@ export interface ICapturedNamedArguments extends VersionedPathReference<Dict<Opa
   value(): Dict<Opaque>;
 }
 
-export class Arguments implements IArguments {
-  private stack: EvaluationStack | null = null;
+export class Arguments implements ReadonlyArguments {
+  private stack: ReadonlyEvaluationStack | null = null;
   public positional = new PositionalArguments();
   public named = new NamedArguments();
   public blocks = new BlockArguments();
 
-  empty(stack: EvaluationStack): this {
+  empty(stack: ReadonlyEvaluationStack): Arguments {
     let base = stack.sp + 1;
 
     this.named.empty(stack, base);
@@ -104,12 +118,12 @@ export class Arguments implements IArguments {
   }
 
   setup(
-    stack: EvaluationStack,
+    stack: ReadonlyEvaluationStack,
     names: string[],
     blockNames: string[],
     positionalCount: number,
     synthetic: boolean
-  ) {
+  ): void {
     this.stack = stack;
 
     /*
@@ -171,7 +185,7 @@ export class Arguments implements IArguments {
     }
   }
 
-  capture(): ICapturedArguments {
+  capture(): ReadonlyCapturedArguments {
     let positional = this.positional.length === 0 ? EMPTY_POSITIONAL : this.positional.capture();
     let named = this.named.length === 0 ? EMPTY_NAMED : this.named.capture();
     return {
@@ -184,20 +198,20 @@ export class Arguments implements IArguments {
 
   clear(): void {
     let { stack, length } = this;
-    if (length > 0 && stack !== null) stack.pop(length);
+    if (length > 0 && stack !== null) stack.popN(length);
   }
 }
 
-export class PositionalArguments implements IPositionalArguments {
+export class PositionalArguments implements ReadonlyPositionalArguments {
   public base = 0;
   public length = 0;
 
-  private stack: EvaluationStack = null as any;
+  private stack: ReadonlyEvaluationStack = null as any;
 
   private _tag: Option<Tag> = null;
   private _references: Option<VersionedPathReference<Opaque>[]> = null;
 
-  empty(stack: EvaluationStack, base: number) {
+  empty(stack: ReadonlyEvaluationStack, base: number) {
     this.stack = stack;
     this.base = base;
     this.length = 0;
@@ -206,7 +220,7 @@ export class PositionalArguments implements IPositionalArguments {
     this._references = EMPTY_ARRAY;
   }
 
-  setup(stack: EvaluationStack, base: number, length: number) {
+  setup(stack: ReadonlyEvaluationStack, base: number, length: number) {
     this.stack = stack;
     this.base = base;
     this.length = length;
@@ -237,14 +251,14 @@ export class PositionalArguments implements IPositionalArguments {
       return (UNDEFINED_REFERENCE as unsafe) as T;
     }
 
-    return check(stack.get(position, base), CheckPathReference) as T;
+    return check(stack.getFrom(position, base), CheckPathReference) as T;
   }
 
-  capture(): ICapturedPositionalArguments {
+  capture(): ReadonlyCapturedPositionalArguments {
     return new CapturedPositionalArguments(this.tag, this.references);
   }
 
-  prepend(other: ICapturedPositionalArguments) {
+  prepend(other: ReadonlyCapturedPositionalArguments) {
     let additions = other.length;
 
     if (additions > 0) {
@@ -277,7 +291,7 @@ export class PositionalArguments implements IPositionalArguments {
   }
 }
 
-export class CapturedPositionalArguments implements ICapturedPositionalArguments {
+export class CapturedPositionalArguments implements ReadonlyCapturedPositionalArguments {
   static empty(): CapturedPositionalArguments {
     return new CapturedPositionalArguments(CONSTANT_TAG, EMPTY_ARRAY, 0);
   }
@@ -317,18 +331,18 @@ export class CapturedPositionalArguments implements ICapturedPositionalArguments
   }
 }
 
-export class NamedArguments implements INamedArguments {
+export class NamedArguments implements ReadonlyNamedArguments {
   public base = 0;
   public length = 0;
 
-  private stack!: EvaluationStack;
+  private stack!: ReadonlyEvaluationStack;
 
   private _references: Option<VersionedPathReference<Opaque>[]> = null;
 
   private _names: Option<string[]> = EMPTY_ARRAY;
   private _atNames: Option<string[]> = EMPTY_ARRAY;
 
-  empty(stack: EvaluationStack, base: number) {
+  empty(stack: ReadonlyEvaluationStack, base: number) {
     this.stack = stack;
     this.base = base;
     this.length = 0;
@@ -338,7 +352,13 @@ export class NamedArguments implements INamedArguments {
     this._atNames = EMPTY_ARRAY;
   }
 
-  setup(stack: EvaluationStack, base: number, length: number, names: string[], synthetic: boolean) {
+  setup(
+    stack: ReadonlyEvaluationStack,
+    base: number,
+    length: number,
+    names: string[],
+    synthetic: boolean
+  ) {
     this.stack = stack;
     this.base = base;
     this.length = length;
@@ -399,14 +419,14 @@ export class NamedArguments implements INamedArguments {
       return (UNDEFINED_REFERENCE as unsafe) as T;
     }
 
-    return stack.get<T>(idx, base);
+    return stack.getFrom<T>(idx, base);
   }
 
-  capture(): ICapturedNamedArguments {
+  capture(): ReadonlyCapturedNamedArguments {
     return new CapturedNamedArguments(this.tag, this.names, this.references);
   }
 
-  merge(other: ICapturedNamedArguments) {
+  merge(other: ReadonlyCapturedNamedArguments) {
     let { length: extras } = other;
 
     if (extras > 0) {
@@ -457,7 +477,7 @@ export class NamedArguments implements INamedArguments {
   }
 }
 
-export class CapturedNamedArguments implements ICapturedNamedArguments {
+export class CapturedNamedArguments implements ReadonlyCapturedNamedArguments {
   public length: number;
   private _map: Option<Dict<VersionedPathReference<Opaque>>>;
 
@@ -514,8 +534,8 @@ export class CapturedNamedArguments implements ICapturedNamedArguments {
   }
 }
 
-export class BlockArguments implements IBlockArguments {
-  private stack!: EvaluationStack;
+export class BlockArguments implements ReadonlyBlockArguments {
+  private stack!: ReadonlyEvaluationStack;
   private internalValues: Option<number[]> = null;
 
   public internalTag: Option<Tag> = null;
@@ -524,7 +544,7 @@ export class BlockArguments implements IBlockArguments {
   public length = 0;
   public base = 0;
 
-  empty(stack: EvaluationStack, base: number) {
+  empty(stack: ReadonlyEvaluationStack, base: number) {
     this.stack = stack;
     this.names = EMPTY_ARRAY;
     this.base = base;
@@ -534,7 +554,7 @@ export class BlockArguments implements IBlockArguments {
     this.internalValues = EMPTY_ARRAY;
   }
 
-  setup(stack: EvaluationStack, base: number, length: number, names: string[]) {
+  setup(stack: ReadonlyEvaluationStack, base: number, length: number, names: string[]) {
     this.stack = stack;
     this.names = names;
     this.base = base;
@@ -573,10 +593,10 @@ export class BlockArguments implements IBlockArguments {
       return null;
     }
 
-    let table = check(stack.get(idx * 3, base), CheckOption(CheckBlockSymbolTable));
-    let scope = check(stack.get(idx * 3 + 1, base), CheckOption(CheckScope));
+    let table = check(stack.getFrom(idx * 3, base), CheckOption(CheckBlockSymbolTable));
+    let scope = check(stack.getFrom(idx * 3 + 1, base), CheckOption(CheckScope));
     let handle = check(
-      stack.get(idx * 3 + 2, base),
+      stack.getFrom(idx * 3 + 2, base),
       CheckOption(CheckOr(CheckHandle, CheckCompilableBlock))
     );
 
@@ -614,7 +634,7 @@ class CapturedBlockArguments implements ICapturedBlockArguments {
 
 const EMPTY_NAMED = new CapturedNamedArguments(CONSTANT_TAG, EMPTY_ARRAY, EMPTY_ARRAY);
 const EMPTY_POSITIONAL = new CapturedPositionalArguments(CONSTANT_TAG, EMPTY_ARRAY);
-export const EMPTY_ARGS: ICapturedArguments = {
+export const EMPTY_ARGS: ReadonlyCapturedArguments = {
   tag: CONSTANT_TAG,
   length: 0,
   positional: EMPTY_POSITIONAL,

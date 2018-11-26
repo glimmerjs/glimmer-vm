@@ -28,7 +28,7 @@ export function mixin(obj: any, ...extensions: any[]) {
 
 export function defineProperty(obj: any, key: string, desc: Blueprint | null) {
   let extensions = {};
-  extensions[key] = desc;
+  (extensions as any)[key] = desc;
 
   mixin(obj, extensions);
 }

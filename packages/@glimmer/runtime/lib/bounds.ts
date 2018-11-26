@@ -2,7 +2,7 @@ import { Simple, Bounds } from '@glimmer/interfaces';
 import { Option, SymbolDestroyable, expect } from '@glimmer/util';
 
 export class Cursor {
-  constructor(public element: Simple.Element, public nextSibling: Option<Simple.Node>) {}
+  constructor(readonly element: Simple.Element, readonly nextSibling: Option<Simple.Node>) {}
 }
 
 export default Bounds;

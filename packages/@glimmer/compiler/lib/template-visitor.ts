@@ -211,8 +211,8 @@ export default class TemplateVisitor {
   public actions: Action[] = [];
   private programDepth = -1;
 
-  visit(node: AST.BaseNode) {
-    this[node.type](node);
+  visit<N extends AST.BaseNode>(node: N) {
+    (this as any)[node.type](node);
   }
 
   // Traversal methods
@@ -224,9 +224,9 @@ export default class TemplateVisitor {
     let programFrame = this.pushFrame();
 
     if (!parentFrame) {
-      program['symbols'] = SymbolTable.top();
+      (program as any)['symbols'] = SymbolTable.top();
     } else {
-      program['symbols'] = parentFrame.symbols!.child(program.blockParams);
+      (program as any)['symbols'] = parentFrame.symbols!.child(program.blockParams);
     }
 
     let startType: string, endType: string;
@@ -244,7 +244,7 @@ export default class TemplateVisitor {
     programFrame.childCount = program.body.length;
     programFrame.blankChildTextNodes = [];
     programFrame.actions.push([endType, [program, this.programDepth]] as Action);
-    programFrame.symbols = program['symbols'];
+    programFrame.symbols = (program as any)['symbols'];
 
     for (let i = program.body.length - 1; i >= 0; i--) {
       programFrame.childIndex = i;
@@ -275,7 +275,9 @@ export default class TemplateVisitor {
     elementFrame.childCount = element.children.length;
     elementFrame.mustacheCount += element.modifiers.length;
     elementFrame.blankChildTextNodes = [];
-    elementFrame.symbols = element['symbols'] = parentFrame.symbols!.child(element.blockParams);
+    elementFrame.symbols = (element as any)['symbols'] = parentFrame.symbols!.child(
+      element.blockParams
+    );
 
     let actionArgs: [AST.ElementNode, number, number] = [
       element,

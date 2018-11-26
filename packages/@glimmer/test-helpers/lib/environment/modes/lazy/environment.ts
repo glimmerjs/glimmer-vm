@@ -22,7 +22,7 @@ import {
   ComponentManager,
   renderMain,
   DynamicScope,
-  ElementBuilder,
+  MutElementBuilder,
   TemplateIterator,
   ModifierDefinition,
 } from '@glimmer/runtime';
@@ -130,7 +130,7 @@ export default class LazyTestEnvironment extends TestEnvironment<TestMeta> {
   renderMain<T>(
     template: Template<T>,
     self: PathReference<Opaque>,
-    builder: ElementBuilder,
+    builder: MutElementBuilder,
     dynamicScope: DynamicScope = new TestDynamicScope()
   ): TemplateIterator {
     let layout = template.asLayout();

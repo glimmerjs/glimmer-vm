@@ -190,8 +190,8 @@ export class StdOpcodeBuilder {
     this.push(Op.PopRemoteElement);
   }
 
-  pushRootScope(symbols: number, bindCallerScope: boolean) {
-    this.push(Op.RootScope, symbols, bindCallerScope ? 1 : 0);
+  pushRootScope(symbols: number) {
+    this.push(Op.RootScope, symbols);
   }
 
   pushVirtualRootScope(register: Register) {
@@ -856,7 +856,7 @@ export abstract class OpcodeBuilder<Locator = Opaque> extends StdOpcodeBuilder {
       }
     }
 
-    this.pushRootScope(symbols.length + 1, Object.keys(blocks).length > 0);
+    this.pushRootScope(symbols.length + 1);
 
     for (let i = bindings.length - 1; i >= 0; i--) {
       let { symbol, isBlock } = bindings[i];

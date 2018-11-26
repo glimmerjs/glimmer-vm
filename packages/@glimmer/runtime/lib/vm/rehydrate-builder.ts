@@ -1,4 +1,4 @@
-import { NewElementBuilder, ElementBuilder, RemoteLiveBlock } from './element-builder';
+import { NewElementBuilder, MutElementBuilder, RemoteLiveBlock } from './element-builder';
 
 import { Environment } from '../environment';
 import Bounds, { Cursor, ConcreteBounds } from '../bounds';
@@ -26,7 +26,7 @@ export class RehydratingCursor extends Cursor {
   }
 }
 
-export class RehydrateBuilder extends NewElementBuilder implements ElementBuilder {
+export class RehydrateBuilder extends NewElementBuilder implements MutElementBuilder {
   private unmatchedAttributes: Option<Simple.Attribute[]> = null;
   protected cursorStack!: Stack<RehydratingCursor>; // Hides property on base class
   private blockDepth = 0;
@@ -462,6 +462,6 @@ function findByName(array: Simple.Attribute[], name: string): Simple.Attribute |
   return undefined;
 }
 
-export function rehydrationBuilder(env: Environment, cursor: Cursor): ElementBuilder {
+export function rehydrationBuilder(env: Environment, cursor: Cursor): MutElementBuilder {
   return RehydrateBuilder.forInitialRender(env, cursor);
 }

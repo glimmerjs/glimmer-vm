@@ -1,6 +1,6 @@
 import {
   NewElementBuilder,
-  ElementBuilder,
+  MutElementBuilder,
   Bounds,
   ConcreteBounds,
   Environment,
@@ -12,7 +12,7 @@ import { RemoteLiveBlock } from '@glimmer/runtime/lib/vm/element-builder';
 const TEXT_NODE = 3;
 
 function currentNode(
-  cursor: ElementBuilder | { element: Simple.Element; nextSibling: Simple.Node }
+  cursor: MutElementBuilder | { element: Simple.Element; nextSibling: Simple.Node }
 ): Option<Simple.Node> {
   let { element, nextSibling } = cursor;
 
@@ -23,7 +23,7 @@ function currentNode(
   }
 }
 
-class SerializeBuilder extends NewElementBuilder implements ElementBuilder {
+class SerializeBuilder extends NewElementBuilder implements MutElementBuilder {
   private serializeBlockDepth = 0;
 
   __openBlock(): void {
@@ -73,8 +73,8 @@ class SerializeBuilder extends NewElementBuilder implements ElementBuilder {
   }
 
   closeElement() {
-    if (this.element['needsExtraClose'] === true) {
-      this.element['needsExtraClose'] = false;
+    if ((this.element as any)['needsExtraClose'] === true) {
+      (this.element as any)['needsExtraClose'] = false;
       super.closeElement();
     }
 
@@ -89,7 +89,7 @@ class SerializeBuilder extends NewElementBuilder implements ElementBuilder {
         // under the auto inserted tbody. Rehydration builder needs to
         // account for the insertion since it is injected here and not
         // really in the template.
-        this.constructing!['needsExtraClose'] = true;
+        (this.constructing as any)['needsExtraClose'] = true;
         this.flushElement();
       }
     }
@@ -113,6 +113,6 @@ class SerializeBuilder extends NewElementBuilder implements ElementBuilder {
 export function serializeBuilder(
   env: Environment,
   cursor: { element: Simple.Element; nextSibling: Option<Simple.Node> }
-): ElementBuilder {
+): MutElementBuilder {
   return SerializeBuilder.forInitialRender(env, cursor);
 }

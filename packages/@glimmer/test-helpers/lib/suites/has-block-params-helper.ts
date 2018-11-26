@@ -1,6 +1,7 @@
 import { RenderTest, test } from '../render-test';
+import RenderDelegate from '../render-delegate';
 
-export class HasBlockParamsHelperSuite extends RenderTest {
+export class HasBlockParamsHelperSuite<D extends RenderDelegate> extends RenderTest<D> {
   @test({ kind: 'curly' })
   'parameterized has-block-params (subexpr, else) when else supplied without block params'() {
     this.render({

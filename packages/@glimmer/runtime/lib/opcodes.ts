@@ -18,6 +18,8 @@ import { DEBUG, DEVMODE } from '@glimmer/local-debug-flags';
 // these import bindings will be stripped from build
 import { debug, logOpcode } from '@glimmer/opcode-compiler';
 import { DESTRUCTOR_STACK, INNER_VM, CONSTANTS } from './symbols';
+import { ScopeImpl } from './scope';
+import { ReadonlyVM, MutVM, PartialVM } from './vm/append';
 
 export interface OpcodeJSON {
   type: number | string;
@@ -32,22 +34,39 @@ export type Operand1 = number;
 export type Operand2 = number;
 export type Operand3 = number;
 
-export type Syscall = (vm: VM<Opaque>, opcode: Opcode) => void;
+export type ReadonlySyscall = (vm: ReadonlyVM, opcode: Opcode) => void;
+export type MutSyscall = (vm: MutVM, opcode: Opcode) => void;
+export type PartialSyscall = (vm: PartialVM, opcode: Opcode) => void;
 export type MachineOpcode = (vm: LowLevelVM, opcode: Opcode) => void;
 
+export enum OpcodeKind {
+  Machine,
+  Readonly,
+  Mut,
+  Partial,
+}
+
 export type Evaluate =
-  | { syscall: true; evaluate: Syscall }
-  | { syscall: false; evaluate: MachineOpcode };
+  | { kind: OpcodeKind.Readonly; evaluate: ReadonlySyscall }
+  | { kind: OpcodeKind.Mut; evaluate: MutSyscall }
+  | { kind: OpcodeKind.Partial; evaluate: PartialSyscall }
+  | { kind: OpcodeKind.Machine; evaluate: MachineOpcode };
 
 export type DebugState = { sp: number; state: Opaque };
 
 export class AppendOpcodes {
   private evaluateOpcode: Evaluate[] = fillNulls<Evaluate>(Op.Size).slice();
 
-  add<Name extends Op>(name: Name, evaluate: Syscall): void;
-  add<Name extends Op>(name: Name, evaluate: MachineOpcode, kind: 'machine'): void;
-  add<Name extends Op>(name: Name, evaluate: Syscall | MachineOpcode, kind = 'syscall'): void {
-    this.evaluateOpcode[name as number] = { syscall: kind === 'syscall', evaluate } as Evaluate;
+  add<Name extends Op>(name: Name, evaluate: ReadonlySyscall, kind: OpcodeKind.Readonly): void;
+  add<Name extends Op>(name: Name, evaluate: MutSyscall, kind: OpcodeKind.Mut): void;
+  add<Name extends Op>(name: Name, evaluate: PartialSyscall, kind: OpcodeKind.Partial): void;
+  add<Name extends Op>(name: Name, evaluate: MachineOpcode, kind: OpcodeKind.Machine): void;
+  add<Name extends Op>(
+    name: Name,
+    evaluate: ReadonlySyscall | MutSyscall | PartialSyscall | MachineOpcode,
+    kind: OpcodeKind
+  ): void {
+    this.evaluateOpcode[name as number] = { kind, evaluate } as Evaluate;
   }
 
   debugBefore(vm: VM<Opaque>, opcode: Opcode, type: number): DebugState {
@@ -148,7 +167,7 @@ export class AppendOpcodes {
         vm['v0']
       );
       console.log('%c -> eval stack', 'color: red', vm.stack.toArray());
-      console.log('%c -> block stack', 'color: magenta', vm.elements().debugBlocks());
+      console.log('%c -> block stack', 'color: magenta', vm.elements.debugBlocks());
       console.log('%c -> destructor stack', 'color: violet', vm[DESTRUCTOR_STACK].toArray());
       if (vm['scopeStack'].current === null) {
         console.log('%c -> scope', 'color: green', 'null');
@@ -156,13 +175,13 @@ export class AppendOpcodes {
         console.log(
           '%c -> scope',
           'color: green',
-          vm.scope()['slots'].map(s => (s && s['value'] ? s['value']() : s))
+          (vm.scope as ScopeImpl)['slots'].map(s => (s && s['value'] ? s['value']() : s))
         );
       }
       console.log(
         '%c -> elements',
         'color: blue',
-        vm.elements()['cursorStack']['stack'].map((c: any) => c.element)
+        vm.elements['cursorStack']['stack'].map((c: any) => c.element)
       );
       /* tslint:enable */
     }
@@ -171,22 +190,26 @@ export class AppendOpcodes {
   evaluate(vm: VM<Opaque>, opcode: Opcode, type: number) {
     let operation = this.evaluateOpcode[type];
 
-    if (operation.syscall) {
-      assert(
-        !opcode.isMachine,
-        `BUG: Mismatch between operation.syscall (${operation.syscall}) and opcode.isMachine (${
-          opcode.isMachine
-        }) for ${opcode.type}`
-      );
-      operation.evaluate(vm, opcode);
-    } else {
-      assert(
-        opcode.isMachine,
-        `BUG: Mismatch between operation.syscall (${operation.syscall}) and opcode.isMachine (${
-          opcode.isMachine
-        }) for ${opcode.type}`
-      );
-      operation.evaluate(vm[INNER_VM], opcode);
+    switch (operation.kind) {
+      case OpcodeKind.Machine:
+        assert(
+          opcode.isMachine,
+          `BUG: Mismatch between operation.syscall (${operation.kind}) and opcode.isMachine (${
+            opcode.isMachine
+          }) for ${opcode.type}`
+        );
+        operation.evaluate(vm[INNER_VM], opcode);
+        return;
+
+      case OpcodeKind.Mut:
+      case OpcodeKind.Partial:
+        assert(
+          !opcode.isMachine,
+          `BUG: Mismatch between operation.syscall (${operation.kind}) and opcode.isMachine (${
+            opcode.isMachine
+          }) for ${opcode.type}`
+        );
+        operation.evaluate(vm, opcode);
     }
   }
 }
@@ -203,10 +226,10 @@ export abstract class AbstractOpcode {
 }
 
 export abstract class UpdatingOpcode extends AbstractOpcode {
-  public abstract tag: Tag;
+  abstract readonly tag: Tag;
 
-  next: Option<UpdatingOpcode> = null;
-  prev: Option<UpdatingOpcode> = null;
+  readonly next: Option<UpdatingOpcode> = null;
+  readonly prev: Option<UpdatingOpcode> = null;
 
   abstract evaluate(vm: UpdatingVM): void;
 }

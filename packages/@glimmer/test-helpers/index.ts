@@ -4,7 +4,6 @@ export {
   assertNodeProperty,
   TestCompileOptions,
   equalInnerHTML,
-  equalHTML,
   equalTokens,
   generateSnapshot,
   equalSnapshots,
@@ -47,6 +46,7 @@ export {
   NodeEagerRenderDelegate,
 } from './lib/environment/modes/ssr/environment';
 
+export { default as RenderDelegate } from './lib/render-delegate';
 export { default as EagerRenderDelegate } from './lib/environment/modes/eager/render-delegate';
 export { default as LazyRenderDelegate } from './lib/environment/modes/lazy/render-delegate';
 export { debugRehydration } from './lib/environment/modes/rehydration/debug-builder';

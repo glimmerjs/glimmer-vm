@@ -12,38 +12,39 @@ import {
 } from '@glimmer/debug';
 import { Tag, TagWrapper, VersionedPathReference, Reference } from '@glimmer/reference';
 import {
-  Arguments,
-  ICapturedArguments,
+  ReadonlyArguments,
+  ReadonlyCapturedArguments,
   CapturedPositionalArguments,
   CapturedNamedArguments,
+  Arguments,
 } from '../../vm/arguments';
 import { ComponentInstance } from './component';
 import { ComponentManager } from '../../internal-interfaces';
-import { Scope } from '../../environment';
-import { CompilableBlock } from '@glimmer/interfaces';
+import { CompilableBlock, UserValue } from '@glimmer/interfaces';
+import { Scope, ScopeImpl } from '../../scope';
 
 export const CheckTag: Checker<Tag> = CheckInstanceof(TagWrapper);
 
-export const CheckPathReference: Checker<VersionedPathReference> = CheckInterface({
+export const CheckPathReference: Checker<VersionedPathReference<UserValue>> = CheckInterface({
   tag: CheckTag,
   value: CheckFunction,
   get: CheckFunction,
 });
 
-export const CheckReference: Checker<Reference> = CheckInterface({
+export const CheckReference: Checker<Reference<UserValue>> = CheckInterface({
   tag: CheckTag,
   value: CheckFunction,
 });
 
-export const CheckArguments = wrap(() => CheckInstanceof(Arguments));
-export const CheckCapturedArguments: Checker<ICapturedArguments> = CheckInterface({
+export const CheckArguments: Checker<ReadonlyArguments> = wrap(() => CheckInstanceof(Arguments));
+export const CheckCapturedArguments: Checker<ReadonlyCapturedArguments> = CheckInterface({
   tag: CheckTag,
   length: CheckNumber,
   positional: CheckInstanceof(CapturedPositionalArguments),
   named: CheckInstanceof(CapturedNamedArguments),
 });
 
-export const CheckScope = wrap(() => CheckInstanceof(Scope));
+export const CheckScope: Checker<Scope> = wrap(() => CheckInstanceof(ScopeImpl));
 
 export const CheckComponentManager: Checker<ComponentManager> = CheckInterface({
   getCapabilities: CheckFunction,

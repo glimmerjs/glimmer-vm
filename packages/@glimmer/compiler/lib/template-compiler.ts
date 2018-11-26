@@ -27,7 +27,7 @@ export default class TemplateCompiler {
     let opcodes: SymbolInOp[] = compiler.process(templateVisitor.actions);
     let symbols: SymbolOutOp[] = new SymbolAllocator(opcodes).process();
 
-    return JavaScriptCompiler.process(symbols, ast['symbols'], options);
+    return JavaScriptCompiler.process(symbols, (ast as any)['symbols'], options);
   }
 
   private templateId = 0;
@@ -475,7 +475,7 @@ function isDynamicComponent(element: AST.ElementNode): boolean {
 
   let [maybeLocal] = element.tag.split('.');
   let isNamedArgument = open === '@';
-  let isLocal = element['symbols'].has(maybeLocal);
+  let isLocal = (element as any)['symbols'].has(maybeLocal);
   let isThisPath = element.tag.indexOf('this.') === 0;
 
   return isLocal || isNamedArgument || isThisPath;

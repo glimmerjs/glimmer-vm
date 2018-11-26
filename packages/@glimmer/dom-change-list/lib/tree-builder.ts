@@ -1,4 +1,4 @@
-import { Simple, Option, NodeTokens } from '@glimmer/interfaces';
+import { Simple, Option, NodeTokens, Dict } from '@glimmer/interfaces';
 import { HTML } from './dom-operations';
 import { DOMTreeConstruction } from './tree-construction';
 import { NodeToken } from './node-tokens';
@@ -6,7 +6,7 @@ import { NodeToken } from './node-tokens';
 export const SVG_NAMESPACE = 'http://www.w3.org/2000/svg';
 
 // http://www.w3.org/TR/html/syntax.html#html-integration-point
-const SVG_INTEGRATION_POINTS = { foreignObject: 1, desc: 1, title: 1 };
+const SVG_INTEGRATION_POINTS: Dict<1 | undefined> = { foreignObject: 1, desc: 1, title: 1 };
 
 // http://www.w3.org/TR/html/syntax.html#adjust-svg-attributes
 // TODO: Adjust SVG attributes

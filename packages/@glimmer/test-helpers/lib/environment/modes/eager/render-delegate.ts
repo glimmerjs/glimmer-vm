@@ -7,7 +7,7 @@ import {
   RenderResult,
   ComponentManager,
   clientBuilder,
-  ElementBuilder,
+  MutElementBuilder,
   Cursor,
   renderMain,
   renderComponent,
@@ -86,6 +86,8 @@ const COMPONENT_CAPABILITIES: Entries<ComponentCapabilities> = {
 };
 
 export default class EagerRenderDelegate implements RenderDelegate {
+  static isEager = true;
+
   protected env: Environment;
   protected modules = new Modules();
   protected compileTimeModules = new Modules();
@@ -103,7 +105,7 @@ export default class EagerRenderDelegate implements RenderDelegate {
     return helper;
   }
 
-  getElementBuilder(env: Environment, cursor: Cursor): ElementBuilder {
+  getElementBuilder(env: Environment, cursor: Cursor): MutElementBuilder {
     return clientBuilder(env, cursor);
   }
 

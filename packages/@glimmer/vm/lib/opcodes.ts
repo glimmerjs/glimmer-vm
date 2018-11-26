@@ -249,14 +249,13 @@ export const enum Op {
    * Operation: Push a new root scope onto the scope stack.
    *
    * Format:
-   *   (RootScope symbols:u32 bindCallerScope:bool)
+   *   (RootScope symbols:u32)
    * Operand Stack:
    *   ... →
    *   ...
    * Description:
    *   A root scope has no parent scope, and therefore inherits no lexical
-   *   variables. If `bindCallerScope` is `true`, the current scope remembers
-   *   the caller scope (for yielding blocks).
+   *   variables.
    */
   RootScope,
 

@@ -1,6 +1,6 @@
 import { Helper, DynamicScope } from '../environment';
 import { PublicVM } from '../vm/append';
-import { IArguments } from '../vm/arguments';
+import { ReadonlyArguments } from '../vm/arguments';
 import {
   CONSTANT_TAG,
   Tag,
@@ -38,7 +38,7 @@ class DynamicVarReference implements PathReference<Opaque> {
   }
 }
 
-function getDynamicVar(vm: PublicVM, args: IArguments): PathReference<Opaque> {
+function getDynamicVar(vm: PublicVM, args: ReadonlyArguments): PathReference<Opaque> {
   let scope = vm.dynamicScope();
   let nameRef = args.positional.at(0);
 

@@ -305,8 +305,8 @@ OPCODE_METADATA(Op.ToBoolean, {
 
 OPCODE_METADATA(Op.RootScope, {
   name: 'RootScope',
-  ops: [I32('symbols'), Bool('bindCallerScope')],
-  operands: 2,
+  ops: [I32('symbols')],
+  operands: 1,
 });
 
 OPCODE_METADATA(Op.VirtualRootScope, {

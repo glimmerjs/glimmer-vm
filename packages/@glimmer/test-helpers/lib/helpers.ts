@@ -81,23 +81,6 @@ export function equalInnerHTML(fragment: { innerHTML: string }, html: string, me
   });
 }
 
-export function equalHTML(node: Node | Node[], html: string) {
-  let fragment: DocumentFragment | Node;
-  if (!node['nodeType'] && node['length']) {
-    fragment = document.createDocumentFragment();
-    while (node[0]) {
-      fragment.appendChild(node[0]);
-    }
-  } else {
-    fragment = node as Node;
-  }
-
-  let div = document.createElement('div');
-  div.appendChild(fragment.cloneNode(true));
-
-  equalInnerHTML(div, html);
-}
-
 function generateTokens(divOrHTML: Element | string): { tokens: Token[]; html: string } {
   let div;
   if (typeof divOrHTML === 'string') {
@@ -241,16 +224,17 @@ if (typeof document === 'undefined') {
 export { isCheckedInputHTML };
 
 // check which property has the node's text content
-let textProperty =
+let textProperty: 'innerText' | 'textContent' =
   typeof document === 'object' && document.createElement('div').textContent === undefined
     ? 'innerText'
     : 'textContent';
-export function getTextContent(el: Node) {
+
+export function getTextContent(el: Node): Option<string> {
   // textNode
   if (el.nodeType === 3) {
     return el.nodeValue;
   } else {
-    return el[textProperty];
+    return (el as { innerText?: string; textContent?: string })[textProperty] || null;
   }
 }
 

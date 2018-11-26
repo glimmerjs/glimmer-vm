@@ -165,7 +165,7 @@ export class Mixin {
     Target[CLASS_META].addStaticMixin(this);
   }
 
-  mergeProperties(target: Object, parent: Object, meta: ClassMeta) {
+  mergeProperties(target: Object, parent: Dict<object>, meta: ClassMeta) {
     if (meta.hasAppliedMixin(this)) return;
     meta.addAppliedMixin(this);
 
@@ -331,7 +331,11 @@ class MethodBlueprint extends DataBlueprint {
   }
 }
 
-export function wrapMethod(home: Object, methodName: string, original: (...args: any[]) => any) {
+export function wrapMethod(
+  home: Dict<unknown>,
+  methodName: string,
+  original: (...args: any[]) => any
+) {
   if (!((methodName as string) in home)) return maybeWrap(original);
 
   let superMethod = home[methodName];
@@ -340,7 +344,7 @@ export function wrapMethod(home: Object, methodName: string, original: (...args:
     if (!this) return original.apply(this, args);
 
     let lastSuper = this._super;
-    this._super = superMethod;
+    this._super = superMethod as any;
 
     try {
       return original.apply(this, args);

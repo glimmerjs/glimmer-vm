@@ -25,7 +25,7 @@ export default class Walker {
     this.stack.pop();
   }
 
-  children(node: any, callback: any) {
+  children(node: AST.Node, callback: any) {
     let visitor = visitors[node.type];
     if (visitor) {
       visitor(this, node, callback);
@@ -33,7 +33,7 @@ export default class Walker {
   }
 }
 
-let visitors = {
+const visitors = {
   Program(walker: Walker, node: AST.Program, callback: NodeCallback<AST.Node>) {
     for (let i = 0; i < node.body.length; i++) {
       walker.visit(node.body[i], callback);

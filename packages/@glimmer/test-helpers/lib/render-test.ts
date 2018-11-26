@@ -12,7 +12,7 @@ import {
   TemplateIterator,
   Environment,
   Cursor,
-  ElementBuilder,
+  MutElementBuilder,
 } from '@glimmer/runtime';
 import { Opaque, Dict, dict, expect } from '@glimmer/util';
 import { NodeDOMTreeConstruction, serializeBuilder } from '@glimmer/node';
@@ -50,6 +50,8 @@ export function skip(_target: Object, _name: string, descriptor: PropertyDescrip
 const COMMENT_NODE = 8; //  Node.COMMENT_NODE
 
 export class VersionedObject implements Tagged {
+  [key: string]: unknown;
+
   public tag: TagWrapper<DirtyableTag>;
   public value!: Object;
 
@@ -81,20 +83,20 @@ export interface ComponentBlueprint {
   else?: string;
   template?: string;
   name?: string;
-  args?: Object;
-  attributes?: Object;
-  layoutAttributes?: Object;
+  args?: Dict<string | number | null>;
+  attributes?: Dict<string>;
+  layoutAttributes?: Dict<string>;
   blockParams?: string[];
 }
 
-export class SimpleRootReference implements PathReference<Opaque> {
+export class SimpleRootReference implements PathReference {
   public tag: TagWrapper<RevisionTag>;
 
   constructor(private object: VersionedObject) {
     this.tag = object.tag;
   }
 
-  get(key: string): PathReference<Opaque> {
+  get(key: string): PathReference {
     return new SimplePathReference(this, key);
   }
 
@@ -103,10 +105,10 @@ export class SimpleRootReference implements PathReference<Opaque> {
   }
 }
 
-class SimplePathReference implements PathReference<Opaque> {
+class SimplePathReference implements PathReference {
   public tag: Tag;
 
-  constructor(private parent: PathReference<Opaque>, private key: string) {
+  constructor(private parent: PathReference, private key: string) {
     this.tag = parent.tag;
   }
 
@@ -114,8 +116,8 @@ class SimplePathReference implements PathReference<Opaque> {
     return new SimplePathReference(this, key);
   }
 
-  value(): Opaque {
-    let parentValue = this.parent.value();
+  value(): unknown {
+    let parentValue = this.parent.value() as Dict<unknown>;
     return parentValue && parentValue[this.key];
   }
 }
@@ -137,17 +139,28 @@ export class Count {
   }
 }
 
-export class RenderTest {
+export const TEST_TYPE = Symbol('TEST_TYPE');
+
+interface IRenderTest {
+  readonly count: Count;
+  readonly type: TestKind;
+  [TEST_TYPE]: ComponentKind;
+}
+
+export class RenderTest<D extends RenderDelegate = RenderDelegate> implements IRenderTest {
+  type!: TestKind;
+  [TEST_TYPE]!: ComponentKind;
+
   protected element: HTMLElement;
   protected assert = QUnit.assert;
-  protected context: Dict<Opaque> = dict<Opaque>();
+  protected context: Dict<unknown> = dict<unknown>();
   protected renderResult: Option<RenderResult> = null;
   protected helpers = dict<UserHelper>();
-  protected testType!: ComponentKind;
+  [TEST_TYPE]!: ComponentKind;
   protected snapshot: NodesSnapshot = [];
   readonly count = new Count();
 
-  constructor(protected delegate: RenderDelegate) {
+  constructor(protected delegate: D) {
     this.element = delegate.getInitialElement();
   }
 
@@ -165,12 +178,12 @@ export class RenderTest {
     layout: string,
     Class?: ComponentTypes[K]
   ) {
-    this.delegate.registerComponent(type, this.testType, name, layout, Class);
+    this.delegate.registerComponent(type, this[TEST_TYPE], name, layout, Class);
   }
 
   buildComponent(blueprint: ComponentBlueprint): string {
     let invocation = '';
-    switch (this.testType) {
+    switch (this[TEST_TYPE]) {
       case 'Glimmer':
         invocation = this.buildGlimmerComponent(blueprint);
         break;
@@ -188,14 +201,14 @@ export class RenderTest {
         break;
 
       default:
-        throw new Error(`Invalid test type ${this.testType}`);
+        throw new Error(`Invalid test type ${this[TEST_TYPE]}`);
     }
 
     return invocation;
   }
 
-  private buildArgs(args: Object): string {
-    let { testType } = this;
+  private buildArgs(args: Dict<string | number | null>): string {
+    let { [TEST_TYPE]: testType } = this;
     let sigil = '';
     let needsCurlies = false;
 
@@ -210,7 +223,7 @@ export class RenderTest {
 
         let value = args[arg];
         if (needsCurlies) {
-          let isString = value && (value[0] === "'" || value[0] === '"');
+          let isString = typeof value === 'string' && (value[0] === "'" || value[0] === '"');
           if (isString) {
             rightSide = `${value}`;
           } else {
@@ -233,7 +246,7 @@ export class RenderTest {
     return `${elseBlock ? `{{else}}${elseBlock}` : ''}`;
   }
 
-  private buildAttributes(attrs: Object = {}): string {
+  private buildAttributes(attrs: Dict<string> = {}): string {
     return Object.keys(attrs)
       .map(attr => `${attr}=${attrs[attr]}`)
       .join(' ');
@@ -241,8 +254,8 @@ export class RenderTest {
 
   private buildAngleBracketComponent(blueprint: ComponentBlueprint): string {
     let {
-      args = {},
-      attributes = {},
+      args = dict<string>(),
+      attributes = dict<string>(),
       template,
       name = GLIMMER_TEST_COMPONENT,
       blockParams = [],
@@ -294,7 +307,7 @@ export class RenderTest {
     );
     this.delegate.registerComponent(
       'Glimmer',
-      this.testType,
+      this[TEST_TYPE],
       name,
       `<${tag} ${layoutAttrs} ...attributes>${layout}</${tag}>`
     );
@@ -353,7 +366,7 @@ export class RenderTest {
       invocation.push('}}');
     }
     this.assert.ok(true, `generated curly layout as ${layout}`);
-    this.delegate.registerComponent('Curly', this.testType, name, layout);
+    this.delegate.registerComponent('Curly', this[TEST_TYPE], name, layout);
     invocation = invocation.join('');
     this.assert.ok(true, `generated curly invocation as ${invocation}`);
     return invocation;
@@ -363,7 +376,7 @@ export class RenderTest {
     let { layout, name = GLIMMER_TEST_COMPONENT } = blueprint;
     let invocation = this.buildAngleBracketComponent(blueprint);
     this.assert.ok(true, `generated fragment layout as ${layout}`);
-    this.delegate.registerComponent('Basic', this.testType, name, `${layout}`);
+    this.delegate.registerComponent('Basic', this[TEST_TYPE], name, `${layout}`);
     this.assert.ok(true, `generated fragment invocation as ${invocation}`);
     return invocation;
   }
@@ -374,7 +387,7 @@ export class RenderTest {
     this.assert.ok(true, `generated basic layout as ${layout}`);
     this.delegate.registerComponent(
       'Basic',
-      this.testType,
+      this[TEST_TYPE],
       name,
       `<${tag} ...attributes>${layout}</${tag}>`
     );
@@ -418,7 +431,7 @@ export class RenderTest {
     }
 
     this.assert.ok(true, `generated dynamic layout as ${layout}`);
-    this.delegate.registerComponent('Curly', this.testType, name, layout);
+    this.delegate.registerComponent('Curly', this[TEST_TYPE], name, layout);
     invocation = invocation.join('');
     this.assert.ok(true, `generated dynamic invocation as ${invocation}`);
 
@@ -443,13 +456,13 @@ export class RenderTest {
     });
   }
 
-  render(template: string | ComponentBlueprint, properties: Dict<Opaque> = {}): void {
+  render(template: string | ComponentBlueprint, properties: Dict<unknown> = {}): void {
     QUnit.assert.ok(true, `Rendering ${template} with ${JSON.stringify(properties)}`);
     if (typeof template === 'object') {
       let blueprint = template as ComponentBlueprint;
       template = this.buildComponent(blueprint);
 
-      if (this.testType === 'Dynamic' && properties['componentName'] === undefined) {
+      if (this[TEST_TYPE] === 'Dynamic' && properties['componentName'] === undefined) {
         properties['componentName'] = blueprint.name || GLIMMER_TEST_COMPONENT;
       }
     }
@@ -472,11 +485,11 @@ export class RenderTest {
     result.env.commit();
   }
 
-  protected set(key: string, value: Opaque): void {
+  protected set(key: string, value: unknown): void {
     this.context[key] = value;
   }
 
-  protected setProperties(properties: Dict<Opaque>): void {
+  protected setProperties(properties: Dict<unknown>): void {
     Object.assign(this.context, properties);
     bump();
   }
@@ -529,7 +542,7 @@ export class RenderTest {
   protected assertComponent(content: string, attrs: Object = {}) {
     let element = this.element.firstChild as HTMLDivElement;
 
-    switch (this.testType) {
+    switch (this[TEST_TYPE]) {
       case 'Glimmer':
         assertElement(element, 'div', attrs, content);
         break;
@@ -623,7 +636,7 @@ export class RehydrationDelegate implements RenderDelegate {
     return this.clientEnv.getAppendOperations().createElement('div') as HTMLElement;
   }
 
-  getElementBuilder(env: Environment, cursor: Cursor): ElementBuilder {
+  getElementBuilder(env: Environment, cursor: Cursor): MutElementBuilder {
     if (cursor.element instanceof Node) {
       return debugRehydration(env, cursor);
     }
@@ -697,6 +710,8 @@ export class RehydrationDelegate implements RenderDelegate {
     this.clientEnv.registerModifier(name, ModifierClass);
     this.serverEnv.registerModifier(name, ModifierClass);
   }
+
+  resetEnv() {}
 }
 
 function normalize(oldSnapshot: NodesSnapshot, newSnapshot: NodesSnapshot, except: Array<Node>) {
@@ -778,13 +793,15 @@ function isServerMarker(node: Node) {
   return node.nodeType === COMMENT_NODE && node.nodeValue!.charAt(0) === '%';
 }
 
+export type TestKind = 'glimmer' | 'curly' | 'dynamic' | 'basic' | 'fragment';
+
 export interface ComponentTestMeta {
-  kind?: 'glimmer' | 'curly' | 'dynamic' | 'basic' | 'fragment';
-  skip?: boolean | 'glimmer' | 'curly' | 'dynamic' | 'basic' | 'fragment';
+  kind?: TestKind;
+  skip?: boolean | TestKind;
 }
 
 function setTestingDescriptor(descriptor: PropertyDescriptor): void {
-  let testFunction = descriptor.value as Function;
+  let testFunction = descriptor.value as { isTest?: true };
   descriptor.enumerable = true;
   testFunction['isTest'] = true;
 }
@@ -799,8 +816,10 @@ export function test(...args: any[]) {
   if (args.length === 1) {
     let meta: ComponentTestMeta = args[0];
     return (_target: Object, _name: string, descriptor: PropertyDescriptor) => {
-      let testFunction = descriptor.value as Function;
-      Object.keys(meta).forEach(key => (testFunction[key] = meta[key]));
+      let testFunction = descriptor.value as Dict<unknown>;
+      (Object.keys(meta) as Array<keyof ComponentTestMeta>).forEach(
+        key => (testFunction[key] = meta[key])
+      );
       setTestingDescriptor(descriptor);
     };
   }
@@ -814,15 +833,13 @@ export interface RenderDelegateConstructor<
   Delegate extends RenderDelegate,
   TEnvironment extends Environment
 > {
+  isEager: boolean;
   new (env?: TEnvironment): Delegate;
-}
-
-interface IRenderTest {
-  readonly count: Count;
 }
 
 export interface RenderTestConstructor<D extends RenderDelegate, T extends IRenderTest> {
   new (delegate: D): T;
+  prototype: T;
 }
 
 export function module<T extends IRenderTest>(
@@ -841,7 +858,7 @@ export function rawModule<D extends RenderDelegate, T extends IRenderTest, E ext
 ): void {
   if (options.componentModule) {
     if (shouldRunTest<D, E>(Delegate)) {
-      componentModule(name, (klass as any) as RenderTestConstructor<D, RenderTest>, Delegate);
+      componentModule(name, (klass as any) as RenderTestConstructor<D, RenderTest<D>>, Delegate);
     }
   } else {
     QUnit.module(`[NEW] ${name}`);
@@ -891,7 +908,7 @@ function componentModule<D extends RenderDelegate, T extends IRenderTest, E exte
       if (!shouldSkip) {
         QUnit.test(`${type.toLowerCase()}: ${prop}`, assert => {
           let instance = new klass(new Delegate());
-          instance['testType'] = type;
+          instance[TEST_TYPE] = type;
           test.call(instance, assert, instance.count);
         });
       }
@@ -928,7 +945,7 @@ function componentModule<D extends RenderDelegate, T extends IRenderTest, E exte
             } else if (test['kind'] === 'fragment') {
               tests.fragment.push(createTest(prop, test, true));
             } else {
-              ['glimmer', 'curly', 'dynamic'].forEach(kind => {
+              ['glimmer' as 'glimmer', 'curly' as 'curly', 'dynamic' as 'dynamic'].forEach(kind => {
                 tests[kind].push(createTest(prop, test, true));
               });
             }
@@ -974,7 +991,7 @@ function nestedComponentModules<D extends RenderDelegate, T extends IRenderTest>
   klass: RenderTestConstructor<D, T>,
   tests: ComponentTests
 ): void {
-  Object.keys(tests).forEach(type => {
+  (Object.keys(tests) as Array<keyof ComponentTests>).forEach(type => {
     let formattedType = `${type[0].toUpperCase() + type.slice(1)}`;
     QUnit.module(`${formattedType}`, () => {
       for (let i = tests[type].length - 1; i >= 0; i--) {
@@ -986,9 +1003,9 @@ function nestedComponentModules<D extends RenderDelegate, T extends IRenderTest>
   });
 }
 
-function isTestFunction(
-  value: any
-): value is (this: RenderTest, assert: typeof QUnit.assert) => void {
+export type TestFunction = (this: RenderTest<RenderDelegate>, assert: typeof QUnit.assert) => void;
+
+function isTestFunction(value: any): value is TestFunction & Dict<unknown> {
   return typeof value === 'function' && value.isTest;
 }
 
@@ -996,7 +1013,7 @@ export function renderTemplate(
   src: string,
   env: LazyTestEnvironment,
   self: PathReference<Opaque>,
-  builder: ElementBuilder
+  builder: MutElementBuilder
 ) {
   let template = env.preprocess(src);
   let iterator = env.renderMain(template, self, builder);

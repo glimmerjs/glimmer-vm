@@ -2,8 +2,9 @@ import { test, RenderTest } from '../render-test';
 import { strip, assertNodeTagName } from '../helpers';
 import { SVG_NAMESPACE } from '@glimmer/runtime';
 import { Opaque } from '@glimmer/interfaces';
+import RenderDelegate from '../render-delegate';
 
-export class InitialRenderSuite extends RenderTest {
+export class InitialRenderSuite<D extends RenderDelegate> extends RenderTest<D> {
   name = 'BASE';
   @test
   'HTML text content'() {

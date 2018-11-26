@@ -4,7 +4,7 @@ import {
   RenderResult,
   DynamicAttribute,
   SimpleDynamicAttribute,
-  ElementBuilder,
+  MutElementBuilder,
   clientBuilder,
 } from '@glimmer/runtime';
 import { UpdatableReference } from '@glimmer/object-reference';
@@ -107,7 +107,7 @@ module(
 let warnings = 0;
 
 class StyleAttribute extends SimpleDynamicAttribute {
-  set(dom: ElementBuilder, value: Opaque, env: TestEnvironment): void {
+  set(dom: MutElementBuilder, value: Opaque, env: TestEnvironment): void {
     warnings++;
     super.set(dom, value, env);
   }

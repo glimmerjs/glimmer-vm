@@ -2,7 +2,7 @@ import { Reference, PathReference, Tag } from '@glimmer/reference';
 import { Option, Opaque } from '@glimmer/util';
 import { RuntimeResolver } from '@glimmer/interfaces';
 
-import { ICapturedArguments } from '../vm/arguments';
+import { ReadonlyCapturedArguments } from '../vm/arguments';
 import { ComponentDefinition } from '../component/interfaces';
 import {
   CurriedComponentDefinition,
@@ -14,14 +14,14 @@ import { UNDEFINED_REFERENCE } from '../references';
 export default class CurryComponentReference<Locator>
   implements PathReference<Option<CurriedComponentDefinition>> {
   public tag: Tag;
-  private lastValue: Opaque;
+  private lastValue: unknown;
   private lastDefinition: Option<CurriedComponentDefinition>;
 
   constructor(
-    private inner: Reference<Opaque>,
+    private inner: Reference<unknown>,
     private resolver: RuntimeResolver<Locator>,
     private meta: Locator,
-    private args: Option<ICapturedArguments>
+    private args: Option<ReadonlyCapturedArguments>
   ) {
     this.tag = inner.tag;
     this.lastValue = null;

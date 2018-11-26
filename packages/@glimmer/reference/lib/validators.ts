@@ -1,5 +1,5 @@
 import Reference, { PathReference } from './reference';
-import { Opaque, Option, Slice, LinkedListNode } from '@glimmer/util';
+import { Option, Slice, LinkedListNode } from '@glimmer/util';
 
 //////////
 
@@ -274,10 +274,10 @@ register(UpdatableTag);
 
 //////////
 
-export interface VersionedReference<T = Opaque> extends Reference<T>, Tagged {}
+export interface VersionedReference<T = unknown> extends Reference<T>, Tagged {}
 
-export interface VersionedPathReference<T = Opaque> extends PathReference<T>, Tagged {
-  get(property: string): VersionedPathReference<Opaque>;
+export interface VersionedPathReference<T = unknown> extends PathReference<T>, Tagged {
+  get(property: string): VersionedPathReference<unknown>;
 }
 
 export abstract class CachedReference<T> implements VersionedReference<T> {

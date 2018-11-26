@@ -1,4 +1,4 @@
-import { RenderTest, test } from '../render-test';
+import { RenderTest, test, TEST_TYPE } from '../render-test';
 import { stripTight } from '../helpers';
 import { equalsElement } from '../environment';
 import { setProperty as set } from '@glimmer/object-reference';
@@ -298,7 +298,7 @@ export class InElementSuite extends RenderTest {
 
   @test
   'Inside a loop'() {
-    this.testType = 'Dynamic';
+    this[TEST_TYPE] = 'Dynamic';
     this.registerComponent('Basic', 'FooBar', '<p>{{@value}}</p>');
 
     let roots = [
@@ -350,7 +350,7 @@ export class InElementSuite extends RenderTest {
     equalsElement(roots[2].element, 'div', {}, '<p>baz</p>');
     this.assertHTML('<!----><!----><!--->');
     this.assertStableRerender();
-    this.testType = 'Basic';
+    this[TEST_TYPE] = 'Basic';
   }
 
   @test

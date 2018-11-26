@@ -1,6 +1,12 @@
 import { Register } from '@glimmer/vm';
-import { Scope, DynamicScope, Environment } from '../environment';
-import { ElementBuilder, LiveBlock } from './element-builder';
+import {
+  DynamicScope,
+  Environment,
+  ReadonlyDynamicScope,
+  MutDynamicScope,
+  ReadonlyEnvironment,
+} from '../environment';
+import { MutElementBuilder, LiveBlock, ReadonlyElementBuilder } from './element-builder';
 import {
   Option,
   Stack,
@@ -26,8 +32,8 @@ import { LabelOpcode, JumpIfNotModifiedOpcode, DidModifyOpcode } from '../compil
 import LowLevelVM, { Program } from './low-level';
 import { VMState, ListBlockOpcode, TryOpcode, BlockOpcode, Runtime } from './update';
 import RenderResult from './render-result';
-import EvaluationStack from './stack';
-import { Arguments } from './arguments';
+import EvaluationStack, { ReadonlyEvaluationStack, MutEvaluationStack } from './stack';
+import { ReadonlyArguments, MutArguments, Arguments } from './arguments';
 
 import { APPEND_OPCODES, UpdatingOpcode, DebugState } from '../opcodes';
 
@@ -36,6 +42,7 @@ import { UNDEFINED_REFERENCE } from '../references';
 import { Heap, Opcode } from '@glimmer/program';
 import { DEBUG } from '@glimmer/local-debug-flags';
 import { HEAP, INNER_VM, DESTRUCTOR_STACK, CONSTANTS, ARGS } from '../symbols';
+import { Scope, ScopeImpl, MutScope, OwnedScope } from '../scope';
 
 /**
  * This is used in the Glimmer Embedding API. In particular, embeddings
@@ -45,10 +52,46 @@ import { HEAP, INNER_VM, DESTRUCTOR_STACK, CONSTANTS, ARGS } from '../symbols';
  */
 export interface PublicVM {
   env: Environment;
-  dynamicScope(): DynamicScope;
+  dynamicScope(): ReadonlyDynamicScope;
   getSelf(): PathReference<Opaque>;
   associateDestroyable(child: SymbolDestroyable | Destroyable): void;
 }
+
+export interface ReadonlyVM {
+  readonly env: ReadonlyEnvironment;
+  readonly [CONSTANTS]: RuntimeConstants<unknown>;
+  readonly [ARGS]: ReadonlyArguments;
+
+  readonly stack: ReadonlyEvaluationStack;
+  readonly scope: Scope;
+  readonly elements: ReadonlyElementBuilder;
+
+  dynamicScope(): ReadonlyDynamicScope;
+  fetchValue<T>(register: Register): T;
+}
+
+export interface MutVM extends ReadonlyVM {
+  readonly [ARGS]: MutArguments;
+  readonly [INNER_VM]: LowLevelVM;
+
+  readonly stack: MutEvaluationStack;
+  readonly elementsMut: MutElementBuilder;
+  readonly scopeMut: MutScope;
+
+  goto(offset: number): void;
+
+  loadValue(register: Register, value: unknown): void;
+  updateWith(opcode: UpdatingOpcode): void;
+  associateDestroyable(child: SymbolDestroyable | Destroyable): void;
+
+  beginCacheGroup(): void;
+  commitCacheGroup(): void;
+
+  enterList(offset: number): void;
+  exitList(): void;
+}
+
+export interface PartialVM extends MutVM {}
 
 /**
  * This is needed because the normal IteratorResult in the TypeScript
@@ -72,15 +115,18 @@ export interface RuntimeProgram<Locator> extends Program {
 
 class Stacks {
   readonly scope = new Stack<Scope>();
-  readonly dynamicScope = new Stack<DynamicScope>();
+  readonly dynamicScope = new Stack<ReadonlyDynamicScope>();
   readonly updating = new Stack<LinkedList<UpdatingOpcode>>();
   readonly cache = new Stack<Option<UpdatingOpcode>>();
   readonly list = new Stack<ListBlockOpcode>();
+
+  constructor(readonly element: MutElementBuilder) {}
 }
 
-export default class VM<T> implements PublicVM {
-  private stacks = new Stacks();
+export default class VM<T> implements PublicVM, ReadonlyVM, MutVM {
   private readonly destructor: object;
+  private readonly stacks: Stacks;
+
   readonly [CONSTANTS]: RuntimeConstants<T>;
   readonly [ARGS]: Arguments;
   readonly [HEAP]: Heap;
@@ -92,7 +138,7 @@ export default class VM<T> implements PublicVM {
   }
 
   currentBlock(): LiveBlock {
-    return this.elements().block();
+    return this.elements.block();
   }
 
   /* Registers */
@@ -182,11 +228,11 @@ export default class VM<T> implements PublicVM {
     env: Environment,
     self: PathReference<Opaque>,
     dynamicScope: DynamicScope,
-    elementStack: ElementBuilder,
+    elementStack: MutElementBuilder,
     handle: number
   ) {
     let scopeSize = program.heap.scopesizeof(handle);
-    let scope = Scope.root(self, scopeSize);
+    let scope = ScopeImpl.root(self, scopeSize);
     let vm = new VM(
       { program, env },
       { pc: program.heap.getaddr(handle), scope, dynamicScope, stack: [] },
@@ -199,7 +245,7 @@ export default class VM<T> implements PublicVM {
   static empty<T>(
     program: RuntimeProgram<T>,
     env: Environment,
-    elementStack: ElementBuilder,
+    elementStack: MutElementBuilder,
     handle: number
   ) {
     let dynamicScope: DynamicScope = {
@@ -218,7 +264,7 @@ export default class VM<T> implements PublicVM {
       { program, env },
       {
         pc: program.heap.getaddr(handle),
-        scope: Scope.root(UNDEFINED_REFERENCE, 0),
+        scope: ScopeImpl.root(UNDEFINED_REFERENCE, 0),
         dynamicScope,
         stack: [],
       },
@@ -228,25 +274,25 @@ export default class VM<T> implements PublicVM {
     return vm;
   }
 
-  static resume(state: VMState, runtime: Runtime, builder: ElementBuilder) {
+  static resume(state: VMState, runtime: Runtime, builder: MutElementBuilder) {
     return new VM(runtime, state, builder);
   }
 
   constructor(
     private readonly runtime: Runtime,
     { pc, scope, dynamicScope, stack }: VMState,
-    private readonly elementStack: ElementBuilder
+    private readonly elementStack: MutElementBuilder
   ) {
-    let evalStack = EvaluationStack.restore(stack);
+    this.stacks = new Stacks(elementStack);
 
     this[HEAP] = this.program.heap;
     this[CONSTANTS] = this.program.constants;
     this.elementStack = elementStack;
-    this.stacks.scope.push(scope);
+    this.pushScope(scope);
     this.stacks.dynamicScope.push(dynamicScope);
     this[ARGS] = new Arguments();
     this[INNER_VM] = new LowLevelVM(
-      evalStack,
+      EvaluationStack.restore(stack),
       this[HEAP],
       runtime.program,
       {
@@ -277,23 +323,16 @@ export default class VM<T> implements PublicVM {
     return {
       pc,
       dynamicScope: this.dynamicScope(),
-      scope: this.scope(),
+      scope: this.scope,
       stack: this.stack.capture(args),
     };
   }
 
-  beginCacheGroup() {
+  beginCacheGroup(): void {
     this.stacks.cache.push(this.updating().tail());
   }
 
-  commitCacheGroup() {
-    //        JumpIfNotModified(END)
-    //        (head)
-    //        (....)
-    //        (tail)
-    //        DidModify
-    // END:   Noop
-
+  commitCacheGroup(): void {
     let END = new LabelOpcode('END');
 
     let opcodes = this.updating();
@@ -313,7 +352,7 @@ export default class VM<T> implements PublicVM {
     let updating = new LinkedList<UpdatingOpcode>();
 
     let state = this.capture(args);
-    let block = this.elements().pushUpdatableBlock();
+    let block = this.elementsMut.pushUpdatableBlock();
 
     let tryOpcode = new TryOpcode(state, this.runtime, block, updating);
 
@@ -326,7 +365,7 @@ export default class VM<T> implements PublicVM {
     stack.push(memo);
 
     let state = this.capture(2);
-    let block = this.elements().pushUpdatableBlock();
+    let block = this.elementsMut.pushUpdatableBlock();
 
     // let ip = this.ip;
     // this.ip = end + 4;
@@ -345,7 +384,7 @@ export default class VM<T> implements PublicVM {
 
     let addr = this[INNER_VM].target(offset);
     let state = this.capture(0, addr);
-    let list = this.elements().pushBlockList(updating);
+    let list = this.elementsMut.pushBlockList(updating);
     let artifacts = this.stack.peek<ReferenceIterator>().artifacts;
 
     let opcode = new ListBlockOpcode(state, this.runtime, list, updating, artifacts);
@@ -364,7 +403,7 @@ export default class VM<T> implements PublicVM {
 
   exit() {
     this[DESTRUCTOR_STACK].pop();
-    this.elements().popBlock();
+    this.elementsMut.popBlock();
     this.popUpdating();
 
     let parent = this.updating().tail() as BlockOpcode;
@@ -385,7 +424,7 @@ export default class VM<T> implements PublicVM {
     return expect(this.stacks.updating.pop(), "can't pop an empty stack");
   }
 
-  updateWith(opcode: UpdatingOpcode) {
+  updateWith(opcode: UpdatingOpcode): void {
     this.updating().append(opcode);
   }
 
@@ -414,44 +453,58 @@ export default class VM<T> implements PublicVM {
     );
   }
 
-  elements(): ElementBuilder {
+  get elements(): ReadonlyElementBuilder {
     return this.elementStack;
   }
 
-  scope(): Scope {
+  get elementsMut(): MutElementBuilder {
+    return this.elementStack;
+  }
+
+  get scope(): Scope {
     return expect(this.stacks.scope.current, 'expected scope on the scope stack');
   }
 
-  dynamicScope(): DynamicScope {
+  get scopeMut(): MutScope {
+    return (expect(
+      this.stacks.scope.current,
+      'expected scope on the scope stack'
+    ) as any) as MutScope;
+  }
+
+  pushChildScope(): void {
+    this.pushScope(this.scope.child());
+  }
+
+  pushRootScope(size: number): OwnedScope {
+    let scope = ScopeImpl.sized(size);
+    this.pushScope(scope);
+    return scope;
+  }
+
+  pushScope(scope: Scope): void {
+    this.stacks.scope.push(scope);
+  }
+
+  popScope(): void {
+    this.stacks.scope.pop();
+  }
+
+  dynamicScope(): ReadonlyDynamicScope {
     return expect(
       this.stacks.dynamicScope.current,
       'expected dynamic scope on the dynamic scope stack'
     );
   }
 
-  pushChildScope() {
-    this.stacks.scope.push(this.scope().child());
+  dynamicScopeMut(): MutDynamicScope {
+    return (this.dynamicScope() as any) as MutDynamicScope;
   }
 
   pushDynamicScope(): DynamicScope {
     let child = this.dynamicScope().child();
     this.stacks.dynamicScope.push(child);
     return child;
-  }
-
-  pushRootScope(size: number, bindCaller: boolean): Scope {
-    let scope = Scope.sized(size);
-    if (bindCaller) scope.bindCallerScope(this.scope());
-    this.stacks.scope.push(scope);
-    return scope;
-  }
-
-  pushScope(scope: Scope) {
-    this.stacks.scope.push(scope);
-  }
-
-  popScope() {
-    this.stacks.scope.pop();
   }
 
   popDynamicScope() {
@@ -461,11 +514,11 @@ export default class VM<T> implements PublicVM {
   /// SCOPE HELPERS
 
   getSelf(): PathReference<any> {
-    return this.scope().getSelf();
+    return this.scope.getSelf();
   }
 
   referenceForSymbol(symbol: number): PathReference<any> {
-    return this.scope().getSymbol(symbol);
+    return this.scope.getSymbol(symbol);
   }
 
   /// EXECUTION
@@ -507,7 +560,7 @@ export default class VM<T> implements PublicVM {
   }
 
   bindDynamicScope(names: number[]) {
-    let scope = this.dynamicScope();
+    let scope = this.dynamicScopeMut();
 
     for (let i = names.length - 1; i >= 0; i--) {
       let name = this[CONSTANTS].getString(names[i]);

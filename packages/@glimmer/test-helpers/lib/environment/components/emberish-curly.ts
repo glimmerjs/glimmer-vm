@@ -29,6 +29,8 @@ import EagerRuntimeResolver from '../modes/eager/runtime-resolver';
 import { TestComponentDefinitionState, Locator } from '../components';
 
 export class EmberishCurlyComponent extends GlimmerObject {
+  [key: string]: unknown;
+
   public static positionalParams: string[] | string = [];
 
   public dirtinessTag: TagWrapper<DirtyableTag> = DirtyableTag.create();
@@ -66,6 +68,7 @@ export const BaseEmberishCurlyComponent = EmberishCurlyComponent.extend() as typ
 export interface EmberishCurlyComponentFactory {
   positionalParams: Option<string | string[]>;
   create(options: { attrs: Attrs; targetObject: any }): EmberishCurlyComponent;
+  fromDynamicScope?: string[];
 }
 
 export const CURLY_CAPABILITIES: ComponentCapabilities = {
@@ -208,9 +211,7 @@ export class EmberishCurlyComponentManager
       component.layout = { name: component.name, handle: state.layout };
     }
 
-    let dyn: Option<string[]> = state.ComponentClass
-      ? state.ComponentClass['fromDynamicScope']
-      : null;
+    let dyn = state.ComponentClass ? state.ComponentClass['fromDynamicScope'] || null : null;
 
     if (dyn) {
       for (let i = 0; i < dyn.length; i++) {

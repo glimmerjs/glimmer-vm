@@ -9,7 +9,7 @@ import {
 } from '@glimmer/debug';
 import { Opaque } from '@glimmer/util';
 
-import { APPEND_OPCODES } from '../../opcodes';
+import { APPEND_OPCODES, OpcodeKind } from '../../opcodes';
 import { ConditionalReference } from '../../references';
 import {
   isCurriedComponentDefinition,
@@ -18,9 +18,10 @@ import {
 import { CheckPathReference } from './-debug-strip';
 import { isEmpty, isSafeString, isFragment, isNode, shouldCoerce } from '../../dom/normalize';
 import DynamicTextContent from '../../vm/content/text';
+import { UserValue } from '@glimmer/interfaces';
 
 export class IsCurriedComponentDefinitionReference extends ConditionalReference {
-  static create(inner: Reference<Opaque>): IsCurriedComponentDefinitionReference {
+  static create(inner: Reference<unknown>): IsCurriedComponentDefinitionReference {
     return new IsCurriedComponentDefinitionReference(inner);
   }
 
@@ -42,12 +43,12 @@ export const enum ContentType {
 export class ContentTypeReference implements Reference<ContentType> {
   public tag: Tag;
 
-  constructor(private inner: Reference<Opaque>) {
+  constructor(private inner: Reference<unknown>) {
     this.tag = inner.tag;
   }
 
   value(): ContentType {
-    let value = this.inner.value();
+    let value = this.inner.value() as UserValue;
 
     if (shouldCoerce(value)) {
       return ContentType.String;
@@ -65,49 +66,69 @@ export class ContentTypeReference implements Reference<ContentType> {
   }
 }
 
-APPEND_OPCODES.add(Op.AppendHTML, vm => {
-  let reference = check(vm.stack.pop(), CheckPathReference);
+APPEND_OPCODES.add(
+  Op.AppendHTML,
+  vm => {
+    let reference = check(vm.stack.pop(), CheckPathReference);
 
-  let rawValue = reference.value();
-  let value = isEmpty(rawValue) ? '' : String(rawValue);
+    let rawValue = reference.value() as UserValue;
+    let value = isEmpty(rawValue) ? '' : String(rawValue);
 
-  vm.elements().appendDynamicHTML(value);
-});
+    vm.elementsMut.appendDynamicHTML(value);
+  },
+  OpcodeKind.Mut
+);
 
-APPEND_OPCODES.add(Op.AppendSafeHTML, vm => {
-  let reference = check(vm.stack.pop(), CheckPathReference);
+APPEND_OPCODES.add(
+  Op.AppendSafeHTML,
+  vm => {
+    let reference = check(vm.stack.pop(), CheckPathReference);
 
-  let rawValue = check(reference.value(), CheckSafeString).toHTML();
-  let value = isEmpty(rawValue) ? '' : check(rawValue, CheckString);
+    let rawValue = check(reference.value() as UserValue, CheckSafeString).toHTML();
+    let value = isEmpty(rawValue) ? '' : check(rawValue, CheckString);
 
-  vm.elements().appendDynamicHTML(value);
-});
+    vm.elementsMut.appendDynamicHTML(value);
+  },
+  OpcodeKind.Mut
+);
 
-APPEND_OPCODES.add(Op.AppendText, vm => {
-  let reference = check(vm.stack.pop(), CheckPathReference);
+APPEND_OPCODES.add(
+  Op.AppendText,
+  vm => {
+    let reference = check(vm.stack.pop(), CheckPathReference);
 
-  let rawValue = reference.value();
-  let value = isEmpty(rawValue) ? '' : String(rawValue);
+    let rawValue = reference.value();
+    let value = isEmpty(rawValue) ? '' : String(rawValue);
 
-  let node = vm.elements().appendDynamicText(value);
+    let node = vm.elementsMut.appendDynamicText(value);
 
-  if (!isConst(reference)) {
-    vm.updateWith(new DynamicTextContent(node, reference, value));
-  }
-});
+    if (!isConst(reference)) {
+      vm.updateWith(new DynamicTextContent(node, reference, value));
+    }
+  },
+  OpcodeKind.Mut
+);
 
-APPEND_OPCODES.add(Op.AppendDocumentFragment, vm => {
-  let reference = check(vm.stack.pop(), CheckPathReference);
+APPEND_OPCODES.add(
+  Op.AppendDocumentFragment,
+  vm => {
+    let reference = check(vm.stack.pop(), CheckPathReference);
 
-  let value = check(reference.value(), CheckDocumentFragment);
+    let value = check(reference.value(), CheckDocumentFragment);
 
-  vm.elements().appendDynamicFragment(value);
-});
+    vm.elementsMut.appendDynamicFragment(value);
+  },
+  OpcodeKind.Mut
+);
 
-APPEND_OPCODES.add(Op.AppendNode, vm => {
-  let reference = check(vm.stack.pop(), CheckPathReference);
+APPEND_OPCODES.add(
+  Op.AppendNode,
+  vm => {
+    let reference = check(vm.stack.pop(), CheckPathReference);
 
-  let value = check(reference.value(), CheckNode);
+    let value = check(reference.value(), CheckNode);
 
-  vm.elements().appendDynamicNode(value);
-});
+    vm.elementsMut.appendDynamicNode(value);
+  },
+  OpcodeKind.Mut
+);

@@ -97,7 +97,7 @@ export class Builder {
 
       switch (reified.nodeType) {
         case 1:
-          actual.push({ type: 'element', value: reified['tagName'] });
+          actual.push({ type: 'element', value: (reified as Simple.Element).tagName });
           break;
         case 3:
           actual.push({ type: 'text', value: reified.nodeValue! });

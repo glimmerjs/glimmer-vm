@@ -6,7 +6,7 @@ import {
   ConditionalReference,
 } from '@glimmer/runtime';
 import { dict } from '@glimmer/util';
-import { Dict, RuntimeResolver, Opaque, VMHandle } from '@glimmer/interfaces';
+import { Dict, RuntimeResolver, Opaque, VMHandle, UserValue } from '@glimmer/interfaces';
 import { Program } from '@glimmer/program';
 import { Reference, isConst, OpaqueIterable } from '@glimmer/reference';
 
@@ -43,7 +43,7 @@ export default abstract class TestEnvironment<Locator> extends Environment {
   }
 
   iterableFor(ref: Reference<Opaque>, keyPath: string): OpaqueIterable {
-    let keyFor: KeyFor<Opaque>;
+    let keyFor: KeyFor<unknown>;
 
     if (!keyPath) {
       throw new Error('Must specify a key for #each');
@@ -51,13 +51,14 @@ export default abstract class TestEnvironment<Locator> extends Environment {
 
     switch (keyPath) {
       case '@index':
-        keyFor = (_, index: Opaque) => String(index);
+        keyFor = (_, index: unknown) => String(index);
         break;
       case '@primitive':
-        keyFor = (item: Opaque) => String(item);
+        keyFor = (item: UserValue) => String(item);
         break;
       default:
-        keyFor = (item: Opaque) => item && item[keyPath];
+        // TODO: Is this correct?
+        keyFor = (item: UserValue) => (item ? String(item[keyPath]) : 'null');
         break;
     }
 

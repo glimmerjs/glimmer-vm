@@ -80,7 +80,21 @@ export class InnerStack {
   }
 }
 
-export default class EvaluationStack {
+export interface ReadonlyEvaluationStack {
+  readonly sp: number;
+  peek<T>(): T;
+  get<T>(offset: number): T;
+  getFrom<T>(offset: number, base: number): T;
+  sliceArray<T = unknown>(start: number, end: number): T[];
+}
+
+export interface MutEvaluationStack extends ReadonlyEvaluationStack {
+  push(value: unknown): void;
+  pop<T>(): T;
+  popN<T>(size: number): T;
+}
+
+export default class EvaluationStack implements MutEvaluationStack {
   static empty(): EvaluationStack {
     return new this(new InnerStack(), 0, -1);
   }
@@ -135,6 +149,12 @@ export default class EvaluationStack {
     return top;
   }
 
+  popN<T>(n: number): T {
+    let top = this.stack.get<T>(this.sp);
+    this.sp -= n;
+    return top;
+  }
+
   popSmi(): number {
     return this.stack.getSmi(this.sp--);
   }
@@ -148,6 +168,10 @@ export default class EvaluationStack {
   }
 
   get<T>(offset: number, base = this.fp): T {
+    return this.stack.get<T>(base + offset);
+  }
+
+  getFrom<T>(offset: number, base: number): T {
     return this.stack.get<T>(base + offset);
   }
 
