@@ -115,6 +115,64 @@ function assertInvariants(assert: Assert, result: RenderResult, msg?: string) {
 module('[glimmer-runtime] Updating', hooks => {
   hooks.beforeEach(() => commonSetup());
 
+  test('can recover from exceptions thrown during re-render', assert => {
+    // This test tests the VM's ability to gracefully recover from exceptions thrown
+    // during render. The exact semantics this test tries to encode are:
+    //
+    // 1. Exceptions thrown during render should immediately abort the current render
+    //    (i.e. no further opcodes for the current program should be run)
+    // 2. Existing DOM should not be cleared until a subsequent, non-erroring render.
+    // 3. Block content without surrounding nodes should still have an empty comment
+    //    inserted correctly, so subsequent renders insert into the correct location.
+    //
+    // This test is intended to capture our "best effort" recovery attempts that exist today,
+    // and is not intended to describe final desired recovery behavior.
+    let shouldThrow = true;
+
+    class BigFailure extends BasicComponent {
+      constructor() {
+        super();
+        if (shouldThrow) {
+          throw new Error('Whoops!');
+        }
+      }
+    }
+
+    env.registerBasicComponent('BigFailure', BigFailure, 'Nope');
+    let template = compile('<div>BEFORE {{#if show}}<BigFailure />{{/if}} AFTER</div>');
+
+    shouldThrow = false;
+    render(template, { show: false });
+    equalTokens(root, '<div>BEFORE <!----> AFTER</div>');
+
+    shouldThrow = true;
+    assert.throws(() => {
+      rerender({ show: true });
+    });
+    env.commit();
+    equalTokens(root, '<div>BEFORE <!----> AFTER</div>');
+
+    shouldThrow = false;
+    rerender({ show: false });
+    equalTokens(root, '<div>BEFORE <!----> AFTER</div>');
+
+    rerender({ show: true });
+    equalTokens(root, '<div>BEFORE Nope AFTER</div>');
+
+    shouldThrow = true;
+    // should not throw because conditional becomes false and
+    // component inside conditional is never instantiated
+    rerender({ show: false });
+    equalTokens(root, '<div>BEFORE <!----> AFTER</div>');
+
+    shouldThrow = false;
+    rerender({ show: false });
+    equalTokens(root, '<div>BEFORE <!----> AFTER</div>');
+
+    rerender({ show: true });
+    equalTokens(root, '<div>BEFORE Nope AFTER</div>');
+  });
+
   test('updating a single curly', assert => {
     let object = { value: 'hello world' };
     let template = compile('<div><p>{{value}}</p></div>');

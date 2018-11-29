@@ -129,6 +129,7 @@ export interface ElementBuilder extends Cursor, DOMStack, TreeOperations {
   expectConstructing(method: string): Simple.Element;
 
   block(): Tracker;
+  panic(): void;
 
   pushSimpleBlock(): Tracker;
   pushUpdatableBlock(): UpdatableTracker;
@@ -190,6 +191,12 @@ export class NewElementBuilder implements ElementBuilder {
 
   block(): Tracker {
     return expect(this.blockStack.current, 'Expected a current block tracker');
+  }
+
+  panic(): void {
+    while (this.blockStack.current) {
+      this.popBlock();
+    }
   }
 
   popElement() {

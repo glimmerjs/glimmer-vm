@@ -478,12 +478,21 @@ export default class VM<T> implements PublicVM {
     return result.value;
   }
 
+  recover() {
+    this.elementStack.panic();
+  }
+
   next(): IteratorResult<RenderResult> {
     let { env, program, updatingOpcodeStack, elementStack } = this;
     let opcode = this.inner.nextStatement();
     let result: IteratorResult<RenderResult>;
     if (opcode !== null) {
-      this.inner.evaluateOuter(opcode, this);
+      try {
+        this.inner.evaluateOuter(opcode, this);
+      } catch (err) {
+        this.recover();
+        throw err;
+      }
       result = { done: false, value: null };
     } else {
       // Unload the stack
