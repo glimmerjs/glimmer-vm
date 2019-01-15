@@ -61,6 +61,11 @@ import {
   TestModifierManager,
 } from '../../modifier';
 import { Locator } from '../../components';
+import {
+  BasicCurlyComponent,
+  BasicCurlyComponentManager,
+  BASIC_CURLY_CAPABILITIES,
+} from '../../components/basic-curly';
 
 export type RenderDelegateComponentDefinition = ComponentDefinition<TestComponentDefinitionState>;
 
@@ -68,6 +73,7 @@ type Entries<T> = { [F in ComponentKind]: Option<T> };
 
 const COMPONENT_CLASSES: Entries<Opaque> = {
   Basic: BasicComponent,
+  BasicCurly: BasicCurlyComponent,
   Glimmer: EmberishGlimmerComponent,
   Dynamic: EmberishCurlyComponent,
   Curly: EmberishCurlyComponent,
@@ -76,6 +82,7 @@ const COMPONENT_CLASSES: Entries<Opaque> = {
 
 const COMPONENT_MANAGERS: Entries<ComponentManager<Opaque, Opaque>> = {
   Basic: new BasicComponentManager(),
+  BasicCurly: new BasicCurlyComponentManager(),
   Glimmer: new EmberishGlimmerComponentManager(),
   Dynamic: new EmberishCurlyComponentManager(),
   Curly: new EmberishCurlyComponentManager(),
@@ -84,6 +91,7 @@ const COMPONENT_MANAGERS: Entries<ComponentManager<Opaque, Opaque>> = {
 
 const COMPONENT_CAPABILITIES: Entries<ComponentCapabilities> = {
   Basic: BASIC_CAPABILITIES,
+  BasicCurly: BASIC_CURLY_CAPABILITIES,
   Glimmer: EMBERISH_GLIMMER_CAPABILITIES,
   Dynamic: EMBERISH_CURLY_CAPABILITIES,
   Curly: EMBERISH_CURLY_CAPABILITIES,

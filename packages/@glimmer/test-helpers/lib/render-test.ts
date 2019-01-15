@@ -35,6 +35,7 @@ import {
 import RenderDelegate from './render-delegate';
 import { debugRehydration } from './environment/modes/rehydration/debug-builder';
 import { TestModifierConstructor } from './environment/modifier';
+import { BasicCurlyComponent } from './environment/components/basic-curly';
 
 export const OPEN: { marker: 'open-block' } = { marker: 'open-block' };
 export const CLOSE: { marker: 'close-block' } = { marker: 'close-block' };
@@ -75,7 +76,7 @@ export class VersionedObject implements Tagged {
   }
 }
 
-export type ComponentKind = 'Glimmer' | 'Curly' | 'Dynamic' | 'Basic' | 'Fragment';
+export type ComponentKind = 'Glimmer' | 'Curly' | 'Dynamic' | 'Basic' | 'Fragment' | 'BasicCurly';
 
 export interface ComponentBlueprint {
   layout: string;
@@ -175,6 +176,7 @@ export class RenderTest {
       case 'Glimmer':
         invocation = this.buildGlimmerComponent(blueprint);
         break;
+      case 'BasicCurly':
       case 'Curly':
         invocation = this.buildCurlyComponent(blueprint);
         break;
@@ -568,6 +570,7 @@ export const CLASSES = {
   Dynamic: EmberishCurlyComponent,
   Basic: BasicComponent,
   Fragment: BasicComponent,
+  BasicCurly: BasicCurlyComponent,
 };
 
 export type ComponentTypes = typeof CLASSES;
@@ -582,6 +585,9 @@ export function registerComponent<K extends ComponentKind>(
   switch (type) {
     case 'Glimmer':
       env.registerEmberishGlimmerComponent(name, Class as typeof EmberishGlimmerComponent, layout);
+      break;
+    case 'BasicCurly':
+      env.registerBasicCurlyComponent(name, Class as typeof BasicCurlyComponent, layout);
       break;
     case 'Curly':
       env.registerEmberishCurlyComponent(name, Class as typeof EmberishCurlyComponent, layout);
@@ -786,8 +792,8 @@ function isServerMarker(node: Simple.Node) {
 }
 
 export interface ComponentTestMeta {
-  kind?: 'glimmer' | 'curly' | 'dynamic' | 'basic' | 'fragment';
-  skip?: boolean | 'glimmer' | 'curly' | 'dynamic' | 'basic' | 'fragment';
+  kind?: 'glimmer' | 'curly' | 'dynamic' | 'basic' | 'fragment' | 'basic-curly';
+  skip?: boolean | 'glimmer' | 'curly' | 'dynamic' | 'basic' | 'fragment' | 'basic-curly';
 }
 
 function setTestingDescriptor(descriptor: PropertyDescriptor): void {
@@ -865,6 +871,7 @@ interface ComponentTests {
   dynamic: Function[];
   basic: Function[];
   fragment: Function[];
+  basicCurly: Function[];
 }
 
 function componentModule<D extends RenderDelegate, T extends RenderTest, E extends Environment>(
@@ -878,6 +885,7 @@ function componentModule<D extends RenderDelegate, T extends RenderTest, E exten
     dynamic: [],
     basic: [],
     fragment: [],
+    basicCurly: [],
   };
 
   function createTest(prop: string, test: any, skip?: boolean) {
@@ -957,6 +965,10 @@ function componentModule<D extends RenderDelegate, T extends RenderTest, E exten
 
       if (kind === 'basic') {
         tests.basic.push(createTest(prop, test));
+      }
+
+      if (kind === 'basic-curly') {
+        tests.basicCurly.push(createTest(prop, test));
       }
 
       if (kind === 'fragment') {
