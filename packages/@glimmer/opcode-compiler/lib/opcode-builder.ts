@@ -774,7 +774,7 @@ export abstract class OpcodeBuilder<Locator = Opaque> extends StdOpcodeBuilder {
 
     if (capabilities.createArgs) {
       this.pushFrame();
-      this.compileArgs(null, hash, null, synthetic);
+      this.compileArgs(params, hash, null, synthetic);
     }
 
     this.beginComponentTransaction();
