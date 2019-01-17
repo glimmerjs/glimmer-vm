@@ -28,6 +28,7 @@ before_script:
 script:
   - yarn run problems
   - yarn run test:ci
+  - yarn run test:smoke
   - yarn run build
   - yarn run test:types
   - yarn run eslint
