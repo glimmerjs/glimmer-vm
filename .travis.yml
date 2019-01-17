@@ -27,6 +27,7 @@ before_script:
   - yarn run sauce:connect
 script:
   - yarn run problems
+  - yarn run test:smoke
   - yarn run test:ci
   - yarn run build
   - yarn run test:types
