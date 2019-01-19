@@ -3,7 +3,7 @@ import Environment from '../../environment';
 import { ElementBuilder } from '../element-builder';
 import { sanitizeAttributeValue, requiresSanitization } from '../../dom/sanitized-values';
 import { normalizeProperty } from '../../dom/props';
-import { SVG_NAMESPACE } from '../../dom/helper';
+import { SVG_NAMESPACE, BOOLEAN_ATTRIBUTES } from '../../dom/helper';
 import { Attribute, AttributeOperation } from './index';
 import { normalizeStringValue } from '../../dom/normalize';
 
@@ -55,6 +55,10 @@ function buildDynamicProperty(
 
   if (isOptionSelected(tagName, name)) {
     return new OptionSelectedDynamicAttribute(name, attribute);
+  }
+
+  if (isBooleanAttribute(name)) {
+    return new BooleanDynamicAttribute(name, attribute);
   }
 
   return new DefaultDynamicProperty(name, attribute);
@@ -188,6 +192,22 @@ export class OptionSelectedDynamicAttribute extends DefaultDynamicProperty {
   }
 }
 
+export class BooleanDynamicAttribute extends DefaultDynamicProperty {
+  set(dom: ElementBuilder, value: Opaque, env: Environment): void {
+    let normalizedValue = normalizeBooleanValue(value);
+    super.set(dom, normalizedValue, env);
+  }
+
+  update(value: Opaque, env: Environment): void {
+    let normalizedValue = normalizeBooleanValue(value);
+    super.update(normalizedValue, env);
+  }
+}
+
+function isBooleanAttribute(attribute: string) {
+  return BOOLEAN_ATTRIBUTES[attribute];
+}
+
 function isOptionSelected(tagName: string, attribute: string) {
   return tagName === 'OPTION' && attribute === 'selected';
 }
@@ -214,4 +234,21 @@ function normalizeValue(value: Opaque): Option<string> {
   }
 
   return String(value);
+}
+
+function normalizeBooleanValue(value: Opaque): Option<boolean> {
+  if (
+    value === false ||
+    value === undefined ||
+    value === null ||
+    value === 0 ||
+    value === '' ||
+    value === NaN ||
+    typeof value.toString === 'undefined' ||
+    typeof value === 'function'
+  ) {
+    return null;
+  }
+
+  return true;
 }

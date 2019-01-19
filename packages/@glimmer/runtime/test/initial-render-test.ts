@@ -175,6 +175,20 @@ class Rehydration extends AbstractRehydrationTests {
   }
 
   @test
+  'mismatched properties'() {
+    let template = '<button disabled={{fastboot}}>submit</button>';
+    this.renderServerSide(template, { fastboot: true });
+    this.assertServerOutput('<button disabled="">submit</button>');
+
+    this.renderClientSide(template, { fastboot: false });
+    this.assertHTML('<button>submit</button>');
+
+    this.assertRehydrationStats({ nodesRemoved: 0 });
+    this.assertStableNodes();
+    this.assertStableRerender();
+  }
+
+  @test
   'extra nodes at the end'() {
     let template = '{{#if admin}}<div>hi admin</div>{{else}}<div>HAXOR{{stopHaxing}}</div>{{/if}}';
     this.renderServerSide(template, { admin: false, stopHaxing: 'stahp' });

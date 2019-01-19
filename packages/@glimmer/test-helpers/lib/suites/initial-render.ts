@@ -257,6 +257,50 @@ export class InitialRenderSuite extends RenderTest {
   }
 
   @test
+  'Unquoted attribute falsy number values do not disable'() {
+    this.render('<input disabled={{isDisabled}}>', { isDisabled: 0 });
+    this.assertHTML('<input>');
+    this.assertStableRerender();
+
+    // TODO: What is the point of this test? (Note that it wouldn't work with SimpleDOM)
+    // assertNodeProperty(root.firstChild, 'input', 'disabled', false);
+
+    this.rerender({ isDisabled: 1 });
+    this.assertHTML('<input disabled>');
+    this.assertStableRerender();
+
+    this.rerender({ isDisabled: 0 });
+    this.assertHTML('<input>');
+    this.assertStableRerender();
+
+    this.rerender({ isDisabled: null });
+    this.assertHTML('<input>');
+    this.assertStableRerender();
+  }
+
+  @test
+  'Unquoted attribute falsy string values do not disable'() {
+    this.render('<input disabled={{isDisabled}}>', { isDisabled: '' });
+    this.assertHTML('<input>');
+    this.assertStableRerender();
+
+    // TODO: What is the point of this test? (Note that it wouldn't work with SimpleDOM)
+    // assertNodeProperty(root.firstChild, 'input', 'disabled', false);
+
+    this.rerender({ isDisabled: 'foo' });
+    this.assertHTML('<input disabled>');
+    this.assertStableRerender();
+
+    this.rerender({ isDisabled: '' });
+    this.assertHTML('<input>');
+    this.assertStableRerender();
+
+    this.rerender({ isDisabled: null });
+    this.assertHTML('<input>');
+    this.assertStableRerender();
+  }
+
+  @test
   'Quoted attribute string values'() {
     this.render("<img src='{{src}}'>", { src: 'image.png' });
     this.assertHTML("<img src='image.png'>");
