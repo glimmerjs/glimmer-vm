@@ -21,19 +21,25 @@ const enum TableSlotState {
 }
 
 const enum Size {
-  ENTRY_SIZE = 2,
+  ENTRY_SIZE = 3,
   INFO_OFFSET = 1,
-  MAX_SIZE = 0b1111111111111111,
-  SIZE_MASK = 0b00000000000000001111111111111111,
-  SCOPE_MASK = 0b00111111111111110000000000000000,
-  STATE_MASK = 0b11000000000000000000000000000000,
+  SIZE_OFFSET = 2,
+  MAX_SIZE = 0b1111111111111111111111111111111,
+  SCOPE_MASK = 0b1111111111111111111111111111100,
+  STATE_MASK = 0b11,
 }
 
-function encodeTableInfo(size: number, scopeSize: number, state: number) {
-  return size | (scopeSize << 16) | (state << 30);
+function encodeTableInfo(scopeSize: number, state: number) {
+  assert(scopeSize > -1 && state > -1, 'Size, scopeSize or state were less than 0');
+  assert(state < 1 << 2, 'State is more than 2 bits');
+  assert(scopeSize < 1 << 30, 'Scope is more than 30-bits');
+  return state | (scopeSize << 2);
 }
 
 function changeState(info: number, newState: number) {
+  assert(info > -1 && newState > -1, 'Info or state were less than 0');
+  assert(newState < 1 << 2, 'State is more than 2 bits');
+  assert(info < 1 << 30, 'Info is more than 30 bits');
   return info | (newState << 30);
 }
 
@@ -66,8 +72,7 @@ export class RuntimeHeapImpl implements RuntimeHeap {
 
   sizeof(handle: number): number {
     if (DEBUG) {
-      let info = this.table[handle + Size.INFO_OFFSET];
-      return info & Size.SIZE_MASK;
+      return this.table[handle + Size.SIZE_OFFSET];
     }
     return -1;
   }
@@ -90,11 +95,11 @@ export function hydrateHeap(serializedHeap: SerializedHeap): RuntimeHeap {
  * execution of the VM. Internally we track the different
  * regions of the memory in an int array known as the table.
  *
- * The table 32-bit aligned and has the following layout:
+ * The table is 32-bit aligned and has the following layout:
  *
- * | ... | hp (u32) |       info (u32)          |
- * | ... |  Handle  | Size | Scope Size | State |
- * | ... | 32-bits  | 16b  |    14b     |  2b   |
+ * | ... | hp (u32) |       info (u32)   | size (u32) |
+ * | ... |  Handle  | Scope Size | State | Size       |
+ * | ... | 32bits   | 30bits     | 2bits | 32bit      |
  *
  * With this information we effectively have the ability to
  * control when we want to free memory. That being said you
@@ -103,7 +108,7 @@ export function hydrateHeap(serializedHeap: SerializedHeap): RuntimeHeap {
  * over them as you will have a bad memory access exception.
  */
 export class CompileTimeHeapImpl implements CompileTimeHeap {
-  private heap: Uint16Array;
+  private heap: Uint32Array;
   private placeholders: Placeholder[] = [];
   private stdlibs: StdlibPlaceholder[] = [];
   private table: number[];
@@ -112,7 +117,7 @@ export class CompileTimeHeapImpl implements CompileTimeHeap {
   private capacity = PAGE_SIZE;
 
   constructor() {
-    this.heap = new Uint16Array(PAGE_SIZE);
+    this.heap = new Uint32Array(PAGE_SIZE);
     this.table = [];
   }
 
@@ -124,7 +129,7 @@ export class CompileTimeHeapImpl implements CompileTimeHeap {
   private sizeCheck() {
     if (this.capacity === 0) {
       let heap = slice(this.heap, 0, this.offset);
-      this.heap = new Uint16Array(heap.length + PAGE_SIZE);
+      this.heap = new Uint32Array(heap.length + PAGE_SIZE);
       this.heap.set(heap, 0);
       this.capacity = PAGE_SIZE;
     }
@@ -140,18 +145,21 @@ export class CompileTimeHeapImpl implements CompileTimeHeap {
   }
 
   malloc(): number {
-    this.table.push(this.offset, 0);
+    // push offset, info, size
+    this.table.push(this.offset, 0, 0);
     let handle = this.handle;
     this.handle += Size.ENTRY_SIZE;
     return handle;
   }
 
   finishMalloc(handle: number, scopeSize: number): void {
-    let start = this.table[handle];
-    let finish = this.offset;
-    let instructionSize = finish - start;
-    let info = encodeTableInfo(instructionSize, scopeSize, TableSlotState.Allocated);
-    this.table[handle + Size.INFO_OFFSET] = info;
+    if (DEBUG) {
+      let start = this.table[handle];
+      let finish = this.offset;
+      let instructionSize = finish - start;
+      this.table[handle + Size.SIZE_OFFSET] = instructionSize;
+    }
+    this.table[handle + Size.INFO_OFFSET] = encodeTableInfo(scopeSize, TableSlotState.Allocated);
   }
 
   size(): number {
@@ -166,7 +174,7 @@ export class CompileTimeHeapImpl implements CompileTimeHeap {
   }
 
   gethandle(address: number): number {
-    this.table.push(address, encodeTableInfo(0, 0, TableSlotState.Pointer));
+    this.table.push(address, encodeTableInfo(0, TableSlotState.Pointer), 0);
     let handle = this.handle;
     this.handle += Size.ENTRY_SIZE;
     return handle;
@@ -174,15 +182,14 @@ export class CompileTimeHeapImpl implements CompileTimeHeap {
 
   sizeof(handle: number): number {
     if (DEBUG) {
-      let info = this.table[handle + Size.INFO_OFFSET];
-      return info & Size.SIZE_MASK;
+      return this.table[handle + Size.SIZE_OFFSET];
     }
     return -1;
   }
 
   scopesizeof(handle: number): number {
     let info = this.table[handle + Size.INFO_OFFSET];
-    return (info & Size.SCOPE_MASK) >> 16;
+    return (info & Size.SCOPE_MASK) >> 2;
   }
 
   free(handle: number): void {
@@ -320,12 +327,12 @@ export function hydrateProgram(artifacts: CompilerArtifacts): RuntimeProgram {
   return new RuntimeProgramImpl(constants, heap);
 }
 
-function slice(arr: Uint16Array, start: number, end: number): Uint16Array {
+function slice(arr: Uint32Array, start: number, end: number): Uint32Array {
   if (arr.slice !== undefined) {
     return arr.slice(start, end);
   }
 
-  let ret = new Uint16Array(end);
+  let ret = new Uint32Array(end);
 
   for (; start < end; start++) {
     ret[start] = arr[start];

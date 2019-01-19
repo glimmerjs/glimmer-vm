@@ -14,3 +14,4 @@ export * from './suites/ssr';
 export * from './suites/bundle-compiler';
 export * from './suites/entry-point';
 export * from './suites/custom-dom-helper';
+export * from './suites/smoke';

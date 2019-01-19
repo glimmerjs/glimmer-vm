@@ -122,7 +122,7 @@ APPEND_OPCODES.add(
     let block = stack.pop<Option<CompilableTemplate> | 0>();
 
     if (block) {
-      stack.pushSmi(vm.compile(block));
+      stack.push(vm.compile(block));
     } else {
       stack.pushNull();
     }

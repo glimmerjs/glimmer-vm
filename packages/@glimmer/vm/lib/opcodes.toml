@@ -47,6 +47,11 @@ skip = true
 format = ["ReturnTo", "offset:i32"]
 operation = "Return to a place in the program given an offset"
 
+[syscall.bug]
+
+format = ["Bug"]
+operation = "Indicates a bug in the compilation"
+
 [syscall.ncall]
 
 format = ["Helper", "helper:handle"]

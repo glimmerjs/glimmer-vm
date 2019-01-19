@@ -96,6 +96,16 @@ MACHINE_METADATA[MachineOp.ReturnTo] = {
   operands: 1,
   check: true,
 };
+METADATA[Op.Bug] = {
+  name: 'Bug',
+  mnemonic: 'bug',
+  before: null,
+  stackChange: 0,
+  ops: [],
+  operands: 0,
+  check: true,
+};
+
 METADATA[Op.Helper] = {
   name: 'Helper',
   mnemonic: 'ncall',
