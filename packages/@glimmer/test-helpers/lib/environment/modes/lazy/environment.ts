@@ -67,8 +67,14 @@ import TestMacros from '../../macros';
 import { Opaque } from '@glimmer/util';
 import { PathReference } from '@glimmer/reference';
 import { TemplateMeta } from '@glimmer/wire-format';
+import {
+  BasicCurlyComponent,
+  BASIC_CURLY_CAPABILITIES,
+  BasicCurlyComponentManager,
+} from '../../components/basic-curly';
 
 const BASIC_COMPONENT_MANAGER = new BasicComponentManager();
+const BASIC_CURLY_COMPONENT_MANAGER = new BasicCurlyComponentManager();
 const EMBERISH_CURLY_COMPONENT_MANAGER = new EmberishCurlyComponentManager();
 const EMBERISH_GLIMMER_COMPONENT_MANAGER = new EmberishGlimmerComponentManager();
 const STATIC_TAGLESS_COMPONENT_MANAGER = new StaticTaglessComponentManager();
@@ -225,6 +231,25 @@ export default class LazyTestEnvironment extends TestEnvironment<TestMeta> {
       handle,
       ComponentClass,
       EMBERISH_GLIMMER_CAPABILITIES
+    );
+  }
+
+  registerBasicCurlyComponent(
+    name: string,
+    Component: Option<typeof BasicCurlyComponent>,
+    layoutSource: string
+  ): void {
+    let { handle } = this.registerTemplate(name, layoutSource);
+
+    let ComponentClass = Component || BasicCurlyComponent;
+
+    this.registerComponent(
+      name,
+      'BasicCurly',
+      BASIC_CURLY_COMPONENT_MANAGER,
+      handle,
+      ComponentClass,
+      BASIC_CURLY_CAPABILITIES
     );
   }
 

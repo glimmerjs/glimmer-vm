@@ -1,5 +1,6 @@
 import { RenderTest, test } from '../render-test';
 import { stripTight, EmberishGlimmerComponent } from '../../index';
+import { BasicCurlyComponent } from '../environment/components/basic-curly';
 
 export class FragmentComponents extends RenderTest {
   @test({
@@ -682,5 +683,54 @@ export class BasicComponents extends RenderTest {
 
     this.render('<Foo data-from-top />');
     this.assertHTML('<div data-from-qux data-from-bar data-from-foo data-from-top></div>');
+  }
+
+  @test({ kind: 'basic-curly' })
+  'creating a new basic curly component'() {
+    this.registerComponent('BasicCurly', 'MyComponent', '<div color="{{@color}}">{{yield}}</div>');
+
+    this.render(`{{#MyComponent color=color}}hello!{{/MyComponent}}`, {
+      color: 'red',
+    });
+
+    this.assertHTML(`<div color='red'>hello!</div>`);
+    this.assertStableRerender();
+
+    this.rerender({ color: 'green' });
+    this.assertHTML(`<div color='green'>hello!</div>`);
+    this.assertStableNodes();
+
+    this.rerender({ color: 'red' });
+    this.assertHTML(`<div color='red'>hello!</div>`);
+    this.assertStableNodes();
+  }
+
+  @test({ kind: 'basic-curly' })
+  'creating a new basic curly component with positional args'() {
+    this.registerComponent(
+      'BasicCurly',
+      'MyComponent',
+      '<div color="{{this.color}}">{{yield}}</div>',
+      class extends BasicCurlyComponent {
+        get color() {
+          return this.args.positional[0];
+        }
+      }
+    );
+
+    this.render(`{{#MyComponent color}}hello!{{/MyComponent}}`, {
+      color: 'red',
+    });
+
+    this.assertHTML(`<div color='red'>hello!</div>`);
+    this.assertStableRerender();
+
+    this.rerender({ color: 'green' });
+    this.assertHTML(`<div color='green'>hello!</div>`);
+    this.assertStableNodes();
+
+    this.rerender({ color: 'red' });
+    this.assertHTML(`<div color='red'>hello!</div>`);
+    this.assertStableNodes();
   }
 }
