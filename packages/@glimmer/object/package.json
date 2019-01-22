@@ -1,11 +1,11 @@
 {
   "name": "@glimmer/object",
-  "version": "0.35.10",
+  "version": "0.35.11",
   "repository": "https://github.com/glimmerjs/glimmer-vm/tree/master/packages/@glimmer/object",
   "dependencies": {
-    "@glimmer/object-reference": "^0.35.10",
-    "@glimmer/reference": "^0.35.10",
-    "@glimmer/util": "^0.35.10"
+    "@glimmer/object-reference": "^0.35.11",
+    "@glimmer/reference": "^0.35.11",
+    "@glimmer/util": "^0.35.11"
   },
   "devDependencies": {
     "typescript": "^2.8.3",
