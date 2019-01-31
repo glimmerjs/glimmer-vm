@@ -9,6 +9,34 @@ export function map<T, U>(
   return new MapReference(input, callback);
 }
 
+export function compute<U>(callback: () => U): VersionedPathReference<U> {
+  return new ComputeReference<U>(callback);
+}
+
+class ComputeReference<U> implements VersionedPathReference<U> {
+  readonly tag: Tag;
+  readonly updatable: TagWrapper<UpdatableDirtyableTag> = UpdatableDirtyableTag.create();
+
+  constructor(private callback: () => U) {
+    this.tag = this.updatable;
+  }
+
+  value(): U {
+    let { callback } = this;
+
+    let old = pushTrackFrame();
+    let ret = callback();
+    let tag = popTrackFrame(old);
+    this.updatable.inner.update(tag);
+
+    return ret;
+  }
+
+  get(key: string): VersionedPathReference {
+    return property(this, key);
+  }
+}
+
 class MapReference<T, U> implements VersionedPathReference<U> {
   readonly tag: Tag;
   readonly updatable: TagWrapper<UpdatableDirtyableTag> = UpdatableDirtyableTag.create();

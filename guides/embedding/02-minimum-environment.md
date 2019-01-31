@@ -30,12 +30,12 @@ Because this component is host-agnostic, we can compile and execute it without s
 
 ## Compilation
 
-First, we create a minimal "compilation context" by calling `Context()`.
+First, we create a minimal "compilation context" by calling `AotContext()`.
 
 ```ts
 import { Context } from '@glimmer/opcode-builder';
 
-let context = Context();
+let context = AotContext();
 ```
 
 The compilation context is used to compile all of the components in our entire program. Once we're done compiling components, we'll serialize the context into bytecode that we can use to execute our components.
@@ -153,7 +153,7 @@ import { Component } from '@glimmer/opcode-compiler';
 
 let source = `{{#let "hello" "world" as |hello world|}}<p>{{hello}} {{world}}</p>{{/let}}`;
 
-let context = Context();
+let context = AotContext();
 let component = Component(source);
 let handle = component.compile(context);
 

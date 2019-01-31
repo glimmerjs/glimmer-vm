@@ -10,7 +10,7 @@ import { Component } from '@glimmer/opcode-compiler';
 
 let source = `{{#let "hello" "world" as |hello world|}}<p>{{hello}} {{world}}</p>{{/let}}`;
 
-let context = Context();
+let context = AotContext();
 let component = Component(source);
 let handle = component.compile(context);
 
@@ -53,7 +53,7 @@ let source = `
   {{/let}}
 `;
 
-let context = Context();
+let context = AotContext();
 let component = Component(source);
 let handle = component.compile(context);
 

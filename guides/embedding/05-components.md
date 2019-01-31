@@ -101,7 +101,7 @@ const COMPONENTS: Dict<{ source: string; handle: number }> = {
 };
 
 export const RESOLVER_DELEGATE: ResolverDelegate = {
-  lookupComponent(name: string): Option<CompileTimeComponent> | void {
+  lookupComponent(name: string): Option<CompileTimeComponent> {
     let component = COMPONENTS[name];
     if (component === null) return null;
 

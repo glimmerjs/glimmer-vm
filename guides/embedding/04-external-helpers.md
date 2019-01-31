@@ -11,7 +11,7 @@ let source = `
   {{/let}}
 `;
 
-let context = Context();
+let context = AotContext();
 let component = Component(source);
 let handle = component.compile(context);
 
@@ -118,8 +118,8 @@ let source = `
   {{/let}}
 `;
 
-- let context = Context();
-+ let context = Context(RESOLVER_DELEGATE);
+- let context = AotContext();
++ let context = AotContext(RESOLVER_DELEGATE);
 let component = Component(source);
 let handle = component.compile(context);
 

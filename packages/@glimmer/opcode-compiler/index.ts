@@ -19,7 +19,12 @@ export { StdLib } from './lib/opcode-builder/stdlib';
 
 export { PartialDefinition } from './lib/partial-template';
 
-export { default as templateFactory, TemplateFactory, Component } from './lib/template';
+export {
+  default as templateFactory,
+  TemplateFactory,
+  JsonComponent,
+  Component,
+} from './lib/template';
 
 export { debug, debugSlice, logOpcode } from './lib/debug';
 

@@ -40,11 +40,15 @@ export function pushTrackFrame(): Option<Tracker> {
 export function popTrackFrame(old: Option<Tracker>): TagWrapper<UpdatableDirtyableTag> {
   let tag = CURRENT_TRACKER!.combine();
   CURRENT_TRACKER = old;
-  if (CURRENT_TRACKER) CURRENT_TRACKER.add(tag);
+  if (CURRENT_TRACKER) consume(tag);
   return tag;
 }
 
 let CURRENT_TRACKER: Option<Tracker> = null;
+
+export function consume(tag: Tag): void {
+  if (CURRENT_TRACKER) CURRENT_TRACKER.add(tag);
+}
 
 export type Getter<T, K extends keyof T> = (self: T) => T[K] | undefined;
 export type Setter<T, K extends keyof T> = (self: T, value: T[K]) => void;
@@ -53,7 +57,7 @@ export function trackedData<T extends object, K extends keyof T>(
   key: K
 ): { getter: Getter<T, K>; setter: Setter<T, K> } {
   function getter(self: T) {
-    if (CURRENT_TRACKER) CURRENT_TRACKER.add(tagFor(self, key));
+    consume(tagFor(self, key));
     return getStateFor(self, key);
   }
 

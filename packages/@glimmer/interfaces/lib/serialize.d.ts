@@ -121,6 +121,6 @@ export interface RuntimeResolverDelegate<R = unknown> {
   getInvocation?(locator: R): Invocation;
 }
 
-export interface JitRuntimeResolverOptions<R = unknown> extends RuntimeResolverDelegate<R> {
+export interface JitRuntimeResolverDelegate<R = unknown> extends RuntimeResolverDelegate<R> {
   compilable?(locator: R): Template;
 }

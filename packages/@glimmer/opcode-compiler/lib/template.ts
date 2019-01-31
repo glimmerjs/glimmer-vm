@@ -9,6 +9,7 @@ import {
 import { assign } from '@glimmer/util';
 import { compilable } from './compilable-template';
 import { WrappedBuilder } from './wrapped-component';
+import { precompile, PrecompileOptions } from '@glimmer/compiler';
 
 export interface TemplateFactory<M> {
   /**
@@ -114,10 +115,16 @@ class TemplateImpl<R> implements Template {
   }
 }
 
-export function Component(serialized: string, envMeta?: {}): CompilableProgram {
+export function JsonComponent(serialized: string, envMeta?: {}): CompilableProgram {
   let parsed = JSON.parse(serialized);
   let factory = templateFactory(parsed);
 
   let template = factory.create(envMeta);
   return template.asLayout();
+}
+
+export function Component(source: string, options?: PrecompileOptions): CompilableProgram {
+  let processed = precompile(source, options);
+
+  return JsonComponent(processed);
 }
