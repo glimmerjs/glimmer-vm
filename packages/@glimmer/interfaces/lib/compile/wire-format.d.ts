@@ -43,12 +43,13 @@ export const enum SexpOpcodes {
 
   Unknown = 23,
   Get = 24,
-  MaybeLocal = 25,
-  HasBlock = 26,
-  HasBlockParams = 27,
-  Undefined = 28,
-  Helper = 29,
-  Concat = 30,
+  FreeVariable = 25,
+  MaybeLocal = 26,
+  HasBlock = 27,
+  HasBlockParams = 28,
+  Undefined = 29,
+  Helper = 30,
+  Concat = 31,
 }
 
 export interface SexpOpcodeMap {
@@ -83,6 +84,7 @@ export interface SexpOpcodeMap {
   [SexpOpcodes.Unknown]: Expressions.Unknown;
   [SexpOpcodes.Get]: Expressions.Get;
   [SexpOpcodes.MaybeLocal]: Expressions.MaybeLocal;
+  [SexpOpcodes.FreeVariable]: Expressions.FreeVariable;
   [SexpOpcodes.HasBlock]: Expressions.HasBlock;
   [SexpOpcodes.HasBlockParams]: Expressions.HasBlockParams;
   [SexpOpcodes.Undefined]: Expressions.Undefined;
@@ -115,6 +117,11 @@ export namespace Expressions {
    */
   export type MaybeLocal = [SexpOpcodes.MaybeLocal, Path];
 
+  /**
+   * In strict mode, this refers to a free variable
+   */
+  export type FreeVariable = [SexpOpcodes.FreeVariable, Path];
+
   export type Value = str | number | boolean | null;
   export type HasBlock = [SexpOpcodes.HasBlock, YieldTo];
   export type HasBlockParams = [SexpOpcodes.HasBlockParams, YieldTo];
@@ -124,6 +131,7 @@ export namespace Expressions {
     | Unknown
     | Get
     | MaybeLocal
+    | FreeVariable
     | Concat
     | HasBlock
     | HasBlockParams

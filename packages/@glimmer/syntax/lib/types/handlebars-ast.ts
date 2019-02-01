@@ -47,6 +47,11 @@ export interface Position {
   column: number;
 }
 
+export interface RootProgram extends CommonNode {
+  type: 'Program';
+  body: Statement[];
+}
+
 export interface Program extends CommonNode {
   type: 'Program';
   body: Statement[];

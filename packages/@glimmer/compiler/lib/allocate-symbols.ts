@@ -21,7 +21,7 @@ export class SymbolAllocator
   implements Processor<CompilerOps<InVariable>, OutVariable, CompilerOps<OutVariable>> {
   private symbolStack = new Stack<AST.Symbols>();
 
-  constructor(private ops: Array<InOp>) {}
+  constructor(private ops: Array<InOp>, private strict: boolean) {}
 
   process(): OutOp[] {
     let out: OutOp[] = [];
@@ -96,7 +96,7 @@ export class SymbolAllocator
     return ['attrSplat', this.symbols.allocateBlock('attrs')];
   }
 
-  get(op: [InVariable, string[]]): OutOp<'get' | 'maybeLocal'> {
+  get(op: [InVariable, string[]]): OutOp<'get' | 'maybeLocal' | 'freeVariable'> {
     let [name, rest] = op;
 
     if (name === 0) {
@@ -109,6 +109,8 @@ export class SymbolAllocator
     } else if (name[0] === '@') {
       let head = this.symbols.allocateNamed(name);
       return ['get', [head, rest]];
+    } else if (this.strict) {
+      return ['freeVariable', [name, ...rest]];
     } else {
       return ['maybeLocal', [name, ...rest]];
     }
@@ -185,6 +187,7 @@ export class SymbolAllocator
   helper(_op: string) {}
   unknown(_op: string) {}
   maybeLocal(_op: string[]) {}
+  freeVariable(_op: string[]) {}
   prepareArray(_op: number) {}
   prepareObject(_op: number) {}
   concat(_op: null) {}

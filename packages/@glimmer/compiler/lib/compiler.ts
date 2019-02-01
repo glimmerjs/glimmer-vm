@@ -2,6 +2,7 @@ import { preprocess } from '@glimmer/syntax';
 import TemplateCompiler, { CompileOptions } from './template-compiler';
 import { Option, TemplateJavascript, SerializedTemplateWithLazyBlock } from '@glimmer/interfaces';
 import { PreprocessOptions } from '@glimmer/syntax';
+import StrictTemplateCompiler from './strict-template-compiler';
 
 export interface TemplateIdFn {
   (src: string): Option<string>;
@@ -64,7 +65,16 @@ export function precompile(
 ): TemplateJavascript {
   let ast = preprocess(string, options);
   let { meta } = options;
-  let { block } = TemplateCompiler.compile(ast, options);
+
+  let template;
+  if (options && options.strict) {
+    template = StrictTemplateCompiler.compile(ast, options);
+  } else {
+    template = TemplateCompiler.compile(ast, options);
+  }
+
+  let { block } = template;
+
   let idFn = options.id || defaultId;
   let blockJSON = JSON.stringify(block.toJSON());
   let templateJSONObject: SerializedTemplateWithLazyBlock<unknown> = {

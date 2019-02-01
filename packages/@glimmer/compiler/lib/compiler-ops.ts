@@ -38,6 +38,7 @@ export interface CompilerOps<Variable> {
   helper: string;
   unknown: string;
   maybeLocal: string[];
+  freeVariable: string[];
   yield: Variable;
   debugger: Option<Variable[]>;
   partial: Option<Variable[]>;

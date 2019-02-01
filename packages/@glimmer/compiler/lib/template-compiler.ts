@@ -26,7 +26,7 @@ export default class TemplateCompiler {
 
     let compiler = new TemplateCompiler(options);
     let opcodes: SymbolInOp[] = compiler.process(templateVisitor.actions);
-    let symbols: SymbolOutOp[] = new SymbolAllocator(opcodes).process();
+    let symbols: SymbolOutOp[] = new SymbolAllocator(opcodes, false).process();
 
     let out = JavaScriptCompiler.process(symbols, ast.symbols!, options);
 
@@ -237,24 +237,20 @@ export default class TemplateCompiler {
   mustacheExpression(expr: AST.MustacheStatement) {
     let { path } = expr;
 
-    if (this.options.strict) {
-      throw new Error(`Can't call mustacheExpression in strict mode.`);
+    if (isLiteral(path)) {
+      this.opcode(['literal', path.value], expr);
+    } else if (isKeyword(path)) {
+      this.keyword(expr as AST.Call);
+    } else if (isArgReference(path)) {
+      this.argReference([path]);
+    } else if (isInvocation(expr)) {
+      this.prepareInvocation(expr);
+      this.opcode(['helper', path.parts[0]], expr);
+    } else if (path.this) {
+      this.opcode(['get', [0, path.parts]], expr);
     } else {
-      if (isLiteral(path)) {
-        this.opcode(['literal', path.value], expr);
-      } else if (isKeyword(path)) {
-        this.keyword(expr as AST.Call);
-      } else if (isArgReference(path)) {
-        this.argReference([path]);
-      } else if (isInvocation(expr)) {
-        this.prepareInvocation(expr);
-        this.opcode(['helper', path.parts[0]], expr);
-      } else if (path.this) {
-        this.opcode(['get', [0, path.parts]], expr);
-      } else {
-        let [head, ...parts] = path.parts;
-        this.opcode(['maybeGet', [head, parts]], expr);
-      }
+      let [head, ...parts] = path.parts;
+      this.opcode(['maybeGet', [head, parts]], expr);
     }
   }
 

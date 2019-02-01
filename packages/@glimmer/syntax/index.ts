@@ -28,3 +28,8 @@ export { default as SyntaxError } from './lib/errors/syntax-error';
 import * as AST from './lib/types/nodes';
 export { AST };
 export { isLiteral, printLiteral } from './lib/utils';
+
+import * as hbs from './lib/types/handlebars-ast';
+export { hbs };
+
+export * from './lib/hbs/parse';

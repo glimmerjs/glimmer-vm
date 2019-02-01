@@ -431,6 +431,10 @@ export default class JavaScriptCompiler
     this.pushValue<Expressions.MaybeLocal>([SexpOpcodes.MaybeLocal, path]);
   }
 
+  freeVariable(path: string[]) {
+    this.pushValue<Expressions.FreeVariable>([SexpOpcodes.FreeVariable, path]);
+  }
+
   concat() {
     this.pushValue<Expressions.Concat>([SexpOpcodes.Concat, this.popValue<Params>()]);
   }

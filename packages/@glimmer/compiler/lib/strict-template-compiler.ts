@@ -26,7 +26,7 @@ export default class StrictTemplateCompiler {
 
     let compiler = new StrictTemplateCompiler(options);
     let opcodes: SymbolInOp[] = compiler.process(templateVisitor.actions);
-    let symbols: SymbolOutOp[] = new SymbolAllocator(opcodes).process();
+    let symbols: SymbolOutOp[] = new SymbolAllocator(opcodes, true).process();
 
     let out = JavaScriptCompiler.process(symbols, ast.symbols!, options);
 
@@ -250,7 +250,7 @@ export default class StrictTemplateCompiler {
       this.opcode(['get', [0, path.parts]], expr);
     } else {
       let [head, ...parts] = path.parts;
-      this.opcode(['maybeGet', [head, parts]], expr);
+      this.opcode(['freeVariable', [head, ...parts]], expr);
     }
   }
 
