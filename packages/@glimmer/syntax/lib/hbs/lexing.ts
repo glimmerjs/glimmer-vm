@@ -1,17 +1,26 @@
 import { Option } from '@glimmer/interfaces';
+import { TokenKind } from './lex';
+import { Diagnostic, reportError } from './parser';
+import { Span } from '../types/handlebars-ast';
 
-export interface Span {
-  start: number;
-  end: number;
-}
+export const EOF_SPAN = { start: -1, end: -1 };
 
 export interface Position {
   offset: number;
 }
 
-export type Result<T> = { status: 'ok'; value: T } | { status: 'err'; value: LexerError };
+export interface Tokens {
+  peek(): LexItem<TokenKind>;
+  consume(): LexItem<TokenKind>;
+}
 
-export type Item<T> = Result<{ token: T; span: Span }>;
+export type Ok<T> = { status: 'ok'; value: T };
+export type Err = { status: 'err'; value: Diagnostic };
+
+export type Result<T> = Ok<T> | Err;
+
+export type Spanned<T> = { value: T; span: Span };
+export type LexItem<T> = { kind: T; span: Span };
 
 export type LexerNext<S, T> =
   | {
@@ -72,6 +81,7 @@ export interface LexerDelegate<S, T> {
   for(state: S): LexerDelegate<S, T>;
 
   top(): this;
+  eof(): T;
 
   next(char: Option<string>, rest: string): LexerNext<S, T>;
 
@@ -87,20 +97,24 @@ export class Lexer<T, S> {
   private tokenLen = 0;
   private stack: LexerDelegate<S, T>[] = [];
 
-  constructor(private input: string, private delegate: LexerDelegate<S, T>) {
+  constructor(
+    private input: string,
+    private delegate: LexerDelegate<S, T>,
+    private errors: Diagnostic[]
+  ) {
     this.rest = input;
     this.tokenStart = input;
     this.state = delegate.top();
   }
 
-  next(): Option<Item<T>> {
+  next(): Result<LexItem<T>> {
     let count = 0;
 
     while (true) {
       count += 1;
 
       if (count > 1000) {
-        return err('infinite loop detected', { start: 0, end: 0 });
+        return Err(reportError(this.errors, 'infinite loop detected', { start: -1, end: -1 }));
       }
 
       let { state, rest } = this;
@@ -120,10 +134,13 @@ export class Lexer<T, S> {
     }
   }
 
-  step(next: LexerNext<S, T>): LoopCompletion<Option<Item<T>>> {
+  step(next: LexerNext<S, T>): LoopCompletion<Result<LexItem<T>>> {
     switch (next.type) {
       case 'eof':
-        return { type: 'return', value: null };
+        return {
+          type: 'return',
+          value: Ok({ token: this.delegate.eof(), span: EOF_SPAN }),
+        };
 
       case 'remain':
         return this.accumulate(next.value);
@@ -153,7 +170,7 @@ export class Lexer<T, S> {
     }
   }
 
-  emit(token: Option<Item<T>>): Option<Item<T>> {
+  emit(token: Result<LexItem<T>>): Result<LexItem<T>> {
     return token;
   }
 
@@ -161,7 +178,7 @@ export class Lexer<T, S> {
     this.state = state;
   }
 
-  accumulate(accum: LexerAccumulate<T>): LoopCompletion<Option<Item<T>>> {
+  accumulate(accum: LexerAccumulate<T>): LoopCompletion<Result<LexItem<T>>> {
     switch (accum.type) {
       case 'begin':
         return { type: 'continue' };
@@ -196,13 +213,10 @@ export class Lexer<T, S> {
 
         return {
           type: 'return',
-          value: {
-            status: 'ok',
-            value: {
-              token,
-              span: { start: startPos, end: startPos + tokenLen },
-            },
-          },
+          value: Ok({
+            token,
+            span: { start: startPos, end: startPos + tokenLen },
+          }),
         };
     }
   }
@@ -220,16 +234,12 @@ export class Lexer<T, S> {
   }
 }
 
-function ok<T>(value: T): Result<T> {
+export function Ok<T>(value: T): Result<T> {
   return { status: 'ok', value };
 }
 
-function err<T>(reason: string, span: Span): Result<T> {
-  return { status: 'err', value: new LexerError(reason, span) };
-}
-
-export class LexerError {
-  constructor(readonly reason: string, span: Span) {}
+export function Err<T>(diagnostic: Diagnostic): Result<T> {
+  return { status: 'err', value: diagnostic };
 }
 
 export function Begin<S, T>(state: S): LexerNext<S, T> {

@@ -1,5 +1,4 @@
 import { Option } from '@glimmer/interfaces';
-import { Syntax } from './syntax';
 import {
   Consume,
   Continue,
@@ -12,6 +11,7 @@ import {
   Transition,
   Begin,
 } from './lexing';
+import { Token } from 'acorn';
 
 const LEFT_STRIP = '~';
 const RIGHT_STRIP = '~';
@@ -44,23 +44,31 @@ const enum State {
   Raw,
 }
 
-const enum TokenKind {
-  Content,
-  OpenRawBlock,
-  EndRawBlock,
-  CloseRawBlock,
-  Comment,
-  OpenSexpr,
-  CloseSexp,
-  OpenPartial,
-  OpenPartialBlock,
-  OpenBlock,
-  OpenEndBlock,
-  Inverse,
-  OpenInverse,
-  OpenInverseChain,
-  OpenUnescaped,
-  Open,
+export const enum TokenKind {
+  Identifier = 'Identifier',
+  Dot = 'Dot',
+
+  Content = 'Content',
+  OpenRawBlock = 'OpenRawBlock',
+  EndRawBlock = 'EndRawBlock',
+  CloseRawBlock = 'CloseRawBlock',
+  Comment = 'Comment',
+  OpenSexpr = 'OpenSexpr',
+  CloseSexpr = 'CloseSexpr',
+  OpenPartial = 'OpenPartial',
+  OpenPartialBlock = 'ClosePartial',
+  OpenBlock = 'OpenBlock',
+  OpenEndBlock = 'OpenEndBlock',
+  Inverse = 'Inverse',
+  OpenInverse = 'OpenInverse',
+  OpenInverseChain = 'OpenInverseChain',
+  OpenUnescaped = 'OpenUnescaped',
+  CloseUnescaped = 'CloseUnescaped',
+  Open = 'Open',
+  Close = 'Close',
+  OpenParen = 'OpenParen',
+  CloseParen = 'CloseParen',
+  EOF = 'EOF',
 }
 
 export interface TokenContents {
@@ -75,6 +83,10 @@ export class HandlebarsLexerDelegate implements LexerDelegate<State, TokenKind> 
 
   top(): this {
     return new HandlebarsLexerDelegate(State.Top) as this;
+  }
+
+  eof(): TokenKind {
+    return TokenKind.EOF;
   }
 
   for(state: State): LexerDelegate<State, TokenKind> {

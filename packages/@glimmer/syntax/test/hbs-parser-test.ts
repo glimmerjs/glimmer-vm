@@ -20,7 +20,8 @@ function shouldThrow(callback: () => void, error: typeof Error, pattern?: RegExp
 describe('@glimmer/syntax - parser', function() {
   function astFor(template: string | hbs.RootProgram): string {
     let ast = parse(template);
-    return print(ast);
+    QUnit.assert.ok(ast.errors.length === 0, 'there were no parse errors');
+    return print(ast.result);
   }
 
   it('parses content', () => {

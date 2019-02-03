@@ -8,8 +8,13 @@
 
 import * as AST from './nodes';
 
+export interface Span {
+  start: number;
+  end: number;
+}
+
 export interface CommonNode {
-  loc: SourceLocation;
+  span: Span;
 }
 
 export interface NodeMap {
@@ -138,7 +143,7 @@ export type Expression = SubExpression | PathExpression | Literal;
 
 export interface SubExpression extends CommonNode {
   type: 'SubExpression';
-  path: PathExpression;
+  path: Expression;
   params: Expression[];
   hash: Hash;
 }
