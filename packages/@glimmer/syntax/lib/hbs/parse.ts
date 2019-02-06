@@ -1,11 +1,16 @@
 import * as hbs from '../types/handlebars-ast';
-import { Lexer, LexItem, Result, Tokens } from './lexing';
+import { Lexer, LexItem, Result, Tokens, Debug } from './lexing';
 import { HandlebarsLexerDelegate, TokenKind } from './lex';
 import { HandlebarsParser, Diagnostic } from './parser';
 import { Printer } from './printer';
+import { assert } from '@glimmer/util';
 
-export function hbsLex(template: string, errors: Diagnostic[]): Result<LexItem<TokenKind>[]> {
-  let lexer = new Lexer(template, new HandlebarsLexerDelegate(), errors);
+export function hbsLex(
+  template: string,
+  errors: Diagnostic[],
+  debug: Debug
+): Result<LexItem<TokenKind>[]> {
+  let lexer = new Lexer(template, new HandlebarsLexerDelegate(debug), errors, debug);
   let out: Array<LexItem<TokenKind>> = [];
 
   while (true) {
@@ -23,9 +28,16 @@ export function hbsLex(template: string, errors: Diagnostic[]): Result<LexItem<T
 }
 
 export class TokensImpl implements Tokens {
-  private pos = 0;
+  constructor(private tokens: Array<LexItem<TokenKind>>, private pos = 0) {
+    assert(
+      tokens[tokens.length - 1].kind === TokenKind.EOF,
+      `The last token must be EOF, was ${tokens[tokens.length - 1].kind}`
+    );
+  }
 
-  constructor(private tokens: Array<LexItem<TokenKind>>) {}
+  clone(): Tokens {
+    return new TokensImpl(this.tokens, this.pos);
+  }
 
   peek(): LexItem<TokenKind> {
     return this.tokens[this.pos];
@@ -36,21 +48,27 @@ export class TokensImpl implements Tokens {
   }
 }
 
-function isEOF(item: LexItem<TokenKind>): item is { token: TokenKind.EOF; span: hbs.Span } {
-  return item.kind !== TokenKind.EOF;
+function isEOF(item: LexItem<TokenKind>): item is { kind: TokenKind.EOF; span: hbs.Span } {
+  return item.kind === TokenKind.EOF;
 }
 
 export function hbsParse(
-  template: string | hbs.RootProgram
-): { result: hbs.RootProgram; errors: Diagnostic[] } {
+  template: string | hbs.AnyProgram
+): { result: hbs.AnyProgram; errors: Diagnostic[] } {
+  let debug: Debug = {
+    trace(message) {
+      console.info(message);
+    },
+  };
+
   if (typeof template === 'string') {
     let errors: Diagnostic[] = [];
 
-    let tokens = hbsLex(template, errors);
+    let tokens = hbsLex(template, errors, debug);
 
     if (tokens.status === 'err') return { result: lexErrorProgram(tokens.value.span), errors };
 
-    let parser = new HandlebarsParser(template, new TokensImpl(tokens.value));
+    let parser = new HandlebarsParser(template, new TokensImpl(tokens.value), debug);
 
     return { result: parser.RootProgram(), errors };
   } else {
@@ -58,10 +76,10 @@ export function hbsParse(
   }
 }
 
-function lexErrorProgram(span: hbs.Span): hbs.RootProgram {
+function lexErrorProgram(span: hbs.Span): hbs.AnyProgram {
   return { span, type: 'Program', body: [] };
 }
 
-export function hbsPrint(ast: hbs.RootProgram): string {
+export function hbsPrint(ast: hbs.AnyProgram): string {
   return new Printer().print(ast);
 }

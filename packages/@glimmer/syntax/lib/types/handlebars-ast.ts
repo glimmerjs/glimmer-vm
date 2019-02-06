@@ -52,7 +52,7 @@ export interface Position {
   column: number;
 }
 
-export interface RootProgram extends CommonNode {
+export interface AnyProgram extends CommonNode {
   type: 'Program';
   body: Statement[];
 }
@@ -73,14 +73,14 @@ export type Statement =
   | CommentStatement;
 
 export interface CommonMustache extends CommonNode {
-  path: PathExpression | Literal;
+  path: Expression;
   params: Expression[];
   hash: Hash;
   escaped: boolean;
   strip: StripFlags;
 }
 
-export interface MustacheStatement extends CommonMustache {
+export interface MustacheStatement extends CommonMustache, MustacheBody {
   type: 'MustacheStatement';
 }
 
@@ -88,13 +88,19 @@ export interface Decorator extends CommonMustache {
   type: 'DecoratorStatement';
 }
 
-export interface CommonBlock extends CommonNode {
+export interface MustacheBody {
+  path: Expression;
+  params: Expression[];
+  hash: Hash;
+}
+
+export interface CommonBlock extends MustacheBody, CommonNode {
   chained: boolean;
-  path: PathExpression;
+  path: Expression;
   params: Expression[];
   hash: Hash;
   program: Program;
-  inverse: Program;
+  inverse: Program | null;
   openStrip: StripFlags;
   inverseStrip: StripFlags;
   closeStrip: StripFlags;
@@ -152,6 +158,7 @@ export interface PathExpression extends CommonNode {
   type: 'PathExpression';
   data: boolean;
   depth: number;
+  // TODO: Use head/tail here and get rid of legacy constructs
   parts: string[];
   original: string;
 }
@@ -183,10 +190,12 @@ export interface NumberLiteral extends CommonNode {
 
 export interface UndefinedLiteral extends CommonNode {
   type: 'UndefinedLiteral';
+  value: undefined;
 }
 
 export interface NullLiteral extends CommonNode {
   type: 'NullLiteral';
+  value: null;
 }
 
 export interface Hash extends CommonNode {

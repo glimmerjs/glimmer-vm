@@ -2,6 +2,7 @@ import { Option } from '@glimmer/interfaces';
 import { TokenKind } from './lex';
 import { Diagnostic, reportError } from './parser';
 import { Span } from '../types/handlebars-ast';
+import { assert } from '@glimmer/util';
 
 export const EOF_SPAN = { start: -1, end: -1 };
 
@@ -12,6 +13,7 @@ export interface Position {
 export interface Tokens {
   peek(): LexItem<TokenKind>;
   consume(): LexItem<TokenKind>;
+  clone(): Tokens;
 }
 
 export type Ok<T> = { status: 'ok'; value: T };
@@ -43,15 +45,16 @@ export type LexerNext<S, T> =
   | {
       type: 'pop-state';
       value: LexerAccumulate<T>;
-      state: S;
     };
 
 export type LexerAccumulate<T> =
   | {
       type: 'begin';
+      action: LexerAction;
     }
   | {
       type: 'nothing';
+      action: LexerAction;
     }
   | {
       type: 'continue';
@@ -78,6 +81,7 @@ type LexerAction = { type: 'consume'; amount: number } | { type: 'reconsume' };
 export interface LexerDelegate<S, T> {
   token: T;
 
+  describe(): string;
   for(state: S): LexerDelegate<S, T>;
 
   top(): this;
@@ -88,9 +92,12 @@ export interface LexerDelegate<S, T> {
   clone(): LexerDelegate<S, T>;
 }
 
+export interface Debug {
+  trace?(v: string): void;
+}
+
 export class Lexer<T, S> {
   private rest: string;
-  private tokenStart: string;
   private state: LexerDelegate<S, T>;
 
   private startPos = 0;
@@ -100,10 +107,10 @@ export class Lexer<T, S> {
   constructor(
     private input: string,
     private delegate: LexerDelegate<S, T>,
-    private errors: Diagnostic[]
+    private errors: Diagnostic[],
+    private debug: Debug = {}
   ) {
     this.rest = input;
-    this.tokenStart = input;
     this.state = delegate.top();
   }
 
@@ -139,7 +146,7 @@ export class Lexer<T, S> {
       case 'eof':
         return {
           type: 'return',
-          value: Ok({ token: this.delegate.eof(), span: EOF_SPAN }),
+          value: Ok({ kind: this.delegate.eof(), span: EOF_SPAN }),
         };
 
       case 'remain':
@@ -153,7 +160,7 @@ export class Lexer<T, S> {
 
       case 'push-state': {
         let ret = this.accumulate(next.value);
-        this.stack.push(this.delegate.for(next.state));
+        this.stack.push(this.state);
 
         this.transition(this.delegate.for(next.state));
 
@@ -162,7 +169,12 @@ export class Lexer<T, S> {
 
       case 'pop-state': {
         let ret = this.accumulate(next.value);
-        let state = this.stack.pop()!;
+        let state = this.stack.pop();
+
+        if (state === undefined) {
+          throw new Error('state machine bug');
+        }
+
         this.transition(state);
 
         return ret;
@@ -175,15 +187,27 @@ export class Lexer<T, S> {
   }
 
   transition(state: LexerDelegate<S, T>): void {
+    this.trace(`transition, stack = ${JSON.stringify(this.stack.map(s => s.state))}`);
+
     this.state = state;
   }
 
   accumulate(accum: LexerAccumulate<T>): LoopCompletion<Result<LexItem<T>>> {
     switch (accum.type) {
       case 'begin':
+        assert(
+          this.tokenLen === 0,
+          'you can only begin a new token when there are no accumulated characters'
+        );
+        this.action(accum.action);
         return { type: 'continue' };
 
       case 'nothing':
+        assert(
+          this.tokenLen === 0,
+          'you can only do nothing when there are no accumulated characters'
+        );
+        this.action(accum.action);
         return { type: 'continue' };
 
       case 'continue':
@@ -192,6 +216,10 @@ export class Lexer<T, S> {
         return { type: 'continue' };
 
       case 'skip':
+        assert(
+          this.tokenLen === 0,
+          'you can only skip when there are no accumulated characters yet'
+        );
         this.action(accum.action);
 
         this.startPos += this.tokenLen;
@@ -211,10 +239,15 @@ export class Lexer<T, S> {
         this.startPos = startPos + tokenLen;
         this.tokenLen = 0;
 
+        this.trace(
+          `${this.state.describe()} -> emitting ${token} start=${startPos}, end=${startPos +
+            tokenLen}, slice=${JSON.stringify(this.input.slice(startPos, startPos + tokenLen))}`
+        );
+
         return {
           type: 'return',
           value: Ok({
-            token,
+            kind: token,
             span: { start: startPos, end: startPos + tokenLen },
           }),
         };
@@ -232,6 +265,12 @@ export class Lexer<T, S> {
         return;
     }
   }
+
+  private trace(s: string) {
+    if (this.debug.trace) {
+      this.debug.trace(s);
+    }
+  }
 }
 
 export function Ok<T>(value: T): Result<T> {
@@ -242,8 +281,12 @@ export function Err<T>(diagnostic: Diagnostic): Result<T> {
   return { status: 'err', value: diagnostic };
 }
 
-export function Begin<S, T>(state: S): LexerNext<S, T> {
-  return { type: 'transition', value: { type: 'begin' }, state };
+export function PushBegin<S, T>(state: S, action: LexerAction): LexerNext<S, T> {
+  return { type: 'push-state', value: { type: 'begin', action }, state };
+}
+
+export function PopBegin<S, T>(action: LexerAction): LexerNext<S, T> {
+  return { type: 'pop-state', value: { type: 'begin', action } };
 }
 
 export function Consume(c: string | number = 1): LexerAction {
@@ -252,6 +295,13 @@ export function Consume(c: string | number = 1): LexerAction {
 
 export function Reconsume(): LexerAction {
   return { type: 'reconsume' };
+}
+
+export function Skip<T>(amount: number): LexerAccumulate<T> {
+  return {
+    type: 'skip',
+    action: { type: 'consume', amount },
+  };
 }
 
 export function Continue<T>(action: LexerAction): LexerAccumulate<T> {
@@ -271,6 +321,18 @@ export function Remain<S, T>(accum: LexerAccumulate<T>): LexerNext<S, T> {
 
 export function Transition<S, T>(accum: LexerAccumulate<T>, state: S): LexerNext<S, T> {
   return { type: 'transition', value: accum, state };
+}
+
+export function PushState<S, T>(accum: LexerAccumulate<T>, state: S): LexerNext<S, T> {
+  return { type: 'push-state', value: accum, state };
+}
+
+export function PopState<S, T>(accum: LexerAccumulate<T>): LexerNext<S, T> {
+  return { type: 'pop-state', value: accum };
+}
+
+export function Nothing<T>(action: LexerAction): LexerAccumulate<T> {
+  return { type: 'nothing', action };
 }
 
 export function EOF<S, T>(): LexerNext<S, T> {

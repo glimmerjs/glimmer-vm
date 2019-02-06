@@ -13,19 +13,27 @@ function it(name: string, callback: () => void) {
   QUnit.test(name, callback);
 }
 
+function todo(name: string, callback: () => void) {
+  QUnit.todo(name, callback);
+}
+
+function legacy(name: string, callback: () => void) {
+  QUnit.skip(`[not-glimmer] ${name}`, callback);
+}
+
 function shouldThrow(callback: () => void, error: typeof Error, pattern?: RegExp) {
   QUnit.assert.raises(callback, error, pattern);
 }
 
 describe('@glimmer/syntax - parser', function() {
-  function astFor(template: string | hbs.RootProgram): string {
+  function astFor(template: string | hbs.AnyProgram): string {
     let ast = parse(template);
     QUnit.assert.ok(ast.errors.length === 0, 'there were no parse errors');
     return print(ast.result);
   }
 
   it('parses content', () => {
-    equals(astFor('hello'), 'CONTENT[ hello ]');
+    equals(astFor('hello'), `CONTENT[ 'hello' ]\n`);
   });
 
   it('parses simple mustaches', function() {
@@ -44,25 +52,23 @@ describe('@glimmer/syntax - parser', function() {
     equals(astFor('{{@foo}}'), '{{ @PATH:foo [] }}\n');
   });
 
-  it('parses simple mustaches with data paths', function() {
-    equals(astFor('{{@../foo}}'), '{{ @PATH:foo [] }}\n');
-  });
-
   it('parses mustaches with paths', function() {
     equals(astFor('{{foo/bar}}'), '{{ PATH:foo/bar [] }}\n');
   });
 
-  it('parses mustaches with this/foo', function() {
-    equals(astFor('{{this/foo}}'), '{{ PATH:foo [] }}\n');
+  it('parses mustaches with this/foo (`/` is just a valid identifier character, so `this` is not special', function() {
+    equals(astFor('{{this/foo}}'), '{{ PATH:this/foo [] }}\n');
   });
 
   it('parses mustaches with - in a path', function() {
     equals(astFor('{{foo-bar}}'), '{{ PATH:foo-bar [] }}\n');
   });
-  it('parses mustaches with escaped [] in a path', function() {
+
+  todo('parses mustaches with escaped [] in a path', function() {
     equals(astFor('{{[foo[\\]]}}'), '{{ PATH:foo[] [] }}\n');
   });
-  it('parses escaped \\\\ in path', function() {
+
+  todo('parses escaped \\\\ in path', function() {
     equals(astFor('{{[foo\\\\]}}'), '{{ PATH:foo\\ [] }}\n');
   });
 
@@ -135,35 +141,36 @@ describe('@glimmer/syntax - parser', function() {
     equals(astFor('foo bar {{baz}}'), "CONTENT[ 'foo bar ' ]\n{{ PATH:baz [] }}\n");
   });
 
-  it('parses a partial', function() {
+  legacy('parses a partial', function() {
     equals(astFor('{{> foo }}'), '{{> PARTIAL:foo }}\n');
     equals(astFor('{{> "foo" }}'), '{{> PARTIAL:foo }}\n');
     equals(astFor('{{> 1 }}'), '{{> PARTIAL:1 }}\n');
   });
 
-  it('parses a partial with context', function() {
+  legacy('parses a partial with context', function() {
     equals(astFor('{{> foo bar}}'), '{{> PARTIAL:foo PATH:bar }}\n');
   });
 
-  it('parses a partial with hash', function() {
+  legacy('parses a partial with hash', function() {
     equals(astFor('{{> foo bar=bat}}'), '{{> PARTIAL:foo HASH{bar=PATH:bat} }}\n');
   });
 
-  it('parses a partial with context and hash', function() {
+  legacy('parses a partial with context and hash', function() {
     equals(astFor('{{> foo bar bat=baz}}'), '{{> PARTIAL:foo PATH:bar HASH{bat=PATH:baz} }}\n');
   });
 
-  it('parses a partial with a complex name', function() {
+  legacy('parses a partial with a complex name', function() {
     equals(astFor('{{> shared/partial?.bar}}'), '{{> PARTIAL:shared/partial?.bar }}\n');
   });
 
-  it('parsers partial blocks', function() {
+  legacy('parsers partial blocks', function() {
     equals(
       astFor('{{#> foo}}bar{{/foo}}'),
       "{{> PARTIAL BLOCK:foo PROGRAM:\n  CONTENT[ 'bar' ]\n }}\n"
     );
   });
-  it('should handle parser block mismatch', function() {
+
+  legacy('should handle parser block mismatch', function() {
     shouldThrow(
       function() {
         astFor('{{#> goodbyes}}{{/hellos}}');
@@ -172,7 +179,8 @@ describe('@glimmer/syntax - parser', function() {
       /goodbyes doesn't match hellos/
     );
   });
-  it('parsers partial blocks with arguments', function() {
+
+  legacy('parsers partial blocks with arguments', function() {
     equals(
       astFor('{{#> foo context hash=value}}bar{{/foo}}'),
       "{{> PARTIAL BLOCK:foo PATH:context HASH{hash=PATH:value} PROGRAM:\n  CONTENT[ 'bar' ]\n }}\n"
@@ -190,7 +198,7 @@ describe('@glimmer/syntax - parser', function() {
     );
   });
 
-  it('parses an inverse section', function() {
+  legacy('parses an inverse section', function() {
     equals(
       astFor('{{#foo}} bar {{^}} baz {{/foo}}'),
       "BLOCK:\n  PATH:foo []\n  PROGRAM:\n    CONTENT[ ' bar ' ]\n  {{^}}\n    CONTENT[ ' baz ' ]\n"
@@ -200,30 +208,37 @@ describe('@glimmer/syntax - parser', function() {
   it('parses an inverse (else-style) section', function() {
     equals(
       astFor('{{#foo}} bar {{else}} baz {{/foo}}'),
-      "BLOCK:\n  PATH:foo []\n  PROGRAM:\n    CONTENT[ ' bar ' ]\n  {{^}}\n    CONTENT[ ' baz ' ]\n"
+      "{{# PATH:foo [] }}\n  PROGRAM:\n    CONTENT[ ' bar ' ]\n  {{else}}\n    CONTENT[ ' baz ' ]\n"
     );
   });
 
   it('parses multiple inverse sections', function() {
     equals(
       astFor('{{#foo}} bar {{else if bar}}{{else}} baz {{/foo}}'),
-      "BLOCK:\n  PATH:foo []\n  PROGRAM:\n    CONTENT[ ' bar ' ]\n  {{^}}\n    BLOCK:\n      PATH:if [PATH:bar]\n      PROGRAM:\n      {{^}}\n        CONTENT[ ' baz ' ]\n"
+      "{{# PATH:foo [] }}\n  PROGRAM:\n    CONTENT[ ' bar ' ]\n  {{else}}\n    {{# PATH:if [PATH:bar] }}\n      PROGRAM:\n      {{else}}\n        CONTENT[ ' baz ' ]\n"
     );
   });
 
   it('parses empty blocks', function() {
-    equals(astFor('{{#foo}}{{/foo}}'), 'BLOCK:\n  PATH:foo []\n  PROGRAM:\n');
+    equals(astFor('{{#foo}}{{/foo}}'), '{{# PATH:foo [] }}\n  PROGRAM:\n');
   });
 
-  it('parses empty blocks with empty inverse section', function() {
-    equals(astFor('{{#foo}}{{^}}{{/foo}}'), 'BLOCK:\n  PATH:foo []\n  PROGRAM:\n  {{^}}\n');
+  it('parses blocks', function() {
+    equals(
+      astFor('{{#foo}}hello {{world}} goodbye{{/foo}}'),
+      `{{# PATH:foo [] }}\n  PROGRAM:\n    CONTENT[ 'hello ' ]\n    {{ PATH:world [] }}\n    CONTENT[ ' goodbye' ]\n`
+    );
+  });
+
+  legacy('parses empty blocks with empty inverse section', function() {
+    equals(astFor('{{#foo}}{{^}}{{/foo}}'), '{{# PATH:foo [] }}\n  PROGRAM:\n  {{else}}\n');
   });
 
   it('parses empty blocks with empty inverse (else-style) section', function() {
-    equals(astFor('{{#foo}}{{else}}{{/foo}}'), 'BLOCK:\n  PATH:foo []\n  PROGRAM:\n  {{^}}\n');
+    equals(astFor('{{#foo}}{{else}}{{/foo}}'), '{{# PATH:foo [] }}\n  PROGRAM:\n  {{else}}\n');
   });
 
-  it('parses non-empty blocks with empty inverse section', function() {
+  legacy('parses non-empty blocks with empty inverse section', function() {
     equals(
       astFor('{{#foo}} bar {{^}}{{/foo}}'),
       "BLOCK:\n  PATH:foo []\n  PROGRAM:\n    CONTENT[ ' bar ' ]\n  {{^}}\n"
@@ -233,11 +248,11 @@ describe('@glimmer/syntax - parser', function() {
   it('parses non-empty blocks with empty inverse (else-style) section', function() {
     equals(
       astFor('{{#foo}} bar {{else}}{{/foo}}'),
-      "BLOCK:\n  PATH:foo []\n  PROGRAM:\n    CONTENT[ ' bar ' ]\n  {{^}}\n"
+      "{{# PATH:foo [] }}\n  PROGRAM:\n    CONTENT[ ' bar ' ]\n  {{else}}\n"
     );
   });
 
-  it('parses empty blocks with non-empty inverse section', function() {
+  legacy('parses empty blocks with non-empty inverse section', function() {
     equals(
       astFor('{{#foo}}{{^}} bar {{/foo}}'),
       "BLOCK:\n  PATH:foo []\n  PROGRAM:\n  {{^}}\n    CONTENT[ ' bar ' ]\n"
@@ -247,39 +262,42 @@ describe('@glimmer/syntax - parser', function() {
   it('parses empty blocks with non-empty inverse (else-style) section', function() {
     equals(
       astFor('{{#foo}}{{else}} bar {{/foo}}'),
-      "BLOCK:\n  PATH:foo []\n  PROGRAM:\n  {{^}}\n    CONTENT[ ' bar ' ]\n"
+      "{{# PATH:foo [] }}\n  PROGRAM:\n  {{else}}\n    CONTENT[ ' bar ' ]\n"
     );
   });
 
-  it('parses a standalone inverse section', function() {
+  legacy('parses a standalone inverse section', function() {
     equals(astFor('{{^foo}}bar{{/foo}}'), "BLOCK:\n  PATH:foo []\n  {{^}}\n    CONTENT[ 'bar' ]\n");
   });
+
   it('throws on old inverse section', function() {
     shouldThrow(function() {
       astFor('{{else foo}}bar{{/foo}}');
     }, Error);
   });
 
-  it('parses block with block params', function() {
+  todo('parses block with block params', function() {
     equals(
       astFor('{{#foo as |bar baz|}}content{{/foo}}'),
-      "BLOCK:\n  PATH:foo []\n  PROGRAM:\n    BLOCK PARAMS: [ bar baz ]\n    CONTENT[ 'content' ]\n"
+      "{{ PATH:foo [] as |bar baz| }}\n  PROGRAM:\n    CONTENT[ 'content' ]\n"
     );
   });
 
-  it('parses inverse block with block params', function() {
+  legacy('parses inverse block with block params', function() {
     equals(
       astFor('{{^foo as |bar baz|}}content{{/foo}}'),
       "BLOCK:\n  PATH:foo []\n  {{^}}\n    BLOCK PARAMS: [ bar baz ]\n    CONTENT[ 'content' ]\n"
     );
   });
-  it('parses chained inverse block with block params', function() {
+
+  todo('parses chained inverse block with block params', function() {
     equals(
       astFor('{{#foo}}{{else foo as |bar baz|}}content{{/foo}}'),
       "BLOCK:\n  PATH:foo []\n  PROGRAM:\n  {{^}}\n    BLOCK:\n      PATH:foo []\n      PROGRAM:\n        BLOCK PARAMS: [ bar baz ]\n        CONTENT[ 'content' ]\n"
     );
   });
-  it("raises if there's a Parse error", function() {
+
+  todo("raises if there's a Parse error", function() {
     shouldThrow(
       function() {
         astFor('foo{{^}}bar');
@@ -318,7 +336,7 @@ describe('@glimmer/syntax - parser', function() {
     );
   });
 
-  it('should handle invalid paths', function() {
+  todo('should handle invalid paths', function() {
     shouldThrow(
       function() {
         astFor('{{foo/../bar}}');
@@ -342,7 +360,7 @@ describe('@glimmer/syntax - parser', function() {
     );
   });
 
-  it('knows how to report the correct line number in errors', function() {
+  todo('knows how to report the correct line number in errors', function() {
     shouldThrow(
       function() {
         astFor('hello\nmy\n{{foo}');
@@ -359,30 +377,33 @@ describe('@glimmer/syntax - parser', function() {
     );
   });
 
-  it('knows how to report the correct line number in errors when the first character is a newline', function() {
-    shouldThrow(
-      function() {
-        astFor('\n\nhello\n\nmy\n\n{{foo}');
-      },
-      Error,
-      /Parse error on line 7/
-    );
-  });
+  todo(
+    'knows how to report the correct line number in errors when the first character is a newline',
+    function() {
+      shouldThrow(
+        function() {
+          astFor('\n\nhello\n\nmy\n\n{{foo}');
+        },
+        Error,
+        /Parse error on line 7/
+      );
+    }
+  );
 
   describe('externally compiled AST', function() {
     it('can pass through an already-compiled AST', function() {
-      equals(print(parse(parse('{{Hello}}'))), "CONTENT[ 'Hello' ]\n");
+      equals(print(parse(parse('{{Hello}}').result).result), "CONTENT[ 'Hello' ]\n");
     });
   });
 
-  describe('directives', function() {
-    it('should parse block directives', function() {
+  describe('[not-glimmer] directives', function() {
+    legacy('should parse block directives', function() {
       equals(astFor('{{#* foo}}{{/foo}}'), 'DIRECTIVE BLOCK:\n  PATH:foo []\n  PROGRAM:\n');
     });
-    it('should parse directives', function() {
+    legacy('should parse directives', function() {
       equals(astFor('{{* foo}}'), '{{ DIRECTIVE PATH:foo [] }}\n');
     });
-    it('should fail if directives have inverse', function() {
+    legacy('should fail if directives have inverse', function() {
       shouldThrow(
         function() {
           astFor('{{#* foo}}{{^}}{{/foo}}');
