@@ -27,7 +27,7 @@ export class Printer {
 
       case 'BlockStatement': {
         let out = [];
-        out.push(indent(this.mustacheBody(item, true), size));
+        out.push(indent(this.mustacheBody(item, item.program.blockParams), size));
         out.push(indent('PROGRAM:', size + 1));
         if (item.program.body.length) {
           out.push(this.top(item.program, size + 2));
@@ -44,7 +44,7 @@ export class Printer {
       }
 
       case 'MustacheStatement': {
-        return indent(this.mustacheBody(item, false), size);
+        return indent(this.mustacheBody(item), size);
       }
 
       default:
@@ -52,7 +52,7 @@ export class Printer {
     }
   }
 
-  mustacheBody(item: hbs.MustacheBody, block: boolean): string {
+  mustacheBody(item: hbs.MustacheBody, blockParams?: string[]): string {
     let params = [];
 
     for (let param of item.params) {
@@ -61,7 +61,7 @@ export class Printer {
 
     let hash = '';
 
-    if (item.hash.pairs.length > 0) {
+    if (item.hash) {
       let parts = [];
       for (let pair of item.hash.pairs) {
         parts.push(`${pair.key}=${this.expr(pair.value)}`);
@@ -69,16 +69,21 @@ export class Printer {
       hash = ` HASH{${parts.join(', ')}}`;
     }
 
-    return `{{${block ? '#' : ''} ${this.expr(item.path)} [${params.join(', ')}]${hash} }}`;
+    if (blockParams) {
+      let asList = blockParams.length === 0 ? '' : ` as |${blockParams.join(' ')}|`;
+      return `{{# ${this.expr(item.path)} [${params.join(', ')}]${hash}${asList} }}`;
+    } else {
+      return `{{ ${this.expr(item.path)} [${params.join(', ')}]${hash} }}`;
+    }
   }
 
   expr(item: hbs.Expression): string {
     switch (item.type) {
       case 'PathExpression':
         if (item.data) {
-          return `@PATH:${item.parts.join('.')}`;
+          return `@/"${item.parts.join('"."')}"/`;
         } else {
-          return `PATH:${item.parts.join('.')}`;
+          return `/"${item.parts.join('"."')}"/`;
         }
 
       case 'NumberLiteral':

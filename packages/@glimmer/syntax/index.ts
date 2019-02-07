@@ -8,6 +8,8 @@ export {
   Syntax,
 } from './lib/parser/tokenizer-event-handlers';
 
+export * from './lib/hbs/pos';
+
 // needed for tests only
 export { default as builders } from './lib/builders';
 export {

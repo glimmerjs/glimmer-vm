@@ -61,6 +61,8 @@ const enum State {
   EndBlock = 'EndBlock',
   Raw = 'Raw',
 
+  BlockParams = 'BlockParams',
+  BlockParamList = 'BlockParamList',
   ElseBlock = 'ElseBlock',
 
   Expression = 'Expression',
@@ -68,6 +70,7 @@ const enum State {
   Number = 'Number',
   AtName = 'AtName',
   AfterIdent = 'AfterIdent',
+  AfterDot = 'AfterDot',
   DoubleString = 'DoubleString',
   SingleString = 'SingleString',
   EscapeChar = 'EscapeChar',
@@ -79,6 +82,7 @@ export const enum TokenKind {
   Number = 'Number',
   String = 'String',
 
+  Pipe = 'Pipe',
   Dot = 'Dot',
   Equals = 'Equals',
   Else = 'Else',
@@ -240,10 +244,38 @@ export class HandlebarsLexerDelegate implements LexerDelegate<State, TokenKind> 
 
         if ((match = testWs(rest))) {
           return Remain(Skip(match.length));
+        } else if (rest.startsWith('as')) {
+          return PushState(Emit(TokenKind.Identifier, { first: Consume(2) }), State.BlockParams);
         } else if (rest.startsWith('}}')) {
           return PopBegin(Reconsume());
         } else {
           return PushBegin(State.Expression, Reconsume());
+        }
+      }
+
+      case State.BlockParams: {
+        let match;
+
+        if ((match = testWs(rest))) {
+          return Remain(Skip(match.length));
+        } else if (char === '|') {
+          return Transition(Emit(TokenKind.Pipe, { first: Consume() }), State.BlockParamList);
+        } else {
+          throw unexpected();
+        }
+      }
+
+      case State.BlockParamList: {
+        let match;
+
+        if ((match = testWs(rest))) {
+          return Remain(Skip(match.length));
+        } else if ((match = testId(rest))) {
+          return Remain(Emit(TokenKind.Identifier, { first: Consume(match.length) }));
+        } else if (char === '|') {
+          return PopState(Emit(TokenKind.Pipe, { first: Consume() }));
+        } else {
+          throw unexpected();
         }
       }
 
@@ -255,7 +287,7 @@ export class HandlebarsLexerDelegate implements LexerDelegate<State, TokenKind> 
         } else if (rest.match(/^\d/)) {
           return PushState(Continue(Reconsume()), State.Number);
         } else if (char === '@') {
-          return PushBegin(State.AtName, Consume());
+          return Transition(Continue(Consume()), State.AtName);
         } else if (char === '"') {
           return PushBegin(State.DoubleString, Consume());
         } else if (char === "'") {
@@ -272,6 +304,21 @@ export class HandlebarsLexerDelegate implements LexerDelegate<State, TokenKind> 
         }
       }
 
+      case State.AtName: {
+        let id;
+
+        if (char === null) {
+          throw unexpectedEOF();
+        } else if ((id = testId(rest))) {
+          return Transition(
+            Emit(TokenKind.AtName, { first: Consume(id.length) }),
+            State.AfterIdent
+          );
+        } else {
+          throw unexpected();
+        }
+      }
+
       case State.AfterIdent: {
         let match;
 
@@ -280,10 +327,24 @@ export class HandlebarsLexerDelegate implements LexerDelegate<State, TokenKind> 
           return PopState(Emit(TokenKind.Number, { first: Reconsume() }));
         } else if (char === '=') {
           return Transition(Emit(TokenKind.Equals, { first: Consume() }), State.Expression);
+        } else if (char === '.') {
+          return PushState(Emit(TokenKind.Dot, { first: Consume() }), State.AfterDot);
         } else if ((match = testWs(rest))) {
           return PopState(Skip(match.length));
         } else if (char === '}') {
           return PopState(Continue(Reconsume()));
+        } else {
+          throw unexpected();
+        }
+      }
+
+      case State.AfterDot: {
+        let match;
+
+        if (char === null) {
+          throw unexpectedEOF();
+        } else if ((match = testId(rest))) {
+          return PopState(Emit(TokenKind.Identifier, { first: Consume(match.length) }));
         } else {
           throw unexpected();
         }
@@ -297,19 +358,6 @@ export class HandlebarsLexerDelegate implements LexerDelegate<State, TokenKind> 
           return Remain(Continue(Consume()));
         } else {
           return PopState(Emit(TokenKind.Number, { first: Reconsume() }));
-        }
-      }
-
-      case State.AtName: {
-        let id;
-
-        if (char === null) {
-          // TODO: this is an error case
-          return PopState(Emit(TokenKind.AtName, { first: Reconsume() }));
-        } else if ((id = testId(rest))) {
-          return PopState(Emit(TokenKind.AtName, { first: Consume(id.length) }));
-        } else {
-          throw unexpected();
         }
       }
 

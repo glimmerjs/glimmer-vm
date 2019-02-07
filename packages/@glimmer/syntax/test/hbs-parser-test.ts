@@ -1,8 +1,27 @@
-import { hbsParse as parse, hbsPrint as print, hbs } from '@glimmer/syntax';
+import { hbsParse as parse, hbsPrint as print, hbs, locForSpan } from '@glimmer/syntax';
+
+const MODULE_STACK: string[] = [];
 
 function describe(name: string, callback: () => void) {
-  QUnit.module(name);
-  callback();
+  MODULE_STACK.push(name);
+  currentModule();
+
+  try {
+    callback();
+  } finally {
+    MODULE_STACK.pop();
+    currentModule();
+  }
+}
+
+function currentModule() {
+  if (MODULE_STACK.length === 0) {
+    return;
+  }
+
+  let last = MODULE_STACK[MODULE_STACK.length - 1];
+
+  QUnit.module(last);
 }
 
 function equals<T>(actual: T, expected: T) {
@@ -41,52 +60,79 @@ describe('@glimmer/syntax - parser', function() {
     equals(astFor('{{"foo"}}'), '{{ "foo" [] }}\n');
     equals(astFor('{{false}}'), '{{ BOOLEAN{false} [] }}\n');
     equals(astFor('{{true}}'), '{{ BOOLEAN{true} [] }}\n');
-    equals(astFor('{{foo}}'), '{{ PATH:foo [] }}\n');
-    equals(astFor('{{foo?}}'), '{{ PATH:foo? [] }}\n');
-    equals(astFor('{{foo_}}'), '{{ PATH:foo_ [] }}\n');
-    equals(astFor('{{foo-}}'), '{{ PATH:foo- [] }}\n');
-    equals(astFor('{{foo:}}'), '{{ PATH:foo: [] }}\n');
+    equals(astFor('{{foo}}'), '{{ /"foo"/ [] }}\n');
+    equals(astFor('{{foo?}}'), '{{ /"foo?"/ [] }}\n');
+    equals(astFor('{{foo_}}'), '{{ /"foo_"/ [] }}\n');
+    equals(astFor('{{foo-}}'), '{{ /"foo-"/ [] }}\n');
+    equals(astFor('{{foo:}}'), '{{ /"foo:"/ [] }}\n');
+    equals(astFor('{{foo/bar}}'), '{{ /"foo/bar"/ [] }}\n');
   });
 
-  it('parses simple mustaches with data', function() {
-    equals(astFor('{{@foo}}'), '{{ @PATH:foo [] }}\n');
+  it('parses simple mustaches (whitespace)', function() {
+    equals(astFor('{{ 123 }}'), '{{ NUMBER{123} [] }}\n');
+    equals(astFor('{{ "foo" }}'), '{{ "foo" [] }}\n');
+    equals(astFor('{{ false }}'), '{{ BOOLEAN{false} [] }}\n');
+    equals(astFor('{{ true }}'), '{{ BOOLEAN{true} [] }}\n');
+    equals(astFor('{{ foo }}'), '{{ /"foo"/ [] }}\n');
+    equals(astFor('{{ foo? }}'), '{{ /"foo?"/ [] }}\n');
+    equals(astFor('{{ foo_ }}'), '{{ /"foo_"/ [] }}\n');
+    equals(astFor('{{ foo- }}'), '{{ /"foo-"/ [] }}\n');
+    equals(astFor('{{ foo: }}'), '{{ /"foo:"/ [] }}\n');
+  });
+
+  it('parses mustaches with data', function() {
+    equals(astFor('{{@foo}}'), '{{ @/"foo"/ [] }}\n');
+    equals(astFor('{{@foo.bar}}'), '{{ @/"foo"."bar"/ [] }}\n');
+    equals(astFor('{{@foo.bar.baz}}'), '{{ @/"foo"."bar"."baz"/ [] }}\n');
+
+    equals(astFor('{{ @foo }}'), '{{ @/"foo"/ [] }}\n');
+    equals(astFor('{{ @foo.bar }}'), '{{ @/"foo"."bar"/ [] }}\n');
+    equals(astFor('{{ @foo.bar.baz }}'), '{{ @/"foo"."bar"."baz"/ [] }}\n');
   });
 
   it('parses mustaches with paths', function() {
-    equals(astFor('{{foo/bar}}'), '{{ PATH:foo/bar [] }}\n');
+    equals(astFor('{{foo.bar}}'), '{{ /"foo"."bar"/ [] }}\n');
+    equals(astFor('{{foo.bar.baz}}'), '{{ /"foo"."bar"."baz"/ [] }}\n');
+
+    equals(astFor('{{ foo.bar }}'), '{{ /"foo"."bar"/ [] }}\n');
+    equals(astFor('{{ foo.bar.baz }}'), '{{ /"foo"."bar"."baz"/ [] }}\n');
   });
 
   it('parses mustaches with this/foo (`/` is just a valid identifier character, so `this` is not special', function() {
-    equals(astFor('{{this/foo}}'), '{{ PATH:this/foo [] }}\n');
+    equals(astFor('{{this/foo}}'), '{{ /"this/foo"/ [] }}\n');
+  });
+
+  it('parses mustaches with this.foo', function() {
+    equals(astFor('{{this.foo}}'), '{{ /"this"."foo"/ [] }}\n');
   });
 
   it('parses mustaches with - in a path', function() {
-    equals(astFor('{{foo-bar}}'), '{{ PATH:foo-bar [] }}\n');
+    equals(astFor('{{foo-bar}}'), '{{ /"foo-bar"/ [] }}\n');
   });
 
   todo('parses mustaches with escaped [] in a path', function() {
-    equals(astFor('{{[foo[\\]]}}'), '{{ PATH:foo[] [] }}\n');
+    equals(astFor('{{[foo[\\]]}}'), '{{ /"foo[]"/ [] }}\n');
   });
 
   todo('parses escaped \\\\ in path', function() {
-    equals(astFor('{{[foo\\\\]}}'), '{{ PATH:foo\\ [] }}\n');
+    equals(astFor('{{[foo\\\\]}}'), '{{ /"foo\\"/ [] }}\n');
   });
 
   it('parses mustaches with parameters', function() {
-    equals(astFor('{{foo bar}}'), '{{ PATH:foo [PATH:bar] }}\n');
+    equals(astFor('{{foo bar}}'), '{{ /"foo"/ [/"bar"/] }}\n');
   });
 
   it('parses mustaches with string parameters', function() {
-    equals(astFor('{{foo bar "baz" }}'), '{{ PATH:foo [PATH:bar, "baz"] }}\n');
+    equals(astFor('{{foo bar "baz" }}'), '{{ /"foo"/ [/"bar"/, "baz"] }}\n');
   });
 
   it('parses mustaches with NUMBER parameters', function() {
-    equals(astFor('{{foo 1}}'), '{{ PATH:foo [NUMBER{1}] }}\n');
+    equals(astFor('{{foo 1}}'), '{{ /"foo"/ [NUMBER{1}] }}\n');
   });
 
   it('parses mustaches with BOOLEAN parameters', function() {
-    equals(astFor('{{foo true}}'), '{{ PATH:foo [BOOLEAN{true}] }}\n');
-    equals(astFor('{{foo false}}'), '{{ PATH:foo [BOOLEAN{false}] }}\n');
+    equals(astFor('{{foo true}}'), '{{ /"foo"/ [BOOLEAN{true}] }}\n');
+    equals(astFor('{{foo false}}'), '{{ /"foo"/ [BOOLEAN{false}] }}\n');
   });
 
   it('parses mustaches with undefined and null paths', function() {
@@ -94,51 +140,45 @@ describe('@glimmer/syntax - parser', function() {
     equals(astFor('{{null}}'), '{{ NULL [] }}\n');
   });
   it('parses mustaches with undefined and null parameters', function() {
-    equals(astFor('{{foo undefined null}}'), '{{ PATH:foo [UNDEFINED, NULL] }}\n');
+    equals(astFor('{{foo undefined null}}'), '{{ /"foo"/ [UNDEFINED, NULL] }}\n');
   });
 
   it('parses mustaches with DATA parameters', function() {
-    equals(astFor('{{foo @bar}}'), '{{ PATH:foo [@PATH:bar] }}\n');
+    equals(astFor('{{foo @bar}}'), '{{ /"foo"/ [@/"bar"/] }}\n');
   });
 
   it('parses mustaches with hash arguments', function() {
-    equals(astFor('{{foo bar=baz}}'), '{{ PATH:foo [] HASH{bar=PATH:baz} }}\n');
-    equals(astFor('{{foo bar=1}}'), '{{ PATH:foo [] HASH{bar=NUMBER{1}} }}\n');
-    equals(astFor('{{foo bar=true}}'), '{{ PATH:foo [] HASH{bar=BOOLEAN{true}} }}\n');
-    equals(astFor('{{foo bar=false}}'), '{{ PATH:foo [] HASH{bar=BOOLEAN{false}} }}\n');
-    equals(astFor('{{foo bar=@baz}}'), '{{ PATH:foo [] HASH{bar=@PATH:baz} }}\n');
+    equals(astFor('{{foo bar=baz}}'), '{{ /"foo"/ [] HASH{bar=/"baz"/} }}\n');
+    equals(astFor('{{foo bar=1}}'), '{{ /"foo"/ [] HASH{bar=NUMBER{1}} }}\n');
+    equals(astFor('{{foo bar=true}}'), '{{ /"foo"/ [] HASH{bar=BOOLEAN{true}} }}\n');
+    equals(astFor('{{foo bar=false}}'), '{{ /"foo"/ [] HASH{bar=BOOLEAN{false}} }}\n');
+    equals(astFor('{{foo bar=@baz}}'), '{{ /"foo"/ [] HASH{bar=@/"baz"/} }}\n');
 
-    equals(
-      astFor('{{foo bar=baz bat=bam}}'),
-      '{{ PATH:foo [] HASH{bar=PATH:baz, bat=PATH:bam} }}\n'
-    );
-    equals(
-      astFor('{{foo bar=baz bat="bam"}}'),
-      '{{ PATH:foo [] HASH{bar=PATH:baz, bat="bam"} }}\n'
-    );
+    equals(astFor('{{foo bar=baz bat=bam}}'), '{{ /"foo"/ [] HASH{bar=/"baz"/, bat=/"bam"/} }}\n');
+    equals(astFor('{{foo bar=baz bat="bam"}}'), '{{ /"foo"/ [] HASH{bar=/"baz"/, bat="bam"} }}\n');
 
-    equals(astFor("{{foo bat='bam'}}"), '{{ PATH:foo [] HASH{bat="bam"} }}\n');
+    equals(astFor("{{foo bat='bam'}}"), '{{ /"foo"/ [] HASH{bat="bam"} }}\n');
 
     equals(
       astFor('{{foo omg bar=baz bat="bam"}}'),
-      '{{ PATH:foo [PATH:omg] HASH{bar=PATH:baz, bat="bam"} }}\n'
+      '{{ /"foo"/ [/"omg"/] HASH{bar=/"baz"/, bat="bam"} }}\n'
     );
     equals(
       astFor('{{foo omg bar=baz bat="bam" baz=1}}'),
-      '{{ PATH:foo [PATH:omg] HASH{bar=PATH:baz, bat="bam", baz=NUMBER{1}} }}\n'
+      '{{ /"foo"/ [/"omg"/] HASH{bar=/"baz"/, bat="bam", baz=NUMBER{1}} }}\n'
     );
     equals(
       astFor('{{foo omg bar=baz bat="bam" baz=true}}'),
-      '{{ PATH:foo [PATH:omg] HASH{bar=PATH:baz, bat="bam", baz=BOOLEAN{true}} }}\n'
+      '{{ /"foo"/ [/"omg"/] HASH{bar=/"baz"/, bat="bam", baz=BOOLEAN{true}} }}\n'
     );
     equals(
       astFor('{{foo omg bar=baz bat="bam" baz=false}}'),
-      '{{ PATH:foo [PATH:omg] HASH{bar=PATH:baz, bat="bam", baz=BOOLEAN{false}} }}\n'
+      '{{ /"foo"/ [/"omg"/] HASH{bar=/"baz"/, bat="bam", baz=BOOLEAN{false}} }}\n'
     );
   });
 
   it('parses contents followed by a mustache', function() {
-    equals(astFor('foo bar {{baz}}'), "CONTENT[ 'foo bar ' ]\n{{ PATH:baz [] }}\n");
+    equals(astFor('foo bar {{baz}}'), `CONTENT[ 'foo bar ' ]\n{{ /"baz"/ [] }}\n`);
   });
 
   legacy('parses a partial', function() {
@@ -148,15 +188,15 @@ describe('@glimmer/syntax - parser', function() {
   });
 
   legacy('parses a partial with context', function() {
-    equals(astFor('{{> foo bar}}'), '{{> PARTIAL:foo PATH:bar }}\n');
+    equals(astFor('{{> foo bar}}'), '{{> PARTIAL:foo /"bar"/ }}\n');
   });
 
   legacy('parses a partial with hash', function() {
-    equals(astFor('{{> foo bar=bat}}'), '{{> PARTIAL:foo HASH{bar=PATH:bat} }}\n');
+    equals(astFor('{{> foo bar=bat}}'), '{{> PARTIAL:foo HASH{bar=/"bat"/} }}\n');
   });
 
   legacy('parses a partial with context and hash', function() {
-    equals(astFor('{{> foo bar bat=baz}}'), '{{> PARTIAL:foo PATH:bar HASH{bat=PATH:baz} }}\n');
+    equals(astFor('{{> foo bar bat=baz}}'), '{{> PARTIAL:foo /"bar"/ HASH{bat=/"baz"/} }}\n');
   });
 
   legacy('parses a partial with a complex name', function() {
@@ -183,7 +223,7 @@ describe('@glimmer/syntax - parser', function() {
   legacy('parsers partial blocks with arguments', function() {
     equals(
       astFor('{{#> foo context hash=value}}bar{{/foo}}'),
-      "{{> PARTIAL BLOCK:foo PATH:context HASH{hash=PATH:value} PROGRAM:\n  CONTENT[ 'bar' ]\n }}\n"
+      `{{> PARTIAL BLOCK:foo /"context"/ HASH{hash=/"value"/} PROGRAM:\n  CONTENT[ 'bar' ]\n }}\n`
     );
   });
 
@@ -201,73 +241,73 @@ describe('@glimmer/syntax - parser', function() {
   legacy('parses an inverse section', function() {
     equals(
       astFor('{{#foo}} bar {{^}} baz {{/foo}}'),
-      "BLOCK:\n  PATH:foo []\n  PROGRAM:\n    CONTENT[ ' bar ' ]\n  {{^}}\n    CONTENT[ ' baz ' ]\n"
+      `BLOCK:\n  /"foo"/ []\n  PROGRAM:\n    CONTENT[ ' bar ' ]\n  {{^}}\n    CONTENT[ ' baz ' ]\n`
     );
   });
 
   it('parses an inverse (else-style) section', function() {
     equals(
       astFor('{{#foo}} bar {{else}} baz {{/foo}}'),
-      "{{# PATH:foo [] }}\n  PROGRAM:\n    CONTENT[ ' bar ' ]\n  {{else}}\n    CONTENT[ ' baz ' ]\n"
+      `{{# /"foo"/ [] }}\n  PROGRAM:\n    CONTENT[ ' bar ' ]\n  {{else}}\n    CONTENT[ ' baz ' ]\n`
     );
   });
 
   it('parses multiple inverse sections', function() {
     equals(
       astFor('{{#foo}} bar {{else if bar}}{{else}} baz {{/foo}}'),
-      "{{# PATH:foo [] }}\n  PROGRAM:\n    CONTENT[ ' bar ' ]\n  {{else}}\n    {{# PATH:if [PATH:bar] }}\n      PROGRAM:\n      {{else}}\n        CONTENT[ ' baz ' ]\n"
+      `{{# /"foo"/ [] }}\n  PROGRAM:\n    CONTENT[ ' bar ' ]\n  {{else}}\n    {{# /"if"/ [/"bar"/] }}\n      PROGRAM:\n      {{else}}\n        CONTENT[ ' baz ' ]\n`
     );
   });
 
   it('parses empty blocks', function() {
-    equals(astFor('{{#foo}}{{/foo}}'), '{{# PATH:foo [] }}\n  PROGRAM:\n');
+    equals(astFor('{{#foo}}{{/foo}}'), '{{# /"foo"/ [] }}\n  PROGRAM:\n');
   });
 
   it('parses blocks', function() {
     equals(
       astFor('{{#foo}}hello {{world}} goodbye{{/foo}}'),
-      `{{# PATH:foo [] }}\n  PROGRAM:\n    CONTENT[ 'hello ' ]\n    {{ PATH:world [] }}\n    CONTENT[ ' goodbye' ]\n`
+      `{{# /"foo"/ [] }}\n  PROGRAM:\n    CONTENT[ 'hello ' ]\n    {{ /"world"/ [] }}\n    CONTENT[ ' goodbye' ]\n`
     );
   });
 
   legacy('parses empty blocks with empty inverse section', function() {
-    equals(astFor('{{#foo}}{{^}}{{/foo}}'), '{{# PATH:foo [] }}\n  PROGRAM:\n  {{else}}\n');
+    equals(astFor('{{#foo}}{{^}}{{/foo}}'), '{{# /"foo"/ [] }}\n  PROGRAM:\n  {{else}}\n');
   });
 
   it('parses empty blocks with empty inverse (else-style) section', function() {
-    equals(astFor('{{#foo}}{{else}}{{/foo}}'), '{{# PATH:foo [] }}\n  PROGRAM:\n  {{else}}\n');
+    equals(astFor('{{#foo}}{{else}}{{/foo}}'), '{{# /"foo"/ [] }}\n  PROGRAM:\n  {{else}}\n');
   });
 
   legacy('parses non-empty blocks with empty inverse section', function() {
     equals(
       astFor('{{#foo}} bar {{^}}{{/foo}}'),
-      "BLOCK:\n  PATH:foo []\n  PROGRAM:\n    CONTENT[ ' bar ' ]\n  {{^}}\n"
+      `BLOCK:\n  /"foo"/ []\n  PROGRAM:\n    CONTENT[ ' bar ' ]\n  {{^}}\n`
     );
   });
 
   it('parses non-empty blocks with empty inverse (else-style) section', function() {
     equals(
       astFor('{{#foo}} bar {{else}}{{/foo}}'),
-      "{{# PATH:foo [] }}\n  PROGRAM:\n    CONTENT[ ' bar ' ]\n  {{else}}\n"
+      `{{# /"foo"/ [] }}\n  PROGRAM:\n    CONTENT[ ' bar ' ]\n  {{else}}\n`
     );
   });
 
   legacy('parses empty blocks with non-empty inverse section', function() {
     equals(
       astFor('{{#foo}}{{^}} bar {{/foo}}'),
-      "BLOCK:\n  PATH:foo []\n  PROGRAM:\n  {{^}}\n    CONTENT[ ' bar ' ]\n"
+      `BLOCK:\n  /"foo"/ []\n  PROGRAM:\n  {{^}}\n    CONTENT[ ' bar ' ]\n`
     );
   });
 
   it('parses empty blocks with non-empty inverse (else-style) section', function() {
     equals(
       astFor('{{#foo}}{{else}} bar {{/foo}}'),
-      "{{# PATH:foo [] }}\n  PROGRAM:\n  {{else}}\n    CONTENT[ ' bar ' ]\n"
+      `{{# /"foo"/ [] }}\n  PROGRAM:\n  {{else}}\n    CONTENT[ ' bar ' ]\n`
     );
   });
 
   legacy('parses a standalone inverse section', function() {
-    equals(astFor('{{^foo}}bar{{/foo}}'), "BLOCK:\n  PATH:foo []\n  {{^}}\n    CONTENT[ 'bar' ]\n");
+    equals(astFor('{{^foo}}bar{{/foo}}'), `BLOCK:\n  /"foo"/ []\n  {{^}}\n    CONTENT[ 'bar' ]\n`);
   });
 
   it('throws on old inverse section', function() {
@@ -276,24 +316,24 @@ describe('@glimmer/syntax - parser', function() {
     }, Error);
   });
 
-  todo('parses block with block params', function() {
+  it('parses block with block params', function() {
     equals(
       astFor('{{#foo as |bar baz|}}content{{/foo}}'),
-      "{{ PATH:foo [] as |bar baz| }}\n  PROGRAM:\n    CONTENT[ 'content' ]\n"
+      `{{# /"foo"/ [] as |bar baz| }}\n  PROGRAM:\n    CONTENT[ 'content' ]\n`
     );
   });
 
   legacy('parses inverse block with block params', function() {
     equals(
       astFor('{{^foo as |bar baz|}}content{{/foo}}'),
-      "BLOCK:\n  PATH:foo []\n  {{^}}\n    BLOCK PARAMS: [ bar baz ]\n    CONTENT[ 'content' ]\n"
+      `BLOCK:\n  /"foo"/ []\n  {{^}}\n    BLOCK PARAMS: [ bar baz ]\n    CONTENT[ 'content' ]\n`
     );
   });
 
   todo('parses chained inverse block with block params', function() {
     equals(
       astFor('{{#foo}}{{else foo as |bar baz|}}content{{/foo}}'),
-      "BLOCK:\n  PATH:foo []\n  PROGRAM:\n  {{^}}\n    BLOCK:\n      PATH:foo []\n      PROGRAM:\n        BLOCK PARAMS: [ bar baz ]\n        CONTENT[ 'content' ]\n"
+      `{{# /"foo"/ [] }}\n  PROGRAM:\n  {{else}}\n    {{# /"foo"/ [] as |bar baz| }}\n      PROGRAM:\n        CONTENT[ 'content' ]\n`
     );
   });
 
@@ -398,10 +438,10 @@ describe('@glimmer/syntax - parser', function() {
 
   describe('[not-glimmer] directives', function() {
     legacy('should parse block directives', function() {
-      equals(astFor('{{#* foo}}{{/foo}}'), 'DIRECTIVE BLOCK:\n  PATH:foo []\n  PROGRAM:\n');
+      equals(astFor('{{#* foo}}{{/foo}}'), 'DIRECTIVE BLOCK:\n  /"foo"/ []\n  PROGRAM:\n');
     });
     legacy('should parse directives', function() {
-      equals(astFor('{{* foo}}'), '{{ DIRECTIVE PATH:foo [] }}\n');
+      equals(astFor('{{* foo}}'), '{{ DIRECTIVE /"foo"/ [] }}\n');
     });
     legacy('should fail if directives have inverse', function() {
       shouldThrow(
@@ -415,33 +455,35 @@ describe('@glimmer/syntax - parser', function() {
   });
 
   it('GH1024 - should track program location properly', function() {
-    let p = parse(
+    let source =
       '\n' +
-        '  {{#if foo}}\n' +
-        '    {{bar}}\n' +
-        '       {{else}}    {{baz}}\n' +
-        '\n' +
-        '     {{/if}}\n' +
-        '    '
-    );
+      '  {{#if foo}}\n' +
+      '    {{bar}}\n' +
+      '       {{else}}    {{baz}}\n' +
+      '\n' +
+      '     {{/if}}\n' +
+      '    ';
+
+    let p = parse(source).result;
 
     // We really need a deep equals but for now this should be stable...
     equals(
-      JSON.stringify(p.loc),
+      JSON.stringify(locForSpan(source, p.span)),
       JSON.stringify({
         start: { line: 1, column: 0 },
         end: { line: 7, column: 4 },
       })
     );
+
     equals(
-      JSON.stringify(p.body[1].program.loc),
+      JSON.stringify(locForSpan(source, (p.body[1] as hbs.BlockStatement).program.span)),
       JSON.stringify({
         start: { line: 2, column: 13 },
         end: { line: 4, column: 7 },
       })
     );
     equals(
-      JSON.stringify(p.body[1].inverse.loc),
+      JSON.stringify(locForSpan(source, (p.body[1] as hbs.BlockStatement).inverse!.span)),
       JSON.stringify({
         start: { line: 4, column: 15 },
         end: { line: 6, column: 5 },

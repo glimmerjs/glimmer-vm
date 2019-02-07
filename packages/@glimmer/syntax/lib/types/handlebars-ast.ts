@@ -75,7 +75,7 @@ export type Statement =
 export interface CommonMustache extends CommonNode {
   path: Expression;
   params: Expression[];
-  hash: Hash;
+  hash: Hash | null;
   escaped: boolean;
   strip: StripFlags;
 }
@@ -91,14 +91,14 @@ export interface Decorator extends CommonMustache {
 export interface MustacheBody {
   path: Expression;
   params: Expression[];
-  hash: Hash;
+  hash: Hash | null;
 }
 
 export interface CommonBlock extends MustacheBody, CommonNode {
   chained: boolean;
   path: Expression;
   params: Expression[];
-  hash: Hash;
+  hash: Hash | null;
   program: Program;
   inverse: Program | null;
   openStrip: StripFlags;
