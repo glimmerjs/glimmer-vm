@@ -1,4 +1,4 @@
-import { preprocess as parse, traverse, AST } from '@glimmer/syntax';
+import { preprocess as parse, traverse, BuilderAst } from '@glimmer/syntax';
 
 const { test } = QUnit;
 

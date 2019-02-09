@@ -1,4 +1,14 @@
-import { hbsParse as parse, hbsPrint as print, hbs, locForSpan } from '@glimmer/syntax';
+import {
+  hbsParse as parse,
+  hbsPrint as print,
+  hbs,
+  locForSpan,
+  AstBuilder,
+  BuilderAst,
+  builder as b,
+} from '@glimmer/syntax';
+import { JsonValue, JsonArray } from '@glimmer/interfaces';
+import { keys } from '@glimmer/util';
 
 const MODULE_STACK: string[] = [];
 
@@ -28,6 +38,24 @@ function equals<T>(actual: T, expected: T) {
   QUnit.assert.equal(actual, expected);
 }
 
+function equiv<T>(actual: T, expected: T) {
+  QUnit.assert.deepEqual(actual, expected);
+}
+
+function equivAST(template: string, { ast, sexp }: { ast?: BuilderAst; sexp?: JsonArray }) {
+  let parsed = parse(template);
+
+  QUnit.assert.ok(parsed.errors.length === 0, `there were no parse errors in '${template}'`);
+
+  if (ast) {
+    QUnit.assert.deepEqual(parsed.result, new AstBuilder().build(ast));
+  }
+
+  if (sexp) {
+    QUnit.assert.deepEqual(print(parsed.result), ['concat', sexp]);
+  }
+}
+
 function it(name: string, callback: () => void) {
   QUnit.test(name, callback);
 }
@@ -44,70 +72,107 @@ function shouldThrow(callback: () => void, error: typeof Error, pattern?: RegExp
   QUnit.assert.raises(callback, error, pattern);
 }
 
+const VALUES = {
+  baz: 'baz',
+  true: '%true%',
+  false: '%false%',
+  null: '%null%',
+  undefined: '%undefined%',
+  '@baz': '@baz',
+};
+
+/**
+ * Notational conventions for strings inside of sexps:
+ *
+ * s:... (string)
+ * @... (named arg)
+ * bare (local arg)
+ */
+
 describe('@glimmer/syntax - parser', function() {
-  function astFor(template: string | hbs.AnyProgram): string {
+  function astFor(template: string | hbs.AnyProgram): JsonValue {
     let ast = parse(template);
     QUnit.assert.ok(ast.errors.length === 0, 'there were no parse errors');
     return print(ast.result);
   }
 
   it('parses content', () => {
-    equals(astFor('hello'), `CONTENT[ 'hello' ]\n`);
+    equivAST('hello', { sexp: ['s:hello'] });
   });
 
   it('parses simple mustaches', function() {
-    equals(astFor('{{123}}'), '{{ NUMBER{123} [] }}\n');
-    equals(astFor('{{"foo"}}'), '{{ "foo" [] }}\n');
-    equals(astFor('{{false}}'), '{{ BOOLEAN{false} [] }}\n');
-    equals(astFor('{{true}}'), '{{ BOOLEAN{true} [] }}\n');
-    equals(astFor('{{foo}}'), '{{ /"foo"/ [] }}\n');
-    equals(astFor('{{foo?}}'), '{{ /"foo?"/ [] }}\n');
-    equals(astFor('{{foo_}}'), '{{ /"foo_"/ [] }}\n');
-    equals(astFor('{{foo-}}'), '{{ /"foo-"/ [] }}\n');
-    equals(astFor('{{foo:}}'), '{{ /"foo:"/ [] }}\n');
-    equals(astFor('{{foo/bar}}'), '{{ /"foo/bar"/ [] }}\n');
+    equivAST('{{123}}', { ast: b.ast(b.mustache(b.literal(123))), sexp: [123] });
+    equivAST('{{"foo"}}', {
+      ast: b.ast(b.mustache(b.literal('foo'))),
+      sexp: ['s:foo'],
+    });
+    equivAST('{{true}}', {
+      ast: b.ast(b.mustache(b.literal(true))),
+      sexp: ['%true%'],
+    });
+    equivAST('{{false}}', {
+      ast: b.ast(b.mustache(b.literal(false))),
+      sexp: ['%false%'],
+    });
+
+    let idents = ['foo', 'foo?', 'foo_', 'foo:', 'foo/bar'];
+
+    for (let item of idents) {
+      equivAST(`{{${item}}}`, {
+        ast: b.ast(b.mustache(b.path(item))),
+        sexp: [item],
+      });
+    }
   });
 
   it('parses simple mustaches (whitespace)', function() {
-    equals(astFor('{{ 123 }}'), '{{ NUMBER{123} [] }}\n');
-    equals(astFor('{{ "foo" }}'), '{{ "foo" [] }}\n');
-    equals(astFor('{{ false }}'), '{{ BOOLEAN{false} [] }}\n');
-    equals(astFor('{{ true }}'), '{{ BOOLEAN{true} [] }}\n');
-    equals(astFor('{{ foo }}'), '{{ /"foo"/ [] }}\n');
-    equals(astFor('{{ foo? }}'), '{{ /"foo?"/ [] }}\n');
-    equals(astFor('{{ foo_ }}'), '{{ /"foo_"/ [] }}\n');
-    equals(astFor('{{ foo- }}'), '{{ /"foo-"/ [] }}\n');
-    equals(astFor('{{ foo: }}'), '{{ /"foo:"/ [] }}\n');
+    equivAST('{{ 123 }}', { sexp: [123] });
+    equivAST('{{ "foo" }}', { sexp: ['s:foo'] });
+    equivAST('{{ false }}', { sexp: ['%false%'] });
+    equivAST('{{ true }}', { sexp: ['%true%'] });
+    equivAST('{{ foo }}', { sexp: ['foo'] });
+    equivAST('{{ foo? }}', { sexp: ['foo?'] });
+    equivAST('{{ foo_ }}', { sexp: ['foo_'] });
+    equivAST('{{ foo- }}', { sexp: ['foo-'] });
+    equivAST('{{ foo: }}', { sexp: ['foo:'] });
   });
 
   it('parses mustaches with data', function() {
-    equals(astFor('{{@foo}}'), '{{ @/"foo"/ [] }}\n');
-    equals(astFor('{{@foo.bar}}'), '{{ @/"foo"."bar"/ [] }}\n');
-    equals(astFor('{{@foo.bar.baz}}'), '{{ @/"foo"."bar"."baz"/ [] }}\n');
+    equivAST('{{@foo}}', {
+      ast: b.ast(b.mustache(b.atPath('foo'))),
+      sexp: ['@foo'],
+    });
+    equivAST('{{@foo.bar}}', {
+      ast: b.ast(b.mustache(b.atPath('foo.bar'))),
+      sexp: [['get-path', '@foo', 's:bar']],
+    });
 
-    equals(astFor('{{ @foo }}'), '{{ @/"foo"/ [] }}\n');
-    equals(astFor('{{ @foo.bar }}'), '{{ @/"foo"."bar"/ [] }}\n');
-    equals(astFor('{{ @foo.bar.baz }}'), '{{ @/"foo"."bar"."baz"/ [] }}\n');
+    // equals(astFor('{{@foo.bar}}'), '{{ @/"foo"."bar"/ [] }}\n');
+    // equals(astFor('{{@foo.bar.baz}}'), '{{ @/"foo"."bar"."baz"/ [] }}\n');
+
+    // equals(astFor('{{ @foo }}'), '{{ @/"foo"/ [] }}\n');
+    // equals(astFor('{{ @foo.bar }}'), '{{ @/"foo"."bar"/ [] }}\n');
+    // equals(astFor('{{ @foo.bar.baz }}'), '{{ @/"foo"."bar"."baz"/ [] }}\n');
   });
 
   it('parses mustaches with paths', function() {
-    equals(astFor('{{foo.bar}}'), '{{ /"foo"."bar"/ [] }}\n');
-    equals(astFor('{{foo.bar.baz}}'), '{{ /"foo"."bar"."baz"/ [] }}\n');
+    equivAST('{{foo.bar}}', { sexp: [['get-path', 'foo', 's:bar']] });
+    equivAST('{{foo.bar.baz}}', { sexp: [['get-path', 'foo', 's:bar', 's:baz']] });
 
-    equals(astFor('{{ foo.bar }}'), '{{ /"foo"."bar"/ [] }}\n');
-    equals(astFor('{{ foo.bar.baz }}'), '{{ /"foo"."bar"."baz"/ [] }}\n');
+    equivAST('{{ foo.bar }}', { sexp: [['get-path', 'foo', 's:bar']] });
+    equivAST('{{ foo.bar.baz }}', { sexp: [['get-path', 'foo', 's:bar', 's:baz']] });
   });
 
   it('parses mustaches with this/foo (`/` is just a valid identifier character, so `this` is not special', function() {
-    equals(astFor('{{this/foo}}'), '{{ /"this/foo"/ [] }}\n');
+    equivAST('{{this/foo}}', { sexp: ['this/foo'] });
   });
 
   it('parses mustaches with this.foo', function() {
-    equals(astFor('{{this.foo}}'), '{{ /"this"."foo"/ [] }}\n');
+    equivAST('{{this.foo}}', { sexp: [['get-path', '%this%', 's:foo']] });
   });
 
   it('parses mustaches with - in a path', function() {
-    equals(astFor('{{foo-bar}}'), '{{ /"foo-bar"/ [] }}\n');
+    equivAST('{{foo-bar}}', { sexp: ['foo-bar'] });
   });
 
   todo('parses mustaches with escaped [] in a path', function() {
@@ -119,66 +184,56 @@ describe('@glimmer/syntax - parser', function() {
   });
 
   it('parses mustaches with parameters', function() {
-    equals(astFor('{{foo bar}}'), '{{ /"foo"/ [/"bar"/] }}\n');
+    equivAST('{{foo bar}}', { sexp: [['foo', 'bar']] });
   });
 
   it('parses mustaches with string parameters', function() {
-    equals(astFor('{{foo bar "baz" }}'), '{{ /"foo"/ [/"bar"/, "baz"] }}\n');
+    equivAST('{{foo bar "baz" }}', { sexp: [['foo', 'bar', 's:baz']] });
   });
 
   it('parses mustaches with NUMBER parameters', function() {
-    equals(astFor('{{foo 1}}'), '{{ /"foo"/ [NUMBER{1}] }}\n');
+    equivAST('{{foo 1}}', { sexp: [['foo', 1]] });
   });
 
   it('parses mustaches with BOOLEAN parameters', function() {
-    equals(astFor('{{foo true}}'), '{{ /"foo"/ [BOOLEAN{true}] }}\n');
-    equals(astFor('{{foo false}}'), '{{ /"foo"/ [BOOLEAN{false}] }}\n');
+    equivAST('{{foo true}}', { sexp: [['foo', '%true%']] });
+    equivAST('{{foo false}}', { sexp: [['foo', '%false%']] });
   });
 
   it('parses mustaches with undefined and null paths', function() {
-    equals(astFor('{{undefined}}'), '{{ UNDEFINED [] }}\n');
-    equals(astFor('{{null}}'), '{{ NULL [] }}\n');
+    equivAST('{{undefined}}', { sexp: ['%undefined%'] });
+    equivAST('{{null}}', { sexp: ['%null%'] });
   });
+
   it('parses mustaches with undefined and null parameters', function() {
-    equals(astFor('{{foo undefined null}}'), '{{ /"foo"/ [UNDEFINED, NULL] }}\n');
+    equivAST('{{foo undefined null}}', { sexp: [['foo', '%undefined%', '%null%']] });
   });
 
   it('parses mustaches with DATA parameters', function() {
-    equals(astFor('{{foo @bar}}'), '{{ /"foo"/ [@/"bar"/] }}\n');
+    equivAST('{{foo @bar}}', { sexp: [['foo', '@bar']] });
   });
 
   it('parses mustaches with hash arguments', function() {
-    equals(astFor('{{foo bar=baz}}'), '{{ /"foo"/ [] HASH{bar=/"baz"/} }}\n');
-    equals(astFor('{{foo bar=1}}'), '{{ /"foo"/ [] HASH{bar=NUMBER{1}} }}\n');
-    equals(astFor('{{foo bar=true}}'), '{{ /"foo"/ [] HASH{bar=BOOLEAN{true}} }}\n');
-    equals(astFor('{{foo bar=false}}'), '{{ /"foo"/ [] HASH{bar=BOOLEAN{false}} }}\n');
-    equals(astFor('{{foo bar=@baz}}'), '{{ /"foo"/ [] HASH{bar=@/"baz"/} }}\n');
+    for (let key of keys(VALUES)) {
+      equivAST(`{{foo bar=${key}}}`, { sexp: [['foo', { bar: VALUES[key] }]] });
+    }
 
-    equals(astFor('{{foo bar=baz bat=bam}}'), '{{ /"foo"/ [] HASH{bar=/"baz"/, bat=/"bam"/} }}\n');
-    equals(astFor('{{foo bar=baz bat="bam"}}'), '{{ /"foo"/ [] HASH{bar=/"baz"/, bat="bam"} }}\n');
+    for (let key of keys(VALUES)) {
+      equivAST(`{{foo bar=${key} baz=${key}}}`, {
+        sexp: [['foo', { bar: VALUES[key], baz: VALUES[key] }]],
+      });
+    }
 
-    equals(astFor("{{foo bat='bam'}}"), '{{ /"foo"/ [] HASH{bat="bam"} }}\n');
-
-    equals(
-      astFor('{{foo omg bar=baz bat="bam"}}'),
-      '{{ /"foo"/ [/"omg"/] HASH{bar=/"baz"/, bat="bam"} }}\n'
-    );
-    equals(
-      astFor('{{foo omg bar=baz bat="bam" baz=1}}'),
-      '{{ /"foo"/ [/"omg"/] HASH{bar=/"baz"/, bat="bam", baz=NUMBER{1}} }}\n'
-    );
-    equals(
-      astFor('{{foo omg bar=baz bat="bam" baz=true}}'),
-      '{{ /"foo"/ [/"omg"/] HASH{bar=/"baz"/, bat="bam", baz=BOOLEAN{true}} }}\n'
-    );
-    equals(
-      astFor('{{foo omg bar=baz bat="bam" baz=false}}'),
-      '{{ /"foo"/ [/"omg"/] HASH{bar=/"baz"/, bat="bam", baz=BOOLEAN{false}} }}\n'
-    );
+    for (let key of keys(VALUES)) {
+      equivAST(`{{foo bar bar=${key} baz=${key}}}`, {
+        sexp: [['foo', 'bar', { bar: VALUES[key], baz: VALUES[key] }]],
+      });
+    }
   });
 
   it('parses contents followed by a mustache', function() {
-    equals(astFor('foo bar {{baz}}'), `CONTENT[ 'foo bar ' ]\n{{ /"baz"/ [] }}\n`);
+    equivAST('foo bar {{baz}}', { sexp: ['s:foo bar ', 'baz'] });
+    // equals(astFor('foo bar {{baz}}'), `CONTENT[ 'foo bar ' ]\n{{ /"baz"/ [] }}\n`);
   });
 
   legacy('parses a partial', function() {
@@ -228,14 +283,13 @@ describe('@glimmer/syntax - parser', function() {
   });
 
   it('parses a comment', function() {
-    equals(astFor('{{! this is a comment }}'), "{{! ' this is a comment ' }}\n");
+    equivAST('{{! this is a comment }}', { sexp: [['comment', ' this is a comment ']] });
   });
 
   it('parses a multi-line comment', function() {
-    equals(
-      astFor('{{!\nthis is a multi-line comment\n}}'),
-      "{{! '\nthis is a multi-line comment\n' }}\n"
-    );
+    equivAST('{{!\nthis is a multi-line comment\n}}', {
+      sexp: [['comment', '\nthis is a multi-line comment\n']],
+    });
   });
 
   legacy('parses an inverse section', function() {
@@ -246,28 +300,34 @@ describe('@glimmer/syntax - parser', function() {
   });
 
   it('parses an inverse (else-style) section', function() {
-    equals(
-      astFor('{{#foo}} bar {{else}} baz {{/foo}}'),
-      `{{# /"foo"/ [] }}\n  PROGRAM:\n    CONTENT[ ' bar ' ]\n  {{else}}\n    CONTENT[ ' baz ' ]\n`
-    );
+    equivAST('{{#foo}} bar {{else}} baz {{/foo}}', {
+      sexp: [['block', 'foo', { default: ['s: bar '], else: ['s: baz '] }]],
+    });
   });
 
   it('parses multiple inverse sections', function() {
-    equals(
-      astFor('{{#foo}} bar {{else if bar}}{{else}} baz {{/foo}}'),
-      `{{# /"foo"/ [] }}\n  PROGRAM:\n    CONTENT[ ' bar ' ]\n  {{else}}\n    {{# /"if"/ [/"bar"/] }}\n      PROGRAM:\n      {{else}}\n        CONTENT[ ' baz ' ]\n`
-    );
+    equivAST('{{#foo}} bar {{else if bar}}{{else}} baz {{/foo}}', {
+      sexp: [
+        [
+          'block',
+          'foo',
+          {
+            default: ['s: bar '],
+            else: [['block', 'if', 'bar', { default: [], else: ['s: baz '] }]],
+          },
+        ],
+      ],
+    });
   });
 
   it('parses empty blocks', function() {
-    equals(astFor('{{#foo}}{{/foo}}'), '{{# /"foo"/ [] }}\n  PROGRAM:\n');
+    equivAST('{{#foo}}{{/foo}}', { sexp: [['block', 'foo', { default: [] }]] });
   });
 
   it('parses blocks', function() {
-    equals(
-      astFor('{{#foo}}hello {{world}} goodbye{{/foo}}'),
-      `{{# /"foo"/ [] }}\n  PROGRAM:\n    CONTENT[ 'hello ' ]\n    {{ /"world"/ [] }}\n    CONTENT[ ' goodbye' ]\n`
-    );
+    equivAST('{{#foo}}hello {{world}} goodbye{{/foo}}', {
+      sexp: [['block', 'foo', { default: ['s:hello ', 'world', 's: goodbye'] }]],
+    });
   });
 
   legacy('parses empty blocks with empty inverse section', function() {
@@ -275,7 +335,7 @@ describe('@glimmer/syntax - parser', function() {
   });
 
   it('parses empty blocks with empty inverse (else-style) section', function() {
-    equals(astFor('{{#foo}}{{else}}{{/foo}}'), '{{# /"foo"/ [] }}\n  PROGRAM:\n  {{else}}\n');
+    equivAST('{{#foo}}{{else}}{{/foo}}', { sexp: [['block', 'foo', { default: [], else: [] }]] });
   });
 
   legacy('parses non-empty blocks with empty inverse section', function() {
@@ -286,10 +346,9 @@ describe('@glimmer/syntax - parser', function() {
   });
 
   it('parses non-empty blocks with empty inverse (else-style) section', function() {
-    equals(
-      astFor('{{#foo}} bar {{else}}{{/foo}}'),
-      `{{# /"foo"/ [] }}\n  PROGRAM:\n    CONTENT[ ' bar ' ]\n  {{else}}\n`
-    );
+    equivAST('{{#foo}} bar {{else}}{{/foo}}', {
+      sexp: [['block', 'foo', { default: ['s: bar '], else: [] }]],
+    });
   });
 
   legacy('parses empty blocks with non-empty inverse section', function() {
@@ -300,10 +359,9 @@ describe('@glimmer/syntax - parser', function() {
   });
 
   it('parses empty blocks with non-empty inverse (else-style) section', function() {
-    equals(
-      astFor('{{#foo}}{{else}} bar {{/foo}}'),
-      `{{# /"foo"/ [] }}\n  PROGRAM:\n  {{else}}\n    CONTENT[ ' bar ' ]\n`
-    );
+    equivAST('{{#foo}}{{else}} bar {{/foo}}', {
+      sexp: [['block', 'foo', { default: [], else: ['s: bar '] }]],
+    });
   });
 
   legacy('parses a standalone inverse section', function() {
@@ -317,10 +375,17 @@ describe('@glimmer/syntax - parser', function() {
   });
 
   it('parses block with block params', function() {
-    equals(
-      astFor('{{#foo as |bar baz|}}content{{/foo}}'),
-      `{{# /"foo"/ [] as |bar baz| }}\n  PROGRAM:\n    CONTENT[ 'content' ]\n`
-    );
+    equivAST('{{#foo as |bar baz|}}content{{/foo}}', {
+      ast: b.ast(
+        b.blockCall(b.path('foo'), {
+          program: b.block({
+            statements: [b.content('content')],
+            as: ['bar', 'baz'],
+          }),
+        })
+      ),
+      sexp: [['block', 'foo', { as: ['bar', 'baz'] }, { default: ['s:content'] }]],
+    });
   });
 
   legacy('parses inverse block with block params', function() {

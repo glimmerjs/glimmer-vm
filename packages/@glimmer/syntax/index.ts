@@ -9,6 +9,10 @@ export {
 } from './lib/parser/tokenizer-event-handlers';
 
 export * from './lib/hbs/pos';
+export * from './lib/hbs/builder';
+
+import * as builder from './lib/hbs/builder';
+export { builder };
 
 // needed for tests only
 export { default as builders } from './lib/builders';

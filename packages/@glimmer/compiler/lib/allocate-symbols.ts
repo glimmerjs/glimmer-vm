@@ -1,5 +1,5 @@
 import { CompilerOps, Processor, Op, OpName, TemplateCompilerOps, PathHead } from './compiler-ops';
-import { AST } from '@glimmer/syntax';
+import { BuilderAst } from '@glimmer/syntax';
 import { Option } from '@glimmer/interfaces';
 import { Stack, expect } from '@glimmer/util';
 

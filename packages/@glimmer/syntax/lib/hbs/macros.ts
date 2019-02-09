@@ -1,11 +1,10 @@
-import { ExpressionSyntax, HandlebarsParser } from './parser';
+import { HandlebarsParser } from './parser';
 import * as hbs from '../types/handlebars-ast';
 import { unreachable } from '@glimmer/util';
 
 export interface Macro<T> {
   description(): string;
   parse(openSpan: hbs.Span, parser: HandlebarsParser): T;
-  placeholder(): T;
 }
 
 export type MacroExpansion<M extends Macro<unknown>> = M extends Macro<infer T> ? T : never;
@@ -21,15 +20,23 @@ function LiteralMacro<T extends hbs.Literal>(type: T['type'], value: T['value'])
         span,
         type,
         value,
-        original: value,
       } as T;
-    },
-
-    placeholder() {
-      throw unreachable();
     },
   };
 }
+
+export const THIS_MACRO: Macro<hbs.This> = {
+  description() {
+    return `this`;
+  },
+
+  parse(span) {
+    return {
+      span,
+      type: 'This',
+    };
+  },
+};
 
 export const TRUE_MACRO = LiteralMacro('BooleanLiteral', true);
 export const FALSE_MACRO = LiteralMacro('BooleanLiteral', false);

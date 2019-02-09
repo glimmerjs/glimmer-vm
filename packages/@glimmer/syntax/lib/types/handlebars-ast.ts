@@ -20,6 +20,7 @@ export interface CommonNode {
 export interface NodeMap {
   Program: { input: Program; output: AST.Template | AST.Block };
   MustacheStatement: { input: MustacheStatement; output: AST.MustacheStatement | void };
+  ContentMustache: { input: ContentMustache; output: AST.MustacheStatement | void };
   Decorator: { input: Decorator; output: never };
   BlockStatement: { input: BlockStatement; output: AST.BlockStatement | void };
   DecoratorBlock: { input: DecoratorBlock; output: never };
@@ -38,6 +39,8 @@ export interface NodeMap {
 
 export type NodeType = keyof NodeMap;
 export type Node<T extends NodeType = NodeType> = NodeMap[T]['input'];
+
+export type AnyNode = Node | Head | PathSegment | Hash | HashPair | AnyProgram;
 
 export type Output<T extends NodeType> = NodeMap[T]['output'];
 
@@ -65,6 +68,7 @@ export interface Program extends CommonNode {
 
 export type Statement =
   | MustacheStatement
+  | ContentMustache
   | BlockStatement
   | DecoratorBlock
   | PartialStatement
@@ -73,10 +77,10 @@ export type Statement =
   | CommentStatement;
 
 export interface CommonMustache extends CommonNode {
-  path: Expression;
+  call: Expression;
   params: Expression[];
   hash: Hash | null;
-  escaped: boolean;
+  trusted: boolean;
   strip: StripFlags;
 }
 
@@ -89,14 +93,19 @@ export interface Decorator extends CommonMustache {
 }
 
 export interface MustacheBody {
-  path: Expression;
+  call: Expression;
   params: Expression[];
   hash: Hash | null;
 }
 
+export interface ContentMustache extends CommonNode {
+  type: 'MustacheContent';
+  value: Expression;
+}
+
 export interface CommonBlock extends MustacheBody, CommonNode {
   chained: boolean;
-  path: Expression;
+  call: PathExpression;
   params: Expression[];
   hash: Hash | null;
   program: Program;
@@ -136,7 +145,7 @@ export interface PartialBlockStatement extends CommonNode {
 export interface ContentStatement extends CommonNode {
   type: 'ContentStatement';
   value: string;
-  original: StripFlags;
+  strip: StripFlags;
 }
 
 export interface CommentStatement extends CommonNode {
@@ -156,11 +165,29 @@ export interface SubExpression extends CommonNode {
 
 export interface PathExpression extends CommonNode {
   type: 'PathExpression';
-  data: boolean;
-  depth: number;
-  // TODO: Use head/tail here and get rid of legacy constructs
-  parts: string[];
-  original: string;
+  head: Head;
+  tail: PathSegment[] | null;
+}
+
+export interface LocalReference extends CommonNode {
+  type: 'LocalReference';
+  name: string;
+}
+
+export interface ArgReference extends CommonNode {
+  type: 'ArgReference';
+  name: string;
+}
+
+export interface This extends CommonNode {
+  type: 'This';
+}
+
+export type Head = LocalReference | ArgReference | This;
+
+export interface PathSegment extends CommonNode {
+  type: 'PathSegment';
+  name: string;
 }
 
 export type Literal =
@@ -173,19 +200,16 @@ export type Literal =
 export interface StringLiteral extends CommonNode {
   type: 'StringLiteral';
   value: string;
-  original: string;
 }
 
 export interface BooleanLiteral extends CommonNode {
   type: 'BooleanLiteral';
   value: boolean;
-  original: boolean;
 }
 
 export interface NumberLiteral extends CommonNode {
   type: 'NumberLiteral';
   value: number;
-  original: number;
 }
 
 export interface UndefinedLiteral extends CommonNode {

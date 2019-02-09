@@ -1,12 +1,265 @@
-import { keys } from '../../../util';
+import { keys } from '@glimmer/util';
+import * as hbs from '../types/handlebars-ast';
 
-export class Builder {
+const NO_STRIP: hbs.StripFlags = { open: false, close: false };
+
+export class AstBuilder {
   private pos = 0;
+
+  build(program: BuilderAst): hbs.AnyProgram {
+    let statements: hbs.Statement[] = [];
+
+    return this.spanned(() => {
+      for (let statement of program.body) {
+        statements.push(this.visit(statement));
+      }
+
+      return span => ({
+        type: 'Program',
+        span,
+        body: statements,
+      });
+    });
+  }
+
+  visit(statement: Statement): hbs.Statement {
+    switch (statement.type) {
+      case 'ContentStatement':
+        let span = this.consume(statement.value);
+
+        return {
+          type: 'ContentStatement',
+          span,
+          value: statement.value,
+          strip: { open: false, close: false },
+        };
+
+      case 'ContentMustache': {
+        return this.spanned(() => {
+          this.consume('{{');
+          let value = this.expr(statement.value);
+          this.consume('}}');
+
+          return span => ({
+            type: 'MustacheContent',
+            span,
+            value,
+          });
+        });
+      }
+
+      case 'BlockStatement':
+        return this.spanned(() => {
+          this.consume('{{#');
+          let path = this.path(statement.call);
+          let params: hbs.Expression[] = [];
+          let hash: hbs.Hash | null = null;
+
+          if (statement.params.length) {
+            this.consume(' ');
+            params = this.exprs(statement.params);
+          }
+
+          if (statement.hash) {
+            this.consume(' ');
+            hash = this.hash(statement.hash);
+          }
+
+          let program = this.program(statement.program);
+
+          let inverse: hbs.Program | null = null;
+          if (statement.inverse) {
+            this.consume('{{else}}');
+            inverse = this.program(statement.inverse);
+          }
+
+          this.consume('{{/');
+          debugger;
+          this.consume(pathString(statement.call));
+          this.consume('}}');
+
+          return span => ({
+            type: 'BlockStatement',
+            chained: false,
+            span,
+            call: path,
+            params,
+            hash,
+            program,
+            inverse,
+            openStrip: NO_STRIP,
+            inverseStrip: NO_STRIP,
+            closeStrip: NO_STRIP,
+          });
+        });
+
+      case 'MustacheStatement':
+        return this.spanned(() => {
+          this.consume('{{');
+          let call = this.expr(statement.call);
+          let params = this.exprs(statement.params);
+          let hash = this.hash(statement.hash);
+          this.consume('}}');
+
+          return span => ({
+            type: 'MustacheStatement',
+            span,
+            call,
+            params,
+            hash,
+            trusted: false,
+            strip: NO_STRIP,
+          });
+        });
+
+      default:
+        throw new Error(`unimplemented ${statement.type} for AST builder`);
+    }
+  }
+
+  program(program: Program): hbs.Program {
+    if (program.blockParams) {
+      this.consume(' as |');
+      this.consume(program.blockParams.join(' '));
+      this.consume('|}}');
+    } else {
+      this.consume('}}');
+    }
+
+    return this.spanned(() => {
+      let body = program.body.map(s => this.visit(s));
+
+      return span => ({
+        type: 'Program',
+        span,
+        body,
+        blockParams: program.blockParams,
+      });
+    });
+  }
+
+  path(expression: PathExpression): hbs.PathExpression {
+    return this.spanned(() => {
+      let head = this.var(expression.head);
+      let tail = this.segments(expression.tail);
+
+      return span => ({ type: 'PathExpression', span, head, tail });
+    });
+  }
+
+  expr(expression: Expression): hbs.Expression {
+    switch (expression.type) {
+      case 'BooleanLiteral':
+        return this.spanned(() => {
+          this.consume(String(expression.value));
+
+          return span => ({ type: 'BooleanLiteral', span, value: expression.value });
+        });
+
+      case 'NumberLiteral':
+        return this.spanned(() => {
+          this.consume(String(expression.value));
+
+          return span => ({ type: 'NumberLiteral', span, value: expression.value });
+        });
+
+      case 'StringLiteral':
+        return this.spanned(() => {
+          this.consume(JSON.stringify(expression.value));
+
+          return span => ({ type: 'StringLiteral', span, value: expression.value });
+        });
+
+      case 'PathExpression':
+        return this.path(expression);
+
+      default:
+        throw new Error(`unimplemented ${expression.type}`);
+    }
+  }
+
+  var(item: Head): hbs.Head {
+    return this.spanned<hbs.Head>(() => {
+      if (item.type === 'LocalReference') {
+        this.consume(item.name);
+        return span => ({ type: 'LocalReference', span, name: item.name });
+      } else if (item.type === 'This') {
+        this.consume('this');
+        return span => ({ type: 'This', span });
+      } else {
+        this.consume('@');
+        this.consume(item.name);
+        return span => ({ type: 'ArgReference', span, name: item.name });
+      }
+    });
+  }
+
+  segments(items: string[] | null): hbs.PathSegment[] | null {
+    if (items === null) return null;
+
+    return items.map(item => {
+      this.consume('.');
+      return this.spanned(() => {
+        this.consume(item);
+        return span => ({ type: 'PathSegment', span, name: item });
+      });
+    });
+  }
+
+  exprs(params: Expression[]): hbs.Expression[] {
+    return params.map(p => this.expr(p));
+  }
+
+  hash(hash: Hash | null): hbs.Hash | null {
+    if (hash === null) return null;
+
+    return this.spanned(() => {
+      let out: hbs.HashPair[] = [];
+      for (let pair of hash.pairs) {
+        out.push(this.hashPair(pair));
+      }
+
+      return span => ({
+        span,
+        pairs: out,
+      });
+    });
+  }
+
+  hashPair(pair: HashPair): hbs.HashPair {
+    return this.spanned(() => {
+      return span => ({
+        span,
+        key: pair.key,
+        value: this.expr(pair.value),
+      });
+    });
+  }
+
+  consume(chars: string): hbs.Span {
+    let pos = this.pos;
+    this.pos += chars.length;
+    return { start: pos, end: this.pos };
+  }
+
+  spanned<T extends hbs.AnyNode>(cb: () => (span: hbs.Span) => T): T {
+    let pos = this.pos;
+
+    let next = cb();
+    return next({ start: pos, end: this.pos });
+  }
 }
 
-export interface AnyProgram {
+export interface BuilderAst {
   type: 'Program';
   body: Statement[];
+}
+
+export function ast(...statements: Statement[]): BuilderAst {
+  return {
+    type: 'Program',
+    body: statements,
+  };
 }
 
 export interface Program {
@@ -15,10 +268,23 @@ export interface Program {
   blockParams: string[];
 }
 
-export type Statement = MustacheStatement | BlockStatement | ContentStatement | CommentStatement;
+export function block({ statements, as }: { statements: Statement[]; as: string[] }): Program {
+  return {
+    type: 'Program',
+    body: statements,
+    blockParams: as,
+  };
+}
+
+export type Statement =
+  | MustacheStatement
+  | ContentMustache
+  | BlockStatement
+  | ContentStatement
+  | CommentStatement;
 
 export interface CommonMustache {
-  path: Expression;
+  call: Expression;
   params: Expression[];
   hash: Hash | null;
   trusted: boolean;
@@ -29,27 +295,40 @@ export interface MustacheStatement extends CommonMustache, MustacheBody {
   type: 'MustacheStatement';
 }
 
+export interface ContentMustache {
+  type: 'ContentMustache';
+  value: Expression;
+}
+
 export function mustache(
-  path: Expression,
-  { params, hash }: { params?: Expression[]; hash: Hash | null }
-): MustacheStatement {
-  return {
-    type: 'MustacheStatement',
-    path,
-    params: params || [],
-    hash,
-    trusted: false,
-  };
+  call: Expression,
+  params?: Expression[],
+  hashObject?: { [key: string]: Expression }
+): MustacheStatement | ContentMustache {
+  if (params !== undefined || hashObject !== undefined) {
+    return {
+      type: 'MustacheStatement',
+      call,
+      params: params || [],
+      hash: hashObject ? hash(hashObject) : null,
+      trusted: false,
+    };
+  } else {
+    return {
+      type: 'ContentMustache',
+      value: call,
+    };
+  }
 }
 
 export interface MustacheBody {
-  path: Expression;
+  call: Expression;
   params: Expression[];
   hash: Hash | null;
 }
 
 export interface CommonBlock extends MustacheBody {
-  path: Expression;
+  call: PathExpression;
   params: Expression[];
   hash: Hash | null;
   program: Program;
@@ -63,18 +342,18 @@ export interface BlockStatement extends CommonBlock {
   type: 'BlockStatement';
 }
 
-export function block(
-  path: Expression,
+export function blockCall(
+  path: PathExpression,
   {
     params,
     hash,
     program,
     inverse,
   }: { params?: Expression[]; hash?: Hash; program: Program; inverse?: Program }
-) {
+): BlockStatement {
   return {
     type: 'BlockStatement',
-    path,
+    call: path,
     params: params || [],
     hash: hash || null,
     program,
@@ -110,7 +389,7 @@ export type Expression = SubExpression | PathExpression | Literal;
 
 export interface SubExpression extends MustacheBody {
   type: 'SubExpression';
-  path: Expression;
+  call: Expression;
   params: Expression[];
   hash: Hash | null;
 }
@@ -121,7 +400,7 @@ export function sexpr(
 ): SubExpression {
   return {
     type: 'SubExpression',
-    path,
+    call: path,
     params: params || [],
     hash: hash || null,
   };
@@ -129,19 +408,48 @@ export function sexpr(
 
 export interface PathExpression {
   type: 'PathExpression';
-  head: Variable | Arg;
-  tail: string[];
+  head: LocalReference | ArgReference | This;
+  tail: string[] | null;
+}
+
+function pathString(expr: PathExpression) {
+  let out = ``;
+
+  switch (expr.head.type) {
+    case 'ArgReference':
+      out += `@${expr.head.name}`;
+      break;
+    case 'LocalReference':
+      out += expr.head.name;
+      break;
+    case 'This':
+      out += 'this';
+      break;
+  }
+
+  out += expr.tail ? expr.tail.join('.') : '';
+
+  return out;
 }
 
 export function path(path: string): PathExpression {
   let parts = path.split('.');
+
+  let head: Head;
+  let first = parts.shift()!;
+
+  if (path[0] === '@') {
+    head = { type: 'ArgReference', name: first.slice(1) };
+  } else if (first === 'this') {
+    head = { type: 'This' };
+  } else {
+    head = { type: 'LocalReference', name: first };
+  }
+
   return {
     type: 'PathExpression',
-    head: {
-      type: 'Variable',
-      name: parts[0],
-    },
-    tail: parts.slice(1),
+    head,
+    tail: parts.length ? parts : null,
   };
 }
 
@@ -150,22 +458,28 @@ export function atPath(path: string): PathExpression {
   return {
     type: 'PathExpression',
     head: {
-      type: 'Arg',
+      type: 'ArgReference',
       name: parts[0],
     },
-    tail: parts.slice(1),
+    tail: parts.length > 1 ? parts.slice(1) : null,
   };
 }
 
-export interface Variable {
-  type: 'Variable';
+export interface LocalReference {
+  type: 'LocalReference';
   name: string;
 }
 
-export interface Arg {
-  type: 'Arg';
+export interface ArgReference {
+  type: 'ArgReference';
   name: string;
 }
+
+export interface This {
+  type: 'This';
+}
+
+export type Head = LocalReference | ArgReference | This;
 
 export type Literal =
   | StringLiteral

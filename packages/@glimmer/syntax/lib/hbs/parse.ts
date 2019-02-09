@@ -4,6 +4,7 @@ import { HandlebarsLexerDelegate, TokenKind } from './lex';
 import { HandlebarsParser, Diagnostic } from './parser';
 import { Printer } from './printer';
 import { assert } from '@glimmer/util';
+import { JsonValue } from '@glimmer/interfaces';
 
 export function hbsLex(
   template: string,
@@ -80,6 +81,6 @@ function lexErrorProgram(span: hbs.Span): hbs.AnyProgram {
   return { span, type: 'Program', body: [] };
 }
 
-export function hbsPrint(ast: hbs.AnyProgram): string {
+export function hbsPrint(ast: hbs.AnyProgram): JsonValue {
   return new Printer().print(ast);
 }

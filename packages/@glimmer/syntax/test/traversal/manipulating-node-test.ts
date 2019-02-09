@@ -3,7 +3,7 @@ import {
   preprocess as parse,
   traverse,
   builders as b,
-  AST,
+  BuilderAst,
   cannotRemoveNode,
   cannotReplaceNode,
 } from '@glimmer/syntax';

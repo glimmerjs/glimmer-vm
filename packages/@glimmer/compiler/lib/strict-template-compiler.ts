@@ -1,7 +1,7 @@
 import TemplateVisitor, { Action } from './template-visitor';
 import JavaScriptCompiler, { Template } from './javascript-compiler';
 import { assert, Option } from '@glimmer/util';
-import { AST, isLiteral, SyntaxError } from '@glimmer/syntax';
+import { BuilderAst, isLiteral, SyntaxError } from '@glimmer/syntax';
 import { getAttrNamespace } from './utils';
 import { SymbolAllocator, InOp as SymbolInOp, OutOp as SymbolOutOp } from './allocate-symbols';
 import { PathHead } from './compiler-ops';

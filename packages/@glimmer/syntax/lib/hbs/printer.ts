@@ -1,120 +1,124 @@
 import * as hbs from '../types/handlebars-ast';
+import { JsonValue } from '@glimmer/interfaces';
 
 export class Printer {
-  print(ast: hbs.AnyProgram): string {
+  print(ast: hbs.AnyProgram): JsonValue {
     console.log(ast);
-    return this.top(ast, 0) + '\n';
+    return ['concat', this.top(ast)];
   }
 
-  top(ast: hbs.AnyProgram, size: number): string {
+  top(ast: hbs.AnyProgram): JsonValue {
     let out = [];
 
     console.log(ast);
     for (let item of ast.body) {
-      out.push(this.visit(item, size));
+      out.push(this.visit(item));
     }
 
-    return out.join('\n');
+    return out;
   }
 
-  visit(item: hbs.Statement | hbs.Program, size = 0): string {
+  visit(item: hbs.Statement | hbs.Program): JsonValue {
     switch (item.type) {
       case 'CommentStatement':
-        return indent(`{{! '${item.value}' }}`, size);
+        return ['comment', item.value];
 
       case 'ContentStatement':
-        return indent(`CONTENT[ '${item.value}' ]`, size);
+        return `s:${item.value}`;
 
       case 'BlockStatement': {
-        let out = [];
-        out.push(indent(this.mustacheBody(item, item.program.blockParams), size));
-        out.push(indent('PROGRAM:', size + 1));
-        if (item.program.body.length) {
-          out.push(this.top(item.program, size + 2));
-        }
+        let sexp: JsonValue[] = ['block'];
+        let blocks: JsonValue = {};
+        sexp.push(...this.mustacheBody(item, item.program.blockParams));
+        blocks.default = this.top(item.program);
 
         if (item.inverse) {
-          out.push(indent('{{else}}', size + 1));
-          if (item.inverse.body.length) {
-            out.push(this.top(item.inverse, size + 2));
-          }
+          blocks.else = this.top(item.inverse);
         }
 
-        return out.join('\n');
+        sexp.push(blocks);
+
+        return sexp;
       }
 
       case 'MustacheStatement': {
-        return indent(this.mustacheBody(item), size);
+        return this.mustacheBody(item);
       }
+
+      case 'MustacheContent':
+        return this.expr(item.value);
 
       default:
         throw new Error(`unimplemented Printer for ${item.type}`);
     }
   }
 
-  mustacheBody(item: hbs.MustacheBody, blockParams?: string[]): string {
-    let params = [];
+  mustacheBody(item: hbs.MustacheBody, blockParams?: string[]): JsonValue[] {
+    let sexp = [];
+
+    sexp.push(this.expr(item.call));
 
     for (let param of item.params) {
-      params.push(this.expr(param));
+      sexp.push(this.expr(param));
     }
 
-    let hash = '';
+    let hash: JsonValue = {};
 
     if (item.hash) {
-      let parts = [];
       for (let pair of item.hash.pairs) {
-        parts.push(`${pair.key}=${this.expr(pair.value)}`);
+        hash[pair.key] = this.expr(pair.value);
       }
-      hash = ` HASH{${parts.join(', ')}}`;
     }
 
-    if (blockParams) {
-      let asList = blockParams.length === 0 ? '' : ` as |${blockParams.join(' ')}|`;
-      return `{{# ${this.expr(item.path)} [${params.join(', ')}]${hash}${asList} }}`;
-    } else {
-      return `{{ ${this.expr(item.path)} [${params.join(', ')}]${hash} }}`;
-    }
+    if (item.hash) sexp.push(hash);
+    if (blockParams && blockParams.length) sexp.push({ as: blockParams });
+    return sexp;
   }
 
-  expr(item: hbs.Expression): string {
+  expr(item: hbs.Expression): JsonValue | JsonValue[] {
     switch (item.type) {
-      case 'PathExpression':
-        if (item.data) {
-          return `@/"${item.parts.join('"."')}"/`;
+      case 'PathExpression': {
+        if (item.tail) {
+          let out = ['get-path', this.head(item.head)];
+          if (item.tail.length) out.push(...this.segments(item.tail));
+          return out;
         } else {
-          return `/"${item.parts.join('"."')}"/`;
+          return this.head(item.head);
         }
+      }
 
       case 'NumberLiteral':
-        return `NUMBER{${String(item.value)}}`;
+        return item.value;
 
       case 'StringLiteral':
-        return `${JSON.stringify(item.value)}`;
+        return `s:${item.value}`;
 
       case 'BooleanLiteral':
-        return `BOOLEAN{${item.value}}`;
+        return `%${item.value}%`;
 
       case 'UndefinedLiteral':
-        return 'UNDEFINED';
+        return '%undefined%';
 
       case 'NullLiteral':
-        return 'NULL';
+        return '%null%';
 
       default:
         throw new Error(`unimplemented Printer for ${item.type}`);
     }
   }
-}
 
-function indent(body: string, size: number): string {
-  let lines = body.split('\n');
-
-  let out = [];
-
-  for (let line of lines) {
-    out.push(`${'  '.repeat(size)}${line}`);
+  head(item: hbs.Head): JsonValue {
+    switch (item.type) {
+      case 'ArgReference':
+        return `@${item.name}`;
+      case 'LocalReference':
+        return item.name;
+      case 'This':
+        return '%this%';
+    }
   }
 
-  return out.join('\n');
+  segments(segments: hbs.PathSegment[]): string[] {
+    return segments.map(s => `s:${s.name}`);
+  }
 }

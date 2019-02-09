@@ -1,13 +1,13 @@
 import { Dict, Option } from '@glimmer/interfaces';
-import { unreachable, assign } from '@glimmer/util';
+import { assert, assign } from '@glimmer/util';
 import * as hbs from '../types/handlebars-ast';
 import { TokenKind } from './lex';
-import { LexItem, Spanned, Tokens, Debug } from './lexing';
-import { FALSE_MACRO, Macro, NULL_MACRO, TRUE_MACRO, UNDEFINED_MACRO } from './macros';
-import { blockParams } from 'handlebars';
+import { Debug, LexItem, Spanned, Tokens } from './lexing';
+import { FALSE_MACRO, Macro, NULL_MACRO, THIS_MACRO, TRUE_MACRO, UNDEFINED_MACRO } from './macros';
 
 export interface Macros {
   expr: Dict<Macro<hbs.Expression>>;
+  head: Dict<Macro<hbs.Head>>;
 }
 
 const MACROS_V1 = {
@@ -16,6 +16,10 @@ const MACROS_V1 = {
     false: FALSE_MACRO,
     null: NULL_MACRO,
     undefined: UNDEFINED_MACRO,
+  },
+
+  head: {
+    this: THIS_MACRO,
   },
 };
 
@@ -118,6 +122,15 @@ export class HandlebarsParser {
     return macro.parse(next.span, this);
   }
 
+  expandHeadMacro(): hbs.Head {
+    let next = this.shift();
+
+    let macros = this.macros.head!;
+    let macro = macros[this.slice(next.span)];
+
+    return macro.parse(next.span, this);
+  }
+
   slice(span: hbs.Span): string {
     return this.input.slice(span.start, span.end);
   }
@@ -176,12 +189,11 @@ export interface Syntax<T> {
   parse(parser: HandlebarsParser): (span: hbs.Span) => T;
 }
 
-export type AstSyntax<T extends hbs.Node = hbs.Node> = Syntax<T>;
+export type AstSyntax<T extends hbs.AnyNode = hbs.AnyNode> = Syntax<T>;
 export type StatementSyntax<T extends hbs.Statement = hbs.Statement> = Syntax<T>;
 export type ExpressionSyntax<T extends hbs.Expression = hbs.Expression> = Syntax<T>;
 
 const NO_SPAN = { start: -1, end: -1 };
-const NO_HASH: hbs.Hash = { span: NO_SPAN, pairs: [] };
 const NO_STRIP: hbs.StripFlags = { open: false, close: false };
 
 export const TOP: StatementSyntax<hbs.Statement> = {
@@ -231,8 +243,6 @@ export const BLOCK_UNTIL_ELSE: Syntax<hbs.Program> = {
   },
 
   parse(parser) {
-    let blockFirst = -1;
-    let blockLast = -1;
     let blockStatements: hbs.Statement[] = [];
 
     while (true) {
@@ -245,8 +255,6 @@ export const BLOCK_UNTIL_ELSE: Syntax<hbs.Program> = {
       }
 
       let next = parser.expect(TOP);
-      blockFirst = blockFirst === undefined ? next.span.start : blockFirst;
-      blockLast = next.span.end;
 
       blockStatements.push(next);
     }
@@ -259,6 +267,15 @@ export const BLOCK_UNTIL_ELSE: Syntax<hbs.Program> = {
     });
   },
 };
+
+export function EMPTY_PROGRAM(span: hbs.Span): hbs.Program {
+  return {
+    type: 'Program',
+    span,
+    body: [],
+    blockParams: [],
+  };
+}
 
 export const END_BLOCK: Syntax<Spanned<LexItem<TokenKind.Identifier>>> = {
   description() {
@@ -303,15 +320,15 @@ export const IN_BLOCK: Syntax<
     if (parser.isCurlyPath('else')) {
       let chainStartToken = parser.shift();
       parser.shift();
-      if (parser.test(MUSTACHE_AFTER_CURLY)) {
-        let chainMustache = parser.expect(MUSTACHE_AFTER_CURLY);
+      if (parser.test(MUSTACHE_CALL_AFTER_CURLY)) {
+        let chainMustache = parser.expect(MUSTACHE_CALL_AFTER_CURLY);
         let chainBlock = parser.expect(IN_BLOCK);
 
         let block: hbs.BlockStatement = {
           type: 'BlockStatement',
           span: { start: chainStartToken.span.start, end: chainBlock.span.end },
           chained: false,
-          path: chainMustache.mustache.path,
+          call: chainMustache.mustache.call,
           params: chainMustache.mustache.params,
           hash: chainMustache.mustache.hash,
           program: chainBlock.value.block,
@@ -405,7 +422,7 @@ export const COMMENT: StatementSyntax<hbs.CommentStatement> = {
   },
 };
 
-export const CURLIES: Syntax<hbs.MustacheStatement> = {
+export const CURLIES: Syntax<hbs.MustacheStatement | hbs.ContentMustache> = {
   description() {
     return `{{...}}`;
   },
@@ -414,23 +431,50 @@ export const CURLIES: Syntax<hbs.MustacheStatement> = {
     return parser.is(TokenKind.Open);
   },
 
-  parse(parser: HandlebarsParser) {
+  parse(parser: HandlebarsParser): (span: hbs.Span) => hbs.MustacheStatement | hbs.ContentMustache {
     parser.expect(new TokenSyntax(TokenKind.Open));
-    let rest = parser.expect(MUSTACHE_AFTER_CURLY).mustache;
+    let rest = parser.expect(MUSTACHE_AFTER_CURLY);
 
-    return span =>
-      assign(rest, {
-        span,
-      });
+    if (rest.kind === 'call') {
+      let mustache = rest.contents.mustache;
+      return span => assign(mustache, { span });
+    } else {
+      let mustache = rest.contents;
+      return span => assign(mustache, { span });
+    }
   },
 };
 
-export type MustacheContents = {
+export type MustacheCall = {
   mustache: hbs.MustacheStatement;
   blockParams: BlockParams;
 };
 
-export const MUSTACHE_AFTER_CURLY: Syntax<MustacheContents> = {
+export type MustacheCallContents = {
+  kind: 'call';
+  contents: MustacheCall;
+};
+
+export type MustacheContents =
+  | MustacheCallContents
+  | { kind: 'content'; contents: hbs.ContentMustache };
+
+export const MUSTACHE_CALL_AFTER_CURLY: Syntax<MustacheCall> = {
+  description() {
+    return `... ...}}`;
+  },
+
+  test(parser: HandlebarsParser): boolean {
+    return parser.test(EXPR);
+  },
+
+  parse(parser: HandlebarsParser): (span: hbs.Span) => MustacheCall {
+    let result = parseMustache(parser, true);
+    return span => result(span).contents;
+  },
+};
+
+export const MUSTACHE_AFTER_CURLY = {
   description() {
     return `...}}`;
   },
@@ -439,72 +483,107 @@ export const MUSTACHE_AFTER_CURLY: Syntax<MustacheContents> = {
     return parser.test(EXPR);
   },
 
-  parse(parser: HandlebarsParser) {
-    let expr = parser.expect(EXPR);
-
-    let params: hbs.Expression[] = [];
-
-    let closeSyntax = new TokenSyntax(TokenKind.Close);
-    let sawHash = false;
-    let blockParams: BlockParams = BLOCK_PARAMS_PLACEHOLDER;
-
-    while (true) {
-      if (parser.isEOF()) {
-        return DEFAULT_MUSTACHE_PLACEHOLDER();
-      }
-
-      if (parser.test(BLOCK_PARAMS)) {
-        blockParams = parser.expect(BLOCK_PARAMS);
-      }
-
-      if (parser.test(closeSyntax)) {
-        break;
-      }
-
-      if (parser.test(HASH_PAIR)) {
-        sawHash = true;
-        break;
-      }
-
-      let nextExpr = parser.expect(EXPR);
-
-      params.push(nextExpr);
-    }
-
-    let hash: Option<hbs.Hash> = null;
-    if (sawHash) {
-      hash = parser.expect(HASH);
-    }
-
-    parser.expect(new TokenSyntax(TokenKind.Close));
-
-    return span => ({
-      mustache: {
-        type: 'MustacheStatement',
-        span,
-        path: expr,
-        params,
-        hash,
-        escaped: true,
-        strip: { open: false, close: false },
-      },
-      blockParams,
-    });
+  parse(parser: HandlebarsParser): (span: hbs.Span) => MustacheContents {
+    return parseMustache(parser, false);
   },
 };
 
+function parseMustache(
+  parser: HandlebarsParser,
+  forceCall: true
+): (span: hbs.Span) => MustacheCallContents;
+function parseMustache(
+  parser: HandlebarsParser,
+  forceCall: false
+): (span: hbs.Span) => MustacheContents;
+function parseMustache(
+  parser: HandlebarsParser,
+  forceCall: boolean
+): (span: hbs.Span) => MustacheContents {
+  let expr = parser.expect(EXPR);
+  let contentOnly = true;
+
+  let params: hbs.Expression[] = [];
+
+  let closeSyntax = new TokenSyntax(TokenKind.Close);
+  let sawHash = false;
+  let blockParams: BlockParams = BLOCK_PARAMS_PLACEHOLDER;
+
+  while (true) {
+    if (parser.isEOF()) {
+      return DEFAULT_MUSTACHE_PLACEHOLDER();
+    }
+
+    if (parser.test(BLOCK_PARAMS)) {
+      blockParams = parser.expect(BLOCK_PARAMS);
+      contentOnly = false;
+    }
+
+    if (parser.test(closeSyntax)) {
+      break;
+    }
+
+    if (parser.test(HASH_PAIR)) {
+      sawHash = true;
+      contentOnly = false;
+      break;
+    }
+
+    let nextExpr = parser.expect(EXPR);
+    contentOnly = false;
+
+    params.push(nextExpr);
+  }
+
+  if (contentOnly && !forceCall) {
+    assert(
+      params.length === 0,
+      `BUG: expected only content, saw more than one expression in {{...}}`
+    );
+    parser.expect(new TokenSyntax(TokenKind.Close));
+
+    return span => ({
+      kind: 'content',
+      contents: {
+        type: 'MustacheContent',
+        span,
+        value: expr,
+      },
+    });
+  }
+
+  let hash: Option<hbs.Hash> = null;
+  if (sawHash) {
+    hash = parser.expect(HASH);
+  }
+
+  parser.expect(new TokenSyntax(TokenKind.Close));
+
+  return span => ({
+    kind: 'call',
+    contents: {
+      mustache: {
+        type: 'MustacheStatement',
+        span,
+        call: expr,
+        params,
+        hash,
+        trusted: false,
+        strip: { open: false, close: false },
+      },
+      blockParams,
+    },
+  });
+}
+
 function DEFAULT_MUSTACHE_PLACEHOLDER(): (span: hbs.Span) => MustacheContents {
   return span => ({
-    mustache: {
-      type: 'MustacheStatement',
+    kind: 'content',
+    contents: {
+      type: 'MustacheContent',
       span,
-      path: UNDEFINED,
-      params: [],
-      hash: NO_HASH,
-      escaped: true,
-      strip: { open: false, close: false },
+      value: UNDEFINED,
     },
-    blockParams: BLOCK_PARAMS_PLACEHOLDER,
   });
 }
 
@@ -582,7 +661,7 @@ export const BLOCK: StatementSyntax<hbs.BlockStatement> = {
 
   parse(parser) {
     parser.expect(new TokenSyntax(TokenKind.OpenBlock));
-    let rest = parser.expect(MUSTACHE_AFTER_CURLY);
+    let rest = parser.expect(MUSTACHE_CALL_AFTER_CURLY);
 
     let body = parser.expect(IN_BLOCK);
     body.value.block.blockParams = rest.blockParams.value.map(p => parser.slice(p.span));
@@ -595,7 +674,7 @@ export const BLOCK: StatementSyntax<hbs.BlockStatement> = {
       type: 'BlockStatement',
       span,
       chained: false,
-      path: rest.mustache.path,
+      call: rest.mustache.call,
       params: rest.mustache.params,
       hash: rest.mustache.hash,
       program: body.value.block,
@@ -715,34 +794,42 @@ const PATH: AstSyntax<hbs.Expression> = {
   },
 
   parse(parser) {
-    let parts: string[] = [];
+    let tail: hbs.PathSegment[] | null = null;
 
-    let next = parser.shift();
-    let data: boolean;
-    let head: string;
-
-    if (next.kind === TokenKind.AtName) {
-      data = true;
-      head = parser.slice(next.span).slice(1);
+    let head: hbs.Head;
+    if (parser.isMacro('head')) {
+      head = parser.expandHeadMacro();
     } else {
-      data = false;
-      head = parser.slice(next.span);
+      let next = parser.shift();
+
+      if (next.kind === TokenKind.AtName) {
+        head = { type: 'ArgReference', span: next.span, name: parser.slice(next.span).slice(1) };
+      } else if (parser.isMacro('head')) {
+      } else {
+        head = { type: 'LocalReference', span: next.span, name: parser.slice(next.span) };
+      }
     }
 
-    while (parser.test(new TokenSyntax(TokenKind.Dot))) {
-      parser.shift();
-      let next = parser.expect(new TokenSyntax(TokenKind.Identifier));
+    if (parser.test(new TokenSyntax(TokenKind.Dot))) {
+      tail = [];
 
-      parts.push(parser.slice(next.span));
+      while (true) {
+        parser.shift();
+        let next = parser.expect(new TokenSyntax(TokenKind.Identifier));
+
+        tail.push({ type: 'PathSegment', span: next.span, name: parser.slice(next.span) });
+
+        if (!parser.test(new TokenSyntax(TokenKind.Dot))) {
+          break;
+        }
+      }
     }
 
     return span => ({
       span,
       type: 'PathExpression',
-      data,
-      depth: 0,
-      parts: [head, ...parts],
-      original: 'todo',
+      head,
+      tail,
     });
   },
 };
@@ -852,7 +939,6 @@ class LiteralSyntax<L extends hbs.Literal> implements ExpressionSyntax<L> {
       span,
       type: 'NumberLiteral',
       value,
-      original: value,
     };
   }
 
@@ -861,7 +947,6 @@ class LiteralSyntax<L extends hbs.Literal> implements ExpressionSyntax<L> {
       span,
       type: 'StringLiteral',
       value,
-      original: value,
     };
   }
 }
@@ -882,7 +967,7 @@ const CONTENT: StatementSyntax<hbs.ContentStatement> = {
         span,
         type: 'ContentStatement',
         value: parser.slice(item.span),
-        original: { open: false, close: false },
+        strip: { open: false, close: false },
       });
     } else {
       // let span = parser.peek().span;
@@ -891,7 +976,7 @@ const CONTENT: StatementSyntax<hbs.ContentStatement> = {
         span,
         type: 'ContentStatement',
         value: '',
-        original: { open: false, close: false },
+        strip: { open: false, close: false },
       });
     }
   },

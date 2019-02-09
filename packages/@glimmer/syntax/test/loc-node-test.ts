@@ -1,4 +1,4 @@
-import { preprocess as parse, AST } from '..';
+import { preprocess as parse, BuilderAst } from '..';
 
 QUnit.module('[glimmer-syntax] Parser - Location Info');
 

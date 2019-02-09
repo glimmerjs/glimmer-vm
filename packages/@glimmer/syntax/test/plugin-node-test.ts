@@ -2,7 +2,7 @@ import {
   preprocess,
   Syntax,
   Walker,
-  AST,
+  BuilderAst,
   ASTPluginEnvironment,
   ASTPluginBuilder,
 } from '@glimmer/syntax';
