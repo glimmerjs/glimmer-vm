@@ -1,5 +1,5 @@
 import { Dict, Option } from '@glimmer/interfaces';
-import { assert, assign } from '@glimmer/util';
+import { assert, assign, unwrap, expect } from '@glimmer/util';
 import * as hbs from '../types/handlebars-ast';
 import { TokenKind } from './lex';
 import { Debug, LexItem, Spanned, Tokens } from './lexing';
@@ -23,44 +23,78 @@ const MACROS_V1 = {
   },
 };
 
+class Frame {
+  private items: hbs.Span[] = [];
+  private marked = false;
+
+  constructor(private startPos: number) {}
+
+  add(item: hbs.Span): void {
+    if (this.marked) {
+      throw new Error(`Can't parse while applying span to final parsed syntax`);
+    }
+
+    this.items.push(item);
+  }
+
+  mark(): void {
+    this.marked = true;
+  }
+
+  unmark(): void {
+    this.marked = false;
+  }
+
+  finalize(syntax: Syntax<unknown>): hbs.Span;
+  finalize(syntax: ListSyntax<unknown>): hbs.Span | null;
+  finalize(syntax: Syntax<unknown> | ListSyntax<unknown>): hbs.Span | null {
+    if (syntax.allowEmpty && this.items.length === 0) {
+      return { start: this.startPos, end: this.startPos };
+    }
+    if (this.items.length === 0) {
+      throw new Error(
+        `Can't finalize <<${syntax.description()}>> without any consumed tokens (perhaps the consumption is in the span callback?)`
+      );
+    }
+
+    let first = this.items[0];
+    let last = this.items[this.items.length - 1];
+
+    return { start: first.start, end: last.end };
+  }
+}
+
 export class HandlebarsParser {
   private errors: Diagnostic[] = [];
   private debugStack: string[] = [];
+  private frames: Frame[] = [];
 
   constructor(
     private input: string,
     private tokens: Tokens,
     private debug: Debug,
     private macros: Macros = MACROS_V1,
+    private isCheckpoint = false,
     private pos = 0
   ) {}
 
   RootProgram(): hbs.AnyProgram {
-    let statements: hbs.Statement[] = [];
-
-    while (true) {
-      let next = this.peek();
-      if (next.kind === TokenKind.EOF) {
-        break;
-      } else {
-        statements.push(this.expect(TOP));
-      }
-    }
-
-    return {
-      type: 'Program',
-      span: { start: 0, end: this.input.length },
-      body: statements,
-    };
-  }
-
-  Top(): hbs.Statement {
-    return this.expect(TOP);
+    this.frames.push(new Frame(this.pos));
+    let ret = this.expect(ROOT);
+    this.frames.pop();
+    return ret;
   }
 
   checkpoint() {
     this.trace('checkpoint');
-    return new HandlebarsParser(this.input, this.tokens.clone(), this.debug, this.macros, this.pos);
+    return new HandlebarsParser(
+      this.input,
+      this.tokens.clone(),
+      this.debug,
+      this.macros,
+      true,
+      this.pos
+    );
   }
 
   is(token: TokenKind, value?: string): boolean {
@@ -146,6 +180,7 @@ export class HandlebarsParser {
       )}`
     );
     let next = this.tokens.consume();
+    if (!this.isCheckpoint) this.currentFrame.add(next.span);
     this.pos = next.span.end;
     return next;
   }
@@ -162,15 +197,42 @@ export class HandlebarsParser {
     return syntax.test(this);
   }
 
-  expect<T>(syntax: Syntax<T>): T {
+  frame<T>(
+    syntax: Syntax<T> | ListSyntax<T>,
+    callback: () => (span: hbs.Span) => T
+  ): { span: hbs.Span; value: (span: hbs.Span) => T } {
+    let ret: (span: hbs.Span) => T;
+    this.frames.push(new Frame(this.pos));
+    ret = callback();
+    let frame = this.frames.pop()!;
+    return { span: frame.finalize(syntax), value: unwrap(ret) };
+  }
+
+  get currentFrame(): Frame {
+    return expect(this.frames[this.frames.length - 1], `Unexpected syntax push into empty frame`);
+  }
+
+  expect<T>(syntax: Syntax<T> | ListSyntax<T>): T {
     this.debugStack.push(syntax.description());
     this.trace(JSON.stringify(this.debugStack));
-    try {
-      let before = this.pos;
-      let thunk = syntax.parse(this);
-      let after = this.pos;
 
-      return thunk({ start: before, end: after });
+    try {
+      let { span, value: thunk } = this.frame<T>(syntax, () => {
+        let maybeThunk = syntax.parse(this);
+        if (isThunk(maybeThunk)) {
+          return maybeThunk;
+        } else {
+          let value = maybeThunk;
+          return (_span: hbs.Span) => value;
+        }
+      });
+
+      this.currentFrame.add(span);
+      this.currentFrame.mark();
+
+      let out = thunk(span);
+      this.currentFrame.unmark();
+      return out;
     } finally {
       this.debugStack.pop();
     }
@@ -184,9 +246,21 @@ export class HandlebarsParser {
 }
 
 export interface Syntax<T> {
+  allowEmpty?: boolean;
   description(): string;
   test(parser: HandlebarsParser): boolean;
-  parse(parser: HandlebarsParser): (span: hbs.Span) => T;
+  parse(parser: HandlebarsParser): ((span: hbs.Span) => T) | T;
+}
+
+export interface ListSyntax<T> {
+  allowEmpty: true;
+  description(): string;
+  test(parser: HandlebarsParser): boolean;
+  parse(parser: HandlebarsParser): ((span: hbs.Span | null) => T) | T;
+}
+
+export function isThunk<T>(parsed: ((span: hbs.Span) => T) | T): parsed is (span: hbs.Span) => T {
+  return typeof parsed === 'function';
 }
 
 export type AstSyntax<T extends hbs.AnyNode = hbs.AnyNode> = Syntax<T>;
@@ -195,6 +269,35 @@ export type ExpressionSyntax<T extends hbs.Expression = hbs.Expression> = Syntax
 
 const NO_SPAN = { start: -1, end: -1 };
 const NO_STRIP: hbs.StripFlags = { open: false, close: false };
+
+export const ROOT: Syntax<hbs.AnyProgram> = {
+  description() {
+    return 'root';
+  },
+
+  test() {
+    return true;
+  },
+
+  parse(parser) {
+    let statements: hbs.Statement[] = [];
+
+    while (true) {
+      let next = parser.peek();
+      if (next.kind === TokenKind.EOF) {
+        break;
+      } else {
+        statements.push(parser.expect(TOP));
+      }
+    }
+
+    return span => ({
+      type: 'Program',
+      span,
+      body: statements,
+    });
+  },
+};
 
 export const TOP: StatementSyntax<hbs.Statement> = {
   description() {
@@ -209,13 +312,17 @@ export const TOP: StatementSyntax<hbs.Statement> = {
 
   parse(parser) {
     if (parser.test(CONTENT)) {
-      return () => parser.expect(CONTENT);
+      let content = parser.expect(CONTENT);
+      return () => content;
     } else if (parser.test(CURLIES)) {
-      return () => parser.expect(CURLIES);
+      let curlies = parser.expect(CURLIES);
+      return () => curlies;
     } else if (parser.test(COMMENT)) {
-      return () => parser.expect(COMMENT);
+      let comment = parser.expect(COMMENT);
+      return () => comment;
     } else if (parser.test(BLOCK)) {
-      return () => parser.expect(BLOCK);
+      let block = parser.expect(BLOCK);
+      return () => block;
     } else {
       let token = parser.peek();
       throw new Error(
@@ -226,6 +333,8 @@ export const TOP: StatementSyntax<hbs.Statement> = {
 };
 
 export const BLOCK_UNTIL_ELSE: Syntax<hbs.Program> = {
+  allowEmpty: true,
+
   description() {
     return '{{#...}} -> ( ... ) -> {{else | {{/...}}';
   },
@@ -328,7 +437,8 @@ export const IN_BLOCK: Syntax<
           type: 'BlockStatement',
           span: { start: chainStartToken.span.start, end: chainBlock.span.end },
           chained: false,
-          call: chainMustache.mustache.call,
+          // TODO: model this correctly
+          call: chainMustache.mustache.call as hbs.PathExpression,
           params: chainMustache.mustache.params,
           hash: chainMustache.mustache.hash,
           program: chainBlock.value.block,
@@ -358,6 +468,8 @@ export const IN_BLOCK: Syntax<
 };
 
 export const BLOCK_FROM_ELSE: Syntax<hbs.Program> = {
+  allowEmpty: true,
+
   description() {
     return `{{else}} -> ( ... ) -> {{/...}}`;
   },
@@ -674,7 +786,7 @@ export const BLOCK: StatementSyntax<hbs.BlockStatement> = {
       type: 'BlockStatement',
       span,
       chained: false,
-      call: rest.mustache.call,
+      call: rest.mustache.call as hbs.PathExpression,
       params: rest.mustache.params,
       hash: rest.mustache.hash,
       program: body.value.block,
@@ -744,7 +856,8 @@ class TokenSyntax<T extends TokenKind> implements Syntax<LexItem<T>> {
 
   parse(parser: HandlebarsParser): (span: hbs.Span) => LexItem<T> {
     if (this.test(parser)) {
-      return () => (parser.shift() as unknown) as LexItem<T>;
+      let item = parser.shift();
+      return () => (item as unknown) as LexItem<T>;
     } else {
       let token = parser.peek();
       parser.report(`expected ${this.token}, got ${token.kind}`, token.span);
@@ -862,19 +975,19 @@ const EXPR: AstSyntax<hbs.Expression> = {
 
       case TokenKind.Identifier:
         if (parser.isMacro('expr')) {
-          return () => parser.expandExpressionMacro();
+          return parser.expandExpressionMacro();
         }
 
-        return () => parser.expect(PATH);
+        return parser.expect(PATH);
 
       case TokenKind.Number:
-        return () => parser.expect(new LiteralSyntax('NumberLiteral'));
+        return parser.expect(new LiteralSyntax('NumberLiteral'));
 
       case TokenKind.String:
-        return () => parser.expect(new LiteralSyntax('StringLiteral'));
+        return parser.expect(new LiteralSyntax('StringLiteral'));
 
       case TokenKind.AtName:
-        return () => parser.expect(PATH);
+        return parser.expect(PATH);
 
       default:
         throw new Error(`unimplemented in EXPR#parse ${JSON.stringify(token)}`);
@@ -961,7 +1074,7 @@ const CONTENT: StatementSyntax<hbs.ContentStatement> = {
   },
 
   parse(parser) {
-    if (this.test(parser)) {
+    if (CONTENT.test(parser)) {
       let item = parser.shift();
       return span => ({
         span,

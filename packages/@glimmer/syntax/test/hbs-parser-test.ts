@@ -146,20 +146,23 @@ describe('@glimmer/syntax - parser', function() {
       ast: b.ast(b.mustache(b.atPath('foo.bar'))),
       sexp: [['get-path', '@foo', 's:bar']],
     });
-
-    // equals(astFor('{{@foo.bar}}'), '{{ @/"foo"."bar"/ [] }}\n');
-    // equals(astFor('{{@foo.bar.baz}}'), '{{ @/"foo"."bar"."baz"/ [] }}\n');
-
-    // equals(astFor('{{ @foo }}'), '{{ @/"foo"/ [] }}\n');
-    // equals(astFor('{{ @foo.bar }}'), '{{ @/"foo"."bar"/ [] }}\n');
-    // equals(astFor('{{ @foo.bar.baz }}'), '{{ @/"foo"."bar"."baz"/ [] }}\n');
   });
 
   it('parses mustaches with paths', function() {
-    equivAST('{{foo.bar}}', { sexp: [['get-path', 'foo', 's:bar']] });
-    equivAST('{{foo.bar.baz}}', { sexp: [['get-path', 'foo', 's:bar', 's:baz']] });
+    equivAST('{{foo.bar}}', {
+      sexp: [['get-path', 'foo', 's:bar']],
+      ast: b.ast(b.mustache(b.path('foo.bar'))),
+    });
+    equivAST('{{foo.bar.baz}}', {
+      sexp: [['get-path', 'foo', 's:bar', 's:baz']],
+      ast: b.ast(b.mustache(b.path('foo.bar.baz'))),
+    });
 
-    equivAST('{{ foo.bar }}', { sexp: [['get-path', 'foo', 's:bar']] });
+    equivAST('{{ foo.bar }}', {
+      sexp: [['get-path', 'foo', 's:bar']],
+      ast: b.ast(b.mustache(b.ws(), b.path('foo.bar'), b.ws())),
+    });
+
     equivAST('{{ foo.bar.baz }}', { sexp: [['get-path', 'foo', 's:bar', 's:baz']] });
   });
 
