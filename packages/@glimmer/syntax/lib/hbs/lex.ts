@@ -17,11 +17,8 @@ import {
   Debug,
 } from './lexing';
 
-const LEFT_STRIP = '~';
-const RIGHT_STRIP = '~';
-
 const LOOKAHEAD = /^[=~;}\s;\/.)|]/;
-const LITERAL_LOOKAHEAD = /^[~;}\s;)]/;
+const ID = /^[^\s\d!"#%-,\.\/;->@\[-\^`\{-~][^\s!"#%-,\.;->@\[-\^`\{-~]+/;
 
 function testWs(s: string): Option<string> {
   let match = s.match(/^\s+/);
@@ -34,7 +31,7 @@ function testWs(s: string): Option<string> {
 }
 
 function testId(s: string): Option<string> {
-  let match = s.match(/^[^\s\d!"#%-,\.\/;->@\[-\^`\{-~][^\s!"#%-,\.;->@\[-\^`\{-~]+/);
+  let match = s.match(ID);
 
   if (match) {
     let rest = s.slice(match[0].length);

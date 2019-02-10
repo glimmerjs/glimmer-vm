@@ -1,6 +1,6 @@
 import { assert } from '@glimmer/util';
 import { Stack, DictSet, Option, expect } from '@glimmer/util';
-import { BuilderAst } from '@glimmer/syntax';
+import { AST } from '@glimmer/syntax';
 import { CompileOptions } from './template-compiler';
 import { isFlushElement, isArgument, isAttribute, isAttrSplat } from '@glimmer/wire-format';
 import { Processor, CompilerOps, OpName, Op } from './compiler-ops';

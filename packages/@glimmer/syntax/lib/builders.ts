@@ -2,7 +2,6 @@ import * as AST from './types/nodes';
 import { Option, Dict } from '@glimmer/interfaces';
 import { deprecate, assign } from '@glimmer/util';
 import { DEVMODE } from '@glimmer/local-debug-flags';
-import { StringLiteral, BooleanLiteral, NumberLiteral } from './types/handlebars-ast';
 
 // Statements
 
@@ -551,9 +550,9 @@ export default {
   loc: buildLoc,
   pos: buildPosition,
 
-  string: literal('StringLiteral') as (value: string) => StringLiteral,
-  boolean: literal('BooleanLiteral') as (value: boolean) => BooleanLiteral,
-  number: literal('NumberLiteral') as (value: number) => NumberLiteral,
+  string: literal<AST.StringLiteral>('StringLiteral'),
+  boolean: literal<AST.BooleanLiteral>('BooleanLiteral'),
+  number: literal<AST.NumberLiteral>('NumberLiteral'),
   undefined() {
     return buildLiteral('UndefinedLiteral', undefined);
   },

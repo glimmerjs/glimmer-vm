@@ -1,6 +1,5 @@
 import { HandlebarsParser } from './parser';
 import * as hbs from '../types/handlebars-ast';
-import { unreachable } from '@glimmer/util';
 
 export interface Macro<T> {
   description(): string;

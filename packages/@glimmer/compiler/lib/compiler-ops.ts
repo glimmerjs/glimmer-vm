@@ -1,4 +1,4 @@
-import { BuilderAst } from '@glimmer/syntax';
+import { AST } from '@glimmer/syntax';
 import { Option } from '@glimmer/interfaces';
 
 /**

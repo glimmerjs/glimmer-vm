@@ -523,7 +523,7 @@ export const COMMENT: StatementSyntax<hbs.CommentStatement> = {
     let next = parser.shift();
 
     let string = parser.slice(next.span);
-    let value = next.kind === TokenKind.InlineComment ? string.slice(3, -2) : string.slice(4, -4);
+    let value = next.kind === TokenKind.InlineComment ? string.slice(3, -2) : string.slice(5, -4);
 
     return span => ({
       span,

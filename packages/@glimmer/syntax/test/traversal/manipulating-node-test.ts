@@ -6,6 +6,7 @@ import {
   BuilderAst,
   cannotRemoveNode,
   cannotReplaceNode,
+  AST,
 } from '@glimmer/syntax';
 
 QUnit.module('[glimmer-syntax] Traversal - manipulating');

@@ -5,6 +5,7 @@ import {
   BuilderAst,
   ASTPluginEnvironment,
   ASTPluginBuilder,
+  AST,
 } from '@glimmer/syntax';
 
 const { test } = QUnit;

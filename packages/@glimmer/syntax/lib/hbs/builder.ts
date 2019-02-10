@@ -1,4 +1,4 @@
-import { keys, assert } from '@glimmer/util';
+import { keys } from '@glimmer/util';
 import * as hbs from '../types/handlebars-ast';
 
 const NO_STRIP: hbs.StripFlags = { open: false, close: false };
@@ -25,7 +25,24 @@ export class AstBuilder {
 
   visit(statement: Statement): hbs.Statement | null {
     switch (statement.type) {
-      case 'ContentStatement':
+      case 'CommentStatement': {
+        return this.spanned(() => {
+          this.consume('{{!');
+          if (statement.block) this.consume('--');
+          this.consume(statement.value);
+          if (statement.block) this.consume('--');
+          this.consume('}}');
+
+          return span => ({
+            type: 'CommentStatement',
+            span,
+            value: statement.value,
+            strip: NO_STRIP,
+          });
+        });
+      }
+
+      case 'ContentStatement': {
         let span = this.consume(statement.value);
 
         return {
@@ -34,6 +51,7 @@ export class AstBuilder {
           value: statement.value,
           strip: { open: false, close: false },
         };
+      }
 
       case 'BlockStatement':
         return this.spanned(() => {
@@ -56,7 +74,7 @@ export class AstBuilder {
 
           let inverse: hbs.Program | null = null;
           if (statement.inverse) {
-            this.consume('{{else}}');
+            this.consume('{{else');
             inverse = this.program(statement.inverse);
           }
 
@@ -90,19 +108,30 @@ export class AstBuilder {
           let foundCall: hbs.Expression | undefined = undefined;
           let foundHash: hbs.Hash | null | undefined = undefined;
           let params: hbs.Expression[] = [];
+          let needsWs = false;
+
           for (let param of statement.contents) {
+            if (param.type !== 'Whitespace' && needsWs) {
+              this.consume(' ');
+              needsWs = false;
+            }
+
             if (foundCall === undefined && param.type !== 'Whitespace') {
               if (param.type === 'Hash') {
                 throw new Error(`The first element of a mustache may not be a hash`);
               }
 
               foundCall = this.expr(param);
+              needsWs = true;
             } else if (param.type === 'Whitespace') {
               this.consume(param.body);
+              needsWs = false;
             } else if (param.type === 'Hash') {
               foundHash = this.hash(param);
+              needsWs = true;
             } else {
               params.push(this.expr(param));
+              needsWs = true;
             }
           }
 
@@ -130,14 +159,11 @@ export class AstBuilder {
             });
           }
         });
-
-      default:
-        throw new Error(`unimplemented ${statement.type} for AST builder`);
     }
   }
 
   program(program: Program): hbs.Program {
-    if (program.blockParams) {
+    if (program.blockParams && program.blockParams.length) {
       this.consume(' as |');
       this.consume(program.blockParams.join(' '));
       this.consume('|}}');
@@ -199,6 +225,26 @@ export class AstBuilder {
       case 'PathExpression':
         return this.path(expression);
 
+      case 'UndefinedLiteral':
+        return this.spanned(() => {
+          this.consume('undefined');
+          return span => ({
+            type: 'UndefinedLiteral',
+            span,
+            value: undefined,
+          });
+        });
+
+      case 'NullLiteral':
+        return this.spanned(() => {
+          this.consume('null');
+          return span => ({
+            type: 'NullLiteral',
+            span,
+            value: null,
+          });
+        });
+
       case 'Whitespace':
         this.consume(expression.body);
         return null;
@@ -252,8 +298,12 @@ export class AstBuilder {
 
     return this.spanned(() => {
       let out: hbs.HashPair[] = [];
-      for (let pair of hash.pairs) {
-        out.push(this.hashPair(pair));
+
+      let pairs = hash.pairs;
+      let last = hash.pairs.length - 1;
+      for (let i = 0; i < pairs.length; i++) {
+        out.push(this.hashPair(pairs[i]));
+        if (i !== last) this.consume(' ');
       }
 
       return span => ({
@@ -269,10 +319,14 @@ export class AstBuilder {
     }
 
     return this.spanned(() => {
+      this.consume(pair.key);
+      this.consume('=');
+      let value = this.expr(pair.value);
+
       return span => ({
         span,
         key: pair.key,
-        value: this.expr(pair.value),
+        value,
       });
     });
   }
@@ -309,11 +363,11 @@ export interface Program {
   blockParams: string[];
 }
 
-export function block({ statements, as }: { statements: Statement[]; as: string[] }): Program {
+export function block({ statements, as }: { statements: Statement[]; as?: string[] }): Program {
   return {
     type: 'Program',
     body: statements,
-    blockParams: as,
+    blockParams: as || [],
   };
 }
 
@@ -339,13 +393,48 @@ export interface MustacheStatement {
   strip?: StripFlags;
 }
 
+export type BuilderMustache = MustacheStatement;
+
 export type MustacheContent = Expression | Hash;
+export type ToMustachePart = MustacheContent | string | boolean | number | null | undefined;
 export type MustacheContents = MustacheContent[];
 
-export function mustache(...params: MustacheContents): MustacheStatement {
+export type ToHashPart = Expression | string | boolean | number | null | undefined;
+
+export function ToMustachePart(part: ToMustachePart): MustacheContent {
+  if (typeof part === 'string') {
+    return path(part);
+  } else if (typeof part === 'boolean') {
+    return literal(part);
+  } else if (typeof part === 'number') {
+    return literal(part);
+  } else if (part === null || part === undefined) {
+    return literal(part);
+  } else {
+    return part;
+  }
+}
+
+export function ToHashPart(part: ToHashPart): Expression {
+  if (typeof part === 'string') {
+    return path(part);
+  } else if (typeof part === 'boolean') {
+    return literal(part);
+  } else if (typeof part === 'number') {
+    return literal(part);
+  } else if (part === null || part === undefined) {
+    return literal(part);
+  } else {
+    return part;
+  }
+}
+
+export function mustache(...params: ToMustachePart[]): MustacheStatement {
+  let parts = params.map(ToMustachePart);
+
   return {
     type: 'MustacheStatement',
-    contents: params,
+    contents: parts,
     trusted: false,
   };
 }
@@ -384,7 +473,7 @@ export interface BlockStatement extends CommonBlock {
 }
 
 export function blockCall(
-  path: PathExpression,
+  rawPath: string,
   {
     params,
     hash,
@@ -394,7 +483,7 @@ export function blockCall(
 ): BlockStatement {
   return {
     type: 'BlockStatement',
-    call: path,
+    call: path(rawPath),
     params: params || [],
     hash: hash || null,
     program,
@@ -417,13 +506,25 @@ export function content(value: string): ContentStatement {
 export interface CommentStatement {
   type: 'CommentStatement';
   value: string;
+  block: boolean;
 }
 
 export function comment(value: string): CommentStatement {
-  return {
-    type: 'CommentStatement',
-    value,
-  };
+  let match = value.match(/^--(.*)--$/);
+
+  if (match) {
+    return {
+      type: 'CommentStatement',
+      value: match[1],
+      block: true,
+    };
+  } else {
+    return {
+      type: 'CommentStatement',
+      value,
+      block: false,
+    };
+  }
 }
 
 export type Expression = SubExpression | PathExpression | Literal | Whitespace;
@@ -578,11 +679,11 @@ export interface Hash {
   pairs: HashPair[];
 }
 
-export function hash(map: { [key: string]: Expression }): Hash {
+export function hash(map: { [key: string]: ToHashPart }): Hash {
   let out: HashPair[] = [];
 
   for (let key of keys(map)) {
-    out.push({ key: key as string, value: map[key] });
+    out.push({ key: key as string, value: ToHashPart(map[key]) });
   }
 
   return { type: 'Hash', pairs: out };
