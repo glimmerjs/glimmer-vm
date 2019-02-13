@@ -204,7 +204,7 @@ export default class BundleCompiler {
 
   preprocess(input: string): SerializedTemplateBlock {
     let ast = preprocess(input, { plugins: { ast: this.plugins } });
-    let template = TemplateCompiler.compile(ast, { strict: false, meta: null });
+    let template = TemplateCompiler.compile(ast, { strict: false, meta: null, source: input });
     return template.toJSON();
   }
 

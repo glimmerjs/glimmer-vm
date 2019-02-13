@@ -102,7 +102,7 @@ export class AstBuilder {
         return null;
 
       case 'MustacheStatement':
-        return this.spanned<hbs.MustacheStatement | hbs.ContentMustache>(() => {
+        return this.spanned<hbs.MustacheStatement | hbs.MustacheContent>(() => {
           this.consume('{{');
 
           let foundCall: hbs.Expression | undefined = undefined;
@@ -146,6 +146,7 @@ export class AstBuilder {
               type: 'MustacheContent',
               span,
               value: foundCall!,
+              trusted: false,
             });
           } else {
             return span => ({
@@ -436,6 +437,7 @@ export function mustache(...params: ToMustachePart[]): MustacheStatement {
     type: 'MustacheStatement',
     contents: parts,
     trusted: false,
+    strip: NO_STRIP,
   };
 }
 
@@ -479,12 +481,12 @@ export function blockCall(
     hash,
     program,
     inverse,
-  }: { params?: Expression[]; hash?: Hash; program: Program; inverse?: Program }
+  }: { params?: ToHashPart[]; hash?: Hash; program: Program; inverse?: Program }
 ): BlockStatement {
   return {
     type: 'BlockStatement',
     call: path(rawPath),
-    params: params || [],
+    params: params ? params.map(ToHashPart) : [],
     hash: hash || null,
     program,
     inverse: inverse || null,

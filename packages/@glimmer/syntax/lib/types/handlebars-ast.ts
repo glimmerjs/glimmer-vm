@@ -20,12 +20,8 @@ export interface CommonNode {
 export interface NodeMap {
   Program: { input: Program; output: AST.Template | AST.Block };
   MustacheStatement: { input: MustacheStatement; output: AST.MustacheStatement | void };
-  ContentMustache: { input: ContentMustache; output: AST.MustacheStatement | void };
-  Decorator: { input: Decorator; output: never };
+  MustacheContent: { input: MustacheContent; output: AST.MustacheStatement | void };
   BlockStatement: { input: BlockStatement; output: AST.BlockStatement | void };
-  DecoratorBlock: { input: DecoratorBlock; output: never };
-  PartialStatement: { input: PartialStatement; output: never };
-  PartialBlockStatement: { input: PartialBlockStatement; output: never };
   ContentStatement: { input: ContentStatement; output: void };
   CommentStatement: { input: CommentStatement; output: AST.MustacheCommentStatement | null };
   SubExpression: { input: SubExpression; output: AST.SubExpression };
@@ -68,11 +64,8 @@ export interface Program extends CommonNode {
 
 export type Statement =
   | MustacheStatement
-  | ContentMustache
+  | MustacheContent
   | BlockStatement
-  | DecoratorBlock
-  | PartialStatement
-  | PartialBlockStatement
   | ContentStatement
   | CommentStatement;
 
@@ -88,19 +81,16 @@ export interface MustacheStatement extends CommonMustache, MustacheBody {
   type: 'MustacheStatement';
 }
 
-export interface Decorator extends CommonMustache {
-  type: 'DecoratorStatement';
-}
-
 export interface MustacheBody {
   call: Expression;
   params: Expression[];
   hash: Hash | null;
 }
 
-export interface ContentMustache extends CommonNode {
+export interface MustacheContent extends CommonNode {
   type: 'MustacheContent';
   value: Expression;
+  trusted: boolean;
 }
 
 export interface CommonBlock extends MustacheBody, CommonNode {
@@ -119,29 +109,6 @@ export interface BlockStatement extends CommonBlock {
   type: 'BlockStatement';
 }
 
-export interface DecoratorBlock extends CommonBlock {
-  type: 'DecoratorBlock';
-}
-
-export interface PartialStatement extends CommonNode {
-  type: 'PartialStatement';
-  name: PathExpression | SubExpression;
-  params: Expression[];
-  hash: Hash;
-  indent: string;
-  strip: StripFlags;
-}
-
-export interface PartialBlockStatement extends CommonNode {
-  type: 'PartialBlockStatement';
-  name: PathExpression | SubExpression;
-  params: Expression[];
-  hash: Hash;
-  program: Program;
-  openStrip: StripFlags;
-  closeStrip: StripFlags;
-}
-
 export interface ContentStatement extends CommonNode {
   type: 'ContentStatement';
   value: string;
@@ -156,11 +123,11 @@ export interface CommentStatement extends CommonNode {
 
 export type Expression = SubExpression | PathExpression | Literal;
 
-export interface SubExpression extends CommonNode {
+export interface SubExpression extends CommonNode, MustacheBody {
   type: 'SubExpression';
-  path: Expression;
+  call: Expression;
   params: Expression[];
-  hash: Hash;
+  hash: Hash | null;
 }
 
 export interface PathExpression extends CommonNode {

@@ -7,6 +7,7 @@ import {
   WireFormat,
   Unhandled,
   TemplateCompilationContext,
+  SexpOpcodes,
 } from '@glimmer/interfaces';
 import { DEBUG } from '@glimmer/local-debug-flags';
 import { namedBlocks } from './utils';
@@ -24,7 +25,18 @@ export function compileBlock(
 ): StatementCompileActions {
   let [, name, params, hash, named] = block;
   let blocks = namedBlocks(named, context.meta);
-  return context.syntax.macros.blocks.compile(name, params, hash, blocks, context);
+
+  if (!isSimple(name)) {
+    throw new Error(`TODO: Unimplemented {{#${JSON.stringify(name)}}}`);
+  }
+
+  return context.syntax.macros.blocks.compile(name[1][0], params, hash, blocks, context);
+}
+
+export function isSimple(
+  name: WireFormat.Expressions.PathExpression
+): name is WireFormat.Expressions.MaybeLocal {
+  return name[0] === SexpOpcodes.MaybeLocal && name[1].length === 1;
 }
 
 export function commit(heap: CompileTimeHeap, scopeSize: number, buffer: CompilerBuffer): number {

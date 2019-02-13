@@ -381,6 +381,45 @@ describe('@glimmer/syntax - parser', function() {
     });
   });
 
+  it('handles escape chars before content', () => {
+    equivAST(`hello \\<div>world</div>`, {
+      sexp: ['s:hello \\<div>world</div>'],
+    });
+  });
+
+  it('handles nested subexpressions', () => {
+    equivAST(`<div>{{testing (testing "hello" foo) (testing (testing bar "lol") baz)}}</div>`, {
+      sexp: [
+        's:<div>',
+        ['testing', ['testing', 's:hello', 'foo'], ['testing', ['testing', 'bar', 's:lol'], 'baz']],
+        's:</div>',
+      ],
+    });
+  });
+
+  it('parses idiomatic each loop', () => {
+    equivAST(`{{#each list key="@index" as |item|}}{{item}}{{else}}Empty{{/each}}`, {
+      sexp: [
+        [
+          'block',
+          'each',
+          'list',
+          { key: 's:@index' },
+          { as: ['item'] },
+          { default: ['item'], else: ['s:Empty'] },
+        ],
+      ],
+      ast: b.ast(
+        b.blockCall('each', {
+          params: ['list'],
+          hash: b.hash({ key: b.literal('@index') }),
+          program: b.block({ as: ['item'], statements: [b.mustache('item')] }),
+          inverse: b.block({ statements: [b.content('Empty')] }),
+        })
+      ),
+    });
+  });
+
   todo('parses chained inverse block with block params', function() {
     equals(
       astFor('{{#foo}}{{else foo as |bar baz|}}content{{/foo}}'),

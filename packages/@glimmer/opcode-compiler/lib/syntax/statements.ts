@@ -22,11 +22,11 @@ STATEMENTS.add(SexpOpcodes.CloseElement, () => op(Op.CloseElement));
 STATEMENTS.add(SexpOpcodes.FlushElement, () => op(Op.FlushElement));
 
 STATEMENTS.add(SexpOpcodes.Modifier, sexp => {
-  let [, name, params, hash] = sexp;
+  let [, call, params, hash] = sexp;
 
   return op('IfResolved', {
     kind: ResolveHandle.Modifier,
-    name,
+    call: op('Expr', call),
     andThen: handle => [
       op(MachineOp.PushFrame),
       op('SimpleArgs', { params, hash, atNames: false }),

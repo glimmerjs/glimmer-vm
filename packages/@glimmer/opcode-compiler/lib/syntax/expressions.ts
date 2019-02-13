@@ -7,10 +7,10 @@ import { curryComponent } from '../opcode-builder/helpers/components';
 
 export const EXPRESSIONS = new ExpressionCompilers();
 
-EXPRESSIONS.add(SexpOpcodes.Unknown, ([, name], meta) => {
+EXPRESSIONS.add(SexpOpcodes.Unknown, ([, call], meta) => {
   return op('IfResolved', {
     kind: ResolveHandle.Helper,
-    name,
+    call: op('Expr', call),
     andThen: handle => helper({ handle, params: null, hash: null }),
     orElse: () => {
       if (meta.asPartial) {
@@ -34,7 +34,7 @@ EXPRESSIONS.add(SexpOpcodes.Concat, ([, parts]) => {
   return out;
 });
 
-EXPRESSIONS.add(SexpOpcodes.Helper, ([, name, params, hash], meta) => {
+EXPRESSIONS.add(SexpOpcodes.Helper, ([, call, params, hash], meta) => {
   // TODO: triage this in the WF compiler
   if (name === 'component') {
     assert(params.length, 'SYNTAX ERROR: component helper requires at least one argument');
@@ -53,14 +53,14 @@ EXPRESSIONS.add(SexpOpcodes.Helper, ([, name, params, hash], meta) => {
 
   return op('IfResolved', {
     kind: ResolveHandle.Helper,
-    name,
+    call: op('Expr', call),
     andThen: handle => helper({ handle, params, hash }),
   });
 });
 
 EXPRESSIONS.add(SexpOpcodes.Get, ([, head, path]) => [
   op(Op.GetVariable, head),
-  ...path.map(p => op(Op.GetProperty, p)),
+  ...(path ? path.map(p => op(Op.GetProperty, p)) : []),
 ]);
 
 EXPRESSIONS.add(SexpOpcodes.MaybeLocal, ([, path], meta) => {

@@ -8,19 +8,25 @@ const visitorKeys = {
   Template: tuple('body'),
   Block: tuple('body'),
 
+  CommentStatement: tuple(),
+  MustacheCommentStatement: tuple(),
   MustacheStatement: tuple('path', 'params', 'hash'),
+  MustacheContent: tuple('value'),
+  TextNode: tuple(),
   BlockStatement: tuple('path', 'params', 'hash', 'program', 'inverse'),
   ElementModifierStatement: tuple('path', 'params', 'hash'),
   PartialStatement: tuple('name', 'params', 'hash'),
-  CommentStatement: tuple(),
-  MustacheCommentStatement: tuple(),
   ElementNode: tuple('attributes', 'modifiers', 'children', 'comments'),
   AttrNode: tuple('value'),
-  TextNode: tuple(),
 
   ConcatStatement: tuple('parts'),
   SubExpression: tuple('path', 'params', 'hash'),
   PathExpression: tuple(),
+
+  LocalReference: tuple(),
+  ArgReference: tuple(),
+  This: tuple(),
+  PathSegment: tuple(),
 
   StringLiteral: tuple(),
   BooleanLiteral: tuple(),
@@ -31,6 +37,34 @@ const visitorKeys = {
   Hash: tuple('pairs'),
   HashPair: tuple('value'),
 };
+
+// Program: Program;
+// Template: Template;
+// Block: Block;
+// CommentStatement: CommentStatement;
+// MustacheCommentStatement: MustacheCommentStatement;
+// TextNode: TextNode;
+// PathExpression: PathExpression;
+// StringLiteral: StringLiteral;
+// BooleanLiteral: BooleanLiteral;
+// NumberLiteral: NumberLiteral;
+// NullLiteral: NullLiteral;
+// UndefinedLiteral: UndefinedLiteral;
+// MustacheStatement: MustacheStatement;
+// MustacheContent: MustacheContent;
+// BlockStatement: BlockStatement;
+// ElementModifierStatement: ElementModifierStatement;
+// PartialStatement: PartialStatement;
+// ElementNode: ElementNode;
+// AttrNode: AttrNode;
+// ConcatStatement: ConcatStatement;
+// SubExpression: SubExpression;
+// Hash: Hash;
+// HashPair: HashPair;
+// LocalReference: LocalReference;
+// ArgReference: ArgReference;
+// This: This;
+// PathSegment: PathSegment;
 
 type VisitorKeysMap = typeof visitorKeys;
 

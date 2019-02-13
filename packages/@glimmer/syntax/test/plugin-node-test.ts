@@ -2,7 +2,6 @@ import {
   preprocess,
   Syntax,
   Walker,
-  BuilderAst,
   ASTPluginEnvironment,
   ASTPluginBuilder,
   AST,

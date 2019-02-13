@@ -240,14 +240,16 @@ export default class JavaScriptCompiler
     this.push([SexpOpcodes.Comment, value]);
   }
 
-  modifier(name: string) {
+  modifier() {
+    let call = this.popValue<Expression>();
     let params = this.popValue<Params>();
     let hash = this.popValue<Hash>();
 
-    this.push([SexpOpcodes.Modifier, name, params, hash]);
+    this.push([SexpOpcodes.Modifier, call, params, hash]);
   }
 
-  block([name, template, inverse]: [string, number, Option<number>]) {
+  block([template, inverse]: [number, Option<number>]) {
+    let call = this.popValue<WireFormat.Expressions.PathExpression>();
     let params = this.popValue<Params>();
     let hash = this.popValue<Hash>();
 
@@ -271,7 +273,7 @@ export default class JavaScriptCompiler
       namedBlocks = [['default', 'else'], [blocks[template], blocks[inverse]]];
     }
 
-    this.push([SexpOpcodes.Block, name, params, hash, namedBlocks]);
+    this.push([SexpOpcodes.Block, call, params, hash, namedBlocks]);
   }
 
   openComponent(element: AST.ElementNode) {
@@ -423,7 +425,7 @@ export default class JavaScriptCompiler
     this.pushValue<Expressions.Unknown>([SexpOpcodes.Unknown, name]);
   }
 
-  get([head, path]: [number, string[]]) {
+  get([head, path]: [number, string[] | null]) {
     this.pushValue<Expressions.Get>([SexpOpcodes.Get, head, path]);
   }
 
@@ -439,11 +441,12 @@ export default class JavaScriptCompiler
     this.pushValue<Expressions.Concat>([SexpOpcodes.Concat, this.popValue<Params>()]);
   }
 
-  helper(name: string) {
+  helper() {
+    let call = this.popValue<Expression>();
     let params = this.popValue<Params>();
     let hash = this.popValue<Hash>();
 
-    this.pushValue<Expressions.Helper>([SexpOpcodes.Helper, name, params, hash]);
+    this.pushValue<Expressions.Helper>([SexpOpcodes.Helper, call, params, hash]);
   }
 
   /// Stack Management Opcodes

@@ -5,8 +5,8 @@ import * as HBS from '../types/handlebars-ast';
 import { Parser, Tag, Attribute } from '../parser';
 import SyntaxError from '../errors/syntax-error';
 import { Option } from '@glimmer/util';
-import { Recast } from '@glimmer/interfaces';
 import { TokenizerState } from 'simple-html-tokenizer';
+import { locForSpan, Location } from '../hbs/pos';
 
 export abstract class HandlebarsNodeVisitors extends Parser {
   abstract appendToCommentData(s: string): void;
@@ -23,6 +23,16 @@ export abstract class HandlebarsNodeVisitors extends Parser {
     return this.elementStack.length === 0;
   }
 
+  private loc(span: HBS.Span): Location {
+    return locForSpan(this.source, span);
+  }
+
+  private locString(span: HBS.Span): string {
+    let loc = this.loc(span);
+
+    return `L${loc.start.line}:C${loc.start.column}`;
+  }
+
   Program(program: HBS.Program): AST.Block;
   Program(program: HBS.Program): AST.Template;
   Program(program: HBS.Program): AST.Template | AST.Block;
@@ -33,9 +43,9 @@ export abstract class HandlebarsNodeVisitors extends Parser {
     let node;
 
     if (this.isTopLevel) {
-      node = b.template(body, program.blockParams, program.loc);
+      node = b.template(body, program.blockParams, this.loc(program.span));
     } else {
-      node = b.blockItself(body, program.blockParams, program.loc);
+      node = b.blockItself(body, program.blockParams, this.loc(program.span));
     }
 
     let i,
@@ -78,23 +88,99 @@ export abstract class HandlebarsNodeVisitors extends Parser {
     ) {
       throw new SyntaxError(
         'A block may only be used inside an HTML element or another block.',
-        block.loc
+        locForSpan(this.source, block.span)
       );
     }
 
-    let { path, params, hash } = acceptCallNodes(this, block);
+    let { call, params, hash } = acceptCallNodes(this, block);
     let program = this.Program(block.program);
     let inverse = block.inverse ? this.Program(block.inverse) : null;
 
-    if (path.original === 'in-element') {
-      hash = addInElementHash(this.cursor(), hash, block.loc);
+    if (isSimple(call, 'in-element')) {
+      hash = addInElementHash(this.cursor(), hash, this.loc(block.span));
     }
 
-    let node = b.block(path, params, hash, program, inverse, block.loc);
+    let node = b.block(call, params, hash, program, inverse, this.loc(block.span));
 
     let parentProgram = this.currentElement();
 
     appendChild(parentProgram, node);
+  }
+
+  MustacheContent(rawMustache: HBS.MustacheContent): AST.MustacheStatement | void {
+    let { tokenizer } = this;
+
+    if (tokenizer.state === 'comment') {
+      this.appendToCommentData(this.sourceForNode(rawMustache));
+      return;
+    }
+
+    let mustache: AST.MustacheStatement;
+    let { trusted, span } = rawMustache;
+
+    if (isLiteral(rawMustache.value)) {
+      mustache = {
+        type: 'MustacheStatement',
+        call: this.expression(rawMustache.value),
+        params: [],
+        hash: b.hash(),
+        trusted,
+        loc: locForSpan(this.source, span),
+        span,
+      };
+    } else {
+      let call = this.expression(rawMustache.value);
+      mustache = b.mustache(call, undefined, undefined, rawMustache.trusted);
+    }
+
+    switch (tokenizer.state) {
+      // Tag helpers
+      case TokenizerState.tagOpen:
+      case TokenizerState.tagName: {
+        let loc = this.loc(rawMustache.value.span);
+        throw new SyntaxError(
+          `Cannot use mustaches in an elements tagname: \`${this.source.slice(
+            rawMustache.value.span.start,
+            rawMustache.value.span.end
+          )}\` at L${loc.start.line}:C${loc.start.column}`,
+          mustache.loc
+        );
+      }
+
+      case TokenizerState.beforeAttributeName:
+        addElementModifier(this.currentStartTag, mustache, this.source);
+        break;
+      case TokenizerState.attributeName:
+      case TokenizerState.afterAttributeName:
+        this.beginAttributeValue(false);
+        this.finishAttributeValue();
+        addElementModifier(this.currentStartTag, mustache, this.source);
+        tokenizer.transitionTo(TokenizerState.beforeAttributeName);
+        break;
+      case TokenizerState.afterAttributeValueQuoted:
+        addElementModifier(this.currentStartTag, mustache, this.source);
+        tokenizer.transitionTo(TokenizerState.beforeAttributeName);
+        break;
+
+      // Attribute values
+      case TokenizerState.beforeAttributeValue:
+        this.beginAttributeValue(false);
+        appendDynamicAttributeValuePart(this.currentAttribute!, mustache);
+        tokenizer.transitionTo(TokenizerState.attributeValueUnquoted);
+        break;
+      case TokenizerState.attributeValueDoubleQuoted:
+      case TokenizerState.attributeValueSingleQuoted:
+      case TokenizerState.attributeValueUnquoted:
+        appendDynamicAttributeValuePart(this.currentAttribute!, mustache);
+        break;
+
+      // TODO: Only append child when the tokenizer state makes
+      // sense to do so, otherwise throw an error.
+      default:
+        appendChild(this.currentElement(), mustache);
+    }
+
+    return mustache;
   }
 
   MustacheStatement(rawMustache: HBS.MustacheStatement): AST.MustacheStatement | void {
@@ -106,22 +192,23 @@ export abstract class HandlebarsNodeVisitors extends Parser {
     }
 
     let mustache: AST.MustacheStatement;
-    let { escaped, loc } = rawMustache;
+    let { trusted, span } = rawMustache;
 
-    if (isLiteral(rawMustache.path)) {
+    if (isLiteral(rawMustache.call)) {
       mustache = {
         type: 'MustacheStatement',
-        path: this.acceptNode<AST.Literal>(rawMustache.path),
+        call: this.acceptNode<AST.Literal>(rawMustache.call),
         params: [],
         hash: b.hash(),
-        escaped,
-        loc,
+        trusted,
+        loc: this.loc(span),
+        span,
       };
     } else {
-      let { path, params, hash } = acceptCallNodes(this, rawMustache as HBS.MustacheStatement & {
+      let { call, params, hash } = acceptCallNodes(this, rawMustache as HBS.MustacheStatement & {
         path: HBS.PathExpression;
       });
-      mustache = b.mustache(path, params, hash, !escaped, loc);
+      mustache = b.mustache(call, params, hash, trusted, this.loc(span));
     }
 
     switch (tokenizer.state) {
@@ -130,24 +217,23 @@ export abstract class HandlebarsNodeVisitors extends Parser {
       case TokenizerState.tagName:
         throw new SyntaxError(
           `Cannot use mustaches in an elements tagname: \`${this.sourceForNode(
-            rawMustache,
-            rawMustache.path
-          )}\` at L${loc.start.line}:C${loc.start.column}`,
+            rawMustache
+          )}\` at ${this.locString(rawMustache.span)}`,
           mustache.loc
         );
 
       case TokenizerState.beforeAttributeName:
-        addElementModifier(this.currentStartTag, mustache);
+        addElementModifier(this.currentStartTag, mustache, this.source);
         break;
       case TokenizerState.attributeName:
       case TokenizerState.afterAttributeName:
         this.beginAttributeValue(false);
         this.finishAttributeValue();
-        addElementModifier(this.currentStartTag, mustache);
+        addElementModifier(this.currentStartTag, mustache, this.source);
         tokenizer.transitionTo(TokenizerState.beforeAttributeName);
         break;
       case TokenizerState.afterAttributeValueQuoted:
-        addElementModifier(this.currentStartTag, mustache);
+        addElementModifier(this.currentStartTag, mustache, this.source);
         tokenizer.transitionTo(TokenizerState.beforeAttributeName);
         break;
 
@@ -173,7 +259,7 @@ export abstract class HandlebarsNodeVisitors extends Parser {
   }
 
   ContentStatement(content: HBS.ContentStatement): void {
-    updateTokenizerLocation(this.tokenizer, content);
+    // updateTokenizerLocation(this.tokenizer, content);
 
     this.tokenizer.tokenizePart(content.value);
     this.tokenizer.flushData();
@@ -187,8 +273,8 @@ export abstract class HandlebarsNodeVisitors extends Parser {
       return null;
     }
 
-    let { value, loc } = rawComment;
-    let comment = b.mustacheComment(value, loc);
+    let { value, span } = rawComment;
+    let comment = b.mustacheComment(value, this.loc(span));
 
     switch (tokenizer.state) {
       case TokenizerState.beforeAttributeName:
@@ -204,132 +290,91 @@ export abstract class HandlebarsNodeVisitors extends Parser {
         throw new SyntaxError(
           `Using a Handlebars comment when in the \`${
             tokenizer['state']
-          }\` state is not supported: "${comment.value}" on line ${loc.start.line}:${
-            loc.start.column
-          }`,
-          rawComment.loc
+          }\` state is not supported: "${comment.value}" on ${this.locString(rawComment.span)}`,
+          this.loc(rawComment.span)
         );
     }
 
     return comment;
   }
 
-  PartialStatement(partial: HBS.PartialStatement): never {
-    let { loc } = partial;
-
-    throw new SyntaxError(
-      `Handlebars partials are not supported: "${this.sourceForNode(partial, partial.name)}" at L${
-        loc.start.line
-      }:C${loc.start.column}`,
-      partial.loc
-    );
-  }
-
-  PartialBlockStatement(partialBlock: HBS.PartialBlockStatement): never {
-    let { loc } = partialBlock;
-
-    throw new SyntaxError(
-      `Handlebars partial blocks are not supported: "${this.sourceForNode(
-        partialBlock,
-        partialBlock.name
-      )}" at L${loc.start.line}:C${loc.start.column}`,
-      partialBlock.loc
-    );
-  }
-
-  Decorator(decorator: HBS.Decorator): never {
-    let { loc } = decorator;
-
-    throw new SyntaxError(
-      `Handlebars decorators are not supported: "${this.sourceForNode(
-        decorator,
-        decorator.path
-      )}" at L${loc.start.line}:C${loc.start.column}`,
-      decorator.loc
-    );
-  }
-
-  DecoratorBlock(decoratorBlock: HBS.DecoratorBlock): never {
-    let { loc } = decoratorBlock;
-
-    throw new SyntaxError(
-      `Handlebars decorator blocks are not supported: "${this.sourceForNode(
-        decoratorBlock,
-        decoratorBlock.path
-      )}" at L${loc.start.line}:C${loc.start.column}`,
-      decoratorBlock.loc
-    );
-  }
-
   SubExpression(sexpr: HBS.SubExpression): AST.SubExpression {
-    let { path, params, hash } = acceptCallNodes(this, sexpr);
-    return b.sexpr(path, params, hash, sexpr.loc);
+    let { call, params, hash } = acceptCallNodes(this, sexpr);
+    return b.sexpr(sexpr.span, call, params, hash, this.loc(sexpr.span));
+  }
+
+  expression(input: HBS.Expression): AST.Expression {
+    switch (input.type) {
+      case 'PathExpression':
+        return this.PathExpression(input);
+
+      case 'BooleanLiteral':
+        return this.BooleanLiteral(input);
+
+      case 'NullLiteral':
+        return this.NullLiteral(input);
+
+      case 'UndefinedLiteral':
+        return this.UndefinedLiteral(input);
+
+      case 'NumberLiteral':
+        return this.NumberLiteral(input);
+
+      case 'StringLiteral':
+        return this.StringLiteral(input);
+
+      case 'PathExpression':
+        return this.PathExpression(input);
+
+      case 'SubExpression':
+        return this.SubExpression(input);
+    }
   }
 
   PathExpression(path: HBS.PathExpression): AST.PathExpression {
-    let { original, loc } = path;
-    let parts: string[];
-
-    if (original.indexOf('/') !== -1) {
-      if (original.slice(0, 2) === './') {
-        throw new SyntaxError(
-          `Using "./" is not supported in Glimmer and unnecessary: "${path.original}" on line ${
-            loc.start.line
-          }.`,
-          path.loc
-        );
-      }
-      if (original.slice(0, 3) === '../') {
-        throw new SyntaxError(
-          `Changing context using "../" is not supported in Glimmer: "${path.original}" on line ${
-            loc.start.line
-          }.`,
-          path.loc
-        );
-      }
-      if (original.indexOf('.') !== -1) {
-        throw new SyntaxError(
-          `Mixing '.' and '/' in paths is not supported in Glimmer; use only '.' to separate property paths: "${
-            path.original
-          }" on line ${loc.start.line}.`,
-          path.loc
-        );
-      }
-      parts = [path.parts.join('/')];
-    } else if (original === '.') {
-      let locationInfo = `L${loc.start.line}:C${loc.start.column}`;
-      throw new SyntaxError(
-        `'.' is not a supported path in Glimmer; check for a path with a trailing '.' at ${locationInfo}.`,
-        path.loc
-      );
-    } else {
-      parts = path.parts;
-    }
-
-    let thisHead = false;
-
-    // This is to fix a bug in the Handlebars AST where the path expressions in
-    // `{{this.foo}}` (and similarly `{{foo-bar this.foo named=this.foo}}` etc)
-    // are simply turned into `{{foo}}`. The fix is to push it back onto the
-    // parts array and let the runtime see the difference. However, we cannot
-    // simply use the string `this` as it means literally the property called
-    // "this" in the current context (it can be expressed in the syntax as
-    // `{{[this]}}`, where the square bracket are generally for this kind of
-    // escaping – such as `{{foo.["bar.baz"]}}` would mean lookup a property
-    // named literally "bar.baz" on `this.foo`). By convention, we use `null`
-    // for this purpose.
-    if (original.match(/^this(\..+)?$/)) {
-      thisHead = true;
-    }
+    let { span } = path;
 
     return {
       type: 'PathExpression',
-      original: path.original,
-      this: thisHead,
-      parts,
-      data: path.data,
-      loc: path.loc,
+      span,
+      loc: locForSpan(this.source, span),
+      head: this.head(path.head),
+      tail: path.tail
+        ? path.tail.map(
+            s =>
+              ({
+                type: 'PathSegment',
+                loc: locForSpan(this.source, s.span),
+                name: s.name,
+              } as AST.PathSegment)
+          )
+        : null,
     };
+  }
+
+  head(head: HBS.Head): AST.Head {
+    switch (head.type) {
+      case 'ArgReference':
+        return {
+          type: head.type,
+          span: head.span,
+          loc: locForSpan(this.source, head.span),
+          name: head.name,
+        };
+      case 'LocalReference':
+        return {
+          type: head.type,
+          span: head.span,
+          loc: locForSpan(this.source, head.span),
+          name: head.name,
+        };
+      case 'This':
+        return {
+          type: 'This',
+          span: head.span,
+          loc: locForSpan(this.source, head.span),
+        };
+    }
   }
 
   Hash(hash: HBS.Hash): AST.Hash {
@@ -337,106 +382,66 @@ export abstract class HandlebarsNodeVisitors extends Parser {
 
     for (let i = 0; i < hash.pairs.length; i++) {
       let pair = hash.pairs[i];
-      pairs.push(b.pair(pair.key, this.acceptNode(pair.value), pair.loc));
+      pairs.push(b.pair(pair.key, this.acceptNode(pair.value), this.loc(pair.span)));
     }
 
-    return b.hash(pairs, hash.loc);
+    return b.hash(pairs, this.loc(hash.span));
   }
 
   StringLiteral(string: HBS.StringLiteral): AST.StringLiteral {
-    return b.literal('StringLiteral', string.value, string.loc);
+    return b.literal('StringLiteral', string.value, this.loc(string.span));
   }
 
   BooleanLiteral(boolean: HBS.BooleanLiteral): AST.BooleanLiteral {
-    return b.literal('BooleanLiteral', boolean.value, boolean.loc);
+    return b.literal('BooleanLiteral', boolean.value, this.loc(boolean.span));
   }
 
   NumberLiteral(number: HBS.NumberLiteral): AST.NumberLiteral {
-    return b.literal('NumberLiteral', number.value, number.loc);
+    return b.literal('NumberLiteral', number.value, this.loc(number.span));
   }
 
   UndefinedLiteral(undef: HBS.UndefinedLiteral): AST.UndefinedLiteral {
-    return b.literal('UndefinedLiteral', undefined, undef.loc);
+    return b.literal('UndefinedLiteral', undefined, this.loc(undef.span));
   }
 
   NullLiteral(nul: HBS.NullLiteral): AST.NullLiteral {
-    return b.literal('NullLiteral', null, nul.loc);
+    return b.literal('NullLiteral', null, this.loc(nul.span));
   }
-}
-
-function calculateRightStrippedOffsets(original: string, value: string) {
-  if (value === '') {
-    // if it is empty, just return the count of newlines
-    // in original
-    return {
-      lines: original.split('\n').length - 1,
-      columns: 0,
-    };
-  }
-
-  // otherwise, return the number of newlines prior to
-  // `value`
-  let difference = original.split(value)[0];
-  let lines = difference.split(/\n/);
-  let lineCount = lines.length - 1;
-
-  return {
-    lines: lineCount,
-    columns: lines[lineCount].length,
-  };
-}
-
-function updateTokenizerLocation(tokenizer: Parser['tokenizer'], content: HBS.ContentStatement) {
-  let line = content.loc.start.line;
-  let column = content.loc.start.column;
-
-  let offsets = calculateRightStrippedOffsets(
-    content.original as Recast<HBS.StripFlags, string>,
-    content.value
-  );
-
-  line = line + offsets.lines;
-  if (offsets.lines) {
-    column = offsets.columns;
-  } else {
-    column = column + offsets.columns;
-  }
-
-  tokenizer.line = line;
-  tokenizer.column = column;
 }
 
 function acceptCallNodes(
   compiler: HandlebarsNodeVisitors,
-  node: {
-    path: HBS.PathExpression;
-    params: HBS.Expression[];
-    hash: HBS.Hash;
-  }
-): { path: AST.PathExpression; params: AST.Expression[]; hash: AST.Hash } {
-  let path = compiler.PathExpression(node.path);
+  node: HBS.MustacheBody
+): { call: AST.Expression; params: AST.Expression[]; hash: AST.Hash } {
+  let call = compiler.expression(node.call);
 
   let params = node.params ? node.params.map(e => compiler.acceptNode<AST.Expression>(e)) : [];
   let hash = node.hash ? compiler.Hash(node.hash) : b.hash();
 
-  return { path, params, hash };
+  return { call, params, hash };
 }
 
-function addElementModifier(element: Tag<'StartTag'>, mustache: AST.MustacheStatement) {
-  let { path, params, hash, loc } = mustache;
+function addElementModifier(
+  element: Tag<'StartTag'>,
+  mustache: AST.MustacheStatement,
+  source: string
+) {
+  let { call, params, hash, loc } = mustache;
 
-  if (isLiteral(path)) {
-    let modifier = `{{${printLiteral(path)}}}`;
+  if (isLiteral(call)) {
+    let modifier = `{{${printLiteral(call)}}}`;
     let tag = `<${element.name} ... ${modifier} ...`;
 
     throw new SyntaxError(
-      `In ${tag}, ${modifier} is not a valid modifier: "${path.original}" on line ${loc &&
-        loc.start.line}.`,
+      `In ${tag}, ${modifier} is not a valid modifier: "${source.slice(
+        call.span.start,
+        call.span.end
+      )}" on line ${loc && loc.start.line}.`,
       mustache.loc
     );
   }
 
-  let modifier = b.elementModifier(path, params, hash, loc);
+  let modifier = b.elementModifier(call, params, hash, loc);
   element.modifiers.push(modifier);
 }
 
@@ -468,4 +473,10 @@ function addInElementHash(cursor: string, hash: AST.Hash, loc: AST.SourceLocatio
 function appendDynamicAttributeValuePart(attribute: Attribute, part: AST.MustacheStatement) {
   attribute.isDynamic = true;
   attribute.parts.push(part);
+}
+
+export function isSimple(path: AST.Expression, name: string): boolean {
+  return (
+    path.type === 'PathExpression' && path.head.type === 'LocalReference' && path.head.name === name
+  );
 }

@@ -96,7 +96,7 @@ export class SymbolAllocator
     return ['attrSplat', this.symbols.allocateBlock('attrs')];
   }
 
-  get(op: [InVariable, string[]]): OutOp<'get' | 'maybeLocal' | 'freeVariable'> {
+  get(op: [InVariable, string[] | null]): OutOp<'get' | 'maybeLocal' | 'freeVariable'> {
     let [name, rest] = op;
 
     if (name === 0) {
@@ -110,13 +110,13 @@ export class SymbolAllocator
       let head = this.symbols.allocateNamed(name);
       return ['get', [head, rest]];
     } else if (this.strict) {
-      return ['freeVariable', [name, ...rest]];
+      return ['freeVariable', [name, ...(rest || [])]];
     } else {
-      return ['maybeLocal', [name, ...rest]];
+      return ['maybeLocal', [name, ...(rest || [])]];
     }
   }
 
-  maybeGet(op: [InVariable, string[]]): OutOp<'get' | 'unknown' | 'maybeLocal'> {
+  maybeGet(op: [InVariable, string[] | null]): OutOp<'get' | 'unknown' | 'maybeLocal'> {
     let [name, rest] = op;
 
     if (name === 0) {
@@ -129,10 +129,10 @@ export class SymbolAllocator
     } else if (name[0] === '@') {
       let head = this.symbols.allocateNamed(name);
       return ['get', [head, rest]];
-    } else if (rest.length === 0) {
+    } else if (rest && rest.length === 0) {
       return ['unknown', name];
     } else {
-      return ['maybeLocal', [name, ...rest]];
+      return ['maybeLocal', [name, ...(rest || [])]];
     }
   }
 
@@ -180,11 +180,11 @@ export class SymbolAllocator
   dynamicAttr(_op: [string, Option<string>]) {}
   componentAttr(_op: [string, Option<string>]) {}
   trustingComponentAttr(_op: [string, Option<string>]) {}
-  modifier(_op: string) {}
+  modifier() {}
   append(_op: boolean) {}
-  block(_op: [string, number, Option<number>]) {}
+  block(_op: [number, Option<number>]) {}
   literal(_op: string | boolean | number | null | undefined) {}
-  helper(_op: string) {}
+  helper() {}
   unknown(_op: string) {}
   maybeLocal(_op: string[]) {}
   freeVariable(_op: string[]) {}

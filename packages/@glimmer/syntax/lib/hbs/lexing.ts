@@ -80,6 +80,7 @@ type LoopCompletion<T> =
 type LexerAction = { type: 'consume'; amount: number } | { type: 'reconsume' };
 export interface LexerDelegate<S, T> {
   token: T;
+  state: S;
 
   describe(): string;
   for(state: S): LexerDelegate<S, T>;

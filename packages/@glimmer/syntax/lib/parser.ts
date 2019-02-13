@@ -34,26 +34,18 @@ export interface Attribute {
 
 export abstract class Parser {
   protected elementStack: Element[] = [];
-  private source: string[];
   public currentAttribute: Option<Attribute> = null;
   public currentNode: Option<
     AST.CommentStatement | AST.TextNode | Tag<'StartTag' | 'EndTag'>
   > = null;
   public tokenizer = new EventedTokenizer(this, entityParser);
 
-  constructor(source: string) {
-    this.source = source.split(/(?:\r\n?|\n)/g);
-  }
+  constructor(protected source: string) {}
 
   abstract Program(node: HBS.Program): HBS.Output<'Program'>;
   abstract MustacheStatement(node: HBS.MustacheStatement): HBS.Output<'MustacheStatement'>;
-  abstract Decorator(node: HBS.Decorator): HBS.Output<'Decorator'>;
+  abstract MustacheContent(node: HBS.MustacheContent): HBS.Output<'MustacheContent'>;
   abstract BlockStatement(node: HBS.BlockStatement): HBS.Output<'BlockStatement'>;
-  abstract DecoratorBlock(node: HBS.DecoratorBlock): HBS.Output<'DecoratorBlock'>;
-  abstract PartialStatement(node: HBS.PartialStatement): HBS.Output<'PartialStatement'>;
-  abstract PartialBlockStatement(
-    node: HBS.PartialBlockStatement
-  ): HBS.Output<'PartialBlockStatement'>;
   abstract ContentStatement(node: HBS.ContentStatement): HBS.Output<'ContentStatement'>;
   abstract CommentStatement(node: HBS.CommentStatement): HBS.Output<'CommentStatement'>;
   abstract SubExpression(node: HBS.SubExpression): HBS.Output<'SubExpression'>;
@@ -118,7 +110,7 @@ export abstract class Parser {
     return node as AST.TextNode;
   }
 
-  acceptTemplate(node: HBS.Program): AST.Template {
+  acceptTemplate(node: HBS.AnyProgram): AST.Template {
     return (this as any)[node.type](node) as AST.Template;
   }
 
@@ -132,41 +124,7 @@ export abstract class Parser {
     return this.elementStack[this.elementStack.length - 1];
   }
 
-  sourceForNode(node: HBS.Node, endNode?: { loc: HBS.SourceLocation }): string {
-    let firstLine = node.loc.start.line - 1;
-    let currentLine = firstLine - 1;
-    let firstColumn = node.loc.start.column;
-    let string = [];
-    let line;
-
-    let lastLine: number;
-    let lastColumn: number;
-
-    if (endNode) {
-      lastLine = endNode.loc.end.line - 1;
-      lastColumn = endNode.loc.end.column;
-    } else {
-      lastLine = node.loc.end.line - 1;
-      lastColumn = node.loc.end.column;
-    }
-
-    while (currentLine < lastLine) {
-      currentLine++;
-      line = this.source[currentLine];
-
-      if (currentLine === firstLine) {
-        if (firstLine === lastLine) {
-          string.push(line.slice(firstColumn, lastColumn));
-        } else {
-          string.push(line.slice(firstColumn));
-        }
-      } else if (currentLine === lastLine) {
-        string.push(line.slice(0, lastColumn));
-      } else {
-        string.push(line);
-      }
-    }
-
-    return string.join('\n');
+  sourceForNode(node: HBS.Node): string {
+    return this.source.slice(node.span.start, node.span.end);
   }
 }

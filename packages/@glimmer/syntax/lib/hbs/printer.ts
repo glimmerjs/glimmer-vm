@@ -62,15 +62,14 @@ export class Printer {
       sexp.push(this.expr(param));
     }
 
-    let hash: JsonValue = {};
-
     if (item.hash) {
+      let hash: JsonValue = {};
       for (let pair of item.hash.pairs) {
         hash[pair.key] = this.expr(pair.value);
       }
+      sexp.push(hash);
     }
 
-    if (item.hash) sexp.push(hash);
     if (blockParams && blockParams.length) sexp.push({ as: blockParams });
     return sexp;
   }
@@ -102,9 +101,13 @@ export class Printer {
       case 'NullLiteral':
         return '%null%';
 
-      default:
-        throw new Error(`unimplemented Printer for ${item.type}`);
+      case 'SubExpression':
+        return this.subexpr(item);
     }
+  }
+
+  subexpr(item: hbs.SubExpression): JsonValue[] {
+    return this.mustacheBody(item);
   }
 
   head(item: hbs.Head): JsonValue {

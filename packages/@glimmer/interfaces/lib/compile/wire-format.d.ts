@@ -109,7 +109,7 @@ export namespace Expressions {
   export type Hash = Core.Hash;
 
   export type Unknown = [SexpOpcodes.Unknown, str];
-  export type Get = [SexpOpcodes.Get, number, Path];
+  export type Get = [SexpOpcodes.Get, number, Path | null];
 
   /**
    * Ambiguous between a self lookup (when not inside an eval) and
@@ -140,11 +140,13 @@ export namespace Expressions {
 
   export type Expression = TupleExpression | Value;
 
+  export type PathExpression = Get | MaybeLocal | FreeVariable;
+
   type Passthru<T> = T;
 
   export interface Concat extends Passthru<[SexpOpcodes.Concat, Params]> {}
 
-  export interface Helper extends Passthru<[SexpOpcodes.Helper, str, Params, Hash]> {}
+  export interface Helper extends Passthru<[SexpOpcodes.Helper, Expression, Params, Hash]> {}
 }
 
 export type Expression = Expressions.Expression;
@@ -161,8 +163,8 @@ export namespace Statements {
   export type Text = [SexpOpcodes.Text, str];
   export type Append = [SexpOpcodes.Append, Expression, boolean];
   export type Comment = [SexpOpcodes.Comment, str];
-  export type Modifier = [SexpOpcodes.Modifier, str, Params, Hash];
-  export type Block = [SexpOpcodes.Block, str, Params, Hash, Blocks];
+  export type Modifier = [SexpOpcodes.Modifier, Expression, Params, Hash];
+  export type Block = [SexpOpcodes.Block, Expressions.PathExpression, Params, Hash, Blocks];
   export type Component = [SexpOpcodes.Component, str, Attribute[], Hash, Blocks];
   export type DynamicComponent = [
     SexpOpcodes.DynamicComponent,

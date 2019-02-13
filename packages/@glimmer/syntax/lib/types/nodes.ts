@@ -1,4 +1,5 @@
 import { Dict, WireFormat, Option } from '@glimmer/interfaces';
+import { Span } from './handlebars-ast';
 
 export interface Symbols {
   symbols: string[];
@@ -26,6 +27,7 @@ export interface BaseNode {
   // has: `type: "Identifier"`
   type: NodeType;
   loc: SourceLocation;
+  span: Span;
 }
 
 export interface SourceLocation {
@@ -87,22 +89,28 @@ export type TopLevelStatement =
 
 export interface Call extends BaseNode {
   name?: PathExpression | SubExpression;
-  path: PathExpression;
+  call: Expression;
   params: Expression[];
   hash: Hash;
 }
 
 export interface MustacheStatement extends BaseNode {
   type: 'MustacheStatement';
-  path: PathExpression | Literal;
+  call: Expression;
   params: Expression[];
   hash: Hash;
-  escaped: boolean;
+  trusted: boolean;
+}
+
+export interface MustacheContent extends BaseNode {
+  type: 'MustacheContent';
+  value: Expression;
+  trusted: boolean;
 }
 
 export interface BlockStatement extends BaseNode {
   type: 'BlockStatement';
-  path: PathExpression;
+  call: PathExpression;
   params: Expression[];
   hash: Hash;
   program: Block;
@@ -115,7 +123,7 @@ export interface BlockStatement extends BaseNode {
 
 export interface ElementModifierStatement extends BaseNode {
   type: 'ElementModifierStatement';
-  path: PathExpression;
+  call: Expression;
   params: Expression[];
   hash: Hash;
 }
@@ -172,17 +180,42 @@ export type Expression = SubExpression | PathExpression | Literal;
 
 export interface SubExpression extends Call {
   type: 'SubExpression';
-  path: PathExpression;
+  call: Expression;
   params: Expression[];
   hash: Hash;
 }
 
+export interface LocalReference extends BaseNode {
+  type: 'LocalReference';
+  name: string;
+}
+
+export interface ArgReference extends BaseNode {
+  type: 'ArgReference';
+  name: string;
+}
+
+export interface This extends BaseNode {
+  type: 'This';
+}
+
+export type Head = LocalReference | ArgReference | This;
+
+export interface PathSegment extends BaseNode {
+  type: 'PathSegment';
+  name: string;
+}
+
 export interface PathExpression extends BaseNode {
   type: 'PathExpression';
-  data: boolean;
-  original: string;
-  this: boolean;
-  parts: string[];
+  head: Head;
+  tail: PathSegment[] | null;
+}
+
+export interface ArgExpression extends PathExpression {
+  type: 'PathExpression';
+  head: ArgReference;
+  tail: PathSegment[] | null;
 }
 
 export type Literal =
@@ -252,6 +285,7 @@ export interface Nodes {
   NullLiteral: NullLiteral;
   UndefinedLiteral: UndefinedLiteral;
   MustacheStatement: MustacheStatement;
+  MustacheContent: MustacheContent;
   BlockStatement: BlockStatement;
   ElementModifierStatement: ElementModifierStatement;
   PartialStatement: PartialStatement;
@@ -261,6 +295,10 @@ export interface Nodes {
   SubExpression: SubExpression;
   Hash: Hash;
   HashPair: HashPair;
+  LocalReference: LocalReference;
+  ArgReference: ArgReference;
+  This: This;
+  PathSegment: PathSegment;
 }
 
 export type NodeType = keyof Nodes;

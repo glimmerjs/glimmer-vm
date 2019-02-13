@@ -1,15 +1,19 @@
 import { preprocess } from '@glimmer/syntax';
-import TemplateCompiler, { CompileOptions } from './template-compiler';
+import TemplateCompiler from './template-compiler';
 import { Option, TemplateJavascript, SerializedTemplateWithLazyBlock } from '@glimmer/interfaces';
 import { PreprocessOptions } from '@glimmer/syntax';
-import StrictTemplateCompiler from './strict-template-compiler';
+import { assign } from '@glimmer/util';
 
 export interface TemplateIdFn {
   (src: string): Option<string>;
 }
 
-export interface PrecompileOptions extends CompileOptions, PreprocessOptions {
+export interface PrecompileOptions extends PreprocessOptions {
   id?: TemplateIdFn;
+  meta: unknown;
+  source?: string;
+  strict?: boolean;
+  customizeComponentName?(tag: string): string;
 }
 
 declare function require(id: string): any;
@@ -66,12 +70,7 @@ export function precompile(
   let ast = preprocess(string, options);
   let { meta } = options;
 
-  let template;
-  if (options && options.strict) {
-    template = StrictTemplateCompiler.compile(ast, options);
-  } else {
-    template = TemplateCompiler.compile(ast, options);
-  }
+  let template = TemplateCompiler.compile(ast, assign({}, options, { source: string }));
 
   let { block } = template;
 

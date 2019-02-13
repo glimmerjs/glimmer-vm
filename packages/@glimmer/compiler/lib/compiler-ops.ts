@@ -30,12 +30,12 @@ export interface CompilerOps<Variable> {
   trustingComponentAttr: [string, Option<string>];
   dynamicAttr: [string, Option<string>];
   componentAttr: [string, Option<string>];
-  modifier: string;
+  modifier: null;
   append: boolean;
-  block: [string, number, Option<number>];
-  get: [Variable, string[]]; // path
+  block: [number, Option<number>];
+  get: [Variable, string[] | null]; // path
   literal: string | boolean | number | null | undefined;
-  helper: string;
+  helper: AST.PathExpression;
   unknown: string;
   maybeLocal: string[];
   freeVariable: string[];

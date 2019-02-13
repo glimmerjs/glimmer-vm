@@ -18,10 +18,21 @@ import {
 } from './lexing';
 
 const LOOKAHEAD = /^[=~;}\s;\/.)|]/;
-const ID = /^[^\s\d!"#%-,\.\/;->@\[-\^`\{-~][^\s!"#%-,\.;->@\[-\^`\{-~]+/;
+const ID = /^[^\s\d!"#%-,\.\/;->@\[-\^`\{-~][^\s!"#%-,\.;->@\[-\^`\{-~]*/;
+const NUM = /^-?\d+(?:\.\d+)?/;
 
 function testWs(s: string): Option<string> {
   let match = s.match(/^\s+/);
+
+  if (match) {
+    return match[0];
+  } else {
+    return null;
+  }
+}
+
+function testNum(s: string): Option<string> {
+  let match = s.match(NUM);
 
   if (match) {
     return match[0];
@@ -64,7 +75,6 @@ const enum State {
 
   Expression = 'Expression',
   ExpressionList = 'ExpressionList',
-  Number = 'Number',
   AtName = 'AtName',
   AfterIdent = 'AfterIdent',
   AfterDot = 'AfterDot',
@@ -99,8 +109,8 @@ export const enum TokenKind {
   Inverse = 'Inverse',
   OpenInverse = 'OpenInverse',
   OpenInverseChain = 'OpenInverseChain',
-  OpenUnescaped = 'OpenUnescaped',
-  CloseUnescaped = 'CloseUnescaped',
+  OpenTrusted = 'OpenTrusted',
+  CloseTrusted = 'CloseTrusted',
   Open = 'Open',
   Close = 'Close',
   OpenParen = 'OpenParen',
@@ -116,7 +126,7 @@ export interface TokenContents {
 export class HandlebarsLexerDelegate implements LexerDelegate<State, TokenKind> {
   token!: TokenKind;
 
-  constructor(private debug: Debug, private state: State = State.Top) {}
+  constructor(private debug: Debug, readonly state: State = State.Top) {}
 
   describe() {
     return this.state;
@@ -161,13 +171,11 @@ export class HandlebarsLexerDelegate implements LexerDelegate<State, TokenKind> 
           return PushBegin(State.DoubleMustache, Reconsume());
         } else if (rest.startsWith('{{{')) {
           return PushState(
-            Emit(TokenKind.OpenUnescaped, { first: Consume(3) }),
+            Emit(TokenKind.OpenTrusted, { first: Consume(3) }),
             State.TripleMustache
           );
         } else if (rest.startsWith('{{')) {
           return PushState(Emit(TokenKind.Open, { first: Consume(2) }), State.DoubleMustache);
-        } else if (rest.startsWith('\\')) {
-          return Transition(Continue(Reconsume()), State.EscapeChar);
         } else {
           return PushBegin(State.Content, Reconsume());
         }
@@ -179,7 +187,7 @@ export class HandlebarsLexerDelegate implements LexerDelegate<State, TokenKind> 
         } else if (rest.startsWith('{{')) {
           return Transition(Emit(TokenKind.Content), State.Top);
         } else if (rest.startsWith('\\')) {
-          return Transition(Continue(Reconsume()), State.EscapeChar);
+          return PushState(Continue(Reconsume()), State.EscapeChar);
         } else {
           return Remain(Continue(Consume()));
         }
@@ -230,7 +238,7 @@ export class HandlebarsLexerDelegate implements LexerDelegate<State, TokenKind> 
         } else if (rest.startsWith('{{')) {
           return PushState(Emit(TokenKind.Open, { first: Consume(2) }), State.ExpressionList);
         } else if (rest.startsWith('}}')) {
-          return Transition(Emit(TokenKind.Close, { first: Consume(2) }), State.Top);
+          return PopState(Emit(TokenKind.Close, { first: Consume(2) }));
         } else {
           return PushBegin(State.ExpressionList, Reconsume());
         }
@@ -281,14 +289,18 @@ export class HandlebarsLexerDelegate implements LexerDelegate<State, TokenKind> 
 
         if ((match = testWs(rest))) {
           return PopState(Continue(Reconsume()));
-        } else if (rest.match(/^\d/)) {
-          return PushState(Continue(Reconsume()), State.Number);
+        } else if ((match = testNum(rest))) {
+          return PopState(Emit(TokenKind.Number, { first: Consume(match.length) }));
         } else if (char === '@') {
           return Transition(Continue(Consume()), State.AtName);
         } else if (char === '"') {
           return PushBegin(State.DoubleString, Consume());
         } else if (char === "'") {
           return PushBegin(State.SingleString, Consume());
+        } else if (char === '(') {
+          return PushState(Emit(TokenKind.OpenParen, { first: Consume() }), State.ExpressionList);
+        } else if (char === ')') {
+          return PopState(Emit(TokenKind.CloseParen, { first: Consume() }));
         } else if ((match = testId(rest))) {
           return Transition(
             Emit(TokenKind.Identifier, { first: Consume(match.length) }),
@@ -330,6 +342,8 @@ export class HandlebarsLexerDelegate implements LexerDelegate<State, TokenKind> 
           return PopState(Skip(match.length));
         } else if (char === '}') {
           return PopState(Continue(Reconsume()));
+        } else if (char === ')') {
+          return PopState(Emit(TokenKind.CloseParen, { first: Consume() }));
         } else {
           throw unexpected();
         }
@@ -347,19 +361,9 @@ export class HandlebarsLexerDelegate implements LexerDelegate<State, TokenKind> 
         }
       }
 
-      case State.Number: {
-        if (char === null) {
-          // TODO: this is an error case
-          return PopState(Emit(TokenKind.Number, { first: Reconsume() }));
-        } else if (char.match(/\d/)) {
-          return Remain(Continue(Consume()));
-        } else {
-          return PopState(Emit(TokenKind.Number, { first: Reconsume() }));
-        }
-      }
-
       case State.EscapeChar:
-        throw new Error('not implemented');
+        // TODO: Handle \\{{ correctly
+        return PopState(Continue(Consume()));
 
       case State.Comment:
         if (rest.startsWith('--')) {
@@ -406,8 +410,18 @@ export class HandlebarsLexerDelegate implements LexerDelegate<State, TokenKind> 
         return PopState(Continue(Consume(1)));
       }
 
-      case State.TripleMustache:
-        throw new Error('not implemented (TripleMustache)');
+      case State.TripleMustache: {
+        if (rest.startsWith('{{{')) {
+          return PushState(
+            Emit(TokenKind.OpenTrusted, { first: Consume(2) }),
+            State.ExpressionList
+          );
+        } else if (rest.startsWith('}}}')) {
+          return PopState(Emit(TokenKind.CloseTrusted, { first: Consume(3) }));
+        } else {
+          return PushBegin(State.ExpressionList, Reconsume());
+        }
+      }
 
       case State.Raw:
         throw new Error('Not implemented');

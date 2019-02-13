@@ -9,9 +9,9 @@ import builders from '../builders';
 import traverse from '../traversal/traverse';
 import print from '../generation/print';
 import Walker from '../traversal/walker';
-import * as handlebars from 'handlebars';
 import { assign } from '@glimmer/util';
 import { NodeVisitor } from '../traversal/visitor';
+import { hbsParse } from '../hbs/parse';
 
 export const voidMap: {
   [tagName: string]: boolean;
@@ -362,21 +362,27 @@ const syntax: Syntax = {
   Walker,
 };
 
-export function preprocess(html: string, options?: PreprocessOptions): AST.Template {
-  const parseOptions = options ? options.parseOptions : {};
-  let ast = typeof html === 'object' ? html : (handlebars.parse(html, parseOptions) as HBS.Program);
-  let program = new TokenizerEventHandlers(html).acceptTemplate(ast);
+export function preprocess(
+  html: string | { ast: HBS.AnyProgram; source: string },
+  options?: PreprocessOptions
+): AST.Template {
+  if (typeof html === 'string') {
+    let ast = typeof html === 'object' ? html : hbsParse(html).result;
+    let program = new TokenizerEventHandlers(html).acceptTemplate(ast);
 
-  if (options && options.plugins && options.plugins.ast) {
-    for (let i = 0, l = options.plugins.ast.length; i < l; i++) {
-      let transform = options.plugins.ast[i];
-      let env = assign({}, options, { syntax }, { plugins: undefined });
+    if (options && options.plugins && options.plugins.ast) {
+      for (let i = 0, l = options.plugins.ast.length; i < l; i++) {
+        let transform = options.plugins.ast[i];
+        let env = assign({}, options, { syntax }, { plugins: undefined });
 
-      let pluginResult = transform(env);
+        let pluginResult = transform(env);
 
-      traverse(program, pluginResult.visitor);
+        traverse(program, pluginResult.visitor);
+      }
     }
-  }
 
-  return program;
+    return program;
+  } else {
+    throw new Error(`unimplemented: passing AST to preprocess()`);
+  }
 }

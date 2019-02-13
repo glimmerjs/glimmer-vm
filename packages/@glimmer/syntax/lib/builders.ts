@@ -2,29 +2,32 @@ import * as AST from './types/nodes';
 import { Option, Dict } from '@glimmer/interfaces';
 import { deprecate, assign } from '@glimmer/util';
 import { DEVMODE } from '@glimmer/local-debug-flags';
+import { Span } from './types/handlebars-ast';
 
 // Statements
 
-export type BuilderPath = string | AST.PathExpression;
+export type BuilderPath = string | AST.Expression;
 export type TagDescriptor = string | { name: string; selfClosing: boolean };
 
 function buildMustache(
-  path: BuilderPath | AST.Literal,
+  call: BuilderPath | AST.Literal | AST.Expression,
   params?: AST.Expression[],
   hash?: AST.Hash,
-  raw?: boolean,
+  trusted?: boolean,
   loc?: AST.SourceLocation
 ): AST.MustacheStatement {
-  if (typeof path === 'string') {
-    path = buildPath(path);
+  if (typeof call === 'string') {
+    call = buildPath(call);
   }
+
+  debugger;
 
   return {
     type: 'MustacheStatement',
-    path,
+    call,
     params: params || [],
     hash: hash || buildHash([]),
-    escaped: !raw,
+    trusted: trusted || false,
     loc: buildLoc(loc || null),
   };
 }
@@ -62,7 +65,7 @@ function buildBlock(
 
   return {
     type: 'BlockStatement',
-    path: buildPath(path),
+    call: buildPath(path),
     params: params || [],
     hash: hash || buildHash([]),
     program: defaultBlock || null,
@@ -373,14 +376,16 @@ function buildText(chars?: string, loc?: AST.SourceLocation): AST.TextNode {
 // Expressions
 
 function buildSexpr(
-  path: BuilderPath,
+  span: Span,
+  call: AST.Expression,
   params?: AST.Expression[],
   hash?: AST.Hash,
   loc?: AST.SourceLocation
 ): AST.SubExpression {
   return {
     type: 'SubExpression',
-    path: buildPath(path),
+    span,
+    call,
     params: params || [],
     hash: hash || buildHash([]),
     loc: buildLoc(loc || null),
@@ -388,22 +393,30 @@ function buildSexpr(
 }
 
 function buildPath(original: BuilderPath, loc?: AST.SourceLocation): AST.PathExpression {
-  if (typeof original !== 'string') return original;
+  if (typeof original !== 'string') {
+    if (original.type !== 'PathExpression') {
+      throw new Error(`Unexpected expression for path: TODO: correctly report error`);
+    }
+
+    return original;
+  }
 
   let parts = original.split('.');
-  let thisHead = false;
+  let head: AST.Head;
+  let tail = parts
+    .slice(1)
+    .map(p => ({ type: 'PathSegment', name: p, loc: buildLoc(null) } as AST.PathSegment));
 
   if (parts[0] === 'this') {
-    thisHead = true;
-    parts = parts.slice(1);
+    head = { type: 'This', loc: buildLoc(loc || null) };
+  } else {
+    head = { type: 'LocalReference', name: parts[0], loc: buildLoc(loc || null) };
   }
 
   return {
     type: 'PathExpression',
-    original,
-    this: thisHead,
-    parts,
-    data: false,
+    head,
+    tail,
     loc: buildLoc(loc || null),
   };
 }

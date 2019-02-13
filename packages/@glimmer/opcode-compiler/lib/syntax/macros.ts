@@ -58,7 +58,7 @@ export class Blocks implements MacroBlocks {
   }
 
   addMissing(func: MissingBlockMacro) {
-    this.missing = func as MissingBlockMacro;
+    this.missing = func;
   }
 
   compile(
@@ -96,6 +96,18 @@ export type AppendMacro = (
   context: MacroContext
 ) => StatementCompileActions | Unhandled;
 
+function isHelper(op: WireFormat.Expression): op is WireFormat.Expressions.Helper {
+  return Array.isArray(op) && op[0] === SexpOpcodes.Helper;
+}
+
+function getSimple(op: WireFormat.Expression): Option<string> {
+  if (Array.isArray(op) && op[0] === SexpOpcodes.MaybeLocal && op[1].length === 1) {
+    return op[1][0];
+  } else {
+    return null;
+  }
+}
+
 export class Inlines implements MacroInlines {
   private names = dict<number>();
   private funcs: AppendMacro[] = [];
@@ -126,10 +138,16 @@ export class Inlines implements MacroInlines {
     let params: Option<WireFormat.Core.Params>;
     let hash: Option<WireFormat.Core.Hash>;
 
-    if (value[0] === SexpOpcodes.Helper) {
-      name = value[1];
-      params = value[2];
-      hash = value[3];
+    if (isHelper(value)) {
+      let simpleName = getSimple(value);
+
+      if (simpleName === null) {
+        return UNHANDLED;
+      } else {
+        name = simpleName;
+        params = value[2];
+        hash = value[3];
+      }
     } else if (value[0] === SexpOpcodes.Unknown) {
       name = value[1];
       params = hash = null;

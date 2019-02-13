@@ -98,9 +98,14 @@ export default function build(ast: AST.Node): string {
         output.push(compactJoin(['{{', pathParams(ast), '}}']));
       }
       break;
-    case 'PathExpression':
-      output.push(ast.original);
+    case 'PathExpression': {
+      let path = [ast.head.type === 'This' ? 'this' : ast.head.name];
+      if (ast.tail) {
+        ast.tail.forEach(t => path.push(t.name));
+      }
+      output.push(path.join('.'));
       break;
+    }
     case 'SubExpression':
       {
         output.push('(', pathParams(ast), ')');
@@ -207,11 +212,11 @@ function pathParams(ast: AST.Node): string {
     case 'SubExpression':
     case 'ElementModifierStatement':
     case 'BlockStatement':
-      if (isLiteral(ast.path)) {
-        return String(ast.path.value);
+      if (isLiteral(ast.call)) {
+        return String(ast.call.value);
       }
 
-      path = build(ast.path);
+      path = build(ast.call);
       break;
     case 'PartialStatement':
       path = build(ast.name);
