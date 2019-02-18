@@ -186,6 +186,7 @@ export namespace Action {
     'mustache',
     [AST.MustacheStatement | AST.PartialStatement, number, number]
   ];
+  export type MustacheContent = ['mustacheContent', [AST.MustacheContent, number, number]];
   export type OpenElement = ['openElement', [AST.ElementNode, number, number, number, number[]]];
   export type CloseElement = ['closeElement', [AST.ElementNode, number, number]];
   export type Text = ['text', [AST.TextNode, number, number]];
@@ -198,6 +199,7 @@ export namespace Action {
     | EndBlock
     | Block
     | Mustache
+    | MustacheContent
     | OpenElement
     | CloseElement
     | Text
@@ -365,6 +367,15 @@ export default class TemplateVisitor {
     let frame = this.currentFrame;
     frame.mustacheCount++;
     frame.actions.push(['mustache', [mustache, frame.childIndex, frame.childCount]] as Action);
+  }
+
+  MustacheContent(mustache: AST.MustacheContent) {
+    let frame = this.currentFrame;
+    frame.mustacheCount++;
+    frame.actions.push([
+      'mustacheContent',
+      [mustache, frame.childIndex, frame.childCount],
+    ] as Action);
   }
 
   // Frame helpers

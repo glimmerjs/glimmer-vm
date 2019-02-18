@@ -13,6 +13,7 @@ import { replayableIf } from '../opcode-builder/helpers/conditional';
 import { yieldBlock } from '../opcode-builder/helpers/blocks';
 import { EMPTY_ARRAY } from '@glimmer/util';
 import { $sp } from '@glimmer/vm';
+import { isSimplePath, getSimplePath } from './push-resolution';
 
 export const STATEMENTS = new StatementCompilers();
 
@@ -24,16 +25,20 @@ STATEMENTS.add(SexpOpcodes.FlushElement, () => op(Op.FlushElement));
 STATEMENTS.add(SexpOpcodes.Modifier, sexp => {
   let [, call, params, hash] = sexp;
 
-  return op('IfResolved', {
-    kind: ResolveHandle.Modifier,
-    call: op('Expr', call),
-    andThen: handle => [
-      op(MachineOp.PushFrame),
-      op('SimpleArgs', { params, hash, atNames: false }),
-      op(Op.Modifier, handle),
-      op(MachineOp.PopFrame),
-    ],
-  });
+  if (isSimplePath(call)) {
+    return op('IfResolved', {
+      kind: ResolveHandle.Modifier,
+      name: getSimplePath(call),
+      andThen: handle => [
+        op(MachineOp.PushFrame),
+        op('SimpleArgs', { params, hash, atNames: false }),
+        op(Op.Modifier, handle),
+        op(MachineOp.PopFrame),
+      ],
+    });
+  } else {
+    throw new Error(`Unimplemented modifiers with non-simple path (${JSON.stringify(call)})`);
+  }
 });
 
 STATEMENTS.add(SexpOpcodes.StaticAttr, ([, name, value, namespace]) =>

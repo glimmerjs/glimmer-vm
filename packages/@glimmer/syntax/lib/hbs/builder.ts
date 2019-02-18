@@ -1,8 +1,6 @@
 import { keys } from '@glimmer/util';
 import * as hbs from '../types/handlebars-ast';
 
-const NO_STRIP: hbs.StripFlags = { open: false, close: false };
-
 export class AstBuilder {
   private pos = 0;
 
@@ -37,7 +35,6 @@ export class AstBuilder {
             type: 'CommentStatement',
             span,
             value: statement.value,
-            strip: NO_STRIP,
           });
         });
       }
@@ -49,7 +46,6 @@ export class AstBuilder {
           type: 'ContentStatement',
           span,
           value: statement.value,
-          strip: { open: false, close: false },
         };
       }
 
@@ -91,14 +87,15 @@ export class AstBuilder {
             hash,
             program,
             inverse,
-            openStrip: NO_STRIP,
-            inverseStrip: NO_STRIP,
-            closeStrip: NO_STRIP,
           });
         });
 
       case 'Whitespace':
         this.consume(statement.body);
+        return null;
+
+      case 'SkippedWhitespace':
+        this.skip(statement.body);
         return null;
 
       case 'MustacheStatement':
@@ -156,7 +153,6 @@ export class AstBuilder {
               params,
               hash: foundHash || null,
               trusted: false,
-              strip: NO_STRIP,
             });
           }
         });
@@ -250,8 +246,55 @@ export class AstBuilder {
         this.consume(expression.body);
         return null;
 
-      default:
-        throw new Error(`unimplemented ${expression.type}`);
+      case 'SubExpression': {
+        return this.spanned(() => {
+          this.consume('(');
+
+          let foundCall: hbs.Expression | undefined = undefined;
+          let foundHash: hbs.Hash | null | undefined = undefined;
+          let params: hbs.Expression[] = [];
+          let needsWs = false;
+
+          for (let param of expression.contents) {
+            if (param.type !== 'Whitespace' && needsWs) {
+              this.consume(' ');
+              needsWs = false;
+            }
+
+            if (foundCall === undefined && param.type !== 'Whitespace') {
+              if (param.type === 'Hash') {
+                throw new Error(`The first element of a mustache may not be a hash`);
+              }
+
+              foundCall = this.expr(param);
+              needsWs = true;
+            } else if (param.type === 'Whitespace') {
+              this.consume(param.body);
+              needsWs = false;
+            } else if (param.type === 'Hash') {
+              foundHash = this.hash(param);
+              needsWs = true;
+            } else {
+              params.push(this.expr(param));
+              needsWs = true;
+            }
+          }
+
+          if (foundCall === undefined) {
+            throw new Error(`Unexpected () without any expressions`);
+          }
+
+          this.consume(')');
+
+          return span => ({
+            type: 'SubExpression',
+            span,
+            call: foundCall!,
+            params,
+            hash: foundHash || null,
+          });
+        });
+      }
     }
   }
 
@@ -308,6 +351,7 @@ export class AstBuilder {
       }
 
       return span => ({
+        type: 'Hash',
         span,
         pairs: out,
       });
@@ -338,6 +382,10 @@ export class AstBuilder {
     return { start: pos, end: this.pos };
   }
 
+  skip(chars: string): void {
+    this.pos += chars.length;
+  }
+
   spanned<T extends hbs.AnyNode>(cb: () => (span: hbs.Span) => T): T {
     let pos = this.pos;
 
@@ -360,14 +408,20 @@ export function ast(...statements: Statement[]): BuilderAst {
 
 export interface Program {
   type: 'Program';
-  body: Statement[];
+  body: StatementPart[];
   blockParams: string[];
 }
 
-export function block({ statements, as }: { statements: Statement[]; as?: string[] }): Program {
+export function block({
+  statements,
+  as,
+}: {
+  statements: ToStatementPart[];
+  as?: string[];
+}): Program {
   return {
     type: 'Program',
-    body: statements,
+    body: statements.map(ToStatementPart),
     blockParams: as || [],
   };
 }
@@ -377,7 +431,8 @@ export type Statement =
   | BlockStatement
   | ContentStatement
   | CommentStatement
-  | Whitespace;
+  | Whitespace
+  | SkippedWhitespace;
 
 export interface CommonMustache {
   call: Expression;
@@ -401,6 +456,9 @@ export type ToMustachePart = MustacheContent | string | boolean | number | null 
 export type MustacheContents = MustacheContent[];
 
 export type ToHashPart = Expression | string | boolean | number | null | undefined;
+
+export type ToStatementPart = Statement | Whitespace | string;
+export type StatementPart = Statement | Whitespace;
 
 export function ToMustachePart(part: ToMustachePart): MustacheContent {
   if (typeof part === 'string') {
@@ -430,6 +488,14 @@ export function ToHashPart(part: ToHashPart): Expression {
   }
 }
 
+export function ToStatementPart(value: ToStatementPart): StatementPart {
+  if (typeof value === 'string') {
+    return { type: 'ContentStatement', value };
+  } else {
+    return value;
+  }
+}
+
 export function mustache(...params: ToMustachePart[]): MustacheStatement {
   let parts = params.map(ToMustachePart);
 
@@ -437,7 +503,6 @@ export function mustache(...params: ToMustachePart[]): MustacheStatement {
     type: 'MustacheStatement',
     contents: parts,
     trusted: false,
-    strip: NO_STRIP,
   };
 }
 
@@ -448,8 +513,20 @@ export function ws(body = ' '): Whitespace {
   };
 }
 
+export function skip(body = '\n'): SkippedWhitespace {
+  return {
+    type: 'SkippedWhitespace',
+    body,
+  };
+}
+
 export interface Whitespace {
   type: 'Whitespace';
+  body: string;
+}
+
+export interface SkippedWhitespace {
+  type: 'SkippedWhitespace';
   body: string;
 }
 
@@ -531,22 +608,15 @@ export function comment(value: string): CommentStatement {
 
 export type Expression = SubExpression | PathExpression | Literal | Whitespace;
 
-export interface SubExpression extends MustacheBody {
+export interface SubExpression {
   type: 'SubExpression';
-  call: Expression;
-  params: Expression[];
-  hash: Hash | null;
+  contents: MustacheContent[];
 }
 
-export function sexpr(
-  path: Expression,
-  { params, hash }: { params?: Expression[]; hash?: Hash }
-): SubExpression {
+export function sexpr(...contents: ToMustachePart[]): SubExpression {
   return {
     type: 'SubExpression',
-    call: path,
-    params: params || [],
-    hash: hash || null,
+    contents: contents.map(ToMustachePart),
   };
 }
 

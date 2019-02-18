@@ -94,7 +94,10 @@ export const enum TokenKind {
   Equals = 'Equals',
   Else = 'Else',
 
+  Newline = 'Newline',
+
   Content = 'Content',
+  PureWhitespaceContent = 'PureWhitespaceContent',
   OpenRawBlock = 'OpenRawBlock',
   EndRawBlock = 'EndRawBlock',
   CloseRawBlock = 'CloseRawBlock',
@@ -176,6 +179,8 @@ export class HandlebarsLexerDelegate implements LexerDelegate<State, TokenKind> 
           );
         } else if (rest.startsWith('{{')) {
           return PushState(Emit(TokenKind.Open, { first: Consume(2) }), State.DoubleMustache);
+        } else if (char === '\n') {
+          return Remain(Emit(TokenKind.Newline, { first: Consume() }));
         } else {
           return PushBegin(State.Content, Reconsume());
         }
@@ -183,11 +188,13 @@ export class HandlebarsLexerDelegate implements LexerDelegate<State, TokenKind> 
 
       case State.Content: {
         if (char === null) {
-          return Transition(Emit(TokenKind.Content, { first: Reconsume() }), State.Top);
+          return PopState(Emit(TokenKind.Content, { first: Reconsume() }));
         } else if (rest.startsWith('{{')) {
-          return Transition(Emit(TokenKind.Content), State.Top);
+          return PopState(Emit(TokenKind.Content));
         } else if (rest.startsWith('\\')) {
           return PushState(Continue(Reconsume()), State.EscapeChar);
+        } else if (rest.startsWith('\n')) {
+          return PopState(Emit(TokenKind.Content, { first: Reconsume() }));
         } else {
           return Remain(Continue(Consume()));
         }
@@ -223,8 +230,11 @@ export class HandlebarsLexerDelegate implements LexerDelegate<State, TokenKind> 
       }
 
       case State.ExpectCloseCurly: {
+        let match;
         if (char === null) {
           throw unexpectedEOF();
+        } else if ((match = testWs(rest))) {
+          return Remain(Skip(match.length));
         } else if (rest.startsWith('}}')) {
           return PopState(Emit(TokenKind.Close, { first: Consume(2) }));
         } else {

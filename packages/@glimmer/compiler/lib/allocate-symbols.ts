@@ -129,10 +129,10 @@ export class SymbolAllocator
     } else if (name[0] === '@') {
       let head = this.symbols.allocateNamed(name);
       return ['get', [head, rest]];
-    } else if (rest && rest.length === 0) {
+    } else if (rest === null) {
       return ['unknown', name];
     } else {
-      return ['maybeLocal', [name, ...(rest || [])]];
+      return ['maybeLocal', [name, ...rest]];
     }
   }
 

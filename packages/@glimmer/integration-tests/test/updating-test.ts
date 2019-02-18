@@ -1644,7 +1644,7 @@ module('[jit] integration - Updating', hooks => {
     equalTokens(context.root, '<div>Godfrey</div>', 'After reset');
   });
 
-  test('block arguments should have higher presedence than helpers', () => {
+  test('block arguments should have higher precedence than helpers', () => {
     registerHelper(context.registry, 'foo', () => 'foo-helper');
     registerHelper(context.registry, 'bar', () => 'bar-helper');
     registerHelper(context.registry, 'echo', args => args[0]);

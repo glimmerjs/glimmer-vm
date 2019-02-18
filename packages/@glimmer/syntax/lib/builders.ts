@@ -9,6 +9,21 @@ import { Span } from './types/handlebars-ast';
 export type BuilderPath = string | AST.Expression;
 export type TagDescriptor = string | { name: string; selfClosing: boolean };
 
+function buildMustacheContent(
+  value: AST.Expression,
+  trusted: boolean,
+  loc: AST.SourceLocation,
+  span: Span
+): AST.MustacheContent {
+  return {
+    type: 'MustacheContent',
+    span,
+    loc,
+    value,
+    trusted,
+  };
+}
+
 function buildMustache(
   call: BuilderPath | AST.Literal | AST.Expression,
   params?: AST.Expression[],
@@ -19,8 +34,6 @@ function buildMustache(
   if (typeof call === 'string') {
     call = buildPath(call);
   }
-
-  debugger;
 
   return {
     type: 'MustacheStatement',
@@ -82,7 +95,7 @@ function buildElementModifier(
 ): AST.ElementModifierStatement {
   return {
     type: 'ElementModifierStatement',
-    path: buildPath(path),
+    call: buildPath(path),
     params: params || [],
     hash: hash || buildHash([]),
     loc: buildLoc(loc || null),
@@ -102,7 +115,6 @@ function buildPartial(
     params: params || [],
     hash: hash || buildHash([]),
     indent: indent || '',
-    strip: { open: false, close: false },
     loc: buildLoc(loc || null),
   };
 }
@@ -127,7 +139,7 @@ function buildMustacheComment(
 }
 
 function buildConcat(
-  parts: (AST.TextNode | AST.MustacheStatement)[],
+  parts: (AST.TextNode | AST.MustacheStatement | AST.MustacheContent)[],
   loc?: AST.SourceLocation
 ): AST.ConcatStatement {
   return {
@@ -467,11 +479,13 @@ function buildProgram(
 }
 
 function buildBlockItself(
+  span: Span | null,
   body?: AST.Statement[],
   blockParams?: string[],
   loc?: AST.SourceLocation
 ): AST.Block {
   return {
+    span,
     type: 'Block',
     body: body || [],
     blockParams: blockParams || [],
@@ -543,6 +557,7 @@ function buildLoc(...args: any[]): AST.SourceLocation {
 
 export default {
   mustache: buildMustache,
+  mustacheContent: buildMustacheContent,
   block: buildBlock,
   partial: buildPartial,
   comment: buildComment,

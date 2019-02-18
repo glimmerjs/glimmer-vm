@@ -12,7 +12,6 @@ import {
   CompileTimeConstants,
   ContainingMetadata,
   TemplateCompilationContext,
-  ExprOp,
   SexpOpcodes,
 } from '@glimmer/interfaces';
 import { compileParams } from '../opcode-builder/helpers/shared';
@@ -95,12 +94,12 @@ function ifResolved(
   context: TemplateCompilationContext,
   op: IfResolvedOp
 ): ExpressionCompileActions {
-  let { kind, call, andThen, orElse } = op.op1;
+  let { kind, name, andThen, orElse } = op.op1;
 
   let resolved = resolve(
     context.syntax.program.resolverDelegate,
     kind,
-    call,
+    name,
     context.meta.referrer
   );
 
@@ -110,11 +109,11 @@ function ifResolved(
     return orElse();
   } else {
     // TODO: Fix error reporting
-    throw new Error(`Unexpected ${kind} ${call}`);
+    throw new Error(`Unexpected ${kind} ${name}`);
   }
 }
 
-function isSimplePath(
+export function isSimplePath(
   expr: WireFormat.Expression
 ): expr is WireFormat.Expressions.FreeVariable | WireFormat.Expressions.MaybeLocal {
   return (
@@ -124,25 +123,30 @@ function isSimplePath(
   );
 }
 
+export function isSimplePathNamed(expr: WireFormat.Expression, name: string): boolean {
+  return isSimplePath(expr) && getSimplePath(expr) === name;
+}
+
+export function getSimplePath(
+  expr: WireFormat.Expressions.FreeVariable | WireFormat.Expressions.MaybeLocal
+): string {
+  return expr[1][0];
+}
+
 function resolve(
   resolver: CompileTimeResolverDelegate,
   kind: ResolveHandle,
-  expr: ExprOp,
+  name: string,
   referrer: unknown
 ): Option<number> {
-  if (isSimplePath(expr.op1)) {
-    let name = expr.op1[1][0];
-    switch (kind) {
-      case ResolveHandle.Modifier:
-        return resolver.lookupModifier(name, referrer);
-      case ResolveHandle.Helper:
-        return resolver.lookupHelper(name, referrer);
-      case ResolveHandle.ComponentDefinition: {
-        let component = resolver.lookupComponent(name, referrer);
-        return component && component.handle;
-      }
+  switch (kind) {
+    case ResolveHandle.Modifier:
+      return resolver.lookupModifier(name, referrer);
+    case ResolveHandle.Helper:
+      return resolver.lookupHelper(name, referrer);
+    case ResolveHandle.ComponentDefinition: {
+      let component = resolver.lookupComponent(name, referrer);
+      return component && component.handle;
     }
   }
-
-  return null;
 }

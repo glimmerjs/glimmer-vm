@@ -48,18 +48,23 @@ export class Printer {
       case 'MustacheContent':
         return this.expr(item.value);
 
+      case 'Newline':
+        return '\n';
+
       default:
         throw new Error(`unimplemented Printer for ${item.type}`);
     }
   }
 
-  mustacheBody(item: hbs.MustacheBody, blockParams?: string[]): JsonValue[] {
+  mustacheBody(item: hbs.CallBody, blockParams?: string[]): JsonValue[] {
     let sexp = [];
 
     sexp.push(this.expr(item.call));
 
-    for (let param of item.params) {
-      sexp.push(this.expr(param));
+    if (item.params) {
+      for (let param of item.params) {
+        sexp.push(this.expr(param));
+      }
     }
 
     if (item.hash) {

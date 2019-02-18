@@ -58,10 +58,10 @@ function getNodeHandler<N extends AST.Node>(
   nodeType: N['type']
 ): NodeTraversal<N>;
 function getNodeHandler(visitor: NodeVisitor, nodeType: 'All'): NodeTraversal<AST.Node>;
-function getNodeHandler<N extends AST.Node>(
+function getNodeHandler<N extends AST.AnyNode>(
   visitor: NodeVisitor,
   nodeType: N['type']
-): NodeTraversal<N> | NodeTraversal<AST.Node> | undefined {
+): NodeTraversal<N> | NodeTraversal<AST.AnyNode> | undefined {
   if (nodeType === 'Template' || nodeType === 'Block') {
     if (visitor.Program) {
       if (DEVMODE) {

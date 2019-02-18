@@ -68,8 +68,8 @@ test('blocks', function() {
 
   locEqual(block, 2, 2, 9, 8, 'outer block');
   locEqual(nestedBlock, 3, 4, 7, 13, 'nested block');
-  locEqual(nestedBlockText, 4, 0, 5, 0);
-  locEqual(nestedInverse as AST.Node, 5, 16, 7, 2);
+  locEqual(nestedBlockText, 4, 0, 5, 0, 'nested block text');
+  locEqual(nestedInverse as AST.Node, 6, 16, 7, 2, 'nested inverse');
 });
 
 test('mustache', function() {

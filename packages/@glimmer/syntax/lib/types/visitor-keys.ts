@@ -69,6 +69,6 @@ const visitorKeys = {
 type VisitorKeysMap = typeof visitorKeys;
 
 export type VisitorKeys = { [P in keyof VisitorKeysMap]: VisitorKeysMap[P][number] };
-export type VisitorKey<N extends AST.Node> = VisitorKeys[N['type']] & keyof N;
+export type VisitorKey<N extends AST.AnyNode> = VisitorKeys[N['type']] & keyof N;
 
 export default visitorKeys;

@@ -10,7 +10,14 @@ export interface Location {
   end: Position;
 }
 
-export function locForSpan(source: string, span: Span): Location {
+export function locForSpan(source: string, span: Span | null): Location {
+  if (span === null) {
+    return {
+      start: { line: 1, column: 0 },
+      end: { line: 1, column: 0 },
+    };
+  }
+
   let lines = source.split('\n');
   let seen = 0;
   let lineNo = 1;

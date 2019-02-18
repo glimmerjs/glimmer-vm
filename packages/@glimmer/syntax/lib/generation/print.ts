@@ -71,7 +71,7 @@ export default function build(ast: AST.Node): string {
       break;
     case 'ConcatStatement':
       output.push('"');
-      ast.parts.forEach((node: AST.TextNode | AST.MustacheStatement) => {
+      ast.parts.forEach((node: AST.TextNode | AST.MustacheStatement | AST.MustacheContent) => {
         if (node.type === 'TextNode') {
           output.push(escapeAttrValue(node.chars));
         } else {

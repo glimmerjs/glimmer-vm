@@ -4,13 +4,14 @@ import { op } from '../opcode-builder/encoder';
 import { helper, pushPrimitiveReference } from '../opcode-builder/helpers/vm';
 import { assert } from '@glimmer/util';
 import { curryComponent } from '../opcode-builder/helpers/components';
+import { isSimplePathNamed, isSimplePath, getSimplePath } from './push-resolution';
 
 export const EXPRESSIONS = new ExpressionCompilers();
 
-EXPRESSIONS.add(SexpOpcodes.Unknown, ([, call], meta) => {
+EXPRESSIONS.add(SexpOpcodes.Unknown, ([, name], meta) => {
   return op('IfResolved', {
     kind: ResolveHandle.Helper,
-    call: op('Expr', call),
+    name,
     andThen: handle => helper({ handle, params: null, hash: null }),
     orElse: () => {
       if (meta.asPartial) {
@@ -36,7 +37,7 @@ EXPRESSIONS.add(SexpOpcodes.Concat, ([, parts]) => {
 
 EXPRESSIONS.add(SexpOpcodes.Helper, ([, call, params, hash], meta) => {
   // TODO: triage this in the WF compiler
-  if (name === 'component') {
+  if (isSimplePathNamed(call, 'component')) {
     assert(params.length, 'SYNTAX ERROR: component helper requires at least one argument');
 
     let [definition, ...restArgs] = params;
@@ -51,11 +52,17 @@ EXPRESSIONS.add(SexpOpcodes.Helper, ([, call, params, hash], meta) => {
     );
   }
 
-  return op('IfResolved', {
-    kind: ResolveHandle.Helper,
-    call: op('Expr', call),
-    andThen: handle => helper({ handle, params, hash }),
-  });
+  if (isSimplePath(call)) {
+    let name = getSimplePath(call);
+
+    return op('IfResolved', {
+      kind: ResolveHandle.Helper,
+      name,
+      andThen: handle => helper({ handle, params, hash }),
+    });
+  } else {
+    throw new Error(`Unimplemented helper (${JSON.stringify(call)})`);
+  }
 });
 
 EXPRESSIONS.add(SexpOpcodes.Get, ([, head, path]) => [

@@ -23,7 +23,13 @@ export abstract class HandlebarsNodeVisitors extends Parser {
     return this.elementStack.length === 0;
   }
 
-  private loc(span: HBS.Span): Location {
+  private loc(span: HBS.Span | null): Location {
+    if (span === null) {
+      return {
+        start: { line: 1, column: 0 },
+        end: { line: 1, column: 0 },
+      };
+    }
     return locForSpan(this.source, span);
   }
 
@@ -45,7 +51,7 @@ export abstract class HandlebarsNodeVisitors extends Parser {
     if (this.isTopLevel) {
       node = b.template(body, program.blockParams, this.loc(program.span));
     } else {
-      node = b.blockItself(body, program.blockParams, this.loc(program.span));
+      node = b.blockItself(program.span, body, program.blockParams, this.loc(program.span));
     }
 
     let i,
@@ -107,7 +113,7 @@ export abstract class HandlebarsNodeVisitors extends Parser {
     appendChild(parentProgram, node);
   }
 
-  MustacheContent(rawMustache: HBS.MustacheContent): AST.MustacheStatement | void {
+  MustacheContent(rawMustache: HBS.MustacheContent): AST.MustacheContent | void {
     let { tokenizer } = this;
 
     if (tokenizer.state === 'comment') {
@@ -115,22 +121,25 @@ export abstract class HandlebarsNodeVisitors extends Parser {
       return;
     }
 
-    let mustache: AST.MustacheStatement;
+    let mustache: AST.MustacheContent;
     let { trusted, span } = rawMustache;
 
     if (isLiteral(rawMustache.value)) {
       mustache = {
-        type: 'MustacheStatement',
-        call: this.expression(rawMustache.value),
-        params: [],
-        hash: b.hash(),
+        type: 'MustacheContent',
+        value: this.expression(rawMustache.value),
         trusted,
         loc: locForSpan(this.source, span),
         span,
       };
     } else {
       let call = this.expression(rawMustache.value);
-      mustache = b.mustache(call, undefined, undefined, rawMustache.trusted);
+      mustache = b.mustacheContent(
+        call,
+        rawMustache.trusted,
+        locForSpan(this.source, rawMustache.span),
+        span
+      );
     }
 
     switch (tokenizer.state) {
@@ -259,9 +268,16 @@ export abstract class HandlebarsNodeVisitors extends Parser {
   }
 
   ContentStatement(content: HBS.ContentStatement): void {
-    // updateTokenizerLocation(this.tokenizer, content);
+    let loc = locForSpan(this.source, content.span);
+    this.tokenizer.line = loc.start.line;
+    this.tokenizer.column = loc.start.column;
 
     this.tokenizer.tokenizePart(content.value);
+    this.tokenizer.flushData();
+  }
+
+  Newline(): void {
+    this.tokenizer.tokenizePart('\n');
     this.tokenizer.flushData();
   }
 
@@ -411,7 +427,7 @@ export abstract class HandlebarsNodeVisitors extends Parser {
 
 function acceptCallNodes(
   compiler: HandlebarsNodeVisitors,
-  node: HBS.MustacheBody
+  node: HBS.CallBody
 ): { call: AST.Expression; params: AST.Expression[]; hash: AST.Hash } {
   let call = compiler.expression(node.call);
 
@@ -423,26 +439,46 @@ function acceptCallNodes(
 
 function addElementModifier(
   element: Tag<'StartTag'>,
-  mustache: AST.MustacheStatement,
+  mustache: AST.MustacheStatement | AST.MustacheContent,
   source: string
 ) {
-  let { call, params, hash, loc } = mustache;
+  let modifier: AST.ElementModifierStatement;
+  if (mustache.type === 'MustacheContent') {
+    let { value } = mustache;
 
+    assertModifierNotLiteral(element, value, source, mustache.span);
+
+    modifier = b.elementModifier(value, undefined, undefined, mustache.loc);
+  } else {
+    let { call, params, hash, loc } = mustache;
+
+    assertModifierNotLiteral(element, call, source, mustache.span);
+
+    modifier = b.elementModifier(call, params, hash, loc);
+  }
+  element.modifiers.push(modifier);
+}
+
+function assertModifierNotLiteral(
+  element: Tag<'StartTag'>,
+  call: AST.Expression,
+  source: string,
+  span: HBS.Span
+) {
   if (isLiteral(call)) {
     let modifier = `{{${printLiteral(call)}}}`;
     let tag = `<${element.name} ... ${modifier} ...`;
+
+    let loc = locForSpan(source, span);
 
     throw new SyntaxError(
       `In ${tag}, ${modifier} is not a valid modifier: "${source.slice(
         call.span.start,
         call.span.end
       )}" on line ${loc && loc.start.line}.`,
-      mustache.loc
+      loc
     );
   }
-
-  let modifier = b.elementModifier(call, params, hash, loc);
-  element.modifiers.push(modifier);
 }
 
 function addInElementHash(cursor: string, hash: AST.Hash, loc: AST.SourceLocation) {
@@ -470,7 +506,10 @@ function addInElementHash(cursor: string, hash: AST.Hash, loc: AST.SourceLocatio
   return hash;
 }
 
-function appendDynamicAttributeValuePart(attribute: Attribute, part: AST.MustacheStatement) {
+function appendDynamicAttributeValuePart(
+  attribute: Attribute,
+  part: AST.MustacheStatement | AST.MustacheContent
+) {
   attribute.isDynamic = true;
   attribute.parts.push(part);
 }

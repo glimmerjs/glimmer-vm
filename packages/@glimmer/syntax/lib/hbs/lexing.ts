@@ -1,8 +1,8 @@
 import { Option } from '@glimmer/interfaces';
 import { TokenKind } from './lex';
-import { Diagnostic, reportError } from './parser';
 import { Span } from '../types/handlebars-ast';
 import { assert } from '@glimmer/util';
+import { Diagnostic, reportError } from './parse/core';
 
 export const EOF_SPAN = { start: -1, end: -1 };
 
@@ -12,8 +12,10 @@ export interface Position {
 
 export interface Tokens {
   peek(): LexItem<TokenKind>;
+  peek2(): LexItem<TokenKind> | undefined;
   consume(): LexItem<TokenKind>;
   clone(): Tokens;
+  commit(fork: this): void;
 }
 
 export type Ok<T> = { status: 'ok'; value: T };

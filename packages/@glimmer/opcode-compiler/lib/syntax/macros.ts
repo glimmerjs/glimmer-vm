@@ -139,7 +139,7 @@ export class Inlines implements MacroInlines {
     let hash: Option<WireFormat.Core.Hash>;
 
     if (isHelper(value)) {
-      let simpleName = getSimple(value);
+      let simpleName = getSimple(value[1]);
 
       if (simpleName === null) {
         return UNHANDLED;

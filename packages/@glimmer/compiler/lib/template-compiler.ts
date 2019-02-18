@@ -49,6 +49,7 @@ export default class TemplateCompiler {
   }
 
   process(actions: Action[]): SymbolInOp[] {
+    console.log(actions);
     actions.forEach(([name, ...args]) => {
       if (!this[name]) {
         throw new Error(`Unimplemented ${name} on TemplateCompiler`);
@@ -198,6 +199,25 @@ export default class TemplateCompiler {
     this.opcode(['modifier', null], action);
   }
 
+  mustacheContent([action]: [AST.MustacheContent]) {
+    let { value } = action;
+
+    if (isLiteral(value)) {
+      this.mustacheContentExpression(action);
+      this.opcode(['append', action.trusted], action);
+    } else if (isYield(value)) {
+      let to = assertValidYield(action);
+      this.yield(to, action);
+    } else if (isDebugger(value)) {
+      assertValidDebuggerUsage(action);
+      this.debugger('debugger', action);
+    } else if (value.type === 'SubExpression') {
+      throw new Error(`Unimplemented {{(...)}}`);
+    } else {
+      this.mustacheContentExpression(action);
+    }
+  }
+
   mustache([action]: [AST.MustacheStatement]) {
     let { call } = action;
 
@@ -234,19 +254,15 @@ export default class TemplateCompiler {
     this.opcode(['get', [`@${head.name}`, tail && tail.map(t => t.name)]], path);
   }
 
-  mustacheExpression(expr: AST.MustacheStatement) {
-    let { call } = expr;
+  mustacheContentExpression(expr: AST.MustacheContent) {
+    let { value: call } = expr;
 
     if (isLiteral(call)) {
       this.opcode(['literal', call.value], expr);
     } else if (isKeyword(call)) {
-      this.keyword(expr as AST.Call);
+      this.keyword(call as AST.Call);
     } else if (isArgReference(call)) {
       this.argReference([call]);
-    } else if (isInvocation(expr)) {
-      this.prepareInvocation(expr);
-      this.expr(expr.call);
-      this.opcode(['helper', null], expr);
     } else if (isSubExpression(call)) {
       throw new Error(`Not implemented {{(subexpr)}}`);
     } else if (isThis(call)) {
@@ -257,24 +273,36 @@ export default class TemplateCompiler {
       }
     } else if (this.options.strict) {
       let { head, tail } = call;
-      this.opcode(['freeVariable', (head as AST.LocalReference).name, tail], expr);
+      this.opcode(
+        [
+          'freeVariable',
+          [(head as AST.LocalReference).name, ...(tail ? tail.map(s => s.name) : [])],
+        ],
+        expr
+      );
     } else {
       let { head, tail } = call;
       this.opcode(
-        ['maybeGet', [(head as AST.LocalReference).name, tail && tail.map(t => t.name)]],
+        ['maybeGet', [(head as AST.LocalReference).name, tail ? tail.map(t => t.name) : null]],
         expr
       );
     }
   }
 
+  mustacheExpression(expr: AST.MustacheStatement) {
+    this.prepareInvocation(expr);
+    this.expr(expr.call);
+    this.opcode(['helper', null], expr);
+  }
+
   /// Internal Syntax
 
-  yield(to: string, action: AST.MustacheStatement) {
-    this.prepareParams(action.params);
+  yield(to: string, action: AST.MustacheStatement | AST.MustacheContent) {
+    if (action.type === 'MustacheStatement') this.prepareParams(action.params);
     this.opcode(['yield', to], action);
   }
 
-  debugger(_name: string, action: AST.MustacheStatement) {
+  debugger(_name: string, action: AST.MustacheStatement | AST.MustacheContent) {
     this.opcode(['debugger', null], action);
   }
 
@@ -346,7 +374,7 @@ export default class TemplateCompiler {
 
   /// Utilities
 
-  opcode<O extends SymbolInOp>(opcode: O, action: Option<AST.BaseNode> = null) {
+  opcode<O extends SymbolInOp>(opcode: O, action: Option<AST.BaseNode | AST.CommonProgram> = null) {
     // TODO: This doesn't really work
     if (this.includeMeta && action) {
       (opcode as any).push(this.meta(action));
@@ -417,6 +445,9 @@ export default class TemplateCompiler {
       case 'MustacheStatement':
         this.attributeMustache([value]);
         return false;
+      case 'MustacheContent':
+        this.attributeMustacheContent([value]);
+        return false;
       case 'ConcatStatement':
         this.prepareConcatParts(value.parts);
         this.opcode(['concat', null], value);
@@ -442,7 +473,11 @@ export default class TemplateCompiler {
     this.mustacheExpression(action);
   }
 
-  meta(node: AST.BaseNode) {
+  attributeMustacheContent([action]: [AST.MustacheContent]) {
+    this.mustacheContentExpression(action);
+  }
+
+  meta(node: AST.BaseNode | AST.CommonProgram) {
     let loc = node.loc;
     if (!loc) {
       return [];
@@ -451,15 +486,6 @@ export default class TemplateCompiler {
     let { source, start, end } = loc;
     return ['loc', [source || null, [start.line, start.column], [end.line, end.column]]];
   }
-}
-
-function isInvocation(
-  mustache: AST.MustacheStatement
-): mustache is AST.MustacheStatement & { call: AST.PathExpression } {
-  return (
-    (mustache.params && mustache.params.length > 0) ||
-    (mustache.hash && mustache.hash.pairs.length > 0)
-  );
 }
 
 function isSubExpression(call: AST.Expression): call is AST.SubExpression {
@@ -560,7 +586,9 @@ function assertIsSimplePath(
   }
 }
 
-function assertValidYield(statement: AST.MustacheStatement): string {
+function assertValidYield(statement: AST.MustacheStatement | AST.MustacheContent): string {
+  if (statement.type === 'MustacheContent') return 'default';
+
   let { pairs } = statement.hash;
 
   if ((pairs.length === 1 && pairs[0].key !== 'to') || pairs.length > 1) {
@@ -628,7 +656,9 @@ function assertValidHasBlockUsage(type: string, call: AST.Call): string {
   }
 }
 
-function assertValidDebuggerUsage(statement: AST.MustacheStatement) {
+function assertValidDebuggerUsage(statement: AST.MustacheStatement | AST.MustacheContent) {
+  if (statement.type === 'MustacheContent') return 'default';
+
   let { params, hash } = statement;
 
   if (hash && hash.pairs.length > 0) {

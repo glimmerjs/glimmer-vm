@@ -143,7 +143,7 @@ export interface IfResolvedOp {
   op: HighLevelResolutionOpcode.IfResolved;
   op1: {
     kind: ResolveHandle;
-    call: ExprOp;
+    name: string;
     andThen: (handle: number) => ExpressionCompileActions;
     orElse?: () => ExpressionCompileActions;
   };

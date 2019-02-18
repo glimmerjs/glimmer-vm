@@ -20,9 +20,10 @@ export interface CommonNode {
 export interface NodeMap {
   Program: { input: Program; output: AST.Template | AST.Block };
   MustacheStatement: { input: MustacheStatement; output: AST.MustacheStatement | void };
-  MustacheContent: { input: MustacheContent; output: AST.MustacheStatement | void };
+  MustacheContent: { input: MustacheContent; output: AST.MustacheContent | void };
   BlockStatement: { input: BlockStatement; output: AST.BlockStatement | void };
   ContentStatement: { input: ContentStatement; output: void };
+  Newline: { input: Newline; output: void };
   CommentStatement: { input: CommentStatement; output: AST.MustacheCommentStatement | null };
   SubExpression: { input: SubExpression; output: AST.SubExpression };
   PathExpression: { input: PathExpression; output: AST.PathExpression };
@@ -51,12 +52,14 @@ export interface Position {
   column: number;
 }
 
-export interface AnyProgram extends CommonNode {
+export interface AnyProgram {
+  span: Span | null;
   type: 'Program';
   body: Statement[];
 }
 
-export interface Program extends CommonNode {
+export interface Program {
+  span: Span | null;
   type: 'Program';
   body: Statement[];
   blockParams: string[];
@@ -67,23 +70,23 @@ export type Statement =
   | MustacheContent
   | BlockStatement
   | ContentStatement
+  | Newline
   | CommentStatement;
 
 export interface CommonMustache extends CommonNode {
   call: Expression;
-  params: Expression[];
+  params: Expression[] | null;
   hash: Hash | null;
   trusted: boolean;
-  strip: StripFlags;
 }
 
-export interface MustacheStatement extends CommonMustache, MustacheBody {
+export interface MustacheStatement extends CommonMustache, CallBody {
   type: 'MustacheStatement';
 }
 
-export interface MustacheBody {
+export interface CallBody {
   call: Expression;
-  params: Expression[];
+  params: Expression[] | null;
   hash: Hash | null;
 }
 
@@ -93,16 +96,13 @@ export interface MustacheContent extends CommonNode {
   trusted: boolean;
 }
 
-export interface CommonBlock extends MustacheBody, CommonNode {
+export interface CommonBlock extends CallBody, CommonNode {
   chained: boolean;
   call: PathExpression;
   params: Expression[];
   hash: Hash | null;
   program: Program;
   inverse: Program | null;
-  openStrip: StripFlags;
-  inverseStrip: StripFlags;
-  closeStrip: StripFlags;
 }
 
 export interface BlockStatement extends CommonBlock {
@@ -112,21 +112,23 @@ export interface BlockStatement extends CommonBlock {
 export interface ContentStatement extends CommonNode {
   type: 'ContentStatement';
   value: string;
-  strip: StripFlags;
+}
+
+export interface Newline extends CommonNode {
+  type: 'Newline';
 }
 
 export interface CommentStatement extends CommonNode {
   type: 'CommentStatement';
   value: string;
-  strip: StripFlags;
 }
 
 export type Expression = SubExpression | PathExpression | Literal;
 
-export interface SubExpression extends CommonNode, MustacheBody {
+export interface SubExpression extends CommonNode, CallBody {
   type: 'SubExpression';
   call: Expression;
-  params: Expression[];
+  params: Expression[] | null;
   hash: Hash | null;
 }
 
@@ -190,15 +192,11 @@ export interface NullLiteral extends CommonNode {
 }
 
 export interface Hash extends CommonNode {
+  type: 'Hash';
   pairs: HashPair[];
 }
 
 export interface HashPair extends CommonNode {
   key: string;
   value: Expression;
-}
-
-export interface StripFlags {
-  open: boolean;
-  close: boolean;
 }

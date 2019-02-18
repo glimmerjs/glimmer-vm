@@ -86,7 +86,7 @@ test('empty block', function() {
 });
 
 test('block with inverse', function() {
-  let input = '{{#a}}b{{^}}{{/a}}';
+  let input = '{{#a}}b{{else}}{{/a}}';
   actionsEqual(input, [
     ['startBlock', [0, []]],
     ['endBlock', [1]],

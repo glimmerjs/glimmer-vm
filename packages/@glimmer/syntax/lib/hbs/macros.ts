@@ -1,5 +1,5 @@
-import { HandlebarsParser } from './parser';
 import * as hbs from '../types/handlebars-ast';
+import { HandlebarsParser } from './parse/core';
 
 export interface Macro<T> {
   description(): string;

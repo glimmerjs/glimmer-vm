@@ -24,7 +24,7 @@ export interface Tag<T extends 'StartTag' | 'EndTag'> {
 
 export interface Attribute {
   name: string;
-  parts: (AST.MustacheStatement | AST.TextNode)[];
+  parts: (AST.MustacheStatement | AST.MustacheContent | AST.TextNode)[];
   isQuoted: boolean;
   isDynamic: boolean;
   start: AST.Position;
@@ -47,6 +47,7 @@ export abstract class Parser {
   abstract MustacheContent(node: HBS.MustacheContent): HBS.Output<'MustacheContent'>;
   abstract BlockStatement(node: HBS.BlockStatement): HBS.Output<'BlockStatement'>;
   abstract ContentStatement(node: HBS.ContentStatement): HBS.Output<'ContentStatement'>;
+  abstract Newline(node: HBS.Newline): HBS.Output<'Newline'>;
   abstract CommentStatement(node: HBS.CommentStatement): HBS.Output<'CommentStatement'>;
   abstract SubExpression(node: HBS.SubExpression): HBS.Output<'SubExpression'>;
   abstract PathExpression(node: HBS.PathExpression): HBS.Output<'PathExpression'>;
@@ -125,6 +126,10 @@ export abstract class Parser {
   }
 
   sourceForNode(node: HBS.Node): string {
-    return this.source.slice(node.span.start, node.span.end);
+    if (node.span) {
+      return this.source.slice(node.span.start, node.span.end);
+    } else {
+      return '';
+    }
   }
 }

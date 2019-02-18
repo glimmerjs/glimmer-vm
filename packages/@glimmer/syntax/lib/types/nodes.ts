@@ -30,6 +30,8 @@ export interface BaseNode {
   span: Span;
 }
 
+export type AnyNode = BaseNode | CommonProgram;
+
 export interface SourceLocation {
   source?: Option<string>;
   start: Position;
@@ -43,7 +45,11 @@ export interface Position {
   column: number;
 }
 
-export interface CommonProgram extends BaseNode {
+export interface CommonProgram {
+  type: NodeType;
+  loc: SourceLocation;
+  span: Span | null;
+
   body: TopLevelStatement[];
   blockParams: string[];
   chained?: boolean;
@@ -68,6 +74,7 @@ export type PossiblyDeprecatedBlock = Block | Template;
 
 export type Statement =
   | MustacheStatement
+  | MustacheContent
   | BlockStatement
   | PartialStatement
   | MustacheCommentStatement
@@ -85,7 +92,8 @@ export type TopLevelStatement =
   | PartialStatement
   | CommentStatement
   | MustacheCommentStatement
-  | MustacheStatement;
+  | MustacheStatement
+  | MustacheContent;
 
 export interface Call extends BaseNode {
   name?: PathExpression | SubExpression;
@@ -163,7 +171,7 @@ export interface ElementNode extends BaseNode {
 export interface AttrNode extends BaseNode {
   type: 'AttrNode';
   name: string;
-  value: TextNode | MustacheStatement | ConcatStatement;
+  value: TextNode | MustacheStatement | MustacheContent | ConcatStatement;
 }
 
 export interface TextNode extends BaseNode {
@@ -173,7 +181,7 @@ export interface TextNode extends BaseNode {
 
 export interface ConcatStatement extends BaseNode {
   type: 'ConcatStatement';
-  parts: (TextNode | MustacheStatement)[];
+  parts: (TextNode | MustacheStatement | MustacheContent)[];
 }
 
 export type Expression = SubExpression | PathExpression | Literal;

@@ -1,10 +1,11 @@
 import * as hbs from '../types/handlebars-ast';
 import { Lexer, LexItem, Result, Tokens, Debug } from './lexing';
 import { HandlebarsLexerDelegate, TokenKind } from './lex';
-import { HandlebarsParser, Diagnostic } from './parser';
 import { Printer } from './printer';
 import { assert } from '@glimmer/util';
 import { JsonValue } from '@glimmer/interfaces';
+import { combineContent } from './combine-content';
+import { Diagnostic, HandlebarsParser } from './parse/core';
 
 export function hbsLex(
   template: string,
@@ -44,8 +45,16 @@ export class TokensImpl implements Tokens {
     return this.tokens[this.pos];
   }
 
+  peek2(): LexItem<TokenKind> | undefined {
+    return this.tokens[this.pos + 1];
+  }
+
   consume(): LexItem<TokenKind> {
     return this.tokens[this.pos++];
+  }
+
+  commit(fork: TokensImpl): void {
+    this.pos = fork.pos;
   }
 }
 
@@ -71,7 +80,11 @@ export function hbsParse(
 
     let parser = new HandlebarsParser(template, new TokensImpl(tokens.value), debug);
 
-    return { result: parser.RootProgram(), errors };
+    let program = parser.RootProgram();
+
+    let result = combineContent(program);
+
+    return { result, errors };
   } else {
     return { result: template, errors: [] };
   }

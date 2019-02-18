@@ -242,7 +242,7 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
 }
 
 function assembleAttributeValue(
-  parts: (AST.MustacheStatement | AST.TextNode)[],
+  parts: (AST.MustacheStatement | AST.MustacheContent | AST.TextNode)[],
   isQuoted: boolean,
   isDynamic: boolean,
   line: number
@@ -272,11 +272,17 @@ function assembleAttributeValue(
   }
 }
 
-function assembleConcatenatedValue(parts: (AST.MustacheStatement | AST.TextNode)[]) {
+function assembleConcatenatedValue(
+  parts: (AST.MustacheStatement | AST.MustacheContent | AST.TextNode)[]
+) {
   for (let i = 0; i < parts.length; i++) {
     let part: AST.BaseNode = parts[i];
 
-    if (part.type !== 'MustacheStatement' && part.type !== 'TextNode') {
+    if (
+      part.type !== 'MustacheStatement' &&
+      part.type !== 'TextNode' &&
+      part.type !== 'MustacheContent'
+    ) {
       throw new SyntaxError(
         'Unsupported node in quoted attribute value: ' + part['type'],
         part.loc
