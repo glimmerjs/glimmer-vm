@@ -481,7 +481,7 @@ function buildProgram(
 function buildBlockItself(
   span: Span | null,
   body?: AST.Statement[],
-  blockParams?: string[],
+  blockParams?: string[] | null,
   loc?: AST.SourceLocation
 ): AST.Block {
   return {
@@ -495,7 +495,7 @@ function buildBlockItself(
 
 function buildTemplate(
   body?: AST.Statement[],
-  blockParams?: string[],
+  blockParams?: string[] | null,
   loc?: AST.SourceLocation
 ): AST.Template {
   return {

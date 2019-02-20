@@ -4,14 +4,10 @@ import { TokenKind } from '../lex';
 import { Option } from '@glimmer/interfaces';
 
 export class NumberLiteralSyntax implements Syntax<hbs.NumberLiteral, true> {
-  get description() {
-    return `Literal{number}`;
-  }
+  readonly description = `Literal{number}`;
 
   test(parser: HandlebarsParser): Option<true> {
-    let next = parser.peek();
-
-    return next.kind === TokenKind.Number ? true : null;
+    return parser.is(TokenKind.Number) ? true : null;
   }
 
   parse(parser: HandlebarsParser): Thunk<hbs.NumberLiteral> {
@@ -29,14 +25,10 @@ export class NumberLiteralSyntax implements Syntax<hbs.NumberLiteral, true> {
 export const NUMBER = new NumberLiteralSyntax();
 
 export class StringLiteralSyntax implements Syntax<hbs.StringLiteral, true> {
-  get description() {
-    return `Literal{string}`;
-  }
+  readonly description = `Literal{string}`;
 
   test(parser: HandlebarsParser): Option<true> {
-    let next = parser.peek();
-
-    return next.kind === TokenKind.String ? true : null;
+    return parser.is(TokenKind.String) ? true : null;
   }
 
   parse(parser: HandlebarsParser): Thunk<hbs.StringLiteral> {

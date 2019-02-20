@@ -1,5 +1,5 @@
 import * as hbs from '../../types/handlebars-ast';
-import { Syntax, HandlebarsParser, Thunk, FallibleSyntax } from './core';
+import { Syntax, HandlebarsParser, Thunk, FallibleSyntax, node } from './core';
 import { Option } from '@glimmer/interfaces';
 import { TokenKind } from '../lex';
 import { TOKENS } from './tokens';
@@ -18,9 +18,7 @@ export class HeadSyntax implements Syntax<hbs.Head, PathKind> {
       return PathKind.MacroHead;
     }
 
-    let next = parser.peek();
-
-    switch (next.kind) {
+    switch (parser.peek().kind) {
       case TokenKind.Identifier:
         return PathKind.LocalReference;
       case TokenKind.AtName:
@@ -43,8 +41,7 @@ export class HeadSyntax implements Syntax<hbs.Head, PathKind> {
       }
 
       case PathKind.MacroHead: {
-        let head = parser.expandHeadMacro();
-        return () => head;
+        return node(parser.expandHeadMacro());
       }
     }
   }

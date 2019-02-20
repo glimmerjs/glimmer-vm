@@ -1,5 +1,6 @@
 import { keys } from '@glimmer/util';
 import * as hbs from '../types/handlebars-ast';
+import { Option } from '@glimmer/interfaces';
 
 export class AstBuilder {
   private pos = 0;
@@ -52,41 +53,22 @@ export class AstBuilder {
       case 'BlockStatement':
         return this.spanned(() => {
           this.consume('{{#');
-          let path = this.path(statement.call);
-          let params: hbs.Expression[] = [];
-          let hash: hbs.Hash | null = null;
+          let { body, callSize, blockParams } = this.insideMustache(statement.mustache.contents);
 
-          if (statement.params.length) {
-            this.consume(' ');
-            params = this.exprs(statement.params);
-          }
-
-          if (statement.hash) {
-            this.consume(' ');
-            hash = this.hash(statement.hash);
-          }
-
-          let program = this.program(statement.program);
-
-          let inverse: hbs.Program | null = null;
-          if (statement.inverse) {
-            this.consume('{{else');
-            inverse = this.program(statement.inverse);
-          }
+          let programs = this.programs(statement.programs);
 
           this.consume('{{/');
-          this.consume(pathString(statement.call));
+          this.pos += callSize;
           this.consume('}}');
+
+          programs.default.blockParams = blockParams;
 
           return span => ({
             type: 'BlockStatement',
-            chained: false,
             span,
-            call: path,
-            params,
-            hash,
-            program,
-            inverse,
+            body,
+            program: programs.default,
+            inverse: programs.else,
           });
         });
 
@@ -99,90 +81,176 @@ export class AstBuilder {
         return null;
 
       case 'MustacheStatement':
-        return this.spanned<hbs.MustacheStatement | hbs.MustacheContent>(() => {
-          this.consume('{{');
-
-          let foundCall: hbs.Expression | undefined = undefined;
-          let foundHash: hbs.Hash | null | undefined = undefined;
-          let params: hbs.Expression[] = [];
-          let needsWs = false;
-
-          for (let param of statement.contents) {
-            if (param.type !== 'Whitespace' && needsWs) {
-              this.consume(' ');
-              needsWs = false;
-            }
-
-            if (foundCall === undefined && param.type !== 'Whitespace') {
-              if (param.type === 'Hash') {
-                throw new Error(`The first element of a mustache may not be a hash`);
-              }
-
-              foundCall = this.expr(param);
-              needsWs = true;
-            } else if (param.type === 'Whitespace') {
-              this.consume(param.body);
-              needsWs = false;
-            } else if (param.type === 'Hash') {
-              foundHash = this.hash(param);
-              needsWs = true;
-            } else {
-              params.push(this.expr(param));
-              needsWs = true;
-            }
-          }
-
-          if (foundCall === undefined) {
-            throw new Error(`Unexpected {{}} without any expressions`);
-          }
-
-          this.consume('}}');
-
-          if (params.length === 0 && !foundHash) {
-            return span => ({
-              type: 'MustacheContent',
-              span,
-              value: foundCall!,
-              trusted: false,
-            });
-          } else {
-            return span => ({
-              type: 'MustacheStatement',
-              span,
-              call: foundCall!,
-              params,
-              hash: foundHash || null,
-              trusted: false,
-            });
-          }
-        });
+        return this.mustache(statement);
     }
   }
 
   program(program: Program): hbs.Program {
-    if (program.blockParams && program.blockParams.length) {
-      this.consume(' as |');
-      this.consume(program.blockParams.join(' '));
-      this.consume('|}}');
-    } else {
-      this.consume('}}');
-    }
-
     return this.spanned(() => {
       let body: hbs.Statement[] = [];
 
-      for (let item of program.body) {
-        let next = this.visit(item);
+      for (let item of program.parts) {
+        let next = this.visit(ToStatementPart(item));
         if (next) body.push(next);
       }
 
       return span => ({
         type: 'Program',
         span,
-        body,
-        blockParams: program.blockParams,
+        body: body.length ? body : null,
+        blockParams: null,
       });
     });
+  }
+
+  inverse(inverse: Inverse): hbs.Program {
+    this.consume('{{else');
+
+    return this.spanned(() => {
+      let body: hbs.Statement[] = [];
+
+      let { blockParams } = this.insideMustache(inverse.mustache.contents);
+
+      for (let item of inverse.parts) {
+        let next = this.visit(ToStatementPart(item));
+        if (next) body.push(next);
+      }
+
+      return span => ({
+        type: 'Program',
+        span,
+        body: body.length ? body : null,
+        blockParams,
+      });
+    });
+  }
+
+  programs(programs: ToProgramPart[]): { default: hbs.Program; else: Option<hbs.Program> } {
+    let defaultBlock: hbs.Program | null = null;
+    let inverseBlock: hbs.Program | null = null;
+
+    this.consume('}}');
+    let start = this.pos;
+
+    for (let part of programs) {
+      if (part.type === 'SkippedWhitespace') {
+        this.skip(part.body);
+        continue;
+      } else if (part.type === 'Program') {
+        defaultBlock = this.program(part);
+      } else if (part.type === 'Else') {
+        inverseBlock = this.inverse(part);
+        if (defaultBlock && defaultBlock.span && inverseBlock.span)
+          defaultBlock.span.end = inverseBlock.span.start;
+      } else {
+        throw new Error(`Can only pass two blocks to blockCall`);
+      }
+    }
+
+    if (defaultBlock && defaultBlock.span && !inverseBlock) {
+      defaultBlock.span = { start, end: this.pos };
+    }
+
+    if (defaultBlock === null) {
+      throw new Error(`Must pass at least one block to blockCall`);
+    }
+
+    return { default: defaultBlock, else: inverseBlock };
+  }
+
+  mustache(statement: MustacheStatement): hbs.MustacheStatement | hbs.MustacheContent {
+    return this.spanned<hbs.MustacheStatement | hbs.MustacheContent>(() => {
+      this.consume('{{');
+
+      let { body } = this.insideMustache(statement.contents);
+
+      this.consume('}}');
+
+      if (!body.params && !body.hash) {
+        return span => ({
+          type: 'MustacheContent',
+          span,
+          value: body.call,
+          trusted: false,
+        });
+      } else {
+        return span => ({
+          type: 'MustacheStatement',
+          span,
+          body,
+          trusted: false,
+        });
+      }
+    });
+  }
+
+  insideMustache(
+    contents: MustacheContents
+  ): {
+    callSize: number;
+    body: hbs.CallBody;
+    blockParams: Option<string[]>;
+  } {
+    let foundCall: { call: hbs.Expression; size: number } | undefined = undefined;
+    let foundHash: hbs.Hash | null | undefined = undefined;
+    let params: hbs.Expression[] = [];
+    let blockParams: Option<string[]> = null;
+    let last: number = this.pos;
+    let needsWs = false;
+
+    for (let param of contents) {
+      if (param.type !== 'Whitespace' && needsWs) {
+        this.consume(' ');
+        needsWs = false;
+      }
+
+      if (param.type === 'As') {
+        this.consume('as |');
+        param.parts.forEach(p => this.consume(p));
+        this.consume('|');
+        last = this.pos;
+        blockParams = param.parts;
+        continue;
+      }
+
+      if (foundCall === undefined && param.type !== 'Whitespace') {
+        if (param.type === 'Hash') {
+          throw new Error(`The first element of a mustache may not be a hash`);
+        }
+
+        let start = this.pos;
+        foundCall = { call: this.expr(param), size: this.pos - start };
+        last = this.pos;
+        needsWs = true;
+      } else if (param.type === 'Whitespace') {
+        this.consume(param.body);
+        needsWs = false;
+      } else if (param.type === 'Hash') {
+        foundHash = this.hash(param);
+        last = this.pos;
+        needsWs = true;
+      } else {
+        params.push(this.expr(param));
+        last = this.pos;
+        needsWs = true;
+      }
+    }
+
+    if (foundCall === undefined) {
+      throw new Error(`Unexpected {{}} without any expressions`);
+    }
+
+    return {
+      callSize: foundCall.size,
+      body: {
+        type: 'CallBody',
+        span: { start: foundCall.call.span.start, end: last },
+        call: foundCall.call,
+        params: params.length ? params : null,
+        hash: foundHash || null,
+      },
+      blockParams,
+    };
   }
 
   path(expression: PathExpression): hbs.PathExpression {
@@ -250,48 +318,14 @@ export class AstBuilder {
         return this.spanned(() => {
           this.consume('(');
 
-          let foundCall: hbs.Expression | undefined = undefined;
-          let foundHash: hbs.Hash | null | undefined = undefined;
-          let params: hbs.Expression[] = [];
-          let needsWs = false;
-
-          for (let param of expression.contents) {
-            if (param.type !== 'Whitespace' && needsWs) {
-              this.consume(' ');
-              needsWs = false;
-            }
-
-            if (foundCall === undefined && param.type !== 'Whitespace') {
-              if (param.type === 'Hash') {
-                throw new Error(`The first element of a mustache may not be a hash`);
-              }
-
-              foundCall = this.expr(param);
-              needsWs = true;
-            } else if (param.type === 'Whitespace') {
-              this.consume(param.body);
-              needsWs = false;
-            } else if (param.type === 'Hash') {
-              foundHash = this.hash(param);
-              needsWs = true;
-            } else {
-              params.push(this.expr(param));
-              needsWs = true;
-            }
-          }
-
-          if (foundCall === undefined) {
-            throw new Error(`Unexpected () without any expressions`);
-          }
+          let body = this.insideMustache(expression.contents).body;
 
           this.consume(')');
 
           return span => ({
             type: 'SubExpression',
             span,
-            call: foundCall!,
-            params,
-            hash: foundHash || null,
+            body,
           });
         });
       }
@@ -369,6 +403,7 @@ export class AstBuilder {
       let value = this.expr(pair.value);
 
       return span => ({
+        type: 'HashPair',
         span,
         key: pair.key,
         value,
@@ -408,21 +443,39 @@ export function ast(...statements: Statement[]): BuilderAst {
 
 export interface Program {
   type: 'Program';
-  body: StatementPart[];
-  blockParams: string[];
+  parts: ToStatementPart[];
 }
 
-export function block({
-  statements,
-  as,
-}: {
-  statements: ToStatementPart[];
-  as?: string[];
-}): Program {
+export interface Inverse {
+  type: 'Else';
+  mustache: MustacheStatement;
+  parts: ToStatementPart[];
+}
+
+export interface As {
+  type: 'As';
+  parts: string[];
+}
+
+export function as(parts: string[]) {
+  return {
+    type: 'As',
+    parts,
+  };
+}
+
+export function block(...parts: ToStatementPart[]): Program {
   return {
     type: 'Program',
-    body: statements.map(ToStatementPart),
-    blockParams: as || [],
+    parts,
+  };
+}
+
+export function inverse(mustacheParts: ToMustachePart[], ...parts: ToStatementPart[]): Inverse {
+  return {
+    type: 'Else',
+    mustache: mustache(...mustacheParts),
+    parts,
   };
 }
 
@@ -451,8 +504,8 @@ export interface MustacheStatement {
 
 export type BuilderMustache = MustacheStatement;
 
-export type MustacheContent = Expression | Hash;
-export type ToMustachePart = MustacheContent | string | boolean | number | null | undefined;
+export type MustacheContent = Expression | Hash | As;
+export type ToMustachePart = MustacheContent | As | string | boolean | number | null | undefined;
 export type MustacheContents = MustacheContent[];
 
 export type ToHashPart = Expression | string | boolean | number | null | undefined;
@@ -536,37 +589,31 @@ export interface MustacheBody {
   hash: Hash | null;
 }
 
-export interface CommonBlock extends MustacheBody {
+export interface CommonBlock {
   call: PathExpression;
-  params: Expression[];
-  hash: Hash | null;
-  program: Program;
-  inverse: Program | null;
-  openStrip?: StripFlags;
-  inverseStrip?: StripFlags;
-  closeStrip?: StripFlags;
+  parts: ToProgramPart[];
 }
 
-export interface BlockStatement extends CommonBlock {
+export interface BlockStatement {
   type: 'BlockStatement';
+  mustache: MustacheStatement;
+  programs: ToProgramPart[];
 }
+
+type ToProgramPart = Program | Inverse | Whitespace | SkippedWhitespace;
 
 export function blockCall(
-  rawPath: string,
-  {
-    params,
-    hash,
-    program,
-    inverse,
-  }: { params?: ToHashPart[]; hash?: Hash; program: Program; inverse?: Program }
+  mustacheParts: ToMustachePart[],
+  ...programs: ToProgramPart[]
 ): BlockStatement {
   return {
     type: 'BlockStatement',
-    call: path(rawPath),
-    params: params ? params.map(ToHashPart) : [],
-    hash: hash || null,
-    program,
-    inverse: inverse || null,
+    mustache: mustache(...mustacheParts),
+    programs,
+    // params: params ? params.map(ToHashPart) : [],
+    // hash: hash || null,
+    // program,
+    // inverse: inverse || null,
   };
 }
 
@@ -610,7 +657,7 @@ export type Expression = SubExpression | PathExpression | Literal | Whitespace;
 
 export interface SubExpression {
   type: 'SubExpression';
-  contents: MustacheContent[];
+  contents: MustacheContents;
 }
 
 export function sexpr(...contents: ToMustachePart[]): SubExpression {
@@ -624,26 +671,6 @@ export interface PathExpression {
   type: 'PathExpression';
   head: LocalReference | ArgReference | This;
   tail: string[] | null;
-}
-
-function pathString(expr: PathExpression) {
-  let out = ``;
-
-  switch (expr.head.type) {
-    case 'ArgReference':
-      out += `@${expr.head.name}`;
-      break;
-    case 'LocalReference':
-      out += expr.head.name;
-      break;
-    case 'This':
-      out += 'this';
-      break;
-  }
-
-  out += expr.tail ? expr.tail.join('.') : '';
-
-  return out;
 }
 
 export function path(path: string): PathExpression {

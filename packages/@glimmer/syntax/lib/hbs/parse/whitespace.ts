@@ -1,6 +1,7 @@
 import { Syntax, node, HandlebarsParser, Thunk } from './core';
 import { TokenKind } from '../lex';
 import { Option } from '@glimmer/interfaces';
+import * as hbs from '../../types/handlebars-ast';
 
 export const TRAILING_WS: Syntax<void, true> = {
   description: 'trailing whitespace',
@@ -38,17 +39,33 @@ export const TRAILING_WS: Syntax<void, true> = {
   },
 };
 
-export class OptionalLeadingWhitespace<T, U extends NonNullable<unknown>> implements Syntax<T, U> {
+const enum LeadingWhitespaceStart {
+  NoWhitespace,
+  Whitespace,
+}
+
+export type LeadingWhitespaceKind<T> =
+  | {
+      type: LeadingWhitespaceStart.NoWhitespace;
+      start: T;
+    }
+  | {
+      type: LeadingWhitespaceStart.Whitespace;
+      start: T;
+    };
+
+export class OptionalLeadingWhitespace<T extends { span: hbs.Span }, U extends NonNullable<unknown>>
+  implements Syntax<{ outer: hbs.Span; inner: T }, LeadingWhitespaceKind<U>> {
   constructor(private inner: Syntax<T, U>) {}
 
   get description(): string {
     return `${this.inner.description} with leading whitespace`;
   }
 
-  test(parser: HandlebarsParser): Option<U> {
+  test(parser: HandlebarsParser): Option<LeadingWhitespaceKind<U>> {
     let inner = this.inner.test(parser);
     if (inner !== null) {
-      return inner;
+      return { type: LeadingWhitespaceStart.NoWhitespace, start: inner };
     }
 
     if (!parser.isStartLine()) return null;
@@ -62,22 +79,40 @@ export class OptionalLeadingWhitespace<T, U extends NonNullable<unknown>> implem
     let checkpoint = parser.checkpoint();
     checkpoint.shift();
 
-    return this.inner.test(checkpoint);
+    inner = this.inner.test(checkpoint);
+
+    if (inner === null) {
+      return null;
+    } else {
+      return {
+        type: LeadingWhitespaceStart.Whitespace,
+        start: inner,
+      };
+    }
   }
 
-  parse(parser: HandlebarsParser): Thunk<T> {
-    let inner = this.inner.test(parser);
+  parse(
+    parser: HandlebarsParser,
+    start: LeadingWhitespaceKind<U>
+  ): Thunk<{ outer: hbs.Span; inner: T }> {
+    switch (start.type) {
+      case LeadingWhitespaceStart.NoWhitespace: {
+        let inner = parser.parse(this.inner, start.start);
+        return span => ({ outer: span, inner });
+      }
 
-    if (inner !== null) {
-      return this.inner.parse(parser, inner);
-    } else {
-      parser.skipToken();
-      let inner = this.inner.test(parser);
-      return this.inner.parse(parser, inner!);
+      case LeadingWhitespaceStart.Whitespace: {
+        let startPos = parser.position();
+        parser.skipToken();
+        let inner = parser.parse(this.inner, start.start);
+        return span => ({ outer: { start: startPos, end: span.end }, inner });
+      }
     }
   }
 }
 
-export function optionalLeadingWS<T, U>(syntax: Syntax<T, U>): Syntax<T, U> {
+export function optionalLeadingWS<T extends { span: hbs.Span }, U>(
+  syntax: Syntax<T, U>
+): Syntax<{ outer: hbs.Span; inner: T }, LeadingWhitespaceKind<U>> {
   return new OptionalLeadingWhitespace(syntax);
 }

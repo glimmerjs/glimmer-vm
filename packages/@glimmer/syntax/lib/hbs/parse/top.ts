@@ -1,9 +1,10 @@
 import { FallibleSyntax, Syntax, node, Thunk, HandlebarsParser } from './core';
 import * as hbs from '../../types/handlebars-ast';
 import { TokenKind } from '../lex';
-import { TRAILING_WS, optionalLeadingWS } from './whitespace';
+import { TRAILING_WS, optionalLeadingWS, LeadingWhitespaceKind } from './whitespace';
 import { Option } from '@glimmer/interfaces';
 import { MUSTACHE, MustacheKind } from './mustache';
+import { BLOCK } from './block';
 
 export const ROOT: Syntax<hbs.AnyProgram, true> = {
   description: 'root',
@@ -19,11 +20,7 @@ export const ROOT: Syntax<hbs.AnyProgram, true> = {
       if (parser.isEOF()) {
         break;
       } else {
-        let next = parser.expect(TOP);
-
-        if (next !== undefined) {
-          statements.push(next);
-        }
+        statements.push(parser.expect(TOP));
       }
     }
 
@@ -40,21 +37,29 @@ export const enum TopSyntaxKind {
   Content,
   Comment,
   Mustache,
+  Block,
 }
 
-export type TopSyntax =
+export type TopSyntaxStart =
   | { kind: TopSyntaxKind.Newline }
   | { kind: TopSyntaxKind.Content }
-  | { kind: TopSyntaxKind.Comment }
-  | { kind: TopSyntaxKind.Mustache; state: MustacheKind };
+  | { kind: TopSyntaxKind.Comment; state: LeadingWhitespaceKind<true> }
+  | { kind: TopSyntaxKind.Mustache; state: MustacheKind }
+  | { kind: TopSyntaxKind.Block; state: LeadingWhitespaceKind<true> };
 
-export const TOP: FallibleSyntax<hbs.Statement, TopSyntax> = {
+export const TOP: FallibleSyntax<hbs.Statement, TopSyntaxStart> = {
   description: 'top level',
   fallible: true,
 
   test(parser) {
-    if (parser.test(COMMENT)) {
-      return { kind: TopSyntaxKind.Comment };
+    let blockStart = parser.test(BLOCK);
+    if (blockStart !== null) {
+      return { kind: TopSyntaxKind.Block, state: blockStart };
+    }
+
+    let commentStart = parser.test(COMMENT);
+    if (commentStart !== null) {
+      return { kind: TopSyntaxKind.Comment, state: commentStart };
     }
 
     let state = parser.test(MUSTACHE);
@@ -76,8 +81,11 @@ export const TOP: FallibleSyntax<hbs.Statement, TopSyntax> = {
 
   parse(parser, top) {
     switch (top.kind) {
+      case TopSyntaxKind.Block:
+        return node(parser.parse(BLOCK, top.state).inner);
+
       case TopSyntaxKind.Comment:
-        return node(parser.parse(COMMENT, true));
+        return node(parser.parse(COMMENT, top.state).inner);
 
       case TopSyntaxKind.Content:
         return node(parser.parse(CONTENT, true));
@@ -156,10 +164,7 @@ export const BARE_COMMENT: Syntax<hbs.CommentStatement, true> = {
     let string = parser.slice(next.span);
     let value = next.kind === TokenKind.InlineComment ? string.slice(3, -2) : string.slice(5, -4);
 
-    let trailingNext = parser.test(TRAILING_WS);
-    if (trailingNext !== null) {
-      parser.skip(TRAILING_WS, trailingNext);
-    }
+    parser.maybe(TRAILING_WS, { skip: true });
 
     return span => ({
       span,

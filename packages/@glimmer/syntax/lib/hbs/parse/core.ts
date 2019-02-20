@@ -201,6 +201,23 @@ export class HandlebarsParser {
     return syntax.test(this);
   }
 
+  maybe<T, U extends NonNullable<unknown>>(
+    syntax: Syntax<T, U>,
+    options?: { skip: true }
+  ): Option<T> {
+    let start = this.test(syntax);
+
+    if (start !== null) {
+      if (options && options.skip) {
+        return this.skip(syntax, start);
+      } else {
+        return this.parse(syntax, start);
+      }
+    }
+
+    return null;
+  }
+
   parse<T, U extends NonNullable<unknown>>(syntax: Syntax<T, U>, value: U): T {
     this.enter(syntax);
 
@@ -237,10 +254,14 @@ export class HandlebarsParser {
     return this.currentFrame.addThunk({ span: { start: this.pos, end: this.pos }, value });
   }
 
-  expect<T>(syntax: FallibleSyntax<T, unknown>): T {
+  expect<T>(syntax: FallibleSyntax<T, unknown>, options?: { skip: true }): T {
     let result = this.test(syntax);
     if (result !== null) {
-      return this.parse(syntax, result);
+      if (options && options.skip) {
+        return this.skip(syntax, result);
+      } else {
+        return this.parse(syntax, result);
+      }
     } else {
       return this.orElse(syntax);
     }

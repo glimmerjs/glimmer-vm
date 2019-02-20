@@ -54,14 +54,15 @@ export abstract class HandlebarsNodeVisitors extends Parser {
       node = b.blockItself(program.span, body, program.blockParams, this.loc(program.span));
     }
 
-    let i,
-      l = program.body.length;
+    let i;
 
     this.elementStack.push(node);
 
-    if (l === 0) {
+    if (program.body === null) {
       return this.elementStack.pop() as AST.Block | AST.Template;
     }
+
+    let l = program.body.length;
 
     for (i = 0; i < l; i++) {
       this.acceptNode(program.body[i]);

@@ -11,8 +11,11 @@ export class Printer {
     let out = [];
 
     console.log(ast);
-    for (let item of ast.body) {
-      out.push(this.visit(item));
+
+    if (ast.body) {
+      for (let item of ast.body) {
+        out.push(this.visit(item));
+      }
     }
 
     return out;
@@ -29,7 +32,7 @@ export class Printer {
       case 'BlockStatement': {
         let sexp: JsonValue[] = ['block'];
         let blocks: JsonValue = {};
-        sexp.push(...this.mustacheBody(item, item.program.blockParams));
+        sexp.push(...this.mustacheBody(item.body, item.program.blockParams));
         blocks.default = this.top(item.program);
 
         if (item.inverse) {
@@ -42,7 +45,7 @@ export class Printer {
       }
 
       case 'MustacheStatement': {
-        return this.mustacheBody(item);
+        return this.mustacheBody(item.body);
       }
 
       case 'MustacheContent':
@@ -56,7 +59,7 @@ export class Printer {
     }
   }
 
-  mustacheBody(item: hbs.CallBody, blockParams?: string[]): JsonValue[] {
+  mustacheBody(item: hbs.CallBody, blockParams?: string[] | null): JsonValue[] {
     let sexp = [];
 
     sexp.push(this.expr(item.call));
@@ -112,7 +115,7 @@ export class Printer {
   }
 
   subexpr(item: hbs.SubExpression): JsonValue[] {
-    return this.mustacheBody(item);
+    return this.mustacheBody(item.body);
   }
 
   head(item: hbs.Head): JsonValue {

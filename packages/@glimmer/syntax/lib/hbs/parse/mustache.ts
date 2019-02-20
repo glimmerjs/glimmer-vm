@@ -1,11 +1,11 @@
 import * as hbs from '../../types/handlebars-ast';
-import { Syntax, HandlebarsParser, Thunk, FallibleSyntax } from './core';
+import { Syntax, HandlebarsParser, Thunk, FallibleSyntax, node } from './core';
 import { Option } from '@glimmer/interfaces';
 import { TokenKind } from '../lex';
 import { NUMBER, STRING } from './literals';
 import { TOKENS } from './tokens';
 import { PATH, PathKind } from './path';
-import { PARAMS } from './expressions';
+import { PARAMS, HASH } from './expressions';
 
 export const enum MustacheKind {
   Double,
@@ -42,7 +42,7 @@ export class MustacheSyntax
 
         if (next !== null) {
           let result = parser.parse(body, next);
-          return span => buildMustache(result.call, result.params, result.hash, false, span);
+          return span => buildMustache(result, false, span);
         } else {
           throw new Error('unimplemented, parse error recovery after {{');
         }
@@ -56,7 +56,7 @@ export class MustacheSyntax
 
         if (next !== null) {
           let result = parser.parse(body, next);
-          return span => buildMustache(result.call, result.params, result.hash, true, span);
+          return span => buildMustache(result, true, span);
         } else {
           throw new Error('unimplemented, parse error recovery after {{');
         }
@@ -75,7 +75,7 @@ const enum CallBodyStartKind {
   NumberLiteral,
 }
 
-type CallBodyStart =
+export type CallBodyStart =
   | {
       type: CallBodyStartKind.Sexp;
     }
@@ -91,8 +91,10 @@ type CallBodyStart =
       type: CallBodyStartKind.NumberLiteral;
     };
 
-class CallBody implements Syntax<hbs.CallBody, CallBodyStart> {
-  constructor(private close: FallibleSyntax<unknown, unknown>) {}
+export class CallBody implements FallibleSyntax<hbs.CallBody, CallBodyStart> {
+  readonly fallible = true;
+
+  constructor(private close: FallibleSyntax<{ span: hbs.Span }, unknown>) {}
 
   get description() {
     return `call body (closed by ${this.close}})`;
@@ -139,65 +141,37 @@ class CallBody implements Syntax<hbs.CallBody, CallBodyStart> {
         let number = parser.parse(NUMBER, true);
         parser.expect(this.close);
 
-        return () => ({
-          call: number,
-          params: null,
-          hash: null,
-        });
+        return span => buildCallBody({ start: span.start, end: number.span.end }, number);
       }
 
       case CallBodyStartKind.StringLiteral: {
         let string = parser.parse(STRING, true);
         parser.expect(this.close);
 
-        return () => ({
-          call: string,
-          params: null,
-          hash: null,
-        });
+        return span => buildCallBody({ start: span.start, end: string.span.end }, string);
       }
 
       case CallBodyStartKind.Path: {
         let path = parser.parse(PATH, start.kind);
 
-        let close = parser.test(this.close);
-
-        if (close !== null) {
-          parser.parse(this.close, close);
-
-          return () => ({
-            call: path,
-            params: null,
-            hash: null,
-          });
+        if (parser.maybe(this.close) !== null) {
+          return node(buildCallBody(path.span, path));
         }
 
-        let paramsTest = parser.test(PARAMS);
+        let params = parser.maybe(PARAMS);
+        let hash = parser.maybe(HASH);
+        let end = parser.position();
 
-        if (paramsTest !== null) {
-          let params = parser.parse(PARAMS, paramsTest);
-          parser.expect(this.close);
+        parser.expect(this.close);
 
-          return () => ({
-            call: path,
-            params,
-            hash: null,
-          });
-        }
-
-        throw new Error('unimplemented, mustache hash arguments');
-        // Not implemented {{head ... ...hash}}
+        return span => buildCallBody({ start: span.start, end }, path, params, hash);
       }
 
       case CallBodyStartKind.ExprMacro: {
         let expr = parser.expandExpressionMacro();
         parser.expect(this.close);
 
-        return () => ({
-          call: expr,
-          params: null,
-          hash: null,
-        });
+        return span => buildCallBody(span, expr);
       }
 
       case CallBodyStartKind.Sexp: {
@@ -205,29 +179,49 @@ class CallBody implements Syntax<hbs.CallBody, CallBodyStart> {
       }
     }
   }
+
+  orElse(): Thunk<hbs.CallBody> {
+    return span =>
+      buildCallBody(span, {
+        type: 'UndefinedLiteral',
+        span,
+        value: undefined,
+      });
+  }
+}
+
+function buildCallBody(
+  span: hbs.Span,
+  call: hbs.Expression,
+  params: Option<hbs.Expression[]> = null,
+  hash: Option<hbs.Hash> = null
+): hbs.CallBody {
+  return {
+    type: 'CallBody',
+    span,
+    call,
+    params: params || null,
+    hash: hash || null,
+  };
 }
 
 function buildMustache(
-  call: hbs.Expression,
-  params: hbs.Expression[] | null,
-  hash: hbs.Hash | null,
+  mustache: hbs.CallBody,
   trusted: boolean,
   span: hbs.Span
 ): hbs.MustacheContent | hbs.MustacheStatement {
-  if (params === null && hash === null) {
+  if (mustache.params === null && mustache.hash === null) {
     return {
       type: 'MustacheContent',
       span,
-      value: call,
+      value: mustache.call,
       trusted,
     };
   } else {
     return {
       type: 'MustacheStatement',
       span,
-      call,
-      params,
-      hash,
+      body: mustache,
       trusted,
     };
   }

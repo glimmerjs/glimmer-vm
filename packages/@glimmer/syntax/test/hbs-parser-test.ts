@@ -1,13 +1,11 @@
+import { JsonArray } from '@glimmer/interfaces';
 import {
+  AstBuilder,
+  builder as b,
+  BuilderAst,
   hbsParse as parse,
   hbsPrint as print,
-  hbs,
-  locForSpan,
-  AstBuilder,
-  BuilderAst,
-  builder as b,
 } from '@glimmer/syntax';
-import { JsonValue, JsonArray } from '@glimmer/interfaces';
 import { BuilderMustache } from '../lib/hbs/builder';
 
 const MODULE_STACK: string[] = [];
@@ -34,13 +32,13 @@ function currentModule() {
   QUnit.module(last);
 }
 
-function equals<T>(actual: T, expected: T) {
-  QUnit.assert.equal(actual, expected);
-}
+// function equals<T>(actual: T, expected: T) {
+//   QUnit.assert.equal(actual, expected);
+// }
 
-function equiv<T>(actual: T, expected: T) {
-  QUnit.assert.deepEqual(actual, expected);
-}
+// function equiv<T>(actual: T, expected: T) {
+//   QUnit.assert.deepEqual(actual, expected);
+// }
 
 function equivAST(
   template: string,
@@ -67,13 +65,13 @@ function it(name: string, callback: () => void) {
   QUnit.test(name, callback);
 }
 
-function todo(name: string, callback: () => void) {
-  QUnit.todo(name, callback);
-}
+// function todo(name: string, callback: () => void) {
+//   QUnit.todo(name, callback);
+// }
 
-function shouldThrow(callback: () => void, error: typeof Error, pattern?: RegExp) {
-  QUnit.assert.raises(callback, error, pattern);
-}
+// function shouldThrow(callback: () => void, error: typeof Error, pattern?: RegExp) {
+//   QUnit.assert.raises(callback, error, pattern);
+// }
 
 const VALUES = new Map<string | boolean | null | undefined, string>([
   ['baz', 'baz'],
@@ -102,12 +100,6 @@ const VALUES = new Map<string | boolean | null | undefined, string>([
  */
 
 describe('@glimmer/syntax - parser', function() {
-  function astFor(template: string | hbs.AnyProgram): JsonValue {
-    let ast = parse(template);
-    QUnit.assert.ok(ast.errors.length === 0, 'there were no parse errors');
-    return print(ast.result);
-  }
-
   it('parses any empty program', () => {
     equivAST('', { sexp: [], ast: b.ast() });
   });
@@ -327,63 +319,101 @@ describe('@glimmer/syntax - parser', function() {
     equivAST('{{foo @bar}}', { sexp: [['foo', '@bar']], ast: b.mustache('foo', '@bar') });
   });
 
-  // it('parses mustaches with hash arguments', function() {
-  //   for (let key of VALUES.keys()) {
-  //     equivAST(`{{foo bar=${key}}}`, {
-  //       sexp: [['foo', { bar: VALUES.get(key)! }]],
-  //       ast: b.mustache('foo', b.hash({ bar: key })),
-  //     });
-  //   }
+  it('parses mustaches with hash arguments', function() {
+    for (let key of VALUES.keys()) {
+      equivAST(`{{foo bar=${key}}}`, {
+        sexp: [['foo', { bar: VALUES.get(key)! }]],
+        ast: b.mustache('foo', b.hash({ bar: key })),
+      });
+    }
 
-  //   for (let key of VALUES.keys()) {
-  //     equivAST(`{{foo bar=${key} baz=${key}}}`, {
-  //       sexp: [['foo', { bar: VALUES.get(key)!, baz: VALUES.get(key)! }]],
-  //     });
-  //   }
+    for (let key of VALUES.keys()) {
+      equivAST(`{{foo bar=${key} baz=${key}}}`, {
+        sexp: [['foo', { bar: VALUES.get(key)!, baz: VALUES.get(key)! }]],
+      });
+    }
 
-  //   for (let key of VALUES.keys()) {
-  //     equivAST(`{{foo bar bar=${key} baz=${key}}}`, {
-  //       sexp: [['foo', 'bar', { bar: VALUES.get(key)!, baz: VALUES.get(key)! }]],
-  //     });
-  //   }
-  // });
+    for (let key of VALUES.keys()) {
+      equivAST(`{{foo bar bar=${key} baz=${key}}}`, {
+        sexp: [['foo', 'bar', { bar: VALUES.get(key)!, baz: VALUES.get(key)! }]],
+      });
+    }
+  });
 
-  // it('parses contents followed by a mustache', function() {
-  //   equivAST('foo bar {{baz}}', {
-  //     sexp: ['s:foo bar ', 'baz'],
-  //     ast: b.ast(b.content('foo bar '), b.mustache('baz')),
-  //   });
-  // });
+  it('parses contents followed by a mustache', function() {
+    equivAST('foo bar {{baz}}', {
+      sexp: ['s:foo bar ', 'baz'],
+      ast: b.ast(b.content('foo bar '), b.mustache('baz')),
+    });
+  });
 
-  // it('parses a comment', function() {
-  //   equivAST('{{! this is a comment }}', {
-  //     sexp: [['comment', ' this is a comment ']],
-  //     ast: b.ast(b.comment(' this is a comment ')),
-  //   });
-  // });
+  it('parses a comment', function() {
+    equivAST('{{! this is a comment }}', {
+      sexp: [['comment', ' this is a comment ']],
+      ast: b.ast(b.comment(' this is a comment ')),
+    });
+  });
 
-  // it('parses a multi-line comment', function() {
-  //   equivAST('{{!\nthis is a multi-line comment\n}}', {
-  //     sexp: [['comment', '\nthis is a multi-line comment\n']],
-  //     ast: b.ast(b.comment('\nthis is a multi-line comment\n')),
-  //   });
-  // });
+  it('parses a multi-line comment', function() {
+    equivAST('{{!\nthis is a multi-line comment\n}}', {
+      sexp: [['comment', '\nthis is a multi-line comment\n']],
+      ast: b.ast(b.comment('\nthis is a multi-line comment\n')),
+    });
+  });
 
-  // it('parses a block comment', function() {
-  //   equivAST('{{!-- this is a comment --}}', {
-  //     sexp: [['comment', ' this is a comment ']],
-  //     ast: b.ast(b.comment('-- this is a comment --')),
-  //   });
-  // });
+  it('parses a block comment', function() {
+    equivAST('{{!-- this is a comment --}}', {
+      sexp: [['comment', ' this is a comment ']],
+      ast: b.ast(b.comment('-- this is a comment --')),
+    });
+  });
+
+  it('parses empty blocks', function() {
+    equivAST('{{#foo}}{{/foo}}', {
+      sexp: [['block', 'foo', { default: [] }]],
+      ast: b.ast(b.blockCall(['foo'], b.block())),
+    });
+
+    equivAST('{{#foo}}\n{{/foo}}\n', {
+      sexp: [['block', 'foo', { default: [] }]],
+      ast: b.ast(b.blockCall(['foo'], b.skip(), b.block()), b.skip()),
+    });
+
+    equivAST('{{#foo}}  \n  {{/foo}}\n', {
+      sexp: [['block', 'foo', { default: [] }]],
+      ast: b.ast(b.blockCall(['foo'], b.skip('  \n'), b.block(), b.skip('  ')), b.skip()),
+    });
+  });
+
+  it('parses blocks', function() {
+    equivAST('{{#foo}}hello {{world}} goodbye{{/foo}}', {
+      sexp: [['block', 'foo', { default: ['s:hello ', 'world', 's: goodbye'] }]],
+      ast: b.ast(
+        b.blockCall(
+          ['foo'],
+          b.block(b.content('hello '), b.mustache('world'), b.content(' goodbye'))
+        )
+      ),
+    });
+
+    equivAST('{{#foo}}  \nhello\n{{world}}\ngoodbye\n  {{/foo}}', {
+      sexp: [['block', 'foo', { default: ['s:hello\n', 'world', 's:\ngoodbye\n'] }]],
+      ast: b.ast(
+        b.blockCall(
+          ['foo'],
+          b.skip('  \n'),
+          b.block(b.content('hello\n'), b.mustache('world'), b.content('\ngoodbye\n')),
+          b.skip('  ')
+        )
+      ),
+    });
+  });
 
   // it('parses an inverse (else-style) section', function() {
   //   equivAST('{{#foo}} bar {{else}} baz {{/foo}}', {
   //     sexp: [['block', 'foo', { default: ['s: bar '], else: ['s: baz '] }]],
   //     ast: b.ast(
-  //       b.blockCall('foo', {
-  //         program: b.block({ statements: [b.content(' bar ')] }),
-  //         inverse: b.block({ statements: [b.content(' baz ')] }),
-  //       })
+  //       b.blockCall(['foo'], b.block(b.content(' bar ')), b.inverse([], b.content(' baz ')))
   //     ),
   //   });
   // });
@@ -444,16 +474,6 @@ describe('@glimmer/syntax - parser', function() {
   //         },
   //       ],
   //     ],
-  //   });
-  // });
-
-  // it('parses empty blocks', function() {
-  //   equivAST('{{#foo}}{{/foo}}', { sexp: [['block', 'foo', { default: [] }]] });
-  // });
-
-  // it('parses blocks', function() {
-  //   equivAST('{{#foo}}hello {{world}} goodbye{{/foo}}', {
-  //     sexp: [['block', 'foo', { default: ['s:hello ', 'world', 's: goodbye'] }]],
   //   });
   // });
 

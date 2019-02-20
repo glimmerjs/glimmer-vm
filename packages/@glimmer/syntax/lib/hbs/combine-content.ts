@@ -4,6 +4,11 @@ import { unreachable, assign } from '@glimmer/util';
 export function combineContent<T extends hbs.AnyProgram>(program: T): T {
   let statements: hbs.Statement[] = [];
   let body = program.body;
+
+  if (body === null) {
+    return program;
+  }
+
   for (let i = 0; i < body.length; i++) {
     let item = body[i];
 

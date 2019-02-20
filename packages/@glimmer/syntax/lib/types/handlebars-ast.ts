@@ -55,14 +55,14 @@ export interface Position {
 export interface AnyProgram {
   span: Span | null;
   type: 'Program';
-  body: Statement[];
+  body: Statement[] | null;
 }
 
 export interface Program {
   span: Span | null;
   type: 'Program';
-  body: Statement[];
-  blockParams: string[];
+  body: Statement[] | null;
+  blockParams: string[] | null;
 }
 
 export type Statement =
@@ -73,18 +73,15 @@ export type Statement =
   | Newline
   | CommentStatement;
 
-export interface CommonMustache extends CommonNode {
-  call: Expression;
-  params: Expression[] | null;
-  hash: Hash | null;
+export interface MustacheStatement extends CommonNode {
+  type: 'MustacheStatement';
+  body: CallBody;
   trusted: boolean;
 }
 
-export interface MustacheStatement extends CommonMustache, CallBody {
-  type: 'MustacheStatement';
-}
-
 export interface CallBody {
+  type: 'CallBody';
+  span: Span;
   call: Expression;
   params: Expression[] | null;
   hash: Hash | null;
@@ -96,11 +93,8 @@ export interface MustacheContent extends CommonNode {
   trusted: boolean;
 }
 
-export interface CommonBlock extends CallBody, CommonNode {
-  chained: boolean;
-  call: PathExpression;
-  params: Expression[];
-  hash: Hash | null;
+export interface CommonBlock extends CommonNode {
+  body: CallBody;
   program: Program;
   inverse: Program | null;
 }
@@ -125,11 +119,9 @@ export interface CommentStatement extends CommonNode {
 
 export type Expression = SubExpression | PathExpression | Literal;
 
-export interface SubExpression extends CommonNode, CallBody {
+export interface SubExpression extends CommonNode {
   type: 'SubExpression';
-  call: Expression;
-  params: Expression[] | null;
-  hash: Hash | null;
+  body: CallBody;
 }
 
 export interface PathExpression extends CommonNode {

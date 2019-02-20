@@ -1,7 +1,7 @@
 import { Option } from '@glimmer/interfaces';
 import { TokenKind } from '../lex';
 import { LexItem } from '../lexing';
-import { FallibleSyntax, HandlebarsParser, Thunk } from './core';
+import { FallibleSyntax, HandlebarsParser, Thunk, node } from './core';
 
 class TokenSyntax implements FallibleSyntax<LexItem<TokenKind>, true> {
   readonly fallible = true;
@@ -17,8 +17,7 @@ class TokenSyntax implements FallibleSyntax<LexItem<TokenKind>, true> {
   }
 
   parse(parser: HandlebarsParser): Thunk<LexItem<TokenKind>> {
-    let token = parser.shift();
-    return () => token;
+    return node(parser.shift());
   }
 
   orElse(): Thunk<LexItem<TokenKind>> {
@@ -29,5 +28,8 @@ class TokenSyntax implements FallibleSyntax<LexItem<TokenKind>, true> {
 export const TOKENS = {
   '}}': new TokenSyntax(TokenKind.Close),
   '}}}': new TokenSyntax(TokenKind.CloseTrusted),
+  '{{/': new TokenSyntax(TokenKind.OpenEndBlock),
   '.': new TokenSyntax(TokenKind.Dot),
+  '=': new TokenSyntax(TokenKind.Equals),
+  ID: new TokenSyntax(TokenKind.Identifier),
 };
