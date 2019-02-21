@@ -1,7 +1,6 @@
 import * as hbs from '../../types/handlebars-ast';
-import { Syntax, HandlebarsParser, Thunk, FallibleSyntax, node } from './core';
-import { Option } from '@glimmer/interfaces';
 import { TokenKind } from '../lex';
+import { FallibleSyntax, HandlebarsParser, Syntax, UNMATCHED } from './core';
 import { TOKENS } from './tokens';
 
 export const enum PathKind {
@@ -10,101 +9,97 @@ export const enum PathKind {
   MacroHead,
 }
 
-export class HeadSyntax implements Syntax<hbs.Head, PathKind> {
+export class HeadSyntax implements Syntax<hbs.Head> {
   readonly description = 'path head';
 
-  test(parser: HandlebarsParser): Option<PathKind> {
+  parse(parser: HandlebarsParser): hbs.Head | UNMATCHED {
     if (parser.isMacro('head')) {
-      return PathKind.MacroHead;
+      return parser.expandHeadMacro();
     }
 
-    switch (parser.peek().kind) {
-      case TokenKind.Identifier:
-        return PathKind.LocalReference;
-      case TokenKind.AtName:
-        return PathKind.ArgReference;
-      default:
-        return null;
+    if (parser.is(TokenKind.Identifier)) {
+      let head = parser.shift();
+      return { type: 'LocalReference', span: head.span, name: parser.slice(head.span) };
     }
-  }
 
-  parse(parser: HandlebarsParser, kind: PathKind): Thunk<hbs.Head> {
-    switch (kind) {
-      case PathKind.LocalReference: {
-        let head = parser.shift();
-        return span => ({ type: 'LocalReference', span, name: parser.slice(head.span) });
-      }
-
-      case PathKind.ArgReference: {
-        let head = parser.shift();
-        return span => ({ type: 'ArgReference', span, name: parser.slice(head.span).slice(1) });
-      }
-
-      case PathKind.MacroHead: {
-        return node(parser.expandHeadMacro());
-      }
+    if (parser.is(TokenKind.AtName)) {
+      let head = parser.shift();
+      return {
+        type: 'ArgReference',
+        span: head.span,
+        name: parser.slice(head.span).slice(1),
+      };
     }
+
+    return UNMATCHED;
   }
 }
 
 export const HEAD = new HeadSyntax();
 
-export class PathSyntax implements Syntax<hbs.PathExpression, PathKind> {
+export class PathSyntax implements Syntax<hbs.PathExpression> {
   readonly description = 'path';
 
-  test(parser: HandlebarsParser): Option<PathKind> {
-    return parser.test(HEAD);
-  }
+  parse(parser: HandlebarsParser): hbs.PathExpression | UNMATCHED {
+    const { value, span } = parser.spanned(() => {
+      const head = parser.parse(HEAD);
 
-  parse(parser: HandlebarsParser, kind: PathKind): Thunk<hbs.PathExpression> {
-    let head = parser.parse(HEAD, kind);
-
-    let tail: hbs.PathSegment[] = [];
-
-    while (true) {
-      if (parser.test(TOKENS['.'])) {
-        parser.shift();
-        tail.push(parser.expect(SEGMENT));
-      } else {
-        break;
+      if (head === UNMATCHED) {
+        return UNMATCHED;
       }
+
+      let tail: hbs.PathSegment[] = [];
+
+      while (true) {
+        if (parser.parse(TOKENS['.']) !== UNMATCHED) {
+          tail.push(parser.expect(SEGMENT));
+        } else {
+          break;
+        }
+      }
+
+      return { head, tail: tail.length ? tail : null };
+    });
+
+    if (value === UNMATCHED) {
+      return UNMATCHED;
     }
 
-    return span => ({
+    return {
       type: 'PathExpression',
-      span,
-      head,
-      tail: tail.length ? tail : null,
-    });
+      span: { start: value.head.span.start, end: span.end },
+      head: value.head,
+      tail: value.tail,
+    };
   }
 }
 
 export const PATH = new PathSyntax();
 
-export class PathSegmentSyntax implements FallibleSyntax<hbs.PathSegment, true> {
+export class PathSegmentSyntax implements FallibleSyntax<hbs.PathSegment> {
   readonly description = 'path segment';
   readonly fallible = true;
 
-  test(parser: HandlebarsParser): Option<true> {
-    return parser.is(TokenKind.Identifier) ? true : null;
+  parse(parser: HandlebarsParser): hbs.PathSegment | UNMATCHED {
+    const id = parser.parse(TOKENS.ID);
+
+    if (id === UNMATCHED) {
+      return UNMATCHED;
+    }
+
+    return {
+      type: 'PathSegment',
+      span: id.span,
+      name: parser.slice(id.span),
+    };
   }
 
-  parse(parser: HandlebarsParser): Thunk<hbs.PathSegment> {
-    parser.shift();
-
-    return span => ({
+  orElse(parser: HandlebarsParser): hbs.PathSegment {
+    return {
       type: 'PathSegment',
-      span,
-      name: parser.slice(span),
-    });
-  }
-
-  orElse(): Thunk<hbs.PathSegment> {
-    return span => ({
-      type: 'PathSegment',
-      span,
+      span: { start: parser.position(), end: parser.position() },
       name: '<error>',
-    });
+    };
   }
 }
 

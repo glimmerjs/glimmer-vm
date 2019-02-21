@@ -2,10 +2,10 @@ import * as hbs from '../../types/handlebars-ast';
 import { TokenKind } from '../lex';
 import { LexItem, Tokens, Debug } from '../lexing';
 import { Macro } from '../macros';
-import { Dict, Option } from '@glimmer/interfaces';
+import { Dict } from '@glimmer/interfaces';
 import { Frame } from './frame';
 import { MACROS_V1 } from './macros';
-import { expect, unwrap } from '@glimmer/util';
+import { expect } from '@glimmer/util';
 import { ROOT } from './top';
 
 export function node<T>(value: T): (span: hbs.Span) => T {
@@ -14,23 +14,31 @@ export function node<T>(value: T): (span: hbs.Span) => T {
 
 export type Thunk<T> = (span: hbs.Span) => T;
 
-export interface Syntax<T, U extends NonNullable<unknown>> {
-  readonly description: string;
-  test(parser: HandlebarsParser): Option<U>;
-  parse(parser: HandlebarsParser, state: U): Thunk<T>;
-}
+export const UNMATCHED: UNMATCHED = 'UNMATCHED [2aa17b5c-bf5e-4f6f-8ca9-09aa3af80902]';
+export type UNMATCHED = 'UNMATCHED [2aa17b5c-bf5e-4f6f-8ca9-09aa3af80902]';
 
 export interface Macros {
   expr: Dict<Macro<hbs.Expression>>;
   head: Dict<Macro<hbs.Head>>;
 }
 
-export interface FallibleSyntax<T, U extends NonNullable<unknown>> extends Syntax<T, U> {
+export interface Syntax<T> {
+  readonly description: string;
+  // If `parse` returns null, no tokens may be consumed
+  parse(parser: HandlebarsParser): T | UNMATCHED;
+}
+
+export interface InfallibleSyntax<T> {
+  readonly description: string;
+  // If `parse` returns null, no tokens may be consumed
+  parse(parser: HandlebarsParser): T;
+}
+
+export interface FallibleSyntax<T> extends Syntax<T> {
   readonly fallible: true;
   readonly description: string;
-  test(parser: HandlebarsParser): Option<U>;
-  parse(parser: HandlebarsParser, state: U): Thunk<T>;
-  orElse(parser: HandlebarsParser): Thunk<T>;
+  parse(parser: HandlebarsParser): T | UNMATCHED;
+  orElse(parser: HandlebarsParser): T;
 }
 
 export class HandlebarsParser {
@@ -197,51 +205,38 @@ export class HandlebarsParser {
     return this.tokens.peek().kind === TokenKind.EOF;
   }
 
-  test<U extends NonNullable<unknown>>(syntax: Syntax<unknown, U>): Option<U> {
-    return syntax.test(this);
-  }
+  parse<T>(syntax: InfallibleSyntax<T>, skip?: true): T;
+  parse<T>(syntax: Syntax<T>, skip?: true): T | UNMATCHED;
+  parse<T>(syntax: Syntax<T>, skip?: true): T | UNMATCHED {
+    let checkpoint = skip === true ? this.checkpoint() : this;
 
-  maybe<T, U extends NonNullable<unknown>>(
-    syntax: Syntax<T, U>,
-    options?: { skip: true }
-  ): Option<T> {
-    let start = this.test(syntax);
+    checkpoint.enter(syntax);
 
-    if (start !== null) {
-      if (options && options.skip) {
-        return this.skip(syntax, start);
-      } else {
-        return this.parse(syntax, start);
-      }
-    }
+    let next = checkpoint.parseSyntax(syntax);
 
-    return null;
-  }
+    let out = checkpoint.currentFrame.addThunk({ span: next.span, value: () => next.value });
+    checkpoint.exit(syntax);
 
-  parse<T, U extends NonNullable<unknown>>(syntax: Syntax<T, U>, value: U): T {
-    this.enter(syntax);
-
-    let out = this.currentFrame.addThunk(this.parseSyntax(syntax, value));
-
-    this.exit(syntax);
-    return out;
-  }
-
-  skip<T, U extends NonNullable<unknown>>(syntax: Syntax<T, U>, testValue: U): T {
-    let checkpoint = this.checkpoint();
-    let out = checkpoint.parse(syntax, testValue);
-    this.commit(checkpoint);
+    if (skip === true) this.commit(checkpoint);
 
     return out;
   }
 
-  private commit(checkpoint: HandlebarsParser) {
+  spanned<T>(callback: () => T): { value: T; span: hbs.Span } {
+    let start = this.pos;
+    let value = callback();
+    let end = this.pos;
+
+    return { value, span: { start, end } };
+  }
+
+  commit(checkpoint: HandlebarsParser) {
     this.pos = checkpoint.pos;
     this.beginningOfLine = checkpoint.beginningOfLine;
     this.tokens.commit(checkpoint.tokens);
   }
 
-  private orElse<T>(syntax: FallibleSyntax<T, unknown>): T {
+  private orElse<T>(syntax: FallibleSyntax<T>): T {
     this.currentFrame.mark();
     let value = syntax.orElse(this);
     this.currentFrame.unmark();
@@ -251,40 +246,44 @@ export class HandlebarsParser {
       `Expected ${syntax.description} (saw ${this.input.slice(this.pos, this.pos + 3)}...)`,
       span
     );
-    return this.currentFrame.addThunk({ span: { start: this.pos, end: this.pos }, value });
+    return this.currentFrame.addThunk({
+      span: { start: this.pos, end: this.pos },
+      value: () => value,
+    });
   }
 
-  expect<T>(syntax: FallibleSyntax<T, unknown>, options?: { skip: true }): T {
-    let result = this.test(syntax);
-    if (result !== null) {
-      if (options && options.skip) {
-        return this.skip(syntax, result);
-      } else {
-        return this.parse(syntax, result);
-      }
+  expect<T>(syntax: FallibleSyntax<T>, options?: { skip: true }): T {
+    let result = this.parse(syntax, options && options.skip);
+    if (result !== UNMATCHED) {
+      return result;
     } else {
       return this.orElse(syntax);
     }
   }
 
-  private enter(syntax: Syntax<unknown, unknown>): void {
+  test(syntax: Syntax<unknown>): boolean {
+    let checkpoint = this.checkpoint();
+    let result = syntax.parse(checkpoint);
+
+    return result !== UNMATCHED;
+  }
+
+  private enter(syntax: Syntax<unknown>): void {
     this.debugStack.push(syntax.description);
     this.trace(JSON.stringify(this.debugStack));
   }
 
-  private exit(_syntax: Syntax<unknown, unknown>): void {
+  private exit(_syntax: Syntax<unknown>): void {
     this.debugStack.pop();
   }
 
-  private parseSyntax<T, U extends NonNullable<unknown>>(
-    syntax: Syntax<T, U>,
-    value: U
-  ): { span: hbs.Span; value: (span: hbs.Span) => T } {
-    let ret: (span: hbs.Span) => T;
+  private parseSyntax<T>(syntax: Syntax<T>): { span: hbs.Span; value: T | UNMATCHED } {
+    let ret: T | UNMATCHED;
     this.frames.push(new Frame(this.pos));
-    ret = syntax.parse(this, value);
+    ret = syntax.parse(this);
     let frame = this.frames.pop()!;
-    return { span: frame.finalize(), value: unwrap(ret) };
+
+    return { span: frame.finalize(), value: ret };
   }
 
   get currentFrame(): Frame {

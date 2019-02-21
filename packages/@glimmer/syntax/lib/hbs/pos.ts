@@ -10,6 +10,18 @@ export interface Location {
   end: Position;
 }
 
+export function listSpan(items: Array<{ span: Span }>, defaultPos?: number): Span {
+  if (items.length === 0) {
+    if (defaultPos !== undefined) {
+      return { start: defaultPos, end: defaultPos };
+    } else {
+      throw new Error(`Can't create a span from an empty list`);
+    }
+  }
+
+  return { start: items[0].span.start, end: items[items.length - 1].span.end };
+}
+
 export function locForSpan(source: string, span: Span | null): Location {
   if (span === null) {
     return {

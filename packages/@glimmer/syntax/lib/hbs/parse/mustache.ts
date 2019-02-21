@@ -1,67 +1,48 @@
-import * as hbs from '../../types/handlebars-ast';
-import { Syntax, HandlebarsParser, Thunk, FallibleSyntax, node } from './core';
 import { Option } from '@glimmer/interfaces';
-import { TokenKind } from '../lex';
+import * as hbs from '../../types/handlebars-ast';
+import { FallibleSyntax, HandlebarsParser, Syntax, UNMATCHED } from './core';
+import { HASH, PARAMS } from './expressions';
 import { NUMBER, STRING } from './literals';
-import { TOKENS } from './tokens';
 import { PATH, PathKind } from './path';
-import { PARAMS, HASH } from './expressions';
+import { TOKENS } from './tokens';
 
 export const enum MustacheKind {
   Double,
   Triple,
 }
 
-export class MustacheSyntax
-  implements Syntax<hbs.MustacheStatement | hbs.MustacheContent, MustacheKind> {
+export class MustacheSyntax implements Syntax<hbs.MustacheStatement | hbs.MustacheContent> {
   readonly description = `{{...}}`;
 
-  test(parser: HandlebarsParser): Option<MustacheKind> {
-    let next = parser.peek();
+  parse(parser: HandlebarsParser): hbs.MustacheStatement | hbs.MustacheContent | UNMATCHED {
+    let bodySyntax: CallBodySyntax;
+    let trusted: boolean;
 
-    switch (next.kind) {
-      case TokenKind.Open:
-        return MustacheKind.Double;
-      case TokenKind.OpenTrusted:
-        return MustacheKind.Triple;
-      default:
-        return null;
-    }
-  }
-
-  parse(
-    parser: HandlebarsParser,
-    kind: MustacheKind
-  ): Thunk<hbs.MustacheStatement | hbs.MustacheContent> {
-    switch (kind) {
-      case MustacheKind.Double: {
-        parser.shift();
-
-        let body = new CallBody(TOKENS['}}']);
-        let next = body.test(parser);
-
-        if (next !== null) {
-          let result = parser.parse(body, next);
-          return span => buildMustache(result, false, span);
-        } else {
-          throw new Error('unimplemented, parse error recovery after {{');
-        }
+    const { value, span } = parser.spanned(() => {
+      if (parser.parse(TOKENS['{{']) !== UNMATCHED) {
+        bodySyntax = new CallBodySyntax(TOKENS['}}']);
+        trusted = false;
+      } else if (parser.parse(TOKENS['{{{']) !== UNMATCHED) {
+        bodySyntax = new CallBodySyntax(TOKENS['}}}']);
+        trusted = true;
+      } else {
+        return UNMATCHED;
       }
 
-      case MustacheKind.Triple: {
-        parser.shift();
+      let result = parser.parse(bodySyntax);
 
-        let body = new CallBody(TOKENS['}}}']);
-        let next = body.test(parser);
-
-        if (next !== null) {
-          let result = parser.parse(body, next);
-          return span => buildMustache(result, true, span);
-        } else {
-          throw new Error('unimplemented, parse error recovery after {{');
-        }
+      if (result === UNMATCHED) {
+        throw new Error('unimplemented, parse error recovery after {{');
       }
+
+      return { result, trusted };
+    });
+
+    if (value === UNMATCHED) {
+      return UNMATCHED;
     }
+
+    return buildMustache(value.result, value.trusted, span);
   }
 }
 
@@ -91,114 +72,91 @@ export type CallBodyStart =
       type: CallBodyStartKind.NumberLiteral;
     };
 
-export class CallBody implements FallibleSyntax<hbs.CallBody, CallBodyStart> {
+export class CallBodySyntax implements FallibleSyntax<hbs.CallBody> {
   readonly fallible = true;
 
-  constructor(private close: FallibleSyntax<{ span: hbs.Span }, unknown>) {}
+  constructor(private close: FallibleSyntax<{ span: hbs.Span }>) {}
 
   get description() {
     return `call body (closed by ${this.close}})`;
   }
 
-  test(parser: HandlebarsParser): Option<CallBodyStart> {
-    let next = parser.peek();
+  parse(parser: HandlebarsParser): hbs.CallBody | UNMATCHED {
+    {
+      const number = parser.parse(NUMBER);
 
-    switch (next.kind) {
-      case TokenKind.OpenParen:
-        return { type: CallBodyStartKind.Sexp };
+      if (number !== UNMATCHED) {
+        parser.expect(this.close);
+        return buildCallBody(number);
+      }
+    }
 
-      case TokenKind.Number:
-        return { type: CallBodyStartKind.NumberLiteral };
+    {
+      const string = parser.parse(STRING);
 
-      case TokenKind.String:
-        return { type: CallBodyStartKind.StringLiteral };
+      if (string !== UNMATCHED) {
+        parser.expect(this.close);
+        return buildCallBody(string);
+      }
+    }
 
-      case TokenKind.Identifier: {
-        if (parser.isMacro('expr')) {
-          return { type: CallBodyStartKind.ExprMacro };
-        }
+    if (parser.isMacro('expr')) {
+      let expr = parser.expandExpressionMacro();
+      parser.expect(this.close);
 
-        let pathKind = parser.test(PATH);
-        if (pathKind !== null) {
-          return { type: CallBodyStartKind.Path, kind: pathKind };
-        }
+      return buildCallBody(expr);
+    }
 
-        return null;
+    const call = parser.parse(PATH);
+
+    if (call !== UNMATCHED) {
+      let close = parser.parse(this.close);
+
+      if (close !== UNMATCHED) {
+        return buildCallBody(call);
       }
 
-      case TokenKind.AtName: {
-        return { type: CallBodyStartKind.Path, kind: PathKind.ArgReference };
-      }
+      let params = parser.parse(PARAMS);
+      let hash = parser.parse(HASH);
+      parser.expect(this.close);
 
-      default:
-        return null;
+      return buildCallBody(
+        call,
+        params === UNMATCHED ? null : params,
+        hash === UNMATCHED ? null : hash
+      );
+    } else {
+      return UNMATCHED;
     }
   }
 
-  parse(parser: HandlebarsParser, start: CallBodyStart): Thunk<hbs.CallBody> {
-    switch (start.type) {
-      case CallBodyStartKind.NumberLiteral: {
-        let number = parser.parse(NUMBER, true);
-        parser.expect(this.close);
-
-        return span => buildCallBody({ start: span.start, end: number.span.end }, number);
-      }
-
-      case CallBodyStartKind.StringLiteral: {
-        let string = parser.parse(STRING, true);
-        parser.expect(this.close);
-
-        return span => buildCallBody({ start: span.start, end: string.span.end }, string);
-      }
-
-      case CallBodyStartKind.Path: {
-        let path = parser.parse(PATH, start.kind);
-
-        if (parser.maybe(this.close) !== null) {
-          return node(buildCallBody(path.span, path));
-        }
-
-        let params = parser.maybe(PARAMS);
-        let hash = parser.maybe(HASH);
-        let end = parser.position();
-
-        parser.expect(this.close);
-
-        return span => buildCallBody({ start: span.start, end }, path, params, hash);
-      }
-
-      case CallBodyStartKind.ExprMacro: {
-        let expr = parser.expandExpressionMacro();
-        parser.expect(this.close);
-
-        return span => buildCallBody(span, expr);
-      }
-
-      case CallBodyStartKind.Sexp: {
-        throw new Error('not implemented: sexp in {{...}}');
-      }
-    }
-  }
-
-  orElse(): Thunk<hbs.CallBody> {
-    return span =>
-      buildCallBody(span, {
-        type: 'UndefinedLiteral',
-        span,
-        value: undefined,
-      });
+  orElse(parser: HandlebarsParser): hbs.CallBody {
+    let span = { start: parser.position(), end: parser.position() };
+    return buildCallBody({
+      type: 'UndefinedLiteral',
+      span,
+      value: undefined,
+    });
   }
 }
 
 function buildCallBody(
-  span: hbs.Span,
   call: hbs.Expression,
   params: Option<hbs.Expression[]> = null,
   hash: Option<hbs.Hash> = null
 ): hbs.CallBody {
+  let end: number;
+  if (hash) {
+    end = hash.span.end;
+  } else if (params) {
+    end = params[params.length - 1].span.end;
+  } else {
+    end = call.span.end;
+  }
+
   return {
     type: 'CallBody',
-    span,
+    span: { start: call.span.start, end },
     call,
     params: params || null,
     hash: hash || null,

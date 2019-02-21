@@ -1,17 +1,12 @@
-import { FallibleSyntax, Syntax, node, Thunk, HandlebarsParser } from './core';
 import * as hbs from '../../types/handlebars-ast';
 import { TokenKind } from '../lex';
-import { TRAILING_WS, optionalLeadingWS, LeadingWhitespaceKind } from './whitespace';
-import { Option } from '@glimmer/interfaces';
-import { MUSTACHE, MustacheKind } from './mustache';
 import { BLOCK } from './block';
+import { FallibleSyntax, HandlebarsParser, InfallibleSyntax, Syntax, UNMATCHED } from './core';
+import { MUSTACHE, MustacheKind } from './mustache';
+import { LeadingWhitespaceKind, optionalLeadingWS, TRAILING_WS } from './whitespace';
 
-export const ROOT: Syntax<hbs.AnyProgram, true> = {
+export const ROOT: InfallibleSyntax<hbs.AnyProgram> = {
   description: 'root',
-
-  test() {
-    return true;
-  },
 
   parse(parser) {
     let statements: hbs.Statement[] = [];
@@ -24,11 +19,11 @@ export const ROOT: Syntax<hbs.AnyProgram, true> = {
       }
     }
 
-    return () => ({
+    return {
       type: 'Program',
       span: { start: 0, end: parser.position() },
       body: statements,
-    });
+    };
   },
 };
 
@@ -47,130 +42,115 @@ export type TopSyntaxStart =
   | { kind: TopSyntaxKind.Mustache; state: MustacheKind }
   | { kind: TopSyntaxKind.Block; state: LeadingWhitespaceKind<true> };
 
-export const TOP: FallibleSyntax<hbs.Statement, TopSyntaxStart> = {
+export const TOP: FallibleSyntax<hbs.Statement> = {
   description: 'top level',
   fallible: true,
 
-  test(parser) {
-    let blockStart = parser.test(BLOCK);
-    if (blockStart !== null) {
-      return { kind: TopSyntaxKind.Block, state: blockStart };
-    }
+  parse(parser): hbs.Statement | UNMATCHED {
+    let block = parser.parse(BLOCK);
+    if (block !== UNMATCHED) return block.inner;
 
-    let commentStart = parser.test(COMMENT);
-    if (commentStart !== null) {
-      return { kind: TopSyntaxKind.Comment, state: commentStart };
-    }
+    let comment = parser.parse(COMMENT);
+    if (comment !== UNMATCHED) return comment.inner;
 
-    let state = parser.test(MUSTACHE);
+    let mustache = parser.parse(MUSTACHE);
+    if (mustache !== UNMATCHED) return mustache;
 
-    if (state !== null) {
-      return { kind: TopSyntaxKind.Mustache, state };
-    }
+    let newline = parser.parse(NEWLINE);
+    if (newline !== UNMATCHED) return newline;
 
-    if (parser.test(NEWLINE) !== null) {
-      return { kind: TopSyntaxKind.Newline };
-    }
+    let content = parser.parse(CONTENT);
+    if (content !== UNMATCHED) return content;
 
-    if (parser.test(CONTENT) !== null) {
-      return { kind: TopSyntaxKind.Content };
-    }
-
-    return null;
+    return UNMATCHED;
   },
 
-  parse(parser, top) {
-    switch (top.kind) {
-      case TopSyntaxKind.Block:
-        return node(parser.parse(BLOCK, top.state).inner);
-
-      case TopSyntaxKind.Comment:
-        return node(parser.parse(COMMENT, top.state).inner);
-
-      case TopSyntaxKind.Content:
-        return node(parser.parse(CONTENT, true));
-
-      case TopSyntaxKind.Newline:
-        return node(parser.parse(NEWLINE, true));
-
-      case TopSyntaxKind.Mustache:
-        return node(parser.parse(MUSTACHE, top.state));
-    }
-  },
-
-  orElse(): Thunk<hbs.Statement> {
-    return span => ({ type: 'ContentStatement', span, value: '<error>' });
+  orElse(parser: HandlebarsParser): hbs.Statement {
+    return {
+      type: 'ContentStatement',
+      span: { start: parser.position(), end: parser.position() },
+      value: '<error>',
+    };
   },
 };
 
-export class ContentSyntax implements FallibleSyntax<hbs.ContentStatement, true> {
+export class ContentSyntax implements FallibleSyntax<hbs.ContentStatement> {
   readonly fallible = true;
   readonly description = 'content';
 
-  test(parser: HandlebarsParser): Option<true> {
-    return parser.is(TokenKind.Content) || null;
-  }
+  parse(parser: HandlebarsParser): hbs.ContentStatement | UNMATCHED {
+    if (!parser.is(TokenKind.Content)) {
+      return UNMATCHED;
+    }
 
-  parse(parser: HandlebarsParser): Thunk<hbs.ContentStatement> {
-    parser.shift();
+    let { span } = parser.spanned(() => parser.shift());
 
-    return span => ({
+    return {
       type: 'ContentStatement',
       span,
       value: parser.slice(span),
-    });
+    };
   }
 
-  orElse(): Thunk<hbs.ContentStatement> {
-    return span => ({
+  orElse(parser: HandlebarsParser): hbs.ContentStatement {
+    return {
       type: 'ContentStatement',
-      span,
+      span: { start: parser.position(), end: parser.position() },
       value: '',
-    });
+    };
   }
 }
 
 export const CONTENT = new ContentSyntax();
 
-export class NewlineSyntax implements Syntax<hbs.Newline, true> {
+export class NewlineSyntax implements Syntax<hbs.Newline> {
   readonly description = 'content';
 
-  test(parser: HandlebarsParser): Option<true> {
-    return parser.is(TokenKind.Newline) || null;
-  }
+  parse(parser: HandlebarsParser): hbs.Newline | UNMATCHED {
+    if (!parser.is(TokenKind.Newline)) {
+      return UNMATCHED;
+    } else {
+      let item = parser.shift();
 
-  parse(parser: HandlebarsParser): Thunk<hbs.Newline> {
-    parser.shift();
-
-    return span => ({
-      type: 'Newline',
-      span,
-    });
+      return {
+        type: 'Newline',
+        span: item.span,
+      };
+    }
   }
 }
 
 export const NEWLINE = new NewlineSyntax();
 
-export const BARE_COMMENT: Syntax<hbs.CommentStatement, true> = {
+export const BARE_COMMENT: Syntax<hbs.CommentStatement> = {
   description: `{{!...}}`,
 
-  test(parser: HandlebarsParser): Option<true> {
-    return parser.is(TokenKind.InlineComment) || parser.is(TokenKind.BlockComment) || null;
-  },
+  parse(parser: HandlebarsParser): hbs.CommentStatement | UNMATCHED {
+    let result: { value: string; span: hbs.Span };
 
-  parse(parser: HandlebarsParser) {
-    let next = parser.shift();
+    if (parser.is(TokenKind.InlineComment)) {
+      result = parser.spanned(() => {
+        let next = parser.shift();
+        let string = parser.slice(next.span);
+        return string.slice(3, -2);
+      });
+    } else if (parser.is(TokenKind.BlockComment)) {
+      result = parser.spanned(() => {
+        let next = parser.shift();
+        let string = parser.slice(next.span);
+        return string.slice(5, -4);
+      });
+    } else {
+      return UNMATCHED;
+    }
 
-    let string = parser.slice(next.span);
-    let value = next.kind === TokenKind.InlineComment ? string.slice(3, -2) : string.slice(5, -4);
+    parser.parse(TRAILING_WS);
 
-    parser.maybe(TRAILING_WS, { skip: true });
-
-    return span => ({
-      span,
+    return {
+      span: result.span,
       type: 'CommentStatement',
-      value,
-    });
+      value: result.value,
+    };
   },
 };
 

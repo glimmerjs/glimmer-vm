@@ -1,4 +1,5 @@
 import * as hbs from '../../types/handlebars-ast';
+import { UNMATCHED } from './core';
 
 export class Frame {
   private spans: hbs.Span[] = [];
@@ -14,13 +15,27 @@ export class Frame {
     this.spans.push(span);
   }
 
-  addThunk<T>({ span, value }: { span: hbs.Span; value: (span: hbs.Span) => T }): T {
+  addThunk<T>({ span, value }: { span: hbs.Span; value: ((span: hbs.Span) => T) }): T;
+  addThunk<T>({
+    span,
+    value,
+  }: {
+    span: hbs.Span;
+    value: ((span: hbs.Span) => T) | UNMATCHED;
+  }): T | UNMATCHED;
+  addThunk<T>({
+    span,
+    value,
+  }: {
+    span: hbs.Span;
+    value: ((span: hbs.Span) => T) | UNMATCHED;
+  }): T | UNMATCHED {
     if (this.marked) {
       throw new Error(`Can't parse while applying span to final parsed syntax`);
     }
 
     this.mark();
-    let out = value(span);
+    let out = value === UNMATCHED ? UNMATCHED : value(span);
     this.unmark();
 
     this.spans.push(span);

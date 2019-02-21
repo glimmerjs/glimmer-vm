@@ -1,45 +1,49 @@
 import * as hbs from '../../types/handlebars-ast';
-import { Syntax, HandlebarsParser, Thunk } from './core';
+import { Syntax, HandlebarsParser, UNMATCHED } from './core';
 import { TokenKind } from '../lex';
 import { Option } from '@glimmer/interfaces';
 
-export class NumberLiteralSyntax implements Syntax<hbs.NumberLiteral, true> {
+export class NumberLiteralSyntax implements Syntax<hbs.NumberLiteral> {
   readonly description = `Literal{number}`;
 
-  test(parser: HandlebarsParser): Option<true> {
-    return parser.is(TokenKind.Number) ? true : null;
-  }
+  parse(parser: HandlebarsParser): hbs.NumberLiteral | UNMATCHED {
+    if (!parser.is(TokenKind.Number)) {
+      return UNMATCHED;
+    }
 
-  parse(parser: HandlebarsParser): Thunk<hbs.NumberLiteral> {
     let token = parser.shift();
     let value = parseFloat(parser.slice(token.span));
 
-    return span => ({
+    return {
       type: 'NumberLiteral',
-      span,
+      span: token.span,
       value,
-    });
+    };
   }
 }
 
 export const NUMBER = new NumberLiteralSyntax();
 
-export class StringLiteralSyntax implements Syntax<hbs.StringLiteral, true> {
+export class StringLiteralSyntax implements Syntax<hbs.StringLiteral> {
   readonly description = `Literal{string}`;
 
   test(parser: HandlebarsParser): Option<true> {
     return parser.is(TokenKind.String) ? true : null;
   }
 
-  parse(parser: HandlebarsParser): Thunk<hbs.StringLiteral> {
+  parse(parser: HandlebarsParser): hbs.StringLiteral | UNMATCHED {
+    if (!parser.is(TokenKind.String)) {
+      return UNMATCHED;
+    }
+
     let token = parser.shift();
     let value = parser.slice(token.span).slice(1, -1);
 
-    return span => ({
+    return {
       type: 'StringLiteral',
-      span,
+      span: token.span,
       value,
-    });
+    };
   }
 }
 

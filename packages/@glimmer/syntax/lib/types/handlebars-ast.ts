@@ -59,7 +59,7 @@ export interface AnyProgram {
 }
 
 export interface Program {
-  span: Span | null;
+  span: Span;
   type: 'Program';
   body: Statement[] | null;
   blockParams: string[] | null;
@@ -189,6 +189,7 @@ export interface Hash extends CommonNode {
 }
 
 export interface HashPair extends CommonNode {
+  type: 'HashPair';
   key: string;
   value: Expression;
 }

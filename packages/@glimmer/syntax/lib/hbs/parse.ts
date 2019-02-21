@@ -30,6 +30,7 @@ export function hbsLex(
 }
 
 export class TokensImpl implements Tokens {
+  private loopDetect = 0;
   constructor(private tokens: Array<LexItem<TokenKind>>, private pos = 0) {
     assert(
       tokens[tokens.length - 1].kind === TokenKind.EOF,
@@ -42,14 +43,20 @@ export class TokensImpl implements Tokens {
   }
 
   peek(): LexItem<TokenKind> {
+    this.loopDetect++;
+    if (this.loopDetect > 100) throw new Error('Infinite loop detected');
     return this.tokens[this.pos];
   }
 
   peek2(): LexItem<TokenKind> | undefined {
+    this.loopDetect++;
+    if (this.loopDetect > 100) throw new Error('Infinite loop detected');
+
     return this.tokens[this.pos + 1];
   }
 
   consume(): LexItem<TokenKind> {
+    this.loopDetect = 0;
     return this.tokens[this.pos++];
   }
 

@@ -1,9 +1,8 @@
-import { Option } from '@glimmer/interfaces';
 import { TokenKind } from '../lex';
 import { LexItem } from '../lexing';
-import { FallibleSyntax, HandlebarsParser, Thunk, node } from './core';
+import { FallibleSyntax, HandlebarsParser, UNMATCHED } from './core';
 
-class TokenSyntax implements FallibleSyntax<LexItem<TokenKind>, true> {
+class TokenSyntax implements FallibleSyntax<LexItem<TokenKind>> {
   readonly fallible = true;
 
   constructor(private token: TokenKind) {}
@@ -12,21 +11,23 @@ class TokenSyntax implements FallibleSyntax<LexItem<TokenKind>, true> {
     return `Token{${this.token}}`;
   }
 
-  test(parser: HandlebarsParser): Option<true> {
-    return parser.is(this.token) ? true : null;
+  parse(parser: HandlebarsParser): LexItem<TokenKind> | UNMATCHED {
+    if (parser.is(this.token)) {
+      return parser.shift();
+    } else {
+      return UNMATCHED;
+    }
   }
 
-  parse(parser: HandlebarsParser): Thunk<LexItem<TokenKind>> {
-    return node(parser.shift());
-  }
-
-  orElse(): Thunk<LexItem<TokenKind>> {
-    return span => ({ kind: this.token, span });
+  orElse(parser: HandlebarsParser): LexItem<TokenKind> {
+    return { kind: this.token, span: { start: parser.position(), end: parser.position() } };
   }
 }
 
 export const TOKENS = {
+  '{{': new TokenSyntax(TokenKind.Open),
   '}}': new TokenSyntax(TokenKind.Close),
+  '{{{': new TokenSyntax(TokenKind.OpenTrusted),
   '}}}': new TokenSyntax(TokenKind.CloseTrusted),
   '{{/': new TokenSyntax(TokenKind.OpenEndBlock),
   '.': new TokenSyntax(TokenKind.Dot),

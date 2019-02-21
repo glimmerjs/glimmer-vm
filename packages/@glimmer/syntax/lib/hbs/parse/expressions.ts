@@ -1,10 +1,10 @@
-import * as hbs from '../../types/handlebars-ast';
-import { Syntax, HandlebarsParser, Thunk, FallibleSyntax } from './core';
 import { Option } from '@glimmer/interfaces';
+import * as hbs from '../../types/handlebars-ast';
 import { TokenKind } from '../lex';
+import { FallibleSyntax, HandlebarsParser, Syntax, UNMATCHED } from './core';
 import { NUMBER, STRING } from './literals';
-import { TOKENS } from './tokens';
 import { PATH, PathKind } from './path';
+import { TOKENS } from './tokens';
 
 export const enum ExpressionTypeKind {
   Macro,
@@ -19,6 +19,7 @@ export type ExpressionType =
     }
   | {
       type: ExpressionTypeKind.Number;
+      result: hbs.NumberLiteral;
     }
   | {
       type: ExpressionTypeKind.String;
@@ -28,167 +29,149 @@ export type ExpressionType =
       kind: PathKind;
     };
 
-class ExpressionSyntax implements FallibleSyntax<hbs.Expression, ExpressionType> {
+class ExpressionSyntax implements FallibleSyntax<hbs.Expression> {
   readonly description = 'expression';
   readonly fallible = true;
 
-  test(parser: HandlebarsParser): Option<ExpressionType> {
+  parse(parser: HandlebarsParser): hbs.Expression | UNMATCHED {
     if (parser.isMacro('expr')) {
-      return { type: ExpressionTypeKind.Macro };
+      return parser.expandExpressionMacro();
     }
 
-    let number = parser.test(NUMBER);
+    let number = parser.parse(NUMBER);
 
-    if (number !== null) {
-      return { type: ExpressionTypeKind.Number };
+    if (number !== UNMATCHED) {
+      return number;
     }
 
-    let string = parser.test(STRING);
+    let string = parser.parse(STRING);
 
-    if (string !== null) {
-      return { type: ExpressionTypeKind.String };
+    if (string !== UNMATCHED) {
+      return string;
     }
 
-    let path = parser.test(PATH);
+    let path = parser.parse(PATH);
 
-    if (path !== null) {
-      return { type: ExpressionTypeKind.Path, kind: path };
+    if (path !== UNMATCHED) {
+      return path;
     }
 
-    return null;
+    return UNMATCHED;
   }
 
-  parse(parser: HandlebarsParser, type: ExpressionType): Thunk<hbs.Expression> {
-    switch (type.type) {
-      case ExpressionTypeKind.Macro: {
-        let expr = parser.expandExpressionMacro();
-
-        return () => expr;
-      }
-
-      case ExpressionTypeKind.Number: {
-        let expr = parser.parse(NUMBER, true);
-
-        return () => expr;
-      }
-
-      case ExpressionTypeKind.String: {
-        let expr = parser.parse(STRING, true);
-
-        return () => expr;
-      }
-
-      case ExpressionTypeKind.Path: {
-        let expr = parser.parse(PATH, type.kind);
-
-        return () => expr;
-      }
-    }
-  }
-
-  orElse(): Thunk<hbs.Expression> {
-    return span => ({
+  orElse(parser: HandlebarsParser): hbs.Expression {
+    return {
       type: 'UndefinedLiteral',
-      span,
+      span: { start: parser.position(), end: parser.position() },
       value: undefined,
-    });
+    };
   }
 }
 
 export const EXPR = new ExpressionSyntax();
 
-export class ParamsSyntax implements Syntax<Option<hbs.Expression[]>, true> {
+export class ParamsSyntax implements Syntax<Option<hbs.Expression[]>> {
   readonly description = 'params';
 
-  test(parser: HandlebarsParser): Option<true> {
-    return parser.test(EXPR) ? true : null;
-  }
+  parse(parser: HandlebarsParser): hbs.Expression[] | UNMATCHED {
+    let hash = parser.test(HASH);
 
-  parse(parser: HandlebarsParser): Thunk<Option<hbs.Expression[]>> {
-    let params: hbs.Expression[] = [];
+    if (hash) {
+      return UNMATCHED;
+    }
+
+    let first = parser.parse(EXPR);
+
+    if (first === UNMATCHED) {
+      return UNMATCHED;
+    }
+
+    let params: hbs.Expression[] = [first];
 
     while (true) {
-      let hash = parser.test(HASH);
-
-      if (hash !== null) {
+      if (parser.test(HASH)) {
         break;
       }
 
-      let next = parser.test(EXPR);
+      let next = parser.parse(EXPR);
 
-      if (next === null) {
+      if (next === UNMATCHED) {
         break;
       } else {
-        params.push(parser.parse(EXPR, next));
+        params.push(next);
       }
     }
 
-    return () => (params.length ? params : null);
+    return params;
   }
 }
 
 export const PARAMS = new ParamsSyntax();
 
-export class HashSyntax implements Syntax<hbs.Hash, true> {
+export class HashSyntax implements Syntax<hbs.Hash> {
   readonly description = 'hash';
 
-  test(parser: HandlebarsParser): Option<true> {
-    return parser.test(HASH_PAIR);
-  }
+  parse(parser: HandlebarsParser): hbs.Hash | UNMATCHED {
+    let { value, span } = parser.spanned(() => {
+      let first = parser.parse(HASH_PAIR);
 
-  parse(parser: HandlebarsParser): Thunk<hbs.Hash> {
-    let pairs: hbs.HashPair[] = [];
-
-    pairs.push(parser.parse(HASH_PAIR, true));
-
-    while (true) {
-      let pair = parser.maybe(HASH_PAIR);
-
-      if (pair === null) {
-        break;
-      } else {
-        pairs.push(pair);
+      if (first === UNMATCHED) {
+        return UNMATCHED;
       }
+
+      let pairs: hbs.HashPair[] = [first];
+
+      while (true) {
+        let pair = parser.parse(HASH_PAIR);
+
+        if (pair === UNMATCHED) {
+          break;
+        } else {
+          pairs.push(pair);
+        }
+      }
+
+      return pairs;
+    });
+
+    if (value === UNMATCHED) {
+      return UNMATCHED;
     }
 
-    return span => ({
+    return {
       type: 'Hash',
-      span,
-      pairs,
-    });
+      span: { start: value[0].span.start, end: value[value.length - 1].span.end },
+      pairs: value,
+    };
   }
 }
 
 export const HASH = new HashSyntax();
 
-export class HashPairSyntax implements Syntax<hbs.HashPair, true> {
+export class HashPairSyntax implements Syntax<hbs.HashPair> {
   readonly description = 'hash pair';
 
-  test(parser: HandlebarsParser): Option<true> {
+  parse(parser: HandlebarsParser): hbs.HashPair | UNMATCHED {
     if (parser.peek().kind !== TokenKind.Identifier) {
-      return null;
+      return UNMATCHED;
     }
 
     let after = parser.peek2();
 
-    if (after && after.kind === TokenKind.Equals) {
-      return true;
+    if (!after || after.kind !== TokenKind.Equals) {
+      return UNMATCHED;
     }
 
-    return null;
-  }
-
-  parse(parser: HandlebarsParser): Thunk<hbs.HashPair> {
     let id = parser.shift();
     parser.expect(TOKENS['=']);
     let expr = parser.expect(EXPR);
 
-    return span => ({
+    return {
       type: 'HashPair',
-      span,
+      span: { start: id.span.start, end: expr.span.end },
       key: parser.slice(id.span),
       value: expr,
-    });
+    };
   }
 }
 

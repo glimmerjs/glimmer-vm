@@ -1,41 +1,35 @@
-import { Syntax, node, HandlebarsParser, Thunk } from './core';
-import { TokenKind } from '../lex';
-import { Option } from '@glimmer/interfaces';
 import * as hbs from '../../types/handlebars-ast';
+import { TokenKind } from '../lex';
+import { HandlebarsParser, Syntax, UNMATCHED } from './core';
 
-export const TRAILING_WS: Syntax<void, true> = {
+export const TRAILING_WS: Syntax<void> = {
   description: 'trailing whitespace',
 
-  test(parser): Option<true> {
-    if (parser.is(TokenKind.Newline)) return true;
+  parse(parser): void | UNMATCHED {
+    if (parser.is(TokenKind.Newline)) {
+      parser.shift();
+      return undefined;
+    }
 
     let next = parser.peek();
     if (next.kind !== TokenKind.Content) {
-      return null;
+      return UNMATCHED;
     }
 
     let slice = parser.slice(next.span);
 
-    if (!slice.match(/^\s*$/)) return null;
+    if (!slice.match(/^\s*$/)) return UNMATCHED;
 
     let after = parser.peek2();
 
     if (after === undefined || after.kind !== TokenKind.Newline) {
-      return null;
+      return UNMATCHED;
     }
 
-    return true;
-  },
+    parser.shift();
+    parser.shift();
 
-  parse(parser) {
-    if (parser.is(TokenKind.Newline)) {
-      parser.shift();
-    } else {
-      parser.shift();
-      parser.shift();
-    }
-
-    return node(undefined);
+    return;
   },
 };
 
@@ -54,65 +48,49 @@ export type LeadingWhitespaceKind<T> =
       start: T;
     };
 
-export class OptionalLeadingWhitespace<T extends { span: hbs.Span }, U extends NonNullable<unknown>>
-  implements Syntax<{ outer: hbs.Span; inner: T }, LeadingWhitespaceKind<U>> {
-  constructor(private inner: Syntax<T, U>) {}
+export class OptionalLeadingWhitespace<T extends { span: hbs.Span }>
+  implements Syntax<{ outer: hbs.Span; inner: T }> {
+  constructor(private inner: Syntax<T>) {}
 
   get description(): string {
     return `${this.inner.description} with leading whitespace`;
   }
 
-  test(parser: HandlebarsParser): Option<LeadingWhitespaceKind<U>> {
-    let inner = this.inner.test(parser);
-    if (inner !== null) {
-      return { type: LeadingWhitespaceStart.NoWhitespace, start: inner };
+  parse(parser: HandlebarsParser): { outer: hbs.Span; inner: T } | UNMATCHED {
+    {
+      const { value, span } = parser.spanned(() => parser.parse(this.inner));
+      if (value !== UNMATCHED) {
+        return { outer: span, inner: value };
+      }
     }
 
-    if (!parser.isStartLine()) return null;
+    if (!parser.isStartLine()) return UNMATCHED;
 
     let next = parser.peek();
 
     let slice = parser.slice(next.span);
 
-    if (!slice.match(/^\s*$/)) return null;
+    if (!slice.match(/^\s*$/)) return UNMATCHED;
 
     let checkpoint = parser.checkpoint();
     checkpoint.shift();
 
-    inner = this.inner.test(checkpoint);
+    const value = checkpoint.parse(this.inner);
 
-    if (inner === null) {
-      return null;
+    if (value === UNMATCHED) {
+      return UNMATCHED;
     } else {
-      return {
-        type: LeadingWhitespaceStart.Whitespace,
-        start: inner,
-      };
-    }
-  }
+      let startPos = parser.position();
+      parser.commit(checkpoint);
+      let endPos = parser.position();
 
-  parse(
-    parser: HandlebarsParser,
-    start: LeadingWhitespaceKind<U>
-  ): Thunk<{ outer: hbs.Span; inner: T }> {
-    switch (start.type) {
-      case LeadingWhitespaceStart.NoWhitespace: {
-        let inner = parser.parse(this.inner, start.start);
-        return span => ({ outer: span, inner });
-      }
-
-      case LeadingWhitespaceStart.Whitespace: {
-        let startPos = parser.position();
-        parser.skipToken();
-        let inner = parser.parse(this.inner, start.start);
-        return span => ({ outer: { start: startPos, end: span.end }, inner });
-      }
+      return { outer: { start: startPos, end: endPos }, inner: value };
     }
   }
 }
 
-export function optionalLeadingWS<T extends { span: hbs.Span }, U>(
-  syntax: Syntax<T, U>
-): Syntax<{ outer: hbs.Span; inner: T }, LeadingWhitespaceKind<U>> {
+export function optionalLeadingWS<T extends { span: hbs.Span }>(
+  syntax: Syntax<T>
+): Syntax<{ outer: hbs.Span; inner: T }> {
   return new OptionalLeadingWhitespace(syntax);
 }
