@@ -53,7 +53,13 @@ export class AstBuilder {
       case 'BlockStatement':
         return this.spanned(() => {
           this.consume('{{#');
-          let { body, callSize, blockParams } = this.insideMustache(statement.mustache.contents);
+          let inside = this.insideMustache(statement.mustache.contents);
+
+          if (inside === null) {
+            throw new Error(`unexpected empty {{#}}`);
+          }
+
+          let { body, callSize, blockParams } = inside;
 
           let programs = this.programs(statement.programs);
 
@@ -105,11 +111,11 @@ export class AstBuilder {
 
   inverse(inverse: Inverse): hbs.Program {
     this.consume('{{else');
+    let inside = this.insideMustache(inverse.mustache.contents);
+    this.consume('}}');
 
     return this.spanned(() => {
       let body: hbs.Statement[] = [];
-
-      let { blockParams } = this.insideMustache(inverse.mustache.contents);
 
       for (let item of inverse.parts) {
         let next = this.visit(ToStatementPart(item));
@@ -120,7 +126,7 @@ export class AstBuilder {
         type: 'Program',
         span,
         body: body.length ? body : null,
-        blockParams,
+        blockParams: inside === null ? null : inside.blockParams,
       });
     });
   }
@@ -139,16 +145,17 @@ export class AstBuilder {
       } else if (part.type === 'Program') {
         defaultBlock = this.program(part);
       } else if (part.type === 'Else') {
+        defaultBlock!.span = { start, end: this.pos };
         inverseBlock = this.inverse(part);
-        if (defaultBlock && defaultBlock.span && inverseBlock.span)
-          defaultBlock.span.end = inverseBlock.span.start;
       } else {
         throw new Error(`Can only pass two blocks to blockCall`);
       }
     }
 
-    if (defaultBlock && defaultBlock.span && !inverseBlock) {
-      defaultBlock.span = { start, end: this.pos };
+    if (defaultBlock && defaultBlock.span) {
+      if (!inverseBlock) {
+        defaultBlock.span = { start, end: this.pos };
+      }
     }
 
     if (defaultBlock === null) {
@@ -162,7 +169,13 @@ export class AstBuilder {
     return this.spanned<hbs.MustacheStatement | hbs.MustacheContent>(() => {
       this.consume('{{');
 
-      let { body } = this.insideMustache(statement.contents);
+      let inside = this.insideMustache(statement.contents);
+
+      if (inside === null) {
+        throw new Error(`unexpected empty {{}}`);
+      }
+
+      let body = inside.body;
 
       this.consume('}}');
 
@@ -190,7 +203,7 @@ export class AstBuilder {
     callSize: number;
     body: hbs.CallBody;
     blockParams: Option<string[]>;
-  } {
+  } | null {
     let foundCall: { call: hbs.Expression; size: number } | undefined = undefined;
     let foundHash: hbs.Hash | null | undefined = undefined;
     let params: hbs.Expression[] = [];
@@ -237,7 +250,7 @@ export class AstBuilder {
     }
 
     if (foundCall === undefined) {
-      throw new Error(`Unexpected {{}} without any expressions`);
+      return null;
     }
 
     return {
@@ -318,14 +331,18 @@ export class AstBuilder {
         return this.spanned(() => {
           this.consume('(');
 
-          let body = this.insideMustache(expression.contents).body;
+          const inside = this.insideMustache(expression.contents);
+
+          if (inside === null) {
+            throw new Error(`Unexpected empty ()`);
+          }
 
           this.consume(')');
 
           return span => ({
             type: 'SubExpression',
             span,
-            body,
+            body: inside.body,
           });
         });
       }

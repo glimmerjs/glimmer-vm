@@ -25,6 +25,7 @@ class BlockSyntax implements Syntax<hbs.BlockStatement> {
 
       let defaultBlock: Option<hbs.Program> = null;
       let inverseBlock: Option<hbs.Program> = null;
+      let adjustedDefault = false;
 
       while (true) {
         let startEndBlock = parser.test(OPEN_END);
@@ -33,21 +34,28 @@ class BlockSyntax implements Syntax<hbs.BlockStatement> {
           break;
         }
 
-        let startElse = parser.test(ELSE);
+        let inverseMustache = parser.parse(ELSE);
 
-        if (startElse === true) {
-          throw new Error('not implemented: else');
+        debugger;
+
+        if (inverseMustache !== UNMATCHED) {
+          defaultBlock!.span.end = inverseMustache.inner.span.start;
+          inverseBlock = parser.parse(BLOCK_BODY);
+          inverseBlock.span.start = inverseMustache.inner.span.end;
+          adjustedDefault = true;
+        } else {
+          defaultBlock = parser.expect(BLOCK_BODY);
+          defaultBlock.span.start = innerStart;
         }
-
-        defaultBlock = parser.expect(BLOCK_BODY);
-        defaultBlock.span.start = innerStart;
       }
 
       let close = parser.expect(CLOSE_BLOCK);
 
-      if (defaultBlock) {
+      if (defaultBlock && !adjustedDefault) {
         defaultBlock.span.end = close.inner.start;
-      } else {
+      }
+
+      if (!defaultBlock) {
         defaultBlock = {
           type: 'Program',
           span: { start: innerStart, end: close.inner.start },
@@ -194,16 +202,23 @@ const BLOCK_CONTENT = new BlockContentSyntax();
 class ElseSyntax implements Syntax<{ span: hbs.Span }> {
   readonly description = '{{else';
 
-  parse(parser: HandlebarsParser): { span: hbs.Span } | UNMATCHED {
+  parse(parser: HandlebarsParser): { span: hbs.Span; value: hbs.CallBody | null } | UNMATCHED {
     if (parser.isCurlyPath('else')) {
-      let { span } = parser.spanned(() => {
+      let { span, value } = parser.spanned(() => {
         parser.shift();
         parser.shift();
 
-        parser.expect(TOKENS['}}']);
+        if (parser.parse(TOKENS['}}']) !== UNMATCHED) {
+          return null;
+        } else {
+          let bodySyntax = new CallBodySyntax(TOKENS['}}']);
+          return parser.expect(bodySyntax);
+        }
       });
 
-      return { span };
+      parser.parse(TRAILING_WS);
+
+      return { span, value };
     } else {
       return UNMATCHED;
     }

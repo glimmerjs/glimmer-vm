@@ -409,58 +409,71 @@ describe('@glimmer/syntax - parser', function() {
     });
   });
 
-  // it('parses an inverse (else-style) section', function() {
-  //   equivAST('{{#foo}} bar {{else}} baz {{/foo}}', {
-  //     sexp: [['block', 'foo', { default: ['s: bar '], else: ['s: baz '] }]],
-  //     ast: b.ast(
-  //       b.blockCall(['foo'], b.block(b.content(' bar ')), b.inverse([], b.content(' baz ')))
-  //     ),
-  //   });
-  // });
+  it('parses an inverse (else-style) section', function() {
+    equivAST('{{#foo}} bar {{else}} baz {{/foo}}', {
+      sexp: [['block', 'foo', { default: ['s: bar '], else: ['s: baz '] }]],
+      ast: b.ast(
+        b.blockCall(['foo'], b.block(b.content(' bar ')), b.inverse([], b.content(' baz ')))
+      ),
+    });
+  });
 
-  // it('parses an inverse (else-style) section with whitespace', function() {
-  //   equivAST('{{#foo}}\n  bar\n{{else}}\n  baz\n{{/foo}}', {
-  //     sexp: [['block', 'foo', { default: ['s:  bar\n'], else: ['s:  baz\n'] }]],
-  //     ast: b.ast(
-  //       b.blockCall('foo', {
-  //         program: b.block({ statements: [b.skip(), b.content('  bar\n')] }),
-  //         inverse: b.block({ statements: [b.skip(), b.content('  baz\n')] }),
-  //       })
-  //     ),
-  //   });
-  // });
+  it('parses an inverse (else-style) section with whitespace', function() {
+    equivAST('{{#foo}}\n  bar\n{{else}}\n  baz\n{{/foo}}', {
+      sexp: [['block', 'foo', { default: ['s:  bar\n'], else: ['s:  baz\n'] }]],
+      ast: b.ast(
+        b.blockCall(
+          ['foo'],
+          b.block(b.skip(), b.content('  bar\n')),
+          b.inverse([], b.skip(), b.content('  baz\n'))
+        )
+      ),
+    });
 
-  // it('parses strangely nested content (edge-cases)', () => {
-  //   let source = [
-  //     '',
-  //     '  {{#if foo}}',
-  //     '    {{#if bar}}',
-  //     '        test',
-  //     '        {{else}}',
-  //     '      test',
-  //     '  {{/if    }}',
-  //     '       {{/if',
-  //     '      }}',
-  //     '    ',
-  //   ].join('\n');
+    equivAST('{{#foo}}\n  bar\n  {{else}}  \n  baz\n{{/foo}}', {
+      sexp: [['block', 'foo', { default: ['s:  bar\n'], else: ['s:  baz\n'] }]],
+      ast: b.ast(
+        b.blockCall(
+          ['foo'],
+          b.block(b.skip(), b.content('  bar\n')),
+          b.skip('  '),
+          b.inverse([], b.skip('  \n'), b.content('  baz\n'))
+        )
+      ),
+    });
+  });
 
-  //   equivAST(source, {
-  //     sexp: [
-  //       '\n',
-  //       [
-  //         'block',
-  //         'if',
-  //         'foo',
-  //         {
-  //           default: [
-  //             ['block', 'if', 'bar', { default: ['s:        test\n'], else: ['s:      test\n'] }],
-  //           ],
-  //         },
-  //       ],
-  //       's:    ',
-  //     ],
-  //   });
-  // });
+  it('parses strangely nested content (edge-cases)', () => {
+    let source = [
+      '',
+      '  {{#if foo}}',
+      '    {{#if bar}}',
+      '        test',
+      '        {{else}}',
+      '      test',
+      '  {{/if    }}',
+      '       {{/if',
+      '      }}',
+      '    ',
+    ].join('\n');
+
+    equivAST(source, {
+      sexp: [
+        '\n',
+        [
+          'block',
+          'if',
+          'foo',
+          {
+            default: [
+              ['block', 'if', 'bar', { default: ['s:        test\n'], else: ['s:      test\n'] }],
+            ],
+          },
+        ],
+        's:    ',
+      ],
+    });
+  });
 
   // it('parses multiple inverse sections', function() {
   //   equivAST('{{#foo}} bar {{else if bar}}{{else}} baz {{/foo}}', {
