@@ -1,5 +1,6 @@
 import * as hbs from '../types/handlebars-ast';
 import { JsonValue } from '@glimmer/interfaces';
+import { unwrap } from '@glimmer/util';
 
 export class Printer {
   print(ast: hbs.AnyProgram): JsonValue {
@@ -32,11 +33,11 @@ export class Printer {
       case 'BlockStatement': {
         let sexp: JsonValue[] = ['block'];
         let blocks: JsonValue = {};
-        sexp.push(...this.mustacheBody(item.body, item.program.blockParams));
+        sexp.push(...this.mustacheBody(unwrap(item.program.call), item.program.blockParams));
         blocks.default = this.top(item.program);
 
-        if (item.inverse) {
-          blocks.else = this.top(item.inverse);
+        if (item.inverses) {
+          blocks.else = item.inverses.map(inverse => this.top(inverse));
         }
 
         sexp.push(blocks);

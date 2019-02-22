@@ -4,7 +4,7 @@ import * as AST from '../types/nodes';
 import * as HBS from '../types/handlebars-ast';
 import { Parser, Tag, Attribute } from '../parser';
 import SyntaxError from '../errors/syntax-error';
-import { Option } from '@glimmer/util';
+import { Option, unwrap } from '@glimmer/util';
 import { TokenizerState } from 'simple-html-tokenizer';
 import { locForSpan, Location } from '../hbs/pos';
 
@@ -99,9 +99,9 @@ export abstract class HandlebarsNodeVisitors extends Parser {
       );
     }
 
-    let { call, params, hash } = acceptCallNodes(this, block);
+    let { call, params, hash } = acceptCallNodes(this, unwrap(block.program.call));
     let program = this.Program(block.program);
-    let inverse = block.inverse ? this.Program(block.inverse) : null;
+    let inverse = block.inverses ? this.Program(block.inverses[0]) : null;
 
     if (isSimple(call, 'in-element')) {
       hash = addInElementHash(this.cursor(), hash, this.loc(block.span));
@@ -204,10 +204,10 @@ export abstract class HandlebarsNodeVisitors extends Parser {
     let mustache: AST.MustacheStatement;
     let { trusted, span } = rawMustache;
 
-    if (isLiteral(rawMustache.call)) {
+    if (isLiteral(rawMustache.body.call)) {
       mustache = {
         type: 'MustacheStatement',
-        call: this.acceptNode<AST.Literal>(rawMustache.call),
+        call: this.acceptNode<AST.Literal>(rawMustache.body.call),
         params: [],
         hash: b.hash(),
         trusted,
@@ -215,9 +215,7 @@ export abstract class HandlebarsNodeVisitors extends Parser {
         span,
       };
     } else {
-      let { call, params, hash } = acceptCallNodes(this, rawMustache as HBS.MustacheStatement & {
-        path: HBS.PathExpression;
-      });
+      let { call, params, hash } = acceptCallNodes(this, rawMustache.body);
       mustache = b.mustache(call, params, hash, trusted, this.loc(span));
     }
 
@@ -316,7 +314,7 @@ export abstract class HandlebarsNodeVisitors extends Parser {
   }
 
   SubExpression(sexpr: HBS.SubExpression): AST.SubExpression {
-    let { call, params, hash } = acceptCallNodes(this, sexpr);
+    let { call, params, hash } = acceptCallNodes(this, sexpr.body);
     return b.sexpr(sexpr.span, call, params, hash, this.loc(sexpr.span));
   }
 

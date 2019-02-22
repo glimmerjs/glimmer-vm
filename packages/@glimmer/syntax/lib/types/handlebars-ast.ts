@@ -18,6 +18,7 @@ export interface CommonNode {
 }
 
 export interface NodeMap {
+  Root: { input: Root; output: AST.Template };
   Program: { input: Program; output: AST.Template | AST.Block };
   MustacheStatement: { input: MustacheStatement; output: AST.MustacheStatement | void };
   MustacheContent: { input: MustacheContent; output: AST.MustacheContent | void };
@@ -54,13 +55,20 @@ export interface Position {
 
 export interface AnyProgram {
   span: Span | null;
-  type: 'Program';
+  type: 'Program' | 'Inverse' | 'Root';
+  body: Statement[] | null;
+}
+
+export interface Root {
+  span: Span;
+  type: 'Root';
   body: Statement[] | null;
 }
 
 export interface Program {
   span: Span;
   type: 'Program';
+  call: CallBody | null;
   body: Statement[] | null;
   blockParams: string[] | null;
 }
@@ -94,9 +102,8 @@ export interface MustacheContent extends CommonNode {
 }
 
 export interface CommonBlock extends CommonNode {
-  body: CallBody;
   program: Program;
-  inverse: Program | null;
+  inverses: Program[] | null;
 }
 
 export interface BlockStatement extends CommonBlock {

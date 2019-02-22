@@ -475,20 +475,20 @@ describe('@glimmer/syntax - parser', function() {
     });
   });
 
-  // it('parses multiple inverse sections', function() {
-  //   equivAST('{{#foo}} bar {{else if bar}}{{else}} baz {{/foo}}', {
-  //     sexp: [
-  //       [
-  //         'block',
-  //         'foo',
-  //         {
-  //           default: ['s: bar '],
-  //           else: [['block', 'if', 'bar', { default: [], else: ['s: baz '] }]],
-  //         },
-  //       ],
-  //     ],
-  //   });
-  // });
+  it('parses multiple inverse sections', function() {
+    equivAST('{{#foo}} bar {{else if bar}}{{else}} baz {{/foo}}', {
+      sexp: [
+        [
+          'block',
+          'foo',
+          {
+            default: ['s: bar '],
+            else: [['block', 'if', 'bar', { default: [], else: ['s: baz '] }]],
+          },
+        ],
+      ],
+    });
+  });
 
   // it('parses empty blocks with empty inverse (else-style) section', function() {
   //   equivAST('{{#foo}}{{else}}{{/foo}}', { sexp: [['block', 'foo', { default: [], else: [] }]] });

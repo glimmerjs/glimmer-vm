@@ -5,7 +5,7 @@ import { Option } from '@glimmer/interfaces';
 export class AstBuilder {
   private pos = 0;
 
-  build(program: BuilderAst): hbs.AnyProgram {
+  build(program: BuilderAst): hbs.Root {
     let statements: hbs.Statement[] = [];
 
     return this.spanned(() => {
@@ -15,7 +15,7 @@ export class AstBuilder {
       }
 
       return span => ({
-        type: 'Program',
+        type: 'Root',
         span,
         body: statements,
       });
@@ -61,7 +61,7 @@ export class AstBuilder {
 
           let { body, callSize, blockParams } = inside;
 
-          let programs = this.programs(statement.programs);
+          let programs = this.programs(statement.programs, body);
 
           this.consume('{{/');
           this.pos += callSize;
@@ -72,9 +72,8 @@ export class AstBuilder {
           return span => ({
             type: 'BlockStatement',
             span,
-            body,
             program: programs.default,
-            inverse: programs.else,
+            inverses: programs.else,
           });
         });
 
@@ -91,7 +90,7 @@ export class AstBuilder {
     }
   }
 
-  program(program: Program): hbs.Program {
+  program(program: Program, callBody: hbs.CallBody): hbs.Program {
     return this.spanned(() => {
       let body: hbs.Statement[] = [];
 
@@ -103,6 +102,7 @@ export class AstBuilder {
       return span => ({
         type: 'Program',
         span,
+        call: callBody,
         body: body.length ? body : null,
         blockParams: null,
       });
@@ -125,13 +125,17 @@ export class AstBuilder {
       return span => ({
         type: 'Program',
         span,
+        call: inside && inside.body,
         body: body.length ? body : null,
         blockParams: inside === null ? null : inside.blockParams,
       });
     });
   }
 
-  programs(programs: ToProgramPart[]): { default: hbs.Program; else: Option<hbs.Program> } {
+  programs(
+    programs: ToProgramPart[],
+    callBody: hbs.CallBody
+  ): { default: hbs.Program; else: Option<hbs.Program[]> } {
     let defaultBlock: hbs.Program | null = null;
     let inverseBlock: hbs.Program | null = null;
 
@@ -143,7 +147,7 @@ export class AstBuilder {
         this.skip(part.body);
         continue;
       } else if (part.type === 'Program') {
-        defaultBlock = this.program(part);
+        defaultBlock = this.program(part, callBody);
       } else if (part.type === 'Else') {
         defaultBlock!.span = { start, end: this.pos };
         inverseBlock = this.inverse(part);
@@ -162,7 +166,7 @@ export class AstBuilder {
       throw new Error(`Must pass at least one block to blockCall`);
     }
 
-    return { default: defaultBlock, else: inverseBlock };
+    return { default: defaultBlock, else: inverseBlock ? [inverseBlock] : null };
   }
 
   mustache(statement: MustacheStatement): hbs.MustacheStatement | hbs.MustacheContent {

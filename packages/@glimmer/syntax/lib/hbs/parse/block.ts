@@ -15,17 +15,18 @@ class BlockSyntax implements Syntax<hbs.BlockStatement> {
     if (!parser.is(TokenKind.OpenBlock)) return UNMATCHED;
 
     let {
-      value: { callBody, defaultBlock, inverseBlock, blockEnd },
+      value: { defaultBlock, inverseBlocks, blockEnd },
       span,
     } = parser.spanned(() => {
       parser.shift();
 
-      let { body: callBody, span: openBlockSpan } = parser.expect(OPEN_BLOCK);
-      let innerStart = openBlockSpan.end;
+      let defaultBlock = parser.parse(WHOLE_BLOCK);
 
-      let defaultBlock: Option<hbs.Program> = null;
-      let inverseBlock: Option<hbs.Program> = null;
-      let adjustedDefault = false;
+      if (defaultBlock === UNMATCHED) {
+        throw new Error(`Unimplemented error recovery after {{#`);
+      }
+
+      let inverseBlocks: hbs.Program[] = [];
 
       while (true) {
         let startEndBlock = parser.test(OPEN_END);
@@ -36,38 +37,25 @@ class BlockSyntax implements Syntax<hbs.BlockStatement> {
 
         let inverseMustache = parser.parse(ELSE);
 
-        debugger;
-
         if (inverseMustache !== UNMATCHED) {
           defaultBlock!.span.end = inverseMustache.inner.span.start;
-          inverseBlock = parser.parse(BLOCK_BODY);
-          inverseBlock.span.start = inverseMustache.inner.span.end;
-          adjustedDefault = true;
-        } else {
-          defaultBlock = parser.expect(BLOCK_BODY);
-          defaultBlock.span.start = innerStart;
+          let inverseBlock = parser.parse(WHOLE_BLOCK);
+
+          if (inverseBlock === UNMATCHED) {
+            throw new Error(`unimplemented error recovery after {{else`);
+          }
+
+          inverseBlocks.push(inverseBlock);
+          // inverseBlock.span.start = inverseMustache.inner.span.end;
+          // adjustedDefault = true;
         }
       }
 
       let close = parser.expect(CLOSE_BLOCK);
 
-      if (defaultBlock && !adjustedDefault) {
-        defaultBlock.span.end = close.inner.start;
-      }
-
-      if (!defaultBlock) {
-        defaultBlock = {
-          type: 'Program',
-          span: { start: innerStart, end: close.inner.start },
-          body: null,
-          blockParams: null,
-        };
-      }
-
       return {
-        callBody,
         defaultBlock,
-        inverseBlock,
+        inverseBlocks: inverseBlocks.length ? inverseBlocks : null,
         blockEnd: close.inner.end,
       };
     });
@@ -75,9 +63,8 @@ class BlockSyntax implements Syntax<hbs.BlockStatement> {
     return {
       type: 'BlockStatement',
       span: { start: span.start, end: blockEnd },
-      body: callBody,
       program: defaultBlock,
-      inverse: inverseBlock,
+      inverses: inverseBlocks,
     };
   }
 }
@@ -131,19 +118,17 @@ class OpenBlockSyntax implements FallibleSyntax<{ body: hbs.CallBody; span: hbs.
 
 const OPEN_BLOCK = new OpenBlockSyntax();
 
-class BlockBody implements FallibleSyntax<hbs.Program> {
+class BlockBody implements FallibleSyntax<{ span: hbs.Span; body: hbs.Statement[] | null }> {
   readonly description = 'block body';
   readonly fallible = true;
 
-  parse(parser: HandlebarsParser): hbs.Program {
+  parse(parser: HandlebarsParser): { span: hbs.Span; body: hbs.Statement[] | null } {
     const elseSyntax = parser.parse(ELSE);
 
     if (elseSyntax !== UNMATCHED) {
       return {
-        type: 'Program',
         span: elseSyntax.inner.span,
-        body: [],
-        blockParams: [],
+        body: null,
       };
     }
 
@@ -158,24 +143,54 @@ class BlockBody implements FallibleSyntax<hbs.Program> {
     }
 
     return {
-      type: 'Program',
       span: listSpan(body, parser.position()),
       body: body.length ? body : null,
-      blockParams: null,
     };
   }
 
-  orElse(parser: HandlebarsParser): hbs.Program {
+  orElse(parser: HandlebarsParser): { span: hbs.Span; body: hbs.Statement[] | null } {
     return {
-      type: 'Program',
       span: { start: parser.position(), end: parser.position() },
-      body: [],
-      blockParams: [],
+      body: null,
     };
   }
 }
 
 const BLOCK_BODY = new BlockBody();
+
+class WholeBlock implements Syntax<hbs.Program> {
+  readonly description = 'entire block';
+
+  parse(parser: HandlebarsParser): hbs.Program | UNMATCHED {
+    let call: Option<hbs.CallBody>;
+
+    if (parser.is(TokenKind.Close)) {
+      call = null;
+    } else {
+      let callBody = parser.parse(new CallBodySyntax(TOKENS['}}']));
+
+      if (callBody === UNMATCHED) {
+        return UNMATCHED;
+      }
+
+      call = callBody;
+    }
+
+    parser.parse(TRAILING_WS);
+
+    let { span, body } = parser.parse(BLOCK_BODY);
+
+    return {
+      type: 'Program',
+      span,
+      call,
+      body,
+      blockParams: null,
+    };
+  }
+}
+
+const WHOLE_BLOCK = new WholeBlock();
 
 class BlockContentSyntax implements Syntax<hbs.Statement> {
   readonly description = 'block content';
@@ -202,23 +217,14 @@ const BLOCK_CONTENT = new BlockContentSyntax();
 class ElseSyntax implements Syntax<{ span: hbs.Span }> {
   readonly description = '{{else';
 
-  parse(parser: HandlebarsParser): { span: hbs.Span; value: hbs.CallBody | null } | UNMATCHED {
+  parse(parser: HandlebarsParser): { span: hbs.Span } | UNMATCHED {
     if (parser.isCurlyPath('else')) {
-      let { span, value } = parser.spanned(() => {
+      let { span } = parser.spanned(() => {
         parser.shift();
         parser.shift();
-
-        if (parser.parse(TOKENS['}}']) !== UNMATCHED) {
-          return null;
-        } else {
-          let bodySyntax = new CallBodySyntax(TOKENS['}}']);
-          return parser.expect(bodySyntax);
-        }
       });
 
-      parser.parse(TRAILING_WS);
-
-      return { span, value };
+      return { span };
     } else {
       return UNMATCHED;
     }

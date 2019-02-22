@@ -5,7 +5,7 @@ import { FallibleSyntax, HandlebarsParser, InfallibleSyntax, Syntax, UNMATCHED }
 import { MUSTACHE, MustacheKind } from './mustache';
 import { LeadingWhitespaceKind, optionalLeadingWS, TRAILING_WS } from './whitespace';
 
-export const ROOT: InfallibleSyntax<hbs.AnyProgram> = {
+export const ROOT: InfallibleSyntax<hbs.Root> = {
   description: 'root',
 
   parse(parser) {
@@ -20,7 +20,7 @@ export const ROOT: InfallibleSyntax<hbs.AnyProgram> = {
     }
 
     return {
-      type: 'Program',
+      type: 'Root',
       span: { start: 0, end: parser.position() },
       body: statements,
     };

@@ -25,7 +25,9 @@ export function combineContent<T extends hbs.AnyProgram>(program: T): T {
       }
     } else if (item.type === 'BlockStatement') {
       item.program = combineContent(item.program);
-      if (item.inverse) item.inverse = combineContent(item.inverse);
+      if (item.inverses) {
+        item.inverses = item.inverses.map(inverse => combineContent(inverse));
+      }
     }
 
     statements.push(item);
