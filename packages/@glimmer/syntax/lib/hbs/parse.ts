@@ -61,6 +61,9 @@ export class TokensImpl implements Tokens {
   }
 
   commit(fork: TokensImpl): void {
+    if (this.pos !== fork.pos) {
+      this.loopDetect = 0;
+    }
     this.pos = fork.pos;
   }
 }

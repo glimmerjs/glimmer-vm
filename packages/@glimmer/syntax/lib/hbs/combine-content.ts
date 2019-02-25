@@ -20,6 +20,7 @@ export function combineContent<T extends hbs.AnyProgram>(program: T): T {
           i++;
           item = join(item, next);
         } else {
+          item = join(item);
           break;
         }
       }
@@ -42,11 +43,17 @@ function isContent(item: hbs.Statement | undefined): item is Content {
   return item !== undefined && (item.type === 'ContentStatement' || item.type === 'Newline');
 }
 
-function join(left: Content, right: Content): hbs.ContentStatement {
-  let span = { start: left.span.start, end: right.span.end };
+function join(left: Content, right?: Content): hbs.ContentStatement {
+  let span = { start: left.span.start, end: right ? right.span.end : left.span.end };
   let value: string;
 
-  if (left.type === 'Newline' && right.type === 'Newline') {
+  if (right === undefined) {
+    if (left.type === 'Newline') {
+      value = '\n';
+    } else {
+      value = left.value;
+    }
+  } else if (left.type === 'Newline' && right.type === 'Newline') {
     value = '\n\n';
   } else if (left.type === 'Newline' && right.type === 'ContentStatement') {
     value = `\n${right.value}`;

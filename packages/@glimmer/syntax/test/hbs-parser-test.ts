@@ -411,7 +411,7 @@ describe('@glimmer/syntax - parser', function() {
 
   it('parses an inverse (else-style) section', function() {
     equivAST('{{#foo}} bar {{else}} baz {{/foo}}', {
-      sexp: [['block', 'foo', { default: ['s: bar '], else: ['s: baz '] }]],
+      sexp: [['block', 'foo', { default: ['s: bar '], else: [['s: baz ']] }]],
       ast: b.ast(
         b.blockCall(['foo'], b.block(b.content(' bar ')), b.inverse([], b.content(' baz ')))
       ),
@@ -420,7 +420,7 @@ describe('@glimmer/syntax - parser', function() {
 
   it('parses an inverse (else-style) section with whitespace', function() {
     equivAST('{{#foo}}\n  bar\n{{else}}\n  baz\n{{/foo}}', {
-      sexp: [['block', 'foo', { default: ['s:  bar\n'], else: ['s:  baz\n'] }]],
+      sexp: [['block', 'foo', { default: ['s:  bar\n'], else: [['s:  baz\n']] }]],
       ast: b.ast(
         b.blockCall(
           ['foo'],
@@ -431,7 +431,7 @@ describe('@glimmer/syntax - parser', function() {
     });
 
     equivAST('{{#foo}}\n  bar\n  {{else}}  \n  baz\n{{/foo}}', {
-      sexp: [['block', 'foo', { default: ['s:  bar\n'], else: ['s:  baz\n'] }]],
+      sexp: [['block', 'foo', { default: ['s:  bar\n'], else: [['s:  baz\n']] }]],
       ast: b.ast(
         b.blockCall(
           ['foo'],
@@ -459,19 +459,41 @@ describe('@glimmer/syntax - parser', function() {
 
     equivAST(source, {
       sexp: [
-        '\n',
+        's:\n',
         [
           'block',
           'if',
           'foo',
           {
             default: [
-              ['block', 'if', 'bar', { default: ['s:        test\n'], else: ['s:      test\n'] }],
+              ['block', 'if', 'bar', { default: ['s:        test\n'], else: [['s:      test\n']] }],
             ],
           },
         ],
         's:    ',
       ],
+      ast: b.ast(
+        b.content('\n'),
+        b.skip('  '),
+        b.blockCall(
+          ['if', 'foo'],
+          b.skip('\n    '),
+          b.block(
+            b.blockCall(
+              ['if', 'bar'],
+              b.skip(),
+              b.block(b.content('        test\n')),
+              b.skip('        '),
+              b.inverse([], b.skip(), b.content('      test\n'), b.skip('  ')),
+              b.close('if', b.ws('    '))
+            )
+          ),
+          b.skip('\n       '),
+          b.close('if', b.ws('\n      '))
+        ),
+        b.skip('\n'),
+        b.content('    ')
+      ),
     });
   });
 

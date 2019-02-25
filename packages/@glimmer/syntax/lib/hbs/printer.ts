@@ -37,7 +37,9 @@ export class Printer {
         blocks.default = this.top(item.program);
 
         if (item.inverses) {
-          blocks.else = item.inverses.map(inverse => this.top(inverse));
+          blocks.else = item.inverses.map(inverse => {
+            return this.top(inverse);
+          });
         }
 
         sexp.push(blocks);

@@ -26,6 +26,8 @@ class BlockSyntax implements Syntax<hbs.BlockStatement> {
         throw new Error(`Unimplemented error recovery after {{#`);
       }
 
+      let currentBlock: hbs.Program = defaultBlock;
+
       let inverseBlocks: hbs.Program[] = [];
 
       while (true) {
@@ -38,12 +40,15 @@ class BlockSyntax implements Syntax<hbs.BlockStatement> {
         let inverseMustache = parser.parse(ELSE);
 
         if (inverseMustache !== UNMATCHED) {
-          defaultBlock!.span.end = inverseMustache.inner.span.start;
+          // defaultBlock!.span.end = inverseMustache.inner.span.start;
           let inverseBlock = parser.parse(WHOLE_BLOCK);
 
           if (inverseBlock === UNMATCHED) {
             throw new Error(`unimplemented error recovery after {{else`);
           }
+
+          currentBlock.span.end = inverseMustache.inner.span.start;
+          currentBlock = inverseBlock;
 
           inverseBlocks.push(inverseBlock);
           // inverseBlock.span.start = inverseMustache.inner.span.end;
@@ -52,6 +57,9 @@ class BlockSyntax implements Syntax<hbs.BlockStatement> {
       }
 
       let close = parser.expect(CLOSE_BLOCK);
+
+      debugger;
+      currentBlock.span.end = close.inner.start;
 
       return {
         defaultBlock,
@@ -165,6 +173,7 @@ class WholeBlock implements Syntax<hbs.Program> {
     let call: Option<hbs.CallBody>;
 
     if (parser.is(TokenKind.Close)) {
+      parser.shift();
       call = null;
     } else {
       let callBody = parser.parse(new CallBodySyntax(TOKENS['}}']));
@@ -176,13 +185,14 @@ class WholeBlock implements Syntax<hbs.Program> {
       call = callBody;
     }
 
+    let startPos = parser.position();
     parser.parse(TRAILING_WS);
 
     let { span, body } = parser.parse(BLOCK_BODY);
 
     return {
       type: 'Program',
-      span,
+      span: { start: startPos, end: span.end },
       call,
       body,
       blockParams: null,

@@ -64,7 +64,19 @@ export class AstBuilder {
           let programs = this.programs(statement.programs, body);
 
           this.consume('{{/');
-          this.pos += callSize;
+
+          if (programs.close) {
+            for (let part of programs.close.parts) {
+              if (typeof part === 'string') {
+                this.consume(part);
+              } else {
+                this.consume(part.body);
+              }
+            }
+          } else {
+            this.pos += callSize;
+          }
+
           this.consume('}}');
 
           programs.default.blockParams = blockParams;
@@ -135,9 +147,14 @@ export class AstBuilder {
   programs(
     programs: ToProgramPart[],
     callBody: hbs.CallBody
-  ): { default: hbs.Program; else: Option<hbs.Program[]> } {
+  ): {
+    default: hbs.Program;
+    else: Option<hbs.Program[]>;
+    close: Option<CloseBlock>;
+  } {
     let defaultBlock: hbs.Program | null = null;
     let inverseBlock: hbs.Program | null = null;
+    let close: Option<CloseBlock> = null;
 
     this.consume('}}');
     let start = this.pos;
@@ -151,8 +168,8 @@ export class AstBuilder {
       } else if (part.type === 'Else') {
         defaultBlock!.span = { start, end: this.pos };
         inverseBlock = this.inverse(part);
-      } else {
-        throw new Error(`Can only pass two blocks to blockCall`);
+      } else if (part.type === 'CloseBlock') {
+        close = part;
       }
     }
 
@@ -166,7 +183,7 @@ export class AstBuilder {
       throw new Error(`Must pass at least one block to blockCall`);
     }
 
-    return { default: defaultBlock, else: inverseBlock ? [inverseBlock] : null };
+    return { default: defaultBlock, else: inverseBlock ? [inverseBlock] : null, close };
   }
 
   mustache(statement: MustacheStatement): hbs.MustacheStatement | hbs.MustacheContent {
@@ -621,7 +638,19 @@ export interface BlockStatement {
   programs: ToProgramPart[];
 }
 
-type ToProgramPart = Program | Inverse | Whitespace | SkippedWhitespace;
+export interface CloseBlock {
+  type: 'CloseBlock';
+  parts: Array<Whitespace | string>;
+}
+
+export function close(...parts: Array<Whitespace | string>): CloseBlock {
+  return {
+    type: 'CloseBlock',
+    parts,
+  };
+}
+
+type ToProgramPart = Program | Inverse | Whitespace | SkippedWhitespace | CloseBlock;
 
 export function blockCall(
   mustacheParts: ToMustachePart[],
