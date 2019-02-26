@@ -37,7 +37,6 @@ class BlockSyntax implements Syntax<hbs.BlockStatement> {
           break;
         }
 
-        debugger;
         let inverseMustache = parser.parse(ELSE);
 
         if (inverseMustache !== UNMATCHED) {
@@ -59,7 +58,6 @@ class BlockSyntax implements Syntax<hbs.BlockStatement> {
 
       let close = parser.expect(CLOSE_BLOCK);
 
-      debugger;
       currentBlock.span.end = close.inner.start;
 
       return {

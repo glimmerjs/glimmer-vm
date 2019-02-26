@@ -53,15 +53,14 @@ export class AstBuilder {
       case 'BlockStatement':
         return this.spanned(() => {
           this.consume('{{#');
-          let inside = this.insideMustache(statement.mustache.contents);
 
-          if (inside === null) {
+          let programs = this.programs(statement.programs, statement.mustache.contents);
+
+          debugger;
+
+          if (programs.callSize === null) {
             throw new Error(`unexpected empty {{#}}`);
           }
-
-          let { body, callSize, blockParams } = inside;
-
-          let programs = this.programs(statement.programs, body);
 
           this.consume('{{/');
 
@@ -74,12 +73,12 @@ export class AstBuilder {
               }
             }
           } else {
-            this.pos += callSize;
+            this.pos += programs.callSize;
           }
 
           this.consume('}}');
 
-          programs.default.blockParams = blockParams;
+          programs.default.blockParams = programs.blockParams;
 
           return span => ({
             type: 'BlockStatement',
@@ -102,7 +101,7 @@ export class AstBuilder {
     }
   }
 
-  program(program: Program, callBody: hbs.CallBody): hbs.Program {
+  program(program: Program, callBody: hbs.CallBody | null): hbs.Program {
     return this.spanned(() => {
       let body: hbs.Statement[] = [];
 
@@ -123,7 +122,15 @@ export class AstBuilder {
 
   inverse(inverse: Inverse): hbs.Program {
     this.consume('{{else');
-    let inside = this.insideMustache(inverse.mustache.contents);
+
+    let inside: InsideMustache | null;
+    if (inverse.mustache.contents.length) {
+      this.consume(' ');
+      inside = this.insideMustache(inverse.mustache.contents);
+    } else {
+      inside = null;
+    }
+
     this.consume('}}');
 
     return this.spanned(() => {
@@ -146,15 +153,20 @@ export class AstBuilder {
 
   programs(
     programs: ToProgramPart[],
-    callBody: hbs.CallBody
+    callBody: MustacheContent[]
   ): {
     default: hbs.Program;
     else: Option<hbs.Program[]>;
     close: Option<CloseBlock>;
+    callSize: number | null;
+    blockParams: string[] | null;
   } {
     let defaultBlock: hbs.Program | null = null;
-    let inverseBlock: hbs.Program | null = null;
+    let inverseBlocks: hbs.Program[] = [];
     let close: Option<CloseBlock> = null;
+    let currentBlock: hbs.Program | null = null;
+
+    let inside = this.insideMustache(callBody);
 
     this.consume('}}');
     let start = this.pos;
@@ -164,26 +176,33 @@ export class AstBuilder {
         this.skip(part.body);
         continue;
       } else if (part.type === 'Program') {
-        defaultBlock = this.program(part, callBody);
+        defaultBlock = this.program(part, inside && inside.body);
+        defaultBlock.span.start = start;
+        currentBlock = defaultBlock;
+        start = this.pos;
       } else if (part.type === 'Else') {
-        defaultBlock!.span = { start, end: this.pos };
-        inverseBlock = this.inverse(part);
+        currentBlock!.span.end = this.pos;
+        currentBlock = this.inverse(part);
+        // start = this.pos;
+        inverseBlocks.push(currentBlock);
       } else if (part.type === 'CloseBlock') {
         close = part;
       }
     }
 
-    if (defaultBlock && defaultBlock.span) {
-      if (!inverseBlock) {
-        defaultBlock.span = { start, end: this.pos };
-      }
-    }
-
-    if (defaultBlock === null) {
+    if (currentBlock === null || defaultBlock === null) {
       throw new Error(`Must pass at least one block to blockCall`);
     }
 
-    return { default: defaultBlock, else: inverseBlock ? [inverseBlock] : null, close };
+    // currentBlock.span.end = this.pos;
+
+    return {
+      default: defaultBlock,
+      else: inverseBlocks.length ? inverseBlocks : null,
+      close,
+      callSize: inside && inside.callSize,
+      blockParams: inside && inside.blockParams,
+    };
   }
 
   mustache(statement: MustacheStatement): hbs.MustacheStatement | hbs.MustacheContent {
@@ -218,13 +237,7 @@ export class AstBuilder {
     });
   }
 
-  insideMustache(
-    contents: MustacheContents
-  ): {
-    callSize: number;
-    body: hbs.CallBody;
-    blockParams: Option<string[]>;
-  } | null {
+  insideMustache(contents: MustacheContents): InsideMustache | null {
     let foundCall: { call: hbs.Expression; size: number } | undefined = undefined;
     let foundHash: hbs.Hash | null | undefined = undefined;
     let params: hbs.Expression[] = [];
@@ -465,6 +478,12 @@ export class AstBuilder {
     let next = cb();
     return next({ start: pos, end: this.pos });
   }
+}
+
+interface InsideMustache {
+  callSize: number;
+  body: hbs.CallBody;
+  blockParams: Option<string[]>;
 }
 
 export interface BuilderAst {

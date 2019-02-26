@@ -1,6 +1,5 @@
 import * as hbs from '../types/handlebars-ast';
 import { JsonValue } from '@glimmer/interfaces';
-import { unwrap } from '@glimmer/util';
 
 export class Printer {
   print(ast: hbs.AnyProgram): JsonValue {

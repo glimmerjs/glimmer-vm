@@ -376,12 +376,12 @@ describe('@glimmer/syntax - parser', function() {
 
     equivAST('{{#foo}}\n{{/foo}}\n', {
       sexp: [['block', [['foo']]]],
-      ast: b.ast(b.blockCall(['foo'], b.skip(), b.block()), b.skip()),
+      ast: b.ast(b.blockCall(['foo'], b.block(b.skip())), b.skip()),
     });
 
     equivAST('{{#foo}}  \n  {{/foo}}\n', {
       sexp: [['block', [['foo']]]],
-      ast: b.ast(b.blockCall(['foo'], b.skip('  \n'), b.block(), b.skip('  ')), b.skip()),
+      ast: b.ast(b.blockCall(['foo'], b.block(b.skip('  \n'), b.skip('  '))), b.skip()),
     });
   });
 
@@ -401,9 +401,14 @@ describe('@glimmer/syntax - parser', function() {
       ast: b.ast(
         b.blockCall(
           ['foo'],
-          b.skip('  \n'),
-          b.block(b.content('hello\n'), b.mustache('world'), b.content('\ngoodbye\n')),
-          b.skip('  ')
+
+          b.block(
+            b.skip('  \n'),
+            b.content('hello\n'),
+            b.mustache('world'),
+            b.content('\ngoodbye\n'),
+            b.skip('  ')
+          )
         )
       ),
     });
@@ -435,8 +440,7 @@ describe('@glimmer/syntax - parser', function() {
       ast: b.ast(
         b.blockCall(
           ['foo'],
-          b.block(b.skip(), b.content('  bar\n')),
-          b.skip('  '),
+          b.block(b.skip(), b.content('  bar\n'), b.skip('  ')),
           b.inverse([], b.skip('  \n'), b.content('  baz\n'))
         )
       ),
@@ -448,21 +452,22 @@ describe('@glimmer/syntax - parser', function() {
       '',
       '  {{#if foo}}',
       '    {{#if bar}}',
-      '        test',
+      '        test1',
       '        {{else}}',
-      '      test',
+      '      test2',
       '  {{/if    }}',
       '       {{/if',
       '      }}',
       '    ',
     ].join('\n');
 
+    debugger;
     equivAST(source, {
       sexp: [
         's:\n',
         [
           'block',
-          [['if', 'foo'], ['block', [['if', 'bar'], 's:        test\n'], [[], 's:      test\n']]],
+          [['if', 'foo'], ['block', [['if', 'bar'], 's:        test1\n'], [[], 's:      test2\n']]],
         ],
         's:    ',
       ],
@@ -475,14 +480,12 @@ describe('@glimmer/syntax - parser', function() {
           b.block(
             b.blockCall(
               ['if', 'bar'],
-              b.skip(),
-              b.block(b.content('        test\n')),
-              b.skip('        '),
-              b.inverse([], b.skip(), b.content('      test\n'), b.skip('  ')),
+              b.block(b.skip(), b.content('        test1\n'), b.skip('        ')),
+              b.inverse([], b.skip(), b.content('      test2\n'), b.skip('  ')),
               b.close('if', b.ws('    '))
-            )
+            ),
+            b.skip('\n       ')
           ),
-          b.skip('\n       '),
           b.close('if', b.ws('\n      '))
         ),
         b.skip('\n'),
@@ -492,8 +495,16 @@ describe('@glimmer/syntax - parser', function() {
   });
 
   it('parses multiple inverse sections', function() {
-    equivAST('{{#foo}} bar {{else if bar}}{{else}} baz {{/foo}}', {
-      sexp: [['block', [['foo'], 's: bar '], [['if', 'bar']], [[], 's: baz ']]],
+    equivAST('{{#first}} inner1 {{else if second}}{{else}} inner2 {{/first}}', {
+      sexp: [['block', [['first'], 's: inner1 '], [['if', 'second']], [[], 's: inner2 ']]],
+      ast: b.ast(
+        b.blockCall(
+          ['first'],
+          b.block(' inner1 '),
+          b.inverse(['if', 'second']),
+          b.inverse([], ' inner2 ')
+        )
+      ),
     });
   });
 
