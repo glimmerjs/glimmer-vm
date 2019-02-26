@@ -37,6 +37,7 @@ class BlockSyntax implements Syntax<hbs.BlockStatement> {
           break;
         }
 
+        debugger;
         let inverseMustache = parser.parse(ELSE);
 
         if (inverseMustache !== UNMATCHED) {
@@ -131,11 +132,11 @@ class BlockBody implements FallibleSyntax<{ span: hbs.Span; body: hbs.Statement[
   readonly fallible = true;
 
   parse(parser: HandlebarsParser): { span: hbs.Span; body: hbs.Statement[] | null } {
-    const elseSyntax = parser.parse(ELSE);
+    const elseSyntax = parser.test(ELSE);
 
-    if (elseSyntax !== UNMATCHED) {
+    if (elseSyntax) {
       return {
-        span: elseSyntax.inner.span,
+        span: { start: parser.position(), end: parser.position() },
         body: null,
       };
     }

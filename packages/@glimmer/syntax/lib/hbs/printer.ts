@@ -22,6 +22,18 @@ export class Printer {
     return out;
   }
 
+  statements(statements: hbs.Statement[] | null): JsonValue[] {
+    let out = [];
+
+    if (statements) {
+      for (let item of statements) {
+        out.push(this.visit(item));
+      }
+    }
+
+    return out;
+  }
+
   visit(item: hbs.Statement | hbs.Program): JsonValue {
     switch (item.type) {
       case 'CommentStatement':
@@ -32,23 +44,20 @@ export class Printer {
 
       case 'BlockStatement': {
         let sexp: JsonValue[] = ['block'];
-        let blocks: JsonValue = {};
-        sexp.push(...this.mustacheBody(unwrap(item.program.call), item.program.blockParams));
-        blocks.default = this.top(item.program);
+
+        sexp.push(this.program(item.program));
 
         if (item.inverses) {
-          blocks.else = item.inverses.map(inverse => {
-            return this.top(inverse);
-          });
+          for (let block of item.inverses) {
+            sexp.push(this.program(block));
+          }
         }
-
-        sexp.push(blocks);
 
         return sexp;
       }
 
       case 'MustacheStatement': {
-        return this.mustacheBody(item.body);
+        return this.callBody(item.body);
       }
 
       case 'MustacheContent':
@@ -62,7 +71,7 @@ export class Printer {
     }
   }
 
-  mustacheBody(item: hbs.CallBody, blockParams?: string[] | null): JsonValue[] {
+  callBody(item: hbs.CallBody, blockParams?: string[] | null): JsonValue[] {
     let sexp = [];
 
     sexp.push(this.expr(item.call));
@@ -83,6 +92,18 @@ export class Printer {
 
     if (blockParams && blockParams.length) sexp.push({ as: blockParams });
     return sexp;
+  }
+
+  program(item: hbs.Program): JsonValue[] {
+    let call: JsonValue[] = [];
+
+    if (item.call !== null) {
+      call = this.callBody(item.call);
+    }
+
+    let body = this.statements(item.body);
+
+    return [call, ...body];
   }
 
   expr(item: hbs.Expression): JsonValue | JsonValue[] {
@@ -118,7 +139,7 @@ export class Printer {
   }
 
   subexpr(item: hbs.SubExpression): JsonValue[] {
-    return this.mustacheBody(item.body);
+    return this.callBody(item.body);
   }
 
   head(item: hbs.Head): JsonValue {

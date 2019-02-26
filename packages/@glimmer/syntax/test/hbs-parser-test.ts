@@ -370,24 +370,24 @@ describe('@glimmer/syntax - parser', function() {
 
   it('parses empty blocks', function() {
     equivAST('{{#foo}}{{/foo}}', {
-      sexp: [['block', 'foo', { default: [] }]],
+      sexp: [['block', [['foo']]]],
       ast: b.ast(b.blockCall(['foo'], b.block())),
     });
 
     equivAST('{{#foo}}\n{{/foo}}\n', {
-      sexp: [['block', 'foo', { default: [] }]],
+      sexp: [['block', [['foo']]]],
       ast: b.ast(b.blockCall(['foo'], b.skip(), b.block()), b.skip()),
     });
 
     equivAST('{{#foo}}  \n  {{/foo}}\n', {
-      sexp: [['block', 'foo', { default: [] }]],
+      sexp: [['block', [['foo']]]],
       ast: b.ast(b.blockCall(['foo'], b.skip('  \n'), b.block(), b.skip('  ')), b.skip()),
     });
   });
 
   it('parses blocks', function() {
     equivAST('{{#foo}}hello {{world}} goodbye{{/foo}}', {
-      sexp: [['block', 'foo', { default: ['s:hello ', 'world', 's: goodbye'] }]],
+      sexp: [['block', [['foo'], 's:hello ', 'world', 's: goodbye']]],
       ast: b.ast(
         b.blockCall(
           ['foo'],
@@ -397,7 +397,7 @@ describe('@glimmer/syntax - parser', function() {
     });
 
     equivAST('{{#foo}}  \nhello\n{{world}}\ngoodbye\n  {{/foo}}', {
-      sexp: [['block', 'foo', { default: ['s:hello\n', 'world', 's:\ngoodbye\n'] }]],
+      sexp: [['block', [['foo'], 's:hello\n', 'world', 's:\ngoodbye\n']]],
       ast: b.ast(
         b.blockCall(
           ['foo'],
@@ -411,7 +411,7 @@ describe('@glimmer/syntax - parser', function() {
 
   it('parses an inverse (else-style) section', function() {
     equivAST('{{#foo}} bar {{else}} baz {{/foo}}', {
-      sexp: [['block', 'foo', { default: ['s: bar '], else: [['s: baz ']] }]],
+      sexp: [['block', [['foo'], 's: bar '], [[], 's: baz ']]],
       ast: b.ast(
         b.blockCall(['foo'], b.block(b.content(' bar ')), b.inverse([], b.content(' baz ')))
       ),
@@ -420,7 +420,7 @@ describe('@glimmer/syntax - parser', function() {
 
   it('parses an inverse (else-style) section with whitespace', function() {
     equivAST('{{#foo}}\n  bar\n{{else}}\n  baz\n{{/foo}}', {
-      sexp: [['block', 'foo', { default: ['s:  bar\n'], else: [['s:  baz\n']] }]],
+      sexp: [['block', [['foo'], 's:  bar\n'], [[], 's:  baz\n']]],
       ast: b.ast(
         b.blockCall(
           ['foo'],
@@ -431,7 +431,7 @@ describe('@glimmer/syntax - parser', function() {
     });
 
     equivAST('{{#foo}}\n  bar\n  {{else}}  \n  baz\n{{/foo}}', {
-      sexp: [['block', 'foo', { default: ['s:  bar\n'], else: [['s:  baz\n']] }]],
+      sexp: [['block', [['foo'], 's:  bar\n'], [[], 's:  baz\n']]],
       ast: b.ast(
         b.blockCall(
           ['foo'],
@@ -462,13 +462,7 @@ describe('@glimmer/syntax - parser', function() {
         's:\n',
         [
           'block',
-          'if',
-          'foo',
-          {
-            default: [
-              ['block', 'if', 'bar', { default: ['s:        test\n'], else: [['s:      test\n']] }],
-            ],
-          },
+          [['if', 'foo'], ['block', [['if', 'bar'], 's:        test\n'], [[], 's:      test\n']]],
         ],
         's:    ',
       ],
@@ -499,16 +493,7 @@ describe('@glimmer/syntax - parser', function() {
 
   it('parses multiple inverse sections', function() {
     equivAST('{{#foo}} bar {{else if bar}}{{else}} baz {{/foo}}', {
-      sexp: [
-        [
-          'block',
-          'foo',
-          {
-            default: ['s: bar '],
-            else: [['block', 'if', 'bar', { default: [], else: ['s: baz '] }]],
-          },
-        ],
-      ],
+      sexp: [['block', [['foo'], 's: bar '], [['if', 'bar']], [[], 's: baz ']]],
     });
   });
 

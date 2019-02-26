@@ -112,7 +112,7 @@ export class HashSyntax implements Syntax<hbs.Hash> {
   readonly description = 'hash';
 
   parse(parser: HandlebarsParser): hbs.Hash | UNMATCHED {
-    let { value, span } = parser.spanned(() => {
+    let { value } = parser.spanned(() => {
       let first = parser.parse(HASH_PAIR);
 
       if (first === UNMATCHED) {
