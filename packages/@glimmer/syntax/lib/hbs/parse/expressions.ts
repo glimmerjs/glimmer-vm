@@ -3,8 +3,10 @@ import * as hbs from '../../types/handlebars-ast';
 import { TokenKind } from '../lex';
 import { FallibleSyntax, HandlebarsParser, Syntax, UNMATCHED } from './core';
 import { NUMBER, STRING } from './literals';
-import { PATH, PathKind } from './path';
+import { PATH } from './path';
 import { TOKENS } from './tokens';
+import { CallBodySyntax } from './mustache';
+import { BLOCK_PARAMS } from './block';
 
 export const enum ExpressionTypeKind {
   Macro,
@@ -13,22 +15,6 @@ export const enum ExpressionTypeKind {
   Path,
 }
 
-export type ExpressionType =
-  | {
-      type: ExpressionTypeKind.Macro;
-    }
-  | {
-      type: ExpressionTypeKind.Number;
-      result: hbs.NumberLiteral;
-    }
-  | {
-      type: ExpressionTypeKind.String;
-    }
-  | {
-      type: ExpressionTypeKind.Path;
-      kind: PathKind;
-    };
-
 class ExpressionSyntax implements FallibleSyntax<hbs.Expression> {
   readonly description = 'expression';
   readonly fallible = true;
@@ -36,6 +22,12 @@ class ExpressionSyntax implements FallibleSyntax<hbs.Expression> {
   parse(parser: HandlebarsParser): hbs.Expression | UNMATCHED {
     if (parser.isMacro('expr')) {
       return parser.expandExpressionMacro();
+    }
+
+    let sexpr = parser.parse(SUBEXPR);
+
+    if (sexpr !== UNMATCHED) {
+      return sexpr;
     }
 
     let number = parser.parse(NUMBER);
@@ -74,6 +66,10 @@ export class ParamsSyntax implements Syntax<Option<hbs.Expression[]>> {
   readonly description = 'params';
 
   parse(parser: HandlebarsParser): hbs.Expression[] | UNMATCHED {
+    if (parser.test(BLOCK_PARAMS)) {
+      return UNMATCHED;
+    }
+
     let hash = parser.test(HASH);
 
     if (hash) {
@@ -89,6 +85,10 @@ export class ParamsSyntax implements Syntax<Option<hbs.Expression[]>> {
     let params: hbs.Expression[] = [first];
 
     while (true) {
+      if (parser.test(BLOCK_PARAMS)) {
+        break;
+      }
+
       if (parser.test(HASH)) {
         break;
       }
@@ -112,7 +112,7 @@ export class HashSyntax implements Syntax<hbs.Hash> {
   readonly description = 'hash';
 
   parse(parser: HandlebarsParser): hbs.Hash | UNMATCHED {
-    let { value } = parser.spanned(() => {
+    let { value, span } = parser.spanned(() => {
       let first = parser.parse(HASH_PAIR);
 
       if (first === UNMATCHED) {
@@ -140,7 +140,7 @@ export class HashSyntax implements Syntax<hbs.Hash> {
 
     return {
       type: 'Hash',
-      span: { start: value[0].span.start, end: value[value.length - 1].span.end },
+      span,
       pairs: value,
     };
   }
@@ -176,3 +176,30 @@ export class HashPairSyntax implements Syntax<hbs.HashPair> {
 }
 
 const HASH_PAIR = new HashPairSyntax();
+
+class SubExpression implements Syntax<hbs.SubExpression> {
+  readonly description = 'subexpression';
+
+  parse(parser: HandlebarsParser): hbs.SubExpression | UNMATCHED {
+    if (!parser.is(TokenKind.OpenParen)) {
+      return UNMATCHED;
+    }
+
+    let { span, value: body } = parser.spanned(() => {
+      parser.shift();
+      return parser.parse(new CallBodySyntax(TOKENS[')']));
+    });
+
+    if (body === UNMATCHED) {
+      return UNMATCHED;
+    }
+
+    return {
+      type: 'SubExpression',
+      span,
+      body,
+    };
+  }
+}
+
+const SUBEXPR = new SubExpression();

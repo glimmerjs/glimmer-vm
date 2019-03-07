@@ -65,6 +65,10 @@ function it(name: string, callback: () => void) {
   QUnit.test(name, callback);
 }
 
+function todo(name: string, callback: () => void) {
+  QUnit.todo(name, callback);
+}
+
 // function todo(name: string, callback: () => void) {
 //   QUnit.todo(name, callback);
 // }
@@ -99,45 +103,255 @@ const VALUES = new Map<string | boolean | null | undefined, string>([
  * bare (local arg)
  */
 
+QUnit.dump.maxDepth = 10;
+
 describe('@glimmer/syntax - parser', function() {
   it('parses any empty program', () => {
     equivAST('', { sexp: [], ast: b.ast() });
   });
 
   it('parses content', () => {
-    equivAST('hello', { sexp: ['s:hello'], ast: b.ast(b.content('hello')) });
+    equivAST('hello', { sexp: ['s:hello'], ast: b.ast(b.text('hello')) });
+  });
+
+  it('parses html tags', () => {
+    equivAST('<p>hello</p>', {
+      sexp: [['element', 'p', [[], 's:hello']]],
+      ast: b.ast(b.element('p', b.block(b.text('hello')))),
+    });
+  });
+
+  it('parses html comments', () => {
+    equivAST('<!-- hello -->', {
+      sexp: [['html-comment', 's: hello ']],
+      ast: b.ast(b.htmlComment(' hello ')),
+    });
+  });
+
+  it('parses attributes', () => {
+    equivAST(`<p class="hello">world</p>`, {
+      sexp: [['element', 'p', { class: 's:hello' }, [[], 's:world']]],
+      ast: b.ast(b.element('p', b.attr('class', b.quoted('hello')), b.block(b.text('world')))),
+    });
+
+    equivAST(`<p class="hello" data-attr="world">body</p>`, {
+      sexp: [['element', 'p', { class: 's:hello', 'data-attr': 's:world' }, [[], 's:body']]],
+      ast: b.ast(
+        b.element(
+          'p',
+          b.attr('class', b.quoted('hello')),
+          b.attr('data-attr', b.quoted('world')),
+          b.block(b.text('body'))
+        )
+      ),
+    });
+
+    equivAST(`<p class="hello" data-attr=world checked>body</p>`, {
+      sexp: [
+        [
+          'element',
+          'p',
+          { class: 's:hello', 'data-attr': 's:world', checked: null },
+          [[], 's:body'],
+        ],
+      ],
+      ast: b.ast(
+        b.element(
+          'p',
+          b.attr('class', b.quoted('hello')),
+          b.attr('data-attr', b.text('world')),
+          b.attr('checked'),
+          b.block(b.text('body'))
+        )
+      ),
+    });
+  });
+
+  it('parses attributes with a single mustache', () => {
+    equivAST(`<p class={{hello}}>world</p>`, {
+      sexp: [['element', 'p', { class: 'hello' }, [[], 's:world']]],
+      ast: b.ast(b.element('p', b.attr('class', b.mustache('hello')), b.block(b.text('world')))),
+    });
+
+    equivAST(`<p class={{hello}} data-attr={{world}}>body</p>`, {
+      sexp: [['element', 'p', { class: 'hello', 'data-attr': 'world' }, [[], 's:body']]],
+      ast: b.ast(
+        b.element(
+          'p',
+          b.attr('class', b.mustache('hello')),
+          b.attr('data-attr', b.mustache('world')),
+          b.block(b.text('body'))
+        )
+      ),
+    });
+
+    equivAST(`<p class={{hello}} data-attr={{world}} checked>body</p>`, {
+      sexp: [
+        ['element', 'p', { class: 'hello', 'data-attr': 'world', checked: null }, [[], 's:body']],
+      ],
+      ast: b.ast(
+        b.element(
+          'p',
+          b.attr('class', b.mustache('hello')),
+          b.attr('data-attr', b.mustache('world')),
+          b.attr('checked'),
+          b.block(b.text('body'))
+        )
+      ),
+    });
+  });
+
+  it('parses attributes with a single mustache (whitespace)', () => {
+    equivAST(`<p\n  class=\n  {{hello}}\n>\n  world\n</p>`, {
+      sexp: [['element', 'p', { class: 'hello' }, [[], 's:\n  world\n']]],
+      ast: b.ast(
+        b.element(
+          'p',
+          b.ws('\n  '),
+          b.attr('class', b.eq, b.ws('\n  '), b.mustache('hello')),
+          b.ws('\n'),
+          b.block(b.text('\n  world\n'))
+        )
+      ),
+    });
+
+    equivAST(`<p\n  class=\n  {{hello}}\n  data-attr=\n  {{world}}\n>\n  body\n</p>`, {
+      sexp: [['element', 'p', { class: 'hello', 'data-attr': 'world' }, [[], 's:\n  body\n']]],
+      ast: b.ast(
+        b.element(
+          'p',
+          b.ws('\n  '),
+          b.attr('class', b.eq, b.ws('\n  '), b.mustache('hello')),
+          b.ws('\n  '),
+          b.attr('data-attr', b.eq, b.ws('\n  '), b.mustache('world')),
+          b.ws('\n'),
+          b.block(b.text('\n  body\n'))
+        )
+      ),
+    });
+
+    equivAST(`<p\n  class=\n  {{hello}}\n  data-attr=\n  {{world}}\n  checked\n>\n  body\n</p>`, {
+      sexp: [
+        [
+          'element',
+          'p',
+          { class: 'hello', 'data-attr': 'world', checked: null },
+          [[], 's:\n  body\n'],
+        ],
+      ],
+      ast: b.ast(
+        b.element(
+          'p',
+          b.ws('\n  '),
+          b.attr('class', b.eq, b.ws('\n  '), b.mustache('hello')),
+          b.ws('\n  '),
+          b.attr('data-attr', b.eq, b.ws('\n  '), b.mustache('world')),
+          b.ws('\n  '),
+          b.attr('checked'),
+          b.ws('\n'),
+          b.block(b.text('\n  body\n'))
+        )
+      ),
+    });
+  });
+
+  it('parses attributes (whitespace)', () => {
+    equivAST(`<p\n  class\n=\n"hello"\n>\n  world\n</p>`, {
+      sexp: [['element', 'p', { class: 's:hello' }, [[], 's:\n  world\n']]],
+      ast: b.ast(
+        b.element(
+          'p',
+          b.ws('\n  '),
+          b.attr('class', b.ws('\n'), b.eq, b.ws('\n'), b.quoted('hello')),
+          b.ws('\n'),
+          b.block(b.text('\n  world\n'))
+        )
+      ),
+    });
+  });
+
+  it('parses concat attributes', () => {
+    equivAST(`<p class="hello {{world}}">body</p>`, {
+      sexp: [['element', 'p', { class: ['concat', 's:hello ', 'world'] }, [[], 's:body']]],
+      ast: b.ast(
+        b.element(
+          'p',
+          b.attr('class', b.eq, b.text('hello '), b.mustache('world')),
+          b.block(b.text('world'))
+        )
+      ),
+    });
+
+    equivAST(`<p class="{{hello}} world">body</p>`, {
+      sexp: [['element', 'p', { class: ['concat', 'hello', 's: world'] }, [[], 's:body']]],
+      // ast: b.ast(b.element('p', b.attr('class', b.mustache('hello')), b.block(b.text('world')))),
+    });
+
+    equivAST(`<p class="hello {{world}} goodbye">body</p>`, {
+      sexp: [
+        ['element', 'p', { class: ['concat', 's:hello ', 'world', 's: goodbye'] }, [[], 's:body']],
+      ],
+      // ast: b.ast(b.element('p', b.attr('class', b.mustache('hello')), b.block(b.text('world')))),
+    });
+
+    // equivAST(`<p class={{hello}} data-attr={{world}}>body</p>`, {
+    //   sexp: [['element', 'p', { class: 'hello', 'data-attr': 'world' }, [[], 's:body']]],
+    //   ast: b.ast(
+    //     b.element(
+    //       'p',
+    //       b.attr('class', b.mustache('hello')),
+    //       b.attr('data-attr', b.mustache('world')),
+    //       b.block(b.text('body'))
+    //     )
+    //   ),
+    // });
+
+    // equivAST(`<p class={{hello}} data-attr={{world}} checked>body</p>`, {
+    //   sexp: [
+    //     ['element', 'p', { class: 'hello', 'data-attr': 'world', checked: null }, [[], 's:body']],
+    //   ],
+    //   ast: b.ast(
+    //     b.element(
+    //       'p',
+    //       b.attr('class', b.mustache('hello')),
+    //       b.attr('data-attr', b.mustache('world')),
+    //       b.attr('checked'),
+    //       b.block(b.text('body'))
+    //     )
+    //   ),
+    // });
   });
 
   it('parses comments', () => {
     equivAST('{{! hello }}', {
-      sexp: [['comment', ' hello ']],
+      sexp: [['comment', 's: hello ']],
       ast: b.ast(b.comment(' hello ')),
     });
 
     equivAST('{{!-- hello --}}', {
-      sexp: [['comment', ' hello ']],
+      sexp: [['comment', 's: hello ']],
       ast: b.ast(b.comment('-- hello --')),
     });
   });
 
   it('strips whitespace around comments', () => {
     equivAST(`{{! hello }}\nworld\n{{! goodbye }}\n`, {
-      sexp: [['comment', ' hello '], 's:world\n', ['comment', ' goodbye ']],
+      sexp: [['comment', 's: hello '], 's:world\n', ['comment', 's: goodbye ']],
       ast: b.ast(
         b.comment(' hello '),
         b.skip(),
-        b.content('world\n'),
+        b.text('world\n'),
         b.comment(' goodbye '),
         b.skip()
       ),
     });
 
     equivAST(`{{! hello }}   \nworld\n   {{! goodbye }}   \n`, {
-      sexp: [['comment', ' hello '], 's:world\n', ['comment', ' goodbye ']],
+      sexp: [['comment', 's: hello '], 's:world\n', ['comment', 's: goodbye ']],
       ast: b.ast(
         b.comment(' hello '),
         b.skip('   \n'),
-        b.content('world\n'),
+        b.text('world\n'),
         b.skip('   '),
         b.comment(' goodbye '),
         b.skip('   \n')
@@ -343,27 +557,27 @@ describe('@glimmer/syntax - parser', function() {
   it('parses contents followed by a mustache', function() {
     equivAST('foo bar {{baz}}', {
       sexp: ['s:foo bar ', 'baz'],
-      ast: b.ast(b.content('foo bar '), b.mustache('baz')),
+      ast: b.ast(b.text('foo bar '), b.mustache('baz')),
     });
   });
 
   it('parses a comment', function() {
     equivAST('{{! this is a comment }}', {
-      sexp: [['comment', ' this is a comment ']],
+      sexp: [['comment', 's: this is a comment ']],
       ast: b.ast(b.comment(' this is a comment ')),
     });
   });
 
   it('parses a multi-line comment', function() {
     equivAST('{{!\nthis is a multi-line comment\n}}', {
-      sexp: [['comment', '\nthis is a multi-line comment\n']],
+      sexp: [['comment', 's:\nthis is a multi-line comment\n']],
       ast: b.ast(b.comment('\nthis is a multi-line comment\n')),
     });
   });
 
   it('parses a block comment', function() {
     equivAST('{{!-- this is a comment --}}', {
-      sexp: [['comment', ' this is a comment ']],
+      sexp: [['comment', 's: this is a comment ']],
       ast: b.ast(b.comment('-- this is a comment --')),
     });
   });
@@ -389,10 +603,7 @@ describe('@glimmer/syntax - parser', function() {
     equivAST('{{#foo}}hello {{world}} goodbye{{/foo}}', {
       sexp: [['block', [['foo'], 's:hello ', 'world', 's: goodbye']]],
       ast: b.ast(
-        b.blockCall(
-          ['foo'],
-          b.block(b.content('hello '), b.mustache('world'), b.content(' goodbye'))
-        )
+        b.blockCall(['foo'], b.block(b.text('hello '), b.mustache('world'), b.text(' goodbye')))
       ),
     });
 
@@ -404,9 +615,9 @@ describe('@glimmer/syntax - parser', function() {
 
           b.block(
             b.skip('  \n'),
-            b.content('hello\n'),
+            b.text('hello\n'),
             b.mustache('world'),
-            b.content('\ngoodbye\n'),
+            b.text('\ngoodbye\n'),
             b.skip('  ')
           )
         )
@@ -417,9 +628,7 @@ describe('@glimmer/syntax - parser', function() {
   it('parses an inverse (else-style) section', function() {
     equivAST('{{#foo}} bar {{else}} baz {{/foo}}', {
       sexp: [['block', [['foo'], 's: bar '], [[], 's: baz ']]],
-      ast: b.ast(
-        b.blockCall(['foo'], b.block(b.content(' bar ')), b.inverse([], b.content(' baz ')))
-      ),
+      ast: b.ast(b.blockCall(['foo'], b.block(b.text(' bar ')), b.inverse([], b.text(' baz ')))),
     });
   });
 
@@ -429,8 +638,8 @@ describe('@glimmer/syntax - parser', function() {
       ast: b.ast(
         b.blockCall(
           ['foo'],
-          b.block(b.skip(), b.content('  bar\n')),
-          b.inverse([], b.skip(), b.content('  baz\n'))
+          b.block(b.skip(), b.text('  bar\n')),
+          b.inverse([], b.skip(), b.text('  baz\n'))
         )
       ),
     });
@@ -440,8 +649,8 @@ describe('@glimmer/syntax - parser', function() {
       ast: b.ast(
         b.blockCall(
           ['foo'],
-          b.block(b.skip(), b.content('  bar\n'), b.skip('  ')),
-          b.inverse([], b.skip('  \n'), b.content('  baz\n'))
+          b.block(b.skip(), b.text('  bar\n'), b.skip('  ')),
+          b.inverse([], b.skip('  \n'), b.text('  baz\n'))
         )
       ),
     });
@@ -461,7 +670,6 @@ describe('@glimmer/syntax - parser', function() {
       '    ',
     ].join('\n');
 
-    debugger;
     equivAST(source, {
       sexp: [
         's:\n',
@@ -472,7 +680,7 @@ describe('@glimmer/syntax - parser', function() {
         's:    ',
       ],
       ast: b.ast(
-        b.content('\n'),
+        b.text('\n'),
         b.skip('  '),
         b.blockCall(
           ['if', 'foo'],
@@ -480,8 +688,8 @@ describe('@glimmer/syntax - parser', function() {
           b.block(
             b.blockCall(
               ['if', 'bar'],
-              b.block(b.skip(), b.content('        test1\n'), b.skip('        ')),
-              b.inverse([], b.skip(), b.content('      test2\n'), b.skip('  ')),
+              b.block(b.skip(), b.text('        test1\n'), b.skip('        ')),
+              b.inverse([], b.skip(), b.text('      test2\n'), b.skip('  ')),
               b.close('if', b.ws('    '))
             ),
             b.skip('\n       ')
@@ -489,7 +697,7 @@ describe('@glimmer/syntax - parser', function() {
           b.close('if', b.ws('\n      '))
         ),
         b.skip('\n'),
-        b.content('    ')
+        b.text('    ')
       ),
     });
   });
@@ -508,40 +716,150 @@ describe('@glimmer/syntax - parser', function() {
     });
   });
 
-  // it('parses empty blocks with empty inverse (else-style) section', function() {
-  //   equivAST('{{#foo}}{{else}}{{/foo}}', { sexp: [['block', 'foo', { default: [], else: [] }]] });
-  // });
+  it('parses empty blocks with empty inverse (else-style) section', function() {
+    equivAST('{{#foo}}{{else}}{{/foo}}', {
+      sexp: [['block', [['foo']], [[]]]],
+      ast: b.ast(b.blockCall(['foo'], b.block(), b.inverse([]))),
+    });
+  });
 
-  // it('parses non-empty blocks with empty inverse (else-style) section', function() {
-  //   equivAST('{{#foo}} bar {{else}}{{/foo}}', {
-  //     sexp: [['block', 'foo', { default: ['s: bar '], else: [] }]],
-  //   });
-  // });
+  it('parses non-empty blocks with empty inverse (else-style) section', function() {
+    equivAST('{{#foo}} bar {{else}}{{/foo}}', {
+      sexp: [['block', [['foo'], 's: bar '], [[]]]],
+    });
+  });
 
-  // it('parses empty blocks with non-empty inverse (else-style) section', function() {
-  //   equivAST('{{#foo}}{{else}} bar {{/foo}}', {
-  //     sexp: [['block', 'foo', { default: [], else: ['s: bar '] }]],
-  //   });
-  // });
+  it('parses empty blocks with non-empty inverse (else-style) section', function() {
+    equivAST('{{#foo}}{{else}} bar {{/foo}}', {
+      sexp: [['block', [['foo']], [[], 's: bar ']]],
+    });
+  });
+
+  it('parses block params', () => {
+    equivAST(`{{#first as |a b|}}{{a}} {{b}}{{/first}}`, {
+      sexp: [['block', [['first', { as: ['a', 'b'] }], 'a', 's: ', 'b']]],
+      ast: b.ast(
+        b.blockCall(
+          ['first', b.as('a', 'b')],
+          b.block(b.mustache('a'), b.text(' '), b.mustache('b'))
+        )
+      ),
+    });
+  });
+
+  todo('parses block params (html)', () => {
+    equivAST(`{{#first as |a b|}}<p>{{a}} {{b}}</p>{{/first}}`, {
+      sexp: [['block', [['first', { as: ['a', 'b'] }], 's:<p>', 'a', 's: ', 'b', 's:</p>']]],
+      ast: b.ast(
+        b.blockCall(
+          ['first', b.as('a', 'b')],
+          b.block(b.text('<p>'), b.mustache('a'), b.text(' '), b.mustache('b'), b.text('</p>'))
+        )
+      ),
+    });
+
+    equivAST(`{{#first  as  | a  b |}}<p>{{a}} {{b}}</p>{{/first}}`, {
+      sexp: [['block', [['first', { as: ['a', 'b'] }], 's:<p>', 'a', 's: ', 'b', 's:</p>']]],
+      ast: b.ast(
+        b.blockCall(
+          [
+            'first',
+            b.ws('  '),
+            b.pipes(b.ws('  '), b.pipe(), b.ws(), 'a', b.ws('  '), 'b', b.ws(), b.pipe()),
+          ],
+          b.block(b.text('<p>'), b.mustache('a'), b.text(' '), b.mustache('b'), b.text('</p>'))
+        )
+      ),
+    });
+  });
+
+  it('parses block params with else-style inverse', () => {
+    equivAST(`{{#first as |a b|}}{{a}} {{b}}{{else if second as |c d|}}{{c}} {{d}}{{/first}}`, {
+      sexp: [
+        [
+          'block',
+          [['first', { as: ['a', 'b'] }], 'a', 's: ', 'b'],
+          [['if', 'second', { as: ['c', 'd'] }], 'c', 's: ', 'd'],
+        ],
+      ],
+      ast: b.ast(
+        b.blockCall(
+          ['first', b.as('a', 'b')],
+          b.block(b.mustache('a'), b.text(' '), b.mustache('b')),
+          b.inverse(['if', 'second', b.as('c', 'd')], b.mustache('c'), b.text(' '), b.mustache('d'))
+        )
+      ),
+    });
+  });
+
+  todo('parses block params with else-style inverse (html)', () => {
+    equivAST(
+      `{{#first as |a b|}}<p>{{a}} {{b}}</p>{{else if second as |c d|}}<p>{{c}} {{d}}</p>{{/first}}`,
+      {
+        sexp: [
+          [
+            'block',
+            [['first', { as: ['a', 'b'] }], 's:<p>', 'a', 's: ', 'b', 's:</p>'],
+            [['if', 'second', { as: ['c', 'd'] }], 's:<p>', 'c', 's: ', 'd', 's:</p>'],
+          ],
+        ],
+        ast: b.ast(
+          b.blockCall(
+            ['first', b.as('a', 'b')],
+            b.block(b.text('<p>'), b.mustache('a'), b.text(' '), b.mustache('b'), b.text('</p>')),
+            b.inverse(
+              ['if', 'second', b.as('c', 'd')],
+              b.text('<p>'),
+              b.mustache('c'),
+              b.text(' '),
+              b.mustache('d'),
+              b.text('</p>')
+            )
+          )
+        ),
+      }
+    );
+
+    equivAST(
+      `{{#first as |a b|}}<p>{{a}} {{b}}</p>\n  {{else if second as |c d|}}  \n<p>{{c}} {{d}}</p>{{/first}}`,
+      {
+        sexp: [
+          [
+            'block',
+            [['first', { as: ['a', 'b'] }], 's:<p>', 'a', 's: ', 'b', 's:</p>\n'],
+            [['if', 'second', { as: ['c', 'd'] }], 's:<p>', 'c', 's: ', 'd', 's:</p>'],
+          ],
+        ],
+        ast: b.ast(
+          b.blockCall(
+            ['first', b.as('a', 'b')],
+            b.block(
+              b.text('<p>'),
+              b.mustache('a'),
+              b.text(' '),
+              b.mustache('b'),
+              b.text('</p>\n'),
+              b.skip('  ')
+            ),
+            b.inverse(
+              ['if', 'second', b.as('c', 'd')],
+              b.skip('  \n'),
+              b.text('<p>'),
+              b.mustache('c'),
+              b.text(' '),
+              b.mustache('d'),
+              b.text('</p>')
+            )
+          )
+        ),
+      }
+    );
+  });
 
   // it('throws on old inverse section', function() {
   //   shouldThrow(function() {
   //     astFor('{{else foo}}bar{{/foo}}');
   //   }, Error);
-  // });
-
-  // it('parses block with block params', function() {
-  //   equivAST('{{#foo as |bar baz|}}content{{/foo}}', {
-  //     ast: b.ast(
-  //       b.blockCall('foo', {
-  //         program: b.block({
-  //           statements: [b.content('content')],
-  //           as: ['bar', 'baz'],
-  //         }),
-  //       })
-  //     ),
-  //     sexp: [['block', 'foo', { as: ['bar', 'baz'] }, { default: ['s:content'] }]],
-  //   });
   // });
 
   // it('handles escape chars before content', () => {
@@ -550,66 +868,188 @@ describe('@glimmer/syntax - parser', function() {
   //   });
   // });
 
-  // it('handles nested subexpressions', () => {
-  //   equivAST(`<div>{{testing (testing "hello" foo) (testing (testing bar "lol") baz)}}</div>`, {
-  //     sexp: [
-  //       's:<div>',
-  //       ['testing', ['testing', 's:hello', 'foo'], ['testing', ['testing', 'bar', 's:lol'], 'baz']],
-  //       's:</div>',
-  //     ],
-  //   });
-  // });
+  it('handles nested subexpressions', () => {
+    equivAST(`{{testing1 (testing2 "hello" foo) (testing3 (testing4 bar "lol") baz)}}`, {
+      sexp: [
+        [
+          'testing1',
+          ['testing2', 's:hello', 'foo'],
+          ['testing3', ['testing4', 'bar', 's:lol'], 'baz'],
+        ],
+      ],
+      ast: b.ast(
+        b.mustache(
+          'testing1',
+          b.sexpr('testing2', b.literal('hello'), 'foo'),
+          b.sexpr('testing3', b.sexpr('testing4', 'bar', b.literal('lol')), 'baz')
+        )
+      ),
+    });
+  });
 
-  // it('parses idiomatic each loop', () => {
-  //   equivAST(`{{#each list key="@index" as |item|}}{{item}}{{else}}Empty{{/each}}`, {
-  //     sexp: [
-  //       [
-  //         'block',
-  //         'each',
-  //         'list',
-  //         { key: 's:@index' },
-  //         { as: ['item'] },
-  //         { default: ['item'], else: ['s:Empty'] },
-  //       ],
-  //     ],
-  //     ast: b.ast(
-  //       b.blockCall('each', {
-  //         params: ['list'],
-  //         hash: b.hash({ key: b.literal('@index') }),
-  //         program: b.block({ as: ['item'], statements: [b.mustache('item')] }),
-  //         inverse: b.block({ statements: [b.content('Empty')] }),
-  //       })
-  //     ),
-  //   });
-  // });
+  todo('handles nested subexpressions (html)', () => {
+    equivAST(`<div>{{testing1 (testing2 "hello" foo) (testing3 (testing4 bar "lol") baz)}}</div>`, {
+      sexp: [
+        's:<div>',
+        [
+          'testing1',
+          ['testing2', 's:hello', 'foo'],
+          ['testing3', ['testing4', 'bar', 's:lol'], 'baz'],
+        ],
+        's:</div>',
+      ],
+      ast: b.ast(
+        b.text('<div>'),
+        b.mustache(
+          'testing1',
+          b.sexpr('testing2', b.literal('hello'), 'foo'),
+          b.sexpr('testing3', b.sexpr('testing4', 'bar', b.literal('lol')), 'baz')
+        ),
+        b.text('</div>')
+      ),
+    });
+  });
 
-  // it('parses elaborate nested hash syntax', () => {
-  //   equivAST(`{{#with (hash Foo=(component 'Foo')) as |Other|}}<Other.Foo />{{/with}}`, {
-  //     sexp: [
-  //       [
-  //         'block',
-  //         'with',
-  //         ['hash', { Foo: ['component', 's:Foo'] }],
-  //         { as: ['Other'] },
-  //         { default: [`s:<Other.Foo />`] },
-  //       ],
-  //     ],
+  it('parses idiomatic each loop', () => {
+    equivAST(`{{#each list key="@index" as |item|}}{{item}}{{else}}Empty{{/each}}`, {
+      sexp: [
+        [
+          'block',
+          [['each', 'list', { key: 's:@index' }, { as: ['item'] }], 'item'],
+          [[], 's:Empty'],
+        ],
+      ],
+      ast: b.ast(
+        b.blockCall(
+          ['each', 'list', b.hash({ key: b.literal('@index') }), b.as('item')],
+          b.block(b.mustache('item')),
+          b.inverse([], b.text('Empty'))
+        )
+      ),
+    });
+  });
 
-  //     ast: b.ast(
-  //       b.blockCall('with', {
-  //         params: [b.sexpr('hash', b.hash({ Foo: b.sexpr('component', b.literal('Foo')) }))],
-  //         program: b.block({ statements: [b.content('<Other.Foo />')], as: ['Other'] }),
-  //       })
-  //     ),
-  //   });
-  // });
+  it('parses elaborate nested hash syntax', () => {
+    equivAST(`{{#with (hash Foo=(component 'Foo')) as |Other|}}{{Other.Foo}}{{/with}}`, {
+      sexp: [
+        [
+          'block',
+          [
+            ['with', ['hash', { Foo: ['component', 's:Foo'] }], { as: ['Other'] }],
+            ['get-path', 'Other', 's:Foo'],
+          ],
+        ],
+      ],
 
-  // todo('parses chained inverse block with block params', function() {
-  //   equals(
-  //     astFor('{{#foo}}{{else foo as |bar baz|}}content{{/foo}}'),
-  //     `{{# /"foo"/ [] }}\n  PROGRAM:\n  {{else}}\n    {{# /"foo"/ [] as |bar baz| }}\n      PROGRAM:\n        CONTENT[ 'content' ]\n`
-  //   );
-  // });
+      ast: b.ast(
+        b.blockCall(
+          [
+            'with',
+            b.sexpr('hash', b.hash({ Foo: b.sexpr('component', b.literal('Foo')) })),
+            b.as('Other'),
+          ],
+          b.block(b.mustache('Other.Foo'))
+        )
+      ),
+    });
+
+    equivAST(
+      `{{#with\n  (hash\n    Foo=(component 'Foo')\n  )\n  as |Other|\n}}\n  {{Other.Foo}}\n{{/with}}`,
+      {
+        sexp: [
+          [
+            'block',
+            [
+              ['with', ['hash', { Foo: ['component', 's:Foo'] }], { as: ['Other'] }],
+              `s:  `,
+              ['get-path', 'Other', 's:Foo'],
+              `s:\n`,
+            ],
+          ],
+        ],
+
+        ast: b.ast(
+          b.blockCall(
+            [
+              'with',
+              b.ws('\n  '),
+              b.sexpr(
+                'hash',
+                b.ws('\n    '),
+                b.hash({ Foo: b.sexpr('component', b.literal('Foo')) }),
+                b.ws('\n  ')
+              ),
+              b.ws('\n  '),
+              b.as('Other'),
+              b.ws('\n'),
+            ],
+            b.skip(),
+            b.block(b.text('  '), b.mustache('Other.Foo'), b.text('\n'))
+          )
+        ),
+      }
+    );
+  });
+
+  todo('parses elaborate nested hash syntax (html)', () => {
+    equivAST(`{{#with (hash Foo=(component 'Foo')) as |Other|}}<Other.Foo />{{/with}}`, {
+      sexp: [
+        [
+          'block',
+          [
+            ['with', ['hash', { Foo: ['component', 's:Foo'] }], { as: ['Other'] }],
+            `s:<Other.Foo />`,
+          ],
+        ],
+      ],
+
+      ast: b.ast(
+        b.blockCall(
+          [
+            'with',
+            b.sexpr('hash', b.hash({ Foo: b.sexpr('component', b.literal('Foo')) })),
+            b.as('Other'),
+          ],
+          b.block(b.text('<Other.Foo />'))
+        )
+      ),
+    });
+
+    equivAST(
+      `{{#with\n  (hash\n    Foo=(component 'Foo')\n  )\n  as |Other|\n}}\n  <Other.Foo />\n{{/with}}`,
+      {
+        sexp: [
+          [
+            'block',
+            [
+              ['with', ['hash', { Foo: ['component', 's:Foo'] }], { as: ['Other'] }],
+              `s:  <Other.Foo />\n`,
+            ],
+          ],
+        ],
+
+        ast: b.ast(
+          b.blockCall(
+            [
+              'with',
+              b.ws('\n  '),
+              b.sexpr(
+                'hash',
+                b.ws('\n    '),
+                b.hash({ Foo: b.sexpr('component', b.literal('Foo')) }),
+                b.ws('\n  ')
+              ),
+              b.ws('\n  '),
+              b.as('Other'),
+              b.ws('\n'),
+            ],
+            b.skip(),
+            b.block(b.text('  <Other.Foo />\n'))
+          )
+        ),
+      }
+    );
+  });
 
   // todo("raises if there's a Parse error", function() {
   //   shouldThrow(

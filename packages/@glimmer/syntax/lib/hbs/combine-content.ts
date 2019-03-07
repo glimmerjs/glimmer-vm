@@ -29,6 +29,8 @@ export function combineContent<T extends hbs.AnyProgram>(program: T): T {
       if (item.inverses) {
         item.inverses = item.inverses.map(inverse => combineContent(inverse));
       }
+    } else if (item.type === 'ElementNode') {
+      if (item.body) item.body = combineContent(item.body);
     }
 
     statements.push(item);
@@ -37,13 +39,13 @@ export function combineContent<T extends hbs.AnyProgram>(program: T): T {
   return assign(program, { body: statements });
 }
 
-type Content = hbs.ContentStatement | hbs.Newline;
+type Content = hbs.TextNode | hbs.Newline;
 
 function isContent(item: hbs.Statement | undefined): item is Content {
-  return item !== undefined && (item.type === 'ContentStatement' || item.type === 'Newline');
+  return item !== undefined && (item.type === 'TextNode' || item.type === 'Newline');
 }
 
-function join(left: Content, right?: Content): hbs.ContentStatement {
+function join(left: Content, right?: Content): hbs.TextNode {
   let span = { start: left.span.start, end: right ? right.span.end : left.span.end };
   let value: string;
 
@@ -55,18 +57,18 @@ function join(left: Content, right?: Content): hbs.ContentStatement {
     }
   } else if (left.type === 'Newline' && right.type === 'Newline') {
     value = '\n\n';
-  } else if (left.type === 'Newline' && right.type === 'ContentStatement') {
+  } else if (left.type === 'Newline' && right.type === 'TextNode') {
     value = `\n${right.value}`;
-  } else if (left.type === 'ContentStatement' && right.type === 'Newline') {
+  } else if (left.type === 'TextNode' && right.type === 'Newline') {
     value = `${left.value}\n`;
-  } else if (left.type === 'ContentStatement' && right.type === 'ContentStatement') {
+  } else if (left.type === 'TextNode' && right.type === 'TextNode') {
     value = `${left.value}${right.value}`;
   } else {
     throw unreachable();
   }
 
   return {
-    type: 'ContentStatement',
+    type: 'TextNode',
     span,
     value,
   };

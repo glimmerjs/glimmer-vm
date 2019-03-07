@@ -1,4 +1,4 @@
-export { EMPTY_ARRAY } from './lib/array-utils';
+export * from './lib/array-utils';
 export { default as assert, deprecate } from './lib/assert';
 export { dict, DictSet, isDict, isObject, Set, StackImpl as Stack } from './lib/collections';
 export * from './lib/destroy';

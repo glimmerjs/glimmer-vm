@@ -11,6 +11,10 @@ export interface Position {
 }
 
 export interface Tokens {
+  charPos: number;
+  prevCharPos: number | null;
+  nextCharPos: number | null;
+  isBeginningOfLine: boolean;
   peek(): LexItem<TokenKind>;
   peek2(): LexItem<TokenKind> | undefined;
   consume(): LexItem<TokenKind>;

@@ -31,7 +31,7 @@ export function hbsLex(
 
 export class TokensImpl implements Tokens {
   private loopDetect = 0;
-  constructor(private tokens: Array<LexItem<TokenKind>>, private pos = 0) {
+  constructor(private tokens: Array<LexItem<TokenKind>>, private pos = 0, private newline = true) {
     assert(
       tokens[tokens.length - 1].kind === TokenKind.EOF,
       `The last token must be EOF, was ${tokens[tokens.length - 1].kind}`
@@ -39,7 +39,40 @@ export class TokensImpl implements Tokens {
   }
 
   clone(): Tokens {
-    return new TokensImpl(this.tokens, this.pos);
+    return new TokensImpl(this.tokens, this.pos, this.newline);
+  }
+
+  get isBeginningOfLine(): boolean {
+    return this.newline;
+  }
+
+  get charPos(): number {
+    if (this.pos === 0) {
+      return 0;
+    } else {
+      let token = this.tokens[this.pos - 1];
+      return token.span.end;
+    }
+  }
+
+  get prevCharPos(): number | null {
+    if (this.pos === 0) {
+      return null;
+    } else if (this.pos === 1) {
+      return 0;
+    } else {
+      let token = this.tokens[this.pos - 2];
+      return token.span.end;
+    }
+  }
+
+  get nextCharPos(): number | null {
+    if (this.pos >= this.tokens.length) {
+      return null;
+    } else {
+      let token = this.tokens[this.pos + 1];
+      return token.span.start;
+    }
   }
 
   peek(): LexItem<TokenKind> {
@@ -57,7 +90,15 @@ export class TokensImpl implements Tokens {
 
   consume(): LexItem<TokenKind> {
     this.loopDetect = 0;
-    return this.tokens[this.pos++];
+    let next = this.tokens[this.pos++];
+
+    if (next.kind === TokenKind.Newline) {
+      this.newline = true;
+    } else {
+      this.newline = false;
+    }
+
+    return next;
   }
 
   commit(fork: TokensImpl): void {
@@ -65,6 +106,7 @@ export class TokensImpl implements Tokens {
       this.loopDetect = 0;
     }
     this.pos = fork.pos;
+    this.newline = fork.newline;
   }
 }
 

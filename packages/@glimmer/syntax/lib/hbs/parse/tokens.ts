@@ -30,6 +30,8 @@ export const TOKENS = {
   '{{{': new TokenSyntax(TokenKind.OpenTrusted),
   '}}}': new TokenSyntax(TokenKind.CloseTrusted),
   '{{/': new TokenSyntax(TokenKind.OpenEndBlock),
+  '(': new TokenSyntax(TokenKind.OpenParen),
+  ')': new TokenSyntax(TokenKind.CloseParen),
   '.': new TokenSyntax(TokenKind.Dot),
   '=': new TokenSyntax(TokenKind.Equals),
   ID: new TokenSyntax(TokenKind.Identifier),

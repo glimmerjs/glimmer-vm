@@ -67,7 +67,7 @@ export class PathSyntax implements Syntax<hbs.PathExpression> {
 
     return {
       type: 'PathExpression',
-      span: { start: value.head.span.start, end: span.end },
+      span,
       head: value.head,
       tail: value.tail,
     };
@@ -103,4 +103,4 @@ export class PathSegmentSyntax implements FallibleSyntax<hbs.PathSegment> {
   }
 }
 
-const SEGMENT = new PathSegmentSyntax();
+export const SEGMENT = new PathSegmentSyntax();

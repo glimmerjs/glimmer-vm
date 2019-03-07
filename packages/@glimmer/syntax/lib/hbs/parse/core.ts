@@ -3,10 +3,9 @@ import { TokenKind } from '../lex';
 import { LexItem, Tokens, Debug } from '../lexing';
 import { Macro } from '../macros';
 import { Dict } from '@glimmer/interfaces';
-import { Frame } from './frame';
 import { MACROS_V1 } from './macros';
-import { expect } from '@glimmer/util';
 import { ROOT } from './top';
+import { ElementStack } from './html';
 
 export function node<T>(value: T): (span: hbs.Span) => T {
   return () => value;
@@ -44,45 +43,40 @@ export interface FallibleSyntax<T> extends Syntax<T> {
 export class HandlebarsParser {
   private errors: Diagnostic[] = [];
   private debugStack: string[] = [];
+  readonly stack: ElementStack;
 
   constructor(
-    private input: string,
+    readonly source: string,
     private tokens: Tokens,
     private debug: Debug,
-    private macros: Macros = MACROS_V1,
-    private isCheckpoint = false,
-    private frames: Frame[] = [],
-    private beginningOfLine = true,
-    private pos = 0
-  ) {}
+    private macros: Macros = MACROS_V1
+  ) {
+    this.stack = new ElementStack(source, this);
+  }
 
   RootProgram(): hbs.AnyProgram {
-    this.frames.push(new Frame(this.pos));
-    let ret = this.parse(ROOT, true);
-    this.frames.pop();
-    return ret;
+    return this.expect(ROOT);
+  }
+
+  appendNode(node: hbs.ConcatContent): void {
+    this.stack.appendNode(node, this.source);
+  }
+
+  appendBlock(node: hbs.BlockStatement): void {
+    this.stack.appendBlock(node);
   }
 
   checkpoint() {
     this.trace('checkpoint');
-    return new HandlebarsParser(
-      this.input,
-      this.tokens.clone(),
-      this.debug,
-      this.macros,
-      true,
-      this.frames,
-      this.beginningOfLine,
-      this.pos
-    );
+    return new HandlebarsParser(this.source, this.tokens.clone(), this.debug, this.macros);
   }
 
   isStartLine(): boolean {
-    return this.beginningOfLine;
+    return this.tokens.isBeginningOfLine;
   }
 
   position(): number {
-    return this.pos;
+    return this.tokens.charPos;
   }
 
   is(token: TokenKind, value?: string): boolean {
@@ -154,7 +148,7 @@ export class HandlebarsParser {
   }
 
   slice(span: hbs.Span): string {
-    return this.input.slice(span.start, span.end);
+    return this.source.slice(span.start, span.end);
   }
 
   peekSlice(): string {
@@ -166,9 +160,7 @@ export class HandlebarsParser {
   }
 
   shift(): LexItem<TokenKind> {
-    let next = this.consume();
-    if (!this.isCheckpoint) this.currentFrame.addToken(next.span);
-    return next;
+    return this.consume();
   }
 
   skipToken(): LexItem<TokenKind> {
@@ -181,16 +173,8 @@ export class HandlebarsParser {
         this.tokens.peek().span
       )}`
     );
-    let next = this.tokens.consume();
-    this.pos = next.span.end;
 
-    if (next.kind === TokenKind.Newline) {
-      this.beginningOfLine = true;
-    } else {
-      this.beginningOfLine = false;
-    }
-
-    return next;
+    return this.tokens.consume();
   }
 
   peek(): LexItem<TokenKind> {
@@ -205,55 +189,51 @@ export class HandlebarsParser {
     return this.tokens.peek().kind === TokenKind.EOF;
   }
 
-  parse<T>(syntax: InfallibleSyntax<T>, skip?: true): T;
-  parse<T>(syntax: Syntax<T>, skip?: true): T | UNMATCHED;
-  parse<T>(syntax: Syntax<T>, skip?: true): T | UNMATCHED {
-    let checkpoint = skip === true ? this.checkpoint() : this;
+  parse<T>(syntax: Syntax<T>): T | UNMATCHED {
+    this.enter(syntax);
 
-    checkpoint.enter(syntax);
+    let next = syntax.parse(this);
 
-    let next = checkpoint.parseSyntax(syntax);
+    this.exit(syntax);
 
-    let out = checkpoint.currentFrame.addThunk({ span: next.span, value: () => next.value });
-    checkpoint.exit(syntax);
-
-    if (skip === true) this.commit(checkpoint);
-
-    return out;
+    return next;
   }
 
+  /**
+   * This method computes a span for the tokens consumed inside the callback.
+   *
+   * The span starts from the first token consumed inside of the callback and ends
+   * at the last token consumed.
+   */
   spanned<T>(callback: () => T): { value: T; span: hbs.Span } {
-    let start = this.pos;
+    let start = this.peek().span.start;
     let value = callback();
-    let end = this.pos;
+    let end = this.position();
 
     return { value, span: { start, end } };
   }
 
   commit(checkpoint: HandlebarsParser) {
-    this.pos = checkpoint.pos;
-    this.beginningOfLine = checkpoint.beginningOfLine;
     this.tokens.commit(checkpoint.tokens);
   }
 
   private orElse<T>(syntax: FallibleSyntax<T>): T {
-    this.currentFrame.mark();
     let value = syntax.orElse(this);
-    this.currentFrame.unmark();
 
-    let span = { start: this.pos, end: this.pos };
+    let span = { start: this.position(), end: this.position() };
     this.report(
-      `Expected ${syntax.description} (saw ${this.input.slice(this.pos, this.pos + 3)}...)`,
+      `Expected ${syntax.description} (saw ${JSON.stringify(this.peek())} / ${this.source.slice(
+        this.position(),
+        this.position() + 3
+      )}...)`,
       span
     );
-    return this.currentFrame.addThunk({
-      span: { start: this.pos, end: this.pos },
-      value: () => value,
-    });
+
+    return value;
   }
 
-  expect<T>(syntax: FallibleSyntax<T>, options?: { skip: true }): T {
-    let result = this.parse(syntax, options && options.skip);
+  expect<T>(syntax: FallibleSyntax<T>): T {
+    let result = this.parse(syntax);
     if (result !== UNMATCHED) {
       return result;
     } else {
@@ -275,19 +255,6 @@ export class HandlebarsParser {
 
   private exit(_syntax: Syntax<unknown>): void {
     this.debugStack.pop();
-  }
-
-  private parseSyntax<T>(syntax: Syntax<T>): { span: hbs.Span; value: T | UNMATCHED } {
-    let ret: T | UNMATCHED;
-    this.frames.push(new Frame(this.pos));
-    ret = syntax.parse(this);
-    let frame = this.frames.pop()!;
-
-    return { span: frame.finalize(), value: ret };
-  }
-
-  get currentFrame(): Frame {
-    return expect(this.frames[this.frames.length - 1], `Unexpected syntax push into empty frame`);
   }
 
   trace(value: string): void {

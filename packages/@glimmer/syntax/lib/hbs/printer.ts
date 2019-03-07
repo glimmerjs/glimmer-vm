@@ -36,10 +36,39 @@ export class Printer {
   visit(item: hbs.Statement | hbs.Program): JsonValue {
     switch (item.type) {
       case 'CommentStatement':
-        return ['comment', item.value];
+        return ['comment', `s:${item.value}`];
 
-      case 'ContentStatement':
+      case 'HtmlCommentNode':
+        return ['html-comment', `s:${item.value}`];
+
+      case 'TextNode':
         return `s:${item.value}`;
+
+      case 'ElementNode': {
+        let sexp: JsonValue[] = ['element'];
+        sexp.push(this.expr(item.tag));
+
+        if (item.attributes) {
+          let out: JsonValue = {};
+          let attrs = item.attributes;
+
+          for (let attr of attrs) {
+            let key = attr.name.name;
+            let value = attr.value;
+
+            if (value === null) {
+              out[key] = null;
+            } else {
+              out[key] = this.visit(value);
+            }
+          }
+
+          sexp.push(out);
+        }
+
+        if (item.body) sexp.push(this.program(item.body));
+        return sexp;
+      }
 
       case 'BlockStatement': {
         let sexp: JsonValue[] = ['block'];
@@ -62,6 +91,17 @@ export class Printer {
       case 'MustacheContent':
         return this.expr(item.value);
 
+      case 'ConcatStatement': {
+        let parts = item.parts;
+        let out: JsonValue = ['concat'];
+
+        for (let part of parts) {
+          out.push(this.visit(part));
+        }
+
+        return out;
+      }
+
       case 'Newline':
         return '\n';
 
@@ -70,7 +110,7 @@ export class Printer {
     }
   }
 
-  callBody(item: hbs.CallBody, blockParams?: string[] | null): JsonValue[] {
+  callBody(item: hbs.CallBody): JsonValue[] {
     let sexp = [];
 
     sexp.push(this.expr(item.call));
@@ -89,7 +129,7 @@ export class Printer {
       sexp.push(hash);
     }
 
-    if (blockParams && blockParams.length) sexp.push({ as: blockParams });
+    if (item.blockParams) sexp.push({ as: item.blockParams.params.map(b => b.name) });
     return sexp;
   }
 
@@ -134,6 +174,16 @@ export class Printer {
 
       case 'SubExpression':
         return this.subexpr(item);
+    }
+  }
+
+  path(item: hbs.PathExpression): JsonValue[] | JsonValue {
+    if (item.tail) {
+      let out = ['get-path', this.head(item.head)];
+      if (item.tail.length) out.push(...this.segments(item.tail));
+      return out;
+    } else {
+      return this.head(item.head);
     }
   }
 

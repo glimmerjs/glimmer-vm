@@ -1,4 +1,4 @@
-import { keys } from '@glimmer/util';
+import { keys, join } from '@glimmer/util';
 import * as hbs from '../types/handlebars-ast';
 import { Option } from '@glimmer/interfaces';
 
@@ -40,14 +40,22 @@ export class AstBuilder {
         });
       }
 
-      case 'ContentStatement': {
-        let span = this.consume(statement.value);
+      case 'HtmlCommentStatement': {
+        return this.spanned(() => {
+          this.consume('<!--');
+          this.consume(statement.value);
+          this.consume('-->');
 
-        return {
-          type: 'ContentStatement',
-          span,
-          value: statement.value,
-        };
+          return span => ({
+            type: 'HtmlCommentNode',
+            span,
+            value: statement.value,
+          });
+        });
+      }
+
+      case 'TextNode': {
+        return this.text(statement);
       }
 
       case 'BlockStatement':
@@ -55,8 +63,6 @@ export class AstBuilder {
           this.consume('{{#');
 
           let programs = this.programs(statement.programs, statement.mustache.contents);
-
-          debugger;
 
           if (programs.callSize === null) {
             throw new Error(`unexpected empty {{#}}`);
@@ -78,8 +84,6 @@ export class AstBuilder {
 
           this.consume('}}');
 
-          programs.default.blockParams = programs.blockParams;
-
           return span => ({
             type: 'BlockStatement',
             span,
@@ -87,6 +91,9 @@ export class AstBuilder {
             inverses: programs.else,
           });
         });
+
+      case 'Element':
+        return this.element(statement);
 
       case 'Whitespace':
         this.consume(statement.body);
@@ -99,6 +106,137 @@ export class AstBuilder {
       case 'MustacheStatement':
         return this.mustache(statement);
     }
+  }
+
+  element(item: ElementNode): hbs.ElementNode {
+    let start = this.pos;
+    this.consume('<');
+    let tag = this.expr(item.tag);
+    let i = 0;
+
+    if (item.parts) {
+      let needsWs = true;
+      let attributes: hbs.AttrNode[] = [];
+
+      let parts = item.parts;
+      loop: for (; i < parts.length; i++) {
+        let part = parts[i];
+
+        switch (part.type) {
+          case 'Whitespace': {
+            needsWs = false;
+            this.consume(part.body);
+            break;
+          }
+
+          case 'AttrNode': {
+            if (needsWs) {
+              this.consume(' ');
+            }
+
+            needsWs = true;
+            let { name, parts } = part;
+
+            let node = this.spanned(() => {
+              let nameSpan = this.consume(name);
+              let value = this.attribute(parts);
+
+              return span => ({
+                type: 'AttrNode',
+                span,
+                name: {
+                  type: 'PathSegment',
+                  span: nameSpan,
+                  name: name,
+                },
+                value,
+              });
+            });
+
+            attributes.push(node);
+            break;
+          }
+
+          case 'Program':
+            break loop;
+        }
+      }
+
+      this.consume('>');
+
+      let body: Option<hbs.Program> = null;
+
+      for (; i < parts.length; i++) {
+        let part = parts[i];
+
+        switch (part.type) {
+          case 'AttrNode':
+          case 'Whitespace': {
+            throw new Error(`${part.type} not allowed after the body`);
+          }
+
+          case 'Program': {
+            if (body !== null) {
+              throw new Error(`Only one body is allowed per element`);
+            }
+
+            body = this.program(part, null);
+          }
+        }
+      }
+
+      this.consume('</');
+      this.expr(item.tag);
+      this.consume('>');
+
+      return {
+        type: 'ElementNode',
+        span: { start, end: this.pos },
+        tag,
+        attributes: attributes.length ? attributes : null,
+        blockParams: null,
+        modifiers: null,
+        comments: null,
+        body,
+      };
+    } else {
+      throw new Error(`unimplemented element without parts`);
+    }
+  }
+
+  attribute(parts: Option<AttrPart[]>): hbs.AttrValue {
+    if (parts === null) return null;
+
+    let needsEqual = true;
+    let attrValue: Option<hbs.AttrValue> = null;
+
+    for (let part of parts) {
+      switch (part.type) {
+        case 'Equals': {
+          this.consume('=');
+          needsEqual = false;
+          break;
+        }
+
+        case 'Whitespace': {
+          this.consume(part.body);
+          break;
+        }
+
+        case 'ConcatNode':
+        case 'MustacheStatement':
+        case 'TextNode': {
+          if (needsEqual) {
+            this.consume('=');
+            needsEqual = false;
+          }
+
+          attrValue = this.attrValue(part);
+        }
+      }
+    }
+
+    return attrValue;
   }
 
   program(program: Program, callBody: hbs.CallBody | null): hbs.Program {
@@ -115,7 +253,6 @@ export class AstBuilder {
         span,
         call: callBody,
         body: body.length ? body : null,
-        blockParams: null,
       });
     });
   }
@@ -146,7 +283,6 @@ export class AstBuilder {
         span,
         call: inside && inside.body,
         body: body.length ? body : null,
-        blockParams: inside === null ? null : inside.blockParams,
       });
     });
   }
@@ -159,7 +295,6 @@ export class AstBuilder {
     else: Option<hbs.Program[]>;
     close: Option<CloseBlock>;
     callSize: number | null;
-    blockParams: string[] | null;
   } {
     let defaultBlock: hbs.Program | null = null;
     let inverseBlocks: hbs.Program[] = [];
@@ -183,7 +318,6 @@ export class AstBuilder {
       } else if (part.type === 'Else') {
         currentBlock!.span.end = this.pos;
         currentBlock = this.inverse(part);
-        // start = this.pos;
         inverseBlocks.push(currentBlock);
       } else if (part.type === 'CloseBlock') {
         close = part;
@@ -194,14 +328,66 @@ export class AstBuilder {
       throw new Error(`Must pass at least one block to blockCall`);
     }
 
-    // currentBlock.span.end = this.pos;
-
     return {
       default: defaultBlock,
       else: inverseBlocks.length ? inverseBlocks : null,
       close,
       callSize: inside && inside.callSize,
-      blockParams: inside && inside.blockParams,
+    };
+  }
+
+  attrValue(statement: AttributeValue): hbs.AttrValue {
+    if (statement === null) {
+      return null;
+    }
+
+    switch (statement.type) {
+      case 'MustacheStatement':
+        return this.mustache(statement);
+      case 'TextNode': {
+        if (statement.quoted) this.consume('"');
+        let text = this.text(statement);
+        if (statement.quoted) this.consume('"');
+        return text;
+      }
+      case 'ConcatNode': {
+        return this.concat(statement);
+      }
+    }
+  }
+
+  concat(statement: ConcatNode): hbs.ConcatStatement {
+    return this.spanned<hbs.ConcatStatement>(() => {
+      this.consume('"');
+      let parts = statement.parts.map(p => {
+        switch (p.type) {
+          case 'MustacheStatement': {
+            return this.mustache(p);
+          }
+
+          case 'TextNode': {
+            return this.text(p);
+          }
+        }
+      });
+
+      this.consume('"');
+
+      return span => ({
+        type: 'ConcatStatement',
+        span,
+        parts,
+      });
+    });
+  }
+
+  text(statement: TextNode): hbs.TextNode {
+    let span = this.consume(statement.value);
+
+    return {
+      type: 'TextNode',
+      span,
+      value: statement.value,
     };
   }
 
@@ -241,7 +427,7 @@ export class AstBuilder {
     let foundCall: { call: hbs.Expression; size: number } | undefined = undefined;
     let foundHash: hbs.Hash | null | undefined = undefined;
     let params: hbs.Expression[] = [];
-    let blockParams: Option<string[]> = null;
+    let blockParams: Option<hbs.BlockParams> = null;
     let last: number = this.pos;
     let needsWs = false;
 
@@ -251,12 +437,50 @@ export class AstBuilder {
         needsWs = false;
       }
 
-      if (param.type === 'As') {
-        this.consume('as |');
-        param.parts.forEach(p => this.consume(p));
-        this.consume('|');
+      if (param.type === 'Pipes') {
+        this.consume('as');
+        let start: Option<number> = null;
+        let end: Option<number> = null;
+        let segments = [];
+
+        for (const part of param.parts) {
+          if (typeof part === 'string') {
+            let segment = this.spanned(() => {
+              this.consume(part);
+
+              return span => ({
+                type: 'PathSegment',
+                span,
+                name: part,
+              });
+            });
+
+            segments.push(segment);
+          } else if (part.type === 'Pipe') {
+            if (start === null) {
+              start = this.pos;
+              this.consume('|');
+            } else if (end === null) {
+              this.consume('|');
+              end = this.pos;
+            } else {
+              throw new Error(`Only two pipes are allowed in a pipes()`);
+            }
+          } else if (part.type === 'Whitespace') {
+            this.consume(part.body);
+          }
+        }
+
+        if (start === null || end === null) {
+          throw new Error(`Block params must contain a starting and ending point`);
+        }
+
+        blockParams = {
+          type: 'BlockParams',
+          span: { start, end },
+          params: segments,
+        };
         last = this.pos;
-        blockParams = param.parts;
         continue;
       }
 
@@ -295,8 +519,8 @@ export class AstBuilder {
         call: foundCall.call,
         params: params.length ? params : null,
         hash: foundHash || null,
+        blockParams,
       },
-      blockParams,
     };
   }
 
@@ -450,6 +674,7 @@ export class AstBuilder {
 
     return this.spanned(() => {
       this.consume(pair.key);
+
       this.consume('=');
       let value = this.expr(pair.value);
 
@@ -483,7 +708,6 @@ export class AstBuilder {
 interface InsideMustache {
   callSize: number;
   body: hbs.CallBody;
-  blockParams: Option<string[]>;
 }
 
 export interface BuilderAst {
@@ -514,9 +738,33 @@ export interface As {
   parts: string[];
 }
 
-export function as(parts: string[]) {
+export interface Pipe {
+  type: 'Pipe';
+}
+
+export interface Pipes {
+  type: 'Pipes';
+  parts: Array<Whitespace | Pipe | string>;
+}
+
+export function as(...parts: string[]): Pipes {
+  let out = join(parts, ws);
+
   return {
-    type: 'As',
+    type: 'Pipes',
+    parts: [ws(), pipe(), ...out, pipe()],
+  };
+}
+
+export function pipe(): Pipe {
+  return {
+    type: 'Pipe',
+  };
+}
+
+export function pipes(...parts: Array<Whitespace | Pipe | string>): Pipes {
+  return {
+    type: 'Pipes',
     parts,
   };
 }
@@ -539,8 +787,10 @@ export function inverse(mustacheParts: ToMustachePart[], ...parts: ToStatementPa
 export type Statement =
   | MustacheStatement
   | BlockStatement
-  | ContentStatement
+  | ElementNode
+  | TextNode
   | CommentStatement
+  | HtmlCommentStatement
   | Whitespace
   | SkippedWhitespace;
 
@@ -561,8 +811,8 @@ export interface MustacheStatement {
 
 export type BuilderMustache = MustacheStatement;
 
-export type MustacheContent = Expression | Hash | As;
-export type ToMustachePart = MustacheContent | As | string | boolean | number | null | undefined;
+export type MustacheContent = Expression | Hash | Pipes;
+export type ToMustachePart = MustacheContent | Pipes | string | boolean | number | null | undefined;
 export type MustacheContents = MustacheContent[];
 
 export type ToHashPart = Expression | string | boolean | number | null | undefined;
@@ -600,7 +850,7 @@ export function ToHashPart(part: ToHashPart): Expression {
 
 export function ToStatementPart(value: ToStatementPart): StatementPart {
   if (typeof value === 'string') {
-    return { type: 'ContentStatement', value };
+    return { type: 'TextNode', value };
   } else {
     return value;
   }
@@ -679,22 +929,97 @@ export function blockCall(
     type: 'BlockStatement',
     mustache: mustache(...mustacheParts),
     programs,
-    // params: params ? params.map(ToHashPart) : [],
-    // hash: hash || null,
-    // program,
-    // inverse: inverse || null,
   };
 }
 
-export interface ContentStatement {
-  type: 'ContentStatement';
-  value: string;
+export interface Component {
+  type: 'Component';
+  mustache: MustacheStatement;
+  programs: ToProgramPart[];
 }
 
-export function content(value: string): ContentStatement {
+export function component(
+  mustacheParts: ToMustachePart[],
+  ...programs: ToProgramPart[]
+): Component {
   return {
-    type: 'ContentStatement',
+    type: 'Component',
+    mustache: mustache(...mustacheParts),
+    programs,
+  };
+}
+
+export type AttributeValue = TextNode | MustacheStatement | ConcatNode;
+export type ConcatValue = TextNode | MustacheStatement;
+
+export interface Equals {
+  type: 'Equals';
+}
+
+export const eq: Equals = { type: 'Equals' };
+
+export type AttrPart = Whitespace | Equals | AttributeValue;
+
+export interface AttrNode {
+  type: 'AttrNode';
+  name: string;
+  parts: Option<AttrPart[]>;
+}
+
+export function attr(name: string, ...parts: AttrPart[]): AttrNode {
+  return {
+    type: 'AttrNode',
+    name,
+    parts: parts.length ? parts : null,
+  };
+}
+
+export interface ElementNode {
+  type: 'Element';
+  tag: PathExpression;
+  parts: ElementPart[];
+}
+
+export type ElementPart = AttrNode | Program | Whitespace;
+
+export function element(tag: string, ...parts: ElementPart[]): ElementNode {
+  return {
+    type: 'Element',
+    tag: path(tag),
+    parts,
+  };
+}
+
+export interface TextNode {
+  type: 'TextNode';
+  value: string;
+  quoted?: boolean;
+}
+
+export function text(value: string): TextNode {
+  return {
+    type: 'TextNode',
     value,
+  };
+}
+
+export function quoted(value: string): TextNode {
+  return {
+    type: 'TextNode',
+    value,
+    quoted: true,
+  };
+}
+
+export interface ConcatNode {
+  type: 'ConcatNode';
+  parts: ConcatValue[];
+}
+
+export function concat(...parts: ConcatValue[]): ConcatNode {
+  return {
+    type: 'ConcatNode',
+    parts,
   };
 }
 
@@ -702,6 +1027,18 @@ export interface CommentStatement {
   type: 'CommentStatement';
   value: string;
   block: boolean;
+}
+
+export interface HtmlCommentStatement {
+  type: 'HtmlCommentStatement';
+  value: string;
+}
+
+export function htmlComment(value: string): HtmlCommentStatement {
+  return {
+    type: 'HtmlCommentStatement',
+    value,
+  };
 }
 
 export function comment(value: string): CommentStatement {

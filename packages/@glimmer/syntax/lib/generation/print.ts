@@ -1,250 +1,251 @@
-import { Option } from '@glimmer/interfaces';
-import * as AST from '../types/nodes';
-import { voidMap } from '../parser/tokenizer-event-handlers';
-import { isLiteral } from '../utils';
-import { escapeText, escapeAttrValue } from './util';
+export {};
 
-function unreachable(): never {
-  throw new Error('unreachable');
-}
+// import { Option } from '@glimmer/interfaces';
+// import * as AST from '../types/nodes';
+// import { isLiteral } from '../utils';
+// import { escapeText, escapeAttrValue } from './util';
 
-export default function build(ast: AST.Node): string {
-  if (!ast) {
-    return '';
-  }
-  const output: string[] = [];
+// function unreachable(): never {
+//   throw new Error('unreachable');
+// }
 
-  switch (ast.type) {
-    case 'Program':
-    case 'Block':
-    case 'Template':
-      {
-        const chainBlock = ast.chained && ast.body[0];
-        if (chainBlock) {
-          (chainBlock as AST.BlockStatement).chained = true;
-        }
-        const body = buildEach(ast.body).join('');
-        output.push(body);
-      }
-      break;
-    case 'ElementNode':
-      output.push('<', ast.tag);
-      if (ast.attributes.length) {
-        output.push(' ', buildEach(ast.attributes).join(' '));
-      }
-      if (ast.modifiers.length) {
-        output.push(' ', buildEach(ast.modifiers).join(' '));
-      }
-      if (ast.comments.length) {
-        output.push(' ', buildEach(ast.comments).join(' '));
-      }
+// export default function build(ast: AST.Node): string {
+//   if (!ast) {
+//     return '';
+//   }
+//   const output: string[] = [];
 
-      if (ast.blockParams.length) {
-        output.push(' ', 'as', ' ', `|${ast.blockParams.join(' ')}|`);
-      }
+//   switch (ast.type) {
+//     case 'Program':
+//     case 'Block':
+//     case 'Template':
+//       {
+//         const chainBlock = ast.chained && ast.body[0];
+//         if (chainBlock) {
+//           (chainBlock as AST.BlockStatement).chained = true;
+//         }
+//         const body = buildEach(ast.body).join('');
+//         output.push(body);
+//       }
+//       break;
+//     case 'ElementNode':
+//       output.push('<', ast.tag);
+//       if (ast.attributes.length) {
+//         output.push(' ', buildEach(ast.attributes).join(' '));
+//       }
+//       if (ast.modifiers.length) {
+//         output.push(' ', buildEach(ast.modifiers).join(' '));
+//       }
+//       if (ast.comments.length) {
+//         output.push(' ', buildEach(ast.comments).join(' '));
+//       }
 
-      if (voidMap[ast.tag]) {
-        if (ast.selfClosing) {
-          output.push(' /');
-        }
+//       if (ast.blockParams.length) {
+//         output.push(' ', 'as', ' ', `|${ast.blockParams.join(' ')}|`);
+//       }
 
-        output.push('>');
-      } else {
-        output.push('>');
-        output.push.apply(output, buildEach(ast.children));
-        output.push('</', ast.tag, '>');
-      }
-      break;
-    case 'AttrNode':
-      if (ast.value.type === 'TextNode') {
-        if (ast.value.chars !== '') {
-          output.push(ast.name, '=');
-          output.push('"', escapeAttrValue(ast.value.chars), '"');
-        } else {
-          output.push(ast.name);
-        }
-      } else {
-        output.push(ast.name, '=');
-        // ast.value is mustache or concat
-        output.push(build(ast.value));
-      }
-      break;
-    case 'ConcatStatement':
-      output.push('"');
-      ast.parts.forEach((node: AST.TextNode | AST.MustacheStatement | AST.MustacheContent) => {
-        if (node.type === 'TextNode') {
-          output.push(escapeAttrValue(node.chars));
-        } else {
-          output.push(build(node));
-        }
-      });
-      output.push('"');
-      break;
-    case 'TextNode':
-      output.push(escapeText(ast.chars));
-      break;
-    case 'MustacheStatement':
-      {
-        output.push(compactJoin(['{{', pathParams(ast), '}}']));
-      }
-      break;
-    case 'MustacheCommentStatement':
-      {
-        output.push(compactJoin(['{{!--', ast.value, '--}}']));
-      }
-      break;
-    case 'ElementModifierStatement':
-      {
-        output.push(compactJoin(['{{', pathParams(ast), '}}']));
-      }
-      break;
-    case 'PathExpression': {
-      let path = [ast.head.type === 'This' ? 'this' : ast.head.name];
-      if (ast.tail) {
-        ast.tail.forEach(t => path.push(t.name));
-      }
-      output.push(path.join('.'));
-      break;
-    }
-    case 'SubExpression':
-      {
-        output.push('(', pathParams(ast), ')');
-      }
-      break;
-    case 'BooleanLiteral':
-      output.push(ast.value ? 'true' : 'false');
-      break;
-    case 'BlockStatement':
-      {
-        const lines: string[] = [];
+//       if (voidMap[ast.tag]) {
+//         if (ast.selfClosing) {
+//           output.push(' /');
+//         }
 
-        if (ast.chained) {
-          lines.push(['{{else ', pathParams(ast), '}}'].join(''));
-        } else {
-          lines.push(openBlock(ast));
-        }
+//         output.push('>');
+//       } else {
+//         output.push('>');
+//         output.push.apply(output, buildEach(ast.children));
+//         output.push('</', ast.tag, '>');
+//       }
+//       break;
+//     case 'AttrNode':
+//       if (ast.value.type === 'TextNode') {
+//         if (ast.value.chars !== '') {
+//           output.push(ast.name, '=');
+//           output.push('"', escapeAttrValue(ast.value.chars), '"');
+//         } else {
+//           output.push(ast.name);
+//         }
+//       } else {
+//         output.push(ast.name, '=');
+//         // ast.value is mustache or concat
+//         output.push(build(ast.value));
+//       }
+//       break;
+//     case 'ConcatStatement':
+//       output.push('"');
+//       ast.parts.forEach((node: AST.TextNode | AST.MustacheStatement | AST.MustacheContent) => {
+//         if (node.type === 'TextNode') {
+//           output.push(escapeAttrValue(node.chars));
+//         } else {
+//           output.push(build(node));
+//         }
+//       });
+//       output.push('"');
+//       break;
+//     case 'TextNode':
+//       output.push(escapeText(ast.chars));
+//       break;
+//     case 'MustacheStatement':
+//       {
+//         output.push(compactJoin(['{{', pathParams(ast), '}}']));
+//       }
+//       break;
+//     case 'MustacheCommentStatement':
+//       {
+//         output.push(compactJoin(['{{!--', ast.value, '--}}']));
+//       }
+//       break;
+//     case 'ElementModifierStatement':
+//       {
+//         output.push(compactJoin(['{{', pathParams(ast), '}}']));
+//       }
+//       break;
+//     case 'PathExpression': {
+//       let path = [ast.head.type === 'This' ? 'this' : ast.head.name];
+//       if (ast.tail) {
+//         ast.tail.forEach(t => path.push(t.name));
+//       }
+//       output.push(path.join('.'));
+//       break;
+//     }
+//     case 'SubExpression':
+//       {
+//         output.push('(', pathParams(ast), ')');
+//       }
+//       break;
+//     case 'BooleanLiteral':
+//       output.push(ast.value ? 'true' : 'false');
+//       break;
+//     case 'BlockStatement':
+//       {
+//         const lines: string[] = [];
 
-        lines.push(build(ast.program));
+//         if (ast.chained) {
+//           lines.push(['{{else ', pathParams(ast), '}}'].join(''));
+//         } else {
+//           lines.push(openBlock(ast));
+//         }
 
-        if (ast.inverse) {
-          if (!ast.inverse.chained) {
-            lines.push('{{else}}');
-          }
-          lines.push(build(ast.inverse));
-        }
+//         lines.push(build(ast.program));
 
-        if (!ast.chained) {
-          lines.push(closeBlock(ast));
-        }
+//         if (ast.inverse) {
+//           if (!ast.inverse.chained) {
+//             lines.push('{{else}}');
+//           }
+//           lines.push(build(ast.inverse));
+//         }
 
-        output.push(lines.join(''));
-      }
-      break;
-    case 'PartialStatement':
-      {
-        output.push(compactJoin(['{{>', pathParams(ast), '}}']));
-      }
-      break;
-    case 'CommentStatement':
-      {
-        output.push(compactJoin(['<!--', ast.value, '-->']));
-      }
-      break;
-    case 'StringLiteral':
-      {
-        output.push(`"${ast.value}"`);
-      }
-      break;
-    case 'NumberLiteral':
-      {
-        output.push(String(ast.value));
-      }
-      break;
-    case 'UndefinedLiteral':
-      {
-        output.push('undefined');
-      }
-      break;
-    case 'NullLiteral':
-      {
-        output.push('null');
-      }
-      break;
-    case 'Hash':
-      {
-        output.push(
-          ast.pairs
-            .map(pair => {
-              return build(pair);
-            })
-            .join(' ')
-        );
-      }
-      break;
-    case 'HashPair':
-      {
-        output.push(`${ast.key}=${build(ast.value)}`);
-      }
-      break;
-  }
-  return output.join('');
-}
+//         if (!ast.chained) {
+//           lines.push(closeBlock(ast));
+//         }
 
-function compact(array: Option<string>[]): string[] {
-  const newArray: any[] = [];
-  array.forEach(a => {
-    if (typeof a !== 'undefined' && a !== null && a !== '') {
-      newArray.push(a);
-    }
-  });
-  return newArray;
-}
+//         output.push(lines.join(''));
+//       }
+//       break;
+//     case 'PartialStatement':
+//       {
+//         output.push(compactJoin(['{{>', pathParams(ast), '}}']));
+//       }
+//       break;
+//     case 'CommentStatement':
+//       {
+//         output.push(compactJoin(['<!--', ast.value, '-->']));
+//       }
+//       break;
+//     case 'StringLiteral':
+//       {
+//         output.push(`"${ast.value}"`);
+//       }
+//       break;
+//     case 'NumberLiteral':
+//       {
+//         output.push(String(ast.value));
+//       }
+//       break;
+//     case 'UndefinedLiteral':
+//       {
+//         output.push('undefined');
+//       }
+//       break;
+//     case 'NullLiteral':
+//       {
+//         output.push('null');
+//       }
+//       break;
+//     case 'Hash':
+//       {
+//         output.push(
+//           ast.pairs
+//             .map(pair => {
+//               return build(pair);
+//             })
+//             .join(' ')
+//         );
+//       }
+//       break;
+//     case 'HashPair':
+//       {
+//         output.push(`${ast.key}=${build(ast.value)}`);
+//       }
+//       break;
+//   }
+//   return output.join('');
+// }
 
-function buildEach(asts: AST.Node[]): string[] {
-  return asts.map(build);
-}
+// function compact(array: Option<string>[]): string[] {
+//   const newArray: any[] = [];
+//   array.forEach(a => {
+//     if (typeof a !== 'undefined' && a !== null && a !== '') {
+//       newArray.push(a);
+//     }
+//   });
+//   return newArray;
+// }
 
-function pathParams(ast: AST.Node): string {
-  let path: string;
+// function buildEach(asts: AST.Node[]): string[] {
+//   return asts.map(build);
+// }
 
-  switch (ast.type) {
-    case 'MustacheStatement':
-    case 'SubExpression':
-    case 'ElementModifierStatement':
-    case 'BlockStatement':
-      if (isLiteral(ast.call)) {
-        return String(ast.call.value);
-      }
+// function pathParams(ast: AST.Node): string {
+//   let path: string;
 
-      path = build(ast.call);
-      break;
-    case 'PartialStatement':
-      path = build(ast.name);
-      break;
-    default:
-      return unreachable();
-  }
+//   switch (ast.type) {
+//     case 'MustacheStatement':
+//     case 'SubExpression':
+//     case 'ElementModifierStatement':
+//     case 'BlockStatement':
+//       if (isLiteral(ast.call)) {
+//         return String(ast.call.value);
+//       }
 
-  return compactJoin([path, buildEach(ast.params).join(' '), build(ast.hash)], ' ');
-}
+//       path = build(ast.call);
+//       break;
+//     case 'PartialStatement':
+//       path = build(ast.name);
+//       break;
+//     default:
+//       return unreachable();
+//   }
 
-function compactJoin(array: Option<string>[], delimiter?: string): string {
-  return compact(array).join(delimiter || '');
-}
+//   return compactJoin([path, buildEach(ast.params).join(' '), build(ast.hash)], ' ');
+// }
 
-function blockParams(block: AST.BlockStatement): Option<string> {
-  const params = block.program.blockParams;
-  if (params.length) {
-    return ` as |${params.join(' ')}|`;
-  }
+// function compactJoin(array: Option<string>[], delimiter?: string): string {
+//   return compact(array).join(delimiter || '');
+// }
 
-  return null;
-}
+// function blockParams(block: AST.BlockStatement): Option<string> {
+//   const params = block.program.blockParams;
+//   if (params.length) {
+//     return ` as |${params.join(' ')}|`;
+//   }
 
-function openBlock(block: AST.BlockStatement): string {
-  return ['{{#', pathParams(block), blockParams(block), '}}'].join('');
-}
+//   return null;
+// }
 
-function closeBlock(block: any): string {
-  return ['{{/', build(block.path), '}}'].join('');
-}
+// function openBlock(block: AST.BlockStatement): string {
+//   return ['{{#', pathParams(block), blockParams(block), '}}'].join('');
+// }
+
+// function closeBlock(block: any): string {
+//   return ['{{/', build(block.path), '}}'].join('');
+// }

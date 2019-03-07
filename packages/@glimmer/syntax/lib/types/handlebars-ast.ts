@@ -25,7 +25,10 @@ export interface NodeMap {
   BlockStatement: { input: BlockStatement; output: AST.BlockStatement | void };
   ContentStatement: { input: ContentStatement; output: void };
   Newline: { input: Newline; output: void };
-  CommentStatement: { input: CommentStatement; output: AST.MustacheCommentStatement | null };
+  CommentStatement: {
+    input: MustacheCommentStatement;
+    output: AST.MustacheCommentStatement | null;
+  };
   SubExpression: { input: SubExpression; output: AST.SubExpression };
   PathExpression: { input: PathExpression; output: AST.PathExpression };
   StringLiteral: { input: StringLiteral; output: AST.StringLiteral };
@@ -38,7 +41,17 @@ export interface NodeMap {
 export type NodeType = keyof NodeMap;
 export type Node<T extends NodeType = NodeType> = NodeMap[T]['input'];
 
-export type AnyNode = Node | Head | PathSegment | Hash | HashPair | AnyProgram;
+export type AnyNode =
+  | Node
+  | Head
+  | BlockParams
+  | HtmlCommentNode
+  | PathSegment
+  | Hash
+  | HashPair
+  | AttrNode
+  | ConcatStatement
+  | AnyProgram;
 
 export type Output<T extends NodeType> = NodeMap[T]['output'];
 
@@ -70,16 +83,24 @@ export interface Program {
   type: 'Program';
   call: CallBody | null;
   body: Statement[] | null;
-  blockParams: string[] | null;
+}
+
+export interface BlockParams {
+  span: Span;
+  type: 'BlockParams';
+  params: PathSegment[];
 }
 
 export type Statement =
   | MustacheStatement
   | MustacheContent
   | BlockStatement
-  | ContentStatement
+  | ElementNode
+  | TextNode
+  | ConcatStatement
+  | HtmlCommentNode
   | Newline
-  | CommentStatement;
+  | MustacheCommentStatement;
 
 export interface MustacheStatement extends CommonNode {
   type: 'MustacheStatement';
@@ -93,6 +114,7 @@ export interface CallBody {
   call: Expression;
   params: Expression[] | null;
   hash: Hash | null;
+  blockParams: BlockParams | null;
 }
 
 export interface MustacheContent extends CommonNode {
@@ -115,11 +137,57 @@ export interface ContentStatement extends CommonNode {
   value: string;
 }
 
+export interface TextNode extends CommonNode {
+  type: 'TextNode';
+  value: string;
+}
+
+export interface HtmlCommentNode extends CommonNode {
+  type: 'HtmlCommentNode';
+  value: string;
+}
+
+export interface ElementNode extends CommonNode {
+  type: 'ElementNode';
+  tag: Expression;
+  attributes: AttrNode[] | null;
+  blockParams: BlockParams | null;
+  modifiers: ElementModifierStatement[] | null;
+  comments: MustacheCommentStatement[] | null;
+  body: Program | null;
+}
+
+export type AttrValue = ConcatContent | ConcatStatement | null;
+
+export interface AttrNode extends CommonNode {
+  type: 'AttrNode';
+  name: PathSegment;
+  value: AttrValue;
+}
+
+export type ConcatContent =
+  | TextNode
+  | MustacheStatement
+  | MustacheCommentStatement
+  | MustacheContent;
+
+export interface ConcatStatement extends CommonNode {
+  type: 'ConcatStatement';
+  parts: ConcatContent[];
+}
+
+export interface ElementModifierStatement extends CommonNode {
+  type: 'ElementModifierStatement';
+  call: Expression;
+  params: Expression[];
+  hash: Hash;
+}
+
 export interface Newline extends CommonNode {
   type: 'Newline';
 }
 
-export interface CommentStatement extends CommonNode {
+export interface MustacheCommentStatement extends CommonNode {
   type: 'CommentStatement';
   value: string;
 }

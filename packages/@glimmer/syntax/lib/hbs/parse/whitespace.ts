@@ -53,7 +53,7 @@ export class OptionalLeadingWhitespace<T extends { span: hbs.Span }>
   constructor(private inner: Syntax<T>) {}
 
   get description(): string {
-    return `${this.inner.description} with leading whitespace`;
+    return `optional leading whitespace / ${this.inner.description}`;
   }
 
   parse(parser: HandlebarsParser): { outer: hbs.Span; inner: T } | UNMATCHED {

@@ -48,7 +48,7 @@ export abstract class Parser {
   abstract BlockStatement(node: HBS.BlockStatement): HBS.Output<'BlockStatement'>;
   abstract ContentStatement(node: HBS.ContentStatement): HBS.Output<'ContentStatement'>;
   abstract Newline(node: HBS.Newline): HBS.Output<'Newline'>;
-  abstract CommentStatement(node: HBS.CommentStatement): HBS.Output<'CommentStatement'>;
+  abstract CommentStatement(node: HBS.MustacheCommentStatement): HBS.Output<'CommentStatement'>;
   abstract SubExpression(node: HBS.SubExpression): HBS.Output<'SubExpression'>;
   abstract PathExpression(node: HBS.PathExpression): HBS.Output<'PathExpression'>;
   abstract StringLiteral(node: HBS.StringLiteral): HBS.Output<'StringLiteral'>;

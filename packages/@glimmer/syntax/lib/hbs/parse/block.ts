@@ -7,6 +7,7 @@ import { TOKENS } from './tokens';
 import { TOP } from './top';
 import { optionalLeadingWS, TRAILING_WS } from './whitespace';
 import { listSpan } from '../pos';
+import { SEGMENT } from './path';
 
 class BlockSyntax implements Syntax<hbs.BlockStatement> {
   readonly description = 'block';
@@ -80,51 +81,6 @@ export const RAW_BLOCK = new BlockSyntax();
 
 export const BLOCK = optionalLeadingWS(RAW_BLOCK);
 
-class OpenBlockSyntax implements FallibleSyntax<{ body: hbs.CallBody; span: hbs.Span }> {
-  readonly description = 'open block';
-  readonly fallible = true;
-
-  parse(parser: HandlebarsParser): { body: hbs.CallBody; span: hbs.Span } | UNMATCHED {
-    let bodySyntax = new CallBodySyntax(TOKENS['}}']);
-
-    let { value: mustache, span } = parser.spanned(() => {
-      return parser.parse(bodySyntax);
-    });
-
-    if (mustache === UNMATCHED) {
-      return UNMATCHED;
-    }
-
-    parser.parse(TRAILING_WS);
-
-    return {
-      span,
-      body: mustache,
-    };
-  }
-
-  orElse(parser: HandlebarsParser): { body: hbs.CallBody; span: hbs.Span } {
-    let span = { start: parser.position(), end: parser.position() };
-
-    return {
-      span,
-      body: {
-        type: 'CallBody',
-        span,
-        call: {
-          type: 'UndefinedLiteral',
-          span,
-          value: undefined,
-        },
-        params: null,
-        hash: null,
-      },
-    };
-  }
-}
-
-const OPEN_BLOCK = new OpenBlockSyntax();
-
 class BlockBody implements FallibleSyntax<{ span: hbs.Span; body: hbs.Statement[] | null }> {
   readonly description = 'block body';
   readonly fallible = true;
@@ -139,15 +95,15 @@ class BlockBody implements FallibleSyntax<{ span: hbs.Span; body: hbs.Statement[
       };
     }
 
-    let body: hbs.Statement[] = [];
+    parser.stack.openBlock();
 
     while (true) {
       let start = parser.parse(BLOCK_CONTENT);
 
       if (start === UNMATCHED) break;
-
-      body.push(start);
     }
+
+    let body = parser.stack.closeBlock();
 
     return {
       span: listSpan(body, parser.position()),
@@ -187,24 +143,27 @@ class WholeBlock implements Syntax<hbs.Program> {
     let startPos = parser.position();
     parser.parse(TRAILING_WS);
 
-    let { span, body } = parser.parse(BLOCK_BODY);
+    let blockBody = parser.parse(BLOCK_BODY);
+
+    if (blockBody === UNMATCHED) {
+      return UNMATCHED;
+    }
 
     return {
       type: 'Program',
-      span: { start: startPos, end: span.end },
+      span: { start: startPos, end: blockBody.span.end },
       call,
-      body,
-      blockParams: null,
+      body: blockBody.body,
     };
   }
 }
 
 const WHOLE_BLOCK = new WholeBlock();
 
-class BlockContentSyntax implements Syntax<hbs.Statement> {
+class BlockContentSyntax implements Syntax<void> {
   readonly description = 'block content';
 
-  parse(parser: HandlebarsParser): hbs.Statement | UNMATCHED {
+  parse(parser: HandlebarsParser): void | UNMATCHED {
     let elseSyntax = parser.test(ELSE);
 
     if (elseSyntax) {
@@ -217,7 +176,11 @@ class BlockContentSyntax implements Syntax<hbs.Statement> {
       return UNMATCHED;
     }
 
-    return TOP.parse(parser);
+    let top = TOP.parse(parser);
+
+    if (top === UNMATCHED) {
+      return UNMATCHED;
+    }
   }
 }
 
@@ -279,3 +242,57 @@ class CloseBlockSyntax implements FallibleSyntax<{ outer: hbs.Span; inner: hbs.S
 }
 
 const CLOSE_BLOCK = new CloseBlockSyntax();
+
+class BlockParams implements Syntax<hbs.BlockParams> {
+  readonly description = 'block params';
+
+  parse(parser: HandlebarsParser): hbs.BlockParams | UNMATCHED {
+    if (!parser.isPath('as')) {
+      return UNMATCHED;
+    }
+
+    let next = parser.peek2();
+
+    if (next === undefined || next.kind !== TokenKind.Pipe) {
+      return UNMATCHED;
+    }
+
+    parser.shift();
+
+    let { span, value: params } = parser.spanned(() => {
+      parser.shift();
+      // start = next.span.start;
+
+      let blockParams: hbs.PathSegment[] = [];
+
+      while (true) {
+        if (parser.is(TokenKind.Pipe)) {
+          parser.shift();
+          break;
+        }
+
+        let next = parser.parse(SEGMENT);
+
+        if (next === UNMATCHED) {
+          return UNMATCHED;
+        } else {
+          blockParams.push(next);
+        }
+      }
+
+      return blockParams;
+    });
+
+    if (params === UNMATCHED) {
+      return UNMATCHED;
+    }
+
+    return {
+      type: 'BlockParams',
+      span,
+      params,
+    };
+  }
+}
+
+export const BLOCK_PARAMS = new BlockParams();

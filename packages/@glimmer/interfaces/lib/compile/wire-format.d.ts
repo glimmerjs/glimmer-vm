@@ -2,7 +2,7 @@ import { Dict, Option } from '../core';
 
 export type TupleSyntax = Statement | TupleExpression;
 
-type JsonValue = string | number | boolean | JsonObject | JsonArray;
+type JsonValue = null | string | number | boolean | JsonObject | JsonArray;
 
 interface JsonObject extends Dict<JsonValue> {}
 interface JsonArray extends Array<JsonValue> {}

@@ -1,10 +1,10 @@
 import {
   preprocess,
-  Syntax,
   Walker,
-  ASTPluginEnvironment,
+  Syntax,
   ASTPluginBuilder,
   AST,
+  ASTPluginEnvironment,
 } from '@glimmer/syntax';
 
 const { test } = QUnit;
@@ -36,7 +36,7 @@ test('plugins are provided the syntax package', assert => {
   preprocess('<div></div>', {
     plugins: {
       ast: [
-        ({ syntax }) => {
+        ({ syntax }: { syntax: any }) => {
           assert.equal(syntax.Walker, Walker);
 
           return { name: 'plugin-a', visitor: {} };

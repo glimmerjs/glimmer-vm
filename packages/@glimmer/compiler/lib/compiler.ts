@@ -1,7 +1,6 @@
-import { preprocess } from '@glimmer/syntax';
+import { preprocess, PreprocessOptions } from '@glimmer/syntax';
 import TemplateCompiler from './template-compiler';
 import { Option, TemplateJavascript, SerializedTemplateWithLazyBlock } from '@glimmer/interfaces';
-import { PreprocessOptions } from '@glimmer/syntax';
 import { assign } from '@glimmer/util';
 
 export interface TemplateIdFn {

@@ -1,13 +1,4 @@
 // used by ember-compiler
-export {
-  preprocess,
-  PreprocessOptions,
-  ASTPlugin,
-  ASTPluginBuilder,
-  ASTPluginEnvironment,
-  Syntax,
-} from './lib/parser/tokenizer-event-handlers';
-
 export * from './lib/hbs/pos';
 export * from './lib/hbs/builder';
 
@@ -15,7 +6,6 @@ import * as builder from './lib/hbs/builder';
 export { builder };
 
 // needed for tests only
-export { default as builders } from './lib/builders';
 export {
   default as TraversalError,
   cannotRemoveNode,
@@ -25,7 +15,6 @@ export {
 export { default as traverse } from './lib/traversal/traverse';
 export * from './lib/traversal/visitor';
 export { default as Walker } from './lib/traversal/walker';
-export { default as print } from './lib/generation/print';
 
 // errors
 export { default as SyntaxError } from './lib/errors/syntax-error';
@@ -39,3 +28,25 @@ import * as hbs from './lib/types/handlebars-ast';
 export { hbs };
 
 export * from './lib/hbs/parse';
+export * from './lib/hbs/parse/html';
+
+export type TODO = any;
+
+export const preprocess: TODO = function() {
+  throw new Error('unimplemented preprocess');
+};
+
+export type Syntax = TODO;
+export type ASTPluginBuilder = TODO;
+export type ASTPluginEnvironment = TODO;
+
+export const ASTPluginBuilder: ASTPluginBuilder = function() {
+  throw new Error('unimplemented ASTPluginBuilder');
+};
+
+export const print: TODO = function() {
+  throw new Error('unimplemented print');
+};
+
+export const voidMap: TODO = null;
+export type PreprocessOptions = TODO;
