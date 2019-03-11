@@ -1,7 +1,7 @@
 import { Option } from '@glimmer/interfaces';
 import * as hbs from '../../types/handlebars-ast';
 import { TokenKind } from '../lex';
-import { FallibleSyntax, HandlebarsParser, Syntax, UNMATCHED } from './core';
+import { FallibleSyntax, HandlebarsParser, Syntax, UNMATCHED, node } from './core';
 import { NUMBER, STRING } from './literals';
 import { PATH } from './path';
 import { TOKENS } from './tokens';
@@ -52,11 +52,10 @@ class ExpressionSyntax implements FallibleSyntax<hbs.Expression> {
   }
 
   orElse(parser: HandlebarsParser): hbs.Expression {
-    return {
-      type: 'UndefinedLiteral',
+    return hbs.node('UndefinedLiteral', {
       span: { start: parser.position(), end: parser.position() },
       value: undefined,
-    };
+    });
   }
 }
 
@@ -138,11 +137,10 @@ export class HashSyntax implements Syntax<hbs.Hash> {
       return UNMATCHED;
     }
 
-    return {
-      type: 'Hash',
+    return hbs.node('Hash', {
       span,
       pairs: value,
-    };
+    });
   }
 }
 

@@ -8,6 +8,7 @@ import { TOP } from './top';
 import { optionalLeadingWS, TRAILING_WS } from './whitespace';
 import { listSpan } from '../pos';
 import { SEGMENT } from './path';
+import { node } from '../../types/handlebars-ast';
 
 class BlockSyntax implements Syntax<hbs.BlockStatement> {
   readonly description = 'block';
@@ -68,12 +69,11 @@ class BlockSyntax implements Syntax<hbs.BlockStatement> {
       };
     });
 
-    return {
-      type: 'BlockStatement',
+    return node('BlockStatement', {
       span: { start: span.start, end: blockEnd },
       program: defaultBlock,
       inverses: inverseBlocks,
-    };
+    });
   }
 }
 
@@ -287,11 +287,10 @@ class BlockParams implements Syntax<hbs.BlockParams> {
       return UNMATCHED;
     }
 
-    return {
-      type: 'BlockParams',
+    return node('BlockParams', {
       span,
       params,
-    };
+    });
   }
 }
 

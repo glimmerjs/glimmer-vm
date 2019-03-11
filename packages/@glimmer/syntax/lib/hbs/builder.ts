@@ -1,6 +1,7 @@
 import { keys, join } from '@glimmer/util';
 import * as hbs from '../types/handlebars-ast';
 import { Option } from '@glimmer/interfaces';
+import { node } from '../types/handlebars-ast';
 
 export class AstBuilder {
   private pos = 0;
@@ -544,21 +545,21 @@ export class AstBuilder {
         return this.spanned(() => {
           this.consume(String(expression.value));
 
-          return span => ({ type: 'BooleanLiteral', span, value: expression.value });
+          return span => node('BooleanLiteral', { span, value: expression.value });
         });
 
       case 'NumberLiteral':
         return this.spanned(() => {
           this.consume(String(expression.value));
 
-          return span => ({ type: 'NumberLiteral', span, value: expression.value });
+          return span => node('NumberLiteral', { span, value: expression.value });
         });
 
       case 'StringLiteral':
         return this.spanned(() => {
           this.consume(JSON.stringify(expression.value));
 
-          return span => ({ type: 'StringLiteral', span, value: expression.value });
+          return span => node('StringLiteral', { span, value: expression.value });
         });
 
       case 'PathExpression':
@@ -567,21 +568,21 @@ export class AstBuilder {
       case 'UndefinedLiteral':
         return this.spanned(() => {
           this.consume('undefined');
-          return span => ({
-            type: 'UndefinedLiteral',
-            span,
-            value: undefined,
-          });
+          return span =>
+            node('UndefinedLiteral', {
+              span,
+              value: undefined,
+            });
         });
 
       case 'NullLiteral':
         return this.spanned(() => {
           this.consume('null');
-          return span => ({
-            type: 'NullLiteral',
-            span,
-            value: null,
-          });
+          return span =>
+            node('NullLiteral', {
+              span,
+              value: null,
+            });
         });
 
       case 'Whitespace':
@@ -600,11 +601,11 @@ export class AstBuilder {
 
           this.consume(')');
 
-          return span => ({
-            type: 'SubExpression',
-            span,
-            body: inside.body,
-          });
+          return span =>
+            node('SubExpression', {
+              span,
+              body: inside.body,
+            });
         });
       }
     }
@@ -614,14 +615,14 @@ export class AstBuilder {
     return this.spanned<hbs.Head>(() => {
       if (item.type === 'LocalReference') {
         this.consume(item.name);
-        return span => ({ type: 'LocalReference', span, name: item.name });
+        return span => node('LocalReference', { span, name: item.name });
       } else if (item.type === 'This') {
         this.consume('this');
-        return span => ({ type: 'This', span });
+        return span => node('This', { span });
       } else {
         this.consume('@');
         this.consume(item.name);
-        return span => ({ type: 'ArgReference', span, name: item.name });
+        return span => node('ArgReference', { span, name: item.name });
       }
     });
   }
@@ -633,7 +634,7 @@ export class AstBuilder {
       this.consume('.');
       return this.spanned(() => {
         this.consume(item);
-        return span => ({ type: 'PathSegment', span, name: item });
+        return span => node('PathSegment', { span, name: item });
       });
     });
   }
@@ -662,11 +663,11 @@ export class AstBuilder {
         if (i !== last) this.consume(' ');
       }
 
-      return span => ({
-        type: 'Hash',
-        span,
-        pairs: out,
-      });
+      return span =>
+        node('Hash', {
+          span,
+          pairs: out,
+        });
     });
   }
 
@@ -681,12 +682,12 @@ export class AstBuilder {
       this.consume('=');
       let value = this.expr(pair.value);
 
-      return span => ({
-        type: 'HashPair',
-        span,
-        key: pair.key,
-        value,
-      });
+      return span =>
+        node('HashPair', {
+          span,
+          key: pair.key,
+          value,
+        });
     });
   }
 

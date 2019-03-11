@@ -30,6 +30,7 @@ export { hbs };
 export * from './lib/hbs/parse';
 export * from './lib/hbs/parse/html';
 export * from './lib/hbs/debug-span';
+export * from './lib/hbs/hash-node';
 
 export type TODO = any;
 

@@ -4,7 +4,7 @@ import {
   HTML5NamedCharRefs as namedCharRefs,
 } from 'simple-html-tokenizer';
 import * as AST from './types/nodes';
-import * as HBS from './types/handlebars-ast';
+import * as hbs from './types/handlebars-ast';
 import { Option } from '@glimmer/interfaces';
 import { assert, expect } from '@glimmer/util';
 
@@ -42,20 +42,20 @@ export abstract class Parser {
 
   constructor(protected source: string) {}
 
-  abstract Program(node: HBS.Program): HBS.Output<'Program'>;
-  abstract MustacheStatement(node: HBS.MustacheStatement): HBS.Output<'MustacheStatement'>;
-  abstract MustacheContent(node: HBS.MustacheContent): HBS.Output<'MustacheContent'>;
-  abstract BlockStatement(node: HBS.BlockStatement): HBS.Output<'BlockStatement'>;
-  abstract ContentStatement(node: HBS.ContentStatement): HBS.Output<'ContentStatement'>;
-  abstract Newline(node: HBS.Newline): HBS.Output<'Newline'>;
-  abstract CommentStatement(node: HBS.MustacheCommentStatement): HBS.Output<'CommentStatement'>;
-  abstract SubExpression(node: HBS.SubExpression): HBS.Output<'SubExpression'>;
-  abstract PathExpression(node: HBS.PathExpression): HBS.Output<'PathExpression'>;
-  abstract StringLiteral(node: HBS.StringLiteral): HBS.Output<'StringLiteral'>;
-  abstract BooleanLiteral(node: HBS.BooleanLiteral): HBS.Output<'BooleanLiteral'>;
-  abstract NumberLiteral(node: HBS.NumberLiteral): HBS.Output<'NumberLiteral'>;
-  abstract UndefinedLiteral(node: HBS.UndefinedLiteral): HBS.Output<'UndefinedLiteral'>;
-  abstract NullLiteral(node: HBS.NullLiteral): HBS.Output<'NullLiteral'>;
+  abstract Program(node: hbs.Program): hbs.Program;
+  abstract MustacheStatement(node: hbs.MustacheStatement): hbs.MustacheStatement;
+  abstract MustacheContent(node: hbs.MustacheContent): hbs.MustacheContent;
+  abstract BlockStatement(node: hbs.BlockStatement): hbs.BlockStatement;
+  abstract ContentStatement(node: hbs.ContentStatement): hbs.ContentStatement;
+  abstract Newline(node: hbs.Newline): hbs.Newline;
+  abstract CommentStatement(node: hbs.MustacheCommentStatement): hbs.MustacheCommentStatement;
+  abstract SubExpression(node: hbs.SubExpression): hbs.SubExpression;
+  abstract PathExpression(node: hbs.PathExpression): hbs.PathExpression;
+  abstract StringLiteral(node: hbs.StringLiteral): hbs.StringLiteral;
+  abstract BooleanLiteral(node: hbs.BooleanLiteral): hbs.BooleanLiteral;
+  abstract NumberLiteral(node: hbs.NumberLiteral): hbs.NumberLiteral;
+  abstract UndefinedLiteral(node: hbs.UndefinedLiteral): hbs.UndefinedLiteral;
+  abstract NullLiteral(node: hbs.NullLiteral): hbs.NullLiteral;
 
   abstract reset(): void;
   abstract finishData(): void;
@@ -111,13 +111,13 @@ export abstract class Parser {
     return node as AST.TextNode;
   }
 
-  acceptTemplate(node: HBS.AnyProgram): AST.Template {
+  acceptTemplate(node: hbs.AnyProgram): AST.Template {
     return (this as any)[node.type](node) as AST.Template;
   }
 
-  acceptNode(node: HBS.Program): AST.Block | AST.Template;
-  acceptNode<U extends HBS.Node | AST.Node>(node: HBS.Node): U;
-  acceptNode(node: HBS.Node): any {
+  acceptNode(node: hbs.Program): AST.Block | AST.Template;
+  acceptNode<U extends hbs.Node | AST.Node>(node: hbs.Node): U;
+  acceptNode(node: hbs.Node): any {
     return (this as any)[node.type](node);
   }
 
@@ -125,7 +125,7 @@ export abstract class Parser {
     return this.elementStack[this.elementStack.length - 1];
   }
 
-  sourceForNode(node: HBS.Node): string {
+  sourceForNode(node: hbs.Node): string {
     if (node.span) {
       return this.source.slice(node.span.start, node.span.end);
     } else {

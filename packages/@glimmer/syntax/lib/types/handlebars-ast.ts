@@ -19,42 +19,43 @@ export interface CommonNode {
 }
 
 export interface NodeMap {
-  Root: { input: Root; output: AST.Template };
-  Program: { input: Program; output: AST.Template | AST.Block };
-  MustacheStatement: { input: MustacheStatement; output: AST.MustacheStatement | void };
-  MustacheContent: { input: MustacheContent; output: AST.MustacheContent | void };
-  BlockStatement: { input: BlockStatement; output: AST.BlockStatement | void };
-  ContentStatement: { input: ContentStatement; output: void };
-  Newline: { input: Newline; output: void };
-  CommentStatement: {
-    input: MustacheCommentStatement;
-    output: AST.MustacheCommentStatement | null;
-  };
-  SubExpression: { input: SubExpression; output: AST.SubExpression };
-  PathExpression: { input: PathExpression; output: AST.PathExpression };
-  StringLiteral: { input: StringLiteral; output: AST.StringLiteral };
-  BooleanLiteral: { input: BooleanLiteral; output: AST.BooleanLiteral };
-  NumberLiteral: { input: NumberLiteral; output: AST.NumberLiteral };
-  UndefinedLiteral: { input: UndefinedLiteral; output: AST.UndefinedLiteral };
-  NullLiteral: { input: NullLiteral; output: AST.NullLiteral };
+  Root: Root;
+  Program: Program;
+  BlockParams: BlockParams;
+  MustacheStatement: MustacheStatement;
+  CallBody: CallBody;
+  MustacheContent: MustacheContent;
+  BlockStatement: BlockStatement;
+  ContentStatement: ContentStatement;
+  TextNode: TextNode;
+  HtmlCommentNode: HtmlCommentNode;
+  ElementNode: ElementNode;
+  AttrNode: AttrNode;
+  ConcatStatement: ConcatStatement;
+  ElementModifierStatement: ElementModifierStatement;
+  Newline: Newline;
+  MustacheCommentStatement: MustacheCommentStatement;
+  SubExpression: SubExpression;
+  PathExpression: PathExpression;
+
+  LocalReference: LocalReference;
+  ArgReference: ArgReference;
+  This: This;
+  PathSegment: PathSegment;
+  StringLiteral: StringLiteral;
+  BooleanLiteral: BooleanLiteral;
+  NumberLiteral: NumberLiteral;
+  UndefinedLiteral: UndefinedLiteral;
+  NullLiteral: NullLiteral;
+  Hash: Hash;
+  HashPair: HashPair;
 }
 
 export type NodeType = keyof NodeMap;
-export type Node<T extends NodeType = NodeType> = NodeMap[T]['input'];
 
-export type AnyNode =
-  | Node
-  | Head
-  | BlockParams
-  | HtmlCommentNode
-  | PathSegment
-  | Hash
-  | HashPair
-  | AttrNode
-  | ConcatStatement
-  | AnyProgram;
+export type Node = NodeMap[NodeType];
 
-export type Output<T extends NodeType> = NodeMap[T]['output'];
+export type AnyNode = Node;
 
 export interface SourceLocation {
   source: string;
@@ -268,4 +269,21 @@ export interface HashPair extends CommonNode {
   type: 'HashPair';
   key: string;
   value: Expression;
+}
+
+const NODES = new WeakSet<AnyNode>();
+
+type Without<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>>;
+
+export function node<K extends NodeType, N extends NodeMap[K]>(
+  name: K,
+  rest: Without<N, 'type'>
+): N {
+  let item = ({
+    type: name,
+    ...rest,
+  } as unknown) as N;
+
+  NODES.add(item);
+  return item;
 }

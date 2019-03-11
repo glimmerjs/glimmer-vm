@@ -28,6 +28,11 @@
       #qunit-tests button.expand-diff {
         display: block;
       }
+
+      #qunit-tests svg {
+        top: 0;
+        left: 0;
+      }
     </style>
   </head>
   <body>
@@ -80,7 +85,26 @@
             row.classList.add('has-json-diff');
           }
 
-          let diff = jsondiffpatch.diff(e.actual, e.expected);
+          const { hashNode } = require('@glimmer/syntax');
+
+          let differ = jsondiffpatch.create({
+            arrays: {
+              detectMove: true,
+            },
+            objectHash(obj, index) {
+              if (obj && obj.type) {
+                console.group('hashing');
+                console.log(obj);
+                console.log(hashNode(obj));
+                console.groupEnd();
+                return hashNode(obj);
+              } else {
+                return index;
+              }
+            },
+          });
+
+          let diff = differ.diff(e.actual, e.expected);
           let format = jsondiffpatch.formatters.html.format(diff, e.actual);
 
           let i = document.getElementById(`qunit-test-output-${e.testId}`);
@@ -99,7 +123,7 @@
           };
 
           el.innerHTML = format;
-          jsondiffpatch.formatters.html.showUnchanged(showing, el);
+          jsondiffpatch.formatters.html.hideUnchanged(el);
 
           el.insertBefore(button, el.firstChild);
           parent.insertBefore(el.parentElement, expected);
