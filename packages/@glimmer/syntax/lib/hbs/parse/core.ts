@@ -54,7 +54,7 @@ export class HandlebarsParser {
     this.stack = new ElementStack(source, this);
   }
 
-  RootProgram(): hbs.AnyProgram {
+  RootProgram(): hbs.Root {
     return this.expect(ROOT);
   }
 

@@ -114,9 +114,7 @@ function isEOF(item: LexItem<TokenKind>): item is { kind: TokenKind.EOF; span: h
   return item.kind === TokenKind.EOF;
 }
 
-export function hbsParse(
-  template: string | hbs.AnyProgram
-): { result: hbs.AnyProgram; errors: Diagnostic[] } {
+export function hbsParse(template: string | hbs.Root): { result: hbs.Root; errors: Diagnostic[] } {
   let debug: Debug = {
     trace(message) {
       console.info(message);
@@ -142,8 +140,8 @@ export function hbsParse(
   }
 }
 
-function lexErrorProgram(span: hbs.Span): hbs.AnyProgram {
-  return { span, type: 'Program', body: [] };
+function lexErrorProgram(span: hbs.Span): hbs.Root {
+  return { span, type: 'Root', body: [] };
 }
 
 export function hbsPrint(ast: hbs.AnyProgram): JsonValue {

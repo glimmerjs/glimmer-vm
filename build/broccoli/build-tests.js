@@ -83,7 +83,11 @@ function includeVendorDependencies() {
     include: ['*/dist/amd/es5/*.{js,map}'],
   });
 
-  return concat(merge([transpiled, simpleDOM]), {
+  let jsondiff = funnel('node_modules/jsondiffpatch', {
+    include: ['dist/jsondiffpatch.umd.js'],
+  });
+
+  return concat(merge([transpiled, jsondiff, simpleDOM]), {
     inputFiles: ['**/*.js'],
     outputFile: 'assets/vendor.js',
   });
@@ -104,7 +108,11 @@ function includeTestHarness() {
     destDir: 'assets/',
   });
 
-  let harnessTrees = [html, loader, qunit];
+  let jsondiff = funnel(path.join(require.resolve('jsondiffpatch'), '..', 'formatters-styles'), {
+    destDir: 'assets/',
+  });
+
+  let harnessTrees = [html, jsondiff, loader, qunit];
 
   return merge(harnessTrees);
 }

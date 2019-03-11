@@ -118,19 +118,6 @@ class ConstructingAttribute {
   }
 
   finalizeStatementWithValue(statement: hbs.ConcatContent, source: string): hbs.AttrNode {
-    // let nameSpan = this.nameSpan;
-
-    // let node = {
-    //   type: 'AttrNode',
-    //   span: { start: nameSpan.start, end: statement!.span.end },
-    //   name: {
-    //     type: 'PathSegment',
-    //     span: this.nameSpan,
-    //     name: source.slice(nameSpan.start, nameSpan.end),
-    //   },
-    //   value: statement,
-    // };
-
     this.valueStatements.push(statement);
     return this.finalize(statement.span.end, source);
   }
@@ -158,7 +145,7 @@ class ConstructingAttribute {
         span: nameSpan,
         value: null,
       };
-    } else if (content.length === 1) {
+    } else if (isStaticText(content) || isBareMustache(content, this.quoted)) {
       return {
         type: 'AttrNode',
         name,
@@ -178,6 +165,41 @@ class ConstructingAttribute {
         },
       };
     }
+  }
+}
+
+function isStaticText(contents: hbs.ConcatContent[]): contents is [hbs.TextNode] {
+  if (contents.length !== 1) {
+    return false;
+  }
+
+  let item = contents[0];
+
+  switch (item.type) {
+    case 'TextNode':
+      return true;
+    default:
+      return false;
+  }
+}
+
+function isBareMustache(
+  contents: hbs.ConcatContent[],
+  quoted: boolean
+): contents is [hbs.ConcatContent] {
+  if (quoted) return false;
+
+  if (contents.length !== 1) {
+    return false;
+  }
+
+  let item = contents[0];
+
+  switch (item.type) {
+    case 'TextNode':
+      return false;
+    default:
+      return true;
   }
 }
 
@@ -370,7 +392,6 @@ export class ElementStack {
           isAttrValue(node),
           `the right hand side of an attribute must be a valid attribute value (text, mustache or concat)`
         );
-        debugger;
         this.element.appendStatementToAttributeValue(node, source);
         break;
       }

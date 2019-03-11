@@ -29,6 +29,7 @@ export { hbs };
 
 export * from './lib/hbs/parse';
 export * from './lib/hbs/parse/html';
+export * from './lib/hbs/debug-span';
 
 export type TODO = any;
 

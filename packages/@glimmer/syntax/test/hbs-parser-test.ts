@@ -5,6 +5,7 @@ import {
   BuilderAst,
   hbsParse as parse,
   hbsPrint as print,
+  annotateSpans,
 } from '@glimmer/syntax';
 import { BuilderMustache } from '../lib/hbs/builder';
 
@@ -45,6 +46,7 @@ function equivAST(
   { ast, sexp }: { ast?: BuilderAst | BuilderMustache; sexp?: JsonArray }
 ) {
   let parsed = parse(template);
+  annotateSpans(parsed.result, template);
 
   QUnit.assert.ok(
     parsed.errors.length === 0,
@@ -53,7 +55,9 @@ function equivAST(
 
   if (ast) {
     let build = ast.type === 'MustacheStatement' ? b.ast(ast) : ast;
-    QUnit.assert.deepEqual(parsed.result, new AstBuilder().build(build), 'ast matches');
+    let { root: expected, source } = new AstBuilder().build(build);
+    annotateSpans(expected, source);
+    QUnit.assert.deepEqual(parsed.result, expected, 'ast matches');
   }
 
   if (sexp) {
@@ -271,55 +275,108 @@ describe('@glimmer/syntax - parser', function() {
   });
 
   it('parses concat attributes', () => {
+    equivAST(`<p class="{{hello}}">body</p>`, {
+      sexp: [['element', 'p', { class: ['concat', 'hello'] }, [[], 's:body']]],
+      ast: b.ast(
+        b.element(
+          'p',
+          b.attr('class', b.eq, b.concat(b.mustache('hello'))),
+          b.block(b.text('body'))
+        )
+      ),
+    });
+
     equivAST(`<p class="hello {{world}}">body</p>`, {
       sexp: [['element', 'p', { class: ['concat', 's:hello ', 'world'] }, [[], 's:body']]],
       ast: b.ast(
         b.element(
           'p',
-          b.attr('class', b.eq, b.text('hello '), b.mustache('world')),
-          b.block(b.text('world'))
+          b.attr('class', b.eq, b.concat(b.text('hello '), b.mustache('world'))),
+          b.block(b.text('body'))
         )
       ),
     });
 
     equivAST(`<p class="{{hello}} world">body</p>`, {
       sexp: [['element', 'p', { class: ['concat', 'hello', 's: world'] }, [[], 's:body']]],
-      // ast: b.ast(b.element('p', b.attr('class', b.mustache('hello')), b.block(b.text('world')))),
+      ast: b.ast(
+        b.element(
+          'p',
+          b.attr('class', b.eq, b.concat(b.mustache('hello'), b.text(' world'))),
+          b.block(b.text('body'))
+        )
+      ),
     });
 
     equivAST(`<p class="hello {{world}} goodbye">body</p>`, {
       sexp: [
         ['element', 'p', { class: ['concat', 's:hello ', 'world', 's: goodbye'] }, [[], 's:body']],
       ],
-      // ast: b.ast(b.element('p', b.attr('class', b.mustache('hello')), b.block(b.text('world')))),
+      ast: b.ast(
+        b.element(
+          'p',
+          b.attr(
+            'class',
+            b.eq,
+            b.concat(b.text('hello '), b.mustache('world'), b.text(' goodbye'))
+          ),
+          b.block(b.text('body'))
+        )
+      ),
     });
 
-    // equivAST(`<p class={{hello}} data-attr={{world}}>body</p>`, {
-    //   sexp: [['element', 'p', { class: 'hello', 'data-attr': 'world' }, [[], 's:body']]],
-    //   ast: b.ast(
-    //     b.element(
-    //       'p',
-    //       b.attr('class', b.mustache('hello')),
-    //       b.attr('data-attr', b.mustache('world')),
-    //       b.block(b.text('body'))
-    //     )
-    //   ),
-    // });
+    equivAST(`<p class="{{hello}} world" data-attr="goodbye {{world}}">body</p>`, {
+      sexp: [
+        [
+          'element',
+          'p',
+          {
+            class: ['concat', 'hello', 's: world'],
+            'data-attr': ['concat', 's:goodbye ', 'world'],
+          },
+          [[], 's:body'],
+        ],
+      ],
+      ast: b.ast(
+        b.element(
+          'p',
+          b.attr('class', b.concat(b.mustache('hello'), b.text(' world'))),
+          b.attr('data-attr', b.concat(b.text('goodbye '), b.mustache('world'))),
+          b.block(b.text('body'))
+        )
+      ),
+    });
 
-    // equivAST(`<p class={{hello}} data-attr={{world}} checked>body</p>`, {
-    //   sexp: [
-    //     ['element', 'p', { class: 'hello', 'data-attr': 'world', checked: null }, [[], 's:body']],
-    //   ],
-    //   ast: b.ast(
-    //     b.element(
-    //       'p',
-    //       b.attr('class', b.mustache('hello')),
-    //       b.attr('data-attr', b.mustache('world')),
-    //       b.attr('checked'),
-    //       b.block(b.text('body'))
-    //     )
-    //   ),
-    // });
+    equivAST(`<p class="{{hello}}" data-attr="goodbye {{my}} friend" checked>body</p>`, {
+      sexp: [
+        [
+          'element',
+          'p',
+          {
+            class: ['concat', 'hello'],
+            'data-attr': ['concat', 's:goodbye ', 'my', 's: friend'],
+            checked: null,
+          },
+          [[], 's:body'],
+        ],
+      ],
+      ast: b.ast(
+        b.element(
+          'p',
+          b.attr('class', b.concat(b.mustache('hello'))),
+          b.attr('data-attr', b.concat(b.text('goodbye '), b.mustache('my'), b.text(' friend'))),
+          b.attr('checked'),
+          b.block(b.text('body'))
+        )
+      ),
+    });
+  });
+
+  it('parses modifiers', () => {
+    equivAST('<p {{on click=this.hello}}>world</p>', {
+      sexp: [['element', 'p', {}, [['on', { click: 'this.hello' }]], [[], 's:world']]],
+      ast: b.ast(b.element('p', b.modifier('on', b.hash({ click: b.path('this.hello') })))),
+    });
   });
 
   it('parses comments', () => {
@@ -930,7 +987,7 @@ describe('@glimmer/syntax - parser', function() {
   });
 
   it('parses elaborate nested hash syntax', () => {
-    equivAST(`{{#with (hash Foo=(component 'Foo')) as |Other|}}{{Other.Foo}}{{/with}}`, {
+    equivAST(`{{#with (hash Foo=(component "Foo")) as |Other|}}{{Other.Foo}}{{/with}}`, {
       sexp: [
         [
           'block',
@@ -954,7 +1011,7 @@ describe('@glimmer/syntax - parser', function() {
     });
 
     equivAST(
-      `{{#with\n  (hash\n    Foo=(component 'Foo')\n  )\n  as |Other|\n}}\n  {{Other.Foo}}\n{{/with}}`,
+      `{{#with\n  (hash\n    Foo=(component "Foo")\n  )\n  as |Other|\n}}\n  {{Other.Foo}}\n{{/with}}`,
       {
         sexp: [
           [
@@ -992,13 +1049,13 @@ describe('@glimmer/syntax - parser', function() {
   });
 
   todo('parses elaborate nested hash syntax (html)', () => {
-    equivAST(`{{#with (hash Foo=(component 'Foo')) as |Other|}}<Other.Foo />{{/with}}`, {
+    equivAST(`{{#with (hash Foo=(component "Foo")) as |Other|}}<Other.Foo />{{/with}}`, {
       sexp: [
         [
           'block',
           [
             ['with', ['hash', { Foo: ['component', 's:Foo'] }], { as: ['Other'] }],
-            `s:<Other.Foo />`,
+            ['get-path', 'Other', 's:Foo'],
           ],
         ],
       ],
@@ -1010,20 +1067,22 @@ describe('@glimmer/syntax - parser', function() {
             b.sexpr('hash', b.hash({ Foo: b.sexpr('component', b.literal('Foo')) })),
             b.as('Other'),
           ],
-          b.block(b.text('<Other.Foo />'))
+          b.block(b.mustache('Other.Foo'))
         )
       ),
     });
 
     equivAST(
-      `{{#with\n  (hash\n    Foo=(component 'Foo')\n  )\n  as |Other|\n}}\n  <Other.Foo />\n{{/with}}`,
+      `{{#with\n  (hash\n    Foo=(component "Foo")\n  )\n  as |Other|\n}}\n  <Other.Foo />\n{{/with}}`,
       {
         sexp: [
           [
             'block',
             [
               ['with', ['hash', { Foo: ['component', 's:Foo'] }], { as: ['Other'] }],
-              `s:  <Other.Foo />\n`,
+              `s:  `,
+              ['get-path', 'Other', 's:Foo'],
+              `s:\n`,
             ],
           ],
         ],
@@ -1044,7 +1103,7 @@ describe('@glimmer/syntax - parser', function() {
               b.ws('\n'),
             ],
             b.skip(),
-            b.block(b.text('  <Other.Foo />\n'))
+            b.block(b.text('  '), b.mustache('Other.Foo'), b.text('\n'))
           )
         ),
       }

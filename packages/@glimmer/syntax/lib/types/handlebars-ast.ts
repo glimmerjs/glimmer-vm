@@ -11,6 +11,7 @@ import * as AST from './nodes';
 export interface Span {
   start: number;
   end: number;
+  slice?: string;
 }
 
 export interface CommonNode {

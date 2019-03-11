@@ -4,11 +4,12 @@ import { Option } from '@glimmer/interfaces';
 
 export class AstBuilder {
   private pos = 0;
+  private out = '';
 
-  build(program: BuilderAst): hbs.Root {
+  build(program: BuilderAst): { root: hbs.Root; source: string } {
     let statements: hbs.Statement[] = [];
 
-    return this.spanned(() => {
+    let root = this.spanned(() => {
       for (let statement of program.body) {
         let s = this.visit(statement);
         if (s) statements.push(s);
@@ -20,6 +21,8 @@ export class AstBuilder {
         body: statements,
       });
     });
+
+    return { root, source: this.out };
   }
 
   visit(statement: Statement): hbs.Statement | null {
@@ -64,7 +67,7 @@ export class AstBuilder {
 
           let programs = this.programs(statement.programs, statement.mustache.contents);
 
-          if (programs.callSize === null) {
+          if (programs.callString === null) {
             throw new Error(`unexpected empty {{#}}`);
           }
 
@@ -79,7 +82,7 @@ export class AstBuilder {
               }
             }
           } else {
-            this.pos += programs.callSize;
+            this.consume(programs.callString);
           }
 
           this.consume('}}');
@@ -294,7 +297,7 @@ export class AstBuilder {
     default: hbs.Program;
     else: Option<hbs.Program[]>;
     close: Option<CloseBlock>;
-    callSize: number | null;
+    callString: string | null;
   } {
     let defaultBlock: hbs.Program | null = null;
     let inverseBlocks: hbs.Program[] = [];
@@ -332,7 +335,7 @@ export class AstBuilder {
       default: defaultBlock,
       else: inverseBlocks.length ? inverseBlocks : null,
       close,
-      callSize: inside && inside.callSize,
+      callString: inside ? inside.callString : null,
     };
   }
 
@@ -424,7 +427,7 @@ export class AstBuilder {
   }
 
   insideMustache(contents: MustacheContents): InsideMustache | null {
-    let foundCall: { call: hbs.Expression; size: number } | undefined = undefined;
+    let foundCall: { call: hbs.Expression; string: string } | undefined = undefined;
     let foundHash: hbs.Hash | null | undefined = undefined;
     let params: hbs.Expression[] = [];
     let blockParams: Option<hbs.BlockParams> = null;
@@ -489,8 +492,8 @@ export class AstBuilder {
           throw new Error(`The first element of a mustache may not be a hash`);
         }
 
-        let start = this.pos;
-        foundCall = { call: this.expr(param), size: this.pos - start };
+        let call = this.expr(param);
+        foundCall = { call, string: this.out.slice(call.span.start, call.span.end) };
         last = this.pos;
         needsWs = true;
       } else if (param.type === 'Whitespace') {
@@ -512,7 +515,7 @@ export class AstBuilder {
     }
 
     return {
-      callSize: foundCall.size,
+      callString: foundCall.string,
       body: {
         type: 'CallBody',
         span: { start: foundCall.call.span.start, end: last },
@@ -690,10 +693,12 @@ export class AstBuilder {
   consume(chars: string): hbs.Span {
     let pos = this.pos;
     this.pos += chars.length;
+    this.out += chars;
     return { start: pos, end: this.pos };
   }
 
   skip(chars: string): void {
+    this.out += chars;
     this.pos += chars.length;
   }
 
@@ -706,7 +711,7 @@ export class AstBuilder {
 }
 
 interface InsideMustache {
-  callSize: number;
+  callString: string;
   body: hbs.CallBody;
 }
 
@@ -809,6 +814,13 @@ export interface MustacheStatement {
   strip?: StripFlags;
 }
 
+export interface ModifierStatement {
+  type: 'ModifierStatement';
+  contents: MustacheContents;
+  trusted: boolean;
+  strip?: StripFlags;
+}
+
 export type BuilderMustache = MustacheStatement;
 
 export type MustacheContent = Expression | Hash | Pipes;
@@ -861,6 +873,16 @@ export function mustache(...params: ToMustachePart[]): MustacheStatement {
 
   return {
     type: 'MustacheStatement',
+    contents: parts,
+    trusted: false,
+  };
+}
+
+export function modifier(...params: ToMustachePart[]): ModifierStatement {
+  let parts = params.map(ToMustachePart);
+
+  return {
+    type: 'ModifierStatement',
     contents: parts,
     trusted: false,
   };
@@ -980,7 +1002,7 @@ export interface ElementNode {
   parts: ElementPart[];
 }
 
-export type ElementPart = AttrNode | Program | Whitespace;
+export type ElementPart = AttrNode | ModifierStatement | Program | Whitespace;
 
 export function element(tag: string, ...parts: ElementPart[]): ElementNode {
   return {

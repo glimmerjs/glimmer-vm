@@ -4,6 +4,31 @@
     <meta charset="utf-8" />
     <title>Glimmer Test Suite</title>
     <link rel="stylesheet" href="assets/qunit.css" />
+    <link rel="stylesheet" href="assets/html.css" />
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      #qunit-tests .jsondiffpatch-delta,
+      #qunit-tests .jsondiffpatch-delta pre {
+        font-family: monospace !important;
+        padding-left: 0;
+      }
+      #qunit-tests .jsondiffpatch-delta ul {
+        padding-left: 1em;
+      }
+      #qunit-tests .jsondiffpatch-delta ul li {
+        padding: 0;
+      }
+
+      #qunit-tests tr.test-expected.has-json-diff,
+      #qunit-tests tr.test-actual.has-json-diff {
+        display: none;
+      }
+      #qunit-tests button.expand-diff {
+        display: block;
+      }
+    </style>
   </head>
   <body>
     <script>
@@ -32,6 +57,54 @@
           return QUnit.urlParams.packages.split(',');
         }
       }
+
+      QUnit.log(e => {
+        let el = document.querySelector(
+          `#qunit-test-output-${e.testId} ol li:last-child tr.test-diff td`
+        );
+
+        if (el) {
+          let parent = document.querySelector(
+            `#qunit-test-output-${e.testId} ol li:last-child tbody`
+          );
+
+          let expected = document.querySelector(
+            `#qunit-test-output-${e.testId} ol li:last-child tr.test-expected`
+          );
+
+          let rows = document.querySelectorAll(
+            `#qunit-test-output-${e.testId} ol li:last-child tr`
+          );
+
+          for (let row of rows) {
+            row.classList.add('has-json-diff');
+          }
+
+          let diff = jsondiffpatch.diff(e.actual, e.expected);
+          let format = jsondiffpatch.formatters.html.format(diff, e.actual);
+
+          let i = document.getElementById(`qunit-test-output-${e.testId}`);
+          let o = i.querySelector('ol li:last-child');
+
+          let button = document.createElement('button');
+          button.classList.add('expand-diff');
+          button.append(document.createTextNode('Show unchanged'));
+
+          let showing = false;
+
+          button.onclick = () => {
+            showing = !showing;
+            jsondiffpatch.formatters.html.showUnchanged(showing, el);
+            button.innerHTML = showing ? 'Hide unchanged' : 'Show unchanged';
+          };
+
+          el.innerHTML = format;
+          jsondiffpatch.formatters.html.showUnchanged(showing, el);
+
+          el.insertBefore(button, el.firstChild);
+          parent.insertBefore(el.parentElement, expected);
+        }
+      });
 
       Object.assign = null;
 
