@@ -90,8 +90,6 @@ export class ComponentBlock extends Block {
         this.arguments.push(statement);
       } else if (isAttribute(statement)) {
         this.attributes.push(statement);
-      } else if (isAttrSplat(statement)) {
-        this.attributes.push(statement);
       } else {
         throw new Error('Compile Error: only parameters allowed before flush-element');
       }
@@ -167,7 +165,6 @@ export default class JavaScriptCompiler
       }
       (this[opcode] as any)(arg);
     });
-
     return this.template;
   }
 
@@ -266,9 +263,6 @@ export default class JavaScriptCompiler
   }
 
   closeComponent(_element: AST.ElementNode) {
-    if (_element.modifiers.length > 0) {
-      throw new Error('Compile Error: Element modifiers are not allowed in components');
-    }
     let [tag, attrs, args, block] = this.endComponent();
 
     this.push([Ops.Component, tag, attrs, args, block]);
