@@ -164,7 +164,6 @@ export default class JavaScriptCompiler
       }
       (this[opcode] as any)(arg);
     });
-
     return this.template;
   }
 
@@ -263,9 +262,6 @@ export default class JavaScriptCompiler
   }
 
   closeComponent(_element: AST.ElementNode) {
-    if (_element.modifiers.length > 0) {
-      throw new Error('Compile Error: Element modifiers are not allowed in components');
-    }
     let [tag, attrs, args, block] = this.endComponent();
 
     this.push([Ops.Component, tag, attrs, args, block]);
