@@ -1339,18 +1339,6 @@ QUnit.test(`Ensure components can be invoked`, function() {
   equalsElement(view.element, 'div', {}, 'hi!');
 });
 
-QUnit.test(`Glimmer component with element modifier`, function(assert) {
-  env.registerEmberishGlimmerComponent('NonBlock', null, `  <div>In layout</div>  `);
-
-  assert.throws(
-    () => {
-      appendViewFor('<NonBlock {{action}} />');
-    },
-    new Error('Compile Error: Element modifiers are not allowed in components'),
-    'should throw error'
-  );
-});
-
 QUnit.test('Custom element with element modifier', function(assert) {
   assert.expect(0);
 
