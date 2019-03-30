@@ -237,9 +237,9 @@ class ModifierTests extends RenderTest {
     this.registerModifier('bar', Bar);
     this.render(
       `
-      {{#let this.foo as |v|}}
+      {{#with this.foo as |v|}}
         <TheFoo {{bar v foo=v}}/>
-      {{/let}}
+      {{/with}}
     `,
       { foo: 'bar' }
     );
@@ -288,9 +288,9 @@ class ModifierTests extends RenderTest {
     this.registerModifier('bar', Bar);
     this.render(
       `
-      {{#let this.foo as |v|}}
+      {{#with this.foo as |v|}}
         <TheFoo {{bar v foo=v}}/>
-      {{/let}}
+      {{/with}}
     `,
       { foo: 'bar' }
     );
