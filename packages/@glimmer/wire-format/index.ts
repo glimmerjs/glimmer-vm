@@ -1,7 +1,6 @@
 import { Dict, Option, Opaque } from '@glimmer/util';
 import { Opcodes } from './lib/opcodes';
-
-export { Opcodes as Ops } from './lib/opcodes';
+export { Opcodes as Ops };
 
 type JsonValue = string | number | boolean | JsonObject | JsonArray;
 
@@ -226,7 +225,9 @@ export function isAttribute(val: Statement): val is Statements.Attribute {
   return (
     val[0] === Opcodes.StaticAttr ||
     val[0] === Opcodes.DynamicAttr ||
-    val[0] === Opcodes.TrustingAttr
+    val[0] === Opcodes.TrustingAttr ||
+    val[0] === Opcodes.AttrSplat ||
+    val[0] === Opcodes.Modifier
   );
 }
 
