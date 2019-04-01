@@ -14,7 +14,7 @@ import {
   Ops,
   isFlushElement,
   isArgument,
-  isAttribute
+  isAttribute,
 } from '@glimmer/wire-format';
 import { Processor, CompilerOps, OpName, Op } from './compiler-ops';
 
