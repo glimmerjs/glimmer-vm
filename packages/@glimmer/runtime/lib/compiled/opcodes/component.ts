@@ -64,6 +64,7 @@ import {
   CheckComponentInstance,
   CheckFinishedComponentInstance,
 } from './-debug-strip';
+import { ModifierManager } from '../../modifier/interfaces';
 
 /**
  * The VM creates a new ComponentInstance data structure for every component
@@ -398,6 +399,7 @@ interface DeferredAttribute {
 export class ComponentElementOperations {
   private attributes = dict<DeferredAttribute>();
   private classes: VersionedReference<Opaque>[] = [];
+  private modifiers: [ModifierManager<Opaque, Opaque>, Opaque][] = [];
 
   setAttribute(
     name: string,
@@ -414,7 +416,11 @@ export class ComponentElementOperations {
     this.attributes[name] = deferred;
   }
 
-  flush(vm: VM<Opaque>) {
+  addModifier<S>(manager: ModifierManager<S, Opaque>, modifier: S): void {
+    this.modifiers.push([manager, modifier]);
+  }
+
+  flush(vm: VM<Opaque>): [ModifierManager<Opaque, Opaque>, Opaque][] {
     for (let name in this.attributes) {
       let attr = this.attributes[name];
       let { value: reference, namespace, trusting } = attr;
@@ -448,6 +454,8 @@ export class ComponentElementOperations {
         vm.updateWith(new UpdateDynamicAttributeOpcode(reference, attribute));
       }
     }
+
+    return this.modifiers;
   }
 }
 

@@ -111,8 +111,7 @@ export namespace Statements {
     Hash,
     Option<SerializedInlineBlock>
   ];
-  export type OpenElement = [Opcodes.OpenElement, str];
-  export type SplatElement = [Opcodes.OpenSplattedElement, str];
+  export type OpenElement = [Opcodes.OpenElement, str, boolean];
   export type FlushElement = [Opcodes.FlushElement];
   export type CloseElement = [Opcodes.CloseElement];
   export type StaticAttr = [Opcodes.StaticAttr, str, Expression, Option<str>];
@@ -137,7 +136,6 @@ export namespace Statements {
     | Component
     | DynamicComponent
     | OpenElement
-    | SplatElement
     | FlushElement
     | CloseElement
     | StaticAttr

@@ -17,12 +17,13 @@ import {
   CheckOption,
   CheckInstanceof,
 } from '@glimmer/debug';
-import { Simple } from '@glimmer/interfaces';
+import { Simple, FIXME } from '@glimmer/interfaces';
 import { Op, Register } from '@glimmer/vm';
 import {
   ModifierDefinition,
   InternalModifierManager,
   ModifierInstanceState,
+  ModifierManager,
 } from '../../modifier/interfaces';
 import { APPEND_OPCODES, UpdatingOpcode } from '../../opcodes';
 import { UpdatingVM } from '../../vm';
@@ -86,17 +87,32 @@ APPEND_OPCODES.add(Op.FlushElement, vm => {
     vm.fetchValue(Register.t0),
     CheckOption(CheckInstanceof(ComponentElementOperations))
   );
+  let modifiers: Option<[ModifierManager<Opaque, Opaque>, Opaque][]> = null;
 
   if (operations) {
-    operations.flush(vm);
+    modifiers = operations.flush(vm);
     vm.loadValue(Register.t0, null);
   }
 
-  vm.elements().flushElement();
+  vm.elements().flushElement(modifiers);
 });
 
 APPEND_OPCODES.add(Op.CloseElement, vm => {
-  vm.elements().closeElement();
+  let modifiers = vm.elements().closeElement();
+
+  if (modifiers) {
+    modifiers.forEach(([manager, modifier]) => {
+      vm.env.scheduleInstallModifier(
+        modifier as FIXME<ModifierInstanceState, 'unique troubles'>,
+        manager as FIXME<ModifierManager<ModifierInstanceState, Opaque>, 'unique troubles'>
+      );
+      let destructor = manager.getDestructor(modifier);
+
+      if (destructor) {
+        vm.newDestroyable(destructor);
+      }
+    });
+  }
 
   expectStackChange(vm.stack, 0, 'CloseElement');
 });
@@ -108,19 +124,19 @@ APPEND_OPCODES.add(Op.Modifier, (vm, { op1: handle }) => {
   let { constructing, updateOperations } = vm.elements();
   let dynamicScope = vm.dynamicScope();
   let modifier = manager.create(
-    expect(constructing, 'ElementModifier could not find the element it applies to'),
+    expect(constructing, 'BUG: ElementModifier could not find the element it applies to'),
     state,
     args,
     dynamicScope,
     updateOperations
   );
 
-  vm.env.scheduleInstallModifier(modifier, manager);
-  let destructor = manager.getDestructor(modifier);
+  let operations = expect(
+    check(vm.fetchValue(Register.t0), CheckOption(CheckInstanceof(ComponentElementOperations))),
+    'BUG: ElementModifier could not find operations to append to'
+  );
 
-  if (destructor) {
-    vm.newDestroyable(destructor);
-  }
+  operations.addModifier(manager, modifier);
 
   let tag = manager.getTag(modifier);
 
