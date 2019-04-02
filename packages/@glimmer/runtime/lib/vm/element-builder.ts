@@ -20,6 +20,7 @@ import {
 } from '@glimmer/util';
 
 import { Environment } from '../environment';
+import { ModifierManager } from '../modifier/interfaces';
 
 import { VersionedReference } from '@glimmer/reference';
 
@@ -85,7 +86,7 @@ export interface DOMStack {
   popRemoteElement(): void;
   popElement(): void;
   openElement(tag: string, _operations?: ElementOperations): Simple.Element;
-  flushElement(): void;
+  flushElement(modifiers: Option<[ModifierManager<Opaque, Opaque>, Opaque][]>): void;
   appendText(string: string): Simple.Text;
   appendComment(string: string): Simple.Comment;
 
@@ -101,7 +102,8 @@ export interface DOMStack {
     isTrusting: boolean,
     namespace: Option<string>
   ): DynamicAttribute;
-  closeElement(): void;
+
+  closeElement(): Option<[ModifierManager<Opaque, Opaque>, Opaque][]>;
 }
 
 export interface TreeOperations {
@@ -147,6 +149,7 @@ export class NewElementBuilder implements ElementBuilder {
   public env: Environment;
 
   protected cursorStack = new Stack<Cursor>();
+  private modifierStack = new Stack<Option<[ModifierManager<Opaque, Opaque>, Opaque][]>>();
   private blockStack = new Stack<Tracker>();
 
   static forInitialRender(env: Environment, cursor: Cursor) {
@@ -246,7 +249,7 @@ export class NewElementBuilder implements ElementBuilder {
     return this.dom.createElement(tag, this.element);
   }
 
-  flushElement() {
+  flushElement(modifiers: Option<[ModifierManager<Opaque, Opaque>, Opaque][]>) {
     let parent = this.element;
     let element = expect(
       this.constructing,
@@ -258,6 +261,7 @@ export class NewElementBuilder implements ElementBuilder {
     this.constructing = null;
     this.operations = null;
 
+    this.pushModifiers(modifiers);
     this.pushElement(element, null);
     this.didOpenElement(element);
   }
@@ -266,9 +270,10 @@ export class NewElementBuilder implements ElementBuilder {
     this.dom.insertBefore(parent, constructing, this.nextSibling);
   }
 
-  closeElement() {
+  closeElement(): Option<[ModifierManager<Opaque, Opaque>, Opaque][]> {
     this.willCloseElement();
     this.popElement();
+    return this.popModifiers();
   }
 
   pushRemoteElement(
@@ -292,6 +297,14 @@ export class NewElementBuilder implements ElementBuilder {
 
   protected pushElement(element: Simple.Element, nextSibling: Option<Simple.Node>) {
     this.cursorStack.push(new Cursor(element, nextSibling));
+  }
+
+  private pushModifiers(modifiers: Option<[ModifierManager<Opaque, Opaque>, Opaque][]>): void {
+    this.modifierStack.push(modifiers);
+  }
+
+  private popModifiers(): Option<[ModifierManager<Opaque, Opaque>, Opaque][]> {
+    return this.modifierStack.pop();
   }
 
   didAddDestroyable(d: Destroyable) {
