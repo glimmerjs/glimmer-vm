@@ -103,12 +103,13 @@ export function statementCompiler(): Compilers<WireFormat.Statement> {
   });
 
   STATEMENTS.add(Ops.OpenElement, (sexp: S.OpenElement, builder) => {
-    builder.openPrimitiveElement(sexp[1]);
-  });
+    let [, tag, simple] = sexp;
 
-  STATEMENTS.add(Ops.OpenSplattedElement, (sexp: S.SplatElement, builder) => {
-    builder.putComponentOperations();
-    builder.openPrimitiveElement(sexp[1]);
+    if (!simple) {
+      builder.putComponentOperations();
+    }
+
+    builder.openPrimitiveElement(tag);
   });
 
   STATEMENTS.add(Ops.DynamicComponent, (sexp: S.DynamicComponent, builder) => {

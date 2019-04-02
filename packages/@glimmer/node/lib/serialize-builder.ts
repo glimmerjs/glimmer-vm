@@ -5,9 +5,10 @@ import {
   ConcreteBounds,
   Environment,
   Cursor,
+  ModifierManager,
 } from '@glimmer/runtime';
 
-import { Simple, Option } from '@glimmer/interfaces';
+import { Simple, Option, Opaque } from '@glimmer/interfaces';
 
 const TEXT_NODE = 3;
 
@@ -72,13 +73,13 @@ class SerializeBuilder extends NewElementBuilder implements ElementBuilder {
     return super.__appendText(string);
   }
 
-  closeElement() {
+  closeElement(): Option<[ModifierManager<Opaque, Opaque>, Opaque][]> {
     if (this.element['needsExtraClose'] === true) {
       this.element['needsExtraClose'] = false;
       super.closeElement();
     }
 
-    super.closeElement();
+    return super.closeElement();
   }
 
   openElement(tag: string) {
@@ -90,7 +91,7 @@ class SerializeBuilder extends NewElementBuilder implements ElementBuilder {
         // account for the insertion since it is injected here and not
         // really in the template.
         this.constructing!['needsExtraClose'] = true;
-        this.flushElement();
+        this.flushElement(null);
       }
     }
 
