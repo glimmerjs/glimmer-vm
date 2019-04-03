@@ -168,7 +168,9 @@ export class SymbolAllocator
   dynamicArg(_op: string) {}
   staticAttr(_op: [string, Option<string>]) {}
   trustingAttr(_op: [string, Option<string>]) {}
+  trustingComponentAttr(_op: [string, Option<string>]) {}
   dynamicAttr(_op: [string, Option<string>]) {}
+  componentAttr(_op: [string, Option<string>]) {}
   modifier(_op: string) {}
   append(_op: boolean) {}
   block(_op: [string, number, Option<number>]) {}

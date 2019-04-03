@@ -634,7 +634,6 @@ export abstract class OpcodeBuilder<Locator = Opaque> extends StdOpcodeBuilder {
   public component: ComponentBuilder<Locator> = new ComponentBuilder(this);
 
   private expressionCompiler: Compilers<WireFormat.TupleExpression> = expressionCompiler();
-  private isComponentAttrs = false;
 
   constructor(compiler: Compiler, public containingLayout: LayoutWithContext<Locator>) {
     super(compiler, containingLayout ? containingLayout.block.symbols.length : 0);
@@ -652,10 +651,6 @@ export abstract class OpcodeBuilder<Locator = Opaque> extends StdOpcodeBuilder {
 
   get referrer(): Locator {
     return this.containingLayout && this.containingLayout.referrer;
-  }
-
-  setComponentAttrs(enabled: boolean): void {
-    this.isComponentAttrs = enabled;
   }
 
   expr(expression: WireFormat.Expression) {
@@ -1131,25 +1126,20 @@ export abstract class OpcodeBuilder<Locator = Opaque> extends StdOpcodeBuilder {
   dynamicAttr(_name: string, _namespace: Option<string>, trusting: boolean) {
     let name = this.constants.string(_name);
     let namespace = _namespace ? this.constants.string(_namespace) : 0;
+    this.push(Op.DynamicAttr, name, trusting === true ? 1 : 0, namespace);
+  }
 
-    if (this.isComponentAttrs) {
-      this.push(Op.ComponentAttr, name, trusting === true ? 1 : 0, namespace);
-    } else {
-      this.push(Op.DynamicAttr, name, trusting === true ? 1 : 0, namespace);
-    }
+  componentAttr(_name: string, _namespace: Option<string>, trusting: boolean) {
+    let name = this.constants.string(_name);
+    let namespace = _namespace ? this.constants.string(_namespace) : 0;
+    this.push(Op.ComponentAttr, name, trusting === true ? 1 : 0, namespace);
   }
 
   staticAttr(_name: string, _namespace: Option<string>, _value: string) {
     let name = this.constants.string(_name);
     let namespace = _namespace ? this.constants.string(_namespace) : 0;
-
-    if (this.isComponentAttrs) {
-      this.pushPrimitiveReference(_value);
-      this.push(Op.ComponentAttr, name, 1, namespace);
-    } else {
-      let value = this.constants.string(_value);
-      this.push(Op.StaticAttr, name, value, namespace);
-    }
+    let value = this.constants.string(_value);
+    this.push(Op.StaticAttr, name, value, namespace);
   }
 
   // expressions

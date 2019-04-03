@@ -25,7 +25,9 @@ export interface CompilerOps<Variable> {
   attrSplat: Option<Variable>;
   staticAttr: [string, Option<string>];
   trustingAttr: [string, Option<string>];
+  trustingComponentAttr: [string, Option<string>];
   dynamicAttr: [string, Option<string>];
+  componentAttr: [string, Option<string>];
   modifier: string;
   append: boolean;
   block: [string, number, Option<number>];

@@ -90,8 +90,16 @@ export function statementCompiler(): Compilers<WireFormat.Statement> {
     dynamicAttr(sexp, false, builder);
   });
 
+  STATEMENTS.add(Ops.ComponentAttr, (sexp: S.ComponentAttr, builder) => {
+    componentAttr(sexp, false, builder);
+  });
+
   STATEMENTS.add(Ops.TrustingAttr, (sexp: S.DynamicAttr, builder) => {
     dynamicAttr(sexp, true, builder);
+  });
+
+  STATEMENTS.add(Ops.TrustingComponentAttr, (sexp: S.TrustingComponentAttr, builder) => {
+    componentAttr(sexp, true, builder);
   });
 
   STATEMENTS.add(Ops.OpenElement, (sexp: S.OpenElement, builder) => {
@@ -99,7 +107,6 @@ export function statementCompiler(): Compilers<WireFormat.Statement> {
   });
 
   STATEMENTS.add(Ops.OpenSplattedElement, (sexp: S.SplatElement, builder) => {
-    builder.setComponentAttrs(true);
     builder.putComponentOperations();
     builder.openPrimitiveElement(sexp[1]);
   });
@@ -109,32 +116,27 @@ export function statementCompiler(): Compilers<WireFormat.Statement> {
     let block = builder.template(template);
 
     let attrsBlock = null;
-    if (attrs.length > 0) {
-      let wrappedAttrs: WireFormat.Statement[] = [
-        [Ops.ClientSideStatement, ClientSide.Ops.SetComponentAttrs, true],
-        ...attrs,
-        [Ops.ClientSideStatement, ClientSide.Ops.SetComponentAttrs, false],
-      ];
 
-      attrsBlock = builder.inlineBlock({ statements: wrappedAttrs, parameters: EMPTY_ARRAY });
+    if (attrs.length > 0) {
+      attrsBlock = builder.inlineBlock({ statements: attrs, parameters: EMPTY_ARRAY });
     }
 
     builder.dynamicComponent(definition, attrsBlock, null, args, false, block, null);
   });
 
   STATEMENTS.add(Ops.Component, (sexp: S.Component, builder) => {
-    let [, tag, _attrs, args, block] = sexp;
+    let [, tag, attrs, args, block] = sexp;
     let { referrer } = builder;
 
     let { handle, capabilities, compilable } = builder.compiler.resolveLayoutForTag(tag, referrer);
 
     if (handle !== null && capabilities !== null) {
-      let attrs: WireFormat.Statement[] = [
-        [Ops.ClientSideStatement, ClientSide.Ops.SetComponentAttrs, true],
-        ..._attrs,
-        [Ops.ClientSideStatement, ClientSide.Ops.SetComponentAttrs, false],
-      ];
-      let attrsBlock = builder.inlineBlock({ statements: attrs, parameters: EMPTY_ARRAY });
+      let attrsBlock = null;
+
+      if (attrs.length > 0) {
+        attrsBlock = builder.inlineBlock({ statements: attrs, parameters: EMPTY_ARRAY });
+      }
+
       let child = builder.template(block);
 
       if (compilable) {
@@ -187,7 +189,6 @@ export function statementCompiler(): Compilers<WireFormat.Statement> {
     let [, to] = sexp;
 
     builder.yield(to, []);
-    builder.setComponentAttrs(false);
   });
 
   STATEMENTS.add(Ops.Debugger, (sexp: WireFormat.Statements.Debugger, builder) => {
@@ -238,13 +239,6 @@ export function statementCompiler(): Compilers<WireFormat.Statement> {
     }
   );
 
-  CLIENT_SIDE.add(
-    ClientSide.Ops.SetComponentAttrs,
-    (sexp: ClientSide.SetComponentAttrs, builder: OpcodeBuilder) => {
-      builder.setComponentAttrs(sexp[2]);
-    }
-  );
-
   CLIENT_SIDE.add(ClientSide.Ops.Debugger, () => {
     // tslint:disable-next-line:no-debugger
     debugger;
@@ -258,6 +252,22 @@ export function statementCompiler(): Compilers<WireFormat.Statement> {
   );
 
   return STATEMENTS;
+}
+
+function componentAttr<Locator>(
+  sexp: S.ComponentAttr | S.TrustingComponentAttr,
+  trusting: boolean,
+  builder: OpcodeBuilder<Locator>
+) {
+  let [, name, value, namespace] = sexp;
+
+  builder.expr(value);
+
+  if (namespace) {
+    builder.componentAttr(name, namespace, trusting);
+  } else {
+    builder.componentAttr(name, null, trusting);
+  }
 }
 
 function dynamicAttr<Locator>(
