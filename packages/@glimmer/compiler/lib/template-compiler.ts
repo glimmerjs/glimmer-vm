@@ -73,15 +73,17 @@ export default class TemplateCompiler {
 
   openElement([action]: [AST.ElementNode]) {
     let attributes = action.attributes;
-    let hasSplat;
+    let hasSplat = false;
 
     for (let i = 0; i < attributes.length; i++) {
       let attr = attributes[i];
       if (attr.name === '...attributes') {
-        hasSplat = attr;
+        hasSplat = true;
         break;
       }
     }
+
+    let actionIsComponent = false;
 
     if (isDynamicComponent(action)) {
       let head: PathHead, rest: string[];
@@ -91,8 +93,10 @@ export default class TemplateCompiler {
       }
       this.opcode(['get', [head, rest]]);
       this.opcode(['openComponent', action], action);
+      actionIsComponent = true;
     } else if (isComponent(action)) {
       this.opcode(['openComponent', action], action);
+      actionIsComponent = true;
     } else if (hasSplat) {
       this.opcode(['openSplattedElement', action], action);
     } else {
@@ -106,11 +110,11 @@ export default class TemplateCompiler {
         typeAttr = attrs[i];
         continue;
       }
-      this.attribute([attrs[i]]);
+      this.attribute([attrs[i]], hasSplat || actionIsComponent);
     }
 
     if (typeAttr) {
-      this.attribute([typeAttr]);
+      this.attribute([typeAttr], hasSplat || actionIsComponent);
     }
 
     this.opcode(['flushElement', action], null);
@@ -131,7 +135,7 @@ export default class TemplateCompiler {
     }
   }
 
-  attribute([action]: [AST.AttrNode]) {
+  attribute([action]: [AST.AttrNode], isComponent: boolean) {
     let { name, value } = action;
 
     let namespace = getAttrNamespace(name);
@@ -151,14 +155,17 @@ export default class TemplateCompiler {
 
       if (isStatic && name === '...attributes') {
         this.opcode(['attrSplat', null], action);
-      } else if (isStatic) {
+      } else if (isStatic && !isComponent) {
         this.opcode(['staticAttr', [name, namespace]], action);
       } else if (isTrusting) {
-        this.opcode(['trustingAttr', [name, namespace]], action);
+        this.opcode(
+          [isComponent ? 'trustingComponentAttr' : 'trustingAttr', [name, namespace]],
+          action
+        );
       } else if (action.value.type === 'MustacheStatement') {
-        this.opcode(['dynamicAttr', [name, null]], action);
+        this.opcode([isComponent ? 'componentAttr' : 'dynamicAttr', [name, null]], action);
       } else {
-        this.opcode(['dynamicAttr', [name, namespace]], action);
+        this.opcode([isComponent ? 'componentAttr' : 'dynamicAttr', [name, namespace]], action);
       }
     }
   }
