@@ -93,12 +93,10 @@ export class WrappedBuilder<Locator> implements CompilableProgram {
     b.jumpUnless('BODY');
 
     b.fetch(Register.s1);
-    b.setComponentAttrs(true);
     b.putComponentOperations();
     b.openDynamicElement();
     b.didCreateElement(Register.s0);
     b.yield(this.attrsBlockNumber, []);
-    b.setComponentAttrs(false);
     b.flushElement();
 
     b.label('BODY');
