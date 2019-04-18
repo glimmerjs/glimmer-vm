@@ -94,6 +94,10 @@ test('BlockStatement: multiline', function() {
   printEqual('<ul>{{#each foos as |foo index|}}\n  <li>{{foo}}: {{index}}</li>\n{{/each}}</ul>');
 });
 
+test('BlockStatement: leading-whitespace multiline', function() {
+  printEqual('<div>\n  {{#if foo}}\n    <div>hi</div>\n  {{/if}}\n</div>');
+});
+
 test('BlockStatement: inline', function() {
   printEqual('{{#if foo}}<p>{{foo}}</p>{{/if}}');
 });
