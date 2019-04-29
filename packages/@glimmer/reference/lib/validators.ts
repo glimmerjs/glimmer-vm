@@ -175,13 +175,24 @@ function _combine(tags: Tag[]): Tag {
 export abstract class CachedTag extends RevisionTag {
   private lastChecked: Option<Revision> = null;
   private lastValue: Option<Revision> = null;
+  private isUpdating = false;
 
   value(): Revision {
     let { lastChecked } = this;
 
     if (lastChecked !== $REVISION) {
+      this.isUpdating = true;
       this.lastChecked = $REVISION;
-      this.lastValue = this.compute();
+
+      try {
+        this.lastValue = this.compute();
+      } finally {
+        this.isUpdating = false;
+      }
+    }
+
+    if (this.isUpdating) {
+      this.lastChecked = ++$REVISION;
     }
 
     return this.lastValue as Revision;
