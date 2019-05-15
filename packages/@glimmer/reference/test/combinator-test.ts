@@ -1,7 +1,7 @@
 import { State, VersionedPathReference, UpdatableReference, map } from '@glimmer/reference';
 import { tracked } from './support';
 
-QUnit.module('@glimmer/reference - combinators: map');
+QUnit.module('[@glimmer/reference]  combinators: map');
 
 QUnit.test('mapping a simple value', () => {
   let state: UpdatableReference<number> = State(1);

@@ -8,7 +8,7 @@ import {
   combine,
   UpdatableDirtyableTag,
 } from './validators';
-import { pushTrackFrame, popTrackFrame } from './autotrack';
+import { pushTrackFrame, popTrackFrame, consume } from './autotrack';
 import { tagFor } from './tags';
 
 export class RootReference<T> implements VersionedPathReference<T> {
@@ -202,6 +202,7 @@ export class UpdatableReference<T = unknown> implements VersionedPathReference<T
   }
 
   value() {
+    consume(this.tag);
     return this._value;
   }
 

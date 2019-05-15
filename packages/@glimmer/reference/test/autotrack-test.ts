@@ -13,7 +13,7 @@ function unrelatedBump(tag: Tag, snapshot: number) {
   );
 }
 
-QUnit.module('tracked properties');
+QUnit.module('[@glimmer/reference] tracked properties');
 
 QUnit.test(
   'requesting a tag for an untracked property should not throw an exception if mutated in production mode',
