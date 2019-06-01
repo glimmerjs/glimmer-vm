@@ -42,6 +42,7 @@ function happyPromiseLike(cb: PromiseCallbck): Promise<void> {
     tasks: [],
     then(cb: PromiseCallbck) {
       this.tasks.push(cb);
+      return ctx;
     },
   };
   setTimeout(() => {
