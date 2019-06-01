@@ -67,7 +67,7 @@ export default class UpdatingVM {
     return true;
   }
 
-  execute(opcodes: UpdatingOpSeq, handler: ExceptionHandler) {
+  execute(opcodes: UpdatingOpSeq, handler: ExceptionHandler): void {
     this.setup(opcodes, handler);
     let loop = true;
     while (loop) {

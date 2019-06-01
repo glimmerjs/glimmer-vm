@@ -20,7 +20,7 @@ export default class RenderResultImpl implements RenderResult {
 
   rerender(
     { alwaysRevalidate = false, async = false } = { alwaysRevalidate: false, async: false }
-  ) {
+  ): Promise<void> | void {
     let { env, updating } = this;
     let vm = async
       ? new AsyncUpdatingVM(env, { alwaysRevalidate })

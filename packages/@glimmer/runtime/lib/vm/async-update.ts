@@ -24,7 +24,7 @@ declare function requestIdleCallback(
 export default class AsyncUpdatingVM extends UpdatingVM {
   public timeout = 20;
   public tickSize = 50;
-  execute(opcodes: UpdatingOpSeq, handler: ExceptionHandler) {
+  execute(opcodes: UpdatingOpSeq, handler: ExceptionHandler): Promise<void> {
     this.setup(opcodes, handler);
     return new Promise(resolve => {
       let timeout = this.timeout;
