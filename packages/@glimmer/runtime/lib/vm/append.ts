@@ -71,7 +71,7 @@ import {
   ResumableVMStateImpl,
   TryOpcode,
   VMState,
-} from './update';
+} from './sync-update';
 import { CheckNumber, check } from '@glimmer/debug';
 
 /**

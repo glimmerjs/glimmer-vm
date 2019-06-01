@@ -1,7 +1,7 @@
 import { takeAssociated, snapshot, destructor, LINKED } from '@glimmer/util';
 import { DEBUG } from '@glimmer/local-debug-flags';
 import { clear } from './bounds';
-import { BlockOpcode } from './vm/update';
+import { BlockOpcode } from './vm/sync-update';
 import { Option, Bounds, Environment } from '@glimmer/interfaces';
 import { SimpleNode } from '@simple-dom/interface';
 

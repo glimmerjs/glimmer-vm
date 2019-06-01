@@ -41,7 +41,6 @@ export default class UpdatingVM {
   public env: Environment;
   public dom: GlimmerTreeChanges;
   public alwaysRevalidate: boolean;
-
   private frameStack: Stack<UpdatingVMFrame> = new Stack<UpdatingVMFrame>();
 
   constructor(env: Environment, { alwaysRevalidate = false }) {
@@ -50,22 +49,29 @@ export default class UpdatingVM {
     this.alwaysRevalidate = alwaysRevalidate;
   }
 
-  execute(opcodes: UpdatingOpSeq, handler: ExceptionHandler) {
-    let { frameStack } = this;
-
+  setup(opcodes: UpdatingOpSeq, handler: ExceptionHandler) {
     this.try(opcodes, handler);
+  }
 
-    while (true) {
-      if (frameStack.isEmpty()) break;
+  next() {
+    let { frameStack } = this;
+    if (frameStack.isEmpty()) {
+      return false;
+    }
+    let opcode = this.frame.nextStatement();
+    if (opcode === null) {
+      this.frameStack.pop();
+      return true;
+    }
+    opcode.evaluate(this);
+    return true;
+  }
 
-      let opcode = this.frame.nextStatement();
-
-      if (opcode === null) {
-        frameStack.pop();
-        continue;
-      }
-
-      opcode.evaluate(this);
+  execute(opcodes: UpdatingOpSeq, handler: ExceptionHandler) {
+    this.setup(opcodes, handler);
+    let loop = true;
+    while (loop) {
+      loop = this.next();
     }
   }
 
@@ -358,7 +364,7 @@ export class ListBlockOpcode extends BlockOpcode {
   }
 }
 
-class UpdatingVMFrame {
+export class UpdatingVMFrame {
   private current: Option<UpdatingOpcode>;
 
   constructor(private ops: UpdatingOpSeq, private exceptionHandler: Option<ExceptionHandler>) {

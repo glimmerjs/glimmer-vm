@@ -5,7 +5,8 @@ import { clear } from '../bounds';
 import { inTransaction } from '../environment';
 import { asyncDestroy } from '../lifetime';
 import { UpdatingOpcode } from '../opcodes';
-import UpdatingVM from './update';
+import UpdatingVM from './sync-update';
+import AsyncUpdatingVM from './async-update';
 
 export default class RenderResultImpl implements RenderResult {
   constructor(
@@ -17,10 +18,14 @@ export default class RenderResultImpl implements RenderResult {
     associate(this, drop);
   }
 
-  rerender({ alwaysRevalidate = false } = { alwaysRevalidate: false }) {
+  rerender(
+    { alwaysRevalidate = false, async = false } = { alwaysRevalidate: false, async: false }
+  ) {
     let { env, updating } = this;
-    let vm = new UpdatingVM(env, { alwaysRevalidate });
-    vm.execute(updating, this);
+    let vm = async
+      ? new AsyncUpdatingVM(env, { alwaysRevalidate })
+      : new UpdatingVM(env, { alwaysRevalidate });
+    return vm.execute(updating, this);
   }
 
   parentElement(): SimpleElement {

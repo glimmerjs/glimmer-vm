@@ -4,6 +4,32 @@ import { test } from '../test-decorator';
 export class EachSuite extends RenderTest {
   static suiteName = '#each';
 
+  @test 'basic async #each'(assert: any) {
+    let done = assert.async();
+    let list = [1, 2, 3, 4];
+    this.render('{{#each list key="@index" as |item|}}{{item}}{{else}}Empty{{/each}}', {
+      list,
+    });
+    this.assertHTML('1234');
+    this.assertStableRerender();
+    list.push(5, 6);
+    this.rerenderAsync({ list }).then(() => {
+      this.assertHTML('123456');
+      this.assertStableNodes();
+      list = [];
+      this.rerenderAsync({ list }).then(() => {
+        this.assertHTML('Empty');
+        this.assertStableNodes();
+        list = [1, 2, 3, 4];
+        this.rerenderAsync({ list }).then(() => {
+          this.assertHTML('1234');
+          this.assertStableNodes();
+          done();
+        });
+      });
+    });
+  }
+
   @test
   'basic #each'() {
     let list = [1, 2, 3, 4];

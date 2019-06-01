@@ -11,7 +11,7 @@ export interface RenderResult extends Bounds, SymbolDestroyable, ExceptionHandle
   readonly env: Environment;
   readonly drop: object;
 
-  rerender(options?: { alwaysRevalidate: false }): void;
+  rerender(options?: { alwaysRevalidate: false; async: boolean }): Promise<void> | void;
 
   parentElement(): SimpleElement;
 

@@ -378,6 +378,24 @@ export class RenderTest implements IRenderTest {
     result.env.commit();
   }
 
+  rerenderAsync(properties: Dict<unknown> = {}): Promise<void> {
+    QUnit.assert.ok(true, `rerender ${JSON.stringify(properties)}`);
+    this.setProperties(properties);
+
+    let self = this.delegate.getSelf(this.context);
+
+    if (!isConst(self)) {
+      (self as UpdatableReference).forceUpdate(this.context);
+    }
+
+    let result = expect(this.renderResult, 'the test should call render() before rerender()');
+
+    result.env.begin();
+    return (result.rerender({ alwaysRevalidate: false, async: true }) as Promise<void>).then(() => {
+      result.env.commit();
+    });
+  }
+
   protected set(key: string, value: unknown): void {
     this.context[key] = value;
   }
