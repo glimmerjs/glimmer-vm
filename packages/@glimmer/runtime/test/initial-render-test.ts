@@ -299,7 +299,7 @@ class Rehydration extends AbstractRehydrationTests {
       strip`
       ${b(4)}Wat Wat${b(4)}
     `,
-      'Serilaized nested remote'
+      'Serialized nested remote'
     );
     env = this.delegate.clientEnv;
     let clientRemoteParent = expectRealHTMLElement(env.getDOM().createElement('remote'));
