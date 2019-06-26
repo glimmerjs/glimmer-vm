@@ -30,7 +30,7 @@ class SerializeBuilder extends NewElementBuilder implements ElementBuilder {
   __openBlock(): void {
     let { tagName } = this.element;
 
-    if (tagName !== 'TITLE' && tagName !== 'SCRIPT') {
+    if (tagName !== 'TITLE' && tagName !== 'SCRIPT' && tagName !== 'STYLE') {
       let depth = this.serializeBlockDepth++;
       this.__appendComment(`%+b:${depth}%`);
     }
@@ -43,7 +43,7 @@ class SerializeBuilder extends NewElementBuilder implements ElementBuilder {
 
     super.__closeBlock();
 
-    if (tagName !== 'TITLE' && tagName !== 'SCRIPT') {
+    if (tagName !== 'TITLE' && tagName !== 'SCRIPT' && tagName !== 'STYLE') {
       let depth = --this.serializeBlockDepth;
       this.__appendComment(`%-b:${depth}%`);
     }
@@ -52,7 +52,7 @@ class SerializeBuilder extends NewElementBuilder implements ElementBuilder {
   __appendHTML(html: string): Bounds {
     let { tagName } = this.element;
 
-    if (tagName === 'TITLE' || tagName === 'SCRIPT') {
+    if (tagName === 'TITLE' || tagName === 'SCRIPT' || tagName === 'STYLE') {
       return super.__appendHTML(html);
     }
 
@@ -81,7 +81,7 @@ class SerializeBuilder extends NewElementBuilder implements ElementBuilder {
     let { tagName } = this.element;
     let current = currentNode(this);
 
-    if (tagName === 'TITLE' || tagName === 'SCRIPT') {
+    if (tagName === 'TITLE' || tagName === 'SCRIPT' || tagName === 'STYLE') {
       return super.__appendText(string);
     } else if (string === '') {
       return (this.__appendComment('% %') as any) as Simple.Text;
