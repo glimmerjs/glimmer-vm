@@ -558,9 +558,6 @@ const legacyBuilders = {
   program: buildProgram,
   blockItself: buildBlockItself,
   template: buildTemplate,
-  loc: buildLoc,
-  pos: buildPosition,
-
   string: literal('StringLiteral') as (value: string) => StringLiteral,
   boolean: literal('BooleanLiteral') as (value: boolean) => BooleanLiteral,
   number: literal('NumberLiteral') as (value: number) => NumberLiteral,
@@ -572,34 +569,50 @@ const legacyBuilders = {
   },
 };
 
-export default Object.assign(
-  {
-    MustacheStatement: legacyBuilders.mustache,
-    BlockStatement: legacyBuilders.block,
-    PartialStatement: legacyBuilders.partial,
-    CommentStatement: legacyBuilders.comment,
-    MustacheCommentStatement: legacyBuilders.mustacheComment,
-    ElementNode: legacyBuilders.element,
-    ElementModifierStatement: legacyBuilders.elementModifier,
-    AttrNode: legacyBuilders.attr,
-    TextNode: legacyBuilders.text,
-    SubExpression: legacyBuilders.sexpr,
-    PathExpression: legacyBuilders.path,
-    ConcatStatement: legacyBuilders.concat,
-    Hash: legacyBuilders.hash,
-    HashPair: legacyBuilders.pair,
-    Literal: legacyBuilders.literal,
-    Program: legacyBuilders.program, // returning type - Template
-    Block: legacyBuilders.blockItself,
-    Template: legacyBuilders.template,
-    StringLiteral: legacyBuilders.string,
-    BooleanLiteral: legacyBuilders.boolean,
-    NumberLiteral: legacyBuilders.number,
-    UndefinedLiteral: legacyBuilders.undefined,
-    NullLiteral: legacyBuilders.null,
-  },
-  legacyBuilders
-);
+const locationBuilders = {
+  loc: buildLoc,
+  pos: buildPosition,
+};
+
+const modernBuilders = {
+  MustacheStatement: legacyBuilders.mustache,
+  BlockStatement: legacyBuilders.block,
+  PartialStatement: legacyBuilders.partial,
+  CommentStatement: legacyBuilders.comment,
+  MustacheCommentStatement: legacyBuilders.mustacheComment,
+  ElementNode: legacyBuilders.element,
+  ElementModifierStatement: legacyBuilders.elementModifier,
+  AttrNode: legacyBuilders.attr,
+  TextNode: legacyBuilders.text,
+  SubExpression: legacyBuilders.sexpr,
+  PathExpression: legacyBuilders.path,
+  ConcatStatement: legacyBuilders.concat,
+  Hash: legacyBuilders.hash,
+  HashPair: legacyBuilders.pair,
+  Literal: legacyBuilders.literal,
+  Program: legacyBuilders.program, // returning type - Template
+  Block: legacyBuilders.blockItself,
+  Template: legacyBuilders.template,
+  StringLiteral: legacyBuilders.string,
+  BooleanLiteral: legacyBuilders.boolean,
+  NumberLiteral: legacyBuilders.number,
+  UndefinedLiteral: legacyBuilders.undefined,
+  NullLiteral: legacyBuilders.null,
+};
+
+function mergeBuilders(
+  builders: object[]
+): typeof legacyBuilders & typeof locationBuilders & typeof modernBuilders {
+  const result: any = {};
+  builders.forEach((builder: any) => {
+    Object.keys(builder).forEach(builderKey => {
+      result[builderKey] = builder[builderKey];
+    });
+  });
+  return result;
+}
+
+export default mergeBuilders([legacyBuilders, modernBuilders, locationBuilders]);
 
 type BuildLiteral<T extends AST.Literal> = (value: T['value']) => T;
 
