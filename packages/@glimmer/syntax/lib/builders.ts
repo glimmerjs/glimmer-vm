@@ -539,7 +539,7 @@ function buildLoc(...args: any[]): AST.SourceLocation {
   }
 }
 
-export default {
+const legacyBuilders = {
   mustache: buildMustache,
   block: buildBlock,
   partial: buildPartial,
@@ -571,6 +571,35 @@ export default {
     return buildLiteral('NullLiteral', null);
   },
 };
+
+export default Object.assign(
+  {
+    MustacheStatement: legacyBuilders.mustache,
+    BlockStatement: legacyBuilders.block,
+    PartialStatement: legacyBuilders.partial,
+    CommentStatement: legacyBuilders.comment,
+    MustacheCommentStatement: legacyBuilders.mustacheComment,
+    ElementNode: legacyBuilders.element,
+    ElementModifierStatement: legacyBuilders.elementModifier,
+    AttrNode: legacyBuilders.attr,
+    TextNode: legacyBuilders.text,
+    SubExpression: legacyBuilders.sexpr,
+    PathExpression: legacyBuilders.path,
+    ConcatStatement: legacyBuilders.concat,
+    Hash: legacyBuilders.hash,
+    HashPair: legacyBuilders.pair,
+    Literal: legacyBuilders.literal,
+    Program: legacyBuilders.program, // returning type - Template
+    Block: legacyBuilders.blockItself,
+    Template: legacyBuilders.template,
+    StringLiteral: legacyBuilders.string,
+    BooleanLiteral: legacyBuilders.boolean,
+    NumberLiteral: legacyBuilders.number,
+    UndefinedLiteral: legacyBuilders.undefined,
+    NullLiteral: legacyBuilders.null,
+  },
+  legacyBuilders
+);
 
 type BuildLiteral<T extends AST.Literal> = (value: T['value']) => T;
 
