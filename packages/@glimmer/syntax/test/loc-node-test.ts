@@ -129,6 +129,21 @@ test('html elements', function() {
   }
 });
 
+test('...attributes', function() {
+  let ast = parse(`
+    <div ...attributes data-test="foo"></div>
+  `);
+
+  let [, div] = ast.body;
+  locEqual(div, 2, 4, 2, 45, 'div element');
+
+  if (assertNodeType(div, 'ElementNode')) {
+    let [splattributes] = div.attributes;
+
+    locEqual(splattributes, 2, 9, 2, 22, '...attributes');
+  }
+});
+
 test('html elements with nested blocks', assert => {
   let ast = parse(`
     <div>
@@ -292,7 +307,7 @@ data-barf="herpy"
     locEqual(dataDerp, 3, 6, 3, 23, 'data-derp');
     locEqual(dataBarf, 4, 0, 4, 17, 'data-barf');
     locEqual(dataQux, 5, 2, 5, 22, 'data-qux');
-    locEqual(dataSomethingBoolean, 6, 8, 7, 4, 'data-something-boolean');
+    locEqual(dataSomethingBoolean, 6, 8, 6, 30, 'data-something-boolean');
 
     locEqual(dataFoo.value, 2, 18, 2, 24, 'data-foo value');
     locEqual(dataDerp.value, 3, 16, 3, 23, 'data-derp value');
