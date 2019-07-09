@@ -349,7 +349,7 @@ foo"
 
     if (assertNodeType(dataDerpValue, 'ConcatStatement')) {
       let [fooStaticText, concat, huzzahStaticText] = dataDerpValue.parts;
-      locEqual(fooStaticText, 9, 14, 10, 0);
+      locEqual(fooStaticText, 9, 13, 10, 0);
       locEqual(concat, 10, 0, 10, 13);
       locEqual(huzzahStaticText, 10, 13, 11, 10);
     }
