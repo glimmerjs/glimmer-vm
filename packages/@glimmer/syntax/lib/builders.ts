@@ -600,9 +600,38 @@ const modernBuilders = {
   NullLiteral: legacyBuilders.null,
 };
 
+const modernLowercasedBuilders = {
+  mustacheStatement: legacyBuilders.mustache,
+  blockStatement: legacyBuilders.block,
+  partialStatement: legacyBuilders.partial,
+  commentStatement: legacyBuilders.comment,
+  mustacheCommentStatement: legacyBuilders.mustacheComment,
+  elementNode: legacyBuilders.element,
+  elementModifierStatement: legacyBuilders.elementModifier,
+  attrNode: legacyBuilders.attr,
+  textNode: legacyBuilders.text,
+  subExpression: legacyBuilders.sexpr,
+  pathExpression: legacyBuilders.path,
+  concatStatement: legacyBuilders.concat,
+  hash: legacyBuilders.hash,
+  hashPair: legacyBuilders.pair,
+  literal: legacyBuilders.literal,
+  program: legacyBuilders.program, // returning type - Template
+  block: legacyBuilders.blockItself,
+  template: legacyBuilders.template,
+  stringLiteral: legacyBuilders.string,
+  booleanLiteral: legacyBuilders.boolean,
+  numberLiteral: legacyBuilders.number,
+  undefinedLiteral: legacyBuilders.undefined,
+  nullLiteral: legacyBuilders.null,
+};
+
 function mergeBuilders(
   builders: object[]
-): typeof legacyBuilders & typeof locationBuilders & typeof modernBuilders {
+): typeof legacyBuilders &
+  typeof locationBuilders &
+  typeof modernBuilders &
+  typeof modernLowercasedBuilders {
   const result: any = {};
   builders.forEach((builder: any) => {
     Object.keys(builder).forEach(builderKey => {
@@ -612,7 +641,12 @@ function mergeBuilders(
   return result;
 }
 
-export default mergeBuilders([legacyBuilders, modernBuilders, locationBuilders]);
+export default mergeBuilders([
+  legacyBuilders,
+  modernBuilders,
+  locationBuilders,
+  modernLowercasedBuilders,
+]);
 
 type BuildLiteral<T extends AST.Literal> = (value: T['value']) => T;
 
