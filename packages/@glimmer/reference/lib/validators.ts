@@ -304,6 +304,41 @@ export abstract class CachedReference<T> implements VersionedReference<T> {
   }
 }
 
+export class UpdatableDirtyableTag extends CachedTag {
+  static create(tag: Tag = CONSTANT_TAG): TagWrapper<UpdatableDirtyableTag> {
+    return new TagWrapper(this.id, new UpdatableDirtyableTag(tag));
+  }
+
+  private tag: Tag;
+  private lastUpdated: number;
+  private revision: Revision;
+
+  private constructor(tag: Tag, revision = $REVISION) {
+    super();
+    this.tag = tag;
+    this.lastUpdated = INITIAL;
+    this.revision = revision;
+  }
+
+  protected compute(): Revision {
+    return Math.max(this.lastUpdated, this.tag.value(), this.revision);
+  }
+
+  update(tag: Tag) {
+    if (tag !== this.tag) {
+      this.tag = tag;
+      this.lastUpdated = $REVISION;
+      this.invalidate();
+    }
+  }
+
+  dirty() {
+    this.revision = ++$REVISION;
+  }
+}
+
+register(UpdatableDirtyableTag);
+
 //////////
 
 export type Mapper<T, U> = (value: T) => U;
