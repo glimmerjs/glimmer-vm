@@ -175,20 +175,27 @@ function _combine(tags: Tag[]): Tag {
 export abstract class CachedTag extends RevisionTag {
   private lastChecked: Option<Revision> = null;
   private lastValue: Option<Revision> = null;
+  private isUpdating = false;
 
   value(): Revision {
     let { lastChecked } = this;
 
     if (lastChecked !== $REVISION) {
+      this.isUpdating = true;
       this.lastChecked = $REVISION;
-      this.lastValue = this.compute();
+
+      try {
+        this.lastValue = this.compute();
+      } finally {
+        this.isUpdating = false;
+      }
+    }
+
+    if (this.isUpdating) {
+      this.lastChecked = ++$REVISION;
     }
 
     return this.lastValue as Revision;
-  }
-
-  protected invalidate() {
-    this.lastChecked = null;
   }
 
   protected abstract compute(): Revision;
@@ -244,29 +251,32 @@ class TagsCombinator extends CachedTag {
 register(TagsCombinator);
 
 export class UpdatableTag extends CachedTag {
-  static create(tag: Tag): TagWrapper<UpdatableTag> {
+  static create(tag: Tag = CONSTANT_TAG): TagWrapper<UpdatableTag> {
     return new TagWrapper(this.id, new UpdatableTag(tag));
   }
 
   private tag: Tag;
-  private lastUpdated: number;
+  private revision: Revision;
 
-  private constructor(tag: Tag) {
+  private constructor(tag: Tag, revision = $REVISION) {
     super();
     this.tag = tag;
-    this.lastUpdated = INITIAL;
+    this.revision = revision;
   }
 
   protected compute(): Revision {
-    return Math.max(this.lastUpdated, this.tag.value());
+    return Math.max(this.tag.value(), this.revision);
   }
 
   update(tag: Tag) {
     if (tag !== this.tag) {
       this.tag = tag;
-      this.lastUpdated = $REVISION;
-      this.invalidate();
+      ++$REVISION;
     }
+  }
+
+  dirty() {
+    this.revision = ++$REVISION;
   }
 }
 
@@ -303,41 +313,6 @@ export abstract class CachedReference<T> implements VersionedReference<T> {
     this.lastRevision = null;
   }
 }
-
-export class UpdatableDirtyableTag extends CachedTag {
-  static create(tag: Tag = CONSTANT_TAG): TagWrapper<UpdatableDirtyableTag> {
-    return new TagWrapper(this.id, new UpdatableDirtyableTag(tag));
-  }
-
-  private tag: Tag;
-  private lastUpdated: number;
-  private revision: Revision;
-
-  private constructor(tag: Tag, revision = $REVISION) {
-    super();
-    this.tag = tag;
-    this.lastUpdated = INITIAL;
-    this.revision = revision;
-  }
-
-  protected compute(): Revision {
-    return Math.max(this.lastUpdated, this.tag.value(), this.revision);
-  }
-
-  update(tag: Tag) {
-    if (tag !== this.tag) {
-      this.tag = tag;
-      this.lastUpdated = $REVISION;
-      this.invalidate();
-    }
-  }
-
-  dirty() {
-    this.revision = ++$REVISION;
-  }
-}
-
-register(UpdatableDirtyableTag);
 
 //////////
 
