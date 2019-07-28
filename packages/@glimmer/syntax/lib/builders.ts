@@ -611,7 +611,7 @@ function mergeBuilders(
   return result;
 }
 
-export default mergeBuilders([legacyBuilders, locationBuilders, modernLowercasedBuilders]);
+export default mergeBuilders([legacyBuilders, locationBuilders, modernBuilders]);
 
 type BuildLiteral<T extends AST.Literal> = (value: T['value']) => T;
 
