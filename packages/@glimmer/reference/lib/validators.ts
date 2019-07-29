@@ -4,7 +4,6 @@ import { Opaque, Option, Slice, LinkedListNode } from '@glimmer/util';
 //////////
 
 export interface EntityTag<T> extends Reference<T> {
-  value(): T;
   validate(snapshot: T): boolean;
 }
 
@@ -30,7 +29,7 @@ export abstract class RevisionTag implements EntityTag<Revision> {
   abstract value(): Revision;
 
   validate(snapshot: Revision): boolean {
-    return this.value() === snapshot;
+    return snapshot >= this.value();
   }
 }
 
@@ -41,6 +40,10 @@ export class TagWrapper<T extends RevisionTag | null> {
   constructor(private type: number, public inner: T) {}
 
   value(): Revision {
+    return $REVISION;
+  }
+
+  _value() {
     let func = VALUE[this.type];
     return func(this.inner);
   }
@@ -64,7 +67,7 @@ function register(Type: { create(...args: any[]): Tag; id: number }) {
 
 // CONSTANT: 0
 VALUE.push(() => CONSTANT);
-VALIDATE.push((_tag, snapshot) => snapshot === CONSTANT);
+VALIDATE.push(() => true);
 export const CONSTANT_TAG = new TagWrapper(0, null);
 
 // VOLATILE: 1
@@ -105,7 +108,7 @@ export class DirtyableTag extends RevisionTag {
     this.revision = revision;
   }
 
-  value(): Revision {
+  value() {
     return this.revision;
   }
 
@@ -173,8 +176,8 @@ function _combine(tags: Tag[]): Tag {
 }
 
 export abstract class CachedTag extends RevisionTag {
-  private lastChecked: Option<Revision> = null;
-  private lastValue: Option<Revision> = null;
+  private lastChecked: Revision = -1;
+  private lastValue: Revision = -1;
   private isUpdating = false;
 
   value(): Revision {
@@ -195,7 +198,7 @@ export abstract class CachedTag extends RevisionTag {
       this.lastChecked = ++$REVISION;
     }
 
-    return this.lastValue as Revision;
+    return this.lastValue;
   }
 
   protected abstract compute(): Revision;
@@ -216,7 +219,7 @@ class TagsPair extends CachedTag {
   }
 
   protected compute(): Revision {
-    return Math.max(this.first.value(), this.second.value());
+    return Math.max(this.first._value(), this.second._value());
   }
 }
 
@@ -240,7 +243,7 @@ class TagsCombinator extends CachedTag {
     let max = -1;
 
     for (let i = 0; i < tags.length; i++) {
-      let value = tags[i].value();
+      let value = tags[i]._value();
       max = Math.max(value, max);
     }
 
@@ -265,14 +268,11 @@ export class UpdatableTag extends CachedTag {
   }
 
   protected compute(): Revision {
-    return Math.max(this.tag.value(), this.revision);
+    return Math.max(this.tag._value(), this.revision);
   }
 
   update(tag: Tag) {
-    if (tag !== this.tag) {
-      this.tag = tag;
-      ++$REVISION;
-    }
+    this.tag = tag;
   }
 
   dirty() {
