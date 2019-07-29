@@ -28,9 +28,7 @@ export abstract class RevisionTag implements EntityTag<Revision> {
 
   abstract value(): Revision;
 
-  validate(snapshot: Revision): boolean {
-    return snapshot >= this.value();
-  }
+  abstract validate(snapshot: Revision): boolean;
 }
 
 const VALUE: ((tag: Option<RevisionTag>) => Revision)[] = [];
@@ -112,6 +110,10 @@ export class DirtyableTag extends RevisionTag {
     return this.revision;
   }
 
+  validate(snapshot: Revision): boolean {
+    return snapshot >= this.revision;
+  }
+
   dirty() {
     this.revision = ++$REVISION;
   }
@@ -175,36 +177,7 @@ function _combine(tags: Tag[]): Tag {
   }
 }
 
-export abstract class CachedTag extends RevisionTag {
-  private lastChecked: Revision = -1;
-  private lastValue: Revision = -1;
-  private isUpdating = false;
-
-  value(): Revision {
-    let { lastChecked } = this;
-
-    if (lastChecked !== $REVISION) {
-      this.isUpdating = true;
-      this.lastChecked = $REVISION;
-
-      try {
-        this.lastValue = this.compute();
-      } finally {
-        this.isUpdating = false;
-      }
-    }
-
-    if (this.isUpdating) {
-      this.lastChecked = ++$REVISION;
-    }
-
-    return this.lastValue;
-  }
-
-  protected abstract compute(): Revision;
-}
-
-class TagsPair extends CachedTag {
+class TagsPair extends RevisionTag {
   static create(first: Tag, second: Tag) {
     return new TagWrapper(this.id, new TagsPair(first, second));
   }
@@ -218,26 +191,57 @@ class TagsPair extends CachedTag {
     this.second = second;
   }
 
-  protected compute(): Revision {
-    return Math.max(this.first._value(), this.second._value());
+  private lastChecked: Revision = -1;
+  private lastValue: Revision = -1;
+
+  value(): Revision {
+    let { lastChecked } = this;
+
+    if (lastChecked !== $REVISION) {
+      this.lastChecked = $REVISION;
+      this.lastValue = Math.max(this.first._value(), this.second._value());
+    }
+
+    return this.lastValue;
+  }
+
+  validate(snapshot: Revision): boolean {
+    return snapshot >= this.value();
   }
 }
 
 register(TagsPair);
 
-class TagsCombinator extends CachedTag {
+class TagsCombinator extends RevisionTag {
   static create(tags: Tag[]) {
     return new TagWrapper(this.id, new TagsCombinator(tags));
   }
 
   private tags: Tag[];
+  private lastChecked: Revision = -1;
+  private lastValue: Revision = -1;
 
   private constructor(tags: Tag[]) {
     super();
     this.tags = tags;
   }
 
-  protected compute(): Revision {
+  value(): Revision {
+    let { lastChecked } = this;
+
+    if (lastChecked !== $REVISION) {
+      this.lastChecked = $REVISION;
+      this.lastValue = this.compute();
+    }
+
+    return this.lastValue;
+  }
+
+  validate(snapshot: Revision): boolean {
+    return snapshot >= this.value();
+  }
+
+  private compute(): Revision {
     let { tags } = this;
 
     let max = -1;
@@ -253,13 +257,16 @@ class TagsCombinator extends CachedTag {
 
 register(TagsCombinator);
 
-export class UpdatableTag extends CachedTag {
+export class UpdatableTag extends RevisionTag {
   static create(tag: Tag = CONSTANT_TAG): TagWrapper<UpdatableTag> {
     return new TagWrapper(this.id, new UpdatableTag(tag));
   }
 
   private tag: Tag;
   private revision: Revision;
+  private lastChecked: Revision = -1;
+  private lastValue: Revision = -1;
+  private isUpdating = false;
 
   private constructor(tag: Tag, revision = $REVISION) {
     super();
@@ -267,8 +274,29 @@ export class UpdatableTag extends CachedTag {
     this.revision = revision;
   }
 
-  protected compute(): Revision {
-    return Math.max(this.tag._value(), this.revision);
+  value(): Revision {
+    let { lastChecked } = this;
+
+    if (lastChecked !== $REVISION) {
+      this.isUpdating = true;
+      this.lastChecked = $REVISION;
+
+      try {
+        this.lastValue = Math.max(this.tag._value(), this.revision);
+      } finally {
+        this.isUpdating = false;
+      }
+    }
+
+    if (this.isUpdating) {
+      this.lastChecked = ++$REVISION;
+    }
+
+    return this.lastValue;
+  }
+
+  validate(snapshot: Revision): boolean {
+    return snapshot >= this.value();
   }
 
   update(tag: Tag) {
