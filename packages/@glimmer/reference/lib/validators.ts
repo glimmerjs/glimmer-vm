@@ -23,60 +23,94 @@ export const CONSTANT: Revision = 0;
 export const INITIAL: Revision = 1;
 export const VOLATILE: Revision = NaN;
 
-export abstract class RevisionTag implements EntityTag<Revision> {
-  static id = 0;
+let $REVISION = INITIAL;
 
-  abstract value(): Revision;
-
-  abstract validate(snapshot: Revision): boolean;
+export function bump() {
+  $REVISION++;
 }
 
-const VALUE: ((tag: Option<RevisionTag>) => Revision)[] = [];
-const VALIDATE: ((tag: Option<RevisionTag>, snapshot: Revision) => boolean)[] = [];
+export class Tag implements EntityTag<Revision> {
+  revision: Revision = INITIAL;
+  lastChecked: Revision = INITIAL;
+  lastValue: Revision = INITIAL;
 
-export class TagWrapper<T extends RevisionTag | null> {
-  constructor(private type: number, public inner: T) {}
+  isUpdating = false;
 
-  value(): Revision {
+  subtags: Tag[] | null = null;
+
+  static create(subtag: Tag | null = null) {
+    return new this(subtag);
+  }
+
+  constructor(private subtag: Tag | null = null) {}
+
+  value() {
     return $REVISION;
   }
 
-  _value() {
-    let func = VALUE[this.type];
-    return func(this.inner);
+  protected compute(): Revision {
+    let { lastChecked } = this;
+
+    if (lastChecked !== $REVISION) {
+      this.isUpdating = true;
+      this.lastChecked = $REVISION;
+
+      try {
+        let { subtags, subtag, revision } = this;
+
+        if (subtag !== null) {
+          revision = Math.max(revision, subtag.compute());
+        }
+
+        if (subtags !== null) {
+          for (let i = 0; i < subtags.length; i++) {
+            let value = subtags[i].compute();
+            revision = Math.max(value, revision);
+          }
+        }
+
+        this.lastValue = revision;
+      } finally {
+        this.isUpdating = false;
+      }
+    }
+
+    if (this.isUpdating) {
+      this.lastChecked = ++$REVISION;
+    }
+
+    return this.lastValue;
   }
 
   validate(snapshot: Revision): boolean {
-    let func = VALIDATE[this.type];
-    return func(this.inner, snapshot);
+    return snapshot >= this.compute();
+  }
+
+  update(tag: Tag) {
+    this.subtag = tag === CONSTANT_TAG ? null : tag;
+  }
+
+  dirty() {
+    this.revision = ++$REVISION;
   }
 }
 
-export type Tag = TagWrapper<RevisionTag | null>;
+class CurrentTag extends Tag {
+  value() {
+    return $REVISION;
+  }
 
-function register(Type: { create(...args: any[]): Tag; id: number }) {
-  let type = VALUE.length;
-  VALUE.push((tag: Option<RevisionTag>) => tag!.value());
-  VALIDATE.push((tag: Option<RevisionTag>, snapshot: Revision) => tag!.validate(snapshot));
-  Type.id = type;
+  compute() {
+    return $REVISION;
+  }
+
+  validate(snapshot: Revision) {
+    return snapshot === $REVISION;
+  }
 }
 
-///
-
-// CONSTANT: 0
-VALUE.push(() => CONSTANT);
-VALIDATE.push(() => true);
-export const CONSTANT_TAG = new TagWrapper(0, null);
-
-// VOLATILE: 1
-VALUE.push(() => VOLATILE);
-VALIDATE.push((_tag, snapshot) => snapshot === VOLATILE);
-export const VOLATILE_TAG = new TagWrapper(1, null);
-
-// CURRENT: 2
-VALUE.push(() => $REVISION);
-VALIDATE.push((_tag, snapshot) => snapshot === $REVISION);
-export const CURRENT_TAG = new TagWrapper(2, null);
+export const CONSTANT_TAG = new Tag();
+export const CURRENT_TAG = new CurrentTag();
 
 export function isConst({ tag }: Tagged): boolean {
   return tag === CONSTANT_TAG;
@@ -88,45 +122,11 @@ export function isConstTag(tag: Tag): boolean {
 
 ///
 
-let $REVISION = INITIAL;
-
-export function bump() {
-  $REVISION++;
-}
-
-export class DirtyableTag extends RevisionTag {
-  static create(revision = $REVISION) {
-    return new TagWrapper(this.id, new DirtyableTag(revision));
-  }
-
-  private revision: Revision;
-
-  constructor(revision = $REVISION) {
-    super();
-    this.revision = revision;
-  }
-
-  value() {
-    return this.revision;
-  }
-
-  validate(snapshot: Revision): boolean {
-    return snapshot >= this.revision;
-  }
-
-  dirty() {
-    this.revision = ++$REVISION;
-  }
-}
-
-register(DirtyableTag);
-
 export function combineTagged(tagged: ReadonlyArray<Tagged>): Tag {
   let optimized: Tag[] = [];
 
   for (let i = 0, l = tagged.length; i < l; i++) {
     let tag = tagged[i].tag;
-    if (tag === VOLATILE_TAG) return VOLATILE_TAG;
     if (tag === CONSTANT_TAG) continue;
     optimized.push(tag);
   }
@@ -142,7 +142,6 @@ export function combineSlice(slice: Slice<Tagged & LinkedListNode>): Tag {
   while (node !== null) {
     let tag = node.tag;
 
-    if (tag === VOLATILE_TAG) return VOLATILE_TAG;
     if (tag !== CONSTANT_TAG) optimized.push(tag);
 
     node = slice.nextNode(node);
@@ -156,7 +155,6 @@ export function combine(tags: Tag[]): Tag {
 
   for (let i = 0, l = tags.length; i < l; i++) {
     let tag = tags[i];
-    if (tag === VOLATILE_TAG) return VOLATILE_TAG;
     if (tag === CONSTANT_TAG) continue;
     optimized.push(tag);
   }
@@ -170,145 +168,12 @@ function _combine(tags: Tag[]): Tag {
       return CONSTANT_TAG;
     case 1:
       return tags[0];
-    case 2:
-      return TagsPair.create(tags[0], tags[1]);
     default:
-      return TagsCombinator.create(tags);
+      let tag = new Tag();
+      tag.subtags = tags;
+      return tag;
   }
 }
-
-class TagsPair extends RevisionTag {
-  static create(first: Tag, second: Tag) {
-    return new TagWrapper(this.id, new TagsPair(first, second));
-  }
-
-  private first: Tag;
-  private second: Tag;
-
-  private constructor(first: Tag, second: Tag) {
-    super();
-    this.first = first;
-    this.second = second;
-  }
-
-  private lastChecked: Revision = -1;
-  private lastValue: Revision = -1;
-
-  value(): Revision {
-    let { lastChecked } = this;
-
-    if (lastChecked !== $REVISION) {
-      this.lastChecked = $REVISION;
-      this.lastValue = Math.max(this.first._value(), this.second._value());
-    }
-
-    return this.lastValue;
-  }
-
-  validate(snapshot: Revision): boolean {
-    return snapshot >= this.value();
-  }
-}
-
-register(TagsPair);
-
-class TagsCombinator extends RevisionTag {
-  static create(tags: Tag[]) {
-    return new TagWrapper(this.id, new TagsCombinator(tags));
-  }
-
-  private tags: Tag[];
-  private lastChecked: Revision = -1;
-  private lastValue: Revision = -1;
-
-  private constructor(tags: Tag[]) {
-    super();
-    this.tags = tags;
-  }
-
-  value(): Revision {
-    let { lastChecked } = this;
-
-    if (lastChecked !== $REVISION) {
-      this.lastChecked = $REVISION;
-      this.lastValue = this.compute();
-    }
-
-    return this.lastValue;
-  }
-
-  validate(snapshot: Revision): boolean {
-    return snapshot >= this.value();
-  }
-
-  private compute(): Revision {
-    let { tags } = this;
-
-    let max = -1;
-
-    for (let i = 0; i < tags.length; i++) {
-      let value = tags[i]._value();
-      max = Math.max(value, max);
-    }
-
-    return max;
-  }
-}
-
-register(TagsCombinator);
-
-export class UpdatableTag extends RevisionTag {
-  static create(tag: Tag = CONSTANT_TAG): TagWrapper<UpdatableTag> {
-    return new TagWrapper(this.id, new UpdatableTag(tag));
-  }
-
-  private tag: Tag;
-  private revision: Revision;
-  private lastChecked: Revision = -1;
-  private lastValue: Revision = -1;
-  private isUpdating = false;
-
-  private constructor(tag: Tag, revision = $REVISION) {
-    super();
-    this.tag = tag;
-    this.revision = revision;
-  }
-
-  value(): Revision {
-    let { lastChecked } = this;
-
-    if (lastChecked !== $REVISION) {
-      this.isUpdating = true;
-      this.lastChecked = $REVISION;
-
-      try {
-        this.lastValue = Math.max(this.tag._value(), this.revision);
-      } finally {
-        this.isUpdating = false;
-      }
-    }
-
-    if (this.isUpdating) {
-      this.lastChecked = ++$REVISION;
-    }
-
-    return this.lastValue;
-  }
-
-  validate(snapshot: Revision): boolean {
-    return snapshot >= this.value();
-  }
-
-  update(tag: Tag) {
-    this.tag = tag;
-  }
-
-  dirty() {
-    this.revision = ++$REVISION;
-  }
-}
-
-register(UpdatableTag);
 
 //////////
 

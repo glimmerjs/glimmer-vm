@@ -1,22 +1,13 @@
-import {
-  CONSTANT_TAG,
-  DirtyableTag,
-  UpdatableTag,
-  RevisionTag,
-  TagWrapper,
-  Reference,
-  CachedReference,
-  combine,
-} from '@glimmer/reference';
+import { Reference, CachedReference, combine, Tag } from '@glimmer/reference';
 
 import { dict } from '@glimmer/util';
 
 class UpdatableReference<T> implements Reference<T> {
-  public tag: TagWrapper<RevisionTag | null>;
-  private _tag: TagWrapper<DirtyableTag>;
+  public tag: Tag;
+  private _tag: Tag;
 
   constructor(private content: T) {
-    this.tag = this._tag = DirtyableTag.create();
+    this.tag = this._tag = Tag.create();
   }
 
   value(): T {
@@ -24,18 +15,18 @@ class UpdatableReference<T> implements Reference<T> {
   }
 
   update(content: T) {
-    this._tag.inner.dirty();
+    this._tag.dirty();
     return (this.content = content);
   }
 }
 
 class TaggedDict<T> {
-  public tag: TagWrapper<RevisionTag | null>;
-  private _tag: TagWrapper<DirtyableTag>;
+  public tag: Tag;
+  private _tag: Tag;
   private data = dict<T>();
 
   constructor() {
-    this.tag = this._tag = DirtyableTag.create();
+    this.tag = this._tag = Tag.create();
   }
 
   get(key: string): T {
@@ -43,7 +34,7 @@ class TaggedDict<T> {
   }
 
   set(key: string, value: T) {
-    this._tag.inner.dirty();
+    this._tag.dirty();
     return (this.data[key] = value);
   }
 }
@@ -54,7 +45,7 @@ QUnit.test('CachedReference caches computation correctly', assert => {
   let computed = 0;
 
   class DictValueReference extends CachedReference<string> {
-    public tag: TagWrapper<RevisionTag | null>;
+    public tag: Tag;
 
     constructor(private dict: TaggedDict<string>, private key: string) {
       super();
@@ -109,12 +100,12 @@ QUnit.test('CachedReference caches nested computation correctly', assert => {
   let computed = 0;
 
   class DictValueReference extends CachedReference<string> {
-    public tag: TagWrapper<RevisionTag | null>;
-    private _tag: TagWrapper<UpdatableTag>;
+    public tag: Tag;
+    private _tag: Tag;
 
     constructor(private parent: Reference<TaggedDict<string>>, private key: string) {
       super();
-      let _tag = (this._tag = UpdatableTag.create(CONSTANT_TAG));
+      let _tag = (this._tag = Tag.create());
       this.tag = combine([parent.tag, _tag]);
     }
 
@@ -125,7 +116,7 @@ QUnit.test('CachedReference caches nested computation correctly', assert => {
 
       let dict = parent.value();
 
-      _tag.inner.update(dict.tag);
+      _tag.update(dict.tag);
 
       return dict.get(key);
     }

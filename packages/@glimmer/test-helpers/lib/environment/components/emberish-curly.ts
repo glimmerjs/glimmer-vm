@@ -6,7 +6,7 @@ import {
   ModuleLocator,
 } from '@glimmer/interfaces';
 import GlimmerObject from '@glimmer/object';
-import { Tag, combine, PathReference, TagWrapper, DirtyableTag } from '@glimmer/reference';
+import { Tag, combine, PathReference } from '@glimmer/reference';
 import { EMPTY_ARRAY, assign, Destroyable, expect } from '@glimmer/util';
 import {
   Environment,
@@ -31,7 +31,7 @@ import { TestComponentDefinitionState, Locator } from '../components';
 export class EmberishCurlyComponent extends GlimmerObject {
   public static positionalParams: string[] | string = [];
 
-  public dirtinessTag: TagWrapper<DirtyableTag> = DirtyableTag.create();
+  public dirtinessTag = Tag.create();
   public layout!: { name: string; handle: number };
   public name!: string;
   public tagName: Option<string> = null;
@@ -47,7 +47,7 @@ export class EmberishCurlyComponent extends GlimmerObject {
   }
 
   recompute() {
-    this.dirtinessTag.inner.dirty();
+    this.dirtinessTag.dirty();
   }
 
   didInitAttrs(_options: { attrs: Attrs }) {}

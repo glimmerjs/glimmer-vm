@@ -1,12 +1,4 @@
-import {
-  PathReference,
-  Tagged,
-  TagWrapper,
-  RevisionTag,
-  DirtyableTag,
-  Tag,
-  bump,
-} from '@glimmer/reference';
+import { PathReference, Tagged, Tag, bump } from '@glimmer/reference';
 import {
   RenderResult,
   TemplateIterator,
@@ -53,11 +45,11 @@ export function skip(_target: Object, _name: string, descriptor: PropertyDescrip
 const COMMENT_NODE = 8; //  Node.COMMENT_NODE
 
 export class VersionedObject implements Tagged {
-  public tag: TagWrapper<DirtyableTag>;
+  public tag: Tag;
   public value!: Object;
 
   constructor(value: Object) {
-    this.tag = DirtyableTag.create();
+    this.tag = Tag.create();
     assign(this, value);
   }
 
@@ -72,7 +64,7 @@ export class VersionedObject implements Tagged {
   }
 
   dirty() {
-    this.tag.inner.dirty();
+    this.tag.dirty();
   }
 }
 
@@ -91,7 +83,7 @@ export interface ComponentBlueprint {
 }
 
 export class SimpleRootReference implements PathReference<Opaque> {
-  public tag: TagWrapper<RevisionTag>;
+  public tag: Tag;
 
   constructor(private object: VersionedObject) {
     this.tag = object.tag;

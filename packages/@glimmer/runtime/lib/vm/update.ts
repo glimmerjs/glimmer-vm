@@ -11,8 +11,6 @@ import {
   // Tags
   combine,
   Revision,
-  UpdatableTag,
-  TagWrapper,
   combineSlice,
   CONSTANT_TAG,
   INITIAL,
@@ -152,7 +150,7 @@ export class TryOpcode extends BlockOpcode implements ExceptionHandler {
 
   public tag: Tag;
 
-  private _tag: TagWrapper<UpdatableTag>;
+  private _tag: Tag;
 
   protected bounds!: UpdatableTracker; // Hides property on base class
 
@@ -164,11 +162,11 @@ export class TryOpcode extends BlockOpcode implements ExceptionHandler {
     children: LinkedList<UpdatingOpcode>
   ) {
     super(start, state, runtime, bounds, children);
-    this.tag = this._tag = UpdatableTag.create(CONSTANT_TAG);
+    this.tag = this._tag = Tag.create(CONSTANT_TAG);
   }
 
   didInitializeChildren() {
-    this._tag.inner.update(combineSlice(this.children));
+    this._tag.update(combineSlice(this.children));
   }
 
   evaluate(vm: UpdatingVM) {
@@ -280,7 +278,7 @@ export class ListBlockOpcode extends BlockOpcode {
   public tag: Tag;
 
   private lastIterated: Revision = INITIAL;
-  private _tag: TagWrapper<UpdatableTag>;
+  private _tag: Tag;
 
   constructor(
     start: number,
@@ -292,7 +290,7 @@ export class ListBlockOpcode extends BlockOpcode {
   ) {
     super(start, state, runtime, bounds, children);
     this.artifacts = artifacts;
-    let _tag = (this._tag = UpdatableTag.create(CONSTANT_TAG));
+    let _tag = (this._tag = Tag.create(CONSTANT_TAG));
     this.tag = combine([artifacts.tag, _tag]);
   }
 
@@ -300,7 +298,7 @@ export class ListBlockOpcode extends BlockOpcode {
     this.lastIterated = this.artifacts.tag.value();
 
     if (listDidChange) {
-      this._tag.inner.update(combineSlice(this.children));
+      this._tag.update(combineSlice(this.children));
     }
   }
 
