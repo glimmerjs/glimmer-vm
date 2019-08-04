@@ -1,10 +1,47 @@
-import Reference, { PathReference } from './reference';
-import { Opaque, Option, Slice, LinkedListNode } from '@glimmer/util';
+import { Slice, LinkedListNode, assert } from '@glimmer/util';
+import { DEBUG } from '@glimmer/local-debug-flags';
 
 //////////
 
-export interface EntityTag<T> extends Reference<T> {
-  validate(snapshot: T): boolean;
+// utils
+type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends ((
+  k: infer I
+) => void)
+  ? I
+  : never;
+
+const symbol =
+  typeof Symbol !== 'undefined'
+    ? Symbol
+    : (key: string) => `__${key}${Math.floor(Math.random() * Date.now())}__` as any;
+
+//////////
+
+export type Revision = number;
+
+export const CONSTANT: Revision = 0;
+export const INITIAL: Revision = 1;
+export const VOLATILE: Revision = 9007199254740991; // MAX_INT
+
+let $REVISION = INITIAL;
+
+export function bump() {
+  $REVISION++;
+}
+
+//////////
+
+export const VALUE: unique symbol = symbol('TAG_VALUE');
+export const VALIDATE: unique symbol = symbol('TAG_VALIDATE');
+export const COMPUTE: unique symbol = symbol('TAG_COMPUTE');
+
+export interface EntityTag<T> {
+  [VALUE](): T;
+  [VALIDATE](snapshot: T): boolean;
+}
+
+export interface Tag extends EntityTag<Revision> {
+  [COMPUTE](): Revision;
 }
 
 export interface EntityTagged<T> {
@@ -17,38 +54,85 @@ export interface Tagged {
 
 //////////
 
-export type Revision = number;
-
-export const CONSTANT: Revision = 0;
-export const INITIAL: Revision = 1;
-export const VOLATILE: Revision = NaN;
-
-let $REVISION = INITIAL;
-
-export function bump() {
-  $REVISION++;
+export function value(tag: Tag) {
+  return tag[VALUE]();
 }
 
-export class Tag implements EntityTag<Revision> {
-  revision: Revision = INITIAL;
-  lastChecked: Revision = INITIAL;
-  lastValue: Revision = INITIAL;
+export function validate(tag: Tag, snapshot: Revision) {
+  return tag[VALIDATE](snapshot);
+}
 
-  isUpdating = false;
+//////////
 
-  subtags: Tag[] | null = null;
+/**
+ * This enum represents all of the possible tag types for the monomorphic tag class.
+ * Other custom tag classes can exist, such as CurrentTag and VolatileTag, but for
+ * performance reasons, any type of tag that is meant to be used frequently should
+ * be added to the monomorphic tag.
+ */
+const enum MonomorphicTagTypes {
+  Dirtyable,
+  Updatable,
+  Combinator,
+  Constant,
+}
 
-  static create(subtag: Tag | null = null) {
-    return new this(subtag);
+const DIRTY: unique symbol = symbol('TAG_DIRTY');
+const UPDATE: unique symbol = symbol('TAG_UPDATE');
+
+const TYPE: unique symbol = symbol('TAG_TYPE');
+const UPDATE_SUBTAGS: unique symbol = symbol('TAG_UPDATE_SUBTAGS');
+
+interface MonomorphicTagBase<T extends MonomorphicTagTypes> extends Tag {
+  [TYPE]: T;
+}
+
+export interface DirtyableTag extends MonomorphicTagBase<MonomorphicTagTypes.Dirtyable> {
+  [DIRTY](): void;
+}
+
+export interface UpdatableTag extends MonomorphicTagBase<MonomorphicTagTypes.Updatable> {
+  [DIRTY](): void;
+  [UPDATE](tag: Tag): void;
+}
+
+export interface CombinatorTag extends MonomorphicTagBase<MonomorphicTagTypes.Combinator> {}
+export interface ConstantTag extends MonomorphicTagBase<MonomorphicTagTypes.Constant> {}
+
+interface MonomorphicTagMapping {
+  [MonomorphicTagTypes.Dirtyable]: DirtyableTag;
+  [MonomorphicTagTypes.Updatable]: UpdatableTag;
+  [MonomorphicTagTypes.Combinator]: CombinatorTag;
+  [MonomorphicTagTypes.Constant]: ConstantTag;
+}
+
+type MonomorphicTag = UnionToIntersection<MonomorphicTagMapping[MonomorphicTagTypes]>;
+type MonomorphicTagType = UnionToIntersection<MonomorphicTagTypes>;
+
+export class MonomorphicTagImpl implements MonomorphicTag {
+  private revision: Revision = INITIAL;
+  protected lastChecked: Revision = INITIAL;
+  protected lastValue: Revision = INITIAL;
+
+  private isUpdating = false;
+  private subtag: Tag | null = null;
+  private subtags: Tag[] | null = null;
+
+  [TYPE]: MonomorphicTagType;
+
+  constructor(type: MonomorphicTagType) {
+    this[TYPE] = type;
   }
 
-  constructor(private subtag: Tag | null = null) {}
+  [VALIDATE](snapshot: Revision): boolean {
+    return snapshot >= this[COMPUTE]();
+  }
 
-  value() {
+  [VALUE]() {
     return $REVISION;
   }
 
-  protected compute(): Revision {
+  [COMPUTE](): Revision {
     let { lastChecked } = this;
 
     if (lastChecked !== $REVISION) {
@@ -59,12 +143,12 @@ export class Tag implements EntityTag<Revision> {
         let { subtags, subtag, revision } = this;
 
         if (subtag !== null) {
-          revision = Math.max(revision, subtag.compute());
+          revision = Math.max(revision, subtag[COMPUTE]());
         }
 
         if (subtags !== null) {
           for (let i = 0; i < subtags.length; i++) {
-            let value = subtags[i].compute();
+            let value = subtags[i][COMPUTE]();
             revision = Math.max(value, revision);
           }
         }
@@ -82,35 +166,70 @@ export class Tag implements EntityTag<Revision> {
     return this.lastValue;
   }
 
-  validate(snapshot: Revision): boolean {
-    return snapshot >= this.compute();
+  [UPDATE](tag: Tag) {
+    if (DEBUG) {
+      assert(
+        this[TYPE] === MonomorphicTagTypes.Updatable,
+        'Attempted to update a tag that was not updatable'
+      );
+    }
+
+    if (tag === CONSTANT_TAG) {
+      this.subtag = null;
+    } else {
+      this.subtag = tag;
+
+      if (tag instanceof MonomorphicTagImpl) {
+        this.lastChecked = Math.min(this.lastChecked, tag.lastChecked);
+        this.lastValue = Math.max(this.lastValue, tag.lastValue);
+      } else {
+        this.lastChecked = INITIAL;
+      }
+    }
   }
 
-  update(tag: Tag) {
-    this.subtag = tag === CONSTANT_TAG ? null : tag;
+  [UPDATE_SUBTAGS](tags: Tag[]) {
+    this.subtags = tags;
   }
 
-  dirty() {
+  [DIRTY]() {
+    if (DEBUG) {
+      assert(
+        this[TYPE] === MonomorphicTagTypes.Updatable ||
+          this[TYPE] === MonomorphicTagTypes.Dirtyable,
+        'Attempted to dirty a tag that was not dirtyable'
+      );
+    }
+
     this.revision = ++$REVISION;
   }
 }
 
-class CurrentTag extends Tag {
-  value() {
-    return $REVISION;
-  }
-
-  compute() {
-    return $REVISION;
-  }
-
-  validate(snapshot: Revision) {
-    return snapshot === $REVISION;
-  }
+function _createTag<T extends MonomorphicTagTypes>(type: T): MonomorphicTagMapping[T] {
+  return new MonomorphicTagImpl(type as MonomorphicTagType);
 }
 
-export const CONSTANT_TAG = new Tag();
-export const CURRENT_TAG = new CurrentTag();
+//////////
+
+export function createTag() {
+  return _createTag(MonomorphicTagTypes.Dirtyable);
+}
+
+export function createUpdatableTag() {
+  return _createTag(MonomorphicTagTypes.Updatable);
+}
+
+export function dirty(tag: DirtyableTag | UpdatableTag) {
+  tag[DIRTY]();
+}
+
+export function update(tag: UpdatableTag, subtag: Tag) {
+  tag[UPDATE](subtag);
+}
+
+//////////
+
+export const CONSTANT_TAG = _createTag(MonomorphicTagTypes.Constant);
 
 export function isConst({ tag }: Tagged): boolean {
   return tag === CONSTANT_TAG;
@@ -120,7 +239,43 @@ export function isConstTag(tag: Tag): boolean {
   return tag === CONSTANT_TAG;
 }
 
-///
+//////////
+
+class VolatileTag implements Tag {
+  [VALUE]() {
+    return VOLATILE;
+  }
+
+  [COMPUTE]() {
+    return VOLATILE;
+  }
+
+  [VALIDATE](snapshot: Revision) {
+    return snapshot <= VOLATILE;
+  }
+}
+
+export const VOLATILE_TAG = new VolatileTag();
+
+//////////
+
+class CurrentTag implements CurrentTag {
+  [VALUE]() {
+    return $REVISION;
+  }
+
+  [COMPUTE]() {
+    return $REVISION;
+  }
+
+  [VALIDATE](snapshot: Revision) {
+    return snapshot === $REVISION;
+  }
+}
+
+export const CURRENT_TAG = new CurrentTag();
+
+//////////
 
 export function combineTagged(tagged: ReadonlyArray<Tagged>): Tag {
   let optimized: Tag[] = [];
@@ -169,133 +324,8 @@ function _combine(tags: Tag[]): Tag {
     case 1:
       return tags[0];
     default:
-      let tag = new Tag();
-      tag.subtags = tags;
+      let tag = _createTag(MonomorphicTagTypes.Combinator);
+      tag[UPDATE_SUBTAGS](tags);
       return tag;
   }
-}
-
-//////////
-
-export interface VersionedReference<T = Opaque> extends Reference<T>, Tagged {}
-
-export interface VersionedPathReference<T = Opaque> extends PathReference<T>, Tagged {
-  get(property: string): VersionedPathReference<Opaque>;
-}
-
-export abstract class CachedReference<T> implements VersionedReference<T> {
-  public abstract tag: Tag;
-
-  private lastRevision: Option<Revision> = null;
-  private lastValue: Option<T> = null;
-
-  value(): T {
-    let { tag, lastRevision, lastValue } = this;
-
-    if (lastRevision === null || !tag.validate(lastRevision)) {
-      lastValue = this.lastValue = this.compute();
-      this.lastRevision = tag.value();
-    }
-
-    return lastValue as T;
-  }
-
-  protected abstract compute(): T;
-
-  protected invalidate() {
-    this.lastRevision = null;
-  }
-}
-
-//////////
-
-export type Mapper<T, U> = (value: T) => U;
-
-class MapperReference<T, U> extends CachedReference<U> {
-  public tag: Tag;
-
-  private reference: VersionedReference<T>;
-  private mapper: Mapper<T, U>;
-
-  constructor(reference: VersionedReference<T>, mapper: Mapper<T, U>) {
-    super();
-    this.tag = reference.tag;
-    this.reference = reference;
-    this.mapper = mapper;
-  }
-
-  protected compute(): U {
-    let { reference, mapper } = this;
-    return mapper(reference.value());
-  }
-}
-
-export function map<T, U>(
-  reference: VersionedReference<T>,
-  mapper: Mapper<T, U>
-): VersionedReference<U> {
-  return new MapperReference<T, U>(reference, mapper);
-}
-
-//////////
-
-export class ReferenceCache<T> implements Tagged {
-  public tag: Tag;
-
-  private reference: VersionedReference<T>;
-  private lastValue: Option<T> = null;
-  private lastRevision: Option<Revision> = null;
-  private initialized = false;
-
-  constructor(reference: VersionedReference<T>) {
-    this.tag = reference.tag;
-    this.reference = reference;
-  }
-
-  peek(): T {
-    if (!this.initialized) {
-      return this.initialize();
-    }
-
-    return this.lastValue as T;
-  }
-
-  revalidate(): Validation<T> {
-    if (!this.initialized) {
-      return this.initialize();
-    }
-
-    let { reference, lastRevision } = this;
-    let tag = reference.tag;
-
-    if (tag.validate(lastRevision as number)) return NOT_MODIFIED;
-    this.lastRevision = tag.value();
-
-    let { lastValue } = this;
-    let value = reference.value();
-    if (value === lastValue) return NOT_MODIFIED;
-    this.lastValue = value;
-
-    return value;
-  }
-
-  private initialize(): T {
-    let { reference } = this;
-
-    let value = (this.lastValue = reference.value());
-    this.lastRevision = reference.tag.value();
-    this.initialized = true;
-
-    return value;
-  }
-}
-
-export type Validation<T> = T | NotModified;
-
-export type NotModified = 'adb3b78e-3d22-4e4b-877a-6317c2c5c145';
-
-const NOT_MODIFIED: NotModified = 'adb3b78e-3d22-4e4b-877a-6317c2c5c145';
-
-export function isModified<T>(value: Validation<T>): value is T {
-  return value !== NOT_MODIFIED;
 }

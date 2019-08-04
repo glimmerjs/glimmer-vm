@@ -1,4 +1,12 @@
-import { PathReference, Tagged, Tag, bump } from '@glimmer/reference';
+import {
+  PathReference,
+  Tagged,
+  Tag,
+  bump,
+  createTag,
+  DirtyableTag,
+  dirty,
+} from '@glimmer/reference';
 import {
   RenderResult,
   TemplateIterator,
@@ -45,11 +53,11 @@ export function skip(_target: Object, _name: string, descriptor: PropertyDescrip
 const COMMENT_NODE = 8; //  Node.COMMENT_NODE
 
 export class VersionedObject implements Tagged {
-  public tag: Tag;
+  public tag: DirtyableTag;
   public value!: Object;
 
   constructor(value: Object) {
-    this.tag = Tag.create();
+    this.tag = createTag();
     assign(this, value);
   }
 
@@ -64,7 +72,7 @@ export class VersionedObject implements Tagged {
   }
 
   dirty() {
-    this.tag.dirty();
+    dirty(this.tag);
   }
 }
 

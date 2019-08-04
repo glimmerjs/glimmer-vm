@@ -10,10 +10,14 @@ import {
 
   // Tags
   combine,
+  value,
+  update,
+  validate,
+  createUpdatableTag,
   Revision,
   combineSlice,
-  CONSTANT_TAG,
   INITIAL,
+  UpdatableTag,
   Tag,
 } from '@glimmer/reference';
 import { UpdatingOpcode, UpdatingOpSeq } from '../opcodes';
@@ -150,7 +154,7 @@ export class TryOpcode extends BlockOpcode implements ExceptionHandler {
 
   public tag: Tag;
 
-  private _tag: Tag;
+  private _tag: UpdatableTag;
 
   protected bounds!: UpdatableTracker; // Hides property on base class
 
@@ -162,11 +166,11 @@ export class TryOpcode extends BlockOpcode implements ExceptionHandler {
     children: LinkedList<UpdatingOpcode>
   ) {
     super(start, state, runtime, bounds, children);
-    this.tag = this._tag = Tag.create(CONSTANT_TAG);
+    this.tag = this._tag = createUpdatableTag();
   }
 
   didInitializeChildren() {
-    this._tag.update(combineSlice(this.children));
+    update(this._tag, combineSlice(this.children));
   }
 
   evaluate(vm: UpdatingVM) {
@@ -278,7 +282,7 @@ export class ListBlockOpcode extends BlockOpcode {
   public tag: Tag;
 
   private lastIterated: Revision = INITIAL;
-  private _tag: Tag;
+  private _tag: UpdatableTag;
 
   constructor(
     start: number,
@@ -290,22 +294,22 @@ export class ListBlockOpcode extends BlockOpcode {
   ) {
     super(start, state, runtime, bounds, children);
     this.artifacts = artifacts;
-    let _tag = (this._tag = Tag.create(CONSTANT_TAG));
+    let _tag = (this._tag = createUpdatableTag());
     this.tag = combine([artifacts.tag, _tag]);
   }
 
   didInitializeChildren(listDidChange = true) {
-    this.lastIterated = this.artifacts.tag.value();
+    this.lastIterated = value(this.artifacts.tag);
 
     if (listDidChange) {
-      this._tag.update(combineSlice(this.children));
+      update(this._tag, combineSlice(this.children));
     }
   }
 
   evaluate(vm: UpdatingVM) {
     let { artifacts, lastIterated } = this;
 
-    if (!artifacts.tag.validate(lastIterated)) {
+    if (!validate(artifacts.tag, lastIterated)) {
       let { bounds } = this;
       let { dom } = vm;
 

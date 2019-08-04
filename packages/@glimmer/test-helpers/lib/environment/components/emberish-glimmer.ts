@@ -8,7 +8,7 @@ import {
   Invocation,
 } from '@glimmer/runtime';
 import { Opaque, Option, ComponentCapabilities } from '@glimmer/interfaces';
-import { PathReference, Tag, combine } from '@glimmer/reference';
+import { PathReference, Tag, combine, DirtyableTag, createTag, dirty } from '@glimmer/reference';
 import { UpdatableReference } from '@glimmer/object-reference';
 import GlimmerObject from '@glimmer/object';
 import { Destroyable } from '@glimmer/util';
@@ -143,7 +143,7 @@ export class EmberishGlimmerComponentManager
 }
 
 export class EmberishGlimmerComponent extends GlimmerObject {
-  public dirtinessTag = Tag.create();
+  public dirtinessTag: DirtyableTag = createTag();
   public attrs!: Attrs;
   public element!: Element;
   public bounds!: Bounds;
@@ -154,7 +154,7 @@ export class EmberishGlimmerComponent extends GlimmerObject {
   }
 
   recompute() {
-    this.dirtinessTag.dirty();
+    dirty(this.dirtinessTag);
   }
 
   didInitAttrs(_options: { attrs: Attrs }) {}

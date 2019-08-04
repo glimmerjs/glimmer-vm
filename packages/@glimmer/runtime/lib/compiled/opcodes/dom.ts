@@ -6,6 +6,8 @@ import {
   VersionedReference,
   isConst,
   isConstTag,
+  value,
+  validate,
 } from '@glimmer/reference';
 import { Opaque, Option } from '@glimmer/util';
 import {
@@ -155,15 +157,15 @@ export class UpdateModifierOpcode extends UpdatingOpcode {
     private modifier: ModifierInstanceState
   ) {
     super();
-    this.lastUpdated = tag.value();
+    this.lastUpdated = value(tag);
   }
 
   evaluate(vm: UpdatingVM) {
     let { manager, modifier, tag, lastUpdated } = this;
 
-    if (!tag.validate(lastUpdated)) {
+    if (!validate(tag, lastUpdated)) {
       vm.env.scheduleUpdateModifier(modifier, manager);
-      this.lastUpdated = tag.value();
+      this.lastUpdated = value(tag);
     }
   }
 }
@@ -197,14 +199,15 @@ export class UpdateDynamicAttributeOpcode extends UpdatingOpcode {
 
   constructor(private reference: VersionedReference<Opaque>, private attribute: DynamicAttribute) {
     super();
-    this.tag = reference.tag;
-    this.lastRevision = this.tag.value();
+    let { tag } = reference;
+    this.tag = tag;
+    this.lastRevision = value(tag);
   }
 
   evaluate(vm: UpdatingVM) {
     let { attribute, reference, tag } = this;
-    if (!tag.validate(this.lastRevision)) {
-      this.lastRevision = tag.value();
+    if (!validate(tag, this.lastRevision)) {
+      this.lastRevision = value(tag);
       attribute.update(reference.value(), vm.env);
     }
   }

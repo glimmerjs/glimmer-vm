@@ -1,4 +1,5 @@
-import { CONSTANT_TAG, VersionedReference, Tag } from './validators';
+import { CONSTANT_TAG, Tag } from './validators';
+import { VersionedReference } from './reference';
 
 export class ConstReference<T> implements VersionedReference<T> {
   public tag: Tag = CONSTANT_TAG;
