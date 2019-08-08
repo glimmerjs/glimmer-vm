@@ -1,13 +1,13 @@
 import { isEmpty, isString } from '../../dom/normalize';
 import { Opaque, Simple } from '@glimmer/interfaces';
 import { UpdatingOpcode } from '../../opcodes';
-import { Tag, VersionedReference, value, validate } from '@glimmer/reference';
+import { Tag, VersionedReference, value, validate, Revision } from '@glimmer/reference';
 
 export default class DynamicTextContent extends UpdatingOpcode {
   public type = 'dynamic-text';
 
   public tag: Tag;
-  public lastRevision: number;
+  public lastRevision: Revision;
 
   constructor(
     public node: Simple.Text,

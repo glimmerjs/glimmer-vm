@@ -31,18 +31,13 @@ export function bump() {
 
 //////////
 
-export const VALUE: unique symbol = symbol('TAG_VALUE');
-export const VALIDATE: unique symbol = symbol('TAG_VALIDATE');
 export const COMPUTE: unique symbol = symbol('TAG_COMPUTE');
 
 export interface EntityTag<T> {
-  [VALUE](): T;
-  [VALIDATE](snapshot: T): boolean;
+  [COMPUTE](): T;
 }
 
-export interface Tag extends EntityTag<Revision> {
-  [COMPUTE](): Revision;
-}
+export interface Tag extends EntityTag<Revision> {}
 
 export interface EntityTagged<T> {
   tag: EntityTag<T>;
@@ -54,12 +49,36 @@ export interface Tagged {
 
 //////////
 
-export function value(tag: Tag) {
-  return tag[VALUE]();
+/**
+ * `value` receives a tag and returns an opaque Revision based on that tag. This
+ * snapshot can then later be passed to `validate` with the same tag to
+ * determine if the tag has changed at all since the time that `value` was
+ * called.
+ *
+ * The current implementation returns the global revision count directly for
+ * performance reasons. This is an implementation detail, and should not be
+ * relied on directly by users of these APIs. Instead, Revisions should be
+ * treated as if they are opaque/unknown, and should only be interacted with via
+ * the `value`/`validate` API.
+ *
+ * @param tag
+ */
+export function value(_tag: Tag): Revision {
+  return $REVISION;
 }
 
+/**
+ * `validate` receives a tag and a snapshot from a previous call to `value` with
+ * the same tag, and determines if the tag is still valid compared to the
+ * snapshot. If the tag's state has changed at all since then, `validate` will
+ * return false, otherwise it will return true. This is used to determine if a
+ * calculation related to the tags should be rerun.
+ *
+ * @param tag
+ * @param snapshot
+ */
 export function validate(tag: Tag, snapshot: Revision) {
-  return tag[VALIDATE](snapshot);
+  return snapshot >= tag[COMPUTE]();
 }
 
 //////////
@@ -77,25 +96,14 @@ const enum MonomorphicTagTypes {
   Constant,
 }
 
-const DIRTY: unique symbol = symbol('TAG_DIRTY');
-const UPDATE: unique symbol = symbol('TAG_UPDATE');
-
 const TYPE: unique symbol = symbol('TAG_TYPE');
-const UPDATE_SUBTAGS: unique symbol = symbol('TAG_UPDATE_SUBTAGS');
 
 interface MonomorphicTagBase<T extends MonomorphicTagTypes> extends Tag {
   [TYPE]: T;
 }
 
-export interface DirtyableTag extends MonomorphicTagBase<MonomorphicTagTypes.Dirtyable> {
-  [DIRTY](): void;
-}
-
-export interface UpdatableTag extends MonomorphicTagBase<MonomorphicTagTypes.Updatable> {
-  [DIRTY](): void;
-  [UPDATE](tag: Tag): void;
-}
-
+export interface DirtyableTag extends MonomorphicTagBase<MonomorphicTagTypes.Dirtyable> {}
+export interface UpdatableTag extends MonomorphicTagBase<MonomorphicTagTypes.Updatable> {}
 export interface CombinatorTag extends MonomorphicTagBase<MonomorphicTagTypes.Combinator> {}
 export interface ConstantTag extends MonomorphicTagBase<MonomorphicTagTypes.Constant> {}
 
@@ -110,9 +118,9 @@ type MonomorphicTag = UnionToIntersection<MonomorphicTagMapping[MonomorphicTagTy
 type MonomorphicTagType = UnionToIntersection<MonomorphicTagTypes>;
 
 export class MonomorphicTagImpl implements MonomorphicTag {
-  private revision: Revision = INITIAL;
-  protected lastChecked: Revision = INITIAL;
-  protected lastValue: Revision = INITIAL;
+  private revision = INITIAL;
+  private lastChecked = INITIAL;
+  private lastValue = INITIAL;
 
   private isUpdating = false;
   private subtag: Tag | null = null;
@@ -120,16 +128,8 @@ export class MonomorphicTagImpl implements MonomorphicTag {
 
   [TYPE]: MonomorphicTagType;
 
-  constructor(type: MonomorphicTagType) {
-    this[TYPE] = type;
-  }
-
-  [VALIDATE](snapshot: Revision): boolean {
-    return snapshot >= this[COMPUTE]();
-  }
-
-  [VALUE]() {
-    return $REVISION;
+  constructor(type: MonomorphicTagTypes) {
+    this[TYPE] = type as MonomorphicTagType;
   }
 
   [COMPUTE](): Revision {
@@ -159,77 +159,65 @@ export class MonomorphicTagImpl implements MonomorphicTag {
       }
     }
 
-    if (this.isUpdating) {
+    if (this.isUpdating === true) {
       this.lastChecked = ++$REVISION;
     }
 
     return this.lastValue;
   }
 
-  [UPDATE](tag: Tag) {
+  static update(_tag: UpdatableTag, subtag: Tag) {
     if (DEBUG) {
       assert(
-        this[TYPE] === MonomorphicTagTypes.Updatable,
+        _tag[TYPE] === MonomorphicTagTypes.Updatable,
         'Attempted to update a tag that was not updatable'
       );
     }
 
-    if (tag === CONSTANT_TAG) {
-      this.subtag = null;
-    } else {
-      this.subtag = tag;
+    // TODO: TS 3.7 should allow us to do this via assertion
+    let tag = _tag as MonomorphicTagImpl;
 
-      if (tag instanceof MonomorphicTagImpl) {
-        this.lastChecked = Math.min(this.lastChecked, tag.lastChecked);
-        this.lastValue = Math.max(this.lastValue, tag.lastValue);
-      } else {
-        this.lastChecked = INITIAL;
-      }
+    if (subtag === CONSTANT_TAG) {
+      tag.subtag = null;
+    } else {
+      tag.subtag = subtag;
+
+      // subtag could be another type of tag, e.g. CURRENT_TAG or VOLATILE_TAG.
+      // If so, lastChecked/lastValue will be undefined, result in these being
+      // NaN. This is fine, it will force the system to recompute.
+      tag.lastChecked = Math.min(tag.lastChecked, (subtag as any).lastChecked);
+      tag.lastValue = Math.max(tag.lastValue, (subtag as any).lastValue);
     }
   }
 
-  [UPDATE_SUBTAGS](tags: Tag[]) {
-    this.subtags = tags;
-  }
-
-  [DIRTY]() {
+  static dirty(tag: DirtyableTag | UpdatableTag) {
     if (DEBUG) {
       assert(
-        this[TYPE] === MonomorphicTagTypes.Updatable ||
-          this[TYPE] === MonomorphicTagTypes.Dirtyable,
+        tag[TYPE] === MonomorphicTagTypes.Updatable || tag[TYPE] === MonomorphicTagTypes.Dirtyable,
         'Attempted to dirty a tag that was not dirtyable'
       );
     }
 
-    this.revision = ++$REVISION;
+    (tag as MonomorphicTagImpl).revision = ++$REVISION;
   }
 }
 
-function _createTag<T extends MonomorphicTagTypes>(type: T): MonomorphicTagMapping[T] {
-  return new MonomorphicTagImpl(type as MonomorphicTagType);
+export const dirty = MonomorphicTagImpl.dirty;
+export const update = MonomorphicTagImpl.update;
+
+//////////
+
+export function createTag(): DirtyableTag {
+  return new MonomorphicTagImpl(MonomorphicTagTypes.Dirtyable);
+}
+
+export function createUpdatableTag(): UpdatableTag {
+  return new MonomorphicTagImpl(MonomorphicTagTypes.Updatable);
 }
 
 //////////
 
-export function createTag() {
-  return _createTag(MonomorphicTagTypes.Dirtyable);
-}
-
-export function createUpdatableTag() {
-  return _createTag(MonomorphicTagTypes.Updatable);
-}
-
-export function dirty(tag: DirtyableTag | UpdatableTag) {
-  tag[DIRTY]();
-}
-
-export function update(tag: UpdatableTag, subtag: Tag) {
-  tag[UPDATE](subtag);
-}
-
-//////////
-
-export const CONSTANT_TAG = _createTag(MonomorphicTagTypes.Constant);
+export const CONSTANT_TAG = new MonomorphicTagImpl(MonomorphicTagTypes.Constant) as ConstantTag;
 
 export function isConst({ tag }: Tagged): boolean {
   return tag === CONSTANT_TAG;
@@ -242,16 +230,8 @@ export function isConstTag(tag: Tag): boolean {
 //////////
 
 class VolatileTag implements Tag {
-  [VALUE]() {
-    return VOLATILE;
-  }
-
   [COMPUTE]() {
     return VOLATILE;
-  }
-
-  [VALIDATE](snapshot: Revision) {
-    return snapshot <= VOLATILE;
   }
 }
 
@@ -260,16 +240,8 @@ export const VOLATILE_TAG = new VolatileTag();
 //////////
 
 class CurrentTag implements CurrentTag {
-  [VALUE]() {
-    return $REVISION;
-  }
-
   [COMPUTE]() {
     return $REVISION;
-  }
-
-  [VALIDATE](snapshot: Revision) {
-    return snapshot === $REVISION;
   }
 }
 
@@ -324,8 +296,8 @@ function _combine(tags: Tag[]): Tag {
     case 1:
       return tags[0];
     default:
-      let tag = _createTag(MonomorphicTagTypes.Combinator);
-      tag[UPDATE_SUBTAGS](tags);
+      let tag = new MonomorphicTagImpl(MonomorphicTagTypes.Combinator) as CombinatorTag;
+      (tag as any).subtags = tags;
       return tag;
   }
 }

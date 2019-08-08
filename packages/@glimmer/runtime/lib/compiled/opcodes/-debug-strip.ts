@@ -10,7 +10,7 @@ import {
   wrap,
   CheckNumber,
 } from '@glimmer/debug';
-import { Tag, VersionedPathReference, Reference, VALUE, VALIDATE } from '@glimmer/reference';
+import { Tag, VersionedPathReference, Reference, COMPUTE } from '@glimmer/reference';
 import {
   Arguments,
   ICapturedArguments,
@@ -24,8 +24,7 @@ import { Scope } from '../../environment';
 import { CompilableBlock, Opaque } from '@glimmer/interfaces';
 
 export const CheckTag: Checker<Tag> = CheckInterface({
-  [VALUE]: CheckFunction,
-  [VALIDATE]: CheckFunction,
+  [COMPUTE]: CheckFunction,
 });
 
 export const CheckPathReference: Checker<VersionedPathReference> = CheckInterface({
