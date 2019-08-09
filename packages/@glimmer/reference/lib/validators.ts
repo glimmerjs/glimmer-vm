@@ -98,6 +98,12 @@ const enum MonomorphicTagTypes {
 
 const TYPE: unique symbol = symbol('TAG_TYPE');
 
+export let ALLOW_CYCLES: WeakSet<UpdatableTag>;
+
+if (DEBUG) {
+  ALLOW_CYCLES = new WeakSet();
+}
+
 interface MonomorphicTagBase<T extends MonomorphicTagTypes> extends Tag {
   [TYPE]: T;
 }
@@ -160,6 +166,10 @@ export class MonomorphicTagImpl implements MonomorphicTag {
     }
 
     if (this.isUpdating === true) {
+      if (DEBUG && !ALLOW_CYCLES.has(this)) {
+        throw new Error('Cycles in tags are not allowed');
+      }
+
       this.lastChecked = ++$REVISION;
     }
 
