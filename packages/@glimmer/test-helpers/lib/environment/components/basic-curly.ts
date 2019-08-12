@@ -7,7 +7,7 @@ import {
   Invocation,
 } from '@glimmer/runtime';
 import { Opaque, ComponentCapabilities, Dict } from '@glimmer/interfaces';
-import { PathReference, Tag, combine, DirtyableTag, TagWrapper } from '@glimmer/reference';
+import { PathReference, Tag, combine, createTag, DirtyableTag, dirty } from '@glimmer/reference';
 import { UpdatableReference } from '@glimmer/object-reference';
 import { Destroyable } from '@glimmer/util';
 
@@ -121,12 +121,12 @@ export class BasicCurlyComponentManager
 }
 
 export class BasicCurlyComponent {
-  public dirtinessTag: TagWrapper<DirtyableTag> = DirtyableTag.create();
+  public dirtinessTag: DirtyableTag = createTag();
 
   constructor(public args: BasicCurlyArgs) {}
 
   recompute() {
-    this.dirtinessTag.inner.dirty();
+    dirty(this.dirtinessTag);
   }
 
   destroy() {}

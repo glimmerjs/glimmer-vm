@@ -7,6 +7,8 @@ import {
   ReferenceCache,
   Revision,
   Tag,
+  value,
+  validate,
 } from '@glimmer/reference';
 import { initializeGuid, assert } from '@glimmer/util';
 import {
@@ -266,19 +268,19 @@ export class JumpIfNotModifiedOpcode extends UpdatingOpcode {
   constructor(tag: Tag, private target: LabelOpcode) {
     super();
     this.tag = tag;
-    this.lastRevision = tag.value();
+    this.lastRevision = value(tag);
   }
 
   evaluate(vm: UpdatingVM) {
     let { tag, target, lastRevision } = this;
 
-    if (!vm.alwaysRevalidate && tag.validate(lastRevision)) {
+    if (!vm.alwaysRevalidate && validate(tag, lastRevision)) {
       vm.goto(target);
     }
   }
 
   didModify() {
-    this.lastRevision = this.tag.value();
+    this.lastRevision = value(this.tag);
   }
 }
 
