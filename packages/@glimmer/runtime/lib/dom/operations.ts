@@ -39,9 +39,9 @@ export class DOMOperations {
   createElement(tag: string, context?: SimpleElement): SimpleElement {
     let isElementInSVGNamespace: boolean, isHTMLIntegrationPoint: boolean;
 
-    if (context) {
+    if (context !== undefined) {
       isElementInSVGNamespace = context.namespaceURI === Namespace.SVG || tag === 'svg';
-      isHTMLIntegrationPoint = !!(SVG_INTEGRATION_POINTS as Dict<number>)[context.tagName];
+      isHTMLIntegrationPoint = context.tagName in (SVG_INTEGRATION_POINTS as Dict<number>);
     } else {
       isElementInSVGNamespace = tag === 'svg';
       isHTMLIntegrationPoint = false;
@@ -51,7 +51,7 @@ export class DOMOperations {
       // FIXME: This does not properly handle <font> with color, face, or
       // size attributes, which is also disallowed by the spec. We should fix
       // this.
-      if (BLACKLIST_TABLE[tag]) {
+      if (BLACKLIST_TABLE[tag] === 1) {
         throw new Error(`Cannot create a ${tag} inside an SVG context`);
       }
 
@@ -72,7 +72,7 @@ export class DOMOperations {
       return new ConcreteBounds(parent, comment, comment);
     }
 
-    let prev = nextSibling ? nextSibling.previousSibling : parent.lastChild;
+    let prev = nextSibling !== null ? nextSibling.previousSibling : parent.lastChild;
     let last: SimpleNode;
 
     if (nextSibling === null) {
@@ -95,7 +95,10 @@ export class DOMOperations {
       parent.removeChild(uselessElement);
     }
 
-    let first = expect(prev ? prev.nextSibling : parent.firstChild, 'bug in insertAdjacentHTML?');
+    let first = expect(
+      prev !== null ? prev.nextSibling : parent.firstChild,
+      'bug in insertAdjacentHTML?'
+    );
     return new ConcreteBounds(parent, first, last);
   }
 
@@ -117,7 +120,7 @@ export function moveNodesBefore(
   let last: SimpleNode = first;
   let current: Option<SimpleNode> = first;
 
-  while (current) {
+  while (current !== null) {
     let next: Option<SimpleNode> = current.nextSibling;
 
     target.insertBefore(current, nextSibling);

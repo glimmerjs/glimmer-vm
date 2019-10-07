@@ -152,7 +152,7 @@ export default class LowLevelVM {
   }
 
   evaluateInner(opcode: RuntimeOp, vm: VM<JitOrAotBlock>) {
-    if (opcode.isMachine) {
+    if (opcode.isMachine === 1) {
       this.evaluateMachine(opcode);
     } else {
       this.evaluateSyscall(opcode, vm);

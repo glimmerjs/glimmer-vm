@@ -9,6 +9,10 @@ import { StringLiteral, BooleanLiteral, NumberLiteral } from './types/handlebars
 export type BuilderPath = string | AST.PathExpression;
 export type TagDescriptor = string | { name: string; selfClosing: boolean };
 
+function withFallback<T, U>(originalValue: T | null | undefined, fallbackValue: U): T | U {
+  return originalValue !== null && originalValue !== undefined ? originalValue : fallbackValue;
+}
+
 function buildMustache(
   path: BuilderPath | AST.Literal,
   params?: AST.Expression[],
@@ -24,11 +28,11 @@ function buildMustache(
   return {
     type: 'MustacheStatement',
     path,
-    params: params || [],
-    hash: hash || buildHash([]),
-    escaped: !raw,
-    loc: buildLoc(loc || null),
-    strip: strip || { open: false, close: false },
+    params: withFallback(params, []),
+    hash: withFallback(hash, buildHash([])),
+    escaped: !(raw === true),
+    loc: buildLoc(withFallback(loc, null)),
+    strip: withFallback(strip, { open: false, close: false }),
   };
 }
 
@@ -69,14 +73,14 @@ function buildBlock(
   return {
     type: 'BlockStatement',
     path: buildPath(path),
-    params: params || [],
-    hash: hash || buildHash([]),
-    program: defaultBlock || null,
-    inverse: elseBlock || null,
-    loc: buildLoc(loc || null),
-    openStrip: openStrip || { open: false, close: false },
-    inverseStrip: inverseStrip || { open: false, close: false },
-    closeStrip: closeStrip || { open: false, close: false },
+    params: withFallback(params, []),
+    hash: withFallback(hash, buildHash([])),
+    program: defaultBlock,
+    inverse: withFallback(elseBlock, null),
+    loc: buildLoc(withFallback(loc, null)),
+    openStrip: withFallback(openStrip, { open: false, close: false }),
+    inverseStrip: withFallback(inverseStrip, { open: false, close: false }),
+    closeStrip: withFallback(closeStrip, { open: false, close: false }),
   };
 }
 
@@ -89,9 +93,9 @@ function buildElementModifier(
   return {
     type: 'ElementModifierStatement',
     path: buildPath(path),
-    params: params || [],
-    hash: hash || buildHash([]),
-    loc: buildLoc(loc || null),
+    params: withFallback(params, []),
+    hash: withFallback(hash, buildHash([])),
+    loc: buildLoc(withFallback(loc, null)),
   };
 }
 
@@ -105,11 +109,11 @@ function buildPartial(
   return {
     type: 'PartialStatement',
     name: name,
-    params: params || [],
-    hash: hash || buildHash([]),
-    indent: indent || '',
+    params: withFallback(params, []),
+    hash: withFallback(hash, buildHash([])),
+    indent: withFallback(indent, ''),
     strip: { open: false, close: false },
-    loc: buildLoc(loc || null),
+    loc: buildLoc(withFallback(loc, null)),
   };
 }
 
@@ -117,7 +121,7 @@ function buildComment(value: string, loc?: AST.SourceLocation): AST.CommentState
   return {
     type: 'CommentStatement',
     value: value,
-    loc: buildLoc(loc || null),
+    loc: buildLoc(withFallback(loc, null)),
   };
 }
 
@@ -128,7 +132,7 @@ function buildMustacheComment(
   return {
     type: 'MustacheCommentStatement',
     value: value,
-    loc: buildLoc(loc || null),
+    loc: buildLoc(withFallback(loc, null)),
   };
 }
 
@@ -138,8 +142,8 @@ function buildConcat(
 ): AST.ConcatStatement {
   return {
     type: 'ConcatStatement',
-    parts: parts || [],
-    loc: buildLoc(loc || null),
+    parts: withFallback(parts, []),
+    loc: buildLoc(withFallback(loc, null)),
   };
 }
 
@@ -184,7 +188,7 @@ export function isParamsSexp(value: SexpValue): value is AST.Expression[] {
 }
 
 export function isHashSexp(value: SexpValue): value is Dict<AST.Expression> {
-  if (typeof value === 'object' && value && !Array.isArray(value)) {
+  if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
     expectType<Dict<AST.Expression>>(value);
     return true;
   } else {
@@ -242,7 +246,7 @@ export function normalizeAttr(sexp: AttrSexp): AST.AttrNode {
     value = sexp[1];
   }
 
-  let loc = sexp[2] ? sexp[2][1] : undefined;
+  let loc = sexp[2] !== undefined && Array.isArray(sexp[2]) ? sexp[2][1] : undefined;
 
   return buildAttr(name, value, loc);
 }
@@ -261,7 +265,7 @@ export function normalizePath(path: PathSexp): AST.PathExpression {
   if (typeof path === 'string') {
     return buildPath(path);
   } else {
-    return buildPath(path[1], path[2] && path[2][1]);
+    return buildPath(path[1], path[2] !== undefined ? path[2][1] : undefined);
   }
 }
 
@@ -327,7 +331,7 @@ function buildElement(
   if (Array.isArray(options)) {
     normalized = normalizeElementOptions(options, ...rest);
   } else {
-    normalized = options || {};
+    normalized = options !== undefined ? options : {};
   }
 
   let { attrs, blockParams, modifiers, comments, children, loc } = normalized;
@@ -346,14 +350,14 @@ function buildElement(
 
   return {
     type: 'ElementNode',
-    tag: tag || '',
+    tag: withFallback(tag, ''),
     selfClosing: selfClosing,
-    attributes: attrs || [],
-    blockParams: blockParams || [],
-    modifiers: modifiers || [],
-    comments: (comments as AST.MustacheCommentStatement[]) || [],
-    children: children || [],
-    loc: buildLoc(loc || null),
+    attributes: withFallback(attrs, []),
+    blockParams: withFallback(blockParams, []),
+    modifiers: withFallback(modifiers, []),
+    comments: withFallback(comments as AST.MustacheCommentStatement[], []),
+    children: withFallback(children, []),
+    loc: buildLoc(withFallback(loc, null)),
   };
 }
 
@@ -366,15 +370,15 @@ function buildAttr(
     type: 'AttrNode',
     name: name,
     value: value,
-    loc: buildLoc(loc || null),
+    loc: buildLoc(withFallback(loc, null)),
   };
 }
 
 function buildText(chars?: string, loc?: AST.SourceLocation): AST.TextNode {
   return {
     type: 'TextNode',
-    chars: chars || '',
-    loc: buildLoc(loc || null),
+    chars: withFallback(chars, ''),
+    loc: buildLoc(withFallback(loc, null)),
   };
 }
 
@@ -389,9 +393,9 @@ function buildSexpr(
   return {
     type: 'SubExpression',
     path: buildPath(path),
-    params: params || [],
-    hash: hash || buildHash([]),
-    loc: buildLoc(loc || null),
+    params: withFallback(params, []),
+    hash: withFallback(hash, buildHash([])),
+    loc: buildLoc(withFallback(loc, null)),
   };
 }
 
@@ -412,7 +416,7 @@ function buildPath(original: BuilderPath, loc?: AST.SourceLocation): AST.PathExp
     this: thisHead,
     parts,
     data: false,
-    loc: buildLoc(loc || null),
+    loc: buildLoc(withFallback(loc, null)),
   };
 }
 
@@ -425,7 +429,7 @@ function buildLiteral<T extends AST.Literal>(
     type,
     value,
     original: value,
-    loc: buildLoc(loc || null),
+    loc: buildLoc(withFallback(loc, null)),
   } as T;
 }
 
@@ -434,8 +438,8 @@ function buildLiteral<T extends AST.Literal>(
 function buildHash(pairs?: AST.HashPair[], loc?: AST.SourceLocation): AST.Hash {
   return {
     type: 'Hash',
-    pairs: pairs || [],
-    loc: buildLoc(loc || null),
+    pairs: withFallback(pairs, []),
+    loc: buildLoc(withFallback(loc, null)),
   };
 }
 
@@ -444,7 +448,7 @@ function buildPair(key: string, value: AST.Expression, loc?: AST.SourceLocation)
     type: 'HashPair',
     key: key,
     value,
-    loc: buildLoc(loc || null),
+    loc: buildLoc(withFallback(loc, null)),
   };
 }
 
@@ -455,9 +459,9 @@ function buildProgram(
 ): AST.Template {
   return {
     type: 'Template',
-    body: body || [],
-    blockParams: blockParams || [],
-    loc: buildLoc(loc || null),
+    body: withFallback(body, []),
+    blockParams: withFallback(blockParams, []),
+    loc: buildLoc(withFallback(loc, null)),
   };
 }
 
@@ -469,10 +473,10 @@ function buildBlockItself(
 ): AST.Block {
   return {
     type: 'Block',
-    body: body || [],
-    blockParams: blockParams || [],
+    body: withFallback(body, []),
+    blockParams: withFallback(blockParams, []),
     chained,
-    loc: buildLoc(loc || null),
+    loc: buildLoc(withFallback(loc, null)),
   };
 }
 
@@ -483,14 +487,14 @@ function buildTemplate(
 ): AST.Template {
   return {
     type: 'Template',
-    body: body || [],
-    blockParams: blockParams || [],
-    loc: buildLoc(loc || null),
+    body: withFallback(body, []),
+    blockParams: withFallback(blockParams, []),
+    loc: buildLoc(withFallback(loc, null)),
   };
 }
 
 function buildSource(source?: string) {
-  return source || null;
+  return withFallback(source, null);
 }
 
 function buildPosition(line: number, column: number) {
@@ -519,7 +523,7 @@ function buildLoc(...args: any[]): AST.SourceLocation {
   if (args.length === 1) {
     let loc = args[0];
 
-    if (loc && typeof loc === 'object') {
+    if (loc !== undefined && typeof loc === 'object' && loc !== null) {
       return {
         source: buildSource(loc.source),
         start: buildPosition(loc.start.line, loc.start.column),

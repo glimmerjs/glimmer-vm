@@ -44,7 +44,7 @@ APPEND_OPCODES.add(
     let scope = check(vm.stack.pop(), CheckScope);
     let table = check(vm.stack.pop(), CheckOption(CheckBlockSymbolTable));
 
-    let block: Option<JitScopeBlock> = table ? [handle!, scope, table] : null;
+    let block: Option<JitScopeBlock> = table !== null ? [handle!, scope, table] : null;
 
     vm.scope().bindBlock(symbol, block);
   },
@@ -56,7 +56,7 @@ APPEND_OPCODES.add(Op.SetAotBlock, (vm, { op1: symbol }) => {
   let scope = check(vm.stack.pop(), CheckScope);
   let table = check(vm.stack.pop(), CheckOption(CheckBlockSymbolTable));
 
-  let block: Option<AotScopeBlock> = table ? [handle!, scope, table] : null;
+  let block: Option<AotScopeBlock> = table !== null ? [handle!, scope, table] : null;
 
   vm.scope().bindBlock(symbol, block);
 });
@@ -87,7 +87,7 @@ APPEND_OPCODES.add(Op.GetBlock, (vm, { op1: _block }) => {
   let { stack } = vm;
   let block = vm.scope().getBlock(_block);
 
-  if (block) {
+  if (block !== null) {
     stack.push(block[2]);
     stack.push(block[1]);
     stack.push(block[0]);
@@ -99,7 +99,7 @@ APPEND_OPCODES.add(Op.GetBlock, (vm, { op1: _block }) => {
 });
 
 APPEND_OPCODES.add(Op.HasBlock, (vm, { op1: _block }) => {
-  let hasBlock = !!vm.scope().getBlock(_block);
+  let hasBlock = vm.scope().getBlock(_block) !== null;
   vm.stack.push(hasBlock ? TRUE_REFERENCE : FALSE_REFERENCE);
 });
 
@@ -112,12 +112,13 @@ APPEND_OPCODES.add(Op.HasBlockParams, vm => {
   let table = check(vm.stack.pop(), CheckOption(CheckBlockSymbolTable));
 
   assert(
-    table === null || (table && typeof table === 'object' && Array.isArray(table.parameters)),
+    table === null ||
+      (table !== null && typeof table === 'object' && Array.isArray(table.parameters)),
     stackAssert('Option<BlockSymbolTable>', table)
   );
 
-  let hasBlockParams = table && table.parameters.length;
-  vm.stack.push(hasBlockParams ? TRUE_REFERENCE : FALSE_REFERENCE);
+  let hasBlockParams = table !== null && table.parameters.length !== 0;
+  vm.stack.push(hasBlockParams !== false ? TRUE_REFERENCE : FALSE_REFERENCE);
 });
 
 APPEND_OPCODES.add(Op.Concat, (vm, { op1: count }) => {

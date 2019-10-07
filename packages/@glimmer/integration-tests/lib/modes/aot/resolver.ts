@@ -31,7 +31,7 @@ export default class AotRuntimeResolverImpl implements AotRuntimeResolver {
 
     let moduleName = this.modules.resolve(name, referrer, 'ui/components');
 
-    if (!moduleName) return null;
+    if (moduleName === null) return null;
 
     let module = this.modules.get(moduleName);
     return module.get('default') as ComponentDefinition;

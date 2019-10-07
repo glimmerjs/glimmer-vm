@@ -13,6 +13,6 @@ export function resolveLayoutForTag(
   return {
     handle,
     compilable,
-    capabilities: capabilities || MINIMAL_CAPABILITIES,
+    capabilities: capabilities !== undefined ? capabilities : MINIMAL_CAPABILITIES,
   };
 }

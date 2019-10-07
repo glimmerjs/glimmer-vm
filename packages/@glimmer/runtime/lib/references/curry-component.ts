@@ -45,7 +45,7 @@ export default class CurryComponentReference
 
     if (isCurriedComponentDefinition(value)) {
       definition = value;
-    } else if (typeof value === 'string' && value) {
+    } else if (typeof value === 'string' && value !== '') {
       let { resolver, meta } = this;
       definition = resolveComponent(resolver, value, meta);
     }
@@ -67,9 +67,9 @@ export default class CurryComponentReference
   ): Option<CurriedComponentDefinition> {
     let { args } = this;
 
-    if (!args && isCurriedComponentDefinition(definition)) {
+    if (args === null && isCurriedComponentDefinition(definition)) {
       return definition;
-    } else if (!definition) {
+    } else if (definition === null || definition === undefined) {
       return null;
     } else {
       return new CurriedComponentDefinition(definition, args);

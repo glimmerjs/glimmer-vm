@@ -64,7 +64,7 @@ export function precompile(
   let ast = preprocess(string, options);
   let { meta } = options;
   let { block } = TemplateCompiler.compile(ast, options);
-  let idFn = options.id || defaultId;
+  let idFn = options.id !== undefined ? options.id : defaultId;
   let blockJSON = JSON.stringify(block.toJSON());
   let templateJSONObject: SerializedTemplateWithLazyBlock<unknown> = {
     id: idFn(JSON.stringify(meta) + blockJSON),

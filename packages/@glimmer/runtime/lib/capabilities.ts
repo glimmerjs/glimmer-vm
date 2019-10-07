@@ -63,6 +63,7 @@ export function managerHasCapability<F extends keyof CapabilityMap>(
   capability: F
 ): _manager is CapabilityMap[F] {
   check(capabilities, CheckNumber);
+  /* eslint-disable-next-line */
   return !!(capabilities & capability);
 }
 
@@ -71,5 +72,6 @@ export function hasCapability<F extends keyof CapabilityMap>(
   capability: F
 ): boolean {
   check(capabilities, CheckNumber);
+  /* eslint-disable-next-line */
   return !!(capabilities & capability);
 }

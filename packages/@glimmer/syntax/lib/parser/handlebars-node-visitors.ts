@@ -84,7 +84,8 @@ export abstract class HandlebarsNodeVisitors extends Parser {
 
     let { path, params, hash } = acceptCallNodes(this, block);
     let program = this.Program(block.program);
-    let inverse = block.inverse ? this.Program(block.inverse) : null;
+    let inverse =
+      block.inverse !== undefined && block.inverse !== null ? this.Program(block.inverse) : null;
 
     if (path.original === 'in-element') {
       hash = addInElementHash(this.cursor(), hash, block.loc);
@@ -319,7 +320,7 @@ export abstract class HandlebarsNodeVisitors extends Parser {
     // escaping – such as `{{foo.["bar.baz"]}}` would mean lookup a property
     // named literally "bar.baz" on `this.foo`). By convention, we use `null`
     // for this purpose.
-    if (original.match(/^this(\..+)?$/)) {
+    if (original.match(/^this(\..+)?$/) !== null) {
       thisHead = true;
     }
 
@@ -397,7 +398,7 @@ function updateTokenizerLocation(tokenizer: Parser['tokenizer'], content: HBS.Co
   );
 
   line = line + offsets.lines;
-  if (offsets.lines) {
+  if (offsets.lines !== 0) {
     column = offsets.columns;
   } else {
     column = column + offsets.columns;
@@ -417,8 +418,12 @@ function acceptCallNodes(
 ): { path: AST.PathExpression; params: AST.Expression[]; hash: AST.Hash } {
   let path = compiler.PathExpression(node.path);
 
-  let params = node.params ? node.params.map(e => compiler.acceptNode<AST.Expression>(e)) : [];
-  let hash = node.hash ? compiler.Hash(node.hash) : b.hash();
+  let params =
+    typeof node.params === 'object' && node.params !== null
+      ? node.params.map(e => compiler.acceptNode<AST.Expression>(e))
+      : [];
+  let hash =
+    typeof node.hash === 'object' && node.hash !== null ? compiler.Hash(node.hash) : b.hash();
 
   return { path, params, hash };
 }
@@ -431,8 +436,9 @@ function addElementModifier(element: Tag<'StartTag'>, mustache: AST.MustacheStat
     let tag = `<${element.name} ... ${modifier} ...`;
 
     throw new SyntaxError(
-      `In ${tag}, ${modifier} is not a valid modifier: "${path.original}" on line ${loc &&
-        loc.start.line}.`,
+      `In ${tag}, ${modifier} is not a valid modifier: "${path.original}" on line ${
+        loc === null || loc === undefined ? null : loc.start.line
+      }.`,
       mustache.loc
     );
   }

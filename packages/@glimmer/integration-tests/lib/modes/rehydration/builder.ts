@@ -12,7 +12,7 @@ export class DebugRehydrationBuilder extends RehydrateBuilder {
     if (node.nodeType !== 8) {
       if (el.nodeType === 1) {
         // don't stat serialized cursor positions
-        if (el.tagName !== 'SCRIPT' || !el.getAttribute('glmr')) {
+        if (el.tagName !== 'SCRIPT' || el.getAttribute('glmr') === null) {
           this.clearedNodes.push(node);
         }
       } else {

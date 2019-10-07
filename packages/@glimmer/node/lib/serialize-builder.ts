@@ -87,7 +87,7 @@ class SerializeBuilder extends NewElementBuilder implements ElementBuilder {
       return super.__appendText(string);
     } else if (string === '') {
       return (this.__appendComment('% %') as any) as SimpleText;
-    } else if (current && current.nodeType === TEXT_NODE) {
+    } else if (current !== null && current !== undefined && current.nodeType === TEXT_NODE) {
       this.__appendComment('%|%');
     }
 

@@ -792,7 +792,10 @@ class RehydratingComponents extends AbstractRehydrationTests {
   _buildComponent(blueprint: ComponentBlueprint, properties: Dict<unknown> = {}) {
     let template = this.buildComponent(blueprint);
     if (this.testType === 'Dynamic' && properties['componentName'] === undefined) {
-      properties['componentName'] = blueprint.name || GLIMMER_TEST_COMPONENT;
+      properties['componentName'] =
+        blueprint.name !== undefined && blueprint.name !== ''
+          ? blueprint.name
+          : GLIMMER_TEST_COMPONENT;
     }
     return template;
   }

@@ -50,7 +50,10 @@ test('plugins are provided the syntax package', assert => {
 
 test('can support the legacy AST transform API via ASTPlugin', assert => {
   function ensurePlugin(FunctionOrPlugin: any): ASTPluginBuilder {
-    if (FunctionOrPlugin.prototype && FunctionOrPlugin.prototype.transform) {
+    if (
+      typeof FunctionOrPlugin.prototype === 'object' &&
+      typeof FunctionOrPlugin.prototype.transform === 'function'
+    ) {
       return (env: ASTPluginEnvironment) => {
         return {
           name: 'plugin-a',

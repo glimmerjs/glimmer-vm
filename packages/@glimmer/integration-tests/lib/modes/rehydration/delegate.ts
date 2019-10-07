@@ -80,7 +80,8 @@ export class RehydrationDelegate implements RenderDelegate {
     takeSnapshot: () => void,
     element: SimpleElement | undefined = undefined
   ): string {
-    element = element || this.serverDoc.createElement('div');
+    element =
+      element !== undefined && element !== null ? element : this.serverDoc.createElement('div');
     let cursor = { element, nextSibling: null };
     // Emulate server-side render
     renderTemplate(
@@ -95,7 +96,7 @@ export class RehydrationDelegate implements RenderDelegate {
   }
 
   getSelf(context: unknown): UpdatableReference {
-    if (!this.self) {
+    if (this.self === null) {
       this.self = new UpdatableReference(context);
     }
 

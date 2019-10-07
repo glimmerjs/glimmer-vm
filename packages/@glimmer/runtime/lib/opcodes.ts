@@ -108,7 +108,7 @@ export class AppendOpcodes {
       let meta = opcodeMetadata(type, isMachine);
       let actualChange = vm.fetchValue($sp) - sp!;
       if (
-        meta &&
+        meta !== null &&
         meta.check &&
         typeof meta.stackChange! === 'number' &&
         meta.stackChange! !== actualChange
@@ -158,13 +158,13 @@ export class AppendOpcodes {
 
     if (operation.syscall) {
       assert(
-        !opcode.isMachine,
+        opcode.isMachine !== 1,
         `BUG: Mismatch between operation.syscall (${operation.syscall}) and opcode.isMachine (${opcode.isMachine}) for ${opcode.type}`
       );
       operation.evaluate(vm, opcode);
     } else {
       assert(
-        opcode.isMachine,
+        opcode.isMachine === 1,
         `BUG: Mismatch between operation.syscall (${operation.syscall}) and opcode.isMachine (${opcode.isMachine}) for ${opcode.type}`
       );
       operation.evaluate(vm[INNER_VM], opcode);

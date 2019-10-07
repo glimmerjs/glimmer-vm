@@ -80,7 +80,7 @@ export namespace DOM {
       value: string,
       namespace: Option<AttrNamespace> = null
     ) {
-      if (namespace) {
+      if (namespace !== null) {
         element.setAttributeNS(namespace, name, value);
       } else {
         element.setAttribute(name, value);

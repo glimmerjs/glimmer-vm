@@ -52,7 +52,7 @@ export function debugSlice(context: TemplateCompilationContext, start: number, e
 export function logOpcode(type: string, params: Maybe<Dict>): string | void {
   let out = type;
 
-  if (params) {
+  if (params !== null && params !== undefined) {
     let args = Object.keys(params)
       .map(p => ` ${p}=${json(params[p])}`)
       .join('');
@@ -108,7 +108,7 @@ export function debug(
 ): [string, object] {
   let metadata = opcodeMetadata(op.type, isMachine);
 
-  if (!metadata) {
+  if (metadata === null) {
     throw new Error(`Missing Opcode Metadata for ${op}`);
   }
 
@@ -130,6 +130,7 @@ export function debug(
         out[operand.name] = c.getString(actualOperand);
         break;
       case 'option-str':
+        /* eslint-disable-next-line */
         out[operand.name] = actualOperand ? c.getString(actualOperand) : null;
         break;
       case 'str-array':
@@ -139,6 +140,7 @@ export function debug(
         out[operand.name] = c.getArray(actualOperand);
         break;
       case 'bool':
+        /* eslint-disable-next-line */
         out[operand.name] = !!actualOperand;
         break;
       case 'primitive':

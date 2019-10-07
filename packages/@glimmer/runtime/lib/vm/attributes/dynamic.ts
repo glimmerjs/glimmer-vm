@@ -117,7 +117,7 @@ export class DefaultDynamicProperty extends DynamicAttribute {
     // semantics we must do this.
     let { element, namespace } = this.attribute;
 
-    if (namespace) {
+    if (typeof namespace === 'string') {
       element.removeAttributeNS(namespace, this.normalizedName);
     } else {
       element.removeAttribute(this.normalizedName);
@@ -178,7 +178,7 @@ export class OptionSelectedDynamicAttribute extends DefaultDynamicProperty {
   update(value: unknown): void {
     let option = this.attribute.element as HTMLOptionElement;
 
-    if (value) {
+    if (value !== null && value !== undefined && value !== false && value !== '') {
       option.selected = true;
     } else {
       option.selected = false;

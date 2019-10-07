@@ -36,7 +36,7 @@ export class DictSet<T extends SetMember> implements Set<T> {
 
   delete(obj: T) {
     if (typeof obj === 'string') delete this.dict[obj as any];
-    else if ((obj as any)._guid) delete this.dict[(obj as any)._guid];
+    else if (typeof (obj as any)._guid === 'number') delete this.dict[(obj as any)._guid];
   }
 }
 

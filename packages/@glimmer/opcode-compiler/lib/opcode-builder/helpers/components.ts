@@ -85,8 +85,8 @@ export function staticComponentHelper(
   if (component !== null) {
     let { compilable, handle, capabilities } = component;
 
-    if (compilable) {
-      if (hash) {
+    if (compilable !== null) {
+      if (hash !== null && hash !== undefined) {
         for (let i = 0; i < hash.length; i = i + 2) {
           hash[i][0] = `@${hash[i][0]}`;
         }
@@ -183,7 +183,7 @@ export function invokeStaticComponent({
           callerBlock = blocks.get(symbol.slice(1));
         }
 
-        if (callerBlock) {
+        if (callerBlock !== null) {
           out.push(pushYieldableBlock(callerBlock));
           bindings.push({ symbol: i + 1, isBlock: true });
         } else {
@@ -194,7 +194,7 @@ export function invokeStaticComponent({
         break;
 
       case '@':
-        if (!hash) {
+        if (hash === null) {
           break;
         }
 
@@ -311,11 +311,11 @@ export function staticComponent(
 
   let { compilable, capabilities, handle } = component;
 
-  if (compilable) {
+  if (compilable !== null) {
     return [
       op(Op.PushComponentDefinition, handle),
       invokeStaticComponent({
-        capabilities: capabilities || MINIMAL_CAPABILITIES,
+        capabilities: capabilities !== undefined ? capabilities : MINIMAL_CAPABILITIES,
         layout: compilable,
         attrs: null,
         params,
@@ -327,7 +327,7 @@ export function staticComponent(
     return [
       op(Op.PushComponentDefinition, handle),
       invokeComponent({
-        capabilities: capabilities || MINIMAL_CAPABILITIES,
+        capabilities: capabilities !== undefined ? capabilities : MINIMAL_CAPABILITIES,
         attrs: null,
         params,
         hash,
@@ -347,9 +347,9 @@ export function invokeComponent({
   blocks: namedBlocks,
   layout,
 }: Component): StatementCompileActions {
-  let bindableBlocks = !!namedBlocks;
+  let bindableBlocks = namedBlocks !== null && namedBlocks !== undefined ? true : false;
   let bindableAtNames =
-    capabilities === true || capabilities.prepareArgs || !!(hash && hash[0].length !== 0);
+    capabilities === true || capabilities.prepareArgs || (hash !== null && hash[0].length !== 0);
 
   let blocks = namedBlocks.with('attrs', attrs);
 
@@ -364,7 +364,7 @@ export function invokeComponent({
     invokePreparedComponent(blocks.has('default'), bindableBlocks, bindableAtNames, () => {
       let out: NestedStatementCompileActions;
 
-      if (layout) {
+      if (layout !== undefined && layout !== null) {
         out = [
           pushSymbolTable(layout.symbolTable),
           op('PushCompilable', layout),
@@ -398,7 +398,7 @@ export function invokePreparedComponent<T extends CompileActions | StatementComp
   // for late-bound layouts, but a caller is free
   // to populate the layout earlier if it wants to
   // and do nothing here.
-  if (populateLayout) {
+  if (populateLayout !== null) {
     out.push(populateLayout());
   }
 

@@ -25,7 +25,7 @@ export function preprocess(
 ): Template<AnnotatedModuleLocator> {
   let wrapper = JSON.parse(rawPrecompile(template));
   let factory = templateFactory<AnnotatedModuleLocator>(wrapper);
-  return factory.create(meta || DEFAULT_TEST_META);
+  return factory.create(meta !== undefined ? meta : DEFAULT_TEST_META);
 }
 
 export function createTemplate<Locator>(

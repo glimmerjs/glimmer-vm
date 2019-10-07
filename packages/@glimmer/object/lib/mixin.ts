@@ -55,7 +55,7 @@ export class Mixin {
     if (typeof obj !== 'object' || obj === null) return [];
 
     let meta = ClassMeta.for(obj);
-    if (!meta) return [];
+    if (meta === null) return [];
 
     return meta.getAppliedMixins();
   }
@@ -73,15 +73,19 @@ export class Mixin {
     }
 
     let meta = ClassMeta.for(obj);
-    return !!meta && meta.hasAppliedMixin(this);
+    return meta !== null ? meta.hasAppliedMixin(this) : false;
   }
 
   reopen(extensions: Extensions) {
-    if (this.extensions) {
+    if (this.extensions !== null) {
       this.dependencies.push(toMixin(this.extensions));
     }
 
-    if (typeof extensions === 'object' && 'concatenatedProperties' in extensions) {
+    if (
+      extensions !== null &&
+      typeof extensions === 'object' &&
+      'concatenatedProperties' in extensions
+    ) {
       let concat: string[];
       let rawConcat = extensions.concatenatedProperties;
 
@@ -121,6 +125,7 @@ export class Mixin {
           obj[key] = new MethodBlueprint({ value });
           break;
         case 'object':
+          /* eslint-disable-next-line */
           if (value && BLUEPRINT in value) {
             obj[key] = value;
             break;
@@ -138,6 +143,7 @@ export class Mixin {
   }
 
   apply(target: any) {
+    /* eslint-disable-next-line */
     let meta: ClassMeta = (target[CLASS_META] = target[CLASS_META] || new ClassMeta());
     this.dependencies.forEach(m => m.apply(target));
     this.mergeProperties(target, target, meta);
@@ -333,11 +339,13 @@ class MethodBlueprint extends DataBlueprint {
 }
 
 export function wrapMethod(home: Dict, methodName: string, original: (...args: any[]) => any) {
+  /* eslint-disable-next-line */
   if (!((methodName as string) in home)) return maybeWrap(original);
 
   let superMethod = home[methodName];
 
   let func = function(this: GlimmerObject, ...args: any[]) {
+    /* eslint-disable-next-line */
     if (!this) return original.apply(this, args);
 
     let lastSuper = this._super;
@@ -359,6 +367,7 @@ function maybeWrap(original: Function) {
   if ('__wrapped' in original) return original;
 
   return function(this: GlimmerObject, ...args: any[]) {
+    /* eslint-disable-next-line */
     if (!this) return original.apply(this, args);
 
     let lastSuper = this._super;

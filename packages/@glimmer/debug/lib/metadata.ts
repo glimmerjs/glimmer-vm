@@ -164,7 +164,7 @@ export function buildEnum(
 
   let predicate;
 
-  if (max) {
+  if (max !== undefined && max !== 0) {
     predicate = strip`
       export function is${name}(value: number): value is ${name} {
         return value >= ${offset} && value <= ${max};

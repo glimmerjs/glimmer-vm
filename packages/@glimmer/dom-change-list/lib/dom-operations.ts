@@ -172,7 +172,7 @@ const ConstructionOperations: ConstructionFunction[] = [
   (state, tag, namespace) => {
     let { constants, document } = state;
 
-    if (state.constructing) flush(state);
+    if (state.constructing !== null) flush(state);
 
     let el = document.createElementNS(constants[namespace] as ElementNamespace, constants[tag]);
     state.constructing = el;
@@ -181,7 +181,7 @@ const ConstructionOperations: ConstructionFunction[] = [
 
   /* (CloseElement) */
   state => {
-    if (state.constructing) flush(state);
+    if (state.constructing !== null) flush(state);
     state.elements.pop();
     state.parent = state.elements[state.elements.length - 1];
   },
@@ -206,7 +206,7 @@ const ConstructionOperations: ConstructionFunction[] = [
   (state, text) => {
     let { constants, document, parent, nextSibling, constructing } = state;
 
-    let parentElement = constructing ? flush(state) : parent;
+    let parentElement = constructing !== null ? flush(state) : parent;
     let textNode = document.createTextNode(constants[text]);
     parentElement.insertBefore(textNode, nextSibling);
     state.tokens.register(textNode);
@@ -215,7 +215,7 @@ const ConstructionOperations: ConstructionFunction[] = [
   /* (AppendComment text) */
   (state, text) => {
     let { constants, document, parent, nextSibling } = state;
-    let parentElement = state.constructing ? flush(state) : parent;
+    let parentElement = state.constructing !== null ? flush(state) : parent;
     let commentNode = document.createComment(constants[text]);
     parentElement.insertBefore(commentNode, nextSibling);
     state.tokens.register(commentNode);

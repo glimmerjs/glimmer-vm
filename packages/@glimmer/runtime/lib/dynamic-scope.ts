@@ -6,7 +6,7 @@ export class DefaultDynamicScope implements DynamicScope {
   private bucket: Dict<PathReference>;
 
   constructor(bucket?: Dict<PathReference>) {
-    if (bucket) {
+    if (bucket !== null && bucket !== undefined) {
       this.bucket = assign({}, bucket);
     } else {
       this.bucket = {};

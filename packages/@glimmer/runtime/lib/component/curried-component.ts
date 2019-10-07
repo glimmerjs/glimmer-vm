@@ -8,12 +8,14 @@ const CURRIED_COMPONENT_DEFINITION_BRAND =
 export function isCurriedComponentDefinition(
   definition: unknown
 ): definition is CurriedComponentDefinition {
+  /* eslint-disable-next-line */
   return !!(definition && (definition as Dict)[CURRIED_COMPONENT_DEFINITION_BRAND]);
 }
 
 export function isComponentDefinition(
   definition: Maybe<Dict>
 ): definition is CurriedComponentDefinition {
+  /* eslint-disable-next-line */
   return !!(definition && definition[CURRIED_COMPONENT_DEFINITION_BRAND]);
 }
 
@@ -34,7 +36,7 @@ export class CurriedComponentDefinition {
     while (true) {
       let { args: curriedArgs, inner } = definition;
 
-      if (curriedArgs) {
+      if (curriedArgs !== null) {
         args.positional.prepend(curriedArgs.positional);
         args.named.merge(curriedArgs.named);
       }
@@ -50,7 +52,7 @@ export class CurriedComponentDefinition {
   /** @internal */
   get offset(): number {
     let { inner, args } = this;
-    let length = args ? args.positional.length : 0;
+    let length = args !== null ? args.positional.length : 0;
     return isCurriedComponentDefinition(inner) ? length + inner.offset : length;
   }
 }

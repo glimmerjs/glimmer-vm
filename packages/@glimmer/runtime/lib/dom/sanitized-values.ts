@@ -46,7 +46,7 @@ export function sanitizeAttributeValue(
     return value.toHTML();
   }
 
-  if (!element) {
+  if (element === null || element === undefined) {
     tagName = null;
   } else {
     tagName = element.tagName.toUpperCase();

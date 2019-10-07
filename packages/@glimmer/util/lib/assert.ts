@@ -8,8 +8,8 @@ export function debugAssert(test: any, msg: string) {
   //   Logger.warn("Don't leave debug assertions on in public builds");
   // }
 
-  if (!test) {
-    throw new Error(msg || 'assertion failure');
+  if (test === false || test === null || test === undefined || test === '') {
+    throw new Error(typeof msg === 'string' && msg !== '' ? msg : 'assertion failure');
   }
 }
 

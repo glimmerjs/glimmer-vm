@@ -109,7 +109,7 @@ function getFirstChildOfNode(className: string) {
     "Expected child node of node with class='" + className + "', but no parent node found"
   );
 
-  let childNode = itemNode && itemNode.firstChild;
+  let childNode = itemNode !== null && itemNode.firstChild !== null ? itemNode.firstChild : null;
   assert.ok(
     childNode,
     "Expected child node of node with class='" + className + "', but not child node found"
@@ -123,13 +123,15 @@ function assertInvariants(assert: Assert, result: RenderResult, msg?: string) {
     result.firstNode(),
     context.root.firstChild,
     `The firstNode of the result is the same as the context.root's firstChild${
-      msg ? ': ' + msg : ''
+      msg !== undefined ? ': ' + msg : ''
     }`
   );
   assert.strictEqual(
     result.lastNode(),
     context.root.lastChild,
-    `The lastNode of the result is the same as the context.root's lastChild${msg ? ': ' + msg : ''}`
+    `The lastNode of the result is the same as the context.root's lastChild${
+      msg !== undefined ? ': ' + msg : ''
+    }`
   );
 }
 
@@ -1950,7 +1952,10 @@ module('[jit] integration - Updating', hooks => {
     let textNode: Node | null;
     if (assertNodeTagName(firstNode, 'div')) {
       textNode = firstNode.firstChild;
-      assert.equal(textNode && textNode.nodeValue, 'hello');
+      assert.equal(
+        textNode !== null && textNode.nodeValue !== null ? textNode.nodeValue : null,
+        'hello'
+      );
     }
 
     object.value = 'goodbye';
@@ -1964,7 +1969,10 @@ module('[jit] integration - Updating', hooks => {
     firstNode = context.root.firstChild;
     if (assertNodeTagName(firstNode, 'div')) {
       textNode = firstNode.firstChild;
-      assert.equal(textNode && textNode.nodeValue, 'hello');
+      assert.equal(
+        textNode !== null && textNode.nodeValue !== null ? textNode.nodeValue : null,
+        'hello'
+      );
     }
   });
 
@@ -2311,7 +2319,8 @@ module('[jit] integration - Updating', hooks => {
         let option = options[i];
         // TODO: these type errors reflect real incompatibility with
         // SimpleDOM
-        if ((option as any).selected) {
+        const selectedValue = (option as any).selected;
+        if ((typeof selectedValue === 'string' && selectedValue !== '') || selectedValue === true) {
           actualSelected.push((option as any).value);
         }
       }
@@ -2681,8 +2690,9 @@ module('[jit] integration - Updating', hooks => {
 
     rerender(object);
     if (assertNodeTagName(context.root.firstChild, 'ul')) {
+      const child = context.root.firstChild.firstChild;
       assert.strictEqual(
-        context.root.firstChild.firstChild && context.root.firstChild.firstChild.nodeType,
+        child !== null ? child.nodeType : null,
         8,
         "there are no li's after removing the remaining entry"
       );
@@ -2881,8 +2891,9 @@ module('[jit] integration - Updating', hooks => {
 
     rerender(object);
     if (assertNodeTagName(context.root.firstChild, 'ul')) {
+      const child = context.root.firstChild.firstChild;
       assert.strictEqual(
-        context.root.firstChild.firstChild && context.root.firstChild.firstChild.nodeType,
+        child !== null ? child.nodeType : null,
         8,
         "there are no li's after removing the remaining entry"
       );
@@ -3324,7 +3335,7 @@ QUnit.module('integration - Updating SVG', hooks => {
     function assertSvg(callback?: (svg: SVGSVGElement) => void) {
       if (assertNodeTagName(context.root.firstChild, 'svg')) {
         assert.equal(context.root.firstChild.namespaceURI, SVG_NAMESPACE);
-        if (callback) callback(context.root.firstChild);
+        if (callback !== undefined) callback(context.root.firstChild);
       }
     }
 
@@ -3340,7 +3351,7 @@ QUnit.module('integration - Updating SVG', hooks => {
     rerender();
 
     assertSvg(svg => {
-      assert.strictEqual(svg.firstChild && svg.firstChild.textContent, '');
+      assert.strictEqual(svg.firstChild !== null ? svg.firstChild.textContent : null, '');
     });
 
     rerender({ content });

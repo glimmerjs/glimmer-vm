@@ -13,7 +13,7 @@ export interface CompileOptions {
 }
 
 function isTrustedValue(value: any) {
-  return value.escaped !== undefined && !value.escaped;
+  return value.escaped === false;
 }
 
 export const THIS = 0;
@@ -43,7 +43,7 @@ export default class TemplateCompiler {
 
   process(actions: Action[]): SymbolInOp[] {
     actions.forEach(([name, ...args]) => {
-      if (!this[name]) {
+      if (!(name in this)) {
         throw new Error(`Unimplemented ${name} on TemplateCompiler`);
       }
       (this[name] as any)(...args);
@@ -125,7 +125,7 @@ export default class TemplateCompiler {
         this.attribute([attrs[i]], !simple || actionIsComponent);
       }
 
-      if (typeAttr) {
+      if (typeAttr !== null) {
         this.attribute([typeAttr], !simple || actionIsComponent);
       }
 
@@ -151,7 +151,6 @@ export default class TemplateCompiler {
 
   attribute([action]: [AST.AttrNode], isComponent: boolean) {
     let { name, value } = action;
-
     let namespace = getAttrNamespace(name);
     let isStatic = this.prepareAttributeValue(value);
 
@@ -345,7 +344,7 @@ export default class TemplateCompiler {
 
   opcode<O extends SymbolInOp>(opcode: O, action: Option<AST.BaseNode> = null) {
     // TODO: This doesn't really work
-    if (this.includeMeta && action) {
+    if (this.includeMeta && action !== null) {
       (opcode as any).push(this.meta(action));
     }
 
@@ -362,7 +361,7 @@ export default class TemplateCompiler {
   }
 
   prepareParams(params: AST.Expression[]) {
-    if (!params.length) {
+    if (params.length === 0) {
       this.opcode(['literal', null], null);
       return;
     }
@@ -380,7 +379,7 @@ export default class TemplateCompiler {
   prepareHash(hash: AST.Hash) {
     let pairs = hash.pairs;
 
-    if (!pairs.length) {
+    if (pairs.length === 0) {
       this.opcode(['literal', null], null);
       return;
     }
@@ -433,12 +432,15 @@ export default class TemplateCompiler {
 
   meta(node: AST.BaseNode) {
     let loc = node.loc;
-    if (!loc) {
+    if (typeof loc !== 'object' || loc === null) {
       return [];
     }
 
     let { source, start, end } = loc;
-    return ['loc', [source || null, [start.line, start.column], [end.line, end.column]]];
+    return [
+      'loc',
+      [source !== undefined ? source : null, [start.line, start.column], [end.line, end.column]],
+    ];
   }
 }
 
@@ -446,8 +448,11 @@ function isHelperInvocation(
   mustache: AST.MustacheStatement
 ): mustache is AST.MustacheStatement & { path: AST.PathExpression } {
   return (
-    (mustache.params && mustache.params.length > 0) ||
-    (mustache.hash && mustache.hash.pairs.length > 0)
+    (Array.isArray(mustache.params) && mustache.params.length > 0) ||
+    (typeof mustache.hash === 'object' &&
+      mustache.hash !== null &&
+      Array.isArray(mustache.hash.pairs) &&
+      mustache.hash.pairs.length > 0)
   );
 }
 
@@ -535,12 +540,17 @@ function assertValidYield(statement: AST.MustacheStatement): string {
 function assertValidPartial(statement: AST.MustacheStatement) /* : expr */ {
   let { params, hash, escaped, loc } = statement;
 
-  if (params && params.length !== 1) {
+  if (Array.isArray(params) && params.length !== 1) {
     throw new SyntaxError(
       `Partial found with no arguments. You must specify a template name. (on line ${loc.start.line})`,
       statement.loc
     );
-  } else if (hash && hash.pairs.length > 0) {
+  } else if (
+    typeof hash === 'object' &&
+    hash !== null &&
+    Array.isArray(hash.pairs) &&
+    hash.pairs.length > 0
+  ) {
     throw new SyntaxError(
       `partial does not take any named arguments (on line ${loc.start.line})`,
       statement.loc
@@ -558,7 +568,12 @@ function assertValidPartial(statement: AST.MustacheStatement) /* : expr */ {
 function assertValidHasBlockUsage(type: string, call: AST.Call): string {
   let { params, hash, loc } = call;
 
-  if (hash && hash.pairs.length > 0) {
+  if (
+    typeof hash === 'object' &&
+    hash !== null &&
+    Array.isArray(hash.pairs) &&
+    hash.pairs.length > 0
+  ) {
     throw new SyntaxError(`${type} does not take any named arguments`, call.loc);
   }
 
@@ -585,7 +600,12 @@ function assertValidHasBlockUsage(type: string, call: AST.Call): string {
 function assertValidDebuggerUsage(statement: AST.MustacheStatement) {
   let { params, hash } = statement;
 
-  if (hash && hash.pairs.length > 0) {
+  if (
+    typeof hash === 'object' &&
+    hash !== null &&
+    Array.isArray(hash.pairs) &&
+    hash.pairs.length > 0
+  ) {
     throw new SyntaxError(`debugger does not take any named arguments`, statement.loc);
   }
 

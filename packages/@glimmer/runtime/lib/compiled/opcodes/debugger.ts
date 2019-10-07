@@ -52,9 +52,9 @@ class ScopeInspector<C extends JitOrAotBlock> {
 
     if (head === 'this') {
       ref = scope.getSelf();
-    } else if (locals[head]) {
+    } else if (head in locals) {
       ref = locals[head];
-    } else if (head.indexOf('@') === 0 && evalScope[head]) {
+    } else if (head.indexOf('@') === 0 && head in evalScope) {
       ref = evalScope[head] as VersionedPathReference<unknown>;
     } else {
       ref = this.scope.getSelf();

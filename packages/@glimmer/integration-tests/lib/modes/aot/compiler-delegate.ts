@@ -14,7 +14,7 @@ export default class AotCompilerDelegate implements CompilerDelegate<ModuleLocat
       root: 'ui/components',
       expected: 'component',
     });
-    return !!name;
+    return name !== null;
   }
 
   resolveComponent(componentName: string, referrer: ModuleLocator): ModuleLocator {
@@ -29,7 +29,7 @@ export default class AotCompilerDelegate implements CompilerDelegate<ModuleLocat
   }
 
   hasHelperInScope(helperName: string, referrer: ModuleLocator): boolean {
-    return !!this.registry.resolve(helperName, referrer, { expected: 'helper' });
+    return this.registry.resolve(helperName, referrer, { expected: 'helper' }) !== null;
   }
 
   resolveHelper(helperName: string, referrer: ModuleLocator): ModuleLocator {
@@ -37,7 +37,7 @@ export default class AotCompilerDelegate implements CompilerDelegate<ModuleLocat
   }
 
   hasModifierInScope(modifierName: string, referrer: ModuleLocator): boolean {
-    return !!this.registry.resolve(modifierName, referrer, { expected: 'modifier' });
+    return this.registry.resolve(modifierName, referrer, { expected: 'modifier' }) !== null;
   }
 
   resolveModifier(modifierName: string, referrer: ModuleLocator): ModuleLocator {

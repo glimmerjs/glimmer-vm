@@ -30,7 +30,7 @@ export function yieldBlock(
 
 export function pushYieldableBlock(block: Option<CompilableTemplate>): StatementCompileActions {
   return [
-    pushSymbolTable(block && block.symbolTable),
+    pushSymbolTable(block !== null ? block.symbolTable : null),
     op(Op.PushBlockScope),
     op('PushCompilable', block),
   ];
@@ -62,7 +62,7 @@ export function invokeStaticBlockWithStack(
 
   out.push(op(MachineOp.PushFrame));
 
-  if (count) {
+  if (count !== 0) {
     out.push(op(Op.ChildScope));
 
     for (let i = 0; i < count; i++) {
@@ -75,7 +75,7 @@ export function invokeStaticBlockWithStack(
   out.push(op('JitCompileBlock'));
   out.push(op(MachineOp.InvokeVirtual));
 
-  if (count) {
+  if (count !== 0) {
     out.push(op(Op.PopScope));
   }
 
@@ -85,7 +85,7 @@ export function invokeStaticBlockWithStack(
 }
 
 export function pushSymbolTable(table: Option<SymbolTable>): BuilderOp {
-  if (table) {
+  if (table !== null) {
     return op(Op.PushSymbolTable, serializable(table));
   } else {
     return primitive(null);

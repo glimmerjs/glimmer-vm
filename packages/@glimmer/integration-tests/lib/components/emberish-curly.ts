@@ -141,7 +141,7 @@ export class EmberishCurlyComponentManager
     resolver: JitRuntimeResolver,
     { program: { resolverDelegate } }: SyntaxCompilationContext
   ): Template {
-    if (!layout) {
+    if (typeof layout !== 'object' || layout === null) {
       throw new Error('BUG: missing dynamic layout');
     }
 
@@ -159,9 +159,11 @@ export class EmberishCurlyComponentManager
     state: EmberishCurlyComponentDefinitionState,
     args: VMArguments
   ): Option<PreparedArguments> {
-    const { positionalParams } = state.ComponentClass || EmberishCurlyComponent;
-
-    if (typeof positionalParams === 'string') {
+    const { positionalParams } =
+      'ComponentClass' in state && state.ComponentClass !== undefined
+        ? state.ComponentClass
+        : EmberishCurlyComponent;
+    if (typeof positionalParams === 'string' && positionalParams !== '') {
       if (args.named.has(positionalParams)) {
         if (args.positional.length === 0) {
           return null;
@@ -183,7 +185,7 @@ export class EmberishCurlyComponentManager
       for (let i = 0; i < count; i++) {
         let name = positionalParams[i];
 
-        if (named[name]) {
+        if (name in named) {
           throw new Error(
             `You cannot specify both a positional param (at position ${i}) and the hash argument \`${name}\`.`
           );
@@ -206,7 +208,10 @@ export class EmberishCurlyComponentManager
     callerSelf: VersionedPathReference,
     hasDefaultBlock: boolean
   ): EmberishCurlyComponent {
-    let klass = state.ComponentClass || EmberishCurlyComponent;
+    let klass =
+      'ComponentClass' in state && state.ComponentClass !== undefined
+        ? state.ComponentClass
+        : EmberishCurlyComponent;
     let self = callerSelf.value();
     let args = _args.named.capture();
     let attrs = args.value();
@@ -227,11 +232,12 @@ export class EmberishCurlyComponentManager
       component.layout = { name: component.name, handle: state.layout };
     }
 
-    let dyn: Option<string[]> = state.ComponentClass
-      ? state.ComponentClass['fromDynamicScope'] || null
-      : null;
+    let dyn: Option<string[]> =
+      'fromDynamicScope' in klass && klass.fromDynamicScope !== undefined
+        ? klass.fromDynamicScope
+        : null;
 
-    if (dyn) {
+    if (dyn !== null) {
       for (let i = 0; i < dyn.length; i++) {
         let name = dyn[i];
         component.set(name, dynamicScope.get(name).value());
@@ -257,7 +263,7 @@ export class EmberishCurlyComponentManager
   }
 
   getTagName({ tagName }: EmberishCurlyComponent): Option<string> {
-    if (tagName) {
+    if (typeof tagName === 'string' && tagName !== '') {
       return tagName;
     } else if (tagName === null) {
       return 'div';
@@ -284,7 +290,7 @@ export class EmberishCurlyComponentManager
     let bindings = component.attributeBindings;
     let rootRef = SELF_REF.get(component)!;
 
-    if (bindings) {
+    if (bindings !== null) {
       for (let i = 0; i < bindings.length; i++) {
         let attribute = bindings[i];
         let reference = rootRef.get(attribute) as PathReference<string>;

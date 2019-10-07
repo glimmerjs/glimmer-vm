@@ -31,11 +31,11 @@ export default function build(
   ast: AST.Node,
   options: PrinterOptions = { entityEncoding: 'transformed' }
 ): string {
-  if (!ast) {
+  if (typeof ast !== 'object' || ast === null) {
     return '';
   }
 
-  if (options.override) {
+  if (typeof options.override === 'function') {
     let result = options.override(ast, options);
 
     if (result !== undefined) {
@@ -68,12 +68,12 @@ export default function build(
   }
 
   function compactJoin(array: Option<string>[], delimiter?: string): string {
-    return compact(array).join(delimiter || '');
+    return compact(array).join(delimiter !== undefined ? delimiter : '');
   }
 
   function blockParams(block: AST.BlockStatement): Option<string> {
     const params = block.program.blockParams;
-    if (params.length) {
+    if (params.length !== 0) {
       return ` as |${params.join(' ')}|`;
     }
 
@@ -110,8 +110,11 @@ export default function build(
     case 'Block':
     case 'Template':
       {
-        const chainBlock = ast.chained && ast.body[0];
-        if (chainBlock) {
+        const chainBlock =
+          ast.chained !== undefined && ast.chained !== false && ast.body[0] !== undefined
+            ? ast.body[0]
+            : null;
+        if (chainBlock !== null) {
           (chainBlock as AST.BlockStatement).chained = true;
         }
         const body = buildEach(ast.body).join('');
@@ -120,17 +123,17 @@ export default function build(
       break;
     case 'ElementNode':
       output.push('<', ast.tag);
-      if (ast.attributes.length) {
+      if (ast.attributes.length !== 0) {
         output.push(' ', buildEach(ast.attributes).join(' '));
       }
-      if (ast.modifiers.length) {
+      if (ast.modifiers.length !== 0) {
         output.push(' ', buildEach(ast.modifiers).join(' '));
       }
-      if (ast.comments.length) {
+      if (ast.comments.length !== 0) {
         output.push(' ', buildEach(ast.comments).join(' '));
       }
 
-      if (ast.blockParams.length) {
+      if (ast.blockParams.length !== 0) {
         output.push(' ', 'as', ' ', `|${ast.blockParams.join(' ')}|`);
       }
 
@@ -218,7 +221,7 @@ export default function build(
       {
         const lines: string[] = [];
 
-        if (ast.chained) {
+        if (ast.chained === true) {
           lines.push(
             compactJoin([
               '{{',
@@ -235,8 +238,8 @@ export default function build(
 
         lines.push(build(ast.program, options));
 
-        if (ast.inverse) {
-          if (!ast.inverse.chained) {
+        if (ast.inverse !== null && typeof ast.inverse === 'object') {
+          if (ast.inverse.chained !== true) {
             lines.push(
               compactJoin([
                 '{{',
@@ -250,7 +253,7 @@ export default function build(
           lines.push(build(ast.inverse, options));
         }
 
-        if (!ast.chained) {
+        if (ast.chained !== true) {
           lines.push(closeBlock(ast));
         }
 

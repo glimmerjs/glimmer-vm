@@ -46,7 +46,7 @@ APPEND_OPCODES.add(
         locals[name] = ref;
       }
 
-      if (evalScope) {
+      if (evalScope !== null) {
         for (let i = 0; i < partialSymbols.length; i++) {
           let name = partialSymbols[i];
           let symbol = i + 1;

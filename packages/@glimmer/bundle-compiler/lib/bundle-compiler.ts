@@ -99,7 +99,7 @@ export class BundleCompilerCompilationContext implements WholeProgramCompilation
     readonly delegate: BundleCompilerDelegate<ModuleLocator>,
     options: BundleCompilerOptions
   ) {
-    if (options.constants) {
+    if (options.constants !== undefined) {
       this.constants = options.constants;
     } else {
       this.constants = new DebugConstants();
@@ -134,8 +134,8 @@ export default class BundleCompiler {
   ) {
     this.context = new BundleCompilerCompilationContext(delegate, options);
 
-    this.macros = options.macros || new MacrosImpl();
-    this.plugins = options.plugins || [];
+    this.macros = options.macros !== undefined ? options.macros : new MacrosImpl();
+    this.plugins = options.plugins !== undefined ? options.plugins : [];
   }
 
   get syntaxContext(): SyntaxCompilationContext {
@@ -176,7 +176,8 @@ export default class BundleCompiler {
   }
 
   getTemplate(locator: ModuleLocator): Option<CompilableProgram> {
-    return this.context.compilableTemplates.get(locator) || null;
+    const possibleValue = this.context.compilableTemplates.get(locator);
+    return possibleValue !== undefined ? possibleValue : null;
   }
 
   /**

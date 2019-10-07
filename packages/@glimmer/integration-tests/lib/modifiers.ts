@@ -24,7 +24,7 @@ export interface TestModifierInstance {
 export class TestModifierDefinitionState {
   instance?: TestModifierInstance;
   constructor(Klass?: TestModifierConstructor) {
-    if (Klass) {
+    if (Klass !== undefined) {
       this.instance = new Klass();
     }
   }
@@ -53,10 +53,13 @@ export class TestModifierManager
   install({ element, args, dom, state }: TestModifier) {
     this.installedElements.push(element);
     let firstParam = args.positional.at(0);
-    let param = firstParam !== undefined && firstParam.value();
+
+    let hasParam = firstParam !== undefined;
+    let param = hasParam ? firstParam.value() : false;
+
     dom.setAttribute(element, 'data-modifier', `installed - ${param}`);
 
-    if (state.instance && state.instance.didInsertElement) {
+    if (state.instance !== undefined && typeof state.instance.didInsertElement === 'function') {
       state.instance.element = element;
       state.instance.didInsertElement(args.positional.value(), args.named.value());
     }
@@ -67,10 +70,11 @@ export class TestModifierManager
   update({ element, args, dom, state }: TestModifier) {
     this.updatedElements.push(element);
     let firstParam = args.positional.at(0);
-    let param = firstParam !== undefined && firstParam.value();
+    let hasParam = firstParam !== undefined;
+    let param = hasParam ? firstParam.value() : false;
     dom.setAttribute(element, 'data-modifier', `updated - ${param}`);
 
-    if (state.instance && state.instance.didUpdate) {
+    if (state.instance !== undefined && typeof state.instance.didUpdate === 'function') {
       state.instance.didUpdate(args.positional.value(), args.named.value());
     }
 
@@ -82,7 +86,10 @@ export class TestModifierManager
       destroy: () => {
         this.destroyedModifiers.push(modifier);
         let { element, dom, state } = modifier;
-        if (state.instance && state.instance.willDestroyElement) {
+        if (
+          state.instance !== undefined &&
+          typeof state.instance.willDestroyElement === 'function'
+        ) {
           state.instance.willDestroyElement();
         }
         dom.removeAttribute(element, 'data-modifier');

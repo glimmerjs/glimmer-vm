@@ -77,5 +77,6 @@ export class ConditionalReference implements Reference<boolean> {
 }
 
 function defaultToBool(value: unknown) {
+  /* eslint-disable-next-line */
   return !!value;
 }

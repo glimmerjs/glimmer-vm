@@ -17,7 +17,10 @@ export class DOMHelperTests extends AbstractNodeTest {
 
     let helper = new NodeDOMTreeConstruction(null as any);
 
-    this.assert.ok(!!helper, 'helper was instantiated without errors');
+    this.assert.ok(
+      helper !== null && helper !== undefined && typeof helper === 'object',
+      'helper was instantiated without errors'
+    );
   }
 }
 

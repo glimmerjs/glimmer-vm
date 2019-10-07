@@ -42,7 +42,7 @@ export default class ModuleLocatorMap<V, K extends ModuleLocator = ModuleLocator
   private _byName(module: string): ByName<V> {
     let byName = this.byModule.get(module);
 
-    if (!byName) {
+    if (byName === undefined) {
       byName = new Map();
       this.byModule.set(module, byName);
     }

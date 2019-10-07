@@ -17,7 +17,7 @@ export default class ClassListReference implements Reference<Option<string>> {
 
     for (let i = 0; i < list.length; i++) {
       let value = normalizeStringValue(list[i].value());
-      if (value) ret.push(value);
+      if (value !== '') ret.push(value);
     }
 
     return ret.length === 0 ? null : ret.join(' ');

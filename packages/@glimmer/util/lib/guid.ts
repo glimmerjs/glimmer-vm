@@ -9,5 +9,5 @@ export function initializeGuid(object: HasGuid): number {
 }
 
 export function ensureGuid(object: HasGuid): number {
-  return object._guid || initializeGuid(object);
+  return typeof object._guid !== 'number' ? initializeGuid(object) : object._guid;
 }

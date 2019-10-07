@@ -44,7 +44,7 @@ export function pushTrackFrame(): Option<Tracker> {
 export function popTrackFrame(old: Option<Tracker>): UpdatableTag {
   let tag = CURRENT_TRACKER!.combine();
   CURRENT_TRACKER = old;
-  if (CURRENT_TRACKER) CURRENT_TRACKER.add(tag);
+  if (CURRENT_TRACKER !== null) CURRENT_TRACKER.add(tag);
   return tag;
 }
 
@@ -57,7 +57,7 @@ export function trackedData<T extends object, K extends keyof T>(
   key: K
 ): { getter: Getter<T, K>; setter: Setter<T, K> } {
   function getter(self: T) {
-    if (CURRENT_TRACKER) CURRENT_TRACKER.add(tagFor(self, key));
+    if (CURRENT_TRACKER !== null) CURRENT_TRACKER.add(tagFor(self, key));
     return getStateFor(self, key);
   }
 

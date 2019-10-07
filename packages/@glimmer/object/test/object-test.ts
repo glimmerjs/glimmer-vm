@@ -4,18 +4,21 @@ import { Reference } from '@glimmer/reference';
 
 let Wrapper = GlimmerObject.extend({
   fullName: computed(function(this: any) {
+    /* eslint-disable-next-line */
     return this.model && this.model.fullName;
   }).property('model.fullName'),
 }) as any;
 
 let Model = GlimmerObject.extend({
   fullName: computed(function(this: any) {
+    /* eslint-disable-next-line */
     return this.person && this.person.fullName;
   }).property('person.fullName'),
 });
 
 let Person = GlimmerObject.extend({
   fullName: computed(function(this: any) {
+    /* eslint-disable-next-line */
     return this.name && this.name.fullName;
   }).property('name.fullName'),
 });

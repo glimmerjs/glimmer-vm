@@ -7,7 +7,7 @@ import createHTMLDocument from '@simple-dom/document';
 export default class NodeDOMTreeConstruction extends DOMTreeConstruction {
   protected document!: SimpleDocument; // Hides property on base class
   constructor(doc: Option<SimpleDocument>) {
-    super(doc || createHTMLDocument());
+    super(typeof doc !== undefined && doc !== null ? doc : createHTMLDocument());
   }
 
   // override to prevent usage of `this.document` until after the constructor

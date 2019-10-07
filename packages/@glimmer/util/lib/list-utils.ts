@@ -63,7 +63,7 @@ export class LinkedList<T extends LinkedListNode> implements Slice<T>, Drop {
   insertBefore(node: T, reference: Option<T> = null): T {
     if (reference === null) return this.append(node);
 
-    if (reference.prev) reference.prev.next = node;
+    if (reference.prev !== null) reference.prev.next = node;
     else this._head = node;
 
     node.prev = reference.prev;
@@ -76,7 +76,7 @@ export class LinkedList<T extends LinkedListNode> implements Slice<T>, Drop {
   append(node: T): T {
     let tail = this._tail;
 
-    if (tail) {
+    if (tail !== null) {
       tail.next = node;
       node.prev = tail;
       node.next = null;
@@ -88,10 +88,10 @@ export class LinkedList<T extends LinkedListNode> implements Slice<T>, Drop {
   }
 
   remove(node: T): T {
-    if (node.prev) node.prev.next = node.next;
+    if (node.prev !== null) node.prev.next = node.next;
     else this._head = node.next as trust;
 
-    if (node.next) node.next.prev = node.prev;
+    if (node.next !== null) node.next.prev = node.prev;
     else this._tail = node.prev as trust;
 
     return node;

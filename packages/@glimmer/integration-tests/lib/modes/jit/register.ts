@@ -104,8 +104,8 @@ export function registerEmberishCurlyComponent(
     layout = registerTemplate(registry, name, layoutSource);
   }
 
-  let handle = layout ? layout.handle : null;
-  let ComponentClass = Component || EmberishCurlyComponent;
+  let handle = layout !== null ? layout.handle : null;
+  let ComponentClass = Component !== null ? Component : EmberishCurlyComponent;
 
   registerSomeComponent(
     registry,
@@ -130,7 +130,7 @@ export function registerEmberishGlimmerComponent(
 
   let { handle } = registerTemplate(registry, name, layoutSource);
 
-  let ComponentClass = Component || EmberishGlimmerComponent;
+  let ComponentClass = Component !== null ? Component : EmberishGlimmerComponent;
 
   registerSomeComponent(
     registry,

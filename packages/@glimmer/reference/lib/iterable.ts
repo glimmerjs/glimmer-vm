@@ -207,9 +207,11 @@ export class ReferenceIterator {
   next(): Option<ListItem> {
     let { artifacts } = this;
 
-    let iterator = (this.iterator = this.iterator || artifacts.iterate());
+    if (this.iterator === null) {
+      this.iterator = artifacts.iterate();
+    }
 
-    let item = iterator.next();
+    let item = this.iterator.next();
 
     if (item === null) return null;
 
@@ -298,7 +300,7 @@ export class IteratorSynchronizer<Env> {
 
     let seek = artifacts.advanceToKey(key, current);
 
-    if (seek) {
+    if (seek !== null) {
       this.move(seek, current);
       this.current = artifacts.nextNode(current);
     }
@@ -307,7 +309,13 @@ export class IteratorSynchronizer<Env> {
   private move(item: ListItem, reference: Option<ListItem>) {
     if (item.next !== reference) {
       this.artifacts.move(item, reference);
-      this.target.move(this.env, item.key, item.value, item.memo, reference ? reference.key : END);
+      this.target.move(
+        this.env,
+        item.key,
+        item.value,
+        item.memo,
+        reference !== null ? reference.key : END
+      );
     }
   }
 
@@ -360,7 +368,7 @@ export class IteratorSynchronizer<Env> {
     let { artifacts, target, current } = this;
 
     let node = artifacts.insertBefore(item, current);
-    target.insert(this.env, node.key, node.value, node.memo, current ? current.key : null);
+    target.insert(this.env, node.key, node.value, node.memo, current !== null ? current.key : null);
   }
 
   private startPrune(): Phase {

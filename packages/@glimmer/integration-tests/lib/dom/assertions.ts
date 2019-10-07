@@ -8,7 +8,12 @@ export interface DebugElement {
 }
 
 function isDebugElement(el: SimpleElement | DebugElement): el is DebugElement {
-  return !(el as Dict).nodeType;
+  const nodeType = (el as Dict).nodeType;
+  if (nodeType === 0 || nodeType === false || nodeType === null || nodeType === undefined) {
+    return true;
+  } else {
+    return false;
+  }
 }
 
 function extract(element: EqualsElement): DebugElement {
@@ -51,23 +56,27 @@ export function equalsElement(
   let expectedAttrs: Dict<Matcher> = dict<Matcher>();
 
   let expectedCount = 0;
+  const hasElement = element !== undefined && element !== null;
   for (let prop in attributes) {
     expectedCount++;
     let expected = attributes[prop];
 
     let matcher: Matcher = isMatcher(expected) ? expected : equalsAttr(expected);
     expectedAttrs[prop] = matcher;
-
+    let maybeAttrValue = null;
+    if (hasElement) {
+      maybeAttrValue = element.getAttribute(prop);
+    }
     QUnit.assert.pushResult({
-      result: expectedAttrs[prop].match(element && element.getAttribute(prop)),
-      actual: matcher.fail(element && element.getAttribute(prop)),
-      expected: matcher.fail(element && element.getAttribute(prop)),
+      result: expectedAttrs[prop].match(maybeAttrValue !== null ? maybeAttrValue : false),
+      actual: matcher.fail(maybeAttrValue !== null ? maybeAttrValue : false),
+      expected: matcher.fail(maybeAttrValue !== null ? maybeAttrValue : false),
       message: `Expected ${description}'s ${prop} attribute ${matcher.expected()}`,
     });
   }
 
   let actualAttributes = dict();
-  if (element) {
+  if (hasElement) {
     for (let i = 0, l = element.attributes.length; i < l; i++) {
       actualAttributes[element.attributes[i].name] = element.attributes[i].value;
     }
@@ -175,7 +184,7 @@ export function assertEmberishElement(...args: any[]): void {
 export function assertSerializedInElement(result: string, expected: string, message?: string) {
   let matched = result.match(/<script glmr="%cursor:[0-9]*.%"><\/script>/);
 
-  if (matched) {
+  if (matched !== null) {
     QUnit.assert.ok(true, `has cursor ${matched[0]}`);
     let [, trimmed] = result.split(matched![0]);
     QUnit.assert.equal(trimmed, expected, message);
@@ -189,7 +198,8 @@ export function classes(expected: string) {
     '3d4ef194-13be-4ccf-8dc7-862eea02c93e': true,
     match(actual: string) {
       return (
-        actual &&
+        actual !== undefined &&
+        actual !== '' &&
         expected
           .split(' ')
           .sort()

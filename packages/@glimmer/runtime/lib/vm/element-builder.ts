@@ -231,7 +231,7 @@ export class NewElementBuilder implements ElementBuilder {
     this.pushElement(element, insertBefore);
 
     if (insertBefore === undefined) {
-      while (element.lastChild) {
+      while (element.lastChild !== null) {
         element.removeChild(element.lastChild);
       }
     }
@@ -296,7 +296,7 @@ export class NewElementBuilder implements ElementBuilder {
   __appendFragment(fragment: SimpleDocumentFragment): Bounds {
     let first = fragment.firstChild;
 
-    if (first) {
+    if (first !== null) {
       let ret = new ConcreteBounds(this.element, first, fragment.lastChild!);
       this.dom.insertBefore(this.element, fragment, this.nextSibling);
       return ret;
@@ -417,7 +417,7 @@ export class SimpleLiveBlock implements LiveBlock {
   didAppendNode(node: SimpleNode) {
     if (this.nesting !== 0) return;
 
-    if (!this.first) {
+    if (this.first === null) {
       this.first = new First(node);
     }
 
@@ -427,7 +427,7 @@ export class SimpleLiveBlock implements LiveBlock {
   didAppendBounds(bounds: Bounds) {
     if (this.nesting !== 0) return;
 
-    if (!this.first) {
+    if (this.first === null) {
       this.first = bounds;
     }
 

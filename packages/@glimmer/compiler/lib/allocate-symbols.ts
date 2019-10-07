@@ -190,5 +190,5 @@ export class SymbolAllocator
 }
 
 function isLocal(name: string, symbols: AST.Symbols): boolean {
-  return symbols && symbols.has(name);
+  return symbols !== undefined && symbols !== null && symbols.has(name);
 }

@@ -32,14 +32,14 @@ export function equalTokens(
     QUnit.assert.deepEqual(
       fragTokens.tokens,
       htmlTokens.tokens,
-      message || 'expected tokens to match'
+      message !== null ? message : 'expected tokens to match'
     );
   } else {
     QUnit.assert.pushResult({
       result: QUnit.equiv(fragTokens.tokens, htmlTokens.tokens),
       actual: fragTokens.html,
       expected: htmlTokens.html,
-      message: message || 'expected tokens to match',
+      message: message !== null ? message : 'expected tokens to match',
     });
   }
 
@@ -62,7 +62,7 @@ export function generateSnapshot(element: SimpleElement): SimpleNode[] {
   let snapshot: SimpleNode[] = [];
   let node: Option<SimpleNode> = element.firstChild;
 
-  while (node) {
+  while (node !== null) {
     if (!isMarker(node)) {
       snapshot.push(node);
     }
@@ -85,7 +85,7 @@ function generateTokens(divOrHTML: SimpleElement | string): { tokens: Token[]; h
 
   tokens = tokens.reduce((tokens, token) => {
     if (token.type === 'StartTag') {
-      if (token.attributes) {
+      if (Array.isArray(token.attributes)) {
         token.attributes.sort((a, b) => {
           if (a[0] > b[0]) {
             return 1;
@@ -143,8 +143,8 @@ export function normalizeSnapshot(
     if (nextOld === null && newIterator.peek() === null) break;
 
     if (
-      (nextOld && snapshotIsNode(nextOld) && except.indexOf(nextOld) > -1) ||
-      (nextNew && snapshotIsNode(nextNew) && except.indexOf(nextNew) > -1)
+      (nextOld !== null && snapshotIsNode(nextOld) && except.indexOf(nextOld) > -1) ||
+      (nextNew !== null && snapshotIsNode(nextNew) && except.indexOf(nextNew) > -1)
     ) {
       oldIterator.skip();
       newIterator.skip();
@@ -170,7 +170,8 @@ class SnapshotIterator {
 
   next(): Option<IndividualSnapshot> {
     if (this.pos >= this.snapshot.length) return null;
-    return this.nextNode() || null;
+    const nextNode = this.nextNode();
+    return nextNode !== undefined ? nextNode : null;
   }
 
   skip(): void {

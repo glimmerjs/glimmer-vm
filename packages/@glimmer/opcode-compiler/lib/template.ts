@@ -58,10 +58,10 @@ export default function templateFactory<M>({
   block,
 }: SerializedTemplateWithLazyBlock<M>): TemplateFactory<M> {
   let parsedBlock: SerializedTemplateBlock;
-  let id = templateId || `client-${clientId++}`;
+  let id = templateId === null || templateId === undefined ? `client-${clientId++}` : templateId;
   let create = (envMeta?: {}) => {
-    let newMeta = envMeta ? assign({}, envMeta, meta) : meta;
-    if (!parsedBlock) {
+    let newMeta = envMeta !== undefined ? assign({}, envMeta, meta) : meta;
+    if (typeof parsedBlock !== 'object' || parsedBlock === null) {
       parsedBlock = JSON.parse(block);
     }
     return new TemplateImpl({ id, block: parsedBlock, referrer: newMeta });
@@ -83,11 +83,14 @@ class TemplateImpl<R> implements Template {
     this.symbols = block.symbols;
     this.hasEval = block.hasEval;
     this.referrer = parsedLayout.referrer;
-    this.id = parsedLayout.id || `client-${clientId++}`;
+    this.id =
+      parsedLayout.id !== null && parsedLayout.id !== undefined
+        ? parsedLayout.id
+        : `client-${clientId++}`;
   }
 
   asLayout(): CompilableProgram {
-    if (this.layout) return this.layout;
+    if (this.layout !== null) return this.layout;
     return (this.layout = compilable(
       assign({}, this.parsedLayout, {
         asPartial: false,
@@ -96,7 +99,7 @@ class TemplateImpl<R> implements Template {
   }
 
   asPartial(): CompilableProgram {
-    if (this.partial) return this.partial;
+    if (this.partial !== null) return this.partial;
     return (this.layout = compilable(
       assign({}, this.parsedLayout, {
         asPartial: true,
@@ -105,7 +108,7 @@ class TemplateImpl<R> implements Template {
   }
 
   asWrappedLayout(): CompilableProgram {
-    if (this.wrappedLayout) return this.wrappedLayout;
+    if (this.wrappedLayout !== null) return this.wrappedLayout;
     return (this.wrappedLayout = new WrappedBuilder(
       assign({}, this.parsedLayout, {
         asPartial: false,

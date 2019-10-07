@@ -49,7 +49,12 @@ export class IterableImpl
 
     if (Array.isArray(iterable)) {
       return new ArrayIterator(iterable, keyFor);
-    } else if (iterable && iterable[Symbol.iterator]) {
+    } else if (
+      iterable !== null &&
+      iterable !== false &&
+      iterable !== undefined &&
+      typeof iterable[Symbol.iterator] === 'function'
+    ) {
       return new NativeIteratorIterator(iterable[Symbol.iterator](), keyFor);
     } else {
       return new ArrayIterator(EMPTY_ARRAY, () => null);

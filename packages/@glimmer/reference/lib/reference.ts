@@ -28,7 +28,7 @@ export abstract class CachedReference<T> implements VersionedReference<T> {
   value(): T {
     let { tag, lastRevision, lastValue } = this;
 
-    if (lastRevision === null || !validate(tag, lastRevision)) {
+    if (lastRevision === null || validate(tag, lastRevision) === false) {
       lastValue = this.lastValue = this.compute();
       this.lastRevision = value(tag);
     }
@@ -59,7 +59,7 @@ export class ReferenceCache<T> implements Tagged {
   }
 
   peek(): T {
-    if (!this.initialized) {
+    if (this.initialized === false) {
       return this.initialize();
     }
 
@@ -67,7 +67,7 @@ export class ReferenceCache<T> implements Tagged {
   }
 
   revalidate(): Validation<T> {
-    if (!this.initialized) {
+    if (this.initialized === false) {
       return this.initialize();
     }
 

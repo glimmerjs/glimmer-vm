@@ -349,7 +349,7 @@ export default abstract class VM<C extends JitOrAotBlock> implements PublicVM, I
 
     let opcodes = this.updating();
     let marker = this[STACKS].cache.pop();
-    let head = marker ? opcodes.nextNode(marker) : opcodes.head();
+    let head = marker !== null ? opcodes.nextNode(marker) : opcodes.head();
     let tail = opcodes.tail();
     let tag = combineSlice(new ListSlice(head, tail));
 
@@ -528,7 +528,7 @@ export default abstract class VM<C extends JitOrAotBlock> implements PublicVM, I
       console.log(`EXECUTING FROM ${this[INNER_VM].fetchRegister($pc)}`);
     }
 
-    if (initialize) initialize(this);
+    if (typeof initialize === 'function') initialize(this);
 
     let result: RichIteratorResult<null, RenderResult>;
 

@@ -206,6 +206,7 @@ module.exports = {
         sourceType: 'module',
       },
       rules: {
+        '@typescript-eslint/strict-boolean-expressions': 'error',
         '@typescript-eslint/class-name-casing': 'error',
         '@typescript-eslint/consistent-type-assertions': 'error',
         '@typescript-eslint/no-empty-function': 'off',

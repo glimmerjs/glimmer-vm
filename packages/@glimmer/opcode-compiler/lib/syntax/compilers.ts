@@ -60,7 +60,7 @@ export class StatementCompilers extends Compilers<RegisteredStatementSyntax> {
     let name: number = sexp[0];
     let index = this.names[name];
     let func = this.funcs[index];
-    assert(!!func, `expected an implementation for ${sexp[0]}`);
+    assert(typeof func === 'function', `expected an implementation for ${sexp[0]}`);
 
     return func(sexp, meta);
   }
@@ -80,7 +80,7 @@ export class ExpressionCompilers extends Compilers<RegisteredExpressionSyntax> {
     let name: number = sexp![0];
     let index = this.names[name];
     let func = this.funcs[index];
-    assert(!!func, `expected an implementation for ${sexp[0]}`);
+    assert(typeof func === 'function', `expected an implementation for ${sexp[0]}`);
 
     return func(sexp, meta);
   }

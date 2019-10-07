@@ -142,7 +142,7 @@ export class Constants extends WriteOnlyConstants implements RuntimeConstants {
   constructor(pool?: ConstantPool) {
     super();
 
-    if (pool) {
+    if (pool !== undefined) {
       this.strings = pool.strings;
       this.arrays = pool.arrays;
       this.handles = pool.handles;

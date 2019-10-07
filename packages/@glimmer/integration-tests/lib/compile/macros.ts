@@ -24,7 +24,7 @@ export class TestMacros extends MacrosImpl {
     });
 
     blocks.addMissing((name, params, hash, blocks, context) => {
-      if (!params) {
+      if (!Array.isArray(params)) {
         params = [];
       }
 

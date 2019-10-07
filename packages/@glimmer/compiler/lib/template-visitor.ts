@@ -49,7 +49,7 @@ export class ProgramSymbolTable extends SymbolTable {
   allocateNamed(name: string): number {
     let named = this.named[name];
 
-    if (!named) {
+    if (named === undefined || named === 0) {
       named = this.named[name] = this.allocate(name);
     }
 
@@ -63,7 +63,7 @@ export class ProgramSymbolTable extends SymbolTable {
 
     let block = this.blocks[name];
 
-    if (!block) {
+    if (block === undefined || block === 0) {
       block = this.blocks[name] = this.allocate(`&${name}`);
     }
 
@@ -231,7 +231,7 @@ export default class TemplateVisitor {
     let parentFrame = this.getCurrentFrame();
     let programFrame = this.pushFrame();
 
-    if (!parentFrame) {
+    if (parentFrame === undefined || parentFrame === null) {
       (program as AST.Template).symbols = SymbolTable.top();
     } else {
       (program as AST.Block).symbols = parentFrame.symbols!.child(program.blockParams);
@@ -268,7 +268,7 @@ export default class TemplateVisitor {
     this.programDepth--;
 
     // Push the completed template into the global actions list
-    if (parentFrame) {
+    if (parentFrame !== null && parentFrame !== undefined) {
       parentFrame.childTemplateCount++;
     }
     this.actions.push(...programFrame.actions.reverse());
@@ -338,10 +338,10 @@ export default class TemplateVisitor {
     frame.mustacheCount++;
     frame.actions.push(['block', [node, frame.childIndex, frame.childCount]] as Action);
 
-    if (node.inverse) {
+    if (node.inverse !== null && node.inverse !== undefined) {
       this.visit(node.inverse);
     }
-    if (node.program) {
+    if (node.program !== null && node.inverse !== undefined) {
       this.visit(node.program);
     }
   }

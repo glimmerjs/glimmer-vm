@@ -102,7 +102,9 @@ class ModifierTests extends RenderTest {
     assert.deepEqual(modifierParams, ['something']);
     assert.deepEqual(modifierNamedArgs, { foo: 'else' });
     assert.equal(
-      modifiedElement && modifiedElement.getAttribute('id'),
+      modifiedElement !== null && modifiedElement !== undefined
+        ? modifiedElement.getAttribute('id')
+        : null,
       'inner-div',
       'Modifier is called on the element receiving the splattributes'
     );
@@ -117,7 +119,7 @@ class ModifierTests extends RenderTest {
       didInsertElement(params: unknown[], namedArgs: Dict<unknown>) {
         assert.deepEqual(params, ['something']);
         assert.deepEqual(namedArgs, { foo: 'else' });
-        if (this.element) {
+        if (this.element !== undefined && this.element !== null) {
           elementIds.push(this.element.getAttribute('id'));
         }
       }
@@ -162,7 +164,9 @@ class ModifierTests extends RenderTest {
     assert.deepEqual(modifierParams, ['something']);
     assert.deepEqual(modifierNamedArgs, { foo: 'else' });
     assert.equal(
-      modifiedElement && modifiedElement.getAttribute('id'),
+      modifiedElement !== null && modifiedElement !== undefined
+        ? modifiedElement.getAttribute('id')
+        : null,
       'inner-div',
       'Modifier is called on the element receiving the splattributes'
     );
@@ -170,7 +174,9 @@ class ModifierTests extends RenderTest {
     assert.deepEqual(modifierParams, ['another']);
     assert.deepEqual(modifierNamedArgs, { foo: 'thingy' });
     assert.equal(
-      modifiedElement && modifiedElement.getAttribute('id'),
+      modifiedElement !== null && modifiedElement !== undefined
+        ? modifiedElement.getAttribute('id')
+        : null,
       'inner-div',
       'Modifier is called on the element receiving the splattributes'
     );
@@ -203,7 +209,9 @@ class ModifierTests extends RenderTest {
     assert.deepEqual(modifierParams, ['name', context]);
     assert.deepEqual(modifierNamedArgs, { foo: context });
     assert.equal(
-      modifiedElement && modifiedElement.getAttribute('id'),
+      modifiedElement !== null && modifiedElement !== undefined
+        ? modifiedElement.getAttribute('id')
+        : null,
       'inner-div',
       'Modifier is called on the element receiving the splattributes'
     );
@@ -211,7 +219,9 @@ class ModifierTests extends RenderTest {
     assert.deepEqual(modifierParams, ['name', context2]);
     assert.deepEqual(modifierNamedArgs, { foo: context2 });
     assert.equal(
-      modifiedElement && modifiedElement.getAttribute('id'),
+      modifiedElement !== null && modifiedElement !== undefined
+        ? modifiedElement.getAttribute('id')
+        : null,
       'inner-div',
       'Modifier is called on the element receiving the splattributes'
     );
@@ -249,7 +259,9 @@ class ModifierTests extends RenderTest {
     assert.deepEqual(modifierParams, ['bar']);
     assert.deepEqual(modifierNamedArgs, { foo: 'bar' });
     assert.equal(
-      modifiedElement && modifiedElement.getAttribute('id'),
+      modifiedElement !== null && modifiedElement !== undefined
+        ? modifiedElement.getAttribute('id')
+        : null,
       'inner-div',
       'Modifier is called on the element receiving the splattributes'
     );
@@ -257,7 +269,9 @@ class ModifierTests extends RenderTest {
     assert.deepEqual(modifierParams, ['qux']);
     assert.deepEqual(modifierNamedArgs, { foo: 'qux' });
     assert.equal(
-      modifiedElement && modifiedElement.getAttribute('id'),
+      modifiedElement !== null && modifiedElement !== undefined
+        ? modifiedElement.getAttribute('id')
+        : null,
       'inner-div',
       'Modifier is called on the element receiving the splattributes'
     );
@@ -273,7 +287,7 @@ class ModifierTests extends RenderTest {
       didInsertElement(params: unknown[], namedArgs: Dict<unknown>) {
         modifierParams = params;
         modifierNamedArgs = namedArgs;
-        if (this.element) {
+        if (this.element !== undefined && this.element !== null) {
           elementIds.push(this.element.getAttribute('id'));
         }
       }

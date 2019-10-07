@@ -70,7 +70,8 @@ export default class BundleCompilerLookup<R> implements CompileTimeResolverDeleg
       this.table.byHandle.get(handle),
       `BUG: Shouldn't call getLayout if a handle has no associated locator`
     );
-    return this.compilableTemplates.get(locator) || null;
+    const possibleLayout = this.compilableTemplates.get(locator);
+    return possibleLayout !== undefined ? possibleLayout : null;
   }
 
   lookupHelper(name: string, referrer: R): Option<number> {

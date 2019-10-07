@@ -123,7 +123,7 @@ APPEND_OPCODES.add(
     let stack = vm.stack;
     let block = stack.pop<Option<CompilableTemplate> | 0>();
 
-    if (block) {
+    if (block !== 0 && block !== null) {
       stack.push(vm.compile(block));
     } else {
       stack.push(null);
@@ -142,7 +142,8 @@ APPEND_OPCODES.add(Op.InvokeYield, vm => {
   let table = check(stack.pop(), CheckOption(CheckBlockSymbolTable));
 
   assert(
-    table === null || (table && typeof table === 'object' && Array.isArray(table.parameters)),
+    table === null ||
+      (table !== null && typeof table === 'object' && Array.isArray(table.parameters)),
     stackAssert('Option<BlockSymbolTable>', table)
   );
 
@@ -180,12 +181,13 @@ APPEND_OPCODES.add(Op.JumpIf, (vm, { op1: target }) => {
   let reference = check(vm.stack.pop(), CheckReference);
 
   if (isConst(reference)) {
+    /* eslint-disable-next-line */
     if (reference.value()) {
       vm.goto(target);
     }
   } else {
     let cache = new ReferenceCache(reference);
-
+    /* eslint-disable-next-line */
     if (cache.peek()) {
       vm.goto(target);
     }
@@ -198,12 +200,14 @@ APPEND_OPCODES.add(Op.JumpUnless, (vm, { op1: target }) => {
   let reference = check(vm.stack.pop(), CheckReference);
 
   if (isConst(reference)) {
+    /* eslint-disable-next-line */
     if (!reference.value()) {
       vm.goto(target);
     }
   } else {
     let cache = new ReferenceCache(reference);
 
+    /* eslint-disable-next-line */
     if (!cache.peek()) {
       vm.goto(target);
     }

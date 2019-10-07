@@ -76,7 +76,7 @@ export function compileSimpleArgs(
 
   let names: string[] = EMPTY_ARRAY;
 
-  if (hash) {
+  if (hash !== null) {
     names = hash[0];
     let val = hash[1];
     for (let i = 0; i < val.length; i++) {
@@ -104,7 +104,7 @@ function ifResolved(
 
   if (resolved !== null) {
     return andThen(resolved);
-  } else if (orElse) {
+  } else if (orElse !== undefined && orElse !== null) {
     return orElse();
   } else {
     // TODO: Fix error reporting
@@ -125,7 +125,7 @@ function resolve(
       return resolver.lookupHelper(name, referrer);
     case ResolveHandle.ComponentDefinition: {
       let component = resolver.lookupComponent(name, referrer);
-      return component && component.handle;
+      return component !== null ? component.handle : null;
     }
   }
 }

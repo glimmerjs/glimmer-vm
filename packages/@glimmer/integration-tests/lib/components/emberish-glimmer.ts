@@ -130,7 +130,12 @@ export class EmberishGlimmerComponentManager
     _hasDefaultBlock: boolean
   ): EmberishGlimmerComponentState {
     let args = _args.named.capture();
-    let klass = definition.ComponentClass || EmberishGlimmerComponent;
+    let klass =
+      'ComponentClass' in definition &&
+      definition.ComponentClass !== null &&
+      definition.ComponentClass !== undefined
+        ? definition.ComponentClass
+        : EmberishGlimmerComponent;
     let attrs = args.value();
     let component = klass.create({ attrs });
 

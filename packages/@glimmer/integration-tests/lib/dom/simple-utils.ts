@@ -28,13 +28,13 @@ export function getElementByClassName(
 ): Option<SimpleElement> {
   let current = firstElementChild(element);
 
-  while (current) {
+  while (current !== null) {
     if (classList(current).indexOf(className) > -1) {
       return current;
     } else {
       let recurse = getElementByClassName(current, className);
 
-      if (recurse) return recurse;
+      if (recurse !== null) return recurse;
 
       current = nextElementSibling(current);
     }
@@ -51,7 +51,7 @@ export function getElementsByTagName(
   let tag = tagName.toUpperCase();
   let current = firstElementChild(element);
 
-  while (current) {
+  while (current !== null) {
     if (current.tagName === tag) {
       accum.push(current);
     }
@@ -79,7 +79,7 @@ export function replaceHTML(parent: SimpleElement, value: string): void {
 }
 
 export function assertElement(node: Option<SimpleNode>): SimpleElement {
-  if (!node || node.nodeType !== NodeType.ELEMENT_NODE) {
+  if (node === null || node.nodeType !== NodeType.ELEMENT_NODE) {
     throw new Error(`Expected element, got ${node}`);
   }
 
@@ -99,7 +99,7 @@ export function hasAttribute(parent: SimpleElement, attr: string): boolean {
 export function firstElementChild(parent: SimpleElement): Option<SimpleElement> {
   let current = parent.firstChild;
 
-  while (current) {
+  while (current !== null) {
     if (current.nodeType === NodeType.ELEMENT_NODE) {
       return current;
     }
@@ -112,7 +112,7 @@ export function firstElementChild(parent: SimpleElement): Option<SimpleElement> 
 export function nextElementSibling(node: SimpleNode): Option<SimpleElement> {
   let current = node.nextSibling;
 
-  while (current) {
+  while (current !== null) {
     if (current.nodeType === NodeType.ELEMENT_NODE) {
       return current;
     }
@@ -136,7 +136,7 @@ class TextSerializer extends Serializer {
   }
 
   text(text: SerializableNode) {
-    return text.nodeValue || '';
+    return text.nodeValue !== null ? text.nodeValue : '';
   }
 
   comment(_comment: SerializableNode) {

@@ -68,7 +68,8 @@ export class ClassMeta {
 
   static for(object: ObjectWithMixins | InstanceWithMixins): Option<ClassMeta> {
     if (CLASS_META in object) return (object as ObjectWithMixins)[CLASS_META];
-    else if (object.constructor)
+    else if (typeof object.constructor !== undefined)
+      /* eslint-disable-next-line */
       return (object as InstanceWithMixins).constructor[CLASS_META] || null;
     else return null;
   }
@@ -206,13 +207,14 @@ export class ClassMeta {
         )}\` as the value for \`foo\` but \`foo\` cannot be an Array`
       );
     }
-
+    /* eslint-disable-next-line */
     if ((property as string) in this.mergedProperties && this.mergedProperties[property] && value) {
       this.mergedProperties[property] = mergeMergedProperties(
         value,
         this.mergedProperties[property]
       );
     } else {
+      /* eslint-disable-next-line */
       value = value === null ? value : value || {};
       this.mergedProperties[property] = value;
     }
@@ -232,7 +234,7 @@ export class ClassMeta {
     this.concatenatedProperties = dict<any[]>();
     this.mergedProperties = dict<Object>();
 
-    if (parent) {
+    if (parent !== null) {
       this.hasConcatenatedProperties = parent.hasConcatenatedProperties;
       for (let prop in parent.concatenatedProperties) {
         this.concatenatedProperties[prop] = parent.concatenatedProperties[prop].slice();
@@ -290,6 +292,7 @@ export class ClassMeta {
       }
 
       referenceTypeFor(property: string): InnerReferenceFactory<any> {
+        /* eslint-disable-next-line */
         return this.referenceTypes[property] || PropertyReference;
       }
 
@@ -326,6 +329,7 @@ export class InstanceMeta extends ClassMeta {
 
   reset(parent: InstanceMeta) {
     super.reset(parent);
+    /* eslint-disable-next-line */
     if (parent) this[CLASS_META].reset(parent[CLASS_META]);
   }
 
@@ -367,6 +371,7 @@ export default class GlimmerObject {
 
   static metaForProperty(property: string): Object {
     let value = this[CLASS_META].metadataForProperty(property);
+    /* eslint-disable-next-line */
     if (!value)
       throw new Error(
         `metaForProperty() could not find a computed property with key '${property}'.`
@@ -376,6 +381,7 @@ export default class GlimmerObject {
 
   static eachComputedProperty(callback: (s: string, o: Object) => void): void {
     let metadata = this[CLASS_META].getPropertyMetadata();
+    /* eslint-disable-next-line */
     if (!metadata) return;
 
     for (let prop in metadata) {
@@ -390,7 +396,8 @@ export default class GlimmerObject {
   init() {}
 
   constructor(attrs?: Object | null) {
-    if (attrs) assign(this, attrs);
+    if (attrs !== null && attrs !== undefined) assign(this, attrs);
+    /* eslint-disable-next-line */
     (this.constructor as typeof GlimmerObject)[CLASS_META].init(this, attrs || null);
     this._super = ROOT;
     initializeGuid(this);

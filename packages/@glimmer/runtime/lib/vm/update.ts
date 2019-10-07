@@ -373,12 +373,12 @@ class UpdatingVMFrame {
 
   nextStatement(): Option<UpdatingOpcode> {
     let { current, ops } = this;
-    if (current) this.current = ops.nextNode(current);
+    if (current !== null) this.current = ops.nextNode(current);
     return current;
   }
 
   handleException() {
-    if (this.exceptionHandler) {
+    if (this.exceptionHandler !== null && this.exceptionHandler !== undefined) {
       this.exceptionHandler.handleException();
     }
   }

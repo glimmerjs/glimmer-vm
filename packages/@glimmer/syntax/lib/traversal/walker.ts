@@ -8,7 +8,7 @@ export default class Walker {
   constructor(public order?: any) {}
 
   visit<N extends AST.Node>(node: Option<N>, callback: NodeCallback<N>) {
-    if (!node) {
+    if (typeof node !== 'object' || node === null) {
       return;
     }
 
@@ -27,14 +27,19 @@ export default class Walker {
 
   children(node: any, callback: any) {
     let type;
-    if (node.type === 'Block' || (node.type === 'Template' && visitors.Program)) {
+    if (
+      node.type === 'Block' ||
+      (node.type === 'Template' &&
+        typeof visitors.Program === 'object' &&
+        visitors.Program !== null)
+    ) {
       type = 'Program';
     } else {
       type = node.type;
     }
 
     let visitor = (visitors as any)[type];
-    if (visitor) {
+    if (typeof visitor === 'function') {
       visitor(this, node, callback);
     }
   }
@@ -67,6 +72,6 @@ let visitors = {
 
   BlockStatement(walker: Walker, node: AST.BlockStatement, callback: NodeCallback<AST.Block>) {
     walker.visit(node.program, callback);
-    walker.visit(node.inverse || null, callback);
+    walker.visit(typeof node.inverse === 'object' ? node.inverse : null, callback);
   },
 };

@@ -11,6 +11,7 @@ export class RuntimeOpImpl implements RuntimeOp {
 
   get isMachine(): 0 | 1 {
     let rawType = this.heap.getbyaddr(this.offset);
+    /* eslint-disable-next-line */
     return rawType & OpcodeSize.MACHINE_MASK ? 1 : 0;
   }
 

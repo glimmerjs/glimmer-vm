@@ -28,18 +28,27 @@ export class Modules {
 
   register(name: string, type: ModuleType, value: Dict<unknown>) {
     assert(name.indexOf('ui/components/ui') === -1, `BUG: ui/components/ui shouldn't be a prefix`);
-    assert(!name.match(/^[A-Z]/), 'BUG: Components should be nested under ui/components');
+    assert(name.match(/^[A-Z]/) === null, 'BUG: Components should be nested under ui/components');
     this.registry[name] = new Module(value, type);
   }
 
   resolve(name: string, referrer: ModuleLocator, defaultRoot?: string): Option<string> {
+    const maybeModule =
+      typeof referrer === 'object' && referrer !== null && typeof referrer.module === 'string'
+        ? referrer.module
+        : null;
     let local =
-      referrer && referrer.module && referrer.module.replace(/^((.*)\/)?([^\/]*)$/, `$1${name}`);
-    if (local && this.registry[local]) {
+      maybeModule === null ? false : maybeModule.replace(/^((.*)\/)?([^\/]*)$/, `$1${name}`);
+    if (
+      local !== false &&
+      local !== '' &&
+      this.registry[local] !== undefined &&
+      this.registry[local] !== null
+    ) {
       return local;
-    } else if (defaultRoot && this.registry[`${defaultRoot}/${name}`]) {
+    } else if (defaultRoot !== undefined && this.registry[`${defaultRoot}/${name}`] !== undefined) {
       return `${defaultRoot}/${name}`;
-    } else if (this.registry[name]) {
+    } else if (this.registry[name] !== undefined) {
       return name;
     } else {
       return null;
@@ -119,7 +128,7 @@ export default class EagerCompilerDelegate implements CompilerDelegate<ModuleLoc
       root: 'ui/components',
       expected: 'component',
     });
-    return !!name;
+    return name !== null;
   }
 
   resolveComponent(componentName: string, referrer: ModuleLocator): ModuleLocator {
@@ -134,7 +143,7 @@ export default class EagerCompilerDelegate implements CompilerDelegate<ModuleLoc
   }
 
   hasHelperInScope(helperName: string, referrer: ModuleLocator): boolean {
-    return !!this.registry.resolve(helperName, referrer, { expected: 'helper' });
+    return this.registry.resolve(helperName, referrer, { expected: 'helper' }) !== null;
   }
 
   resolveHelper(helperName: string, referrer: ModuleLocator): ModuleLocator {
@@ -142,7 +151,7 @@ export default class EagerCompilerDelegate implements CompilerDelegate<ModuleLoc
   }
 
   hasModifierInScope(modifierName: string, referrer: ModuleLocator): boolean {
-    return !!this.registry.resolve(modifierName, referrer, { expected: 'modifier' });
+    return this.registry.resolve(modifierName, referrer, { expected: 'modifier' }) !== null;
   }
 
   resolveModifier(modifierName: string, referrer: ModuleLocator): ModuleLocator {

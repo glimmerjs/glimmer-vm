@@ -1,6 +1,6 @@
 // detect side-effects of cloning svg elements in IE9-11
 let ieSVGInnerHTML = (function() {
-  if (typeof document === 'undefined' || !document.createElementNS) {
+  if (typeof document === 'undefined' || !('createElementNS' in document)) {
     return false;
   }
   let div = document.createElement('div');

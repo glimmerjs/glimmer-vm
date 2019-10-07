@@ -69,7 +69,7 @@ interface RerenderParams {
 
 function rerender(state: any = null, params: RerenderParams = { assertStable: false }) {
   let snapshot: SimpleNode[] | undefined;
-  if (params.assertStable) {
+  if (params.assertStable === true) {
     snapshot = generateSnapshot(context.root);
   }
   if (state !== null) self.update(state);

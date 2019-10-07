@@ -71,7 +71,7 @@ APPEND_OPCODES.add(Op.PushRemoteElement, vm => {
   }
 
   let block = vm.elements().pushRemoteElement(element, guid, insertBefore);
-  if (block) vm.associateDestroyable(block);
+  if (block !== null) vm.associateDestroyable(block);
 });
 
 APPEND_OPCODES.add(Op.PopRemoteElement, vm => {
@@ -82,7 +82,7 @@ APPEND_OPCODES.add(Op.FlushElement, vm => {
   let operations = check(vm.fetchValue($t0), CheckOperations);
   let modifiers: Option<[ModifierManager, unknown][]> = null;
 
-  if (operations) {
+  if (operations !== null) {
     modifiers = operations.flush(vm);
     vm.loadValue($t0, null);
   }
@@ -93,12 +93,12 @@ APPEND_OPCODES.add(Op.FlushElement, vm => {
 APPEND_OPCODES.add(Op.CloseElement, vm => {
   let modifiers = vm.elements().closeElement();
 
-  if (modifiers) {
+  if (modifiers !== null) {
     modifiers.forEach(([manager, modifier]) => {
       vm.env.scheduleInstallModifier(modifier, manager);
       let d = manager.getDestructor(modifier);
 
-      if (d) {
+      if (d !== null && d !== undefined) {
         vm.associateDestroyable(d);
       }
     });
@@ -159,7 +159,8 @@ export class UpdateModifierOpcode extends UpdatingOpcode {
 APPEND_OPCODES.add(Op.StaticAttr, (vm, { op1: _name, op2: _value, op3: _namespace }) => {
   let name = vm[CONSTANTS].getString(_name);
   let value = vm[CONSTANTS].getString(_value);
-  let namespace = _namespace ? vm[CONSTANTS].getString(_namespace) : null;
+  let namespace =
+    _namespace !== 0 && _namespace !== undefined ? vm[CONSTANTS].getString(_namespace) : null;
 
   vm.elements().setStaticAttribute(name, value, namespace);
 });
@@ -168,8 +169,9 @@ APPEND_OPCODES.add(Op.DynamicAttr, (vm, { op1: _name, op2: trusting, op3: _names
   let name = vm[CONSTANTS].getString(_name);
   let reference = check(vm.stack.pop(), CheckReference);
   let value = reference.value();
-  let namespace = _namespace ? vm[CONSTANTS].getString(_namespace) : null;
-
+  let namespace =
+    _namespace !== 0 && _namespace !== undefined ? vm[CONSTANTS].getString(_namespace) : null;
+  /* eslint-disable-next-line */
   let attribute = vm.elements().setDynamicAttribute(name, value, !!trusting, namespace);
 
   if (!isConst(reference)) {

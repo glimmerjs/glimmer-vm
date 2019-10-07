@@ -28,7 +28,10 @@ export class Count {
 
   expect(name: string, count = 1) {
     this.expected[name] = count;
-    this.actual[name] = (this.actual[name] || 0) + 1;
+    if (!(name in this.actual)) {
+      this.actual[name] = 0;
+    }
+    this.actual[name]++;
   }
 
   assert() {
@@ -110,7 +113,8 @@ export class RenderTest implements IRenderTest {
 
         let value = args[arg] as Maybe<string[]>;
         if (needsCurlies) {
-          let isString = value && (value[0] === "'" || value[0] === '"');
+          let isString =
+            value !== null && value !== undefined && (value[0] === "'" || value[0] === '"');
           if (isString) {
             rightSide = `${value}`;
           } else {
@@ -130,7 +134,7 @@ export class RenderTest implements IRenderTest {
   }
 
   private buildElse(elseBlock: string | undefined): string {
-    return `${elseBlock ? `{{else}}${elseBlock}` : ''}`;
+    return `${elseBlock !== undefined && elseBlock !== '' ? `{{else}}${elseBlock}` : ''}`;
   }
 
   private buildAttributes(attrs: Dict = {}): string {
@@ -166,7 +170,7 @@ export class RenderTest implements IRenderTest {
     let open = invocation.join(' ');
     invocation = [open];
 
-    if (template) {
+    if (template !== undefined && template !== '') {
       let block: string | string[] = [];
       let params = this.buildBlockParams(blockParams);
       if (params !== '') {
@@ -228,13 +232,13 @@ export class RenderTest implements IRenderTest {
       blockParams = [],
     } = blueprint;
 
-    if (attributes) {
+    if (attributes !== undefined) {
       throw new Error('Cannot pass attributes to curly components');
     }
 
     let invocation: string[] | string = [];
 
-    if (template) {
+    if (template !== undefined && template !== '') {
       invocation.push(`{{#${name}`);
     } else {
       invocation.push(`{{${name}`);
@@ -247,7 +251,7 @@ export class RenderTest implements IRenderTest {
       invocation.push(componentArgs);
     }
 
-    if (template) {
+    if (template !== undefined && template !== '') {
       invocation.push(this.buildCurlyBlockTemplate(name, template, blockParams, elseBlock));
     } else {
       invocation.push('}}');
@@ -293,12 +297,12 @@ export class RenderTest implements IRenderTest {
       blockParams = [],
     } = blueprint;
 
-    if (attributes) {
+    if (attributes !== undefined) {
       throw new Error('Cannot pass attributes to curly components');
     }
 
     let invocation: string | string[] = [];
-    if (template) {
+    if (template !== undefined && template !== '') {
       invocation.push('{{#component componentName');
     } else {
       invocation.push('{{component componentName');
@@ -311,7 +315,7 @@ export class RenderTest implements IRenderTest {
       invocation.push(componentArgs);
     }
 
-    if (template) {
+    if (template !== undefined && template !== '') {
       invocation.push(this.buildCurlyBlockTemplate('component', template, blockParams, elseBlock));
     } else {
       invocation.push('}}');
@@ -350,7 +354,10 @@ export class RenderTest implements IRenderTest {
       template = this.buildComponent(blueprint);
 
       if (this.testType === 'Dynamic' && properties['componentName'] === undefined) {
-        properties['componentName'] = blueprint.name || GLIMMER_TEST_COMPONENT;
+        properties['componentName'] =
+          blueprint.name !== undefined && blueprint.name !== ''
+            ? blueprint.name
+            : GLIMMER_TEST_COMPONENT;
       }
     }
 
@@ -393,9 +400,9 @@ export class RenderTest implements IRenderTest {
     let node = this.element.firstChild;
     let upped = false;
 
-    while (node && node !== this.element) {
+    while (node !== null && node !== this.element) {
       if (upped) {
-        if (node.nextSibling) {
+        if (node.nextSibling !== null) {
           node = node.nextSibling;
           upped = false;
         } else {
@@ -405,10 +412,10 @@ export class RenderTest implements IRenderTest {
       } else {
         if (!isServerMarker(node)) snapshot.push(node);
 
-        if (node.firstChild) {
+        if (node.firstChild !== null) {
           snapshot.push('down');
           node = node.firstChild;
-        } else if (node.nextSibling) {
+        } else if (node.nextSibling !== null) {
           node = node.nextSibling;
         } else {
           snapshot.push('up');
@@ -428,7 +435,11 @@ export class RenderTest implements IRenderTest {
   }
 
   protected assertHTML(html: string, message?: string) {
-    equalTokens(this.element, html, message ? `${html} (${message})` : html);
+    equalTokens(
+      this.element,
+      html,
+      message !== undefined && message !== '' ? `${html} (${message})` : html
+    );
     this.takeSnapshot();
   }
 

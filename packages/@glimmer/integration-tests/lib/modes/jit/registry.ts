@@ -82,7 +82,7 @@ export class TestJitRegistry {
   ): Template {
     let compilableHandle = this.lookup('compilable', templateName);
 
-    if (compilableHandle) {
+    if (compilableHandle !== null) {
       return this.resolve<Template>(compilableHandle);
     }
 
@@ -100,7 +100,7 @@ export class TestJitRegistry {
   ): Template {
     let compilableHandle = this.lookup('compilable', templateName);
 
-    if (compilableHandle) {
+    if (compilableHandle !== null) {
       return this.resolve<Template>(compilableHandle);
     }
 
@@ -116,7 +116,7 @@ export class TestJitRegistry {
   ): Invocation {
     let invocationHandle = this.lookup('template', templateName);
 
-    if (invocationHandle) {
+    if (invocationHandle !== null) {
       return this.resolve<Invocation>(invocationHandle);
     }
 

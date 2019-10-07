@@ -63,7 +63,7 @@ function getNodeHandler<N extends AST.Node>(
   nodeType: N['type']
 ): NodeTraversal<N> | NodeTraversal<AST.Node> | undefined {
   if (nodeType === 'Template' || nodeType === 'Block') {
-    if (visitor.Program) {
+    if (typeof visitor.Program !== 'undefined') {
       if (DEVMODE) {
         deprecate(`TODO`);
       }
@@ -104,7 +104,8 @@ function visitNode<N extends AST.Node>(
       visitArray(visitor, result);
       return result;
     } else {
-      return visitNode(visitor, result) || result;
+      const possibleResult = visitNode(visitor, result);
+      return possibleResult !== undefined && possibleResult !== null ? possibleResult : result;
     }
   }
 
@@ -143,7 +144,7 @@ function visitKey<N extends AST.Node>(
   key: VisitorKeys[N['type']] & keyof N
 ) {
   let value = get(node, key);
-  if (!value) {
+  if (value === null || value === undefined) {
     return;
   }
 

@@ -25,7 +25,7 @@ export function applyTextNodeMergingFix(
   document: Option<SimpleDocument>,
   DOMClass: typeof DOMOperations
 ): typeof DOMOperations {
-  if (!document) return DOMClass;
+  if (document === null || document === undefined) return DOMClass;
 
   if (!shouldApplyFix(document)) {
     return DOMClass;
@@ -46,9 +46,9 @@ export function applyTextNodeMergingFix(
 
       let didSetUselessComment = false;
 
-      let nextPrevious = nextSibling ? nextSibling.previousSibling : parent.lastChild;
+      let nextPrevious = nextSibling !== null ? nextSibling.previousSibling : parent.lastChild;
 
-      if (nextPrevious && nextPrevious instanceof Text) {
+      if (nextPrevious !== null && nextPrevious instanceof Text) {
         didSetUselessComment = true;
         parent.insertBefore(this.uselessComment, nextSibling);
       }

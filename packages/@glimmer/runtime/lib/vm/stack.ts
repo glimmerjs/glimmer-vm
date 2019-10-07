@@ -41,7 +41,7 @@ export class InnerStack {
 
   write(pos: number, value: unknown): void {
     if (isImmediate(value)) {
-      this.writeRaw(pos, encodeImmediate(value));
+      this.writeRaw(pos, encodeImmediate(value as number | boolean | null | undefined));
     } else {
       this.writeJs(pos, value);
     }

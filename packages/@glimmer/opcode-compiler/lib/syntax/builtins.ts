@@ -25,7 +25,7 @@ export function populateBuiltins(
   inlines: MacroInlines
 ): { blocks: MacroBlocks; inlines: MacroInlines } {
   blocks.add('if', (params, _hash, blocks) => {
-    if (!params || params.length !== 1) {
+    if (!Array.isArray(params) || params.length !== 1) {
       throw new Error(`SYNTAX ERROR: #if requires a single argument`);
     }
 
@@ -52,7 +52,7 @@ export function populateBuiltins(
   });
 
   blocks.add('unless', (params, _hash, blocks) => {
-    if (!params || params.length !== 1) {
+    if (!Array.isArray(params) || params.length !== 1) {
       throw new Error(`SYNTAX ERROR: #unless requires a single argument`);
     }
 
@@ -79,7 +79,7 @@ export function populateBuiltins(
   });
 
   blocks.add('with', (params, _hash, blocks) => {
-    if (!params || params.length !== 1) {
+    if (!Array.isArray(params) || params.length !== 1) {
       throw new Error(`SYNTAX ERROR: #with requires a single argument`);
     }
 
@@ -106,7 +106,7 @@ export function populateBuiltins(
   });
 
   blocks.add('let', (params, _hash, blocks) => {
-    if (!params) {
+    if (!Array.isArray(params) || params.length === 0) {
       throw new Error(`SYNTAX ERROR: #let requires arguments`);
     }
 
@@ -119,7 +119,7 @@ export function populateBuiltins(
       args() {
         let actions: StatementCompileActions;
 
-        if (hash && hash[0][0] === 'key') {
+        if (hash !== null && hash[0][0] === 'key') {
           actions = [op('Expr', hash[1][0])];
         } else {
           actions = [pushPrimitiveReference(null)];
@@ -161,7 +161,7 @@ export function populateBuiltins(
   });
 
   blocks.add('in-element', (params, hash, blocks) => {
-    if (!params || params.length !== 1) {
+    if (!Array.isArray(params) || params.length !== 1) {
       throw new Error(`SYNTAX ERROR: #in-element requires a single argument`);
     }
 
@@ -196,7 +196,7 @@ export function populateBuiltins(
   });
 
   blocks.add('-with-dynamic-vars', (_params, hash, blocks) => {
-    if (hash) {
+    if (hash !== null) {
       let [names, expressions] = hash;
 
       let { actions } = compileParams(expressions);
@@ -213,7 +213,10 @@ export function populateBuiltins(
   });
 
   blocks.add('component', (_params, hash, blocks, context) => {
-    assert(_params && _params.length, 'SYNTAX ERROR: #component requires at least one argument');
+    assert(
+      Array.isArray(_params) && _params.length !== 0,
+      'SYNTAX ERROR: #component requires at least one argument'
+    );
 
     let tag = _params[0];
     if (typeof tag === 'string') {
@@ -241,11 +244,11 @@ export function populateBuiltins(
 
   inlines.add('component', (_name, _params, hash, context) => {
     assert(
-      _params && _params.length,
+      Array.isArray(_params) && _params.length !== 0,
       'SYNTAX ERROR: component helper requires at least one argument'
     );
 
-    let tag = _params && _params[0];
+    let tag = Array.isArray(_params) && _params.length !== 0 ? _params[0] : null;
     if (typeof tag === 'string') {
       let returned = staticComponentHelper(context, tag as string, hash, null);
       if (returned !== UNHANDLED) return returned;

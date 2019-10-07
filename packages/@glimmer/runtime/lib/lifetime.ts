@@ -8,7 +8,7 @@ import { SimpleNode } from '@simple-dom/interface';
 export function asyncReset(parent: object, env: Environment) {
   let linked = takeAssociated(parent);
 
-  if (linked) {
+  if (linked !== null) {
     env.didDestroy(snapshot(linked));
   }
 }

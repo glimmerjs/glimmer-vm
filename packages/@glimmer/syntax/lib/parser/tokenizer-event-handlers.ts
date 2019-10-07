@@ -191,7 +191,7 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
     let parts = this.currentAttr.parts;
     let lastPart = parts[parts.length - 1];
 
-    if (lastPart && lastPart.type === 'TextNode') {
+    if (typeof lastPart === 'object' && lastPart !== null && lastPart.type === 'TextNode') {
       lastPart.chars += char;
 
       // update end location for each added char
@@ -209,7 +209,10 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
       // correct for `\n` as first char
       if (char === '\n') {
         loc.start.line -= 1;
-        loc.start.column = lastPart ? lastPart.loc.end.column : this.currentAttr.valueStartColumn;
+        loc.start.column =
+          typeof lastPart === 'object' && lastPart !== null
+            ? lastPart.loc.end.column
+            : this.currentAttr.valueStartColumn;
       }
 
       let text = b.text(char, loc);
@@ -313,7 +316,7 @@ function validateEndTag(
       ').';
   }
 
-  if (error) {
+  if (error !== undefined) {
     throw new SyntaxError(error, element.loc);
   }
 }
@@ -378,13 +381,13 @@ const syntax: Syntax = {
 };
 
 export function preprocess(html: string, options: PreprocessOptions = {}): AST.Template {
-  let mode = options.mode || 'precompile';
+  let mode = typeof options.mode === 'string' ? options.mode : 'precompile';
 
   let ast: HBS.Program;
   if (typeof html === 'object') {
     ast = html;
   } else {
-    let parseOptions = options.parseOptions || {};
+    let parseOptions = typeof options.parseOptions === 'object' ? options.parseOptions : {};
 
     if (mode === 'codemod') {
       parseOptions.ignoreStandalone = true;
@@ -400,7 +403,11 @@ export function preprocess(html: string, options: PreprocessOptions = {}): AST.T
 
   let program = new TokenizerEventHandlers(html, entityParser).acceptTemplate(ast);
 
-  if (options && options.plugins && options.plugins.ast) {
+  if (
+    typeof options === 'object' &&
+    typeof options.plugins === 'object' &&
+    typeof options.plugins.ast === 'object'
+  ) {
     for (let i = 0, l = options.plugins.ast.length; i < l; i++) {
       let transform = options.plugins.ast[i];
       let env = assign({}, options, { syntax }, { plugins: undefined });

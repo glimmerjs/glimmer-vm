@@ -159,7 +159,7 @@ APPEND_OPCODES.add(Op.CurryComponent, (vm, { op1: _meta }) => {
 
 APPEND_OPCODES.add(Op.PushComponentDefinition, (vm, { op1: handle }) => {
   let definition = vm.runtime.resolver.resolve<ComponentDefinition>(handle);
-  assert(!!definition, `Missing component for ${handle}`);
+  assert(definition !== null, `Missing component for ${handle}`);
 
   let { manager } = definition;
   let capabilities = capabilityFlagsFrom(manager.getCapabilities(definition.state));
@@ -239,11 +239,14 @@ APPEND_OPCODES.add(Op.PushArgs, (vm, { op1: _names, op2: flags }) => {
   let atNames = flags & 0b1000;
   let blockNames: string[] = [];
 
+  /* eslint-disable-next-line */
   if (flags & 0b0100) blockNames.push('main');
+  /* eslint-disable-next-line */
   if (flags & 0b0010) blockNames.push('else');
+  /* eslint-disable-next-line */
   if (flags & 0b0001) blockNames.push('attrs');
 
-  vm[ARGS].setup(stack, names, blockNames, positionalCount, !!atNames);
+  vm[ARGS].setup(stack, names, blockNames, positionalCount, atNames === 0 ? false : true);
   stack.push(vm[ARGS]);
 });
 
@@ -270,6 +273,7 @@ APPEND_OPCODES.add(Op.PrepareArgs, (vm, { op1: _state }) => {
 
   if (isCurriedComponentDefinition(definition)) {
     assert(
+      /* eslint-disable-next-line */
       !definition.manager,
       "If the component definition was curried, we don't yet have a manager"
     );
@@ -288,7 +292,7 @@ APPEND_OPCODES.add(Op.PrepareArgs, (vm, { op1: _state }) => {
   let blockNames = args.blocks.names;
   let preparedArgs = manager.prepareArgs(state, args);
 
-  if (preparedArgs) {
+  if (preparedArgs !== null) {
     args.clear();
 
     for (let i = 0; i < blocks.length; i++) {
@@ -361,7 +365,14 @@ APPEND_OPCODES.add(Op.CreateComponent, (vm, { op1: flags, op2: _state }) => {
     self = vm.getSelf();
   }
 
-  let state = manager.create(vm.env, definition.state, args, dynamicScope, self, !!hasDefaultBlock);
+  let state = manager.create(
+    vm.env,
+    definition.state,
+    args,
+    dynamicScope,
+    self,
+    hasDefaultBlock === 0 ? false : true
+  );
 
   // We want to reuse the `state` POJO here, because we know that the opcodes
   // only transition at exactly one place.
@@ -378,7 +389,7 @@ APPEND_OPCODES.add(Op.RegisterComponentDestructor, (vm, { op1: _state }) => {
   let { manager, state } = check(vm.fetchValue(_state), CheckComponentInstance);
 
   let d = manager.getDestructor(state);
-  if (d) vm.associateDestroyable(d);
+  if (d !== null && d !== undefined) vm.associateDestroyable(d);
 });
 
 APPEND_OPCODES.add(Op.BeginComponentTransaction, vm => {
@@ -393,12 +404,13 @@ APPEND_OPCODES.add(Op.PutComponentOperations, vm => {
 APPEND_OPCODES.add(Op.ComponentAttr, (vm, { op1: _name, op2: trusting, op3: _namespace }) => {
   let name = vm[CONSTANTS].getString(_name);
   let reference = check(vm.stack.pop(), CheckReference);
-  let namespace = _namespace ? vm[CONSTANTS].getString(_namespace) : null;
+  let namespace =
+    _namespace !== undefined && _namespace !== 0 ? vm[CONSTANTS].getString(_namespace) : null;
 
   check(vm.fetchValue($t0), CheckInstanceof(ComponentElementOperations)).setAttribute(
     name,
     reference,
-    !!trusting,
+    trusting === 0 ? false : true,
     namespace
   );
 });
@@ -660,7 +672,9 @@ APPEND_OPCODES.add(Op.SetNamedVariables, (vm, { op1: _state }) => {
     let value = args.named.get(atName, true);
 
     if (symbol !== -1) scope.bindSymbol(symbol + 1, value);
-    if (state.lookup) state.lookup[atName] = value;
+    if (state.lookup !== null && state.lookup !== undefined) {
+      state.lookup[atName] = value;
+    }
   }
 });
 
@@ -672,14 +686,13 @@ function bindBlock<C extends JitOrAotBlock>(
   vm: InternalVM<C>
 ) {
   let symbol = state.table.symbols.indexOf(symbolName);
-
   let block = blocks.get(blockName);
 
   if (symbol !== -1) {
     vm.scope().bindBlock(symbol + 1, block);
   }
 
-  if (state.lookup) state.lookup[symbolName] = block;
+  if (state.lookup !== null && state.lookup !== undefined) state.lookup[symbolName] = block;
 }
 
 APPEND_OPCODES.add(Op.SetBlocks, (vm, { op1: _state }) => {

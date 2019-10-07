@@ -128,7 +128,7 @@ export class EncoderImpl implements Encoder {
     operand: SingleBuilderOperand | BuilderHandleThunk,
     index?: number
   ): Operand {
-    if (operand && typeof operand === 'object' && operand.type === 'label') {
+    if (operand !== null && typeof operand === 'object' && operand.type === 'label') {
       this.currentLabels.target(this.encoder.size + index!, operand.value);
       return -1;
     }

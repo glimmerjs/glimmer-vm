@@ -217,7 +217,7 @@ export function replayableIf<T extends CompileActions | StatementCompileActions>
       // false branch was provided, execute it. If there was no code
       // associated with the false branch, jumping to the else statement
       // has no other behavior.
-      if (ifFalse) {
+      if (ifFalse !== undefined) {
         out.push(ifFalse());
       }
 

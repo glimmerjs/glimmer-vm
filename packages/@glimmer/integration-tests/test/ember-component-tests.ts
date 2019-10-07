@@ -87,7 +87,7 @@ export class EmberishRootView extends EmberObject {
   }
 
   rerender(context: Object | null = null) {
-    if (context) {
+    if (context !== null) {
       this.setProperties(context);
     }
 
@@ -100,7 +100,7 @@ export class EmberishRootView extends EmberObject {
 
   destroy() {
     super.destroy();
-    if (this.result) {
+    if (this.result !== null && this.result !== undefined) {
       this.result.destroy();
     }
   }
@@ -148,7 +148,7 @@ function assertText(expected: string) {
 function assertFired(component: HookedComponent, name: string, count = 1) {
   let hooks = component.hooks;
 
-  if (!hooks) {
+  if (hooks === null || hooks === undefined) {
     throw new TypeError('Not hooked: ' + component);
   }
 
@@ -1308,7 +1308,10 @@ QUnit.test('emberish curly component should have unique IDs', assert => {
 
   function markAsSeen(element: SimpleElement) {
     let id = unwrap(elementId(element));
-    IDs[id] = (IDs[id] || 0) + 1;
+    if (IDs[id] === undefined) {
+      IDs[id] = 0;
+    }
+    IDs[id] = IDs[id] + 1;
   }
 
   markAsSeen(assertElement(view.element.childNodes[0]));

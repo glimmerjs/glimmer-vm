@@ -35,7 +35,12 @@ export class BasicComponentManager
   }
 
   create(_env: Environment, definition: TestComponentDefinitionState): BasicComponent {
-    let klass = definition.ComponentClass || BasicComponent;
+    let klass =
+      'ComponentClass' in definition &&
+      definition.ComponentClass !== null &&
+      definition.ComponentClass !== undefined
+        ? definition.ComponentClass
+        : BasicComponent;
     return new klass();
   }
 

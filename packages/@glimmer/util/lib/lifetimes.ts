@@ -27,7 +27,7 @@ export function associate(parent: object, child: object) {
 export function associateDestructor(parent: object, child: Drop): void {
   let associated = LINKED.get(parent);
 
-  if (!associated) {
+  if (associated === undefined) {
     associated = new Set();
     LINKED.set(parent, associated);
   }
@@ -38,7 +38,7 @@ export function associateDestructor(parent: object, child: Drop): void {
 export function takeAssociated(parent: object): Option<Set<Drop>> {
   let linked = LINKED.get(parent);
 
-  if (linked && linked.size > 0) {
+  if (linked !== undefined && linked.size > 0) {
     LINKED.delete(parent);
     return linked;
   } else {
@@ -49,7 +49,7 @@ export function takeAssociated(parent: object): Option<Set<Drop>> {
 export function destroyAssociated(parent: object) {
   let associated = LINKED.get(parent);
 
-  if (associated) {
+  if (associated !== undefined) {
     associated.forEach(item => {
       item[DROP]();
       associated!.delete(item);
@@ -60,7 +60,7 @@ export function destroyAssociated(parent: object) {
 export function destructor(value: object): Drop {
   let d = DESTRUCTORS.get(value);
 
-  if (!d) {
+  if (d === undefined || d === null || d === false || d === '') {
     if (isDestroyable(value)) {
       d = new DestroyableDestructor(value);
     } else if (isStringDestroyable(value)) {
@@ -104,7 +104,8 @@ class DestroyableDestructor implements Drop {
   }
 
   get [CHILDREN](): Iterable<Drop> {
-    return LINKED.get(this.inner) || [];
+    const children = LINKED.get(this.inner);
+    return typeof children === 'object' && children !== null ? children : [];
   }
 
   toString() {
@@ -121,7 +122,8 @@ class StringDestroyableDestructor implements Drop {
   }
 
   get [CHILDREN](): Iterable<Drop> {
-    return LINKED.get(this.inner) || [];
+    const children = LINKED.get(this.inner);
+    return typeof children === 'object' && children !== null ? children : [];
   }
 
   toString() {
@@ -137,7 +139,8 @@ class SimpleDestructor implements Drop {
   }
 
   get [CHILDREN](): Iterable<Drop> {
-    return LINKED.get(this.inner) || [];
+    const children = LINKED.get(this.inner);
+    return typeof children === 'object' && children !== null ? children : [];
   }
 
   toString() {
@@ -171,10 +174,12 @@ export interface DebugNode {
 
 export function debugDropTree(inner: object): DebugNode {
   let hasDrop = isDrop(inner);
-  let rawChildren = LINKED.get(inner) || null;
+  let originalChildren = LINKED.get(inner);
+  let rawChildren =
+    originalChildren !== null && typeof originalChildren === 'object' ? originalChildren : null;
   let children: DebugNode[] | null = null;
 
-  if (rawChildren) {
+  if (rawChildren !== null) {
     children = [];
     for (let child of rawChildren) {
       children.push(debugDropTree(child));
@@ -183,7 +188,7 @@ export function debugDropTree(inner: object): DebugNode {
 
   let obj = Object.create(null);
   obj.inner = inner;
-  if (children) {
+  if (children !== null) {
     obj.children = children;
   }
   obj.hasDrop = hasDrop;
@@ -199,8 +204,8 @@ export function printDrop(inner: Drop) {
 
   console.log(inner);
 
-  let children = inner[CHILDREN] || null;
-  if (children) {
+  let children = inner[CHILDREN] !== undefined ? inner[CHILDREN] : null;
+  if (children !== null) {
     for (let child of children) {
       printDrop(child);
     }

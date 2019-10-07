@@ -199,10 +199,11 @@ function initialize(
   let target = new Target();
   let reference = new UpdatableReference(arr);
   let iterator = new ReferenceIterator(new TestIterable(reference));
-  let item;
+  let item = iterator.next();
 
-  while ((item = iterator.next())) {
+  while (item !== null) {
     target.append(item.key, item.value);
+    item = iterator.next();
   }
 
   return { reference, target, artifacts: iterator.artifacts };

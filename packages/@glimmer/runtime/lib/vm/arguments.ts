@@ -170,7 +170,7 @@ export class PositionalArgumentsImpl implements PositionalArguments {
   get tag(): Tag {
     let tag = this._tag;
 
-    if (!tag) {
+    if (tag === null) {
       tag = this._tag = combineTagged(this.references);
     }
 
@@ -212,7 +212,7 @@ export class PositionalArgumentsImpl implements PositionalArguments {
   private get references(): VersionedPathReference<unknown>[] {
     let references = this._references;
 
-    if (!references) {
+    if (references === null) {
       let { stack, base, length } = this;
       references = this._references = stack.sliceArray<VersionedPathReference<unknown>>(
         base,
@@ -314,7 +314,7 @@ export class NamedArgumentsImpl implements NamedArguments {
   get names(): string[] {
     let names = this._names;
 
-    if (!names) {
+    if (names === null) {
       names = this._names = this._atNames!.map(this.toSyntheticName);
     }
 
@@ -324,7 +324,7 @@ export class NamedArgumentsImpl implements NamedArguments {
   get atNames(): string[] {
     let atNames = this._atNames;
 
-    if (!atNames) {
+    if (atNames === null) {
       atNames = this._atNames = this._names!.map(this.toAtName);
     }
 
@@ -384,7 +384,7 @@ export class NamedArgumentsImpl implements NamedArguments {
   private get references(): VersionedPathReference<unknown>[] {
     let references = this._references;
 
-    if (!references) {
+    if (references === null) {
       let { base, length, stack } = this;
       references = this._references = stack.sliceArray<VersionedPathReference<unknown>>(
         base,
@@ -420,7 +420,7 @@ export class CapturedNamedArgumentsImpl implements CapturedNamedArguments {
   get map() {
     let map = this._map;
 
-    if (!map) {
+    if (map === null) {
       let { names, references } = this;
       map = this._map = dict<VersionedPathReference<unknown>>();
 
@@ -499,7 +499,7 @@ export class BlockArgumentsImpl<C extends JitOrAotBlock> implements BlockArgumen
   get values(): BlockValue[] {
     let values = this.internalValues;
 
-    if (!values) {
+    if (values === null) {
       let { base, length, stack } = this;
       values = this.internalValues = stack.sliceArray<number>(base, base + length * 3);
     }

@@ -16,9 +16,9 @@ export class NamedBlocksImpl implements NamedBlocks {
   constructor(private blocks: Option<NamedBlocksDict>) {}
 
   get(name: string): Option<CompilableBlock> {
-    if (!this.blocks) return null;
+    if (this.blocks === null) return null;
 
-    return this.blocks[name] || null;
+    return this.blocks[name] !== undefined ? this.blocks[name] : null;
   }
 
   has(name: string): boolean {
@@ -29,7 +29,7 @@ export class NamedBlocksImpl implements NamedBlocks {
   with(name: string, block: Option<CompilableBlock>): NamedBlocks {
     let { blocks } = this;
 
-    if (blocks) {
+    if (blocks !== null) {
       return new NamedBlocksImpl(assign({}, blocks, { [name]: block }));
     } else {
       return new NamedBlocksImpl({ [name]: block });

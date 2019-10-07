@@ -61,7 +61,7 @@ STATEMENTS.add(SexpOpcodes.TrustingComponentAttr, ([, name, value, namespace]) =
 ]);
 
 STATEMENTS.add(SexpOpcodes.OpenElement, ([, tag, simple]) => {
-  if (simple) {
+  if (simple === true) {
     return op(Op.OpenElement, tag);
   } else {
     return [op(Op.PutComponentOperations), op(Op.OpenElement, tag)];
@@ -153,7 +153,10 @@ STATEMENTS.add(SexpOpcodes.Append, sexp => {
       op(HighLevelResolutionOpcode.Expr, sexp[1]),
       op(MachineOp.InvokeStatic, {
         type: 'stdlib',
-        value: sexp[2] ? 'trusting-append' : 'cautious-append',
+        value:
+          sexp[2] !== false && sexp[2] !== undefined && sexp[2] !== null
+            ? 'trusting-append'
+            : 'cautious-append',
       }),
       op(MachineOp.PopFrame),
     ],

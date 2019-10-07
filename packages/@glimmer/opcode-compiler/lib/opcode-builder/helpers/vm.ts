@@ -83,7 +83,7 @@ export function dynamicScope(
   block: StatementBlock
 ): StatementCompileActions {
   let out: StatementCompileActions = [op(Op.PushDynamicScope)];
-  if (names && names.length) {
+  if (typeof names === 'object' && names !== null && names.length !== 0) {
     out.push(op(Op.BindDynamicScope, strArray(names)));
   }
   out.push(block(), op(Op.PopDynamicScope));

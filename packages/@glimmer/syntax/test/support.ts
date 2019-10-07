@@ -1,7 +1,7 @@
 import { preprocess as parse, AST, PreprocessOptions } from '@glimmer/syntax';
 
 function normalizeNode(obj: AST.Node | Array<AST.Node>): AST.Node | Array<AST.Node> {
-  if (obj && typeof obj === 'object') {
+  if (typeof obj === 'object' && obj !== null) {
     let newObj: any;
     if (Array.isArray(obj)) {
       newObj = obj.slice();

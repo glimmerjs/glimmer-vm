@@ -108,7 +108,7 @@ function dynamicComponent(
 ): StatementCompileActions {
   let { definition, attrs, params, args, blocks, atNames } = action.op1;
 
-  let attrsBlock = attrs && attrs.length > 0 ? compilableBlock(attrs, context.meta) : null;
+  let attrsBlock = attrs !== null && attrs.length > 0 ? compilableBlock(attrs, context.meta) : null;
 
   let compiled =
     Array.isArray(blocks) || blocks === null ? namedBlocks(blocks, context.meta) : blocks;
@@ -153,7 +153,7 @@ function ifResolvedComponent(
         blocks: compilableBlocks,
       });
     }
-  } else if (orElse) {
+  } else if (orElse !== undefined && orElse !== null) {
     return orElse();
   } else {
     throw new Error(`Compile Error: Cannot find component ${name}`);

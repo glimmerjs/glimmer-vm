@@ -4,7 +4,7 @@ export function processOpcodes(compiler: any, opcodes: any) {
   for (let i = 0, l = opcodes.length; i < l; i++) {
     let method = opcodes[i][0];
     let params = opcodes[i][1];
-    if (params) {
+    if (params !== null && params !== undefined && params !== false) {
       compiler[method].apply(compiler, params);
     } else {
       compiler[method].call(compiler);
@@ -46,5 +46,6 @@ const WHITELIST: Dict<string | undefined> = {
 };
 
 export function getAttrNamespace(attrName: string): Option<string> {
-  return WHITELIST[attrName] || null;
+  const maybeAttrName = WHITELIST[attrName];
+  return typeof maybeAttrName === 'string' ? maybeAttrName : null;
 }

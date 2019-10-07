@@ -197,7 +197,7 @@ export default class JavaScriptCompiler
       let opcode = op[0];
       let arg = op[1];
 
-      if (!this[opcode]) {
+      if (!(opcode in this)) {
         throw new Error(`unimplemented ${opcode} on JavaScriptCompiler`);
       }
       (this[opcode] as any)(arg);
@@ -271,7 +271,7 @@ export default class JavaScriptCompiler
 
   openComponent(element: AST.ElementNode) {
     let tag =
-      this.options && this.options.customizeComponentName
+      this.options !== undefined && typeof this.options.customizeComponentName === 'function'
         ? this.options.customizeComponentName(element.tag)
         : element.tag;
     let component = new ComponentBlock(tag, element.symbols!, element.selfClosing);

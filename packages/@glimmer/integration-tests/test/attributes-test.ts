@@ -240,7 +240,12 @@ export class AttributesTests extends RenderTest {
   @test
   'input[checked] prop updates when set to undefined'() {
     this.registerHelper('if', params => {
-      if (params[0]) {
+      if (
+        params[0] !== undefined &&
+        params[0] !== null &&
+        params[0] !== false &&
+        params[0] !== ''
+      ) {
         return params[1];
       } else {
         return params[2];

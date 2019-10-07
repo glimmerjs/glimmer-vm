@@ -494,7 +494,8 @@ export class InitialRenderSuite extends RenderTest {
     for (let i = 0; i < options.length; i++) {
       let option = options[i];
       // TODO: This is a real discrepancy with SimpleDOM
-      if ((option as any).selected) {
+      const selectedValue = (option as any).selected;
+      if ((typeof selectedValue === 'string' && selectedValue !== '') || selectedValue === true) {
         selected.push(option);
       }
     }
@@ -716,7 +717,7 @@ export class InitialRenderSuite extends RenderTest {
 
     let firstDiv = this.element.firstChild;
     let secondDiv = this.element.lastChild;
-    let svg = firstDiv && firstDiv.firstChild;
+    let svg = firstDiv !== null && firstDiv.firstChild !== null ? firstDiv.firstChild : null;
 
     this.assertHTML('<div><svg></svg></div><div></div>');
 

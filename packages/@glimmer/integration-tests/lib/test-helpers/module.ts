@@ -259,5 +259,5 @@ interface TestFunction {
 }
 
 function isTestFunction(value: any): value is TestFunction {
-  return typeof value === 'function' && value.isTest;
+  return typeof value === 'function' && value.isTest === true;
 }

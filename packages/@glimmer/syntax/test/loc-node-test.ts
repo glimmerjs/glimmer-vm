@@ -6,7 +6,7 @@ function assertNodeType<T extends keyof AST.Nodes>(
   node: AST.Node | null | undefined,
   type: T
 ): node is AST.Nodes[T] {
-  let nodeType = node && node.type;
+  let nodeType = typeof node === 'object' && node !== null ? node.type : undefined;
   QUnit.assert.pushResult({
     result: nodeType === type,
     actual: nodeType,
@@ -32,7 +32,11 @@ function locEqual(
     end: { line: endLine, column: endColumn },
   };
 
-  QUnit.assert.deepEqual(node && node.loc, expected, message);
+  QUnit.assert.deepEqual(
+    typeof node === 'object' && node !== null ? node.loc : undefined,
+    expected,
+    message
+  );
 }
 
 test('programs', () => {
@@ -152,13 +156,13 @@ test('html elements with nested blocks', assert => {
       let inverseBlock = ifBlock.inverse;
       locEqual(inverseBlock, 5, 24, 7, 6, 'inverse block');
       assert.ok(inverseBlock, 'has inverse block');
-      if (inverseBlock) {
+      if (inverseBlock !== null && inverseBlock !== undefined) {
         let [nestedIfBlock] = inverseBlock.body;
         locEqual(nestedIfBlock, 5, 6, 9, 6, 'nested if block');
         if (assertNodeType(nestedIfBlock, 'BlockStatement')) {
           let nestedIfInverseBlock = nestedIfBlock.inverse;
           assert.ok(nestedIfInverseBlock, 'has nested inverse block');
-          if (nestedIfInverseBlock) {
+          if (nestedIfInverseBlock !== null && nestedIfInverseBlock !== undefined) {
             locEqual(nestedIfInverseBlock, 7, 14, 9, 6, 'nested inverse block');
           }
         }

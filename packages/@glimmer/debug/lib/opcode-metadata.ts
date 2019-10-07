@@ -5,9 +5,9 @@ import { fillNulls } from '@glimmer/util';
 import { NormalizedMetadata } from '@glimmer/debug';
 
 export function opcodeMetadata(op: MachineOp | Op, isMachine: 0 | 1): Option<NormalizedMetadata> {
-  let value = isMachine ? MACHINE_METADATA[op] : METADATA[op];
+  let value = isMachine === 1 ? MACHINE_METADATA[op] : METADATA[op];
 
-  return value || null;
+  return value !== null && value !== undefined ? value : null;
 }
 
 const METADATA: Option<NormalizedMetadata>[] = fillNulls(Op.Size);

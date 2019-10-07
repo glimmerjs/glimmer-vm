@@ -76,9 +76,11 @@ export class Blocks implements MacroBlocks {
     };
 
     if (index === undefined) {
+      /* eslint-disable-next-line */
       assert(!!this.missing, `${name} not found, and no catch-all block handler was registered`);
       let func = this.missing!;
       let handled = func(name, params, hash, blocks, macroContext);
+      /* eslint-disable-next-line */
       assert(!!handled, `${name} not found, and the catch-all block handler didn't handle it`);
       return handled;
     } else {
@@ -144,7 +146,7 @@ export class Inlines implements MacroInlines {
       meta: context.meta,
     };
 
-    if (index === undefined && this.missing) {
+    if (index === undefined && this.missing !== undefined) {
       let func = this.missing;
       return func(name, params, hash, macroContext);
     } else if (index !== undefined) {

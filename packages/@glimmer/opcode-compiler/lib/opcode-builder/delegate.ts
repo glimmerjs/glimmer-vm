@@ -52,7 +52,7 @@ export class DefaultCompileTimeResolverDelegate implements CompileTimeResolverDe
   constructor(private inner: ResolverDelegate) {}
 
   lookupHelper(name: string, referrer: unknown): Option<number> {
-    if (this.inner.lookupHelper) {
+    if (this.inner.lookupHelper !== null && this.inner.lookupHelper !== undefined) {
       let helper = this.inner.lookupHelper(name, referrer);
 
       if (helper === undefined) {
@@ -72,7 +72,7 @@ export class DefaultCompileTimeResolverDelegate implements CompileTimeResolverDe
   }
 
   lookupModifier(name: string, referrer: unknown): Option<number> {
-    if (this.inner.lookupModifier) {
+    if (this.inner.lookupModifier !== null && this.inner.lookupModifier !== undefined) {
       let modifier = this.inner.lookupModifier(name, referrer);
 
       if (modifier === undefined) {
@@ -92,7 +92,7 @@ export class DefaultCompileTimeResolverDelegate implements CompileTimeResolverDe
   }
 
   lookupComponent(name: string, referrer: unknown): Option<CompileTimeComponent> {
-    if (this.inner.lookupComponent) {
+    if (this.inner.lookupComponent !== null && this.inner.lookupComponent !== undefined) {
       let component = this.inner.lookupComponent(name, referrer);
 
       if (component === undefined) {
@@ -112,7 +112,7 @@ export class DefaultCompileTimeResolverDelegate implements CompileTimeResolverDe
   }
 
   lookupPartial(name: string, referrer: unknown): Option<number> {
-    if (this.inner.lookupPartial) {
+    if (this.inner.lookupPartial !== null && this.inner.lookupPartial !== undefined) {
       let partial = this.inner.lookupPartial(name, referrer);
 
       if (partial === undefined) {
@@ -137,7 +137,7 @@ export class DefaultCompileTimeResolverDelegate implements CompileTimeResolverDe
 
   // For debugging
   resolve(handle: number): unknown {
-    if (this.inner.resolve) {
+    if (this.inner.resolve !== null && this.inner.resolve !== undefined) {
       return this.inner.resolve(handle);
     } else {
       throw new Error(`Compile-time debugging requires an implementation of resolve`);

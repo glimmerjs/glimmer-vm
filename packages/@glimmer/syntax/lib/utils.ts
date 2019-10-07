@@ -14,7 +14,7 @@ let ID_INVERSE_PATTERN = /[!"#%-,\.\/;->@\[-\^`\{-~]/;
 
 export function parseElementBlockParams(element: AST.ElementNode) {
   let params = parseBlockParams(element);
-  if (params) element.blockParams = params;
+  if (typeof params === 'object' && params !== null) element.blockParams = params;
 }
 
 function parseBlockParams(element: AST.ElementNode): Option<string[]> {

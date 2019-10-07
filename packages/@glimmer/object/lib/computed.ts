@@ -93,7 +93,7 @@ function wrapAccessor(
 
   let get = _desc.get;
 
-  if (get && get.length > 0) {
+  if (get !== undefined && get !== null && get.length > 0) {
     originalGet = function(this: any) {
       return (get as any).call(this, accessorName);
     };
@@ -103,7 +103,7 @@ function wrapAccessor(
 
   let set = _desc.set;
 
-  if (set && set.length > 1) {
+  if (set !== undefined && set !== null && set.length > 1) {
     originalSet = function(this: any, value: any) {
       return (set as any).call(this, accessorName, value);
     };
@@ -122,7 +122,7 @@ function wrapAccessor(
 
   let cacheSet: (value: any) => void;
 
-  if (originalSet) {
+  if (originalSet !== null && originalSet !== undefined) {
     cacheSet = function(this: any, value: any): void {
       let meta = Meta.for(this);
       let slots = meta.getSlots();
@@ -141,7 +141,7 @@ function wrapAccessor(
     };
   }
 
-  if (!superDesc || 'value' in superDesc) {
+  if (superDesc === undefined || 'value' in superDesc) {
     desc.get = cacheGet;
     desc.set = cacheSet;
     return desc;

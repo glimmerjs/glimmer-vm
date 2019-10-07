@@ -41,7 +41,7 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
 
   constructor(env: Environment, parentNode: SimpleElement, nextSibling: Option<SimpleNode>) {
     super(env, parentNode, nextSibling);
-    if (nextSibling) throw new Error('Rehydration with nextSibling not supported');
+    if (nextSibling !== null) throw new Error('Rehydration with nextSibling not supported');
 
     let node = this.currentCursor!.element.firstChild;
 
@@ -64,7 +64,7 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
   }
 
   get candidate(): Option<SimpleNode> {
-    if (this.currentCursor) {
+    if (this.currentCursor !== null) {
       return this.currentCursor.candidate!;
     }
 
@@ -79,8 +79,8 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
     let { blockDepth = 0 } = this;
     let cursor = new RehydratingCursor(element, nextSibling, blockDepth);
     let currentCursor = this.currentCursor;
-    if (currentCursor) {
-      if (currentCursor.candidate) {
+    if (currentCursor !== null) {
+      if (currentCursor.candidate !== null) {
         /**
          * <div>   <---------------  currentCursor.element
          *   <!--%+b:1%-->
@@ -107,7 +107,10 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
     if (currentCursor !== null) {
       let openBlockDepth = currentCursor.openBlockDepth;
       if (openBlockDepth >= currentCursor.startingBlockDepth) {
-        while (current && !(isComment(current) && getCloseBlockDepth(current) === openBlockDepth)) {
+        while (
+          current !== null &&
+          !(isComment(current) && getCloseBlockDepth(current) === openBlockDepth)
+        ) {
           current = this.remove(current);
         }
         assert(current !== null, 'should have found closing block');
@@ -189,7 +192,7 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
     // This code path is only used when inserting precisely one node. It needs more
     // comparison logic, but we can probably lean on the cases where this code path
     // is actually used.
-    if (candidate) {
+    if (candidate !== null) {
       return candidate;
     } else {
       return super.__appendNode(node);
@@ -199,7 +202,7 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
   __appendHTML(html: string): Bounds {
     let candidateBounds = this.markerBounds();
 
-    if (candidateBounds) {
+    if (candidateBounds !== null) {
       let first = candidateBounds.firstNode()!;
       let last = candidateBounds.lastNode()!;
 
@@ -232,11 +235,11 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
   private markerBounds(): Option<Bounds> {
     let _candidate = this.candidate;
 
-    if (_candidate && isMarker(_candidate)) {
+    if (_candidate !== null && isMarker(_candidate)) {
       let first = _candidate;
       let last = expect(first.nextSibling, `BUG: serialization markers must be paired`);
 
-      while (last && !isMarker(last)) {
+      while (last !== null && !isMarker(last)) {
         last = expect(last.nextSibling, `BUG: serialization markers must be paired`);
       }
 
@@ -249,14 +252,14 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
   __appendText(string: string): SimpleText {
     let { candidate } = this;
 
-    if (candidate) {
+    if (candidate !== null) {
       if (isTextNode(candidate)) {
         if (candidate.nodeValue !== string) {
           candidate.nodeValue = string;
         }
         this.candidate = candidate.nextSibling;
         return candidate;
-      } else if (candidate && (isSeparator(candidate) || isEmpty(candidate))) {
+      } else if (isSeparator(candidate) || isEmpty(candidate)) {
         this.candidate = candidate.nextSibling;
         this.remove(candidate);
         return this.__appendText(string);
@@ -277,14 +280,14 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
 
   __appendComment(string: string): SimpleComment {
     let _candidate = this.candidate;
-    if (_candidate && isComment(_candidate)) {
+    if (_candidate !== null && isComment(_candidate)) {
       if (_candidate.nodeValue !== string) {
         _candidate.nodeValue = string;
       }
 
       this.candidate = _candidate.nextSibling;
       return _candidate;
-    } else if (_candidate) {
+    } else if (_candidate !== null) {
       this.clearMismatch(_candidate);
     }
 
@@ -294,10 +297,10 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
   __openElement(tag: string): SimpleElement {
     let _candidate = this.candidate;
 
-    if (_candidate && isElement(_candidate) && isSameNodeType(_candidate, tag)) {
+    if (_candidate !== null && isElement(_candidate) && isSameNodeType(_candidate, tag)) {
       this.unmatchedAttributes = [].slice.call(_candidate.attributes);
       return _candidate;
-    } else if (_candidate) {
+    } else if (_candidate !== null) {
       if (isElement(_candidate) && _candidate.tagName === 'TBODY') {
         this.pushElement(_candidate, null);
         this.currentCursor!.injectedOmittedNode = true;
@@ -312,9 +315,9 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
   __setAttribute(name: string, value: string, namespace: Option<AttrNamespace>): void {
     let unmatched = this.unmatchedAttributes;
 
-    if (unmatched) {
+    if (unmatched !== null) {
       let attr = findByName(unmatched, name);
-      if (attr) {
+      if (attr !== undefined) {
         if (attr.value !== value) {
           attr.value = value;
         }
@@ -329,9 +332,9 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
   __setProperty(name: string, value: string): void {
     let unmatched = this.unmatchedAttributes;
 
-    if (unmatched) {
+    if (unmatched !== null) {
       let attr = findByName(unmatched, name);
-      if (attr) {
+      if (attr !== undefined) {
         if (attr.value !== value) {
           attr.value = value;
         }
@@ -345,7 +348,7 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
 
   __flushElement(parent: SimpleElement, constructing: SimpleElement): void {
     let { unmatchedAttributes: unmatched } = this;
-    if (unmatched) {
+    if (unmatched !== null) {
       for (let i = 0; i < unmatched.length; i++) {
         this.constructing!.removeAttribute(unmatched[i].name);
       }
@@ -362,7 +365,7 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
       this.clearMismatch(candidate);
     }
 
-    if (currentCursor && currentCursor.injectedOmittedNode) {
+    if (currentCursor !== null && currentCursor.injectedOmittedNode) {
       this.popElement();
     }
 
@@ -371,7 +374,7 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
 
   getMarker(element: HTMLElement, guid: string): Option<SimpleNode> {
     let marker = element.querySelector(`script[glmr="${guid}"]`);
-    if (marker) {
+    if (marker !== null) {
       return marker as SimpleNode;
     }
     return null;
@@ -385,7 +388,7 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
     let marker = this.getMarker(element as HTMLElement, cursorId);
 
     assert(
-      !marker || marker.parentNode === element,
+      marker === null ? true : marker.parentNode === element,
       `expected remote element marker's parent node to match remote element`
     );
 
@@ -401,7 +404,7 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
     this.pushElement(element, insertBefore);
 
     currentCursor!.candidate = candidate;
-    this.candidate = marker ? this.remove(marker) : null;
+    this.candidate = marker !== null ? this.remove(marker) : null;
 
     let block = new RemoteLiveBlock(element);
     return this.pushLiveBlock(block, true);
@@ -409,9 +412,9 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
 
   didAppendBounds(bounds: Bounds): Bounds {
     super.didAppendBounds(bounds);
-    if (this.candidate) {
+    if (this.candidate !== null) {
       let last = bounds.lastNode();
-      this.candidate = last && last.nextSibling;
+      this.candidate = last !== null ? last.nextSibling : null;
     }
     return bounds;
   }
@@ -428,7 +431,7 @@ function isComment(node: SimpleNode): node is SimpleComment {
 function getOpenBlockDepth(node: SimpleComment): Option<number> {
   let boundsDepth = node.nodeValue!.match(/^%\+b:(\d+)%$/);
 
-  if (boundsDepth && boundsDepth[1]) {
+  if (boundsDepth !== null && boundsDepth[1] !== undefined && boundsDepth[1] !== '') {
     return Number(boundsDepth[1] as string);
   } else {
     return null;
@@ -438,7 +441,7 @@ function getOpenBlockDepth(node: SimpleComment): Option<number> {
 function getCloseBlockDepth(node: SimpleComment): Option<number> {
   let boundsDepth = node.nodeValue!.match(/^%\-b:(\d+)%$/);
 
-  if (boundsDepth && boundsDepth[1]) {
+  if (boundsDepth !== null && boundsDepth[1] !== undefined && boundsDepth[1] !== '') {
     return Number(boundsDepth[1] as string);
   } else {
     return null;

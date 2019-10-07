@@ -26,7 +26,7 @@ export function normalizeProperty(element: SimpleElement, slotName: string) {
 
   if (
     type === 'prop' &&
-    (normalized.toLowerCase() === 'style' || preferAttr(element.tagName, normalized))
+    (normalized.toLowerCase() === 'style' || preferAttr(element.tagName, normalized) === true)
   ) {
     type = 'attr';
   }
@@ -71,5 +71,5 @@ const ATTR_OVERRIDES: Dict<Dict> = {
 
 function preferAttr(tagName: string, propName: string) {
   let tag = ATTR_OVERRIDES[tagName.toUpperCase()];
-  return (tag && tag[propName.toLowerCase()]) || false;
+  return (tag !== undefined && tag[propName.toLowerCase()] === true) || false;
 }

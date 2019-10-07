@@ -4,7 +4,7 @@ import { SimpleElement, SimpleNode } from '@simple-dom/interface';
 export function clearElement(parent: SimpleElement) {
   let current: Option<SimpleNode> = parent.firstChild;
 
-  while (current) {
+  while (current !== null) {
     let next = current.nextSibling;
     parent.removeChild(current);
     current = next;

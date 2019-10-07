@@ -28,7 +28,7 @@ export function applySVGInnerHTMLFix(
   DOMClass: typeof DOMOperations,
   svgNamespace: SVG_NAMESPACE
 ): typeof DOMOperations {
-  if (!document) return DOMClass;
+  if (document === null) return DOMClass;
 
   if (!shouldApplyFix(document, svgNamespace)) {
     return DOMClass;

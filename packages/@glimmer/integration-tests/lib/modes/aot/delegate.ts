@@ -99,7 +99,7 @@ export class AotRenderDelegate implements RenderDelegate {
 
   constructor(doc?: SimpleDocument) {
     this.registerInternalHelper('-get-dynamic-var', getDynamicVar);
-    this.doc = doc || (document as SimpleDocument);
+    this.doc = doc !== undefined ? doc : (document as SimpleDocument);
   }
 
   private registerInternalHelper(name: string, helper: GlimmerHelper): GlimmerHelper {
@@ -128,11 +128,11 @@ export class AotRenderDelegate implements RenderDelegate {
   ): void {
     let module = `ui/components/${name}`;
 
-    let ComponentClass = Class || COMPONENT_CLASSES[type];
+    let ComponentClass = Class !== undefined ? Class : COMPONENT_CLASSES[type];
     let manager = COMPONENT_MANAGERS[type];
     let capabilities = COMPONENT_CAPABILITIES[type];
 
-    if (!manager || !capabilities) {
+    if (manager === null || capabilities === null) {
       throw new Error(`Not implemented in the Bundle Compiler yet: ${type}`);
     }
 
@@ -213,7 +213,7 @@ export class AotRenderDelegate implements RenderDelegate {
         });
       }
 
-      if (state.hasSymbolTable) {
+      if (state.hasSymbolTable === true) {
         registry.register(key, 'component', {
           default: {
             state: assign({}, state, { symbolTable }),

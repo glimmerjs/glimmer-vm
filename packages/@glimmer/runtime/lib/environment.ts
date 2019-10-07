@@ -247,6 +247,7 @@ class TransactionImpl implements Transaction {
 export type ToBool = (value: unknown) => boolean;
 
 function toBool(value: unknown): boolean {
+  /* eslint-disable-next-line */
   return !!value;
 }
 
@@ -277,7 +278,7 @@ export abstract class EnvironmentImpl implements Environment {
 
   begin() {
     assert(
-      !this[TRANSACTION],
+      TRANSACTION in this ? this[TRANSACTION] === null : true,
       'A glimmer transaction was begun, but one already exists. You may have a nested transaction, possibly caused by an earlier runtime exception while rendering. Please check your console for the stack trace of any prior exceptions.'
     );
 
@@ -340,15 +341,16 @@ export class RuntimeEnvironmentDelegateImpl implements RuntimeEnvironmentDelegat
   readonly toBool: (value: unknown) => boolean;
 
   constructor(private inner: RuntimeEnvironmentDelegate = {}) {
-    if (inner.toBool) {
+    if (inner.toBool !== undefined) {
       this.toBool = inner.toBool;
     } else {
+      /* eslint-disable-next-line */
       this.toBool = value => !!value;
     }
   }
 
   protocolForURL(url: string): string {
-    if (this.inner.protocolForURL) {
+    if (typeof this.inner.protocolForURL === 'function') {
       return this.inner.protocolForURL(url);
     } else if (typeof URL === 'object' || typeof URL === 'undefined') {
       return legacyProtocolForURL(url);
@@ -365,7 +367,7 @@ export class RuntimeEnvironmentDelegateImpl implements RuntimeEnvironmentDelegat
     isTrusting: boolean,
     namespace: Option<AttrNamespace>
   ): DynamicAttribute {
-    if (this.inner.attributeFor) {
+    if (typeof this.inner.attributeFor === 'function') {
       return this.inner.attributeFor(element, attr, isTrusting, namespace);
     } else {
       return dynamicAttribute(element, attr, namespace);
@@ -385,7 +387,7 @@ export class RuntimeEnvironmentDelegateImpl implements RuntimeEnvironmentDelegat
 function legacyProtocolForURL(url: string): string {
   if (typeof window === 'undefined') {
     let match = /^([a-z][a-z0-9.+-]*:)?(\/\/)?([\S\s]*)/i.exec(url);
-    return match && match[1] ? match[1].toLowerCase() : '';
+    return match !== null && typeof match[1] === 'string' ? match[1].toLowerCase() : '';
   }
 
   let anchor = window.document.createElement('a');
@@ -398,7 +400,7 @@ export class DefaultRuntimeResolver<R extends { module: string }>
   constructor(private inner: RuntimeResolverDelegate) {}
 
   lookupComponent(name: string, referrer?: unknown): Option<any> {
-    if (this.inner.lookupComponent) {
+    if (typeof this.inner.lookupComponent === 'function') {
       let component = this.inner.lookupComponent(name, referrer);
 
       if (component === undefined) {
@@ -414,7 +416,7 @@ export class DefaultRuntimeResolver<R extends { module: string }>
   }
 
   lookupPartial(name: string, referrer?: unknown): Option<number> {
-    if (this.inner.lookupPartial) {
+    if (typeof this.inner.lookupPartial === 'function') {
       let partial = this.inner.lookupPartial(name, referrer);
 
       if (partial === undefined) {
@@ -430,7 +432,7 @@ export class DefaultRuntimeResolver<R extends { module: string }>
   }
 
   resolve<U extends ResolvedValue>(handle: number): U {
-    if (this.inner.resolve) {
+    if (typeof this.inner.resolve === 'function') {
       let resolved = this.inner.resolve(handle);
 
       if (resolved === undefined) {
@@ -444,7 +446,7 @@ export class DefaultRuntimeResolver<R extends { module: string }>
   }
 
   compilable(locator: { module: string }): Template {
-    if (this.inner.compilable) {
+    if (typeof this.inner.compilable === 'function') {
       let resolved = this.inner.compilable(locator);
 
       if (resolved === undefined) {
@@ -458,7 +460,7 @@ export class DefaultRuntimeResolver<R extends { module: string }>
   }
 
   getInvocation(locator: R): Invocation {
-    if (this.inner.getInvocation) {
+    if (typeof this.inner.getInvocation === 'function') {
       let invocation = this.inner.getInvocation(locator);
 
       if (invocation === undefined) {
@@ -592,7 +594,7 @@ export class RuntimeEnvironment extends EnvironmentImpl {
 }
 
 export function inTransaction(env: Environment, cb: () => void): void {
-  if (!env[TRANSACTION]) {
+  if (!(TRANSACTION in env) || env[TRANSACTION] === null) {
     env.begin();
     try {
       cb();
@@ -606,7 +608,7 @@ export function inTransaction(env: Environment, cb: () => void): void {
 
 export abstract class DefaultEnvironment extends EnvironmentImpl {
   constructor(options?: EnvironmentOptions) {
-    if (!options) {
+    if (options === undefined) {
       let document = window.document as SimpleDocument;
       let appendOperations = new DOMTreeConstruction(document);
       let updateOperations = new DOMChangesImpl(document);

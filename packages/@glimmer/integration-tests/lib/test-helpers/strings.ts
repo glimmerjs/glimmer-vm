@@ -4,7 +4,7 @@ export function strip(strings: TemplateStringsArray, ...args: string[]) {
       return `${str
         .split('\n')
         .map(s => s.trim())
-        .join('')}${args[i] ? args[i] : ''}`;
+        .join('')}${args[i] !== undefined ? args[i] : ''}`;
     })
     .join('');
 }

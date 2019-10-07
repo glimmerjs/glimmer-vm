@@ -20,12 +20,14 @@ export const UNHANDLED: Unhandled = { 'not-handled': true };
 export function isNoAction(
   actions: CompileActions | StatementCompileActions
 ): actions is NO_ACTION {
+  /* eslint-disable-next-line */
   return actions && !!(actions as Dict)['no-action'];
 }
 
 export function isHandled(
   actions: CompileActions | StatementCompileActions | Unhandled
 ): actions is CompileActions | StatementCompileActions {
+  /* eslint-disable-next-line */
   return !actions || !(actions as Dict)['not-handled'];
 }
 

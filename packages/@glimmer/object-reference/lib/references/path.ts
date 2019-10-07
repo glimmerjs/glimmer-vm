@@ -57,7 +57,7 @@ export default class PathReference<T> implements IPathReference<T>, HasGuid {
   }
 
   private _getChains(): Dict<PathReference<any>> {
-    if (this.chains) return this.chains;
+    if (this.chains !== null) return this.chains;
     return (this.chains = dict<PathReference<any>>());
   }
 

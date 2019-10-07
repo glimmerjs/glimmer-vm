@@ -80,7 +80,7 @@ class InstanceofChecker<T> implements Checker<T> {
   constructor(private Class: Constructor<T>) {}
 
   validate(value: unknown): value is T {
-    return value ? value instanceof this.Class : false;
+    return value !== undefined ? value instanceof this.Class : false;
   }
 
   expected(): string {

@@ -89,31 +89,31 @@ export abstract class Parser {
 
   get currentTag(): Tag<'StartTag' | 'EndTag'> {
     let node = this.currentNode;
-    assert(node && (node.type === 'StartTag' || node.type === 'EndTag'), 'expected tag');
+    assert(node !== null && (node.type === 'StartTag' || node.type === 'EndTag'), 'expected tag');
     return node as Tag<'StartTag' | 'EndTag'>;
   }
 
   get currentStartTag(): Tag<'StartTag'> {
     let node = this.currentNode;
-    assert(node && node.type === 'StartTag', 'expected start tag');
+    assert(node !== null && node.type === 'StartTag', 'expected start tag');
     return node as Tag<'StartTag'>;
   }
 
   get currentEndTag(): Tag<'EndTag'> {
     let node = this.currentNode;
-    assert(node && node.type === 'EndTag', 'expected end tag');
+    assert(node !== null && node.type === 'EndTag', 'expected end tag');
     return node as Tag<'EndTag'>;
   }
 
   get currentComment(): AST.CommentStatement {
     let node = this.currentNode;
-    assert(node && node.type === 'CommentStatement', 'expected a comment');
+    assert(node !== null && node.type === 'CommentStatement', 'expected a comment');
     return node as AST.CommentStatement;
   }
 
   get currentData(): AST.TextNode {
     let node = this.currentNode;
-    assert(node && node.type === 'TextNode', 'expected a text node');
+    assert(node !== null && node.type === 'TextNode', 'expected a text node');
     return node as AST.TextNode;
   }
 
@@ -141,7 +141,7 @@ export abstract class Parser {
     let lastLine: number;
     let lastColumn: number;
 
-    if (endNode) {
+    if (endNode !== undefined) {
       lastLine = endNode.loc.end.line - 1;
       lastColumn = endNode.loc.end.column;
     } else {

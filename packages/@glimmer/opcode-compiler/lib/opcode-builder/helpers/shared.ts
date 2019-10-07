@@ -36,13 +36,14 @@ export function compileArgs({
 
   if (atNames) flags |= 0b1000;
 
+  /* eslint-disable-next-line */
   if (blocks) {
     flags |= 0b111;
   }
 
   let names: string[] = EMPTY_ARRAY;
 
-  if (hash) {
+  if (hash !== null) {
     names = hash[0];
     let val = hash[1];
     for (let i = 0; i < val.length; i++) {
@@ -58,7 +59,7 @@ export function compileArgs({
 export function compileParams(
   params: Option<WireFormat.Core.Params>
 ): { count: number; actions: ExpressionCompileActions } {
-  if (!params) return { count: 0, actions: NONE };
+  if (params === null) return { count: 0, actions: NONE };
 
   let actions: ExpressionCompileActions = [];
 
@@ -71,7 +72,7 @@ export function compileParams(
 
 export function meta<R>(layout: LayoutWithContext<R>): ContainingMetadata {
   return {
-    asPartial: layout.asPartial || false,
+    asPartial: layout.asPartial !== undefined ? layout.asPartial : false,
     evalSymbols: evalSymbols(layout),
     referrer: layout.referrer,
     size: layout.block.symbols.length,

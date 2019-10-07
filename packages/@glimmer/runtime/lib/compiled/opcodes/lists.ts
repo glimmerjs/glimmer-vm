@@ -41,7 +41,7 @@ APPEND_OPCODES.add(Op.Iterate, (vm, { op1: breaks }) => {
   let stack = vm.stack;
   let item = check(stack.peek(), CheckInstanceof(ReferenceIterator)).next();
 
-  if (item) {
+  if (item !== null) {
     let tryOpcode = vm.iterate(item.memo, item.value);
     vm.enterItem(item.key, tryOpcode);
   } else {

@@ -92,14 +92,16 @@ const hasOwnProperty = Object.hasOwnProperty;
 class Meta implements IMeta, HasGuid {
   static for(obj: any): IMeta {
     if (obj === null || obj === undefined) return new Meta(obj, {});
+    /* eslint-disable-next-line */
     if (hasOwnProperty.call(obj, '_meta') && obj._meta) return obj._meta;
     if (!Object.isExtensible(obj)) return new ConstMeta(obj) as any;
 
     let MetaToUse: typeof Meta = Meta;
-
+    /* eslint-disable-next-line */
     if (obj.constructor && obj.constructor[CLASS_META]) {
       let classMeta: ClassMeta = obj.constructor[CLASS_META];
       MetaToUse = classMeta.InstanceMetaConstructor;
+      /* eslint-disable-next-line */
     } else if (obj[CLASS_META]) {
       MetaToUse = obj[CLASS_META].InstanceMetaConstructor;
     }
@@ -108,6 +110,7 @@ class Meta implements IMeta, HasGuid {
   }
 
   static exists(obj: any): boolean {
+    /* eslint-disable-next-line */
     return typeof obj === 'object' && obj._meta;
   }
 
@@ -126,6 +129,7 @@ class Meta implements IMeta, HasGuid {
 
   constructor(object: any, { RootReferenceFactory }: MetaOptions) {
     this.object = object;
+    /* eslint-disable-next-line */
     this.RootReferenceFactory = (RootReferenceFactory || RootReference) as RootReferenceFactory<
       any
     >;
@@ -136,43 +140,53 @@ class Meta implements IMeta, HasGuid {
   }
 
   addReference(property: string, reference: IPathReference<any> & HasGuid) {
-    let refs = (this.references =
-      this.references || dict<DictSet<IPathReference<any> & HasGuid>>());
+    if (this.references === null) {
+      this.references = dict<DictSet<IPathReference<any> & HasGuid>>();
+    }
+    let refs = this.references;
+    /* eslint-disable-next-line */
     let set = (refs[property] = refs[property] || new DictSet<IPathReference<any> & HasGuid>());
     set.add(reference);
   }
 
   addReferenceTypeFor(property: string, type: PathReferenceFactory<any>) {
+    /* eslint-disable-next-line */
     this.referenceTypes = this.referenceTypes || dict<PathReferenceFactory<any>>();
     this.referenceTypes[property] = type;
   }
 
   referenceTypeFor(property: string): InnerReferenceFactory<any> {
-    if (!this.referenceTypes) return PropertyReference;
+    if (this.referenceTypes === null) return PropertyReference;
+    /* eslint-disable-next-line */
     return this.referenceTypes[property] || PropertyReference;
   }
 
   removeReference(property: string, reference: IPathReference<any> & HasGuid) {
+    /* eslint-disable-next-line */
     if (!this.references) return;
     let set = this.references[property];
     set.delete(reference);
   }
 
   getReferenceTypes(): Dict<InnerReferenceFactory<any>> {
+    /* eslint-disable-next-line */
     this.referenceTypes = this.referenceTypes || dict<PathReferenceFactory<any>>();
     return this.referenceTypes;
   }
 
   referencesFor(property: string): Option<Set<IPathReference<any>>> {
+    /* eslint-disable-next-line */
     if (!this.references) return null;
     return this.references[property];
   }
 
   getSlots() {
+    /* eslint-disable-next-line */
     return (this.slots = this.slots || dict());
   }
 
   root(): IRootReference<any> {
+    /* eslint-disable-next-line */
     return (this.rootCache = this.rootCache || new this.RootReferenceFactory(this.object));
   }
 }

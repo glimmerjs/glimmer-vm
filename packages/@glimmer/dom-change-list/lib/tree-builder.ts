@@ -92,7 +92,7 @@ export class TreeBuilder {
     let context = this.current;
     let isSVG: boolean;
 
-    if (context) {
+    if (context !== null) {
       isSVG = context.namespaceURI === SVG_NAMESPACE || tag === 'svg';
       isSVG = isSVG && !context.isIntegration;
     } else {
@@ -100,14 +100,14 @@ export class TreeBuilder {
     }
 
     if (isSVG) {
-      if (BLACKLIST_TABLE[tag]) {
+      if (BLACKLIST_TABLE[tag] === 1) {
         throw new Error(`Cannot create a ${tag} inside an SVG context`);
       }
 
       this.contexts.push({
         tag,
         namespaceURI: SVG_NAMESPACE,
-        isIntegration: !!(SVG_INTEGRATION_POINTS as Dict)[tag],
+        isIntegration: (SVG_INTEGRATION_POINTS as Dict)[tag] === 1,
       });
       return this.dom.openElement(tag, SVG_NAMESPACE);
     }
@@ -134,12 +134,12 @@ export class TreeBuilder {
 
   get currentTag(): Option<string> {
     let current = this.current;
-    return current && current.tag;
+    return current !== null ? current.tag : null;
   }
 
   get currentNamespace(): Option<Namespace> {
     let current = this.current;
-    return current && current.namespaceURI;
+    return current !== null ? current.namespaceURI : null;
   }
 
   appendTo(element: SimpleElement | SimpleDocumentFragment, owner: SimpleDocument): NodeTokens {
@@ -150,6 +150,6 @@ export class TreeBuilder {
     let { contexts } = this;
     let { length } = contexts;
 
-    return length ? contexts[length - 1] : null;
+    return length !== 0 ? contexts[length - 1] : null;
   }
 }

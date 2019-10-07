@@ -125,7 +125,7 @@ export class JitRenderDelegate implements RenderDelegate {
   }
 
   getSelf(context: unknown): UpdatableReference | ConstReference {
-    if (!this.self) {
+    if (this.self === null) {
       this.self = new UpdatableReference(context);
     }
 
@@ -145,5 +145,5 @@ export class JitRenderDelegate implements RenderDelegate {
 }
 
 function isBrowserTestDocument(doc: SimpleDocument): doc is SimpleDocument & Document {
-  return !!((doc as any).getElementById && (doc as any).getElementById('qunit-fixture'));
+  return 'getElementById' in (doc as any) && (doc as any).getElementById('qunit-fixture') !== null;
 }

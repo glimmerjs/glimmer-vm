@@ -29,7 +29,7 @@ export class RootReference<T> implements VersionedPathReference<T> {
   get(propertyKey: string): RootPropertyReference {
     let ref = this.children[propertyKey];
 
-    if (!ref) {
+    if (ref === undefined) {
       ref = this.children[propertyKey] = new RootPropertyReference(this.inner, propertyKey);
     }
 
@@ -51,7 +51,7 @@ export class ImmutableRootReference<T> implements VersionedPathReference<T> {
   get(propertyKey: string): RootPropertyReference {
     let ref = this.children[propertyKey];
 
-    if (!ref) {
+    if (ref === undefined) {
       ref = this.children[propertyKey] = new RootPropertyReference(this.inner, propertyKey);
     }
 
@@ -92,7 +92,7 @@ export class Cached<T = unknown> implements VersionedPathReference<T> {
   value() {
     let { tag, _lastRevision, _lastValue } = this;
 
-    if (!_lastRevision || !validate(tag, _lastRevision)) {
+    if (_lastRevision === null || validate(tag, _lastRevision) === false) {
       _lastValue = this._lastValue = this.inner.value();
       this._lastRevision = value(tag);
     }

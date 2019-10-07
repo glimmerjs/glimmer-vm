@@ -54,6 +54,7 @@ export function emberToBool(value: any): boolean {
   if (Array.isArray(value)) {
     return value.length > 0;
   } else {
+    /* eslint-disable-next-line */
     return !!value;
   }
 }
