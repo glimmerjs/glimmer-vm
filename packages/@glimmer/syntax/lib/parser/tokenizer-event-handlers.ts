@@ -206,13 +206,15 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
         this.tokenizer.column
       );
 
-      // correct for `\n` as first char
+      // the tokenizer line/column have already been advanced, correct location info
       if (char === '\n') {
         loc.start.line -= 1;
         loc.start.column =
           typeof lastPart === 'object' && lastPart !== null
             ? lastPart.loc.end.column
             : this.currentAttr.valueStartColumn;
+      } else {
+        loc.start.column -= 1;
       }
 
       let text = b.text(char, loc);

@@ -11,10 +11,18 @@ import {
 import { EMPTY_ARRAY } from '@glimmer/util';
 import { op } from '../encoder';
 import { strArray } from '../operands';
-import { pushYieldableBlock } from './blocks';
+import { PushYieldableBlock } from './blocks';
 import { NONE } from '../../syntax/concat';
 
-export function compileArgs({
+/**
+ * Compile arguments, pushing an Arguments object onto the stack.
+ *
+ * @param args.params
+ * @param args.hash
+ * @param args.blocks
+ * @param args.atNames
+ */
+export function CompileArgs({
   params,
   hash,
   blocks,
@@ -23,12 +31,12 @@ export function compileArgs({
   let out: StatementCompileActions = [];
 
   if (blocks.hasAny) {
-    out.push(pushYieldableBlock(blocks.get('default')));
-    out.push(pushYieldableBlock(blocks.get('else')));
-    out.push(pushYieldableBlock(blocks.get('attrs')));
+    out.push(PushYieldableBlock(blocks.get('default')));
+    out.push(PushYieldableBlock(blocks.get('else')));
+    out.push(PushYieldableBlock(blocks.get('attrs')));
   }
 
-  let { count, actions } = compileParams(params);
+  let { count, actions } = CompilePositional(params);
 
   out.push(actions);
 
@@ -56,7 +64,13 @@ export function compileArgs({
   return out;
 }
 
-export function compileParams(
+/**
+ * Compile an optional list of positional arguments, which pushes each argument
+ * onto the stack and returns the number of parameters compiled
+ *
+ * @param params an optional list of positional arguments
+ */
+export function CompilePositional(
   params: Option<WireFormat.Core.Params>
 ): { count: number; actions: ExpressionCompileActions } {
   if (params === null) return { count: 0, actions: NONE };
@@ -74,6 +88,7 @@ export function meta<R>(layout: LayoutWithContext<R>): ContainingMetadata {
   return {
     asPartial: layout.asPartial !== undefined ? layout.asPartial : false,
     evalSymbols: evalSymbols(layout),
+    upvars: layout.block.upvars,
     referrer: layout.referrer,
     size: layout.block.symbols.length,
   };

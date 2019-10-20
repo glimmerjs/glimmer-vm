@@ -18,8 +18,13 @@ export {
   ListSlice,
   Slice,
 } from './lib/list-utils';
-export { assign, fillNulls } from './lib/object-utils';
+export { assign, fillNulls, values } from './lib/object-utils';
 export * from './lib/platform-utils';
 export * from './lib/string';
 
 export type FIXME<T, S extends string> = T & S | T;
+
+export function assertNever(value: never, desc = 'unexpected unreachable branch'): void {
+  console.log('unreachable', value);
+  console.trace(`${desc} :: ${JSON.stringify(value)} (${value})`);
+}

@@ -1,6 +1,6 @@
 {
   "name": "glimmer-engine",
-  "version": "0.42.1",
+  "version": "0.42.2",
   "private": true,
   "description": "Glimmer compiles Handlebars templates into document fragments rather than string buffers",
   "license": "MIT",
@@ -28,10 +28,6 @@
     "yarn:link": "node bin/yarn-link-all",
     "yarn:unlink": "node bin/yarn-link-all --unlink",
     "link:local": "node bin/yarn-link-local"
-  },
-  "resolutions": {
-    "typescript": "3.3.3",
-    "broccoli-typescript-transpiler/typescript": "3.3.3"
   },
   "dependencies": {
     "@simple-dom/document": "^1.4.0",
@@ -63,7 +59,7 @@
     "broccoli-persistent-filter": "^2.1.1",
     "broccoli-rollup": "^2.0.0",
     "broccoli-source": "^1.1.0",
-    "broccoli-typescript-compiler": "^4.1.0",
+    "broccoli-typescript-compiler": "^4.2.0",
     "dag-map": "^2.0.2",
     "ember-cli": "~3.6.1",
     "ember-cli-release": "^1.0.0-beta.2",
@@ -94,5 +90,9 @@
       "documentation": ":memo: Documentation",
       "internal": ":house: Internal"
     }
+  },
+  "volta": {
+    "node": "10.16.3",
+    "yarn": "1.17.3"
   }
 }

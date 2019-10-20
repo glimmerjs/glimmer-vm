@@ -86,6 +86,12 @@ APPEND_OPCODES.add(Op.GetProperty, (vm, { op1: _key }) => {
 APPEND_OPCODES.add(Op.GetBlock, (vm, { op1: _block }) => {
   let { stack } = vm;
   let block = vm.scope().getBlock(_block);
+  stack.push(block);
+});
+
+APPEND_OPCODES.add(Op.JitSpreadBlock, vm => {
+  let { stack } = vm;
+  let block = stack.pop<JitScopeBlock>();
 
   if (block !== null) {
     stack.push(block[2]);
@@ -98,9 +104,9 @@ APPEND_OPCODES.add(Op.GetBlock, (vm, { op1: _block }) => {
   }
 });
 
-APPEND_OPCODES.add(Op.HasBlock, (vm, { op1: _block }) => {
-  let hasBlock = vm.scope().getBlock(_block) !== null;
-  vm.stack.push(hasBlock ? TRUE_REFERENCE : FALSE_REFERENCE);
+APPEND_OPCODES.add(Op.HasBlock, vm => {
+  let hasBlock = vm.stack.pop() !== null;
+  vm.stack.push(hasBlock ? TRUE_REFERENCE : FALSE_REFERENCE)
 });
 
 APPEND_OPCODES.add(Op.HasBlockParams, vm => {

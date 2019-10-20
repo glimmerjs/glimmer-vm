@@ -6,7 +6,7 @@ import { StringLiteral, BooleanLiteral, NumberLiteral } from './types/handlebars
 
 // Statements
 
-export type BuilderPath = string | AST.PathExpression;
+export type BuilderHead = string | AST.Expression;
 export type TagDescriptor = string | { name: string; selfClosing: boolean };
 
 function withFallback<T, U>(originalValue: T | null | undefined, fallbackValue: U): T | U {
@@ -14,7 +14,7 @@ function withFallback<T, U>(originalValue: T | null | undefined, fallbackValue: 
 }
 
 function buildMustache(
-  path: BuilderPath | AST.Literal,
+  path: BuilderHead | AST.Literal,
   params?: AST.Expression[],
   hash?: AST.Hash,
   raw?: boolean,
@@ -22,7 +22,7 @@ function buildMustache(
   strip?: AST.StripFlags
 ): AST.MustacheStatement {
   if (typeof path === 'string') {
-    path = buildPath(path);
+    path = buildHead(path);
   }
 
   return {
@@ -37,7 +37,7 @@ function buildMustache(
 }
 
 function buildBlock(
-  path: BuilderPath,
+  path: BuilderHead,
   params: Option<AST.Expression[]>,
   hash: Option<AST.Hash>,
   _defaultBlock: AST.PossiblyDeprecatedBlock,
@@ -72,7 +72,7 @@ function buildBlock(
 
   return {
     type: 'BlockStatement',
-    path: buildPath(path),
+    path: buildHead(path),
     params: withFallback(params, []),
     hash: withFallback(hash, buildHash([])),
     program: defaultBlock,
@@ -85,14 +85,14 @@ function buildBlock(
 }
 
 function buildElementModifier(
-  path: BuilderPath,
+  path: BuilderHead,
   params?: AST.Expression[],
   hash?: AST.Hash,
   loc?: Option<AST.SourceLocation>
 ): AST.ElementModifierStatement {
   return {
     type: 'ElementModifierStatement',
-    path: buildPath(path),
+    path: buildHead(path),
     params: withFallback(params, []),
     hash: withFallback(hash, buildHash([])),
     loc: buildLoc(withFallback(loc, null)),
@@ -205,7 +205,7 @@ export function normalizeModifier(sexp: ModifierSexp): AST.ElementModifierStatem
     return buildElementModifier(sexp);
   }
 
-  let path: AST.PathExpression = normalizePath(sexp[0]);
+  let path: AST.Expression = normalizeHead(sexp[0]);
   let params: AST.Expression[] | undefined;
   let hash: AST.Hash | undefined;
   let loc: AST.SourceLocation | null = null;
@@ -233,7 +233,13 @@ export function normalizeModifier(sexp: ModifierSexp): AST.ElementModifierStatem
     loc = next[1];
   }
 
-  return buildElementModifier(path, params, hash, loc);
+  return {
+    type: 'ElementModifierStatement',
+    path,
+    params: params || [],
+    hash: hash || buildHash([]),
+    loc: buildLoc(loc || null),
+  };
 }
 
 export function normalizeAttr(sexp: AttrSexp): AST.AttrNode {
@@ -261,11 +267,11 @@ export function normalizeHash(hash: Dict<AST.Expression>, loc?: AST.SourceLocati
   return buildHash(pairs, loc);
 }
 
-export function normalizePath(path: PathSexp): AST.PathExpression {
+export function normalizeHead(path: PathSexp): AST.Expression {
   if (typeof path === 'string') {
-    return buildPath(path);
+    return buildHead(path);
   } else {
-    return buildPath(path[1], path[2] !== undefined ? path[2][1] : undefined);
+    return buildHead(path[1], path[2] !== undefined ? path[2][1] : undefined);
   }
 }
 
@@ -385,21 +391,21 @@ function buildText(chars?: string, loc?: AST.SourceLocation): AST.TextNode {
 // Expressions
 
 function buildSexpr(
-  path: BuilderPath,
+  path: BuilderHead,
   params?: AST.Expression[],
   hash?: AST.Hash,
   loc?: AST.SourceLocation
 ): AST.SubExpression {
   return {
     type: 'SubExpression',
-    path: buildPath(path),
+    path: buildHead(path),
     params: withFallback(params, []),
     hash: withFallback(hash, buildHash([])),
     loc: buildLoc(withFallback(loc, null)),
   };
 }
 
-function buildPath(original: BuilderPath, loc?: AST.SourceLocation): AST.PathExpression {
+function buildHead(original: BuilderHead, loc?: AST.SourceLocation): AST.Expression {
   if (typeof original !== 'string') return original;
 
   let parts = original.split('.');
@@ -553,7 +559,7 @@ export default {
   attr: buildAttr,
   text: buildText,
   sexpr: buildSexpr,
-  path: buildPath,
+  path: buildHead,
   concat: buildConcat,
   hash: buildHash,
   pair: buildPair,

@@ -211,7 +211,7 @@ export class ClassMeta {
     if ((property as string) in this.mergedProperties && this.mergedProperties[property] && value) {
       this.mergedProperties[property] = mergeMergedProperties(
         value,
-        this.mergedProperties[property]
+        (this as any).mergedProperties[property]
       );
     } else {
       /* eslint-disable-next-line */
@@ -353,19 +353,19 @@ export default class GlimmerObject {
     return extendClass(this, ...extensions);
   }
 
-  static create(attrs?: Object | null): GlimmerObject {
+  static create(attrs?: Dict | null): GlimmerObject {
     return new this(attrs);
   }
 
   static reopen<U>(extensions: U): void {
-    toMixin(extensions).extendPrototype(this);
+    toMixin(extensions).extendPrototype(this as any);
     this[CLASS_META].seal();
 
-    relinkSubclasses(this);
+    relinkSubclasses(this as any);
   }
 
   static reopenClass<U>(extensions: U): void {
-    toMixin(extensions).extendStatic(this);
+    toMixin(extensions).extendStatic(this as any);
     this[CLASS_META].seal();
   }
 
@@ -395,9 +395,8 @@ export default class GlimmerObject {
 
   init() {}
 
-  constructor(attrs?: Object | null) {
+  constructor(attrs?: Dict | null) {
     if (attrs !== null && attrs !== undefined) assign(this, attrs);
-    /* eslint-disable-next-line */
     (this.constructor as typeof GlimmerObject)[CLASS_META].init(this, attrs || null);
     this._super = ROOT;
     initializeGuid(this);

@@ -1947,10 +1947,10 @@ broccoli-string-replace@0.1.1:
     broccoli-persistent-filter "^1.1.5"
     minimatch "^2.0.8"
 
-broccoli-typescript-compiler@^4.1.0:
-  version "4.1.0"
-  resolved "https://registry.yarnpkg.com/broccoli-typescript-compiler/-/broccoli-typescript-compiler-4.1.0.tgz#8511b73a7b019f6b6267679df64e211ca65ba036"
-  integrity sha512-pz+hQMlfwvklezPB1K4COYdf5SIQX6Dl4bdLX/R0uTNEJAwVa3Is/4YSXXm2L+LQdfMCZSXzqjbC5AGgvdbB6A==
+broccoli-typescript-compiler@^4.2.0:
+  version "4.2.0"
+  resolved "https://registry.yarnpkg.com/broccoli-typescript-compiler/-/broccoli-typescript-compiler-4.2.0.tgz#b0c75898c75b897f40d3f627d548a64e0bb3d9f2"
+  integrity sha512-Fk17EapT3Yye5pUNC3lzxq78KdFTWGC7m8Zi8BnIfwD6ZPzVT+uEYMEcYXsfCtMD//jHSIXDQi9YlWZcHVjiDw==
   dependencies:
     broccoli-funnel "^2.0.1"
     broccoli-merge-trees "^3.0.0"
@@ -1958,7 +1958,7 @@ broccoli-typescript-compiler@^4.1.0:
     fs-tree-diff "^0.5.7"
     heimdalljs "0.3.3"
     md5-hex "^2.0.0"
-    typescript "~3.2.1"
+    typescript "~3.5.3"
     walk-sync "^0.3.2"
 
 broccoli-uglify-sourcemap@^1.0.1:
@@ -9894,10 +9894,10 @@ typedarray@^0.0.6:
   resolved "https://registry.yarnpkg.com/typedarray/-/typedarray-0.0.6.tgz#867ac74e3864187b1d3d47d996a78ec5c8830777"
   integrity sha1-hnrHTjhkGHsdPUfZlqeOxciDB3c=
 
-typescript@3.3.3, typescript@~3.2.1:
-  version "3.3.3"
-  resolved "https://registry.yarnpkg.com/typescript/-/typescript-3.3.3.tgz#f1657fc7daa27e1a8930758ace9ae8da31403221"
-  integrity sha512-Y21Xqe54TBVp+VDSNbuDYdGw0BpoR/Q6wo/+35M8PAU0vipahnyduJWirxxdxjsAkS7hue53x2zp8gz7F05u0A==
+typescript@~3.5.3:
+  version "3.5.3"
+  resolved "https://registry.yarnpkg.com/typescript/-/typescript-3.5.3.tgz#c830f657f93f1ea846819e929092f5fe5983e977"
+  integrity sha512-ACzBtm/PhXBDId6a6sDJfroT2pOWt/oOnk4/dElG5G33ZL776N3Y6/6bKZJBFpd+b05F3Ct9qDjMeJmRWtE2/g==
 
 uc.micro@^1.0.0, uc.micro@^1.0.1, uc.micro@^1.0.5:
   version "1.0.5"
