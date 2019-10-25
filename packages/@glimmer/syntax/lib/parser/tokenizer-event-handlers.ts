@@ -302,9 +302,6 @@ function validateEndTag(
     // <input> or <br />, so we need to check for that here. Otherwise, we would
     // throw an error for those cases.
     error = 'Invalid end tag ' + formatEndTagInfo(tag) + ' (void elements cannot have end tags).';
-  } else if (mustacheInClosingTag(tag, element)) {
-    error =
-      'Invalid end tag ' + formatEndTagInfo(tag) + '. (closing tags cannot contain modifiers).';
   } else if (element.tag === undefined) {
     error = 'Closing tag ' + formatEndTagInfo(tag) + ' without an open tag.';
   } else if (element.tag !== tag.name) {
@@ -321,28 +318,6 @@ function validateEndTag(
   if (error) {
     throw new SyntaxError(error, element.loc);
   }
-}
-
-function mustacheInClosingTag(tag: Tag<'StartTag' | 'EndTag'>, element: AST.ElementNode) {
-  let children = element.children || [];
-  return children.some(({ type, loc: { start, end } }) => {
-    if (
-      type === 'MustacheStatement' &&
-      start.line >= tag.loc.start.line &&
-      end.line <= tag.loc.end.line
-    ) {
-      if (start.line === tag.loc.start.line) {
-        return start.column > tag.loc.start.column;
-      }
-
-      if (end.line === tag.loc.end.line) {
-        return end.column < tag.loc.start.column;
-      }
-
-      return true;
-    }
-    return false;
-  });
 }
 
 function formatEndTagInfo(tag: Tag<'StartTag' | 'EndTag'>) {

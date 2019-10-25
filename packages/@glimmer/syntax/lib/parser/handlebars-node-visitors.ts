@@ -148,6 +148,15 @@ export abstract class HandlebarsNodeVisitors extends Parser {
         );
 
       case TokenizerState.beforeAttributeName:
+        if (this.currentNode && this.currentNode.type === 'EndTag') {
+          throw new SyntaxError(
+            `Cannot use mustaches in an element's closing tag: \`${this.sourceForNode(
+              rawMustache,
+              rawMustache.path
+            )}\` at L${loc.start.line}:C${loc.start.column}`,
+            loc
+          );
+        }
         addElementModifier(this.currentStartTag, mustache);
         break;
       case TokenizerState.attributeName:
@@ -173,6 +182,14 @@ export abstract class HandlebarsNodeVisitors extends Parser {
       case TokenizerState.attributeValueUnquoted:
         appendDynamicAttributeValuePart(this.currentAttribute!, mustache);
         break;
+      case TokenizerState.endTagOpen:
+        throw new SyntaxError(
+          `Cannot use mustaches in an element's closing tag: \`${this.sourceForNode(
+            rawMustache,
+            rawMustache.path
+          )}\` at L${loc.start.line}:C${loc.start.column}`,
+          loc
+        );
 
       // TODO: Only append child when the tokenizer state makes
       // sense to do so, otherwise throw an error.
@@ -424,6 +441,7 @@ function acceptCallNodes(
 }
 
 function addElementModifier(element: Tag<'StartTag'>, mustache: AST.MustacheStatement) {
+  debugger;
   let { path, params, hash, loc } = mustache;
 
   if (isLiteral(path)) {

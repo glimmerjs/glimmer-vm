@@ -613,15 +613,19 @@ test('disallowed mustaches in the tagName space', function(assert) {
 test('disallowed mustaches in closing tag', function(assert) {
   assert.throws(() => {
     parse('\nbefore <div></ {{some-modifier}} div>');
-  }, 'Error: Invalid end tag `div` (on line 2). (closing tags cannot contain modifiers).');
+  }, new Error("Cannot use mustaches in an element's closing tag: `{{some-modifier` at L2:C15"));
+
+  assert.throws(() => {
+    parse('\nbefore <div><span></ {{some-modifier}} span></div>');
+  }, new Error("Cannot use mustaches in an element's closing tag: `{{some-modifier` at L2:C21"));
 
   assert.throws(() => {
     parse('\nbefore <div></div {{some-modifier}}>');
-  }, 'Error: Invalid end tag `div` (on line 2). (closing tags cannot contain modifiers).');
+  }, new Error("Cannot use mustaches in an element's closing tag: `{{some-modifier` at L2:C18"));
 
   assert.throws(() => {
-    parse('\nbefore <div><span></span {{some-modifier}}></div>');
-  }, 'Error: Invalid end tag `div` (on line 2). (closing tags cannot contain modifiers).');
+    parse('\nbefore <div><span></span {{some-modifier}} ></div>');
+  }, new Error("Cannot use mustaches in an element's closing tag: `{{some-modifier` at L2:C25"));
 });
 
 test('mustache immediately followed by self closing tag does not error', function() {
