@@ -441,7 +441,6 @@ function acceptCallNodes(
 }
 
 function addElementModifier(element: Tag<'StartTag'>, mustache: AST.MustacheStatement) {
-  debugger;
   let { path, params, hash, loc } = mustache;
 
   if (isLiteral(path)) {
