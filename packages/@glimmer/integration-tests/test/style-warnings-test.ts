@@ -17,7 +17,7 @@ import {
 } from '@glimmer/runtime';
 import { AttrNamespace, SimpleElement } from '@simple-dom/interface';
 import { module, test } from './support';
-import { TestContext, preprocess, JitTestContext, qunitFixture, equalTokens } from '..';
+import { TestContext, preprocess, JitTestContext, qunitFixture, equalTokens, registerModifier } from '..';
 import { unwrapTemplate, unwrapHandle } from '@glimmer/opcode-compiler';
 
 let context: TestContext;
