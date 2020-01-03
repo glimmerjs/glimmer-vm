@@ -23,6 +23,7 @@ import {
   JitTestContext,
   qunitFixture,
   equalTokens,
+  registerModifier,
 } from '@glimmer/integration-tests';
 import { unwrapTemplate, unwrapHandle } from '@glimmer/opcode-compiler';
 
@@ -79,7 +80,7 @@ module(
           namespace: Option<AttrNamespace>
         ): DynamicAttribute {
           if (attr === 'style' && !isTrusting) {
-            return new StyleAttribute({ element, name, namespace });
+            return new StyleAttribute({ element, name: 'style', namespace });
           }
 
           return dynamicAttribute(element, attr, namespace);
@@ -91,6 +92,14 @@ module(
     },
   },
   () => {
+    test(`Standard element with static style and  element modifier`, assert => {
+      registerModifier(context.registry, 'foo');
+      let template = compile('<button style="display: flex" {{foo}}>click me</button>');
+      render(template, {});
+
+      assert.strictEqual(warnings, 0);
+    });
+
     test(`using a static inline style on an element does not give you a warning`, assert => {
       let template = compile(`<div style="background: red">Thing</div>`);
       render(template, {});

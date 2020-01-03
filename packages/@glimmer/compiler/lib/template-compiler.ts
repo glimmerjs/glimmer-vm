@@ -178,16 +178,11 @@ export default class TemplateCompiler implements Processor<InputOps> {
         this.opcode(['attrSplat'], action);
       } else if (isStatic && !isComponent) {
         this.opcode(['staticAttr', [name, namespace]], action);
-      } else if (isTrusting) {
+      } else if (isStatic || isTrusting) {
         this.opcode(
           isComponent
             ? ['trustingComponentAttr', [name, namespace]]
             : ['trustingAttr', [name, namespace]],
-          action
-        );
-      } else if (action.value.type === 'MustacheStatement') {
-        this.opcode(
-          isComponent ? ['componentAttr', [name, namespace]] : ['dynamicAttr', [name, namespace]],
           action
         );
       } else {
