@@ -17,7 +17,14 @@ import {
 } from '@glimmer/runtime';
 import { AttrNamespace, SimpleElement } from '@simple-dom/interface';
 import { module, test } from './support';
-import { TestContext, preprocess, JitTestContext, qunitFixture, equalTokens, registerModifier } from '..';
+import {
+  TestContext,
+  preprocess,
+  JitTestContext,
+  qunitFixture,
+  equalTokens,
+  registerModifier,
+} from '..';
 import { unwrapTemplate, unwrapHandle } from '@glimmer/opcode-compiler';
 
 let context: TestContext;
@@ -73,7 +80,7 @@ module(
           namespace: Option<AttrNamespace>
         ): DynamicAttribute {
           if (attr === 'style' && !isTrusting) {
-            return new StyleAttribute({ element, name, namespace });
+            return new StyleAttribute({ element, name: 'style', namespace });
           }
 
           return dynamicAttribute(element, attr, namespace);
@@ -85,8 +92,6 @@ module(
     },
   },
   () => {
-<<<<<<< HEAD
-=======
     test(`Standard element with static style and element modifier does not give you a warning`, assert => {
       registerModifier(context.registry, 'foo');
       let template = compile('<button style="display: flex" {{foo}}>click me</button>');
@@ -103,7 +108,6 @@ module(
       assert.strictEqual(warnings, 1);
     });
 
->>>>>>> Fix for glimmer warning about possible XSS when static styles are used with element modifier applied to the same element.
     test(`using a static inline style on an element does not give you a warning`, assert => {
       let template = compile(`<div style="background: red">Thing</div>`);
       render(template, {});
