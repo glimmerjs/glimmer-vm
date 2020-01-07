@@ -80,7 +80,7 @@ module(
           namespace: Option<AttrNamespace>
         ): DynamicAttribute {
           if (attr === 'style' && !isTrusting) {
-            return new StyleAttribute({ element, name: 'style', namespace });
+            return new StyleAttribute({ element, name, namespace });
           }
 
           return dynamicAttribute(element, attr, namespace);
