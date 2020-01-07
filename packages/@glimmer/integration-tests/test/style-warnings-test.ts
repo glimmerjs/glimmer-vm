@@ -85,6 +85,25 @@ module(
     },
   },
   () => {
+<<<<<<< HEAD
+=======
+    test(`Standard element with static style and element modifier does not give you a warning`, assert => {
+      registerModifier(context.registry, 'foo');
+      let template = compile('<button style="display: flex" {{foo}}>click me</button>');
+      render(template, {});
+
+      assert.strictEqual(warnings, 0);
+    });
+
+    test(`Standard element with dynamic style and element modifier gives you 1 warning`, assert => {
+      registerModifier(context.registry, 'foo');
+      let template = compile('<button style={{dynAttr}} {{foo}}>click me</button>');
+      render(template, { dynAttr: 'display:flex' });
+
+      assert.strictEqual(warnings, 1);
+    });
+
+>>>>>>> Fix for glimmer warning about possible XSS when static styles are used with element modifier applied to the same element.
     test(`using a static inline style on an element does not give you a warning`, assert => {
       let template = compile(`<div style="background: red">Thing</div>`);
       render(template, {});
