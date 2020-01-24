@@ -129,8 +129,10 @@ export class MonomorphicTagImpl implements MonomorphicTag {
   private lastValue = INITIAL;
 
   private isUpdating = false;
-  private subtag: Tag | null = null;
   private subtags: Tag[] | null = null;
+
+  private subtag: Tag | null = null;
+  private subtagBufferCache: Revision | null = null;
 
   [TYPE]: MonomorphicTagType;
 
@@ -146,10 +148,18 @@ export class MonomorphicTagImpl implements MonomorphicTag {
       this.lastChecked = $REVISION;
 
       try {
-        let { subtags, subtag, revision } = this;
+        let { subtags, subtag, subtagBufferCache, lastValue, revision } = this;
 
         if (subtag !== null) {
-          revision = Math.max(revision, subtag[COMPUTE]());
+          let subtagValue = subtag[COMPUTE]();
+
+          if (subtagValue === subtagBufferCache) {
+            revision = Math.max(revision, lastValue);
+          } else {
+            // Clear the temporary buffer cache
+            this.subtagBufferCache = null;
+            revision = Math.max(revision, subtagValue);
+          }
         }
 
         if (subtags !== null) {
@@ -176,7 +186,7 @@ export class MonomorphicTagImpl implements MonomorphicTag {
     return this.lastValue;
   }
 
-  static update(_tag: UpdatableTag, subtag: Tag) {
+  static update(_tag: UpdatableTag, _subtag: Tag) {
     if (DEBUG) {
       assert(
         _tag[TYPE] === MonomorphicTagTypes.Updatable,
@@ -186,17 +196,31 @@ export class MonomorphicTagImpl implements MonomorphicTag {
 
     // TODO: TS 3.7 should allow us to do this via assertion
     let tag = _tag as MonomorphicTagImpl;
+    let subtag = _subtag as MonomorphicTagImpl;
 
     if (subtag === CONSTANT_TAG) {
       tag.subtag = null;
     } else {
+      // There are two different possibilities when updating a subtag:
+      //
+      // 1. subtag[COMPUTE]() <= tag[COMPUTE]();
+      // 2. subtag[COMPUTE]() > tag[COMPUTE]();
+      //
+      // The first possibility is completely fine within our caching model, but
+      // the second possibility presents a problem. If the parent tag has
+      // already been read, then it's value is cached and will not update to
+      // reflect the subtag's greater value. Next time the cache is busted, the
+      // subtag's value _will_ be read, and it's value will be _greater_ than
+      // the saved snapshot of the parent, causing the resulting calculation to
+      // be rerun erroneously.
+      //
+      // In order to prevent this, when we first update to a new subtag we store
+      // its computed value, and then check against that computed value on
+      // subsequent updates. If its value hasn't changed, then we return the
+      // parent's previous value. Once the subtag changes for the first time,
+      // we clear the cache and everything is finally in sync with the parent.
+      tag.subtagBufferCache = subtag[COMPUTE]();
       tag.subtag = subtag;
-
-      // subtag could be another type of tag, e.g. CURRENT_TAG or VOLATILE_TAG.
-      // If so, lastChecked/lastValue will be undefined, result in these being
-      // NaN. This is fine, it will force the system to recompute.
-      tag.lastChecked = Math.min(tag.lastChecked, (subtag as any).lastChecked);
-      tag.lastValue = Math.max(tag.lastValue, (subtag as any).lastValue);
     }
   }
 
