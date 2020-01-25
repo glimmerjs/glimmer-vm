@@ -115,7 +115,7 @@ export function trackedData<T extends object, K extends keyof T>(
 
     // If the field has never been initialized, we should initialize it
     if (hasInitializer && !values.has(self)) {
-      value = initializer!();
+      value = initializer!.call(self);
       values.set(self, value);
     } else {
       value = values.get(self);

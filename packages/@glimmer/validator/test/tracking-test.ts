@@ -145,6 +145,21 @@ module('@glimmer/validator: tracking', () => {
       assert.equal(foo.foo, 123, 'value is not set on the actual object');
     });
 
+    test('the initializer has access to the context', assert => {
+      class Foo {
+        foo = 123;
+        bar = 456;
+      }
+
+      let { getter } = trackedData<Foo, keyof Foo>('foo', function(this: Foo) {
+        return this.bar;
+      });
+
+      let foo = new Foo();
+
+      assert.equal(getter(foo), 456, 'value is initialized correctly');
+    });
+
     test('it tracks changes to the storage cell', assert => {
       class Foo {
         foo = 123;
