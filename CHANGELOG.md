@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.38.5-alpha.4 (2020-01-25)
+
+#### :bug: Bug Fix
+* `@glimmer/reference`
+  * [#1013](https://github.com/glimmerjs/glimmer-vm/pull/1013) Backport [#1010](https://github.com/glimmerjs/glimmer-vm/pull/1010): Makes UpdatableTag updates lazy ([@pzuraq](https://github.com/pzuraq))
+
+#### Committers: 1
+- Chris Garrett ([@pzuraq](https://github.com/pzuraq))
+
 ## 0.37.0 (2018-11-29)
 
 #### :bug: Bug Fix
