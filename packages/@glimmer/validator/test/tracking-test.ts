@@ -193,6 +193,30 @@ module('@glimmer/validator: tracking', () => {
     });
   });
 
+    test('it does not track dependencies accessed in initializers', assert => {
+      class Foo {
+        foo = 123;
+        bar = 456;
+      }
+
+      let trackedBar = trackedData<Foo, keyof Foo>('bar', () => 456);
+
+      let trackedFoo = trackedData<Foo, keyof Foo>('foo', function(this: Foo) {
+        return trackedBar.getter(this);
+      });
+
+      let foo = new Foo();
+      let tag = track(() => {
+        assert.equal(trackedFoo.getter(foo), 456, 'value is set correctly');
+      });
+
+      let snapshot = value(tag);
+
+      trackedBar.setter(foo, 789);
+      assert.equal(trackedFoo.getter(foo), 456, 'value is not changed');
+      assert.ok(validate(tag, snapshot));
+    });
+
   if (DEBUG) {
     module('debug', () => {
       test('it errors when attempting to update a value that has already been consumed in the same transaction', assert => {
