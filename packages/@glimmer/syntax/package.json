@@ -6,7 +6,7 @@
     "handlebars": "^4.0.6",
     "@glimmer/interfaces": "^0.38.5-alpha.4",
     "@glimmer/util": "^0.38.5-alpha.4",
-    "simple-html-tokenizer": "^0.5.8"
+    "simple-html-tokenizer": "^0.5.9"
   },
   "devDependencies": {
     "@types/handlebars": "^4.0.31",
