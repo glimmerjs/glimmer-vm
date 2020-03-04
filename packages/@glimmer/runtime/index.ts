@@ -77,5 +77,6 @@ export {
   rehydrationBuilder,
   SERIALIZATION_FIRST_NODE_STRING,
 } from './lib/vm/rehydrate-builder';
+export { getOwner, setOwner } from './lib/owner';
 
 export type IteratorResult<T> = RichIteratorResult<null, T>;

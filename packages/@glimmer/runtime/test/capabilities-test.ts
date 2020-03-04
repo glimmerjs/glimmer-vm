@@ -1,6 +1,6 @@
 import { capabilityFlagsFrom, hasCapability, Capability } from '..';
 
-QUnit.module('Capabilities Bitmaps');
+QUnit.module('[@glimmer/runtime] Capabilities Bitmaps');
 
 QUnit.test('encodes a capabilities object into a bitmap', assert => {
   assert.equal(
