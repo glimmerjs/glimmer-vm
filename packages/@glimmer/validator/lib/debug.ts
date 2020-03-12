@@ -22,7 +22,7 @@ export let assertTagNotConsumed:
   | undefined
   | (<T>(tag: Tag, obj?: T, keyName?: keyof T | string | symbol, forceHardError?: boolean) => void);
 
-export let markTagAsConsumed: undefined | ((_tag: Tag, sourceError: Error) => void);
+export let markTagAsConsumed: undefined | ((_tag: Tag, sourceError?: Error) => void);
 
 if (DEBUG) {
   let DEPRECATE_IN_AUTOTRACKING_TRANSACTION = false;
@@ -158,8 +158,10 @@ if (DEBUG) {
     return message.join('\n\n');
   };
 
-  markTagAsConsumed = (_tag: Tag, sourceError: Error) => {
-    if (!AUTOTRACKING_TRANSACTION || AUTOTRACKING_TRANSACTION.has(_tag)) return;
+  markTagAsConsumed = (_tag: Tag, _sourceError?: Error) => {
+    if (AUTOTRACKING_TRANSACTION === null || AUTOTRACKING_TRANSACTION.has(_tag)) return;
+
+    let sourceError = _sourceError || new Error();
 
     AUTOTRACKING_TRANSACTION.set(_tag, {
       context: debuggingContexts!.map(c => c.replace(/^/gm, '  ').replace(/^ /, '-')).join('\n\n'),
