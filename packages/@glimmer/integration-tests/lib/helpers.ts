@@ -1,10 +1,10 @@
 import { Dict, CapturedArguments, VMArguments } from '@glimmer/interfaces';
-import { VersionedPathReference, Reference } from '@glimmer/reference';
+import { PathReference, Reference } from '@glimmer/reference';
 import { CURRENT_TAG, Tag } from '@glimmer/validator';
 
 export type UserHelper = (args: ReadonlyArray<unknown>, named: Dict<unknown>) => unknown;
 
-export class HelperReference implements VersionedPathReference<unknown> {
+export class HelperReference implements PathReference<unknown> {
   private helper: UserHelper;
   private args: CapturedArguments;
   public tag: Tag = CURRENT_TAG;
@@ -25,7 +25,7 @@ export class HelperReference implements VersionedPathReference<unknown> {
   }
 }
 
-export class SimplePathReference implements VersionedPathReference {
+export class SimplePathReference implements PathReference {
   private parent: Reference<unknown>;
   private property: string;
   public tag: Tag = CURRENT_TAG;
@@ -45,7 +45,7 @@ export class SimplePathReference implements VersionedPathReference {
     return (value as any)[this.property];
   }
 
-  get(prop: string): VersionedPathReference {
+  get(prop: string): PathReference {
     return new SimplePathReference(this, prop);
   }
 }

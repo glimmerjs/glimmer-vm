@@ -1,44 +1,31 @@
 import { Reference, CachedReference } from '..';
-import {
-  combine,
-  Tag,
-  DirtyableTag,
-  UpdatableTag,
-  createTag,
-  createUpdatableTag,
-  dirtyTag,
-  updateTag,
-} from '@glimmer/validator';
+import { createTag, dirtyTag, consumeTag, DirtyableTag } from '@glimmer/validator';
 import { dict } from '@glimmer/util';
 
-class UpdatableRootReference<T> implements Reference<T> {
-  public tag: DirtyableTag;
-  private _tag: DirtyableTag;
+class UpdatableReference<T> implements Reference<T> {
+  private tag: DirtyableTag;
 
   constructor(private content: T) {
-    this.tag = this._tag = createTag();
+    this.tag = createTag();
   }
 
   value(): T {
+    consumeTag(this.tag);
     return this.content;
   }
 
   update(content: T) {
-    dirtyTag(this._tag);
+    dirtyTag(this.tag);
     return (this.content = content);
   }
 }
 
-class TaggedDict<T> {
-  public tag: DirtyableTag;
-  private _tag: DirtyableTag;
+class TrackedDict<T> {
+  private _tag = createTag();
   private data = dict<T>();
 
-  constructor() {
-    this.tag = this._tag = createTag();
-  }
-
   get(key: string): T {
+    consumeTag(this._tag);
     return this.data[key];
   }
 
@@ -54,11 +41,8 @@ QUnit.test('CachedReference caches computation correctly', assert => {
   let computed = 0;
 
   class DictValueReference extends CachedReference<string> {
-    public tag: Tag;
-
-    constructor(private dict: TaggedDict<string>, private key: string) {
+    constructor(private dict: TrackedDict<string>, private key: string) {
       super();
-      this.tag = dict.tag;
     }
 
     compute(): string {
@@ -67,7 +51,7 @@ QUnit.test('CachedReference caches computation correctly', assert => {
     }
   }
 
-  let dict = new TaggedDict<string>();
+  let dict = new TrackedDict<string>();
   let reference = new DictValueReference(dict, 'foo');
 
   dict.set('foo', 'bar');
@@ -109,32 +93,20 @@ QUnit.test('CachedReference caches nested computation correctly', assert => {
   let computed = 0;
 
   class DictValueReference extends CachedReference<string> {
-    public tag: Tag;
-    private _tag: UpdatableTag;
-
-    constructor(private parent: Reference<TaggedDict<string>>, private key: string) {
+    constructor(private parent: Reference<TrackedDict<string>>, private key: string) {
       super();
-      let _tag = (this._tag = createUpdatableTag());
-      this.tag = combine([parent.tag, _tag]);
     }
 
     compute(): string {
       computed++;
-
-      let { parent, _tag, key } = this;
-
-      let dict = parent.value();
-
-      updateTag(_tag, dict.tag);
-
-      return dict.get(key);
+      return this.parent.value().get(this.key);
     }
   }
 
-  let first = new TaggedDict<string>();
-  let second = new TaggedDict<string>();
+  let first = new TrackedDict<string>();
+  let second = new TrackedDict<string>();
 
-  let dictReference = new UpdatableRootReference(first);
+  let dictReference = new UpdatableReference(first);
   let valueReference = new DictValueReference(dictReference, 'foo');
 
   first.set('foo', 'bar');

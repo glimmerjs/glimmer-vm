@@ -1,6 +1,16 @@
 import { CompilableTemplate, Option, Op } from '@glimmer/interfaces';
 import { isModified, ReferenceCache } from '@glimmer/reference';
-import { CONSTANT_TAG, isConst, Revision, Tag, valueForTag, validateTag } from '@glimmer/validator';
+import {
+  CONSTANT_TAG,
+  Revision,
+  Tag,
+  valueForTag,
+  validateTag,
+  beginTrackFrame,
+  endTrackFrame,
+  consumeTag,
+  isConstMemo,
+} from '@glimmer/validator';
 import { initializeGuid, assert, isHandle, HandleConstants, decodeHandle } from '@glimmer/util';
 import {
   CheckNumber,
@@ -159,37 +169,35 @@ APPEND_OPCODES.add(Op.InvokeYield, vm => {
 
 APPEND_OPCODES.add(Op.JumpIf, (vm, { op1: target }) => {
   let reference = check(vm.stack.pop(), CheckReference);
+  let value = Boolean(reference.value());
 
-  if (isConst(reference)) {
-    if (reference.value()) {
+  if (isConstMemo(reference.value)) {
+    if (value === true) {
       vm.goto(target);
     }
   } else {
-    let cache = new ReferenceCache(reference);
-
-    if (cache.peek()) {
+    if (value === true) {
       vm.goto(target);
     }
 
-    vm.updateWith(new Assert(cache));
+    vm.updateWith(new Assert(new ReferenceCache(reference)));
   }
 });
 
 APPEND_OPCODES.add(Op.JumpUnless, (vm, { op1: target }) => {
   let reference = check(vm.stack.pop(), CheckReference);
+  let value = Boolean(reference.value());
 
-  if (isConst(reference)) {
-    if (!reference.value()) {
+  if (isConstMemo(reference.value)) {
+    if (value === false) {
       vm.goto(target);
     }
   } else {
-    let cache = new ReferenceCache(reference);
-
-    if (!cache.peek()) {
+    if (value === false) {
       vm.goto(target);
     }
 
-    vm.updateWith(new Assert(cache));
+    vm.updateWith(new Assert(new ReferenceCache(reference)));
   }
 });
 
@@ -204,8 +212,11 @@ APPEND_OPCODES.add(Op.JumpEq, (vm, { op1: target, op2: comparison }) => {
 APPEND_OPCODES.add(Op.AssertSame, vm => {
   let reference = check(vm.stack.peek(), CheckReference);
 
-  if (!isConst(reference)) {
-    vm.updateWith(Assert.initialize(new ReferenceCache(reference)));
+  // we ned to calculate the value to know if it's constant or not
+  reference.value();
+
+  if (!isConstMemo(reference.value)) {
+    vm.updateWith(new Assert(new ReferenceCache(reference)));
   }
 });
 
@@ -215,21 +226,12 @@ APPEND_OPCODES.add(Op.ToBoolean, vm => {
 });
 
 export class Assert extends UpdatingOpcode {
-  static initialize(cache: ReferenceCache<unknown>): Assert {
-    let assert = new Assert(cache);
-    cache.peek();
-    return assert;
-  }
-
   public type = 'assert';
-
-  public tag: Tag;
 
   private cache: ReferenceCache<unknown>;
 
   constructor(cache: ReferenceCache<unknown>) {
     super();
-    this.tag = cache.tag;
     this.cache = cache;
   }
 
@@ -245,8 +247,7 @@ export class Assert extends UpdatingOpcode {
 export class JumpIfNotModifiedOpcode extends UpdatingOpcode {
   public type = 'jump-if-not-modified';
 
-  public tag: Tag;
-
+  private tag: Tag;
   private lastRevision: Revision;
 
   constructor(tag: Tag, private target: LabelOpcode) {
@@ -263,23 +264,31 @@ export class JumpIfNotModifiedOpcode extends UpdatingOpcode {
     }
   }
 
-  didModify() {
+  didModify(tag: Tag) {
+    this.tag = tag;
     this.lastRevision = valueForTag(this.tag);
+    consumeTag(tag);
   }
 }
 
-export class DidModifyOpcode extends UpdatingOpcode {
-  public type = 'did-modify';
+export class BeginTrackFrameOpcode extends UpdatingOpcode {
+  public type = 'begin-track-frame';
 
-  public tag: Tag;
+  evaluate() {
+    beginTrackFrame();
+  }
+}
+
+export class EndTrackFrameOpcode extends UpdatingOpcode {
+  public type = 'end-track-frame';
 
   constructor(private target: JumpIfNotModifiedOpcode) {
     super();
-    this.tag = CONSTANT_TAG;
   }
 
   evaluate() {
-    this.target.didModify();
+    let tag = endTrackFrame();
+    this.target.didModify(tag);
   }
 }
 

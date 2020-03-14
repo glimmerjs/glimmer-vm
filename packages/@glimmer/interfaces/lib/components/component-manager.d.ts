@@ -1,4 +1,4 @@
-import { VersionedPathReference } from '@glimmer/reference';
+import { PathReference } from '@glimmer/reference';
 import { Tag } from '@glimmer/validator';
 import { SimpleElement } from '@simple-dom/interface';
 import ComponentCapabilities from '../component-capabilities';
@@ -17,7 +17,7 @@ export interface ComponentManager<
   ComponentDefinitionState = unknown
 > {
   getCapabilities(state: ComponentDefinitionState): ComponentCapabilities;
-  getSelf(state: ComponentInstanceState): VersionedPathReference<unknown>;
+  getSelf(state: ComponentInstanceState): PathReference<unknown>;
   getDestructor(state: ComponentInstanceState): Option<SymbolDestroyable | Destroyable>;
 }
 
@@ -44,13 +44,9 @@ export interface WithCreateInstance<
     state: ComponentDefinitionState,
     args: Option<VMArguments>,
     dynamicScope: Option<DynamicScope>,
-    caller: Option<VersionedPathReference<unknown>>,
+    caller: Option<PathReference<unknown>>,
     hasDefaultBlock: boolean
   ): ComponentInstanceState;
-
-  // Convert the opaque component into a `RevisionTag` that determins when
-  // the component's update hooks need to be called (if at all).
-  getTag(state: ComponentInstanceState): Tag;
 
   // This hook is run after the entire layout has been rendered.
   //
@@ -79,68 +75,6 @@ export interface WithUpdateHook<ComponentInstanceState = unknown>
   // called.
   update(state: ComponentInstanceState, dynamicScope: Option<DynamicScope>): void;
 }
-
-// export interface ComponentManager<
-//   ComponentInstanceState = unknown,
-//   ComponentDefinitionState = unknown,
-//   E extends Environment = Environment
-// > {
-//   getCapabilities(state: ComponentDefinitionState): ComponentCapabilities;
-
-//   // First, the component manager is asked to prepare the arguments needed
-//   // for `create`. This allows for things like closure components where the
-//   // args need to be curried before constructing the instance of the state
-//   // bucket.
-//   prepareArgs(state: ComponentDefinitionState, args: VMArguments): Option<PreparedArguments>;
-
-//   // Then, the component manager is asked to create a bucket of state for
-//   // the supplied arguments. From the perspective of Glimmer, this is
-//   // an opaque token, but in practice it is probably a component object.
-//   create(
-//     env: E,
-//     state: ComponentDefinitionState,
-//     args: Option<VMArguments>,
-//     dynamicScope: Option<DynamicScope>,
-//     caller: Option<VersionedPathReference<unknown>>,
-//     hasDefaultBlock: boolean
-//   ): ComponentInstanceState;
-
-//   // Next, Glimmer asks the manager to create a reference for the `self`
-//   // it should use in the layout.
-//   getSelf(state: ComponentInstanceState): VersionedPathReference<unknown>;
-
-//   // Convert the opaque component into a `RevisionTag` that determins when
-//   // the component's update hooks need to be called (if at all).
-//   getTag(state: ComponentInstanceState): Tag;
-
-//   // This hook is run after the entire layout has been rendered.
-//   //
-//   // Hosts should use `didCreate`, which runs asynchronously after the rendering
-//   // process, to provide hooks for user code.
-//   didRenderLayout(state: ComponentInstanceState, bounds: Bounds): void;
-
-//   // Once the whole top-down rendering process is complete, Glimmer invokes
-//   // the `didCreate` callbacks.
-//   didCreate(state: ComponentInstanceState): void;
-
-//   // When the component's tag has invalidated, the manager's `update` hook is
-//   // called.
-//   update(state: ComponentInstanceState, dynamicScope: Option<DynamicScope>): void;
-
-//   // This hook is run after the entire layout has been updated.
-//   //
-//   // Hosts should use `didUpdate`, which runs asynchronously after the rendering
-//   // process, to provide hooks for user code.
-//   didUpdateLayout(state: ComponentInstanceState, bounds: Bounds): void;
-
-//   // Finally, once top-down revalidation has completed, Glimmer invokes
-//   // the `didUpdate` callbacks on components that changed.
-//   didUpdate(state: ComponentInstanceState): void;
-
-//   // Convert the opaque component into an object that implements Destructor.
-//   // If it returns null, the component will not be destroyed.
-//   getDestructor(state: ComponentInstanceState): Option<SymbolDestroyable | Destroyable>;
-// }
 
 export interface WithAotStaticLayout<
   I = ComponentInstanceState,

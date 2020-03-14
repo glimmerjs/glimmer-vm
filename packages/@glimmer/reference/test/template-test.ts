@@ -1,13 +1,6 @@
 import { module, test } from './utils/qunit';
 
-import {
-  CONSTANT_TAG,
-  createTag,
-  consumeTag,
-  dirtyTag,
-  valueForTag,
-  validateTag,
-} from '@glimmer/validator';
+import { createTag, consumeTag, dirtyTag, isConstMemo } from '@glimmer/validator';
 
 import {
   ComponentRootReference,
@@ -15,6 +8,7 @@ import {
   PropertyReference,
   IterationItemReference,
   TemplatePathReference,
+  UNDEFINED_REFERENCE,
 } from '..';
 import { TestEnv } from './utils/template';
 import {
@@ -26,12 +20,11 @@ import {
 
 module('@glimmer/reference: template', () => {
   module('ComponentRootReference', () => {
-    test('it creates a constant reference with the component as the value', assert => {
+    test('it creates a reference with the component as the value', assert => {
       let component = {};
       let ref = new ComponentRootReference(component, new TestEnv());
 
       assert.equal(ref.value(), component);
-      assert.equal(ref.tag, CONSTANT_TAG);
     });
 
     test('it creates PropertyReferences when chained', assert => {
@@ -65,26 +58,41 @@ module('@glimmer/reference: template', () => {
   });
 
   module('HelperRootReference', () => {
-    test('it calculates the helper value on initialization and creates a constant reference if the helper is constant', assert => {
+    test('constant helper values are constant', assert => {
       let ref = new HelperRootReference(() => 123, EMPTY_ARGS, new TestEnv());
 
-      assert.equal(ref.value(), 123);
-      assert.equal(ref.tag, CONSTANT_TAG);
+      assert.equal(ref.value(), 123, 'value is calculated correctly');
+      assert.ok(isConstMemo(ref.value), 'value is constant');
     });
 
-    test('it calculates the helper value on initialization and creates a non-constant reference if the args can change', assert => {
+    test('non-constant helper values are non-constant if arguments are not constant', assert => {
       let tag = createTag();
-      const EMPTY_NAMED = new CapturedNamedArgumentsImpl(CONSTANT_TAG, [], []);
-      const EMPTY_POSITIONAL = new CapturedPositionalArgumentsImpl(CONSTANT_TAG, []);
-      const MUTABLE_ARGS = new CapturedArgumentsImpl(tag, EMPTY_POSITIONAL, EMPTY_NAMED, 0);
 
-      let ref = new HelperRootReference(() => 123, MUTABLE_ARGS, new TestEnv());
+      const EMPTY_POSITIONAL = new CapturedPositionalArgumentsImpl([
+        {
+          value() {
+            consumeTag(tag);
+            return 123;
+          },
+          get() {
+            return UNDEFINED_REFERENCE;
+          },
+        },
+      ]);
+      const EMPTY_NAMED = new CapturedNamedArgumentsImpl([], []);
+      const MUTABLE_ARGS = new CapturedArgumentsImpl(EMPTY_POSITIONAL, EMPTY_NAMED, 0);
 
-      assert.equal(ref.value(), 123);
-      assert.notEqual(ref.tag, CONSTANT_TAG);
+      let ref = new HelperRootReference(
+        args => args.positional.at(0).value(),
+        MUTABLE_ARGS,
+        new TestEnv()
+      );
+
+      assert.equal(ref.value(), 123, 'value is calculated correctly');
+      assert.notOk(isConstMemo(ref.value), 'value is not constant');
     });
 
-    test('it calculates the helper value on initialization and creates a non-constant reference if the helper can change', assert => {
+    test('non-constant helper values are non-constant if helper is not constant', assert => {
       let tag = createTag();
       let ref = new HelperRootReference(
         () => {
@@ -95,8 +103,8 @@ module('@glimmer/reference: template', () => {
         new TestEnv()
       );
 
-      assert.equal(ref.value(), 123);
-      assert.notEqual(ref.tag, CONSTANT_TAG);
+      assert.equal(ref.value(), 123, 'value is calculated correctly');
+      assert.notOk(isConstMemo(ref.value), 'value is not constant');
     });
 
     test('it creates PropertyReferences when chained', assert => {
@@ -154,11 +162,13 @@ module('@glimmer/reference: template', () => {
 
     test('it tracks access', assert => {
       let tag = createTag();
+      let count = 0;
 
       let component = {
         _foo: 123,
 
         get foo() {
+          count++;
           consumeTag(tag);
           return this._foo;
         },
@@ -172,14 +182,16 @@ module('@glimmer/reference: template', () => {
       let ref = new ComponentRootReference(component, new TestEnv());
 
       let fooRef = ref.get('foo');
-      assert.equal(fooRef.value(), component.foo);
+      assert.equal(fooRef.value(), 123, 'gets the value correctly');
+      assert.equal(count, 1, 'getter is actually called');
 
-      let snapshot = valueForTag(fooRef.tag);
-      assert.equal(validateTag(fooRef.tag, snapshot), true);
+      assert.equal(fooRef.value(), 123, 'gets the value correctly');
+      assert.equal(count, 1, 'getter is not called again');
 
       component.foo = 234;
 
-      assert.equal(validateTag(fooRef.tag, snapshot), false);
+      assert.equal(fooRef.value(), 234, 'gets the value correctly');
+      assert.equal(count, 2, 'getter is called again after update');
     });
 
     test('it correctly caches values', assert => {
@@ -247,21 +259,19 @@ module('@glimmer/reference: template', () => {
     });
 
     test('it calls getTemplatePathDebugContext on when computing', assert => {
-      let component = {};
+      let component = { foo: 123 };
       let ref = new ComponentRootReference(
         component,
         new (class extends TestEnv {
-          getTemplatePathDebugContext(childRef: TemplatePathReference) {
-            assert.equal(childRef, fooRef);
+          getTemplatePathDebugContext(debugRef: TemplatePathReference) {
+            assert.equal((debugRef as any).propertyKey, 'foo', 'path ref is registered properly');
 
             return '';
           }
         })()
       );
 
-      let fooRef = ref.get('foo');
-
-      fooRef.value();
+      ref.get('foo');
     });
   });
 

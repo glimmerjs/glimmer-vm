@@ -43,24 +43,27 @@ module('@glimmer/reference: IterableImpl', () => {
         { key: 'a', name: 'Yehuda' },
         { key: 'b', name: 'Godfrey' },
       ];
-      let { target, artifacts } = initialize(arr);
+      let { reference, target, artifacts } = initialize(arr);
 
       assert.deepEqual(target.toValues(), arr);
 
       arr.reverse();
 
+      reference.update(arr);
       sync(target, artifacts);
 
       assert.deepEqual(target.toValues(), arr);
 
       arr.push({ key: 'c', name: 'Godhuda' });
 
+      reference.update(arr);
       sync(target, artifacts);
 
       assert.deepEqual(target.toValues(), arr);
 
       arr.shift();
 
+      reference.update(arr);
       sync(target, artifacts);
 
       assert.deepEqual(target.toValues(), arr);
@@ -77,18 +80,20 @@ module('@glimmer/reference: IterableImpl', () => {
 
     test('it correctly synchronizes delegates when changed', assert => {
       let obj = { a: 'Yehuda', b: 'Godfrey' } as any;
-      let { target, artifacts } = initialize(obj);
+      let { target, artifacts, reference } = initialize(obj);
 
       assert.deepEqual(target.toValues(), objectValues(obj));
 
       obj.c = 'Rob';
 
+      reference.update(obj);
       sync(target, artifacts);
 
       assert.deepEqual(target.toValues(), objectValues(obj));
 
       obj.a = 'Godhuda';
 
+      reference.update(obj);
       sync(target, artifacts);
 
       assert.deepEqual(target.toValues(), objectValues(obj));
@@ -118,8 +123,9 @@ module('@glimmer/reference: IterableImpl', () => {
       let godfrey = { key: 'b', name: 'Godfrey' };
       let arr = [yehuda, godfrey, godfrey];
 
-      let { target, artifacts } = initialize(arr);
+      let { target, artifacts, reference } = initialize(arr);
 
+      reference.update(arr);
       let keys1 = target.toKeys();
 
       assert.equal(keys1.length, 3);
@@ -129,6 +135,7 @@ module('@glimmer/reference: IterableImpl', () => {
       arr.pop();
       arr.unshift(godfrey);
 
+      reference.update(arr);
       sync(target, artifacts);
 
       let keys2 = target.toKeys();
@@ -151,11 +158,12 @@ module('@glimmer/reference: IterableImpl', () => {
 
     test('@identity works with null', assert => {
       let arr: any[] = [null];
-      let { target, artifacts } = initialize(arr);
+      let { target, artifacts, reference } = initialize(arr);
 
       let keys1 = target.toKeys();
 
       arr.unshift(undefined);
+      reference.update(arr);
       sync(target, artifacts);
 
       let keys2 = target.toKeys();

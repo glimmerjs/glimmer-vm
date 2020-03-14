@@ -1,12 +1,12 @@
 import {
-  BasicReference,
+  Reference,
   AbstractIterable,
   IterationItem,
   IterationArtifacts,
   ReferenceIterator,
   IteratorSynchronizer,
   IteratorSynchronizerDelegate,
-  VersionedPathReference,
+  PathReference,
   END,
 } from '../..';
 import { Tag, CURRENT_TAG } from '@glimmer/validator';
@@ -17,9 +17,9 @@ type IteratorAction = 'retain' | 'append' | 'insert' | 'move' | 'delete';
 type HistoryZip = [IteratorAction, any];
 
 export class Target implements IteratorSynchronizerDelegate<null> {
-  private valueMap = new Map<unknown, ListNode<BasicReference<unknown>>>();
-  private keyMap = new Map<ListNode<BasicReference<unknown>>, unknown>();
-  private list = new LinkedList<ListNode<BasicReference<unknown>>>();
+  private valueMap = new Map<unknown, ListNode<Reference<unknown>>>();
+  private keyMap = new Map<ListNode<Reference<unknown>>, unknown>();
+  private list = new LinkedList<ListNode<Reference<unknown>>>();
   public tag: Tag = CURRENT_TAG;
   public history: HistoryZip[] = [];
 
@@ -45,7 +45,7 @@ export class Target implements IteratorSynchronizerDelegate<null> {
     return stats;
   }
 
-  retain(_env: null, key: unknown, item: BasicReference<unknown>) {
+  retain(_env: null, key: unknown, item: Reference<unknown>) {
     if (item !== this.valueMap.get(key)!.value) {
       throw new Error('unstable reference');
     }
@@ -54,7 +54,7 @@ export class Target implements IteratorSynchronizerDelegate<null> {
 
   done() {}
 
-  append(key: unknown, item: BasicReference<unknown>) {
+  append(key: unknown, item: Reference<unknown>) {
     let node = new ListNode(item);
     this.valueMap.set(key, node);
     this.keyMap.set(node, key);
@@ -65,8 +65,8 @@ export class Target implements IteratorSynchronizerDelegate<null> {
   insert(
     _env: null,
     key: unknown,
-    item: BasicReference<unknown>,
-    _: BasicReference<unknown>,
+    item: Reference<unknown>,
+    _: Reference<unknown>,
     before: unknown
   ) {
     let referenceNode = before === END ? null : this.valueMap.get(before);
@@ -77,13 +77,7 @@ export class Target implements IteratorSynchronizerDelegate<null> {
     this.history.push(['insert', key]);
   }
 
-  move(
-    _env: null,
-    key: unknown,
-    item: BasicReference<unknown>,
-    _: BasicReference<unknown>,
-    before: unknown
-  ) {
+  move(_env: null, key: unknown, item: Reference<unknown>, _: Reference<unknown>, before: unknown) {
     let referenceNode = before === END ? null : this.valueMap.get(before);
     let node = this.valueMap.get(key)!;
 
@@ -104,7 +98,7 @@ export class Target implements IteratorSynchronizerDelegate<null> {
     this.history.push(['delete', key]);
   }
 
-  toArray(): BasicReference<unknown>[] {
+  toArray(): Reference<unknown>[] {
     return this.list.toArray().map(node => node.value);
   }
 
@@ -122,8 +116,8 @@ export function initialize(
     unknown,
     unknown,
     IterationItem<unknown, unknown>,
-    VersionedPathReference<unknown>,
-    VersionedPathReference<unknown>
+    PathReference<unknown>,
+    PathReference<unknown>
   >
 ): {
   artifacts: IterationArtifacts;

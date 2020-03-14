@@ -7,7 +7,6 @@ import {
   VMArguments,
   CapturedArguments,
 } from '@glimmer/interfaces';
-import { Tag, consumeTag } from '@glimmer/validator';
 
 export interface TestModifierConstructor {
   new (): TestModifierInstance;
@@ -41,12 +40,10 @@ export class TestModifierManager
     return new TestModifier(element, state, args.capture(), dom);
   }
 
-  getTag({ args: { tag } }: TestModifier): Tag {
-    return tag;
-  }
-
   install({ element, args, state }: TestModifier) {
-    consumeTag(args.tag);
+    // consume every argument so we always run again
+    args.named.references.forEach(n => n.value());
+    args.positional.references.forEach(n => n.value());
 
     if (state.instance && state.instance.didInsertElement) {
       state.instance.element = element;
@@ -57,7 +54,8 @@ export class TestModifierManager
   }
 
   update({ args, state }: TestModifier) {
-    consumeTag(args.tag);
+    args.named.references.forEach(n => n.value());
+    args.positional.references.forEach(n => n.value());
 
     if (state.instance && state.instance.didUpdate) {
       state.instance.didUpdate(args.positional.value(), args.named.value());

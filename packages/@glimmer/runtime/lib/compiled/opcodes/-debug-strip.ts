@@ -24,7 +24,7 @@ import {
   CapturedArgumentsValue,
   Option,
 } from '@glimmer/interfaces';
-import { VersionedPathReference, Reference } from '@glimmer/reference';
+import { PathReference, Reference } from '@glimmer/reference';
 import { Tag, COMPUTE } from '@glimmer/validator';
 import { PartialScopeImpl } from '../../scope';
 import CurryComponentReference from '../../references/curry-component';
@@ -43,14 +43,12 @@ export const CheckOperations: Checker<Option<ComponentElementOperations>> = wrap
   CheckOption(CheckInstanceof(ComponentElementOperations))
 );
 
-export const CheckPathReference: Checker<VersionedPathReference> = CheckInterface({
-  tag: CheckTag,
+export const CheckPathReference: Checker<PathReference> = CheckInterface({
   value: CheckFunction,
   get: CheckFunction,
 });
 
 export const CheckReference: Checker<Reference> = CheckInterface({
-  tag: CheckTag,
   value: CheckFunction,
 });
 
@@ -73,7 +71,6 @@ class CheckCapturedArgumentsValue implements Checker<() => CapturedArgumentsValu
 }
 
 export const CheckCapturedArguments: Checker<CapturedArguments> = CheckInterface({
-  tag: CheckTag,
   length: CheckNumber,
   positional: wrap(() => CheckInstanceof(CapturedPositionalArgumentsImpl)),
   named: wrap(() => CheckInstanceof(CapturedNamedArgumentsImpl)),

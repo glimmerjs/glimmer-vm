@@ -1,5 +1,4 @@
 import { AbstractIterable, Iterator, IterationItem, IterationArtifacts } from '..';
-import { Tag } from '@glimmer/validator';
 
 import { Option } from '@glimmer/util';
 
@@ -66,11 +65,9 @@ class TestIterable
       VolatileReference<unknown>,
       VolatileReference<unknown>
     > {
-  public tag: Tag;
   private arrayRef: VolatileReference<TestItem[]>;
 
   constructor(arrayRef: VolatileReference<TestItem[]>) {
-    this.tag = arrayRef.tag;
     this.arrayRef = arrayRef;
   }
 

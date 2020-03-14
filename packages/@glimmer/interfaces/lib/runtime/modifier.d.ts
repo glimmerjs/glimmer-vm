@@ -18,10 +18,6 @@ export interface ModifierManager<
     dom: GlimmerTreeChanges
   ): ModifierInstanceState;
 
-  // Convert the opaque modifier into a `RevisionTag` that determins when
-  // the modifier's update hooks need to be called (if at all).
-  getTag(modifier: ModifierInstanceState): Tag;
-
   // At initial render, the modifier gets a chance to install itself on the
   // element it is managing. It can also return a bucket of state that
   // it could use at update time. From the perspective of Glimmer, this

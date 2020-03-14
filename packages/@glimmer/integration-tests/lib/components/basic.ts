@@ -11,8 +11,7 @@ import {
 } from '@glimmer/interfaces';
 import { TestComponentDefinitionState } from './test-component';
 import { unreachable, expect, unwrapTemplate } from '@glimmer/util';
-import { VersionedPathReference } from '@glimmer/reference';
-import { Tag, CONSTANT_TAG } from '@glimmer/validator';
+import { PathReference } from '@glimmer/reference';
 import { UpdatableRootReference } from '../reference';
 
 export interface BasicComponentFactory {
@@ -60,12 +59,8 @@ export class BasicComponentManager
     return resolver.getInvocation(locator);
   }
 
-  getSelf(component: BasicComponent): VersionedPathReference {
+  getSelf(component: BasicComponent): PathReference {
     return new UpdatableRootReference(component);
-  }
-
-  getTag(): Tag {
-    return CONSTANT_TAG;
   }
 
   didCreateElement(component: BasicComponent, element: Element): void {

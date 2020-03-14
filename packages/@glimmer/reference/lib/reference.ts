@@ -1,97 +1,41 @@
-import { Option, symbol } from '@glimmer/util';
-import { Revision, Tag, Tagged, valueForTag, validateTag } from '@glimmer/validator';
+import { symbol } from '@glimmer/util';
+import { memoizeTracked } from '@glimmer/validator';
 
-export interface Reference<T> {
+export interface Reference<T = unknown> {
   value(): T;
 }
 
 export default Reference;
 
-export interface PathReference<T> extends Reference<T> {
+export interface PathReference<T = unknown> extends Reference<T> {
   get(key: string): PathReference<unknown>;
 }
 
 //////////
 
-export interface VersionedReference<T = unknown> extends Reference<T>, Tagged {}
-
-export interface VersionedPathReference<T = unknown> extends PathReference<T>, Tagged {
-  get(property: string): VersionedPathReference<unknown>;
-}
-
-export abstract class CachedReference<T> implements VersionedReference<T> {
-  public abstract tag: Tag;
-
-  private lastRevision: Option<Revision> = null;
-  private lastValue: Option<T> = null;
-
-  value(): T {
-    let { tag, lastRevision, lastValue } = this;
-
-    if (lastRevision === null || !validateTag(tag, lastRevision)) {
-      lastValue = this.lastValue = this.compute();
-      this.lastRevision = valueForTag(tag);
-    }
-
-    return lastValue as T;
-  }
+export abstract class CachedReference<T> implements Reference<T> {
+  value = memoizeTracked((): T => this.compute());
 
   protected abstract compute(): T;
-
-  protected invalidate() {
-    this.lastRevision = null;
-  }
 }
 
 //////////
 
-export class ReferenceCache<T> implements Tagged {
-  public tag: Tag;
+export class ReferenceCache<T> {
+  private reference: Reference<T>;
+  private lastValue: T;
 
-  private reference: VersionedReference<T>;
-  private lastValue: Option<T> = null;
-  private lastRevision: Option<Revision> = null;
-  private initialized = false;
-
-  constructor(reference: VersionedReference<T>) {
-    this.tag = reference.tag;
+  constructor(reference: Reference<T>) {
     this.reference = reference;
-  }
-
-  peek(): T {
-    if (!this.initialized) {
-      return this.initialize();
-    }
-
-    return this.lastValue as T;
+    this.lastValue = reference.value();
   }
 
   revalidate(): Validation<T> {
-    if (!this.initialized) {
-      return this.initialize();
-    }
-
-    let { reference, lastRevision } = this;
-    let tag = reference.tag;
-
-    if (validateTag(tag, lastRevision as number)) return NOT_MODIFIED;
-
     let { lastValue } = this;
-    let currentValue = reference.value();
-    this.lastRevision = valueForTag(tag);
+    let currentValue = this.reference.value();
 
     if (currentValue === lastValue) return NOT_MODIFIED;
     this.lastValue = currentValue;
-
-    return currentValue;
-  }
-
-  private initialize(): T {
-    let { reference } = this;
-
-    let currentValue = (this.lastValue = reference.value());
-    this.lastRevision = valueForTag(reference.tag);
-    this.initialized = true;
 
     return currentValue;
   }

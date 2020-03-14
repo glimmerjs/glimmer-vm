@@ -21,8 +21,8 @@ import {
   JitRuntimeResolver,
 } from '@glimmer/interfaces';
 import { Attrs, AttrsDiff } from './emberish-glimmer';
-import { VersionedPathReference, PathReference } from '@glimmer/reference';
-import { combine, createTag, dirtyTag, DirtyableTag, Tag } from '@glimmer/validator';
+import { PathReference } from '@glimmer/reference';
+import { createTag, dirtyTag, DirtyableTag, consumeTag, dirtyTagFor } from '@glimmer/validator';
 import { keys, EMPTY_ARRAY, assign } from '@glimmer/util';
 import { TestComponentDefinitionState } from './test-component';
 import { PrimitiveReference } from '@glimmer/runtime';
@@ -78,16 +78,14 @@ export class EmberishCurlyComponent {
 
   set(key: string, value: unknown) {
     (this as any)[key] = value;
-    dirtyTag(this.dirtinessTag);
+    dirtyTagFor(this, key);
   }
 
   setProperties(dict: Dict) {
     for (let key of keys(dict)) {
       (this as any)[key] = dict[key];
+      dirtyTagFor(this, key as string);
     }
-
-    SELF_REF.get(this)!.dirty();
-    dirtyTag(this.dirtinessTag);
   }
 
   recompute() {
@@ -208,7 +206,7 @@ export class EmberishCurlyComponentManager
     state: EmberishCurlyComponentDefinitionState,
     _args: VMArguments,
     dynamicScope: DynamicScope,
-    callerSelf: VersionedPathReference,
+    callerSelf: PathReference,
     hasDefaultBlock: boolean
   ): EmberishCurlyComponent {
     let klass = state.ComponentClass || EmberishCurlyComponent;
@@ -243,16 +241,17 @@ export class EmberishCurlyComponentManager
       }
     }
 
+    // consume every argument so we always run again
+    args.references.forEach(n => n.value());
+
     component.didInitAttrs({ attrs });
     component.didReceiveAttrs({ oldAttrs: null, newAttrs: attrs });
     component.willInsertElement();
     component.willRender();
 
-    return component;
-  }
+    consumeTag(component.dirtinessTag);
 
-  getTag({ args: { tag }, dirtinessTag }: EmberishCurlyComponent): Tag {
-    return combine([tag, dirtinessTag]);
+    return component;
   }
 
   getSelf(component: EmberishCurlyComponent): PathReference<unknown> {
@@ -312,6 +311,9 @@ export class EmberishCurlyComponentManager
     let oldAttrs = component.attrs;
     let newAttrs = component.args.value();
     let merged = assign({}, newAttrs, { attrs: newAttrs });
+
+    // consume every argument so we always run again
+    component.args.references.forEach(n => n.value());
 
     component.setProperties(merged);
     component.didUpdateAttrs({ oldAttrs, newAttrs });

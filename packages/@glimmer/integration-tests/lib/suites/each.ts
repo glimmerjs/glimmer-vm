@@ -1,5 +1,7 @@
 import { RenderTest } from '../render-test';
 import { test } from '../test-decorator';
+import { tracked } from '../test-helpers/decorators';
+import { createTag, consumeTag, dirtyTag } from '@glimmer/validator';
 
 export class EachSuite extends RenderTest {
   static suiteName = '#each';
@@ -25,6 +27,54 @@ export class EachSuite extends RenderTest {
 
     list = [1, 2, 3, 4];
     this.rerender({ list });
+    this.assertHTML('1234');
+    this.assertStableNodes();
+  }
+
+  @test
+  'autotracked custom iterable'() {
+    if (typeof Symbol !== 'function') {
+      QUnit.assert.ok(true, 'skipping platform without iterable');
+      return;
+    }
+
+    let list = {
+      arr: [1, 2, 3, 4],
+      tag: createTag(),
+
+      [Symbol.iterator]() {
+        consumeTag(this.tag);
+        return this.arr[Symbol.iterator]();
+      },
+
+      push(...vals: number[]) {
+        dirtyTag(this.tag);
+        this.arr.push(...vals);
+      },
+
+      clear() {
+        dirtyTag(this.tag);
+        this.arr.splice(0, this.arr.length);
+      },
+    };
+    this.render('{{#each list key="@index" as |item|}}{{item}}{{else}}Empty{{/each}}', {
+      list,
+    });
+    this.assertHTML('1234');
+    this.assertStableRerender();
+
+    list.push(5, 6);
+    this.rerender();
+    this.assertHTML('123456');
+    this.assertStableNodes();
+
+    list.clear();
+    this.rerender();
+    this.assertHTML('Empty');
+    this.assertStableNodes();
+
+    list.push(1, 2, 3, 4);
+    this.rerender();
     this.assertHTML('1234');
     this.assertStableNodes();
   }
@@ -163,7 +213,15 @@ export class EachSuite extends RenderTest {
 
   @test
   'it renders all items with duplicate key values'() {
-    let list = [{ text: 'Hello' }, { text: 'Hello' }, { text: 'Hello' }];
+    class Item {
+      @tracked text: string;
+
+      constructor(text: string) {
+        this.text = text;
+      }
+    }
+
+    let list = [new Item('Hello'), new Item('Hello'), new Item('Hello')];
 
     this.render(`{{#each list key="@identity" as |item|}}{{item.text}}{{/each}}`, {
       list,
@@ -178,7 +236,7 @@ export class EachSuite extends RenderTest {
     this.assertHTML('GoodbyeGoodbyeGoodbye');
     this.assertStableNodes();
 
-    list = [{ text: 'Hello' }, { text: 'Hello' }, { text: 'Hello' }];
+    list = [new Item('Hello'), new Item('Hello'), new Item('Hello')];
 
     this.rerender({ list });
     this.assertHTML('HelloHelloHello');
@@ -244,5 +302,13 @@ export class EachSuite extends RenderTest {
 }
 
 function val(i: number): { val: number } {
-  return { val: i };
+  return new Value(i);
+}
+
+class Value {
+  @tracked val: number;
+
+  constructor(val: number) {
+    this.val = val;
+  }
 }

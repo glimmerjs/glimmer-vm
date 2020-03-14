@@ -13,17 +13,7 @@ import {
   LiveBlock,
   UpdatableBlock,
 } from '@glimmer/interfaces';
-import {
-  combine,
-  valueForTag,
-  updateTag,
-  validateTag,
-  createUpdatableTag,
-  Tag,
-  UpdatableTag,
-  Revision,
-  INITIAL,
-} from '@glimmer/validator';
+import { Tag, track, Revision, valueForTag, validateTag } from '@glimmer/validator';
 import {
   IterationArtifacts,
   IteratorSynchronizer,
@@ -35,7 +25,6 @@ import { associate, expect, LinkedList, Option, Stack } from '@glimmer/util';
 import { SimpleComment, SimpleNode } from '@simple-dom/interface';
 import { move as moveBounds } from '../bounds';
 import { asyncReset, detach, legacySyncReset } from '../lifetime';
-import { combineSlice } from '../utils/tags';
 import { UpdatingOpcode, UpdatingOpSeq } from '../opcodes';
 import { InternalVM, VmInitCallback, JitVM } from './append';
 import { NewElementBuilder } from './element-builder';
@@ -132,8 +121,6 @@ export abstract class BlockOpcode extends UpdatingOpcode implements Bounds {
     this.bounds = bounds;
   }
 
-  abstract didInitializeChildren(): void;
-
   parentElement() {
     return this.bounds.parentElement();
   }
@@ -154,10 +141,6 @@ export abstract class BlockOpcode extends UpdatingOpcode implements Bounds {
 export class TryOpcode extends BlockOpcode implements ExceptionHandler {
   public type = 'try';
 
-  public tag: Tag;
-
-  private _tag: UpdatableTag;
-
   protected bounds!: UpdatableBlock; // Hides property on base class
 
   constructor(
@@ -167,11 +150,6 @@ export class TryOpcode extends BlockOpcode implements ExceptionHandler {
     children: LinkedList<UpdatingOpcode>
   ) {
     super(state, runtime, bounds, children);
-    this.tag = this._tag = createUpdatableTag();
-  }
-
-  didInitializeChildren() {
-    updateTag(this._tag, combineSlice(this.children));
   }
 
   evaluate(vm: UpdatingVM) {
@@ -207,9 +185,6 @@ class ListRevalidationDelegate implements IteratorSynchronizerDelegate<Environme
   private map: Map<unknown, BlockOpcode>;
   private updating: LinkedList<UpdatingOpcode>;
 
-  private didInsert = false;
-  private didDelete = false;
-
   constructor(private opcode: ListBlockOpcode, private marker: SimpleComment) {
     this.map = opcode.map;
     this.updating = opcode['children'];
@@ -243,8 +218,6 @@ class ListRevalidationDelegate implements IteratorSynchronizerDelegate<Environme
     updating.insertBefore(tryOpcode!, reference);
 
     associate(opcode, result.drop);
-
-    this.didInsert = true;
   }
 
   retain(
@@ -283,12 +256,6 @@ class ListRevalidationDelegate implements IteratorSynchronizerDelegate<Environme
     detach(opcode, env);
     updating.remove(opcode);
     map.delete(key);
-
-    this.didDelete = true;
-  }
-
-  done() {
-    this.opcode.didInitializeChildren(this.didInsert || this.didDelete);
   }
 }
 
@@ -296,10 +263,9 @@ export class ListBlockOpcode extends BlockOpcode {
   public type = 'list-block';
   public map = new Map<unknown, BlockOpcode>();
   public artifacts: IterationArtifacts;
-  public tag: Tag;
 
-  private lastIterated: Revision = INITIAL;
-  private _tag: UpdatableTag;
+  private tag: Tag;
+  private snapshot: Revision;
 
   constructor(
     state: ResumableVMState<InternalVM>,
@@ -310,39 +276,42 @@ export class ListBlockOpcode extends BlockOpcode {
   ) {
     super(state, runtime, bounds, children);
     this.artifacts = artifacts;
-    let _tag = (this._tag = createUpdatableTag());
-    this.tag = combine([artifacts.tag, _tag]);
+
+    let tag = (this.tag = track(() => this.artifacts.iterate()));
+    this.snapshot = valueForTag(tag);
   }
 
-  didInitializeChildren(listDidChange = true) {
-    this.lastIterated = valueForTag(this.artifacts.tag);
-
-    if (listDidChange) {
-      updateTag(this._tag, combineSlice(this.children));
+  private iterate(vm: UpdatingVM) {
+    if (validateTag(this.tag, this.snapshot)) {
+      return;
     }
+
+    let { artifacts, bounds } = this;
+    let { dom } = vm;
+
+    let marker = dom.createComment('');
+    dom.insertAfter(
+      bounds.parentElement(),
+      marker,
+      expect(bounds.lastNode(), "can't insert after an empty bounds")
+    );
+
+    let target = new ListRevalidationDelegate(this, marker);
+    let synchronizer: IteratorSynchronizer<Environment>;
+
+    let tag = (this.tag = track(() => {
+      synchronizer = new IteratorSynchronizer({ target, artifacts, env: vm!.env });
+    }));
+
+    this.snapshot = valueForTag(tag);
+
+    synchronizer!.sync();
+
+    this.parentElement().removeChild(marker);
   }
 
   evaluate(vm: UpdatingVM) {
-    let { artifacts, lastIterated } = this;
-
-    if (!validateTag(artifacts.tag, lastIterated)) {
-      let { bounds } = this;
-      let { dom } = vm;
-
-      let marker = dom.createComment('');
-      dom.insertAfter(
-        bounds.parentElement(),
-        marker,
-        expect(bounds.lastNode(), "can't insert after an empty bounds")
-      );
-
-      let target = new ListRevalidationDelegate(this, marker);
-      let synchronizer = new IteratorSynchronizer({ target, artifacts, env: vm.env });
-
-      synchronizer.sync();
-
-      this.parentElement().removeChild(marker);
-    }
+    this.iterate(vm);
 
     // Run now-updated updating opcodes
     super.evaluate(vm);

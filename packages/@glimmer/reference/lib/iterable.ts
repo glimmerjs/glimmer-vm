@@ -1,6 +1,5 @@
 import { LinkedList, ListNode, Option, symbol } from '@glimmer/util';
-import { Tag } from '@glimmer/validator';
-import { VersionedPathReference as PathReference } from '..';
+import { PathReference } from './reference';
 
 export interface IterationItem<T, U> {
   key: unknown;
@@ -20,7 +19,6 @@ export interface AbstractIterable<
   ValueReferenceType extends PathReference<T>,
   MemoReferenceType extends PathReference<U>
 > {
-  tag: Tag;
   iterate(): AbstractIterator<T, U, ItemType>;
 
   valueReferenceFor(item: ItemType): ValueReferenceType;
@@ -85,35 +83,20 @@ export class ListItem extends ListNode<OpaquePathReference> implements OpaqueIte
 }
 
 export class IterationArtifacts {
-  public tag: Tag;
-
   private iterable: OpaqueIterable;
-  private iterator: Option<OpaqueIterator> = null;
   private map = new Map<unknown, ListItem>();
   private list = new LinkedList<ListItem>();
 
   constructor(iterable: OpaqueIterable) {
-    this.tag = iterable.tag;
     this.iterable = iterable;
   }
 
   isEmpty(): boolean {
-    let iterator = (this.iterator = this.iterable.iterate());
-    return iterator.isEmpty();
+    return this.iterable.iterate().isEmpty();
   }
 
   iterate(): OpaqueIterator {
-    let iterator: OpaqueIterator;
-
-    if (this.iterator === null) {
-      iterator = this.iterable.iterate();
-    } else {
-      iterator = this.iterator;
-    }
-
-    this.iterator = null;
-
-    return iterator;
+    return this.iterable.iterate();
   }
 
   advanceToKey(key: unknown, current: ListItem): Option<ListItem> {
@@ -234,7 +217,6 @@ export interface IteratorSynchronizerDelegate<Env> {
     before: Option<unknown>
   ): void;
   delete(env: Env, key: unknown): void;
-  done(env: Env): void;
 }
 
 export interface IteratorSynchronizerOptions<Env> {
@@ -278,7 +260,6 @@ export class IteratorSynchronizer<Env> {
           phase = this.nextPrune();
           break;
         case Phase.Done:
-          this.nextDone();
           return;
       }
     }
@@ -386,9 +367,5 @@ export class IteratorSynchronizer<Env> {
     }
 
     return Phase.Prune;
-  }
-
-  private nextDone() {
-    this.target.done(this.env);
   }
 }

@@ -1,10 +1,10 @@
 import { AbstractIterable, IterationItem, OpaqueIterator, OpaqueIterationItem } from './iterable';
-import { Tag } from '@glimmer/validator';
 import { Option, Dict } from '@glimmer/interfaces';
 import { EMPTY_ARRAY, isObject, debugToString } from '@glimmer/util';
 import { DEBUG } from '@glimmer/env';
+import { memoizeTracked } from '@glimmer/validator';
 import { IterationItemReference, TemplateReferenceEnvironment } from './template';
-import { VersionedPathReference } from './reference';
+import { PathReference } from './reference';
 
 export interface IteratorDelegate {
   isEmpty(): boolean;
@@ -145,17 +145,13 @@ export class IterableImpl
       IterationItemReference<unknown>,
       IterationItemReference<unknown>
     > {
-  public tag: Tag;
-
   constructor(
-    private parentRef: VersionedPathReference,
+    private parentRef: PathReference,
     private key: string,
     private env: TemplateReferenceEnvironment
-  ) {
-    this.tag = parentRef.tag;
-  }
+  ) {}
 
-  iterate(): OpaqueIterator {
+  iterate = memoizeTracked(() => {
     let { parentRef, key, env } = this;
 
     let iterable = parentRef.value() as { [Symbol.iterator]: any } | null | false;
@@ -173,7 +169,7 @@ export class IterableImpl
     }
 
     return new IteratorWrapper(maybeIterator, keyFor);
-  }
+  });
 
   valueReferenceFor(item: IterationItem<unknown, unknown>): IterationItemReference<unknown> {
     let { parentRef, env } = this;
@@ -260,5 +256,51 @@ class ArrayIterator implements OpaqueIterator {
     let memo = this.pos;
 
     return { key, value, memo };
+  }
+}
+
+export class NativeIteratorDelegate<T = unknown> implements IteratorDelegate {
+  static from<T>(iterable: Iterable<T>) {
+    let iterator = iterable[Symbol.iterator]();
+    let result = iterator.next();
+    let { done } = result;
+
+    if (done === true) {
+      return null;
+    } else {
+      return new this(iterator, result);
+    }
+  }
+
+  private position = 0;
+
+  constructor(private iterable: Iterator<T>, private result: IteratorResult<T>) {}
+
+  isEmpty(): false {
+    return false;
+  }
+
+  valueFor(result: IteratorResult<unknown>, _position: number): T {
+    return result.value;
+  }
+
+  memoFor(_result: IteratorResult<unknown>, position: number): unknown {
+    return position;
+  }
+
+  next() {
+    let { iterable, result, position } = this;
+
+    if (result.done) {
+      return null;
+    }
+
+    let value = this.valueFor(result, position);
+    let memo = this.memoFor(result, position);
+
+    this.position++;
+    this.result = iterable.next();
+
+    return { value, memo };
   }
 }

@@ -4,6 +4,8 @@ import { equalsElement } from '../dom/assertions';
 import { stripTight } from '../test-helpers/strings';
 import { replaceHTML } from '../dom/simple-utils';
 import { EmberishCurlyComponent } from '../components/emberish-curly';
+import { tracked } from '../test-helpers/decorators';
+import { SimpleElement } from '@simple-dom/interface';
 
 export class InElementSuite extends RenderTest {
   static suiteName = '#in-element';
@@ -356,10 +358,18 @@ export class InElementSuite extends RenderTest {
 
     this.registerHelper('log', ([item]) => console.log(item));
 
+    class Root {
+      @tracked value: string;
+
+      constructor(public id: number, public element: SimpleElement, value: string) {
+        this.value = value;
+      }
+    }
+
     let roots = [
-      { id: 0, element: this.delegate.createElement('div'), value: 'foo' },
-      { id: 1, element: this.delegate.createElement('div'), value: 'bar' },
-      { id: 2, element: this.delegate.createElement('div'), value: 'baz' },
+      new Root(0, this.delegate.createElement('div'), 'foo'),
+      new Root(1, this.delegate.createElement('div'), 'bar'),
+      new Root(2, this.delegate.createElement('div'), 'baz'),
     ];
 
     this.render(

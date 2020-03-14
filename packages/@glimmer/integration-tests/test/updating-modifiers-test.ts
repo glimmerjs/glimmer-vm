@@ -43,18 +43,14 @@ class UpdatingModifiers extends RenderTest {
     this.rerender();
 
     this.assertHTML(
-      '<div><div data-modifier="updated - Super Metroid"></div></div>',
-      'modifier updated'
+      '<div><div data-modifier="installed - Super Metroid"></div></div>',
+      'modifier not updated when value not change'
     );
-    assert.deepEqual(hooks, ['didInsertElement', 'didUpdate'], 'hooks fired correctly on rerender');
+    assert.deepEqual(hooks, ['didInsertElement'], 'hooks fired correctly on rerender');
 
     this.rerender({ bar: 'Super Mario' });
     this.assertHTML('<div><div data-modifier="updated - Super Mario"></div></div>', 'no change');
-    assert.deepEqual(
-      hooks,
-      ['didInsertElement', 'didUpdate', 'didUpdate'],
-      'hooks fired correctly on rerender'
-    );
+    assert.deepEqual(hooks, ['didInsertElement', 'didUpdate'], 'hooks fired correctly on rerender');
   }
 
   @test
@@ -88,15 +84,15 @@ class UpdatingModifiers extends RenderTest {
 
     this.rerender();
 
-    this.assertHTML('<div data-modifier="updated - true"></div>', 'modifier updated');
-    assert.deepEqual(hooks, ['didInsertElement', 'didUpdate'], 'hooks fired correctly on rerender');
+    this.assertHTML('<div data-modifier="installed - true"></div>', 'modifier updated');
+    assert.deepEqual(hooks, ['didInsertElement'], 'hooks not fired when nothing changed');
 
     this.rerender({ bar: false });
 
     this.assertHTML('<div></div>', 'no more modifier');
     assert.deepEqual(
       hooks,
-      ['didInsertElement', 'didUpdate', 'willDestroyElement'],
+      ['didInsertElement', 'willDestroyElement'],
       'hooks fired correctly on rerender'
     );
 
@@ -105,7 +101,7 @@ class UpdatingModifiers extends RenderTest {
     this.assertHTML('<div data-modifier="installed - true"></div>', 'back to default render');
     assert.deepEqual(
       hooks,
-      ['didInsertElement', 'didUpdate', 'willDestroyElement', 'didInsertElement'],
+      ['didInsertElement', 'willDestroyElement', 'didInsertElement'],
       'hooks fired correctly on rerender'
     );
   }

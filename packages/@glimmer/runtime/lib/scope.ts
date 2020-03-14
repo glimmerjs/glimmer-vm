@@ -8,7 +8,7 @@ import {
   ScopeSlot,
   Option,
 } from '@glimmer/interfaces';
-import { PathReference, VersionedPathReference } from '@glimmer/reference';
+import { PathReference } from '@glimmer/reference';
 import { assign } from '@glimmer/util';
 import { UNDEFINED_REFERENCE } from './references';
 
@@ -36,7 +36,7 @@ export class DefaultDynamicScope implements DynamicScope {
   }
 }
 
-export function isScopeReference(s: ScopeSlot): s is VersionedPathReference {
+export function isScopeReference(s: ScopeSlot): s is PathReference {
   if (s === null || Array.isArray(s)) return false;
   return true;
 }

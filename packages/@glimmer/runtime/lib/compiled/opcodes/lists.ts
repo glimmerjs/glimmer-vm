@@ -1,20 +1,13 @@
 import { IterationArtifacts, Reference, ReferenceIterator } from '@glimmer/reference';
-import { Tag } from '@glimmer/validator';
 import { APPEND_OPCODES } from '../../opcodes';
 import { CheckPathReference } from './-debug-strip';
 import { check, CheckInstanceof } from '@glimmer/debug';
 import { Op } from '@glimmer/interfaces';
 
 class IterablePresenceReference implements Reference<boolean> {
-  public tag: Tag;
-  private artifacts: IterationArtifacts;
+  constructor(private artifacts: IterationArtifacts) {}
 
-  constructor(artifacts: IterationArtifacts) {
-    this.tag = artifacts.tag;
-    this.artifacts = artifacts;
-  }
-
-  value(): boolean {
+  value() {
     return !this.artifacts.isEmpty();
   }
 }

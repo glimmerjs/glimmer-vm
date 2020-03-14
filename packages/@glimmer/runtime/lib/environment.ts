@@ -32,9 +32,9 @@ import {
   IterableImpl,
   OpaqueIterable,
   PathReference,
-  VersionedPathReference,
-  VersionedReference,
+  Reference,
   IteratorDelegate,
+  NativeIteratorDelegate,
 } from '@glimmer/reference';
 import {
   assert,
@@ -221,7 +221,7 @@ export class EnvironmentImpl<Extra> implements Environment<Extra> {
     }
   }
 
-  iterableFor(ref: VersionedPathReference, inputKey: unknown): OpaqueIterable {
+  iterableFor(ref: PathReference, inputKey: unknown): OpaqueIterable {
     // TODO: We should add an assertion here to verify that we are passed a
     // TemplatePathReference, but we can only do that once we remove
     // or significantly rewrite @glimmer/object-reference
@@ -230,7 +230,7 @@ export class EnvironmentImpl<Extra> implements Environment<Extra> {
     return new IterableImpl(ref, key, this);
   }
 
-  toConditionalReference(input: VersionedPathReference): VersionedReference<boolean> {
+  toConditionalReference(input: PathReference): Reference<boolean> {
     return new ConditionalReference(input, this.delegate.toBool);
   }
 
@@ -342,7 +342,7 @@ export interface EnvironmentDelegate<Extra = undefined> {
    *
    * @param ref The reference to get context for
    */
-  getTemplatePathDebugContext?(ref: VersionedPathReference): string;
+  getTemplatePathDebugContext?(ref: PathReference): string;
 
   /**
    * Allows the embedding environment to setup debugging context at certain
@@ -354,9 +354,9 @@ export interface EnvironmentDelegate<Extra = undefined> {
    * @param parentRef The parent reference
    */
   setTemplatePathDebugContext?(
-    ref: VersionedPathReference,
+    ref: PathReference,
     desc: string,
-    parentRef: Option<VersionedPathReference>
+    parentRef: Option<PathReference>
   ): void;
 
   /**
@@ -431,7 +431,7 @@ function defaultToBool(value: unknown) {
 
 function defaultToIterator(value: any): Option<IteratorDelegate> {
   if (value && value[Symbol.iterator]) {
-    return value[Symbol.iterator]();
+    return NativeIteratorDelegate.from(value);
   }
 
   return null;

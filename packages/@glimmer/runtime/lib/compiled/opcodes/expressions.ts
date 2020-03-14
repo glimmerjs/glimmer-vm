@@ -1,5 +1,5 @@
 import { Option, Op, JitScopeBlock, AotScopeBlock, VM as PublicVM } from '@glimmer/interfaces';
-import { VersionedPathReference } from '@glimmer/reference';
+import { PathReference } from '@glimmer/reference';
 import { $v0 } from '@glimmer/vm';
 import { APPEND_OPCODES } from '../../opcodes';
 import { FALSE_REFERENCE, TRUE_REFERENCE, UNDEFINED_REFERENCE } from '../../references';
@@ -16,7 +16,7 @@ import {
 } from './-debug-strip';
 import { CONSTANTS } from '../../symbols';
 
-export type FunctionExpression<T> = (vm: PublicVM) => VersionedPathReference<T>;
+export type FunctionExpression<T> = (vm: PublicVM) => PathReference<T>;
 
 APPEND_OPCODES.add(Op.Helper, (vm, { op1: handle }) => {
   let stack = vm.stack;
@@ -137,7 +137,7 @@ APPEND_OPCODES.add(Op.HasBlockParams, vm => {
 });
 
 APPEND_OPCODES.add(Op.Concat, (vm, { op1: count }) => {
-  let out: Array<VersionedPathReference<unknown>> = new Array(count);
+  let out: Array<PathReference<unknown>> = new Array(count);
 
   for (let i = count; i > 0; i--) {
     let offset = i - 1;

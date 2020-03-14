@@ -1,9 +1,9 @@
 import { CONSTANT_TAG, Tag } from '@glimmer/validator';
-import { VersionedPathReference } from './reference';
+import { PathReference } from './reference';
 
 export type Primitive = undefined | null | boolean | number | string;
 
-export class PrimitiveReference<T extends Primitive> implements VersionedPathReference<T> {
+export class PrimitiveReference<T extends Primitive> implements PathReference<T> {
   readonly tag: Tag = CONSTANT_TAG;
 
   constructor(private inner: T) {}

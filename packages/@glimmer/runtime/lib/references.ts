@@ -1,6 +1,6 @@
 import { Option, Recast } from '@glimmer/interfaces';
 import { ConstReference, PathReference, Reference } from '@glimmer/reference';
-import { Tag } from '@glimmer/validator';
+import { memoizeTracked } from '@glimmer/validator';
 
 export type Primitive = undefined | null | boolean | number | string;
 
@@ -63,18 +63,14 @@ export const TRUE_REFERENCE: PrimitiveReference<boolean> = new ValueReference(tr
 export const FALSE_REFERENCE: PrimitiveReference<boolean> = new ValueReference(false);
 
 export class ConditionalReference implements Reference<boolean> {
-  public tag: Tag;
-
   constructor(
     private inner: Reference<unknown>,
     private toBool: (value: unknown) => boolean = defaultToBool
-  ) {
-    this.tag = inner.tag;
-  }
+  ) {}
 
-  value(): boolean {
+  value = memoizeTracked(() => {
     return this.toBool(this.inner.value());
-  }
+  });
 }
 
 function defaultToBool(value: unknown) {
