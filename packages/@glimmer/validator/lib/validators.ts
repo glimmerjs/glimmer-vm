@@ -271,15 +271,8 @@ export const CURRENT_TAG = new CurrentTag();
 
 //////////
 
-export function combine(tags: Tag[]): Tag {
-  let optimized: Tag[] = [];
-
-  for (let i = 0, l = tags.length; i < l; i++) {
-    let tag = tags[i];
-    if (tag === CONSTANT_TAG) continue;
-    optimized.push(tag);
-  }
-
+export function combine(tags: Tag[] | Set<Tag>): Tag {
+  let optimized: Tag[] = Array.from(tags).filter((tag: Tag) => tag !== CONSTANT_TAG);
   return createCombinatorTag(optimized);
 }
 
