@@ -39,13 +39,15 @@ class Tracker {
 
   combine(): Tag {
     let { tags } = this;
-
-    if (tags.size === 0) {
+    let size = tags.size;
+    if (size === 0) {
       return CONSTANT_TAG;
-    } else if (tags.size === 1) {
+    } else if (size === 1) {
       return this.last as Tag;
     } else {
-      return combine(tags);
+      let tagsArr: Tag[] = new Array(size - 1);
+      tags.forEach(tag => (tagsArr[size--] = tag));
+      return combine(tagsArr);
     }
   }
 }

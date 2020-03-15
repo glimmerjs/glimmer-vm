@@ -271,8 +271,11 @@ export const CURRENT_TAG = new CurrentTag();
 
 //////////
 
-export function combine(tags: Tag[] | Set<Tag>): Tag {
-  let optimized: Tag[] = Array.from(tags).filter((tag: Tag) => tag !== CONSTANT_TAG);
+export function combine(tags: Tag[]): Tag {
+  if (tags.indexOf(VOLATILE_TAG) !== -1) {
+    return VOLATILE_TAG;
+  }
+  let optimized: Tag[] = tags.filter((tag: Tag) => tag !== CONSTANT_TAG);
   return createCombinatorTag(optimized);
 }
 
