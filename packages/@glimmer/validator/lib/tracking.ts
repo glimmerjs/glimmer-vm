@@ -45,7 +45,8 @@ class Tracker {
     } else if (size === 1) {
       return this.last as Tag;
     } else {
-      let tagsArr: Tag[] = new Array(size - 1);
+      let tagsArr: Tag[] = new Array(size);
+      size--;
       tags.forEach(tag => (tagsArr[size--] = tag));
       return combine(tagsArr);
     }
