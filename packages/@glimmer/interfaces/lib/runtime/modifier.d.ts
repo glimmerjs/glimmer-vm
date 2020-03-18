@@ -34,7 +34,7 @@ export interface ModifierManager<
 
   // Convert the opaque token into an object that implements Destroyable.
   // If it returns null, the modifier will not be destroyed.
-  getDestructor(modifier: ModifierInstanceState): Option<SymbolDestroyable | Destroyable>;
+  teardown(modifier: ModifierInstanceState): void;
 }
 
 export interface ModifierDefinition<

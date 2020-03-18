@@ -26,7 +26,7 @@ import {
 } from '@glimmer/interfaces';
 import { VersionedPathReference, Reference } from '@glimmer/reference';
 import { Tag, COMPUTE } from '@glimmer/validator';
-import { ScopeImpl } from '../../environment';
+import { PartialScopeImpl } from '../../scope';
 import CurryComponentReference from '../../references/curry-component';
 import {
   CapturedNamedArgumentsImpl,
@@ -82,7 +82,9 @@ export const CheckCapturedArguments: Checker<CapturedArguments> = CheckInterface
 
 export const CheckCurryComponent = wrap(() => CheckInstanceof(CurryComponentReference));
 
-export const CheckScope: Checker<Scope<JitOrAotBlock>> = wrap(() => CheckInstanceof(ScopeImpl));
+export const CheckScope: Checker<Scope<JitOrAotBlock>> = wrap(() =>
+  CheckInstanceof(PartialScopeImpl)
+);
 
 export const CheckComponentManager: Checker<ComponentManager<unknown>> = CheckInterface({
   getCapabilities: CheckFunction,

@@ -11,7 +11,7 @@ import { debug, logOpcode } from '@glimmer/debug';
 import { DESTRUCTOR_STACK, INNER_VM, CONSTANTS, STACKS } from './symbols';
 import { InternalVM, InternalJitVM } from './vm/append';
 import { CURSOR_STACK } from './vm/element-builder';
-import { isScopeReference } from './environment';
+import { isScopeReference } from './scope';
 
 export interface OpcodeJSON {
   type: number | string;

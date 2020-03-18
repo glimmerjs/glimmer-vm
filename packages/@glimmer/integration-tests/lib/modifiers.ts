@@ -3,12 +3,11 @@ import {
   Dict,
   ModifierManager,
   GlimmerTreeChanges,
-  Destroyable,
   DynamicScope,
   VMArguments,
   CapturedArguments,
 } from '@glimmer/interfaces';
-import { Tag } from '@glimmer/validator';
+import { Tag, consumeTag } from '@glimmer/validator';
 
 export interface TestModifierConstructor {
   new (): TestModifierInstance;
@@ -47,6 +46,8 @@ export class TestModifierManager
   }
 
   install({ element, args, state }: TestModifier) {
+    consumeTag(args.tag);
+
     if (state.instance && state.instance.didInsertElement) {
       state.instance.element = element;
       state.instance.didInsertElement(args.positional.value(), args.named.value());
@@ -56,6 +57,8 @@ export class TestModifierManager
   }
 
   update({ args, state }: TestModifier) {
+    consumeTag(args.tag);
+
     if (state.instance && state.instance.didUpdate) {
       state.instance.didUpdate(args.positional.value(), args.named.value());
     }
@@ -63,15 +66,11 @@ export class TestModifierManager
     return;
   }
 
-  getDestructor(modifier: TestModifier): Destroyable {
-    return {
-      destroy: () => {
-        let { state } = modifier;
-        if (state.instance && state.instance.willDestroyElement) {
-          state.instance.willDestroyElement();
-        }
-      },
-    };
+  teardown(modifier: TestModifier): void {
+    let { state } = modifier;
+    if (state.instance && state.instance.willDestroyElement) {
+      state.instance.willDestroyElement();
+    }
   }
 }
 

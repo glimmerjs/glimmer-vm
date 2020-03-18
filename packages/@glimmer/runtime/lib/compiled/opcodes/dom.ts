@@ -1,13 +1,9 @@
 import { Reference, ReferenceCache, VersionedReference } from '@glimmer/reference';
-import { Revision, Tag, isConst, isConstTag, valueForTag, validateTag } from '@glimmer/validator';
+import { Revision, Tag, isConst, valueForTag, validateTag } from '@glimmer/validator';
 import { check, CheckString, CheckElement, CheckOption, CheckNode } from '@glimmer/debug';
 import { Op, Option, ModifierManager } from '@glimmer/interfaces';
 import { $t0 } from '@glimmer/vm';
-import {
-  ModifierDefinition,
-  InternalModifierManager,
-  ModifierInstanceState,
-} from '../../modifier/interfaces';
+import { ModifierDefinition } from '../../modifier/interfaces';
 import { APPEND_OPCODES, UpdatingOpcode } from '../../opcodes';
 import { UpdatingVM } from '../../vm';
 import { Assert } from './vm';
@@ -16,6 +12,7 @@ import { CheckReference, CheckArguments, CheckOperations } from './-debug-strip'
 import { CONSTANTS } from '../../symbols';
 import { SimpleElement, SimpleNode } from '@simple-dom/interface';
 import { expect, Maybe } from '@glimmer/util';
+import { EffectImpl } from '../../environment';
 
 APPEND_OPCODES.add(Op.Text, (vm, { op1: text }) => {
   vm.elements().appendText(vm[CONSTANTS].getString(text));
@@ -86,12 +83,22 @@ APPEND_OPCODES.add(Op.CloseElement, vm => {
 
   if (modifiers) {
     modifiers.forEach(([manager, modifier]) => {
-      vm.env.scheduleInstallModifier(modifier, manager);
-      let d = manager.getDestructor(modifier);
+      let effect = new EffectImpl({
+        setup() {
+          manager.install(modifier);
+        },
 
-      if (d) {
-        vm.associateDestroyable(d);
-      }
+        update() {
+          manager.update(modifier);
+        },
+
+        teardown() {
+          manager.teardown(modifier);
+        },
+      });
+
+      vm.env.registerEffect(effect, true);
+      vm.associateDestroyable(effect);
     });
   }
 });
@@ -117,35 +124,35 @@ APPEND_OPCODES.add(Op.Modifier, (vm, { op1: handle }) => {
 
   operations.addModifier(manager, modifier);
 
-  let tag = manager.getTag(modifier);
+  // let tag = manager.getTag(modifier);
 
-  if (!isConstTag(tag)) {
-    vm.updateWith(new UpdateModifierOpcode(tag, manager, modifier));
-  }
+  // if (!isConstTag(tag)) {
+  //   vm.updateWith(new UpdateModifierOpcode(tag, manager, modifier));
+  // }
 });
 
-export class UpdateModifierOpcode extends UpdatingOpcode {
-  public type = 'update-modifier';
-  private lastUpdated: Revision;
+// export class UpdateModifierOpcode extends UpdatingOpcode {
+//   public type = 'update-modifier';
+//   private lastUpdated: Revision;
 
-  constructor(
-    public tag: Tag,
-    private manager: InternalModifierManager,
-    private modifier: ModifierInstanceState
-  ) {
-    super();
-    this.lastUpdated = valueForTag(tag);
-  }
+//   constructor(
+//     public tag: Tag,
+//     private manager: InternalModifierManager,
+//     private modifier: ModifierInstanceState
+//   ) {
+//     super();
+//     this.lastUpdated = valueForTag(tag);
+//   }
 
-  evaluate(vm: UpdatingVM) {
-    let { manager, modifier, tag, lastUpdated } = this;
+//   evaluate(vm: UpdatingVM) {
+//     let { manager, modifier, tag, lastUpdated } = this;
 
-    if (!validateTag(tag, lastUpdated)) {
-      vm.env.scheduleUpdateModifier(modifier, manager);
-      this.lastUpdated = valueForTag(tag);
-    }
-  }
-}
+//     if (!validateTag(tag, lastUpdated)) {
+//       vm.env.scheduleUpdateModifier(modifier, manager);
+//       this.lastUpdated = valueForTag(tag);
+//     }
+//   }
+// }
 
 APPEND_OPCODES.add(Op.StaticAttr, (vm, { op1: _name, op2: _value, op3: _namespace }) => {
   let name = vm[CONSTANTS].getString(_name);
