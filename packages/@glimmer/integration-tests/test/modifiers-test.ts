@@ -1,4 +1,4 @@
-import { RenderTest, jitSuite, test, Count } from '..';
+import { RenderTest, jitSuite, test, Count, tracked, EmberishGlimmerComponent, EmberishGlimmerArgs } from '..';
 import { Dict } from '@glimmer/interfaces';
 import { SimpleElement } from '@simple-dom/interface';
 import { Option } from '@glimmer/interfaces';
@@ -300,6 +300,72 @@ class ModifierTests extends RenderTest {
     assert.deepEqual(modifierParams, ['bar']);
     assert.deepEqual(modifierNamedArgs, { foo: 'bar' });
     assert.deepEqual(elementIds, ['outer-div', 'inner-div'], 'Modifiers are called on all levels');
+  }
+
+  @test
+  'child modifiers that are added later update before parents'(assert: Assert) {
+    let inserts: Option<string>[] = [];
+    let updates: Option<string>[] = [];
+
+    class Bar extends BaseModifier {
+      didInsertElement(params: unknown[]) {
+        assert.deepEqual(params, [123]);
+        if (this.element) {
+          inserts.push(this.element.getAttribute('id'));
+        }
+      }
+
+      didUpdate(params: unknown[]) {
+        assert.deepEqual(params, [124]);
+        if (this.element) {
+          updates.push(this.element.getAttribute('id'));
+        }
+      }
+    }
+
+    let component: Option<Foo> = null;
+
+    class Foo extends EmberishGlimmerComponent {
+      constructor(args: EmberishGlimmerArgs) {
+        super(args);
+
+        component = this;
+      }
+
+      @tracked showing = false;
+      @tracked count = 123;
+    }
+
+    this.registerComponent(
+      'Glimmer',
+      'Foo',
+      `
+        <div id="outer" {{bar this.count}}>
+          {{#if this.showing}}
+            <div id="inner" {{bar this.count}}></div>
+          {{/if}}
+        </div>
+      `,
+      Foo
+    );
+    this.registerModifier('bar', Bar);
+
+    this.render('<Foo/>');
+
+    assert.deepEqual(inserts, ['outer'], 'outer modifier insert called');
+    assert.deepEqual(updates, [], 'no updates called');
+
+    component!.showing = true;
+    this.rerender();
+
+    assert.deepEqual(inserts, ['outer', 'inner'], 'inner modifier insert called');
+    assert.deepEqual(updates, [], 'no updates called');
+
+    component!.count++;
+    this.rerender();
+
+    assert.deepEqual(inserts, ['outer', 'inner'], 'inserts not called');
+    assert.deepEqual(updates, ['inner', 'outer'], 'updates called in correct order');
   }
 
   @test

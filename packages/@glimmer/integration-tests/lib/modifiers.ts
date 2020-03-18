@@ -3,12 +3,11 @@ import {
   Dict,
   ModifierManager,
   GlimmerTreeChanges,
-  Destroyable,
   DynamicScope,
   VMArguments,
   CapturedArguments,
 } from '@glimmer/interfaces';
-import { Tag } from '@glimmer/validator';
+import { Tag, consumeTag } from '@glimmer/validator';
 
 export interface TestModifierConstructor {
   new (): TestModifierInstance;
@@ -22,12 +21,7 @@ export interface TestModifierInstance {
 }
 
 export class TestModifierDefinitionState {
-  instance?: TestModifierInstance;
-  constructor(Klass?: TestModifierConstructor) {
-    if (Klass) {
-      this.instance = new Klass();
-    }
-  }
+  constructor(public Class: TestModifierConstructor) {}
 }
 
 export class TestModifierManager
@@ -39,46 +33,48 @@ export class TestModifierManager
     _dynamicScope: DynamicScope,
     dom: GlimmerTreeChanges
   ) {
-    return new TestModifier(element, state, args.capture(), dom);
+    let { Class } = state;
+
+    return new TestModifier(element, new Class(), args.capture(), dom);
   }
 
   getTag({ args: { tag } }: TestModifier): Tag {
     return tag;
   }
 
-  install({ element, args, state }: TestModifier) {
-    if (state.instance && state.instance.didInsertElement) {
-      state.instance.element = element;
-      state.instance.didInsertElement(args.positional.value(), args.named.value());
+  install({ element, args, instance }: TestModifier) {
+    consumeTag(args.tag);
+
+    if (instance && instance.didInsertElement) {
+      instance.element = element;
+      instance.didInsertElement(args.positional.value(), args.named.value());
     }
 
     return;
   }
 
-  update({ args, state }: TestModifier) {
-    if (state.instance && state.instance.didUpdate) {
-      state.instance.didUpdate(args.positional.value(), args.named.value());
+  update({ args, instance }: TestModifier) {
+    consumeTag(args.tag);
+
+    if (instance && instance.didUpdate) {
+      instance.didUpdate(args.positional.value(), args.named.value());
     }
 
     return;
   }
 
-  getDestructor(modifier: TestModifier): Destroyable {
-    return {
-      destroy: () => {
-        let { state } = modifier;
-        if (state.instance && state.instance.willDestroyElement) {
-          state.instance.willDestroyElement();
-        }
-      },
-    };
+  teardown(modifier: TestModifier): void {
+    let { instance } = modifier;
+    if (instance && instance.willDestroyElement) {
+      instance.willDestroyElement();
+    }
   }
 }
 
 export class TestModifier {
   constructor(
     public element: SimpleElement,
-    public state: TestModifierDefinitionState,
+    public instance: TestModifierInstance,
     public args: CapturedArguments,
     public dom: GlimmerTreeChanges
   ) {}

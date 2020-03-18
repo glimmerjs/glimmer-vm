@@ -24,7 +24,7 @@ import { resolveComponent } from './component/resolve';
 import { ARGS } from './symbols';
 import { AotVM, InternalVM, JitVM } from './vm/append';
 import { NewElementBuilder } from './vm/element-builder';
-import { DefaultDynamicScope } from './dynamic-scope';
+import { DefaultDynamicScope } from './scope';
 import { UNDEFINED_REFERENCE } from './references';
 
 class TemplateIteratorImpl<C extends JitOrAotBlock> implements TemplateIterator {

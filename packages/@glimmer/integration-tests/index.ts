@@ -17,3 +17,4 @@ export * from './lib/suites';
 export * from './lib/test-helpers/module';
 export * from './lib/test-helpers/strings';
 export * from './lib/test-helpers/test';
+export * from './lib/test-helpers/tracked';

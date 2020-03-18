@@ -53,7 +53,7 @@ import { CheckNumber, check } from '@glimmer/debug';
 import { unwrapHandle } from '@glimmer/util';
 import { combineSlice } from '../utils/tags';
 import { DidModifyOpcode, JumpIfNotModifiedOpcode, LabelOpcode } from '../compiled/opcodes/vm';
-import { ScopeImpl } from '../environment';
+import { PartialScopeImpl } from '../scope';
 import { APPEND_OPCODES, DebugState, UpdatingOpcode } from '../opcodes';
 import { UNDEFINED_REFERENCE } from '../references';
 import { ARGS, CONSTANTS, DESTRUCTOR_STACK, HEAP, INNER_VM, REGISTERS, STACKS } from '../symbols';
@@ -488,7 +488,7 @@ export default abstract class VM<C extends JitOrAotBlock> implements PublicVM, I
   }
 
   pushRootScope(size: number): PartialScope<C> {
-    let scope = ScopeImpl.sized<C>(size);
+    let scope = PartialScopeImpl.sized<C>(size);
     this[STACKS].scope.push(scope);
     return scope;
   }
@@ -580,7 +580,7 @@ export default abstract class VM<C extends JitOrAotBlock> implements PublicVM, I
 
 function vmState<C extends JitOrAotBlock>(
   pc: number,
-  scope: Scope<C> = ScopeImpl.root<C>(UNDEFINED_REFERENCE, 0),
+  scope: Scope<C> = PartialScopeImpl.root<C>(UNDEFINED_REFERENCE, 0),
   dynamicScope: DynamicScope
 ) {
   return {
@@ -610,7 +610,7 @@ export class AotVM extends VM<number> implements InternalVM<number> {
       runtime,
       vmState(
         runtime.program.heap.getaddr(handle),
-        ScopeImpl.root<number>(UNDEFINED_REFERENCE, 0),
+        PartialScopeImpl.root<number>(UNDEFINED_REFERENCE, 0),
         dynamicScope
       ),
       treeBuilder
@@ -624,7 +624,7 @@ export class AotVM extends VM<number> implements InternalVM<number> {
     { handle, self, treeBuilder, dynamicScope }: InitOptions
   ) {
     let scopeSize = runtime.program.heap.scopesizeof(handle);
-    let scope = ScopeImpl.root(self, scopeSize);
+    let scope = PartialScopeImpl.root(self, scopeSize);
     let pc = check(runtime.program.heap.getaddr(handle), CheckNumber);
     let state = vmState(pc, scope, dynamicScope);
     let vm = initAOT(runtime, state, treeBuilder);
@@ -666,7 +666,7 @@ export class JitVM extends VM<CompilableBlock> implements InternalJitVM {
     { handle, self, dynamicScope, treeBuilder }: InitOptions
   ) {
     let scopeSize = runtime.program.heap.scopesizeof(handle);
-    let scope = ScopeImpl.root(self, scopeSize);
+    let scope = PartialScopeImpl.root(self, scopeSize);
     let state = vmState(runtime.program.heap.getaddr(handle), scope, dynamicScope);
     let vm = initJIT(context)(runtime, state, treeBuilder);
     vm.pushUpdating();
@@ -682,7 +682,7 @@ export class JitVM extends VM<CompilableBlock> implements InternalJitVM {
       runtime,
       vmState(
         runtime.program.heap.getaddr(handle),
-        ScopeImpl.root<CompilableBlock>(UNDEFINED_REFERENCE, 0),
+        PartialScopeImpl.root<CompilableBlock>(UNDEFINED_REFERENCE, 0),
         dynamicScope
       ),
       treeBuilder

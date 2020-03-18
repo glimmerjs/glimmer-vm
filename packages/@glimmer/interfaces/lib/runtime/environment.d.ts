@@ -8,7 +8,7 @@ import { AttributeOperation } from '../dom/attributes';
 import { AttrNamespace, SimpleElement, SimpleDocument } from '@simple-dom/interface';
 import { ComponentInstanceState } from '../components';
 import { ComponentManager } from '../components/component-manager';
-import { Drop, Option } from '../core';
+import { Drop, Option, SymbolDestroyable } from '../core';
 import { GlimmerTreeChanges, GlimmerTreeConstruction } from '../dom/changes';
 import { ModifierManager } from './modifier';
 
@@ -26,6 +26,10 @@ export interface Transaction {}
 declare const TransactionSymbol: unique symbol;
 export type TransactionSymbol = typeof TransactionSymbol;
 
+export interface Effect extends SymbolDestroyable {
+  createOrUpdate(): void;
+}
+
 export interface Environment<Extra = unknown> {
   [TransactionSymbol]: Option<Transaction>;
 
@@ -35,8 +39,7 @@ export interface Environment<Extra = unknown> {
   willDestroy(drop: Drop): void;
   didDestroy(drop: Drop): void;
 
-  scheduleInstallModifier(modifier: unknown, manager: ModifierManager): void;
-  scheduleUpdateModifier(modifier: unknown, manager: ModifierManager): void;
+  registerEffect(phase: 'layout', effect: Effect): void;
 
   begin(): void;
   commit(): void;
