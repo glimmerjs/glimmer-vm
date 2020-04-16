@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.38.5-alpha.6 (2020-04-16)
+
+#### :bug: Bug Fix
+* `@glimmer/runtime`, `@glimmer/test-helpers`
+  * [#1074](https://github.com/glimmerjs/glimmer-vm/pull/1074) Backport: Properly cleanup the element builder in a try/finally ([@rwjblue](https://github.com/rwjblue))
+
+#### Committers: 1
+- Robert Jackson ([@rwjblue](https://github.com/rwjblue))
+
 ## v0.38.5-alpha.4 (2020-01-25)
 
 #### :bug: Bug Fix
