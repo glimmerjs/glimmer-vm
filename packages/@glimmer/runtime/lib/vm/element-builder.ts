@@ -131,6 +131,7 @@ export interface ElementBuilder extends Cursor, DOMStack, TreeOperations {
   expectConstructing(method: string): Simple.Element;
 
   block(): Tracker;
+  hasBlocks: boolean;
 
   pushSimpleBlock(): Tracker;
   pushUpdatableBlock(): UpdatableTracker;
@@ -182,6 +183,10 @@ export class NewElementBuilder implements ElementBuilder {
 
   get nextSibling(): Option<Simple.Node> {
     return this.cursorStack.current!.nextSibling as Option<Simple.Node>;
+  }
+
+  get hasBlocks() {
+    return this.blockStack.size > 0;
   }
 
   expectConstructing(method: string): Simple.Element {

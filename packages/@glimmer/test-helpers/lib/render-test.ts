@@ -468,9 +468,18 @@ export class RenderTest {
 
     let result = expect(this.renderResult, 'the test should call render() before rerender()');
 
-    result.env.begin();
-    result.rerender();
-    result.env.commit();
+    try {
+      result.env.begin();
+      result.rerender();
+    } finally {
+      result.env.commit();
+    }
+  }
+
+  destroy(): void {
+    let result = expect(this.renderResult, 'the test should call render() before destroy()');
+
+    result.destroy();
   }
 
   protected set(key: string, value: Opaque): void {
