@@ -470,12 +470,22 @@ export default class VM<T> implements PublicVM {
 
     let result: IteratorResult<RenderResult>;
 
-    while (true) {
-      result = this.next();
-      if (result.done) break;
+    try {
+      while (true) {
+        result = this.next();
+        if (result.done) break;
+      }
+    } finally {
+      // If any existing blocks are open, due to an error or something like
+      // that, we need to close them all and clean things up properly.
+      let elements = this.elements();
+
+      while (elements.hasBlocks) {
+        elements.popBlock();
+      }
     }
 
-    return result.value;
+    return result.value!;
   }
 
   next(): IteratorResult<RenderResult> {
