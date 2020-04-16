@@ -773,4 +773,96 @@ export class BasicComponents extends RenderTest {
     this.assertHTML(`<div color='red'>hello!</div>`);
     this.assertStableNodes();
   }
+
+    @test({ kind: 'fragment' })
+  'throwing an error during component construction does not put result into a bad state'() {
+    this.registerComponent(
+      'Glimmer',
+      'Foo',
+      'Hello',
+      class extends EmberishGlimmerComponent {
+        constructor() {
+          super();
+          throw new Error('something went wrong!');
+        }
+      }
+    );
+
+    this.render('{{#if showing}}<Foo/>{{/if}}', {
+      showing: false,
+    });
+
+    this.assert.throws(() => {
+      this.rerender({ showing: true });
+    }, 'something went wrong!');
+
+    this.assertHTML('<!---->', 'values rendered before the error rendered correctly');
+    this.destroy();
+
+    this.assertHTML('', 'destroys correctly');
+  }
+
+  @test({ kind: 'fragment' })
+  'throwing an error during component construction does not put result into a bad state with multiple prior nodes'() {
+    this.registerComponent(
+      'Glimmer',
+      'Foo',
+      'Hello',
+      class extends EmberishGlimmerComponent {
+        constructor() {
+          super();
+          throw new Error('something went wrong!');
+        }
+      }
+    );
+
+    this.render('{{#if showing}}<div class="first"></div><div class="second"></div><Foo/>{{/if}}', {
+      showing: false,
+    });
+
+    this.assert.throws(() => {
+      this.rerender({ showing: true });
+    }, 'something went wrong!');
+
+    this.assertHTML(
+      '<div class="first"></div><div class="second"></div><!---->',
+      'values rendered before the error rendered correctly'
+    );
+    this.destroy();
+
+    this.assertHTML('', 'destroys correctly');
+  }
+
+  @test({ kind: 'fragment' })
+  'throwing an error during component construction does not put result into a bad state with nested components'() {
+    this.registerComponent(
+      'Glimmer',
+      'Foo',
+      'Hello',
+      class extends EmberishGlimmerComponent {
+        constructor() {
+          super();
+          throw new Error('something went wrong!');
+        }
+      }
+    );
+
+    this.registerComponent('Basic', 'Bar', '<div class="second"></div><Foo/>');
+
+    this.render('{{#if showing}}<div class="first"></div><Bar/>{{/if}}', {
+      showing: false,
+    });
+
+    this.assert.throws(() => {
+      this.rerender({ showing: true });
+    }, 'something went wrong!');
+
+    this.assertHTML(
+      '<div class="first"></div><div class="second"></div><!---->',
+      'values rendered before the error rendered correctly'
+    );
+    this.destroy();
+
+    this.assertHTML('', 'destroys correctly');
+  }
 }
