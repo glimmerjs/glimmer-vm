@@ -27,10 +27,12 @@ export class CompilationTests extends RenderTest {
   @test
   'generates id in node'() {
     let template = precompile('hello');
-    let obj = JSON.parse(template);
+    // eslint-disable-next-line no-new-func
+    let obj = new Function(`return ${template};`)();
     this.assert.equal(obj.id, '0Y7kYkMz', 'short sha of template source');
     template = precompile('hello', { meta: { moduleName: 'template/hello' } });
-    obj = JSON.parse(template);
+    // eslint-disable-next-line no-new-func
+    obj = new Function(`return ${template};`)();
     this.assert.equal(obj.id, '3eCW+B6N', 'short sha of template source and meta');
   }
 }

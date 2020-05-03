@@ -73,9 +73,9 @@ export class TemplateBlock extends Block {
   toJSON(): SerializedTemplateBlock {
     return {
       symbols: this.symbolTable.symbols,
-      statements: this.statements,
       hasEval: this.hasEval,
       upvars: this.symbolTable.freeVariables,
+      statements: this.statements,
     };
   }
 }

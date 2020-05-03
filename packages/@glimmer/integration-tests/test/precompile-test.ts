@@ -23,10 +23,12 @@ QUnit.module('templateFactory', {
         name: 'default',
       },
     });
-    serializedTemplate = JSON.parse(templateJs);
+    // eslint-disable-next-line no-new-func
+    serializedTemplate = new Function(`return ${templateJs};`)();
     serializedTemplate.id = 'server-id-1';
 
-    serializedTemplateNoId = JSON.parse(templateJs);
+    // eslint-disable-next-line no-new-func
+    serializedTemplateNoId = new Function(`return ${templateJs};`)();
     serializedTemplateNoId.id = null;
   },
 });

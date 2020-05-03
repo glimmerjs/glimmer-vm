@@ -63,7 +63,7 @@ export default function templateFactory<M>({
   let create = (envMeta?: {}) => {
     let newMeta = envMeta ? assign({}, envMeta, meta) : meta;
     if (!parsedBlock) {
-      parsedBlock = JSON.parse(block);
+      parsedBlock = block();
     }
     return new TemplateImpl({ id, block: parsedBlock, referrer: newMeta });
   };

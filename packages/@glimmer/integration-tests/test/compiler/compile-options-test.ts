@@ -1,7 +1,16 @@
-import { precompile } from '@glimmer/compiler';
+import { precompile, PrecompileOptions } from '@glimmer/compiler';
 import { preprocess, DEFAULT_TEST_META } from '../..';
 import { module } from '../support';
 import { assign, unwrapTemplate } from '@glimmer/util';
+import { SerializedTemplateWithLazyBlock } from '@glimmer/interfaces';
+
+function roundtrip<M>(
+  source: string,
+  options: PrecompileOptions & { meta: M }
+): SerializedTemplateWithLazyBlock<M> {
+  // eslint-disable-next-line no-new-func
+  return new Function(`return ${precompile(source, options)};`)();
+}
 
 module('[glimmer-compiler] Compile options', ({ test }) => {
   test('moduleName option is passed into meta', assert => {
@@ -15,36 +24,32 @@ module('[glimmer-compiler] Compile options', ({ test }) => {
 
 module('[glimmer-compiler] precompile', ({ test }) => {
   test('returned meta is correct', assert => {
-    let wire = JSON.parse(
-      precompile('Hi, {{name}}!', {
-        meta: {
-          moduleName: 'my/module-name',
-          metaIsunknown: 'yes',
-        },
-      })
-    );
+    let wire = roundtrip('Hi, {{name}}!', {
+      meta: {
+        moduleName: 'my/module-name',
+        metaIsunknown: 'yes',
+      },
+    });
 
     assert.equal(wire.meta.moduleName, 'my/module-name', 'Template has correct meta');
     assert.equal(wire.meta.metaIsunknown, 'yes', 'Template has correct meta');
   });
 
   test('customizeComponentName is used if present', function(assert) {
-    let wire = JSON.parse(
-      precompile('<XFoo />', {
-        meta: {
-          moduleName: 'my/module-name',
-          metaIsunknown: 'yes',
-        },
-        customizeComponentName(input: string) {
-          return input
-            .split('')
-            .reverse()
-            .join('');
-        },
-      })
-    );
+    let wire = roundtrip('<XFoo />', {
+      meta: {
+        moduleName: 'my/module-name',
+        metaIsunknown: 'yes',
+      },
+      customizeComponentName(input: string) {
+        return input
+          .split('')
+          .reverse()
+          .join('');
+      },
+    });
 
-    let [componentInvocation] = JSON.parse(wire.block).statements;
+    let [componentInvocation] = wire.block().statements;
     assert.equal(componentInvocation[1], 'ooFX', 'customized component name was used');
   });
 });
