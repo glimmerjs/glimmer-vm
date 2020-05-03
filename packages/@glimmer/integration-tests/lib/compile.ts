@@ -20,28 +20,34 @@ export const DEFAULT_TEST_META: AnnotatedModuleLocator = Object.freeze({
 // most tests should just use a more generic preprocess, extracted
 // out of the test environment.
 export function preprocess(
-  template: string,
+  source: string,
   meta?: AnnotatedModuleLocator
 ): Template<AnnotatedModuleLocator> {
-  let wrapper = JSON.parse(rawPrecompile(template));
-  let factory = templateFactory<AnnotatedModuleLocator>(wrapper);
+  // eslint-disable-next-line no-new-func
+  let parsed: SerializedTemplateWithLazyBlock<AnnotatedModuleLocator> = new Function(`
+    return ${rawPrecompile(source, { meta })};
+  `)();
+
+  let factory = templateFactory<AnnotatedModuleLocator>(parsed);
+
   return factory.create(meta || DEFAULT_TEST_META);
 }
 
 export function createTemplate(
-  templateSource: string,
+  source: string,
   options?: PrecompileOptions,
   runtimeMeta?: unknown
 ): TemplateFactory<AnnotatedModuleLocator> {
-  let wrapper: SerializedTemplateWithLazyBlock<AnnotatedModuleLocator> = JSON.parse(
-    rawPrecompile(templateSource, options)
-  );
+  // eslint-disable-next-line no-new-func
+  let parsed: SerializedTemplateWithLazyBlock<AnnotatedModuleLocator> = new Function(`
+    return ${rawPrecompile(source, options)};
+  `)();
 
   if (runtimeMeta) {
-    wrapper.meta.meta = runtimeMeta;
+    parsed.meta.meta = runtimeMeta;
   }
 
-  return templateFactory<AnnotatedModuleLocator>(wrapper);
+  return templateFactory<AnnotatedModuleLocator>(parsed);
 }
 
 export interface TestCompileOptions extends PrecompileOptions {
@@ -52,9 +58,12 @@ export function precompile(
   string: string,
   options?: TestCompileOptions
 ): WireFormat.SerializedTemplate<unknown> {
-  let wrapper: WireFormat.SerializedTemplateWithLazyBlock<unknown> = JSON.parse(
-    rawPrecompile(string, options)
-  );
+  // eslint-disable-next-line no-new-func
+  let parsed: WireFormat.SerializedTemplateWithLazyBlock<unknown> = new Function(`
+    return ${rawPrecompile(string, options)};
+  `)();
 
-  return assign(wrapper, { block: JSON.parse(wrapper.block) });
+  let block = parsed.block();
+
+  return assign(parsed, { block });
 }

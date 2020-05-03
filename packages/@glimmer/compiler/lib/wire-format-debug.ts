@@ -26,8 +26,20 @@ export default class WireFormatDebugger {
       switch (opcode[0]) {
         case Op.Append:
           return ['append', this.formatOpcode(opcode[1])];
+
         case Op.TrustingAppend:
           return ['trusting-append', this.formatOpcode(opcode[1])];
+
+        case Op.Comment:
+          return ['comment', opcode[1]];
+
+        case Op.Modifier:
+          return [
+            'modifier',
+            this.formatOpcode(opcode[1]),
+            this.formatParams(opcode[2]),
+            this.formatHash(opcode[3]),
+          ];
 
         case Op.Block:
           return [
@@ -38,17 +50,26 @@ export default class WireFormatDebugger {
             this.formatBlocks(opcode[4]),
           ];
 
+        case Op.Component:
+          return [
+            'component',
+            this.formatOpcode(opcode[1]),
+            this.formatAttrs(opcode[2]),
+            this.formatHash(opcode[3]),
+            this.formatBlocks(opcode[4]),
+          ];
+
         case Op.OpenElement:
           return ['open-element', inflateTagName(opcode[1])];
 
         case Op.OpenElementWithSplat:
           return ['open-element-with-splat', inflateTagName(opcode[1])];
 
-        case Op.CloseElement:
-          return ['close-element'];
-
         case Op.FlushElement:
           return ['flush-element'];
+
+        case Op.CloseElement:
+          return ['close-element'];
 
         case Op.StaticAttr:
           return ['static-attr', inflateAttrName(opcode[1]), opcode[2], opcode[3]];
@@ -106,35 +127,6 @@ export default class WireFormatDebugger {
         case Op.Debugger:
           return ['debugger', opcode[1]];
 
-        case Op.Comment:
-          return ['comment', opcode[1]];
-
-        case Op.Modifier:
-          return [
-            'modifier',
-            this.formatOpcode(opcode[1]),
-            this.formatParams(opcode[2]),
-            this.formatHash(opcode[3]),
-          ];
-
-        case Op.Component:
-          return [
-            'component',
-            this.formatOpcode(opcode[1]),
-            this.formatAttrs(opcode[2]),
-            this.formatHash(opcode[3]),
-            this.formatBlocks(opcode[4]),
-          ];
-
-        // case Op.DynamicComponent:
-        //   return [
-        //     'dynamic-component',
-        //     this.formatOpcode(opcode[1]),
-        //     this.formatAttrs(opcode[2]),
-        //     this.formatHash(opcode[3]),
-        //     this.formatBlocks(opcode[4]),
-        //   ];
-
         case Op.HasBlock:
           return ['has-block', this.formatOpcode(opcode[1])];
 
@@ -171,20 +163,20 @@ export default class WireFormatDebugger {
               case Op.GetFreeInAppendSingleId:
                 opName = 'get-free-in-append-single-id';
                 break;
-              case Op.GetFreeInBlockHead:
-                opName = 'get-free-in-block-head';
+              case Op.GetFreeInExpression:
+                opName = 'get-free-in-expression';
                 break;
               case Op.GetFreeInCallHead:
                 opName = 'get-free-in-call-head';
                 break;
-              case Op.GetFreeInComponentHead:
-                opName = 'get-free-in-component-head';
-                break;
-              case Op.GetFreeInExpression:
-                opName = 'get-free-in-expression';
+              case Op.GetFreeInBlockHead:
+                opName = 'get-free-in-block-head';
                 break;
               case Op.GetFreeInModifierHead:
                 opName = 'get-free-in-modifier-head';
+                break;
+              case Op.GetFreeInComponentHead:
+                opName = 'get-free-in-component-head';
                 break;
               default:
                 return exhausted(op);
