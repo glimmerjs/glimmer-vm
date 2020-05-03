@@ -2,6 +2,7 @@
 node_modules/
 tmp/
 ts-dist/
+.DS_Store
 .eslintcache
 *.log
 *.dot
