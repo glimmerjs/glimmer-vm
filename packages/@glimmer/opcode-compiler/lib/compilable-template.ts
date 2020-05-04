@@ -17,7 +17,7 @@ import { EMPTY_ARRAY } from '@glimmer/util';
 import { templateCompilationContext } from './opcode-builder/context';
 import { concatStatements } from './syntax/concat';
 import { LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
-import { debugCompiler } from './compiler';
+import { debugCompiler, compileDebugFunction } from './compiler';
 import { patchStdlibs } from '@glimmer/program';
 import { STATEMENTS } from './syntax/statements';
 
@@ -79,6 +79,7 @@ export function compileStatements(
   let handle = context.encoder.commit(syntaxContext.program.heap, meta.size);
 
   if (LOCAL_SHOULD_LOG) {
+    compileDebugFunction(context, handle);
     debugCompiler(context, handle);
   }
 

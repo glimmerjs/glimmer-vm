@@ -1,5 +1,6 @@
 import { $s0 } from '@glimmer/vm';
-
+import { LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
+import { compileDebugFunction } from '../../compiler';
 import { invokePreparedComponent, InvokeBareComponent } from './components';
 import { StdLib } from '../stdlib';
 import { EncoderImpl, op } from '../encoder';
@@ -90,6 +91,10 @@ function build(program: WholeProgramCompilationContext, callback: () => CompileA
     // This shouldn't be possible
     throw new Error(`Unexpected errors compiling std`);
   } else {
+    if (LOCAL_SHOULD_LOG) {
+      compileDebugFunction(stdContext, result);
+    }
+
     return result;
   }
 }

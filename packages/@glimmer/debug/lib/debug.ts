@@ -27,7 +27,66 @@ interface LazyDebugConstants {
   getOther<T>(s: number): T;
 }
 
-export function debugSlice(context: TemplateCompilationContext, start: number, end: number) {
+export function debugFunction(
+  context: TemplateCompilationContext,
+  start: number,
+  end: number
+): Function {
+  let body = `while (true) {
+  switch (pc) {`;
+
+  let heap = context.syntax.program.heap;
+  let opcode = new RuntimeOpImpl(heap);
+
+  let _size = 0;
+  for (let i = start; i < end; i = i + _size) {
+    opcode.offset = i;
+    let [name, params] = debug(
+      context.syntax.program.constants as Recast<CompileTimeConstants, DebugConstants>,
+      context.syntax.program.resolverDelegate,
+      opcode,
+      opcode.isMachine
+    )!;
+
+    body += `
+    /* ${i}. ${logOpcode(name, params)} */ case ${i}: evaluate()`;
+
+    if (name === 'Return') {
+      body += `, pc = vm.pc;
+    /* ${String(i).replace(
+      /./g,
+      '?'
+    )}. [[Return]] */ if (pc >= ${start} && pc < ${end} && (evaluate = fetch(pc))) continue; else return;`;
+    } else if (name === 'Iterate' || name.startsWith('Jump')) {
+      body += `, pc = vm.pc, evaluate = fetch(pc);
+    /* ${String(i).replace(/./g, '?')}. [[Jump]] */ if (pc !== ${i + opcode.size}) continue;`;
+    } else if (name.startsWith('Invoke')) {
+      body += `, pc = vm.pc, call = calls[pc] && (evaluate = fetch(pc));
+    /* ${String(i).replace(
+      /./g,
+      '?'
+    )}. [[Call]] */ call && calls[pc](vm, pc, fetch, evaluate, calls), pc = ${i +
+        opcode.size}, evaluate = fetch(pc);`;
+    } else {
+      body += `, pc = ${i + opcode.size}, evaluate = fetch(pc);`;
+    }
+
+    _size = opcode.size;
+  }
+  opcode.offset = -_size;
+
+  body += `
+
+  }
+}`;
+
+  // eslint-disable-next-line no-new-func
+  return new Function(
+    `'use strict';\nreturn ({ 'pc @ ${start}'(vm, pc, fetch, evaluate, calls, call) {\n${body}\n} })['pc @ ${start}']`
+  )();
+}
+
+export function debugSlice(context: TemplateCompilationContext, start: number, end: number): void {
   if (LOCAL_SHOULD_LOG) {
     (console as any).group(`%c${start}:${end}`, 'color: #999');
 
@@ -51,7 +110,7 @@ export function debugSlice(context: TemplateCompilationContext, start: number, e
   }
 }
 
-export function logOpcode(type: string, params: Maybe<Dict>): string | void {
+export function logOpcode(type: string, params: Maybe<Dict>, pretty = false): string | void {
   if (LOCAL_SHOULD_LOG) {
     let out = type;
 

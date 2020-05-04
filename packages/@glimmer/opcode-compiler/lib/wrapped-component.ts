@@ -11,7 +11,7 @@ import { templateCompilationContext } from './opcode-builder/context';
 import { meta } from './opcode-builder/helpers/shared';
 import { ATTRS_BLOCK, WrappedComponent } from './opcode-builder/helpers/components';
 import { LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
-import { debugCompiler } from './compiler';
+import { debugCompiler, compileDebugFunction } from './compiler';
 import { concatStatements } from './syntax/concat';
 import { patchStdlibs } from '@glimmer/program';
 
@@ -58,6 +58,7 @@ export class WrappedBuilder implements CompilableProgram {
     this.compiled = handle;
 
     if (LOCAL_SHOULD_LOG) {
+      compileDebugFunction(context, handle);
       debugCompiler(context, handle);
     }
 

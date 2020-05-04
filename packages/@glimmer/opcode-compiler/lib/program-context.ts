@@ -31,6 +31,7 @@ export class JitProgramCompilationContext implements JitProgramCompilationContex
   readonly mode: CompileMode = CompileMode.jit;
 
   constructor(delegate: CompileTimeResolverDelegate) {
+    window.DEBUG_FUNCTIONS = Object.create(null);
     this.resolverDelegate = delegate;
     this.stdlib = compileStd(this);
   }

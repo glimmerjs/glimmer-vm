@@ -34,6 +34,7 @@ import {
   Option,
   Stack,
   assert,
+  unreachable,
 } from '@glimmer/util';
 import {
   $fp,
@@ -545,27 +546,24 @@ export default abstract class VM<C extends JitOrAotBlock> implements PublicVM, I
   }
 
   next(): RichIteratorResult<null, RenderResult> {
-    let { env, elementStack } = this;
     let opcode = this[INNER_VM].nextStatement();
-    let result: RichIteratorResult<null, RenderResult>;
     if (opcode !== null) {
       this[INNER_VM].evaluateOuter(opcode, this);
-      result = { done: false, value: null };
+      return { done: false, value: null };
     } else {
       // Unload the stack
       this.stack.reset();
 
-      result = {
+      return {
         done: true,
         value: new RenderResultImpl(
-          env,
+          this.env,
           this.popUpdating(),
-          elementStack.popBlock(),
+          this.elementStack.popBlock(),
           this.destructor
         ),
       };
     }
-    return result;
   }
 
   bindDynamicScope(names: number[]) {
@@ -700,6 +698,35 @@ export class JitVM extends VM<CompilableBlock> implements InternalJitVM {
     readonly context: SyntaxCompilationContext
   ) {
     super(runtime, state, elementStack);
+  }
+
+  fetchOpcode(pc: number): () => void {
+    assert(pc === this.pc, 'wrong pc');
+
+    let opcode = this[INNER_VM].nextStatement();
+
+    if (opcode && opcode.isMachine) {
+      return this[INNER_VM].evaluateMachine.bind(this[INNER_VM], opcode);
+    } else if (opcode) {
+      let op = APPEND_OPCODES['evaluateOpcode'][opcode.type];
+
+      if (op.syscall) {
+        return op.evaluate.bind(op, this, opcode);
+      }
+    }
+
+    throw unreachable();
+  }
+
+  next(): RichIteratorResult<null, RenderResult> {
+    let { pc } = this;
+    if (typeof window.DEBUG_FUNCTIONS[pc] === 'function') {
+      let fetch = this.fetchOpcode.bind(this);
+      window.DEBUG_FUNCTIONS[pc](this, pc, fetch, fetch(pc), window.DEBUG_FUNCTIONS);
+      return { done: false, value: null };
+    } else {
+      return super.next();
+    }
   }
 
   capture(args: number, pc = this[INNER_VM].fetchRegister($pc)): ResumableVMState<JitVM> {
