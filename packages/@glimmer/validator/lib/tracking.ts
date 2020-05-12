@@ -187,7 +187,7 @@ export function untrack(callback: () => void) {
   CURRENT_TRACKER = null;
 
   try {
-    callback();
+    return callback();
   } finally {
     CURRENT_TRACKER = OPEN_TRACK_FRAMES.pop()!;
   }
@@ -212,7 +212,7 @@ export function trackedData<T extends object, K extends keyof T>(
 
     // If the field has never been initialized, we should initialize it
     if (hasInitializer && !values.has(self)) {
-      value = initializer!.call(self);
+      value = untrack(initializer!.bind(self));
       values.set(self, value);
     } else {
       value = values.get(self);
