@@ -1,4 +1,4 @@
-import { debugSlice } from '@glimmer/debug';
+import { debugFunction, debugSlice } from '@glimmer/debug';
 import {
   CompilerBuffer,
   CompileTimeHeap,
@@ -67,4 +67,16 @@ if (LOCAL_SHOULD_LOG) {
 
     debugSlice(context, start, end);
   };
+}
+
+export function compileDebugFunction(
+  context: TemplateCompilationContext,
+  result: HandleResult
+): void {
+  let handle = extractHandle(result);
+  let { heap } = context.syntax.program;
+  let start = heap.getaddr(handle);
+  let end = start + heap.sizeof(handle);
+
+  window.DEBUG_FUNCTIONS[start] = debugFunction(context, start, end);
 }
