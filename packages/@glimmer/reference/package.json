@@ -4,7 +4,7 @@
   "description": "Objects used to track values and their dirtiness in Glimmer",
   "license": "MIT",
   "dependencies": {
-    "@glimmer/util": "^0.38.5-alpha.1.6"
+    "@glimmer/util": "0.38.5-alpha.1.6"
   },
   "devDependencies": {
     "typescript": "^2.8.3"

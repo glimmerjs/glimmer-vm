@@ -88,7 +88,7 @@ class Package {
 
     Object.keys(deps).forEach(dep => {
       if (this.siblingPackages.indexOf(dep) >= 0) {
-        deps[dep] = `^${newVersion}`;
+        deps[dep] = `${newVersion}`;
       }
     });
   }

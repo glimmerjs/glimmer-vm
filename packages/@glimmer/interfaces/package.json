@@ -3,7 +3,7 @@
   "version": "0.38.5-alpha.1.6",
   "repository": "https://github.com/glimmerjs/glimmer-vm/tree/master/packages/@glimmer/interfaces",
   "dependencies": {
-    "@glimmer/wire-format": "^0.38.5-alpha.1.6",
+    "@glimmer/wire-format": "0.38.5-alpha.1.6",
     "@simple-dom/interface": "1.4.0"
   },
   "devDependencies": {

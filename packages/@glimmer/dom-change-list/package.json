@@ -3,8 +3,8 @@
   "version": "0.38.5-alpha.1.6",
   "repository": "https://github.com/glimmerjs/glimmer-vm/tree/master/packages/@glimmer/dom-change-list",
   "dependencies": {
-    "@glimmer/util": "^0.38.5-alpha.1.6",
-    "@glimmer/interfaces": "^0.38.5-alpha.1.6",
+    "@glimmer/util": "0.38.5-alpha.1.6",
+    "@glimmer/interfaces": "0.38.5-alpha.1.6",
     "@simple-dom/interface": "^1.4.0"
   },
   "devDependencies": {

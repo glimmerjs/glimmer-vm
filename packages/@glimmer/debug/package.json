@@ -4,7 +4,7 @@
   "repository": "https://github.com/glimmerjs/glimmer-vm/tree/master/packages/@glimmer/debug",
   "private": true,
   "dependencies": {
-    "@glimmer/interfaces": "^0.38.5-alpha.1.6"
+    "@glimmer/interfaces": "0.38.5-alpha.1.6"
   },
   "devDependencies": {
     "@types/qunit": "^2.0.31",
