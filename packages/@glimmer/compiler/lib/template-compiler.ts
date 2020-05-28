@@ -673,6 +673,15 @@ function isNamedBlock(element: AST.ElementNode): boolean {
   let open = element.tag.charAt(0);
 
   return open === ':';
+/**
+ * Check if _id_ is a valid named block identifier.
+ *
+ * @param {string} id
+ * @returns {boolean}
+ */
+function isValidBlockName(id: string) {
+  // TODO: what is the actual "identifier" regex?
+  return id.indexOf('.') === -1 && /^[a-z]/.test(id);
 }
 
 function assertIsSimplePath(path: AST.Expression, loc: AST.SourceLocation, context: string) {
