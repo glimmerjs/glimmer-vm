@@ -312,7 +312,6 @@ export class EmberishComponentTests extends RenderTest {
     this.assertStableRerender();
   }
 
-  // LOCKS
   @test({ kind: 'curly' })
   'yields named block'() {
     class FooBar extends EmberishCurlyComponent {
@@ -330,7 +329,6 @@ export class EmberishComponentTests extends RenderTest {
     this.assertStableRerender();
   }
 
-  // LOCKS
   @test({ kind: 'curly' })
   'implicit default named block'() {
     class FooBar extends EmberishCurlyComponent {
@@ -348,7 +346,6 @@ export class EmberishComponentTests extends RenderTest {
     this.assertStableRerender();
   }
 
-  // LOCKS
   @test({ kind: 'curly' })
   'explicit default named block'() {
     class FooBar extends EmberishCurlyComponent {
@@ -366,7 +363,6 @@ export class EmberishComponentTests extends RenderTest {
     this.assertStableRerender();
   }
 
-  // LOCKS
   @test({ kind: 'curly' })
   'else named block'() {
     class FooBar extends EmberishCurlyComponent {
