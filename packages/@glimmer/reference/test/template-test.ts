@@ -7,6 +7,8 @@ import {
   dirtyTag,
   valueForTag,
   validateTag,
+  track,
+  runInAutotrackingTransaction,
 } from '@glimmer/validator';
 
 import {
@@ -70,7 +72,7 @@ module('@glimmer/reference: template', () => {
       let component = {
         get foo() {
           pullCount++;
-          return 'hello';
+          return pullCount;
         },
       };
       let ref = new ComponentRootReference(
@@ -95,9 +97,15 @@ module('@glimmer/reference: template', () => {
         })()
       );
 
-      ref.get('foo').value();
-      ref.get('foo').value();
-      ref.get('foo').value();
+      let ref1 = ref.get('foo');
+      ref1.value();
+      let ref2 = ref.get('foo');
+      ref2.value();
+      let ref3 = ref.get('foo');
+      ref3.value();
+      assert.ok(true, 'we did not error');
+      assert.notStrictEqual(ref1, ref2, 'second access is a new reference');
+      assert.notStrictEqual(ref1, ref3, 'third access is a new reference');
       assert.strictEqual(setCount, 4, 'We setup template debug context appropriately');
       assert.strictEqual(pullCount, 1, 'We only access the value once');
     });
