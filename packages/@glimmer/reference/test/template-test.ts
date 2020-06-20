@@ -7,8 +7,6 @@ import {
   dirtyTag,
   valueForTag,
   validateTag,
-  track,
-  runInAutotrackingTransaction,
 } from '@glimmer/validator';
 
 import {
