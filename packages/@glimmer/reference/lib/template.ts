@@ -192,6 +192,16 @@ export class HelperRootReference<T = unknown> extends RootReference<T> {
   }
 }
 
+/*
+  DEBUG only fields. Keeping this in a separate interface which Typescript then
+  merges with the class definition allow us to have a DEBUG only property without
+  paying the cost of that field being present and initialized (usually to void 0)
+  in production.
+*/
+export interface PropertyReference {
+  ref?: PropertyReference;
+}
+
 /**
  * PropertyReferences represent a property that has been accessed on a root, or
  * another property (or iterable, see below). `some` and `prop` in
@@ -200,10 +210,6 @@ export class HelperRootReference<T = unknown> extends RootReference<T> {
  * recursively calling `get` on the previous reference as a template chain is
  * followed.
  */
-export interface PropertyReference {
-  ref?: PropertyReference;
-}
-
 export class PropertyReference implements TemplatePathReference {
   public tag: Tag;
   private valueTag: UpdatableTag;
