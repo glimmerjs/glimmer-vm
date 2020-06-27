@@ -8,7 +8,7 @@ export type DebugGet = (path: string) => unknown;
 
 export type DebugCallback = (context: unknown, get: DebugGet) => void;
 
-function debugCallback(context: unknown, get: DebugGet): void {
+function templateWithBackingObjectDebugCallback(context: unknown, get: DebugGet): void {
   console.info('Use `context`, and `get(<path>)` to debug this template.');
 
   // for example...
@@ -17,6 +17,18 @@ function debugCallback(context: unknown, get: DebugGet): void {
 
   // eslint-disable-next-line no-debugger
   debugger;
+}
+
+function templateOnlyDebugCallback(get: DebugGet): void {
+  console.info('Use `get(<@path>)` to debug this template.');
+
+  // for example... `get('@foo');`
+  // eslint-disable-next-line no-debugger
+  debugger;
+}
+
+function debugCallback(context: unknown, get: DebugGet): void {
+  context ? templateWithBackingObjectDebugCallback(context, get) : templateOnlyDebugCallback(get);
 }
 
 let callback = debugCallback;
