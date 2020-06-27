@@ -28,7 +28,11 @@ function templateOnlyDebugCallback(get: DebugGet): void {
 }
 
 function debugCallback(context: unknown, get: DebugGet): void {
-  context ? templateWithBackingObjectDebugCallback(context, get) : templateOnlyDebugCallback(get);
+  if (context) {
+    templateWithBackingObjectDebugCallback(context, get);
+  } else {
+    templateOnlyDebugCallback(get);
+  }
 }
 
 let callback = debugCallback;
