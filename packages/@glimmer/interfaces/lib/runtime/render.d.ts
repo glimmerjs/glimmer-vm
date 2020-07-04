@@ -21,5 +21,5 @@ export interface RenderResult extends Bounds, ExceptionHandler {
 
 export interface TemplateIterator {
   next(): RichIteratorResult<null, RenderResult>;
-  sync(): RenderResult;
+  sync(env?: Environment): RenderResult;
 }

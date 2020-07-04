@@ -34,7 +34,7 @@ class TemplateIteratorImpl<C extends JitOrAotBlock> implements TemplateIterator 
   }
 
   sync(): RenderResult {
-    return renderSync(this.vm.runtime.env, this);
+    return this.vm.execute();
   }
 }
 
@@ -42,13 +42,7 @@ export function renderSync(env: Environment, iterator: TemplateIterator): Render
   try {
     env.begin();
 
-    let iteratorResult: IteratorResult<RenderResult>;
-
-    do {
-      iteratorResult = iterator.next() as IteratorResult<RenderResult>;
-    } while (!iteratorResult.done);
-
-    return iteratorResult.value;
+    return iterator.sync();
   } finally {
     env.commit();
   }

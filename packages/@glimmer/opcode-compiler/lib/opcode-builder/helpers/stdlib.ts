@@ -52,6 +52,7 @@ export function StdAppend(trusting: boolean): CompileActions {
 }
 
 export function compileStd(context: WholeProgramCompilationContext): StdLib {
+  context.heap.push(Op.End);
   let mainHandle = build(context, main);
   let trustingGuardedAppend = build(context, () => StdAppend(true));
   let cautiousGuardedAppend = build(context, () => StdAppend(false));
