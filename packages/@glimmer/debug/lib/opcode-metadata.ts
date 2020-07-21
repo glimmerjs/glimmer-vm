@@ -884,30 +884,20 @@ METADATA[Op.EnterList] = {
   name: 'EnterList',
   mnemonic: 'list_start',
   before: null,
-  stackChange: 0,
+  stackChange: null,
   ops: [
     {
       name: 'address',
       type: 'u32',
     },
   ],
-  operands: 1,
+  operands: 2,
   check: true,
 };
 
 METADATA[Op.ExitList] = {
   name: 'ExitList',
   mnemonic: 'list_end',
-  before: null,
-  stackChange: 0,
-  ops: [],
-  operands: 0,
-  check: true,
-};
-
-METADATA[Op.PutIterator] = {
-  name: 'PutIterator',
-  mnemonic: 'toiter',
   before: null,
   stackChange: 0,
   ops: [],
@@ -942,16 +932,6 @@ METADATA[Op.Main] = {
     },
   ],
   operands: 1,
-  check: true,
-};
-
-METADATA[Op.IsComponent] = {
-  name: 'IsComponent',
-  mnemonic: 'iscomponent',
-  before: null,
-  stackChange: 0,
-  ops: [],
-  operands: 0,
   check: true,
 };
 
