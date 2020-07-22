@@ -23,6 +23,9 @@ function templateOnlyDebugCallback(get: DebugGet): void {
   console.info('Use `get(<@path>)` to debug this template.');
 
   // for example... `get('@foo');`
+  // @ts-ignore
+  const value = get('@foo');
+
   // eslint-disable-next-line no-debugger
   debugger;
 }
