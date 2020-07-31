@@ -70,7 +70,7 @@ APPEND_OPCODES.add(Op.SetAotBlock, (vm, { op1: symbol }) => {
 });
 
 APPEND_OPCODES.add(Op.ResolveMaybeLocal, (vm, { op1: _name }) => {
-  let name = vm[CONSTANTS].getString(_name);
+  let name = vm[CONSTANTS].getValue<string>(_name);
   let locals = vm.scope().getPartialMap()!;
 
   let ref = locals[name];
@@ -86,7 +86,7 @@ APPEND_OPCODES.add(Op.RootScope, (vm, { op1: symbols }) => {
 });
 
 APPEND_OPCODES.add(Op.GetProperty, (vm, { op1: _key }) => {
-  let key = vm[CONSTANTS].getString(_key);
+  let key = vm[CONSTANTS].getValue<string>(_key);
   let expr = check(vm.stack.pop(), CheckPathReference);
   vm.stack.push(expr.get(key));
 });

@@ -52,71 +52,59 @@ we map number index 0 to 1073741823 onto -1073741825 to -2147483648
  * Immediates use the positive half of 32 bits 0 through 2147483647 (0x7fffffff)
  * leaving the negative half for handles -1 through -2147483648.
  */
-export const enum ImmediateConstants {
+export const enum ImmediateMapping {
   /**
-   * 31 bits can encode 2^31 values
+   * Min encoded immediate is min positive
    */
-  IMMEDIATE_LENGTH = 2 ** 31,
+  MAX_IMMEDIATE = -1,
 
   /**
    * Min encoded immediate is min positive
    */
-  MIN_IMMEDIATE = 0,
+  MIN_IMMEDIATE = 1 << 31,
 
   /**
-   * Max encoded immediate is the max positive 32 bit signed int
+   * Max int we can encode is the maximum positive we can represent - the base
    */
-  MAX_IMMEDIATE = IMMEDIATE_LENGTH - 1,
+  MAX_INT = 1 << 30,
 
   /**
    * The encoding of false.
    * False is the start of the second half of 31 bits
    */
-  FALSE = IMMEDIATE_LENGTH / 2,
-
-  /**
-   * The maximum int that can be directly encoded vs a handle.
-   *
-   * The last positive int is just before FALSE.
-   */
-  MAX_INT = FALSE - 1,
+  ENCODED_FALSE = MAX_IMMEDIATE,
 
   /**
    * The encoding of true
    */
-  TRUE = FALSE + 1,
+  ENCODED_TRUE = ENCODED_FALSE - 1,
 
   /**
    * The encoding of null
    */
-  NULL = TRUE + 1,
+  ENCODED_NULL = ENCODED_TRUE - 1,
 
   /**
    * The encoding of undefined
    */
-  UNDEFINED = NULL + 1,
+  ENCODED_UNDEFINED = ENCODED_NULL - 1,
 
   /**
-   * Encoded -1
-   *
    * Encoded just after UNDEFINED
    */
-  NEGATIVE_ONE = UNDEFINED + 1,
+  ENCODED_ZERO = ENCODED_UNDEFINED - 1,
 
   /**
-   * The base to substract a negative from to decode or encode it.
-   *
-   * NEGATIVE_ONE      == NEGATIVE_BASE - -1             == encodeImmediate(-1)
-   * MAX_IMMEDIATE     == NEGATIVE_BASE - MIN_INT        == encodeImmediate(MIN_INT)
-   * -1                == NEGATIVE_BASE - NEGATIVE_ONE   == decodeImmediate(NEGATIVE_ONE)
-   * MIN_INT           == NEGATIVE_BASE - MAX_IMMEDIATE  == decodeImmediate(MAX_IMMEDIATE)
+   * Minimum possible encoding we support
    */
-  NEGATIVE_BASE = NEGATIVE_ONE - 1,
+  ENCODED_MIN_INT = MIN_IMMEDIATE,
 
   /**
    * The minimum int that can be directly encoded vs a handle.
    */
-  MIN_INT = NEGATIVE_BASE - MAX_IMMEDIATE,
+  ENCODED_MAX_INT = ENCODED_ZERO - MAX_INT,
+
+  MIN_INT = MIN_IMMEDIATE - ENCODED_MAX_INT,
 }
 
 /**
@@ -125,17 +113,8 @@ export const enum ImmediateConstants {
  */
 export const enum HandleConstants {
   HANDLE_LENGTH = 2 ** 31,
-  MAX_INDEX = HANDLE_LENGTH - 1,
-  MAX_HANDLE = -1,
-  MIN_HANDLE = -1 - MAX_INDEX,
-  STRING_HANDLE_LENGTH = HANDLE_LENGTH / 2,
-  NUMBER_HANDLE_LENGTH = HANDLE_LENGTH - STRING_HANDLE_LENGTH,
-  STRING_MAX_INDEX = STRING_HANDLE_LENGTH - 1,
-  NUMBER_MAX_INDEX = NUMBER_HANDLE_LENGTH - 1,
-  STRING_MAX_HANDLE = MAX_HANDLE,
-  STRING_MIN_HANDLE = STRING_MAX_HANDLE - STRING_MAX_INDEX,
-  NUMBER_MAX_HANDLE = STRING_MIN_HANDLE - 1,
-  NUMBER_MIN_HANDLE = NUMBER_MAX_HANDLE - NUMBER_MAX_INDEX,
+  MIN_HANDLE = 0,
+  MAX_HANDLE = HANDLE_LENGTH - 1,
 }
 
 /**
@@ -148,26 +127,24 @@ export const enum HandleConstants {
 export function encodeImmediate(value: null | undefined | boolean | number) {
   if (typeof value === 'number') {
     if (LOCAL_DEBUG) {
-      checkInt!(value, ImmediateConstants.MIN_INT, ImmediateConstants.MAX_INT);
+      checkInt!(value, ImmediateMapping.MIN_INT, ImmediateMapping.MAX_INT);
     }
-    // map -1 to -1073741820 onto 1073741828 to 2147483647
-    // 1073741827 - (-1) == 1073741828
-    // 1073741827 - (-1073741820) == 2147483647
-    // positive it stays as is
-    // 0 - 1073741823
-    return value < 0 ? ImmediateConstants.NEGATIVE_BASE - value : value;
+
+    return value >= 0
+      ? ImmediateMapping.ENCODED_ZERO - value
+      : value + ImmediateMapping.ENCODED_MAX_INT;
   }
   if (value === false) {
-    return ImmediateConstants.FALSE;
+    return ImmediateMapping.ENCODED_FALSE;
   }
   if (value === true) {
-    return ImmediateConstants.TRUE;
+    return ImmediateMapping.ENCODED_TRUE;
   }
   if (value === null) {
-    return ImmediateConstants.NULL;
+    return ImmediateMapping.ENCODED_NULL;
   }
   if (value === undefined) {
-    return ImmediateConstants.UNDEFINED;
+    return ImmediateMapping.ENCODED_UNDEFINED;
   }
   return exhausted(value);
 }
@@ -180,26 +157,25 @@ export function encodeImmediate(value: null | undefined | boolean | number) {
 export function decodeImmediate(value: number): null | undefined | boolean | number {
   if (LOCAL_DEBUG) {
     // expected value to be checked before this
-    checkInt!(value, ImmediateConstants.MIN_IMMEDIATE, ImmediateConstants.MAX_IMMEDIATE);
+    checkInt!(value, ImmediateMapping.MIN_IMMEDIATE, ImmediateMapping.MAX_IMMEDIATE);
   }
-  if (value > ImmediateConstants.MAX_INT) {
+
+  if (value >= ImmediateMapping.ENCODED_MAX_INT) {
     switch (value) {
-      case ImmediateConstants.FALSE:
+      case ImmediateMapping.ENCODED_FALSE:
         return false;
-      case ImmediateConstants.TRUE:
+      case ImmediateMapping.ENCODED_TRUE:
         return true;
-      case ImmediateConstants.NULL:
+      case ImmediateMapping.ENCODED_NULL:
         return null;
-      case ImmediateConstants.UNDEFINED:
+      case ImmediateMapping.ENCODED_UNDEFINED:
         return undefined;
       default:
-        // map 1073741828 to 2147483647 to -1 to -1073741820
-        // 1073741827 - 1073741828 == -1
-        // 1073741827 - 2147483647 == -1073741820
-        return ImmediateConstants.NEGATIVE_BASE - value;
+        return ImmediateMapping.ENCODED_ZERO - value;
     }
   }
-  return value;
+
+  return value - ImmediateMapping.ENCODED_MAX_INT;
 }
 
 /**
@@ -208,7 +184,7 @@ export function decodeImmediate(value: number): null | undefined | boolean | num
  * This is used on any number type to see if it can be directly encoded.
  */
 export function isSmallInt(num: number) {
-  return isInt(num, ImmediateConstants.MIN_INT, ImmediateConstants.MAX_INT);
+  return isInt(num, ImmediateMapping.MIN_INT, ImmediateMapping.MAX_INT);
 }
 
 /**
@@ -220,44 +196,30 @@ export function isHandle(encoded: number) {
     // because it was encoded or read from the Int32Array buffer
     checkInt!(encoded);
   }
-  return encoded < 0;
+  return encoded >= 0;
 }
 
 /**
  * Encodes an index to an operand or stack handle.
  */
-export function encodeHandle(
-  index: number,
-  maxIndex: number = HandleConstants.MAX_INDEX,
-  maxHandle: number = HandleConstants.MAX_HANDLE
-) {
+export function encodeHandle(handle: number) {
   if (LOCAL_DEBUG) {
     // expected the index to already be a positive int index from pushing the value
-    checkInt!(index, 0);
+    checkInt!(handle, HandleConstants.MIN_HANDLE, HandleConstants.MAX_HANDLE);
   }
-  if (index > maxIndex) {
-    throw new Error(`index ${index} overflowed range 0 to ${maxIndex}`);
-  }
-  // -1 - 0 == -1
-  // -1 - 1073741823 == -1073741824
-  // -1073741825 - 0 == -1073741825
-  // -1073741825 - 1073741823 == -2147483648
-  return maxHandle - index;
+
+  return handle;
 }
 
 /**
  * Decodes the index from the specified operand or stack handle.
  */
-export function decodeHandle(handle: number, maxHandle: number = HandleConstants.MAX_HANDLE) {
+export function decodeHandle(handle: number) {
   if (LOCAL_DEBUG) {
-    // we expect to be decoding a encoded int32 operand or encoded int32 on the stack
-    checkInt!(handle, HandleConstants.MIN_HANDLE, maxHandle);
+    checkInt!(handle, HandleConstants.MIN_HANDLE, HandleConstants.MAX_HANDLE);
   }
-  // -1 - -1 == 0
-  // -1 - -1073741824 == 1073741823
-  // -1073741825 - -1073741825 == 0
-  // -1073741825 - -2147483648 == 1073741823
-  return maxHandle - handle;
+
+  return handle;
 }
 
 function isInt(num: number, min: number, max: number): boolean {
@@ -265,3 +227,6 @@ function isInt(num: number, min: number, max: number): boolean {
   // also NaN % 1 is NaN and Infinity % 1 is NaN so both should fail
   return num % 1 === 0 && num >= min && num <= max;
 }
+
+// Warm
+[null, true, false, undefined, 1, -1].forEach(x => decodeImmediate(encodeImmediate(x)));

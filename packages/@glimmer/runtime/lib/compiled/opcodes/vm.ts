@@ -9,7 +9,7 @@ import {
   validateTag,
   INITIAL,
 } from '@glimmer/validator';
-import { assert, isHandle, HandleConstants, decodeHandle, expect } from '@glimmer/util';
+import { assert, isHandle, decodeHandle, expect } from '@glimmer/util';
 import {
   CheckNumber,
   check,
@@ -37,18 +37,13 @@ APPEND_OPCODES.add(Op.PushDynamicScope, vm => vm.pushDynamicScope());
 APPEND_OPCODES.add(Op.PopDynamicScope, vm => vm.popDynamicScope());
 
 APPEND_OPCODES.add(Op.Constant, (vm, { op1: other }) => {
-  vm.stack.push(vm[CONSTANTS].getOther(other));
+  vm.stack.push(vm[CONSTANTS].getValue(other));
 });
 
 APPEND_OPCODES.add(Op.Primitive, (vm, { op1: primitive }) => {
   let stack = vm.stack;
   if (isHandle(primitive)) {
-    let value: string | number;
-    if (primitive > HandleConstants.NUMBER_MAX_HANDLE) {
-      value = vm[CONSTANTS].getString(decodeHandle(primitive, HandleConstants.STRING_MAX_HANDLE));
-    } else {
-      value = vm[CONSTANTS].getNumber(decodeHandle(primitive, HandleConstants.NUMBER_MAX_HANDLE));
-    }
+    let value = vm[CONSTANTS].getValue(decodeHandle(primitive));
     stack.pushJs(value);
   } else {
     // is already an encoded immediate
@@ -84,7 +79,7 @@ APPEND_OPCODES.add(Op.Fetch, (vm, { op1: register }) => {
 });
 
 APPEND_OPCODES.add(Op.BindDynamicScope, (vm, { op1: _names }) => {
-  let names = vm[CONSTANTS].getArray(_names);
+  let names = vm[CONSTANTS].getArray<string>(_names);
   vm.bindDynamicScope(names);
 });
 

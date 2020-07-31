@@ -115,7 +115,7 @@ export interface InternalVM<C extends JitOrAotBlock = JitOrAotBlock> {
   pushScope(scope: Scope<C>): void;
 
   dynamicScope(): DynamicScope;
-  bindDynamicScope(names: number[]): void;
+  bindDynamicScope(names: string[]): void;
   pushDynamicScope(): void;
   popDynamicScope(): void;
 
@@ -561,11 +561,11 @@ export default abstract class VM<C extends JitOrAotBlock> implements PublicVM, I
     return result;
   }
 
-  bindDynamicScope(names: number[]) {
+  bindDynamicScope(names: string[]) {
     let scope = this.dynamicScope();
 
     for (let i = names.length - 1; i >= 0; i--) {
-      let name = this[CONSTANTS].getString(names[i]);
+      let name = names[i];
       scope.set(name, this.stack.pop<VersionedPathReference<unknown>>());
     }
   }

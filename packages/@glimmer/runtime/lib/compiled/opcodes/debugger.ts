@@ -66,8 +66,8 @@ class ScopeInspector<C extends JitOrAotBlock> {
 }
 
 APPEND_OPCODES.add(Op.Debugger, (vm, { op1: _symbols, op2: _evalInfo }) => {
-  let symbols = vm[CONSTANTS].getStringArray(_symbols);
-  let evalInfo = vm[CONSTANTS].getArray(_evalInfo);
+  let symbols = vm[CONSTANTS].getArray<string>(_symbols);
+  let evalInfo = vm[CONSTANTS].getValue<number[]>(_evalInfo);
   let inspector = new ScopeInspector(vm.scope(), symbols, evalInfo);
   callback(vm.getSelf().value(), path => inspector.get(path).value());
 });

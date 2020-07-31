@@ -14,9 +14,9 @@ APPEND_OPCODES.add(
     let name = check(stack.pop(), CheckReference).value();
     assert(typeof name === 'string', `Could not find a partial named "${String(name)}"`);
 
-    let meta = constants.getTemplateMeta(_meta);
-    let outerSymbols = constants.getStringArray(_symbols);
-    let evalInfo = constants.getArray(_evalInfo);
+    let meta = constants.getValue(_meta);
+    let outerSymbols = constants.getArray<string>(_symbols);
+    let evalInfo = constants.getValue<number[]>(_evalInfo);
 
     let handle = vm.runtime.resolver.lookupPartial(name as string, meta);
 

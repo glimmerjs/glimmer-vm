@@ -153,7 +153,7 @@ APPEND_OPCODES.add(Op.CurryComponent, (vm, { op1: _meta }) => {
   let definition = check(stack.pop(), CheckReference);
   let capturedArgs = check(stack.pop(), CheckCapturedArguments);
 
-  let meta = vm[CONSTANTS].getTemplateMeta(_meta);
+  let meta = vm[CONSTANTS].getValue(_meta);
   let resolver = vm.runtime.resolver;
 
   vm.loadValue($v0, new CurryComponentReference(definition, resolver, meta, capturedArgs));
@@ -185,7 +185,7 @@ APPEND_OPCODES.add(Op.PushComponentDefinition, (vm, { op1: handle }) => {
 APPEND_OPCODES.add(Op.ResolveDynamicComponent, (vm, { op1: _meta }) => {
   let stack = vm.stack;
   let component = check(stack.pop(), CheckPathReference).value() as Maybe<Dict>;
-  let meta = vm[CONSTANTS].getTemplateMeta(_meta);
+  let meta = vm[CONSTANTS].getValue(_meta);
 
   vm.loadValue($t1, null); // Clear the temp register
 
@@ -237,11 +237,11 @@ APPEND_OPCODES.add(Op.PushCurriedComponent, vm => {
 
 APPEND_OPCODES.add(Op.PushArgs, (vm, { op1: _names, op2: _blockNames, op3: flags }) => {
   let stack = vm.stack;
-  let names = vm[CONSTANTS].getStringArray(_names);
+  let names = vm[CONSTANTS].getArray<string>(_names);
 
   let positionalCount = flags >> 4;
   let atNames = flags & 0b1000;
-  let blockNames = flags & 0b0111 ? vm[CONSTANTS].getStringArray(_blockNames) : EMPTY_ARRAY;
+  let blockNames = flags & 0b0111 ? vm[CONSTANTS].getArray<string>(_blockNames) : EMPTY_ARRAY;
 
   vm[ARGS].setup(stack, names, blockNames, positionalCount, !!atNames);
   stack.push(vm[ARGS]);
@@ -403,9 +403,9 @@ APPEND_OPCODES.add(Op.PutComponentOperations, vm => {
 });
 
 APPEND_OPCODES.add(Op.ComponentAttr, (vm, { op1: _name, op2: trusting, op3: _namespace }) => {
-  let name = vm[CONSTANTS].getString(_name);
+  let name = vm[CONSTANTS].getValue<string>(_name);
   let reference = check(vm.stack.pop(), CheckReference);
-  let namespace = _namespace ? vm[CONSTANTS].getString(_namespace) : null;
+  let namespace = _namespace ? vm[CONSTANTS].getValue<string>(_namespace) : null;
 
   check(vm.fetchValue($t0), CheckInstanceof(ComponentElementOperations)).setAttribute(
     name,
@@ -416,9 +416,9 @@ APPEND_OPCODES.add(Op.ComponentAttr, (vm, { op1: _name, op2: trusting, op3: _nam
 });
 
 APPEND_OPCODES.add(Op.StaticComponentAttr, (vm, { op1: _name, op2: _value, op3: _namespace }) => {
-  let name = vm[CONSTANTS].getString(_name);
-  let value = vm[CONSTANTS].getString(_value);
-  let namespace = _namespace ? vm[CONSTANTS].getString(_namespace) : null;
+  let name = vm[CONSTANTS].getValue<string>(_name);
+  let value = vm[CONSTANTS].getValue<string>(_value);
+  let namespace = _namespace ? vm[CONSTANTS].getValue<string>(_namespace) : null;
 
   check(vm.fetchValue($t0), CheckInstanceof(ComponentElementOperations)).setStaticAttribute(
     name,

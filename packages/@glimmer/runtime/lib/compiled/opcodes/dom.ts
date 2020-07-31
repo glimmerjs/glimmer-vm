@@ -25,15 +25,15 @@ import { SimpleElement, SimpleNode } from '@simple-dom/interface';
 import { expect, Maybe } from '@glimmer/util';
 
 APPEND_OPCODES.add(Op.Text, (vm, { op1: text }) => {
-  vm.elements().appendText(vm[CONSTANTS].getString(text));
+  vm.elements().appendText(vm[CONSTANTS].getValue(text));
 });
 
 APPEND_OPCODES.add(Op.Comment, (vm, { op1: text }) => {
-  vm.elements().appendComment(vm[CONSTANTS].getString(text));
+  vm.elements().appendComment(vm[CONSTANTS].getValue(text));
 });
 
 APPEND_OPCODES.add(Op.OpenElement, (vm, { op1: tag }) => {
-  vm.elements().openElement(vm[CONSTANTS].getString(tag));
+  vm.elements().openElement(vm[CONSTANTS].getValue(tag));
 });
 
 APPEND_OPCODES.add(Op.OpenDynamicElement, vm => {
@@ -155,18 +155,18 @@ export class UpdateModifierOpcode extends UpdatingOpcode {
 }
 
 APPEND_OPCODES.add(Op.StaticAttr, (vm, { op1: _name, op2: _value, op3: _namespace }) => {
-  let name = vm[CONSTANTS].getString(_name);
-  let value = vm[CONSTANTS].getString(_value);
-  let namespace = _namespace ? vm[CONSTANTS].getString(_namespace) : null;
+  let name = vm[CONSTANTS].getValue<string>(_name);
+  let value = vm[CONSTANTS].getValue<string>(_value);
+  let namespace = _namespace ? vm[CONSTANTS].getValue<string>(_namespace) : null;
 
   vm.elements().setStaticAttribute(name, value, namespace);
 });
 
 APPEND_OPCODES.add(Op.DynamicAttr, (vm, { op1: _name, op2: trusting, op3: _namespace }) => {
-  let name = vm[CONSTANTS].getString(_name);
+  let name = vm[CONSTANTS].getValue<string>(_name);
   let reference = check(vm.stack.pop(), CheckReference);
   let value = reference.value();
-  let namespace = _namespace ? vm[CONSTANTS].getString(_namespace) : null;
+  let namespace = _namespace ? vm[CONSTANTS].getValue<string>(_namespace) : null;
 
   let attribute = vm.elements().setDynamicAttribute(name, value, !!trusting, namespace);
 

@@ -1,4 +1,4 @@
-import { prim, strArray } from '../operands';
+import { prim, strArray, immediate } from '../operands';
 import { $v0 } from '@glimmer/vm';
 import {
   Option,
@@ -6,11 +6,11 @@ import {
   MachineOp,
   BuilderOp,
   CompileActions,
-  PrimitiveType,
   StatementCompileActions,
   ExpressionCompileActions,
   WireFormat,
   PrimitiveOperand,
+  ImmediateOperand,
 } from '@glimmer/interfaces';
 import { op } from '../encoder';
 import { isSmallInt } from '@glimmer/util';
@@ -38,26 +38,28 @@ export function PushPrimitiveReference(value: Primitive): CompileActions {
  * @param value A JavaScript primitive (undefined, null, boolean, number or string)
  */
 export function PushPrimitive(primitive: Primitive): BuilderOp {
-  let p: PrimitiveOperand;
+  let p: PrimitiveOperand | ImmediateOperand;
+
   switch (typeof primitive) {
     case 'number':
       if (isSmallInt(primitive)) {
-        p = prim(primitive, PrimitiveType.IMMEDIATE);
+        p = immediate(primitive);
       } else {
-        p = prim(primitive, PrimitiveType.NUMBER);
+        p = prim(primitive);
       }
       break;
     case 'string':
-      p = prim(primitive, PrimitiveType.STRING);
+      p = prim(primitive);
       break;
     case 'boolean':
     case 'object': // assume null
     case 'undefined':
-      p = prim(primitive, PrimitiveType.IMMEDIATE);
+      p = immediate(primitive);
       break;
     default:
       throw new Error('Invalid primitive passed to pushPrimitive');
   }
+
   return op(Op.Primitive, p);
 }
 
