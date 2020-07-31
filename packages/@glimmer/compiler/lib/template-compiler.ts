@@ -1,13 +1,14 @@
 import TemplateVisitor, { Action } from './template-visitor';
 import JavaScriptCompiler, { Template } from './javascript-compiler';
 import { assert, Option } from '@glimmer/util';
-import { AST, isLiteral, SyntaxError } from '@glimmer/syntax';
+import { AST, ASTPluginEnvironment, SyntaxError, isLiteral, traverse } from '@glimmer/syntax';
 import { getAttrNamespace } from './utils';
 import { SymbolAllocator } from './allocate-symbols';
 import { Processor, InputOps, AllocateSymbolsOps, Ops, SourceLocation } from './compiler-ops';
 import { LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
 import { ExpressionContext } from '@glimmer/interfaces';
 import { locationToOffset } from './location';
+import PLUGINS from './plugins/index';
 
 export interface CompileOptions {
   meta?: unknown;
@@ -20,6 +21,12 @@ function isTrustedValue(value: any) {
 
 export default class TemplateCompiler implements Processor<InputOps> {
   static compile(ast: AST.Template, source: string, options?: CompileOptions): Template {
+    let env: ASTPluginEnvironment = null as any;
+
+    for (let builder of PLUGINS) {
+      traverse(ast, builder(env).visitor);
+    }
+
     let templateVisitor = new TemplateVisitor();
     templateVisitor.visit(ast);
 
@@ -673,15 +680,6 @@ function isNamedBlock(element: AST.ElementNode): boolean {
   let open = element.tag.charAt(0);
 
   return open === ':';
-/**
- * Check if _id_ is a valid named block identifier.
- *
- * @param {string} id
- * @returns {boolean}
- */
-function isValidBlockName(id: string) {
-  // TODO: what is the actual "identifier" regex?
-  return id.indexOf('.') === -1 && /^[a-z]/.test(id);
 }
 
 function assertIsSimplePath(path: AST.Expression, loc: AST.SourceLocation, context: string) {
