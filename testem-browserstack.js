@@ -8,9 +8,9 @@ module.exports = {
   framework: 'qunit',
   test_page: 'tests/index.html?hidepassed',
   disable_watching: true,
-  browser_start_timeout: 2000,
+  browser_start_timeout: 4000,
   browser_disconnect_timeout: 120,
-  timeout: 600,
+  timeout: 900,
   parallel: 4,
   reporter: FailureOnlyReporterGroupedByBrowser,
   launchers: {
