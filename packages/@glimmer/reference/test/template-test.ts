@@ -62,6 +62,51 @@ module('@glimmer/reference: template', () => {
 
       ref.get('foo');
     });
+
+    test('multiple access', assert => {
+      let pullCount = 0;
+      let setCount = 0;
+
+      let component = {
+        get foo() {
+          pullCount++;
+          return pullCount;
+        },
+      };
+      let ref = new ComponentRootReference(
+        component,
+        new (class extends TestEnv {
+          setTemplatePathDebugContext(_ref: TemplatePathReference, key: string) {
+            setCount++;
+            switch (setCount) {
+              case 1:
+                assert.equal(ref, _ref);
+                assert.equal(key, 'this');
+                break;
+              case 2:
+              case 3:
+              case 4:
+                assert.equal(key, 'foo');
+                break;
+              default:
+                assert.ok(false, 'unexpected set');
+            }
+          }
+        })()
+      );
+
+      let ref1 = ref.get('foo');
+      ref1.value();
+      let ref2 = ref.get('foo');
+      ref2.value();
+      let ref3 = ref.get('foo');
+      ref3.value();
+      assert.ok(true, 'we did not error');
+      assert.notStrictEqual(ref1, ref2, 'second access is a new reference');
+      assert.notStrictEqual(ref1, ref3, 'third access is a new reference');
+      assert.strictEqual(setCount, 4, 'We setup template debug context appropriately');
+      assert.strictEqual(pullCount, 1, 'We only access the value once');
+    });
   });
 
   module('HelperRootReference', () => {

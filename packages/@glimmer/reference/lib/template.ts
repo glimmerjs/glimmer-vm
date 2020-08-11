@@ -104,17 +104,17 @@ export abstract class RootReference<T = unknown> implements TemplatePathReferenc
         this.didSetupDebugContext = true;
         this.env.setTemplatePathDebugContext(this, this.debugLogName || 'this', null);
       }
-
-      return new PropertyReference(this, key, this.env);
-    } else {
-      let ref = this.children[key];
-
-      if (ref === undefined) {
-        ref = this.children[key] = new PropertyReference(this, key, this.env);
-      }
-
-      return ref;
     }
+
+    let ref = this.children[key];
+
+    if (ref === undefined) {
+      ref = this.children[key] = new PropertyReference(this, key, this.env);
+    } else if (DEBUG) {
+      return new PropertyReference(this, key, this.env, ref);
+    }
+
+    return ref;
   }
 }
 
@@ -193,6 +193,16 @@ export class HelperRootReference<T = unknown> extends RootReference<T> {
   }
 }
 
+/*
+  DEBUG only fields. Keeping this in a separate interface which Typescript then
+  merges with the class definition allow us to have a DEBUG only property without
+  paying the cost of that field being present and initialized (usually to void 0)
+  in production.
+*/
+export interface PropertyReference {
+  ref?: PropertyReference;
+}
+
 /**
  * PropertyReferences represent a property that has been accessed on a root, or
  * another property (or iterable, see below). `some` and `prop` in
@@ -211,10 +221,12 @@ export class PropertyReference implements TemplatePathReference {
   constructor(
     protected parentReference: TemplatePathReference,
     protected propertyKey: string,
-    protected env: TemplateReferenceEnvironment
+    protected env: TemplateReferenceEnvironment,
+    ref?: PropertyReference
   ) {
     if (DEBUG) {
       env.setTemplatePathDebugContext(this, propertyKey, parentReference);
+      this.ref = ref;
     }
 
     let valueTag = (this.valueTag = createUpdatableTag());
@@ -231,7 +243,11 @@ export class PropertyReference implements TemplatePathReference {
 
       if (isDict(parentValue)) {
         let combined = track(() => {
-          lastValue = this.env.getPath(parentValue, propertyKey);
+          if (DEBUG && this.ref) {
+            lastValue = this.ref.value();
+          } else {
+            lastValue = this.env.getPath(parentValue, propertyKey);
+          }
         }, DEBUG && this.env.getTemplatePathDebugContext(this));
 
         updateTag(valueTag, combined);
@@ -247,20 +263,18 @@ export class PropertyReference implements TemplatePathReference {
   }
 
   get(key: string): TemplatePathReference {
-    // References should in general be identical to one another, so we can usually
-    // deduplicate them in production. However, in DEBUG we need unique references
-    // so we can properly key off them for the logging context.
-    if (DEBUG) {
-      return new PropertyReference(this, key, this.env);
-    } else {
-      let ref = this.children[key];
+    let ref = this.children[key];
 
-      if (ref === undefined) {
-        ref = this.children[key] = new PropertyReference(this, key, this.env);
-      }
-
-      return ref;
+    if (ref === undefined) {
+      ref = this.children[key] = new PropertyReference(this, key, this.env);
+    } else if (DEBUG) {
+      // References should in general be identical to one another, so we can usually
+      // deduplicate them in production. However, in DEBUG we need unique references
+      // so we can properly key off them for the logging context.
+      return new PropertyReference(this, key, this.env, ref);
     }
+
+    return ref;
   }
 
   [UPDATE_REFERENCED_VALUE](value: unknown) {
@@ -318,19 +332,17 @@ export class IterationItemReference<T = unknown> implements TemplatePathReferenc
   }
 
   get(key: string): TemplatePathReference {
-    // References should in general be identical to one another, so we can usually
-    // deduplicate them in production. However, in DEBUG we need unique references
-    // so we can properly key off them for the logging context.
-    if (DEBUG) {
-      return new PropertyReference(this, key, this.env);
-    } else {
-      let ref = this.children[key];
+    let ref = this.children[key];
 
-      if (ref === undefined) {
-        ref = this.children[key] = new PropertyReference(this, key, this.env);
-      }
-
-      return ref;
+    if (ref === undefined) {
+      ref = this.children[key] = new PropertyReference(this, key, this.env);
+    } else if (DEBUG) {
+      // References should in general be identical to one another, so we can usually
+      // deduplicate them in production. However, in DEBUG we need unique references
+      // so we can properly key off them for the logging context.
+      return new PropertyReference(this, key, this.env, ref);
     }
+
+    return ref;
   }
 }
