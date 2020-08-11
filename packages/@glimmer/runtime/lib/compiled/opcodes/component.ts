@@ -716,6 +716,10 @@ APPEND_OPCODES.add(Op.Main, (vm, { op1: register }) => {
   vm.loadValue(register, state);
 });
 
+APPEND_OPCODES.add(Op.End, vm => {
+  vm.end();
+});
+
 APPEND_OPCODES.add(Op.PopulateLayout, (vm, { op1: _state }) => {
   let { stack } = vm;
 

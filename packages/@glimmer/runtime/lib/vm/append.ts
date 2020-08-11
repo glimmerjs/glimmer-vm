@@ -130,7 +130,8 @@ export interface InternalVM<C extends JitOrAotBlock = JitOrAotBlock> {
 
   execute(initialize?: (vm: this) => void): RenderResult;
   pushUpdating(list?: UpdatingOpcode[]): void;
-  next(): RichIteratorResult<null, RenderResult>;
+  next(): Option<RenderResult>;
+  end(): void;
 }
 
 export interface InternalJitVM extends InternalVM<CompilableBlock> {
@@ -155,6 +156,10 @@ export default abstract class VM<C extends JitOrAotBlock> implements PublicVM, I
   readonly [CONSTANTS]: RuntimeConstants;
   readonly [ARGS]: VMArgumentsImpl;
   readonly [INNER_VM]: LowLevelVM;
+
+  // assign this to an object so it realizes it will be one at some point, and
+  // won't deopt later
+  private result: Option<RenderResultImpl> = {} as any;
 
   get stack(): EvaluationStack {
     return this[INNER_VM].stack as EvaluationStack;
@@ -519,14 +524,15 @@ export default abstract class VM<C extends JitOrAotBlock> implements PublicVM, I
 
     if (initialize) initialize(this);
 
-    let result: RichIteratorResult<null, RenderResult>;
+    let result: Option<RenderResult> = this.result = null;
 
     try {
-      while (true) {
+      while (result === null) {
         result = this.next();
-        if (result.done) break;
       }
-    } finally {
+
+      return result;
+    } catch (e) {
       // If any existing blocks are open, due to an error or something like
       // that, we need to close them all and clean things up properly.
       let elements = this.elements();
@@ -534,33 +540,27 @@ export default abstract class VM<C extends JitOrAotBlock> implements PublicVM, I
       while (elements.hasBlocks) {
         elements.popBlock();
       }
-    }
 
-    return result.value;
+      throw e;
+    }
   }
 
-  next(): RichIteratorResult<null, RenderResult> {
-    let { env, elementStack } = this;
-    let opcode = this[INNER_VM].nextStatement();
-    let result: RichIteratorResult<null, RenderResult>;
-    if (opcode !== null) {
-      this[INNER_VM].evaluateOuter(opcode, this);
-      result = { done: false, value: null };
-    } else {
-      // Unload the stack
-      this.stack.reset();
+  next(): Option<RenderResult> {
+    let innerVM = this[INNER_VM];
+    innerVM.evaluateNext(this);
 
-      result = {
-        done: true,
-        value: new RenderResultImpl(
-          env,
-          this.popUpdating(),
-          elementStack.popBlock(),
-          this.destructor
-        ),
-      };
-    }
-    return result;
+    return this.result;
+  }
+
+  end(): void {
+    let { env, elementStack } = this;
+
+    this.result = new RenderResultImpl(
+      env,
+      this.popUpdating(),
+      elementStack.popBlock(),
+      this.destructor
+    );
   }
 
   bindDynamicScope(names: string[]) {

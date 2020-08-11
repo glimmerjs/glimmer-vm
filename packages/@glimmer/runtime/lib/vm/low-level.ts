@@ -1,5 +1,4 @@
 import {
-  Option,
   RuntimeHeap,
   MachineOp,
   RuntimeProgram,
@@ -20,15 +19,15 @@ export interface LowLevelRegisters {
 }
 
 export function initializeRegisters(): LowLevelRegisters {
-  return [0, -1, 0, 0];
+  return [1, 0, 0, 0];
 }
 
 export function initializeRegistersWithSP(sp: number): LowLevelRegisters {
-  return [0, -1, sp, 0];
+  return [1, 0, sp, 0];
 }
 
 export function initializeRegistersWithPC(pc: number): LowLevelRegisters {
-  return [pc, -1, 0, 0];
+  return [pc, 0, 0, 0];
 }
 
 export interface Stack {
@@ -68,6 +67,7 @@ export default class LowLevelVM {
 
   setPc(pc: number): void {
     assert(typeof pc === 'number' && !isNaN(pc), 'pc is set to a number');
+    assert(pc >= 0, 'VM BUG: pc < 0');
     this.registers[$pc] = pc;
   }
 
@@ -120,16 +120,12 @@ export default class LowLevelVM {
     this.setPc(this.registers[$ra]);
   }
 
-  nextStatement(): Option<RuntimeOp> {
+  evaluateNext(vm: VM<JitOrAotBlock>) {
     let { registers, program } = this;
 
     let pc = registers[$pc];
 
     assert(typeof pc === 'number', 'pc is a number');
-
-    if (pc === -1) {
-      return null;
-    }
 
     // We have to save off the current operations size so that
     // when we do a jump we can calculate the correct offset
@@ -140,10 +136,6 @@ export default class LowLevelVM {
     let operationSize = (this.currentOpSize = opcode.size);
     this.registers[$pc] += operationSize;
 
-    return opcode;
-  }
-
-  evaluateOuter(opcode: RuntimeOp, vm: VM<JitOrAotBlock>) {
     if (LOCAL_DEBUG) {
       let {
         externs: { debugBefore, debugAfter },

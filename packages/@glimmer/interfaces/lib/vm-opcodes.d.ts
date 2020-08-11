@@ -105,4 +105,5 @@ export const enum Op {
   Debugger = 106,
   Size = 107,
   StaticComponentAttr = 108,
+  End = 109,
 }
