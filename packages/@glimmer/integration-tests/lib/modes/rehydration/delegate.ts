@@ -20,9 +20,10 @@ import {
   SimpleText,
   ElementNamespace,
   SimpleDocumentFragment,
+  NodeType,
 } from '@simple-dom/interface';
 import { ComponentKind } from '../../components';
-import { replaceHTML, toInnerHTML } from '../../dom/simple-utils';
+import { castToSimple, replaceHTML, toInnerHTML } from '../../dom/simple-utils';
 import { UserHelper } from '../../helpers';
 import { TestModifierConstructor } from '../../modifiers';
 import RenderDelegate, { RenderDelegateOptions } from '../../render-delegate';

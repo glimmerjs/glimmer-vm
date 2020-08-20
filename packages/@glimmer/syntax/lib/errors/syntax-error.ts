@@ -1,12 +1,12 @@
 import * as AST from '../types/nodes';
 
 export interface SyntaxError extends Error {
-  location: AST.SourceLocation;
+  location: AST.SourceLocation | null;
   constructor: SyntaxErrorConstructor;
 }
 
 export interface SyntaxErrorConstructor {
-  new (message: string, location: AST.SourceLocation): SyntaxError;
+  new (message: string, location: AST.SourceLocation | null): SyntaxError;
   readonly prototype: SyntaxError;
 }
 
@@ -19,7 +19,7 @@ const SyntaxError: SyntaxErrorConstructor = (function () {
   SyntaxError.prototype = Object.create(Error.prototype);
   SyntaxError.prototype.constructor = SyntaxError;
 
-  function SyntaxError(this: SyntaxError, message: string, location: AST.SourceLocation) {
+  function SyntaxError(this: SyntaxError, message: string, location: AST.SourceLocation | null) {
     let error = Error.call(this, message);
 
     this.message = message;

@@ -1,6 +1,6 @@
 import { SimpleNode, NodeType, SimpleElement } from '@simple-dom/interface';
 import { Option } from '@glimmer/interfaces';
-import { replaceHTML, toInnerHTML } from './dom/simple-utils';
+import { castToSimple, replaceHTML, toInnerHTML } from './dom/simple-utils';
 import { tokenize, EndTag, Token } from 'simple-html-tokenizer';
 import { cast } from '@glimmer/runtime';
 
@@ -49,8 +49,8 @@ export function equalTokens(
 function cleanEmberIds(tokens: Token[]) {
   let id = 0;
 
-  tokens.forEach((token) => {
-    let idAttr = 'attributes' in token && token.attributes.filter((a) => a[0] === 'id')[0];
+  tokens.forEach(token => {
+    let idAttr = 'attributes' in token && token.attributes.filter(a => a[0] === 'id')[0];
 
     if (idAttr) {
       idAttr[1] = idAttr[1].replace(/ember(\d+|\*)/, `ember${++id}`);

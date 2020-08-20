@@ -1,27 +1,37 @@
-import { WireFormat, Option, Dict, Expressions, ExpressionContext } from '@glimmer/interfaces';
-
-import Op = WireFormat.SexpOpcodes;
-import { dict, assertNever, assert, values, exhausted } from '@glimmer/util';
+import { Dict, ExpressionContext, Expressions, Option, WireFormat } from '@glimmer/interfaces';
 import {
-  BuilderStatement,
+  assert,
+  assertNever,
+  dict,
+  exhausted,
+  isPresent,
+  PresentArray,
+  values,
+} from '@glimmer/util';
+import { AttrNamespace, Namespace } from '@simple-dom/interface';
+import {
+  Builder,
   BuilderComment,
-  normalizeStatement,
+  BuilderStatement,
+  ExpressionKind,
   HeadKind,
-  Path,
+  NormalizedAngleInvocation,
+  NormalizedAttrs,
+  NormalizedBlocks,
+  NormalizedElement,
+  NormalizedExpression,
+  NormalizedHash,
+  NormalizedHead,
+  NormalizedParams,
+  NormalizedPath,
+  NormalizedStatement,
+  NormalizedVar,
+  normalizeStatement,
   Variable,
   VariableKind,
-  Builder,
-  NormalizedExpression,
-  ExpressionKind,
-  NormalizedParams,
-  NormalizedHash,
-  NormalizedAttrs,
-  NormalizedElement,
-  NormalizedStatement,
-  NormalizedAngleInvocation,
-  NormalizedBlocks,
 } from './builder-interface';
-import { AttrNamespace, Namespace } from '@simple-dom/interface';
+
+import Op = WireFormat.SexpOpcodes;
 
 interface Symbols {
   top: ProgramSymbols;
@@ -166,7 +176,7 @@ export function buildStatements(
 ): WireFormat.Statement[] {
   let out: WireFormat.Statement[] = [];
 
-  statements.forEach((s) => out.push(...buildStatement(normalizeStatement(s), symbols)));
+  statements.forEach(s => out.push(...buildStatement(normalizeStatement(s), symbols)));
 
   return out;
 }
@@ -177,7 +187,7 @@ export function buildNormalizedStatements(
 ): WireFormat.Statement[] {
   let out: WireFormat.Statement[] = [];
 
-  statements.forEach((s) => out.push(...buildStatement(s, symbols)));
+  statements.forEach(s => out.push(...buildStatement(s, symbols)));
 
   return out;
 }
@@ -191,7 +201,7 @@ export function buildStatement(
       return [
         [
           normalized.trusted ? Op.TrustingAppend : Op.Append,
-          buildPath(normalized.path, ExpressionContext.AppendSingleId, symbols),
+          buildGetPath(normalized.path, symbols),
         ],
       ];
     }
@@ -200,16 +210,18 @@ export function buildStatement(
       return [
         [
           normalized.trusted ? Op.TrustingAppend : Op.Append,
-          buildExpression(normalized.expr, ExpressionContext.Expression, symbols),
+          buildExpression(normalized.expr, 'PossibleAmbiguous', symbols),
         ],
       ];
     }
 
     case HeadKind.Call: {
-      let { path, params, hash, trusted } = normalized;
-      let builtParams: Option<WireFormat.Core.Params> = params ? buildParams(params, symbols) : [];
+      let { head: path, params, hash, trusted } = normalized;
+      let builtParams: Option<WireFormat.Core.Params> = params
+        ? buildParams(params, symbols)
+        : null;
       let builtHash: WireFormat.Core.Hash = hash ? buildHash(hash, symbols) : null;
-      let builtExpr: WireFormat.Expression = buildPath(path, ExpressionContext.CallHead, symbols);
+      let builtExpr: WireFormat.Expression = buildHead(path, ExpressionContext.CallHead, symbols);
 
       return [
         [trusted ? Op.TrustingAppend : Op.Append, [Op.Call, builtExpr, builtParams, builtHash]],
@@ -217,7 +229,7 @@ export function buildStatement(
     }
 
     case HeadKind.Literal: {
-      return [[Op.TrustingAppend, normalized.value]];
+      return [[Op.Append, normalized.value]];
     }
 
     case HeadKind.Comment: {
@@ -228,7 +240,7 @@ export function buildStatement(
       let blocks = buildBlocks(normalized.blocks, normalized.blockParams, symbols);
       let hash = buildHash(normalized.hash, symbols);
       let params = buildParams(normalized.params, symbols);
-      let path = buildPath(normalized.path, ExpressionContext.BlockHead, symbols);
+      let path = buildHead(normalized.head, ExpressionContext.BlockHead, symbols);
 
       return [[Op.Block, path, params, hash, blocks]];
     }
@@ -282,14 +294,14 @@ function buildElement(
     hasSplat(attrs) ? [Op.OpenElementWithSplat, name] : [Op.OpenElement, name],
   ];
   if (attrs) {
-    let { attributes, args } = buildAttrs(attrs, symbols);
-    out.push(...attributes);
+    let { params, args } = buildElementParams(attrs, symbols);
+    out.push(...params);
     assert(args === null, `Can't pass args to a simple element`);
   }
   out.push([Op.FlushElement]);
 
   if (Array.isArray(block)) {
-    block.forEach((s) => out.push(...buildStatement(s, symbols)));
+    block.forEach(s => out.push(...buildStatement(s, symbols)));
   } else if (block === null) {
     // do nothing
   } else {
@@ -304,20 +316,20 @@ function buildElement(
 function hasSplat(attrs: Option<NormalizedAttrs>): boolean {
   if (attrs === null) return false;
 
-  return Object.keys(attrs).some((a) => attrs[a] === HeadKind.Splat);
+  return Object.keys(attrs).some(a => attrs[a] === HeadKind.Splat);
 }
 
 export function buildAngleInvocation(
   { attrs, block, head }: NormalizedAngleInvocation,
   symbols: Symbols
 ): WireFormat.Statements.Component {
-  let attrList: WireFormat.Attribute[] = [];
+  let paramList: WireFormat.Parameter[] = [];
   let args: WireFormat.Core.Hash = null;
   let blockList: WireFormat.Statement[] = [];
 
   if (attrs) {
-    let built = buildAttrs(attrs, symbols);
-    attrList = built.attributes;
+    let built = buildElementParams(attrs, symbols);
+    paramList = built.params;
     args = built.args;
   }
 
@@ -326,30 +338,30 @@ export function buildAngleInvocation(
   return [
     Op.Component,
     buildExpression(head, ExpressionContext.CallHead, symbols),
-    attrList,
+    isPresent(paramList) ? paramList : null,
     args,
     [['default'], [{ parameters: [], statements: blockList }]],
   ];
 }
 
-export function buildAttrs(
+export function buildElementParams(
   attrs: NormalizedAttrs,
   symbols: Symbols
-): { attributes: WireFormat.Attribute[]; args: WireFormat.Core.Hash } {
-  let attributes: WireFormat.Attribute[] = [];
+): { params: WireFormat.Parameter[]; args: WireFormat.Core.Hash } {
+  let params: WireFormat.Parameter[] = [];
   let keys: string[] = [];
   let values: WireFormat.Expression[] = [];
 
-  Object.keys(attrs).forEach((key) => {
+  Object.keys(attrs).forEach(key => {
     let value = attrs[key];
 
     if (value === HeadKind.Splat) {
-      attributes.push([Op.AttrSplat, symbols.block('&attrs')]);
+      params.push([Op.AttrSplat, symbols.block('&attrs')]);
     } else if (key[0] === '@') {
       keys.push(key);
       values.push(buildExpression(value, ExpressionContext.Expression, symbols));
     } else {
-      attributes.push(
+      params.push(
         ...buildAttributeValue(
           key,
           value,
@@ -361,7 +373,7 @@ export function buildAttrs(
     }
   });
 
-  return { attributes, args: keys.length === 0 ? null : [keys, values] };
+  return { params, args: isPresent(keys) && isPresent(values) ? [keys, values] : null };
 }
 
 export function extractNamespace(name: string): Option<AttrNamespace> {
@@ -415,7 +427,7 @@ export function buildAttributeValue(
         [
           Op.DynamicAttr,
           name,
-          buildExpression(value, ExpressionContext.AppendSingleId, symbols),
+          buildExpression(value, 'PossibleAmbiguous', symbols),
           namespace ?? undefined,
         ],
       ];
@@ -424,12 +436,20 @@ export function buildAttributeValue(
 
 export function buildExpression(
   expr: NormalizedExpression,
-  context: ExpressionContext,
+  context: ExpressionContext | 'PossibleAmbiguous',
   symbols: Symbols
 ): WireFormat.Expression {
   switch (expr.type) {
-    case ExpressionKind.Get: {
-      return buildPath(expr.path, context, symbols);
+    case ExpressionKind.GetPath: {
+      return buildGetPath(expr, symbols);
+    }
+
+    case ExpressionKind.GetVar: {
+      return buildGetVar(
+        expr,
+        context === 'PossibleAmbiguous' ? ExpressionContext.AppendSingleId : context,
+        symbols
+      );
     }
 
     case ExpressionKind.Concat: {
@@ -439,7 +459,7 @@ export function buildExpression(
     case ExpressionKind.Call: {
       let builtParams = buildParams(expr.params, symbols);
       let builtHash = buildHash(expr.hash, symbols);
-      let builtExpr = buildPath(expr.path, ExpressionContext.CallHead, symbols);
+      let builtExpr = buildHead(expr.head, ExpressionContext.CallHead, symbols);
 
       return [Op.Call, builtExpr, builtParams, builtHash];
     }
@@ -473,39 +493,54 @@ export function buildExpression(
         return expr.value;
       }
     }
+
+    default:
+      assertNever(expr);
   }
 }
 
-export function buildPath(
-  path: Path,
+export function buildHead(
+  head: NormalizedHead,
   context: ExpressionContext,
   symbols: Symbols
-): Expressions.GetPath {
-  if (path.tail.length === 0) {
-    return buildVar(path.variable, context, symbols, path.tail);
+): Expressions.GetVar | Expressions.GetPath {
+  if (head.type === ExpressionKind.GetVar) {
+    return buildGetVar(head, context, symbols);
   } else {
-    return buildVar(path.variable, ExpressionContext.Expression, symbols, path.tail);
+    return buildGetPath(head, symbols);
   }
+}
+
+export function buildGetVar(
+  head: NormalizedVar,
+  context: ExpressionContext,
+  symbols: Symbols
+): Expressions.GetVar {
+  return buildVar(head.variable, context, symbols);
+}
+
+export function buildGetPath(head: NormalizedPath, symbols: Symbols): Expressions.GetPath {
+  return buildVar(head.path.head, ExpressionContext.Expression, symbols, head.path.tail);
 }
 
 export function buildVar(
   head: Variable,
   context: ExpressionContext,
   symbols: Symbols,
-  path: string[]
+  path: PresentArray<string>
 ): Expressions.GetPath;
 export function buildVar(
   head: Variable,
   context: ExpressionContext,
   symbols: Symbols
-): Expressions.Get;
+): Expressions.GetVar;
 export function buildVar(
   head: Variable,
   context: ExpressionContext,
   symbols: Symbols,
-  path?: string[]
-): Expressions.GetPath | Expressions.Get {
-  let op: Expressions.Get[0] = Op.GetSymbol;
+  path?: PresentArray<string>
+): Expressions.GetPath | Expressions.GetVar {
+  let op: Expressions.GetVar[0] = Op.GetSymbol;
   let sym: number;
   switch (head.kind) {
     case VariableKind.Free:
@@ -516,9 +551,12 @@ export function buildVar(
       op = Op.GetSymbol;
       sym = getSymbolForVar(head.kind, symbols, head.name);
   }
-  return (path === undefined || path.length === 0 ? [op, sym] : [op, sym, path]) as
-    | Expressions.Get
-    | Expressions.GetPath;
+
+  if (path === undefined || path.length === 0) {
+    return [op, sym];
+  } else {
+    return [Op.GetPath, [op, sym], path];
+  }
 }
 
 function getSymbolForVar(
@@ -563,17 +601,19 @@ export function buildParams(
   exprs: Option<NormalizedParams>,
   symbols: Symbols
 ): Option<WireFormat.Core.Params> {
-  if (exprs === null) return null;
+  if (exprs === null || !isPresent(exprs)) return null;
 
-  return exprs.map((e) => buildExpression(e, ExpressionContext.Expression, symbols));
+  return exprs.map(e =>
+    buildExpression(e, ExpressionContext.Expression, symbols)
+  ) as WireFormat.Core.ConcatParams;
 }
 
 export function buildConcat(
   exprs: [NormalizedExpression, ...NormalizedExpression[]],
   symbols: Symbols
 ): WireFormat.Core.ConcatParams {
-  return exprs.map((e) =>
-    buildExpression(e, ExpressionContext.AppendSingleId, symbols)
+  return exprs.map(e =>
+    buildExpression(e, 'PossibleAmbiguous', symbols)
   ) as WireFormat.Core.ConcatParams;
 }
 
@@ -582,12 +622,12 @@ export function buildHash(exprs: Option<NormalizedHash>, symbols: Symbols): Wire
 
   let out: [string[], WireFormat.Expression[]] = [[], []];
 
-  Object.keys(exprs).forEach((key) => {
+  Object.keys(exprs).forEach(key => {
     out[0].push(key);
     out[1].push(buildExpression(exprs[key], ExpressionContext.Expression, symbols));
   });
 
-  return out;
+  return out as WireFormat.Core.Hash;
 }
 
 export function buildBlocks(
@@ -598,7 +638,7 @@ export function buildBlocks(
   let keys: string[] = [];
   let values: WireFormat.SerializedInlineBlock[] = [];
 
-  Object.keys(blocks).forEach((name) => {
+  Object.keys(blocks).forEach(name => {
     keys.push(name);
 
     if (name === 'default') {

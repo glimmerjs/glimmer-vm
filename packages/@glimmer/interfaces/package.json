@@ -2,6 +2,7 @@
   "name": "@glimmer/interfaces",
   "version": "0.61.0",
   "repository": "https://github.com/glimmerjs/glimmer-vm/tree/master/packages/@glimmer/interfaces",
+  "types": "index.d.ts",
   "dependencies": {
     "@simple-dom/interface": "^1.4.0"
   }

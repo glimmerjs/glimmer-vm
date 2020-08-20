@@ -131,7 +131,7 @@ export interface IfResolvedOp {
 }
 
 export interface IfResolvedComponentBlocks {
-  attrs: CompilableBlock;
+  elementBlock: Option<CompilableBlock>;
   blocks: NamedBlocks;
 }
 
@@ -140,7 +140,7 @@ export interface IfResolvedComponentOp {
   op: HighLevelCompileOpcode.IfResolvedComponent;
   op1: {
     name: string;
-    attrs: WireFormat.Statements.Attribute[];
+    elementBlock: Option<[WireFormat.Statements.Parameter, ...WireFormat.Statements.Parameter[]]>;
     blocks: WireFormat.Core.Blocks;
     staticTemplate: (
       handle: number,
@@ -162,8 +162,8 @@ export interface DynamicComponentOp {
   op: HighLevelCompileOpcode.DynamicComponent;
   op1: {
     definition: WireFormat.Expression;
-    attrs: Option<WireFormat.Statements.Attribute[]>;
-    params: Option<WireFormat.Core.Params>;
+    elementBlock: Option<[WireFormat.Statements.Parameter, ...WireFormat.Statements.Parameter[]]>;
+    params: WireFormat.Core.Params;
     args: WireFormat.Core.Hash;
     blocks: WireFormat.Core.Blocks | NamedBlocks;
     atNames: boolean;

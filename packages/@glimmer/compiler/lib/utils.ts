@@ -1,4 +1,4 @@
-import { Dict, Option, WellKnownTagName, WellKnownAttrName } from '@glimmer/interfaces';
+import { Dict, WellKnownAttrName, WellKnownTagName } from '@glimmer/interfaces';
 
 export function processOpcodes(compiler: any, opcodes: any) {
   for (let i = 0, l = opcodes.length; i < l; i++) {
@@ -45,8 +45,8 @@ const WHITELIST: Dict<string | undefined> = {
   'xmlns:xlink': XMLNS,
 };
 
-export function getAttrNamespace(attrName: string): Option<string> {
-  return WHITELIST[attrName] || null;
+export function getAttrNamespace(attrName: string): string | undefined {
+  return WHITELIST[attrName];
 }
 
 const DEFLATE_TAG_TABLE: {

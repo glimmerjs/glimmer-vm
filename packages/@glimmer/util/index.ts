@@ -1,6 +1,14 @@
-export { EMPTY_ARRAY } from './lib/array-utils';
+export * from './lib/array-utils';
 export { default as assert, deprecate } from './lib/assert';
-export { dict, DictSet, isDict, isObject, Set, StackImpl as Stack } from './lib/collections';
+export {
+  dict,
+  DictSet,
+  isDict,
+  isObject,
+  Set,
+  StackImpl as Stack,
+  NonemptyStackImpl as NonemptyStack,
+} from './lib/collections';
 export * from './lib/dom';
 export { ensureGuid, HasGuid, initializeGuid } from './lib/guid';
 export {
@@ -13,13 +21,15 @@ export * from './lib/string';
 export * from './lib/immediate';
 export * from './lib/template';
 export { default as _WeakSet } from './lib/weak-set';
+export * from './lib/present';
 
 export { default as debugToString } from './lib/debug-to-string';
 export { beginTestSteps, endTestSteps, logStep, verifySteps } from './lib/debug-steps';
 
 export type FIXME<T, S extends string> = (T & S) | T;
 
-export function assertNever(value: never, desc = 'unexpected unreachable branch'): void {
+export function assertNever(value: never, desc = 'unexpected unreachable branch'): never {
   console.log('unreachable', value);
   console.trace(`${desc} :: ${JSON.stringify(value)} (${value})`);
+  throw new Error(`code reached unreachable`);
 }
