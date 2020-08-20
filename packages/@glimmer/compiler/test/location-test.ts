@@ -1,4 +1,4 @@
-import { offsetToLocation, locationToOffset } from '..';
+import { offsetToPosition, positionToOffset } from '..';
 import { Dict } from '@glimmer/interfaces';
 
 const test = QUnit.test;
@@ -53,26 +53,26 @@ const cases: Dict<[string, number | null][]> = {
 
 QUnit.module('locations - position');
 
-Object.keys(cases).forEach((string) => {
+Object.keys(cases).forEach(string => {
   for (let [span, offset] of cases[string]) {
-    let [line, column] = span.split(':').map((i) => parseInt(i, 10));
+    let [line, column] = span.split(':').map(i => parseInt(i, 10));
 
     if (offset === null) continue;
 
-    test(`${string} @ ${offset} -> ${line}:${column}`, (assert) => {
-      assert.deepEqual(offsetToLocation(string, offset!), { line, column });
+    test(`${string} @ ${offset} -> ${line}:${column}`, assert => {
+      assert.deepEqual(offsetToPosition(string, offset!), { line, column });
     });
   }
 });
 
 QUnit.module('locations - location');
 
-Object.keys(cases).forEach((string) => {
+Object.keys(cases).forEach(string => {
   for (let [span, offset] of cases[string]) {
-    let [line, column] = span.split(':').map((i) => parseInt(i, 10));
+    let [line, column] = span.split(':').map(i => parseInt(i, 10));
 
-    test(`${string} @ ${line}:${column} -> ${offset}`, (assert) => {
-      assert.deepEqual(locationToOffset(string, line, column), offset === null ? null : offset);
+    test(`${string} @ ${line}:${column} -> ${offset}`, assert => {
+      assert.deepEqual(positionToOffset(string, { line, column }), offset === null ? null : offset);
     });
   }
 });

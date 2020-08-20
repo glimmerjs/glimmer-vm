@@ -1,18 +1,19 @@
-import { Compilers } from './compilers';
 import {
-  SexpOpcodes,
-  ResolveHandle,
-  Op,
+  ContainingMetadata,
+  ExpressionCompileActions,
+  ExpressionContext,
   Expressions,
   ExpressionSexpOpcode,
-  ExpressionCompileActions,
-  ContainingMetadata,
-  ExpressionContext,
+  Op,
+  ResolveHandle,
+  SexpOpcodes,
 } from '@glimmer/interfaces';
+import { isPresent } from '@glimmer/util';
 import { op } from '../opcode-builder/encoder';
-import { Call, PushPrimitiveReference } from '../opcode-builder/helpers/vm';
 import { curryComponent } from '../opcode-builder/helpers/components';
-import { expectString } from '../utils';
+import { Call, PushPrimitiveReference } from '../opcode-builder/helpers/vm';
+import { expectSloppyFreeVariable } from '../utils';
+import { Compilers } from './compilers';
 
 export const EXPRESSIONS = new Compilers<ExpressionSexpOpcode, ExpressionCompileActions>();
 
@@ -46,7 +47,7 @@ EXPRESSIONS.add(SexpOpcodes.Call, ([, name, params, hash], meta) => {
     return curryComponent(
       {
         definition,
-        params: restArgs,
+        params: isPresent(restArgs) ? restArgs : null,
         hash,
         atNames: false,
       },
@@ -54,7 +55,7 @@ EXPRESSIONS.add(SexpOpcodes.Call, ([, name, params, hash], meta) => {
     );
   }
 
-  let nameOrError = expectString(name, meta, 'Expected call head to be a string');
+  let nameOrError = expectSloppyFreeVariable(name, meta, 'Expected call head to be a string');
 
   if (typeof nameOrError !== 'string') {
     return nameOrError;
@@ -95,52 +96,39 @@ function isComponent(expr: Expressions.Expression, meta: ContainingMetadata): bo
   return false;
 }
 
-EXPRESSIONS.add(SexpOpcodes.GetSymbol, ([, sym, path]) => withPath(op(Op.GetVariable, sym), path));
-EXPRESSIONS.add(SexpOpcodes.GetFree, ([, sym, path]) => withPath(op('ResolveFree', sym), path));
-EXPRESSIONS.add(SexpOpcodes.GetFreeInAppendSingleId, ([, sym, path]) =>
-  withPath(
-    op('ResolveContextualFree', { freeVar: sym, context: ExpressionContext.AppendSingleId }),
-    path
-  )
+EXPRESSIONS.add(SexpOpcodes.GetSymbol, ([, sym]) => op(Op.GetVariable, sym));
+EXPRESSIONS.add(SexpOpcodes.GetFree, ([, sym]) => op('ResolveFree', sym));
+EXPRESSIONS.add(SexpOpcodes.GetFreeInAppendSingleId, ([, sym]) =>
+  op('ResolveContextualFree', { freeVar: sym, context: ExpressionContext.AppendSingleId })
 );
-EXPRESSIONS.add(SexpOpcodes.GetFreeInExpression, ([, sym, path]) =>
-  withPath(
-    op('ResolveContextualFree', { freeVar: sym, context: ExpressionContext.Expression }),
-    path
-  )
+EXPRESSIONS.add(SexpOpcodes.GetFreeInExpression, ([, sym]) =>
+  op('ResolveContextualFree', { freeVar: sym, context: ExpressionContext.Expression })
 );
-EXPRESSIONS.add(SexpOpcodes.GetFreeInCallHead, ([, sym, path]) =>
-  withPath(op('ResolveContextualFree', { freeVar: sym, context: ExpressionContext.CallHead }), path)
+EXPRESSIONS.add(SexpOpcodes.GetFreeInCallHead, ([, sym]) =>
+  op('ResolveContextualFree', { freeVar: sym, context: ExpressionContext.CallHead })
 );
-EXPRESSIONS.add(SexpOpcodes.GetFreeInBlockHead, ([, sym, path]) =>
-  withPath(
-    op('ResolveContextualFree', { freeVar: sym, context: ExpressionContext.BlockHead }),
-    path
-  )
+EXPRESSIONS.add(SexpOpcodes.GetFreeInBlockHead, ([, sym]) =>
+  op('ResolveContextualFree', { freeVar: sym, context: ExpressionContext.BlockHead })
 );
-EXPRESSIONS.add(SexpOpcodes.GetFreeInModifierHead, ([, sym, path]) =>
-  withPath(
-    op('ResolveContextualFree', { freeVar: sym, context: ExpressionContext.ModifierHead }),
-    path
-  )
-);
-EXPRESSIONS.add(SexpOpcodes.GetFreeInComponentHead, ([, sym, path]) =>
-  withPath(
-    op('ResolveContextualFree', { freeVar: sym, context: ExpressionContext.ComponentHead }),
-    path
-  )
+EXPRESSIONS.add(SexpOpcodes.GetFreeInModifierHead, ([, sym]) =>
+  op('ResolveContextualFree', { freeVar: sym, context: ExpressionContext.ModifierHead })
 );
 
-function withPath(expr: ExpressionCompileActions, path?: string[]) {
-  if (path === undefined || path.length === 0) return expr;
-  if (!Array.isArray(expr)) expr = [expr];
+EXPRESSIONS.add(SexpOpcodes.GetFreeInComponentHead, ([, sym]) =>
+  op('ResolveContextualFree', { freeVar: sym, context: ExpressionContext.ComponentHead })
+);
+
+EXPRESSIONS.add(SexpOpcodes.GetPath, ([, expr, path]) => {
+  let exprs: ExpressionCompileActions = [];
+
+  exprs.push(op('Expr', expr));
 
   for (let i = 0; i < path.length; i++) {
-    expr.push(op(Op.GetProperty, path[i]));
+    exprs.push(op(Op.GetProperty, path[i]));
   }
 
-  return expr;
-}
+  return exprs;
+});
 
 EXPRESSIONS.add(SexpOpcodes.Undefined, () => PushPrimitiveReference(undefined));
 EXPRESSIONS.add(SexpOpcodes.HasBlock, ([, block]) => {

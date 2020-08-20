@@ -153,7 +153,7 @@ export default class Printer {
     return unreachable(literal, 'Literal');
   }
 
-  TopLevelStatement(statement: TopLevelStatement) {
+  TopLevelStatement(statement: TopLevelStatement | Template | AttrNode) {
     switch (statement.type) {
       case 'MustacheStatement':
         return this.MustacheStatement(statement);

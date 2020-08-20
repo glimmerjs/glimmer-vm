@@ -6,6 +6,7 @@ import {
   CheckInterface,
   CheckProgramSymbolTable,
 } from '@glimmer/debug';
+import { DEBUG } from '@glimmer/env';
 import {
   Bounds,
   CompilableTemplate,
@@ -18,47 +19,46 @@ import {
   ElementOperations,
   InternalComponentManager,
   Maybe,
+  ModifierManager,
   Op,
   ProgramSymbolTable,
   Recast,
   ScopeSlot,
   VMArguments,
+  WithCreateInstance,
   WithDynamicLayout,
-  WithStaticLayout,
   WithDynamicTagName,
   WithElementHook,
+  WithStaticLayout,
   WithUpdateHook,
-  WithCreateInstance,
-  ModifierManager,
 } from '@glimmer/interfaces';
-import { Reference, valueForRef, isConstRef } from '@glimmer/reference';
-
+import { isConstRef, Reference, valueForRef } from '@glimmer/reference';
 import {
   assert,
-  dict,
-  expect,
-  Option,
-  unreachable,
-  symbol,
-  unwrapTemplate,
-  EMPTY_ARRAY,
   decodeHandle,
+  dict,
+  EMPTY_STRING_ARRAY,
+  expect,
   isErrHandle,
+  Option,
+  symbol,
+  unreachable,
+  unwrapTemplate,
 } from '@glimmer/util';
 import { $t0, $t1, $v0 } from '@glimmer/vm';
 import {
   Capability,
   capabilityFlagsFrom,
-  managerHasCapability,
   hasCapability,
+  managerHasCapability,
 } from '../../capabilities';
 import {
   CurriedComponentDefinition,
   isCurriedComponentDefinition,
   resolveCurriedComponentDefinition,
 } from '../../component/curried-component';
-import { resolveComponent } from '../../component/resolve';
 import { hasStaticLayout } from '../../component/interfaces';
+import { resolveComponent } from '../../component/resolve';
 import { APPEND_OPCODES, UpdatingOpcode } from '../../opcodes';
 import createClassListRef from '../../references/class-list';
 import createCurryComponentRef from '../../references/curry-component';
@@ -76,7 +76,6 @@ import {
   CheckReference,
 } from './-debug-strip';
 import { UpdateDynamicAttributeOpcode } from './dom';
-import { DEBUG } from '@glimmer/env';
 
 /**
  * The VM creates a new ComponentInstance data structure for every component
@@ -183,7 +182,7 @@ APPEND_OPCODES.add(Op.ResolveDynamicComponent, (vm, { op1: _meta }) => {
   stack.pushJs(definition);
 });
 
-APPEND_OPCODES.add(Op.PushDynamicComponentInstance, (vm) => {
+APPEND_OPCODES.add(Op.PushDynamicComponentInstance, vm => {
   let { stack } = vm;
   let definition = stack.pop<ComponentDefinition>();
 
@@ -199,7 +198,7 @@ APPEND_OPCODES.add(Op.PushDynamicComponentInstance, (vm) => {
   stack.pushJs({ definition, capabilities, manager, state: null, handle: null, table: null });
 });
 
-APPEND_OPCODES.add(Op.PushCurriedComponent, (vm) => {
+APPEND_OPCODES.add(Op.PushCurriedComponent, vm => {
   let stack = vm.stack;
 
   let component = valueForRef(check(stack.popJs(), CheckReference)) as Maybe<Dict>;
@@ -220,19 +219,20 @@ APPEND_OPCODES.add(Op.PushArgs, (vm, { op1: _names, op2: _blockNames, op3: flags
 
   let positionalCount = flags >> 4;
   let atNames = flags & 0b1000;
-  let blockNames = flags & 0b0111 ? vm[CONSTANTS].getArray<string>(_blockNames) : EMPTY_ARRAY;
+  let blockNames =
+    flags & 0b0111 ? vm[CONSTANTS].getArray<string>(_blockNames) : EMPTY_STRING_ARRAY;
 
   vm[ARGS].setup(stack, names, blockNames, positionalCount, !!atNames);
   stack.pushJs(vm[ARGS]);
 });
 
-APPEND_OPCODES.add(Op.PushEmptyArgs, (vm) => {
+APPEND_OPCODES.add(Op.PushEmptyArgs, vm => {
   let { stack } = vm;
 
   stack.pushJs(vm[ARGS].empty(stack));
 });
 
-APPEND_OPCODES.add(Op.CaptureArgs, (vm) => {
+APPEND_OPCODES.add(Op.CaptureArgs, vm => {
   let stack = vm.stack;
 
   let args = check(stack.popJs(), CheckInstanceof(VMArgumentsImpl));
@@ -372,7 +372,7 @@ APPEND_OPCODES.add(Op.BeginComponentTransaction, (vm, { op1: _state }) => {
   vm.elements().pushSimpleBlock();
 });
 
-APPEND_OPCODES.add(Op.PutComponentOperations, (vm) => {
+APPEND_OPCODES.add(Op.PutComponentOperations, vm => {
   vm.loadValue($t0, new ComponentElementOperations());
 });
 
@@ -690,7 +690,7 @@ APPEND_OPCODES.add(Op.DidRenderLayout, (vm, { op1: _state }) => {
   vm.updateWith(new DidUpdateLayoutOpcode(manager, state, bounds));
 });
 
-APPEND_OPCODES.add(Op.CommitComponentTransaction, (vm) => {
+APPEND_OPCODES.add(Op.CommitComponentTransaction, vm => {
   vm.commitCacheGroup();
 });
 

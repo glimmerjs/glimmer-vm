@@ -65,7 +65,7 @@ export abstract class HandlebarsNodeVisitors extends Parser {
 
     if (
       this.tokenizer.state !== TokenizerState.data &&
-      this.tokenizer['state'] !== TokenizerState.beforeData
+      this.tokenizer.state !== TokenizerState.beforeData
     ) {
       throw new SyntaxError(
         'A block may only be used inside an HTML element or another block.',
@@ -407,7 +407,7 @@ function acceptCallNodes(
 ): { path: AST.PathExpression; params: AST.Expression[]; hash: AST.Hash } {
   let path = compiler.PathExpression(node.path);
 
-  let params = node.params ? node.params.map((e) => compiler.acceptNode<AST.Expression>(e)) : [];
+  let params = node.params ? node.params.map(e => compiler.acceptNode<AST.Expression>(e)) : [];
   let hash = node.hash ? compiler.Hash(node.hash) : b.hash();
 
   return { path, params, hash };

@@ -47,7 +47,7 @@ export interface Position {
 }
 
 export interface CommonProgram extends BaseNode {
-  body: TopLevelStatement[];
+  body: Statement[];
   blockParams: string[];
   chained?: boolean;
 }
@@ -80,7 +80,7 @@ export type Statement =
   | TextNode
   | ElementNode;
 
-export type TopLevelStatement = Statement | Template | Block | AttrNode;
+export type TopLevelStatement = Statement | Block;
 
 export interface Call extends BaseNode {
   name?: Expression;
@@ -148,7 +148,7 @@ export interface ElementNode extends BaseNode {
   blockParams: string[];
   modifiers: ElementModifierStatement[];
   comments: MustacheCommentStatement[];
-  children: TopLevelStatement[];
+  children: Statement[];
 
   symbols?: BlockSymbols;
 }

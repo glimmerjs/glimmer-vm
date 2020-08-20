@@ -1,24 +1,24 @@
 import {
+  CompileTimeConstants,
+  CompileTimeResolver,
+  ContainingMetadata,
   Encoder,
+  ExpressionCompileActions,
+  ExpressionContext,
   HighLevelResolutionOp,
   HighLevelResolutionOpcode,
-  CompileTimeResolver,
-  ResolveHandle,
-  Option,
-  ExpressionCompileActions,
   IfResolvedOp,
-  WireFormat,
   Op,
-  CompileTimeConstants,
-  ContainingMetadata,
+  Option,
+  ResolveHandle,
   TemplateCompilationContext,
-  ExpressionContext,
+  WireFormat,
 } from '@glimmer/interfaces';
+import { emptyArray, exhausted } from '@glimmer/util';
+import { error, op } from '../opcode-builder/encoder';
 import { CompilePositional } from '../opcode-builder/helpers/shared';
-import { exhausted, EMPTY_ARRAY } from '@glimmer/util';
-import { op, error } from '../opcode-builder/encoder';
+import { Call, PushPrimitive } from '../opcode-builder/helpers/vm';
 import { strArray } from '../opcode-builder/operands';
-import { PushPrimitive, Call } from '../opcode-builder/helpers/vm';
 import { concatExpressions } from './concat';
 import { EXPRESSIONS } from './expressions';
 
@@ -92,6 +92,25 @@ export default function pushResolutionOp(
           break;
         }
 
+        // case ExpressionContext.ComponentHead: {
+        //   let resolver = context.syntax.program.resolverDelegate;
+        //   let name = context.meta.upvars![freeVar];
+
+        //   let resolvedComponent = resolver.lookupComponent(name, context.meta.referrer);
+        //   let expressions: ExpressionCompileActions;
+
+        //   if (resolvedHelper) {
+        //     expressions = Call({ handle: resolvedHelper, params: null, hash: null });
+        //   } else {
+        //     // in classic mode, this is always a this-fallback
+        //     expressions = [op(Op.GetVariable, 0), op(Op.GetProperty, name)];
+        //   }
+
+        //   concatExpressions(encoder, context, expressions, constants);
+
+        //   break;
+        // }
+
         default:
           throw new Error(
             `unimplemented: Can't evaluate expression in context ${expressionContext}`
@@ -131,7 +150,7 @@ export function compileSimpleArgs(
 
   if (atNames) flags |= 0b1000;
 
-  let names: string[] = EMPTY_ARRAY;
+  let names = emptyArray<string>();
 
   if (hash) {
     names = hash[0];
@@ -141,7 +160,7 @@ export function compileSimpleArgs(
     }
   }
 
-  out.push(op(Op.PushArgs, strArray(names), strArray(EMPTY_ARRAY), flags));
+  out.push(op(Op.PushArgs, strArray(names), strArray(EMPTY_STRING_ARRAY), flags));
 
   return out;
 }

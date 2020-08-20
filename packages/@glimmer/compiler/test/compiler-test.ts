@@ -1,23 +1,23 @@
 /* eslint-disable qunit/no-test-expect-argument */
 
 import {
-  precompile,
-  WireFormatDebugger,
-  BuilderStatement,
-  ProgramSymbols,
-  buildStatements,
-  Builder,
-  s,
-  c,
-  NEWLINE,
-  unicode,
-} from '..';
-import {
-  SerializedTemplateWithLazyBlock,
   SerializedTemplate,
   SerializedTemplateBlock,
+  SerializedTemplateWithLazyBlock,
 } from '@glimmer/interfaces';
 import { assign, strip } from '@glimmer/util';
+import {
+  Builder,
+  BuilderStatement,
+  buildStatements,
+  c,
+  NEWLINE,
+  precompile,
+  ProgramSymbols,
+  s,
+  unicode,
+  WireFormatDebugger,
+} from '..';
 
 QUnit.module('@glimmer/compiler - compiling source to wire format');
 
@@ -31,7 +31,7 @@ function compile(content: string): SerializedTemplate<unknown> {
 }
 
 function test(desc: string, template: string, ...expectedStatements: BuilderStatement[]) {
-  QUnit.test(desc, (assert) => {
+  QUnit.test(desc, assert => {
     let actual = compile(template);
 
     let symbols = new ProgramSymbols();
@@ -172,7 +172,7 @@ test(
 );
 
 let voidElements = 'area base br embed hr img input keygen link meta param source track wbr';
-voidElements.split(' ').forEach((tagName) => {
+voidElements.split(' ').forEach(tagName => {
   test(`void ${tagName}`, `<${tagName}>`, [`<${tagName}>`, []]);
 });
 

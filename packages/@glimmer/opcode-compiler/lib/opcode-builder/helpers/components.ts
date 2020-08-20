@@ -1,48 +1,46 @@
 import {
-  ContainingMetadata,
-  Option,
   CompilableBlock,
-  LayoutWithContext,
-  WireFormat,
-  Op,
-  MachineOp,
-  CompileActions,
-  StatementCompileActions,
-  NestedStatementCompileActions,
-  ExpressionCompileActions,
-  Unhandled,
-  NamedBlocks,
-  ComponentCapabilities,
   CompilableProgram,
+  CompileActions,
   CompileTimeComponent,
+  ComponentCapabilities,
+  ContainingMetadata,
+  ExpressionCompileActions,
+  LayoutWithContext,
+  MachineOp,
+  NamedBlocks,
+  NestedStatementCompileActions,
+  Op,
+  Option,
+  StatementCompileActions,
+  Unhandled,
+  WireFormat,
 } from '@glimmer/interfaces';
-
-import { label, templateMeta, other } from '../operands';
+import { $s0, $s1, $sp, $v0, SavedRegister } from '@glimmer/vm';
+import { compilableBlock } from '../../compilable-template';
 import { resolveLayoutForTag } from '../../resolver';
-import { $s0, $sp, $s1, $v0, SavedRegister } from '@glimmer/vm';
-import { meta, CompileArgs } from './shared';
+import { NONE, UNHANDLED } from '../../syntax/concat';
+import { MacroContext } from '../../syntax/macros';
+import { NamedBlocksImpl } from '../../utils';
+import { MINIMAL_CAPABILITIES } from '../delegate';
+import { op } from '../encoder';
+import { label, other, templateMeta } from '../operands';
 import {
-  YieldBlock,
-  PushSymbolTable,
   InvokeStaticBlock,
-  PushYieldableBlock,
   PushCompilable,
+  PushSymbolTable,
+  PushYieldableBlock,
+  YieldBlock,
 } from './blocks';
 import { Replayable } from './conditional';
-import { EMPTY_ARRAY } from '@glimmer/util';
-import { op } from '../encoder';
-import { UNHANDLED, NONE } from '../../syntax/concat';
-import { compilableBlock } from '../../compilable-template';
-import { NamedBlocksImpl } from '../../utils';
-import { MacroContext } from '../../syntax/macros';
-import { MINIMAL_CAPABILITIES } from '../delegate';
+import { CompileArgs, meta } from './shared';
 
 export const ATTRS_BLOCK = '&attrs';
 
 export type Block = () => CompileActions;
 
 interface AnyComponent {
-  attrs: Option<CompilableBlock>;
+  elementBlock: Option<CompilableBlock>;
   params: Option<WireFormat.Core.Params>;
   hash: WireFormat.Core.Hash;
   blocks: NamedBlocks;
@@ -105,7 +103,7 @@ export function StaticComponentHelper(
         InvokeStaticComponent({
           capabilities,
           layout: compilable,
-          attrs: null,
+          elementBlock: null,
           params: null,
           hash,
           blocks: new NamedBlocksImpl({ default: template }),
@@ -122,7 +120,7 @@ export function StaticComponentHelper(
 export function InvokeStaticComponent({
   capabilities,
   layout,
-  attrs,
+  elementBlock,
   params,
   hash,
   blocks,
@@ -134,7 +132,7 @@ export function InvokeStaticComponent({
   if (bailOut) {
     return InvokeComponent({
       capabilities,
-      attrs,
+      elementBlock,
       params,
       hash,
       atNames: true,
@@ -185,7 +183,7 @@ export function InvokeStaticComponent({
         let callerBlock: Option<CompilableBlock>;
 
         if (symbol === ATTRS_BLOCK) {
-          callerBlock = attrs;
+          callerBlock = elementBlock;
         } else {
           callerBlock = blocks.get(symbol.slice(1));
         }
@@ -250,7 +248,7 @@ export function InvokeStaticComponent({
 
 export function InvokeDynamicComponent(
   meta: ContainingMetadata,
-  { definition, attrs, params, hash, atNames, blocks }: DynamicComponent
+  { definition, elementBlock, params, hash, atNames, blocks }: DynamicComponent
 ): StatementCompileActions {
   return Replayable({
     args: () => {
@@ -267,7 +265,7 @@ export function InvokeDynamicComponent(
         op(Op.PushDynamicComponentInstance),
         InvokeComponent({
           capabilities: true,
-          attrs,
+          elementBlock,
           params,
           hash,
           atNames,
@@ -295,7 +293,7 @@ export function WrappedComponent<R>(
     op(Op.PutComponentOperations),
     op(Op.OpenDynamicElement),
     op(Op.DidCreateElement, $s0),
-    YieldBlock(attrsBlockNumber, EMPTY_ARRAY),
+    YieldBlock(attrsBlockNumber, null),
     op(Op.FlushElement),
     op('Label', 'BODY'),
     InvokeStaticBlock(blockForLayout(layout)),
@@ -324,7 +322,7 @@ export function StaticComponent(
       InvokeStaticComponent({
         capabilities: capabilities || MINIMAL_CAPABILITIES,
         layout: compilable,
-        attrs: null,
+        elementBlock: null,
         params,
         hash,
         blocks,
@@ -335,7 +333,7 @@ export function StaticComponent(
       op(Op.PushComponentDefinition, handle),
       InvokeComponent({
         capabilities: capabilities || MINIMAL_CAPABILITIES,
-        attrs: null,
+        elementBlock: null,
         params,
         hash,
         atNames: true,
@@ -347,7 +345,7 @@ export function StaticComponent(
 
 export function InvokeComponent({
   capabilities,
-  attrs,
+  elementBlock,
   params,
   hash,
   atNames,
@@ -358,7 +356,7 @@ export function InvokeComponent({
   let bindableAtNames =
     capabilities === true || capabilities.prepareArgs || !!(hash && hash[0].length !== 0);
 
-  let blocks = namedBlocks.with('attrs', attrs);
+  let blocks = namedBlocks.with('attrs', elementBlock);
 
   return [
     op(Op.Fetch, $s0),
