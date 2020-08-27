@@ -610,6 +610,24 @@ test('disallowed mustaches in the tagName space', function(assert) {
   }, /Cannot use mustaches in an elements tagname: `{{bar` at L1:C6/);
 });
 
+test('disallowed mustaches in closing tag', function(assert) {
+  assert.throws(() => {
+    parse('\nbefore <div></ {{some-modifier}} div>');
+  }, new Error("Cannot use mustaches in an element's closing tag: `{{some-modifier` at L2:C15"));
+
+  assert.throws(() => {
+    parse('\nbefore <div><span></ {{some-modifier}} span></div>');
+  }, new Error("Cannot use mustaches in an element's closing tag: `{{some-modifier` at L2:C21"));
+
+  assert.throws(() => {
+    parse('\nbefore <div></div {{some-modifier}}>');
+  }, new Error("Cannot use mustaches in an element's closing tag: `{{some-modifier` at L2:C18"));
+
+  assert.throws(() => {
+    parse('\nbefore <div><span></span {{some-modifier}} ></div>');
+  }, new Error("Cannot use mustaches in an element's closing tag: `{{some-modifier` at L2:C25"));
+});
+
 test('mustache immediately followed by self closing tag does not error', function() {
   let ast = parse('<FooBar data-foo={{blah}}/>');
   let element = b.element('FooBar/', ['attrs', ['data-foo', b.mustache('blah')]]);
