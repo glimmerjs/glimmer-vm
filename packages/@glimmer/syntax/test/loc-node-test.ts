@@ -72,6 +72,25 @@ test('blocks', function() {
   locEqual(nestedInverse as AST.Node, 5, 16, 7, 2);
 });
 
+test('block chains', function() {
+  let ast = parse(`
+  {{#if this.a}}
+  {{else if this.b}}
+  {{else}}
+      {{this.try.select.me}}
+  {{/if}}
+  `);
+  let [, block] = ast.body as [any, AST.BlockStatement];
+  let [inverseBlockStatement] = (block.inverse as AST.Block).body as [AST.BlockStatement];
+  let secondInverse = inverseBlockStatement.inverse as AST.Block;
+  locEqual(block.program, 2, 16, 3, 2);
+  locEqual(inverseBlockStatement, 3, 2, 6, 2);
+  locEqual(secondInverse, 4, 10, 6, 2);
+
+  // not ok, correct positions may be aligned, but in general, line numbers should match
+  locEqual(block.inverse, 3, 2, 6, 9);
+});
+
 test('mustache', function() {
   let ast = parse(`
     {{foo}}
