@@ -1,3 +1,14 @@
+## v0.59.1 (2020-09-02)
+
+#### :bug: Bug Fix
+* `@glimmer/runtime`
+  * [#1155](https://github.com/glimmerjs/glimmer-vm/pull/1155) Ensure `protocolForUrl` works in `fastboot@3.1.0` environment ([@rwjblue](https://github.com/rwjblue))
+
+#### Committers: 1
+- Robert Jackson ([@rwjblue](https://github.com/rwjblue))
+
+
+
 ## v0.59.0 (2020-08-22)
 
 #### :boom: Breaking Change
