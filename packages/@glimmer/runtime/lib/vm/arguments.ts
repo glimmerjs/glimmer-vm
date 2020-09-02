@@ -23,7 +23,7 @@ import {
   UNDEFINED_REFERENCE,
   valueForRef,
 } from '@glimmer/reference';
-import { dict, emptyArray, EMPTY_NUMBER_ARRAY, EMPTY_STRING_ARRAY } from '@glimmer/util';
+import { dict, emptyArray, EMPTY_STRING_ARRAY } from '@glimmer/util';
 import { CONSTANT_TAG, Tag } from '@glimmer/validator';
 import { $sp } from '@glimmer/vm';
 import { CheckCompilableBlock, CheckReference, CheckScope } from '../compiled/opcodes/-debug-strip';
@@ -362,10 +362,12 @@ function toSymbolName(name: string): string {
   return `&${name}`;
 }
 
+const EMPTY_BLOCK_VALUES = emptyArray<BlockValue>();
+
 export class BlockArgumentsImpl implements BlockArguments {
   private stack!: EvaluationStack;
-  private internalValues: Option<BlockValue[]> = null;
-  private _symbolNames: Option<string[]> = null;
+  private internalValues: Option<readonly BlockValue[]> = null;
+  private _symbolNames: Option<readonly string[]> = null;
 
   public internalTag: Option<Tag> = null;
   public names: readonly string[] = EMPTY_STRING_ARRAY;
@@ -381,7 +383,7 @@ export class BlockArgumentsImpl implements BlockArguments {
     this._symbolNames = null;
 
     this.internalTag = CONSTANT_TAG;
-    this.internalValues = EMPTY_NUMBER_ARRAY;
+    this.internalValues = EMPTY_BLOCK_VALUES;
   }
 
   setup(stack: EvaluationStack, base: number, length: number, names: readonly string[]) {
@@ -393,7 +395,7 @@ export class BlockArgumentsImpl implements BlockArguments {
 
     if (length === 0) {
       this.internalTag = CONSTANT_TAG;
-      this.internalValues = EMPTY_NUMBER_ARRAY;
+      this.internalValues = EMPTY_BLOCK_VALUES;
     } else {
       this.internalTag = null;
       this.internalValues = null;

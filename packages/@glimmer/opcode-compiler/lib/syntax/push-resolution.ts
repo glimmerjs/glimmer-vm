@@ -14,7 +14,7 @@ import {
   TemplateCompilationContext,
   WireFormat,
 } from '@glimmer/interfaces';
-import { emptyArray, exhausted } from '@glimmer/util';
+import { emptyArray, EMPTY_STRING_ARRAY, exhausted } from '@glimmer/util';
 import { error, op } from '../opcode-builder/encoder';
 import { CompilePositional } from '../opcode-builder/helpers/shared';
 import { Call, PushPrimitive } from '../opcode-builder/helpers/vm';

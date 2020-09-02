@@ -181,7 +181,10 @@ export function cast(element: Element | SimpleElement): SimpleNodeUtils<SimpleEl
 // the cast will mandate that it's a browser element and return a
 // BrowserElementUtils corresponding to the check
 export function cast<S extends SugaryNodeCheck<BrowserElementTag>>(
-  node: BrowserNode | SimpleNode,
+  node: SimpleDocument | Document
+): SimpleNodeUtils<SimpleDocument>;
+export function cast<S extends SugaryNodeCheck<BrowserElementTag>>(
+  node: SimpleNode | BrowserNode,
   check: S
 ): BrowserElementUtils<NodeForSugaryCheck<S>, SimpleElement>;
 // Finally, if it's a more generic check, the cast will mandate that it's a

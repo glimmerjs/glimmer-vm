@@ -41,7 +41,7 @@ export interface NamedArguments {
 }
 
 export interface BlockArguments {
-  names: string[];
+  names: readonly string[];
   length: number;
   has(name: string): boolean;
   get(name: string): Option<ScopeBlock>;

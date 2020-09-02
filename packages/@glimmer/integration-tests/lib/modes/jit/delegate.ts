@@ -96,7 +96,7 @@ export class JitRenderDelegate implements RenderDelegate {
   private env: EnvironmentDelegate;
 
   constructor(options?: RenderDelegateOptions) {
-    this.doc = options?.doc ?? cast(document).simple;
+    this.doc = cast(options?.doc ?? document).simple;
     this.env = assign(options?.env ?? {}, BaseEnv);
     this.context = this.getContext();
   }
@@ -272,7 +272,7 @@ export class JitRenderDelegate implements RenderDelegate {
   }
 }
 
-function isBrowserTestDocument(doc: SimpleDocument | Document): boolean {
+function isBrowserTestDocument(doc: SimpleDocument | Document): doc is Document {
   if (!!((doc as any).getElementById && (doc as any).getElementById('qunit-fixture'))) {
     return true;
   } else {
