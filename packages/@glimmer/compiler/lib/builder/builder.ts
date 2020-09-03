@@ -176,7 +176,7 @@ export function buildStatements(
 ): WireFormat.Statement[] {
   let out: WireFormat.Statement[] = [];
 
-  statements.forEach(s => out.push(...buildStatement(normalizeStatement(s), symbols)));
+  statements.forEach((s) => out.push(...buildStatement(normalizeStatement(s), symbols)));
 
   return out;
 }
@@ -187,7 +187,7 @@ export function buildNormalizedStatements(
 ): WireFormat.Statement[] {
   let out: WireFormat.Statement[] = [];
 
-  statements.forEach(s => out.push(...buildStatement(s, symbols)));
+  statements.forEach((s) => out.push(...buildStatement(s, symbols)));
 
   return out;
 }
@@ -301,7 +301,7 @@ function buildElement(
   out.push([Op.FlushElement]);
 
   if (Array.isArray(block)) {
-    block.forEach(s => out.push(...buildStatement(s, symbols)));
+    block.forEach((s) => out.push(...buildStatement(s, symbols)));
   } else if (block === null) {
     // do nothing
   } else {
@@ -316,7 +316,7 @@ function buildElement(
 function hasSplat(attrs: Option<NormalizedAttrs>): boolean {
   if (attrs === null) return false;
 
-  return Object.keys(attrs).some(a => attrs[a] === HeadKind.Splat);
+  return Object.keys(attrs).some((a) => attrs[a] === HeadKind.Splat);
 }
 
 export function buildAngleInvocation(
@@ -352,7 +352,7 @@ export function buildElementParams(
   let keys: string[] = [];
   let values: WireFormat.Expression[] = [];
 
-  Object.keys(attrs).forEach(key => {
+  Object.keys(attrs).forEach((key) => {
     let value = attrs[key];
 
     if (value === HeadKind.Splat) {
@@ -603,7 +603,7 @@ export function buildParams(
 ): Option<WireFormat.Core.Params> {
   if (exprs === null || !isPresent(exprs)) return null;
 
-  return exprs.map(e =>
+  return exprs.map((e) =>
     buildExpression(e, ExpressionContext.Expression, symbols)
   ) as WireFormat.Core.ConcatParams;
 }
@@ -612,7 +612,7 @@ export function buildConcat(
   exprs: [NormalizedExpression, ...NormalizedExpression[]],
   symbols: Symbols
 ): WireFormat.Core.ConcatParams {
-  return exprs.map(e =>
+  return exprs.map((e) =>
     buildExpression(e, 'PossibleAmbiguous', symbols)
   ) as WireFormat.Core.ConcatParams;
 }
@@ -622,7 +622,7 @@ export function buildHash(exprs: Option<NormalizedHash>, symbols: Symbols): Wire
 
   let out: [string[], WireFormat.Expression[]] = [[], []];
 
-  Object.keys(exprs).forEach(key => {
+  Object.keys(exprs).forEach((key) => {
     out[0].push(key);
     out[1].push(buildExpression(exprs[key], ExpressionContext.Expression, symbols));
   });
@@ -638,7 +638,7 @@ export function buildBlocks(
   let keys: string[] = [];
   let values: WireFormat.SerializedInlineBlock[] = [];
 
-  Object.keys(blocks).forEach(name => {
+  Object.keys(blocks).forEach((name) => {
     keys.push(name);
 
     if (name === 'default') {

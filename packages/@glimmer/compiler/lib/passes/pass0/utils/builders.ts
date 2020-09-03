@@ -31,7 +31,7 @@ export function buildParams(
 
   return ctx
     .expr(pass1.Params, {
-      list: ctx.mapIntoExprs(list, expr => [ctx.visitExpr(expr, ExpressionContext.Expression)]),
+      list: ctx.mapIntoExprs(list, (expr) => [ctx.visitExpr(expr, ExpressionContext.Expression)]),
     })
     .offsets(offsets);
 }
@@ -43,7 +43,7 @@ export function buildHash(ctx: Context, hash: AST.Hash): pass1.Hash {
     return ctx.expr(pass1.Hash, { pairs: [] }).loc(hash);
   }
 
-  let mappedPairs = ctx.mapIntoExprs<pass1.HashPair, AST.HashPair>(pairs, pair => [
+  let mappedPairs = ctx.mapIntoExprs<pass1.HashPair, AST.HashPair>(pairs, (pair) => [
     ctx
       .expr(pass1.HashPair, {
         key: ctx.slice(pair.key).offsets(offsetsForHashKey(pair, ctx.source)),
@@ -73,7 +73,7 @@ export function buildPathWithContext(
 function buildPath(ctx: Context, head: pass1.Expr, tail: string[], node: AST.BaseNode): pass1.Expr {
   if (isPresent(tail)) {
     return ctx
-      .expr(pass1.Path, { head, tail: mapPresent(tail, e => ctx.slice(e).offsets(null)) })
+      .expr(pass1.Path, { head, tail: mapPresent(tail, (e) => ctx.slice(e).offsets(null)) })
       .loc(node);
   } else {
     return head;

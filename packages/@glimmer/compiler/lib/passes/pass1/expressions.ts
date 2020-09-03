@@ -36,7 +36,7 @@ class Pass1Expressions implements Pass1ExpressionsVisitor {
 
   Concat({ parts }: OpArgs<pass1.Concat>, ctx: Context): pass2.Op[] {
     return ctx.ops(
-      ctx.map([...parts].reverse(), part => ctx.visitExpr(part)),
+      ctx.map([...parts].reverse(), (part) => ctx.visitExpr(part)),
       ctx.op(pass2.Params, { entries: parts.length }),
       ctx.op(pass2.Concat)
     );
@@ -57,7 +57,7 @@ class Pass1Expressions implements Pass1ExpressionsVisitor {
   Params({ list }: OpArgs<pass1.Params>, ctx: Context): pass2.Op[] {
     if (list) {
       return ctx.ops(
-        ctx.map(list, expr => ctx.visitExpr(expr)),
+        ctx.map(list, (expr) => ctx.visitExpr(expr)),
         ctx.op(pass2.Params, { entries: list.length })
       );
     } else {
@@ -71,7 +71,7 @@ class Pass1Expressions implements Pass1ExpressionsVisitor {
     }
 
     return ctx.ops(
-      ctx.map(pairs, pair => ctx.visitExpr(pair)),
+      ctx.map(pairs, (pair) => ctx.visitExpr(pair)),
       ctx.op(pass2.Hash, { entries: pairs.length })
     );
   }

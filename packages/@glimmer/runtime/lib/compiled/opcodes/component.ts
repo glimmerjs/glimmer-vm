@@ -182,7 +182,7 @@ APPEND_OPCODES.add(Op.ResolveDynamicComponent, (vm, { op1: _meta }) => {
   stack.pushJs(definition);
 });
 
-APPEND_OPCODES.add(Op.PushDynamicComponentInstance, vm => {
+APPEND_OPCODES.add(Op.PushDynamicComponentInstance, (vm) => {
   let { stack } = vm;
   let definition = stack.pop<ComponentDefinition>();
 
@@ -198,7 +198,7 @@ APPEND_OPCODES.add(Op.PushDynamicComponentInstance, vm => {
   stack.pushJs({ definition, capabilities, manager, state: null, handle: null, table: null });
 });
 
-APPEND_OPCODES.add(Op.PushCurriedComponent, vm => {
+APPEND_OPCODES.add(Op.PushCurriedComponent, (vm) => {
   let stack = vm.stack;
 
   let component = valueForRef(check(stack.popJs(), CheckReference)) as Maybe<Dict>;
@@ -226,13 +226,13 @@ APPEND_OPCODES.add(Op.PushArgs, (vm, { op1: _names, op2: _blockNames, op3: flags
   stack.pushJs(vm[ARGS]);
 });
 
-APPEND_OPCODES.add(Op.PushEmptyArgs, vm => {
+APPEND_OPCODES.add(Op.PushEmptyArgs, (vm) => {
   let { stack } = vm;
 
   stack.pushJs(vm[ARGS].empty(stack));
 });
 
-APPEND_OPCODES.add(Op.CaptureArgs, vm => {
+APPEND_OPCODES.add(Op.CaptureArgs, (vm) => {
   let stack = vm.stack;
 
   let args = check(stack.popJs(), CheckInstanceof(VMArgumentsImpl));
@@ -372,7 +372,7 @@ APPEND_OPCODES.add(Op.BeginComponentTransaction, (vm, { op1: _state }) => {
   vm.elements().pushSimpleBlock();
 });
 
-APPEND_OPCODES.add(Op.PutComponentOperations, vm => {
+APPEND_OPCODES.add(Op.PutComponentOperations, (vm) => {
   vm.loadValue($t0, new ComponentElementOperations());
 });
 
@@ -690,7 +690,7 @@ APPEND_OPCODES.add(Op.DidRenderLayout, (vm, { op1: _state }) => {
   vm.updateWith(new DidUpdateLayoutOpcode(manager, state, bounds));
 });
 
-APPEND_OPCODES.add(Op.CommitComponentTransaction, vm => {
+APPEND_OPCODES.add(Op.CommitComponentTransaction, (vm) => {
   vm.commitCacheGroup();
 });
 

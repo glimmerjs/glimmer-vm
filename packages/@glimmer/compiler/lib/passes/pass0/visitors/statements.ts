@@ -60,19 +60,19 @@ class Pass0Statements implements StatementVisitor {
               symbols: child,
             })
             .loc(element),
-          ctx.mapIntoStatements(element.children, stmt => ctx.visitStmt(stmt)),
+          ctx.mapIntoStatements(element.children, (stmt) => ctx.visitStmt(stmt)),
           ctx.op(pass1.CloseNamedBlock).loc(element)
         );
       } else {
         return ctx.ops(
           openElementOp(ctx, classify),
-          ctx.mapIntoStatements(attributes(element.attributes), statement =>
+          ctx.mapIntoStatements(attributes(element.attributes), (statement) =>
             attr(ctx, statement, hasComponentFeatures, element)
           ),
-          ctx.mapIntoStatements(element.modifiers, statement => modifier(ctx, statement)),
+          ctx.mapIntoStatements(element.modifiers, (statement) => modifier(ctx, statement)),
           ctx.ops(
             ctx.op(pass1.FlushElement, { symbols: child }).loc(element),
-            ctx.mapIntoStatements(element.children, stmt => ctx.visitStmt(stmt)),
+            ctx.mapIntoStatements(element.children, (stmt) => ctx.visitStmt(stmt)),
             ctx.op(pass1.CloseElementBlock).loc(element)
           ),
           closeElementOp(ctx, classify)
@@ -366,7 +366,7 @@ function isHTMLElement(element: AST.ElementNode): boolean {
     return false;
   }
 
-  return !attributes.find(attr => attr.name === '...attributes');
+  return !attributes.find((attr) => attr.name === '...attributes');
 }
 
 function attributes(attrs: AST.AttrNode[]): AST.AttrNode[] {

@@ -39,7 +39,7 @@ export const YIELD = keyword('yield', {
       params: astParams,
     }: { target: AST.StringLiteral; params: Option<PresentArray<AST.Expression>> }
   ): pass1.Statement {
-    let params = mapPresent(astParams, expr => ctx.visitExpr(expr));
+    let params = mapPresent(astParams, (expr) => ctx.visitExpr(expr));
     return ctx
       .op(pass1.Yield, {
         target: ctx.slice(target.value).loc(target),

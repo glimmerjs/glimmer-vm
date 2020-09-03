@@ -124,7 +124,7 @@ class Pass1Statements implements Pass1StatementsVisitor {
     return ctx.withBlock(symbols, () =>
       ctx.ops(
         ctx.op(pass2.StartBlock, { name, symbols }),
-        ctx.map(body, statement => ctx.visitStmt(statement)),
+        ctx.map(body, (statement) => ctx.visitStmt(statement)),
         ctx.op(pass2.EndBlock)
       )
     );

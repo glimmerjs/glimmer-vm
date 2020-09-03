@@ -32,7 +32,7 @@ export class NamedBlock extends Block {
     return [
       this.name.getString(),
       {
-        statements: this.statements.map(s => s.encode()),
+        statements: this.statements.map((s) => s.encode()),
         parameters: this.table.slots,
       },
     ];
@@ -56,7 +56,7 @@ export class TemplateBlock extends Block {
   encode(): SerializedTemplateBlock {
     return {
       symbols: this.table.symbols,
-      statements: this.statements.map(s => s.encode()),
+      statements: this.statements.map((s) => s.encode()),
       hasEval: this.table.hasEval,
       upvars: this.table.freeVariables,
     };
@@ -112,15 +112,15 @@ export class ComponentBlock extends Block {
     let { args } = this;
 
     let tag = this.tag.encode();
-    let attrs = this.attrs.map(a => a.encode());
-    let hash = isPresent(args) ? out.encodeHash(args, arg => arg.encodeHash()) : null;
+    let attrs = this.attrs.map((a) => a.encode());
+    let hash = isPresent(args) ? out.encodeHash(args, (arg) => arg.encodeHash()) : null;
 
     let blocks: wire.Core.Blocks;
 
     if (this.selfClosing) {
       blocks = null;
     } else if (isPresent(this.blocks)) {
-      blocks = out.encodeHash(this.blocks, block => {
+      blocks = out.encodeHash(this.blocks, (block) => {
         let [key, value] = block.encode();
         return [key.slice(1), value];
       });
@@ -133,7 +133,7 @@ export class ComponentBlock extends Block {
 
   encodeAsBlock(): SerializedInlineBlock {
     return {
-      statements: this.statements.map(s => s.encode()),
+      statements: this.statements.map((s) => s.encode()),
       parameters: this.table.slots,
     };
   }

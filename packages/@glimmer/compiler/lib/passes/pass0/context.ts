@@ -183,11 +183,11 @@ export class Context implements ImmutableContext {
   }
 
   visitBlock(name: pass1.SourceSlice, node: AST.Block): pass1.NamedBlock {
-    return this.withBlock(node, symbols =>
+    return this.withBlock(node, (symbols) =>
       this.op(pass1.NamedBlock, {
         name,
         symbols,
-        body: this.mapIntoStatements(node.body, stmt => this.visitStmt(stmt)),
+        body: this.mapIntoStatements(node.body, (stmt) => this.visitStmt(stmt)),
       }).loc(node)
     );
   }

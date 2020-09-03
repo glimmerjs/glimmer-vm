@@ -117,7 +117,7 @@ export type DeflatedAttrName = string | WellKnownAttrName;
 
 export class Params extends out(
   'Params',
-  ({ list }: { list: [Expr, ...Expr[]] }) => list.map(l => l.encode()) as wire.Core.ConcatParams
+  ({ list }: { list: [Expr, ...Expr[]] }) => list.map((l) => l.encode()) as wire.Core.ConcatParams
 ) {}
 export class Missing extends out('Missing', (): never => {
   throw new Error(`Internal Missing operation is not encodable`);
@@ -178,7 +178,7 @@ export class GetPath extends expr(
   (args: { head: Expr; tail: [SourceSlice, ...SourceSlice[]] }): wire.Expressions.GetPath => [
     op.GetPath,
     args.head.encode(),
-    args.tail.map(t => t.encode()) as [string, ...string[]],
+    args.tail.map((t) => t.encode()) as [string, ...string[]],
   ]
 ) {}
 
@@ -385,7 +385,7 @@ type AttrFor<N extends wire.Attribute[0]> = [
 ];
 
 function attr<N extends wire.Attribute[0]>(op: N): (args: AttrArgs) => AttrFor<N> {
-  return args => {
+  return (args) => {
     let name = deflateAttrName(args.name.encode());
     if (args.namespace) {
       return [op, name, args.value.encode(), args.namespace] as AttrFor<N>;

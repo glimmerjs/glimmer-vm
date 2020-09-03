@@ -9,7 +9,7 @@ import { assertIsSimpleHelper, isHelperInvocation, isSimplePath, isTrustingNode 
 import { EXPR_KEYWORDS } from '../keywords';
 
 export function concat(ctx: Context, concat: AST.ConcatStatement): pass1.Expr {
-  let exprs = ctx.mapIntoExprs(assertPresent([...concat.parts].reverse()), part => [
+  let exprs = ctx.mapIntoExprs(assertPresent([...concat.parts].reverse()), (part) => [
     attrValue(ctx, part).expr,
   ]);
   return ctx.expr(pass1.Concat, { parts: exprs }).loc(concat);

@@ -100,7 +100,7 @@ class ExpressionVisitors implements Visitors<pass2.ExprTable, void> {
     let head = ctx.popValue(GET);
     ctx.pushValue(out.GetPath, {
       head,
-      tail: mapPresent(tail, t => ctx.op(out.SourceSlice, t)),
+      tail: mapPresent(tail, (t) => ctx.op(out.SourceSlice, t)),
     });
   }
 

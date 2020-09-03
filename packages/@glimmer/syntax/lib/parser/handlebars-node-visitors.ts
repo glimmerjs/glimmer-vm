@@ -407,7 +407,7 @@ function acceptCallNodes(
 ): { path: AST.PathExpression; params: AST.Expression[]; hash: AST.Hash } {
   let path = compiler.PathExpression(node.path);
 
-  let params = node.params ? node.params.map(e => compiler.acceptNode<AST.Expression>(e)) : [];
+  let params = node.params ? node.params.map((e) => compiler.acceptNode<AST.Expression>(e)) : [];
   let hash = node.hash ? compiler.Hash(node.hash) : b.hash();
 
   return { path, params, hash };

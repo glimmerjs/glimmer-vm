@@ -273,9 +273,5 @@ export class JitRenderDelegate implements RenderDelegate {
 }
 
 function isBrowserTestDocument(doc: SimpleDocument | Document): doc is Document {
-  if (!!((doc as any).getElementById && (doc as any).getElementById('qunit-fixture'))) {
-    return true;
-  } else {
-    return false;
-  }
+  return !!((doc as any).getElementById && (doc as any).getElementById('qunit-fixture'));
 }

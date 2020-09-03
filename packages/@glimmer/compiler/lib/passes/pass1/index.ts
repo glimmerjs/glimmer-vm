@@ -13,7 +13,7 @@ export function visit(source: string, root: pass1.Template): pass2.Template {
   });
 
   let ctx = compilerContext.forOffsets(root.offsets);
-  let statements = ctx.map(root.args.body, stmt => {
+  let statements = ctx.map(root.args.body, (stmt) => {
     console.log(`pass1: visiting`, stmt);
     return ctx.visitStmt(stmt);
   });

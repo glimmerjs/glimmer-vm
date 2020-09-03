@@ -12,7 +12,7 @@ export function visit(source: string, root: AST.Template, options: CompileOption
   });
 
   let symbols = ctx.symbols.current as ProgramSymbolTable;
-  let body = ctx.mapIntoStatements(root.body, stmt => ctx.visitStmt(stmt));
+  let body = ctx.mapIntoStatements(root.body, (stmt) => ctx.visitStmt(stmt));
 
   console.groupCollapsed(`pass0: visiting`);
   console.log('symbols', symbols);

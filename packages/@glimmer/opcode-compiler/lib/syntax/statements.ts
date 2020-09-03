@@ -242,7 +242,6 @@ STATEMENTS.add(SexpOpcodes.InElement, ([, block, guid, destination, insertBefore
     args() {
       let actions: StatementCompileActions = [];
 
-      debugger;
       // this order is important
       actions.push(op('Expr', guid));
 

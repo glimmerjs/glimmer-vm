@@ -119,7 +119,7 @@ export class BlockInvocation extends op('BlockInvocation').args<{
 }>() {}
 
 export function getBlock(blocks: NamedBlock[], name: string): NamedBlock | undefined {
-  return blocks.find(block => block.args.name.getString() === name);
+  return blocks.find((block) => block.args.name.getString() === name);
 }
 
 export class NamedBlock extends op('Block').args<{
