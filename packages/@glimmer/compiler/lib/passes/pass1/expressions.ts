@@ -1,21 +1,32 @@
-import * as pass2 from '../pass2/ops';
 import * as pass1 from '../pass1/ops';
-import { OpArgs } from '../shared/op';
-import { Context, Pass1Visitor } from './context';
+import * as pass2 from '../pass2/ops';
 import { SourceOffsets } from '../shared/location';
+import { OpArgs } from '../shared/op';
+import { Context, MapVisitorsInterface } from './context';
 
-type Pass1ExpressionsVisitor = Pass1Visitor['expressions'];
+export type ExpressionVisitor = MapVisitorsInterface<pass1.Expr, pass2.Expr>;
 
-class Pass1Expressions implements Pass1ExpressionsVisitor {
-  GetArg({ name }: OpArgs<pass1.GetArg>, ctx: Context): pass2.Op {
+export class Pass1Expression implements ExpressionVisitor {
+  GetSloppy(ctx: Context, { name }: OpArgs<pass1.GetSloppy>): pass2.Expr {
+    if (ctx.table.has(name.getString())) {
+      let symbol = ctx.table.get(name.getString());
+      return ctx.op(pass2.GetSymbol, { symbol });
+    } else {
+      let symbol = ctx.table.allocateFree(name.getString());
+
+      return ctx.op(pass2.GetSloppy, { symbol });
+    }
+  }
+
+  GetArg(ctx: Context, { name }: OpArgs<pass1.GetArg>): pass2.Expr {
     return ctx.op(pass2.GetSymbol, { symbol: ctx.table.allocateNamed(name.getString()) });
   }
 
-  GetThis(_: OpArgs<pass1.GetThis>, ctx: Context): pass2.Op {
+  GetThis(ctx: Context, _: OpArgs<pass1.GetThis>): pass2.Expr {
     return ctx.op(pass2.GetSymbol, { symbol: 0 });
   }
 
-  GetVar({ name, context }: OpArgs<pass1.GetVar>, ctx: Context): pass2.Op {
+  GetVar(ctx: Context, { name, context }: OpArgs<pass1.GetVar>): pass2.Expr {
     if (ctx.table.has(name.getString())) {
       let symbol = ctx.table.get(name.getString());
       return ctx.op(pass2.GetSymbol, { symbol });
@@ -26,66 +37,39 @@ class Pass1Expressions implements Pass1ExpressionsVisitor {
     }
   }
 
-  HasBlock({ target }: OpArgs<pass1.HasBlock>, ctx: Context): pass2.Op {
+  HasBlock(ctx: Context, { target }: OpArgs<pass1.HasBlock>): pass2.Expr {
     return ctx.op(pass2.HasBlock, { symbol: ctx.table.allocateBlock(target.getString()) });
   }
 
-  HasBlockParams({ target }: OpArgs<pass1.HasBlockParams>, ctx: Context): pass2.Op {
+  HasBlockParams(ctx: Context, { target }: OpArgs<pass1.HasBlockParams>): pass2.Expr {
     return ctx.op(pass2.HasBlockParams, { symbol: ctx.table.allocateBlock(target.getString()) });
   }
 
-  Concat({ parts }: OpArgs<pass1.Concat>, ctx: Context): pass2.Op[] {
-    return ctx.ops(
-      ctx.map([...parts].reverse(), (part) => ctx.visitExpr(part)),
-      ctx.op(pass2.Params, { entries: parts.length }),
-      ctx.op(pass2.Concat)
-    );
+  Concat(ctx: Context, { parts }: OpArgs<pass1.Concat>): pass2.Expr {
+    let list = ctx.map(parts, (part) => ctx.visitExpr(part));
+    return ctx.op(pass2.Concat, { parts: ctx.op(pass2.Positional, { list }) });
   }
 
-  Path({ head, tail }: OpArgs<pass1.Path>, ctx: Context): pass2.Op[] {
-    let headOps = ctx.visitExpr(head);
-
-    // let tailParts = tail.map(slice => slice.getString());
+  Path(ctx: Context, { head, tail }: OpArgs<pass1.Path>): pass2.Expr {
+    let mappedHead = ctx.visitExpr(head);
 
     if (tail.length === 0) {
-      return headOps;
+      return mappedHead;
     } else {
-      return ctx.ops(headOps, ctx.unlocatedOp(pass2.GetPath, tail).offsets(range(tail)));
+      // TODO Move the source location work to pass0
+      let mappedTail = ctx.unlocatedOp(pass2.Tail, { members: tail }).offsets(range(tail));
+      return ctx.op(pass2.GetPath, { head: mappedHead, tail: mappedTail });
     }
   }
 
-  Params({ list }: OpArgs<pass1.Params>, ctx: Context): pass2.Op[] {
-    if (list) {
-      return ctx.ops(
-        ctx.map(list, (expr) => ctx.visitExpr(expr)),
-        ctx.op(pass2.Params, { entries: list.length })
-      );
-    } else {
-      return ctx.ops(ctx.op(pass2.EmptyParams));
-    }
+  Literal(ctx: Context, { value }: OpArgs<pass1.Literal>): pass2.Expr {
+    return ctx.op(pass2.Literal, { value });
   }
 
-  Hash({ pairs }: OpArgs<pass1.Hash>, ctx: Context): pass2.Op[] {
-    if (pairs.length === 0) {
-      return ctx.ops(ctx.op(pass2.EmptyHash));
-    }
-
-    return ctx.ops(
-      ctx.map(pairs, (pair) => ctx.visitExpr(pair)),
-      ctx.op(pass2.Hash, { entries: pairs.length })
-    );
-  }
-
-  HashPair({ key, value }: OpArgs<pass1.HashPair>, ctx: Context): pass2.Op[] {
-    return ctx.ops(ctx.visitExpr(value), ctx.op(pass2.HashPair, { key }));
-  }
-
-  Literal({ type, value }: OpArgs<pass1.Literal>, ctx: Context): pass2.Op {
-    return ctx.op(pass2.Literal, { type, value });
-  }
-
-  SubExpression({ head, params, hash }: OpArgs<pass1.SubExpression>, ctx: Context): pass2.Op[] {
-    return ctx.ops(ctx.helper.args({ params, hash }), ctx.visitExpr(head), ctx.op(pass2.Helper));
+  SubExpression(ctx: Context, { head, params, hash }: OpArgs<pass1.SubExpression>): pass2.Helper {
+    let mappedHead = ctx.visitExpr(head);
+    let args = ctx.visitArgs({ params, hash });
+    return ctx.op(pass2.Helper, { head: mappedHead, args });
   }
 }
 
@@ -104,4 +88,4 @@ function range(list: { offsets: SourceOffsets | null }[]): SourceOffsets | null 
   }
 }
 
-export const EXPRESSIONS = new Pass1Expressions();
+export const EXPRESSIONS = new Pass1Expression();

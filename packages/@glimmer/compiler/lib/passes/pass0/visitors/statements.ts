@@ -1,16 +1,19 @@
-import { ExpressionContext, Option } from '@glimmer/interfaces';
-import { AST, isLiteral, SourceLocation } from '@glimmer/syntax';
-import { assign, PresentArray } from '@glimmer/util';
+import { ExpressionContext, Option, PresentArray } from '@glimmer/interfaces';
+import { AST, GlimmerSyntaxError, isLiteral, SourceLocation } from '@glimmer/syntax';
+import { assign, ifPresent, isPresent } from '@glimmer/util';
 import * as pass1 from '../../pass1/ops';
 import { UnlocatedOp } from '../../shared/op';
-import { BlockSymbolTable, SymbolTable } from '../../shared/symbol-table';
-import { attr } from '../utils/attrs';
-import { buildArgs, buildHash, buildParams } from '../utils/builders';
-import { Context, StatementVisitor } from '../context';
-import { assertIsSimpleHelper, isHelperInvocation } from '../utils/is-node';
+import { SymbolTable } from '../../shared/symbol-table';
+import { Context, Pass1Stmt, VisitorInterface } from '../context';
 import { BLOCK_KEYWORDS, EXPR_KEYWORDS, STATEMENT_KEYWORDS } from '../keywords';
+import * as attrs from '../utils/attrs';
+import { buildArgs, buildHash, buildParams } from '../utils/builders';
+import { assertIsSimpleHelper, isHelperInvocation } from '../utils/is-node';
 
-class Pass0Statements implements StatementVisitor {
+// Whitespace is allowed around and between named blocks
+const WHITESPACE = /^\s+$/;
+
+export class Pass0Statements implements VisitorInterface<AST.Statement, Pass1Stmt> {
   PartialStatement(): never {
     throw new Error(`Handlebars partials are not supported in Glimmer`);
   }
@@ -42,47 +45,119 @@ class Pass0Statements implements StatementVisitor {
     }
   }
 
-  ElementNode(element: AST.ElementNode, ctx: Context): pass1.Statement[] {
-    return ctx.withBlock(element, (child, parent) => {
-      let classify = classifyElement(element, parent, child);
+  ElementNode(
+    element: AST.ElementNode,
+    ctx: Context
+  ): pass1.Statement | pass1.NamedBlock | pass1.TemporaryNamedBlock {
+    let parent = ctx.symbols.current;
+    let classified = classifyElement(element, parent);
 
-      // are `@args` allowed?
-      let hasComponentFeatures =
-        classify.is === 'component' ||
-        classify.is === 'has-dynamic-features' ||
-        classify.is === 'dynamic-tag';
+    if (classified.is === 'named-block') {
+      return ctx.withBlock(element, (child) => {
+        return ctx
+          .op(pass1.TemporaryNamedBlock, {
+            name: ctx.slice(element.tag.slice(1)).loc(element),
+            table: child,
+            body: ctx.mapIntoOps(element.children, (stmt) => ctx.visitStmt(stmt)),
+          })
+          .loc(element);
+      });
+    } else {
+      let elementDetails = classifiedElementDetails(ctx, classified);
 
-      if (classify.is === 'named-block') {
-        return ctx.ops(
-          ctx
-            .op(pass1.OpenNamedBlock, {
-              tag: ctx.slice(element.tag).loc(element),
-              symbols: child,
-            })
-            .loc(element),
-          ctx.mapIntoStatements(element.children, (stmt) => ctx.visitStmt(stmt)),
-          ctx.op(pass1.CloseNamedBlock).loc(element)
-        );
-      } else {
-        return ctx.ops(
-          openElementOp(ctx, classify),
-          ctx.mapIntoStatements(attributes(element.attributes), (statement) =>
-            attr(ctx, statement, hasComponentFeatures, element)
-          ),
-          ctx.mapIntoStatements(element.modifiers, (statement) => modifier(ctx, statement)),
-          ctx.ops(
-            ctx.op(pass1.FlushElement, { symbols: child }).loc(element),
-            ctx.mapIntoStatements(element.children, (stmt) => ctx.visitStmt(stmt)),
-            ctx.op(pass1.CloseElementBlock).loc(element)
-          ),
-          closeElementOp(ctx, classify)
+      let result = attributes(element.attributes, elementDetails.type === 'Component');
+
+      if (result.type === 'error') {
+        throw new GlimmerSyntaxError(
+          `${result.attr.name} is not a valid attribute name. @arguments are only allowed on components, but the tag for this element (\`${element.tag}\`) is a regular, non-component HTML element.`,
+          result.attr.loc
         );
       }
-    });
+
+      let { attrs: attrNodes, args: argNodes } = result;
+
+      let outAttrs: pass1.ElementParameter[] = attrNodes.map((a) =>
+        attrs.attr(ctx, a, elementDetails.hasComponentFeatures, element)
+      );
+      let outArgPairs = argNodes.map((a) =>
+        attrs.arg(ctx, a, elementDetails.hasComponentFeatures, element)
+      );
+      let outArgs = isPresent(outArgPairs)
+        ? ctx.op(pass1.NamedArguments, { pairs: outArgPairs }).offsets(outArgPairs)
+        : ctx.op(pass1.EmptyNamedArguments).offsets(null);
+
+      let modifiers: pass1.ElementParameter[] = ctx.mapIntoOps(element.modifiers, (statement) =>
+        modifier(ctx, statement)
+      );
+
+      let paramList = [...outAttrs, ...modifiers];
+      let elementParams = ifPresent(
+        paramList,
+        (list) => ctx.op(pass1.ElementParameters, { body: list }),
+        () => ctx.op(pass1.EmptyElementParameters)
+      ).offsets(null);
+
+      let classifiedBlock = ctx.withBlock(element, (child) => {
+        let body = ctx.mapIntoOps(element.children, (stmt) => ctx.visitAmbiguousStmt(stmt));
+        let block = ctx
+          .op(pass1.TemporaryNamedBlock, {
+            name: ctx.slice('default').offsets(null),
+            table: child,
+            body,
+          })
+          .loc(element);
+        return classifyBody(element, block);
+      });
+
+      if (classifiedBlock.type === 'named-blocks' && elementDetails.type !== 'Component') {
+        throw new GlimmerSyntaxError(
+          `Named blocks are only allowed inside a component`,
+          element.loc
+        );
+      }
+
+      switch (elementDetails.type) {
+        case 'SimpleElement': {
+          assertNoNamedBlocks(classifiedBlock, elementDetails, element.loc);
+          let { type, ...rest } = elementDetails;
+
+          return ctx
+            .op(
+              pass1.SimpleElement,
+              assign(rest, { params: elementParams, body: classifiedBlock.block })
+            )
+            .loc(element);
+        }
+        case 'ElementWithDynamicFeatures': {
+          assertNoNamedBlocks(classifiedBlock, elementDetails, element.loc);
+          let { type, ...rest } = elementDetails;
+
+          return ctx
+            .op(
+              pass1.ElementWithDynamicFeatures,
+              assign(rest, { params: elementParams, body: classifiedBlock.block })
+            )
+            .loc(element);
+        }
+
+        case 'Component': {
+          let { type, ...rest } = elementDetails;
+
+          let blocks =
+            classifiedBlock.type === 'named-block'
+              ? ctx.op(pass1.NamedBlocks, { blocks: [classifiedBlock.block] }).loc(element)
+              : ctx.op(pass1.NamedBlocks, { blocks: classifiedBlock.blocks }).loc(element);
+
+          return ctx
+            .op(pass1.Component, assign(rest, { params: elementParams, args: outArgs, blocks }))
+            .loc(element);
+        }
+      }
+    }
   }
 
-  MustacheCommentStatement(): [] {
-    return [];
+  MustacheCommentStatement(node: AST.MustacheCommentStatement, ctx: Context): pass1.Ignore {
+    return ctx.op(pass1.Ignore).loc(node);
   }
 
   MustacheStatement(mustache: AST.MustacheStatement, ctx: Context): pass1.Statement {
@@ -115,7 +190,7 @@ class Pass0Statements implements StatementVisitor {
     return ctx
       .append(
         ctx
-          .expr(
+          .op(
             pass1.SubExpression,
             assign(
               {
@@ -133,38 +208,81 @@ class Pass0Statements implements StatementVisitor {
   }
 
   TextNode(text: AST.TextNode, ctx: Context): pass1.Statement {
-    return ctx
-      .op(pass1.AppendTextNode, {
-        value: ctx.expr(pass1.Literal, { type: 'StringLiteral', value: text.chars }).loc(text),
-      })
-      .loc(text);
+    if (WHITESPACE.exec(text.chars)) {
+      return ctx.op(pass1.AppendWhitespace, { value: text.chars }).loc(text);
+    } else {
+      return ctx
+        .op(pass1.AppendTextNode, {
+          value: ctx.op(pass1.Literal, { value: text.chars }).loc(text),
+        })
+        .loc(text);
+    }
   }
 
   CommentStatement(comment: AST.CommentStatement, ctx: Context): pass1.Statement {
     return ctx
       .op(pass1.AppendComment, {
-        value: ctx.slice(comment.value).loc(comment),
+        value: comment.value,
       })
       .loc(comment);
   }
 }
 
-export const STATEMENTS: StatementVisitor = new Pass0Statements();
+export const STATEMENTS = new Pass0Statements();
 
-function modifier(ctx: Context, modifier: AST.ElementModifierStatement): pass1.Statement[] {
+type ClassifiedBody =
+  | {
+      type: 'named-block';
+      block: pass1.NamedBlock;
+    }
+  | {
+      type: 'named-blocks';
+      blocks: PresentArray<pass1.NamedBlock>;
+    };
+
+function assertNoNamedBlocks(
+  body: ClassifiedBody,
+  el: ClassifiedElementDetails,
+  loc: SourceLocation
+): asserts body is { type: 'named-block'; block: pass1.NamedBlock } {
+  if (body.type === 'named-blocks' && el.type !== 'Component') {
+    throw new GlimmerSyntaxError(`Named blocks are only allowed inside a component`, loc);
+  }
+}
+
+function classifyBody(element: AST.ElementNode, block: pass1.TemporaryNamedBlock): ClassifiedBody {
+  if (block.isValidNamedBlock()) {
+    return { type: 'named-block', block: block.asNamedBlock() };
+  } else if (block.hasValidNamedBlocks()) {
+    let children = block.asNamedBlocks();
+
+    switch (children.type) {
+      case 'error':
+        throw new GlimmerSyntaxError(children.desc, element.loc);
+      default:
+        return children;
+    }
+  } else {
+    // there were semantic children and named blocks
+    throw new GlimmerSyntaxError(
+      `a component cannot have semantic content and named blocks`,
+      element.loc
+    );
+  }
+}
+
+function modifier(ctx: Context, modifier: AST.ElementModifierStatement): pass1.Modifier {
   if (isHelperInvocation(modifier)) {
     assertIsSimpleHelper(modifier, modifier.loc, 'modifier');
   }
 
-  return ctx.ops(
-    ctx
-      .op(pass1.Modifier, {
-        head: ctx.visitExpr(modifier.path, ExpressionContext.ModifierHead),
-        params: buildParams(ctx, { path: modifier.path, params: modifier.params }),
-        hash: buildHash(ctx, modifier.hash),
-      })
-      .loc(modifier)
-  );
+  return ctx
+    .op(pass1.Modifier, {
+      head: ctx.visitExpr(modifier.path, ExpressionContext.ModifierHead),
+      params: buildParams(ctx, { path: modifier.path, params: modifier.params }),
+      hash: buildHash(ctx, modifier.hash),
+    })
+    .loc(modifier);
 }
 
 function appendExpr(
@@ -190,14 +308,12 @@ type ClassifiedElement =
   | {
       is: 'dynamic-tag';
       path: AST.PathExpression;
-      symbols: BlockSymbolTable;
       selfClosing: boolean;
       loc: SourceLocation;
     }
   | {
       is: 'component';
       tag: string;
-      symbols: BlockSymbolTable;
       selfClosing: boolean;
       loc: SourceLocation;
     }
@@ -205,11 +321,7 @@ type ClassifiedElement =
   | { is: 'named-block' }
   | { is: 'html'; tag: string; loc: SourceLocation };
 
-function classifyElement(
-  element: AST.ElementNode,
-  currentSymbols: SymbolTable,
-  childSymbols: BlockSymbolTable
-): ClassifiedElement {
+function classifyElement(element: AST.ElementNode, currentSymbols: SymbolTable): ClassifiedElement {
   let open = element.tag.charAt(0);
 
   let [maybeLocal, ...rest] = element.tag.split('.');
@@ -224,7 +336,6 @@ function classifyElement(
     return {
       is: 'dynamic-tag',
       selfClosing: element.selfClosing,
-      symbols: childSymbols,
       path: {
         type: 'PathExpression',
         data: true,
@@ -241,7 +352,6 @@ function classifyElement(
     return {
       is: 'dynamic-tag',
       selfClosing: element.selfClosing,
-      symbols: childSymbols,
       path: {
         type: 'PathExpression',
         data: false,
@@ -258,7 +368,6 @@ function classifyElement(
     return {
       is: 'dynamic-tag',
       selfClosing: element.selfClosing,
-      symbols: childSymbols,
       path: {
         type: 'PathExpression',
         data: false,
@@ -276,7 +385,6 @@ function classifyElement(
       is: 'component',
       tag: element.tag,
       loc: element.loc,
-      symbols: childSymbols,
       selfClosing: element.selfClosing,
     };
   }
@@ -290,67 +398,68 @@ function classifyElement(
   }
 }
 
-function openElementOp(
+type ClassifiedElementDetails =
+  | {
+      type: 'Component';
+      tag: pass1.Expr;
+      selfClosing: boolean;
+      hasComponentFeatures: true;
+    }
+  | {
+      type: 'ElementWithDynamicFeatures';
+      tag: pass1.SourceSlice;
+      hasComponentFeatures: true;
+    }
+  | {
+      type: 'SimpleElement';
+      tag: pass1.SourceSlice;
+      hasComponentFeatures: false;
+    };
+
+function classifiedElementDetails(
   ctx: Context,
   classified: Exclude<ClassifiedElement, { is: 'named-block' }>
-): pass1.Statement {
+): ClassifiedElementDetails {
   switch (classified.is) {
     case 'dynamic-tag': {
-      const head = classified.path;
-
-      return ctx
-        .op(pass1.OpenComponent, {
-          tag: ctx.visitExpr(head, ExpressionContext.ComponentHead),
-          symbols: classified.symbols,
-          selfClosing: classified.selfClosing,
-        })
-        .loc(head);
+      return {
+        type: 'Component',
+        tag: ctx.visitExpr(classified.path, ExpressionContext.ComponentHead),
+        selfClosing: classified.selfClosing,
+        hasComponentFeatures: true,
+      };
     }
 
     case 'component': {
-      return ctx
-        .op(pass1.OpenComponent, {
-          tag: ctx
-            .expr(pass1.GetVar, {
-              name: ctx.slice(ctx.customizeComponentName(classified.tag)).offsets(null),
-              context: ExpressionContext.ComponentHead,
-            })
-            .loc(classified),
-          symbols: classified.symbols,
-          selfClosing: classified.selfClosing,
-        })
-        .loc(classified);
+      return {
+        type: 'Component',
+        tag: ctx
+          .op(pass1.GetVar, {
+            name: ctx.slice(ctx.customizeComponentName(classified.tag)).offsets(null),
+            context: ExpressionContext.ComponentHead,
+          })
+          .loc(classified),
+        selfClosing: classified.selfClosing,
+        hasComponentFeatures: true,
+      };
     }
 
-    // TODO: Reject block params for both kinds of HTML elements
-    case 'has-dynamic-features':
-      return ctx
-        .op(pass1.OpenElementWithDynamicFeatures, {
-          tag: ctx.slice(classified.tag).loc(classified),
-        })
-        .loc(classified);
+    // TODO Reject block params for both kinds of HTML elements
+    case 'has-dynamic-features': {
+      return {
+        type: 'ElementWithDynamicFeatures',
+        tag: ctx.slice(classified.tag).loc(classified),
+        hasComponentFeatures: true,
+      };
+    }
 
-    case 'html':
-      return ctx
-        .op(pass1.OpenSimpleElement, {
-          tag: ctx.slice(classified.tag).loc(classified),
-        })
-        .loc(classified);
-  }
-}
-
-function closeElementOp(
-  ctx: Context,
-  classified: Exclude<ClassifiedElement, { is: 'named-block' }>
-): pass1.Statement {
-  switch (classified.is) {
-    case 'dynamic-tag':
-    case 'component':
-      return ctx.op(pass1.CloseComponent).loc(classified);
-
-    case 'has-dynamic-features':
-    case 'html':
-      return ctx.op(pass1.CloseElement).loc(classified);
+    case 'html': {
+      return {
+        type: 'SimpleElement',
+        tag: ctx.slice(classified.tag).loc(classified),
+        hasComponentFeatures: false,
+      };
+    }
   }
 }
 
@@ -369,23 +478,39 @@ function isHTMLElement(element: AST.ElementNode): boolean {
   return !attributes.find((attr) => attr.name === '...attributes');
 }
 
-function attributes(attrs: AST.AttrNode[]): AST.AttrNode[] {
-  let out = [];
+function attributes(
+  all: AST.AttrNode[],
+  isComponent: boolean
+):
+  | { type: 'success'; attrs: AST.AttrNode[]; args: AST.AttrNode[] }
+  | { type: 'error'; attr: AST.AttrNode } {
+  let attrs: AST.AttrNode[] = [];
+  let args: AST.AttrNode[] = [];
+
   let typeAttr: Option<AST.AttrNode> = null;
 
-  for (let attr of attrs) {
+  for (let attr of all) {
     if (attr.name === 'type') {
       typeAttr = attr;
+    } else if (attr.name[0] === '@') {
+      if (!isComponent) {
+        return {
+          type: 'error',
+          attr,
+        };
+      }
+
+      args.push(attr);
     } else {
-      out.push(attr);
+      attrs.push(attr);
     }
   }
 
   if (typeAttr) {
-    out.push(typeAttr);
+    attrs.push(typeAttr);
   }
 
-  return out;
+  return { type: 'success', attrs, args };
 }
 
 function mustacheContext(body: AST.Expression): ExpressionContext {

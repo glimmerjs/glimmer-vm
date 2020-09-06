@@ -30,7 +30,7 @@
     "qunit/no-global-module-test": "off",
     // disabled due to false positives
     "qunit/no-global-stop-start": "off",
-
+    "import/no-extraneous-dependencies": ["error"],
     "prettier/prettier": "error",
     "accessor-pairs": "error",
     "array-callback-return": "error",
@@ -186,6 +186,40 @@
     "@typescript-eslint/no-unused-vars": "error"
   },
   "overrides": [
+    {
+      "parserOptions": {
+        "project": "./tsconfig.json"
+      },
+      "files": ["packages/@glimmer/compiler/**/*.ts"],
+      "extends": [
+        "eslint:recommended",
+        "plugin:@typescript-eslint/recommended",
+        // "plugin:@typescript-eslint/recommended-requiring-type-checking",
+        "plugin:import/errors",
+        "plugin:import/typescript",
+        "plugin:qunit/recommended",
+        "plugin:qunit/two",
+        "plugin:node/recommended",
+        "prettier",
+        "prettier/@typescript-eslint"
+      ],
+      "rules": {
+        "prefer-const": ["off"],
+        "qunit/no-global-expect": ["off"],
+        "@typescript-eslint/unbound-method": [
+          "error",
+          {
+            "ignoreStatic": true
+          }
+        ],
+        "@typescript-eslint/ban-types": ["error", {
+          "extendDefaults": true,
+          "types": {
+            "object": false
+          }
+        }]
+      }
+    },
     {
       "files": ["**/*.d.ts"],
       "parserOptions": {

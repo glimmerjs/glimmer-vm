@@ -1,5 +1,5 @@
-import { AST, SyntaxError } from '@glimmer/syntax';
-import { PresentArray } from '@glimmer/util';
+import { AST, GlimmerSyntaxError } from '@glimmer/syntax';
+import { PresentArray } from '@glimmer/interfaces';
 
 export function isPath(node: AST.Node | AST.PathExpression): node is AST.PathExpression {
   return node.type === 'PathExpression';
@@ -60,7 +60,7 @@ export function assertIsSimpleHelper<N extends HasPath>(
   context: string
 ): asserts helper is SimpleHelper<N> {
   if (!isSimplePath(helper.path)) {
-    throw new SyntaxError(
+    throw new GlimmerSyntaxError(
       `\`${helper.path.original}\` is not a valid name for a ${context} on line ${loc.start.line}.`,
       helper.loc
     );
@@ -72,7 +72,9 @@ export function assertIsSimpleHelper<N extends HasPath>(
  * a "trusting" node. In the Handlebars AST, this is indicated by the `escaped` flag, which
  * is a bit of a double-negative, so we change the terminology here for clarity.
  */
-export function isTrustingNode(value: AST.MustacheStatement | AST.TextNode | AST.ConcatStatement) {
+export function isTrustingNode(
+  value: AST.MustacheStatement | AST.TextNode | AST.ConcatStatement
+): boolean {
   if (value.type === 'MustacheStatement') {
     return !value.escaped;
   } else {

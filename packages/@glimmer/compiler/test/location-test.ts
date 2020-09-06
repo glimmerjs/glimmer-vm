@@ -1,7 +1,10 @@
+/* eslint-disable qunit/no-global-module-test */
+// eslint-disable-next-line @typescript-eslint/unbound-method
+const test = QUnit.test;
+
 import { offsetToPosition, positionToOffset } from '..';
 import { Dict } from '@glimmer/interfaces';
-
-const test = QUnit.test;
+import { unwrap } from '@glimmer/util';
 
 const cases: Dict<[string, number | null][]> = {
   'hello world': [
@@ -60,7 +63,7 @@ Object.keys(cases).forEach((string) => {
     if (offset === null) continue;
 
     test(`${string} @ ${offset} -> ${line}:${column}`, (assert) => {
-      assert.deepEqual(offsetToPosition(string, offset!), { line, column });
+      assert.deepEqual(offsetToPosition(string, unwrap(offset)), { line, column });
     });
   }
 });
@@ -71,7 +74,7 @@ Object.keys(cases).forEach((string) => {
   for (let [span, offset] of cases[string]) {
     let [line, column] = span.split(':').map((i) => parseInt(i, 10));
 
-    test(`${string} @ ${line}:${column} -> ${offset}`, (assert) => {
+    test(`${string} @ ${line}:${column} -> ${String(offset)}`, (assert) => {
       assert.deepEqual(positionToOffset(string, { line, column }), offset === null ? null : offset);
     });
   }

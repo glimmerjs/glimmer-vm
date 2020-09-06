@@ -1,9 +1,19 @@
-import { Option } from '@glimmer/interfaces';
-
-export type PresentArray<T> = [T, ...T[]];
+import { Option, PresentArray } from '@glimmer/interfaces';
 
 export function isPresent<T>(list: T[]): list is PresentArray<T> {
   return list.length > 0;
+}
+
+export function ifPresent<T, U, V>(
+  list: T[],
+  ifPresent: (input: PresentArray<T>) => U,
+  otherwise: () => V
+): U | V {
+  if (isPresent(list)) {
+    return ifPresent(list);
+  } else {
+    return otherwise();
+  }
 }
 
 export function toPresentOption<T>(list: T[]): Option<PresentArray<T>> {

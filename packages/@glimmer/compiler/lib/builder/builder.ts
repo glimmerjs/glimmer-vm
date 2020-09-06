@@ -1,13 +1,13 @@
-import { Dict, ExpressionContext, Expressions, Option, WireFormat } from '@glimmer/interfaces';
 import {
-  assert,
-  assertNever,
-  dict,
-  exhausted,
-  isPresent,
+  Dict,
+  ExpressionContext,
+  Expressions,
+  GetContextualFreeOp,
+  Option,
   PresentArray,
-  values,
-} from '@glimmer/util';
+  WireFormat,
+} from '@glimmer/interfaces';
+import { assert, assertNever, dict, exhausted, isPresent, values } from '@glimmer/util';
 import { AttrNamespace, Namespace } from '@simple-dom/interface';
 import {
   Builder,
@@ -264,18 +264,18 @@ export function s(
   ...interpolated: unknown[]
 ): [Builder.Literal, string] {
   let result = arr.reduce(
-    (result, string, i) => result + `${string}${interpolated[i] ? interpolated[i] : ''}`,
+    (result, string, i) => result + `${string}${interpolated[i] ? String(interpolated[i]) : ''}`,
     ''
-  ) as string;
+  );
 
   return [Builder.Literal, result];
 }
 
 export function c(arr: TemplateStringsArray, ...interpolated: unknown[]): BuilderComment {
   let result = arr.reduce(
-    (result, string, i) => result + `${string}${interpolated[i] ? interpolated[i] : ''}`,
+    (result, string, i) => result + `${string}${interpolated[i] ? String(interpolated[i]) : ''}`,
     ''
-  ) as string;
+  );
 
   return [Builder.Comment, result];
 }
@@ -381,7 +381,7 @@ export function extractNamespace(name: string): Option<AttrNamespace> {
     return Namespace.XMLNS;
   }
 
-  let match = name.match(/^([^:]*):([^:]*)$/);
+  let match = /^([^:]*):([^:]*)$/.exec(name);
 
   if (match === null) {
     return null;
@@ -578,7 +578,7 @@ function getSymbolForVar(
   }
 }
 
-export function expressionContextOp(context: ExpressionContext) {
+export function expressionContextOp(context: ExpressionContext): GetContextualFreeOp {
   switch (context) {
     case ExpressionContext.AppendSingleId:
       return Op.GetFreeInAppendSingleId;

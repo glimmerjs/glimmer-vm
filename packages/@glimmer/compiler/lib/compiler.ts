@@ -6,6 +6,7 @@ import {
 } from '@glimmer/interfaces';
 import { LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
 import { preprocess, PreprocessOptions } from '@glimmer/syntax';
+import { GlimmerCompileOptions } from './passes/pass0/context';
 import { visit as pass0 } from './passes/pass0/index';
 import { visit as pass1 } from './passes/pass1/index';
 import { visit as pass2 } from './passes/pass2/index';
@@ -14,16 +15,26 @@ export interface TemplateIdFn {
   (src: string): Option<string>;
 }
 
-export interface PrecompileOptions extends CompileOptions, PreprocessOptions {
+export interface PrecompileOptions extends PreprocessOptions {
   id?: TemplateIdFn;
 }
 
-declare function require(id: string): any;
+declare function require(id: 'crypto'): Crypto;
+declare function require(id: string): unknown;
+
+interface Crypto {
+  createHash(
+    alg: 'sha1'
+  ): {
+    update(src: string, encoding: 'utf8'): void;
+    digest(encoding: 'base64'): string;
+  };
+}
 
 export const defaultId: TemplateIdFn = (() => {
   if (typeof require === 'function') {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
       const crypto = require('crypto');
 
       let idFn: TemplateIdFn = (src) => {
@@ -44,7 +55,7 @@ export const defaultId: TemplateIdFn = (() => {
   };
 })();
 
-const defaultOptions: PrecompileOptions = {
+const defaultOptions: GlimmerCompileOptions = {
   id: defaultId,
   meta: {},
 };
@@ -65,11 +76,11 @@ const defaultOptions: PrecompileOptions = {
  */
 export function precompileJSON(
   source: string,
-  options?: PrecompileOptions
+  options?: GlimmerCompileOptions
 ): SerializedTemplateBlock;
 export function precompileJSON(
   string: string,
-  options: PrecompileOptions = defaultOptions
+  options: GlimmerCompileOptions = defaultOptions
 ): SerializedTemplateBlock {
   let ast = preprocess(string, options);
   let pass1In = pass0(string, ast, options);
@@ -98,10 +109,10 @@ export function precompileJSON(
  * @param {string} string a Glimmer template string
  * @return {string} a template javascript string
  */
-export function precompile(string: string, options?: PrecompileOptions): TemplateJavascript;
+export function precompile(string: string, options?: GlimmerCompileOptions): TemplateJavascript;
 export function precompile(
   source: string,
-  options: PrecompileOptions = defaultOptions
+  options: GlimmerCompileOptions = defaultOptions
 ): TemplateJavascript {
   let block = precompileJSON(source, options);
   // let ast = preprocess(source, options);

@@ -159,6 +159,8 @@ export interface AttrNode extends BaseNode {
   value: TextNode | MustacheStatement | ConcatStatement;
 }
 
+export type AttrValue = TextNode | MustacheStatement | ConcatStatement;
+
 export interface TextNode extends BaseNode {
   type: 'TextNode';
   chars: string;

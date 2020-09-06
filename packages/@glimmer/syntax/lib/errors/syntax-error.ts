@@ -15,7 +15,7 @@ export interface SyntaxErrorConstructor {
  * about location of incorrect markup.
  */
 // eslint-disable-next-line @typescript-eslint/naming-convention
-const SyntaxError: SyntaxErrorConstructor = (function () {
+const GlimmerSyntaxError: SyntaxErrorConstructor = (function () {
   SyntaxError.prototype = Object.create(Error.prototype);
   SyntaxError.prototype.constructor = SyntaxError;
 
@@ -30,4 +30,4 @@ const SyntaxError: SyntaxErrorConstructor = (function () {
   return SyntaxError as any;
 })();
 
-export default SyntaxError;
+export default GlimmerSyntaxError;

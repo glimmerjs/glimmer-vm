@@ -1,31 +1,33 @@
-import { ExpressionContext, Option } from '@glimmer/interfaces';
-import { AST } from '@glimmer/syntax';
-import { assert, isPresent, NonemptyStack, PresentArray } from '@glimmer/util';
-import { positionToOffset, SourceOffsets } from '../shared/location';
+import { ExpressionContext, Option, PresentArray } from '@glimmer/interfaces';
+import { AST, GlimmerSyntaxError } from '@glimmer/syntax';
+import { assert, isPresent, NonemptyStack } from '@glimmer/util';
+import { TemplateIdFn } from '../../compiler';
 import * as pass1 from '../pass1/ops';
+import { positionToOffset, SourceOffsets } from '../shared/location';
 import { InputOpArgs, OpConstructor, UnlocatedOp } from '../shared/op';
-import { OpFactory, Ops } from '../shared/ops';
+import { OpFactory } from '../shared/ops';
 import { BlockSymbolTable, SymbolTable } from '../shared/symbol-table';
 import { buildPathWithContext } from './utils/builders';
+import { Pass0Expressions } from './visitors/expressions';
+import { Pass0Statements } from './visitors/statements';
 
 /** VISITOR DEFINITIONS */
 
-type NodeFor<N extends AST.BaseNode, K extends N['type']> = N extends { type: K } ? N : never;
+type Pass0Visitor = Pass0Expressions | Pass0Statements;
 
-type Visitors<N extends AST.BaseNode, Out extends pass1.AnyOp[] | pass1.AnyOp> = {
-  [P in N['type']]: (node: NodeFor<N, P>, ctx: Context) => Out;
+export type VisitorInterface<O extends AST.Node, Out = unknown> = {
+  [P in O['type']]: (node: O & { type: P }, ctx: Context) => Out;
 };
 
-export type StatementVisitor = Visitors<AST.Statement, pass1.Statement | pass1.Statement[]>;
-export type ExpressionVisitor = Visitors<AST.Expression | AST.ConcatStatement, pass1.Expr>;
-
-type VisitorFunc<N extends AST.BaseNode, Out extends pass1.AnyOp[] | pass1.AnyOp> = (
-  node: N,
+type VisitorFunc<V extends Pass0Visitor, N extends keyof V & keyof AST.Nodes> = (
+  node: AST.Node & AST.Nodes[N],
   ctx: Context
-) => Out;
+) => VisitorReturn<V, N>;
 
-type StatementVisitorFunc = VisitorFunc<AST.Statement, pass1.Statement | pass1.Statement[]>;
-type ExpressionVisitorFunc = VisitorFunc<AST.Expression, pass1.Expr>;
+type VisitorReturn<
+  V extends Pass0Visitor,
+  N extends keyof V & keyof AST.Nodes = keyof V & keyof AST.Nodes
+> = V[N] extends (...args: any[]) => infer R ? (R extends Pass1Op ? R : never) : never;
 
 export interface ImmutableContext {
   slice(value: string): UnlocatedOp<pass1.SourceSlice>;
@@ -38,10 +40,24 @@ export class CompilerState {
   readonly symbols: NonemptyStack<SymbolTable> = new NonemptyStack([SymbolTable.top()]);
   private cursorCount = 0;
 
-  cursor() {
+  cursor(): string {
     return `%cursor:${this.cursorCount++}%`;
   }
 }
+
+export interface GlimmerCompileOptions extends PrecompileOptions {
+  id?: TemplateIdFn;
+  meta?: object;
+  customizeComponentName?(input: string): string;
+}
+
+type VisitablePass1Op = pass1.Statement | pass1.Expr | pass1.Internal;
+export type Pass1Stmt =
+  | pass1.Statement
+  | pass1.TemporaryNamedBlock
+  | pass1.NamedBlock
+  | pass1.Ignore;
+type Pass1Op = VisitablePass1Op | pass1.TemporaryNamedBlock | pass1.Ignore;
 
 /**
  * All state in this object except the CompilerState must be readonly.
@@ -51,24 +67,22 @@ export class CompilerState {
  * has no mutable state at all.
  */
 export class Context implements ImmutableContext {
-  readonly statements: StatementVisitor;
-  readonly expressions: ExpressionVisitor;
+  readonly statements: Pass0Statements;
+  readonly expressions: Pass0Expressions;
   readonly state = new CompilerState();
-  private opFactory: OpFactory<pass1.Statement>;
-  private exprFactory: OpFactory<pass1.Expr>;
+  private factory: OpFactory<Pass1Op>;
 
   constructor(
     readonly source: string,
-    readonly options: CompileOptions,
-    visitor: { statements: StatementVisitor; expressions: ExpressionVisitor }
+    readonly options: GlimmerCompileOptions,
+    visitor: { statements: Pass0Statements; expressions: Pass0Expressions }
   ) {
     this.statements = visitor.statements;
     this.expressions = visitor.expressions;
-    this.opFactory = new OpFactory(source);
-    this.exprFactory = new OpFactory(source);
+    this.factory = new OpFactory(source);
   }
 
-  get symbols() {
+  get symbols(): NonemptyStack<SymbolTable> {
     return this.state.symbols;
   }
 
@@ -89,24 +103,63 @@ export class Context implements ImmutableContext {
     return factory.op(pass1.Template, ...args);
   }
 
-  op<O extends pass1.Statement>(name: OpConstructor<O>, ...args: InputOpArgs<O>): UnlocatedOp<O> {
-    return this.opFactory.op(name, ...args);
-  }
-
-  expr<O extends pass1.Expr>(name: OpConstructor<O>, ...args: InputOpArgs<O>): UnlocatedOp<O> {
-    return this.exprFactory.op(name, ...args);
+  op<O extends Pass1Op>(name: OpConstructor<O>, ...args: InputOpArgs<O>): UnlocatedOp<O> {
+    return this.factory.op(name, ...args);
   }
 
   slice(value: string): UnlocatedOp<pass1.SourceSlice> {
     return new UnlocatedOp(pass1.SourceSlice, { value }, this.source);
   }
 
-  ops(...ops: Ops<pass1.Statement>[]): pass1.Statement[] {
-    return this.opFactory.ops(...ops);
+  visitAmbiguousStmts<S extends AST.Statement>(
+    statements: S[]
+  ): (pass1.Statement | pass1.TemporaryNamedBlock)[] {
+    let out: (pass1.Statement | pass1.TemporaryNamedBlock)[] = [];
+
+    for (let statement of statements) {
+      let result = this.visitAmbiguousStmt(statement);
+
+      switch (result.name) {
+        case 'Ignore':
+          break;
+        default:
+          out.push(result);
+      }
+    }
+
+    return out;
+    // return this.factory
+    //   .map(input, callback)
+    //   .filter((n: Out): n is Exclude<Out, pass1.Ignore> => n.name !== 'Ignore');
   }
 
-  mapIntoStatements<T>(input: T[], callback: (input: T) => pass1.Statement[]): pass1.Statement[] {
-    return this.opFactory.map(input, callback);
+  visitStmts<S extends AST.Statement>(statements: S[]): pass1.Statement[] {
+    let out: pass1.Statement[] = [];
+
+    for (let statement of statements) {
+      let result = this.visitStmt(statement);
+
+      switch (result.name) {
+        case 'Ignore':
+          break;
+        default:
+          out.push(result);
+      }
+    }
+
+    return out;
+    // return this.factory
+    //   .map(input, callback)
+    //   .filter((n: Out): n is Exclude<Out, pass1.Ignore> => n.name !== 'Ignore');
+  }
+
+  mapIntoOps<T, Out extends Pass1Op>(
+    input: T[],
+    callback: (input: T) => Out
+  ): Exclude<Out, pass1.Ignore>[] {
+    return this.factory
+      .map(input, callback)
+      .filter((n: Out): n is Exclude<Out, pass1.Ignore> => n.name !== 'Ignore');
   }
 
   append(expr: pass1.Expr, { trusted }: { trusted: boolean }): UnlocatedOp<pass1.Statement> {
@@ -121,27 +174,27 @@ export class Context implements ImmutableContext {
     }
   }
 
-  mapIntoExprs<E extends pass1.Expr, T>(
+  mapIntoExprs<E extends pass1.Expr | pass1.Internal, T>(
     input: PresentArray<T>,
     callback: (input: T) => E[]
   ): PresentArray<E>;
-  mapIntoExprs<E extends pass1.Expr, T>(
+  mapIntoExprs<E extends pass1.Expr | pass1.Internal, T>(
     input: Option<PresentArray<T>>,
     callback: (input: T) => E[]
   ): Option<PresentArray<E>>;
-  mapIntoExprs<E extends pass1.Expr, T>(
+  mapIntoExprs<E extends pass1.Expr | pass1.Internal, T>(
     input: Option<PresentArray<T>>,
     callback: (input: T) => E[]
   ): Option<PresentArray<E>> {
     if (input === null) {
       return null;
     } else {
-      return this.exprFactory.map(input, callback) as PresentArray<E>;
+      return this.factory.flatMap(input, callback) as PresentArray<E>;
     }
   }
 
   withBlock<T>(
-    block: AST.Block | AST.ElementNode,
+    block: AST.Block | AST.ElementNode | AST.Template,
     callback: (symbols: BlockSymbolTable, parent: SymbolTable) => T
   ): T {
     let parent = this.symbols.current;
@@ -155,39 +208,71 @@ export class Context implements ImmutableContext {
     }
   }
 
-  visitExpr(
-    node: AST.Expression,
+  visitExpr<N extends keyof Pass0Expressions & keyof AST.Nodes>(
+    node: AST.Node & AST.Nodes[N]
+  ): VisitorReturn<Pass0Expressions, N>;
+  visitExpr<N extends keyof Pass0Expressions & keyof AST.Nodes>(
+    node: AST.Node & AST.Nodes[N],
+    context: ExpressionContext
+  ): VisitorReturn<Pass0Expressions>;
+  visitExpr<N extends keyof Pass0Expressions & keyof AST.Nodes>(
+    node: AST.Node & AST.Nodes[N],
     context: ExpressionContext = ExpressionContext.Expression
-  ): pass1.Expr {
+  ): VisitorReturn<Pass0Expressions> {
     if (node.type === 'PathExpression') {
       return buildPathWithContext(this, node, context);
     } else {
-      let f = this.expressions[node.type] as ExpressionVisitorFunc;
+      let f = this.expressions[node.type] as VisitorFunc<Pass0Expressions, N>;
       return f(node, this);
     }
   }
 
-  visitStmt<T extends AST.Statement>(node: T | null): pass1.Statement[] {
-    if (node === null) {
-      return [];
-    } else {
-      let f = this.statements[node.type] as StatementVisitorFunc;
-      let result = f(node, this);
+  visitAmbiguousStmt<N extends keyof Pass0Statements & keyof AST.Nodes>(
+    node: AST.Node & AST.Nodes[N]
+  ): Exclude<VisitorReturn<Pass0Statements, N>, pass1.NamedBlock> {
+    let f = this.statements[node.type] as VisitorFunc<Pass0Statements, N>;
+    let result: pass1.Statement | pass1.Ignore | pass1.NamedBlock | pass1.TemporaryNamedBlock = f(
+      node,
+      this
+    );
 
-      if (Array.isArray(result)) {
-        return result;
-      } else {
-        return [result];
-      }
+    assert(result.name !== 'NamedBlock', `Unexpected named block while evaluating statements`);
+
+    return result as Exclude<VisitorReturn<Pass0Statements, N>, pass1.NamedBlock>;
+  }
+
+  visitStmt<N extends keyof Pass0Statements & AST.Statement['type']>(
+    node: AST.Statement & { type: N }
+  ): Exclude<VisitorReturn<Pass0Statements, N>, pass1.NamedBlock | pass1.TemporaryNamedBlock> {
+    console.log(`pass0: visiting`, node);
+
+    let f = this.statements[node.type] as VisitorFunc<Pass0Statements, N>;
+    let result: pass1.Statement | pass1.Ignore | pass1.NamedBlock | pass1.TemporaryNamedBlock = f(
+      node,
+      this
+    );
+
+    console.log(`-> out   `, node);
+
+    if (result.name === 'NamedBlock' || result.name === 'TemporaryNamedBlock') {
+      throw new GlimmerSyntaxError(
+        `Invalid named block whose parent is not a component invocation`,
+        node.loc
+      );
     }
+
+    return result as Exclude<
+      VisitorReturn<Pass0Statements, N>,
+      pass1.NamedBlock | pass1.TemporaryNamedBlock
+    >;
   }
 
   visitBlock(name: pass1.SourceSlice, node: AST.Block): pass1.NamedBlock {
     return this.withBlock(node, (symbols) =>
       this.op(pass1.NamedBlock, {
         name,
-        symbols,
-        body: this.mapIntoStatements(node.body, (stmt) => this.visitStmt(stmt)),
+        table: symbols,
+        body: this.mapIntoOps(node.body, (stmt) => this.visitStmt(stmt)),
       }).loc(node)
     );
   }
@@ -258,7 +343,7 @@ export function sourceOffsets(
   // );
 
   if (startOffset === null || endOffset === null) {
-    // @ts-expect-error
+    // @ts-expect-error FIXME
     return null;
   }
 

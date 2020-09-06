@@ -1,5 +1,4 @@
 import { ProgramSymbolTable } from '../shared/symbol-table';
-import { Block, ComponentBlock, NamedBlock } from './blocks';
 import * as out from './out';
 
 export interface Check<T extends In, In = out.StackValue> {
@@ -87,23 +86,23 @@ export const EXPR: Check<out.Expr> = {
   },
 };
 
-export const PARAMS: Check<out.AnyParams> = {
+export const PARAMS: Check<out.AnyPositional> = {
   name: 'Params',
-  match(value: out.StackValue): value is out.AnyParams {
+  match(value: out.StackValue): value is out.AnyPositional {
     return value.name === 'Params' || value.name === 'EmptyParams';
   },
 };
 
-export const CONCAT_PARAMS: Check<out.Params> = {
+export const CONCAT_PARAMS: Check<out.Positional> = {
   name: 'ConcatParams',
-  match(value: out.StackValue): value is out.Params {
+  match(value: out.StackValue): value is out.Positional {
     return value.name === 'Params';
   },
 };
 
-export const HASH: Check<out.AnyHash> = {
+export const HASH: Check<out.AnyNamedArguments> = {
   name: 'Hash',
-  match(value: out.StackValue): value is out.AnyHash {
+  match(value: out.StackValue): value is out.AnyNamedArguments {
     return value.name === 'Hash' || value.name === 'EmptyHash';
   },
 };
@@ -139,27 +138,6 @@ export const PROGRAM_SYMBOL_TABLE: Check<ProgramSymbolTable, unknown> = {
     } else {
       return value instanceof ProgramSymbolTable;
     }
-  },
-};
-
-export const MAYBE_NAMED_BLOCK: Check<NamedBlock | undefined, Block | undefined> = {
-  name: 'NamedBlock?',
-  match(value: Block | undefined): value is NamedBlock | undefined {
-    return value === undefined || value instanceof NamedBlock;
-  },
-};
-
-export const NAMED_BLOCK: Check<NamedBlock, NamedBlock | undefined> = {
-  name: 'NamedBlock',
-  match(value: Block | undefined): value is NamedBlock {
-    return value !== undefined && value instanceof NamedBlock;
-  },
-};
-
-export const COMPONENT_BLOCK: Check<ComponentBlock, Block | undefined> = {
-  name: 'ComponentBlock',
-  match(value: Block | undefined): value is ComponentBlock {
-    return value !== undefined && value instanceof ComponentBlock;
   },
 };
 

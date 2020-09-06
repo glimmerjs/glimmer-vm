@@ -1,33 +1,38 @@
-import { ExpressionContext, Option } from '@glimmer/interfaces';
-import { AST, builders, SyntaxError } from '@glimmer/syntax';
-import { isPresent, mapPresent, PresentArray, toPresentOption } from '@glimmer/util';
+import { ExpressionContext } from '@glimmer/interfaces';
+import { AST, builders, GlimmerSyntaxError } from '@glimmer/syntax';
+import { isPresent } from '@glimmer/util';
 import * as pass1 from '../../pass1/ops';
 import { Context } from '../context';
+import { buildParams } from '../utils/builders';
 import { keyword, KeywordNode, keywords } from './impl';
 
 export const YIELD = keyword('yield', {
   assert(
     statement: AST.MustacheStatement
-  ): { target: AST.StringLiteral; params: Option<PresentArray<AST.Expression>> } {
+  ): {
+    target: AST.StringLiteral;
+    params: AST.Expression[];
+    kw: AST.Expression;
+  } {
     let { pairs } = statement.hash;
-    let params = toPresentOption(statement.params);
+    let { params, path: kw } = statement;
 
     if (isPresent(pairs)) {
       let first = pairs[0];
 
       if (first.key !== 'to' || pairs.length > 1) {
-        throw new SyntaxError(`yield only takes a single named argument: 'to'`, first.loc);
+        throw new GlimmerSyntaxError(`yield only takes a single named argument: 'to'`, first.loc);
       }
 
       let target = first.value;
 
       if (target.type !== 'StringLiteral') {
-        throw new SyntaxError(`you can only yield to a literal value`, target.loc);
+        throw new GlimmerSyntaxError(`you can only yield to a literal value`, target.loc);
       }
 
-      return { target, params };
+      return { target, params, kw };
     } else {
-      return { target: builders.string('default'), params };
+      return { target: builders.string('default'), params, kw };
     }
   },
 
@@ -37,13 +42,18 @@ export const YIELD = keyword('yield', {
     {
       target,
       params: astParams,
-    }: { target: AST.StringLiteral; params: Option<PresentArray<AST.Expression>> }
+      kw,
+    }: {
+      target: AST.StringLiteral;
+      params: AST.Expression[];
+      kw: AST.Expression;
+    }
   ): pass1.Statement {
-    let params = mapPresent(astParams, (expr) => ctx.visitExpr(expr));
+    let params = buildParams(ctx, { path: kw, params: astParams });
     return ctx
       .op(pass1.Yield, {
         target: ctx.slice(target.value).loc(target),
-        params: ctx.expr(pass1.Params, { list: params }).loc(astParams),
+        params,
       })
       .loc(statement);
   },
@@ -61,28 +71,28 @@ export const PARTIAL = keyword('partial', {
     let hasParams = isPresent(params);
 
     if (!hasParams) {
-      throw new SyntaxError(
+      throw new GlimmerSyntaxError(
         `Partial found with no arguments. You must specify a template name. (on line ${loc.start.line})`,
         statement.loc
       );
     }
 
     if (hasParams && params.length !== 1) {
-      throw new SyntaxError(
+      throw new GlimmerSyntaxError(
         `Partial found with ${params.length} arguments. You must specify a template name. (on line ${loc.start.line})`,
         statement.loc
       );
     }
 
     if (isPresent(pairs)) {
-      throw new SyntaxError(
+      throw new GlimmerSyntaxError(
         `Partial does not take any named arguments (on line ${loc.start.line})`,
         statement.loc
       );
     }
 
     if (!escaped) {
-      throw new SyntaxError(
+      throw new GlimmerSyntaxError(
         `{{{partial ...}}} is not supported, please use {{partial ...}} instead (on line ${loc.start.line})`,
         statement.loc
       );
@@ -115,11 +125,14 @@ export const DEBUGGER = keyword('debugger', {
     } = statement;
 
     if (isPresent(pairs)) {
-      throw new SyntaxError(`debugger does not take any named arguments`, statement.loc);
+      throw new GlimmerSyntaxError(`debugger does not take any named arguments`, statement.loc);
     }
 
     if (isPresent(params)) {
-      throw new SyntaxError(`debugger does not take any positional arguments`, statement.loc);
+      throw new GlimmerSyntaxError(
+        `debugger does not take any positional arguments`,
+        statement.loc
+      );
     }
   },
 

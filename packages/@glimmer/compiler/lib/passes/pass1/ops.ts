@@ -1,7 +1,7 @@
-import { ExpressionContext, Option } from '@glimmer/interfaces';
+import { ExpressionContext, Option, PresentArray } from '@glimmer/interfaces';
 import { AST } from '@glimmer/syntax';
-import { PresentArray } from '@glimmer/util';
-import { op, Op, OpsTable } from '../shared/op';
+import { assert, isPresent } from '@glimmer/util';
+import { op, OpsTable } from '../shared/op';
 import { BlockSymbolTable, ProgramSymbolTable } from '../shared/symbol-table';
 
 export interface AttrKind {
@@ -18,9 +18,10 @@ export interface AttrKind {
 
 /** TEMPLATE **/
 
-export class Template extends Op<{ symbols: ProgramSymbolTable; body: Statement[] }> {
-  readonly name = 'Template';
-}
+export class Template extends op('Template').args<{
+  symbols: ProgramSymbolTable;
+  body: Statement[];
+}>() {}
 
 /** EXPRESSIONS **/
 
@@ -34,7 +35,8 @@ export class SourceSlice extends op('SourceSlice').args<{ value: string }>() {
     return this.args.value;
   }
 }
-export class Literal extends op('Literal').args<Pick<AST.Literal, 'type' | 'value'>>() {}
+
+export class Literal extends op('Literal').args<{ value: AST.Literal['value'] }>() {}
 export class Path extends op('Path').args<{ head: Expr; tail: PresentArray<SourceSlice> }>() {}
 export class GetArg extends op('GetArg').args<{ name: SourceSlice }>() {}
 export class GetThis extends op('GetThis').void() {}
@@ -42,19 +44,43 @@ export class GetVar extends op('GetVar').args<{
   name: SourceSlice;
   context: ExpressionContext;
 }>() {}
+export class GetSloppy extends op('GetSloppy').args<{
+  name: SourceSlice;
+}>() {}
+
 export class HasBlock extends op('HasBlock').args<{ target: SourceSlice }>() {}
 export class HasBlockParams extends op('HasBlockParams').args<{ target: SourceSlice }>() {}
-export class Concat extends op('Concat').args<{ parts: [Expr, ...Expr[]] }>() {}
+export class Concat extends op('Concat').args<{ parts: PresentArray<Expr> }>() {}
 
 export class SubExpression extends op('SubExpression').args<{
   head: Expr;
-  params: Params;
-  hash: Hash;
+  params: AnyParams;
+  hash: AnyNamedArguments;
 }>() {}
 
-export class Params extends op('Params').args<{ list: Option<PresentArray<Expr>> }>() {}
-export class HashPair extends op('HashPair').args<{ key: SourceSlice; value: Expr }>() {}
-export class Hash extends op('Hash').args<{ pairs: HashPair[] }>() {}
+export class Params extends op('Params').args<{ list: PresentArray<Expr> }>() {}
+export class EmptyParams extends op('EmptyParams').void() {}
+
+export type AnyParams = Params | EmptyParams;
+
+export class NamedArgument extends op('NamedArgument').args<{ key: SourceSlice; value: Expr }>() {}
+export class NamedArguments extends op('NamedArguments').args<{
+  pairs: PresentArray<NamedArgument>;
+}>() {}
+export class EmptyNamedArguments extends op('EmptyNamedArguments').void() {}
+
+export type AnyNamedArguments = NamedArguments | EmptyNamedArguments;
+
+export type Internal =
+  | Ignore
+  | AnyParams
+  | AnyNamedArguments
+  | NamedArgument
+  | NamedBlock
+  | AnyNamedBlocks
+  | AnyElementParameters;
+
+export type InternalTable = OpsTable<Internal>;
 
 export type Expr =
   | Literal
@@ -63,14 +89,14 @@ export type Expr =
   | GetArg
   | GetThis
   | GetVar
+  | GetSloppy
   | HasBlock
   | HasBlockParams
-  | SubExpression
-  | Params
-  | Hash
-  | HashPair;
+  | SubExpression;
 
 export type ExprTable = OpsTable<Expr>;
+
+export type ExprLike = Expr | Internal;
 
 // export interface ExprTable {
 //   Literal: Literal;
@@ -94,7 +120,7 @@ export type ExprTable = OpsTable<Expr>;
 // through is currently too annoying
 export class Yield extends op('Yield').args<{
   target: SourceSlice;
-  params: Params;
+  params: AnyParams;
 }>() {}
 
 export class Partial extends op('Partial').args<{ expr: Expr }>() {}
@@ -107,55 +133,147 @@ export class InElement extends op('InElement').args<{
   block: NamedBlock;
 }>() {}
 
+// Whitespace is allowed between and around named blocks
+export class AppendWhitespace extends op('AppendWhitespace').args<{ value: string }>() {}
+export class AppendComment extends op('AppendComment').args<{ value: string }>() {}
+
+export type NonSemantic = AppendWhitespace | AppendComment;
+
 export class AppendTextNode extends op('AppendTextNode').args<{ value: Expr }>() {}
 export class AppendTrustedHTML extends op('AppendTrustedHTML').args<{ value: Expr }>() {}
-export class AppendComment extends op('AppendComment').args<{ value: SourceSlice }>() {}
 
 export class BlockInvocation extends op('BlockInvocation').args<{
   head: Expr;
-  params: Params;
-  hash: Hash;
-  blocks: NamedBlock[];
+  params: AnyParams;
+  hash: AnyNamedArguments;
+  blocks: Option<PresentArray<NamedBlock>>;
 }>() {}
 
-export function getBlock(blocks: NamedBlock[], name: string): NamedBlock | undefined {
-  return blocks.find((block) => block.args.name.getString() === name);
+export function getBlock(
+  blocks: Option<PresentArray<NamedBlock>>,
+  name: string
+): Option<NamedBlock> {
+  if (blocks === null) {
+    return null;
+  }
+  return blocks.find((block) => block.args.name.getString() === name) || null;
 }
 
-export class NamedBlock extends op('Block').args<{
+export class NamedBlock extends op('NamedBlock').args<{
   name: SourceSlice;
-  symbols: BlockSymbolTable;
+  table: BlockSymbolTable;
   body: Statement[];
 }>() {}
 
-// TODO Make Component have the same structure as BlockInvocation, and
-// make named blocks just normal blocks in the invocation
-export class OpenNamedBlock extends op('OpenNamedBlock').args<{
-  tag: SourceSlice;
-  symbols: BlockSymbolTable;
-}>() {}
+export class NamedBlocks extends op('NamedBlocks').args<{ blocks: PresentArray<NamedBlock> }>() {}
+export class EmptyNamedBlocks extends op('EmptyNamedBlocks').void() {}
 
-export class OpenComponent extends op('OpenComponent').args<{
+export type AnyNamedBlocks = NamedBlocks | EmptyNamedBlocks;
+
+export type NonSemanticChild = NonSemantic | TemporaryNamedBlock;
+
+function onlyHasSemanticChildren(args: TemporaryNamedBlock['args']): args is NamedBlock['args'] {
+  return args.body.every((s) => s.name !== 'TemporaryNamedBlock');
+}
+
+type ExtractedMaybeNamedBlocks =
+  | { type: 'named-blocks'; blocks: PresentArray<NamedBlock> }
+  | typeof NESTED_NAMED_BLOCK_ERROR;
+
+function extractMaybeNameBlocks(body: NonSemanticChild[]): ExtractedMaybeNamedBlocks {
+  let blocks: NamedBlock[] = [];
+  let nodes: NonSemantic[] = [];
+
+  for (let statement of body) {
+    switch (statement.name) {
+      case 'AppendComment':
+      case 'AppendWhitespace':
+        nodes.push(statement);
+        break;
+      case 'TemporaryNamedBlock':
+        if (statement.isValidNamedBlock()) {
+          blocks.push(statement.asNamedBlock());
+        } else {
+          return NESTED_NAMED_BLOCK_ERROR;
+        }
+    }
+  }
+
+  assert(
+    isPresent(blocks),
+    `the block did not have named blocks (make sure to call hasValidNamedBlocks before asNamedBlocks)`
+  );
+
+  return { type: 'named-blocks', blocks };
+}
+
+const NESTED_NAMED_BLOCK_ERROR = {
+  type: 'error',
+  desc: 'a named block cannot have named block children',
+} as const;
+
+// A TemporaryNamedBlock may have named blocks inside of it. This is normally
+// disallowed, but it is used to determine whether a component has named blocks
+// or a single default block.
+export class TemporaryNamedBlock extends op('TemporaryNamedBlock').args<{
+  name: SourceSlice;
+  table: BlockSymbolTable;
+  body: (Statement | TemporaryNamedBlock)[];
+}>() {
+  hasValidNamedBlocks(): this is { args: { body: NonSemanticChild[] } } {
+    return (
+      this.args.body.every(
+        (node) =>
+          node.name === 'AppendWhitespace' ||
+          node.name === 'AppendComment' ||
+          node.name === 'TemporaryNamedBlock'
+      ) && this.args.body.some((node) => node.name === 'TemporaryNamedBlock')
+    );
+  }
+
+  asNamedBlocks(this: this & { args: { body: NonSemanticChild[] } }): ExtractedMaybeNamedBlocks {
+    return extractMaybeNameBlocks(this.args.body);
+  }
+
+  isValidNamedBlock(): this is { args: { body: Statement[] } } {
+    return onlyHasSemanticChildren(this.args);
+  }
+
+  asNamedBlock(this: this & { args: NamedBlock['args'] }): NamedBlock {
+    return new NamedBlock(this.offsets, this.args);
+  }
+}
+
+export class Ignore extends op('Ignore').void() {}
+
+export class Component extends op('Component').args<{
   tag: Expr;
-  symbols: BlockSymbolTable;
+  params: AnyElementParameters;
+  args: AnyNamedArguments;
+  blocks: AnyNamedBlocks;
   selfClosing: boolean;
 }>() {}
 
-export class OpenSimpleElement extends op('OpenSimpleElement').args<{
-  tag: SourceSlice;
+export class ElementParameters extends op('ElementParameters').args<{
+  body: PresentArray<ElementParameter>;
 }>() {}
 
-export class OpenElementWithDynamicFeatures extends op('OpenElementWithDynamicFeatures').args<{
+export class EmptyElementParameters extends op('EmptyElementParameters').void() {}
+
+export type AnyElementParameters = ElementParameters | EmptyElementParameters;
+
+export class SimpleElement extends op('SimpleElement').args<{
   tag: SourceSlice;
+  params: AnyElementParameters;
+  body: NamedBlock;
 }>() {}
 
-export class FlushElement extends op('FlushElement').args<{ symbols: BlockSymbolTable }>() {}
-export class CloseNamedBlock extends op('CloseNamedBlock').void() {}
-export class CloseComponent extends op('CloseComponent').void() {}
-export class CloseElement extends op('CloseElement').void() {}
-export class CloseElementBlock extends op('CloseElementBlock').void() {}
+export class ElementWithDynamicFeatures extends op('ElementWithDynamicFeatures').args<{
+  tag: SourceSlice;
+  params: AnyElementParameters;
+  body: NamedBlock;
+}>() {}
 
-export class Arg extends op('Arg').args<{ name: SourceSlice; value: Expr }>() {}
 export class AttrSplat extends op('AttrSplat').void() {}
 export class Attr extends op('Attr').args<{
   kind: AttrKind;
@@ -164,7 +282,13 @@ export class Attr extends op('Attr').args<{
   namespace?: string;
 }>() {}
 
-export class Modifier extends op('Modifier').args<{ head: Expr; params: Params; hash: Hash }>() {}
+export class Modifier extends op('Modifier').args<{
+  head: Expr;
+  params: AnyParams;
+  hash: AnyNamedArguments;
+}>() {}
+
+export type ElementParameter = Attr | Modifier | AttrSplat;
 
 export type Statement =
   | Yield
@@ -172,27 +296,18 @@ export type Statement =
   | InElement
   | Partial
   | BlockInvocation
-  | NamedBlock
+  | AppendWhitespace
   | AppendTextNode
   | AppendTrustedHTML
   | AppendComment
-  | OpenNamedBlock
-  | OpenComponent
-  | OpenSimpleElement
-  | OpenElementWithDynamicFeatures
-  | FlushElement
-  | CloseNamedBlock
-  | CloseComponent
-  | CloseElement
-  | CloseElementBlock
-  | Arg
-  | AttrSplat
-  | Attr
-  | Modifier;
+  | Component
+  | SimpleElement
+  | ElementWithDynamicFeatures
+  | ElementParameter;
 
 export type StatementTable = OpsTable<Statement>;
 
 // export type Statement<P extends keyof Statements = keyof Statements> = Statements[P];
 
 export type AnyOpTable = StatementTable & ExprTable;
-export type AnyOp = Statement | Expr;
+export type AnyOp = Statement | Expr | Internal;

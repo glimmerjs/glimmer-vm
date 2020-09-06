@@ -1,3 +1,4 @@
+import { PresentArray } from '../array';
 import { Dict, Option } from '../core';
 
 export type TupleSyntax = Statement | TupleExpression;
@@ -70,6 +71,14 @@ export const enum SexpOpcodes {
   GetContextualFreeStart = GetFreeInAppendSingleId,
 }
 
+export type GetContextualFreeOp =
+  | SexpOpcodes.GetFreeInAppendSingleId
+  | SexpOpcodes.GetFreeInExpression
+  | SexpOpcodes.GetFreeInCallHead
+  | SexpOpcodes.GetFreeInBlockHead
+  | SexpOpcodes.GetFreeInModifierHead
+  | SexpOpcodes.GetFreeInComponentHead;
+
 export type StatementSexpOpcode = Statement[0];
 export type StatementSexpOpcodeMap = {
   [TSexpOpcode in Statement[0]]: Extract<Statement, { 0: TSexpOpcode }>;
@@ -85,13 +94,16 @@ export type SexpOpcode = keyof SexpOpcodeMap;
 export namespace Core {
   export type Expression = Expressions.Expression;
 
+  export type CallArgs = [Params, Hash];
   export type Path = [string, ...string[]];
   export type ConcatParams = [Expression, ...Expression[]];
   export type Params = Option<ConcatParams>;
   export type Hash = Option<[[string, ...string[]], [Expression, ...Expression[]]]>;
   export type Blocks = Option<[string[], SerializedInlineBlock[]]>;
   export type Args = [Params, Hash];
+  export type NamedBlock = [string, SerializedInlineBlock];
   export type EvalInfo = number[];
+  export type ElementParameters = Option<PresentArray<Parameter>>;
 
   export type Syntax = Path | Params | ConcatParams | Hash | Blocks | Args | EvalInfo;
 }
@@ -196,11 +208,11 @@ export namespace Statements {
   export type Modifier = [SexpOpcodes.Modifier, Expression, Params, Hash];
   export type Block = [SexpOpcodes.Block, Expression, Option<Params>, Hash, Blocks];
   export type Component = [
-    SexpOpcodes.Component,
-    Expression,
-    Option<[Parameter, ...Parameter[]]>,
-    Hash,
-    Blocks
+    op: SexpOpcodes.Component,
+    tag: Expression,
+    parameters: Core.ElementParameters,
+    args: Hash,
+    blocks: Blocks
   ];
   export type OpenElement = [SexpOpcodes.OpenElement, string | WellKnownTagName];
   export type OpenElementWithSplat = [SexpOpcodes.OpenElementWithSplat, string | WellKnownTagName];
@@ -307,7 +319,14 @@ export type Parameter = Statements.Parameter;
 
 export type SexpSyntax = Statement | TupleExpression;
 export type Syntax = SexpSyntax | Expressions.Value;
-export type SyntaxWithInternal = Syntax | CoreSyntax | SerializedTemplateBlock;
+export type SyntaxWithInternal =
+  | Syntax
+  | CoreSyntax
+  | SerializedTemplateBlock
+  | Statement[]
+  | Core.CallArgs
+  | Core.NamedBlock
+  | Core.ElementParameters;
 
 /**
  * A JSON object that the Block was serialized into.

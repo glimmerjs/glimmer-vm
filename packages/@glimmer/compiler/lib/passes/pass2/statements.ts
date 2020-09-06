@@ -1,179 +1,163 @@
 import * as pass1 from '../pass1/ops';
 import { OpArgs } from '../shared/op';
 import { Visitors } from '../shared/visitors';
-import { ComponentBlock, NamedBlock } from './blocks';
-import { check, EXPR, HASH, MAYBE_EXPR, NAMED_BLOCK, PARAMS } from './checks';
 import { Context } from './context';
 import * as pass2 from './ops';
 import * as out from './out';
 
-class StatementsVisitor implements Visitors<pass2.StatementTable, out.Statement | void> {
-  StartProgram(): void {
-    // ctx.startBlock(new Template(symbols));
+export class Pass2Statement implements Visitors<pass2.StatementTable, out.Op> {
+  Partial(ctx: Context, { target, table }: OpArgs<pass2.Partial>): out.Partial {
+    return ctx.op(out.Partial, { target: ctx.visit(target), info: table.getEvalInfo() });
   }
 
-  EndProgram(): void {}
-
-  StartBlock(ctx: Context, { name, symbols }: OpArgs<pass2.StartBlock>): void {
-    ctx.startBlock(new NamedBlock(name, symbols));
+  Debugger(ctx: Context, { table }: OpArgs<pass2.Debugger>): out.Debugger {
+    return ctx.op(out.Debugger, { info: table.getEvalInfo() });
   }
 
-  EndBlock(ctx: Context): void {
-    ctx.pushValue(ctx.popBlock(NAMED_BLOCK));
+  Yield(ctx: Context, { to, params }: OpArgs<pass2.Yield>): out.Yield {
+    return ctx.op(out.Yield, { to, params: ctx.visit(params) });
   }
 
-  Partial(ctx: Context): out.Statement {
-    let expr = ctx.popValue(EXPR);
-    return ctx.op(out.Partial, { expr, info: ctx.currentBlock.evalInfo });
-  }
-
-  Debugger(ctx: Context): out.Statement {
-    return ctx.op(out.Debugger, { info: ctx.currentBlock.evalInfo });
-  }
-
-  Yield(ctx: Context, { symbol }: OpArgs<pass2.Yield>): out.Statement {
-    return ctx.op(out.Yield, { to: symbol, params: ctx.popValue(PARAMS) });
-  }
-
-  InvokeInElement(ctx: Context, { guid }: OpArgs<pass2.InvokeInElement>): out.Statement {
-    let block = ctx.popValue(NAMED_BLOCK);
-    let destination = ctx.popValue(EXPR);
-    let insertBefore = ctx.popValue(MAYBE_EXPR);
-
-    return ctx.op(out.InElement, { guid, block, insertBefore, destination });
-  }
-
-  InvokeBlock(ctx: Context, { hasInverse }: OpArgs<pass2.InvokeBlock>): out.Statement {
-    let blocks: [NamedBlock, ...NamedBlock[]] = [ctx.popValue(NAMED_BLOCK)];
-
-    if (hasInverse) {
-      blocks.push(ctx.popValue(NAMED_BLOCK));
-    }
-
-    let head = ctx.popValue(EXPR);
-    let params = ctx.popValue(PARAMS);
-    let hash = ctx.popValue(HASH);
-
-    return ctx.op(out.InvokeBlock, {
-      head,
-      params,
-      hash,
-      blocks: ctx.op(out.NamedBlocks, { blocks }),
+  InElement(
+    ctx: Context,
+    { guid, insertBefore, destination, block }: OpArgs<pass2.InElement>
+  ): out.InElement {
+    return ctx.op(out.InElement, {
+      guid,
+      block: ctx.visit(block),
+      insertBefore: ctx.visit(insertBefore),
+      destination: ctx.visit(destination),
     });
   }
 
-  AppendTrustedHTML(ctx: Context): out.Statement {
-    return ctx.op(out.TrustingAppend, { value: ctx.popValue(EXPR) });
+  InvokeBlock(ctx: Context, { head, args, blocks }: OpArgs<pass2.InvokeBlock>): out.InvokeBlock {
+    return ctx.op(out.InvokeBlock, {
+      head: ctx.visit(head),
+      args: ctx.visit(args),
+      blocks: ctx.visit(blocks),
+    });
   }
 
-  AppendTextNode(ctx: Context): out.Statement {
-    return ctx.op(out.Append, { value: ctx.popValue(EXPR) });
+  AppendTrustedHTML(ctx: Context, { html }: OpArgs<pass2.AppendTrustedHTML>): out.TrustingAppend {
+    return ctx.op(out.TrustingAppend, { value: ctx.visit(html) });
   }
 
-  AppendComment(ctx: Context, { value }: OpArgs<pass2.AppendComment>): out.Statement {
-    return ctx.op(out.AppendComment, { value: ctx.slice(value) });
+  AppendTextNode(ctx: Context, { text }: OpArgs<pass2.AppendTextNode>): out.Append {
+    return ctx.op(out.Append, { value: ctx.visit(text) });
   }
 
-  Modifier(ctx: Context): out.Statement {
-    let head = ctx.popValue(EXPR);
-    let params = ctx.popValue(PARAMS);
-    let hash = ctx.popValue(HASH);
-
-    return ctx.op(out.Modifier, { head, params, hash });
+  AppendComment(ctx: Context, { value }: OpArgs<pass2.AppendComment>): out.AppendComment {
+    return ctx.op(out.AppendComment, { value });
   }
 
-  OpenNamedBlock(ctx: Context, { tag, symbols }: OpArgs<pass2.OpenNamedBlock>): void {
-    ctx.startBlock(new NamedBlock(tag, symbols));
+  Modifier(ctx: Context, { head, args }: OpArgs<pass2.Modifier>): out.Modifier {
+    // let head = ctx.popValue(EXPR);
+    // let params = ctx.popValue(PARAMS);
+    // let hash = ctx.popValue(HASH);
+
+    return ctx.op(out.Modifier, { head: ctx.visit(head), args: ctx.visit(args) });
   }
 
-  CloseNamedBlock(ctx: Context): void {
-    let block = check(ctx.blocks.pop(), NAMED_BLOCK) as NamedBlock;
-
-    ctx.currentComponent.pushBlock(block);
+  SimpleElement(ctx: Context, { tag, params, body }: OpArgs<pass2.SimpleElement>): out.Element {
+    return ctx.op(out.Element, {
+      tag: ctx.visit(tag),
+      params: ctx.visit(params),
+      body: ctx.visit(body),
+      dynamicFeatures: false,
+    });
   }
 
-  OpenSimpleElement(ctx: Context, { tag }: OpArgs<pass2.OpenSimpleElement>): out.Statement {
-    return ctx.op(out.OpenElement, { tag: ctx.slice(tag) });
-  }
-
-  OpenElementWithDynamicFeatures(
+  ElementWithDynamicFeatures(
     ctx: Context,
-    { tag }: OpArgs<pass2.OpenSimpleElement>
-  ): out.Statement {
-    return ctx.op(out.OpenElementWithSplat, { tag: ctx.slice(tag) });
+    { tag, params, body }: OpArgs<pass2.ElementWithDynamicFeatures>
+  ): out.Element {
+    return ctx.op(out.Element, {
+      tag: ctx.visit(tag),
+      params: ctx.visit(params),
+      body: ctx.visit(body),
+      dynamicFeatures: true,
+    });
   }
 
-  CloseElement(ctx: Context): out.Statement {
-    return ctx.op(out.CloseElement);
+  Component(
+    ctx: Context,
+    { tag, params, args, blocks, selfClosing }: OpArgs<pass2.Component>
+  ): out.Component {
+    return ctx.op(out.Component, {
+      tag: ctx.visit(tag),
+      params: ctx.visit(params),
+      args: ctx.visit(args),
+      blocks: ctx.visit(blocks),
+      selfClosing,
+    });
   }
 
-  OpenComponent(ctx: Context, { symbols, selfClosing }: OpArgs<pass2.OpenComponent>): void {
-    let tag = ctx.popValue(EXPR);
-
-    ctx.startBlock(new ComponentBlock(tag, symbols, selfClosing));
+  StaticArg(ctx: Context, { name, value }: OpArgs<pass2.StaticArg>): out.StaticArg {
+    return ctx.op(out.StaticArg, { name: ctx.visit(name), value: ctx.visit(value) });
   }
 
-  CloseComponent(ctx: Context): out.Statement {
-    return ctx.op(out.InvokeComponent, { block: ctx.endComponent() });
+  DynamicArg(ctx: Context, { name, value }: OpArgs<pass2.DynamicArg>): out.DynamicArg {
+    return ctx.op(out.DynamicArg, { name: ctx.visit(name), value: ctx.visit(value) });
   }
 
-  StaticArg(ctx: Context, { name }: OpArgs<pass2.StaticArg>): out.Statement {
-    return ctx.op(out.StaticArg, { name: ctx.slice(name), value: ctx.popValue(EXPR) });
+  StaticSimpleAttr(ctx: Context, args: OpArgs<pass2.StaticSimpleAttr>): out.StaticAttr {
+    return ctx.op(out.StaticAttr, staticAttr(ctx, args));
   }
 
-  DynamicArg(ctx: Context, { name }: OpArgs<pass2.DynamicArg>): out.Statement {
-    return ctx.op(out.DynamicArg, { name: ctx.slice(name), value: ctx.popValue(EXPR) });
+  StaticComponentAttr(
+    ctx: Context,
+    args: OpArgs<pass2.StaticComponentAttr>
+  ): out.StaticComponentAttr {
+    return ctx.op(out.StaticComponentAttr, staticAttr(ctx, args));
   }
 
-  StaticAttr(ctx: Context, args: OpArgs<pass2.StaticAttr>): out.Statement {
-    return ctx.op(out.StaticAttr, attr(ctx, args));
+  ComponentAttr(ctx: Context, args: OpArgs<pass2.ComponentAttr>): out.ComponentAttr {
+    return ctx.op(out.ComponentAttr, dynamicAttr(ctx, args));
   }
 
-  StaticComponentAttr(ctx: Context, args: OpArgs<pass2.StaticComponentAttr>): out.Statement {
-    return ctx.op(out.StaticComponentAttr, attr(ctx, args));
+  DynamicSimpleAttr(ctx: Context, args: OpArgs<pass2.DynamicSimpleAttr>): out.DynamicAttr {
+    return ctx.op(out.DynamicAttr, staticAttr(ctx, args));
   }
 
-  ComponentAttr(ctx: Context, args: OpArgs<pass2.ComponentAttr>): out.Statement {
-    return ctx.op(out.ComponentAttr, attr(ctx, args));
+  TrustingComponentAttr(
+    ctx: Context,
+    args: OpArgs<pass2.TrustingComponentAttr>
+  ): out.TrustingComponentAttr {
+    return ctx.op(out.TrustingComponentAttr, dynamicAttr(ctx, args));
   }
 
-  DynamicAttr(ctx: Context, args: OpArgs<pass2.DynamicAttr>): out.Statement {
-    return ctx.op(out.DynamicAttr, attr(ctx, args));
+  TrustingDynamicAttr(
+    ctx: Context,
+    args: OpArgs<pass2.TrustingDynamicAttr>
+  ): out.TrustingDynamicAttr {
+    return ctx.op(out.TrustingDynamicAttr, dynamicAttr(ctx, args));
   }
 
-  TrustingComponentAttr(ctx: Context, args: OpArgs<pass2.TrustingComponentAttr>): out.Statement {
-    return ctx.op(out.TrustingComponentAttr, attr(ctx, args));
-  }
-
-  TrustingAttr(ctx: Context, args: OpArgs<pass2.TrustingAttr>): out.Statement {
-    return ctx.op(out.TrustingDynamicAttr, attr(ctx, args));
-  }
-
-  AttrSplat(ctx: Context, args: OpArgs<pass2.AttrSplat>): out.Statement {
+  AttrSplat(ctx: Context, args: OpArgs<pass2.AttrSplat>): out.AttrSplat {
     return ctx.op(out.AttrSplat, args);
-  }
-
-  FlushElement(ctx: Context): out.Statement {
-    return ctx.op(out.FlushElement);
   }
 }
 
-export const STATEMENTS: Visitors<
-  pass2.StatementTable,
-  out.Statement | void
-> = new StatementsVisitor();
+export const STATEMENTS = new Pass2Statement();
 
 export function isStatement(input: pass2.Op): input is pass2.Statement {
   return input.name in STATEMENTS;
 }
 
-function attr(
+function staticAttr(
   ctx: Context,
-  { name, namespace }: { name: pass1.SourceSlice; namespace?: string }
-): out.AttrArgs {
-  // deflateAttrName is an encoding concern
+  {
+    name,
+    value,
+    namespace,
+  }: { name: pass1.SourceSlice; value: pass1.SourceSlice; namespace?: string }
+): out.StaticAttrArgs {
+  return { name: ctx.visit(name), value: ctx.visit(value), namespace };
+}
 
-  let value = ctx.popValue(EXPR);
-
-  return { name: ctx.slice(name), value, namespace };
+function dynamicAttr(
+  ctx: Context,
+  { name, value, namespace }: { name: pass1.SourceSlice; value: pass2.Expr; namespace?: string }
+): out.DynamicAttrArgs {
+  return { name: ctx.visit(name), value: ctx.visit(value), namespace };
 }

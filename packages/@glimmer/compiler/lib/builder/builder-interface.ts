@@ -1,5 +1,5 @@
-import { Dict, Option } from '@glimmer/interfaces';
-import { dict, assertNever, expect, PresentArray, isPresent } from '@glimmer/util';
+import { Dict, DictValue, Option, PresentArray } from '@glimmer/interfaces';
+import { assertNever, dict, expect, isPresent } from '@glimmer/util';
 
 export type BuilderParams = BuilderExpression[];
 export type BuilderHash = Option<Dict<BuilderExpression>>;
@@ -7,11 +7,11 @@ export type BuilderBlockHash = BuilderHash | { as: string | string[] };
 export type BuilderBlocks = Dict<BuilderBlock>;
 export type BuilderAttrs = Dict<BuilderAttr>;
 
-export interface NormalizedParams extends Array<NormalizedExpression> {}
-export interface NormalizedHash extends Dict<NormalizedExpression> {}
-export interface NormalizedBlock extends Array<NormalizedStatement> {}
-export interface NormalizedBlocks extends Dict<NormalizedBlock> {}
-export interface NormalizedAttrs extends Dict<NormalizedAttr> {}
+export type NormalizedParams = NormalizedExpression[];
+export type NormalizedHash = Dict<NormalizedExpression>;
+export type NormalizedBlock = NormalizedStatement[];
+export type NormalizedBlocks = Dict<NormalizedBlock>;
+export type NormalizedAttrs = Dict<NormalizedAttr>;
 export type NormalizedAttr = HeadKind.Splat | NormalizedExpression;
 
 export interface NormalizedElement {
@@ -268,7 +268,7 @@ function normalizeVerboseStatement(statement: VerboseStatement): NormalizedState
 }
 
 function extractBlockHead(name: string): NormalizedHead {
-  let result = name.match(/^#(.*)$/);
+  let result = /^#(.*)$/.exec(name);
 
   if (result === null) {
     throw new Error(`Unexpected missing # in block head`);
@@ -278,7 +278,7 @@ function extractBlockHead(name: string): NormalizedHead {
 }
 
 function normalizeCallHead(name: string): NormalizedHead {
-  let result = name.match(/^\((.*)\)$/);
+  let result = /^\((.*)\)$/.exec(name);
 
   if (result === null) {
     throw new Error(`Unexpected missing () in call head`);
@@ -324,7 +324,7 @@ export function normalizePathHead(whole: string): Variable {
   let kind: VariableKind;
   let name: string;
 
-  if (whole.match(/^this(\.|$)/)) {
+  if (/^this(\.|$)/.exec(whole)) {
     return {
       kind: VariableKind.This,
       name: whole,
@@ -459,17 +459,17 @@ function normalizeAttr(attr: BuilderAttr): { expr: NormalizedAttr; trusted: bool
   }
 }
 
-function mapObject<T extends Dict, U extends Dict>(
+function mapObject<T extends Dict<unknown>, Out>(
   object: T,
-  callback: <K extends keyof T & keyof U>(value: T[K], key: K) => U[K]
-): U {
-  let out: any = dict();
+  callback: (value: DictValue<T>, key: keyof T) => Out
+): { [P in keyof T]: Out } {
+  let out = dict() as { [P in keyof T]?: Out };
 
-  Object.keys(object).forEach((k) => {
-    out[k] = callback(object[k] as any, k);
+  Object.keys(object).forEach(<K extends keyof T>(k: K) => {
+    out[k] = callback(object[k] as DictValue<T>, k);
   });
 
-  return out;
+  return out as { [P in keyof T]: Out };
 }
 
 export type BuilderElement =
@@ -487,33 +487,33 @@ export type InvocationElement =
   | [string, BuilderAttrs];
 
 export function isElement(input: [string, ...unknown[]]): input is BuilderElement {
-  let match = input[0].match(/^<([a-z0-9\-][a-zA-Z0-9\-]*)>$/);
+  let match = /^<([a-z0-9\-][a-zA-Z0-9\-]*)>$/.exec(input[0]);
 
   return !!match && !!match[1];
 }
 
 export function extractElement(input: string): Option<string> {
-  let match = input.match(/^<([a-z0-9\-][a-zA-Z0-9\-]*)>$/);
+  let match = /^<([a-z0-9\-][a-zA-Z0-9\-]*)>$/.exec(input);
 
   return match ? match[1] : null;
 }
 
 export function extractAngleInvocation(input: string): Option<string> {
-  let match = input[0].match(/^<(@[a-zA-Z0-9]*|[A-Z][a-zA-Z0-9\-]*)>$/);
+  let match = /^<(@[a-zA-Z0-9]*|[A-Z][a-zA-Z0-9\-]*)>$/.exec(input[0]);
 
   return match ? match[1] : null;
 }
 
 export function isAngleInvocation(input: [string, ...unknown[]]): input is InvocationElement {
   // TODO Paths
-  let match = input[0].match(/^<(@[a-zA-Z0-9]*|[A-Z][a-zA-Z0-9\-]*)>$/);
+  let match = /^<(@[a-zA-Z0-9]*|[A-Z][a-zA-Z0-9\-]*)>$/.exec(input[0]);
 
   return !!match && !!match[1];
 }
 
 export function isBlock(input: [string, ...unknown[]]): input is BuilderBlockStatement {
   // TODO Paths
-  let match = input[0].match(/^#[^]?([a-zA-Z0-9]*|[A-Z][a-zA-Z0-9\-]*)$/);
+  let match = /^#[^]?([a-zA-Z0-9]*|[A-Z][a-zA-Z0-9\-]*)$/.exec(input[0]);
 
   return !!match && !!match[1];
 }
@@ -550,7 +550,7 @@ export type TupleBuilderExpression =
   | [Builder.Literal, string | boolean | null | undefined]
   | [Builder.Get, string]
   | [Builder.Get, string, string[]]
-  | [Builder.Concat, ...any[]] // TODO replace with recursive types in TS3.7
+  | [Builder.Concat, ...BuilderExpression[]]
   | [Builder.HasBlock, string]
   | [Builder.HasBlockParams, string]
   | BuilderCallExpression;
@@ -681,7 +681,7 @@ export function normalizeAppendExpression(
         } else {
           throw new Error(
             `Unexpected array in expression position (wasn't a tuple expression and ${
-              expression[0]
+              expression[0] as string
             } isn't wrapped in parens, so it isn't a call): ${JSON.stringify(expression)}`
           );
         }
@@ -753,7 +753,7 @@ export function normalizeExpression(expression: BuilderExpression): NormalizedEx
         } else {
           throw new Error(
             `Unexpected array in expression position (wasn't a tuple expression and ${
-              expression[0]
+              expression[0] as string
             } isn't wrapped in parens, so it isn't a call): ${JSON.stringify(expression)}`
           );
         }
@@ -845,7 +845,7 @@ export function isBuilderCallExpression(
   return typeof value[0] === 'string' && value[0][0] === '(';
 }
 
-export interface MiniBuilderBlock extends Array<BuilderStatement> {}
+export type MiniBuilderBlock = BuilderStatement[];
 
 export type BuilderBlock = MiniBuilderBlock;
 
@@ -857,7 +857,7 @@ export function normalizeParams(input: Params): NormalizedParams {
 
 export function normalizeHash(input: Option<Hash>): Option<NormalizedHash> {
   if (input === null) return null;
-  return mapObject(input, normalizeExpression) as NormalizedHash;
+  return mapObject(input, normalizeExpression);
 }
 
 export function normalizeCallExpression(expr: BuilderCallExpression): NormalizedCallExpression {

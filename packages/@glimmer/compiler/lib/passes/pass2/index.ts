@@ -1,25 +1,30 @@
-import { Template } from './blocks';
 import { Context } from './context';
 import * as pass2 from './ops';
+import * as out from './out';
 
 export function visit(
   source: string,
   template: pass2.Template,
   options?: CompileOptions
-): Template {
+): out.Template {
   let ctx = Context.for({ source, template, options });
 
-  for (let op of template.args.ops) {
-    console.log(`pass2: visiting`, op);
-    let ops = ctx.visit(op);
-    ctx.currentBlock.push(...ops);
+  let statements: out.Statement[] = [];
 
-    if (ops.length) {
-      console.log(`-> ops   `, [...ops]);
-    }
-    console.log(`-> blocks`, [...ctx.blocks.toArray()]);
-    console.log(`-> stack `, [...ctx.debugStack]);
+  for (let op of template.args.statements) {
+    console.log(`pass2: visiting`, op);
+
+    let result = ctx.visit(op);
+
+    statements.push(result);
+
+    console.log(`-> pass2: out`, statements);
   }
 
-  return ctx.template;
+  let table = template.args.symbols;
+
+  return ctx.op(out.Template, {
+    table,
+    statements,
+  });
 }

@@ -1,4 +1,5 @@
 import { SourceLocation, SourcePosition } from '@glimmer/syntax';
+import { PresentArray } from '@glimmer/interfaces';
 import { positionToOffset, SourceOffsets } from './location';
 import { InputOpArgs, Op, OpConstructor, toArgs, UnlocatedOp } from './op';
 
@@ -29,7 +30,24 @@ export class OpFactory<SubOp extends Op> {
     return out;
   }
 
-  map<T, O extends Op>(input: T[], callback: (input: T) => O[]): O[] {
+  map<T, O extends Op>(input: PresentArray<T>, callback: (input: T) => O): PresentArray<O>;
+  map<T, O extends Op>(input: T[], callback: (input: T) => O): O[];
+  map<T, O extends Op>(input: T[], callback: (input: T) => O): O[] {
+    let out: O[] = [];
+
+    for (let v of input) {
+      out.push(callback(v));
+    }
+
+    return out;
+  }
+
+  flatMap<T, O extends Op>(
+    input: PresentArray<T>,
+    callback: (input: T) => PresentArray<O>
+  ): PresentArray<O>;
+  flatMap<T, O extends Op>(input: T[], callback: (input: T) => O[]): O[];
+  flatMap<T, O extends Op>(input: T[], callback: (input: T) => O[]): O[] {
     let out: O[] = [];
 
     for (let v of input) {
@@ -41,7 +59,10 @@ export class OpFactory<SubOp extends Op> {
 }
 
 export type LocatedWithOffsets = { offsets: SourceOffsets };
+export type LocatedWithOptionalOffsets = { offsets: SourceOffsets | null };
+
 export type LocatedWithPositions = { loc: SourceLocation };
+export type LocatedWithOptionalPositions = { loc?: SourceLocation };
 
 export function range(
   first: SourcePosition,

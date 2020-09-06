@@ -1,162 +1,145 @@
+/* eslint-disable qunit/no-global-expect */
+import { PresentArray } from '@glimmer/interfaces';
 import { expect } from '@glimmer/util';
 import * as pass1 from '../pass1/ops';
 import * as pass2 from '../pass2/ops';
 import { OpArgs, OpConstructor } from '../shared/op';
-import { Context, Pass1Visitor } from './context';
+import { Context, MapVisitorsInterface } from './context';
 
-type Pass1StatementsVisitor = Pass1Visitor['statements'];
+export type StatementVisitor = MapVisitorsInterface<pass1.Statement, pass2.Statement>;
 
-class Pass1Statements implements Pass1StatementsVisitor {
-  Yield({ target, params }: OpArgs<pass1.Yield>, ctx: Context): pass2.Op[] {
-    return ctx.ops(
-      ctx.visitExpr(params),
-      ctx.op(pass2.Yield, { symbol: ctx.table.allocateBlock(target.getString()) })
-    );
+export class Pass1Statement implements StatementVisitor {
+  Yield(ctx: Context, { target, params }: OpArgs<pass1.Yield>): pass2.Yield {
+    let to = ctx.table.allocateBlock(target.getString());
+    return ctx.op(pass2.Yield, { to, params: ctx.visitInternal(params) });
   }
 
-  Debugger(_: OpArgs<pass1.Debugger>, ctx: Context): pass2.Op {
+  Debugger(ctx: Context, _: OpArgs<pass1.Debugger>): pass2.Debugger {
     ctx.setHasEval();
-    return ctx.op(pass2.Debugger);
+
+    return ctx.op(pass2.Debugger, { table: ctx.table });
   }
 
   InElement(
-    { destination, guid, insertBefore, block }: OpArgs<pass1.InElement>,
-    ctx: Context
-  ): pass2.Op[] {
-    return ctx.ops(
-      ctx.visitOptionalExpr(insertBefore),
-      ctx.visitExpr(destination),
-      ctx.visitStmt(block),
-      ctx.op(pass2.InvokeInElement, { guid })
-    );
+    ctx: Context,
+    { destination, guid, insertBefore, block }: OpArgs<pass1.InElement>
+  ): pass2.InElement {
+    return ctx.op(pass2.InElement, {
+      guid,
+      insertBefore: ctx.visitOptionalExpr(insertBefore),
+      destination: ctx.visitExpr(destination),
+      block: ctx.visitInternal(block),
+    });
   }
 
-  Partial({ expr }: OpArgs<pass1.Partial>, ctx: Context): pass2.Op[] {
+  Partial(ctx: Context, { expr }: OpArgs<pass1.Partial>): pass2.Partial {
     ctx.setHasEval();
-    return ctx.ops(ctx.visitExpr(expr), ctx.op(pass2.Partial));
+    return ctx.op(pass2.Partial, { target: ctx.visitExpr(expr), table: ctx.table });
   }
 
-  AppendTextNode({ value }: OpArgs<pass1.AppendTextNode>, ctx: Context): pass2.Op[] {
-    return ctx.ops(ctx.visitExpr(value), ctx.op(pass2.AppendTextNode));
+  AppendTextNode(ctx: Context, { value }: OpArgs<pass1.AppendTextNode>): pass2.AppendTextNode {
+    return ctx.op(pass2.AppendTextNode, { text: ctx.visitExpr(value) });
   }
 
-  AppendTrustedHTML({ value }: OpArgs<pass1.AppendTrustedHTML>, ctx: Context): pass2.Op[] {
-    return ctx.ops(ctx.visitExpr(value), ctx.op(pass2.AppendTrustedHTML));
+  AppendWhitespace(ctx: Context, { value }: OpArgs<pass1.AppendWhitespace>): pass2.AppendTextNode {
+    return ctx.op(pass2.AppendTextNode, {
+      text: ctx.op(pass2.Literal, { value }),
+    });
   }
 
-  AppendComment(args: OpArgs<pass1.AppendComment>, ctx: Context): pass2.Op {
+  AppendTrustedHTML(
+    ctx: Context,
+    { value }: OpArgs<pass1.AppendTrustedHTML>
+  ): pass2.AppendTrustedHTML {
+    return ctx.op(pass2.AppendTrustedHTML, { html: ctx.visitExpr(value) });
+  }
+
+  AppendComment(ctx: Context, args: OpArgs<pass1.AppendComment>): pass2.AppendComment {
     return ctx.op(pass2.AppendComment, args);
   }
 
-  OpenNamedBlock({ tag, symbols }: OpArgs<pass1.OpenNamedBlock>, ctx: Context): pass2.Op {
-    ctx.startBlock(symbols);
-    return ctx.op(pass2.OpenNamedBlock, { tag, symbols });
+  Component(
+    ctx: Context,
+    { tag, params, args, blocks, selfClosing }: OpArgs<pass1.Component>
+  ): pass2.Component {
+    return ctx.op(pass2.Component, {
+      tag: ctx.visitExpr(tag),
+      params: ctx.visitInternal(params),
+      args: ctx.visitInternal(args),
+      blocks: ctx.visitInternal(blocks),
+      selfClosing,
+    });
   }
 
-  OpenComponent(
-    { tag, symbols, selfClosing }: OpArgs<pass1.OpenComponent>,
-    ctx: Context
-  ): pass2.Op[] {
-    return ctx.ops(ctx.visitExpr(tag), ctx.op(pass2.OpenComponent, { symbols, selfClosing }));
+  SimpleElement(
+    ctx: Context,
+    { tag, params, body }: OpArgs<pass1.SimpleElement>
+  ): pass2.SimpleElement {
+    return ctx.op(pass2.SimpleElement, {
+      tag,
+      params: ctx.visitInternal(params),
+      body: ctx.visitInternal(body),
+    });
   }
 
-  OpenSimpleElement(args: OpArgs<pass1.OpenSimpleElement>, ctx: Context): pass2.Op {
-    return ctx.op(pass2.OpenSimpleElement, args);
+  ElementWithDynamicFeatures(
+    ctx: Context,
+    { tag, params, body }: OpArgs<pass1.ElementWithDynamicFeatures>
+  ): pass2.Statement {
+    return ctx.op(pass2.ElementWithDynamicFeatures, {
+      tag,
+      params: ctx.visitInternal(params),
+      body: ctx.visitInternal(body),
+    });
   }
 
-  CloseElementBlock(_: OpArgs<pass1.CloseElementBlock>, ctx: Context): pass2.Op[] {
-    ctx.endBlock();
-    return [];
+  Modifier(ctx: Context, { head, params, hash }: OpArgs<pass1.Modifier>): pass2.Modifier {
+    return ctx.op(pass2.Modifier, {
+      head: ctx.visitExpr(head),
+      args: ctx.visitArgs({ params, hash }),
+    });
   }
 
-  CloseElement(_: OpArgs<pass1.CloseElement>, ctx: Context): pass2.Op {
-    return ctx.op(pass2.CloseElement);
-  }
-
-  CloseNamedBlock(_: OpArgs<pass1.CloseNamedBlock>, ctx: Context): pass2.Op {
-    ctx.endBlock();
-    return ctx.op(pass2.CloseNamedBlock);
-  }
-
-  CloseComponent(_: OpArgs<pass1.CloseComponent>, ctx: Context): pass2.Op {
-    return ctx.op(pass2.CloseComponent);
-  }
-
-  OpenElementWithDynamicFeatures(
-    args: OpArgs<pass1.OpenElementWithDynamicFeatures>,
-    ctx: Context
-  ): pass2.Op {
-    return ctx.op(pass2.OpenElementWithDynamicFeatures, args);
-  }
-
-  Modifier({ head, params, hash }: OpArgs<pass1.Modifier>, ctx: Context): pass2.Op[] {
-    return ctx.ops(ctx.helper.args({ params, hash }), ctx.visitExpr(head), ctx.op(pass2.Modifier));
-  }
-
-  FlushElement({ symbols }: OpArgs<pass1.FlushElement>, ctx: Context): pass2.Op {
-    ctx.startBlock(symbols);
-    return ctx.op(pass2.FlushElement);
-  }
-
-  AttrSplat(_: OpArgs<pass1.AttrSplat>, ctx: Context): pass2.Op {
+  AttrSplat(ctx: Context, _: OpArgs<pass1.AttrSplat>): pass2.AttrSplat {
     return ctx.op(pass2.AttrSplat, { symbol: ctx.table.allocateBlock('attrs') });
   }
 
-  Arg({ name, value }: OpArgs<pass1.Arg>, ctx: Context): pass2.Op[] {
-    let argOp = value.name === 'Literal' ? pass2.StaticArg : pass2.DynamicArg;
-
-    return ctx.ops(
-      ctx.visitExpr(value),
-      ctx.op<pass2.AnyArg>(argOp, { name })
-    );
-  }
-
-  Attr({ kind, name, value, namespace }: OpArgs<pass1.Attr>, ctx: Context): pass2.Op[] {
+  Attr(ctx: Context, { kind, name, value, namespace }: OpArgs<pass1.Attr>): pass2.AnyAttr {
     let attr = classifyAttr(kind, value);
 
-    return ctx.ops(
-      ctx.visitExpr(value),
-      ctx.op<pass2.AnyAttr>(attr, { name, namespace })
-    );
-  }
-
-  Block({ name, symbols, body }: OpArgs<pass1.NamedBlock>, ctx: Context): pass2.Op[] {
-    return ctx.withBlock(symbols, () =>
-      ctx.ops(
-        ctx.op(pass2.StartBlock, { name, symbols }),
-        ctx.map(body, (statement) => ctx.visitStmt(statement)),
-        ctx.op(pass2.EndBlock)
-      )
-    );
+    return ctx.op<pass2.AnyAttr>(attr, { name, value: ctx.visitExpr(value), namespace });
   }
 
   BlockInvocation(
-    { head, params, hash, blocks }: OpArgs<pass1.BlockInvocation>,
-    ctx: Context
-  ): pass2.Op[] {
-    let inverseBlock = pass1.getBlock(blocks, 'else') || null;
+    ctx: Context,
+    { head, params, hash, blocks }: OpArgs<pass1.BlockInvocation>
+  ): pass2.Statement {
     let defaultBlock = expect(pass1.getBlock(blocks, 'default'), 'expected a default block');
+    let namedBlocks: PresentArray<pass2.NamedBlock> = [ctx.visitInternal(defaultBlock)];
+    let inverseBlock = pass1.getBlock(blocks, 'else') || null;
 
-    return ctx.ops(
-      ctx.helper.args({ params, hash }),
-      ctx.visitExpr(head),
-      inverseBlock ? ctx.visitStmt(inverseBlock) : [],
-      ctx.visitStmt(defaultBlock),
-      ctx.op(pass2.InvokeBlock, { hasInverse: !!inverseBlock })
-    );
+    if (inverseBlock) {
+      namedBlocks.push(ctx.visitInternal(inverseBlock));
+    }
+
+    return ctx.op(pass2.InvokeBlock, {
+      head: ctx.visitExpr(head),
+      args: ctx.visitArgs({ params, hash }),
+      blocks: ctx.op(pass2.NamedBlocks, { blocks: namedBlocks }),
+    });
   }
 }
 
-export const STATEMENTS = new Pass1Statements();
+export const STATEMENTS = new Pass1Statement();
 
 function classifyAttr(kind: pass1.AttrKind, value: pass1.Expr): OpConstructor<pass2.AnyAttr> {
   if (value.name === 'Literal') {
-    return kind.component ? pass2.StaticComponentAttr : pass2.StaticAttr;
+    return kind.component ? pass2.StaticComponentAttr : pass2.StaticSimpleAttr;
   }
 
   if (kind.trusting) {
-    return kind.component ? pass2.TrustingComponentAttr : pass2.TrustingAttr;
+    return kind.component ? pass2.TrustingComponentAttr : pass2.TrustingDynamicAttr;
   } else {
-    return kind.component ? pass2.ComponentAttr : pass2.DynamicAttr;
+    return kind.component ? pass2.ComponentAttr : pass2.DynamicSimpleAttr;
   }
 }

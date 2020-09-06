@@ -2,7 +2,7 @@ import { ExpressionContext } from '@glimmer/interfaces';
 import { AST } from '@glimmer/syntax';
 import { assign } from '@glimmer/util';
 import * as pass1 from '../../pass1/ops';
-import { Context, ExpressionVisitor } from '../context';
+import { Context, VisitorInterface } from '../context';
 import { EXPR_KEYWORDS } from '../keywords';
 import { concat } from '../utils/attrs';
 import { buildArgs, buildPathWithContext } from '../utils/builders';
@@ -21,32 +21,32 @@ import { assertIsSimpleHelper, hasPath } from '../utils/is-node';
  * 3. Process subexpressions that are keywords (`(has-block)` and `(has-block-params)`)
  * 4. In sloppy mode, reject paths at the head of sub-expressions (`(x.y)` or `(x.y ...)`)
  */
-class Pass0Expressions implements ExpressionVisitor {
+export class Pass0Expressions implements VisitorInterface<AST.Expression, pass1.Expr> {
   PathExpression(path: AST.PathExpression, ctx: Context): pass1.Expr {
     return buildPathWithContext(ctx, path, ExpressionContext.Expression);
   }
 
-  StringLiteral(literal: AST.StringLiteral, ctx: Context): pass1.Expr {
-    return ctx.expr(pass1.Literal, literal).loc(literal);
+  StringLiteral(literal: AST.StringLiteral, ctx: Context): pass1.Literal {
+    return ctx.op(pass1.Literal, literal).loc(literal);
   }
 
-  BooleanLiteral(literal: AST.BooleanLiteral, ctx: Context): pass1.Expr {
-    return ctx.expr(pass1.Literal, literal).loc(literal);
+  BooleanLiteral(literal: AST.BooleanLiteral, ctx: Context): pass1.Literal {
+    return ctx.op(pass1.Literal, literal).loc(literal);
   }
 
-  NumberLiteral(literal: AST.NumberLiteral, ctx: Context): pass1.Expr {
-    return ctx.expr(pass1.Literal, literal).loc(literal);
+  NumberLiteral(literal: AST.NumberLiteral, ctx: Context): pass1.Literal {
+    return ctx.op(pass1.Literal, literal).loc(literal);
   }
 
-  NullLiteral(literal: AST.NullLiteral, ctx: Context): pass1.Expr {
-    return ctx.expr(pass1.Literal, literal).loc(literal);
+  NullLiteral(literal: AST.NullLiteral, ctx: Context): pass1.Literal {
+    return ctx.op(pass1.Literal, literal).loc(literal);
   }
 
-  UndefinedLiteral(literal: AST.UndefinedLiteral, ctx: Context): pass1.Expr {
-    return ctx.expr(pass1.Literal, literal).loc(literal);
+  UndefinedLiteral(literal: AST.UndefinedLiteral, ctx: Context): pass1.Literal {
+    return ctx.op(pass1.Literal, literal).loc(literal);
   }
 
-  ConcatStatement(statement: AST.ConcatStatement, ctx: Context): pass1.Expr {
+  ConcatStatement(statement: AST.ConcatStatement, ctx: Context): pass1.Concat {
     return concat(ctx, statement);
   }
 
@@ -59,7 +59,7 @@ class Pass0Expressions implements ExpressionVisitor {
       assertIsSimpleHelper(expr, expr.loc, 'helper');
 
       return ctx
-        .expr(
+        .op(
           pass1.SubExpression,
           assign(
             {

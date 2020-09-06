@@ -1,52 +1,105 @@
-import { ExpressionContext } from '@glimmer/interfaces';
-import { AST } from '@glimmer/syntax';
+import { ExpressionContext, PresentArray } from '@glimmer/interfaces';
 import * as pass1 from '../pass1/ops';
 import { op, OpsTable } from '../shared/op';
-import { BlockSymbolTable, ProgramSymbolTable } from '../shared/symbol-table';
+import { BlockSymbolTable, ProgramSymbolTable, SymbolTable } from '../shared/symbol-table';
 
-export interface Attr {
+export interface StaticAttrArgs {
   name: pass1.SourceSlice;
+  value: pass1.SourceSlice;
   namespace?: string;
 }
 
-export class Template extends op('Template').args<{ symbols: ProgramSymbolTable; ops: Op[] }>() {}
+export interface DynamicAttrArgs {
+  name: pass1.SourceSlice;
+  value: Expr;
+  namespace?: string;
+}
 
-export class InvokeInElement extends op('InvokeInElement').args<{
-  guid: string;
+export class Template extends op('Template').args<{
+  symbols: ProgramSymbolTable;
+  statements: Statement[];
 }>() {}
 
-export class StartProgram extends op('StartProgram').void() {}
-export class EndProgram extends op('EndProgram').void() {}
-export class StartBlock extends op('StartBlock').args<{
+export class InElement extends op('InElement').args<{
+  guid: string;
+  insertBefore: Expr | Missing;
+  destination: Expr;
+  block: NamedBlock;
+}>() {}
+
+export class NamedBlocks extends op('NamedBlocks').args<{ blocks: PresentArray<NamedBlock> }>() {}
+export class EmptyNamedBlocks extends op('EmptyNamedBlocks').void() {}
+
+export type AnyNamedBlocks = NamedBlocks | EmptyNamedBlocks;
+
+export class NamedBlock extends op('NamedBlock').args<{
   symbols: BlockSymbolTable;
   name: pass1.SourceSlice;
+  body: Statement[];
 }>() {}
 export class EndBlock extends op('EndBlock').void() {}
-export class AppendTrustedHTML extends op('AppendTrustedHTML').void() {}
-export class AppendTextNode extends op('AppendTextNode').void() {}
-export class OpenComponent extends op('OpenComponent').args<{
-  symbols: BlockSymbolTable;
+export class AppendTrustedHTML extends op('AppendTrustedHTML').args<{ html: Expr }>() {}
+export class AppendTextNode extends op('AppendTextNode').args<{ text: Expr }>() {}
+export class Component extends op('Component').args<{
+  tag: Expr;
+  params: AnyElementParameters;
+  args: AnyNamedArguments;
+  blocks: AnyNamedBlocks;
   selfClosing: boolean; // TODO make this not required
 }>() {}
-export class StaticArg extends op('StaticArg').args<{ name: pass1.SourceSlice }>() {}
-export class DynamicArg extends op('DynamicArg').args<{ name: pass1.SourceSlice }>() {}
-export class StaticAttr extends op('StaticAttr').args<Attr>() {}
-export class StaticComponentAttr extends op('StaticComponentAttr').args<Attr>() {}
-export class ComponentAttr extends op('ComponentAttr').args<Attr>() {}
-export class DynamicAttr extends op('DynamicAttr').args<Attr>() {}
-export class TrustingComponentAttr extends op('TrustingComponentAttr').args<Attr>() {}
-export class TrustingAttr extends op('TrustingAttr').args<Attr>() {}
-export class FlushElement extends op('FlushElement').void() {}
+export class StaticArg extends op('StaticArg').args<{
+  name: pass1.SourceSlice;
+  value: pass1.SourceSlice;
+}>() {}
+export class DynamicArg extends op('DynamicArg').args<{ name: pass1.SourceSlice; value: Expr }>() {}
 
-export class Yield extends op('Yield').args<{ symbol: number }>() {}
-export class Partial extends op('Partial').void() {}
-export class Debugger extends op('Debugger').void() {}
+export class StaticSimpleAttr extends op('StaticSimpleAttr').args<StaticAttrArgs>() {}
+export class StaticComponentAttr extends op('StaticComponentAttr').args<StaticAttrArgs>() {}
+export class ComponentAttr extends op('ComponentAttr').args<DynamicAttrArgs>() {}
+export class DynamicSimpleAttr extends op('DynamicSimpleAttr').args<StaticAttrArgs>() {}
+export class TrustingComponentAttr extends op('TrustingComponentAttr').args<DynamicAttrArgs>() {}
+export class TrustingDynamicAttr extends op('TrustingDynamicAttr').args<DynamicAttrArgs>() {}
 
-export class Helper extends op('Helper').void() {}
-export class Modifier extends op('Modifier').void() {}
-export class InvokeBlock extends op('InvokeBlock').args<{ hasInverse: boolean }>() {}
+export class SimpleElement extends op('SimpleElement').args<{
+  tag: pass1.SourceSlice;
+  params: AnyElementParameters;
+  body: NamedBlock;
+}>() {}
+
+export class ElementParameters extends op('ElementParameters').args<{
+  body: PresentArray<ElementParameter>;
+}>() {}
+
+export class EmptyElementParameters extends op('EmptyElementParameters').void() {}
+
+export type AnyElementParameters = ElementParameters | EmptyElementParameters;
+
+export class ElementWithDynamicFeatures extends op('ElementWithDynamicFeatures').args<{
+  tag: pass1.SourceSlice;
+  params: AnyElementParameters;
+  body: NamedBlock;
+}>() {}
+
+export class Yield extends op('Yield').args<{ to: number; params: AnyParams }>() {}
+export class Partial extends op('Partial').args<{ target: Expr; table: SymbolTable }>() {}
+export class Debugger extends op('Debugger').args<{ table: SymbolTable }>() {}
+
+export class Helper extends op('Helper').args<{ head: Expr; args: Args }>() {}
+export class Modifier extends op('Modifier').args<{ head: Expr; args: Args }>() {}
+export class InvokeBlock extends op('InvokeBlock').args<{
+  head: Expr;
+  args: Args;
+  blocks: NamedBlocks;
+}>() {}
 export class AttrSplat extends op('AttrSplat').args<{ symbol: number }>() {}
-export class GetPath extends op('GetPath').args<[pass1.SourceSlice, ...pass1.SourceSlice[]]>() {}
+export class GetPath extends op('GetPath').args<{
+  head: Expr;
+  tail: Tail;
+}>() {}
+export class GetSloppy extends op('GetSloppy').args<{
+  symbol: number;
+}>() {}
+
 export class GetSymbol extends op('GetSymbol').args<{ symbol: number }>() {}
 export class GetFreeWithContext extends op('GetFreeWithContext').args<{
   symbol: number;
@@ -58,82 +111,88 @@ export class GetFree extends op('GetFree').args<{
 }>() {}
 
 export class Literal extends op('Literal').args<{
-  type: AST.Literal['type'];
-  value: AST.Literal['value'];
+  value: boolean | number | null | undefined | string;
 }>() {}
-export class Concat extends op('Concat').void() {}
+export class Missing extends op('Missing').void() {}
+export class Concat extends op('Concat').args<{ parts: Positional }>() {}
 export class HasBlock extends op('HasBlock').args<{ symbol: number }>() {}
 export class HasBlockParams extends op('HasBlockParams').args<{ symbol: number }>() {}
-export class Params extends op('Params').args<{ entries: number }>() {}
-export class EmptyParams extends op('EmptyParams').void() {}
-export class Hash extends op('Hash').args<{ entries: number }>() {}
-export class EmptyHash extends op('EmptyHash').void() {}
-export class HashPair extends op('HashPair').args<{ key: pass1.SourceSlice }>() {}
-export class Missing extends op('Missing').void() {}
+export class Positional extends op('Positional').args<{ list: PresentArray<Expr> }>() {}
+export class EmptyPositional extends op('EmptyPositional').void() {}
+export class NamedArguments extends op('NamedArguments').args<{
+  pairs: PresentArray<NamedArgument>;
+}>() {}
+export class EmptyNamedArguments extends op('EmptyNamedArguments').void() {}
+export class NamedArgument extends op('NamedArgument').args<{
+  key: pass1.SourceSlice;
+  value: Expr;
+}>() {}
+export class Args extends op('Args').args<{ positional: AnyParams; named: AnyNamedArguments }>() {}
+export class Tail extends op('Tail').args<{ members: PresentArray<pass1.SourceSlice> }>() {}
 
 export type AnyArg = StaticArg | DynamicArg;
+export type AnyParams = Positional | EmptyPositional;
+export type AnyNamedArguments = NamedArguments | EmptyNamedArguments;
 
 export type AnyAttr =
-  | TrustingComponentAttr
-  | TrustingAttr
   | ComponentAttr
-  | DynamicAttr
-  | StaticAttr
-  | StaticComponentAttr;
+  | TrustingComponentAttr
+  | StaticComponentAttr
+  | DynamicSimpleAttr
+  | TrustingDynamicAttr
+  | StaticSimpleAttr;
 
 // pass through
 export import AppendComment = pass1.AppendComment;
-export import OpenNamedBlock = pass1.OpenNamedBlock;
-export import OpenSimpleElement = pass1.OpenSimpleElement;
-export import OpenElementWithDynamicFeatures = pass1.OpenElementWithDynamicFeatures;
-export import CloseElement = pass1.CloseElement;
-export import CloseComponent = pass1.CloseComponent;
-export import CloseNamedBlock = pass1.CloseNamedBlock;
 
 export type Expr =
   | Literal
+  | Missing
   | GetPath
   | GetSymbol
   | GetFree
   | GetFreeWithContext
+  | GetSloppy
   | Concat
   | Helper
   | HasBlock
   | HasBlockParams;
-export type Internal = Params | EmptyParams | Hash | EmptyHash | HashPair | Missing;
+
+export type Arg = StaticArg | DynamicArg;
+export type ElementParameter = AnyAttr | Modifier | AttrSplat;
+
+export type Internal =
+  | Args
+  | AnyParams
+  | AnyNamedArguments
+  | NamedArgument
+  | Tail
+  | Missing
+  | NamedBlock
+  | pass1.SourceSlice
+  | AnyNamedBlocks
+  | AnyElementParameters;
+export type ExprLike = Expr | Internal;
 export type Statement =
-  | StartProgram
-  | EndProgram
-  | StartBlock
-  | EndBlock
-  | InvokeInElement
+  | InElement
   | Debugger
   | Yield
   | AppendTrustedHTML
   | AppendTextNode
-  | OpenComponent
+  | Component
+  | SimpleElement
+  | ElementWithDynamicFeatures
   | StaticArg
   | DynamicArg
-  | StaticAttr
-  | StaticComponentAttr
-  | ComponentAttr
-  | DynamicAttr
-  | TrustingComponentAttr
-  | TrustingAttr
-  | FlushElement
+  | AnyAttr
   | Modifier
   | InvokeBlock
   | AttrSplat
   | Partial
-  | AppendComment
-  | OpenNamedBlock
-  | OpenSimpleElement
-  | OpenElementWithDynamicFeatures
-  | CloseElement
-  | CloseComponent
-  | CloseNamedBlock;
+  | AppendComment;
 
 export type Op = Expr | Internal | Statement;
+export type VisitableOp = Expr | Internal | Statement;
 
 export type ExprTable = OpsTable<Expr>;
 export type InternalTable = OpsTable<Internal>;

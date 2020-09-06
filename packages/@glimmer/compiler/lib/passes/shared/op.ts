@@ -1,14 +1,21 @@
+import { PresentArray } from '@glimmer/interfaces';
 import { SourceLocation, SourcePosition } from '@glimmer/syntax';
-import { PresentArray } from '@glimmer/util';
-import { positionToOffset, SourceOffsets } from './location';
-import { LocatedWithOffsets, LocatedWithPositions } from './ops';
+import { isPresent } from '@glimmer/util';
+import { locationToOffsets, positionToOffset, SourceOffsets } from './location';
+import {
+  LocatedWithOptionalOffsets,
+  LocatedWithOptionalPositions,
+  LocatedWithPositions,
+} from './ops';
 
 export type OpsTable<O extends Op> = {
   [P in O['name']]: O extends { name: P } ? O : never;
 };
 
-export abstract class Op<Args = unknown> {
-  abstract readonly name: string;
+export type UnknownArgs = object | void;
+
+export abstract class Op<Args extends UnknownArgs = UnknownArgs, Name extends string = string> {
+  abstract readonly name: Name;
   constructor(readonly offsets: SourceOffsets | null, readonly args: Args) {}
 
   // TODO abstract stack = [{ value: EXPR }]
@@ -17,53 +24,50 @@ export abstract class Op<Args = unknown> {
 }
 
 export type OpName<O extends Op> = O['name'];
-export type OpArgs<O extends Op> = O extends Op<infer Args> ? Args : never;
-export type InputOpArgs<O extends Op<any>> = O extends Op<infer Args>
-  ? Args extends void
-    ? []
-    : [Args]
-  : never;
+export type OpArgs<O extends Op> = O['args'];
+export type InputOpArgs<O extends Op> = O['args'] extends void ? [] : [O['args']];
 
 export function toArgs<O extends Op>(args: InputOpArgs<O>): OpArgs<O> {
-  if ((args as any).length === 0) {
+  if (args.length === 0) {
     return undefined as OpArgs<O>;
   } else {
     return args[0] as OpArgs<O>;
   }
 }
 
-export type OpConstructor<O extends Op> = O extends Op<infer Args>
+export type OpConstructor<O extends Op> = O extends Op<infer Args, infer Name>
   ? {
-      new (offsets: SourceOffsets | null, args: Args): O;
+      new (offsets: SourceOffsets | null, args: Args): O & { name: Name };
     }
   : never;
 
-export function args<Args>(): {
-  named: <N extends string>(name: N) => OpConstructor<Op<Args> & { name: N }>;
-} {
-  return {
-    named: <N extends string>(name: N) =>
-      class extends Op<Args> {
-        readonly name: N = name;
-      },
-  };
+export type OpForConstructor<C extends OpConstructor<Op>> = C extends OpConstructor<infer O>
+  ? O
+  : never;
+
+function assertName<N extends string>(name: N, instance: object): N {
+  if (name !== instance.constructor.name) {
+    throw new Error(`unexpected ${name} did not match ${instance.constructor.name}`);
+  } else {
+    return name;
+  }
 }
 
 export function op<N extends string>(
   name: N
 ): {
-  args: <Args>() => OpConstructor<Op<Args> & { name: N }>;
-  void(): OpConstructor<Op<void> & { name: N }>;
+  args: <Args extends UnknownArgs>() => OpConstructor<Op<Args, N>>;
+  void(): OpConstructor<Op<void, N>>;
 } {
   return {
-    args: <Args>() =>
-      class extends Op<Args> {
-        readonly name: N = name;
+    args: <Args extends UnknownArgs>() =>
+      class extends Op<Args, N> {
+        readonly name: N = assertName(name, this);
       },
 
     void: () =>
-      class extends Op<void> {
-        readonly name: N = name;
+      class extends Op<void, N> {
+        readonly name: N = assertName(name, this);
       },
   };
 }
@@ -83,30 +87,72 @@ export function range(
   }
 }
 
+function isLocatedWithPositionsArray(
+  location: LocatedWithOptionalPositions[]
+): location is PresentArray<LocatedWithPositions> {
+  return isPresent(location) && location.every(isLocatedWithPositions);
+}
+
+function isLocatedWithPositions(
+  location: LocatedWithOptionalPositions
+): location is LocatedWithPositions {
+  return location.loc !== undefined;
+}
+
+export type HasSourceLocation =
+  | SourceLocation
+  | LocatedWithPositions
+  | PresentArray<LocatedWithPositions>;
+
+export type MaybeHasSourceLocation =
+  | null
+  | LocatedWithOptionalPositions
+  | LocatedWithOptionalPositions[];
+
 export class UnlocatedOp<O extends Op> {
   constructor(private Class: OpConstructor<O>, private args: OpArgs<O>, private source: string) {}
 
-  loc(
-    location: null | SourceLocation | LocatedWithPositions | PresentArray<LocatedWithPositions>
-  ): O {
+  maybeLoc(location: MaybeHasSourceLocation, fallback?: HasSourceLocation): O {
     if (location === null) {
-      return new this.Class(null, this.args) as O;
+      return fallback ? this.loc(fallback) : this.nullLoc();
     } else if (Array.isArray(location)) {
+      if (isLocatedWithPositionsArray(location)) {
+        return this.loc(location);
+      } else {
+        return this.nullLoc();
+      }
+    } else if (isLocatedWithPositions(location)) {
+      return this.loc(location);
+    } else {
+      return this.nullLoc();
+    }
+  }
+
+  private nullLoc(
+    fallback?: SourceLocation | LocatedWithPositions | PresentArray<LocatedWithPositions>
+  ): O {
+    return fallback ? this.loc(fallback) : (new this.Class(null, this.args) as O);
+  }
+
+  loc(location: HasSourceLocation): O {
+    if (Array.isArray(location)) {
       let first = location[0];
       let last = location[location.length - 1];
 
       return new this.Class(range(first.loc.start, last.loc.end, this.source), this.args) as O;
-    } else {
-      let loc = 'loc' in location ? location.loc : location;
+    } else if ('loc' in location) {
+      let { loc } = location;
       return new this.Class(range(loc.start, loc.end, this.source), this.args) as O;
+    } else {
+      return new this.Class(locationToOffsets(this.source, location), this.args) as O;
     }
   }
 
   offsets(
     location:
       | SourceOffsets
-      | LocatedWithOffsets
-      | [LocatedWithOffsets, ...LocatedWithOffsets[]]
+      | LocatedWithOptionalOffsets
+      | PresentArray<LocatedWithOptionalOffsets>
       | null
   ): O {
     let offsets: SourceOffsets | null;
@@ -119,10 +165,14 @@ export class UnlocatedOp<O extends Op> {
       let start = location[0];
       let end = location[location.length - 1];
 
-      let startOffset = start.offsets.start;
-      let endOffset = end.offsets.end;
+      if (start.offsets === null || end.offsets === null) {
+        offsets = null;
+      } else {
+        let startOffset = start.offsets.start;
+        let endOffset = end.offsets.end;
 
-      offsets = { start: startOffset, end: endOffset };
+        offsets = { start: startOffset, end: endOffset };
+      }
     }
 
     return new this.Class(offsets, this.args) as O;

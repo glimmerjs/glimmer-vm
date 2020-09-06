@@ -1,5 +1,5 @@
 import { ExpressionContext } from '@glimmer/interfaces';
-import { AST, SyntaxError } from '@glimmer/syntax';
+import { AST, GlimmerSyntaxError } from '@glimmer/syntax';
 import { assertPresent } from '@glimmer/util';
 import * as pass1 from '../../pass1/ops';
 import { Context } from '../context';
@@ -16,7 +16,7 @@ export const IN_ELEMENT = keyword('in-element', {
 
     for (let { key, value } of hash.pairs) {
       if (key === 'guid') {
-        throw new SyntaxError(
+        throw new GlimmerSyntaxError(
           `Cannot pass \`guid\` to \`{{#in-element}}\` on line ${value.loc.start.line}.`,
           value.loc
         );
@@ -38,7 +38,7 @@ export const IN_ELEMENT = keyword('in-element', {
     block: KeywordNode<AST.BlockStatement>,
     ctx: Context,
     { insertBefore, destination }: { insertBefore?: AST.Expression; destination: AST.Expression }
-  ): pass1.Statement {
+  ): pass1.InElement {
     let guid = ctx.cursor();
 
     return ctx

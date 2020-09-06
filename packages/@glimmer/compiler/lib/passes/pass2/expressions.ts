@@ -1,129 +1,152 @@
-import { ExpressionContext, SexpOpcodes as WireOp } from '@glimmer/interfaces';
-import { assert, exhausted, isPresent, mapPresent } from '@glimmer/util';
+import { ExpressionContext, GetContextualFreeOp, SexpOpcodes as WireOp } from '@glimmer/interfaces';
+import { exhausted, mapPresent } from '@glimmer/util';
+import * as pass1 from '../pass1/ops';
 import { OpArgs } from '../shared/op';
 import { Visitors } from '../shared/visitors';
-import { CONCAT_PARAMS, EXPR, GET, HASH, HASH_PAIR, PARAMS } from './checks';
 import { Context } from './context';
 import * as pass2 from './ops';
 import * as out from './out';
 
-class InternalVisitors implements Visitors<pass2.InternalTable, void> {
-  Missing(ctx: Context): void {
-    ctx.pushValue(out.Missing);
+export class Pass2Internal implements Visitors<pass2.InternalTable, out.Internal> {
+  Missing(ctx: Context): out.Missing {
+    return ctx.op(out.Missing);
   }
 
-  Params(ctx: Context, { entries }: OpArgs<pass2.Params>): void {
-    ctx.assertStackHas(entries);
-
-    let values: out.Expr[] = [];
-
-    for (let i = 0; i < entries; i++) {
-      values.unshift(ctx.popValue(EXPR));
-    }
-
-    if (isPresent(values)) {
-      ctx.pushValue(out.Params, { list: values });
-    } else {
-      ctx.pushValue(out.EmptyParams);
-    }
+  ElementParameters(
+    ctx: Context,
+    { body }: OpArgs<pass2.ElementParameters>
+  ): out.ElementParameters {
+    return ctx.op(out.ElementParameters, { statements: mapPresent(body, (b) => ctx.visit(b)) });
   }
 
-  EmptyParams(ctx: Context): void {
-    ctx.pushValue(out.EmptyParams);
+  EmptyElementParameters(ctx: Context): out.EmptyElementParameters {
+    return ctx.op(out.EmptyElementParameters);
   }
 
-  HashPair(ctx: Context, { key }: OpArgs<pass2.HashPair>): void {
-    let value = ctx.popValue(EXPR);
-
-    ctx.pushValue(out.HashPair, { key: ctx.slice(key), value });
+  SourceSlice(ctx: Context, args: OpArgs<pass1.SourceSlice>): out.SourceSlice {
+    return ctx.op(out.SourceSlice, args);
   }
 
-  Hash(ctx: Context, { entries }: OpArgs<pass2.Hash>): void {
-    assert(entries >= 1, `pass2.Hash must have at least one entry (use pass2.EmptyHash)`);
-
-    ctx.assertStackHas(entries);
-
-    let pairs: out.HashPair[] = [];
-
-    for (let i = 0; i < entries; i++) {
-      pairs.unshift(ctx.popValue(HASH_PAIR));
-    }
-
-    if (isPresent(pairs)) {
-      ctx.pushValue(out.Hash, { pairs });
-    } else {
-      ctx.pushValue(out.EmptyHash);
-    }
+  Tail(ctx: Context, { members }: OpArgs<pass2.Tail>): out.Tail {
+    return ctx.op(out.Tail, { members });
   }
 
-  EmptyHash(ctx: Context): void {
-    ctx.pushValue(out.EmptyHash);
+  NamedBlocks(ctx: Context, { blocks }: OpArgs<pass2.NamedBlocks>): out.NamedBlocks {
+    return ctx.op(out.NamedBlocks, { blocks: ctx.visitList(blocks) });
+  }
+
+  EmptyNamedBlocks(ctx: Context): out.EmptyNamedBlocks {
+    return ctx.op(out.EmptyNamedBlocks);
+  }
+
+  NamedBlock(ctx: Context, { name, body, symbols }: OpArgs<pass2.NamedBlock>): out.NamedBlock {
+    return ctx.op(out.NamedBlock, {
+      name: ctx.op(out.SourceSlice, name.args),
+      parameters: symbols.slots,
+      statements: body.map((s) => ctx.visit(s)),
+    });
+  }
+
+  Args(ctx: Context, { positional, named }: OpArgs<pass2.Args>): out.Args {
+    return ctx.op(out.Args, { positional: ctx.visit(positional), named: ctx.visit(named) });
+  }
+
+  Positional(ctx: Context, { list }: OpArgs<pass2.Positional>): out.Positional {
+    let params = ctx.visitList(list);
+
+    return ctx.op(out.Positional, { list: params });
+  }
+
+  EmptyPositional(ctx: Context): out.EmptyPositional {
+    return ctx.op(out.EmptyPositional);
+  }
+
+  NamedArgument(ctx: Context, { key, value }: OpArgs<pass2.NamedArgument>): out.HashPair {
+    return ctx.op(out.HashPair, { key: ctx.visit(key), value: ctx.visit(value) });
+  }
+
+  NamedArguments(ctx: Context, { pairs }: OpArgs<pass2.NamedArguments>): out.NamedArguments {
+    return ctx.op(out.NamedArguments, { pairs: ctx.visitList(pairs) });
+  }
+
+  EmptyNamedArguments(ctx: Context): out.EmptyNamedArguments {
+    return ctx.op(out.EmptyNamedArguments);
   }
 }
 
-export const INTERNAL: Visitors<pass2.InternalTable, void> = new InternalVisitors();
+export const INTERNAL = new Pass2Internal();
 
 export function isInternal(input: pass2.Op): input is pass2.Internal {
   return input.name in INTERNAL;
 }
 
-class ExpressionVisitors implements Visitors<pass2.ExprTable, void> {
-  Literal(ctx: Context, { value }: OpArgs<pass2.Literal>): void {
+export class Pass2Expression implements Visitors<pass2.ExprTable, out.Expr> {
+  Literal(ctx: Context, { value }: OpArgs<pass2.Literal>): out.Expr {
     if (value === undefined) {
-      ctx.pushValue(out.Undefined);
+      return ctx.op(out.Undefined);
     } else {
-      ctx.pushValue(out.Value, { value });
+      return ctx.op(out.Value, { value });
     }
   }
 
-  HasBlock(ctx: Context, { symbol }: OpArgs<pass2.HasBlock>): void {
-    ctx.pushValue(out.HasBlock, { symbol });
+  Missing(ctx: Context): out.Missing {
+    return ctx.op(out.Missing);
   }
 
-  HasBlockParams(ctx: Context, { symbol }: OpArgs<pass2.HasBlockParams>): void {
-    ctx.pushValue(out.HasBlockParams, { symbol });
+  HasBlock(ctx: Context, { symbol }: OpArgs<pass2.HasBlock>): out.Expr {
+    return ctx.op(out.HasBlock, { symbol });
   }
 
-  GetFreeWithContext(ctx: Context, { symbol, context }: OpArgs<pass2.GetFreeWithContext>): void {
-    ctx.pushValue(out.GetContextualFree, { symbol, context: expressionContextOp(context) });
+  HasBlockParams(ctx: Context, { symbol }: OpArgs<pass2.HasBlockParams>): out.Expr {
+    return ctx.op(out.HasBlockParams, { symbol });
   }
 
-  GetFree(ctx: Context, { symbol }: OpArgs<pass2.GetFree>): void {
-    ctx.pushValue(out.GetFree, { symbol });
+  GetFreeWithContext(
+    ctx: Context,
+    { symbol, context }: OpArgs<pass2.GetFreeWithContext>
+  ): out.Expr {
+    return ctx.op(out.GetContextualFree, { symbol, context: expressionContextOp(context) });
   }
 
-  GetSymbol(ctx: Context, { symbol }: OpArgs<pass2.GetSymbol>): void {
-    ctx.pushValue(out.GetSymbol, { symbol });
+  GetFree(ctx: Context, { symbol }: OpArgs<pass2.GetFree>): out.Expr {
+    return ctx.op(out.GetFree, { symbol });
   }
 
-  GetPath(ctx: Context, tail: OpArgs<pass2.GetPath>): void {
-    let head = ctx.popValue(GET);
-    ctx.pushValue(out.GetPath, {
-      head,
-      tail: mapPresent(tail, (t) => ctx.op(out.SourceSlice, t)),
+  GetSloppy(ctx: Context, { symbol }: OpArgs<pass2.GetSloppy>): out.Expr {
+    return ctx.op(out.GetSloppy, { symbol });
+  }
+
+  GetSymbol(ctx: Context, { symbol }: OpArgs<pass2.GetSymbol>): out.Expr {
+    return ctx.op(out.GetSymbol, { symbol });
+  }
+
+  GetPath(ctx: Context, { head, tail }: OpArgs<pass2.GetPath>): out.GetPath {
+    return ctx.op(out.GetPath, {
+      head: ctx.visit(head),
+      tail: ctx.visit(tail),
     });
   }
 
-  Concat(ctx: Context): void {
-    ctx.pushValue(out.Concat, { parts: ctx.popValue(CONCAT_PARAMS) });
+  Concat(ctx: Context, { parts }: OpArgs<pass2.Concat>): out.Expr {
+    return ctx.op(out.Concat, { parts: ctx.visit(parts) });
   }
 
-  Helper(ctx: Context): void {
-    let head = ctx.popValue(EXPR);
-    let params = ctx.popValue(PARAMS);
-    let hash = ctx.popValue(HASH);
+  Helper(ctx: Context, { head, args }: OpArgs<pass2.Helper>): out.Call {
+    // let head = ctx.popValue(EXPR);
+    // let params = ctx.popValue(PARAMS);
+    // let hash = ctx.popValue(HASH);
 
-    ctx.pushValue(out.Call, { head, params, hash });
+    return ctx.op(out.Call, { head: ctx.visit(head), args: ctx.visit(args) });
   }
 }
 
-export const EXPRESSIONS: Visitors<pass2.ExprTable, void> = new ExpressionVisitors();
+export const EXPRESSIONS = new Pass2Expression();
 
 export function isExpr(input: pass2.Op): input is pass2.Expr {
   return input.name in EXPRESSIONS;
 }
 
-export function expressionContextOp(context: ExpressionContext) {
+export function expressionContextOp(context: ExpressionContext): GetContextualFreeOp {
   switch (context) {
     case ExpressionContext.AppendSingleId:
       return WireOp.GetFreeInAppendSingleId;
