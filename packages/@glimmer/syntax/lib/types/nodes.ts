@@ -180,16 +180,33 @@ export interface SubExpression extends Call {
   hash: Hash;
 }
 
-export interface PathHead {
-  type: 'PathHead';
-  kind: 'this' | '@' | 'var';
+export interface ThisHead {
+  type: 'ThisHead';
+  loc?: SourceLocation;
 }
+
+export interface AtHead {
+  type: 'AtHead';
+  name: string;
+  loc?: SourceLocation;
+}
+
+export interface VarHead {
+  type: 'VarHead';
+  name: string;
+  loc?: SourceLocation;
+}
+
+export type PathHead = ThisHead | AtHead | VarHead;
 
 export interface PathExpression extends BaseNode {
   type: 'PathExpression';
-  data: boolean;
+  head: PathHead;
   original: string;
-  this: boolean;
+  tail: string[];
+  /**
+   * @deprecated use head and tail instead
+   */
   parts: string[];
 }
 

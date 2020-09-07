@@ -1,13 +1,14 @@
 import { ExpressionContext, Option, PresentArray } from '@glimmer/interfaces';
 import { AST, builders, GlimmerSyntaxError, SourceLocation } from '@glimmer/syntax';
 import { assertPresent, assign, ifPresent, isPresent, mapPresent } from '@glimmer/util';
+import { SYNTHETIC } from '@glimmer/syntax';
 import { getAttrNamespace } from '../../../utils';
 // import { Option } from '@glimmer/interfaces';
 import * as pass1 from '../../pass1/ops';
 import { SymbolTable } from '../../shared/symbol-table';
 import { Context } from '../context';
 import { EXPR_KEYWORDS } from '../keywords/exprs';
-import { buildArgs, buildHash, buildParams } from '../utils/builders';
+import { buildArgs, buildHash, buildParams, buildPathWithContext } from '../utils/builders';
 import {
   assertIsSimpleHelper,
   isHelperInvocation,
@@ -49,9 +50,9 @@ export function ElementNode(
   let { attrs: attrNodes, args: argNodes } = result;
 
   let outAttrs: pass1.ElementParameter[] = attrNodes.map((a) =>
-    attr(ctx, a, elementDetails.hasComponentFeatures, element)
+    attr(ctx, a, elementDetails.dynamicFeatures, element)
   );
-  let outArgPairs = argNodes.map((a) => arg(ctx, a, elementDetails.hasComponentFeatures, element));
+  let outArgPairs = argNodes.map((a) => arg(ctx, a, elementDetails.dynamicFeatures, element));
   let outArgs = isPresent(outArgPairs)
     ? ctx.op(pass1.NamedArguments, { pairs: outArgPairs }).offsets(outArgPairs)
     : ctx.op(pass1.EmptyNamedArguments).offsets(null);
@@ -84,31 +85,23 @@ export function ElementNode(
   }
 
   switch (elementDetails.type) {
-    case 'SimpleElement': {
+    case 'Element': {
       assertNoNamedBlocks(classifiedBlock, elementDetails, element.loc);
       let { type, ...rest } = elementDetails;
 
       return ctx
         .op(
           pass1.SimpleElement,
-          assign(rest, { params: elementParams, body: classifiedBlock.block })
-        )
-        .loc(element);
-    }
-    case 'ElementWithDynamicFeatures': {
-      assertNoNamedBlocks(classifiedBlock, elementDetails, element.loc);
-      let { type, ...rest } = elementDetails;
-
-      return ctx
-        .op(
-          pass1.ElementWithDynamicFeatures,
-          assign(rest, { params: elementParams, body: classifiedBlock.block })
+          assign(rest, {
+            params: elementParams,
+            body: classifiedBlock.block,
+          })
         )
         .loc(element);
     }
 
     case 'Component': {
-      let { type, selfClosing, ...rest } = elementDetails;
+      let { type, ...rest } = elementDetails;
 
       let blocks =
         classifiedBlock.type === 'named-block'
@@ -121,7 +114,7 @@ export function ElementNode(
           assign(rest, {
             params: elementParams,
             args: outArgs,
-            blocks: selfClosing ? ctx.op(pass1.EmptyNamedBlocks).loc(element) : blocks,
+            blocks: element.selfClosing ? ctx.op(pass1.EmptyNamedBlocks).loc(element) : blocks,
           })
         )
         .loc(element);
@@ -150,7 +143,7 @@ export function arg(
   let name = attr.name;
   let nameSlice = ctx.slice(name).offsets(null);
 
-  let { value } = dynamicAttrValue(ctx, attr.value);
+  let value = dynamicAttrValue(ctx, attr.value);
 
   return ctx
     .op(pass1.NamedArgument, {
@@ -171,7 +164,7 @@ export function attr(
   let rawValue = attr.value;
 
   let namespace = getAttrNamespace(name) || undefined;
-  let { value } = dynamicAttrValue(ctx, rawValue);
+  let value = dynamicAttrValue(ctx, rawValue);
 
   let isTrusting = isTrustingNode(attr.value);
 
@@ -197,61 +190,58 @@ export function attr(
 function simpleDynamicAttrValue(
   ctx: Context,
   value: AST.MustacheStatement | AST.TextNode
-): { value: pass1.Expr; isStatic: boolean } {
+): pass1.Expr {
   // returns the static value if the value is static
   if (value.type === 'TextNode') {
-    return {
-      value: ctx.op(pass1.Literal, { value: value.chars }).loc(value),
-      isStatic: true,
-    };
+    return ctx.op(pass1.Literal, { value: value.chars }).loc(value);
   }
 
   if (EXPR_KEYWORDS.match(value)) {
-    return { value: EXPR_KEYWORDS.translate(value, ctx), isStatic: false };
+    return EXPR_KEYWORDS.translate(value, ctx);
   }
 
   if (isHelperInvocation(value)) {
     assertIsSimpleHelper(value, value.loc, 'helper');
 
-    return {
-      value: ctx
-        .op(
-          pass1.SubExpression,
-          assign(
-            {
-              head: ctx.visitExpr(value.path, ExpressionContext.CallHead),
-            },
-            buildArgs(ctx, value)
-          )
+    return ctx
+      .op(
+        pass1.SubExpression,
+        assign(
+          {
+            head: ctx.visitExpr(value.path, ExpressionContext.CallHead),
+          },
+          buildArgs(ctx, value)
         )
-        .loc(value),
-      isStatic: false,
-    };
+      )
+      .loc(value);
   }
 
-  if (value.path.type === 'PathExpression' && isSimplePath(value.path)) {
-    // x={{simple}}
-    return {
-      value: ctx.visitExpr(value.path, ExpressionContext.AppendSingleId),
-      isStatic: false,
-    };
-  } else {
-    // x={{simple.value}}
-    return { value: ctx.visitExpr(value.path, ExpressionContext.Expression), isStatic: false };
+  switch (value.path.type) {
+    case 'PathExpression': {
+      if (isSimplePath(value.path)) {
+        // x={{simple}}
+        return buildPathWithContext(ctx, value.path, ExpressionContext.AppendSingleId);
+      } else {
+        // x={{simple.value}}
+
+        return buildPathWithContext(ctx, value.path, ExpressionContext.Expression);
+      }
+    }
+
+    default: {
+      return ctx.visitExpr(value.path);
+    }
   }
 }
 
 export function dynamicAttrValue(
   ctx: Context,
   value: AST.TextNode | AST.MustacheStatement | AST.ConcatStatement
-): { value: pass1.Expr; isStatic: boolean } {
+): pass1.Expr {
   if (value.type === 'ConcatStatement') {
-    let exprs = mapPresent(assertPresent(value.parts), (part) => dynamicAttrValue(ctx, part).value);
+    let exprs = mapPresent(assertPresent(value.parts), (part) => dynamicAttrValue(ctx, part));
 
-    return {
-      value: ctx.op(pass1.Concat, { parts: exprs }).loc(value),
-      isStatic: false,
-    };
+    return ctx.op(pass1.Concat, { parts: exprs }).loc(value);
   }
 
   return simpleDynamicAttrValue(ctx, value);
@@ -317,25 +307,18 @@ function modifier(ctx: Context, modifier: AST.ElementModifierStatement): pass1.M
 
 type ClassifiedElement =
   | {
-      is: 'dynamic-tag';
-      path: AST.PathExpression;
-      selfClosing: boolean;
-      loc: SourceLocation;
-    }
-  | {
       is: 'component';
-      tag: string;
-      selfClosing: boolean;
+      tag: pass1.Expr;
       loc: SourceLocation;
     }
-  | { is: 'has-dynamic-features'; tag: string; loc: SourceLocation }
-  | { is: 'html'; tag: string; loc: SourceLocation };
+  | { is: 'element'; tag: string; loc: SourceLocation; hasDynamicFeatures: boolean };
 
 function isNamedBlock(element: AST.ElementNode): boolean {
   return element.tag[0] === ':';
 }
 
 function classifyNormalElement(
+  ctx: Context,
   element: AST.ElementNode,
   currentSymbols: SymbolTable
 ): ClassifiedElement {
@@ -347,67 +330,84 @@ function classifyNormalElement(
 
   if (isNamedArgument) {
     return {
-      is: 'dynamic-tag',
-      selfClosing: element.selfClosing,
-      path: {
+      is: 'component',
+      tag: ctx.visitExpr({
         type: 'PathExpression',
-        data: true,
-        parts: [maybeLocal.slice(1), ...rest],
-        this: false,
+        head: {
+          type: 'AtHead',
+          name: maybeLocal.slice(1),
+          loc: SYNTHETIC,
+        },
+        tail: [...rest],
+        parts: [],
         original: element.tag,
         loc: element.loc,
-      },
+      }),
       loc: element.loc,
     };
   }
 
   if (isThisPath) {
     return {
-      is: 'dynamic-tag',
-      selfClosing: element.selfClosing,
-      path: {
+      is: 'component',
+      tag: ctx.visitExpr({
         type: 'PathExpression',
-        data: false,
+        head: {
+          type: 'ThisHead',
+          loc: SYNTHETIC,
+        },
         parts: rest,
-        this: true,
+        tail: rest,
         original: element.tag,
         loc: element.loc,
-      },
+      }),
       loc: element.loc,
     };
   }
 
   if (currentSymbols.has(maybeLocal)) {
     return {
-      is: 'dynamic-tag',
-      selfClosing: element.selfClosing,
-      path: {
-        type: 'PathExpression',
-        data: false,
-        parts: [maybeLocal, ...rest],
-        this: false,
-        original: element.tag,
-        loc: element.loc,
-      },
+      is: 'component',
+      tag: ctx.visitExpr(
+        {
+          type: 'PathExpression',
+          head: {
+            type: 'VarHead',
+            name: maybeLocal,
+            loc: element.loc,
+          },
+          parts: [maybeLocal, ...rest],
+          tail: [...rest],
+          original: element.tag,
+          loc: element.loc,
+        },
+        ExpressionContext.ComponentHead
+      ),
       loc: element.loc,
     };
   }
 
   if (open === open.toUpperCase() && open !== open.toLowerCase()) {
+    let tag = ctx
+      .op(pass1.GetVar, {
+        name: ctx.slice(ctx.customizeComponentName(element.tag)).offsets(null),
+        context: ExpressionContext.ComponentHead,
+      })
+      .loc(element.loc);
+
     return {
       is: 'component',
-      tag: element.tag,
+      tag,
       loc: element.loc,
-      selfClosing: element.selfClosing,
     };
   }
 
   if (isHTMLElement(element)) {
     // we're looking at an element with no component features
     // (no modifiers, no splattributes)
-    return { is: 'html', tag: element.tag, loc: element.loc };
+    return { is: 'element', tag: element.tag, loc: element.loc, hasDynamicFeatures: false };
   } else {
-    return { is: 'has-dynamic-features', tag: element.tag, loc: element.loc };
+    return { is: 'element', tag: element.tag, loc: element.loc, hasDynamicFeatures: true };
   }
 }
 
@@ -415,63 +415,34 @@ type ClassifiedElementDetails =
   | {
       type: 'Component';
       tag: pass1.Expr;
-      selfClosing: boolean;
-      hasComponentFeatures: true;
+      dynamicFeatures: true;
     }
   | {
-      type: 'ElementWithDynamicFeatures';
+      type: 'Element';
       tag: pass1.SourceSlice;
-      hasComponentFeatures: true;
-    }
-  | {
-      type: 'SimpleElement';
-      tag: pass1.SourceSlice;
-      hasComponentFeatures: false;
+      dynamicFeatures: boolean;
     };
 
 function classifiedElementDetails(
   ctx: Context,
   element: AST.ElementNode
 ): ClassifiedElementDetails {
-  let classified = classifyNormalElement(element, ctx.symbols.current);
+  let classified = classifyNormalElement(ctx, element, ctx.symbols.current);
   switch (classified.is) {
-    case 'dynamic-tag': {
-      return {
-        type: 'Component',
-        tag: ctx.visitExpr(classified.path, ExpressionContext.ComponentHead),
-        selfClosing: classified.selfClosing,
-        hasComponentFeatures: true,
-      };
-    }
-
     case 'component': {
       return {
         type: 'Component',
-        tag: ctx
-          .op(pass1.GetVar, {
-            name: ctx.slice(ctx.customizeComponentName(classified.tag)).offsets(null),
-            context: ExpressionContext.ComponentHead,
-          })
-          .loc(classified),
-        selfClosing: classified.selfClosing,
-        hasComponentFeatures: true,
+        tag: classified.tag,
+        dynamicFeatures: true,
       };
     }
 
     // TODO Reject block params for both kinds of HTML elements
-    case 'has-dynamic-features': {
+    case 'element': {
       return {
-        type: 'ElementWithDynamicFeatures',
+        type: 'Element',
         tag: ctx.slice(classified.tag).loc(classified),
-        hasComponentFeatures: true,
-      };
-    }
-
-    case 'html': {
-      return {
-        type: 'SimpleElement',
-        tag: ctx.slice(classified.tag).loc(classified),
-        hasComponentFeatures: false,
+        dynamicFeatures: classified.hasDynamicFeatures,
       };
     }
   }

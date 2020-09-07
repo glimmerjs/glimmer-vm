@@ -60,13 +60,13 @@ export function buildPathWithContext(
   path: AST.PathExpression,
   context: ExpressionContext
 ): pass1.Expr {
-  let { parts } = path;
-  if (path.data) {
-    return argPath(ctx, `@${parts[0]}`, parts.slice(1), path);
-  } else if (path.this) {
+  let { tail: parts, head } = path;
+  if (head.type === 'AtHead') {
+    return argPath(ctx, `@${head.name}`, parts, path);
+  } else if (head.type === 'ThisHead') {
     return thisPath(ctx, parts, path);
   } else {
-    return varPath(ctx, parts[0], parts.slice(1), path, context);
+    return varPath(ctx, head.name, parts, path, context);
   }
 }
 

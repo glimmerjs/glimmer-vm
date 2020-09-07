@@ -1,4 +1,4 @@
-import b from '../builders';
+import b, { SYNTHETIC } from '../builders';
 import { appendChild, isLiteral, printLiteral } from '../utils';
 import * as AST from '../types/nodes';
 import * as HBS from '../types/handlebars-ast';
@@ -6,6 +6,7 @@ import { Parser, Tag, Attribute } from '../parser';
 import SyntaxError from '../errors/syntax-error';
 import { Recast, Option } from '@glimmer/interfaces';
 import { TokenizerState } from 'simple-html-tokenizer';
+import { expect } from '@glimmer/util';
 
 export abstract class HandlebarsNodeVisitors extends Parser {
   abstract appendToCommentData(s: string): void;
@@ -312,12 +313,45 @@ export abstract class HandlebarsNodeVisitors extends Parser {
       thisHead = true;
     }
 
+    let pathHead: AST.PathHead;
+    let legacyParts: string[] = [];
+    if (thisHead) {
+      pathHead = {
+        type: 'ThisHead',
+        loc: SYNTHETIC,
+      };
+      legacyParts = ['this'];
+    } else if (path.data) {
+      let head = expect(
+        parts.shift(),
+        `a PathExpression node with data: true must have at least one part`
+      );
+      pathHead = {
+        type: 'AtHead',
+        name: head,
+        loc: SYNTHETIC,
+      };
+      legacyParts = [`@${head}`];
+    } else {
+      let head = expect(
+        parts.shift(),
+        `a PathExpression node with data: false and this: false must have at least one part`
+      );
+
+      pathHead = {
+        type: 'VarHead',
+        name: head,
+        loc: SYNTHETIC,
+      };
+      legacyParts = [head];
+    }
+
     return {
       type: 'PathExpression',
       original: path.original,
-      this: thisHead,
-      parts,
-      data: path.data,
+      head: pathHead,
+      tail: parts,
+      parts: [...legacyParts, ...parts],
       loc: path.loc,
     };
   }

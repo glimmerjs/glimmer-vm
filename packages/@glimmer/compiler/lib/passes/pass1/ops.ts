@@ -266,12 +266,7 @@ export class SimpleElement extends op('SimpleElement').args<{
   tag: SourceSlice;
   params: AnyElementParameters;
   body: NamedBlock;
-}>() {}
-
-export class ElementWithDynamicFeatures extends op('ElementWithDynamicFeatures').args<{
-  tag: SourceSlice;
-  params: AnyElementParameters;
-  body: NamedBlock;
+  dynamicFeatures: boolean;
 }>() {}
 
 export class AttrSplat extends op('AttrSplat').void() {}
@@ -302,7 +297,6 @@ export type Statement =
   | AppendComment
   | Component
   | SimpleElement
-  | ElementWithDynamicFeatures
   | ElementParameter;
 
 export type StatementTable = OpsTable<Statement>;

@@ -21,6 +21,7 @@ const visitorKeys = {
   ConcatStatement: tuple('parts'),
   SubExpression: tuple('path', 'params', 'hash'),
   PathExpression: tuple(),
+  PathHead: tuple(),
 
   StringLiteral: tuple(),
   BooleanLiteral: tuple(),

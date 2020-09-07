@@ -15,15 +15,7 @@ export function visit(source: string, root: pass1.Template): pass2.Template {
   });
 
   let ctx = compilerContext.forOffsets(root.offsets);
-  let statements = ctx.map(root.args.body, (stmt) => {
-    console.log(`pass1: visiting`, stmt);
-    let result = ctx.visitStmt(stmt);
-    console.log(`-> pass1: out`, result);
-
-    return result;
-  });
-
-  console.log(`pass1`, symbols);
+  let statements = ctx.map(root.args.body, (stmt) => ctx.visitStmt(stmt));
 
   return ctx.template({ symbols, statements }).offsets(root.offsets);
 }

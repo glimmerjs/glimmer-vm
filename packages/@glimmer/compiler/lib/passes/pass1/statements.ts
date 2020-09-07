@@ -69,23 +69,13 @@ export class Pass1Statement implements StatementVisitor {
 
   SimpleElement(
     ctx: Context,
-    { tag, params, body }: OpArgs<pass1.SimpleElement>
+    { tag, params, body, dynamicFeatures }: OpArgs<pass1.SimpleElement>
   ): pass2.SimpleElement {
     return ctx.op(pass2.SimpleElement, {
       tag,
       params: ctx.visitInternal(params),
       body: ctx.visitInternal(body),
-    });
-  }
-
-  ElementWithDynamicFeatures(
-    ctx: Context,
-    { tag, params, body }: OpArgs<pass1.ElementWithDynamicFeatures>
-  ): pass2.Statement {
-    return ctx.op(pass2.ElementWithDynamicFeatures, {
-      tag,
-      params: ctx.visitInternal(params),
-      body: ctx.visitInternal(body),
+      dynamicFeatures,
     });
   }
 

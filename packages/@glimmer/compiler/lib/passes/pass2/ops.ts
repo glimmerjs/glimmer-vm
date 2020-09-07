@@ -64,6 +64,7 @@ export class SimpleElement extends op('SimpleElement').args<{
   tag: SourceSlice;
   params: AnyElementParameters;
   body: NamedBlock;
+  dynamicFeatures: boolean;
 }>() {}
 
 export class ElementParameters extends op('ElementParameters').args<{
@@ -73,12 +74,6 @@ export class ElementParameters extends op('ElementParameters').args<{
 export class EmptyElementParameters extends op('EmptyElementParameters').void() {}
 
 export type AnyElementParameters = ElementParameters | EmptyElementParameters;
-
-export class ElementWithDynamicFeatures extends op('ElementWithDynamicFeatures').args<{
-  tag: SourceSlice;
-  params: AnyElementParameters;
-  body: NamedBlock;
-}>() {}
 
 export class Yield extends op('Yield').args<{ to: number; params: AnyParams }>() {}
 export class Partial extends op('Partial').args<{ target: Expr; table: SymbolTable }>() {}
@@ -179,7 +174,6 @@ export type Statement =
   | AppendTextNode
   | Component
   | SimpleElement
-  | ElementWithDynamicFeatures
   | StaticArg
   | DynamicArg
   | AnyAttr

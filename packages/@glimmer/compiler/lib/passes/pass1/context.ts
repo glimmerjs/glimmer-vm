@@ -189,18 +189,36 @@ export class Context {
   }
 
   visitExpr(node: pass1.Expr): pass2.Expr {
-    return visit(this.ctx.visitor.expressions, node, this);
+    console.groupCollapsed(`pass1: visiting expr`, node.name);
+    console.log(`expr`, node);
+
+    let result = visit(this.ctx.visitor.expressions, node, this);
+    console.log(`-> pass1: out`, result);
+    console.groupEnd();
+    return result;
   }
 
   visitInternal<N extends Exclude<pass1.Internal, pass1.Ignore>>(
     node: N
   ): MapOutput<Pass1Internal, N> {
-    return visit(this.ctx.visitor.internal, node, this);
+    console.groupCollapsed(`pass1: visiting internal`, node.name);
+    console.log(`internal`, node);
+
+    let result = visit(this.ctx.visitor.internal, node, this);
+    console.log(`-> pass1: out`, result);
+    console.groupEnd();
+    return result;
   }
 
   visitStmt<N extends pass1.Statement>(node: N): MapOutput<Pass1Statement, N>;
   visitStmt(node: pass1.Statement): pass2.Statement {
-    return visit(this.ctx.visitor.statements, node, this);
+    console.groupCollapsed(`pass1: visiting statement`, node.name);
+    console.log(`statement`, node);
+
+    let result = visit(this.ctx.visitor.statements, node, this);
+    console.log(`-> pass1: out`, result);
+    console.groupEnd();
+    return result;
   }
 
   visitArgs({

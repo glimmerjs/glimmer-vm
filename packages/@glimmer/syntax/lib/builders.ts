@@ -1,12 +1,12 @@
 import * as AST from './types/nodes';
 import { Option, Dict } from '@glimmer/interfaces';
-import { deprecate, assign } from '@glimmer/util';
+import { deprecate, assign, assert } from '@glimmer/util';
 import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
 import { StringLiteral, BooleanLiteral, NumberLiteral } from './types/handlebars-ast';
 
 // Statements
 
-export type BuilderHead = string | AST.Expression;
+export type BuilderHead = string | AST.PathExpression;
 export type TagDescriptor = string | { name: string; selfClosing: boolean };
 
 function buildMustache(
@@ -18,7 +18,7 @@ function buildMustache(
   strip?: AST.StripFlags
 ): AST.MustacheStatement {
   if (typeof path === 'string') {
-    path = buildHead(path);
+    path = buildPath(path);
   }
 
   return {
@@ -68,7 +68,7 @@ function buildBlock(
 
   return {
     type: 'BlockStatement',
-    path: buildHead(path),
+    path: buildPath(path),
     params: params || [],
     hash: hash || buildHash([]),
     program: defaultBlock || null,
@@ -81,14 +81,14 @@ function buildBlock(
 }
 
 function buildElementModifier(
-  path: BuilderHead,
+  path: BuilderHead | AST.Expression,
   params?: AST.Expression[],
   hash?: AST.Hash,
   loc?: Option<AST.SourceLocation>
 ): AST.ElementModifierStatement {
   return {
     type: 'ElementModifierStatement',
-    path: buildHead(path),
+    path: buildPath(path),
     params: params || [],
     hash: hash || buildHash([]),
     loc: buildLoc(loc || null),
@@ -265,9 +265,9 @@ export function normalizeHash(hash: Dict<AST.Expression>, loc?: AST.SourceLocati
 
 export function normalizeHead(path: PathSexp): AST.Expression {
   if (typeof path === 'string') {
-    return buildHead(path);
+    return buildPath(path);
   } else {
-    return buildHead(path[1], path[2] && path[2][1]);
+    return buildPath(path[1], path[2] && path[2][1]);
   }
 }
 
@@ -394,30 +394,131 @@ function buildSexpr(
 ): AST.SubExpression {
   return {
     type: 'SubExpression',
-    path: buildHead(path),
+    path: buildPath(path),
     params: params || [],
     hash: hash || buildHash([]),
     loc: buildLoc(loc || null),
   };
 }
 
-function buildHead(original: BuilderHead, loc?: AST.SourceLocation): AST.Expression {
-  if (typeof original !== 'string') return original;
+function headToString(head: AST.PathHead): { original: string; parts: string[] } {
+  switch (head.type) {
+    case 'AtHead':
+      return { original: `@${head.name}`, parts: [head.name] };
+    case 'ThisHead':
+      return { original: `this`, parts: [] };
+    case 'VarHead':
+      return { original: head.name, parts: [head.name] };
+  }
+}
 
-  let parts = original.split('.');
-  let thisHead = false;
+function buildHead(
+  original: string,
+  loc?: AST.SourceLocation
+): { head: AST.PathHead; tail: string[] } {
+  let [head, ...tail] = original.split('.');
+  let headNode: AST.PathHead;
 
-  if (parts[0] === 'this') {
-    thisHead = true;
-    parts = parts.slice(1);
+  if (head === 'this') {
+    headNode = {
+      type: 'ThisHead',
+      loc: buildLoc(loc || null),
+    };
+  } else if (head[0] === '@') {
+    headNode = {
+      type: 'AtHead',
+      name: head.slice(1),
+      loc: buildLoc(loc || null),
+    };
+  } else {
+    headNode = {
+      type: 'VarHead',
+      name: head,
+      loc: buildLoc(loc || null),
+    };
   }
 
   return {
+    head: headNode,
+    tail,
+  };
+}
+
+// function buildThis(loc?: AST.SourceLocation): AST.PathHead {
+//   return {
+//     type: 'PathHead',
+//     kind: 'this',
+//     loc: buildLoc(loc || null),
+//   };
+// }
+
+// function buildAtName(loc?: AST.SourceLocation): AST.PathHead {
+//   return {
+//     type: 'PathHead',
+//     kind: '@',
+//     loc: buildLoc(loc || null),
+//   };
+// }
+
+// function buildVar(loc?: AST.SourceLocation): AST.PathHead {
+//   return {
+//     type: 'PathHead',
+//     kind: '@',
+//     loc: buildLoc(loc || null),
+//   };
+// }
+
+// function cleanBuildPath(head: AST.PathHead['kind'], loc?: AST.SourceLocation): AST.PathHead {
+//   return {
+//     type: 'PathHead',
+//     kind,
+//     loc: buildLoc(loc || null),
+//   };
+// }
+
+function buildPath(
+  path: AST.PathExpression | string | { head: string; tail: string[] },
+  loc?: AST.SourceLocation
+): AST.PathExpression;
+function buildPath(path: AST.Expression, loc?: AST.SourceLocation): AST.Expression;
+function buildPath(path: BuilderHead | AST.Expression, loc?: AST.SourceLocation): AST.Expression;
+function buildPath(
+  path: BuilderHead | AST.Expression | { head: string; tail: string[] },
+  loc?: AST.SourceLocation
+): AST.Expression {
+  if (typeof path !== 'string') {
+    if ('type' in path) {
+      return path;
+    } else {
+      let { head, tail } = buildHead(path.head);
+
+      assert(
+        tail.length === 0,
+        `builder.path({ head, tail }) should not be called with a head with dots in it`
+      );
+
+      let { original: originalHead, parts: headParts } = headToString(head);
+
+      return {
+        type: 'PathExpression',
+        original: [originalHead, ...tail].join('.'),
+        head,
+        tail,
+        parts: [...headParts, ...tail],
+        loc: buildLoc(loc || null),
+      };
+    }
+  }
+
+  let { head, tail } = buildHead(path);
+  let { parts: headParts } = headToString(head);
+
+  return {
     type: 'PathExpression',
-    original,
-    this: thisHead,
-    parts,
-    data: false,
+    original: path,
+    head,
+    tail,
+    parts: [...headParts, ...tail],
     loc: buildLoc(loc || null),
   };
 }
@@ -555,7 +656,8 @@ export default {
   attr: buildAttr,
   text: buildText,
   sexpr: buildSexpr,
-  path: buildHead,
+  path: buildPath,
+  head: buildHead,
   concat: buildConcat,
   hash: buildHash,
   pair: buildPair,

@@ -39,7 +39,7 @@ export function isHelperInvocation<N extends AST.Call>(
 }
 
 export interface SimplePath extends AST.PathExpression {
-  parts: [string];
+  tail: [string];
   data: false;
   this: false;
 }
@@ -49,9 +49,9 @@ export type SimpleHelper<N extends HasPath> = N & {
 };
 
 export function isSimplePath(path: AST.PathExpression): path is SimplePath {
-  let { data, this: isThis, parts } = path;
+  let { head, tail: parts } = path;
 
-  return !data && !isThis && parts.length === 1;
+  return head.type === 'VarHead' && parts.length === 0;
 }
 
 export function assertIsSimpleHelper<N extends HasPath>(

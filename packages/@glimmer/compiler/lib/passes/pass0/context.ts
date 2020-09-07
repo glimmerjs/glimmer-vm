@@ -222,19 +222,33 @@ export class Context implements ImmutableContext {
     if (node.type === 'PathExpression') {
       return buildPathWithContext(this, node, context);
     } else {
+      console.groupCollapsed(`pass0: visiting expr`, node.type);
+      console.log(`node`, node);
+
       let f = this.expressions[node.type] as VisitorFunc<Pass0Expressions, N>;
-      return f(node, this);
+      let result = f(node, this);
+
+      console.log(`-> out   `, node);
+      console.groupEnd();
+
+      return result;
     }
   }
 
   visitAmbiguousStmt<N extends keyof Pass0Statements & keyof AST.Nodes>(
     node: AST.Node & AST.Nodes[N]
   ): Exclude<VisitorReturn<Pass0Statements, N>, pass1.NamedBlock> {
+    console.groupCollapsed(`pass0: visiting statement`, node.type);
+    console.log(`node`, node);
+
     let f = this.statements[node.type] as VisitorFunc<Pass0Statements, N>;
     let result: pass1.Statement | pass1.Ignore | pass1.NamedBlock | pass1.TemporaryNamedBlock = f(
       node,
       this
     );
+
+    console.log(`-> out   `, node);
+    console.groupEnd();
 
     assert(result.name !== 'NamedBlock', `Unexpected named block while evaluating statements`);
 
@@ -244,7 +258,8 @@ export class Context implements ImmutableContext {
   visitStmt<N extends keyof Pass0Statements & AST.Statement['type']>(
     node: AST.Statement & { type: N }
   ): Exclude<VisitorReturn<Pass0Statements, N>, pass1.NamedBlock | pass1.TemporaryNamedBlock> {
-    console.log(`pass0: visiting`, node);
+    console.groupCollapsed(`pass0: visiting statement`, node.type);
+    console.log(`node`, node);
 
     let f = this.statements[node.type] as VisitorFunc<Pass0Statements, N>;
     let result: pass1.Statement | pass1.Ignore | pass1.NamedBlock | pass1.TemporaryNamedBlock = f(
@@ -253,6 +268,7 @@ export class Context implements ImmutableContext {
     );
 
     console.log(`-> out   `, node);
+    console.groupEnd();
 
     if (result.name === 'NamedBlock' || result.name === 'TemporaryNamedBlock') {
       throw new GlimmerSyntaxError(

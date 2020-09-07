@@ -11,7 +11,7 @@ export {
 export { SourceLocation, Position as SourcePosition } from './lib/types/nodes';
 
 // needed for tests only
-export { default as builders } from './lib/builders';
+export { default as builders, SYNTHETIC } from './lib/builders';
 export {
   default as TraversalError,
   cannotRemoveNode,

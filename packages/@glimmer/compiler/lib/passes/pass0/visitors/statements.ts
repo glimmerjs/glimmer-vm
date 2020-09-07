@@ -6,7 +6,7 @@ import { UnlocatedOp } from '../../shared/op';
 import { Context, Pass1Stmt, VisitorInterface } from '../context';
 import { BLOCK_KEYWORDS, EXPR_KEYWORDS, STATEMENT_KEYWORDS } from '../keywords';
 import { buildArgs } from '../utils/builders';
-import { assertIsSimpleHelper, isHelperInvocation } from '../utils/is-node';
+import { assertIsSimpleHelper, isHelperInvocation, isSimplePath } from '../utils/is-node';
 import { ElementNode } from './element';
 
 // Whitespace is allowed around and between named blocks
@@ -127,7 +127,7 @@ export const STATEMENTS = new Pass0Statements();
 
 function mustacheContext(body: AST.Expression): ExpressionContext {
   if (body.type === 'PathExpression') {
-    if (body.parts.length > 1 || body.data) {
+    if (!isSimplePath(body)) {
       return ExpressionContext.Expression;
     } else {
       return ExpressionContext.AppendSingleId;

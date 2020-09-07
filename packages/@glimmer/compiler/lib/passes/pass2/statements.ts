@@ -111,23 +111,15 @@ export class StatementEncoder implements Visitors<pass2.StatementTable, OutOp> {
   }
 
   // TODO Merge pass2.SimpleElement and pass2.ElementWithDynamicFeatures
-  SimpleElement({ tag, params, body }: OpArgs<pass2.SimpleElement>): WireStatements {
-    return new WireStatements([
-      [SexpOpcodes.OpenElement, tag.args.value /* TODO deflate */],
-      ...(visitInternal(params) || []),
-      [SexpOpcodes.FlushElement],
-      ...visitInternal(body)[1].statements,
-      [SexpOpcodes.CloseElement],
-    ]);
-  }
-
-  ElementWithDynamicFeatures({
+  SimpleElement({
     tag,
     params,
     body,
-  }: OpArgs<pass2.ElementWithDynamicFeatures>): WireStatements {
+    dynamicFeatures,
+  }: OpArgs<pass2.SimpleElement>): WireStatements {
+    let op = dynamicFeatures ? SexpOpcodes.OpenElementWithSplat : SexpOpcodes.OpenElement;
     return new WireStatements([
-      [SexpOpcodes.OpenElementWithSplat, tag.args.value /* TODO deflate */],
+      [op, tag.args.value /* TODO deflate */],
       ...(visitInternal(params) || []),
       [SexpOpcodes.FlushElement],
       ...visitInternal(body)[1].statements,
