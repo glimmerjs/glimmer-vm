@@ -799,6 +799,26 @@ class Rehydration extends AbstractRehydrationTests {
   }
 
   @test
+  'nested p tags'() {
+    let template = '<p class="outer">{{{content}}}</p>';
+    let innerContent = '<p>This is <strong>HTML safe</strong> content.</p>';
+    let mark = '<!--%glmr%-->';
+    this.renderServerSide(template, { selector: 'div', content: innerContent });
+    let b = blockStack();
+    this.assertHTML(strip`
+      ${b(0)}
+      <p class="outer">${b(1)}${mark}${innerContent}${mark}${b(1)}</p>
+      ${b(0)}
+    `);
+    this.renderClientSide(template, { selector: 'div' });
+    this.assertRehydrationStats({ nodesRemoved: 0 });
+    this.assertHTML(strip`
+    <p class="outer">${innerContent}</p>
+    `);
+    this.assertStableRerender();
+  }
+
+  @test
   'clearing bounds'() {
     let template = strip`
       {{#if isTrue}}
