@@ -58,16 +58,12 @@ export class Pass1Statement implements StatementVisitor {
     return ctx.op(pass2.AppendComment, args);
   }
 
-  Component(
-    ctx: Context,
-    { tag, params, args, blocks, selfClosing }: OpArgs<pass1.Component>
-  ): pass2.Component {
+  Component(ctx: Context, { tag, params, args, blocks }: OpArgs<pass1.Component>): pass2.Component {
     return ctx.op(pass2.Component, {
       tag: ctx.visitExpr(tag),
       params: ctx.visitInternal(params),
       args: ctx.visitInternal(args),
       blocks: ctx.visitInternal(blocks),
-      selfClosing,
     });
   }
 
@@ -104,10 +100,27 @@ export class Pass1Statement implements StatementVisitor {
     return ctx.op(pass2.AttrSplat, { symbol: ctx.table.allocateBlock('attrs') });
   }
 
-  Attr(ctx: Context, { kind, name, value, namespace }: OpArgs<pass1.Attr>): pass2.AnyAttr {
-    let attr = classifyAttr(kind, value);
+  Attr(
+    ctx: Context,
+    { kind, name, value: attrValue, namespace }: OpArgs<pass1.Attr>
+  ): pass2.AnyAttr {
+    if (attrValue.name === 'Literal' && typeof attrValue.args.value === 'string') {
+      let op = kind.component ? pass2.StaticComponentAttr : pass2.StaticSimpleAttr;
+      let value = ctx
+        .unlocatedOp(pass2.SourceSlice, { value: attrValue.args.value })
+        .offsets(attrValue.offsets);
+      return ctx.op<pass2.AnyAttr>(op, { name, value, namespace });
+    } else {
+      let op: OpConstructor<pass2.AnyAttr>;
 
-    return ctx.op<pass2.AnyAttr>(attr, { name, value: ctx.visitExpr(value), namespace });
+      if (kind.trusting) {
+        op = kind.component ? pass2.TrustingComponentAttr : pass2.TrustingDynamicAttr;
+      } else {
+        op = kind.component ? pass2.ComponentAttr : pass2.DynamicSimpleAttr;
+      }
+
+      return ctx.op<pass2.AnyAttr>(op, { name, value: ctx.visitExpr(attrValue), namespace });
+    }
   }
 
   BlockInvocation(
@@ -131,15 +144,3 @@ export class Pass1Statement implements StatementVisitor {
 }
 
 export const STATEMENTS = new Pass1Statement();
-
-function classifyAttr(kind: pass1.AttrKind, value: pass1.Expr): OpConstructor<pass2.AnyAttr> {
-  if (value.name === 'Literal') {
-    return kind.component ? pass2.StaticComponentAttr : pass2.StaticSimpleAttr;
-  }
-
-  if (kind.trusting) {
-    return kind.component ? pass2.TrustingComponentAttr : pass2.TrustingDynamicAttr;
-  } else {
-    return kind.component ? pass2.ComponentAttr : pass2.DynamicSimpleAttr;
-  }
-}

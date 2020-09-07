@@ -85,8 +85,7 @@ export function precompileJSON(
   let ast = preprocess(string, options);
   let pass1In = pass0(string, ast, options);
   let pass2In = pass1(string, pass1In);
-  let pass2Out = pass2(string, pass2In, options);
-  let block = pass2Out.encode();
+  let block = pass2(pass2In);
 
   if (LOCAL_SHOULD_LOG) {
     console.log(`Template ->`, block);

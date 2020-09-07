@@ -6,6 +6,10 @@ import { Context, MapVisitorsInterface } from './context';
 
 export class Pass1Internal
   implements MapVisitorsInterface<Exclude<pass1.Internal, pass1.Ignore>, pass2.Internal> {
+  SourceSlice(ctx: Context, args: OpArgs<pass1.SourceSlice>): pass2.SourceSlice {
+    return ctx.op(pass2.SourceSlice, args);
+  }
+
   Params(ctx: Context, { list }: OpArgs<pass1.Params>): pass2.Positional {
     let values = ctx.visitExprs(list);
     return ctx.op(pass2.Positional, { list: values });

@@ -73,6 +73,7 @@ export type AnyNamedArguments = NamedArguments | EmptyNamedArguments;
 
 export type Internal =
   | Ignore
+  | SourceSlice
   | AnyParams
   | AnyNamedArguments
   | NamedArgument
@@ -251,7 +252,6 @@ export class Component extends op('Component').args<{
   params: AnyElementParameters;
   args: AnyNamedArguments;
   blocks: AnyNamedBlocks;
-  selfClosing: boolean;
 }>() {}
 
 export class ElementParameters extends op('ElementParameters').args<{

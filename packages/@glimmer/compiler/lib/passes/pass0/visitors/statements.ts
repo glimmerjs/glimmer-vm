@@ -141,7 +141,7 @@ export class Pass0Statements implements VisitorInterface<AST.Statement, Pass1Stm
         }
 
         case 'Component': {
-          let { type, ...rest } = elementDetails;
+          let { type, selfClosing, ...rest } = elementDetails;
 
           let blocks =
             classifiedBlock.type === 'named-block'
@@ -149,7 +149,14 @@ export class Pass0Statements implements VisitorInterface<AST.Statement, Pass1Stm
               : ctx.op(pass1.NamedBlocks, { blocks: classifiedBlock.blocks }).loc(element);
 
           return ctx
-            .op(pass1.Component, assign(rest, { params: elementParams, args: outArgs, blocks }))
+            .op(
+              pass1.Component,
+              assign(rest, {
+                params: elementParams,
+                args: outArgs,
+                blocks: selfClosing ? ctx.op(pass1.EmptyNamedBlocks).loc(element) : blocks,
+              })
+            )
             .loc(element);
         }
       }

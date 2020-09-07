@@ -1,146 +1,196 @@
-import { ExpressionContext, GetContextualFreeOp, SexpOpcodes as WireOp } from '@glimmer/interfaces';
-import { exhausted, mapPresent } from '@glimmer/util';
+import {
+  ExpressionContext,
+  GetContextualFreeOp,
+  PresentArray,
+  SexpOpcodes,
+  SexpOpcodes as WireOp,
+  WireFormat,
+} from '@glimmer/interfaces';
+import { assertPresent, exhausted, mapPresent } from '@glimmer/util';
 import * as pass1 from '../pass1/ops';
-import { OpArgs } from '../shared/op';
-import { Visitors } from '../shared/visitors';
-import { Context } from './context';
+import { Op, OpArgs, OpsTable } from '../shared/op';
 import * as pass2 from './ops';
-import * as out from './out';
+import { visitStatement, visitStatements } from './statements';
 
-export class Pass2Internal implements Visitors<pass2.InternalTable, out.Internal> {
-  Missing(ctx: Context): out.Missing {
-    return ctx.op(out.Missing);
+export type HashPair = [string, WireFormat.Expression];
+
+type OutOp = WireFormat.SyntaxWithInternal | HashPair | undefined;
+
+export type Visitors<O extends OpsTable<Op>, Out extends OutOp | void = OutOp | void> = {
+  [P in keyof O]: (args: OpArgs<O[P]>) => Out;
+};
+
+// function visit<N extends pass1.Internal & { name: keyof InternalEncoder }>(
+//   node: N
+// ): ReturnType<InternalEncoder[N['name']]> {
+//   throw new Error('unimplemented');
+// }
+
+export function visitInternal<N extends pass2.Op & { name: keyof InternalEncoder }>(
+  node: N
+): ReturnType<InternalEncoder[N['name']]> {
+  let f = INTERNAL[node.name] as (
+    _node: OpArgs<typeof node>
+  ) => ReturnType<InternalEncoder[N['name']]>;
+  return f(node.args as OpArgs<N>);
+}
+
+export class InternalEncoder
+  implements Visitors<pass2.InternalTable, WireFormat.SyntaxWithInternal> {
+  ElementParameters({ body }: OpArgs<pass2.ElementParameters>): PresentArray<WireFormat.Parameter> {
+    return mapPresent(body, (b) => visitStatement(b));
   }
 
-  ElementParameters(
-    ctx: Context,
-    { body }: OpArgs<pass2.ElementParameters>
-  ): out.ElementParameters {
-    return ctx.op(out.ElementParameters, { statements: mapPresent(body, (b) => ctx.visit(b)) });
+  EmptyElementParameters(): null {
+    return null;
   }
 
-  EmptyElementParameters(ctx: Context): out.EmptyElementParameters {
-    return ctx.op(out.EmptyElementParameters);
+  SourceSlice(args: OpArgs<pass1.SourceSlice>): string {
+    return args.value;
   }
 
-  SourceSlice(ctx: Context, args: OpArgs<pass1.SourceSlice>): out.SourceSlice {
-    return ctx.op(out.SourceSlice, args);
+  Tail({ members }: OpArgs<pass2.Tail>): PresentArray<string> {
+    return mapPresent(members, (member) => member.args.value);
   }
 
-  Tail(ctx: Context, { members }: OpArgs<pass2.Tail>): out.Tail {
-    return ctx.op(out.Tail, { members });
+  NamedBlocks({ blocks }: OpArgs<pass2.NamedBlocks>): WireFormat.Core.Blocks {
+    let names: string[] = [];
+    let serializedBlocks: WireFormat.SerializedInlineBlock[] = [];
+
+    for (let block of blocks) {
+      let [name, serializedBlock] = visitInternal(block);
+
+      names.push(name);
+      serializedBlocks.push(serializedBlock);
+    }
+
+    return [names, serializedBlocks];
   }
 
-  NamedBlocks(ctx: Context, { blocks }: OpArgs<pass2.NamedBlocks>): out.NamedBlocks {
-    return ctx.op(out.NamedBlocks, { blocks: ctx.visitList(blocks) });
+  EmptyNamedBlocks(): null {
+    return null;
   }
 
-  EmptyNamedBlocks(ctx: Context): out.EmptyNamedBlocks {
-    return ctx.op(out.EmptyNamedBlocks);
+  NamedBlock({ name, body, symbols }: OpArgs<pass2.NamedBlock>): WireFormat.Core.NamedBlock {
+    return [
+      visitInternal(name),
+      {
+        parameters: symbols.slots,
+        statements: visitStatements(body),
+      },
+    ];
   }
 
-  NamedBlock(ctx: Context, { name, body, symbols }: OpArgs<pass2.NamedBlock>): out.NamedBlock {
-    return ctx.op(out.NamedBlock, {
-      name: ctx.op(out.SourceSlice, name.args),
-      parameters: symbols.slots,
-      statements: body.map((s) => ctx.visit(s)),
-    });
+  Args({ positional, named }: OpArgs<pass2.Args>): WireFormat.Core.Args {
+    return [visitInternal(positional), visitInternal(named)];
   }
 
-  Args(ctx: Context, { positional, named }: OpArgs<pass2.Args>): out.Args {
-    return ctx.op(out.Args, { positional: ctx.visit(positional), named: ctx.visit(named) });
+  Positional({ list }: OpArgs<pass2.Positional>): WireFormat.Core.ConcatParams {
+    return mapPresent(list, (l) => visitExpr(l));
   }
 
-  Positional(ctx: Context, { list }: OpArgs<pass2.Positional>): out.Positional {
-    let params = ctx.visitList(list);
-
-    return ctx.op(out.Positional, { list: params });
+  EmptyPositional(): WireFormat.Core.Params {
+    return null;
   }
 
-  EmptyPositional(ctx: Context): out.EmptyPositional {
-    return ctx.op(out.EmptyPositional);
+  NamedArgument({ key, value }: OpArgs<pass2.NamedArgument>): HashPair {
+    return [visitInternal(key), visitExpr(value)];
   }
 
-  NamedArgument(ctx: Context, { key, value }: OpArgs<pass2.NamedArgument>): out.HashPair {
-    return ctx.op(out.HashPair, { key: ctx.visit(key), value: ctx.visit(value) });
+  NamedArguments({ pairs }: OpArgs<pass2.NamedArguments>): WireFormat.Core.Hash {
+    let names: string[] = [];
+    let values: WireFormat.Expression[] = [];
+
+    for (let pair of pairs) {
+      let [name, value] = visitInternal(pair);
+      names.push(name);
+      values.push(value);
+    }
+
+    return [assertPresent(names), assertPresent(values)];
   }
 
-  NamedArguments(ctx: Context, { pairs }: OpArgs<pass2.NamedArguments>): out.NamedArguments {
-    return ctx.op(out.NamedArguments, { pairs: ctx.visitList(pairs) });
-  }
-
-  EmptyNamedArguments(ctx: Context): out.EmptyNamedArguments {
-    return ctx.op(out.EmptyNamedArguments);
+  EmptyNamedArguments(): WireFormat.Core.Hash {
+    return null;
   }
 }
 
-export const INTERNAL = new Pass2Internal();
+export const INTERNAL = new InternalEncoder();
 
 export function isInternal(input: pass2.Op): input is pass2.Internal {
   return input.name in INTERNAL;
 }
 
-export class Pass2Expression implements Visitors<pass2.ExprTable, out.Expr> {
-  Literal(ctx: Context, { value }: OpArgs<pass2.Literal>): out.Expr {
+export function visitExpr<N extends pass2.Op & { name: keyof ExpressionEncoder }>(
+  node: N
+): ReturnType<ExpressionEncoder[N['name']]> {
+  let f = EXPRESSIONS[node.name] as (
+    _node: OpArgs<typeof node>
+  ) => ReturnType<ExpressionEncoder[N['name']]>;
+  return f(node.args as OpArgs<N>);
+}
+
+export class ExpressionEncoder
+  implements Visitors<pass2.ExprTable, WireFormat.Expression | undefined> {
+  Literal({
+    value,
+  }: OpArgs<pass2.Literal>): WireFormat.Expressions.Value | WireFormat.Expressions.Undefined {
     if (value === undefined) {
-      return ctx.op(out.Undefined);
+      return [SexpOpcodes.Undefined];
     } else {
-      return ctx.op(out.Value, { value });
+      return value;
     }
   }
 
-  Missing(ctx: Context): out.Missing {
-    return ctx.op(out.Missing);
+  Missing(): undefined {
+    return undefined;
   }
 
-  HasBlock(ctx: Context, { symbol }: OpArgs<pass2.HasBlock>): out.Expr {
-    return ctx.op(out.HasBlock, { symbol });
+  HasBlock({ symbol }: OpArgs<pass2.HasBlock>): WireFormat.Expressions.HasBlock {
+    return [SexpOpcodes.HasBlock, [SexpOpcodes.GetSymbol, symbol]];
   }
 
-  HasBlockParams(ctx: Context, { symbol }: OpArgs<pass2.HasBlockParams>): out.Expr {
-    return ctx.op(out.HasBlockParams, { symbol });
+  HasBlockParams({ symbol }: OpArgs<pass2.HasBlockParams>): WireFormat.Expressions.HasBlockParams {
+    return [SexpOpcodes.HasBlockParams, [SexpOpcodes.GetSymbol, symbol]];
   }
 
-  GetFreeWithContext(
-    ctx: Context,
-    { symbol, context }: OpArgs<pass2.GetFreeWithContext>
-  ): out.Expr {
-    return ctx.op(out.GetContextualFree, { symbol, context: expressionContextOp(context) });
+  GetFreeWithContext({
+    symbol,
+    context,
+  }: OpArgs<pass2.GetFreeWithContext>): WireFormat.Expressions.GetContextualFree {
+    return [expressionContextOp(context), symbol];
   }
 
-  GetFree(ctx: Context, { symbol }: OpArgs<pass2.GetFree>): out.Expr {
-    return ctx.op(out.GetFree, { symbol });
+  GetFree({ symbol }: OpArgs<pass2.GetFree>): WireFormat.Expressions.GetFree {
+    return [SexpOpcodes.GetFree, symbol];
   }
 
-  GetSloppy(ctx: Context, { symbol }: OpArgs<pass2.GetSloppy>): out.Expr {
-    return ctx.op(out.GetSloppy, { symbol });
+  GetSloppy({ symbol }: OpArgs<pass2.GetSloppy>): WireFormat.Expressions.GetContextualFree {
+    return [SexpOpcodes.GetFreeInAppendSingleId, symbol];
   }
 
-  GetSymbol(ctx: Context, { symbol }: OpArgs<pass2.GetSymbol>): out.Expr {
-    return ctx.op(out.GetSymbol, { symbol });
+  GetSymbol({ symbol }: OpArgs<pass2.GetSymbol>): WireFormat.Expressions.GetSymbol {
+    return [SexpOpcodes.GetSymbol, symbol];
   }
 
-  GetPath(ctx: Context, { head, tail }: OpArgs<pass2.GetPath>): out.GetPath {
-    return ctx.op(out.GetPath, {
-      head: ctx.visit(head),
-      tail: ctx.visit(tail),
-    });
+  GetPath({ head, tail }: OpArgs<pass2.GetPath>): WireFormat.Expressions.GetPath {
+    return [SexpOpcodes.GetPath, visitExpr(head), visitInternal(tail)];
   }
 
-  Concat(ctx: Context, { parts }: OpArgs<pass2.Concat>): out.Expr {
-    return ctx.op(out.Concat, { parts: ctx.visit(parts) });
+  Concat({ parts }: OpArgs<pass2.Concat>): WireFormat.Expressions.Concat {
+    return [SexpOpcodes.Concat, visitInternal(parts)];
   }
 
-  Helper(ctx: Context, { head, args }: OpArgs<pass2.Helper>): out.Call {
+  Helper({ head, args }: OpArgs<pass2.Helper>): WireFormat.Expressions.Helper {
     // let head = ctx.popValue(EXPR);
     // let params = ctx.popValue(PARAMS);
     // let hash = ctx.popValue(HASH);
 
-    return ctx.op(out.Call, { head: ctx.visit(head), args: ctx.visit(args) });
+    return [SexpOpcodes.Call, visitExpr(head), ...visitInternal(args)];
   }
 }
 
-export const EXPRESSIONS = new Pass2Expression();
+export const EXPRESSIONS = new ExpressionEncoder();
 
 export function isExpr(input: pass2.Op): input is pass2.Expr {
   return input.name in EXPRESSIONS;

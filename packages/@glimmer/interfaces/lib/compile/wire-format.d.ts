@@ -96,9 +96,9 @@ export namespace Core {
 
   export type CallArgs = [Params, Hash];
   export type Path = [string, ...string[]];
-  export type ConcatParams = [Expression, ...Expression[]];
+  export type ConcatParams = PresentArray<Expression>;
   export type Params = Option<ConcatParams>;
-  export type Hash = Option<[[string, ...string[]], [Expression, ...Expression[]]]>;
+  export type Hash = Option<[PresentArray<string>, PresentArray<Expression>]>;
   export type Blocks = Option<[string[], SerializedInlineBlock[]]>;
   export type Args = [Params, Hash];
   export type NamedBlock = [string, SerializedInlineBlock];
@@ -163,14 +163,14 @@ export namespace Expressions {
 
   export type TupleExpression = Get | Concat | HasBlock | HasBlockParams | Helper | Undefined;
 
-  export type Expression = TupleExpression | Value;
+  // TODO get rid of undefined, which is just here to allow trailing undefined in attrs
+  // it would be better to handle that as an over-the-wire encoding concern
+  export type Expression = TupleExpression | Value | undefined;
 
-  type Recursive<T> = T;
-
-  export interface Concat extends Recursive<[SexpOpcodes.Concat, Core.ConcatParams]> {}
-  export interface Helper extends Recursive<[SexpOpcodes.Call, Expression, Option<Params>, Hash]> {}
-  export interface HasBlock extends Recursive<[SexpOpcodes.HasBlock, Expression]> {}
-  export interface HasBlockParams extends Recursive<[SexpOpcodes.HasBlockParams, Expression]> {}
+  export type Concat = [SexpOpcodes.Concat, Core.ConcatParams];
+  export type Helper = [SexpOpcodes.Call, Expression, Option<Params>, Hash];
+  export type HasBlock = [SexpOpcodes.HasBlock, Expression];
+  export type HasBlockParams = [SexpOpcodes.HasBlockParams, Expression];
 }
 
 export type Expression = Expressions.Expression;
@@ -196,7 +196,7 @@ export const enum WellKnownTagName {
 }
 
 export namespace Statements {
-  export type Expression = Expressions.Expression;
+  export type Expression = Expressions.Expression | undefined;
   export type Params = Core.Params;
   export type Hash = Core.Hash;
   export type Blocks = Core.Blocks;
@@ -248,7 +248,7 @@ export namespace Statements {
   export type DynamicArg = [SexpOpcodes.DynamicArg, string, Expression];
   export type StaticArg = [SexpOpcodes.StaticArg, string, Expression];
 
-  export type TrustingAttr = [
+  export type TrustingDynamicAttr = [
     SexpOpcodes.TrustingDynamicAttr,
     string | WellKnownAttrName,
     Expression,
@@ -292,7 +292,7 @@ export namespace Statements {
     | Partial
     | StaticArg
     | DynamicArg
-    | TrustingAttr
+    | TrustingDynamicAttr
     | TrustingComponentAttr
     | Debugger
     | InElement;
@@ -301,7 +301,7 @@ export namespace Statements {
     | Statements.StaticAttr
     | Statements.StaticComponentAttr
     | Statements.DynamicAttr
-    | Statements.TrustingAttr
+    | Statements.TrustingDynamicAttr
     | Statements.ComponentAttr
     | Statements.TrustingComponentAttr;
 
@@ -318,12 +318,13 @@ export type Argument = Statements.Argument;
 export type Parameter = Statements.Parameter;
 
 export type SexpSyntax = Statement | TupleExpression;
-export type Syntax = SexpSyntax | Expressions.Value;
+// TODO this undefined is related to the other TODO in this file
+export type Syntax = SexpSyntax | Expressions.Value | undefined;
+
 export type SyntaxWithInternal =
   | Syntax
   | CoreSyntax
   | SerializedTemplateBlock
-  | Statement[]
   | Core.CallArgs
   | Core.NamedBlock
   | Core.ElementParameters;

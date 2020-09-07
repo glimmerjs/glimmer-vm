@@ -1,16 +1,15 @@
 import { ExpressionContext, PresentArray } from '@glimmer/interfaces';
-import * as pass1 from '../pass1/ops';
 import { op, OpsTable } from '../shared/op';
 import { BlockSymbolTable, ProgramSymbolTable, SymbolTable } from '../shared/symbol-table';
 
 export interface StaticAttrArgs {
-  name: pass1.SourceSlice;
-  value: pass1.SourceSlice;
+  name: SourceSlice;
+  value: SourceSlice;
   namespace?: string;
 }
 
 export interface DynamicAttrArgs {
-  name: pass1.SourceSlice;
+  name: SourceSlice;
   value: Expr;
   namespace?: string;
 }
@@ -34,34 +33,35 @@ export type AnyNamedBlocks = NamedBlocks | EmptyNamedBlocks;
 
 export class NamedBlock extends op('NamedBlock').args<{
   symbols: BlockSymbolTable;
-  name: pass1.SourceSlice;
+  name: SourceSlice;
   body: Statement[];
 }>() {}
 export class EndBlock extends op('EndBlock').void() {}
 export class AppendTrustedHTML extends op('AppendTrustedHTML').args<{ html: Expr }>() {}
 export class AppendTextNode extends op('AppendTextNode').args<{ text: Expr }>() {}
+export class AppendComment extends op('AppendComment').args<{ value: string }>() {}
+
 export class Component extends op('Component').args<{
   tag: Expr;
   params: AnyElementParameters;
   args: AnyNamedArguments;
   blocks: AnyNamedBlocks;
-  selfClosing: boolean; // TODO make this not required
 }>() {}
 export class StaticArg extends op('StaticArg').args<{
-  name: pass1.SourceSlice;
-  value: pass1.SourceSlice;
+  name: SourceSlice;
+  value: SourceSlice;
 }>() {}
-export class DynamicArg extends op('DynamicArg').args<{ name: pass1.SourceSlice; value: Expr }>() {}
+export class DynamicArg extends op('DynamicArg').args<{ name: SourceSlice; value: Expr }>() {}
 
 export class StaticSimpleAttr extends op('StaticSimpleAttr').args<StaticAttrArgs>() {}
 export class StaticComponentAttr extends op('StaticComponentAttr').args<StaticAttrArgs>() {}
 export class ComponentAttr extends op('ComponentAttr').args<DynamicAttrArgs>() {}
-export class DynamicSimpleAttr extends op('DynamicSimpleAttr').args<StaticAttrArgs>() {}
+export class DynamicSimpleAttr extends op('DynamicSimpleAttr').args<DynamicAttrArgs>() {}
 export class TrustingComponentAttr extends op('TrustingComponentAttr').args<DynamicAttrArgs>() {}
 export class TrustingDynamicAttr extends op('TrustingDynamicAttr').args<DynamicAttrArgs>() {}
 
 export class SimpleElement extends op('SimpleElement').args<{
-  tag: pass1.SourceSlice;
+  tag: SourceSlice;
   params: AnyElementParameters;
   body: NamedBlock;
 }>() {}
@@ -75,7 +75,7 @@ export class EmptyElementParameters extends op('EmptyElementParameters').void() 
 export type AnyElementParameters = ElementParameters | EmptyElementParameters;
 
 export class ElementWithDynamicFeatures extends op('ElementWithDynamicFeatures').args<{
-  tag: pass1.SourceSlice;
+  tag: SourceSlice;
   params: AnyElementParameters;
   body: NamedBlock;
 }>() {}
@@ -124,11 +124,13 @@ export class NamedArguments extends op('NamedArguments').args<{
 }>() {}
 export class EmptyNamedArguments extends op('EmptyNamedArguments').void() {}
 export class NamedArgument extends op('NamedArgument').args<{
-  key: pass1.SourceSlice;
+  key: SourceSlice;
   value: Expr;
 }>() {}
 export class Args extends op('Args').args<{ positional: AnyParams; named: AnyNamedArguments }>() {}
-export class Tail extends op('Tail').args<{ members: PresentArray<pass1.SourceSlice> }>() {}
+export class Tail extends op('Tail').args<{ members: PresentArray<SourceSlice> }>() {}
+
+export class SourceSlice extends op('SourceSlice').args<{ value: string }>() {}
 
 export type AnyArg = StaticArg | DynamicArg;
 export type AnyParams = Positional | EmptyPositional;
@@ -141,9 +143,6 @@ export type AnyAttr =
   | DynamicSimpleAttr
   | TrustingDynamicAttr
   | StaticSimpleAttr;
-
-// pass through
-export import AppendComment = pass1.AppendComment;
 
 export type Expr =
   | Literal
@@ -167,9 +166,8 @@ export type Internal =
   | AnyNamedArguments
   | NamedArgument
   | Tail
-  | Missing
   | NamedBlock
-  | pass1.SourceSlice
+  | SourceSlice
   | AnyNamedBlocks
   | AnyElementParameters;
 export type ExprLike = Expr | Internal;
