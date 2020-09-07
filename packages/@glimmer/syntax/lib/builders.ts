@@ -444,13 +444,69 @@ function buildHead(
   };
 }
 
-// function buildThis(loc?: AST.SourceLocation): AST.PathHead {
-//   return {
-//     type: 'PathHead',
-//     kind: 'this',
-//     loc: buildLoc(loc || null),
-//   };
-// }
+function buildThis(loc?: AST.SourceLocation): AST.PathHead {
+  return {
+    type: 'ThisHead',
+    loc: buildLoc(loc || null),
+  };
+}
+
+function buildAtName(name: string, loc?: AST.SourceLocation): AST.PathHead {
+  // the `@` should be included so we have a complete source range
+  assert(name[0] === '@', `call builders.at() with a string that starts with '@'`);
+
+  return {
+    type: 'AtHead',
+    name: name.slice(1),
+    loc: buildLoc(loc || null),
+  };
+}
+
+function buildVar(name: string, loc?: AST.SourceLocation): AST.PathHead {
+  assert(name !== 'this', `You called builders.var() with 'this'. Call builders.this instead`);
+  assert(
+    name[0] !== '@',
+    `You called builders.var() with '${name}'. Call builders.at('${name}') instead`
+  );
+
+  return {
+    type: 'VarHead',
+    name,
+    loc: buildLoc(loc || null),
+  };
+}
+
+function buildCleanPath(
+  head: AST.PathHead,
+  tail: string[],
+  loc?: AST.SourceLocation
+): AST.PathExpression {
+  let { original: originalHead, parts: headParts } = headToString(head);
+  let parts = [...headParts, ...tail];
+  let original = [...originalHead, ...parts].join('.');
+
+  // tag: ctx.visitExpr({
+  //   type: 'PathExpression',
+  //   head: {
+  //     type: 'AtHead',
+  //     name: maybeLocal.slice(1),
+  //     loc: SYNTHETIC,
+  //   },
+  //   tail: [...rest],
+  //   parts: [],
+  //   original: element.tag,
+  //   loc: element.loc,
+  // }),
+
+  return {
+    type: 'PathExpression',
+    head,
+    tail,
+    original,
+    parts,
+    loc: buildLoc(loc || null),
+  };
+}
 
 // function buildAtName(loc?: AST.SourceLocation): AST.PathHead {
 //   return {
@@ -656,8 +712,7 @@ export default {
   attr: buildAttr,
   text: buildText,
   sexpr: buildSexpr,
-  path: buildPath,
-  head: buildHead,
+
   concat: buildConcat,
   hash: buildHash,
   pair: buildPair,
@@ -667,6 +722,14 @@ export default {
   template: buildTemplate,
   loc: buildLoc,
   pos: buildPosition,
+
+  path: buildPath,
+  head: buildHead,
+
+  fullPath: buildCleanPath,
+  at: buildAtName,
+  var: buildVar,
+  this: buildThis,
 
   string: literal('StringLiteral') as (value: string) => StringLiteral,
   boolean: literal('BooleanLiteral') as (value: boolean) => BooleanLiteral,

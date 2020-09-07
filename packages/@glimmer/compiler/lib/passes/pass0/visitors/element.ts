@@ -1,7 +1,6 @@
 import { ExpressionContext, Option, PresentArray } from '@glimmer/interfaces';
 import { AST, builders, GlimmerSyntaxError, SourceLocation } from '@glimmer/syntax';
 import { assertPresent, assign, ifPresent, isPresent, mapPresent } from '@glimmer/util';
-import { SYNTHETIC } from '@glimmer/syntax';
 import { getAttrNamespace } from '../../../utils';
 // import { Option } from '@glimmer/interfaces';
 import * as pass1 from '../../pass1/ops';
@@ -36,9 +35,9 @@ export function ElementNode(
     });
   }
 
-  let elementDetails = classifiedElementDetails(ctx, element);
+  let classified = classify(ctx, element);
 
-  let result = attributes(element.attributes, elementDetails.type === 'Component');
+  let result = attributes(element.attributes, classified.type === 'Component');
 
   if (result.type === 'error') {
     throw new GlimmerSyntaxError(
@@ -50,9 +49,9 @@ export function ElementNode(
   let { attrs: attrNodes, args: argNodes } = result;
 
   let outAttrs: pass1.ElementParameter[] = attrNodes.map((a) =>
-    attr(ctx, a, elementDetails.dynamicFeatures, element)
+    attr(ctx, a, classified.dynamicFeatures, element)
   );
-  let outArgPairs = argNodes.map((a) => arg(ctx, a, elementDetails.dynamicFeatures, element));
+  let outArgPairs = argNodes.map((a) => arg(ctx, a, classified.dynamicFeatures, element));
   let outArgs = isPresent(outArgPairs)
     ? ctx.op(pass1.NamedArguments, { pairs: outArgPairs }).offsets(outArgPairs)
     : ctx.op(pass1.EmptyNamedArguments).offsets(null);
@@ -80,14 +79,14 @@ export function ElementNode(
     return classifyBody(element, block);
   });
 
-  if (classifiedBlock.type === 'named-blocks' && elementDetails.type !== 'Component') {
+  if (classifiedBlock.type === 'named-blocks' && classified.type !== 'Component') {
     throw new GlimmerSyntaxError(`Named blocks are only allowed inside a component`, element.loc);
   }
 
-  switch (elementDetails.type) {
+  switch (classified.type) {
     case 'Element': {
-      assertNoNamedBlocks(classifiedBlock, elementDetails, element.loc);
-      let { type, ...rest } = elementDetails;
+      assertNoNamedBlocks(classifiedBlock, classified, element.loc);
+      let { type, ...rest } = classified;
 
       return ctx
         .op(
@@ -101,7 +100,7 @@ export function ElementNode(
     }
 
     case 'Component': {
-      let { type, ...rest } = elementDetails;
+      let { type, ...rest } = classified;
 
       let blocks =
         classifiedBlock.type === 'named-block'
@@ -262,7 +261,7 @@ function assertValidArgumentName(
 
 function assertNoNamedBlocks(
   body: ClassifiedBody,
-  el: ClassifiedElementDetails,
+  el: ClassifiedElement,
   loc: SourceLocation
 ): asserts body is { type: 'named-block'; block: pass1.NamedBlock } {
   if (body.type === 'named-blocks' && el.type !== 'Component') {
@@ -305,113 +304,83 @@ function modifier(ctx: Context, modifier: AST.ElementModifierStatement): pass1.M
     .loc(modifier);
 }
 
-type ClassifiedElement =
-  | {
-      is: 'component';
-      tag: pass1.Expr;
-      loc: SourceLocation;
-    }
-  | { is: 'element'; tag: string; loc: SourceLocation; hasDynamicFeatures: boolean };
-
 function isNamedBlock(element: AST.ElementNode): boolean {
   return element.tag[0] === ':';
 }
 
-function classifyNormalElement(
-  ctx: Context,
-  element: AST.ElementNode,
-  currentSymbols: SymbolTable
-): ClassifiedElement {
-  let open = element.tag.charAt(0);
+type ElementKind = 'NamedArg' | 'This' | 'Local' | 'Uppercase' | 'Element';
 
-  let [maybeLocal, ...rest] = element.tag.split('.');
-  let isNamedArgument = open === '@';
-  let isThisPath = maybeLocal === 'this';
+function isUpperCase(tag: string): boolean {
+  return tag[0] === tag[0].toUpperCase() && tag[0] !== tag[0].toLowerCase();
+}
 
-  if (isNamedArgument) {
-    return {
-      is: 'component',
-      tag: ctx.visitExpr({
-        type: 'PathExpression',
-        head: {
-          type: 'AtHead',
-          name: maybeLocal.slice(1),
-          loc: SYNTHETIC,
-        },
-        tail: [...rest],
-        parts: [],
-        original: element.tag,
-        loc: element.loc,
-      }),
-      loc: element.loc,
-    };
-  }
-
-  if (isThisPath) {
-    return {
-      is: 'component',
-      tag: ctx.visitExpr({
-        type: 'PathExpression',
-        head: {
-          type: 'ThisHead',
-          loc: SYNTHETIC,
-        },
-        parts: rest,
-        tail: rest,
-        original: element.tag,
-        loc: element.loc,
-      }),
-      loc: element.loc,
-    };
-  }
-
-  if (currentSymbols.has(maybeLocal)) {
-    return {
-      is: 'component',
-      tag: ctx.visitExpr(
-        {
-          type: 'PathExpression',
-          head: {
-            type: 'VarHead',
-            name: maybeLocal,
-            loc: element.loc,
-          },
-          parts: [maybeLocal, ...rest],
-          tail: [...rest],
-          original: element.tag,
-          loc: element.loc,
-        },
-        ExpressionContext.ComponentHead
-      ),
-      loc: element.loc,
-    };
-  }
-
-  if (open === open.toUpperCase() && open !== open.toLowerCase()) {
-    let tag = ctx
-      .op(pass1.GetVar, {
-        name: ctx.slice(ctx.customizeComponentName(element.tag)).offsets(null),
-        context: ExpressionContext.ComponentHead,
-      })
-      .loc(element.loc);
-
-    return {
-      is: 'component',
-      tag,
-      loc: element.loc,
-    };
-  }
-
-  if (isHTMLElement(element)) {
-    // we're looking at an element with no component features
-    // (no modifiers, no splattributes)
-    return { is: 'element', tag: element.tag, loc: element.loc, hasDynamicFeatures: false };
+function classifyTag(variable: string, currentSymbols: SymbolTable): ElementKind {
+  debugger;
+  if (variable[0] === '@') {
+    return 'NamedArg';
+  } else if (variable === 'this') {
+    return 'This';
+  } else if (currentSymbols.has(variable)) {
+    return 'Local';
+  } else if (isUpperCase(variable)) {
+    return 'Uppercase';
   } else {
-    return { is: 'element', tag: element.tag, loc: element.loc, hasDynamicFeatures: true };
+    return 'Element';
   }
 }
 
-type ClassifiedElementDetails =
+function classify(
+  ctx: Context,
+  { tag, loc, attributes, modifiers }: AST.ElementNode
+): ClassifiedElement {
+  // this code is parsing the expression at the head of component, which
+  // is not done by @glimmer/syntax, and notably is scope-sensitive.
+
+  let [maybeLocal, ...rest] = tag.split('.');
+
+  let kind = classifyTag(maybeLocal, ctx.symbols.current);
+
+  let path: AST.PathExpression;
+
+  switch (kind) {
+    case 'Element':
+      return {
+        type: 'Element',
+        tag: ctx.slice(tag).loc(loc),
+        dynamicFeatures: hasDynamicFeatures({ attributes, modifiers }),
+      };
+
+    case 'Uppercase':
+      return {
+        type: 'Component',
+        tag: ctx
+          .op(pass1.GetVar, {
+            name: ctx.slice(ctx.customizeComponentName(tag)).offsets(null),
+            context: ExpressionContext.ComponentHead,
+          })
+          .loc(loc),
+        dynamicFeatures: true,
+      };
+
+    case 'Local':
+      path = builders.fullPath(builders.var(maybeLocal), rest);
+      break;
+    case 'This':
+      path = builders.fullPath(builders.this(), rest);
+      break;
+    case 'NamedArg':
+      path = builders.fullPath(builders.at(maybeLocal), rest, loc);
+      break;
+  }
+
+  return {
+    type: 'Component',
+    tag: ctx.visitExpr(path, ExpressionContext.ComponentHead),
+    dynamicFeatures: true,
+  };
+}
+
+type ClassifiedElement =
   | {
       type: 'Component';
       tag: pass1.Expr;
@@ -423,44 +392,17 @@ type ClassifiedElementDetails =
       dynamicFeatures: boolean;
     };
 
-function classifiedElementDetails(
-  ctx: Context,
-  element: AST.ElementNode
-): ClassifiedElementDetails {
-  let classified = classifyNormalElement(ctx, element, ctx.symbols.current);
-  switch (classified.is) {
-    case 'component': {
-      return {
-        type: 'Component',
-        tag: classified.tag,
-        dynamicFeatures: true,
-      };
-    }
-
-    // TODO Reject block params for both kinds of HTML elements
-    case 'element': {
-      return {
-        type: 'Element',
-        tag: ctx.slice(classified.tag).loc(classified),
-        dynamicFeatures: classified.hasDynamicFeatures,
-      };
-    }
-  }
-}
-
-// TODO I transcribed this from the existing code, but the only
-// reason this difference matters is that splattributes requires
-// a special ElementOperations that merges attributes, so I don't
-// know why modifiers matter (it might matter if modifiers become
-// allowed to abstract attributes)
-function isHTMLElement(element: AST.ElementNode): boolean {
-  let { attributes, modifiers } = element;
-
+function hasDynamicFeatures({
+  attributes,
+  modifiers,
+}: Pick<AST.ElementNode, 'attributes' | 'modifiers'>): boolean {
+  // ElementModifier needs the special ComponentOperations
   if (modifiers.length > 0) {
-    return false;
+    return true;
   }
 
-  return !attributes.find((attr) => attr.name === '...attributes');
+  // Splattributes need the special ComponentOperations to merge into
+  return !!attributes.find((attr) => attr.name === '...attributes');
 }
 
 function attributes(
