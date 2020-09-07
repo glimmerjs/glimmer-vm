@@ -1,6 +1,5 @@
-import { HasGuid, ensureGuid } from './guid';
-import { Option } from './platform-utils';
-import { Dict, NonemptyStack, Stack } from '@glimmer/interfaces';
+import { Dict, NonemptyStack, Option, Stack } from '@glimmer/interfaces';
+import { ensureGuid, HasGuid } from './guid';
 
 export interface Set<T> {
   add(value: T): Set<T>;

@@ -1,9 +1,8 @@
-import { Bounds } from '@glimmer/interfaces';
-import { Option } from '@glimmer/util';
+import { Bounds, Option } from '@glimmer/interfaces';
 import {
-  SimpleDocument,
-  SimpleComment,
   InsertPosition,
+  SimpleComment,
+  SimpleDocument,
   SimpleElement,
   SimpleNode,
 } from '@simple-dom/interface';

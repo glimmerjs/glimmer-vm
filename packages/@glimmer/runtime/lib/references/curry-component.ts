@@ -1,13 +1,12 @@
-import { Reference, createComputeRef, valueForRef } from '@glimmer/reference';
-import { Option } from '@glimmer/util';
 import {
   CapturedArguments,
   ComponentDefinition,
-  Maybe,
   Dict,
+  Maybe,
+  Option,
   RuntimeResolver,
 } from '@glimmer/interfaces';
-
+import { createComputeRef, Reference, valueForRef } from '@glimmer/reference';
 import {
   CurriedComponentDefinition,
   isCurriedComponentDefinition,

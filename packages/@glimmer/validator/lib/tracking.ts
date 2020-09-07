@@ -1,4 +1,5 @@
 import { DEBUG } from '@glimmer/env';
+import { Option } from '@glimmer/interfaces';
 import {
   Tag,
   CONSTANT_TAG,
@@ -16,8 +17,6 @@ import {
   resetTrackingTransaction,
 } from './debug';
 import { symbol, unwrap } from './utils';
-
-type Option<T> = T | null;
 
 /**
  * An object that that tracks @tracked properties that were consumed.

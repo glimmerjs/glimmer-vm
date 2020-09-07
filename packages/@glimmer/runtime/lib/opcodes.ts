@@ -1,17 +1,14 @@
-import { LowLevelVM, VM, UpdatingVM } from './vm';
-
-import { Option, initializeGuid, fillNulls, assert } from '@glimmer/util';
-import { recordStackSize, opcodeMetadata } from '@glimmer/debug';
-import { $pc, $sp, $ra, $fp } from '@glimmer/vm';
-import { RuntimeOp, Op, Maybe, Dict } from '@glimmer/interfaces';
+import { debug, logOpcode, opcodeMetadata, recordStackSize } from '@glimmer/debug';
+import { Dict, Maybe, Op, Option, RuntimeOp } from '@glimmer/interfaces';
 import { LOCAL_DEBUG, LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
-// these import bindings will be stripped from build
-import { debug, logOpcode } from '@glimmer/debug';
-import { DESTROYABLE_STACK, INNER_VM, CONSTANTS, STACKS } from './symbols';
+import { valueForRef } from '@glimmer/reference';
+import { assert, fillNulls, initializeGuid } from '@glimmer/util';
+import { $fp, $pc, $ra, $sp } from '@glimmer/vm';
+import { isScopeReference } from './scope';
+import { CONSTANTS, DESTROYABLE_STACK, INNER_VM, STACKS } from './symbols';
+import { LowLevelVM, UpdatingVM, VM } from './vm';
 import { InternalVM } from './vm/append';
 import { CURSOR_STACK } from './vm/element-builder';
-import { isScopeReference } from './scope';
-import { valueForRef } from '@glimmer/reference';
 
 export interface OpcodeJSON {
   type: number | string;

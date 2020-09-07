@@ -180,6 +180,11 @@ export interface SubExpression extends Call {
   hash: Hash;
 }
 
+export interface PathHead {
+  type: 'PathHead';
+  kind: 'this' | '@' | 'var';
+}
+
 export interface PathExpression extends BaseNode {
   type: 'PathExpression';
   data: boolean;

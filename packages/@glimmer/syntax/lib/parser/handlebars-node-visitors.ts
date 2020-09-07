@@ -4,8 +4,7 @@ import * as AST from '../types/nodes';
 import * as HBS from '../types/handlebars-ast';
 import { Parser, Tag, Attribute } from '../parser';
 import SyntaxError from '../errors/syntax-error';
-import { Option } from '@glimmer/util';
-import { Recast } from '@glimmer/interfaces';
+import { Recast, Option } from '@glimmer/interfaces';
 import { TokenizerState } from 'simple-html-tokenizer';
 
 export abstract class HandlebarsNodeVisitors extends Parser {

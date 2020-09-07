@@ -1,5 +1,5 @@
-import { Bounds } from '@glimmer/interfaces';
-import { assert, clearElement, Option, unwrap } from '@glimmer/util';
+import { Bounds, Option } from '@glimmer/interfaces';
+import { assert, clearElement, unwrap } from '@glimmer/util';
 import {
   InsertPosition,
   Namespace,

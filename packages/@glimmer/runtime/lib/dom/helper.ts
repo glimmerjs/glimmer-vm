@@ -1,5 +1,5 @@
-import { GlimmerTreeChanges, GlimmerTreeConstruction } from '@glimmer/interfaces';
-import { Option } from '@glimmer/util';
+import { GlimmerTreeChanges, GlimmerTreeConstruction, Option } from '@glimmer/interfaces';
+import {} from '@glimmer/util';
 import {
   AttrNamespace,
   ElementNamespace,
