@@ -8,6 +8,7 @@ import { InputOpArgs, OpConstructor, UnlocatedOp } from '../shared/op';
 import { OpFactory } from '../shared/ops';
 import { BlockSymbolTable, SymbolTable } from '../shared/symbol-table';
 import { buildPathWithContext } from './utils/builders';
+import { Result } from './visitors/element';
 import { Pass0Expressions } from './visitors/expressions';
 import { Pass0Statements } from './visitors/statements';
 
@@ -16,7 +17,7 @@ import { Pass0Statements } from './visitors/statements';
 type Pass0Visitor = Pass0Expressions | Pass0Statements;
 
 export type VisitorInterface<O extends AST.Node, Out = unknown> = {
-  [P in O['type']]: (node: O & { type: P }, ctx: Context) => Out;
+  [P in O['type']]: (node: O & { type: P }, ctx: Context) => Out | Result<Out>;
 };
 
 type VisitorFunc<V extends Pass0Visitor, N extends keyof V & keyof AST.Nodes> = (
@@ -303,7 +304,7 @@ export function paramsOffsets(
   } else {
     // position empty params after the first space after the path expression
     let pos = sourceOffsets(path, source).end + 1;
-    return { start: pos, end: pos };
+    return new SourceOffsets(pos, pos);
   }
 }
 
@@ -313,11 +314,11 @@ export function offsetsForHashKey(pair: AST.HashPair, source: string): SourceOff
 
   assert(pairLoc !== null && valueLoc !== null, `unexpected missing location in HashPair`);
 
-  return {
-    start: pairLoc.start,
+  return new SourceOffsets(
+    pairLoc.start,
     // the grammar requires `key=value` with no whitespace around the `=`
-    end: valueLoc.start - 1,
-  };
+    valueLoc.start - 1
+  );
 }
 
 export function sourceOffsets(
@@ -336,10 +337,7 @@ export function sourceOffsets(
       `unexpectedly missing source offsets`
     );
 
-    return {
-      start: startOffset,
-      end: endOffset,
-    };
+    return new SourceOffsets(startOffset, endOffset);
   }
 
   let loc = node.loc;
@@ -347,24 +345,11 @@ export function sourceOffsets(
   let { start, end } = loc;
   let startOffset = positionToOffset(source, { line: start.line - 1, column: start.column });
 
-  // TODO Is it important to support buggy transformations? Should we have a strict mode to start ferreting them out?
-  // assert(
-  //   startOffset !== null,
-  //   `unexpected offset (${start.line}:${start.column}) that didn't correspond to a source location`
-  // );
   let endOffset = positionToOffset(source, { line: end.line - 1, column: end.column });
-  // assert(
-  //   endOffset !== null,
-  //   `unexpected offset (${end.line}:${end.column}) that didn't correspond to a source location`
-  // );
 
   if (startOffset === null || endOffset === null) {
-    // @ts-expect-error FIXME
-    return null;
+    return SourceOffsets.NONE;
   }
 
-  return {
-    start: startOffset,
-    end: endOffset,
-  };
+  return new SourceOffsets(startOffset, endOffset);
 }

@@ -57,7 +57,7 @@ export class Pass1Expression implements ExpressionVisitor {
       return mappedHead;
     } else {
       // TODO Move the source location work to pass0
-      let mappedTail = ctx.unlocatedOp(pass2.Tail, { members: tail }).offsets(range(tail));
+      let mappedTail = ctx.unlocatedOp(pass2.Tail, { members: tail }).offsets(tail);
       return ctx.op(pass2.GetPath, { head: mappedHead, tail: mappedTail });
     }
   }
@@ -70,21 +70,6 @@ export class Pass1Expression implements ExpressionVisitor {
     let mappedHead = ctx.visitExpr(head);
     let args = ctx.visitArgs({ params, hash });
     return ctx.op(pass2.Helper, { head: mappedHead, args });
-  }
-}
-
-function range(list: { offsets: SourceOffsets | null }[]): SourceOffsets | null {
-  if (list.length === 0) {
-    return null;
-  } else {
-    let first = list[0];
-    let last = list[list.length - 1];
-
-    if (first.offsets === null || last.offsets === null) {
-      return null;
-    } else {
-      return { start: first.offsets.start, end: last.offsets.end };
-    }
   }
 }
 

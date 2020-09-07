@@ -3,10 +3,10 @@ import { appendChild, isLiteral, printLiteral } from '../utils';
 import * as AST from '../types/nodes';
 import * as HBS from '../types/handlebars-ast';
 import { Parser, Tag, Attribute } from '../parser';
-import SyntaxError from '../errors/syntax-error';
 import { Recast, Option } from '@glimmer/interfaces';
 import { TokenizerState } from 'simple-html-tokenizer';
 import { expect } from '@glimmer/util';
+import { GlimmerSyntaxError } from '../errors/syntax-error';
 
 export abstract class HandlebarsNodeVisitors extends Parser {
   abstract appendToCommentData(s: string): void;
@@ -48,7 +48,7 @@ export abstract class HandlebarsNodeVisitors extends Parser {
     if (poppedNode !== node) {
       let elementNode = poppedNode as AST.ElementNode;
 
-      throw new SyntaxError(
+      throw new GlimmerSyntaxError(
         'Unclosed element `' + elementNode.tag + '` (on line ' + elementNode.loc!.start.line + ').',
         elementNode.loc
       );
@@ -67,7 +67,7 @@ export abstract class HandlebarsNodeVisitors extends Parser {
       this.tokenizer.state !== TokenizerState.data &&
       this.tokenizer.state !== TokenizerState.beforeData
     ) {
-      throw new SyntaxError(
+      throw new GlimmerSyntaxError(
         'A block may only be used inside an HTML element or another block.',
         block.loc
       );
@@ -129,7 +129,7 @@ export abstract class HandlebarsNodeVisitors extends Parser {
       // Tag helpers
       case TokenizerState.tagOpen:
       case TokenizerState.tagName:
-        throw new SyntaxError(
+        throw new GlimmerSyntaxError(
           `Cannot use mustaches in an elements tagname: \`${this.sourceForNode(
             rawMustache,
             rawMustache.path
@@ -202,7 +202,7 @@ export abstract class HandlebarsNodeVisitors extends Parser {
         break;
 
       default:
-        throw new SyntaxError(
+        throw new GlimmerSyntaxError(
           `Using a Handlebars comment when in the \`${tokenizer['state']}\` state is not supported: "${comment.value}" on line ${loc.start.line}:${loc.start.column}`,
           rawComment.loc
         );
@@ -214,7 +214,7 @@ export abstract class HandlebarsNodeVisitors extends Parser {
   PartialStatement(partial: HBS.PartialStatement): never {
     let { loc } = partial;
 
-    throw new SyntaxError(
+    throw new GlimmerSyntaxError(
       `Handlebars partials are not supported: "${this.sourceForNode(partial, partial.name)}" at L${
         loc.start.line
       }:C${loc.start.column}`,
@@ -225,7 +225,7 @@ export abstract class HandlebarsNodeVisitors extends Parser {
   PartialBlockStatement(partialBlock: HBS.PartialBlockStatement): never {
     let { loc } = partialBlock;
 
-    throw new SyntaxError(
+    throw new GlimmerSyntaxError(
       `Handlebars partial blocks are not supported: "${this.sourceForNode(
         partialBlock,
         partialBlock.name
@@ -237,7 +237,7 @@ export abstract class HandlebarsNodeVisitors extends Parser {
   Decorator(decorator: HBS.Decorator): never {
     let { loc } = decorator;
 
-    throw new SyntaxError(
+    throw new GlimmerSyntaxError(
       `Handlebars decorators are not supported: "${this.sourceForNode(
         decorator,
         decorator.path
@@ -249,7 +249,7 @@ export abstract class HandlebarsNodeVisitors extends Parser {
   DecoratorBlock(decoratorBlock: HBS.DecoratorBlock): never {
     let { loc } = decoratorBlock;
 
-    throw new SyntaxError(
+    throw new GlimmerSyntaxError(
       `Handlebars decorator blocks are not supported: "${this.sourceForNode(
         decoratorBlock,
         decoratorBlock.path
@@ -269,19 +269,19 @@ export abstract class HandlebarsNodeVisitors extends Parser {
 
     if (original.indexOf('/') !== -1) {
       if (original.slice(0, 2) === './') {
-        throw new SyntaxError(
+        throw new GlimmerSyntaxError(
           `Using "./" is not supported in Glimmer and unnecessary: "${path.original}" on line ${loc.start.line}.`,
           path.loc
         );
       }
       if (original.slice(0, 3) === '../') {
-        throw new SyntaxError(
+        throw new GlimmerSyntaxError(
           `Changing context using "../" is not supported in Glimmer: "${path.original}" on line ${loc.start.line}.`,
           path.loc
         );
       }
       if (original.indexOf('.') !== -1) {
-        throw new SyntaxError(
+        throw new GlimmerSyntaxError(
           `Mixing '.' and '/' in paths is not supported in Glimmer; use only '.' to separate property paths: "${path.original}" on line ${loc.start.line}.`,
           path.loc
         );
@@ -289,7 +289,7 @@ export abstract class HandlebarsNodeVisitors extends Parser {
       parts = [path.parts.join('/')];
     } else if (original === '.') {
       let locationInfo = `L${loc.start.line}:C${loc.start.column}`;
-      throw new SyntaxError(
+      throw new GlimmerSyntaxError(
         `'.' is not a supported path in Glimmer; check for a path with a trailing '.' at ${locationInfo}.`,
         path.loc
       );
@@ -453,7 +453,7 @@ function addElementModifier(element: Tag<'StartTag'>, mustache: AST.MustacheStat
     let modifier = `{{${printLiteral(path)}}}`;
     let tag = `<${element.name} ... ${modifier} ...`;
 
-    throw new SyntaxError(
+    throw new GlimmerSyntaxError(
       `In ${tag}, ${modifier} is not a valid modifier: "${path.original}" on line ${
         loc && loc.start.line
       }.`,

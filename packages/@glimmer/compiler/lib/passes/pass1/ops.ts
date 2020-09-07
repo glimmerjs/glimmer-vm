@@ -1,7 +1,10 @@
 import { ExpressionContext, Option, PresentArray } from '@glimmer/interfaces';
-import { AST } from '@glimmer/syntax';
+import { AST, GlimmerSyntaxError } from '@glimmer/syntax';
 import { assert, isPresent } from '@glimmer/util';
-import { op, OpsTable } from '../shared/op';
+import { Err, Ok, Result } from '../pass0/visitors/element';
+import { SourceOffsets } from '../shared/location';
+import { op, OpsTable, Source } from '../shared/op';
+import { range } from '../shared/ops';
 import { BlockSymbolTable, ProgramSymbolTable } from '../shared/symbol-table';
 
 export interface AttrKind {
@@ -70,6 +73,17 @@ export class NamedArguments extends op('NamedArguments').args<{
 export class EmptyNamedArguments extends op('EmptyNamedArguments').void() {}
 
 export type AnyNamedArguments = NamedArguments | EmptyNamedArguments;
+
+export function AnyNamedArguments(
+  pairs: NamedArgument[],
+  offsets: SourceOffsets | null = null
+): AnyNamedArguments {
+  if (isPresent(pairs)) {
+    return new NamedArguments(offsets, { pairs });
+  } else {
+    return new EmptyNamedArguments(offsets);
+  }
+}
 
 export type Internal =
   | Ignore
@@ -177,11 +191,12 @@ function onlyHasSemanticChildren(args: TemporaryNamedBlock['args']): args is Nam
   return args.body.every((s) => s.name !== 'TemporaryNamedBlock');
 }
 
-type ExtractedMaybeNamedBlocks =
-  | { type: 'named-blocks'; blocks: PresentArray<NamedBlock> }
-  | typeof NESTED_NAMED_BLOCK_ERROR;
+type ExtractedMaybeNamedBlocks = Result<PresentArray<NamedBlock>>;
 
-function extractMaybeNameBlocks(body: NonSemanticChild[]): ExtractedMaybeNamedBlocks {
+function extractMaybeNameBlocks(
+  body: NonSemanticChild[],
+  source: string
+): Result<PresentArray<NamedBlock>> {
   let blocks: NamedBlock[] = [];
   let nodes: NonSemantic[] = [];
 
@@ -195,7 +210,8 @@ function extractMaybeNameBlocks(body: NonSemanticChild[]): ExtractedMaybeNamedBl
         if (statement.isValidNamedBlock()) {
           blocks.push(statement.asNamedBlock());
         } else {
-          return NESTED_NAMED_BLOCK_ERROR;
+          let loc = SourceOffsets.from(body).toLocation(source);
+          return Err(new GlimmerSyntaxError('a named block cannot have named block children', loc));
         }
     }
   }
@@ -205,13 +221,8 @@ function extractMaybeNameBlocks(body: NonSemanticChild[]): ExtractedMaybeNamedBl
     `the block did not have named blocks (make sure to call hasValidNamedBlocks before asNamedBlocks)`
   );
 
-  return { type: 'named-blocks', blocks };
+  return Ok(blocks);
 }
-
-const NESTED_NAMED_BLOCK_ERROR = {
-  type: 'error',
-  desc: 'a named block cannot have named block children',
-} as const;
 
 // A TemporaryNamedBlock may have named blocks inside of it. This is normally
 // disallowed, but it is used to determine whether a component has named blocks
@@ -232,8 +243,11 @@ export class TemporaryNamedBlock extends op('TemporaryNamedBlock').args<{
     );
   }
 
-  asNamedBlocks(this: this & { args: { body: NonSemanticChild[] } }): ExtractedMaybeNamedBlocks {
-    return extractMaybeNameBlocks(this.args.body);
+  asNamedBlocks(
+    this: this & { args: { body: NonSemanticChild[] } },
+    source: string
+  ): ExtractedMaybeNamedBlocks {
+    return extractMaybeNameBlocks(this.args.body, source);
   }
 
   isValidNamedBlock(): this is { args: { body: Statement[] } } {

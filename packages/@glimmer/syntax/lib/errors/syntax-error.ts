@@ -1,13 +1,13 @@
 import * as AST from '../types/nodes';
 
-export interface SyntaxError extends Error {
+export interface GlimmerSyntaxError extends Error {
   location: AST.SourceLocation | null;
   constructor: SyntaxErrorConstructor;
 }
 
 export interface SyntaxErrorConstructor {
-  new (message: string, location: AST.SourceLocation | null): SyntaxError;
-  readonly prototype: SyntaxError;
+  new (message: string, location: AST.SourceLocation | null): GlimmerSyntaxError;
+  readonly prototype: GlimmerSyntaxError;
 }
 
 /**
@@ -15,11 +15,15 @@ export interface SyntaxErrorConstructor {
  * about location of incorrect markup.
  */
 // eslint-disable-next-line @typescript-eslint/naming-convention
-const GlimmerSyntaxError: SyntaxErrorConstructor = (function () {
+export const GlimmerSyntaxError: SyntaxErrorConstructor = (function () {
   SyntaxError.prototype = Object.create(Error.prototype);
   SyntaxError.prototype.constructor = SyntaxError;
 
-  function SyntaxError(this: SyntaxError, message: string, location: AST.SourceLocation | null) {
+  function SyntaxError(
+    this: GlimmerSyntaxError,
+    message: string,
+    location: AST.SourceLocation | null
+  ) {
     let error = Error.call(this, message);
 
     this.message = message;
@@ -29,5 +33,3 @@ const GlimmerSyntaxError: SyntaxErrorConstructor = (function () {
 
   return SyntaxError as any;
 })();
-
-export default GlimmerSyntaxError;

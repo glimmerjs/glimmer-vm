@@ -476,6 +476,16 @@ function buildVar(name: string, loc?: AST.SourceLocation): AST.PathHead {
   };
 }
 
+function buildHeadFromString(head: string, loc?: AST.SourceLocation): AST.PathHead {
+  if (head[0] === '@') {
+    return buildAtName(head, loc);
+  } else if (head === 'this') {
+    return buildThis(loc);
+  } else {
+    return buildVar(head);
+  }
+}
+
 function buildCleanPath(
   head: AST.PathHead,
   tail: string[],
@@ -484,19 +494,6 @@ function buildCleanPath(
   let { original: originalHead, parts: headParts } = headToString(head);
   let parts = [...headParts, ...tail];
   let original = [...originalHead, ...parts].join('.');
-
-  // tag: ctx.visitExpr({
-  //   type: 'PathExpression',
-  //   head: {
-  //     type: 'AtHead',
-  //     name: maybeLocal.slice(1),
-  //     loc: SYNTHETIC,
-  //   },
-  //   tail: [...rest],
-  //   parts: [],
-  //   original: element.tag,
-  //   loc: element.loc,
-  // }),
 
   return {
     type: 'PathExpression',
@@ -507,30 +504,6 @@ function buildCleanPath(
     loc: buildLoc(loc || null),
   };
 }
-
-// function buildAtName(loc?: AST.SourceLocation): AST.PathHead {
-//   return {
-//     type: 'PathHead',
-//     kind: '@',
-//     loc: buildLoc(loc || null),
-//   };
-// }
-
-// function buildVar(loc?: AST.SourceLocation): AST.PathHead {
-//   return {
-//     type: 'PathHead',
-//     kind: '@',
-//     loc: buildLoc(loc || null),
-//   };
-// }
-
-// function cleanBuildPath(head: AST.PathHead['kind'], loc?: AST.SourceLocation): AST.PathHead {
-//   return {
-//     type: 'PathHead',
-//     kind,
-//     loc: buildLoc(loc || null),
-//   };
-// }
 
 function buildPath(
   path: AST.PathExpression | string | { head: string; tail: string[] },
@@ -724,9 +697,9 @@ export default {
   pos: buildPosition,
 
   path: buildPath,
-  head: buildHead,
 
   fullPath: buildCleanPath,
+  head: buildHeadFromString,
   at: buildAtName,
   var: buildVar,
   this: buildThis,

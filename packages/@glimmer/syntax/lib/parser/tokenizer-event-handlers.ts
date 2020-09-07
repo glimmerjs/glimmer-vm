@@ -3,7 +3,6 @@ import { appendChild, parseElementBlockParams } from '../utils';
 import { HandlebarsNodeVisitors } from './handlebars-node-visitors';
 import * as AST from '../types/nodes';
 import * as HBS from '../types/handlebars-ast';
-import SyntaxError from '../errors/syntax-error';
 import { Tag } from '../parser';
 import builders from '../builders';
 import traverse from '../traversal/traverse';
@@ -13,6 +12,7 @@ import * as handlebars from 'handlebars';
 import { assign } from '@glimmer/util';
 import { NodeVisitor } from '../traversal/visitor';
 import { EntityParser } from 'simple-html-tokenizer';
+import { GlimmerSyntaxError } from '../errors/syntax-error';
 
 export const voidMap: {
   [tagName: string]: boolean;
@@ -159,7 +159,7 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
   beginAttribute() {
     let tag = this.currentTag;
     if (tag.type === 'EndTag') {
-      throw new SyntaxError(
+      throw new GlimmerSyntaxError(
         `Invalid end tag: closing tag must not have attributes, ` +
           `in \`${tag.name}\` (on line ${this.tokenizer.line}).`,
         tag.loc
@@ -237,7 +237,7 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
   }
 
   reportSyntaxError(message: string) {
-    throw new SyntaxError(
+    throw new GlimmerSyntaxError(
       `Syntax error at line ${this.tokenizer.line} col ${this.tokenizer.column}: ${message}`,
       b.loc(this.tokenizer.line, this.tokenizer.column)
     );
@@ -262,7 +262,7 @@ function assembleAttributeValue(
       ) {
         return parts[0];
       } else {
-        throw new SyntaxError(
+        throw new GlimmerSyntaxError(
           `An unquoted attribute value must be a string or a mustache, ` +
             `preceeded by whitespace or a '=' character, and ` +
             `followed by whitespace, a '>' character, or '/>' (on line ${line})`,
@@ -280,7 +280,7 @@ function assembleConcatenatedValue(parts: (AST.MustacheStatement | AST.TextNode)
     let part: AST.BaseNode = parts[i];
 
     if (part.type !== 'MustacheStatement' && part.type !== 'TextNode') {
-      throw new SyntaxError(
+      throw new GlimmerSyntaxError(
         'Unsupported node in quoted attribute value: ' + part['type'],
         part.loc
       );
@@ -316,7 +316,7 @@ function validateEndTag(
   }
 
   if (error) {
-    throw new SyntaxError(error, element.loc);
+    throw new GlimmerSyntaxError(error, element.loc);
   }
 }
 

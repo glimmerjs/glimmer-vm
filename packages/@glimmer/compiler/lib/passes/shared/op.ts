@@ -1,8 +1,9 @@
 import { PresentArray } from '@glimmer/interfaces';
 import { SourceLocation, SourcePosition } from '@glimmer/syntax';
 import { isPresent } from '@glimmer/util';
-import { locationToOffsets, positionToOffset, SourceOffsets } from './location';
+import { locationToOffsets, MaybeHasOffsets, positionToOffset, SourceOffsets } from './location';
 import {
+  LocatedWithOffsets,
   LocatedWithOptionalOffsets,
   LocatedWithOptionalPositions,
   LocatedWithPositions,
@@ -83,7 +84,7 @@ export function range(
   if (start === null || end === null) {
     return null;
   } else {
-    return { start, end };
+    return new SourceOffsets(start, end);
   }
 }
 
@@ -109,52 +110,62 @@ export type MaybeHasSourceLocation =
   | LocatedWithOptionalPositions
   | LocatedWithOptionalPositions[];
 
-export class UnlocatedOp<O extends Op> {
-  constructor(private Class: OpConstructor<O>, private args: OpArgs<O>, private source: string) {}
+export class Source {
+  constructor(readonly source: string) {}
 
-  maybeLoc(location: MaybeHasSourceLocation, fallback?: HasSourceLocation): O {
+  maybeLoc(location: MaybeHasSourceLocation, fallback?: HasSourceLocation): SourceOffsets | null {
     if (location === null) {
-      return fallback ? this.loc(fallback) : this.nullLoc();
+      return fallback ? this.loc(fallback) : null;
     } else if (Array.isArray(location)) {
       if (isLocatedWithPositionsArray(location)) {
         return this.loc(location);
       } else {
-        return this.nullLoc();
+        return null;
       }
     } else if (isLocatedWithPositions(location)) {
       return this.loc(location);
     } else {
-      return this.nullLoc();
+      return null;
     }
   }
 
-  private nullLoc(
-    fallback?: SourceLocation | LocatedWithPositions | PresentArray<LocatedWithPositions>
-  ): O {
-    return fallback ? this.loc(fallback) : (new this.Class(null, this.args) as O);
-  }
-
-  loc(location: HasSourceLocation): O {
+  loc(location: HasSourceLocation): SourceOffsets | null {
     if (Array.isArray(location)) {
       let first = location[0];
       let last = location[location.length - 1];
 
-      return new this.Class(range(first.loc.start, last.loc.end, this.source), this.args) as O;
+      return range(first.loc.start, last.loc.end, this.source);
     } else if ('loc' in location) {
       let { loc } = location;
-      return new this.Class(range(loc.start, loc.end, this.source), this.args) as O;
+      return range(loc.start, loc.end, this.source);
     } else {
-      return new this.Class(locationToOffsets(this.source, location), this.args) as O;
+      return locationToOffsets(this.source, location);
     }
   }
+}
 
-  offsets(
-    location:
-      | SourceOffsets
-      | LocatedWithOptionalOffsets
-      | PresentArray<LocatedWithOptionalOffsets>
-      | null
-  ): O {
+export class UnlocatedOp<O extends Op> {
+  private source: Source;
+
+  constructor(private Class: OpConstructor<O>, private args: OpArgs<O>, source: string) {
+    this.source = new Source(source);
+  }
+
+  maybeLoc(location: MaybeHasSourceLocation, fallback?: HasSourceLocation): O {
+    let offsets = this.source.maybeLoc(location, fallback);
+    return this.withOffsets(offsets);
+  }
+
+  loc(location: HasSourceLocation): O {
+    let offsets = this.source.loc(location);
+    return this.withOffsets(offsets);
+  }
+
+  withOffsets(offsets: SourceOffsets | null): O {
+    return new this.Class(offsets, this.args) as O;
+  }
+
+  offsets(location: MaybeHasOffsets): O {
     let offsets: SourceOffsets | null;
 
     if (location === null || 'start' in location) {
@@ -171,10 +182,10 @@ export class UnlocatedOp<O extends Op> {
         let startOffset = start.offsets.start;
         let endOffset = end.offsets.end;
 
-        offsets = { start: startOffset, end: endOffset };
+        offsets = new SourceOffsets(startOffset, endOffset);
       }
     }
 
-    return new this.Class(offsets, this.args) as O;
+    return this.withOffsets(offsets);
   }
 }

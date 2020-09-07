@@ -44,7 +44,7 @@ module('[glimmer-compiler] precompile', ({ test }) => {
 
     let block: WireFormat.SerializedTemplateBlock = JSON.parse(wire.block);
     let [[, componentNameExpr]] = block.statements as [WireFormat.Statements.Component];
-    debugger;
+
     glimmerAssert(
       Array.isArray(componentNameExpr) &&
         componentNameExpr[0] === SexpOpcodes.GetFreeInComponentHead,

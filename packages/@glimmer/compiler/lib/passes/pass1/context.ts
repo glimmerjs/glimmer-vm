@@ -2,7 +2,7 @@ import { PresentArray } from '@glimmer/interfaces';
 import { GlimmerSyntaxError } from '@glimmer/syntax';
 import { mapPresent, NonemptyStack } from '@glimmer/util';
 import * as pass2 from '../pass2/ops';
-import { offsetsToLocation, SourceOffsets } from '../shared/location';
+import { SourceOffsets } from '../shared/location';
 import { InputOpArgs, OpArgs, OpConstructor, UnlocatedOp } from '../shared/op';
 import { OpFactory, Ops } from '../shared/ops';
 import { ProgramSymbolTable, SymbolTable } from '../shared/symbol-table';
@@ -110,10 +110,7 @@ export class Context {
   }
 
   error(message: string, offsets = this.offsets): SyntaxError {
-    return new GlimmerSyntaxError(
-      message,
-      offsets ? offsetsToLocation(this.ctx.source, offsets) : null
-    );
+    return new GlimmerSyntaxError(message, offsets ? offsets.toLocation(this.ctx.source) : null);
   }
 
   template(...args: InputOpArgs<pass2.Template>): UnlocatedOp<pass2.Template> {

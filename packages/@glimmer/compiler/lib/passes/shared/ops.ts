@@ -75,7 +75,7 @@ export function range(
   if (start === null || end === null) {
     return null;
   } else {
-    return { start, end };
+    return new SourceOffsets(start, end);
   }
 }
 

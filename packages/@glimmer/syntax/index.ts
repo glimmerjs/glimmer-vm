@@ -25,7 +25,7 @@ export { default as Walker } from './lib/traversal/walker';
 export { default as print } from './lib/generation/print';
 
 // errors
-export { default as GlimmerSyntaxError } from './lib/errors/syntax-error';
+export { GlimmerSyntaxError } from './lib/errors/syntax-error';
 
 // AST
 import * as AST from './lib/types/nodes';

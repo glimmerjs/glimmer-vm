@@ -48,7 +48,13 @@ export class Pass0Statements implements VisitorInterface<AST.Statement, Pass1Stm
     element: AST.ElementNode,
     ctx: Context
   ): pass1.Statement | pass1.NamedBlock | pass1.TemporaryNamedBlock {
-    return ElementNode(element, ctx);
+    let out = ElementNode(element, ctx);
+
+    if (out.isErr) {
+      throw out.reason;
+    } else {
+      return out.value;
+    }
   }
 
   MustacheCommentStatement(node: AST.MustacheCommentStatement, ctx: Context): pass1.Ignore {
