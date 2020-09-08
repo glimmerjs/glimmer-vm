@@ -27,7 +27,7 @@ import {
   Reference,
   UNDEFINED_REFERENCE,
 } from '@glimmer/reference';
-import { assert, expect, Stack, unwrapHandle } from '@glimmer/util';
+import { assert, expect, LOCAL_LOGGER, Stack, unwrapHandle } from '@glimmer/util';
 import { beginTrackFrame, endTrackFrame, resetTracking } from '@glimmer/validator';
 import {
   $fp,
@@ -549,7 +549,7 @@ export default class VM implements PublicVM, InternalVM {
 
   execute(initialize?: (vm: this) => void): RenderResult {
     if (LOCAL_SHOULD_LOG) {
-      console.log(`EXECUTING FROM ${this[INNER_VM].fetchRegister($pc)}`);
+      LOCAL_LOGGER.log(`EXECUTING FROM ${this[INNER_VM].fetchRegister($pc)}`);
     }
 
     if (initialize) initialize(this);

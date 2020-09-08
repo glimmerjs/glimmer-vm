@@ -1,5 +1,7 @@
 // import Logger from './logger';
 
+import { LOCAL_LOGGER } from '../index';
+
 // let alreadyWarned = false;
 
 export function debugAssert(test: any, msg: string): asserts test {
@@ -16,7 +18,7 @@ export function debugAssert(test: any, msg: string): asserts test {
 export function prodAssert() {}
 
 export function deprecate(desc: string) {
-  console.warn(`DEPRECATION: ${desc}`);
+  LOCAL_LOGGER.warn(`DEPRECATION: ${desc}`);
 }
 
 export default debugAssert;

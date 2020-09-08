@@ -1,6 +1,7 @@
 import { ExpressionContext, Option, PresentArray } from '@glimmer/interfaces';
+import { LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
 import { AST, GlimmerSyntaxError } from '@glimmer/syntax';
-import { assert, isPresent, NonemptyStack } from '@glimmer/util';
+import { assert, isPresent, LOCAL_LOGGER, NonemptyStack } from '@glimmer/util';
 import { TemplateIdFn } from '../../compiler';
 import * as pass1 from '../pass1/ops';
 import { positionToOffset, SourceOffsets } from '../shared/location';
@@ -8,15 +9,7 @@ import { InputOpArgs, OpConstructor, UnlocatedOp } from '../shared/op';
 import { OpFactory } from '../shared/ops';
 import { BlockSymbolTable, SymbolTable } from '../shared/symbol-table';
 import { buildPathWithContext } from './utils/builders';
-import {
-  Err,
-  intoResult,
-  isResult,
-  MaybeResult,
-  Ok,
-  Result,
-  ResultArray,
-} from './visitors/element';
+import { Err, intoResult, MaybeResult, Ok, Result, ResultArray } from './visitors/element';
 import { Pass0Expressions } from './visitors/expressions';
 import { Pass0Statements } from './visitors/statements';
 
@@ -250,69 +243,71 @@ export class Context implements ImmutableContext {
     if (node.type === 'PathExpression') {
       return buildPathWithContext(this, node, context);
     } else {
-      console.groupCollapsed(`pass0: visiting expr`, node.type);
-      console.log(`node`, node);
+      if (LOCAL_SHOULD_LOG) {
+        LOCAL_LOGGER.groupCollapsed(`pass0: visiting expr`, node.type);
+        LOCAL_LOGGER.log(`node`, node);
+      }
 
       let f = this.expressions[node.type] as VisitorFunc<Pass0Expressions, N>;
       let result = f(node, this);
 
-      console.log(`-> out   `, node);
-      console.groupEnd();
+      if (LOCAL_SHOULD_LOG) {
+        LOCAL_LOGGER.log(`-> out   `, node);
+        LOCAL_LOGGER.groupEnd();
+      }
 
       return result;
     }
   }
 
   visitAmbiguousStmt(
-    node: AST.Node
+    node: AST.Statement
   ): Result<pass1.Statement | pass1.TemporaryNamedBlock | pass1.Ignore>;
   visitAmbiguousStmt<N extends keyof Pass0Statements & keyof AST.Nodes>(
     node: AST.Node & AST.Nodes[N]
   ): Exclude<ResultVisitorReturn<Pass0Statements, N>, Result<pass1.NamedBlock>>;
-  visitAmbiguousStmt<N extends keyof Pass0Statements & keyof AST.Nodes>(
-    node: AST.Node & AST.Nodes[N]
-  ): Exclude<ResultVisitorReturn<Pass0Statements, N>, Result<pass1.NamedBlock>> {
-    console.groupCollapsed(`pass0: visiting statement`, node.type);
-    console.log(`node`, node);
-
-    let f = this.statements[node.type] as VisitorFunc<Pass0Statements, N>;
-    let result: MaybeResult<
-      pass1.Statement | pass1.Ignore | pass1.NamedBlock | pass1.TemporaryNamedBlock
-    > = f(node, this);
-
-    console.log(`-> out   `, node);
-    console.groupEnd();
-
-    let out: Exclude<ResultVisitorReturn<Pass0Statements, N>, Result<pass1.NamedBlock>>;
-    if (isResult(result)) {
-      out = result as Exclude<ResultVisitorReturn<Pass0Statements, N>, Result<pass1.NamedBlock>>;
-    } else {
-      out = Ok(result) as Exclude<
-        ResultVisitorReturn<Pass0Statements, N>,
-        Result<pass1.NamedBlock>
-      >;
+  visitAmbiguousStmt(
+    node: AST.Statement
+  ): Result<pass1.Statement | pass1.TemporaryNamedBlock | pass1.Ignore> {
+    if (LOCAL_SHOULD_LOG) {
+      LOCAL_LOGGER.groupCollapsed(`pass0: visiting statement`, node.type);
+      LOCAL_LOGGER.log(`node`, node);
     }
 
-    return out;
+    let f = this.statements[node.type] as (
+      node: AST.Statement,
+      ctx: Context
+    ) => MaybeResult<pass1.Statement | pass1.TemporaryNamedBlock | pass1.Ignore>;
+    let result = f(node, this);
+
+    if (LOCAL_SHOULD_LOG) {
+      LOCAL_LOGGER.log(`-> out   `, node);
+      LOCAL_LOGGER.groupEnd();
+    }
+
+    return intoResult(result);
   }
 
   visitStmt(node: AST.Node): Result<pass1.Statement | pass1.Ignore>;
   visitStmt<N extends keyof Pass0Statements & AST.Statement['type']>(
     node: AST.Statement & { type: N }
   ): Exclude<VisitorReturn<Pass0Statements, N>, pass1.NamedBlock | pass1.TemporaryNamedBlock>;
-  visitStmt<N extends keyof Pass0Statements & AST.Statement['type']>(
-    node: AST.Statement & { type: N }
-  ): Result<pass1.Statement | pass1.Ignore> {
-    console.groupCollapsed(`pass0: visiting statement`, node.type);
-    console.log(`node`, node);
+  visitStmt(node: AST.Statement): Result<pass1.Statement | pass1.Ignore> {
+    if (LOCAL_SHOULD_LOG) {
+      LOCAL_LOGGER.groupCollapsed(`pass0: visiting statement`, node.type);
+      LOCAL_LOGGER.log(`node`, node);
+    }
 
-    let f = this.statements[node.type] as VisitorFunc<Pass0Statements, N>;
-    let result: MaybeResult<
-      pass1.Statement | pass1.Ignore | pass1.NamedBlock | pass1.TemporaryNamedBlock
-    > = f(node, this);
+    let f = this.statements[node.type] as (
+      node: AST.Statement,
+      ctx: Context
+    ) => MaybeResult<Pass1Stmt>;
+    let result = f(node, this);
 
-    console.log(`-> out   `, node);
-    console.groupEnd();
+    if (LOCAL_SHOULD_LOG) {
+      LOCAL_LOGGER.log(`-> out   `, node);
+      LOCAL_LOGGER.groupEnd();
+    }
 
     return intoResult(result).andThen((result) => {
       if (result.name === 'NamedBlock' || result.name === 'TemporaryNamedBlock') {
@@ -324,7 +319,7 @@ export class Context implements ImmutableContext {
         );
       }
 
-      return Ok(result as pass1.Statement | pass1.Ignore);
+      return Ok(result);
     });
   }
 

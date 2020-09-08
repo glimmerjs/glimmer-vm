@@ -1,4 +1,6 @@
 import { SexpOpcodes, WireFormat } from '@glimmer/interfaces';
+import { LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
+import { LOCAL_LOGGER } from '@glimmer/util';
 import { Op, OpArgs, OpsTable } from '../shared/op';
 import { visitExpr, visitInternal } from './expressions';
 import * as pass2 from './ops';
@@ -32,9 +34,15 @@ export function visitStatements(statements: VisitableStatement[]): WireFormat.St
   let out: WireFormat.Statement[] = [];
 
   for (let statement of statements) {
-    console.log(`pass2: visiting`, statement);
+    if (LOCAL_SHOULD_LOG) {
+      LOCAL_LOGGER.log(`pass2: visiting`, statement);
+    }
+
     let result = visitStatement(statement);
-    console.log(`-> pass2: out`, statements);
+
+    if (LOCAL_SHOULD_LOG) {
+      LOCAL_LOGGER.log(`-> pass2: out`, statements);
+    }
 
     if (result instanceof WireStatements) {
       out.push(...result.toArray());

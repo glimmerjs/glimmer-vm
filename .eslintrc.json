@@ -73,7 +73,7 @@
     "no-bitwise": "error",
     "no-caller": "error",
     "no-catch-shadow": "error",
-    "no-console": "off",
+    "no-console": "error",
     "no-continue": "error",
     "no-div-regex": "error",
     "no-duplicate-imports": "error",
@@ -243,6 +243,9 @@
       "env": {
         "es6": true,
         "node": true
+      },
+      "rules": {
+        "no-console": "off"
       }
     },
     // bin scripts
@@ -263,7 +266,8 @@
         "sourceType": "module"
       },
       "rules": {
-        "node/no-unsupported-features/es-syntax": "off"
+        "node/no-unsupported-features/es-syntax": "off",
+        "no-console": "off"
       }
     },
     // source packages

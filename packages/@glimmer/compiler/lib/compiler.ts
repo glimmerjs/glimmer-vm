@@ -6,6 +6,7 @@ import {
 } from '@glimmer/interfaces';
 import { LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
 import { preprocess, PreprocessOptions } from '@glimmer/syntax';
+import { LOCAL_LOGGER } from '@glimmer/util';
 import { GlimmerCompileOptions } from './passes/pass0/context';
 import { visit as pass0 } from './passes/pass0/index';
 import { visit as pass1 } from './passes/pass1/index';
@@ -89,7 +90,7 @@ export function precompileJSON(
   });
 
   if (LOCAL_SHOULD_LOG) {
-    console.log(`Template ->`, block);
+    LOCAL_LOGGER.log(`Template ->`, block);
   }
 
   if (block.isOk) {
