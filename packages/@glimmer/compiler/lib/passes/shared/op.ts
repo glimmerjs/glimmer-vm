@@ -68,16 +68,12 @@ export function op<N extends string>(
   };
 }
 
-export function range(
-  first: SourcePosition,
-  last: SourcePosition,
-  source: string
-): SourceOffsets | null {
+export function range(first: SourcePosition, last: SourcePosition, source: string): SourceOffsets {
   let start = positionToOffset(source, { line: first.line, column: first.column });
   let end = positionToOffset(source, { line: last.line, column: last.column });
 
   if (start === null || end === null) {
-    return null;
+    return SourceOffsets.NONE;
   } else {
     return new SourceOffsets(start, end);
   }
@@ -108,23 +104,23 @@ export type MaybeHasSourceLocation =
 export class Source {
   constructor(readonly source: string) {}
 
-  maybeLoc(location: MaybeHasSourceLocation, fallback?: HasSourceLocation): SourceOffsets | null {
+  maybeOffsetsFor(location: MaybeHasSourceLocation, fallback?: HasSourceLocation): SourceOffsets {
     if (location === null) {
-      return fallback ? this.loc(fallback) : null;
+      return fallback ? this.offsetsFor(fallback) : SourceOffsets.NONE;
     } else if (Array.isArray(location)) {
       if (isLocatedWithPositionsArray(location)) {
-        return this.loc(location);
+        return this.offsetsFor(location);
       } else {
-        return null;
+        return SourceOffsets.NONE;
       }
     } else if (isLocatedWithPositions(location)) {
-      return this.loc(location);
+      return this.offsetsFor(location);
     } else {
-      return null;
+      return SourceOffsets.NONE;
     }
   }
 
-  loc(location: HasSourceLocation): SourceOffsets | null {
+  offsetsFor(location: HasSourceLocation): SourceOffsets {
     if (Array.isArray(location)) {
       let first = location[0];
       let last = location[location.length - 1];
@@ -147,12 +143,12 @@ export class UnlocatedOp<O extends Op> {
   }
 
   maybeLoc(location: MaybeHasSourceLocation, fallback?: HasSourceLocation): O {
-    let offsets = this.source.maybeLoc(location, fallback);
+    let offsets = this.source.maybeOffsetsFor(location, fallback);
     return this.withOffsets(offsets);
   }
 
   loc(location: HasSourceLocation): O {
-    let offsets = this.source.loc(location);
+    let offsets = this.source.offsetsFor(location);
     return this.withOffsets(offsets);
   }
 

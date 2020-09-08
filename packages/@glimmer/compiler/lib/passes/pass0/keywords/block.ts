@@ -2,8 +2,8 @@ import { ExpressionContext } from '@glimmer/interfaces';
 import { AST, GlimmerSyntaxError } from '@glimmer/syntax';
 import { assertPresent } from '@glimmer/util';
 import * as pass1 from '../../pass1/ops';
+import { Result } from '../../shared/result';
 import { Context } from '../context';
-import { Result } from '../visitors/element';
 import { keyword, KeywordNode, keywords } from './impl';
 
 export const IN_ELEMENT = keyword('in-element', {

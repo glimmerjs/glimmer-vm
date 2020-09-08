@@ -3,16 +3,19 @@ import { AST, isLiteral } from '@glimmer/syntax';
 import { assign } from '@glimmer/util';
 import * as pass1 from '../../pass1/ops';
 import { UnlocatedOp } from '../../shared/op';
+import { Ok, Result } from '../../shared/result';
 import { Context, Pass1Stmt, VisitorInterface } from '../context';
 import { BLOCK_KEYWORDS, EXPR_KEYWORDS, STATEMENT_KEYWORDS } from '../keywords';
 import { buildArgs } from '../utils/builders';
 import { assertIsSimpleHelper, isHelperInvocation, isSimplePath } from '../utils/is-node';
-import { ElementNode, Ok, Result } from './element';
+import { ElementNode } from './element/element-node';
+import { TemporaryNamedBlock } from './element/temporary-block';
 
 // Whitespace is allowed around and between named blocks
 const WHITESPACE = /^\s+$/;
 
-export class Pass0Statements implements VisitorInterface<AST.Statement, Pass1Stmt> {
+export class Pass0Statements
+  implements VisitorInterface<AST.Statement, Pass1Stmt | TemporaryNamedBlock> {
   PartialStatement(): never {
     throw new Error(`Handlebars partials are not supported in Glimmer`);
   }
@@ -56,7 +59,7 @@ export class Pass0Statements implements VisitorInterface<AST.Statement, Pass1Stm
   ElementNode(
     element: AST.ElementNode,
     ctx: Context
-  ): Result<pass1.Statement | pass1.NamedBlock | pass1.TemporaryNamedBlock> {
+  ): Result<pass1.Statement | TemporaryNamedBlock> {
     return ElementNode(element, ctx);
   }
 

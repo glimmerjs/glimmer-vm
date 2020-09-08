@@ -1,7 +1,7 @@
 import { ExpressionContext, Option, PresentArray } from '@glimmer/interfaces';
-import { AST, GlimmerSyntaxError } from '@glimmer/syntax';
-import { assert, isPresent } from '@glimmer/util';
-import { Err, Ok, Result } from '../pass0/visitors/element';
+import { AST } from '@glimmer/syntax';
+import { isPresent } from '@glimmer/util';
+import { TemporaryNamedBlock } from '../pass0/visitors/element/temporary-block';
 import { SourceOffsets } from '../shared/location';
 import { op, OpsTable } from '../shared/op';
 import { BlockSymbolTable, ProgramSymbolTable } from '../shared/symbol-table';
@@ -186,78 +186,6 @@ export type AnyNamedBlocks = NamedBlocks | EmptyNamedBlocks;
 
 export type NonSemanticChild = NonSemantic | TemporaryNamedBlock;
 
-function onlyHasSemanticChildren(args: TemporaryNamedBlock['args']): args is NamedBlock['args'] {
-  return args.body.every((s) => s.name !== 'TemporaryNamedBlock');
-}
-
-type ExtractedMaybeNamedBlocks = Result<PresentArray<NamedBlock>>;
-
-function extractMaybeNameBlocks(
-  body: NonSemanticChild[],
-  source: string
-): Result<PresentArray<NamedBlock>> {
-  let blocks: NamedBlock[] = [];
-  let nodes: NonSemantic[] = [];
-
-  for (let statement of body) {
-    switch (statement.name) {
-      case 'AppendComment':
-      case 'AppendWhitespace':
-        nodes.push(statement);
-        break;
-      case 'TemporaryNamedBlock':
-        if (statement.isValidNamedBlock()) {
-          blocks.push(statement.asNamedBlock());
-        } else {
-          let loc = SourceOffsets.from(body).toLocation(source);
-          return Err(new GlimmerSyntaxError('a named block cannot have named block children', loc));
-        }
-    }
-  }
-
-  assert(
-    isPresent(blocks),
-    `the block did not have named blocks (make sure to call hasValidNamedBlocks before asNamedBlocks)`
-  );
-
-  return Ok(blocks);
-}
-
-// A TemporaryNamedBlock may have named blocks inside of it. This is normally
-// disallowed, but it is used to determine whether a component has named blocks
-// or a single default block.
-export class TemporaryNamedBlock extends op('TemporaryNamedBlock').args<{
-  name: SourceSlice;
-  table: BlockSymbolTable;
-  body: (Statement | TemporaryNamedBlock)[];
-}>() {
-  hasValidNamedBlocks(): this is { args: { body: NonSemanticChild[] } } {
-    return (
-      this.args.body.every(
-        (node) =>
-          node.name === 'AppendWhitespace' ||
-          node.name === 'AppendComment' ||
-          node.name === 'TemporaryNamedBlock'
-      ) && this.args.body.some((node) => node.name === 'TemporaryNamedBlock')
-    );
-  }
-
-  asNamedBlocks(
-    this: this & { args: { body: NonSemanticChild[] } },
-    source: string
-  ): ExtractedMaybeNamedBlocks {
-    return extractMaybeNameBlocks(this.args.body, source);
-  }
-
-  isValidNamedBlock(): this is { args: { body: Statement[] } } {
-    return onlyHasSemanticChildren(this.args);
-  }
-
-  asNamedBlock(this: this & { args: NamedBlock['args'] }): NamedBlock {
-    return new NamedBlock(this.offsets, this.args);
-  }
-}
-
 export class Ignore extends op('Ignore').void() {}
 
 export class Component extends op('Component').args<{
@@ -274,6 +202,17 @@ export class ElementParameters extends op('ElementParameters').args<{
 export class EmptyElementParameters extends op('EmptyElementParameters').void() {}
 
 export type AnyElementParameters = ElementParameters | EmptyElementParameters;
+
+export function AnyElementParameters(
+  body: ElementParameter[],
+  offsets: SourceOffsets | null = null
+): AnyElementParameters {
+  if (isPresent(body)) {
+    return new ElementParameters(offsets, { body });
+  } else {
+    return new EmptyElementParameters(offsets);
+  }
+}
 
 export class SimpleElement extends op('SimpleElement').args<{
   tag: SourceSlice;

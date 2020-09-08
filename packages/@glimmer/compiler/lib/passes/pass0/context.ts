@@ -9,9 +9,10 @@ import { InputOpArgs, OpConstructor, UnlocatedOp } from '../shared/op';
 import { OpFactory } from '../shared/ops';
 import { BlockSymbolTable, SymbolTable } from '../shared/symbol-table';
 import { buildPathWithContext } from './utils/builders';
-import { Err, intoResult, MaybeResult, Ok, Result, ResultArray } from './visitors/element';
+import { Err, intoResult, MaybeResult, Ok, Result, ResultArray } from '../shared/result';
 import { Pass0Expressions } from './visitors/expressions';
 import { Pass0Statements } from './visitors/statements';
+import { TemporaryNamedBlock } from './visitors/element/temporary-block';
 
 /** VISITOR DEFINITIONS */
 
@@ -69,12 +70,8 @@ export interface GlimmerCompileOptions extends PrecompileOptions {
 }
 
 type VisitablePass1Op = pass1.Statement | pass1.Expr | pass1.Internal;
-export type Pass1Stmt =
-  | pass1.Statement
-  | pass1.TemporaryNamedBlock
-  | pass1.NamedBlock
-  | pass1.Ignore;
-type Pass1Op = VisitablePass1Op | pass1.TemporaryNamedBlock | pass1.Ignore;
+export type Pass1Stmt = pass1.Statement | pass1.Ignore;
+type Pass1Op = VisitablePass1Op | pass1.Ignore;
 
 /**
  * All state in this object except the CompilerState must be readonly.
@@ -130,8 +127,8 @@ export class Context implements ImmutableContext {
 
   visitAmbiguousStmts<S extends AST.Statement>(
     statements: S[]
-  ): Result<(pass1.Statement | pass1.TemporaryNamedBlock)[]> {
-    let out = new ResultArray<pass1.Statement | pass1.TemporaryNamedBlock>();
+  ): Result<(pass1.Statement | TemporaryNamedBlock)[]> {
+    let out = new ResultArray<pass1.Statement | TemporaryNamedBlock>();
 
     for (let statement of statements) {
       this.visitAmbiguousStmt(statement)
@@ -147,9 +144,6 @@ export class Context implements ImmutableContext {
     }
 
     return out.toArray();
-    // return this.factory
-    //   .map(input, callback)
-    //   .filter((n: Out): n is Exclude<Out, pass1.Ignore> => n.name !== 'Ignore');
   }
 
   visitStmts<S extends AST.Statement>(statements: S[]): Result<pass1.Statement[]> {
@@ -169,9 +163,6 @@ export class Context implements ImmutableContext {
     }
 
     return out.toArray();
-    // return this.factory
-    //   .map(input, callback)
-    //   .filter((n: Out): n is Exclude<Out, pass1.Ignore> => n.name !== 'Ignore');
   }
 
   mapIntoOps<T, Out extends Pass1Op>(
@@ -260,15 +251,11 @@ export class Context implements ImmutableContext {
     }
   }
 
-  visitAmbiguousStmt(
-    node: AST.Statement
-  ): Result<pass1.Statement | pass1.TemporaryNamedBlock | pass1.Ignore>;
+  visitAmbiguousStmt(node: AST.Statement): Result<Pass1Stmt | TemporaryNamedBlock>;
   visitAmbiguousStmt<N extends keyof Pass0Statements & keyof AST.Nodes>(
     node: AST.Node & AST.Nodes[N]
   ): Exclude<ResultVisitorReturn<Pass0Statements, N>, Result<pass1.NamedBlock>>;
-  visitAmbiguousStmt(
-    node: AST.Statement
-  ): Result<pass1.Statement | pass1.TemporaryNamedBlock | pass1.Ignore> {
+  visitAmbiguousStmt(node: AST.Statement): Result<Pass1Stmt | TemporaryNamedBlock> {
     if (LOCAL_SHOULD_LOG) {
       LOCAL_LOGGER.groupCollapsed(`pass0: visiting statement`, node.type);
       LOCAL_LOGGER.log(`node`, node);
@@ -277,7 +264,7 @@ export class Context implements ImmutableContext {
     let f = this.statements[node.type] as (
       node: AST.Statement,
       ctx: Context
-    ) => MaybeResult<pass1.Statement | pass1.TemporaryNamedBlock | pass1.Ignore>;
+    ) => MaybeResult<Pass1Stmt | TemporaryNamedBlock>;
     let result = f(node, this);
 
     if (LOCAL_SHOULD_LOG) {
@@ -288,11 +275,11 @@ export class Context implements ImmutableContext {
     return intoResult(result);
   }
 
-  visitStmt(node: AST.Node): Result<pass1.Statement | pass1.Ignore>;
+  visitStmt(node: AST.Node): Result<Pass1Stmt>;
   visitStmt<N extends keyof Pass0Statements & AST.Statement['type']>(
     node: AST.Statement & { type: N }
-  ): Exclude<VisitorReturn<Pass0Statements, N>, pass1.NamedBlock | pass1.TemporaryNamedBlock>;
-  visitStmt(node: AST.Statement): Result<pass1.Statement | pass1.Ignore> {
+  ): pass1.Statement & VisitorReturn<Pass0Statements, N>;
+  visitStmt(node: AST.Statement): Result<Pass1Stmt> {
     if (LOCAL_SHOULD_LOG) {
       LOCAL_LOGGER.groupCollapsed(`pass0: visiting statement`, node.type);
       LOCAL_LOGGER.log(`node`, node);
@@ -301,7 +288,7 @@ export class Context implements ImmutableContext {
     let f = this.statements[node.type] as (
       node: AST.Statement,
       ctx: Context
-    ) => MaybeResult<Pass1Stmt>;
+    ) => MaybeResult<Pass1Stmt | TemporaryNamedBlock>;
     let result = f(node, this);
 
     if (LOCAL_SHOULD_LOG) {
@@ -310,7 +297,7 @@ export class Context implements ImmutableContext {
     }
 
     return intoResult(result).andThen((result) => {
-      if (result.name === 'NamedBlock' || result.name === 'TemporaryNamedBlock') {
+      if (result instanceof TemporaryNamedBlock) {
         return Err(
           new GlimmerSyntaxError(
             `Invalid named block whose parent is not a component invocation`,

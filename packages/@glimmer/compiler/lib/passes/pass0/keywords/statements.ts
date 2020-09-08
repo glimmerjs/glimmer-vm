@@ -2,9 +2,9 @@ import { ExpressionContext } from '@glimmer/interfaces';
 import { AST, builders, GlimmerSyntaxError } from '@glimmer/syntax';
 import { isPresent } from '@glimmer/util';
 import * as pass1 from '../../pass1/ops';
+import { Ok, Result } from '../../shared/result';
 import { Context } from '../context';
 import { buildParams } from '../utils/builders';
-import { Ok, Result } from '../visitors/element';
 import { keyword, KeywordNode, keywords } from './impl';
 
 export const YIELD = keyword('yield', {

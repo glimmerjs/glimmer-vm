@@ -1,7 +1,7 @@
 import { AST, GlimmerSyntaxError } from '@glimmer/syntax';
 import * as pass1 from '../../pass1/ops';
+import { Ok, Result } from '../../shared/result';
 import { Context, ImmutableContext } from '../context';
-import { Ok, Result } from '../visitors/element';
 import { keyword, KeywordNode, keywords } from './impl';
 
 export const HAS_BLOCK = keyword('has-block', {

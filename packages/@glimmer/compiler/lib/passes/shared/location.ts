@@ -136,12 +136,12 @@ export function offsetToPosition(source: string, offset: number): Option<SourceP
   }
 }
 
-export function locationToOffsets(source: string, location: SourceLocation): Option<SourceOffsets> {
+export function locationToOffsets(source: string, location: SourceLocation): SourceOffsets {
   let start = positionToOffset(source, location.start);
   let end = positionToOffset(source, location.end);
 
   if (start === null || end === null) {
-    return null;
+    return SourceOffsets.NONE;
   } else {
     return new SourceOffsets(start, end);
   }

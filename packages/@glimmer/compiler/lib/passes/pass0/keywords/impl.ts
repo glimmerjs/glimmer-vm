@@ -1,7 +1,7 @@
 import { AST } from '@glimmer/syntax';
 import { unreachable } from '@glimmer/util';
+import { Result } from '../../shared/result';
 import { Context, ImmutableContext } from '../context';
-import { Result } from '../visitors/element';
 
 export type KeywordNode<Node extends AST.Call = AST.Call, S extends string = string> = Node & {
   path: AST.PathExpression & { original: S };

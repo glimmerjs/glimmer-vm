@@ -66,7 +66,9 @@ function getNodeHandler<N extends AST.Node>(
   if (nodeType === 'Template' || nodeType === 'Block') {
     if (visitor.Program) {
       if (LOCAL_DEBUG) {
-        deprecate(`TODO`);
+        deprecate(
+          `The 'Program' visitor node is deprecated. Use 'Template' or 'Block' instead (node was '${nodeType}') `
+        );
       }
 
       return visitor.Program as any;

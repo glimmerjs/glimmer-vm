@@ -4,7 +4,7 @@ import { LOCAL_LOGGER } from '@glimmer/util';
 import * as pass1 from '../pass1/ops';
 import { ProgramSymbolTable } from '../shared/symbol-table';
 import { Context, GlimmerCompileOptions } from './context';
-import { Result } from './visitors/element';
+import { Result } from '../shared/result';
 import { EXPRESSIONS } from './visitors/expressions';
 import { STATEMENTS } from './visitors/statements';
 
