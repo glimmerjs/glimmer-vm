@@ -1,6 +1,7 @@
 import { AST } from '@glimmer/syntax';
 import { unreachable } from '@glimmer/util';
 import { Context, ImmutableContext } from '../context';
+import { Result } from '../visitors/element';
 
 export type KeywordNode<Node extends AST.Call = AST.Call, S extends string = string> = Node & {
   path: AST.PathExpression & { original: S };
@@ -13,7 +14,7 @@ interface KeywordDelegate<
   Out
 > {
   assert(node: InputNode, ctx: ImmutableContext): V;
-  translate(node: MatchNode, ctx: Context, param: V): Out;
+  translate(node: MatchNode, ctx: Context, param: V): Result<Out>;
 }
 
 export interface Keyword<
@@ -22,7 +23,7 @@ export interface Keyword<
   Out = unknown
 > {
   match(mustache: Node): mustache is KeywordNode<Node, S>;
-  translate(mustache: KeywordNode<Node, S>, ctx: Context): Out;
+  translate(mustache: KeywordNode<Node, S>, ctx: Context): Result<Out>;
 }
 
 class KeywordImpl<
@@ -44,7 +45,7 @@ class KeywordImpl<
     }
   }
 
-  translate(mustache: KeywordNode<Node, S>, ctx: Context): Out {
+  translate(mustache: KeywordNode<Node, S>, ctx: Context): Result<Out> {
     let param = this.delegate.assert(mustache, ctx);
     return this.delegate.translate(mustache, ctx, param);
   }
@@ -93,10 +94,13 @@ class KeywordsImpl<Types extends Keyword = never>
     return false;
   }
 
-  translate(node: KeywordNode<NodeFor<Types>, NameFor<Types>>, ctx: Context): OutFor<Types> {
+  translate(
+    node: KeywordNode<NodeFor<Types>, NameFor<Types>>,
+    ctx: Context
+  ): Result<OutFor<Types>> {
     for (let keyword of this.#keywords) {
       if (keyword.match(node)) {
-        return keyword.translate(node, ctx) as OutFor<Types>;
+        return keyword.translate(node, ctx) as Result<OutFor<Types>>;
       }
     }
 

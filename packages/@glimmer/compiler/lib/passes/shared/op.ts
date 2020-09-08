@@ -2,12 +2,7 @@ import { PresentArray } from '@glimmer/interfaces';
 import { SourceLocation, SourcePosition } from '@glimmer/syntax';
 import { isPresent } from '@glimmer/util';
 import { locationToOffsets, MaybeHasOffsets, positionToOffset, SourceOffsets } from './location';
-import {
-  LocatedWithOffsets,
-  LocatedWithOptionalOffsets,
-  LocatedWithOptionalPositions,
-  LocatedWithPositions,
-} from './ops';
+import { LocatedWithOptionalPositions, LocatedWithPositions } from './ops';
 
 export type OpsTable<O extends Op> = {
   [P in O['name']]: O extends { name: P } ? O : never;

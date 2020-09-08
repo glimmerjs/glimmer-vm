@@ -3,6 +3,7 @@ import { AST, GlimmerSyntaxError } from '@glimmer/syntax';
 import { assertPresent } from '@glimmer/util';
 import * as pass1 from '../../pass1/ops';
 import { Context } from '../context';
+import { Result } from '../visitors/element';
 import { keyword, KeywordNode, keywords } from './impl';
 
 export const IN_ELEMENT = keyword('in-element', {
@@ -38,19 +39,21 @@ export const IN_ELEMENT = keyword('in-element', {
     block: KeywordNode<AST.BlockStatement>,
     ctx: Context,
     { insertBefore, destination }: { insertBefore?: AST.Expression; destination: AST.Expression }
-  ): pass1.InElement {
+  ): Result<pass1.InElement> {
     let guid = ctx.cursor();
 
-    return ctx
-      .op(pass1.InElement, {
-        block: ctx.visitBlock(ctx.slice('default').offsets(null), block.program),
-        insertBefore: insertBefore
-          ? ctx.visitExpr(insertBefore, ExpressionContext.Expression)
-          : undefined,
-        guid,
-        destination: ctx.visitExpr(destination, ExpressionContext.Expression),
-      })
-      .loc(block);
+    return ctx.visitBlock(ctx.slice('default').offsets(null), block.program).mapOk((body) =>
+      ctx
+        .op(pass1.InElement, {
+          block: body,
+          insertBefore: insertBefore
+            ? ctx.visitExpr(insertBefore, ExpressionContext.Expression)
+            : undefined,
+          guid,
+          destination: ctx.visitExpr(destination, ExpressionContext.Expression),
+        })
+        .loc(block)
+    );
   },
 });
 

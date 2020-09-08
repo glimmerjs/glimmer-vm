@@ -1,6 +1,5 @@
 import * as pass1 from '../pass1/ops';
 import * as pass2 from '../pass2/ops';
-import { SourceOffsets } from '../shared/location';
 import { OpArgs } from '../shared/op';
 import { Context, MapVisitorsInterface } from './context';
 

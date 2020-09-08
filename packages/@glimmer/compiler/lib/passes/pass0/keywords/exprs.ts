@@ -1,14 +1,19 @@
 import { AST, GlimmerSyntaxError } from '@glimmer/syntax';
 import * as pass1 from '../../pass1/ops';
 import { Context, ImmutableContext } from '../context';
+import { Ok, Result } from '../visitors/element';
 import { keyword, KeywordNode, keywords } from './impl';
 
 export const HAS_BLOCK = keyword('has-block', {
   assert(node: AST.Call, ctx: Context): pass1.SourceSlice {
     return assertValidHasBlockUsage('has-block', node, ctx);
   },
-  translate(node: KeywordNode<AST.Call>, ctx: Context, target: pass1.SourceSlice): pass1.HasBlock {
-    return ctx.op(pass1.HasBlock, { target }).loc(node);
+  translate(
+    node: KeywordNode<AST.Call>,
+    ctx: Context,
+    target: pass1.SourceSlice
+  ): Result<pass1.HasBlock> {
+    return Ok(ctx.op(pass1.HasBlock, { target }).loc(node));
   },
 });
 
@@ -20,8 +25,8 @@ export const HAS_BLOCK_PARAMS = keyword('has-block-params', {
     node: KeywordNode<AST.Call>,
     ctx: Context,
     target: pass1.SourceSlice
-  ): pass1.HasBlockParams {
-    return ctx.op(pass1.HasBlockParams, { target }).loc(node);
+  ): Result<pass1.HasBlockParams> {
+    return Ok(ctx.op(pass1.HasBlockParams, { target }).loc(node));
   },
 });
 

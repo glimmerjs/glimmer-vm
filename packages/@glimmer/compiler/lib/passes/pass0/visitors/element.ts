@@ -1,6 +1,6 @@
-import { ExpressionContext, Option, PresentArray } from '@glimmer/interfaces';
-import { AST, builders, GlimmerSyntaxError, SourceLocation } from '@glimmer/syntax';
-import { assertPresent, assign, ifPresent, isPresent, mapPresent } from '@glimmer/util';
+import { ExpressionContext, Option } from '@glimmer/interfaces';
+import { AST, builders, GlimmerSyntaxError } from '@glimmer/syntax';
+import { assertPresent, assign, ifPresent, mapPresent } from '@glimmer/util';
 import { getAttrNamespace } from '../../../utils';
 // import { Option } from '@glimmer/interfaces';
 import * as pass1 from '../../pass1/ops';
@@ -24,32 +24,22 @@ export function ElementNode(
   // other semantic content alongside the named block. Any other context that sees a
   // TemporaryNamedBlock produces a syntax error.
   if (isNamedBlock(element)) {
-    return Ok(
-      ctx.withBlock(element, (child) => {
-        return ctx
+    return ctx.visitStmts(element.children).mapOk((stmts) =>
+      ctx.withBlock(element, (child) =>
+        ctx
           .op(pass1.TemporaryNamedBlock, {
             name: ctx.slice(element.tag.slice(1)).loc(element),
             table: child,
-            body: ctx.mapIntoOps(element.children, (stmt) => ctx.visitStmt(stmt)),
+            body: stmts,
           })
-          .loc(element);
-      })
+          .loc(element)
+      )
     );
   }
 
   let classified = classify(ctx, element);
   return classified.toStatement();
 }
-
-type ClassifiedBody =
-  | {
-      type: 'named-block';
-      block: pass1.NamedBlock;
-    }
-  | {
-      type: 'named-blocks';
-      blocks: PresentArray<pass1.NamedBlock>;
-    };
 
 export type ValidAttr = pass1.Attr | pass1.AttrSplat;
 
@@ -63,7 +53,7 @@ function simpleDynamicAttrValue(
   }
 
   if (EXPR_KEYWORDS.match(value)) {
-    return EXPR_KEYWORDS.translate(value, ctx);
+    return EXPR_KEYWORDS.translate(value, ctx).expect();
   }
 
   if (isHelperInvocation(value)) {
@@ -126,16 +116,6 @@ function assertValidArgumentName(
   }
 }
 
-function assertNoNamedBlocks(
-  body: ClassifiedBody,
-  el: ClassifiedElement | ClassifiedComponent,
-  loc: SourceLocation
-): asserts body is { type: 'named-block'; block: pass1.NamedBlock } {
-  if (body.type === 'named-blocks' && !(el instanceof ClassifiedComponent)) {
-    throw new GlimmerSyntaxError(`Named blocks are only allowed inside a component`, loc);
-  }
-}
-
 function isNamedBlock(element: AST.ElementNode): boolean {
   return element.tag[0] === ':';
 }
@@ -166,7 +146,7 @@ type ProcessedAttributes = {
 // );
 
 abstract class ResultImpl<T> {
-  abstract ifOk<U>(callback: (value: T) => U): Result<U>;
+  abstract mapOk<U>(callback: (value: T) => U): Result<U>;
   abstract readonly isOk: boolean;
   abstract readonly isErr: boolean;
 }
@@ -179,8 +159,29 @@ class OkImpl<T> extends ResultImpl<T> {
     super();
   }
 
-  ifOk<U>(callback: (value: T) => U): Result<U> {
+  expect(_message?: string): T {
+    return this.value;
+  }
+
+  ifOk(callback: (value: T) => void): this {
+    callback(this.value);
+    return this;
+  }
+
+  andThen<U>(callback: (value: T) => Result<U>): Result<U> {
+    return callback(this.value);
+  }
+
+  mapOk<U>(callback: (value: T) => U): Result<U> {
     return Ok(callback(this.value));
+  }
+
+  ifErr(_callback: (value: GlimmerSyntaxError) => void): this {
+    return this;
+  }
+
+  mapErr(_callback: (value: GlimmerSyntaxError) => GlimmerSyntaxError): Result<T> {
+    return this;
   }
 }
 
@@ -192,12 +193,45 @@ class ErrImpl<T> extends ResultImpl<T> {
     super();
   }
 
-  ifOk<U>(_callback: (value: T) => U): Result<U> {
+  expect(message?: string): T {
+    throw new Error(message || 'expected an Ok, got Err');
+  }
+
+  andThen<U>(_callback: (value: T) => Result<U>): Result<U> {
     return this.cast<U>();
+  }
+
+  mapOk<U>(_callback: (value: T) => U): Result<U> {
+    return this.cast<U>();
+  }
+
+  ifOk(_callback: (value: T) => void): this {
+    return this;
+  }
+
+  mapErr(callback: (value: GlimmerSyntaxError) => GlimmerSyntaxError): Result<T> {
+    return Err(callback(this.reason));
+  }
+
+  ifErr(callback: (value: GlimmerSyntaxError) => void): this {
+    callback(this.reason);
+    return this;
   }
 
   cast<U>(): Result<U> {
     return (this as unknown) as Result<U>;
+  }
+}
+
+export function isResult<T>(input: MaybeResult<T>): input is Result<T> {
+  return input instanceof ResultImpl;
+}
+
+export function intoResult<T>(input: MaybeResult<T>): Result<T> {
+  if (isResult(input)) {
+    return input;
+  } else {
+    return Ok(input);
   }
 }
 
@@ -207,11 +241,17 @@ export function Ok<T>(value: T): Result<T> {
   return new OkImpl(value);
 }
 
+export type Ok<T> = OkImpl<T>;
+
 export function Err<T>(reason: GlimmerSyntaxError): Result<T> {
   return new ErrImpl(reason);
 }
 
-class ResultArray<T> {
+export type Err<T> = ErrImpl<T>;
+
+export type MaybeResult<T> = T | Result<T>;
+
+export class ResultArray<T> {
   private items: Result<T>[] = [];
 
   add(item: Result<T>): void {
@@ -317,7 +357,7 @@ abstract class Classified {
       attrs.push(this.attr(typeAttr));
     }
 
-    return args.toArray().ifOk((args) => ({
+    return args.toArray().mapOk((args) => ({
       attrs,
       args: pass1.AnyNamedArguments(args),
     }));
@@ -376,21 +416,20 @@ class ClassifiedElement extends Classified {
     let { attrs } = result.value;
     let params = this.params(attrs);
 
-    let block = this.ctx.withBlock(this.element, (child) => {
-      let body = this.ctx.mapIntoOps(this.element.children, (stmt) =>
-        this.ctx.visitAmbiguousStmt(stmt)
-      );
-      let block = this.ctx
-        .op(pass1.TemporaryNamedBlock, {
-          name: this.ctx.slice('default').offsets(null),
-          table: child,
-          body,
-        })
-        .loc(this.element);
-      return this.body(block);
-    });
+    let block = this.ctx.withBlock(this.element, (child) =>
+      this.ctx.visitAmbiguousStmts(this.element.children).andThen((body) => {
+        let temp = this.ctx
+          .op(pass1.TemporaryNamedBlock, {
+            name: this.ctx.slice('default').offsets(null),
+            table: child,
+            body,
+          })
+          .loc(this.element);
+        return this.body(temp);
+      })
+    );
 
-    return block.ifOk((body) => {
+    return block.mapOk((body) => {
       return this.ctx
         .op(pass1.SimpleElement, {
           tag: this.tag,
@@ -417,7 +456,7 @@ class ClassifiedComponent extends Classified {
     } else if (block.hasValidNamedBlocks()) {
       let children = block.asNamedBlocks(this.ctx.source);
 
-      return children.ifOk((blocks) => this.ctx.op(pass1.NamedBlocks, { blocks }).offsets(blocks));
+      return children.mapOk((blocks) => this.ctx.op(pass1.NamedBlocks, { blocks }).offsets(blocks));
     } else {
       // there were semantic children and named blocks
       return Err(
@@ -464,22 +503,21 @@ class ClassifiedComponent extends Classified {
     if (this.element.selfClosing) {
       blocks = Ok(this.ctx.op(pass1.EmptyNamedBlocks).loc(loc));
     } else {
-      blocks = this.ctx.withBlock(this.element, (child) => {
-        let body = this.ctx.mapIntoOps(this.element.children, (stmt) =>
-          this.ctx.visitAmbiguousStmt(stmt)
-        );
-        let block = this.ctx
-          .op(pass1.TemporaryNamedBlock, {
-            name: this.ctx.slice('default').offsets(null),
-            table: child,
-            body,
-          })
-          .loc(loc);
-        return this.body(block);
-      });
+      blocks = this.ctx.withBlock(this.element, (child) =>
+        this.ctx.visitAmbiguousStmts(this.element.children).andThen((body) => {
+          let temp = this.ctx
+            .op(pass1.TemporaryNamedBlock, {
+              name: this.ctx.slice('default').offsets(null),
+              table: child,
+              body,
+            })
+            .loc(loc);
+          return this.body(temp);
+        })
+      );
     }
 
-    return blocks.ifOk((blocks) =>
+    return blocks.mapOk((blocks) =>
       this.ctx
         .op(pass1.Component, {
           tag: this.tag,

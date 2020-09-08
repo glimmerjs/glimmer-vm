@@ -4,6 +4,7 @@ import { isPresent } from '@glimmer/util';
 import * as pass1 from '../../pass1/ops';
 import { Context } from '../context';
 import { buildParams } from '../utils/builders';
+import { Ok, Result } from '../visitors/element';
 import { keyword, KeywordNode, keywords } from './impl';
 
 export const YIELD = keyword('yield', {
@@ -48,14 +49,16 @@ export const YIELD = keyword('yield', {
       params: AST.Expression[];
       kw: AST.Expression;
     }
-  ): pass1.Statement {
+  ): Result<pass1.Statement> {
     let params = buildParams(ctx, { path: kw, params: astParams });
-    return ctx
-      .op(pass1.Yield, {
-        target: ctx.slice(target.value).loc(target),
-        params,
-      })
-      .loc(statement);
+    return Ok(
+      ctx
+        .op(pass1.Yield, {
+          target: ctx.slice(target.value).loc(target),
+          params,
+        })
+        .loc(statement)
+    );
   },
 });
 
@@ -105,15 +108,17 @@ export const PARTIAL = keyword('partial', {
     statement: KeywordNode<AST.MustacheStatement>,
     ctx: Context,
     expr: AST.Expression | undefined
-  ): pass1.Statement {
-    return ctx
-      .op(pass1.Partial, {
-        expr:
-          expr === undefined
-            ? ctx.visitExpr(builders.undefined(), ExpressionContext.Expression)
-            : ctx.visitExpr(expr, ExpressionContext.Expression),
-      })
-      .loc(statement);
+  ): Result<pass1.Statement> {
+    return Ok(
+      ctx
+        .op(pass1.Partial, {
+          expr:
+            expr === undefined
+              ? ctx.visitExpr(builders.undefined(), ExpressionContext.Expression)
+              : ctx.visitExpr(expr, ExpressionContext.Expression),
+        })
+        .loc(statement)
+    );
   },
 });
 
@@ -136,8 +141,8 @@ export const DEBUGGER = keyword('debugger', {
     }
   },
 
-  translate(statement: KeywordNode<AST.MustacheStatement>, ctx: Context): pass1.Statement {
-    return ctx.op(pass1.Debugger).loc(statement);
+  translate(statement: KeywordNode<AST.MustacheStatement>, ctx: Context): Result<pass1.Statement> {
+    return Ok(ctx.op(pass1.Debugger).loc(statement));
   },
 });
 

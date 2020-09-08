@@ -8,7 +8,15 @@ import { InputOpArgs, OpConstructor, UnlocatedOp } from '../shared/op';
 import { OpFactory } from '../shared/ops';
 import { BlockSymbolTable, SymbolTable } from '../shared/symbol-table';
 import { buildPathWithContext } from './utils/builders';
-import { Result } from './visitors/element';
+import {
+  Err,
+  intoResult,
+  isResult,
+  MaybeResult,
+  Ok,
+  Result,
+  ResultArray,
+} from './visitors/element';
 import { Pass0Expressions } from './visitors/expressions';
 import { Pass0Statements } from './visitors/statements';
 
@@ -25,10 +33,25 @@ type VisitorFunc<V extends Pass0Visitor, N extends keyof V & keyof AST.Nodes> = 
   ctx: Context
 ) => VisitorReturn<V, N>;
 
+type ResultVisitorReturn<
+  V extends Pass0Visitor,
+  N extends keyof V & keyof AST.Nodes = keyof V & keyof AST.Nodes
+> = V[N] extends (...args: any[]) => infer R
+  ? R extends Pass1Op
+    ? Result<R>
+    : R extends Result<Pass1Op>
+    ? R
+    : never
+  : never;
+
 type VisitorReturn<
   V extends Pass0Visitor,
   N extends keyof V & keyof AST.Nodes = keyof V & keyof AST.Nodes
-> = V[N] extends (...args: any[]) => infer R ? (R extends Pass1Op ? R : never) : never;
+> = V[N] extends (...args: any[]) => infer R
+  ? R extends Pass1Op | Result<Pass1Op>
+    ? R
+    : never
+  : never;
 
 export interface ImmutableContext {
   slice(value: string): UnlocatedOp<pass1.SourceSlice>;
@@ -114,41 +137,45 @@ export class Context implements ImmutableContext {
 
   visitAmbiguousStmts<S extends AST.Statement>(
     statements: S[]
-  ): (pass1.Statement | pass1.TemporaryNamedBlock)[] {
-    let out: (pass1.Statement | pass1.TemporaryNamedBlock)[] = [];
+  ): Result<(pass1.Statement | pass1.TemporaryNamedBlock)[]> {
+    let out = new ResultArray<pass1.Statement | pass1.TemporaryNamedBlock>();
 
     for (let statement of statements) {
-      let result = this.visitAmbiguousStmt(statement);
-
-      switch (result.name) {
-        case 'Ignore':
-          break;
-        default:
-          out.push(result);
-      }
+      this.visitAmbiguousStmt(statement)
+        .ifOk((s) => {
+          switch (s.name) {
+            case 'Ignore':
+              break;
+            default:
+              out.add(Ok(s));
+          }
+        })
+        .ifErr((err) => out.add(Err(err)));
     }
 
-    return out;
+    return out.toArray();
     // return this.factory
     //   .map(input, callback)
     //   .filter((n: Out): n is Exclude<Out, pass1.Ignore> => n.name !== 'Ignore');
   }
 
-  visitStmts<S extends AST.Statement>(statements: S[]): pass1.Statement[] {
-    let out: pass1.Statement[] = [];
+  visitStmts<S extends AST.Statement>(statements: S[]): Result<pass1.Statement[]> {
+    let out = new ResultArray<pass1.Statement>();
 
     for (let statement of statements) {
-      let result = this.visitStmt(statement);
-
-      switch (result.name) {
-        case 'Ignore':
-          break;
-        default:
-          out.push(result);
-      }
+      this.visitStmt(statement)
+        .ifOk((s) => {
+          switch (s.name) {
+            case 'Ignore':
+              break;
+            default:
+              out.add(Ok(s));
+          }
+        })
+        .ifErr((err) => out.add(Err(err)));
     }
 
-    return out;
+    return out.toArray();
     // return this.factory
     //   .map(input, callback)
     //   .filter((n: Out): n is Exclude<Out, pass1.Ignore> => n.name !== 'Ignore');
@@ -236,61 +263,80 @@ export class Context implements ImmutableContext {
     }
   }
 
+  visitAmbiguousStmt(
+    node: AST.Node
+  ): Result<pass1.Statement | pass1.TemporaryNamedBlock | pass1.Ignore>;
   visitAmbiguousStmt<N extends keyof Pass0Statements & keyof AST.Nodes>(
     node: AST.Node & AST.Nodes[N]
-  ): Exclude<VisitorReturn<Pass0Statements, N>, pass1.NamedBlock> {
+  ): Exclude<ResultVisitorReturn<Pass0Statements, N>, Result<pass1.NamedBlock>>;
+  visitAmbiguousStmt<N extends keyof Pass0Statements & keyof AST.Nodes>(
+    node: AST.Node & AST.Nodes[N]
+  ): Exclude<ResultVisitorReturn<Pass0Statements, N>, Result<pass1.NamedBlock>> {
     console.groupCollapsed(`pass0: visiting statement`, node.type);
     console.log(`node`, node);
 
     let f = this.statements[node.type] as VisitorFunc<Pass0Statements, N>;
-    let result: pass1.Statement | pass1.Ignore | pass1.NamedBlock | pass1.TemporaryNamedBlock = f(
-      node,
-      this
-    );
+    let result: MaybeResult<
+      pass1.Statement | pass1.Ignore | pass1.NamedBlock | pass1.TemporaryNamedBlock
+    > = f(node, this);
 
     console.log(`-> out   `, node);
     console.groupEnd();
 
-    assert(result.name !== 'NamedBlock', `Unexpected named block while evaluating statements`);
-
-    return result as Exclude<VisitorReturn<Pass0Statements, N>, pass1.NamedBlock>;
-  }
-
-  visitStmt<N extends keyof Pass0Statements & AST.Statement['type']>(
-    node: AST.Statement & { type: N }
-  ): Exclude<VisitorReturn<Pass0Statements, N>, pass1.NamedBlock | pass1.TemporaryNamedBlock> {
-    console.groupCollapsed(`pass0: visiting statement`, node.type);
-    console.log(`node`, node);
-
-    let f = this.statements[node.type] as VisitorFunc<Pass0Statements, N>;
-    let result: pass1.Statement | pass1.Ignore | pass1.NamedBlock | pass1.TemporaryNamedBlock = f(
-      node,
-      this
-    );
-
-    console.log(`-> out   `, node);
-    console.groupEnd();
-
-    if (result.name === 'NamedBlock' || result.name === 'TemporaryNamedBlock') {
-      throw new GlimmerSyntaxError(
-        `Invalid named block whose parent is not a component invocation`,
-        node.loc
-      );
+    let out: Exclude<ResultVisitorReturn<Pass0Statements, N>, Result<pass1.NamedBlock>>;
+    if (isResult(result)) {
+      out = result as Exclude<ResultVisitorReturn<Pass0Statements, N>, Result<pass1.NamedBlock>>;
+    } else {
+      out = Ok(result) as Exclude<
+        ResultVisitorReturn<Pass0Statements, N>,
+        Result<pass1.NamedBlock>
+      >;
     }
 
-    return result as Exclude<
-      VisitorReturn<Pass0Statements, N>,
-      pass1.NamedBlock | pass1.TemporaryNamedBlock
-    >;
+    return out;
   }
 
-  visitBlock(name: pass1.SourceSlice, node: AST.Block): pass1.NamedBlock {
+  visitStmt(node: AST.Node): Result<pass1.Statement | pass1.Ignore>;
+  visitStmt<N extends keyof Pass0Statements & AST.Statement['type']>(
+    node: AST.Statement & { type: N }
+  ): Exclude<VisitorReturn<Pass0Statements, N>, pass1.NamedBlock | pass1.TemporaryNamedBlock>;
+  visitStmt<N extends keyof Pass0Statements & AST.Statement['type']>(
+    node: AST.Statement & { type: N }
+  ): Result<pass1.Statement | pass1.Ignore> {
+    console.groupCollapsed(`pass0: visiting statement`, node.type);
+    console.log(`node`, node);
+
+    let f = this.statements[node.type] as VisitorFunc<Pass0Statements, N>;
+    let result: MaybeResult<
+      pass1.Statement | pass1.Ignore | pass1.NamedBlock | pass1.TemporaryNamedBlock
+    > = f(node, this);
+
+    console.log(`-> out   `, node);
+    console.groupEnd();
+
+    return intoResult(result).andThen((result) => {
+      if (result.name === 'NamedBlock' || result.name === 'TemporaryNamedBlock') {
+        return Err(
+          new GlimmerSyntaxError(
+            `Invalid named block whose parent is not a component invocation`,
+            node.loc
+          )
+        );
+      }
+
+      return Ok(result as pass1.Statement | pass1.Ignore);
+    });
+  }
+
+  visitBlock(name: pass1.SourceSlice, node: AST.Block): Result<pass1.NamedBlock> {
     return this.withBlock(node, (symbols) =>
-      this.op(pass1.NamedBlock, {
-        name,
-        table: symbols,
-        body: this.mapIntoOps(node.body, (stmt) => this.visitStmt(stmt)),
-      }).loc(node)
+      this.visitStmts(node.body).mapOk((stmts) =>
+        this.op(pass1.NamedBlock, {
+          name,
+          table: symbols,
+          body: stmts,
+        }).loc(node)
+      )
     );
   }
 }

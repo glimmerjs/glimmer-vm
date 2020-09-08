@@ -1,4 +1,4 @@
-import { ExpressionContext, PresentArray } from '@glimmer/interfaces';
+import { ExpressionContext, PresentArray, Option } from '@glimmer/interfaces';
 import { AST, isLiteral } from '@glimmer/syntax';
 import { assign } from '@glimmer/util';
 import * as pass1 from '../../pass1/ops';
@@ -7,7 +7,7 @@ import { Context, Pass1Stmt, VisitorInterface } from '../context';
 import { BLOCK_KEYWORDS, EXPR_KEYWORDS, STATEMENT_KEYWORDS } from '../keywords';
 import { buildArgs } from '../utils/builders';
 import { assertIsSimpleHelper, isHelperInvocation, isSimplePath } from '../utils/is-node';
-import { ElementNode } from './element';
+import { ElementNode, Ok, Result } from './element';
 
 // Whitespace is allowed around and between named blocks
 const WHITESPACE = /^\s+$/;
@@ -17,55 +17,58 @@ export class Pass0Statements implements VisitorInterface<AST.Statement, Pass1Stm
     throw new Error(`Handlebars partials are not supported in Glimmer`);
   }
 
-  BlockStatement(block: AST.BlockStatement, ctx: Context): pass1.Statement {
+  BlockStatement(block: AST.BlockStatement, ctx: Context): Result<pass1.Statement> {
     if (BLOCK_KEYWORDS.match(block)) {
       return BLOCK_KEYWORDS.translate(block, ctx);
     } else {
-      let blocks: PresentArray<pass1.NamedBlock> = [
-        ctx.visitBlock(ctx.slice('default').offsets(null), block.program),
-      ];
-
-      if (block.inverse) {
-        blocks.push(ctx.visitBlock(ctx.slice('else').offsets(null), block.inverse));
-      }
-
       return ctx
-        .op(
-          pass1.BlockInvocation,
-          assign(
-            {
-              head: ctx.visitExpr(block.path, ExpressionContext.BlockHead),
-            },
-            buildArgs(ctx, block),
-            { blocks }
-          )
+        .visitBlock(ctx.slice('default').offsets(null), block.program)
+        .andThen(
+          (defaultBlock): Result<Option<PresentArray<pass1.NamedBlock>>> => {
+            if (block.inverse) {
+              return ctx
+                .visitBlock(ctx.slice('else').offsets(null), block.inverse)
+                .mapOk((inverseBlock) => {
+                  return [defaultBlock, inverseBlock];
+                });
+            } else {
+              return Ok([defaultBlock]);
+            }
+          }
         )
-        .loc(block);
+        .mapOk((blocks) =>
+          ctx
+            .op(
+              pass1.BlockInvocation,
+              assign(
+                {
+                  head: ctx.visitExpr(block.path, ExpressionContext.BlockHead),
+                },
+                buildArgs(ctx, block),
+                { blocks }
+              )
+            )
+            .loc(block)
+        );
     }
   }
 
   ElementNode(
     element: AST.ElementNode,
     ctx: Context
-  ): pass1.Statement | pass1.NamedBlock | pass1.TemporaryNamedBlock {
-    let out = ElementNode(element, ctx);
-
-    if (out.isErr) {
-      throw out.reason;
-    } else {
-      return out.value;
-    }
+  ): Result<pass1.Statement | pass1.NamedBlock | pass1.TemporaryNamedBlock> {
+    return ElementNode(element, ctx);
   }
 
   MustacheCommentStatement(node: AST.MustacheCommentStatement, ctx: Context): pass1.Ignore {
     return ctx.op(pass1.Ignore).loc(node);
   }
 
-  MustacheStatement(mustache: AST.MustacheStatement, ctx: Context): pass1.Statement {
+  MustacheStatement(mustache: AST.MustacheStatement, ctx: Context): Result<pass1.Statement> {
     let { path } = mustache;
 
     if (isLiteral(path)) {
-      return appendExpr(ctx, path, { trusted: !mustache.escaped }).loc(mustache);
+      return Ok(appendExpr(ctx, path, { trusted: !mustache.escaped }).loc(mustache));
     }
 
     if (STATEMENT_KEYWORDS.match(mustache)) {
@@ -74,38 +77,44 @@ export class Pass0Statements implements VisitorInterface<AST.Statement, Pass1Stm
 
     // {{has-block}} or {{has-block-params}}
     if (EXPR_KEYWORDS.match(mustache)) {
-      return ctx
-        .append(EXPR_KEYWORDS.translate(mustache, ctx), { trusted: !mustache.escaped })
-        .loc(mustache);
+      return Ok(
+        ctx
+          .append(EXPR_KEYWORDS.translate(mustache, ctx).expect(), { trusted: !mustache.escaped })
+          .loc(mustache)
+      );
     }
 
     if (!isHelperInvocation(mustache)) {
-      return appendExpr(ctx, mustache.path, {
-        trusted: !mustache.escaped,
-        context: mustacheContext(mustache.path),
-      }).loc(mustache);
+      return Ok(
+        appendExpr(ctx, mustache.path, {
+          trusted: !mustache.escaped,
+          context: mustacheContext(mustache.path),
+        }).loc(mustache)
+      );
     }
 
     assertIsSimpleHelper(mustache, mustache.loc, 'helper');
 
-    return ctx
-      .append(
-        ctx
-          .op(
-            pass1.SubExpression,
-            assign(
-              {
-                head: ctx.visitExpr(mustache.path, ExpressionContext.CallHead),
-              },
-              buildArgs(ctx, mustache)
+    return Ok(
+      ctx
+        .append(
+          ctx
+            .op(
+              pass1.SubExpression,
+              assign(
+                {
+                  head: ctx.visitExpr(mustache.path, ExpressionContext.CallHead),
+                },
+                buildArgs(ctx, mustache)
+              )
             )
-          )
-          .loc(mustache),
-        {
-          trusted: !mustache.escaped,
-        }
-      )
-      .loc(mustache);
+            .loc(mustache),
+          {
+            trusted: !mustache.escaped,
+          }
+        )
+        .loc(mustache)
+    );
   }
 
   TextNode(text: AST.TextNode, ctx: Context): pass1.Statement {

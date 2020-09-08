@@ -1,6 +1,5 @@
 import { Option, PresentArray } from '@glimmer/interfaces';
 import { SourceLocation, SourcePosition, SYNTHETIC } from '@glimmer/syntax';
-import { Source } from './op';
 import { LocatedWithOffsets, LocatedWithOptionalOffsets } from './ops';
 
 export type HasOffsets = SourceOffsets | LocatedWithOffsets | PresentArray<LocatedWithOffsets>;

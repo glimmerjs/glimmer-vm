@@ -83,15 +83,20 @@ export function precompileJSON(
   options: GlimmerCompileOptions = defaultOptions
 ): SerializedTemplateBlock {
   let ast = preprocess(string, options);
-  let pass1In = pass0(string, ast, options);
-  let pass2In = pass1(string, pass1In);
-  let block = pass2(pass2In);
+  let block = pass0(string, ast, options).mapOk((pass1In) => {
+    let pass2In = pass1(string, pass1In);
+    return pass2(pass2In);
+  });
 
   if (LOCAL_SHOULD_LOG) {
     console.log(`Template ->`, block);
   }
 
-  return block;
+  if (block.isOk) {
+    return block.value;
+  } else {
+    throw block.reason;
+  }
 }
 
 /*

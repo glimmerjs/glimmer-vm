@@ -2,6 +2,7 @@ import { AST } from '@glimmer/syntax';
 import * as pass1 from '../pass1/ops';
 import { ProgramSymbolTable } from '../shared/symbol-table';
 import { Context, GlimmerCompileOptions } from './context';
+import { Result } from './visitors/element';
 import { EXPRESSIONS } from './visitors/expressions';
 import { STATEMENTS } from './visitors/statements';
 
@@ -9,7 +10,7 @@ export function visit(
   source: string,
   root: AST.Template,
   options: GlimmerCompileOptions
-): pass1.Template {
+): Result<pass1.Template> {
   let ctx = new Context(source, options, {
     expressions: EXPRESSIONS,
     statements: STATEMENTS,
@@ -29,5 +30,5 @@ export function visit(
 
   console.log('-> pass0: out', body);
 
-  return ctx.template({ symbols, body }).loc(root.loc);
+  return body.mapOk((body) => ctx.template({ symbols, body }).loc(root.loc));
 }

@@ -47,7 +47,7 @@ export class Pass0Expressions implements VisitorInterface<AST.Expression, pass1.
 
   SubExpression(expr: AST.SubExpression, ctx: Context): pass1.Expr {
     if (EXPR_KEYWORDS.match(expr)) {
-      return EXPR_KEYWORDS.translate(expr, ctx);
+      return EXPR_KEYWORDS.translate(expr, ctx).expect();
     } else if (!hasPath(expr)) {
       throw new Error(`unimplemented subexpression at the head of a subexpression`);
     } else {

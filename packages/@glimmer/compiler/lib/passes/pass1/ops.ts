@@ -3,8 +3,7 @@ import { AST, GlimmerSyntaxError } from '@glimmer/syntax';
 import { assert, isPresent } from '@glimmer/util';
 import { Err, Ok, Result } from '../pass0/visitors/element';
 import { SourceOffsets } from '../shared/location';
-import { op, OpsTable, Source } from '../shared/op';
-import { range } from '../shared/ops';
+import { op, OpsTable } from '../shared/op';
 import { BlockSymbolTable, ProgramSymbolTable } from '../shared/symbol-table';
 
 export interface AttrKind {
