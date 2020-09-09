@@ -2,14 +2,15 @@ import { LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
 import { AST } from '@glimmer/syntax';
 import { LOCAL_LOGGER } from '@glimmer/util';
 import * as pass1 from '../pass1/ops';
-import { ProgramSymbolTable } from '../shared/symbol-table';
+import { ProgramSymbolTable } from '../../shared/symbol-table';
 import { Context, GlimmerCompileOptions } from './context';
-import { Result } from '../shared/result';
+import { Result } from '../../shared/result';
 import { EXPRESSIONS } from './visitors/expressions';
 import { STATEMENTS } from './visitors/statements';
+import { Source } from '../../source/source';
 
 export function visit(
-  source: string,
+  source: Source,
   root: AST.Template,
   options: GlimmerCompileOptions
 ): Result<pass1.Template> {
@@ -36,5 +37,5 @@ export function visit(
     LOCAL_LOGGER.log('-> pass0: out', body);
   }
 
-  return body.mapOk((body) => ctx.template({ symbols, body }).loc(root.loc));
+  return body.mapOk((body) => new pass1.Template(source.offsetsFor(root), { symbols, body }));
 }

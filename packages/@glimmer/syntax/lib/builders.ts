@@ -1,5 +1,5 @@
 import * as AST from './types/nodes';
-import { Option, Dict } from '@glimmer/interfaces';
+import { Optional, Dict } from '@glimmer/interfaces';
 import { deprecate, assign, assert } from '@glimmer/util';
 import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
 import { StringLiteral, BooleanLiteral, NumberLiteral } from './types/handlebars-ast';
@@ -34,17 +34,17 @@ function buildMustache(
 
 function buildBlock(
   path: BuilderHead,
-  params: Option<AST.Expression[]>,
-  hash: Option<AST.Hash>,
+  params: Optional<AST.Expression[]>,
+  hash: Optional<AST.Hash>,
   _defaultBlock: AST.PossiblyDeprecatedBlock,
-  _elseBlock?: Option<AST.PossiblyDeprecatedBlock>,
+  _elseBlock?: Optional<AST.PossiblyDeprecatedBlock>,
   loc?: AST.SourceLocation,
   openStrip?: AST.StripFlags,
   inverseStrip?: AST.StripFlags,
   closeStrip?: AST.StripFlags
 ): AST.BlockStatement {
   let defaultBlock: AST.Block;
-  let elseBlock: Option<AST.Block> | undefined;
+  let elseBlock: Optional<AST.Block> | undefined;
 
   if (_defaultBlock.type === 'Template') {
     if (LOCAL_DEBUG) {
@@ -84,7 +84,7 @@ function buildElementModifier(
   path: BuilderHead | AST.Expression,
   params?: AST.Expression[],
   hash?: AST.Hash,
-  loc?: Option<AST.SourceLocation>
+  loc?: Optional<AST.SourceLocation>
 ): AST.ElementModifierStatement {
   return {
     type: 'ElementModifierStatement',
@@ -636,13 +636,13 @@ function buildPosition(line: number, column: number) {
   };
 }
 
-export const SYNTHETIC: AST.SourceLocation = {
+export const SYNTHETIC = Object.freeze({
   source: '(synthetic)',
   start: { line: 1, column: 0 },
   end: { line: 1, column: 0 },
-};
+} as const);
 
-function buildLoc(loc: Option<AST.SourceLocation>): AST.SourceLocation;
+function buildLoc(loc: Optional<AST.SourceLocation>): AST.SourceLocation;
 function buildLoc(
   startLine: number,
   startColumn: number,

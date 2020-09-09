@@ -3,7 +3,7 @@ import {
   ExpressionCompileActions,
   LayoutWithContext,
   Op,
-  Option,
+  Optional,
   StatementCompileActions,
   WireFormat,
   ArgsOptions,
@@ -69,7 +69,7 @@ export function CompileArgs({
  * @param params an optional list of positional arguments
  */
 export function CompilePositional(
-  params: Option<WireFormat.Core.Params>
+  params: Optional<WireFormat.Core.Params>
 ): { count: number; actions: ExpressionCompileActions } {
   if (!params) return { count: 0, actions: NONE };
 
@@ -92,7 +92,7 @@ export function meta<R>(layout: LayoutWithContext<R>): ContainingMetadata {
   };
 }
 
-export function evalSymbols<R>(layout: LayoutWithContext<R>): Option<string[]> {
+export function evalSymbols<R>(layout: LayoutWithContext<R>): Optional<string[]> {
   let { block } = layout;
 
   return block.hasEval ? block.symbols : null;

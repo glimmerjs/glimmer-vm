@@ -1,5 +1,5 @@
 import { debug, logOpcode, opcodeMetadata, recordStackSize } from '@glimmer/debug';
-import { Dict, Maybe, Op, Option, RuntimeOp } from '@glimmer/interfaces';
+import { Dict, Maybe, Op, Optional, RuntimeOp } from '@glimmer/interfaces';
 import { LOCAL_DEBUG, LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
 import { valueForRef } from '@glimmer/reference';
 import { assert, fillNulls, initializeGuid, LOCAL_LOGGER } from '@glimmer/util';
@@ -12,10 +12,10 @@ import { CURSOR_STACK } from './vm/element-builder';
 
 export interface OpcodeJSON {
   type: number | string;
-  guid?: Option<number>;
+  guid?: Optional<number>;
   deopted?: boolean;
   args?: string[];
-  details?: Dict<Option<string>>;
+  details?: Dict<Optional<string>>;
   children?: OpcodeJSON[];
 }
 

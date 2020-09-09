@@ -1,7 +1,8 @@
-import { SourceLocation, SourcePosition } from '@glimmer/syntax';
 import { PresentArray } from '@glimmer/interfaces';
-import { positionToOffset, SourceOffsets } from './location';
+import { SourceLocation } from '@glimmer/syntax';
+import { SourceOffsets } from '../source/offsets';
 import { InputOpArgs, Op, OpConstructor, toArgs, UnlocatedOp } from './op';
+import { Source } from '../source/source';
 
 export type ArgsMap<K extends string | number> = {
   [P in K]: unknown;
@@ -10,7 +11,7 @@ export type ArgsMap<K extends string | number> = {
 export type Ops<O extends Op> = O | O[];
 
 export class OpFactory<SubOp extends Op> {
-  constructor(private source: string) {}
+  constructor(private source: Source) {}
 
   op<O extends SubOp>(Class: OpConstructor<O>, ...args: InputOpArgs<O>): UnlocatedOp<O> {
     return new UnlocatedOp(Class, toArgs(args), this.source);
@@ -63,21 +64,6 @@ export type LocatedWithOptionalOffsets = { offsets: SourceOffsets | null };
 
 export type LocatedWithPositions = { loc: SourceLocation };
 export type LocatedWithOptionalPositions = { loc?: SourceLocation };
-
-export function range(
-  first: SourcePosition,
-  last: SourcePosition,
-  source: string
-): SourceOffsets | null {
-  let start = positionToOffset(source, { line: first.line, column: first.column });
-  let end = positionToOffset(source, { line: last.line, column: last.column });
-
-  if (start === null || end === null) {
-    return null;
-  } else {
-    return new SourceOffsets(start, end);
-  }
-}
 
 export type ArrayUnion<K extends string | number, Map extends ArgsMap<K>, Name extends K = K> = {
   [P in K]: [P, Map[P]];

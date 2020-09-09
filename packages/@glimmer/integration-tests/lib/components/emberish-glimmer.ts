@@ -2,7 +2,7 @@ import { Reference, createConstRef } from '@glimmer/reference';
 import { DirtyableTag, createTag, dirtyTag, consumeTag } from '@glimmer/validator';
 import {
   Dict,
-  Option,
+  Optional,
   Bounds,
   CapturedNamedArguments,
   ComponentManager,
@@ -23,7 +23,7 @@ import { EmberishCurlyComponentFactory } from './emberish-curly';
 import { registerDestructor, reifyNamed } from '@glimmer/runtime';
 
 export type Attrs = Dict;
-export type AttrsDiff = { oldAttrs: Option<Attrs>; newAttrs: Attrs };
+export type AttrsDiff = { oldAttrs: Optional<Attrs>; newAttrs: Attrs };
 export type EmberishGlimmerArgs = { attrs: Attrs };
 
 export class EmberishGlimmerComponent {
@@ -31,7 +31,7 @@ export class EmberishGlimmerComponent {
   public attrs!: Attrs;
   public element!: Element;
   public bounds!: Bounds;
-  public parentView: Option<EmberishGlimmerComponent> = null;
+  public parentView: Optional<EmberishGlimmerComponent> = null;
 
   static create({ attrs: args }: EmberishGlimmerArgs): EmberishGlimmerComponent {
     let c = new this({ attrs: args });

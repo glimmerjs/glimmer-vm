@@ -3,7 +3,7 @@ import { NamedBlocks, ContainingMetadata, Unhandled } from '../template';
 import { TemplateCompilationContext } from '../program';
 import { StatementCompileActions } from './encoder';
 import { CompileTimeResolver } from '../serialize';
-import { Option } from '../core';
+import { Optional } from '../core';
 
 export interface Macros {
   blocks: MacroBlocks;
@@ -24,8 +24,8 @@ export type BlockMacro = (
 
 export type AppendMacro = (
   name: string,
-  params: Option<WireFormat.Core.Params>,
-  hash: Option<WireFormat.Core.Hash>,
+  params: Optional<WireFormat.Core.Params>,
+  hash: Optional<WireFormat.Core.Hash>,
   context: MacroContext
 ) => StatementCompileActions | Unhandled;
 

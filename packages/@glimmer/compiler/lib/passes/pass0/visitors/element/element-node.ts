@@ -1,12 +1,12 @@
 import { ExpressionContext } from '@glimmer/interfaces';
 import { AST } from '@glimmer/syntax';
-import { assertPresent, assign, mapPresent } from '@glimmer/util';
+import { assert, assign } from '@glimmer/util';
+import { OptionalList, PresentList } from '../../../../shared/list';
+import { Result } from '../../../../shared/result';
 import * as pass1 from '../../../pass1/ops';
-import { Source } from '../../../shared/op';
-import { Result } from '../../../shared/result';
 import { Context } from '../../context';
 import { EXPR_KEYWORDS } from '../../keywords/exprs';
-import { buildArgs, buildPathWithContext } from '../../utils/builders';
+import { buildPathWithContext } from '../../utils/builders';
 import { assertIsSimpleHelper, isHelperInvocation, isSimplePath } from '../../utils/is-node';
 import { toStatement } from './classify';
 import { TemporaryNamedBlock } from './temporary-block';
@@ -30,7 +30,7 @@ export function ElementNode(
               table: child,
               body: stmts,
             },
-            new Source(ctx.source).offsetsFor(element)
+            ctx.source.offsetsFor(element)
           )
       )
     );
@@ -62,7 +62,7 @@ function simpleDynamicAttrValue(
           {
             head: ctx.visitExpr(value.path, ExpressionContext.CallHead),
           },
-          buildArgs(ctx, value)
+          ctx.args(value)
         )
       )
       .loc(value);
@@ -91,7 +91,8 @@ export function dynamicAttrValue(
   value: AST.TextNode | AST.MustacheStatement | AST.ConcatStatement
 ): pass1.Expr {
   if (value.type === 'ConcatStatement') {
-    let exprs = mapPresent(assertPresent(value.parts), (part) => dynamicAttrValue(ctx, part));
+    let exprs = OptionalList(value.parts.map((part) => dynamicAttrValue(ctx, part)));
+    assert(exprs instanceof PresentList, `attribute concats must have at least one part`);
 
     return ctx.op(pass1.Concat, { parts: exprs }).loc(value);
   }

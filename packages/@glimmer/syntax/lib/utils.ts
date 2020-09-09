@@ -1,6 +1,6 @@
 import * as AST from './types/nodes';
 import * as HBS from './types/handlebars-ast';
-import { Option } from '@glimmer/interfaces';
+import { Optional } from '@glimmer/interfaces';
 import { GlimmerSyntaxError } from './errors/syntax-error';
 
 // Regex to validate the identifier for block parameters.
@@ -17,7 +17,7 @@ export function parseElementBlockParams(element: AST.ElementNode) {
   if (params) element.blockParams = params;
 }
 
-function parseBlockParams(element: AST.ElementNode): Option<string[]> {
+function parseBlockParams(element: AST.ElementNode): Optional<string[]> {
   let l = element.attributes.length;
   let attrNames = [];
 

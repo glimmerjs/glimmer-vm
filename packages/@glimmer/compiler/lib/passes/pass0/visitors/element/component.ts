@@ -2,7 +2,7 @@ import { PresentArray } from '@glimmer/interfaces';
 import { AST, GlimmerSyntaxError } from '@glimmer/syntax';
 // import { Option } from '@glimmer/interfaces';
 import * as pass1 from '../../../pass1/ops';
-import { Err, Ok, Result } from '../../../shared/result';
+import { Err, Ok, Result } from '../../../../shared/result';
 import { Classified, ClassifiedElement, PreparedArgs } from './classified';
 import { dynamicAttrValue } from './element-node';
 import { TemporaryNamedBlock } from './temporary-block';

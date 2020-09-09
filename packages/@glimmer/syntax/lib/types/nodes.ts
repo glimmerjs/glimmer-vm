@@ -1,4 +1,4 @@
-import { Dict, WireFormat, Option } from '@glimmer/interfaces';
+import { Dict, WireFormat, Optional } from '@glimmer/interfaces';
 
 export interface Symbols {
   symbols: string[];
@@ -34,7 +34,7 @@ export interface BaseNode {
 }
 
 export interface SourceLocation {
-  source?: Option<string>;
+  source?: Optional<string>;
   start: Position;
   end: Position;
 }
@@ -104,7 +104,7 @@ export interface BlockStatement extends BaseNode {
   params: Expression[];
   hash: Hash;
   program: Block;
-  inverse?: Option<Block>;
+  inverse?: Optional<Block>;
   openStrip: StripFlags;
   inverseStrip: StripFlags;
   closeStrip: StripFlags;

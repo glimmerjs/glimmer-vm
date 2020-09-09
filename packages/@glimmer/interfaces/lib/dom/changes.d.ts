@@ -5,13 +5,13 @@ import {
   SimpleNode,
   SimpleText,
 } from '@simple-dom/interface';
-import { Option } from '../core';
+import { Optional } from '../core';
 import { Bounds } from './bounds';
 
 export interface GlimmerDOMOperations {
   createElement(tag: string, context?: SimpleElement): SimpleElement;
-  insertBefore(parent: SimpleElement, node: SimpleNode, reference: Option<SimpleNode>): void;
-  insertHTMLBefore(parent: SimpleElement, nextSibling: Option<SimpleNode>, html: string): Bounds;
+  insertBefore(parent: SimpleElement, node: SimpleNode, reference: Optional<SimpleNode>): void;
+  insertHTMLBefore(parent: SimpleElement, nextSibling: Optional<SimpleNode>, html: string): Bounds;
   createTextNode(text: string): SimpleText;
   createComment(data: string): SimpleComment;
 }
@@ -27,6 +27,6 @@ export interface GlimmerTreeConstruction extends GlimmerDOMOperations {
     element: SimpleElement,
     name: string,
     value: string,
-    namespace?: Option<Namespace>
+    namespace?: Optional<Namespace>
   ): void;
 }

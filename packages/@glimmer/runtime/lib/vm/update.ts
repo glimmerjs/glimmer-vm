@@ -6,7 +6,7 @@ import {
   ExceptionHandler,
   GlimmerTreeChanges,
   LiveBlock,
-  Option,
+  Optional,
   RuntimeContext,
   Scope,
   UpdatableBlock,
@@ -74,7 +74,7 @@ export default class UpdatingVM {
     this.frame.goto(index);
   }
 
-  try(ops: UpdatingOpcode[], handler: Option<ExceptionHandler>) {
+  try(ops: UpdatingOpcode[], handler: Optional<ExceptionHandler>) {
     this.frameStack.push(new UpdatingVMFrame(ops, handler));
   }
 
@@ -414,7 +414,10 @@ export class ListBlockOpcode extends BlockOpcode {
 class UpdatingVMFrame {
   private current = 0;
 
-  constructor(private ops: UpdatingOpcode[], private exceptionHandler: Option<ExceptionHandler>) {}
+  constructor(
+    private ops: UpdatingOpcode[],
+    private exceptionHandler: Optional<ExceptionHandler>
+  ) {}
 
   goto(index: number) {
     this.current = index;

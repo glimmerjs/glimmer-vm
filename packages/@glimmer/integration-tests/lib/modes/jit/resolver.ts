@@ -1,7 +1,7 @@
 import {
   RuntimeResolver,
   AnnotatedModuleLocator,
-  Option,
+  Optional,
   ComponentDefinition,
   Template,
   Invocation,
@@ -15,8 +15,8 @@ export default class TestJitRuntimeResolver implements RuntimeResolver {
   lookup(
     type: LookupType,
     name: string,
-    referrer?: Option<AnnotatedModuleLocator>
-  ): Option<number> {
+    referrer?: Optional<AnnotatedModuleLocator>
+  ): Optional<number> {
     return this.registry.lookup(type, name, referrer);
   }
 
@@ -34,24 +34,24 @@ export default class TestJitRuntimeResolver implements RuntimeResolver {
     return this.registry.customCompilableTemplate(handle, name, compile);
   }
 
-  lookupHelper(name: string, referrer?: Option<AnnotatedModuleLocator>): Option<number> {
+  lookupHelper(name: string, referrer?: Optional<AnnotatedModuleLocator>): Optional<number> {
     return this.lookup('helper', name, referrer);
   }
 
-  lookupModifier(name: string, referrer?: Option<AnnotatedModuleLocator>): Option<number> {
+  lookupModifier(name: string, referrer?: Optional<AnnotatedModuleLocator>): Optional<number> {
     return this.lookup('modifier', name, referrer);
   }
 
   lookupComponent(
     name: string,
-    referrer: Option<AnnotatedModuleLocator>
-  ): Option<ComponentDefinition> {
+    referrer: Optional<AnnotatedModuleLocator>
+  ): Optional<ComponentDefinition> {
     let handle = this.registry.lookupComponentHandle(name, referrer);
     if (handle === null) return null;
     return this.resolve(handle) as ComponentDefinition;
   }
 
-  lookupPartial(name: string, referrer?: Option<AnnotatedModuleLocator>): Option<number> {
+  lookupPartial(name: string, referrer?: Optional<AnnotatedModuleLocator>): Optional<number> {
     return this.lookup('partial', name, referrer);
   }
 

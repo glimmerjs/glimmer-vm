@@ -1,5 +1,5 @@
 import {
-  Option,
+  Optional,
   SerializedTemplateBlock,
   SerializedTemplateWithLazyBlock,
   TemplateJavascript,
@@ -11,9 +11,10 @@ import { GlimmerCompileOptions } from './passes/pass0/context';
 import { visit as pass0 } from './passes/pass0/index';
 import { visit as pass1 } from './passes/pass1/index';
 import { visit as pass2 } from './passes/pass2/index';
+import { Source } from './source/source';
 
 export interface TemplateIdFn {
-  (src: string): Option<string>;
+  (src: string): Optional<string>;
 }
 
 export interface PrecompileOptions extends PreprocessOptions {
@@ -84,8 +85,9 @@ export function precompileJSON(
   options: GlimmerCompileOptions = defaultOptions
 ): SerializedTemplateBlock {
   let ast = preprocess(string, options);
-  let block = pass0(string, ast, options).mapOk((pass1In) => {
-    let pass2In = pass1(string, pass1In);
+  let source = new Source(string);
+  let block = pass0(source, ast, options).mapOk((pass1In) => {
+    let pass2In = pass1(source, pass1In);
     return pass2(pass2In);
   });
 

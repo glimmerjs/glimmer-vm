@@ -1,12 +1,11 @@
-import { ExpressionContext, PresentArray, Option } from '@glimmer/interfaces';
+import { ExpressionContext, PresentArray, Optional } from '@glimmer/interfaces';
 import { AST, isLiteral } from '@glimmer/syntax';
 import { assign } from '@glimmer/util';
 import * as pass1 from '../../pass1/ops';
-import { UnlocatedOp } from '../../shared/op';
-import { Ok, Result } from '../../shared/result';
+import { UnlocatedOp } from '../../../shared/op';
+import { Ok, Result } from '../../../shared/result';
 import { Context, Pass1Stmt, VisitorInterface } from '../context';
 import { BLOCK_KEYWORDS, EXPR_KEYWORDS, STATEMENT_KEYWORDS } from '../keywords';
-import { buildArgs } from '../utils/builders';
 import { assertIsSimpleHelper, isHelperInvocation, isSimplePath } from '../utils/is-node';
 import { ElementNode } from './element/element-node';
 import { TemporaryNamedBlock } from './element/temporary-block';
@@ -25,12 +24,12 @@ export class Pass0Statements
       return BLOCK_KEYWORDS.translate(block, ctx);
     } else {
       return ctx
-        .visitBlock(ctx.slice('default').offsets(null), block.program)
+        .block(ctx.slice('default').offsets(null), block.program)
         .andThen(
-          (defaultBlock): Result<Option<PresentArray<pass1.NamedBlock>>> => {
+          (defaultBlock): Result<Optional<PresentArray<pass1.NamedBlock>>> => {
             if (block.inverse) {
               return ctx
-                .visitBlock(ctx.slice('else').offsets(null), block.inverse)
+                .block(ctx.slice('else').offsets(null), block.inverse)
                 .mapOk((inverseBlock) => {
                   return [defaultBlock, inverseBlock];
                 });
@@ -47,7 +46,7 @@ export class Pass0Statements
                 {
                   head: ctx.visitExpr(block.path, ExpressionContext.BlockHead),
                 },
-                buildArgs(ctx, block),
+                ctx.args(block),
                 { blocks }
               )
             )
@@ -108,7 +107,7 @@ export class Pass0Statements
                 {
                   head: ctx.visitExpr(mustache.path, ExpressionContext.CallHead),
                 },
-                buildArgs(ctx, mustache)
+                ctx.args(mustache)
               )
             )
             .loc(mustache),

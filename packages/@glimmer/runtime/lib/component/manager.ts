@@ -3,7 +3,7 @@ import {
   ComponentDefinitionState,
   VMArguments,
   ComponentCapabilities,
-  Option,
+  Optional,
   DynamicScope,
   ComponentInstanceState,
   PreparedArguments,
@@ -24,16 +24,16 @@ export class SimpleComponentManager implements ComponentManager {
     return '';
   }
 
-  prepareArgs(_state: ComponentDefinitionState, _args: VMArguments): Option<PreparedArguments> {
+  prepareArgs(_state: ComponentDefinitionState, _args: VMArguments): Optional<PreparedArguments> {
     throw new Error(`Unimplemented prepareArgs in SimpleComponentManager`);
   }
 
   create(
     _env: Environment,
     _state: ComponentDefinitionState,
-    _args: Option<VMArguments>,
-    _dynamicScope: Option<DynamicScope>,
-    _caller: Option<Reference>,
+    _args: Optional<VMArguments>,
+    _dynamicScope: Optional<DynamicScope>,
+    _caller: Optional<Reference>,
     _hasDefaultBlock: boolean
   ): ComponentInstanceState {
     throw new Error(`Unimplemented create in SimpleComponentManager`);
@@ -51,7 +51,7 @@ export class SimpleComponentManager implements ComponentManager {
     throw new Error(`Unimplemented didCreate in SimpleComponentManager`);
   }
 
-  update(_state: ComponentInstanceState, _dynamicScope: Option<DynamicScope>): void {
+  update(_state: ComponentInstanceState, _dynamicScope: Optional<DynamicScope>): void {
     throw new Error(`Unimplemented update in SimpleComponentManager`);
   }
 
@@ -63,7 +63,7 @@ export class SimpleComponentManager implements ComponentManager {
     throw new Error(`Unimplemented didUpdate in SimpleComponentManager`);
   }
 
-  getDestroyable(_state: ComponentInstanceState): Option<Destroyable> {
+  getDestroyable(_state: ComponentInstanceState): Optional<Destroyable> {
     return null;
   }
 }

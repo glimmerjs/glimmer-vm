@@ -2,10 +2,11 @@ import { PresentArray } from '@glimmer/interfaces';
 import { assert, isPresent } from '@glimmer/util';
 import { GlimmerSyntaxError } from '@glimmer/syntax';
 import * as pass1 from '../../../pass1/ops';
-import { SourceOffsets } from '../../../shared/location';
+import { SourceOffsets } from '../../../../source/offsets';
 
-import { Err, Ok, Result } from '../../../shared/result';
-import { BlockSymbolTable } from '../../../shared/symbol-table';
+import { Err, Ok, Result } from '../../../../shared/result';
+import { BlockSymbolTable } from '../../../../shared/symbol-table';
+import { Source } from '../../../../source/source';
 
 interface Args {
   name: pass1.SourceSlice;
@@ -40,7 +41,7 @@ export class TemporaryNamedBlock {
 
   asNamedBlocks(
     this: this & { body: pass1.NonSemanticChild[] },
-    source: string
+    source: Source
   ): ExtractedMaybeNamedBlocks {
     return extractMaybeNamedBlocks(this.body, source);
   }
@@ -65,7 +66,7 @@ type ExtractedMaybeNamedBlocks = Result<PresentArray<pass1.NamedBlock>>;
 
 function extractMaybeNamedBlocks(
   body: pass1.NonSemanticChild[],
-  source: string
+  source: Source
 ): Result<PresentArray<pass1.NamedBlock>> {
   let blocks: pass1.NamedBlock[] = [];
   let nodes: pass1.NonSemantic[] = [];

@@ -2,8 +2,8 @@ import { ExpressionContext } from '@glimmer/interfaces';
 import { AST, builders } from '@glimmer/syntax';
 // import { Option } from '@glimmer/interfaces';
 import * as pass1 from '../../../pass1/ops';
-import { Result } from '../../../shared/result';
-import { SymbolTable } from '../../../shared/symbol-table';
+import { Result } from '../../../../shared/result';
+import { SymbolTable } from '../../../../shared/symbol-table';
 import { Context } from '../../context';
 import { ClassifiedElement } from './classified';
 import { ClassifiedComponent } from './component';
@@ -40,7 +40,7 @@ function classify(ctx: Context, element: AST.ElementNode): ClassifiedElement<unk
         new ClassifiedComponent(
           ctx
             .op(pass1.GetVar, {
-              name: ctx.slice(ctx.customizeComponentName(tag)).offsets(null),
+              name: ctx.componentName(tag),
               context: ExpressionContext.ComponentHead,
             })
             .loc(loc)

@@ -11,7 +11,7 @@ import {
   CompilableBlock,
   Dict,
   NamedArguments,
-  Option,
+  Optional,
   PositionalArguments,
   Scope,
   ScopeBlock,
@@ -39,7 +39,7 @@ import { EvaluationStack } from './stack';
 */
 
 export class VMArgumentsImpl implements VMArguments {
-  private stack: Option<EvaluationStack> = null;
+  private stack: Optional<EvaluationStack> = null;
   public positional = new PositionalArgumentsImpl();
   public named = new NamedArgumentsImpl();
   public blocks = new BlockArgumentsImpl();
@@ -139,7 +139,7 @@ export class PositionalArgumentsImpl implements PositionalArguments {
 
   private stack: EvaluationStack = null as any;
 
-  private _references: Option<readonly Reference[]> = null;
+  private _references: Optional<readonly Reference[]> = null;
 
   empty(stack: EvaluationStack, base: number) {
     this.stack = stack;
@@ -210,10 +210,10 @@ export class NamedArgumentsImpl implements NamedArguments {
 
   private stack!: EvaluationStack;
 
-  private _references: Option<readonly Reference[]> = null;
+  private _references: Optional<readonly Reference[]> = null;
 
-  private _names: Option<readonly string[]> = EMPTY_STRING_ARRAY;
-  private _atNames: Option<readonly string[]> = EMPTY_STRING_ARRAY;
+  private _names: Optional<readonly string[]> = EMPTY_STRING_ARRAY;
+  private _atNames: Optional<readonly string[]> = EMPTY_STRING_ARRAY;
 
   empty(stack: EvaluationStack, base: number) {
     this.stack = stack;
@@ -366,10 +366,10 @@ const EMPTY_BLOCK_VALUES = emptyArray<BlockValue>();
 
 export class BlockArgumentsImpl implements BlockArguments {
   private stack!: EvaluationStack;
-  private internalValues: Option<readonly BlockValue[]> = null;
-  private _symbolNames: Option<readonly string[]> = null;
+  private internalValues: Optional<readonly BlockValue[]> = null;
+  private _symbolNames: Optional<readonly string[]> = null;
 
-  public internalTag: Option<Tag> = null;
+  public internalTag: Optional<Tag> = null;
   public names: readonly string[] = EMPTY_STRING_ARRAY;
 
   public length = 0;
@@ -417,7 +417,7 @@ export class BlockArgumentsImpl implements BlockArguments {
     return this.names!.indexOf(name) !== -1;
   }
 
-  get(name: string): Option<ScopeBlock> {
+  get(name: string): Optional<ScopeBlock> {
     let idx = this.names!.indexOf(name);
 
     if (idx === -1) {
@@ -454,7 +454,7 @@ export class BlockArgumentsImpl implements BlockArguments {
 class CapturedBlockArgumentsImpl implements CapturedBlockArguments {
   public length: number;
 
-  constructor(public names: readonly string[], public values: readonly Option<BlockValue>[]) {
+  constructor(public names: readonly string[], public values: readonly Optional<BlockValue>[]) {
     this.length = names.length;
   }
 
@@ -462,7 +462,7 @@ class CapturedBlockArgumentsImpl implements CapturedBlockArguments {
     return this.names.indexOf(name) !== -1;
   }
 
-  get(name: string): Option<ScopeBlock> {
+  get(name: string): Optional<ScopeBlock> {
     let idx = this.names.indexOf(name);
 
     if (idx === -1) return null;

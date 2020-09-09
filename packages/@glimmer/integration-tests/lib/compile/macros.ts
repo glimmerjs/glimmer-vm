@@ -1,4 +1,4 @@
-import { Option, WireFormat } from '@glimmer/interfaces';
+import { Optional, WireFormat } from '@glimmer/interfaces';
 import {
   EMPTY_BLOCKS,
   invokeStaticBlock,
@@ -45,7 +45,7 @@ export class TestMacros extends MacrosImpl {
   }
 }
 
-function hashToArgs(hash: Option<WireFormat.Core.Hash>): Option<WireFormat.Core.Hash> {
+function hashToArgs(hash: Optional<WireFormat.Core.Hash>): Optional<WireFormat.Core.Hash> {
   if (hash === null) return null;
   let names = hash[0].map((key) => `@${key}`);
   return [names as [string, ...string[]], hash[1]];

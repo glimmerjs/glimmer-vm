@@ -2,7 +2,7 @@ import { VMArguments } from './arguments';
 import { GlimmerTreeChanges } from '../dom/changes';
 // eslint-disable-next-line node/no-extraneous-import
 import { UpdatableTag } from '@glimmer/validator';
-import { Option, Destroyable } from '../core';
+import { Optional, Destroyable } from '../core';
 import { SimpleElement } from '@simple-dom/interface';
 import { DynamicScope } from './scope';
 
@@ -21,7 +21,7 @@ export interface ModifierManager<
 
   // Convert the opaque modifier into a `RevisionTag` that determins when
   // the modifier's update hooks need to be called (if at all).
-  getTag(modifier: ModifierInstanceState): Option<UpdatableTag>;
+  getTag(modifier: ModifierInstanceState): Optional<UpdatableTag>;
 
   getDebugName(Modifier: ModifierInstanceState): string;
 
@@ -37,7 +37,7 @@ export interface ModifierManager<
 
   // Convert the opaque token into an object that implements Destroyable.
   // If it returns null, the modifier will not be destroyed.
-  getDestroyable(modifier: ModifierInstanceState): Option<Destroyable>;
+  getDestroyable(modifier: ModifierInstanceState): Optional<Destroyable>;
 }
 
 export interface ModifierDefinition<

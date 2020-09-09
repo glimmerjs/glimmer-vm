@@ -7,7 +7,7 @@ import {
   Helper as GlimmerHelper,
   Invocation,
   ModifierDefinition,
-  Option,
+  Optional,
   PartialDefinition,
   Template,
 } from '@glimmer/interfaces';
@@ -43,7 +43,7 @@ export class TypedRegistry<T> {
     return name in this.byName;
   }
 
-  getHandle(name: string): Option<number> {
+  getHandle(name: string): Optional<number> {
     return this.byName[name];
   }
 
@@ -51,7 +51,7 @@ export class TypedRegistry<T> {
     return name in this.byHandle;
   }
 
-  getByHandle(handle: number): Option<T> {
+  getByHandle(handle: number): Optional<T> {
     return this.byHandle[handle];
   }
 
@@ -136,8 +136,8 @@ export class TestJitRegistry {
   lookup(
     type: LookupType,
     name: string,
-    _referrer?: Option<AnnotatedModuleLocator>
-  ): Option<number> {
+    _referrer?: Optional<AnnotatedModuleLocator>
+  ): Optional<number> {
     if (this.registry[type].hasName(name)) {
       return this.registry[type].getHandle(name);
     } else {
@@ -145,20 +145,23 @@ export class TestJitRegistry {
     }
   }
 
-  lookupComponentHandle(name: string, referrer?: Option<AnnotatedModuleLocator>): Option<number> {
+  lookupComponentHandle(
+    name: string,
+    referrer?: Optional<AnnotatedModuleLocator>
+  ): Optional<number> {
     return this.lookup('component', name, referrer);
   }
 
   private getCapabilities(handle: number): ComponentCapabilities {
-    let definition = this.resolve<Option<ComponentDefinition>>(handle);
+    let definition = this.resolve<Optional<ComponentDefinition>>(handle);
     let { manager, state } = definition!;
     return manager.getCapabilities(state);
   }
 
   lookupCompileTimeComponent(
     name: string,
-    referrer: Option<AnnotatedModuleLocator>
-  ): Option<CompileTimeComponent> {
+    referrer: Optional<AnnotatedModuleLocator>
+  ): Optional<CompileTimeComponent> {
     let definitionHandle = this.lookupComponentHandle(name, referrer);
 
     if (definitionHandle === null) {

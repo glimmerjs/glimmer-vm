@@ -1,7 +1,7 @@
 import { mapPresent } from '@glimmer/util';
 import * as pass1 from '../pass1/ops';
 import * as pass2 from '../pass2/ops';
-import { OpArgs } from '../shared/op';
+import { OpArgs } from '../../shared/op';
 import { Context, MapVisitorsInterface } from './context';
 
 export class Pass1Internal
@@ -15,25 +15,8 @@ export class Pass1Internal
     return ctx.op(pass2.Positional, { list: values });
   }
 
-  EmptyParams(ctx: Context, _: OpArgs<pass1.EmptyParams>): pass2.EmptyPositional {
-    return ctx.op(pass2.EmptyPositional);
-  }
-
-  NamedArguments(ctx: Context, { pairs }: OpArgs<pass1.NamedArguments>): pass2.AnyNamedArguments {
-    if (pairs.length === 0) {
-      return ctx.op(pass2.EmptyNamedArguments);
-    }
-
-    let mappedPairs = ctx.map(pairs, (pair) => ctx.visitInternal(pair));
-
-    return ctx.op(pass2.NamedArguments, { pairs: mappedPairs });
-  }
-
-  EmptyNamedArguments(
-    ctx: Context,
-    _: OpArgs<pass1.EmptyNamedArguments>
-  ): pass2.EmptyNamedArguments {
-    return ctx.op(pass2.EmptyNamedArguments);
+  NamedArguments(ctx: Context, { pairs }: OpArgs<pass1.NamedArguments>): pass2.NamedArguments {
+    return ctx.op(pass2.NamedArguments, { pairs: pairs.map((pair) => ctx.visitInternal(pair)) });
   }
 
   NamedArgument(ctx: Context, { key, value }: OpArgs<pass1.NamedArgument>): pass2.NamedArgument {

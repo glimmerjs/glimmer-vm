@@ -5,7 +5,7 @@ import {
   ElementBuilder,
   Environment,
   Helper,
-  Option,
+  Optional,
   RenderResult,
 } from '@glimmer/interfaces';
 import { serializeBuilder } from '@glimmer/node';
@@ -65,7 +65,7 @@ export class RehydrationDelegate implements RenderDelegate {
 
   public rehydrationStats!: RehydrationStats;
 
-  private self: Option<Reference> = null;
+  private self: Optional<Reference> = null;
 
   constructor(options?: RenderDelegateOptions) {
     let delegate = assign(options?.env ?? {}, BaseEnv);

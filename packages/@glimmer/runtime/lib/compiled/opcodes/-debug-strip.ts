@@ -23,7 +23,7 @@ import {
   Scope,
   Helper,
   CapturedArguments,
-  Option,
+  Optional,
   ScopeBlock,
 } from '@glimmer/interfaces';
 import { Reference, REFERENCE, OpaqueIterator, UNDEFINED_REFERENCE } from '@glimmer/reference';
@@ -36,7 +36,7 @@ export const CheckTag: Checker<Tag> = CheckInterface({
   [COMPUTE]: CheckFunction,
 });
 
-export const CheckOperations: Checker<Option<ComponentElementOperations>> = wrap(() =>
+export const CheckOperations: Checker<Optional<ComponentElementOperations>> = wrap(() =>
   CheckOption(CheckInstanceof(ComponentElementOperations))
 );
 

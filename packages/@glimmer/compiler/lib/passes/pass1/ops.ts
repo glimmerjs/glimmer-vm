@@ -1,10 +1,11 @@
-import { ExpressionContext, Option, PresentArray } from '@glimmer/interfaces';
+import { ExpressionContext, Optional, PresentArray } from '@glimmer/interfaces';
 import { AST } from '@glimmer/syntax';
 import { isPresent } from '@glimmer/util';
+import { AnyOptionalList, PresentList } from '../../shared/list';
+import { op, OpsTable } from '../../shared/op';
+import { BlockSymbolTable, ProgramSymbolTable } from '../../shared/symbol-table';
+import { SourceOffsets } from '../../source/offsets';
 import { TemporaryNamedBlock } from '../pass0/visitors/element/temporary-block';
-import { SourceOffsets } from '../shared/location';
-import { op, OpsTable } from '../shared/op';
-import { BlockSymbolTable, ProgramSymbolTable } from '../shared/symbol-table';
 
 export interface AttrKind {
   // triple-curly
@@ -52,43 +53,27 @@ export class GetSloppy extends op('GetSloppy').args<{
 
 export class HasBlock extends op('HasBlock').args<{ target: SourceSlice }>() {}
 export class HasBlockParams extends op('HasBlockParams').args<{ target: SourceSlice }>() {}
-export class Concat extends op('Concat').args<{ parts: PresentArray<Expr> }>() {}
+export class Concat extends op('Concat').args<{ parts: PresentList<Expr> }>() {}
 
 export class SubExpression extends op('SubExpression').args<{
   head: Expr;
-  params: AnyParams;
-  hash: AnyNamedArguments;
+  params: Params;
+  hash: NamedArguments;
 }>() {}
 
-export class Params extends op('Params').args<{ list: PresentArray<Expr> }>() {}
-export class EmptyParams extends op('EmptyParams').void() {}
-
-export type AnyParams = Params | EmptyParams;
+export class Params extends op('Params').args<{ list: AnyOptionalList<Expr> }>() {}
+export type PresentParams = Params & { args: { list: PresentList<Expr> } };
 
 export class NamedArgument extends op('NamedArgument').args<{ key: SourceSlice; value: Expr }>() {}
 export class NamedArguments extends op('NamedArguments').args<{
-  pairs: PresentArray<NamedArgument>;
+  pairs: AnyOptionalList<NamedArgument>;
 }>() {}
-export class EmptyNamedArguments extends op('EmptyNamedArguments').void() {}
-
-export type AnyNamedArguments = NamedArguments | EmptyNamedArguments;
-
-export function AnyNamedArguments(
-  pairs: NamedArgument[],
-  offsets: SourceOffsets | null = null
-): AnyNamedArguments {
-  if (isPresent(pairs)) {
-    return new NamedArguments(offsets, { pairs });
-  } else {
-    return new EmptyNamedArguments(offsets);
-  }
-}
 
 export type Internal =
   | Ignore
   | SourceSlice
-  | AnyParams
-  | AnyNamedArguments
+  | Params
+  | NamedArguments
   | NamedArgument
   | NamedBlock
   | AnyNamedBlocks
@@ -134,7 +119,7 @@ export type ExprLike = Expr | Internal;
 // through is currently too annoying
 export class Yield extends op('Yield').args<{
   target: SourceSlice;
-  params: AnyParams;
+  params: Params;
 }>() {}
 
 export class Partial extends op('Partial').args<{ expr: Expr }>() {}
@@ -158,15 +143,15 @@ export class AppendTrustedHTML extends op('AppendTrustedHTML').args<{ value: Exp
 
 export class BlockInvocation extends op('BlockInvocation').args<{
   head: Expr;
-  params: AnyParams;
-  hash: AnyNamedArguments;
-  blocks: Option<PresentArray<NamedBlock>>;
+  params: Params;
+  hash: NamedArguments;
+  blocks: Optional<PresentArray<NamedBlock>>;
 }>() {}
 
 export function getBlock(
-  blocks: Option<PresentArray<NamedBlock>>,
+  blocks: Optional<PresentArray<NamedBlock>>,
   name: string
-): Option<NamedBlock> {
+): Optional<NamedBlock> {
   if (blocks === null) {
     return null;
   }
@@ -191,7 +176,7 @@ export class Ignore extends op('Ignore').void() {}
 export class Component extends op('Component').args<{
   tag: Expr;
   params: AnyElementParameters;
-  args: AnyNamedArguments;
+  args: NamedArguments;
   blocks: AnyNamedBlocks;
 }>() {}
 
@@ -231,8 +216,8 @@ export class Attr extends op('Attr').args<{
 
 export class Modifier extends op('Modifier').args<{
   head: Expr;
-  params: AnyParams;
-  hash: AnyNamedArguments;
+  params: Params;
+  hash: NamedArguments;
 }>() {}
 
 export type ElementParameter = Attr | Modifier | AttrSplat;

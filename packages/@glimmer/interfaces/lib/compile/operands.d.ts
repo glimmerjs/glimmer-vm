@@ -1,4 +1,4 @@
-import { Option } from '../core';
+import { Optional } from '../core';
 import * as WireFormat from './wire-format';
 import { HandleResult } from '../template';
 import { HighLevelBuilderOp, CompileActions, ArgsOptions } from './encoder';
@@ -58,7 +58,7 @@ export interface ArgsOperand {
 
 export interface OptionOperand {
   type: 'option';
-  value: Option<CompileActions>;
+  value: Optional<CompileActions>;
 }
 
 export interface InlineBlockOperand {

@@ -6,9 +6,9 @@ import {
   SexpOpcodes as WireOp,
   WireFormat,
 } from '@glimmer/interfaces';
-import { assertPresent, exhausted, mapPresent } from '@glimmer/util';
+import { assertPresent, exhausted, isPresent, mapPresent } from '@glimmer/util';
 import * as pass1 from '../pass1/ops';
-import { Op, OpArgs, OpsTable } from '../shared/op';
+import { Op, OpArgs, OpsTable } from '../../shared/op';
 import * as pass2 from './ops';
 import { visitStatement, visitStatements } from './statements';
 
@@ -85,8 +85,8 @@ export class InternalEncoder
     return [visitInternal(positional), visitInternal(named)];
   }
 
-  Positional({ list }: OpArgs<pass2.Positional>): WireFormat.Core.ConcatParams {
-    return mapPresent(list, (l) => visitExpr(l));
+  Positional({ list }: OpArgs<pass2.Positional>): WireFormat.Core.Params {
+    return list.map((l) => visitExpr(l)).toPresentArray();
   }
 
   EmptyPositional(): WireFormat.Core.Params {
@@ -98,20 +98,22 @@ export class InternalEncoder
   }
 
   NamedArguments({ pairs }: OpArgs<pass2.NamedArguments>): WireFormat.Core.Hash {
-    let names: string[] = [];
-    let values: WireFormat.Expression[] = [];
+    let list = pairs.toArray();
 
-    for (let pair of pairs) {
-      let [name, value] = visitInternal(pair);
-      names.push(name);
-      values.push(value);
+    if (isPresent(list)) {
+      let names: string[] = [];
+      let values: WireFormat.Expression[] = [];
+
+      for (let pair of list) {
+        let [name, value] = visitInternal(pair);
+        names.push(name);
+        values.push(value);
+      }
+
+      return [assertPresent(names), assertPresent(values)];
+    } else {
+      return null;
     }
-
-    return [assertPresent(names), assertPresent(values)];
-  }
-
-  EmptyNamedArguments(): WireFormat.Core.Hash {
-    return null;
   }
 }
 
@@ -178,7 +180,7 @@ export class ExpressionEncoder
   }
 
   Concat({ parts }: OpArgs<pass2.Concat>): WireFormat.Expressions.Concat {
-    return [SexpOpcodes.Concat, visitInternal(parts)];
+    return [SexpOpcodes.Concat, visitInternal(parts) as PresentArray<WireFormat.Expression>];
   }
 
   Helper({ head, args }: OpArgs<pass2.Helper>): WireFormat.Expressions.Helper {

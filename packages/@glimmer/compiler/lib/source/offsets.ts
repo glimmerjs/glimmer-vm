@@ -1,6 +1,7 @@
-import { Option, PresentArray } from '@glimmer/interfaces';
-import { SourceLocation, SourcePosition, SYNTHETIC } from '@glimmer/syntax';
-import { LocatedWithOffsets, LocatedWithOptionalOffsets } from './ops';
+import { PresentArray } from '@glimmer/interfaces';
+import { SourceLocation, SYNTHETIC } from '@glimmer/syntax';
+import { LocatedWithOffsets, LocatedWithOptionalOffsets } from '../shared/ops';
+import { Source } from './source';
 
 export type HasOffsets = SourceOffsets | LocatedWithOffsets | PresentArray<LocatedWithOffsets>;
 export type MaybeHasOffsets =
@@ -67,13 +68,13 @@ export class SourceOffsets {
     }
   }
 
-  toLocation(source: string): SourceLocation {
+  toLocation(source: Source): SourceLocation {
     if (this.kind === SourceOffsetKind.Synthetic) {
       return SYNTHETIC;
     }
 
-    let start = offsetToPosition(source, this.start);
-    let end = offsetToPosition(source, this.end);
+    let start = source.positionFor(this.start);
+    let end = source.positionFor(this.end);
 
     if (start === null || end === null) {
       return SYNTHETIC;
@@ -86,63 +87,4 @@ export class SourceOffsets {
   }
 }
 
-type SourceOffset = number;
-
-export function positionToOffset(
-  source: string,
-  { line, column }: { line: number; column: number }
-): Option<SourceOffset> {
-  let seenLines = 0;
-  let seenChars = 0;
-
-  while (true) {
-    if (seenChars === source.length) return null;
-
-    let nextLine = source.indexOf('\n', seenChars);
-    if (nextLine === -1) nextLine = source.length;
-
-    if (seenLines === line) {
-      if (seenChars + column > nextLine) return null;
-      return seenChars + column;
-    } else if (nextLine === -1) {
-      return null;
-    } else {
-      seenLines += 1;
-      seenChars = nextLine + 1;
-    }
-  }
-}
-
-export function offsetToPosition(source: string, offset: number): Option<SourcePosition> {
-  let seenLines = 0;
-  let seenChars = 0;
-
-  if (offset > source.length) {
-    return null;
-  }
-
-  while (true) {
-    let nextLine = source.indexOf('\n', seenChars);
-
-    if (offset <= nextLine || nextLine === -1) {
-      return {
-        line: seenLines,
-        column: offset - seenChars,
-      };
-    } else {
-      seenLines += 1;
-      seenChars = nextLine + 1;
-    }
-  }
-}
-
-export function locationToOffsets(source: string, location: SourceLocation): SourceOffsets {
-  let start = positionToOffset(source, location.start);
-  let end = positionToOffset(source, location.end);
-
-  if (start === null || end === null) {
-    return SourceOffsets.NONE;
-  } else {
-    return new SourceOffsets(start, end);
-  }
-}
+export type SourceOffset = number;

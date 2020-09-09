@@ -1,6 +1,6 @@
 import { AST } from '@glimmer/syntax';
 import { unreachable } from '@glimmer/util';
-import { Result } from '../../shared/result';
+import { Result } from '../../../shared/result';
 import { Context, ImmutableContext } from '../context';
 
 export type KeywordNode<Node extends AST.Call = AST.Call, S extends string = string> = Node & {

@@ -11,7 +11,7 @@ import {
   NamedBlocks,
   NestedStatementCompileActions,
   Op,
-  Option,
+  Optional,
   StatementCompileActions,
   Unhandled,
   WireFormat,
@@ -40,8 +40,8 @@ export const ATTRS_BLOCK = '&attrs';
 export type Block = () => CompileActions;
 
 interface AnyComponent {
-  elementBlock: Option<CompilableBlock>;
-  params: Option<WireFormat.Core.Params>;
+  elementBlock: Optional<CompilableBlock>;
+  params: Optional<WireFormat.Core.Params>;
   hash: WireFormat.Core.Hash;
   blocks: NamedBlocks;
 }
@@ -55,7 +55,7 @@ export interface DynamicComponent extends AnyComponent {
 // (component)
 export interface CurryComponent {
   definition: WireFormat.Expression;
-  params: Option<WireFormat.Core.Params>;
+  params: Optional<WireFormat.Core.Params>;
   hash: WireFormat.Core.Hash;
   atNames: boolean;
 }
@@ -83,7 +83,7 @@ export function StaticComponentHelper(
   context: MacroContext,
   tag: string,
   hash: WireFormat.Core.Hash,
-  template: Option<CompilableBlock>
+  template: Optional<CompilableBlock>
 ): StatementCompileActions | Unhandled {
   let component = resolveLayoutForTag(tag, context);
 
@@ -180,7 +180,7 @@ export function InvokeStaticComponent({
 
     switch (symbol.charAt(0)) {
       case '&':
-        let callerBlock: Option<CompilableBlock>;
+        let callerBlock: Optional<CompilableBlock>;
 
         if (symbol === ATTRS_BLOCK) {
           callerBlock = elementBlock;
@@ -307,7 +307,7 @@ export function WrappedComponent<R>(
 }
 
 export function StaticComponent(
-  component: Option<CompileTimeComponent>,
+  component: Optional<CompileTimeComponent>,
   args: [WireFormat.Core.Params, WireFormat.Core.Hash, NamedBlocks]
 ): StatementCompileActions {
   let [params, hash, blocks] = args;
@@ -386,7 +386,7 @@ export function invokePreparedComponent<T extends CompileActions | StatementComp
   hasBlock: boolean,
   bindableBlocks: boolean,
   bindableAtNames: boolean,
-  populateLayout: Option<() => T> = null
+  populateLayout: Optional<() => T> = null
 ): T {
   let out: StatementCompileActions = [
     op(Op.BeginComponentTransaction, $s0),

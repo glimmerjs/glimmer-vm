@@ -3,7 +3,7 @@ import { Reference } from '@glimmer/reference';
 import { SimpleElement } from '@simple-dom/interface';
 import ComponentCapabilities from '../component-capabilities';
 import { ComponentDefinitionState, PreparedArguments, ComponentInstanceState } from '../components';
-import { Option, Destroyable } from '../core';
+import { Optional, Destroyable } from '../core';
 import { Bounds } from '../dom/bounds';
 import { VMArguments } from '../runtime/arguments';
 import { ElementOperations } from '../runtime/element';
@@ -19,7 +19,7 @@ export interface ComponentManager<
 > {
   getCapabilities(state: ComponentDefinitionState): ComponentCapabilities;
   getSelf(state: ComponentInstanceState): Reference;
-  getDestroyable(state: ComponentInstanceState): Option<Destroyable>;
+  getDestroyable(state: ComponentInstanceState): Optional<Destroyable>;
   getDebugName(state: ComponentDefinitionState): string;
 }
 
@@ -31,7 +31,7 @@ export interface WithPrepareArgs<
   // for `create`. This allows for things like closure> components where the
   // args need to be curried before constructing the instance of the state
   // bucket.
-  prepareArgs(state: ComponentDefinitionState, args: VMArguments): Option<PreparedArguments>;
+  prepareArgs(state: ComponentDefinitionState, args: VMArguments): Optional<PreparedArguments>;
 }
 
 export interface WithCreateInstance<
@@ -45,9 +45,9 @@ export interface WithCreateInstance<
   create(
     env: E,
     state: ComponentDefinitionState,
-    args: Option<VMArguments>,
-    dynamicScope: Option<DynamicScope>,
-    caller: Option<Reference>,
+    args: Optional<VMArguments>,
+    dynamicScope: Optional<DynamicScope>,
+    caller: Optional<Reference>,
     hasDefaultBlock: boolean
   ): ComponentInstanceState;
 
@@ -76,7 +76,7 @@ export interface WithUpdateHook<ComponentInstanceState = unknown>
   extends ComponentManager<ComponentInstanceState> {
   // When the component's tag has invalidated, the manager's `update` hook is
   // called.
-  update(state: ComponentInstanceState, dynamicScope: Option<DynamicScope>): void;
+  update(state: ComponentInstanceState, dynamicScope: Optional<DynamicScope>): void;
 }
 
 export interface WithStaticLayout<
@@ -102,7 +102,7 @@ export interface WithDynamicTagName<ComponentInstanceState>
   extends ComponentManager<ComponentInstanceState> {
   // If the component asks for the dynamic tag name capability, ask for
   // the tag name to use. (Only used in the "WrappedBuilder".)
-  getTagName(component: ComponentInstanceState): Option<string>;
+  getTagName(component: ComponentInstanceState): Optional<string>;
 }
 
 export interface WithAttributeHook<ComponentInstanceState>

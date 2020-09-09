@@ -1,4 +1,4 @@
-import { Option, Op, ScopeBlock, VM as PublicVM } from '@glimmer/interfaces';
+import { Optional, Op, ScopeBlock, VM as PublicVM } from '@glimmer/interfaces';
 import {
   Reference,
   childRefFor,
@@ -56,7 +56,7 @@ APPEND_OPCODES.add(Op.SetBlock, (vm, { op1: symbol }) => {
   let scope = check(vm.stack.popJs(), CheckScope);
   let table = check(vm.stack.popJs(), CheckOption(CheckBlockSymbolTable));
 
-  let block: Option<ScopeBlock> = table ? [handle!, scope, table] : null;
+  let block: Optional<ScopeBlock> = table ? [handle!, scope, table] : null;
 
   vm.scope().bindBlock(symbol, block);
 });

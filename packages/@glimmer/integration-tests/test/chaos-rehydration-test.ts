@@ -1,4 +1,4 @@
-import { Dict, Option } from '@glimmer/interfaces';
+import { Dict, Optional } from '@glimmer/interfaces';
 import { cast } from '@glimmer/runtime';
 import { expect, LOCAL_LOGGER } from '@glimmer/util';
 import { NodeType, SimpleElement } from '@simple-dom/interface';
@@ -26,7 +26,7 @@ class ChaosMonkeyRehydration extends RenderTest {
   static suiteName = 'chaos-rehydration';
 
   protected delegate!: RehydrationDelegate;
-  protected serverOutput!: Option<string>;
+  protected serverOutput!: Optional<string>;
 
   renderServerSide(
     template: string | ComponentBlueprint,
@@ -124,7 +124,7 @@ class ChaosMonkeyRehydration extends RenderTest {
     // remove it
     parent.removeChild(nodeToRemove);
 
-    let removedNodeDisplay: Option<string>;
+    let removedNodeDisplay: Optional<string>;
     switch (nodeToRemove.nodeType) {
       case NodeType.COMMENT_NODE:
         removedNodeDisplay = `<!--${nodeToRemove.nodeValue}-->`;

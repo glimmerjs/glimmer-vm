@@ -1,4 +1,4 @@
-import { ComponentCapabilities, Option, CompileTimeComponent } from '@glimmer/interfaces';
+import { ComponentCapabilities, Optional, CompileTimeComponent } from '@glimmer/interfaces';
 
 export const DEFAULT_CAPABILITIES: ComponentCapabilities = {
   dynamicLayout: true,
@@ -31,10 +31,10 @@ export const MINIMAL_CAPABILITIES: ComponentCapabilities = {
 };
 
 export interface ResolverDelegate<R = unknown> {
-  lookupHelper?(name: string, referrer: R): Option<number> | void;
-  lookupModifier?(name: string, referrer: R): Option<number> | void;
-  lookupComponent?(name: string, referrer: R): Option<CompileTimeComponent> | void;
-  lookupPartial?(name: string, referrer: R): Option<number> | void;
+  lookupHelper?(name: string, referrer: R): Optional<number> | void;
+  lookupModifier?(name: string, referrer: R): Optional<number> | void;
+  lookupComponent?(name: string, referrer: R): Optional<CompileTimeComponent> | void;
+  lookupPartial?(name: string, referrer: R): Optional<number> | void;
 
   // For debugging
   resolve?(handle: number): R;

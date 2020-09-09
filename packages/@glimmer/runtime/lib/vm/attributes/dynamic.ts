@@ -1,7 +1,7 @@
 import {
   Dict,
   Environment,
-  Option,
+  Optional,
   ElementBuilder,
   AttributeOperation,
   AttributeCursor,
@@ -17,7 +17,7 @@ import { cast } from '../../simple-cast';
 export function dynamicAttribute(
   element: SimpleElement,
   attr: string,
-  namespace: Option<AttrNamespace>,
+  namespace: Optional<AttrNamespace>,
   isTrusting = false
 ): DynamicAttribute {
   let { tagName, namespaceURI } = element;
@@ -208,7 +208,7 @@ function isUserInputValue(tagName: string, attribute: string) {
   return (tagName === 'INPUT' || tagName === 'TEXTAREA') && attribute === 'value';
 }
 
-function normalizeValue(value: unknown): Option<string> {
+function normalizeValue(value: unknown): Optional<string> {
   if (
     value === false ||
     value === undefined ||

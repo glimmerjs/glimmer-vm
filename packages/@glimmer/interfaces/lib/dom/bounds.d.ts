@@ -1,5 +1,5 @@
 import { SimpleElement, SimpleNode } from '@simple-dom/interface';
-import { Option } from '../core';
+import { Optional } from '../core';
 
 export interface Bounds {
   // a method to future-proof for wormholing; may not be needed ultimately
@@ -10,5 +10,5 @@ export interface Bounds {
 
 export interface Cursor {
   readonly element: SimpleElement;
-  readonly nextSibling: Option<SimpleNode>;
+  readonly nextSibling: Optional<SimpleNode>;
 }

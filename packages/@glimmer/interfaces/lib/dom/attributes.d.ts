@@ -6,7 +6,7 @@ import {
   SimpleDocumentFragment,
   AttrNamespace,
 } from '@simple-dom/interface';
-import { Option, Maybe } from '../core';
+import { Optional, Maybe } from '../core';
 import { Bounds, Cursor } from './bounds';
 import { ElementOperations, Environment, ModifierManager } from '../runtime';
 import { GlimmerTreeConstruction, GlimmerTreeChanges } from './changes';
@@ -29,7 +29,7 @@ export interface SimpleLiveBlock extends LiveBlock {
 export interface RemoteLiveBlock extends SimpleLiveBlock {}
 
 export interface UpdatableBlock extends SimpleLiveBlock {
-  reset(env: Environment): Option<SimpleNode>;
+  reset(env: Environment): Optional<SimpleNode>;
 }
 
 export interface DOMStack {
@@ -37,11 +37,11 @@ export interface DOMStack {
     element: SimpleElement,
     guid: string,
     insertBefore: Maybe<SimpleNode>
-  ): Option<RemoteLiveBlock>;
+  ): Optional<RemoteLiveBlock>;
   popRemoteElement(): void;
   popElement(): void;
   openElement(tag: string, _operations?: ElementOperations): SimpleElement;
-  flushElement(modifiers: Option<[ModifierManager, unknown][]>): void;
+  flushElement(modifiers: Optional<[ModifierManager, unknown][]>): void;
   appendText(string: string): SimpleText;
   appendComment(string: string): SimpleComment;
 
@@ -50,15 +50,15 @@ export interface DOMStack {
   appendDynamicFragment(value: SimpleDocumentFragment): void;
   appendDynamicNode(value: SimpleNode): void;
 
-  setStaticAttribute(name: string, value: string, namespace: Option<string>): void;
+  setStaticAttribute(name: string, value: string, namespace: Optional<string>): void;
   setDynamicAttribute(
     name: string,
     value: unknown,
     isTrusting: boolean,
-    namespace: Option<string>
+    namespace: Optional<string>
   ): AttributeOperation;
 
-  closeElement(): Option<[ModifierManager, unknown][]>;
+  closeElement(): Optional<[ModifierManager, unknown][]>;
 }
 
 export interface TreeOperations {
@@ -70,7 +70,7 @@ export interface TreeOperations {
   __appendComment(string: string): SimpleComment;
   __appendNode(node: SimpleNode): SimpleNode;
   __appendHTML(html: string): Bounds;
-  __setAttribute(name: string, value: string, namespace: Option<string>): void;
+  __setAttribute(name: string, value: string, namespace: Optional<string>): void;
   __setProperty(name: string, value: unknown): void;
 }
 
@@ -80,10 +80,10 @@ export type CursorStackSymbol = typeof CURSOR_STACK;
 export interface ElementBuilder extends Cursor, DOMStack, TreeOperations {
   [CURSOR_STACK]: Stack<Cursor>;
 
-  nextSibling: Option<SimpleNode>;
+  nextSibling: Optional<SimpleNode>;
   dom: GlimmerTreeConstruction;
   updateOperations: GlimmerTreeChanges;
-  constructing: Option<SimpleElement>;
+  constructing: Optional<SimpleElement>;
   element: SimpleElement;
 
   hasBlocks: boolean;
@@ -100,7 +100,7 @@ export interface ElementBuilder extends Cursor, DOMStack, TreeOperations {
 export interface AttributeCursor {
   element: SimpleElement;
   name: string;
-  namespace: Option<AttrNamespace>;
+  namespace: Optional<AttrNamespace>;
 }
 
 export interface AttributeOperation {

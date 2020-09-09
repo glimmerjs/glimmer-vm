@@ -1,7 +1,7 @@
 import { CompilableBlock } from '../template';
 // eslint-disable-next-line node/no-extraneous-import
 import { Reference } from '@glimmer/reference';
-import { Option, Dict } from '../core';
+import { Optional, Dict } from '../core';
 import { BlockSymbolTable } from '../tier1/symbol-table';
 
 export type Block = CompilableBlock | number;
@@ -16,20 +16,20 @@ export interface Scope {
 
   getSelf(): Reference;
   getSymbol(symbol: number): Reference;
-  getBlock(symbol: number): Option<ScopeBlock>;
-  getEvalScope(): Option<Dict<ScopeSlot>>;
-  getPartialMap(): Option<Dict<Reference>>;
+  getBlock(symbol: number): Optional<ScopeBlock>;
+  getEvalScope(): Optional<Dict<ScopeSlot>>;
+  getPartialMap(): Optional<Dict<Reference>>;
   bind(symbol: number, value: ScopeSlot): void;
   bindSelf(self: Reference): void;
   bindSymbol(symbol: number, value: Reference): void;
-  bindBlock(symbol: number, value: Option<ScopeBlock>): void;
-  bindEvalScope(map: Option<Dict<ScopeSlot>>): void;
+  bindBlock(symbol: number, value: Optional<ScopeBlock>): void;
+  bindEvalScope(map: Optional<Dict<ScopeSlot>>): void;
   bindPartialMap(map: Dict<Reference>): void;
   child(): Scope;
 }
 
 export interface PartialScope extends Scope {
-  bindEvalScope(scope: Option<Dict<ScopeSlot>>): void;
+  bindEvalScope(scope: Optional<Dict<ScopeSlot>>): void;
 }
 
 export interface DynamicScope {

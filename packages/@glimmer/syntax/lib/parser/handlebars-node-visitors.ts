@@ -3,7 +3,7 @@ import { appendChild, isLiteral, printLiteral } from '../utils';
 import * as AST from '../types/nodes';
 import * as HBS from '../types/handlebars-ast';
 import { Parser, Tag, Attribute } from '../parser';
-import { Recast, Option } from '@glimmer/interfaces';
+import { Recast, Optional } from '@glimmer/interfaces';
 import { TokenizerState } from 'simple-html-tokenizer';
 import { expect } from '@glimmer/util';
 import { GlimmerSyntaxError } from '../errors/syntax-error';
@@ -180,7 +180,7 @@ export abstract class HandlebarsNodeVisitors extends Parser {
     this.tokenizer.flushData();
   }
 
-  CommentStatement(rawComment: HBS.CommentStatement): Option<AST.MustacheCommentStatement> {
+  CommentStatement(rawComment: HBS.CommentStatement): Optional<AST.MustacheCommentStatement> {
     let { tokenizer } = this;
 
     if (tokenizer.state === TokenizerState.comment) {

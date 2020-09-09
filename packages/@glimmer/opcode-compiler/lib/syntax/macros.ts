@@ -4,7 +4,7 @@ import {
   NamedBlocks,
   TemplateCompilationContext,
   StatementCompileActions,
-  Option,
+  Optional,
   Unhandled,
   SexpOpcodes,
   CompileTimeResolver,
@@ -92,8 +92,8 @@ export class Blocks implements MacroBlocks {
 export type AppendSyntax = WireFormat.Statements.Append;
 export type AppendMacro = (
   name: string,
-  params: Option<WireFormat.Core.Params>,
-  hash: Option<WireFormat.Core.Hash>,
+  params: Optional<WireFormat.Core.Params>,
+  hash: Optional<WireFormat.Core.Hash>,
   context: MacroContext
 ) => StatementCompileActions | Unhandled;
 
@@ -124,8 +124,8 @@ export class Inlines implements MacroInlines {
     if (!Array.isArray(value)) return UNHANDLED;
 
     let name: string;
-    let params: Option<WireFormat.Core.Params>;
-    let hash: Option<WireFormat.Core.Hash>;
+    let params: Optional<WireFormat.Core.Params>;
+    let hash: Optional<WireFormat.Core.Hash>;
 
     if (value[0] === SexpOpcodes.Call) {
       let nameOrError = expectSloppyFreeVariable(

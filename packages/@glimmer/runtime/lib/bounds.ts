@@ -1,9 +1,9 @@
-import { Bounds, Cursor, Option } from '@glimmer/interfaces';
+import { Bounds, Cursor, Optional } from '@glimmer/interfaces';
 import { SimpleElement, SimpleNode } from '@simple-dom/interface';
 import { expect } from '@glimmer/util';
 
 export class CursorImpl implements Cursor {
-  constructor(public element: SimpleElement, public nextSibling: Option<SimpleNode>) {}
+  constructor(public element: SimpleElement, public nextSibling: Optional<SimpleNode>) {}
 }
 
 export type DestroyableBounds = Bounds;
@@ -44,7 +44,7 @@ export class SingleNodeBounds implements Bounds {
   }
 }
 
-export function move(bounds: Bounds, reference: Option<SimpleNode>): Option<SimpleNode> {
+export function move(bounds: Bounds, reference: Optional<SimpleNode>): Optional<SimpleNode> {
   let parent = bounds.parentElement();
   let first = bounds.firstNode();
   let last = bounds.lastNode();
@@ -64,7 +64,7 @@ export function move(bounds: Bounds, reference: Option<SimpleNode>): Option<Simp
   }
 }
 
-export function clear(bounds: Bounds): Option<SimpleNode> {
+export function clear(bounds: Bounds): Optional<SimpleNode> {
   let parent = bounds.parentElement();
   let first = bounds.firstNode();
   let last = bounds.lastNode();

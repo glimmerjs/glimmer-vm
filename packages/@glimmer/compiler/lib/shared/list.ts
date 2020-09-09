@@ -1,0 +1,59 @@
+import { PresentArray, Optional } from '@glimmer/interfaces';
+import { isPresent, mapPresent } from '@glimmer/util';
+
+export interface OptionalList<T> {
+  map<U>(callback: (input: T) => U): MapList<T, U, AnyOptionalList<T>>;
+  toArray(): T[] | PresentArray<T>;
+  toPresentArray(): Optional<PresentArray<T>>;
+}
+
+export class PresentList<T> implements OptionalList<T> {
+  constructor(readonly list: PresentArray<T>) {}
+
+  toArray(): PresentArray<T> {
+    return this.list;
+  }
+
+  map<U>(callback: (input: T) => U): MapList<T, U, PresentList<T>> {
+    let result = mapPresent(this.list, callback);
+    return new PresentList(result) as MapList<T, U, this>;
+  }
+
+  toPresentArray(): Optional<PresentArray<T>> {
+    return this.list;
+  }
+}
+
+export class EmptyList<T> implements OptionalList<T> {
+  readonly list: T[] = [];
+
+  map<U>(_callback: (input: T) => U): MapList<T, U, EmptyList<T>> {
+    return new EmptyList() as MapList<T, U, this>;
+  }
+
+  toArray(): T[] {
+    return this.list;
+  }
+
+  toPresentArray(): Optional<PresentArray<T>> {
+    return null;
+  }
+}
+
+// export type OptionalList<T> = PresentList<T> | EmptyList<T>;
+
+export function OptionalList<T>(value: T[]): AnyOptionalList<T> {
+  if (isPresent(value)) {
+    return new PresentList(value);
+  } else {
+    return new EmptyList<T>();
+  }
+}
+
+export type AnyOptionalList<T> = (PresentList<T> | EmptyList<T>) & OptionalList<T>;
+
+export type MapList<T, U, L extends OptionalList<T>> = L extends PresentList<T>
+  ? PresentList<U>
+  : L extends EmptyList<T>
+  ? EmptyList<U>
+  : never;

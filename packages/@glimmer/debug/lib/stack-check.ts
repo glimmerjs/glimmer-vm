@@ -1,4 +1,4 @@
-import { Option, Dict, BlockSymbolTable, ProgramSymbolTable, Maybe } from '@glimmer/interfaces';
+import { Optional, Dict, BlockSymbolTable, ProgramSymbolTable, Maybe } from '@glimmer/interfaces';
 import { SimpleElement, SimpleDocumentFragment, SimpleNode } from '@simple-dom/interface';
 
 export interface Checker<T> {
@@ -88,12 +88,12 @@ class InstanceofChecker<T> implements Checker<T> {
   }
 }
 
-class OptionChecker<T> implements Checker<Option<T>> {
-  type!: Option<T>;
+class OptionChecker<T> implements Checker<Optional<T>> {
+  type!: Optional<T>;
 
   constructor(private checker: Checker<T>, private emptyValue: null | undefined) {}
 
-  validate(value: unknown): value is Option<T> {
+  validate(value: unknown): value is Optional<T> {
     if (value === this.emptyValue) return true;
     return this.checker.validate(value);
   }
@@ -252,7 +252,7 @@ export function CheckInstanceof<T>(Class: Constructor<T>): Checker<T> {
   return new InstanceofChecker<T>(Class);
 }
 
-export function CheckOption<T>(checker: Checker<T>): Checker<Option<T>> {
+export function CheckOption<T>(checker: Checker<T>): Checker<Optional<T>> {
   return new OptionChecker(checker, null);
 }
 

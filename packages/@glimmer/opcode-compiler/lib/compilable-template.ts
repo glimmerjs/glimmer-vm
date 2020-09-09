@@ -1,5 +1,5 @@
 import {
-  Option,
+  Optional,
   LayoutWithContext,
   ContainingMetadata,
   SerializedInlineBlock,
@@ -25,7 +25,7 @@ import { STATEMENTS } from './syntax/statements';
 export const PLACEHOLDER_HANDLE = -1;
 
 class CompilableTemplateImpl<S extends SymbolTable> implements CompilableTemplate<S> {
-  compiled: Option<HandleResult> = null;
+  compiled: Optional<HandleResult> = null;
 
   constructor(
     readonly statements: WireFormat.Statement[],

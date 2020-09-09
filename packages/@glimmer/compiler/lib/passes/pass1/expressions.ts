@@ -1,6 +1,6 @@
 import * as pass1 from '../pass1/ops';
 import * as pass2 from '../pass2/ops';
-import { OpArgs } from '../shared/op';
+import { OpArgs } from '../../shared/op';
 import { Context, MapVisitorsInterface } from './context';
 
 export type ExpressionVisitor = MapVisitorsInterface<pass1.Expr, pass2.Expr>;
@@ -45,7 +45,7 @@ export class Pass1Expression implements ExpressionVisitor {
   }
 
   Concat(ctx: Context, { parts }: OpArgs<pass1.Concat>): pass2.Expr {
-    let list = ctx.map(parts, (part) => ctx.visitExpr(part));
+    let list = parts.map((part) => ctx.visitExpr(part));
     return ctx.op(pass2.Concat, { parts: ctx.op(pass2.Positional, { list }) });
   }
 

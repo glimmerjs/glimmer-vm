@@ -55,7 +55,7 @@
  */
 
 import ComponentCapabilities from './component-capabilities';
-import { Option } from './core';
+import { Optional } from './core';
 import { ProgramSymbolTable } from './tier1/symbol-table';
 import { ComponentDefinition } from './components';
 import { CompilableProgram, Template, HandleResult } from './template';
@@ -71,14 +71,14 @@ export interface HandleResolver {
 export interface CompileTimeComponent {
   handle: number;
   capabilities?: ComponentCapabilities;
-  compilable: Option<CompilableProgram>;
+  compilable: Optional<CompilableProgram>;
 }
 
 export interface CompileTimeResolver<M = unknown> extends HandleResolver {
-  lookupHelper(name: string, referrer: M): Option<number>;
-  lookupModifier(name: string, referrer: M): Option<number>;
-  lookupComponent(name: string, referrer: M): Option<CompileTimeComponent>;
-  lookupPartial(name: string, referrer: M): Option<number>;
+  lookupHelper(name: string, referrer: M): Optional<number>;
+  lookupModifier(name: string, referrer: M): Optional<number>;
+  lookupComponent(name: string, referrer: M): Optional<CompileTimeComponent>;
+  lookupPartial(name: string, referrer: M): Optional<number>;
 
   // For debugging
   resolve(handle: number): M;
@@ -95,8 +95,8 @@ export interface PartialDefinition {
 export type ResolvedValue = ComponentDefinition | ModifierDefinition | Helper | PartialDefinition;
 
 export interface RuntimeResolver<R = unknown> extends HandleResolver {
-  lookupComponent(name: string, referrer?: Option<R>): Option<ComponentDefinition>;
-  lookupPartial(name: string, referrer?: Option<R>): Option<number>;
+  lookupComponent(name: string, referrer?: Optional<R>): Optional<ComponentDefinition>;
+  lookupPartial(name: string, referrer?: Optional<R>): Optional<number>;
   resolve<U extends ResolvedValue>(handle: number): U;
   compilable(locator: R): Template;
 }

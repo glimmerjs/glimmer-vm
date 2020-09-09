@@ -1,5 +1,5 @@
 import { DEBUG } from '@glimmer/env';
-import { Option } from '@glimmer/interfaces';
+import { Optional } from '@glimmer/interfaces';
 import {
   Tag,
   CONSTANT_TAG,
@@ -23,7 +23,7 @@ import { symbol, unwrap } from './utils';
  */
 class Tracker {
   private tags = new Set<Tag>();
-  private last: Option<Tag> = null;
+  private last: Optional<Tag> = null;
 
   add(tag: Tag) {
     if (tag === CONSTANT_TAG) return;
@@ -65,9 +65,9 @@ class Tracker {
  * that corresponds to the tracked properties consumed inside of
  * itself, including child tracked computed properties.
  */
-let CURRENT_TRACKER: Option<Tracker> = null;
+let CURRENT_TRACKER: Optional<Tracker> = null;
 
-const OPEN_TRACK_FRAMES: Option<Tracker>[] = [];
+const OPEN_TRACK_FRAMES: Optional<Tracker>[] = [];
 
 export function beginTrackFrame(debuggingContext?: string | false): void {
   OPEN_TRACK_FRAMES.push(CURRENT_TRACKER);

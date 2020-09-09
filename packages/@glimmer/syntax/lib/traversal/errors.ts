@@ -1,15 +1,15 @@
 import * as AST from '../types/nodes';
-import { Option } from '@glimmer/interfaces';
+import { Optional } from '@glimmer/interfaces';
 
 export interface TraversalError extends Error {
   constructor: TraversalErrorConstructor;
   key: string;
   node: AST.Node;
-  parent: Option<AST.Node>;
+  parent: Optional<AST.Node>;
 }
 
 export interface TraversalErrorConstructor {
-  new (message: string, node: AST.Node, parent: Option<AST.Node>, key: string): TraversalError;
+  new (message: string, node: AST.Node, parent: Optional<AST.Node>, key: string): TraversalError;
   readonly prototype: TraversalError;
 }
 
@@ -21,7 +21,7 @@ const TraversalError: TraversalErrorConstructor = (function () {
     this: TraversalError,
     message: string,
     node: AST.Node,
-    parent: Option<AST.Node>,
+    parent: Optional<AST.Node>,
     key: string
   ) {
     let error = Error.call(this, message);

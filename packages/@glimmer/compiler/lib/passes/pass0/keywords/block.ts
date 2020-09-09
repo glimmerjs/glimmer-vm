@@ -2,7 +2,7 @@ import { ExpressionContext } from '@glimmer/interfaces';
 import { AST, GlimmerSyntaxError } from '@glimmer/syntax';
 import { assertPresent } from '@glimmer/util';
 import * as pass1 from '../../pass1/ops';
-import { Result } from '../../shared/result';
+import { Result } from '../../../shared/result';
 import { Context } from '../context';
 import { keyword, KeywordNode, keywords } from './impl';
 
@@ -42,7 +42,7 @@ export const IN_ELEMENT = keyword('in-element', {
   ): Result<pass1.InElement> {
     let guid = ctx.cursor();
 
-    return ctx.visitBlock(ctx.slice('default').offsets(null), block.program).mapOk((body) =>
+    return ctx.block(ctx.slice('default').offsets(null), block.program).mapOk((body) =>
       ctx
         .op(pass1.InElement, {
           block: body,

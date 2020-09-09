@@ -1,7 +1,7 @@
 import { SimpleElement } from '@simple-dom/interface';
 import {
   Dict,
-  Option,
+  Optional,
   ModifierManager,
   GlimmerTreeChanges,
   Destroyable,
@@ -73,7 +73,7 @@ export class TestModifierManager
     }
   }
 
-  getDestroyable(modifier: TestModifier): Option<Destroyable> {
+  getDestroyable(modifier: TestModifier): Optional<Destroyable> {
     return modifier.instance || null;
   }
 }

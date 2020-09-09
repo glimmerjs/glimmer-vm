@@ -10,7 +10,7 @@ import {
   ModifierManager,
   RuntimeContext,
   RuntimeResolver,
-  Option,
+  Optional,
   RuntimeArtifacts,
 } from '@glimmer/interfaces';
 import { assert, expect, symbol, debugToString } from '@glimmer/util';
@@ -113,7 +113,7 @@ class TransactionImpl implements Transaction {
 }
 
 export class EnvironmentImpl<Extra> implements Environment<Extra> {
-  [TRANSACTION]: Option<TransactionImpl> = null;
+  [TRANSACTION]: Optional<TransactionImpl> = null;
 
   protected appendOperations!: GlimmerTreeConstruction;
   protected updateOperations?: GlimmerTreeChanges;

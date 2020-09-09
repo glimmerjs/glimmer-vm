@@ -1,4 +1,4 @@
-import { Option } from '@glimmer/interfaces';
+import { Optional } from '@glimmer/interfaces';
 import { cast } from '@glimmer/runtime';
 import { NodeType, SimpleElement, SimpleNode } from '@simple-dom/interface';
 import { EndTag, Token, tokenize } from 'simple-html-tokenizer';
@@ -14,7 +14,7 @@ export function snapshotIsNode(snapshot: IndividualSnapshot): snapshot is Simple
 export function equalTokens(
   testFragment: SimpleElement | string | null,
   testHTML: SimpleElement | string,
-  message: Option<string> = null
+  message: Optional<string> = null
 ) {
   if (testFragment === null) {
     throw new Error(`Unexpectedly passed null to equalTokens`);
@@ -72,7 +72,7 @@ function isMarker(node: SimpleNode) {
 
 export function generateSnapshot(element: SimpleElement): SimpleNode[] {
   let snapshot: SimpleNode[] = [];
-  let node: Option<SimpleNode> = element.firstChild;
+  let node: Optional<SimpleNode> = element.firstChild;
 
   while (node) {
     if (!isMarker(node)) {
@@ -175,12 +175,12 @@ class SnapshotIterator {
 
   constructor(private snapshot: NodesSnapshot) {}
 
-  peek(): Option<IndividualSnapshot> {
+  peek(): Optional<IndividualSnapshot> {
     if (this.pos >= this.snapshot.length) return null;
     return this.snapshot[this.pos];
   }
 
-  next(): Option<IndividualSnapshot> {
+  next(): Optional<IndividualSnapshot> {
     if (this.pos >= this.snapshot.length) return null;
     return this.nextNode() || null;
   }

@@ -1,5 +1,5 @@
 import { CompileTimeConstants, CompileTimeHeap } from '../program';
-import { Dict, Option } from '../core';
+import { Dict, Optional } from '../core';
 import { SingleBuilderOperand, BuilderHandleThunk, SingleBuilderOperands } from './operands';
 import {
   NamedBlocks,
@@ -109,7 +109,7 @@ export interface CompileBlockOp {
 }
 
 export interface ArgsOptions {
-  params: Option<WireFormat.Core.Params>;
+  params: Optional<WireFormat.Core.Params>;
   hash: WireFormat.Core.Hash;
   blocks: NamedBlocks;
   atNames: boolean;
@@ -131,7 +131,7 @@ export interface IfResolvedOp {
 }
 
 export interface IfResolvedComponentBlocks {
-  elementBlock: Option<CompilableBlock>;
+  elementBlock: Optional<CompilableBlock>;
   blocks: NamedBlocks;
 }
 
@@ -140,7 +140,7 @@ export interface IfResolvedComponentOp {
   op: HighLevelCompileOpcode.IfResolvedComponent;
   op1: {
     name: string;
-    elementBlock: Option<[WireFormat.Statements.Parameter, ...WireFormat.Statements.Parameter[]]>;
+    elementBlock: Optional<[WireFormat.Statements.Parameter, ...WireFormat.Statements.Parameter[]]>;
     blocks: WireFormat.Core.Blocks;
     staticTemplate: (
       handle: number,
@@ -162,7 +162,7 @@ export interface DynamicComponentOp {
   op: HighLevelCompileOpcode.DynamicComponent;
   op1: {
     definition: WireFormat.Expression;
-    elementBlock: Option<[WireFormat.Statements.Parameter, ...WireFormat.Statements.Parameter[]]>;
+    elementBlock: Optional<[WireFormat.Statements.Parameter, ...WireFormat.Statements.Parameter[]]>;
     params: WireFormat.Core.Params;
     args: WireFormat.Core.Hash;
     blocks: WireFormat.Core.Blocks | NamedBlocks;
@@ -206,7 +206,7 @@ export interface BuilderOp {
 export interface OptionOp {
   type: 'Simple';
   op: HighLevelBuilderOpcode.Option;
-  op1: Option<CompileActions>;
+  op1: Optional<CompileActions>;
 }
 
 export interface StartLabelsOp {
@@ -231,7 +231,7 @@ export interface SimpleArgsOp {
   type: 'Resolution';
   op: HighLevelResolutionOpcode.SimpleArgs;
   op1: {
-    params: Option<WireFormat.Core.Params>;
+    params: Optional<WireFormat.Core.Params>;
     hash: WireFormat.Core.Hash;
     atNames: boolean;
   };

@@ -1,6 +1,6 @@
 import { BasicComponentManager } from './basic';
 import { TestComponentDefinitionState } from './test-component';
-import { ComponentCapabilities, CompilableProgram, Option } from '@glimmer/interfaces';
+import { ComponentCapabilities, CompilableProgram, Optional } from '@glimmer/interfaces';
 import TestJitRuntimeResolver from '../modes/jit/resolver';
 import { createTemplate } from '../compile';
 import { unwrapTemplate } from '@glimmer/util';
@@ -28,6 +28,6 @@ export class StaticTaglessComponentManager extends BasicComponentManager {
 
 export interface StaticTaglessComponentDefinitionState {
   name: string;
-  layout: Option<number>;
+  layout: Optional<number>;
   ComponentClass: any;
 }

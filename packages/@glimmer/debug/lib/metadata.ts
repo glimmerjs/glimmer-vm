@@ -1,4 +1,4 @@
-import { Option, Dict } from '@glimmer/interfaces';
+import { Optional, Dict } from '@glimmer/interfaces';
 
 const tuple = <T extends string[]>(...args: T) => args;
 
@@ -38,7 +38,7 @@ export interface NormalizedMetadata {
   name: string;
   mnemonic: string;
   before: null;
-  stackChange: Option<number>;
+  stackChange: Optional<number>;
   ops: OperandList;
   operands: number;
   check: boolean;
@@ -83,7 +83,7 @@ export function normalize(key: string, input: RawOperandMetadata): NormalizedMet
   };
 }
 
-function stackChange(stack?: Stack): Option<number> {
+function stackChange(stack?: Stack): Optional<number> {
   if (stack === undefined) {
     return 0;
   }

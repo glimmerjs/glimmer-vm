@@ -8,7 +8,7 @@ import {
   Environment,
   HandleResult,
   Helper,
-  Option,
+  Optional,
   RenderResult,
   RuntimeContext,
   SyntaxCompilationContext,
@@ -91,7 +91,7 @@ export class JitRenderDelegate implements RenderDelegate {
   private resolver: TestJitRuntimeResolver = new TestJitRuntimeResolver();
   private registry: TestJitRegistry = this.resolver.registry;
   private context: JitTestDelegateContext;
-  private self: Option<Reference> = null;
+  private self: Optional<Reference> = null;
   private doc: SimpleDocument;
   private env: EnvironmentDelegate;
 
@@ -129,7 +129,7 @@ export class JitRenderDelegate implements RenderDelegate {
     return this.doc.createDocumentFragment();
   }
 
-  createCurriedComponent(name: string): Option<CurriedComponentDefinition> {
+  createCurriedComponent(name: string): Optional<CurriedComponentDefinition> {
     return componentHelper(this.resolver, this.registry, name);
   }
 
@@ -148,14 +148,14 @@ export class JitRenderDelegate implements RenderDelegate {
     type: K,
     _testType: L,
     name: string,
-    layout: Option<string>,
+    layout: Optional<string>,
     Class?: ComponentTypes[K]
   ): void;
   registerComponent<K extends ComponentKind, L extends ComponentKind>(
     type: K,
     _testType: L,
     name: string,
-    layout: Option<string>,
+    layout: Optional<string>,
     Class?: ComponentTypes[K]
   ) {
     switch (type) {

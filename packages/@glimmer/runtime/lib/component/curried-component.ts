@@ -1,4 +1,4 @@
-import { CapturedArguments, ComponentDefinition, Option } from '@glimmer/interfaces';
+import { CapturedArguments, ComponentDefinition, Optional } from '@glimmer/interfaces';
 import { assert, symbol, _WeakSet } from '@glimmer/util';
 import { capabilityFlagsFrom } from '../capabilities';
 import { ComponentInstance } from '../compiled/opcodes/component';
@@ -17,12 +17,12 @@ export function isCurriedComponentDefinition(
 
 export class CurriedComponentDefinition {
   [INNER]: ComponentDefinition | CurriedComponentDefinition;
-  [ARGS]: Option<CapturedArguments>;
+  [ARGS]: Optional<CapturedArguments>;
 
   /** @internal */
   constructor(
     inner: ComponentDefinition | CurriedComponentDefinition,
-    args: Option<CapturedArguments>
+    args: Optional<CapturedArguments>
   ) {
     CURRIED_COMPONENT_DEFINITIONS.add(this);
     this[INNER] = inner;
@@ -83,7 +83,7 @@ export function resolveCurriedComponentDefinition(
 
 export function curry(
   spec: ComponentDefinition,
-  args: Option<CapturedArguments> = null
+  args: Optional<CapturedArguments> = null
 ): CurriedComponentDefinition {
   return new CurriedComponentDefinition(spec as ComponentDefinition, args);
 }

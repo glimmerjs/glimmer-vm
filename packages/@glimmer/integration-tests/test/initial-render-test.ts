@@ -1,4 +1,4 @@
-import { Dict, Option } from '@glimmer/interfaces';
+import { Dict, Optional } from '@glimmer/interfaces';
 import { cast, SafeString } from '@glimmer/runtime';
 import { expect } from '@glimmer/util';
 import { SimpleElement } from '@simple-dom/interface';
@@ -42,7 +42,7 @@ class RenderTests extends InitialRenderSuite {
 class AbstractRehydrationTests extends InitialRenderSuite {
   name = 'rehydration';
   protected delegate!: RehydrationDelegate;
-  protected serverOutput!: Option<string>;
+  protected serverOutput!: Optional<string>;
 
   renderServerSide(
     template: string | ComponentBlueprint,

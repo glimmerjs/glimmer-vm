@@ -1,8 +1,8 @@
-import { Dict, DictValue, Option, PresentArray } from '@glimmer/interfaces';
+import { Dict, DictValue, Optional, PresentArray } from '@glimmer/interfaces';
 import { assertNever, dict, expect, isPresent } from '@glimmer/util';
 
 export type BuilderParams = BuilderExpression[];
-export type BuilderHash = Option<Dict<BuilderExpression>>;
+export type BuilderHash = Optional<Dict<BuilderExpression>>;
 export type BuilderBlockHash = BuilderHash | { as: string | string[] };
 export type BuilderBlocks = Dict<BuilderBlock>;
 export type BuilderAttrs = Dict<BuilderAttr>;
@@ -16,14 +16,14 @@ export type NormalizedAttr = HeadKind.Splat | NormalizedExpression;
 
 export interface NormalizedElement {
   name: string;
-  attrs: Option<NormalizedAttrs>;
-  block: Option<NormalizedBlock>;
+  attrs: Optional<NormalizedAttrs>;
+  block: Optional<NormalizedBlock>;
 }
 
 export interface NormalizedAngleInvocation {
   head: NormalizedExpression;
-  attrs: Option<NormalizedAttrs>;
-  block: Option<NormalizedBlock>;
+  attrs: Optional<NormalizedAttrs>;
+  block: Optional<NormalizedBlock>;
 }
 
 export const enum HeadKind {
@@ -73,16 +73,16 @@ export type NormalizedStatement =
   | {
       kind: HeadKind.Call;
       head: NormalizedHead;
-      params: Option<NormalizedParams>;
-      hash: Option<NormalizedHash>;
+      params: Optional<NormalizedParams>;
+      hash: Optional<NormalizedHash>;
       trusted: boolean;
     }
   | {
       kind: HeadKind.Block;
       head: NormalizedHead;
-      params: Option<NormalizedParams>;
-      hash: Option<NormalizedHash>;
-      blockParams: Option<string[]>;
+      params: Optional<NormalizedParams>;
+      hash: Optional<NormalizedHash>;
+      blockParams: Optional<string[]>;
       blocks: NormalizedBlocks;
     }
   | {
@@ -95,11 +95,11 @@ export type NormalizedStatement =
   | { kind: HeadKind.Literal; value: string }
   | AppendPath
   | AppendExpr
-  | { kind: HeadKind.Modifier; params: NormalizedParams; hash: Option<NormalizedHash> }
+  | { kind: HeadKind.Modifier; params: NormalizedParams; hash: Optional<NormalizedHash> }
   | {
       kind: HeadKind.DynamicComponent;
       expr: NormalizedExpression;
-      hash: Option<NormalizedHash>;
+      hash: Optional<NormalizedHash>;
       block: NormalizedBlock;
     };
 
@@ -162,8 +162,8 @@ export function normalizeSugaryArrayStatement(
 
   switch (name[0]) {
     case '(': {
-      let params: Option<NormalizedParams> = null;
-      let hash: Option<NormalizedHash> = null;
+      let params: Optional<NormalizedParams> = null;
+      let hash: Optional<NormalizedHash> = null;
 
       if (statement.length === 3) {
         params = normalizeParams(statement[1] as Params);
@@ -362,9 +362,9 @@ export type BuilderBlockStatement =
 
 export interface NormalizedBuilderBlockStatement {
   head: NormalizedHead;
-  params: Option<NormalizedParams>;
-  hash: Option<NormalizedHash>;
-  blockParams: Option<string[]>;
+  params: Optional<NormalizedParams>;
+  hash: Optional<NormalizedHash>;
+  blockParams: Optional<string[]>;
   blocks: NormalizedBlocks;
 }
 
@@ -373,9 +373,9 @@ export function normalizeBuilderBlockStatement(
 ): NormalizedBuilderBlockStatement {
   let head = statement[0];
   let blocks: NormalizedBlocks = dict();
-  let params: Option<NormalizedParams> = null;
-  let hash: Option<NormalizedHash> = null;
-  let blockParams: Option<string[]> = null;
+  let params: Optional<NormalizedParams> = null;
+  let hash: Optional<NormalizedHash> = null;
+  let blockParams: Optional<string[]> = null;
 
   if (statement.length === 2) {
     blocks = normalizeBlocks(statement[1]);
@@ -404,13 +404,13 @@ export function normalizeBuilderBlockStatement(
 
 function normalizeBlockHash(
   hash: BuilderBlockHash
-): { hash: Option<NormalizedHash>; blockParams: Option<string[]> } {
+): { hash: Optional<NormalizedHash>; blockParams: Optional<string[]> } {
   if (hash === null) {
     return { hash: null, blockParams: null };
   }
 
-  let out: Option<Dict<NormalizedExpression>> = null;
-  let blockParams: Option<string[]> = null;
+  let out: Optional<Dict<NormalizedExpression>> = null;
+  let blockParams: Optional<string[]> = null;
 
   entries(hash, (key, value) => {
     if (key === 'as') {
@@ -492,13 +492,13 @@ export function isElement(input: [string, ...unknown[]]): input is BuilderElemen
   return !!match && !!match[1];
 }
 
-export function extractElement(input: string): Option<string> {
+export function extractElement(input: string): Optional<string> {
   let match = /^<([a-z0-9\-][a-zA-Z0-9\-]*)>$/.exec(input);
 
   return match ? match[1] : null;
 }
 
-export function extractAngleInvocation(input: string): Option<string> {
+export function extractAngleInvocation(input: string): Optional<string> {
   let match = /^<(@[a-zA-Z0-9]*|[A-Z][a-zA-Z0-9\-]*)>$/.exec(input[0]);
 
   return match ? match[1] : null;
@@ -571,8 +571,8 @@ export const enum ExpressionKind {
 export interface NormalizedCallExpression {
   type: ExpressionKind.Call;
   head: NormalizedHead;
-  params: Option<NormalizedParams>;
-  hash: Option<NormalizedHash>;
+  params: Optional<NormalizedParams>;
+  hash: Optional<NormalizedHash>;
 }
 
 export interface NormalizedPath {
@@ -855,7 +855,7 @@ export function normalizeParams(input: Params): NormalizedParams {
   return input.map(normalizeExpression);
 }
 
-export function normalizeHash(input: Option<Hash>): Option<NormalizedHash> {
+export function normalizeHash(input: Optional<Hash>): Optional<NormalizedHash> {
   if (input === null) return null;
   return mapObject(input, normalizeExpression);
 }

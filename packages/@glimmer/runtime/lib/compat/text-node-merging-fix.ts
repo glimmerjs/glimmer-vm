@@ -1,4 +1,4 @@
-import { Bounds, Option } from '@glimmer/interfaces';
+import { Bounds, Optional } from '@glimmer/interfaces';
 import {
   InsertPosition,
   SimpleComment,
@@ -21,7 +21,7 @@ import { DOMOperations } from '../dom/operations';
 //           the base implementation of `insertHTMLBefore` already handles
 //           following text nodes correctly.
 export function applyTextNodeMergingFix(
-  document: Option<SimpleDocument>,
+  document: Optional<SimpleDocument>,
   DOMClass: typeof DOMOperations
 ): typeof DOMOperations {
   if (!document) return DOMClass;
@@ -38,7 +38,11 @@ export function applyTextNodeMergingFix(
       this.uselessComment = document.createComment('');
     }
 
-    insertHTMLBefore(parent: SimpleElement, nextSibling: Option<SimpleNode>, html: string): Bounds {
+    insertHTMLBefore(
+      parent: SimpleElement,
+      nextSibling: Optional<SimpleNode>,
+      html: string
+    ): Bounds {
       if (html === '') {
         return super.insertHTMLBefore(parent, nextSibling, html);
       }

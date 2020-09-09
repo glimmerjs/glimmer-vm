@@ -13,4 +13,5 @@ export { BuilderStatement, Builder } from './lib/builder/builder-interface';
 // exported only for tests
 export { default as WireFormatDebugger } from './lib/wire-format-debug';
 
-export * from './lib/passes/shared/location';
+export * from './lib/source/source';
+export * from './lib/source/offsets';

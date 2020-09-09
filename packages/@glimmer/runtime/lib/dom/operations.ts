@@ -7,7 +7,7 @@ import {
   SimpleText,
   SimpleComment,
 } from '@simple-dom/interface';
-import { Dict, Option, Bounds } from '@glimmer/interfaces';
+import { Dict, Optional, Bounds } from '@glimmer/interfaces';
 import { ConcreteBounds } from '../bounds';
 import { expect } from '@glimmer/util';
 
@@ -61,11 +61,11 @@ export class DOMOperations {
     }
   }
 
-  insertBefore(parent: SimpleElement, node: SimpleNode, reference: Option<SimpleNode>) {
+  insertBefore(parent: SimpleElement, node: SimpleNode, reference: Optional<SimpleNode>) {
     parent.insertBefore(node, reference);
   }
 
-  insertHTMLBefore(parent: SimpleElement, nextSibling: Option<SimpleNode>, html: string): Bounds {
+  insertHTMLBefore(parent: SimpleElement, nextSibling: Optional<SimpleNode>, html: string): Bounds {
     if (html === '') {
       let comment = this.createComment('');
       parent.insertBefore(comment, nextSibling);
@@ -111,14 +111,14 @@ export class DOMOperations {
 export function moveNodesBefore(
   source: SimpleNode,
   target: SimpleElement,
-  nextSibling: Option<SimpleNode>
+  nextSibling: Optional<SimpleNode>
 ): Bounds {
   let first = expect(source.firstChild, 'source is empty');
   let last: SimpleNode = first;
-  let current: Option<SimpleNode> = first;
+  let current: Optional<SimpleNode> = first;
 
   while (current) {
-    let next: Option<SimpleNode> = current.nextSibling;
+    let next: Optional<SimpleNode> = current.nextSibling;
 
     target.insertBefore(current, nextSibling);
 

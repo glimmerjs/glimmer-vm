@@ -2,7 +2,7 @@ import {
   ProgramSymbolTable,
   CompilableProgram,
   LayoutWithContext,
-  Option,
+  Optional,
   SyntaxCompilationContext,
   HandleResult,
 } from '@glimmer/interfaces';
@@ -17,7 +17,7 @@ import { patchStdlibs } from '@glimmer/program';
 
 export class WrappedBuilder implements CompilableProgram {
   public symbolTable: ProgramSymbolTable;
-  private compiled: Option<number> = null;
+  private compiled: Optional<number> = null;
   private attrsBlockNumber: number;
 
   constructor(private layout: LayoutWithContext<unknown>) {

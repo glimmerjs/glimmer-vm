@@ -1,5 +1,5 @@
 import { PresentArray } from '../array';
-import { Dict, Option } from '../core';
+import { Dict, Optional } from '../core';
 
 export type TupleSyntax = Statement | TupleExpression;
 
@@ -8,7 +8,7 @@ type JsonValue = string | number | boolean | JsonObject | JsonArray;
 interface JsonObject extends Dict<JsonValue> {}
 interface JsonArray extends Array<JsonValue> {}
 
-export type TemplateReference = Option<SerializedBlock>;
+export type TemplateReference = Optional<SerializedBlock>;
 export type YieldTo = number;
 
 export const enum SexpOpcodes {
@@ -97,13 +97,13 @@ export namespace Core {
   export type CallArgs = [Params, Hash];
   export type Path = [string, ...string[]];
   export type ConcatParams = PresentArray<Expression>;
-  export type Params = Option<ConcatParams>;
-  export type Hash = Option<[PresentArray<string>, PresentArray<Expression>]>;
-  export type Blocks = Option<[string[], SerializedInlineBlock[]]>;
+  export type Params = Optional<ConcatParams>;
+  export type Hash = Optional<[PresentArray<string>, PresentArray<Expression>]>;
+  export type Blocks = Optional<[string[], SerializedInlineBlock[]]>;
   export type Args = [Params, Hash];
   export type NamedBlock = [string, SerializedInlineBlock];
   export type EvalInfo = number[];
-  export type ElementParameters = Option<PresentArray<Parameter>>;
+  export type ElementParameters = Optional<PresentArray<Parameter>>;
 
   export type Syntax = Path | Params | ConcatParams | Hash | Blocks | Args | EvalInfo;
 }
@@ -168,7 +168,7 @@ export namespace Expressions {
   export type Expression = TupleExpression | Value | undefined;
 
   export type Concat = [SexpOpcodes.Concat, Core.ConcatParams];
-  export type Helper = [SexpOpcodes.Call, Expression, Option<Params>, Hash];
+  export type Helper = [SexpOpcodes.Call, Expression, Optional<Params>, Hash];
   export type HasBlock = [SexpOpcodes.HasBlock, Expression];
   export type HasBlockParams = [SexpOpcodes.HasBlockParams, Expression];
 }
@@ -206,7 +206,7 @@ export namespace Statements {
   export type TrustingAppend = [SexpOpcodes.TrustingAppend, Expression];
   export type Comment = [SexpOpcodes.Comment, string];
   export type Modifier = [SexpOpcodes.Modifier, Expression, Params, Hash];
-  export type Block = [SexpOpcodes.Block, Expression, Option<Params>, Hash, Blocks];
+  export type Block = [SexpOpcodes.Block, Expression, Optional<Params>, Hash, Blocks];
   export type Component = [
     op: SexpOpcodes.Component,
     tag: Expression,
@@ -243,7 +243,7 @@ export namespace Statements {
     string?
   ];
   export type AttrSplat = [SexpOpcodes.AttrSplat, YieldTo];
-  export type Yield = [SexpOpcodes.Yield, YieldTo, Option<Params>];
+  export type Yield = [SexpOpcodes.Yield, YieldTo, Optional<Params>];
   export type Partial = [SexpOpcodes.Partial, Expression, Core.EvalInfo];
   export type DynamicArg = [SexpOpcodes.DynamicArg, string, Expression];
   export type StaticArg = [SexpOpcodes.StaticArg, string, Expression];
@@ -354,7 +354,7 @@ export interface SerializedTemplateBlock extends SerializedBlock {
  */
 export interface SerializedTemplate<T> {
   block: SerializedTemplateBlock;
-  id?: Option<string>;
+  id?: Optional<string>;
   meta: T;
 }
 
@@ -367,7 +367,7 @@ export type SerializedTemplateBlockJSON = string;
  * A JSON object containing the SerializedTemplateBlock as JSON and TemplateMeta.
  */
 export interface SerializedTemplateWithLazyBlock<M> {
-  id?: Option<string>;
+  id?: Optional<string>;
   block: SerializedTemplateBlockJSON;
   meta: M;
 }

@@ -1,4 +1,4 @@
-import { Option, RuntimeHeap, MachineOp, RuntimeProgram, RuntimeOp } from '@glimmer/interfaces';
+import { Optional, RuntimeHeap, MachineOp, RuntimeProgram, RuntimeOp } from '@glimmer/interfaces';
 import { APPEND_OPCODES } from '../opcodes';
 import VM from './append';
 import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
@@ -113,7 +113,7 @@ export default class LowLevelVM {
     this.setPc(this.registers[$ra]);
   }
 
-  nextStatement(): Option<RuntimeOp> {
+  nextStatement(): Optional<RuntimeOp> {
     let { registers, program } = this;
 
     let pc = registers[$pc];

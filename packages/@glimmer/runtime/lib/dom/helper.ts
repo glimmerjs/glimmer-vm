@@ -1,4 +1,4 @@
-import { GlimmerTreeChanges, GlimmerTreeConstruction, Option } from '@glimmer/interfaces';
+import { GlimmerTreeChanges, GlimmerTreeConstruction, Optional } from '@glimmer/interfaces';
 import {} from '@glimmer/util';
 import {
   AttrNamespace,
@@ -62,7 +62,7 @@ import { BLACKLIST_TABLE, DOMOperations } from './operations';
 
 const WHITESPACE = /[\t-\r \xA0\u1680\u180E\u2000-\u200A\u2028\u2029\u202F\u205F\u3000\uFEFF]/;
 
-let doc: Option<SimpleDocument> = typeof document === 'undefined' ? null : cast(document).simple;
+let doc: Optional<SimpleDocument> = typeof document === 'undefined' ? null : cast(document).simple;
 
 export function isWhitespace(string: string) {
   return WHITESPACE.test(string);
@@ -78,7 +78,7 @@ export namespace DOM {
       element: SimpleElement,
       name: string,
       value: string,
-      namespace: Option<AttrNamespace> = null
+      namespace: Optional<AttrNamespace> = null
     ) {
       if (namespace) {
         element.setAttributeNS(namespace, name, value);
@@ -104,7 +104,7 @@ export namespace DOM {
 }
 
 export class DOMChangesImpl extends DOMOperations implements GlimmerTreeChanges {
-  protected namespace: Option<string>;
+  protected namespace: Optional<string>;
 
   constructor(protected document: SimpleDocument) {
     super(document);

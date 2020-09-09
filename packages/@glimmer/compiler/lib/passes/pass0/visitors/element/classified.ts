@@ -1,21 +1,20 @@
-import { ExpressionContext, Option, PresentArray } from '@glimmer/interfaces';
+import { ExpressionContext, Optional, PresentArray } from '@glimmer/interfaces';
 import { AST, GlimmerSyntaxError } from '@glimmer/syntax';
 import { getAttrNamespace } from '../../../../utils';
 // import { Option } from '@glimmer/interfaces';
 import * as pass1 from '../../../pass1/ops';
-import { Source } from '../../../shared/op';
-import { Err, Ok, Result, ResultArray } from '../../../shared/result';
+import { Err, Ok, Result, ResultArray } from '../../../../shared/result';
 import { Context } from '../../context';
-import { buildHash, buildParams } from '../../utils/builders';
 import { assertIsSimpleHelper, isHelperInvocation, isTrustingNode } from '../../utils/is-node';
 import { dynamicAttrValue } from './element-node';
 import { TemporaryNamedBlock } from './temporary-block';
+import { OptionalList } from '../../../../shared/list';
 
 export type ValidAttr = pass1.Attr | pass1.AttrSplat;
 
 type ProcessedAttributes = {
   attrs: ValidAttr[];
-  args: pass1.AnyNamedArguments;
+  args: pass1.NamedArguments;
 };
 
 export interface Classified<Body> {
@@ -84,8 +83,8 @@ export class ClassifiedElement<Body> {
     return this.ctx
       .op(pass1.Modifier, {
         head: this.ctx.visitExpr(modifier.path, ExpressionContext.ModifierHead),
-        params: buildParams(this.ctx, { path: modifier.path, params: modifier.params }),
-        hash: buildHash(this.ctx, modifier.hash),
+        params: this.ctx.params({ path: modifier.path, params: modifier.params }),
+        hash: this.ctx.hash(modifier.hash),
       })
       .loc(modifier);
   }
@@ -94,7 +93,7 @@ export class ClassifiedElement<Body> {
     let attrs = new ResultArray<ValidAttr>();
     let args = new ResultArray<pass1.NamedArgument>();
 
-    let typeAttr: Option<AST.AttrNode> = null;
+    let typeAttr: Optional<AST.AttrNode> = null;
 
     for (let attr of this.element.attributes) {
       if (attr.name === 'type') {
@@ -112,7 +111,7 @@ export class ClassifiedElement<Body> {
 
     return Result.all(args.toArray(), attrs.toArray()).mapOk(([args, attrs]) => ({
       attrs,
-      args: pass1.AnyNamedArguments(args),
+      args: this.ctx.op(pass1.NamedArguments, { pairs: OptionalList(args) }).offsets(null),
     }));
   }
 
@@ -127,7 +126,7 @@ export class ClassifiedElement<Body> {
             table: child,
             body: statements,
           },
-          new Source(ctx.source).maybeOffsetsFor(element)
+          ctx.source.maybeOffsetsFor(element)
         );
 
         if (temp.isValidNamedBlock()) {
@@ -169,7 +168,7 @@ export class ClassifiedElement<Body> {
 }
 
 export interface PreparedArgs<Body> {
-  args: pass1.AnyNamedArguments;
+  args: pass1.NamedArguments;
   params: pass1.AnyElementParameters;
   body: Body;
 }

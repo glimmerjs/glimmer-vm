@@ -1,4 +1,4 @@
-import { Dict, Maybe, Option, RenderResult, Helper } from '@glimmer/interfaces';
+import { Dict, Maybe, Optional, RenderResult, Helper } from '@glimmer/interfaces';
 import { ASTPluginBuilder } from '@glimmer/syntax';
 import { dirtyTagFor } from '@glimmer/validator';
 import { clearElement, dict, expect } from '@glimmer/util';
@@ -46,7 +46,7 @@ export class RenderTest implements IRenderTest {
   protected element: SimpleElement;
   protected assert = QUnit.assert;
   protected context: Dict = dict();
-  protected renderResult: Option<RenderResult> = null;
+  protected renderResult: Optional<RenderResult> = null;
   protected helpers = dict<UserHelper>();
   protected snapshot: NodesSnapshot = [];
   readonly count = new Count();

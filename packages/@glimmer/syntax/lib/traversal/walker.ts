@@ -1,4 +1,4 @@
-import { Option } from '@glimmer/interfaces';
+import { Optional } from '@glimmer/interfaces';
 import * as AST from '../types/nodes';
 
 export type NodeCallback<N extends AST.Node> = (node: N, walker: Walker) => void;
@@ -7,7 +7,7 @@ export default class Walker {
   public stack: any[] = [];
   constructor(public order?: any) {}
 
-  visit<N extends AST.Node>(node: Option<N>, callback: NodeCallback<N>) {
+  visit<N extends AST.Node>(node: Optional<N>, callback: NodeCallback<N>) {
     if (!node) {
       return;
     }

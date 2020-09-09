@@ -1,5 +1,5 @@
 import {
-  Option,
+  Optional,
   CapturedNamedArguments,
   Bounds,
   WithDynamicTagName,
@@ -50,12 +50,12 @@ export class EmberishCurlyComponent {
   public dirtinessTag: DirtyableTag = createTag();
   public layout!: { name: string; handle: number };
   public name!: string;
-  public tagName: Option<string> = null;
-  public attributeBindings: Option<string[]> = null;
+  public tagName: Optional<string> = null;
+  public attributeBindings: Optional<string[]> = null;
   public attrs!: Attrs;
   public element!: Element;
   public bounds!: Bounds;
-  public parentView: Option<EmberishCurlyComponent> = null;
+  public parentView: Optional<EmberishCurlyComponent> = null;
   public args!: CapturedNamedArguments;
 
   public _guid: string;
@@ -117,7 +117,7 @@ export interface EmberishCurlyComponentDefinitionState {
   name: string;
   ComponentClass: EmberishCurlyComponentFactory;
   locator: ModuleLocator;
-  layout: Option<number>;
+  layout: Optional<number>;
   symbolTable?: ProgramSymbolTable;
 }
 
@@ -162,7 +162,7 @@ export class EmberishCurlyComponentManager
   prepareArgs(
     state: EmberishCurlyComponentDefinitionState,
     args: VMArguments
-  ): Option<PreparedArguments> {
+  ): Optional<PreparedArguments> {
     const { positionalParams } = state.ComponentClass || EmberishCurlyComponent;
     if (typeof positionalParams === 'string') {
       if (args.named.has(positionalParams)) {
@@ -231,7 +231,7 @@ export class EmberishCurlyComponentManager
       component.layout = { name: component.name, handle: state.layout };
     }
 
-    let dyn: Option<string[]> = state.ComponentClass
+    let dyn: Optional<string[]> = state.ComponentClass
       ? state.ComponentClass['fromDynamicScope'] || null
       : null;
 
@@ -260,7 +260,7 @@ export class EmberishCurlyComponentManager
     return selfRef;
   }
 
-  getTagName({ component: { tagName } }: EmberishCurlyComponentState): Option<string> {
+  getTagName({ component: { tagName } }: EmberishCurlyComponentState): Optional<string> {
     if (tagName) {
       return tagName;
     } else if (tagName === null) {

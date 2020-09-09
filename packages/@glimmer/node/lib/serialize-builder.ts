@@ -1,7 +1,7 @@
 import type {
   Bounds,
   Environment,
-  Option,
+  Optional,
   ElementBuilder,
   ModifierManager,
   Maybe,
@@ -16,7 +16,7 @@ const NEEDS_EXTRA_CLOSE = new WeakMap<SimpleNode>();
 
 function currentNode(
   cursor: ElementBuilder | { element: SimpleElement; nextSibling: SimpleNode }
-): Option<SimpleNode> {
+): Optional<SimpleNode> {
   let { element, nextSibling } = cursor;
 
   if (nextSibling === null) {
@@ -94,7 +94,7 @@ class SerializeBuilder extends NewElementBuilder implements ElementBuilder {
     return super.__appendText(string);
   }
 
-  closeElement(): Option<[ModifierManager, unknown][]> {
+  closeElement(): Optional<[ModifierManager, unknown][]> {
     if (NEEDS_EXTRA_CLOSE.has(this.element)) {
       NEEDS_EXTRA_CLOSE.delete(this.element);
       super.closeElement();
@@ -127,7 +127,7 @@ class SerializeBuilder extends NewElementBuilder implements ElementBuilder {
     element: SimpleElement,
     cursorId: string,
     insertBefore: Maybe<SimpleNode> = null
-  ): Option<RemoteLiveBlock> {
+  ): Optional<RemoteLiveBlock> {
     let { dom } = this;
     let script = dom.createElement('script');
     script.setAttribute('glmr', cursorId);
@@ -138,7 +138,7 @@ class SerializeBuilder extends NewElementBuilder implements ElementBuilder {
 
 export function serializeBuilder(
   env: Environment,
-  cursor: { element: SimpleElement; nextSibling: Option<SimpleNode> }
+  cursor: { element: SimpleElement; nextSibling: Optional<SimpleNode> }
 ): ElementBuilder {
   return SerializeBuilder.forInitialRender(env, cursor);
 }

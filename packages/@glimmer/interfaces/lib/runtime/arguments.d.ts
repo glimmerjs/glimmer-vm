@@ -2,7 +2,7 @@
 import { Reference } from '@glimmer/reference';
 // eslint-disable-next-line node/no-extraneous-import
 import { Tag } from '@glimmer/validator';
-import { Dict, Option } from '../core';
+import { Dict, Optional } from '../core';
 import { ScopeBlock, Block } from './scope';
 
 declare const CAPTURED_ARGS: unique symbol;
@@ -44,7 +44,7 @@ export interface BlockArguments {
   names: readonly string[];
   length: number;
   has(name: string): boolean;
-  get(name: string): Option<ScopeBlock>;
+  get(name: string): Optional<ScopeBlock>;
   capture(): CapturedBlockArguments;
 }
 
@@ -52,7 +52,7 @@ export interface CapturedBlockArguments {
   names: readonly string[];
   length: number;
   has(name: string): boolean;
-  get(name: string): Option<ScopeBlock>;
+  get(name: string): Optional<ScopeBlock>;
 }
 
 export interface CapturedNamedArguments {

@@ -3,7 +3,7 @@ import {
   CompilableBlock,
   MachineOp,
   Op,
-  Option,
+  Optional,
   StatementCompileActions,
   SymbolTable,
   WireFormat,
@@ -22,7 +22,7 @@ import { serializable, other } from '../operands';
  */
 export function YieldBlock(
   to: number,
-  params: Option<WireFormat.Core.Params>
+  params: Optional<WireFormat.Core.Params>
 ): StatementCompileActions {
   return [
     op('SimpleArgs', { params, hash: null, atNames: true }),
@@ -41,7 +41,7 @@ export function YieldBlock(
  *
  * @param block An optional Compilable block
  */
-export function PushYieldableBlock(block: Option<CompilableBlock>): StatementCompileActions {
+export function PushYieldableBlock(block: Optional<CompilableBlock>): StatementCompileActions {
   return [
     PushSymbolTable(block && block.symbolTable),
     op(Op.PushBlockScope),
@@ -109,7 +109,7 @@ export function InvokeStaticBlockWithStack(
   return out;
 }
 
-export function PushSymbolTable(table: Option<SymbolTable>): BuilderOp {
+export function PushSymbolTable(table: Optional<SymbolTable>): BuilderOp {
   if (table) {
     return op(Op.PushSymbolTable, serializable(table));
   } else {
@@ -117,7 +117,7 @@ export function PushSymbolTable(table: Option<SymbolTable>): BuilderOp {
   }
 }
 
-export function PushCompilable(block: Option<CompilableTemplate>): BuilderOp {
+export function PushCompilable(block: Optional<CompilableTemplate>): BuilderOp {
   if (block === null) {
     return PushPrimitive(null);
   } else {

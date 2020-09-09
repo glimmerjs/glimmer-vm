@@ -1,4 +1,4 @@
-import { Dict, NonemptyStack, Option, Stack } from '@glimmer/interfaces';
+import { Dict, NonemptyStack, Optional, Stack } from '@glimmer/interfaces';
 import { ensureGuid, HasGuid } from './guid';
 
 export interface Set<T> {
@@ -41,7 +41,7 @@ export class DictSet<T extends SetMember> implements Set<T> {
 
 export class StackImpl<T> implements Stack<T> {
   private stack: T[];
-  public current: Option<T> = null;
+  public current: Optional<T> = null;
 
   constructor(values: T[] = []) {
     this.stack = values;
@@ -56,7 +56,7 @@ export class StackImpl<T> implements Stack<T> {
     this.stack.push(item);
   }
 
-  pop(): Option<T> {
+  pop(): Optional<T> {
     let item = this.stack.pop();
     let len = this.stack.length;
     this.current = len === 0 ? null : this.stack[len - 1];
@@ -64,7 +64,7 @@ export class StackImpl<T> implements Stack<T> {
     return item === undefined ? null : item;
   }
 
-  nth(from: number): Option<T> {
+  nth(from: number): Optional<T> {
     let len = this.stack.length;
     return len < from ? null : this.stack[len - from];
   }
@@ -109,13 +109,13 @@ export class NonemptyStackImpl<T> implements NonemptyStack<T> {
   }
 
   nth(from: 0): T;
-  nth(from: number): Option<T>;
-  nth(from: number): Option<T> {
+  nth(from: number): Optional<T>;
+  nth(from: number): Optional<T> {
     let len = this.stack.length;
     return from >= len ? null : this.stack[from];
   }
 
-  nthBack(from: number): Option<T> {
+  nthBack(from: number): Optional<T> {
     let len = this.stack.length;
     return len < from ? null : this.stack[len - from];
   }

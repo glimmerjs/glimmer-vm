@@ -12,7 +12,7 @@ import {
 } from '@simple-dom/interface';
 import Serializer from '@simple-dom/serializer';
 import voidMap from '@simple-dom/void-map';
-import { Option } from '@glimmer/interfaces';
+import { Optional } from '@glimmer/interfaces';
 import { clearElement } from '@glimmer/util';
 
 export function toInnerHTML(parent: SimpleElement | SimpleDocumentFragment): string {
@@ -109,7 +109,7 @@ export function castToSimple<Type extends CastableNodeType>(
 export function getElementByClassName(
   element: SimpleElement,
   className: string
-): Option<SimpleElement> {
+): Optional<SimpleElement> {
   let current = firstElementChild(element);
 
   while (current) {
@@ -162,7 +162,7 @@ export function replaceHTML(parent: SimpleElement, value: string): void {
   parent.insertAdjacentHTML(InsertPosition.afterbegin, value);
 }
 
-export function assertElement(node: Option<SimpleNode>): SimpleElement {
+export function assertElement(node: Optional<SimpleNode>): SimpleElement {
   if (!node || node.nodeType !== NodeType.ELEMENT_NODE) {
     throw new Error(`Expected element, got ${node}`);
   }
@@ -180,7 +180,7 @@ export function hasAttribute(parent: SimpleElement, attr: string): boolean {
   return false;
 }
 
-export function firstElementChild(parent: SimpleElement): Option<SimpleElement> {
+export function firstElementChild(parent: SimpleElement): Optional<SimpleElement> {
   let current = parent.firstChild;
 
   while (current) {
@@ -193,7 +193,7 @@ export function firstElementChild(parent: SimpleElement): Option<SimpleElement> 
   return null;
 }
 
-export function nextElementSibling(node: SimpleNode): Option<SimpleElement> {
+export function nextElementSibling(node: SimpleNode): Optional<SimpleElement> {
   let current = node.nextSibling;
 
   while (current) {
@@ -206,7 +206,7 @@ export function nextElementSibling(node: SimpleNode): Option<SimpleElement> {
   return null;
 }
 
-export function elementId(element: SimpleElement): Option<string> {
+export function elementId(element: SimpleElement): Optional<string> {
   return element.getAttribute('id');
 }
 

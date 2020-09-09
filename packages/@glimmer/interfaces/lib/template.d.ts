@@ -1,7 +1,7 @@
 import { Operand, SerializedTemplateBlock, SerializedInlineBlock } from './compile';
 import { EncoderError } from './compile/encoder';
 import ComponentCapabilities from './component-capabilities';
-import { Option } from './core';
+import { Optional } from './core';
 import { ConstantPool, SerializedHeap, SyntaxCompilationContext } from './program';
 import { CompileTimeResolver } from './serialize';
 import { BlockSymbolTable, ProgramSymbolTable, SymbolTable } from './tier1/symbol-table';
@@ -10,7 +10,7 @@ export type CompilableProgram = CompilableTemplate<ProgramSymbolTable>;
 export type CompilableBlock = CompilableTemplate<BlockSymbolTable>;
 
 export interface LayoutWithContext<R> {
-  readonly id?: Option<string>;
+  readonly id?: Optional<string>;
   readonly block: SerializedTemplateBlock;
   readonly referrer: R;
   readonly asPartial?: boolean;
@@ -78,7 +78,7 @@ export type CompilerBuffer = Array<Operand>;
 export interface ResolvedLayout {
   handle: number;
   capabilities: ComponentCapabilities;
-  compilable: Option<CompilableProgram>;
+  compilable: Optional<CompilableProgram>;
 }
 
 export type OkHandle = number;
@@ -90,17 +90,17 @@ export interface ErrHandle {
 export type HandleResult = OkHandle | ErrHandle;
 
 export interface NamedBlocks {
-  get(name: string): Option<CompilableBlock>;
+  get(name: string): Optional<CompilableBlock>;
   has(name: string): boolean;
-  with(name: string, block: Option<CompilableBlock>): NamedBlocks;
+  with(name: string, block: Optional<CompilableBlock>): NamedBlocks;
   hasAny: boolean;
   names: string[];
 }
 
 export interface ContainingMetadata {
   asPartial: boolean;
-  evalSymbols: Option<string[]>;
-  upvars: Option<string[]>;
+  evalSymbols: Optional<string[]>;
+  upvars: Optional<string[]>;
   referrer: unknown;
   size: number;
 }

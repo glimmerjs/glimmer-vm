@@ -2,58 +2,7 @@ import { ExpressionContext } from '@glimmer/interfaces';
 import { AST } from '@glimmer/syntax';
 import { isPresent, mapPresent } from '@glimmer/util';
 import * as pass1 from '../../pass1/ops';
-import { Context, offsetsForHashKey, paramsOffsets } from '../context';
-
-export function buildArgs(
-  ctx: Context,
-  {
-    path,
-    params: exprs,
-    hash: named,
-  }: {
-    path: AST.Expression;
-    params: AST.Expression[];
-    hash: AST.Hash;
-  }
-): { params: pass1.AnyParams; hash: pass1.AnyNamedArguments } {
-  return { params: buildParams(ctx, { path, params: exprs }), hash: buildHash(ctx, named) };
-}
-
-export function buildParams(
-  ctx: Context,
-  { path, params: list }: { path: AST.Expression; params: AST.Expression[] }
-): pass1.AnyParams {
-  let offsets = paramsOffsets({ path, params: list }, ctx.source);
-
-  if (!isPresent(list)) {
-    return ctx.op(pass1.EmptyParams).offsets(offsets);
-  }
-
-  return ctx
-    .op(pass1.Params, {
-      list: ctx.mapIntoExprs(list, (expr) => [ctx.visitExpr(expr, ExpressionContext.Expression)]),
-    })
-    .offsets(offsets);
-}
-
-export function buildHash(ctx: Context, hash: AST.Hash): pass1.AnyNamedArguments {
-  let pairs = hash.pairs;
-
-  if (!isPresent(pairs)) {
-    return ctx.op(pass1.EmptyNamedArguments).loc(hash);
-  }
-
-  let mappedPairs = ctx.mapIntoExprs<pass1.NamedArgument, AST.HashPair>(pairs, (pair) => [
-    ctx
-      .op(pass1.NamedArgument, {
-        key: ctx.slice(pair.key).offsets(offsetsForHashKey(pair, ctx.source)),
-        value: ctx.visitExpr(pair.value, ExpressionContext.Expression),
-      })
-      .loc(pair),
-  ]);
-
-  return ctx.op(pass1.NamedArguments, { pairs: mappedPairs }).loc(hash);
-}
+import { Context } from '../context';
 
 export function buildPathWithContext(
   ctx: Context,

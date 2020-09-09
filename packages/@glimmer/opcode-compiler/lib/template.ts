@@ -1,7 +1,7 @@
 import {
   CompilableProgram,
   LayoutWithContext,
-  Option,
+  Optional,
   SerializedTemplateBlock,
   SerializedTemplateWithLazyBlock,
   Template,
@@ -73,9 +73,9 @@ export default function templateFactory<M>({
 class TemplateImpl<R> implements TemplateOk<R> {
   readonly result = 'ok';
 
-  private layout: Option<CompilableProgram> = null;
-  private partial: Option<CompilableProgram> = null;
-  private wrappedLayout: Option<CompilableProgram> = null;
+  private layout: Optional<CompilableProgram> = null;
+  private partial: Optional<CompilableProgram> = null;
+  private wrappedLayout: Optional<CompilableProgram> = null;
   public symbols: string[];
   public hasEval: boolean;
   public id: string;

@@ -1,6 +1,6 @@
 export type Present = {} | void;
-export type Option<T> = T | null;
-export type Maybe<T> = Option<T> | undefined | void;
+export type Optional<T> = T | null;
+export type Maybe<T> = Optional<T> | undefined | void;
 export type FIXME<T, S extends string> = T;
 
 export interface Dict<T = unknown> {

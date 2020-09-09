@@ -21,7 +21,7 @@ import {
   Maybe,
   ModifierManager,
   Op,
-  Option,
+  Optional,
   ProgramSymbolTable,
   Recast,
   ScopeSlot,
@@ -97,18 +97,18 @@ export interface ComponentInstance {
   state: ComponentInstanceState;
   handle: number;
   table: ProgramSymbolTable;
-  lookup: Option<Dict<ScopeSlot>>;
+  lookup: Optional<Dict<ScopeSlot>>;
 }
 
 export interface InitialComponentInstance {
   [COMPONENT_INSTANCE]: true;
   definition: PartialComponentDefinition;
-  manager: Option<InternalComponentManager>;
-  capabilities: Option<Capability>;
+  manager: Optional<InternalComponentManager>;
+  capabilities: Optional<Capability>;
   state: null;
-  handle: Option<number>;
-  table: Option<ProgramSymbolTable>;
-  lookup: Option<Dict<ScopeSlot>>;
+  handle: Optional<number>;
+  table: Optional<ProgramSymbolTable>;
+  lookup: Optional<Dict<ScopeSlot>>;
 }
 
 export interface PopulatedComponentInstance {
@@ -118,12 +118,12 @@ export interface PopulatedComponentInstance {
   capabilities: Capability;
   state: null;
   handle: number;
-  table: Option<ProgramSymbolTable>;
-  lookup: Option<Dict<ScopeSlot>>;
+  table: Optional<ProgramSymbolTable>;
+  lookup: Optional<Dict<ScopeSlot>>;
 }
 
 export interface PartialComponentDefinition {
-  state: Option<ComponentDefinitionState>;
+  state: Optional<ComponentDefinitionState>;
   manager: InternalComponentManager;
 }
 
@@ -312,19 +312,19 @@ APPEND_OPCODES.add(Op.CreateComponent, (vm, { op1: flags, op2: _state }) => {
     throw new Error(`BUG`);
   }
 
-  let dynamicScope: Option<DynamicScope> = null;
+  let dynamicScope: Optional<DynamicScope> = null;
   if (managerHasCapability(manager, capabilities, Capability.DynamicScope)) {
     dynamicScope = vm.dynamicScope();
   }
 
   let hasDefaultBlock = flags & 1;
-  let args: Option<VMArguments> = null;
+  let args: Optional<VMArguments> = null;
 
   if (managerHasCapability(manager, capabilities, Capability.CreateArgs)) {
     args = check(vm.stack.peekJs(), CheckArguments);
   }
 
-  let self: Option<Reference> = null;
+  let self: Optional<Reference> = null;
   if (managerHasCapability(manager, capabilities, Capability.CreateCaller)) {
     self = vm.getSelf();
   }
@@ -403,7 +403,7 @@ APPEND_OPCODES.add(Op.StaticComponentAttr, (vm, { op1: _name, op2: _value, op3: 
 
 type DeferredAttribute = {
   value: string | Reference<unknown>;
-  namespace: Option<string>;
+  namespace: Optional<string>;
   trusting?: boolean;
 };
 
@@ -416,7 +416,7 @@ export class ComponentElementOperations implements ElementOperations {
     name: string,
     value: Reference<unknown>,
     trusting: boolean,
-    namespace: Option<string>
+    namespace: Optional<string>
   ) {
     let deferred = { value, namespace, trusting };
 
@@ -427,7 +427,7 @@ export class ComponentElementOperations implements ElementOperations {
     this.attributes[name] = deferred;
   }
 
-  setStaticAttribute(name: string, value: string, namespace: Option<string>): void {
+  setStaticAttribute(name: string, value: string, namespace: Optional<string>): void {
     let deferred = { value, namespace };
 
     if (name === 'class') {
@@ -494,7 +494,7 @@ function setDeferredAttr(
   vm: InternalVM,
   name: string,
   value: string | Reference<unknown>,
-  namespace: Option<string>,
+  namespace: Optional<string>,
   trusting = false
 ) {
   if (typeof value === 'string') {
@@ -700,7 +700,7 @@ export class UpdateComponentOpcode extends UpdatingOpcode {
   constructor(
     private component: ComponentInstanceState,
     private manager: WithUpdateHook,
-    private dynamicScope: Option<DynamicScope>
+    private dynamicScope: Optional<DynamicScope>
   ) {
     super();
   }

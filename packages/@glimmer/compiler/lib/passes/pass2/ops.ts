@@ -1,6 +1,7 @@
 import { ExpressionContext, PresentArray } from '@glimmer/interfaces';
-import { op, OpsTable } from '../shared/op';
-import { BlockSymbolTable, ProgramSymbolTable, SymbolTable } from '../shared/symbol-table';
+import { OptionalList } from '../../shared/list';
+import { op, OpsTable } from '../../shared/op';
+import { BlockSymbolTable, ProgramSymbolTable, SymbolTable } from '../../shared/symbol-table';
 
 export interface StaticAttrArgs {
   name: SourceSlice;
@@ -44,7 +45,7 @@ export class AppendComment extends op('AppendComment').args<{ value: string }>()
 export class Component extends op('Component').args<{
   tag: Expr;
   params: AnyElementParameters;
-  args: AnyNamedArguments;
+  args: NamedArguments;
   blocks: AnyNamedBlocks;
 }>() {}
 export class StaticArg extends op('StaticArg').args<{
@@ -75,7 +76,7 @@ export class EmptyElementParameters extends op('EmptyElementParameters').void() 
 
 export type AnyElementParameters = ElementParameters | EmptyElementParameters;
 
-export class Yield extends op('Yield').args<{ to: number; params: AnyParams }>() {}
+export class Yield extends op('Yield').args<{ to: number; params: Positional }>() {}
 export class Partial extends op('Partial').args<{ target: Expr; table: SymbolTable }>() {}
 export class Debugger extends op('Debugger').args<{ table: SymbolTable }>() {}
 
@@ -112,24 +113,21 @@ export class Missing extends op('Missing').void() {}
 export class Concat extends op('Concat').args<{ parts: Positional }>() {}
 export class HasBlock extends op('HasBlock').args<{ symbol: number }>() {}
 export class HasBlockParams extends op('HasBlockParams').args<{ symbol: number }>() {}
-export class Positional extends op('Positional').args<{ list: PresentArray<Expr> }>() {}
-export class EmptyPositional extends op('EmptyPositional').void() {}
+export class Positional extends op('Positional').args<{ list: OptionalList<Expr> }>() {}
 export class NamedArguments extends op('NamedArguments').args<{
-  pairs: PresentArray<NamedArgument>;
+  pairs: OptionalList<NamedArgument>;
 }>() {}
 export class EmptyNamedArguments extends op('EmptyNamedArguments').void() {}
 export class NamedArgument extends op('NamedArgument').args<{
   key: SourceSlice;
   value: Expr;
 }>() {}
-export class Args extends op('Args').args<{ positional: AnyParams; named: AnyNamedArguments }>() {}
+export class Args extends op('Args').args<{ positional: Positional; named: NamedArguments }>() {}
 export class Tail extends op('Tail').args<{ members: PresentArray<SourceSlice> }>() {}
 
 export class SourceSlice extends op('SourceSlice').args<{ value: string }>() {}
 
 export type AnyArg = StaticArg | DynamicArg;
-export type AnyParams = Positional | EmptyPositional;
-export type AnyNamedArguments = NamedArguments | EmptyNamedArguments;
 
 export type AnyAttr =
   | ComponentAttr
@@ -157,8 +155,8 @@ export type ElementParameter = AnyAttr | Modifier | AttrSplat;
 
 export type Internal =
   | Args
-  | AnyParams
-  | AnyNamedArguments
+  | Positional
+  | NamedArguments
   | NamedArgument
   | Tail
   | NamedBlock

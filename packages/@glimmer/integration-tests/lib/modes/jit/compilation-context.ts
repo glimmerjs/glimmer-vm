@@ -1,7 +1,7 @@
 import {
   CompileTimeResolver,
   ComponentCapabilities,
-  Option,
+  Optional,
   ComponentDefinition,
   AnnotatedModuleLocator,
   CompileTimeComponent,
@@ -18,20 +18,20 @@ export default class JitCompileTimeLookup implements CompileTimeResolver {
   }
 
   private getCapabilities(handle: number): ComponentCapabilities {
-    let definition = this.resolver.resolve<Option<ComponentDefinition>>(handle);
+    let definition = this.resolver.resolve<Optional<ComponentDefinition>>(handle);
     let { manager, state } = definition!;
     return manager.getCapabilities(state);
   }
 
-  lookupHelper(name: string, referrer: AnnotatedModuleLocator): Option<number> {
+  lookupHelper(name: string, referrer: AnnotatedModuleLocator): Optional<number> {
     return this.resolver.lookupHelper(name, referrer);
   }
 
-  lookupModifier(name: string, referrer: AnnotatedModuleLocator): Option<number> {
+  lookupModifier(name: string, referrer: AnnotatedModuleLocator): Optional<number> {
     return this.resolver.lookupModifier(name, referrer);
   }
 
-  lookupComponent(name: string, referrer: AnnotatedModuleLocator): Option<CompileTimeComponent> {
+  lookupComponent(name: string, referrer: AnnotatedModuleLocator): Optional<CompileTimeComponent> {
     let definitionHandle = this.registry.lookupComponentHandle(name, referrer);
 
     if (definitionHandle === null) {
@@ -72,7 +72,7 @@ export default class JitCompileTimeLookup implements CompileTimeResolver {
     };
   }
 
-  lookupPartial(name: string, referrer: AnnotatedModuleLocator): Option<number> {
+  lookupPartial(name: string, referrer: AnnotatedModuleLocator): Optional<number> {
     return this.resolver.lookupPartial(name, referrer);
   }
 }

@@ -1,12 +1,12 @@
-import { Option } from './core';
+import { Optional } from './core';
 
 export interface Stack<T> {
-  current: Option<T>;
+  current: Optional<T>;
 
   size: number;
   push(item: T): void;
-  pop(): Option<T>;
-  nth(from: number): Option<T>;
+  pop(): Optional<T>;
+  nth(from: number): Optional<T>;
   isEmpty(): boolean;
   toArray(): T[];
 }
@@ -17,6 +17,6 @@ export interface NonemptyStack<T> {
   size: number;
   push(item: T): void;
   pop(): T;
-  nthBack(from: number): Option<T>;
+  nthBack(from: number): Optional<T>;
   toArray(): T[];
 }

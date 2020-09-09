@@ -4,7 +4,7 @@ import {
   PartialScope,
   ScopeSlot,
   ScopeBlock,
-  Option,
+  Optional,
   Scope,
 } from '@glimmer/interfaces';
 import { assign } from '@glimmer/util';
@@ -63,11 +63,11 @@ export class PartialScopeImpl implements PartialScope {
   constructor(
     // the 0th slot is `self`
     readonly slots: Array<ScopeSlot>,
-    private callerScope: Option<Scope>,
+    private callerScope: Optional<Scope>,
     // named arguments and blocks passed to a layout that uses eval
-    private evalScope: Option<Dict<ScopeSlot>>,
+    private evalScope: Optional<Dict<ScopeSlot>>,
     // locals in scope when the partial was invoked
-    private partialMap: Option<Dict<Reference<unknown>>>
+    private partialMap: Optional<Dict<Reference<unknown>>>
   ) {}
 
   init({ self }: { self: Reference<unknown> }): this {
@@ -83,16 +83,16 @@ export class PartialScopeImpl implements PartialScope {
     return this.get<Reference<unknown>>(symbol);
   }
 
-  getBlock(symbol: number): Option<ScopeBlock> {
+  getBlock(symbol: number): Optional<ScopeBlock> {
     let block = this.get(symbol);
     return block === UNDEFINED_REFERENCE ? null : (block as ScopeBlock);
   }
 
-  getEvalScope(): Option<Dict<ScopeSlot>> {
+  getEvalScope(): Optional<Dict<ScopeSlot>> {
     return this.evalScope;
   }
 
-  getPartialMap(): Option<Dict<Reference<unknown>>> {
+  getPartialMap(): Optional<Dict<Reference<unknown>>> {
     return this.partialMap;
   }
 
@@ -108,11 +108,11 @@ export class PartialScopeImpl implements PartialScope {
     this.set(symbol, value);
   }
 
-  bindBlock(symbol: number, value: Option<ScopeBlock>) {
-    this.set<Option<ScopeBlock>>(symbol, value);
+  bindBlock(symbol: number, value: Optional<ScopeBlock>) {
+    this.set<Optional<ScopeBlock>>(symbol, value);
   }
 
-  bindEvalScope(map: Option<Dict<ScopeSlot>>) {
+  bindEvalScope(map: Optional<Dict<ScopeSlot>>) {
     this.evalScope = map;
   }
 
@@ -120,11 +120,11 @@ export class PartialScopeImpl implements PartialScope {
     this.partialMap = map;
   }
 
-  bindCallerScope(scope: Option<Scope>): void {
+  bindCallerScope(scope: Optional<Scope>): void {
     this.callerScope = scope;
   }
 
-  getCallerScope(): Option<Scope> {
+  getCallerScope(): Optional<Scope> {
     return this.callerScope;
   }
 

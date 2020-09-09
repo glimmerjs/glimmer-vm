@@ -1,4 +1,4 @@
-import { Option, NodeTokens } from '@glimmer/interfaces';
+import { Optional, NodeTokens } from '@glimmer/interfaces';
 import { DOMTreeConstruction, TreeBuilder } from '..';
 import {
   Namespace,
@@ -44,7 +44,7 @@ class NamespacedHTMLSerializer extends Serializer {
   }
 
   attr(original: SimpleAttr): string {
-    let attr: { name: string; value: Option<string>; specified: boolean };
+    let attr: { name: string; value: Optional<string>; specified: boolean };
     if (original.namespaceURI === XLINK) {
       attr = {
         name: `xlink:${original.name}`,

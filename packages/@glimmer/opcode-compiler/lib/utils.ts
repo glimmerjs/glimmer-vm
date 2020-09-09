@@ -1,6 +1,6 @@
 import {
   NamedBlocks,
-  Option,
+  Optional,
   CompilableBlock,
   WireFormat,
   ContainingMetadata,
@@ -13,17 +13,17 @@ import { compilableBlock } from './compilable-template';
 import { error } from './opcode-builder/encoder';
 
 interface NamedBlocksDict {
-  [key: string]: Option<CompilableBlock>;
+  [key: string]: Optional<CompilableBlock>;
 }
 
 export class NamedBlocksImpl implements NamedBlocks {
   public names: string[];
 
-  constructor(private blocks: Option<NamedBlocksDict>) {
+  constructor(private blocks: Optional<NamedBlocksDict>) {
     this.names = blocks ? Object.keys(blocks) : [];
   }
 
-  get(name: string): Option<CompilableBlock> {
+  get(name: string): Optional<CompilableBlock> {
     if (!this.blocks) return null;
 
     return this.blocks[name] || null;
@@ -34,7 +34,7 @@ export class NamedBlocksImpl implements NamedBlocks {
     return blocks !== null && name in blocks;
   }
 
-  with(name: string, block: Option<CompilableBlock>): NamedBlocks {
+  with(name: string, block: Optional<CompilableBlock>): NamedBlocks {
     let { blocks } = this;
 
     if (blocks) {
@@ -76,7 +76,7 @@ export function isStrictFreeVariable(
 export function trySloppyFreeVariable(
   expr: WireFormat.Expression,
   meta: ContainingMetadata
-): Option<string> {
+): Optional<string> {
   if (!meta.upvars) {
     return null;
   }
@@ -113,7 +113,7 @@ export function expectSloppyFreeVariable(
 export function sloppyPathName(
   opcode: Expressions.GetPath | Expressions.GetVar,
   meta: ContainingMetadata
-): Option<string> {
+): Optional<string> {
   if (opcode.length === 3) {
     return null;
   }

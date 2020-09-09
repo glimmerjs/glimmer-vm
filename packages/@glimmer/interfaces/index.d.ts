@@ -1,10 +1,10 @@
+export * from './lib/core';
 export * from './lib/compile';
 export { default as ComponentCapabilities } from './lib/component-capabilities';
 export * from './lib/components';
 export * from './lib/components/component-manager';
 export * from './lib/content';
 export * from './lib/array';
-export * from './lib/core';
 export * from './lib/dom/bounds';
 export * from './lib/dom/changes';
 export * from './lib/dom/attributes';

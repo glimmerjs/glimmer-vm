@@ -5,7 +5,7 @@ import {
 } from 'simple-html-tokenizer';
 import * as AST from './types/nodes';
 import * as HBS from './types/handlebars-ast';
-import { Option } from '@glimmer/interfaces';
+import { Optional } from '@glimmer/interfaces';
 import { assert, expect } from '@glimmer/util';
 
 export type Element = AST.Template | AST.Block | AST.ElementNode;
@@ -33,8 +33,8 @@ export interface Attribute {
 export abstract class Parser {
   protected elementStack: Element[] = [];
   private source: string[];
-  public currentAttribute: Option<Attribute> = null;
-  public currentNode: Option<
+  public currentAttribute: Optional<Attribute> = null;
+  public currentNode: Optional<
     AST.CommentStatement | AST.TextNode | Tag<'StartTag' | 'EndTag'>
   > = null;
   public tokenizer: EventedTokenizer;

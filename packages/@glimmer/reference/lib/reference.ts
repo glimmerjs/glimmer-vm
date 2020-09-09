@@ -1,6 +1,6 @@
 import { DEBUG } from '@glimmer/env';
 import { getProp, setProp } from '@glimmer/global-context';
-import { Option } from '@glimmer/interfaces';
+import { Optional } from '@glimmer/interfaces';
 import { expect, isDict, symbol } from '@glimmer/util';
 import {
   CONSTANT_TAG,
@@ -38,14 +38,14 @@ export interface ReferenceEnvironment {
 
 class ReferenceImpl<T = unknown> implements Reference {
   [REFERENCE]: ReferenceType;
-  public tag: Option<Tag> = null;
+  public tag: Optional<Tag> = null;
   public lastRevision: Revision = INITIAL;
   public lastValue?: T;
 
-  public children: Option<Map<string | Reference, Reference>> = null;
+  public children: Optional<Map<string | Reference, Reference>> = null;
 
-  public compute: Option<() => T> = null;
-  public update: Option<(val: T) => void> = null;
+  public compute: Optional<() => T> = null;
+  public update: Optional<(val: T) => void> = null;
 
   public debugLabel?: string;
 
@@ -100,7 +100,7 @@ export function createUnboundRef(value: unknown, debugLabel: false | string): Re
 
 export function createComputeRef<T = unknown>(
   compute: () => T,
-  update: Option<(value: T) => void> = null,
+  update: Optional<(value: T) => void> = null,
   debugLabel: false | string = 'unknown'
 ): Reference<T> {
   let ref = new ReferenceImpl<T>(ReferenceType.Compute);

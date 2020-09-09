@@ -1,4 +1,4 @@
-import { Option, HandleResult, ErrHandle, EncoderError } from '@glimmer/interfaces';
+import { Optional, HandleResult, ErrHandle, EncoderError } from '@glimmer/interfaces';
 import { createConstRef, createPrimitiveRef, createComputeRef } from '@glimmer/reference';
 import {
   RenderTest,
@@ -1057,7 +1057,7 @@ class UpdatingTest extends RenderTest {
   "clean content doesn't get blown away"() {
     this.render('<div>{{this.value}}</div>', { value: 'hello' });
 
-    let firstNode: Option<SimpleNode> = this.element.firstChild;
+    let firstNode: Optional<SimpleNode> = this.element.firstChild;
     let textNode: Node | null;
     if (assertNodeTagName(firstNode, 'div')) {
       textNode = firstNode.firstChild;

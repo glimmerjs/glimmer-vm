@@ -1,7 +1,7 @@
 import { AST, GlimmerSyntaxError } from '@glimmer/syntax';
 // import { Option } from '@glimmer/interfaces';
 import * as pass1 from '../../../pass1/ops';
-import { Err, Ok, Result } from '../../../shared/result';
+import { Err, Ok, Result } from '../../../../shared/result';
 import { ClassifiedElement, Classified, PreparedArgs } from './classified';
 
 type Body = pass1.NamedBlock;

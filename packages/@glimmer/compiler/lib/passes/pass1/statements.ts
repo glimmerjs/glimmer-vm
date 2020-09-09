@@ -3,7 +3,7 @@ import { PresentArray } from '@glimmer/interfaces';
 import { expect } from '@glimmer/util';
 import * as pass1 from '../pass1/ops';
 import * as pass2 from '../pass2/ops';
-import { OpArgs, OpConstructor } from '../shared/op';
+import { OpArgs, OpConstructor } from '../../shared/op';
 import { Context, MapVisitorsInterface } from './context';
 
 export type StatementVisitor = MapVisitorsInterface<pass1.Statement, pass2.Statement>;

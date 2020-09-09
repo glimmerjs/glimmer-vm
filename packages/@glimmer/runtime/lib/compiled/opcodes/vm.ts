@@ -1,5 +1,5 @@
 import { toBool } from '@glimmer/global-context';
-import { CompilableTemplate, Option, Op } from '@glimmer/interfaces';
+import { CompilableTemplate, Optional, Op } from '@glimmer/interfaces';
 import {
   Reference,
   valueForRef,
@@ -127,7 +127,7 @@ APPEND_OPCODES.add(Op.PushBlockScope, (vm) => {
 
 APPEND_OPCODES.add(Op.CompileBlock, (vm: InternalVM) => {
   let stack = vm.stack;
-  let block = stack.pop<Option<CompilableTemplate> | 0>();
+  let block = stack.pop<Optional<CompilableTemplate> | 0>();
 
   if (block) {
     stack.pushSmallInt(vm.compile(block));

@@ -1,4 +1,4 @@
-import { Option, NodeTokens, Dict } from '@glimmer/interfaces';
+import { Optional, NodeTokens, Dict } from '@glimmer/interfaces';
 import { HTML } from './dom-operations';
 import { DOMTreeConstruction } from './tree-construction';
 import { NodeToken } from './node-tokens';
@@ -132,12 +132,12 @@ export class TreeBuilder {
     return this.dom.appendComment(text);
   }
 
-  get currentTag(): Option<string> {
+  get currentTag(): Optional<string> {
     let current = this.current;
     return current && current.tag;
   }
 
-  get currentNamespace(): Option<Namespace> {
+  get currentNamespace(): Optional<Namespace> {
     let current = this.current;
     return current && current.namespaceURI;
   }
@@ -146,7 +146,7 @@ export class TreeBuilder {
     return this.dom.appendTo(element, owner);
   }
 
-  private get current(): Option<Context> {
+  private get current(): Optional<Context> {
     let { contexts } = this;
     let { length } = contexts;
 

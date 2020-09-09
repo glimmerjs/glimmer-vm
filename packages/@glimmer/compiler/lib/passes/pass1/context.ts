@@ -1,12 +1,14 @@
 import { PresentArray } from '@glimmer/interfaces';
+import { LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
 import { GlimmerSyntaxError } from '@glimmer/syntax';
 import { LOCAL_LOGGER, mapPresent, NonemptyStack } from '@glimmer/util';
-import { LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
+import { AnyOptionalList, MapList, OptionalList } from '../../shared/list';
+import { InputOpArgs, OpArgs, OpConstructor, UnlocatedOp } from '../../shared/op';
+import { OpFactory, Ops } from '../../shared/ops';
+import { ProgramSymbolTable, SymbolTable } from '../../shared/symbol-table';
+import { SourceOffsets } from '../../source/offsets';
+import { Source } from '../../source/source';
 import * as pass2 from '../pass2/ops';
-import { SourceOffsets } from '../shared/location';
-import { InputOpArgs, OpArgs, OpConstructor, UnlocatedOp } from '../shared/op';
-import { OpFactory, Ops } from '../shared/ops';
-import { ProgramSymbolTable, SymbolTable } from '../shared/symbol-table';
 import { Pass1Expression } from './expressions';
 import { Pass1Internal } from './internal';
 import * as pass1 from './ops';
@@ -71,7 +73,7 @@ export class CompilerContext {
   readonly factory: OpFactory<pass2.Op>;
 
   constructor(
-    readonly source: string,
+    readonly source: Source,
     symbols: ProgramSymbolTable,
     readonly visitor: Pass1VisitorMap
   ) {
@@ -140,8 +142,10 @@ export class Context {
     return this.ctx.factory.flatMap(input, callback);
   }
 
-  visitExprs<T extends pass1.Expr>(input: PresentArray<T>): PresentArray<pass2.Expr> {
-    return input.map((e) => this.visitExpr(e)) as PresentArray<pass2.Expr>;
+  visitExprs<T extends pass1.Expr, L extends AnyOptionalList<T>>(
+    input: L
+  ): MapList<T, pass2.Expr, L> {
+    return input.map((e) => this.visitExpr(e)) as MapList<T, pass2.Expr, L>;
   }
 
   visitInternals<T extends Exclude<pass1.Internal, pass1.Ignore>>(
@@ -181,8 +185,8 @@ export class Context {
     }
   }
 
-  visitParams(list: PresentArray<pass1.Expr>): pass2.Positional {
-    let params = this.map(list, (expr) => this.visitExpr(expr));
+  visitParams(list: OptionalList<pass1.Expr>): pass2.Positional {
+    let params = list.map((expr) => this.visitExpr(expr));
     return this.op(pass2.Positional, { list: params });
   }
 
@@ -234,20 +238,14 @@ export class Context {
     return result;
   }
 
-  visitArgs({
-    params,
-    hash,
-  }: {
-    params: pass1.AnyParams;
-    hash: pass1.AnyNamedArguments;
-  }): pass2.Args {
+  visitArgs({ params, hash }: { params: pass1.Params; hash: pass1.NamedArguments }): pass2.Args {
     let mappedParams = this.visitInternal(params);
     let mappedHash = this.visitInternal(hash);
 
     return this.op(pass2.Args, { positional: mappedParams, named: mappedHash });
   }
 
-  params(params: pass1.AnyParams): pass2.Internal {
+  params(params: pass1.Params): pass2.Internal {
     return this.visitInternal(params);
   }
 }

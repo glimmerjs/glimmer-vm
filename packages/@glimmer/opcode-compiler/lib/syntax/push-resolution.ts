@@ -9,7 +9,7 @@ import {
   HighLevelResolutionOpcode,
   IfResolvedOp,
   Op,
-  Option,
+  Optional,
   ResolveHandle,
   TemplateCompilationContext,
   WireFormat,
@@ -136,8 +136,8 @@ export function expr(
 }
 
 export function compileSimpleArgs(
-  params: Option<WireFormat.Core.Params>,
-  hash: Option<WireFormat.Core.Hash>,
+  params: Optional<WireFormat.Core.Params>,
+  hash: Optional<WireFormat.Core.Hash>,
   atNames: boolean
 ): ExpressionCompileActions {
   let out: ExpressionCompileActions = [];
@@ -187,7 +187,7 @@ function resolve(
   kind: ResolveHandle,
   name: string,
   referrer: unknown
-): Option<number> {
+): Optional<number> {
   switch (kind) {
     case ResolveHandle.Modifier:
       return resolver.lookupModifier(name, referrer);

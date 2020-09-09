@@ -1,8 +1,9 @@
 import { PresentArray } from '@glimmer/interfaces';
-import { SourceLocation, SourcePosition } from '@glimmer/syntax';
+import { SourceLocation } from '@glimmer/syntax';
 import { isPresent } from '@glimmer/util';
-import { locationToOffsets, MaybeHasOffsets, positionToOffset, SourceOffsets } from './location';
+import { MaybeHasOffsets, SourceOffsets } from '../source/offsets';
 import { LocatedWithOptionalPositions, LocatedWithPositions } from './ops';
+import { Source } from '../source/source';
 
 export type OpsTable<O extends Op> = {
   [P in O['name']]: O extends { name: P } ? O : never;
@@ -68,24 +69,13 @@ export function op<N extends string>(
   };
 }
 
-export function range(first: SourcePosition, last: SourcePosition, source: string): SourceOffsets {
-  let start = positionToOffset(source, { line: first.line, column: first.column });
-  let end = positionToOffset(source, { line: last.line, column: last.column });
-
-  if (start === null || end === null) {
-    return SourceOffsets.NONE;
-  } else {
-    return new SourceOffsets(start, end);
-  }
-}
-
-function isLocatedWithPositionsArray(
+export function isLocatedWithPositionsArray(
   location: LocatedWithOptionalPositions[]
 ): location is PresentArray<LocatedWithPositions> {
   return isPresent(location) && location.every(isLocatedWithPositions);
 }
 
-function isLocatedWithPositions(
+export function isLocatedWithPositions(
   location: LocatedWithOptionalPositions
 ): location is LocatedWithPositions {
   return location.loc !== undefined;
@@ -101,45 +91,11 @@ export type MaybeHasSourceLocation =
   | LocatedWithOptionalPositions
   | LocatedWithOptionalPositions[];
 
-export class Source {
-  constructor(readonly source: string) {}
-
-  maybeOffsetsFor(location: MaybeHasSourceLocation, fallback?: HasSourceLocation): SourceOffsets {
-    if (location === null) {
-      return fallback ? this.offsetsFor(fallback) : SourceOffsets.NONE;
-    } else if (Array.isArray(location)) {
-      if (isLocatedWithPositionsArray(location)) {
-        return this.offsetsFor(location);
-      } else {
-        return SourceOffsets.NONE;
-      }
-    } else if (isLocatedWithPositions(location)) {
-      return this.offsetsFor(location);
-    } else {
-      return SourceOffsets.NONE;
-    }
-  }
-
-  offsetsFor(location: HasSourceLocation): SourceOffsets {
-    if (Array.isArray(location)) {
-      let first = location[0];
-      let last = location[location.length - 1];
-
-      return range(first.loc.start, last.loc.end, this.source);
-    } else if ('loc' in location) {
-      let { loc } = location;
-      return range(loc.start, loc.end, this.source);
-    } else {
-      return locationToOffsets(this.source, location);
-    }
-  }
-}
-
 export class UnlocatedOp<O extends Op> {
   private source: Source;
 
-  constructor(private Class: OpConstructor<O>, private args: OpArgs<O>, source: string) {
-    this.source = new Source(source);
+  constructor(private Class: OpConstructor<O>, private args: OpArgs<O>, source: Source) {
+    this.source = source;
   }
 
   maybeLoc(location: MaybeHasSourceLocation, fallback?: HasSourceLocation): O {

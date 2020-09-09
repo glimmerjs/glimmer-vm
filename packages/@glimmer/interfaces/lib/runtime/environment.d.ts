@@ -1,7 +1,7 @@
 import { SimpleDocument } from '@simple-dom/interface';
 import { ComponentInstanceState } from '../components';
 import { ComponentManager } from '../components/component-manager';
-import { Option } from '../core';
+import { Optional } from '../core';
 import { GlimmerTreeChanges, GlimmerTreeConstruction } from '../dom/changes';
 import { ModifierManager } from './modifier';
 
@@ -20,7 +20,7 @@ declare const TransactionSymbol: unique symbol;
 export type TransactionSymbol = typeof TransactionSymbol;
 
 export interface Environment<Extra = unknown> {
-  [TransactionSymbol]: Option<Transaction>;
+  [TransactionSymbol]: Optional<Transaction>;
 
   didCreate(component: InternalComponent, manager: InternalComponentManager): void;
   didUpdate(component: unknown, manager: ComponentManager<unknown>): void;

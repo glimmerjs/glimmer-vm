@@ -8,7 +8,7 @@ import {
   CheckNode,
   CheckMaybe,
 } from '@glimmer/debug';
-import { Op, Option, ModifierManager } from '@glimmer/interfaces';
+import { Op, Optional, ModifierManager } from '@glimmer/interfaces';
 import { $t0 } from '@glimmer/vm';
 import {
   ModifierDefinition,
@@ -67,7 +67,7 @@ APPEND_OPCODES.add(Op.PopRemoteElement, (vm) => {
 
 APPEND_OPCODES.add(Op.FlushElement, (vm) => {
   let operations = check(vm.fetchValue($t0), CheckOperations);
-  let modifiers: Option<[ModifierManager, unknown][]> = null;
+  let modifiers: Optional<[ModifierManager, unknown][]> = null;
 
   if (operations) {
     modifiers = operations.flush(vm);

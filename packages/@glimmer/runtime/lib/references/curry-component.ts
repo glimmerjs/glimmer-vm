@@ -3,7 +3,7 @@ import {
   ComponentDefinition,
   Dict,
   Maybe,
-  Option,
+  Optional,
   RuntimeResolver,
 } from '@glimmer/interfaces';
 import { createComputeRef, Reference, valueForRef } from '@glimmer/reference';
@@ -17,9 +17,9 @@ export default function createCurryComponentRef(
   inner: Reference,
   resolver: RuntimeResolver,
   meta: unknown,
-  args: Option<CapturedArguments>
+  args: Optional<CapturedArguments>
 ) {
-  let lastValue: Maybe<Dict>, lastDefinition: Option<CurriedComponentDefinition>;
+  let lastValue: Maybe<Dict>, lastDefinition: Optional<CurriedComponentDefinition>;
 
   return createComputeRef(() => {
     let value = valueForRef(inner) as Maybe<Dict>;
@@ -28,7 +28,7 @@ export default function createCurryComponentRef(
       return lastDefinition;
     }
 
-    let definition: Option<CurriedComponentDefinition | ComponentDefinition> = null;
+    let definition: Optional<CurriedComponentDefinition | ComponentDefinition> = null;
 
     if (isCurriedComponentDefinition(value)) {
       definition = value;
@@ -46,9 +46,9 @@ export default function createCurryComponentRef(
 }
 
 function curry(
-  definition: Option<CurriedComponentDefinition | ComponentDefinition>,
-  args: Option<CapturedArguments>
-): Option<CurriedComponentDefinition> {
+  definition: Optional<CurriedComponentDefinition | ComponentDefinition>,
+  args: Optional<CapturedArguments>
+): Optional<CurriedComponentDefinition> {
   if (!args && isCurriedComponentDefinition(definition)) {
     return definition;
   } else if (!definition) {

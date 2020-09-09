@@ -1,4 +1,4 @@
-import { Option } from '@glimmer/interfaces';
+import { Optional } from '@glimmer/interfaces';
 import { dict, assert, assign } from '@glimmer/util';
 import { NodeToken, NodeTokensImpl } from './node-tokens';
 import {
@@ -106,13 +106,13 @@ export class OperationsBuilder {
 
 interface ConstructionState {
   readonly document: SimpleDocument;
-  readonly nextSibling: Option<SimpleNode>;
+  readonly nextSibling: Optional<SimpleNode>;
   readonly elements: Parent[]; // mutable
   readonly tokens: NodeTokensImpl;
 
   parent: Parent;
   constants: ReadonlyArray<string>;
-  constructing: Option<SimpleElement>;
+  constructing: Optional<SimpleElement>;
 }
 
 export type Parent = SimpleElement | SimpleDocumentFragment;
@@ -120,7 +120,7 @@ export type Parent = SimpleElement | SimpleDocumentFragment;
 export interface RunOptions {
   document: SimpleDocument;
   parent: Parent;
-  nextSibling: Option<SimpleNode>;
+  nextSibling: Optional<SimpleNode>;
   constants: ReadonlyArray<string>;
 }
 

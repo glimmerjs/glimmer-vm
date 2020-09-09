@@ -4,7 +4,7 @@ import { assign } from '@glimmer/util';
 import * as pass1 from '../../pass1/ops';
 import { Context, VisitorInterface } from '../context';
 import { EXPR_KEYWORDS } from '../keywords';
-import { buildArgs, buildPathWithContext } from '../utils/builders';
+import { buildPathWithContext } from '../utils/builders';
 import { assertIsSimpleHelper, hasPath } from '../utils/is-node';
 
 /**
@@ -60,7 +60,7 @@ export class Pass0Expressions implements VisitorInterface<AST.Expression, pass1.
             {
               head: ctx.visitExpr(expr.path, ExpressionContext.CallHead),
             },
-            buildArgs(ctx, expr)
+            ctx.args(expr)
           )
         )
         .loc(expr);

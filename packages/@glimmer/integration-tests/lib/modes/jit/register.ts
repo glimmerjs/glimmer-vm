@@ -6,7 +6,7 @@ import {
   CURLY_CAPABILITIES,
 } from '../../components/capabilities';
 import {
-  Option,
+  Optional,
   Helper as GlimmerHelper,
   ModifierManager,
   ComponentManager,
@@ -95,10 +95,10 @@ export function registerStaticTaglessComponent(
 export function registerEmberishCurlyComponent(
   registry: TestJitRegistry,
   name: string,
-  Component: Option<ComponentTypes['Curly']>,
-  layoutSource: Option<string>
+  Component: Optional<ComponentTypes['Curly']>,
+  layoutSource: Optional<string>
 ): void {
-  let layout: Option<{ name: string; handle: number }> = null;
+  let layout: Optional<{ name: string; handle: number }> = null;
 
   if (layoutSource !== null) {
     layout = registerTemplate(registry, name, layoutSource);
@@ -121,7 +121,7 @@ export function registerEmberishCurlyComponent(
 export function registerEmberishGlimmerComponent(
   registry: TestJitRegistry,
   name: string,
-  Component: Option<ComponentTypes['Glimmer']>,
+  Component: Optional<ComponentTypes['Glimmer']>,
   layoutSource: string
 ): void {
   if (name.indexOf('-') !== -1) {
@@ -195,7 +195,7 @@ export function registerPartial(
 export function resolveHelper(
   resolver: TestJitRuntimeResolver,
   helperName: string
-): Option<GlimmerHelper> {
+): Optional<GlimmerHelper> {
   let handle = resolver.lookupHelper(helperName);
   return typeof handle === 'number' ? resolver.resolve<GlimmerHelper>(handle) : null;
 }
@@ -203,7 +203,7 @@ export function resolveHelper(
 export function resolvePartial(
   resolver: TestJitRuntimeResolver,
   partialName: string
-): Option<PartialDefinition> {
+): Optional<PartialDefinition> {
   let handle = resolver.lookupPartial(partialName);
   return typeof handle === 'number' ? resolver.resolve<PartialDefinition>(handle) : null;
 }
@@ -243,7 +243,7 @@ function registerSomeComponent(
   name: string,
   type: ComponentKind,
   manager: ComponentManager<unknown, unknown>,
-  layout: Option<number>,
+  layout: Optional<number>,
   ComponentClass: unknown,
   capabilities: ComponentCapabilities
 ) {
@@ -269,7 +269,7 @@ export function componentHelper(
   resolver: TestJitRuntimeResolver,
   registry: TestJitRegistry,
   name: string
-): Option<CurriedComponentDefinition> {
+): Optional<CurriedComponentDefinition> {
   let handle = registry.lookupComponentHandle(name);
 
   if (handle === null) return null;

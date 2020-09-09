@@ -1,18 +1,20 @@
-import { ExpressionContext, Option, PresentArray } from '@glimmer/interfaces';
+import { ExpressionContext, Optional, PresentArray } from '@glimmer/interfaces';
 import { LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
 import { AST, GlimmerSyntaxError } from '@glimmer/syntax';
 import { assert, isPresent, LOCAL_LOGGER, NonemptyStack } from '@glimmer/util';
 import { TemplateIdFn } from '../../compiler';
+import { OptionalList } from '../../shared/list';
+import { InputOpArgs, OpConstructor, UnlocatedOp } from '../../shared/op';
+import { OpFactory } from '../../shared/ops';
+import { Err, intoResult, MaybeResult, Ok, Result, ResultArray } from '../../shared/result';
+import { BlockSymbolTable, SymbolTable } from '../../shared/symbol-table';
+import { SourceOffsets } from '../../source/offsets';
+import { Source } from '../../source/source';
 import * as pass1 from '../pass1/ops';
-import { positionToOffset, SourceOffsets } from '../shared/location';
-import { InputOpArgs, OpConstructor, UnlocatedOp } from '../shared/op';
-import { OpFactory } from '../shared/ops';
-import { BlockSymbolTable, SymbolTable } from '../shared/symbol-table';
 import { buildPathWithContext } from './utils/builders';
-import { Err, intoResult, MaybeResult, Ok, Result, ResultArray } from '../shared/result';
+import { TemporaryNamedBlock } from './visitors/element/temporary-block';
 import { Pass0Expressions } from './visitors/expressions';
 import { Pass0Statements } from './visitors/statements';
-import { TemporaryNamedBlock } from './visitors/element/temporary-block';
 
 /** VISITOR DEFINITIONS */
 
@@ -87,7 +89,7 @@ export class Context implements ImmutableContext {
   private factory: OpFactory<Pass1Op>;
 
   constructor(
-    readonly source: string,
+    readonly source: Source,
     readonly options: GlimmerCompileOptions,
     visitor: { statements: Pass0Statements; expressions: Pass0Expressions }
   ) {
@@ -100,21 +102,16 @@ export class Context implements ImmutableContext {
     return this.state.symbols;
   }
 
-  customizeComponentName(input: string): string {
+  componentName(input: string): pass1.SourceSlice {
     if (this.options.customizeComponentName) {
-      return this.options.customizeComponentName(input);
+      return this.slice(this.options.customizeComponentName(input)).offsets(null);
     } else {
-      return input;
+      return this.slice(input).offsets(null);
     }
   }
 
   cursor(): string {
     return this.state.cursor();
-  }
-
-  template(...args: InputOpArgs<pass1.Template>): UnlocatedOp<pass1.Template> {
-    let factory = new OpFactory<pass1.Template>(this.source);
-    return factory.op(pass1.Template, ...args);
   }
 
   op<O extends Pass1Op>(name: OpConstructor<O>, ...args: InputOpArgs<O>): UnlocatedOp<O> {
@@ -165,15 +162,6 @@ export class Context implements ImmutableContext {
     return out.toArray();
   }
 
-  mapIntoOps<T, Out extends Pass1Op>(
-    input: T[],
-    callback: (input: T) => Out
-  ): Exclude<Out, pass1.Ignore>[] {
-    return this.factory
-      .map(input, callback)
-      .filter((n: Out): n is Exclude<Out, pass1.Ignore> => n.name !== 'Ignore');
-  }
-
   append(expr: pass1.Expr, { trusted }: { trusted: boolean }): UnlocatedOp<pass1.Statement> {
     if (trusted) {
       return this.op(pass1.AppendTrustedHTML, {
@@ -191,13 +179,13 @@ export class Context implements ImmutableContext {
     callback: (input: T) => E[]
   ): PresentArray<E>;
   mapIntoExprs<E extends pass1.Expr | pass1.Internal, T>(
-    input: Option<PresentArray<T>>,
+    input: Optional<PresentArray<T>>,
     callback: (input: T) => E[]
-  ): Option<PresentArray<E>>;
+  ): Optional<PresentArray<E>>;
   mapIntoExprs<E extends pass1.Expr | pass1.Internal, T>(
-    input: Option<PresentArray<T>>,
+    input: Optional<PresentArray<T>>,
     callback: (input: T) => E[]
-  ): Option<PresentArray<E>> {
+  ): Optional<PresentArray<E>> {
     if (input === null) {
       return null;
     } else {
@@ -310,7 +298,7 @@ export class Context implements ImmutableContext {
     });
   }
 
-  visitBlock(name: pass1.SourceSlice, node: AST.Block): Result<pass1.NamedBlock> {
+  block(name: pass1.SourceSlice, node: AST.Block): Result<pass1.NamedBlock> {
     return this.withBlock(node, (symbols) =>
       this.visitStmts(node.body).mapOk((stmts) =>
         this.op(pass1.NamedBlock, {
@@ -321,11 +309,49 @@ export class Context implements ImmutableContext {
       )
     );
   }
+
+  args({
+    path,
+    params: exprs,
+    hash: named,
+  }: {
+    path: AST.Expression;
+    params: AST.Expression[];
+    hash: AST.Hash;
+  }): { params: pass1.Params; hash: pass1.NamedArguments } {
+    return { params: this.params({ path, params: exprs }), hash: this.hash(named) };
+  }
+
+  params({ path, params: list }: { path: AST.Expression; params: AST.Expression[] }): pass1.Params {
+    let offsets = paramsOffsets({ path, params: list }, this.source);
+
+    return this.op(pass1.Params, {
+      list: OptionalList(list.map((expr) => this.visitExpr(expr))),
+    }).offsets(offsets);
+  }
+
+  hash(hash: AST.Hash): pass1.NamedArguments {
+    let mappedPairs = OptionalList(hash.pairs).map((pair) =>
+      this.op(pass1.NamedArgument, {
+        key: this.slice(pair.key).offsets(offsetsForHashKey(pair, this.source)),
+        value: this.visitExpr(pair.value, ExpressionContext.Expression),
+      }).loc(pair)
+    );
+
+    // let mappedPairs = this.mapIntoExprs<pass1.NamedArgument, AST.HashPair>(pairs, (pair) => [
+    //   this.op(pass1.NamedArgument, {
+    //     key: this.slice(pair.key).offsets(offsetsForHashKey(pair, this.source)),
+    //     value: this.visitExpr(pair.value, ExpressionContext.Expression),
+    //   }).loc(pair),
+    // ]);
+
+    return this.op(pass1.NamedArguments, { pairs: mappedPairs }).loc(hash);
+  }
 }
 
 export function paramsOffsets(
   { path, params }: { path: AST.Expression; params: AST.Expression[] },
-  source: string
+  source: Source
 ): SourceOffsets {
   if (isPresent(params)) {
     return sourceOffsets(params as [AST.Expression, ...AST.Expression[]], source);
@@ -336,7 +362,7 @@ export function paramsOffsets(
   }
 }
 
-export function offsetsForHashKey(pair: AST.HashPair, source: string): SourceOffsets {
+export function offsetsForHashKey(pair: AST.HashPair, source: Source): SourceOffsets {
   let pairLoc = sourceOffsets(pair, source);
   let valueLoc = sourceOffsets(pair.value, source);
 
@@ -351,7 +377,7 @@ export function offsetsForHashKey(pair: AST.HashPair, source: string): SourceOff
 
 export function sourceOffsets(
   node: AST.BaseNode | [AST.BaseNode, ...AST.BaseNode[]],
-  source: string
+  source: Source
 ): SourceOffsets {
   if (Array.isArray(node)) {
     let start = node[0];
@@ -371,9 +397,12 @@ export function sourceOffsets(
   let loc = node.loc;
 
   let { start, end } = loc;
-  let startOffset = positionToOffset(source, { line: start.line - 1, column: start.column });
+  let startOffset = source.offsetFor({
+    line: start.line - 1,
+    column: start.column,
+  });
 
-  let endOffset = positionToOffset(source, { line: end.line - 1, column: end.column });
+  let endOffset = source.offsetFor({ line: end.line - 1, column: end.column });
 
   if (startOffset === null || endOffset === null) {
     return SourceOffsets.NONE;

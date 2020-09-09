@@ -4,7 +4,7 @@ import {
   ExpressionOperand,
   LabelOperand,
   LookupHandleOperand,
-  Option,
+  Optional,
   OptionOperand,
   OtherOperand,
   PrimitiveOperand,
@@ -45,7 +45,7 @@ export function label(value: string): LabelOperand {
   return { type: 'label', value };
 }
 
-export function option(list: Option<CompileActions>): OptionOperand {
+export function option(list: Optional<CompileActions>): OptionOperand {
   return { type: 'option', value: list };
 }
 

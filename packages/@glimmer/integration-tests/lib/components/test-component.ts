@@ -1,6 +1,6 @@
 import {
   ComponentCapabilities,
-  Option,
+  Optional,
   ModuleLocator,
   ProgramSymbolTable,
 } from '@glimmer/interfaces';
@@ -17,7 +17,7 @@ export interface TestComponentDefinitionState {
   name: string;
   ComponentClass: any;
   type: string;
-  layout: Option<number>;
+  layout: Optional<number>;
   locator: ModuleLocator;
   template?: string;
   hasSymbolTable?: boolean;

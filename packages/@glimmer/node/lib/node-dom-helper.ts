@@ -1,18 +1,18 @@
-import { Bounds, Option } from '@glimmer/interfaces';
+import { Bounds, Optional } from '@glimmer/interfaces';
 import { ConcreteBounds, DOMTreeConstruction } from '@glimmer/runtime';
 import createHTMLDocument from '@simple-dom/document';
 import { SimpleDocument, SimpleElement, SimpleNode } from '@simple-dom/interface';
 
 export default class NodeDOMTreeConstruction extends DOMTreeConstruction {
   protected document!: SimpleDocument; // Hides property on base class
-  constructor(doc: Option<SimpleDocument>) {
+  constructor(doc: Optional<SimpleDocument>) {
     super(doc || createHTMLDocument());
   }
 
   // override to prevent usage of `this.document` until after the constructor
   protected setupUselessElement() {}
 
-  insertHTMLBefore(parent: SimpleElement, reference: Option<SimpleNode>, html: string): Bounds {
+  insertHTMLBefore(parent: SimpleElement, reference: Optional<SimpleNode>, html: string): Bounds {
     let raw = this.document.createRawHTMLSection!(html);
     parent.insertBefore(raw, reference);
     return new ConcreteBounds(parent, raw, raw);

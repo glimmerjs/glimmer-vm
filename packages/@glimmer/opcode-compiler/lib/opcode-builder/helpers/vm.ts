@@ -1,7 +1,7 @@
 import { prim, strArray, immediate } from '../operands';
 import { $v0 } from '@glimmer/vm';
 import {
-  Option,
+  Optional,
   Op,
   MachineOp,
   BuilderOp,
@@ -18,7 +18,7 @@ export type Primitive = undefined | null | boolean | number | string;
 
 export interface CompileHelper {
   handle: number;
-  params: Option<WireFormat.Core.Params>;
+  params: Optional<WireFormat.Core.Params>;
   hash: WireFormat.Core.Hash;
 }
 

@@ -1,4 +1,4 @@
-import { Bounds, Option } from '@glimmer/interfaces';
+import { Bounds, Optional } from '@glimmer/interfaces';
 import { assert, clearElement, unwrap } from '@glimmer/util';
 import {
   InsertPosition,
@@ -25,7 +25,7 @@ export type SVG_NAMESPACE = typeof SVG_NAMESPACE;
 //           that whole string is added to a div. The created nodes are plucked
 //           out and applied to the target location on DOM.
 export function applySVGInnerHTMLFix(
-  document: Option<SimpleDocument>,
+  document: Optional<SimpleDocument>,
   DOMClass: typeof DOMOperations,
   svgNamespace: SVG_NAMESPACE
 ): typeof DOMOperations {
@@ -38,7 +38,11 @@ export function applySVGInnerHTMLFix(
   let div = document.createElement('div') as SimpleElement;
 
   return class DOMChangesWithSVGInnerHTMLFix extends DOMClass {
-    insertHTMLBefore(parent: SimpleElement, nextSibling: Option<SimpleNode>, html: string): Bounds {
+    insertHTMLBefore(
+      parent: SimpleElement,
+      nextSibling: Optional<SimpleNode>,
+      html: string
+    ): Bounds {
       if (html === '') {
         return super.insertHTMLBefore(parent, nextSibling, html);
       }
@@ -56,7 +60,7 @@ function fixSVG(
   parent: SimpleElement,
   div: SimpleElement,
   html: string,
-  reference: Option<SimpleNode>
+  reference: Optional<SimpleNode>
 ): Bounds {
   assert(html !== '', 'html cannot be empty');
 

@@ -6,7 +6,7 @@ import {
   DynamicScope,
   ElementBuilder,
   Environment,
-  Option,
+  Optional,
   PartialScope,
   RenderResult,
   RichIteratorResult,
@@ -481,7 +481,7 @@ export default class VM implements PublicVM, InternalVM {
     associateDestroyableChild(parent, child);
   }
 
-  tryUpdating(): Option<UpdatingOpcode[]> {
+  tryUpdating(): Optional<UpdatingOpcode[]> {
     return this[STACKS].updating.current;
   }
 
