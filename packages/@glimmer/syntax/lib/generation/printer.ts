@@ -25,7 +25,7 @@ import {
   NullLiteral,
   TopLevelStatement,
   Template,
-} from '../types/nodes';
+} from '../types/nodes-v1';
 import { voidMap } from '../parser/tokenizer-event-handlers';
 import { escapeText, escapeAttrValue } from './util';
 

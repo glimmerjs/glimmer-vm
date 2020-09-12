@@ -221,7 +221,11 @@ export function buildStatement(
         ? buildParams(params, symbols)
         : null;
       let builtHash: WireFormat.Core.Hash = hash ? buildHash(hash, symbols) : null;
-      let builtExpr: WireFormat.Expression = buildHead(path, ExpressionContext.CallHead, symbols);
+      let builtExpr: WireFormat.Expression = buildHead(
+        path,
+        ExpressionContext.ResolveAsCallHead,
+        symbols
+      );
 
       return [
         [trusted ? Op.TrustingAppend : Op.Append, [Op.Call, builtExpr, builtParams, builtHash]],
@@ -240,7 +244,7 @@ export function buildStatement(
       let blocks = buildBlocks(normalized.blocks, normalized.blockParams, symbols);
       let hash = buildHash(normalized.hash, symbols);
       let params = buildParams(normalized.params, symbols);
-      let path = buildHead(normalized.head, ExpressionContext.BlockHead, symbols);
+      let path = buildHead(normalized.head, ExpressionContext.ResolveAsBlockHead, symbols);
 
       return [[Op.Block, path, params, hash, blocks]];
     }
@@ -337,7 +341,7 @@ export function buildAngleInvocation(
 
   return [
     Op.Component,
-    buildExpression(head, ExpressionContext.CallHead, symbols),
+    buildExpression(head, ExpressionContext.ResolveAsCallHead, symbols),
     isPresent(paramList) ? paramList : null,
     args,
     [['default'], [{ parameters: [], statements: blockList }]],
@@ -359,7 +363,7 @@ export function buildElementParams(
       params.push([Op.AttrSplat, symbols.block('&attrs')]);
     } else if (key[0] === '@') {
       keys.push(key);
-      values.push(buildExpression(value, ExpressionContext.Expression, symbols));
+      values.push(buildExpression(value, ExpressionContext.WithoutResolver, symbols));
     } else {
       params.push(
         ...buildAttributeValue(
@@ -447,7 +451,7 @@ export function buildExpression(
     case ExpressionKind.GetVar: {
       return buildGetVar(
         expr,
-        context === 'PossibleAmbiguous' ? ExpressionContext.AppendSingleId : context,
+        context === 'PossibleAmbiguous' ? ExpressionContext.Ambiguous : context,
         symbols
       );
     }
@@ -459,7 +463,7 @@ export function buildExpression(
     case ExpressionKind.Call: {
       let builtParams = buildParams(expr.params, symbols);
       let builtHash = buildHash(expr.hash, symbols);
-      let builtExpr = buildHead(expr.head, ExpressionContext.CallHead, symbols);
+      let builtExpr = buildHead(expr.head, ExpressionContext.ResolveAsCallHead, symbols);
 
       return [Op.Call, builtExpr, builtParams, builtHash];
     }
@@ -469,7 +473,7 @@ export function buildExpression(
         Op.HasBlock,
         buildVar(
           { kind: VariableKind.Block, name: expr.name },
-          ExpressionContext.Expression,
+          ExpressionContext.WithoutResolver,
           symbols
         ),
       ];
@@ -480,7 +484,7 @@ export function buildExpression(
         Op.HasBlockParams,
         buildVar(
           { kind: VariableKind.Block, name: expr.name },
-          ExpressionContext.Expression,
+          ExpressionContext.WithoutResolver,
           symbols
         ),
       ];
@@ -520,7 +524,7 @@ export function buildGetVar(
 }
 
 export function buildGetPath(head: NormalizedPath, symbols: Symbols): Expressions.GetPath {
-  return buildVar(head.path.head, ExpressionContext.Expression, symbols, head.path.tail);
+  return buildVar(head.path.head, ExpressionContext.WithoutResolver, symbols, head.path.tail);
 }
 
 export function buildVar(
@@ -580,17 +584,17 @@ function getSymbolForVar(
 
 export function expressionContextOp(context: ExpressionContext): GetContextualFreeOp {
   switch (context) {
-    case ExpressionContext.AppendSingleId:
+    case ExpressionContext.Ambiguous:
       return Op.GetFreeInAppendSingleId;
-    case ExpressionContext.Expression:
+    case ExpressionContext.WithoutResolver:
       return Op.GetFreeInExpression;
-    case ExpressionContext.CallHead:
+    case ExpressionContext.ResolveAsCallHead:
       return Op.GetFreeInCallHead;
-    case ExpressionContext.BlockHead:
+    case ExpressionContext.ResolveAsBlockHead:
       return Op.GetFreeInBlockHead;
-    case ExpressionContext.ModifierHead:
+    case ExpressionContext.ResolveAsModifierHead:
       return Op.GetFreeInModifierHead;
-    case ExpressionContext.ComponentHead:
+    case ExpressionContext.ResolveAsComponentHead:
       return Op.GetFreeInComponentHead;
     default:
       return exhausted(context);
@@ -604,7 +608,7 @@ export function buildParams(
   if (exprs === null || !isPresent(exprs)) return null;
 
   return exprs.map((e) =>
-    buildExpression(e, ExpressionContext.Expression, symbols)
+    buildExpression(e, ExpressionContext.WithoutResolver, symbols)
   ) as WireFormat.Core.ConcatParams;
 }
 
@@ -624,7 +628,7 @@ export function buildHash(exprs: Optional<NormalizedHash>, symbols: Symbols): Wi
 
   Object.keys(exprs).forEach((key) => {
     out[0].push(key);
-    out[1].push(buildExpression(exprs[key], ExpressionContext.Expression, symbols));
+    out[1].push(buildExpression(exprs[key], ExpressionContext.WithoutResolver, symbols));
   });
 
   return out as WireFormat.Core.Hash;

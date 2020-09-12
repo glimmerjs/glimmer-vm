@@ -1,9 +1,8 @@
 import { ExpressionContext, Optional, PresentArray } from '@glimmer/interfaces';
-import { AST } from '@glimmer/syntax';
+import { ASTv2, BlockSymbolTable, ProgramSymbolTable, SymbolTable } from '@glimmer/syntax';
 import { isPresent } from '@glimmer/util';
 import { AnyOptionalList, PresentList } from '../../shared/list';
 import { op, OpsTable } from '../../shared/op';
-import { BlockSymbolTable, ProgramSymbolTable } from '../../shared/symbol-table';
 import { SourceOffsets } from '../../source/offsets';
 import { TemporaryNamedBlock } from '../pass0/visitors/element/temporary-block';
 
@@ -39,21 +38,36 @@ export class SourceSlice extends op('SourceSlice').args<{ value: string }>() {
   }
 }
 
-export class Literal extends op('Literal').args<{ value: AST.Literal['value'] }>() {}
+export class Literal extends op('Literal').args<{ value: ASTv2.Literal['value'] }>() {}
 export class Path extends op('Path').args<{ head: Expr; tail: PresentArray<SourceSlice> }>() {}
 export class GetArg extends op('GetArg').args<{ name: SourceSlice }>() {}
 export class GetThis extends op('GetThis').void() {}
-export class GetVar extends op('GetVar').args<{
+export class GetLocalVar extends op('GetLocalVar').args<{
+  name: SourceSlice;
+}>() {}
+export class GetFreeVar extends op('GetFreeVar').args<{
+  name: SourceSlice;
+}>() {}
+export class GetFreeVarWithContext extends op('GetFreeVarWithContext').args<{
   name: SourceSlice;
   context: ExpressionContext;
 }>() {}
-export class GetSloppy extends op('GetSloppy').args<{
+
+/**
+ * This is the most ambiguous situation (`{{x}}`), which, in resolver mode,
+ * requires a resolver check for whether `x` is a helper before falling
+ * back to `this.x`.
+ *
+ * In strict mode, `{{x}}` unambiguously refers to a free variable, and
+ * produces `GetFreeVar`.
+ */
+export class GetWithResolver extends op('GetWithResolver').args<{
   name: SourceSlice;
 }>() {}
 
 export class HasBlock extends op('HasBlock').args<{ target: SourceSlice }>() {}
 export class HasBlockParams extends op('HasBlockParams').args<{ target: SourceSlice }>() {}
-export class Concat extends op('Concat').args<{ parts: PresentList<Expr> }>() {}
+export class Interpolate extends op('Interpolate').args<{ parts: PresentList<Expr> }>() {}
 
 export class SubExpression extends op('SubExpression').args<{
   head: Expr;
@@ -83,12 +97,14 @@ export type InternalTable = OpsTable<Internal>;
 
 export type Expr =
   | Literal
-  | Concat
+  | Interpolate
   | Path
   | GetArg
   | GetThis
-  | GetVar
-  | GetSloppy
+  | GetLocalVar
+  | GetFreeVar
+  | GetFreeVarWithContext
+  | GetWithResolver
   | HasBlock
   | HasBlockParams
   | SubExpression;
@@ -97,33 +113,15 @@ export type ExprTable = OpsTable<Expr>;
 
 export type ExprLike = Expr | Internal;
 
-// export interface ExprTable {
-//   Literal: Literal;
-//   Concat: Concat;
-//   Path: Path;
-//   GetArg: GetArg;
-//   GetThis: GetThis;
-//   GetVar: GetVar;
-//   HasBlock: HasBlock;
-//   HasBlockParams: HasBlockParams;
-//   SubExpression: SubExpression;
-
-//   Params: Params;
-//   Hash: Hash;
-//   HashPair: HashPair;
-// }
-
 /** STATEMENTS **/
 
-// target is really a string literal, but threading that information
-// through is currently too annoying
 export class Yield extends op('Yield').args<{
   target: SourceSlice;
   params: Params;
 }>() {}
 
-export class Partial extends op('Partial').args<{ expr: Expr }>() {}
-export class Debugger extends op('Debugger').void() {}
+export class Partial extends op('Partial').args<{ expr: Expr; table: SymbolTable }>() {}
+export class Debugger extends op('Debugger').args<{ table: SymbolTable }>() {}
 
 export class InElement extends op('InElement').args<{
   destination: Expr;

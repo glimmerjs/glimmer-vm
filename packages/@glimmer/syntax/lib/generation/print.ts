@@ -1,4 +1,4 @@
-import { Node } from '../types/nodes';
+import { Node } from '../types/nodes-v1';
 import Printer, { PrinterOptions } from './printer';
 
 export default function build(

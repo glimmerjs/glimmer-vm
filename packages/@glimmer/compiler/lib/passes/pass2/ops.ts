@@ -1,7 +1,7 @@
 import { ExpressionContext, PresentArray } from '@glimmer/interfaces';
 import { OptionalList } from '../../shared/list';
 import { op, OpsTable } from '../../shared/op';
-import { BlockSymbolTable, ProgramSymbolTable, SymbolTable } from '../../shared/symbol-table';
+import { BlockSymbolTable, ProgramSymbolTable, SymbolTable } from '@glimmer/syntax';
 
 export interface StaticAttrArgs {
   name: SourceSlice;
@@ -92,7 +92,7 @@ export class GetPath extends op('GetPath').args<{
   head: Expr;
   tail: Tail;
 }>() {}
-export class GetSloppy extends op('GetSloppy').args<{
+export class GetWithResolver extends op('GetWithResolver').args<{
   symbol: number;
 }>() {}
 
@@ -144,7 +144,7 @@ export type Expr =
   | GetSymbol
   | GetFree
   | GetFreeWithContext
-  | GetSloppy
+  | GetWithResolver
   | Concat
   | Helper
   | HasBlock

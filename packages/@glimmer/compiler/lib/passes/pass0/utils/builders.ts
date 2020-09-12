@@ -1,67 +1,43 @@
-import { ExpressionContext } from '@glimmer/interfaces';
-import { AST } from '@glimmer/syntax';
+import { ASTv2 } from '@glimmer/syntax';
 import { isPresent, mapPresent } from '@glimmer/util';
-import * as pass1 from '../../pass1/ops';
-import { Context } from '../context';
+import * as pass1 from '../../pass1/hir';
+import { NormalizationUtilities } from '../context';
 
-export function buildPathWithContext(
-  ctx: Context,
-  path: AST.PathExpression,
-  context: ExpressionContext
-): pass1.Expr {
-  let { tail: parts, head } = path;
-  if (head.type === 'AtHead') {
-    return argPath(ctx, `@${head.name}`, parts, path);
-  } else if (head.type === 'ThisHead') {
-    return thisPath(ctx, parts, path);
-  } else {
-    return varPath(ctx, head.name, parts, path, context);
+export function buildPath(utils: NormalizationUtilities, path: ASTv2.PathExpression): pass1.Expr {
+  let { tail, head } = path;
+
+  switch (head.type) {
+    case 'AtHead':
+      return pathOrExpr(
+        utils.op(pass1.GetArg, { name: utils.slice(head.name).offsets(null) }).offsets(null)
+      );
+
+    case 'ThisHead':
+      return pathOrExpr(utils.op(pass1.GetThis).offsets(null));
+
+    case 'FreeVarHead':
+      // TODO customizeComponentName for components
+      return pathOrExpr(
+        utils
+          .op(pass1.GetFreeVarWithContext, {
+            name: utils.slice(head.name).offsets(null),
+            context: head.context,
+          })
+          .offsets(null)
+      );
+    case 'LocalVarHead':
+      return pathOrExpr(
+        utils.op(pass1.GetLocalVar, { name: utils.slice(head.name).offsets(null) }).offsets(null)
+      );
   }
-}
 
-function buildPath(ctx: Context, head: pass1.Expr, tail: string[], node: AST.BaseNode): pass1.Expr {
-  if (isPresent(tail)) {
-    return ctx
-      .op(pass1.Path, { head, tail: mapPresent(tail, (e) => ctx.slice(e).offsets(null)) })
-      .loc(node);
-  } else {
-    return head;
+  function pathOrExpr(head: pass1.Expr): pass1.Expr {
+    if (isPresent(tail)) {
+      return utils
+        .op(pass1.Path, { head, tail: mapPresent(tail, (e) => utils.slice(e).offsets(null)) })
+        .loc(path);
+    } else {
+      return head;
+    }
   }
-}
-
-function argPath(ctx: Context, head: string, tail: string[], node: AST.BaseNode): pass1.Expr {
-  return buildPath(
-    ctx,
-    ctx.op(pass1.GetArg, { name: ctx.slice(head).offsets(null) }).offsets(null),
-    tail,
-    node
-  );
-}
-
-function varPath(
-  ctx: Context,
-  head: string,
-  tail: string[],
-  node: AST.BaseNode,
-  context: ExpressionContext
-): pass1.Expr {
-  if (context === ExpressionContext.AppendSingleId) {
-    return buildPath(
-      ctx,
-      ctx.op(pass1.GetSloppy, { name: ctx.slice(head).offsets(null) }).offsets(null),
-      tail,
-      node
-    );
-  } else {
-    return buildPath(
-      ctx,
-      ctx.op(pass1.GetVar, { name: ctx.slice(head).offsets(null), context }).offsets(null),
-      tail,
-      node
-    );
-  }
-}
-
-function thisPath(ctx: Context, tail: string[], node: AST.BaseNode): pass1.Expr {
-  return buildPath(ctx, ctx.op(pass1.GetThis).offsets(null), tail, node);
 }

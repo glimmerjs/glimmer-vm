@@ -1,17 +1,16 @@
 import { PresentArray } from '@glimmer/interfaces';
 import { LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
-import { GlimmerSyntaxError } from '@glimmer/syntax';
+import { GlimmerSyntaxError, ProgramSymbolTable, SymbolTable } from '@glimmer/syntax';
 import { LOCAL_LOGGER, mapPresent, NonemptyStack } from '@glimmer/util';
 import { AnyOptionalList, MapList, OptionalList } from '../../shared/list';
 import { InputOpArgs, OpArgs, OpConstructor, UnlocatedOp } from '../../shared/op';
 import { OpFactory, Ops } from '../../shared/ops';
-import { ProgramSymbolTable, SymbolTable } from '../../shared/symbol-table';
 import { SourceOffsets } from '../../source/offsets';
 import { Source } from '../../source/source';
 import * as pass2 from '../pass2/ops';
 import { Pass1Expression } from './expressions';
 import { Pass1Internal } from './internal';
-import * as pass1 from './ops';
+import * as pass1 from './hir';
 import { Pass1Statement } from './statements';
 
 /**
@@ -49,7 +48,7 @@ export type InForVisitor<V extends Pass1Visitor> = V extends MapVisitorsInterfac
 export type MapOutput<
   V extends Pass1Visitor,
   In extends pass1.AnyOp & { name: keyof V }
-> = V[In['name']] extends (...args: any[]) => any ? ReturnType<V[In['name']]> : never;
+> = V[In['name']] extends (...args: any[]) => unknown ? ReturnType<V[In['name']]> : never;
 
 function visit<In extends pass1.AnyOp & { name: keyof V }, V extends Pass1Visitor>(
   visitors: V,
@@ -86,6 +85,13 @@ export class CompilerContext {
   }
 }
 
+export interface AllocateTable {
+  allocateFree(name: string): number;
+  allocateNamed(name: string): number;
+  allocateBlock(name: string): number;
+  get(name: string): number;
+}
+
 /**
  * All state in this object except the CompilerState must be readonly.
  *
@@ -104,7 +110,7 @@ export class Context {
     return this.symbols.nth(0) as ProgramSymbolTable;
   }
 
-  get table(): SymbolTable {
+  get table(): AllocateTable {
     return this.symbols.current;
   }
 

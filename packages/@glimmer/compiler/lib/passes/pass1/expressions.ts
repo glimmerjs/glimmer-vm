@@ -1,4 +1,4 @@
-import * as pass1 from '../pass1/ops';
+import * as pass1 from './hir';
 import * as pass2 from '../pass2/ops';
 import { OpArgs } from '../../shared/op';
 import { Context, MapVisitorsInterface } from './context';
@@ -6,17 +6,6 @@ import { Context, MapVisitorsInterface } from './context';
 export type ExpressionVisitor = MapVisitorsInterface<pass1.Expr, pass2.Expr>;
 
 export class Pass1Expression implements ExpressionVisitor {
-  GetSloppy(ctx: Context, { name }: OpArgs<pass1.GetSloppy>): pass2.Expr {
-    if (ctx.table.has(name.getString())) {
-      let symbol = ctx.table.get(name.getString());
-      return ctx.op(pass2.GetSymbol, { symbol });
-    } else {
-      let symbol = ctx.table.allocateFree(name.getString());
-
-      return ctx.op(pass2.GetSloppy, { symbol });
-    }
-  }
-
   GetArg(ctx: Context, { name }: OpArgs<pass1.GetArg>): pass2.Expr {
     return ctx.op(pass2.GetSymbol, { symbol: ctx.table.allocateNamed(name.getString()) });
   }
@@ -25,15 +14,29 @@ export class Pass1Expression implements ExpressionVisitor {
     return ctx.op(pass2.GetSymbol, { symbol: 0 });
   }
 
-  GetVar(ctx: Context, { name, context }: OpArgs<pass1.GetVar>): pass2.Expr {
-    if (ctx.table.has(name.getString())) {
-      let symbol = ctx.table.get(name.getString());
-      return ctx.op(pass2.GetSymbol, { symbol });
-    } else {
-      // this will be different in strict mode
-      let symbol = ctx.table.allocateFree(name.getString());
-      return ctx.op(pass2.GetFreeWithContext, { symbol, context });
-    }
+  GetLocalVar(ctx: Context, { name }: OpArgs<pass1.GetLocalVar>): pass2.Expr {
+    let symbol = ctx.table.get(name.getString());
+    return ctx.op(pass2.GetSymbol, { symbol });
+  }
+
+  GetFreeVar(ctx: Context, { name }: OpArgs<pass1.GetFreeVar>): pass2.Expr {
+    let symbol = ctx.table.allocateFree(name.getString());
+    return ctx.op(pass2.GetFree, { symbol });
+  }
+
+  GetFreeVarWithContext(
+    ctx: Context,
+    { name, context }: OpArgs<pass1.GetFreeVarWithContext>
+  ): pass2.Expr {
+    // this will be different in strict mode
+    let symbol = ctx.table.allocateFree(name.getString());
+    return ctx.op(pass2.GetFreeWithContext, { symbol, context });
+  }
+
+  GetWithResolver(ctx: Context, { name }: OpArgs<pass1.GetFreeVar>): pass2.Expr {
+    let symbol = ctx.table.allocateFree(name.getString());
+
+    return ctx.op(pass2.GetWithResolver, { symbol });
   }
 
   HasBlock(ctx: Context, { target }: OpArgs<pass1.HasBlock>): pass2.Expr {
@@ -44,7 +47,7 @@ export class Pass1Expression implements ExpressionVisitor {
     return ctx.op(pass2.HasBlockParams, { symbol: ctx.table.allocateBlock(target.getString()) });
   }
 
-  Concat(ctx: Context, { parts }: OpArgs<pass1.Concat>): pass2.Expr {
+  Interpolate(ctx: Context, { parts }: OpArgs<pass1.Interpolate>): pass2.Expr {
     let list = parts.map((part) => ctx.visitExpr(part));
     return ctx.op(pass2.Concat, { parts: ctx.op(pass2.Positional, { list }) });
   }

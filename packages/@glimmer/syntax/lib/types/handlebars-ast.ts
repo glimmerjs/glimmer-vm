@@ -6,7 +6,7 @@
  * https://github.com/DefinitelyTyped/DefinitelyTyped/blob/master/types/handlebars/index.d.ts.
  */
 
-import * as AST from './nodes';
+import * as AST from './nodes-v1';
 
 export interface CommonNode {
   loc: SourceLocation;

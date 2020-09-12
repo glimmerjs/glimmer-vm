@@ -1,5 +1,5 @@
 import { Optional } from '@glimmer/interfaces';
-import * as AST from '../types/nodes';
+import * as AST from '../types/nodes-v1';
 
 export type NodeCallback<N extends AST.Node> = (node: N, walker: Walker) => void;
 

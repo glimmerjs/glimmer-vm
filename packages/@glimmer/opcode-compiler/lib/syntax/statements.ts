@@ -105,7 +105,11 @@ STATEMENTS.add(SexpOpcodes.OpenElementWithSplat, ([, tag]) => {
 });
 
 STATEMENTS.add(SexpOpcodes.Component, ([, tag, elementBlock, args, blocks], meta) => {
-  let componentName = trySloppyFreeVariable(tag, meta);
+  let componentName: string | null = null;
+
+  if (Array.isArray(tag) && tag[0] === SexpOpcodes.GetFreeInComponentHead) {
+    componentName = meta.upvars![tag[1]];
+  }
 
   if (componentName !== null) {
     // The component name was a free variable lookup; in non-strict mode, this means we'll

@@ -1,18 +1,19 @@
-import { ExpressionContext } from '@glimmer/interfaces';
-import { AST, builders, GlimmerSyntaxError } from '@glimmer/syntax';
+import { ASTv2, GlimmerSyntaxError } from '@glimmer/syntax';
 import { isPresent } from '@glimmer/util';
-import * as pass1 from '../../pass1/ops';
 import { Ok, Result } from '../../../shared/result';
-import { Context } from '../context';
+import * as pass1 from '../../pass1/hir';
+import { VisitorContext } from '../context';
 import { keyword, KeywordNode, keywords } from './impl';
+
+const builders = ASTv2.builders;
 
 export const YIELD = keyword('yield', {
   assert(
-    statement: AST.MustacheStatement
+    statement: ASTv2.MustacheStatement
   ): {
-    target: AST.StringLiteral;
-    params: AST.Expression[];
-    kw: AST.Expression;
+    target: ASTv2.Literal<'string'>;
+    params: ASTv2.Expression[];
+    kw: ASTv2.Expression;
   } {
     let { pairs } = statement.hash;
     let { params, path: kw } = statement;
@@ -26,34 +27,34 @@ export const YIELD = keyword('yield', {
 
       let target = first.value;
 
-      if (target.type !== 'StringLiteral') {
-        throw new GlimmerSyntaxError(`you can only yield to a literal value`, target.loc);
+      if (!ASTv2.isLiteral(target, 'string')) {
+        throw new GlimmerSyntaxError(`you can only yield to a literal string value`, target.loc);
       }
 
       return { target, params, kw };
     } else {
-      return { target: builders.string('default'), params, kw };
+      return { target: builders.literal('default'), params, kw };
     }
   },
 
   translate(
-    statement: KeywordNode<AST.MustacheStatement>,
-    ctx: Context,
+    statement: KeywordNode<ASTv2.MustacheStatement>,
+    { utils }: VisitorContext,
     {
       target,
       params: astParams,
       kw,
     }: {
-      target: AST.StringLiteral;
-      params: AST.Expression[];
-      kw: AST.Expression;
+      target: ASTv2.Literal<'string'>;
+      params: ASTv2.Expression[];
+      kw: ASTv2.Expression;
     }
   ): Result<pass1.Statement> {
-    let params = ctx.params({ path: kw, params: astParams });
+    let params = utils.params({ path: kw, params: astParams });
     return Ok(
-      ctx
+      utils
         .op(pass1.Yield, {
-          target: ctx.slice(target.value).loc(target),
+          target: utils.slice(target.value).loc(target),
           params,
         })
         .loc(statement)
@@ -62,7 +63,7 @@ export const YIELD = keyword('yield', {
 });
 
 export const PARTIAL = keyword('partial', {
-  assert(statement: AST.MustacheStatement): AST.Expression | undefined {
+  assert(statement: ASTv2.MustacheStatement): ASTv2.Expression | undefined {
     let {
       params,
       hash: { pairs },
@@ -104,17 +105,18 @@ export const PARTIAL = keyword('partial', {
   },
 
   translate(
-    statement: KeywordNode<AST.MustacheStatement>,
-    ctx: Context,
-    expr: AST.Expression | undefined
+    statement: KeywordNode<ASTv2.MustacheStatement>,
+    ctx: VisitorContext,
+    expr: ASTv2.Expression | undefined
   ): Result<pass1.Statement> {
     return Ok(
-      ctx
+      ctx.utils
         .op(pass1.Partial, {
+          table: statement.symbols,
           expr:
             expr === undefined
-              ? ctx.visitExpr(builders.undefined(), ExpressionContext.Expression)
-              : ctx.visitExpr(expr, ExpressionContext.Expression),
+              ? ctx.utils.visitExpr(builders.literal(undefined))
+              : ctx.utils.visitExpr(expr),
         })
         .loc(statement)
     );
@@ -122,7 +124,7 @@ export const PARTIAL = keyword('partial', {
 });
 
 export const DEBUGGER = keyword('debugger', {
-  assert(statement: AST.MustacheStatement): void {
+  assert(statement: ASTv2.MustacheStatement): void {
     let {
       params,
       hash: { pairs },
@@ -140,8 +142,11 @@ export const DEBUGGER = keyword('debugger', {
     }
   },
 
-  translate(statement: KeywordNode<AST.MustacheStatement>, ctx: Context): Result<pass1.Statement> {
-    return Ok(ctx.op(pass1.Debugger).loc(statement));
+  translate(
+    statement: KeywordNode<ASTv2.MustacheStatement>,
+    { utils }: VisitorContext
+  ): Result<pass1.Statement> {
+    return Ok(utils.op(pass1.Debugger, { table: statement.symbols }).loc(statement));
   },
 });
 

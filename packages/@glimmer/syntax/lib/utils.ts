@@ -1,4 +1,5 @@
-import * as AST from './types/nodes';
+import * as ASTv1 from './types/nodes-v1';
+import * as ASTv2 from './types/nodes-v1';
 import * as HBS from './types/handlebars-ast';
 import { Optional } from '@glimmer/interfaces';
 import { GlimmerSyntaxError } from './errors/syntax-error';
@@ -12,12 +13,12 @@ let ID_INVERSE_PATTERN = /[!"#%-,\.\/;->@\[-\^`\{-~]/;
 // If it does, registers the block params with the program and
 // removes the corresponding attributes from the element.
 
-export function parseElementBlockParams(element: AST.ElementNode) {
+export function parseElementBlockParams(element: ASTv1.ElementNode) {
   let params = parseBlockParams(element);
   if (params) element.blockParams = params;
 }
 
-function parseBlockParams(element: AST.ElementNode): Optional<string[]> {
+function parseBlockParams(element: ASTv1.ElementNode): Optional<string[]> {
   let l = element.attributes.length;
   let attrNames = [];
 
@@ -69,8 +70,8 @@ function parseBlockParams(element: AST.ElementNode): Optional<string[]> {
 }
 
 export function childrenFor(
-  node: AST.Block | AST.Template | AST.ElementNode
-): AST.TopLevelStatement[] {
+  node: ASTv1.Block | ASTv1.Template | ASTv1.ElementNode
+): ASTv1.TopLevelStatement[] {
   switch (node.type) {
     case 'Block':
     case 'Template':
@@ -81,17 +82,18 @@ export function childrenFor(
 }
 
 export function appendChild(
-  parent: AST.Block | AST.Template | AST.ElementNode,
-  node: AST.Statement
+  parent: ASTv1.Block | ASTv1.Template | ASTv1.ElementNode,
+  node: ASTv1.Statement
 ) {
   childrenFor(parent).push(node);
 }
 
 export function isLiteral(path: HBS.Expression): path is HBS.Literal;
-export function isLiteral(path: AST.Expression): path is AST.Literal;
+export function isLiteral(path: ASTv2.Expression): path is ASTv2.Literal;
+export function isLiteral(path: ASTv1.Expression): path is ASTv1.Literal;
 export function isLiteral(
-  path: HBS.Expression | AST.Expression
-): path is HBS.Literal | AST.Literal {
+  path: HBS.Expression | ASTv1.Expression | ASTv2.Expression
+): path is HBS.Literal | ASTv1.Literal | ASTv2.Literal {
   return (
     path.type === 'StringLiteral' ||
     path.type === 'BooleanLiteral' ||
@@ -101,7 +103,7 @@ export function isLiteral(
   );
 }
 
-export function printLiteral(literal: AST.Literal): string {
+export function printLiteral(literal: ASTv1.Literal): string {
   if (literal.type === 'UndefinedLiteral') {
     return 'undefined';
   } else {

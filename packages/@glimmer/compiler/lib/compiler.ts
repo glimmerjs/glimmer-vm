@@ -5,10 +5,10 @@ import {
   TemplateJavascript,
 } from '@glimmer/interfaces';
 import { LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
-import { preprocess, PreprocessOptions } from '@glimmer/syntax';
+import { normalize, PreprocessOptions } from '@glimmer/syntax';
 import { LOCAL_LOGGER } from '@glimmer/util';
 import { GlimmerCompileOptions } from './passes/pass0/context';
-import { visit as pass0 } from './passes/pass0/index';
+import pass0 from './passes/pass0/index';
 import { visit as pass1 } from './passes/pass1/index';
 import { visit as pass2 } from './passes/pass2/index';
 import { Source } from './source/source';
@@ -84,7 +84,7 @@ export function precompileJSON(
   string: string,
   options: GlimmerCompileOptions = defaultOptions
 ): SerializedTemplateBlock {
-  let ast = preprocess(string, options);
+  let ast = normalize(string, options);
   let source = new Source(string);
   let block = pass0(source, ast, options).mapOk((pass1In) => {
     let pass2In = pass1(source, pass1In);
@@ -122,16 +122,6 @@ export function precompile(
   options: GlimmerCompileOptions = defaultOptions
 ): TemplateJavascript {
   let block = precompileJSON(source, options);
-  // let ast = preprocess(source, options);
-  // let { meta } = options;
-  // let opcodes = visit(source, ast);
-  // let ops = allocate(opcodes, source);
-
-  // let template = process(ops, ast.symbols!, source, options);
-
-  // if (LOCAL_SHOULD_LOG) {
-  //   console.log(`Template ->`, template);
-  // }
 
   let idFn = options.id || defaultId;
   let blockJSON = JSON.stringify(block);

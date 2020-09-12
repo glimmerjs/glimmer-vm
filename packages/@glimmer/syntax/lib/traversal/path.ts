@@ -1,4 +1,4 @@
-import { Node } from '../types/nodes';
+import { Node } from '../types/nodes-v1';
 
 export default class Path<N extends Node> {
   node: N;

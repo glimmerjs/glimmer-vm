@@ -1,36 +1,36 @@
-import { AST, GlimmerSyntaxError } from '@glimmer/syntax';
+import { ASTv2, GlimmerSyntaxError } from '@glimmer/syntax';
 import { PresentArray } from '@glimmer/interfaces';
 
-export function isPath(node: AST.Node | AST.PathExpression): node is AST.PathExpression {
+export function isPath(node: ASTv2.Node | ASTv2.PathExpression): node is ASTv2.PathExpression {
   return node.type === 'PathExpression';
 }
 
-export function isCall(node: AST.Node | AST.Call): node is AST.Call {
+export function isCall(node: ASTv2.Node | ASTv2.Call): node is ASTv2.Call {
   return node.type === 'SubExpression' || node.type === 'MustacheStatement';
 }
 
-export type HasPath<Node extends AST.Call = AST.Call> = Node & {
-  path: AST.PathExpression;
+export type HasPath<Node extends ASTv2.Call = ASTv2.Call> = Node & {
+  path: ASTv2.PathExpression;
 };
 
 export type HasArguments =
   | {
-      params: PresentArray<AST.Expression>;
+      params: PresentArray<ASTv2.Expression>;
     }
   | {
       hash: {
-        pairs: PresentArray<AST.HashPair>;
+        pairs: PresentArray<ASTv2.HashPair>;
       };
     };
 
-export type HelperInvocation<Node extends AST.Call = AST.Call> = HasPath<Node> & HasArguments;
+export type HelperInvocation<Node extends ASTv2.Call = ASTv2.Call> = HasPath<Node> & HasArguments;
 
-export function hasPath<N extends AST.Call>(node: N): node is HasPath<N> {
+export function hasPath<N extends ASTv2.Call>(node: N): node is HasPath<N> {
   return node.path.type === 'PathExpression';
 }
 
-export function isHelperInvocation<N extends AST.Call>(
-  node: AST.Call
+export function isHelperInvocation<N extends ASTv2.Call>(
+  node: ASTv2.Call
 ): node is HelperInvocation<N> {
   if (!hasPath(node)) {
     return false;
@@ -38,7 +38,7 @@ export function isHelperInvocation<N extends AST.Call>(
   return (node.params && node.params.length > 0) || (node.hash && node.hash.pairs.length > 0);
 }
 
-export interface SimplePath extends AST.PathExpression {
+export interface SimplePath extends ASTv2.PathExpression {
   tail: [string];
   data: false;
   this: false;
@@ -48,22 +48,41 @@ export type SimpleHelper<N extends HasPath> = N & {
   path: SimplePath;
 };
 
-export function isSimplePath(path: AST.PathExpression): path is SimplePath {
+export function isSimplePath(path: ASTv2.PathExpression): path is SimplePath {
   let { head, tail: parts } = path;
 
-  return head.type === 'VarHead' && parts.length === 0;
+  return head.type === 'FreeVarHead' && parts.length === 0;
 }
 
 export function assertIsSimpleHelper<N extends HasPath>(
   helper: N,
-  loc: AST.SourceLocation,
+  loc: ASTv2.SourceLocation,
   context: string
 ): asserts helper is SimpleHelper<N> {
   if (!isSimplePath(helper.path)) {
     throw new GlimmerSyntaxError(
-      `\`${helper.path.original}\` is not a valid name for a ${context} on line ${loc.start.line}.`,
+      `\`${printPath(helper.path)}\` is not a valid name for a ${context} on line ${
+        loc.start.line
+      }.`,
       helper.loc
     );
+  }
+}
+
+function printPath(path: ASTv2.PathExpression): string {
+  let printedPath = [printPathHead(path.head)];
+  printedPath.push(...path.tail);
+  return printedPath.join('.');
+}
+
+function printPathHead(head: ASTv2.PathHead): string {
+  switch (head.type) {
+    case 'AtHead':
+    case 'FreeVarHead':
+    case 'LocalVarHead':
+      return head.name;
+    case 'ThisHead':
+      return 'this';
   }
 }
 
@@ -73,7 +92,7 @@ export function assertIsSimpleHelper<N extends HasPath>(
  * is a bit of a double-negative, so we change the terminology here for clarity.
  */
 export function isTrustingNode(
-  value: AST.MustacheStatement | AST.TextNode | AST.ConcatStatement
+  value: ASTv2.MustacheStatement | ASTv2.TextNode | ASTv2.Interpolate
 ): boolean {
   if (value.type === 'MustacheStatement') {
     return !value.escaped;

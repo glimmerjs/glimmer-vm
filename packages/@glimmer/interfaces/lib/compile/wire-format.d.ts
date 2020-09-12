@@ -111,21 +111,21 @@ export namespace Core {
 export type CoreSyntax = Core.Syntax;
 
 export const enum ExpressionContext {
-  // An `Append` is a single identifier that is contained inside a curly (either in a
+  // An `Ambiguous` is a single identifier that is contained inside a curly (either in a
   // content curly or an attribute curly)
-  AppendSingleId = 0,
-  // An `Expression` is evaluated into a value (e.g. `person.name` in `(call person.name)`
+  Ambiguous = 0,
+  // A `Generic` uses context-free evaluation rules (e.g. `person.name` in `(call person.name)`
   // or `person.name` in `@name={{person.name}}`). This represents a syntactic position
   // that must evaluate as an expression by virtue of its position in the syntax.
-  Expression = 1,
+  WithoutResolver = 1,
   // A `CallHead` is the head of an expression that is definitely a call
-  CallHead = 2,
+  ResolveAsCallHead = 2,
   // A `BlockHead` is the head of an expression that is definitely a block
-  BlockHead = 3,
+  ResolveAsBlockHead = 3,
   // A `ModifierHead` is the head of an expression that is definitely a modifir
-  ModifierHead = 4,
+  ResolveAsModifierHead = 4,
   // A `ComponentHead` is the head of an expression that is definitely a component
-  ComponentHead = 5,
+  ResolveAsComponentHead = 5,
 }
 
 export namespace Expressions {

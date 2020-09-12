@@ -99,24 +99,27 @@ function isComponent(expr: Expressions.Expression, meta: ContainingMetadata): bo
 EXPRESSIONS.add(SexpOpcodes.GetSymbol, ([, sym]) => op(Op.GetVariable, sym));
 EXPRESSIONS.add(SexpOpcodes.GetFree, ([, sym]) => op('ResolveFree', sym));
 EXPRESSIONS.add(SexpOpcodes.GetFreeInAppendSingleId, ([, sym]) =>
-  op('ResolveContextualFree', { freeVar: sym, context: ExpressionContext.AppendSingleId })
+  op('ResolveContextualFree', { freeVar: sym, context: ExpressionContext.Ambiguous })
 );
 EXPRESSIONS.add(SexpOpcodes.GetFreeInExpression, ([, sym]) =>
-  op('ResolveContextualFree', { freeVar: sym, context: ExpressionContext.Expression })
+  op('ResolveContextualFree', { freeVar: sym, context: ExpressionContext.WithoutResolver })
 );
 EXPRESSIONS.add(SexpOpcodes.GetFreeInCallHead, ([, sym]) =>
-  op('ResolveContextualFree', { freeVar: sym, context: ExpressionContext.CallHead })
+  op('ResolveContextualFree', { freeVar: sym, context: ExpressionContext.ResolveAsCallHead })
 );
 EXPRESSIONS.add(SexpOpcodes.GetFreeInBlockHead, ([, sym]) =>
-  op('ResolveContextualFree', { freeVar: sym, context: ExpressionContext.BlockHead })
+  op('ResolveContextualFree', { freeVar: sym, context: ExpressionContext.ResolveAsBlockHead })
 );
 EXPRESSIONS.add(SexpOpcodes.GetFreeInModifierHead, ([, sym]) =>
-  op('ResolveContextualFree', { freeVar: sym, context: ExpressionContext.ModifierHead })
+  op('ResolveContextualFree', { freeVar: sym, context: ExpressionContext.ResolveAsModifierHead })
 );
 
-EXPRESSIONS.add(SexpOpcodes.GetFreeInComponentHead, ([, sym]) =>
-  op('ResolveContextualFree', { freeVar: sym, context: ExpressionContext.ComponentHead })
-);
+EXPRESSIONS.add(SexpOpcodes.GetFreeInComponentHead, ([, sym]) => {
+  return op('ResolveContextualFree', {
+    freeVar: sym,
+    context: ExpressionContext.ResolveAsComponentHead,
+  });
+});
 
 EXPRESSIONS.add(SexpOpcodes.GetPath, ([, expr, path]) => {
   let exprs: ExpressionCompileActions = [];

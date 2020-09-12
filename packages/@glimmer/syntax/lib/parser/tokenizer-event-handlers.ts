@@ -1,18 +1,17 @@
-import b, { SYNTHETIC } from '../builders';
-import { appendChild, parseElementBlockParams } from '../utils';
-import { HandlebarsNodeVisitors } from './handlebars-node-visitors';
-import * as AST from '../types/nodes';
-import * as HBS from '../types/handlebars-ast';
-import { Tag } from '../parser';
-import builders from '../builders';
-import traverse from '../traversal/traverse';
-import print from '../generation/print';
-import Walker from '../traversal/walker';
-import * as handlebars from 'handlebars';
 import { assign } from '@glimmer/util';
-import { NodeVisitor } from '../traversal/visitor';
+import * as handlebars from 'handlebars';
 import { EntityParser } from 'simple-html-tokenizer';
 import { GlimmerSyntaxError } from '../errors/syntax-error';
+import print from '../generation/print';
+import { Tag } from '../parser';
+import traverse from '../traversal/traverse';
+import { NodeVisitor } from '../traversal/visitor';
+import Walker from '../traversal/walker';
+import * as HBS from '../types/handlebars-ast';
+import * as AST from '../types/nodes-v1';
+import { appendChild, parseElementBlockParams } from '../utils';
+import { default as b, default as builders, SYNTHETIC } from '../v1-builders';
+import { HandlebarsNodeVisitors } from './handlebars-node-visitors';
 
 export const voidMap: {
   [tagName: string]: boolean;

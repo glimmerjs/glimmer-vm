@@ -1,66 +1,80 @@
-import { ExpressionContext, Optional, PresentArray } from '@glimmer/interfaces';
+import { PresentArray } from '@glimmer/interfaces';
 import { LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
-import { AST, GlimmerSyntaxError } from '@glimmer/syntax';
-import { assert, isPresent, LOCAL_LOGGER, NonemptyStack } from '@glimmer/util';
+import { ASTv2, GlimmerSyntaxError } from '@glimmer/syntax';
+import { assert, isPresent, LOCAL_LOGGER } from '@glimmer/util';
 import { TemplateIdFn } from '../../compiler';
 import { OptionalList } from '../../shared/list';
-import { InputOpArgs, OpConstructor, UnlocatedOp } from '../../shared/op';
-import { OpFactory } from '../../shared/ops';
+import { InputOpArgs, OpConstructor, toArgs, UnlocatedOp } from '../../shared/op';
 import { Err, intoResult, MaybeResult, Ok, Result, ResultArray } from '../../shared/result';
-import { BlockSymbolTable, SymbolTable } from '../../shared/symbol-table';
 import { SourceOffsets } from '../../source/offsets';
 import { Source } from '../../source/source';
-import * as pass1 from '../pass1/ops';
-import { buildPathWithContext } from './utils/builders';
-import { TemporaryNamedBlock } from './visitors/element/temporary-block';
-import { Pass0Expressions } from './visitors/expressions';
-import { Pass0Statements } from './visitors/statements';
+import * as hir from '../pass1/hir';
+import { buildPath } from './utils/builders';
+import { ExpressionOut, EXPRESSIONS, isExpr, Pass0Expressions } from './visitors/expressions';
+import { isStatement, Pass0Statements, Pass1Out, STATEMENTS } from './visitors/statements';
 
 /** VISITOR DEFINITIONS */
 
 type Pass0Visitor = Pass0Expressions | Pass0Statements;
 
-export type VisitorInterface<O extends AST.Node, Out = unknown> = {
-  [P in O['type']]: (node: O & { type: P }, ctx: Context) => Out | Result<Out>;
+/**
+ * This class defines the core high-level operations for interacting with the
+ * NormalizationState.
+ */
+export class VisitorContext {
+  constructor(readonly ctx: NormalizationContext, private state: NormalizationState) {}
+
+  get utils(): NormalizationUtilities {
+    return new NormalizationUtilities(this.ctx, this.state);
+  }
+
+  generateUniqueCursor(): string {
+    return this.state.generateUniqueCursor();
+  }
+
+  block(name: hir.SourceSlice, node: ASTv2.Block): Result<hir.NamedBlock> {
+    return this.utils.visitStmts(node.body).mapOk((stmts) =>
+      new UnlocatedOp(
+        hir.NamedBlock,
+        {
+          name,
+          table: node.symbols,
+          body: stmts,
+        },
+        this.ctx.source
+      ).loc(node)
+    );
+  }
+}
+
+export type VisitorInterface<O extends ASTv2.Node, Out = unknown> = {
+  [P in O['type']]: (node: O & { type: P }, ctx: VisitorContext) => MaybeResult<Out>;
 };
 
-type VisitorFunc<V extends Pass0Visitor, N extends keyof V & keyof AST.Nodes> = (
-  node: AST.Node & AST.Nodes[N],
-  ctx: Context
-) => VisitorReturn<V, N>;
-
-type ResultVisitorReturn<
-  V extends Pass0Visitor,
-  N extends keyof V & keyof AST.Nodes = keyof V & keyof AST.Nodes
-> = V[N] extends (...args: any[]) => infer R
-  ? R extends Pass1Op
-    ? Result<R>
-    : R extends Result<Pass1Op>
-    ? R
-    : never
-  : never;
+export type InfallibleVisitorInterface<O extends ASTv2.Node, Out = unknown> = {
+  [P in O['type']]: (node: O & { type: P }, ctx: VisitorContext) => Out;
+};
 
 type VisitorReturn<
   V extends Pass0Visitor,
-  N extends keyof V & keyof AST.Nodes = keyof V & keyof AST.Nodes
+  N extends keyof V & keyof ASTv2.Nodes = keyof V & keyof ASTv2.Nodes
 > = V[N] extends (...args: any[]) => infer R
   ? R extends Pass1Op | Result<Pass1Op>
     ? R
     : never
   : never;
 
-export interface ImmutableContext {
-  slice(value: string): UnlocatedOp<pass1.SourceSlice>;
+export interface ImmutableUtils {
+  slice(value: string): UnlocatedOp<hir.SourceSlice>;
 }
 
 /**
  * This is the mutable state for this compiler pass.
  */
-export class CompilerState {
-  readonly symbols: NonemptyStack<SymbolTable> = new NonemptyStack([SymbolTable.top()]);
-  private cursorCount = 0;
+export class NormalizationState {
+  constructor(private cursorCount = 0) {}
 
-  cursor(): string {
+  generateUniqueCursor(): string {
     return `%cursor:${this.cursorCount++}%`;
   }
 }
@@ -71,221 +85,171 @@ export interface GlimmerCompileOptions extends PrecompileOptions {
   customizeComponentName?(input: string): string;
 }
 
-type VisitablePass1Op = pass1.Statement | pass1.Expr | pass1.Internal;
-export type Pass1Stmt = pass1.Statement | pass1.Ignore;
-type Pass1Op = VisitablePass1Op | pass1.Ignore;
+type VisitablePass1Op = hir.Statement | hir.Expr | hir.Internal;
+export type Pass1Stmt = hir.Statement | hir.Ignore;
+type Pass1Op = VisitablePass1Op | hir.Ignore;
+
+interface OutOps {
+  statement: Pass1Out;
+  expression: ExpressionOut;
+}
 
 /**
- * All state in this object except the CompilerState must be readonly.
+ * This object provides the core operations for normalization.
  *
- * This object, and not a copy of it, must be passed around to helper functions. The
- * `CompilerHelper`, on the other hand, does not need to share an identity since it
- * has no mutable state at all.
+ * It is not stateful: all mutable state used by the compiler is stored in
+ * `NormalizationState`.
+ *
+ * The `NormalizationUtilities` below provide a convenient interface to the
+ * node visitors for processing `@glimmer/syntax` AST nodes.
  */
-export class Context implements ImmutableContext {
-  readonly statements: Pass0Statements;
-  readonly expressions: Pass0Expressions;
-  readonly state = new CompilerState();
-  private factory: OpFactory<Pass1Op>;
+export class NormalizationContext {
+  constructor(readonly source: Source, readonly options: GlimmerCompileOptions) {}
+}
 
-  constructor(
-    readonly source: Source,
-    readonly options: GlimmerCompileOptions,
-    visitor: { statements: Pass0Statements; expressions: Pass0Expressions }
-  ) {
-    this.statements = visitor.statements;
-    this.expressions = visitor.expressions;
-    this.factory = new OpFactory(source);
+function visit<K extends keyof OutOps>(
+  desc: K,
+  node: ASTv2.Node,
+  ctx: VisitorContext
+): Result<OutOps[K]> {
+  if (LOCAL_SHOULD_LOG) {
+    LOCAL_LOGGER.groupCollapsed(`pass0: visiting ${desc}`, node.type);
+    LOCAL_LOGGER.log(`node`, node);
   }
 
-  get symbols(): NonemptyStack<SymbolTable> {
-    return this.state.symbols;
+  let result: MaybeResult<OutOps[keyof OutOps]>;
+  if (isStatement(node)) {
+    result = STATEMENTS.visit(node, ctx);
+  } else if (isExpr(node)) {
+    result = EXPRESSIONS.visit(node, ctx);
+  } else {
+    throw new Error(
+      `Attempted to visit a ${node.type}, but it wasn't handled by STATEMENTS or EXPRESSIONS`
+    );
   }
 
-  componentName(input: string): pass1.SourceSlice {
-    if (this.options.customizeComponentName) {
-      return this.slice(this.options.customizeComponentName(input)).offsets(null);
+  if (LOCAL_SHOULD_LOG) {
+    LOCAL_LOGGER.log(`-> out   `, node);
+    LOCAL_LOGGER.groupEnd();
+  }
+
+  return intoResult(result) as Result<OutOps[K]>;
+}
+
+/**
+ * This class provides useful utilities to the visitors. None of the methods on this
+ * class should work directly with the state in the Context.
+ */
+export class NormalizationUtilities implements ImmutableUtils {
+  constructor(private ctx: NormalizationContext, private state: NormalizationState) {}
+
+  get context(): VisitorContext {
+    return new VisitorContext(this.ctx, this.state);
+  }
+
+  get source(): Source {
+    return this.ctx.source;
+  }
+
+  op<O extends Pass1Op>(op: OpConstructor<O>, ...args: InputOpArgs<O>): UnlocatedOp<O> {
+    return new UnlocatedOp(op, toArgs(args), this.ctx.source);
+  }
+
+  slice(value: string): UnlocatedOp<hir.SourceSlice> {
+    return new UnlocatedOp(hir.SourceSlice, { value }, this.ctx.source);
+  }
+
+  componentName(input: string): hir.SourceSlice {
+    if (this.ctx.options.customizeComponentName) {
+      return this.slice(this.ctx.options.customizeComponentName(input)).offsets(null);
     } else {
       return this.slice(input).offsets(null);
     }
   }
 
-  cursor(): string {
-    return this.state.cursor();
-  }
-
-  op<O extends Pass1Op>(name: OpConstructor<O>, ...args: InputOpArgs<O>): UnlocatedOp<O> {
-    return this.factory.op(name, ...args);
-  }
-
-  slice(value: string): UnlocatedOp<pass1.SourceSlice> {
-    return new UnlocatedOp(pass1.SourceSlice, { value }, this.source);
-  }
-
-  visitAmbiguousStmts<S extends AST.Statement>(
-    statements: S[]
-  ): Result<(pass1.Statement | TemporaryNamedBlock)[]> {
-    let out = new ResultArray<pass1.Statement | TemporaryNamedBlock>();
-
-    for (let statement of statements) {
-      this.visitAmbiguousStmt(statement)
-        .ifOk((s) => {
-          switch (s.name) {
-            case 'Ignore':
-              break;
-            default:
-              out.add(Ok(s));
-          }
-        })
-        .ifErr((err) => out.add(Err(err)));
-    }
-
-    return out.toArray();
-  }
-
-  visitStmts<S extends AST.Statement>(statements: S[]): Result<pass1.Statement[]> {
-    let out = new ResultArray<pass1.Statement>();
-
-    for (let statement of statements) {
-      this.visitStmt(statement)
-        .ifOk((s) => {
-          switch (s.name) {
-            case 'Ignore':
-              break;
-            default:
-              out.add(Ok(s));
-          }
-        })
-        .ifErr((err) => out.add(Err(err)));
-    }
-
-    return out.toArray();
-  }
-
-  append(expr: pass1.Expr, { trusted }: { trusted: boolean }): UnlocatedOp<pass1.Statement> {
+  append(expr: hir.Expr, { trusted }: { trusted: boolean }): UnlocatedOp<hir.Statement> {
     if (trusted) {
-      return this.op(pass1.AppendTrustedHTML, {
+      return this.op(hir.AppendTrustedHTML, {
         value: expr,
       });
     } else {
-      return this.op(pass1.AppendTextNode, {
+      return this.op(hir.AppendTextNode, {
         value: expr,
       });
     }
   }
 
-  mapIntoExprs<E extends pass1.Expr | pass1.Internal, T>(
-    input: PresentArray<T>,
-    callback: (input: T) => E[]
-  ): PresentArray<E>;
-  mapIntoExprs<E extends pass1.Expr | pass1.Internal, T>(
-    input: Optional<PresentArray<T>>,
-    callback: (input: T) => E[]
-  ): Optional<PresentArray<E>>;
-  mapIntoExprs<E extends pass1.Expr | pass1.Internal, T>(
-    input: Optional<PresentArray<T>>,
-    callback: (input: T) => E[]
-  ): Optional<PresentArray<E>> {
-    if (input === null) {
-      return null;
-    } else {
-      return this.factory.flatMap(input, callback) as PresentArray<E>;
-    }
+  args({
+    path,
+    params: exprs,
+    hash: named,
+  }: {
+    path: ASTv2.Expression;
+    params: ASTv2.Expression[];
+    hash: ASTv2.Hash;
+  }): { params: hir.Params; hash: hir.NamedArguments } {
+    return { params: this.params({ path, params: exprs }), hash: this.hash(named) };
   }
 
-  withBlock<T>(
-    block: AST.Block | AST.ElementNode | AST.Template,
-    callback: (symbols: BlockSymbolTable, parent: SymbolTable) => T
-  ): T {
-    let parent = this.symbols.current;
-    let child = this.symbols.current.child(block.blockParams);
-    this.symbols.push(child);
+  params({
+    path,
+    params: list,
+  }: {
+    path: ASTv2.Expression;
+    params: ASTv2.Expression[];
+  }): hir.Params {
+    let offsets = paramsOffsets({ path, params: list }, this.ctx.source);
 
-    try {
-      return callback(child, parent);
-    } finally {
-      this.symbols.pop();
-    }
+    return this.op(hir.Params, {
+      list: OptionalList(list.map((expr) => this.visitExpr(expr))),
+    }).offsets(offsets);
   }
 
-  visitExpr<N extends keyof Pass0Expressions & keyof AST.Nodes>(
-    node: AST.Node & AST.Nodes[N]
-  ): VisitorReturn<Pass0Expressions, N>;
-  visitExpr<N extends keyof Pass0Expressions & keyof AST.Nodes>(
-    node: AST.Node & AST.Nodes[N],
-    context: ExpressionContext
-  ): VisitorReturn<Pass0Expressions>;
-  visitExpr<N extends keyof Pass0Expressions & keyof AST.Nodes>(
-    node: AST.Node & AST.Nodes[N],
-    context: ExpressionContext = ExpressionContext.Expression
-  ): VisitorReturn<Pass0Expressions> {
-    if (node.type === 'PathExpression') {
-      return buildPathWithContext(this, node, context);
-    } else {
-      if (LOCAL_SHOULD_LOG) {
-        LOCAL_LOGGER.groupCollapsed(`pass0: visiting expr`, node.type);
-        LOCAL_LOGGER.log(`node`, node);
-      }
+  hash(hash: ASTv2.Hash): hir.NamedArguments {
+    let mappedPairs = OptionalList(hash.pairs).map((pair) =>
+      this.op(hir.NamedArgument, {
+        key: this.slice(pair.key).offsets(offsetsForHashKey(pair, this.ctx.source)),
+        value: this.visitExpr(pair.value),
+      }).loc(pair)
+    );
 
-      let f = this.expressions[node.type] as VisitorFunc<Pass0Expressions, N>;
-      let result = f(node, this);
-
-      if (LOCAL_SHOULD_LOG) {
-        LOCAL_LOGGER.log(`-> out   `, node);
-        LOCAL_LOGGER.groupEnd();
-      }
-
-      return result;
-    }
+    return this.op(hir.NamedArguments, { pairs: mappedPairs }).loc(hash);
   }
 
-  visitAmbiguousStmt(node: AST.Statement): Result<Pass1Stmt | TemporaryNamedBlock>;
-  visitAmbiguousStmt<N extends keyof Pass0Statements & keyof AST.Nodes>(
-    node: AST.Node & AST.Nodes[N]
-  ): Exclude<ResultVisitorReturn<Pass0Statements, N>, Result<pass1.NamedBlock>>;
-  visitAmbiguousStmt(node: AST.Statement): Result<Pass1Stmt | TemporaryNamedBlock> {
-    if (LOCAL_SHOULD_LOG) {
-      LOCAL_LOGGER.groupCollapsed(`pass0: visiting statement`, node.type);
-      LOCAL_LOGGER.log(`node`, node);
-    }
+  /**
+   * Visit a single statement, returning a hir.Statement or an Ignore.
+   *
+   * Error conditions:
+   *
+   * - the visitor for the ASTv2.Statement returns an error
+   * - allowNamedBlock is not true and the ASTv2.Statement resolves to a
+   *   named block
+   */
+  visitStmt<N extends keyof Pass0Statements & ASTv2.Statement['type']>(
+    node: ASTv2.Statement & { type: N }
+  ): Result<Pass1Stmt> & VisitorReturn<Pass0Statements, N>;
+  visitStmt<N extends keyof Pass0Statements & ASTv2.Statement['type']>(
+    node: ASTv2.Statement & { type: N },
+    options: { allowNamedBlock: true }
+  ): VisitorReturn<Pass0Statements, N>;
+  visitStmt(
+    node: ASTv2.Statement,
+    options: { allowNamedBlock: true }
+  ): Result<Pass1Stmt | hir.NamedBlock>;
+  visitStmt(node: ASTv2.Statement): Result<Pass1Stmt>;
+  visitStmt(
+    node: ASTv2.Statement,
+    options?: { allowNamedBlock: true }
+  ): Result<Pass1Stmt | hir.NamedBlock>;
+  visitStmt(
+    node: ASTv2.Statement,
+    options?: { allowNamedBlock: true }
+  ): Result<Pass1Stmt | hir.NamedBlock> {
+    let result = visit('statement', node, this.context);
+    let rejectNamedBlock = !options;
 
-    let f = this.statements[node.type] as (
-      node: AST.Statement,
-      ctx: Context
-    ) => MaybeResult<Pass1Stmt | TemporaryNamedBlock>;
-    let result = f(node, this);
-
-    if (LOCAL_SHOULD_LOG) {
-      LOCAL_LOGGER.log(`-> out   `, node);
-      LOCAL_LOGGER.groupEnd();
-    }
-
-    return intoResult(result);
-  }
-
-  visitStmt(node: AST.Node): Result<Pass1Stmt>;
-  visitStmt<N extends keyof Pass0Statements & AST.Statement['type']>(
-    node: AST.Statement & { type: N }
-  ): pass1.Statement & VisitorReturn<Pass0Statements, N>;
-  visitStmt(node: AST.Statement): Result<Pass1Stmt> {
-    if (LOCAL_SHOULD_LOG) {
-      LOCAL_LOGGER.groupCollapsed(`pass0: visiting statement`, node.type);
-      LOCAL_LOGGER.log(`node`, node);
-    }
-
-    let f = this.statements[node.type] as (
-      node: AST.Statement,
-      ctx: Context
-    ) => MaybeResult<Pass1Stmt | TemporaryNamedBlock>;
-    let result = f(node, this);
-
-    if (LOCAL_SHOULD_LOG) {
-      LOCAL_LOGGER.log(`-> out   `, node);
-      LOCAL_LOGGER.groupEnd();
-    }
-
-    return intoResult(result).andThen((result) => {
-      if (result instanceof TemporaryNamedBlock) {
+    return result.andThen((result) => {
+      if (rejectNamedBlock && result instanceof hir.NamedBlock) {
         return Err(
           new GlimmerSyntaxError(
             `Invalid named block whose parent is not a component invocation`,
@@ -294,77 +258,72 @@ export class Context implements ImmutableContext {
         );
       }
 
-      return Ok(result);
+      return Ok(result as Pass1Stmt);
     });
   }
 
-  block(name: pass1.SourceSlice, node: AST.Block): Result<pass1.NamedBlock> {
-    return this.withBlock(node, (symbols) =>
-      this.visitStmts(node.body).mapOk((stmts) =>
-        this.op(pass1.NamedBlock, {
-          name,
-          table: symbols,
-          body: stmts,
-        }).loc(node)
-      )
-    );
+  visitExpr<N extends keyof Pass0Expressions & keyof ASTv2.Nodes>(
+    node: ASTv2.Node & ASTv2.Nodes[N]
+  ): ExpressionOut {
+    if (node.type === 'PathExpression') {
+      return buildPath(this, node);
+    } else {
+      return visit('expression', node, this.context).expect(
+        'expressions should not return results'
+      );
+    }
   }
+  /**
+   * Visit a list of statements, returning a list of `hir.Statement`.
+   */
+  visitStmts(
+    statements: ASTv2.NamedBlockNode[],
+    options: { allowNamedBlock: true }
+  ): Result<hir.NamedBlock[]>;
+  visitStmts<S extends ASTv2.Statement>(statements: S[]): Result<hir.Statement[]>;
+  visitStmts<S extends ASTv2.Statement>(
+    statements: S[],
+    options: { allowNamedBlock: true }
+  ): Result<(hir.Statement | hir.NamedBlock)[]>;
+  visitStmts(
+    statements: ASTv2.Statement[],
+    options?: { allowNamedBlock: true }
+  ): Result<(hir.Statement | hir.NamedBlock)[]> {
+    let out = new ResultArray<hir.Statement | hir.NamedBlock>();
 
-  args({
-    path,
-    params: exprs,
-    hash: named,
-  }: {
-    path: AST.Expression;
-    params: AST.Expression[];
-    hash: AST.Hash;
-  }): { params: pass1.Params; hash: pass1.NamedArguments } {
-    return { params: this.params({ path, params: exprs }), hash: this.hash(named) };
-  }
+    for (let statement of statements) {
+      this.visitStmt(statement, options)
+        .ifOk((s) => {
+          switch (s.name) {
+            case 'Ignore':
+              break;
+            default:
+              out.add(Ok(s));
+          }
+        })
+        .ifErr((err) => out.add(Err(err)));
+    }
 
-  params({ path, params: list }: { path: AST.Expression; params: AST.Expression[] }): pass1.Params {
-    let offsets = paramsOffsets({ path, params: list }, this.source);
-
-    return this.op(pass1.Params, {
-      list: OptionalList(list.map((expr) => this.visitExpr(expr))),
-    }).offsets(offsets);
-  }
-
-  hash(hash: AST.Hash): pass1.NamedArguments {
-    let mappedPairs = OptionalList(hash.pairs).map((pair) =>
-      this.op(pass1.NamedArgument, {
-        key: this.slice(pair.key).offsets(offsetsForHashKey(pair, this.source)),
-        value: this.visitExpr(pair.value, ExpressionContext.Expression),
-      }).loc(pair)
-    );
-
-    // let mappedPairs = this.mapIntoExprs<pass1.NamedArgument, AST.HashPair>(pairs, (pair) => [
-    //   this.op(pass1.NamedArgument, {
-    //     key: this.slice(pair.key).offsets(offsetsForHashKey(pair, this.source)),
-    //     value: this.visitExpr(pair.value, ExpressionContext.Expression),
-    //   }).loc(pair),
-    // ]);
-
-    return this.op(pass1.NamedArguments, { pairs: mappedPairs }).loc(hash);
+    return out.toArray();
   }
 }
 
 export function paramsOffsets(
-  { path, params }: { path: AST.Expression; params: AST.Expression[] },
+  { path, params }: { path: ASTv2.Expression; params: ASTv2.Expression[] },
   source: Source
 ): SourceOffsets {
   if (isPresent(params)) {
-    return sourceOffsets(params as [AST.Expression, ...AST.Expression[]], source);
+    return source.offsetsFor(params as PresentArray<ASTv2.Expression>);
   } else {
     // position empty params after the first space after the path expression
-    let pos = sourceOffsets(path, source).end + 1;
+    let pos = source.offsetsFor(path).end + 1;
     return new SourceOffsets(pos, pos);
   }
 }
 
-export function offsetsForHashKey(pair: AST.HashPair, source: Source): SourceOffsets {
-  let pairLoc = sourceOffsets(pair, source);
-  let valueLoc = sourceOffsets(pair.value, source);
+export function offsetsForHashKey(pair: ASTv2.HashPair, source: Source): SourceOffsets {
+  let pairLoc = source.offsetsFor(pair);
+  let valueLoc = source.offsetsFor(pair.value);
 
   assert(pairLoc !== null && valueLoc !== null, `unexpected missing location in HashPair`);
 
@@ -373,40 +332,4 @@ export function offsetsForHashKey(pair: AST.HashPair, source: Source): SourceOff
     // the grammar requires `key=value` with no whitespace around the `=`
     valueLoc.start - 1
   );
-}
-
-export function sourceOffsets(
-  node: AST.BaseNode | [AST.BaseNode, ...AST.BaseNode[]],
-  source: Source
-): SourceOffsets {
-  if (Array.isArray(node)) {
-    let start = node[0];
-    let end = node[node.length - 1];
-
-    let startOffset = sourceOffsets(start, source)?.start;
-    let endOffset = sourceOffsets(end, source)?.start;
-
-    assert(
-      startOffset !== undefined && endOffset !== undefined,
-      `unexpectedly missing source offsets`
-    );
-
-    return new SourceOffsets(startOffset, endOffset);
-  }
-
-  let loc = node.loc;
-
-  let { start, end } = loc;
-  let startOffset = source.offsetFor({
-    line: start.line - 1,
-    column: start.column,
-  });
-
-  let endOffset = source.offsetFor({ line: end.line - 1, column: end.column });
-
-  if (startOffset === null || endOffset === null) {
-    return SourceOffsets.NONE;
-  }
-
-  return new SourceOffsets(startOffset, endOffset);
 }

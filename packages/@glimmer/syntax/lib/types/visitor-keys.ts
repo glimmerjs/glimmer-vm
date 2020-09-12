@@ -1,5 +1,5 @@
 import { tuple } from '@glimmer/util';
-import * as AST from '../types/nodes';
+import * as AST from './nodes-v1';
 
 // ensure stays in sync with typing
 // ParentNode and ChildKey types are derived from VisitorKeysMap
@@ -31,6 +31,11 @@ const visitorKeys = {
 
   Hash: tuple('pairs'),
   HashPair: tuple('value'),
+
+  // v2 new nodes
+  NamedBlock: tuple('attributes', 'modifiers', 'children', 'comments'),
+  SimpleElement: tuple('attributes', 'modifiers', 'children', 'comments'),
+  Component: tuple('head', 'attributes', 'modifiers', 'children', 'comments'),
 };
 
 type VisitorKeysMap = typeof visitorKeys;

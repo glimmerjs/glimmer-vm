@@ -1,35 +1,48 @@
-import { ExpressionContext, PresentArray, Optional } from '@glimmer/interfaces';
-import { AST, isLiteral } from '@glimmer/syntax';
+import { Optional, PresentArray } from '@glimmer/interfaces';
+import { ASTv2 } from '@glimmer/syntax';
 import { assign } from '@glimmer/util';
-import * as pass1 from '../../pass1/ops';
 import { UnlocatedOp } from '../../../shared/op';
 import { Ok, Result } from '../../../shared/result';
-import { Context, Pass1Stmt, VisitorInterface } from '../context';
+import * as pass1 from '../../pass1/hir';
+import { Pass1Stmt, VisitorContext, VisitorInterface } from '../context';
 import { BLOCK_KEYWORDS, EXPR_KEYWORDS, STATEMENT_KEYWORDS } from '../keywords';
-import { assertIsSimpleHelper, isHelperInvocation, isSimplePath } from '../utils/is-node';
-import { ElementNode } from './element/element-node';
+import { assertIsSimpleHelper, isHelperInvocation } from '../utils/is-node';
+import { ClassifiedElement, hasDynamicFeatures } from './element/classified';
+import { ClassifiedComponent } from './element/component';
+import { ClassifiedSimpleElement } from './element/simple-element';
 import { TemporaryNamedBlock } from './element/temporary-block';
 
 // Whitespace is allowed around and between named blocks
 const WHITESPACE = /^\s+$/;
 
-export class Pass0Statements
-  implements VisitorInterface<AST.Statement, Pass1Stmt | TemporaryNamedBlock> {
+export type Pass1Out = Pass1Stmt | pass1.NamedBlock;
+
+export class Pass0Statements implements VisitorInterface<ASTv2.Statement, Pass1Out> {
+  visit<K extends keyof Pass0Statements & keyof ASTv2.Nodes>(
+    node: ASTv2.Node & { type: K },
+    ctx: VisitorContext
+  ): ReturnType<Pass0Statements[K]> {
+    let f = this[node.type] as (node: ASTv2.Node & { type: K }, ctx: VisitorContext) => Pass1Out;
+    return f(node, ctx) as ReturnType<Pass0Statements[K]>;
+  }
+
   PartialStatement(): never {
     throw new Error(`Handlebars partials are not supported in Glimmer`);
   }
 
-  BlockStatement(block: AST.BlockStatement, ctx: Context): Result<pass1.Statement> {
-    if (BLOCK_KEYWORDS.match(block)) {
-      return BLOCK_KEYWORDS.translate(block, ctx);
+  BlockStatement(node: ASTv2.BlockStatement, ctx: VisitorContext): Result<pass1.Statement> {
+    let { utils } = ctx;
+
+    if (BLOCK_KEYWORDS.match(node)) {
+      return BLOCK_KEYWORDS.translate(node, ctx);
     } else {
       return ctx
-        .block(ctx.slice('default').offsets(null), block.program)
+        .block(utils.slice('default').offsets(null), node.program)
         .andThen(
           (defaultBlock): Result<Optional<PresentArray<pass1.NamedBlock>>> => {
-            if (block.inverse) {
+            if (node.inverse) {
               return ctx
-                .block(ctx.slice('else').offsets(null), block.inverse)
+                .block(utils.slice('else').offsets(null), node.inverse)
                 .mapOk((inverseBlock) => {
                   return [defaultBlock, inverseBlock];
                 });
@@ -39,37 +52,70 @@ export class Pass0Statements
           }
         )
         .mapOk((blocks) =>
-          ctx
+          utils
             .op(
               pass1.BlockInvocation,
               assign(
                 {
-                  head: ctx.visitExpr(block.path, ExpressionContext.BlockHead),
+                  head: ctx.utils.visitExpr(node.path),
                 },
-                ctx.args(block),
+                utils.args(node),
                 { blocks }
               )
             )
-            .loc(block)
+            .loc(node)
         );
     }
   }
 
-  ElementNode(
-    element: AST.ElementNode,
-    ctx: Context
-  ): Result<pass1.Statement | TemporaryNamedBlock> {
-    return ElementNode(element, ctx);
+  NamedBlock(block: ASTv2.NamedBlockNode, { utils }: VisitorContext): Result<pass1.NamedBlock> {
+    return utils.visitStmts(block.children).andThen((stmts) =>
+      new TemporaryNamedBlock(
+        {
+          name: utils.slice(block.blockName.name).loc(block),
+          table: block.symbols,
+          body: stmts,
+        },
+        utils.source.offsetsFor(block)
+      ).tryNamedBlock(utils.source)
+    );
   }
 
-  MustacheCommentStatement(node: AST.MustacheCommentStatement, ctx: Context): pass1.Ignore {
-    return ctx.op(pass1.Ignore).loc(node);
+  SimpleElement(element: ASTv2.SimpleElementNode, ctx: VisitorContext): Result<pass1.Statement> {
+    return new ClassifiedElement(
+      element,
+      new ClassifiedSimpleElement(
+        ctx.utils.slice(element.tag).loc(element.loc),
+        element,
+        hasDynamicFeatures(element)
+      ),
+      ctx
+    ).toStatement();
   }
 
-  MustacheStatement(mustache: AST.MustacheStatement, ctx: Context): Result<pass1.Statement> {
+  Component(component: ASTv2.ComponentNode, ctx: VisitorContext): Result<pass1.Statement> {
+    return new ClassifiedElement(
+      component,
+      new ClassifiedComponent(ctx.utils.visitExpr(component.head), component),
+      ctx
+    ).toStatement();
+  }
+
+  MustacheCommentStatement(
+    node: ASTv2.MustacheCommentStatement,
+    { utils }: VisitorContext
+  ): pass1.Ignore {
+    return utils.op(pass1.Ignore).loc(node);
+  }
+
+  MustacheStatement(
+    mustache: ASTv2.MustacheStatement,
+    ctx: VisitorContext
+  ): Result<pass1.Statement> {
     let { path } = mustache;
+    let { utils } = ctx;
 
-    if (isLiteral(path)) {
+    if (ASTv2.isLiteral(path)) {
       return Ok(appendExpr(ctx, path, { trusted: !mustache.escaped }).loc(mustache));
     }
 
@@ -80,8 +126,10 @@ export class Pass0Statements
     // {{has-block}} or {{has-block-params}}
     if (EXPR_KEYWORDS.match(mustache)) {
       return Ok(
-        ctx
-          .append(EXPR_KEYWORDS.translate(mustache, ctx).expect(), { trusted: !mustache.escaped })
+        ctx.utils
+          .append(EXPR_KEYWORDS.translate(mustache, ctx).expect(), {
+            trusted: !mustache.escaped,
+          })
           .loc(mustache)
       );
     }
@@ -90,7 +138,6 @@ export class Pass0Statements
       return Ok(
         appendExpr(ctx, mustache.path, {
           trusted: !mustache.escaped,
-          context: mustacheContext(mustache.path),
         }).loc(mustache)
       );
     }
@@ -98,16 +145,16 @@ export class Pass0Statements
     assertIsSimpleHelper(mustache, mustache.loc, 'helper');
 
     return Ok(
-      ctx
+      utils
         .append(
-          ctx
+          utils
             .op(
               pass1.SubExpression,
               assign(
                 {
-                  head: ctx.visitExpr(mustache.path, ExpressionContext.CallHead),
+                  head: ctx.utils.visitExpr(mustache.path),
                 },
-                ctx.args(mustache)
+                utils.args(mustache)
               )
             )
             .loc(mustache),
@@ -119,20 +166,20 @@ export class Pass0Statements
     );
   }
 
-  TextNode(text: AST.TextNode, ctx: Context): pass1.Statement {
+  TextNode(text: ASTv2.TextNode, { utils }: VisitorContext): pass1.Statement {
     if (WHITESPACE.exec(text.chars)) {
-      return ctx.op(pass1.AppendWhitespace, { value: text.chars }).loc(text);
+      return utils.op(pass1.AppendWhitespace, { value: text.chars }).loc(text);
     } else {
-      return ctx
+      return utils
         .op(pass1.AppendTextNode, {
-          value: ctx.op(pass1.Literal, { value: text.chars }).loc(text),
+          value: utils.op(pass1.Literal, { value: text.chars }).loc(text),
         })
         .loc(text);
     }
   }
 
-  CommentStatement(comment: AST.CommentStatement, ctx: Context): pass1.Statement {
-    return ctx
+  CommentStatement(comment: ASTv2.CommentStatement, { utils }: VisitorContext): pass1.Statement {
+    return utils
       .op(pass1.AppendComment, {
         value: comment.value,
       })
@@ -142,33 +189,24 @@ export class Pass0Statements
 
 export const STATEMENTS = new Pass0Statements();
 
-function mustacheContext(body: AST.Expression): ExpressionContext {
-  if (body.type === 'PathExpression') {
-    if (!isSimplePath(body)) {
-      return ExpressionContext.Expression;
-    } else {
-      return ExpressionContext.AppendSingleId;
-    }
-  } else {
-    return ExpressionContext.Expression;
-  }
+export function isStatement(
+  node: ASTv2.Node | { type: keyof Pass0Statements }
+): node is { type: keyof Pass0Statements } {
+  return node.type in STATEMENTS;
 }
 
 function appendExpr(
-  ctx: Context,
-  expr: AST.Expression,
-  {
-    context = ExpressionContext.Expression,
-    trusted,
-  }: { trusted: boolean; context?: ExpressionContext }
+  ctx: VisitorContext,
+  expr: ASTv2.Expression,
+  { trusted }: { trusted: boolean }
 ): UnlocatedOp<pass1.Statement> {
   if (trusted) {
-    return ctx.op(pass1.AppendTrustedHTML, {
-      value: ctx.visitExpr(expr, context),
+    return ctx.utils.op(pass1.AppendTrustedHTML, {
+      value: ctx.utils.visitExpr(expr),
     });
   } else {
-    return ctx.op(pass1.AppendTextNode, {
-      value: ctx.visitExpr(expr, context),
+    return ctx.utils.op(pass1.AppendTextNode, {
+      value: ctx.utils.visitExpr(expr),
     });
   }
 }

@@ -59,7 +59,7 @@ export default function pushResolutionOp(
       }
 
       switch (expressionContext) {
-        case ExpressionContext.Expression: {
+        case ExpressionContext.WithoutResolver: {
           // in classic mode, this is always a this-fallback
           let name = context.meta.upvars![freeVar];
 
@@ -73,7 +73,7 @@ export default function pushResolutionOp(
           break;
         }
 
-        case ExpressionContext.AppendSingleId: {
+        case ExpressionContext.Ambiguous: {
           let resolver = context.syntax.program.resolver;
           let name = context.meta.upvars![freeVar];
 

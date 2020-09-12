@@ -1,17 +1,16 @@
 import { PresentArray } from '@glimmer/interfaces';
 import { assert, isPresent } from '@glimmer/util';
-import { GlimmerSyntaxError } from '@glimmer/syntax';
-import * as pass1 from '../../../pass1/ops';
+import { BlockSymbolTable, GlimmerSyntaxError } from '@glimmer/syntax';
+import * as pass1 from '../../../pass1/hir';
 import { SourceOffsets } from '../../../../source/offsets';
 
 import { Err, Ok, Result } from '../../../../shared/result';
-import { BlockSymbolTable } from '../../../../shared/symbol-table';
 import { Source } from '../../../../source/source';
 
 interface Args {
   name: pass1.SourceSlice;
   table: BlockSymbolTable;
-  body: (pass1.Statement | TemporaryNamedBlock)[];
+  body: (pass1.Statement | pass1.NamedBlock)[];
 }
 
 // A TemporaryNamedBlock may have named blocks inside of it. This is normally
@@ -20,7 +19,7 @@ interface Args {
 export class TemporaryNamedBlock {
   readonly name: pass1.SourceSlice;
   readonly table: BlockSymbolTable;
-  readonly body: (pass1.Statement | TemporaryNamedBlock)[];
+  readonly body: (pass1.Statement | pass1.NamedBlock)[];
 
   constructor({ name, table, body }: Args, readonly offsets: SourceOffsets) {
     this.name = name;
@@ -44,6 +43,16 @@ export class TemporaryNamedBlock {
     source: Source
   ): ExtractedMaybeNamedBlocks {
     return extractMaybeNamedBlocks(this.body, source);
+  }
+
+  tryNamedBlock(source: Source): Result<pass1.NamedBlock> {
+    if (this.isValidNamedBlock()) {
+      return Ok(this.asNamedBlock());
+    } else {
+      return Err(
+        new GlimmerSyntaxError(`Cannot nest named blocks`, this.offsets.toLocation(source))
+      );
+    }
   }
 
   isValidNamedBlock(): this is { body: pass1.Statement[] } {

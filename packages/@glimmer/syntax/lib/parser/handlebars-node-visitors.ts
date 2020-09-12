@@ -1,6 +1,6 @@
-import b, { SYNTHETIC } from '../builders';
+import b, { SYNTHETIC } from '../v1-builders';
 import { appendChild, isLiteral, printLiteral } from '../utils';
-import * as AST from '../types/nodes';
+import * as AST from '../types/nodes-v1';
 import * as HBS from '../types/handlebars-ast';
 import { Parser, Tag, Attribute } from '../parser';
 import { Recast, Optional } from '@glimmer/interfaces';
@@ -328,7 +328,7 @@ export abstract class HandlebarsNodeVisitors extends Parser {
       );
       pathHead = {
         type: 'AtHead',
-        name: head,
+        name: `@${head}`,
         loc: SYNTHETIC,
       };
       legacyParts = [`@${head}`];

@@ -1,14 +1,13 @@
-import { ExpressionContext, Optional, PresentArray } from '@glimmer/interfaces';
-import { AST, GlimmerSyntaxError } from '@glimmer/syntax';
+import { Optional } from '@glimmer/interfaces';
+import { ASTv2 } from '@glimmer/syntax';
+import { OptionalList } from '../../../../shared/list';
+import { Ok, Result, ResultArray } from '../../../../shared/result';
 import { getAttrNamespace } from '../../../../utils';
 // import { Option } from '@glimmer/interfaces';
-import * as pass1 from '../../../pass1/ops';
-import { Err, Ok, Result, ResultArray } from '../../../../shared/result';
-import { Context } from '../../context';
-import { assertIsSimpleHelper, isHelperInvocation, isTrustingNode } from '../../utils/is-node';
+import * as pass1 from '../../../pass1/hir';
+import { VisitorContext } from '../../context';
+import { assertIsSimpleHelper, isHelperInvocation } from '../../utils/is-node';
 import { dynamicAttrValue } from './element-node';
-import { TemporaryNamedBlock } from './temporary-block';
-import { OptionalList } from '../../../../shared/list';
 
 export type ValidAttr = pass1.Attr | pass1.AttrSplat;
 
@@ -20,23 +19,24 @@ type ProcessedAttributes = {
 export interface Classified<Body> {
   readonly dynamicFeatures: boolean;
 
-  arg(attr: AST.AttrNode, classified: ClassifiedElement<Body>): Result<pass1.NamedArgument>;
+  arg(attr: ASTv2.AttrNode, classified: ClassifiedElement<Body>): Result<pass1.NamedArgument>;
   toStatement(classified: ClassifiedElement<Body>, prepared: PreparedArgs<Body>): pass1.Statement;
-  selfClosing(block: pass1.NamedBlock, classified: ClassifiedElement<Body>): Result<Body>;
-  namedBlock(block: pass1.NamedBlock, classified: ClassifiedElement<Body>): Result<Body>;
-  namedBlocks(
-    blocks: PresentArray<pass1.NamedBlock>,
-    classified: ClassifiedElement<Body>
-  ): Result<Body>;
+  body(classified: ClassifiedElement<Body>): Result<Body>;
+  // selfClosing(block: pass1.NamedBlock, classified: ClassifiedElement<Body>): Result<Body>;
+  // namedBlock(block: pass1.NamedBlock, classified: ClassifiedElement<Body>): Result<Body>;
+  // namedBlocks(
+  //   blocks: PresentArray<pass1.NamedBlock>,
+  //   classified: ClassifiedElement<Body>
+  // ): Result<Body>;
 }
 
 export class ClassifiedElement<Body> {
   readonly delegate: Classified<Body>;
 
   constructor(
-    readonly element: AST.ElementNode,
+    readonly element: ASTv2.ElementNode,
     delegate: Classified<Body>,
-    readonly ctx: Context
+    readonly ctx: VisitorContext
   ) {
     this.delegate = delegate;
   }
@@ -45,25 +45,25 @@ export class ClassifiedElement<Body> {
     return this.prepare().mapOk((prepared) => this.delegate.toStatement(this, prepared));
   }
 
-  private attr(attr: AST.AttrNode): Result<ValidAttr> {
+  private attr(attr: ASTv2.AttrNode): Result<ValidAttr> {
     let name = attr.name;
     let rawValue = attr.value;
 
     let namespace = getAttrNamespace(name) || undefined;
     let value = dynamicAttrValue(this.ctx, rawValue);
 
-    let isTrusting = isTrustingNode(attr.value);
+    let isTrusting = attr.trusting;
 
     // splattributes
     // this is grouped together with attributes because its position matters
     if (name === '...attributes') {
-      return Ok(this.ctx.op(pass1.AttrSplat).loc(attr));
+      return Ok(this.ctx.utils.op(pass1.AttrSplat).loc(attr));
     }
 
     return Ok(
-      this.ctx
+      this.ctx.utils
         .op(pass1.Attr, {
-          name: this.ctx.slice(name).offsets(null),
+          name: this.ctx.utils.slice(name).offsets(null),
           value: value,
           namespace,
           kind: {
@@ -75,16 +75,16 @@ export class ClassifiedElement<Body> {
     );
   }
 
-  private modifier(modifier: AST.ElementModifierStatement): pass1.Modifier {
+  private modifier(modifier: ASTv2.ElementModifierStatement): pass1.Modifier {
     if (isHelperInvocation(modifier)) {
       assertIsSimpleHelper(modifier, modifier.loc, 'modifier');
     }
 
-    return this.ctx
+    return this.ctx.utils
       .op(pass1.Modifier, {
-        head: this.ctx.visitExpr(modifier.path, ExpressionContext.ModifierHead),
-        params: this.ctx.params({ path: modifier.path, params: modifier.params }),
-        hash: this.ctx.hash(modifier.hash),
+        head: this.ctx.utils.visitExpr(modifier.path),
+        params: this.ctx.utils.params({ path: modifier.path, params: modifier.params }),
+        hash: this.ctx.utils.hash(modifier.hash),
       })
       .loc(modifier);
   }
@@ -93,7 +93,7 @@ export class ClassifiedElement<Body> {
     let attrs = new ResultArray<ValidAttr>();
     let args = new ResultArray<pass1.NamedArgument>();
 
-    let typeAttr: Optional<AST.AttrNode> = null;
+    let typeAttr: Optional<ASTv2.AttrNode> = null;
 
     for (let attr of this.element.attributes) {
       if (attr.name === 'type') {
@@ -111,47 +111,46 @@ export class ClassifiedElement<Body> {
 
     return Result.all(args.toArray(), attrs.toArray()).mapOk(([args, attrs]) => ({
       attrs,
-      args: this.ctx.op(pass1.NamedArguments, { pairs: OptionalList(args) }).offsets(null),
+      args: this.ctx.utils.op(pass1.NamedArguments, { pairs: OptionalList(args) }).offsets(null),
     }));
   }
 
-  private body(): Result<Body> {
-    let { element, ctx } = this;
+  // private body(): Result<Body> {
+  //   let { element, ctx } = this;
+  //   let { utils } = ctx;
 
-    return ctx.withBlock(element, (child) =>
-      ctx.visitAmbiguousStmts(element.children).andThen((statements) => {
-        let temp = new TemporaryNamedBlock(
-          {
-            name: ctx.slice('default').offsets(null),
-            table: child,
-            body: statements,
-          },
-          ctx.source.maybeOffsetsFor(element)
-        );
+  //   return utils.visitStmts(element.children, { allowNamedBlock: true }).andThen((statements) => {
+  //     let temp = new TemporaryNamedBlock(
+  //       {
+  //         name: utils.slice('default').offsets(null),
+  //         table: element.symbols,
+  //         body: statements,
+  //       },
+  //       utils.source.maybeOffsetsFor(element)
+  //     );
 
-        if (temp.isValidNamedBlock()) {
-          let block = temp.asNamedBlock();
+  //     if (temp.isValidNamedBlock()) {
+  //       let block = temp.asNamedBlock();
 
-          if (element.selfClosing) {
-            return this.delegate.selfClosing(block, this);
-          } else {
-            return this.delegate.namedBlock(block, this);
-          }
-        } else if (temp.hasValidNamedBlocks()) {
-          return temp
-            .asNamedBlocks(ctx.source)
-            .andThen((blocks) => this.delegate.namedBlocks(blocks, this));
-        } else {
-          return Err(
-            new GlimmerSyntaxError(
-              `an element cannot have semantic content *and* named blocks`,
-              this.element.loc
-            )
-          );
-        }
-      })
-    );
-  }
+  //       if (element.selfClosing) {
+  //         return this.delegate.selfClosing(block, this);
+  //       } else {
+  //         return this.delegate.namedBlock(block, this);
+  //       }
+  //     } else if (temp.hasValidNamedBlocks()) {
+  //       return temp
+  //         .asNamedBlocks(utils.source)
+  //         .andThen((blocks) => this.delegate.namedBlocks(blocks, this));
+  //     } else {
+  //       return Err(
+  //         new GlimmerSyntaxError(
+  //           `an element cannot have semantic content *and* named blocks`,
+  //           this.element.loc
+  //         )
+  //       );
+  //     }
+  //   });
+  // }
 
   private prepare(): Result<PreparedArgs<Body>> {
     let result = this.attrs();
@@ -162,7 +161,7 @@ export class ClassifiedElement<Body> {
       let modifiers = this.element.modifiers.map((m) => this.modifier(m));
       let params = pass1.AnyElementParameters([...attrs, ...modifiers]);
 
-      return this.body().mapOk((body) => ({ args, params, body }));
+      return this.delegate.body(this).mapOk((body) => ({ args, params, body }));
     });
   }
 }
@@ -171,4 +170,17 @@ export interface PreparedArgs<Body> {
   args: pass1.NamedArguments;
   params: pass1.AnyElementParameters;
   body: Body;
+}
+
+export function hasDynamicFeatures({
+  attributes,
+  modifiers,
+}: Pick<ASTv2.ElementNode, 'attributes' | 'modifiers'>): boolean {
+  // ElementModifier needs the special ComponentOperations
+  if (modifiers.length > 0) {
+    return true;
+  }
+
+  // Splattributes need the special ComponentOperations to merge into
+  return !!attributes.find((attr) => attr.name === '...attributes');
 }

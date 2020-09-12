@@ -1,4 +1,4 @@
-import * as AST from '../types/nodes';
+import * as AST from '../types/nodes-v1';
 
 export interface GlimmerSyntaxError extends Error {
   location: AST.SourceLocation | null;

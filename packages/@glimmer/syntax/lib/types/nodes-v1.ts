@@ -1,4 +1,4 @@
-import { Dict, WireFormat, Optional } from '@glimmer/interfaces';
+import { Dict, Optional, WireFormat } from '@glimmer/interfaces';
 
 export interface Symbols {
   symbols: string[];
@@ -59,28 +59,15 @@ export interface Program extends CommonProgram {
 
 export interface Block extends CommonProgram {
   type: 'Block';
-  symbols?: BlockSymbols;
 }
 
 export type EntityEncodingState = 'transformed' | 'raw';
 
 export interface Template extends CommonProgram {
   type: 'Template';
-  symbols?: ProgramSymbols;
 }
 
 export type PossiblyDeprecatedBlock = Block | Template;
-
-export type Statement =
-  | MustacheStatement
-  | BlockStatement
-  | PartialStatement
-  | MustacheCommentStatement
-  | CommentStatement
-  | TextNode
-  | ElementNode;
-
-export type TopLevelStatement = Statement | Block;
 
 export interface Call extends BaseNode {
   name?: Expression;
@@ -109,9 +96,8 @@ export interface BlockStatement extends BaseNode {
   inverseStrip: StripFlags;
   closeStrip: StripFlags;
 
-  // Glimmer extensions
+  // Printer extension
   chained?: boolean;
-  symbols?: BlockSymbols;
 }
 
 export interface ElementModifierStatement extends BaseNode {
@@ -140,6 +126,18 @@ export interface MustacheCommentStatement extends BaseNode {
   value: string;
 }
 
+export interface NamedBlockName {
+  type: 'NamedBlockName';
+  name: string;
+  loc: SourceLocation;
+}
+
+export interface ElementName {
+  type: 'ElementName';
+  name: string;
+  loc: SourceLocation;
+}
+
 export interface ElementNode extends BaseNode {
   type: 'ElementNode';
   tag: string;
@@ -149,9 +147,16 @@ export interface ElementNode extends BaseNode {
   modifiers: ElementModifierStatement[];
   comments: MustacheCommentStatement[];
   children: Statement[];
-
-  symbols?: BlockSymbols;
 }
+
+export type StatementName =
+  | 'MustacheStatement'
+  | 'CommentStatement'
+  | 'BlockStatement'
+  | 'PartialStatement'
+  | 'MustacheCommentStatement'
+  | 'TextNode'
+  | 'ElementNode';
 
 export interface AttrNode extends BaseNode {
   type: 'AttrNode';
@@ -171,7 +176,7 @@ export interface ConcatStatement extends BaseNode {
   parts: (TextNode | MustacheStatement)[];
 }
 
-export type Expression = SubExpression | PathExpression | Literal;
+export type ExpressionName = 'SubExpression' | 'PathExpression' | LiteralName;
 
 export interface SubExpression extends Call {
   type: 'SubExpression';
@@ -197,25 +202,37 @@ export interface VarHead {
   loc?: SourceLocation;
 }
 
+export interface FreeVarHead {
+  type: 'FreeVarHead';
+  name: string;
+  loc?: SourceLocation;
+}
+
+export interface LocalVarHead {
+  type: 'LocalVarHead';
+  name: string;
+  loc?: SourceLocation;
+}
+
 export type PathHead = ThisHead | AtHead | VarHead;
 
 export interface PathExpression extends BaseNode {
   type: 'PathExpression';
-  head: PathHead;
   original: string;
+  head: PathHead;
   tail: string[];
   /**
-   * @deprecated use head and tail instead
+   * @deprecated use `head` and `tail` instead
    */
   parts: string[];
 }
 
-export type Literal =
-  | StringLiteral
-  | BooleanLiteral
-  | NumberLiteral
-  | UndefinedLiteral
-  | NullLiteral;
+export type LiteralName =
+  | 'StringLiteral'
+  | 'BooleanLiteral'
+  | 'NumberLiteral'
+  | 'UndefinedLiteral'
+  | 'NullLiteral';
 
 export interface StringLiteral extends BaseNode {
   type: 'StringLiteral';
@@ -263,30 +280,40 @@ export interface StripFlags {
   close: boolean;
 }
 
-export interface Nodes {
-  Program: Program;
-  Template: Template;
-  Block: Block;
+export type SharedNodes = {
   CommentStatement: CommentStatement;
   MustacheCommentStatement: MustacheCommentStatement;
   TextNode: TextNode;
-  PathExpression: PathExpression;
   StringLiteral: StringLiteral;
   BooleanLiteral: BooleanLiteral;
   NumberLiteral: NumberLiteral;
   NullLiteral: NullLiteral;
   UndefinedLiteral: UndefinedLiteral;
   MustacheStatement: MustacheStatement;
-  BlockStatement: BlockStatement;
   ElementModifierStatement: ElementModifierStatement;
   PartialStatement: PartialStatement;
-  ElementNode: ElementNode;
   AttrNode: AttrNode;
   ConcatStatement: ConcatStatement;
+};
+
+export type Nodes = SharedNodes & {
+  Program: Program;
+  Template: Template;
+  Block: Block;
+  BlockStatement: BlockStatement;
+  ElementNode: ElementNode;
   SubExpression: SubExpression;
+  PathExpression: PathExpression;
   Hash: Hash;
   HashPair: HashPair;
-}
+};
 
 export type NodeType = keyof Nodes;
 export type Node = Nodes[NodeType];
+
+export type Statement = Nodes[StatementName];
+export type Statements = Pick<Nodes, StatementName>;
+export type Literal = Nodes[LiteralName];
+export type Expression = Nodes[ExpressionName];
+export type Expressions = Pick<Nodes, ExpressionName>;
+export type TopLevelStatement = Statement | Nodes['Block'];

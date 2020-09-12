@@ -4,7 +4,7 @@ import {
   cannotReplaceNode,
   cannotReplaceOrRemoveInKeyHandlerYet,
 } from './errors';
-import * as AST from '../types/nodes';
+import * as AST from '../types/nodes-v1';
 import { deprecate } from '@glimmer/util';
 import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
 import { NodeHandler, NodeVisitor, KeyHandler, NodeTraversal, KeyTraversal } from './visitor';

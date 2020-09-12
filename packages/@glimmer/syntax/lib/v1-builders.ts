@@ -1,4 +1,4 @@
-import * as AST from './types/nodes';
+import * as AST from './types/nodes-v1';
 import { Optional, Dict } from '@glimmer/interfaces';
 import { deprecate, assign, assert } from '@glimmer/util';
 import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
@@ -404,7 +404,7 @@ function buildSexpr(
 function headToString(head: AST.PathHead): { original: string; parts: string[] } {
   switch (head.type) {
     case 'AtHead':
-      return { original: `@${head.name}`, parts: [head.name] };
+      return { original: head.name, parts: [head.name] };
     case 'ThisHead':
       return { original: `this`, parts: [] };
     case 'VarHead':
@@ -427,7 +427,7 @@ function buildHead(
   } else if (head[0] === '@') {
     headNode = {
       type: 'AtHead',
-      name: head.slice(1),
+      name: head,
       loc: buildLoc(loc || null),
     };
   } else {
@@ -457,7 +457,7 @@ function buildAtName(name: string, loc?: AST.SourceLocation): AST.PathHead {
 
   return {
     type: 'AtHead',
-    name: name.slice(1),
+    name,
     loc: buildLoc(loc || null),
   };
 }
@@ -484,6 +484,14 @@ function buildHeadFromString(head: string, loc?: AST.SourceLocation): AST.PathHe
   } else {
     return buildVar(head);
   }
+}
+
+function buildNamedBlockName(name: string, loc?: AST.SourceLocation): AST.NamedBlockName {
+  return {
+    type: 'NamedBlockName',
+    name,
+    loc: buildLoc(loc || null),
+  };
 }
 
 function buildCleanPath(
@@ -703,6 +711,7 @@ export default {
   at: buildAtName,
   var: buildVar,
   this: buildThis,
+  blockName: buildNamedBlockName,
 
   string: literal('StringLiteral') as (value: string) => StringLiteral,
   boolean: literal('BooleanLiteral') as (value: boolean) => BooleanLiteral,

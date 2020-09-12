@@ -1,4 +1,4 @@
-import * as AST from '../types/nodes';
+import * as AST from '../types/nodes-v1';
 import { Optional } from '@glimmer/interfaces';
 
 export interface TraversalError extends Error {

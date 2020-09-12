@@ -3,7 +3,7 @@ import { Source } from '../../source/source';
 import { CompilerContext } from './context';
 import { EXPRESSIONS } from './expressions';
 import { INTERNAL } from './internal';
-import * as pass1 from './ops';
+import * as pass1 from './hir';
 import { STATEMENTS } from './statements';
 
 export function visit(source: Source, root: pass1.Template): pass2.Template {

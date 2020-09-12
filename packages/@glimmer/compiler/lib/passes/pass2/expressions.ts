@@ -7,7 +7,7 @@ import {
   WireFormat,
 } from '@glimmer/interfaces';
 import { assertPresent, exhausted, isPresent, mapPresent } from '@glimmer/util';
-import * as pass1 from '../pass1/ops';
+import * as hir from '../pass1/hir';
 import { Op, OpArgs, OpsTable } from '../../shared/op';
 import * as pass2 from './ops';
 import { visitStatement, visitStatements } from './statements';
@@ -45,7 +45,7 @@ export class InternalEncoder
     return null;
   }
 
-  SourceSlice(args: OpArgs<pass1.SourceSlice>): string {
+  SourceSlice(args: OpArgs<hir.SourceSlice>): string {
     return args.value;
   }
 
@@ -167,7 +167,9 @@ export class ExpressionEncoder
     return [SexpOpcodes.GetFree, symbol];
   }
 
-  GetSloppy({ symbol }: OpArgs<pass2.GetSloppy>): WireFormat.Expressions.GetContextualFree {
+  GetWithResolver({
+    symbol,
+  }: OpArgs<pass2.GetWithResolver>): WireFormat.Expressions.GetContextualFree {
     return [SexpOpcodes.GetFreeInAppendSingleId, symbol];
   }
 
@@ -200,17 +202,17 @@ export function isExpr(input: pass2.Op): input is pass2.Expr {
 
 export function expressionContextOp(context: ExpressionContext): GetContextualFreeOp {
   switch (context) {
-    case ExpressionContext.AppendSingleId:
+    case ExpressionContext.Ambiguous:
       return WireOp.GetFreeInAppendSingleId;
-    case ExpressionContext.Expression:
+    case ExpressionContext.WithoutResolver:
       return WireOp.GetFreeInExpression;
-    case ExpressionContext.CallHead:
+    case ExpressionContext.ResolveAsCallHead:
       return WireOp.GetFreeInCallHead;
-    case ExpressionContext.BlockHead:
+    case ExpressionContext.ResolveAsBlockHead:
       return WireOp.GetFreeInBlockHead;
-    case ExpressionContext.ModifierHead:
+    case ExpressionContext.ResolveAsModifierHead:
       return WireOp.GetFreeInModifierHead;
-    case ExpressionContext.ComponentHead:
+    case ExpressionContext.ResolveAsComponentHead:
       return WireOp.GetFreeInComponentHead;
     default:
       return exhausted(context);

@@ -129,7 +129,7 @@ export type Err<T> = ErrImpl<T>;
 export type MaybeResult<T> = T | Result<T>;
 
 export class ResultArray<T> {
-  private items: Result<T>[] = [];
+  constructor(private items: Result<T>[] = []) {}
 
   add(item: Result<T>): void {
     this.items.push(item);

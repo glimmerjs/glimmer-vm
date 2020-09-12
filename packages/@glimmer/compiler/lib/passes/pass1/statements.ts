@@ -1,7 +1,7 @@
 /* eslint-disable qunit/no-global-expect */
 import { PresentArray } from '@glimmer/interfaces';
 import { expect } from '@glimmer/util';
-import * as pass1 from '../pass1/ops';
+import * as pass1 from './hir';
 import * as pass2 from '../pass2/ops';
 import { OpArgs, OpConstructor } from '../../shared/op';
 import { Context, MapVisitorsInterface } from './context';
@@ -14,10 +14,10 @@ export class Pass1Statement implements StatementVisitor {
     return ctx.op(pass2.Yield, { to, params: ctx.visitInternal(params) });
   }
 
-  Debugger(ctx: Context, _: OpArgs<pass1.Debugger>): pass2.Debugger {
+  Debugger(ctx: Context, { table }: OpArgs<pass1.Debugger>): pass2.Debugger {
     ctx.setHasEval();
 
-    return ctx.op(pass2.Debugger, { table: ctx.table });
+    return ctx.op(pass2.Debugger, { table });
   }
 
   InElement(
@@ -32,9 +32,9 @@ export class Pass1Statement implements StatementVisitor {
     });
   }
 
-  Partial(ctx: Context, { expr }: OpArgs<pass1.Partial>): pass2.Partial {
+  Partial(ctx: Context, { expr, table }: OpArgs<pass1.Partial>): pass2.Partial {
     ctx.setHasEval();
-    return ctx.op(pass2.Partial, { target: ctx.visitExpr(expr), table: ctx.table });
+    return ctx.op(pass2.Partial, { target: ctx.visitExpr(expr), table });
   }
 
   AppendTextNode(ctx: Context, { value }: OpArgs<pass1.AppendTextNode>): pass2.AppendTextNode {

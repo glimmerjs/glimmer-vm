@@ -1,4 +1,4 @@
-import * as AST from '../types/nodes';
+import * as AST from '../types/nodes-v1';
 import { VisitorKey } from '../types/visitor-keys';
 import Path from './path';
 

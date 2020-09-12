@@ -212,6 +212,11 @@
             "ignoreStatic": true
           }
         ],
+        "@typescript-eslint/no-explicit-any": [
+          "error", {
+            "ignoreRestArgs": true
+          }
+        ],
         "@typescript-eslint/ban-types": ["error", {
           "extendDefaults": true,
           "types": {
