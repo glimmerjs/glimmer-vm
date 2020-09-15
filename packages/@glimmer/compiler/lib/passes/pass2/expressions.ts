@@ -1,15 +1,9 @@
-import {
-  ExpressionContext,
-  GetContextualFreeOp,
-  PresentArray,
-  SexpOpcodes,
-  SexpOpcodes as WireOp,
-  WireFormat,
-} from '@glimmer/interfaces';
-import { assertPresent, exhausted, isPresent, mapPresent } from '@glimmer/util';
-import * as hir from '../pass1/hir';
+import { PresentArray, SexpOpcodes, WireFormat } from '@glimmer/interfaces';
+import { assertPresent, isPresent, mapPresent } from '@glimmer/util';
+import { expressionContextOp } from '../../builder/builder';
 import { Op, OpArgs, OpsTable } from '../../shared/op';
-import * as pass2 from './ops';
+import * as hir from '../pass1/hir';
+import * as mir from './mir';
 import { visitStatement, visitStatements } from './statements';
 
 export type HashPair = [string, WireFormat.Expression];
@@ -26,7 +20,7 @@ export type Visitors<O extends OpsTable<Op>, Out extends OutOp | void = OutOp | 
 //   throw new Error('unimplemented');
 // }
 
-export function visitInternal<N extends pass2.Op & { name: keyof InternalEncoder }>(
+export function visitInternal<N extends mir.Op & { name: keyof InternalEncoder }>(
   node: N
 ): ReturnType<InternalEncoder[N['name']]> {
   let f = INTERNAL[node.name] as (
@@ -35,9 +29,8 @@ export function visitInternal<N extends pass2.Op & { name: keyof InternalEncoder
   return f(node.args as OpArgs<N>);
 }
 
-export class InternalEncoder
-  implements Visitors<pass2.InternalTable, WireFormat.SyntaxWithInternal> {
-  ElementParameters({ body }: OpArgs<pass2.ElementParameters>): PresentArray<WireFormat.Parameter> {
+export class InternalEncoder implements Visitors<mir.InternalTable, WireFormat.SyntaxWithInternal> {
+  ElementParameters({ body }: OpArgs<mir.ElementParameters>): PresentArray<WireFormat.Parameter> {
     return mapPresent(body, (b) => visitStatement(b));
   }
 
@@ -49,11 +42,11 @@ export class InternalEncoder
     return args.value;
   }
 
-  Tail({ members }: OpArgs<pass2.Tail>): PresentArray<string> {
+  Tail({ members }: OpArgs<mir.Tail>): PresentArray<string> {
     return mapPresent(members, (member) => member.args.value);
   }
 
-  NamedBlocks({ blocks }: OpArgs<pass2.NamedBlocks>): WireFormat.Core.Blocks {
+  NamedBlocks({ blocks }: OpArgs<mir.NamedBlocks>): WireFormat.Core.Blocks {
     let names: string[] = [];
     let serializedBlocks: WireFormat.SerializedInlineBlock[] = [];
 
@@ -71,7 +64,7 @@ export class InternalEncoder
     return null;
   }
 
-  NamedBlock({ name, body, symbols }: OpArgs<pass2.NamedBlock>): WireFormat.Core.NamedBlock {
+  NamedBlock({ name, body, symbols }: OpArgs<mir.NamedBlock>): WireFormat.Core.NamedBlock {
     return [
       visitInternal(name),
       {
@@ -81,11 +74,11 @@ export class InternalEncoder
     ];
   }
 
-  Args({ positional, named }: OpArgs<pass2.Args>): WireFormat.Core.Args {
+  Args({ positional, named }: OpArgs<mir.Args>): WireFormat.Core.Args {
     return [visitInternal(positional), visitInternal(named)];
   }
 
-  Positional({ list }: OpArgs<pass2.Positional>): WireFormat.Core.Params {
+  Positional({ list }: OpArgs<mir.Positional>): WireFormat.Core.Params {
     return list.map((l) => visitExpr(l)).toPresentArray();
   }
 
@@ -93,11 +86,11 @@ export class InternalEncoder
     return null;
   }
 
-  NamedArgument({ key, value }: OpArgs<pass2.NamedArgument>): HashPair {
+  NamedArgument({ key, value }: OpArgs<mir.NamedArgument>): HashPair {
     return [visitInternal(key), visitExpr(value)];
   }
 
-  NamedArguments({ pairs }: OpArgs<pass2.NamedArguments>): WireFormat.Core.Hash {
+  NamedArguments({ pairs }: OpArgs<mir.NamedArguments>): WireFormat.Core.Hash {
     let list = pairs.toArray();
 
     if (isPresent(list)) {
@@ -119,11 +112,11 @@ export class InternalEncoder
 
 export const INTERNAL = new InternalEncoder();
 
-export function isInternal(input: pass2.Op): input is pass2.Internal {
+export function isInternal(input: mir.Op): input is mir.Internal {
   return input.name in INTERNAL;
 }
 
-export function visitExpr<N extends pass2.Op & { name: keyof ExpressionEncoder }>(
+export function visitExpr<N extends mir.Op & { name: keyof ExpressionEncoder }>(
   node: N
 ): ReturnType<ExpressionEncoder[N['name']]> {
   let f = EXPRESSIONS[node.name] as (
@@ -133,10 +126,10 @@ export function visitExpr<N extends pass2.Op & { name: keyof ExpressionEncoder }
 }
 
 export class ExpressionEncoder
-  implements Visitors<pass2.ExprTable, WireFormat.Expression | undefined> {
+  implements Visitors<mir.ExprTable, WireFormat.Expression | undefined> {
   Literal({
     value,
-  }: OpArgs<pass2.Literal>): WireFormat.Expressions.Value | WireFormat.Expressions.Undefined {
+  }: OpArgs<mir.Literal>): WireFormat.Expressions.Value | WireFormat.Expressions.Undefined {
     if (value === undefined) {
       return [SexpOpcodes.Undefined];
     } else {
@@ -148,44 +141,46 @@ export class ExpressionEncoder
     return undefined;
   }
 
-  HasBlock({ symbol }: OpArgs<pass2.HasBlock>): WireFormat.Expressions.HasBlock {
+  HasBlock({ symbol }: OpArgs<mir.HasBlock>): WireFormat.Expressions.HasBlock {
     return [SexpOpcodes.HasBlock, [SexpOpcodes.GetSymbol, symbol]];
   }
 
-  HasBlockParams({ symbol }: OpArgs<pass2.HasBlockParams>): WireFormat.Expressions.HasBlockParams {
+  HasBlockParams({ symbol }: OpArgs<mir.HasBlockParams>): WireFormat.Expressions.HasBlockParams {
     return [SexpOpcodes.HasBlockParams, [SexpOpcodes.GetSymbol, symbol]];
   }
 
   GetFreeWithContext({
     symbol,
     context,
-  }: OpArgs<pass2.GetFreeWithContext>): WireFormat.Expressions.GetContextualFree {
+  }: OpArgs<mir.GetFreeWithContext>):
+    | WireFormat.Expressions.GetContextualFree
+    | WireFormat.Expressions.GetStrictFree {
     return [expressionContextOp(context), symbol];
   }
 
-  GetFree({ symbol }: OpArgs<pass2.GetFree>): WireFormat.Expressions.GetFree {
-    return [SexpOpcodes.GetFree, symbol];
+  GetFree({ symbol }: OpArgs<mir.GetFree>): WireFormat.Expressions.GetStrictFree {
+    return [SexpOpcodes.GetStrictFree, symbol];
   }
 
   GetWithResolver({
     symbol,
-  }: OpArgs<pass2.GetWithResolver>): WireFormat.Expressions.GetContextualFree {
-    return [SexpOpcodes.GetFreeInAppendSingleId, symbol];
+  }: OpArgs<mir.GetWithResolver>): WireFormat.Expressions.GetContextualFree {
+    return [SexpOpcodes.GetFreeAsComponentOrHelperHeadOrThisFallback, symbol];
   }
 
-  GetSymbol({ symbol }: OpArgs<pass2.GetSymbol>): WireFormat.Expressions.GetSymbol {
+  GetSymbol({ symbol }: OpArgs<mir.GetSymbol>): WireFormat.Expressions.GetSymbol {
     return [SexpOpcodes.GetSymbol, symbol];
   }
 
-  GetPath({ head, tail }: OpArgs<pass2.GetPath>): WireFormat.Expressions.GetPath {
+  GetPath({ head, tail }: OpArgs<mir.GetPath>): WireFormat.Expressions.GetPath {
     return [SexpOpcodes.GetPath, visitExpr(head), visitInternal(tail)];
   }
 
-  Concat({ parts }: OpArgs<pass2.Concat>): WireFormat.Expressions.Concat {
+  Concat({ parts }: OpArgs<mir.Concat>): WireFormat.Expressions.Concat {
     return [SexpOpcodes.Concat, visitInternal(parts) as PresentArray<WireFormat.Expression>];
   }
 
-  Helper({ head, args }: OpArgs<pass2.Helper>): WireFormat.Expressions.Helper {
+  Helper({ head, args }: OpArgs<mir.Helper>): WireFormat.Expressions.Helper {
     // let head = ctx.popValue(EXPR);
     // let params = ctx.popValue(PARAMS);
     // let hash = ctx.popValue(HASH);
@@ -196,25 +191,6 @@ export class ExpressionEncoder
 
 export const EXPRESSIONS = new ExpressionEncoder();
 
-export function isExpr(input: pass2.Op): input is pass2.Expr {
+export function isExpr(input: mir.Op): input is mir.Expr {
   return input.name in EXPRESSIONS;
-}
-
-export function expressionContextOp(context: ExpressionContext): GetContextualFreeOp {
-  switch (context) {
-    case ExpressionContext.Ambiguous:
-      return WireOp.GetFreeInAppendSingleId;
-    case ExpressionContext.WithoutResolver:
-      return WireOp.GetFreeInExpression;
-    case ExpressionContext.ResolveAsCallHead:
-      return WireOp.GetFreeInCallHead;
-    case ExpressionContext.ResolveAsBlockHead:
-      return WireOp.GetFreeInBlockHead;
-    case ExpressionContext.ResolveAsModifierHead:
-      return WireOp.GetFreeInModifierHead;
-    case ExpressionContext.ResolveAsComponentHead:
-      return WireOp.GetFreeInComponentHead;
-    default:
-      return exhausted(context);
-  }
 }

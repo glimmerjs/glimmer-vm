@@ -50,6 +50,15 @@ export enum VariableKind {
 export interface Variable {
   kind: VariableKind;
   name: string;
+  /**
+   * Differences:
+   *
+   * - strict mode variables always refer to in-scope variables
+   * - sloppy mode variables use this algorithm:
+   *   1. if the template is invoked as a partial, look for an in-scope partial variable
+   *   2. otherwise, fall back to `this.<name>`
+   */
+  mode: 'sloppy' | 'strict';
 }
 
 export interface Path {
@@ -311,7 +320,7 @@ function normalizeDottedPath(whole: string): NormalizedHead {
 
   let [name, ...tail] = rest.split('.');
 
-  let variable: Variable = { kind, name };
+  let variable: Variable = { kind, name, mode: 'sloppy' };
 
   if (isPresent(tail)) {
     return { type: ExpressionKind.GetPath, path: { head: variable, tail } };
@@ -328,6 +337,7 @@ export function normalizePathHead(whole: string): Variable {
     return {
       kind: VariableKind.This,
       name: whole,
+      mode: 'sloppy',
     };
   }
 
@@ -352,7 +362,7 @@ export function normalizePathHead(whole: string): Variable {
       name = whole;
   }
 
-  return { kind, name };
+  return { kind, name, mode: 'sloppy' };
 }
 
 export type BuilderBlockStatement =
@@ -796,12 +806,6 @@ export function isBuilderExpression(
   expr: BuilderExpression | BuilderCallExpression
 ): expr is TupleBuilderExpression | BuilderCallExpression {
   return Array.isArray(expr);
-}
-
-export function isTupleBuilderExpression(
-  expr: BuilderExpression | BuilderCallExpression
-): expr is TupleBuilderExpression {
-  return Array.isArray(expr) && typeof expr[0] === 'string' && expr[0][0] !== '(';
 }
 
 export function isLiteral(

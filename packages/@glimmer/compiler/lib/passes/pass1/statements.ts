@@ -1,30 +1,30 @@
 /* eslint-disable qunit/no-global-expect */
 import { PresentArray } from '@glimmer/interfaces';
 import { expect } from '@glimmer/util';
-import * as pass1 from './hir';
-import * as pass2 from '../pass2/ops';
+import * as hir from './hir';
+import * as mir from '../pass2/mir';
 import { OpArgs, OpConstructor } from '../../shared/op';
 import { Context, MapVisitorsInterface } from './context';
 
-export type StatementVisitor = MapVisitorsInterface<pass1.Statement, pass2.Statement>;
+export type StatementVisitor = MapVisitorsInterface<hir.Statement, mir.Statement>;
 
 export class Pass1Statement implements StatementVisitor {
-  Yield(ctx: Context, { target, params }: OpArgs<pass1.Yield>): pass2.Yield {
+  Yield(ctx: Context, { target, params }: OpArgs<hir.Yield>): mir.Yield {
     let to = ctx.table.allocateBlock(target.getString());
-    return ctx.op(pass2.Yield, { to, params: ctx.visitInternal(params) });
+    return ctx.op(mir.Yield, { to, params: ctx.visitInternal(params) });
   }
 
-  Debugger(ctx: Context, { table }: OpArgs<pass1.Debugger>): pass2.Debugger {
+  Debugger(ctx: Context, { table }: OpArgs<hir.Debugger>): mir.Debugger {
     ctx.setHasEval();
 
-    return ctx.op(pass2.Debugger, { table });
+    return ctx.op(mir.Debugger, { table });
   }
 
   InElement(
     ctx: Context,
-    { destination, guid, insertBefore, block }: OpArgs<pass1.InElement>
-  ): pass2.InElement {
-    return ctx.op(pass2.InElement, {
+    { destination, guid, insertBefore, block }: OpArgs<hir.InElement>
+  ): mir.InElement {
+    return ctx.op(mir.InElement, {
       guid,
       insertBefore: ctx.visitOptionalExpr(insertBefore),
       destination: ctx.visitExpr(destination),
@@ -32,34 +32,31 @@ export class Pass1Statement implements StatementVisitor {
     });
   }
 
-  Partial(ctx: Context, { expr, table }: OpArgs<pass1.Partial>): pass2.Partial {
+  Partial(ctx: Context, { expr, table }: OpArgs<hir.Partial>): mir.Partial {
     ctx.setHasEval();
-    return ctx.op(pass2.Partial, { target: ctx.visitExpr(expr), table });
+    return ctx.op(mir.Partial, { target: ctx.visitExpr(expr), table });
   }
 
-  AppendTextNode(ctx: Context, { value }: OpArgs<pass1.AppendTextNode>): pass2.AppendTextNode {
-    return ctx.op(pass2.AppendTextNode, { text: ctx.visitExpr(value) });
+  AppendTextNode(ctx: Context, { value }: OpArgs<hir.AppendTextNode>): mir.AppendTextNode {
+    return ctx.op(mir.AppendTextNode, { text: ctx.visitExpr(value) });
   }
 
-  AppendWhitespace(ctx: Context, { value }: OpArgs<pass1.AppendWhitespace>): pass2.AppendTextNode {
-    return ctx.op(pass2.AppendTextNode, {
-      text: ctx.op(pass2.Literal, { value }),
+  AppendWhitespace(ctx: Context, { value }: OpArgs<hir.AppendWhitespace>): mir.AppendTextNode {
+    return ctx.op(mir.AppendTextNode, {
+      text: ctx.op(mir.Literal, { value }),
     });
   }
 
-  AppendTrustedHTML(
-    ctx: Context,
-    { value }: OpArgs<pass1.AppendTrustedHTML>
-  ): pass2.AppendTrustedHTML {
-    return ctx.op(pass2.AppendTrustedHTML, { html: ctx.visitExpr(value) });
+  AppendTrustedHTML(ctx: Context, { value }: OpArgs<hir.AppendTrustedHTML>): mir.AppendTrustedHTML {
+    return ctx.op(mir.AppendTrustedHTML, { html: ctx.visitExpr(value) });
   }
 
-  AppendComment(ctx: Context, args: OpArgs<pass1.AppendComment>): pass2.AppendComment {
-    return ctx.op(pass2.AppendComment, args);
+  AppendComment(ctx: Context, args: OpArgs<hir.AppendComment>): mir.AppendComment {
+    return ctx.op(mir.AppendComment, args);
   }
 
-  Component(ctx: Context, { tag, params, args, blocks }: OpArgs<pass1.Component>): pass2.Component {
-    return ctx.op(pass2.Component, {
+  Component(ctx: Context, { tag, params, args, blocks }: OpArgs<hir.Component>): mir.Component {
+    return ctx.op(mir.Component, {
       tag: ctx.visitExpr(tag),
       params: ctx.visitInternal(params),
       args: ctx.visitInternal(args),
@@ -69,9 +66,9 @@ export class Pass1Statement implements StatementVisitor {
 
   SimpleElement(
     ctx: Context,
-    { tag, params, body, dynamicFeatures }: OpArgs<pass1.SimpleElement>
-  ): pass2.SimpleElement {
-    return ctx.op(pass2.SimpleElement, {
+    { tag, params, body, dynamicFeatures }: OpArgs<hir.SimpleElement>
+  ): mir.SimpleElement {
+    return ctx.op(mir.SimpleElement, {
       tag,
       params: ctx.visitInternal(params),
       body: ctx.visitInternal(body),
@@ -79,56 +76,53 @@ export class Pass1Statement implements StatementVisitor {
     });
   }
 
-  Modifier(ctx: Context, { head, params, hash }: OpArgs<pass1.Modifier>): pass2.Modifier {
-    return ctx.op(pass2.Modifier, {
+  Modifier(ctx: Context, { head, params, hash }: OpArgs<hir.Modifier>): mir.Modifier {
+    return ctx.op(mir.Modifier, {
       head: ctx.visitExpr(head),
       args: ctx.visitArgs({ params, hash }),
     });
   }
 
-  AttrSplat(ctx: Context, _: OpArgs<pass1.AttrSplat>): pass2.AttrSplat {
-    return ctx.op(pass2.AttrSplat, { symbol: ctx.table.allocateBlock('attrs') });
+  AttrSplat(ctx: Context, _: OpArgs<hir.AttrSplat>): mir.AttrSplat {
+    return ctx.op(mir.AttrSplat, { symbol: ctx.table.allocateBlock('attrs') });
   }
 
-  Attr(
-    ctx: Context,
-    { kind, name, value: attrValue, namespace }: OpArgs<pass1.Attr>
-  ): pass2.AnyAttr {
+  Attr(ctx: Context, { kind, name, value: attrValue, namespace }: OpArgs<hir.Attr>): mir.AnyAttr {
     if (attrValue.name === 'Literal' && typeof attrValue.args.value === 'string') {
-      let op = kind.component ? pass2.StaticComponentAttr : pass2.StaticSimpleAttr;
+      let op = kind.component ? mir.StaticComponentAttr : mir.StaticSimpleAttr;
       let value = ctx
-        .unlocatedOp(pass2.SourceSlice, { value: attrValue.args.value })
+        .unlocatedOp(mir.SourceSlice, { value: attrValue.args.value })
         .offsets(attrValue.offsets);
-      return ctx.op<pass2.AnyAttr>(op, { name, value, namespace });
+      return ctx.op<mir.AnyAttr>(op, { name, value, namespace });
     } else {
-      let op: OpConstructor<pass2.AnyAttr>;
+      let op: OpConstructor<mir.AnyAttr>;
 
       if (kind.trusting) {
-        op = kind.component ? pass2.TrustingComponentAttr : pass2.TrustingDynamicAttr;
+        op = kind.component ? mir.TrustingComponentAttr : mir.TrustingDynamicAttr;
       } else {
-        op = kind.component ? pass2.ComponentAttr : pass2.DynamicSimpleAttr;
+        op = kind.component ? mir.ComponentAttr : mir.DynamicSimpleAttr;
       }
 
-      return ctx.op<pass2.AnyAttr>(op, { name, value: ctx.visitExpr(attrValue), namespace });
+      return ctx.op<mir.AnyAttr>(op, { name, value: ctx.visitExpr(attrValue), namespace });
     }
   }
 
   BlockInvocation(
     ctx: Context,
-    { head, params, hash, blocks }: OpArgs<pass1.BlockInvocation>
-  ): pass2.Statement {
-    let defaultBlock = expect(pass1.getBlock(blocks, 'default'), 'expected a default block');
-    let namedBlocks: PresentArray<pass2.NamedBlock> = [ctx.visitInternal(defaultBlock)];
-    let inverseBlock = pass1.getBlock(blocks, 'else') || null;
+    { head, params, hash, blocks }: OpArgs<hir.BlockInvocation>
+  ): mir.Statement {
+    let defaultBlock = expect(hir.getBlock(blocks, 'default'), 'expected a default block');
+    let namedBlocks: PresentArray<mir.NamedBlock> = [ctx.visitInternal(defaultBlock)];
+    let inverseBlock = hir.getBlock(blocks, 'else') || null;
 
     if (inverseBlock) {
       namedBlocks.push(ctx.visitInternal(inverseBlock));
     }
 
-    return ctx.op(pass2.InvokeBlock, {
+    return ctx.op(mir.InvokeBlock, {
       head: ctx.visitExpr(head),
       args: ctx.visitArgs({ params, hash }),
-      blocks: ctx.op(pass2.NamedBlocks, { blocks: namedBlocks }),
+      blocks: ctx.op(mir.NamedBlocks, { blocks: namedBlocks }),
     });
   }
 }

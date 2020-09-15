@@ -6,7 +6,6 @@ import {
   StatementCompileActions,
   TemplateCompilationContext,
 } from '@glimmer/interfaces';
-import { exhausted } from '@glimmer/util';
 import { compilableBlock } from '../compilable-template';
 import { compileBlock, compileInline } from '../compiler';
 import { InvokeDynamicComponent } from '../opcode-builder/helpers/components';
@@ -34,9 +33,6 @@ function compileOp(
       return DynamicComponent(context, action);
     case HighLevelCompileOpcode.IfResolvedComponent:
       return IfResolvedComponent(context, action);
-
-    default:
-      return exhausted(action);
   }
 }
 

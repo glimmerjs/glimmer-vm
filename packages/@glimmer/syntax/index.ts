@@ -33,8 +33,8 @@ import * as AST from './lib/types/nodes-v1';
 export { AST, AST as ASTv1 };
 export { isLiteral, printLiteral } from './lib/utils';
 
-import * as ASTv2 from './lib/types/nodes-v2';
+import * as ASTv2 from './lib/v2/nodes-v2';
 export { ASTv2 };
 
 export * from './lib/symbol-table';
-export { normalize } from './lib/normalize';
+export { normalize } from './lib/v2/normalize';

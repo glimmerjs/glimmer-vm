@@ -1,7 +1,7 @@
-import { Dict, ExpressionContext, Optional, PresentArray, WireFormat } from '@glimmer/interfaces';
+import { Dict, VariableResolution, Optional, PresentArray, WireFormat } from '@glimmer/interfaces';
 import { BlockSymbolTable, ProgramSymbolTable, SymbolTable } from '../symbol-table';
 
-export { default as builders } from '../v2-builders';
+export { default as builders } from './v2-builders';
 
 export interface Symbols {
   symbols: string[];
@@ -51,7 +51,6 @@ export interface Position {
 
 export interface CommonProgram extends BaseNode {
   body: Statement[];
-  chained?: boolean;
 }
 
 export interface Block extends CommonProgram {
@@ -67,50 +66,51 @@ export interface Template extends CommonProgram {
   body: Statement[];
 }
 
-export interface Call extends BaseNode {
-  type: 'MustacheStatement' | 'BlockStatement' | 'ElementModifierStatement' | 'SubExpression';
-  name?: Expression;
-  path: Expression;
-  params: Expression[];
+export type CallNodeName =
+  | 'AppendStatement'
+  | 'BlockStatement'
+  | 'ElementModifierStatement'
+  | 'SubExpression';
+
+export interface CallNode extends BaseNode {
+  type: CallNodeName;
+  func: Expression;
+  params: InternalExpression[];
   hash: Hash;
 }
 
-export interface MustacheStatement extends BaseNode {
-  type: 'MustacheStatement';
+export function isCall(node: BaseNode): node is CallNode {
+  switch (node.type) {
+    case 'BlockStatement':
+    case 'ElementModifierStatement':
+    case 'SubExpression':
+      return true;
+    default:
+      return false;
+  }
+}
+
+export interface AppendStatement extends BaseNode {
+  type: 'AppendStatement';
+  value: Expression;
   symbols: SymbolTable;
-  path: Expression;
-  params: Expression[];
-  hash: Hash;
-  escaped: boolean;
-  strip: StripFlags;
+  trusting: boolean;
 }
 
-export interface BlockStatement extends BaseNode {
+export interface BlockStatement extends CallNode {
   type: 'BlockStatement';
-  path: Expression;
-  params: Expression[];
-  hash: Hash;
   program: Block;
   inverse: Optional<Block>;
-  openStrip: StripFlags;
-  inverseStrip: StripFlags;
-  closeStrip: StripFlags;
-
-  // Printer extension
-  chained?: boolean;
 }
 
-export interface ElementModifierStatement extends BaseNode {
+export interface ElementModifierStatement extends CallNode {
   type: 'ElementModifierStatement';
-  path: Expression;
-  params: Expression[];
-  hash: Hash;
 }
 
 export interface PartialStatement extends BaseNode {
   type: 'PartialStatement';
   name: PathExpression | SubExpression;
-  params: Expression[];
+  params: InternalExpression[];
   hash: Hash;
   indent: string;
   strip: StripFlags;
@@ -146,7 +146,7 @@ export interface BaseElementNode extends BaseNode {
 }
 
 export type StatementName =
-  | 'MustacheStatement'
+  | 'AppendStatement'
   | 'CommentStatement'
   | 'BlockStatement'
   | 'PartialStatement'
@@ -165,7 +165,7 @@ export interface NamedBlockNode extends BaseElementNode {
 
 export interface ComponentNode extends BaseElementNode {
   type: 'Component';
-  head: Expression;
+  head: InternalExpression;
   blocks: NamedBlockNode | NamedBlockNode[] | null;
 }
 
@@ -181,7 +181,7 @@ export type ElementNode = NamedBlockNode | ComponentNode | SimpleElementNode;
 export interface AttrNode extends BaseNode {
   type: 'AttrNode';
   name: string;
-  value: Expression;
+  value: InternalExpression;
   trusting: boolean;
 }
 
@@ -192,16 +192,14 @@ export interface TextNode extends BaseNode {
 
 export interface Interpolate extends BaseNode {
   type: 'Interpolate';
-  parts: PresentArray<Expression>;
+  parts: PresentArray<InternalExpression>;
 }
 
-export type ExpressionName = 'SubExpression' | 'PathExpression' | 'Literal' | 'Interpolate';
+export type ExpressionName = 'SubExpression' | 'PathExpression' | 'Literal';
+export type InternalExpressionName = ExpressionName | 'Interpolate';
 
-export interface SubExpression extends Call {
+export interface SubExpression extends CallNode {
   type: 'SubExpression';
-  path: Expression;
-  params: Expression[];
-  hash: Hash;
 }
 
 export interface ThisHead {
@@ -224,7 +222,7 @@ export interface VarHead {
 export interface FreeVarHead {
   type: 'FreeVarHead';
   name: string;
-  context: ExpressionContext;
+  context: VariableResolution;
   loc?: SourceLocation;
 }
 
@@ -274,7 +272,7 @@ export interface Hash extends BaseNode {
 export interface HashPair extends BaseNode {
   type: 'HashPair';
   key: string;
-  value: Expression;
+  value: InternalExpression;
 }
 
 export interface StripFlags {
@@ -292,7 +290,7 @@ export interface Nodes {
   MustacheCommentStatement: MustacheCommentStatement;
   TextNode: TextNode;
   Literal: Literal;
-  MustacheStatement: MustacheStatement;
+  AppendStatement: AppendStatement;
   ElementModifierStatement: ElementModifierStatement;
   PartialStatement: PartialStatement;
   AttrNode: AttrNode;
@@ -308,4 +306,6 @@ export type Node = Nodes[NodeType];
 
 export type Statement = Nodes[StatementName];
 export type Expression = Nodes[ExpressionName];
+export type InternalExpression = Nodes[InternalExpressionName];
+export type CallExpression = Nodes[CallNodeName];
 export type TopLevelStatement = Statement | Nodes['Block'];

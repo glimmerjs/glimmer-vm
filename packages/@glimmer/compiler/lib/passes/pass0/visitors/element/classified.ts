@@ -6,8 +6,7 @@ import { getAttrNamespace } from '../../../../utils';
 // import { Option } from '@glimmer/interfaces';
 import * as pass1 from '../../../pass1/hir';
 import { VisitorContext } from '../../context';
-import { assertIsSimpleHelper, isHelperInvocation } from '../../utils/is-node';
-import { dynamicAttrValue } from './element-node';
+import { assertIsValidHelper, isHelperInvocation } from '../../utils/is-node';
 
 export type ValidAttr = pass1.Attr | pass1.AttrSplat;
 
@@ -22,12 +21,6 @@ export interface Classified<Body> {
   arg(attr: ASTv2.AttrNode, classified: ClassifiedElement<Body>): Result<pass1.NamedArgument>;
   toStatement(classified: ClassifiedElement<Body>, prepared: PreparedArgs<Body>): pass1.Statement;
   body(classified: ClassifiedElement<Body>): Result<Body>;
-  // selfClosing(block: pass1.NamedBlock, classified: ClassifiedElement<Body>): Result<Body>;
-  // namedBlock(block: pass1.NamedBlock, classified: ClassifiedElement<Body>): Result<Body>;
-  // namedBlocks(
-  //   blocks: PresentArray<pass1.NamedBlock>,
-  //   classified: ClassifiedElement<Body>
-  // ): Result<Body>;
 }
 
 export class ClassifiedElement<Body> {
@@ -50,7 +43,7 @@ export class ClassifiedElement<Body> {
     let rawValue = attr.value;
 
     let namespace = getAttrNamespace(name) || undefined;
-    let value = dynamicAttrValue(this.ctx, rawValue);
+    let value = this.ctx.utils.visitExpr(rawValue);
 
     let isTrusting = attr.trusting;
 
@@ -77,13 +70,13 @@ export class ClassifiedElement<Body> {
 
   private modifier(modifier: ASTv2.ElementModifierStatement): pass1.Modifier {
     if (isHelperInvocation(modifier)) {
-      assertIsSimpleHelper(modifier, modifier.loc, 'modifier');
+      assertIsValidHelper(modifier, modifier.loc, 'modifier');
     }
 
     return this.ctx.utils
       .op(pass1.Modifier, {
-        head: this.ctx.utils.visitExpr(modifier.path),
-        params: this.ctx.utils.params({ path: modifier.path, params: modifier.params }),
+        head: this.ctx.utils.visitExpr(modifier.func),
+        params: this.ctx.utils.params({ func: modifier.func, params: modifier.params }),
         hash: this.ctx.utils.hash(modifier.hash),
       })
       .loc(modifier);

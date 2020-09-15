@@ -9,7 +9,9 @@ import { Err, intoResult, MaybeResult, Ok, Result, ResultArray } from '../../sha
 import { SourceOffsets } from '../../source/offsets';
 import { Source } from '../../source/source';
 import * as hir from '../pass1/hir';
-import { buildPath } from './utils/builders';
+import { EXPR_KEYWORDS } from './keywords';
+import { APPEND_KEYWORDS } from './keywords/append';
+import { BLOCK_KEYWORDS } from './keywords/block';
 import { ExpressionOut, EXPRESSIONS, isExpr, Pass0Expressions } from './visitors/expressions';
 import { isStatement, Pass0Statements, Pass1Out, STATEMENTS } from './visitors/statements';
 
@@ -64,10 +66,6 @@ type VisitorReturn<
     : never
   : never;
 
-export interface ImmutableUtils {
-  slice(value: string): UnlocatedOp<hir.SourceSlice>;
-}
-
 /**
  * This is the mutable state for this compiler pass.
  */
@@ -79,12 +77,6 @@ export class NormalizationState {
   }
 }
 
-export interface GlimmerCompileOptions extends PrecompileOptions {
-  id?: TemplateIdFn;
-  meta?: object;
-  customizeComponentName?(input: string): string;
-}
-
 type VisitablePass1Op = hir.Statement | hir.Expr | hir.Internal;
 export type Pass1Stmt = hir.Statement | hir.Ignore;
 type Pass1Op = VisitablePass1Op | hir.Ignore;
@@ -92,6 +84,12 @@ type Pass1Op = VisitablePass1Op | hir.Ignore;
 interface OutOps {
   statement: Pass1Out;
   expression: ExpressionOut;
+}
+
+export interface GlimmerCompileOptions extends PrecompileOptions {
+  id?: TemplateIdFn;
+  meta?: object;
+  customizeComponentName?(input: string): string;
 }
 
 /**
@@ -118,10 +116,21 @@ function visit<K extends keyof OutOps>(
   }
 
   let result: MaybeResult<OutOps[keyof OutOps]>;
+
   if (isStatement(node)) {
-    result = STATEMENTS.visit(node, ctx);
+    if (BLOCK_KEYWORDS.match(node)) {
+      result = BLOCK_KEYWORDS.translate(node, ctx);
+    } else if (APPEND_KEYWORDS.match(node)) {
+      result = APPEND_KEYWORDS.translate(node, ctx);
+    } else {
+      result = STATEMENTS.visit(node, ctx);
+    }
   } else if (isExpr(node)) {
-    result = EXPRESSIONS.visit(node, ctx);
+    if (EXPR_KEYWORDS.match(node)) {
+      result = EXPR_KEYWORDS.translate(node, ctx);
+    } else {
+      result = EXPRESSIONS.visit(node, ctx);
+    }
   } else {
     throw new Error(
       `Attempted to visit a ${node.type}, but it wasn't handled by STATEMENTS or EXPRESSIONS`
@@ -140,7 +149,7 @@ function visit<K extends keyof OutOps>(
  * This class provides useful utilities to the visitors. None of the methods on this
  * class should work directly with the state in the Context.
  */
-export class NormalizationUtilities implements ImmutableUtils {
+export class NormalizationUtilities {
   constructor(private ctx: NormalizationContext, private state: NormalizationState) {}
 
   get context(): VisitorContext {
@@ -180,25 +189,25 @@ export class NormalizationUtilities implements ImmutableUtils {
   }
 
   args({
-    path,
+    func,
     params: exprs,
     hash: named,
   }: {
-    path: ASTv2.Expression;
-    params: ASTv2.Expression[];
+    func: ASTv2.Expression;
+    params: ASTv2.InternalExpression[];
     hash: ASTv2.Hash;
   }): { params: hir.Params; hash: hir.NamedArguments } {
-    return { params: this.params({ path, params: exprs }), hash: this.hash(named) };
+    return { params: this.params({ func, params: exprs }), hash: this.hash(named) };
   }
 
   params({
-    path,
+    func,
     params: list,
   }: {
-    path: ASTv2.Expression;
-    params: ASTv2.Expression[];
+    func: ASTv2.Expression;
+    params: ASTv2.InternalExpression[];
   }): hir.Params {
-    let offsets = paramsOffsets({ path, params: list }, this.ctx.source);
+    let offsets = paramsOffsets({ path: func, params: list }, this.ctx.source);
 
     return this.op(hir.Params, {
       list: OptionalList(list.map((expr) => this.visitExpr(expr))),
@@ -265,13 +274,7 @@ export class NormalizationUtilities implements ImmutableUtils {
   visitExpr<N extends keyof Pass0Expressions & keyof ASTv2.Nodes>(
     node: ASTv2.Node & ASTv2.Nodes[N]
   ): ExpressionOut {
-    if (node.type === 'PathExpression') {
-      return buildPath(this, node);
-    } else {
-      return visit('expression', node, this.context).expect(
-        'expressions should not return results'
-      );
-    }
+    return visit('expression', node, this.context).expect('expressions should not return results');
   }
   /**
    * Visit a list of statements, returning a list of `hir.Statement`.
@@ -309,11 +312,11 @@ export class NormalizationUtilities implements ImmutableUtils {
 }
 
 export function paramsOffsets(
-  { path, params }: { path: ASTv2.Expression; params: ASTv2.Expression[] },
+  { path, params }: { path: ASTv2.InternalExpression; params: ASTv2.InternalExpression[] },
   source: Source
 ): SourceOffsets {
   if (isPresent(params)) {
-    return source.offsetsFor(params as PresentArray<ASTv2.Expression>);
+    return source.offsetsFor(params as PresentArray<ASTv2.InternalExpression>);
   } else {
     // position empty params after the first space after the path expression
     let pos = source.offsetsFor(path).end + 1;

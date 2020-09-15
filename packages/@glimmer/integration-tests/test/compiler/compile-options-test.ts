@@ -47,7 +47,7 @@ module('[glimmer-compiler] precompile', ({ test }) => {
 
     glimmerAssert(
       Array.isArray(componentNameExpr) &&
-        componentNameExpr[0] === SexpOpcodes.GetFreeInComponentHead,
+        componentNameExpr[0] === SexpOpcodes.GetFreeAsComponentHead,
       `component name is a free variable lookup`
     );
 

@@ -134,15 +134,6 @@ export default class WireFormatDebugger {
             this.formatBlocks(opcode[4]),
           ];
 
-        // case Op.DynamicComponent:
-        //   return [
-        //     'dynamic-component',
-        //     this.formatOpcode(opcode[1]),
-        //     this.formatAttrs(opcode[2]),
-        //     this.formatHash(opcode[3]),
-        //     this.formatBlocks(opcode[4]),
-        //   ];
-
         case Op.HasBlock:
           return ['has-block', this.formatOpcode(opcode[1])];
 
@@ -166,26 +157,32 @@ export default class WireFormatDebugger {
         case Op.GetPath:
           return ['get-expr-path', this.formatOpcode(opcode[1]), opcode[2]];
 
-        case Op.GetFree:
-          return ['get-free', this.program.upvars[opcode[1]]];
+        case Op.GetStrictFree:
+          return ['get-strict-free', this.program.upvars[opcode[1]]];
 
-        case Op.GetFreeInAppendSingleId:
-          return ['get-free-in-append-single-id', this.program.upvars[opcode[1]]];
+        case Op.GetFreeAsThisFallback:
+          return ['GetFreeAsThisFallback', this.program.upvars[opcode[1]]];
 
-        case Op.GetFreeInBlockHead:
-          return ['get-free-in-block-head', this.program.upvars[opcode[1]]];
+        case Op.GetFreeAsComponentOrHelperHeadOrThisFallback:
+          return ['GetFreeAsComponentOrHelperHeadOrThisFallback', this.program.upvars[opcode[1]]];
 
-        case Op.GetFreeInCallHead:
-          return ['get-free-in-call-head', this.program.upvars[opcode[1]]];
+        case Op.GetFreeAsComponentOrHelperHead:
+          return ['GetFreeAsComponentOrHelperHead', this.program.upvars[opcode[1]]];
 
-        case Op.GetFreeInComponentHead:
-          return ['get-free-in-component-head', this.program.upvars[opcode[1]]];
+        case Op.GetFreeAsHelperHeadOrThisFallback:
+          return ['GetFreeAsHelperHeadOrThisFallback', this.program.upvars[opcode[1]]];
 
-        case Op.GetFreeInExpression:
-          return ['get-free-in-expression', this.program.upvars[opcode[1]]];
+        case Op.GetFreeAsBlockHead:
+          return ['GetFreeAsBlockHead', this.program.upvars[opcode[1]]];
 
-        case Op.GetFreeInModifierHead:
-          return ['get-free-in-modifier-head', this.program.upvars[opcode[1]]];
+        case Op.GetFreeAsCallHead:
+          return ['GetFreeAsCallHead', this.program.upvars[opcode[1]]];
+
+        case Op.GetFreeAsComponentHead:
+          return ['GetFreeAsComponentHead', this.program.upvars[opcode[1]]];
+
+        case Op.GetFreeAsModifierHead:
+          return ['GetFreeAsModifierHead', this.program.upvars[opcode[1]]];
 
         case Op.GetSymbol: {
           if (opcode[1] === 0) {

@@ -1,15 +1,15 @@
-import * as pass2 from '../pass2/ops';
+import * as mir from '../pass2/mir';
 
 export class ComponentBlock {
-  private attrs: pass2.ElementParameter[] = [];
-  private args: pass2.Arg[] = [];
+  private attrs: mir.ElementParameter[] = [];
+  private args: mir.Arg[] = [];
   private inParams = true;
-  private blocks: pass2.NamedBlock[] = [];
-  private statements: pass2.Statement[] = [];
+  private blocks: mir.NamedBlock[] = [];
+  private statements: mir.Statement[] = [];
 
   constructor(private selfClosing: boolean) {}
 
-  push(...statements: pass2.Statement[]): void {
+  push(...statements: mir.Statement[]): void {
     for (let statement of statements) {
       if (this.inParams) {
         if (isArg(statement)) {
@@ -25,7 +25,7 @@ export class ComponentBlock {
     }
   }
 
-  pushBlock(block: pass2.NamedBlock): void {
+  pushBlock(block: mir.NamedBlock): void {
     if (this.selfClosing) {
       throw new Error('Compile Error: self-closing components cannot have blocks');
     }
@@ -34,13 +34,11 @@ export class ComponentBlock {
   }
 }
 
-export function isArg(statement: pass2.Statement): statement is pass2.StaticArg | pass2.DynamicArg {
+export function isArg(statement: mir.Statement): statement is mir.StaticArg | mir.DynamicArg {
   return statement.name === 'StaticArg' || statement.name === 'DynamicArg';
 }
 
-export function isElementParameter(
-  statement: pass2.Statement
-): statement is pass2.ElementParameter {
+export function isElementParameter(statement: mir.Statement): statement is mir.ElementParameter {
   switch (statement.name) {
     case 'StaticSimpleAttr':
     case 'StaticComponentAttr':

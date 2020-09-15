@@ -1,59 +1,56 @@
 import { mapPresent } from '@glimmer/util';
-import * as pass1 from './hir';
-import * as pass2 from '../pass2/ops';
+import * as hir from './hir';
+import * as mir from '../pass2/mir';
 import { OpArgs } from '../../shared/op';
 import { Context, MapVisitorsInterface } from './context';
 
 export class Pass1Internal
-  implements MapVisitorsInterface<Exclude<pass1.Internal, pass1.Ignore>, pass2.Internal> {
-  SourceSlice(ctx: Context, args: OpArgs<pass1.SourceSlice>): pass2.SourceSlice {
-    return ctx.op(pass2.SourceSlice, args);
+  implements MapVisitorsInterface<Exclude<hir.Internal, hir.Ignore>, mir.Internal> {
+  SourceSlice(ctx: Context, args: OpArgs<hir.SourceSlice>): mir.SourceSlice {
+    return ctx.op(mir.SourceSlice, args);
   }
 
-  Params(ctx: Context, { list }: OpArgs<pass1.Params>): pass2.Positional {
+  Params(ctx: Context, { list }: OpArgs<hir.Params>): mir.Positional {
     let values = ctx.visitExprs(list);
-    return ctx.op(pass2.Positional, { list: values });
+    return ctx.op(mir.Positional, { list: values });
   }
 
-  NamedArguments(ctx: Context, { pairs }: OpArgs<pass1.NamedArguments>): pass2.NamedArguments {
-    return ctx.op(pass2.NamedArguments, { pairs: pairs.map((pair) => ctx.visitInternal(pair)) });
+  NamedArguments(ctx: Context, { pairs }: OpArgs<hir.NamedArguments>): mir.NamedArguments {
+    return ctx.op(mir.NamedArguments, { pairs: pairs.map((pair) => ctx.visitInternal(pair)) });
   }
 
-  NamedArgument(ctx: Context, { key, value }: OpArgs<pass1.NamedArgument>): pass2.NamedArgument {
-    return ctx.op(pass2.NamedArgument, { key, value: ctx.visitExpr(value) });
+  NamedArgument(ctx: Context, { key, value }: OpArgs<hir.NamedArgument>): mir.NamedArgument {
+    return ctx.op(mir.NamedArgument, { key, value: ctx.visitExpr(value) });
   }
 
-  NamedBlocks(ctx: Context, args: OpArgs<pass1.NamedBlocks>): pass2.NamedBlocks {
-    return ctx.op(pass2.NamedBlocks, {
+  NamedBlocks(ctx: Context, args: OpArgs<hir.NamedBlocks>): mir.NamedBlocks {
+    return ctx.op(mir.NamedBlocks, {
       blocks: mapPresent(args.blocks, (b) => ctx.visitInternal(b)),
     });
   }
 
-  EmptyNamedBlocks(ctx: Context): pass2.EmptyNamedBlocks {
-    return ctx.op(pass2.EmptyNamedBlocks);
+  EmptyNamedBlocks(ctx: Context): mir.EmptyNamedBlocks {
+    return ctx.op(mir.EmptyNamedBlocks);
   }
 
   NamedBlock(
     ctx: Context,
-    { name, table: symbols, body: block }: OpArgs<pass1.NamedBlock>
-  ): pass2.NamedBlock {
+    { name, table: symbols, body: block }: OpArgs<hir.NamedBlock>
+  ): mir.NamedBlock {
     return ctx.withBlock(symbols, () => {
       let statements = block.map((e) => ctx.visitStmt(e));
-      return ctx.op(pass2.NamedBlock, { symbols, name, body: statements });
+      return ctx.op(mir.NamedBlock, { symbols, name, body: statements });
     });
   }
 
-  ElementParameters(
-    ctx: Context,
-    { body }: OpArgs<pass1.ElementParameters>
-  ): pass2.ElementParameters {
-    return ctx.op(pass2.ElementParameters, {
-      body: mapPresent(body, (a) => ctx.visitStmt<pass1.ElementParameter>(a)),
+  ElementParameters(ctx: Context, { body }: OpArgs<hir.ElementParameters>): mir.ElementParameters {
+    return ctx.op(mir.ElementParameters, {
+      body: mapPresent(body, (a) => ctx.visitStmt<hir.ElementParameter>(a)),
     });
   }
 
-  EmptyElementParameters(ctx: Context): pass2.EmptyElementParameters {
-    return ctx.op(pass2.EmptyElementParameters);
+  EmptyElementParameters(ctx: Context): mir.EmptyElementParameters {
+    return ctx.op(mir.EmptyElementParameters);
   }
 }
 

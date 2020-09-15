@@ -19,7 +19,7 @@ import { InvokeComponent, InvokeStaticComponent } from '../opcode-builder/helper
 import { ReplayableIf } from '../opcode-builder/helpers/conditional';
 import { PushPrimitiveReference } from '../opcode-builder/helpers/vm';
 import { arr, strArray, templateMeta } from '../opcode-builder/operands';
-import { expectSloppyFreeVariable, isStrictFreeVariable, trySloppyFreeVariable } from '../utils';
+import { expectSloppyFreeVariable, isStrictFreeVariable } from '../utils';
 import { Compilers } from './compilers';
 
 export const STATEMENTS = new Compilers<StatementSexpOpcode, StatementCompileActions>();
@@ -107,7 +107,7 @@ STATEMENTS.add(SexpOpcodes.OpenElementWithSplat, ([, tag]) => {
 STATEMENTS.add(SexpOpcodes.Component, ([, tag, elementBlock, args, blocks], meta) => {
   let componentName: string | null = null;
 
-  if (Array.isArray(tag) && tag[0] === SexpOpcodes.GetFreeInComponentHead) {
+  if (Array.isArray(tag) && tag[0] === SexpOpcodes.GetFreeAsComponentHead) {
     componentName = meta.upvars![tag[1]];
   }
 

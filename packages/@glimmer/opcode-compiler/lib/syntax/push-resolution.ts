@@ -4,7 +4,6 @@ import {
   ContainingMetadata,
   Encoder,
   ExpressionCompileActions,
-  ExpressionContext,
   HighLevelResolutionOp,
   HighLevelResolutionOpcode,
   IfResolvedOp,
@@ -47,78 +46,34 @@ export default function pushResolutionOp(
     case HighLevelResolutionOpcode.ResolveFree: {
       throw new Error('Unimplemented HighLevelResolutionOpcode.ResolveFree');
     }
-    case HighLevelResolutionOpcode.ResolveContextualFree: {
-      let { freeVar, context: expressionContext } = operation.op1;
 
-      if (context.meta.asPartial) {
-        let name = context.meta.upvars![freeVar];
+    case HighLevelResolutionOpcode.ResolveAmbiguous: {
+      let { upvar, allowComponents } = operation.op1;
+      let resolver = context.syntax.program.resolver;
+      let name = context.meta.upvars![upvar];
 
-        concatExpressions(encoder, context, [op(Op.ResolveMaybeLocal, name)], constants);
+      let resolvedHelper = resolver.lookupHelper(name, context.meta.referrer);
+      let expressions: ExpressionCompileActions;
 
-        break;
-      }
+      if (resolvedHelper) {
+        expressions = Call({ handle: resolvedHelper, params: null, hash: null });
+      } else {
+        if (allowComponents) {
+          let resolvedComponent = resolver.lookupComponent(name, context.meta.referrer);
 
-      switch (expressionContext) {
-        case ExpressionContext.WithoutResolver: {
-          // in classic mode, this is always a this-fallback
-          let name = context.meta.upvars![freeVar];
-
-          concatExpressions(
-            encoder,
-            context,
-            [op(Op.GetVariable, 0), op(Op.GetProperty, name)],
-            constants
-          );
-
-          break;
-        }
-
-        case ExpressionContext.Ambiguous: {
-          let resolver = context.syntax.program.resolver;
-          let name = context.meta.upvars![freeVar];
-
-          let resolvedHelper = resolver.lookupHelper(name, context.meta.referrer);
-          let expressions: ExpressionCompileActions;
-
-          if (resolvedHelper) {
-            expressions = Call({ handle: resolvedHelper, params: null, hash: null });
-          } else {
-            // in classic mode, this is always a this-fallback
-            expressions = [op(Op.GetVariable, 0), op(Op.GetProperty, name)];
+          if (resolvedComponent) {
+            throw new Error(`unimplemented {{component-name}}`);
           }
-
-          concatExpressions(encoder, context, expressions, constants);
-
-          break;
         }
 
-        // case ExpressionContext.ComponentHead: {
-        //   let resolver = context.syntax.program.resolverDelegate;
-        //   let name = context.meta.upvars![freeVar];
-
-        //   let resolvedComponent = resolver.lookupComponent(name, context.meta.referrer);
-        //   let expressions: ExpressionCompileActions;
-
-        //   if (resolvedHelper) {
-        //     expressions = Call({ handle: resolvedHelper, params: null, hash: null });
-        //   } else {
-        //     // in classic mode, this is always a this-fallback
-        //     expressions = [op(Op.GetVariable, 0), op(Op.GetProperty, name)];
-        //   }
-
-        //   concatExpressions(encoder, context, expressions, constants);
-
-        //   break;
-        // }
-
-        default:
-          throw new Error(
-            `unimplemented: Can't evaluate expression in context ${expressionContext}`
-          );
+        expressions = [op(Op.GetVariable, 0), op(Op.GetProperty, name)];
       }
+
+      concatExpressions(encoder, context, expressions, constants);
 
       break;
     }
+
     default:
       return exhausted(operation);
   }

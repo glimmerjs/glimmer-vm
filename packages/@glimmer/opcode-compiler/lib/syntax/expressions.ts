@@ -1,7 +1,6 @@
 import {
   ContainingMetadata,
   ExpressionCompileActions,
-  ExpressionContext,
   Expressions,
   ExpressionSexpOpcode,
   Op,
@@ -97,29 +96,53 @@ function isComponent(expr: Expressions.Expression, meta: ContainingMetadata): bo
 }
 
 EXPRESSIONS.add(SexpOpcodes.GetSymbol, ([, sym]) => op(Op.GetVariable, sym));
-EXPRESSIONS.add(SexpOpcodes.GetFree, ([, sym]) => op('ResolveFree', sym));
-EXPRESSIONS.add(SexpOpcodes.GetFreeInAppendSingleId, ([, sym]) =>
-  op('ResolveContextualFree', { freeVar: sym, context: ExpressionContext.Ambiguous })
-);
-EXPRESSIONS.add(SexpOpcodes.GetFreeInExpression, ([, sym]) =>
-  op('ResolveContextualFree', { freeVar: sym, context: ExpressionContext.WithoutResolver })
-);
-EXPRESSIONS.add(SexpOpcodes.GetFreeInCallHead, ([, sym]) =>
-  op('ResolveContextualFree', { freeVar: sym, context: ExpressionContext.ResolveAsCallHead })
-);
-EXPRESSIONS.add(SexpOpcodes.GetFreeInBlockHead, ([, sym]) =>
-  op('ResolveContextualFree', { freeVar: sym, context: ExpressionContext.ResolveAsBlockHead })
-);
-EXPRESSIONS.add(SexpOpcodes.GetFreeInModifierHead, ([, sym]) =>
-  op('ResolveContextualFree', { freeVar: sym, context: ExpressionContext.ResolveAsModifierHead })
-);
+EXPRESSIONS.add(SexpOpcodes.GetStrictFree, ([, sym]) => op('ResolveFree', sym));
+EXPRESSIONS.add(SexpOpcodes.GetFreeAsThisFallback, ([, freeVar], meta) => {
+  if (meta.asPartial) {
+    let name = meta.upvars![freeVar];
 
-EXPRESSIONS.add(SexpOpcodes.GetFreeInComponentHead, ([, sym]) => {
-  return op('ResolveContextualFree', {
-    freeVar: sym,
-    context: ExpressionContext.ResolveAsComponentHead,
-  });
+    return op(Op.ResolveMaybeLocal, name);
+  } else {
+    return [op(Op.GetVariable, 0), op(Op.GetProperty, meta.upvars![freeVar])];
+  }
 });
+
+EXPRESSIONS.add(SexpOpcodes.GetFreeAsComponentOrHelperHeadOrThisFallback, ([, freeVar], meta) => {
+  if (meta.asPartial) {
+    let name = meta.upvars![freeVar];
+
+    return op(Op.ResolveMaybeLocal, name);
+  } else {
+    return op('ResolveAmbiguous', { upvar: freeVar, allowComponents: true });
+  }
+});
+
+EXPRESSIONS.add(SexpOpcodes.GetFreeAsHelperHeadOrThisFallback, ([, freeVar], meta) => {
+  if (meta.asPartial) {
+    let name = meta.upvars![freeVar];
+
+    return op(Op.ResolveMaybeLocal, name);
+  } else {
+    return op('ResolveAmbiguous', { upvar: freeVar, allowComponents: false });
+  }
+});
+
+// EXPRESSIONS.add(SexpOpcodes.GetFreeAsCallHead, ([, sym]) =>
+//   op('ResolveContextualFree', { freeVar: sym, context: ExpressionContext.ResolveAsCallHead })
+// );
+// EXPRESSIONS.add(SexpOpcodes.GetFreeAsBlockHead, ([, sym]) =>
+//   op('ResolveContextualFree', { freeVar: sym, context: ExpressionContext.ResolveAsBlockHead })
+// );
+// EXPRESSIONS.add(SexpOpcodes.GetFreeAsModifierHead, ([, sym]) =>
+//   op('ResolveContextualFree', { freeVar: sym, context: ExpressionContext.ResolveAsModifierHead })
+// );
+
+// EXPRESSIONS.add(SexpOpcodes.GetFreeAsComponentHead, ([, sym]) => {
+//   return op('ResolveContextualFree', {
+//     freeVar: sym,
+//     context: ExpressionContext.ResolveAsComponentHead,
+//   });
+// });
 
 EXPRESSIONS.add(SexpOpcodes.GetPath, ([, expr, path]) => {
   let exprs: ExpressionCompileActions = [];

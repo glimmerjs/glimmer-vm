@@ -1,4 +1,4 @@
-import { ExpressionContext, PresentArray } from '@glimmer/interfaces';
+import { VariableResolution, PresentArray } from '@glimmer/interfaces';
 import { OptionalList } from '../../shared/list';
 import { op, OpsTable } from '../../shared/op';
 import { BlockSymbolTable, ProgramSymbolTable, SymbolTable } from '@glimmer/syntax';
@@ -99,7 +99,7 @@ export class GetWithResolver extends op('GetWithResolver').args<{
 export class GetSymbol extends op('GetSymbol').args<{ symbol: number }>() {}
 export class GetFreeWithContext extends op('GetFreeWithContext').args<{
   symbol: number;
-  context: ExpressionContext;
+  context: VariableResolution;
 }>() {}
 /** strict mode */
 export class GetFree extends op('GetFree').args<{

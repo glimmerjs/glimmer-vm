@@ -11,6 +11,31 @@ interface JsonArray extends Array<JsonValue> {}
 export type TemplateReference = Optional<SerializedBlock>;
 export type YieldTo = number;
 
+/**
+ * A SloppyVariableResolution explains how a variable name should be resolved.
+ */
+export const enum VariableResolution {
+  Strict = 0,
+  // An `AmbiguousAppend` is a single identifier that is contained inside a curly (either in a
+  // content curly or an attribute curly)
+  AmbiguousAppend = 1,
+  // An `AmbiguousInvoke` is `{{<expr> y}}`. <expr> can refer to a helper or component
+  AmbiguousAppendInvoke = 2,
+  AmbiguousAttr = 3,
+  // A `SloppyReference` is a free variable that isn't an ambiguous append or an ambiguous
+  // invoke. It may refer to in-scope local variables if the template was invoked as a partial,
+  // otherwise it refers to a property on `this`.
+  SloppyFreeVariable = 4,
+  // A `CallHead` is the head of an expression that is definitely a call
+  ResolveAsCallHead = 5,
+  // A `BlockHead` is the head of an expression that is definitely a block
+  ResolveAsBlockHead = 6,
+  // A `ModifierHead` is the head of an expression that is definitely a modifir
+  ResolveAsModifierHead = 7,
+  // A `ComponentHead` is the head of an expression that is definitely a component
+  ResolveAsComponentHead = 8,
+}
+
 export const enum SexpOpcodes {
   // Statements
   Append = 1,
@@ -53,31 +78,43 @@ export const enum SexpOpcodes {
 
   // Get
   GetSymbol = 33, // GetPath + 0-2,
-  GetFree = 34,
-  GetFreeInAppendSingleId = 35, // GetContextualFree + 0-5
-  GetFreeInExpression = 36,
-  GetFreeInCallHead = 37,
-  GetFreeInBlockHead = 38,
-  GetFreeInModifierHead = 39,
-  GetFreeInComponentHead = 40,
+  GetStrictFree = 34,
+
+  // falls back to `this.` (or locals in the case of partials), but
+  // never turns into a component or helper invocation
+  GetFreeAsThisFallback = 35,
+  // `{{x}}` in append position (might be a helper or component invocation, otherwise fall back to `this`)
+  GetFreeAsComponentOrHelperHeadOrThisFallback = 36,
+  // a component or helper (`{{<expr> x}}` in append position)
+  GetFreeAsComponentOrHelperHead = 37,
+  // a helper or `this` fallback `attr={{x}}`
+  GetFreeAsHelperHeadOrThisFallback = 38,
+  // a call head `(x)`
+  GetFreeAsCallHead = 39,
+  GetFreeAsBlockHead = 40,
+  GetFreeAsModifierHead = 41,
+  GetFreeAsComponentHead = 42,
 
   // InElement
-  InElement = 41,
+  InElement = 43,
 
   GetStart = GetPath,
-  GetEnd = GetFreeInComponentHead,
-  GetSloppyFreeStart = GetFreeInAppendSingleId,
-  GetSloppyFreeEnd = GetFreeInComponentHead,
-  GetContextualFreeStart = GetFreeInAppendSingleId,
+  GetEnd = GetFreeAsComponentHead,
+  GetSloppyFreeStart = GetFreeAsComponentOrHelperHeadOrThisFallback,
+  GetSloppyFreeEnd = GetFreeAsComponentHead,
+  GetContextualFreeStart = GetFreeAsComponentOrHelperHeadOrThisFallback,
 }
 
 export type GetContextualFreeOp =
-  | SexpOpcodes.GetFreeInAppendSingleId
-  | SexpOpcodes.GetFreeInExpression
-  | SexpOpcodes.GetFreeInCallHead
-  | SexpOpcodes.GetFreeInBlockHead
-  | SexpOpcodes.GetFreeInModifierHead
-  | SexpOpcodes.GetFreeInComponentHead;
+  | SexpOpcodes.GetFreeAsComponentOrHelperHeadOrThisFallback
+  | SexpOpcodes.GetFreeAsComponentOrHelperHead
+  | SexpOpcodes.GetFreeAsHelperHeadOrThisFallback
+  | SexpOpcodes.GetFreeAsCallHead
+  | SexpOpcodes.GetFreeAsBlockHead
+  | SexpOpcodes.GetFreeAsModifierHead
+  | SexpOpcodes.GetFreeAsComponentHead
+  | SexpOpcodes.GetFreeAsThisFallback
+  | SexpOpcodes.GetStrictFree;
 
 export type StatementSexpOpcode = Statement[0];
 export type StatementSexpOpcodeMap = {
@@ -110,47 +147,39 @@ export namespace Core {
 
 export type CoreSyntax = Core.Syntax;
 
-export const enum ExpressionContext {
-  // An `Ambiguous` is a single identifier that is contained inside a curly (either in a
-  // content curly or an attribute curly)
-  Ambiguous = 0,
-  // A `Generic` uses context-free evaluation rules (e.g. `person.name` in `(call person.name)`
-  // or `person.name` in `@name={{person.name}}`). This represents a syntactic position
-  // that must evaluate as an expression by virtue of its position in the syntax.
-  WithoutResolver = 1,
-  // A `CallHead` is the head of an expression that is definitely a call
-  ResolveAsCallHead = 2,
-  // A `BlockHead` is the head of an expression that is definitely a block
-  ResolveAsBlockHead = 3,
-  // A `ModifierHead` is the head of an expression that is definitely a modifir
-  ResolveAsModifierHead = 4,
-  // A `ComponentHead` is the head of an expression that is definitely a component
-  ResolveAsComponentHead = 5,
-}
-
 export namespace Expressions {
   export type Path = Core.Path;
   export type Params = Core.Params;
   export type Hash = Core.Hash;
 
   export type GetSymbol = [SexpOpcodes.GetSymbol, number];
-  export type GetFree = [SexpOpcodes.GetFree, number];
-  export type GetFreeInAppendSingleId = [SexpOpcodes.GetFreeInAppendSingleId, number];
-  export type GetFreeInExpression = [SexpOpcodes.GetFreeInExpression, number];
-  export type GetFreeInCallHead = [SexpOpcodes.GetFreeInCallHead, number];
-  export type GetFreeInBlockHead = [SexpOpcodes.GetFreeInBlockHead, number];
-  export type GetFreeInModifierHead = [SexpOpcodes.GetFreeInModifierHead, number];
-  export type GetFreeInComponentHead = [SexpOpcodes.GetFreeInComponentHead, number];
+  export type GetStrictFree = [SexpOpcodes.GetStrictFree, number];
+  export type GetFreeAsThisFallback = [SexpOpcodes.GetFreeAsThisFallback, number];
+  export type GetFreeAsComponentOrHelperHeadOrThisFallback = [
+    SexpOpcodes.GetFreeAsComponentOrHelperHeadOrThisFallback,
+    number
+  ];
+  export type GetFreeAsComponentOrHelperHead = [SexpOpcodes.GetFreeAsComponentOrHelperHead, number];
+  export type GetFreeAsHelperHeadOrThisFallback = [
+    SexpOpcodes.GetFreeAsHelperHeadOrThisFallback,
+    number
+  ];
+  export type GetFreeAsCallHead = [SexpOpcodes.GetFreeAsCallHead, number];
+  export type GetFreeAsBlockHead = [SexpOpcodes.GetFreeAsBlockHead, number];
+  export type GetFreeAsModifierHead = [SexpOpcodes.GetFreeAsModifierHead, number];
+  export type GetFreeAsComponentHead = [SexpOpcodes.GetFreeAsComponentHead, number];
 
   export type GetContextualFree =
-    | GetFreeInAppendSingleId
-    | GetFreeInExpression
-    | GetFreeInCallHead
-    | GetFreeInBlockHead
-    | GetFreeInModifierHead
-    | GetFreeInComponentHead;
+    | GetFreeAsThisFallback
+    | GetFreeAsComponentOrHelperHeadOrThisFallback
+    | GetFreeAsComponentOrHelperHead
+    | GetFreeAsHelperHeadOrThisFallback
+    | GetFreeAsCallHead
+    | GetFreeAsBlockHead
+    | GetFreeAsModifierHead
+    | GetFreeAsComponentHead;
 
-  export type GetVar = GetSymbol | GetFree | GetContextualFree;
+  export type GetVar = GetSymbol | GetStrictFree | GetContextualFree;
   export type GetPath = [SexpOpcodes.GetPath, Expression, Path];
   export type Get = GetVar | GetPath;
 

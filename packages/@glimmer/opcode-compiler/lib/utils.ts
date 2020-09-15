@@ -69,8 +69,8 @@ export function namedBlocks(blocks: WireFormat.Core.Blocks, meta: ContainingMeta
 
 export function isStrictFreeVariable(
   expr: WireFormat.Expression
-): expr is WireFormat.Expressions.GetFree {
-  return Array.isArray(expr) && expr[0] === SexpOpcodes.GetFree;
+): expr is WireFormat.Expressions.GetStrictFree {
+  return Array.isArray(expr) && expr[0] === SexpOpcodes.GetStrictFree;
 }
 
 export function trySloppyFreeVariable(
@@ -134,7 +134,7 @@ export function isGet(
 export function isStrictGetFree(
   opcode: Expressions.GetVar | Expressions.GetPath
 ): opcode is Expressions.GetContextualFree {
-  return opcode[0] === SexpOpcodes.GetFree;
+  return opcode[0] === SexpOpcodes.GetStrictFree;
 }
 
 export function isSloppyGetFree(

@@ -1,10 +1,11 @@
 import {
   Dict,
-  ExpressionContext,
   Expressions,
   GetContextualFreeOp,
   Optional,
   PresentArray,
+  SexpOpcodes,
+  VariableResolution,
   WireFormat,
 } from '@glimmer/interfaces';
 import { assert, assertNever, dict, exhausted, isPresent, values } from '@glimmer/util';
@@ -25,7 +26,6 @@ import {
   NormalizedParams,
   NormalizedPath,
   NormalizedStatement,
-  NormalizedVar,
   normalizeStatement,
   Variable,
   VariableKind,
@@ -210,7 +210,7 @@ export function buildStatement(
       return [
         [
           normalized.trusted ? Op.TrustingAppend : Op.Append,
-          buildExpression(normalized.expr, 'PossibleAmbiguous', symbols),
+          buildExpression(normalized.expr, 'Append', symbols),
         ],
       ];
     }
@@ -221,9 +221,9 @@ export function buildStatement(
         ? buildParams(params, symbols)
         : null;
       let builtHash: WireFormat.Core.Hash = hash ? buildHash(hash, symbols) : null;
-      let builtExpr: WireFormat.Expression = buildHead(
+      let builtExpr: WireFormat.Expression = buildCallHead(
         path,
-        ExpressionContext.ResolveAsCallHead,
+        VariableResolution.AmbiguousAppendInvoke,
         symbols
       );
 
@@ -244,7 +244,7 @@ export function buildStatement(
       let blocks = buildBlocks(normalized.blocks, normalized.blockParams, symbols);
       let hash = buildHash(normalized.hash, symbols);
       let params = buildParams(normalized.params, symbols);
-      let path = buildHead(normalized.head, ExpressionContext.ResolveAsBlockHead, symbols);
+      let path = buildCallHead(normalized.head, VariableResolution.ResolveAsBlockHead, symbols);
 
       return [[Op.Block, path, params, hash, blocks]];
     }
@@ -341,7 +341,7 @@ export function buildAngleInvocation(
 
   return [
     Op.Component,
-    buildExpression(head, ExpressionContext.ResolveAsCallHead, symbols),
+    buildExpression(head, VariableResolution.ResolveAsComponentHead, symbols),
     isPresent(paramList) ? paramList : null,
     args,
     [['default'], [{ parameters: [], statements: blockList }]],
@@ -363,7 +363,7 @@ export function buildElementParams(
       params.push([Op.AttrSplat, symbols.block('&attrs')]);
     } else if (key[0] === '@') {
       keys.push(key);
-      values.push(buildExpression(value, ExpressionContext.WithoutResolver, symbols));
+      values.push(buildExpression(value, 'NotSloppy', symbols));
     } else {
       params.push(
         ...buildAttributeValue(
@@ -431,16 +431,35 @@ export function buildAttributeValue(
         [
           Op.DynamicAttr,
           name,
-          buildExpression(value, 'PossibleAmbiguous', symbols),
+          buildExpression(value, 'AttrValue', symbols),
           namespace ?? undefined,
         ],
       ];
   }
 }
 
+type ExprResolution =
+  | VariableResolution
+  | 'Append'
+  | 'AttrValue'
+  | 'SubExpression'
+  | 'Generic'
+  | 'NotSloppy';
+
+function varContext(context: ExprResolution, bare: boolean): VarResolution {
+  switch (context) {
+    case 'Append':
+      return bare ? 'AppendBare' : 'AppendInvoke';
+    case 'AttrValue':
+      return bare ? 'AttrValueBare' : 'AttrValueInvoke';
+    default:
+      return context;
+  }
+}
+
 export function buildExpression(
   expr: NormalizedExpression,
-  context: ExpressionContext | 'PossibleAmbiguous',
+  context: ExprResolution,
   symbols: Symbols
 ): WireFormat.Expression {
   switch (expr.type) {
@@ -449,11 +468,7 @@ export function buildExpression(
     }
 
     case ExpressionKind.GetVar: {
-      return buildGetVar(
-        expr,
-        context === 'PossibleAmbiguous' ? ExpressionContext.Ambiguous : context,
-        symbols
-      );
+      return buildVar(expr.variable, varContext(context, true), symbols);
     }
 
     case ExpressionKind.Concat: {
@@ -463,7 +478,11 @@ export function buildExpression(
     case ExpressionKind.Call: {
       let builtParams = buildParams(expr.params, symbols);
       let builtHash = buildHash(expr.hash, symbols);
-      let builtExpr = buildHead(expr.head, ExpressionContext.ResolveAsCallHead, symbols);
+      let builtExpr = buildCallHead(
+        expr.head,
+        context === 'Generic' ? 'SubExpression' : varContext(context, false),
+        symbols
+      );
 
       return [Op.Call, builtExpr, builtParams, builtHash];
     }
@@ -472,8 +491,8 @@ export function buildExpression(
       return [
         Op.HasBlock,
         buildVar(
-          { kind: VariableKind.Block, name: expr.name },
-          ExpressionContext.WithoutResolver,
+          { kind: VariableKind.Block, name: expr.name, mode: 'sloppy' },
+          VariableResolution.SloppyFreeVariable,
           symbols
         ),
       ];
@@ -483,8 +502,8 @@ export function buildExpression(
       return [
         Op.HasBlockParams,
         buildVar(
-          { kind: VariableKind.Block, name: expr.name },
-          ExpressionContext.WithoutResolver,
+          { kind: VariableKind.Block, name: expr.name, mode: 'sloppy' },
+          VariableResolution.SloppyFreeVariable,
           symbols
         ),
       ];
@@ -503,44 +522,46 @@ export function buildExpression(
   }
 }
 
-export function buildHead(
-  head: NormalizedHead,
-  context: ExpressionContext,
+export function buildCallHead(
+  callHead: NormalizedHead,
+  context: VarResolution,
   symbols: Symbols
 ): Expressions.GetVar | Expressions.GetPath {
-  if (head.type === ExpressionKind.GetVar) {
-    return buildGetVar(head, context, symbols);
+  if (callHead.type === ExpressionKind.GetVar) {
+    return buildVar(callHead.variable, context, symbols);
   } else {
-    return buildGetPath(head, symbols);
+    return buildGetPath(callHead, symbols);
   }
 }
 
-export function buildGetVar(
-  head: NormalizedVar,
-  context: ExpressionContext,
-  symbols: Symbols
-): Expressions.GetVar {
-  return buildVar(head.variable, context, symbols);
+export function buildGetPath(head: NormalizedPath, symbols: Symbols): Expressions.GetPath {
+  return buildVar(head.path.head, VariableResolution.SloppyFreeVariable, symbols, head.path.tail);
 }
 
-export function buildGetPath(head: NormalizedPath, symbols: Symbols): Expressions.GetPath {
-  return buildVar(head.path.head, ExpressionContext.WithoutResolver, symbols, head.path.tail);
-}
+type VarResolution =
+  | VariableResolution
+  | 'AppendBare'
+  | 'AppendInvoke'
+  | 'AttrValueBare'
+  | 'AttrValueInvoke'
+  | 'SubExpression'
+  | 'Generic'
+  | 'NotSloppy';
 
 export function buildVar(
   head: Variable,
-  context: ExpressionContext,
+  context: VarResolution,
   symbols: Symbols,
   path: PresentArray<string>
 ): Expressions.GetPath;
 export function buildVar(
   head: Variable,
-  context: ExpressionContext,
+  context: VarResolution,
   symbols: Symbols
 ): Expressions.GetVar;
 export function buildVar(
   head: Variable,
-  context: ExpressionContext,
+  context: VarResolution,
   symbols: Symbols,
   path?: PresentArray<string>
 ): Expressions.GetPath | Expressions.GetVar {
@@ -548,7 +569,23 @@ export function buildVar(
   let sym: number;
   switch (head.kind) {
     case VariableKind.Free:
-      op = expressionContextOp(context);
+      if (context === 'NotSloppy') {
+        op = SexpOpcodes.GetStrictFree;
+      } else if (context === 'AppendBare') {
+        op = SexpOpcodes.GetFreeAsComponentOrHelperHeadOrThisFallback;
+      } else if (context === 'AppendInvoke') {
+        op = SexpOpcodes.GetFreeAsComponentOrHelperHead;
+      } else if (context === 'AttrValueBare') {
+        op = SexpOpcodes.GetFreeAsHelperHeadOrThisFallback;
+      } else if (context === 'AttrValueInvoke') {
+        op = SexpOpcodes.GetFreeAsCallHead;
+      } else if (context === 'SubExpression') {
+        op = SexpOpcodes.GetFreeAsCallHead;
+      } else if (context === 'Generic') {
+        op = SexpOpcodes.GetFreeAsThisFallback;
+      } else {
+        op = expressionContextOp(context);
+      }
       sym = symbols.freeVar(head.name);
       break;
     default:
@@ -582,20 +619,26 @@ function getSymbolForVar(
   }
 }
 
-export function expressionContextOp(context: ExpressionContext): GetContextualFreeOp {
+export function expressionContextOp(context: VariableResolution): GetContextualFreeOp {
   switch (context) {
-    case ExpressionContext.Ambiguous:
-      return Op.GetFreeInAppendSingleId;
-    case ExpressionContext.WithoutResolver:
-      return Op.GetFreeInExpression;
-    case ExpressionContext.ResolveAsCallHead:
-      return Op.GetFreeInCallHead;
-    case ExpressionContext.ResolveAsBlockHead:
-      return Op.GetFreeInBlockHead;
-    case ExpressionContext.ResolveAsModifierHead:
-      return Op.GetFreeInModifierHead;
-    case ExpressionContext.ResolveAsComponentHead:
-      return Op.GetFreeInComponentHead;
+    case VariableResolution.Strict:
+      return Op.GetStrictFree;
+    case VariableResolution.AmbiguousAppend:
+      return Op.GetFreeAsComponentOrHelperHeadOrThisFallback;
+    case VariableResolution.AmbiguousAppendInvoke:
+      return Op.GetFreeAsComponentOrHelperHead;
+    case VariableResolution.AmbiguousAttr:
+      return Op.GetFreeAsHelperHeadOrThisFallback;
+    case VariableResolution.SloppyFreeVariable:
+      return Op.GetFreeAsThisFallback;
+    case VariableResolution.ResolveAsCallHead:
+      return Op.GetFreeAsCallHead;
+    case VariableResolution.ResolveAsBlockHead:
+      return Op.GetFreeAsBlockHead;
+    case VariableResolution.ResolveAsModifierHead:
+      return Op.GetFreeAsModifierHead;
+    case VariableResolution.ResolveAsComponentHead:
+      return Op.GetFreeAsComponentHead;
     default:
       return exhausted(context);
   }
@@ -607,18 +650,14 @@ export function buildParams(
 ): Optional<WireFormat.Core.Params> {
   if (exprs === null || !isPresent(exprs)) return null;
 
-  return exprs.map((e) =>
-    buildExpression(e, ExpressionContext.WithoutResolver, symbols)
-  ) as WireFormat.Core.ConcatParams;
+  return exprs.map((e) => buildExpression(e, 'Generic', symbols)) as WireFormat.Core.ConcatParams;
 }
 
 export function buildConcat(
   exprs: [NormalizedExpression, ...NormalizedExpression[]],
   symbols: Symbols
 ): WireFormat.Core.ConcatParams {
-  return exprs.map((e) =>
-    buildExpression(e, 'PossibleAmbiguous', symbols)
-  ) as WireFormat.Core.ConcatParams;
+  return exprs.map((e) => buildExpression(e, 'AttrValue', symbols)) as WireFormat.Core.ConcatParams;
 }
 
 export function buildHash(exprs: Optional<NormalizedHash>, symbols: Symbols): WireFormat.Core.Hash {
@@ -628,7 +667,7 @@ export function buildHash(exprs: Optional<NormalizedHash>, symbols: Symbols): Wi
 
   Object.keys(exprs).forEach((key) => {
     out[0].push(key);
-    out[1].push(buildExpression(exprs[key], ExpressionContext.WithoutResolver, symbols));
+    out[1].push(buildExpression(exprs[key], 'Generic', symbols));
   });
 
   return out as WireFormat.Core.Hash;

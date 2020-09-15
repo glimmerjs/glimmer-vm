@@ -19,7 +19,9 @@ export class ClassifiedSimpleElement implements Classified<Body> {
   arg(attr: ASTv2.AttrNode): Result<pass1.NamedArgument> {
     return Err(
       new GlimmerSyntaxError(
-        `${attr.name} is not a valid attribute name. @arguments are only allowed on components, but the tag for this element (\`${this.tag}\`) is a regular, non-component HTML element.`,
+        `${
+          attr.name
+        } is not a valid attribute name. @arguments are only allowed on components, but the tag for this element (\`${this.tag.getString()}\`) is a regular, non-component HTML element.`,
         attr.loc
       )
     );

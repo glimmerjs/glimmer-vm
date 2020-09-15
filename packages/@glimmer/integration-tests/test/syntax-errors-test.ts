@@ -25,27 +25,6 @@ class SyntaxErrors extends RenderTest {
   }
 
   @test
-  'helper invocation with dot-paths are not allowed'() {
-    this.assert.throws(() => {
-      preprocess('{{foo.bar some="args"}}');
-    }, new Error('`foo.bar` is not a valid name for a helper on line 1.'));
-  }
-
-  @test
-  'sub-expression helper invocation with dot-paths are not allowed'() {
-    this.assert.throws(() => {
-      preprocess('{{log (foo.bar some="args")}}');
-    }, new Error('`foo.bar` is not a valid name for a helper on line 1.'));
-  }
-
-  @test
-  'sub-expression modifier invocation with dot-paths are not allowed'() {
-    this.assert.throws(() => {
-      preprocess('<div {{foo.bar some="args"}} />');
-    }, new Error('`foo.bar` is not a valid name for a modifier on line 1.'));
-  }
-
-  @test
   'Block params in HTML syntax - Throws exception if given zero parameters'() {
     this.assert.throws(() => {
       preprocess('<x-bar as ||>foo</x-bar>');

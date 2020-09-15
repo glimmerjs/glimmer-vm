@@ -3,16 +3,19 @@ import { assertPresent } from '@glimmer/util';
 import { Result } from '../../../shared/result';
 import * as pass1 from '../../pass1/hir';
 import { VisitorContext } from '../context';
-import { keyword, KeywordNode, keywords } from './impl';
+import { keywords } from './impl';
 
-export const IN_ELEMENT = keyword('in-element', {
+export const BLOCK_KEYWORDS = keywords('Block').kw('in-element', {
   assert(
-    statement: ASTv2.BlockStatement
-  ): { insertBefore?: ASTv2.Expression; destination: ASTv2.Expression } {
-    let { hash } = statement;
+    node: ASTv2.BlockStatement
+  ): {
+    insertBefore?: ASTv2.InternalExpression;
+    destination: ASTv2.InternalExpression;
+  } {
+    let { hash } = node;
 
-    let insertBefore: ASTv2.Expression | undefined = undefined;
-    let destination: ASTv2.Expression | undefined = undefined;
+    let insertBefore: ASTv2.InternalExpression | undefined = undefined;
+    let destination: ASTv2.InternalExpression | undefined = undefined;
 
     for (let { key, value } of hash.pairs) {
       if (key === 'guid') {
@@ -27,7 +30,7 @@ export const IN_ELEMENT = keyword('in-element', {
       }
     }
 
-    destination = assertPresent(statement.params)[0];
+    destination = assertPresent(node.params)[0];
 
     // TODO Better syntax checks
 
@@ -35,12 +38,12 @@ export const IN_ELEMENT = keyword('in-element', {
   },
 
   translate(
-    node: KeywordNode<ASTv2.BlockStatement>,
+    node: ASTv2.BlockStatement,
     ctx: VisitorContext,
     {
       insertBefore,
       destination,
-    }: { insertBefore?: ASTv2.Expression; destination: ASTv2.Expression }
+    }: { insertBefore?: ASTv2.InternalExpression; destination: ASTv2.InternalExpression }
   ): Result<pass1.InElement> {
     let { utils } = ctx;
 
@@ -56,5 +59,3 @@ export const IN_ELEMENT = keyword('in-element', {
     );
   },
 });
-
-export const BLOCK_KEYWORDS = keywords().add(IN_ELEMENT);

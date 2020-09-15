@@ -2,8 +2,9 @@ import { SexpOpcodes, WireFormat } from '@glimmer/interfaces';
 import { LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
 import { LOCAL_LOGGER } from '@glimmer/util';
 import { Op, OpArgs, OpsTable } from '../../shared/op';
+import { deflateTagName } from '../../utils';
 import { visitExpr, visitInternal } from './expressions';
-import * as pass2 from './ops';
+import * as mir from './mir';
 
 class WireStatements<S extends WireFormat.Statement = WireFormat.Statement> {
   constructor(private statements: S[]) {}
@@ -19,7 +20,7 @@ export type Visitors<O extends OpsTable<Op>, Out extends OutOp | void = OutOp | 
   [P in keyof O]: (args: OpArgs<O[P]>) => Out;
 };
 
-export type VisitableStatement = pass2.Op & { name: keyof StatementEncoder };
+export type VisitableStatement = mir.Op & { name: keyof StatementEncoder };
 
 export function visitStatement<N extends VisitableStatement>(
   node: N
@@ -54,16 +55,16 @@ export function visitStatements(statements: VisitableStatement[]): WireFormat.St
   return out;
 }
 
-export class StatementEncoder implements Visitors<pass2.StatementTable, OutOp> {
-  Partial({ target, table }: OpArgs<pass2.Partial>): WireFormat.Statements.Partial {
+export class StatementEncoder implements Visitors<mir.StatementTable, OutOp> {
+  Partial({ target, table }: OpArgs<mir.Partial>): WireFormat.Statements.Partial {
     return [SexpOpcodes.Partial, visitExpr(target), table.getEvalInfo()];
   }
 
-  Debugger({ table }: OpArgs<pass2.Debugger>): WireFormat.Statements.Debugger {
+  Debugger({ table }: OpArgs<mir.Debugger>): WireFormat.Statements.Debugger {
     return [SexpOpcodes.Debugger, table.getEvalInfo()];
   }
 
-  Yield({ to, params }: OpArgs<pass2.Yield>): WireFormat.Statements.Yield {
+  Yield({ to, params }: OpArgs<mir.Yield>): WireFormat.Statements.Yield {
     return [SexpOpcodes.Yield, to, visitInternal(params)];
   }
 
@@ -72,7 +73,7 @@ export class StatementEncoder implements Visitors<pass2.StatementTable, OutOp> {
     insertBefore,
     destination,
     block,
-  }: OpArgs<pass2.InElement>): WireFormat.Statements.InElement {
+  }: OpArgs<mir.InElement>): WireFormat.Statements.InElement {
     let wireBlock = visitInternal(block)[1];
     // let guid = args.guid;
     let wireDestination = visitExpr(destination);
@@ -83,51 +84,32 @@ export class StatementEncoder implements Visitors<pass2.StatementTable, OutOp> {
     } else {
       return [SexpOpcodes.InElement, wireBlock, guid, wireDestination, wireInsertBefore];
     }
-
-    // return ctx.op(out.InElement, {
-    //   guid,
-    //   block: ctx.visit(block),
-    //   insertBefore: ctx.visit(insertBefore),
-    //   destination: ctx.visit(destination),
-    // });
   }
 
-  InvokeBlock({ head, args, blocks }: OpArgs<pass2.InvokeBlock>): WireFormat.Statements.Block {
+  InvokeBlock({ head, args, blocks }: OpArgs<mir.InvokeBlock>): WireFormat.Statements.Block {
     return [SexpOpcodes.Block, visitExpr(head), ...visitInternal(args), visitInternal(blocks)];
   }
 
-  AppendTrustedHTML({
-    html,
-  }: OpArgs<pass2.AppendTrustedHTML>): WireFormat.Statements.TrustingAppend {
+  AppendTrustedHTML({ html }: OpArgs<mir.AppendTrustedHTML>): WireFormat.Statements.TrustingAppend {
     return [SexpOpcodes.TrustingAppend, visitExpr(html)];
   }
 
-  AppendTextNode({ text }: OpArgs<pass2.AppendTextNode>): WireFormat.Statements.Append {
+  AppendTextNode({ text }: OpArgs<mir.AppendTextNode>): WireFormat.Statements.Append {
     return [SexpOpcodes.Append, visitExpr(text)];
   }
 
-  AppendComment({ value }: OpArgs<pass2.AppendComment>): WireFormat.Statements.Comment {
+  AppendComment({ value }: OpArgs<mir.AppendComment>): WireFormat.Statements.Comment {
     return [SexpOpcodes.Comment, value];
   }
 
-  Modifier({ head, args }: OpArgs<pass2.Modifier>): WireFormat.Statements.Modifier {
-    // let head = ctx.popValue(EXPR);
-    // let params = ctx.popValue(PARAMS);
-    // let hash = ctx.popValue(HASH);
-
+  Modifier({ head, args }: OpArgs<mir.Modifier>): WireFormat.Statements.Modifier {
     return [SexpOpcodes.Modifier, visitExpr(head), ...visitInternal(args)];
   }
 
-  // TODO Merge pass2.SimpleElement and pass2.ElementWithDynamicFeatures
-  SimpleElement({
-    tag,
-    params,
-    body,
-    dynamicFeatures,
-  }: OpArgs<pass2.SimpleElement>): WireStatements {
+  SimpleElement({ tag, params, body, dynamicFeatures }: OpArgs<mir.SimpleElement>): WireStatements {
     let op = dynamicFeatures ? SexpOpcodes.OpenElementWithSplat : SexpOpcodes.OpenElement;
     return new WireStatements([
-      [op, tag.args.value /* TODO deflate */],
+      [op, deflateTagName(tag.args.value)],
       ...(visitInternal(params) || []),
       [SexpOpcodes.FlushElement],
       ...visitInternal(body)[1].statements,
@@ -135,12 +117,7 @@ export class StatementEncoder implements Visitors<pass2.StatementTable, OutOp> {
     ]);
   }
 
-  Component({
-    tag,
-    params,
-    args,
-    blocks,
-  }: OpArgs<pass2.Component>): WireFormat.Statements.Component {
+  Component({ tag, params, args, blocks }: OpArgs<mir.Component>): WireFormat.Statements.Component {
     let wireTag = visitExpr(tag);
     let wirePositional = visitInternal(params);
     let wireNamed = visitInternal(args);
@@ -150,52 +127,52 @@ export class StatementEncoder implements Visitors<pass2.StatementTable, OutOp> {
     return [SexpOpcodes.Component, wireTag, wirePositional, wireNamed, wireNamedBlocks];
   }
 
-  StaticArg({ name, value }: OpArgs<pass2.StaticArg>): WireFormat.Statements.StaticArg {
+  StaticArg({ name, value }: OpArgs<mir.StaticArg>): WireFormat.Statements.StaticArg {
     return [SexpOpcodes.StaticArg, visitInternal(name), visitInternal(value)];
   }
 
-  DynamicArg({ name, value }: OpArgs<pass2.DynamicArg>): WireFormat.Statements.DynamicArg {
+  DynamicArg({ name, value }: OpArgs<mir.DynamicArg>): WireFormat.Statements.DynamicArg {
     return [SexpOpcodes.DynamicArg, visitInternal(name), visitExpr(value)];
   }
 
-  StaticSimpleAttr(args: OpArgs<pass2.StaticSimpleAttr>): WireFormat.Statements.StaticAttr {
+  StaticSimpleAttr(args: OpArgs<mir.StaticSimpleAttr>): WireFormat.Statements.StaticAttr {
     return [SexpOpcodes.StaticAttr, ...staticAttr(args)];
   }
 
   StaticComponentAttr(
-    args: OpArgs<pass2.StaticComponentAttr>
+    args: OpArgs<mir.StaticComponentAttr>
   ): WireFormat.Statements.StaticComponentAttr {
     return [SexpOpcodes.StaticComponentAttr, ...staticAttr(args)];
   }
 
-  ComponentAttr(args: OpArgs<pass2.ComponentAttr>): WireFormat.Statements.ComponentAttr {
+  ComponentAttr(args: OpArgs<mir.ComponentAttr>): WireFormat.Statements.ComponentAttr {
     return [SexpOpcodes.ComponentAttr, ...dynamicAttr(args)];
   }
 
-  DynamicSimpleAttr(args: OpArgs<pass2.DynamicSimpleAttr>): WireFormat.Statements.DynamicAttr {
+  DynamicSimpleAttr(args: OpArgs<mir.DynamicSimpleAttr>): WireFormat.Statements.DynamicAttr {
     return [SexpOpcodes.DynamicAttr, ...dynamicAttr(args)];
   }
 
   TrustingComponentAttr(
-    args: OpArgs<pass2.TrustingComponentAttr>
+    args: OpArgs<mir.TrustingComponentAttr>
   ): WireFormat.Statements.TrustingComponentAttr {
     return [SexpOpcodes.TrustingComponentAttr, ...dynamicAttr(args)];
   }
 
   TrustingDynamicAttr(
-    args: OpArgs<pass2.TrustingDynamicAttr>
+    args: OpArgs<mir.TrustingDynamicAttr>
   ): WireFormat.Statements.TrustingDynamicAttr {
     return [SexpOpcodes.TrustingDynamicAttr, ...dynamicAttr(args)];
   }
 
-  AttrSplat({ symbol }: OpArgs<pass2.AttrSplat>): WireFormat.Statements.AttrSplat {
+  AttrSplat({ symbol }: OpArgs<mir.AttrSplat>): WireFormat.Statements.AttrSplat {
     return [SexpOpcodes.AttrSplat, symbol];
   }
 }
 
 export const STATEMENTS = new StatementEncoder();
 
-export function isStatement(input: pass2.Op): input is pass2.Statement {
+export function isStatement(input: mir.Op): input is mir.Statement {
   return input.name in STATEMENTS;
 }
 
@@ -206,8 +183,8 @@ function staticAttr({
   value,
   namespace,
 }: {
-  name: pass2.SourceSlice;
-  value: pass2.SourceSlice;
+  name: mir.SourceSlice;
+  value: mir.SourceSlice;
   namespace?: string;
 }): StaticAttrArgs {
   let out: StaticAttrArgs = [visitInternal(name), visitInternal(value)];
@@ -226,8 +203,8 @@ function dynamicAttr({
   value,
   namespace,
 }: {
-  name: pass2.SourceSlice;
-  value: pass2.Expr;
+  name: mir.SourceSlice;
+  value: mir.Expr;
   namespace?: string;
 }): DynamicAttrArgs {
   let out: DynamicAttrArgs = [visitInternal(name), visitExpr(value)];

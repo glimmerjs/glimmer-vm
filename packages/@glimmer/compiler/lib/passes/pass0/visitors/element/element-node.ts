@@ -53,7 +53,7 @@ import { VisitorContext } from '../../context';
 //   }
 // }
 
-export function dynamicAttrValue(ctx: VisitorContext, value: ASTv2.Expression): pass1.Expr {
+export function dynamicAttrValue(ctx: VisitorContext, value: ASTv2.InternalExpression): pass1.Expr {
   let { utils } = ctx;
 
   if (value.type === 'Interpolate') {

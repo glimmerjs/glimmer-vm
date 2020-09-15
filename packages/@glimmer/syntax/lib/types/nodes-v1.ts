@@ -69,6 +69,12 @@ export interface Template extends CommonProgram {
 
 export type PossiblyDeprecatedBlock = Block | Template;
 
+export interface CallParts {
+  path: Expression;
+  params: Expression[];
+  hash: Hash;
+}
+
 export interface Call extends BaseNode {
   name?: Expression;
   path: Expression;
@@ -216,7 +222,13 @@ export interface LocalVarHead {
 
 export type PathHead = ThisHead | AtHead | VarHead;
 
-export interface PathExpression extends BaseNode {
+export interface MinimalPathExpression extends BaseNode {
+  type: 'PathExpression';
+  head: PathHead;
+  tail: string[];
+}
+
+export interface PathExpression extends MinimalPathExpression {
   type: 'PathExpression';
   original: string;
   head: PathHead;

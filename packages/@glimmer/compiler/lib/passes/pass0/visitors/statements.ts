@@ -5,8 +5,7 @@ import { UnlocatedOp } from '../../../shared/op';
 import { Ok, Result } from '../../../shared/result';
 import * as pass1 from '../../pass1/hir';
 import { Pass1Stmt, VisitorContext, VisitorInterface } from '../context';
-import { BLOCK_KEYWORDS, EXPR_KEYWORDS, STATEMENT_KEYWORDS } from '../keywords';
-import { assertIsSimpleHelper, isHelperInvocation } from '../utils/is-node';
+import { BLOCK_KEYWORDS } from '../keywords';
 import { ClassifiedElement, hasDynamicFeatures } from './element/classified';
 import { ClassifiedComponent } from './element/component';
 import { ClassifiedSimpleElement } from './element/simple-element';
@@ -57,7 +56,7 @@ export class Pass0Statements implements VisitorInterface<ASTv2.Statement, Pass1O
               pass1.BlockInvocation,
               assign(
                 {
-                  head: ctx.utils.visitExpr(node.path),
+                  head: ctx.utils.visitExpr(node.func),
                 },
                 utils.args(node),
                 { blocks }
@@ -108,62 +107,15 @@ export class Pass0Statements implements VisitorInterface<ASTv2.Statement, Pass1O
     return utils.op(pass1.Ignore).loc(node);
   }
 
-  MustacheStatement(
-    mustache: ASTv2.MustacheStatement,
-    ctx: VisitorContext
-  ): Result<pass1.Statement> {
-    let { path } = mustache;
+  AppendStatement(append: ASTv2.AppendStatement, ctx: VisitorContext): Result<pass1.Statement> {
+    let { value } = append;
     let { utils } = ctx;
 
-    if (ASTv2.isLiteral(path)) {
-      return Ok(appendExpr(ctx, path, { trusted: !mustache.escaped }).loc(mustache));
+    if (ASTv2.isLiteral(value, 'string')) {
+      return Ok(appendStringLiteral(ctx, value, { trusted: append.trusting }).loc(append));
     }
 
-    if (STATEMENT_KEYWORDS.match(mustache)) {
-      return STATEMENT_KEYWORDS.translate(mustache, ctx);
-    }
-
-    // {{has-block}} or {{has-block-params}}
-    if (EXPR_KEYWORDS.match(mustache)) {
-      return Ok(
-        ctx.utils
-          .append(EXPR_KEYWORDS.translate(mustache, ctx).expect(), {
-            trusted: !mustache.escaped,
-          })
-          .loc(mustache)
-      );
-    }
-
-    if (!isHelperInvocation(mustache)) {
-      return Ok(
-        appendExpr(ctx, mustache.path, {
-          trusted: !mustache.escaped,
-        }).loc(mustache)
-      );
-    }
-
-    assertIsSimpleHelper(mustache, mustache.loc, 'helper');
-
-    return Ok(
-      utils
-        .append(
-          utils
-            .op(
-              pass1.SubExpression,
-              assign(
-                {
-                  head: ctx.utils.visitExpr(mustache.path),
-                },
-                utils.args(mustache)
-              )
-            )
-            .loc(mustache),
-          {
-            trusted: !mustache.escaped,
-          }
-        )
-        .loc(mustache)
-    );
+    return Ok(utils.append(utils.visitExpr(value), { trusted: append.trusting }).loc(append));
   }
 
   TextNode(text: ASTv2.TextNode, { utils }: VisitorContext): pass1.Statement {
@@ -195,9 +147,9 @@ export function isStatement(
   return node.type in STATEMENTS;
 }
 
-function appendExpr(
+function appendStringLiteral(
   ctx: VisitorContext,
-  expr: ASTv2.Expression,
+  expr: ASTv2.InternalExpression,
   { trusted }: { trusted: boolean }
 ): UnlocatedOp<pass1.Statement> {
   if (trusted) {

@@ -7,7 +7,7 @@ import { InputOpArgs, OpArgs, OpConstructor, UnlocatedOp } from '../../shared/op
 import { OpFactory, Ops } from '../../shared/ops';
 import { SourceOffsets } from '../../source/offsets';
 import { Source } from '../../source/source';
-import * as pass2 from '../pass2/ops';
+import * as mir from '../pass2/mir';
 import { Pass1Expression } from './expressions';
 import { Pass1Internal } from './internal';
 import * as pass1 from './hir';
@@ -36,7 +36,7 @@ type MappingVisitorFunc<V extends Pass1Visitor, In extends pass1.AnyOp & { name:
 
 export type MapVisitorsInterface<
   In extends pass1.AnyOp = pass1.AnyOp,
-  Out extends pass2.Op = pass2.Op
+  Out extends mir.Op = mir.Op
 > = {
   [P in In['name']]: In extends { name: P } ? (ctx: Context, op: OpArgs<In>) => Out : never;
 };
@@ -69,7 +69,7 @@ type Pass1Visitor = Pass1VisitorMap[keyof Pass1VisitorMap];
 
 export class CompilerContext {
   readonly state: CompilerState;
-  readonly factory: OpFactory<pass2.Op>;
+  readonly factory: OpFactory<mir.Op>;
 
   constructor(
     readonly source: Source,
@@ -122,36 +122,36 @@ export class Context {
     return new GlimmerSyntaxError(message, offsets ? offsets.toLocation(this.ctx.source) : null);
   }
 
-  template(...args: InputOpArgs<pass2.Template>): UnlocatedOp<pass2.Template> {
-    let factory = new OpFactory<pass2.Template>(this.ctx.source);
+  template(...args: InputOpArgs<mir.Template>): UnlocatedOp<mir.Template> {
+    let factory = new OpFactory<mir.Template>(this.ctx.source);
 
-    return factory.op(pass2.Template, ...args);
+    return factory.op(mir.Template, ...args);
   }
 
   setHasEval(): void {
     this.templateSymbols.setHasEval();
   }
 
-  op<O extends pass2.Op>(name: OpConstructor<O>, ...args: InputOpArgs<O>): O {
+  op<O extends mir.Op>(name: OpConstructor<O>, ...args: InputOpArgs<O>): O {
     return this.unlocatedOp(name, ...args).offsets(this.offsets);
   }
 
-  unlocatedOp<O extends pass2.Op>(name: OpConstructor<O>, ...args: InputOpArgs<O>): UnlocatedOp<O> {
+  unlocatedOp<O extends mir.Op>(name: OpConstructor<O>, ...args: InputOpArgs<O>): UnlocatedOp<O> {
     return this.ctx.factory.op(name, ...args);
   }
 
-  ops<O extends pass2.Op>(...ops: Ops<O>[]): O[] {
+  ops<O extends mir.Op>(...ops: Ops<O>[]): O[] {
     return this.ctx.factory.ops(...ops);
   }
 
-  mapStmts<T>(input: T[], callback: (input: T) => pass2.Statement[]): pass2.Statement[] {
+  mapStmts<T>(input: T[], callback: (input: T) => mir.Statement[]): mir.Statement[] {
     return this.ctx.factory.flatMap(input, callback);
   }
 
   visitExprs<T extends pass1.Expr, L extends AnyOptionalList<T>>(
     input: L
-  ): MapList<T, pass2.Expr, L> {
-    return input.map((e) => this.visitExpr(e)) as MapList<T, pass2.Expr, L>;
+  ): MapList<T, mir.Expr, L> {
+    return input.map((e) => this.visitExpr(e)) as MapList<T, mir.Expr, L>;
   }
 
   visitInternals<T extends Exclude<pass1.Internal, pass1.Ignore>>(
@@ -160,12 +160,12 @@ export class Context {
     return mapPresent(input, (e) => this.visitInternal(e));
   }
 
-  map<T, Out extends pass2.Op>(
+  map<T, Out extends mir.Op>(
     input: PresentArray<T>,
     callback: (input: T) => Out
   ): PresentArray<Out>;
-  map<T, Out extends pass2.Op>(input: T[], callback: (input: T) => Out): Out[];
-  map<T, Out extends pass2.Op>(input: T[], callback: (input: T) => Out): Out[] {
+  map<T, Out extends mir.Op>(input: T[], callback: (input: T) => Out): Out[];
+  map<T, Out extends mir.Op>(input: T[], callback: (input: T) => Out): Out[] {
     return this.ctx.factory.map(input, callback);
   }
 
@@ -183,20 +183,20 @@ export class Context {
    * This method visits a possibly missing expression, ensuring that a stack value
    * will be on the stack for pass2 to pop off.
    */
-  visitOptionalExpr(node: pass1.Expr | undefined): pass2.Expr {
+  visitOptionalExpr(node: pass1.Expr | undefined): mir.Expr {
     if (node === undefined) {
-      return this.op(pass2.Missing);
+      return this.op(mir.Missing);
     } else {
       return this.visitExpr(node);
     }
   }
 
-  visitParams(list: OptionalList<pass1.Expr>): pass2.Positional {
+  visitParams(list: OptionalList<pass1.Expr>): mir.Positional {
     let params = list.map((expr) => this.visitExpr(expr));
-    return this.op(pass2.Positional, { list: params });
+    return this.op(mir.Positional, { list: params });
   }
 
-  visitExpr(node: pass1.Expr): pass2.Expr {
+  visitExpr(node: pass1.Expr): mir.Expr {
     if (LOCAL_SHOULD_LOG) {
       LOCAL_LOGGER.groupCollapsed(`pass1: visiting expr`, node.name);
       LOCAL_LOGGER.log(`expr`, node);
@@ -229,7 +229,7 @@ export class Context {
   }
 
   visitStmt<N extends pass1.Statement>(node: N): MapOutput<Pass1Statement, N>;
-  visitStmt(node: pass1.Statement): pass2.Statement {
+  visitStmt(node: pass1.Statement): mir.Statement {
     if (LOCAL_SHOULD_LOG) {
       LOCAL_LOGGER.groupCollapsed(`pass1: visiting statement`, node.name);
       LOCAL_LOGGER.log(`statement`, node);
@@ -244,14 +244,14 @@ export class Context {
     return result;
   }
 
-  visitArgs({ params, hash }: { params: pass1.Params; hash: pass1.NamedArguments }): pass2.Args {
+  visitArgs({ params, hash }: { params: pass1.Params; hash: pass1.NamedArguments }): mir.Args {
     let mappedParams = this.visitInternal(params);
     let mappedHash = this.visitInternal(hash);
 
-    return this.op(pass2.Args, { positional: mappedParams, named: mappedHash });
+    return this.op(mir.Args, { positional: mappedParams, named: mappedHash });
   }
 
-  params(params: pass1.Params): pass2.Internal {
+  params(params: pass1.Params): mir.Internal {
     return this.visitInternal(params);
   }
 }

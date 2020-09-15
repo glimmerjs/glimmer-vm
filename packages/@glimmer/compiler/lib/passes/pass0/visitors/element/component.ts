@@ -5,7 +5,6 @@ import { Ok, Result } from '../../../../shared/result';
 // import { Option } from '@glimmer/interfaces';
 import * as pass1 from '../../../pass1/hir';
 import { Classified, ClassifiedElement, PreparedArgs } from './classified';
-import { dynamicAttrValue } from './element-node';
 
 type Body = pass1.AnyNamedBlocks;
 
@@ -18,7 +17,7 @@ export class ClassifiedComponent implements Classified<Body> {
     let name = attr.name;
     let nameSlice = el.ctx.utils.slice(name).offsets(null);
 
-    let value = dynamicAttrValue(el.ctx, attr.value);
+    let value = el.ctx.utils.visitExpr(attr.value);
 
     return Ok(
       el.ctx.utils
