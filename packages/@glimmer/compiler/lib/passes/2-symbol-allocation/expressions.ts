@@ -1,5 +1,5 @@
 import * as hir from './hir';
-import * as mir from '../pass2/mir';
+import * as mir from '../3-encoding/mir';
 import { OpArgs } from '../../shared/op';
 import { Context, MapVisitorsInterface } from './context';
 

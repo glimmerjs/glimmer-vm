@@ -1,6 +1,6 @@
 import { ASTv2, GlimmerSyntaxError } from '@glimmer/syntax';
 import { Source } from '../../../source/source';
-import * as hir from '../../pass1/hir';
+import * as hir from '../../2-symbol-allocation/hir';
 import { GenericKeywordNode } from './impl';
 
 export function assertValidHasBlockUsage(

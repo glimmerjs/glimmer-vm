@@ -1,7 +1,7 @@
 import { ASTv2 } from '@glimmer/syntax';
 import { assign } from '@glimmer/util';
 import { PresentList } from '../../../shared/list';
-import * as pass1 from '../../pass1/hir';
+import * as pass1 from '../../2-symbol-allocation/hir';
 import { InfallibleVisitorInterface, VisitorContext } from '../context';
 import { buildPath } from '../utils/builders';
 import { assertIsValidHelper, hasPath } from '../utils/is-node';

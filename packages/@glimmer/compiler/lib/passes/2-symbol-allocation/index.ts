@@ -1,4 +1,4 @@
-import * as mir from '../pass2/mir';
+import * as mir from '../3-encoding/mir';
 import { Source } from '../../source/source';
 import { CompilerContext } from './context';
 import { EXPRESSIONS } from './expressions';

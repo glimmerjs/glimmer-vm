@@ -1,4 +1,4 @@
-import * as mir from '../pass2/mir';
+import * as mir from '../3-encoding/mir';
 
 export class ComponentBlock {
   private attrs: mir.ElementParameter[] = [];

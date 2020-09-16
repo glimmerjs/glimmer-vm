@@ -1,9 +1,3 @@
----
-noteId: "50cfe5e0ecd611ea8388874e1424078a"
-tags: []
-
----
-
 # Pass 0: Normalization
 
 The purpose of the precompiler's initial pass is normalizing the AST into a HIR (High-Level IR).
@@ -66,17 +60,15 @@ Match the `statement`'s `type`:
 
 (with list of `exprs`)
 
-1. if the `exprs` is empty, return `hir.EmptyParams`
-2. let `params` be the result of `map(exprs, Process-Expression)`
-3. return `hir.Params(params)`
+1. let `params` be the result of `map(exprs, Process-Expression)`
+2. return `hir.Params(params)`
 
 ## Process Named Arguments
 
 (with list of hash `pairs`)
 
-1. if the list of pairs is empty, return `hir.EmptyHash`
-2. let `hir-pairs` be the result of `map(pairs, Process-HashPair)`
-3. return `hir.Hash(hir-pairs)`
+1. let `hir-pairs` be the result of `map(pairs, Process-HashPair)`
+2. return `hir.Hash(hir-pairs)`
 
 ## Process-HashPair
 

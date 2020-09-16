@@ -1,7 +1,7 @@
 import { ASTv2, GlimmerSyntaxError } from '@glimmer/syntax';
 import { assertPresent } from '@glimmer/util';
 import { Result } from '../../../shared/result';
-import * as pass1 from '../../pass1/hir';
+import * as pass1 from '../../2-symbol-allocation/hir';
 import { VisitorContext } from '../context';
 import { keywords } from './impl';
 

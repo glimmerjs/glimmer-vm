@@ -1,10 +1,8 @@
-import { VariableResolutionContext, Optional, PresentArray } from '@glimmer/interfaces';
+import { Optional, PresentArray, VariableResolutionContext } from '@glimmer/interfaces';
 import { ASTv2, BlockSymbolTable, ProgramSymbolTable, SymbolTable } from '@glimmer/syntax';
-import { isPresent } from '@glimmer/util';
-import { AnyOptionalList, PresentList } from '../../shared/list';
+import { AnyOptionalList, OptionalList, PresentList } from '../../shared/list';
 import { op, OpsTable } from '../../shared/op';
-import { SourceOffsets } from '../../source/offsets';
-import { TemporaryNamedBlock } from '../pass0/visitors/element/temporary-block';
+import { TemporaryNamedBlock } from '../1-normalization/visitors/element/temporary-block';
 
 export interface AttrKind {
   // triple-curly
@@ -80,7 +78,7 @@ export type PresentParams = Params & { args: { list: PresentList<Expr> } };
 
 export class NamedArgument extends op('NamedArgument').args<{ key: SourceSlice; value: Expr }>() {}
 export class NamedArguments extends op('NamedArguments').args<{
-  pairs: AnyOptionalList<NamedArgument>;
+  pairs: OptionalList<NamedArgument>;
 }>() {}
 
 export type Internal =
@@ -90,8 +88,8 @@ export type Internal =
   | NamedArguments
   | NamedArgument
   | NamedBlock
-  | AnyNamedBlocks
-  | AnyElementParameters;
+  | NamedBlocks
+  | ElementParameters;
 
 export type InternalTable = OpsTable<Internal>;
 
@@ -143,17 +141,15 @@ export class BlockInvocation extends op('BlockInvocation').args<{
   head: Expr;
   params: Params;
   hash: NamedArguments;
-  blocks: Optional<PresentArray<NamedBlock>>;
+  blocks: OptionalList<NamedBlock>;
 }>() {}
 
-export function getBlock(
-  blocks: Optional<PresentArray<NamedBlock>>,
-  name: string
-): Optional<NamedBlock> {
-  if (blocks === null) {
-    return null;
-  }
-  return blocks.find((block) => block.args.name.getString() === name) || null;
+export function getBlock(blocks: OptionalList<NamedBlock>, name: string): Optional<NamedBlock> {
+  return blocks.into({
+    ifEmpty: () => null,
+    ifPresent: (blocks) =>
+      blocks.toPresentArray().find((block) => block.args.name.getString() === name) || null,
+  });
 }
 
 export class NamedBlock extends op('NamedBlock').args<{
@@ -162,10 +158,9 @@ export class NamedBlock extends op('NamedBlock').args<{
   body: Statement[];
 }>() {}
 
-export class NamedBlocks extends op('NamedBlocks').args<{ blocks: PresentArray<NamedBlock> }>() {}
-export class EmptyNamedBlocks extends op('EmptyNamedBlocks').void() {}
-
-export type AnyNamedBlocks = NamedBlocks | EmptyNamedBlocks;
+export class NamedBlocks extends op('NamedBlocks').args<{
+  blocks: OptionalList<NamedBlock>;
+}>() {}
 
 export type NonSemanticChild = NonSemantic | TemporaryNamedBlock;
 
@@ -173,33 +168,18 @@ export class Ignore extends op('Ignore').void() {}
 
 export class Component extends op('Component').args<{
   tag: Expr;
-  params: AnyElementParameters;
+  params: ElementParameters;
   args: NamedArguments;
-  blocks: AnyNamedBlocks;
+  blocks: NamedBlocks;
 }>() {}
 
 export class ElementParameters extends op('ElementParameters').args<{
-  body: PresentArray<ElementParameter>;
+  body: OptionalList<ElementParameter>;
 }>() {}
-
-export class EmptyElementParameters extends op('EmptyElementParameters').void() {}
-
-export type AnyElementParameters = ElementParameters | EmptyElementParameters;
-
-export function AnyElementParameters(
-  body: ElementParameter[],
-  offsets: SourceOffsets | null = null
-): AnyElementParameters {
-  if (isPresent(body)) {
-    return new ElementParameters(offsets, { body });
-  } else {
-    return new EmptyElementParameters(offsets);
-  }
-}
 
 export class SimpleElement extends op('SimpleElement').args<{
   tag: SourceSlice;
-  params: AnyElementParameters;
+  params: ElementParameters;
   body: NamedBlock;
   dynamicFeatures: boolean;
 }>() {}

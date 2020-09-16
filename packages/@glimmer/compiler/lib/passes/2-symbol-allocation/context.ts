@@ -7,7 +7,7 @@ import { InputOpArgs, OpArgs, OpConstructor, UnlocatedOp } from '../../shared/op
 import { OpFactory, Ops } from '../../shared/ops';
 import { SourceOffsets } from '../../source/offsets';
 import { Source } from '../../source/source';
-import * as mir from '../pass2/mir';
+import * as mir from '../3-encoding/mir';
 import { Pass1Expression } from './expressions';
 import { Pass1Internal } from './internal';
 import * as pass1 from './hir';

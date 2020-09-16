@@ -1,6 +1,6 @@
 import { ASTv2, GlimmerSyntaxError } from '@glimmer/syntax';
 // import { Option } from '@glimmer/interfaces';
-import * as pass1 from '../../../pass1/hir';
+import * as pass1 from '../../../2-symbol-allocation/hir';
 import { Err, Ok, Result } from '../../../../shared/result';
 import { ClassifiedElement, Classified, PreparedArgs } from './classified';
 import { TemporaryNamedBlock } from './temporary-block';

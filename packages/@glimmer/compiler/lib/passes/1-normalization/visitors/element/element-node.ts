@@ -1,7 +1,7 @@
 import { ASTv2 } from '@glimmer/syntax';
 import { assert } from '@glimmer/util';
 import { OptionalList, PresentList } from '../../../../shared/list';
-import * as pass1 from '../../../pass1/hir';
+import * as pass1 from '../../../2-symbol-allocation/hir';
 import { VisitorContext } from '../../context';
 
 // function simpleDynamicAttrValue(

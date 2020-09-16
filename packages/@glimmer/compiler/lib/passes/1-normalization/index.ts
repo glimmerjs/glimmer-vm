@@ -3,7 +3,7 @@ import { ASTv2 } from '@glimmer/syntax';
 import { LOCAL_LOGGER } from '@glimmer/util';
 import { Result } from '../../shared/result';
 import { Source } from '../../source/source';
-import * as hir from '../pass1/hir';
+import * as hir from '../2-symbol-allocation/hir';
 import {
   GlimmerCompileOptions,
   NormalizationContext,

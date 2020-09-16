@@ -5,6 +5,7 @@ export interface OptionalList<T> {
   map<U>(callback: (input: T) => U): MapList<T, U, AnyOptionalList<T>>;
   toArray(): T[] | PresentArray<T>;
   toPresentArray(): Optional<PresentArray<T>>;
+  into<U, V>(options: { ifPresent: (array: PresentList<T>) => U; ifEmpty: () => V }): U | V;
 }
 
 export class PresentList<T> implements OptionalList<T> {
@@ -19,8 +20,12 @@ export class PresentList<T> implements OptionalList<T> {
     return new PresentList(result) as MapList<T, U, this>;
   }
 
-  toPresentArray(): Optional<PresentArray<T>> {
+  toPresentArray(): PresentArray<T> {
     return this.list;
+  }
+
+  into<U, V>({ ifPresent }: { ifPresent: (array: PresentList<T>) => U; ifEmpty: () => V }): U | V {
+    return ifPresent(this);
   }
 }
 
@@ -37,6 +42,10 @@ export class EmptyList<T> implements OptionalList<T> {
 
   toPresentArray(): Optional<PresentArray<T>> {
     return null;
+  }
+
+  into<U, V>({ ifEmpty }: { ifPresent: (array: PresentList<T>) => U; ifEmpty: () => V }): U | V {
+    return ifEmpty();
   }
 }
 

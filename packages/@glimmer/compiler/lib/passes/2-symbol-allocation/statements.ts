@@ -1,10 +1,10 @@
 /* eslint-disable qunit/no-global-expect */
-import { PresentArray } from '@glimmer/interfaces';
 import { expect } from '@glimmer/util';
-import * as hir from './hir';
-import * as mir from '../pass2/mir';
+import { OptionalList } from '../../shared/list';
 import { OpArgs, OpConstructor } from '../../shared/op';
+import * as mir from '../3-encoding/mir';
 import { Context, MapVisitorsInterface } from './context';
+import * as hir from './hir';
 
 export type StatementVisitor = MapVisitorsInterface<hir.Statement, mir.Statement>;
 
@@ -112,7 +112,7 @@ export class Pass1Statement implements StatementVisitor {
     { head, params, hash, blocks }: OpArgs<hir.BlockInvocation>
   ): mir.Statement {
     let defaultBlock = expect(hir.getBlock(blocks, 'default'), 'expected a default block');
-    let namedBlocks: PresentArray<mir.NamedBlock> = [ctx.visitInternal(defaultBlock)];
+    let namedBlocks: mir.NamedBlock[] = [ctx.visitInternal(defaultBlock)];
     let inverseBlock = hir.getBlock(blocks, 'else') || null;
 
     if (inverseBlock) {
@@ -122,7 +122,7 @@ export class Pass1Statement implements StatementVisitor {
     return ctx.op(mir.InvokeBlock, {
       head: ctx.visitExpr(head),
       args: ctx.visitArgs({ params, hash }),
-      blocks: ctx.op(mir.NamedBlocks, { blocks: namedBlocks }),
+      blocks: ctx.op(mir.NamedBlocks, { blocks: OptionalList(namedBlocks) }),
     });
   }
 }

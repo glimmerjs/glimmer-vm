@@ -1,9 +1,9 @@
-import { Optional, PresentArray } from '@glimmer/interfaces';
 import { ASTv2 } from '@glimmer/syntax';
 import { assign } from '@glimmer/util';
+import { OptionalList } from '../../../shared/list';
 import { UnlocatedOp } from '../../../shared/op';
 import { Ok, Result } from '../../../shared/result';
-import * as pass1 from '../../pass1/hir';
+import * as pass1 from '../../2-symbol-allocation/hir';
 import { Pass1Stmt, VisitorContext, VisitorInterface } from '../context';
 import { BLOCK_KEYWORDS } from '../keywords';
 import { ClassifiedElement, hasDynamicFeatures } from './element/classified';
@@ -38,15 +38,15 @@ export class Pass0Statements implements VisitorInterface<ASTv2.Statement, Pass1O
       return ctx
         .block(utils.slice('default').offsets(null), node.program)
         .andThen(
-          (defaultBlock): Result<Optional<PresentArray<pass1.NamedBlock>>> => {
+          (defaultBlock): Result<OptionalList<pass1.NamedBlock>> => {
             if (node.inverse) {
               return ctx
                 .block(utils.slice('else').offsets(null), node.inverse)
                 .mapOk((inverseBlock) => {
-                  return [defaultBlock, inverseBlock];
+                  return OptionalList([defaultBlock, inverseBlock]);
                 });
             } else {
-              return Ok([defaultBlock]);
+              return Ok(OptionalList([defaultBlock]));
             }
           }
         )

@@ -2,7 +2,7 @@ import { ASTv2 } from '@glimmer/syntax';
 import { isPresent, mapPresent } from '@glimmer/util';
 import { VariableResolutionContext } from '@glimmer/interfaces';
 import { Ok, Result } from '../../../shared/result';
-import * as pass1 from '../../pass1/hir';
+import * as pass1 from '../../2-symbol-allocation/hir';
 import { VisitorContext } from '../context';
 import { EXPR_KEYWORDS } from '../keywords';
 

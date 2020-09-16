@@ -27,10 +27,7 @@ export class InElement extends op('InElement').args<{
   block: NamedBlock;
 }>() {}
 
-export class NamedBlocks extends op('NamedBlocks').args<{ blocks: PresentArray<NamedBlock> }>() {}
-export class EmptyNamedBlocks extends op('EmptyNamedBlocks').void() {}
-
-export type AnyNamedBlocks = NamedBlocks | EmptyNamedBlocks;
+export class NamedBlocks extends op('NamedBlocks').args<{ blocks: OptionalList<NamedBlock> }>() {}
 
 export class NamedBlock extends op('NamedBlock').args<{
   symbols: BlockSymbolTable;
@@ -44,9 +41,9 @@ export class AppendComment extends op('AppendComment').args<{ value: string }>()
 
 export class Component extends op('Component').args<{
   tag: Expr;
-  params: AnyElementParameters;
+  params: ElementParameters;
   args: NamedArguments;
-  blocks: AnyNamedBlocks;
+  blocks: NamedBlocks;
 }>() {}
 export class StaticArg extends op('StaticArg').args<{
   name: SourceSlice;
@@ -63,18 +60,14 @@ export class TrustingDynamicAttr extends op('TrustingDynamicAttr').args<DynamicA
 
 export class SimpleElement extends op('SimpleElement').args<{
   tag: SourceSlice;
-  params: AnyElementParameters;
+  params: ElementParameters;
   body: NamedBlock;
   dynamicFeatures: boolean;
 }>() {}
 
 export class ElementParameters extends op('ElementParameters').args<{
-  body: PresentArray<ElementParameter>;
+  body: OptionalList<ElementParameter>;
 }>() {}
-
-export class EmptyElementParameters extends op('EmptyElementParameters').void() {}
-
-export type AnyElementParameters = ElementParameters | EmptyElementParameters;
 
 export class Yield extends op('Yield').args<{ to: number; params: Positional }>() {}
 export class Partial extends op('Partial').args<{ target: Expr; table: SymbolTable }>() {}
@@ -117,7 +110,6 @@ export class Positional extends op('Positional').args<{ list: OptionalList<Expr>
 export class NamedArguments extends op('NamedArguments').args<{
   pairs: OptionalList<NamedArgument>;
 }>() {}
-export class EmptyNamedArguments extends op('EmptyNamedArguments').void() {}
 export class NamedArgument extends op('NamedArgument').args<{
   key: SourceSlice;
   value: Expr;
@@ -161,8 +153,8 @@ export type Internal =
   | Tail
   | NamedBlock
   | SourceSlice
-  | AnyNamedBlocks
-  | AnyElementParameters;
+  | NamedBlocks
+  | ElementParameters;
 export type ExprLike = Expr | Internal;
 export type Statement =
   | InElement

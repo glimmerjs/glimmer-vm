@@ -1,7 +1,7 @@
 import { PresentArray } from '@glimmer/interfaces';
 import { assert, isPresent } from '@glimmer/util';
 import { BlockSymbolTable, GlimmerSyntaxError } from '@glimmer/syntax';
-import * as pass1 from '../../../pass1/hir';
+import * as pass1 from '../../../2-symbol-allocation/hir';
 import { SourceOffsets } from '../../../../source/offsets';
 
 import { Err, Ok, Result } from '../../../../shared/result';

@@ -1,8 +1,7 @@
-import { mapPresent } from '@glimmer/util';
-import * as hir from './hir';
-import * as mir from '../pass2/mir';
 import { OpArgs } from '../../shared/op';
+import * as mir from '../3-encoding/mir';
 import { Context, MapVisitorsInterface } from './context';
+import * as hir from './hir';
 
 export class Pass1Internal
   implements MapVisitorsInterface<Exclude<hir.Internal, hir.Ignore>, mir.Internal> {
@@ -25,12 +24,8 @@ export class Pass1Internal
 
   NamedBlocks(ctx: Context, args: OpArgs<hir.NamedBlocks>): mir.NamedBlocks {
     return ctx.op(mir.NamedBlocks, {
-      blocks: mapPresent(args.blocks, (b) => ctx.visitInternal(b)),
+      blocks: args.blocks.map((b) => ctx.visitInternal(b)),
     });
-  }
-
-  EmptyNamedBlocks(ctx: Context): mir.EmptyNamedBlocks {
-    return ctx.op(mir.EmptyNamedBlocks);
   }
 
   NamedBlock(
@@ -45,12 +40,8 @@ export class Pass1Internal
 
   ElementParameters(ctx: Context, { body }: OpArgs<hir.ElementParameters>): mir.ElementParameters {
     return ctx.op(mir.ElementParameters, {
-      body: mapPresent(body, (a) => ctx.visitStmt<hir.ElementParameter>(a)),
+      body: body.map((a) => ctx.visitStmt<hir.ElementParameter>(a)),
     });
-  }
-
-  EmptyElementParameters(ctx: Context): mir.EmptyElementParameters {
-    return ctx.op(mir.EmptyElementParameters);
   }
 }
 

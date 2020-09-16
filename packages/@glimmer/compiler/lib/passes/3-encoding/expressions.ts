@@ -1,8 +1,8 @@
-import { PresentArray, SexpOpcodes, WireFormat } from '@glimmer/interfaces';
+import { Optional, PresentArray, SexpOpcodes, WireFormat } from '@glimmer/interfaces';
 import { assertPresent, isPresent, mapPresent } from '@glimmer/util';
 import { expressionContextOp } from '../../builder/builder';
 import { Op, OpArgs, OpsTable } from '../../shared/op';
-import * as hir from '../pass1/hir';
+import * as hir from '../2-symbol-allocation/hir';
 import * as mir from './mir';
 import { visitStatement, visitStatements } from './statements';
 
@@ -30,12 +30,13 @@ export function visitInternal<N extends mir.Op & { name: keyof InternalEncoder }
 }
 
 export class InternalEncoder implements Visitors<mir.InternalTable, WireFormat.SyntaxWithInternal> {
-  ElementParameters({ body }: OpArgs<mir.ElementParameters>): PresentArray<WireFormat.Parameter> {
-    return mapPresent(body, (b) => visitStatement(b));
-  }
-
-  EmptyElementParameters(): null {
-    return null;
+  ElementParameters({
+    body,
+  }: OpArgs<mir.ElementParameters>): Optional<PresentArray<WireFormat.Parameter>> {
+    return body.into({
+      ifPresent: (body) => body.map(visitStatement).toPresentArray(),
+      ifEmpty: () => null,
+    });
   }
 
   SourceSlice(args: OpArgs<hir.SourceSlice>): string {
@@ -50,7 +51,7 @@ export class InternalEncoder implements Visitors<mir.InternalTable, WireFormat.S
     let names: string[] = [];
     let serializedBlocks: WireFormat.SerializedInlineBlock[] = [];
 
-    for (let block of blocks) {
+    for (let block of blocks.toArray()) {
       let [name, serializedBlock] = visitInternal(block);
 
       names.push(name);
@@ -58,10 +59,6 @@ export class InternalEncoder implements Visitors<mir.InternalTable, WireFormat.S
     }
 
     return [names, serializedBlocks];
-  }
-
-  EmptyNamedBlocks(): null {
-    return null;
   }
 
   NamedBlock({ name, body, symbols }: OpArgs<mir.NamedBlock>): WireFormat.Core.NamedBlock {
@@ -80,10 +77,6 @@ export class InternalEncoder implements Visitors<mir.InternalTable, WireFormat.S
 
   Positional({ list }: OpArgs<mir.Positional>): WireFormat.Core.Params {
     return list.map((l) => visitExpr(l)).toPresentArray();
-  }
-
-  EmptyPositional(): WireFormat.Core.Params {
-    return null;
   }
 
   NamedArgument({ key, value }: OpArgs<mir.NamedArgument>): HashPair {

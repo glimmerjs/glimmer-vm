@@ -4,7 +4,7 @@ import { OptionalList } from '../../../../shared/list';
 import { Ok, Result, ResultArray } from '../../../../shared/result';
 import { getAttrNamespace } from '../../../../utils';
 // import { Option } from '@glimmer/interfaces';
-import * as pass1 from '../../../pass1/hir';
+import * as pass1 from '../../../2-symbol-allocation/hir';
 import { VisitorContext } from '../../context';
 import { assertIsValidHelper, isHelperInvocation } from '../../utils/is-node';
 
@@ -108,43 +108,6 @@ export class ClassifiedElement<Body> {
     }));
   }
 
-  // private body(): Result<Body> {
-  //   let { element, ctx } = this;
-  //   let { utils } = ctx;
-
-  //   return utils.visitStmts(element.children, { allowNamedBlock: true }).andThen((statements) => {
-  //     let temp = new TemporaryNamedBlock(
-  //       {
-  //         name: utils.slice('default').offsets(null),
-  //         table: element.symbols,
-  //         body: statements,
-  //       },
-  //       utils.source.maybeOffsetsFor(element)
-  //     );
-
-  //     if (temp.isValidNamedBlock()) {
-  //       let block = temp.asNamedBlock();
-
-  //       if (element.selfClosing) {
-  //         return this.delegate.selfClosing(block, this);
-  //       } else {
-  //         return this.delegate.namedBlock(block, this);
-  //       }
-  //     } else if (temp.hasValidNamedBlocks()) {
-  //       return temp
-  //         .asNamedBlocks(utils.source)
-  //         .andThen((blocks) => this.delegate.namedBlocks(blocks, this));
-  //     } else {
-  //       return Err(
-  //         new GlimmerSyntaxError(
-  //           `an element cannot have semantic content *and* named blocks`,
-  //           this.element.loc
-  //         )
-  //       );
-  //     }
-  //   });
-  // }
-
   private prepare(): Result<PreparedArgs<Body>> {
     let result = this.attrs();
 
@@ -152,7 +115,11 @@ export class ClassifiedElement<Body> {
       let { attrs, args } = result;
 
       let modifiers = this.element.modifiers.map((m) => this.modifier(m));
-      let params = pass1.AnyElementParameters([...attrs, ...modifiers]);
+      let params = this.ctx.utils
+        .op(pass1.ElementParameters, {
+          body: OptionalList([...attrs, ...modifiers]),
+        })
+        .offsets(null);
 
       return this.delegate.body(this).mapOk((body) => ({ args, params, body }));
     });
@@ -161,7 +128,7 @@ export class ClassifiedElement<Body> {
 
 export interface PreparedArgs<Body> {
   args: pass1.NamedArguments;
-  params: pass1.AnyElementParameters;
+  params: pass1.ElementParameters;
   body: Body;
 }
 

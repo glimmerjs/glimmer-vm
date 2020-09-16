@@ -2,7 +2,7 @@ import { ASTv2, GlimmerSyntaxError } from '@glimmer/syntax';
 import { isPresent } from '@glimmer/util';
 import { Ok, Result } from '../../../shared/result';
 import { Source } from '../../../source/source';
-import * as pass1 from '../../pass1/hir';
+import * as pass1 from '../../2-symbol-allocation/hir';
 import { VisitorContext } from '../context';
 import { assertValidHasBlockUsage } from './has-block';
 import { keywords, Match } from './impl';

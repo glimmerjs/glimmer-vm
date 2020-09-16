@@ -8,7 +8,7 @@ import { InputOpArgs, OpConstructor, toArgs, UnlocatedOp } from '../../shared/op
 import { Err, intoResult, MaybeResult, Ok, Result, ResultArray } from '../../shared/result';
 import { SourceOffsets } from '../../source/offsets';
 import { Source } from '../../source/source';
-import * as hir from '../pass1/hir';
+import * as hir from '../2-symbol-allocation/hir';
 import { EXPR_KEYWORDS } from './keywords';
 import { APPEND_KEYWORDS } from './keywords/append';
 import { BLOCK_KEYWORDS } from './keywords/block';

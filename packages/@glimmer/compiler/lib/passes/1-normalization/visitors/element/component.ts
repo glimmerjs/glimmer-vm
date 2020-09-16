@@ -1,12 +1,12 @@
 import { PresentArray } from '@glimmer/interfaces';
 import { ASTv2 } from '@glimmer/syntax';
-import { assertPresent } from '@glimmer/util';
+import { OptionalList } from '../../../../shared/list';
 import { Ok, Result } from '../../../../shared/result';
 // import { Option } from '@glimmer/interfaces';
-import * as pass1 from '../../../pass1/hir';
+import * as pass1 from '../../../2-symbol-allocation/hir';
 import { Classified, ClassifiedElement, PreparedArgs } from './classified';
 
-type Body = pass1.AnyNamedBlocks;
+type Body = pass1.NamedBlocks;
 
 export class ClassifiedComponent implements Classified<Body> {
   readonly dynamicFeatures = true;
@@ -50,33 +50,35 @@ export class ClassifiedComponent implements Classified<Body> {
 
   body({ ctx: { utils } }: ClassifiedElement<Body>): Result<Body> {
     if (this.element.blocks === null) {
-      return Ok(utils.op(pass1.EmptyNamedBlocks).offsets(null));
+      return Ok(utils.op(pass1.NamedBlocks, { blocks: OptionalList([]) }).offsets(null));
     } else if (Array.isArray(this.element.blocks)) {
       return utils
         .visitStmts(this.element.blocks, { allowNamedBlock: true })
         .mapOk((blocks) =>
-          utils.op(pass1.NamedBlocks, { blocks: assertPresent(blocks) }).offsets(null)
+          utils.op(pass1.NamedBlocks, { blocks: OptionalList(blocks) }).offsets(null)
         );
     } else {
       // blocks is a single block
       return utils
         .visitStmt(this.element.blocks, { allowNamedBlock: true })
-        .mapOk((block) => utils.op(pass1.NamedBlocks, { blocks: [block] }).offsets(null));
+        .mapOk((block) =>
+          utils.op(pass1.NamedBlocks, { blocks: OptionalList([block]) }).offsets(null)
+        );
     }
   }
 
   selfClosing(_: unknown, { element, ctx: { utils } }: ClassifiedElement<Body>): Result<Body> {
-    return Ok(utils.op(pass1.EmptyNamedBlocks).loc(element));
+    return Ok(utils.op(pass1.NamedBlocks, { blocks: OptionalList([]) }).loc(element));
   }
 
   namedBlock(block: pass1.NamedBlock, { ctx: { utils } }: ClassifiedElement<Body>): Result<Body> {
-    return Ok(utils.op(pass1.NamedBlocks, { blocks: [block] }).offsets(block));
+    return Ok(utils.op(pass1.NamedBlocks, { blocks: OptionalList([block]) }).offsets(block));
   }
 
   namedBlocks(
     blocks: PresentArray<pass1.NamedBlock>,
     { ctx: { utils } }: ClassifiedElement<Body>
   ): Result<Body> {
-    return Ok(utils.op(pass1.NamedBlocks, { blocks }).offsets(blocks));
+    return Ok(utils.op(pass1.NamedBlocks, { blocks: OptionalList(blocks) }).offsets(blocks));
   }
 }
