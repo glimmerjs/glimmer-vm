@@ -112,7 +112,7 @@ export const APPEND_KEYWORDS = keywords('Append')
       return Ok(
         ctx.utils
           .op(pass1.Partial, {
-            table: node.symbols,
+            table: node.table,
             expr:
               expr === undefined
                 ? ctx.utils.visitExpr(builders.literal(undefined))
@@ -136,7 +136,7 @@ export const APPEND_KEYWORDS = keywords('Append')
     },
 
     translate(node: Match<'Append'>, { utils }: VisitorContext): Result<pass1.Statement> {
-      return Ok(utils.op(pass1.Debugger, { table: node.symbols }).loc(node));
+      return Ok(utils.op(pass1.Debugger, { table: node.table }).loc(node));
     },
   })
   .kw('has-block', {

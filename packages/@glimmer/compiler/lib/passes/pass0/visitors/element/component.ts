@@ -11,7 +11,7 @@ type Body = pass1.AnyNamedBlocks;
 export class ClassifiedComponent implements Classified<Body> {
   readonly dynamicFeatures = true;
 
-  constructor(private tag: pass1.Expr, private element: ASTv2.ComponentNode) {}
+  constructor(private tag: pass1.Expr, private element: ASTv2.Component) {}
 
   arg(attr: ASTv2.AttrNode, el: ClassifiedElement<Body>): Result<pass1.NamedArgument> {
     let name = attr.name;

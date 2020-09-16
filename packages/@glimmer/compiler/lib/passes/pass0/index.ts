@@ -61,7 +61,7 @@ export default function normalize(
 
   if (LOCAL_SHOULD_LOG) {
     LOCAL_LOGGER.groupCollapsed(`pass0: visiting`);
-    LOCAL_LOGGER.log('symbols', root.symbols);
+    LOCAL_LOGGER.log('symbols', root.table);
     LOCAL_LOGGER.log('source', source);
     LOCAL_LOGGER.groupEnd();
   }
@@ -77,6 +77,6 @@ export default function normalize(
   }
 
   return body.mapOk(
-    (body) => new hir.Template(source.offsetsFor(root), { symbols: root.symbols, body })
+    (body) => new hir.Template(source.offsetsFor(root), { symbols: root.table, body })
   );
 }

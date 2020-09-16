@@ -1,4 +1,4 @@
-import { Optional, PresentArray, VariableResolution } from '@glimmer/interfaces';
+import { Optional, PresentArray, VariableResolutionContext } from '@glimmer/interfaces';
 import { assign } from '@glimmer/util';
 import { GlimmerSyntaxError } from '../errors/syntax-error';
 import { preprocess, PreprocessOptions } from '../parser/tokenizer-event-handlers';
@@ -111,7 +111,7 @@ class ExpressionNormalizer {
       case 'UndefinedLiteral':
         return builders.literal(expr.value, expr.loc);
       case 'PathExpression':
-        return builders.path(this.pathHead(expr.head, resolution), expr.tail, expr.loc);
+        return builders.path(this.ref(expr.head, resolution), expr.tail, expr.loc);
       case 'SubExpression': {
         return builders.sexp(this.callParts(expr, SexpSyntaxContext), expr.loc);
       }
@@ -136,16 +136,16 @@ class ExpressionNormalizer {
   }
 
   /**
-   * The `pathHead` method normalizes an `ASTv1.PathHead` into an `ASTv2.PathHead`. This method is
-   * extremely important, because it is responsible for normalizing free variables into an
-   * an ASTv2.PathHead *with appropriate context*.
+   * The `ref` method normalizes an `ASTv1.PathHead` into an `ASTv2.VariableReference`.
+   * This method is extremely important, because it is responsible for normalizing free
+   * variables into an an ASTv2.PathHead *with appropriate context*.
    *
    * The syntax context is originally determined by the syntactic position that this `PathHead`
-   * came from, and is ultimately attached to the `ASTv2.PathHead` here. In ASTv2, the `PathHead`
-   * node bears full responsibility for sloppy mode rules that control the behavior of free
-   * variables.
+   * came from, and is ultimately attached to the `ASTv2.VariableReference` here. In ASTv2,
+   * the `VariableReference` node bears full responsibility for sloppy mode rules that control
+   * the behavior of free variables.
    */
-  private pathHead(head: ASTv1.PathHead, context: SyntaxContext): ASTv2.PathHead {
+  private ref(head: ASTv1.PathHead, context: SyntaxContext): ASTv2.VariableReference {
     switch (head.type) {
       case 'AtHead':
       case 'ThisHead':
@@ -156,7 +156,7 @@ class ExpressionNormalizer {
         } else {
           return builders.freeVar(
             head.name,
-            this.block.strict ? VariableResolution.Strict : context.resolution(),
+            this.block.strict ? VariableResolutionContext.Strict : context.resolution(),
             head.loc
           );
         }
@@ -213,7 +213,7 @@ class StatementNormalizer {
 
     return builders.append(
       {
-        symbols: this.block.table,
+        table: this.block.table,
         trusting: !escaped,
         value,
       },
@@ -316,11 +316,7 @@ class ElementNormalizer {
     if (element.selfClosing) {
       return el.selfClosingComponent(path, loc);
     } else if (hasNamedBlocks) {
-      return el.componentWithNamedBlocks(
-        path,
-        namedBlocks as PresentArray<ASTv2.NamedBlockNode>,
-        loc
-      );
+      return el.componentWithNamedBlocks(path, namedBlocks as PresentArray<ASTv2.NamedBlock>, loc);
     } else {
       return el.componentWithDefaultBlock(path, children, child.table, loc);
     }

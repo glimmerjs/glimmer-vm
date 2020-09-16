@@ -1,4 +1,4 @@
-import { VariableResolution, Optional, PresentArray } from '@glimmer/interfaces';
+import { VariableResolutionContext, Optional, PresentArray } from '@glimmer/interfaces';
 import { ASTv2, BlockSymbolTable, ProgramSymbolTable, SymbolTable } from '@glimmer/syntax';
 import { isPresent } from '@glimmer/util';
 import { AnyOptionalList, PresentList } from '../../shared/list';
@@ -50,7 +50,7 @@ export class GetFreeVar extends op('GetFreeVar').args<{
 }>() {}
 export class GetFreeVarWithContext extends op('GetFreeVarWithContext').args<{
   name: SourceSlice;
-  context: VariableResolution;
+  context: VariableResolutionContext;
 }>() {}
 
 /**

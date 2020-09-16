@@ -1,4 +1,10 @@
-import { Dict, VariableResolution, Optional, PresentArray, WireFormat } from '@glimmer/interfaces';
+import {
+  Dict,
+  VariableResolutionContext,
+  Optional,
+  PresentArray,
+  WireFormat,
+} from '@glimmer/interfaces';
 import { BlockSymbolTable, ProgramSymbolTable, SymbolTable } from '../symbol-table';
 
 export { default as builders } from './v2-builders';
@@ -55,14 +61,14 @@ export interface CommonProgram extends BaseNode {
 
 export interface Block extends CommonProgram {
   type: 'Block';
-  symbols: BlockSymbolTable;
+  table: BlockSymbolTable;
 }
 
 export type EntityEncodingState = 'transformed' | 'raw';
 
 export interface Template extends CommonProgram {
   type: 'Template';
-  symbols: ProgramSymbolTable;
+  table: ProgramSymbolTable;
   body: Statement[];
 }
 
@@ -93,7 +99,7 @@ export function isCall(node: BaseNode): node is CallNode {
 export interface AppendStatement extends BaseNode {
   type: 'AppendStatement';
   value: Expression;
-  symbols: SymbolTable;
+  table: SymbolTable;
   trusting: boolean;
 }
 
@@ -156,27 +162,27 @@ export type StatementName =
   | 'NamedBlock'
   | 'Component';
 
-export interface NamedBlockNode extends BaseElementNode {
+export interface NamedBlock extends BaseElementNode {
   type: 'NamedBlock';
   blockName: NamedBlockName;
   children: Statement[];
-  symbols: BlockSymbolTable;
+  table: BlockSymbolTable;
 }
 
-export interface ComponentNode extends BaseElementNode {
+export interface Component extends BaseElementNode {
   type: 'Component';
   head: InternalExpression;
-  blocks: NamedBlockNode | NamedBlockNode[] | null;
+  blocks: NamedBlock | NamedBlock[] | null;
 }
 
-export interface SimpleElementNode extends BaseElementNode {
+export interface SimpleElement extends BaseElementNode {
   type: 'SimpleElement';
   tag: string;
   symbols: BlockSymbolTable;
   children: Statement[];
 }
 
-export type ElementNode = NamedBlockNode | ComponentNode | SimpleElementNode;
+export type ElementNode = NamedBlock | Component | SimpleElement;
 
 export interface AttrNode extends BaseNode {
   type: 'AttrNode';
@@ -202,12 +208,12 @@ export interface SubExpression extends CallNode {
   type: 'SubExpression';
 }
 
-export interface ThisHead {
+export interface ThisReference {
   type: 'ThisHead';
   loc?: SourceLocation;
 }
 
-export interface AtHead {
+export interface ArgReference {
   type: 'AtHead';
   name: string;
   loc?: SourceLocation;
@@ -219,24 +225,24 @@ export interface VarHead {
   loc?: SourceLocation;
 }
 
-export interface FreeVarHead {
+export interface FreeVarReference {
   type: 'FreeVarHead';
   name: string;
-  context: VariableResolution;
+  context: VariableResolutionContext;
   loc?: SourceLocation;
 }
 
-export interface LocalVarHead {
+export interface LocalVarReference {
   type: 'LocalVarHead';
   name: string;
   loc?: SourceLocation;
 }
 
-export type PathHead = ThisHead | AtHead | LocalVarHead | FreeVarHead;
+export type VariableReference = ThisReference | ArgReference | LocalVarReference | FreeVarReference;
 
 export interface PathExpression extends BaseNode {
   type: 'PathExpression';
-  head: PathHead;
+  ref: VariableReference;
   tail: string[];
 }
 
@@ -283,9 +289,9 @@ export interface StripFlags {
 export interface Nodes {
   Block: Block;
   BlockStatement: BlockStatement;
-  NamedBlock: NamedBlockNode;
-  Component: ComponentNode;
-  SimpleElement: SimpleElementNode;
+  NamedBlock: NamedBlock;
+  Component: Component;
+  SimpleElement: SimpleElement;
   CommentStatement: CommentStatement;
   MustacheCommentStatement: MustacheCommentStatement;
   TextNode: TextNode;

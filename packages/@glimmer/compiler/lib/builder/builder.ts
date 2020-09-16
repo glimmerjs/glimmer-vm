@@ -5,7 +5,7 @@ import {
   Optional,
   PresentArray,
   SexpOpcodes,
-  VariableResolution,
+  VariableResolutionContext,
   WireFormat,
 } from '@glimmer/interfaces';
 import { assert, assertNever, dict, exhausted, isPresent, values } from '@glimmer/util';
@@ -223,7 +223,7 @@ export function buildStatement(
       let builtHash: WireFormat.Core.Hash = hash ? buildHash(hash, symbols) : null;
       let builtExpr: WireFormat.Expression = buildCallHead(
         path,
-        VariableResolution.AmbiguousAppendInvoke,
+        VariableResolutionContext.AmbiguousAppendInvoke,
         symbols
       );
 
@@ -244,7 +244,11 @@ export function buildStatement(
       let blocks = buildBlocks(normalized.blocks, normalized.blockParams, symbols);
       let hash = buildHash(normalized.hash, symbols);
       let params = buildParams(normalized.params, symbols);
-      let path = buildCallHead(normalized.head, VariableResolution.ResolveAsBlockHead, symbols);
+      let path = buildCallHead(
+        normalized.head,
+        VariableResolutionContext.ResolveAsBlockHead,
+        symbols
+      );
 
       return [[Op.Block, path, params, hash, blocks]];
     }
@@ -341,7 +345,7 @@ export function buildAngleInvocation(
 
   return [
     Op.Component,
-    buildExpression(head, VariableResolution.ResolveAsComponentHead, symbols),
+    buildExpression(head, VariableResolutionContext.ResolveAsComponentHead, symbols),
     isPresent(paramList) ? paramList : null,
     args,
     [['default'], [{ parameters: [], statements: blockList }]],
@@ -439,7 +443,7 @@ export function buildAttributeValue(
 }
 
 type ExprResolution =
-  | VariableResolution
+  | VariableResolutionContext
   | 'Append'
   | 'AttrValue'
   | 'SubExpression'
@@ -492,7 +496,7 @@ export function buildExpression(
         Op.HasBlock,
         buildVar(
           { kind: VariableKind.Block, name: expr.name, mode: 'sloppy' },
-          VariableResolution.SloppyFreeVariable,
+          VariableResolutionContext.SloppyFreeVariable,
           symbols
         ),
       ];
@@ -503,7 +507,7 @@ export function buildExpression(
         Op.HasBlockParams,
         buildVar(
           { kind: VariableKind.Block, name: expr.name, mode: 'sloppy' },
-          VariableResolution.SloppyFreeVariable,
+          VariableResolutionContext.SloppyFreeVariable,
           symbols
         ),
       ];
@@ -535,11 +539,16 @@ export function buildCallHead(
 }
 
 export function buildGetPath(head: NormalizedPath, symbols: Symbols): Expressions.GetPath {
-  return buildVar(head.path.head, VariableResolution.SloppyFreeVariable, symbols, head.path.tail);
+  return buildVar(
+    head.path.head,
+    VariableResolutionContext.SloppyFreeVariable,
+    symbols,
+    head.path.tail
+  );
 }
 
 type VarResolution =
-  | VariableResolution
+  | VariableResolutionContext
   | 'AppendBare'
   | 'AppendInvoke'
   | 'AttrValueBare'
@@ -619,25 +628,25 @@ function getSymbolForVar(
   }
 }
 
-export function expressionContextOp(context: VariableResolution): GetContextualFreeOp {
+export function expressionContextOp(context: VariableResolutionContext): GetContextualFreeOp {
   switch (context) {
-    case VariableResolution.Strict:
+    case VariableResolutionContext.Strict:
       return Op.GetStrictFree;
-    case VariableResolution.AmbiguousAppend:
+    case VariableResolutionContext.AmbiguousAppend:
       return Op.GetFreeAsComponentOrHelperHeadOrThisFallback;
-    case VariableResolution.AmbiguousAppendInvoke:
+    case VariableResolutionContext.AmbiguousAppendInvoke:
       return Op.GetFreeAsComponentOrHelperHead;
-    case VariableResolution.AmbiguousAttr:
+    case VariableResolutionContext.AmbiguousAttr:
       return Op.GetFreeAsHelperHeadOrThisFallback;
-    case VariableResolution.SloppyFreeVariable:
+    case VariableResolutionContext.SloppyFreeVariable:
       return Op.GetFreeAsThisFallback;
-    case VariableResolution.ResolveAsCallHead:
+    case VariableResolutionContext.ResolveAsCallHead:
       return Op.GetFreeAsCallHead;
-    case VariableResolution.ResolveAsBlockHead:
+    case VariableResolutionContext.ResolveAsBlockHead:
       return Op.GetFreeAsBlockHead;
-    case VariableResolution.ResolveAsModifierHead:
+    case VariableResolutionContext.ResolveAsModifierHead:
       return Op.GetFreeAsModifierHead;
-    case VariableResolution.ResolveAsComponentHead:
+    case VariableResolutionContext.ResolveAsComponentHead:
       return Op.GetFreeAsComponentHead;
     default:
       return exhausted(context);

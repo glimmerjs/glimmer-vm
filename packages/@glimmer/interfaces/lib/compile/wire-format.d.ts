@@ -12,9 +12,9 @@ export type TemplateReference = Optional<SerializedBlock>;
 export type YieldTo = number;
 
 /**
- * A SloppyVariableResolution explains how a variable name should be resolved.
+ * A VariableResolutionContext explains how a variable name should be resolved.
  */
-export const enum VariableResolution {
+export const enum VariableResolutionContext {
   Strict = 0,
   // An `AmbiguousAppend` is a single identifier that is contained inside a curly (either in a
   // content curly or an attribute curly)

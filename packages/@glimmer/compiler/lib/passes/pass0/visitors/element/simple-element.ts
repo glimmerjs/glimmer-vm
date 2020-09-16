@@ -10,7 +10,7 @@ type Body = pass1.NamedBlock;
 export class ClassifiedSimpleElement implements Classified<Body> {
   constructor(
     private tag: pass1.SourceSlice,
-    private element: ASTv2.SimpleElementNode,
+    private element: ASTv2.SimpleElement,
     readonly dynamicFeatures: boolean
   ) {}
 

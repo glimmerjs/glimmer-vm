@@ -1,4 +1,4 @@
-import { VariableResolution } from '@glimmer/interfaces';
+import { VariableResolutionContext } from '@glimmer/interfaces';
 import { unreachable } from '@glimmer/util';
 import * as ASTv1 from '../types/nodes-v1';
 
@@ -25,7 +25,7 @@ export interface AstCallParts {
  *   content positions.
  */
 export interface SyntaxContext {
-  resolution(): VariableResolution;
+  resolution(): VariableResolutionContext;
 }
 
 /**
@@ -33,8 +33,8 @@ export interface SyntaxContext {
  * of call nodes.
  */
 export class ArgumentSyntaxContext implements SyntaxContext {
-  resolution(): VariableResolution {
-    return VariableResolution.SloppyFreeVariable;
+  resolution(): VariableResolutionContext {
+    return VariableResolutionContext.SloppyFreeVariable;
   }
 }
 
@@ -47,17 +47,17 @@ export interface VarPath extends ASTv1.PathExpression {
 export class CallDetails {
   constructor(private isSimple: boolean, private isInvoke: boolean) {}
   resolution(options: {
-    ifCall: VariableResolution;
-    else: VariableResolution;
-  }): VariableResolution {
+    ifCall: VariableResolutionContext;
+    else: VariableResolutionContext;
+  }): VariableResolutionContext {
     if (this.isSimple && !this.isInvoke) {
       return options.else;
     } else if (this.isSimple && this.isInvoke) {
       return options.ifCall;
     } else if (!this.isSimple && this.isInvoke) {
-      return VariableResolution.Strict;
+      return VariableResolutionContext.Strict;
     } else if (!this.isSimple && !this.isInvoke) {
-      return VariableResolution.SloppyFreeVariable;
+      return VariableResolutionContext.SloppyFreeVariable;
     }
 
     throw unreachable();
@@ -67,10 +67,10 @@ export class CallDetails {
 abstract class CallSyntaxContext implements SyntaxContext {
   constructor(readonly ast: AstCallParts) {}
 
-  abstract readonly bare: VariableResolution;
-  abstract readonly invoke: VariableResolution;
+  abstract readonly bare: VariableResolutionContext;
+  abstract readonly invoke: VariableResolutionContext;
 
-  resolution(): VariableResolution {
+  resolution(): VariableResolutionContext {
     return this.details().resolution({
       ifCall: this.invoke,
       else: this.bare,
@@ -158,10 +158,10 @@ abstract class CallSyntaxContext implements SyntaxContext {
 function callContext(
   definition:
     | {
-        bare: VariableResolution;
-        invoke: VariableResolution;
+        bare: VariableResolutionContext;
+        invoke: VariableResolutionContext;
       }
-    | VariableResolution
+    | VariableResolutionContext
 ): CallSyntaxContextConstructor {
   let { bare, invoke } =
     typeof definition === 'number' ? { bare: definition, invoke: definition } : definition;
@@ -172,13 +172,13 @@ function callContext(
   };
 }
 
-export const SexpSyntaxContext = callContext(VariableResolution.ResolveAsCallHead);
-export const ModifierSyntaxContext = callContext(VariableResolution.ResolveAsModifierHead);
-export const BlockSyntaxContext = callContext(VariableResolution.ResolveAsBlockHead);
+export const SexpSyntaxContext = callContext(VariableResolutionContext.ResolveAsCallHead);
+export const ModifierSyntaxContext = callContext(VariableResolutionContext.ResolveAsModifierHead);
+export const BlockSyntaxContext = callContext(VariableResolutionContext.ResolveAsBlockHead);
 
 export const ComponentSyntaxContent = {
-  resolution(): VariableResolution {
-    return VariableResolution.ResolveAsComponentHead;
+  resolution(): VariableResolutionContext {
+    return VariableResolutionContext.ResolveAsComponentHead;
   },
 };
 
@@ -187,8 +187,8 @@ export const ComponentSyntaxContent = {
  * curlies). In strict mode, this also corresponds to arg curlies.
  */
 export const AttrValueSyntaxContext = callContext({
-  bare: VariableResolution.AmbiguousAttr,
-  invoke: VariableResolution.ResolveAsCallHead,
+  bare: VariableResolutionContext.AmbiguousAttr,
+  invoke: VariableResolutionContext.ResolveAsCallHead,
 });
 
 /**
@@ -196,8 +196,8 @@ export const AttrValueSyntaxContext = callContext({
  * curlies). In strict mode, this also corresponds to arg curlies.
  */
 export const AppendSyntaxContext = callContext({
-  bare: VariableResolution.AmbiguousAppend,
-  invoke: VariableResolution.AmbiguousAppendInvoke,
+  bare: VariableResolutionContext.AmbiguousAppend,
+  invoke: VariableResolutionContext.AmbiguousAppendInvoke,
 });
 
 export interface CallSyntaxContextConstructor {

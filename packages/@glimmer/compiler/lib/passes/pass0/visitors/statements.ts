@@ -67,12 +67,12 @@ export class Pass0Statements implements VisitorInterface<ASTv2.Statement, Pass1O
     }
   }
 
-  NamedBlock(block: ASTv2.NamedBlockNode, { utils }: VisitorContext): Result<pass1.NamedBlock> {
+  NamedBlock(block: ASTv2.NamedBlock, { utils }: VisitorContext): Result<pass1.NamedBlock> {
     return utils.visitStmts(block.children).andThen((stmts) =>
       new TemporaryNamedBlock(
         {
           name: utils.slice(block.blockName.name).loc(block),
-          table: block.symbols,
+          table: block.table,
           body: stmts,
         },
         utils.source.offsetsFor(block)
@@ -80,7 +80,7 @@ export class Pass0Statements implements VisitorInterface<ASTv2.Statement, Pass1O
     );
   }
 
-  SimpleElement(element: ASTv2.SimpleElementNode, ctx: VisitorContext): Result<pass1.Statement> {
+  SimpleElement(element: ASTv2.SimpleElement, ctx: VisitorContext): Result<pass1.Statement> {
     return new ClassifiedElement(
       element,
       new ClassifiedSimpleElement(
@@ -92,7 +92,7 @@ export class Pass0Statements implements VisitorInterface<ASTv2.Statement, Pass1O
     ).toStatement();
   }
 
-  Component(component: ASTv2.ComponentNode, ctx: VisitorContext): Result<pass1.Statement> {
+  Component(component: ASTv2.Component, ctx: VisitorContext): Result<pass1.Statement> {
     return new ClassifiedElement(
       component,
       new ClassifiedComponent(ctx.utils.visitExpr(component.head), component),

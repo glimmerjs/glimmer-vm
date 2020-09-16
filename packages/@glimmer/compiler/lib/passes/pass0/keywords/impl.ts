@@ -77,8 +77,8 @@ class KeywordImpl<
 
     if (typeof path === 'string') {
       return false;
-    } else if (path.head.type === 'FreeVarHead') {
-      return path.head.name === this.keyword;
+    } else if (path.ref.type === 'FreeVarHead') {
+      return path.ref.name === this.keyword;
     } else {
       return false;
     }

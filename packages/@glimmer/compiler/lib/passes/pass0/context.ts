@@ -40,7 +40,7 @@ export class VisitorContext {
         hir.NamedBlock,
         {
           name,
-          table: node.symbols,
+          table: node.table,
           body: stmts,
         },
         this.ctx.source
@@ -280,7 +280,7 @@ export class NormalizationUtilities {
    * Visit a list of statements, returning a list of `hir.Statement`.
    */
   visitStmts(
-    statements: ASTv2.NamedBlockNode[],
+    statements: ASTv2.NamedBlock[],
     options: { allowNamedBlock: true }
   ): Result<hir.NamedBlock[]>;
   visitStmts<S extends ASTv2.Statement>(statements: S[]): Result<hir.Statement[]>;

@@ -1,13 +1,13 @@
 import { ASTv2 } from '@glimmer/syntax';
 import { isPresent, mapPresent } from '@glimmer/util';
-import { VariableResolution } from '@glimmer/interfaces';
+import { VariableResolutionContext } from '@glimmer/interfaces';
 import { Ok, Result } from '../../../shared/result';
 import * as pass1 from '../../pass1/hir';
 import { VisitorContext } from '../context';
 import { EXPR_KEYWORDS } from '../keywords';
 
 export function buildPath(ctx: VisitorContext, path: ASTv2.PathExpression): Result<pass1.Expr> {
-  let { tail, head } = path;
+  let { tail, ref: head } = path;
   let { utils } = ctx;
 
   if (EXPR_KEYWORDS.match(path)) {
@@ -24,7 +24,7 @@ export function buildPath(ctx: VisitorContext, path: ASTv2.PathExpression): Resu
       return pathOrExpr(utils.op(pass1.GetThis).offsets(null));
 
     case 'FreeVarHead':
-      if (head.context === VariableResolution.Strict) {
+      if (head.context === VariableResolutionContext.Strict) {
         return pathOrExpr(
           utils
             .op(pass1.GetFreeVar, {

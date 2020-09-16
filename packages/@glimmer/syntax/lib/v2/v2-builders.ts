@@ -1,5 +1,5 @@
 import { assert, assertPresent, assign } from '@glimmer/util';
-import { VariableResolution, PresentArray } from '@glimmer/interfaces';
+import { VariableResolutionContext, PresentArray } from '@glimmer/interfaces';
 import { SourceLocation } from '../types/nodes-v1';
 import * as ASTv2 from './nodes-v2';
 import { SYNTHETIC } from '../v1-builders';
@@ -21,7 +21,7 @@ class Builder {
   ): ASTv2.Template {
     return {
       type: 'Template',
-      symbols,
+      table: symbols,
       body,
       loc: this.loc(loc),
     };
@@ -32,7 +32,7 @@ class Builder {
   block(symbols: BlockSymbolTable, body: ASTv2.Statement[], loc?: SourceLocation): ASTv2.Block {
     return {
       type: 'Block',
-      symbols,
+      table: symbols,
       body,
       loc: this.loc(loc),
     };
@@ -43,7 +43,7 @@ class Builder {
     children: ASTv2.Statement[],
     symbols: BlockSymbolTable,
     loc?: SourceLocation
-  ): ASTv2.NamedBlockNode {
+  ): ASTv2.NamedBlock {
     return new BuildElement({
       selfClosing: false,
       attributes: [],
@@ -79,11 +79,11 @@ class Builder {
 
   head(
     original: string,
-    context: VariableResolution,
+    context: VariableResolutionContext,
     loc?: ASTv2.SourceLocation
-  ): { head: ASTv2.PathHead; tail: string[] } {
+  ): { head: ASTv2.VariableReference; tail: string[] } {
     let [head, ...tail] = original.split('.');
-    let headNode: ASTv2.PathHead;
+    let headNode: ASTv2.VariableReference;
 
     if (head === 'this') {
       headNode = this.this(loc);
@@ -116,23 +116,27 @@ class Builder {
 
   // EXPRESSIONS //
 
-  path(head: ASTv2.PathHead, tail: string[], loc?: ASTv2.SourceLocation): ASTv2.PathExpression {
+  path(
+    head: ASTv2.VariableReference,
+    tail: string[],
+    loc?: ASTv2.SourceLocation
+  ): ASTv2.PathExpression {
     return {
       type: 'PathExpression',
-      head,
+      ref: head,
       tail,
       loc: this.loc(loc),
     };
   }
 
-  this(loc?: ASTv2.SourceLocation): ASTv2.PathHead {
+  this(loc?: ASTv2.SourceLocation): ASTv2.VariableReference {
     return {
       type: 'ThisHead',
       loc: this.loc(loc),
     };
   }
 
-  at(name: string, loc?: ASTv2.SourceLocation): ASTv2.PathHead {
+  at(name: string, loc?: ASTv2.SourceLocation): ASTv2.VariableReference {
     // the `@` should be included so we have a complete source range
     assert(name[0] === '@', `call builders.at() with a string that starts with '@'`);
 
@@ -143,7 +147,11 @@ class Builder {
     };
   }
 
-  freeVar(name: string, context: VariableResolution, loc?: ASTv2.SourceLocation): ASTv2.PathHead {
+  freeVar(
+    name: string,
+    context: VariableResolutionContext,
+    loc?: ASTv2.SourceLocation
+  ): ASTv2.VariableReference {
     assert(
       name !== 'this',
       `You called builders.freeVar() with 'this'. Call builders.this instead`
@@ -161,7 +169,7 @@ class Builder {
     };
   }
 
-  localVar(name: string, loc?: ASTv2.SourceLocation): ASTv2.PathHead {
+  localVar(name: string, loc?: ASTv2.SourceLocation): ASTv2.VariableReference {
     assert(name !== 'this', `You called builders.var() with 'this'. Call builders.this instead`);
     assert(
       name[0] !== '@',
@@ -250,16 +258,12 @@ class Builder {
   // STATEMENTS //
 
   append(
-    {
-      symbols,
-      trusting,
-      value,
-    }: { symbols: SymbolTable; trusting: boolean; value: ASTv2.Expression },
+    { table, trusting, value }: { table: SymbolTable; trusting: boolean; value: ASTv2.Expression },
     loc?: SourceLocation
   ): ASTv2.AppendStatement {
     return {
       type: 'AppendStatement',
-      symbols,
+      table,
       trusting,
       value,
       loc: this.loc(loc),
@@ -353,7 +357,7 @@ class BuildElement {
     children: ASTv2.Statement[],
     symbols: BlockSymbolTable,
     loc?: SourceLocation
-  ): ASTv2.SimpleElementNode {
+  ): ASTv2.SimpleElement {
     return assign(
       {
         type: 'SimpleElement',
@@ -369,22 +373,22 @@ class BuildElement {
   named(
     name: string,
     children: ASTv2.Statement[],
-    symbols: BlockSymbolTable,
+    table: BlockSymbolTable,
     loc?: SourceLocation
-  ): ASTv2.NamedBlockNode {
+  ): ASTv2.NamedBlock {
     return assign(
       {
         type: 'NamedBlock',
         blockName: BUILDER.blockName(name),
         children,
-        symbols,
+        table,
         loc: BUILDER.loc(loc),
       } as const,
       this.options
     );
   }
 
-  selfClosingComponent(head: ASTv2.InternalExpression, loc?: SourceLocation): ASTv2.ComponentNode {
+  selfClosingComponent(head: ASTv2.InternalExpression, loc?: SourceLocation): ASTv2.Component {
     return assign(
       {
         type: 'Component',
@@ -401,7 +405,7 @@ class BuildElement {
     children: ASTv2.Statement[],
     symbols: BlockSymbolTable,
     loc?: SourceLocation
-  ): ASTv2.ComponentNode {
+  ): ASTv2.Component {
     let block = BUILDER.simpleNamedBlock('default', children, symbols, loc);
 
     return assign(
@@ -417,9 +421,9 @@ class BuildElement {
 
   componentWithNamedBlocks(
     head: ASTv2.InternalExpression,
-    blocks: PresentArray<ASTv2.NamedBlockNode>,
+    blocks: PresentArray<ASTv2.NamedBlock>,
     loc?: SourceLocation
-  ): ASTv2.ComponentNode {
+  ): ASTv2.Component {
     return assign(
       {
         type: 'Component',

@@ -1,5 +1,5 @@
 import { ASTv2, GlimmerSyntaxError } from '@glimmer/syntax';
-import { PresentArray, VariableResolution } from '@glimmer/interfaces';
+import { PresentArray, VariableResolutionContext } from '@glimmer/interfaces';
 import { unreachable } from '@glimmer/util';
 
 export function isPath(node: ASTv2.Node | ASTv2.PathExpression): node is ASTv2.PathExpression {
@@ -52,11 +52,11 @@ export type SimpleHelper<N extends HasPath> = N & {
 
 export function isSimplePath(path: ASTv2.InternalExpression): path is SimplePath {
   if (path.type === 'PathExpression') {
-    let { head, tail: parts } = path;
+    let { ref: head, tail: parts } = path;
 
     return (
       head.type === 'FreeVarHead' &&
-      head.context !== VariableResolution.Strict &&
+      head.context !== VariableResolutionContext.Strict &&
       parts.length === 0
     );
   } else {
@@ -69,11 +69,11 @@ export function isStrictHelper(expr: HasPath): boolean {
     return true;
   }
 
-  if (expr.func.head.type !== 'FreeVarHead') {
+  if (expr.func.ref.type !== 'FreeVarHead') {
     return true;
   }
 
-  return expr.func.head.context === VariableResolution.Strict;
+  return expr.func.ref.context === VariableResolutionContext.Strict;
 }
 
 export function assertIsValidHelper<N extends HasPath>(
@@ -96,7 +96,7 @@ function printPath(path: ASTv2.InternalExpression): string {
     case 'Literal':
       return JSON.stringify(path.value);
     case 'PathExpression': {
-      let printedPath = [printPathHead(path.head)];
+      let printedPath = [printPathHead(path.ref)];
       printedPath.push(...path.tail);
       return printedPath.join('.');
     }
@@ -107,7 +107,7 @@ function printPath(path: ASTv2.InternalExpression): string {
   }
 }
 
-function printPathHead(head: ASTv2.PathHead): string {
+function printPathHead(head: ASTv2.VariableReference): string {
   switch (head.type) {
     case 'AtHead':
     case 'FreeVarHead':
