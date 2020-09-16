@@ -35,14 +35,14 @@ Match the `expr`'s `type`:
 1. `AST.Literal` => normalize it into a `hir.Literal`
 2. `AST.SubExpression` =>
    1. If the sexp is a keyword, check syntax and translate it into a `hir.Expr`
-   2. (in sloppy mode) assert that the head of the sexp is a simple path (no dots)
+   2. (in loose mode) assert that the head of the sexp is a simple path (no dots)
    3. translate the head of the sexp and its args to `hir.Expr`s.
 3. `AST.PathExpression` =>
    1. Match the head kind:
       1. if `this`, translate to `hir.GetThis`
       2. if `@arg`, translate to `hir.GetArg`
       3. if bare word:
-         1. in sloppy mode, translate to `hir.GetVar(context: context)`
+         1. in loose mode, translate to `hir.GetVar(context: context)`
          2. in strict mode, translate to `hir.StrictGetVar`
 
 ## `Process-Statement`

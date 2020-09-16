@@ -11,7 +11,7 @@ import { isPresent } from '@glimmer/util';
 import { op } from '../opcode-builder/encoder';
 import { curryComponent } from '../opcode-builder/helpers/components';
 import { Call, PushPrimitiveReference } from '../opcode-builder/helpers/vm';
-import { expectSloppyFreeVariable } from '../utils';
+import { expectLooseFreeVariable } from '../utils';
 import { Compilers } from './compilers';
 
 export const EXPRESSIONS = new Compilers<ExpressionSexpOpcode, ExpressionCompileActions>();
@@ -54,7 +54,7 @@ EXPRESSIONS.add(SexpOpcodes.Call, ([, name, params, hash], meta) => {
     );
   }
 
-  let nameOrError = expectSloppyFreeVariable(name, meta, 'Expected call head to be a string');
+  let nameOrError = expectLooseFreeVariable(name, meta, 'Expected call head to be a string');
 
   if (typeof nameOrError !== 'string') {
     return nameOrError;

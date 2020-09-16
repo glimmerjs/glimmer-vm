@@ -16,7 +16,7 @@ import {
   ModifierSyntaxContext,
   SexpSyntaxContext,
   SyntaxContext,
-} from './sloppy-context';
+} from './loose-context';
 import builders, { CallParts } from './v2-builders';
 
 export function normalize(html: string, options: PreprocessOptions = {}): ASTv2.Template {
@@ -142,7 +142,7 @@ class ExpressionNormalizer {
    *
    * The syntax context is originally determined by the syntactic position that this `PathHead`
    * came from, and is ultimately attached to the `ASTv2.VariableReference` here. In ASTv2,
-   * the `VariableReference` node bears full responsibility for sloppy mode rules that control
+   * the `VariableReference` node bears full responsibility for loose mode rules that control
    * the behavior of free variables.
    */
   private ref(head: ASTv1.PathHead, context: SyntaxContext): ASTv2.VariableReference {

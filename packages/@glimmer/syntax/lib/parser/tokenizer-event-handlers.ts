@@ -351,7 +351,6 @@ export interface PreprocessOptions {
     ast?: ASTPluginBuilder[];
   };
   parseOptions?: HandlebarsParseOptions;
-  thisFallbackMode?: 'sloppy' | 'strict';
 
   /**
     Useful for specifying a group of options together.

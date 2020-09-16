@@ -23,11 +23,11 @@ An element is a component if the part of its tag name before any `.`:
 
 Elements that are not named blocks *and* do not satisfy the component heuristics are represented as `ASTv2.SimpleElement`.
 
-# Strict vs. Sloppy Mode
+# Strict vs. Loose Mode
 
-The difference between strict and sloppy mode is entirely encapsulated in the `FreeVarReference`.
+The difference between strict and loose mode is entirely encapsulated in the `FreeVarReference`.
 
-Consumers of `ASTv2` don't need to know whether they're looking at a "strict" or "sloppy" template. They just need to know how to handle the different contexts in `FreeVarReference`.
+Consumers of `ASTv2` don't need to know whether they're looking at a "strict" or "loose" template. They just need to know how to handle the different contexts in `FreeVarReference`.
 
 ## Variable References
 
@@ -44,9 +44,9 @@ In `ASTv2`, every variable name is represented as a `VariableReference`.
 
 ### Free Variable References
 
-There are two significant differences between strict and sloppy mode that affect the AST.
+There are two significant differences between strict and loose mode that affect the AST.
 
-In sloppy mode:
+In loose mode:
 
 1. Certain free variable references fall back to a property lookup on `this`.
 2. Free variable references in "call" positions are resolved using a contextual namespace. For example, the free variable reference `h` in `(h 123)` is resolved as `helper:h`. The free variable reference `h` in `<p {{h 123}}>` is resolved as `modifier:h`.
@@ -95,7 +95,7 @@ A node is an unambiguous call node if:
 
 > Note `{{x y}}` in content is ambiguous because it could be a component or a helper.
 
-### Sloppy Free Variable Resolution Contexts
+### Loose Free Variable Resolution Contexts
 
 These resolution contexts occur in append or attribute nodes (`MustacheStatement` in `ASTv1`) with zero positional or named arguments, and when the path has dots.
 
@@ -113,7 +113,7 @@ None.
 
 | situation | variable | name |
 | - | - | - |
-| `{{x.y}}` as append <br> `<p attr={{x.y}}>` <br> `<a href="{{x.y}}.html">` | `x` | `SloppyFreeVariable` |
+| `{{x.y}}` as append <br> `<p attr={{x.y}}>` <br> `<a href="{{x.y}}.html">` | `x` | `LooseFreeVariable` |
 
 In these situations, the `x` may refer to a local variable in partial scope, or it may refer to `this.x`.
 
@@ -171,7 +171,7 @@ In this situation, the `x` may refer to:
 
 ### No-Resolver Situations
 
-In sloppy mode, there are free variables that have no `VariableResolutionContext` and therefore cannot be resolved. These situations are a syntax error.
+In loose mode, there are free variables that have no `VariableResolutionContext` and therefore cannot be resolved. These situations are a syntax error.
 
 #### Component Paths
 

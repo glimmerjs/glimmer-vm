@@ -19,7 +19,7 @@ import { InvokeComponent, InvokeStaticComponent } from '../opcode-builder/helper
 import { ReplayableIf } from '../opcode-builder/helpers/conditional';
 import { PushPrimitiveReference } from '../opcode-builder/helpers/vm';
 import { arr, strArray, templateMeta } from '../opcode-builder/operands';
-import { expectSloppyFreeVariable, isStrictFreeVariable } from '../utils';
+import { expectLooseFreeVariable, isStrictFreeVariable } from '../utils';
 import { Compilers } from './compilers';
 
 export const STATEMENTS = new Compilers<StatementSexpOpcode, StatementCompileActions>();
@@ -46,7 +46,7 @@ STATEMENTS.add(SexpOpcodes.FlushElement, () => op(Op.FlushElement));
 STATEMENTS.add(SexpOpcodes.Modifier, (sexp, meta) => {
   let [, name, params, hash] = sexp;
 
-  let stringName = expectSloppyFreeVariable(name, meta, 'Expected modifier head to be a string');
+  let stringName = expectLooseFreeVariable(name, meta, 'Expected modifier head to be a string');
 
   if (typeof stringName !== 'string') {
     return stringName;

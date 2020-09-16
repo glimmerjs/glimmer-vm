@@ -34,7 +34,7 @@ export interface SyntaxContext {
  */
 export class ArgumentSyntaxContext implements SyntaxContext {
   resolution(): VariableResolutionContext {
-    return VariableResolutionContext.SloppyFreeVariable;
+    return VariableResolutionContext.LooseFreeVariable;
   }
 }
 
@@ -57,7 +57,7 @@ export class CallDetails {
     } else if (!this.isSimple && this.isInvoke) {
       return VariableResolutionContext.Strict;
     } else if (!this.isSimple && !this.isInvoke) {
-      return VariableResolutionContext.SloppyFreeVariable;
+      return VariableResolutionContext.LooseFreeVariable;
     }
 
     throw unreachable();
@@ -87,7 +87,7 @@ abstract class CallSyntaxContext implements SyntaxContext {
    *
    * This rules out expressions that are not paths (e.g. `{{"hello"}}`) and path
    * expressions that begin with `@args` or `this` (because they don't trigger
-   * any sloppy mode behavior).
+   * any loose mode behavior).
    */
   headIsVarPath(): this is { ast: { path: VarPath } } {
     let path = this.ast.path;
@@ -146,7 +146,7 @@ abstract class CallSyntaxContext implements SyntaxContext {
  * If the head is not simple:
  *
  * - if the call node has arguments, it uses strict variable resolution
- * - if the call node has no arguments, it uses sloppy free variable resolution
+ * - if the call node has no arguments, it uses loose free variable resolution
  *
  * If the head is simple:
  *

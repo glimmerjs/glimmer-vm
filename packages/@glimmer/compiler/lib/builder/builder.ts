@@ -367,7 +367,7 @@ export function buildElementParams(
       params.push([Op.AttrSplat, symbols.block('&attrs')]);
     } else if (key[0] === '@') {
       keys.push(key);
-      values.push(buildExpression(value, 'NotSloppy', symbols));
+      values.push(buildExpression(value, 'Strict', symbols));
     } else {
       params.push(
         ...buildAttributeValue(
@@ -448,7 +448,7 @@ type ExprResolution =
   | 'AttrValue'
   | 'SubExpression'
   | 'Generic'
-  | 'NotSloppy';
+  | 'Strict';
 
 function varContext(context: ExprResolution, bare: boolean): VarResolution {
   switch (context) {
@@ -495,8 +495,8 @@ export function buildExpression(
       return [
         Op.HasBlock,
         buildVar(
-          { kind: VariableKind.Block, name: expr.name, mode: 'sloppy' },
-          VariableResolutionContext.SloppyFreeVariable,
+          { kind: VariableKind.Block, name: expr.name, mode: 'loose' },
+          VariableResolutionContext.LooseFreeVariable,
           symbols
         ),
       ];
@@ -506,8 +506,8 @@ export function buildExpression(
       return [
         Op.HasBlockParams,
         buildVar(
-          { kind: VariableKind.Block, name: expr.name, mode: 'sloppy' },
-          VariableResolutionContext.SloppyFreeVariable,
+          { kind: VariableKind.Block, name: expr.name, mode: 'loose' },
+          VariableResolutionContext.LooseFreeVariable,
           symbols
         ),
       ];
@@ -541,7 +541,7 @@ export function buildCallHead(
 export function buildGetPath(head: NormalizedPath, symbols: Symbols): Expressions.GetPath {
   return buildVar(
     head.path.head,
-    VariableResolutionContext.SloppyFreeVariable,
+    VariableResolutionContext.LooseFreeVariable,
     symbols,
     head.path.tail
   );
@@ -555,7 +555,7 @@ type VarResolution =
   | 'AttrValueInvoke'
   | 'SubExpression'
   | 'Generic'
-  | 'NotSloppy';
+  | 'Strict';
 
 export function buildVar(
   head: Variable,
@@ -578,7 +578,7 @@ export function buildVar(
   let sym: number;
   switch (head.kind) {
     case VariableKind.Free:
-      if (context === 'NotSloppy') {
+      if (context === 'Strict') {
         op = SexpOpcodes.GetStrictFree;
       } else if (context === 'AppendBare') {
         op = SexpOpcodes.GetFreeAsComponentOrHelperHeadOrThisFallback;
@@ -638,7 +638,7 @@ export function expressionContextOp(context: VariableResolutionContext): GetCont
       return Op.GetFreeAsComponentOrHelperHead;
     case VariableResolutionContext.AmbiguousAttr:
       return Op.GetFreeAsHelperHeadOrThisFallback;
-    case VariableResolutionContext.SloppyFreeVariable:
+    case VariableResolutionContext.LooseFreeVariable:
       return Op.GetFreeAsThisFallback;
     case VariableResolutionContext.ResolveAsCallHead:
       return Op.GetFreeAsCallHead;

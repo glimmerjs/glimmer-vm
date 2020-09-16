@@ -16,23 +16,13 @@ export type YieldTo = number;
  */
 export const enum VariableResolutionContext {
   Strict = 0,
-  // An `AmbiguousAppend` is a single identifier that is contained inside a curly (either in a
-  // content curly or an attribute curly)
   AmbiguousAppend = 1,
-  // An `AmbiguousInvoke` is `{{<expr> y}}`. <expr> can refer to a helper or component
   AmbiguousAppendInvoke = 2,
   AmbiguousAttr = 3,
-  // A `SloppyReference` is a free variable that isn't an ambiguous append or an ambiguous
-  // invoke. It may refer to in-scope local variables if the template was invoked as a partial,
-  // otherwise it refers to a property on `this`.
-  SloppyFreeVariable = 4,
-  // A `CallHead` is the head of an expression that is definitely a call
+  LooseFreeVariable = 4,
   ResolveAsCallHead = 5,
-  // A `BlockHead` is the head of an expression that is definitely a block
   ResolveAsBlockHead = 6,
-  // A `ModifierHead` is the head of an expression that is definitely a modifir
   ResolveAsModifierHead = 7,
-  // A `ComponentHead` is the head of an expression that is definitely a component
   ResolveAsComponentHead = 8,
 }
 
@@ -100,8 +90,8 @@ export const enum SexpOpcodes {
 
   GetStart = GetPath,
   GetEnd = GetFreeAsComponentHead,
-  GetSloppyFreeStart = GetFreeAsComponentOrHelperHeadOrThisFallback,
-  GetSloppyFreeEnd = GetFreeAsComponentHead,
+  GetLooseFreeStart = GetFreeAsComponentOrHelperHeadOrThisFallback,
+  GetLooseFreeEnd = GetFreeAsComponentHead,
   GetContextualFreeStart = GetFreeAsComponentOrHelperHeadOrThisFallback,
 }
 

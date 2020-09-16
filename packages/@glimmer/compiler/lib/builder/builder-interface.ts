@@ -54,11 +54,11 @@ export interface Variable {
    * Differences:
    *
    * - strict mode variables always refer to in-scope variables
-   * - sloppy mode variables use this algorithm:
+   * - loose mode variables use this algorithm:
    *   1. if the template is invoked as a partial, look for an in-scope partial variable
    *   2. otherwise, fall back to `this.<name>`
    */
-  mode: 'sloppy' | 'strict';
+  mode: 'loose' | 'strict';
 }
 
 export interface Path {
@@ -320,7 +320,7 @@ function normalizeDottedPath(whole: string): NormalizedHead {
 
   let [name, ...tail] = rest.split('.');
 
-  let variable: Variable = { kind, name, mode: 'sloppy' };
+  let variable: Variable = { kind, name, mode: 'loose' };
 
   if (isPresent(tail)) {
     return { type: ExpressionKind.GetPath, path: { head: variable, tail } };
@@ -337,7 +337,7 @@ export function normalizePathHead(whole: string): Variable {
     return {
       kind: VariableKind.This,
       name: whole,
-      mode: 'sloppy',
+      mode: 'loose',
     };
   }
 
@@ -362,7 +362,7 @@ export function normalizePathHead(whole: string): Variable {
       name = whole;
   }
 
-  return { kind, name, mode: 'sloppy' };
+  return { kind, name, mode: 'loose' };
 }
 
 export type BuilderBlockStatement =

@@ -17,9 +17,9 @@ export type ExpressionOut = pass1.Expr;
  * 2. Process the head part of ASTv2.PathExpression into one of:
  *   a. `this`
  *   b. `@arg`
- *   c. free variable (with context in sloppy mode)
+ *   c. free variable (with context in loose mode)
  * 3. Process subexpressions that are keywords (`(has-block)` and `(has-block-params)`)
- * 4. In sloppy mode, reject paths at the head of sub-expressions (`(x.y)` or `(x.y ...)`)
+ * 4. In loose mode, reject paths at the head of sub-expressions (`(x.y)` or `(x.y ...)`)
  */
 export class Pass0Expressions
   implements InfallibleVisitorInterface<ASTv2.InternalExpression, ExpressionOut> {

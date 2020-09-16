@@ -73,7 +73,7 @@ export function isStrictFreeVariable(
   return Array.isArray(expr) && expr[0] === SexpOpcodes.GetStrictFree;
 }
 
-export function trySloppyFreeVariable(
+export function tryLooseFreeVariable(
   expr: WireFormat.Expression,
   meta: ContainingMetadata
 ): Optional<string> {
@@ -86,13 +86,13 @@ export function trySloppyFreeVariable(
   }
 
   if (isGet(expr)) {
-    return sloppyPathName(expr, meta);
+    return loosePathName(expr, meta);
   }
 
   return null;
 }
 
-export function expectSloppyFreeVariable(
+export function expectLooseFreeVariable(
   expr: WireFormat.Expression,
   meta: ContainingMetadata,
   desc: string
@@ -101,7 +101,7 @@ export function expectSloppyFreeVariable(
     return error(`${desc}, but there were no free variables in the template`, 0, 0);
   }
 
-  let stringHead = trySloppyFreeVariable(expr, meta);
+  let stringHead = tryLooseFreeVariable(expr, meta);
 
   if (stringHead === null) {
     throw new Error(`${desc}, got ${JSON.stringify(expr)}`);
@@ -110,7 +110,7 @@ export function expectSloppyFreeVariable(
   }
 }
 
-export function sloppyPathName(
+export function loosePathName(
   opcode: Expressions.GetPath | Expressions.GetVar,
   meta: ContainingMetadata
 ): Optional<string> {
@@ -118,7 +118,7 @@ export function sloppyPathName(
     return null;
   }
 
-  if (isSloppyGetFree(opcode)) {
+  if (isLooseGetFree(opcode)) {
     return meta.upvars![opcode[1]];
   }
 
@@ -137,8 +137,8 @@ export function isStrictGetFree(
   return opcode[0] === SexpOpcodes.GetStrictFree;
 }
 
-export function isSloppyGetFree(
+export function isLooseGetFree(
   opcode: Expressions.GetVar | Expressions.GetPath
 ): opcode is Expressions.GetContextualFree {
-  return opcode[0] >= SexpOpcodes.GetSloppyFreeStart && opcode[0] <= SexpOpcodes.GetSloppyFreeEnd;
+  return opcode[0] >= SexpOpcodes.GetLooseFreeStart && opcode[0] <= SexpOpcodes.GetLooseFreeEnd;
 }

@@ -11,7 +11,7 @@ import {
 } from '@glimmer/interfaces';
 import { LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
 import { extractHandle } from '@glimmer/util';
-import { namedBlocks, expectSloppyFreeVariable } from './utils';
+import { namedBlocks, expectLooseFreeVariable } from './utils';
 
 export function compileInline(
   sexp: Statements.Append,
@@ -27,7 +27,7 @@ export function compileBlock(
   let [, name, params, hash, named] = block;
   let blocks = namedBlocks(named, context.meta);
 
-  let nameOrError = expectSloppyFreeVariable(
+  let nameOrError = expectLooseFreeVariable(
     name,
     context.meta,
     'Expected block head to be a string'

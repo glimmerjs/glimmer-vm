@@ -19,7 +19,7 @@ The output of the precompiler is a `TemplateBlock`:
 - `statements`: a list of `lir.Statement`s
 - `symbols`: a list of the names of the symbols that represent variable references; these are used for debugging and for `eval`-like operations (`debugger` and `partial`)
 - `upvars`: a list of the names of the free variables
-  - in sloppy mode, these are resolved by the JIT compiler
+  - in loose mode, these are resolved by the JIT compiler
   - in strict mode, these refer to variables that are in the same logical JavaScript scope as the source template
 
 > The previous implementation of the precompiler converted the AST into a stack-machine-like IR in the equivalent of the normalization pass. However, the equivalent of the encoding preparation pass simply re-assembled those operations into a nesting structure much closer to the original AST.
