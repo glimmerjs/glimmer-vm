@@ -1,11 +1,5 @@
 AST v2 enhances the original AST with a number of clarifying features.
 
-# Strict vs. Sloppy Mode
-
-The difference between strict and sloppy mode is entirely encapsulated in the `FreeVarReference`.
-
-Consumers of `ASTv2` don't need to know whether they're looking at a "strict" or "sloppy" template. They just need to know how to handle the different contexts in `FreeVarReference`. See below.
-
 # Blocks
 
 All nodes that can have block parameters have a `table: BlockSymbolTable` property in `ASTv2`.
@@ -29,7 +23,13 @@ An element is a component if the part of its tag name before any `.`:
 
 Elements that are not named blocks *and* do not satisfy the component heuristics are represented as `ASTv2.SimpleElement`.
 
-# Variable References
+# Strict vs. Sloppy Mode
+
+The difference between strict and sloppy mode is entirely encapsulated in the `FreeVarReference`.
+
+Consumers of `ASTv2` don't need to know whether they're looking at a "strict" or "sloppy" template. They just need to know how to handle the different contexts in `FreeVarReference`.
+
+## Variable References
 
 In `ASTv2`, every variable name is represented as a `VariableReference`.
 
@@ -42,7 +42,7 @@ In `ASTv2`, every variable name is represented as a `VariableReference`.
 | `LocalVarReference` | a reference to an in-scope variable binding |
 | `FreeVarReference` | a reference to a variable binding that is not in-scope |
 
-## Free Variable References
+### Free Variable References
 
 There are two significant differences between strict and sloppy mode that affect the AST.
 
@@ -55,7 +55,7 @@ In strict mode, all free variable references refer to bindings provided by a Jav
 
 To represent this difference, all `FreeVarReference` nodes in ASTv2 are tagged with a `VariableResolutionContext`.
 
-## Strict Resolution Context
+### Strict Resolution Context
 
 The `Strict` resolution context applies to all free variables encountered while parsing a template in strict mode.
 
@@ -63,7 +63,7 @@ The `Strict` resolution context applies to all free variables encountered while 
 
 None. Strict mode templates must be embedded in a JavaScript context where all free variable references are in scope. A compile-time error should be produced if free there are variable references that do not correspond to any in-scope variables.
 
-## Unambiguous Call Resolution Contexts
+### Unambiguous Call Resolution Contexts
 
 These resolution contexts occur in unambiguous call nodes.
 
@@ -95,7 +95,7 @@ A node is an unambiguous call node if:
 
 > Note `{{x y}}` in content is ambiguous because it could be a component or a helper.
 
-## Sloppy Free Variable Resolution Contexts
+### Sloppy Free Variable Resolution Contexts
 
 These resolution contexts occur in append or attribute nodes (`MustacheStatement` in `ASTv1`) with zero positional or named arguments, and when the path has dots.
 
@@ -117,7 +117,7 @@ None.
 
 In these situations, the `x` may refer to a local variable in partial scope, or it may refer to `this.x`.
 
-# Ambiguous Append Context
+### Ambiguous Append Context
 
 This resolution context occurs in append nodes with zero arguments, and when the path does not have dots.
 
@@ -144,7 +144,7 @@ In this situation, the `x` may refer to:
 - a local variable in partial scope
 - `this.x`.
 
-# Ambiguous Attr Context
+### Ambiguous Attr Context
 
 This resolution context occurs in attribute nodes with zero arguments, and when the path does not have dots.
 
@@ -169,11 +169,11 @@ In this situation, the `x` may refer to:
 - a local variable in partial scope
 - `this.x`.
 
-## No-Resolver Situations
+### No-Resolver Situations
 
 In sloppy mode, there are free variables that have no `VariableResolutionContext` and therefore cannot be resolved. These situations are a syntax error.
 
-### Component Paths
+#### Component Paths
 
 ```hbs
 {{! error }}
@@ -190,7 +190,7 @@ However, the following is not a syntax error, because `x` is a `LocalVarRef`, no
 {{/let}}
 ```
 
-### Modifier Paths
+#### Modifier Paths
 
 ```hbs
 {{! error }}
