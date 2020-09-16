@@ -3,6 +3,7 @@ import { assertPresent } from '@glimmer/util';
 import { Result } from '../../../shared/result';
 import * as pass1 from '../../2-symbol-allocation/hir';
 import { VisitorContext } from '../context';
+import { VISIT_EXPRS } from '../visitors/expressions';
 import { keywords } from './impl';
 
 export const BLOCK_KEYWORDS = keywords('Block').kw('in-element', {
@@ -47,13 +48,15 @@ export const BLOCK_KEYWORDS = keywords('Block').kw('in-element', {
   ): Result<pass1.InElement> {
     let { utils } = ctx;
 
-    return ctx.block(utils.slice('default').offsets(null), node.program).mapOk((body) =>
+    let named = ASTv2.getBlock(node.blocks, 'default');
+
+    return ctx.block(utils.slice('default').offsets(null), named.block).mapOk((body) =>
       utils
         .op(pass1.InElement, {
           block: body,
-          insertBefore: insertBefore ? ctx.utils.visitExpr(insertBefore) : undefined,
+          insertBefore: insertBefore ? VISIT_EXPRS.visit(insertBefore, ctx) : undefined,
           guid: ctx.generateUniqueCursor(),
-          destination: ctx.utils.visitExpr(destination),
+          destination: VISIT_EXPRS.visit(destination, ctx),
         })
         .loc(node)
     );

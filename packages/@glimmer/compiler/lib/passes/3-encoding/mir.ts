@@ -61,7 +61,7 @@ export class TrustingDynamicAttr extends op('TrustingDynamicAttr').args<DynamicA
 export class SimpleElement extends op('SimpleElement').args<{
   tag: SourceSlice;
   params: ElementParameters;
-  body: NamedBlock;
+  body: Statement[];
   dynamicFeatures: boolean;
 }>() {}
 

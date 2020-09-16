@@ -10,6 +10,7 @@ import {
   NormalizationState,
   NormalizationUtilities,
 } from './context';
+import { VISIT_STMTS } from './visitors/statements';
 
 /**
  * Normalize the AST from @glimmer/syntax into the HIR. The HIR has special
@@ -66,7 +67,7 @@ export default function normalize(
     LOCAL_LOGGER.groupEnd();
   }
 
-  let body = utils.visitStmts(root.body);
+  let body = VISIT_STMTS.visitList(root.body, utils.context);
 
   if (LOCAL_SHOULD_LOG) {
     if (body.isOk) {

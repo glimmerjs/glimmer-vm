@@ -1,10 +1,11 @@
 import {
   Dict,
-  VariableResolutionContext,
   Optional,
   PresentArray,
+  VariableResolutionContext,
   WireFormat,
 } from '@glimmer/interfaces';
+import { assert } from '@glimmer/util';
 import { BlockSymbolTable, ProgramSymbolTable, SymbolTable } from '../symbol-table';
 
 export { default as builders } from './v2-builders';
@@ -105,21 +106,26 @@ export interface AppendStatement extends BaseNode {
 
 export interface BlockStatement extends CallNode {
   type: 'BlockStatement';
-  program: Block;
-  inverse: Optional<Block>;
+  blocks: PresentArray<NamedBlock>;
+}
+
+export function hasBlock(blocks: NamedBlock[], name: string): boolean {
+  return !!blocks.find((block) => block.blockName.name === name);
+}
+
+export function getBlock(blocks: NamedBlock[], name: string): NamedBlock {
+  let block = blocks.find((block) => block.blockName.name === name);
+
+  assert(
+    block !== undefined,
+    `getBlock() should only be called for a guaranteed block; call hasBlock() first`
+  );
+
+  return block;
 }
 
 export interface ElementModifierStatement extends CallNode {
   type: 'ElementModifierStatement';
-}
-
-export interface PartialStatement extends BaseNode {
-  type: 'PartialStatement';
-  name: PathExpression | SubExpression;
-  params: InternalExpression[];
-  hash: Hash;
-  indent: string;
-  strip: StripFlags;
 }
 
 export interface CommentStatement extends BaseNode {
@@ -155,18 +161,18 @@ export type StatementName =
   | 'AppendStatement'
   | 'CommentStatement'
   | 'BlockStatement'
-  | 'PartialStatement'
   | 'MustacheCommentStatement'
   | 'TextNode'
   | 'SimpleElement'
-  | 'NamedBlock'
   | 'Component';
 
-export interface NamedBlock extends BaseElementNode {
+export interface NamedBlock extends BaseNode {
   type: 'NamedBlock';
   blockName: NamedBlockName;
-  children: Statement[];
-  table: BlockSymbolTable;
+  block: Block;
+  attributes: AttrNode[];
+  modifiers: ElementModifierStatement[];
+  comments: MustacheCommentStatement[];
 }
 
 export interface Component extends BaseElementNode {
@@ -178,7 +184,6 @@ export interface Component extends BaseElementNode {
 export interface SimpleElement extends BaseElementNode {
   type: 'SimpleElement';
   tag: string;
-  symbols: BlockSymbolTable;
   children: Statement[];
 }
 
@@ -298,7 +303,6 @@ export interface Nodes {
   Literal: Literal;
   AppendStatement: AppendStatement;
   ElementModifierStatement: ElementModifierStatement;
-  PartialStatement: PartialStatement;
   AttrNode: AttrNode;
   Interpolate: Interpolate;
   SubExpression: SubExpression;

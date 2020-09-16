@@ -180,7 +180,7 @@ export class ElementParameters extends op('ElementParameters').args<{
 export class SimpleElement extends op('SimpleElement').args<{
   tag: SourceSlice;
   params: ElementParameters;
-  body: NamedBlock;
+  body: Statement[];
   dynamicFeatures: boolean;
 }>() {}
 

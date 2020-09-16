@@ -1,9 +1,11 @@
 import { PresentArray } from '@glimmer/interfaces';
 import { ASTv2 } from '@glimmer/syntax';
 import { OptionalList } from '../../../../shared/list';
-import { Ok, Result } from '../../../../shared/result';
+import { MapIntoResultArray, Ok, Result } from '../../../../shared/result';
 // import { Option } from '@glimmer/interfaces';
 import * as pass1 from '../../../2-symbol-allocation/hir';
+import { VISIT_EXPRS } from '../expressions';
+import { VISIT_STMTS } from '../statements';
 import { Classified, ClassifiedElement, PreparedArgs } from './classified';
 
 type Body = pass1.NamedBlocks;
@@ -17,7 +19,7 @@ export class ClassifiedComponent implements Classified<Body> {
     let name = attr.name;
     let nameSlice = el.ctx.utils.slice(name).offsets(null);
 
-    let value = el.ctx.utils.visitExpr(attr.value);
+    let value = VISIT_EXPRS.visit(attr.value, el.ctx);
 
     return Ok(
       el.ctx.utils
@@ -48,22 +50,21 @@ export class ClassifiedComponent implements Classified<Body> {
       .loc(element);
   }
 
-  body({ ctx: { utils } }: ClassifiedElement<Body>): Result<Body> {
+  body({ ctx }: ClassifiedElement<Body>): Result<Body> {
+    let { utils } = ctx;
     if (this.element.blocks === null) {
       return Ok(utils.op(pass1.NamedBlocks, { blocks: OptionalList([]) }).offsets(null));
     } else if (Array.isArray(this.element.blocks)) {
-      return utils
-        .visitStmts(this.element.blocks, { allowNamedBlock: true })
+      return new MapIntoResultArray(this.element.blocks)
+        .map((block) => VISIT_STMTS.NamedBlock(block, ctx))
         .mapOk((blocks) =>
           utils.op(pass1.NamedBlocks, { blocks: OptionalList(blocks) }).offsets(null)
         );
     } else {
       // blocks is a single block
-      return utils
-        .visitStmt(this.element.blocks, { allowNamedBlock: true })
-        .mapOk((block) =>
-          utils.op(pass1.NamedBlocks, { blocks: OptionalList([block]) }).offsets(null)
-        );
+      return VISIT_STMTS.NamedBlock(this.element.blocks, ctx).mapOk((block) =>
+        utils.op(pass1.NamedBlocks, { blocks: OptionalList([block]) }).offsets(null)
+      );
     }
   }
 

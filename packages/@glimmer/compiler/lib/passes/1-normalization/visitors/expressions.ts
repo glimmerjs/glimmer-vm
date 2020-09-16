@@ -2,7 +2,8 @@ import { ASTv2 } from '@glimmer/syntax';
 import { assign } from '@glimmer/util';
 import { PresentList } from '../../../shared/list';
 import * as pass1 from '../../2-symbol-allocation/hir';
-import { InfallibleVisitorInterface, VisitorContext } from '../context';
+import { VisitorContext } from '../context';
+import { EXPR_KEYWORDS } from '../keywords';
 import { buildPath } from '../utils/builders';
 import { assertIsValidHelper, hasPath } from '../utils/is-node';
 
@@ -21,17 +22,22 @@ export type ExpressionOut = pass1.Expr;
  * 3. Process subexpressions that are keywords (`(has-block)` and `(has-block-params)`)
  * 4. In loose mode, reject paths at the head of sub-expressions (`(x.y)` or `(x.y ...)`)
  */
-export class Pass0Expressions
-  implements InfallibleVisitorInterface<ASTv2.InternalExpression, ExpressionOut> {
-  visit<K extends keyof Pass0Expressions & keyof ASTv2.Nodes>(
-    node: ASTv2.Node & { type: K },
-    ctx: VisitorContext
-  ): ReturnType<Pass0Expressions[K]> {
-    let f = this[node.type] as (
-      node: ASTv2.Node & { type: K },
-      ctx: VisitorContext
-    ) => ExpressionOut;
-    return f(node, ctx) as ReturnType<Pass0Expressions[K]>;
+export class Pass0Expressions {
+  visit(node: ASTv2.InternalExpression, ctx: VisitorContext): pass1.Expr {
+    if (EXPR_KEYWORDS.match(node)) {
+      return EXPR_KEYWORDS.translate(node, ctx).expect('TODO');
+    }
+
+    switch (node.type) {
+      case 'Literal':
+        return this.Literal(node, ctx);
+      case 'PathExpression':
+        return this.PathExpression(node, ctx);
+      case 'SubExpression':
+        return this.SubExpression(node, ctx);
+      case 'Interpolate':
+        return this.Interpolate(node, ctx);
+    }
   }
 
   PathExpression(path: ASTv2.PathExpression, ctx: VisitorContext): ExpressionOut {
@@ -45,7 +51,7 @@ export class Pass0Expressions
   Interpolate(expr: ASTv2.Interpolate, ctx: VisitorContext): pass1.Interpolate {
     return ctx.utils
       .op(pass1.Interpolate, {
-        parts: new PresentList(expr.parts).map((e) => ctx.utils.visitExpr(e)),
+        parts: new PresentList(expr.parts).map((e) => VISIT_EXPRS.visit(e, ctx)),
       })
       .loc(expr);
   }
@@ -63,7 +69,7 @@ export class Pass0Expressions
           pass1.SubExpression,
           assign(
             {
-              head: ctx.utils.visitExpr(expr.func),
+              head: VISIT_EXPRS.visit(expr.func, ctx),
             },
             utils.args(expr)
           )
@@ -73,10 +79,10 @@ export class Pass0Expressions
   }
 }
 
-export const EXPRESSIONS = new Pass0Expressions();
+export const VISIT_EXPRS = new Pass0Expressions();
 
 export function isExpr(
   node: ASTv2.Node | { type: keyof Pass0Expressions }
 ): node is { type: keyof Pass0Expressions } {
-  return node.type in EXPRESSIONS;
+  return node.type in VISIT_EXPRS;
 }

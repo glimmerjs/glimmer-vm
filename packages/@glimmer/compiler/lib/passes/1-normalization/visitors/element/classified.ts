@@ -7,6 +7,7 @@ import { getAttrNamespace } from '../../../../utils';
 import * as pass1 from '../../../2-symbol-allocation/hir';
 import { VisitorContext } from '../../context';
 import { assertIsValidHelper, isHelperInvocation } from '../../utils/is-node';
+import { VISIT_EXPRS } from '../expressions';
 
 export type ValidAttr = pass1.Attr | pass1.AttrSplat;
 
@@ -43,7 +44,7 @@ export class ClassifiedElement<Body> {
     let rawValue = attr.value;
 
     let namespace = getAttrNamespace(name) || undefined;
-    let value = this.ctx.utils.visitExpr(rawValue);
+    let value = VISIT_EXPRS.visit(rawValue, this.ctx);
 
     let isTrusting = attr.trusting;
 
@@ -75,7 +76,7 @@ export class ClassifiedElement<Body> {
 
     return this.ctx.utils
       .op(pass1.Modifier, {
-        head: this.ctx.utils.visitExpr(modifier.func),
+        head: VISIT_EXPRS.visit(modifier.func, this.ctx),
         params: this.ctx.utils.params({ func: modifier.func, params: modifier.params }),
         hash: this.ctx.utils.hash(modifier.hash),
       })

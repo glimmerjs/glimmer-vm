@@ -112,7 +112,7 @@ export class StatementEncoder implements Visitors<mir.StatementTable, OutOp> {
       [op, deflateTagName(tag.args.value)],
       ...(visitInternal(params) || []),
       [SexpOpcodes.FlushElement],
-      ...visitInternal(body)[1].statements,
+      ...visitStatements(body),
       [SexpOpcodes.CloseElement],
     ]);
   }

@@ -1,8 +1,8 @@
 import { Optional, PresentArray, VariableResolutionContext } from '@glimmer/interfaces';
-import { assign } from '@glimmer/util';
+import { assign, isPresent } from '@glimmer/util';
 import { GlimmerSyntaxError } from '../errors/syntax-error';
 import { preprocess, PreprocessOptions } from '../parser/tokenizer-event-handlers';
-import { BlockSymbolTable, SymbolTable } from '../symbol-table';
+import { BlockSymbolTable, ProgramSymbolTable, SymbolTable } from '../symbol-table';
 import * as ASTv1 from '../types/nodes-v1';
 import { default as buildersV1 } from '../v1-builders';
 import * as ASTv2 from './nodes-v2';
@@ -17,7 +17,7 @@ import {
   SexpSyntaxContext,
   SyntaxContext,
 } from './loose-context';
-import builders, { CallParts } from './v2-builders';
+import builders, { BuildElement, CallParts } from './v2-builders';
 
 export function normalize(html: string, options: PreprocessOptions = {}): ASTv2.Template {
   let ast = preprocess(html, options);
@@ -32,11 +32,10 @@ export function normalize(html: string, options: PreprocessOptions = {}): ASTv2.
   let top = SymbolTable.top();
   let normalizer = new StatementNormalizer(new BlockContext(normalizeOptions, top));
 
-  return builders.template(
-    top,
-    ast.body.map((b) => normalizer.normalize(b)),
-    ast.loc
-  );
+  return new TemplateChildren(
+    ast.loc,
+    ast.body.map((b) => normalizer.normalize(b))
+  ).assertTemplate(top);
 }
 
 export interface GlimmerCompileOptions extends PrecompileOptions {
@@ -171,7 +170,7 @@ class ExpressionNormalizer {
 class StatementNormalizer {
   constructor(private readonly block: BlockContext) {}
 
-  normalize(node: ASTv1.Statement): ASTv2.Statement {
+  normalize(node: ASTv1.Statement): ASTv2.Statement | ASTv2.NamedBlock {
     switch (node.type) {
       case 'PartialStatement':
         throw new Error(`Handlebars partial syntax ({{> ...}}) is not allowed in Glimmer`);
@@ -246,12 +245,10 @@ class StatementNormalizer {
   Block({ body, loc, blockParams }: ASTv1.Block): ASTv2.Block {
     let child = this.block.child(blockParams);
     let normalizer = new StatementNormalizer(child);
-
-    return builders.block(
-      child.table,
-      body.map((b) => normalizer.normalize(b)),
-      loc
-    );
+    return new BlockChildren(
+      loc,
+      body.map((b) => normalizer.normalize(b))
+    ).assertBlock(child.table);
   }
 
   private get expr(): ExpressionNormalizer {
@@ -283,6 +280,7 @@ class ElementNormalizer {
 
     // the head, attributes and modifiers are in the current scope
     let path = this.classifyTag(tagHead, rest, element.loc);
+
     let attributes = element.attributes.map((a) => this.attr(a));
     let modifiers = element.modifiers.map((m) => this.modifier(m));
 
@@ -290,9 +288,7 @@ class ElementNormalizer {
     let child = this.ctx.child(element.blockParams);
     let normalizer = new StatementNormalizer(child);
 
-    let children = element.children.map((s) => normalizer.normalize(s));
-    let hasNamedBlocks = children.some((c) => c.type === 'NamedBlock');
-    let namedBlocks = children.filter((c) => c.type === 'NamedBlock');
+    let childNodes = element.children.map((s) => normalizer.normalize(s));
 
     let el = builders.element({
       selfClosing,
@@ -301,24 +297,21 @@ class ElementNormalizer {
       comments,
     });
 
-    if (path === 'ElementHead') {
-      if (hasNamedBlocks) {
-        throw new GlimmerSyntaxError(`An HTML element may not have named blocks`, element.loc);
-      }
+    let children = new ElementChildren(el, loc, childNodes);
 
+    if (path === 'ElementHead') {
       if (tag[0] === ':') {
-        return el.named(tag.slice(1), children, child.table, loc);
+        return children.assertNamedBlock(tag.slice(1), child.table);
       } else {
-        return el.simple(tag, children, child.table);
+        return children.assertElement(tag, element.blockParams.length > 0);
       }
     }
 
     if (element.selfClosing) {
       return el.selfClosingComponent(path, loc);
-    } else if (hasNamedBlocks) {
-      return el.componentWithNamedBlocks(path, namedBlocks as PresentArray<ASTv2.NamedBlock>, loc);
     } else {
-      return el.componentWithDefaultBlock(path, children, child.table, loc);
+      let blocks = children.assertComponent(tag, child.table, element.blockParams.length > 0);
+      return el.componentWithNamedBlocks(path, blocks, loc);
     }
   }
 
@@ -444,6 +437,149 @@ class ElementNormalizer {
   }
 }
 
+class Children {
+  readonly namedBlocks: ASTv2.NamedBlock[];
+  readonly hasSemanticContent: boolean;
+  readonly nonBlockChildren: ASTv2.Statement[];
+
+  constructor(
+    readonly loc: ASTv2.SourceLocation,
+    readonly children: (ASTv2.Statement | ASTv2.NamedBlock)[]
+  ) {
+    this.namedBlocks = children.filter((c): c is ASTv2.NamedBlock => c.type === 'NamedBlock');
+    this.hasSemanticContent = !!children.find((c): c is ASTv2.Statement => {
+      switch (c.type) {
+        case 'NamedBlock':
+        case 'MustacheCommentStatement':
+        case 'CommentStatement':
+          return false;
+        case 'TextNode':
+          return !/^\s*$/.exec(c.chars);
+        default:
+          return true;
+      }
+    });
+    this.nonBlockChildren = children.filter((c): c is ASTv2.Statement => c.type !== 'NamedBlock');
+  }
+}
+
+class TemplateChildren extends Children {
+  assertTemplate(table: ProgramSymbolTable): ASTv2.Template {
+    if (isPresent(this.namedBlocks)) {
+      throw new GlimmerSyntaxError(
+        `Unexpected named block at the top-level of a template`,
+        this.loc
+      );
+    }
+
+    return builders.template(table, this.nonBlockChildren, this.loc);
+  }
+}
+
+class BlockChildren extends Children {
+  assertBlock(table: BlockSymbolTable): ASTv2.Block {
+    if (isPresent(this.namedBlocks)) {
+      throw new GlimmerSyntaxError(`Unexpected named block nested in a normal block`, this.loc);
+    }
+
+    return builders.block(table, this.nonBlockChildren);
+  }
+}
+
+class ElementChildren extends Children {
+  constructor(
+    private el: BuildElement,
+    loc: ASTv2.SourceLocation,
+    children: (ASTv2.Statement | ASTv2.NamedBlock)[]
+  ) {
+    super(loc, children);
+  }
+
+  assertNamedBlock(name: string, table: BlockSymbolTable): ASTv2.NamedBlock {
+    if (this.el.base.selfClosing) {
+      throw new GlimmerSyntaxError(
+        `<:${name}> is not a valid named block: named blocks cannot be self-closing`,
+        this.loc
+      );
+    }
+
+    if (isPresent(this.namedBlocks)) {
+      throw new GlimmerSyntaxError(
+        `Unexpected named block inside <:${name}> named block: named blocks cannot contain nested named blocks`,
+        this.loc
+      );
+    }
+
+    if (!isLowerCase(name)) {
+      throw new GlimmerSyntaxError(
+        `<:${name}> is not a valid named block: \`${name}\` is uppercase, and named blocks must be lowercase`,
+        this.loc
+      );
+    }
+
+    return builders.namedBlock(name, builders.block(table, this.nonBlockChildren));
+  }
+
+  assertElement(name: string, hasBlockParams: boolean): ASTv2.SimpleElement {
+    if (hasBlockParams) {
+      throw new GlimmerSyntaxError(
+        `Unexpected block params in <${name}>: simple elements cannot have block params`,
+        this.loc
+      );
+    }
+
+    if (isPresent(this.namedBlocks)) {
+      let names = this.namedBlocks.map((b) => b.blockName.name);
+
+      if (names.length === 1) {
+        throw new GlimmerSyntaxError(
+          `Syntax Error: Unexpected named block <:foo> inside <${name}> HTML element`,
+          this.loc
+        );
+      } else {
+        let printedNames = names.map((n) => `<:${n}>`).join(', ');
+        throw new GlimmerSyntaxError(
+          `Syntax Error: Unexpected named blocks inside <${name}> HTML element (${printedNames})`,
+          this.loc
+        );
+      }
+    }
+
+    return this.el.simple(name, this.nonBlockChildren);
+  }
+
+  assertComponent(
+    name: string,
+    table: BlockSymbolTable,
+    hasBlockParams: boolean
+  ): PresentArray<ASTv2.NamedBlock> {
+    if (isPresent(this.namedBlocks) && this.hasSemanticContent) {
+      throw new GlimmerSyntaxError(
+        `Unexpected content inside <${name}> component invocation: when using named blocks, the tag cannot contain other content`,
+        this.loc
+      );
+    }
+
+    if (isPresent(this.namedBlocks)) {
+      if (hasBlockParams) {
+        throw new GlimmerSyntaxError(
+          `Unexpected block params list on <${name}> component invocation: when passing named blocks, the invocation tag cannot take block params`,
+          this.loc
+        );
+      }
+      return this.namedBlocks;
+    } else {
+      return [
+        builders.namedBlock('default', builders.block(table, this.nonBlockChildren, this.loc)),
+      ];
+    }
+  }
+}
+
 function isUpperCase(tag: string): boolean {
   return tag[0] === tag[0].toUpperCase() && tag[0] !== tag[0].toLowerCase();
+}
+
+function isLowerCase(tag: string): boolean {
+  return tag[0] === tag[0].toLowerCase() && tag[0] !== tag[0].toUpperCase();
 }

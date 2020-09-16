@@ -4,25 +4,54 @@ import { OptionalList } from '../../../shared/list';
 import { UnlocatedOp } from '../../../shared/op';
 import { Ok, Result } from '../../../shared/result';
 import * as pass1 from '../../2-symbol-allocation/hir';
-import { Pass1Stmt, VisitorContext, VisitorInterface } from '../context';
+import { HirStmt, VisitorContext } from '../context';
 import { BLOCK_KEYWORDS } from '../keywords';
+import { APPEND_KEYWORDS } from '../keywords/append';
 import { ClassifiedElement, hasDynamicFeatures } from './element/classified';
 import { ClassifiedComponent } from './element/component';
 import { ClassifiedSimpleElement } from './element/simple-element';
 import { TemporaryNamedBlock } from './element/temporary-block';
+import { VISIT_EXPRS } from './expressions';
 
 // Whitespace is allowed around and between named blocks
 const WHITESPACE = /^\s+$/;
 
-export type Pass1Out = Pass1Stmt | pass1.NamedBlock;
+export type Pass1Out = HirStmt | pass1.NamedBlock;
 
-export class Pass0Statements implements VisitorInterface<ASTv2.Statement, Pass1Out> {
-  visit<K extends keyof Pass0Statements & keyof ASTv2.Nodes>(
-    node: ASTv2.Node & { type: K },
-    ctx: VisitorContext
-  ): ReturnType<Pass0Statements[K]> {
-    let f = this[node.type] as (node: ASTv2.Node & { type: K }, ctx: VisitorContext) => Pass1Out;
-    return f(node, ctx) as ReturnType<Pass0Statements[K]>;
+export class Pass0Statements {
+  visitList(nodes: ASTv2.Statement[], ctx: VisitorContext): Result<pass1.Statement[]> {
+    let out: pass1.Statement[] = [];
+
+    for (let node of nodes) {
+      let result = this.visit(node, ctx);
+
+      if (result.isErr) {
+        return result.cast();
+      } else if (result.value !== null) {
+        out.push(result.value);
+      }
+    }
+
+    return Ok(out);
+  }
+
+  visit(node: ASTv2.Statement, ctx: VisitorContext): Result<pass1.Statement | null> {
+    switch (node.type) {
+      case 'MustacheCommentStatement':
+        return Ok(null);
+      case 'AppendStatement':
+        return this.AppendStatement(node, ctx);
+      case 'CommentStatement':
+        return Ok(this.CommentStatement(node, ctx));
+      case 'BlockStatement':
+        return this.BlockStatement(node, ctx);
+      case 'Component':
+        return this.Component(node, ctx);
+      case 'SimpleElement':
+        return this.SimpleElement(node, ctx);
+      case 'TextNode':
+        return Ok(this.TextNode(node, ctx));
+    }
   }
 
   PartialStatement(): never {
@@ -30,54 +59,56 @@ export class Pass0Statements implements VisitorInterface<ASTv2.Statement, Pass1O
   }
 
   BlockStatement(node: ASTv2.BlockStatement, ctx: VisitorContext): Result<pass1.Statement> {
-    let { utils } = ctx;
-
     if (BLOCK_KEYWORDS.match(node)) {
       return BLOCK_KEYWORDS.translate(node, ctx);
-    } else {
-      return ctx
-        .block(utils.slice('default').offsets(null), node.program)
-        .andThen(
-          (defaultBlock): Result<OptionalList<pass1.NamedBlock>> => {
-            if (node.inverse) {
-              return ctx
-                .block(utils.slice('else').offsets(null), node.inverse)
-                .mapOk((inverseBlock) => {
-                  return OptionalList([defaultBlock, inverseBlock]);
-                });
-            } else {
-              return Ok(OptionalList([defaultBlock]));
-            }
-          }
-        )
-        .mapOk((blocks) =>
-          utils
-            .op(
-              pass1.BlockInvocation,
-              assign(
-                {
-                  head: ctx.utils.visitExpr(node.func),
-                },
-                utils.args(node),
-                { blocks }
-              )
-            )
-            .loc(node)
-        );
     }
+
+    let { utils } = ctx;
+
+    let named = ASTv2.getBlock(node.blocks, 'default');
+
+    return ctx
+      .block(utils.slice('default').offsets(null), named.block)
+      .andThen(
+        (defaultBlock): Result<OptionalList<pass1.NamedBlock>> => {
+          if (ASTv2.hasBlock(node.blocks, 'else')) {
+            let inverse = ASTv2.getBlock(node.blocks, 'else');
+            return ctx
+              .block(utils.slice('else').offsets(null), inverse.block)
+              .mapOk((inverseBlock) => {
+                return OptionalList([defaultBlock, inverseBlock]);
+              });
+          } else {
+            return Ok(OptionalList([defaultBlock]));
+          }
+        }
+      )
+      .mapOk((blocks) =>
+        utils
+          .op(
+            pass1.BlockInvocation,
+            assign(
+              {
+                head: VISIT_EXPRS.visit(node.func, ctx),
+              },
+              utils.args(node),
+              { blocks }
+            )
+          )
+          .loc(node)
+      );
   }
 
-  NamedBlock(block: ASTv2.NamedBlock, { utils }: VisitorContext): Result<pass1.NamedBlock> {
-    return utils.visitStmts(block.children).andThen((stmts) =>
-      new TemporaryNamedBlock(
-        {
-          name: utils.slice(block.blockName.name).loc(block),
-          table: block.table,
-          body: stmts,
-        },
-        utils.source.offsetsFor(block)
-      ).tryNamedBlock(utils.source)
-    );
+  NamedBlock(named: ASTv2.NamedBlock, ctx: VisitorContext): Result<pass1.NamedBlock> {
+    let { utils } = ctx;
+
+    let body = VISIT_STMTS.visitList(named.block.body, ctx);
+
+    return body.mapOk((body) => {
+      let name = utils.slice(named.blockName.name).loc(named.blockName);
+
+      return utils.op(pass1.NamedBlock, { name, body, table: named.block.table }).loc(named.loc);
+    });
   }
 
   SimpleElement(element: ASTv2.SimpleElement, ctx: VisitorContext): Result<pass1.Statement> {
@@ -95,19 +126,16 @@ export class Pass0Statements implements VisitorInterface<ASTv2.Statement, Pass1O
   Component(component: ASTv2.Component, ctx: VisitorContext): Result<pass1.Statement> {
     return new ClassifiedElement(
       component,
-      new ClassifiedComponent(ctx.utils.visitExpr(component.head), component),
+      new ClassifiedComponent(VISIT_EXPRS.visit(component.head, ctx), component),
       ctx
     ).toStatement();
   }
 
-  MustacheCommentStatement(
-    node: ASTv2.MustacheCommentStatement,
-    { utils }: VisitorContext
-  ): pass1.Ignore {
-    return utils.op(pass1.Ignore).loc(node);
-  }
-
   AppendStatement(append: ASTv2.AppendStatement, ctx: VisitorContext): Result<pass1.Statement> {
+    if (APPEND_KEYWORDS.match(append)) {
+      return APPEND_KEYWORDS.translate(append, ctx);
+    }
+
     let { value } = append;
     let { utils } = ctx;
 
@@ -115,7 +143,9 @@ export class Pass0Statements implements VisitorInterface<ASTv2.Statement, Pass1O
       return Ok(appendStringLiteral(ctx, value, { trusted: append.trusting }).loc(append));
     }
 
-    return Ok(utils.append(utils.visitExpr(value), { trusted: append.trusting }).loc(append));
+    return Ok(
+      utils.append(VISIT_EXPRS.visit(value, ctx), { trusted: append.trusting }).loc(append)
+    );
   }
 
   TextNode(text: ASTv2.TextNode, { utils }: VisitorContext): pass1.Statement {
@@ -139,12 +169,10 @@ export class Pass0Statements implements VisitorInterface<ASTv2.Statement, Pass1O
   }
 }
 
-export const STATEMENTS = new Pass0Statements();
+export const VISIT_STMTS = new Pass0Statements();
 
-export function isStatement(
-  node: ASTv2.Node | { type: keyof Pass0Statements }
-): node is { type: keyof Pass0Statements } {
-  return node.type in STATEMENTS;
+export function isStatement(node: ASTv2.Node): node is ASTv2.Statement {
+  return node.type in VISIT_STMTS;
 }
 
 function appendStringLiteral(
@@ -154,11 +182,11 @@ function appendStringLiteral(
 ): UnlocatedOp<pass1.Statement> {
   if (trusted) {
     return ctx.utils.op(pass1.AppendTrustedHTML, {
-      value: ctx.utils.visitExpr(expr),
+      value: VISIT_EXPRS.visit(expr, ctx),
     });
   } else {
     return ctx.utils.op(pass1.AppendTextNode, {
-      value: ctx.utils.visitExpr(expr),
+      value: VISIT_EXPRS.visit(expr, ctx),
     });
   }
 }

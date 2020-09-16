@@ -71,7 +71,7 @@ export class Pass1Statement implements StatementVisitor {
     return ctx.op(mir.SimpleElement, {
       tag,
       params: ctx.visitInternal(params),
-      body: ctx.visitInternal(body),
+      body: body.map((b) => ctx.visitStmt(b)),
       dynamicFeatures,
     });
   }

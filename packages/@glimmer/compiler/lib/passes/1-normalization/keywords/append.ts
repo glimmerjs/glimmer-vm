@@ -4,6 +4,7 @@ import { Ok, Result } from '../../../shared/result';
 import { Source } from '../../../source/source';
 import * as pass1 from '../../2-symbol-allocation/hir';
 import { VisitorContext } from '../context';
+import { VISIT_EXPRS } from '../visitors/expressions';
 import { assertValidHasBlockUsage } from './has-block';
 import { keywords, Match } from './impl';
 
@@ -115,8 +116,8 @@ export const APPEND_KEYWORDS = keywords('Append')
             table: node.table,
             expr:
               expr === undefined
-                ? ctx.utils.visitExpr(builders.literal(undefined))
-                : ctx.utils.visitExpr(expr),
+                ? VISIT_EXPRS.visit(builders.literal(undefined), ctx)
+                : VISIT_EXPRS.visit(expr, ctx),
           })
           .loc(node)
       );

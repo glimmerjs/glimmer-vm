@@ -38,6 +38,18 @@ class Builder {
     };
   }
 
+  namedBlock(name: string, block: ASTv2.Block, loc?: SourceLocation): ASTv2.NamedBlock {
+    return {
+      type: 'NamedBlock',
+      blockName: this.blockName(name),
+      block,
+      attributes: [],
+      modifiers: [],
+      comments: [],
+      loc: this.loc(loc),
+    };
+  }
+
   simpleNamedBlock(
     name: string,
     children: ASTv2.Statement[],
@@ -293,12 +305,15 @@ class Builder {
     } & CallParts,
     loc?: SourceLocation
   ): ASTv2.BlockStatement {
+    let blocks: PresentArray<ASTv2.NamedBlock> = [this.namedBlock('default', program)];
+    if (inverse) {
+      blocks.push(this.namedBlock('else', inverse));
+    }
     return assign(
       {
         type: 'BlockStatement',
         symbols,
-        program,
-        inverse,
+        blocks,
         loc: this.loc(loc),
       } as const,
       call
@@ -349,30 +364,24 @@ export interface BuildBaseElement {
   comments: ASTv2.MustacheCommentStatement[];
 }
 
-class BuildElement {
-  constructor(private options: BuildBaseElement) {}
+export class BuildElement {
+  constructor(readonly base: BuildBaseElement) {}
 
-  simple(
-    tag: string,
-    children: ASTv2.Statement[],
-    symbols: BlockSymbolTable,
-    loc?: SourceLocation
-  ): ASTv2.SimpleElement {
+  simple(tag: string, children: ASTv2.Statement[], loc?: SourceLocation): ASTv2.SimpleElement {
     return assign(
       {
         type: 'SimpleElement',
-        symbols,
         tag,
         children,
         loc: BUILDER.loc(loc),
       } as const,
-      this.options
+      this.base
     );
   }
 
   named(
     name: string,
-    children: ASTv2.Statement[],
+    body: ASTv2.Statement[],
     table: BlockSymbolTable,
     loc?: SourceLocation
   ): ASTv2.NamedBlock {
@@ -380,11 +389,15 @@ class BuildElement {
       {
         type: 'NamedBlock',
         blockName: BUILDER.blockName(name),
-        children,
-        table,
+        block: {
+          type: 'Block',
+          body,
+          table,
+          loc: BUILDER.loc(loc),
+        },
         loc: BUILDER.loc(loc),
       } as const,
-      this.options
+      this.base
     );
   }
 
@@ -396,7 +409,7 @@ class BuildElement {
         blocks: null,
         loc: BUILDER.loc(loc),
       } as const,
-      this.options
+      this.base
     );
   }
 
@@ -415,7 +428,7 @@ class BuildElement {
         blocks: block,
         loc: BUILDER.loc(loc),
       } as const,
-      this.options
+      this.base
     );
   }
 
@@ -431,7 +444,7 @@ class BuildElement {
         blocks,
         loc: BUILDER.loc(loc),
       } as const,
-      this.options
+      this.base
     );
   }
 }

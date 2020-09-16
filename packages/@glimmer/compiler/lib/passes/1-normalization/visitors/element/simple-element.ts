@@ -1,11 +1,12 @@
 import { ASTv2, GlimmerSyntaxError } from '@glimmer/syntax';
+import { unreachable } from '@glimmer/util';
+import { Err, Ok, Result } from '../../../../shared/result';
 // import { Option } from '@glimmer/interfaces';
 import * as pass1 from '../../../2-symbol-allocation/hir';
-import { Err, Ok, Result } from '../../../../shared/result';
-import { ClassifiedElement, Classified, PreparedArgs } from './classified';
-import { TemporaryNamedBlock } from './temporary-block';
+import { VISIT_STMTS } from '../statements';
+import { Classified, ClassifiedElement, PreparedArgs } from './classified';
 
-type Body = pass1.NamedBlock;
+type Body = pass1.Statement[];
 
 export class ClassifiedSimpleElement implements Classified<Body> {
   constructor(
@@ -46,25 +47,16 @@ export class ClassifiedSimpleElement implements Classified<Body> {
       .loc(element);
   }
 
-  body({ ctx: { utils } }: ClassifiedElement<Body>): Result<Body> {
-    return utils.visitStmts(this.element.children).andThen((body) =>
-      new TemporaryNamedBlock(
-        {
-          name: utils.slice('default').offsets(null),
-          table: this.element.symbols,
-          body,
-        },
-        utils.source.maybeOffsetsFor(this.element)
-      ).tryNamedBlock(utils.source)
-    );
+  body({ ctx }: ClassifiedElement<Body>): Result<Body> {
+    return VISIT_STMTS.visitList(this.element.children, ctx);
   }
 
-  selfClosing(block: pass1.NamedBlock): Result<Body> {
-    return Ok(block);
+  selfClosing(): Result<Body> {
+    return Ok([]);
   }
 
-  namedBlock(block: pass1.NamedBlock): Result<Body> {
-    return Ok(block);
+  namedBlock(): Result<Body> {
+    throw unreachable();
   }
 
   namedBlocks(_: unknown, { element }: ClassifiedElement<Body>): Result<Body> {
