@@ -406,7 +406,7 @@ export class BuildElement {
       {
         type: 'Component',
         head,
-        blocks: null,
+        blocks: [] as ASTv2.NamedBlock[],
         loc: BUILDER.loc(loc),
       } as const,
       this.base

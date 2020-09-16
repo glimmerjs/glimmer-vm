@@ -178,7 +178,7 @@ export interface NamedBlock extends BaseNode {
 export interface Component extends BaseElementNode {
   type: 'Component';
   head: InternalExpression;
-  blocks: NamedBlock | NamedBlock[] | null;
+  blocks: NamedBlock | NamedBlock[];
 }
 
 export interface SimpleElement extends BaseElementNode {

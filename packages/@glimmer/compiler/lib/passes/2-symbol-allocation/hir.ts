@@ -2,7 +2,6 @@ import { Optional, PresentArray, VariableResolutionContext } from '@glimmer/inte
 import { ASTv2, BlockSymbolTable, ProgramSymbolTable, SymbolTable } from '@glimmer/syntax';
 import { AnyOptionalList, OptionalList, PresentList } from '../../shared/list';
 import { op, OpsTable } from '../../shared/op';
-import { TemporaryNamedBlock } from '../1-normalization/visitors/element/temporary-block';
 
 export interface AttrKind {
   // triple-curly
@@ -162,7 +161,7 @@ export class NamedBlocks extends op('NamedBlocks').args<{
   blocks: OptionalList<NamedBlock>;
 }>() {}
 
-export type NonSemanticChild = NonSemantic | TemporaryNamedBlock;
+export type NonSemanticChild = NonSemantic;
 
 export class Ignore extends op('Ignore').void() {}
 

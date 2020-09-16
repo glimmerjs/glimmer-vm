@@ -1,23 +1,19 @@
 import { ASTv2, GlimmerSyntaxError } from '@glimmer/syntax';
-import { unreachable } from '@glimmer/util';
-import { Err, Ok, Result } from '../../../../shared/result';
-// import { Option } from '@glimmer/interfaces';
-import * as pass1 from '../../../2-symbol-allocation/hir';
+import { Err, Result } from '../../../../shared/result';
+import * as hir from '../../../2-symbol-allocation/hir';
 import { VISIT_STMTS } from '../statements';
 import { Classified, ClassifiedElement, PreparedArgs } from './classified';
 
-type Body = pass1.Statement[];
-
-export class ClassifiedSimpleElement implements Classified<Body> {
+export class ClassifiedSimpleElement implements Classified {
   constructor(
-    private tag: pass1.SourceSlice,
+    private tag: hir.SourceSlice,
     private element: ASTv2.SimpleElement,
     readonly dynamicFeatures: boolean
   ) {}
 
   readonly isComponent = false;
 
-  arg(attr: ASTv2.AttrNode): Result<pass1.NamedArgument> {
+  arg(attr: ASTv2.AttrNode): Result<hir.NamedArgument> {
     return Err(
       new GlimmerSyntaxError(
         `${
@@ -28,43 +24,21 @@ export class ClassifiedSimpleElement implements Classified<Body> {
     );
   }
 
-  toStatement(
-    classified: ClassifiedElement<Body>,
-    { params, body }: PreparedArgs<Body>
-  ): pass1.Statement {
-    let {
-      ctx: { utils },
-      element,
-    } = classified;
+  toStatement(classified: ClassifiedElement, { params }: PreparedArgs): Result<hir.Statement> {
+    let { ctx, element } = classified;
+    let { utils } = ctx;
 
-    return utils
-      .op(pass1.SimpleElement, {
-        tag: this.tag,
-        params,
-        body,
-        dynamicFeatures: this.dynamicFeatures,
-      })
-      .loc(element);
-  }
+    let body = VISIT_STMTS.visitList(this.element.children, ctx);
 
-  body({ ctx }: ClassifiedElement<Body>): Result<Body> {
-    return VISIT_STMTS.visitList(this.element.children, ctx);
-  }
-
-  selfClosing(): Result<Body> {
-    return Ok([]);
-  }
-
-  namedBlock(): Result<Body> {
-    throw unreachable();
-  }
-
-  namedBlocks(_: unknown, { element }: ClassifiedElement<Body>): Result<Body> {
-    return Err(
-      new GlimmerSyntaxError(
-        `only a component can have named blocks, and this is a ${this.tag}`,
-        element.loc
-      )
+    return body.mapOk((body) =>
+      utils
+        .op(hir.SimpleElement, {
+          tag: this.tag,
+          params,
+          body,
+          dynamicFeatures: this.dynamicFeatures,
+        })
+        .loc(element)
     );
   }
 }

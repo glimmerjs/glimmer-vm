@@ -10,7 +10,6 @@ import { APPEND_KEYWORDS } from '../keywords/append';
 import { ClassifiedElement, hasDynamicFeatures } from './element/classified';
 import { ClassifiedComponent } from './element/component';
 import { ClassifiedSimpleElement } from './element/simple-element';
-import { TemporaryNamedBlock } from './element/temporary-block';
 import { VISIT_EXPRS } from './expressions';
 
 // Whitespace is allowed around and between named blocks
@@ -52,10 +51,6 @@ export class Pass0Statements {
       case 'TextNode':
         return Ok(this.TextNode(node, ctx));
     }
-  }
-
-  PartialStatement(): never {
-    throw new Error(`Handlebars partials are not supported in Glimmer`);
   }
 
   BlockStatement(node: ASTv2.BlockStatement, ctx: VisitorContext): Result<pass1.Statement> {

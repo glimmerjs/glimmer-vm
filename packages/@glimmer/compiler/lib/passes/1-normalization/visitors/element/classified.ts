@@ -3,40 +3,38 @@ import { ASTv2 } from '@glimmer/syntax';
 import { OptionalList } from '../../../../shared/list';
 import { Ok, Result, ResultArray } from '../../../../shared/result';
 import { getAttrNamespace } from '../../../../utils';
-// import { Option } from '@glimmer/interfaces';
-import * as pass1 from '../../../2-symbol-allocation/hir';
+import * as hir from '../../../2-symbol-allocation/hir';
 import { VisitorContext } from '../../context';
 import { assertIsValidHelper, isHelperInvocation } from '../../utils/is-node';
 import { VISIT_EXPRS } from '../expressions';
 
-export type ValidAttr = pass1.Attr | pass1.AttrSplat;
+export type ValidAttr = hir.Attr | hir.AttrSplat;
 
 type ProcessedAttributes = {
   attrs: ValidAttr[];
-  args: pass1.NamedArguments;
+  args: hir.NamedArguments;
 };
 
-export interface Classified<Body> {
+export interface Classified {
   readonly dynamicFeatures: boolean;
 
-  arg(attr: ASTv2.AttrNode, classified: ClassifiedElement<Body>): Result<pass1.NamedArgument>;
-  toStatement(classified: ClassifiedElement<Body>, prepared: PreparedArgs<Body>): pass1.Statement;
-  body(classified: ClassifiedElement<Body>): Result<Body>;
+  arg(attr: ASTv2.AttrNode, classified: ClassifiedElement): Result<hir.NamedArgument>;
+  toStatement(classified: ClassifiedElement, prepared: PreparedArgs): Result<hir.Statement>;
 }
 
-export class ClassifiedElement<Body> {
-  readonly delegate: Classified<Body>;
+export class ClassifiedElement {
+  readonly delegate: Classified;
 
   constructor(
     readonly element: ASTv2.ElementNode,
-    delegate: Classified<Body>,
+    delegate: Classified,
     readonly ctx: VisitorContext
   ) {
     this.delegate = delegate;
   }
 
-  toStatement(): Result<pass1.Statement> {
-    return this.prepare().mapOk((prepared) => this.delegate.toStatement(this, prepared));
+  toStatement(): Result<hir.Statement> {
+    return this.prepare().andThen((prepared) => this.delegate.toStatement(this, prepared));
   }
 
   private attr(attr: ASTv2.AttrNode): Result<ValidAttr> {
@@ -51,12 +49,12 @@ export class ClassifiedElement<Body> {
     // splattributes
     // this is grouped together with attributes because its position matters
     if (name === '...attributes') {
-      return Ok(this.ctx.utils.op(pass1.AttrSplat).loc(attr));
+      return Ok(this.ctx.utils.op(hir.AttrSplat).loc(attr));
     }
 
     return Ok(
       this.ctx.utils
-        .op(pass1.Attr, {
+        .op(hir.Attr, {
           name: this.ctx.utils.slice(name).offsets(null),
           value: value,
           namespace,
@@ -69,13 +67,13 @@ export class ClassifiedElement<Body> {
     );
   }
 
-  private modifier(modifier: ASTv2.ElementModifierStatement): pass1.Modifier {
+  private modifier(modifier: ASTv2.ElementModifierStatement): hir.Modifier {
     if (isHelperInvocation(modifier)) {
       assertIsValidHelper(modifier, modifier.loc, 'modifier');
     }
 
     return this.ctx.utils
-      .op(pass1.Modifier, {
+      .op(hir.Modifier, {
         head: VISIT_EXPRS.visit(modifier.func, this.ctx),
         params: this.ctx.utils.params({ func: modifier.func, params: modifier.params }),
         hash: this.ctx.utils.hash(modifier.hash),
@@ -85,7 +83,7 @@ export class ClassifiedElement<Body> {
 
   private attrs(): Result<ProcessedAttributes> {
     let attrs = new ResultArray<ValidAttr>();
-    let args = new ResultArray<pass1.NamedArgument>();
+    let args = new ResultArray<hir.NamedArgument>();
 
     let typeAttr: Optional<ASTv2.AttrNode> = null;
 
@@ -105,32 +103,31 @@ export class ClassifiedElement<Body> {
 
     return Result.all(args.toArray(), attrs.toArray()).mapOk(([args, attrs]) => ({
       attrs,
-      args: this.ctx.utils.op(pass1.NamedArguments, { pairs: OptionalList(args) }).offsets(null),
+      args: this.ctx.utils.op(hir.NamedArguments, { pairs: OptionalList(args) }).offsets(null),
     }));
   }
 
-  private prepare(): Result<PreparedArgs<Body>> {
+  private prepare(): Result<PreparedArgs> {
     let result = this.attrs();
 
-    return result.andThen((result) => {
+    return result.mapOk((result) => {
       let { attrs, args } = result;
 
       let modifiers = this.element.modifiers.map((m) => this.modifier(m));
       let params = this.ctx.utils
-        .op(pass1.ElementParameters, {
+        .op(hir.ElementParameters, {
           body: OptionalList([...attrs, ...modifiers]),
         })
         .offsets(null);
 
-      return this.delegate.body(this).mapOk((body) => ({ args, params, body }));
+      return { args, params };
     });
   }
 }
 
-export interface PreparedArgs<Body> {
-  args: pass1.NamedArguments;
-  params: pass1.ElementParameters;
-  body: Body;
+export interface PreparedArgs {
+  args: hir.NamedArguments;
+  params: hir.ElementParameters;
 }
 
 export function hasDynamicFeatures({
