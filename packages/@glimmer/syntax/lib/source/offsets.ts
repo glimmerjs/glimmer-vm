@@ -1,6 +1,10 @@
 import { PresentArray } from '@glimmer/interfaces';
-import { SourceLocation, SYNTHETIC } from '@glimmer/syntax';
-import { LocatedWithOffsets, LocatedWithOptionalOffsets } from '../shared/ops';
+import {
+  LocatedWithOffsets,
+  LocatedWithOptionalOffsets,
+  SourceLocation,
+  SYNTHETIC,
+} from './location';
 import { Source } from './source';
 
 export type HasOffsets = SourceOffsets | LocatedWithOffsets | PresentArray<LocatedWithOffsets>;
@@ -18,49 +22,51 @@ export enum SourceOffsetKind {
 }
 
 export class SourceOffsets {
-  static SYNTHETIC: SourceOffsets = new SourceOffsets(0, 0, SourceOffsetKind.Synthetic);
-  static NONE: SourceOffsets = new SourceOffsets(0, 0, SourceOffsetKind.None);
-
-  static range(list: { offsets: SourceOffsets }[]): SourceOffsets {
+  static range(source: Source, list: { offsets: SourceOffsets }[]): SourceOffsets {
     if (list.length === 0) {
-      return SourceOffsets.NONE;
+      return source.NONE;
     } else {
       let first = list[0];
       let last = list[list.length - 1];
 
       if (first.offsets === null || last.offsets === null) {
-        return SourceOffsets.NONE;
+        return source.NONE;
       } else {
-        return new SourceOffsets(first.offsets.start, last.offsets.end);
+        return new SourceOffsets(source, first.offsets.start, last.offsets.end);
       }
     }
   }
 
-  static from(offsets: MaybeHasOffsets): SourceOffsets {
+  static from(source: Source, offsets: MaybeHasOffsets): SourceOffsets {
     if (offsets === null) {
-      return SourceOffsets.NONE;
+      return source.NONE;
     } else if ('start' in offsets) {
       return offsets;
     } else if ('offsets' in offsets) {
-      return SourceOffsets.from(offsets.offsets);
+      return SourceOffsets.from(source, offsets.offsets);
     } else {
       let start = offsets[0];
       let end = offsets[offsets.length - 1];
 
       if (start.offsets === null || end.offsets === null) {
-        return SourceOffsets.NONE;
+        return source.NONE;
       } else {
         let startOffset = start.offsets.start;
         let endOffset = end.offsets.end;
 
-        return new SourceOffsets(startOffset, endOffset);
+        return new SourceOffsets(source, startOffset, endOffset);
       }
     }
   }
 
   readonly kind: SourceOffsetKind;
 
-  constructor(readonly start: number, readonly end: number, kind = SourceOffsetKind.Normal) {
+  constructor(
+    readonly source: Source,
+    readonly start: number,
+    readonly end: number,
+    kind = SourceOffsetKind.Normal
+  ) {
     if (kind === SourceOffsetKind.Normal && start === end) {
       this.kind = SourceOffsetKind.Collapsed;
     } else {

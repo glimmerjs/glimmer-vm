@@ -1,4 +1,4 @@
-import b, { SYNTHETIC } from '../v1-builders';
+import b from '../v1-builders';
 import { appendChild, isLiteral, printLiteral } from '../utils';
 import * as AST from '../types/nodes-v1';
 import * as HBS from '../types/handlebars-ast';
@@ -7,6 +7,7 @@ import { Recast, Optional } from '@glimmer/interfaces';
 import { TokenizerState } from 'simple-html-tokenizer';
 import { expect } from '@glimmer/util';
 import { GlimmerSyntaxError } from '../errors/syntax-error';
+import { SYNTHETIC } from '../source/location';
 
 export abstract class HandlebarsNodeVisitors extends Parser {
   abstract appendToCommentData(s: string): void;

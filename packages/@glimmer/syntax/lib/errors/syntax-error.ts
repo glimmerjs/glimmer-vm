@@ -1,12 +1,12 @@
-import * as AST from '../types/nodes-v1';
+import { SourceLocation } from '../source/location';
 
 export interface GlimmerSyntaxError extends Error {
-  location: AST.SourceLocation | null;
+  location: SourceLocation | null;
   constructor: SyntaxErrorConstructor;
 }
 
 export interface SyntaxErrorConstructor {
-  new (message: string, location: AST.SourceLocation | null): GlimmerSyntaxError;
+  new (message: string, location: SourceLocation | null): GlimmerSyntaxError;
   readonly prototype: GlimmerSyntaxError;
 }
 
@@ -19,11 +19,7 @@ export const GlimmerSyntaxError: SyntaxErrorConstructor = (function () {
   SyntaxError.prototype = Object.create(Error.prototype);
   SyntaxError.prototype.constructor = SyntaxError;
 
-  function SyntaxError(
-    this: GlimmerSyntaxError,
-    message: string,
-    location: AST.SourceLocation | null
-  ) {
+  function SyntaxError(this: GlimmerSyntaxError, message: string, location: SourceLocation | null) {
     let error = Error.call(this, message);
 
     this.message = message;

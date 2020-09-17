@@ -1,8 +1,6 @@
 import { PresentArray } from '@glimmer/interfaces';
-import { SourceLocation } from '@glimmer/syntax';
-import { SourceOffsets } from '../source/offsets';
+import { Source } from '@glimmer/syntax';
 import { InputOpArgs, Op, OpConstructor, toArgs, UnlocatedOp } from './op';
-import { Source } from '../source/source';
 
 export type ArgsMap<K extends string | number> = {
   [P in K]: unknown;
@@ -58,12 +56,6 @@ export class OpFactory<SubOp extends Op> {
     return out;
   }
 }
-
-export type LocatedWithOffsets = { offsets: SourceOffsets };
-export type LocatedWithOptionalOffsets = { offsets: SourceOffsets | null };
-
-export type LocatedWithPositions = { loc: SourceLocation };
-export type LocatedWithOptionalPositions = { loc?: SourceLocation };
 
 export type ArrayUnion<K extends string | number, Map extends ArgsMap<K>, Name extends K = K> = {
   [P in K]: [P, Map[P]];

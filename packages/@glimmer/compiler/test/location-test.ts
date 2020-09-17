@@ -4,7 +4,7 @@ const test = QUnit.test;
 
 import { Dict } from '@glimmer/interfaces';
 import { unwrap } from '@glimmer/util';
-import { Source } from '..';
+import { Source } from '@glimmer/syntax';
 
 const cases: Dict<[string, number | null][]> = {
   'hello world': [

@@ -8,10 +8,11 @@ import traverse from '../traversal/traverse';
 import { NodeVisitor } from '../traversal/visitor';
 import Walker from '../traversal/walker';
 import * as HBS from '../types/handlebars-ast';
-import * as AST from '../types/nodes-v1';
+import * as AST from '../types/api';
 import { appendChild, parseElementBlockParams } from '../utils';
-import { default as b, default as builders, SYNTHETIC } from '../v1-builders';
+import { default as b, default as builders } from '../v1-builders';
 import { HandlebarsNodeVisitors } from './handlebars-node-visitors';
+import { SYNTHETIC } from '../source/location';
 
 export const voidMap: {
   [tagName: string]: boolean;

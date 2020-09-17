@@ -1,6 +1,5 @@
-import { ASTv2 } from '@glimmer/syntax';
-import { isPresent, mapPresent } from '@glimmer/util';
-import { VariableResolutionContext } from '@glimmer/interfaces';
+import { ASTv2, STRICT_RESOLUTION } from '@glimmer/syntax';
+import { isPresent } from '@glimmer/util';
 import { Ok, Result } from '../../../shared/result';
 import * as pass1 from '../../2-symbol-allocation/hir';
 import { VisitorContext } from '../context';
@@ -15,20 +14,18 @@ export function buildPath(ctx: VisitorContext, path: ASTv2.PathExpression): Resu
   }
 
   switch (head.type) {
-    case 'AtHead':
-      return pathOrExpr(
-        utils.op(pass1.GetArg, { name: utils.slice(head.name).offsets(null) }).offsets(null)
-      );
+    case 'ArgReference':
+      return pathOrExpr(utils.op(pass1.GetArg, { name: head.name }).offsets(null));
 
-    case 'ThisHead':
+    case 'ThisReference':
       return pathOrExpr(utils.op(pass1.GetThis).offsets(null));
 
-    case 'FreeVarHead':
-      if (head.context === VariableResolutionContext.Strict) {
+    case 'FreeVarReference':
+      if (head.resolution === STRICT_RESOLUTION) {
         return pathOrExpr(
           utils
             .op(pass1.GetFreeVar, {
-              name: utils.slice(head.name).offsets(null),
+              name: utils.slice(head.name),
             })
             .offsets(null)
         );
@@ -36,26 +33,22 @@ export function buildPath(ctx: VisitorContext, path: ASTv2.PathExpression): Resu
         return pathOrExpr(
           utils
             .op(pass1.GetFreeVarWithContext, {
-              name: utils.slice(head.name).offsets(null),
-              context: head.context,
+              name: utils.slice(head.name),
+              context: head.resolution,
             })
             .offsets(null)
         );
       }
 
-    case 'LocalVarHead':
+    case 'LocalVarReference':
       return pathOrExpr(
-        utils.op(pass1.GetLocalVar, { name: utils.slice(head.name).offsets(null) }).offsets(null)
+        utils.op(pass1.GetLocalVar, { name: utils.slice(head.name) }).offsets(null)
       );
   }
 
   function pathOrExpr(head: pass1.Expr): Result<pass1.Expr> {
     if (isPresent(tail)) {
-      return Ok(
-        utils
-          .op(pass1.Path, { head, tail: mapPresent(tail, (e) => utils.slice(e).offsets(null)) })
-          .loc(path)
-      );
+      return Ok(utils.op(pass1.Path, { head, tail }).loc(path));
     } else {
       return Ok(head);
     }

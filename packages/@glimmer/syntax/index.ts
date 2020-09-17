@@ -8,10 +8,8 @@ export {
   Syntax,
 } from './lib/parser/tokenizer-event-handlers';
 
-export { SourceLocation, Position as SourcePosition } from './lib/types/nodes-v1';
-
 // needed for tests only
-export { default as builders, SYNTHETIC } from './lib/v1-builders';
+export { default as builders } from './lib/v1-builders';
 export {
   default as TraversalError,
   cannotRemoveNode,
@@ -28,8 +26,7 @@ export { default as print } from './lib/generation/print';
 export { GlimmerSyntaxError } from './lib/errors/syntax-error';
 
 // AST
-import * as AST from './lib/types/nodes-v1';
-/** @deprecated use ASTv2 instead */
+import * as AST from './lib/types/api';
 export { AST, AST as ASTv1 };
 export { isLiteral, printLiteral } from './lib/utils';
 
@@ -38,3 +35,11 @@ export { ASTv2 };
 
 export * from './lib/symbol-table';
 export { normalize } from './lib/v2/normalize';
+
+// SOURCE
+export * from './lib/source/offsets';
+export * from './lib/source/source';
+export * from './lib/source/location';
+
+// OBJECT AST
+export * from './lib/v2/objects';

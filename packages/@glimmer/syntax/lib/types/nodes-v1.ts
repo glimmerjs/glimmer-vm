@@ -1,4 +1,5 @@
 import { Dict, Optional, WireFormat } from '@glimmer/interfaces';
+import { SourceLocation } from '../source/location';
 
 export interface Symbols {
   symbols: string[];
@@ -31,19 +32,6 @@ export interface BaseNode {
   // has: `type: "Identifier"`
   type: NodeType;
   loc: SourceLocation;
-}
-
-export interface SourceLocation {
-  source?: Optional<string>;
-  start: Position;
-  end: Position;
-}
-
-export interface Position {
-  /** >= 1 */
-  line: number;
-  /** >= 0 */
-  column: number;
 }
 
 export interface CommonProgram extends BaseNode {

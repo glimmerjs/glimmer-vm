@@ -5,10 +5,6 @@ import * as hir from './hir';
 
 export class Pass1Internal
   implements MapVisitorsInterface<Exclude<hir.Internal, hir.Ignore>, mir.Internal> {
-  SourceSlice(ctx: Context, args: OpArgs<hir.SourceSlice>): mir.SourceSlice {
-    return ctx.op(mir.SourceSlice, args);
-  }
-
   Params(ctx: Context, { list }: OpArgs<hir.Params>): mir.Positional {
     let values = ctx.visitExprs(list);
     return ctx.op(mir.Positional, { list: values });

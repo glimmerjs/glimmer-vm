@@ -3,7 +3,7 @@ import {
   EntityParser,
   HTML5NamedCharRefs as namedCharRefs,
 } from 'simple-html-tokenizer';
-import * as AST from './types/nodes-v1';
+import * as AST from './types/api';
 import * as HBS from './types/handlebars-ast';
 import { Optional } from '@glimmer/interfaces';
 import { assert, expect } from '@glimmer/util';

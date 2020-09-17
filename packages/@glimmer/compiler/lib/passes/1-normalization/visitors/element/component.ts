@@ -10,18 +10,17 @@ import { Classified, ClassifiedElement, PreparedArgs } from './classified';
 export class ClassifiedComponent implements Classified {
   readonly dynamicFeatures = true;
 
-  constructor(private tag: hir.Expr, private element: ASTv2.Component) {}
+  constructor(private tag: hir.Expr, private element: ASTv2.InvokeComponent) {}
 
   arg(attr: ASTv2.AttrNode, el: ClassifiedElement): Result<hir.NamedArgument> {
     let name = attr.name;
-    let nameSlice = el.ctx.utils.slice(name).offsets(null);
 
     let value = VISIT_EXPRS.visit(attr.value, el.ctx);
 
     return Ok(
       el.ctx.utils
         .op(hir.NamedArgument, {
-          key: nameSlice,
+          key: name,
           value,
         })
         .loc(attr)

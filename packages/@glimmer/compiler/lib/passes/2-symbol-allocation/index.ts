@@ -1,5 +1,5 @@
 import * as mir from '../3-encoding/mir';
-import { Source } from '../../source/source';
+import { Source } from '../../../../syntax/lib/source/source';
 import { CompilerContext } from './context';
 import { EXPRESSIONS } from './expressions';
 import { INTERNAL } from './internal';

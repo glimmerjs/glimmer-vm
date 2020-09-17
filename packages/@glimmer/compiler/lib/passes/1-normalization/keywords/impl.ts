@@ -1,7 +1,6 @@
-import { ASTv2 } from '@glimmer/syntax';
+import { ASTv2, Source } from '@glimmer/syntax';
 import { unreachable } from '@glimmer/util';
 import { Result } from '../../../shared/result';
-import { Source } from '../../../source/source';
 import { VisitorContext } from '../context';
 
 export type KeywordPath<
@@ -75,9 +74,7 @@ class KeywordImpl<
 
     let path = getPathExpression(node);
 
-    if (typeof path === 'string') {
-      return false;
-    } else if (path.ref.type === 'FreeVarHead') {
+    if (path !== null && path.ref.type === 'FreeVarReference') {
       return path.ref.name === this.keyword;
     } else {
       return false;
@@ -90,21 +87,25 @@ class KeywordImpl<
   }
 }
 
-export type PossibleNodeType = 'PathExpression' | ASTv2.CallNode['type'];
+export type PossibleNodeType =
+  | 'PathExpression'
+  | 'AppendContent'
+  | 'CallExpression'
+  | 'InvokeBlock';
 
 export const KEYWORD_NODES = {
-  Expr: ['SubExpression', 'PathExpression'],
-  Block: ['BlockStatement'],
-  Append: ['AppendStatement'],
+  Expr: ['CallExpression', 'PathExpression'],
+  Block: ['InvokeBlock'],
+  Append: ['AppendContent'],
 } as const;
 
-export type ExprKeywordNode = ASTv2.SubExpression | ASTv2.PathExpression;
+export type ExprKeywordNode = ASTv2.CallExpression | ASTv2.PathExpression;
 
 /**
  * A "generic" keyword is something like `has-block`, which makes sense in the context
  * of sub-expression, path, or append
  */
-export type GenericKeywordNode = ASTv2.AppendStatement | ASTv2.SubExpression | ASTv2.PathExpression;
+export type GenericKeywordNode = ASTv2.AppendContent | ASTv2.CallExpression | ASTv2.PathExpression;
 
 export type KeywordTypeLists = {
   [P in keyof typeof KEYWORD_NODES]: typeof KEYWORD_NODES[P];
@@ -136,19 +137,20 @@ type KeywordTypeFor<K extends Keyword> = K extends Keyword<string, unknown, infe
 type NameFor<K extends Keyword> = K extends Keyword<infer Name> ? Name : never;
 type OutFor<K extends Keyword> = K extends Keyword<string, infer Out> ? Out : never;
 
-function getPathExpression(node: ASTv2.Node): ASTv2.PathExpression | string {
-  if (node.type === 'PathExpression') {
-    return node;
-  } else if (node.type === 'AppendStatement') {
-    return getPathExpression(node.value);
-  } else if (ASTv2.isCall(node)) {
-    if (node.func.type === 'Literal') {
-      return node.func.type;
-    } else {
-      return getPathExpression(node.func);
-    }
-  } else {
-    return node.type;
+function getPathExpression(node: ASTv2.Node): ASTv2.PathExpression | null {
+  switch (node.type) {
+    // This covers the inside of attributes and expressions, as well as the callee
+    // of call nodes
+    case 'PathExpression':
+      return node;
+    case 'AppendContent':
+      return getPathExpression(node.value);
+    case 'CallExpression':
+    case 'ElementModifier':
+    case 'InvokeBlock':
+      return getPathExpression(node.callee);
+    default:
+      return null;
   }
 }
 export class Keywords<

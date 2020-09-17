@@ -18,7 +18,7 @@ const WHITESPACE = /^\s+$/;
 export type Pass1Out = HirStmt | pass1.NamedBlock;
 
 export class Pass0Statements {
-  visitList(nodes: ASTv2.Statement[], ctx: VisitorContext): Result<pass1.Statement[]> {
+  visitList(nodes: readonly ASTv2.ContentNode[], ctx: VisitorContext): Result<pass1.Statement[]> {
     let out: pass1.Statement[] = [];
 
     for (let node of nodes) {
@@ -34,26 +34,26 @@ export class Pass0Statements {
     return Ok(out);
   }
 
-  visit(node: ASTv2.Statement, ctx: VisitorContext): Result<pass1.Statement | null> {
+  visit(node: ASTv2.ContentNode, ctx: VisitorContext): Result<pass1.Statement | null> {
     switch (node.type) {
-      case 'MustacheCommentStatement':
+      case 'GlimmerComment':
         return Ok(null);
-      case 'AppendStatement':
-        return this.AppendStatement(node, ctx);
-      case 'CommentStatement':
-        return Ok(this.CommentStatement(node, ctx));
-      case 'BlockStatement':
-        return this.BlockStatement(node, ctx);
-      case 'Component':
+      case 'AppendContent':
+        return this.AppendContent(node, ctx);
+      case 'HtmlComment':
+        return Ok(this.HtmlComment(node, ctx));
+      case 'InvokeBlock':
+        return this.InvokeBlock(node, ctx);
+      case 'InvokeComponent':
         return this.Component(node, ctx);
       case 'SimpleElement':
         return this.SimpleElement(node, ctx);
-      case 'TextNode':
+      case 'HtmlText':
         return Ok(this.TextNode(node, ctx));
     }
   }
 
-  BlockStatement(node: ASTv2.BlockStatement, ctx: VisitorContext): Result<pass1.Statement> {
+  InvokeBlock(node: ASTv2.InvokeBlock, ctx: VisitorContext): Result<pass1.Statement> {
     if (BLOCK_KEYWORDS.match(node)) {
       return BLOCK_KEYWORDS.translate(node, ctx);
     }
@@ -63,16 +63,14 @@ export class Pass0Statements {
     let named = ASTv2.getBlock(node.blocks, 'default');
 
     return ctx
-      .block(utils.slice('default').offsets(null), named.block)
+      .block(utils.slice('default'), named.block)
       .andThen(
         (defaultBlock): Result<OptionalList<pass1.NamedBlock>> => {
           if (ASTv2.hasBlock(node.blocks, 'else')) {
             let inverse = ASTv2.getBlock(node.blocks, 'else');
-            return ctx
-              .block(utils.slice('else').offsets(null), inverse.block)
-              .mapOk((inverseBlock) => {
-                return OptionalList([defaultBlock, inverseBlock]);
-              });
+            return ctx.block(utils.slice('else'), inverse.block).mapOk((inverseBlock) => {
+              return OptionalList([defaultBlock, inverseBlock]);
+            });
           } else {
             return Ok(OptionalList([defaultBlock]));
           }
@@ -84,9 +82,9 @@ export class Pass0Statements {
             pass1.BlockInvocation,
             assign(
               {
-                head: VISIT_EXPRS.visit(node.func, ctx),
+                head: VISIT_EXPRS.visit(node.callee, ctx),
               },
-              utils.args(node),
+              utils.args({ func: node.callee, args: node.args }),
               { blocks }
             )
           )
@@ -100,33 +98,29 @@ export class Pass0Statements {
     let body = VISIT_STMTS.visitList(named.block.body, ctx);
 
     return body.mapOk((body) => {
-      let name = utils.slice(named.blockName.name).loc(named.blockName);
-
-      return utils.op(pass1.NamedBlock, { name, body, table: named.block.table }).loc(named.loc);
+      return utils
+        .op(pass1.NamedBlock, { name: named.name, body, table: named.block.table })
+        .loc(named.loc);
     });
   }
 
   SimpleElement(element: ASTv2.SimpleElement, ctx: VisitorContext): Result<pass1.Statement> {
     return new ClassifiedElement(
       element,
-      new ClassifiedSimpleElement(
-        ctx.utils.slice(element.tag).loc(element.loc),
-        element,
-        hasDynamicFeatures(element)
-      ),
+      new ClassifiedSimpleElement(element.tag, element, hasDynamicFeatures(element)),
       ctx
     ).toStatement();
   }
 
-  Component(component: ASTv2.Component, ctx: VisitorContext): Result<pass1.Statement> {
+  Component(component: ASTv2.InvokeComponent, ctx: VisitorContext): Result<pass1.Statement> {
     return new ClassifiedElement(
       component,
-      new ClassifiedComponent(VISIT_EXPRS.visit(component.head, ctx), component),
+      new ClassifiedComponent(VISIT_EXPRS.visit(component.callee, ctx), component),
       ctx
     ).toStatement();
   }
 
-  AppendStatement(append: ASTv2.AppendStatement, ctx: VisitorContext): Result<pass1.Statement> {
+  AppendContent(append: ASTv2.AppendContent, ctx: VisitorContext): Result<pass1.Statement> {
     if (APPEND_KEYWORDS.match(append)) {
       return APPEND_KEYWORDS.translate(append, ctx);
     }
@@ -134,7 +128,7 @@ export class Pass0Statements {
     let { value } = append;
     let { utils } = ctx;
 
-    if (ASTv2.isLiteral(value, 'string')) {
+    if (value.isLiteral('string')) {
       return Ok(appendStringLiteral(ctx, value, { trusted: append.trusting }).loc(append));
     }
 
@@ -143,7 +137,7 @@ export class Pass0Statements {
     );
   }
 
-  TextNode(text: ASTv2.TextNode, { utils }: VisitorContext): pass1.Statement {
+  TextNode(text: ASTv2.HtmlText, { utils }: VisitorContext): pass1.Statement {
     if (WHITESPACE.exec(text.chars)) {
       return utils.op(pass1.AppendWhitespace, { value: text.chars }).loc(text);
     } else {
@@ -155,10 +149,10 @@ export class Pass0Statements {
     }
   }
 
-  CommentStatement(comment: ASTv2.CommentStatement, { utils }: VisitorContext): pass1.Statement {
+  HtmlComment(comment: ASTv2.HtmlComment, { utils }: VisitorContext): pass1.Statement {
     return utils
       .op(pass1.AppendComment, {
-        value: comment.value,
+        value: comment.text,
       })
       .loc(comment);
   }
@@ -166,13 +160,13 @@ export class Pass0Statements {
 
 export const VISIT_STMTS = new Pass0Statements();
 
-export function isStatement(node: ASTv2.Node): node is ASTv2.Statement {
+export function isContent(node: ASTv2.Node): node is ASTv2.ContentNode {
   return node.type in VISIT_STMTS;
 }
 
 function appendStringLiteral(
   ctx: VisitorContext,
-  expr: ASTv2.InternalExpression,
+  expr: ASTv2.Expression,
   { trusted }: { trusted: boolean }
 ): UnlocatedOp<pass1.Statement> {
   if (trusted) {

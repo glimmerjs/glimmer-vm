@@ -1,5 +1,12 @@
-import { Optional, PresentArray, VariableResolutionContext } from '@glimmer/interfaces';
-import { ASTv2, BlockSymbolTable, ProgramSymbolTable, SymbolTable } from '@glimmer/syntax';
+import { Optional, PresentArray } from '@glimmer/interfaces';
+import {
+  ASTv2,
+  BlockSymbolTable,
+  ProgramSymbolTable,
+  SymbolTable,
+  SourceSlice,
+  FreeVarResolution,
+} from '@glimmer/syntax';
 import { AnyOptionalList, OptionalList, PresentList } from '../../shared/list';
 import { op, OpsTable } from '../../shared/op';
 
@@ -24,18 +31,7 @@ export class Template extends op('Template').args<{
 
 /** EXPRESSIONS **/
 
-// Not a string literal from a template. Used for things
-// like tag names, path parts, etc. Both SourceSlices and
-// Literals correspond to parts of the template source, but
-// literal strings look like `"..."` or `'...'` in the
-// source, while SourceSlice are a piece of another construct.
-export class SourceSlice extends op('SourceSlice').args<{ value: string }>() {
-  getString(): string {
-    return this.args.value;
-  }
-}
-
-export class Literal extends op('Literal').args<{ value: ASTv2.Literal['value'] }>() {}
+export class Literal extends op('Literal').args<{ value: ASTv2.LiteralExpression['value'] }>() {}
 export class Path extends op('Path').args<{ head: Expr; tail: PresentArray<SourceSlice> }>() {}
 export class GetArg extends op('GetArg').args<{ name: SourceSlice }>() {}
 export class GetThis extends op('GetThis').void() {}
@@ -47,7 +43,7 @@ export class GetFreeVar extends op('GetFreeVar').args<{
 }>() {}
 export class GetFreeVarWithContext extends op('GetFreeVarWithContext').args<{
   name: SourceSlice;
-  context: VariableResolutionContext;
+  context: FreeVarResolution;
 }>() {}
 
 /**
@@ -82,7 +78,6 @@ export class NamedArguments extends op('NamedArguments').args<{
 
 export type Internal =
   | Ignore
-  | SourceSlice
   | Params
   | NamedArguments
   | NamedArgument
@@ -129,7 +124,7 @@ export class InElement extends op('InElement').args<{
 
 // Whitespace is allowed between and around named blocks
 export class AppendWhitespace extends op('AppendWhitespace').args<{ value: string }>() {}
-export class AppendComment extends op('AppendComment').args<{ value: string }>() {}
+export class AppendComment extends op('AppendComment').args<{ value: SourceSlice }>() {}
 
 export type NonSemantic = AppendWhitespace | AppendComment;
 

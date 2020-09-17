@@ -1,12 +1,16 @@
 import { PresentArray } from '@glimmer/interfaces';
 import { LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
-import { GlimmerSyntaxError, ProgramSymbolTable, SymbolTable } from '@glimmer/syntax';
+import {
+  GlimmerSyntaxError,
+  ProgramSymbolTable,
+  Source,
+  SourceOffsets,
+  SymbolTable,
+} from '@glimmer/syntax';
 import { LOCAL_LOGGER, mapPresent, NonemptyStack } from '@glimmer/util';
 import { AnyOptionalList, MapList, OptionalList } from '../../shared/list';
 import { InputOpArgs, OpArgs, OpConstructor, UnlocatedOp } from '../../shared/op';
 import { OpFactory, Ops } from '../../shared/ops';
-import { SourceOffsets } from '../../source/offsets';
-import { Source } from '../../source/source';
 import * as mir from '../3-encoding/mir';
 import { Pass1Expression } from './expressions';
 import { Pass1Internal } from './internal';
@@ -101,6 +105,10 @@ export interface AllocateTable {
  */
 export class Context {
   constructor(readonly ctx: CompilerContext, readonly offsets: SourceOffsets | null) {}
+
+  get source(): Source {
+    return this.ctx.source;
+  }
 
   get symbols(): NonemptyStack<SymbolTable> {
     return this.ctx.state.symbols;

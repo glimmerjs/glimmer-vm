@@ -1,6 +1,7 @@
 import { SexpOpcodes, WireFormat } from '@glimmer/interfaces';
 import { LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
 import { LOCAL_LOGGER } from '@glimmer/util';
+import { SourceSlice } from '@glimmer/syntax';
 import { Op, OpArgs, OpsTable } from '../../shared/op';
 import { deflateTagName } from '../../utils';
 import { visitExpr, visitInternal } from './expressions';
@@ -99,7 +100,7 @@ export class StatementEncoder implements Visitors<mir.StatementTable, OutOp> {
   }
 
   AppendComment({ value }: OpArgs<mir.AppendComment>): WireFormat.Statements.Comment {
-    return [SexpOpcodes.Comment, value];
+    return [SexpOpcodes.Comment, value.chars];
   }
 
   Modifier({ head, args }: OpArgs<mir.Modifier>): WireFormat.Statements.Modifier {
@@ -109,7 +110,7 @@ export class StatementEncoder implements Visitors<mir.StatementTable, OutOp> {
   SimpleElement({ tag, params, body, dynamicFeatures }: OpArgs<mir.SimpleElement>): WireStatements {
     let op = dynamicFeatures ? SexpOpcodes.OpenElementWithSplat : SexpOpcodes.OpenElement;
     return new WireStatements([
-      [op, deflateTagName(tag.args.value)],
+      [op, deflateTagName(tag.chars)],
       ...(visitInternal(params) || []),
       [SexpOpcodes.FlushElement],
       ...visitStatements(body),
@@ -128,11 +129,11 @@ export class StatementEncoder implements Visitors<mir.StatementTable, OutOp> {
   }
 
   StaticArg({ name, value }: OpArgs<mir.StaticArg>): WireFormat.Statements.StaticArg {
-    return [SexpOpcodes.StaticArg, visitInternal(name), visitInternal(value)];
+    return [SexpOpcodes.StaticArg, name.chars, value.chars];
   }
 
   DynamicArg({ name, value }: OpArgs<mir.DynamicArg>): WireFormat.Statements.DynamicArg {
-    return [SexpOpcodes.DynamicArg, visitInternal(name), visitExpr(value)];
+    return [SexpOpcodes.DynamicArg, name.chars, visitExpr(value)];
   }
 
   StaticSimpleAttr(args: OpArgs<mir.StaticSimpleAttr>): WireFormat.Statements.StaticAttr {
@@ -183,11 +184,11 @@ function staticAttr({
   value,
   namespace,
 }: {
-  name: mir.SourceSlice;
-  value: mir.SourceSlice;
+  name: SourceSlice;
+  value: SourceSlice;
   namespace?: string;
 }): StaticAttrArgs {
-  let out: StaticAttrArgs = [visitInternal(name), visitInternal(value)];
+  let out: StaticAttrArgs = [name.chars, value.chars];
 
   if (namespace) {
     out.push(namespace);
@@ -203,11 +204,11 @@ function dynamicAttr({
   value,
   namespace,
 }: {
-  name: mir.SourceSlice;
+  name: SourceSlice;
   value: mir.Expr;
   namespace?: string;
 }): DynamicAttrArgs {
-  let out: DynamicAttrArgs = [visitInternal(name), visitExpr(value)];
+  let out: DynamicAttrArgs = [name.chars, visitExpr(value)];
 
   if (namespace) {
     out.push(namespace);

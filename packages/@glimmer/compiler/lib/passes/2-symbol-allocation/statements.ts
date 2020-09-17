@@ -1,5 +1,6 @@
 /* eslint-disable qunit/no-global-expect */
 import { expect } from '@glimmer/util';
+import { SourceSlice } from '@glimmer/syntax';
 import { OptionalList } from '../../shared/list';
 import { OpArgs, OpConstructor } from '../../shared/op';
 import * as mir from '../3-encoding/mir';
@@ -90,9 +91,10 @@ export class Pass1Statement implements StatementVisitor {
   Attr(ctx: Context, { kind, name, value: attrValue, namespace }: OpArgs<hir.Attr>): mir.AnyAttr {
     if (attrValue.name === 'Literal' && typeof attrValue.args.value === 'string') {
       let op = kind.component ? mir.StaticComponentAttr : mir.StaticSimpleAttr;
-      let value = ctx
-        .unlocatedOp(mir.SourceSlice, { value: attrValue.args.value })
-        .offsets(attrValue.offsets);
+      let value = new SourceSlice({
+        chars: attrValue.args.value,
+        loc: attrValue.offsets.toLocation(ctx.source),
+      });
       return ctx.op<mir.AnyAttr>(op, { name, value, namespace });
     } else {
       let op: OpConstructor<mir.AnyAttr>;

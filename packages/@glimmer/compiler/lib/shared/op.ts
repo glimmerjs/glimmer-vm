@@ -1,9 +1,10 @@
-import { PresentArray } from '@glimmer/interfaces';
-import { SourceLocation } from '@glimmer/syntax';
-import { isPresent } from '@glimmer/util';
-import { MaybeHasOffsets, SourceOffsets } from '../source/offsets';
-import { LocatedWithOptionalPositions, LocatedWithPositions } from './ops';
-import { Source } from '../source/source';
+import {
+  MaybeHasOffsets,
+  MaybeHasSourceLocation,
+  SourceOffsets,
+  Source,
+  HasSourceLocation,
+} from '@glimmer/syntax';
 
 export type OpsTable<O extends Op> = {
   [P in O['name']]: O extends { name: P } ? O : never;
@@ -13,7 +14,7 @@ export type UnknownArgs = object | void;
 
 export abstract class Op<Args extends UnknownArgs = UnknownArgs, Name extends string = string> {
   abstract readonly name: Name;
-  constructor(readonly offsets: SourceOffsets | null, readonly args: Args) {}
+  constructor(readonly offsets: SourceOffsets, readonly args: Args) {}
 
   // TODO abstract stack = [{ value: EXPR }]
   // this would automate the process of extracting values off of the stack
@@ -34,7 +35,7 @@ export function toArgs<O extends Op>(args: InputOpArgs<O>): OpArgs<O> {
 
 export type OpConstructor<O extends Op> = O extends Op<infer Args, infer Name>
   ? {
-      new (offsets: SourceOffsets | null, args: Args): O & { name: Name };
+      new (offsets: SourceOffsets, args: Args): O & { name: Name };
     }
   : never;
 
@@ -69,28 +70,6 @@ export function op<N extends string>(
   };
 }
 
-export function isLocatedWithPositionsArray(
-  location: LocatedWithOptionalPositions[]
-): location is PresentArray<LocatedWithPositions> {
-  return isPresent(location) && location.every(isLocatedWithPositions);
-}
-
-export function isLocatedWithPositions(
-  location: LocatedWithOptionalPositions
-): location is LocatedWithPositions {
-  return location.loc !== undefined;
-}
-
-export type HasSourceLocation =
-  | SourceLocation
-  | LocatedWithPositions
-  | PresentArray<LocatedWithPositions>;
-
-export type MaybeHasSourceLocation =
-  | null
-  | LocatedWithOptionalPositions
-  | LocatedWithOptionalPositions[];
-
 export class UnlocatedOp<O extends Op> {
   private source: Source;
 
@@ -108,7 +87,7 @@ export class UnlocatedOp<O extends Op> {
     return this.withOffsets(offsets);
   }
 
-  withOffsets(offsets: SourceOffsets | null): O {
+  withOffsets(offsets: SourceOffsets): O {
     return new this.Class(offsets, this.args) as O;
   }
 
@@ -129,10 +108,10 @@ export class UnlocatedOp<O extends Op> {
         let startOffset = start.offsets.start;
         let endOffset = end.offsets.end;
 
-        offsets = new SourceOffsets(startOffset, endOffset);
+        offsets = new SourceOffsets(this.source, startOffset, endOffset);
       }
     }
 
-    return this.withOffsets(offsets);
+    return this.withOffsets(offsets || this.source.NONE);
   }
 }

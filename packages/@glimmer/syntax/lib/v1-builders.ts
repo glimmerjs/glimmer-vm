@@ -1,8 +1,9 @@
-import * as AST from './types/nodes-v1';
+import * as AST from './types/api';
 import { Optional, Dict } from '@glimmer/interfaces';
 import { deprecate, assign, assert } from '@glimmer/util';
 import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
 import { StringLiteral, BooleanLiteral, NumberLiteral } from './types/handlebars-ast';
+import { SYNTHETIC } from './source/location';
 
 // Statements
 
@@ -643,12 +644,6 @@ function buildPosition(line: number, column: number) {
     column,
   };
 }
-
-export const SYNTHETIC = Object.freeze({
-  source: '(synthetic)',
-  start: { line: 1, column: 0 },
-  end: { line: 1, column: 0 },
-} as const);
 
 function buildLoc(loc: Optional<AST.SourceLocation>): AST.SourceLocation;
 function buildLoc(

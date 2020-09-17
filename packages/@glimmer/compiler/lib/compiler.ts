@@ -5,13 +5,12 @@ import {
   TemplateJavascript,
 } from '@glimmer/interfaces';
 import { LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
-import { normalize, PreprocessOptions } from '@glimmer/syntax';
+import { normalize, PreprocessOptions, Source } from '@glimmer/syntax';
 import { LOCAL_LOGGER } from '@glimmer/util';
 import { GlimmerCompileOptions } from './passes/1-normalization/context';
 import pass0 from './passes/1-normalization/index';
 import { visit as pass1 } from './passes/2-symbol-allocation/index';
 import { visit as pass2 } from './passes/3-encoding/index';
-import { Source } from './source/source';
 
 export interface TemplateIdFn {
   (src: string): Optional<string>;

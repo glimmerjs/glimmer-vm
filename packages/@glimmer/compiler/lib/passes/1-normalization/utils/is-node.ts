@@ -1,5 +1,11 @@
-import { ASTv2, GlimmerSyntaxError } from '@glimmer/syntax';
-import { PresentArray, VariableResolutionContext } from '@glimmer/interfaces';
+import { PresentArray } from '@glimmer/interfaces';
+import {
+  ASTv2,
+  GlimmerSyntaxError,
+  SourceLocation,
+  SourceSlice,
+  STRICT_RESOLUTION,
+} from '@glimmer/syntax';
 import { unreachable } from '@glimmer/util';
 
 export function isPath(node: ASTv2.Node | ASTv2.PathExpression): node is ASTv2.PathExpression {
@@ -16,11 +22,11 @@ export type HasPath<Node extends ASTv2.CallNode = ASTv2.CallNode> = Node & {
 
 export type HasArguments =
   | {
-      params: PresentArray<ASTv2.InternalExpression>;
+      params: PresentArray<ASTv2.Expression>;
     }
   | {
       hash: {
-        pairs: PresentArray<ASTv2.HashPair>;
+        pairs: PresentArray<ASTv2.NamedEntry>;
       };
     };
 
@@ -28,7 +34,7 @@ export type HelperInvocation<Node extends ASTv2.CallNode = ASTv2.CallNode> = Has
   HasArguments;
 
 export function hasPath<N extends ASTv2.CallNode>(node: N): node is HasPath<N> {
-  return node.func.type === 'PathExpression';
+  return node.callee.type === 'PathExpression';
 }
 
 export function isHelperInvocation<N extends ASTv2.CallNode>(
@@ -37,11 +43,12 @@ export function isHelperInvocation<N extends ASTv2.CallNode>(
   if (!hasPath(node)) {
     return false;
   }
-  return (node.params && node.params.length > 0) || (node.hash && node.hash.pairs.length > 0);
+
+  return !node.args.isEmpty();
 }
 
 export interface SimplePath extends ASTv2.PathExpression {
-  tail: [string];
+  tail: [SourceSlice];
   data: false;
   this: false;
 }
@@ -50,13 +57,13 @@ export type SimpleHelper<N extends HasPath> = N & {
   path: SimplePath;
 };
 
-export function isSimplePath(path: ASTv2.InternalExpression): path is SimplePath {
+export function isSimplePath(path: ASTv2.Expression): path is SimplePath {
   if (path.type === 'PathExpression') {
     let { ref: head, tail: parts } = path;
 
     return (
-      head.type === 'FreeVarHead' &&
-      head.context !== VariableResolutionContext.Strict &&
+      head.type === 'FreeVarReference' &&
+      head.resolution !== STRICT_RESOLUTION &&
       parts.length === 0
     );
   } else {
@@ -65,43 +72,45 @@ export function isSimplePath(path: ASTv2.InternalExpression): path is SimplePath
 }
 
 export function isStrictHelper(expr: HasPath): boolean {
-  if (expr.func.type !== 'PathExpression') {
+  if (expr.callee.type !== 'PathExpression') {
     return true;
   }
 
-  if (expr.func.ref.type !== 'FreeVarHead') {
+  if (expr.callee.ref.type !== 'FreeVarReference') {
     return true;
   }
 
-  return expr.func.ref.context === VariableResolutionContext.Strict;
+  return expr.callee.ref.resolution === STRICT_RESOLUTION;
 }
 
 export function assertIsValidHelper<N extends HasPath>(
   helper: N,
-  loc: ASTv2.SourceLocation,
+  loc: SourceLocation,
   context: string
 ): asserts helper is SimpleHelper<N> {
-  if (isStrictHelper(helper) || isSimplePath(helper.func)) {
+  if (isStrictHelper(helper) || isSimplePath(helper.callee)) {
     return;
   }
 
   throw new GlimmerSyntaxError(
-    `\`${printPath(helper.func)}\` is not a valid name for a ${context} on line ${loc.start.line}.`,
+    `\`${printPath(helper.callee)}\` is not a valid name for a ${context} on line ${
+      loc.start.line
+    }.`,
     helper.loc
   );
 }
 
-function printPath(path: ASTv2.InternalExpression): string {
+function printPath(path: ASTv2.Expression): string {
   switch (path.type) {
-    case 'Literal':
+    case 'LiteralExpression':
       return JSON.stringify(path.value);
     case 'PathExpression': {
       let printedPath = [printPathHead(path.ref)];
-      printedPath.push(...path.tail);
+      printedPath.push(...path.tail.map((t) => t.chars));
       return printedPath.join('.');
     }
-    case 'SubExpression':
-      return `(${printPath(path.func)} ...)`;
+    case 'CallExpression':
+      return `(${printPath(path.callee)} ...)`;
     case 'Interpolate':
       throw unreachable('a concat statement cannot appear as the head of an expression');
   }
@@ -109,11 +118,12 @@ function printPath(path: ASTv2.InternalExpression): string {
 
 function printPathHead(head: ASTv2.VariableReference): string {
   switch (head.type) {
-    case 'AtHead':
-    case 'FreeVarHead':
-    case 'LocalVarHead':
+    case 'ArgReference':
+      return head.name.chars;
+    case 'FreeVarReference':
+    case 'LocalVarReference':
       return head.name;
-    case 'ThisHead':
+    case 'ThisReference':
       return 'this';
   }
 }
@@ -124,9 +134,9 @@ function printPathHead(head: ASTv2.VariableReference): string {
  * is a bit of a double-negative, so we change the terminology here for clarity.
  */
 export function isTrustingNode(
-  value: ASTv2.AppendStatement | ASTv2.TextNode | ASTv2.Interpolate
+  value: ASTv2.AppendContent | ASTv2.HtmlText | ASTv2.InterpolateExpression
 ): boolean {
-  if (value.type === 'AppendStatement') {
+  if (value.type === 'AppendContent') {
     return value.trusting;
   } else {
     return false;

@@ -1,7 +1,13 @@
-import { VariableResolutionContext, PresentArray } from '@glimmer/interfaces';
+import { PresentArray } from '@glimmer/interfaces';
+import {
+  BlockSymbolTable,
+  FreeVarResolution,
+  ProgramSymbolTable,
+  SourceSlice,
+  SymbolTable,
+} from '@glimmer/syntax';
 import { OptionalList } from '../../shared/list';
 import { op, OpsTable } from '../../shared/op';
-import { BlockSymbolTable, ProgramSymbolTable, SymbolTable } from '@glimmer/syntax';
 
 export interface StaticAttrArgs {
   name: SourceSlice;
@@ -37,7 +43,7 @@ export class NamedBlock extends op('NamedBlock').args<{
 export class EndBlock extends op('EndBlock').void() {}
 export class AppendTrustedHTML extends op('AppendTrustedHTML').args<{ html: Expr }>() {}
 export class AppendTextNode extends op('AppendTextNode').args<{ text: Expr }>() {}
-export class AppendComment extends op('AppendComment').args<{ value: string }>() {}
+export class AppendComment extends op('AppendComment').args<{ value: SourceSlice }>() {}
 
 export class Component extends op('Component').args<{
   tag: Expr;
@@ -92,7 +98,7 @@ export class GetWithResolver extends op('GetWithResolver').args<{
 export class GetSymbol extends op('GetSymbol').args<{ symbol: number }>() {}
 export class GetFreeWithContext extends op('GetFreeWithContext').args<{
   symbol: number;
-  context: VariableResolutionContext;
+  context: FreeVarResolution;
 }>() {}
 /** strict mode */
 export class GetFree extends op('GetFree').args<{
@@ -116,8 +122,6 @@ export class NamedArgument extends op('NamedArgument').args<{
 }>() {}
 export class Args extends op('Args').args<{ positional: Positional; named: NamedArguments }>() {}
 export class Tail extends op('Tail').args<{ members: PresentArray<SourceSlice> }>() {}
-
-export class SourceSlice extends op('SourceSlice').args<{ value: string }>() {}
 
 export type AnyArg = StaticArg | DynamicArg;
 
@@ -152,7 +156,6 @@ export type Internal =
   | NamedArgument
   | Tail
   | NamedBlock
-  | SourceSlice
   | NamedBlocks
   | ElementParameters;
 export type ExprLike = Expr | Internal;

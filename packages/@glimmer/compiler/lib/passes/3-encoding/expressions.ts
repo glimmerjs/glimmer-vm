@@ -1,8 +1,6 @@
 import { Optional, PresentArray, SexpOpcodes, WireFormat } from '@glimmer/interfaces';
 import { assertPresent, isPresent, mapPresent } from '@glimmer/util';
-import { expressionContextOp } from '../../builder/builder';
 import { Op, OpArgs, OpsTable } from '../../shared/op';
-import * as hir from '../2-symbol-allocation/hir';
 import * as mir from './mir';
 import { visitStatement, visitStatements } from './statements';
 
@@ -39,12 +37,8 @@ export class InternalEncoder implements Visitors<mir.InternalTable, WireFormat.S
     });
   }
 
-  SourceSlice(args: OpArgs<hir.SourceSlice>): string {
-    return args.value;
-  }
-
   Tail({ members }: OpArgs<mir.Tail>): PresentArray<string> {
-    return mapPresent(members, (member) => member.args.value);
+    return mapPresent(members, (member) => member.chars);
   }
 
   NamedBlocks({ blocks }: OpArgs<mir.NamedBlocks>): WireFormat.Core.Blocks {
@@ -63,7 +57,7 @@ export class InternalEncoder implements Visitors<mir.InternalTable, WireFormat.S
 
   NamedBlock({ name, body, symbols }: OpArgs<mir.NamedBlock>): WireFormat.Core.NamedBlock {
     return [
-      visitInternal(name),
+      name.chars,
       {
         parameters: symbols.slots,
         statements: visitStatements(body),
@@ -80,7 +74,7 @@ export class InternalEncoder implements Visitors<mir.InternalTable, WireFormat.S
   }
 
   NamedArgument({ key, value }: OpArgs<mir.NamedArgument>): HashPair {
-    return [visitInternal(key), visitExpr(value)];
+    return [key.chars, visitExpr(value)];
   }
 
   NamedArguments({ pairs }: OpArgs<mir.NamedArguments>): WireFormat.Core.Hash {
@@ -148,7 +142,7 @@ export class ExpressionEncoder
   }: OpArgs<mir.GetFreeWithContext>):
     | WireFormat.Expressions.GetContextualFree
     | WireFormat.Expressions.GetStrictFree {
-    return [expressionContextOp(context), symbol];
+    return [context.resolution(), symbol];
   }
 
   GetFree({ symbol }: OpArgs<mir.GetFree>): WireFormat.Expressions.GetStrictFree {

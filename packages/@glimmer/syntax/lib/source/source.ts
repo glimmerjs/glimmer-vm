@@ -1,40 +1,45 @@
-import { SourceOffset, SourceOffsets } from './offsets';
-import {
-  MaybeHasSourceLocation,
-  HasSourceLocation,
-  isLocatedWithPositionsArray,
-  isLocatedWithPositions,
-} from '../shared/op';
 import { Optional } from '@glimmer/interfaces';
-import { SourceLocation, SourcePosition, SYNTHETIC } from '@glimmer/syntax';
+import {
+  HasSourceLocation,
+  isLocatedWithPositions,
+  isLocatedWithPositionsArray,
+  MaybeHasSourceLocation,
+  SourceLocation,
+  SourcePosition,
+  SYNTHETIC,
+} from './location';
+import { SourceOffset, SourceOffsetKind, SourceOffsets } from './offsets';
 
 export class Source {
   constructor(readonly source: string) {}
+
+  readonly SYNTHETIC: SourceOffsets = new SourceOffsets(this, 0, 0, SourceOffsetKind.Synthetic);
+  readonly NONE: SourceOffsets = new SourceOffsets(this, 0, 0, SourceOffsetKind.None);
 
   range(first: SourcePosition, last: SourcePosition): SourceOffsets {
     let start = this.offsetFor({ line: first.line, column: first.column });
     let end = this.offsetFor({ line: last.line, column: last.column });
 
     if (start === null || end === null) {
-      return SourceOffsets.NONE;
+      return this.NONE;
     } else {
-      return new SourceOffsets(start, end);
+      return new SourceOffsets(this, start, end);
     }
   }
 
   maybeOffsetsFor(location: MaybeHasSourceLocation, fallback?: HasSourceLocation): SourceOffsets {
     if (location === null) {
-      return fallback ? this.offsetsFor(fallback) : SourceOffsets.NONE;
+      return fallback ? this.offsetsFor(fallback) : this.NONE;
     } else if (Array.isArray(location)) {
       if (isLocatedWithPositionsArray(location)) {
         return this.offsetsFor(location);
       } else {
-        return SourceOffsets.NONE;
+        return this.NONE;
       }
     } else if (isLocatedWithPositions(location)) {
       return this.offsetsFor(location);
     } else {
-      return SourceOffsets.NONE;
+      return this.NONE;
     }
   }
 
@@ -102,11 +107,11 @@ export class Source {
     let end = this.offsetFor(location.end);
 
     if (location === SYNTHETIC) {
-      return SourceOffsets.SYNTHETIC;
+      return this.SYNTHETIC;
     } else if (start === null || end === null) {
-      return SourceOffsets.NONE;
+      return this.NONE;
     } else {
-      return new SourceOffsets(start, end);
+      return new SourceOffsets(this, start, end);
     }
   }
 }

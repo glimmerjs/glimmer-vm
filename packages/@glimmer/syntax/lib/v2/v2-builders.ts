@@ -1,14 +1,18 @@
+import { PresentArray } from '@glimmer/interfaces';
 import { assert, assertPresent, assign } from '@glimmer/util';
-import { VariableResolutionContext, PresentArray } from '@glimmer/interfaces';
-import { SourceLocation } from '../types/nodes-v1';
-import * as ASTv2 from './nodes-v2';
-import { SYNTHETIC } from '../v1-builders';
+import { SourceLocation, SYNTHETIC } from '../source/location';
 import { BlockSymbolTable, ProgramSymbolTable, SymbolTable } from '../symbol-table';
+import * as ASTv2 from './nodes-v2';
+import { FreeVarResolution, LiteralExpression } from './objects';
+import { Args, Named, NamedEntry, Positional } from './objects/args';
+import { InvokeBlock, InvokeComponent, SimpleElement } from './objects/content';
+import { PathExpression, Expression, InterpolateExpression, CallExpression } from './objects/expr';
+import { NamedBlock, SourceSlice } from './objects/internal';
+import { ArgReference, LocalVarReference, ThisReference } from './objects/refs';
 
 export interface CallParts {
-  func: ASTv2.Expression;
-  params: ASTv2.InternalExpression[];
-  hash: ASTv2.Hash;
+  callee: ASTv2.Expression;
+  args: ASTv2.Args;
 }
 
 class Builder {
@@ -16,7 +20,7 @@ class Builder {
 
   template(
     symbols: ProgramSymbolTable,
-    body: ASTv2.Statement[],
+    body: ASTv2.ContentNode[],
     loc?: SourceLocation
   ): ASTv2.Template {
     return {
@@ -29,7 +33,7 @@ class Builder {
 
   // INTERNAL (these nodes cannot be reached when doing general-purpose visiting) //
 
-  block(symbols: BlockSymbolTable, body: ASTv2.Statement[], loc?: SourceLocation): ASTv2.Block {
+  block(symbols: BlockSymbolTable, body: ASTv2.ContentNode[], loc?: SourceLocation): ASTv2.Block {
     return {
       type: 'Block',
       table: symbols,
@@ -38,67 +42,75 @@ class Builder {
     };
   }
 
-  namedBlock(name: string, block: ASTv2.Block, loc?: SourceLocation): ASTv2.NamedBlock {
+  namedBlock(name: SourceSlice, block: ASTv2.Block, loc?: SourceLocation): ASTv2.NamedBlock {
     return {
       type: 'NamedBlock',
-      blockName: this.blockName(name),
+      name,
       block,
-      attributes: [],
+      attrs: [],
+      args: [],
       modifiers: [],
-      comments: [],
       loc: this.loc(loc),
     };
   }
 
-  simpleNamedBlock(
-    name: string,
-    children: ASTv2.Statement[],
-    symbols: BlockSymbolTable,
-    loc?: SourceLocation
-  ): ASTv2.NamedBlock {
+  simpleNamedBlock(name: SourceSlice, block: ASTv2.Block, loc?: SourceLocation): ASTv2.NamedBlock {
     return new BuildElement({
       selfClosing: false,
-      attributes: [],
+      attrs: [],
+      args: [],
       modifiers: [],
       comments: [],
-    }).named(name, children, symbols, loc);
+    }).named(name, block, loc);
   }
 
-  blockName(name: string, loc?: ASTv2.SourceLocation): ASTv2.NamedBlockName {
-    return {
-      type: 'NamedBlockName',
-      name,
+  slice(chars: string, loc?: SourceLocation): SourceSlice {
+    return new SourceSlice({
       loc: this.loc(loc),
-    };
+      chars,
+    });
   }
 
-  pair(key: string, value: ASTv2.InternalExpression, loc?: ASTv2.SourceLocation): ASTv2.HashPair {
-    return {
-      type: 'HashPair',
-      key,
+  args(positional: ASTv2.Positional, named: ASTv2.Named, loc?: SourceLocation): ASTv2.Args {
+    return new Args({
+      loc: this.loc(loc),
+      positional,
+      named,
+    });
+  }
+
+  positional(exprs: ASTv2.Expression[], loc?: SourceLocation): ASTv2.Positional {
+    return new Positional({
+      loc: this.loc(loc),
+      exprs,
+    });
+  }
+
+  namedEntry(key: SourceSlice, value: Expression, loc?: SourceLocation): ASTv2.NamedEntry {
+    return new NamedEntry({
+      loc: this.loc(loc),
+      name: key,
       value,
-      loc: this.loc(loc),
-    };
+    });
   }
 
-  hash(pairs: ASTv2.HashPair[], loc?: ASTv2.SourceLocation): ASTv2.Hash {
-    return {
-      type: 'Hash',
-      pairs,
+  named(entries: ASTv2.NamedEntry[], loc?: SourceLocation): ASTv2.Named {
+    return new Named({
       loc: this.loc(loc),
-    };
+      entries,
+    });
   }
 
   head(
     original: string,
-    context: VariableResolutionContext,
-    loc?: ASTv2.SourceLocation
+    context: FreeVarResolution,
+    loc?: SourceLocation
   ): { head: ASTv2.VariableReference; tail: string[] } {
     let [head, ...tail] = original.split('.');
     let headNode: ASTv2.VariableReference;
 
     if (head === 'this') {
-      headNode = this.this(loc);
+      headNode = this.self(loc);
     } else if (head[0] === '@') {
       headNode = this.at(head, loc);
     } else if (head[0] === '^') {
@@ -114,11 +126,24 @@ class Builder {
   }
 
   attr(
-    { name, value, trusting }: { name: string; value: ASTv2.InternalExpression; trusting: boolean },
+    { name, value, trusting }: { name: SourceSlice; value: ASTv2.Expression; trusting: boolean },
     loc?: SourceLocation
-  ): ASTv2.AttrNode {
+  ): ASTv2.HtmlAttr {
     return {
-      type: 'AttrNode',
+      type: 'HtmlAttr',
+      name,
+      value,
+      trusting,
+      loc: this.loc(loc),
+    };
+  }
+
+  arg(
+    { name, value, trusting }: { name: SourceSlice; value: ASTv2.Expression; trusting: boolean },
+    loc?: SourceLocation
+  ): ASTv2.Arg {
+    return {
+      type: 'Arg',
       name,
       value,
       trusting,
@@ -130,40 +155,33 @@ class Builder {
 
   path(
     head: ASTv2.VariableReference,
-    tail: string[],
-    loc?: ASTv2.SourceLocation
+    tail: SourceSlice[],
+    loc?: SourceLocation
   ): ASTv2.PathExpression {
-    return {
-      type: 'PathExpression',
+    return new PathExpression({
+      loc: this.loc(loc),
       ref: head,
       tail,
-      loc: this.loc(loc),
-    };
+    });
   }
 
-  this(loc?: ASTv2.SourceLocation): ASTv2.VariableReference {
-    return {
-      type: 'ThisHead',
+  self(loc?: SourceLocation): ASTv2.VariableReference {
+    return new ThisReference({
       loc: this.loc(loc),
-    };
+    });
   }
 
-  at(name: string, loc?: ASTv2.SourceLocation): ASTv2.VariableReference {
+  at(name: string, loc?: SourceLocation): ASTv2.VariableReference {
     // the `@` should be included so we have a complete source range
     assert(name[0] === '@', `call builders.at() with a string that starts with '@'`);
 
-    return {
-      type: 'AtHead',
-      name,
+    return new ArgReference({
       loc: this.loc(loc),
-    };
+      name: new SourceSlice({ loc: this.loc(loc), chars: name }),
+    });
   }
 
-  freeVar(
-    name: string,
-    context: VariableResolutionContext,
-    loc?: ASTv2.SourceLocation
-  ): ASTv2.VariableReference {
+  freeVar(name: string, context: FreeVarResolution, loc?: SourceLocation): ASTv2.VariableReference {
     assert(
       name !== 'this',
       `You called builders.freeVar() with 'this'. Call builders.this instead`
@@ -174,97 +192,58 @@ class Builder {
     );
 
     return {
-      type: 'FreeVarHead',
+      type: 'FreeVarReference',
       name,
-      context,
+      resolution: context,
       loc: this.loc(loc),
     };
   }
 
-  localVar(name: string, loc?: ASTv2.SourceLocation): ASTv2.VariableReference {
+  localVar(name: string, loc?: SourceLocation): ASTv2.VariableReference {
     assert(name !== 'this', `You called builders.var() with 'this'. Call builders.this instead`);
     assert(
       name[0] !== '@',
       `You called builders.var() with '${name}'. Call builders.at('${name}') instead`
     );
 
-    return {
-      type: 'LocalVarHead',
+    return new LocalVarReference({
+      loc: this.loc(loc),
       name,
+    });
+  }
+
+  sexp(parts: CallParts, loc?: SourceLocation): ASTv2.CallExpression {
+    return new CallExpression({
       loc: this.loc(loc),
-    };
+      callee: parts.callee,
+      args: parts.args,
+    });
   }
 
-  sexp(parts: CallParts, loc?: SourceLocation): ASTv2.SubExpression {
-    return assign(
-      {
-        type: 'SubExpression',
-        loc: this.loc(loc),
-      } as const,
-      parts
-    );
-  }
-
-  interpolate(parts: ASTv2.InternalExpression[], loc?: SourceLocation): ASTv2.Interpolate {
-    return {
-      type: 'Interpolate',
+  interpolate(parts: ASTv2.Expression[], loc?: SourceLocation): ASTv2.InterpolateExpression {
+    return new InterpolateExpression({
+      loc: this.loc(loc),
       parts: assertPresent(parts),
-      loc: this.loc(loc),
-    };
+    });
   }
 
-  literal(value: string, loc?: SourceLocation): ASTv2.Literal<'string'>;
-  literal(value: number, loc?: SourceLocation): ASTv2.Literal<'number'>;
-  literal(value: boolean, loc?: SourceLocation): ASTv2.Literal<'boolean'>;
-  literal(value: null, loc?: SourceLocation): ASTv2.Literal<'null'>;
-  literal(value: undefined, loc?: SourceLocation): ASTv2.Literal<'undefined'>;
-  literal(value: string | number | boolean | null | undefined, loc?: SourceLocation): ASTv2.Literal;
+  literal(value: string, loc?: SourceLocation): ASTv2.LiteralExpression<'string'>;
+  literal(value: number, loc?: SourceLocation): ASTv2.LiteralExpression<'number'>;
+  literal(value: boolean, loc?: SourceLocation): ASTv2.LiteralExpression<'boolean'>;
+  literal(value: null, loc?: SourceLocation): ASTv2.LiteralExpression<'null'>;
+  literal(value: undefined, loc?: SourceLocation): ASTv2.LiteralExpression<'undefined'>;
   literal(
     value: string | number | boolean | null | undefined,
     loc?: SourceLocation
-  ): ASTv2.Literal {
-    if (value === null) {
-      return {
-        type: 'Literal',
-        kind: 'null',
-        value: null,
-        loc: this.loc(loc),
-      };
-    }
-
-    switch (typeof value) {
-      case 'string':
-        return {
-          type: 'Literal',
-          kind: 'string',
-          value,
-          loc: loc || SYNTHETIC,
-        };
-
-      case 'number':
-        return {
-          type: 'Literal',
-          kind: 'number',
-          value,
-          loc: loc || SYNTHETIC,
-        };
-
-      case 'boolean':
-        return {
-          type: 'Literal',
-          kind: 'boolean',
-          value,
-          loc: loc || SYNTHETIC,
-        };
-
-      case 'undefined':
-        return {
-          type: 'Literal',
-          kind: 'undefined',
-          value: undefined,
-          loc: loc || SYNTHETIC,
-        };
-    }
+  ): ASTv2.LiteralExpression;
+  literal(
+    value: string | number | boolean | null | undefined,
+    loc?: SourceLocation
+  ): ASTv2.LiteralExpression {
+    return new LiteralExpression({
+      loc: this.loc(loc),
+      value,
+    });
   }
 
   // STATEMENTS //
@@ -272,9 +251,9 @@ class Builder {
   append(
     { table, trusting, value }: { table: SymbolTable; trusting: boolean; value: ASTv2.Expression },
     loc?: SourceLocation
-  ): ASTv2.AppendStatement {
+  ): ASTv2.AppendContent {
     return {
-      type: 'AppendStatement',
+      type: 'AppendContent',
       table,
       trusting,
       value,
@@ -282,10 +261,10 @@ class Builder {
     } as const;
   }
 
-  modifier(call: CallParts, loc?: SourceLocation): ASTv2.ElementModifierStatement {
+  modifier(call: CallParts, loc?: SourceLocation): ASTv2.ElementModifier {
     return assign(
       {
-        type: 'ElementModifierStatement',
+        type: 'ElementModifier',
         loc: this.loc(loc),
       } as const,
       call
@@ -304,20 +283,18 @@ class Builder {
       inverse?: ASTv2.Block | null;
     } & CallParts,
     loc?: SourceLocation
-  ): ASTv2.BlockStatement {
-    let blocks: PresentArray<ASTv2.NamedBlock> = [this.namedBlock('default', program)];
+  ): ASTv2.InvokeBlock {
+    let blocks: PresentArray<ASTv2.NamedBlock> = [this.namedBlock(this.slice('default'), program)];
     if (inverse) {
-      blocks.push(this.namedBlock('else', inverse));
+      blocks.push(this.namedBlock(this.slice('else'), inverse));
     }
-    return assign(
-      {
-        type: 'BlockStatement',
-        symbols,
-        blocks,
-        loc: this.loc(loc),
-      } as const,
-      call
-    );
+
+    return new InvokeBlock({
+      loc: this.loc(loc),
+      blocks,
+      callee: call.callee,
+      args: call.args,
+    });
   }
 
   element(options: BuildBaseElement): BuildElement {
@@ -326,7 +303,7 @@ class Builder {
 
   // LOCATION //
 
-  loc(...args: any[]): ASTv2.SourceLocation {
+  loc(...args: any[]): SourceLocation {
     if (args.length === 1) {
       let loc = args[0];
 
@@ -359,92 +336,101 @@ class Builder {
 
 export interface BuildBaseElement {
   selfClosing: boolean;
-  attributes: ASTv2.AttrNode[];
-  modifiers: ASTv2.ElementModifierStatement[];
-  comments: ASTv2.MustacheCommentStatement[];
+  attrs: ASTv2.HtmlAttr[];
+  args: ASTv2.Arg[];
+  modifiers: ASTv2.ElementModifier[];
+  comments: ASTv2.GlimmerComment[];
 }
 
 export class BuildElement {
   constructor(readonly base: BuildBaseElement) {}
 
-  simple(tag: string, children: ASTv2.Statement[], loc?: SourceLocation): ASTv2.SimpleElement {
-    return assign(
-      {
-        type: 'SimpleElement',
-        tag,
-        children,
-        loc: BUILDER.loc(loc),
-      } as const,
-      this.base
-    );
-  }
-
-  named(
-    name: string,
-    body: ASTv2.Statement[],
-    table: BlockSymbolTable,
-    loc?: SourceLocation
-  ): ASTv2.NamedBlock {
-    return assign(
-      {
-        type: 'NamedBlock',
-        blockName: BUILDER.blockName(name),
-        block: {
-          type: 'Block',
+  simple(tag: string, body: ASTv2.ContentNode[], loc?: SourceLocation): ASTv2.SimpleElement {
+    return new SimpleElement(
+      assign(
+        {
+          tag: new SourceSlice({
+            chars: tag,
+            loc: SYNTHETIC,
+          }),
           body,
-          table,
+          args: [],
           loc: BUILDER.loc(loc),
         },
-        loc: BUILDER.loc(loc),
-      } as const,
-      this.base
+        this.base
+      )
     );
   }
 
-  selfClosingComponent(head: ASTv2.InternalExpression, loc?: SourceLocation): ASTv2.Component {
-    return assign(
-      {
-        type: 'Component',
-        head,
-        blocks: [] as ASTv2.NamedBlock[],
-        loc: BUILDER.loc(loc),
-      } as const,
-      this.base
+  named(name: SourceSlice, block: ASTv2.Block, loc?: SourceLocation): ASTv2.NamedBlock {
+    return new NamedBlock(
+      assign(
+        {
+          name,
+          block,
+          args: [],
+          loc: BUILDER.loc(loc),
+        },
+        this.base
+      )
+    );
+  }
+
+  selfClosingComponent(callee: ASTv2.Expression, loc?: SourceLocation): ASTv2.InvokeComponent {
+    return new InvokeComponent(
+      assign(
+        {
+          loc: BUILDER.loc(loc),
+          callee,
+          blocks: [],
+        },
+        this.base
+      )
     );
   }
 
   componentWithDefaultBlock(
-    head: ASTv2.InternalExpression,
-    children: ASTv2.Statement[],
+    callee: ASTv2.Expression,
+    children: ASTv2.ContentNode[],
     symbols: BlockSymbolTable,
     loc?: SourceLocation
-  ): ASTv2.Component {
-    let block = BUILDER.simpleNamedBlock('default', children, symbols, loc);
+  ): ASTv2.InvokeComponent {
+    let block = BUILDER.block(symbols, children, loc);
+    let namedBlock = BUILDER.namedBlock(
+      new SourceSlice({
+        loc: SYNTHETIC,
+        chars: 'default',
+      }),
+      block,
+      loc
+    ); // BUILDER.simpleNamedBlock('default', children, symbols, loc);
 
-    return assign(
-      {
-        type: 'Component',
-        head,
-        blocks: block,
-        loc: BUILDER.loc(loc),
-      } as const,
-      this.base
+    return new InvokeComponent(
+      assign(
+        {
+          loc: BUILDER.loc(loc),
+          callee,
+          blocks: [namedBlock],
+        },
+        this.base
+      )
     );
   }
 
   componentWithNamedBlocks(
-    head: ASTv2.InternalExpression,
+    callee: ASTv2.Expression,
     blocks: PresentArray<ASTv2.NamedBlock>,
     loc?: SourceLocation
-  ): ASTv2.Component {
-    return assign(
-      {
-        type: 'Component',
-        head,
-        blocks,
-        loc: BUILDER.loc(loc),
-      } as const,
-      this.base
+  ): ASTv2.InvokeComponent {
+    return new InvokeComponent(
+      assign(
+        {
+          loc: BUILDER.loc(loc),
+          callee,
+          blocks,
+        },
+        this.base
+      )
     );
   }
 }

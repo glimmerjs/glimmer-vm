@@ -10,18 +10,18 @@ import { assertIsValidHelper, hasPath } from '../utils/is-node';
 export type ExpressionOut = hir.Expr;
 
 export class NormalizeExpressions {
-  visit(node: ASTv2.InternalExpression, ctx: VisitorContext): hir.Expr {
+  visit(node: ASTv2.Expression, ctx: VisitorContext): hir.Expr {
     if (EXPR_KEYWORDS.match(node)) {
       return EXPR_KEYWORDS.translate(node, ctx).expect('TODO');
     }
 
     switch (node.type) {
-      case 'Literal':
+      case 'LiteralExpression':
         return this.Literal(node, ctx);
       case 'PathExpression':
         return this.PathExpression(node, ctx);
-      case 'SubExpression':
-        return this.SubExpression(node, ctx);
+      case 'CallExpression':
+        return this.CallExpression(node, ctx);
       case 'Interpolate':
         return this.Interpolate(node, ctx);
     }
@@ -31,11 +31,11 @@ export class NormalizeExpressions {
     return buildPath(ctx, path).expect('TODO');
   }
 
-  Literal(literal: ASTv2.Literal, { utils }: VisitorContext): hir.Literal {
+  Literal(literal: ASTv2.LiteralExpression, { utils }: VisitorContext): hir.Literal {
     return utils.op(hir.Literal, { value: literal.value }).loc(literal);
   }
 
-  Interpolate(expr: ASTv2.Interpolate, ctx: VisitorContext): hir.Interpolate {
+  Interpolate(expr: ASTv2.InterpolateExpression, ctx: VisitorContext): hir.Interpolate {
     return ctx.utils
       .op(hir.Interpolate, {
         parts: new PresentList(expr.parts).map((e) => VISIT_EXPRS.visit(e, ctx)),
@@ -43,7 +43,7 @@ export class NormalizeExpressions {
       .loc(expr);
   }
 
-  SubExpression(expr: ASTv2.SubExpression, ctx: VisitorContext): hir.Expr {
+  CallExpression(expr: ASTv2.CallExpression, ctx: VisitorContext): hir.Expr {
     let { utils } = ctx;
 
     if (!hasPath(expr)) {
@@ -56,9 +56,9 @@ export class NormalizeExpressions {
           hir.SubExpression,
           assign(
             {
-              head: VISIT_EXPRS.visit(expr.func, ctx),
+              head: VISIT_EXPRS.visit(expr.callee, ctx),
             },
-            utils.args(expr)
+            utils.args({ func: expr.callee, args: expr.args })
           )
         )
         .loc(expr);

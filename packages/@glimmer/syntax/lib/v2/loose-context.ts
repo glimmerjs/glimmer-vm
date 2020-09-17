@@ -1,6 +1,15 @@
-import { VariableResolutionContext } from '@glimmer/interfaces';
 import { unreachable } from '@glimmer/util';
 import * as ASTv1 from '../types/nodes-v1';
+import { FreeVarResolution } from './objects';
+import {
+  Ambiguity,
+  AmbiguousResolution,
+  FreeVarNamespace,
+  isFreeVarResolution,
+  LOOSE_FREE_VAR_RESOLUTION,
+  NamespacedVarResolution,
+  STRICT_RESOLUTION,
+} from './objects/refs';
 
 export interface AstCallParts {
   path: ASTv1.Expression;
@@ -25,7 +34,7 @@ export interface AstCallParts {
  *   content positions.
  */
 export interface SyntaxContext {
-  resolution(): VariableResolutionContext;
+  resolution(): FreeVarResolution;
 }
 
 /**
@@ -33,8 +42,8 @@ export interface SyntaxContext {
  * of call nodes.
  */
 export class ArgumentSyntaxContext implements SyntaxContext {
-  resolution(): VariableResolutionContext {
-    return VariableResolutionContext.LooseFreeVariable;
+  resolution(): FreeVarResolution {
+    return LOOSE_FREE_VAR_RESOLUTION;
   }
 }
 
@@ -46,18 +55,15 @@ export interface VarPath extends ASTv1.PathExpression {
 
 export class CallDetails {
   constructor(private isSimple: boolean, private isInvoke: boolean) {}
-  resolution(options: {
-    ifCall: VariableResolutionContext;
-    else: VariableResolutionContext;
-  }): VariableResolutionContext {
+  resolution(options: { ifCall: FreeVarResolution; else: FreeVarResolution }): FreeVarResolution {
     if (this.isSimple && !this.isInvoke) {
       return options.else;
     } else if (this.isSimple && this.isInvoke) {
       return options.ifCall;
     } else if (!this.isSimple && this.isInvoke) {
-      return VariableResolutionContext.Strict;
+      return STRICT_RESOLUTION;
     } else if (!this.isSimple && !this.isInvoke) {
-      return VariableResolutionContext.LooseFreeVariable;
+      return LOOSE_FREE_VAR_RESOLUTION;
     }
 
     throw unreachable();
@@ -67,10 +73,10 @@ export class CallDetails {
 abstract class CallSyntaxContext implements SyntaxContext {
   constructor(readonly ast: AstCallParts) {}
 
-  abstract readonly bare: VariableResolutionContext;
-  abstract readonly invoke: VariableResolutionContext;
+  abstract readonly bare: FreeVarResolution;
+  abstract readonly invoke: FreeVarResolution;
 
-  resolution(): VariableResolutionContext {
+  resolution(): FreeVarResolution {
     return this.details().resolution({
       ifCall: this.invoke,
       else: this.bare,
@@ -158,13 +164,14 @@ abstract class CallSyntaxContext implements SyntaxContext {
 function callContext(
   definition:
     | {
-        bare: VariableResolutionContext;
-        invoke: VariableResolutionContext;
+        bare: FreeVarResolution;
+        invoke: FreeVarResolution;
       }
-    | VariableResolutionContext
+    | FreeVarResolution
 ): CallSyntaxContextConstructor {
-  let { bare, invoke } =
-    typeof definition === 'number' ? { bare: definition, invoke: definition } : definition;
+  let { bare, invoke } = isFreeVarResolution(definition)
+    ? { bare: definition, invoke: definition }
+    : definition;
 
   return class extends CallSyntaxContext {
     readonly bare = bare;
@@ -172,13 +179,15 @@ function callContext(
   };
 }
 
-export const SexpSyntaxContext = callContext(VariableResolutionContext.ResolveAsCallHead);
-export const ModifierSyntaxContext = callContext(VariableResolutionContext.ResolveAsModifierHead);
-export const BlockSyntaxContext = callContext(VariableResolutionContext.ResolveAsBlockHead);
+export const SexpSyntaxContext = callContext(new NamespacedVarResolution(FreeVarNamespace.Helper));
+export const ModifierSyntaxContext = callContext(
+  new NamespacedVarResolution(FreeVarNamespace.Modifier)
+);
+export const BlockSyntaxContext = callContext(new NamespacedVarResolution(FreeVarNamespace.Block));
 
-export const ComponentSyntaxContent = {
-  resolution(): VariableResolutionContext {
-    return VariableResolutionContext.ResolveAsComponentHead;
+export const ComponentSyntaxContent: SyntaxContext = {
+  resolution(): FreeVarResolution {
+    return new NamespacedVarResolution(FreeVarNamespace.Component);
   },
 };
 
@@ -187,8 +196,8 @@ export const ComponentSyntaxContent = {
  * curlies). In strict mode, this also corresponds to arg curlies.
  */
 export const AttrValueSyntaxContext = callContext({
-  bare: VariableResolutionContext.AmbiguousAttr,
-  invoke: VariableResolutionContext.ResolveAsCallHead,
+  bare: new AmbiguousResolution(Ambiguity.Attr),
+  invoke: new NamespacedVarResolution(FreeVarNamespace.Helper),
 });
 
 /**
@@ -196,8 +205,8 @@ export const AttrValueSyntaxContext = callContext({
  * curlies). In strict mode, this also corresponds to arg curlies.
  */
 export const AppendSyntaxContext = callContext({
-  bare: VariableResolutionContext.AmbiguousAppend,
-  invoke: VariableResolutionContext.AmbiguousAppendInvoke,
+  bare: new AmbiguousResolution(Ambiguity.Append),
+  invoke: new AmbiguousResolution(Ambiguity.AppendInvoke),
 });
 
 export interface CallSyntaxContextConstructor {

@@ -1,13 +1,11 @@
 import { PresentArray } from '@glimmer/interfaces';
 import { LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
-import { ASTv2 } from '@glimmer/syntax';
+import { ASTv2, ContentNode, Source, SourceOffsets, SourceSlice, SYNTHETIC } from '@glimmer/syntax';
 import { assert, isPresent, LOCAL_LOGGER } from '@glimmer/util';
 import { TemplateIdFn } from '../../compiler';
 import { OptionalList } from '../../shared/list';
 import { InputOpArgs, OpConstructor, toArgs, UnlocatedOp } from '../../shared/op';
 import { Result } from '../../shared/result';
-import { SourceOffsets } from '../../source/offsets';
-import { Source } from '../../source/source';
 import * as hir from '../2-symbol-allocation/hir';
 import { VISIT_EXPRS } from './visitors/expressions';
 import { VISIT_STMTS } from './visitors/statements';
@@ -29,8 +27,8 @@ export class VisitorContext {
     return this.state.generateUniqueCursor();
   }
 
-  block(name: hir.SourceSlice, node: ASTv2.Block): Result<hir.NamedBlock> {
-    return VISIT_STMTS.visitList(node.body, this).mapOk((stmts) =>
+  block(name: SourceSlice, node: ASTv2.Block): Result<hir.NamedBlock> {
+    return VISIT_STMTS.visitList(node.body as ContentNode[], this).mapOk((stmts) =>
       new UnlocatedOp(
         hir.NamedBlock,
         {
@@ -122,15 +120,18 @@ export class NormalizationUtilities {
     return new UnlocatedOp(op, toArgs(args), this.ctx.source);
   }
 
-  slice(value: string): UnlocatedOp<hir.SourceSlice> {
-    return new UnlocatedOp(hir.SourceSlice, { value }, this.ctx.source);
+  slice(value: string, offsets?: SourceOffsets): SourceSlice {
+    return new SourceSlice({
+      loc: offsets ? offsets.toLocation(this.source) : SYNTHETIC,
+      chars: value,
+    });
   }
 
-  componentName(input: string): hir.SourceSlice {
+  componentName(input: string): SourceSlice {
     if (this.ctx.options.customizeComponentName) {
-      return this.slice(this.ctx.options.customizeComponentName(input)).offsets(null);
+      return this.slice(this.ctx.options.customizeComponentName(input));
     } else {
-      return this.slice(input).offsets(null);
+      return this.slice(input);
     }
   }
 
@@ -148,36 +149,34 @@ export class NormalizationUtilities {
 
   args({
     func,
-    params: exprs,
-    hash: named,
+    args: { positional, named },
   }: {
     func: ASTv2.Expression;
-    params: ASTv2.InternalExpression[];
-    hash: ASTv2.Hash;
+    args: ASTv2.Args;
   }): { params: hir.Params; hash: hir.NamedArguments } {
-    return { params: this.params({ func, params: exprs }), hash: this.hash(named) };
+    return { params: this.params({ func, positional }), hash: this.hash(named) };
   }
 
   params({
     func,
-    params: list,
+    positional,
   }: {
     func: ASTv2.Expression;
-    params: ASTv2.InternalExpression[];
+    positional: ASTv2.Positional;
   }): hir.Params {
-    let offsets = paramsOffsets({ path: func, params: list }, this.ctx.source);
+    let offsets = paramsOffsets({ path: func, params: positional.exprs }, this.ctx.source);
 
     return this.op(hir.Params, {
-      list: OptionalList(list.map((expr) => VISIT_EXPRS.visit(expr, this.context))),
+      list: OptionalList(positional.exprs.map((expr) => VISIT_EXPRS.visit(expr, this.context))),
     }).offsets(offsets);
   }
 
-  hash(hash: ASTv2.Hash): hir.NamedArguments {
-    let mappedPairs = OptionalList(hash.pairs).map((pair) =>
+  hash(hash: ASTv2.Named): hir.NamedArguments {
+    let mappedPairs = OptionalList(hash.entries as ASTv2.NamedEntry[]).map((entry) =>
       this.op(hir.NamedArgument, {
-        key: this.slice(pair.key).offsets(offsetsForHashKey(pair, this.ctx.source)),
-        value: VISIT_EXPRS.visit(pair.value, this.context),
-      }).loc(pair)
+        key: entry.name,
+        value: VISIT_EXPRS.visit(entry.value, this.context),
+      }).loc(entry)
     );
 
     return this.op(hir.NamedArguments, { pairs: mappedPairs }).loc(hash);
@@ -185,25 +184,26 @@ export class NormalizationUtilities {
 }
 
 export function paramsOffsets(
-  { path, params }: { path: ASTv2.InternalExpression; params: ASTv2.InternalExpression[] },
+  { path, params }: { path: ASTv2.Expression; params: readonly ASTv2.Expression[] },
   source: Source
 ): SourceOffsets {
-  if (isPresent(params)) {
-    return source.offsetsFor(params as PresentArray<ASTv2.InternalExpression>);
+  if (isPresent(params as ASTv2.Expression[])) {
+    return source.offsetsFor(params as PresentArray<ASTv2.Expression>);
   } else {
     // position empty params after the first space after the path expression
     let pos = source.offsetsFor(path).end + 1;
-    return new SourceOffsets(pos, pos);
+    return new SourceOffsets(source, pos, pos);
   }
 }
 
-export function offsetsForHashKey(pair: ASTv2.HashPair, source: Source): SourceOffsets {
+export function offsetsForHashKey(pair: ASTv2.NamedEntry, source: Source): SourceOffsets {
   let pairLoc = source.offsetsFor(pair);
   let valueLoc = source.offsetsFor(pair.value);
 
   assert(pairLoc !== null && valueLoc !== null, `unexpected missing location in HashPair`);
 
   return new SourceOffsets(
+    source,
     pairLoc.start,
     // the grammar requires `key=value` with no whitespace around the `=`
     valueLoc.start - 1

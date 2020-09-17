@@ -1,8 +1,7 @@
 import { LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
-import { ASTv2 } from '@glimmer/syntax';
+import { ASTv2, Source } from '@glimmer/syntax';
 import { LOCAL_LOGGER } from '@glimmer/util';
 import { Result } from '../../shared/result';
-import { Source } from '../../source/source';
 import * as hir from '../2-symbol-allocation/hir';
 import {
   GlimmerCompileOptions,

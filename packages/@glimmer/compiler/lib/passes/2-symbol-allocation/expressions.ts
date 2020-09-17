@@ -59,7 +59,7 @@ export class Pass1Expression implements ExpressionVisitor {
       return mappedHead;
     } else {
       // TODO Move the source location work to pass0
-      let mappedTail = ctx.unlocatedOp(mir.Tail, { members: tail }).offsets(tail);
+      let mappedTail = ctx.unlocatedOp(mir.Tail, { members: tail }).loc(tail);
       return ctx.op(mir.GetPath, { head: mappedHead, tail: mappedTail });
     }
   }

@@ -1,4 +1,3 @@
-import { Optional } from '@glimmer/interfaces';
 import { ASTv2 } from '@glimmer/syntax';
 import { OptionalList } from '../../../../shared/list';
 import { Ok, Result, ResultArray } from '../../../../shared/result';
@@ -41,21 +40,21 @@ export class ClassifiedElement {
     let name = attr.name;
     let rawValue = attr.value;
 
-    let namespace = getAttrNamespace(name) || undefined;
+    let namespace = getAttrNamespace(name.chars) || undefined;
     let value = VISIT_EXPRS.visit(rawValue, this.ctx);
 
     let isTrusting = attr.trusting;
 
     // splattributes
     // this is grouped together with attributes because its position matters
-    if (name === '...attributes') {
+    if (name.chars === '...attributes') {
       return Ok(this.ctx.utils.op(hir.AttrSplat).loc(attr));
     }
 
     return Ok(
       this.ctx.utils
         .op(hir.Attr, {
-          name: this.ctx.utils.slice(name).offsets(null),
+          name,
           value: value,
           namespace,
           kind: {
@@ -67,16 +66,19 @@ export class ClassifiedElement {
     );
   }
 
-  private modifier(modifier: ASTv2.ElementModifierStatement): hir.Modifier {
+  private modifier(modifier: ASTv2.ElementModifier): hir.Modifier {
     if (isHelperInvocation(modifier)) {
       assertIsValidHelper(modifier, modifier.loc, 'modifier');
     }
 
     return this.ctx.utils
       .op(hir.Modifier, {
-        head: VISIT_EXPRS.visit(modifier.func, this.ctx),
-        params: this.ctx.utils.params({ func: modifier.func, params: modifier.params }),
-        hash: this.ctx.utils.hash(modifier.hash),
+        head: VISIT_EXPRS.visit(modifier.callee, this.ctx),
+        params: this.ctx.utils.params({
+          func: modifier.callee,
+          positional: modifier.args.positional,
+        }),
+        hash: this.ctx.utils.hash(modifier.args.named),
       })
       .loc(modifier);
   }
@@ -85,16 +87,18 @@ export class ClassifiedElement {
     let attrs = new ResultArray<ValidAttr>();
     let args = new ResultArray<hir.NamedArgument>();
 
-    let typeAttr: Optional<ASTv2.AttrNode> = null;
+    let typeAttr: ASTv2.AttrNode | null = null;
 
-    for (let attr of this.element.attributes) {
-      if (attr.name === 'type') {
+    for (let attr of this.element.attrs) {
+      if (attr.name.chars === 'type') {
         typeAttr = attr;
-      } else if (attr.name[0] === '@') {
-        args.add(this.delegate.arg(attr, this));
       } else {
         attrs.add(this.attr(attr));
       }
+    }
+
+    for (let arg of this.element.args) {
+      args.add(this.delegate.arg(arg, this));
     }
 
     if (typeAttr) {
@@ -131,14 +135,14 @@ export interface PreparedArgs {
 }
 
 export function hasDynamicFeatures({
-  attributes,
+  attrs,
   modifiers,
-}: Pick<ASTv2.ElementNode, 'attributes' | 'modifiers'>): boolean {
+}: Pick<ASTv2.ElementNode, 'attrs' | 'modifiers'>): boolean {
   // ElementModifier needs the special ComponentOperations
   if (modifiers.length > 0) {
     return true;
   }
 
   // Splattributes need the special ComponentOperations to merge into
-  return !!attributes.find((attr) => attr.name === '...attributes');
+  return !!attrs.find((attr) => attr.name.chars === '...attributes');
 }

@@ -1,11 +1,11 @@
-import { Optional, PresentArray, VariableResolutionContext } from '@glimmer/interfaces';
-import { assign, isPresent } from '@glimmer/util';
+import { Optional, PresentArray } from '@glimmer/interfaces';
+import { assert, assign, isPresent } from '@glimmer/util';
 import { GlimmerSyntaxError } from '../errors/syntax-error';
 import { preprocess, PreprocessOptions } from '../parser/tokenizer-event-handlers';
+import { SourceLocation, SYNTHETIC } from '../source/location';
 import { BlockSymbolTable, ProgramSymbolTable, SymbolTable } from '../symbol-table';
 import * as ASTv1 from '../types/nodes-v1';
 import { default as buildersV1 } from '../v1-builders';
-import * as ASTv2 from './nodes-v2';
 import {
   AppendSyntaxContext,
   ARGUMENT,
@@ -17,6 +17,9 @@ import {
   SexpSyntaxContext,
   SyntaxContext,
 } from './loose-context';
+import * as ASTv2 from './nodes-v2';
+import { GlimmerComment, HtmlComment, HtmlText, SourceSlice } from './objects';
+import { STRICT_RESOLUTION } from './objects/refs';
 import builders, { BuildElement, CallParts } from './v2-builders';
 
 export function normalize(html: string, options: PreprocessOptions = {}): ASTv2.Template {
@@ -94,9 +97,9 @@ class ExpressionNormalizer {
    *
    * @see {SyntaxContext}
    */
-  normalize(expr: ASTv1.Literal, resolution: SyntaxContext): ASTv2.Literal;
+  normalize(expr: ASTv1.Literal, resolution: SyntaxContext): ASTv2.LiteralExpression;
   normalize(expr: ASTv1.MinimalPathExpression, resolution: SyntaxContext): ASTv2.PathExpression;
-  normalize(expr: ASTv1.SubExpression, resolution: SyntaxContext): ASTv2.SubExpression;
+  normalize(expr: ASTv1.SubExpression, resolution: SyntaxContext): ASTv2.CallExpression;
   normalize(expr: ASTv1.Expression, resolution: SyntaxContext): ASTv2.Expression;
   normalize(
     expr: ASTv1.Expression | ASTv1.MinimalPathExpression,
@@ -110,7 +113,18 @@ class ExpressionNormalizer {
       case 'UndefinedLiteral':
         return builders.literal(expr.value, expr.loc);
       case 'PathExpression':
-        return builders.path(this.ref(expr.head, resolution), expr.tail, expr.loc);
+        return builders.path(
+          this.ref(expr.head, resolution),
+          expr.tail.map(
+            (chars) =>
+              new SourceSlice({
+                // TODO get this right
+                loc: SYNTHETIC,
+                chars: chars,
+              })
+          ),
+          expr.loc
+        );
       case 'SubExpression': {
         return builders.sexp(this.callParts(expr, SexpSyntaxContext), expr.loc);
       }
@@ -124,13 +138,25 @@ class ExpressionNormalizer {
   callParts(parts: ASTv1.CallParts, context: CallSyntaxContextConstructor): CallParts {
     let { path, params, hash } = parts;
 
+    let positional = builders.positional(
+      params.map((p) => this.normalize(p, ARGUMENT)),
+      SYNTHETIC
+    );
+
+    let named = builders.named(
+      hash.pairs.map((p) =>
+        builders.namedEntry(
+          // TODO get loc right
+          new SourceSlice({ chars: p.key, loc: SYNTHETIC }),
+          this.normalize(p.value, ARGUMENT),
+          p.loc
+        )
+      )
+    );
+
     return {
-      func: this.normalize(path, new context(parts)),
-      params: params.map((p) => this.normalize(p, ARGUMENT)),
-      hash: builders.hash(
-        hash.pairs.map((p) => builders.pair(p.key, this.normalize(p.value, ARGUMENT), p.loc)),
-        hash.loc
-      ),
+      callee: this.normalize(path, new context(parts)),
+      args: builders.args(positional, named),
     };
   }
 
@@ -146,16 +172,17 @@ class ExpressionNormalizer {
    */
   private ref(head: ASTv1.PathHead, context: SyntaxContext): ASTv2.VariableReference {
     switch (head.type) {
-      case 'AtHead':
       case 'ThisHead':
-        return head;
+        return builders.self(head.loc);
+      case 'AtHead':
+        return builders.at(head.name, head.loc);
       case 'VarHead': {
         if (this.block.hasBinding(head.name)) {
           return builders.localVar(head.name, head.loc);
         } else {
           return builders.freeVar(
             head.name,
-            this.block.strict ? VariableResolutionContext.Strict : context.resolution(),
+            this.block.strict ? STRICT_RESOLUTION : context.resolution(),
             head.loc
           );
         }
@@ -170,7 +197,7 @@ class ExpressionNormalizer {
 class StatementNormalizer {
   constructor(private readonly block: BlockContext) {}
 
-  normalize(node: ASTv1.Statement): ASTv2.Statement | ASTv2.NamedBlock {
+  normalize(node: ASTv1.Statement): ASTv2.ContentNode | ASTv2.NamedBlock {
     switch (node.type) {
       case 'PartialStatement':
         throw new Error(`Handlebars partial syntax ({{> ...}}) is not allowed in Glimmer`);
@@ -183,16 +210,39 @@ class StatementNormalizer {
 
       // These are the same in ASTv2
       case 'MustacheCommentStatement':
+        return this.MustacheCommentStatement(node);
+
       case 'CommentStatement':
+        return new HtmlComment({
+          loc: node.loc,
+          text: new SourceSlice({
+            loc: node.loc,
+            chars: node.value,
+          }),
+        });
+
       case 'TextNode':
-        return node;
+        return new HtmlText({
+          loc: node.loc,
+          chars: node.chars,
+        });
     }
+  }
+
+  MustacheCommentStatement(node: ASTv1.MustacheCommentStatement): ASTv2.GlimmerComment {
+    return new GlimmerComment({
+      loc: node.loc,
+      text: new SourceSlice({
+        loc: node.loc,
+        chars: node.value,
+      }),
+    });
   }
 
   /**
    * Normalizes an ASTv1.MustacheStatement to an ASTv2.AppendStatement
    */
-  MustacheStatement(mustache: ASTv1.MustacheStatement): ASTv2.AppendStatement {
+  MustacheStatement(mustache: ASTv1.MustacheStatement): ASTv2.AppendContent {
     let { escaped, loc } = mustache;
 
     // Normalize the call parts in AppendSyntaxContext
@@ -205,10 +255,9 @@ class StatementNormalizer {
       AppendSyntaxContext
     );
 
-    let value =
-      callParts.params.length === 0 && callParts.hash.pairs.length === 0
-        ? callParts.func
-        : builders.sexp(callParts, mustache.loc);
+    let value = callParts.args.isEmpty()
+      ? callParts.callee
+      : builders.sexp(callParts, mustache.loc);
 
     return builders.append(
       {
@@ -223,7 +272,7 @@ class StatementNormalizer {
   /**
    * Normalizes a ASTv1.BlockStatement to an ASTv2.BlockStatement
    */
-  BlockStatement(block: ASTv1.BlockStatement): ASTv2.BlockStatement {
+  BlockStatement(block: ASTv1.BlockStatement): ASTv2.InvokeBlock {
     let { program, inverse, loc } = block;
 
     // Normalize the call parts in BlockSyntaxContext
@@ -281,7 +330,9 @@ class ElementNormalizer {
     // the head, attributes and modifiers are in the current scope
     let path = this.classifyTag(tagHead, rest, element.loc);
 
-    let attributes = element.attributes.map((a) => this.attr(a));
+    let attrs = element.attributes.filter((a) => a.name[0] !== '@').map((a) => this.attr(a));
+    let args = element.attributes.filter((a) => a.name[0] === '@').map((a) => this.arg(a));
+
     let modifiers = element.modifiers.map((m) => this.modifier(m));
 
     // the element's block params are in scope for the children
@@ -292,9 +343,10 @@ class ElementNormalizer {
 
     let el = builders.element({
       selfClosing,
-      attributes,
+      attrs,
+      args,
       modifiers,
-      comments,
+      comments: comments.map((c) => new StatementNormalizer(this.ctx).MustacheCommentStatement(c)),
     });
 
     let children = new ElementChildren(el, loc, childNodes);
@@ -315,7 +367,7 @@ class ElementNormalizer {
     }
   }
 
-  private modifier(m: ASTv1.ElementModifierStatement): ASTv2.ElementModifierStatement {
+  private modifier(m: ASTv1.ElementModifierStatement): ASTv2.ElementModifier {
     // Normalize the call parts in ModifierSyntaxContext
     let callParts = this.expr.callParts(m, ModifierSyntaxContext);
     return builders.modifier(callParts, m.loc);
@@ -330,13 +382,13 @@ class ElementNormalizer {
    * <a href="{{url}}.html" />
    * ```
    */
-  private mustacheAttr(mustache: ASTv1.MustacheStatement): ASTv2.InternalExpression {
+  private mustacheAttr(mustache: ASTv1.MustacheStatement): ASTv2.Expression {
     // Normalize the call parts in AttrValueSyntaxContext
     let sexp = builders.sexp(this.expr.callParts(mustache, AttrValueSyntaxContext), mustache.loc);
 
     // If there are no params or hash, just return the function part as its own expression
-    if (sexp.params.length === 0 && sexp.hash.pairs.length === 0) {
-      return sexp.func;
+    if (sexp.args.isEmpty()) {
+      return sexp.callee;
     } else {
       return sexp;
     }
@@ -348,7 +400,7 @@ class ElementNormalizer {
    */
   private attrPart(
     part: ASTv1.MustacheStatement | ASTv1.TextNode
-  ): { expr: ASTv2.InternalExpression; trusting: boolean } {
+  ): { expr: ASTv2.Expression; trusting: boolean } {
     switch (part.type) {
       case 'MustacheStatement':
         return { expr: this.mustacheAttr(part), trusting: !part.escaped };
@@ -359,7 +411,7 @@ class ElementNormalizer {
 
   private attrValue(
     part: ASTv1.MustacheStatement | ASTv1.TextNode | ASTv1.ConcatStatement
-  ): { expr: ASTv2.InternalExpression; trusting: boolean } {
+  ): { expr: ASTv2.Expression; trusting: boolean } {
     switch (part.type) {
       case 'ConcatStatement': {
         let parts = part.parts.map((p) => this.attrPart(p).expr);
@@ -373,9 +425,24 @@ class ElementNormalizer {
     }
   }
 
-  private attr(m: ASTv1.AttrNode): ASTv2.AttrNode {
+  private attr(m: ASTv1.AttrNode): ASTv2.HtmlAttr {
+    assert(m.name[0] !== '@', 'An attr name must not start with `@`');
+
     let value = this.attrValue(m.value);
-    return builders.attr({ name: m.name, value: value.expr, trusting: value.trusting }, m.loc);
+    return builders.attr(
+      { name: builders.slice(m.name, SYNTHETIC), value: value.expr, trusting: value.trusting },
+      m.loc
+    );
+  }
+
+  private arg(m: ASTv1.AttrNode): ASTv2.Arg {
+    assert(m.name[0] === '@', 'An arg name must start with `@`');
+
+    let value = this.attrValue(m.value);
+    return builders.arg(
+      { name: builders.slice(m.name, SYNTHETIC), value: value.expr, trusting: value.trusting },
+      m.loc
+    );
   }
 
   /**
@@ -396,7 +463,7 @@ class ElementNormalizer {
   private classifyTag(
     variable: string,
     tail: string[],
-    loc: ASTv1.SourceLocation
+    loc: SourceLocation
   ): ASTv2.Expression | 'ElementHead' {
     let uppercase = isUpperCase(variable);
     let inScope = this.ctx.hasBinding(variable);
@@ -440,26 +507,26 @@ class ElementNormalizer {
 class Children {
   readonly namedBlocks: ASTv2.NamedBlock[];
   readonly hasSemanticContent: boolean;
-  readonly nonBlockChildren: ASTv2.Statement[];
+  readonly nonBlockChildren: ASTv2.ContentNode[];
 
   constructor(
-    readonly loc: ASTv2.SourceLocation,
-    readonly children: (ASTv2.Statement | ASTv2.NamedBlock)[]
+    readonly loc: SourceLocation,
+    readonly children: (ASTv2.ContentNode | ASTv2.NamedBlock)[]
   ) {
     this.namedBlocks = children.filter((c): c is ASTv2.NamedBlock => c.type === 'NamedBlock');
-    this.hasSemanticContent = !!children.find((c): c is ASTv2.Statement => {
+    this.hasSemanticContent = !!children.find((c): c is ASTv2.ContentNode => {
       switch (c.type) {
         case 'NamedBlock':
-        case 'MustacheCommentStatement':
-        case 'CommentStatement':
+        case 'GlimmerComment':
+        case 'HtmlComment':
           return false;
-        case 'TextNode':
+        case 'HtmlText':
           return !/^\s*$/.exec(c.chars);
         default:
           return true;
       }
     });
-    this.nonBlockChildren = children.filter((c): c is ASTv2.Statement => c.type !== 'NamedBlock');
+    this.nonBlockChildren = children.filter((c): c is ASTv2.ContentNode => c.type !== 'NamedBlock');
   }
 }
 
@@ -489,8 +556,8 @@ class BlockChildren extends Children {
 class ElementChildren extends Children {
   constructor(
     private el: BuildElement,
-    loc: ASTv2.SourceLocation,
-    children: (ASTv2.Statement | ASTv2.NamedBlock)[]
+    loc: SourceLocation,
+    children: (ASTv2.ContentNode | ASTv2.NamedBlock)[]
   ) {
     super(loc, children);
   }
@@ -517,7 +584,7 @@ class ElementChildren extends Children {
       );
     }
 
-    return builders.namedBlock(name, builders.block(table, this.nonBlockChildren));
+    return builders.namedBlock(builders.slice(name), builders.block(table, this.nonBlockChildren));
   }
 
   assertElement(name: string, hasBlockParams: boolean): ASTv2.SimpleElement {
@@ -529,7 +596,7 @@ class ElementChildren extends Children {
     }
 
     if (isPresent(this.namedBlocks)) {
-      let names = this.namedBlocks.map((b) => b.blockName.name);
+      let names = this.namedBlocks.map((b) => b.name);
 
       if (names.length === 1) {
         throw new GlimmerSyntaxError(
@@ -537,7 +604,7 @@ class ElementChildren extends Children {
           this.loc
         );
       } else {
-        let printedNames = names.map((n) => `<:${n}>`).join(', ');
+        let printedNames = names.map((n) => `<:${n.chars}>`).join(', ');
         throw new GlimmerSyntaxError(
           `Syntax Error: Unexpected named blocks inside <${name}> HTML element (${printedNames})`,
           this.loc
@@ -570,7 +637,10 @@ class ElementChildren extends Children {
       return this.namedBlocks;
     } else {
       return [
-        builders.namedBlock('default', builders.block(table, this.nonBlockChildren, this.loc)),
+        builders.namedBlock(
+          builders.slice('default'),
+          builders.block(table, this.nonBlockChildren, this.loc)
+        ),
       ];
     }
   }
