@@ -231,7 +231,7 @@ Situations that meet all three of these criteria are syntax errors:
 | This fallback? | ⛔ |
 
 | Syntax Position | Example || Namespace  |
-| - | - | - | - | - | - |
+| - | - | - | - |
 | `Block` | `{{#x}}` || `block` |
 | `Component` | `<X />` || `component` |
 | `Modifier` | `<p {{x}} />`  || `modifier` |
