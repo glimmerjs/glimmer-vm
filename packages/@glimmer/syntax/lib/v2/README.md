@@ -215,7 +215,7 @@ Situations that meet all three of these criteria are syntax errors:
 3. The head of the callee is a `FreeVarReference`
 
 | Syntax Position | Example | Dots? | Arguments? |
-| - | - | - | - | - |
+| - | - | - | - |
 | `Component` | `<X.y />` | ➕ | Any |
 | `Modifier` | `<p {{x.y}} />` | ➕ | Any |
 | `SubExpression` | `(x.y)` | ➕ | Any |
