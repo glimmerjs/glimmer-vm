@@ -206,7 +206,7 @@ export const AttrValueSyntaxContext = callContext({
  */
 export const AppendSyntaxContext = callContext({
   bare: new AmbiguousResolution(Ambiguity.Append),
-  invoke: new AmbiguousResolution(Ambiguity.AppendInvoke),
+  invoke: new NamespacedVarResolution(FreeVarNamespace.ComponentOrHelper),
 });
 
 export interface CallSyntaxContextConstructor {

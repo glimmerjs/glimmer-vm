@@ -1,7 +1,7 @@
 import { SourceLocation } from '../../types/api';
 import { Args } from './args';
 import { ContentNode } from './content';
-import { Expression } from './expr';
+import { ExpressionNode } from './expr';
 
 export interface BaseNodeOptions {
   loc: SourceLocation;
@@ -20,7 +20,7 @@ export interface GlimmerParentNodeOptions extends BaseNodeOptions {
   body: readonly ContentNode[];
 }
 
-export abstract class GlimmerParentNode extends BaseNode {
+export abstract class BaseGlimmerParent extends BaseNode {
   readonly body: readonly ContentNode[];
 
   constructor(options: GlimmerParentNodeOptions) {
@@ -29,16 +29,16 @@ export abstract class GlimmerParentNode extends BaseNode {
   }
 }
 
-export interface CallNodeOptions extends BaseNodeOptions {
-  callee: Expression;
+export interface CallOptions extends BaseNodeOptions {
+  callee: ExpressionNode;
   args: Args;
 }
 
-export abstract class CallNode extends BaseNode {
-  readonly callee: Expression;
+export abstract class BaseCall extends BaseNode {
+  readonly callee: ExpressionNode;
   readonly args: Args;
 
-  constructor(options: CallNodeOptions) {
+  constructor(options: CallOptions) {
     super(options);
     this.callee = options.callee;
     this.args = options.args;

@@ -60,15 +60,15 @@ export class Pass0Statements {
 
     let { utils } = ctx;
 
-    let named = ASTv2.getBlock(node.blocks, 'default');
+    let named = node.blocks.get('default');
 
     return ctx
       .block(utils.slice('default'), named.block)
       .andThen(
         (defaultBlock): Result<OptionalList<pass1.NamedBlock>> => {
-          if (ASTv2.hasBlock(node.blocks, 'else')) {
-            let inverse = ASTv2.getBlock(node.blocks, 'else');
-            return ctx.block(utils.slice('else'), inverse.block).mapOk((inverseBlock) => {
+          let inverse = node.blocks.get('else');
+          if (inverse) {
+            return ctx.block(inverse.name, inverse.block).mapOk((inverseBlock) => {
               return OptionalList([defaultBlock, inverseBlock]);
             });
           } else {

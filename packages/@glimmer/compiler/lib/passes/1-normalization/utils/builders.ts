@@ -25,7 +25,7 @@ export function buildPath(ctx: VisitorContext, path: ASTv2.PathExpression): Resu
         return pathOrExpr(
           utils
             .op(pass1.GetFreeVar, {
-              name: utils.slice(head.name),
+              name: head.name,
             })
             .offsets(null)
         );
@@ -33,7 +33,7 @@ export function buildPath(ctx: VisitorContext, path: ASTv2.PathExpression): Resu
         return pathOrExpr(
           utils
             .op(pass1.GetFreeVarWithContext, {
-              name: utils.slice(head.name),
+              name: head.name,
               context: head.resolution,
             })
             .offsets(null)

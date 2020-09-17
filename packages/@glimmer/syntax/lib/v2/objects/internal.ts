@@ -1,7 +1,7 @@
 import { BlockSymbolTable, ProgramSymbolTable } from '../../symbol-table';
 import { ElementModifier } from '../nodes-v2';
-import { Arg, HtmlAttr } from './attr-block';
-import { BaseNode, BaseNodeOptions, GlimmerParentNode, GlimmerParentNodeOptions } from './base';
+import { ElementArg, HtmlAttr } from './attr-block';
+import { BaseNode, BaseNodeOptions, BaseGlimmerParent, GlimmerParentNodeOptions } from './base';
 
 export class SourceSlice extends BaseNode {
   readonly type = 'SourceSlice';
@@ -17,7 +17,7 @@ export class SourceSlice extends BaseNode {
   }
 }
 
-export class Template extends GlimmerParentNode {
+export class Template extends BaseGlimmerParent {
   readonly type = 'Template';
   readonly table: ProgramSymbolTable;
 
@@ -27,7 +27,7 @@ export class Template extends GlimmerParentNode {
   }
 }
 
-export class Block extends GlimmerParentNode {
+export class Block extends BaseGlimmerParent {
   readonly type = 'Block';
   readonly table: BlockSymbolTable;
 
@@ -37,11 +37,27 @@ export class Block extends GlimmerParentNode {
   }
 }
 
+export class NamedBlocks extends BaseNode {
+  readonly type = 'NamedBlocks';
+  readonly blocks: readonly NamedBlock[];
+
+  constructor(options: BaseNodeOptions & { blocks: readonly NamedBlock[] }) {
+    super(options);
+    this.blocks = options.blocks;
+  }
+
+  get(name: 'default'): NamedBlock;
+  get(name: string): NamedBlock | null;
+  get(name: string): NamedBlock | null {
+    return this.blocks.find((block) => block.name.chars === name) || null;
+  }
+}
+
 export interface NamedBlockOptions extends BaseNodeOptions {
   name: SourceSlice;
   block: Block;
   attrs: HtmlAttr[];
-  args: Arg[];
+  args: ElementArg[];
   modifiers: ElementModifier[];
 }
 
@@ -52,7 +68,7 @@ export class NamedBlock extends BaseNode {
 
   // these are not currently supported, but are here for future expansion
   readonly attrs: readonly HtmlAttr[];
-  readonly args: readonly Arg[];
+  readonly args: readonly ElementArg[];
   readonly modifiers: readonly ElementModifier[];
 
   constructor(options: NamedBlockOptions) {

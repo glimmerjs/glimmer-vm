@@ -119,8 +119,8 @@ function printPath(path: ASTv2.Expression): string {
 function printPathHead(head: ASTv2.VariableReference): string {
   switch (head.type) {
     case 'ArgReference':
-      return head.name.chars;
     case 'FreeVarReference':
+      return head.name.chars;
     case 'LocalVarReference':
       return head.name;
     case 'ThisReference':

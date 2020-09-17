@@ -172,7 +172,7 @@ export class NormalizationUtilities {
   }
 
   hash(hash: ASTv2.Named): hir.NamedArguments {
-    let mappedPairs = OptionalList(hash.entries as ASTv2.NamedEntry[]).map((entry) =>
+    let mappedPairs = OptionalList(hash.entries).map((entry) =>
       this.op(hir.NamedArgument, {
         key: entry.name,
         value: VISIT_EXPRS.visit(entry.value, this.context),

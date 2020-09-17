@@ -1,16 +1,16 @@
-import { BaseNode, BaseNodeOptions, CallNode } from './base';
-import { Expression } from './expr';
+import { BaseNode, BaseNodeOptions, BaseCall } from './base';
+import { ExpressionNode } from './expr';
 import { SourceSlice } from './internal';
 
 export interface AttrNodeOptions extends BaseNodeOptions {
   name: SourceSlice;
-  value: Expression;
+  value: ExpressionNode;
   trusting: boolean;
 }
 
 export abstract class BaseAttrNode extends BaseNode {
   readonly name: SourceSlice;
-  readonly value: Expression;
+  readonly value: ExpressionNode;
   readonly trusting: boolean;
 
   constructor(options: AttrNodeOptions) {
@@ -25,12 +25,14 @@ export class HtmlAttr extends BaseAttrNode {
   readonly type = 'HtmlAttr';
 }
 
-export class Arg extends BaseAttrNode {
+export class ElementArg extends BaseAttrNode {
   readonly type = 'Arg';
 }
 
-export type AttrNode = HtmlAttr | Arg;
+export type AttrNode = HtmlAttr | ElementArg;
 
-export class ElementModifier extends CallNode {
+export class ElementModifier extends BaseCall {
   readonly type = 'ElementModifier';
 }
+
+export type AttrBlockNode = AttrNode | ElementModifier;

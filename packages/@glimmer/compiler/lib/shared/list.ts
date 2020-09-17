@@ -51,7 +51,7 @@ export class EmptyList<T> implements OptionalList<T> {
 
 // export type OptionalList<T> = PresentList<T> | EmptyList<T>;
 
-export function OptionalList<T>(value: T[]): AnyOptionalList<T> {
+export function OptionalList<T>(value: readonly T[]): AnyOptionalList<T> {
   if (isPresent(value)) {
     return new PresentList(value);
   } else {

@@ -181,7 +181,7 @@ class ExpressionNormalizer {
           return builders.localVar(head.name, head.loc);
         } else {
           return builders.freeVar(
-            head.name,
+            builders.slice(head.name),
             this.block.strict ? STRICT_RESOLUTION : context.resolution(),
             head.loc
           );

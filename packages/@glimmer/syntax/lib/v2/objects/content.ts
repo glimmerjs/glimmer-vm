@@ -2,13 +2,12 @@
  * Content Nodes are allowed in content positions in templates
  */
 
-import { PresentArray } from '@glimmer/interfaces';
 import { SymbolTable } from '../../symbol-table';
 import { ElementModifier } from '../nodes-v2';
-import { Arg, HtmlAttr } from './attr-block';
-import { BaseNode, BaseNodeOptions, CallNode, CallNodeOptions } from './base';
-import { Expression } from './expr';
-import { NamedBlock, SourceSlice } from './internal';
+import { ElementArg, HtmlAttr } from './attr-block';
+import { BaseNode, BaseNodeOptions, BaseCall, CallOptions } from './base';
+import { ExpressionNode } from './expr';
+import { NamedBlock, NamedBlocks, SourceSlice } from './internal';
 
 export type ContentNode =
   | HtmlText
@@ -51,14 +50,14 @@ export class HtmlComment extends BaseNode {
 
 export class AppendContent extends BaseNode {
   readonly type = 'AppendContent';
-  readonly value: Expression;
+  readonly value: ExpressionNode;
   readonly trusting: boolean;
 
   // TODO special-case debugger and partial
   readonly table: SymbolTable;
 
   constructor(
-    options: BaseNodeOptions & { value: Expression; trusting: boolean; table: SymbolTable }
+    options: BaseNodeOptions & { value: ExpressionNode; trusting: boolean; table: SymbolTable }
   ) {
     super(options);
     this.value = options.value;
@@ -67,30 +66,30 @@ export class AppendContent extends BaseNode {
   }
 }
 
-export class InvokeBlock extends CallNode {
+export class InvokeBlock extends BaseCall {
   readonly type = 'InvokeBlock';
-  readonly blocks: PresentArray<NamedBlock>;
+  readonly blocks: NamedBlocks;
 
-  constructor(options: CallNodeOptions & { blocks: PresentArray<NamedBlock> }) {
+  constructor(options: CallOptions & { blocks: NamedBlocks }) {
     super(options);
     this.blocks = options.blocks;
   }
 }
 
 interface InvokeComponentOptions extends BaseNodeOptions {
-  callee: Expression;
+  callee: ExpressionNode;
   blocks: NamedBlock | NamedBlock[];
   attrs: HtmlAttr[];
-  args: Arg[];
+  args: ElementArg[];
   modifiers: ElementModifier[];
 }
 
 export class InvokeComponent extends BaseNode {
   readonly type = 'InvokeComponent';
-  readonly callee: Expression;
+  readonly callee: ExpressionNode;
   readonly blocks: NamedBlock | readonly NamedBlock[];
   readonly attrs: readonly HtmlAttr[];
-  readonly args: readonly Arg[];
+  readonly args: readonly ElementArg[];
   readonly modifiers: readonly ElementModifier[];
 
   constructor(options: InvokeComponentOptions) {
@@ -107,7 +106,7 @@ interface SimpleElementOptions extends BaseNodeOptions {
   tag: SourceSlice;
   body: ContentNode[];
   attrs: HtmlAttr[];
-  args: Arg[];
+  args: ElementArg[];
   modifiers: ElementModifier[];
 }
 
@@ -116,7 +115,7 @@ export class SimpleElement extends BaseNode {
   readonly tag: SourceSlice;
   readonly body: readonly ContentNode[];
   readonly attrs: readonly HtmlAttr[];
-  readonly args: readonly Arg[];
+  readonly args: readonly ElementArg[];
   readonly modifiers: readonly ElementModifier[];
 
   constructor(options: SimpleElementOptions) {
@@ -128,3 +127,5 @@ export class SimpleElement extends BaseNode {
     this.modifiers = options.modifiers;
   }
 }
+
+export type ElementNode = NamedBlock | InvokeComponent | SimpleElement;

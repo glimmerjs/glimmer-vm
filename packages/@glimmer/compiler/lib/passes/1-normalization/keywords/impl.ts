@@ -75,7 +75,7 @@ class KeywordImpl<
     let path = getPathExpression(node);
 
     if (path !== null && path.ref.type === 'FreeVarReference') {
-      return path.ref.name === this.keyword;
+      return path.ref.name.chars === this.keyword;
     } else {
       return false;
     }

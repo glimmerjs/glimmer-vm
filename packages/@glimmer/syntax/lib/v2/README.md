@@ -10,7 +10,7 @@ Elements that begin with a `:` are represented as `ASTv2.NamedBlock`.
 
 # Components
 
-Elements that satisfy the component heuristics are represented as `ASTv2.Component`.
+Elements that satisfy the component heuristics are represented as `ASTv2.InvokeComponent`.
 
 An element is a component if the part of its tag name before any `.`:
 
@@ -53,89 +53,88 @@ In loose mode:
 
 In strict mode, all free variable references refer to bindings provided by a JavaScript scope that the template will be embedded within.
 
-To represent this difference, all `FreeVarReference` nodes in ASTv2 are tagged with a `VariableResolutionContext`.
+To represent this difference, all `FreeVarReference` nodes in ASTv2 are tagged with a `FreeVarResolution`.
 
-### Strict Resolution Context
+### Strict Variable Resolution
 
-The `Strict` resolution context applies to all free variables encountered while parsing a template in strict mode.
+The `Strict` resolution applies to all free variables encountered while parsing a template in strict mode.
 
 #### Runtime Error Cases
 
 None. Strict mode templates must be embedded in a JavaScript context where all free variable references are in scope. A compile-time error should be produced if free there are variable references that do not correspond to any in-scope variables.
 
-### Unambiguous Call Resolution Contexts
-
-These resolution contexts occur in unambiguous call nodes.
+### Namespaced Variable Resolution
 
 | | |
 | - | - |
+| Syntax Positions | `SubExpression`, `Block`, `Modifier`, `Component` |
 | Path has dots? | ❌ |
-| This fallback? | ❌ |
+| Arguments? | Any |
+| | |
+| Namespace | see table below |
+| This fallback? | ⛔ |
+
+These resolutions occur in syntaxes that are definitely calls (e.g. subexpressions, blocks, modifiers, etc.).
+
+#### Applicable Situation
+
+| situation | variable | namespace |
+| - | - | - |
+| `(x y)` | `x` | `Helper` |
+| `{{#x y}}` | `x` | `Block` |
+| `<p {{x y}}>` | `x` | `Modifier` |
+| `X` in `<X />` | `X` | `Component` |
 
 #### Runtime Error Cases
 
 If the variable reference cannot be resolved in its namespace.
 
+### Namespaced Resolution: Ambiguous Component or Helper
+
+| | |
+| - | - |
+| Syntax Positions | append |
+| Path has dots? | ❌ |
+| Arguments? | ➕ |
+| | |
+| Namespace | `helper` or `component` |
+| This fallback? | ⛔ |
+
+This resolution occurs in append nodes with at least one argument, and when the path does not have dots (e.g. `{{hello world}}`).
+
 #### Applicable Situation
 
-| situation | variable | name |
+| situation | variable | namespace |
 | - | - | - |
-| `(x y)` | `x` | `ResolveAsCallHead` |
-| `{{#x y}}` | `x` | `ResolveAsBlockHead` |
-| `<p {{x y}}>` | `x` | `ResolveAsModifierHead` |
-| `X` in `<X />` | `X` | `ResolveAsComponentHead` |
-| `{{x y}}` as append | `x` | `AmbiguousAppendInvoke` |
+| `{{x y}}` as append | `x` | `ComponentOrHelper` |
 
-A node is an unambiguous call node if:
+In this situation, the `x` may refer to:
 
-- it has at least one positional or named argument
-- it is a component invocation
-- it is a modifier invocation
-- it is a subexpression
-
-> Note `{{x y}}` in content is ambiguous because it could be a component or a helper.
-
-### Loose Free Variable Resolution Contexts
-
-These resolution contexts occur in append or attribute nodes (`MustacheStatement` in `ASTv1`) with zero positional or named arguments, and when the path has dots.
-
-| | |
-| - | - |
-| Path has dots? | ✅ |
-| Has arguments? | ❌ |
-| This fallback? | ✅ |
+- a helper `x`
+- a component `x`
 
 #### Runtime Error Cases
 
-None.
+If the variable reference cannot be resolved in the `helper` or `component` namespaces.
 
-#### Applicable Situations
-
-| situation | variable | name |
-| - | - | - |
-| `{{x.y}}` as append <br> `<p attr={{x.y}}>` <br> `<a href="{{x.y}}.html">` | `x` | `LooseFreeVariable` |
-
-In these situations, the `x` may refer to a local variable in partial scope, or it may refer to `this.x`.
-
-### Ambiguous Append Context
-
-This resolution context occurs in append nodes with zero arguments, and when the path does not have dots.
+### Ambiguous Resolution: Append Ambiguity
 
 | | |
 | - | - |
+| Syntax Positions | append |
 | Path has dots? | ❌ |
-| Has arguments? | ❌ |
+| Arguments? | ❌ |
+| | |
+| Namespace | `helper`, `component` |
 | This fallback? | ✅ |
 
-#### Runtime Error Cases
-
-None.
+This resolution occurs in append nodes with zero arguments, and when the path does not have dots (e.g. `{{hello}}`).
 
 #### Applicable Situations
 
-| situation | variable | name |
+| situation | variable | ambiguity |
 | - | - | - |
-| `{{x}}` as append | `x` | `AmbiguousAppend` |
+| `{{x}}` as append | `x` | `Append` |
 
 In this situation, the `x` may refer to:
 
@@ -144,13 +143,50 @@ In this situation, the `x` may refer to:
 - a local variable in partial scope
 - `this.x`.
 
-### Ambiguous Attr Context
+#### Runtime Error Cases
+
+None.
+
+### Ambiguous Resolution: Attribute Ambiguity
 
 This resolution context occurs in attribute nodes with zero arguments, and when the path does not have dots.
 
 | | |
 | - | - |
+| Syntax Positions | attribute, interpolation |
 | Path has dots? | ❌ |
+| Arguments? | ❌ |
+| | |
+| Namespace | `helper` |
+| This fallback? | ✅ |
+
+#### Applicable Situations
+
+| situation | variable | ambiguity |
+| - | - | - |
+| `<p attr={{x}}>` <br> `<a href="{{x}}.html">` | `x` | `Attr` |
+
+In this situation, the `x` may refer to:
+
+- a helper `x`
+- a local variable in partial scope
+- `this.x`.
+
+#### Runtime Error Cases
+
+None.
+
+### Loose Free Variable Resolution
+
+These resolution contexts occur in append or attribute nodes with zero positional or named arguments, and when the path has dots.
+
+| | |
+| - | - |
+| Syntax Positions | append, attribute |
+| Path has dots? | ➕ |
+| Arguments? | ❌ |
+| | |
+| Namespace | None |
 | This fallback? | ✅ |
 
 #### Runtime Error Cases
@@ -159,50 +195,66 @@ None.
 
 #### Applicable Situations
 
-| situation | variable | name |
+| situation | variable | resolution |
 | - | - | - |
-| `<p attr={{x}}>` <br> `<a href="{{x}}.html">` | `x` | `AmbiguousAttr` |
+| `{{x.y}}` as append <br> `<p attr={{x.y}}>` <br> `<a href="{{x.y}}.html">` | `x` | `LooseFreeVariableResolution` |
 
-In this situation, the `x` may refer to:
+In these situations, the `x` may refer to a local variable in partial scope, or it may refer to `this.x`.
 
-- a helper `x`
-- a local variable in partial scope
-- `this.x`.
 
-### No-Resolver Situations
+### Summary
 
-In loose mode, there are free variables that have no `VariableResolutionContext` and therefore cannot be resolved. These situations are a syntax error.
+> These tables apply to situations where the head of the callee's path is a free variable. When the head is a local variable, it always uses strict resolution.
 
-#### Component Paths
+#### Syntax Errors 🙅‍♀️
 
-```hbs
-{{! error }}
-<x.y />
-```
+Situations that meet all three of these criteria are syntax errors:
 
-The `x` at the start of the component path is a free variable with no syntactic context.
+1. Unambiguous invocations
+2. The callee contains a `.`
+3. The head of the callee is a `FreeVarReference`
 
-However, the following is not a syntax error, because `x` is a `LocalVarRef`, not a `FreeVarRef`.
+| Syntax Position | Example | Dots? | Arguments? |
+| - | - | - | - | - |
+| `Component` | `<X.y />` | ➕ | Any |
+| `Modifier` | `<p {{x.y}} />` | ➕ | Any |
+| `SubExpression` | `(x.y)` | ➕ | Any |
+| `Block` | `{{#x.y}}` | ➕ | Any |
+| `Append`, `Attribute` | `{{x.y z}}` | ➕ | ➕ |
 
-```hbs
-{{#let @something as |x|}}
-  <x.y />
-{{/let}}
-```
+#### Block, Component, Modifier, SubExpression
 
-#### Modifier Paths
+| | |
+| - | - |
+| Path has dots? | ❌ |
+| Arguments? | Any |
+| This fallback? | ⛔ |
 
-```hbs
-{{! error }}
-<p {{x.y}} />
-```
+| Syntax Position | Example || Namespace  |
+| - | - | - | - | - | - |
+| `Block` | `{{#x}}` || `block` |
+| `Component` | `<X />` || `component` |
+| `Modifier` | `<p {{x}} />`  || `modifier` |
+| `SubExpression` | `(x)` || `helper` |
 
-The `x` at the start of the modifer path is a free variable with no syntactic context.
+#### Append
 
-However, the following is not a syntax error, because `x` is a `LocalVarRef`, not a `FreeVarRef`.
+| Syntax Position | Example | Dots? | Args? |  | Namespace | Fallback? |
+| - | - | - | - | - | - | - |
+| `Append` | `{{x}}`  | ❌ | ❌|| `helper`, `component` | ✅ |
+| `Append` | `{{x.y}}`  | ➕ | ❌|| None | ✅ |
+| `Append` | `{{x y}}`  | ❌ | ➕|| `helper`, `component` | ⛔ |
 
-```hbs
-{{#let @something as |x|}}
-  <p {{x.y}} />
-{{/let}}
-```
+#### Attributes
+
+The `Attribute` syntax position includes:
+
+- the value of an HTML attribute (`href={{...}}`)
+- the value of an element argument (`@title={{...}}`)
+- a part of an interpolation (`href="{{...}}.html"`)
+
+| Syntax Position | Example  | Dots? | Arguments?| | Namespace | Fallback? |
+| - | - | - | - | - | - | - |
+| `Attribute` | `href={{x}}`  | ❌ | ❌ || `helper` | ✅ |
+| `Attribute` | `href={{x.y}}`  | ➕ | ❌ || None | ✅ |
+| `Attribute` | `href={{x y}}`  | ❌ | ➕ || `helper` | ⛔ |

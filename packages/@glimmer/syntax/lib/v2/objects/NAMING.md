@@ -1,0 +1,4 @@
+- Node superclasses are called `BaseXxx`
+- Unions of nodes are called `XxxNode`
+- Notes that correspond directly to HTML constructs are called `HtmlXxx`
+- Concrete nodes shouldn't end with `Node`

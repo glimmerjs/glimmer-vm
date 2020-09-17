@@ -1,10 +1,10 @@
 import { PresentArray } from '@glimmer/interfaces';
 import { VariableReference } from '../nodes-v2';
 import { Args } from './args';
-import { BaseNode, BaseNodeOptions, CallNode, CallNodeOptions } from './base';
+import { BaseNode, BaseNodeOptions, BaseCall, CallOptions } from './base';
 import { SourceSlice } from './internal';
 
-export abstract class BaseExpressionNode extends BaseNode {
+export abstract class BaseExpression extends BaseNode {
   isLiteral<K extends keyof LiteralTypes>(_kind?: K): this is LiteralExpression<LiteralTypes[K]> {
     return false;
   }
@@ -20,7 +20,7 @@ export interface LiteralTypes {
   undefined: undefined;
 }
 
-export class LiteralExpression<V extends LiteralValue = LiteralValue> extends BaseExpressionNode {
+export class LiteralExpression<V extends LiteralValue = LiteralValue> extends BaseExpression {
   readonly type = 'LiteralExpression';
   readonly value: V;
 
@@ -42,7 +42,7 @@ export class LiteralExpression<V extends LiteralValue = LiteralValue> extends Ba
   }
 }
 
-export class PathExpression extends BaseExpressionNode {
+export class PathExpression extends BaseExpression {
   readonly type = 'PathExpression';
   readonly ref: VariableReference;
   readonly tail: SourceSlice[];
@@ -54,29 +54,29 @@ export class PathExpression extends BaseExpressionNode {
   }
 }
 
-export class CallExpression extends BaseExpressionNode implements CallNode {
+export class CallExpression extends BaseExpression implements BaseCall {
   readonly type = 'CallExpression';
-  readonly callee: Expression;
+  readonly callee: ExpressionNode;
   readonly args: Args;
 
-  constructor(options: CallNodeOptions) {
+  constructor(options: CallOptions) {
     super(options);
     this.callee = options.callee;
     this.args = options.args;
   }
 }
 
-export class InterpolateExpression extends BaseExpressionNode {
+export class InterpolateExpression extends BaseExpression {
   readonly type = 'Interpolate';
-  readonly parts: PresentArray<Expression>;
+  readonly parts: PresentArray<ExpressionNode>;
 
-  constructor(options: BaseNodeOptions & { parts: PresentArray<Expression> }) {
+  constructor(options: BaseNodeOptions & { parts: PresentArray<ExpressionNode> }) {
     super(options);
     this.parts = options.parts;
   }
 }
 
-export type Expression =
+export type ExpressionNode =
   | LiteralExpression
   | PathExpression
   | CallExpression

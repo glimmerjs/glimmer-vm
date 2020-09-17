@@ -1,4 +1,4 @@
-import { Args, ASTv2, GlimmerSyntaxError, NamedEntry, SourceSlice } from '@glimmer/syntax';
+import { Args, ASTv2, GlimmerSyntaxError, SourceSlice } from '@glimmer/syntax';
 import { Ok, Result } from '../../../shared/result';
 import * as pass1 from '../../2-symbol-allocation/hir';
 import { VisitorContext } from '../context';

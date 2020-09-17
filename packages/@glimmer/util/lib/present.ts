@@ -1,6 +1,6 @@
 import { Optional, PresentArray } from '@glimmer/interfaces';
 
-export function isPresent<T>(list: T[]): list is PresentArray<T> {
+export function isPresent<T>(list: readonly T[]): list is PresentArray<T> {
   return list.length > 0;
 }
 

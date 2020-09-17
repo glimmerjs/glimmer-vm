@@ -1,6 +1,6 @@
 import { SourceLocation, SYNTHETIC } from '../../source/location';
 import { BaseNode, BaseNodeOptions } from './base';
-import { Expression } from './expr';
+import { ExpressionNode } from './expr';
 import { SourceSlice } from './internal';
 
 export class Args extends BaseNode {
@@ -32,9 +32,9 @@ export class Positional extends BaseNode {
   }
 
   readonly type = 'Positional';
-  readonly exprs: readonly Expression[];
+  readonly exprs: readonly ExpressionNode[];
 
-  constructor(options: BaseNodeOptions & { exprs: readonly Expression[] }) {
+  constructor(options: BaseNodeOptions & { exprs: readonly ExpressionNode[] }) {
     super(options);
     this.exprs = options.exprs;
   }
@@ -68,9 +68,9 @@ export class Named extends BaseNode {
 export class NamedEntry extends BaseNode {
   readonly type = 'NamedEntry';
   readonly name: SourceSlice;
-  readonly value: Expression;
+  readonly value: ExpressionNode;
 
-  constructor(options: BaseNodeOptions & { name: SourceSlice; value: Expression }) {
+  constructor(options: BaseNodeOptions & { name: SourceSlice; value: ExpressionNode }) {
     super(options);
     this.name = options.name;
     this.value = options.value;

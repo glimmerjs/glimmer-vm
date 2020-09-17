@@ -31,14 +31,16 @@ export class LocalVarReference extends ReferenceNode {
 export class FreeVarReference extends ReferenceNode {
   readonly type = 'FreeVarReference';
   readonly name: SourceSlice;
-  readonly context: FreeVarResolution;
+  readonly resolution: FreeVarResolution;
 
   constructor(options: BaseNodeOptions & { name: SourceSlice; context: FreeVarResolution }) {
     super(options);
     this.name = options.name;
-    this.context = options.context;
+    this.resolution = options.context;
   }
 }
+
+export type VariableReference = ThisReference | ArgReference | LocalVarReference | FreeVarReference;
 
 // Utilities
 
@@ -47,6 +49,7 @@ export const enum FreeVarNamespace {
   Block,
   Modifier,
   Component,
+  ComponentOrHelper,
 }
 
 export class NamespacedVarResolution {
@@ -62,6 +65,8 @@ export class NamespacedVarResolution {
         return SexpOpcodes.GetFreeAsModifierHead;
       case FreeVarNamespace.Component:
         return SexpOpcodes.GetFreeAsComponentHead;
+      case FreeVarNamespace.ComponentOrHelper:
+        return SexpOpcodes.GetFreeAsComponentOrHelperHead;
     }
   }
 }
@@ -84,7 +89,6 @@ export const LOOSE_FREE_VAR_RESOLUTION = new LooseFreeVariableResolution();
 
 export const enum Ambiguity {
   Append,
-  AppendInvoke,
   Attr,
 }
 
@@ -95,8 +99,6 @@ export class AmbiguousResolution {
     switch (this.ambiguity) {
       case Ambiguity.Append:
         return SexpOpcodes.GetFreeAsComponentOrHelperHeadOrThisFallback;
-      case Ambiguity.AppendInvoke:
-        return SexpOpcodes.GetFreeAsComponentOrHelperHead;
       case Ambiguity.Attr:
         return SexpOpcodes.GetFreeAsHelperHeadOrThisFallback;
     }

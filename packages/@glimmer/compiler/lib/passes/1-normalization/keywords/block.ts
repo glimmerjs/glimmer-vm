@@ -50,9 +50,9 @@ export const BLOCK_KEYWORDS = keywords('Block').kw('in-element', {
   ): Result<pass1.InElement> {
     let { utils } = ctx;
 
-    let named = ASTv2.getBlock(node.blocks, 'default');
+    let named = node.blocks.get('default');
 
-    return ctx.block(utils.slice('default'), named.block).mapOk((body) =>
+    return ctx.block(named.name, named.block).mapOk((body) =>
       utils
         .op(pass1.InElement, {
           block: body,

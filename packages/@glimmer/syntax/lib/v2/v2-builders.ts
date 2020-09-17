@@ -6,8 +6,13 @@ import * as ASTv2 from './nodes-v2';
 import { FreeVarResolution, LiteralExpression } from './objects';
 import { Args, Named, NamedEntry, Positional } from './objects/args';
 import { InvokeBlock, InvokeComponent, SimpleElement } from './objects/content';
-import { PathExpression, Expression, InterpolateExpression, CallExpression } from './objects/expr';
-import { NamedBlock, SourceSlice } from './objects/internal';
+import {
+  PathExpression,
+  ExpressionNode,
+  InterpolateExpression,
+  CallExpression,
+} from './objects/expr';
+import { NamedBlock, NamedBlocks, SourceSlice } from './objects/internal';
 import { ArgReference, LocalVarReference, ThisReference } from './objects/refs';
 
 export interface CallParts {
@@ -86,7 +91,7 @@ class Builder {
     });
   }
 
-  namedEntry(key: SourceSlice, value: Expression, loc?: SourceLocation): ASTv2.NamedEntry {
+  namedEntry(key: SourceSlice, value: ExpressionNode, loc?: SourceLocation): ASTv2.NamedEntry {
     return new NamedEntry({
       loc: this.loc(loc),
       name: key,
@@ -114,7 +119,7 @@ class Builder {
     } else if (head[0] === '@') {
       headNode = this.at(head, loc);
     } else if (head[0] === '^') {
-      headNode = this.freeVar(head.slice(1), context, loc);
+      headNode = this.freeVar(this.slice(head.slice(1)), context, loc);
     } else {
       headNode = this.localVar(head, loc);
     }
@@ -181,13 +186,17 @@ class Builder {
     });
   }
 
-  freeVar(name: string, context: FreeVarResolution, loc?: SourceLocation): ASTv2.VariableReference {
+  freeVar(
+    name: SourceSlice,
+    context: FreeVarResolution,
+    loc?: SourceLocation
+  ): ASTv2.VariableReference {
     assert(
-      name !== 'this',
+      name.chars !== 'this',
       `You called builders.freeVar() with 'this'. Call builders.this instead`
     );
     assert(
-      name[0] !== '@',
+      name.chars[0] !== '@',
       `You called builders.freeVar() with '${name}'. Call builders.at('${name}') instead`
     );
 
@@ -271,6 +280,13 @@ class Builder {
     );
   }
 
+  namedBlocks(blocks: NamedBlock[], loc?: SourceLocation): ASTv2.NamedBlocks {
+    return new NamedBlocks({
+      loc: this.loc(loc),
+      blocks,
+    });
+  }
+
   blockStatement(
     {
       symbols,
@@ -291,7 +307,7 @@ class Builder {
 
     return new InvokeBlock({
       loc: this.loc(loc),
-      blocks,
+      blocks: this.namedBlocks(blocks),
       callee: call.callee,
       args: call.args,
     });
