@@ -1,6 +1,7 @@
 import { Optional, PresentArray } from '@glimmer/interfaces';
 import { assert, assign, isPresent } from '@glimmer/util';
 import { GlimmerSyntaxError } from '../errors/syntax-error';
+import Printer from '../generation/printer';
 import { preprocess, PreprocessOptions } from '../parser/tokenizer-event-handlers';
 import { SourceLocation, SYNTHETIC } from '../source/location';
 import { BlockSymbolTable, ProgramSymbolTable, SymbolTable } from '../symbol-table';
@@ -11,15 +12,14 @@ import {
   ARGUMENT,
   AttrValueSyntaxContext,
   BlockSyntaxContext,
-  CallSyntaxContextConstructor,
-  ComponentSyntaxContent,
+  ComponentSyntaxContext,
   ModifierSyntaxContext,
+  Resolution,
   SexpSyntaxContext,
-  SyntaxContext,
-} from './loose-context';
+} from './loose-resolution';
 import * as ASTv2 from './nodes-v2';
 import { GlimmerComment, HtmlComment, HtmlText, SourceSlice } from './objects';
-import { STRICT_RESOLUTION } from './objects/refs';
+import { FreeVarResolution, STRICT_RESOLUTION } from './objects/refs';
 import builders, { BuildElement, CallParts } from './v2-builders';
 
 export function normalize(html: string, options: PreprocessOptions = {}): ASTv2.Template {
@@ -59,11 +59,50 @@ export interface GlimmerCompileOptions extends PrecompileOptions {
  *
  * `BlockContext` is stateless.
  */
-class BlockContext<Table extends SymbolTable = SymbolTable> {
+export class BlockContext<Table extends SymbolTable = SymbolTable> {
   constructor(private readonly options: GlimmerCompileOptions, readonly table: Table) {}
 
   get strict(): boolean {
     return this.options.strictMode;
+  }
+
+  resolutionFor<N extends ASTv1.CallNode | ASTv1.PathExpression>(
+    node: N,
+    resolution: Resolution<N>
+  ): { resolution: FreeVarResolution } | { resolution: 'error'; path: string; head: string } {
+    if (this.strict) {
+      return { resolution: STRICT_RESOLUTION };
+    }
+
+    if (this.isFreeVar(node)) {
+      let r = resolution(node);
+
+      if (r === null) {
+        return {
+          resolution: 'error',
+          path: printPath(node),
+          head: printHead(node),
+        };
+      }
+
+      return { resolution: r };
+    } else {
+      return { resolution: STRICT_RESOLUTION };
+    }
+  }
+
+  private isFreeVar(callee: ASTv1.CallNode | ASTv1.PathExpression): boolean {
+    if (callee.type === 'PathExpression') {
+      if (callee.head.type !== 'VarHead') {
+        return false;
+      }
+
+      return !this.table.has(callee.head.name);
+    } else if (callee.path.type === 'PathExpression') {
+      return this.isFreeVar(callee.path);
+    } else {
+      return false;
+    }
   }
 
   hasBinding(name: string): boolean {
@@ -97,13 +136,13 @@ class ExpressionNormalizer {
    *
    * @see {SyntaxContext}
    */
-  normalize(expr: ASTv1.Literal, resolution: SyntaxContext): ASTv2.LiteralExpression;
-  normalize(expr: ASTv1.MinimalPathExpression, resolution: SyntaxContext): ASTv2.PathExpression;
-  normalize(expr: ASTv1.SubExpression, resolution: SyntaxContext): ASTv2.CallExpression;
-  normalize(expr: ASTv1.Expression, resolution: SyntaxContext): ASTv2.Expression;
+  normalize(expr: ASTv1.Literal, resolution: FreeVarResolution): ASTv2.LiteralExpression;
+  normalize(expr: ASTv1.MinimalPathExpression, resolution: FreeVarResolution): ASTv2.PathExpression;
+  normalize(expr: ASTv1.SubExpression, resolution: FreeVarResolution): ASTv2.CallExpression;
+  normalize(expr: ASTv1.Expression, resolution: FreeVarResolution): ASTv2.Expression;
   normalize(
     expr: ASTv1.Expression | ASTv1.MinimalPathExpression,
-    resolution: SyntaxContext
+    resolution: FreeVarResolution
   ): ASTv2.Expression {
     switch (expr.type) {
       case 'NullLiteral':
@@ -126,7 +165,16 @@ class ExpressionNormalizer {
           expr.loc
         );
       case 'SubExpression': {
-        return builders.sexp(this.callParts(expr, SexpSyntaxContext), expr.loc);
+        let resolution = this.block.resolutionFor(expr, SexpSyntaxContext);
+
+        if (resolution.resolution === 'error') {
+          throw new GlimmerSyntaxError(
+            `You attempted to invoke a path (\`${resolution.path}\`) but ${resolution.head} was not in scope`,
+            expr.loc
+          );
+        }
+
+        return builders.sexp(this.callParts(expr, resolution.resolution), expr.loc);
       }
     }
   }
@@ -135,7 +183,7 @@ class ExpressionNormalizer {
    * The `callParts` method takes ASTv1.CallParts as well as a syntax context and normalizes
    * it to an ASTv2 CallParts.
    */
-  callParts(parts: ASTv1.CallParts, context: CallSyntaxContextConstructor): CallParts {
+  callParts(parts: ASTv1.CallParts, context: FreeVarResolution): CallParts {
     let { path, params, hash } = parts;
 
     let positional = builders.positional(
@@ -155,7 +203,7 @@ class ExpressionNormalizer {
     );
 
     return {
-      callee: this.normalize(path, new context(parts)),
+      callee: this.normalize(path, context),
       args: builders.args(positional, named),
     };
   }
@@ -170,7 +218,7 @@ class ExpressionNormalizer {
    * the `VariableReference` node bears full responsibility for loose mode rules that control
    * the behavior of free variables.
    */
-  private ref(head: ASTv1.PathHead, context: SyntaxContext): ASTv2.VariableReference {
+  private ref(head: ASTv1.PathHead, resolution: FreeVarResolution): ASTv2.VariableReference {
     switch (head.type) {
       case 'ThisHead':
         return builders.self(head.loc);
@@ -182,7 +230,7 @@ class ExpressionNormalizer {
         } else {
           return builders.freeVar(
             builders.slice(head.name),
-            this.block.strict ? STRICT_RESOLUTION : context.resolution(),
+            this.block.strict ? STRICT_RESOLUTION : resolution,
             head.loc
           );
         }
@@ -252,7 +300,7 @@ class StatementNormalizer {
         params: mustache.params,
         hash: mustache.hash,
       },
-      AppendSyntaxContext
+      AppendSyntaxContext(mustache)
     );
 
     let value = callParts.args.isEmpty()
@@ -275,8 +323,16 @@ class StatementNormalizer {
   BlockStatement(block: ASTv1.BlockStatement): ASTv2.InvokeBlock {
     let { program, inverse, loc } = block;
 
-    // Normalize the call parts in BlockSyntaxContext
-    let callParts = this.expr.callParts(block, BlockSyntaxContext);
+    let resolution = this.block.resolutionFor(block, BlockSyntaxContext);
+
+    if (resolution.resolution === 'error') {
+      throw new GlimmerSyntaxError(
+        `You attempted to invoke a path (\`{{#${resolution.path}}}\`) but ${resolution.head} was not in scope`,
+        loc
+      );
+    }
+
+    let callParts = this.expr.callParts(block, resolution.resolution);
 
     return builders.blockStatement(
       assign(
@@ -368,8 +424,16 @@ class ElementNormalizer {
   }
 
   private modifier(m: ASTv1.ElementModifierStatement): ASTv2.ElementModifier {
-    // Normalize the call parts in ModifierSyntaxContext
-    let callParts = this.expr.callParts(m, ModifierSyntaxContext);
+    let resolution = this.ctx.resolutionFor(m, ModifierSyntaxContext);
+
+    if (resolution.resolution === 'error') {
+      throw new GlimmerSyntaxError(
+        `You attempted to invoke a path (\`{{#${resolution.path}}}\`) but ${resolution.head} was not in scope`,
+        m.loc
+      );
+    }
+
+    let callParts = this.expr.callParts(m, resolution.resolution);
     return builders.modifier(callParts, m.loc);
   }
 
@@ -384,7 +448,10 @@ class ElementNormalizer {
    */
   private mustacheAttr(mustache: ASTv1.MustacheStatement): ASTv2.Expression {
     // Normalize the call parts in AttrValueSyntaxContext
-    let sexp = builders.sexp(this.expr.callParts(mustache, AttrValueSyntaxContext), mustache.loc);
+    let sexp = builders.sexp(
+      this.expr.callParts(mustache, AttrValueSyntaxContext(mustache)),
+      mustache.loc
+    );
 
     // If there are no params or hash, just return the function part as its own expression
     if (sexp.args.isEmpty()) {
@@ -484,7 +551,16 @@ class ElementNormalizer {
 
       let path = buildersV1.fullPath(buildersV1.head(variable), tail);
 
-      return new ExpressionNormalizer(this.ctx).normalize(path, ComponentSyntaxContent);
+      let resolution = this.ctx.resolutionFor(path, ComponentSyntaxContext);
+
+      if (resolution.resolution === 'error') {
+        throw new GlimmerSyntaxError(
+          `You attempted to invoke a path (\`<${resolution.path}>\`) but ${resolution.head} was not in scope`,
+          loc
+        );
+      }
+
+      return new ExpressionNormalizer(this.ctx).normalize(path, resolution.resolution);
     }
 
     // If the tag name wasn't a valid component but contained a `.`, it's
@@ -652,4 +728,28 @@ function isUpperCase(tag: string): boolean {
 
 function isLowerCase(tag: string): boolean {
   return tag[0] === tag[0].toLowerCase() && tag[0] !== tag[0].toUpperCase();
+}
+
+function printPath(node: ASTv1.PathExpression | ASTv1.CallNode): string {
+  if (node.type !== 'PathExpression' && node.path.type === 'PathExpression') {
+    return printPath(node.path);
+  } else {
+    return new Printer({ entityEncoding: 'raw' }).print(node);
+  }
+}
+
+function printHead(node: ASTv1.PathExpression | ASTv1.CallNode): string {
+  if (node.type === 'PathExpression') {
+    switch (node.head.type) {
+      case 'AtHead':
+      case 'VarHead':
+        return node.head.name;
+      case 'ThisHead':
+        return 'this';
+    }
+  } else if (node.path.type === 'PathExpression') {
+    return printHead(node.path);
+  } else {
+    return new Printer({ entityEncoding: 'raw' }).print(node);
+  }
 }

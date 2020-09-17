@@ -70,6 +70,12 @@ export interface Call extends BaseNode {
   hash: Hash;
 }
 
+export type CallNode =
+  | MustacheStatement
+  | BlockStatement
+  | ElementModifierStatement
+  | SubExpression;
+
 export interface MustacheStatement extends BaseNode {
   type: 'MustacheStatement';
   path: Expression;
