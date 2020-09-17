@@ -96,26 +96,6 @@ export class NormalizationUtilities {
     return this.ctx.source;
   }
 
-  visit<N extends ASTv2.Node, U>(
-    desc: keyof OutOps,
-    node: N,
-    callback: (node: N, ctx: VisitorContext) => Result<U>
-  ): Result<U> {
-    if (LOCAL_SHOULD_LOG) {
-      LOCAL_LOGGER.groupCollapsed(`pass0: visiting ${desc}`, node.type);
-      LOCAL_LOGGER.log(`node`, node);
-    }
-
-    let result = callback(node, this.context);
-
-    if (LOCAL_SHOULD_LOG) {
-      LOCAL_LOGGER.log(`-> out   `, node);
-      LOCAL_LOGGER.groupEnd();
-    }
-
-    return result;
-  }
-
   op<O extends HirOp>(op: OpConstructor<O>, ...args: InputOpArgs<O>): UnlocatedOp<O> {
     return new UnlocatedOp(op, toArgs(args), this.ctx.source);
   }
