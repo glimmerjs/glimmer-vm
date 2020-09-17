@@ -453,8 +453,8 @@ export default class TemplateCompiler implements Processor<InputOps> {
         if (
           key === 'guid' &&
           value.type === 'StringLiteral' &&
-          !value.value.startsWith('%cursor:'))
-        {
+          !value.value.startsWith('%cursor:')
+        ) {
           throw new SyntaxError(
             `Cannot pass \`guid\` to \`{{#in-element}}\` on line ${value.loc.start.line}.`,
             value.loc
