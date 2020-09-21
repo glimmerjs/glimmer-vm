@@ -45,12 +45,10 @@ export class ClassifiedElement {
     let rawValue = attr.value;
 
     let namespace = getAttrNamespace(name.chars) || undefined;
-    let value = VISIT_EXPRS.visit(rawValue, this.utils);
+    return VISIT_EXPRS.visit(rawValue, this.utils).mapOk((value) => {
+      let isTrusting = attr.trusting;
 
-    let isTrusting = attr.trusting;
-
-    return Ok(
-      this.utils
+      return this.utils
         .op(hir.Attr, {
           name,
           value: value,
@@ -60,21 +58,26 @@ export class ClassifiedElement {
             component: this.delegate.dynamicFeatures,
           },
         })
-        .loc(attr)
-    );
+        .loc(attr);
+    });
   }
 
-  private modifier(modifier: ASTv2.ElementModifier): hir.Modifier {
+  private modifier(modifier: ASTv2.ElementModifier): Result<hir.Modifier> {
     if (isHelperInvocation(modifier)) {
       assertIsValidHelper(modifier, modifier.loc, 'modifier');
     }
 
-    return this.utils
-      .op(hir.Modifier, {
-        head: VISIT_EXPRS.visit(modifier.callee, this.utils),
-        args: VISIT_EXPRS.Args(modifier.args, this.utils),
-      })
-      .loc(modifier);
+    let head = VISIT_EXPRS.visit(modifier.callee, this.utils);
+    let args = VISIT_EXPRS.Args(modifier.args, this.utils);
+
+    return Result.all(head, args).mapOk(([head, args]) =>
+      this.utils
+        .op(hir.Modifier, {
+          head,
+          args,
+        })
+        .loc(modifier)
+    );
   }
 
   private attrs(): Result<ProcessedAttributes> {
@@ -103,22 +106,26 @@ export class ClassifiedElement {
 
     return Result.all(args.toArray(), attrs.toArray()).mapOk(([args, attrs]) => ({
       attrs,
-      args: this.utils.op(hir.Named, { pairs: OptionalList(args) }).offsets(null),
+      args: this.utils
+        .op(hir.Named, { pairs: OptionalList(args) })
+        .maybeLoc(args, this.utils.source.NON_EXISTENT),
     }));
   }
 
   private prepare(): Result<PreparedArgs> {
-    let result = this.attrs();
+    let attrs = this.attrs();
+    let modifiers = new ResultArray(this.element.modifiers.map((m) => this.modifier(m))).toArray();
 
-    return result.mapOk((result) => {
+    return Result.all(attrs, modifiers).mapOk(([result, modifiers]) => {
       let { attrs, args } = result;
 
-      let modifiers = this.element.modifiers.map((m) => this.modifier(m));
+      let elementParams = [...attrs, ...modifiers];
+
       let params = this.utils
         .op(hir.ElementParameters, {
-          body: OptionalList([...attrs, ...modifiers]),
+          body: OptionalList(elementParams),
         })
-        .offsets(null);
+        .maybeLoc(elementParams, this.utils.source.NON_EXISTENT);
 
       return { args, params };
     });

@@ -144,7 +144,6 @@ export class Keywords<K extends KeywordType, KeywordList extends Keyword<K> = ne
     utils: NormalizationUtilities
   ): Result<OutFor<KeywordList>> | null {
     for (let keyword of this.#keywords) {
-      // if (keyword.match(node)) {
       let result = keyword.translate(node, utils) as Result<OutFor<KeywordList>>;
       if (result !== null) {
         return result;

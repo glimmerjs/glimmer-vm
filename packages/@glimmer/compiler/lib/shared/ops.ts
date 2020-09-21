@@ -1,5 +1,4 @@
 import { PresentArray } from '@glimmer/interfaces';
-import { Source } from '@glimmer/syntax';
 import { InputOpArgs, Op, OpConstructor, toArgs, UnlocatedOp } from './op';
 
 export type ArgsMap<K extends string | number> = {
@@ -9,10 +8,8 @@ export type ArgsMap<K extends string | number> = {
 export type Ops<O extends Op> = O | O[];
 
 export class OpFactory<SubOp extends Op> {
-  constructor(private source: Source) {}
-
   op<O extends SubOp>(Class: OpConstructor<O>, ...args: InputOpArgs<O>): UnlocatedOp<O> {
-    return new UnlocatedOp(Class, toArgs(args), this.source);
+    return new UnlocatedOp(Class, toArgs(args));
   }
 
   ops<O extends Op>(...ops: Ops<O>[]): O[] {

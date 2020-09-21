@@ -3,6 +3,9 @@ import { isPresent, mapPresent } from '@glimmer/util';
 
 export interface OptionalList<T> {
   map<U>(callback: (input: T) => U): MapList<T, U, AnyOptionalList<T>>;
+  filter<S extends T>(
+    predicate: (value: T, index: number, array: T[]) => value is S
+  ): AnyOptionalList<S>;
   toArray(): T[] | PresentArray<T>;
   toPresentArray(): Optional<PresentArray<T>>;
   into<U, V>(options: { ifPresent: (array: PresentList<T>) => U; ifEmpty: () => V }): U | V;
@@ -20,6 +23,18 @@ export class PresentList<T> implements OptionalList<T> {
     return new PresentList(result) as MapList<T, U, this>;
   }
 
+  filter<S extends T>(predicate: (value: T) => value is S): AnyOptionalList<S> {
+    let out: S[] = [];
+
+    for (let item of this.list) {
+      if (predicate(item)) {
+        out.push(item);
+      }
+    }
+
+    return OptionalList(out);
+  }
+
   toPresentArray(): PresentArray<T> {
     return this.list;
   }
@@ -34,6 +49,10 @@ export class EmptyList<T> implements OptionalList<T> {
 
   map<U>(_callback: (input: T) => U): MapList<T, U, EmptyList<T>> {
     return new EmptyList() as MapList<T, U, this>;
+  }
+
+  filter<S extends T>(_predicate: (value: T) => value is S): AnyOptionalList<S> {
+    return new EmptyList();
   }
 
   toArray(): T[] {

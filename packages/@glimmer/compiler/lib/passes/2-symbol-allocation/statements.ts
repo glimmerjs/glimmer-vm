@@ -93,7 +93,7 @@ export class Pass1Statement implements StatementVisitor {
       let op = kind.component ? mir.StaticComponentAttr : mir.StaticSimpleAttr;
       let value = new SourceSlice({
         chars: attrValue.args.value,
-        loc: attrValue.offsets,
+        loc: attrValue.loc,
       });
       return ctx.op<mir.AnyAttr>(op, { name, value, namespace });
     } else {

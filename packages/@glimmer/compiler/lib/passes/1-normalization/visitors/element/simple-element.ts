@@ -32,7 +32,7 @@ export class ClassifiedSimpleElement implements Classified {
         .op(hir.SimpleElement, {
           tag: this.tag,
           params,
-          body,
+          body: body.toArray(),
           dynamicFeatures: this.dynamicFeatures,
         })
         .loc(element)

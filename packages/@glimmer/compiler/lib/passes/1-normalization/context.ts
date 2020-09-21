@@ -29,6 +29,6 @@ export class NormalizationUtilities {
   }
 
   op<O extends HirOp>(op: OpConstructor<O>, ...args: InputOpArgs<O>): UnlocatedOp<O> {
-    return new UnlocatedOp(op, toArgs(args), this.source);
+    return new UnlocatedOp(op, toArgs(args));
   }
 }

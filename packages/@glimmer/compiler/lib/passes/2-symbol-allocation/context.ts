@@ -77,12 +77,12 @@ export class CompilerContext {
     symbols: ProgramSymbolTable,
     readonly visitor: Pass1VisitorMap
   ) {
-    this.factory = new OpFactory(source);
+    this.factory = new OpFactory();
     this.state = new CompilerState(symbols);
   }
 
-  forOffsets(offsets: SourceOffsets | null): Context {
-    return new Context(this, offsets);
+  forLoc(loc: SourceOffsets): Context {
+    return new Context(this, loc);
   }
 }
 
@@ -101,7 +101,7 @@ export interface AllocateTable {
  * has no mutable state at all.
  */
 export class Context {
-  constructor(readonly ctx: CompilerContext, readonly offsets: SourceOffsets | null) {}
+  constructor(readonly ctx: CompilerContext, readonly loc: SourceOffsets) {}
 
   get source(): Source {
     return this.ctx.source;
@@ -123,13 +123,12 @@ export class Context {
     return this.ctx.state.cursor();
   }
 
-  error(message: string, offsets = this.offsets): SyntaxError {
+  error(message: string, offsets = this.loc): SyntaxError {
     return new GlimmerSyntaxError(message, offsets ? offsets.toLocation() : null);
   }
 
   template(...args: InputOpArgs<mir.Template>): UnlocatedOp<mir.Template> {
-    let factory = new OpFactory<mir.Template>(this.ctx.source);
-
+    let factory = new OpFactory<mir.Template>();
     return factory.op(mir.Template, ...args);
   }
 
@@ -138,7 +137,7 @@ export class Context {
   }
 
   op<O extends mir.Op>(name: OpConstructor<O>, ...args: InputOpArgs<O>): O {
-    return this.unlocatedOp(name, ...args).offsets(this.offsets);
+    return this.unlocatedOp(name, ...args).loc(this.loc);
   }
 
   unlocatedOp<O extends mir.Op>(name: OpConstructor<O>, ...args: InputOpArgs<O>): UnlocatedOp<O> {

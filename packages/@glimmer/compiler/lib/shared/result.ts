@@ -1,4 +1,5 @@
 import { GlimmerSyntaxError } from '@glimmer/syntax';
+import { AnyOptionalList, OptionalList } from './list';
 
 abstract class ResultImpl<T> {
   static all<T extends Result<unknown>[]>(...results: T): MapAll<T> {
@@ -157,5 +158,9 @@ export class ResultArray<T> {
     } else {
       return Ok((this.items as OkImpl<T>[]).map((item) => item.value));
     }
+  }
+
+  toOptionalList(): Result<AnyOptionalList<T>> {
+    return this.toArray().mapOk((arr) => OptionalList(arr));
   }
 }

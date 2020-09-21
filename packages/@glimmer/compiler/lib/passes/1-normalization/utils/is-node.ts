@@ -2,7 +2,7 @@ import { PresentArray } from '@glimmer/interfaces';
 import {
   ASTv2,
   GlimmerSyntaxError,
-  SourceLocation,
+  SourceOffsets,
   SourceSlice,
   STRICT_RESOLUTION,
 } from '@glimmer/syntax';
@@ -83,7 +83,7 @@ export function isStrictHelper(expr: HasPath): boolean {
 
 export function assertIsValidHelper<N extends HasPath>(
   helper: N,
-  loc: SourceLocation,
+  loc: SourceOffsets,
   context: string
 ): asserts helper is SimpleHelper<N> {
   if (isStrictHelper(helper) || isSimplePath(helper.callee)) {

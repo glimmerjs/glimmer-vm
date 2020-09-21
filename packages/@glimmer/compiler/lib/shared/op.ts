@@ -1,10 +1,4 @@
-import {
-  MaybeHasOffsets,
-  MaybeHasSourceLocation,
-  SourceOffsets,
-  Source,
-  HasSourceLocation,
-} from '@glimmer/syntax';
+import { SourceOffsets } from '@glimmer/syntax';
 
 export type OpsTable<O extends Op> = {
   [P in O['name']]: O extends { name: P } ? O : never;
@@ -14,7 +8,7 @@ export type UnknownArgs = object | void;
 
 export abstract class Op<Args extends UnknownArgs = UnknownArgs, Name extends string = string> {
   abstract readonly name: Name;
-  constructor(readonly offsets: SourceOffsets, readonly args: Args) {}
+  constructor(readonly loc: SourceOffsets, readonly args: Args) {}
 }
 
 export type OpName<O extends Op> = O['name'];
@@ -31,7 +25,7 @@ export function toArgs<O extends Op>(args: InputOpArgs<O>): OpArgs<O> {
 
 export type OpConstructor<O extends Op> = O extends Op<infer Args, infer Name>
   ? {
-      new (offsets: SourceOffsets, args: Args): O & { name: Name };
+      new (loc: SourceOffsets, args: Args): O & { name: Name };
     }
   : never;
 
@@ -66,48 +60,46 @@ export function op<N extends string>(
   };
 }
 
+type HasSourceOffsets =
+  | { loc: SourceOffsets }
+  | SourceOffsets
+  | [HasSourceOffsets, ...HasSourceOffsets[]];
+
+function offset(offsets: HasSourceOffsets): SourceOffsets {
+  if (Array.isArray(offsets)) {
+    let first = offsets[0];
+    let last = offsets[offsets.length - 1];
+
+    return offset(first).extend(offset(last));
+  } else if (offsets instanceof SourceOffsets) {
+    return offsets;
+  } else {
+    return offsets.loc;
+  }
+}
+
+type MaybeHasSourceOffsets = { loc: SourceOffsets } | SourceOffsets | MaybeHasSourceOffsets[];
+
+function hasOffsets(offsets: MaybeHasSourceOffsets): offsets is HasSourceOffsets {
+  if (Array.isArray(offsets) && offsets.length === 0) {
+    return false;
+  }
+
+  return true;
+}
+
 export class UnlocatedOp<O extends Op> {
-  private source: Source;
+  constructor(private Class: OpConstructor<O>, private args: OpArgs<O>) {}
 
-  constructor(private Class: OpConstructor<O>, private args: OpArgs<O>, source: Source) {
-    this.source = source;
-  }
-
-  maybeLoc(location: MaybeHasSourceLocation, fallback?: HasSourceLocation): O {
-    let offsets = this.source.maybeOffsetsFor(location, fallback);
-    return this.withOffsets(offsets);
-  }
-
-  loc(location: HasSourceLocation): O {
-    let offsets = this.source.offsetsFor(location);
-    return this.withOffsets(offsets);
-  }
-
-  withOffsets(offsets: SourceOffsets): O {
-    return new this.Class(offsets, this.args) as O;
-  }
-
-  offsets(location: MaybeHasOffsets): O {
-    let offsets: SourceOffsets | null;
-
-    if (location === null || 'start' in location) {
-      offsets = location;
-    } else if ('offsets' in location) {
-      offsets = location.offsets;
+  maybeLoc(location: MaybeHasSourceOffsets, fallback: HasSourceOffsets): O {
+    if (hasOffsets(location)) {
+      return this.loc(location);
     } else {
-      let start = location[0];
-      let end = location[location.length - 1];
-
-      if (start.offsets === null || end.offsets === null) {
-        offsets = null;
-      } else {
-        let startOffset = start.offsets.startOffset;
-        let endOffset = end.offsets.endOffset;
-
-        offsets = new SourceOffsets(this.source, { start: startOffset, end: endOffset });
-      }
+      return this.loc(fallback);
     }
+  }
 
-    return this.withOffsets(offsets || this.source.NON_EXISTENT);
+  loc(located: HasSourceOffsets): O {
+    return new this.Class(offset(located), this.args) as O;
   }
 }

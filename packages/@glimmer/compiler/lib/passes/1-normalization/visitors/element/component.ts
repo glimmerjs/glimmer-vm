@@ -1,5 +1,5 @@
 import { ASTv2 } from '@glimmer/syntax';
-import { Ok, Result } from '../../../../shared/result';
+import { Result } from '../../../../shared/result';
 import * as hir from '../../../2-symbol-allocation/hir';
 import { NormalizationUtilities } from '../../context';
 import { VISIT_EXPRS } from '../expressions';
@@ -14,9 +14,7 @@ export class ClassifiedComponent implements Classified {
   arg(attr: ASTv2.ComponentArg, el: ClassifiedElement): Result<hir.NamedEntry> {
     let name = attr.name;
 
-    let value = VISIT_EXPRS.visit(attr.value, el.utils);
-
-    return Ok(
+    return VISIT_EXPRS.visit(attr.value, el.utils).mapOk((value) =>
       el.utils
         .op(hir.NamedEntry, {
           key: name,

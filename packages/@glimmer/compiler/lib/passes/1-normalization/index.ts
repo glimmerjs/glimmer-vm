@@ -67,6 +67,7 @@ export default function normalize(source: Source, root: ASTv2.Template): Result<
   }
 
   return body.mapOk(
-    (body) => new hir.Template(source.offsetsFor(root), { symbols: root.table, body })
+    (body) =>
+      new hir.Template(source.offsetsFor(root), { symbols: root.table, body: body.toArray() })
   );
 }

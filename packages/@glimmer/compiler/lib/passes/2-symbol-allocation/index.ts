@@ -15,8 +15,8 @@ export function visit(source: Source, root: hir.Template): mir.Template {
     internal: INTERNAL,
   });
 
-  let ctx = compilerContext.forOffsets(root.offsets);
+  let ctx = compilerContext.forLoc(root.loc);
   let statements = ctx.map(root.args.body, (stmt) => ctx.visitStmt(stmt));
 
-  return ctx.template({ symbols, statements }).offsets(root.offsets);
+  return ctx.template({ symbols, statements }).loc(root);
 }

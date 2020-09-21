@@ -1,5 +1,4 @@
-import { ASTv2, GlimmerSyntaxError, Source } from '@glimmer/syntax';
-import { assertPresent } from '@glimmer/util';
+import { ASTv2, GlimmerSyntaxError } from '@glimmer/syntax';
 import { Err, Ok, Result } from '../../../shared/result';
 import * as hir from '../../2-symbol-allocation/hir';
 import { NormalizationUtilities } from '../context';
@@ -55,16 +54,36 @@ export const BLOCK_KEYWORDS = keywords('Block').kw('in-element', {
     }: { insertBefore: ASTv2.Expression | null; destination: ASTv2.Expression }
   ): Result<hir.InElement> {
     let named = node.blocks.get('default');
+    let body = VISIT_STMTS.NamedBlock(named, utils);
+    let destinationResult = VISIT_EXPRS.visit(destination, utils);
 
-    return VISIT_STMTS.NamedBlock(named, utils).mapOk((body) =>
-      utils
-        .op(hir.InElement, {
-          block: body,
-          insertBefore: insertBefore ? VISIT_EXPRS.visit(insertBefore, utils) : undefined,
-          guid: utils.generateUniqueCursor(),
-          destination: VISIT_EXPRS.visit(destination, utils),
-        })
-        .loc(node)
-    );
+    return Result.all(body, destinationResult)
+      .andThen(
+        ([body, destination]): Result<{
+          body: hir.NamedBlock;
+          destination: hir.Expr;
+          insertBefore: hir.Expr | undefined;
+        }> => {
+          if (insertBefore) {
+            return VISIT_EXPRS.visit(insertBefore, utils).mapOk((insertBefore) => ({
+              body,
+              destination,
+              insertBefore,
+            }));
+          }
+
+          return Ok({ body, destination, insertBefore: undefined });
+        }
+      )
+      .mapOk(({ body, destination, insertBefore }) =>
+        utils
+          .op(hir.InElement, {
+            block: body,
+            insertBefore,
+            guid: utils.generateUniqueCursor(),
+            destination,
+          })
+          .loc(node)
+      );
   },
 });

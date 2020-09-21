@@ -16,21 +16,11 @@ const WHITESPACE = /^\s+$/;
 class NormalizationStatements {
   visitList(
     nodes: readonly ASTv2.ContentNode[],
-    ctx: NormalizationUtilities
-  ): Result<hir.Statement[]> {
-    let out: hir.Statement[] = [];
-
-    for (let node of nodes) {
-      let result = this.visit(node, ctx);
-
-      if (result.isErr) {
-        return result.cast();
-      } else if (result.value !== null) {
-        out.push(result.value);
-      }
-    }
-
-    return Ok(out);
+    utils: NormalizationUtilities
+  ): Result<OptionalList<hir.Statement>> {
+    return new ResultArray(nodes.map((e) => VISIT_STMTS.visit(e, utils)))
+      .toOptionalList()
+      .mapOk((list) => list.filter((s: hir.Statement | null): s is hir.Statement => s !== null));
   }
 
   visit(node: ASTv2.ContentNode, utils: NormalizationUtilities): Result<hir.Statement | null> {
@@ -59,14 +49,19 @@ class NormalizationStatements {
       return translated;
     }
 
-    return this.NamedBlocks(node.blocks, utils).mapOk((blocks) =>
-      utils
-        .op(hir.BlockInvocation, {
-          head: VISIT_EXPRS.visit(node.callee, utils),
-          args: VISIT_EXPRS.Args(node.args, utils),
-          blocks,
-        })
-        .loc(node)
+    let head = VISIT_EXPRS.visit(node.callee, utils);
+    let args = VISIT_EXPRS.Args(node.args, utils);
+
+    return Result.all(head, args).andThen(([head, args]) =>
+      this.NamedBlocks(node.blocks, utils).mapOk((blocks) =>
+        utils
+          .op(hir.BlockInvocation, {
+            head,
+            args,
+            blocks,
+          })
+          .loc(node)
+      )
     );
   }
 
@@ -75,7 +70,7 @@ class NormalizationStatements {
 
     return list
       .toArray()
-      .mapOk((list) => utils.op(hir.NamedBlocks, { blocks: OptionalList(list) }).loc(blocks.loc));
+      .mapOk((list) => utils.op(hir.NamedBlocks, { blocks: OptionalList(list) }).loc(blocks));
   }
 
   NamedBlock(named: ASTv2.NamedBlock, utils: NormalizationUtilities): Result<hir.NamedBlock> {
@@ -83,8 +78,8 @@ class NormalizationStatements {
 
     return body.mapOk((body) => {
       return utils
-        .op(hir.NamedBlock, { name: named.name, body, table: named.block.table })
-        .loc(named.loc);
+        .op(hir.NamedBlock, { name: named.name, body: body.toArray(), table: named.block.table })
+        .loc(named);
     });
   }
 
@@ -103,11 +98,13 @@ class NormalizationStatements {
     component: ASTv2.InvokeComponent,
     utils: NormalizationUtilities
   ): Result<hir.Statement> {
-    return new ClassifiedElement(
-      component,
-      new ClassifiedComponent(VISIT_EXPRS.visit(component.callee, utils), component),
-      utils
-    ).toStatement();
+    return VISIT_EXPRS.visit(component.callee, utils).andThen((callee) =>
+      new ClassifiedElement(
+        component,
+        new ClassifiedComponent(callee, component),
+        utils
+      ).toStatement()
+    );
   }
 
   AppendContent(append: ASTv2.AppendContent, utils: NormalizationUtilities): Result<hir.Statement> {
@@ -117,25 +114,23 @@ class NormalizationStatements {
       return translated;
     }
 
-    let { value } = append;
+    let value = VISIT_EXPRS.visit(append.value, utils);
 
-    if (append.trusting) {
-      return Ok(
-        utils
+    return value.mapOk((value) => {
+      if (append.trusting) {
+        return utils
           .op(hir.AppendTrustedHTML, {
-            value: VISIT_EXPRS.visit(value, utils),
+            value,
           })
-          .loc(append)
-      );
-    } else {
-      return Ok(
-        utils
+          .loc(append);
+      } else {
+        return utils
           .op(hir.AppendTextNode, {
-            value: VISIT_EXPRS.visit(value, utils),
+            value,
           })
-          .loc(append)
-      );
-    }
+          .loc(append);
+      }
+    });
   }
 
   TextNode(text: ASTv2.HtmlText, utils: NormalizationUtilities): hir.Statement {

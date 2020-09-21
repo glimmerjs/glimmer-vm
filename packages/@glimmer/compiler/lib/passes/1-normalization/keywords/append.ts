@@ -1,5 +1,5 @@
-import { Args, ASTv2, GlimmerSyntaxError, Source, SourceSlice } from '@glimmer/syntax';
-import { expect, unreachable } from '@glimmer/util';
+import { ASTv2, GlimmerSyntaxError, Source, SourceSlice } from '@glimmer/syntax';
+import { expect } from '@glimmer/util';
 import { Err, Ok, Result } from '../../../shared/result';
 import * as hir from '../../2-symbol-allocation/hir';
 import { NormalizationUtilities } from '../context';
@@ -53,12 +53,11 @@ export const APPEND_KEYWORDS = keywords('Append')
         positional: ASTv2.Positional;
       }
     ): Result<hir.Statement> {
-      let params = VISIT_EXPRS.Positional(positional, utils);
-      return Ok(
+      return VISIT_EXPRS.Positional(positional, utils).mapOk((positional) =>
         utils
           .op(hir.Yield, {
             target,
-            positional: params,
+            positional,
           })
           .loc(node)
       );
@@ -113,17 +112,19 @@ export const APPEND_KEYWORDS = keywords('Append')
       utils: NormalizationUtilities,
       expr: ASTv2.Expression | undefined
     ): Result<hir.Statement> {
-      return Ok(
+      let visited =
+        expr === undefined
+          ? VISIT_EXPRS.visit(
+              new ASTv2.Builder(utils.source).literal(undefined, utils.source.NOT_IN_SOURCE),
+              utils
+            )
+          : VISIT_EXPRS.visit(expr, utils);
+
+      return visited.mapOk((expr) =>
         utils
           .op(hir.Partial, {
             table: node.table,
-            expr:
-              expr === undefined
-                ? VISIT_EXPRS.visit(
-                    new ASTv2.Builder(utils.source).literal(undefined, utils.source.NOT_IN_SOURCE),
-                    utils
-                  )
-                : VISIT_EXPRS.visit(expr, utils),
+            expr,
           })
           .loc(node)
       );
