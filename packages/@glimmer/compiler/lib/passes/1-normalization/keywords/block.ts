@@ -1,64 +1,68 @@
-import { ASTv2, GlimmerSyntaxError } from '@glimmer/syntax';
+import { ASTv2, GlimmerSyntaxError, Source } from '@glimmer/syntax';
 import { assertPresent } from '@glimmer/util';
-import { Result } from '../../../shared/result';
-import * as pass1 from '../../2-symbol-allocation/hir';
-import { VisitorContext } from '../context';
+import { Err, Ok, Result } from '../../../shared/result';
+import * as hir from '../../2-symbol-allocation/hir';
+import { NormalizationUtilities } from '../context';
 import { VISIT_EXPRS } from '../visitors/expressions';
+import { VISIT_STMTS } from '../visitors/statements';
 import { keywords } from './impl';
 
 export const BLOCK_KEYWORDS = keywords('Block').kw('in-element', {
   assert(
     node: ASTv2.InvokeBlock
-  ): {
-    insertBefore?: ASTv2.Expression;
+  ): Result<{
+    insertBefore: ASTv2.Expression | null;
     destination: ASTv2.Expression;
-  } {
-    let {
-      args: { named, positional },
-    } = node;
+  }> {
+    let { args } = node;
 
-    let insertBefore: ASTv2.Expression | undefined = undefined;
-    let destination: ASTv2.Expression | undefined = undefined;
+    let guid = args.get('guid');
 
-    for (let { name, value } of named.entries) {
-      if (name.chars === 'guid') {
-        throw new GlimmerSyntaxError(
-          `Cannot pass \`guid\` to \`{{#in-element}}\` on line ${value.loc.start.line}.`,
-          value.loc
-        );
-      }
-
-      if (name.chars === 'insertBefore') {
-        insertBefore = value;
-      }
+    if (guid) {
+      return Err(
+        new GlimmerSyntaxError(
+          `Cannot pass \`guid\` to \`{{#in-element}}\` on line ${
+            guid.loc.toLocation().start.line
+          }.`,
+          guid.loc
+        )
+      );
     }
 
-    destination = assertPresent(positional.exprs as ASTv2.Expression[])[0];
+    let insertBefore = args.get('insertBefore');
+    let destination = args.nth(0);
+
+    if (destination === null) {
+      return Err(
+        new GlimmerSyntaxError(
+          `#in-element requires a target element as its first positional parameter`,
+          args.loc
+        )
+      );
+    }
 
     // TODO Better syntax checks
 
-    return { insertBefore, destination };
+    return Ok({ insertBefore, destination });
   },
 
   translate(
     node: ASTv2.InvokeBlock,
-    ctx: VisitorContext,
+    utils: NormalizationUtilities,
     {
       insertBefore,
       destination,
-    }: { insertBefore?: ASTv2.Expression; destination: ASTv2.Expression }
-  ): Result<pass1.InElement> {
-    let { utils } = ctx;
-
+    }: { insertBefore: ASTv2.Expression | null; destination: ASTv2.Expression }
+  ): Result<hir.InElement> {
     let named = node.blocks.get('default');
 
-    return ctx.block(named.name, named.block).mapOk((body) =>
+    return VISIT_STMTS.NamedBlock(named, utils).mapOk((body) =>
       utils
-        .op(pass1.InElement, {
+        .op(hir.InElement, {
           block: body,
-          insertBefore: insertBefore ? VISIT_EXPRS.visit(insertBefore, ctx) : undefined,
-          guid: ctx.generateUniqueCursor(),
-          destination: VISIT_EXPRS.visit(destination, ctx),
+          insertBefore: insertBefore ? VISIT_EXPRS.visit(insertBefore, utils) : undefined,
+          guid: utils.generateUniqueCursor(),
+          destination: VISIT_EXPRS.visit(destination, utils),
         })
         .loc(node)
     );

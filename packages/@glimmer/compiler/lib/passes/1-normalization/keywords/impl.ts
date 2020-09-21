@@ -1,63 +1,26 @@
 import { ASTv2, Source } from '@glimmer/syntax';
-import { unreachable } from '@glimmer/util';
 import { Result } from '../../../shared/result';
-import { VisitorContext } from '../context';
+import { NormalizationUtilities } from '../context';
 
-export type KeywordPath<
-  Types extends PossibleNodeType,
-  S extends string
-> = Types extends 'PathExpression'
-  ? ASTv2.PathExpression & {
-      original: S;
-    }
-  : never;
-
-export type KeywordCall<Types extends PossibleNodeType, S extends string> = ASTv2.Nodes[Types] & {
-  head: KeywordPath<'PathExpression', S>;
-};
-
-export type KeywordNode<Types extends PossibleNodeType, S extends string> =
-  | KeywordCall<Types, S>
-  | KeywordPath<Types, S>;
-
-export type PossibleMatch<
-  NodeType extends keyof KeywordTypes
-> = ASTv2.Nodes[KeywordTypes[NodeType]];
-export type Match<NodeType extends keyof KeywordTypes, S extends string = string> = KeywordNode<
-  KeywordTypes[NodeType],
-  S
->;
-
-interface KeywordDelegate<S extends string, NodeType extends keyof KeywordTypes, V, Out> {
-  assert(options: PossibleMatch<NodeType>, source: Source): V;
-  translate(options: Match<NodeType, S>, ctx: VisitorContext, param: V): Result<Out>;
+interface KeywordDelegate<Match extends KeywordMatch, V, Out> {
+  assert(options: Match, source: Source): Result<V>;
+  translate(options: Match, utils: NormalizationUtilities, param: V): Result<Out>;
 }
 
-export interface Keyword<
-  S extends string = string,
-  Out = unknown,
-  KeywordType extends keyof KeywordTypes = keyof KeywordTypes
-> {
-  match(
-    node: ASTv2.Node | KeywordNode<KeywordTypes[KeywordType], S>
-  ): node is KeywordNode<KeywordTypes[KeywordType], S>;
-  translate(node: Match<KeywordType, S>, ctx: VisitorContext): Result<Out>;
+export interface Keyword<K extends KeywordType = KeywordType, Out = unknown> {
+  translate(node: KeywordCandidates[K], utils: NormalizationUtilities): Result<Out> | null;
 }
 
-class KeywordImpl<
-  KeywordType extends keyof KeywordTypes,
-  S extends string = string,
-  Param = unknown,
-  Out = unknown
-> implements Keyword<S, Out, KeywordType> {
-  private types: Set<keyof ASTv2.Nodes>;
+class KeywordImpl<K extends KeywordType, S extends string = string, Param = unknown, Out = unknown>
+  implements Keyword<K, Out> {
+  private types: Set<KeywordCandidates[K]['type']>;
 
   constructor(
     private keyword: S,
     type: KeywordType,
-    private delegate: KeywordDelegate<S, KeywordType, Param, Out>
+    private delegate: KeywordDelegate<KeywordMatches[K], Param, Out>
   ) {
-    let nodes = new Set<keyof ASTv2.Nodes>();
+    let nodes = new Set<ASTv2.KeywordNode['type']>();
     for (let nodeType of KEYWORD_NODES[type]) {
       nodes.add(nodeType);
     }
@@ -65,39 +28,61 @@ class KeywordImpl<
     this.types = nodes;
   }
 
-  match(
-    node: ASTv2.Node | KeywordNode<KeywordTypes[KeywordType], S>
-  ): node is KeywordNode<KeywordTypes[KeywordType], S> {
+  private match(node: KeywordCandidates[K]): node is KeywordMatches[K] {
     if (!this.types.has(node.type)) {
       return false;
     }
 
     let path = getPathExpression(node);
 
-    if (path !== null && path.ref.type === 'FreeVarReference') {
-      return path.ref.name.chars === this.keyword;
+    if (path !== null && path.ref.type === 'Free') {
+      return path.ref.name === this.keyword;
     } else {
       return false;
     }
   }
 
-  translate(node: Match<KeywordType, S>, ctx: VisitorContext): Result<Out> {
-    let param = this.delegate.assert(node as PossibleMatch<KeywordType>, ctx.utils.source);
-    return this.delegate.translate(node, ctx, param);
+  translate(node: KeywordMatches[K], utils: NormalizationUtilities): Result<Out> | null {
+    if (this.match(node)) {
+      let param = this.delegate.assert(node, utils.source);
+      return param.andThen((param) => this.delegate.translate(node, utils, param));
+    } else {
+      return null;
+    }
   }
 }
 
-export type PossibleNodeType =
-  | 'PathExpression'
-  | 'AppendContent'
-  | 'CallExpression'
-  | 'InvokeBlock';
+export type PossibleNode =
+  | ASTv2.PathExpression
+  | ASTv2.AppendContent
+  | ASTv2.CallExpression
+  | ASTv2.InvokeBlock;
 
 export const KEYWORD_NODES = {
-  Expr: ['CallExpression', 'PathExpression'],
+  Expr: ['Call', 'Path'],
   Block: ['InvokeBlock'],
   Append: ['AppendContent'],
+  Modifier: ['ElementModifier'],
 } as const;
+
+export interface KeywordCandidates {
+  Expr: ASTv2.Expression;
+  Block: ASTv2.InvokeBlock;
+  Append: ASTv2.AppendContent;
+  Modifier: ASTv2.ElementModifier;
+}
+
+export type KeywordCandidate = KeywordCandidates[keyof KeywordCandidates];
+
+export interface KeywordMatches {
+  Expr: ASTv2.CallExpression | ASTv2.PathExpression;
+  Block: ASTv2.InvokeBlock;
+  Append: ASTv2.AppendContent;
+  Modifier: ASTv2.ElementModifier;
+}
+
+export type KeywordType = keyof KeywordMatches;
+export type KeywordMatch = KeywordMatches[keyof KeywordMatches];
 
 export type ExprKeywordNode = ASTv2.CallExpression | ASTv2.PathExpression;
 
@@ -107,45 +92,28 @@ export type ExprKeywordNode = ASTv2.CallExpression | ASTv2.PathExpression;
  */
 export type GenericKeywordNode = ASTv2.AppendContent | ASTv2.CallExpression | ASTv2.PathExpression;
 
-export type KeywordTypeLists = {
-  [P in keyof typeof KEYWORD_NODES]: typeof KEYWORD_NODES[P];
-};
-
-export type KeywordTypes = {
-  [P in keyof typeof KEYWORD_NODES]: typeof KEYWORD_NODES[P][number];
-};
-
-export type KeywordTypeName = keyof KeywordTypes;
-export type KeywordType = KeywordTypes[KeywordTypeName];
-
 export function keyword<
-  KeywordType extends keyof KeywordTypes,
-  S extends string = string,
+  K extends KeywordType,
+  D extends KeywordDelegate<KeywordMatches[K], unknown, Out>,
   Out = unknown
->(
-  keyword: S,
-  types: KeywordType,
-  delegate: KeywordDelegate<S, KeywordType, unknown, Out>
-): Keyword<S, Out, KeywordType> {
-  return new KeywordImpl(keyword, types, delegate);
+>(keyword: string, type: K, delegate: D): Keyword<K, Out> {
+  return new KeywordImpl(keyword, type, delegate);
 }
 
-export type PossibleKeyword = ASTv2.Node;
-type KeywordTypeFor<K extends Keyword> = K extends Keyword<string, unknown, infer KeywordType>
-  ? KeywordType
-  : never;
-type NameFor<K extends Keyword> = K extends Keyword<infer Name> ? Name : never;
-type OutFor<K extends Keyword> = K extends Keyword<string, infer Out> ? Out : never;
+export type PossibleKeyword = ASTv2.KeywordNode;
+type OutFor<K extends Keyword> = K extends Keyword<KeywordType, infer Out> ? Out : never;
 
-function getPathExpression(node: ASTv2.Node): ASTv2.PathExpression | null {
+function getPathExpression(
+  node: ASTv2.KeywordNode | ASTv2.ExpressionNode
+): ASTv2.PathExpression | null {
   switch (node.type) {
     // This covers the inside of attributes and expressions, as well as the callee
     // of call nodes
-    case 'PathExpression':
+    case 'Path':
       return node;
     case 'AppendContent':
       return getPathExpression(node.value);
-    case 'CallExpression':
+    case 'Call':
     case 'ElementModifier':
     case 'InvokeBlock':
       return getPathExpression(node.callee);
@@ -153,10 +121,8 @@ function getPathExpression(node: ASTv2.Node): ASTv2.PathExpression | null {
       return null;
   }
 }
-export class Keywords<
-  KeywordType extends keyof KeywordTypes,
-  KeywordList extends Keyword<string, unknown, KeywordType> = never
-> implements Keyword<NameFor<KeywordList>, OutFor<KeywordList>, KeywordType> {
+export class Keywords<K extends KeywordType, KeywordList extends Keyword<K> = never>
+  implements Keyword<K, OutFor<KeywordList>> {
   #keywords: Keyword[] = [];
   #type: KeywordType;
 
@@ -166,38 +132,26 @@ export class Keywords<
 
   kw<S extends string = string, Out = unknown>(
     name: S,
-    delegate: KeywordDelegate<S, KeywordType, unknown, Out>
-  ): Keywords<KeywordType, KeywordList | Keyword<S, Out, KeywordType>> {
+    delegate: KeywordDelegate<KeywordMatches[K], unknown, Out>
+  ): Keywords<K, KeywordList | Keyword<K, Out>> {
     this.#keywords.push(keyword(name, this.#type, delegate));
 
-    return this as Keywords<KeywordType, KeywordList | Keyword<S, Out, KeywordType>>;
-  }
-
-  match(
-    node:
-      | PossibleKeyword
-      | KeywordNode<KeywordTypes[KeywordTypeFor<KeywordList>], NameFor<KeywordList>>
-  ): node is KeywordNode<KeywordTypes[KeywordTypeFor<KeywordList>], NameFor<KeywordList>> {
-    for (let keyword of this.#keywords) {
-      if (keyword.match(node)) {
-        return true;
-      }
-    }
-
-    return false;
+    return this as Keywords<K, KeywordList | Keyword<K, Out>>;
   }
 
   translate(
-    node: Match<KeywordTypeFor<KeywordList>, NameFor<KeywordList>>,
-    ctx: VisitorContext
-  ): Result<OutFor<KeywordList>> {
+    node: KeywordCandidates[K],
+    utils: NormalizationUtilities
+  ): Result<OutFor<KeywordList>> | null {
     for (let keyword of this.#keywords) {
-      if (keyword.match(node)) {
-        return keyword.translate(node, ctx) as Result<OutFor<KeywordList>>;
+      // if (keyword.match(node)) {
+      let result = keyword.translate(node, utils) as Result<OutFor<KeywordList>>;
+      if (result !== null) {
+        return result;
       }
     }
 
-    throw unreachable();
+    return null;
   }
 }
 
@@ -282,8 +236,6 @@ export class Keywords<
  * means that the node matched, but there was a keyword-specific syntax
  * error.
  */
-export function keywords<KeywordType extends keyof KeywordTypes>(
-  type: KeywordType
-): Keywords<KeywordType> {
+export function keywords<K extends KeywordType>(type: K): Keywords<K> {
   return new Keywords(type);
 }

@@ -1,13 +1,12 @@
-import b from '../v1-builders';
-import { appendChild, isLiteral, printLiteral } from '../utils';
-import * as AST from '../types/nodes-v1';
-import * as HBS from '../types/handlebars-ast';
-import { Parser, Tag, Attribute } from '../parser';
-import { Recast, Optional } from '@glimmer/interfaces';
-import { TokenizerState } from 'simple-html-tokenizer';
+import { Optional, Recast } from '@glimmer/interfaces';
 import { expect } from '@glimmer/util';
+import { TokenizerState } from 'simple-html-tokenizer';
 import { GlimmerSyntaxError } from '../errors/syntax-error';
-import { SYNTHETIC } from '../source/location';
+import { Attribute, Parser, Tag } from '../parser';
+import * as HBS from '../types/handlebars-ast';
+import * as AST from '../types/nodes-v1';
+import { appendChild, isLiteral, printLiteral } from '../utils';
+import b from '../v1-builders';
 
 export abstract class HandlebarsNodeVisitors extends Parser {
   abstract appendToCommentData(s: string): void;
@@ -319,7 +318,10 @@ export abstract class HandlebarsNodeVisitors extends Parser {
     if (thisHead) {
       pathHead = {
         type: 'ThisHead',
-        loc: SYNTHETIC,
+        loc: {
+          start: path.loc.start,
+          end: { line: path.loc.start.line, column: path.loc.start.column + 4 },
+        },
       };
       legacyParts = ['this'];
     } else if (path.data) {
@@ -330,7 +332,10 @@ export abstract class HandlebarsNodeVisitors extends Parser {
       pathHead = {
         type: 'AtHead',
         name: `@${head}`,
-        loc: SYNTHETIC,
+        loc: {
+          start: path.loc.start,
+          end: { line: path.loc.start.line, column: path.loc.start.column + head.length + 1 },
+        },
       };
       legacyParts = [`@${head}`];
     } else {
@@ -342,7 +347,10 @@ export abstract class HandlebarsNodeVisitors extends Parser {
       pathHead = {
         type: 'VarHead',
         name: head,
-        loc: SYNTHETIC,
+        loc: {
+          start: path.loc.start,
+          end: { line: path.loc.start.line, column: path.loc.start.column + head.length },
+        },
       };
       legacyParts = [head];
     }

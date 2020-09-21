@@ -31,6 +31,8 @@
     // disabled due to false positives
     "qunit/no-global-stop-start": "off",
     "import/no-extraneous-dependencies": ["error"],
+    // this is handled by import/no-extraneous-dependencies
+    "node/no-extraneous-import": "off",
     "prettier/prettier": "error",
     "accessor-pairs": "error",
     "array-callback-return": "error",
@@ -190,7 +192,7 @@
       "parserOptions": {
         "project": "./tsconfig.json"
       },
-      "files": ["packages/@glimmer/compiler/**/*.ts"],
+      "files": ["packages/@glimmer/compiler/**/*.ts", "packages/@glimmer/syntax/lib/v2/**/*.ts"],
       "extends": [
         "eslint:recommended",
         "plugin:@typescript-eslint/recommended",
@@ -206,6 +208,8 @@
       "rules": {
         "prefer-const": ["off"],
         "qunit/no-global-expect": ["off"],
+        // this is handled by import/errors
+        "node/no-extraneous-import": "off",
         "@typescript-eslint/unbound-method": [
           "error",
           {

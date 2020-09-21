@@ -5,17 +5,24 @@ import * as hir from './hir';
 
 export class Pass1Internal
   implements MapVisitorsInterface<Exclude<hir.Internal, hir.Ignore>, mir.Internal> {
-  Params(ctx: Context, { list }: OpArgs<hir.Params>): mir.Positional {
+  Positional(ctx: Context, { list }: OpArgs<hir.Positional>): mir.Positional {
     let values = ctx.visitExprs(list);
     return ctx.op(mir.Positional, { list: values });
   }
 
-  NamedArguments(ctx: Context, { pairs }: OpArgs<hir.NamedArguments>): mir.NamedArguments {
+  Named(ctx: Context, { pairs }: OpArgs<hir.Named>): mir.NamedArguments {
     return ctx.op(mir.NamedArguments, { pairs: pairs.map((pair) => ctx.visitInternal(pair)) });
   }
 
-  NamedArgument(ctx: Context, { key, value }: OpArgs<hir.NamedArgument>): mir.NamedArgument {
+  NamedEntry(ctx: Context, { key, value }: OpArgs<hir.NamedEntry>): mir.NamedArgument {
     return ctx.op(mir.NamedArgument, { key, value: ctx.visitExpr(value) });
+  }
+
+  Args(ctx: Context, args: OpArgs<hir.Args>): mir.Args {
+    return ctx.op(mir.Args, {
+      positional: ctx.visitInternal(args.positional),
+      named: ctx.visitInternal(args.named),
+    });
   }
 
   NamedBlocks(ctx: Context, args: OpArgs<hir.NamedBlocks>): mir.NamedBlocks {

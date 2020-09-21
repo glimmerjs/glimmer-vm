@@ -1,14 +1,16 @@
-/**
- * Content Nodes are allowed in content positions in templates
- */
-
 import { SymbolTable } from '../../symbol-table';
-import { ElementModifier } from '../nodes-v2';
-import { ElementArg, HtmlAttr } from './attr-block';
-import { BaseNode, BaseNodeOptions, BaseCall, CallOptions } from './base';
+import { Args, Named } from './args';
+import { ComponentArg, ElementModifier, HtmlOrSplatAttr } from './attr-block';
+import { BaseNodeFields, CallFields, node } from './base';
 import { ExpressionNode } from './expr';
 import { NamedBlock, NamedBlocks, SourceSlice } from './internal';
 
+/**
+ * Content Nodes are allowed in content positions in templates. They correspond to behavior in the
+ * [Data][data] tokenization state in HTML.
+ *
+ * [data]: https://html.spec.whatwg.org/multipage/parsing.html#data-state
+ */
 export type ContentNode =
   | HtmlText
   | HtmlComment
@@ -18,113 +20,75 @@ export type ContentNode =
   | SimpleElement
   | GlimmerComment;
 
-export class GlimmerComment extends BaseNode {
-  readonly type = 'GlimmerComment';
-  readonly text: SourceSlice;
+export class GlimmerComment extends node('GlimmerComment').fields<{ text: SourceSlice }>() {}
+export class HtmlText extends node('HtmlText').fields<{ chars: string }>() {}
+export class HtmlComment extends node('HtmlComment').fields<{ text: SourceSlice }>() {}
 
-  constructor(options: BaseNodeOptions & { text: SourceSlice }) {
-    super(options);
-    this.text = options.text;
+export class AppendContent extends node('AppendContent').fields<{
+  value: ExpressionNode;
+  trusting: boolean;
+  table: SymbolTable;
+}>() {
+  get callee(): ExpressionNode {
+    if (this.value.type === 'Call') {
+      return this.value.callee;
+    } else {
+      return this.value;
+    }
+  }
+
+  get args(): Args {
+    if (this.value.type === 'Call') {
+      return this.value.args;
+    } else {
+      return Args.empty(this.value.loc.collapseEnd());
+    }
   }
 }
 
-export class HtmlText extends BaseNode {
-  readonly type = 'HtmlText';
-  readonly chars: string;
+export class InvokeBlock extends node('InvokeBlock').fields<
+  CallFields & { blocks: NamedBlocks }
+>() {}
 
-  constructor(options: BaseNodeOptions & { chars: string }) {
-    super(options);
-    this.chars = options.chars;
-  }
-}
-
-export class HtmlComment extends BaseNode {
-  readonly type = 'HtmlComment';
-  readonly text: SourceSlice;
-
-  constructor(options: BaseNodeOptions & { text: SourceSlice }) {
-    super(options);
-    this.text = options.text;
-  }
-}
-
-export class AppendContent extends BaseNode {
-  readonly type = 'AppendContent';
-  readonly value: ExpressionNode;
-  readonly trusting: boolean;
-
-  // TODO special-case debugger and partial
-  readonly table: SymbolTable;
-
-  constructor(
-    options: BaseNodeOptions & { value: ExpressionNode; trusting: boolean; table: SymbolTable }
-  ) {
-    super(options);
-    this.value = options.value;
-    this.trusting = options.trusting;
-    this.table = options.table;
-  }
-}
-
-export class InvokeBlock extends BaseCall {
-  readonly type = 'InvokeBlock';
-  readonly blocks: NamedBlocks;
-
-  constructor(options: CallOptions & { blocks: NamedBlocks }) {
-    super(options);
-    this.blocks = options.blocks;
-  }
-}
-
-interface InvokeComponentOptions extends BaseNodeOptions {
+interface InvokeComponentOptions {
   callee: ExpressionNode;
-  blocks: NamedBlock | NamedBlock[];
-  attrs: HtmlAttr[];
-  args: ElementArg[];
-  modifiers: ElementModifier[];
+  blocks: NamedBlocks;
+  attrs: readonly HtmlOrSplatAttr[];
+  componentArgs: readonly ComponentArg[];
+  modifiers: readonly ElementModifier[];
 }
 
-export class InvokeComponent extends BaseNode {
-  readonly type = 'InvokeComponent';
-  readonly callee: ExpressionNode;
-  readonly blocks: NamedBlock | readonly NamedBlock[];
-  readonly attrs: readonly HtmlAttr[];
-  readonly args: readonly ElementArg[];
-  readonly modifiers: readonly ElementModifier[];
+export class InvokeComponent extends node('InvokeComponent').fields<InvokeComponentOptions>() {
+  get args(): Args {
+    let entries = this.componentArgs.map((a) => a.toNamedEntry());
 
-  constructor(options: InvokeComponentOptions) {
-    super(options);
-    this.callee = options.callee;
-    this.blocks = options.blocks;
-    this.attrs = options.attrs;
-    this.args = options.args;
-    this.modifiers = options.modifiers;
+    return Args.named(
+      new Named({
+        loc: this.loc.src.offsetList(entries.map((e) => e.loc)).getRangeOffset(),
+        entries,
+      })
+    );
   }
 }
 
-interface SimpleElementOptions extends BaseNodeOptions {
+interface SimpleElementOptions extends BaseNodeFields {
   tag: SourceSlice;
-  body: ContentNode[];
-  attrs: HtmlAttr[];
-  args: ElementArg[];
-  modifiers: ElementModifier[];
+  body: readonly ContentNode[];
+  attrs: readonly HtmlOrSplatAttr[];
+  componentArgs: readonly ComponentArg[];
+  modifiers: readonly ElementModifier[];
 }
 
-export class SimpleElement extends BaseNode {
-  readonly type = 'SimpleElement';
-  readonly tag: SourceSlice;
-  readonly body: readonly ContentNode[];
-  readonly attrs: readonly HtmlAttr[];
-  readonly args: readonly ElementArg[];
-  readonly modifiers: readonly ElementModifier[];
+export class SimpleElement extends node('SimpleElement').fields<SimpleElementOptions>() {
+  get args(): Args {
+    let entries = this.componentArgs.map((a) => a.toNamedEntry());
 
-  constructor(options: SimpleElementOptions) {
-    super(options);
-    this.tag = options.tag;
-    this.body = options.body;
-    this.attrs = options.attrs;
-    this.args = options.args;
-    this.modifiers = options.modifiers;
+    return Args.named(
+      new Named({
+        loc: this.loc.src.offsetList(entries.map((e) => e.loc)).getRangeOffset(),
+        entries,
+      })
+    );
   }
 }
 

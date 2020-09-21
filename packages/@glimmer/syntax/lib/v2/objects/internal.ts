@@ -1,51 +1,51 @@
+import { SerializedSourceOffsets, SourceOffsets } from '../../source/offsets';
+import { Source } from '../../source/source';
 import { BlockSymbolTable, ProgramSymbolTable } from '../../symbol-table';
-import { ElementModifier } from '../nodes-v2';
-import { ElementArg, HtmlAttr } from './attr-block';
-import { BaseNode, BaseNodeOptions, BaseGlimmerParent, GlimmerParentNodeOptions } from './base';
+import { Args, Named } from './args';
+import { ComponentArg, ElementModifier, HtmlOrSplatAttr } from './attr-block';
+import { BaseNodeFields, GlimmerParentNodeOptions, node } from './base';
 
-export class SourceSlice extends BaseNode {
-  readonly type = 'SourceSlice';
-  readonly chars: string;
+export type SerializedSourceSlice<Chars extends string = string> = [
+  chars: Chars,
+  offsets: SerializedSourceOffsets
+];
 
-  constructor(options: BaseNodeOptions & { chars: string }) {
-    super(options);
+export class SourceSlice<Chars extends string = string> {
+  static load(source: Source, slice: SerializedSourceSlice): SourceSlice {
+    return new SourceSlice({
+      loc: SourceOffsets.load(source, slice[1]),
+      chars: slice[0],
+    });
+  }
+
+  readonly chars: Chars;
+  readonly loc: SourceOffsets;
+
+  constructor(options: { loc: SourceOffsets; chars: Chars }) {
+    this.loc = options.loc;
     this.chars = options.chars;
   }
 
   getString(): string {
     return this.chars;
   }
-}
 
-export class Template extends BaseGlimmerParent {
-  readonly type = 'Template';
-  readonly table: ProgramSymbolTable;
-
-  constructor(options: GlimmerParentNodeOptions & { table: ProgramSymbolTable }) {
-    super(options);
-    this.table = options.table;
+  serialize(): SerializedSourceSlice<Chars> {
+    return [this.chars, this.loc.serialize()];
   }
 }
 
-export class Block extends BaseGlimmerParent {
-  readonly type = 'Block';
-  readonly table: BlockSymbolTable;
+export class Template extends node().fields<
+  {
+    table: ProgramSymbolTable;
+  } & GlimmerParentNodeOptions
+>() {}
 
-  constructor(options: GlimmerParentNodeOptions & { table: BlockSymbolTable }) {
-    super(options);
-    this.table = options.table;
-  }
-}
+export class Block extends node().fields<
+  { table: BlockSymbolTable } & GlimmerParentNodeOptions
+>() {}
 
-export class NamedBlocks extends BaseNode {
-  readonly type = 'NamedBlocks';
-  readonly blocks: readonly NamedBlock[];
-
-  constructor(options: BaseNodeOptions & { blocks: readonly NamedBlock[] }) {
-    super(options);
-    this.blocks = options.blocks;
-  }
-
+export class NamedBlocks extends node().fields<{ blocks: readonly NamedBlock[] }>() {
   get(name: 'default'): NamedBlock;
   get(name: string): NamedBlock | null;
   get(name: string): NamedBlock | null {
@@ -53,30 +53,25 @@ export class NamedBlocks extends BaseNode {
   }
 }
 
-export interface NamedBlockOptions extends BaseNodeOptions {
+export interface NamedBlockOptions extends BaseNodeFields {
   name: SourceSlice;
   block: Block;
-  attrs: HtmlAttr[];
-  args: ElementArg[];
-  modifiers: ElementModifier[];
-}
-
-export class NamedBlock extends BaseNode {
-  readonly type = 'NamedBlock';
-  readonly name: SourceSlice;
-  readonly block: Block;
 
   // these are not currently supported, but are here for future expansion
-  readonly attrs: readonly HtmlAttr[];
-  readonly args: readonly ElementArg[];
-  readonly modifiers: readonly ElementModifier[];
+  attrs: readonly HtmlOrSplatAttr[];
+  componentArgs: readonly ComponentArg[];
+  modifiers: readonly ElementModifier[];
+}
 
-  constructor(options: NamedBlockOptions) {
-    super(options);
-    this.name = options.name;
-    this.block = options.block;
-    this.attrs = options.attrs;
-    this.args = options.args;
-    this.modifiers = options.modifiers;
+export class NamedBlock extends node().fields<NamedBlockOptions>() {
+  get args(): Args {
+    let entries = this.componentArgs.map((a) => a.toNamedEntry());
+
+    return Args.named(
+      new Named({
+        loc: this.loc.src.offsetList(entries.map((e) => e.loc)).getRangeOffset(),
+        entries,
+      })
+    );
   }
 }

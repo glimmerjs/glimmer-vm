@@ -1,5 +1,30 @@
 AST v2 enhances the original AST with a number of clarifying features.
 
+# Removals
+
+`ASTv1` retains a node for Handlebars' "partial" syntax (`{{> ...}}`). ASTv2 does not include that node (just as neither version of the AST includes a node for Handlebars "decorator" syntax), as it is not supported by Glimmer.
+
+# Naming Changes
+
+There are a number of small naming changes that improve the clarity and precision of the AST:
+
+1. `hash` -> `named`
+2. `params` -> `positional`
+3. `path` -> `callee`
+4. `SubExpression` -> `CallExpression`
+5. `BlockStatement` -> `InvokeBlock`
+6. `MustacheStatement` -> `AppendContent`
+
+# Literals
+
+In `ASTv1`, there is a separate literal node for each kind of literal. In `ASTv2`, all literals are `ASTv2.Literal`.
+
+# Args
+
+In `ASTv1`, nodes have `params` and `hash` next to each other. In `ASTv2`, those nodes are grouped into an `Args` node that contains the `positional` and `named` arguments.
+
+> Because `ASTv2` nodes are objects, this also allows these nodes to have an `isEmpty()` method, which makes it easy to check if a call node's arguments are totally empty.
+
 # Blocks
 
 All nodes that can have block parameters have a `table: BlockSymbolTable` property in `ASTv2`.
@@ -40,7 +65,13 @@ In `ASTv2`, every variable name is represented as a `VariableReference`.
 | `ThisReference` | the literal `this` |
 | `ArgReference` | a variable reference that begins with with `@` |
 | `LocalVarReference` | a reference to an in-scope variable binding |
-| `FreeVarReference` | a reference to a variable binding that is not in-scope |
+| `FreeVarReference` | a reference to a variable binding that was not introduced by block params (`as |foo|`) |
+
+**Important Note**: The remainder of this README is a description of the loose mode rules for free variable resolution. Strict mode free variable references always refer to an in-scope JavaScript binding, regardless of their syntactic position.
+
+RFC [#496][#496] (Handlebars Strict Mode) rationalized the rules for loose mode. This README describes the semantics of [#496][#496] in terms of namespaced free variable references and fallback semantics.
+
+[#496]: https://emberjs.github.io/rfcs/0496-handlebars-strict-mode.html
 
 ### Free Variable References
 
@@ -63,6 +94,26 @@ The `Strict` resolution applies to all free variables encountered while parsing 
 
 None. Strict mode templates must be embedded in a JavaScript context where all free variable references are in scope. A compile-time error should be produced if free there are variable references that do not correspond to any in-scope variables.
 
+### Fallback Semantics
+
+When a free variable resolution is said to have "fallback semantics", it means the following algorithm:
+
+1. Attempt to resolve the name in the namespaces for the resolution, if any.
+2. If the name could not be resolved, resolve it as a property on `this`.
+
+> Note: A free variable resolution has fallback semantics if it's an append or attribute curly without arguments, or if it's a path in argument position. See the summary table below for full details.
+
+### Eval Mode Semantics
+
+When a free variable resolution has fallback semantics, it is also said to have "eval mode semantics", which means:
+
+1. If the template is evaluated in eval mode (i.e. as a partial), dynamically resolve the free variable in the context of the template that invoked the partial (the "invoker"):
+  1. If the variable name is in the local scope of the invoker, resolve it as a *local* variable in the invoker's local scope
+  2. Otherwise:
+    1. if the invoker is also in eval mode, repeat the process with the invoker's invoker
+    2. if the invoker is not in eval mode, resolve the free variable using fallback semantics in the invoker's scope
+2. Otherwise, resolve the free variable using fallback semantics in the current scope
+
 ### Namespaced Variable Resolution
 
 | | |
@@ -72,7 +123,7 @@ None. Strict mode templates must be embedded in a JavaScript context where all f
 | Arguments? | Any |
 | | |
 | Namespace | see table below |
-| This fallback? | ⛔ |
+| Fallback semantics? | ⛔ |
 
 These resolutions occur in syntaxes that are definitely calls (e.g. subexpressions, blocks, modifiers, etc.).
 
@@ -98,7 +149,7 @@ If the variable reference cannot be resolved in its namespace.
 | Arguments? | ➕ |
 | | |
 | Namespace | `helper` or `component` |
-| This fallback? | ⛔ |
+| Fallback semantics? | ⛔ |
 
 This resolution occurs in append nodes with at least one argument, and when the path does not have dots (e.g. `{{hello world}}`).
 
@@ -126,7 +177,7 @@ If the variable reference cannot be resolved in the `helper` or `component` name
 | Arguments? | ❌ |
 | | |
 | Namespace | `helper`, `component` |
-| This fallback? | ✅ |
+| Fallback semantics? | ✅ |
 
 This resolution occurs in append nodes with zero arguments, and when the path does not have dots (e.g. `{{hello}}`).
 
@@ -158,7 +209,7 @@ This resolution context occurs in attribute nodes with zero arguments, and when 
 | Arguments? | ❌ |
 | | |
 | Namespace | `helper` |
-| This fallback? | ✅ |
+| Fallback semantics? | ✅ |
 
 #### Applicable Situations
 
@@ -187,7 +238,7 @@ These resolution contexts occur in append or attribute nodes with zero positiona
 | Arguments? | ❌ |
 | | |
 | Namespace | None |
-| This fallback? | ✅ |
+| Fallback semantics? | ✅ |
 
 #### Runtime Error Cases
 
@@ -228,7 +279,7 @@ Situations that meet all three of these criteria are syntax errors:
 | - | - |
 | Path has dots? | ❌ |
 | Arguments? | Any |
-| This fallback? | ⛔ |
+| Fallback semantics? | ⛔ |
 
 | Syntax Position | Example || Namespace  |
 | - | - | - | - |

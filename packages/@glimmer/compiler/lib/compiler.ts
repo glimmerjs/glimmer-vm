@@ -7,7 +7,6 @@ import {
 import { LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
 import { normalize, PreprocessOptions, Source } from '@glimmer/syntax';
 import { LOCAL_LOGGER } from '@glimmer/util';
-import { GlimmerCompileOptions } from './passes/1-normalization/context';
 import pass0 from './passes/1-normalization/index';
 import { visit as pass1 } from './passes/2-symbol-allocation/index';
 import { visit as pass2 } from './passes/3-encoding/index';
@@ -18,6 +17,8 @@ export interface TemplateIdFn {
 
 export interface PrecompileOptions extends PreprocessOptions {
   id?: TemplateIdFn;
+  meta?: object;
+  customizeComponentName?(input: string): string;
 }
 
 declare function require(id: 'crypto'): Crypto;
@@ -56,7 +57,7 @@ export const defaultId: TemplateIdFn = (() => {
   };
 })();
 
-const defaultOptions: GlimmerCompileOptions = {
+const defaultOptions: PrecompileOptions = {
   id: defaultId,
   meta: {},
 };
@@ -77,15 +78,15 @@ const defaultOptions: GlimmerCompileOptions = {
  */
 export function precompileJSON(
   source: string,
-  options?: GlimmerCompileOptions
+  options?: PrecompileOptions
 ): SerializedTemplateBlock;
 export function precompileJSON(
   string: string,
-  options: GlimmerCompileOptions = defaultOptions
+  options: PrecompileOptions = defaultOptions
 ): SerializedTemplateBlock {
   let ast = normalize(string, options);
   let source = new Source(string);
-  let block = pass0(source, ast, options).mapOk((pass1In) => {
+  let block = pass0(source, ast).mapOk((pass1In) => {
     let pass2In = pass1(source, pass1In);
     return pass2(pass2In);
   });
@@ -115,10 +116,10 @@ export function precompileJSON(
  * @param {string} string a Glimmer template string
  * @return {string} a template javascript string
  */
-export function precompile(string: string, options?: GlimmerCompileOptions): TemplateJavascript;
+export function precompile(string: string, options?: PrecompileOptions): TemplateJavascript;
 export function precompile(
   source: string,
-  options: GlimmerCompileOptions = defaultOptions
+  options: PrecompileOptions = defaultOptions
 ): TemplateJavascript {
   let block = precompileJSON(source, options);
 

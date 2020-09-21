@@ -1,4 +1,4 @@
-- Node superclasses are called `BaseXxx`
+- Generic options interfaces are called `BaseXxxOptions`
 - Unions of nodes are called `XxxNode`
-- Notes that correspond directly to HTML constructs are called `HtmlXxx`
 - Concrete nodes shouldn't end with `Node`
+- Nodes that correspond directly to HTML constructs are called `HtmlXxx`

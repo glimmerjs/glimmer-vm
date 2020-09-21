@@ -1,4 +1,7 @@
+// eslint-disable-next-line node/no-extraneous-import, import/no-extraneous-dependencies
+import { DEBUG } from '@glimmer/env';
 import { Optional } from '@glimmer/interfaces';
+import { assert } from '@glimmer/util';
 import {
   HasSourceLocation,
   isLocatedWithPositions,
@@ -8,38 +11,54 @@ import {
   SourcePosition,
   SYNTHETIC,
 } from './location';
-import { SourceOffset, SourceOffsetKind, SourceOffsets } from './offsets';
+import { SourceOffset, SourceOffsetKind, SourceOffsetList, SourceOffsets } from './offsets';
 
 export class Source {
-  constructor(readonly source: string) {}
+  constructor(readonly source: string, readonly module?: string) {}
 
-  readonly SYNTHETIC: SourceOffsets = new SourceOffsets(this, 0, 0, SourceOffsetKind.Synthetic);
-  readonly NONE: SourceOffsets = new SourceOffsets(this, 0, 0, SourceOffsetKind.None);
+  readonly NOT_IN_SOURCE: SourceOffsets = new SourceOffsets(
+    this,
+    { start: 0, end: 0 },
+    SourceOffsetKind.Synthetic
+  );
+  readonly NON_EXISTENT: SourceOffsets = new SourceOffsets(
+    this,
+    { start: 0, end: 0 },
+    SourceOffsetKind.None
+  );
+
+  slice(start: number, end: number): string {
+    return this.source.slice(start, end);
+  }
+
+  offsetList(list: SourceOffsets[] = []): SourceOffsetList {
+    return new SourceOffsetList(this, list);
+  }
 
   range(first: SourcePosition, last: SourcePosition): SourceOffsets {
     let start = this.offsetFor({ line: first.line, column: first.column });
     let end = this.offsetFor({ line: last.line, column: last.column });
 
     if (start === null || end === null) {
-      return this.NONE;
+      return this.NON_EXISTENT;
     } else {
-      return new SourceOffsets(this, start, end);
+      return new SourceOffsets(this, { start, end });
     }
   }
 
   maybeOffsetsFor(location: MaybeHasSourceLocation, fallback?: HasSourceLocation): SourceOffsets {
     if (location === null) {
-      return fallback ? this.offsetsFor(fallback) : this.NONE;
+      return fallback ? this.offsetsFor(fallback) : this.NON_EXISTENT;
     } else if (Array.isArray(location)) {
       if (isLocatedWithPositionsArray(location)) {
         return this.offsetsFor(location);
       } else {
-        return this.NONE;
+        return this.NON_EXISTENT;
       }
     } else if (isLocatedWithPositions(location)) {
       return this.offsetsFor(location);
     } else {
-      return this.NONE;
+      return this.NON_EXISTENT;
     }
   }
 
@@ -62,13 +81,24 @@ export class Source {
     let seenChars = 0;
 
     while (true) {
-      if (seenChars === this.source.length) return null;
+      if (seenChars >= this.source.length) return null;
 
       let nextLine = this.source.indexOf('\n', seenChars);
       if (nextLine === -1) nextLine = this.source.length;
 
-      if (seenLines === line) {
+      if (seenLines === line - 1) {
         if (seenChars + column > nextLine) return null;
+
+        if (DEBUG) {
+          let roundTrip = this.positionFor(seenChars + column);
+          assert(roundTrip !== null, `the returned offset failed to round-trip`);
+          assert(roundTrip.line === line, `the round-tripped line didn't match the original line`);
+          assert(
+            roundTrip.column === column,
+            `the round-tripped column didn't match the original column`
+          );
+        }
+
         return seenChars + column;
       } else if (nextLine === -1) {
         return null;
@@ -92,7 +122,7 @@ export class Source {
 
       if (offset <= nextLine || nextLine === -1) {
         return {
-          line: seenLines,
+          line: seenLines + 1,
           column: offset - seenChars,
         };
       } else {
@@ -107,11 +137,11 @@ export class Source {
     let end = this.offsetFor(location.end);
 
     if (location === SYNTHETIC) {
-      return this.SYNTHETIC;
+      return this.NOT_IN_SOURCE;
     } else if (start === null || end === null) {
-      return this.NONE;
+      return this.NON_EXISTENT;
     } else {
-      return new SourceOffsets(this, start, end);
+      return new SourceOffsets(this, { start, end });
     }
   }
 }

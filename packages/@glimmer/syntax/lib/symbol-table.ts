@@ -105,6 +105,10 @@ export class BlockSymbolTable extends SymbolTable {
     super();
   }
 
+  get locals(): string[] {
+    return this.symbols;
+  }
+
   has(name: string): boolean {
     return this.symbols.indexOf(name) !== -1 || this.parent.has(name);
   }

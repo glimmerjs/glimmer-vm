@@ -5,3 +5,4 @@ export * from './objects/content';
 export * from './objects/expr';
 export * from './objects/refs';
 export * from './objects/internal';
+export * from './objects/resolution';

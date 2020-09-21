@@ -12,7 +12,7 @@ export type Visitors<O extends OpsTable<Op>, Out extends OutOp | void = OutOp | 
   [P in keyof O]: (args: OpArgs<O[P]>) => Out;
 };
 
-// function visit<N extends pass1.Internal & { name: keyof InternalEncoder }>(
+// function visit<N extends hir.Internal & { name: keyof InternalEncoder }>(
 //   node: N
 // ): ReturnType<InternalEncoder[N['name']]> {
 //   throw new Error('unimplemented');

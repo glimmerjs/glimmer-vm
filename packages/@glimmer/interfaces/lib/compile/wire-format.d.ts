@@ -21,9 +21,8 @@ export const enum VariableResolutionContext {
   AmbiguousAttr = 3,
   LooseFreeVariable = 4,
   ResolveAsCallHead = 5,
-  ResolveAsBlockHead = 6,
-  ResolveAsModifierHead = 7,
-  ResolveAsComponentHead = 8,
+  ResolveAsModifierHead = 6,
+  ResolveAsComponentHead = 7,
 }
 
 export const enum SexpOpcodes {
@@ -72,7 +71,7 @@ export const enum SexpOpcodes {
 
   // falls back to `this.` (or locals in the case of partials), but
   // never turns into a component or helper invocation
-  GetFreeAsThisFallback = 35,
+  GetFreeAsFallback = 35,
   // `{{x}}` in append position (might be a helper or component invocation, otherwise fall back to `this`)
   GetFreeAsComponentOrHelperHeadOrThisFallback = 36,
   // a component or helper (`{{<expr> x}}` in append position)
@@ -80,13 +79,12 @@ export const enum SexpOpcodes {
   // a helper or `this` fallback `attr={{x}}`
   GetFreeAsHelperHeadOrThisFallback = 38,
   // a call head `(x)`
-  GetFreeAsCallHead = 39,
-  GetFreeAsBlockHead = 40,
-  GetFreeAsModifierHead = 41,
-  GetFreeAsComponentHead = 42,
+  GetFreeAsHelperHead = 39,
+  GetFreeAsModifierHead = 40,
+  GetFreeAsComponentHead = 41,
 
   // InElement
-  InElement = 43,
+  InElement = 42,
 
   GetStart = GetPath,
   GetEnd = GetFreeAsComponentHead,
@@ -99,11 +97,10 @@ export type GetContextualFreeOp =
   | SexpOpcodes.GetFreeAsComponentOrHelperHeadOrThisFallback
   | SexpOpcodes.GetFreeAsComponentOrHelperHead
   | SexpOpcodes.GetFreeAsHelperHeadOrThisFallback
-  | SexpOpcodes.GetFreeAsCallHead
-  | SexpOpcodes.GetFreeAsBlockHead
+  | SexpOpcodes.GetFreeAsHelperHead
   | SexpOpcodes.GetFreeAsModifierHead
   | SexpOpcodes.GetFreeAsComponentHead
-  | SexpOpcodes.GetFreeAsThisFallback
+  | SexpOpcodes.GetFreeAsFallback
   | SexpOpcodes.GetStrictFree;
 
 export type StatementSexpOpcode = Statement[0];
@@ -144,7 +141,7 @@ export namespace Expressions {
 
   export type GetSymbol = [SexpOpcodes.GetSymbol, number];
   export type GetStrictFree = [SexpOpcodes.GetStrictFree, number];
-  export type GetFreeAsThisFallback = [SexpOpcodes.GetFreeAsThisFallback, number];
+  export type GetFreeAsThisFallback = [SexpOpcodes.GetFreeAsFallback, number];
   export type GetFreeAsComponentOrHelperHeadOrThisFallback = [
     SexpOpcodes.GetFreeAsComponentOrHelperHeadOrThisFallback,
     number
@@ -154,8 +151,7 @@ export namespace Expressions {
     SexpOpcodes.GetFreeAsHelperHeadOrThisFallback,
     number
   ];
-  export type GetFreeAsCallHead = [SexpOpcodes.GetFreeAsCallHead, number];
-  export type GetFreeAsBlockHead = [SexpOpcodes.GetFreeAsBlockHead, number];
+  export type GetFreeAsCallHead = [SexpOpcodes.GetFreeAsHelperHead, number];
   export type GetFreeAsModifierHead = [SexpOpcodes.GetFreeAsModifierHead, number];
   export type GetFreeAsComponentHead = [SexpOpcodes.GetFreeAsComponentHead, number];
 
@@ -165,7 +161,6 @@ export namespace Expressions {
     | GetFreeAsComponentOrHelperHead
     | GetFreeAsHelperHeadOrThisFallback
     | GetFreeAsCallHead
-    | GetFreeAsBlockHead
     | GetFreeAsModifierHead
     | GetFreeAsComponentHead;
 

@@ -146,7 +146,7 @@ function buildConcat(
 
 // Nodes
 
-export type ElementArgs =
+export type ElementParts =
   | ['attrs', ...AttrSexp[]]
   | ['modifiers', ...ModifierSexp[]]
   | ['body', ...AST.Statement[]]
@@ -272,7 +272,7 @@ export function normalizeHead(path: PathSexp): AST.Expression {
   }
 }
 
-export function normalizeElementOptions(...args: ElementArgs[]): BuildElementOptions {
+export function normalizeElementParts(...args: ElementParts[]): BuildElementOptions {
   let out: BuildElementOptions = {};
 
   for (let arg of args) {
@@ -324,15 +324,15 @@ export interface BuildElementOptions {
 }
 
 function buildElement(tag: TagDescriptor, options?: BuildElementOptions): AST.ElementNode;
-function buildElement(tag: TagDescriptor, ...options: ElementArgs[]): AST.ElementNode;
+function buildElement(tag: TagDescriptor, ...options: ElementParts[]): AST.ElementNode;
 function buildElement(
   tag: TagDescriptor,
-  options?: BuildElementOptions | ElementArgs,
-  ...rest: ElementArgs[]
+  options?: BuildElementOptions | ElementParts,
+  ...rest: ElementParts[]
 ): AST.ElementNode {
   let normalized: BuildElementOptions;
   if (Array.isArray(options)) {
-    normalized = normalizeElementOptions(options, ...rest);
+    normalized = normalizeElementParts(options, ...rest);
   } else {
     normalized = options || {};
   }

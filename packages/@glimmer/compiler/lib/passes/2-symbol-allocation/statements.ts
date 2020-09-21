@@ -10,7 +10,7 @@ import * as hir from './hir';
 export type StatementVisitor = MapVisitorsInterface<hir.Statement, mir.Statement>;
 
 export class Pass1Statement implements StatementVisitor {
-  Yield(ctx: Context, { target, params }: OpArgs<hir.Yield>): mir.Yield {
+  Yield(ctx: Context, { target, positional: params }: OpArgs<hir.Yield>): mir.Yield {
     let to = ctx.table.allocateBlock(target.getString());
     return ctx.op(mir.Yield, { to, params: ctx.visitInternal(params) });
   }
@@ -77,10 +77,10 @@ export class Pass1Statement implements StatementVisitor {
     });
   }
 
-  Modifier(ctx: Context, { head, params, hash }: OpArgs<hir.Modifier>): mir.Modifier {
+  Modifier(ctx: Context, { head, args }: OpArgs<hir.Modifier>): mir.Modifier {
     return ctx.op(mir.Modifier, {
       head: ctx.visitExpr(head),
-      args: ctx.visitArgs({ params, hash }),
+      args: ctx.visitInternal(args),
     });
   }
 
@@ -93,7 +93,7 @@ export class Pass1Statement implements StatementVisitor {
       let op = kind.component ? mir.StaticComponentAttr : mir.StaticSimpleAttr;
       let value = new SourceSlice({
         chars: attrValue.args.value,
-        loc: attrValue.offsets.toLocation(ctx.source),
+        loc: attrValue.offsets,
       });
       return ctx.op<mir.AnyAttr>(op, { name, value, namespace });
     } else {
@@ -111,11 +111,11 @@ export class Pass1Statement implements StatementVisitor {
 
   BlockInvocation(
     ctx: Context,
-    { head, params, hash, blocks }: OpArgs<hir.BlockInvocation>
+    { head, args, blocks }: OpArgs<hir.BlockInvocation>
   ): mir.Statement {
-    let defaultBlock = expect(hir.getBlock(blocks, 'default'), 'expected a default block');
+    let defaultBlock = expect(blocks.get('default'), 'expected a default block');
     let namedBlocks: mir.NamedBlock[] = [ctx.visitInternal(defaultBlock)];
-    let inverseBlock = hir.getBlock(blocks, 'else') || null;
+    let inverseBlock = blocks.get('else') || null;
 
     if (inverseBlock) {
       namedBlocks.push(ctx.visitInternal(inverseBlock));
@@ -123,7 +123,7 @@ export class Pass1Statement implements StatementVisitor {
 
     return ctx.op(mir.InvokeBlock, {
       head: ctx.visitExpr(head),
-      args: ctx.visitArgs({ params, hash }),
+      args: ctx.visitInternal(args),
       blocks: ctx.op(mir.NamedBlocks, { blocks: OptionalList(namedBlocks) }),
     });
   }

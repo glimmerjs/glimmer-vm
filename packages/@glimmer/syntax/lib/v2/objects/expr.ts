@@ -1,14 +1,7 @@
 import { PresentArray } from '@glimmer/interfaces';
 import { VariableReference } from '../nodes-v2';
-import { Args } from './args';
-import { BaseNode, BaseNodeOptions, BaseCall, CallOptions } from './base';
+import { CallFields, node } from './base';
 import { SourceSlice } from './internal';
-
-export abstract class BaseExpression extends BaseNode {
-  isLiteral<K extends keyof LiteralTypes>(_kind?: K): this is LiteralExpression<LiteralTypes[K]> {
-    return false;
-  }
-}
 
 export type LiteralValue = string | boolean | number | undefined | null;
 
@@ -20,61 +13,41 @@ export interface LiteralTypes {
   undefined: undefined;
 }
 
-export class LiteralExpression<V extends LiteralValue = LiteralValue> extends BaseExpression {
-  readonly type = 'LiteralExpression';
-  readonly value: V;
-
-  constructor(options: BaseNodeOptions & { value: V }) {
-    super(options);
-    this.value = options.value;
+export class LiteralExpression extends node('Literal').fields<{ value: LiteralValue }>() {
+  toSlice(this: StringLiteral): SourceSlice {
+    return new SourceSlice({ loc: this.loc, chars: this.value });
   }
+}
 
-  isLiteral<K extends keyof LiteralTypes>(kind?: K): this is LiteralExpression<LiteralTypes[K]> {
+export type StringLiteral = LiteralExpression & { value: string };
+
+export function isLiteral<K extends keyof LiteralTypes = keyof LiteralTypes>(
+  node: ExpressionNode,
+  kind?: K
+): node is StringLiteral {
+  if (node.type === 'Literal') {
     if (kind === undefined) {
       return true;
+    } else if (kind === 'null') {
+      return node.value === null;
+    } else {
+      return typeof node.value === kind;
     }
-
-    if (kind === 'null') {
-      return this.value === null;
-    }
-
-    return typeof this.value === kind;
+  } else {
+    return false;
   }
 }
 
-export class PathExpression extends BaseExpression {
-  readonly type = 'PathExpression';
-  readonly ref: VariableReference;
-  readonly tail: SourceSlice[];
+export class PathExpression extends node('Path').fields<{
+  ref: VariableReference;
+  tail: readonly SourceSlice[];
+}>() {}
 
-  constructor(options: BaseNodeOptions & { ref: VariableReference; tail: SourceSlice[] }) {
-    super(options);
-    this.ref = options.ref;
-    this.tail = options.tail;
-  }
-}
+export class CallExpression extends node('Call').fields<CallFields>() {}
 
-export class CallExpression extends BaseExpression implements BaseCall {
-  readonly type = 'CallExpression';
-  readonly callee: ExpressionNode;
-  readonly args: Args;
-
-  constructor(options: CallOptions) {
-    super(options);
-    this.callee = options.callee;
-    this.args = options.args;
-  }
-}
-
-export class InterpolateExpression extends BaseExpression {
-  readonly type = 'Interpolate';
-  readonly parts: PresentArray<ExpressionNode>;
-
-  constructor(options: BaseNodeOptions & { parts: PresentArray<ExpressionNode> }) {
-    super(options);
-    this.parts = options.parts;
-  }
-}
+export class InterpolateExpression extends node('Interpolate').fields<{
+  parts: PresentArray<ExpressionNode>;
+}>() {}
 
 export type ExpressionNode =
   | LiteralExpression

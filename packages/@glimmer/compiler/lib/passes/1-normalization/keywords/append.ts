@@ -1,184 +1,181 @@
-import { Args, ASTv2, GlimmerSyntaxError, SourceSlice } from '@glimmer/syntax';
-import { Ok, Result } from '../../../shared/result';
-import * as pass1 from '../../2-symbol-allocation/hir';
-import { VisitorContext } from '../context';
+import { Args, ASTv2, GlimmerSyntaxError, Source, SourceSlice } from '@glimmer/syntax';
+import { expect, unreachable } from '@glimmer/util';
+import { Err, Ok, Result } from '../../../shared/result';
+import * as hir from '../../2-symbol-allocation/hir';
+import { NormalizationUtilities } from '../context';
 import { VISIT_EXPRS } from '../visitors/expressions';
 import { assertValidHasBlockUsage } from './has-block';
-import { keywords, Match } from './impl';
-
-const builders = ASTv2.builders;
+import { keywords } from './impl';
 
 export const APPEND_KEYWORDS = keywords('Append')
   .kw('yield', {
     assert(
-      node: ASTv2.AppendContent
-    ): {
-      target: ASTv2.LiteralExpression<string>;
+      node: ASTv2.AppendContent,
+      source: Source
+    ): Result<{
+      target: SourceSlice;
       positional: ASTv2.Positional;
-      kw: ASTv2.Expression;
-    } {
-      let { func: kw, args } = extract(node);
+    }> {
+      let { args } = node;
 
       if (args.named.isEmpty()) {
-        return { target: builders.literal('default'), positional: args.positional, kw };
+        return Ok({
+          target: new SourceSlice({ loc: source.NOT_IN_SOURCE, chars: 'default' }),
+          positional: args.positional,
+        });
       } else {
-        let entries = args.named.entries;
-        let first = entries[0];
+        let target = args.named.get('to');
 
-        if (entries.length > 1 || first.name.chars !== 'to') {
-          throw new GlimmerSyntaxError(`yield only takes a single named argument: 'to'`, first.loc);
+        if (args.named.size > 1 || target === null) {
+          return Err(
+            new GlimmerSyntaxError(`yield only takes a single named argument: 'to'`, args.named.loc)
+          );
         }
 
-        let target = first.value;
-
-        if (!target.isLiteral('string')) {
-          throw new GlimmerSyntaxError(`you can only yield to a literal string value`, target.loc);
+        if (ASTv2.isLiteral(target, 'string')) {
+          return Ok({ target: target.toSlice(), positional: args.positional });
+        } else {
+          return Err(
+            new GlimmerSyntaxError(`you can only yield to a literal string value`, target.loc)
+          );
         }
-
-        return { target, positional: args.positional, kw };
       }
     },
 
     translate(
       node: ASTv2.AppendContent,
-      { utils }: VisitorContext,
+      utils: NormalizationUtilities,
       {
         target,
         positional,
-        kw,
       }: {
-        target: ASTv2.LiteralExpression<'string'>;
+        target: SourceSlice;
         positional: ASTv2.Positional;
-        kw: ASTv2.Expression;
       }
-    ): Result<pass1.Statement> {
-      let params = utils.params({ func: kw, positional });
+    ): Result<hir.Statement> {
+      let params = VISIT_EXPRS.Positional(positional, utils);
       return Ok(
         utils
-          .op(pass1.Yield, {
-            target: utils.slice(target.value, utils.source.offsetsFor(target)),
-            params,
+          .op(hir.Yield, {
+            target,
+            positional: params,
           })
           .loc(node)
       );
     },
   })
   .kw('partial', {
-    assert(node: ASTv2.AppendContent): ASTv2.Expression | undefined {
+    assert(node: ASTv2.AppendContent): Result<ASTv2.Expression | undefined> {
       let {
         args: { positional, named },
-      } = extract(node);
+      } = node;
       let { trusting, loc } = node;
 
-      let hasParams = !positional.isEmpty();
-
-      if (!hasParams) {
-        throw new GlimmerSyntaxError(
-          `Partial found with no arguments. You must specify a template name. (on line ${loc.start.line})`,
-          node.loc
+      if (positional.isEmpty()) {
+        return Err(
+          new GlimmerSyntaxError(
+            `Partial found with no arguments. You must specify a template name. (on line ${loc.start.line})`,
+            node.loc
+          )
+        );
+      } else if (positional.size !== 1) {
+        return Err(
+          new GlimmerSyntaxError(
+            `Partial found with ${positional.exprs.length} arguments. You must specify a template name. (on line ${loc.start.line})`,
+            node.loc
+          )
         );
       }
 
-      if (hasParams && positional.exprs.length !== 1) {
-        throw new GlimmerSyntaxError(
-          `Partial found with ${positional.exprs.length} arguments. You must specify a template name. (on line ${loc.start.line})`,
-          node.loc
+      if (named.isEmpty()) {
+        if (trusting) {
+          return Err(
+            new GlimmerSyntaxError(
+              `{{{partial ...}}} is not supported, please use {{partial ...}} instead (on line ${loc.start.line})`,
+              node.loc
+            )
+          );
+        }
+
+        return Ok(expect(positional.nth(0), `already confirmed that positional has a 0th entry`));
+      } else {
+        return Err(
+          new GlimmerSyntaxError(
+            `Partial does not take any named arguments (on line ${loc.start.line})`,
+            node.loc
+          )
         );
       }
-
-      if (!named.isEmpty()) {
-        throw new GlimmerSyntaxError(
-          `Partial does not take any named arguments (on line ${loc.start.line})`,
-          node.loc
-        );
-      }
-
-      if (trusting) {
-        throw new GlimmerSyntaxError(
-          `{{{partial ...}}} is not supported, please use {{partial ...}} instead (on line ${loc.start.line})`,
-          node.loc
-        );
-      }
-
-      return positional.exprs[0];
     },
 
     translate(
       node: ASTv2.AppendContent,
-      ctx: VisitorContext,
+      utils: NormalizationUtilities,
       expr: ASTv2.Expression | undefined
-    ): Result<pass1.Statement> {
+    ): Result<hir.Statement> {
       return Ok(
-        ctx.utils
-          .op(pass1.Partial, {
+        utils
+          .op(hir.Partial, {
             table: node.table,
             expr:
               expr === undefined
-                ? VISIT_EXPRS.visit(builders.literal(undefined), ctx)
-                : VISIT_EXPRS.visit(expr, ctx),
+                ? VISIT_EXPRS.visit(
+                    new ASTv2.Builder(utils.source).literal(undefined, utils.source.NOT_IN_SOURCE),
+                    utils
+                  )
+                : VISIT_EXPRS.visit(expr, utils),
           })
           .loc(node)
       );
     },
   })
   .kw('debugger', {
-    assert(node: ASTv2.AppendContent): void {
-      let {
-        args: { positional, named },
-      } = extract(node);
+    assert(node: ASTv2.AppendContent): Result<void> {
+      let { args } = node;
+      let { positional } = args;
 
-      if (!positional.isEmpty()) {
-        throw new GlimmerSyntaxError(`debugger does not take any named arguments`, node.loc);
-      }
-
-      if (!named.isEmpty()) {
-        throw new GlimmerSyntaxError(`debugger does not take any positional arguments`, node.loc);
+      if (args.isEmpty()) {
+        return Ok(undefined);
+      } else {
+        if (positional.isEmpty()) {
+          return Err(
+            new GlimmerSyntaxError(`debugger does not take any named arguments`, node.loc)
+          );
+        } else {
+          return Err(
+            new GlimmerSyntaxError(`debugger does not take any positional arguments`, node.loc)
+          );
+        }
       }
     },
 
-    translate(node: Match<'Append'>, { utils }: VisitorContext): Result<pass1.Statement> {
-      return Ok(utils.op(pass1.Debugger, { table: node.table }).loc(node));
+    translate(node: ASTv2.AppendContent, utils: NormalizationUtilities): Result<hir.Statement> {
+      return Ok(utils.op(hir.Debugger, { table: node.table }).loc(node));
     },
   })
   .kw('has-block', {
-    assert(node: ASTv2.AppendContent): SourceSlice {
-      return assertValidHasBlockUsage('has-block', node);
+    assert(node: ASTv2.AppendContent, source: Source): Result<SourceSlice> {
+      return assertValidHasBlockUsage('has-block', node, source);
     },
     translate(
       node: ASTv2.AppendContent,
-      { utils }: VisitorContext,
+      utils: NormalizationUtilities,
       target: SourceSlice
-    ): Result<pass1.AppendTextNode> {
-      let value = utils.op(pass1.HasBlock, { target }).loc(node);
-      return Ok(utils.op(pass1.AppendTextNode, { value }).loc(node));
+    ): Result<hir.AppendTextNode> {
+      let value = utils.op(hir.HasBlock, { target }).loc(node);
+      return Ok(utils.op(hir.AppendTextNode, { value }).loc(node));
     },
   })
   .kw('has-block-params', {
-    assert(node: ASTv2.AppendContent): SourceSlice {
-      return assertValidHasBlockUsage('has-block-params', node);
+    assert(node: ASTv2.AppendContent, source: Source): Result<SourceSlice> {
+      return assertValidHasBlockUsage('has-block-params', node, source);
     },
     translate(
       node: ASTv2.AppendContent,
-      { utils }: VisitorContext,
+      utils: NormalizationUtilities,
       target: SourceSlice
-    ): Result<pass1.AppendTextNode> {
-      let value = utils.op(pass1.HasBlockParams, { target }).loc(node);
-      return Ok(utils.op(pass1.AppendTextNode, { value }).loc(node));
+    ): Result<hir.AppendTextNode> {
+      let value = utils.op(hir.HasBlockParams, { target }).loc(node);
+      return Ok(utils.op(hir.AppendTextNode, { value }).loc(node));
     },
   });
-
-function extract(append: ASTv2.AppendContent): { func: ASTv2.Expression; args: ASTv2.Args } {
-  let value = append.value;
-
-  if (value.type === 'CallExpression') {
-    return {
-      func: value.callee,
-      args: value.args,
-    };
-  } else {
-    return {
-      func: value,
-      args: Args.empty(),
-    };
-  }
-}

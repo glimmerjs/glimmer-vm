@@ -1,21 +1,38 @@
-import { SourceLocation, SYNTHETIC } from '../../source/location';
-import { BaseNode, BaseNodeOptions } from './base';
-import { ExpressionNode } from './expr';
+import type { SourceOffsets } from '../../source/offsets';
+import { node } from './base';
+import type { ExpressionNode } from './expr';
 import { SourceSlice } from './internal';
 
-export class Args extends BaseNode {
-  static empty(loc: SourceLocation = SYNTHETIC): Args {
-    return new Args({ loc, positional: Positional.empty(), named: Named.empty() });
+/**
+ * Corresponds to syntaxes with positional and named arguments:
+ *
+ * - SubExpression
+ * - Invoking Append
+ * - Invoking attributes
+ * - InvokeBlock
+ *
+ * If `Args` is empty, the `SourceOffsets` for this node should be the collapsed position
+ * immediately after the parent call node's `callee`.
+ */
+export class Args extends node().fields<{ positional: Positional; named: Named }>() {
+  static empty(loc: SourceOffsets): Args {
+    return new Args({ loc, positional: Positional.empty(loc), named: Named.empty(loc) });
   }
 
-  readonly type = 'Args';
-  readonly positional: Positional;
-  readonly named: Named;
+  static named(named: Named): Args {
+    return new Args({
+      loc: named.loc,
+      positional: Positional.empty(named.loc.collapseEnd()),
+      named,
+    });
+  }
 
-  constructor(options: BaseNodeOptions & { positional: Positional; named: Named }) {
-    super(options);
-    this.positional = options.positional;
-    this.named = options.named;
+  nth(offset: number): ExpressionNode | null {
+    return this.positional.nth(offset);
+  }
+
+  get(name: string): ExpressionNode | null {
+    return this.named.get(name);
   }
 
   isEmpty(): boolean {
@@ -23,20 +40,26 @@ export class Args extends BaseNode {
   }
 }
 
-export class Positional extends BaseNode {
-  static empty(loc: SourceLocation = SYNTHETIC): Positional {
+/**
+ * Corresponds to positional arguments.
+ *
+ * If `Positional` is empty, the `SourceOffsets` for this node should be the collapsed position
+ * immediately after the parent call node's `callee`.
+ */
+export class Positional extends node().fields<{ exprs: readonly ExpressionNode[] }>() {
+  static empty(loc: SourceOffsets): Positional {
     return new Positional({
       loc,
       exprs: [],
     });
   }
 
-  readonly type = 'Positional';
-  readonly exprs: readonly ExpressionNode[];
+  get size(): number {
+    return this.exprs.length;
+  }
 
-  constructor(options: BaseNodeOptions & { exprs: readonly ExpressionNode[] }) {
-    super(options);
-    this.exprs = options.exprs;
+  nth(offset: number): ExpressionNode | null {
+    return this.exprs[offset] || null;
   }
 
   isEmpty(): boolean {
@@ -44,20 +67,31 @@ export class Positional extends BaseNode {
   }
 }
 
-export class Named extends BaseNode {
-  static empty(loc: SourceLocation = SYNTHETIC): Named {
+/**
+ * Corresponds to positional arguments.
+ *
+ * If `Positional` and `Named` are empty, the `SourceOffsets` for this node should be the same as
+ * the `Args` node that contains this node.
+ *
+ * If `Positional` is not empty but `Named` is empty, the `SourceOffsets` for this node should be
+ * the collapsed position immediately after the last positional argument.
+ */
+export class Named extends node().fields<{ entries: readonly NamedEntry[] }>() {
+  static empty(loc: SourceOffsets): Named {
     return new Named({
       loc,
       entries: [],
     });
   }
 
-  readonly type = 'Named';
-  readonly entries: readonly NamedEntry[];
+  get size(): number {
+    return this.entries.length;
+  }
 
-  constructor(options: BaseNodeOptions & { entries: readonly NamedEntry[] }) {
-    super(options);
-    this.entries = options.entries;
+  get(name: string): ExpressionNode | null {
+    let entry = this.entries.find((e) => e.name.chars === name);
+
+    return entry ? entry.value : null;
   }
 
   isEmpty(): boolean {
@@ -65,13 +99,13 @@ export class Named extends BaseNode {
   }
 }
 
-export class NamedEntry extends BaseNode {
-  readonly type = 'NamedEntry';
+export class NamedEntry {
+  readonly loc: SourceOffsets;
   readonly name: SourceSlice;
   readonly value: ExpressionNode;
 
-  constructor(options: BaseNodeOptions & { name: SourceSlice; value: ExpressionNode }) {
-    super(options);
+  constructor(options: { name: SourceSlice; value: ExpressionNode }) {
+    this.loc = options.name.loc.extend(options.value.loc);
     this.name = options.name;
     this.value = options.value;
   }

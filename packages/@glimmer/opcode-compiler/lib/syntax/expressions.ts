@@ -97,7 +97,7 @@ function isComponent(expr: Expressions.Expression, meta: ContainingMetadata): bo
 
 EXPRESSIONS.add(SexpOpcodes.GetSymbol, ([, sym]) => op(Op.GetVariable, sym));
 EXPRESSIONS.add(SexpOpcodes.GetStrictFree, ([, sym]) => op('ResolveFree', sym));
-EXPRESSIONS.add(SexpOpcodes.GetFreeAsThisFallback, ([, freeVar], meta) => {
+EXPRESSIONS.add(SexpOpcodes.GetFreeAsFallback, ([, freeVar], meta) => {
   if (meta.asPartial) {
     let name = meta.upvars![freeVar];
 
@@ -126,23 +126,6 @@ EXPRESSIONS.add(SexpOpcodes.GetFreeAsHelperHeadOrThisFallback, ([, freeVar], met
     return op('ResolveAmbiguous', { upvar: freeVar, allowComponents: false });
   }
 });
-
-// EXPRESSIONS.add(SexpOpcodes.GetFreeAsCallHead, ([, sym]) =>
-//   op('ResolveContextualFree', { freeVar: sym, context: ExpressionContext.ResolveAsCallHead })
-// );
-// EXPRESSIONS.add(SexpOpcodes.GetFreeAsBlockHead, ([, sym]) =>
-//   op('ResolveContextualFree', { freeVar: sym, context: ExpressionContext.ResolveAsBlockHead })
-// );
-// EXPRESSIONS.add(SexpOpcodes.GetFreeAsModifierHead, ([, sym]) =>
-//   op('ResolveContextualFree', { freeVar: sym, context: ExpressionContext.ResolveAsModifierHead })
-// );
-
-// EXPRESSIONS.add(SexpOpcodes.GetFreeAsComponentHead, ([, sym]) => {
-//   return op('ResolveContextualFree', {
-//     freeVar: sym,
-//     context: ExpressionContext.ResolveAsComponentHead,
-//   });
-// });
 
 EXPRESSIONS.add(SexpOpcodes.GetPath, ([, expr, path]) => {
   let exprs: ExpressionCompileActions = [];

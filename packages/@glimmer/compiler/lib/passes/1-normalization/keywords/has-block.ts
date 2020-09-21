@@ -1,32 +1,41 @@
-import { GlimmerSyntaxError, SourceSlice, SYNTHETIC } from '@glimmer/syntax';
+import { ASTv2, GlimmerSyntaxError, Source, SourceSlice } from '@glimmer/syntax';
+import { Err, Ok, Result } from '../../../shared/result';
 import { GenericKeywordNode } from './impl';
 
-export function assertValidHasBlockUsage(type: string, node: GenericKeywordNode): SourceSlice {
+export function assertValidHasBlockUsage(
+  type: string,
+  node: GenericKeywordNode,
+  source: Source
+): Result<SourceSlice> {
   let call = node.type === 'AppendContent' ? node.value : node;
 
-  let named = call.type === 'CallExpression' ? call.args.named : null;
-  let positionals = call.type === 'CallExpression' ? call.args.positional : null;
+  let named = call.type === 'Call' ? call.args.named : null;
+  let positionals = call.type === 'Call' ? call.args.positional : null;
 
   if (named && !named.isEmpty()) {
-    throw new GlimmerSyntaxError(`${type} does not take any named arguments`, call.loc);
+    return Err(new GlimmerSyntaxError(`${type} does not take any named arguments`, call.loc));
   }
 
   if (!positionals || positionals.isEmpty()) {
-    return new SourceSlice({ chars: 'default', loc: SYNTHETIC });
+    return Ok(new SourceSlice({ chars: 'default', loc: source.NOT_IN_SOURCE }));
   } else if (positionals.exprs.length === 1) {
     let positional = positionals.exprs[0];
-    if (positional.isLiteral('string')) {
-      return new SourceSlice({ chars: positional.value, loc: positional.loc });
+    if (ASTv2.isLiteral(positional, 'string')) {
+      return Ok(positional.toSlice());
     } else {
-      throw new GlimmerSyntaxError(
-        `you can only yield to a literal value (on line ${call.loc.start.line})`,
-        call.loc
+      return Err(
+        new GlimmerSyntaxError(
+          `you can only yield to a literal value (on line ${call.loc.start.line})`,
+          call.loc
+        )
       );
     }
   } else {
-    throw new GlimmerSyntaxError(
-      `${type} only takes a single positional argument (on line ${call.loc.start.line})`,
-      call.loc
+    return Err(
+      new GlimmerSyntaxError(
+        `${type} only takes a single positional argument (on line ${call.loc.start.line})`,
+        call.loc
+      )
     );
   }
 }

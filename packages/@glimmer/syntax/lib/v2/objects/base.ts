@@ -1,46 +1,139 @@
-import { SourceLocation } from '../../types/api';
-import { Args } from './args';
-import { ContentNode } from './content';
-import { ExpressionNode } from './expr';
+import type { SerializedSourceOffsets } from '../../source/offsets';
+import { SourceOffsets } from '../../source/offsets';
+import { CallExpression } from '../nodes-v2';
+import type { Args } from './args';
+import { ElementModifier } from './attr-block';
+import type { AppendContent, ContentNode, InvokeBlock, InvokeComponent } from './content';
+import type { ExpressionNode } from './expr';
 
-export interface BaseNodeOptions {
-  loc: SourceLocation;
+export interface BaseNodeFields {
+  loc: SourceOffsets;
 }
 
-export abstract class BaseNode {
-  abstract readonly type: string;
-  readonly loc: SourceLocation;
+export interface SerializedBaseNode {
+  loc: SerializedSourceOffsets;
+}
 
-  constructor({ loc }: BaseNodeOptions) {
+export abstract class AbstractNode<Fields extends BaseNodeFields = BaseNodeFields> {
+  readonly loc: SourceOffsets;
+
+  constructor({ loc }: Fields) {
     this.loc = loc;
   }
 }
 
-export interface GlimmerParentNodeOptions extends BaseNodeOptions {
-  body: readonly ContentNode[];
-}
+export abstract class AbstractTypedNode<
+  T extends string,
+  Fields extends BaseNodeFields = BaseNodeFields
+> {
+  readonly loc: SourceOffsets;
 
-export abstract class BaseGlimmerParent extends BaseNode {
-  readonly body: readonly ContentNode[];
-
-  constructor(options: GlimmerParentNodeOptions) {
-    super(options);
-    this.body = options.body;
+  constructor(readonly type: T, { loc }: Fields) {
+    this.loc = loc;
   }
 }
 
-export interface CallOptions extends BaseNodeOptions {
+export interface GlimmerParentNodeOptions extends BaseNodeFields {
+  body: readonly ContentNode[];
+}
+
+export interface CallFields extends BaseNodeFields {
   callee: ExpressionNode;
   args: Args;
 }
 
-export abstract class BaseCall extends BaseNode {
-  readonly callee: ExpressionNode;
-  readonly args: Args;
+export type CallNode =
+  | CallExpression
+  | InvokeBlock
+  | AppendContent
+  | InvokeComponent
+  | ElementModifier;
 
-  constructor(options: CallOptions) {
-    super(options);
-    this.callee = options.callee;
-    this.args = options.args;
+/**
+ * This is a convenience function for creating ASTv2 nodes, with an optional name and the node's
+ * options.
+ *
+ * ```ts
+ * export class HtmlText extends node('HtmlText').fields<{ chars: string }>() {}
+ * ```
+ *
+ * This creates a new ASTv2 node with the name `'HtmlText'` and one field `chars: string` (in
+ * addition to a `loc: SourceOffsets` field, which all nodes have).
+ *
+ * ```ts
+ * export class Args extends node().fields<{ positional: Positional; named: Named }>() {}
+ * ```
+ *
+ * This creates a new un-named ASTv2 node with two fields (`positional: Positional` and
+ * `named: Named`, in addition to the generic `loc: SourceOffsets` field).
+ *
+ * Once you create a node using `node`, it is instantiated with all of its fields (including
+ * `loc`):
+ *
+ * ```ts
+ * new HtmlText({ loc: offsets, chars: someString });
+ * ```
+ */
+export function node<T extends string>(
+  name: T
+): { fields<Fields extends object>(): TypedNodeConstructor<T, Fields & BaseNodeFields> };
+export function node(): {
+  fields<Fields extends object>(): NodeConstructor<Fields & BaseNodeFields>;
+};
+export function node<T extends string>(
+  name?: T
+):
+  | { fields<Fields extends object>(): TypedNodeConstructor<T, Fields> }
+  | { fields<Fields extends object>(): NodeConstructor<Fields> } {
+  if (name !== undefined) {
+    return {
+      fields<Fields extends object>(): TypedNodeConstructor<T, Fields> {
+        return class extends AbstractTypedNode<T, BaseNodeFields & Fields> {
+          constructor(options: BaseNodeFields & Fields) {
+            super(name as T, options);
+
+            copy(options, (this as unknown) as ConstructingTypedNode<T, Fields>);
+          }
+        } as TypedNodeConstructor<T, Fields>;
+      },
+    };
+  } else {
+    return {
+      fields<Fields>(): NodeConstructor<Fields> {
+        return class extends AbstractNode<BaseNodeFields & Fields> {
+          constructor(options: BaseNodeFields & Fields) {
+            super(options);
+
+            copy(options, (this as unknown) as ConstructingNode<Fields>);
+          }
+        } as NodeConstructor<Fields>;
+      },
+    };
+  }
+}
+
+type ConstructingTypedNode<T extends string, Fields> = AbstractTypedNode<T> &
+  Fields &
+  BaseNodeFields;
+
+type ConstructingNode<Fields> = AbstractNode & BaseNodeFields & Fields;
+
+export type NodeConstructor<Fields> = {
+  new (options: BaseNodeFields & Fields): AbstractNode & Readonly<BaseNodeFields & Fields>;
+};
+
+type TypedNode<T extends string, Fields> = AbstractTypedNode<T> & Readonly<Fields & BaseNodeFields>;
+
+export type TypedNodeConstructor<T extends string, Fields> = {
+  new (options: BaseNodeFields & Fields): TypedNode<T, Fields>;
+};
+
+function keys<O extends object>(object: O): (keyof O)[] {
+  return Object.keys(object) as (keyof O)[];
+}
+
+function copy<O extends object>(object1: O, object2: O) {
+  for (let key of keys(object1)) {
+    object2[key] = object1[key];
   }
 }

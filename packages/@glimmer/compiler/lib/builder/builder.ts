@@ -246,7 +246,7 @@ export function buildStatement(
       let params = buildParams(normalized.params, symbols);
       let path = buildCallHead(
         normalized.head,
-        VariableResolutionContext.ResolveAsBlockHead,
+        VariableResolutionContext.ResolveAsComponentHead,
         symbols
       );
 
@@ -587,11 +587,11 @@ export function buildVar(
       } else if (context === 'AttrValueBare') {
         op = SexpOpcodes.GetFreeAsHelperHeadOrThisFallback;
       } else if (context === 'AttrValueInvoke') {
-        op = SexpOpcodes.GetFreeAsCallHead;
+        op = SexpOpcodes.GetFreeAsHelperHead;
       } else if (context === 'SubExpression') {
-        op = SexpOpcodes.GetFreeAsCallHead;
+        op = SexpOpcodes.GetFreeAsHelperHead;
       } else if (context === 'Generic') {
-        op = SexpOpcodes.GetFreeAsThisFallback;
+        op = SexpOpcodes.GetFreeAsFallback;
       } else {
         op = expressionContextOp(context);
       }
@@ -639,11 +639,9 @@ export function expressionContextOp(context: VariableResolutionContext): GetCont
     case VariableResolutionContext.AmbiguousAttr:
       return Op.GetFreeAsHelperHeadOrThisFallback;
     case VariableResolutionContext.LooseFreeVariable:
-      return Op.GetFreeAsThisFallback;
+      return Op.GetFreeAsFallback;
     case VariableResolutionContext.ResolveAsCallHead:
-      return Op.GetFreeAsCallHead;
-    case VariableResolutionContext.ResolveAsBlockHead:
-      return Op.GetFreeAsBlockHead;
+      return Op.GetFreeAsHelperHead;
     case VariableResolutionContext.ResolveAsModifierHead:
       return Op.GetFreeAsModifierHead;
     case VariableResolutionContext.ResolveAsComponentHead:

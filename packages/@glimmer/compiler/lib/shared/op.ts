@@ -15,10 +15,6 @@ export type UnknownArgs = object | void;
 export abstract class Op<Args extends UnknownArgs = UnknownArgs, Name extends string = string> {
   abstract readonly name: Name;
   constructor(readonly offsets: SourceOffsets, readonly args: Args) {}
-
-  // TODO abstract stack = [{ value: EXPR }]
-  // this would automate the process of extracting values off of the stack
-  // and checking them for the right types
 }
 
 export type OpName<O extends Op> = O['name'];
@@ -105,13 +101,13 @@ export class UnlocatedOp<O extends Op> {
       if (start.offsets === null || end.offsets === null) {
         offsets = null;
       } else {
-        let startOffset = start.offsets.start;
-        let endOffset = end.offsets.end;
+        let startOffset = start.offsets.startOffset;
+        let endOffset = end.offsets.endOffset;
 
-        offsets = new SourceOffsets(this.source, startOffset, endOffset);
+        offsets = new SourceOffsets(this.source, { start: startOffset, end: endOffset });
       }
     }
 
-    return this.withOffsets(offsets || this.source.NONE);
+    return this.withOffsets(offsets || this.source.NON_EXISTENT);
   }
 }

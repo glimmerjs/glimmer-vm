@@ -15,26 +15,26 @@ export class Pass1Expression implements ExpressionVisitor {
   }
 
   GetLocalVar(ctx: Context, { name }: OpArgs<hir.GetLocalVar>): mir.Expr {
-    let symbol = ctx.table.get(name.getString());
+    let symbol = ctx.table.get(name);
     return ctx.op(mir.GetSymbol, { symbol });
   }
 
   GetFreeVar(ctx: Context, { name }: OpArgs<hir.GetFreeVar>): mir.Expr {
-    let symbol = ctx.table.allocateFree(name.getString());
+    let symbol = ctx.table.allocateFree(name);
     return ctx.op(mir.GetFree, { symbol });
   }
 
-  GetFreeVarWithContext(
+  GetFreeVarWithResolution(
     ctx: Context,
-    { name, context }: OpArgs<hir.GetFreeVarWithContext>
+    { name, resolution: context }: OpArgs<hir.GetFreeVarWithResolution>
   ): mir.Expr {
     // this will be different in strict mode
-    let symbol = ctx.table.allocateFree(name.getString());
+    let symbol = ctx.table.allocateFree(name);
     return ctx.op(mir.GetFreeWithContext, { symbol, context });
   }
 
-  GetWithResolver(ctx: Context, { name }: OpArgs<hir.GetFreeVar>): mir.Expr {
-    let symbol = ctx.table.allocateFree(name.getString());
+  GetWithResolver(ctx: Context, { name }: OpArgs<hir.GetWithResolver>): mir.Expr {
+    let symbol = ctx.table.allocateFree(name);
 
     return ctx.op(mir.GetWithResolver, { symbol });
   }
@@ -68,10 +68,10 @@ export class Pass1Expression implements ExpressionVisitor {
     return ctx.op(mir.Literal, { value });
   }
 
-  SubExpression(ctx: Context, { head, params, hash }: OpArgs<hir.SubExpression>): mir.Helper {
+  SubExpression(ctx: Context, { head, args }: OpArgs<hir.SubExpression>): mir.Helper {
     let mappedHead = ctx.visitExpr(head);
-    let args = ctx.visitArgs({ params, hash });
-    return ctx.op(mir.Helper, { head: mappedHead, args });
+    let mappedArgs = ctx.visitInternal(args);
+    return ctx.op(mir.Helper, { head: mappedHead, args: mappedArgs });
   }
 }
 

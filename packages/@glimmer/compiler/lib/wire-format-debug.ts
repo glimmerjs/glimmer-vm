@@ -160,7 +160,7 @@ export default class WireFormatDebugger {
         case Op.GetStrictFree:
           return ['get-strict-free', this.program.upvars[opcode[1]]];
 
-        case Op.GetFreeAsThisFallback:
+        case Op.GetFreeAsFallback:
           return ['GetFreeAsThisFallback', this.program.upvars[opcode[1]]];
 
         case Op.GetFreeAsComponentOrHelperHeadOrThisFallback:
@@ -172,10 +172,7 @@ export default class WireFormatDebugger {
         case Op.GetFreeAsHelperHeadOrThisFallback:
           return ['GetFreeAsHelperHeadOrThisFallback', this.program.upvars[opcode[1]]];
 
-        case Op.GetFreeAsBlockHead:
-          return ['GetFreeAsBlockHead', this.program.upvars[opcode[1]]];
-
-        case Op.GetFreeAsCallHead:
+        case Op.GetFreeAsHelperHead:
           return ['GetFreeAsCallHead', this.program.upvars[opcode[1]]];
 
         case Op.GetFreeAsComponentHead:

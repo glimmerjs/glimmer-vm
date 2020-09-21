@@ -1,13 +1,6 @@
 import * as ASTv1 from '../types/nodes-v1';
 import { FreeVarResolution } from './objects';
-import {
-  Ambiguity,
-  AmbiguousResolution,
-  FreeVarNamespace,
-  LOOSE_FREE_VAR_RESOLUTION,
-  NamespacedVarResolution,
-  STRICT_RESOLUTION,
-} from './objects/refs';
+import { LooseModeResolution, FreeVarNamespace, STRICT_RESOLUTION } from './objects';
 
 export interface AstCallParts {
   path: ASTv1.Expression;
@@ -19,7 +12,7 @@ export interface AstCallParts {
  * The resolution for the expressions in the `params` and `hash`
  * of call nodes.
  */
-export const ARGUMENT = LOOSE_FREE_VAR_RESOLUTION;
+export const ARGUMENT = LooseModeResolution.fallback();
 
 export interface VarPath extends ASTv1.PathExpression {
   head: ASTv1.VarHead;
@@ -27,7 +20,7 @@ export interface VarPath extends ASTv1.PathExpression {
 
 export function SexpSyntaxContext(node: ASTv1.SubExpression): FreeVarResolution | null {
   if (isSimpleCallee(node)) {
-    return new NamespacedVarResolution(FreeVarNamespace.Helper);
+    return LooseModeResolution.namespaced(FreeVarNamespace.Helper);
   } else {
     return null;
   }
@@ -37,7 +30,7 @@ export function ModifierSyntaxContext(
   node: ASTv1.ElementModifierStatement
 ): FreeVarResolution | null {
   if (isSimpleCallee(node)) {
-    return new NamespacedVarResolution(FreeVarNamespace.Modifier);
+    return LooseModeResolution.namespaced(FreeVarNamespace.Modifier);
   } else {
     return null;
   }
@@ -45,7 +38,7 @@ export function ModifierSyntaxContext(
 
 export function BlockSyntaxContext(node: ASTv1.BlockStatement): FreeVarResolution | null {
   if (isSimpleCallee(node)) {
-    return new NamespacedVarResolution(FreeVarNamespace.Block);
+    return LooseModeResolution.namespaced(FreeVarNamespace.Component);
   } else {
     return null;
   }
@@ -53,7 +46,7 @@ export function BlockSyntaxContext(node: ASTv1.BlockStatement): FreeVarResolutio
 
 export function ComponentSyntaxContext(node: ASTv1.PathExpression): FreeVarResolution | null {
   if (isSimplePath(node)) {
-    return new NamespacedVarResolution(FreeVarNamespace.Component);
+    return LooseModeResolution.namespaced(FreeVarNamespace.Component);
   } else {
     return null;
   }
@@ -63,16 +56,16 @@ export function ComponentSyntaxContext(node: ASTv1.PathExpression): FreeVarResol
  * This corresponds to append positions (text curlies or attribute
  * curlies). In strict mode, this also corresponds to arg curlies.
  */
-export function AttrValueSyntaxContext(node: ASTv1.MustacheStatement) {
+export function AttrValueSyntaxContext(node: ASTv1.MustacheStatement): FreeVarResolution {
   let isSimple = isSimpleCallee(node);
   let isInvoke = isInvokeNode(node);
 
   if (isSimple) {
     return isInvoke
-      ? new NamespacedVarResolution(FreeVarNamespace.Helper)
-      : new AmbiguousResolution(Ambiguity.Attr);
+      ? LooseModeResolution.namespaced(FreeVarNamespace.Helper)
+      : LooseModeResolution.attr();
   } else {
-    return isInvoke ? STRICT_RESOLUTION : LOOSE_FREE_VAR_RESOLUTION;
+    return isInvoke ? STRICT_RESOLUTION : LooseModeResolution.fallback();
   }
 }
 
@@ -80,16 +73,14 @@ export function AttrValueSyntaxContext(node: ASTv1.MustacheStatement) {
  * This corresponds to append positions (text curlies or attribute
  * curlies). In strict mode, this also corresponds to arg curlies.
  */
-export function AppendSyntaxContext(node: ASTv1.MustacheStatement) {
+export function AppendSyntaxContext(node: ASTv1.MustacheStatement): FreeVarResolution {
   let isSimple = isSimpleCallee(node);
   let isInvoke = isInvokeNode(node);
 
   if (isSimple) {
-    return isInvoke
-      ? new NamespacedVarResolution(FreeVarNamespace.ComponentOrHelper)
-      : new AmbiguousResolution(Ambiguity.Append);
+    return LooseModeResolution.append({ invoke: isInvoke });
   } else {
-    return isInvoke ? STRICT_RESOLUTION : LOOSE_FREE_VAR_RESOLUTION;
+    return isInvoke ? STRICT_RESOLUTION : LooseModeResolution.fallback();
   }
 }
 

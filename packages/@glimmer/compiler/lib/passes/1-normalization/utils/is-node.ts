@@ -8,12 +8,14 @@ import {
 } from '@glimmer/syntax';
 import { unreachable } from '@glimmer/util';
 
-export function isPath(node: ASTv2.Node | ASTv2.PathExpression): node is ASTv2.PathExpression {
-  return node.type === 'PathExpression';
+export function isPath(node: ASTv2.KeywordNode): node is ASTv2.PathExpression {
+  return node.type === 'Path';
 }
 
-export function isCall(node: ASTv2.Node | ASTv2.CallNode): node is ASTv2.CallNode {
-  return node.type === 'SubExpression' || node.type === 'AppendStatement';
+export function isCall(
+  node: ASTv2.ExpressionNode | ASTv2.ContentNode
+): node is ASTv2.CallExpression | ASTv2.AppendContent {
+  return node.type === 'Call' || node.type === 'AppendContent';
 }
 
 export type HasPath<Node extends ASTv2.CallNode = ASTv2.CallNode> = Node & {
@@ -34,7 +36,7 @@ export type HelperInvocation<Node extends ASTv2.CallNode = ASTv2.CallNode> = Has
   HasArguments;
 
 export function hasPath<N extends ASTv2.CallNode>(node: N): node is HasPath<N> {
-  return node.callee.type === 'PathExpression';
+  return node.callee.type === 'Path';
 }
 
 export function isHelperInvocation<N extends ASTv2.CallNode>(
@@ -58,25 +60,21 @@ export type SimpleHelper<N extends HasPath> = N & {
 };
 
 export function isSimplePath(path: ASTv2.Expression): path is SimplePath {
-  if (path.type === 'PathExpression') {
+  if (path.type === 'Path') {
     let { ref: head, tail: parts } = path;
 
-    return (
-      head.type === 'FreeVarReference' &&
-      head.resolution !== STRICT_RESOLUTION &&
-      parts.length === 0
-    );
+    return head.type === 'Free' && head.resolution !== STRICT_RESOLUTION && parts.length === 0;
   } else {
     return false;
   }
 }
 
 export function isStrictHelper(expr: HasPath): boolean {
-  if (expr.callee.type !== 'PathExpression') {
+  if (expr.callee.type !== 'Path') {
     return true;
   }
 
-  if (expr.callee.ref.type !== 'FreeVarReference') {
+  if (expr.callee.ref.type !== 'Free') {
     return true;
   }
 
@@ -102,14 +100,14 @@ export function assertIsValidHelper<N extends HasPath>(
 
 function printPath(path: ASTv2.Expression): string {
   switch (path.type) {
-    case 'LiteralExpression':
+    case 'Literal':
       return JSON.stringify(path.value);
-    case 'PathExpression': {
+    case 'Path': {
       let printedPath = [printPathHead(path.ref)];
       printedPath.push(...path.tail.map((t) => t.chars));
       return printedPath.join('.');
     }
-    case 'CallExpression':
+    case 'Call':
       return `(${printPath(path.callee)} ...)`;
     case 'Interpolate':
       throw unreachable('a concat statement cannot appear as the head of an expression');
@@ -118,12 +116,12 @@ function printPath(path: ASTv2.Expression): string {
 
 function printPathHead(head: ASTv2.VariableReference): string {
   switch (head.type) {
-    case 'ArgReference':
-    case 'FreeVarReference':
+    case 'Arg':
       return head.name.chars;
-    case 'LocalVarReference':
+    case 'Free':
+    case 'Local':
       return head.name;
-    case 'ThisReference':
+    case 'This':
       return 'this';
   }
 }

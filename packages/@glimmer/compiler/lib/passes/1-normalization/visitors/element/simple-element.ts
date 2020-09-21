@@ -13,7 +13,7 @@ export class ClassifiedSimpleElement implements Classified {
 
   readonly isComponent = false;
 
-  arg(attr: ASTv2.AttrNode): Result<hir.NamedArgument> {
+  arg(attr: ASTv2.ComponentArg): Result<hir.NamedEntry> {
     return Err(
       new GlimmerSyntaxError(
         `${attr.name.chars} is not a valid attribute name. @arguments are only allowed on components, but the tag for this element (\`${this.tag.chars}\`) is a regular, non-component HTML element.`,
@@ -23,10 +23,9 @@ export class ClassifiedSimpleElement implements Classified {
   }
 
   toStatement(classified: ClassifiedElement, { params }: PreparedArgs): Result<hir.Statement> {
-    let { ctx, element } = classified;
-    let { utils } = ctx;
+    let { utils, element } = classified;
 
-    let body = VISIT_STMTS.visitList(this.element.body, ctx);
+    let body = VISIT_STMTS.visitList(this.element.body, utils);
 
     return body.mapOk((body) =>
       utils

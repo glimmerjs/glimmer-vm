@@ -14,7 +14,7 @@ import { OpFactory, Ops } from '../../shared/ops';
 import * as mir from '../3-encoding/mir';
 import { Pass1Expression } from './expressions';
 import { Pass1Internal } from './internal';
-import * as pass1 from './hir';
+import * as hir from './hir';
 import { Pass1Statement } from './statements';
 
 /**
@@ -33,15 +33,12 @@ export class CompilerState {
   }
 }
 
-type MappingVisitorFunc<V extends Pass1Visitor, In extends pass1.AnyOp & { name: keyof V }> = (
+type MappingVisitorFunc<V extends Pass1Visitor, In extends hir.AnyOp & { name: keyof V }> = (
   ctx: Context,
   op: OpArgs<In>
 ) => MapOutput<V, In>;
 
-export type MapVisitorsInterface<
-  In extends pass1.AnyOp = pass1.AnyOp,
-  Out extends mir.Op = mir.Op
-> = {
+export type MapVisitorsInterface<In extends hir.AnyOp = hir.AnyOp, Out extends mir.Op = mir.Op> = {
   [P in In['name']]: In extends { name: P } ? (ctx: Context, op: OpArgs<In>) => Out : never;
 };
 
@@ -51,10 +48,10 @@ export type InForVisitor<V extends Pass1Visitor> = V extends MapVisitorsInterfac
 
 export type MapOutput<
   V extends Pass1Visitor,
-  In extends pass1.AnyOp & { name: keyof V }
+  In extends hir.AnyOp & { name: keyof V }
 > = V[In['name']] extends (...args: any[]) => unknown ? ReturnType<V[In['name']]> : never;
 
-function visit<In extends pass1.AnyOp & { name: keyof V }, V extends Pass1Visitor>(
+function visit<In extends hir.AnyOp & { name: keyof V }, V extends Pass1Visitor>(
   visitors: V,
   node: In,
   ctx: Context
@@ -127,7 +124,7 @@ export class Context {
   }
 
   error(message: string, offsets = this.offsets): SyntaxError {
-    return new GlimmerSyntaxError(message, offsets ? offsets.toLocation(this.ctx.source) : null);
+    return new GlimmerSyntaxError(message, offsets ? offsets.toLocation() : null);
   }
 
   template(...args: InputOpArgs<mir.Template>): UnlocatedOp<mir.Template> {
@@ -156,13 +153,11 @@ export class Context {
     return this.ctx.factory.flatMap(input, callback);
   }
 
-  visitExprs<T extends pass1.Expr, L extends AnyOptionalList<T>>(
-    input: L
-  ): MapList<T, mir.Expr, L> {
+  visitExprs<T extends hir.Expr, L extends AnyOptionalList<T>>(input: L): MapList<T, mir.Expr, L> {
     return input.map((e) => this.visitExpr(e)) as MapList<T, mir.Expr, L>;
   }
 
-  visitInternals<T extends Exclude<pass1.Internal, pass1.Ignore>>(
+  visitInternals<T extends Exclude<hir.Internal, hir.Ignore>>(
     input: PresentArray<T>
   ): PresentArray<MapOutput<Pass1Internal, T>> {
     return mapPresent(input, (e) => this.visitInternal(e));
@@ -191,7 +186,7 @@ export class Context {
    * This method visits a possibly missing expression, ensuring that a stack value
    * will be on the stack for pass2 to pop off.
    */
-  visitOptionalExpr(node: pass1.Expr | undefined): mir.Expr {
+  visitOptionalExpr(node: hir.Expr | undefined): mir.Expr {
     if (node === undefined) {
       return this.op(mir.Missing);
     } else {
@@ -199,12 +194,12 @@ export class Context {
     }
   }
 
-  visitParams(list: OptionalList<pass1.Expr>): mir.Positional {
+  visitParams(list: OptionalList<hir.Expr>): mir.Positional {
     let params = list.map((expr) => this.visitExpr(expr));
     return this.op(mir.Positional, { list: params });
   }
 
-  visitExpr(node: pass1.Expr): mir.Expr {
+  visitExpr(node: hir.Expr): mir.Expr {
     if (LOCAL_SHOULD_LOG) {
       LOCAL_LOGGER.groupCollapsed(`pass1: visiting expr`, node.name);
       LOCAL_LOGGER.log(`expr`, node);
@@ -219,9 +214,7 @@ export class Context {
     return result;
   }
 
-  visitInternal<N extends Exclude<pass1.Internal, pass1.Ignore>>(
-    node: N
-  ): MapOutput<Pass1Internal, N> {
+  visitInternal<N extends Exclude<hir.Internal, hir.Ignore>>(node: N): MapOutput<Pass1Internal, N> {
     if (LOCAL_SHOULD_LOG) {
       LOCAL_LOGGER.groupCollapsed(`pass1: visiting internal`, node.name);
       LOCAL_LOGGER.log(`internal`, node);
@@ -236,8 +229,8 @@ export class Context {
     return result;
   }
 
-  visitStmt<N extends pass1.Statement>(node: N): MapOutput<Pass1Statement, N>;
-  visitStmt(node: pass1.Statement): mir.Statement {
+  visitStmt<N extends hir.Statement>(node: N): MapOutput<Pass1Statement, N>;
+  visitStmt(node: hir.Statement): mir.Statement {
     if (LOCAL_SHOULD_LOG) {
       LOCAL_LOGGER.groupCollapsed(`pass1: visiting statement`, node.name);
       LOCAL_LOGGER.log(`statement`, node);
@@ -252,14 +245,14 @@ export class Context {
     return result;
   }
 
-  visitArgs({ params, hash }: { params: pass1.Params; hash: pass1.NamedArguments }): mir.Args {
+  visitArgs({ params, hash }: { params: hir.Positional; hash: hir.Named }): mir.Args {
     let mappedParams = this.visitInternal(params);
     let mappedHash = this.visitInternal(hash);
 
     return this.op(mir.Args, { positional: mappedParams, named: mappedHash });
   }
 
-  params(params: pass1.Params): mir.Internal {
+  params(params: hir.Positional): mir.Internal {
     return this.visitInternal(params);
   }
 }

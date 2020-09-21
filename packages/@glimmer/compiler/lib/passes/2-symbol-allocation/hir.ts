@@ -36,14 +36,14 @@ export class Path extends op('Path').args<{ head: Expr; tail: PresentArray<Sourc
 export class GetArg extends op('GetArg').args<{ name: SourceSlice }>() {}
 export class GetThis extends op('GetThis').void() {}
 export class GetLocalVar extends op('GetLocalVar').args<{
-  name: SourceSlice;
+  name: string;
 }>() {}
 export class GetFreeVar extends op('GetFreeVar').args<{
-  name: SourceSlice;
+  name: string;
 }>() {}
-export class GetFreeVarWithContext extends op('GetFreeVarWithContext').args<{
-  name: SourceSlice;
-  context: FreeVarResolution;
+export class GetFreeVarWithResolution extends op('GetFreeVarWithResolution').args<{
+  name: string;
+  resolution: FreeVarResolution;
 }>() {}
 
 /**
@@ -55,7 +55,7 @@ export class GetFreeVarWithContext extends op('GetFreeVarWithContext').args<{
  * produces `GetFreeVar`.
  */
 export class GetWithResolver extends op('GetWithResolver').args<{
-  name: SourceSlice;
+  name: string;
 }>() {}
 
 export class HasBlock extends op('HasBlock').args<{ target: SourceSlice }>() {}
@@ -64,23 +64,24 @@ export class Interpolate extends op('Interpolate').args<{ parts: PresentList<Exp
 
 export class SubExpression extends op('SubExpression').args<{
   head: Expr;
-  params: Params;
-  hash: NamedArguments;
+  args: Args;
 }>() {}
 
-export class Params extends op('Params').args<{ list: AnyOptionalList<Expr> }>() {}
-export type PresentParams = Params & { args: { list: PresentList<Expr> } };
+export class Positional extends op('Positional').args<{ list: AnyOptionalList<Expr> }>() {}
 
-export class NamedArgument extends op('NamedArgument').args<{ key: SourceSlice; value: Expr }>() {}
-export class NamedArguments extends op('NamedArguments').args<{
-  pairs: OptionalList<NamedArgument>;
+export class NamedEntry extends op('NamedEntry').args<{ key: SourceSlice; value: Expr }>() {}
+export class Named extends op('Named').args<{
+  pairs: OptionalList<NamedEntry>;
 }>() {}
+
+export class Args extends op('Args').args<{ positional: Positional; named: Named }>() {}
 
 export type Internal =
   | Ignore
-  | Params
-  | NamedArguments
-  | NamedArgument
+  | Args
+  | Positional
+  | Named
+  | NamedEntry
   | NamedBlock
   | NamedBlocks
   | ElementParameters;
@@ -95,7 +96,7 @@ export type Expr =
   | GetThis
   | GetLocalVar
   | GetFreeVar
-  | GetFreeVarWithContext
+  | GetFreeVarWithResolution
   | GetWithResolver
   | HasBlock
   | HasBlockParams
@@ -109,7 +110,7 @@ export type ExprLike = Expr | Internal;
 
 export class Yield extends op('Yield').args<{
   target: SourceSlice;
-  params: Params;
+  positional: Positional;
 }>() {}
 
 export class Partial extends op('Partial').args<{ expr: Expr; table: SymbolTable }>() {}
@@ -133,18 +134,9 @@ export class AppendTrustedHTML extends op('AppendTrustedHTML').args<{ value: Exp
 
 export class BlockInvocation extends op('BlockInvocation').args<{
   head: Expr;
-  params: Params;
-  hash: NamedArguments;
-  blocks: OptionalList<NamedBlock>;
+  args: Args;
+  blocks: NamedBlocks;
 }>() {}
-
-export function getBlock(blocks: OptionalList<NamedBlock>, name: string): Optional<NamedBlock> {
-  return blocks.into({
-    ifEmpty: () => null,
-    ifPresent: (blocks) =>
-      blocks.toPresentArray().find((block) => block.args.name.getString() === name) || null,
-  });
-}
 
 export class NamedBlock extends op('NamedBlock').args<{
   name: SourceSlice;
@@ -154,7 +146,15 @@ export class NamedBlock extends op('NamedBlock').args<{
 
 export class NamedBlocks extends op('NamedBlocks').args<{
   blocks: OptionalList<NamedBlock>;
-}>() {}
+}>() {
+  get(name: string): Optional<NamedBlock> {
+    return this.args.blocks.into({
+      ifEmpty: () => null,
+      ifPresent: (blocks) =>
+        blocks.toPresentArray().find((block) => block.args.name.getString() === name) || null,
+    });
+  }
+}
 
 export type NonSemanticChild = NonSemantic;
 
@@ -163,7 +163,7 @@ export class Ignore extends op('Ignore').void() {}
 export class Component extends op('Component').args<{
   tag: Expr;
   params: ElementParameters;
-  args: NamedArguments;
+  args: Named;
   blocks: NamedBlocks;
 }>() {}
 
@@ -188,8 +188,7 @@ export class Attr extends op('Attr').args<{
 
 export class Modifier extends op('Modifier').args<{
   head: Expr;
-  params: Params;
-  hash: NamedArguments;
+  args: Args;
 }>() {}
 
 export type ElementParameter = Attr | Modifier | AttrSplat;

@@ -1,24 +1,47 @@
 // SubExpression | PathExpression | LiteralExpression | Interpolate
-import type {
+import { Builder } from './builders';
+import {
   AppendContent,
-  ElementArg,
+  CallExpression,
+  ElementModifier,
+  InvokeBlock,
+  PathExpression,
+} from './objects';
+
+export type KeywordNode =
+  | ElementModifier
+  | AppendContent
+  | CallExpression
+  | PathExpression
+  | InvokeBlock;
+
+export { isLiteral } from './objects';
+export type {
+  AppendContent,
+  ArgReference,
   Args,
+  AttrBlockNode,
   AttrNode,
-  BaseCall,
   Block,
   CallExpression,
+  CallNode,
+  ComponentArg,
   ContentNode,
   ElementModifier,
   ElementNode,
+  ExpressionNode as Expression,
   ExpressionNode,
+  FreeVarReference,
   GlimmerComment,
   HtmlAttr,
   HtmlComment,
+  HtmlOrSplatAttr,
   HtmlText,
   InterpolateExpression,
   InvokeBlock,
   InvokeComponent,
   LiteralExpression,
+  LocalVarReference,
   Named,
   NamedBlock,
   NamedBlocks,
@@ -26,66 +49,10 @@ import type {
   PathExpression,
   Positional,
   SimpleElement,
+  SplatAttr,
+  StringLiteral,
   Template,
+  ThisReference,
   VariableReference,
 } from './objects';
-import { AttrBlockNode } from './objects/attr-block';
-
-export { default as builders } from './v2-builders';
-export type {
-  Block,
-  LiteralExpression,
-  CallExpression,
-  PathExpression,
-  InterpolateExpression,
-  BaseCall as CallNode,
-  ExpressionNode as Expression,
-  Positional,
-  Named,
-  NamedEntry,
-  Args,
-  ContentNode,
-  HtmlComment,
-  HtmlText,
-  HtmlAttr,
-  ElementArg as Arg,
-  ElementModifier,
-  Template,
-  AppendContent,
-  InvokeBlock,
-  InvokeComponent,
-  GlimmerComment,
-  SimpleElement,
-  AttrNode,
-  NamedBlock,
-  NamedBlocks,
-  ElementNode,
-  VariableReference,
-  AttrBlockNode,
-};
-
-export type Node = ContentNode | ExpressionNode | AttrBlockNode;
-
-export interface Nodes {
-  Block: Block;
-  InvokeBlock: InvokeBlock;
-  NamedBlock: NamedBlock;
-  InvokeComponent: InvokeComponent;
-  SimpleElement: SimpleElement;
-  HtmlComment: HtmlComment;
-  GlimmerComment: GlimmerComment;
-  HtmlText: HtmlText;
-  LiteralExpression: LiteralExpression;
-  AppendContent: AppendContent;
-  ElementModifier: ElementModifier;
-  HtmlAttr: HtmlAttr;
-  Arg: ElementArg;
-  Interpolate: InterpolateExpression;
-  CallExpression: CallExpression;
-  PathExpression: PathExpression;
-  Named: Named;
-  NamedEntry: NamedEntry;
-}
-
-// export type NodeType = keyof Nodes;
-// export type Node = Nodes[NodeType];
+export { Builder };

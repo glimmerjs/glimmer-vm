@@ -341,6 +341,7 @@ export interface ASTPluginEnvironment {
   meta?: object;
   syntax: Syntax;
 }
+
 interface HandlebarsParseOptions {
   srcName?: string;
   ignoreStandalone?: boolean;
