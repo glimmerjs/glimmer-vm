@@ -15,7 +15,7 @@ const NON_WHITESPACE = /\S/;
 
 export interface PrinterOptions {
   entityEncoding: 'transformed' | 'raw';
-
+  outputEncoding?: 'raw' | 'html';
   /**
    * Used to override the mechanism of printing a given AST.Node.
    *
