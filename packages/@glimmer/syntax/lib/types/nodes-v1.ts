@@ -1,5 +1,6 @@
-import { Dict, Optional, WireFormat } from '@glimmer/interfaces';
+import { Dict, Optional, PresentArray, WireFormat } from '@glimmer/interfaces';
 import { SourceLocation } from '../source/location';
+import type { SourceOffsets } from '../source/offsets/abstract';
 
 export interface Symbols {
   symbols: string[];
@@ -31,7 +32,7 @@ export interface BaseNode {
   // The type property should be a string literal. For example, Identifier
   // has: `type: "Identifier"`
   type: NodeType;
-  loc: SourceLocation;
+  loc: SourceOffsets;
 }
 
 export interface CommonProgram extends BaseNode {
@@ -81,7 +82,9 @@ export interface MustacheStatement extends BaseNode {
   path: Expression;
   params: Expression[];
   hash: Hash;
+  /** @deprecated */
   escaped: boolean;
+  trusting: boolean;
   strip: StripFlags;
 }
 
@@ -173,7 +176,7 @@ export interface TextNode extends BaseNode {
 
 export interface ConcatStatement extends BaseNode {
   type: 'ConcatStatement';
-  parts: (TextNode | MustacheStatement)[];
+  parts: PresentArray<TextNode | MustacheStatement>;
 }
 
 export type ExpressionName = 'SubExpression' | 'PathExpression' | LiteralName;

@@ -1,9 +1,9 @@
-import { ASTv2 } from '@glimmer/syntax';
+import { ASTv2, maybeLoc, NON_EXISTENT } from '@glimmer/syntax';
 import { OptionalList } from '../../../../shared/list';
 import { Ok, Result, ResultArray } from '../../../../shared/result';
 import { getAttrNamespace } from '../../../../utils';
 import * as hir from '../../../2-symbol-allocation/hir';
-import { NormalizationUtilities } from '../../context';
+import { NormalizationState } from '../../context';
 import { assertIsValidHelper, isHelperInvocation } from '../../utils/is-node';
 import { VISIT_EXPRS } from '../expressions';
 
@@ -27,7 +27,7 @@ export class ClassifiedElement {
   constructor(
     readonly element: ASTv2.ElementNode,
     delegate: Classified,
-    readonly utils: NormalizationUtilities
+    readonly state: NormalizationState
   ) {
     this.delegate = delegate;
   }
@@ -37,7 +37,7 @@ export class ClassifiedElement {
   }
 
   private splatAttr(attr: ASTv2.SplatAttr): Result<ValidAttr> {
-    return Ok(this.utils.op(hir.AttrSplat).loc(attr));
+    return Ok(new hir.AttrSplat(attr.loc));
   }
 
   private attr(attr: ASTv2.HtmlAttr): Result<ValidAttr> {
@@ -45,20 +45,18 @@ export class ClassifiedElement {
     let rawValue = attr.value;
 
     let namespace = getAttrNamespace(name.chars) || undefined;
-    return VISIT_EXPRS.visit(rawValue, this.utils).mapOk((value) => {
+    return VISIT_EXPRS.visit(rawValue).mapOk((value) => {
       let isTrusting = attr.trusting;
 
-      return this.utils
-        .op(hir.Attr, {
-          name,
-          value: value,
-          namespace,
-          kind: {
-            trusting: isTrusting,
-            component: this.delegate.dynamicFeatures,
-          },
-        })
-        .loc(attr);
+      return new hir.Attr(attr.loc, {
+        name,
+        value: value,
+        namespace,
+        kind: {
+          trusting: isTrusting,
+          component: this.delegate.dynamicFeatures,
+        },
+      });
     });
   }
 
@@ -67,16 +65,15 @@ export class ClassifiedElement {
       assertIsValidHelper(modifier, modifier.loc, 'modifier');
     }
 
-    let head = VISIT_EXPRS.visit(modifier.callee, this.utils);
-    let args = VISIT_EXPRS.Args(modifier.args, this.utils);
+    let head = VISIT_EXPRS.visit(modifier.callee);
+    let args = VISIT_EXPRS.Args(modifier.args);
 
-    return Result.all(head, args).mapOk(([head, args]) =>
-      this.utils
-        .op(hir.Modifier, {
+    return Result.all(head, args).mapOk(
+      ([head, args]) =>
+        new hir.Modifier(modifier.loc, {
           head,
           args,
         })
-        .loc(modifier)
     );
   }
 
@@ -106,9 +103,9 @@ export class ClassifiedElement {
 
     return Result.all(args.toArray(), attrs.toArray()).mapOk(([args, attrs]) => ({
       attrs,
-      args: this.utils
-        .op(hir.Named, { pairs: OptionalList(args) })
-        .maybeLoc(args, this.utils.source.NON_EXISTENT),
+      args: new hir.Named(maybeLoc(args, NON_EXISTENT), {
+        pairs: OptionalList(args),
+      }),
     }));
   }
 
@@ -121,11 +118,9 @@ export class ClassifiedElement {
 
       let elementParams = [...attrs, ...modifiers];
 
-      let params = this.utils
-        .op(hir.ElementParameters, {
-          body: OptionalList(elementParams),
-        })
-        .maybeLoc(elementParams, this.utils.source.NON_EXISTENT);
+      let params = new hir.ElementParameters(maybeLoc(elementParams, NON_EXISTENT), {
+        body: OptionalList(elementParams),
+      });
 
       return { args, params };
     });

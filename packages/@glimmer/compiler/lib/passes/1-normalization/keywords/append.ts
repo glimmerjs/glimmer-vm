@@ -1,8 +1,7 @@
-import { ASTv2, GlimmerSyntaxError, Source, SourceSlice } from '@glimmer/syntax';
+import { ASTv2, GlimmerSyntaxError, InvisibleSourceOffsets, SourceSlice } from '@glimmer/syntax';
 import { expect } from '@glimmer/util';
 import { Err, Ok, Result } from '../../../shared/result';
 import * as hir from '../../2-symbol-allocation/hir';
-import { NormalizationUtilities } from '../context';
 import { VISIT_EXPRS } from '../visitors/expressions';
 import { assertValidHasBlockUsage } from './has-block';
 import { keywords } from './impl';
@@ -10,8 +9,7 @@ import { keywords } from './impl';
 export const APPEND_KEYWORDS = keywords('Append')
   .kw('yield', {
     assert(
-      node: ASTv2.AppendContent,
-      source: Source
+      node: ASTv2.AppendContent
     ): Result<{
       target: SourceSlice;
       positional: ASTv2.Positional;
@@ -20,7 +18,7 @@ export const APPEND_KEYWORDS = keywords('Append')
 
       if (args.named.isEmpty()) {
         return Ok({
-          target: new SourceSlice({ loc: source.NOT_IN_SOURCE, chars: 'default' }),
+          target: InvisibleSourceOffsets.synthetic('default').toSlice(),
           positional: args.positional,
         });
       } else {
@@ -44,7 +42,6 @@ export const APPEND_KEYWORDS = keywords('Append')
 
     translate(
       node: ASTv2.AppendContent,
-      utils: NormalizationUtilities,
       {
         target,
         positional,
@@ -53,13 +50,8 @@ export const APPEND_KEYWORDS = keywords('Append')
         positional: ASTv2.Positional;
       }
     ): Result<hir.Statement> {
-      return VISIT_EXPRS.Positional(positional, utils).mapOk((positional) =>
-        utils
-          .op(hir.Yield, {
-            target,
-            positional,
-          })
-          .loc(node)
+      return VISIT_EXPRS.Positional(positional).mapOk(
+        (positional) => new hir.Yield(node.loc, { target, positional })
       );
     },
   })
@@ -109,25 +101,16 @@ export const APPEND_KEYWORDS = keywords('Append')
 
     translate(
       node: ASTv2.AppendContent,
-      utils: NormalizationUtilities,
       expr: ASTv2.Expression | undefined
     ): Result<hir.Statement> {
       let visited =
         expr === undefined
-          ? VISIT_EXPRS.visit(
-              new ASTv2.Builder(utils.source).literal(undefined, utils.source.NOT_IN_SOURCE),
-              utils
+          ? Ok(
+              new hir.PlaceholderUndefined(InvisibleSourceOffsets.synthetic('undefined'), undefined)
             )
-          : VISIT_EXPRS.visit(expr, utils);
+          : VISIT_EXPRS.visit(expr);
 
-      return visited.mapOk((expr) =>
-        utils
-          .op(hir.Partial, {
-            table: node.table,
-            expr,
-          })
-          .loc(node)
-      );
+      return visited.mapOk((expr) => new hir.Partial(node.loc, { table: node.table, expr }));
     },
   })
   .kw('debugger', {
@@ -150,33 +133,25 @@ export const APPEND_KEYWORDS = keywords('Append')
       }
     },
 
-    translate(node: ASTv2.AppendContent, utils: NormalizationUtilities): Result<hir.Statement> {
-      return Ok(utils.op(hir.Debugger, { table: node.table }).loc(node));
+    translate(node: ASTv2.AppendContent): Result<hir.Statement> {
+      return Ok(new hir.Debugger(node.loc, { table: node.table }));
     },
   })
   .kw('has-block', {
-    assert(node: ASTv2.AppendContent, source: Source): Result<SourceSlice> {
-      return assertValidHasBlockUsage('has-block', node, source);
+    assert(node: ASTv2.AppendContent): Result<SourceSlice> {
+      return assertValidHasBlockUsage('has-block', node);
     },
-    translate(
-      node: ASTv2.AppendContent,
-      utils: NormalizationUtilities,
-      target: SourceSlice
-    ): Result<hir.AppendTextNode> {
-      let value = utils.op(hir.HasBlock, { target }).loc(node);
-      return Ok(utils.op(hir.AppendTextNode, { value }).loc(node));
+    translate(node: ASTv2.AppendContent, target: SourceSlice): Result<hir.AppendTextNode> {
+      let value = new hir.HasBlock(node.loc, { target });
+      return Ok(new hir.AppendTextNode(node.loc, { value }));
     },
   })
   .kw('has-block-params', {
-    assert(node: ASTv2.AppendContent, source: Source): Result<SourceSlice> {
-      return assertValidHasBlockUsage('has-block-params', node, source);
+    assert(node: ASTv2.AppendContent): Result<SourceSlice> {
+      return assertValidHasBlockUsage('has-block-params', node);
     },
-    translate(
-      node: ASTv2.AppendContent,
-      utils: NormalizationUtilities,
-      target: SourceSlice
-    ): Result<hir.AppendTextNode> {
-      let value = utils.op(hir.HasBlockParams, { target }).loc(node);
-      return Ok(utils.op(hir.AppendTextNode, { value }).loc(node));
+    translate(node: ASTv2.AppendContent, target: SourceSlice): Result<hir.AppendTextNode> {
+      let value = new hir.HasBlockParams(node.loc, { target });
+      return Ok(new hir.AppendTextNode(node.loc, { value }));
     },
   });

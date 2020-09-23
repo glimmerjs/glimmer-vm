@@ -1,5 +1,5 @@
 import { node } from './base';
-import { SourceSlice } from './internal';
+import { SourceSlice } from '../../source/slice';
 import { FreeVarResolution } from './resolution';
 
 export class ThisReference extends node('This').fields() {}

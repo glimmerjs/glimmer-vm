@@ -4,11 +4,13 @@ import { GlimmerSyntaxError } from '../errors/syntax-error';
 import Printer from '../generation/printer';
 import { preprocess, PreprocessOptions } from '../parser/tokenizer-event-handlers';
 import { SourceLocation } from '../source/location';
-import { SourceOffsets } from '../source/offsets';
+import { SourceOffsetList } from '../source/offsets';
+import type { SourceOffsets } from '../source/offsets/abstract';
+import { SourceSlice } from '../source/slice';
 import { Source } from '../source/source';
 import { BlockSymbolTable, ProgramSymbolTable, SymbolTable } from '../symbol-table';
 import * as ASTv1 from '../types/nodes-v1';
-import { default as buildersV1 } from '../v1-builders';
+import { default as buildersV1 } from '../v1/parser-builders';
 import { BuildElement, Builder, CallParts } from './builders';
 import {
   AppendSyntaxContext,
@@ -27,7 +29,6 @@ import {
   HtmlComment,
   HtmlText,
   NamedBlock,
-  SourceSlice,
   STRICT_RESOLUTION,
 } from './objects';
 
@@ -78,7 +79,7 @@ export class BlockContext<Table extends SymbolTable = SymbolTable> {
     private readonly options: GlimmerCompileOptions,
     readonly table: Table
   ) {
-    this.builder = new Builder(source);
+    this.builder = new Builder();
   }
 
   get strict(): boolean {
@@ -86,7 +87,7 @@ export class BlockContext<Table extends SymbolTable = SymbolTable> {
   }
 
   loc(loc: SourceLocation): SourceOffsets {
-    return this.source.locationToOffsets(loc);
+    return this.source.offsetsFor(loc);
   }
 
   resolutionFor<N extends ASTv1.CallNode | ASTv1.PathExpression>(
@@ -206,7 +207,7 @@ class ExpressionNormalizer {
     let offset = headOffsets;
 
     for (let part of expr.tail) {
-      offset = offset.slice({ chars: part.length, from: 1 });
+      offset = offset.sliceStart({ chars: part.length, from: 1 });
       tail.push(
         new SourceSlice({
           loc: offset,
@@ -225,12 +226,11 @@ class ExpressionNormalizer {
   callParts(parts: ASTv1.CallParts, context: FreeVarResolution): CallParts {
     let { path, params, hash } = parts;
 
+    let callee = this.normalize(path, context);
     let paramList = params.map((p) => this.normalize(p, ARGUMENT));
-    let paramLoc = this.block.source
-      .offsetList(paramList.map((p) => this.block.loc(p.loc)))
-      .getRangeOffset();
+    let paramLoc = SourceOffsetList.range(paramList, callee.loc.collapseEnd());
     let namedLoc = this.block.loc(hash.loc);
-    let argsLoc = this.block.source.offsetList([paramLoc, namedLoc]).getRangeOffset();
+    let argsLoc = SourceOffsetList.range([paramLoc, namedLoc]);
 
     let positional = this.block.builder.positional(
       params.map((p) => this.normalize(p, ARGUMENT)),
@@ -243,7 +243,7 @@ class ExpressionNormalizer {
     );
 
     return {
-      callee: this.normalize(path, context),
+      callee,
       args: this.block.builder.args(positional, named, argsLoc),
     };
   }
@@ -251,7 +251,7 @@ class ExpressionNormalizer {
   private namedEntry(pair: ASTv1.HashPair): ASTv2.NamedEntry {
     let offsets = this.block.loc(pair.loc);
 
-    let keyOffsets = offsets.slice({ chars: pair.key.length });
+    let keyOffsets = offsets.sliceStart({ chars: pair.key.length });
 
     return this.block.builder.namedEntry(
       new SourceSlice({ chars: pair.key, loc: keyOffsets }),
@@ -317,7 +317,7 @@ class StatementNormalizer {
         let loc = this.block.loc(node.loc);
         return new HtmlComment({
           loc,
-          text: loc.sliceRange({ skipStart: 4, skipEnd: 3 }).toSlice(node.value),
+          text: loc.slice({ skipStart: 4, skipEnd: 3 }).toSlice(node.value),
         });
       }
 
@@ -334,9 +334,9 @@ class StatementNormalizer {
     let textLoc: SourceOffsets;
 
     if (loc.asString().slice(0, 5) === '{{!--') {
-      textLoc = loc.sliceRange({ skipStart: 5, skipEnd: 4 });
+      textLoc = loc.slice({ skipStart: 5, skipEnd: 4 });
     } else {
-      textLoc = loc.sliceRange({ skipStart: 3, skipEnd: 2 });
+      textLoc = loc.slice({ skipStart: 3, skipEnd: 2 });
     }
 
     return new GlimmerComment({
@@ -470,12 +470,12 @@ class ElementNormalizer {
     let children = new ElementChildren(el, loc, childNodes, this.ctx);
 
     let offsets = this.ctx.loc(element.loc);
-    let tagOffsets = offsets.slice({ chars: tag.length, from: 1 });
+    let tagOffsets = offsets.sliceStart({ chars: tag.length, from: 1 });
 
     if (path === 'ElementHead') {
       if (tag[0] === ':') {
         return children.assertNamedBlock(
-          tagOffsets.sliceFrom({ offset: 1 }).toSlice(tag.slice(1)),
+          tagOffsets.sliceFrom({ from: 1 }).toSlice(tag.slice(1)),
           child.table
         );
       } else {
@@ -571,7 +571,7 @@ class ElementNormalizer {
     }
 
     let offsets = this.ctx.loc(m.loc);
-    let nameSlice = offsets.slice({ chars: m.name.length }).toSlice(m.name);
+    let nameSlice = offsets.sliceStart({ chars: m.name.length }).toSlice(m.name);
 
     let value = this.attrValue(m.value);
     return this.ctx.builder.attr(
@@ -584,7 +584,7 @@ class ElementNormalizer {
     assert(arg.name[0] === '@', 'An arg name must start with `@`');
 
     let offsets = this.ctx.loc(arg.loc);
-    let nameSlice = offsets.slice({ chars: arg.name.length }).toSlice(arg.name);
+    let nameSlice = offsets.sliceStart({ chars: arg.name.length }).toSlice(arg.name);
 
     let value = this.attrValue(arg.value);
     return this.ctx.builder.arg(
@@ -611,7 +611,7 @@ class ElementNormalizer {
   private classifyTag(
     variable: string,
     tail: string[],
-    loc: SourceLocation
+    loc: SourceOffsets
   ): ASTv2.Expression | 'ElementHead' {
     let uppercase = isUpperCase(variable);
     let inScope = this.ctx.hasBinding(variable);
@@ -620,6 +620,12 @@ class ElementNormalizer {
     // to convert it into an ASTv1 path so it can be processed using the
     // expression normalizer.
     let isComponent = variable[0] === '@' || variable === 'this' || inScope || uppercase;
+
+    let variableLoc = loc.sliceRange({ skipStart: 1, chars: variable.length });
+
+    let tailLength = tail.reduce((accum, part) => accum + 1 + part.length, 0);
+    let pathEnd = variableLoc.endOffset.move(tailLength);
+    let pathLoc = variableLoc.withEnd(pathEnd);
 
     if (isComponent) {
       // If the component name is uppercase, the variable is not in scope,
@@ -630,7 +636,11 @@ class ElementNormalizer {
         variable = this.ctx.customizeComponentName(variable);
       }
 
-      let path = buildersV1.fullPath(buildersV1.head(variable), tail);
+      let path = buildersV1.path({
+        head: buildersV1.head(variable, variableLoc),
+        tail,
+        loc: pathLoc,
+      });
 
       let resolution = this.ctx.resolutionFor(path, ComponentSyntaxContext);
 
@@ -747,9 +757,7 @@ class ElementChildren extends Children {
       );
     }
 
-    let offsets = this.block.source
-      .offsetList(this.nonBlockChildren.map((c) => c.loc))
-      .getRangeOffset();
+    let offsets = SourceOffsetList.range(this.nonBlockChildren, this.loc);
 
     return this.block.builder.namedBlock(
       name,
@@ -809,7 +817,7 @@ class ElementChildren extends Children {
     } else {
       return [
         this.block.builder.namedBlock(
-          this.block.builder.slice('default', this.block.source.NOT_IN_SOURCE),
+          SourceSlice.synthetic('default'),
           this.block.builder.block(table, this.nonBlockChildren, this.loc),
           this.loc
         ),

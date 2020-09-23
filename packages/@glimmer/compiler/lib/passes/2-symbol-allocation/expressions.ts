@@ -2,6 +2,7 @@ import * as hir from './hir';
 import * as mir from '../3-encoding/mir';
 import { OpArgs } from '../../shared/op';
 import { Context, MapVisitorsInterface } from './context';
+import { SourceOffsetList } from '@glimmer/syntax';
 
 export type ExpressionVisitor = MapVisitorsInterface<hir.Expr, mir.Expr>;
 
@@ -61,13 +62,17 @@ export class Pass1Expression implements ExpressionVisitor {
       // TODO Move the source location work to pass0
       let mappedTail = ctx
         .unlocatedOp(mir.Tail, { members: tail })
-        .loc(ctx.source.offsetList(tail.map((s) => s.loc)).getRangeOffset());
+        .loc(SourceOffsetList.range(tail));
       return ctx.op(mir.GetPath, { head: mappedHead, tail: mappedTail });
     }
   }
 
   Literal(ctx: Context, { value }: OpArgs<hir.Literal>): mir.Expr {
     return ctx.op(mir.Literal, { value });
+  }
+
+  PlaceholderUndefined(ctx: Context): mir.Expr {
+    return ctx.op(mir.Literal, { value: undefined });
   }
 
   SubExpression(ctx: Context, { head, args }: OpArgs<hir.SubExpression>): mir.Helper {

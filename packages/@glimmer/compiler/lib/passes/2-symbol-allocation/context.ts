@@ -13,8 +13,8 @@ import { InputOpArgs, OpArgs, OpConstructor, UnlocatedOp } from '../../shared/op
 import { OpFactory, Ops } from '../../shared/ops';
 import * as mir from '../3-encoding/mir';
 import { Pass1Expression } from './expressions';
-import { Pass1Internal } from './internal';
 import * as hir from './hir';
+import { Pass1Internal } from './internal';
 import { Pass1Statement } from './statements';
 
 /**
@@ -124,7 +124,7 @@ export class Context {
   }
 
   error(message: string, offsets = this.loc): SyntaxError {
-    return new GlimmerSyntaxError(message, offsets ? offsets.toLocation() : null);
+    return new GlimmerSyntaxError(message, offsets || null);
   }
 
   template(...args: InputOpArgs<mir.Template>): UnlocatedOp<mir.Template> {
@@ -137,7 +137,7 @@ export class Context {
   }
 
   op<O extends mir.Op>(name: OpConstructor<O>, ...args: InputOpArgs<O>): O {
-    return this.unlocatedOp(name, ...args).loc(this.loc);
+    return this.unlocatedOp(name, ...args).loc(this);
   }
 
   unlocatedOp<O extends mir.Op>(name: OpConstructor<O>, ...args: InputOpArgs<O>): UnlocatedOp<O> {

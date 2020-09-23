@@ -1,34 +1,34 @@
 import type { PresentArray } from '@glimmer/interfaces';
 import { assert, assertPresent, assign } from '@glimmer/util';
-import type { SourceOffsets } from '../source/offsets';
-import type { Source } from '../source/source';
+import { SourceOffsetList } from '../source/offsets';
+import type { SourceOffsets } from '../source/offsets/abstract';
+import { SourceSlice } from '../source/slice';
 import type { BlockSymbolTable, ProgramSymbolTable, SymbolTable } from '../symbol-table';
 import type * as ASTv2 from './nodes-v2';
 import {
+  AppendContent,
+  ArgReference,
+  Args,
+  Block,
+  CallExpression,
   ComponentArg,
+  ExpressionNode,
+  FreeVarReference,
   FreeVarResolution,
   HtmlAttr,
-  LiteralExpression,
-  AppendContent,
-  Args,
-  Named,
-  NamedEntry,
-  Positional,
+  InterpolateExpression,
   InvokeBlock,
   InvokeComponent,
-  SimpleElement,
-  PathExpression,
-  ExpressionNode,
-  InterpolateExpression,
-  CallExpression,
-  Block,
+  LiteralExpression,
+  LocalVarReference,
+  Named,
   NamedBlock,
   NamedBlocks,
-  SourceSlice,
+  NamedEntry,
+  PathExpression,
+  Positional,
+  SimpleElement,
   Template,
-  ArgReference,
-  FreeVarReference,
-  LocalVarReference,
   ThisReference,
 } from './objects';
 import { ElementModifier, SplatAttr } from './objects/attr-block';
@@ -40,8 +40,6 @@ export interface CallParts {
 
 export class Builder {
   // TEMPLATE //
-
-  constructor(private source: Source) {}
 
   template(
     symbols: ProgramSymbolTable,
@@ -77,16 +75,13 @@ export class Builder {
   }
 
   simpleNamedBlock(name: SourceSlice, block: ASTv2.Block, loc: SourceOffsets): ASTv2.NamedBlock {
-    return new BuildElement(
-      {
-        selfClosing: false,
-        attrs: [],
-        componentArgs: [],
-        modifiers: [],
-        comments: [],
-      },
-      this.source
-    ).named(name, block, loc);
+    return new BuildElement({
+      selfClosing: false,
+      attrs: [],
+      componentArgs: [],
+      modifiers: [],
+      comments: [],
+    }).named(name, block, loc);
   }
 
   slice(chars: string, loc: SourceOffsets): SourceSlice {
@@ -224,9 +219,11 @@ export class Builder {
   }
 
   interpolate(parts: ASTv2.Expression[], loc: SourceOffsets): ASTv2.InterpolateExpression {
+    assertPresent(parts);
+
     return new InterpolateExpression({
       loc,
-      parts: assertPresent(parts),
+      parts,
     });
   }
 
@@ -293,13 +290,11 @@ export class Builder {
   ): ASTv2.InvokeBlock {
     let blocksLoc = program.loc;
     let blocks: PresentArray<ASTv2.NamedBlock> = [
-      this.namedBlock(this.slice('default', this.source.NOT_IN_SOURCE), program, program.loc),
+      this.namedBlock(SourceSlice.synthetic('default'), program, program.loc),
     ];
     if (inverse) {
       blocksLoc = blocksLoc.extend(inverse.loc);
-      blocks.push(
-        this.namedBlock(this.slice('else', this.source.NOT_IN_SOURCE), inverse, inverse.loc)
-      );
+      blocks.push(this.namedBlock(SourceSlice.synthetic('else'), inverse, inverse.loc));
     }
 
     return new InvokeBlock({
@@ -311,7 +306,7 @@ export class Builder {
   }
 
   element(options: BuildBaseElement): BuildElement {
-    return new BuildElement(options, this.source);
+    return new BuildElement(options);
   }
 }
 
@@ -325,8 +320,8 @@ export interface BuildBaseElement {
 
 export class BuildElement {
   readonly builder: Builder;
-  constructor(readonly base: BuildBaseElement, private source: Source) {
-    this.builder = new Builder(source);
+  constructor(readonly base: BuildBaseElement) {
+    this.builder = new Builder();
   }
 
   simple(tag: SourceSlice, body: ASTv2.ContentNode[], loc: SourceOffsets): ASTv2.SimpleElement {
@@ -378,14 +373,7 @@ export class BuildElement {
     loc: SourceOffsets
   ): ASTv2.InvokeComponent {
     let block = this.builder.block(symbols, children, loc);
-    let namedBlock = this.builder.namedBlock(
-      new SourceSlice({
-        loc: this.source.NOT_IN_SOURCE,
-        chars: 'default',
-      }),
-      block,
-      loc
-    ); // BUILDER.simpleNamedBlock('default', children, symbols, loc);
+    let namedBlock = this.builder.namedBlock(SourceSlice.synthetic('default'), block, loc); // BUILDER.simpleNamedBlock('default', children, symbols, loc);
 
     return new InvokeComponent(
       assign(
@@ -409,10 +397,7 @@ export class BuildElement {
         {
           loc,
           callee,
-          blocks: this.builder.namedBlocks(
-            blocks,
-            this.source.offsetList(blocks.map((l) => l.loc)).getRangeOffset()
-          ),
+          blocks: this.builder.namedBlocks(blocks, SourceOffsetList.range(blocks)),
         },
         this.base
       )

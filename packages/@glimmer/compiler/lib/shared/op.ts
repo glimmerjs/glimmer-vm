@@ -1,4 +1,10 @@
-import { SourceOffsets } from '@glimmer/syntax';
+import {
+  hasOffsets,
+  HasSourceOffsets,
+  loc,
+  MaybeHasSourceOffsets,
+  SourceOffsets,
+} from '@glimmer/syntax';
 
 export type OpsTable<O extends Op> = {
   [P in O['name']]: O extends { name: P } ? O : never;
@@ -60,34 +66,6 @@ export function op<N extends string>(
   };
 }
 
-type HasSourceOffsets =
-  | { loc: SourceOffsets }
-  | SourceOffsets
-  | [HasSourceOffsets, ...HasSourceOffsets[]];
-
-function offset(offsets: HasSourceOffsets): SourceOffsets {
-  if (Array.isArray(offsets)) {
-    let first = offsets[0];
-    let last = offsets[offsets.length - 1];
-
-    return offset(first).extend(offset(last));
-  } else if (offsets instanceof SourceOffsets) {
-    return offsets;
-  } else {
-    return offsets.loc;
-  }
-}
-
-type MaybeHasSourceOffsets = { loc: SourceOffsets } | SourceOffsets | MaybeHasSourceOffsets[];
-
-function hasOffsets(offsets: MaybeHasSourceOffsets): offsets is HasSourceOffsets {
-  if (Array.isArray(offsets) && offsets.length === 0) {
-    return false;
-  }
-
-  return true;
-}
-
 export class UnlocatedOp<O extends Op> {
   constructor(private Class: OpConstructor<O>, private args: OpArgs<O>) {}
 
@@ -100,6 +78,6 @@ export class UnlocatedOp<O extends Op> {
   }
 
   loc(located: HasSourceOffsets): O {
-    return new this.Class(offset(located), this.args) as O;
+    return new this.Class(loc(located), this.args) as O;
   }
 }

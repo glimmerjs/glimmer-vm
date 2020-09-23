@@ -2,11 +2,12 @@ import { Optional, Recast } from '@glimmer/interfaces';
 import { expect } from '@glimmer/util';
 import { TokenizerState } from 'simple-html-tokenizer';
 import { GlimmerSyntaxError } from '../errors/syntax-error';
-import { Attribute, Parser, Tag } from '../parser';
+import { Builder, Parser, Tag } from '../parser';
+import { NON_EXISTENT_LOCATION } from '../source/location';
 import * as HBS from '../types/handlebars-ast';
 import * as AST from '../types/nodes-v1';
 import { appendChild, isLiteral, printLiteral } from '../utils';
-import b from '../v1-builders';
+import b from '../v1/parser-builders';
 
 export abstract class HandlebarsNodeVisitors extends Parser {
   abstract appendToCommentData(s: string): void;
@@ -25,9 +26,18 @@ export abstract class HandlebarsNodeVisitors extends Parser {
     let node;
 
     if (this.isTopLevel) {
-      node = b.template(body, program.blockParams, program.loc);
+      node = b.template({
+        body,
+        blockParams: program.blockParams,
+        loc: this.source.offsetsFor(program.loc),
+      });
     } else {
-      node = b.blockItself(body, program.blockParams, program.chained, program.loc);
+      node = b.blockItself({
+        body,
+        blockParams: program.blockParams,
+        chained: program.chained,
+        loc: this.source.offsetsFor(program.loc),
+      });
     }
 
     let i,
@@ -74,20 +84,30 @@ export abstract class HandlebarsNodeVisitors extends Parser {
     }
 
     let { path, params, hash } = acceptCallNodes(this, block);
+
+    // These are bugs in Handlebars upstream
+    if (!block.program.loc) {
+      block.program.loc = NON_EXISTENT_LOCATION;
+    }
+
+    if (block.inverse && !block.inverse.loc) {
+      block.inverse.loc = NON_EXISTENT_LOCATION;
+    }
+
     let program = this.Program(block.program);
     let inverse = block.inverse ? this.Program(block.inverse) : null;
 
-    let node = b.block(
+    let node = b.block({
       path,
       params,
       hash,
-      program,
-      inverse,
-      block.loc,
-      block.openStrip,
-      block.inverseStrip,
-      block.closeStrip
-    );
+      defaultBlock: program,
+      elseBlock: inverse,
+      loc: this.source.offsetsFor(block.loc),
+      openStrip: block.openStrip,
+      inverseStrip: block.inverseStrip,
+      closeStrip: block.closeStrip,
+    });
 
     let parentProgram = this.currentElement();
 
@@ -106,15 +126,14 @@ export abstract class HandlebarsNodeVisitors extends Parser {
     let { escaped, loc, strip } = rawMustache;
 
     if (isLiteral(rawMustache.path)) {
-      mustache = {
-        type: 'MustacheStatement',
+      mustache = b.mustache({
         path: this.acceptNode<AST.Literal>(rawMustache.path),
         params: [],
-        hash: b.hash(),
-        escaped,
-        loc,
+        hash: b.hash([], this.source.offsetsFor(rawMustache.path.loc).collapseEnd()),
+        trusting: !escaped,
+        loc: this.source.offsetsFor(loc),
         strip,
-      };
+      });
     } else {
       let { path, params, hash } = acceptCallNodes(
         this,
@@ -122,7 +141,14 @@ export abstract class HandlebarsNodeVisitors extends Parser {
           path: HBS.PathExpression;
         }
       );
-      mustache = b.mustache(path, params, hash, !escaped, loc, strip);
+      mustache = b.mustache({
+        path,
+        params,
+        hash,
+        trusting: !escaped,
+        loc: this.source.offsetsFor(loc),
+        strip,
+      });
     }
 
     switch (tokenizer.state) {
@@ -155,13 +181,13 @@ export abstract class HandlebarsNodeVisitors extends Parser {
       // Attribute values
       case TokenizerState.beforeAttributeValue:
         this.beginAttributeValue(false);
-        appendDynamicAttributeValuePart(this.currentAttribute!, mustache);
+        this.appendDynamicAttributeValuePart(mustache);
         tokenizer.transitionTo(TokenizerState.attributeValueUnquoted);
         break;
       case TokenizerState.attributeValueDoubleQuoted:
       case TokenizerState.attributeValueSingleQuoted:
       case TokenizerState.attributeValueUnquoted:
-        appendDynamicAttributeValuePart(this.currentAttribute!, mustache);
+        this.appendDynamicAttributeValuePart(mustache);
         break;
 
       // TODO: Only append child when the tokenizer state makes
@@ -171,6 +197,26 @@ export abstract class HandlebarsNodeVisitors extends Parser {
     }
 
     return mustache;
+  }
+
+  appendDynamicAttributeValuePart(part: AST.MustacheStatement) {
+    this.finalizeTextPart();
+    let attr = this.currentAttr;
+    attr.isDynamic = true;
+    attr.parts.push(part);
+  }
+
+  finalizeTextPart() {
+    let attr = this.currentAttr;
+    let text = attr.currentPart;
+    if (text !== null) {
+      this.currentAttr.parts.push(text);
+      this.startTextPart();
+    }
+  }
+
+  startTextPart() {
+    this.currentAttr.currentPart = null;
   }
 
   ContentStatement(content: HBS.ContentStatement): void {
@@ -189,7 +235,7 @@ export abstract class HandlebarsNodeVisitors extends Parser {
     }
 
     let { value, loc } = rawComment;
-    let comment = b.mustacheComment(value, loc);
+    let comment = b.mustacheComment(value, this.source.offsetsFor(loc));
 
     switch (tokenizer.state) {
       case TokenizerState.beforeAttributeName:
@@ -260,7 +306,7 @@ export abstract class HandlebarsNodeVisitors extends Parser {
 
   SubExpression(sexpr: HBS.SubExpression): AST.SubExpression {
     let { path, params, hash } = acceptCallNodes(this, sexpr);
-    return b.sexpr(path, params, hash, sexpr.loc);
+    return b.sexpr({ path, params, hash, loc: this.source.offsetsFor(sexpr.loc) });
   }
 
   PathExpression(path: HBS.PathExpression): AST.PathExpression {
@@ -361,7 +407,7 @@ export abstract class HandlebarsNodeVisitors extends Parser {
       head: pathHead,
       tail: parts,
       parts: [...legacyParts, ...parts],
-      loc: path.loc,
+      loc: this.source.offsetsFor(path.loc),
     };
   }
 
@@ -370,30 +416,36 @@ export abstract class HandlebarsNodeVisitors extends Parser {
 
     for (let i = 0; i < hash.pairs.length; i++) {
       let pair = hash.pairs[i];
-      pairs.push(b.pair(pair.key, this.acceptNode(pair.value), pair.loc));
+      pairs.push(
+        b.pair({
+          key: pair.key,
+          value: this.acceptNode(pair.value),
+          loc: this.source.offsetsFor(pair.loc),
+        })
+      );
     }
 
-    return b.hash(pairs, hash.loc);
+    return b.hash(pairs, this.source.offsetsFor(hash.loc));
   }
 
   StringLiteral(string: HBS.StringLiteral): AST.StringLiteral {
-    return b.literal('StringLiteral', string.value, string.loc);
+    return b.literal({ type: 'StringLiteral', value: string.value, loc: string.loc });
   }
 
   BooleanLiteral(boolean: HBS.BooleanLiteral): AST.BooleanLiteral {
-    return b.literal('BooleanLiteral', boolean.value, boolean.loc);
+    return b.literal({ type: 'BooleanLiteral', value: boolean.value, loc: boolean.loc });
   }
 
   NumberLiteral(number: HBS.NumberLiteral): AST.NumberLiteral {
-    return b.literal('NumberLiteral', number.value, number.loc);
+    return b.literal({ type: 'NumberLiteral', value: number.value, loc: number.loc });
   }
 
   UndefinedLiteral(undef: HBS.UndefinedLiteral): AST.UndefinedLiteral {
-    return b.literal('UndefinedLiteral', undefined, undef.loc);
+    return b.literal({ type: 'UndefinedLiteral', value: undefined, loc: undef.loc });
   }
 
   NullLiteral(nul: HBS.NullLiteral): AST.NullLiteral {
-    return b.literal('NullLiteral', null, nul.loc);
+    return b.literal({ type: 'NullLiteral', value: null, loc: nul.loc });
   }
 }
 
@@ -448,14 +500,24 @@ function acceptCallNodes(
   }
 ): { path: AST.PathExpression; params: AST.Expression[]; hash: AST.Hash } {
   let path = compiler.PathExpression(node.path);
-
   let params = node.params ? node.params.map((e) => compiler.acceptNode<AST.Expression>(e)) : [];
-  let hash = node.hash ? compiler.Hash(node.hash) : b.hash();
+
+  // if there is no hash, position it as a collapsed node immediately after the last param (or the
+  // path, if there are also no params)
+  let end = params.length > 0 ? params[params.length - 1].loc : path.loc;
+
+  let hash = node.hash
+    ? compiler.Hash(node.hash)
+    : ({
+        type: 'Hash',
+        pairs: [] as AST.HashPair[],
+        loc: compiler.source.offsetsFor(end).collapseEnd(),
+      } as const);
 
   return { path, params, hash };
 }
 
-function addElementModifier(element: Tag<'StartTag'>, mustache: AST.MustacheStatement) {
+function addElementModifier(element: Builder<Tag<'StartTag'>>, mustache: AST.MustacheStatement) {
   let { path, params, hash, loc } = mustache;
 
   if (isLiteral(path)) {
@@ -470,11 +532,6 @@ function addElementModifier(element: Tag<'StartTag'>, mustache: AST.MustacheStat
     );
   }
 
-  let modifier = b.elementModifier(path, params, hash, loc);
+  let modifier = b.elementModifier({ path, params, hash, loc });
   element.modifiers.push(modifier);
-}
-
-function appendDynamicAttributeValuePart(attribute: Attribute, part: AST.MustacheStatement) {
-  attribute.isDynamic = true;
-  attribute.parts.push(part);
 }

@@ -1,47 +1,70 @@
+import { Optional } from '@glimmer/interfaces';
+import { assert, assign, expect } from '@glimmer/util';
 import {
-  EventedTokenizer,
   EntityParser,
+  EventedTokenizer,
   HTML5NamedCharRefs as namedCharRefs,
 } from 'simple-html-tokenizer';
+import type { SourceOffset, SourceOffsets } from './source/offsets/abstract';
+import { LazySourceOffset } from './source/offsets/lazy';
+import { Source } from './source/source';
 import * as AST from './types/api';
 import * as HBS from './types/handlebars-ast';
-import { Optional } from '@glimmer/interfaces';
-import { assert, expect } from '@glimmer/util';
+
+export type Builder<N extends { loc: SourceOffsets }> = Omit<N, 'loc'> & { loc: SourceOffset };
 
 export type Element = AST.Template | AST.Block | AST.ElementNode;
 
 export interface Tag<T extends 'StartTag' | 'EndTag'> {
   type: T;
   name: string;
-  attributes: any[];
-  modifiers: any[];
-  comments: any[];
+  attributes: AST.AttrNode[];
+  modifiers: AST.ElementModifierStatement[];
+  comments: AST.MustacheCommentStatement[];
   selfClosing: boolean;
-  loc: AST.SourceLocation;
+  loc: SourceOffsets;
 }
 
 export interface Attribute {
   name: string;
+  currentPart: AST.TextNode | null;
   parts: (AST.MustacheStatement | AST.TextNode)[];
   isQuoted: boolean;
   isDynamic: boolean;
-  start: AST.Position;
-  valueStartLine: number;
-  valueStartColumn: number;
+  start: SourceOffset;
+  valueOffsets: SourceOffsets;
 }
 
 export abstract class Parser {
   protected elementStack: Element[] = [];
-  private source: string[];
+  private lines: string[];
+  readonly source: Source;
   public currentAttribute: Optional<Attribute> = null;
   public currentNode: Optional<
-    AST.CommentStatement | AST.TextNode | Tag<'StartTag' | 'EndTag'>
+    Builder<AST.CommentStatement> | AST.TextNode | Builder<Tag<'StartTag'>> | Builder<Tag<'EndTag'>>
   > = null;
   public tokenizer: EventedTokenizer;
 
   constructor(source: string, entityParser = new EntityParser(namedCharRefs)) {
-    this.source = source.split(/(?:\r\n?|\n)/g);
+    this.source = new Source(source);
+    this.lines = source.split(/(?:\r\n?|\n)/g);
     this.tokenizer = new EventedTokenizer(this, entityParser);
+  }
+
+  offset(): LazySourceOffset {
+    return this.source.offsetFor(this.tokenizer);
+  }
+
+  pos(pos: AST.SourcePosition): LazySourceOffset {
+    return this.source.offsetFor(pos);
+  }
+
+  finish<T extends { loc: SourceOffsets }>(node: Builder<T>, end: SourceOffset): T {
+    return (assign(node, {
+      loc: node.loc.withEnd(end),
+    } as const) as unknown) as T;
+
+    // node.loc = node.loc.withEnd(end);
   }
 
   abstract Program(node: HBS.Program): HBS.Output<'Program'>;
@@ -87,34 +110,34 @@ export abstract class Parser {
     return expect(this.currentAttribute, 'expected attribute');
   }
 
-  get currentTag(): Tag<'StartTag' | 'EndTag'> {
+  get currentTag(): Builder<Tag<'StartTag' | 'EndTag'>> {
     let node = this.currentNode;
     assert(node && (node.type === 'StartTag' || node.type === 'EndTag'), 'expected tag');
-    return node as Tag<'StartTag' | 'EndTag'>;
+    return node;
   }
 
-  get currentStartTag(): Tag<'StartTag'> {
+  get currentStartTag(): Builder<Tag<'StartTag'>> {
     let node = this.currentNode;
     assert(node && node.type === 'StartTag', 'expected start tag');
-    return node as Tag<'StartTag'>;
+    return node;
   }
 
-  get currentEndTag(): Tag<'EndTag'> {
+  get currentEndTag(): Builder<Tag<'EndTag'>> {
     let node = this.currentNode;
     assert(node && node.type === 'EndTag', 'expected end tag');
-    return node as Tag<'EndTag'>;
+    return node;
   }
 
-  get currentComment(): AST.CommentStatement {
+  get currentComment(): Builder<AST.CommentStatement> {
     let node = this.currentNode;
     assert(node && node.type === 'CommentStatement', 'expected a comment');
-    return node as AST.CommentStatement;
+    return node;
   }
 
   get currentData(): AST.TextNode {
     let node = this.currentNode;
     assert(node && node.type === 'TextNode', 'expected a text node');
-    return node as AST.TextNode;
+    return node;
   }
 
   acceptTemplate(node: HBS.Program): AST.Template {
@@ -151,7 +174,7 @@ export abstract class Parser {
 
     while (currentLine < lastLine) {
       currentLine++;
-      line = this.source[currentLine];
+      line = this.lines[currentLine];
 
       if (currentLine === firstLine) {
         if (firstLine === lastLine) {

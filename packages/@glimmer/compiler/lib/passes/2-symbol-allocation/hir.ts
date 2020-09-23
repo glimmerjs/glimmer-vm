@@ -2,10 +2,10 @@ import { Optional, PresentArray } from '@glimmer/interfaces';
 import {
   ASTv2,
   BlockSymbolTable,
-  ProgramSymbolTable,
-  SymbolTable,
-  SourceSlice,
   FreeVarResolution,
+  ProgramSymbolTable,
+  SourceSlice,
+  SymbolTable,
 } from '@glimmer/syntax';
 import { AnyOptionalList, OptionalList, PresentList } from '../../shared/list';
 import { op, OpsTable } from '../../shared/op';
@@ -31,6 +31,7 @@ export class Template extends op('Template').args<{
 
 /** EXPRESSIONS **/
 
+export class PlaceholderUndefined extends op('PlaceholderUndefined').args<void>() {}
 export class Literal extends op('Literal').args<{ value: ASTv2.LiteralExpression['value'] }>() {}
 export class Path extends op('Path').args<{ head: Expr; tail: PresentArray<SourceSlice> }>() {}
 export class GetArg extends op('GetArg').args<{ name: SourceSlice }>() {}
@@ -70,6 +71,7 @@ export class SubExpression extends op('SubExpression').args<{
 export class Positional extends op('Positional').args<{ list: AnyOptionalList<Expr> }>() {}
 
 export class NamedEntry extends op('NamedEntry').args<{ key: SourceSlice; value: Expr }>() {}
+
 export class Named extends op('Named').args<{
   pairs: OptionalList<NamedEntry>;
 }>() {}
@@ -89,6 +91,7 @@ export type Internal =
 export type InternalTable = OpsTable<Internal>;
 
 export type Expr =
+  | PlaceholderUndefined
   | Literal
   | Interpolate
   | Path

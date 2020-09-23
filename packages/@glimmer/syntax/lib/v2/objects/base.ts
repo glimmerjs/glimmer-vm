@@ -1,10 +1,9 @@
+import type { SourceOffsets } from '../../source/offsets/abstract';
 import type { SerializedSourceOffsets } from '../../source/offsets';
-import { SourceOffsets } from '../../source/offsets';
-import { CallExpression } from '../nodes-v2';
 import type { Args } from './args';
-import { ElementModifier } from './attr-block';
+import type { ElementModifier } from './attr-block';
 import type { AppendContent, ContentNode, InvokeBlock, InvokeComponent } from './content';
-import type { ExpressionNode } from './expr';
+import type { CallExpression, ExpressionNode } from './expr';
 
 export interface BaseNodeFields {
   loc: SourceOffsets;
@@ -74,17 +73,24 @@ export type CallNode =
  * new HtmlText({ loc: offsets, chars: someString });
  * ```
  */
-export function node<T extends string>(
-  name: T
-): { fields<Fields extends object>(): TypedNodeConstructor<T, Fields & BaseNodeFields> };
 export function node(): {
   fields<Fields extends object>(): NodeConstructor<Fields & BaseNodeFields>;
 };
 export function node<T extends string>(
+  name: T
+): {
+  fields<Fields extends object>(): TypedNodeConstructor<T, Fields & BaseNodeFields>;
+};
+
+export function node<T extends string>(
   name?: T
 ):
-  | { fields<Fields extends object>(): TypedNodeConstructor<T, Fields> }
-  | { fields<Fields extends object>(): NodeConstructor<Fields> } {
+  | {
+      fields<Fields extends object>(): TypedNodeConstructor<T, Fields & BaseNodeFields>;
+    }
+  | {
+      fields<Fields extends object>(): NodeConstructor<Fields & BaseNodeFields>;
+    } {
   if (name !== undefined) {
     return {
       fields<Fields extends object>(): TypedNodeConstructor<T, Fields> {
@@ -119,13 +125,13 @@ type ConstructingTypedNode<T extends string, Fields> = AbstractTypedNode<T> &
 type ConstructingNode<Fields> = AbstractNode & BaseNodeFields & Fields;
 
 export type NodeConstructor<Fields> = {
-  new (options: BaseNodeFields & Fields): AbstractNode & Readonly<BaseNodeFields & Fields>;
+  new (options: Fields): AbstractNode & Readonly<Fields>;
 };
 
-type TypedNode<T extends string, Fields> = AbstractTypedNode<T> & Readonly<Fields & BaseNodeFields>;
+type TypedNode<T extends string, Fields> = AbstractTypedNode<T> & Readonly<Fields>;
 
 export type TypedNodeConstructor<T extends string, Fields> = {
-  new (options: BaseNodeFields & Fields): TypedNode<T, Fields>;
+  new (options: Fields): TypedNode<T, Fields>;
 };
 
 function keys<O extends object>(object: O): (keyof O)[] {

@@ -1,4 +1,5 @@
-import { preprocess as parse, builders as b } from '..';
+import { preprocess as parse, builders as b, ASTv1 } from '..';
+import { Dict } from '@glimmer/interfaces';
 
 import { astEqual } from './support';
 
@@ -13,12 +14,12 @@ test('a simple piece of content', function () {
 
 test('self-closed element', function () {
   let t = '<g />';
-  astEqual(t, b.program([b.element('g/')]));
+  astEqual(t, b.program([element('g/')]));
 });
 
 test('elements can have empty attributes', function () {
   let t = '<img id="">';
-  astEqual(t, b.program([b.element('img', { attrs: [b.attr('id', b.text(''))] })]));
+  astEqual(t, b.program([element('img', ['attrs', ['id', '']])]));
 });
 
 test('disallowed quote in element space is rejected', function (assert) {
@@ -37,17 +38,17 @@ test('disallowed equals sign in element space is rejected', function (assert) {
 
 test('svg content', function () {
   let t = '<svg></svg>';
-  astEqual(t, b.program([b.element('svg')]));
+  astEqual(t, b.program([element('svg')]));
 });
 
 test('html content with html content inline', function () {
   let t = '<div><p></p></div>';
-  astEqual(t, b.program([b.element('div', ['body', b.element('p')])]));
+  astEqual(t, b.program([element('div', ['body', element('p')])]));
 });
 
 test('html content with svg content inline', function () {
   let t = '<div><svg></svg></div>';
-  astEqual(t, b.program([b.element('div', ['body', b.element('svg')])]));
+  astEqual(t, b.program([element('div', ['body', element('svg')])]));
 });
 
 let integrationPoints = ['foreignObject', 'desc'];
@@ -56,9 +57,7 @@ function buildIntegrationPointTest(integrationPoint: string) {
     let t = '<svg><' + integrationPoint + '><div></div></' + integrationPoint + '></svg>';
     astEqual(
       t,
-      b.program([
-        b.element('svg', ['body', b.element(integrationPoint, ['body', b.element('div')])]),
-      ])
+      b.program([element('svg', ['body', element(integrationPoint, ['body', element('div')])])])
     );
   };
 }
@@ -73,7 +72,7 @@ test('svg title with html content', function () {
   let t = '<svg><title><div></div></title></svg>';
   astEqual(
     t,
-    b.program([b.element('svg', ['body', b.element('title', ['body', b.text('<div></div>')])])])
+    b.program([element('svg', ['body', element('title', ['body', b.text('<div></div>')])])])
   );
 });
 
@@ -81,7 +80,7 @@ test('a piece of content with HTML', function () {
   let t = 'some <div>content</div> done';
   astEqual(
     t,
-    b.program([b.text('some '), b.element('div', ['body', b.text('content')]), b.text(' done')])
+    b.program([b.text('some '), element('div', ['body', b.text('content')]), b.text(' done')])
   );
 });
 
@@ -91,7 +90,7 @@ test('a piece of Handlebars with HTML', function () {
     t,
     b.program([
       b.text('some '),
-      b.element('div', ['body', b.mustache(b.path('content'))]),
+      element('div', ['body', b.mustache(b.path('content'))]),
       b.text(' done'),
     ])
   );
@@ -103,7 +102,7 @@ test('Handlebars embedded in an attribute (quoted)', function () {
     t,
     b.program([
       b.text('some '),
-      b.element(
+      element(
         'div',
         ['attrs', ['class', b.concat([b.mustache('foo')])]],
         ['body', b.text('content')]
@@ -119,11 +118,7 @@ test('Handlebars embedded in an attribute (unquoted)', function () {
     t,
     b.program([
       b.text('some '),
-      b.element(
-        'div',
-        ['attrs', ['class', b.mustache(b.path('foo'))]],
-        ['body', b.text('content')]
-      ),
+      element('div', ['attrs', ['class', b.mustache(b.path('foo'))]], ['body', b.text('content')]),
       b.text(' done'),
     ])
   );
@@ -132,8 +127,8 @@ test('Handlebars embedded in an attribute (unquoted)', function () {
 test('Handlebars embedded in an attribute of a self-closing tag (unqouted)', function () {
   let t = '<input value={{foo}}/>';
 
-  let element = b.element('input/', ['attrs', ['value', b.mustache(b.path('foo'))]]);
-  astEqual(t, b.program([element]));
+  let el = element('input/', ['attrs', ['value', b.mustache(b.path('foo'))]]);
+  astEqual(t, b.program([el]));
 });
 
 test('Handlebars embedded in an attribute (sexprs)', function () {
@@ -142,7 +137,7 @@ test('Handlebars embedded in an attribute (sexprs)', function () {
     t,
     b.program([
       b.text('some '),
-      b.element(
+      element(
         'div',
         [
           'attrs',
@@ -164,7 +159,7 @@ test('Handlebars embedded in an attribute with other content surrounding it', fu
     t,
     b.program([
       b.text('some '),
-      b.element(
+      element(
         'a',
         ['attrs', ['href', b.concat([b.text('http://'), b.mustache('link'), b.text('/')])]],
         ['body', b.text('content')]
@@ -186,7 +181,7 @@ test('A more complete embedding example', function () {
       b.text(' '),
       b.mustache(b.path('some'), [b.string('content')]),
       b.text(' '),
-      b.element(
+      element(
         'div',
         [
           'attrs',
@@ -220,7 +215,7 @@ test('Simple embedded block helpers', function () {
         b.path('if'),
         [b.path('foo')],
         b.hash(),
-        b.blockItself([b.element('div', ['body', b.mustache(b.path('content'))])])
+        b.blockItself([element('div', ['body', b.mustache(b.path('content'))])])
       ),
     ])
   );
@@ -232,16 +227,16 @@ test('Involved block helper', function () {
   astEqual(
     t,
     b.program([
-      b.element('p', ['body', b.text('hi')]),
+      element('p', ['body', b.text('hi')]),
       b.text(' content '),
       b.block(
         b.path('testing'),
         [b.path('shouldRender')],
         b.hash(),
-        b.blockItself([b.element('p', ['body', b.text('Appears!')])])
+        b.blockItself([element('p', ['body', b.text('Appears!')])])
       ),
       b.text(' more '),
-      b.element('em', ['body', b.text('content')]),
+      element('em', ['body', b.text('content')]),
       b.text(' here'),
     ])
   );
@@ -252,7 +247,7 @@ test('Element modifiers', function () {
   astEqual(
     t,
     b.program([
-      b.element(
+      element(
         'p',
         ['attrs', ['class', 'bar']],
         ['modifiers', ['action', [b.string('boom')]]],
@@ -264,27 +259,27 @@ test('Element modifiers', function () {
 
 test('Tokenizer: MustacheStatement encountered in beforeAttributeName state', function () {
   let t = '<input {{bar}}>';
-  astEqual(t, b.program([b.element('input', ['modifiers', 'bar'])]));
+  astEqual(t, b.program([element('input', ['modifiers', 'bar'])]));
 });
 
 test('Tokenizer: MustacheStatement encountered in attributeName state', function () {
   let t = '<input foo{{bar}}>';
-  astEqual(t, b.program([b.element('input', ['attrs', ['foo', '']], ['modifiers', ['bar']])]));
+  astEqual(t, b.program([element('input', ['attrs', ['foo', '']], ['modifiers', ['bar']])]));
 });
 
 test('Tokenizer: MustacheStatement encountered in afterAttributeName state', function () {
   let t = '<input foo {{bar}}>';
-  astEqual(t, b.program([b.element('input', ['attrs', ['foo', '']], ['modifiers', 'bar'])]));
+  astEqual(t, b.program([element('input', ['attrs', ['foo', '']], ['modifiers', 'bar'])]));
 });
 
 test('Tokenizer: MustacheStatement encountered in afterAttributeValue state', function () {
   let t = '<input foo=1 {{bar}}>';
-  astEqual(t, b.program([b.element('input', ['attrs', ['foo', '1']], ['modifiers', ['bar']])]));
+  astEqual(t, b.program([element('input', ['attrs', ['foo', '1']], ['modifiers', ['bar']])]));
 });
 
 test('Tokenizer: MustacheStatement encountered in afterAttributeValueQuoted state', function () {
   let t = "<input foo='1'{{bar}}>";
-  astEqual(t, b.program([b.element('input', ['attrs', ['foo', '1']], ['modifiers', 'bar'])]));
+  astEqual(t, b.program([element('input', ['attrs', ['foo', '1']], ['modifiers', 'bar'])]));
 });
 
 test('Stripping - mustaches', function () {
@@ -430,7 +425,7 @@ test('Stripping - removes unnecessary text nodes', function () {
         b.path('each'),
         [],
         b.hash(),
-        b.blockItself([b.element('li', ['body', b.text(' foo ')])]),
+        b.blockItself([element('li', ['body', b.text(' foo ')])]),
         null,
         undefined,
         { open: false, close: true },
@@ -451,7 +446,7 @@ test('Whitespace control - linebreaks after blocks removed by default', function
         b.path('each'),
         [],
         b.hash(),
-        b.blockItself([b.text('  '), b.element('li', ['body', b.text(' foo ')]), b.text('\n')]),
+        b.blockItself([b.text('  '), element('li', ['body', b.text(' foo ')]), b.text('\n')]),
         null
       ),
     ])
@@ -468,7 +463,7 @@ test('Whitespace control - preserve all whitespace if config is set', function (
         b.path('each'),
         [],
         b.hash(),
-        b.blockItself([b.text('\n  '), b.element('li', ['body', b.text(' foo ')]), b.text('\n')]),
+        b.blockItself([b.text('\n  '), element('li', ['body', b.text(' foo ')]), b.text('\n')]),
         null
       ),
     ]),
@@ -483,17 +478,17 @@ test('Whitespace control - preserve all whitespace if config is set', function (
 //test("Awkward mustache in unquoted attribute value", function() {
 //  let t = "<div class=a{{foo}}></div>";
 //  astEqual(t, b.program([
-//    b.element('div', [ b.attr('class', concat([b.string("a"), b.sexpr([b.path('foo')])])) ])
+//    element('div', [ b.attr('class', concat([b.string("a"), b.sexpr([b.path('foo')])])) ])
 //  ]));
 //
 //  t = "<div class=a{{foo}}b></div>";
 //  astEqual(t, b.program([
-//    b.element('div', [ b.attr('class', concat([b.string("a"), b.sexpr([b.path('foo')]), b.string("b")])) ])
+//    element('div', [ b.attr('class', concat([b.string("a"), b.sexpr([b.path('foo')]), b.string("b")])) ])
 //  ]));
 //
 //  t = "<div class={{foo}}b></div>";
 //  astEqual(t, b.program([
-//    b.element('div', [ b.attr('class', concat([b.sexpr([b.path('foo')]), b.string("b")])) ])
+//    element('div', [ b.attr('class', concat([b.sexpr([b.path('foo')]), b.string("b")])) ])
 //  ]));
 //});
 
@@ -528,7 +523,7 @@ test('a Handlebars comment in proper element space', function () {
     t,
     b.program([
       b.text('before '),
-      b.element(
+      element(
         'div',
         ['attrs', ['data-foo', b.text('bar')]],
         ['comments', b.mustacheComment(' some comment '), b.mustacheComment(' other comment ')]
@@ -612,8 +607,8 @@ test('disallowed mustaches in the tagName space', function (assert) {
 
 test('mustache immediately followed by self closing tag does not error', function () {
   let ast = parse('<FooBar data-foo={{blah}}/>');
-  let element = b.element('FooBar/', ['attrs', ['data-foo', b.mustache('blah')]]);
-  astEqual(ast, b.program([element]));
+  let el = element('FooBar/', ['attrs', ['data-foo', b.mustache('blah')]]);
+  astEqual(ast, b.program([el]));
 });
 
 QUnit.dump.maxDepth = 100;
@@ -631,16 +626,16 @@ test('named blocks', () => {
     </Tab>
   `);
 
-  let element = b.element('Tab', [
+  let el = element('Tab', [
     'body',
-    b.element(':header', ['body', b.text(`It's a header!`)]),
-    b.element(
+    element(':header', ['body', b.text(`It's a header!`)]),
+    element(
       ':body',
-      ['body', b.element('div', ['body', b.mustache('contents')])],
+      ['body', element('div', ['body', b.mustache('contents')])],
       ['as', 'contents']
     ),
   ]);
-  astEqual(ast, b.program([element]));
+  astEqual(ast, b.program([el]));
 });
 
 test('path expression with "dangling dot" throws error', function (assert) {
@@ -658,4 +653,219 @@ export function strip(strings: TemplateStringsArray, ...args: string[]) {
         .join('')}${args[i] ? args[i] : ''}`;
     })
     .join('');
+}
+
+export type ElementParts =
+  | ['attrs', ...AttrSexp[]]
+  | ['modifiers', ...ModifierSexp[]]
+  | ['body', ...ASTv1.Statement[]]
+  | ['comments', ...ElementComment[]]
+  | ['as', ...string[]]
+  | ['loc', ASTv1.SourceLocation];
+
+export type PathSexp = string | ['path', string, LocSexp?];
+
+export type ModifierSexp =
+  | string
+  | [PathSexp, LocSexp?]
+  | [PathSexp, ASTv1.Expression[], LocSexp?]
+  | [PathSexp, ASTv1.Expression[], Dict<ASTv1.Expression>, LocSexp?];
+
+export type AttrSexp = [string, ASTv1.AttrNode['value'] | string, LocSexp?];
+
+export type LocSexp = ['loc', ASTv1.SourceLocation];
+
+export type ElementComment = ASTv1.MustacheCommentStatement | ASTv1.SourceLocation | string;
+
+export type SexpValue =
+  | string
+  | ASTv1.Expression[]
+  | Dict<ASTv1.Expression>
+  | LocSexp
+  | PathSexp
+  | undefined;
+
+export interface BuildElementOptions {
+  attrs?: ASTv1.AttrNode[];
+  modifiers?: ASTv1.ElementModifierStatement[];
+  children?: ASTv1.Statement[];
+  comments?: ElementComment[];
+  blockParams?: string[];
+  loc?: ASTv1.SourceLocation;
+}
+
+export type TagDescriptor = string | { name: string; selfClosing: boolean };
+
+export function element(tag: TagDescriptor, ...options: ElementParts[]): ASTv1.ElementNode {
+  let normalized: BuildElementOptions;
+  if (Array.isArray(options)) {
+    normalized = normalizeElementParts(...options);
+  } else {
+    normalized = options || {};
+  }
+
+  let { attrs, blockParams, modifiers, comments, children, loc } = normalized;
+
+  // this is used for backwards compat, prior to `selfClosing` being part of the ElementNode AST
+  let selfClosing = false;
+  if (typeof tag === 'object') {
+    selfClosing = tag.selfClosing;
+    tag = tag.name;
+  } else {
+    if (tag.slice(-1) === '/') {
+      tag = tag.slice(0, -1);
+      selfClosing = true;
+    }
+  }
+
+  return {
+    type: 'ElementNode',
+    tag: tag || '',
+    selfClosing: selfClosing,
+    attributes: attrs || [],
+    blockParams: blockParams || [],
+    modifiers: modifiers || [],
+    comments: (comments as ASTv1.MustacheCommentStatement[]) || [],
+    children: children || [],
+    loc: b.loc(loc || null),
+  };
+}
+
+export function normalizeElementParts(...args: ElementParts[]): BuildElementOptions {
+  let out: BuildElementOptions = {};
+
+  for (let arg of args) {
+    switch (arg[0]) {
+      case 'attrs': {
+        let [, ...rest] = arg;
+        out.attrs = rest.map(normalizeAttr);
+        break;
+      }
+      case 'modifiers': {
+        let [, ...rest] = arg;
+        out.modifiers = rest.map(normalizeModifier);
+        break;
+      }
+      case 'body': {
+        let [, ...rest] = arg;
+        out.children = rest;
+        break;
+      }
+      case 'comments': {
+        let [, ...rest] = arg;
+
+        out.comments = rest;
+        break;
+      }
+      case 'as': {
+        let [, ...rest] = arg;
+        out.blockParams = rest;
+        break;
+      }
+      case 'loc': {
+        let [, rest] = arg;
+        out.loc = rest;
+        break;
+      }
+    }
+  }
+
+  return out;
+}
+
+export function normalizeAttr(sexp: AttrSexp): ASTv1.AttrNode {
+  let name = sexp[0];
+  let value;
+
+  if (typeof sexp[1] === 'string') {
+    value = b.text(sexp[1]);
+  } else {
+    value = sexp[1];
+  }
+
+  return b.attr(name, value);
+}
+
+export function normalizeModifier(sexp: ModifierSexp): ASTv1.ElementModifierStatement {
+  if (typeof sexp === 'string') {
+    return b.elementModifier(sexp);
+  }
+
+  let path: ASTv1.Expression = normalizeHead(sexp[0]);
+  let params: ASTv1.Expression[] | undefined;
+  let hash: ASTv1.Hash | undefined;
+  let loc: ASTv1.SourceLocation | null = null;
+
+  let parts = sexp.slice(1);
+  let next = parts.shift();
+
+  _process: {
+    if (isParamsSexp(next)) {
+      params = next as ASTv1.Expression[];
+    } else {
+      break _process;
+    }
+
+    next = parts.shift();
+
+    if (isHashSexp(next)) {
+      hash = normalizeHash(next as Dict<ASTv1.Expression>);
+    } else {
+      break _process;
+    }
+  }
+
+  if (isLocSexp(next)) {
+    loc = next[1];
+  }
+
+  return {
+    type: 'ElementModifierStatement',
+    path,
+    params: params || [],
+    hash: hash || b.hash([]),
+    loc: b.loc(loc || null),
+  };
+}
+
+export function normalizeHead(path: PathSexp): ASTv1.Expression {
+  if (typeof path === 'string') {
+    return b.path(path);
+  } else {
+    return b.path(path[1], path[2] && path[2][1]);
+  }
+}
+
+export function normalizeHash(
+  hash: Dict<ASTv1.Expression>,
+  loc?: ASTv1.SourceLocation
+): ASTv1.Hash {
+  let pairs: ASTv1.HashPair[] = [];
+
+  Object.keys(hash).forEach((key) => {
+    pairs.push(b.pair(key, hash[key]));
+  });
+
+  return b.hash(pairs, loc);
+}
+
+export function isParamsSexp(value: SexpValue): value is ASTv1.Expression[] {
+  return Array.isArray(value) && !isLocSexp(value);
+}
+
+export function isLocSexp(value: SexpValue): value is LocSexp {
+  return Array.isArray(value) && value.length === 2 && value[0] === 'loc';
+}
+
+export function isHashSexp(value: SexpValue): value is Dict<ASTv1.Expression> {
+  if (typeof value === 'object' && value && !Array.isArray(value)) {
+    expectType<Dict<ASTv1.Expression>>(value);
+    return true;
+  } else {
+    return false;
+  }
+}
+
+function expectType<T>(_input: T): void {
+  return;
 }

@@ -1,11 +1,10 @@
-import { ASTv2, GlimmerSyntaxError, Source, SourceSlice } from '@glimmer/syntax';
+import { SourceSlice, ASTv2, GlimmerSyntaxError } from '@glimmer/syntax';
 import { Err, Ok, Result } from '../../../shared/result';
 import { GenericKeywordNode } from './impl';
 
 export function assertValidHasBlockUsage(
   type: string,
-  node: GenericKeywordNode,
-  source: Source
+  node: GenericKeywordNode
 ): Result<SourceSlice> {
   let call = node.type === 'AppendContent' ? node.value : node;
 
@@ -17,7 +16,7 @@ export function assertValidHasBlockUsage(
   }
 
   if (!positionals || positionals.isEmpty()) {
-    return Ok(new SourceSlice({ chars: 'default', loc: source.NOT_IN_SOURCE }));
+    return Ok(SourceSlice.synthetic('default'));
   } else if (positionals.exprs.length === 1) {
     let positional = positionals.exprs[0];
     if (ASTv2.isLiteral(positional, 'string')) {

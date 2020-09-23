@@ -26,8 +26,17 @@ import {
   TopLevelStatement,
   Template,
 } from '../types/nodes-v1';
-import { voidMap } from '../parser/tokenizer-event-handlers';
 import { escapeText, escapeAttrValue } from './util';
+
+export const voidMap: {
+  [tagName: string]: boolean;
+} = Object.create(null);
+
+let voidTagNames =
+  'area base br col command embed hr img input keygen link meta param source track wbr';
+voidTagNames.split(' ').forEach((tagName) => {
+  voidMap[tagName] = true;
+});
 
 const NON_WHITESPACE = /\S/;
 

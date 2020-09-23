@@ -1,25 +1,29 @@
-import { ASTv2, Source } from '@glimmer/syntax';
+import { ASTv2 } from '@glimmer/syntax';
 import { Result } from '../../../shared/result';
-import { NormalizationUtilities } from '../context';
+import { NormalizationState } from '../context';
 
 interface KeywordDelegate<Match extends KeywordMatch, V, Out> {
-  assert(options: Match, source: Source): Result<V>;
-  translate(options: Match, utils: NormalizationUtilities, param: V): Result<Out>;
+  assert(options: Match): Result<V>;
+  translate(options: Match, param: V): Result<Out>;
+}
+
+interface BlockKeywordDelegate<V, Out> {
+  assert(options: ASTv2.InvokeBlock, state: NormalizationState): Result<V>;
+  translate(options: ASTv2.InvokeBlock, param: V, state: NormalizationState): Result<Out>;
 }
 
 export interface Keyword<K extends KeywordType = KeywordType, Out = unknown> {
-  translate(node: KeywordCandidates[K], utils: NormalizationUtilities): Result<Out> | null;
+  translate(node: KeywordCandidates[K]): Result<Out> | null;
 }
 
-class KeywordImpl<K extends KeywordType, S extends string = string, Param = unknown, Out = unknown>
-  implements Keyword<K, Out> {
-  private types: Set<KeywordCandidates[K]['type']>;
+export interface BlockKeyword<Out = unknown> {
+  translate(node: ASTv2.InvokeBlock, state: NormalizationState): Result<Out> | null;
+}
 
-  constructor(
-    private keyword: S,
-    type: KeywordType,
-    private delegate: KeywordDelegate<KeywordMatches[K], Param, Out>
-  ) {
+abstract class AbstractKeywordImpl<K extends KeywordType> {
+  protected types: Set<KeywordCandidates[K]['type']>;
+
+  constructor(protected keyword: string, type: KeywordType) {
     let nodes = new Set<ASTv2.KeywordNode['type']>();
     for (let nodeType of KEYWORD_NODES[type]) {
       nodes.add(nodeType);
@@ -28,7 +32,33 @@ class KeywordImpl<K extends KeywordType, S extends string = string, Param = unkn
     this.types = nodes;
   }
 
-  private match(node: KeywordCandidates[K]): node is KeywordMatches[K] {
+  protected match(node: KeywordCandidates[K]): node is KeywordMatches[K] {
+    if (!this.types.has(node.type)) {
+      return false;
+    }
+
+    let path = getPathExpression(node);
+
+    if (path !== null && path.ref.type === 'Free') {
+      return path.ref.name === this.keyword;
+    } else {
+      return false;
+    }
+  }
+}
+
+class KeywordImpl<K extends KeywordType, S extends string = string, Param = unknown, Out = unknown>
+  extends AbstractKeywordImpl<K>
+  implements Keyword<K, Out> {
+  constructor(
+    keyword: S,
+    type: KeywordType,
+    private delegate: KeywordDelegate<KeywordMatches[K], Param, Out>
+  ) {
+    super(keyword, type);
+  }
+
+  protected match(node: KeywordCandidates[K]): node is KeywordMatches[K] {
     if (!this.types.has(node.type)) {
       return false;
     }
@@ -42,10 +72,31 @@ class KeywordImpl<K extends KeywordType, S extends string = string, Param = unkn
     }
   }
 
-  translate(node: KeywordMatches[K], utils: NormalizationUtilities): Result<Out> | null {
+  translate(node: KeywordMatches[K]): Result<Out> | null {
     if (this.match(node)) {
-      let param = this.delegate.assert(node, utils.source);
-      return param.andThen((param) => this.delegate.translate(node, utils, param));
+      let param = this.delegate.assert(node);
+      return param.andThen((param) => this.delegate.translate(node, param));
+    } else {
+      return null;
+    }
+  }
+}
+
+class BlockKeywordImpl<Param = unknown, Out = unknown>
+  extends AbstractKeywordImpl<'Block'>
+  implements BlockKeyword<Out> {
+  constructor(
+    keyword: string,
+    type: KeywordType,
+    private delegate: BlockKeywordDelegate<Param, Out>
+  ) {
+    super(keyword, type);
+  }
+
+  translate(node: ASTv2.InvokeBlock, state: NormalizationState): Result<Out> | null {
+    if (this.match(node)) {
+      let param = this.delegate.assert(node, state);
+      return param.andThen((param) => this.delegate.translate(node, param, state));
     } else {
       return null;
     }
@@ -96,12 +147,34 @@ export function keyword<
   K extends KeywordType,
   D extends KeywordDelegate<KeywordMatches[K], unknown, Out>,
   Out = unknown
->(keyword: string, type: K, delegate: D): Keyword<K, Out> {
-  return new KeywordImpl(keyword, type, delegate);
+>(keyword: string, type: K, delegate: D): Keyword<K, Out>;
+export function keyword<Out = unknown>(
+  keyword: string,
+  type: 'Block',
+  delegate: BlockKeywordDelegate<unknown, Out>
+): BlockKeyword<Out>;
+export function keyword(
+  keyword: string,
+  type: KeywordType,
+  delegate: KeywordDelegate<KeywordMatch, unknown, unknown> | BlockKeywordDelegate<unknown, unknown>
+): Keyword<KeywordType, unknown> | BlockKeyword<unknown> {
+  if (type === 'Block') {
+    return new BlockKeywordImpl(keyword, type, delegate);
+  } else {
+    return new KeywordImpl(
+      keyword,
+      type,
+      delegate as KeywordDelegate<KeywordMatch, unknown, unknown>
+    );
+  }
 }
 
 export type PossibleKeyword = ASTv2.KeywordNode;
-type OutFor<K extends Keyword> = K extends Keyword<KeywordType, infer Out> ? Out : never;
+type OutFor<K extends Keyword | BlockKeyword> = K extends BlockKeyword<infer Out>
+  ? Out
+  : K extends Keyword<KeywordType, infer Out>
+  ? Out
+  : never;
 
 function getPathExpression(
   node: ASTv2.KeywordNode | ASTv2.ExpressionNode
@@ -121,12 +194,13 @@ function getPathExpression(
       return null;
   }
 }
+
 export class Keywords<K extends KeywordType, KeywordList extends Keyword<K> = never>
   implements Keyword<K, OutFor<KeywordList>> {
   #keywords: Keyword[] = [];
-  #type: KeywordType;
+  #type: K;
 
-  constructor(type: KeywordType) {
+  constructor(type: K) {
     this.#type = type;
   }
 
@@ -136,15 +210,40 @@ export class Keywords<K extends KeywordType, KeywordList extends Keyword<K> = ne
   ): Keywords<K, KeywordList | Keyword<K, Out>> {
     this.#keywords.push(keyword(name, this.#type, delegate));
 
-    return this as Keywords<K, KeywordList | Keyword<K, Out>>;
+    return this;
+  }
+
+  translate(node: KeywordCandidates[K]): Result<OutFor<KeywordList>> | null {
+    for (let keyword of this.#keywords) {
+      let result = keyword.translate(node) as Result<OutFor<KeywordList>>;
+      if (result !== null) {
+        return result;
+      }
+    }
+
+    return null;
+  }
+}
+
+export class BlockKeywords<KeywordList extends BlockKeyword = never>
+  implements BlockKeyword<OutFor<KeywordList>> {
+  #keywords: BlockKeyword[] = [];
+
+  kw<S extends string = string, Out = unknown>(
+    name: S,
+    delegate: BlockKeywordDelegate<unknown, Out>
+  ): BlockKeywords<KeywordList | BlockKeyword<Out>> {
+    this.#keywords.push(keyword(name, 'Block', delegate));
+
+    return this;
   }
 
   translate(
-    node: KeywordCandidates[K],
-    utils: NormalizationUtilities
+    node: ASTv2.InvokeBlock,
+    state: NormalizationState
   ): Result<OutFor<KeywordList>> | null {
     for (let keyword of this.#keywords) {
-      let result = keyword.translate(node, utils) as Result<OutFor<KeywordList>>;
+      let result = keyword.translate(node, state) as Result<OutFor<KeywordList>>;
       if (result !== null) {
         return result;
       }
@@ -235,6 +334,11 @@ export class Keywords<K extends KeywordType, KeywordList extends Keyword<K> = ne
  * means that the node matched, but there was a keyword-specific syntax
  * error.
  */
-export function keywords<K extends KeywordType>(type: K): Keywords<K> {
+export function keywords(type: 'Block'): BlockKeywords;
+export function keywords<K extends KeywordType>(type: K): Keywords<K>;
+export function keywords<K extends KeywordType>(type: K): Keywords<K> | BlockKeywords {
+  if (type === 'Block') {
+    return new BlockKeywords();
+  }
   return new Keywords(type);
 }

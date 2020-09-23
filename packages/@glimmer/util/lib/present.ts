@@ -24,11 +24,12 @@ export function toPresentOption<T>(list: T[]): Optional<PresentArray<T>> {
   }
 }
 
-export function assertPresent<T>(list: T[]): PresentArray<T> {
-  if (isPresent(list)) {
-    return list;
-  } else {
-    throw new Error(`unexpected empty list`);
+export function assertPresent<T>(
+  list: T[],
+  message = `unexpected empty list`
+): asserts list is PresentArray<T> {
+  if (!isPresent(list)) {
+    throw new Error(message);
   }
 }
 

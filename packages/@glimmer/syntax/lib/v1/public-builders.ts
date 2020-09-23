@@ -1,9 +1,14 @@
-import * as AST from './types/api';
-import { Optional, Dict } from '@glimmer/interfaces';
-import { deprecate, assign, assert } from '@glimmer/util';
+import { Dict, Optional } from '@glimmer/interfaces';
 import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
-import { StringLiteral, BooleanLiteral, NumberLiteral } from './types/handlebars-ast';
-import { SYNTHETIC } from './source/location';
+import { assert, assign, deprecate, isPresent } from '@glimmer/util';
+import { SYNTHETIC_LOCATION } from '../source/location';
+import type { SourceOffsets } from '../source/offsets/abstract';
+import { BROKEN } from '../source/offsets/invisible';
+import { LazySourceOffsets } from '../source/offsets/lazy';
+import { Source } from '../source/source';
+import * as AST from '../types/api';
+
+const SOURCE = new Source('', '(tests)');
 
 // Statements
 
@@ -28,6 +33,7 @@ function buildMustache(
     params: params || [],
     hash: hash || buildHash([]),
     escaped: !raw,
+    trusting: !!raw,
     loc: buildLoc(loc || null),
     strip: strip || { open: false, close: false },
   };
@@ -137,6 +143,10 @@ function buildConcat(
   parts: (AST.TextNode | AST.MustacheStatement)[],
   loc?: AST.SourceLocation
 ): AST.ConcatStatement {
+  if (!isPresent(parts)) {
+    throw new Error(`b.concat requires at least one part`);
+  }
+
   return {
     type: 'ConcatStatement',
     parts: parts || [],
@@ -176,191 +186,42 @@ export type SexpValue =
   | PathSexp
   | undefined;
 
-export function isLocSexp(value: SexpValue): value is LocSexp {
-  return Array.isArray(value) && value.length === 2 && value[0] === 'loc';
-}
-
-export function isParamsSexp(value: SexpValue): value is AST.Expression[] {
-  return Array.isArray(value) && !isLocSexp(value);
-}
-
-export function isHashSexp(value: SexpValue): value is Dict<AST.Expression> {
-  if (typeof value === 'object' && value && !Array.isArray(value)) {
-    expectType<Dict<AST.Expression>>(value);
-    return true;
-  } else {
-    return false;
-  }
-}
-
-function expectType<T>(_input: T): void {
-  return;
-}
-
-export function normalizeModifier(sexp: ModifierSexp): AST.ElementModifierStatement {
-  if (typeof sexp === 'string') {
-    return buildElementModifier(sexp);
-  }
-
-  let path: AST.Expression = normalizeHead(sexp[0]);
-  let params: AST.Expression[] | undefined;
-  let hash: AST.Hash | undefined;
-  let loc: AST.SourceLocation | null = null;
-
-  let parts = sexp.slice(1);
-  let next = parts.shift();
-
-  _process: {
-    if (isParamsSexp(next)) {
-      params = next as AST.Expression[];
-    } else {
-      break _process;
-    }
-
-    next = parts.shift();
-
-    if (isHashSexp(next)) {
-      hash = normalizeHash(next as Dict<AST.Expression>);
-    } else {
-      break _process;
-    }
-  }
-
-  if (isLocSexp(next)) {
-    loc = next[1];
-  }
-
-  return {
-    type: 'ElementModifierStatement',
-    path,
-    params: params || [],
-    hash: hash || buildHash([]),
-    loc: buildLoc(loc || null),
-  };
-}
-
-export function normalizeAttr(sexp: AttrSexp): AST.AttrNode {
-  let name = sexp[0];
-  let value;
-
-  if (typeof sexp[1] === 'string') {
-    value = buildText(sexp[1]);
-  } else {
-    value = sexp[1];
-  }
-
-  let loc = sexp[2] ? sexp[2][1] : undefined;
-
-  return buildAttr(name, value, loc);
-}
-
-export function normalizeHash(hash: Dict<AST.Expression>, loc?: AST.SourceLocation): AST.Hash {
-  let pairs: AST.HashPair[] = [];
-
-  Object.keys(hash).forEach((key) => {
-    pairs.push(buildPair(key, hash[key]));
-  });
-
-  return buildHash(pairs, loc);
-}
-
-export function normalizeHead(path: PathSexp): AST.Expression {
-  if (typeof path === 'string') {
-    return buildPath(path);
-  } else {
-    return buildPath(path[1], path[2] && path[2][1]);
-  }
-}
-
-export function normalizeElementParts(...args: ElementParts[]): BuildElementOptions {
-  let out: BuildElementOptions = {};
-
-  for (let arg of args) {
-    switch (arg[0]) {
-      case 'attrs': {
-        let [, ...rest] = arg;
-        out.attrs = rest.map(normalizeAttr);
-        break;
-      }
-      case 'modifiers': {
-        let [, ...rest] = arg;
-        out.modifiers = rest.map(normalizeModifier);
-        break;
-      }
-      case 'body': {
-        let [, ...rest] = arg;
-        out.children = rest;
-        break;
-      }
-      case 'comments': {
-        let [, ...rest] = arg;
-
-        out.comments = rest;
-        break;
-      }
-      case 'as': {
-        let [, ...rest] = arg;
-        out.blockParams = rest;
-        break;
-      }
-      case 'loc': {
-        let [, rest] = arg;
-        out.loc = rest;
-        break;
-      }
-    }
-  }
-
-  return out;
-}
-
 export interface BuildElementOptions {
   attrs?: AST.AttrNode[];
   modifiers?: AST.ElementModifierStatement[];
   children?: AST.Statement[];
   comments?: ElementComment[];
   blockParams?: string[];
-  loc?: AST.SourceLocation;
+  loc: SourceOffsets;
 }
 
-function buildElement(tag: TagDescriptor, options?: BuildElementOptions): AST.ElementNode;
-function buildElement(tag: TagDescriptor, ...options: ElementParts[]): AST.ElementNode;
-function buildElement(
-  tag: TagDescriptor,
-  options?: BuildElementOptions | ElementParts,
-  ...rest: ElementParts[]
-): AST.ElementNode {
-  let normalized: BuildElementOptions;
-  if (Array.isArray(options)) {
-    normalized = normalizeElementParts(options, ...rest);
-  } else {
-    normalized = options || {};
-  }
+function buildElement(tag: TagDescriptor, options: BuildElementOptions): AST.ElementNode {
+  let { attrs, blockParams, modifiers, comments, children, loc } = options;
 
-  let { attrs, blockParams, modifiers, comments, children, loc } = normalized;
+  let tagName: string;
 
   // this is used for backwards compat, prior to `selfClosing` being part of the ElementNode AST
   let selfClosing = false;
   if (typeof tag === 'object') {
     selfClosing = tag.selfClosing;
-    tag = tag.name;
+    tagName = tag.name;
+  } else if (tag.slice(-1) === '/') {
+    tagName = tag.slice(0, -1);
+    selfClosing = true;
   } else {
-    if (tag.slice(-1) === '/') {
-      tag = tag.slice(0, -1);
-      selfClosing = true;
-    }
+    tagName = tag;
   }
 
   return {
     type: 'ElementNode',
-    tag: tag || '',
+    tag: tagName,
     selfClosing: selfClosing,
     attributes: attrs || [],
     blockParams: blockParams || [],
     modifiers: modifiers || [],
     comments: (comments as AST.MustacheCommentStatement[]) || [],
     children: children || [],
-    loc: buildLoc(loc || null),
+    loc,
   };
 }
 
@@ -415,7 +276,7 @@ function headToString(head: AST.PathHead): { original: string; parts: string[] }
 
 function buildHead(
   original: string,
-  loc?: AST.SourceLocation
+  loc: AST.SourceLocation
 ): { head: AST.PathHead; tail: string[] } {
   let [head, ...tail] = original.split('.');
   let headNode: AST.PathHead;
@@ -445,14 +306,14 @@ function buildHead(
   };
 }
 
-function buildThis(loc?: AST.SourceLocation): AST.PathHead {
+function buildThis(loc: AST.SourceLocation): AST.PathHead {
   return {
     type: 'ThisHead',
     loc: buildLoc(loc || null),
   };
 }
 
-function buildAtName(name: string, loc?: AST.SourceLocation): AST.PathHead {
+function buildAtName(name: string, loc: AST.SourceLocation): AST.PathHead {
   // the `@` should be included so we have a complete source range
   assert(name[0] === '@', `call builders.at() with a string that starts with '@'`);
 
@@ -463,7 +324,7 @@ function buildAtName(name: string, loc?: AST.SourceLocation): AST.PathHead {
   };
 }
 
-function buildVar(name: string, loc?: AST.SourceLocation): AST.PathHead {
+function buildVar(name: string, loc: AST.SourceLocation): AST.PathHead {
   assert(name !== 'this', `You called builders.var() with 'this'. Call builders.this instead`);
   assert(
     name[0] !== '@',
@@ -477,13 +338,13 @@ function buildVar(name: string, loc?: AST.SourceLocation): AST.PathHead {
   };
 }
 
-function buildHeadFromString(head: string, loc?: AST.SourceLocation): AST.PathHead {
+function buildHeadFromString(head: string, loc: AST.SourceLocation): AST.PathHead {
   if (head[0] === '@') {
     return buildAtName(head, loc);
   } else if (head === 'this') {
     return buildThis(loc);
   } else {
-    return buildVar(head);
+    return buildVar(head, loc);
   }
 }
 
@@ -498,7 +359,7 @@ function buildNamedBlockName(name: string, loc?: AST.SourceLocation): AST.NamedB
 function buildCleanPath(
   head: AST.PathHead,
   tail: string[],
-  loc?: AST.SourceLocation
+  loc: AST.SourceLocation
 ): AST.PathExpression {
   let { original: originalHead, parts: headParts } = headToString(head);
   let parts = [...headParts, ...tail];
@@ -528,7 +389,7 @@ function buildPath(
     if ('type' in path) {
       return path;
     } else {
-      let { head, tail } = buildHead(path.head);
+      let { head, tail } = buildHead(path.head, BROKEN());
 
       assert(
         tail.length === 0,
@@ -548,7 +409,7 @@ function buildPath(
     }
   }
 
-  let { head, tail } = buildHead(path);
+  let { head, tail } = buildHead(path, BROKEN());
   let { parts: headParts } = headToString(head);
 
   return {
@@ -634,10 +495,6 @@ function buildTemplate(
   };
 }
 
-function buildSource(source?: string) {
-  return source || null;
-}
-
 function buildPosition(line: number, column: number) {
   return {
     line,
@@ -645,35 +502,35 @@ function buildPosition(line: number, column: number) {
   };
 }
 
-function buildLoc(loc: Optional<AST.SourceLocation>): AST.SourceLocation;
+function buildLoc(loc: Optional<AST.SourceLocation>): SourceOffsets;
 function buildLoc(
   startLine: number,
   startColumn: number,
   endLine?: number,
-  endColumn?: number,
-  source?: string
-): AST.SourceLocation;
+  endColumn?: number
+): SourceOffsets;
 
-function buildLoc(...args: any[]): AST.SourceLocation {
+function buildLoc(...args: any[]): SourceOffsets {
   if (args.length === 1) {
     let loc = args[0];
 
     if (loc && typeof loc === 'object') {
-      return {
-        source: buildSource(loc.source),
-        start: buildPosition(loc.start.line, loc.start.column),
-        end: buildPosition(loc.end.line, loc.end.column),
-      };
+      return new LazySourceOffsets(SOURCE, loc);
     } else {
-      return SYNTHETIC;
+      return new LazySourceOffsets(SOURCE, SYNTHETIC_LOCATION);
     }
   } else {
-    let [startLine, startColumn, endLine, endColumn, source] = args;
-    return {
-      source: buildSource(source),
-      start: buildPosition(startLine, startColumn),
-      end: buildPosition(endLine, endColumn),
-    };
+    let [startLine, startColumn, endLine, endColumn] = args;
+    return new LazySourceOffsets(SOURCE, {
+      start: {
+        line: startLine,
+        column: startColumn,
+      },
+      end: {
+        line: endLine,
+        column: endColumn,
+      },
+    });
   }
 }
 
@@ -708,9 +565,9 @@ export default {
   this: buildThis,
   blockName: buildNamedBlockName,
 
-  string: literal('StringLiteral') as (value: string) => StringLiteral,
-  boolean: literal('BooleanLiteral') as (value: boolean) => BooleanLiteral,
-  number: literal('NumberLiteral') as (value: number) => NumberLiteral,
+  string: literal('StringLiteral') as (value: string) => AST.StringLiteral,
+  boolean: literal('BooleanLiteral') as (value: boolean) => AST.BooleanLiteral,
+  number: literal('NumberLiteral') as (value: number) => AST.NumberLiteral,
   undefined() {
     return buildLiteral('UndefinedLiteral', undefined);
   },

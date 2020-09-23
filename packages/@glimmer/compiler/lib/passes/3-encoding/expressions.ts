@@ -90,7 +90,10 @@ export class InternalEncoder implements Visitors<mir.InternalTable, WireFormat.S
         values.push(value);
       }
 
-      return [assertPresent(names), assertPresent(values)];
+      assertPresent(names);
+      assertPresent(values);
+
+      return [names, values];
     } else {
       return null;
     }

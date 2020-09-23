@@ -1,39 +1,9 @@
-import { SerializedSourceOffsets, SourceOffsets } from '../../source/offsets';
-import { Source } from '../../source/source';
+import { SourceOffsetList } from '../../source/offsets';
+import { SourceSlice } from '../../source/slice';
 import { BlockSymbolTable, ProgramSymbolTable } from '../../symbol-table';
 import { Args, Named } from './args';
 import { ComponentArg, ElementModifier, HtmlOrSplatAttr } from './attr-block';
 import { BaseNodeFields, GlimmerParentNodeOptions, node } from './base';
-
-export type SerializedSourceSlice<Chars extends string = string> = [
-  chars: Chars,
-  offsets: SerializedSourceOffsets
-];
-
-export class SourceSlice<Chars extends string = string> {
-  static load(source: Source, slice: SerializedSourceSlice): SourceSlice {
-    return new SourceSlice({
-      loc: SourceOffsets.load(source, slice[1]),
-      chars: slice[0],
-    });
-  }
-
-  readonly chars: Chars;
-  readonly loc: SourceOffsets;
-
-  constructor(options: { loc: SourceOffsets; chars: Chars }) {
-    this.loc = options.loc;
-    this.chars = options.chars;
-  }
-
-  getString(): string {
-    return this.chars;
-  }
-
-  serialize(): SerializedSourceSlice<Chars> {
-    return [this.chars, this.loc.serialize()];
-  }
-}
 
 export class Template extends node().fields<
   {
@@ -69,7 +39,7 @@ export class NamedBlock extends node().fields<NamedBlockOptions>() {
 
     return Args.named(
       new Named({
-        loc: this.loc.src.offsetList(entries.map((e) => e.loc)).getRangeOffset(),
+        loc: SourceOffsetList.range(entries, this.name.loc.collapseEnd()),
         entries,
       })
     );

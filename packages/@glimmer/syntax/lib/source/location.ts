@@ -1,9 +1,8 @@
-import { Optional, PresentArray } from '@glimmer/interfaces';
+import { PresentArray } from '@glimmer/interfaces';
 import { isPresent } from '@glimmer/util';
-import { SourceOffsets } from './offsets';
+import type { SourceOffsets } from './offsets/abstract';
 
 export interface SourceLocation {
-  source?: Optional<string>;
   start: SourcePosition;
   end: SourcePosition;
 }
@@ -15,10 +14,30 @@ export interface SourcePosition {
   column: number;
 }
 
-export const SYNTHETIC = Object.freeze({
+export const UNKNOWN_POSITION = Object.freeze({
+  line: 1,
+  column: 0,
+} as const);
+
+export const SYNTHETIC_LOCATION = Object.freeze({
   source: '(synthetic)',
-  start: { line: 1, column: 0 },
-  end: { line: 1, column: 0 },
+  start: UNKNOWN_POSITION,
+  end: UNKNOWN_POSITION,
+} as const);
+
+/** @deprecated */
+export const SYNTHETIC = SYNTHETIC_LOCATION;
+
+export const TEMPORARY_LOCATION = Object.freeze({
+  source: '(temporary)',
+  start: UNKNOWN_POSITION,
+  end: UNKNOWN_POSITION,
+} as const);
+
+export const NON_EXISTENT_LOCATION = Object.freeze({
+  source: '(nonexistent)',
+  start: UNKNOWN_POSITION,
+  end: UNKNOWN_POSITION,
 } as const);
 
 export type LocatedWithOffsets = { offsets: SourceOffsets };

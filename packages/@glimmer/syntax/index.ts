@@ -9,7 +9,7 @@ export {
 } from './lib/parser/tokenizer-event-handlers';
 
 // needed for tests only
-export { default as builders } from './lib/v1-builders';
+export { default as builders } from './lib/v1/public-builders';
 export {
   default as TraversalError,
   cannotRemoveNode,
@@ -38,7 +38,13 @@ export { normalize } from './lib/v2/normalize';
 
 // SOURCE
 export * from './lib/source/offsets';
+export * from './lib/source/offsets/concrete';
+export * from './lib/source/offsets/invisible';
+export * from './lib/source/offsets/lazy';
+export * from './lib/source/offsets/abstract';
+
 export * from './lib/source/source';
+export * from './lib/source/slice';
 export * from './lib/source/location';
 
 // OBJECT AST

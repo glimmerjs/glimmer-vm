@@ -1,6 +1,7 @@
-import { PresentArray } from '@glimmer/interfaces';
-import { SerializedSourceOffsets } from '../../source/offsets';
-import { LiteralValue, SerializedResolution, SerializedSourceSlice } from '../objects';
+import type { PresentArray } from '@glimmer/interfaces';
+import type { SerializedSourceOffsets } from '../../source/offsets';
+import type { SerializedSourceSlice } from '../../source/slice';
+import type { LiteralValue, SerializedResolution } from '../objects';
 
 export interface SerializedBaseNode {
   loc: SerializedSourceOffsets;

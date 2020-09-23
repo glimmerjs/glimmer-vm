@@ -3,8 +3,8 @@
 const test = QUnit.test;
 
 import { Dict } from '@glimmer/interfaces';
-import { unwrap } from '@glimmer/util';
 import { Source } from '@glimmer/syntax';
+import { unwrap } from '@glimmer/util';
 
 const cases: Dict<[string, number | null][]> = {
   'hello world': [
@@ -78,8 +78,10 @@ Object.keys(cases).forEach((string) => {
   for (let [span, offset] of cases[string]) {
     let [line, column] = span.split(':').map((i) => parseInt(i, 10));
 
+    if (offset === null) continue;
+
     test(`${string} @ ${line}:${column} -> ${String(offset)}`, (assert) => {
-      assert.deepEqual(source.offsetFor({ line, column }), offset === null ? null : offset);
+      assert.deepEqual(source.offsetFor({ line, column }).offset, offset);
     });
   }
 });

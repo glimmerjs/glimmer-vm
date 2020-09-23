@@ -1,7 +1,7 @@
 import { PresentArray } from '@glimmer/interfaces';
-import { VariableReference } from '../nodes-v2';
 import { CallFields, node } from './base';
-import { SourceSlice } from './internal';
+import { SourceSlice } from '../../source/slice';
+import { VariableReference } from './refs';
 
 export type LiteralValue = string | boolean | number | undefined | null;
 

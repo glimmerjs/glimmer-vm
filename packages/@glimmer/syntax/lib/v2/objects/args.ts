@@ -1,7 +1,7 @@
-import type { SourceOffsets } from '../../source/offsets';
+import type { SourceOffsets } from '../../source/offsets/abstract';
 import { node } from './base';
 import type { ExpressionNode } from './expr';
-import { SourceSlice } from './internal';
+import { SourceSlice } from '../../source/slice';
 
 /**
  * Corresponds to syntaxes with positional and named arguments:
@@ -14,7 +14,10 @@ import { SourceSlice } from './internal';
  * If `Args` is empty, the `SourceOffsets` for this node should be the collapsed position
  * immediately after the parent call node's `callee`.
  */
-export class Args extends node().fields<{ positional: Positional; named: Named }>() {
+export class Args extends node().fields<{
+  positional: Positional;
+  named: Named;
+}>() {
   static empty(loc: SourceOffsets): Args {
     return new Args({ loc, positional: Positional.empty(loc), named: Named.empty(loc) });
   }
@@ -46,7 +49,9 @@ export class Args extends node().fields<{ positional: Positional; named: Named }
  * If `Positional` is empty, the `SourceOffsets` for this node should be the collapsed position
  * immediately after the parent call node's `callee`.
  */
-export class Positional extends node().fields<{ exprs: readonly ExpressionNode[] }>() {
+export class Positional extends node().fields<{
+  exprs: readonly ExpressionNode[];
+}>() {
   static empty(loc: SourceOffsets): Positional {
     return new Positional({
       loc,
@@ -76,7 +81,9 @@ export class Positional extends node().fields<{ exprs: readonly ExpressionNode[]
  * If `Positional` is not empty but `Named` is empty, the `SourceOffsets` for this node should be
  * the collapsed position immediately after the last positional argument.
  */
-export class Named extends node().fields<{ entries: readonly NamedEntry[] }>() {
+export class Named extends node().fields<{
+  entries: readonly NamedEntry[];
+}>() {
   static empty(loc: SourceOffsets): Named {
     return new Named({
       loc,

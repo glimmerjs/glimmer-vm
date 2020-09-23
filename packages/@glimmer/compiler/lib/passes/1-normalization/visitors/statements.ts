@@ -2,7 +2,7 @@ import { ASTv2 } from '@glimmer/syntax';
 import { OptionalList } from '../../../shared/list';
 import { Ok, Result, ResultArray } from '../../../shared/result';
 import * as hir from '../../2-symbol-allocation/hir';
-import { NormalizationUtilities } from '../context';
+import { NormalizationState } from '../context';
 import { BLOCK_KEYWORDS } from '../keywords';
 import { APPEND_KEYWORDS } from '../keywords/append';
 import { ClassifiedElement, hasDynamicFeatures } from './element/classified';
@@ -16,141 +16,128 @@ const WHITESPACE = /^\s+$/;
 class NormalizationStatements {
   visitList(
     nodes: readonly ASTv2.ContentNode[],
-    utils: NormalizationUtilities
+    state: NormalizationState
   ): Result<OptionalList<hir.Statement>> {
-    return new ResultArray(nodes.map((e) => VISIT_STMTS.visit(e, utils)))
+    return new ResultArray(nodes.map((e) => VISIT_STMTS.visit(e, state)))
       .toOptionalList()
       .mapOk((list) => list.filter((s: hir.Statement | null): s is hir.Statement => s !== null));
   }
 
-  visit(node: ASTv2.ContentNode, utils: NormalizationUtilities): Result<hir.Statement | null> {
+  visit(node: ASTv2.ContentNode, state: NormalizationState): Result<hir.Statement | null> {
     switch (node.type) {
       case 'GlimmerComment':
         return Ok(null);
       case 'AppendContent':
-        return this.AppendContent(node, utils);
-      case 'HtmlComment':
-        return Ok(this.HtmlComment(node, utils));
-      case 'InvokeBlock':
-        return this.InvokeBlock(node, utils);
-      case 'InvokeComponent':
-        return this.Component(node, utils);
-      case 'SimpleElement':
-        return this.SimpleElement(node, utils);
+        return this.AppendContent(node);
       case 'HtmlText':
-        return Ok(this.TextNode(node, utils));
+        return Ok(this.TextNode(node));
+      case 'HtmlComment':
+        return Ok(this.HtmlComment(node));
+      case 'InvokeBlock':
+        return this.InvokeBlock(node, state);
+      case 'InvokeComponent':
+        return this.Component(node, state);
+      case 'SimpleElement':
+        return this.SimpleElement(node, state);
     }
   }
 
-  InvokeBlock(node: ASTv2.InvokeBlock, utils: NormalizationUtilities): Result<hir.Statement> {
-    let translated = BLOCK_KEYWORDS.translate(node, utils);
+  InvokeBlock(node: ASTv2.InvokeBlock, state: NormalizationState): Result<hir.Statement> {
+    let translated = BLOCK_KEYWORDS.translate(node, state);
 
     if (translated !== null) {
       return translated;
     }
 
-    let head = VISIT_EXPRS.visit(node.callee, utils);
-    let args = VISIT_EXPRS.Args(node.args, utils);
+    let head = VISIT_EXPRS.visit(node.callee);
+    let args = VISIT_EXPRS.Args(node.args);
 
     return Result.all(head, args).andThen(([head, args]) =>
-      this.NamedBlocks(node.blocks, utils).mapOk((blocks) =>
-        utils
-          .op(hir.BlockInvocation, {
+      this.NamedBlocks(node.blocks, state).mapOk(
+        (blocks) =>
+          new hir.BlockInvocation(node.loc, {
             head,
             args,
             blocks,
           })
-          .loc(node)
       )
     );
   }
 
-  NamedBlocks(blocks: ASTv2.NamedBlocks, utils: NormalizationUtilities): Result<hir.NamedBlocks> {
-    let list = new ResultArray(blocks.blocks.map((b) => this.NamedBlock(b, utils)));
+  NamedBlocks(blocks: ASTv2.NamedBlocks, state: NormalizationState): Result<hir.NamedBlocks> {
+    let list = new ResultArray(blocks.blocks.map((b) => this.NamedBlock(b, state)));
 
     return list
       .toArray()
-      .mapOk((list) => utils.op(hir.NamedBlocks, { blocks: OptionalList(list) }).loc(blocks));
+      .mapOk((list) => new hir.NamedBlocks(blocks.loc, { blocks: OptionalList(list) }));
   }
 
-  NamedBlock(named: ASTv2.NamedBlock, utils: NormalizationUtilities): Result<hir.NamedBlock> {
-    let body = VISIT_STMTS.visitList(named.block.body, utils);
+  NamedBlock(named: ASTv2.NamedBlock, state: NormalizationState): Result<hir.NamedBlock> {
+    let body = VISIT_STMTS.visitList(named.block.body, state);
 
     return body.mapOk((body) => {
-      return utils
-        .op(hir.NamedBlock, { name: named.name, body: body.toArray(), table: named.block.table })
-        .loc(named);
+      return new hir.NamedBlock(named.loc, {
+        name: named.name,
+        body: body.toArray(),
+        table: named.block.table,
+      });
     });
   }
 
-  SimpleElement(
-    element: ASTv2.SimpleElement,
-    utils: NormalizationUtilities
-  ): Result<hir.Statement> {
+  SimpleElement(element: ASTv2.SimpleElement, state: NormalizationState): Result<hir.Statement> {
     return new ClassifiedElement(
       element,
       new ClassifiedSimpleElement(element.tag, element, hasDynamicFeatures(element)),
-      utils
+      state
     ).toStatement();
   }
 
-  Component(
-    component: ASTv2.InvokeComponent,
-    utils: NormalizationUtilities
-  ): Result<hir.Statement> {
-    return VISIT_EXPRS.visit(component.callee, utils).andThen((callee) =>
+  Component(component: ASTv2.InvokeComponent, state: NormalizationState): Result<hir.Statement> {
+    return VISIT_EXPRS.visit(component.callee).andThen((callee) =>
       new ClassifiedElement(
         component,
         new ClassifiedComponent(callee, component),
-        utils
+        state
       ).toStatement()
     );
   }
 
-  AppendContent(append: ASTv2.AppendContent, utils: NormalizationUtilities): Result<hir.Statement> {
-    let translated = APPEND_KEYWORDS.translate(append, utils);
+  AppendContent(append: ASTv2.AppendContent): Result<hir.Statement> {
+    let translated = APPEND_KEYWORDS.translate(append);
 
     if (translated !== null) {
       return translated;
     }
 
-    let value = VISIT_EXPRS.visit(append.value, utils);
+    let value = VISIT_EXPRS.visit(append.value);
 
     return value.mapOk((value) => {
       if (append.trusting) {
-        return utils
-          .op(hir.AppendTrustedHTML, {
-            value,
-          })
-          .loc(append);
+        return new hir.AppendTrustedHTML(append.loc, {
+          value,
+        });
       } else {
-        return utils
-          .op(hir.AppendTextNode, {
-            value,
-          })
-          .loc(append);
+        return new hir.AppendTextNode(append.loc, {
+          value,
+        });
       }
     });
   }
 
-  TextNode(text: ASTv2.HtmlText, utils: NormalizationUtilities): hir.Statement {
+  TextNode(text: ASTv2.HtmlText): hir.Statement {
     if (WHITESPACE.exec(text.chars)) {
-      return utils.op(hir.AppendWhitespace, { value: text.chars }).loc(text);
+      return new hir.AppendWhitespace(text.loc, { value: text.chars });
     } else {
-      return utils
-        .op(hir.AppendTextNode, {
-          value: utils.op(hir.Literal, { value: text.chars }).loc(text),
-        })
-        .loc(text);
+      return new hir.AppendTextNode(text.loc, {
+        value: new hir.Literal(text.loc, { value: text.chars }),
+      });
     }
   }
 
-  HtmlComment(comment: ASTv2.HtmlComment, utils: NormalizationUtilities): hir.Statement {
-    return utils
-      .op(hir.AppendComment, {
-        value: comment.text,
-      })
-      .loc(comment);
+  HtmlComment(comment: ASTv2.HtmlComment): hir.Statement {
+    return new hir.AppendComment(comment.loc, {
+      value: comment.text,
+    });
   }
 }
 

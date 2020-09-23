@@ -1,9 +1,11 @@
-import { SymbolTable } from '../../symbol-table';
+import { SourceOffsetList } from '../../source/offsets';
+import type { SymbolTable } from '../../symbol-table';
 import { Args, Named } from './args';
-import { ComponentArg, ElementModifier, HtmlOrSplatAttr } from './attr-block';
+import type { ComponentArg, ElementModifier, HtmlOrSplatAttr } from './attr-block';
 import { BaseNodeFields, CallFields, node } from './base';
-import { ExpressionNode } from './expr';
-import { NamedBlock, NamedBlocks, SourceSlice } from './internal';
+import type { ExpressionNode } from './expr';
+import type { NamedBlock, NamedBlocks } from './internal';
+import { SourceSlice } from '../../source/slice';
 
 /**
  * Content Nodes are allowed in content positions in templates. They correspond to behavior in the
@@ -64,7 +66,7 @@ export class InvokeComponent extends node('InvokeComponent').fields<InvokeCompon
 
     return Args.named(
       new Named({
-        loc: this.loc.src.offsetList(entries.map((e) => e.loc)).getRangeOffset(),
+        loc: SourceOffsetList.range(entries, this.callee.loc.collapseEnd()),
         entries,
       })
     );
@@ -85,7 +87,7 @@ export class SimpleElement extends node('SimpleElement').fields<SimpleElementOpt
 
     return Args.named(
       new Named({
-        loc: this.loc.src.offsetList(entries.map((e) => e.loc)).getRangeOffset(),
+        loc: SourceOffsetList.range(entries, this.tag.loc.collapseEnd()),
         entries,
       })
     );

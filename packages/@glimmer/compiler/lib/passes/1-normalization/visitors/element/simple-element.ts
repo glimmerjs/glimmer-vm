@@ -23,19 +23,18 @@ export class ClassifiedSimpleElement implements Classified {
   }
 
   toStatement(classified: ClassifiedElement, { params }: PreparedArgs): Result<hir.Statement> {
-    let { utils, element } = classified;
+    let { state, element } = classified;
 
-    let body = VISIT_STMTS.visitList(this.element.body, utils);
+    let body = VISIT_STMTS.visitList(this.element.body, state);
 
-    return body.mapOk((body) =>
-      utils
-        .op(hir.SimpleElement, {
+    return body.mapOk(
+      (body) =>
+        new hir.SimpleElement(element.loc, {
           tag: this.tag,
           params,
           body: body.toArray(),
           dynamicFeatures: this.dynamicFeatures,
         })
-        .loc(element)
     );
   }
 }
