@@ -26,7 +26,7 @@ function makeSafeString(value: string): SafeString {
 }
 
 class SafeStringImpl implements SafeString {
-  constructor(private string: string) {}
+  constructor(private string: string) { }
   toHTML() {
     return this.string;
   }
@@ -801,6 +801,44 @@ class UpdatingTest extends RenderTest {
       problem: 'Unexpected Helper helo',
       span: { start: 0, end: 0 },
     });
+  }
+
+  @test
+  '@test Component helper updating when component name changes #16832 [curly]'() {
+    this.registerComponent('Glimmer', 'FooBar', 'foo-bar');
+    this.registerComponent('Glimmer', 'FooBarBaz', 'foo-bar-baz');
+    this.render('{{#let (component name) as |comp|}}{{comp}}{{/let}}', {
+      name: 'FooBar',
+    });
+
+    this.assertHTML('foo-bar', 'Initial render');
+
+    this.rerender();
+
+    this.assertHTML('foo-bar', 'After rerender');
+
+    this.rerender({ name: 'FooBarBaz' });
+
+    this.assertHTML('foo-bar-baz', 'After component name update');
+  }
+
+  @test
+  '@test Component helper updating when component name changes #16832 [angle]'() {
+    this.registerComponent('Glimmer', 'FooBar', 'foo-bar');
+    this.registerComponent('Glimmer', 'FooBarBaz', 'foo-bar-baz');
+    this.render('{{#let (component name) as |MyComp|}}<MyComp />{{/let}}', {
+      name: 'FooBar',
+    });
+
+    this.assertHTML('foo-bar', 'Initial render');
+
+    this.rerender();
+
+    this.assertHTML('foo-bar', 'After rerender');
+
+    this.rerender({ name: 'FooBarBaz' });
+
+    this.assertHTML('foo-bar-baz', 'After component name update');
   }
 
   @test
