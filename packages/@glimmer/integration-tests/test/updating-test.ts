@@ -26,7 +26,7 @@ function makeSafeString(value: string): SafeString {
 }
 
 class SafeStringImpl implements SafeString {
-  constructor(private string: string) { }
+  constructor(private string: string) {}
   toHTML() {
     return this.string;
   }
