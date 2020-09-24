@@ -6,6 +6,7 @@ import {
   WireFormat,
 } from '@glimmer/interfaces';
 import { dict } from '@glimmer/util';
+
 import { inflateAttrName, inflateTagName } from './utils';
 
 export default class WireFormatDebugger {

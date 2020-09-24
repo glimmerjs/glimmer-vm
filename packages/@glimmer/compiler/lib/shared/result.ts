@@ -1,4 +1,5 @@
 import { GlimmerSyntaxError } from '@glimmer/syntax';
+
 import { AnyOptionalList, OptionalList } from './list';
 
 abstract class ResultImpl<T> {

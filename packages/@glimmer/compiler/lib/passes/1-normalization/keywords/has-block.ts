@@ -1,4 +1,5 @@
-import { SourceSlice, ASTv2, GlimmerSyntaxError } from '@glimmer/syntax';
+import { ASTv2, GlimmerSyntaxError, SourceSlice } from '@glimmer/syntax';
+
 import { Err, Ok, Result } from '../../../shared/result';
 import { GenericKeywordNode } from './impl';
 

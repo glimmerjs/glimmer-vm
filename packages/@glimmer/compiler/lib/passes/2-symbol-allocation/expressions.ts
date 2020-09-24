@@ -1,8 +1,9 @@
-import * as hir from './hir';
-import * as mir from '../3-encoding/mir';
-import { OpArgs } from '../../shared/op';
-import { Context, MapVisitorsInterface } from './context';
 import { SpanList } from '@glimmer/syntax';
+
+import { OpArgs } from '../../shared/op';
+import * as mir from '../3-encoding/mir';
+import { Context, MapVisitorsInterface } from './context';
+import * as hir from './hir';
 
 export type ExpressionVisitor = MapVisitorsInterface<hir.Expr, mir.Expr>;
 

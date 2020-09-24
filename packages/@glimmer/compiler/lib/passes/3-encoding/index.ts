@@ -1,4 +1,5 @@
 import { WireFormat } from '@glimmer/interfaces';
+
 import * as mir from './mir';
 import { visitStatements } from './statements';
 

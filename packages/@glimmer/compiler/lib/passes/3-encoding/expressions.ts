@@ -1,5 +1,6 @@
 import { Optional, PresentArray, SexpOpcodes, WireFormat } from '@glimmer/interfaces';
 import { assertPresent, isPresent, mapPresent } from '@glimmer/util';
+
 import { Op, OpArgs, OpsTable } from '../../shared/op';
 import * as mir from './mir';
 import { visitStatement, visitStatements } from './statements';

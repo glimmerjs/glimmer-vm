@@ -1,7 +1,8 @@
 import { SexpOpcodes, WireFormat } from '@glimmer/interfaces';
 import { LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
-import { LOCAL_LOGGER } from '@glimmer/util';
 import { SourceSlice } from '@glimmer/syntax';
+import { LOCAL_LOGGER } from '@glimmer/util';
+
 import { Op, OpArgs, OpsTable } from '../../shared/op';
 import { deflateTagName } from '../../utils';
 import { visitExpr, visitInternal } from './expressions';

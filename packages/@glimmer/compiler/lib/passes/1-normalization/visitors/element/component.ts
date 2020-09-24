@@ -1,4 +1,5 @@
 import { ASTv2 } from '@glimmer/syntax';
+
 import { Result } from '../../../../shared/result';
 import * as hir from '../../../2-symbol-allocation/hir';
 import { NormalizationState } from '../../context';

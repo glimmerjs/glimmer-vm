@@ -8,6 +8,7 @@ import {
   SymbolTable,
 } from '@glimmer/syntax';
 import { LOCAL_LOGGER, mapPresent, NonemptyStack } from '@glimmer/util';
+
 import { AnyOptionalList, MapList, OptionalList } from '../../shared/list';
 import { InputOpArgs, OpArgs, OpConstructor, UnlocatedOp } from '../../shared/op';
 import { OpFactory, Ops } from '../../shared/ops';

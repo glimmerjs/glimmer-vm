@@ -10,6 +10,7 @@ import {
 } from '@glimmer/interfaces';
 import { assert, assertNever, dict, exhausted, isPresent, values } from '@glimmer/util';
 import { AttrNamespace, Namespace } from '@simple-dom/interface';
+
 import {
   Builder,
   BuilderComment,

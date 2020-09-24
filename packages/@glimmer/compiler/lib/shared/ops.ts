@@ -1,4 +1,5 @@
 import { PresentArray } from '@glimmer/interfaces';
+
 import { InputOpArgs, Op, OpConstructor, toArgs, UnlocatedOp } from './op';
 
 export type ArgsMap<K extends string | number> = {

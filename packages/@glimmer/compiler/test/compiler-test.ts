@@ -7,6 +7,7 @@ import {
   SerializedTemplateWithLazyBlock,
 } from '@glimmer/interfaces';
 import { assign, strip } from '@glimmer/util';
+
 import {
   Builder,
   BuilderStatement,

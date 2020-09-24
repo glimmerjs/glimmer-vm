@@ -1,6 +1,7 @@
 /* eslint-disable qunit/no-global-expect */
-import { expect } from '@glimmer/util';
 import { SourceSlice } from '@glimmer/syntax';
+import { expect } from '@glimmer/util';
+
 import { OptionalList } from '../../shared/list';
 import { OpArgs, OpConstructor } from '../../shared/op';
 import * as mir from '../3-encoding/mir';

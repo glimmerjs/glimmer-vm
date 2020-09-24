@@ -1,10 +1,10 @@
 /* eslint-disable qunit/no-global-module-test */
-// eslint-disable-next-line @typescript-eslint/unbound-method
-const test = QUnit.test;
-
 import { Dict } from '@glimmer/interfaces';
 import { Source } from '@glimmer/syntax';
 import { unwrap } from '@glimmer/util';
+
+// eslint-disable-next-line @typescript-eslint/unbound-method
+const test = QUnit.test;
 
 const cases: Dict<[string, number | null][]> = {
   'hello world': [
