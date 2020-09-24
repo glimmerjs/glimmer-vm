@@ -1,8 +1,8 @@
-import { Node } from '../types/nodes';
-import Printer, { PrinterOptions } from './printer';
+import type { ASTv1 } from '../-internal';
+import { Printer, PrinterOptions } from './-internal';
 
 export default function build(
-  ast: Node,
+  ast: ASTv1.Node,
   options: PrinterOptions = { entityEncoding: 'transformed' }
 ): string {
   if (!ast) {

@@ -1,5 +1,5 @@
-import { Bounds, ElementBuilder, Environment, Option } from '@glimmer/interfaces';
-import { assert, cast, expect, Maybe, Stack } from '@glimmer/util';
+import { Bounds, ElementBuilder, Environment, Option, Maybe } from '@glimmer/interfaces';
+import { assert, cast, expect, Stack } from '@glimmer/util';
 import {
   AttrNamespace,
   Namespace,

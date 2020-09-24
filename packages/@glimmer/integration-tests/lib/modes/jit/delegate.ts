@@ -1,4 +1,4 @@
-import { PrecompileOptions } from '@glimmer/compiler';
+import { PrecompileOptions } from '@glimmer/syntax';
 import {
   ComponentDefinition,
   Cursor,
@@ -95,7 +95,7 @@ export class JitRenderDelegate implements RenderDelegate {
   private env: EnvironmentDelegate;
 
   constructor(options?: RenderDelegateOptions) {
-    this.doc = options?.doc ?? cast(document).simple;
+    this.doc = cast(options?.doc ?? document).simple;
     this.env = assign(options?.env ?? {}, BaseEnv);
     this.context = this.getContext();
   }
@@ -240,7 +240,7 @@ export class JitRenderDelegate implements RenderDelegate {
     name: string,
     args: Dict<Reference<unknown>>,
     element: SimpleElement,
-    dyanmicScope?: DynamicScope
+    dynamicScope?: DynamicScope
   ): RenderResult {
     let cursor = { element, nextSibling: null };
     let { syntax, runtime } = this.context;
@@ -256,7 +256,7 @@ export class JitRenderDelegate implements RenderDelegate {
       component,
       compilable!,
       args,
-      dyanmicScope
+      dynamicScope
     );
 
     return renderSync(runtime.env, iterator);
@@ -271,6 +271,6 @@ export class JitRenderDelegate implements RenderDelegate {
   }
 }
 
-function isBrowserTestDocument(doc: SimpleDocument): doc is SimpleDocument & Document {
+function isBrowserTestDocument(doc: SimpleDocument | Document): doc is Document {
   return !!((doc as any).getElementById && (doc as any).getElementById('qunit-fixture'));
 }

@@ -619,8 +619,10 @@ export class BasicComponents extends RenderTest {
       }
     );
 
-    this.render('<TestHarness @Foo={{component "Foo"}} />');
-    this.assertStableRerender();
+    this.assert.throws(() => {
+      this.render('<TestHarness @Foo={{component "Foo"}} />');
+      this.assertStableRerender();
+    }, /stuff is not in scope/);
   }
 
   @test({

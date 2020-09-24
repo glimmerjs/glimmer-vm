@@ -1,23 +1,25 @@
+/* eslint-disable qunit/no-global-module-test */
 /* eslint-disable qunit/no-test-expect-argument */
 
 import {
-  precompile,
-  WireFormatDebugger,
-  BuilderStatement,
-  ProgramSymbols,
-  buildStatements,
-  Builder,
-  s,
-  c,
-  NEWLINE,
-  unicode,
-} from '..';
-import {
-  SerializedTemplateWithLazyBlock,
   SerializedTemplate,
   SerializedTemplateBlock,
+  SerializedTemplateWithLazyBlock,
 } from '@glimmer/interfaces';
 import { assign, strip } from '@glimmer/util';
+
+import {
+  Builder,
+  BuilderStatement,
+  buildStatements,
+  c,
+  NEWLINE,
+  precompile,
+  ProgramSymbols,
+  s,
+  unicode,
+  WireFormatDebugger,
+} from '..';
 
 QUnit.module('@glimmer/compiler - compiling source to wire format');
 
@@ -25,7 +27,7 @@ function compile(content: string): SerializedTemplate<unknown> {
   let parsed = (JSON.parse(precompile(content, {})) as unknown) as SerializedTemplateWithLazyBlock<
     unknown
   >;
-  let block = JSON.parse(parsed.block);
+  let block = JSON.parse(parsed.block) as SerializedTemplateBlock;
 
   return assign({}, parsed, { block });
 }
@@ -83,26 +85,6 @@ test(
   `{{#with person as |name|}}{{#with this.name as |test|}}{{test}}{{/with}}{{/with}}`,
   ['#^with', ['^person'], { as: 'name' }, [['#^with', ['this.name'], { as: 'test' }, ['test']]]]
 );
-
-// test(
-//   'Smoke test (integration, basic)',
-//   '<div ...attributes><@foo @staticNamedArg="static" data-test1={{@outerArg}} data-test2="static" @dynamicNamedArg={{@outerArg}} /></div>',
-//   [
-//     '<div>',
-//     { attributes: 'splat' },
-//     [
-//       [
-//         `<@foo>`,`
-//         {
-//           '@staticNamedArg': s`static`,
-//           'data-test1': '@outerArg',
-//           'data-test2': s`static`,
-//           '@dynamicNamedArg': `@outerArg`,
-//         },
-//       ],
-//     ],
-//   ]
-// );
 
 test(
   'elements',

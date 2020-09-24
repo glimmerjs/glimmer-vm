@@ -8,6 +8,7 @@ import {
   CheckString,
   CheckOr,
 } from '@glimmer/debug';
+import { DEBUG } from '@glimmer/env';
 import {
   Bounds,
   CompilableTemplate,
@@ -20,47 +21,46 @@ import {
   ElementOperations,
   InternalComponentManager,
   Maybe,
+  ModifierManager,
   Op,
+  Option,
   ProgramSymbolTable,
   Recast,
   ScopeSlot,
   VMArguments,
+  WithCreateInstance,
   WithDynamicLayout,
-  WithStaticLayout,
   WithDynamicTagName,
   WithElementHook,
+  WithStaticLayout,
   WithUpdateHook,
-  WithCreateInstance,
-  ModifierManager,
 } from '@glimmer/interfaces';
-import { Reference, valueForRef, isConstRef } from '@glimmer/reference';
-
+import { isConstRef, Reference, valueForRef } from '@glimmer/reference';
 import {
   assert,
-  dict,
-  expect,
-  Option,
-  unreachable,
-  symbol,
-  unwrapTemplate,
-  EMPTY_ARRAY,
   decodeHandle,
+  dict,
+  EMPTY_STRING_ARRAY,
+  expect,
   isErrHandle,
+  symbol,
+  unreachable,
+  unwrapTemplate,
 } from '@glimmer/util';
 import { $t0, $t1, $v0 } from '@glimmer/vm';
 import {
   Capability,
   capabilityFlagsFrom,
-  managerHasCapability,
   hasCapability,
+  managerHasCapability,
 } from '../../capabilities';
 import {
   CurriedComponentDefinition,
   isCurriedComponentDefinition,
   resolveCurriedComponentDefinition,
 } from '../../component/curried-component';
-import { resolveComponent } from '../../component/resolve';
 import { hasStaticLayout } from '../../component/interfaces';
+import { resolveComponent } from '../../component/resolve';
 import { APPEND_OPCODES, UpdatingOpcode } from '../../opcodes';
 import createClassListRef from '../../references/class-list';
 import createCurryComponentRef from '../../references/curry-component';
@@ -79,7 +79,6 @@ import {
   CheckCurriedComponentDefinition,
 } from './-debug-strip';
 import { UpdateDynamicAttributeOpcode } from './dom';
-import { DEBUG } from '@glimmer/env';
 
 /**
  * The VM creates a new ComponentInstance data structure for every component
@@ -241,7 +240,8 @@ APPEND_OPCODES.add(Op.PushArgs, (vm, { op1: _names, op2: _blockNames, op3: flags
 
   let positionalCount = flags >> 4;
   let atNames = flags & 0b1000;
-  let blockNames = flags & 0b0111 ? vm[CONSTANTS].getArray<string>(_blockNames) : EMPTY_ARRAY;
+  let blockNames =
+    flags & 0b0111 ? vm[CONSTANTS].getArray<string>(_blockNames) : EMPTY_STRING_ARRAY;
 
   vm[ARGS].setup(stack, names, blockNames, positionalCount, !!atNames);
   stack.pushJs(vm[ARGS]);
@@ -538,7 +538,7 @@ APPEND_OPCODES.add(Op.DidCreateElement, (vm, { op1: _state }) => {
 
   (manager as WithElementHook<unknown>).didCreateElement(
     state,
-    expect(vm.elements().constructing, `Expected a constructing elemet in DidCreateOpcode`),
+    expect(vm.elements().constructing, `Expected a constructing element in DidCreateOpcode`),
     operations
   );
 });

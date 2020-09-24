@@ -102,7 +102,7 @@ class CompileErrorTests extends RenderTest {
     function expectedError(line: number) {
       return new Error(
         `An unquoted attribute value must be a string or a mustache, ` +
-          `preceeded by whitespace or a '=' character, and ` +
+          `preceded by whitespace or a '=' character, and ` +
           `followed by whitespace, a '>' character, or '/>' (on line ${line})`
       );
     }

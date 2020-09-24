@@ -1,0 +1,16 @@
+export {
+  BROKEN,
+  CharOffsetSpan,
+  charSpan,
+  collapsed,
+  InvisibleKind,
+  InvisibleSpan,
+  isInvisible,
+  isSourceSpan,
+  LocationOffset,
+  LocationSpan,
+  NON_EXISTENT,
+  SourceOffset,
+  SourceSpan,
+  _BROKEN,
+} from './offsets/-internal';

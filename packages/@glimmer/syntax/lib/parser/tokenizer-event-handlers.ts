@@ -1,87 +1,80 @@
-import b, { SYNTHETIC } from '../builders';
-import { appendChild, parseElementBlockParams } from '../utils';
-import { HandlebarsNodeVisitors } from './handlebars-node-visitors';
-import * as AST from '../types/nodes';
-import * as HBS from '../types/handlebars-ast';
-import SyntaxError from '../errors/syntax-error';
-import { Tag } from '../parser';
-import builders from '../builders';
-import traverse from '../traversal/traverse';
-import print from '../generation/print';
-import Walker from '../traversal/walker';
+import { Option } from '@glimmer/interfaces';
+import { assertPresent, assign } from '@glimmer/util';
 import { parse, parseWithoutProcessing } from '@handlebars/parser';
-import { assign } from '@glimmer/util';
-import { NodeVisitor } from '../traversal/visitor';
 import { EntityParser } from 'simple-html-tokenizer';
 
-export const voidMap: {
-  [tagName: string]: boolean;
-} = Object.create(null);
-
-let voidTagNames =
-  'area base br col command embed hr img input keygen link meta param source track wbr';
-voidTagNames.split(' ').forEach((tagName) => {
-  voidMap[tagName] = true;
-});
+import {
+  appendChild,
+  ASTv1,
+  b as publicBuilder,
+  charSpan,
+  GlimmerSyntaxError,
+  HBS,
+  NodeVisitor,
+  parseElementBlockParams,
+  Source,
+  SourceOffset,
+  SourceSpan,
+  strictBuilder as b,
+  Tag,
+  traverse,
+  voidMap,
+  Walker,
+} from '../-internal';
+import { HandlebarsNodeVisitors } from './-internal';
 
 export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
   private tagOpenLine = 0;
   private tagOpenColumn = 0;
 
-  reset() {
+  reset(): void {
     this.currentNode = null;
   }
 
   // Comment
 
-  beginComment() {
-    this.currentNode = b.comment('');
-    this.currentNode.loc = {
-      source: null,
-      start: b.pos(this.tagOpenLine, this.tagOpenColumn),
-      end: (null as any) as AST.Position,
-    };
+  beginComment(): void {
+    this.currentNode = b.comment(
+      '',
+      this.source.offsetFor({ line: this.tagOpenLine, column: this.tagOpenColumn })
+    );
   }
 
-  appendToCommentData(char: string) {
+  appendToCommentData(char: string): void {
     this.currentComment.value += char;
   }
 
-  finishComment() {
-    this.currentComment.loc.end = b.pos(this.tokenizer.line, this.tokenizer.column);
-
-    appendChild(this.currentElement(), this.currentComment);
+  finishComment(): void {
+    appendChild(this.currentElement(), this.finish(this.currentComment));
   }
 
   // Data
 
-  beginData() {
-    this.currentNode = b.text();
-    this.currentNode.loc = {
-      source: null,
-      start: b.pos(this.tokenizer.line, this.tokenizer.column),
-      end: (null as any) as AST.Position,
-    };
+  beginData(): void {
+    this.currentNode = b.text({
+      chars: '',
+      loc: this.offset().collapsed(),
+    });
   }
 
-  appendToData(char: string) {
+  appendToData(char: string): void {
     this.currentData.chars += char;
   }
 
-  finishData() {
-    this.currentData.loc.end = b.pos(this.tokenizer.line, this.tokenizer.column);
+  finishData(): void {
+    this.currentData.loc = this.currentData.loc.withEnd(this.offset());
 
     appendChild(this.currentElement(), this.currentData);
   }
 
   // Tags - basic
 
-  tagOpen() {
+  tagOpen(): void {
     this.tagOpenLine = this.tokenizer.line;
     this.tagOpenColumn = this.tokenizer.column;
   }
 
-  beginStartTag() {
+  beginStartTag(): void {
     this.currentNode = {
       type: 'StartTag',
       name: '',
@@ -89,11 +82,11 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
       modifiers: [],
       comments: [],
       selfClosing: false,
-      loc: SYNTHETIC,
+      loc: this.source.offsetFor({ line: this.tagOpenLine, column: this.tagOpenColumn }),
     };
   }
 
-  beginEndTag() {
+  beginEndTag(): void {
     this.currentNode = {
       type: 'EndTag',
       name: '',
@@ -101,15 +94,12 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
       modifiers: [],
       comments: [],
       selfClosing: false,
-      loc: SYNTHETIC,
+      loc: this.source.offsetFor({ line: this.tagOpenLine, column: this.tagOpenColumn }),
     };
   }
 
-  finishTag() {
-    let { line, column } = this.tokenizer;
-
-    let tag = this.currentTag;
-    tag.loc = b.loc(this.tagOpenLine, this.tagOpenColumn, line, column);
+  finishTag(): void {
+    let tag = this.finish(this.currentTag);
 
     if (tag.type === 'StartTag') {
       this.finishStartTag();
@@ -122,206 +112,213 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
     }
   }
 
-  finishStartTag() {
-    let { name, attributes: attrs, modifiers, comments, selfClosing } = this.currentStartTag;
-    let loc = b.loc(this.tagOpenLine, this.tagOpenColumn);
-    let element = b.element({ name, selfClosing }, { attrs, modifiers, comments, loc });
+  finishStartTag(): void {
+    let { name, attributes: attrs, modifiers, comments, selfClosing, loc } = this.finish(
+      this.currentStartTag
+    );
+
+    let element = b.element({
+      tag: name,
+      selfClosing,
+      attrs,
+      modifiers,
+      comments,
+      children: [],
+      blockParams: [],
+      loc,
+    });
     this.elementStack.push(element);
   }
 
-  finishEndTag(isVoid: boolean) {
-    let tag = this.currentTag;
+  finishEndTag(isVoid: boolean): void {
+    let tag = this.finish(this.currentTag);
 
-    let element = this.elementStack.pop() as AST.ElementNode;
+    let element = this.elementStack.pop() as ASTv1.ElementNode;
     let parent = this.currentElement();
 
-    validateEndTag(tag, element, isVoid);
+    this.validateEndTag(tag, element, isVoid);
 
-    element.loc.end.line = this.tokenizer.line;
-    element.loc.end.column = this.tokenizer.column;
-
+    element.loc = element.loc.withEnd(this.offset());
     parseElementBlockParams(element);
     appendChild(parent, element);
   }
 
-  markTagAsSelfClosing() {
+  markTagAsSelfClosing(): void {
     this.currentTag.selfClosing = true;
   }
 
   // Tags - name
 
-  appendToTagName(char: string) {
+  appendToTagName(char: string): void {
     this.currentTag.name += char;
   }
 
   // Tags - attributes
 
-  beginAttribute() {
+  beginAttribute(): void {
     let tag = this.currentTag;
     if (tag.type === 'EndTag') {
-      throw new SyntaxError(
+      throw new GlimmerSyntaxError(
         `Invalid end tag: closing tag must not have attributes, ` +
           `in \`${tag.name}\` (on line ${this.tokenizer.line}).`,
-        tag.loc
+        { start: tag.loc.toJSON(), end: tag.loc.toJSON() }
       );
     }
+
+    let offset = this.offset();
 
     this.currentAttribute = {
       name: '',
       parts: [],
+      currentPart: null,
       isQuoted: false,
       isDynamic: false,
-      start: b.pos(this.tokenizer.line, this.tokenizer.column),
-      valueStartLine: 0,
-      valueStartColumn: 0,
+      start: offset,
+      valueSpan: offset.collapsed(),
     };
   }
 
-  appendToAttributeName(char: string) {
+  appendToAttributeName(char: string): void {
     this.currentAttr.name += char;
   }
 
-  beginAttributeValue(isQuoted: boolean) {
+  beginAttributeValue(isQuoted: boolean): void {
     this.currentAttr.isQuoted = isQuoted;
-    this.currentAttr.valueStartLine = this.tokenizer.line;
-    this.currentAttr.valueStartColumn = this.tokenizer.column;
+    this.startTextPart();
+    this.currentAttr.valueSpan = this.offset().collapsed();
   }
 
-  appendToAttributeValue(char: string) {
+  appendToAttributeValue(char: string): void {
     let parts = this.currentAttr.parts;
     let lastPart = parts[parts.length - 1];
 
-    if (lastPart && lastPart.type === 'TextNode') {
-      lastPart.chars += char;
+    let current = this.currentAttr.currentPart;
+
+    if (current) {
+      current.chars += char;
 
       // update end location for each added char
-      lastPart.loc.end.line = this.tokenizer.line;
-      lastPart.loc.end.column = this.tokenizer.column;
+      current.loc = current.loc.withEnd(this.offset());
     } else {
       // initially assume the text node is a single char
-      let loc = b.loc(
-        this.tokenizer.line,
-        this.tokenizer.column,
-        this.tokenizer.line,
-        this.tokenizer.column
-      );
+      let loc: SourceOffset = this.offset();
 
       // the tokenizer line/column have already been advanced, correct location info
       if (char === '\n') {
-        loc.start.line -= 1;
-        loc.start.column = lastPart ? lastPart.loc.end.column : this.currentAttr.valueStartColumn;
+        loc = lastPart ? lastPart.loc.endOffset : this.currentAttr.valueSpan.startOffset;
       } else {
-        loc.start.column -= 1;
+        loc = loc.move(-1);
       }
 
-      let text = b.text(char, loc);
-      parts.push(text);
+      this.currentAttr.currentPart = b.text({ chars: char, loc: loc.collapsed() });
     }
   }
 
-  finishAttributeValue() {
-    let { name, parts, isQuoted, isDynamic, valueStartLine, valueStartColumn } = this.currentAttr;
-    let value = assembleAttributeValue(parts, isQuoted, isDynamic, this.tokenizer.line);
-    value.loc = b.loc(valueStartLine, valueStartColumn, this.tokenizer.line, this.tokenizer.column);
+  finishAttributeValue(): void {
+    this.finalizeTextPart();
+    let { name, parts, start, isQuoted, isDynamic, valueSpan } = this.currentAttr;
+    let tokenizerPos = this.offset();
+    let value = this.assembleAttributeValue(parts, isQuoted, isDynamic, valueSpan);
+    value.loc = valueSpan.withEnd(tokenizerPos);
 
-    let loc = b.loc(
-      this.currentAttr.start.line,
-      this.currentAttr.start.column,
-      this.tokenizer.line,
-      this.tokenizer.column
-    );
-
-    let attribute = b.attr(name, value, loc);
+    let attribute = b.attr({ name, value, loc: start.withEnd(tokenizerPos) });
 
     this.currentStartTag.attributes.push(attribute);
   }
 
-  reportSyntaxError(message: string) {
-    throw new SyntaxError(
+  reportSyntaxError(message: string): void {
+    throw new GlimmerSyntaxError(
       `Syntax error at line ${this.tokenizer.line} col ${this.tokenizer.column}: ${message}`,
-      b.loc(this.tokenizer.line, this.tokenizer.column)
+      this.offset().collapsed()
     );
   }
-}
 
-function assembleAttributeValue(
-  parts: (AST.MustacheStatement | AST.TextNode)[],
-  isQuoted: boolean,
-  isDynamic: boolean,
-  line: number
-) {
-  if (isDynamic) {
-    if (isQuoted) {
-      return assembleConcatenatedValue(parts);
-    } else {
-      if (
-        parts.length === 1 ||
-        (parts.length === 2 &&
-          parts[1].type === 'TextNode' &&
-          (parts[1] as AST.TextNode).chars === '/')
-      ) {
-        return parts[0];
-      } else {
-        throw new SyntaxError(
-          `An unquoted attribute value must be a string or a mustache, ` +
-            `preceeded by whitespace or a '=' character, and ` +
-            `followed by whitespace, a '>' character, or '/>' (on line ${line})`,
-          b.loc(line, 0)
+  assembleConcatenatedValue(
+    parts: (ASTv1.MustacheStatement | ASTv1.TextNode)[]
+  ): ASTv1.ConcatStatement {
+    for (let i = 0; i < parts.length; i++) {
+      let part: ASTv1.BaseNode = parts[i];
+
+      if (part.type !== 'MustacheStatement' && part.type !== 'TextNode') {
+        throw new GlimmerSyntaxError(
+          'Unsupported node in quoted attribute value: ' + part['type'],
+          part.loc
         );
       }
     }
-  } else {
-    return parts.length > 0 ? parts[0] : b.text('');
+
+    assertPresent(parts, `the concatenation parts of an element should not be empty`);
+
+    let first = parts[0];
+    let last = parts[parts.length - 1];
+
+    return b.concat(parts, this.source.spanFor(first.loc).extend(this.source.spanFor(last.loc)));
   }
-}
 
-function assembleConcatenatedValue(parts: (AST.MustacheStatement | AST.TextNode)[]) {
-  for (let i = 0; i < parts.length; i++) {
-    let part: AST.BaseNode = parts[i];
+  validateEndTag(
+    tag: Tag<'StartTag' | 'EndTag'>,
+    element: ASTv1.ElementNode,
+    selfClosing: boolean
+  ): void {
+    let error;
 
-    if (part.type !== 'MustacheStatement' && part.type !== 'TextNode') {
-      throw new SyntaxError(
-        'Unsupported node in quoted attribute value: ' + part['type'],
-        part.loc
-      );
+    if (voidMap[tag.name] && !selfClosing) {
+      // EngTag is also called by StartTag for void and self-closing tags (i.e.
+      // <input> or <br />, so we need to check for that here. Otherwise, we would
+      // throw an error for those cases.
+      error = 'Invalid end tag ' + formatEndTagInfo(tag) + ' (void elements cannot have end tags).';
+    } else if (element.tag === undefined) {
+      error = 'Closing tag ' + formatEndTagInfo(tag) + ' without an open tag.';
+    } else if (element.tag !== tag.name) {
+      error =
+        'Closing tag ' +
+        formatEndTagInfo(tag) +
+        ' did not match last open tag `' +
+        element.tag +
+        '` (on line ' +
+        element.loc.startPosition.line +
+        ').';
+    }
+
+    if (error) {
+      throw new GlimmerSyntaxError(error, element.loc);
     }
   }
 
-  return b.concat(parts);
+  assembleAttributeValue(
+    parts: (ASTv1.MustacheStatement | ASTv1.TextNode)[],
+    isQuoted: boolean,
+    isDynamic: boolean,
+    span: SourceSpan
+  ): ASTv1.ConcatStatement | ASTv1.MustacheStatement | ASTv1.TextNode {
+    if (isDynamic) {
+      if (isQuoted) {
+        return this.assembleConcatenatedValue(parts);
+      } else {
+        if (
+          parts.length === 1 ||
+          (parts.length === 2 &&
+            parts[1].type === 'TextNode' &&
+            (parts[1] as ASTv1.TextNode).chars === '/')
+        ) {
+          return parts[0];
+        } else {
+          throw new GlimmerSyntaxError(
+            `An unquoted attribute value must be a string or a mustache, ` +
+              `preceded by whitespace or a '=' character, and ` +
+              `followed by whitespace, a '>' character, or '/>' (on line ${span.startPosition.line})`,
+            span
+          );
+        }
+      }
+    } else {
+      return parts.length > 0 ? parts[0] : b.text({ chars: '', loc: span });
+    }
+  }
 }
 
-function validateEndTag(
-  tag: Tag<'StartTag' | 'EndTag'>,
-  element: AST.ElementNode,
-  selfClosing: boolean
-) {
-  let error;
-
-  if (voidMap[tag.name] && !selfClosing) {
-    // EngTag is also called by StartTag for void and self-closing tags (i.e.
-    // <input> or <br />, so we need to check for that here. Otherwise, we would
-    // throw an error for those cases.
-    error = 'Invalid end tag ' + formatEndTagInfo(tag) + ' (void elements cannot have end tags).';
-  } else if (element.tag === undefined) {
-    error = 'Closing tag ' + formatEndTagInfo(tag) + ' without an open tag.';
-  } else if (element.tag !== tag.name) {
-    error =
-      'Closing tag ' +
-      formatEndTagInfo(tag) +
-      ' did not match last open tag `' +
-      element.tag +
-      '` (on line ' +
-      element.loc.start.line +
-      ').';
-  }
-
-  if (error) {
-    throw new SyntaxError(error, element.loc);
-  }
-}
-
-function formatEndTagInfo(tag: Tag<'StartTag' | 'EndTag'>) {
-  return '`' + tag.name + '` (on line ' + tag.loc.end.line + ')';
+function formatEndTagInfo(tag: Tag<'StartTag' | 'EndTag'>): string {
+  return '`' + tag.name + '` (on line ' + tag.loc.endPosition.line + ')';
 }
 
 /**
@@ -341,9 +338,20 @@ export interface ASTPluginEnvironment {
   meta?: object;
   syntax: Syntax;
 }
+
 interface HandlebarsParseOptions {
   srcName?: string;
   ignoreStandalone?: boolean;
+}
+
+export interface TemplateIdFn {
+  (src: string): Option<string>;
+}
+
+export interface PrecompileOptions extends PreprocessOptions {
+  id?: TemplateIdFn;
+  meta?: object;
+  customizeComponentName?(input: string): string;
 }
 
 export interface PreprocessOptions {
@@ -352,6 +360,7 @@ export interface PreprocessOptions {
     ast?: ASTPluginBuilder[];
   };
   parseOptions?: HandlebarsParseOptions;
+  customizeComponentName?(input: string): string;
 
   /**
     Useful for specifying a group of options together.
@@ -365,7 +374,7 @@ export interface PreprocessOptions {
 
 export interface Syntax {
   parse: typeof preprocess;
-  builders: typeof builders;
+  builders: typeof publicBuilder;
   print: typeof print;
   traverse: typeof traverse;
   Walker: typeof Walker;
@@ -373,13 +382,13 @@ export interface Syntax {
 
 const syntax: Syntax = {
   parse: preprocess,
-  builders,
+  builders: publicBuilder,
   print,
   traverse,
   Walker,
 };
 
-export function preprocess(html: string, options: PreprocessOptions = {}): AST.Template {
+export function preprocess(html: string, options: PreprocessOptions = {}): ASTv1.Template {
   let mode = options.mode || 'precompile';
 
   let ast: HBS.Program;
@@ -395,6 +404,13 @@ export function preprocess(html: string, options: PreprocessOptions = {}): AST.T
   if (mode === 'codemod') {
     entityParser = new EntityParser({});
   }
+
+  let off = charSpan(new Source(html), 0, html.length);
+  ast.loc = {
+    source: '(program)',
+    start: off.startPosition,
+    end: off.endPosition,
+  };
 
   let program = new TokenizerEventHandlers(html, entityParser).acceptTemplate(ast);
 

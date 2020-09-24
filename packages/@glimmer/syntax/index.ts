@@ -1,31 +1,40 @@
-// used by ember-compiler
+/** @deprecated use ASTv1 instead */
+export { ASTv1 as AST } from './lib/-internal';
+
 export {
-  preprocess,
+  b as builders,
+  ASTv2,
+  ASTv1,
+  InvisibleSpan,
+  normalize,
   PreprocessOptions,
-  ASTPlugin,
+  Source,
+  SourceSlice,
+  SourceSpan,
+  maybeLoc,
+  NON_EXISTENT,
+  SymbolTable,
+  BlockSymbolTable,
+  ProgramSymbolTable,
+  GlimmerSyntaxError,
   ASTPluginBuilder,
+  SpanList,
+  preprocess,
+  print,
+  HasSourceSpan,
+  hasSpan,
+  loc,
+  MaybeHasSourceSpan,
   ASTPluginEnvironment,
   Syntax,
-} from './lib/parser/tokenizer-event-handlers';
-
-// needed for tests only
-export { default as builders } from './lib/builders';
-export {
-  default as TraversalError,
+  Walker,
+  traverse,
   cannotRemoveNode,
   cannotReplaceNode,
-  cannotReplaceOrRemoveInKeyHandlerYet,
-} from './lib/traversal/errors';
-export { default as traverse } from './lib/traversal/traverse';
-export * from './lib/traversal/visitor';
-export { default as Path } from './lib/traversal/path';
-export { default as Walker } from './lib/traversal/walker';
-export { default as print } from './lib/generation/print';
+  WalkerPath,
+  TemplateIdFn,
+  PrecompileOptions,
+} from './lib/-internal';
 
-// errors
-export { default as SyntaxError } from './lib/errors/syntax-error';
-
-// AST
-import * as AST from './lib/types/nodes';
-export { AST };
-export { isLiteral, printLiteral } from './lib/utils';
+/** @deprecated use WalkerPath instead */
+export { WalkerPath as Path } from './lib/-internal';

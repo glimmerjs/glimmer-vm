@@ -1,14 +1,18 @@
-import visitorKeys, { VisitorKeys, VisitorKey } from '../types/visitor-keys';
+import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
+import { deprecate } from '@glimmer/util';
+
+import { ASTv1 as AST, VisitorKey, VisitorKeys, visitorKeys } from '../-internal';
 import {
   cannotRemoveNode,
   cannotReplaceNode,
   cannotReplaceOrRemoveInKeyHandlerYet,
-} from './errors';
-import * as AST from '../types/nodes';
-import { deprecate } from '@glimmer/util';
-import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
-import { NodeHandler, NodeVisitor, KeyHandler, NodeTraversal, KeyTraversal } from './visitor';
-import Path from './path';
+  KeyHandler,
+  KeyTraversal,
+  NodeHandler,
+  NodeTraversal,
+  NodeVisitor,
+  WalkerPath,
+} from './-internal';
 
 function getEnterFunction<N extends AST.Node>(
   handler: NodeTraversal<N>
@@ -62,27 +66,29 @@ function getNodeHandler(visitor: NodeVisitor, nodeType: 'All'): NodeTraversal<AS
 function getNodeHandler<N extends AST.Node>(
   visitor: NodeVisitor,
   nodeType: N['type']
-): NodeTraversal<N> | NodeTraversal<AST.Node> | undefined {
+): NodeTraversal<AST.Node> | undefined {
   if (nodeType === 'Template' || nodeType === 'Block') {
     if (visitor.Program) {
       if (LOCAL_DEBUG) {
-        deprecate(`TODO`);
+        deprecate(
+          `The 'Program' visitor node is deprecated. Use 'Template' or 'Block' instead (node was '${nodeType}') `
+        );
       }
 
-      return visitor.Program as any;
+      return visitor.Program as NodeTraversal<AST.Node>;
     }
   }
 
   let handler = visitor[nodeType];
   if (handler !== undefined) {
-    return (handler as unknown) as NodeTraversal<N>;
+    return (handler as unknown) as NodeTraversal<AST.Node>;
   }
   return visitor.All;
 }
 
 function visitNode<N extends AST.Node>(
   visitor: NodeVisitor,
-  path: Path<N>
+  path: WalkerPath<N>
 ): AST.Node | AST.Node[] | undefined | null | void {
   let { node, parent, parentKey } = path;
 
@@ -107,7 +113,7 @@ function visitNode<N extends AST.Node>(
       visitArray(visitor, result, parent, parentKey);
       return result;
     } else {
-      let path = new Path(result, parent, parentKey);
+      let path = new WalkerPath(result, parent, parentKey);
       return visitNode(visitor, path) || result;
     }
   }
@@ -143,7 +149,7 @@ function set<N extends AST.Node, K extends keyof N>(node: N, key: K, value: N[K]
 function visitKey<N extends AST.Node>(
   visitor: NodeVisitor,
   handler: NodeTraversal<N>,
-  path: Path<N>,
+  path: WalkerPath<N>,
   key: VisitorKeys[N['type']] & keyof N
 ) {
   let { node } = path;
@@ -173,11 +179,12 @@ function visitKey<N extends AST.Node>(
   if (Array.isArray(value)) {
     visitArray(visitor, value, path, key);
   } else {
-    let keyPath = new Path(value, path, key);
+    let keyPath = new WalkerPath(value, path, key);
     let result = visitNode(visitor, keyPath);
     if (result !== undefined) {
       // TODO: dynamically check the results by having a table of
       // expected node types in value space, not just type space
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       assignKey(node, key, value, result as any);
     }
   }
@@ -192,12 +199,12 @@ function visitKey<N extends AST.Node>(
 function visitArray(
   visitor: NodeVisitor,
   array: AST.Node[],
-  parent: Path<AST.Node> | null,
+  parent: WalkerPath<AST.Node> | null,
   parentKey: string | null
 ) {
   for (let i = 0; i < array.length; i++) {
     let node = array[i];
-    let path = new Path(node, parent, parentKey);
+    let path = new WalkerPath(node, parent, parentKey);
     let result = visitNode(visitor, path);
     if (result !== undefined) {
       i += spliceArray(array, i, result) - 1;
@@ -241,7 +248,7 @@ function spliceArray(array: AST.Node[], index: number, result: AST.Node | AST.No
   }
 }
 
-export default function traverse(node: AST.Node, visitor: NodeVisitor) {
-  let path = new Path(node);
+export default function traverse(node: AST.Node, visitor: NodeVisitor): void {
+  let path = new WalkerPath(node);
   visitNode(visitor, path);
 }

@@ -1,5 +1,5 @@
 import { Dict, Option } from '@glimmer/interfaces';
-import { cast, expect } from '@glimmer/util';
+import { cast, expect, LOCAL_LOGGER } from '@glimmer/util';
 import { NodeType, SimpleElement } from '@simple-dom/interface';
 import {
   blockStack,
@@ -123,7 +123,7 @@ class ChaosMonkeyRehydration extends RenderTest {
     // remove it
     parent.removeChild(nodeToRemove);
 
-    let removedNodeDisplay;
+    let removedNodeDisplay: Option<string>;
     switch (nodeToRemove.nodeType) {
       case NodeType.COMMENT_NODE:
         removedNodeDisplay = `<!--${nodeToRemove.nodeValue}-->`;
@@ -136,7 +136,7 @@ class ChaosMonkeyRehydration extends RenderTest {
     }
 
     if (shouldLog) {
-      console.log(
+      LOCAL_LOGGER.log(
         `${removedNodeDisplay} was removed;\noriginal: ${original}\nupdated:  ${element.innerHTML}`
       );
     }

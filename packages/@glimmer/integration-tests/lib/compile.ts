@@ -1,4 +1,4 @@
-import { precompile as rawPrecompile, PrecompileOptions } from '@glimmer/compiler';
+import { precompile as rawPrecompile } from '@glimmer/compiler';
 import {
   AnnotatedModuleLocator,
   Environment,
@@ -8,6 +8,7 @@ import {
 } from '@glimmer/interfaces';
 import { templateFactory, TemplateFactory } from '@glimmer/opcode-compiler';
 import { assign } from '@glimmer/util';
+import { PrecompileOptions } from '@glimmer/syntax';
 
 export const DEFAULT_TEST_META: AnnotatedModuleLocator = Object.freeze({
   kind: 'unknown',
