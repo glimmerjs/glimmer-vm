@@ -1,28 +1,25 @@
 import { Dict, Optional } from '@glimmer/interfaces';
 import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
 import { assert, assign, deprecate, isPresent } from '@glimmer/util';
-import { SYNTHETIC_LOCATION } from '../source/location';
-import type { SourceOffsets } from '../source/offsets/abstract';
-import { BROKEN } from '../source/offsets/invisible';
-import { LazySourceOffsets } from '../source/offsets/lazy';
-import { Source } from '../source/source';
-import * as AST from '../types/api';
+
+import type { ASTv1, SourceLocation, SourcePosition, SourceSpan } from '../-internal';
+import { BROKEN, LocationSpan, Source, SYNTHETIC_LOCATION } from '../-internal';
 
 const SOURCE = new Source('', '(tests)');
 
 // Statements
 
-export type BuilderHead = string | AST.PathExpression;
+export type BuilderHead = string | ASTv1.PathExpression;
 export type TagDescriptor = string | { name: string; selfClosing: boolean };
 
 function buildMustache(
-  path: BuilderHead | AST.Literal,
-  params?: AST.Expression[],
-  hash?: AST.Hash,
+  path: BuilderHead | ASTv1.Literal,
+  params?: ASTv1.Expression[],
+  hash?: ASTv1.Hash,
   raw?: boolean,
-  loc?: AST.SourceLocation,
-  strip?: AST.StripFlags
-): AST.MustacheStatement {
+  loc?: SourceLocation,
+  strip?: ASTv1.StripFlags
+): ASTv1.MustacheStatement {
   if (typeof path === 'string') {
     path = buildPath(path);
   }
@@ -41,24 +38,24 @@ function buildMustache(
 
 function buildBlock(
   path: BuilderHead,
-  params: Optional<AST.Expression[]>,
-  hash: Optional<AST.Hash>,
-  _defaultBlock: AST.PossiblyDeprecatedBlock,
-  _elseBlock?: Optional<AST.PossiblyDeprecatedBlock>,
-  loc?: AST.SourceLocation,
-  openStrip?: AST.StripFlags,
-  inverseStrip?: AST.StripFlags,
-  closeStrip?: AST.StripFlags
-): AST.BlockStatement {
-  let defaultBlock: AST.Block;
-  let elseBlock: Optional<AST.Block> | undefined;
+  params: Optional<ASTv1.Expression[]>,
+  hash: Optional<ASTv1.Hash>,
+  _defaultBlock: ASTv1.PossiblyDeprecatedBlock,
+  _elseBlock?: Optional<ASTv1.PossiblyDeprecatedBlock>,
+  loc?: SourceLocation,
+  openStrip?: ASTv1.StripFlags,
+  inverseStrip?: ASTv1.StripFlags,
+  closeStrip?: ASTv1.StripFlags
+): ASTv1.BlockStatement {
+  let defaultBlock: ASTv1.Block;
+  let elseBlock: Optional<ASTv1.Block> | undefined;
 
   if (_defaultBlock.type === 'Template') {
     if (LOCAL_DEBUG) {
       deprecate(`b.program is deprecated. Use b.blockItself instead.`);
     }
 
-    defaultBlock = (assign({}, _defaultBlock, { type: 'Block' }) as unknown) as AST.Block;
+    defaultBlock = (assign({}, _defaultBlock, { type: 'Block' }) as unknown) as ASTv1.Block;
   } else {
     defaultBlock = _defaultBlock;
   }
@@ -68,7 +65,7 @@ function buildBlock(
       deprecate(`b.program is deprecated. Use b.blockItself instead.`);
     }
 
-    elseBlock = (assign({}, _elseBlock, { type: 'Block' }) as unknown) as AST.Block;
+    elseBlock = (assign({}, _elseBlock, { type: 'Block' }) as unknown) as ASTv1.Block;
   } else {
     elseBlock = _elseBlock;
   }
@@ -88,11 +85,11 @@ function buildBlock(
 }
 
 function buildElementModifier(
-  path: BuilderHead | AST.Expression,
-  params?: AST.Expression[],
-  hash?: AST.Hash,
-  loc?: Optional<AST.SourceLocation>
-): AST.ElementModifierStatement {
+  path: BuilderHead | ASTv1.Expression,
+  params?: ASTv1.Expression[],
+  hash?: ASTv1.Hash,
+  loc?: Optional<SourceLocation>
+): ASTv1.ElementModifierStatement {
   return {
     type: 'ElementModifierStatement',
     path: buildPath(path),
@@ -103,12 +100,12 @@ function buildElementModifier(
 }
 
 function buildPartial(
-  name: AST.PathExpression,
-  params?: AST.Expression[],
-  hash?: AST.Hash,
+  name: ASTv1.PathExpression,
+  params?: ASTv1.Expression[],
+  hash?: ASTv1.Hash,
   indent?: string,
-  loc?: AST.SourceLocation
-): AST.PartialStatement {
+  loc?: SourceLocation
+): ASTv1.PartialStatement {
   return {
     type: 'PartialStatement',
     name: name,
@@ -120,7 +117,7 @@ function buildPartial(
   };
 }
 
-function buildComment(value: string, loc?: AST.SourceLocation): AST.CommentStatement {
+function buildComment(value: string, loc?: SourceLocation): ASTv1.CommentStatement {
   return {
     type: 'CommentStatement',
     value: value,
@@ -128,10 +125,7 @@ function buildComment(value: string, loc?: AST.SourceLocation): AST.CommentState
   };
 }
 
-function buildMustacheComment(
-  value: string,
-  loc?: AST.SourceLocation
-): AST.MustacheCommentStatement {
+function buildMustacheComment(value: string, loc?: SourceLocation): ASTv1.MustacheCommentStatement {
   return {
     type: 'MustacheCommentStatement',
     value: value,
@@ -140,9 +134,9 @@ function buildMustacheComment(
 }
 
 function buildConcat(
-  parts: (AST.TextNode | AST.MustacheStatement)[],
-  loc?: AST.SourceLocation
-): AST.ConcatStatement {
+  parts: (ASTv1.TextNode | ASTv1.MustacheStatement)[],
+  loc?: SourceLocation
+): ASTv1.ConcatStatement {
   if (!isPresent(parts)) {
     throw new Error(`b.concat requires at least one part`);
   }
@@ -159,43 +153,43 @@ function buildConcat(
 export type ElementParts =
   | ['attrs', ...AttrSexp[]]
   | ['modifiers', ...ModifierSexp[]]
-  | ['body', ...AST.Statement[]]
+  | ['body', ...ASTv1.Statement[]]
   | ['comments', ...ElementComment[]]
   | ['as', ...string[]]
-  | ['loc', AST.SourceLocation];
+  | ['loc', SourceLocation];
 
 export type PathSexp = string | ['path', string, LocSexp?];
 
 export type ModifierSexp =
   | string
   | [PathSexp, LocSexp?]
-  | [PathSexp, AST.Expression[], LocSexp?]
-  | [PathSexp, AST.Expression[], Dict<AST.Expression>, LocSexp?];
+  | [PathSexp, ASTv1.Expression[], LocSexp?]
+  | [PathSexp, ASTv1.Expression[], Dict<ASTv1.Expression>, LocSexp?];
 
-export type AttrSexp = [string, AST.AttrNode['value'] | string, LocSexp?];
+export type AttrSexp = [string, ASTv1.AttrNode['value'] | string, LocSexp?];
 
-export type LocSexp = ['loc', AST.SourceLocation];
+export type LocSexp = ['loc', SourceLocation];
 
-export type ElementComment = AST.MustacheCommentStatement | AST.SourceLocation | string;
+export type ElementComment = ASTv1.MustacheCommentStatement | SourceLocation | string;
 
 export type SexpValue =
   | string
-  | AST.Expression[]
-  | Dict<AST.Expression>
+  | ASTv1.Expression[]
+  | Dict<ASTv1.Expression>
   | LocSexp
   | PathSexp
   | undefined;
 
 export interface BuildElementOptions {
-  attrs?: AST.AttrNode[];
-  modifiers?: AST.ElementModifierStatement[];
-  children?: AST.Statement[];
+  attrs?: ASTv1.AttrNode[];
+  modifiers?: ASTv1.ElementModifierStatement[];
+  children?: ASTv1.Statement[];
   comments?: ElementComment[];
   blockParams?: string[];
-  loc: SourceOffsets;
+  loc: SourceSpan;
 }
 
-function buildElement(tag: TagDescriptor, options: BuildElementOptions): AST.ElementNode {
+function buildElement(tag: TagDescriptor, options: BuildElementOptions): ASTv1.ElementNode {
   let { attrs, blockParams, modifiers, comments, children, loc } = options;
 
   let tagName: string;
@@ -219,7 +213,7 @@ function buildElement(tag: TagDescriptor, options: BuildElementOptions): AST.Ele
     attributes: attrs || [],
     blockParams: blockParams || [],
     modifiers: modifiers || [],
-    comments: (comments as AST.MustacheCommentStatement[]) || [],
+    comments: (comments as ASTv1.MustacheCommentStatement[]) || [],
     children: children || [],
     loc,
   };
@@ -227,9 +221,9 @@ function buildElement(tag: TagDescriptor, options: BuildElementOptions): AST.Ele
 
 function buildAttr(
   name: string,
-  value: AST.AttrNode['value'],
-  loc?: AST.SourceLocation
-): AST.AttrNode {
+  value: ASTv1.AttrNode['value'],
+  loc?: SourceLocation
+): ASTv1.AttrNode {
   return {
     type: 'AttrNode',
     name: name,
@@ -238,7 +232,7 @@ function buildAttr(
   };
 }
 
-function buildText(chars?: string, loc?: AST.SourceLocation): AST.TextNode {
+function buildText(chars?: string, loc?: SourceLocation): ASTv1.TextNode {
   return {
     type: 'TextNode',
     chars: chars || '',
@@ -250,10 +244,10 @@ function buildText(chars?: string, loc?: AST.SourceLocation): AST.TextNode {
 
 function buildSexpr(
   path: BuilderHead,
-  params?: AST.Expression[],
-  hash?: AST.Hash,
-  loc?: AST.SourceLocation
-): AST.SubExpression {
+  params?: ASTv1.Expression[],
+  hash?: ASTv1.Hash,
+  loc?: SourceLocation
+): ASTv1.SubExpression {
   return {
     type: 'SubExpression',
     path: buildPath(path),
@@ -263,7 +257,7 @@ function buildSexpr(
   };
 }
 
-function headToString(head: AST.PathHead): { original: string; parts: string[] } {
+function headToString(head: ASTv1.PathHead): { original: string; parts: string[] } {
   switch (head.type) {
     case 'AtHead':
       return { original: head.name, parts: [head.name] };
@@ -276,10 +270,10 @@ function headToString(head: AST.PathHead): { original: string; parts: string[] }
 
 function buildHead(
   original: string,
-  loc: AST.SourceLocation
-): { head: AST.PathHead; tail: string[] } {
+  loc: SourceLocation
+): { head: ASTv1.PathHead; tail: string[] } {
   let [head, ...tail] = original.split('.');
-  let headNode: AST.PathHead;
+  let headNode: ASTv1.PathHead;
 
   if (head === 'this') {
     headNode = {
@@ -306,14 +300,14 @@ function buildHead(
   };
 }
 
-function buildThis(loc: AST.SourceLocation): AST.PathHead {
+function buildThis(loc: SourceLocation): ASTv1.PathHead {
   return {
     type: 'ThisHead',
     loc: buildLoc(loc || null),
   };
 }
 
-function buildAtName(name: string, loc: AST.SourceLocation): AST.PathHead {
+function buildAtName(name: string, loc: SourceLocation): ASTv1.PathHead {
   // the `@` should be included so we have a complete source range
   assert(name[0] === '@', `call builders.at() with a string that starts with '@'`);
 
@@ -324,7 +318,7 @@ function buildAtName(name: string, loc: AST.SourceLocation): AST.PathHead {
   };
 }
 
-function buildVar(name: string, loc: AST.SourceLocation): AST.PathHead {
+function buildVar(name: string, loc: SourceLocation): ASTv1.PathHead {
   assert(name !== 'this', `You called builders.var() with 'this'. Call builders.this instead`);
   assert(
     name[0] !== '@',
@@ -338,7 +332,7 @@ function buildVar(name: string, loc: AST.SourceLocation): AST.PathHead {
   };
 }
 
-function buildHeadFromString(head: string, loc: AST.SourceLocation): AST.PathHead {
+function buildHeadFromString(head: string, loc: SourceLocation): ASTv1.PathHead {
   if (head[0] === '@') {
     return buildAtName(head, loc);
   } else if (head === 'this') {
@@ -348,7 +342,7 @@ function buildHeadFromString(head: string, loc: AST.SourceLocation): AST.PathHea
   }
 }
 
-function buildNamedBlockName(name: string, loc?: AST.SourceLocation): AST.NamedBlockName {
+function buildNamedBlockName(name: string, loc?: SourceLocation): ASTv1.NamedBlockName {
   return {
     type: 'NamedBlockName',
     name,
@@ -357,10 +351,10 @@ function buildNamedBlockName(name: string, loc?: AST.SourceLocation): AST.NamedB
 }
 
 function buildCleanPath(
-  head: AST.PathHead,
+  head: ASTv1.PathHead,
   tail: string[],
-  loc: AST.SourceLocation
-): AST.PathExpression {
+  loc: SourceLocation
+): ASTv1.PathExpression {
   let { original: originalHead, parts: headParts } = headToString(head);
   let parts = [...headParts, ...tail];
   let original = [...originalHead, ...parts].join('.');
@@ -376,15 +370,15 @@ function buildCleanPath(
 }
 
 function buildPath(
-  path: AST.PathExpression | string | { head: string; tail: string[] },
-  loc?: AST.SourceLocation
-): AST.PathExpression;
-function buildPath(path: AST.Expression, loc?: AST.SourceLocation): AST.Expression;
-function buildPath(path: BuilderHead | AST.Expression, loc?: AST.SourceLocation): AST.Expression;
+  path: ASTv1.PathExpression | string | { head: string; tail: string[] },
+  loc?: SourceLocation
+): ASTv1.PathExpression;
+function buildPath(path: ASTv1.Expression, loc?: SourceLocation): ASTv1.Expression;
+function buildPath(path: BuilderHead | ASTv1.Expression, loc?: SourceLocation): ASTv1.Expression;
 function buildPath(
-  path: BuilderHead | AST.Expression | { head: string; tail: string[] },
-  loc?: AST.SourceLocation
-): AST.Expression {
+  path: BuilderHead | ASTv1.Expression | { head: string; tail: string[] },
+  loc?: SourceLocation
+): ASTv1.Expression {
   if (typeof path !== 'string') {
     if ('type' in path) {
       return path;
@@ -422,10 +416,10 @@ function buildPath(
   };
 }
 
-function buildLiteral<T extends AST.Literal>(
+function buildLiteral<T extends ASTv1.Literal>(
   type: T['type'],
   value: T['value'],
-  loc?: AST.SourceLocation
+  loc?: SourceLocation
 ): T {
   return {
     type,
@@ -437,7 +431,7 @@ function buildLiteral<T extends AST.Literal>(
 
 // Miscellaneous
 
-function buildHash(pairs?: AST.HashPair[], loc?: AST.SourceLocation): AST.Hash {
+function buildHash(pairs?: ASTv1.HashPair[], loc?: SourceLocation): ASTv1.Hash {
   return {
     type: 'Hash',
     pairs: pairs || [],
@@ -445,7 +439,7 @@ function buildHash(pairs?: AST.HashPair[], loc?: AST.SourceLocation): AST.Hash {
   };
 }
 
-function buildPair(key: string, value: AST.Expression, loc?: AST.SourceLocation): AST.HashPair {
+function buildPair(key: string, value: ASTv1.Expression, loc?: SourceLocation): ASTv1.HashPair {
   return {
     type: 'HashPair',
     key: key,
@@ -455,10 +449,10 @@ function buildPair(key: string, value: AST.Expression, loc?: AST.SourceLocation)
 }
 
 function buildProgram(
-  body?: AST.Statement[],
+  body?: ASTv1.Statement[],
   blockParams?: string[],
-  loc?: AST.SourceLocation
-): AST.Template {
+  loc?: SourceLocation
+): ASTv1.Template {
   return {
     type: 'Template',
     body: body || [],
@@ -468,11 +462,11 @@ function buildProgram(
 }
 
 function buildBlockItself(
-  body?: AST.Statement[],
+  body?: ASTv1.Statement[],
   blockParams?: string[],
   chained = false,
-  loc?: AST.SourceLocation
-): AST.Block {
+  loc?: SourceLocation
+): ASTv1.Block {
   return {
     type: 'Block',
     body: body || [],
@@ -483,10 +477,10 @@ function buildBlockItself(
 }
 
 function buildTemplate(
-  body?: AST.Statement[],
+  body?: ASTv1.Statement[],
   blockParams?: string[],
-  loc?: AST.SourceLocation
-): AST.Template {
+  loc?: SourceLocation
+): ASTv1.Template {
   return {
     type: 'Template',
     body: body || [],
@@ -495,33 +489,33 @@ function buildTemplate(
   };
 }
 
-function buildPosition(line: number, column: number) {
+function buildPosition(line: number, column: number): SourcePosition {
   return {
     line,
     column,
   };
 }
 
-function buildLoc(loc: Optional<AST.SourceLocation>): SourceOffsets;
+function buildLoc(loc: Optional<SourceLocation>): SourceSpan;
 function buildLoc(
   startLine: number,
   startColumn: number,
   endLine?: number,
   endColumn?: number
-): SourceOffsets;
+): SourceSpan;
 
-function buildLoc(...args: any[]): SourceOffsets {
+function buildLoc(...args: any[]): SourceSpan {
   if (args.length === 1) {
     let loc = args[0];
 
     if (loc && typeof loc === 'object') {
-      return new LazySourceOffsets(SOURCE, loc);
+      return new LocationSpan(SOURCE, loc);
     } else {
-      return new LazySourceOffsets(SOURCE, SYNTHETIC_LOCATION);
+      return new LocationSpan(SOURCE, SYNTHETIC_LOCATION);
     }
   } else {
     let [startLine, startColumn, endLine, endColumn] = args;
-    return new LazySourceOffsets(SOURCE, {
+    return new LocationSpan(SOURCE, {
       start: {
         line: startLine,
         column: startColumn,
@@ -565,21 +559,21 @@ export default {
   this: buildThis,
   blockName: buildNamedBlockName,
 
-  string: literal('StringLiteral') as (value: string) => AST.StringLiteral,
-  boolean: literal('BooleanLiteral') as (value: boolean) => AST.BooleanLiteral,
-  number: literal('NumberLiteral') as (value: number) => AST.NumberLiteral,
-  undefined() {
+  string: literal('StringLiteral') as (value: string) => ASTv1.StringLiteral,
+  boolean: literal('BooleanLiteral') as (value: boolean) => ASTv1.BooleanLiteral,
+  number: literal('NumberLiteral') as (value: number) => ASTv1.NumberLiteral,
+  undefined(): ASTv1.UndefinedLiteral {
     return buildLiteral('UndefinedLiteral', undefined);
   },
-  null() {
+  null(): ASTv1.NullLiteral {
     return buildLiteral('NullLiteral', null);
   },
 };
 
-type BuildLiteral<T extends AST.Literal> = (value: T['value']) => T;
+type BuildLiteral<T extends ASTv1.Literal> = (value: T['value']) => T;
 
-function literal<T extends AST.Literal>(type: T['type']): BuildLiteral<T> {
-  return function (value: T['value'], loc?: AST.SourceLocation): T {
+function literal<T extends ASTv1.Literal>(type: T['type']): BuildLiteral<T> {
+  return function (value: T['value'], loc?: SourceLocation): T {
     return buildLiteral(type, value, loc);
   };
 }

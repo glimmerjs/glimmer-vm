@@ -32,7 +32,11 @@ function locEqual(
     end: { line: endLine, column: endColumn },
   };
 
-  QUnit.assert.deepEqual(node && { start: node.loc.start, end: node.loc.end }, expected, message);
+  QUnit.assert.deepEqual(
+    node && { start: node.loc.startPosition, end: node.loc.endPosition },
+    expected,
+    message
+  );
 }
 
 test('programs', () => {

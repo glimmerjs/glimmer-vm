@@ -4,7 +4,7 @@ import {
   GlimmerSyntaxError,
   ProgramSymbolTable,
   Source,
-  SourceOffsets,
+  SourceSpan,
   SymbolTable,
 } from '@glimmer/syntax';
 import { LOCAL_LOGGER, mapPresent, NonemptyStack } from '@glimmer/util';
@@ -81,7 +81,7 @@ export class CompilerContext {
     this.state = new CompilerState(symbols);
   }
 
-  forLoc(loc: SourceOffsets): Context {
+  forLoc(loc: SourceSpan): Context {
     return new Context(this, loc);
   }
 }
@@ -101,7 +101,7 @@ export interface AllocateTable {
  * has no mutable state at all.
  */
 export class Context {
-  constructor(readonly ctx: CompilerContext, readonly loc: SourceOffsets) {}
+  constructor(readonly ctx: CompilerContext, readonly loc: SourceSpan) {}
 
   get source(): Source {
     return this.ctx.source;

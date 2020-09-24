@@ -1,15 +1,15 @@
 import type { PresentArray } from '@glimmer/interfaces';
-import type { SerializedSourceOffsets } from '../../source/offsets';
-import type { SerializedSourceSlice } from '../../source/slice';
-import type { LiteralValue, SerializedResolution } from '../objects';
+
+import type { ASTv2 } from '../-internal';
+import type { SerializedSourceSlice, SerializedSourceSpan } from '../../-internal';
 
 export interface SerializedBaseNode {
-  loc: SerializedSourceOffsets;
+  loc: SerializedSourceSpan;
 }
 
 export interface SerializedLiteralExpression extends SerializedBaseNode {
   type: 'Literal';
-  value: LiteralValue;
+  value: ASTv2.LiteralValue;
 }
 
 export interface SerializedInterpolateExpression extends SerializedBaseNode {
@@ -40,7 +40,7 @@ export interface SerializedLocalVarReference extends SerializedBaseNode {
 export interface SerializedFreeVarReference extends SerializedBaseNode {
   type: 'Free';
   name: string;
-  resolution: SerializedResolution;
+  resolution: ASTv2.SerializedResolution;
 }
 
 export type SerializedVariableReference =

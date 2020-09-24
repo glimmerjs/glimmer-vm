@@ -1,6 +1,7 @@
 import { PresentArray } from '@glimmer/interfaces';
-import { ASTv2, STRICT_RESOLUTION } from '@glimmer/syntax';
+import { ASTv2 } from '@glimmer/syntax';
 import { isPresent } from '@glimmer/util';
+
 import { AnyOptionalList, PresentList } from '../../../shared/list';
 import { Ok, Result, ResultArray } from '../../../shared/result';
 import * as hir from '../../2-symbol-allocation/hir';
@@ -10,7 +11,7 @@ import { assertIsValidHelper, hasPath } from '../utils/is-node';
 export type ExpressionOut = hir.Expr;
 
 export class NormalizeExpressions {
-  visit(node: ASTv2.Expression): Result<hir.Expr> {
+  visit(node: ASTv2.ExpressionNode): Result<hir.Expr> {
     let translated = EXPR_KEYWORDS.translate(node);
 
     if (translated !== null) {
@@ -29,9 +30,9 @@ export class NormalizeExpressions {
     }
   }
 
-  visitList(nodes: PresentArray<ASTv2.Expression>): Result<PresentList<hir.Expr>>;
-  visitList(nodes: readonly ASTv2.Expression[]): Result<AnyOptionalList<hir.Expr>>;
-  visitList(nodes: readonly ASTv2.Expression[]): Result<AnyOptionalList<hir.Expr>> {
+  visitList(nodes: PresentArray<ASTv2.ExpressionNode>): Result<PresentList<hir.Expr>>;
+  visitList(nodes: readonly ASTv2.ExpressionNode[]): Result<AnyOptionalList<hir.Expr>>;
+  visitList(nodes: readonly ASTv2.ExpressionNode[]): Result<AnyOptionalList<hir.Expr>> {
     return new ResultArray(nodes.map((e) => VISIT_EXPRS.visit(e))).toOptionalList();
   }
 
@@ -68,7 +69,7 @@ export class NormalizeExpressions {
         return new hir.GetThis(ref.loc);
 
       case 'Free':
-        if (ref.resolution === STRICT_RESOLUTION) {
+        if (ref.resolution === ASTv2.STRICT_RESOLUTION) {
           return new hir.GetFreeVar(ref.loc, {
             name: ref.name,
           });

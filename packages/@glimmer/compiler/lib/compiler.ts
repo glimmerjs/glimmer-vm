@@ -7,6 +7,7 @@ import {
 import { LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
 import { normalize, PreprocessOptions, Source } from '@glimmer/syntax';
 import { LOCAL_LOGGER } from '@glimmer/util';
+
 import pass0 from './passes/1-normalization/index';
 import { visit as pass1 } from './passes/2-symbol-allocation/index';
 import { visit as pass2 } from './passes/3-encoding/index';

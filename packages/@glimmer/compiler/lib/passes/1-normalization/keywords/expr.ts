@@ -1,4 +1,5 @@
 import { SourceSlice } from '@glimmer/syntax';
+
 import { Ok, Result } from '../../../shared/result';
 import * as hir from '../../2-symbol-allocation/hir';
 import { assertValidHasBlockUsage } from './has-block';

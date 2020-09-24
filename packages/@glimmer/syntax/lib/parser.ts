@@ -5,34 +5,34 @@ import {
   EventedTokenizer,
   HTML5NamedCharRefs as namedCharRefs,
 } from 'simple-html-tokenizer';
-import type { SourceOffset, SourceOffsets } from './source/offsets/abstract';
-import { LazySourceOffset } from './source/offsets/lazy';
-import { Source } from './source/source';
-import * as AST from './types/api';
-import * as HBS from './types/handlebars-ast';
 
-export type Builder<N extends { loc: SourceOffsets }> = Omit<N, 'loc'> & { loc: SourceOffset };
+import type { SourceOffset, SourcePosition, SourceSpan } from './-internal';
+import { ASTv1, HBS, LocationOffset, Source } from './-internal';
 
-export type Element = AST.Template | AST.Block | AST.ElementNode;
+export type ParserNodeBuilder<N extends { loc: SourceSpan }> = Omit<N, 'loc'> & {
+  loc: SourceOffset;
+};
+
+export type Element = ASTv1.Template | ASTv1.Block | ASTv1.ElementNode;
 
 export interface Tag<T extends 'StartTag' | 'EndTag'> {
   type: T;
   name: string;
-  attributes: AST.AttrNode[];
-  modifiers: AST.ElementModifierStatement[];
-  comments: AST.MustacheCommentStatement[];
+  attributes: ASTv1.AttrNode[];
+  modifiers: ASTv1.ElementModifierStatement[];
+  comments: ASTv1.MustacheCommentStatement[];
   selfClosing: boolean;
-  loc: SourceOffsets;
+  loc: SourceSpan;
 }
 
 export interface Attribute {
   name: string;
-  currentPart: AST.TextNode | null;
-  parts: (AST.MustacheStatement | AST.TextNode)[];
+  currentPart: ASTv1.TextNode | null;
+  parts: (ASTv1.MustacheStatement | ASTv1.TextNode)[];
   isQuoted: boolean;
   isDynamic: boolean;
   start: SourceOffset;
-  valueOffsets: SourceOffsets;
+  valueSpan: SourceSpan;
 }
 
 export abstract class Parser {
@@ -41,7 +41,10 @@ export abstract class Parser {
   readonly source: Source;
   public currentAttribute: Optional<Attribute> = null;
   public currentNode: Optional<
-    Builder<AST.CommentStatement> | AST.TextNode | Builder<Tag<'StartTag'>> | Builder<Tag<'EndTag'>>
+    | ParserNodeBuilder<ASTv1.CommentStatement>
+    | ASTv1.TextNode
+    | ParserNodeBuilder<Tag<'StartTag'>>
+    | ParserNodeBuilder<Tag<'EndTag'>>
   > = null;
   public tokenizer: EventedTokenizer;
 
@@ -51,17 +54,17 @@ export abstract class Parser {
     this.tokenizer = new EventedTokenizer(this, entityParser);
   }
 
-  offset(): LazySourceOffset {
+  offset(): LocationOffset {
     return this.source.offsetFor(this.tokenizer);
   }
 
-  pos(pos: AST.SourcePosition): LazySourceOffset {
+  pos(pos: SourcePosition): LocationOffset {
     return this.source.offsetFor(pos);
   }
 
-  finish<T extends { loc: SourceOffsets }>(node: Builder<T>, end: SourceOffset): T {
+  finish<T extends { loc: SourceSpan }>(node: ParserNodeBuilder<T>): T {
     return (assign(node, {
-      loc: node.loc.withEnd(end),
+      loc: node.loc.withEnd(this.offset()),
     } as const) as unknown) as T;
 
     // node.loc = node.loc.withEnd(end);
@@ -110,44 +113,44 @@ export abstract class Parser {
     return expect(this.currentAttribute, 'expected attribute');
   }
 
-  get currentTag(): Builder<Tag<'StartTag' | 'EndTag'>> {
+  get currentTag(): ParserNodeBuilder<Tag<'StartTag' | 'EndTag'>> {
     let node = this.currentNode;
     assert(node && (node.type === 'StartTag' || node.type === 'EndTag'), 'expected tag');
     return node;
   }
 
-  get currentStartTag(): Builder<Tag<'StartTag'>> {
+  get currentStartTag(): ParserNodeBuilder<Tag<'StartTag'>> {
     let node = this.currentNode;
     assert(node && node.type === 'StartTag', 'expected start tag');
     return node;
   }
 
-  get currentEndTag(): Builder<Tag<'EndTag'>> {
+  get currentEndTag(): ParserNodeBuilder<Tag<'EndTag'>> {
     let node = this.currentNode;
     assert(node && node.type === 'EndTag', 'expected end tag');
     return node;
   }
 
-  get currentComment(): Builder<AST.CommentStatement> {
+  get currentComment(): ParserNodeBuilder<ASTv1.CommentStatement> {
     let node = this.currentNode;
     assert(node && node.type === 'CommentStatement', 'expected a comment');
     return node;
   }
 
-  get currentData(): AST.TextNode {
+  get currentData(): ASTv1.TextNode {
     let node = this.currentNode;
     assert(node && node.type === 'TextNode', 'expected a text node');
     return node;
   }
 
-  acceptTemplate(node: HBS.Program): AST.Template {
-    return (this as any)[node.type](node) as AST.Template;
+  acceptTemplate(node: HBS.Program): ASTv1.Template {
+    return this[node.type as 'Program'](node) as ASTv1.Template;
   }
 
-  acceptNode(node: HBS.Program): AST.Block | AST.Template;
-  acceptNode<U extends HBS.Node | AST.Node>(node: HBS.Node): U;
-  acceptNode(node: HBS.Node): any {
-    return (this as any)[node.type](node);
+  acceptNode(node: HBS.Program): ASTv1.Block | ASTv1.Template;
+  acceptNode<U extends HBS.Node | ASTv1.Node>(node: HBS.Node): U;
+  acceptNode<T extends HBS.NodeType>(node: HBS.Node<T>): HBS.Output<T> {
+    return (this[node.type as T] as (node: HBS.Node<T>) => HBS.Output<T>)(node);
   }
 
   currentElement(): Element {

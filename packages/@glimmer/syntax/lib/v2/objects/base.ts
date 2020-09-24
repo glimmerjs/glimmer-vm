@@ -1,20 +1,25 @@
-import type { SourceOffsets } from '../../source/offsets/abstract';
-import type { SerializedSourceOffsets } from '../../source/offsets';
-import type { Args } from './args';
-import type { ElementModifier } from './attr-block';
-import type { AppendContent, ContentNode, InvokeBlock, InvokeComponent } from './content';
-import type { CallExpression, ExpressionNode } from './expr';
+import type { SerializedSourceSpan, SourceSpan } from '../../-internal';
+import type {
+  AppendContent,
+  Args,
+  CallExpression,
+  ContentNode,
+  ElementModifier,
+  ExpressionNode,
+  InvokeBlock,
+  InvokeComponent,
+} from './-internal';
 
 export interface BaseNodeFields {
-  loc: SourceOffsets;
+  loc: SourceSpan;
 }
 
 export interface SerializedBaseNode {
-  loc: SerializedSourceOffsets;
+  loc: SerializedSourceSpan;
 }
 
 export abstract class AbstractNode<Fields extends BaseNodeFields = BaseNodeFields> {
-  readonly loc: SourceOffsets;
+  readonly loc: SourceSpan;
 
   constructor({ loc }: Fields) {
     this.loc = loc;
@@ -25,7 +30,7 @@ export abstract class AbstractTypedNode<
   T extends string,
   Fields extends BaseNodeFields = BaseNodeFields
 > {
-  readonly loc: SourceOffsets;
+  readonly loc: SourceSpan;
 
   constructor(readonly type: T, { loc }: Fields) {
     this.loc = loc;

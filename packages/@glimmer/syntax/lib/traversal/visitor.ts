@@ -1,14 +1,14 @@
 import * as AST from '../types/nodes-v1';
 import { VisitorKey } from '../types/visitor-keys';
-import Path from './path';
+import WalkerPath from './path';
 
 export interface FullNodeTraversal<N extends AST.Node> {
-  enter?(node: N, path: Path<N>): void;
-  exit?(node: N, path: Path<N>): void;
+  enter?(node: N, path: WalkerPath<N>): void;
+  exit?(node: N, path: WalkerPath<N>): void;
   keys?: KeysVisitor<N>;
 }
 
-export type NodeHandler<N extends AST.Node> = (node: N, path: Path<N>) => void;
+export type NodeHandler<N extends AST.Node> = (node: N, path: WalkerPath<N>) => void;
 export type NodeTraversal<N extends AST.Node> = FullNodeTraversal<N> | NodeHandler<N>;
 
 export type NodeVisitor = { [P in keyof AST.Nodes]?: NodeTraversal<AST.Nodes[P]> } & {

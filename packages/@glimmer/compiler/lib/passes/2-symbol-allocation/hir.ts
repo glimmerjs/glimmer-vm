@@ -2,11 +2,11 @@ import { Optional, PresentArray } from '@glimmer/interfaces';
 import {
   ASTv2,
   BlockSymbolTable,
-  FreeVarResolution,
   ProgramSymbolTable,
   SourceSlice,
   SymbolTable,
 } from '@glimmer/syntax';
+
 import { AnyOptionalList, OptionalList, PresentList } from '../../shared/list';
 import { op, OpsTable } from '../../shared/op';
 
@@ -44,7 +44,7 @@ export class GetFreeVar extends op('GetFreeVar').args<{
 }>() {}
 export class GetFreeVarWithResolution extends op('GetFreeVarWithResolution').args<{
   name: string;
-  resolution: FreeVarResolution;
+  resolution: ASTv2.FreeVarResolution;
 }>() {}
 
 /**

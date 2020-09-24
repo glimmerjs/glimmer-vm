@@ -1,4 +1,5 @@
 import { ASTv2 } from '@glimmer/syntax';
+
 import { Result } from '../../../shared/result';
 import { NormalizationState } from '../context';
 
@@ -24,7 +25,7 @@ abstract class AbstractKeywordImpl<K extends KeywordType> {
   protected types: Set<KeywordCandidates[K]['type']>;
 
   constructor(protected keyword: string, type: KeywordType) {
-    let nodes = new Set<ASTv2.KeywordNode['type']>();
+    let nodes = new Set<KeywordNode['type']>();
     for (let nodeType of KEYWORD_NODES[type]) {
       nodes.add(nodeType);
     }
@@ -117,7 +118,7 @@ export const KEYWORD_NODES = {
 } as const;
 
 export interface KeywordCandidates {
-  Expr: ASTv2.Expression;
+  Expr: ASTv2.ExpressionNode;
   Block: ASTv2.InvokeBlock;
   Append: ASTv2.AppendContent;
   Modifier: ASTv2.ElementModifier;
@@ -142,6 +143,12 @@ export type ExprKeywordNode = ASTv2.CallExpression | ASTv2.PathExpression;
  * of sub-expression, path, or append
  */
 export type GenericKeywordNode = ASTv2.AppendContent | ASTv2.CallExpression | ASTv2.PathExpression;
+
+export type KeywordNode =
+  | ExprKeywordNode
+  | GenericKeywordNode
+  | ASTv2.InvokeBlock
+  | ASTv2.ElementModifier;
 
 export function keyword<
   K extends KeywordType,
@@ -169,16 +176,14 @@ export function keyword(
   }
 }
 
-export type PossibleKeyword = ASTv2.KeywordNode;
+export type PossibleKeyword = KeywordNode;
 type OutFor<K extends Keyword | BlockKeyword> = K extends BlockKeyword<infer Out>
   ? Out
   : K extends Keyword<KeywordType, infer Out>
   ? Out
   : never;
 
-function getPathExpression(
-  node: ASTv2.KeywordNode | ASTv2.ExpressionNode
-): ASTv2.PathExpression | null {
+function getPathExpression(node: KeywordNode | ASTv2.ExpressionNode): ASTv2.PathExpression | null {
   switch (node.type) {
     // This covers the inside of attributes and expressions, as well as the callee
     // of call nodes
@@ -187,7 +192,6 @@ function getPathExpression(
     case 'AppendContent':
       return getPathExpression(node.value);
     case 'Call':
-    case 'ElementModifier':
     case 'InvokeBlock':
       return getPathExpression(node.callee);
     default:

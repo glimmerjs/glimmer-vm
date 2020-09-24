@@ -1,6 +1,7 @@
 import { Dict, Optional, PresentArray, WireFormat } from '@glimmer/interfaces';
-import { SourceLocation } from '../source/location';
-import type { SourceOffsets } from '../source/offsets/abstract';
+
+import type { SourceSpan } from '../-internal';
+import { SourceLocation } from '../-internal';
 
 export interface Symbols {
   symbols: string[];
@@ -32,7 +33,7 @@ export interface BaseNode {
   // The type property should be a string literal. For example, Identifier
   // has: `type: "Identifier"`
   type: NodeType;
-  loc: SourceOffsets;
+  loc: SourceSpan;
 }
 
 export interface CommonProgram extends BaseNode {

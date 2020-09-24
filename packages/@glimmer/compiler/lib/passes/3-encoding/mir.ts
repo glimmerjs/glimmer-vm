@@ -1,11 +1,12 @@
 import { PresentArray } from '@glimmer/interfaces';
 import {
+  ASTv2,
   BlockSymbolTable,
-  FreeVarResolution,
   ProgramSymbolTable,
   SourceSlice,
   SymbolTable,
 } from '@glimmer/syntax';
+
 import { OptionalList } from '../../shared/list';
 import { op, OpsTable } from '../../shared/op';
 
@@ -98,7 +99,7 @@ export class GetWithResolver extends op('GetWithResolver').args<{
 export class GetSymbol extends op('GetSymbol').args<{ symbol: number }>() {}
 export class GetFreeWithContext extends op('GetFreeWithContext').args<{
   symbol: number;
-  context: FreeVarResolution;
+  context: ASTv2.FreeVarResolution;
 }>() {}
 /** strict mode */
 export class GetFree extends op('GetFree').args<{

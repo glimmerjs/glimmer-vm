@@ -1,8 +1,8 @@
 import { Dict, Optional, PresentArray } from '@glimmer/interfaces';
 import { assert } from '@glimmer/util';
-import { Builder } from '../parser';
-import type { SourceOffset, SourceOffsets } from '../source/offsets/abstract';
-import * as AST from '../types/api';
+
+import type { ASTv1, SourceLocation, SourceOffset, SourceSpan } from '../-internal';
+import { ParserNodeBuilder } from '../-internal';
 
 const DEFAULT_STRIP = {
   close: false,
@@ -29,11 +29,11 @@ class Builders {
     chained = false,
     loc,
   }: {
-    body?: AST.Statement[];
+    body?: ASTv1.Statement[];
     blockParams?: string[];
     chained?: boolean;
-    loc: SourceOffsets;
-  }): AST.Block {
+    loc: SourceSpan;
+  }): ASTv1.Block {
     return {
       type: 'Block',
       body: body || [],
@@ -48,10 +48,10 @@ class Builders {
     blockParams,
     loc,
   }: {
-    body?: AST.Statement[];
+    body?: ASTv1.Statement[];
     blockParams?: string[];
-    loc: SourceOffsets;
-  }): AST.Template {
+    loc: SourceSpan;
+  }): ASTv1.Template {
     return {
       type: 'Template',
       body: body || [],
@@ -68,13 +68,13 @@ class Builders {
     loc,
     strip = DEFAULT_STRIP,
   }: {
-    path: AST.Expression;
-    params: AST.Expression[];
-    hash: AST.Hash;
+    path: ASTv1.Expression;
+    params: ASTv1.Expression[];
+    hash: ASTv1.Hash;
     trusting: boolean;
-    loc: SourceOffsets;
-    strip: AST.StripFlags;
-  }): AST.MustacheStatement {
+    loc: SourceSpan;
+    strip: ASTv1.StripFlags;
+  }): ASTv1.MustacheStatement {
     return {
       type: 'MustacheStatement',
       path,
@@ -98,16 +98,16 @@ class Builders {
     inverseStrip = DEFAULT_STRIP,
     closeStrip = DEFAULT_STRIP,
   }: {
-    path: AST.PathExpression;
-    params: AST.Expression[];
-    hash: AST.Hash;
-    defaultBlock: AST.Block;
-    elseBlock?: Optional<AST.Block>;
-    loc: SourceOffsets;
-    openStrip: AST.StripFlags;
-    inverseStrip: AST.StripFlags;
-    closeStrip: AST.StripFlags;
-  }): AST.BlockStatement {
+    path: ASTv1.PathExpression;
+    params: ASTv1.Expression[];
+    hash: ASTv1.Hash;
+    defaultBlock: ASTv1.Block;
+    elseBlock?: Optional<ASTv1.Block>;
+    loc: SourceSpan;
+    openStrip: ASTv1.StripFlags;
+    inverseStrip: ASTv1.StripFlags;
+    closeStrip: ASTv1.StripFlags;
+  }): ASTv1.BlockStatement {
     return {
       type: 'BlockStatement',
       path: path,
@@ -122,7 +122,7 @@ class Builders {
     };
   }
 
-  comment(value: string, loc: SourceOffset): Builder<AST.CommentStatement> {
+  comment(value: string, loc: SourceOffset): ParserNodeBuilder<ASTv1.CommentStatement> {
     return {
       type: 'CommentStatement',
       value: value,
@@ -130,7 +130,7 @@ class Builders {
     };
   }
 
-  mustacheComment(value: string, loc: SourceOffsets): AST.MustacheCommentStatement {
+  mustacheComment(value: string, loc: SourceSpan): ASTv1.MustacheCommentStatement {
     return {
       type: 'MustacheCommentStatement',
       value: value,
@@ -139,9 +139,9 @@ class Builders {
   }
 
   concat(
-    parts: PresentArray<AST.TextNode | AST.MustacheStatement>,
-    loc: SourceOffsets
-  ): AST.ConcatStatement {
+    parts: PresentArray<ASTv1.TextNode | ASTv1.MustacheStatement>,
+    loc: SourceSpan
+  ): ASTv1.ConcatStatement {
     return {
       type: 'ConcatStatement',
       parts,
@@ -158,7 +158,7 @@ class Builders {
     comments,
     children,
     loc,
-  }: BuildElementOptions): AST.ElementNode {
+  }: BuildElementOptions): ASTv1.ElementNode {
     return {
       type: 'ElementNode',
       tag,
@@ -166,7 +166,7 @@ class Builders {
       attributes: attrs || [],
       blockParams: blockParams || [],
       modifiers: modifiers || [],
-      comments: (comments as AST.MustacheCommentStatement[]) || [],
+      comments: (comments as ASTv1.MustacheCommentStatement[]) || [],
       children: children || [],
       loc,
     };
@@ -178,11 +178,11 @@ class Builders {
     hash,
     loc,
   }: {
-    path: AST.PathExpression | AST.SubExpression;
-    params: AST.Expression[];
-    hash: AST.Hash;
-    loc: SourceOffsets;
-  }): AST.ElementModifierStatement {
+    path: ASTv1.PathExpression | ASTv1.SubExpression;
+    params: ASTv1.Expression[];
+    hash: ASTv1.Hash;
+    loc: SourceSpan;
+  }): ASTv1.ElementModifierStatement {
     return {
       type: 'ElementModifierStatement',
       path,
@@ -198,9 +198,9 @@ class Builders {
     loc,
   }: {
     name: string;
-    value: AST.AttrNode['value'];
-    loc: SourceOffsets;
-  }): AST.AttrNode {
+    value: ASTv1.AttrNode['value'];
+    loc: SourceSpan;
+  }): ASTv1.AttrNode {
     return {
       type: 'AttrNode',
       name: name,
@@ -209,7 +209,7 @@ class Builders {
     };
   }
 
-  text({ chars, loc }: { chars: string; loc: SourceOffsets }): AST.TextNode {
+  text({ chars, loc }: { chars: string; loc: SourceSpan }): ASTv1.TextNode {
     return {
       type: 'TextNode',
       chars,
@@ -223,11 +223,11 @@ class Builders {
     hash,
     loc,
   }: {
-    path: AST.PathExpression;
-    params: AST.Expression[];
-    hash: AST.Hash;
-    loc: SourceOffsets;
-  }): AST.SubExpression {
+    path: ASTv1.PathExpression;
+    params: ASTv1.Expression[];
+    hash: ASTv1.Hash;
+    loc: SourceSpan;
+  }): ASTv1.SubExpression {
     return {
       type: 'SubExpression',
       path,
@@ -242,10 +242,10 @@ class Builders {
     tail,
     loc,
   }: {
-    head: AST.PathHead;
+    head: ASTv1.PathHead;
     tail: string[];
-    loc: SourceOffsets;
-  }): AST.PathExpression {
+    loc: SourceSpan;
+  }): ASTv1.PathExpression {
     let { original: originalHead, parts: headParts } = headToString(head);
     let parts = [...headParts, ...tail];
     let original = [...originalHead, ...parts].join('.');
@@ -260,7 +260,7 @@ class Builders {
     };
   }
 
-  head(head: string, loc: SourceOffsets): AST.PathHead {
+  head(head: string, loc: SourceSpan): ASTv1.PathHead {
     if (head[0] === '@') {
       return this.atName(head, loc);
     } else if (head === 'this') {
@@ -270,14 +270,14 @@ class Builders {
     }
   }
 
-  this(loc: SourceOffsets): AST.PathHead {
+  this(loc: SourceSpan): ASTv1.PathHead {
     return {
       type: 'ThisHead',
       loc,
     };
   }
 
-  atName(name: string, loc: SourceOffsets): AST.PathHead {
+  atName(name: string, loc: SourceSpan): ASTv1.PathHead {
     // the `@` should be included so we have a complete source range
     assert(name[0] === '@', `call builders.at() with a string that starts with '@'`);
 
@@ -288,7 +288,7 @@ class Builders {
     };
   }
 
-  var(name: string, loc: SourceOffsets): AST.PathHead {
+  var(name: string, loc: SourceSpan): ASTv1.PathHead {
     assert(name !== 'this', `You called builders.var() with 'this'. Call builders.this instead`);
     assert(
       name[0] !== '@',
@@ -302,7 +302,7 @@ class Builders {
     };
   }
 
-  hash(pairs: AST.HashPair[], loc: SourceOffsets): AST.Hash {
+  hash(pairs: ASTv1.HashPair[], loc: SourceSpan): ASTv1.Hash {
     return {
       type: 'Hash',
       pairs: pairs || [],
@@ -316,9 +316,9 @@ class Builders {
     loc,
   }: {
     key: string;
-    value: AST.Expression;
-    loc: SourceOffsets;
-  }): AST.HashPair {
+    value: ASTv1.Expression;
+    loc: SourceSpan;
+  }): ASTv1.HashPair {
     return {
       type: 'HashPair',
       key: key,
@@ -327,14 +327,14 @@ class Builders {
     };
   }
 
-  literal<T extends AST.Literal>({
+  literal<T extends ASTv1.Literal>({
     type,
     value,
     loc,
   }: {
     type: T['type'];
     value: T['value'];
-    loc?: AST.SourceLocation;
+    loc?: SourceLocation;
   }): T {
     return {
       type,
@@ -344,23 +344,23 @@ class Builders {
     } as T;
   }
 
-  undefined(): AST.UndefinedLiteral {
+  undefined(): ASTv1.UndefinedLiteral {
     return this.literal({ type: 'UndefinedLiteral', value: undefined });
   }
 
-  null(): AST.NullLiteral {
+  null(): ASTv1.NullLiteral {
     return this.literal({ type: 'NullLiteral', value: null });
   }
 
-  string(value: string, loc: SourceOffsets): AST.StringLiteral {
+  string(value: string, loc: SourceSpan): ASTv1.StringLiteral {
     return this.literal({ type: 'StringLiteral', value, loc });
   }
 
-  boolean(value: boolean, loc: SourceOffsets): AST.BooleanLiteral {
+  boolean(value: boolean, loc: SourceSpan): ASTv1.BooleanLiteral {
     return this.literal({ type: 'BooleanLiteral', value, loc });
   }
 
-  number(value: number, loc: SourceOffsets): AST.NumberLiteral {
+  number(value: number, loc: SourceSpan): ASTv1.NumberLiteral {
     return this.literal({ type: 'NumberLiteral', value, loc });
   }
 }
@@ -370,29 +370,29 @@ class Builders {
 export type ElementParts =
   | ['attrs', ...AttrSexp[]]
   | ['modifiers', ...ModifierSexp[]]
-  | ['body', ...AST.Statement[]]
+  | ['body', ...ASTv1.Statement[]]
   | ['comments', ...ElementComment[]]
   | ['as', ...string[]]
-  | ['loc', AST.SourceLocation];
+  | ['loc', SourceLocation];
 
 export type PathSexp = string | ['path', string, LocSexp?];
 
 export type ModifierSexp =
   | string
   | [PathSexp, LocSexp?]
-  | [PathSexp, AST.Expression[], LocSexp?]
-  | [PathSexp, AST.Expression[], Dict<AST.Expression>, LocSexp?];
+  | [PathSexp, ASTv1.Expression[], LocSexp?]
+  | [PathSexp, ASTv1.Expression[], Dict<ASTv1.Expression>, LocSexp?];
 
-export type AttrSexp = [string, AST.AttrNode['value'] | string, LocSexp?];
+export type AttrSexp = [string, ASTv1.AttrNode['value'] | string, LocSexp?];
 
-export type LocSexp = ['loc', AST.SourceLocation];
+export type LocSexp = ['loc', SourceLocation];
 
-export type ElementComment = AST.MustacheCommentStatement | AST.SourceLocation | string;
+export type ElementComment = ASTv1.MustacheCommentStatement | SourceLocation | string;
 
 export type SexpValue =
   | string
-  | AST.Expression[]
-  | Dict<AST.Expression>
+  | ASTv1.Expression[]
+  | Dict<ASTv1.Expression>
   | LocSexp
   | PathSexp
   | undefined;
@@ -400,17 +400,17 @@ export type SexpValue =
 export interface BuildElementOptions {
   tag: string;
   selfClosing: boolean;
-  attrs: AST.AttrNode[];
-  modifiers: AST.ElementModifierStatement[];
-  children: AST.Statement[];
+  attrs: ASTv1.AttrNode[];
+  modifiers: ASTv1.ElementModifierStatement[];
+  children: ASTv1.Statement[];
   comments: ElementComment[];
   blockParams: string[];
-  loc: SourceOffsets;
+  loc: SourceSpan;
 }
 
 // Expressions
 
-function headToString(head: AST.PathHead): { original: string; parts: string[] } {
+function headToString(head: ASTv1.PathHead): { original: string; parts: string[] } {
   switch (head.type) {
     case 'AtHead':
       return { original: head.name, parts: [head.name] };

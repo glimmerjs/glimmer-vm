@@ -1,14 +1,10 @@
 import { PresentArray } from '@glimmer/interfaces';
-import {
-  ASTv2,
-  GlimmerSyntaxError,
-  SourceOffsets,
-  SourceSlice,
-  STRICT_RESOLUTION,
-} from '@glimmer/syntax';
+import { ASTv2, GlimmerSyntaxError, SourceSlice, SourceSpan } from '@glimmer/syntax';
 import { unreachable } from '@glimmer/util';
 
-export function isPath(node: ASTv2.KeywordNode): node is ASTv2.PathExpression {
+import { KeywordNode } from '../keywords/impl';
+
+export function isPath(node: KeywordNode): node is ASTv2.PathExpression {
   return node.type === 'Path';
 }
 
@@ -24,7 +20,7 @@ export type HasPath<Node extends ASTv2.CallNode = ASTv2.CallNode> = Node & {
 
 export type HasArguments =
   | {
-      params: PresentArray<ASTv2.Expression>;
+      params: PresentArray<ASTv2.ExpressionNode>;
     }
   | {
       hash: {
@@ -59,11 +55,13 @@ export type SimpleHelper<N extends HasPath> = N & {
   path: SimplePath;
 };
 
-export function isSimplePath(path: ASTv2.Expression): path is SimplePath {
+export function isSimplePath(path: ASTv2.ExpressionNode): path is SimplePath {
   if (path.type === 'Path') {
     let { ref: head, tail: parts } = path;
 
-    return head.type === 'Free' && head.resolution !== STRICT_RESOLUTION && parts.length === 0;
+    return (
+      head.type === 'Free' && head.resolution !== ASTv2.STRICT_RESOLUTION && parts.length === 0
+    );
   } else {
     return false;
   }
@@ -78,12 +76,12 @@ export function isStrictHelper(expr: HasPath): boolean {
     return true;
   }
 
-  return expr.callee.ref.resolution === STRICT_RESOLUTION;
+  return expr.callee.ref.resolution === ASTv2.STRICT_RESOLUTION;
 }
 
 export function assertIsValidHelper<N extends HasPath>(
   helper: N,
-  loc: SourceOffsets,
+  loc: SourceSpan,
   context: string
 ): asserts helper is SimpleHelper<N> {
   if (isStrictHelper(helper) || isSimplePath(helper.callee)) {
@@ -92,13 +90,13 @@ export function assertIsValidHelper<N extends HasPath>(
 
   throw new GlimmerSyntaxError(
     `\`${printPath(helper.callee)}\` is not a valid name for a ${context} on line ${
-      loc.start.line
+      loc.startPosition.line
     }.`,
     helper.loc
   );
 }
 
-function printPath(path: ASTv2.Expression): string {
+function printPath(path: ASTv2.ExpressionNode): string {
   switch (path.type) {
     case 'Literal':
       return JSON.stringify(path.value);

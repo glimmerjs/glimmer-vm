@@ -1,8 +1,8 @@
 // eslint-disable-next-line node/no-extraneous-import, import/no-extraneous-dependencies
 import type { Optional } from '@glimmer/interfaces';
-import type { SourceLocation, SourcePosition } from './location';
-import type { SourceOffsets } from './offsets/abstract';
-import { LazySourceOffsets, LazySourceOffset } from './offsets/lazy';
+
+import type { SourceLocation, SourcePosition, SourceSpan } from './-internal';
+import { LocationOffset, LocationSpan } from './-internal';
 
 export class Source {
   constructor(readonly source: string, readonly module?: string) {}
@@ -11,12 +11,12 @@ export class Source {
     return this.source.slice(start, end);
   }
 
-  offsetFor(pos: { line: number; column: number }): LazySourceOffset {
-    return new LazySourceOffset(this, pos);
+  offsetFor(pos: { line: number; column: number }): LocationOffset {
+    return new LocationOffset(this, pos);
   }
 
-  offsetsFor(location: SourceLocation): SourceOffsets {
-    return new LazySourceOffsets(this, location);
+  spanFor(location: SourceLocation): SourceSpan {
+    return new LocationSpan(this, location);
   }
 
   positionFor(offset: number): Optional<SourcePosition> {

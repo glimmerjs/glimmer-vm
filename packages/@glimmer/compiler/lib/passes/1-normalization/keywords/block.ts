@@ -10,8 +10,8 @@ export const BLOCK_KEYWORDS = keywords('Block').kw('in-element', {
   assert(
     node: ASTv2.InvokeBlock
   ): Result<{
-    insertBefore: ASTv2.Expression | null;
-    destination: ASTv2.Expression;
+    insertBefore: ASTv2.ExpressionNode | null;
+    destination: ASTv2.ExpressionNode;
   }> {
     let { args } = node;
 
@@ -20,7 +20,7 @@ export const BLOCK_KEYWORDS = keywords('Block').kw('in-element', {
     if (guid) {
       return Err(
         new GlimmerSyntaxError(
-          `Cannot pass \`guid\` to \`{{#in-element}}\` on line ${guid.loc.start.line}.`,
+          `Cannot pass \`guid\` to \`{{#in-element}}\` on line ${guid.loc.startPosition.line}.`,
           guid.loc
         )
       );
@@ -48,7 +48,7 @@ export const BLOCK_KEYWORDS = keywords('Block').kw('in-element', {
     {
       insertBefore,
       destination,
-    }: { insertBefore: ASTv2.Expression | null; destination: ASTv2.Expression },
+    }: { insertBefore: ASTv2.ExpressionNode | null; destination: ASTv2.ExpressionNode },
     state: NormalizationState
   ): Result<hir.InElement> {
     let named = node.blocks.get('default');

@@ -1,30 +1,33 @@
-import { loadSourceOffsets, SerializedSourceOffsets } from './offsets';
-import { SourceOffsets } from './offsets/abstract';
-import { InvisibleSourceOffsets } from './offsets/invisible';
-import { Source } from './source';
+import {
+  InvisibleSpan,
+  loadSourceSpan,
+  SerializedSourceSpan,
+  Source,
+  SourceSpan,
+} from './-internal';
 
 export type SerializedSourceSlice<Chars extends string = string> = [
   chars: Chars,
-  offsets: SerializedSourceOffsets
+  span: SerializedSourceSpan
 ];
 
 export class SourceSlice<Chars extends string = string> {
   static synthetic<S extends string>(chars: S): SourceSlice<S> {
-    let offsets = InvisibleSourceOffsets.synthetic(chars);
+    let offsets = InvisibleSpan.synthetic(chars);
     return new SourceSlice({ loc: offsets, chars: chars });
   }
 
   static load(source: Source, slice: SerializedSourceSlice): SourceSlice {
     return new SourceSlice({
-      loc: loadSourceOffsets(source, slice[1]),
+      loc: loadSourceSpan(source, slice[1]),
       chars: slice[0],
     });
   }
 
   readonly chars: Chars;
-  readonly loc: SourceOffsets;
+  readonly loc: SourceSpan;
 
-  constructor(options: { loc: SourceOffsets; chars: Chars }) {
+  constructor(options: { loc: SourceSpan; chars: Chars }) {
     this.loc = options.loc;
     this.chars = options.chars;
   }

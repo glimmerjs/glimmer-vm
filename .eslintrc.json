@@ -2,7 +2,7 @@
   "root": true,
   "parser": "@typescript-eslint/parser",
   "parserOptions": {
-    "ecmaVersion": 2019
+    "ecmaVersion": 2020
   },
   "extends": [
     "eslint:recommended",
@@ -192,11 +192,11 @@
       "parserOptions": {
         "project": "./tsconfig.json"
       },
-      "files": ["packages/@glimmer/compiler/**/*.ts", "packages/@glimmer/syntax/lib/v2/**/*.ts"],
+      "files": ["packages/@glimmer/compiler/**/*.ts", "packages/@glimmer/syntax/lib/**/*.ts", "packages/@glimmer/syntax/index.ts"],
       "extends": [
+        // "plugin:@typescript-eslint/recommended-requiring-type-checking",
         "eslint:recommended",
         "plugin:@typescript-eslint/recommended",
-        // "plugin:@typescript-eslint/recommended-requiring-type-checking",
         "plugin:import/errors",
         "plugin:import/typescript",
         "plugin:qunit/recommended",
@@ -205,8 +205,18 @@
         "prettier",
         "prettier/@typescript-eslint"
       ],
+      "plugins": [
+        "simple-import-sort"
+      ],
       "rules": {
         "prefer-const": ["off"],
+        "simple-import-sort/sort": ["error"],
+        "import/order": "off",
+        "sort-imports": "off",
+        "import/first": ["error"],
+        "import/newline-after-import": ["error"],
+        "import/no-duplicates": ["error"],
+        "import/export": "off",
         "qunit/no-global-expect": ["off"],
         // this is handled by import/errors
         "node/no-extraneous-import": "off",

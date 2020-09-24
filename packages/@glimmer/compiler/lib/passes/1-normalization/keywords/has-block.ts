@@ -24,7 +24,7 @@ export function assertValidHasBlockUsage(
     } else {
       return Err(
         new GlimmerSyntaxError(
-          `you can only yield to a literal value (on line ${call.loc.start.line})`,
+          `you can only yield to a literal value (on line ${call.loc.startPosition.line})`,
           call.loc
         )
       );
@@ -32,7 +32,7 @@ export function assertValidHasBlockUsage(
   } else {
     return Err(
       new GlimmerSyntaxError(
-        `${type} only takes a single positional argument (on line ${call.loc.start.line})`,
+        `${type} only takes a single positional argument (on line ${call.loc.startPosition.line})`,
         call.loc
       )
     );

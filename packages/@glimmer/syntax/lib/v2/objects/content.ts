@@ -1,11 +1,14 @@
-import { SourceOffsetList } from '../../source/offsets';
-import type { SymbolTable } from '../../symbol-table';
-import { Args, Named } from './args';
-import type { ComponentArg, ElementModifier, HtmlOrSplatAttr } from './attr-block';
-import { BaseNodeFields, CallFields, node } from './base';
-import type { ExpressionNode } from './expr';
-import type { NamedBlock, NamedBlocks } from './internal';
-import { SourceSlice } from '../../source/slice';
+import type { SymbolTable } from '../../-internal';
+import { SourceSlice, SpanList } from '../../-internal';
+import type {
+  ComponentArg,
+  ElementModifier,
+  ExpressionNode,
+  HtmlOrSplatAttr,
+  NamedBlock,
+  NamedBlocks,
+} from './-internal';
+import { Args, BaseNodeFields, CallFields, Named, node } from './-internal';
 
 /**
  * Content Nodes are allowed in content positions in templates. They correspond to behavior in the
@@ -43,7 +46,7 @@ export class AppendContent extends node('AppendContent').fields<{
     if (this.value.type === 'Call') {
       return this.value.args;
     } else {
-      return Args.empty(this.value.loc.collapseEnd());
+      return Args.empty(this.value.loc.collapse('end'));
     }
   }
 }
@@ -66,7 +69,7 @@ export class InvokeComponent extends node('InvokeComponent').fields<InvokeCompon
 
     return Args.named(
       new Named({
-        loc: SourceOffsetList.range(entries, this.callee.loc.collapseEnd()),
+        loc: SpanList.range(entries, this.callee.loc.collapse('end')),
         entries,
       })
     );
@@ -87,7 +90,7 @@ export class SimpleElement extends node('SimpleElement').fields<SimpleElementOpt
 
     return Args.named(
       new Named({
-        loc: SourceOffsetList.range(entries, this.tag.loc.collapseEnd()),
+        loc: SpanList.range(entries, this.tag.loc.collapse('end')),
         entries,
       })
     );

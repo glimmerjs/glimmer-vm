@@ -1,8 +1,8 @@
 import { PresentArray } from '@glimmer/interfaces';
-import * as ASTv2 from '../nodes-v2';
-import { SourceSlice } from '../../source/slice';
 
-import {
+import { ASTv2 } from '../-internal';
+import { SourceSlice } from '../../-internal';
+import type {
   SerializedAppendContent,
   SerializedArgReference,
   SerializedArgs,

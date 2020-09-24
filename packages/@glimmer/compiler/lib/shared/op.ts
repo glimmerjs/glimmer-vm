@@ -1,10 +1,4 @@
-import {
-  hasOffsets,
-  HasSourceOffsets,
-  loc,
-  MaybeHasSourceOffsets,
-  SourceOffsets,
-} from '@glimmer/syntax';
+import { HasSourceSpan, hasSpan, loc, MaybeHasSourceSpan, SourceSpan } from '@glimmer/syntax';
 
 export type OpsTable<O extends Op> = {
   [P in O['name']]: O extends { name: P } ? O : never;
@@ -14,7 +8,7 @@ export type UnknownArgs = object | void;
 
 export abstract class Op<Args extends UnknownArgs = UnknownArgs, Name extends string = string> {
   abstract readonly name: Name;
-  constructor(readonly loc: SourceOffsets, readonly args: Args) {}
+  constructor(readonly loc: SourceSpan, readonly args: Args) {}
 }
 
 export type OpName<O extends Op> = O['name'];
@@ -31,7 +25,7 @@ export function toArgs<O extends Op>(args: InputOpArgs<O>): OpArgs<O> {
 
 export type OpConstructor<O extends Op> = O extends Op<infer Args, infer Name>
   ? {
-      new (loc: SourceOffsets, args: Args): O & { name: Name };
+      new (loc: SourceSpan, args: Args): O & { name: Name };
     }
   : never;
 
@@ -69,15 +63,15 @@ export function op<N extends string>(
 export class UnlocatedOp<O extends Op> {
   constructor(private Class: OpConstructor<O>, private args: OpArgs<O>) {}
 
-  maybeLoc(location: MaybeHasSourceOffsets, fallback: HasSourceOffsets): O {
-    if (hasOffsets(location)) {
+  maybeLoc(location: MaybeHasSourceSpan, fallback: HasSourceSpan): O {
+    if (hasSpan(location)) {
       return this.loc(location);
     } else {
       return this.loc(fallback);
     }
   }
 
-  loc(located: HasSourceOffsets): O {
+  loc(located: HasSourceSpan): O {
     return new this.Class(loc(located), this.args) as O;
   }
 }

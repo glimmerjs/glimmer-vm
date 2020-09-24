@@ -81,7 +81,7 @@ Object.keys(cases).forEach((string) => {
     if (offset === null) continue;
 
     test(`${string} @ ${line}:${column} -> ${String(offset)}`, (assert) => {
-      assert.deepEqual(source.offsetFor({ line, column }).offset, offset);
+      assert.deepEqual(source.offsetFor({ line, column }).charOffset, offset);
     });
   }
 });

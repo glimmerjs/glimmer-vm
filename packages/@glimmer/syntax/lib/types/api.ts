@@ -1,2 +1,2 @@
 export * from './nodes-v1';
-export { SourceLocation, SourcePosition as Position, SourcePosition } from '../source/location';
+export type { SourceLocation, SourcePosition as Position, SourcePosition } from '../-internal';

@@ -1,6 +1,5 @@
-import { node } from './base';
-import { SourceSlice } from '../../source/slice';
-import { FreeVarResolution } from './resolution';
+import { SourceSlice } from '../../-internal';
+import { FreeVarResolution, node } from './-internal';
 
 export class ThisReference extends node('This').fields() {}
 export class ArgReference extends node('Arg').fields<{ name: SourceSlice }>() {}

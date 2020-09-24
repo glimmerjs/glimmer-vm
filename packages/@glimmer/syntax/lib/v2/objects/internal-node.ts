@@ -1,9 +1,14 @@
-import { SourceOffsetList } from '../../source/offsets';
-import { SourceSlice } from '../../source/slice';
-import { BlockSymbolTable, ProgramSymbolTable } from '../../symbol-table';
-import { Args, Named } from './args';
-import { ComponentArg, ElementModifier, HtmlOrSplatAttr } from './attr-block';
-import { BaseNodeFields, GlimmerParentNodeOptions, node } from './base';
+import { BlockSymbolTable, ProgramSymbolTable, SourceSlice, SpanList } from '../../-internal';
+import {
+  Args,
+  BaseNodeFields,
+  ComponentArg,
+  ElementModifier,
+  GlimmerParentNodeOptions,
+  HtmlOrSplatAttr,
+  Named,
+  node,
+} from './-internal';
 
 export class Template extends node().fields<
   {
@@ -39,7 +44,7 @@ export class NamedBlock extends node().fields<NamedBlockOptions>() {
 
     return Args.named(
       new Named({
-        loc: SourceOffsetList.range(entries, this.name.loc.collapseEnd()),
+        loc: SpanList.range(entries, this.name.loc.collapse('end')),
         entries,
       })
     );

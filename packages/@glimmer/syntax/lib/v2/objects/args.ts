@@ -1,7 +1,7 @@
-import type { SourceOffsets } from '../../source/offsets/abstract';
-import { node } from './base';
-import type { ExpressionNode } from './expr';
-import { SourceSlice } from '../../source/slice';
+import type { SourceSpan } from '../../-internal';
+import { SourceSlice } from '../../-internal';
+import type { ExpressionNode } from './-internal';
+import { node } from './-internal';
 
 /**
  * Corresponds to syntaxes with positional and named arguments:
@@ -18,14 +18,14 @@ export class Args extends node().fields<{
   positional: Positional;
   named: Named;
 }>() {
-  static empty(loc: SourceOffsets): Args {
+  static empty(loc: SourceSpan): Args {
     return new Args({ loc, positional: Positional.empty(loc), named: Named.empty(loc) });
   }
 
   static named(named: Named): Args {
     return new Args({
       loc: named.loc,
-      positional: Positional.empty(named.loc.collapseEnd()),
+      positional: Positional.empty(named.loc.collapse('end')),
       named,
     });
   }
@@ -52,7 +52,7 @@ export class Args extends node().fields<{
 export class Positional extends node().fields<{
   exprs: readonly ExpressionNode[];
 }>() {
-  static empty(loc: SourceOffsets): Positional {
+  static empty(loc: SourceSpan): Positional {
     return new Positional({
       loc,
       exprs: [],
@@ -84,7 +84,7 @@ export class Positional extends node().fields<{
 export class Named extends node().fields<{
   entries: readonly NamedEntry[];
 }>() {
-  static empty(loc: SourceOffsets): Named {
+  static empty(loc: SourceSpan): Named {
     return new Named({
       loc,
       entries: [],
@@ -107,7 +107,7 @@ export class Named extends node().fields<{
 }
 
 export class NamedEntry {
-  readonly loc: SourceOffsets;
+  readonly loc: SourceSpan;
   readonly name: SourceSlice;
   readonly value: ExpressionNode;
 

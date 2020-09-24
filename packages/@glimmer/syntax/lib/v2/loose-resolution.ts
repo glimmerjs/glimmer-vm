@@ -1,6 +1,4 @@
-import * as ASTv1 from '../types/nodes-v1';
-import { FreeVarResolution } from './objects';
-import { LooseModeResolution, FreeVarNamespace, STRICT_RESOLUTION } from './objects';
+import { ASTv1, ASTv2 } from '../-internal';
 
 export interface AstCallParts {
   path: ASTv1.Expression;
@@ -12,15 +10,15 @@ export interface AstCallParts {
  * The resolution for the expressions in the `params` and `hash`
  * of call nodes.
  */
-export const ARGUMENT = LooseModeResolution.fallback();
+export const ARGUMENT = ASTv2.LooseModeResolution.fallback();
 
 export interface VarPath extends ASTv1.PathExpression {
   head: ASTv1.VarHead;
 }
 
-export function SexpSyntaxContext(node: ASTv1.SubExpression): FreeVarResolution | null {
+export function SexpSyntaxContext(node: ASTv1.SubExpression): ASTv2.FreeVarResolution | null {
   if (isSimpleCallee(node)) {
-    return LooseModeResolution.namespaced(FreeVarNamespace.Helper);
+    return ASTv2.LooseModeResolution.namespaced(ASTv2.FreeVarNamespace.Helper);
   } else {
     return null;
   }
@@ -28,25 +26,25 @@ export function SexpSyntaxContext(node: ASTv1.SubExpression): FreeVarResolution 
 
 export function ModifierSyntaxContext(
   node: ASTv1.ElementModifierStatement
-): FreeVarResolution | null {
+): ASTv2.FreeVarResolution | null {
   if (isSimpleCallee(node)) {
-    return LooseModeResolution.namespaced(FreeVarNamespace.Modifier);
+    return ASTv2.LooseModeResolution.namespaced(ASTv2.FreeVarNamespace.Modifier);
   } else {
     return null;
   }
 }
 
-export function BlockSyntaxContext(node: ASTv1.BlockStatement): FreeVarResolution | null {
+export function BlockSyntaxContext(node: ASTv1.BlockStatement): ASTv2.FreeVarResolution | null {
   if (isSimpleCallee(node)) {
-    return LooseModeResolution.namespaced(FreeVarNamespace.Component);
+    return ASTv2.LooseModeResolution.namespaced(ASTv2.FreeVarNamespace.Component);
   } else {
     return null;
   }
 }
 
-export function ComponentSyntaxContext(node: ASTv1.PathExpression): FreeVarResolution | null {
+export function ComponentSyntaxContext(node: ASTv1.PathExpression): ASTv2.FreeVarResolution | null {
   if (isSimplePath(node)) {
-    return LooseModeResolution.namespaced(FreeVarNamespace.Component);
+    return ASTv2.LooseModeResolution.namespaced(ASTv2.FreeVarNamespace.Component);
   } else {
     return null;
   }
@@ -56,16 +54,16 @@ export function ComponentSyntaxContext(node: ASTv1.PathExpression): FreeVarResol
  * This corresponds to append positions (text curlies or attribute
  * curlies). In strict mode, this also corresponds to arg curlies.
  */
-export function AttrValueSyntaxContext(node: ASTv1.MustacheStatement): FreeVarResolution {
+export function AttrValueSyntaxContext(node: ASTv1.MustacheStatement): ASTv2.FreeVarResolution {
   let isSimple = isSimpleCallee(node);
   let isInvoke = isInvokeNode(node);
 
   if (isSimple) {
     return isInvoke
-      ? LooseModeResolution.namespaced(FreeVarNamespace.Helper)
-      : LooseModeResolution.attr();
+      ? ASTv2.LooseModeResolution.namespaced(ASTv2.FreeVarNamespace.Helper)
+      : ASTv2.LooseModeResolution.attr();
   } else {
-    return isInvoke ? STRICT_RESOLUTION : LooseModeResolution.fallback();
+    return isInvoke ? ASTv2.STRICT_RESOLUTION : ASTv2.LooseModeResolution.fallback();
   }
 }
 
@@ -73,20 +71,20 @@ export function AttrValueSyntaxContext(node: ASTv1.MustacheStatement): FreeVarRe
  * This corresponds to append positions (text curlies or attribute
  * curlies). In strict mode, this also corresponds to arg curlies.
  */
-export function AppendSyntaxContext(node: ASTv1.MustacheStatement): FreeVarResolution {
+export function AppendSyntaxContext(node: ASTv1.MustacheStatement): ASTv2.FreeVarResolution {
   let isSimple = isSimpleCallee(node);
   let isInvoke = isInvokeNode(node);
 
   if (isSimple) {
-    return LooseModeResolution.append({ invoke: isInvoke });
+    return ASTv2.LooseModeResolution.append({ invoke: isInvoke });
   } else {
-    return isInvoke ? STRICT_RESOLUTION : LooseModeResolution.fallback();
+    return isInvoke ? ASTv2.STRICT_RESOLUTION : ASTv2.LooseModeResolution.fallback();
   }
 }
 
 export type Resolution<P extends AstCallParts | ASTv1.PathExpression> = (
   call: P
-) => FreeVarResolution | null;
+) => ASTv2.FreeVarResolution | null;
 
 // UTILITIES
 

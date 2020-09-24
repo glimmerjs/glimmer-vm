@@ -1,4 +1,5 @@
 import { ASTv2, maybeLoc, NON_EXISTENT } from '@glimmer/syntax';
+
 import { OptionalList } from '../../../../shared/list';
 import { Ok, Result, ResultArray } from '../../../../shared/result';
 import { getAttrNamespace } from '../../../../utils';

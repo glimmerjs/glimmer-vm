@@ -1,4 +1,4 @@
-import { SourceLocation } from '../source/location';
+import { SourceLocation } from './-internal';
 
 export interface GlimmerSyntaxError extends Error {
   location: SourceLocation | null;
@@ -27,5 +27,5 @@ export const GlimmerSyntaxError: SyntaxErrorConstructor = (function () {
     this.location = location;
   }
 
-  return SyntaxError as any;
+  return (SyntaxError as unknown) as SyntaxErrorConstructor;
 })();

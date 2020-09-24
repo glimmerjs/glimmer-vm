@@ -1,5 +1,6 @@
-import { ASTv2, GlimmerSyntaxError, InvisibleSourceOffsets, SourceSlice } from '@glimmer/syntax';
+import { ASTv2, GlimmerSyntaxError, InvisibleSpan, SourceSlice } from '@glimmer/syntax';
 import { expect } from '@glimmer/util';
+
 import { Err, Ok, Result } from '../../../shared/result';
 import * as hir from '../../2-symbol-allocation/hir';
 import { VISIT_EXPRS } from '../visitors/expressions';
@@ -18,7 +19,7 @@ export const APPEND_KEYWORDS = keywords('Append')
 
       if (args.named.isEmpty()) {
         return Ok({
-          target: InvisibleSourceOffsets.synthetic('default').toSlice(),
+          target: InvisibleSpan.synthetic('default').toSlice(),
           positional: args.positional,
         });
       } else {
@@ -56,7 +57,7 @@ export const APPEND_KEYWORDS = keywords('Append')
     },
   })
   .kw('partial', {
-    assert(node: ASTv2.AppendContent): Result<ASTv2.Expression | undefined> {
+    assert(node: ASTv2.AppendContent): Result<ASTv2.ExpressionNode | undefined> {
       let {
         args: { positional, named },
       } = node;
@@ -65,14 +66,14 @@ export const APPEND_KEYWORDS = keywords('Append')
       if (positional.isEmpty()) {
         return Err(
           new GlimmerSyntaxError(
-            `Partial found with no arguments. You must specify a template name. (on line ${loc.start.line})`,
+            `Partial found with no arguments. You must specify a template name. (on line ${loc.startPosition.line})`,
             node.loc
           )
         );
       } else if (positional.size !== 1) {
         return Err(
           new GlimmerSyntaxError(
-            `Partial found with ${positional.exprs.length} arguments. You must specify a template name. (on line ${loc.start.line})`,
+            `Partial found with ${positional.exprs.length} arguments. You must specify a template name. (on line ${loc.startPosition.line})`,
             node.loc
           )
         );
@@ -82,7 +83,7 @@ export const APPEND_KEYWORDS = keywords('Append')
         if (trusting) {
           return Err(
             new GlimmerSyntaxError(
-              `{{{partial ...}}} is not supported, please use {{partial ...}} instead (on line ${loc.start.line})`,
+              `{{{partial ...}}} is not supported, please use {{partial ...}} instead (on line ${loc.startPosition.line})`,
               node.loc
             )
           );
@@ -92,7 +93,7 @@ export const APPEND_KEYWORDS = keywords('Append')
       } else {
         return Err(
           new GlimmerSyntaxError(
-            `Partial does not take any named arguments (on line ${loc.start.line})`,
+            `Partial does not take any named arguments (on line ${loc.startPosition.line})`,
             node.loc
           )
         );
@@ -101,13 +102,11 @@ export const APPEND_KEYWORDS = keywords('Append')
 
     translate(
       node: ASTv2.AppendContent,
-      expr: ASTv2.Expression | undefined
+      expr: ASTv2.ExpressionNode | undefined
     ): Result<hir.Statement> {
       let visited =
         expr === undefined
-          ? Ok(
-              new hir.PlaceholderUndefined(InvisibleSourceOffsets.synthetic('undefined'), undefined)
-            )
+          ? Ok(new hir.PlaceholderUndefined(InvisibleSpan.synthetic('undefined'), undefined))
           : VISIT_EXPRS.visit(expr);
 
       return visited.mapOk((expr) => new hir.Partial(node.loc, { table: node.table, expr }));

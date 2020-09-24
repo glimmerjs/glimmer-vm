@@ -1,36 +1,36 @@
 import { Optional, PresentArray } from '@glimmer/interfaces';
 import { assert, assign, isPresent } from '@glimmer/util';
-import { GlimmerSyntaxError } from '../errors/syntax-error';
-import Printer from '../generation/printer';
-import { preprocess, PreprocessOptions } from '../parser/tokenizer-event-handlers';
-import { SourceLocation } from '../source/location';
-import { SourceOffsetList } from '../source/offsets';
-import type { SourceOffsets } from '../source/offsets/abstract';
-import { SourceSlice } from '../source/slice';
-import { Source } from '../source/source';
-import { BlockSymbolTable, ProgramSymbolTable, SymbolTable } from '../symbol-table';
-import * as ASTv1 from '../types/nodes-v1';
-import { default as buildersV1 } from '../v1/parser-builders';
-import { BuildElement, Builder, CallParts } from './builders';
+
+import type { SourceSpan } from '../-internal';
+import {
+  ASTv1,
+  BlockSymbolTable,
+  GlimmerSyntaxError,
+  preprocess,
+  PreprocessOptions,
+  Printer,
+  ProgramSymbolTable,
+  Source,
+  SourceLocation,
+  SourceSlice,
+  SpanList,
+  strictBuilder,
+  SymbolTable,
+} from '../-internal';
 import {
   AppendSyntaxContext,
   ARGUMENT,
+  ASTv2,
   AttrValueSyntaxContext,
   BlockSyntaxContext,
+  BuildElement,
+  Builder,
+  CallParts,
   ComponentSyntaxContext,
   ModifierSyntaxContext,
   Resolution,
   SexpSyntaxContext,
-} from './loose-resolution';
-import * as ASTv2 from './nodes-v2';
-import {
-  FreeVarResolution,
-  GlimmerComment,
-  HtmlComment,
-  HtmlText,
-  NamedBlock,
-  STRICT_RESOLUTION,
-} from './objects';
+} from './-internal';
 
 export function normalize(html: string, options: GlimmerCompileOptions = {}): ASTv2.Template {
   let ast = preprocess(html, options);
@@ -86,16 +86,16 @@ export class BlockContext<Table extends SymbolTable = SymbolTable> {
     return this.options.strictMode || false;
   }
 
-  loc(loc: SourceLocation): SourceOffsets {
-    return this.source.offsetsFor(loc);
+  loc(loc: SourceLocation): SourceSpan {
+    return this.source.spanFor(loc);
   }
 
   resolutionFor<N extends ASTv1.CallNode | ASTv1.PathExpression>(
     node: N,
     resolution: Resolution<N>
-  ): { resolution: FreeVarResolution } | { resolution: 'error'; path: string; head: string } {
+  ): { resolution: ASTv2.FreeVarResolution } | { resolution: 'error'; path: string; head: string } {
     if (this.strict) {
-      return { resolution: STRICT_RESOLUTION };
+      return { resolution: ASTv2.STRICT_RESOLUTION };
     }
 
     if (this.isFreeVar(node)) {
@@ -111,7 +111,7 @@ export class BlockContext<Table extends SymbolTable = SymbolTable> {
 
       return { resolution: r };
     } else {
-      return { resolution: STRICT_RESOLUTION };
+      return { resolution: ASTv2.STRICT_RESOLUTION };
     }
   }
 
@@ -160,14 +160,17 @@ class ExpressionNormalizer {
    *
    * @see {SyntaxContext}
    */
-  normalize(expr: ASTv1.Literal, resolution: FreeVarResolution): ASTv2.LiteralExpression;
-  normalize(expr: ASTv1.MinimalPathExpression, resolution: FreeVarResolution): ASTv2.PathExpression;
-  normalize(expr: ASTv1.SubExpression, resolution: FreeVarResolution): ASTv2.CallExpression;
-  normalize(expr: ASTv1.Expression, resolution: FreeVarResolution): ASTv2.Expression;
+  normalize(expr: ASTv1.Literal, resolution: ASTv2.FreeVarResolution): ASTv2.LiteralExpression;
+  normalize(
+    expr: ASTv1.MinimalPathExpression,
+    resolution: ASTv2.FreeVarResolution
+  ): ASTv2.PathExpression;
+  normalize(expr: ASTv1.SubExpression, resolution: ASTv2.FreeVarResolution): ASTv2.CallExpression;
+  normalize(expr: ASTv1.Expression, resolution: ASTv2.FreeVarResolution): ASTv2.ExpressionNode;
   normalize(
     expr: ASTv1.Expression | ASTv1.MinimalPathExpression,
-    resolution: FreeVarResolution
-  ): ASTv2.Expression {
+    resolution: ASTv2.FreeVarResolution
+  ): ASTv2.ExpressionNode {
     switch (expr.type) {
       case 'NullLiteral':
       case 'BooleanLiteral':
@@ -197,7 +200,7 @@ class ExpressionNormalizer {
 
   private path(
     expr: ASTv1.MinimalPathExpression,
-    resolution: FreeVarResolution
+    resolution: ASTv2.FreeVarResolution
   ): ASTv2.PathExpression {
     let headOffsets = this.block.loc(expr.head.loc);
 
@@ -207,7 +210,7 @@ class ExpressionNormalizer {
     let offset = headOffsets;
 
     for (let part of expr.tail) {
-      offset = offset.sliceStart({ chars: part.length, from: 1 });
+      offset = offset.sliceStartChars({ chars: part.length, skipStart: 1 });
       tail.push(
         new SourceSlice({
           loc: offset,
@@ -223,14 +226,14 @@ class ExpressionNormalizer {
    * The `callParts` method takes ASTv1.CallParts as well as a syntax context and normalizes
    * it to an ASTv2 CallParts.
    */
-  callParts(parts: ASTv1.CallParts, context: FreeVarResolution): CallParts {
+  callParts(parts: ASTv1.CallParts, context: ASTv2.FreeVarResolution): CallParts {
     let { path, params, hash } = parts;
 
     let callee = this.normalize(path, context);
     let paramList = params.map((p) => this.normalize(p, ARGUMENT));
-    let paramLoc = SourceOffsetList.range(paramList, callee.loc.collapseEnd());
+    let paramLoc = SpanList.range(paramList, callee.loc.collapse('end'));
     let namedLoc = this.block.loc(hash.loc);
-    let argsLoc = SourceOffsetList.range([paramLoc, namedLoc]);
+    let argsLoc = SpanList.range([paramLoc, namedLoc]);
 
     let positional = this.block.builder.positional(
       params.map((p) => this.normalize(p, ARGUMENT)),
@@ -251,7 +254,7 @@ class ExpressionNormalizer {
   private namedEntry(pair: ASTv1.HashPair): ASTv2.NamedEntry {
     let offsets = this.block.loc(pair.loc);
 
-    let keyOffsets = offsets.sliceStart({ chars: pair.key.length });
+    let keyOffsets = offsets.sliceStartChars({ chars: pair.key.length });
 
     return this.block.builder.namedEntry(
       new SourceSlice({ chars: pair.key, loc: keyOffsets }),
@@ -269,7 +272,7 @@ class ExpressionNormalizer {
    * the `VariableReference` node bears full responsibility for loose mode rules that control
    * the behavior of free variables.
    */
-  private ref(head: ASTv1.PathHead, resolution: FreeVarResolution): ASTv2.VariableReference {
+  private ref(head: ASTv1.PathHead, resolution: ASTv2.FreeVarResolution): ASTv2.VariableReference {
     let offsets = this.block.loc(head.loc);
 
     switch (head.type) {
@@ -283,7 +286,7 @@ class ExpressionNormalizer {
         } else {
           return this.block.builder.freeVar(
             head.name,
-            this.block.strict ? STRICT_RESOLUTION : resolution,
+            this.block.strict ? ASTv2.STRICT_RESOLUTION : resolution,
             offsets
           );
         }
@@ -315,14 +318,14 @@ class StatementNormalizer {
 
       case 'CommentStatement': {
         let loc = this.block.loc(node.loc);
-        return new HtmlComment({
+        return new ASTv2.HtmlComment({
           loc,
           text: loc.slice({ skipStart: 4, skipEnd: 3 }).toSlice(node.value),
         });
       }
 
       case 'TextNode':
-        return new HtmlText({
+        return new ASTv2.HtmlText({
           loc: this.block.loc(node.loc),
           chars: node.chars,
         });
@@ -331,7 +334,7 @@ class StatementNormalizer {
 
   MustacheCommentStatement(node: ASTv1.MustacheCommentStatement): ASTv2.GlimmerComment {
     let loc = this.block.loc(node.loc);
-    let textLoc: SourceOffsets;
+    let textLoc: SourceSpan;
 
     if (loc.asString().slice(0, 5) === '{{!--') {
       textLoc = loc.slice({ skipStart: 5, skipEnd: 4 });
@@ -339,7 +342,7 @@ class StatementNormalizer {
       textLoc = loc.slice({ skipStart: 3, skipEnd: 2 });
     }
 
-    return new GlimmerComment({
+    return new ASTv2.GlimmerComment({
       loc,
       text: textLoc.toSlice(node.value),
     });
@@ -470,12 +473,12 @@ class ElementNormalizer {
     let children = new ElementChildren(el, loc, childNodes, this.ctx);
 
     let offsets = this.ctx.loc(element.loc);
-    let tagOffsets = offsets.sliceStart({ chars: tag.length, from: 1 });
+    let tagOffsets = offsets.sliceStartChars({ chars: tag.length, skipStart: 1 });
 
     if (path === 'ElementHead') {
       if (tag[0] === ':') {
         return children.assertNamedBlock(
-          tagOffsets.sliceFrom({ from: 1 }).toSlice(tag.slice(1)),
+          tagOffsets.slice({ skipStart: 1 }).toSlice(tag.slice(1)),
           child.table
         );
       } else {
@@ -514,7 +517,7 @@ class ElementNormalizer {
    * <a href="{{url}}.html" />
    * ```
    */
-  private mustacheAttr(mustache: ASTv1.MustacheStatement): ASTv2.Expression {
+  private mustacheAttr(mustache: ASTv1.MustacheStatement): ASTv2.ExpressionNode {
     // Normalize the call parts in AttrValueSyntaxContext
     let sexp = this.ctx.builder.sexp(
       this.expr.callParts(mustache, AttrValueSyntaxContext(mustache)),
@@ -535,7 +538,7 @@ class ElementNormalizer {
    */
   private attrPart(
     part: ASTv1.MustacheStatement | ASTv1.TextNode
-  ): { expr: ASTv2.Expression; trusting: boolean } {
+  ): { expr: ASTv2.ExpressionNode; trusting: boolean } {
     switch (part.type) {
       case 'MustacheStatement':
         return { expr: this.mustacheAttr(part), trusting: !part.escaped };
@@ -549,7 +552,7 @@ class ElementNormalizer {
 
   private attrValue(
     part: ASTv1.MustacheStatement | ASTv1.TextNode | ASTv1.ConcatStatement
-  ): { expr: ASTv2.Expression; trusting: boolean } {
+  ): { expr: ASTv2.ExpressionNode; trusting: boolean } {
     switch (part.type) {
       case 'ConcatStatement': {
         let parts = part.parts.map((p) => this.attrPart(p).expr);
@@ -571,7 +574,7 @@ class ElementNormalizer {
     }
 
     let offsets = this.ctx.loc(m.loc);
-    let nameSlice = offsets.sliceStart({ chars: m.name.length }).toSlice(m.name);
+    let nameSlice = offsets.sliceStartChars({ chars: m.name.length }).toSlice(m.name);
 
     let value = this.attrValue(m.value);
     return this.ctx.builder.attr(
@@ -584,7 +587,7 @@ class ElementNormalizer {
     assert(arg.name[0] === '@', 'An arg name must start with `@`');
 
     let offsets = this.ctx.loc(arg.loc);
-    let nameSlice = offsets.sliceStart({ chars: arg.name.length }).toSlice(arg.name);
+    let nameSlice = offsets.sliceStartChars({ chars: arg.name.length }).toSlice(arg.name);
 
     let value = this.attrValue(arg.value);
     return this.ctx.builder.arg(
@@ -611,8 +614,8 @@ class ElementNormalizer {
   private classifyTag(
     variable: string,
     tail: string[],
-    loc: SourceOffsets
-  ): ASTv2.Expression | 'ElementHead' {
+    loc: SourceSpan
+  ): ASTv2.ExpressionNode | 'ElementHead' {
     let uppercase = isUpperCase(variable);
     let inScope = this.ctx.hasBinding(variable);
 
@@ -621,7 +624,7 @@ class ElementNormalizer {
     // expression normalizer.
     let isComponent = variable[0] === '@' || variable === 'this' || inScope || uppercase;
 
-    let variableLoc = loc.sliceRange({ skipStart: 1, chars: variable.length });
+    let variableLoc = loc.sliceStartChars({ skipStart: 1, chars: variable.length });
 
     let tailLength = tail.reduce((accum, part) => accum + 1 + part.length, 0);
     let pathEnd = variableLoc.endOffset.move(tailLength);
@@ -636,8 +639,8 @@ class ElementNormalizer {
         variable = this.ctx.customizeComponentName(variable);
       }
 
-      let path = buildersV1.path({
-        head: buildersV1.head(variable, variableLoc),
+      let path = strictBuilder.path({
+        head: strictBuilder.head(variable, variableLoc),
         tail,
         loc: pathLoc,
       });
@@ -677,13 +680,13 @@ class Children {
   readonly nonBlockChildren: ASTv2.ContentNode[];
 
   constructor(
-    readonly loc: SourceOffsets,
+    readonly loc: SourceSpan,
     readonly children: (ASTv2.ContentNode | ASTv2.NamedBlock)[],
     readonly block: BlockContext
   ) {
-    this.namedBlocks = children.filter((c): c is ASTv2.NamedBlock => c instanceof NamedBlock);
+    this.namedBlocks = children.filter((c): c is ASTv2.NamedBlock => c instanceof ASTv2.NamedBlock);
     this.hasSemanticContent = !!children.find((c): c is ASTv2.ContentNode => {
-      if (c instanceof NamedBlock) {
+      if (c instanceof ASTv2.NamedBlock) {
         return false;
       }
       switch (c.type) {
@@ -697,7 +700,7 @@ class Children {
       }
     });
     this.nonBlockChildren = children.filter(
-      (c): c is ASTv2.ContentNode => !(c instanceof NamedBlock)
+      (c): c is ASTv2.ContentNode => !(c instanceof ASTv2.NamedBlock)
     );
   }
 }
@@ -728,7 +731,7 @@ class BlockChildren extends Children {
 class ElementChildren extends Children {
   constructor(
     private el: BuildElement,
-    loc: SourceOffsets,
+    loc: SourceSpan,
     children: (ASTv2.ContentNode | ASTv2.NamedBlock)[],
     block: BlockContext
   ) {
@@ -757,7 +760,7 @@ class ElementChildren extends Children {
       );
     }
 
-    let offsets = SourceOffsetList.range(this.nonBlockChildren, this.loc);
+    let offsets = SpanList.range(this.nonBlockChildren, this.loc);
 
     return this.block.builder.namedBlock(
       name,

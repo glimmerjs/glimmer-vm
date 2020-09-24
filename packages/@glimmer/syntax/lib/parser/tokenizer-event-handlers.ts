@@ -1,18 +1,14 @@
 import { assertPresent, assign } from '@glimmer/util';
 import * as handlebars from 'handlebars';
 import { EntityParser } from 'simple-html-tokenizer';
-import { GlimmerSyntaxError } from '../errors/syntax-error';
-import print from '../generation/print';
-import { voidMap } from '../generation/printer';
-import { Tag } from '../parser';
-import type { SourceOffset, SourceOffsetKind, SourceOffsets } from '../source/offsets/abstract';
-import { concrete } from '../source/offsets/concrete';
+
+import { ASTv1, GlimmerSyntaxError, HBS, print, Tag, voidMap } from '../-internal';
+import type { SourceOffset, SourceSpan } from '../source/offsets/abstract';
+import { charSpan } from '../source/offsets/char-offset';
 import { Source } from '../source/source';
 import traverse from '../traversal/traverse';
 import { NodeVisitor } from '../traversal/visitor';
 import Walker from '../traversal/walker';
-import * as AST from '../types/api';
-import * as HBS from '../types/handlebars-ast';
 import { appendChild, parseElementBlockParams } from '../utils';
 import { default as b } from '../v1/parser-builders';
 import { default as v1Builders } from '../v1/public-builders';
@@ -22,41 +18,41 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
   private tagOpenLine = 0;
   private tagOpenColumn = 0;
 
-  reset() {
+  reset(): void {
     this.currentNode = null;
   }
 
   // Comment
 
-  beginComment() {
+  beginComment(): void {
     this.currentNode = b.comment(
       '',
       this.source.offsetFor({ line: this.tagOpenLine, column: this.tagOpenColumn })
     );
   }
 
-  appendToCommentData(char: string) {
+  appendToCommentData(char: string): void {
     this.currentComment.value += char;
   }
 
-  finishComment() {
-    appendChild(this.currentElement(), this.finish(this.currentComment, this.pos(this.tokenizer)));
+  finishComment(): void {
+    appendChild(this.currentElement(), this.finish(this.currentComment));
   }
 
   // Data
 
-  beginData() {
+  beginData(): void {
     this.currentNode = b.text({
       chars: '',
       loc: this.offset().collapsed(),
     });
   }
 
-  appendToData(char: string) {
+  appendToData(char: string): void {
     this.currentData.chars += char;
   }
 
-  finishData() {
+  finishData(): void {
     this.currentData.loc = this.currentData.loc.withEnd(this.offset());
 
     appendChild(this.currentElement(), this.currentData);
@@ -64,12 +60,12 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
 
   // Tags - basic
 
-  tagOpen() {
+  tagOpen(): void {
     this.tagOpenLine = this.tokenizer.line;
     this.tagOpenColumn = this.tokenizer.column;
   }
 
-  beginStartTag() {
+  beginStartTag(): void {
     this.currentNode = {
       type: 'StartTag',
       name: '',
@@ -81,7 +77,7 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
     };
   }
 
-  beginEndTag() {
+  beginEndTag(): void {
     this.currentNode = {
       type: 'EndTag',
       name: '',
@@ -93,8 +89,8 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
     };
   }
 
-  finishTag() {
-    let tag = this.finish(this.currentTag, this.offset());
+  finishTag(): void {
+    let tag = this.finish(this.currentTag);
 
     if (tag.type === 'StartTag') {
       this.finishStartTag();
@@ -107,10 +103,9 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
     }
   }
 
-  finishStartTag() {
+  finishStartTag(): void {
     let { name, attributes: attrs, modifiers, comments, selfClosing, loc } = this.finish(
-      this.currentStartTag,
-      this.offset()
+      this.currentStartTag
     );
 
     let element = b.element({
@@ -126,10 +121,10 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
     this.elementStack.push(element);
   }
 
-  finishEndTag(isVoid: boolean) {
-    let tag = this.finish(this.currentTag, this.offset());
+  finishEndTag(isVoid: boolean): void {
+    let tag = this.finish(this.currentTag);
 
-    let element = this.elementStack.pop() as AST.ElementNode;
+    let element = this.elementStack.pop() as ASTv1.ElementNode;
     let parent = this.currentElement();
 
     this.validateEndTag(tag, element, isVoid);
@@ -139,19 +134,19 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
     appendChild(parent, element);
   }
 
-  markTagAsSelfClosing() {
+  markTagAsSelfClosing(): void {
     this.currentTag.selfClosing = true;
   }
 
   // Tags - name
 
-  appendToTagName(char: string) {
+  appendToTagName(char: string): void {
     this.currentTag.name += char;
   }
 
   // Tags - attributes
 
-  beginAttribute() {
+  beginAttribute(): void {
     let tag = this.currentTag;
     if (tag.type === 'EndTag') {
       throw new GlimmerSyntaxError(
@@ -170,21 +165,21 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
       isQuoted: false,
       isDynamic: false,
       start: offset,
-      valueOffsets: offset.collapsed(),
+      valueSpan: offset.collapsed(),
     };
   }
 
-  appendToAttributeName(char: string) {
+  appendToAttributeName(char: string): void {
     this.currentAttr.name += char;
   }
 
-  beginAttributeValue(isQuoted: boolean) {
+  beginAttributeValue(isQuoted: boolean): void {
     this.currentAttr.isQuoted = isQuoted;
     this.startTextPart();
-    this.currentAttr.valueOffsets = this.offset().collapsed();
+    this.currentAttr.valueSpan = this.offset().collapsed();
   }
 
-  appendToAttributeValue(char: string) {
+  appendToAttributeValue(char: string): void {
     let parts = this.currentAttr.parts;
     let lastPart = parts[parts.length - 1];
 
@@ -201,7 +196,7 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
 
       // the tokenizer line/column have already been advanced, correct location info
       if (char === '\n') {
-        loc = lastPart ? lastPart.loc.endOffset : this.currentAttr.valueOffsets.startOffset;
+        loc = lastPart ? lastPart.loc.endOffset : this.currentAttr.valueSpan.startOffset;
       } else {
         loc = loc.move(-1);
       }
@@ -210,28 +205,30 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
     }
   }
 
-  finishAttributeValue() {
+  finishAttributeValue(): void {
     this.finalizeTextPart();
-    let { name, parts, start, isQuoted, isDynamic, valueOffsets } = this.currentAttr;
+    let { name, parts, start, isQuoted, isDynamic, valueSpan } = this.currentAttr;
     let tokenizerPos = this.offset();
-    let value = this.assembleAttributeValue(parts, isQuoted, isDynamic, valueOffsets);
-    value.loc = valueOffsets.withEnd(tokenizerPos);
+    let value = this.assembleAttributeValue(parts, isQuoted, isDynamic, valueSpan);
+    value.loc = valueSpan.withEnd(tokenizerPos);
 
     let attribute = b.attr({ name, value, loc: start.withEnd(tokenizerPos) });
 
     this.currentStartTag.attributes.push(attribute);
   }
 
-  reportSyntaxError(message: string) {
+  reportSyntaxError(message: string): void {
     throw new GlimmerSyntaxError(
       `Syntax error at line ${this.tokenizer.line} col ${this.tokenizer.column}: ${message}`,
       this.offset().collapsed()
     );
   }
 
-  assembleConcatenatedValue(parts: (AST.MustacheStatement | AST.TextNode)[]) {
+  assembleConcatenatedValue(
+    parts: (ASTv1.MustacheStatement | ASTv1.TextNode)[]
+  ): ASTv1.ConcatStatement {
     for (let i = 0; i < parts.length; i++) {
-      let part: AST.BaseNode = parts[i];
+      let part: ASTv1.BaseNode = parts[i];
 
       if (part.type !== 'MustacheStatement' && part.type !== 'TextNode') {
         throw new GlimmerSyntaxError(
@@ -246,13 +243,14 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
     let first = parts[0];
     let last = parts[parts.length - 1];
 
-    return b.concat(
-      parts,
-      this.source.offsetsFor(first.loc).extend(this.source.offsetsFor(last.loc))
-    );
+    return b.concat(parts, this.source.spanFor(first.loc).extend(this.source.spanFor(last.loc)));
   }
 
-  validateEndTag(tag: Tag<'StartTag' | 'EndTag'>, element: AST.ElementNode, selfClosing: boolean) {
+  validateEndTag(
+    tag: Tag<'StartTag' | 'EndTag'>,
+    element: ASTv1.ElementNode,
+    selfClosing: boolean
+  ): void {
     let error;
 
     if (voidMap[tag.name] && !selfClosing) {
@@ -269,7 +267,7 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
         ' did not match last open tag `' +
         element.tag +
         '` (on line ' +
-        element.loc.start.line +
+        element.loc.startPosition.line +
         ').';
     }
 
@@ -279,11 +277,11 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
   }
 
   assembleAttributeValue(
-    parts: (AST.MustacheStatement | AST.TextNode)[],
+    parts: (ASTv1.MustacheStatement | ASTv1.TextNode)[],
     isQuoted: boolean,
     isDynamic: boolean,
-    offsets: SourceOffsets
-  ) {
+    span: SourceSpan
+  ): ASTv1.ConcatStatement | ASTv1.MustacheStatement | ASTv1.TextNode {
     if (isDynamic) {
       if (isQuoted) {
         return this.assembleConcatenatedValue(parts);
@@ -292,26 +290,26 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
           parts.length === 1 ||
           (parts.length === 2 &&
             parts[1].type === 'TextNode' &&
-            (parts[1] as AST.TextNode).chars === '/')
+            (parts[1] as ASTv1.TextNode).chars === '/')
         ) {
           return parts[0];
         } else {
           throw new GlimmerSyntaxError(
             `An unquoted attribute value must be a string or a mustache, ` +
               `preceeded by whitespace or a '=' character, and ` +
-              `followed by whitespace, a '>' character, or '/>' (on line ${offsets.start.line})`,
-            offsets
+              `followed by whitespace, a '>' character, or '/>' (on line ${span.startPosition.line})`,
+            span
           );
         }
       }
     } else {
-      return parts.length > 0 ? parts[0] : b.text({ chars: '', loc: offsets });
+      return parts.length > 0 ? parts[0] : b.text({ chars: '', loc: span });
     }
   }
 }
 
-function formatEndTagInfo(tag: Tag<'StartTag' | 'EndTag'>) {
-  return '`' + tag.name + '` (on line ' + tag.loc.end.line + ')';
+function formatEndTagInfo(tag: Tag<'StartTag' | 'EndTag'>): string {
+  return '`' + tag.name + '` (on line ' + tag.loc.endPosition.line + ')';
 }
 
 /**
@@ -343,6 +341,7 @@ export interface PreprocessOptions {
     ast?: ASTPluginBuilder[];
   };
   parseOptions?: HandlebarsParseOptions;
+  customizeComponentName?(input: string): string;
 
   /**
     Useful for specifying a group of options together.
@@ -370,7 +369,7 @@ const syntax: Syntax = {
   Walker,
 };
 
-export function preprocess(html: string, options: PreprocessOptions = {}): AST.Template {
+export function preprocess(html: string, options: PreprocessOptions = {}): ASTv1.Template {
   let mode = options.mode || 'precompile';
 
   let ast: HBS.Program;
@@ -387,11 +386,11 @@ export function preprocess(html: string, options: PreprocessOptions = {}): AST.T
     entityParser = new EntityParser({});
   }
 
-  let off = concrete(new Source(html), 0, html.length);
+  let off = charSpan(new Source(html), 0, html.length);
   ast.loc = {
     source: '(program)',
-    start: off.start,
-    end: off.end,
+    start: off.startPosition,
+    end: off.endPosition,
   };
 
   let program = new TokenizerEventHandlers(html, entityParser).acceptTemplate(ast);

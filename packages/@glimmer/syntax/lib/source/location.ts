@@ -1,6 +1,7 @@
 import { PresentArray } from '@glimmer/interfaces';
 import { isPresent } from '@glimmer/util';
-import type { SourceOffsets } from './offsets/abstract';
+
+import type { SourceSpan } from './-internal';
 
 export interface SourceLocation {
   start: SourcePosition;
@@ -40,8 +41,8 @@ export const NON_EXISTENT_LOCATION = Object.freeze({
   end: UNKNOWN_POSITION,
 } as const);
 
-export type LocatedWithOffsets = { offsets: SourceOffsets };
-export type LocatedWithOptionalOffsets = { offsets: SourceOffsets | null };
+export type LocatedWithSpan = { offsets: SourceSpan };
+export type LocatedWithOptionalSpan = { offsets: SourceSpan | null };
 
 export type LocatedWithPositions = { loc: SourceLocation };
 export type LocatedWithOptionalPositions = { loc?: SourceLocation };

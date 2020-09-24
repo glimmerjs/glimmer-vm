@@ -1,5 +1,6 @@
 import { tuple } from '@glimmer/util';
-import * as AST from './nodes-v1';
+
+import { ASTv1 } from './-index';
 
 // ensure stays in sync with typing
 // ParentNode and ChildKey types are derived from VisitorKeysMap
@@ -41,6 +42,6 @@ const visitorKeys = {
 type VisitorKeysMap = typeof visitorKeys;
 
 export type VisitorKeys = { [P in keyof VisitorKeysMap]: VisitorKeysMap[P][number] };
-export type VisitorKey<N extends AST.Node> = VisitorKeys[N['type']] & keyof N;
+export type VisitorKey<N extends ASTv1.Node> = VisitorKeys[N['type']] & keyof N;
 
 export default visitorKeys;
