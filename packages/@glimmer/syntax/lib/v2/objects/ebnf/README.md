@@ -7,4 +7,4 @@ The `wfc.md` file contains Well-Formedness constraints, which are additional con
 The current EBNF is sloppy about whitespace rules, but W3C EBNF provides a way to mark productions as `ws: explicit` to indicate that whitespace must be explicitly indicated, and that should be sufficient to fully specify the whitespace rules.
 
 [w3c]: https://www.w3.org/TR/xml/#sec-notation
-[railroad]: (https://codepen.io/wycats/live/qBZgoXb)
+[railroad]: https://codepen.io/wycats/live/qBZgoXb
