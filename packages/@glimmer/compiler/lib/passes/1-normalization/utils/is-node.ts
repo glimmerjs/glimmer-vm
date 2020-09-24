@@ -24,7 +24,7 @@ export type HasArguments =
     }
   | {
       hash: {
-        pairs: PresentArray<ASTv2.NamedEntry>;
+        pairs: PresentArray<ASTv2.NamedArgument>;
       };
     };
 

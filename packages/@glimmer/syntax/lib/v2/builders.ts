@@ -63,7 +63,11 @@ export class Builder {
     });
   }
 
-  args(positional: ASTv2.Positional, named: ASTv2.Named, loc: SourceSpan): ASTv2.Args {
+  args(
+    positional: ASTv2.PositionalArguments,
+    named: ASTv2.NamedArguments,
+    loc: SourceSpan
+  ): ASTv2.Args {
     return new ASTv2.Args({
       loc,
       positional,
@@ -71,22 +75,22 @@ export class Builder {
     });
   }
 
-  positional(exprs: ASTv2.ExpressionNode[], loc: SourceSpan): ASTv2.Positional {
-    return new ASTv2.Positional({
+  positional(exprs: ASTv2.ExpressionNode[], loc: SourceSpan): ASTv2.PositionalArguments {
+    return new ASTv2.PositionalArguments({
       loc,
       exprs,
     });
   }
 
-  namedEntry(key: SourceSlice, value: ASTv2.ExpressionNode): ASTv2.NamedEntry {
-    return new ASTv2.NamedEntry({
+  namedArgument(key: SourceSlice, value: ASTv2.ExpressionNode): ASTv2.NamedArgument {
+    return new ASTv2.NamedArgument({
       name: key,
       value,
     });
   }
 
-  named(entries: ASTv2.NamedEntry[], loc: SourceSpan): ASTv2.Named {
-    return new ASTv2.Named({
+  named(entries: ASTv2.NamedArgument[], loc: SourceSpan): ASTv2.NamedArguments {
+    return new ASTv2.NamedArguments({
       loc,
       entries,
     });

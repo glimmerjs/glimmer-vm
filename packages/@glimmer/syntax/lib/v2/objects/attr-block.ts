@@ -1,6 +1,6 @@
 import { SourceSlice } from '../../-internal';
 import type { ExpressionNode } from './-internal';
-import { CallFields, NamedEntry, node } from './-internal';
+import { CallFields, NamedArgument, node } from './-internal';
 
 /**
  * Attr nodes look like HTML attributes, but are classified as:
@@ -36,15 +36,24 @@ export class HtmlAttr extends node('HtmlAttr').fields<AttrNodeOptions>() {}
 
 export class SplatAttr extends node('SplatAttr').fields() {}
 
+/**
+ * Corresponds to an argument passed by a component (`@x=<value>`)
+ */
 export class ComponentArg extends node().fields<AttrNodeOptions>() {
-  toNamedEntry(): NamedEntry {
-    return new NamedEntry({
+  /**
+   * Convert the component argument into a named argument node
+   */
+  toNamedArgument(): NamedArgument {
+    return new NamedArgument({
       name: this.name,
       value: this.value,
     });
   }
 }
 
+/**
+ * An `ElementModifier` is just a normal call node in modifier position.
+ */
 export class ElementModifier extends node('ElementModifier').fields<CallFields>() {}
 
 export interface AttrNodeOptions {

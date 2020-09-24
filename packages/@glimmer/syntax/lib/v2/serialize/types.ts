@@ -77,7 +77,7 @@ export interface SerializedNamed extends SerializedBaseNode {
   entries: [SerializedSourceSlice, SerializedExpressionNode][];
 }
 
-export type SerializedNamedEntry = [SerializedSourceSlice, SerializedExpressionNode];
+export type SerializedNamedArgument = [SerializedSourceSlice, SerializedExpressionNode];
 
 export interface SerializedAppendContent extends SerializedBaseNode {
   type: 'Append';

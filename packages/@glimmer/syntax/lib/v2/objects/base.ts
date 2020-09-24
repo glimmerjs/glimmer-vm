@@ -65,14 +65,16 @@ export type CallNode =
  * addition to a `loc: SourceOffsets` field, which all nodes have).
  *
  * ```ts
- * export class Args extends node().fields<{ positional: Positional; named: Named }>() {}
+ * export class Args extends node().fields<{
+ *  positional: PositionalArguments;
+ *  named: NamedArguments
+ * }>() {}
  * ```
  *
- * This creates a new un-named ASTv2 node with two fields (`positional: Positional` and
- * `named: Named`, in addition to the generic `loc: SourceOffsets` field).
+ * This creates a new un-named ASTv2 node with two fields (`positional: Positional` and `named:
+ * Named`, in addition to the generic `loc: SourceOffsets` field).
  *
- * Once you create a node using `node`, it is instantiated with all of its fields (including
- * `loc`):
+ * Once you create a node using `node`, it is instantiated with all of its fields (including `loc`):
  *
  * ```ts
  * new HtmlText({ loc: offsets, chars: someString });

@@ -15,17 +15,21 @@ import { node } from './-internal';
  * immediately after the parent call node's `callee`.
  */
 export class Args extends node().fields<{
-  positional: Positional;
-  named: Named;
+  positional: PositionalArguments;
+  named: NamedArguments;
 }>() {
   static empty(loc: SourceSpan): Args {
-    return new Args({ loc, positional: Positional.empty(loc), named: Named.empty(loc) });
+    return new Args({
+      loc,
+      positional: PositionalArguments.empty(loc),
+      named: NamedArguments.empty(loc),
+    });
   }
 
-  static named(named: Named): Args {
+  static named(named: NamedArguments): Args {
     return new Args({
       loc: named.loc,
-      positional: Positional.empty(named.loc.collapse('end')),
+      positional: PositionalArguments.empty(named.loc.collapse('end')),
       named,
     });
   }
@@ -46,14 +50,14 @@ export class Args extends node().fields<{
 /**
  * Corresponds to positional arguments.
  *
- * If `Positional` is empty, the `SourceOffsets` for this node should be the collapsed position
- * immediately after the parent call node's `callee`.
+ * If `PositionalArguments` is empty, the `SourceOffsets` for this node should be the collapsed
+ * position immediately after the parent call node's `callee`.
  */
-export class Positional extends node().fields<{
+export class PositionalArguments extends node().fields<{
   exprs: readonly ExpressionNode[];
 }>() {
-  static empty(loc: SourceSpan): Positional {
-    return new Positional({
+  static empty(loc: SourceSpan): PositionalArguments {
+    return new PositionalArguments({
       loc,
       exprs: [],
     });
@@ -73,19 +77,19 @@ export class Positional extends node().fields<{
 }
 
 /**
- * Corresponds to positional arguments.
+ * Corresponds to named arguments.
  *
- * If `Positional` and `Named` are empty, the `SourceOffsets` for this node should be the same as
- * the `Args` node that contains this node.
+ * If `PositionalArguments` and `NamedArguments` are empty, the `SourceOffsets` for this node should
+ * be the same as the `Args` node that contains this node.
  *
- * If `Positional` is not empty but `Named` is empty, the `SourceOffsets` for this node should be
- * the collapsed position immediately after the last positional argument.
+ * If `PositionalArguments` is not empty but `NamedArguments` is empty, the `SourceOffsets` for this
+ * node should be the collapsed position immediately after the last positional argument.
  */
-export class Named extends node().fields<{
-  entries: readonly NamedEntry[];
+export class NamedArguments extends node().fields<{
+  entries: readonly NamedArgument[];
 }>() {
-  static empty(loc: SourceSpan): Named {
-    return new Named({
+  static empty(loc: SourceSpan): NamedArguments {
+    return new NamedArguments({
       loc,
       entries: [],
     });
@@ -106,7 +110,14 @@ export class Named extends node().fields<{
   }
 }
 
-export class NamedEntry {
+/**
+ * Corresponds to a single named argument.
+ *
+ * ```hbs
+ * x=<expr>
+ * ```
+ */
+export class NamedArgument {
   readonly loc: SourceSpan;
   readonly name: SourceSlice;
   readonly value: ExpressionNode;

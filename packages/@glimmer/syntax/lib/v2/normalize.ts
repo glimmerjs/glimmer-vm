@@ -241,7 +241,7 @@ class ExpressionNormalizer {
     );
 
     let named = this.block.builder.named(
-      hash.pairs.map((p) => this.namedEntry(p)),
+      hash.pairs.map((p) => this.namedArgument(p)),
       this.block.loc(hash.loc)
     );
 
@@ -251,12 +251,12 @@ class ExpressionNormalizer {
     };
   }
 
-  private namedEntry(pair: ASTv1.HashPair): ASTv2.NamedEntry {
+  private namedArgument(pair: ASTv1.HashPair): ASTv2.NamedArgument {
     let offsets = this.block.loc(pair.loc);
 
     let keyOffsets = offsets.sliceStartChars({ chars: pair.key.length });
 
-    return this.block.builder.namedEntry(
+    return this.block.builder.namedArgument(
       new SourceSlice({ chars: pair.key, loc: keyOffsets }),
       this.normalize(pair.value, ARGUMENT)
     );

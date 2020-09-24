@@ -6,21 +6,34 @@ import {
   ElementModifier,
   GlimmerParentNodeOptions,
   HtmlOrSplatAttr,
-  Named,
+  NamedArguments,
   node,
 } from './-internal';
 
+/**
+ * Corresponds to an entire template.
+ */
 export class Template extends node().fields<
   {
     table: ProgramSymbolTable;
   } & GlimmerParentNodeOptions
 >() {}
 
+/**
+ * Represents a block. In principle this could be merged with `NamedBlock`, because all cases
+ * involving blocks have at least a notional name.
+ */
 export class Block extends node().fields<
   { table: BlockSymbolTable } & GlimmerParentNodeOptions
 >() {}
 
+/**
+ * Corresponds to a collection of named blocks.
+ */
 export class NamedBlocks extends node().fields<{ blocks: readonly NamedBlock[] }>() {
+  /**
+   * Get the `NamedBlock` for a given name.
+   */
   get(name: 'default'): NamedBlock;
   get(name: string): NamedBlock | null;
   get(name: string): NamedBlock | null {
@@ -28,7 +41,7 @@ export class NamedBlocks extends node().fields<{ blocks: readonly NamedBlock[] }
   }
 }
 
-export interface NamedBlockOptions extends BaseNodeFields {
+export interface NamedBlockFields extends BaseNodeFields {
   name: SourceSlice;
   block: Block;
 
@@ -38,12 +51,16 @@ export interface NamedBlockOptions extends BaseNodeFields {
   modifiers: readonly ElementModifier[];
 }
 
-export class NamedBlock extends node().fields<NamedBlockOptions>() {
+/**
+ * Corresponds to a single named block. This is used for anonymous named blocks (`default` and
+ * `else`).
+ */
+export class NamedBlock extends node().fields<NamedBlockFields>() {
   get args(): Args {
-    let entries = this.componentArgs.map((a) => a.toNamedEntry());
+    let entries = this.componentArgs.map((a) => a.toNamedArgument());
 
     return Args.named(
-      new Named({
+      new NamedArguments({
         loc: SpanList.range(entries, this.name.loc.collapse('end')),
         entries,
       })

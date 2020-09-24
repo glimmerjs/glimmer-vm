@@ -8,7 +8,7 @@ import type {
   NamedBlock,
   NamedBlocks,
 } from './-internal';
-import { Args, BaseNodeFields, CallFields, Named, node } from './-internal';
+import { Args, BaseNodeFields, CallFields, NamedArguments, node } from './-internal';
 
 /**
  * Content Nodes are allowed in content positions in templates. They correspond to behavior in the
@@ -55,7 +55,7 @@ export class InvokeBlock extends node('InvokeBlock').fields<
   CallFields & { blocks: NamedBlocks }
 >() {}
 
-interface InvokeComponentOptions {
+interface InvokeComponentFields {
   callee: ExpressionNode;
   blocks: NamedBlocks;
   attrs: readonly HtmlOrSplatAttr[];
@@ -63,12 +63,17 @@ interface InvokeComponentOptions {
   modifiers: readonly ElementModifier[];
 }
 
-export class InvokeComponent extends node('InvokeComponent').fields<InvokeComponentOptions>() {
+/**
+ * Corresponds to a component invocation. When the content of a component invocation contains no
+ * named blocks, `blocks` contains a single named block named `"default"`. When a component
+ * invocation is self-closing, `blocks` is empty.
+ */
+export class InvokeComponent extends node('InvokeComponent').fields<InvokeComponentFields>() {
   get args(): Args {
-    let entries = this.componentArgs.map((a) => a.toNamedEntry());
+    let entries = this.componentArgs.map((a) => a.toNamedArgument());
 
     return Args.named(
-      new Named({
+      new NamedArguments({
         loc: SpanList.range(entries, this.callee.loc.collapse('end')),
         entries,
       })
@@ -84,12 +89,16 @@ interface SimpleElementOptions extends BaseNodeFields {
   modifiers: readonly ElementModifier[];
 }
 
+/**
+ * Corresponds to a simple HTML element. The AST allows component arguments and modifiers to support
+ * future extensions.
+ */
 export class SimpleElement extends node('SimpleElement').fields<SimpleElementOptions>() {
   get args(): Args {
-    let entries = this.componentArgs.map((a) => a.toNamedEntry());
+    let entries = this.componentArgs.map((a) => a.toNamedArgument());
 
     return Args.named(
-      new Named({
+      new NamedArguments({
         loc: SpanList.range(entries, this.tag.loc.collapse('end')),
         entries,
       })

@@ -13,7 +13,7 @@ export const APPEND_KEYWORDS = keywords('Append')
       node: ASTv2.AppendContent
     ): Result<{
       target: SourceSlice;
-      positional: ASTv2.Positional;
+      positional: ASTv2.PositionalArguments;
     }> {
       let { args } = node;
 
@@ -48,7 +48,7 @@ export const APPEND_KEYWORDS = keywords('Append')
         positional,
       }: {
         target: SourceSlice;
-        positional: ASTv2.Positional;
+        positional: ASTv2.PositionalArguments;
       }
     ): Result<hir.Statement> {
       return VISIT_EXPRS.Positional(positional).mapOk(

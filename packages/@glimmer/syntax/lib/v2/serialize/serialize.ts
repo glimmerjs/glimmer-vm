@@ -23,9 +23,9 @@ import type {
   SerializedLiteralExpression,
   SerializedLocalVarReference,
   SerializedNamed,
+  SerializedNamedArgument,
   SerializedNamedBlock,
   SerializedNamedBlocks,
-  SerializedNamedEntry,
   SerializedPathExpression,
   SerializedPositional,
   SerializedSimpleElement,
@@ -116,21 +116,21 @@ class ArgsSerializer {
     };
   }
 
-  positional(positional: ASTv2.Positional): SerializedPositional {
+  positional(positional: ASTv2.PositionalArguments): SerializedPositional {
     return {
       loc: positional.loc.serialize(),
       exprs: positional.exprs.map((p) => visit.expr(p)),
     };
   }
 
-  named(named: ASTv2.Named): SerializedNamed {
+  named(named: ASTv2.NamedArguments): SerializedNamed {
     return {
       loc: named.loc.serialize(),
       entries: named.entries.map((e) => this.entry(e)),
     };
   }
 
-  entry(entry: ASTv2.NamedEntry): SerializedNamedEntry {
+  entry(entry: ASTv2.NamedArgument): SerializedNamedArgument {
     return [entry.name.serialize(), visit.expr(entry.value)];
   }
 }

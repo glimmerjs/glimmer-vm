@@ -124,7 +124,7 @@ export class NormalizeExpressions {
     );
   }
 
-  Positional(positional: ASTv2.Positional): Result<hir.Positional> {
+  Positional(positional: ASTv2.PositionalArguments): Result<hir.Positional> {
     return VISIT_EXPRS.visitList(positional.exprs).mapOk(
       (list) =>
         new hir.Positional(positional.loc, {
@@ -133,7 +133,7 @@ export class NormalizeExpressions {
     );
   }
 
-  Named(named: ASTv2.Named): Result<hir.Named> {
+  Named(named: ASTv2.NamedArguments): Result<hir.Named> {
     let pairs = named.entries.map((entry) =>
       VISIT_EXPRS.visit(entry.value).mapOk(
         (value) =>

@@ -137,13 +137,13 @@ DynamicContent
 CallBody
   ::= Expression Arguments?
 
-Arguments ::= Positional? Named?
+Arguments ::= PositionalArguments? NamedArguments?
 
-Positional ::= Expr*
+PositionalArguments ::= Expr*
 
-Named ::= NamedEntry*
+NamedArguments ::= NamedArgument*
 
-NamedEntry ::= ID "=" Expr
+NamedArgument ::= ID "=" Expr
 
 BlockParams ::= "as" "|" HandlebarsID (Space HandlebarsID)* "|"
 
