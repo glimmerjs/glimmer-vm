@@ -1,34 +1,34 @@
 import { Optional, PresentArray } from '@glimmer/interfaces';
 import { assert, assign, isPresent } from '@glimmer/util';
 
-import type { SourceSpan } from '../-internal';
-import {
+import type {
   ASTv1,
   BlockSymbolTable,
+  PreprocessOptions,
+  ProgramSymbolTable,
+  SourceLocation,
+  SourceSpan,
+} from '../-internal';
+import {
   GlimmerSyntaxError,
   preprocess,
-  PreprocessOptions,
   Printer,
-  ProgramSymbolTable,
   Source,
-  SourceLocation,
   SourceSlice,
   SpanList,
-  strictBuilder,
+  strictBuilder as b,
   SymbolTable,
 } from '../-internal';
+import type { BuildElement, CallParts, Resolution } from './-internal';
 import {
   AppendSyntaxContext,
   ARGUMENT,
   ASTv2,
   AttrValueSyntaxContext,
   BlockSyntaxContext,
-  BuildElement,
   Builder,
-  CallParts,
   ComponentSyntaxContext,
   ModifierSyntaxContext,
-  Resolution,
   SexpSyntaxContext,
 } from './-internal';
 
@@ -639,8 +639,8 @@ class ElementNormalizer {
         variable = this.ctx.customizeComponentName(variable);
       }
 
-      let path = strictBuilder.path({
-        head: strictBuilder.head(variable, variableLoc),
+      let path = b.path({
+        head: b.head(variable, variableLoc),
         tail,
         loc: pathLoc,
       });

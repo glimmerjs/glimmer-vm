@@ -6,29 +6,29 @@
  * https://github.com/DefinitelyTyped/DefinitelyTyped/blob/master/types/handlebars/index.d.ts.
  */
 
-import * as AST from './nodes-v1';
+import { ASTv1 } from './-internal';
 
 export interface CommonNode {
   loc: SourceLocation;
 }
 
 export interface NodeMap {
-  Program: { input: Program; output: AST.Template | AST.Block };
-  MustacheStatement: { input: MustacheStatement; output: AST.MustacheStatement | void };
+  Program: { input: Program; output: ASTv1.Template | ASTv1.Block };
+  MustacheStatement: { input: MustacheStatement; output: ASTv1.MustacheStatement | void };
   Decorator: { input: Decorator; output: never };
-  BlockStatement: { input: BlockStatement; output: AST.BlockStatement | void };
+  BlockStatement: { input: BlockStatement; output: ASTv1.BlockStatement | void };
   DecoratorBlock: { input: DecoratorBlock; output: never };
   PartialStatement: { input: PartialStatement; output: never };
   PartialBlockStatement: { input: PartialBlockStatement; output: never };
   ContentStatement: { input: ContentStatement; output: void };
-  CommentStatement: { input: CommentStatement; output: AST.MustacheCommentStatement | null };
-  SubExpression: { input: SubExpression; output: AST.SubExpression };
-  PathExpression: { input: PathExpression; output: AST.PathExpression };
-  StringLiteral: { input: StringLiteral; output: AST.StringLiteral };
-  BooleanLiteral: { input: BooleanLiteral; output: AST.BooleanLiteral };
-  NumberLiteral: { input: NumberLiteral; output: AST.NumberLiteral };
-  UndefinedLiteral: { input: UndefinedLiteral; output: AST.UndefinedLiteral };
-  NullLiteral: { input: NullLiteral; output: AST.NullLiteral };
+  CommentStatement: { input: CommentStatement; output: ASTv1.MustacheCommentStatement | null };
+  SubExpression: { input: SubExpression; output: ASTv1.SubExpression };
+  PathExpression: { input: PathExpression; output: ASTv1.PathExpression };
+  StringLiteral: { input: StringLiteral; output: ASTv1.StringLiteral };
+  BooleanLiteral: { input: BooleanLiteral; output: ASTv1.BooleanLiteral };
+  NumberLiteral: { input: NumberLiteral; output: ASTv1.NumberLiteral };
+  UndefinedLiteral: { input: UndefinedLiteral; output: ASTv1.UndefinedLiteral };
+  NullLiteral: { input: NullLiteral; output: ASTv1.NullLiteral };
 }
 
 export type NodeType = keyof NodeMap;

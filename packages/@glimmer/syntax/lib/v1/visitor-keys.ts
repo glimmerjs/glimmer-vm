@@ -1,6 +1,6 @@
 import { tuple } from '@glimmer/util';
 
-import { ASTv1 } from './-index';
+import { ASTv1 } from './-internal';
 
 // ensure stays in sync with typing
 // ParentNode and ChildKey types are derived from VisitorKeysMap

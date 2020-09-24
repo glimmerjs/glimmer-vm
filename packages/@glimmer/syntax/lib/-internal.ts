@@ -14,7 +14,6 @@ export { Parser, ParserNodeBuilder, Tag } from './parser';
 export * from './parser/-index';
 export * from './source/-index';
 export { BlockSymbolTable, ProgramSymbolTable, SymbolTable } from './symbol-table';
-export * from './types/-index';
 export { appendChild, isHBSLiteral, printLiteral } from './utils';
 export * from './v1/-index';
 export * from './v2/-index';

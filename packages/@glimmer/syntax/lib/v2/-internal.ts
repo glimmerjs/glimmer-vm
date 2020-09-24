@@ -1,4 +1,3 @@
-// this goes first
 import './objects/-internal';
 
 export * from './builders';

@@ -1,5 +1,5 @@
 import { preprocess as parse, AST } from '..';
-import { SourceLocation } from '../lib/types/api';
+import { SourceLocation } from '../lib/v1/api';
 
 QUnit.module('[glimmer-syntax] Parser - Location Info');
 
