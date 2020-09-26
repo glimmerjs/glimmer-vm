@@ -1,7 +1,7 @@
 import { PresentArray } from '@glimmer/interfaces';
 import { isPresent } from '@glimmer/util';
 
-import type { SourceSpan } from './-internal';
+import { SourceSpan } from './span';
 
 export interface SourceLocation {
   start: SourcePosition;
@@ -37,6 +37,12 @@ export const TEMPORARY_LOCATION = Object.freeze({
 
 export const NON_EXISTENT_LOCATION = Object.freeze({
   source: '(nonexistent)',
+  start: UNKNOWN_POSITION,
+  end: UNKNOWN_POSITION,
+} as const);
+
+export const BROKEN_LOCATION = Object.freeze({
+  source: '(broken)',
   start: UNKNOWN_POSITION,
   end: UNKNOWN_POSITION,
 } as const);

@@ -1,4 +1,4 @@
-import { ASTv2, maybeLoc, NON_EXISTENT } from '@glimmer/syntax';
+import { ASTv2, maybeLoc, SourceSpan } from '@glimmer/syntax';
 
 import { OptionalList } from '../../../../shared/list';
 import { Ok, Result, ResultArray } from '../../../../shared/result';
@@ -104,7 +104,7 @@ export class ClassifiedElement {
 
     return Result.all(args.toArray(), attrs.toArray()).mapOk(([args, attrs]) => ({
       attrs,
-      args: new hir.Named(maybeLoc(args, NON_EXISTENT), {
+      args: new hir.Named(maybeLoc(args, SourceSpan.NON_EXISTENT), {
         pairs: OptionalList(args),
       }),
     }));
@@ -119,7 +119,7 @@ export class ClassifiedElement {
 
       let elementParams = [...attrs, ...modifiers];
 
-      let params = new hir.ElementParameters(maybeLoc(elementParams, NON_EXISTENT), {
+      let params = new hir.ElementParameters(maybeLoc(elementParams, SourceSpan.NON_EXISTENT), {
         body: OptionalList(elementParams),
       });
 

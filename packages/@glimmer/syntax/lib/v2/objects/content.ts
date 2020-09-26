@@ -1,14 +1,12 @@
-import type { SymbolTable } from '../../-internal';
-import { SourceSlice, SpanList } from '../../-internal';
-import type {
-  ComponentArg,
-  ElementModifier,
-  ExpressionNode,
-  HtmlOrSplatAttr,
-  NamedBlock,
-  NamedBlocks,
-} from './-internal';
-import { Args, BaseNodeFields, CallFields, NamedArguments, node } from './-internal';
+import { SourceSlice } from '../../source/slice';
+import { SpanList } from '../../source/span-list';
+import { SymbolTable } from '../../symbol-table';
+import { Args, NamedArguments } from './args';
+import type { ComponentArg, ElementModifier, HtmlOrSplatAttr } from './attr-block';
+import type { CallFields } from './base';
+import type { ExpressionNode } from './expr';
+import type { NamedBlock, NamedBlocks } from './internal-node';
+import { BaseNodeFields, node } from './node';
 
 /**
  * Content Nodes are allowed in content positions in templates. They correspond to behavior in the

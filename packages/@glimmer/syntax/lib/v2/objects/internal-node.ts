@@ -1,14 +1,10 @@
-import { BlockSymbolTable, ProgramSymbolTable, SourceSlice, SpanList } from '../../-internal';
-import {
-  Args,
-  BaseNodeFields,
-  ComponentArg,
-  ElementModifier,
-  GlimmerParentNodeOptions,
-  HtmlOrSplatAttr,
-  NamedArguments,
-  node,
-} from './-internal';
+import { SourceSlice } from '../../source/slice';
+import { SpanList } from '../../source/span-list';
+import { BlockSymbolTable, ProgramSymbolTable } from '../../symbol-table';
+import { Args, NamedArguments } from './args';
+import type { ComponentArg, ElementModifier, HtmlOrSplatAttr } from './attr-block';
+import type { GlimmerParentNodeOptions } from './base';
+import { BaseNodeFields, node } from './node';
 
 /**
  * Corresponds to an entire template.

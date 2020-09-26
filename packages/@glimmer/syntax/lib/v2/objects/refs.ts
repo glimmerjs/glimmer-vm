@@ -1,5 +1,6 @@
-import { SourceSlice } from '../../-internal';
-import { FreeVarResolution, node } from './-internal';
+import { SourceSlice } from '../../source/slice';
+import { node } from './node';
+import type { FreeVarResolution } from './resolution';
 
 /**
  * Corresponds to `this` at the head of an expression.

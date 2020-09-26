@@ -1,7 +1,9 @@
 import { PresentArray } from '@glimmer/interfaces';
 
-import { SourceSlice } from '../../-internal';
-import { CallFields, node, VariableReference } from './-internal';
+import { SourceSlice } from '../../source/slice';
+import type { CallFields } from './base';
+import { node } from './node';
+import type { VariableReference } from './refs';
 
 /**
  * A Handlebars literal.

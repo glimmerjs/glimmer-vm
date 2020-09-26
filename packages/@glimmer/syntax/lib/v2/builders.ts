@@ -1,9 +1,11 @@
 import type { PresentArray } from '@glimmer/interfaces';
 import { assert, assertPresent, assign } from '@glimmer/util';
 
-import type { BlockSymbolTable, ProgramSymbolTable, SourceSpan, SymbolTable } from '../-internal';
-import { SourceSlice, SpanList } from '../-internal';
-import { ASTv2 } from './-internal';
+import { SourceSlice } from '../source/slice';
+import { SourceSpan } from '../source/span';
+import { SpanList } from '../source/span-list';
+import { BlockSymbolTable, ProgramSymbolTable, SymbolTable } from '../symbol-table';
+import * as ASTv2 from './api';
 
 export interface CallParts {
   callee: ASTv2.ExpressionNode;

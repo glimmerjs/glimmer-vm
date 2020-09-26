@@ -1,37 +1,32 @@
 import { Option, PresentArray } from '@glimmer/interfaces';
 import { assert, assign, isPresent } from '@glimmer/util';
 
-import type {
-  ASTv1,
-  BlockSymbolTable,
-  PrecompileOptions,
-  PreprocessOptions,
-  ProgramSymbolTable,
-  SourceLocation,
-  SourceSpan,
-} from '../-internal';
+import Printer from '../generation/printer';
 import {
-  GlimmerSyntaxError,
+  PrecompileOptions,
   preprocess,
-  Printer,
-  Source,
-  SourceSlice,
-  SpanList,
-  strictBuilder as b,
-  SymbolTable,
-} from '../-internal';
-import type { BuildElement, CallParts, Resolution } from './-internal';
+  PreprocessOptions,
+} from '../parser/tokenizer-event-handlers';
+import { SourceLocation } from '../source/location';
+import { SourceSlice } from '../source/slice';
+import { Source } from '../source/source';
+import { SourceSpan } from '../source/span';
+import { SpanList } from '../source/span-list';
+import { BlockSymbolTable, ProgramSymbolTable, SymbolTable } from '../symbol-table';
+import { GlimmerSyntaxError } from '../syntax-error';
+import * as ASTv1 from '../v1/api';
+import b from '../v1/parser-builders';
+import * as ASTv2 from './api';
+import { BuildElement, Builder, CallParts } from './builders';
 import {
   AppendSyntaxContext,
-  ARGUMENT,
-  ASTv2,
   AttrValueSyntaxContext,
   BlockSyntaxContext,
-  Builder,
   ComponentSyntaxContext,
   ModifierSyntaxContext,
+  Resolution,
   SexpSyntaxContext,
-} from './-internal';
+} from './loose-resolution';
 
 export function normalize(html: string, options: GlimmerCompileOptions = {}): ASTv2.Template {
   let ast = preprocess(html, options);
@@ -231,13 +226,13 @@ class ExpressionNormalizer {
     let { path, params, hash } = parts;
 
     let callee = this.normalize(path, context);
-    let paramList = params.map((p) => this.normalize(p, ARGUMENT));
+    let paramList = params.map((p) => this.normalize(p, ASTv2.ARGUMENT_RESOLUTION));
     let paramLoc = SpanList.range(paramList, callee.loc.collapse('end'));
     let namedLoc = this.block.loc(hash.loc);
     let argsLoc = SpanList.range([paramLoc, namedLoc]);
 
     let positional = this.block.builder.positional(
-      params.map((p) => this.normalize(p, ARGUMENT)),
+      params.map((p) => this.normalize(p, ASTv2.ARGUMENT_RESOLUTION)),
       paramLoc
     );
 
@@ -259,7 +254,7 @@ class ExpressionNormalizer {
 
     return this.block.builder.namedArgument(
       new SourceSlice({ chars: pair.key, loc: keyOffsets }),
-      this.normalize(pair.value, ARGUMENT)
+      this.normalize(pair.value, ASTv2.ARGUMENT_RESOLUTION)
     );
   }
 
@@ -628,7 +623,7 @@ class ElementNormalizer {
     let variableLoc = loc.sliceStartChars({ skipStart: 1, chars: variable.length });
 
     let tailLength = tail.reduce((accum, part) => accum + 1 + part.length, 0);
-    let pathEnd = variableLoc.endOffset.move(tailLength);
+    let pathEnd = variableLoc.getEnd().move(tailLength);
     let pathLoc = variableLoc.withEnd(pathEnd);
 
     if (isComponent) {

@@ -9,7 +9,7 @@ import { VISIT_STMTS } from './visitors/statements';
 
 /**
  * Normalize the AST from @glimmer/syntax into the HIR. The HIR has special
- * intstructions for keywords like `{{yield}}`, `(has-block)` and
+ * instructions for keywords like `{{yield}}`, `(has-block)` and
  * `{{#in-element}}`.
  *
  * Most importantly, it also classifies HTML element syntax into:

@@ -1,10 +1,5 @@
-import {
-  InvisibleSpan,
-  loadSourceSpan,
-  SerializedSourceSpan,
-  Source,
-  SourceSpan,
-} from './-internal';
+import { Source } from './index';
+import { SerializedSourceSpan, SourceSpan } from './span';
 
 export type SerializedSourceSlice<Chars extends string = string> = [
   chars: Chars,
@@ -13,13 +8,13 @@ export type SerializedSourceSlice<Chars extends string = string> = [
 
 export class SourceSlice<Chars extends string = string> {
   static synthetic<S extends string>(chars: S): SourceSlice<S> {
-    let offsets = InvisibleSpan.synthetic(chars);
+    let offsets = SourceSpan.synthetic(chars);
     return new SourceSlice({ loc: offsets, chars: chars });
   }
 
   static load(source: Source, slice: SerializedSourceSlice): SourceSlice {
     return new SourceSlice({
-      loc: loadSourceSpan(source, slice[1]),
+      loc: SourceSpan.load(source, slice[1]),
       chars: slice[0],
     });
   }

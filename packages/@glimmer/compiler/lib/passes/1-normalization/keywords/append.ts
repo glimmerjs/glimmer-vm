@@ -1,4 +1,4 @@
-import { ASTv2, GlimmerSyntaxError, InvisibleSpan, SourceSlice } from '@glimmer/syntax';
+import { ASTv2, GlimmerSyntaxError, SourceSlice, SourceSpan } from '@glimmer/syntax';
 import { expect } from '@glimmer/util';
 
 import { Err, Ok, Result } from '../../../shared/result';
@@ -19,7 +19,7 @@ export const APPEND_KEYWORDS = keywords('Append')
 
       if (args.named.isEmpty()) {
         return Ok({
-          target: InvisibleSpan.synthetic('default').toSlice(),
+          target: SourceSpan.synthetic('default').toSlice(),
           positional: args.positional,
         });
       } else {
@@ -106,7 +106,7 @@ export const APPEND_KEYWORDS = keywords('Append')
     ): Result<hir.Statement> {
       let visited =
         expr === undefined
-          ? Ok(new hir.PlaceholderUndefined(InvisibleSpan.synthetic('undefined'), undefined))
+          ? Ok(new hir.PlaceholderUndefined(SourceSpan.synthetic('undefined'), undefined))
           : VISIT_EXPRS.visit(expr);
 
       return visited.mapOk((expr) => new hir.Partial(node.loc, { table: node.table, expr }));

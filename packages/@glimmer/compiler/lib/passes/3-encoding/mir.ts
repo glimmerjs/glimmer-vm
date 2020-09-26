@@ -56,7 +56,10 @@ export class StaticArg extends op('StaticArg').args<{
   name: SourceSlice;
   value: SourceSlice;
 }>() {}
-export class DynamicArg extends op('DynamicArg').args<{ name: SourceSlice; value: Expr }>() {}
+export class DynamicArg extends op('DynamicArg').args<{
+  name: SourceSlice;
+  value: Expr;
+}>() {}
 
 export class StaticSimpleAttr extends op('StaticSimpleAttr').args<StaticAttrArgs>() {}
 export class StaticComponentAttr extends op('StaticComponentAttr').args<StaticAttrArgs>() {}

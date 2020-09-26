@@ -65,7 +65,7 @@ Object.keys(cases).forEach((string) => {
     if (offset === null) continue;
 
     test(`${string} @ ${offset} -> ${line}:${column}`, (assert) => {
-      assert.deepEqual(source.positionFor(unwrap(offset)), { line, column });
+      assert.deepEqual(source.hbsPosFor(unwrap(offset)), { line, column });
     });
   }
 });
@@ -81,7 +81,7 @@ Object.keys(cases).forEach((string) => {
     if (offset === null) continue;
 
     test(`${string} @ ${line}:${column} -> ${String(offset)}`, (assert) => {
-      assert.deepEqual(source.offsetFor({ line, column }).charOffset, offset);
+      assert.deepEqual(source.offsetFor(line, column).offset, offset);
     });
   }
 });

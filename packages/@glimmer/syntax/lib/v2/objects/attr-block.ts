@@ -1,6 +1,8 @@
-import { SourceSlice } from '../../-internal';
-import type { ExpressionNode } from './-internal';
-import { CallFields, NamedArgument, node } from './-internal';
+import { SourceSlice } from '../../source/slice';
+import { NamedArgument } from './args';
+import type { CallFields } from './base';
+import type { ExpressionNode } from './expr';
+import { node } from './node';
 
 /**
  * Attr nodes look like HTML attributes, but are classified as:

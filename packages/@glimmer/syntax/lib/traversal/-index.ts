@@ -1,9 +1,9 @@
+export { default as Walker } from './walker';
 export {
-  Walker,
   cannotRemoveNode,
   cannotReplaceNode,
   cannotReplaceOrRemoveInKeyHandlerYet,
-  traverse,
-  WalkerPath,
-  NodeVisitor,
-} from './-internal';
+} from './errors';
+export { default as traverse } from './traverse';
+export { default as WalkerPath } from './path';
+export { NodeVisitor } from './visitor';

@@ -33,7 +33,10 @@ export class Template extends op('Template').args<{
 
 export class PlaceholderUndefined extends op('PlaceholderUndefined').args<void>() {}
 export class Literal extends op('Literal').args<{ value: ASTv2.LiteralExpression['value'] }>() {}
-export class Path extends op('Path').args<{ head: Expr; tail: PresentArray<SourceSlice> }>() {}
+export class Path extends op('Path').args<{
+  head: Expr;
+  tail: PresentArray<SourceSlice>;
+}>() {}
 export class GetArg extends op('GetArg').args<{ name: SourceSlice }>() {}
 export class GetThis extends op('GetThis').void() {}
 export class GetLocalVar extends op('GetLocalVar').args<{

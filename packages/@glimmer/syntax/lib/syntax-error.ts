@@ -1,4 +1,4 @@
-import { SourceLocation } from './-internal';
+import { SourceLocation } from './source/location';
 
 export interface GlimmerSyntaxError extends Error {
   location: SourceLocation | null;

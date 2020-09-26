@@ -1,4 +1,4 @@
-import { ASTv1 } from '../-internal';
+import * as ASTv1 from '../v1/api';
 
 export default class WalkerPath<N extends ASTv1.Node> {
   node: N;

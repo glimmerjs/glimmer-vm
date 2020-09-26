@@ -2,19 +2,13 @@ import { Option, Recast } from '@glimmer/interfaces';
 import { expect } from '@glimmer/util';
 import { TokenizerState } from 'simple-html-tokenizer';
 
-import {
-  appendChild,
-  ASTv1,
-  GlimmerSyntaxError,
-  HBS,
-  isHBSLiteral,
-  NON_EXISTENT_LOCATION,
-  Parser,
-  ParserNodeBuilder,
-  printLiteral,
-  strictBuilder as b,
-  Tag,
-} from '../-internal';
+import { Parser, ParserNodeBuilder, Tag } from '../parser';
+import { NON_EXISTENT_LOCATION } from '../source/location';
+import { GlimmerSyntaxError } from '../syntax-error';
+import { appendChild, isHBSLiteral, printLiteral } from '../utils';
+import * as ASTv1 from '../v1/api';
+import * as HBS from '../v1/handlebars-ast';
+import b from '../v1/parser-builders';
 
 export abstract class HandlebarsNodeVisitors extends Parser {
   abstract appendToCommentData(s: string): void;

@@ -159,6 +159,8 @@ export class LooseModeResolution {
   }
 }
 
+export const ARGUMENT_RESOLUTION = LooseModeResolution.fallback();
+
 export const enum FreeVarNamespace {
   Helper = 'Helper',
   Modifier = 'Modifier',

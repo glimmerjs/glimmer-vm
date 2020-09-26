@@ -1,16 +1,11 @@
-import { ASTv1, ASTv2 } from '../-internal';
+import * as ASTv1 from '../v1/api';
+import * as ASTv2 from './api';
 
 export interface AstCallParts {
   path: ASTv1.Expression;
   params: ASTv1.Expression[];
   hash: ASTv1.Hash;
 }
-
-/**
- * The resolution for the expressions in the `params` and `hash`
- * of call nodes.
- */
-export const ARGUMENT = ASTv2.LooseModeResolution.fallback();
 
 export interface VarPath extends ASTv1.PathExpression {
   head: ASTv1.VarHead;

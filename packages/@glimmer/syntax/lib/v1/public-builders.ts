@@ -2,10 +2,22 @@ import { Dict, Option } from '@glimmer/interfaces';
 import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
 import { assert, assign, deprecate, isPresent } from '@glimmer/util';
 
-import type { ASTv1, SourceLocation, SourcePosition, SourceSpan } from '../-internal';
-import { BROKEN, LocationSpan, Source, SYNTHETIC_LOCATION } from '../-internal';
+import { SourceLocation, SourcePosition, SYNTHETIC_LOCATION } from '../source/location';
+import { Source } from '../source/source';
+import { SourceSpan } from '../source/span';
+import * as ASTv1 from './api';
 
-const SOURCE = new Source('', '(tests)');
+let _SOURCE: Source | undefined;
+
+function SOURCE(): Source {
+  if (!_SOURCE) {
+    _SOURCE = new Source('', '(tests)');
+  }
+
+  return _SOURCE;
+}
+
+// const SOURCE = new Source('', '(tests)');
 
 // Statements
 
@@ -383,7 +395,7 @@ function buildPath(
     if ('type' in path) {
       return path;
     } else {
-      let { head, tail } = buildHead(path.head, BROKEN());
+      let { head, tail } = buildHead(path.head, SourceSpan.broken());
 
       assert(
         tail.length === 0,
@@ -403,7 +415,7 @@ function buildPath(
     }
   }
 
-  let { head, tail } = buildHead(path, BROKEN());
+  let { head, tail } = buildHead(path, SourceSpan.broken());
   let { parts: headParts } = headToString(head);
 
   return {
@@ -509,13 +521,13 @@ function buildLoc(...args: any[]): SourceSpan {
     let loc = args[0];
 
     if (loc && typeof loc === 'object') {
-      return new LocationSpan(SOURCE, loc);
+      return SourceSpan.forHbsLoc(SOURCE(), loc);
     } else {
-      return new LocationSpan(SOURCE, SYNTHETIC_LOCATION);
+      return SourceSpan.forHbsLoc(SOURCE(), SYNTHETIC_LOCATION);
     }
   } else {
     let [startLine, startColumn, endLine, endColumn] = args;
-    return new LocationSpan(SOURCE, {
+    return SourceSpan.forHbsLoc(SOURCE(), {
       start: {
         line: startLine,
         column: startColumn,

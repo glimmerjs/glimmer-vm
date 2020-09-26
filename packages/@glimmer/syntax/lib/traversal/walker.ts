@@ -1,6 +1,6 @@
 import { Option } from '@glimmer/interfaces';
 
-import { ASTv1 } from '../-internal';
+import * as ASTv1 from '../v1/api';
 
 export type NodeCallback<N extends ASTv1.Node> = (node: N, walker: Walker) => void;
 

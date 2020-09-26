@@ -1,8 +1,10 @@
 import { Dict, Option, PresentArray } from '@glimmer/interfaces';
 import { assert } from '@glimmer/util';
 
-import type { ASTv1, SourceLocation, SourceOffset, SourceSpan } from '../-internal';
-import { ParserNodeBuilder } from '../-internal';
+import { ParserNodeBuilder } from '../parser';
+import { SourceLocation } from '../source/location';
+import { SourceOffset, SourceSpan } from '../source/span';
+import * as ASTv1 from './api';
 
 const DEFAULT_STRIP = {
   close: false,

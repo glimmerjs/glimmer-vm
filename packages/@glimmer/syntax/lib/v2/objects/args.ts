@@ -1,7 +1,7 @@
-import type { SourceSpan } from '../../-internal';
-import { SourceSlice } from '../../-internal';
-import type { ExpressionNode } from './-internal';
-import { node } from './-internal';
+import { SourceSlice } from '../../source/slice';
+import { SourceSpan } from '../../source/span';
+import type { ExpressionNode } from './expr';
+import { node } from './node';
 
 /**
  * Corresponds to syntaxes with positional and named arguments:

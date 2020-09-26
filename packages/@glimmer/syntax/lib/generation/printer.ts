@@ -1,5 +1,5 @@
-import { ASTv1 } from '../-internal';
-import { escapeAttrValue, escapeText } from './-internal';
+import * as ASTv1 from '../v1/api';
+import { escapeAttrValue, escapeText } from './util';
 
 export const voidMap: {
   [tagName: string]: boolean;
@@ -99,8 +99,6 @@ export default class Printer {
       case 'ElementModifierStatement':
         return this.ElementModifierStatement(node);
     }
-
-    return unreachable(node, 'Node');
   }
 
   Expression(expression: ASTv1.Expression): void {
@@ -116,7 +114,6 @@ export default class Printer {
       case 'SubExpression':
         return this.SubExpression(expression);
     }
-    return unreachable(expression, 'Expression');
   }
 
   Literal(literal: ASTv1.Literal): void {
@@ -157,7 +154,6 @@ export default class Printer {
         // should have element
         return this.AttrNode(statement);
     }
-    unreachable(statement, 'TopLevelStatement');
   }
 
   Block(block: ASTv1.Block | ASTv1.Program | ASTv1.Template): void {
@@ -189,7 +185,7 @@ export default class Printer {
       The only way we can tell if that is the case is by checking for
       `block.chained`, but unfortunately when the actual statements are
       processed the `block.body[0]` node (which will always be a
-      `BlockStatement`) has no clue that its anscestor `Block` node was
+      `BlockStatement`) has no clue that its ancestor `Block` node was
       chained.
 
       This "forwards" the `chained` setting so that we can check
@@ -528,13 +524,4 @@ export default class Printer {
     this.Node(node);
     return this.buffer;
   }
-}
-
-function unreachable(node: never, parentNodeType: string): never {
-  let { loc, type } = (node as unknown) as ASTv1.Node;
-  throw new Error(
-    `Non-exhaustive node narrowing ${type} @ location: ${JSON.stringify(
-      loc
-    )} for parent ${parentNodeType}`
-  );
 }

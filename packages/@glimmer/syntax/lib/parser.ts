@@ -6,8 +6,11 @@ import {
   HTML5NamedCharRefs as namedCharRefs,
 } from 'simple-html-tokenizer';
 
-import type { SourceOffset, SourcePosition, SourceSpan } from './-internal';
-import { ASTv1, HBS, LocationOffset, Source } from './-internal';
+import { SourcePosition } from './source/location';
+import { Source } from './source/source';
+import { SourceOffset, SourceSpan } from './source/span';
+import * as ASTv1 from './v1/api';
+import * as HBS from './v1/handlebars-ast';
 
 export type ParserNodeBuilder<N extends { loc: SourceSpan }> = Omit<N, 'loc'> & {
   loc: SourceOffset;
@@ -16,13 +19,13 @@ export type ParserNodeBuilder<N extends { loc: SourceSpan }> = Omit<N, 'loc'> & 
 export type Element = ASTv1.Template | ASTv1.Block | ASTv1.ElementNode;
 
 export interface Tag<T extends 'StartTag' | 'EndTag'> {
-  type: T;
+  readonly type: T;
   name: string;
-  attributes: ASTv1.AttrNode[];
-  modifiers: ASTv1.ElementModifierStatement[];
-  comments: ASTv1.MustacheCommentStatement[];
+  readonly attributes: ASTv1.AttrNode[];
+  readonly modifiers: ASTv1.ElementModifierStatement[];
+  readonly comments: ASTv1.MustacheCommentStatement[];
   selfClosing: boolean;
-  loc: SourceSpan;
+  readonly loc: SourceSpan;
 }
 
 export interface Attribute {
@@ -41,10 +44,12 @@ export abstract class Parser {
   readonly source: Source;
   public currentAttribute: Option<Attribute> = null;
   public currentNode: Option<
-    | ParserNodeBuilder<ASTv1.CommentStatement>
-    | ASTv1.TextNode
-    | ParserNodeBuilder<Tag<'StartTag'>>
-    | ParserNodeBuilder<Tag<'EndTag'>>
+    Readonly<
+      | ParserNodeBuilder<ASTv1.CommentStatement>
+      | ASTv1.TextNode
+      | ParserNodeBuilder<Tag<'StartTag'>>
+      | ParserNodeBuilder<Tag<'EndTag'>>
+    >
   > = null;
   public tokenizer: EventedTokenizer;
 
@@ -54,17 +59,18 @@ export abstract class Parser {
     this.tokenizer = new EventedTokenizer(this, entityParser);
   }
 
-  offset(): LocationOffset {
-    return this.source.offsetFor(this.tokenizer);
+  offset(): SourceOffset {
+    let { line, column } = this.tokenizer;
+    return this.source.offsetFor(line, column);
   }
 
-  pos(pos: SourcePosition): LocationOffset {
-    return this.source.offsetFor(pos);
+  pos({ line, column }: SourcePosition): SourceOffset {
+    return this.source.offsetFor(line, column);
   }
 
   finish<T extends { loc: SourceSpan }>(node: ParserNodeBuilder<T>): T {
-    return (assign(node, {
-      loc: node.loc.withEnd(this.offset()),
+    return (assign({}, node, {
+      loc: node.loc.until(this.offset()),
     } as const) as unknown) as T;
 
     // node.loc = node.loc.withEnd(end);

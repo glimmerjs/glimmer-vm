@@ -3,25 +3,20 @@ import { assertPresent, assign } from '@glimmer/util';
 import { parse, parseWithoutProcessing } from '@handlebars/parser';
 import { EntityParser } from 'simple-html-tokenizer';
 
-import {
-  appendChild,
-  ASTv1,
-  b as publicBuilder,
-  charSpan,
-  GlimmerSyntaxError,
-  HBS,
-  NodeVisitor,
-  parseElementBlockParams,
-  Source,
-  SourceOffset,
-  SourceSpan,
-  strictBuilder as b,
-  Tag,
-  traverse,
-  voidMap,
-  Walker,
-} from '../-internal';
-import { HandlebarsNodeVisitors } from './-internal';
+import { voidMap } from '../generation/printer';
+import { Tag } from '../parser';
+import { Source } from '../source/source';
+import { SourceOffset, SourceSpan } from '../source/span';
+import { GlimmerSyntaxError } from '../syntax-error';
+import traverse from '../traversal/traverse';
+import { NodeVisitor } from '../traversal/visitor';
+import Walker from '../traversal/walker';
+import { appendChild, parseElementBlockParams } from '../utils';
+import * as ASTv1 from '../v1/api';
+import * as HBS from '../v1/handlebars-ast';
+import b from '../v1/parser-builders';
+import publicBuilder from '../v1/public-builders';
+import { HandlebarsNodeVisitors } from './handlebars-node-visitors';
 
 export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
   private tagOpenLine = 0;
@@ -34,10 +29,7 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
   // Comment
 
   beginComment(): void {
-    this.currentNode = b.comment(
-      '',
-      this.source.offsetFor({ line: this.tagOpenLine, column: this.tagOpenColumn })
-    );
+    this.currentNode = b.comment('', this.source.offsetFor(this.tagOpenLine, this.tagOpenColumn));
   }
 
   appendToCommentData(char: string): void {
@@ -82,7 +74,7 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
       modifiers: [],
       comments: [],
       selfClosing: false,
-      loc: this.source.offsetFor({ line: this.tagOpenLine, column: this.tagOpenColumn }),
+      loc: this.source.offsetFor(this.tagOpenLine, this.tagOpenColumn),
     };
   }
 
@@ -94,7 +86,7 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
       modifiers: [],
       comments: [],
       selfClosing: false,
-      loc: this.source.offsetFor({ line: this.tagOpenLine, column: this.tagOpenColumn }),
+      loc: this.source.offsetFor(this.tagOpenLine, this.tagOpenColumn),
     };
   }
 
@@ -205,7 +197,7 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
 
       // the tokenizer line/column have already been advanced, correct location info
       if (char === '\n') {
-        loc = lastPart ? lastPart.loc.endOffset : this.currentAttr.valueSpan.startOffset;
+        loc = lastPart ? lastPart.loc.getEnd() : this.currentAttr.valueSpan.getStart();
       } else {
         loc = loc.move(-1);
       }
@@ -221,7 +213,7 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
     let value = this.assembleAttributeValue(parts, isQuoted, isDynamic, valueSpan);
     value.loc = valueSpan.withEnd(tokenizerPos);
 
-    let attribute = b.attr({ name, value, loc: start.withEnd(tokenizerPos) });
+    let attribute = b.attr({ name, value, loc: start.until(tokenizerPos) });
 
     this.currentStartTag.attributes.push(attribute);
   }
@@ -405,11 +397,11 @@ export function preprocess(html: string, options: PreprocessOptions = {}): ASTv1
     entityParser = new EntityParser({});
   }
 
-  let off = charSpan(new Source(html), 0, html.length);
+  let offsets = SourceSpan.forCharPositions(new Source(html), 0, html.length);
   ast.loc = {
     source: '(program)',
-    start: off.startPosition,
-    end: off.endPosition,
+    start: offsets.startPosition,
+    end: offsets.endPosition,
   };
 
   let program = new TokenizerEventHandlers(html, entityParser).acceptTemplate(ast);
