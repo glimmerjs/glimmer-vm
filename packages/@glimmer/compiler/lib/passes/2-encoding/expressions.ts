@@ -2,16 +2,9 @@ import { PresentArray, SexpOpcodes, WireFormat } from '@glimmer/interfaces';
 import { ASTv2 } from '@glimmer/syntax';
 import { assertPresent, isPresent, mapPresent } from '@glimmer/util';
 
-import { Op, OpArgs, OpsTable } from '../../shared/op';
 import * as mir from './mir';
 
 export type HashPair = [string, WireFormat.Expression];
-
-type OutOp = WireFormat.SyntaxWithInternal | HashPair | undefined;
-
-export type Visitors<O extends OpsTable<Op>, Out extends OutOp | void = OutOp | void> = {
-  [P in keyof O]: (args: OpArgs<O[P]>) => Out;
-};
 
 export class ExpressionEncoder {
   expr(expr: mir.ExpressionNode): WireFormat.Expression {
