@@ -4,17 +4,17 @@ import { Result } from '../../../shared/result';
 import { NormalizationState } from '../context';
 
 interface KeywordDelegate<Match extends KeywordMatch, V, Out> {
-  assert(options: Match): Result<V>;
-  translate(options: Match, param: V): Result<Out>;
+  assert(options: Match, state: NormalizationState): Result<V>;
+  translate(options: { node: Match; state: NormalizationState }, param: V): Result<Out>;
 }
 
 interface BlockKeywordDelegate<V, Out> {
   assert(options: ASTv2.InvokeBlock, state: NormalizationState): Result<V>;
-  translate(options: ASTv2.InvokeBlock, param: V, state: NormalizationState): Result<Out>;
+  translate(options: { node: ASTv2.InvokeBlock; state: NormalizationState }, param: V): Result<Out>;
 }
 
 export interface Keyword<K extends KeywordType = KeywordType, Out = unknown> {
-  translate(node: KeywordCandidates[K]): Result<Out> | null;
+  translate(node: KeywordCandidates[K], state: NormalizationState): Result<Out> | null;
 }
 
 export interface BlockKeyword<Out = unknown> {
@@ -73,10 +73,10 @@ class KeywordImpl<K extends KeywordType, S extends string = string, Param = unkn
     }
   }
 
-  translate(node: KeywordMatches[K]): Result<Out> | null {
+  translate(node: KeywordMatches[K], state: NormalizationState): Result<Out> | null {
     if (this.match(node)) {
-      let param = this.delegate.assert(node);
-      return param.andThen((param) => this.delegate.translate(node, param));
+      let param = this.delegate.assert(node, state);
+      return param.andThen((param) => this.delegate.translate({ node, state }, param));
     } else {
       return null;
     }
@@ -97,7 +97,7 @@ class BlockKeywordImpl<Param = unknown, Out = unknown>
   translate(node: ASTv2.InvokeBlock, state: NormalizationState): Result<Out> | null {
     if (this.match(node)) {
       let param = this.delegate.assert(node, state);
-      return param.andThen((param) => this.delegate.translate(node, param, state));
+      return param.andThen((param) => this.delegate.translate({ node, state }, param));
     } else {
       return null;
     }
@@ -217,9 +217,12 @@ export class Keywords<K extends KeywordType, KeywordList extends Keyword<K> = ne
     return this;
   }
 
-  translate(node: KeywordCandidates[K]): Result<OutFor<KeywordList>> | null {
+  translate(
+    node: KeywordCandidates[K],
+    state: NormalizationState
+  ): Result<OutFor<KeywordList>> | null {
     for (let keyword of this.#keywords) {
-      let result = keyword.translate(node) as Result<OutFor<KeywordList>>;
+      let result = keyword.translate(node, state) as Result<OutFor<KeywordList>>;
       if (result !== null) {
         return result;
       }

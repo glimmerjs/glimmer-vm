@@ -4,15 +4,14 @@ import { isPresent } from '@glimmer/util';
 
 import { AnyOptionalList, PresentList } from '../../../shared/list';
 import { Ok, Result, ResultArray } from '../../../shared/result';
-import * as hir from '../../2-symbol-allocation/hir';
+import * as mir from '../../2-encoding/mir';
+import { NormalizationState } from '../context';
 import { EXPR_KEYWORDS } from '../keywords';
 import { assertIsValidHelper, hasPath } from '../utils/is-node';
 
-export type ExpressionOut = hir.Expr;
-
 export class NormalizeExpressions {
-  visit(node: ASTv2.ExpressionNode): Result<hir.Expr> {
-    let translated = EXPR_KEYWORDS.translate(node);
+  visit(node: ASTv2.ExpressionNode, state: NormalizationState): Result<mir.ExpressionNode> {
+    let translated = EXPR_KEYWORDS.translate(node, state);
 
     if (translated !== null) {
       return translated;
@@ -22,18 +21,27 @@ export class NormalizeExpressions {
       case 'Literal':
         return Ok(this.Literal(node));
       case 'Interpolate':
-        return this.Interpolate(node);
+        return this.Interpolate(node, state);
       case 'Path':
-        return this.PathExpression(node);
+        return this.PathExpression(node, state);
       case 'Call':
-        return this.CallExpression(node);
+        return this.CallExpression(node, state);
     }
   }
 
-  visitList(nodes: PresentArray<ASTv2.ExpressionNode>): Result<PresentList<hir.Expr>>;
-  visitList(nodes: readonly ASTv2.ExpressionNode[]): Result<AnyOptionalList<hir.Expr>>;
-  visitList(nodes: readonly ASTv2.ExpressionNode[]): Result<AnyOptionalList<hir.Expr>> {
-    return new ResultArray(nodes.map((e) => VISIT_EXPRS.visit(e))).toOptionalList();
+  visitList(
+    nodes: PresentArray<ASTv2.ExpressionNode>,
+    state: NormalizationState
+  ): Result<PresentList<mir.ExpressionNode>>;
+  visitList(
+    nodes: readonly ASTv2.ExpressionNode[],
+    state: NormalizationState
+  ): Result<AnyOptionalList<mir.ExpressionNode>>;
+  visitList(
+    nodes: readonly ASTv2.ExpressionNode[],
+    state: NormalizationState
+  ): Result<AnyOptionalList<mir.ExpressionNode>> {
+    return new ResultArray(nodes.map((e) => VISIT_EXPRS.visit(e, state))).toOptionalList();
   }
 
   /**
@@ -42,103 +50,107 @@ export class NormalizeExpressions {
    * TODO since keywords don't support tails anyway, distinguish PathExpression from
    * VariableReference in ASTv2.
    */
-  PathExpression(path: ASTv2.PathExpression): Result<hir.Expr> {
-    let { tail } = path;
-
-    let expr = EXPR_KEYWORDS.translate(path);
+  PathExpression(
+    path: ASTv2.PathExpression,
+    state: NormalizationState
+  ): Result<mir.ExpressionNode> {
+    let expr = EXPR_KEYWORDS.translate(path, state);
 
     if (expr !== null) {
       return expr;
     }
 
     let ref = this.VariableReference(path.ref);
+    let { tail } = path;
 
     if (isPresent(tail)) {
-      return Ok(new hir.Path(path.loc, { head: ref, tail }));
+      let tailLoc = tail[0].loc.extend(tail[tail.length - 1].loc);
+      return Ok(
+        new mir.PathExpression({
+          loc: path.loc,
+          head: ref,
+          tail: new mir.Tail({ loc: tailLoc, members: tail }),
+        })
+      );
     } else {
       return Ok(ref);
     }
   }
 
-  VariableReference(ref: ASTv2.VariableReference): hir.Expr {
-    switch (ref.type) {
-      case 'Arg':
-        return new hir.GetArg(ref.loc, { name: ref.name });
-
-      case 'This':
-        return new hir.GetThis(ref.loc);
-
-      case 'Free':
-        if (ref.resolution === ASTv2.STRICT_RESOLUTION) {
-          return new hir.GetFreeVar(ref.loc, {
-            name: ref.name,
-          });
-        } else {
-          return new hir.GetFreeVarWithResolution(ref.loc, {
-            name: ref.name,
-            resolution: ref.resolution,
-          });
-        }
-
-      case 'Local':
-        return new hir.GetLocalVar(ref.loc, { name: ref.name });
-    }
+  VariableReference(ref: ASTv2.VariableReference): ASTv2.VariableReference {
+    return ref;
   }
 
-  Literal(literal: ASTv2.LiteralExpression): hir.Literal {
-    return new hir.Literal(literal.loc, { value: literal.value });
+  Literal(literal: ASTv2.LiteralExpression): ASTv2.LiteralExpression {
+    return literal;
   }
 
-  Interpolate(expr: ASTv2.InterpolateExpression): Result<hir.Interpolate> {
-    return VISIT_EXPRS.visitList(expr.parts).mapOk(
-      (parts) =>
-        new hir.Interpolate(expr.loc, {
-          parts,
-        })
+  Interpolate(
+    expr: ASTv2.InterpolateExpression,
+    state: NormalizationState
+  ): Result<mir.InterpolateExpression> {
+    return VISIT_EXPRS.visitList(expr.parts, state).mapOk(
+      (parts) => new mir.InterpolateExpression({ loc: expr.loc, parts: parts })
     );
   }
 
-  CallExpression(expr: ASTv2.CallExpression): Result<hir.Expr> {
+  CallExpression(
+    expr: ASTv2.CallExpression,
+    state: NormalizationState
+  ): Result<mir.ExpressionNode> {
     if (!hasPath(expr)) {
       throw new Error(`unimplemented subexpression at the head of a subexpression`);
     } else {
       assertIsValidHelper(expr, expr.loc, 'helper');
 
-      return Result.all(VISIT_EXPRS.visit(expr.callee), VISIT_EXPRS.Args(expr.args)).mapOk(
-        ([head, args]) =>
-          new hir.SubExpression(expr.loc, {
-            head,
+      return Result.all(
+        VISIT_EXPRS.visit(expr.callee, state),
+        VISIT_EXPRS.Args(expr.args, state)
+      ).mapOk(
+        ([callee, args]) =>
+          new mir.CallExpression({
+            loc: expr.loc,
+            callee,
             args,
           })
       );
     }
   }
 
-  Args({ positional, named, loc }: ASTv2.Args): Result<hir.Args> {
-    return Result.all(this.Positional(positional), this.Named(named)).mapOk(
+  Args({ positional, named, loc }: ASTv2.Args, state: NormalizationState): Result<mir.Args> {
+    return Result.all(this.Positional(positional, state), this.NamedArguments(named, state)).mapOk(
       ([positional, named]) =>
-        new hir.Args(loc, {
+        new mir.Args({
+          loc,
           positional,
           named,
         })
     );
   }
 
-  Positional(positional: ASTv2.PositionalArguments): Result<hir.Positional> {
-    return VISIT_EXPRS.visitList(positional.exprs).mapOk(
+  Positional(
+    positional: ASTv2.PositionalArguments,
+    state: NormalizationState
+  ): Result<mir.Positional> {
+    return VISIT_EXPRS.visitList(positional.exprs, state).mapOk(
       (list) =>
-        new hir.Positional(positional.loc, {
+        new mir.Positional({
+          loc: positional.loc,
           list,
         })
     );
   }
 
-  Named(named: ASTv2.NamedArguments): Result<hir.Named> {
-    let pairs = named.entries.map((entry) =>
-      VISIT_EXPRS.visit(entry.value).mapOk(
+  NamedArguments(
+    named: ASTv2.NamedArguments,
+    state: NormalizationState
+  ): Result<mir.NamedArguments> {
+    let pairs = named.entries.map((arg) =>
+      VISIT_EXPRS.visit(arg.value, state).mapOk(
         (value) =>
-          new hir.NamedEntry(entry.loc, {
-            key: entry.name,
+          new mir.NamedArgument({
+            loc: arg.loc,
+            key: arg.name,
             value,
           })
       )
@@ -146,7 +158,7 @@ export class NormalizeExpressions {
 
     return new ResultArray(pairs)
       .toOptionalList()
-      .mapOk((pairs) => new hir.Named(named.loc, { pairs }));
+      .mapOk((pairs) => new mir.NamedArguments({ loc: named.loc, entries: pairs }));
   }
 }
 

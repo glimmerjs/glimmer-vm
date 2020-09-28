@@ -3,23 +3,23 @@ import { ASTv2, maybeLoc, SourceSpan } from '@glimmer/syntax';
 import { OptionalList } from '../../../../shared/list';
 import { Ok, Result, ResultArray } from '../../../../shared/result';
 import { getAttrNamespace } from '../../../../utils';
-import * as hir from '../../../2-symbol-allocation/hir';
+import * as mir from '../../../2-encoding/mir';
 import { NormalizationState } from '../../context';
 import { assertIsValidHelper, isHelperInvocation } from '../../utils/is-node';
 import { VISIT_EXPRS } from '../expressions';
 
-export type ValidAttr = hir.Attr | hir.AttrSplat;
+export type ValidAttr = mir.StaticAttr | mir.DynamicAttr | mir.SplatAttr;
 
 type ProcessedAttributes = {
   attrs: ValidAttr[];
-  args: hir.Named;
+  args: mir.NamedArguments;
 };
 
 export interface Classified {
   readonly dynamicFeatures: boolean;
 
-  arg(attr: ASTv2.AttrNode, classified: ClassifiedElement): Result<hir.NamedEntry>;
-  toStatement(classified: ClassifiedElement, prepared: PreparedArgs): Result<hir.Statement>;
+  arg(attr: ASTv2.AttrNode, classified: ClassifiedElement): Result<mir.NamedArgument>;
+  toStatement(classified: ClassifiedElement, prepared: PreparedArgs): Result<mir.Statement>;
 }
 
 export class ClassifiedElement {
@@ -33,23 +33,34 @@ export class ClassifiedElement {
     this.delegate = delegate;
   }
 
-  toStatement(): Result<hir.Statement> {
+  toStatement(): Result<mir.Statement> {
     return this.prepare().andThen((prepared) => this.delegate.toStatement(this, prepared));
-  }
-
-  private splatAttr(attr: ASTv2.SplatAttr): Result<ValidAttr> {
-    return Ok(new hir.AttrSplat(attr.loc));
   }
 
   private attr(attr: ASTv2.HtmlAttr): Result<ValidAttr> {
     let name = attr.name;
     let rawValue = attr.value;
-
     let namespace = getAttrNamespace(name.chars) || undefined;
-    return VISIT_EXPRS.visit(rawValue).mapOk((value) => {
+
+    if (ASTv2.isLiteral(rawValue, 'string')) {
+      return Ok(
+        new mir.StaticAttr({
+          loc: attr.loc,
+          name,
+          value: rawValue.toSlice(),
+          namespace,
+          kind: {
+            component: this.delegate.dynamicFeatures,
+          },
+        })
+      );
+    }
+
+    return VISIT_EXPRS.visit(rawValue, this.state).mapOk((value) => {
       let isTrusting = attr.trusting;
 
-      return new hir.Attr(attr.loc, {
+      return new mir.DynamicAttr({
+        loc: attr.loc,
         name,
         value: value,
         namespace,
@@ -61,18 +72,19 @@ export class ClassifiedElement {
     });
   }
 
-  private modifier(modifier: ASTv2.ElementModifier): Result<hir.Modifier> {
+  private modifier(modifier: ASTv2.ElementModifier): Result<mir.Modifier> {
     if (isHelperInvocation(modifier)) {
       assertIsValidHelper(modifier, modifier.loc, 'modifier');
     }
 
-    let head = VISIT_EXPRS.visit(modifier.callee);
-    let args = VISIT_EXPRS.Args(modifier.args);
+    let head = VISIT_EXPRS.visit(modifier.callee, this.state);
+    let args = VISIT_EXPRS.Args(modifier.args, this.state);
 
     return Result.all(head, args).mapOk(
       ([head, args]) =>
-        new hir.Modifier(modifier.loc, {
-          head,
+        new mir.Modifier({
+          loc: modifier.loc,
+          callee: head,
           args,
         })
     );
@@ -80,13 +92,15 @@ export class ClassifiedElement {
 
   private attrs(): Result<ProcessedAttributes> {
     let attrs = new ResultArray<ValidAttr>();
-    let args = new ResultArray<hir.NamedEntry>();
+    let args = new ResultArray<mir.NamedArgument>();
 
     let typeAttr: ASTv2.AttrNode | null = null;
 
     for (let attr of this.element.attrs) {
       if (attr.type === 'SplatAttr') {
-        attrs.add(this.splatAttr(attr));
+        attrs.add(
+          Ok(new mir.SplatAttr({ loc: attr.loc, symbol: this.state.scope.allocateBlock('attrs') }))
+        );
       } else if (attr.name.chars === 'type') {
         typeAttr = attr;
       } else {
@@ -104,8 +118,9 @@ export class ClassifiedElement {
 
     return Result.all(args.toArray(), attrs.toArray()).mapOk(([args, attrs]) => ({
       attrs,
-      args: new hir.Named(maybeLoc(args, SourceSpan.NON_EXISTENT), {
-        pairs: OptionalList(args),
+      args: new mir.NamedArguments({
+        loc: maybeLoc(args, SourceSpan.NON_EXISTENT),
+        entries: OptionalList(args),
       }),
     }));
   }
@@ -119,7 +134,8 @@ export class ClassifiedElement {
 
       let elementParams = [...attrs, ...modifiers];
 
-      let params = new hir.ElementParameters(maybeLoc(elementParams, SourceSpan.NON_EXISTENT), {
+      let params = new mir.ElementParameters({
+        loc: maybeLoc(elementParams, SourceSpan.NON_EXISTENT),
         body: OptionalList(elementParams),
       });
 
@@ -129,8 +145,8 @@ export class ClassifiedElement {
 }
 
 export interface PreparedArgs {
-  args: hir.Named;
-  params: hir.ElementParameters;
+  args: mir.NamedArguments;
+  params: mir.ElementParameters;
 }
 
 export function hasDynamicFeatures({

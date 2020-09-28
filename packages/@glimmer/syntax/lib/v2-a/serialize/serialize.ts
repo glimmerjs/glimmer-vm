@@ -241,7 +241,7 @@ class InternalSerializer {
     return {
       loc: node.loc.serialize(),
       body: node.body.map((b) => visit.content(b)),
-      table: node.table.locals,
+      table: node.scope.locals,
     };
   }
 

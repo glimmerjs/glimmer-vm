@@ -3,7 +3,7 @@ import { ASTv2, Source } from '@glimmer/syntax';
 import { LOCAL_LOGGER } from '@glimmer/util';
 
 import { Result } from '../../shared/result';
-import * as hir from '../2-symbol-allocation/hir';
+import * as mir from '../2-encoding/mir';
 import { NormalizationState } from './context';
 import { VISIT_STMTS } from './visitors/statements';
 
@@ -45,9 +45,9 @@ import { VISIT_STMTS } from './visitors/statements';
  * <notInScope.SomeComponent />
  * ```
  */
-export default function normalize(source: Source, root: ASTv2.Template): Result<hir.Template> {
+export default function normalize(source: Source, root: ASTv2.Template): Result<mir.Template> {
   // create a new context for the normalization pass
-  let state = new NormalizationState();
+  let state = new NormalizationState(root.table);
 
   if (LOCAL_SHOULD_LOG) {
     LOCAL_LOGGER.groupCollapsed(`pass0: visiting`);
@@ -67,6 +67,6 @@ export default function normalize(source: Source, root: ASTv2.Template): Result<
   }
 
   return body.mapOk(
-    (body) => new hir.Template(root.loc, { symbols: root.table, body: body.toArray() })
+    (body) => new mir.Template({ loc: root.loc, scope: root.table, body: body.toArray() })
   );
 }

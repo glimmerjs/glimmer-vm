@@ -1,8 +1,8 @@
 export { Source } from './lib/source/source';
 export { default as builders } from './lib/v1/public-builders';
 export * as ASTv1 from './lib/v1/api';
-export * as ASTv2 from './lib/v2/api';
-export { normalize } from './lib/v2/normalize';
+export * as ASTv2 from './lib/v2-a/api';
+export { normalize } from './lib/v2-a/normalize';
 export { SymbolTable, BlockSymbolTable, ProgramSymbolTable } from './lib/symbol-table';
 export { GlimmerSyntaxError } from './lib/syntax-error';
 export {
@@ -30,6 +30,8 @@ export {
   hasSpan,
 } from './lib/source/span-list';
 export { PreprocessOptions } from './lib/parser/tokenizer-event-handlers';
+
+export { node } from './lib/v2-a/objects/node';
 
 /** @deprecated use WalkerPath instead */
 export { default as Path } from './lib/traversal/walker';

@@ -6,7 +6,7 @@ export interface OptionalList<T> {
   filter<S extends T>(
     predicate: (value: T, index: number, array: T[]) => value is S
   ): AnyOptionalList<S>;
-  toArray(): T[] | PresentArray<T>;
+  toArray(): T[];
   toPresentArray(): Option<PresentArray<T>>;
   into<U, V>(options: { ifPresent: (array: PresentList<T>) => U; ifEmpty: () => V }): U | V;
 }

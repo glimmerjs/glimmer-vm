@@ -1,7 +1,7 @@
 import { ASTv2, GlimmerSyntaxError } from '@glimmer/syntax';
 
 import { Err, Ok, Result } from '../../../shared/result';
-import * as hir from '../../2-symbol-allocation/hir';
+import * as mir from '../../2-encoding/mir';
 import { NormalizationState } from '../context';
 import { VISIT_EXPRS } from '../visitors/expressions';
 import { VISIT_STMTS } from '../visitors/statements';
@@ -45,38 +45,44 @@ export const BLOCK_KEYWORDS = keywords('Block').kw('in-element', {
   },
 
   translate(
-    node: ASTv2.InvokeBlock,
+    { node, state }: { node: ASTv2.InvokeBlock; state: NormalizationState },
     {
       insertBefore,
       destination,
-    }: { insertBefore: ASTv2.ExpressionNode | null; destination: ASTv2.ExpressionNode },
-    state: NormalizationState
-  ): Result<hir.InElement> {
+    }: { insertBefore: ASTv2.ExpressionNode | null; destination: ASTv2.ExpressionNode }
+  ): Result<mir.InElement> {
     let named = node.blocks.get('default');
     let body = VISIT_STMTS.NamedBlock(named, state);
-    let destinationResult = VISIT_EXPRS.visit(destination);
+    let destinationResult = VISIT_EXPRS.visit(destination, state);
 
     return Result.all(body, destinationResult)
       .andThen(
         ([body, destination]): Result<{
-          body: hir.NamedBlock;
-          destination: hir.Expr;
-          insertBefore: hir.Expr | undefined;
+          body: mir.NamedBlock;
+          destination: mir.ExpressionNode;
+          insertBefore: mir.ExpressionNode;
         }> => {
           if (insertBefore) {
-            return VISIT_EXPRS.visit(insertBefore).mapOk((insertBefore) => ({
+            return VISIT_EXPRS.visit(insertBefore, state).mapOk((insertBefore) => ({
               body,
               destination,
               insertBefore,
             }));
+          } else {
+            return Ok({
+              body,
+              destination,
+              insertBefore: new mir.Missing({
+                loc: node.callee.loc.collapse('end'),
+              }),
+            });
           }
-
-          return Ok({ body, destination, insertBefore: undefined });
         }
       )
       .mapOk(
         ({ body, destination, insertBefore }) =>
-          new hir.InElement(node.loc, {
+          new mir.InElement({
+            loc: node.loc,
             block: body,
             insertBefore,
             guid: state.generateUniqueCursor(),

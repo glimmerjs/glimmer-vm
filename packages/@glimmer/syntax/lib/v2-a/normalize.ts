@@ -274,17 +274,22 @@ class ExpressionNormalizer {
     switch (head.type) {
       case 'ThisHead':
         return this.block.builder.self(offsets);
-      case 'AtHead':
-        return this.block.builder.at(head.name, offsets);
+      case 'AtHead': {
+        let symbol = this.block.table.allocateNamed(head.name);
+        return this.block.builder.at(head.name, symbol, offsets);
+      }
       case 'VarHead': {
         if (this.block.hasBinding(head.name)) {
-          return this.block.builder.localVar(head.name, offsets);
+          let symbol = this.block.table.get(head.name);
+          return this.block.builder.localVar(head.name, symbol, offsets);
         } else {
-          return this.block.builder.freeVar(
-            head.name,
-            this.block.strict ? ASTv2.STRICT_RESOLUTION : resolution,
-            offsets
-          );
+          let symbol = this.block.table.allocateFree(head.name);
+          return this.block.builder.freeVar({
+            name: head.name,
+            context: this.block.strict ? ASTv2.STRICT_RESOLUTION : resolution,
+            symbol,
+            loc: offsets,
+          });
         }
       }
     }
@@ -566,7 +571,7 @@ class ElementNormalizer {
     assert(m.name[0] !== '@', 'An attr name must not start with `@`');
 
     if (m.name === '...attributes') {
-      return this.ctx.builder.splatAttr(this.ctx.loc(m.loc));
+      return this.ctx.builder.splatAttr(this.ctx.table.allocateBlock('attrs'), this.ctx.loc(m.loc));
     }
 
     let offsets = this.ctx.loc(m.loc);

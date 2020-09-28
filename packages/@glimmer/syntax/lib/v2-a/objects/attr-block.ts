@@ -36,7 +36,7 @@ export type AttrBlockNode = AttrNode | ElementModifier;
  */
 export class HtmlAttr extends node('HtmlAttr').fields<AttrNodeOptions>() {}
 
-export class SplatAttr extends node('SplatAttr').fields() {}
+export class SplatAttr extends node('SplatAttr').fields<{ symbol: number }>() {}
 
 /**
  * Corresponds to an argument passed by a component (`@x=<value>`)

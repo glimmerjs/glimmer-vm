@@ -2,7 +2,7 @@ import { ASTv2 } from '@glimmer/syntax';
 
 import { OptionalList } from '../../../shared/list';
 import { Ok, Result, ResultArray } from '../../../shared/result';
-import * as hir from '../../2-symbol-allocation/hir';
+import * as mir from '../../2-encoding/mir';
 import { NormalizationState } from '../context';
 import { BLOCK_KEYWORDS } from '../keywords';
 import { APPEND_KEYWORDS } from '../keywords/append';
@@ -11,25 +11,22 @@ import { ClassifiedComponent } from './element/component';
 import { ClassifiedSimpleElement } from './element/simple-element';
 import { VISIT_EXPRS } from './expressions';
 
-// Whitespace is allowed around and between named blocks
-const WHITESPACE = /^\s+$/;
-
 class NormalizationStatements {
   visitList(
     nodes: readonly ASTv2.ContentNode[],
     state: NormalizationState
-  ): Result<OptionalList<hir.Statement>> {
+  ): Result<OptionalList<mir.Statement>> {
     return new ResultArray(nodes.map((e) => VISIT_STMTS.visit(e, state)))
       .toOptionalList()
-      .mapOk((list) => list.filter((s: hir.Statement | null): s is hir.Statement => s !== null));
+      .mapOk((list) => list.filter((s: mir.Statement | null): s is mir.Statement => s !== null));
   }
 
-  visit(node: ASTv2.ContentNode, state: NormalizationState): Result<hir.Statement | null> {
+  visit(node: ASTv2.ContentNode, state: NormalizationState): Result<mir.Statement | null> {
     switch (node.type) {
       case 'GlimmerComment':
         return Ok(null);
       case 'AppendContent':
-        return this.AppendContent(node);
+        return this.AppendContent(node, state);
       case 'HtmlText':
         return Ok(this.TextNode(node));
       case 'HtmlComment':
@@ -43,20 +40,21 @@ class NormalizationStatements {
     }
   }
 
-  InvokeBlock(node: ASTv2.InvokeBlock, state: NormalizationState): Result<hir.Statement> {
+  InvokeBlock(node: ASTv2.InvokeBlock, state: NormalizationState): Result<mir.Statement> {
     let translated = BLOCK_KEYWORDS.translate(node, state);
 
     if (translated !== null) {
       return translated;
     }
 
-    let head = VISIT_EXPRS.visit(node.callee);
-    let args = VISIT_EXPRS.Args(node.args);
+    let head = VISIT_EXPRS.visit(node.callee, state);
+    let args = VISIT_EXPRS.Args(node.args, state);
 
     return Result.all(head, args).andThen(([head, args]) =>
       this.NamedBlocks(node.blocks, state).mapOk(
         (blocks) =>
-          new hir.BlockInvocation(node.loc, {
+          new mir.InvokeBlock({
+            loc: node.loc,
             head,
             args,
             blocks,
@@ -65,27 +63,28 @@ class NormalizationStatements {
     );
   }
 
-  NamedBlocks(blocks: ASTv2.NamedBlocks, state: NormalizationState): Result<hir.NamedBlocks> {
+  NamedBlocks(blocks: ASTv2.NamedBlocks, state: NormalizationState): Result<mir.NamedBlocks> {
     let list = new ResultArray(blocks.blocks.map((b) => this.NamedBlock(b, state)));
 
     return list
       .toArray()
-      .mapOk((list) => new hir.NamedBlocks(blocks.loc, { blocks: OptionalList(list) }));
+      .mapOk((list) => new mir.NamedBlocks({ loc: blocks.loc, blocks: OptionalList(list) }));
   }
 
-  NamedBlock(named: ASTv2.NamedBlock, state: NormalizationState): Result<hir.NamedBlock> {
-    let body = VISIT_STMTS.visitList(named.block.body, state);
+  NamedBlock(named: ASTv2.NamedBlock, state: NormalizationState): Result<mir.NamedBlock> {
+    let body = state.visitBlock(named.block);
 
     return body.mapOk((body) => {
-      return new hir.NamedBlock(named.loc, {
+      return new mir.NamedBlock({
+        loc: named.loc,
         name: named.name,
         body: body.toArray(),
-        table: named.block.table,
+        scope: named.block.scope,
       });
     });
   }
 
-  SimpleElement(element: ASTv2.SimpleElement, state: NormalizationState): Result<hir.Statement> {
+  SimpleElement(element: ASTv2.SimpleElement, state: NormalizationState): Result<mir.Statement> {
     return new ClassifiedElement(
       element,
       new ClassifiedSimpleElement(element.tag, element, hasDynamicFeatures(element)),
@@ -93,8 +92,8 @@ class NormalizationStatements {
     ).toStatement();
   }
 
-  Component(component: ASTv2.InvokeComponent, state: NormalizationState): Result<hir.Statement> {
-    return VISIT_EXPRS.visit(component.callee).andThen((callee) =>
+  Component(component: ASTv2.InvokeComponent, state: NormalizationState): Result<mir.Statement> {
+    return VISIT_EXPRS.visit(component.callee, state).andThen((callee) =>
       new ClassifiedElement(
         component,
         new ClassifiedComponent(callee, component),
@@ -103,40 +102,40 @@ class NormalizationStatements {
     );
   }
 
-  AppendContent(append: ASTv2.AppendContent): Result<hir.Statement> {
-    let translated = APPEND_KEYWORDS.translate(append);
+  AppendContent(append: ASTv2.AppendContent, state: NormalizationState): Result<mir.Statement> {
+    let translated = APPEND_KEYWORDS.translate(append, state);
 
     if (translated !== null) {
       return translated;
     }
 
-    let value = VISIT_EXPRS.visit(append.value);
+    let value = VISIT_EXPRS.visit(append.value, state);
 
     return value.mapOk((value) => {
       if (append.trusting) {
-        return new hir.AppendTrustedHTML(append.loc, {
-          value,
+        return new mir.AppendTrustedHTML({
+          loc: append.loc,
+          html: value,
         });
       } else {
-        return new hir.AppendTextNode(append.loc, {
-          value,
+        return new mir.AppendTextNode({
+          loc: append.loc,
+          text: value,
         });
       }
     });
   }
 
-  TextNode(text: ASTv2.HtmlText): hir.Statement {
-    if (WHITESPACE.exec(text.chars)) {
-      return new hir.AppendWhitespace(text.loc, { value: text.chars });
-    } else {
-      return new hir.AppendTextNode(text.loc, {
-        value: new hir.Literal(text.loc, { value: text.chars }),
-      });
-    }
+  TextNode(text: ASTv2.HtmlText): mir.Statement {
+    return new mir.AppendTextNode({
+      loc: text.loc,
+      text: new ASTv2.LiteralExpression({ loc: text.loc, value: text.chars }),
+    });
   }
 
-  HtmlComment(comment: ASTv2.HtmlComment): hir.Statement {
-    return new hir.AppendComment(comment.loc, {
+  HtmlComment(comment: ASTv2.HtmlComment): mir.Statement {
+    return new mir.AppendComment({
+      loc: comment.loc,
       value: comment.text,
     });
   }

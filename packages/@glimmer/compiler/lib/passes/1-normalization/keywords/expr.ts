@@ -1,7 +1,8 @@
 import { SourceSlice } from '@glimmer/syntax';
 
 import { Ok, Result } from '../../../shared/result';
-import * as hir from '../../2-symbol-allocation/hir';
+import * as mir from '../../2-encoding/mir';
+import { NormalizationState } from '../context';
 import { assertValidHasBlockUsage } from './has-block';
 import { ExprKeywordNode, keywords } from './impl';
 
@@ -10,15 +11,25 @@ export const EXPR_KEYWORDS = keywords('Expr')
     assert(node: ExprKeywordNode): Result<SourceSlice> {
       return assertValidHasBlockUsage('has-block', node);
     },
-    translate(node: ExprKeywordNode, target: SourceSlice): Result<hir.HasBlock> {
-      return Ok(new hir.HasBlock(node.loc, { target }));
+    translate(
+      { node, state: { scope } }: { node: ExprKeywordNode; state: NormalizationState },
+      target: SourceSlice
+    ): Result<mir.HasBlock> {
+      return Ok(
+        new mir.HasBlock({ loc: node.loc, target, symbol: scope.allocateBlock(target.chars) })
+      );
     },
   })
   .kw('has-block-params', {
     assert(node: ExprKeywordNode): Result<SourceSlice> {
       return assertValidHasBlockUsage('has-block-params', node);
     },
-    translate(node: ExprKeywordNode, target: SourceSlice): Result<hir.HasBlockParams> {
-      return Ok(new hir.HasBlockParams(node.loc, { target }));
+    translate(
+      { node, state: { scope } }: { node: ExprKeywordNode; state: NormalizationState },
+      target: SourceSlice
+    ): Result<mir.HasBlockParams> {
+      return Ok(
+        new mir.HasBlockParams({ loc: node.loc, target, symbol: scope.allocateBlock(target.chars) })
+      );
     },
   });

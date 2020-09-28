@@ -332,7 +332,7 @@ export function buildAngleInvocation(
   { attrs, block, head }: NormalizedAngleInvocation,
   symbols: Symbols
 ): WireFormat.Statements.Component {
-  let paramList: WireFormat.Parameter[] = [];
+  let paramList: WireFormat.ElementParameter[] = [];
   let args: WireFormat.Core.Hash = null;
   let blockList: WireFormat.Statement[] = [];
 
@@ -356,8 +356,8 @@ export function buildAngleInvocation(
 export function buildElementParams(
   attrs: NormalizedAttrs,
   symbols: Symbols
-): { params: WireFormat.Parameter[]; args: WireFormat.Core.Hash } {
-  let params: WireFormat.Parameter[] = [];
+): { params: WireFormat.ElementParameter[]; args: WireFormat.Core.Hash } {
+  let params: WireFormat.ElementParameter[] = [];
   let keys: string[] = [];
   let values: WireFormat.Expression[] = [];
 

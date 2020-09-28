@@ -8,8 +8,7 @@ import { normalize, PrecompileOptions, Source, TemplateIdFn } from '@glimmer/syn
 import { LOCAL_LOGGER } from '@glimmer/util';
 
 import pass0 from './passes/1-normalization/index';
-import { visit as pass1 } from './passes/2-symbol-allocation/index';
-import { visit as pass2 } from './passes/3-encoding/index';
+import { visit as pass2 } from './passes/2-encoding/index';
 
 declare function require(id: 'crypto'): Crypto;
 declare function require(id: string): unknown;
@@ -76,8 +75,7 @@ export function precompileJSON(
 ): SerializedTemplateBlock {
   let ast = normalize(string, options);
   let source = new Source(string);
-  let block = pass0(source, ast).mapOk((pass1In) => {
-    let pass2In = pass1(source, pass1In);
+  let block = pass0(source, ast).mapOk((pass2In) => {
     return pass2(pass2In);
   });
 

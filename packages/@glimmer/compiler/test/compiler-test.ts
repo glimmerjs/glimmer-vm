@@ -47,8 +47,8 @@ function test(desc: string, template: string, ...expectedStatements: BuilderStat
       statements,
     };
 
-    let debugExpected = new WireFormatDebugger(expected).format();
-    let debugActual = new WireFormatDebugger(actual.block).format();
+    let debugExpected = new WireFormatDebugger(expected).format(expected);
+    let debugActual = new WireFormatDebugger(actual.block).format(actual.block);
 
     assert.deepEqual(debugActual, debugExpected);
   });

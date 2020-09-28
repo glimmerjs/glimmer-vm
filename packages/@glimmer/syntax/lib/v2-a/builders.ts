@@ -31,7 +31,7 @@ export class Builder {
 
   block(symbols: BlockSymbolTable, body: ASTv2.ContentNode[], loc: SourceSpan): ASTv2.Block {
     return new ASTv2.Block({
-      table: symbols,
+      scope: symbols,
       body,
       loc,
     });
@@ -114,8 +114,9 @@ export class Builder {
     });
   }
 
-  splatAttr(loc: SourceSpan): ASTv2.SplatAttr {
+  splatAttr(symbol: number, loc: SourceSpan): ASTv2.SplatAttr {
     return new ASTv2.SplatAttr({
+      symbol,
       loc,
     });
   }
@@ -152,21 +153,28 @@ export class Builder {
     });
   }
 
-  at(name: string, loc: SourceSpan): ASTv2.VariableReference {
+  at(name: string, symbol: number, loc: SourceSpan): ASTv2.VariableReference {
     // the `@` should be included so we have a complete source range
     assert(name[0] === '@', `call builders.at() with a string that starts with '@'`);
 
     return new ASTv2.ArgReference({
       loc,
       name: new SourceSlice({ loc, chars: name }),
+      symbol,
     });
   }
 
-  freeVar(
-    name: string,
-    context: ASTv2.FreeVarResolution,
-    loc: SourceSpan
-  ): ASTv2.VariableReference {
+  freeVar({
+    name,
+    context,
+    symbol,
+    loc,
+  }: {
+    name: string;
+    context: ASTv2.FreeVarResolution;
+    symbol: number;
+    loc: SourceSpan;
+  }): ASTv2.VariableReference {
     assert(
       name !== 'this',
       `You called builders.freeVar() with 'this'. Call builders.this instead`
@@ -179,11 +187,12 @@ export class Builder {
     return new ASTv2.FreeVarReference({
       name,
       resolution: context,
+      symbol,
       loc,
     });
   }
 
-  localVar(name: string, loc: SourceSpan): ASTv2.VariableReference {
+  localVar(name: string, symbol: number, loc: SourceSpan): ASTv2.VariableReference {
     assert(name !== 'this', `You called builders.var() with 'this'. Call builders.this instead`);
     assert(
       name[0] !== '@',
@@ -193,6 +202,7 @@ export class Builder {
     return new ASTv2.LocalVarReference({
       loc,
       name,
+      symbol,
     });
   }
 

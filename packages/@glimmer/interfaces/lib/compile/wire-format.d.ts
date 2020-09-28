@@ -103,6 +103,14 @@ export type GetContextualFreeOp =
   | SexpOpcodes.GetFreeAsFallback
   | SexpOpcodes.GetStrictFree;
 
+export type AttrOp =
+  | SexpOpcodes.StaticAttr
+  | SexpOpcodes.StaticComponentAttr
+  | SexpOpcodes.DynamicAttr
+  | SexpOpcodes.TrustingDynamicAttr
+  | SexpOpcodes.ComponentAttr
+  | SexpOpcodes.TrustingComponentAttr;
+
 export type StatementSexpOpcode = Statement[0];
 export type StatementSexpOpcodeMap = {
   [TSexpOpcode in Statement[0]]: Extract<Statement, { 0: TSexpOpcode }>;
@@ -127,7 +135,7 @@ export namespace Core {
   export type Args = [Params, Hash];
   export type NamedBlock = [string, SerializedInlineBlock];
   export type EvalInfo = number[];
-  export type ElementParameters = Option<PresentArray<Parameter>>;
+  export type ElementParameters = Option<PresentArray<ElementParameter>>;
 
   export type Syntax = Path | Params | ConcatParams | Hash | Blocks | Args | EvalInfo;
 }
@@ -244,6 +252,15 @@ export namespace Statements {
     Expression,
     string?
   ];
+
+  export type AnyStaticAttr = StaticAttr | StaticComponentAttr;
+
+  export type AttrSplat = [SexpOpcodes.AttrSplat, YieldTo];
+  export type Yield = [SexpOpcodes.Yield, YieldTo, Option<Params>];
+  export type Partial = [SexpOpcodes.Partial, Expression, Core.EvalInfo];
+  export type DynamicArg = [SexpOpcodes.DynamicArg, string, Expression];
+  export type StaticArg = [SexpOpcodes.StaticArg, string, Expression];
+
   export type DynamicAttr = [
     SexpOpcodes.DynamicAttr,
     string | WellKnownAttrName,
@@ -256,12 +273,6 @@ export namespace Statements {
     Expression,
     string?
   ];
-  export type AttrSplat = [SexpOpcodes.AttrSplat, YieldTo];
-  export type Yield = [SexpOpcodes.Yield, YieldTo, Option<Params>];
-  export type Partial = [SexpOpcodes.Partial, Expression, Core.EvalInfo];
-  export type DynamicArg = [SexpOpcodes.DynamicArg, string, Expression];
-  export type StaticArg = [SexpOpcodes.StaticArg, string, Expression];
-
   export type TrustingDynamicAttr = [
     SexpOpcodes.TrustingDynamicAttr,
     string | WellKnownAttrName,
@@ -274,6 +285,13 @@ export namespace Statements {
     Expression,
     string?
   ];
+
+  export type AnyDynamicAttr =
+    | DynamicAttr
+    | ComponentAttr
+    | TrustingDynamicAttr
+    | TrustingComponentAttr;
+
   export type Debugger = [SexpOpcodes.Debugger, Core.EvalInfo];
   export type InElement = [
     op: SexpOpcodes.InElement,
@@ -297,39 +315,34 @@ export namespace Statements {
     | OpenElementWithSplat
     | FlushElement
     | CloseElement
-    | StaticAttr
-    | StaticComponentAttr
-    | DynamicAttr
-    | ComponentAttr
+    | Attribute
     | AttrSplat
     | Yield
     | Partial
     | StaticArg
     | DynamicArg
-    | TrustingDynamicAttr
-    | TrustingComponentAttr
     | Debugger
     | InElement;
 
   export type Attribute =
-    | Statements.StaticAttr
-    | Statements.StaticComponentAttr
-    | Statements.DynamicAttr
-    | Statements.TrustingDynamicAttr
-    | Statements.ComponentAttr
-    | Statements.TrustingComponentAttr;
+    | StaticAttr
+    | StaticComponentAttr
+    | DynamicAttr
+    | TrustingDynamicAttr
+    | ComponentAttr
+    | TrustingComponentAttr;
 
-  export type ComponentFeature = Statements.Modifier | Statements.AttrSplat;
-  export type Argument = Statements.StaticArg | Statements.DynamicArg;
+  export type ComponentFeature = Modifier | AttrSplat;
+  export type Argument = StaticArg | DynamicArg;
 
-  export type Parameter = Attribute | Argument | ComponentFeature;
+  export type ElementParameter = Attribute | Argument | ComponentFeature;
 }
 
 /** A Handlebars statement */
 export type Statement = Statements.Statement;
 export type Attribute = Statements.Attribute;
 export type Argument = Statements.Argument;
-export type Parameter = Statements.Parameter;
+export type ElementParameter = Statements.ElementParameter;
 
 export type SexpSyntax = Statement | TupleExpression;
 // TODO this undefined is related to the other TODO in this file

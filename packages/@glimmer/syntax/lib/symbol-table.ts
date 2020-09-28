@@ -17,6 +17,8 @@ export abstract class SymbolTable {
   abstract allocateBlock(name: string): number;
   abstract allocate(identifier: string): number;
 
+  abstract setHasEval(): void;
+
   child(locals: string[]): BlockSymbolTable {
     let symbols = locals.map((name) => this.allocate(name));
     return new BlockSymbolTable(this, locals, symbols);
@@ -25,7 +27,7 @@ export abstract class SymbolTable {
 
 export class ProgramSymbolTable extends SymbolTable {
   public symbols: string[] = [];
-  public freeVariables: string[] = [];
+  public upvars: string[] = [];
 
   private size = 1;
   private named = dict<number>();
@@ -59,14 +61,14 @@ export class ProgramSymbolTable extends SymbolTable {
   }
 
   allocateFree(name: string): number {
-    let index = this.freeVariables.indexOf(name);
+    let index = this.upvars.indexOf(name);
 
     if (index !== -1) {
       return index;
     }
 
-    index = this.freeVariables.length;
-    this.freeVariables.push(name);
+    index = this.upvars.length;
+    this.upvars.push(name);
     return index;
   }
 
@@ -127,6 +129,10 @@ export class BlockSymbolTable extends SymbolTable {
   getEvalInfo(): Core.EvalInfo {
     let locals = this.getLocalsMap();
     return Object.keys(locals).map((symbol) => locals[symbol]);
+  }
+
+  setHasEval(): void {
+    this.parent.setHasEval();
   }
 
   allocateFree(name: string): number {

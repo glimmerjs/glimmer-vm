@@ -20,7 +20,7 @@ export class Template extends node().fields<
  * involving blocks have at least a notional name.
  */
 export class Block extends node().fields<
-  { table: BlockSymbolTable } & GlimmerParentNodeOptions
+  { scope: BlockSymbolTable } & GlimmerParentNodeOptions
 >() {}
 
 /**

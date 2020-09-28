@@ -10,13 +10,13 @@ export class ThisReference extends node('This').fields() {}
 /**
  * Corresponds to `@<ident>` at the beginning of an expression.
  */
-export class ArgReference extends node('Arg').fields<{ name: SourceSlice }>() {}
+export class ArgReference extends node('Arg').fields<{ name: SourceSlice; symbol: number }>() {}
 
 /**
  * Corresponds to `<ident>` at the beginning of an expression, when `<ident>` is in the current
  * block's scope.
  */
-export class LocalVarReference extends node('Local').fields<{ name: string }>() {}
+export class LocalVarReference extends node('Local').fields<{ name: string; symbol: number }>() {}
 
 /**
  * Corresponds to `<ident>` at the beginning of an expression, when `<ident>` is *not* in the
@@ -30,6 +30,7 @@ export class LocalVarReference extends node('Local').fields<{ name: string }>() 
 export class FreeVarReference extends node('Free').fields<{
   name: string;
   resolution: FreeVarResolution;
+  symbol: number;
 }>() {}
 
 export type VariableReference = ThisReference | ArgReference | LocalVarReference | FreeVarReference;

@@ -2,7 +2,8 @@ import { ASTv2, GlimmerSyntaxError, SourceSlice, SourceSpan } from '@glimmer/syn
 import { expect } from '@glimmer/util';
 
 import { Err, Ok, Result } from '../../../shared/result';
-import * as hir from '../../2-symbol-allocation/hir';
+import * as mir from '../../2-encoding/mir';
+import { NormalizationState } from '../context';
 import { VISIT_EXPRS } from '../visitors/expressions';
 import { assertValidHasBlockUsage } from './has-block';
 import { keywords } from './impl';
@@ -42,7 +43,7 @@ export const APPEND_KEYWORDS = keywords('Append')
     },
 
     translate(
-      node: ASTv2.AppendContent,
+      { node, state }: { node: ASTv2.AppendContent; state: NormalizationState },
       {
         target,
         positional,
@@ -50,9 +51,15 @@ export const APPEND_KEYWORDS = keywords('Append')
         target: SourceSlice;
         positional: ASTv2.PositionalArguments;
       }
-    ): Result<hir.Statement> {
-      return VISIT_EXPRS.Positional(positional).mapOk(
-        (positional) => new hir.Yield(node.loc, { target, positional })
+    ): Result<mir.Statement> {
+      return VISIT_EXPRS.Positional(positional, state).mapOk(
+        (positional) =>
+          new mir.Yield({
+            loc: node.loc,
+            target,
+            to: state.scope.allocateBlock(target.chars),
+            positional,
+          })
       );
     },
   })
@@ -101,15 +108,24 @@ export const APPEND_KEYWORDS = keywords('Append')
     },
 
     translate(
-      node: ASTv2.AppendContent,
+      { node, state }: { node: ASTv2.AppendContent; state: NormalizationState },
       expr: ASTv2.ExpressionNode | undefined
-    ): Result<hir.Statement> {
+    ): Result<mir.Statement> {
+      state.scope.setHasEval();
+
       let visited =
         expr === undefined
-          ? Ok(new hir.PlaceholderUndefined(SourceSpan.synthetic('undefined'), undefined))
-          : VISIT_EXPRS.visit(expr);
+          ? Ok(
+              new ASTv2.LiteralExpression({
+                loc: SourceSpan.synthetic('undefined'),
+                value: undefined,
+              })
+            )
+          : VISIT_EXPRS.visit(expr, state);
 
-      return visited.mapOk((expr) => new hir.Partial(node.loc, { table: node.table, expr }));
+      return visited.mapOk(
+        (target) => new mir.Partial({ loc: node.loc, scope: state.scope, target })
+      );
     },
   })
   .kw('debugger', {
@@ -132,25 +148,46 @@ export const APPEND_KEYWORDS = keywords('Append')
       }
     },
 
-    translate(node: ASTv2.AppendContent): Result<hir.Statement> {
-      return Ok(new hir.Debugger(node.loc, { table: node.table }));
+    translate({
+      node,
+      state: { scope },
+    }: {
+      node: ASTv2.AppendContent;
+      state: NormalizationState;
+    }): Result<mir.Statement> {
+      scope.setHasEval();
+      return Ok(new mir.Debugger({ loc: node.loc, scope }));
     },
   })
   .kw('has-block', {
     assert(node: ASTv2.AppendContent): Result<SourceSlice> {
       return assertValidHasBlockUsage('has-block', node);
     },
-    translate(node: ASTv2.AppendContent, target: SourceSlice): Result<hir.AppendTextNode> {
-      let value = new hir.HasBlock(node.loc, { target });
-      return Ok(new hir.AppendTextNode(node.loc, { value }));
+    translate(
+      { node, state: { scope } }: { node: ASTv2.AppendContent; state: NormalizationState },
+      target: SourceSlice
+    ): Result<mir.AppendTextNode> {
+      let text = new mir.HasBlock({
+        loc: node.loc,
+        target,
+        symbol: scope.allocateBlock(target.chars),
+      });
+      return Ok(new mir.AppendTextNode({ loc: node.loc, text }));
     },
   })
   .kw('has-block-params', {
     assert(node: ASTv2.AppendContent): Result<SourceSlice> {
       return assertValidHasBlockUsage('has-block-params', node);
     },
-    translate(node: ASTv2.AppendContent, target: SourceSlice): Result<hir.AppendTextNode> {
-      let value = new hir.HasBlockParams(node.loc, { target });
-      return Ok(new hir.AppendTextNode(node.loc, { value }));
+    translate(
+      { node, state: { scope } }: { node: ASTv2.AppendContent; state: NormalizationState },
+      target: SourceSlice
+    ): Result<mir.AppendTextNode> {
+      let text = new mir.HasBlockParams({
+        loc: node.loc,
+        target,
+        symbol: scope.allocateBlock(target.chars),
+      });
+      return Ok(new mir.AppendTextNode({ loc: node.loc, text }));
     },
   });
