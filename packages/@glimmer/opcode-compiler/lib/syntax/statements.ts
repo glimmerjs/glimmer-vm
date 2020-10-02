@@ -26,7 +26,7 @@ export const STATEMENTS = new Compilers<StatementSexpOpcode, StatementCompileAct
 
 const INFLATE_ATTR_TABLE: {
   [I in WellKnownAttrName]: string;
-} = ['class', 'id', 'value', 'name', 'type', 'style', 'href'];
+} = ['class', 'id', 'value', 'name', 'type', 'style', 'href', undefined, undefined, 'RESERVED'];
 const INFLATE_TAG_TABLE: {
   [I in WellKnownTagName]: string;
 } = ['div', 'span', 'p', 'a'];

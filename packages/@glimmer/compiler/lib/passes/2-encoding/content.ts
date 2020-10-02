@@ -15,7 +15,7 @@ class WireStatements<S extends WireFormat.Statement = WireFormat.Statement> {
 }
 
 export class ContentEncoder {
-  list(statements: mir.Statement[]): WireFormat.Statement[] {
+  list(statements: mir.Content[]): WireFormat.Statement[] {
     let out: WireFormat.Statement[] = [];
 
     for (let statement of statements) {
@@ -31,7 +31,7 @@ export class ContentEncoder {
     return out;
   }
 
-  content(stmt: mir.Statement): WireFormat.Statement | WireStatements {
+  content(stmt: mir.Content): WireFormat.Statement | WireStatements {
     if (LOCAL_LOGGER) {
       LOGGER.log(`encoding`, stmt);
     }
@@ -39,7 +39,7 @@ export class ContentEncoder {
     return this.visitContent(stmt);
   }
 
-  private visitContent(stmt: mir.Statement): WireFormat.Statement | WireStatements {
+  private visitContent(stmt: mir.Content): WireFormat.Statement | WireStatements {
     switch (stmt.type) {
       case 'Debugger':
         return [SexpOpcodes.Debugger, stmt.scope.getEvalInfo()];
@@ -57,6 +57,8 @@ export class ContentEncoder {
         return this.Component(stmt);
       case 'SimpleElement':
         return this.SimpleElement(stmt);
+      case 'DynamicElement':
+        return this.DynamicElement(stmt);
       case 'InElement':
         return this.InElement(stmt);
       case 'InvokeBlock':
@@ -106,11 +108,20 @@ export class ContentEncoder {
     return [SexpOpcodes.Comment, value.chars];
   }
 
-  SimpleElement({ tag, params, body, dynamicFeatures }: mir.SimpleElement): WireStatements {
-    let op = dynamicFeatures ? SexpOpcodes.OpenElementWithSplat : SexpOpcodes.OpenElement;
+  SimpleElement({ tag, params, body }: mir.SimpleElement): WireStatements {
     return new WireStatements<WireFormat.Statement | WireFormat.ElementParameter>([
-      [op, deflateTagName(tag.chars)],
-      ...CONTENT.ElementParameters(params).toArray(),
+      [SexpOpcodes.OpenElement, deflateTagName(tag.chars)],
+      ...CONTENT.ElementAttributes(params).toArray(),
+      [SexpOpcodes.FlushElement],
+      ...CONTENT.list(body),
+      [SexpOpcodes.CloseElement],
+    ]);
+  }
+
+  DynamicElement({ tag, params, body }: mir.DynamicElement): WireStatements {
+    return new WireStatements<WireFormat.Statement | WireFormat.ElementParameter>([
+      [SexpOpcodes.OpenElementWithSplat, deflateTagName(tag.chars)],
+      ...CONTENT.DynamicElementAttributes(params).toArray(),
       [SexpOpcodes.FlushElement],
       ...CONTENT.list(body),
       [SexpOpcodes.CloseElement],
@@ -133,20 +144,44 @@ export class ContentEncoder {
     ];
   }
 
+  ElementAttributes({ body }: mir.ElementAttributes): OptionalList<WireFormat.ElementParameter> {
+    return body.map((p) => CONTENT.ElementAttr(p));
+  }
+
+  DynamicElementAttributes({
+    body,
+  }: mir.DynamicElementAttributes): OptionalList<WireFormat.ElementParameter> {
+    return body.map((p) => CONTENT.DynamicElementAttr(p));
+  }
+
   ElementParameters({ body }: mir.ElementParameters): OptionalList<WireFormat.ElementParameter> {
     return body.map((p) => CONTENT.ElementParameter(p));
   }
 
-  ElementParameter(param: mir.ElementParameter): WireFormat.ElementParameter {
+  ElementAttr(param: mir.ElementAttr): WireFormat.ElementParameter {
     switch (param.type) {
-      case 'SplatAttr':
-        return [SexpOpcodes.AttrSplat, param.symbol];
       case 'DynamicAttr':
         return [dynamicAttrOp(param.kind), ...dynamicAttr(param)];
       case 'StaticAttr':
         return [staticAttrOp(param.kind), ...staticAttr(param)];
+    }
+  }
+
+  DynamicElementAttr(param: mir.DynamicElementAttr): WireFormat.ElementParameter {
+    switch (param.type) {
+      case 'SplatAttr':
+        return [SexpOpcodes.AttrSplat, param.symbol];
+      default:
+        return CONTENT.ElementAttr(param);
+    }
+  }
+
+  ElementParameter(param: mir.ElementParameter): WireFormat.ElementParameter {
+    switch (param.type) {
       case 'Modifier':
         return [SexpOpcodes.Modifier, EXPR.expr(param.callee), ...EXPR.Args(param.args)];
+      default:
+        return CONTENT.DynamicElementAttr(param);
     }
   }
 

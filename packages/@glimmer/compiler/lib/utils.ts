@@ -1,4 +1,5 @@
 import { Dict, WellKnownAttrName, WellKnownTagName } from '@glimmer/interfaces';
+import { AttrNamespace, Namespace } from '@simple-dom/interface';
 
 // There is a small whitelist of namespaced attributes specially
 // enumerated in
@@ -14,9 +15,9 @@ import { Dict, WellKnownAttrName, WellKnownTagName } from '@glimmer/interfaces';
 //
 // > No other namespaced attribute can be expressed in the HTML syntax.
 
-const XLINK = 'http://www.w3.org/1999/xlink';
-const XML = 'http://www.w3.org/XML/1998/namespace';
-const XMLNS = 'http://www.w3.org/2000/xmlns/';
+const XLINK: Namespace.XLink = Namespace.XLink;
+const XML: Namespace.XML = Namespace.XML;
+const XMLNS: Namespace.XMLNS = Namespace.XMLNS;
 
 const WHITELIST: Dict<string | undefined> = {
   'xlink:actuate': XLINK,

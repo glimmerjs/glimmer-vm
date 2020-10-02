@@ -15,13 +15,13 @@ class NormalizationStatements {
   visitList(
     nodes: readonly ASTv2.ContentNode[],
     state: NormalizationState
-  ): Result<OptionalList<mir.Statement>> {
+  ): Result<OptionalList<mir.Content>> {
     return new ResultArray(nodes.map((e) => VISIT_STMTS.visit(e, state)))
       .toOptionalList()
-      .mapOk((list) => list.filter((s: mir.Statement | null): s is mir.Statement => s !== null));
+      .mapOk((list) => list.filter((s: mir.Content | null): s is mir.Content => s !== null));
   }
 
-  visit(node: ASTv2.ContentNode, state: NormalizationState): Result<mir.Statement | null> {
+  visit(node: ASTv2.ContentNode, state: NormalizationState): Result<mir.Content | null> {
     switch (node.type) {
       case 'GlimmerComment':
         return Ok(null);
@@ -40,7 +40,7 @@ class NormalizationStatements {
     }
   }
 
-  InvokeBlock(node: ASTv2.InvokeBlock, state: NormalizationState): Result<mir.Statement> {
+  InvokeBlock(node: ASTv2.InvokeBlock, state: NormalizationState): Result<mir.Content> {
     let translated = BLOCK_KEYWORDS.translate(node, state);
 
     if (translated !== null) {
@@ -84,7 +84,7 @@ class NormalizationStatements {
     });
   }
 
-  SimpleElement(element: ASTv2.SimpleElement, state: NormalizationState): Result<mir.Statement> {
+  SimpleElement(element: ASTv2.SimpleElement, state: NormalizationState): Result<mir.Content> {
     return new ClassifiedElement(
       element,
       new ClassifiedSimpleElement(element.tag, element, hasDynamicFeatures(element)),
@@ -92,7 +92,7 @@ class NormalizationStatements {
     ).toStatement();
   }
 
-  Component(component: ASTv2.InvokeComponent, state: NormalizationState): Result<mir.Statement> {
+  Component(component: ASTv2.InvokeComponent, state: NormalizationState): Result<mir.Content> {
     return VISIT_EXPRS.visit(component.callee, state).andThen((callee) =>
       new ClassifiedElement(
         component,
@@ -102,7 +102,7 @@ class NormalizationStatements {
     );
   }
 
-  AppendContent(append: ASTv2.AppendContent, state: NormalizationState): Result<mir.Statement> {
+  AppendContent(append: ASTv2.AppendContent, state: NormalizationState): Result<mir.Content> {
     let translated = APPEND_KEYWORDS.translate(append, state);
 
     if (translated !== null) {
@@ -126,14 +126,14 @@ class NormalizationStatements {
     });
   }
 
-  TextNode(text: ASTv2.HtmlText): mir.Statement {
+  TextNode(text: ASTv2.HtmlText): mir.Content {
     return new mir.AppendTextNode({
       loc: text.loc,
       text: new ASTv2.LiteralExpression({ loc: text.loc, value: text.chars }),
     });
   }
 
-  HtmlComment(comment: ASTv2.HtmlComment): mir.Statement {
+  HtmlComment(comment: ASTv2.HtmlComment): mir.Content {
     return new mir.AppendComment({
       loc: comment.loc,
       value: comment.text,

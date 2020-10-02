@@ -51,7 +51,7 @@ export const APPEND_KEYWORDS = keywords('Append')
         target: SourceSlice;
         positional: ASTv2.PositionalArguments;
       }
-    ): Result<mir.Statement> {
+    ): Result<mir.Content> {
       return VISIT_EXPRS.Positional(positional, state).mapOk(
         (positional) =>
           new mir.Yield({
@@ -110,7 +110,7 @@ export const APPEND_KEYWORDS = keywords('Append')
     translate(
       { node, state }: { node: ASTv2.AppendContent; state: NormalizationState },
       expr: ASTv2.ExpressionNode | undefined
-    ): Result<mir.Statement> {
+    ): Result<mir.Content> {
       state.scope.setHasEval();
 
       let visited =
@@ -154,7 +154,7 @@ export const APPEND_KEYWORDS = keywords('Append')
     }: {
       node: ASTv2.AppendContent;
       state: NormalizationState;
-    }): Result<mir.Statement> {
+    }): Result<mir.Content> {
       scope.setHasEval();
       return Ok(new mir.Debugger({ loc: node.loc, scope }));
     },

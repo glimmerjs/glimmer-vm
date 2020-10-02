@@ -9,6 +9,8 @@ import {
 } from '@glimmer/interfaces';
 import { assign, unwrapTemplate } from '@glimmer/util';
 import { compilable } from './compilable-template';
+import { decode } from './decode';
+import * as globalContext from '@glimmer/global-context';
 import { WrappedBuilder } from './wrapped-component';
 
 export interface TemplateFactory<M> {
@@ -63,7 +65,7 @@ export default function templateFactory<M>({
   let create = (envMeta?: {}) => {
     let newMeta = envMeta ? assign({}, envMeta, meta) : meta;
     if (!parsedBlock) {
-      parsedBlock = JSON.parse(block);
+      parsedBlock = decode(block, globalContext.experimental.encoder);
     }
     return new TemplateImpl({ id, block: parsedBlock, referrer: newMeta });
   };

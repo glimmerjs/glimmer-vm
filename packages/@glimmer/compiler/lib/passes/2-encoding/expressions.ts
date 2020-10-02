@@ -64,14 +64,6 @@ export class ExpressionEncoder {
     return [context.resolution(), symbol];
   }
 
-  // GetFree({ symbol }: mir.GetFree): WireFormat.Expressions.GetStrictFree {
-  //   return [SexpOpcodes.GetStrictFree, symbol];
-  // }
-
-  GetWithResolver({ symbol }: mir.GetWithResolver): WireFormat.Expressions.GetContextualFree {
-    return [SexpOpcodes.GetFreeAsComponentOrHelperHeadOrThisFallback, symbol];
-  }
-
   GetSymbol({ symbol }: mir.GetSymbol): WireFormat.Expressions.GetSymbol {
     return [SexpOpcodes.GetSymbol, symbol];
   }

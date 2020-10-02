@@ -108,6 +108,18 @@ export let warnIfStyleNotTrusted: (value: unknown) => void;
 
 //////////
 
+export interface ExperimentalFlags {
+  encoder: 'default' | 'packed';
+}
+
+export const DEFAULT_EXPERIMENTAL_FLAGS = {
+  encoder: 'default',
+} as const;
+
+export let experimental: ExperimentalFlags = DEFAULT_EXPERIMENTAL_FLAGS;
+
+//////////
+
 export interface GlobalContext {
   scheduleRevalidate: () => void;
   scheduleDestroy: <T extends Destroyable>(destroyable: T, destructor: Destructor<T>) => void;
@@ -118,6 +130,7 @@ export interface GlobalContext {
   setProp: (obj: object, prop: string, value: unknown) => void;
   getPath: (obj: object, path: string) => unknown;
   warnIfStyleNotTrusted: (value: unknown) => void;
+  experimental: ExperimentalFlags;
 }
 
 let globalContextWasSet = false;
@@ -168,6 +181,7 @@ if (DEBUG) {
           setProp,
           getPath,
           warnIfStyleNotTrusted,
+          experimental,
         }
       : null;
 
@@ -186,6 +200,7 @@ if (DEBUG) {
     setProp = context?.setProp || setProp;
     getPath = context?.getPath || getPath;
     warnIfStyleNotTrusted = context?.warnIfStyleNotTrusted || warnIfStyleNotTrusted;
+    experimental = context?.experimental || experimental;
 
     return originalGlobalContext;
   };

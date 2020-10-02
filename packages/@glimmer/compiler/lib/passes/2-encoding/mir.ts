@@ -12,7 +12,7 @@ import { AnyOptionalList, OptionalList, PresentList } from '../../shared/list';
 
 export class Template extends node('Template').fields<{
   scope: ProgramSymbolTable;
-  body: Statement[];
+  body: Content[];
 }>() {}
 
 export class InElement extends node('InElement').fields<{
@@ -29,7 +29,7 @@ export class NamedBlocks extends node('NamedBlocks').fields<{
 export class NamedBlock extends node('NamedBlock').fields<{
   scope: BlockSymbolTable;
   name: SourceSlice;
-  body: Statement[];
+  body: Content[];
 }>() {}
 export class EndBlock extends node('EndBlock').fields() {}
 export class AppendTrustedHTML extends node('AppendTrustedHTML').fields<{
@@ -71,13 +71,26 @@ export class DynamicAttr extends node('DynamicAttr').fields<{
 
 export class SimpleElement extends node('SimpleElement').fields<{
   tag: SourceSlice;
-  params: ElementParameters;
-  body: Statement[];
-  dynamicFeatures: boolean;
+  params: ElementAttributes;
+  body: Content[];
+}>() {}
+
+export class DynamicElement extends node('DynamicElement').fields<{
+  tag: SourceSlice;
+  params: DynamicElementAttributes;
+  body: Content[];
 }>() {}
 
 export class ElementParameters extends node('ElementParameters').fields<{
   body: AnyOptionalList<ElementParameter>;
+}>() {}
+
+export class DynamicElementAttributes extends node('DynamicElementAttributes').fields<{
+  body: AnyOptionalList<DynamicElementAttr>;
+}>() {}
+
+export class ElementAttributes extends node('ElementAttributes').fields<{
+  body: AnyOptionalList<ElementAttr>;
 }>() {}
 
 export class Yield extends node('Yield').fields<{
@@ -106,9 +119,6 @@ export class PathExpression extends node('PathExpression').fields<{
   head: ExpressionNode;
   tail: Tail;
 }>() {}
-export class GetWithResolver extends node('GetWithResolver').fields<{
-  symbol: number;
-}>() {}
 
 export class GetSymbol extends node('GetSymbol').fields<{ symbol: number }>() {}
 export class GetFreeWithContext extends node('GetFreeWithContext').fields<{
@@ -124,7 +134,10 @@ export class Missing extends node('Missing').fields() {}
 export class InterpolateExpression extends node('InterpolateExpression').fields<{
   parts: PresentList<ExpressionNode>;
 }>() {}
-export class HasBlock extends node('HasBlock').fields<{ target: SourceSlice; symbol: number }>() {}
+export class HasBlock extends node('HasBlock').fields<{
+  target: SourceSlice;
+  symbol: number;
+}>() {}
 export class HasBlockParams extends node('HasBlockParams').fields<{
   target: SourceSlice;
   symbol: number;
@@ -134,7 +147,11 @@ export class Positional extends node('Positional').fields<{
 }>() {}
 export class NamedArguments extends node('NamedArguments').fields<{
   entries: OptionalList<NamedArgument>;
-}>() {}
+}>() {
+  isEmpty(): boolean {
+    return !this.entries.toPresentArray();
+  }
+}
 export class NamedArgument extends node('NamedArgument').fields<{
   key: SourceSlice;
   value: ExpressionNode;
@@ -155,7 +172,9 @@ export type ExpressionNode =
   | HasBlock
   | HasBlockParams;
 
-export type ElementParameter = StaticAttr | DynamicAttr | Modifier | SplatAttr;
+export type ElementAttr = StaticAttr | DynamicAttr;
+export type DynamicElementAttr = ElementAttr | SplatAttr;
+export type ElementParameter = DynamicElementAttr | Modifier;
 
 export type Internal =
   | Args
@@ -167,7 +186,7 @@ export type Internal =
   | NamedBlocks
   | ElementParameters;
 export type ExprLike = ExpressionNode | Internal;
-export type Statement =
+export type Content =
   | InElement
   | Debugger
   | Yield
@@ -175,6 +194,7 @@ export type Statement =
   | AppendTextNode
   | Component
   | SimpleElement
+  | DynamicElement
   | InvokeBlock
   | Partial
   | AppendComment;

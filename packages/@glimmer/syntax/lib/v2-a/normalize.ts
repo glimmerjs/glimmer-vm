@@ -29,6 +29,7 @@ import {
 } from './loose-resolution';
 
 export function normalize(html: string, options: GlimmerCompileOptions = {}): ASTv2.Template {
+  let source = new Source(html);
   let ast = preprocess(html, options);
 
   let normalizeOptions = assign(
@@ -38,7 +39,6 @@ export function normalize(html: string, options: GlimmerCompileOptions = {}): AS
     options
   );
 
-  let source = new Source(html);
   let top = SymbolTable.top();
   let block = new BlockContext(source, normalizeOptions, top);
   let normalizer = new StatementNormalizer(block);

@@ -23,7 +23,7 @@ export class NormalizationState {
     return this.#currentScope;
   }
 
-  visitBlock(block: ASTv2.Block): Result<OptionalList<mir.Statement>> {
+  visitBlock(block: ASTv2.Block): Result<OptionalList<mir.Content>> {
     let oldBlock = this.#currentScope;
     this.#currentScope = block.scope;
 

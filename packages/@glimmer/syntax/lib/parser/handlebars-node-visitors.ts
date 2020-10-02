@@ -318,6 +318,8 @@ export abstract class HandlebarsNodeVisitors extends Parser {
     let { original, loc } = path;
     let parts: string[];
 
+    // let loc = this.source.spanFor(hbsLoc);
+
     if (original.indexOf('/') !== -1) {
       if (original.slice(0, 2) === './') {
         throw new GlimmerSyntaxError(

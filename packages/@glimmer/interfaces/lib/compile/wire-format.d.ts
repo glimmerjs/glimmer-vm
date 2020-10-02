@@ -208,6 +208,9 @@ export const enum WellKnownAttrName {
   type = 4,
   style = 5,
   href = 6,
+
+  // reserved for situations where you need to disambiguate something with attribute names
+  RESERVED = 9,
 }
 
 export const enum WellKnownTagName {

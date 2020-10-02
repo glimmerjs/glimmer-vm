@@ -8,18 +8,26 @@ import { NormalizationState } from '../../context';
 import { assertIsValidHelper, isHelperInvocation } from '../../utils/is-node';
 import { VISIT_EXPRS } from '../expressions';
 
-export type ValidAttr = mir.StaticAttr | mir.DynamicAttr | mir.SplatAttr;
+export type SimpleAttr = mir.StaticAttr | mir.DynamicAttr;
+export type AttrWithSplat = SimpleAttr | mir.SplatAttr;
 
-type ProcessedAttributes = {
-  attrs: ValidAttr[];
+interface ProcessedAttributes {
+  attrs: AttrWithSplat[];
   args: mir.NamedArguments;
-};
+  hasSplat: boolean;
+}
+
+type ValidAttr<A extends Allow> = A extends { splat: true } ? AttrWithSplat : SimpleAttr;
+
+interface Allow {
+  arg: boolean;
+}
 
 export interface Classified {
   readonly dynamicFeatures: boolean;
 
   arg(attr: ASTv2.AttrNode, classified: ClassifiedElement): Result<mir.NamedArgument>;
-  toStatement(classified: ClassifiedElement, prepared: PreparedArgs): Result<mir.Statement>;
+  toStatement(classified: ClassifiedElement, prepared: PreparedArgs): Result<mir.Content>;
 }
 
 export class ClassifiedElement {
@@ -33,11 +41,11 @@ export class ClassifiedElement {
     this.delegate = delegate;
   }
 
-  toStatement(): Result<mir.Statement> {
+  toStatement(): Result<mir.Content> {
     return this.prepare().andThen((prepared) => this.delegate.toStatement(this, prepared));
   }
 
-  private attr(attr: ASTv2.HtmlAttr): Result<ValidAttr> {
+  private attr(attr: ASTv2.HtmlAttr): Result<AttrWithSplat> {
     let name = attr.name;
     let rawValue = attr.value;
     let namespace = getAttrNamespace(name.chars) || undefined;
@@ -90,16 +98,23 @@ export class ClassifiedElement {
     );
   }
 
-  private attrs(): Result<ProcessedAttributes> {
-    let attrs = new ResultArray<ValidAttr>();
+  private attrs<A extends Allow>(): Result<ProcessedAttributes> {
+    let attrs = new ResultArray<AttrWithSplat>();
     let args = new ResultArray<mir.NamedArgument>();
+    let hasSplat = false;
 
     let typeAttr: ASTv2.AttrNode | null = null;
 
     for (let attr of this.element.attrs) {
       if (attr.type === 'SplatAttr') {
+        hasSplat = true;
         attrs.add(
-          Ok(new mir.SplatAttr({ loc: attr.loc, symbol: this.state.scope.allocateBlock('attrs') }))
+          Ok(
+            new mir.SplatAttr({
+              loc: attr.loc,
+              symbol: this.state.scope.allocateBlock('attrs'),
+            }) as ValidAttr<A>
+          )
         );
       } else if (attr.name.chars === 'type') {
         typeAttr = attr;
@@ -122,6 +137,7 @@ export class ClassifiedElement {
         loc: maybeLoc(args, SourceSpan.NON_EXISTENT),
         entries: OptionalList(args),
       }),
+      hasSplat,
     }));
   }
 
@@ -130,24 +146,58 @@ export class ClassifiedElement {
     let modifiers = new ResultArray(this.element.modifiers.map((m) => this.modifier(m))).toArray();
 
     return Result.all(attrs, modifiers).mapOk(([result, modifiers]) => {
-      let { attrs, args } = result;
+      let { attrs, args, hasSplat } = result;
 
-      let elementParams = [...attrs, ...modifiers];
+      if (!args.isEmpty()) {
+        let elementParams = [...attrs, ...modifiers];
 
-      let params = new mir.ElementParameters({
-        loc: maybeLoc(elementParams, SourceSpan.NON_EXISTENT),
-        body: OptionalList(elementParams),
-      });
+        let params = new mir.ElementParameters({
+          loc: maybeLoc(elementParams, SourceSpan.NON_EXISTENT),
+          body: OptionalList(elementParams),
+        });
 
-      return { args, params };
+        return { type: 'component', args, params };
+      } else if (hasSplat) {
+        let elementParams = [...attrs, ...modifiers];
+
+        let params = new mir.DynamicElementAttributes({
+          loc: maybeLoc(elementParams, SourceSpan.NON_EXISTENT),
+          body: OptionalList(elementParams as mir.DynamicElementAttr[]),
+        });
+
+        return { type: 'dynamic', args, params };
+      } else {
+        let elementParams = [...attrs, ...modifiers];
+
+        let params = new mir.ElementAttributes({
+          loc: maybeLoc(elementParams, SourceSpan.NON_EXISTENT),
+          body: OptionalList(elementParams as mir.ElementAttr[]),
+        });
+
+        return { type: 'simple', args, params };
+      }
     });
   }
 }
 
-export interface PreparedArgs {
+export type PreparedComponentArgs = {
+  type: 'component';
   args: mir.NamedArguments;
   params: mir.ElementParameters;
-}
+};
+
+export type PreparedSimpleArgs = {
+  type: 'simple';
+  params: mir.ElementAttributes;
+};
+
+export type PreparedDynamicArgs = {
+  type: 'dynamic';
+  params: mir.DynamicElementAttributes;
+};
+
+export type PreparedElementArgs = PreparedSimpleArgs | PreparedDynamicArgs;
+export type PreparedArgs = PreparedComponentArgs | PreparedElementArgs;
 
 export function hasDynamicFeatures({
   attrs,
