@@ -60,7 +60,7 @@ export const enum SexpOpcodes {
   HasBlock = 27,
   HasBlockParams = 28,
   Undefined = 29,
-  Call = 30,
+  InvokeHelper = 30,
   Concat = 31,
 
   GetPath = 32,
@@ -183,14 +183,14 @@ export namespace Expressions {
   export type Value = StringValue | NumberValue | BooleanValue | NullValue;
   export type Undefined = [SexpOpcodes.Undefined];
 
-  export type TupleExpression = Get | Concat | HasBlock | HasBlockParams | Helper | Undefined;
+  export type TupleExpression = Get | Concat | HasBlock | HasBlockParams | InvokeHelper | Undefined;
 
   // TODO get rid of undefined, which is just here to allow trailing undefined in attrs
   // it would be better to handle that as an over-the-wire encoding concern
   export type Expression = TupleExpression | Value | undefined;
 
   export type Concat = [SexpOpcodes.Concat, Core.ConcatParams];
-  export type Helper = [SexpOpcodes.Call, Expression, Option<Params>, Hash];
+  export type InvokeHelper = [SexpOpcodes.InvokeHelper, Expression, Option<Params>, Hash];
   export type HasBlock = [SexpOpcodes.HasBlock, Expression];
   export type HasBlockParams = [SexpOpcodes.HasBlockParams, Expression];
 }
@@ -326,6 +326,9 @@ export namespace Statements {
     | DynamicArg
     | Debugger
     | InElement;
+
+  export type ComponentAttribute = StaticComponentAttr | ComponentAttr | TrustingComponentAttr;
+  export type ElementAttribute = StaticAttr | DynamicAttr | TrustingDynamicAttr;
 
   export type Attribute =
     | StaticAttr

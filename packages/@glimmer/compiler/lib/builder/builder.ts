@@ -229,7 +229,10 @@ export function buildStatement(
       );
 
       return [
-        [trusted ? Op.TrustingAppend : Op.Append, [Op.Call, builtExpr, builtParams, builtHash]],
+        [
+          trusted ? Op.TrustingAppend : Op.Append,
+          [Op.InvokeHelper, builtExpr, builtParams, builtHash],
+        ],
       ];
     }
 
@@ -489,7 +492,7 @@ export function buildExpression(
         symbols
       );
 
-      return [Op.Call, builtExpr, builtParams, builtHash];
+      return [Op.InvokeHelper, builtExpr, builtParams, builtHash];
     }
 
     case ExpressionKind.HasBlock: {

@@ -178,7 +178,7 @@ export class ContentEncoder {
 
   ElementParameters({
     body,
-  }: mir.ElementParameters): OptionalList<packed.content.ElementParameter> {
+  }: mir.ElementParameters): OptionalList<packed.content.ComponentParameter> {
     return body.map((p) => CONTENT.ElementParameter(p));
   }
 
@@ -202,7 +202,7 @@ export class ContentEncoder {
     }
   }
 
-  ElementParameter(param: mir.ElementParameter): packed.content.ElementParameter {
+  ElementParameter(param: mir.ElementParameter): packed.content.ComponentParameter {
     switch (param.type) {
       case 'Modifier':
         return EXPR.CallExpression(param);

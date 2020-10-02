@@ -127,7 +127,7 @@ export class Inlines implements MacroInlines {
     let params: Option<WireFormat.Core.Params>;
     let hash: Option<WireFormat.Core.Hash>;
 
-    if (value[0] === SexpOpcodes.Call) {
+    if (value[0] === SexpOpcodes.InvokeHelper) {
       let nameOrError = expectLooseFreeVariable(
         value[1],
         context.meta,

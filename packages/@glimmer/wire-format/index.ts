@@ -1,6 +1,7 @@
 import { Statements, Statement, SexpOpcodes, Expressions, Expression } from '@glimmer/interfaces';
 
 export * as packed from './lib/packed/index';
+export * as unpack from './lib/packed/unpack/index';
 
 export function is<T>(variant: number): (value: any) => value is T {
   return function (value: any): value is T {
@@ -36,8 +37,8 @@ export function isArgument(val: Statement): val is Statements.Argument {
   return val[0] === SexpOpcodes.StaticArg || val[0] === SexpOpcodes.DynamicArg;
 }
 
-export function isHelper(expr: Expression): expr is Expressions.Helper {
-  return Array.isArray(expr) && expr[0] === SexpOpcodes.Call;
+export function isHelper(expr: Expression): expr is Expressions.InvokeHelper {
+  return Array.isArray(expr) && expr[0] === SexpOpcodes.InvokeHelper;
 }
 
 // Expressions

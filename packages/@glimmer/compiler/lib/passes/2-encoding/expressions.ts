@@ -76,12 +76,12 @@ export class ExpressionEncoder {
     return [SexpOpcodes.Concat, parts.map((e) => EXPR.expr(e)).toArray()];
   }
 
-  CallExpression({ callee, args }: mir.CallExpression): WireFormat.Expressions.Helper {
+  CallExpression({ callee, args }: mir.CallExpression): WireFormat.Expressions.InvokeHelper {
     // let head = ctx.popValue(EXPR);
     // let params = ctx.popValue(PARAMS);
     // let hash = ctx.popValue(HASH);
 
-    return [SexpOpcodes.Call, EXPR.expr(callee), ...EXPR.Args(args)];
+    return [SexpOpcodes.InvokeHelper, EXPR.expr(callee), ...EXPR.Args(args)];
   }
 
   Tail({ members }: mir.Tail): PresentArray<string> {

@@ -1,5 +1,5 @@
-import { assertNever, unreachable } from '@glimmer/util';
 import { PresentArray } from '@glimmer/interfaces';
+import { assertNever, unreachable } from '@glimmer/util';
 import { ElementModifier } from '../content';
 import {
   Expression,
@@ -14,7 +14,6 @@ import {
   UnambiguousExpression,
   VariableNamespace,
 } from '../expr';
-import { combine, Scope } from './shared';
 
 export interface ExprOutput {
   expr: unknown;
@@ -34,7 +33,7 @@ export interface ExprOutput {
   args: unknown;
 }
 
-interface UnpackExpr<O extends ExprOutput> {
+export interface UnpackExpr<O extends ExprOutput> {
   hasBlock(symbol: number | undefined): O['HasBlock'];
   hasBlockParams(symbol: number | undefined): O['HasBlockParams'];
   literal(value: null | undefined | boolean | string | number): O['Literal'];
@@ -46,116 +45,16 @@ interface UnpackExpr<O extends ExprOutput> {
   getLooseAppend(upvar: number): O['GetLooseAppend'];
   getPath(head: O['expr'], tail: PresentArray<string>): O['GetPath'];
   invoke(callee: O['expr'], args: O['args']): O['Invoke'];
-  positional(positional: null | O['expr'][]): O['positionalArguments'];
+  positional(positional: null | PresentArray<O['expr']>): O['positionalArguments'];
   namedArguments(positional: null | [string, O['expr']][]): O['namedArguments'];
   args(positional: null | O['positionalArguments'], named: null | O['namedArguments']): O['args'];
-}
-
-export interface ExprDebugOutput {
-  expr: ExpressionDebug;
-  HasBlock: HasBlockDebug;
-  HasBlockParams: HasBlockParamsDebug;
-  Literal: null | undefined | boolean | string | number;
-  GetThis: 'this';
-  GetSymbol: string;
-  GetNamespacedFree: string;
-  GetStrictFree: string;
-  GetLooseAttr: string;
-  GetLooseAppend: string;
-  GetPath: PathDebug;
-  Invoke: CallDebug;
-  positionalArguments: PositionalDebug;
-  namedArguments: NamedArgumentsDebug;
-  args: ArgsDebug;
-}
-
-class ExprDebugDecoder implements UnpackExpr<ExprDebugOutput> {
-  constructor(private scope: Scope) {}
-
-  hasBlock(symbol: number | undefined): HasBlockDebug {
-    if (symbol === undefined) {
-      return '%has-block';
-    } else {
-      return ['%has-block', this.scope.upvars[symbol]];
-    }
-  }
-
-  hasBlockParams(symbol: number | undefined): HasBlockParamsDebug {
-    if (symbol === undefined) {
-      return '%has-block-params';
-    } else {
-      return ['%has-block-params', this.scope.upvars[symbol]];
-    }
-  }
-
-  literal(
-    value: string | number | boolean | null | undefined
-  ): string | number | boolean | null | undefined {
-    return value;
-  }
-
-  getThis(): 'this' {
-    return 'this';
-  }
-
-  getSymbol(value: number): string {
-    return this.scope.symbols[value];
-  }
-
-  getNamespacedFree(upvar: number, namespace: VariableNamespace): string {
-    return `${varNamespace(namespace)}::${this.scope.upvars[upvar]}`;
-  }
-
-  getStrictFree(upvar: number): string {
-    return `!${this.scope.upvars[upvar]}`;
-  }
-
-  getLooseAttr(upvar: number): string {
-    return `attr?::${this.scope.upvars[upvar]}`;
-  }
-
-  getLooseAppend(upvar: number): string {
-    return `append?::${this.scope.upvars[upvar]}`;
-  }
-
-  getPath(head: ExpressionDebug, tail: string[]): PathDebug {
-    return ['.', head, tail.join('.')];
-  }
-
-  invoke(callee: ExpressionDebug, args: ArgsDebug): CallDebug {
-    return ['()', callee, ...args];
-  }
-
-  positional(positional: ExpressionDebug[] | null): PositionalDebug {
-    return positional;
-  }
-
-  namedArguments(
-    named: [string, ExpressionDebug][] | null
-  ): Record<string, ExpressionDebug> | null {
-    if (named === null) {
-      return null;
-    }
-
-    let o: Record<string, ExpressionDebug> = {};
-
-    for (let [key, value] of named) {
-      o[key] = value;
-    }
-
-    return o;
-  }
-
-  args(positional: PositionalDebug, named: Record<string, ExpressionDebug>): ArgsDebug {
-    return combine(positional, named);
-  }
 }
 
 const NONE = Object.freeze({ none: true });
 type NONE = typeof NONE;
 
 export class ExprDecoder<O extends ExprOutput> {
-  constructor(private scope: Scope, readonly decoder: UnpackExpr<O>) {}
+  constructor(readonly decoder: UnpackExpr<O>) {}
 
   expr(e: Expression): O['expr'] {
     if (isLonghand(e)) {
@@ -304,39 +203,6 @@ export class ExprDecoder<O extends ExprOutput> {
   }
 }
 
-export type CallDebug =
-  | ['()', ExpressionDebug]
-  | ['()', ExpressionDebug, PositionalDebug]
-  | ['()', ExpressionDebug, NamedArgumentsDebug]
-  | ['()', ExpressionDebug, PositionalDebug, NamedArgumentsDebug];
-
-export type PathDebug = ['.', ExpressionDebug, string];
-
-export type UnambiguousExpressionDebug = string | 'this' | PathDebug | CallDebug;
-
-export type ArgsDebug =
-  | []
-  | [PositionalDebug]
-  | [NamedArgumentsDebug]
-  | [PositionalDebug, NamedArgumentsDebug];
-
-export type PositionalDebug = ExpressionDebug[] | null;
-
-export type NamedArgumentsDebug = Record<string, ExpressionDebug> | null;
-
-type HasBlockDebug = '%has-block' | ['%has-block', ExpressionDebug];
-type HasBlockParamsDebug = '%has-block-params' | ['%has-block-params', ExpressionDebug];
-
-export type ExpressionDebug =
-  | UnambiguousExpressionDebug
-  | HasBlockDebug
-  | HasBlockParamsDebug
-  | null
-  | undefined
-  | boolean
-  | string
-  | number;
-
 function isLonghand(e: Expression): e is LonghandExpression {
   return (
     e !== ExprOp.GetThis &&
@@ -344,17 +210,4 @@ function isLonghand(e: Expression): e is LonghandExpression {
     e !== SpecialExpr.HasBlockParams &&
     typeof e !== 'string'
   );
-}
-
-function varNamespace(ns: VariableNamespace): string {
-  switch (ns) {
-    case VariableNamespace.Component:
-      return 'component';
-    case VariableNamespace.Helper:
-      return 'helper';
-    case VariableNamespace.Modifier:
-      return 'modifier';
-    case VariableNamespace.HelperOrComponent:
-      return 'append';
-  }
 }

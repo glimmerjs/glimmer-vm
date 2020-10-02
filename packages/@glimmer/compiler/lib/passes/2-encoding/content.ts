@@ -130,7 +130,7 @@ export class ContentEncoder {
 
   Component({ tag, params, args, blocks }: mir.Component): WireFormat.Statements.Component {
     let wireTag = EXPR.expr(tag);
-    let wirePositional = CONTENT.ElementParameters(params);
+    let wireComponentParams = CONTENT.ElementParameters(params);
     let wireNamed = EXPR.NamedArguments(args);
 
     let wireNamedBlocks = CONTENT.NamedBlocks(blocks);
@@ -138,7 +138,7 @@ export class ContentEncoder {
     return [
       SexpOpcodes.Component,
       wireTag,
-      wirePositional.toPresentArray(),
+      wireComponentParams.toPresentArray(),
       wireNamed,
       wireNamedBlocks,
     ];

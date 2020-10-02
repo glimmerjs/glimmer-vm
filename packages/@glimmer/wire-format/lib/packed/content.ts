@@ -88,7 +88,7 @@ export type InvokeComponent = readonly [
   op: ContentOp.InvokeComponent,
   callee: Expression,
   blocks: NamedBlocks,
-  parameters: PackedList<ElementParameter>,
+  parameters: PackedList<ComponentParameter>,
   args: NamedArguments
 ];
 
@@ -143,7 +143,7 @@ export const enum AttrOptions {
   TrustedXmlNs = 6,
 }
 
-export function isTrusted(options: AttrOptions): boolean {
+export function isTrusted(options: AttrOptions | undefined): boolean {
   return (
     options === AttrOptions.TrustedHtml ||
     options === AttrOptions.TrustedXlink ||
@@ -233,9 +233,9 @@ export function block(content: Content[], params?: number[]): InlineBlock {
 
 export type NamedBlocks = [names: string, ...blocks: InlineBlock[]];
 
-export type ElementParameter = ElementAttr | AttrSplat | ElementModifier;
+export type ComponentParameter = ElementAttr | AttrSplat | ElementModifier;
 
-export function isModifier(p: ElementParameter): p is ElementModifier {
+export function isModifier(p: ComponentParameter): p is ElementModifier {
   return Array.isArray(p) && p[0] === WellKnownAttrName.RESERVED;
 }
 

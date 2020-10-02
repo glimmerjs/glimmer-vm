@@ -28,7 +28,7 @@ EXPRESSIONS.add(SexpOpcodes.Concat, ([, parts]) => {
   return out;
 });
 
-EXPRESSIONS.add(SexpOpcodes.Call, ([, name, params, hash], meta) => {
+EXPRESSIONS.add(SexpOpcodes.InvokeHelper, ([, name, params, hash], meta) => {
   // TODO: triage this in the WF compiler
   let start = 0;
   let offset = 0;
