@@ -16,6 +16,13 @@ import {
 } from './expr';
 import { PackedList } from './shared';
 
+export interface Template {
+  symbols: string[];
+  hasEval: boolean;
+  upvars: string[];
+  statements: Content[];
+}
+
 export const enum ContentOp {
   Append = 0,
   InvokeBlock = 1,
@@ -56,8 +63,13 @@ export type PackedOption<T extends object> = T | Null;
  */
 export type ShorthandContent = string;
 export type AppendContent =
+  | readonly [op: ContentOp.Append, value: string, what: AppendWhat.Comment]
   | readonly [op: ContentOp.Append, value: ShorthandContent]
-  | readonly [op: ContentOp.Append, value: LonghandExpression, what?: AppendWhat];
+  | readonly [
+      op: ContentOp.Append,
+      value: LonghandExpression,
+      what?: AppendWhat.Text | AppendWhat.Html
+    ];
 
 export function appendStatic(value: string, what: AppendWhat): AppendContent {
   switch (what) {

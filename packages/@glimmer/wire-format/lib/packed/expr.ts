@@ -136,7 +136,7 @@ export type Special = ShorthandSpecial | LonghandSpecial;
 
 export type Interpolate = [op: SpecialExpr.Interpolate, ...parts: PresentArray<Expression>];
 
-export type PositionalArguments = Expression[] | LiteralValue.Null;
+export type PositionalArguments = PresentArray<Expression> | LiteralValue.Null;
 
 export type PresentNamedArguments = [
   /** pipe-separated list of names */

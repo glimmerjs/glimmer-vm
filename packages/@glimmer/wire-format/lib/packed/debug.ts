@@ -1,8 +1,5 @@
 import { AttrNamespace } from '@simple-dom/interface';
-import { assert } from '@glimmer/util';
-import { AppendWhat } from './content';
-import { VariableNamespace } from './expr';
-import { Null } from './expr';
+import { Null, VariableNamespace } from './expr';
 import { ContentOutput, UnpackContent } from './unpack/content';
 import { ExprDecoder, UnpackExpr } from './unpack/expr';
 
@@ -14,7 +11,7 @@ interface ContentDebugOutput extends ContentOutput {
   Partial: ['%partial', ExpressionDebug];
   Yield: YieldDebug;
   InElement: InElementDebug;
-  Block: InvokeBlockDebug;
+  InvokeBlock: InvokeBlockDebug;
   Component: InvokeComponentDebug;
   SimpleElement: SimpleElementDebug;
   ElementModifier: CallDebug;
@@ -34,7 +31,7 @@ interface ContentDebugOutput extends ContentOutput {
   elementAttrWithNs: ElementAttrDebug;
 }
 
-class ContentDebugDecoder implements UnpackContent<ContentDebugOutput, ExprDebugOutput> {
+export class ContentDebugDecoder implements UnpackContent<ContentDebugOutput, ExprDebugOutput> {
   constructor(private scope: Scope, private expr: ExprDecoder<ExprDebugOutput>) {}
 
   inElement(
@@ -63,15 +60,68 @@ class ContentDebugDecoder implements UnpackContent<ContentDebugOutput, ExprDebug
     return ['...attributes', '...attributes'];
   }
 
-  elementAttr(name: string, value: ExpressionDebug | InterpolateDebug): ElementAttrDebug {
+  elementAttr(options: {
+    name: string;
+    value: AttrValueDebugWithoutNs;
+    dynamic: true;
+    trusting: boolean;
+  }): ElementAttrDebug;
+  elementAttr(options: {
+    name: string;
+    value: AttrValueDebugWithoutNs;
+    dynamic: false;
+    trusting: boolean;
+  }): ElementAttrDebug;
+  elementAttr(options: {
+    name: string;
+    value: AttrValueDebugWithoutNs;
+    dynamic: boolean;
+    trusting: boolean;
+  }): ElementAttrDebug;
+  elementAttr({
+    name,
+    value,
+  }: {
+    name: string;
+    value: AttrValueDebugWithoutNs;
+    dynamic: boolean;
+    trusting: boolean;
+  }): ElementAttrDebug {
     return [name, value];
   }
 
-  elementAttrWithNs(
-    name: string,
-    value: ExpressionDebug | InterpolateDebug,
-    ns: AttrNamespace
-  ): ElementAttrDebug {
+  elementAttrWithNs(options: {
+    name: string;
+    value: AttrValueDebugWithoutNs;
+    ns: AttrNamespace;
+    dynamic: true;
+    trusting: boolean;
+  }): ElementAttrDebug;
+  elementAttrWithNs(options: {
+    name: string;
+    value: AttrValueDebugWithoutNs;
+    ns: AttrNamespace;
+    dynamic: false;
+    trusting: boolean;
+  }): ElementAttrDebug;
+  elementAttrWithNs(options: {
+    name: string;
+    value: AttrValueDebugWithoutNs;
+    ns: AttrNamespace;
+    dynamic: boolean;
+    trusting: boolean;
+  }): ElementAttrDebug;
+  elementAttrWithNs({
+    name,
+    value,
+    ns,
+  }: {
+    name: string;
+    value: AttrValueDebugWithoutNs;
+    ns: AttrNamespace;
+    dynamic: boolean;
+    trusting: boolean;
+  }): ElementAttrDebug {
     return [name, value, ns];
   }
 
@@ -101,38 +151,16 @@ class ContentDebugDecoder implements UnpackContent<ContentDebugOutput, ExprDebug
     return this.expr.decoder.invoke(callee, args);
   }
 
-  append(value: string, what: AppendWhat | undefined): AppendDebug {
-    if (what === undefined && typeof value === 'string') {
-      switch (value[0]) {
-        case '!':
-          return `comment|${value.slice(1)}`;
-        case '#':
-          return `html|${value.slice(1)}`;
-        default:
-          return `text|${value}`;
-      }
+  append(value: ExpressionDebug, trusting: boolean): AppendDebug {
+    if (typeof value === 'string') {
+      return trusting ? `html|${value}` : `text|${value}`;
+    } else {
+      return trusting ? ['html', value] : ['text', value];
     }
+  }
 
-    switch (what) {
-      case AppendWhat.Comment:
-        assert(typeof value === 'string', `dynamic contents are not allowed`);
-        return `comment|${value}`;
-      case AppendWhat.Html: {
-        if (typeof value === 'string') {
-          return `html|${value}`;
-        } else {
-          return ['html', this.expr.expr(value)];
-        }
-      }
-      case AppendWhat.Text:
-        if (typeof value === 'string') {
-          return `text|${value}`;
-        } else {
-          return ['text', this.expr.expr(value)];
-        }
-      case undefined:
-        return ['text', this.expr.expr(value)];
-    }
+  appendComment(value: string): string {
+    return `comment|${value}`;
   }
 
   yield(to: number, positional: ExpressionDebug[]): YieldDebug {
@@ -259,7 +287,7 @@ export interface ExprDebugOutput {
   args: ArgsDebug;
 }
 
-class ExprDebugDecoder implements UnpackExpr<ExprDebugOutput> {
+export class ExprDebugDecoder implements UnpackExpr<ExprDebugOutput> {
   constructor(private scope: Scope) {}
 
   hasBlock(symbol: number | undefined): HasBlockDebug {

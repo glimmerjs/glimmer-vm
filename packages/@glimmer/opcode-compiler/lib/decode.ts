@@ -12,49 +12,127 @@ import { AttrNamespace } from '@simple-dom/interface';
 import Op = SexpOpcodes;
 import Expr = WireFormat.Expressions;
 import Stmt = WireFormat.Statements;
+import Core = WireFormat.Core;
 
 export function decode(raw: string, encoder: 'default' | 'packed'): SerializedTemplateBlock {
   if (encoder === 'default') {
     return JSON.parse(raw);
   } else {
   }
-  // let encoded = JSON.parse(raw) as packed.Template;
+
+  let packedTemplate = JSON.parse(raw) as unpack.Template;
+
+  let decoder = new unpack.Decoder(
+    new ContentUnpacker(packedTemplate),
+    new ExpressionUnpacker(packedTemplate),
+    packedTemplate
+  );
+
+  let out = WireStatements.toArray(decoder.decode());
+
+  return {
+    symbols: packedTemplate.symbols,
+    upvars: packedTemplate.upvars,
+    hasEval: packedTemplate.hasEval,
+    statements: out,
+  };
 }
 
-interface ContentOutput {
-  content: WireFormat.Statement;
-  Comment: WireFormat.Statements.Comment;
-  Append: WireFormat.Statements.Append | WireFormat.Statements.TrustingAppend;
-  Yield: WireFormat.Statements.Yield;
-  Debugger: WireFormat.Statements.Debugger;
-  Partial: WireFormat.Statements.Partial;
-  InElement: WireFormat.Statements.InElement;
-  Block: WireFormat.Statements.Block;
-  Component: WireFormat.Statements.Component;
-  SimpleElement: WireFormat.Statement[];
-  ElementModifier: WireFormat.Statements.Modifier;
-  SplatAttr: WireFormat.Statements.AttrSplat;
-  Interpolate: WireFormat.Expressions.Concat;
+export interface ExpressionOutput {
+  expr: Expr.Expression;
+  HasBlock: Expr.HasBlock;
+  HasBlockParams: Expr.HasBlockParams;
+  Literal: Expr.Value | Expr.Undefined;
+  GetThis: Expr.GetSymbol;
+  GetSymbol: Expr.GetSymbol;
+  GetNamespacedFree: Expr.GetContextualFree;
+  GetStrictFree: Expr.GetStrictFree;
+  GetLooseAttr: Expr.GetContextualFree;
+  GetLooseAppend: Expr.GetContextualFree;
+  GetPath: Expr.GetPath;
+  Invoke: Expr.InvokeHelper;
+  positionalArguments: Core.Params;
+  namedArguments: Core.Hash;
+  args: Core.Args;
+}
+
+type Content = WireFormat.Statement | WireStatements;
+
+class WireStatements {
+  static toArray(content: Content[]): WireFormat.Statement[] {
+    let stmts = new WireStatements();
+
+    for (let item of content) {
+      stmts.add(item);
+    }
+
+    return stmts.toArray();
+  }
+
+  constructor(private list: WireFormat.Statement[] = []) {}
+
+  addList(items: Content[] | null) {
+    if (items === null) {
+      return;
+    }
+
+    for (let item of items) {
+      this.add(item);
+    }
+  }
+
+  add(item: Content | null) {
+    if (item === null) {
+      return;
+    }
+
+    if (item instanceof WireStatements) {
+      this.list.push(...item.toArray());
+    } else {
+      this.list.push(item);
+    }
+  }
+
+  toArray(): WireFormat.Statement[] {
+    return this.list;
+  }
+}
+export interface ContentOutput {
+  Append: Stmt.Append | Stmt.TrustingAppend;
+  Comment: Stmt.Comment;
+  Yield: Stmt.Yield;
+  Debugger: Stmt.Debugger;
+  Partial: Stmt.Partial;
+  InElement: Stmt.InElement;
+  InvokeBlock: Stmt.Block;
+  Component: Stmt.Component;
+  SimpleElement: WireStatements;
+  DynamicElement: WireStatements;
+  ElementModifier: Stmt.Modifier;
+  SplatAttr: Stmt.AttrSplat;
+  Interpolate: Expr.Concat;
   inlineBlock: WireFormat.SerializedInlineBlock;
-  positionalArguments: WireFormat.Core.Params;
-  namedArguments: WireFormat.Core.Hash;
-  args: WireFormat.Core.Args;
-  namedBlocks: WireFormat.Core.Blocks;
-  componentParams: WireFormat.Core.ElementParameters;
-  dynamicElementParams: WireFormat.Statements.Attribute[];
-  simpleElementParams: WireFormat.Statements.Attribute[];
+  positionalArguments: Core.Params;
+  namedArguments: Core.Hash;
+  args: Core.Args;
+  namedBlocks: Core.Blocks;
+  componentParams: Stmt.ComponentAttribute[];
+  dynamicElementParams: Stmt.ComponentAttribute[];
+  simpleElementParams: Stmt.ElementAttribute[];
 
-  elementAttr: WireFormat.Statements.ElementAttribute;
-  elementAttrWithNs: WireFormat.Statements.ElementAttribute;
-  elementAttrs: WireFormat.Statements.ElementAttribute[];
+  elementAttr: Stmt.ElementAttribute;
+  elementAttrWithNs: Stmt.ElementAttribute;
+  elementAttrs: Stmt.ElementAttribute[];
 
-  dynamicElementAttr: WireFormat.Statements.ComponentAttribute;
-  dynamicElementAttrWithNs: WireFormat.Statements.ComponentAttribute;
-  dynamicElementAttrs: WireFormat.Statements.ComponentAttribute[];
+  dynamicElementAttr: Stmt.ComponentAttribute;
+  dynamicElementAttrWithNs: Stmt.ComponentAttribute;
+  dynamicElementAttrs: Stmt.ComponentAttribute[];
 }
 
-class PackedContentDecoder implements unpack.UnpackContent<ContentOutput, ExpressionOutput> {
-  constructor(private scope: unpack.Scope) {}
+class ContentUnpacker extends unpack.UnpackContent<ContentOutput, ExpressionOutput> {
+  constructor(private scope: unpack.Scope) {
+    super();
+  }
 
   appendComment(value: string): WireFormat.Statements.Comment {
     return [SexpOpcodes.Comment, value];
@@ -98,29 +176,33 @@ class PackedContentDecoder implements unpack.UnpackContent<ContentOutput, Expres
   simpleElement(
     tag: string,
     attrs: WireFormat.Statements.ElementAttribute[] | null,
-    content: WireFormat.Statements.Statement[] | null
-  ): WireFormat.Statements.Statement[] {
-    return [
-      [SexpOpcodes.OpenElement, tag],
-      ...(attrs || []),
-      [SexpOpcodes.FlushElement],
-      ...(content || []),
-      [SexpOpcodes.CloseElement],
-    ];
+    content: Content[] | null
+  ): WireStatements {
+    let stmts = new WireStatements();
+
+    stmts.add([SexpOpcodes.OpenElement, tag]);
+    stmts.addList(attrs);
+    stmts.add([SexpOpcodes.FlushElement]);
+    stmts.addList(content);
+    stmts.add([SexpOpcodes.CloseElement]);
+
+    return stmts;
   }
 
   dynamicElement(
     tag: string,
     attrs: (WireFormat.Statements.ComponentAttribute | WireFormat.Statements.AttrSplat)[] | null,
-    content: WireFormat.Statements.Statement[] | null
-  ): WireFormat.Statements.Statement[] {
-    return [
-      [SexpOpcodes.OpenElementWithSplat, tag],
-      ...(attrs || []),
-      [SexpOpcodes.FlushElement],
-      ...(content || []),
-      [SexpOpcodes.CloseElement],
-    ];
+    content: Content[] | null
+  ): WireStatements {
+    let stmts = new WireStatements();
+
+    stmts.add([SexpOpcodes.OpenElementWithSplat, tag]);
+    stmts.addList(attrs);
+    stmts.add([SexpOpcodes.FlushElement]);
+    stmts.addList(content);
+    stmts.add([SexpOpcodes.CloseElement]);
+
+    return stmts;
   }
 
   component(
@@ -164,12 +246,9 @@ class PackedContentDecoder implements unpack.UnpackContent<ContentOutput, Expres
     }
   }
 
-  inlineBlock(
-    params: number[],
-    content: WireFormat.Statements.Statement[]
-  ): WireFormat.SerializedInlineBlock {
+  inlineBlock(params: number[], content: Content[]): WireFormat.SerializedInlineBlock {
     return {
-      statements: content,
+      statements: WireStatements.toArray(content),
       parameters: params,
     };
   }
@@ -309,26 +388,10 @@ class PackedContentDecoder implements unpack.UnpackContent<ContentOutput, Expres
   }
 }
 
-interface ExpressionOutput {
-  expr: WireFormat.Expression;
-  HasBlock: WireFormat.Expressions.HasBlock;
-  HasBlockParams: WireFormat.Expressions.HasBlockParams;
-  Literal: WireFormat.Expressions.Value | WireFormat.Expressions.Undefined;
-  GetThis: WireFormat.Expressions.GetSymbol;
-  GetSymbol: WireFormat.Expressions.GetSymbol;
-  GetNamespacedFree: WireFormat.Expressions.GetContextualFree;
-  GetStrictFree: WireFormat.Expressions.GetStrictFree;
-  GetLooseAttr: WireFormat.Expressions.GetContextualFree;
-  GetLooseAppend: WireFormat.Expressions.GetContextualFree;
-  GetPath: WireFormat.Expressions.GetPath;
-  Invoke: WireFormat.Expressions.InvokeHelper;
-  positionalArguments: WireFormat.Core.Params;
-  namedArguments: WireFormat.Core.Hash;
-  args: WireFormat.Core.Args;
-}
-
-class PackedExpressionDecoder implements unpack.UnpackExpr<ExpressionOutput> {
-  constructor(private scope: unpack.Scope) {}
+class ExpressionUnpacker extends unpack.UnpackExpr<ExpressionOutput> {
+  constructor(private scope: unpack.Scope) {
+    super();
+  }
 
   hasBlock(symbol: number | undefined): WireFormat.Expressions.HasBlock {
     return [

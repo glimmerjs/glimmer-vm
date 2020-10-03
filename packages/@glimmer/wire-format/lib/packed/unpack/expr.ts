@@ -1,5 +1,5 @@
 import { PresentArray } from '@glimmer/interfaces';
-import { assertNever, unreachable } from '@glimmer/util';
+import { assertNever, mapPresent, unreachable } from '@glimmer/util';
 import { ElementModifier } from '../content';
 import {
   Expression,
@@ -33,22 +33,29 @@ export interface ExprOutput {
   args: unknown;
 }
 
-export interface UnpackExpr<O extends ExprOutput> {
-  hasBlock(symbol: number | undefined): O['HasBlock'];
-  hasBlockParams(symbol: number | undefined): O['HasBlockParams'];
-  literal(value: null | undefined | boolean | string | number): O['Literal'];
-  getThis(): O['GetThis'];
-  getSymbol(value: number): O['GetSymbol'];
-  getNamespacedFree(upvar: number, namespace: VariableNamespace): O['GetNamespacedFree'];
-  getStrictFree(upvar: number): O['GetStrictFree'];
-  getLooseAttr(upvar: number): O['GetLooseAttr'];
-  getLooseAppend(upvar: number): O['GetLooseAppend'];
-  getPath(head: O['expr'], tail: PresentArray<string>): O['GetPath'];
-  invoke(callee: O['expr'], args: O['args']): O['Invoke'];
-  positional(positional: null | PresentArray<O['expr']>): O['positionalArguments'];
-  namedArguments(positional: null | [string, O['expr']][]): O['namedArguments'];
-  args(positional: null | O['positionalArguments'], named: null | O['namedArguments']): O['args'];
+export abstract class UnpackExpr<O extends ExprOutput> {
+  abstract hasBlock(symbol: number | undefined): O['HasBlock'];
+  abstract hasBlockParams(symbol: number | undefined): O['HasBlockParams'];
+  abstract literal(value: null | undefined | boolean | string | number): O['Literal'];
+  abstract getThis(): O['GetThis'];
+  abstract getSymbol(value: number): O['GetSymbol'];
+  abstract getNamespacedFree(upvar: number, namespace: VariableNamespace): O['GetNamespacedFree'];
+  abstract getStrictFree(upvar: number): O['GetStrictFree'];
+  abstract getLooseAttr(upvar: number): O['GetLooseAttr'];
+  abstract getLooseAppend(upvar: number): O['GetLooseAppend'];
+  abstract getPath(head: O['expr'], tail: PresentArray<string>): O['GetPath'];
+  abstract invoke(callee: O['expr'], args: O['args']): O['Invoke'];
+  abstract positional(positional: null | PresentArray<O['expr']>): O['positionalArguments'];
+  abstract namedArguments(positional: null | [string, O['expr']][]): O['namedArguments'];
+  abstract args(
+    positional: null | O['positionalArguments'],
+    named: null | O['namedArguments']
+  ): O['args'];
 }
+
+export type ExprOutputFor<U extends UnpackExpr<ExprOutput>> = U extends UnpackExpr<infer O>
+  ? O
+  : never;
 
 const NONE = Object.freeze({ none: true });
 type NONE = typeof NONE;
@@ -181,7 +188,7 @@ export class ExprDecoder<O extends ExprOutput> {
     if (p === Null || p === undefined) {
       return this.decoder.positional(null);
     } else {
-      return this.decoder.positional(p.map((e) => this.expr(e)));
+      return this.decoder.positional(mapPresent(p, (e) => this.expr(e)));
     }
   }
 

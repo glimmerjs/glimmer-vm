@@ -16,7 +16,8 @@ import {
   isInterpolate,
   isModifier,
   NamedBlocks,
-  nsFor,, isTrusted
+  nsFor,
+  isTrusted,
 } from '../content';
 import { Expression, Null } from '../expr';
 import { PackedList } from '../shared';
@@ -36,16 +37,16 @@ interface Scope {
 }
 
 export interface ContentOutput {
-  content: unknown;
   Append: unknown;
   Comment: unknown;
   Yield: unknown;
   Debugger: unknown;
   Partial: unknown;
   InElement: unknown;
-  Block: unknown;
+  InvokeBlock: unknown;
   Component: unknown;
   SimpleElement: unknown;
+  DynamicElement: unknown;
   ElementModifier: unknown;
   SplatAttr: unknown;
   Interpolate: unknown;
@@ -59,10 +60,11 @@ export interface ContentOutput {
   simpleElementParams: unknown;
 
   elementAttr: unknown;
-  dynamicElementAttr: unknown;
   elementAttrWithNs: unknown;
-  dynamicElementAttrWithNs: unknown;
   elementAttrs: unknown;
+
+  dynamicElementAttr: unknown;
+  dynamicElementAttrWithNs: unknown;
   dynamicElementAttrs: unknown;
 }
 
@@ -73,84 +75,100 @@ type DynamicElementAttrFor<O extends ContentOutput> =
   | O['SplatAttr'];
 type ElementParameterFor<O extends ContentOutput> = DynamicElementAttrFor<O> | O['ElementModifier'];
 
-export interface UnpackContent<O extends ContentOutput, Expr extends ExprOutput> {
-  append(value: Expr['expr'], trusting: boolean): O['Append'];
-  appendComment(value: string): O['Comment'];
-  yield(to: number, positional: Expr['expr'][]): O['Yield'];
-  debugger(info: EvalInfo): O['Debugger'];
-  partial(target: Expr['expr'], info: EvalInfo): O['Partial'];
-  inElement(
+export type ContentFor<O extends ContentOutput> =
+  | O['Append']
+  | O['Comment']
+  | O['Yield']
+  | O['Debugger']
+  | O['Partial']
+  | O['InElement']
+  | O['InvokeBlock']
+  | O['SimpleElement']
+  | O['DynamicElement']
+  | O['Component'];
+
+export abstract class UnpackContent<O extends ContentOutput, Expr extends ExprOutput> {
+  abstract append(value: Expr['expr'], trusting: boolean): O['Append'];
+  abstract appendComment(value: string): O['Comment'];
+  abstract yield(to: number, positional: Expr['expr'][]): O['Yield'];
+  abstract debugger(info: EvalInfo): O['Debugger'];
+  abstract partial(target: Expr['expr'], info: EvalInfo): O['Partial'];
+  abstract inElement(
     destination: Expr['expr'],
     block: O['inlineBlock'],
     insertBefore: Expr['expr'] | null
   ): O['InElement'];
-  invokeBlock(callee: Expr['expr'], args: O['args'], blocks: O['namedBlocks']): O['Block'];
-  simpleElement(
+  abstract invokeBlock(
+    callee: Expr['expr'],
+    args: O['args'],
+    blocks: O['namedBlocks']
+  ): O['InvokeBlock'];
+  abstract simpleElement(
     tag: string,
     attrs: SimpleElementAttrFor<O>[] | null,
-    content: O['content'][] | null
+    content: ContentFor<O>[] | null
   ): O['SimpleElement'];
-  dynamicElement(
+  abstract dynamicElement(
     tag: string,
     attrs: DynamicElementAttrFor<O>[] | null,
-    content: O['content'][] | null
-  ): O['SimpleElement'];
-  component(
+    content: ContentFor<O>[] | null
+  ): O['DynamicElement'];
+  abstract component(
     callee: Expr['expr'],
     params: ElementParameterFor<O>[] | null,
     args: O['namedArguments'] | null,
     blocks: O['namedBlocks']
   ): O['Component'];
-  modifier(callee: Expr['expr'], args: Expr['args']): O['ElementModifier'];
-  splatAttr(): O['SplatAttr'];
-  interpolate(exprs: PresentArray<Expr['expr']>): O['Interpolate'];
+  abstract modifier(callee: Expr['expr'], args: Expr['args']): O['ElementModifier'];
+  abstract splatAttr(): O['SplatAttr'];
+  abstract interpolate(exprs: PresentArray<Expr['expr']>): O['Interpolate'];
 
-  inlineBlock(params: number[], content: O['content'][]): O['inlineBlock'];
-  namedBlocks(blocks: null | [string, O['inlineBlock']][]): O['namedBlocks'];
+  abstract inlineBlock(params: number[], content: ContentFor<O>[]): O['inlineBlock'];
+  abstract namedBlocks(blocks: null | [string, O['inlineBlock']][]): O['namedBlocks'];
 
-  elementAttrs(
+  abstract elementAttrs(
     attrs: (O['elementAttr'] | O['elementAttrWithNs'])[],
     dynamic: false
   ): O['elementAttrs'];
-  elementAttrs(
+  abstract elementAttrs(
     attrs: (O['dynamicElementAttr'] | O['dynamicElementAttrWithNs'])[],
     dynamic: true
   ): O['dynamicElementAttrs'];
 
-  elementAttr(options: {
+  abstract elementAttr(options: {
     name: string;
     value: Expr['expr'] | O['Interpolate'];
     dynamic: true;
     trusting: boolean;
   }): O['dynamicElementAttr'];
-  elementAttr(options: {
+  abstract elementAttr(options: {
     name: string;
     value: Expr['expr'] | O['Interpolate'];
     dynamic: false;
     trusting: boolean;
   }): O['elementAttr'];
-  elementAttr(options: {
+  abstract elementAttr(options: {
     name: string;
     value: Expr['expr'] | O['Interpolate'];
     dynamic: boolean;
     trusting: boolean;
   }): O['elementAttr'] | O['dynamicElementAttr'];
 
-  elementAttrWithNs(options: {
+  abstract elementAttrWithNs(options: {
     name: string;
     value: Expr['expr'] | O['Interpolate'];
     ns: AttrNamespace;
     dynamic: true;
     trusting: boolean;
   }): O['dynamicElementAttrWithNs'];
-  elementAttrWithNs(options: {
+  abstract elementAttrWithNs(options: {
     name: string;
     value: Expr['expr'] | O['Interpolate'];
     ns: AttrNamespace;
     dynamic: false;
     trusting: boolean;
   }): O['elementAttrWithNs'];
-  elementAttrWithNs(options: {
+  abstract elementAttrWithNs(options: {
     name: string;
     value: Expr['expr'] | O['Interpolate'];
     ns: AttrNamespace;
@@ -159,6 +177,20 @@ export interface UnpackContent<O extends ContentOutput, Expr extends ExprOutput>
   }): O['elementAttrWithNs'] | O['dynamicElementAttrWithNs'];
 }
 
+export type ContentForUnpacker<O> = O extends UnpackContent<ContentOutput, ExprOutput>
+  ?
+      | ReturnType<O['append']>
+      | ReturnType<O['appendComment']>
+      | ReturnType<O['yield']>
+      | ReturnType<O['debugger']>
+      | ReturnType<O['partial']>
+      | ReturnType<O['inElement']>
+      | ReturnType<O['invokeBlock']>
+      | ReturnType<O['simpleElement']>
+      | ReturnType<O['dynamicElement']>
+      | ReturnType<O['component']>
+  : never;
+
 export class ContentDecoder<O extends ContentOutput, Expr extends ExprOutput> {
   constructor(
     private scope: Scope,
@@ -166,7 +198,7 @@ export class ContentDecoder<O extends ContentOutput, Expr extends ExprOutput> {
     private expr: ExprDecoder<Expr>
   ) {}
 
-  content(c: Content): O['content'] {
+  content(c: Content): ContentFor<O> {
     if (c === ContentOp.Yield) {
       return this.decoder.yield(this.scope.symbols.indexOf('&default'), []);
     }
@@ -174,10 +206,27 @@ export class ContentDecoder<O extends ContentOutput, Expr extends ExprOutput> {
     switch (c[0]) {
       case ContentOp.Append: {
         let [, value, what] = c;
-        return this.decoder.append(
-          this.expr.expr(value),
-          what === undefined ? AppendWhat.Html : what
-        );
+
+        if (what === undefined && typeof value === 'string') {
+          switch (value[0]) {
+            case '!':
+              return this.decoder.appendComment(value.slice(1));
+            case '#':
+              return this.decoder.append(value.slice(1), true);
+            default:
+              return this.decoder.append(value, true);
+          }
+        }
+
+        switch (c[2]) {
+          case undefined:
+          case AppendWhat.Text:
+            return this.decoder.append(this.expr.expr(value), false);
+          case AppendWhat.Html:
+            return this.decoder.append(this.expr.expr(value), true);
+          case AppendWhat.Comment:
+            return this.decoder.appendComment(c[1]);
+        }
       }
 
       case ContentOp.InvokeBlock: {
@@ -250,7 +299,7 @@ export class ContentDecoder<O extends ContentOutput, Expr extends ExprOutput> {
     }
   }
 
-  private contentBody(body: Content[] | Null | undefined): O['content'][] | null {
+  private contentBody(body: Content[] | Null | undefined): ContentFor<O>[] | null {
     if (body === Null || body === undefined) {
       return null;
     }
@@ -298,7 +347,9 @@ export class ContentDecoder<O extends ContentOutput, Expr extends ExprOutput> {
         let trusting = isTrusted(namespace);
 
         if (ns) {
-          out.push(this.decoder.elementAttrWithNs({ name: inflatedName, value, ns, dynamic, trusting }));
+          out.push(
+            this.decoder.elementAttrWithNs({ name: inflatedName, value, ns, dynamic, trusting })
+          );
         } else {
           out.push(this.decoder.elementAttr({ name: inflatedName, value, dynamic, trusting }));
         }
@@ -348,7 +399,7 @@ export class ContentDecoder<O extends ContentOutput, Expr extends ExprOutput> {
     }
   }
 
-  private block(p: InlineBlock): O['Block'] {
+  private block(p: InlineBlock): O['InvokeBlock'] {
     if (p === Null) {
       return this.decoder.inlineBlock([], []);
     } else {
