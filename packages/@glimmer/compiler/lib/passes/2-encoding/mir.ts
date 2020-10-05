@@ -40,7 +40,7 @@ export class AppendComment extends node('AppendComment').fields<{ value: SourceS
 
 export class Component extends node('Component').fields<{
   tag: ExpressionNode;
-  params: ElementParameters;
+  params: DynamicElementParameters;
   args: NamedArguments;
   blocks: NamedBlocks;
 }>() {}
@@ -71,25 +71,21 @@ export class DynamicAttr extends node('DynamicAttr').fields<{
 
 export class SimpleElement extends node('SimpleElement').fields<{
   tag: SourceSlice;
-  params: ElementAttributes;
+  params: ElementAttrs;
   body: Content[];
 }>() {}
 
 export class DynamicElement extends node('DynamicElement').fields<{
   tag: SourceSlice;
-  params: DynamicElementAttributes;
+  params: DynamicElementParameters;
   body: Content[];
 }>() {}
 
-export class ElementParameters extends node('ElementParameters').fields<{
-  body: AnyOptionalList<ElementParameter>;
-}>() {}
-
-export class DynamicElementAttributes extends node('DynamicElementAttributes').fields<{
+export class DynamicElementParameters extends node('DynamicElementParameters').fields<{
   body: AnyOptionalList<DynamicElementAttr>;
 }>() {}
 
-export class ElementAttributes extends node('ElementAttributes').fields<{
+export class ElementAttrs extends node('ElementAttrs').fields<{
   body: AnyOptionalList<ElementAttr>;
 }>() {}
 
@@ -173,8 +169,7 @@ export type ExpressionNode =
   | HasBlockParams;
 
 export type ElementAttr = StaticAttr | DynamicAttr;
-export type DynamicElementAttr = ElementAttr | SplatAttr;
-export type ElementParameter = DynamicElementAttr | Modifier;
+export type DynamicElementAttr = ElementAttr | SplatAttr | Modifier;
 
 export type Internal =
   | Args
@@ -184,7 +179,7 @@ export type Internal =
   | Tail
   | NamedBlock
   | NamedBlocks
-  | ElementParameters;
+  | ElementAttrs;
 export type ExprLike = ExpressionNode | Internal;
 export type Content =
   | InElement

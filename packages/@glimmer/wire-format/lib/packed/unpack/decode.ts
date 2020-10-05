@@ -1,35 +1,25 @@
-import {
-  ContentDecoder,
-  ContentFor,
-  ContentForUnpacker,
-  ContentOutput,
-  Template,
-  UnpackContent,
-} from './content';
-import { ExprDecoder, ExprOutput, ExprOutputFor, UnpackExpr } from './expr';
+import { ContentDecoder, ContentOutput, Template, UnpackContent } from './content';
+import { ExprDecoder, ExprOutput, UnpackExpr } from './expr';
 
-export class Decoder<
-  E extends UnpackExpr<ExprOutput>,
-  C extends UnpackContent<ContentOutput, ExprOutputFor<E>>
-> {
-  private expr: ExprDecoder<ExprOutputFor<E>>;
-  private content: ContentDecoder<ContentOutput, ExprOutputFor<E>>;
+export class Decoder<E extends ExprOutput, C extends ContentOutput> {
+  private expr: ExprDecoder<E>;
+  private content: ContentDecoder<C, E>;
 
-  constructor(content: C, expr: E, private template: Template) {
-    this.expr = new ExprDecoder(expr) as ExprDecoder<ExprOutputFor<E>>;
+  constructor(content: UnpackContent<C, E>, expr: UnpackExpr<E>, private template: Template) {
+    this.expr = new ExprDecoder(expr) as ExprDecoder<E>;
     this.content = new ContentDecoder(template, content, this.expr);
   }
 
-  decode(): ContentForUnpacker<C>[] {
-    return this.template.content.map((c) => this.content.content(c)) as ContentForUnpacker<C>[];
+  decode(): C['content'][] {
+    return this.template.content.map((c) => this.content.content(c)) as C['content'][];
   }
 }
 
-export function decode<E extends ExprOutput, U extends UnpackContent<ContentOutput, E>>(
-  content: U,
+export function decode<E extends ExprOutput, C extends ContentOutput>(
+  content: UnpackContent<C, E>,
   expr: UnpackExpr<E>,
   template: Template
-): ContentFor<U extends UnpackContent<infer C, E> ? C : never>[] {
+): C['content'][] {
   let exprDecoder = new ExprDecoder(expr);
   let contentDecoder = new ContentDecoder(template, content, exprDecoder);
   return template.content.map((c) => contentDecoder.content(c));

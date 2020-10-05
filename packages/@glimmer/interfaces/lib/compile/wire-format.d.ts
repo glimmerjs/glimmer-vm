@@ -338,10 +338,9 @@ export namespace Statements {
     | ComponentAttr
     | TrustingComponentAttr;
 
-  export type ComponentFeature = Modifier | AttrSplat;
   export type Argument = StaticArg | DynamicArg;
 
-  export type ElementParameter = Attribute | Argument | ComponentFeature;
+  export type ElementParameter = Attribute | Argument | Modifier | AttrSplat;
 }
 
 /** A Handlebars statement */

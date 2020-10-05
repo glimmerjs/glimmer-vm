@@ -15,22 +15,22 @@ import {
   VariableNamespace,
 } from '../expr';
 
-export interface ExprOutput {
-  expr: unknown;
-  HasBlock: unknown;
-  HasBlockParams: unknown;
-  Literal: unknown;
-  GetThis: unknown;
-  GetSymbol: unknown;
-  GetNamespacedFree: unknown;
-  GetStrictFree: unknown;
-  GetLooseAttr: unknown;
-  GetLooseAppend: unknown;
-  GetPath: unknown;
-  Invoke: unknown;
-  positionalArguments: unknown;
-  namedArguments: unknown;
-  args: unknown;
+export declare abstract class ExprOutput {
+  abstract expr: unknown;
+  abstract HasBlock: unknown;
+  abstract HasBlockParams: unknown;
+  abstract Literal: unknown;
+  abstract GetThis: unknown;
+  abstract GetSymbol: unknown;
+  abstract GetNamespacedFree: unknown;
+  abstract GetStrictFree: unknown;
+  abstract GetLooseAttr: unknown;
+  abstract GetLooseAppend: unknown;
+  abstract GetPath: unknown;
+  abstract Invoke: unknown;
+  abstract positionalArguments: unknown;
+  abstract namedArguments: unknown;
+  abstract args: unknown;
 }
 
 export abstract class UnpackExpr<O extends ExprOutput> {

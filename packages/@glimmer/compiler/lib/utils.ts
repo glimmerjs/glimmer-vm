@@ -1,5 +1,5 @@
 import { Dict, WellKnownAttrName, WellKnownTagName } from '@glimmer/interfaces';
-import { AttrNamespace, Namespace } from '@simple-dom/interface';
+import { Namespace } from '@simple-dom/interface';
 
 // There is a small whitelist of namespaced attributes specially
 // enumerated in
@@ -73,7 +73,7 @@ const DEFLATE_ATTR_TABLE: {
 
 const INFLATE_ATTR_TABLE: {
   [I in WellKnownAttrName]: string;
-} = ['class', 'id', 'value', 'name', 'type', 'style', 'href'];
+} = ['class', 'id', 'value', 'name', 'type', 'style', 'href', undefined, undefined, 'RESERVED'];
 
 export function deflateAttrName(attrName: string): string | WellKnownAttrName {
   return DEFLATE_ATTR_TABLE[attrName] ?? attrName;

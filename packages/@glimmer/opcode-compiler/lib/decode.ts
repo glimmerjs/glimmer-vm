@@ -22,7 +22,7 @@ export function decode(raw: string, encoder: 'default' | 'packed'): SerializedTe
 
   let packedTemplate = JSON.parse(raw) as unpack.Template;
 
-  let decoder = new unpack.Decoder(
+  let decoder: unpack.Decoder<ExpressionOutput, ContentOutput> = new unpack.Decoder(
     new ContentUnpacker(packedTemplate),
     new ExpressionUnpacker(packedTemplate),
     packedTemplate
@@ -38,7 +38,7 @@ export function decode(raw: string, encoder: 'default' | 'packed'): SerializedTe
   };
 }
 
-export interface ExpressionOutput {
+export declare class ExpressionOutput extends unpack.ExprOutput {
   expr: Expr.Expression;
   HasBlock: Expr.HasBlock;
   HasBlockParams: Expr.HasBlockParams;
@@ -97,7 +97,7 @@ class WireStatements {
     return this.list;
   }
 }
-export interface ContentOutput {
+export declare class ContentOutput extends unpack.ContentOutput {
   Append: Stmt.Append | Stmt.TrustingAppend;
   Comment: Stmt.Comment;
   Yield: Stmt.Yield;
@@ -156,7 +156,8 @@ class ContentUnpacker extends unpack.UnpackContent<ContentOutput, ExpressionOutp
   inElement(
     destination: WireFormat.Expression,
     block: WireFormat.SerializedInlineBlock,
-    insertBefore: WireFormat.Expression | undefined
+    insertBefore: WireFormat.Expression | undefined,
+    guid: string
   ): WireFormat.Statements.InElement {
     if (insertBefore === undefined) {
       return [SexpOpcodes.InElement, block, guid, destination];

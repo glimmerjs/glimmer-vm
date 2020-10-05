@@ -1,4 +1,5 @@
 import { ASTv2, maybeLoc, SourceSpan } from '@glimmer/syntax';
+import { isPresent } from '@glimmer/util';
 
 import { OptionalList } from '../../../../shared/list';
 import { Ok, Result, ResultArray } from '../../../../shared/result';
@@ -11,11 +12,19 @@ import { VISIT_EXPRS } from '../expressions';
 export type SimpleAttr = mir.StaticAttr | mir.DynamicAttr;
 export type AttrWithSplat = SimpleAttr | mir.SplatAttr;
 
-interface ProcessedAttributes {
+interface SimpleProcessedAttributes {
+  attrs: SimpleAttr[];
+  args: mir.NamedArguments;
+  hasSplat: false;
+}
+
+interface DynamicProcessedAttributes {
   attrs: AttrWithSplat[];
   args: mir.NamedArguments;
-  hasSplat: boolean;
+  hasSplat: true;
 }
+
+type ProcessedAttributes = SimpleProcessedAttributes | DynamicProcessedAttributes;
 
 type ValidAttr<A extends Allow> = A extends { splat: true } ? AttrWithSplat : SimpleAttr;
 
@@ -131,14 +140,17 @@ export class ClassifiedElement {
       attrs.add(this.attr(typeAttr));
     }
 
-    return Result.all(args.toArray(), attrs.toArray()).mapOk(([args, attrs]) => ({
-      attrs,
-      args: new mir.NamedArguments({
-        loc: maybeLoc(args, SourceSpan.NON_EXISTENT),
-        entries: OptionalList(args),
-      }),
-      hasSplat,
-    }));
+    return Result.all(args.toArray(), attrs.toArray()).mapOk(
+      ([args, attrs]) =>
+        ({
+          attrs,
+          args: new mir.NamedArguments({
+            loc: maybeLoc(args, SourceSpan.NON_EXISTENT),
+            entries: OptionalList(args),
+          }),
+          hasSplat,
+        } as ProcessedAttributes)
+    );
   }
 
   private prepare(): Result<PreparedArgs> {
@@ -146,35 +158,31 @@ export class ClassifiedElement {
     let modifiers = new ResultArray(this.element.modifiers.map((m) => this.modifier(m))).toArray();
 
     return Result.all(attrs, modifiers).mapOk(([result, modifiers]) => {
-      let { attrs, args, hasSplat } = result;
+      if (!result.args.isEmpty()) {
+        let elementParams = [...result.attrs, ...modifiers];
 
-      if (!args.isEmpty()) {
-        let elementParams = [...attrs, ...modifiers];
-
-        let params = new mir.ElementParameters({
+        let params = new mir.DynamicElementParameters({
           loc: maybeLoc(elementParams, SourceSpan.NON_EXISTENT),
           body: OptionalList(elementParams),
         });
 
-        return { type: 'component', args, params };
-      } else if (hasSplat) {
-        let elementParams = [...attrs, ...modifiers];
+        return { type: 'component', args: result.args, params };
+      } else if (result.hasSplat || isPresent(modifiers)) {
+        let elementParams = [...result.attrs, ...modifiers];
 
-        let params = new mir.DynamicElementAttributes({
+        let params = new mir.DynamicElementParameters({
           loc: maybeLoc(elementParams, SourceSpan.NON_EXISTENT),
           body: OptionalList(elementParams as mir.DynamicElementAttr[]),
         });
 
-        return { type: 'dynamic', args, params };
+        return { type: 'dynamic', args: result.args, params };
       } else {
-        let elementParams = [...attrs, ...modifiers];
-
-        let params = new mir.ElementAttributes({
-          loc: maybeLoc(elementParams, SourceSpan.NON_EXISTENT),
-          body: OptionalList(elementParams as mir.ElementAttr[]),
+        let params = new mir.ElementAttrs({
+          loc: maybeLoc(result.attrs, SourceSpan.NON_EXISTENT),
+          body: OptionalList(result.attrs),
         });
 
-        return { type: 'simple', args, params };
+        return { type: 'simple', args: result.args, params };
       }
     });
   }
@@ -183,17 +191,17 @@ export class ClassifiedElement {
 export type PreparedComponentArgs = {
   type: 'component';
   args: mir.NamedArguments;
-  params: mir.ElementParameters;
+  params: mir.DynamicElementParameters;
 };
 
 export type PreparedSimpleArgs = {
   type: 'simple';
-  params: mir.ElementAttributes;
+  params: mir.ElementAttrs;
 };
 
 export type PreparedDynamicArgs = {
   type: 'dynamic';
-  params: mir.DynamicElementAttributes;
+  params: mir.DynamicElementParameters;
 };
 
 export type PreparedElementArgs = PreparedSimpleArgs | PreparedDynamicArgs;

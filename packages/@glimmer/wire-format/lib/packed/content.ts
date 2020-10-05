@@ -20,7 +20,7 @@ export interface Template {
   symbols: string[];
   hasEval: boolean;
   upvars: string[];
-  statements: Content[];
+  content: Content[];
 }
 
 export const enum ContentOp {
@@ -109,8 +109,11 @@ export type PackedElement<O, A> =
   | readonly [op: O, tag: string, attrs: PackedList<A>]
   | readonly [op: O, tag: string, attrs: PackedList<A>, body: PackedList<Content>];
 
-export type SimpleElement = PackedElement<ContentOp.SimpleElement, ElementAttr>;
-export type SplatElement = PackedElement<ContentOp.SplatElement, ElementAttr | AttrSplat>;
+export type SimpleElement = PackedElement<ContentOp.SimpleElement, ElementAttr | ElementModifier>;
+export type SplatElement = PackedElement<
+  ContentOp.SplatElement,
+  ElementAttr | ElementModifier | AttrSplat
+>;
 
 export type Yield = ContentOp.Yield | [op: ContentOp.Yield, to: number, ...exprs: Expression[]];
 
@@ -124,6 +127,7 @@ export type InElement = [
   op: ContentOp.InElement,
   destination: Expression,
   block: InlineBlock,
+  guid: string,
   insertBefore?: Expression
 ];
 

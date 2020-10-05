@@ -1,13 +1,12 @@
 import { SourceLocation } from './source/location';
-import { SourceSpan } from './source/span';
 
 export interface GlimmerSyntaxError extends Error {
-  location: SourceSpan | null;
+  location: SourceLocation | null;
   constructor: SyntaxErrorConstructor;
 }
 
 export interface SyntaxErrorConstructor {
-  new (message: string, location: SourceSpan | null): GlimmerSyntaxError;
+  new (message: string, location: SourceLocation | null): GlimmerSyntaxError;
   readonly prototype: GlimmerSyntaxError;
 }
 
@@ -20,7 +19,7 @@ export const GlimmerSyntaxError: SyntaxErrorConstructor = (function () {
   SyntaxError.prototype = Object.create(Error.prototype);
   SyntaxError.prototype.constructor = SyntaxError;
 
-  function SyntaxError(this: GlimmerSyntaxError, message: string, location: SourceSpan | null) {
+  function SyntaxError(this: GlimmerSyntaxError, message: string, location: SourceLocation | null) {
     let error = Error.call(this, message);
 
     this.message = message;

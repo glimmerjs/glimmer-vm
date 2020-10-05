@@ -68,6 +68,10 @@ setGlobalContext({
   scheduleDestroyed(fn: () => void) {
     scheduledFinalizers.push(fn);
   },
+
+  experimental: {
+    encoder: 'default',
+  },
 });
 
 export default function createEnvDelegate(isInteractive: boolean): EnvironmentDelegate {

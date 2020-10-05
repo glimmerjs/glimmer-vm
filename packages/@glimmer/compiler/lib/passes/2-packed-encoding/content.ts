@@ -1,3 +1,4 @@
+import { WellKnownAttrName } from '@glimmer/interfaces';
 import { LOCAL_LOGGER, LOGGER } from '@glimmer/util';
 import { packed } from '@glimmer/wire-format';
 
@@ -75,16 +76,16 @@ export class ContentEncoder {
     return [packed.ContentOp.Yield, to, ...list];
   }
 
-  InElement({ insertBefore, destination, block }: mir.InElement): packed.content.InElement {
+  InElement({ insertBefore, destination, block, guid }: mir.InElement): packed.content.InElement {
     let wireBlock = CONTENT.NamedBlock(block)[1];
     // let guid = args.guid;
     let wireDestination = EXPR.expr(destination, PACKED);
     let wireInsertBefore = EXPR.expr(insertBefore, PACKED);
 
     if (wireInsertBefore === undefined) {
-      return [packed.ContentOp.InElement, wireDestination, wireBlock];
+      return [packed.ContentOp.InElement, wireDestination, wireBlock, guid];
     } else {
-      return [packed.ContentOp.InElement, wireDestination, wireBlock, wireInsertBefore];
+      return [packed.ContentOp.InElement, wireDestination, wireBlock, guid, wireInsertBefore];
     }
   }
 
@@ -123,7 +124,7 @@ export class ContentEncoder {
 
   SimpleElement({ tag, params, body }: mir.SimpleElement): packed.content.SimpleElement {
     const content = packed.list(body.map((b) => CONTENT.content(b)));
-    const attrs = packed.list(CONTENT.ElementAttributes(params).toArray());
+    const attrs = packed.list(CONTENT.ElementParameters(params).toArray());
 
     const op = [packed.ContentOp.SimpleElement, tag.chars] as const;
 
@@ -136,7 +137,7 @@ export class ContentEncoder {
 
   DynamicElement({ tag, params, body }: mir.DynamicElement): packed.content.SplatElement {
     const content = packed.list(body.map((b) => CONTENT.content(b)));
-    const attrs = packed.list(CONTENT.DynamicElementAttributes(params).toArray());
+    const attrs = packed.list(CONTENT.DynamicElementParameters(params).toArray());
 
     const op = [packed.ContentOp.SplatElement, tag.chars] as const;
 
@@ -149,7 +150,7 @@ export class ContentEncoder {
 
   Component({ tag, params, args, blocks }: mir.Component): packed.content.InvokeComponent {
     let callee = EXPR.expr(tag, PACKED);
-    let wireAttrs = packed.list(CONTENT.ElementParameters(params).toArray());
+    let wireAttrs = packed.list(CONTENT.DynamicElementParameters(params).toArray());
     let wireNamed = EXPR.NamedArguments(args);
 
     let wireNamedBlocks = CONTENT.NamedBlocks(blocks);
@@ -164,25 +165,21 @@ export class ContentEncoder {
     // ];
   }
 
-  ElementAttributes({ body }: mir.ElementAttributes): OptionalList<packed.content.ElementAttr> {
+  ElementParameters({
+    body,
+  }: mir.ElementAttrs): OptionalList<packed.content.ElementAttr | packed.content.ElementModifier> {
     return body.map((p) => CONTENT.ElementAttr(p));
   }
 
-  DynamicElementAttributes({
+  DynamicElementParameters({
     body,
-  }: mir.DynamicElementAttributes): AnyOptionalList<
-    packed.content.ElementAttr | packed.content.AttrSplat
+  }: mir.DynamicElementParameters): AnyOptionalList<
+    packed.content.ElementAttr | packed.content.ElementModifier | packed.content.AttrSplat
   > {
     return body.map((p) => CONTENT.DynamicElementAttr(p));
   }
 
-  ElementParameters({
-    body,
-  }: mir.ElementParameters): OptionalList<packed.content.ComponentParameter> {
-    return body.map((p) => CONTENT.ElementParameter(p));
-  }
-
-  ElementAttr(param: mir.ElementAttr): packed.content.ElementAttr {
+  ElementAttr(param: mir.ElementAttr): packed.content.ElementAttr | packed.content.ElementModifier {
     switch (param.type) {
       case 'DynamicAttr':
         return this.DynamicAttr(param);
@@ -193,21 +190,36 @@ export class ContentEncoder {
 
   DynamicElementAttr(
     param: mir.DynamicElementAttr
-  ): packed.content.ElementAttr | packed.content.AttrSplat {
+  ): packed.content.ElementAttr | packed.content.ElementModifier | packed.content.AttrSplat {
     switch (param.type) {
       case 'SplatAttr':
         return packed.content.AttrSplat;
+      case 'Modifier':
+        return this.Modifier(param);
+
       default:
         return this.ElementAttr(param);
     }
   }
 
-  ElementParameter(param: mir.ElementParameter): packed.content.ComponentParameter {
-    switch (param.type) {
-      case 'Modifier':
-        return EXPR.CallExpression(param);
-      default:
-        return CONTENT.DynamicElementAttr(param);
+  Modifier(modifier: mir.Modifier): packed.content.ElementModifier {
+    let { callee, args } = modifier;
+
+    let packedCallee = EXPR.expr(callee, PACKED);
+    let positional = EXPR.Positional(args.positional);
+    let named = EXPR.NamedArguments(args.named);
+
+    let hasPositional = positional !== 0;
+    let hasNamed = named !== 0;
+
+    if (hasPositional) {
+      return hasNamed
+        ? [WellKnownAttrName.RESERVED, packedCallee, positional, named]
+        : [WellKnownAttrName.RESERVED, packedCallee, positional];
+    } else {
+      return hasNamed
+        ? [WellKnownAttrName.RESERVED, packedCallee, packed.expr.Null, named]
+        : [WellKnownAttrName.RESERVED, packedCallee];
     }
   }
 

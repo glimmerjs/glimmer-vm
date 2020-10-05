@@ -111,7 +111,7 @@ export class ContentEncoder {
   SimpleElement({ tag, params, body }: mir.SimpleElement): WireStatements {
     return new WireStatements<WireFormat.Statement | WireFormat.ElementParameter>([
       [SexpOpcodes.OpenElement, deflateTagName(tag.chars)],
-      ...CONTENT.ElementAttributes(params).toArray(),
+      ...CONTENT.ElementParameters(params).toArray(),
       [SexpOpcodes.FlushElement],
       ...CONTENT.list(body),
       [SexpOpcodes.CloseElement],
@@ -121,7 +121,7 @@ export class ContentEncoder {
   DynamicElement({ tag, params, body }: mir.DynamicElement): WireStatements {
     return new WireStatements<WireFormat.Statement | WireFormat.ElementParameter>([
       [SexpOpcodes.OpenElementWithSplat, deflateTagName(tag.chars)],
-      ...CONTENT.DynamicElementAttributes(params).toArray(),
+      ...CONTENT.DynamicElementParameters(params).toArray(),
       [SexpOpcodes.FlushElement],
       ...CONTENT.list(body),
       [SexpOpcodes.CloseElement],
@@ -130,7 +130,7 @@ export class ContentEncoder {
 
   Component({ tag, params, args, blocks }: mir.Component): WireFormat.Statements.Component {
     let wireTag = EXPR.expr(tag);
-    let wireComponentParams = CONTENT.ElementParameters(params);
+    let wireComponentParams = CONTENT.DynamicElementParameters(params);
     let wireNamed = EXPR.NamedArguments(args);
 
     let wireNamedBlocks = CONTENT.NamedBlocks(blocks);
@@ -144,26 +144,24 @@ export class ContentEncoder {
     ];
   }
 
-  ElementAttributes({ body }: mir.ElementAttributes): OptionalList<WireFormat.ElementParameter> {
+  ElementParameters({ body }: mir.ElementAttrs): OptionalList<WireFormat.ElementParameter> {
     return body.map((p) => CONTENT.ElementAttr(p));
   }
 
-  DynamicElementAttributes({
+  DynamicElementParameters({
     body,
-  }: mir.DynamicElementAttributes): OptionalList<WireFormat.ElementParameter> {
+  }: mir.DynamicElementParameters): OptionalList<WireFormat.ElementParameter> {
     return body.map((p) => CONTENT.DynamicElementAttr(p));
   }
 
-  ElementParameters({ body }: mir.ElementParameters): OptionalList<WireFormat.ElementParameter> {
-    return body.map((p) => CONTENT.ElementParameter(p));
-  }
-
-  ElementAttr(param: mir.ElementAttr): WireFormat.ElementParameter {
+  ElementAttr(param: mir.ElementAttr | mir.Modifier): WireFormat.ElementParameter {
     switch (param.type) {
       case 'DynamicAttr':
         return [dynamicAttrOp(param.kind), ...dynamicAttr(param)];
       case 'StaticAttr':
         return [staticAttrOp(param.kind), ...staticAttr(param)];
+      case 'Modifier':
+        return [SexpOpcodes.Modifier, EXPR.expr(param.callee), ...EXPR.Args(param.args)];
     }
   }
 
@@ -173,15 +171,6 @@ export class ContentEncoder {
         return [SexpOpcodes.AttrSplat, param.symbol];
       default:
         return CONTENT.ElementAttr(param);
-    }
-  }
-
-  ElementParameter(param: mir.ElementParameter): WireFormat.ElementParameter {
-    switch (param.type) {
-      case 'Modifier':
-        return [SexpOpcodes.Modifier, EXPR.expr(param.callee), ...EXPR.Args(param.args)];
-      default:
-        return CONTENT.DynamicElementAttr(param);
     }
   }
 

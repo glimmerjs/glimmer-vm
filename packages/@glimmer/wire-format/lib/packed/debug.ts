@@ -1,7 +1,19 @@
 import { AttrNamespace } from '@simple-dom/interface';
+import { PresentArray } from '@glimmer/interfaces';
 import { Null, VariableNamespace } from './expr';
-import { ContentOutput, UnpackContent } from './unpack/content';
+import { ContentDecoder, ContentOutput, Template, UnpackContent } from './unpack/content';
 import { ExprDecoder, UnpackExpr } from './unpack/expr';
+
+export function debugPacked(template: Template): ContentDebug[] {
+  let expr: ExprDecoder<ExprDebugOutput> = new ExprDecoder(new ExprDebugDecoder(template));
+  let content: ContentDecoder<ContentDebugOutput, ExprDebugOutput> = new ContentDecoder(
+    template,
+    new ContentDebugDecoder(template, expr),
+    expr
+  );
+
+  return template.content.map((c) => content.content(c));
+}
 
 interface ContentDebugOutput extends ContentOutput {
   expr: ExprDebugOutput;
@@ -344,7 +356,7 @@ export class ExprDebugDecoder implements UnpackExpr<ExprDebugOutput> {
     return ['()', callee, ...args];
   }
 
-  positional(positional: ExpressionDebug[] | null): PositionalDebug {
+  positional(positional: PresentArray<ExpressionDebug> | null): PositionalDebug {
     return positional;
   }
 
