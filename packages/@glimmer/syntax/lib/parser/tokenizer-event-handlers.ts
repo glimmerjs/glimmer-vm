@@ -343,6 +343,7 @@ export interface TemplateIdFn {
 export interface PrecompileOptions extends PreprocessOptions {
   id?: TemplateIdFn;
   meta?: object;
+  encoder?: 'packed';
   customizeComponentName?(input: string): string;
 }
 

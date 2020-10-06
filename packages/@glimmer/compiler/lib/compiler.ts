@@ -3,12 +3,14 @@ import {
   SerializedTemplateWithLazyBlock,
   TemplateJavascript,
 } from '@glimmer/interfaces';
-import { LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
+import { LOCAL_DEBUG, LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
 import { normalize, PrecompileOptions, Source, TemplateIdFn } from '@glimmer/syntax';
-import { LOCAL_LOGGER } from '@glimmer/util';
+import { LOCAL_LOGGER, LOGGER } from '@glimmer/util';
+import { packed } from '@glimmer/wire-format';
 
 import pass0 from './passes/1-normalization/index';
 import { visit as pass2 } from './passes/2-encoding/index';
+import { visit as pass2Packed } from './passes/2-packed-encoding/index';
 
 declare function require(id: 'crypto'): Crypto;
 declare function require(id: string): unknown;
@@ -49,6 +51,7 @@ export const defaultId: TemplateIdFn = (() => {
 const defaultOptions: PrecompileOptions = {
   id: defaultId,
   meta: {},
+  // encoder: 'packed',
 };
 
 /*
@@ -72,11 +75,29 @@ export function precompileJSON(
 export function precompileJSON(
   string: string,
   options: PrecompileOptions = defaultOptions
-): SerializedTemplateBlock {
+): SerializedTemplateBlock | packed.Template {
   let ast = normalize(string, options);
   let source = new Source(string);
   let block = pass0(source, ast).mapOk((pass2In) => {
-    return pass2(pass2In);
+    if (options?.encoder === 'packed') {
+      let packed = pass2Packed(pass2In);
+
+      if (LOCAL_DEBUG) {
+        let unpacked = pass2(pass2In);
+        let packedLen = JSON.stringify(packed).length;
+        let unpackedLen = JSON.stringify(unpacked).length;
+        let delta = packedLen - unpackedLen;
+
+        LOGGER.groupCollapsed(`diff: ${delta} (of ${unpackedLen})`, string);
+        LOGGER.log(`packed : ${JSON.stringify(packed)}`);
+        LOGGER.log(`default: ${JSON.stringify(unpacked)}`);
+        LOGGER.groupEnd();
+      }
+
+      return packed;
+    } else {
+      return pass2(pass2In);
+    }
   });
 
   if (LOCAL_SHOULD_LOG) {
@@ -117,6 +138,7 @@ export function precompile(
     id: idFn(JSON.stringify(options.meta) + blockJSON),
     block: blockJSON,
     meta: options.meta,
+    encoder: options?.encoder === 'packed' ? 'packed' : 'default',
   };
 
   // JSON is javascript

@@ -1,5 +1,6 @@
 import { WellKnownAttrName } from '@glimmer/interfaces';
-import { LOCAL_LOGGER, LOGGER } from '@glimmer/util';
+import { LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
+import { LOCAL_LOGGER } from '@glimmer/util';
 import { packed } from '@glimmer/wire-format';
 
 import { AnyOptionalList, OptionalList } from '../../shared/list';
@@ -32,8 +33,8 @@ export class ContentEncoder {
   }
 
   content(stmt: mir.Content): packed.Content {
-    if (LOCAL_LOGGER) {
-      LOGGER.log(`encoding`, stmt);
+    if (LOCAL_SHOULD_LOG) {
+      LOCAL_LOGGER.log(`encoding`, stmt);
     }
 
     return this.visitContent(stmt);
@@ -232,14 +233,14 @@ export class ContentEncoder {
   }
 
   StaticAttr({ name, value, namespace }: mir.StaticAttr): packed.content.ElementAttr {
-    const out = [name.chars, value.chars] as const;
+    const out = [name.chars, packed.expr.string(value.chars)] as const;
 
     let ns = namespace ? packed.content.ns(namespace, false) : null;
 
     return ns ? [...out, ns] : out;
   }
 
-  NamedBlocks({ blocks }: mir.NamedBlocks): packed.content.NamedBlocks {
+  NamedBlocks({ blocks }: mir.NamedBlocks): packed.content.NamedBlocks | packed.Null {
     let names: string[] = [];
     let serializedBlocks: packed.content.InlineBlock[] = [];
 
@@ -250,7 +251,11 @@ export class ContentEncoder {
       serializedBlocks.push(serializedBlock);
     }
 
-    return [names.join('|'), ...serializedBlocks];
+    if (names.length === 0) {
+      return packed.Null;
+    } else {
+      return [names.join('|'), ...serializedBlocks];
+    }
   }
 
   NamedBlock({ name, body, scope }: mir.NamedBlock): [string, packed.content.InlineBlock] {

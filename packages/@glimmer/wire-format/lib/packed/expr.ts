@@ -63,11 +63,12 @@ export type Invoke = InvokeN | InvokeNamed;
 export const enum LiteralValue {
   Null = 0,
   Undefined = 1,
-  True = 2,
-  False = 3,
+  // 2 is shorthand for This
+  True = 3,
+  False = 4,
 
   /** The amount to subtract from literal numbers that share the LiteralValue space */
-  Offset = 4,
+  Offset = 5,
 }
 
 export type Null = LiteralValue.Null;
@@ -136,7 +137,7 @@ export type Special = ShorthandSpecial | LonghandSpecial;
 
 export type Interpolate = [op: SpecialExpr.Interpolate, ...parts: PresentArray<Expression>];
 
-export type PositionalArguments = PresentArray<Expression> | LiteralValue.Null;
+export type PositionalArguments = PresentArray<Expression> | Null;
 
 export type PresentNamedArguments = [
   /** pipe-separated list of names */
@@ -144,7 +145,7 @@ export type PresentNamedArguments = [
   ...values: Expression[]
 ];
 
-export type NamedArguments = PresentNamedArguments | LiteralValue.Null;
+export type NamedArguments = PresentNamedArguments | Null;
 
 export type Args = [positional: PositionalArguments, named: NamedArguments];
 

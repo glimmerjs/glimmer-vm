@@ -7,7 +7,6 @@ import { ExprDecoder, UnpackExpr } from './unpack/expr';
 export function debugPacked(template: Template): ContentDebug[] {
   let expr: ExprDecoder<ExprDebugOutput> = new ExprDecoder(new ExprDebugDecoder(template));
   let content: ContentDecoder<ContentDebugOutput, ExprDebugOutput> = new ContentDecoder(
-    template,
     new ContentDebugDecoder(template, expr),
     expr
   );

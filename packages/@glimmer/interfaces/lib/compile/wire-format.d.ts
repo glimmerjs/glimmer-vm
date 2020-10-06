@@ -402,6 +402,7 @@ export interface SerializedTemplateWithLazyBlock<M> {
   id?: Option<string>;
   block: SerializedTemplateBlockJSON;
   meta: M;
+  encoder: 'default' | 'packed';
 }
 
 /**

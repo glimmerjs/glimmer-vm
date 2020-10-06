@@ -7,7 +7,7 @@ export class Decoder<E extends ExprOutput, C extends ContentOutput> {
 
   constructor(content: UnpackContent<C, E>, expr: UnpackExpr<E>, private template: Template) {
     this.expr = new ExprDecoder(expr) as ExprDecoder<E>;
-    this.content = new ContentDecoder(template, content, this.expr);
+    this.content = new ContentDecoder(content, this.expr);
   }
 
   decode(): C['content'][] {
@@ -21,6 +21,6 @@ export function decode<E extends ExprOutput, C extends ContentOutput>(
   template: Template
 ): C['content'][] {
   let exprDecoder = new ExprDecoder(expr);
-  let contentDecoder = new ContentDecoder(template, content, exprDecoder);
+  let contentDecoder = new ContentDecoder(content, exprDecoder);
   return template.content.map((c) => contentDecoder.content(c));
 }

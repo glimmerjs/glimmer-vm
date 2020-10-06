@@ -138,8 +138,15 @@ class ContentUnpacker extends unpack.UnpackContent<ContentOutput, ExpressionOutp
     return [SexpOpcodes.Comment, value];
   }
 
-  yield(to: number, positional: WireFormat.Core.Expression[]): WireFormat.Statements.Yield {
-    return [SexpOpcodes.Yield, to, toPresentOption(positional)];
+  yield(
+    to: number | undefined,
+    positional: WireFormat.Core.Expression[]
+  ): WireFormat.Statements.Yield {
+    return [
+      SexpOpcodes.Yield,
+      to === undefined ? this.scope.symbols.indexOf('&default') + 1 : to,
+      toPresentOption(positional),
+    ];
   }
 
   debugger(info: packed.content.EvalInfo): WireFormat.Statements.Debugger {
@@ -229,7 +236,7 @@ class ContentUnpacker extends unpack.UnpackContent<ContentOutput, ExpressionOutp
   }
 
   splatAttr(): WireFormat.Statements.AttrSplat {
-    return [SexpOpcodes.AttrSplat, this.scope.symbols.indexOf('&attrs')];
+    return [SexpOpcodes.AttrSplat, this.scope.symbols.indexOf('&attrs') + 1];
   }
 
   interpolate(exprs: PresentArray<WireFormat.Expression>): WireFormat.Expressions.Concat {
@@ -318,7 +325,7 @@ class ContentUnpacker extends unpack.UnpackContent<ContentOutput, ExpressionOutp
   }): WireFormat.Statements.ComponentAttribute | WireFormat.Statements.ElementAttribute {
     if (hasSplat) {
       if (typeof value === 'string') {
-        return [SexpOpcodes.StaticAttr, name, value];
+        return [SexpOpcodes.StaticComponentAttr, name, value];
       } else {
         return trusting
           ? [SexpOpcodes.TrustingComponentAttr, name, value]
@@ -397,14 +404,14 @@ class ExpressionUnpacker extends unpack.UnpackExpr<ExpressionOutput> {
   hasBlock(symbol: number | undefined): WireFormat.Expressions.HasBlock {
     return [
       Op.HasBlock,
-      [Op.GetSymbol, symbol === undefined ? this.scope.symbols.indexOf('&default') : symbol],
+      [Op.GetSymbol, symbol === undefined ? this.scope.symbols.indexOf('&default') + 1 : symbol],
     ];
   }
 
   hasBlockParams(symbol: number | undefined): WireFormat.Expressions.HasBlockParams {
     return [
       Op.HasBlockParams,
-      [Op.GetSymbol, symbol === undefined ? this.scope.symbols.indexOf('&default') : symbol],
+      [Op.GetSymbol, symbol === undefined ? this.scope.symbols.indexOf('&default') + 1 : symbol],
     ];
   }
 

@@ -1,4 +1,5 @@
-import { LOCAL_LOGGER, LOGGER } from '@glimmer/util';
+import { LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
+import { LOCAL_LOGGER } from '@glimmer/util';
 import { packed } from '@glimmer/wire-format';
 
 import * as mir from '../2-encoding/mir';
@@ -15,15 +16,10 @@ export function visit(input: mir.Template): packed.Template {
     upvars: scope.upvars,
   };
 
-  if (LOCAL_LOGGER) {
+  if (LOCAL_SHOULD_LOG) {
     let debug = packed.debugPacked(output);
-    LOGGER.log(`-> `, debug);
+    LOCAL_LOGGER.log(`-> `, debug);
   }
 
-  return {
-    symbols: scope.symbols,
-    content,
-    hasEval: scope.hasEval,
-    upvars: scope.upvars,
-  };
+  return output;
 }

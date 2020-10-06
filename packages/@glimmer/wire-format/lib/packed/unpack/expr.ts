@@ -64,6 +64,10 @@ export class ExprDecoder<O extends ExprOutput> {
   constructor(readonly decoder: UnpackExpr<O>) {}
 
   expr(e: Expression): O['expr'] {
+    if (e === ExprOp.GetThis) {
+      return this.decoder.getThis();
+    }
+
     if (isLonghand(e)) {
       return this.longhand(e);
     }
@@ -163,11 +167,8 @@ export class ExprDecoder<O extends ExprOutput> {
         return this.decoder.getLooseAppend(e[1]);
 
       case ExprOp.GetPath: {
-        if (e.length > 3) {
-          return ['.', this.expr(e[1]), e[2]];
-        } else {
-          return ['.', this.expr(e[1]), e.slice(2).join('.')];
-        }
+        let [, head, tail, ...rest] = e;
+        return this.decoder.getPath(this.expr(head), [tail, ...rest]);
       }
 
       case ExprOp.Invoke: {
@@ -181,7 +182,8 @@ export class ExprDecoder<O extends ExprOutput> {
   }
 
   private invokeN(e: InvokeN | ElementModifier): O['Invoke'] {
-    return this.decoder.invoke(this.expr(e[1]), this.args(e[2], e[3]));
+    let [, callee, positional, named] = e;
+    return this.decoder.invoke(this.expr(callee), this.args(positional, named));
   }
 
   private positional(p: PositionalArguments | undefined): O['positionalArguments'] {
@@ -192,7 +194,7 @@ export class ExprDecoder<O extends ExprOutput> {
     }
   }
 
-  namedArguments(p: NamedArguments | undefined): [string, O['expr']][] | null {
+  namedArguments(p: NamedArguments | undefined): O['namedArguments'] {
     if (p === Null || p === undefined) {
       return null;
     }
@@ -202,7 +204,7 @@ export class ExprDecoder<O extends ExprOutput> {
 
     names.forEach((n, i) => o.push([n, this.expr(p[i + 1])]));
 
-    return o;
+    return this.decoder.namedArguments(o);
   }
 
   args(p: PositionalArguments | undefined, n: NamedArguments | undefined): O['args'] {
@@ -211,10 +213,5 @@ export class ExprDecoder<O extends ExprOutput> {
 }
 
 function isLonghand(e: Expression): e is LonghandExpression {
-  return (
-    e !== ExprOp.GetThis &&
-    e !== SpecialExpr.HasBlock &&
-    e !== SpecialExpr.HasBlockParams &&
-    typeof e !== 'string'
-  );
+  return Array.isArray(e);
 }

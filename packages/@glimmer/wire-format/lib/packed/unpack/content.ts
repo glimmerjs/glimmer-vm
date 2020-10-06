@@ -32,11 +32,6 @@ export interface Template {
   hasEval: boolean;
 }
 
-interface Scope {
-  symbols: string[];
-  upvars: string[];
-}
-
 export declare abstract class ContentOutput {
   abstract Append: unknown;
   abstract Comment: unknown;
@@ -91,7 +86,7 @@ type ElementParameterFor<O extends ContentOutput> = DynamicElementAttrFor<O> | O
 export abstract class UnpackContent<O extends ContentOutput, Expr extends ExprOutput> {
   abstract append(value: Expr['expr'], trusting: boolean): O['Append'];
   abstract appendComment(value: string): O['Comment'];
-  abstract yield(to: number, positional: Expr['expr'][]): O['Yield'];
+  abstract yield(to: number | undefined, positional: Expr['expr'][]): O['Yield'];
   abstract debugger(info: EvalInfo): O['Debugger'];
   abstract partial(target: Expr['expr'], info: EvalInfo): O['Partial'];
   abstract inElement(
@@ -180,15 +175,11 @@ export abstract class UnpackContent<O extends ContentOutput, Expr extends ExprOu
 }
 
 export class ContentDecoder<C extends ContentOutput, Expr extends ExprOutput> {
-  constructor(
-    private scope: Scope,
-    private decoder: UnpackContent<C, Expr>,
-    private expr: ExprDecoder<Expr>
-  ) {}
+  constructor(private decoder: UnpackContent<C, Expr>, private expr: ExprDecoder<Expr>) {}
 
   content(c: Content): C['content'] {
     if (c === ContentOp.Yield) {
-      return this.decoder.yield(this.scope.symbols.indexOf('&default'), []);
+      return this.decoder.yield(undefined, []);
     }
 
     switch (c[0]) {
@@ -339,10 +330,11 @@ export class ContentDecoder<C extends ContentOutput, Expr extends ExprOutput> {
         let [, callee, positional, named] = attr;
         out.push(this.decoder.modifier(this.expr.expr(callee), this.expr.args(positional, named)));
       } else {
-        let [name, value, namespace] = attr;
+        let [name, packedValue, namespace] = attr;
         let inflatedName = inflateAttrName(name);
         let ns = nsFor(namespace);
         let trusting = isTrusted(namespace);
+        let value = this.attrValueWithoutNs(packedValue);
 
         if (ns) {
           out.push(
@@ -385,7 +377,7 @@ export class ContentDecoder<C extends ContentOutput, Expr extends ExprOutput> {
 
   private componentParameter(p: ComponentParameter): ElementParameterFor<C> {
     if (p === AttrSplat) {
-      return '...attributes';
+      return this.decoder.splatAttr();
     } else if (isModifier(p)) {
       return this.decoder.modifier(this.expr.expr(p[1]), this.expr.args(p[2], p[3]));
     } else {
@@ -415,12 +407,16 @@ export class ContentDecoder<C extends ContentOutput, Expr extends ExprOutput> {
   }
 
   private namedBlocks(p: NamedBlocks): C['namedBlocks'] {
+    if (p === Null) {
+      return this.decoder.namedBlocks(null);
+    }
+
     let [joinedNames, ...list] = p;
     let names = joinedNames.split('|');
 
     let blocks: [string, C['inlineBlock']][] = [];
 
-    names.forEach((n, i) => blocks.push([n, this.block(list[i + i])]));
+    names.forEach((n, i) => blocks.push([n, this.block(list[i] || Null)]));
 
     return this.decoder.namedBlocks(blocks);
   }

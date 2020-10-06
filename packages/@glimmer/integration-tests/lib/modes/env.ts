@@ -57,10 +57,6 @@ setGlobalContext({
   },
 
   warnIfStyleNotTrusted() {},
-
-  experimental: {
-    encoder: 'default',
-  },
 });
 
 export class NativeIteratorDelegate<T = unknown> implements IteratorDelegate {

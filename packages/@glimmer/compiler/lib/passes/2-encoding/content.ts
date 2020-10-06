@@ -1,5 +1,6 @@
 import { SexpOpcodes, WireFormat } from '@glimmer/interfaces';
-import { LOCAL_LOGGER, LOGGER } from '@glimmer/util';
+import { LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
+import { LOCAL_LOGGER } from '@glimmer/util';
 
 import { OptionalList } from '../../shared/list';
 import { deflateTagName } from '../../utils';
@@ -32,8 +33,8 @@ export class ContentEncoder {
   }
 
   content(stmt: mir.Content): WireFormat.Statement | WireStatements {
-    if (LOCAL_LOGGER) {
-      LOGGER.log(`encoding`, stmt);
+    if (LOCAL_SHOULD_LOG) {
+      LOCAL_LOGGER.log(`encoding`, stmt);
     }
 
     return this.visitContent(stmt);

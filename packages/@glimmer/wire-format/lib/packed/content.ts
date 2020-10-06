@@ -247,7 +247,7 @@ export function block(content: Content[], params?: number[]): InlineBlock {
   }
 }
 
-export type NamedBlocks = [names: string, ...blocks: InlineBlock[]];
+export type NamedBlocks = [names: string, ...blocks: InlineBlock[]] | Null;
 
 export type ComponentParameter = ElementAttr | AttrSplat | ElementModifier;
 

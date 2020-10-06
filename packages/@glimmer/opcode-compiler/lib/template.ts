@@ -10,7 +10,6 @@ import {
 import { assign, unwrapTemplate } from '@glimmer/util';
 import { compilable } from './compilable-template';
 import { decode } from './decode';
-import * as globalContext from '@glimmer/global-context';
 import { WrappedBuilder } from './wrapped-component';
 
 export interface TemplateFactory<M> {
@@ -59,13 +58,14 @@ export default function templateFactory<M>({
   id: templateId,
   meta,
   block,
+  encoder,
 }: SerializedTemplateWithLazyBlock<M>): TemplateFactory<M> {
   let parsedBlock: SerializedTemplateBlock;
   let id = templateId || `client-${clientId++}`;
   let create = (envMeta?: {}) => {
     let newMeta = envMeta ? assign({}, envMeta, meta) : meta;
     if (!parsedBlock) {
-      parsedBlock = decode(block, globalContext.experimental.encoder);
+      parsedBlock = decode(block, encoder);
     }
     return new TemplateImpl({ id, block: parsedBlock, referrer: newMeta });
   };
