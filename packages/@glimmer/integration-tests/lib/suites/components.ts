@@ -776,6 +776,26 @@ export class BasicComponents extends RenderTest {
   }
 
   @test({ kind: 'glimmer' })
+  'angle bracket invocation can allow invocation side to override "type" attribute with ...attributes'() {
+    this.registerComponent('Glimmer', 'Qux', '<div type="qux" ...attributes />');
+    this.registerComponent('Glimmer', 'Bar', '<Qux type="bar" ...attributes />');
+    this.registerComponent('Glimmer', 'Foo', '<Bar type="foo" ...attributes />');
+
+    this.render('<Foo type="top" />');
+    this.assertHTML('<div type="top"></div>');
+  }
+
+  @test({ kind: 'glimmer' })
+  'angle bracket invocation can override invocation side "type" attribute with ...attributes'() {
+    this.registerComponent('Glimmer', 'Qux', '<div ...attributes type="qux" />');
+    this.registerComponent('Glimmer', 'Bar', '<Qux ...attributes type="bar" />');
+    this.registerComponent('Glimmer', 'Foo', '<Bar ...attributes type="foo" />');
+
+    this.render('<Foo type="top" />');
+    this.assertHTML('<div type="qux"></div>');
+  }
+
+  @test({ kind: 'glimmer' })
   'angle bracket invocation can forward classes before ...attributes to a nested component'() {
     this.registerComponent('Glimmer', 'Qux', '<div class="qux" ...attributes />');
     this.registerComponent('Glimmer', 'Bar', '<Qux class="bar" ...attributes />');
