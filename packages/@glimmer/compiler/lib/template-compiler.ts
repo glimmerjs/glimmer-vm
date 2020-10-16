@@ -129,8 +129,15 @@ export default class TemplateCompiler implements Processor<InputOps> {
       // TODO: Assert no attributes
       let typeAttr: Option<AST.AttrNode> = null;
       let attrs = action.attributes;
+
       for (let i = 0; i < attrs.length; i++) {
-        if (attrs[i].name === 'type') {
+        // Unlike most attributes, the `type` attribute can change how
+        // subsequent attributes are interpreted by the browser. To address
+        // this, in simple cases, we special case the `type` attribute to be set
+        // last. For elements with splattributes, where attribute order affects
+        // precedence, this re-ordering happens at runtime instead.
+        // See https://github.com/glimmerjs/glimmer-vm/pull/726
+        if (simple && attrs[i].name === 'type') {
           typeAttr = attrs[i];
           continue;
         }
