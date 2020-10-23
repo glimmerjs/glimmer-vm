@@ -41,15 +41,37 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
 
   constructor(env: Environment, parentNode: SimpleElement, nextSibling: Option<SimpleNode>) {
     super(env, parentNode, nextSibling);
-    if (nextSibling) throw new Error('Rehydration with nextSibling not supported');
 
-    let node = this.currentCursor!.element.firstChild;
+    let node;
+    let closingNode: Option<SimpleNode> = null;
+    if (nextSibling) {
+      closingNode = nextSibling.previousSibling;
 
-    while (node !== null) {
-      if (isOpenBlock(node)) {
-        break;
+      while (closingNode !== null) {
+        if (isCloseBlock(closingNode)) {
+          break;
+        }
+        closingNode = closingNode.previousSibling;
       }
-      node = node.nextSibling;
+      assert(closingNode, 'Must have closing comment for rehydration');
+      const blockDepth = getBlockDepth(closingNode!);
+      node = closingNode!.previousSibling;
+
+      while (node !== null) {
+        if (isOpenBlock(node) && getBlockDepth(node) === blockDepth) {
+          break;
+        }
+        node = node.previousSibling;
+      }
+    } else {
+      node = this.currentCursor!.element.firstChild;
+
+      while (node !== null) {
+        if (isOpenBlock(node)) {
+          break;
+        }
+        node = node.nextSibling;
+      }
     }
 
     assert(node, 'Must have opening comment for rehydration.');
@@ -63,12 +85,14 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
       const newCandidate = this.dom.createComment(`%+b:${newBlockDepth}%`);
 
       node!.parentNode!.insertBefore(newCandidate, this.candidate);
-      let closingNode = node!.nextSibling;
-      while (closingNode !== null) {
-        if (isCloseBlock(closingNode) && getBlockDepth(closingNode) === startingBlockOffset) {
-          break;
+      if (!closingNode) {
+        closingNode = node!.nextSibling;
+        while (closingNode !== null) {
+          if (isCloseBlock(closingNode) && getBlockDepth(closingNode) === startingBlockOffset) {
+            break;
+          }
+          closingNode = closingNode.nextSibling;
         }
-        closingNode = closingNode.nextSibling;
       }
 
       assert(closingNode, 'Must have closing comment for starting block comment');
