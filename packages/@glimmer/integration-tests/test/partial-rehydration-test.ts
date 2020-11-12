@@ -73,6 +73,53 @@ export class PartialRehydrationTest extends RenderTest {
   }
 
   @test
+  'can rehydrate yielded blocks'() {
+    this.delegate.registerTemplateOnlyComponent('RehydratingComponent', 'Bar {{yield}}');
+
+    this.delegate.registerTemplateOnlyComponent(
+      'Root',
+      '<div id="placeholder"><RehydratingComponent>Foo</RehydratingComponent></div>'
+    );
+
+    const args = {};
+
+    const html = this.delegate.renderComponentServerSide('Root', args);
+    this.assert.equal(
+      html,
+      content([
+        OPEN,
+        OPEN,
+        '<div id="placeholder">',
+        OPEN,
+        'Bar ',
+        '<!--%|%-->',
+        'Foo',
+        CLOSE,
+        '</div>',
+        CLOSE,
+        CLOSE,
+      ]),
+      'Expect server output to match'
+    );
+
+    replaceHTML(qunitFixture(), html);
+    this.element = qunitFixture();
+    this.renderResult = this.delegate.renderComponentClientSide(
+      'RehydratingComponent',
+      args,
+      castToSimple(document.getElementById('placeholder')!)
+    );
+    this.assertHTML(content([OPEN, OPEN, '<div id="placeholder">Bar Foo</div>', CLOSE, CLOSE]));
+
+    this.assert.ok(
+      this.delegate.rehydrationStats.clearedNodes.length === 0,
+      'No nodes were cleared'
+    );
+    this.assertStableNodes();
+    this.assertStableRerender();
+  }
+
+  @test
   'can rehydrate multiple call sites'() {
     this.delegate.registerTemplateOnlyComponent('Nav', '{{@title}}');
     this.delegate.registerTemplateOnlyComponent('Carousel', '{{@name}}');
