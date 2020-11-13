@@ -20,10 +20,6 @@ export interface DebugConstants {
   getSerializable(s: number): unknown;
 }
 
-interface LazyDebugConstants {
-  getOther<T>(s: number): T;
-}
-
 export function debugSlice(context: TemplateCompilationContext, start: number, end: number) {
   if (LOCAL_SHOULD_LOG) {
     (console as any).group(`%c${start}:${end}`, 'color: #999');
@@ -133,9 +129,7 @@ export function debug(
           out[operand.name] = decodeRegister(actualOperand);
           break;
         case 'unknown':
-          out[operand.name] = (c as Recast<DebugConstants, LazyDebugConstants>).getOther(
-            actualOperand
-          );
+          out[operand.name] = c.getValue(actualOperand);
           break;
         case 'symbol-table':
         case 'scope':
