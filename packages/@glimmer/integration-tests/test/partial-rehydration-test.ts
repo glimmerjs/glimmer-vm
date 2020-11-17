@@ -189,6 +189,94 @@ export class PartialRehydrationTest extends RenderTest {
     this.assertStableNodes();
     this.assertStableRerender();
   }
+
+  @test
+  'can rehydrate with nextSibling'() {
+    this.delegate.registerBasicComponent('RehydratingComponent', '<span>{{@a}}{{@b}}{{@c}}</span>');
+    this.delegate.registerBasicComponent('Foo', '<p>Foo</p>');
+    this.delegate.registerBasicComponent('Bar', '<div class="bar">Bar</div>');
+
+    this.delegate.registerBasicComponent(
+      'Root',
+      stripTight`
+      <div id="placeholder">
+        <Foo />
+        <RehydratingComponent @a={{@a}} @b={{@b}} @c={{@c}}/>
+        <Bar />
+      </div>`
+    );
+
+    const args = {
+      a: 'a',
+      b: 'b',
+      c: 'c',
+    };
+
+    const html = this.delegate.renderComponentServerSide('Root', args);
+    this.assert.equal(
+      html,
+      content([
+        OPEN,
+        OPEN,
+        '<div id="placeholder">',
+        OPEN,
+        '<p>Foo</p>',
+        CLOSE,
+        OPEN,
+        '<span>',
+        OPEN,
+        'a',
+        CLOSE,
+        OPEN,
+        'b',
+        CLOSE,
+        OPEN,
+        'c',
+        CLOSE,
+        '</span>',
+        CLOSE,
+        OPEN,
+        '<div class="bar">Bar</div>',
+        CLOSE,
+        '</div>',
+        CLOSE,
+        CLOSE,
+      ]),
+      'Expect server output to match'
+    );
+
+    replaceHTML(qunitFixture(), html);
+    this.element = qunitFixture();
+    this.renderResult = this.delegate.renderComponentClientSide(
+      'RehydratingComponent',
+      args,
+      castToSimple(document.getElementById('placeholder')!),
+      castToSimple(document.querySelector('.bar')!)
+    );
+    this.assertHTML(
+      content([
+        OPEN,
+        OPEN,
+        '<div id="placeholder">',
+        OPEN,
+        '<p>Foo</p>',
+        CLOSE,
+        '<span>abc</span>',
+        OPEN,
+        '<div class="bar">Bar</div>',
+        CLOSE,
+        '</div>',
+        CLOSE,
+        CLOSE,
+      ])
+    );
+    this.assert.ok(
+      this.delegate.rehydrationStats.clearedNodes.length === 0,
+      'No nodes were cleared'
+    );
+    this.assertStableNodes();
+    this.assertStableRerender();
+  }
 }
 
 suite(PartialRehydrationTest, PartialRehydrationDelegate);

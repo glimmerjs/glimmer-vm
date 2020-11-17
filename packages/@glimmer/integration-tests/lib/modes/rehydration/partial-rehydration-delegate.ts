@@ -1,4 +1,4 @@
-import { Dict, ComponentDefinition, RenderResult } from '@glimmer/interfaces';
+import { Dict, ComponentDefinition, RenderResult, Option } from '@glimmer/interfaces';
 import { renderComponent, renderSync } from '@glimmer/runtime';
 import { createConstRef, childRefFor, Reference } from '@glimmer/reference';
 import { RehydrationDelegate } from './delegate';
@@ -22,9 +22,10 @@ export class PartialRehydrationDelegate extends RehydrationDelegate {
   renderComponentClientSide(
     name: string,
     args: Dict<unknown>,
-    element: SimpleElement
+    element: SimpleElement,
+    nextSibling: Option<SimpleElement> = null
   ): RenderResult {
-    let cursor = { element, nextSibling: null };
+    let cursor = { element, nextSibling };
     let { syntax, runtime } = this.clientEnv;
     let builder = this.getElementBuilder(runtime.env, cursor) as DebugRehydrationBuilder;
     let { handle, compilable } = this.clientRegistry.lookupCompileTimeComponent(name)!;
