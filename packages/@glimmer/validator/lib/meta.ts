@@ -34,7 +34,7 @@ export function dirtyTagFor<T extends object>(
       assertTagNotConsumed!(propertyTag, obj, key);
     }
 
-    dirtyTag(propertyTag);
+    dirtyTag(propertyTag, true);
   }
 }
 
