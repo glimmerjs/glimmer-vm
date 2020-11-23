@@ -1,3 +1,21 @@
+## v0.59.2 (2020-11-23)
+
+#### :bug: Bug Fix
+* `@glimmer/integration-tests`, `@glimmer/runtime`
+  * [#1209](https://github.com/glimmerjs/glimmer-vm/pull/1209) Ensure `<output form="some-value">`
+ works properly ([@KrishnaRPatel](https://github.com/KrishnaRPatel))
+
+* `@glimmer/validator`
+  * [#1205](https://github.com/glimmerjs/glimmer-vm/pull/1205) Ensure `@tracked` assertion can be
+made a deprecation. ([@rwjblue](https://github.com/rwjblue))
+
+#### Committers: 2
+- Krishna Patel ([@KrishnaRPatel](https://github.com/KrishnaRPatel))
+- Robert Jackson ([@rwjblue](https://github.com/rwjblue))
+
+
+
+
 ## v0.59.1 (2020-09-02)
 
 #### :bug: Bug Fix
