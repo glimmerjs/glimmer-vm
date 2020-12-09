@@ -1,4 +1,4 @@
-import { SerializedTemplateWithLazyBlock, Dict } from '@glimmer/interfaces';
+import { Dict, SerializedTemplateWithLazyBlock } from '@glimmer/interfaces';
 import { SimpleElement } from '@simple-dom/interface';
 
 /**

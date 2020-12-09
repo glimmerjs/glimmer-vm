@@ -1,12 +1,15 @@
-import { Operand, SerializedTemplateBlock, SerializedInlineBlock } from './compile';
+import { Operand, SerializedTemplateBlock, SerializedInlineBlock, BlockOperand } from './compile';
 import { EncoderError } from './compile/encoder';
-import ComponentCapabilities from './component-capabilities';
 import { Option } from './core';
-import { ConstantPool, SerializedHeap, SyntaxCompilationContext } from './program';
+import { InternalComponentCapabilities } from './managers/internal/component';
+import { ConstantPool, SerializedHeap, CompileTimeCompilationContext } from './program';
 import { Owner } from './runtime';
 import { BlockSymbolTable, ProgramSymbolTable, SymbolTable } from './tier1/symbol-table';
 
-export type CompilableProgram = CompilableTemplate<ProgramSymbolTable>;
+export interface CompilableProgram extends CompilableTemplate<ProgramSymbolTable> {
+  moduleName: string;
+}
+
 export type CompilableBlock = CompilableTemplate<BlockSymbolTable>;
 
 export interface LayoutWithContext {
@@ -67,7 +70,7 @@ export type CompilerBuffer = Array<Operand>;
 
 export interface ResolvedLayout {
   handle: number;
-  capabilities: ComponentCapabilities;
+  capabilities: InternalComponentCapabilities;
   compilable: Option<CompilableProgram>;
 }
 
@@ -80,9 +83,9 @@ export interface ErrHandle {
 export type HandleResult = OkHandle | ErrHandle;
 
 export interface NamedBlocks {
-  get(name: string): Option<CompilableBlock>;
+  get(name: string): Option<SerializedInlineBlock>;
   has(name: string): boolean;
-  with(name: string, block: Option<CompilableBlock>): NamedBlocks;
+  with(name: string, block: Option<SerializedInlineBlock>): NamedBlocks;
   hasAny: boolean;
   names: string[];
 }
@@ -101,11 +104,7 @@ export interface CompilerArtifacts {
   constants: ConstantPool;
 }
 
-export interface Unhandled {
-  'not-handled': true;
-}
-
 export interface CompilableTemplate<S extends SymbolTable = SymbolTable> {
   symbolTable: S;
-  compile(context: SyntaxCompilationContext): HandleResult;
+  compile(context: CompileTimeCompilationContext): HandleResult;
 }

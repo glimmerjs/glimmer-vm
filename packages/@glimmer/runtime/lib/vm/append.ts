@@ -1,30 +1,35 @@
+import { DEBUG } from '@glimmer/env';
+import { assertGlobalContextWasSet } from '@glimmer/global-context';
 import {
   CompilableTemplate,
   Destroyable,
   DynamicScope,
+  ElementBuilder,
   Environment,
+  Option,
   PartialScope,
   RenderResult,
   RichIteratorResult,
-  RuntimeContext,
   RuntimeConstants,
+  RuntimeContext,
   RuntimeHeap,
   RuntimeProgram,
   Scope,
-  SyntaxCompilationContext,
+  CompileTimeCompilationContext,
   VM as PublicVM,
-  ElementBuilder,
+  ResolutionTimeConstants,
 } from '@glimmer/interfaces';
 import { LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
 import { RuntimeOpImpl } from '@glimmer/program';
 import {
-  Reference,
+  createIteratorItemRef,
   OpaqueIterationItem,
   OpaqueIterator,
-  createIteratorItemRef,
+  Reference,
   UNDEFINED_REFERENCE,
 } from '@glimmer/reference';
-import { expect, Option, Stack, assert } from '@glimmer/util';
+import { assert, expect, LOCAL_LOGGER, Stack, unwrapHandle } from '@glimmer/util';
+import { beginTrackFrame, endTrackFrame, resetTracking } from '@glimmer/validator';
 import {
   $fp,
   $pc,
@@ -39,46 +44,42 @@ import {
   Register,
   SyscallRegister,
 } from '@glimmer/vm';
-import { unwrapHandle } from '@glimmer/util';
+import { associateDestroyableChild } from '@glimmer/destroyable';
 import {
-  JumpIfNotModifiedOpcode,
   BeginTrackFrameOpcode,
   EndTrackFrameOpcode,
+  JumpIfNotModifiedOpcode,
 } from '../compiled/opcodes/vm';
-import { PartialScopeImpl } from '../scope';
 import { APPEND_OPCODES, DebugState, UpdatingOpcode } from '../opcodes';
+import { PartialScopeImpl } from '../scope';
 import { ARGS, CONSTANTS, DESTROYABLE_STACK, HEAP, INNER_VM, REGISTERS, STACKS } from '../symbols';
 import { VMArgumentsImpl } from './arguments';
+import { LiveBlockList } from './element-builder';
 import LowLevelVM from './low-level';
 import RenderResultImpl from './render-result';
 import EvaluationStackImpl, { EvaluationStack } from './stack';
 import {
   BlockOpcode,
   ListBlockOpcode,
+  ListItemOpcode,
   ResumableVMState,
   ResumableVMStateImpl,
   TryOpcode,
   VMState,
-  ListItemOpcode,
 } from './update';
-import { associateDestroyableChild } from '../destroyables';
-import { LiveBlockList } from './element-builder';
-import { beginTrackFrame, endTrackFrame, resetTracking } from '@glimmer/validator';
-import { DEBUG } from '@glimmer/env';
-import { assertGlobalContextWasSet } from '@glimmer/global-context';
 
 /**
  * This interface is used by internal opcodes, and is more stable than
  * the implementation of the Append VM itself.
  */
 export interface InternalVM {
-  readonly [CONSTANTS]: RuntimeConstants;
+  readonly [CONSTANTS]: RuntimeConstants & ResolutionTimeConstants;
   readonly [ARGS]: VMArgumentsImpl;
 
   readonly env: Environment;
   readonly stack: EvaluationStack;
   readonly runtime: RuntimeContext;
-  readonly context: SyntaxCompilationContext;
+  readonly context: CompileTimeCompilationContext;
 
   loadValue(register: MachineRegister, value: number): void;
   loadValue(register: Register, value: unknown): void;
@@ -150,7 +151,7 @@ export default class VM implements PublicVM, InternalVM {
   private readonly [HEAP]: RuntimeHeap;
   private readonly destructor: object;
   private readonly [DESTROYABLE_STACK] = new Stack<object>();
-  readonly [CONSTANTS]: RuntimeConstants;
+  readonly [CONSTANTS]: RuntimeConstants & ResolutionTimeConstants;
   readonly [ARGS]: VMArgumentsImpl;
   readonly [INNER_VM]: LowLevelVM;
 
@@ -274,7 +275,7 @@ export default class VM implements PublicVM, InternalVM {
     readonly runtime: RuntimeContext,
     { pc, scope, dynamicScope, stack }: VMState,
     private readonly elementStack: ElementBuilder,
-    readonly context: SyntaxCompilationContext
+    readonly context: CompileTimeCompilationContext
   ) {
     if (DEBUG) {
       assertGlobalContextWasSet!();
@@ -316,11 +317,10 @@ export default class VM implements PublicVM, InternalVM {
 
   static initial(
     runtime: RuntimeContext,
-    context: SyntaxCompilationContext,
-    { handle, self, dynamicScope, treeBuilder }: InitOptions
+    context: CompileTimeCompilationContext,
+    { handle, self, dynamicScope, treeBuilder, numSymbols }: InitOptions
   ) {
-    let scopeSize = runtime.program.heap.scopesizeof(handle);
-    let scope = PartialScopeImpl.root(self, scopeSize);
+    let scope = PartialScopeImpl.root(self, numSymbols);
     let state = vmState(runtime.program.heap.getaddr(handle), scope, dynamicScope);
     let vm = initVM(context)(runtime, state, treeBuilder);
     vm.pushUpdating();
@@ -330,7 +330,7 @@ export default class VM implements PublicVM, InternalVM {
   static empty(
     runtime: RuntimeContext,
     { handle, treeBuilder, dynamicScope }: MinimalInitOptions,
-    context: SyntaxCompilationContext
+    context: CompileTimeCompilationContext
   ) {
     let vm = initVM(context)(
       runtime,
@@ -568,7 +568,8 @@ export default class VM implements PublicVM, InternalVM {
             elements.popBlock();
           }
 
-          console.error(`\n\nError occurred while rendering:\n\n${resetTracking()}\n\n`);
+          // eslint-disable-next-line no-console
+          console.error(`\n\nError occurred:\n\n${resetTracking()}\n\n`);
         }
       }
     } else {
@@ -578,7 +579,7 @@ export default class VM implements PublicVM, InternalVM {
 
   private _execute(initialize?: (vm: this) => void): RenderResult {
     if (LOCAL_SHOULD_LOG) {
-      console.log(`EXECUTING FROM ${this[INNER_VM].fetchRegister($pc)}`);
+      LOCAL_LOGGER.log(`EXECUTING FROM ${this[INNER_VM].fetchRegister($pc)}`);
     }
 
     if (initialize) initialize(this);
@@ -648,6 +649,7 @@ export interface MinimalInitOptions {
 
 export interface InitOptions extends MinimalInitOptions {
   self: Reference;
+  numSymbols: number;
 }
 
 export type VmInitCallback = (
@@ -657,6 +659,6 @@ export type VmInitCallback = (
   builder: ElementBuilder
 ) => InternalVM;
 
-function initVM(context: SyntaxCompilationContext): VmInitCallback {
+function initVM(context: CompileTimeCompilationContext): VmInitCallback {
   return (runtime, state, builder) => new VM(runtime, state, builder, context);
 }

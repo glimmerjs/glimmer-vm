@@ -3,8 +3,10 @@ import {
   CompilableProgram,
   LayoutWithContext,
   Option,
-  SyntaxCompilationContext,
+  CompileTimeCompilationContext,
   HandleResult,
+  BuilderOp,
+  HighLevelOp,
 } from '@glimmer/interfaces';
 
 import { templateCompilationContext } from './opcode-builder/context';
@@ -12,18 +14,19 @@ import { meta } from './opcode-builder/helpers/shared';
 import { ATTRS_BLOCK, WrappedComponent } from './opcode-builder/helpers/components';
 import { LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
 import { debugCompiler } from './compiler';
-import { concatStatements } from './syntax/concat';
-import { patchStdlibs } from '@glimmer/program';
+import { encodeOp } from './opcode-builder/encoder';
+import { HighLevelStatementOp } from './syntax/compilers';
 
 export class WrappedBuilder implements CompilableProgram {
   public symbolTable: ProgramSymbolTable;
   private compiled: Option<number> = null;
   private attrsBlockNumber: number;
 
-  constructor(private layout: LayoutWithContext) {
+  constructor(private layout: LayoutWithContext, public moduleName: string) {
     let { block } = layout;
+    let [, symbols, hasEval] = block;
 
-    let symbols = block.symbols.slice();
+    symbols = symbols.slice();
 
     // ensure ATTRS_BLOCK is always included (only once) in the list of symbols
     let attrsBlockIndex = symbols.indexOf(ATTRS_BLOCK);
@@ -34,22 +37,29 @@ export class WrappedBuilder implements CompilableProgram {
     }
 
     this.symbolTable = {
-      hasEval: block.hasEval,
+      hasEval,
       symbols,
     };
   }
 
-  compile(syntax: SyntaxCompilationContext): HandleResult {
+  compile(syntax: CompileTimeCompilationContext): HandleResult {
     if (this.compiled !== null) return this.compiled;
 
     let m = meta(this.layout);
     let context = templateCompilationContext(syntax, m);
 
-    let actions = WrappedComponent(this.layout, this.attrsBlockNumber);
+    let {
+      encoder,
+      program: { constants, resolver },
+    } = context;
 
-    concatStatements(context, actions);
+    function pushOp(...op: BuilderOp | HighLevelOp | HighLevelStatementOp) {
+      encodeOp(encoder, constants, resolver, m, op as BuilderOp | HighLevelOp);
+    }
 
-    let handle = context.encoder.commit(context.syntax.program.heap, m.size);
+    WrappedComponent(pushOp, this.layout, this.attrsBlockNumber);
+
+    let handle = context.encoder.commit(m.size);
 
     if (typeof handle !== 'number') {
       return handle;
@@ -61,7 +71,6 @@ export class WrappedBuilder implements CompilableProgram {
       debugCompiler(context, handle);
     }
 
-    patchStdlibs(context.syntax.program);
     return handle;
   }
 }

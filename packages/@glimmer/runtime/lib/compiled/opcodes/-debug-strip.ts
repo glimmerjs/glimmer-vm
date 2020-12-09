@@ -13,11 +13,13 @@ import {
   CheckOr,
   CheckArray,
   CheckDict,
+  CheckObject,
+  CheckString,
 } from '@glimmer/debug';
 import {
   CompilableBlock,
   ComponentDefinition,
-  ComponentManager,
+  InternalComponentManager,
   ElementOperations,
   Invocation,
   Scope,
@@ -25,12 +27,14 @@ import {
   CapturedArguments,
   Option,
   ScopeBlock,
+  CompilableProgram,
+  ComponentInstance,
 } from '@glimmer/interfaces';
 import { Reference, REFERENCE, OpaqueIterator, UNDEFINED_REFERENCE } from '@glimmer/reference';
 import { Tag, COMPUTE } from '@glimmer/validator';
 import { PartialScopeImpl } from '../../scope';
 import { VMArgumentsImpl } from '../../vm/arguments';
-import { ComponentInstance, ComponentElementOperations } from './component';
+import { ComponentElementOperations } from './component';
 import {
   CurriedComponentDefinition,
   isCurriedComponentDefinition,
@@ -94,7 +98,7 @@ export const CheckCapturedArguments: Checker<CapturedArguments> = CheckInterface
 
 export const CheckScope: Checker<Scope> = wrap(() => CheckInstanceof(PartialScopeImpl));
 
-export const CheckComponentManager: Checker<ComponentManager<unknown>> = CheckInterface({
+export const CheckComponentManager: Checker<InternalComponentManager<unknown>> = CheckInterface({
   getCapabilities: CheckFunction,
 });
 
@@ -103,11 +107,6 @@ export const CheckComponentInstance: Checker<ComponentInstance> = CheckInterface
   state: CheckUnknown,
   handle: CheckUnknown,
   table: CheckUnknown,
-});
-
-export const CheckComponentDefinition: Checker<ComponentDefinition> = CheckInterface({
-  state: CheckUnknown,
-  manager: CheckComponentManager,
 });
 
 class CurriedComponentDefinitionChecker implements Checker<CurriedComponentDefinition> {
@@ -145,8 +144,22 @@ export const CheckCompilableBlock: Checker<CompilableBlock> = CheckInterface({
   symbolTable: CheckBlockSymbolTable,
 });
 
+export const CheckCompilableProgram: Checker<CompilableProgram> = CheckInterface({
+  compile: CheckFunction,
+  symbolTable: CheckProgramSymbolTable,
+});
+
 export const CheckScopeBlock: Checker<ScopeBlock> = CheckInterface({
   0: CheckOr(CheckHandle, CheckCompilableBlock),
   1: CheckScope,
   2: CheckBlockSymbolTable,
+});
+
+export const CheckComponentDefinition: Checker<ComponentDefinition> = CheckInterface({
+  resolvedName: CheckOption(CheckString),
+  handle: CheckNumber,
+  state: CheckObject,
+  manager: CheckComponentManager,
+  capabilities: CheckNumber,
+  compilable: CheckCompilableProgram,
 });

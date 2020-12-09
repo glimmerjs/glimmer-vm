@@ -8,67 +8,62 @@ import {
   CheckString,
   CheckOr,
 } from '@glimmer/debug';
+import { DEBUG } from '@glimmer/env';
 import {
   Bounds,
-  CompilableTemplate,
   ComponentDefinition,
+  InternalComponentCapability,
   ComponentDefinitionState,
   ComponentInstanceState,
-  ComponentManager,
+  InternalComponentManager,
   Dict,
   DynamicScope,
   ElementOperations,
-  InternalComponentManager,
   Maybe,
   Op,
+  Option,
   ProgramSymbolTable,
   Recast,
   ScopeSlot,
   VMArguments,
-  WithDynamicLayout,
-  WithStaticLayout,
   WithDynamicTagName,
   WithElementHook,
   WithUpdateHook,
-  WithCreateInstance,
-  ModifierManager,
   Owner,
+  CapturedArguments,
+  CompilableProgram,
+  ComponentInstance,
+  ModifierInstance,
+  ComponentInstanceWithCreate,
 } from '@glimmer/interfaces';
-import { Reference, valueForRef, isConstRef } from '@glimmer/reference';
-
+import { isConstRef, Reference, valueForRef } from '@glimmer/reference';
 import {
   assert,
-  dict,
-  expect,
-  Option,
-  unreachable,
-  symbol,
-  unwrapTemplate,
-  EMPTY_ARRAY,
   decodeHandle,
+  dict,
+  EMPTY_STRING_ARRAY,
+  expect,
   isErrHandle,
+  unreachable,
+  unwrapTemplate,
 } from '@glimmer/util';
 import { $t0, $t1, $v0 } from '@glimmer/vm';
-import {
-  Capability,
-  capabilityFlagsFrom,
-  managerHasCapability,
-  hasCapability,
-} from '../../capabilities';
+import { registerDestructor } from '@glimmer/destroyable';
+import { managerHasCapability } from '@glimmer/manager';
 import {
   CurriedComponentDefinition,
   isCurriedComponentDefinition,
   resolveCurriedComponentDefinition,
 } from '../../component/curried-component';
 import { resolveComponent } from '../../component/resolve';
-import { hasStaticLayout } from '../../component/interfaces';
+import { hasCustomDebugRenderTreeLifecycle } from '../../component/interfaces';
 import { APPEND_OPCODES, UpdatingOpcode } from '../../opcodes';
 import createClassListRef from '../../references/class-list';
 import createCurryComponentRef from '../../references/curry-component';
 import { ARGS, CONSTANTS } from '../../symbols';
 import { UpdatingVM } from '../../vm';
 import { InternalVM } from '../../vm/append';
-import { BlockArgumentsImpl, VMArgumentsImpl } from '../../vm/arguments';
+import { BlockArgumentsImpl, EMPTY_ARGS, VMArgumentsImpl } from '../../vm/arguments';
 import {
   CheckArguments,
   CheckCapturedArguments,
@@ -80,7 +75,6 @@ import {
   CheckCurriedComponentDefinition,
 } from './-debug-strip';
 import { UpdateDynamicAttributeOpcode } from './dom';
-import { DEBUG } from '@glimmer/env';
 
 /**
  * The VM creates a new ComponentInstance data structure for every component
@@ -92,24 +86,10 @@ import { DEBUG } from '@glimmer/env';
  * component type's ComponentDefinition.
  */
 
-export const COMPONENT_INSTANCE: unique symbol = symbol('COMPONENT_INSTANCE');
-
-export interface ComponentInstance {
-  [COMPONENT_INSTANCE]: true;
-  definition: ComponentDefinition;
-  manager: ComponentManager;
-  capabilities: Capability;
-  state: ComponentInstanceState;
-  handle: number;
-  table: ProgramSymbolTable;
-  lookup: Option<Dict<ScopeSlot>>;
-}
-
 export interface InitialComponentInstance {
-  [COMPONENT_INSTANCE]: true;
-  definition: PartialComponentDefinition;
+  definition: ComponentDefinition;
   manager: Option<InternalComponentManager>;
-  capabilities: Option<Capability>;
+  capabilities: Option<InternalComponentCapability>;
   state: null;
   handle: Option<number>;
   table: Option<ProgramSymbolTable>;
@@ -117,10 +97,9 @@ export interface InitialComponentInstance {
 }
 
 export interface PopulatedComponentInstance {
-  [COMPONENT_INSTANCE]: true;
   definition: ComponentDefinition;
-  manager: ComponentManager<unknown>;
-  capabilities: Capability;
+  manager: InternalComponentManager;
+  capabilities: InternalComponentCapability;
   state: null;
   handle: number;
   table: Option<ProgramSymbolTable>;
@@ -138,21 +117,20 @@ APPEND_OPCODES.add(Op.CurryComponent, (vm, { op1: _owner }) => {
   let definition = check(stack.popJs(), CheckReference);
   let capturedArgs = check(stack.popJs(), CheckCapturedArguments);
 
-  let owner = vm[CONSTANTS].getValue<Owner>(decodeHandle(_owner));
+  let constants = vm[CONSTANTS];
+  let owner = constants.getValue<Owner>(decodeHandle(_owner));
   let resolver = vm.runtime.resolver;
 
-  vm.loadValue($v0, createCurryComponentRef(definition, resolver, owner, capturedArgs));
+  vm.loadValue($v0, createCurryComponentRef(definition, resolver, constants, owner, capturedArgs));
 });
 
 APPEND_OPCODES.add(Op.PushComponentDefinition, (vm, { op1: handle }) => {
-  let definition = vm.runtime.resolver.resolve<ComponentDefinition>(handle);
+  let definition = vm[CONSTANTS].getValue<ComponentDefinition>(handle);
   assert(!!definition, `Missing component for ${handle}`);
 
-  let { manager } = definition;
-  let capabilities = capabilityFlagsFrom(manager.getCapabilities(definition.state));
+  let { manager, capabilities } = definition;
 
   let instance: InitialComponentInstance = {
-    [COMPONENT_INSTANCE]: true,
     definition,
     manager,
     capabilities,
@@ -178,7 +156,7 @@ APPEND_OPCODES.add(Op.ResolveDynamicComponent, (vm, { op1: _owner }) => {
   let definition: ComponentDefinition | CurriedComponentDefinition;
 
   if (typeof component === 'string') {
-    let resolvedDefinition = resolveComponent(vm.runtime.resolver, component, owner);
+    let resolvedDefinition = resolveComponent(vm.runtime.resolver, vm[CONSTANTS], component, owner);
 
     definition = expect(resolvedDefinition, `Could not find a component named "${component}"`);
   } else {
@@ -215,7 +193,7 @@ APPEND_OPCODES.add(Op.PushDynamicComponentInstance, (vm) => {
     manager = capabilities = null;
   } else {
     manager = definition.manager;
-    capabilities = capabilityFlagsFrom(manager.getCapabilities(definition.state));
+    capabilities = definition.capabilities;
   }
 
   stack.pushJs({ definition, capabilities, manager, state: null, handle: null, table: null });
@@ -242,7 +220,8 @@ APPEND_OPCODES.add(Op.PushArgs, (vm, { op1: _names, op2: _blockNames, op3: flags
 
   let positionalCount = flags >> 4;
   let atNames = flags & 0b1000;
-  let blockNames = flags & 0b0111 ? vm[CONSTANTS].getArray<string>(_blockNames) : EMPTY_ARRAY;
+  let blockNames =
+    flags & 0b0111 ? vm[CONSTANTS].getArray<string>(_blockNames) : EMPTY_STRING_ARRAY;
 
   vm[ARGS].setup(stack, names, blockNames, positionalCount, !!atNames);
   stack.pushJs(vm[ARGS]);
@@ -274,13 +253,14 @@ APPEND_OPCODES.add(Op.PrepareArgs, (vm, { op1: _state }) => {
       !definition.manager,
       "If the component definition was curried, we don't yet have a manager"
     );
+
     definition = resolveCurriedComponentDefinition(instance, definition, args);
   }
 
   let { manager, state } = definition;
   let capabilities = instance.capabilities;
 
-  if (!managerHasCapability(manager, capabilities, Capability.PrepareArgs)) {
+  if (!managerHasCapability(manager, capabilities, InternalComponentCapability.PrepareArgs)) {
     stack.pushJs(args);
     return;
   }
@@ -324,13 +304,9 @@ APPEND_OPCODES.add(Op.PrepareArgs, (vm, { op1: _state }) => {
 
 APPEND_OPCODES.add(Op.CreateComponent, (vm, { op1: flags, op2: _state }) => {
   let instance = check(vm.fetchValue(_state), CheckComponentInstance);
-  let { definition, manager } = instance;
+  let { definition, manager, capabilities } = instance;
 
-  let capabilities = (instance.capabilities = capabilityFlagsFrom(
-    manager.getCapabilities(definition.state)
-  ));
-
-  if (!managerHasCapability(manager, capabilities, Capability.CreateInstance)) {
+  if (!managerHasCapability(manager, capabilities, InternalComponentCapability.CreateInstance)) {
     // TODO: Closure and Main components are always invoked dynamically, so this
     // opcode may run even if this capability is not enabled. In the future we
     // should handle this in a better way.
@@ -338,19 +314,19 @@ APPEND_OPCODES.add(Op.CreateComponent, (vm, { op1: flags, op2: _state }) => {
   }
 
   let dynamicScope: Option<DynamicScope> = null;
-  if (managerHasCapability(manager, capabilities, Capability.DynamicScope)) {
+  if (managerHasCapability(manager, capabilities, InternalComponentCapability.DynamicScope)) {
     dynamicScope = vm.dynamicScope();
   }
 
   let hasDefaultBlock = flags & 1;
   let args: Option<VMArguments> = null;
 
-  if (managerHasCapability(manager, capabilities, Capability.CreateArgs)) {
+  if (managerHasCapability(manager, capabilities, InternalComponentCapability.CreateArgs)) {
     args = check(vm.stack.peekJs(), CheckArguments);
   }
 
   let self: Option<Reference> = null;
-  if (managerHasCapability(manager, capabilities, Capability.CreateCaller)) {
+  if (managerHasCapability(manager, capabilities, InternalComponentCapability.CreateCaller)) {
     self = vm.getSelf();
   }
 
@@ -360,7 +336,7 @@ APPEND_OPCODES.add(Op.CreateComponent, (vm, { op1: flags, op2: _state }) => {
   // only transition at exactly one place.
   instance.state = state;
 
-  if (managerHasCapability(manager, capabilities, Capability.UpdateHook)) {
+  if (managerHasCapability(manager, capabilities, InternalComponentCapability.UpdateHook)) {
     vm.updateWith(new UpdateComponentOpcode(state, manager, dynamicScope));
   }
 });
@@ -372,7 +348,7 @@ APPEND_OPCODES.add(Op.RegisterComponentDestructor, (vm, { op1: _state }) => {
 
   if (
     DEBUG &&
-    !hasCapability(capabilities, Capability.WillDestroy) &&
+    !managerHasCapability(manager, capabilities, InternalComponentCapability.WillDestroy) &&
     d !== null &&
     typeof 'willDestroy' in d
   ) {
@@ -390,7 +366,7 @@ APPEND_OPCODES.add(Op.BeginComponentTransaction, (vm, { op1: _state }) => {
   if (DEBUG) {
     let { definition, manager } = check(vm.fetchValue(_state), CheckComponentInstance);
 
-    name = manager.getDebugName(definition.state);
+    name = definition.resolvedName ?? manager.getDebugName(definition.state);
   }
 
   vm.beginCacheGroup(name);
@@ -401,15 +377,16 @@ APPEND_OPCODES.add(Op.PutComponentOperations, (vm) => {
   vm.loadValue($t0, new ComponentElementOperations());
 });
 
-APPEND_OPCODES.add(Op.ComponentAttr, (vm, { op1: _name, op2: trusting, op3: _namespace }) => {
+APPEND_OPCODES.add(Op.ComponentAttr, (vm, { op1: _name, op2: _trusting, op3: _namespace }) => {
   let name = vm[CONSTANTS].getValue<string>(_name);
+  let trusting = vm[CONSTANTS].getValue<boolean>(_trusting);
   let reference = check(vm.stack.popJs(), CheckReference);
   let namespace = _namespace ? vm[CONSTANTS].getValue<string>(_namespace) : null;
 
   check(vm.fetchValue($t0), CheckInstanceof(ComponentElementOperations)).setAttribute(
     name,
     reference,
-    !!trusting,
+    trusting,
     namespace
   );
 });
@@ -435,7 +412,7 @@ type DeferredAttribute = {
 export class ComponentElementOperations implements ElementOperations {
   private attributes = dict<DeferredAttribute>();
   private classes: (string | Reference<unknown>)[] = [];
-  private modifiers: [ModifierManager<unknown>, unknown][] = [];
+  private modifiers: ModifierInstance[] = [];
 
   setAttribute(
     name: string,
@@ -462,11 +439,11 @@ export class ComponentElementOperations implements ElementOperations {
     this.attributes[name] = deferred;
   }
 
-  addModifier<S>(manager: ModifierManager<S>, state: S): void {
-    this.modifiers.push([manager, state]);
+  addModifier(modifier: ModifierInstance): void {
+    this.modifiers.push(modifier);
   }
 
-  flush(vm: InternalVM): [ModifierManager<unknown>, unknown][] {
+  flush(vm: InternalVM): ModifierInstance[] {
     let type: DeferredAttribute | undefined;
     let attributes = this.attributes;
 
@@ -542,16 +519,98 @@ APPEND_OPCODES.add(Op.DidCreateElement, (vm, { op1: _state }) => {
 
   (manager as WithElementHook<unknown>).didCreateElement(
     state,
-    expect(vm.elements().constructing, `Expected a constructing elemet in DidCreateOpcode`),
+    expect(vm.elements().constructing, `Expected a constructing element in DidCreateOpcode`),
     operations
   );
 });
 
-APPEND_OPCODES.add(Op.GetComponentSelf, (vm, { op1: _state }) => {
-  let { definition, state } = check(vm.fetchValue(_state), CheckComponentInstance);
+APPEND_OPCODES.add(Op.GetComponentSelf, (vm, { op1: _state, op2: _names }) => {
+  let instance = check(vm.fetchValue(_state), CheckComponentInstance);
+  let { definition, state } = instance;
   let { manager } = definition;
+  let selfRef = manager.getSelf(state);
 
-  vm.stack.pushJs(manager.getSelf(state));
+  if (vm.env.debugRenderTree !== undefined) {
+    let instance = check(vm.fetchValue(_state), CheckComponentInstance);
+    let { definition, manager } = instance;
+
+    let args: CapturedArguments;
+
+    if (vm.stack.peek() === vm[ARGS]) {
+      args = vm[ARGS].capture();
+    } else {
+      let names = vm[CONSTANTS].getArray<string>(_names);
+      vm[ARGS].setup(vm.stack, names, [], 0, true);
+      args = vm[ARGS].capture();
+    }
+
+    let moduleName: string;
+    let compilable: CompilableProgram | null = definition.compilable;
+
+    if (compilable === null) {
+      assert(
+        managerHasCapability(
+          manager,
+          instance.capabilities,
+          InternalComponentCapability.DynamicLayout
+        ),
+        'BUG: No template was found for this component, and the component did not have the dynamic layout capability'
+      );
+
+      compilable = manager.getDynamicLayout(state, vm.runtime.resolver);
+
+      if (compilable !== null) {
+        moduleName = compilable.moduleName;
+      } else {
+        moduleName = '__default__.hbs';
+      }
+    } else {
+      moduleName = compilable.moduleName;
+    }
+
+    // For tearing down the debugRenderTree
+    vm.associateDestroyable(instance);
+
+    if (hasCustomDebugRenderTreeLifecycle(manager)) {
+      let nodes = manager.getDebugCustomRenderTree(
+        instance.definition.state,
+        instance.state,
+        args,
+        moduleName
+      );
+
+      nodes.forEach((node) => {
+        let { bucket } = node;
+        vm.env.debugRenderTree!.create(bucket, node);
+
+        registerDestructor(instance, () => {
+          vm.env.debugRenderTree?.willDestroy(bucket);
+        });
+
+        vm.updateWith(new DebugRenderTreeUpdateOpcode(bucket));
+      });
+    } else {
+      let name = definition.resolvedName ?? manager.getDebugName(definition.state);
+
+      vm.env.debugRenderTree.create(instance, {
+        type: 'component',
+        name,
+        args,
+        template: moduleName,
+        instance: valueForRef(selfRef),
+      });
+
+      vm.associateDestroyable(instance);
+
+      registerDestructor(instance, () => {
+        vm.env.debugRenderTree?.willDestroy(instance);
+      });
+
+      vm.updateWith(new DebugRenderTreeUpdateOpcode(instance));
+    }
+  }
+
+  vm.stack.pushJs(selfRef);
 });
 
 APPEND_OPCODES.add(Op.GetComponentTagName, (vm, { op1: _state }) => {
@@ -571,29 +630,33 @@ APPEND_OPCODES.add(Op.GetComponentTagName, (vm, { op1: _state }) => {
 APPEND_OPCODES.add(Op.GetComponentLayout, (vm, { op1: _state }) => {
   let instance = check(vm.fetchValue(_state), CheckComponentInstance);
 
-  let manager = instance.manager as WithStaticLayout | WithDynamicLayout;
-  let { definition } = instance;
+  let { manager, definition } = instance;
   let { stack } = vm;
 
-  let { capabilities } = instance;
+  let { compilable } = definition;
 
-  let layout: CompilableTemplate;
+  if (compilable === null) {
+    let { capabilities } = instance;
 
-  if (hasStaticLayout(capabilities, manager)) {
-    layout = manager.getStaticLayout(definition.state);
-  } else {
-    let template = unwrapTemplate(manager.getDynamicLayout(instance.state, vm.runtime.resolver));
+    assert(
+      managerHasCapability(manager, capabilities, InternalComponentCapability.DynamicLayout),
+      'BUG: No template was found for this component, and the component did not have the dynamic layout capability'
+    );
 
-    if (hasCapability(capabilities, Capability.Wrapped)) {
-      layout = template.asWrappedLayout();
-    } else {
-      layout = template.asLayout();
+    compilable = manager.getDynamicLayout(instance.state, vm.runtime.resolver);
+
+    if (compilable === null) {
+      if (managerHasCapability(manager, capabilities, InternalComponentCapability.Wrapped)) {
+        compilable = unwrapTemplate(vm[CONSTANTS].defaultTemplate).asWrappedLayout();
+      } else {
+        compilable = unwrapTemplate(vm[CONSTANTS].defaultTemplate).asLayout();
+      }
     }
   }
 
-  let handle = layout.compile(vm.context);
+  let handle = compilable.compile(vm.context);
 
-  stack.pushJs(layout.symbolTable);
+  stack.pushJs(compilable.symbolTable);
 
   if (DEBUG && isErrHandle(handle)) {
     stack.pushJs(handle);
@@ -606,11 +669,9 @@ APPEND_OPCODES.add(Op.Main, (vm, { op1: register }) => {
   let definition = check(vm.stack.popJs(), CheckComponentDefinition);
   let invocation = check(vm.stack.popJs(), CheckInvocation);
 
-  let { manager } = definition;
-  let capabilities = capabilityFlagsFrom(manager.getCapabilities(definition.state));
+  let { manager, capabilities } = definition;
 
   let state: PopulatedComponentInstance = {
-    [COMPONENT_INSTANCE]: true,
     definition,
     manager,
     capabilities,
@@ -699,16 +760,34 @@ APPEND_OPCODES.add(Op.InvokeComponentLayout, (vm, { op1: _state }) => {
 });
 
 APPEND_OPCODES.add(Op.DidRenderLayout, (vm, { op1: _state }) => {
-  let { manager, state, capabilities } = check(vm.fetchValue(_state), CheckComponentInstance);
+  let instance = check(vm.fetchValue(_state), CheckComponentInstance);
+  let { manager, state, capabilities } = instance;
   let bounds = vm.elements().popBlock();
 
-  let mgr = check(manager, CheckInterface({ didRenderLayout: CheckFunction }));
+  if (vm.env.debugRenderTree !== undefined) {
+    if (hasCustomDebugRenderTreeLifecycle(manager)) {
+      let nodes = manager.getDebugCustomRenderTree(instance.definition.state, state, EMPTY_ARGS);
 
-  mgr.didRenderLayout(state, bounds);
+      nodes.reverse().forEach((node) => {
+        let { bucket } = node;
 
-  if (managerHasCapability(manager, capabilities, Capability.CreateInstance)) {
-    vm.env.didCreate(state, manager);
-    vm.updateWith(new DidUpdateLayoutOpcode(manager, state, bounds));
+        vm.env.debugRenderTree!.didRender(bucket, bounds);
+
+        vm.updateWith(new DebugRenderTreeDidRenderOpcode(bucket, bounds));
+      });
+    } else {
+      vm.env.debugRenderTree.didRender(instance, bounds);
+
+      vm.updateWith(new DebugRenderTreeDidRenderOpcode(instance, bounds));
+    }
+  }
+
+  if (managerHasCapability(manager, capabilities, InternalComponentCapability.CreateInstance)) {
+    let mgr = check(manager, CheckInterface({ didRenderLayout: CheckFunction }));
+    mgr.didRenderLayout(state, bounds);
+
+    vm.env.didCreate(instance as ComponentInstanceWithCreate);
+    vm.updateWith(new DidUpdateLayoutOpcode(instance as ComponentInstanceWithCreate, bounds));
   }
 });
 
@@ -737,19 +816,40 @@ export class UpdateComponentOpcode extends UpdatingOpcode {
 export class DidUpdateLayoutOpcode extends UpdatingOpcode {
   public type = 'did-update-layout';
 
-  constructor(
-    private manager: WithCreateInstance,
-    private component: ComponentInstanceState,
-    private bounds: Bounds
-  ) {
+  constructor(private component: ComponentInstanceWithCreate, private bounds: Bounds) {
     super();
   }
 
   evaluate(vm: UpdatingVM) {
-    let { manager, component, bounds } = this;
+    let { component, bounds } = this;
+    let { manager, state } = component;
 
-    manager.didUpdateLayout(component, bounds);
+    manager.didUpdateLayout(state, bounds);
 
-    vm.env.didUpdate(component, manager);
+    vm.env.didUpdate(component);
+  }
+}
+
+class DebugRenderTreeUpdateOpcode extends UpdatingOpcode {
+  public type = 'debug-render-tree-update';
+
+  constructor(private bucket: object) {
+    super();
+  }
+
+  evaluate(vm: UpdatingVM) {
+    vm.env.debugRenderTree?.update(this.bucket);
+  }
+}
+
+class DebugRenderTreeDidRenderOpcode extends UpdatingOpcode {
+  public type = 'debug-render-tree-did-render';
+
+  constructor(private bucket: object, private bounds: Bounds) {
+    super();
+  }
+
+  evaluate(vm: UpdatingVM) {
+    vm.env.debugRenderTree?.didRender(this.bucket, this.bounds);
   }
 }

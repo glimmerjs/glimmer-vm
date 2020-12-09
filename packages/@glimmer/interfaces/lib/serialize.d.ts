@@ -54,48 +54,53 @@
  * the `RuntimeResolver` to do dynamic resolution when necessary.
  */
 
-import ComponentCapabilities from './component-capabilities';
 import { Option } from './core';
 import { ProgramSymbolTable } from './tier1/symbol-table';
-import { ComponentDefinition } from './components';
+import { ComponentDefinitionState, ComponentInstanceState } from './components';
 import { CompilableProgram, Template, HandleResult } from './template';
-import { SyntaxCompilationContext } from './program';
-import { Helper } from './runtime/vm';
-import { ModifierDefinition } from './runtime/modifier';
-import { Owner } from './runtime';
-
-export interface HandleResolver {
-  resolve(handle: number): unknown;
-}
+import { CompileTimeCompilationContext } from './program';
+import { Owner, ModifierDefinitionState, HelperDefinitionState } from './runtime';
+import { InternalComponentCapability, InternalComponentManager } from './managers';
 
 export interface CompileTimeComponent {
   handle: number;
-  capabilities?: ComponentCapabilities;
+  capabilities: InternalComponentCapability;
   compilable: Option<CompilableProgram>;
 }
 
-export interface CompileTimeResolver<O extends Owner = Owner> extends HandleResolver {
-  lookupHelper(name: string, owner: O): Option<number>;
-  lookupModifier(name: string, owner: O): Option<number>;
-  lookupComponent(name: string, owner: O): Option<CompileTimeComponent>;
-  lookupPartial(name: string, owner: O): Option<number>;
+export interface ResolvedComponentDefinition<
+  D = ComponentDefinitionState,
+  I = ComponentInstanceState,
+  M extends InternalComponentManager<I, D> = InternalComponentManager<I, D>
+> {
+  state: D;
+  manager: M;
+  template: Template | null;
+}
 
-  // For debugging
-  resolve<U extends ResolvedValue>(handle: number): U | null;
+export const enum ResolverContext {
+  Component,
+  Modifier,
+  Helper,
+  HelperOrComponent,
+}
+
+export interface CompileTimeResolver<O extends Owner = Owner> {
+  lookupHelper(name: string, owner: O): Option<HelperDefinitionState>;
+  lookupModifier(name: string, owner: O): Option<ModifierDefinitionState>;
+  lookupComponent(name: string, owner: O): Option<ResolvedComponentDefinition>;
+  lookupPartial(name: string, owner: O): Option<PartialDefinition>;
 }
 
 export interface PartialDefinition {
   name: string; // for debugging
 
   getPartial(
-    context: SyntaxCompilationContext
+    context: CompileTimeCompilationContext
   ): { symbolTable: ProgramSymbolTable; handle: HandleResult };
 }
 
-export type ResolvedValue = ComponentDefinition | ModifierDefinition | Helper | PartialDefinition;
-
-export interface RuntimeResolver<O extends Owner = Owner> extends HandleResolver {
-  lookupComponent(name: string, owner: O): Option<ComponentDefinition>;
-  lookupPartial(name: string, owner: O): Option<number>;
-  resolve<U extends ResolvedValue>(handle: number): U;
+export interface RuntimeResolver<O extends Owner = Owner> {
+  lookupComponent(name: string, owner: O): Option<ResolvedComponentDefinition>;
+  lookupPartial(name: string, owner: O): Option<PartialDefinition>;
 }

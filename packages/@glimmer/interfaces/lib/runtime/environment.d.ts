@@ -1,11 +1,11 @@
 import { SimpleDocument } from '@simple-dom/interface';
-import { ComponentInstanceState } from '../components';
-import { ComponentManager } from '../components/component-manager';
+import { ComponentDefinitionState, ComponentInstance, ComponentInstanceState } from '../components';
 import { Option } from '../core';
 import { GlimmerTreeChanges, GlimmerTreeConstruction } from '../dom/changes';
 import { DebugRenderTree } from './debug-render-tree';
-import { ModifierManager } from './modifier';
 import { Owner } from './owner';
+import { ModifierInstance } from './modifier';
+import { WithCreateInstance } from '../..';
 
 export interface EnvironmentOptions {
   document?: SimpleDocument;
@@ -13,22 +13,25 @@ export interface EnvironmentOptions {
   updateOperations?: GlimmerTreeChanges;
 }
 
-export type InternalComponent = ComponentInstanceState;
-export type InternalComponentManager = ComponentManager<ComponentInstanceState>;
-
 export interface Transaction {}
 
 declare const TransactionSymbol: unique symbol;
 export type TransactionSymbol = typeof TransactionSymbol;
 
+export type ComponentInstanceWithCreate = ComponentInstance<
+  ComponentDefinitionState,
+  ComponentInstanceState,
+  WithCreateInstance
+>;
+
 export interface Environment<O extends Owner = Owner> {
   [TransactionSymbol]: Option<Transaction>;
 
-  didCreate(component: InternalComponent, manager: InternalComponentManager): void;
-  didUpdate(component: unknown, manager: ComponentManager<unknown>): void;
+  didCreate(component: ComponentInstanceWithCreate): void;
+  didUpdate(component: ComponentInstanceWithCreate): void;
 
-  scheduleInstallModifier(modifier: unknown, manager: ModifierManager): void;
-  scheduleUpdateModifier(modifier: unknown, manager: ModifierManager): void;
+  scheduleInstallModifier(modifier: ModifierInstance): void;
+  scheduleUpdateModifier(modifier: ModifierInstance): void;
 
   begin(): void;
   commit(): void;
@@ -37,6 +40,6 @@ export interface Environment<O extends Owner = Owner> {
   getAppendOperations(): GlimmerTreeConstruction;
 
   isInteractive: boolean;
-  debugRenderTree: DebugRenderTree;
+  debugRenderTree?: DebugRenderTree;
   owner: O;
 }

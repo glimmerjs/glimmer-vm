@@ -1,7 +1,9 @@
-export type Option<T> = T | null;
-export type Maybe<T> = Option<T> | undefined | void;
+import { Maybe } from '@glimmer/interfaces';
+import intern from './intern';
 
 export type Factory<T> = new (...args: unknown[]) => T;
+
+export const HAS_NATIVE_PROXY = typeof Proxy === 'function';
 
 export const HAS_NATIVE_SYMBOL = (function () {
   if (typeof Symbol !== 'function') {
@@ -38,6 +40,8 @@ export type Lit = string | number | boolean | undefined | null | void | {};
 
 export const tuple = <T extends Lit[]>(...args: T) => args;
 
-export const symbol = HAS_NATIVE_SYMBOL
-  ? Symbol
-  : (key: string) => `__${key}${Math.floor(Math.random() * Date.now())}__` as any;
+export function enumerableSymbol(key: string): any {
+  return intern(`__${key}${Math.floor(Math.random() * Date.now())}__`);
+}
+
+export const symbol = HAS_NATIVE_SYMBOL ? Symbol : enumerableSymbol;

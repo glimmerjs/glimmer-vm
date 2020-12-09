@@ -2,7 +2,7 @@ import { SimpleElement } from '@simple-dom/interface';
 import {
   Dict,
   Option,
-  ModifierManager,
+  InternalModifierManager,
   GlimmerTreeChanges,
   Destroyable,
   DynamicScope,
@@ -10,7 +10,8 @@ import {
   CapturedArguments,
 } from '@glimmer/interfaces';
 import { UpdatableTag, createUpdatableTag } from '@glimmer/validator';
-import { registerDestructor, reifyPositional, reifyNamed } from '@glimmer/runtime';
+import { registerDestructor } from '@glimmer/destroyable';
+import { reifyPositional, reifyNamed } from '@glimmer/runtime';
 
 export interface TestModifierConstructor {
   new (): TestModifierInstance;
@@ -28,7 +29,7 @@ export class TestModifierDefinitionState {
 }
 
 export class TestModifierManager
-  implements ModifierManager<TestModifier, TestModifierDefinitionState> {
+  implements InternalModifierManager<TestModifier, TestModifierDefinitionState> {
   create(
     element: SimpleElement,
     state: TestModifierDefinitionState,

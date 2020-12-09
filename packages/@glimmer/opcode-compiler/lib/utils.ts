@@ -1,19 +1,8 @@
-import {
-  NamedBlocks,
-  Option,
-  CompilableBlock,
-  WireFormat,
-  ContainingMetadata,
-  CompileErrorOp,
-  Expressions,
-  SexpOpcodes,
-} from '@glimmer/interfaces';
+import { NamedBlocks, Option, WireFormat, SerializedInlineBlock } from '@glimmer/interfaces';
 import { dict, assign } from '@glimmer/util';
-import { compilableBlock } from './compilable-template';
-import { error } from './opcode-builder/encoder';
 
 interface NamedBlocksDict {
-  [key: string]: Option<CompilableBlock>;
+  [key: string]: Option<WireFormat.SerializedInlineBlock>;
 }
 
 export class NamedBlocksImpl implements NamedBlocks {
@@ -23,7 +12,7 @@ export class NamedBlocksImpl implements NamedBlocks {
     this.names = blocks ? Object.keys(blocks) : [];
   }
 
-  get(name: string): Option<CompilableBlock> {
+  get(name: string): Option<SerializedInlineBlock> {
     if (!this.blocks) return null;
 
     return this.blocks[name] || null;
@@ -34,7 +23,7 @@ export class NamedBlocksImpl implements NamedBlocks {
     return blocks !== null && name in blocks;
   }
 
-  with(name: string, block: Option<CompilableBlock>): NamedBlocks {
+  with(name: string, block: Option<SerializedInlineBlock>): NamedBlocks {
     let { blocks } = this;
 
     if (blocks) {
@@ -51,7 +40,7 @@ export class NamedBlocksImpl implements NamedBlocks {
 
 export const EMPTY_BLOCKS = new NamedBlocksImpl(null);
 
-export function namedBlocks(blocks: WireFormat.Core.Blocks, meta: ContainingMetadata): NamedBlocks {
+export function namedBlocks(blocks: WireFormat.Core.Blocks): NamedBlocks {
   if (blocks === null) {
     return EMPTY_BLOCKS;
   }
@@ -61,56 +50,8 @@ export function namedBlocks(blocks: WireFormat.Core.Blocks, meta: ContainingMeta
   let [keys, values] = blocks;
 
   for (let i = 0; i < keys.length; i++) {
-    out[keys[i]] = compilableBlock(values[i]!, meta);
+    out[keys[i]] = values[i];
   }
 
   return new NamedBlocksImpl(out);
-}
-
-export function expectString(
-  expr: WireFormat.Expression,
-  meta: ContainingMetadata,
-  desc: string
-): string | CompileErrorOp {
-  if (!meta.upvars) {
-    return error(`${desc}, but there were no free variables in the template`, 0, 0);
-  }
-
-  if (!Array.isArray(expr)) {
-    throw new Error(`${desc}, got ${JSON.stringify(expr)}`);
-  }
-
-  if (isGet(expr)) {
-    let name = simplePathName(expr, meta);
-    if (name !== null) return name;
-  }
-
-  throw new Error(`${desc}, got ${JSON.stringify(expr)}`);
-}
-
-export function simplePathName(
-  opcode: Expressions.GetPath | Expressions.Get,
-  meta: ContainingMetadata
-): Option<string> {
-  if (opcode.length === 3 && opcode[2].length > 0) {
-    return null;
-  }
-
-  if (isGetFree(opcode)) {
-    return meta.upvars![opcode[1]];
-  }
-
-  return null;
-}
-
-export function isGet(
-  opcode: Expressions.TupleExpression
-): opcode is Expressions.Get | Expressions.GetPath {
-  return opcode.length >= 2 && opcode[0] >= SexpOpcodes.GetSymbol;
-}
-
-function isGetFree(
-  opcode: Expressions.Get | Expressions.GetPath
-): opcode is Expressions.GetFree | Expressions.GetContextualFree {
-  return opcode[0] >= SexpOpcodes.GetFree;
 }

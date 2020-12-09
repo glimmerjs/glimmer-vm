@@ -1,3 +1,117 @@
+## v0.68.1 (2020-12-06)
+
+#### :bug: Bug Fix
+* `@glimmer/manager`, `@glimmer/util`
+  * [#1224](https://github.com/glimmerjs/glimmer-vm/pull/1224) [BUGFIX] Make the custom tag system non-enumerable ([@pzuraq](https://github.com/pzuraq))
+* `@glimmer/runtime`
+  * [#1223](https://github.com/glimmerjs/glimmer-vm/pull/1223) [BUGFIX] Fix @glimmer/component ([@pzuraq](https://github.com/pzuraq))
+
+#### Committers: 1
+- Chris Garrett ([@pzuraq](https://github.com/pzuraq))
+
+## v0.68.0 (2020-12-04)
+
+#### :boom: Breaking Change
+* `@glimmer/benchmark-env`, `@glimmer/debug`, `@glimmer/integration-tests`, `@glimmer/interfaces`, `@glimmer/manager`, `@glimmer/node`, `@glimmer/opcode-compiler`, `@glimmer/program`, `@glimmer/runtime`, `@glimmer/util`
+  * [#1222](https://github.com/glimmerjs/glimmer-vm/pull/1222) [REFACTOR] Align resolver and internals with strict mode ([@pzuraq](https://github.com/pzuraq))
+* `@glimmer/destroyable`, `@glimmer/integration-tests`, `@glimmer/manager`, `@glimmer/owner`, `@glimmer/runtime`
+  * [#1221](https://github.com/glimmerjs/glimmer-vm/pull/1221) [REFACTOR] Extract Owner and Destroyables into their own packages ([@pzuraq](https://github.com/pzuraq))
+* `@glimmer/benchmark-env`, `@glimmer/debug`, `@glimmer/integration-tests`, `@glimmer/interfaces`, `@glimmer/opcode-compiler`, `@glimmer/runtime`
+  * [#1215](https://github.com/glimmerjs/glimmer-vm/pull/1215) [REFACTOR] Use constants pool for definitions ([@pzuraq](https://github.com/pzuraq))
+* `@glimmer/benchmark-env`, `@glimmer/integration-tests`, `@glimmer/interfaces`, `@glimmer/manager`, `@glimmer/program`, `@glimmer/runtime`, `@glimmer/util`
+  * [#1213](https://github.com/glimmerjs/glimmer-vm/pull/1213) [REFACTOR] Upstream custom managers, TO managers ([@pzuraq](https://github.com/pzuraq))
+
+#### :bug: Bug Fix
+* `@glimmer/compiler`, `@glimmer/integration-tests`
+  * [#1218](https://github.com/glimmerjs/glimmer-vm/pull/1218)  Fix splattributes handling of type attribute. [rebased] ([@locks](https://github.com/locks))
+
+#### :house: Internal
+* `@glimmer/benchmark-env`
+  * [#1220](https://github.com/glimmerjs/glimmer-vm/pull/1220) [BUGFIX] Absorb breakage in benchmark-env instead of benchmark ([@pzuraq](https://github.com/pzuraq))
+  * [#1217](https://github.com/glimmerjs/glimmer-vm/pull/1217) Revert "[BREAKING] Update benchmark-env API" ([@pzuraq](https://github.com/pzuraq))
+  * [#1216](https://github.com/glimmerjs/glimmer-vm/pull/1216) [BREAKING] Update benchmark-env API ([@pzuraq](https://github.com/pzuraq))
+* `@glimmer/integration-tests`
+  * [#1214](https://github.com/glimmerjs/glimmer-vm/pull/1214) [REFACTOR] Update tests to match actual Glimmer component API ([@pzuraq](https://github.com/pzuraq))
+
+#### Committers: 2
+- Chris Garrett ([@pzuraq](https://github.com/pzuraq))
+- Ricardo Mendes ([@locks](https://github.com/locks))
+
+## v0.67.0 (2020-11-24)
+
+#### :boom: Breaking Change
+* `@glimmer/compiler`, `@glimmer/integration-tests`, `@glimmer/interfaces`, `@glimmer/syntax`
+  * [#1206](https://github.com/glimmerjs/glimmer-vm/pull/1206) [BUGFIX] Ensures keywords and elements can always be shadowed ([@pzuraq](https://github.com/pzuraq))
+* `@glimmer/benchmark-env`, `@glimmer/compiler`, `@glimmer/debug`, `@glimmer/encoder`, `@glimmer/integration-tests`, `@glimmer/interfaces`, `@glimmer/opcode-compiler`, `@glimmer/program`, `@glimmer/runtime`, `@glimmer/syntax`, `@glimmer/util`
+  * [#1171](https://github.com/glimmerjs/glimmer-vm/pull/1171) Refactor resolver for strict ([@pzuraq](https://github.com/pzuraq))
+
+#### :bug: Bug Fix
+* `@glimmer/integration-tests`, `@glimmer/runtime`
+  * [#1209](https://github.com/glimmerjs/glimmer-vm/pull/1209) Ensure `<output form="some-value">` works properly ([@KrishnaRPatel](https://github.com/KrishnaRPatel))
+* `@glimmer/validator`
+  * [#1205](https://github.com/glimmerjs/glimmer-vm/pull/1205) Ensure `@tracked` assertion can be made a deprecation. ([@rwjblue](https://github.com/rwjblue))
+* `@glimmer/syntax`
+  * [#1204](https://github.com/glimmerjs/glimmer-vm/pull/1204) Ensure `loc` is populated by `builders.element(...)` ([@rwjblue](https://github.com/rwjblue))
+
+#### Committers: 3
+- Chris Garrett ([@pzuraq](https://github.com/pzuraq))
+- Krishna Patel ([@KrishnaRPatel](https://github.com/KrishnaRPatel))
+- Robert Jackson ([@rwjblue](https://github.com/rwjblue))
+
+## v0.66.1 (2020-11-20)
+
+#### :bug: Bug Fix
+* `@glimmer/integration-tests`, `@glimmer/runtime`
+  * [#1209](https://github.com/glimmerjs/glimmer-vm/pull/1209) Ensure `<output form="some-value">`
+ works properly ([@KrishnaRPatel](https://github.com/KrishnaRPatel))
+
+* `@glimmer/validator`
+  * [#1205](https://github.com/glimmerjs/glimmer-vm/pull/1205) Ensure `@tracked` assertion can be
+made a deprecation. ([@rwjblue](https://github.com/rwjblue))
+
+* `@glimmer/syntax`
+  * [#1204](https://github.com/glimmerjs/glimmer-vm/pull/1204) Ensure `loc` is populated by `build
+ers.element(...)` ([@rwjblue](https://github.com/rwjblue))
+
+#### Committers: 3
+- Chris Garrett ([@pzuraq](https://github.com/pzuraq))
+- Krishna Patel ([@KrishnaRPatel](https://github.com/KrishnaRPatel))
+- Robert Jackson ([@rwjblue](https://github.com/rwjblue))
+
+
+
+## v0.66.0 (2020-11-17)
+
+#### :boom: Breaking Change
+* `@glimmer/compiler`, `@glimmer/debug`, `@glimmer/integration-tests`, `@glimmer/interfaces`, `@glimmer/local-debug-flags`, `@glimmer/node`, `@glimmer/opcode-compiler`, `@glimmer/program`, `@glimmer/reference`, `@glimmer/runtime`, `@glimmer/syntax`, `@glimmer/util`, `@glimmer/validator`, `@glimmer/wire-format`
+  * [#1170](https://github.com/glimmerjs/glimmer-vm/pull/1170) Refactor `@glimmer/syntax` and `@glimmer/compiler` to enable future strict mode functionality. ([@pzuraq](https://github.com/pzuraq))
+
+#### Committers: 1
+- Chris Garrett ([@pzuraq](https://github.com/pzuraq))
+
+
+## v0.65.0 (2020-11-13)
+
+#### :boom: Breaking Change
+* `@glimmer/benchmark-env`, `@glimmer/integration-tests`, `@glimmer/interfaces`, `@glimmer/node`, `@glimmer/opcode-compiler`, `@glimmer/runtime`
+  * [#1197](https://github.com/glimmerjs/glimmer-vm/pull/1197) [REFACTOR] Upstreams basic manager infrastructure and types ([@pzuraq](https://github.com/pzuraq))
+
+#### Committers: 1
+- Chris Garrett ([@pzuraq](https://github.com/pzuraq))
+
+## v0.64.0 (2020-11-12)
+
+#### :boom: Breaking Change
+* `@glimmer/integration-tests`, `@glimmer/interfaces`, `@glimmer/opcode-compiler`, `@glimmer/runtime`, `@glimmer/validator`
+  * [#1192](https://github.com/glimmerjs/glimmer-vm/pull/1192) [REFACTOR] Integrate DebugRenderTree ([@pzuraq](https://github.com/pzuraq))
+
+#### :bug: Bug Fix
+* `@glimmer/benchmark-env`, `@glimmer/integration-tests`, `@glimmer/interfaces`, `@glimmer/runtime`
+  * [#1189](https://github.com/glimmerjs/glimmer-vm/pull/1189) [UPSTREAM] DebugRenderTree ([@pzuraq](https://github.com/pzuraq))
+
+#### Committers: 1
+- Chris Garrett ([@pzuraq](https://github.com/pzuraq))
+
 ## v0.63.5 (2020-11-10)
 
 #### :bug: Bug Fix

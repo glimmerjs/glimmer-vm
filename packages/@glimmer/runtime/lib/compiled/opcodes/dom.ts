@@ -8,13 +8,8 @@ import {
   CheckNode,
   CheckMaybe,
 } from '@glimmer/debug';
-import { Op, Option, ModifierManager } from '@glimmer/interfaces';
+import { Op, Option, ModifierDefinition, ModifierInstance } from '@glimmer/interfaces';
 import { $t0 } from '@glimmer/vm';
-import {
-  ModifierDefinition,
-  InternalModifierManager,
-  ModifierInstanceState,
-} from '../../modifier/interfaces';
 import { APPEND_OPCODES, UpdatingOpcode } from '../../opcodes';
 import { UpdatingVM } from '../../vm';
 import { Assert } from './vm';
@@ -67,7 +62,7 @@ APPEND_OPCODES.add(Op.PopRemoteElement, (vm) => {
 
 APPEND_OPCODES.add(Op.FlushElement, (vm) => {
   let operations = check(vm.fetchValue($t0), CheckOperations);
-  let modifiers: Option<[ModifierManager, unknown][]> = null;
+  let modifiers: Option<ModifierInstance[]> = null;
 
   if (operations) {
     modifiers = operations.flush(vm);
@@ -81,9 +76,10 @@ APPEND_OPCODES.add(Op.CloseElement, (vm) => {
   let modifiers = vm.elements().closeElement();
 
   if (modifiers) {
-    modifiers.forEach(([manager, modifier]) => {
-      vm.env.scheduleInstallModifier(modifier, manager);
-      let d = manager.getDestroyable(modifier);
+    modifiers.forEach((modifier) => {
+      vm.env.scheduleInstallModifier(modifier);
+      let { manager, state } = modifier;
+      let d = manager.getDestroyable(state);
 
       if (d) {
         vm.associateDestroyable(d);
@@ -93,31 +89,44 @@ APPEND_OPCODES.add(Op.CloseElement, (vm) => {
 });
 
 APPEND_OPCODES.add(Op.Modifier, (vm, { op1: handle }) => {
-  let { manager, state } = vm.runtime.resolver.resolve<ModifierDefinition>(handle);
+  if (vm.env.isInteractive === false) {
+    return;
+  }
+
+  let definition = vm[CONSTANTS].getValue<ModifierDefinition>(handle);
+  let { manager } = definition;
+
   let stack = vm.stack;
   let args = check(stack.popJs(), CheckArguments);
   let { constructing, updateOperations } = vm.elements();
   let dynamicScope = vm.dynamicScope();
-  let modifier = manager.create(
+
+  let state = manager.create(
     expect(constructing, 'BUG: ElementModifier could not find the element it applies to'),
-    state,
+    definition.state,
     args,
     dynamicScope,
     updateOperations
   );
+
+  let instance: ModifierInstance = {
+    manager,
+    state,
+    definition,
+  };
 
   let operations = expect(
     check(vm.fetchValue($t0), CheckOperations),
     'BUG: ElementModifier could not find operations to append to'
   );
 
-  operations.addModifier(manager, modifier);
+  operations.addModifier(instance);
 
-  let tag = manager.getTag(modifier);
+  let tag = manager.getTag(state);
 
   if (tag !== null) {
     consumeTag(tag);
-    vm.updateWith(new UpdateModifierOpcode(tag, manager, modifier));
+    vm.updateWith(new UpdateModifierOpcode(tag, instance));
   }
 });
 
@@ -125,22 +134,18 @@ export class UpdateModifierOpcode extends UpdatingOpcode {
   public type = 'update-modifier';
   private lastUpdated: Revision;
 
-  constructor(
-    public tag: Tag,
-    private manager: InternalModifierManager,
-    private modifier: ModifierInstanceState
-  ) {
+  constructor(public tag: Tag, private modifier: ModifierInstance) {
     super();
     this.lastUpdated = valueForTag(tag);
   }
 
   evaluate(vm: UpdatingVM) {
-    let { manager, modifier, tag, lastUpdated } = this;
+    let { modifier, tag, lastUpdated } = this;
 
     consumeTag(tag);
 
     if (!validateTag(tag, lastUpdated)) {
-      vm.env.scheduleUpdateModifier(modifier, manager);
+      vm.env.scheduleUpdateModifier(modifier);
       this.lastUpdated = valueForTag(tag);
     }
   }
@@ -154,13 +159,14 @@ APPEND_OPCODES.add(Op.StaticAttr, (vm, { op1: _name, op2: _value, op3: _namespac
   vm.elements().setStaticAttribute(name, value, namespace);
 });
 
-APPEND_OPCODES.add(Op.DynamicAttr, (vm, { op1: _name, op2: trusting, op3: _namespace }) => {
+APPEND_OPCODES.add(Op.DynamicAttr, (vm, { op1: _name, op2: _trusting, op3: _namespace }) => {
   let name = vm[CONSTANTS].getValue<string>(_name);
+  let trusting = vm[CONSTANTS].getValue<boolean>(_trusting);
   let reference = check(vm.stack.popJs(), CheckReference);
   let value = valueForRef(reference);
   let namespace = _namespace ? vm[CONSTANTS].getValue<string>(_namespace) : null;
 
-  let attribute = vm.elements().setDynamicAttribute(name, value, !!trusting, namespace);
+  let attribute = vm.elements().setDynamicAttribute(name, value, trusting, namespace);
 
   if (!isConstRef(reference)) {
     vm.updateWith(new UpdateDynamicAttributeOpcode(reference, attribute));

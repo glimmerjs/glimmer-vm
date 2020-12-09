@@ -28,10 +28,10 @@ export class CompilationTests extends RenderTest {
   'generates id in node'() {
     let template = precompile('hello');
     let obj = JSON.parse(template);
-    this.assert.equal(obj.id, 'rux34ToW', 'short sha of template source');
+    this.assert.equal(obj.id, 'G0ggkEjw', 'short sha of template source');
     template = precompile('hello', { meta: { moduleName: 'template/hello' } });
     obj = JSON.parse(template);
-    this.assert.equal(obj.id, 'MCFep7VV', 'short sha of template source and meta');
+    this.assert.equal(obj.id, '4vC0bnaR', 'short sha of template source and meta');
   }
 }
 
@@ -77,9 +77,8 @@ export class SerializedDOMHelperTests extends DOMHelperTests {
 
   @test
   'Null literals do not have representation in DOM'() {
-    let b = blockStack();
     this.render('{{null}}');
-    this.assertHTML(strip`${b(1)}<!--% %-->${b(1)}`);
+    this.assertHTML(strip`<!--% %-->`);
   }
 
   @test

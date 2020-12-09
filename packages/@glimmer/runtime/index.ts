@@ -5,7 +5,6 @@ import { RichIteratorResult } from '@glimmer/interfaces';
 import './lib/bootstrap';
 
 export { clear, ConcreteBounds, CursorImpl } from './lib/bounds';
-export { Capability, capabilityFlagsFrom, hasCapability } from './lib/capabilities';
 export {
   DebugCallback,
   resetDebuggerCallback,
@@ -16,8 +15,12 @@ export {
   curry,
   isCurriedComponentDefinition,
 } from './lib/component/curried-component';
-export { DEFAULT_CAPABILITIES, MINIMAL_CAPABILITIES } from './lib/component/interfaces';
-export * from './lib/component/manager';
+export {
+  TemplateOnlyComponentManager,
+  TEMPLATE_ONLY_COMPONENT_MANAGER,
+  TemplateOnlyComponentDefinition as TemplateOnlyComponent,
+  templateOnlyComponent,
+} from './lib/component/template-only';
 export {
   default as DOMChanges,
   DOMChangesImpl as IDOMChanges,
@@ -33,7 +36,6 @@ export {
   inTransaction,
 } from './lib/environment';
 export { default as getDynamicVar } from './lib/helpers/get-dynamic-var';
-export { PublicModifierDefinition as ModifierDefinition } from './lib/modifier/interfaces';
 export { RenderComponentArgs, renderComponent, renderMain, renderSync } from './lib/render';
 export { SafeString } from './lib/upsert';
 export { InternalVM, UpdatingVM, VM as LowLevelVM } from './lib/vm';
@@ -63,24 +65,10 @@ export {
   rehydrationBuilder,
   SERIALIZATION_FIRST_NODE_STRING,
 } from './lib/vm/rehydrate-builder';
-export {
-  destroy,
-  registerDestructor,
-  unregisterDestructor,
-  associateDestroyableChild,
-  isDestroying,
-  isDestroyed,
-  enableDestroyableTracking,
-  assertDestroyablesDestroyed,
-  destroyChildren as _destroyChildren,
-} from './lib/destroyables';
-export {
-  getComponentTemplate,
-  setComponentTemplate,
-  templateOnlyComponent,
-  isTemplateOnlyComponent,
-  TemplateOnlyComponent,
-} from './lib/template';
-export { getOwner, setOwner, OWNER } from './lib/owner';
+export { invokeHelper } from './lib/helpers/invoke';
+
+// Currently we need to re-export these values for @glimmer/component
+// https://github.com/glimmerjs/glimmer.js/issues/319
+export { destroy, registerDestructor } from '@glimmer/destroyable';
 
 export type IteratorResult<T> = RichIteratorResult<null, T>;

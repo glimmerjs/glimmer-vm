@@ -1,6 +1,7 @@
-import { PrecompileOptions } from '@glimmer/compiler';
+import { PrecompileOptions } from '@glimmer/syntax';
 import {
-  ComponentDefinition,
+  CapturedRenderNode,
+  CompileTimeCompilationContext,
   Cursor,
   Dict,
   DynamicScope,
@@ -11,9 +12,8 @@ import {
   Option,
   RenderResult,
   RuntimeContext,
-  SyntaxCompilationContext,
 } from '@glimmer/interfaces';
-import { syntaxCompilationContext } from '@glimmer/opcode-compiler';
+import { programCompilationContext } from '@glimmer/opcode-compiler';
 import { artifacts } from '@glimmer/program';
 import { createConstRef, Reference } from '@glimmer/reference';
 import {
@@ -26,7 +26,7 @@ import {
   runtimeContext,
 } from '@glimmer/runtime';
 import { ASTPluginBuilder } from '@glimmer/syntax';
-import { assign, castToBrowser, castToSimple, unwrapTemplate } from '@glimmer/util';
+import { assign, castToBrowser, castToSimple, expect, unwrapTemplate } from '@glimmer/util';
 import {
   ElementNamespace,
   SimpleDocument,
@@ -35,10 +35,7 @@ import {
   SimpleText,
 } from '@simple-dom/interface';
 import { preprocess } from '../../compile';
-import { TestMacros } from '../../compile/macros';
 import { ComponentKind, ComponentTypes } from '../../components';
-import { EmberishCurlyComponentFactory } from '../../components/emberish-curly';
-import { EmberishGlimmerComponentFactory } from '../../components/emberish-glimmer';
 import { UserHelper } from '../../helpers';
 import { TestModifierConstructor } from '../../modifiers';
 import RenderDelegate, { RenderDelegateOptions } from '../../render-delegate';
@@ -46,13 +43,11 @@ import { BaseEnv } from '../env';
 import JitCompileTimeLookup from './compilation-context';
 import {
   componentHelper,
-  registerEmberishCurlyComponent,
-  registerEmberishGlimmerComponent,
+  registerComponent,
   registerHelper,
   registerInternalHelper,
   registerModifier,
   registerPartial,
-  registerTemplateOnlyComponent,
 } from './register';
 import { TestJitRegistry } from './registry';
 import { renderTemplate } from './render';
@@ -60,7 +55,7 @@ import { TestJitRuntimeResolver } from './resolver';
 
 export interface JitTestDelegateContext {
   runtime: RuntimeContext;
-  syntax: SyntaxCompilationContext;
+  program: CompileTimeCompilationContext;
 }
 
 export function JitDelegateContext(
@@ -69,13 +64,9 @@ export function JitDelegateContext(
   env: EnvironmentDelegate
 ): JitTestDelegateContext {
   let sharedArtifacts = artifacts();
-  let context = syntaxCompilationContext(
-    sharedArtifacts,
-    new JitCompileTimeLookup(resolver),
-    new TestMacros()
-  );
+  let context = programCompilationContext(sharedArtifacts, new JitCompileTimeLookup(resolver));
   let runtime = runtimeContext({ document: doc }, env, sharedArtifacts, resolver);
-  return { runtime, syntax: context };
+  return { runtime, program: context };
 }
 
 export class JitRenderDelegate implements RenderDelegate {
@@ -92,8 +83,8 @@ export class JitRenderDelegate implements RenderDelegate {
   private env: EnvironmentDelegate;
 
   constructor(options?: RenderDelegateOptions) {
-    this.doc = options?.doc ?? castToSimple(document);
-    this.env = assign(options?.env ?? {}, BaseEnv);
+    this.doc = castToSimple(options?.doc ?? document);
+    this.env = assign({}, options?.env ?? BaseEnv);
     registerInternalHelper(this.registry, '-get-dynamic-var', getDynamicVar);
   }
 
@@ -103,6 +94,13 @@ export class JitRenderDelegate implements RenderDelegate {
     }
 
     return this._context;
+  }
+
+  getCapturedRenderTree(): CapturedRenderNode[] {
+    return expect(
+      this.context.runtime.env.debugRenderTree,
+      'Attempted to capture the DebugRenderTree during tests, but it was not created. Did you enable it in the environment?'
+    ).capture();
   }
 
   getInitialElement(): SimpleElement {
@@ -130,7 +128,7 @@ export class JitRenderDelegate implements RenderDelegate {
   }
 
   createCurriedComponent(name: string): Option<CurriedComponentDefinition> {
-    return componentHelper(this.resolver, this.registry, name);
+    return componentHelper(this.registry, name, this.context.program.constants);
   }
 
   registerPlugin(plugin: ASTPluginBuilder): void {
@@ -158,25 +156,7 @@ export class JitRenderDelegate implements RenderDelegate {
     layout: Option<string>,
     Class?: ComponentTypes[K]
   ) {
-    switch (type) {
-      case 'TemplateOnly':
-        return registerTemplateOnlyComponent(this.registry, name, layout!);
-      case 'Curly':
-      case 'Dynamic':
-        return registerEmberishCurlyComponent(
-          this.registry,
-          name,
-          (Class as any) as EmberishCurlyComponentFactory,
-          layout
-        );
-      case 'Glimmer':
-        return registerEmberishGlimmerComponent(
-          this.registry,
-          name,
-          (Class as any) as EmberishGlimmerComponentFactory,
-          layout!
-        );
-    }
+    registerComponent(this.registry, type, name, layout!, Class);
   }
 
   registerModifier(name: string, ModifierClass: TestModifierConstructor): void {
@@ -210,7 +190,7 @@ export class JitRenderDelegate implements RenderDelegate {
   compileTemplate(template: string): HandleResult {
     let compiled = preprocess(template, this.precompileOptions);
 
-    return unwrapTemplate(compiled).asLayout().compile(this.context.syntax);
+    return unwrapTemplate(compiled).asLayout().compile(this.context.program);
   }
 
   renderTemplate(template: string, context: Dict<unknown>, element: SimpleElement): RenderResult {
@@ -231,23 +211,22 @@ export class JitRenderDelegate implements RenderDelegate {
     name: string,
     args: Dict<Reference<unknown>>,
     element: SimpleElement,
-    dyanmicScope?: DynamicScope
+    dynamicScope?: DynamicScope
   ): RenderResult {
     let cursor = { element, nextSibling: null };
-    let { syntax, runtime } = this.context;
+    let { program, runtime } = this.context;
     let builder = this.getElementBuilder(runtime.env, cursor);
 
-    let { handle, compilable } = this.registry.lookupCompileTimeComponent(name)!;
-    let component = this.registry.resolve<ComponentDefinition>(handle);
+    let component = this.registry.lookupComponent(name)!;
 
     let iterator = renderComponent(
       runtime,
       builder,
-      syntax,
-      component,
-      compilable!,
+      program,
+      {},
+      component.state,
       args,
-      dyanmicScope
+      dynamicScope
     );
 
     return renderSync(runtime.env, iterator);
@@ -262,6 +241,6 @@ export class JitRenderDelegate implements RenderDelegate {
   }
 }
 
-function isBrowserTestDocument(doc: SimpleDocument): doc is SimpleDocument & Document {
+function isBrowserTestDocument(doc: SimpleDocument | Document): doc is Document {
   return !!((doc as any).getElementById && (doc as any).getElementById('qunit-fixture'));
 }

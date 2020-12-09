@@ -1,4 +1,4 @@
-import { ModifierManager, VMArguments } from '@glimmer/interfaces';
+import { InternalModifierManager, VMArguments } from '@glimmer/interfaces';
 import { Reference, valueForRef } from '@glimmer/reference';
 import { castToBrowser } from '@glimmer/util';
 import { createUpdatableTag } from '@glimmer/validator';
@@ -12,8 +12,8 @@ interface OnModifierState {
   listener: EventListener | null;
 }
 
-class OnModifierManager implements ModifierManager<OnModifierState, null> {
-  create(element: SimpleElement, _: null, args: VMArguments) {
+class OnModifierManager implements InternalModifierManager<OnModifierState, object> {
+  create(element: SimpleElement, _: {}, args: VMArguments) {
     return {
       element,
       nameRef: args.positional.at(0) as Reference<string>,
@@ -56,6 +56,6 @@ class OnModifierManager implements ModifierManager<OnModifierState, null> {
   }
 }
 
-const onModifier: ModifierManager<unknown, null> = new OnModifierManager();
+const onModifier: InternalModifierManager<unknown, object> = new OnModifierManager();
 
 export default onModifier;

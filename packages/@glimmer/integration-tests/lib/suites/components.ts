@@ -1,9 +1,11 @@
+import { Dict, Owner } from '@glimmer/interfaces';
 import { RenderTest } from '../render-test';
 import { test } from '../test-decorator';
-import { EmberishGlimmerComponent } from '../components';
-import { stripTight } from '../test-helpers/strings';
-import { EmberishGlimmerArgs } from '../components/emberish-glimmer';
+import { GlimmerishComponent } from '../components';
+import { strip, stripTight } from '../test-helpers/strings';
 import { tracked } from '../test-helpers/tracked';
+import { assertElement } from '../dom/simple-utils';
+import { assertElementShape } from '../dom/assertions';
 
 export class TemplateOnlyComponents extends RenderTest {
   static suiteName = 'TemplateOnly';
@@ -209,11 +211,11 @@ export class GlimmerishComponents extends RenderTest {
   })
   'invoking dynamic component (named arg) via angle brackets supports args and attributes'() {
     let instance: Foo;
-    class Foo extends EmberishGlimmerComponent {
+    class Foo extends GlimmerishComponent {
       @tracked localProperty: string;
 
-      constructor(args: EmberishGlimmerArgs) {
-        super(args);
+      constructor(owner: Owner, args: Dict) {
+        super(owner, args);
         instance = this;
         this.localProperty = 'local';
       }
@@ -247,14 +249,12 @@ export class GlimmerishComponents extends RenderTest {
     );
 
     instance!.localProperty = 'LOCAL';
-    instance!.recompute();
     this.rerender();
     this.assertHTML(
       `<div><div data-test1="OUTER" data-test2="static">[LOCAL static OUTER]</div></div>`
     );
 
     instance!.localProperty = 'local';
-    instance!.recompute();
     this.rerender({ outer: 'outer' });
     this.assertHTML(
       `<div><div data-test1="outer" data-test2="static">[local static outer]</div></div>`
@@ -333,11 +333,11 @@ export class GlimmerishComponents extends RenderTest {
   })
   'invoking dynamic component (local) via angle brackets supports args, attributes, and blocks'() {
     let instance: Foo;
-    class Foo extends EmberishGlimmerComponent {
+    class Foo extends GlimmerishComponent {
       @tracked localProperty: string;
 
-      constructor(args: EmberishGlimmerArgs) {
-        super(args);
+      constructor(owner: Owner, args: Dict) {
+        super(owner, args);
         instance = this;
         this.localProperty = 'local';
       }
@@ -364,14 +364,12 @@ export class GlimmerishComponents extends RenderTest {
     );
 
     instance!.localProperty = 'LOCAL';
-    instance!.recompute();
     this.rerender();
     this.assertHTML(
       `<div data-test1="OUTER" data-test2="static">[LOCAL static OUTER] - template</div>`
     );
 
     instance!.localProperty = 'local';
-    instance!.recompute();
     this.rerender({ outer: 'outer' });
     this.assertHTML(
       `<div data-test1="outer" data-test2="static">[local static outer] - template</div>`
@@ -382,10 +380,7 @@ export class GlimmerishComponents extends RenderTest {
     kind: 'glimmer',
   })
   'invoking dynamic component (path) via angle brackets'() {
-    class TestHarness extends EmberishGlimmerComponent {
-      public Foo: any;
-    }
-    this.registerComponent('Glimmer', 'TestHarness', '<this.Foo />', TestHarness);
+    this.registerComponent('Glimmer', 'TestHarness', '<this.args.Foo />');
     this.registerComponent('Glimmer', 'Foo', 'hello world!');
 
     this.render('<TestHarness @Foo={{component "Foo"}} />');
@@ -398,29 +393,22 @@ export class GlimmerishComponents extends RenderTest {
     kind: 'glimmer',
   })
   'invoking dynamic component (path) via angle brackets does not work for string'() {
-    class TestHarness extends EmberishGlimmerComponent {
-      public Foo: any;
-    }
-    this.registerComponent('Glimmer', 'TestHarness', '<this.Foo />', TestHarness);
+    this.registerComponent('Glimmer', 'TestHarness', '<this.args.Foo />');
     this.registerComponent('Glimmer', 'Foo', 'hello world!');
 
     this.assert.throws(() => {
       this.render('<TestHarness @Foo="Foo" />');
-    }, /Expected a curried component definition, but received Foo. You may have accidentally done <this.Foo>, where \"this.Foo\"/);
+    }, /Expected a curried component definition, but received Foo. You may have accidentally done <this.args.Foo>, where \"this.args.Foo\"/);
   }
 
   @test({
     kind: 'glimmer',
   })
   'invoking dynamic component (path) via angle brackets with named block'() {
-    class TestHarness extends EmberishGlimmerComponent {
-      public Foo: any;
-    }
     this.registerComponent(
       'Glimmer',
       'TestHarness',
-      '<this.Foo><:bar>Stuff!</:bar></this.Foo>',
-      TestHarness
+      '<this.args.Foo><:bar>Stuff!</:bar></this.args.Foo>'
     );
     this.registerComponent('Glimmer', 'Foo', '{{yield to="bar"}}');
 
@@ -434,43 +422,21 @@ export class GlimmerishComponents extends RenderTest {
     kind: 'glimmer',
   })
   'invoking dynamic component (path) via angle brackets does not support implicit `this` fallback'() {
-    class TestHarness extends EmberishGlimmerComponent {
-      public stuff: any;
-
-      constructor(args: EmberishGlimmerArgs) {
-        super(args);
-        this.stuff = {
-          Foo: args.attrs.Foo,
-        };
-      }
-    }
-    this.registerComponent('Glimmer', 'TestHarness', '<stuff.Foo />', TestHarness);
-    this.registerComponent(
-      'Glimmer',
-      'Foo',
-      'hello world!',
-      class extends EmberishGlimmerComponent {
-        constructor(args: EmberishGlimmerArgs) {
-          super(args);
-          throw new Error('Should not have instantiated Foo component.');
-        }
-      }
-    );
-
-    this.render('<TestHarness @Foo={{component "Foo"}} />');
-    this.assertStableRerender();
+    this.assert.throws(() => {
+      this.registerComponent('TemplateOnly', 'Test', '<stuff.Foo />');
+    }, /stuff is not in scope/);
   }
 
   @test({
     kind: 'glimmer',
   })
   'invoking dynamic component (path) via angle brackets supports attributes'() {
-    class TestHarness extends EmberishGlimmerComponent {
+    class TestHarness extends GlimmerishComponent {
       public Foo: any;
 
-      constructor(args: EmberishGlimmerArgs) {
-        super(args);
-        this.Foo = args.attrs.Foo;
+      constructor(owner: Owner, args: Dict) {
+        super(owner, args);
+        this.Foo = args.Foo;
       }
     }
     this.registerComponent('Glimmer', 'TestHarness', '<this.Foo data-test="foo"/>', TestHarness);
@@ -485,12 +451,12 @@ export class GlimmerishComponents extends RenderTest {
     kind: 'glimmer',
   })
   'invoking dynamic component (path) via angle brackets supports args'() {
-    class TestHarness extends EmberishGlimmerComponent {
+    class TestHarness extends GlimmerishComponent {
       public Foo: any;
 
-      constructor(args: EmberishGlimmerArgs) {
-        super(args);
-        this.Foo = args.attrs.Foo;
+      constructor(owner: Owner, args: Dict) {
+        super(owner, args);
+        this.Foo = args.Foo;
       }
     }
     this.registerComponent('Glimmer', 'TestHarness', '<this.Foo @name="world"/>', TestHarness);
@@ -505,12 +471,12 @@ export class GlimmerishComponents extends RenderTest {
     kind: 'glimmer',
   })
   'invoking dynamic component (path) via angle brackets supports passing a block'() {
-    class TestHarness extends EmberishGlimmerComponent {
+    class TestHarness extends GlimmerishComponent {
       public Foo: any;
 
-      constructor(args: EmberishGlimmerArgs) {
-        super(args);
-        this.Foo = args.attrs.Foo;
+      constructor(owner: Owner, args: Dict) {
+        super(owner, args);
+        this.Foo = args.Foo;
       }
     }
     this.registerComponent('Glimmer', 'TestHarness', '<this.Foo>world</this.Foo>', TestHarness);
@@ -526,20 +492,20 @@ export class GlimmerishComponents extends RenderTest {
   })
   'invoking dynamic component (path) via angle brackets supports args, attributes, and blocks'() {
     let instance: Foo;
-    class TestHarness extends EmberishGlimmerComponent {
+    class TestHarness extends GlimmerishComponent {
       public Foo: any;
 
-      constructor(args: EmberishGlimmerArgs) {
-        super(args);
-        this.Foo = args.attrs.Foo;
+      constructor(owner: Owner, args: Dict) {
+        super(owner, args);
+        this.Foo = args.Foo;
       }
     }
 
-    class Foo extends EmberishGlimmerComponent {
+    class Foo extends GlimmerishComponent {
       @tracked localProperty: string;
 
-      constructor(args: EmberishGlimmerArgs) {
-        super(args);
+      constructor(owner: Owner, args: Dict) {
+        super(owner, args);
         instance = this;
         this.localProperty = 'local';
       }
@@ -569,14 +535,12 @@ export class GlimmerishComponents extends RenderTest {
     );
 
     instance!.localProperty = 'LOCAL';
-    instance!.recompute();
     this.rerender();
     this.assertHTML(
       `<div data-test1="OUTER" data-test2="static">[LOCAL static OUTER] - template</div>`
     );
 
     instance!.localProperty = 'local';
-    instance!.recompute();
     this.rerender({ outer: 'outer' });
     this.assertHTML(
       `<div data-test1="outer" data-test2="static">[local static outer] - template</div>`
@@ -604,6 +568,16 @@ export class GlimmerishComponents extends RenderTest {
   }
 
   @test({ kind: 'glimmer' })
+  'angle bracket invocation can allow invocation side to override the type attribute with ...attributes'() {
+    this.registerComponent('Glimmer', 'Qux', '<div type="qux" ...attributes />');
+    this.registerComponent('Glimmer', 'Bar', '<Qux type="bar" ...attributes />');
+    this.registerComponent('Glimmer', 'Foo', '<Bar type="foo" ...attributes />');
+
+    this.render('<Foo type="top" />');
+    this.assertHTML('<div type="top"></div>');
+  }
+
+  @test({ kind: 'glimmer' })
   'angle bracket invocation can override invocation side attributes with ...attributes'() {
     this.registerComponent('Glimmer', 'Qux', '<div ...attributes id="qux" />');
     this.registerComponent('Glimmer', 'Bar', '<Qux ...attributes id="bar" />');
@@ -611,6 +585,16 @@ export class GlimmerishComponents extends RenderTest {
 
     this.render('<Foo id="top" />');
     this.assertHTML('<div id="qux"></div>');
+  }
+
+  @test({ kind: 'glimmer' })
+  'angle bracket invocation can override invocation side type attribute with ...attributes'() {
+    this.registerComponent('Glimmer', 'Qux', '<div ...attributes type="qux" />');
+    this.registerComponent('Glimmer', 'Bar', '<Qux ...attributes type="bar" />');
+    this.registerComponent('Glimmer', 'Foo', '<Bar ...attributes type="foo" />');
+
+    this.render('<Foo type="top" />');
+    this.assertHTML('<div type="qux"></div>');
   }
 
   @test({ kind: 'glimmer' })
@@ -633,15 +617,161 @@ export class GlimmerishComponents extends RenderTest {
     this.assertHTML('<div class="top foo bar qux"></div>');
   }
 
+  @test({ kind: 'glimmer' })
+  '[BUG: #644 popping args should be balanced]'() {
+    class MainComponent extends GlimmerishComponent {
+      salutation = 'Glimmer';
+    }
+    this.registerComponent(
+      'Glimmer',
+      'Main',
+      '<div><HelloWorld @name={{salutation}} /></div>',
+      MainComponent
+    );
+    this.registerComponent('Glimmer', 'HelloWorld', '<h1>Hello {{@name}}!</h1>');
+    this.render('<Main />');
+    this.assertHTML('<div><h1>Hello Glimmer!</h1></div>');
+  }
+
+  @test({ kind: 'glimmer' })
+  'Only one arg reference is created per argument'() {
+    let count = 0;
+
+    this.registerHelper('count', () => count++);
+
+    class MainComponent extends GlimmerishComponent {
+      salutation = 'Glimmer';
+    }
+    this.registerComponent(
+      'Glimmer',
+      'Main',
+      '<div><Child @value={{count}} /></div>',
+      MainComponent
+    );
+    this.registerComponent('Glimmer', 'Child', '{{@value}} {{this.args.value}}');
+    this.render('<Main />');
+    this.assertHTML('<div>0 0</div>');
+  }
+
+  @test({ kind: 'glimmer' })
+  '[BUG] Gracefully handles application of curried args when invoke starts with 0 args'() {
+    class MainComponent extends GlimmerishComponent {
+      salutation = 'Glimmer';
+    }
+    this.registerComponent(
+      'Glimmer',
+      'Main',
+      '<div><HelloWorld @a={{@a}} as |wat|>{{wat}}</HelloWorld></div>',
+      MainComponent
+    );
+    this.registerComponent('Glimmer', 'HelloWorld', '{{yield (component "A" a=@a)}}');
+    this.registerComponent('Glimmer', 'A', 'A {{@a}}');
+    this.render('<Main @a={{a}} />', { a: 'a' });
+    this.assertHTML('<div>A a</div>');
+    this.assertStableRerender();
+    this.rerender({ a: 'A' });
+    this.assertHTML('<div>A A</div>');
+    this.assertStableNodes();
+  }
+
+  @test({ kind: 'glimmer' })
+  'Static block component helper'() {
+    this.registerComponent(
+      'Glimmer',
+      'A',
+      'A {{#component "B" arg1=@one arg2=@two arg3=@three}}{{/component}}'
+    );
+    this.registerComponent('Glimmer', 'B', 'B {{@arg1}} {{@arg2}} {{@arg3}}');
+    this.render('<A @one={{first}} @two={{second}} @three={{third}} />', {
+      first: 1,
+      second: 2,
+      third: 3,
+    });
+    this.assertHTML('A B 1 2 3');
+    this.assertStableRerender();
+    this.rerender({ first: 2, second: 3, third: 4 });
+    this.assertHTML('A B 2 3 4');
+    this.assertStableNodes();
+  }
+
+  @test({ kind: 'glimmer' })
+  'Static inline component helper'() {
+    this.registerComponent('Glimmer', 'A', 'A {{component "B" arg1=@one arg2=@two arg3=@three}}');
+    this.registerComponent('Glimmer', 'B', 'B {{@arg1}} {{@arg2}} {{@arg3}}');
+    this.render('<A @one={{first}} @two={{second}} @three={{third}} />', {
+      first: 1,
+      second: 2,
+      third: 3,
+    });
+    this.assertHTML('A B 1 2 3');
+    this.assertStableRerender();
+    this.rerender({ first: 2, second: 3, third: 4 });
+    this.assertHTML('A B 2 3 4');
+    this.assertStableNodes();
+  }
+
+  @test({ kind: 'glimmer' })
+  'top level in-element'() {
+    this.registerComponent('Glimmer', 'Foo', '<Bar data-bar={{@childName}} @data={{@data}} />');
+    this.registerComponent('Glimmer', 'Bar', '<div ...attributes>Hello World</div>');
+
+    let el = this.delegate.getInitialElement();
+
+    this.render(
+      strip`
+    {{#each components key="id" as |c|}}
+      {{#in-element c.mount}}
+        {{component c.name childName=c.child data=c.data}}
+      {{/in-element}}
+    {{/each}}
+    `,
+      { components: [{ name: 'Foo', child: 'Bar', mount: el, data: { wat: 'Wat' } }] }
+    );
+
+    let first = assertElement(el.firstChild);
+
+    assertElementShape(first, 'div', { 'data-bar': 'Bar' }, 'Hello World');
+    this.rerender({ components: [{ name: 'Foo', child: 'Bar', mount: el, data: { wat: 'Wat' } }] });
+    assertElementShape(first, 'div', { 'data-bar': 'Bar' }, 'Hello World');
+  }
+
+  @test({ kind: 'glimmer' })
+  'recursive component invocation'() {
+    let counter = 0;
+
+    class RecursiveInvoker extends GlimmerishComponent {
+      id: number;
+
+      get showChildren() {
+        return this.id < 3;
+      }
+
+      constructor(owner: Owner, args: Dict) {
+        super(owner, args);
+        this.id = ++counter;
+      }
+    }
+
+    this.registerComponent(
+      'Glimmer',
+      'RecursiveInvoker',
+      '{{id}}{{#if showChildren}}<RecursiveInvoker />{{/if}}',
+      RecursiveInvoker
+    );
+
+    this.render('<RecursiveInvoker />');
+    this.assertHTML('123<!---->');
+  }
+
   @test({ kind: 'templateOnly' })
   'throwing an error during component construction does not put result into a bad state'() {
     this.registerComponent(
       'Glimmer',
       'Foo',
       'Hello',
-      class extends EmberishGlimmerComponent {
-        constructor(args: EmberishGlimmerArgs) {
-          super(args);
+      class extends GlimmerishComponent {
+        constructor(owner: Owner, args: Dict) {
+          super(owner, args);
           throw new Error('something went wrong!');
         }
       }
@@ -667,9 +797,9 @@ export class GlimmerishComponents extends RenderTest {
       'Glimmer',
       'Foo',
       'Hello',
-      class extends EmberishGlimmerComponent {
-        constructor(args: EmberishGlimmerArgs) {
-          super(args);
+      class extends GlimmerishComponent {
+        constructor(owner: Owner, args: Dict) {
+          super(owner, args);
           throw new Error('something went wrong!');
         }
       }
@@ -698,9 +828,9 @@ export class GlimmerishComponents extends RenderTest {
       'Glimmer',
       'Foo',
       'Hello',
-      class extends EmberishGlimmerComponent {
-        constructor(args: EmberishGlimmerArgs) {
-          super(args);
+      class extends GlimmerishComponent {
+        constructor(owner: Owner, args: Dict) {
+          super(owner, args);
           throw new Error('something went wrong!');
         }
       }
@@ -727,11 +857,13 @@ export class GlimmerishComponents extends RenderTest {
 
   @test({ kind: 'templateOnly' })
   'throwing an error during rendering gives a readable error stack'(assert: Assert) {
+    // eslint-disable-next-line no-console
     let originalConsoleError = console.error;
 
+    // eslint-disable-next-line no-console
     console.error = (message: string) => {
       this.assert.ok(
-        message.match(/Error occurred while rendering:(\n\nBar\n {2}Foo)?/),
+        message.match(/Error occurred:\n\n(- While rendering:\nBar\n {2}Foo)?/),
         'message logged'
       );
     };
@@ -743,9 +875,9 @@ export class GlimmerishComponents extends RenderTest {
         'Glimmer',
         'Foo',
         'Hello',
-        class extends EmberishGlimmerComponent {
-          constructor(args: EmberishGlimmerArgs) {
-            super(args);
+        class extends GlimmerishComponent {
+          constructor(owner: Owner, args: Dict) {
+            super(owner, args);
             throw new Error('something went wrong!');
           }
         }
@@ -769,6 +901,7 @@ export class GlimmerishComponents extends RenderTest {
 
       this.assertHTML('', 'destroys correctly');
     } finally {
+      // eslint-disable-next-line no-console
       console.error = originalConsoleError;
     }
   }

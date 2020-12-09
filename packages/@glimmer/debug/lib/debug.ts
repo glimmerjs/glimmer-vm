@@ -2,45 +2,46 @@ import {
   CompileTimeConstants,
   Recast,
   RuntimeOp,
-  HandleResolver,
   Dict,
   Maybe,
   TemplateCompilationContext,
+  ResolutionTimeConstants,
 } from '@glimmer/interfaces';
 import { LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
 import { RuntimeOpImpl } from '@glimmer/program';
 import { Register, $s0, $s1, $t0, $t1, $v0, $fp, $sp, $pc, $ra } from '@glimmer/vm';
-import { decodeImmediate, decodeHandle } from '@glimmer/util';
+import { decodeImmediate, decodeHandle, LOCAL_LOGGER } from '@glimmer/util';
 import { opcodeMetadata } from './opcode-metadata';
 import { Primitive } from './stack-check';
 
 export interface DebugConstants {
   getValue<T>(handle: number): T;
   getArray<T>(value: number): T[];
-  getSerializable(s: number): unknown;
 }
 
 export function debugSlice(context: TemplateCompilationContext, start: number, end: number) {
   if (LOCAL_SHOULD_LOG) {
-    (console as any).group(`%c${start}:${end}`, 'color: #999');
+    LOCAL_LOGGER.group(`%c${start}:${end}`, 'color: #999');
 
-    let heap = context.syntax.program.heap;
+    let heap = context.program.heap;
     let opcode = new RuntimeOpImpl(heap);
 
     let _size = 0;
     for (let i = start; i < end; i = i + _size) {
       opcode.offset = i;
       let [name, params] = debug(
-        context.syntax.program.constants as Recast<CompileTimeConstants, DebugConstants>,
-        context.syntax.program.resolver,
+        context.program.constants as Recast<
+          CompileTimeConstants & ResolutionTimeConstants,
+          DebugConstants
+        >,
         opcode,
         opcode.isMachine
       )!;
-      console.log(`${i}. ${logOpcode(name, params)}`);
+      LOCAL_LOGGER.log(`${i}. ${logOpcode(name, params)}`);
       _size = opcode.size;
     }
     opcode.offset = -_size;
-    console.groupEnd();
+    LOCAL_LOGGER.groupEnd();
   }
 }
 
@@ -86,7 +87,6 @@ function json(param: unknown) {
 
 export function debug(
   c: DebugConstants,
-  resolver: HandleResolver,
   op: RuntimeOp,
   isMachine: 0 | 1
 ): [string, Dict] | undefined {
@@ -109,7 +109,7 @@ export function debug(
           out[operand.name] = actualOperand;
           break;
         case 'handle':
-          out[operand.name] = resolver.resolve(actualOperand);
+          out[operand.name] = c.getValue(actualOperand);
           break;
         case 'str':
         case 'option-str':

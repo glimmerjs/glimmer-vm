@@ -2,31 +2,32 @@ import { DEBUG } from '@glimmer/env';
 import {
   Bounds,
   DynamicScope,
+  ElementBuilder,
   Environment,
   ExceptionHandler,
   GlimmerTreeChanges,
+  LiveBlock,
+  Option,
   RuntimeContext,
   Scope,
-  ElementBuilder,
-  LiveBlock,
   UpdatableBlock,
 } from '@glimmer/interfaces';
+import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
 import {
   OpaqueIterationItem,
   OpaqueIterator,
-  valueForRef,
   Reference,
   updateRef,
+  valueForRef,
 } from '@glimmer/reference';
-import { expect, Option, Stack, logStep } from '@glimmer/util';
-import { resetTracking } from '@glimmer/validator';
+import { associateDestroyableChild, destroy, destroyChildren } from '@glimmer/destroyable';
+import { expect, Stack, logStep } from '@glimmer/util';
+import { resetTracking, runInTrackingTransaction } from '@glimmer/validator';
 import { SimpleComment } from '@simple-dom/interface';
-import { move as moveBounds, clear } from '../bounds';
+import { clear, move as moveBounds } from '../bounds';
 import { UpdatingOpcode } from '../opcodes';
 import { InternalVM, VmInitCallback } from './append';
-import { NewElementBuilder, LiveBlockList } from './element-builder';
-import { destroy, associateDestroyableChild, destroyChildren } from '../destroyables';
-import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
+import { LiveBlockList, NewElementBuilder } from './element-builder';
 
 export default class UpdatingVM {
   public env: Environment;
@@ -45,14 +46,15 @@ export default class UpdatingVM {
     if (DEBUG) {
       let hasErrored = true;
       try {
-        this._execute(opcodes, handler);
+        runInTrackingTransaction!(() => this._execute(opcodes, handler), '- While rendering:');
 
         // using a boolean here to avoid breaking ergonomics of "pause on uncaught exceptions"
         // which would happen with a `catch` + `throw`
         hasErrored = false;
       } finally {
         if (hasErrored) {
-          console.error(`\n\nError occurred while rendering:\n\n${resetTracking()}\n\n`);
+          // eslint-disable-next-line no-console
+          console.error(`\n\nError occurred:\n\n${resetTracking()}\n\n`);
         }
       }
     } else {

@@ -127,16 +127,18 @@ class TemplateImpl implements TemplateWithIdAndReferrer {
     return (this.layout = compilable(
       assign({}, this.parsedLayout, {
         asPartial: false,
-      })
+      }),
+      this.moduleName
     ));
   }
 
   asPartial(): CompilableProgram {
     if (this.partial) return this.partial;
-    return (this.layout = compilable(
+    return (this.partial = compilable(
       assign({}, this.parsedLayout, {
         asPartial: true,
-      })
+      }),
+      this.moduleName
     ));
   }
 
@@ -145,7 +147,8 @@ class TemplateImpl implements TemplateWithIdAndReferrer {
     return (this.wrappedLayout = new WrappedBuilder(
       assign({}, this.parsedLayout, {
         asPartial: false,
-      })
+      }),
+      this.moduleName
     ));
   }
 }

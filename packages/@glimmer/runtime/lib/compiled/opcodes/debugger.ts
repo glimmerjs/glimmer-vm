@@ -9,6 +9,7 @@ export type DebugGet = (path: string) => unknown;
 export type DebugCallback = (context: unknown, get: DebugGet) => void;
 
 function debugCallback(context: unknown, get: DebugGet): void {
+  // eslint-disable-next-line no-console
   console.info('Use `context`, and `get(<path>)` to debug this template.');
 
   // for example...
@@ -67,7 +68,7 @@ class ScopeInspector {
 
 APPEND_OPCODES.add(Op.Debugger, (vm, { op1: _symbols, op2: _evalInfo }) => {
   let symbols = vm[CONSTANTS].getArray<string>(_symbols);
-  let evalInfo = vm[CONSTANTS].getValue<number[]>(decodeHandle(_evalInfo));
+  let evalInfo = vm[CONSTANTS].getArray<number>(decodeHandle(_evalInfo));
   let inspector = new ScopeInspector(vm.scope(), symbols, evalInfo);
   callback(valueForRef(vm.getSelf()), (path) => valueForRef(inspector.get(path)));
 });

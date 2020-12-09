@@ -1,14 +1,8 @@
-import { Option, HandleResult, ErrHandle, EncoderError } from '@glimmer/interfaces';
+import { Option } from '@glimmer/interfaces';
 import { createConstRef, createPrimitiveRef, createComputeRef } from '@glimmer/reference';
-import {
-  RenderTest,
-  test,
-  jitSuite,
-  JitRenderDelegate,
-  EmberishGlimmerComponent,
-  tracked,
-} from '..';
-import { SafeString, registerDestructor } from '@glimmer/runtime';
+import { RenderTest, test, jitSuite, JitRenderDelegate, GlimmerishComponent, tracked } from '..';
+import { registerDestructor } from '@glimmer/destroyable';
+import { SafeString } from '@glimmer/runtime';
 import {
   assertNodeTagName,
   getElementByClassName,
@@ -792,19 +786,16 @@ class UpdatingTest extends RenderTest {
   }
 
   @test
-  'missing helper'() {
+  'missing helper'(assert: Assert) {
     this.registerHelper('hello', () => 'hello');
 
-    let result = this.delegate.compileTemplate('{{helo world}}');
-
-    assertHandleError(assert, result, {
-      problem: 'Unexpected Helper helo',
-      span: { start: 0, end: 0 },
-    });
+    assert.throws(() => {
+      this.delegate.compileTemplate('{{helo world}}');
+    }, /Error: Attempted to resolve `helo`, which was expected to be a component or helper, but nothing was found./);
   }
 
   @test
-  'block arguments should have higher presedence than helpers'() {
+  'block arguments should have higher precedence than helpers'() {
     this.registerHelper('foo', () => 'foo-helper');
     this.registerHelper('bar', () => 'bar-helper');
     this.registerHelper('echo', (args) => args[0]);
@@ -1040,7 +1031,7 @@ class UpdatingTest extends RenderTest {
 
   @test
   'block helpers whose template has a morph at the edge'() {
-    this.render('{{#identity}}{{this.value}}{{/identity}}', { value: 'hello world' });
+    this.render('{{#if true}}{{this.value}}{{/if}}', { value: 'hello world' });
     this.assertHTML('hello world');
 
     let firstNode = this.element.firstChild;
@@ -1894,8 +1885,8 @@ class UpdatingTest extends RenderTest {
       'Glimmer',
       'DestroyableComponent',
       '{{@item}}',
-      class extends EmberishGlimmerComponent {
-        destroy() {
+      class extends GlimmerishComponent {
+        willDestroy() {
           destroyCount++;
         }
       }
@@ -1932,8 +1923,8 @@ class UpdatingTest extends RenderTest {
       'Glimmer',
       'DestroyableComponent',
       '{{@item}}',
-      class extends EmberishGlimmerComponent {
-        destroy() {
+      class extends GlimmerishComponent {
+        willDestroy() {
           destroyCount++;
         }
       }
@@ -1963,12 +1954,3 @@ class UpdatingTest extends RenderTest {
 }
 
 jitSuite(UpdatingTest);
-
-function assertHandleError(
-  assert: typeof QUnit.assert,
-  result: HandleResult,
-  ...errors: EncoderError[]
-) {
-  assert.ok(typeof result !== 'number', 'Expected errors, found none');
-  assert.deepEqual((result as ErrHandle).errors, errors);
-}

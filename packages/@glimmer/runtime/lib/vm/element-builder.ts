@@ -1,17 +1,19 @@
 import {
   Bounds,
+  Cursor,
+  CursorStackSymbol,
+  ElementBuilder,
   ElementOperations,
   Environment,
   GlimmerTreeChanges,
   GlimmerTreeConstruction,
-  ElementBuilder,
   LiveBlock,
-  CursorStackSymbol,
+  Maybe,
+  Option,
   UpdatableBlock,
-  Cursor,
-  ModifierManager,
+  ModifierInstance,
 } from '@glimmer/interfaces';
-import { assert, expect, Option, Stack, Maybe, symbol } from '@glimmer/util';
+import { assert, expect, Stack, symbol } from '@glimmer/util';
 import {
   AttrNamespace,
   SimpleComment,
@@ -21,8 +23,8 @@ import {
   SimpleText,
 } from '@simple-dom/interface';
 import { clear, ConcreteBounds, CursorImpl, SingleNodeBounds } from '../bounds';
+import { destroy, registerDestructor } from '@glimmer/destroyable';
 import { DynamicAttribute, dynamicAttribute } from './attributes/dynamic';
-import { registerDestructor, destroy } from '../destroyables';
 
 export interface FirstNode {
   firstNode(): SimpleNode;
@@ -78,7 +80,7 @@ export class NewElementBuilder implements ElementBuilder {
   private env: Environment;
 
   [CURSOR_STACK] = new Stack<Cursor>();
-  private modifierStack = new Stack<Option<[ModifierManager, unknown][]>>();
+  private modifierStack = new Stack<Option<ModifierInstance[]>>();
   private blockStack = new Stack<LiveBlock>();
 
   static forInitialRender(env: Environment, cursor: CursorImpl) {
@@ -180,7 +182,7 @@ export class NewElementBuilder implements ElementBuilder {
     return this.dom.createElement(tag, this.element);
   }
 
-  flushElement(modifiers: Option<[ModifierManager, unknown][]>) {
+  flushElement(modifiers: Option<ModifierInstance[]>) {
     let parent = this.element;
     let element = expect(
       this.constructing,
@@ -201,7 +203,7 @@ export class NewElementBuilder implements ElementBuilder {
     this.dom.insertBefore(parent, constructing, this.nextSibling);
   }
 
-  closeElement(): Option<[ModifierManager, unknown][]> {
+  closeElement(): Option<ModifierInstance[]> {
     this.willCloseElement();
     this.popElement();
     return this.popModifiers();
@@ -242,11 +244,11 @@ export class NewElementBuilder implements ElementBuilder {
     this[CURSOR_STACK].push(new CursorImpl(element, nextSibling));
   }
 
-  private pushModifiers(modifiers: Option<[ModifierManager, unknown][]>): void {
+  private pushModifiers(modifiers: Option<ModifierInstance[]>): void {
     this.modifierStack.push(modifiers);
   }
 
-  private popModifiers(): Option<[ModifierManager, unknown][]> {
+  private popModifiers(): Option<ModifierInstance[]> {
     return this.modifierStack.pop();
   }
 

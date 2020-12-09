@@ -1,6 +1,5 @@
 import { SimpleElement, SimpleNode } from '@simple-dom/interface';
 import { Bounds } from '../dom/bounds';
-import { Template } from '../template';
 import { Arguments, CapturedArguments } from './arguments';
 
 export type RenderNodeType = 'outlet' | 'engine' | 'route-template' | 'component';
@@ -10,7 +9,7 @@ export interface RenderNode {
   name: string;
   args: CapturedArguments;
   instance: unknown;
-  template?: Template;
+  template?: string;
 }
 
 export interface CapturedRenderNode {
@@ -34,9 +33,6 @@ export interface DebugRenderTree<Bucket extends object = object> {
   create(state: Bucket, node: RenderNode): void;
 
   update(state: Bucket): void;
-
-  // for dynamic layouts
-  setTemplate(state: Bucket, template: Template): void;
 
   didRender(state: Bucket, bounds: Bounds): void;
 

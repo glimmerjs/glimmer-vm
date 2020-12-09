@@ -7,19 +7,23 @@ import {
   SymbolTable,
   CompilableTemplate,
   Statement,
-  SyntaxCompilationContext,
+  CompileTimeCompilationContext,
   CompilableBlock,
   CompilableProgram,
   HandleResult,
+  BlockSymbolTable,
+  SerializedBlock,
+  BuilderOp,
+  HighLevelOp,
 } from '@glimmer/interfaces';
 import { meta } from './opcode-builder/helpers/shared';
 import { EMPTY_ARRAY } from '@glimmer/util';
 import { templateCompilationContext } from './opcode-builder/context';
-import { concatStatements } from './syntax/concat';
 import { LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
 import { debugCompiler } from './compiler';
-import { patchStdlibs } from '@glimmer/program';
 import { STATEMENTS } from './syntax/statements';
+import { HighLevelStatementOp } from './syntax/compilers';
+import { encodeOp } from './opcode-builder/encoder';
 
 export const PLACEHOLDER_HANDLE = -1;
 
@@ -30,26 +34,33 @@ class CompilableTemplateImpl<S extends SymbolTable> implements CompilableTemplat
     readonly statements: WireFormat.Statement[],
     readonly meta: ContainingMetadata,
     // Part of CompilableTemplate
-    readonly symbolTable: S
+    readonly symbolTable: S,
+    // Used for debugging
+    readonly moduleName = 'plain block'
   ) {}
 
   // Part of CompilableTemplate
-  compile(context: SyntaxCompilationContext): HandleResult {
+  compile(context: CompileTimeCompilationContext): HandleResult {
     return maybeCompile(this, context);
   }
 }
 
-export function compilable(layout: LayoutWithContext): CompilableProgram {
-  let block = layout.block;
-  return new CompilableTemplateImpl(block.statements, meta(layout), {
-    symbols: block.symbols,
-    hasEval: block.hasEval,
-  });
+export function compilable(layout: LayoutWithContext, moduleName: string): CompilableProgram {
+  let [statements, symbols, hasEval] = layout.block;
+  return new CompilableTemplateImpl(
+    statements,
+    meta(layout),
+    {
+      symbols,
+      hasEval,
+    },
+    moduleName
+  );
 }
 
 function maybeCompile(
   compilable: CompilableTemplateImpl<SymbolTable>,
-  context: SyntaxCompilationContext
+  context: CompileTimeCompilationContext
 ): HandleResult {
   if (compilable.compiled !== null) return compilable.compiled!;
 
@@ -58,7 +69,6 @@ function maybeCompile(
   let { statements, meta } = compilable;
 
   let result = compileStatements(statements, meta, context);
-  patchStdlibs(context.program);
   compilable.compiled = result;
 
   return result;
@@ -67,16 +77,25 @@ function maybeCompile(
 export function compileStatements(
   statements: Statement[],
   meta: ContainingMetadata,
-  syntaxContext: SyntaxCompilationContext
+  syntaxContext: CompileTimeCompilationContext
 ): HandleResult {
   let sCompiler = STATEMENTS;
   let context = templateCompilationContext(syntaxContext, meta);
 
-  for (let i = 0; i < statements.length; i++) {
-    concatStatements(context, sCompiler.compile(statements[i], context.meta));
+  let {
+    encoder,
+    program: { constants, resolver },
+  } = context;
+
+  function pushOp(...op: BuilderOp | HighLevelOp | HighLevelStatementOp) {
+    encodeOp(encoder, constants, resolver, meta, op as BuilderOp | HighLevelOp);
   }
 
-  let handle = context.encoder.commit(syntaxContext.program.heap, meta.size);
+  for (let i = 0; i < statements.length; i++) {
+    sCompiler.compile(pushOp, statements[i]);
+  }
+
+  let handle = context.encoder.commit(meta.size);
 
   if (LOCAL_SHOULD_LOG) {
     debugCompiler(context, handle);
@@ -86,12 +105,10 @@ export function compileStatements(
 }
 
 export function compilableBlock(
-  overloadBlock: SerializedInlineBlock | WireFormat.Statement[],
+  block: SerializedInlineBlock | SerializedBlock,
   containing: ContainingMetadata
 ): CompilableBlock {
-  let block = Array.isArray(overloadBlock)
-    ? { statements: overloadBlock, parameters: EMPTY_ARRAY }
-    : overloadBlock;
-
-  return new CompilableTemplateImpl(block.statements, containing, { parameters: block.parameters });
+  return new CompilableTemplateImpl<BlockSymbolTable>(block[0], containing, {
+    parameters: block[1] || (EMPTY_ARRAY as number[]),
+  });
 }

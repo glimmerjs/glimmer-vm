@@ -7,7 +7,7 @@ export let beginTrackingTransaction:
 export let endTrackingTransaction: undefined | (() => void);
 export let runInTrackingTransaction:
   | undefined
-  | ((fn: () => void, debuggingContext?: string | false) => void);
+  | (<T>(fn: () => T, debuggingContext?: string | false) => T);
 export let deprecateMutationsInTrackingTransaction: undefined | ((fn: () => void) => void);
 
 export let resetTrackingTransaction: undefined | (() => string);
@@ -21,7 +21,7 @@ export let setTrackingTransactionEnv:
 
 export let assertTagNotConsumed:
   | undefined
-  | (<T>(tag: Tag, obj?: T, keyName?: keyof T | string | symbol, forceHardError?: boolean) => void);
+  | (<T>(tag: Tag, obj?: T, keyName?: keyof T | string | symbol) => void);
 
 export let markTagAsConsumed: undefined | ((_tag: Tag) => void);
 
@@ -46,6 +46,7 @@ if (DEBUG) {
     },
 
     deprecate(message: string): void {
+      // eslint-disable-next-line no-console
       console.warn(message);
     },
 
@@ -121,13 +122,18 @@ if (DEBUG) {
    *
    * TODO: Only throw an error if the `track` is consumed.
    */
-  runInTrackingTransaction = (fn: () => void, debugLabel?: string | false) => {
+  runInTrackingTransaction = <T>(fn: () => T, debugLabel?: string | false) => {
     beginTrackingTransaction!(debugLabel);
+    let didError = true;
 
     try {
-      fn();
+      let value = fn();
+      didError = false;
+      return value;
     } finally {
-      endTrackingTransaction!();
+      if (didError !== true) {
+        endTrackingTransaction!();
+      }
     }
   };
 
@@ -217,12 +223,7 @@ if (DEBUG) {
     }
   };
 
-  assertTagNotConsumed = <T>(
-    tag: Tag,
-    obj?: T,
-    keyName?: keyof T | string | symbol,
-    forceHardError: boolean | undefined = false
-  ) => {
+  assertTagNotConsumed = <T>(tag: Tag, obj?: T, keyName?: keyof T | string | symbol) => {
     if (CONSUMED_TAGS === null) return;
 
     let transaction = CONSUMED_TAGS.get(tag);
@@ -231,7 +232,7 @@ if (DEBUG) {
 
     let currentTransaction = TRANSACTION_STACK[TRANSACTION_STACK.length - 1];
 
-    if (currentTransaction.deprecate && !forceHardError) {
+    if (currentTransaction.deprecate) {
       TRANSACTION_ENV.deprecate(makeTrackingErrorMessage(transaction, obj, keyName));
     } else {
       // This hack makes the assertion message nicer, we can cut off the first
