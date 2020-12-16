@@ -11,7 +11,7 @@ const enum DestroyingState {
 
 type OneOrMany<T> = null | T | T[];
 
-interface DestroyableMeta<T extends Destroyable> {
+export interface DestroyableMeta<T extends Destroyable> {
   source?: T;
   parents: OneOrMany<Destroyable>;
   children: OneOrMany<Destroyable>;
@@ -68,7 +68,7 @@ function remove<T extends object>(collection: OneOrMany<T>, item: T, message: st
   }
 }
 
-function getDestroyableMeta<T extends Destroyable>(destroyable: T): DestroyableMeta<T> {
+export function getDestroyableMeta<T extends Destroyable>(destroyable: T): DestroyableMeta<T> {
   let meta = DESTROYABLE_META.get(destroyable);
 
   if (meta === undefined) {
@@ -98,10 +98,17 @@ export function associateDestroyableChild<T extends Destroyable>(parent: Destroy
   }
 
   let parentMeta = getDestroyableMeta(parent);
+  return associateDestroyableChildWithMeta(parentMeta, child);
+}
+
+export function associateDestroyableChildWithMeta<T extends Destroyable, U extends Destroyable>(
+  parentMeta: DestroyableMeta<T>,
+  child: U
+): U {
   let childMeta = getDestroyableMeta(child);
 
   parentMeta.children = push(parentMeta.children, child);
-  childMeta.parents = push(childMeta.parents, parent);
+  childMeta.parents = push(childMeta.parents, parentMeta);
 
   return child;
 }

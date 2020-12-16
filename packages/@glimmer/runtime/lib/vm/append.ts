@@ -45,7 +45,11 @@ import {
   Register,
   SyscallRegister,
 } from '@glimmer/vm';
-import { associateDestroyableChild } from '@glimmer/destroyable';
+import {
+  associateDestroyableChildWithMeta,
+  DestroyableMeta,
+  getDestroyableMeta,
+} from '@glimmer/destroyable';
 import {
   BeginTrackFrameOpcode,
   EndTrackFrameOpcode,
@@ -152,7 +156,7 @@ export default class VM implements PublicVM, InternalVM {
   private readonly [STACKS] = new Stacks();
   private readonly [HEAP]: RuntimeHeap;
   private readonly destructor: object;
-  private readonly [DESTROYABLE_STACK] = new Stack<object>();
+  private readonly [DESTROYABLE_STACK] = new Stack<DestroyableMeta<BlockOpcode>>();
   readonly [CONSTANTS]: RuntimeConstants & ResolutionTimeConstants;
   readonly [ARGS]: VMArgumentsImpl;
   readonly [INNER_VM]: LowLevelVM;
@@ -314,7 +318,8 @@ export default class VM implements PublicVM, InternalVM {
     );
 
     this.destructor = {};
-    this[DESTROYABLE_STACK].push(this.destructor);
+    // The destroyable stack is generally block opcodes, except for the top level destructor.
+    this[DESTROYABLE_STACK].push(getDestroyableMeta((this.destructor as unknown) as BlockOpcode));
   }
 
   static initial(
@@ -446,7 +451,7 @@ export default class VM implements PublicVM, InternalVM {
 
   private didEnter(opcode: BlockOpcode) {
     this.associateDestroyable(opcode);
-    this[DESTROYABLE_STACK].push(opcode);
+    this[DESTROYABLE_STACK].push(getDestroyableMeta(opcode));
     this.updateWith(opcode);
     this.pushUpdating(opcode.children);
   }
@@ -480,7 +485,7 @@ export default class VM implements PublicVM, InternalVM {
 
   associateDestroyable(child: Destroyable): void {
     let parent = expect(this[DESTROYABLE_STACK].current, 'Expected destructor parent');
-    associateDestroyableChild(parent, child);
+    associateDestroyableChildWithMeta(parent, child);
   }
 
   tryUpdating(): Option<UpdatingOpcode[]> {
