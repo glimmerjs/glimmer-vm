@@ -249,8 +249,9 @@ class Builders {
     tail: string[];
     loc: SourceSpan;
   }): ASTv1.PathExpression {
-    let { original: originalHead } = headToString(head);
-    let original = [...originalHead, ...tail].join('.');
+    let { original: originalHead, parts: headParts } = headToString(head);
+    let parts = [...headParts, ...tail];
+    let original = [...originalHead, ...parts].join('.');
 
     return new PathExpressionImplV1(original, head, tail, loc);
   }

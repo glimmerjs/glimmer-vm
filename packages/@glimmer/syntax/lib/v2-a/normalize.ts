@@ -38,11 +38,7 @@ export function normalize(
     options
   );
 
-  let top = SymbolTable.top(
-    normalizeOptions.strictMode ? normalizeOptions.locals : [],
-    // eslint-disable-next-line @typescript-eslint/unbound-method
-    options.customizeComponentName ?? ((name) => name)
-  );
+  let top = SymbolTable.top(normalizeOptions.strictMode ? normalizeOptions.locals : []);
   let block = new BlockContext(source, normalizeOptions, top);
   let normalizer = new StatementNormalizer(block);
 
@@ -287,12 +283,10 @@ class ExpressionNormalizer {
 
           return block.builder.localVar(head.name, symbol, isRoot, offsets);
         } else {
-          let context = block.strict ? ASTv2.STRICT_RESOLUTION : resolution;
-          let symbol = block.table.allocateFree(head.name, context);
-
+          let symbol = block.table.allocateFree(head.name);
           return block.builder.freeVar({
             name: head.name,
-            context,
+            context: block.strict ? ASTv2.STRICT_RESOLUTION : resolution,
             symbol,
             loc: offsets,
           });
@@ -650,6 +644,14 @@ class ElementNormalizer {
     let pathLoc = variableLoc.withEnd(pathEnd);
 
     if (isComponent) {
+      // If the component name is uppercase, the variable is not in scope,
+      // and the template is not in strict mode, run the optional
+      // `customizeComponentName` function provided as an option to the
+      // precompiler.
+      if (!this.ctx.strict && uppercase && !inScope) {
+        variable = this.ctx.customizeComponentName(variable);
+      }
+
       let path = b.path({
         head: b.head(variable, variableLoc),
         tail,
