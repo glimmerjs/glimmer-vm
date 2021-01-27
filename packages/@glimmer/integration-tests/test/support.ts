@@ -3,6 +3,8 @@ import { assign } from '@glimmer/util';
 interface NestedHooks {
   test(name: string, callback: (assert: Assert) => void): void;
 
+  todo(name: string, callback: (assert: Assert) => void): void;
+
   /**
    * Runs after the last test. If additional tests are defined after the
    * module's queue has emptied, it will not run this hook again.
@@ -46,7 +48,7 @@ export function module(name: string, second?: any, third?: any) {
   }
 
   return QUnit.module(`integration - ${name}`, setup, (supplied) => {
-    nested(assign({}, supplied, { test: QUnit.test }));
+    nested(assign({}, supplied, { test: QUnit.test, todo: QUnit.todo }));
   });
 }
 
