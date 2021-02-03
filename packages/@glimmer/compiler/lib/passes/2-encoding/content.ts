@@ -48,6 +48,8 @@ export class ContentEncoder {
         return this.Partial(stmt);
       case 'AppendComment':
         return this.AppendComment(stmt);
+      case 'AppendDoctype':
+        return this.AppendDoctype(stmt);
       case 'AppendTextNode':
         return this.AppendTextNode(stmt);
       case 'AppendTrustedHTML':
@@ -119,6 +121,14 @@ export class ContentEncoder {
 
   AppendComment({ value }: mir.AppendComment): WireFormat.Statements.Comment {
     return [SexpOpcodes.Comment, value.chars];
+  }
+
+  AppendDoctype({
+    name,
+    publicIdentifier,
+    systemIdentifier,
+  }: mir.AppendDoctype): WireFormat.Statements.Doctype {
+    return [SexpOpcodes.Doctype, name, publicIdentifier, systemIdentifier];
   }
 
   SimpleElement({ tag, params, body, dynamicFeatures }: mir.SimpleElement): WireStatements {

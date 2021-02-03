@@ -36,6 +36,7 @@ export const enum SexpOpcodes {
   Block = 6,
   StrictBlock = 7,
   Component = 8,
+  Doctype = 9,
 
   OpenElement = 10,
   OpenElementWithSplat = 11,
@@ -303,6 +304,7 @@ export namespace Statements {
   export type Append = [SexpOpcodes.Append, Expression];
   export type TrustingAppend = [SexpOpcodes.TrustingAppend, Expression];
   export type Comment = [SexpOpcodes.Comment, string];
+  export type Doctype = [SexpOpcodes.Doctype, string, string?, string?];
   export type Modifier = [SexpOpcodes.Modifier, Expression, Params, Hash];
   export type Block = [SexpOpcodes.Block, Expression, Params, Hash, Blocks];
   export type Component = [
@@ -422,6 +424,7 @@ export namespace Statements {
     | Append
     | TrustingAppend
     | Comment
+    | Doctype
     | Modifier
     | Block
     | Component

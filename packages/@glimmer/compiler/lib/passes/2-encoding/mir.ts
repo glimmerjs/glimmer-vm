@@ -88,6 +88,11 @@ export class AppendTrustedHTML extends node('AppendTrustedHTML').fields<{
 }>() {}
 export class AppendTextNode extends node('AppendTextNode').fields<{ text: ExpressionNode }>() {}
 export class AppendComment extends node('AppendComment').fields<{ value: SourceSlice }>() {}
+export class AppendDoctype extends node('AppendDoctype').fields<{
+  name: string;
+  publicIdentifier?: string;
+  systemIdentifier?: string;
+}>() {}
 
 export class Component extends node('Component').fields<{
   tag: ExpressionNode;
@@ -239,6 +244,7 @@ export type Statement =
   | InvokeBlock
   | Partial
   | AppendComment
+  | AppendDoctype
   | If
   | Each
   | With

@@ -29,6 +29,7 @@ function getLocalName(node: ASTv1.Node): string | undefined {
     case 'Program':
     case 'Hash':
     case 'HashPair':
+    case 'DoctypeNode':
       return undefined;
     case 'PathExpression':
     default:

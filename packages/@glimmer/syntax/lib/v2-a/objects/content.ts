@@ -17,6 +17,7 @@ import { BaseNodeFields, node } from './node';
 export type ContentNode =
   | HtmlText
   | HtmlComment
+  | HtmlDoctype
   | AppendContent
   | InvokeBlock
   | InvokeComponent
@@ -26,6 +27,11 @@ export type ContentNode =
 export class GlimmerComment extends node('GlimmerComment').fields<{ text: SourceSlice }>() {}
 export class HtmlText extends node('HtmlText').fields<{ chars: string }>() {}
 export class HtmlComment extends node('HtmlComment').fields<{ text: SourceSlice }>() {}
+export class HtmlDoctype extends node('HtmlDoctype').fields<{
+  name: string;
+  publicIdentifier?: string;
+  systemIdentifier?: string;
+}>() {}
 
 export class AppendContent extends node('AppendContent').fields<{
   value: ExpressionNode;

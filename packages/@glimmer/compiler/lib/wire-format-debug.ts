@@ -125,6 +125,9 @@ export default class WireFormatDebugger {
         case Op.Comment:
           return ['comment', opcode[1]];
 
+        case Op.Doctype:
+          return ['doctype', opcode[1], opcode[2], opcode[3]];
+
         case Op.Modifier:
           return [
             'modifier',

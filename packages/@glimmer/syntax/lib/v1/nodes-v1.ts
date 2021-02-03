@@ -160,7 +160,8 @@ export type StatementName =
   | 'PartialStatement'
   | 'MustacheCommentStatement'
   | 'TextNode'
-  | 'ElementNode';
+  | 'ElementNode'
+  | 'DoctypeNode';
 
 export interface AttrNode extends BaseNode {
   type: 'AttrNode';
@@ -169,6 +170,13 @@ export interface AttrNode extends BaseNode {
 }
 
 export type AttrValue = TextNode | MustacheStatement | ConcatStatement;
+
+export interface DoctypeNode extends BaseNode {
+  type: 'DoctypeNode';
+  name: string;
+  publicIdentifier?: string;
+  systemIdentifier?: string;
+}
 
 export interface TextNode extends BaseNode {
   type: 'TextNode';
@@ -324,6 +332,7 @@ export type Nodes = SharedNodes & {
   PathExpression: PathExpression;
   Hash: Hash;
   HashPair: HashPair;
+  DoctypeNode: DoctypeNode;
 };
 
 export type NodeType = keyof Nodes;

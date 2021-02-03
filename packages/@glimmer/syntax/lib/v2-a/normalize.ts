@@ -317,6 +317,15 @@ class StatementNormalizer {
         return this.BlockStatement(node);
       case 'ElementNode':
         return new ElementNormalizer(this.block).ElementNode(node);
+      case 'DoctypeNode':
+        let loc = this.block.loc(node.loc);
+
+        return new ASTv2.HtmlDoctype({
+          loc,
+          name: node.name,
+          publicIdentifier: node.publicIdentifier,
+          systemIdentifier: node.systemIdentifier,
+        });
       case 'MustacheStatement':
         return this.MustacheStatement(node);
 

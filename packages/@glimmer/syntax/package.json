@@ -6,7 +6,7 @@
     "@glimmer/interfaces": "0.74.2",
     "@glimmer/util": "0.74.2",
     "@handlebars/parser": "^2.0.0",
-    "simple-html-tokenizer": "^0.5.10"
+    "simple-html-tokenizer": "^0.5.11"
   },
   "devDependencies": {
     "@glimmer/local-debug-flags": "0.74.2",

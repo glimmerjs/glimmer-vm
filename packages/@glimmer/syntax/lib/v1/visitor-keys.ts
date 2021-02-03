@@ -18,6 +18,7 @@ const visitorKeys = {
   ElementNode: tuple('attributes', 'modifiers', 'children', 'comments'),
   AttrNode: tuple('value'),
   TextNode: tuple(),
+  DoctypeNode: tuple(),
 
   ConcatStatement: tuple('parts'),
   SubExpression: tuple('path', 'params', 'hash'),

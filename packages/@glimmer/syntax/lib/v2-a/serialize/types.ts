@@ -101,6 +101,13 @@ export interface SerializedHtmlComment extends SerializedBaseNode {
   text: SerializedSourceSlice;
 }
 
+export interface SerializedHtmlDoctype extends SerializedBaseNode {
+  type: 'HtmlDoctype';
+  name: string;
+  publicIdentifier?: string;
+  systemIdentifier?: string;
+}
+
 export interface SerializedInvokeBlock extends SerializedCallNode {
   type: 'InvokeBlock';
   blocks: SerializedNamedBlocks;
@@ -156,6 +163,7 @@ export interface SerializedBlock extends SerializedBaseNode {
 export type SerializedContentNode =
   | SerializedAppendContent
   | SerializedHtmlComment
+  | SerializedHtmlDoctype
   | SerializedHtmlText
   | SerializedGlimmerComment
   | SerializedInvokeBlock

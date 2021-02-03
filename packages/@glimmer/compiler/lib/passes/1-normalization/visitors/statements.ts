@@ -31,6 +31,8 @@ class NormalizationStatements {
         return Ok(this.TextNode(node));
       case 'HtmlComment':
         return Ok(this.HtmlComment(node));
+      case 'HtmlDoctype':
+        return Ok(this.HtmlDoctype(node));
       case 'InvokeBlock':
         return this.InvokeBlock(node, state);
       case 'InvokeComponent':
@@ -137,6 +139,15 @@ class NormalizationStatements {
     return new mir.AppendComment({
       loc: comment.loc,
       value: comment.text,
+    });
+  }
+
+  HtmlDoctype(doctype: ASTv2.HtmlDoctype): mir.Statement {
+    return new mir.AppendDoctype({
+      loc: doctype.loc,
+      name: doctype.name,
+      publicIdentifier: doctype.publicIdentifier,
+      systemIdentifier: doctype.systemIdentifier,
     });
   }
 }

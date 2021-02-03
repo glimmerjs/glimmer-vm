@@ -15,6 +15,7 @@ import type {
   SerializedFreeVarReference,
   SerializedGlimmerComment,
   SerializedHtmlComment,
+  SerializedHtmlDoctype,
   SerializedHtmlOrSplatAttr,
   SerializedHtmlText,
   SerializedInterpolateExpression,
@@ -163,6 +164,16 @@ export class ContentSerializer {
     };
   }
 
+  htmlDoctype(node: ASTv2.HtmlDoctype): SerializedHtmlDoctype {
+    return {
+      type: 'HtmlDoctype',
+      loc: node.loc.serialize(),
+      name: node.name,
+      publicIdentifier: node.publicIdentifier,
+      systemIdentifier: node.systemIdentifier,
+    };
+  }
+
   htmlText(node: ASTv2.HtmlText): SerializedHtmlText {
     return {
       type: 'HtmlText',
@@ -305,6 +316,8 @@ const visit = {
         return CONTENT.glimmerComment(node);
       case 'HtmlComment':
         return CONTENT.htmlComment(node);
+      case 'HtmlDoctype':
+        return CONTENT.htmlDoctype(node);
       case 'HtmlText':
         return CONTENT.htmlText(node);
       case 'InvokeBlock':

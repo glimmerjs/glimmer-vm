@@ -42,6 +42,19 @@ test('svg content', function () {
   astEqual(t, b.program([element('svg')]));
 });
 
+test('basic html content with doctype', function () {
+  let t = '<!DOCTYPE html><html><body><div><p></p></div></body></html>';
+
+  astEqual(t, b.program([
+    {
+      type: 'DoctypeNode',
+      name: 'html',
+      loc: b.loc(null),
+    },
+    element('html', ['body', element('body', ['body',element('div', ['body', element('p')])]])
+  ]));
+});
+
 test('html content with html content inline', function () {
   let t = '<div><p></p></div>';
   astEqual(t, b.program([element('div', ['body', element('p')])]));
