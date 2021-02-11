@@ -55,6 +55,9 @@ let templates = [
 
   // unescaped
   '{{{unescaped}}}',
+  
+  // odd handlebars syntax
+  '{{array.[0]}}',
 ];
 
 QUnit.module('[glimmer-syntax] Code generation', function () {
