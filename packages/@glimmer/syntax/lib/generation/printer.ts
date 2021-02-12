@@ -27,7 +27,7 @@ import {
   Template,
 } from '../types/nodes';
 import { voidMap } from '../parser/tokenizer-event-handlers';
-import { escapeText, escapeAttrValue } from './util';
+import { escapeText, escapeAttrValue, sortByLoc } from './util';
 
 const NON_WHITESPACE = /\S/;
 
@@ -242,23 +242,21 @@ export default class Printer {
 
   OpenElementNode(el: ElementNode): void {
     this.buffer += `<${el.tag}`;
-    if (el.attributes.length) {
-      el.attributes.forEach(attr => {
-        this.buffer += ' ';
-        this.AttrNode(attr);
-      });
-    }
-    if (el.modifiers.length) {
-      el.modifiers.forEach(mod => {
-        this.buffer += ' ';
-        this.ElementModifierStatement(mod);
-      });
-    }
-    if (el.comments.length) {
-      el.comments.forEach(comment => {
-        this.buffer += ' ';
-        this.MustacheCommentStatement(comment);
-      });
+    const parts = [...el.attributes, ...el.modifiers, ...el.comments].sort(sortByLoc);
+
+    for (const part of parts) {
+      this.buffer += ' ';
+      switch (part.type) {
+        case 'AttrNode':
+          this.AttrNode(part);
+          break;
+        case 'ElementModifierStatement':
+          this.ElementModifierStatement(part);
+          break;
+        case 'MustacheCommentStatement':
+          this.MustacheCommentStatement(part);
+          break;
+      }
     }
     if (el.blockParams.length) {
       this.BlockParams(el.blockParams);

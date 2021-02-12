@@ -194,6 +194,7 @@ export abstract class HandlebarsNodeVisitors extends Parser {
 
     switch (tokenizer.state) {
       case TokenizerState.beforeAttributeName:
+      case TokenizerState.afterAttributeName:
         this.currentStartTag.comments.push(comment);
         break;
 

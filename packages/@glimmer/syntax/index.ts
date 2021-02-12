@@ -21,6 +21,7 @@ export * from './lib/traversal/visitor';
 export { default as Path } from './lib/traversal/path';
 export { default as Walker } from './lib/traversal/walker';
 export { default as print } from './lib/generation/print';
+export { sortByLoc } from './lib/generation/util';
 
 // errors
 export { default as SyntaxError } from './lib/errors/syntax-error';
