@@ -1,3 +1,5 @@
+import * as AST from '../types/nodes';
+
 const enum Char {
   NBSP = 0xa0,
   QUOT = 0x22,
@@ -52,4 +54,33 @@ export function escapeText(text: string) {
     return text.replace(TEXT_REGEX_REPLACE, textReplacer);
   }
   return text;
+}
+
+export function isSynthetic(node: AST.Node): boolean {
+  if (node && node.loc) {
+    return node.loc.source === '(synthetic)';
+  }
+
+  return false;
+}
+
+export function sortByLoc(a: AST.Node, b: AST.Node): -1 | 0 | 1 {
+  // be conservative about the location where a new node is inserted
+  if (isSynthetic(a) || isSynthetic(b)) {
+    return 0;
+  }
+
+  if (a.loc.start.line < b.loc.start.line) {
+    return -1;
+  }
+
+  if (a.loc.start.line === b.loc.start.line && a.loc.start.column < b.loc.start.column) {
+    return -1;
+  }
+
+  if (a.loc.start.line === b.loc.start.line && a.loc.start.column === b.loc.start.column) {
+    return 0;
+  }
+
+  return 1;
 }
