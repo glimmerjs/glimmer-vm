@@ -1,3 +1,13 @@
+## v0.65.2 (2021-02-17)
+
+#### :bug: Bug Fix
+* `@glimmer/integration-tests`, `@glimmer/runtime`
+  * [#1272](https://github.com/glimmerjs/glimmer-vm/pull/1272) [BUGFIX] Fix reactivity of dynamic attributes ([@pzuraq](https://github.com/pzuraq))
+
+#### Committers: 1
+- Chris Garrett ([@pzuraq](https://github.com/pzuraq))
+
+
 ## v0.65.1 (2020-11-23)
 
 #### :bug: Bug Fix
