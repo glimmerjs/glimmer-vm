@@ -108,4 +108,6 @@ export const enum Op {
   Not = 110,
   GetDynamicVar = 111,
   Log = 112,
+  Equal = 113,
+  NotEqual = 114,
 }

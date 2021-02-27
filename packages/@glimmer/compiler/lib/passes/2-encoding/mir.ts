@@ -67,6 +67,14 @@ export class Log extends node('Log').fields<{
   positional: Positional;
 }>() {}
 
+export class Equal extends node('Equal').fields<{
+  positional: Positional;
+}>() {}
+
+export class NotEqual extends node('NotEqual').fields<{
+  positional: Positional;
+}>() {}
+
 export class InvokeComponent extends node('InvokeComponent').fields<{
   definition: ExpressionNode;
   args: Args;
@@ -216,7 +224,9 @@ export type ExpressionNode =
   | HasBlockParams
   | Curry
   | GetDynamicVar
-  | Log;
+  | Log
+  | Equal
+  | NotEqual;
 
 export type ElementParameter = StaticAttr | DynamicAttr | Modifier | SplatAttr;
 

@@ -316,3 +316,29 @@ APPEND_OPCODES.add(Op.Log, (vm) => {
     })
   );
 });
+
+APPEND_OPCODES.add(Op.Equal, (vm) => {
+  let { positional } = check(vm.stack.popJs(), CheckArguments).capture();
+  let stack = vm.stack;
+
+  stack.pushJs(
+    createComputeRef(() => {
+      let values = reifyPositional(positional);
+
+      return values.every((v) => v === values[0]);
+    })
+  );
+});
+
+APPEND_OPCODES.add(Op.NotEqual, (vm) => {
+  let { positional } = check(vm.stack.popJs(), CheckArguments).capture();
+  let stack = vm.stack;
+
+  stack.pushJs(
+    createComputeRef(() => {
+      let values = reifyPositional(positional);
+
+      return values.some((v) => v !== values[0]);
+    })
+  );
+});
