@@ -593,6 +593,16 @@ test('allow {{this.undefined}} to be an property name on context', function () {
   astEqual(ast, b.program([b.mustache(b.path('this.undefined'))]));
 });
 
+test('allow {{@undefined}} to be an property name on context', function () {
+  let ast = parse('{{@undefined}}');
+  astEqual(ast, b.program([b.mustache(b.path('@undefined'))]));
+});
+
+test('allow {{@null}} to be an property name on context', function () {
+  let ast = parse('{{@null}}');
+  astEqual(ast, b.program([b.mustache(b.path('@null'))]));
+});
+
 test('allow {{this.null}} to be an property name on context', function () {
   let ast = parse('{{this.null}}');
   astEqual(ast, b.program([b.mustache(b.path('this.null'))]));
@@ -603,14 +613,29 @@ test('allow {{this.NaN}} to be an property name on context', function () {
   astEqual(ast, b.program([b.mustache(b.path('this.NaN'))]));
 });
 
+test('allow {{@NaN}} to be an property name on context', function () {
+  let ast = parse('{{@NaN}}');
+  astEqual(ast, b.program([b.mustache(b.path('@NaN'))]));
+});
+
 test('allow {{this.false}} to be an property name on context', function () {
   let ast = parse('{{this.false}}');
   astEqual(ast, b.program([b.mustache(b.path('this.false'))]));
 });
 
+test('allow {{@false}} to be an property name on context', function () {
+  let ast = parse('{{@false}}');
+  astEqual(ast, b.program([b.mustache(b.path('@false'))]));
+});
+
 test('allow {{this.true}} to be an property name on context', function () {
   let ast = parse('{{this.true}}');
   astEqual(ast, b.program([b.mustache(b.path('this.true'))]));
+});
+
+test('allow {{@true}} to be an property name on context', function () {
+  let ast = parse('{{@true}}');
+  astEqual(ast, b.program([b.mustache(b.path('@true'))]));
 });
 
 test('allow {{this.String}} to be an property name on context', function () {
