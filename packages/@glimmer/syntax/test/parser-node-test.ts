@@ -588,6 +588,46 @@ test('allow {{undefined}} to be passed as a param', function () {
   astEqual(ast, b.program([b.mustache(b.path('foo'), [b.undefined()])]));
 });
 
+test('allow {{this.undefined}} to be an property name on context', function () {
+  let ast = parse('{{this.undefined}}');
+  astEqual(ast, b.program([b.mustache(b.path('this.undefined'))]));
+});
+
+test('allow {{this.null}} to be an property name on context', function () {
+  let ast = parse('{{this.null}}');
+  astEqual(ast, b.program([b.mustache(b.path('this.null'))]));
+});
+
+test('allow {{this.NaN}} to be an property name on context', function () {
+  let ast = parse('{{this.NaN}}');
+  astEqual(ast, b.program([b.mustache(b.path('this.NaN'))]));
+});
+
+test('allow {{this.false}} to be an property name on context', function () {
+  let ast = parse('{{this.false}}');
+  astEqual(ast, b.program([b.mustache(b.path('this.false'))]));
+});
+
+test('allow {{this.true}} to be an property name on context', function () {
+  let ast = parse('{{this.true}}');
+  astEqual(ast, b.program([b.mustache(b.path('this.true'))]));
+});
+
+test('allow {{this.String}} to be an property name on context', function () {
+  let ast = parse('{{this.String}}');
+  astEqual(ast, b.program([b.mustache(b.path('this.String'))]));
+});
+
+test('allow {{this.Array}} to be an property name on context', function () {
+  let ast = parse('{{this.Array}}');
+  astEqual(ast, b.program([b.mustache(b.path('this.Array'))]));
+});
+
+test('allow {{this.Object}} to be an property name on context', function () {
+  let ast = parse('{{this.Object}}');
+  astEqual(ast, b.program([b.mustache(b.path('this.Object'))]));
+});
+
 test('Handlebars partial should error', function (assert) {
   assert.throws(() => {
     parse('{{> foo}}', { meta: { moduleName: 'test-module' } });
