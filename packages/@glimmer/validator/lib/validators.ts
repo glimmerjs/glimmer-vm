@@ -52,7 +52,7 @@ export function valueForTag(tag: Tag): Revision {
  * @param snapshot
  */
 export function validateTag(tag: Tag, snapshot: Revision): boolean {
-  return snapshot >= tag[COMPUTE]();
+  return snapshot >= valueForTag(tag);
 }
 
 //////////
@@ -96,6 +96,15 @@ export type DirtyableTag = MonomorphicTagBase<MonomorphicTagTypes.Dirtyable>;
 export type UpdatableTag = MonomorphicTagBase<MonomorphicTagTypes.Updatable>;
 export type CombinatorTag = MonomorphicTagBase<MonomorphicTagTypes.Combinator>;
 export type ConstantTag = MonomorphicTagBase<MonomorphicTagTypes.Constant>;
+
+function maxValueForTags(prev: number, tag: Tag) {
+  let currentValue = valueForTag(tag);
+  if (currentValue > prev) {
+    return currentValue;
+  } else {
+    return prev;
+  }
+}
 
 class MonomorphicTagImpl<T extends MonomorphicTagTypes = MonomorphicTagTypes> {
   static combine(tags: Tag[]): Tag {
@@ -142,12 +151,9 @@ class MonomorphicTagImpl<T extends MonomorphicTagTypes = MonomorphicTagTypes> {
 
         if (subtag !== null) {
           if (Array.isArray(subtag)) {
-            for (let i = 0; i < subtag.length; i++) {
-              let value = subtag[i][COMPUTE]();
-              revision = Math.max(value, revision);
-            }
+            revision = subtag.reduce(maxValueForTags, revision);
           } else {
-            let subtagValue = subtag[COMPUTE]();
+            let subtagValue = valueForTag(subtag);
 
             if (subtagValue === this.subtagBufferCache) {
               revision = Math.max(revision, this.lastValue);
@@ -198,7 +204,7 @@ class MonomorphicTagImpl<T extends MonomorphicTagTypes = MonomorphicTagTypes> {
       // subsequent updates. If its value hasn't changed, then we return the
       // parent's previous value. Once the subtag changes for the first time,
       // we clear the cache and everything is finally in sync with the parent.
-      tag.subtagBufferCache = subtag[COMPUTE]();
+      tag.subtagBufferCache = valueForTag(subtag);
       tag.subtag = subtag;
     }
   }
