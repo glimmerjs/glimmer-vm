@@ -98,8 +98,11 @@ export type CombinatorTag = MonomorphicTagBase<MonomorphicTagTypes.Combinator>;
 export type ConstantTag = MonomorphicTagBase<MonomorphicTagTypes.Constant>;
 
 function maxValueForTags(prev: number, tag: Tag) {
+  if (prev === VOLATILE) {
+    return VOLATILE;
+  }
   let currentValue = tag[COMPUTE]();
-  if (currentValue > prev) {
+  if (currentValue > prev || currentValue === VOLATILE) {
     return currentValue;
   } else {
     return prev;
