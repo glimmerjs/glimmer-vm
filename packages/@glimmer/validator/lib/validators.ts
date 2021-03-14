@@ -52,7 +52,7 @@ export function valueForTag(tag: Tag): Revision {
  * @param snapshot
  */
 export function validateTag(tag: Tag, snapshot: Revision): boolean {
-  return snapshot >= valueForTag(tag);
+  return snapshot >= tag[COMPUTE]();
 }
 
 //////////
@@ -98,7 +98,7 @@ export type CombinatorTag = MonomorphicTagBase<MonomorphicTagTypes.Combinator>;
 export type ConstantTag = MonomorphicTagBase<MonomorphicTagTypes.Constant>;
 
 function maxValueForTags(prev: number, tag: Tag) {
-  let currentValue = valueForTag(tag);
+  let currentValue = tag[COMPUTE]();
   if (currentValue > prev) {
     return currentValue;
   } else {
@@ -153,7 +153,7 @@ class MonomorphicTagImpl<T extends MonomorphicTagTypes = MonomorphicTagTypes> {
           if (Array.isArray(subtag)) {
             revision = subtag.reduce(maxValueForTags, revision);
           } else {
-            let subtagValue = valueForTag(subtag);
+            let subtagValue = subtag[COMPUTE]();
 
             if (subtagValue === this.subtagBufferCache) {
               revision = Math.max(revision, this.lastValue);
@@ -204,7 +204,7 @@ class MonomorphicTagImpl<T extends MonomorphicTagTypes = MonomorphicTagTypes> {
       // subsequent updates. If its value hasn't changed, then we return the
       // parent's previous value. Once the subtag changes for the first time,
       // we clear the cache and everything is finally in sync with the parent.
-      tag.subtagBufferCache = valueForTag(subtag);
+      tag.subtagBufferCache = subtag[COMPUTE]();
       tag.subtag = subtag;
     }
   }
