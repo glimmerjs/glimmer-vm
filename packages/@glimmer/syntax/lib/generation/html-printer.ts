@@ -12,6 +12,54 @@ voidTagNames.split(' ').forEach((tagName) => {
   voidMap[tagName] = true;
 });
 
+enum HTMLSymbols {
+  '(' = '&#40;',
+  ')' = '&#41;',
+  '<' = '&#60;',
+  '>' = '&#62;',
+  '/' = '&#47;',
+  '=' = '&#61;',
+  '"' = '&#34;',
+  '#' = '&#35;',
+  '~' = '&#126;',
+  '{' = '&#123;',
+  '{{' = '&#123;&#123;',
+  '{{{' = '&#123;&#123;&#123;',
+  '|' = '&#124;',
+  '}' = '&#125;',
+  '}}' = '&#125;&#125;',
+  '}}}' = '&#125;&#125;&#125;',
+  NBS = '&#160;',
+}
+
+export const classMappings = {
+  [HTMLSymbols['(']]: 'parenthesis', // (
+  [HTMLSymbols[')']]: 'parenthesis', // )
+  [HTMLSymbols['<']]: 'tag', // <
+  [HTMLSymbols['>']]: 'tag', // >
+  [HTMLSymbols['/']]: 'tag', // /
+  [HTMLSymbols['=']]: 'equal', // =
+  [HTMLSymbols['"']]: 'comma', // "
+  [HTMLSymbols['#']]: 'hash', // #
+  [HTMLSymbols['~']]: 'curly', // ~
+  [HTMLSymbols['{']]: 'curly', // {
+  [HTMLSymbols['|']]: 'pipe', // |
+  [HTMLSymbols['}']]: 'curly', // }
+  path: 'path',
+  boolean: 'boolean',
+  number: 'number',
+  undefined: 'undefined',
+  null: 'null',
+  string: 'string',
+  'hash-key': 'hash-key',
+  'text-node': 'text-node',
+  'attribute-name': 'attribute-name',
+  'tag-name': 'tag-name',
+  as: 'control',
+  else: 'control',
+  [HTMLSymbols.NBS]: 'non-breaking-space',
+};
+
 const NON_WHITESPACE = /\S/;
 
 export default class HTMLPrinter {
@@ -36,7 +84,7 @@ export default class HTMLPrinter {
       let result = this.options.override(node, this.options);
       if (typeof result === 'string') {
         if (ensureLeadingWhitespace && result !== '' && NON_WHITESPACE.test(result[0])) {
-          result = `${this.wrapToSpan('&#160;')}${result}`;
+          result = `${this.wrapToSpan(HTMLSymbols.NBS)}${result}`;
         }
 
         this.buffer += result;
@@ -203,55 +251,28 @@ export default class HTMLPrinter {
     this.CloseElementNode(el);
   }
   classFor(key: string): string {
-    const mappings = {
-      '&#40;': 'parenthesis', // (
-      '&#41;': 'parenthesis', // )
-      '&#60;': 'tag', // <
-      '&#62;': 'tag', // >
-      '&#47;': 'tag', // /
-      '&#61;': 'equal', // =
-      '&#34;': 'comma', // "
-      '&#35;': 'hash', // #
-      '&#126;': 'curly', // ~
-      '&#123;': 'curly', // {
-      '&#124;': 'pipe', // |
-      '&#125;': 'curly', // {
-      path: 'path',
-      boolean: 'boolean',
-      number: 'number',
-      undefined: 'undefined',
-      null: 'null',
-      string: 'string',
-      'hash-key': 'hash-key',
-      'text-node': 'text-node',
-      'attribute-name': 'attribute-name',
-      'tag-name': 'tag-name',
-      as: 'control',
-      else: 'control',
-      '&#160;': 'non-breaking-space',
-    };
-    return (mappings as Record<string, string>)[key] || 'unknown';
+    return (classMappings as Record<string, string>)[key] || 'unknown';
   }
   wrapToSpan(text: string, key: string = text): string {
     return `<span class="${this.classFor(key)}">${text}</span>`;
   }
   OpenElementNode(el: ASTv1.ElementNode): void {
-    this.buffer += `${this.wrapToSpan('&#60;')}${this.wrapToSpan(el.tag, 'tag-name')}`;
+    this.buffer += `${this.wrapToSpan(HTMLSymbols['<'])}${this.wrapToSpan(el.tag, 'tag-name')}`;
     if (el.attributes.length) {
       el.attributes.forEach((attr) => {
-        this.buffer += this.wrapToSpan('&#160;');
+        this.buffer += this.wrapToSpan(HTMLSymbols.NBS);
         this.AttrNode(attr);
       });
     }
     if (el.modifiers.length) {
       el.modifiers.forEach((mod) => {
-        this.buffer += this.wrapToSpan('&#160;');
+        this.buffer += this.wrapToSpan(HTMLSymbols.NBS);
         this.ElementModifierStatement(mod);
       });
     }
     if (el.comments.length) {
       el.comments.forEach((comment) => {
-        this.buffer += this.wrapToSpan('&#160;');
+        this.buffer += this.wrapToSpan(HTMLSymbols.NBS);
         this.MustacheCommentStatement(comment);
       });
     }
@@ -259,9 +280,9 @@ export default class HTMLPrinter {
       this.BlockParams(el.blockParams);
     }
     if (el.selfClosing) {
-      this.buffer += this.wrapToSpan('&#160;') + this.wrapToSpan('&#47;');
+      this.buffer += this.wrapToSpan(HTMLSymbols.NBS) + this.wrapToSpan(HTMLSymbols['/']);
     }
-    this.buffer += this.wrapToSpan('&#62;');
+    this.buffer += this.wrapToSpan(HTMLSymbols['>']);
   }
 
   CloseElementNode(el: ASTv1.ElementNode): void {
@@ -269,10 +290,10 @@ export default class HTMLPrinter {
       return;
     }
     this.buffer +=
-      this.wrapToSpan('&#60;') +
-      this.wrapToSpan('&#47;') +
+      this.wrapToSpan(HTMLSymbols['<']) +
+      this.wrapToSpan(HTMLSymbols['/']) +
       this.wrapToSpan(el.tag, 'tag-name') +
-      this.wrapToSpan('&#62;');
+      this.wrapToSpan(HTMLSymbols['>']);
   }
 
   AttrNode(attr: ASTv1.AttrNode): void {
@@ -284,16 +305,16 @@ export default class HTMLPrinter {
 
     this.buffer += this.wrapToSpan(name, 'attribute-name');
     if (value.type !== 'TextNode' || value.chars.length > 0) {
-      this.buffer += this.wrapToSpan('&#61;');
+      this.buffer += this.wrapToSpan(HTMLSymbols['=']);
       this.AttrNodeValue(value);
     }
   }
 
   AttrNodeValue(value: ASTv1.AttrValue): void {
     if (value.type === 'TextNode') {
-      this.buffer += this.wrapToSpan('&#34;');
+      this.buffer += this.wrapToSpan(HTMLSymbols['"']);
       this.TextNode(value, true);
-      this.buffer += this.wrapToSpan('&#34;');
+      this.buffer += this.wrapToSpan(HTMLSymbols['"']);
     } else {
       this.Node(value);
     }
@@ -319,11 +340,11 @@ export default class HTMLPrinter {
     }
 
     this.buffer += mustache.escaped
-      ? this.wrapToSpan('&#123;&#123;', '&#123;')
-      : this.wrapToSpan('&#123;&#123;&#123;', '&#123;');
+      ? this.wrapToSpan(HTMLSymbols['{{'], HTMLSymbols['{'])
+      : this.wrapToSpan(HTMLSymbols['{{{'], HTMLSymbols['{']);
 
     if (mustache.strip.open) {
-      this.buffer += this.wrapToSpan('&#126;');
+      this.buffer += this.wrapToSpan(HTMLSymbols['~']);
     }
 
     this.Expression(mustache.path);
@@ -331,12 +352,12 @@ export default class HTMLPrinter {
     this.Hash(mustache.hash);
 
     if (mustache.strip.close) {
-      this.buffer += this.wrapToSpan('&#126;');
+      this.buffer += this.wrapToSpan(HTMLSymbols['~']);
     }
 
     this.buffer += mustache.escaped
-      ? this.wrapToSpan('&#125;&#125;', '&#125;')
-      : this.wrapToSpan('&#125;&#125;&#125;', '&#125;');
+      ? this.wrapToSpan(HTMLSymbols['}}'], HTMLSymbols['}'])
+      : this.wrapToSpan(HTMLSymbols['}}}'], HTMLSymbols['}']);
   }
 
   BlockStatement(block: ASTv1.BlockStatement): void {
@@ -346,15 +367,15 @@ export default class HTMLPrinter {
 
     if (block.chained) {
       this.buffer += block.inverseStrip.open
-        ? this.wrapToSpan('&#123;&#123;', '&#123;') + this.wrapToSpan('&#126;')
-        : this.wrapToSpan('&#123;&#123;', '&#123;');
-      this.buffer += this.wrapToSpan('else') + this.wrapToSpan('&#160;');
+        ? this.wrapToSpan(HTMLSymbols['{{'], HTMLSymbols['{']) + this.wrapToSpan(HTMLSymbols['~'])
+        : this.wrapToSpan(HTMLSymbols['{{'], HTMLSymbols['{']);
+      this.buffer += this.wrapToSpan('else') + this.wrapToSpan(HTMLSymbols.NBS);
     } else {
       this.buffer += block.openStrip.open
-        ? this.wrapToSpan('&#123;&#123;', '&#123;') +
-          this.wrapToSpan('&#126;') +
-          this.wrapToSpan('&#35;')
-        : this.wrapToSpan('&#123;&#123;', '&#123;') + this.wrapToSpan('&#35;');
+        ? this.wrapToSpan(HTMLSymbols['{{'], HTMLSymbols['{']) +
+          this.wrapToSpan(HTMLSymbols['~']) +
+          this.wrapToSpan(HTMLSymbols['#'])
+        : this.wrapToSpan(HTMLSymbols['{{'], HTMLSymbols['{']) + this.wrapToSpan(HTMLSymbols['#']);
     }
 
     this.Expression(block.path);
@@ -366,12 +387,12 @@ export default class HTMLPrinter {
 
     if (block.chained) {
       this.buffer += block.inverseStrip.close
-        ? this.wrapToSpan('&#126;') + this.wrapToSpan('&#125;&#125;', '&#125;')
-        : this.wrapToSpan('&#125;&#125;', '&#125;');
+        ? this.wrapToSpan(HTMLSymbols['~']) + this.wrapToSpan(HTMLSymbols['}}'], HTMLSymbols['}'])
+        : this.wrapToSpan(HTMLSymbols['}}'], HTMLSymbols['}']);
     } else {
       this.buffer += block.openStrip.close
-        ? this.wrapToSpan('&#126;') + this.wrapToSpan('&#125;&#125;', '&#125;')
-        : this.wrapToSpan('&#125;&#125;', '&#125;');
+        ? this.wrapToSpan(HTMLSymbols['~']) + this.wrapToSpan(HTMLSymbols['}}'], HTMLSymbols['}'])
+        : this.wrapToSpan(HTMLSymbols['}}'], HTMLSymbols['}']);
     }
 
     this.Block(block.program);
@@ -379,12 +400,12 @@ export default class HTMLPrinter {
     if (block.inverse) {
       if (!block.inverse.chained) {
         this.buffer += block.inverseStrip.open
-          ? this.wrapToSpan('&#123;&#123;', '&#123;') + this.wrapToSpan('&#126;')
-          : this.wrapToSpan('&#123;&#123;', '&#123;');
+          ? this.wrapToSpan(HTMLSymbols['{{'], HTMLSymbols['{']) + this.wrapToSpan(HTMLSymbols['~'])
+          : this.wrapToSpan(HTMLSymbols['{{'], HTMLSymbols['{']);
         this.buffer += this.wrapToSpan('else');
         this.buffer += block.inverseStrip.close
-          ? this.wrapToSpan('&#126;') + this.wrapToSpan('&#125;&#125;', '&#125;')
-          : this.wrapToSpan('&#125;&#125;', '&#125;');
+          ? this.wrapToSpan(HTMLSymbols['~']) + this.wrapToSpan(HTMLSymbols['}}'], HTMLSymbols['}'])
+          : this.wrapToSpan(HTMLSymbols['}}'], HTMLSymbols['}']);
       }
 
       this.Block(block.inverse);
@@ -392,23 +413,23 @@ export default class HTMLPrinter {
 
     if (!block.chained) {
       this.buffer += block.closeStrip.open
-        ? this.wrapToSpan('&#123;&#123;', '&#123;') +
-          this.wrapToSpan('&#126;') +
-          this.wrapToSpan('&#47;')
-        : this.wrapToSpan('&#123;&#123;', '&#123;') + this.wrapToSpan('&#47;');
+        ? this.wrapToSpan(HTMLSymbols['{{'], HTMLSymbols['{']) +
+          this.wrapToSpan(HTMLSymbols['~']) +
+          this.wrapToSpan(HTMLSymbols['/'])
+        : this.wrapToSpan(HTMLSymbols['{{'], HTMLSymbols['{']) + this.wrapToSpan(HTMLSymbols['/']);
       this.Expression(block.path);
       this.buffer += block.closeStrip.close
-        ? this.wrapToSpan('&#126;') + this.wrapToSpan('&#125;&#125;', '&#125;')
-        : this.wrapToSpan('&#125;&#125;', '&#125;');
+        ? this.wrapToSpan(HTMLSymbols['~']) + this.wrapToSpan(HTMLSymbols['}}'], HTMLSymbols['}'])
+        : this.wrapToSpan(HTMLSymbols['}}'], HTMLSymbols['}']);
     }
   }
 
   BlockParams(blockParams: string[]): void {
     this.buffer +=
-      `${this.wrapToSpan('&#160;')}${this.wrapToSpan('as')}${this.wrapToSpan(
-        '&#160;'
-      )}${this.wrapToSpan('&#124;')}${blockParams.join(this.wrapToSpan('&#160;'))}` +
-      this.wrapToSpan('&#124;');
+      `${this.wrapToSpan(HTMLSymbols.NBS)}${this.wrapToSpan('as')}${this.wrapToSpan(
+        HTMLSymbols.NBS
+      )}${this.wrapToSpan(HTMLSymbols['|'])}${blockParams.join(this.wrapToSpan(HTMLSymbols.NBS))}` +
+      this.wrapToSpan(HTMLSymbols['|']);
   }
 
   PartialStatement(partial: ASTv1.PartialStatement): void {
@@ -416,11 +437,12 @@ export default class HTMLPrinter {
       return;
     }
 
-    this.buffer += this.wrapToSpan('&#123;&#123;', '&#123;') + this.wrapToSpan('&#62;');
+    this.buffer +=
+      this.wrapToSpan(HTMLSymbols['{{'], HTMLSymbols['{']) + this.wrapToSpan(HTMLSymbols['>']);
     this.Expression(partial.name);
     this.Params(partial.params);
     this.Hash(partial.hash);
-    this.buffer += this.wrapToSpan('&#125;&#125;', '&#125;');
+    this.buffer += this.wrapToSpan(HTMLSymbols['}}'], HTMLSymbols['}']);
   }
 
   ConcatStatement(concat: ASTv1.ConcatStatement): void {
@@ -428,7 +450,7 @@ export default class HTMLPrinter {
       return;
     }
 
-    this.buffer += this.wrapToSpan('&#34;');
+    this.buffer += this.wrapToSpan(HTMLSymbols['"']);
     concat.parts.forEach((part) => {
       if (part.type === 'TextNode') {
         this.TextNode(part, true);
@@ -436,7 +458,7 @@ export default class HTMLPrinter {
         this.Node(part);
       }
     });
-    this.buffer += this.wrapToSpan('&#34;');
+    this.buffer += this.wrapToSpan(HTMLSymbols['"']);
   }
 
   MustacheCommentStatement(comment: ASTv1.MustacheCommentStatement): void {
@@ -445,9 +467,9 @@ export default class HTMLPrinter {
     }
 
     this.buffer +=
-      this.wrapToSpan('&#123;&#123;', '&#123;') +
+      this.wrapToSpan(HTMLSymbols['{{'], HTMLSymbols['{']) +
       `!--${comment.value}--` +
-      this.wrapToSpan('&#125;&#125;', '&#125;');
+      this.wrapToSpan(HTMLSymbols['}}'], HTMLSymbols['}']);
   }
 
   ElementModifierStatement(mod: ASTv1.ElementModifierStatement): void {
@@ -455,11 +477,11 @@ export default class HTMLPrinter {
       return;
     }
 
-    this.buffer += this.wrapToSpan('&#123;&#123;', '&#123;');
+    this.buffer += this.wrapToSpan(HTMLSymbols['{{'], HTMLSymbols['{']);
     this.Expression(mod.path);
     this.Params(mod.params);
     this.Hash(mod.hash);
-    this.buffer += this.wrapToSpan('&#125;&#125;', '&#125;');
+    this.buffer += this.wrapToSpan(HTMLSymbols['}}'], HTMLSymbols['}']);
   }
 
   CommentStatement(comment: ASTv1.CommentStatement): void {
@@ -467,7 +489,9 @@ export default class HTMLPrinter {
       return;
     }
 
-    this.buffer += `${this.wrapToSpan('&#60;')}!--${comment.value}--${this.wrapToSpan('&#62;')}`;
+    this.buffer += `${this.wrapToSpan(HTMLSymbols['<'])}!--${comment.value}--${this.wrapToSpan(
+      HTMLSymbols['>']
+    )}`;
   }
 
   PathExpression(path: ASTv1.PathExpression): void {
@@ -483,11 +507,11 @@ export default class HTMLPrinter {
       return;
     }
 
-    this.buffer += this.wrapToSpan('&#40;');
+    this.buffer += this.wrapToSpan(HTMLSymbols['(']);
     this.Expression(sexp.path);
     this.Params(sexp.params);
     this.Hash(sexp.hash);
-    this.buffer += this.wrapToSpan('&#41;');
+    this.buffer += this.wrapToSpan(HTMLSymbols[')']);
   }
 
   Params(params: ASTv1.Expression[]): void {
@@ -495,7 +519,7 @@ export default class HTMLPrinter {
     // so that this can also be overridden
     if (params.length) {
       params.forEach((param) => {
-        this.buffer += this.wrapToSpan('&#160;');
+        this.buffer += this.wrapToSpan(HTMLSymbols.NBS);
         this.Expression(param);
       });
     }
@@ -507,7 +531,7 @@ export default class HTMLPrinter {
     }
 
     hash.pairs.forEach((pair) => {
-      this.buffer += this.wrapToSpan('&#160;');
+      this.buffer += this.wrapToSpan(HTMLSymbols.NBS);
       this.HashPair(pair);
     });
   }
@@ -518,7 +542,7 @@ export default class HTMLPrinter {
     }
 
     this.buffer += this.wrapToSpan(pair.key, 'hash-key');
-    this.buffer += this.wrapToSpan('&#61;');
+    this.buffer += this.wrapToSpan(HTMLSymbols['=']);
     this.Node(pair.value);
   }
 
