@@ -1,34 +1,16 @@
-import {
-  AttrNode,
-  Block,
-  BlockStatement,
-  ElementNode,
-  MustacheStatement,
-  Node,
-  Program,
-  TextNode,
-  PartialStatement,
-  ConcatStatement,
-  MustacheCommentStatement,
-  CommentStatement,
-  ElementModifierStatement,
-  Expression,
-  PathExpression,
-  SubExpression,
-  Hash,
-  HashPair,
-  Literal,
-  StringLiteral,
-  BooleanLiteral,
-  NumberLiteral,
-  UndefinedLiteral,
-  NullLiteral,
-  TopLevelStatement,
-  Template,
-} from '../types/nodes';
-import { voidMap } from '../parser/tokenizer-event-handlers';
-import { escapeText, escapeAttrValue } from './util';
+import * as ASTv1 from '../v1/api';
 import { PrinterOptions } from './printer';
+import { escapeAttrValue, escapeText } from './util';
+
+export const voidMap: {
+  [tagName: string]: boolean;
+} = Object.create(null);
+
+let voidTagNames =
+  'area base br col command embed hr img input keygen link meta param source track wbr';
+voidTagNames.split(' ').forEach((tagName) => {
+  voidMap[tagName] = true;
+});
 
 const NON_WHITESPACE = /\S/;
 
@@ -49,7 +31,7 @@ export default class HTMLPrinter {
     For example, ember-template-recast attempts to always preserve the original string
     formatting in each AST node if no modifications are made to it.
   */
-  handledByOverride(node: Node, ensureLeadingWhitespace = false): boolean {
+  handledByOverride(node: ASTv1.Node, ensureLeadingWhitespace = false): boolean {
     if (this.options.override !== undefined) {
       let result = this.options.override(node, this.options);
       if (typeof result === 'string') {
@@ -65,7 +47,7 @@ export default class HTMLPrinter {
     return false;
   }
 
-  Node(node: Node): void {
+  Node(node: ASTv1.Node): void {
     switch (node.type) {
       case 'MustacheStatement':
       case 'BlockStatement':
@@ -102,7 +84,7 @@ export default class HTMLPrinter {
     return unreachable(node, 'Node');
   }
 
-  Expression(expression: Expression): void {
+  Expression(expression: ASTv1.Expression): void {
     switch (expression.type) {
       case 'StringLiteral':
       case 'BooleanLiteral':
@@ -118,7 +100,7 @@ export default class HTMLPrinter {
     return unreachable(expression, 'Expression');
   }
 
-  Literal(literal: Literal) {
+  Literal(literal: ASTv1.Literal): void {
     switch (literal.type) {
       case 'StringLiteral':
         return this.StringLiteral(literal);
@@ -134,7 +116,7 @@ export default class HTMLPrinter {
     return unreachable(literal, 'Literal');
   }
 
-  TopLevelStatement(statement: TopLevelStatement) {
+  TopLevelStatement(statement: ASTv1.TopLevelStatement | ASTv1.Template | ASTv1.AttrNode): void {
     switch (statement.type) {
       case 'MustacheStatement':
         return this.MustacheStatement(statement);
@@ -160,7 +142,7 @@ export default class HTMLPrinter {
     unreachable(statement, 'TopLevelStatement');
   }
 
-  Block(block: Block | Program | Template): void {
+  Block(block: ASTv1.Block | ASTv1.Program | ASTv1.Template): void {
     /*
       When processing a template like:
 
@@ -196,7 +178,7 @@ export default class HTMLPrinter {
       it later when processing the `BlockStatement`.
     */
     if (block.chained) {
-      let firstChild = block.body[0] as BlockStatement;
+      let firstChild = block.body[0] as ASTv1.BlockStatement;
       firstChild.chained = true;
     }
 
@@ -207,11 +189,11 @@ export default class HTMLPrinter {
     this.TopLevelStatements(block.body);
   }
 
-  TopLevelStatements(statements: TopLevelStatement[]) {
+  TopLevelStatements(statements: ASTv1.TopLevelStatement[]): void {
     statements.forEach((statement) => this.TopLevelStatement(statement));
   }
 
-  ElementNode(el: ElementNode): void {
+  ElementNode(el: ASTv1.ElementNode): void {
     if (this.handledByOverride(el)) {
       return;
     }
@@ -248,12 +230,12 @@ export default class HTMLPrinter {
       else: 'control',
       '&#160;': 'non-breaking-space',
     };
-    return (mappings as any)[key] || 'unknown';
+    return (mappings as Record<string, string>)[key] || 'unknown';
   }
-  wrapToSpan(text: string, key: string = text) {
+  wrapToSpan(text: string, key: string = text): string {
     return `<span class="${this.classFor(key)}">${text}</span>`;
   }
-  OpenElementNode(el: ElementNode): void {
+  OpenElementNode(el: ASTv1.ElementNode): void {
     this.buffer += `${this.wrapToSpan('&#60;')}${this.wrapToSpan(el.tag, 'tag-name')}`;
     if (el.attributes.length) {
       el.attributes.forEach((attr) => {
@@ -282,7 +264,7 @@ export default class HTMLPrinter {
     this.buffer += this.wrapToSpan('&#62;');
   }
 
-  CloseElementNode(el: ElementNode): void {
+  CloseElementNode(el: ASTv1.ElementNode): void {
     if (el.selfClosing || voidMap[el.tag.toLowerCase()]) {
       return;
     }
@@ -293,7 +275,7 @@ export default class HTMLPrinter {
       this.wrapToSpan('&#62;');
   }
 
-  AttrNode(attr: AttrNode): void {
+  AttrNode(attr: ASTv1.AttrNode): void {
     if (this.handledByOverride(attr)) {
       return;
     }
@@ -307,7 +289,7 @@ export default class HTMLPrinter {
     }
   }
 
-  AttrNodeValue(value: AttrNode['value']) {
+  AttrNodeValue(value: ASTv1.AttrValue): void {
     if (value.type === 'TextNode') {
       this.buffer += this.wrapToSpan('&#34;');
       this.TextNode(value, true);
@@ -317,7 +299,7 @@ export default class HTMLPrinter {
     }
   }
 
-  TextNode(text: TextNode, isAttr?: boolean): void {
+  TextNode(text: ASTv1.TextNode, isAttr?: boolean): void {
     if (this.handledByOverride(text)) {
       return;
     }
@@ -331,7 +313,7 @@ export default class HTMLPrinter {
     }
   }
 
-  MustacheStatement(mustache: MustacheStatement): void {
+  MustacheStatement(mustache: ASTv1.MustacheStatement): void {
     if (this.handledByOverride(mustache)) {
       return;
     }
@@ -357,7 +339,7 @@ export default class HTMLPrinter {
       : this.wrapToSpan('&#125;&#125;&#125;', '&#125;');
   }
 
-  BlockStatement(block: BlockStatement): void {
+  BlockStatement(block: ASTv1.BlockStatement): void {
     if (this.handledByOverride(block)) {
       return;
     }
@@ -370,8 +352,8 @@ export default class HTMLPrinter {
     } else {
       this.buffer += block.openStrip.open
         ? this.wrapToSpan('&#123;&#123;', '&#123;') +
-        this.wrapToSpan('&#126;') +
-        this.wrapToSpan('&#35;')
+          this.wrapToSpan('&#126;') +
+          this.wrapToSpan('&#35;')
         : this.wrapToSpan('&#123;&#123;', '&#123;') + this.wrapToSpan('&#35;');
     }
 
@@ -411,8 +393,8 @@ export default class HTMLPrinter {
     if (!block.chained) {
       this.buffer += block.closeStrip.open
         ? this.wrapToSpan('&#123;&#123;', '&#123;') +
-        this.wrapToSpan('&#126;') +
-        this.wrapToSpan('&#47;')
+          this.wrapToSpan('&#126;') +
+          this.wrapToSpan('&#47;')
         : this.wrapToSpan('&#123;&#123;', '&#123;') + this.wrapToSpan('&#47;');
       this.Expression(block.path);
       this.buffer += block.closeStrip.close
@@ -421,7 +403,7 @@ export default class HTMLPrinter {
     }
   }
 
-  BlockParams(blockParams: string[]) {
+  BlockParams(blockParams: string[]): void {
     this.buffer +=
       `${this.wrapToSpan('&#160;')}${this.wrapToSpan('as')}${this.wrapToSpan(
         '&#160;'
@@ -429,7 +411,7 @@ export default class HTMLPrinter {
       this.wrapToSpan('&#124;');
   }
 
-  PartialStatement(partial: PartialStatement): void {
+  PartialStatement(partial: ASTv1.PartialStatement): void {
     if (this.handledByOverride(partial)) {
       return;
     }
@@ -441,7 +423,7 @@ export default class HTMLPrinter {
     this.buffer += this.wrapToSpan('&#125;&#125;', '&#125;');
   }
 
-  ConcatStatement(concat: ConcatStatement): void {
+  ConcatStatement(concat: ASTv1.ConcatStatement): void {
     if (this.handledByOverride(concat)) {
       return;
     }
@@ -457,7 +439,7 @@ export default class HTMLPrinter {
     this.buffer += this.wrapToSpan('&#34;');
   }
 
-  MustacheCommentStatement(comment: MustacheCommentStatement): void {
+  MustacheCommentStatement(comment: ASTv1.MustacheCommentStatement): void {
     if (this.handledByOverride(comment)) {
       return;
     }
@@ -468,7 +450,7 @@ export default class HTMLPrinter {
       this.wrapToSpan('&#125;&#125;', '&#125;');
   }
 
-  ElementModifierStatement(mod: ElementModifierStatement): void {
+  ElementModifierStatement(mod: ASTv1.ElementModifierStatement): void {
     if (this.handledByOverride(mod)) {
       return;
     }
@@ -480,7 +462,7 @@ export default class HTMLPrinter {
     this.buffer += this.wrapToSpan('&#125;&#125;', '&#125;');
   }
 
-  CommentStatement(comment: CommentStatement): void {
+  CommentStatement(comment: ASTv1.CommentStatement): void {
     if (this.handledByOverride(comment)) {
       return;
     }
@@ -488,7 +470,7 @@ export default class HTMLPrinter {
     this.buffer += `${this.wrapToSpan('&#60;')}!--${comment.value}--${this.wrapToSpan('&#62;')}`;
   }
 
-  PathExpression(path: PathExpression): void {
+  PathExpression(path: ASTv1.PathExpression): void {
     if (this.handledByOverride(path)) {
       return;
     }
@@ -496,7 +478,7 @@ export default class HTMLPrinter {
     this.buffer += this.wrapToSpan(path.original, 'path');
   }
 
-  SubExpression(sexp: SubExpression): void {
+  SubExpression(sexp: ASTv1.SubExpression): void {
     if (this.handledByOverride(sexp)) {
       return;
     }
@@ -508,7 +490,7 @@ export default class HTMLPrinter {
     this.buffer += this.wrapToSpan('&#41;');
   }
 
-  Params(params: Expression[]) {
+  Params(params: ASTv1.Expression[]): void {
     // TODO: implement a top level Params AST node (just like the Hash object)
     // so that this can also be overridden
     if (params.length) {
@@ -519,7 +501,7 @@ export default class HTMLPrinter {
     }
   }
 
-  Hash(hash: Hash): void {
+  Hash(hash: ASTv1.Hash): void {
     if (this.handledByOverride(hash, true)) {
       return;
     }
@@ -530,7 +512,7 @@ export default class HTMLPrinter {
     });
   }
 
-  HashPair(pair: HashPair): void {
+  HashPair(pair: ASTv1.HashPair): void {
     if (this.handledByOverride(pair)) {
       return;
     }
@@ -540,7 +522,7 @@ export default class HTMLPrinter {
     this.Node(pair.value);
   }
 
-  StringLiteral(str: StringLiteral): void {
+  StringLiteral(str: ASTv1.StringLiteral): void {
     if (this.handledByOverride(str)) {
       return;
     }
@@ -548,7 +530,7 @@ export default class HTMLPrinter {
     this.buffer += this.wrapToSpan(JSON.stringify(str.value), 'string');
   }
 
-  BooleanLiteral(bool: BooleanLiteral): void {
+  BooleanLiteral(bool: ASTv1.BooleanLiteral): void {
     if (this.handledByOverride(bool)) {
       return;
     }
@@ -556,7 +538,7 @@ export default class HTMLPrinter {
     this.buffer += this.wrapToSpan(bool.value.toString(), 'boolean');
   }
 
-  NumberLiteral(number: NumberLiteral): void {
+  NumberLiteral(number: ASTv1.NumberLiteral): void {
     if (this.handledByOverride(number)) {
       return;
     }
@@ -564,7 +546,7 @@ export default class HTMLPrinter {
     this.buffer += this.wrapToSpan(number.value.toString(), 'number');
   }
 
-  UndefinedLiteral(node: UndefinedLiteral): void {
+  UndefinedLiteral(node: ASTv1.UndefinedLiteral): void {
     if (this.handledByOverride(node)) {
       return;
     }
@@ -572,7 +554,7 @@ export default class HTMLPrinter {
     this.buffer += this.wrapToSpan('undefined');
   }
 
-  NullLiteral(node: NullLiteral): void {
+  NullLiteral(node: ASTv1.NullLiteral): void {
     if (this.handledByOverride(node)) {
       return;
     }
@@ -580,7 +562,7 @@ export default class HTMLPrinter {
     this.buffer += this.wrapToSpan('null');
   }
 
-  print(node: Node) {
+  print(node: ASTv1.Node): string {
     let { options } = this;
 
     if (options.override) {
@@ -598,7 +580,7 @@ export default class HTMLPrinter {
 }
 
 function unreachable(node: never, parentNodeType: string): never {
-  let { loc, type } = (node as any) as Node;
+  let { loc, type } = (node as unknown) as ASTv1.Node;
   throw new Error(
     `Non-exhaustive node narrowing ${type} @ location: ${JSON.stringify(
       loc
