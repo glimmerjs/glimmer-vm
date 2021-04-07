@@ -1,6 +1,6 @@
 import * as ASTv1 from '../v1/api';
-import Printer, { PrinterOptions } from './printer';
 import HTMLPrinter from './html-printer';
+import Printer, { PrinterOptions } from './printer';
 
 export default function build(
   ast: ASTv1.Node,
