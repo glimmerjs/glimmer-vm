@@ -1,8 +1,27 @@
-import { preprocess as parse, print } from '../..';
+import { preprocess as parse, print, traverse } from '../..';
 
-import { htmlToText } from 'html-to-text';
+function decodeHTML(str: string) {
+  return str.replace(/&#([0-9]+);/g, function (_, int) {
+    return String.fromCharCode(parseInt(int, 10));
+  });
+}
 
 const { test } = QUnit;
+
+function escapedHTMLtoNormalHTML(html: string) {
+  const escapedAST = parse(html);
+  let content = '';
+  traverse(escapedAST, {
+    TextNode(node, path) {
+      if (path.parent && path.parent.node.type === 'AttrNode') {
+        return;
+      }
+      content += node.chars;
+    },
+  });
+  const extractedHTML = decodeHTML(content);
+  return print(parse(extractedHTML));
+}
 
 let templates = [
   '<h1></h1>',
@@ -64,7 +83,7 @@ let templates = [
 
 QUnit.module('[glimmer-syntax] Code generation', function () {
   function printTransform(template: string) {
-    return htmlToText(
+    return escapedHTMLtoNormalHTML(
       print(parse(template), { entityEncoding: 'transformed', outputEncoding: 'html' })
     );
   }
