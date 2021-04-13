@@ -1,41 +1,47 @@
-import { RenderTest, test, jitSuite } from '../..';
+import { RenderTest, test, jitSuite, defineComponent } from '../..';
 
 class EqualTest extends RenderTest {
   static suiteName = '{{eq}} keyword';
 
   @test
   ['it works eq']() {
-    this.render(`{{eq 1 1}}`);
+    const AComponent = defineComponent({}, '{{eq 1 1}}');
+    this.renderComponent(AComponent);
 
     this.assertHTML('true');
   }
 
   @test
   ['it works multiple arguments eq']() {
-    this.render(`{{eq 1 1 1}}`);
+    const AComponent = defineComponent({}, '{{eq 1 1 1}}');
+    this.renderComponent(AComponent);
 
     this.assertHTML('true');
   }
 
   @test
   ['it works falsey eq']() {
-    this.render(`{{eq 1 2}}`);
+    const AComponent = defineComponent({}, '{{eq 1 2}}');
+    this.renderComponent(AComponent);
 
     this.assertHTML('false');
   }
 
   @test
   ['it works multiple arguments falsey eq']() {
-    this.render(`{{eq 1 1 2}}`);
+    const AComponent = defineComponent({}, '{{eq 1 1 2}}');
+    this.renderComponent(AComponent);
 
     this.assertHTML('false');
   }
 
   @test
-  ['correctly eqs when values update eq']() {
-    this.render(`{{eq this.foo this.bar}}`, { foo: 123, bar: 456 });
+  ['correctly renders when values update eq']() {
+    const AComponent = defineComponent({}, '{{eq @foo @bar}}');
+    this.renderComponent(AComponent, { foo: 123, bar: 456 });
 
     this.assertHTML('false');
+    this.assertStableRerender();
 
     this.rerender({ foo: 456 });
 
@@ -48,35 +54,40 @@ class NotEqualTest extends RenderTest {
 
   @test
   ['it works neq']() {
-    this.render(`{{neq 1 2}}`);
+    const AComponent = defineComponent({}, '{{neq 1 2}}');
+    this.renderComponent(AComponent);
 
     this.assertHTML('true');
   }
 
   @test
   ['it works multiple arguments neq']() {
-    this.render(`{{neq 1 2 1}}`);
+    const AComponent = defineComponent({}, '{{neq 1 2 1}}');
+    this.renderComponent(AComponent);
 
     this.assertHTML('true');
   }
 
   @test
   ['it works falsey neq']() {
-    this.render(`{{neq 1 1}}`);
+    const AComponent = defineComponent({}, '{{neq 1 1}}');
+    this.renderComponent(AComponent);
 
     this.assertHTML('false');
   }
 
   @test
   ['it works multiple arguments falsey neq']() {
-    this.render(`{{neq 1 1 1}}`);
+    const AComponent = defineComponent({}, '{{neq 1 1 1}}');
+    this.renderComponent(AComponent);
 
     this.assertHTML('false');
   }
 
   @test
-  ['correctly eqs when values update neq']() {
-    this.render(`{{neq this.foo this.bar}}`, { foo: 123, bar: 456 });
+  ['correctly renders when values update neq']() {
+    const AComponent = defineComponent({}, '{{neq @foo @bar}}');
+    this.renderComponent(AComponent, { foo: 123, bar: 456 });
 
     this.assertHTML('true');
 
