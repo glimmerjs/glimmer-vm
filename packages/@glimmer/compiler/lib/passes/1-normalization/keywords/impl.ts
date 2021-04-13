@@ -34,7 +34,8 @@ class KeywordImpl<
   constructor(
     protected keyword: S,
     type: KeywordType,
-    private delegate: KeywordDelegate<KeywordMatches[K], Param, Out>
+    private delegate: KeywordDelegate<KeywordMatches[K], Param, Out>,
+    private options?: { strictOnly: boolean },
   ) {
     let nodes = new Set<KeywordNode['type']>();
     for (let nodeType of KEYWORD_NODES[type]) {
@@ -44,7 +45,14 @@ class KeywordImpl<
     this.types = nodes;
   }
 
-  protected match(node: KeywordCandidates[K]): node is KeywordMatches[K] {
+  protected match(node: KeywordCandidates[K], state: NormalizationState): node is KeywordMatches[K] {
+    // some keywords are enabled only in strict mode. None are planned to be loose mode only
+    if (this.options?.strictOnly) {
+      if (state.isStrict === false) {
+        return false;
+      }
+    }
+
     if (!this.types.has(node.type)) {
       return false;
     }
@@ -67,7 +75,7 @@ class KeywordImpl<
   }
 
   translate(node: KeywordMatches[K], state: NormalizationState): Result<Out> | null {
-    if (this.match(node)) {
+    if (this.match(node, state)) {
       let path = getCalleeExpression(node);
 
       if (path !== null && path.type === 'Path' && path.tail.length > 0) {
@@ -136,8 +144,8 @@ export function keyword<
   K extends KeywordType,
   D extends KeywordDelegate<KeywordMatches[K], unknown, Out>,
   Out = unknown
->(keyword: string, type: K, delegate: D): Keyword<K, Out> {
-  return new KeywordImpl(keyword, type, delegate as KeywordDelegate<KeywordMatch, unknown, Out>);
+>(keyword: string, type: K, delegate: D, options?: { strictOnly: boolean }): Keyword<K, Out> {
+  return new KeywordImpl(keyword, type, delegate as KeywordDelegate<KeywordMatch, unknown, Out>, options);
 }
 
 export type PossibleKeyword = KeywordNode;
@@ -177,9 +185,10 @@ export class Keywords<K extends KeywordType, KeywordList extends Keyword<K> = ne
 
   kw<S extends string = string, Out = unknown>(
     name: S,
-    delegate: KeywordDelegate<KeywordMatches[K], unknown, Out>
+    delegate: KeywordDelegate<KeywordMatches[K], unknown, Out>,
+    options?: { strictOnly: boolean }
   ): Keywords<K, KeywordList | Keyword<K, Out>> {
-    this._keywords.push(keyword(name, this._type, delegate));
+    this._keywords.push(keyword(name, this._type, delegate, options));
 
     return this;
   }
