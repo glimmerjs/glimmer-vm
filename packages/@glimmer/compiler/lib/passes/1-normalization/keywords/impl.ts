@@ -35,7 +35,7 @@ class KeywordImpl<
     protected keyword: S,
     type: KeywordType,
     private delegate: KeywordDelegate<KeywordMatches[K], Param, Out>,
-    private options?: { strictOnly: boolean },
+    private options?: { strictOnly: boolean }
   ) {
     let nodes = new Set<KeywordNode['type']>();
     for (let nodeType of KEYWORD_NODES[type]) {
@@ -45,7 +45,10 @@ class KeywordImpl<
     this.types = nodes;
   }
 
-  protected match(node: KeywordCandidates[K], state: NormalizationState): node is KeywordMatches[K] {
+  protected match(
+    node: KeywordCandidates[K],
+    state: NormalizationState
+  ): node is KeywordMatches[K] {
     // some keywords are enabled only in strict mode. None are planned to be loose mode only
     if (this.options?.strictOnly) {
       if (state.isStrict === false) {
@@ -145,7 +148,12 @@ export function keyword<
   D extends KeywordDelegate<KeywordMatches[K], unknown, Out>,
   Out = unknown
 >(keyword: string, type: K, delegate: D, options?: { strictOnly: boolean }): Keyword<K, Out> {
-  return new KeywordImpl(keyword, type, delegate as KeywordDelegate<KeywordMatch, unknown, Out>, options);
+  return new KeywordImpl(
+    keyword,
+    type,
+    delegate as KeywordDelegate<KeywordMatch, unknown, Out>,
+    options
+  );
 }
 
 export type PossibleKeyword = KeywordNode;

@@ -1,4 +1,4 @@
-import { RenderTest, test, jitSuite, defineComponent } from '../..';
+import { RenderTest, test, jitSuite, defineComponent, trackedObj } from '../..';
 
 class EqualTest extends RenderTest {
   static suiteName = '{{eq}} keyword';
@@ -37,13 +37,15 @@ class EqualTest extends RenderTest {
 
   @test
   ['correctly renders when values update eq']() {
+    let args = trackedObj({ foo: 123, bar: 456 });
+
     const AComponent = defineComponent({}, '{{eq @foo @bar}}');
-    this.renderComponent(AComponent, { foo: 123, bar: 456 });
+    this.renderComponent(AComponent, args);
 
     this.assertHTML('false');
-    this.assertStableRerender();
 
-    this.rerender({ foo: 456 });
+    args.foo = 456;
+    this.rerender();
 
     this.assertHTML('true');
   }
@@ -86,11 +88,14 @@ class NotEqualTest extends RenderTest {
 
   @test
   ['correctly renders when values update neq']() {
+    let args = trackedObj({ foo: 123, bar: 456 });
+
     const AComponent = defineComponent({}, '{{neq @foo @bar}}');
-    this.renderComponent(AComponent, { foo: 123, bar: 456 });
+    this.renderComponent(AComponent, args);
 
     this.assertHTML('true');
 
+    args.foo = 456;
     this.rerender({ foo: 456 });
 
     this.assertHTML('false');
