@@ -1,5 +1,6 @@
 import * as ASTv1 from '../v1/api';
-import { escapeAttrValue, escapeText, sortByLoc } from './util';
+import { PrinterOptions } from './printer';
+import { escapeAttrValue, escapeText } from './util';
 
 export const voidMap: {
   [tagName: string]: boolean;
@@ -11,29 +12,57 @@ voidTagNames.split(' ').forEach((tagName) => {
   voidMap[tagName] = true;
 });
 
-const NON_WHITESPACE = /\S/;
-
-export interface PrinterOptions {
-  entityEncoding: 'transformed' | 'raw';
-  outputEncoding?: 'raw' | 'html';
-  /**
-   * Used to override the mechanism of printing a given AST.Node.
-   *
-   * This will generally only be useful to source -> source codemods
-   * where you would like to specialize/override the way a given node is
-   * printed (e.g. you would like to preserve as much of the original
-   * formatting as possible).
-   *
-   * When the provided override returns undefined, the default built in printing
-   * will be done for the AST.Node.
-   *
-   * @param ast the ast node to be printed
-   * @param options the options specified during the print() invocation
-   */
-  override?(ast: ASTv1.Node, options: PrinterOptions): void | string;
+enum HTMLSymbols {
+  '(' = '&#40;',
+  ')' = '&#41;',
+  '<' = '&#60;',
+  '>' = '&#62;',
+  '/' = '&#47;',
+  '=' = '&#61;',
+  '"' = '&#34;',
+  '#' = '&#35;',
+  '~' = '&#126;',
+  '{' = '&#123;',
+  '{{' = '&#123;&#123;',
+  '{{{' = '&#123;&#123;&#123;',
+  '|' = '&#124;',
+  '}' = '&#125;',
+  '}}' = '&#125;&#125;',
+  '}}}' = '&#125;&#125;&#125;',
+  NBS = '&#160;',
 }
 
-export default class Printer {
+export const classMappings = {
+  [HTMLSymbols['(']]: 'parenthesis', // (
+  [HTMLSymbols[')']]: 'parenthesis', // )
+  [HTMLSymbols['<']]: 'tag', // <
+  [HTMLSymbols['>']]: 'tag', // >
+  [HTMLSymbols['/']]: 'tag', // /
+  [HTMLSymbols['=']]: 'equal', // =
+  [HTMLSymbols['"']]: 'comma', // "
+  [HTMLSymbols['#']]: 'hash', // #
+  [HTMLSymbols['~']]: 'curly', // ~
+  [HTMLSymbols['{']]: 'curly', // {
+  [HTMLSymbols['|']]: 'pipe', // |
+  [HTMLSymbols['}']]: 'curly', // }
+  path: 'path',
+  boolean: 'boolean',
+  number: 'number',
+  undefined: 'undefined',
+  null: 'null',
+  string: 'string',
+  'hash-key': 'hash-key',
+  'text-node': 'text-node',
+  'attribute-name': 'attribute-name',
+  'tag-name': 'tag-name',
+  as: 'control',
+  else: 'control',
+  [HTMLSymbols.NBS]: 'non-breaking-space',
+};
+
+const NON_WHITESPACE = /\S/;
+
+export default class HTMLPrinter {
   private buffer = '';
   private options: PrinterOptions;
 
@@ -55,7 +84,7 @@ export default class Printer {
       let result = this.options.override(node, this.options);
       if (typeof result === 'string') {
         if (ensureLeadingWhitespace && result !== '' && NON_WHITESPACE.test(result[0])) {
-          result = ` ${result}`;
+          result = `${this.wrapToSpan(HTMLSymbols.NBS)}${result}`;
         }
 
         this.buffer += result;
@@ -99,6 +128,8 @@ export default class Printer {
       case 'ElementModifierStatement':
         return this.ElementModifierStatement(node);
     }
+
+    return unreachable(node, 'Node');
   }
 
   Expression(expression: ASTv1.Expression): void {
@@ -114,6 +145,7 @@ export default class Printer {
       case 'SubExpression':
         return this.SubExpression(expression);
     }
+    return unreachable(expression, 'Expression');
   }
 
   Literal(literal: ASTv1.Literal): void {
@@ -129,6 +161,7 @@ export default class Printer {
       case 'NullLiteral':
         return this.NullLiteral(literal);
     }
+    return unreachable(literal, 'Literal');
   }
 
   TopLevelStatement(statement: ASTv1.TopLevelStatement | ASTv1.Template | ASTv1.AttrNode): void {
@@ -154,6 +187,7 @@ export default class Printer {
         // should have element
         return this.AttrNode(statement);
     }
+    unreachable(statement, 'TopLevelStatement');
   }
 
   Block(block: ASTv1.Block | ASTv1.Program | ASTv1.Template): void {
@@ -161,31 +195,31 @@ export default class Printer {
       When processing a template like:
 
       ```hbs
-      {{#if whatever}}
+      &#123;&#123;#if whatever&#125;&#125;
         whatever
-      {{else if somethingElse}}
+      &#123;&#123;else if somethingElse&#125;&#125;
         something else
-      {{else}}
+      &#123;&#123;else&#125;&#125;
         fallback
-      {{/if}}
+      &#123;&#123;/if&#125;&#125;
       ```
 
       The AST still _effectively_ looks like:
 
       ```hbs
-      {{#if whatever}}
+      &#123;&#123;#if whatever&#125;&#125;
         whatever
-      {{else}}{{#if somethingElse}}
+      &#123;&#123;else&#125;&#125;&#123;&#123;#if somethingElse&#125;&#125;
         something else
-      {{else}}
+      &#123;&#123;else&#125;&#125;
         fallback
-      {{/if}}{{/if}}
+      &#123;&#123;/if&#125;&#125;&#123;&#123;/if&#125;&#125;
       ```
 
       The only way we can tell if that is the case is by checking for
       `block.chained`, but unfortunately when the actual statements are
       processed the `block.body[0]` node (which will always be a
-      `BlockStatement`) has no clue that its ancestor `Block` node was
+      `BlockStatement`) has no clue that its anscestor `Block` node was
       chained.
 
       This "forwards" the `chained` setting so that we can check
@@ -216,39 +250,50 @@ export default class Printer {
     this.TopLevelStatements(el.children);
     this.CloseElementNode(el);
   }
-
+  classFor(key: string): string {
+    return (classMappings as Record<string, string>)[key] || 'unknown';
+  }
+  wrapToSpan(text: string, key: string = text): string {
+    return `<span class="${this.classFor(key)}">${text}</span>`;
+  }
   OpenElementNode(el: ASTv1.ElementNode): void {
-    this.buffer += `<${el.tag}`;
-    const parts = [...el.attributes, ...el.modifiers, ...el.comments].sort(sortByLoc);
-
-    for (const part of parts) {
-      this.buffer += ' ';
-      switch (part.type) {
-        case 'AttrNode':
-          this.AttrNode(part);
-          break;
-        case 'ElementModifierStatement':
-          this.ElementModifierStatement(part);
-          break;
-        case 'MustacheCommentStatement':
-          this.MustacheCommentStatement(part);
-          break;
-      }
+    this.buffer += `${this.wrapToSpan(HTMLSymbols['<'])}${this.wrapToSpan(el.tag, 'tag-name')}`;
+    if (el.attributes.length) {
+      el.attributes.forEach((attr) => {
+        this.buffer += this.wrapToSpan(HTMLSymbols.NBS);
+        this.AttrNode(attr);
+      });
+    }
+    if (el.modifiers.length) {
+      el.modifiers.forEach((mod) => {
+        this.buffer += this.wrapToSpan(HTMLSymbols.NBS);
+        this.ElementModifierStatement(mod);
+      });
+    }
+    if (el.comments.length) {
+      el.comments.forEach((comment) => {
+        this.buffer += this.wrapToSpan(HTMLSymbols.NBS);
+        this.MustacheCommentStatement(comment);
+      });
     }
     if (el.blockParams.length) {
       this.BlockParams(el.blockParams);
     }
     if (el.selfClosing) {
-      this.buffer += ' /';
+      this.buffer += this.wrapToSpan(HTMLSymbols.NBS) + this.wrapToSpan(HTMLSymbols['/']);
     }
-    this.buffer += '>';
+    this.buffer += this.wrapToSpan(HTMLSymbols['>']);
   }
 
   CloseElementNode(el: ASTv1.ElementNode): void {
     if (el.selfClosing || voidMap[el.tag.toLowerCase()]) {
       return;
     }
-    this.buffer += `</${el.tag}>`;
+    this.buffer +=
+      this.wrapToSpan(HTMLSymbols['<']) +
+      this.wrapToSpan(HTMLSymbols['/']) +
+      this.wrapToSpan(el.tag, 'tag-name') +
+      this.wrapToSpan(HTMLSymbols['>']);
   }
 
   AttrNode(attr: ASTv1.AttrNode): void {
@@ -258,18 +303,18 @@ export default class Printer {
 
     let { name, value } = attr;
 
-    this.buffer += name;
+    this.buffer += this.wrapToSpan(name, 'attribute-name');
     if (value.type !== 'TextNode' || value.chars.length > 0) {
-      this.buffer += '=';
+      this.buffer += this.wrapToSpan(HTMLSymbols['=']);
       this.AttrNodeValue(value);
     }
   }
 
-  AttrNodeValue(value: ASTv1.AttrNode['value']): void {
+  AttrNodeValue(value: ASTv1.AttrValue): void {
     if (value.type === 'TextNode') {
-      this.buffer += '"';
+      this.buffer += this.wrapToSpan(HTMLSymbols['"']);
       this.TextNode(value, true);
-      this.buffer += '"';
+      this.buffer += this.wrapToSpan(HTMLSymbols['"']);
     } else {
       this.Node(value);
     }
@@ -281,11 +326,11 @@ export default class Printer {
     }
 
     if (this.options.entityEncoding === 'raw') {
-      this.buffer += text.chars;
+      this.buffer += this.wrapToSpan(text.chars, 'text-node');
     } else if (isAttr) {
-      this.buffer += escapeAttrValue(text.chars);
+      this.buffer += this.wrapToSpan(escapeAttrValue(text.chars), 'text-node');
     } else {
-      this.buffer += escapeText(text.chars);
+      this.buffer += this.wrapToSpan(escapeText(text.chars), 'text-node');
     }
   }
 
@@ -294,10 +339,12 @@ export default class Printer {
       return;
     }
 
-    this.buffer += mustache.escaped ? '{{' : '{{{';
+    this.buffer += mustache.escaped
+      ? this.wrapToSpan(HTMLSymbols['{{'], HTMLSymbols['{'])
+      : this.wrapToSpan(HTMLSymbols['{{{'], HTMLSymbols['{']);
 
     if (mustache.strip.open) {
-      this.buffer += '~';
+      this.buffer += this.wrapToSpan(HTMLSymbols['~']);
     }
 
     this.Expression(mustache.path);
@@ -305,10 +352,12 @@ export default class Printer {
     this.Hash(mustache.hash);
 
     if (mustache.strip.close) {
-      this.buffer += '~';
+      this.buffer += this.wrapToSpan(HTMLSymbols['~']);
     }
 
-    this.buffer += mustache.escaped ? '}}' : '}}}';
+    this.buffer += mustache.escaped
+      ? this.wrapToSpan(HTMLSymbols['}}'], HTMLSymbols['}'])
+      : this.wrapToSpan(HTMLSymbols['}}}'], HTMLSymbols['}']);
   }
 
   BlockStatement(block: ASTv1.BlockStatement): void {
@@ -317,10 +366,16 @@ export default class Printer {
     }
 
     if (block.chained) {
-      this.buffer += block.inverseStrip.open ? '{{~' : '{{';
-      this.buffer += 'else ';
+      this.buffer += block.inverseStrip.open
+        ? this.wrapToSpan(HTMLSymbols['{{'], HTMLSymbols['{']) + this.wrapToSpan(HTMLSymbols['~'])
+        : this.wrapToSpan(HTMLSymbols['{{'], HTMLSymbols['{']);
+      this.buffer += this.wrapToSpan('else') + this.wrapToSpan(HTMLSymbols.NBS);
     } else {
-      this.buffer += block.openStrip.open ? '{{~#' : '{{#';
+      this.buffer += block.openStrip.open
+        ? this.wrapToSpan(HTMLSymbols['{{'], HTMLSymbols['{']) +
+          this.wrapToSpan(HTMLSymbols['~']) +
+          this.wrapToSpan(HTMLSymbols['#'])
+        : this.wrapToSpan(HTMLSymbols['{{'], HTMLSymbols['{']) + this.wrapToSpan(HTMLSymbols['#']);
     }
 
     this.Expression(block.path);
@@ -331,32 +386,50 @@ export default class Printer {
     }
 
     if (block.chained) {
-      this.buffer += block.inverseStrip.close ? '~}}' : '}}';
+      this.buffer += block.inverseStrip.close
+        ? this.wrapToSpan(HTMLSymbols['~']) + this.wrapToSpan(HTMLSymbols['}}'], HTMLSymbols['}'])
+        : this.wrapToSpan(HTMLSymbols['}}'], HTMLSymbols['}']);
     } else {
-      this.buffer += block.openStrip.close ? '~}}' : '}}';
+      this.buffer += block.openStrip.close
+        ? this.wrapToSpan(HTMLSymbols['~']) + this.wrapToSpan(HTMLSymbols['}}'], HTMLSymbols['}'])
+        : this.wrapToSpan(HTMLSymbols['}}'], HTMLSymbols['}']);
     }
 
     this.Block(block.program);
 
     if (block.inverse) {
       if (!block.inverse.chained) {
-        this.buffer += block.inverseStrip.open ? '{{~' : '{{';
-        this.buffer += 'else';
-        this.buffer += block.inverseStrip.close ? '~}}' : '}}';
+        this.buffer += block.inverseStrip.open
+          ? this.wrapToSpan(HTMLSymbols['{{'], HTMLSymbols['{']) + this.wrapToSpan(HTMLSymbols['~'])
+          : this.wrapToSpan(HTMLSymbols['{{'], HTMLSymbols['{']);
+        this.buffer += this.wrapToSpan('else');
+        this.buffer += block.inverseStrip.close
+          ? this.wrapToSpan(HTMLSymbols['~']) + this.wrapToSpan(HTMLSymbols['}}'], HTMLSymbols['}'])
+          : this.wrapToSpan(HTMLSymbols['}}'], HTMLSymbols['}']);
       }
 
       this.Block(block.inverse);
     }
 
     if (!block.chained) {
-      this.buffer += block.closeStrip.open ? '{{~/' : '{{/';
+      this.buffer += block.closeStrip.open
+        ? this.wrapToSpan(HTMLSymbols['{{'], HTMLSymbols['{']) +
+          this.wrapToSpan(HTMLSymbols['~']) +
+          this.wrapToSpan(HTMLSymbols['/'])
+        : this.wrapToSpan(HTMLSymbols['{{'], HTMLSymbols['{']) + this.wrapToSpan(HTMLSymbols['/']);
       this.Expression(block.path);
-      this.buffer += block.closeStrip.close ? '~}}' : '}}';
+      this.buffer += block.closeStrip.close
+        ? this.wrapToSpan(HTMLSymbols['~']) + this.wrapToSpan(HTMLSymbols['}}'], HTMLSymbols['}'])
+        : this.wrapToSpan(HTMLSymbols['}}'], HTMLSymbols['}']);
     }
   }
 
   BlockParams(blockParams: string[]): void {
-    this.buffer += ` as |${blockParams.join(' ')}|`;
+    this.buffer +=
+      `${this.wrapToSpan(HTMLSymbols.NBS)}${this.wrapToSpan('as')}${this.wrapToSpan(
+        HTMLSymbols.NBS
+      )}${this.wrapToSpan(HTMLSymbols['|'])}${blockParams.join(this.wrapToSpan(HTMLSymbols.NBS))}` +
+      this.wrapToSpan(HTMLSymbols['|']);
   }
 
   PartialStatement(partial: ASTv1.PartialStatement): void {
@@ -364,11 +437,12 @@ export default class Printer {
       return;
     }
 
-    this.buffer += '{{>';
+    this.buffer +=
+      this.wrapToSpan(HTMLSymbols['{{'], HTMLSymbols['{']) + this.wrapToSpan(HTMLSymbols['>']);
     this.Expression(partial.name);
     this.Params(partial.params);
     this.Hash(partial.hash);
-    this.buffer += '}}';
+    this.buffer += this.wrapToSpan(HTMLSymbols['}}'], HTMLSymbols['}']);
   }
 
   ConcatStatement(concat: ASTv1.ConcatStatement): void {
@@ -376,7 +450,7 @@ export default class Printer {
       return;
     }
 
-    this.buffer += '"';
+    this.buffer += this.wrapToSpan(HTMLSymbols['"']);
     concat.parts.forEach((part) => {
       if (part.type === 'TextNode') {
         this.TextNode(part, true);
@@ -384,7 +458,7 @@ export default class Printer {
         this.Node(part);
       }
     });
-    this.buffer += '"';
+    this.buffer += this.wrapToSpan(HTMLSymbols['"']);
   }
 
   MustacheCommentStatement(comment: ASTv1.MustacheCommentStatement): void {
@@ -392,7 +466,10 @@ export default class Printer {
       return;
     }
 
-    this.buffer += `{{!--${comment.value}--}}`;
+    this.buffer +=
+      this.wrapToSpan(HTMLSymbols['{{'], HTMLSymbols['{']) +
+      `!--${comment.value}--` +
+      this.wrapToSpan(HTMLSymbols['}}'], HTMLSymbols['}']);
   }
 
   ElementModifierStatement(mod: ASTv1.ElementModifierStatement): void {
@@ -400,11 +477,11 @@ export default class Printer {
       return;
     }
 
-    this.buffer += '{{';
+    this.buffer += this.wrapToSpan(HTMLSymbols['{{'], HTMLSymbols['{']);
     this.Expression(mod.path);
     this.Params(mod.params);
     this.Hash(mod.hash);
-    this.buffer += '}}';
+    this.buffer += this.wrapToSpan(HTMLSymbols['}}'], HTMLSymbols['}']);
   }
 
   CommentStatement(comment: ASTv1.CommentStatement): void {
@@ -412,7 +489,9 @@ export default class Printer {
       return;
     }
 
-    this.buffer += `<!--${comment.value}-->`;
+    this.buffer += `${this.wrapToSpan(HTMLSymbols['<'])}!--${comment.value}--${this.wrapToSpan(
+      HTMLSymbols['>']
+    )}`;
   }
 
   PathExpression(path: ASTv1.PathExpression): void {
@@ -420,7 +499,7 @@ export default class Printer {
       return;
     }
 
-    this.buffer += path.original;
+    this.buffer += this.wrapToSpan(path.original, 'path');
   }
 
   SubExpression(sexp: ASTv1.SubExpression): void {
@@ -428,11 +507,11 @@ export default class Printer {
       return;
     }
 
-    this.buffer += '(';
+    this.buffer += this.wrapToSpan(HTMLSymbols['(']);
     this.Expression(sexp.path);
     this.Params(sexp.params);
     this.Hash(sexp.hash);
-    this.buffer += ')';
+    this.buffer += this.wrapToSpan(HTMLSymbols[')']);
   }
 
   Params(params: ASTv1.Expression[]): void {
@@ -440,7 +519,7 @@ export default class Printer {
     // so that this can also be overridden
     if (params.length) {
       params.forEach((param) => {
-        this.buffer += ' ';
+        this.buffer += this.wrapToSpan(HTMLSymbols.NBS);
         this.Expression(param);
       });
     }
@@ -452,7 +531,7 @@ export default class Printer {
     }
 
     hash.pairs.forEach((pair) => {
-      this.buffer += ' ';
+      this.buffer += this.wrapToSpan(HTMLSymbols.NBS);
       this.HashPair(pair);
     });
   }
@@ -462,8 +541,8 @@ export default class Printer {
       return;
     }
 
-    this.buffer += pair.key;
-    this.buffer += '=';
+    this.buffer += this.wrapToSpan(pair.key, 'hash-key');
+    this.buffer += this.wrapToSpan(HTMLSymbols['=']);
     this.Node(pair.value);
   }
 
@@ -472,7 +551,7 @@ export default class Printer {
       return;
     }
 
-    this.buffer += JSON.stringify(str.value);
+    this.buffer += this.wrapToSpan(JSON.stringify(str.value), 'string');
   }
 
   BooleanLiteral(bool: ASTv1.BooleanLiteral): void {
@@ -480,7 +559,7 @@ export default class Printer {
       return;
     }
 
-    this.buffer += bool.value;
+    this.buffer += this.wrapToSpan(bool.value.toString(), 'boolean');
   }
 
   NumberLiteral(number: ASTv1.NumberLiteral): void {
@@ -488,7 +567,7 @@ export default class Printer {
       return;
     }
 
-    this.buffer += number.value;
+    this.buffer += this.wrapToSpan(number.value.toString(), 'number');
   }
 
   UndefinedLiteral(node: ASTv1.UndefinedLiteral): void {
@@ -496,7 +575,7 @@ export default class Printer {
       return;
     }
 
-    this.buffer += 'undefined';
+    this.buffer += this.wrapToSpan('undefined');
   }
 
   NullLiteral(node: ASTv1.NullLiteral): void {
@@ -504,7 +583,7 @@ export default class Printer {
       return;
     }
 
-    this.buffer += 'null';
+    this.buffer += this.wrapToSpan('null');
   }
 
   print(node: ASTv1.Node): string {
@@ -522,4 +601,13 @@ export default class Printer {
     this.Node(node);
     return this.buffer;
   }
+}
+
+function unreachable(node: never, parentNodeType: string): never {
+  let { loc, type } = (node as unknown) as ASTv1.Node;
+  throw new Error(
+    `Non-exhaustive node narrowing ${type} @ location: ${JSON.stringify(
+      loc
+    )} for parent ${parentNodeType}`
+  );
 }
