@@ -318,10 +318,10 @@ APPEND_OPCODES.add(Op.Log, (vm) => {
 });
 
 APPEND_OPCODES.add(Op.Equal, (vm) => {
-  let { positional } = check(vm.stack.popJs(), CheckArguments).capture();
+  let { positional } = check(vm.stack.pop(), CheckArguments).capture();
   let stack = vm.stack;
 
-  stack.pushJs(
+  stack.push(
     createComputeRef(() => {
       let values = reifyPositional(positional);
 
@@ -331,10 +331,10 @@ APPEND_OPCODES.add(Op.Equal, (vm) => {
 });
 
 APPEND_OPCODES.add(Op.NotEqual, (vm) => {
-  let { positional } = check(vm.stack.popJs(), CheckArguments).capture();
+  let { positional } = check(vm.stack.pop(), CheckArguments).capture();
   let stack = vm.stack;
 
-  stack.pushJs(
+  stack.push(
     createComputeRef(() => {
       let values = reifyPositional(positional);
 
