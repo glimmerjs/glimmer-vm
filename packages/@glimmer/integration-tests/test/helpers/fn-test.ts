@@ -1,5 +1,5 @@
 import { CapturedArguments } from '@glimmer/interfaces';
-import { createInvokableRef } from '@glimmer/reference';
+import { createInvokableSource } from '@glimmer/reference';
 import { HAS_NATIVE_PROXY } from '@glimmer/util';
 
 import { jitSuite, RenderTest, test, GlimmerishComponent } from '../..';
@@ -241,7 +241,7 @@ class FnTest extends RenderTest {
   @test
   'can be used on the result of `mut`'() {
     this.registerInternalHelper('mut', (args: CapturedArguments) => {
-      return createInvokableRef(args.positional[0]);
+      return createInvokableSource(args.positional[0]);
     });
 
     this.render(`{{this.arg1}}<Stash @stashedFn={{fn (mut this.arg1) this.arg2}}/>`, {
@@ -260,7 +260,7 @@ class FnTest extends RenderTest {
   @test
   'can be used on the result of `mut` with a falsy value'() {
     this.registerInternalHelper('mut', (args: CapturedArguments) => {
-      return createInvokableRef(args.positional[0]);
+      return createInvokableSource(args.positional[0]);
     });
 
     this.render(`{{this.arg1}}<Stash @stashedFn={{fn (mut this.arg1) this.arg2}}/>`, {

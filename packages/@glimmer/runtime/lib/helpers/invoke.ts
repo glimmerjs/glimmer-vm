@@ -1,6 +1,6 @@
 import { DEBUG } from '@glimmer/env';
-import { Cache, createCache, getValue } from '@glimmer/validator';
-import { Arguments, InternalHelperManager } from '@glimmer/interfaces';
+import { createCache, getValue } from '@glimmer/validator';
+import { Arguments, InternalHelperManager, Source } from '@glimmer/interfaces';
 import { debugToString } from '@glimmer/util';
 import { getInternalHelperManager, hasDestroyable, hasValue } from '@glimmer/manager';
 
@@ -8,14 +8,14 @@ import { EMPTY_ARGS, EMPTY_NAMED, EMPTY_POSITIONAL } from '../vm/arguments';
 import { getOwner } from '@glimmer/owner';
 import { associateDestroyableChild, isDestroyed, isDestroying } from '@glimmer/destroyable';
 
-let ARGS_CACHES = DEBUG ? new WeakMap<SimpleArgsProxy, Cache<Partial<Arguments>>>() : undefined;
+let ARGS_CACHES = DEBUG ? new WeakMap<SimpleArgsProxy, Source<Partial<Arguments>>>() : undefined;
 
 function getArgs(proxy: SimpleArgsProxy): Partial<Arguments> {
   return getValue(DEBUG ? ARGS_CACHES!.get(proxy)! : proxy.argsCache!)!;
 }
 
 class SimpleArgsProxy {
-  argsCache?: Cache<Partial<Arguments>>;
+  argsCache?: Source<Partial<Arguments>>;
 
   constructor(
     context: object,
@@ -46,7 +46,7 @@ export function invokeHelper(
   context: object,
   definition: object,
   computeArgs?: (context: object) => Partial<Arguments>
-): Cache<unknown> {
+): Source<unknown> {
   if (DEBUG && (typeof context !== 'object' || context === null)) {
     throw new Error(
       `Expected a context object to be passed as the first parameter to invokeHelper, got ${context}`
@@ -75,7 +75,7 @@ export function invokeHelper(
   let args = new SimpleArgsProxy(context, computeArgs);
   let bucket = manager.createHelper(definition, args);
 
-  let cache: Cache<unknown>;
+  let cache: Source<unknown>;
 
   if (hasValue(manager)) {
     cache = createCache(() => {

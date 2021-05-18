@@ -1,6 +1,6 @@
-import { Tag } from './validators';
 import { DEBUG } from '@glimmer/env';
 import { deprecate, assert } from '@glimmer/global-context';
+import { SourceImpl } from './cache';
 
 export let beginTrackingTransaction:
   | undefined
@@ -12,16 +12,9 @@ export let runInTrackingTransaction:
 export let deprecateMutationsInTrackingTransaction: undefined | ((fn: () => void) => void);
 
 export let resetTrackingTransaction: undefined | (() => string);
-export let setTrackingTransactionEnv:
-  | undefined
-  | ((env: { debugMessage?(obj?: unknown, keyName?: string): string }) => void);
 
-export let assertTagNotConsumed:
-  | undefined
-  | (<T>(tag: Tag, obj?: T, keyName?: keyof T | string | symbol) => void);
-
-export let markTagAsConsumed: undefined | ((_tag: Tag) => void);
-
+export let assertCacheNotConsumed: undefined | ((cache: SourceImpl) => void);
+export let markCacheAsConsumed: undefined | ((cache: SourceImpl) => void);
 export let logTrackingStack: undefined | ((transaction?: Transaction) => string);
 
 interface Transaction {
@@ -31,35 +24,9 @@ interface Transaction {
 }
 
 if (DEBUG) {
-  let CONSUMED_TAGS: WeakMap<Tag, Transaction> | null = null;
+  let CONSUMED_TAGS: WeakMap<SourceImpl, Transaction> | null = null;
 
   let TRANSACTION_STACK: Transaction[] = [];
-
-  /////////
-
-  let TRANSACTION_ENV = {
-    debugMessage(obj?: unknown, keyName?: string) {
-      let objName;
-
-      if (typeof obj === 'function') {
-        objName = obj.name;
-      } else if (typeof obj === 'object' && obj !== null) {
-        let className = (obj.constructor && obj.constructor.name) || '(unknown class)';
-
-        objName = `(an instance of ${className})`;
-      } else if (obj === undefined) {
-        objName = '(an unknown tag)';
-      } else {
-        objName = String(obj);
-      }
-
-      let dirtyString = keyName ? `\`${keyName}\` on \`${objName}\`` : `\`${objName}\``;
-
-      return `You attempted to update ${dirtyString}, but it had already been used previously in the same computation.  Attempting to update a value after using it in a computation can cause logical errors, infinite revalidation bugs, and performance issues, and is not supported.`;
-    },
-  };
-
-  setTrackingTransactionEnv = (env) => Object.assign(TRANSACTION_ENV, env);
 
   beginTrackingTransaction = (_debugLabel?: string | false, deprecate = false) => {
     CONSUMED_TAGS = CONSUMED_TAGS || new WeakMap();
@@ -157,20 +124,20 @@ if (DEBUG) {
     return i;
   };
 
-  let makeTrackingErrorMessage = <T>(
-    transaction: Transaction,
-    obj?: T,
-    keyName?: keyof T | string | symbol
-  ) => {
-    let message = [TRANSACTION_ENV.debugMessage(obj, keyName && String(keyName))];
+  let makeTrackingErrorMessage = <T>(transaction: Transaction, cache: SourceImpl<T>) => {
+    const debugLabel = cache.debuggingContext
+      ? cache.debuggingContext
+      : 'an unknown/unlabeled storage';
 
-    message.push(`\`${String(keyName)}\` was first used:`);
+    return [
+      `You attempted to update the storage for ${debugLabel}, but it had already been used previously in the same computation.  Attempting to update a value after using it in a computation can cause logical errors, infinite revalidation bugs, and performance issues, and is not supported.`,
 
-    message.push(logTrackingStack!(transaction));
+      `\`${debugLabel}\` was first used:`,
 
-    message.push(`Stack trace for the update:`);
+      logTrackingStack!(transaction),
 
-    return message.join('\n\n');
+      `Stack trace for the update:`,
+    ].join('\n\n');
   };
 
   logTrackingStack = (transaction?: Transaction) => {
@@ -192,36 +159,31 @@ if (DEBUG) {
     return trackingStack.map((label, index) => Array(2 * index + 1).join(' ') + label).join('\n');
   };
 
-  markTagAsConsumed = (_tag: Tag) => {
-    if (!CONSUMED_TAGS || CONSUMED_TAGS.has(_tag)) return;
+  markCacheAsConsumed = (cache: SourceImpl) => {
+    if (!CONSUMED_TAGS || CONSUMED_TAGS.has(cache)) return;
 
-    CONSUMED_TAGS.set(_tag, TRANSACTION_STACK[TRANSACTION_STACK.length - 1]);
+    CONSUMED_TAGS.set(cache, TRANSACTION_STACK[TRANSACTION_STACK.length - 1]);
 
-    // We need to mark the tag and all of its subtags as consumed, so we need to
-    // cast it and access its internals. In the future this shouldn't be necessary,
-    // this is only for computed properties.
-    let tag = _tag as any;
-
-    if (tag.subtag) {
-      markTagAsConsumed!(tag.subtag);
-    }
-
-    if (tag.subtags) {
-      tag.subtags.forEach((tag: Tag) => markTagAsConsumed!(tag));
+    // We need to mark the tag and all of its subtags as consumed, for computed
+    // properties and observers
+    if (Array.isArray(cache.deps)) {
+      cache.deps.forEach(markCacheAsConsumed!);
+    } else if (cache.deps) {
+      markCacheAsConsumed!(cache.deps);
     }
   };
 
-  assertTagNotConsumed = <T>(tag: Tag, obj?: T, keyName?: keyof T | string | symbol) => {
+  assertCacheNotConsumed = (cache: SourceImpl) => {
     if (CONSUMED_TAGS === null) return;
 
-    let transaction = CONSUMED_TAGS.get(tag);
+    let transaction = CONSUMED_TAGS.get(cache);
 
     if (!transaction) return;
 
     let currentTransaction = TRANSACTION_STACK[TRANSACTION_STACK.length - 1];
 
     if (currentTransaction.deprecate) {
-      deprecate(makeTrackingErrorMessage(transaction, obj, keyName), false, {
+      deprecate(makeTrackingErrorMessage(transaction, cache), false, {
         id: 'autotracking.mutation-after-consumption',
       });
     } else {
@@ -229,7 +191,7 @@ if (DEBUG) {
       // few lines of the stack trace and let users know where the actual error
       // occurred.
       try {
-        assert(false, makeTrackingErrorMessage(transaction, obj, keyName));
+        assert(false, makeTrackingErrorMessage(transaction, cache));
       } catch (e) {
         if (e.stack) {
           let updateStackBegin = e.stack.indexOf('Stack trace for the update:');

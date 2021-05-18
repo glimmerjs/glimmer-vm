@@ -20,18 +20,18 @@ import {
   ResolutionTimeConstants,
   Owner,
   UpdatingOpcode,
+  Source,
 } from '@glimmer/interfaces';
 import { LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
 import { RuntimeOpImpl } from '@glimmer/program';
 import {
-  createIteratorItemRef,
+  createIteratorItemSource,
   OpaqueIterationItem,
   OpaqueIterator,
-  Reference,
-  UNDEFINED_REFERENCE,
+  UNDEFINED_SOURCE,
 } from '@glimmer/reference';
 import { assert, expect, LOCAL_LOGGER, Stack, unwrapHandle } from '@glimmer/util';
-import { beginTrackFrame, endTrackFrame, resetTracking, Tag } from '@glimmer/validator';
+import { createCache, resetTracking, endCache, beginCache } from '@glimmer/validator';
 import {
   $fp,
   $pc,
@@ -47,11 +47,7 @@ import {
   SyscallRegister,
 } from '@glimmer/vm';
 import { associateDestroyableChild } from '@glimmer/destroyable';
-import {
-  BeginTrackFrameOpcode,
-  EndTrackFrameOpcode,
-  JumpIfNotModifiedOpcode,
-} from '../compiled/opcodes/vm';
+import { BeginTrackFrameOpcode, EndTrackFrameOpcode } from '../compiled/opcodes/vm';
 import { APPEND_OPCODES, DebugState } from '../opcodes';
 import { PartialScopeImpl } from '../scope';
 import { ARGS, CONSTANTS, DESTROYABLE_STACK, HEAP, INNER_VM, REGISTERS, STACKS } from '../symbols';
@@ -101,18 +97,18 @@ export interface InternalVM {
   elements(): ElementBuilder;
 
   getOwner(): Owner;
-  getSelf(): Reference;
+  getSelf(): Source;
 
   updateWith(opcode: UpdatingOpcode): void;
 
   associateDestroyable(d: Destroyable): void;
 
   beginCacheGroup(name?: string): void;
-  commitCacheGroup(): Tag;
+  commitCacheGroup(): Source;
 
   /// Iteration ///
 
-  enterList(iterableRef: Reference<OpaqueIterator>, offset: number): void;
+  enterList(iterableRef: Source<OpaqueIterator>, offset: number): void;
   exitList(): void;
   enterItem(item: OpaqueIterationItem): ListItemOpcode;
   registerItem(item: ListItemOpcode): void;
@@ -134,7 +130,7 @@ export interface InternalVM {
   call(handle: number): void;
   pushFrame(): void;
 
-  referenceForSymbol(symbol: number): Reference;
+  referenceForSymbol(symbol: number): Source;
 
   execute(initialize?: (vm: this) => void): RenderResult;
   pushUpdating(list?: UpdatingOpcode[]): void;
@@ -145,7 +141,7 @@ class Stacks {
   readonly scope = new Stack<Scope>();
   readonly dynamicScope = new Stack<DynamicScope>();
   readonly updating = new Stack<UpdatingOpcode[]>();
-  readonly cache = new Stack<JumpIfNotModifiedOpcode>();
+  readonly cache = new Stack<BeginTrackFrameOpcode>();
   readonly list = new Stack<ListBlockOpcode>();
 }
 
@@ -339,7 +335,7 @@ export default class VM implements PublicVM, InternalVM {
       runtime,
       vmState(
         runtime.program.heap.getaddr(handle),
-        PartialScopeImpl.root(UNDEFINED_REFERENCE, 0, owner),
+        PartialScopeImpl.root(UNDEFINED_SOURCE, 0, owner),
         dynamicScope
       ),
       treeBuilder
@@ -379,24 +375,27 @@ export default class VM implements PublicVM, InternalVM {
 
   beginCacheGroup(name?: string) {
     let opcodes = this.updating();
-    let guard = new JumpIfNotModifiedOpcode();
+    let cache = createCache(null, name);
+    let beginCacheOp = new BeginTrackFrameOpcode(cache);
 
-    opcodes.push(guard);
-    opcodes.push(new BeginTrackFrameOpcode(name));
-    this[STACKS].cache.push(guard);
+    opcodes.push(beginCacheOp);
+    this[STACKS].cache.push(beginCacheOp);
 
-    beginTrackFrame(name);
+    beginCache(cache);
   }
 
-  commitCacheGroup() {
+  commitCacheGroup(): Source {
     let opcodes = this.updating();
-    let guard = expect(this[STACKS].cache.pop(), 'VM BUG: Expected a cache group');
+    let beginCacheOp = expect(this[STACKS].cache.pop(), 'VM BUG: Expected a cache group');
 
-    let tag = endTrackFrame();
-    opcodes.push(new EndTrackFrameOpcode(guard));
+    let { cache } = beginCacheOp;
 
-    guard.finalize(tag, opcodes.length);
-    return tag;
+    endCache(cache);
+    opcodes.push(new EndTrackFrameOpcode(cache));
+
+    beginCacheOp.target = opcodes.length;
+
+    return cache;
   }
 
   enter(args: number) {
@@ -413,16 +412,16 @@ export default class VM implements PublicVM, InternalVM {
   enterItem({ key, value, memo }: OpaqueIterationItem): ListItemOpcode {
     let { stack } = this;
 
-    let valueRef = createIteratorItemRef(value);
-    let memoRef = createIteratorItemRef(memo);
+    let valueSource = createIteratorItemSource(value);
+    let memoSource = createIteratorItemSource(memo);
 
-    stack.push(valueRef);
-    stack.push(memoRef);
+    stack.push(valueSource);
+    stack.push(memoSource);
 
     let state = this.capture(2);
     let block = this.elements().pushUpdatableBlock();
 
-    let opcode = new ListItemOpcode(state, this.runtime, block, key, memoRef, valueRef);
+    let opcode = new ListItemOpcode(state, this.runtime, block, key, memoSource, valueSource);
     this.didEnter(opcode);
 
     return opcode;
@@ -432,7 +431,7 @@ export default class VM implements PublicVM, InternalVM {
     this.listBlock().initializeChild(opcode);
   }
 
-  enterList(iterableRef: Reference<OpaqueIterator>, offset: number) {
+  enterList(iterableRef: Source<OpaqueIterator>, offset: number) {
     let updating: ListItemOpcode[] = [];
 
     let addr = this[INNER_VM].target(offset);
@@ -545,11 +544,11 @@ export default class VM implements PublicVM, InternalVM {
     return this.scope().owner;
   }
 
-  getSelf(): Reference<any> {
+  getSelf(): Source<any> {
     return this.scope().getSelf();
   }
 
-  referenceForSymbol(symbol: number): Reference {
+  referenceForSymbol(symbol: number): Source {
     return this.scope().getSymbol(symbol);
   }
 
@@ -631,7 +630,7 @@ export default class VM implements PublicVM, InternalVM {
 
     for (let i = names.length - 1; i >= 0; i--) {
       let name = names[i];
-      scope.set(name, this.stack.pop<Reference<unknown>>());
+      scope.set(name, this.stack.pop<Source<unknown>>());
     }
   }
 }
@@ -653,7 +652,7 @@ export interface MinimalInitOptions {
 }
 
 export interface InitOptions extends MinimalInitOptions {
-  self: Reference;
+  self: Source;
   numSymbols: number;
 }
 

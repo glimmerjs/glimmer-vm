@@ -1,17 +1,13 @@
 import { isEmpty, isString } from '../../dom/normalize';
-import { UpdatingOpcode } from '@glimmer/interfaces';
-import { Reference, valueForRef } from '@glimmer/reference';
+import { Source, UpdatingOpcode } from '@glimmer/interfaces';
+import { getValue } from '@glimmer/validator';
 import { SimpleText } from '@simple-dom/interface';
 
 export default class DynamicTextContent implements UpdatingOpcode {
-  constructor(
-    public node: SimpleText,
-    private reference: Reference<unknown>,
-    private lastValue: string
-  ) {}
+  constructor(public node: SimpleText, private reference: Source, private lastValue: string) {}
 
   evaluate() {
-    let value = valueForRef(this.reference);
+    let value = getValue(this.reference);
 
     let { lastValue } = this;
 

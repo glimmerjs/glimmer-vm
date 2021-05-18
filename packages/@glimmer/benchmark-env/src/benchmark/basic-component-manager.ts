@@ -1,5 +1,13 @@
-import { WithCreateInstance, Dict, VMArguments, Template, Owner } from '@glimmer/interfaces';
-import { createConstRef, Reference } from '@glimmer/reference';
+import {
+  WithCreateInstance,
+  Dict,
+  VMArguments,
+  Template,
+  Owner,
+  Source,
+  StorageSource,
+} from '@glimmer/interfaces';
+import { createStorage } from '@glimmer/validator';
 import { EMPTY_ARGS } from '@glimmer/runtime';
 import { getComponentTemplate } from '@glimmer/manager';
 import { ComponentArgs } from '../interfaces';
@@ -22,7 +30,7 @@ const BASIC_COMPONENT_CAPABILITIES = {
 };
 
 interface BasicState {
-  self: Reference<unknown>;
+  self: Source<unknown>;
   instance: object;
 }
 
@@ -32,9 +40,9 @@ class BasicComponentManager
     _owner: Owner,
     Component: { new (args: ComponentArgs): object },
     args: VMArguments | null
-  ) {
+  ): { instance: object; self: StorageSource } {
     const instance = new Component(argsProxy(args === null ? EMPTY_ARGS : args.capture()));
-    const self = createConstRef(instance, 'this');
+    const self = createStorage(instance, true, 'this');
     return { instance, self };
   }
 

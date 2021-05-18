@@ -1,4 +1,3 @@
-import { isConstRef, valueForRef } from '@glimmer/reference';
 import {
   check,
   CheckString,
@@ -9,7 +8,7 @@ import {
 import { isObject } from '@glimmer/util';
 
 import { APPEND_OPCODES } from '../../opcodes';
-import { CheckReference } from './-debug-strip';
+import { CheckSource } from './-debug-strip';
 import { isEmpty, isSafeString, isFragment, isNode, shouldCoerce } from '../../dom/normalize';
 import DynamicTextContent from '../../vm/content/text';
 import { ContentType, CurriedType, Op } from '@glimmer/interfaces';
@@ -17,6 +16,7 @@ import { AssertFilter } from './vm';
 import { hasInternalComponentManager, hasInternalHelperManager } from '@glimmer/manager';
 import { DEBUG } from '@glimmer/env';
 import { isCurriedType } from '../../curried-value';
+import { getValue, isConst } from '@glimmer/validator';
 
 function toContentType(value: unknown) {
   if (shouldCoerce(value)) {
@@ -65,68 +65,68 @@ function toDynamicContentType(value: unknown) {
 }
 
 APPEND_OPCODES.add(Op.ContentType, (vm) => {
-  let reference = check(vm.stack.peek(), CheckReference);
+  let reference = check(vm.stack.peek(), CheckSource);
 
-  vm.stack.push(toContentType(valueForRef(reference)));
+  vm.stack.push(toContentType(getValue(reference)));
 
-  if (!isConstRef(reference)) {
+  if (!isConst(reference)) {
     vm.updateWith(new AssertFilter(reference, toContentType));
   }
 });
 
 APPEND_OPCODES.add(Op.DynamicContentType, (vm) => {
-  let reference = check(vm.stack.peek(), CheckReference);
+  let reference = check(vm.stack.peek(), CheckSource);
 
-  vm.stack.push(toDynamicContentType(valueForRef(reference)));
+  vm.stack.push(toDynamicContentType(getValue(reference)));
 
-  if (!isConstRef(reference)) {
+  if (!isConst(reference)) {
     vm.updateWith(new AssertFilter(reference, toDynamicContentType));
   }
 });
 
 APPEND_OPCODES.add(Op.AppendHTML, (vm) => {
-  let reference = check(vm.stack.pop(), CheckReference);
+  let reference = check(vm.stack.pop(), CheckSource);
 
-  let rawValue = valueForRef(reference);
+  let rawValue = getValue(reference);
   let value = isEmpty(rawValue) ? '' : String(rawValue);
 
   vm.elements().appendDynamicHTML(value);
 });
 
 APPEND_OPCODES.add(Op.AppendSafeHTML, (vm) => {
-  let reference = check(vm.stack.pop(), CheckReference);
+  let reference = check(vm.stack.pop(), CheckSource);
 
-  let rawValue = check(valueForRef(reference), CheckSafeString).toHTML();
+  let rawValue = check(getValue(reference), CheckSafeString).toHTML();
   let value = isEmpty(rawValue) ? '' : check(rawValue, CheckString);
 
   vm.elements().appendDynamicHTML(value);
 });
 
 APPEND_OPCODES.add(Op.AppendText, (vm) => {
-  let reference = check(vm.stack.pop(), CheckReference);
+  let reference = check(vm.stack.pop(), CheckSource);
 
-  let rawValue = valueForRef(reference);
+  let rawValue = getValue(reference);
   let value = isEmpty(rawValue) ? '' : String(rawValue);
 
   let node = vm.elements().appendDynamicText(value);
 
-  if (!isConstRef(reference)) {
+  if (!isConst(reference)) {
     vm.updateWith(new DynamicTextContent(node, reference, value));
   }
 });
 
 APPEND_OPCODES.add(Op.AppendDocumentFragment, (vm) => {
-  let reference = check(vm.stack.pop(), CheckReference);
+  let reference = check(vm.stack.pop(), CheckSource);
 
-  let value = check(valueForRef(reference), CheckDocumentFragment);
+  let value = check(getValue(reference), CheckDocumentFragment);
 
   vm.elements().appendDynamicFragment(value);
 });
 
 APPEND_OPCODES.add(Op.AppendNode, (vm) => {
-  let reference = check(vm.stack.pop(), CheckReference);
+  let reference = check(vm.stack.pop(), CheckSource);
 
-  let value = check(valueForRef(reference), CheckNode);
+  let value = check(getValue(reference), CheckNode);
 
   vm.elements().appendDynamicNode(value);
 });

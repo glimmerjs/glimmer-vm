@@ -10,14 +10,8 @@ import {
 } from '@glimmer/interfaces';
 import { registerDestructor } from '@glimmer/destroyable';
 import { setOwner } from '@glimmer/owner';
-import { valueForRef } from '@glimmer/reference';
 import { assign, castToBrowser, dict } from '@glimmer/util';
-import {
-  createUpdatableTag,
-  deprecateMutationsInTrackingTransaction,
-  untrack,
-  UpdatableTag,
-} from '@glimmer/validator';
+import { deprecateMutationsInTrackingTransaction, untrack, getValue } from '@glimmer/validator';
 import { SimpleElement } from '@simple-dom/interface';
 import { buildCapabilities, FROM_CAPABILITIES } from '../util/capabilities';
 import { argsProxyFor } from '../util/args-proxy';
@@ -42,7 +36,6 @@ export function modifierCapabilities<Version extends keyof ModifierCapabilitiesV
 }
 
 export interface CustomModifierState<ModifierInstance> {
-  tag: UpdatableTag;
   element: SimpleElement;
   modifier: ModifierInstance;
   delegate: ModifierManager<ModifierInstance>;
@@ -142,12 +135,10 @@ export class CustomModifierManager<O extends Owner, ModifierInstance>
       instance = delegate.createModifier(factoryOrDefinition, args);
     }
 
-    let tag = createUpdatableTag();
     let state: CustomModifierState<ModifierInstance>;
 
     if (useArgsProxy) {
       state = {
-        tag,
         element,
         delegate,
         args,
@@ -155,7 +146,6 @@ export class CustomModifierManager<O extends Owner, ModifierInstance>
       };
     } else {
       state = {
-        tag,
         element,
         modifier: instance!,
         delegate,
@@ -210,10 +200,10 @@ export function reifyArgs({
   let reifiedNamed = dict();
 
   for (let key in named) {
-    reifiedNamed[key] = valueForRef(named[key]);
+    reifiedNamed[key] = getValue(named[key]);
   }
 
-  let reifiedPositional = positional.map(valueForRef);
+  let reifiedPositional = positional.map(getValue);
 
   return {
     named: reifiedNamed,

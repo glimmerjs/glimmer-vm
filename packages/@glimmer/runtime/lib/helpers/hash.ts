@@ -1,13 +1,26 @@
-import { CapturedArguments, CapturedNamedArguments, Dict } from '@glimmer/interfaces';
-import { setCustomTagFor } from '@glimmer/manager';
-import { createComputeRef, createConstRef, Reference, valueForRef } from '@glimmer/reference';
+import { CapturedArguments, CapturedNamedArguments, Dict, Source } from '@glimmer/interfaces';
+import { setCustomSourceFor } from '@glimmer/manager';
+import { UNDEFINED_SOURCE } from '@glimmer/reference';
 import { dict, HAS_NATIVE_PROXY } from '@glimmer/util';
-import { combine, Tag, tagFor, track } from '@glimmer/validator';
+import {
+  getValue,
+  untrack,
+  createStorage,
+  storageFor,
+  setDeps,
+  createCache,
+} from '@glimmer/validator';
 import { deprecate } from '@glimmer/global-context';
 import { internalHelper } from './internal-helper';
 
-function tagForKey(hash: CapturedNamedArguments, key: string): Tag {
-  return track(() => valueForRef(hash[key]));
+function SourceForNamedArg(namedArgs: CapturedNamedArguments, key: string): Source {
+  if (key in namedArgs) {
+    // bootstrap the cache if it was not already used.
+    untrack(() => getValue(namedArgs[key]));
+    return namedArgs[key];
+  }
+
+  return UNDEFINED_SOURCE;
 }
 
 let hashProxyFor: (args: CapturedNamedArguments) => Record<string, unknown>;
@@ -15,24 +28,24 @@ let hashProxyFor: (args: CapturedNamedArguments) => Record<string, unknown>;
 class HashProxy implements ProxyHandler<Record<string, unknown>> {
   constructor(private named: CapturedNamedArguments, private target: Record<string, unknown>) {}
 
-  private argsCaches = dict<Reference>();
+  private argsCaches = dict<Source>();
 
   syncKey(key: string | number) {
-    let { argsCaches, named } = this;
+    const { argsCaches, named } = this;
 
     if (!(key in named)) return;
 
     let cache = argsCaches[key];
 
     if (cache === undefined) {
-      const ref = this.named[key as string];
+      const inner = this.named[key as string];
 
-      argsCaches[key] = cache = createComputeRef(() => {
-        this.target[key] = valueForRef(ref);
+      argsCaches[key] = cache = createCache(() => {
+        this.target[key] = getValue(inner);
       });
     }
 
-    valueForRef(cache);
+    getValue(cache);
   }
 
   get(target: Record<string, unknown>, prop: string | number) {
@@ -85,11 +98,13 @@ if (HAS_NATIVE_PROXY) {
     const target = dict();
     const proxy = new Proxy(target, new HashProxy(named, target));
 
-    setCustomTagFor(proxy, (_obj: object, key: string) => {
-      let argTag = tagForKey(named, key);
-      let proxyTag = tagFor(proxy, key);
+    setCustomSourceFor(proxy, (_obj: object, key: string) => {
+      let argTag = SourceForNamedArg(named, key);
+      let proxyTag = storageFor(proxy, key);
 
-      return combine([argTag, proxyTag]);
+      setDeps(proxyTag, null, [argTag]);
+
+      return proxyTag;
     });
 
     return proxy;
@@ -119,11 +134,13 @@ if (HAS_NATIVE_PROXY) {
       });
     });
 
-    setCustomTagFor(proxy, (_obj: object, key: string) => {
-      let argTag = tagForKey(named, key);
-      let proxyTag = tagFor(proxy, key);
+    setCustomSourceFor(proxy, (_obj: object, key: string) => {
+      let argTag = SourceForNamedArg(named, key);
+      let proxyTag = storageFor(proxy, key);
 
-      return combine([argTag, proxyTag]);
+      setDeps(proxyTag, null, [argTag]);
+
+      return proxyTag;
     });
 
     return proxy;
@@ -167,7 +184,7 @@ if (HAS_NATIVE_PROXY) {
    @public
  */
 export default internalHelper(
-  ({ named }: CapturedArguments): Reference<Dict<unknown>> => {
-    return createConstRef(hashProxyFor(named), 'hash');
+  ({ named }: CapturedArguments): Source<Dict<unknown>> => {
+    return createStorage(hashProxyFor(named), false, 'hash');
   }
 );

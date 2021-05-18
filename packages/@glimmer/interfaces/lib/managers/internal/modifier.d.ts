@@ -1,6 +1,5 @@
 import { GlimmerTreeChanges } from '../../dom/changes';
 // eslint-disable-next-line node/no-extraneous-import
-import { UpdatableTag } from '@glimmer/validator';
 import { SimpleElement } from '@simple-dom/interface';
 import { Owner } from '../../runtime';
 import { Destroyable } from '../../core';

@@ -15,18 +15,19 @@ import {
   WithCreateInstance,
   CompilableProgram,
   Owner,
+  Source,
   Environment,
+  StorageSource,
 } from '@glimmer/interfaces';
 import { setInternalComponentManager } from '@glimmer/manager';
+import { createPrimitiveSource, pathSourceFor } from '@glimmer/reference';
 import {
-  createConstRef,
-  createPrimitiveRef,
-  valueForRef,
-  Reference,
-  childRefFor,
-  createComputeRef,
-} from '@glimmer/reference';
-import { createTag, dirtyTag, DirtyableTag, consumeTag, dirtyTagFor } from '@glimmer/validator';
+  createStorage,
+  getValue,
+  setValue,
+  notifyStorageFor,
+  createCache,
+} from '@glimmer/validator';
 import { keys, EMPTY_ARRAY, assign, unwrapTemplate } from '@glimmer/util';
 import { registerDestructor } from '@glimmer/destroyable';
 import { reifyNamed, reifyPositional } from '@glimmer/runtime';
@@ -49,7 +50,7 @@ let GUID = 1;
 export class EmberishCurlyComponent {
   public static positionalParams: string[] | string = [];
 
-  public dirtinessTag: DirtyableTag = createTag();
+  public dirtyStorage: StorageSource<null> = createStorage(null, false);
   public layout!: Template;
   public name!: string;
   public tagName: Option<string> = null;
@@ -83,7 +84,7 @@ export class EmberishCurlyComponent {
 
   set(key: string, value: unknown) {
     (this as any)[key] = value;
-    dirtyTagFor(this, key as string);
+    notifyStorageFor(this, key);
   }
 
   setProperties(dict: Dict) {
@@ -93,7 +94,7 @@ export class EmberishCurlyComponent {
   }
 
   recompute() {
-    dirtyTag(this.dirtinessTag);
+    setValue(this.dirtyStorage, null);
   }
 
   destroy() {}
@@ -112,7 +113,7 @@ export class EmberishCurlyComponent {
 
 export interface EmberishCurlyComponentState {
   component: EmberishCurlyComponent;
-  selfRef: Reference;
+  self: Source;
 }
 
 const EMBERISH_CURLY_CAPABILITIES: InternalComponentCapabilities = {
@@ -172,7 +173,7 @@ export class EmberishCurlyComponentManager
 
       let named = args.named.capture();
       let positional = args.positional.capture();
-      named[positionalParams] = createComputeRef(() => reifyPositional(positional));
+      named[positionalParams] = createCache(() => reifyPositional(positional));
 
       return { positional: EMPTY_ARRAY, named } as PreparedArguments;
     } else if (Array.isArray(positionalParams)) {
@@ -203,21 +204,14 @@ export class EmberishCurlyComponentManager
     _args: VMArguments,
     _env: Environment,
     dynamicScope: DynamicScope,
-    callerSelf: Reference,
+    callerSelf: Source,
     hasDefaultBlock: boolean
   ): EmberishCurlyComponentState {
     let klass = definition || EmberishCurlyComponent;
-    let self = valueForRef(callerSelf);
+    let targetObject = getValue(callerSelf);
     let args = _args.named.capture();
     let attrs = reifyNamed(args);
-    let merged = assign(
-      {},
-      attrs,
-      { attrs },
-      { args },
-      { targetObject: self },
-      { HAS_BLOCK: hasDefaultBlock }
-    );
+    let merged = assign({}, attrs, { attrs, args, targetObject, HAS_BLOCK: hasDefaultBlock });
     let component = klass.create(merged);
 
     component.args = args;
@@ -227,11 +221,11 @@ export class EmberishCurlyComponentManager
     if (dyn) {
       for (let i = 0; i < dyn.length; i++) {
         let name = dyn[i];
-        component.set(name, valueForRef(dynamicScope.get(name)));
+        component.set(name, getValue(dynamicScope.get(name)));
       }
     }
 
-    consumeTag(component.dirtinessTag);
+    getValue(component.dirtyStorage);
 
     component.didInitAttrs({ attrs });
     component.didReceiveAttrs({ oldAttrs: null, newAttrs: attrs });
@@ -240,13 +234,13 @@ export class EmberishCurlyComponentManager
 
     registerDestructor(component, () => component.destroy());
 
-    const selfRef = createConstRef(component, 'this');
+    const self = createStorage(component, true, 'this');
 
-    return { component, selfRef };
+    return { component, self };
   }
 
-  getSelf({ selfRef }: EmberishCurlyComponentState): Reference<unknown> {
-    return selfRef;
+  getSelf({ self }: EmberishCurlyComponentState): Source {
+    return self;
   }
 
   getTagName({ component: { tagName } }: EmberishCurlyComponentState): Option<string> {
@@ -260,21 +254,21 @@ export class EmberishCurlyComponentManager
   }
 
   didCreateElement(
-    { component, selfRef }: EmberishCurlyComponentState,
+    { component, self }: EmberishCurlyComponentState,
     element: Element,
     operations: ElementOperations
   ): void {
     component.element = element;
 
-    operations.setAttribute('id', createPrimitiveRef(`ember${component._guid}`), false, null);
-    operations.setAttribute('class', createPrimitiveRef('ember-view'), false, null);
+    operations.setAttribute('id', createPrimitiveSource(`ember${component._guid}`), false, null);
+    operations.setAttribute('class', createPrimitiveSource('ember-view'), false, null);
 
     let bindings = component.attributeBindings;
 
     if (bindings) {
       for (let i = 0; i < bindings.length; i++) {
         let attribute = bindings[i];
-        let reference = childRefFor(selfRef, attribute);
+        let reference = pathSourceFor(self, attribute);
 
         operations.setAttribute(attribute, reference, false, null);
       }
@@ -297,7 +291,7 @@ export class EmberishCurlyComponentManager
     let newAttrs = reifyNamed(component.args);
     let merged = assign({}, newAttrs, { attrs: newAttrs });
 
-    consumeTag(component.dirtinessTag);
+    getValue(component.dirtyStorage);
 
     component.setProperties(merged);
     component.didUpdateAttrs({ oldAttrs, newAttrs });

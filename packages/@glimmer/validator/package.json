@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@glimmer/env": "^0.1.7",
+    "@glimmer/interfaces": "0.79.2",
     "@glimmer/global-context": "0.79.2"
   }
 }

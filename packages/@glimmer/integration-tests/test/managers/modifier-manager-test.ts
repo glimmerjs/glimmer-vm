@@ -232,7 +232,7 @@ abstract class ModifierManagerTest extends RenderTest {
     this.renderComponent(Main);
 
     assert.validateDeprecations(
-      /You attempted to update `foo` on `.*`, but it had already been used previously in the same computation/
+      /You attempted to update the storage for the `foo` property on an instance of .*, but it had already been used previously in the same computation./
     );
   }
 

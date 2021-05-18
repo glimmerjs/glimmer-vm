@@ -15,8 +15,17 @@ class StyleWarningsTest extends RenderTest {
         warnings++;
       },
 
-      getProp(obj, key) {
-        return (obj as any)[key];
+      // functions needed/used
+      getProp(obj, path) {
+        return (obj as any)[path];
+      },
+
+      scheduleRevalidate() {},
+
+      assert(condition: unknown, message: string) {
+        if (!condition) {
+          throw new Error(message);
+        }
       },
     });
   }

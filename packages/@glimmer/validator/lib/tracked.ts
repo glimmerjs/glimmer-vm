@@ -3,8 +3,8 @@ import {
   createClassicTrackedDecorator,
   extendTrackedPropertyDesc,
 } from '@glimmer/global-context';
-import { tagFor, dirtyTagFor } from './meta';
-import { consumeTag } from './tracking';
+import { storageFor } from './meta';
+import { getValue, setValue } from './cache';
 
 function isElementDescriptor(
   args: unknown[]
@@ -24,7 +24,9 @@ function isElementDescriptor(
   );
 }
 
-export type DecoratorPropertyDescriptor = (PropertyDescriptor & { initializer?: any }) | undefined;
+export type DecoratorPropertyDescriptor =
+  | (PropertyDescriptor & { initializer?: () => unknown })
+  | undefined;
 
 /**
   @decorator
@@ -108,32 +110,16 @@ export function tracked(...args: unknown[]): DecoratorPropertyDescriptor | Prope
 
   let initializer = desc?.initializer;
 
-  let values = new WeakMap<object, unknown>();
-  let hasInitializer = typeof initializer === 'function';
-
   let newDesc = {
     enumerable: true,
     configurable: true,
 
     get() {
-      consumeTag(tagFor(this, key));
-
-      let value;
-
-      // If the field has never been initialized, we should initialize it
-      if (hasInitializer && !values.has(this)) {
-        value = initializer.call(this);
-        values.set(this, value);
-      } else {
-        value = values.get(this);
-      }
-
-      return value;
+      return getValue(storageFor(this, key, undefined, initializer));
     },
 
     set(value: unknown) {
-      dirtyTagFor(this, key);
-      values.set(this, value);
+      setValue(storageFor(this, key), value);
     },
   };
 

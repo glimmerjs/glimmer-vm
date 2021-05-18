@@ -18,6 +18,7 @@ export * from './lib/tier1/symbol-table';
 export * from './lib/vm-opcodes';
 export * from './lib/runtime/vm';
 export * from './lib/stack';
+export * from './lib/tracking';
 
 import * as WireFormat from './lib/compile/wire-format';
 export { WireFormat };

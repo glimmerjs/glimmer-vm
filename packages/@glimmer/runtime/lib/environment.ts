@@ -9,9 +9,9 @@ import {
   RuntimeResolver,
   RuntimeArtifacts,
   EffectPhase,
+  Source,
 } from '@glimmer/interfaces';
 import { assert, expect, symbol } from '@glimmer/util';
-import { Cache } from '@glimmer/validator';
 import { DOMChangesImpl, DOMTreeConstruction } from './dom/helper';
 import { RuntimeProgramImpl } from '@glimmer/program';
 import DebugRenderTree from './debug-render-tree';
@@ -68,7 +68,7 @@ export class EnvironmentImpl implements Environment {
     this[TRANSACTION] = true;
   }
 
-  registerEffect(phase: EffectPhase, effect: Cache) {
+  registerEffect(phase: EffectPhase, effect: Source) {
     this.effectManager.registerEffect(phase, effect);
   }
 

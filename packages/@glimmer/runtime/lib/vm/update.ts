@@ -10,21 +10,16 @@ import {
   Option,
   RuntimeContext,
   Scope,
+  Source,
   UpdatableBlock,
   UpdatingVM,
   UpdatingOpcode,
 } from '@glimmer/interfaces';
 import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
-import {
-  OpaqueIterationItem,
-  OpaqueIterator,
-  Reference,
-  updateRef,
-  valueForRef,
-} from '@glimmer/reference';
+import { OpaqueIterationItem, OpaqueIterator, updateSource } from '@glimmer/reference';
 import { associateDestroyableChild, destroy, destroyChildren } from '@glimmer/destroyable';
 import { expect, Stack, logStep } from '@glimmer/util';
-import { resetTracking, runInTrackingTransaction } from '@glimmer/validator';
+import { getValue, resetTracking, runInTrackingTransaction } from '@glimmer/validator';
 import { SimpleComment } from '@simple-dom/interface';
 import { clear, move as moveBounds } from '../bounds';
 import { InternalVM, VmInitCallback } from './append';
@@ -190,16 +185,16 @@ export class ListItemOpcode extends TryOpcode {
     runtime: RuntimeContext,
     bounds: UpdatableBlock,
     public key: unknown,
-    public memo: Reference,
-    public value: Reference
+    public memo: Source,
+    public value: Source
   ) {
     super(state, runtime, bounds, []);
   }
 
   updateReferences(item: OpaqueIterationItem) {
     this.retained = true;
-    updateRef(this.value, item.value);
-    updateRef(this.memo, item.memo);
+    updateSource(this.value, item.value);
+    updateSource(this.memo, item.memo);
   }
 
   shouldRemove(): boolean {
@@ -226,10 +221,10 @@ export class ListBlockOpcode extends BlockOpcode {
     runtime: RuntimeContext,
     bounds: LiveBlockList,
     children: ListItemOpcode[],
-    private iterableRef: Reference<OpaqueIterator>
+    private iterableRef: Source<OpaqueIterator>
   ) {
     super(state, runtime, bounds, children);
-    this.lastIterator = valueForRef(iterableRef);
+    this.lastIterator = getValue(iterableRef);
   }
 
   initializeChild(opcode: ListItemOpcode) {
@@ -238,7 +233,7 @@ export class ListBlockOpcode extends BlockOpcode {
   }
 
   evaluate(vm: UpdatingVMImpl) {
-    let iterator = valueForRef(this.iterableRef);
+    let iterator = getValue(this.iterableRef);
 
     if (this.lastIterator !== iterator) {
       let { bounds } = this;
@@ -345,8 +340,8 @@ export class ListBlockOpcode extends BlockOpcode {
 
     let { children } = this;
 
-    updateRef(opcode.memo, item.memo);
-    updateRef(opcode.value, item.value);
+    updateSource(opcode.memo, item.memo);
+    updateSource(opcode.value, item.value);
     opcode.retained = true;
 
     opcode.index = children.length;
@@ -383,8 +378,8 @@ export class ListBlockOpcode extends BlockOpcode {
   private moveItem(opcode: ListItemOpcode, item: OpaqueIterationItem, before: ListItemOpcode) {
     let { children } = this;
 
-    updateRef(opcode.memo, item.memo);
-    updateRef(opcode.value, item.value);
+    updateSource(opcode.memo, item.memo);
+    updateSource(opcode.value, item.value);
     opcode.retained = true;
 
     let currentSibling, nextSibling;

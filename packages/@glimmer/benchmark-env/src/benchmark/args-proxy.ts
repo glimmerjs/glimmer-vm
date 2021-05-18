@@ -1,5 +1,5 @@
 import { CapturedNamedArguments, CapturedArguments } from '@glimmer/interfaces';
-import { valueForRef } from '@glimmer/reference';
+import { getValue } from '@glimmer/validator';
 import { ComponentArgs } from '../interfaces';
 
 class ArgsProxy implements ProxyHandler<CapturedNamedArguments> {
@@ -17,7 +17,7 @@ class ArgsProxy implements ProxyHandler<CapturedNamedArguments> {
   ): PropertyDescriptor | undefined {
     let desc: PropertyDescriptor | undefined;
     if (typeof p === 'string' && p in target) {
-      const value = valueForRef(target[p]);
+      const value = getValue(target[p]);
       desc = {
         enumerable: true,
         configurable: false,
@@ -34,7 +34,7 @@ class ArgsProxy implements ProxyHandler<CapturedNamedArguments> {
 
   get(target: CapturedNamedArguments, p: PropertyKey): any {
     if (typeof p === 'string' && p in target) {
-      return valueForRef(target[p]);
+      return getValue(target[p]);
     }
   }
 

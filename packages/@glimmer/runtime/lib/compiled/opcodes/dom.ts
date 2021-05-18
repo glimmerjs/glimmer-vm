@@ -1,5 +1,4 @@
-import { Reference, valueForRef, isConstRef, createComputeRef } from '@glimmer/reference';
-import { Cache, createCache, getValue } from '@glimmer/validator';
+import { createCache, getDebugLabel, getValue, isConst } from '@glimmer/validator';
 import {
   check,
   CheckString,
@@ -20,12 +19,13 @@ import {
   Environment,
   UpdatingOpcode,
   EffectPhase,
+  Source,
 } from '@glimmer/interfaces';
 import { $t0 } from '@glimmer/vm';
 import { APPEND_OPCODES } from '../../opcodes';
 import { Assert } from './vm';
 import { DynamicAttribute } from '../../vm/attributes/dynamic';
-import { CheckReference, CheckArguments, CheckOperations } from './-debug-strip';
+import { CheckSource, CheckArguments, CheckOperations } from './-debug-strip';
 import { CONSTANTS } from '../../symbols';
 import { assign, debugToString, expect, isObject } from '@glimmer/util';
 import { CurriedValue, isCurriedType, resolveCurriedValue } from '../../curried-value';
@@ -45,25 +45,25 @@ APPEND_OPCODES.add(Op.OpenElement, (vm, { op1: tag }) => {
 });
 
 APPEND_OPCODES.add(Op.OpenDynamicElement, (vm) => {
-  let tagName = check(valueForRef(check(vm.stack.pop(), CheckReference)), CheckString);
+  let tagName = check(getValue(check(vm.stack.pop(), CheckSource)), CheckString);
   vm.elements().openElement(tagName);
 });
 
 APPEND_OPCODES.add(Op.PushRemoteElement, (vm) => {
-  let elementRef = check(vm.stack.pop(), CheckReference);
-  let insertBeforeRef = check(vm.stack.pop(), CheckReference);
-  let guidRef = check(vm.stack.pop(), CheckReference);
+  let elementSource = check(vm.stack.pop(), CheckSource);
+  let insertBeforeSource = check(vm.stack.pop(), CheckSource);
+  let guidSource = check(vm.stack.pop(), CheckSource);
 
-  let element = check(valueForRef(elementRef), CheckElement);
-  let insertBefore = check(valueForRef(insertBeforeRef), CheckMaybe(CheckOption(CheckNode)));
-  let guid = valueForRef(guidRef) as string;
+  let element = check(getValue(elementSource), CheckElement);
+  let insertBefore = check(getValue(insertBeforeSource), CheckMaybe(CheckOption(CheckNode)));
+  let guid = getValue(guidSource) as string;
 
-  if (!isConstRef(elementRef)) {
-    vm.updateWith(new Assert(elementRef));
+  if (!isConst(elementSource)) {
+    vm.updateWith(new Assert(elementSource));
   }
 
-  if (insertBefore !== undefined && !isConstRef(insertBeforeRef)) {
-    vm.updateWith(new Assert(insertBeforeRef));
+  if (insertBefore !== undefined && !isConst(insertBeforeSource)) {
+    vm.updateWith(new Assert(insertBeforeSource));
   }
 
   let block = vm.elements().pushRemoteElement(element, guid, insertBefore);
@@ -76,7 +76,7 @@ APPEND_OPCODES.add(Op.PopRemoteElement, (vm) => {
 
 APPEND_OPCODES.add(Op.FlushElement, (vm) => {
   let operations = check(vm.fetchValue($t0), CheckOperations);
-  let modifiers: Option<Cache[]> = null;
+  let modifiers: Option<Source[]> = null;
 
   if (operations) {
     modifiers = operations.flush(vm);
@@ -151,13 +151,13 @@ APPEND_OPCODES.add(Op.DynamicModifier, (vm) => {
   }
 
   let { stack, [CONSTANTS]: constants } = vm;
-  let ref = check(stack.pop(), CheckReference);
+  let ref = check(stack.pop(), CheckSource);
   let args = check(stack.pop(), CheckArguments).capture();
   let { constructing } = vm.elements();
   let initialOwner = vm.getOwner();
 
   let instanceCache = createCache(() => {
-    let value = valueForRef(ref);
+    let value = getValue(ref);
     let owner: Owner;
 
     if (!isObject(value)) {
@@ -193,11 +193,11 @@ APPEND_OPCODES.add(Op.DynamicModifier, (vm) => {
 
     if (DEBUG && handle === null) {
       throw new Error(
-        `Expected a dynamic modifier definition, but received an object or function that did not have a modifier manager associated with it. The dynamic invocation was \`{{${
-          ref.debugLabel
-        }}}\`, and the incorrect definition is the value at the path \`${
-          ref.debugLabel
-        }\`, which was: ${debugToString!(hostDefinition)}`
+        `Expected a dynamic modifier definition, but received an object or function that did not have a modifier manager associated with it. The dynamic invocation was \`{{${getDebugLabel(
+          ref
+        )}}}\`, and the incorrect definition is the value at the path \`${getDebugLabel(
+          ref
+        )}\`, which was: ${debugToString!(hostDefinition)}`
       );
     }
 
@@ -273,25 +273,25 @@ APPEND_OPCODES.add(Op.StaticAttr, (vm, { op1: _name, op2: _value, op3: _namespac
 APPEND_OPCODES.add(Op.DynamicAttr, (vm, { op1: _name, op2: _trusting, op3: _namespace }) => {
   let name = vm[CONSTANTS].getValue<string>(_name);
   let trusting = vm[CONSTANTS].getValue<boolean>(_trusting);
-  let reference = check(vm.stack.pop(), CheckReference);
-  let value = valueForRef(reference);
+  let source = check(vm.stack.pop(), CheckSource);
+  let value = getValue(source);
   let namespace = _namespace ? vm[CONSTANTS].getValue<string>(_namespace) : null;
 
   let attribute = vm.elements().setDynamicAttribute(name, value, trusting, namespace);
 
-  if (!isConstRef(reference)) {
-    vm.updateWith(new UpdateDynamicAttributeOpcode(reference, attribute, vm.env));
+  if (!isConst(source)) {
+    vm.updateWith(new UpdateDynamicAttributeOpcode(source, attribute, vm.env));
   }
 });
 
 export class UpdateDynamicAttributeOpcode implements UpdatingOpcode {
-  private updateRef: Reference;
+  private updateSource: Source;
 
-  constructor(reference: Reference<unknown>, attribute: DynamicAttribute, env: Environment) {
+  constructor(reference: Source, attribute: DynamicAttribute, env: Environment) {
     let initialized = false;
 
-    this.updateRef = createComputeRef(() => {
-      let value = valueForRef(reference);
+    this.updateSource = createCache(() => {
+      let value = getValue(reference);
 
       if (initialized === true) {
         attribute.update(value, env);
@@ -300,10 +300,10 @@ export class UpdateDynamicAttributeOpcode implements UpdatingOpcode {
       }
     });
 
-    valueForRef(this.updateRef);
+    getValue(this.updateSource);
   }
 
   evaluate() {
-    valueForRef(this.updateRef);
+    getValue(this.updateSource);
   }
 }

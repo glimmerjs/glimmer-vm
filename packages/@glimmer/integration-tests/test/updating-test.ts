@@ -1,5 +1,5 @@
 import { Option } from '@glimmer/interfaces';
-import { createConstRef, createPrimitiveRef, createComputeRef } from '@glimmer/reference';
+import { createPrimitiveSource } from '@glimmer/reference';
 import { RenderTest, test, jitSuite, JitRenderDelegate, GlimmerishComponent } from '..';
 import { associateDestroyableChild, registerDestructor } from '@glimmer/destroyable';
 import { SafeString } from '@glimmer/runtime';
@@ -13,7 +13,7 @@ import {
 import { SimpleElement, SimpleNode } from '@simple-dom/interface';
 import { assert } from './support';
 import { expect } from '@glimmer/util';
-import { createTag, consumeTag, dirtyTag, tracked } from '@glimmer/validator';
+import { tracked, createStorage, getValue, setValue, createCache } from '@glimmer/validator';
 
 function makeSafeString(value: string): SafeString {
   return new SafeStringImpl(value);
@@ -391,7 +391,7 @@ class UpdatingTest extends RenderTest {
     let rawString = '<b>bold</b> and spicy';
 
     this.registerInternalHelper('const-foobar', () => {
-      return createConstRef(makeSafeString(rawString), 'safe-string');
+      return createStorage(makeSafeString(rawString), true, 'safe-string');
     });
 
     this.render('<div>{{const-foobar}}</div>', {});
@@ -404,7 +404,7 @@ class UpdatingTest extends RenderTest {
     let rawString = '<b>bold</b> and spicy';
 
     this.registerInternalHelper('const-foobar', () => {
-      return createConstRef(this.delegate.createTextNode(rawString), 'text-node');
+      return createStorage(this.delegate.createTextNode(rawString), true, 'text-node');
     });
 
     this.render('<div>{{const-foobar}}</div>');
@@ -417,7 +417,7 @@ class UpdatingTest extends RenderTest {
     let rawString = '<b>bold</b> and spicy';
 
     this.registerInternalHelper('const-foobar', () => {
-      return createConstRef(makeSafeString(rawString), 'safe-string');
+      return createStorage(makeSafeString(rawString), true, 'safe-string');
     });
 
     this.render('<div>{{{const-foobar}}}</div>');
@@ -430,7 +430,7 @@ class UpdatingTest extends RenderTest {
     let rawString = '<b>bold</b> and spicy';
 
     this.registerInternalHelper('const-foobar', () => {
-      return createConstRef(this.delegate.createTextNode(rawString), 'text-node');
+      return createStorage(this.delegate.createTextNode(rawString), true, 'text-node');
     });
 
     this.render('<div>{{{const-foobar}}}</div>');
@@ -449,7 +449,7 @@ class UpdatingTest extends RenderTest {
     });
 
     this.registerInternalHelper('destroy-me', (_args) => {
-      let ref = createPrimitiveRef('destroy me!');
+      let ref = createPrimitiveSource('destroy me!');
 
       associateDestroyableChild(ref, destroyable);
 
@@ -485,15 +485,13 @@ class UpdatingTest extends RenderTest {
     let { template, truthyValue, falsyValue, element } = arg1;
     let didCreate = 0;
     let didDestroy = 0;
-    let tag = createTag();
-    let currentValue: T | U = truthyValue;
+    let storage = createStorage<T | U>(truthyValue);
 
     this.registerInternalHelper('stateful-foo', (_args) => {
       didCreate++;
 
-      let ref = createComputeRef(() => {
-        consumeTag(tag);
-        return currentValue;
+      let ref = createCache(() => {
+        return getValue(storage);
       });
 
       let destroyable = {};
@@ -519,16 +517,14 @@ class UpdatingTest extends RenderTest {
     assert.strictEqual(didCreate, 1, 'didCreate: after no-op re-render');
     assert.strictEqual(didDestroy, 0, 'didDestroy: after no-op re-render');
 
-    currentValue = falsyValue;
-    dirtyTag(tag);
+    setValue(storage, falsyValue);
     this.rerender();
 
     this.assertHTML(element ? '' : '<!---->', element, 'after switching to falsy');
     assert.strictEqual(didCreate, 1, 'didCreate: after switching to falsy');
     assert.strictEqual(didDestroy, 0, 'didDestroy: after switching to falsy');
 
-    currentValue = truthyValue;
-    dirtyTag(tag);
+    setValue(storage, truthyValue);
     this.rerender();
 
     this.assertHTML('Yes', element, 'after reset');

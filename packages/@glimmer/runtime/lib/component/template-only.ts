@@ -1,5 +1,9 @@
-import { InternalComponentCapabilities, InternalComponentManager } from '@glimmer/interfaces';
-import { NULL_REFERENCE, Reference } from '@glimmer/reference';
+import {
+  InternalComponentCapabilities,
+  InternalComponentManager,
+  Source,
+} from '@glimmer/interfaces';
+import { NULL_SOURCE } from '@glimmer/reference';
 import { setInternalComponentManager } from '@glimmer/manager';
 
 const CAPABILITIES: InternalComponentCapabilities = {
@@ -27,8 +31,8 @@ export class TemplateOnlyComponentManager implements InternalComponentManager {
     return name;
   }
 
-  getSelf(): Reference {
-    return NULL_REFERENCE;
+  getSelf(): Source {
+    return NULL_SOURCE;
   }
 
   getDestroyable(): null {

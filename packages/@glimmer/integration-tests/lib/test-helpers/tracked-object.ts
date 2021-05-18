@@ -1,4 +1,4 @@
-import { consumeTag, tagFor, dirtyTagFor } from '@glimmer/validator';
+import { getValue, setValue, createStorage } from '@glimmer/validator';
 
 export function trackedObj<T extends Record<string, unknown>>(
   obj: T = {} as T
@@ -6,18 +6,17 @@ export function trackedObj<T extends Record<string, unknown>>(
   let trackedObj = {};
 
   for (let key in obj) {
+    let storage = createStorage(obj[key], false);
+
     Object.defineProperty(trackedObj, key, {
       enumerable: true,
 
       get() {
-        consumeTag(tagFor(obj, key));
-
-        return (obj as any)[key];
+        return getValue(storage);
       },
 
-      set(value: unknown) {
-        dirtyTagFor(obj, key);
-        return ((obj as any)[key] = value);
+      set(value: T[Extract<keyof T, string>]) {
+        setValue(storage, value);
       },
     });
   }

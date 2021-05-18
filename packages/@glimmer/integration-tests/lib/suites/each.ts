@@ -2,7 +2,7 @@ import { RenderTest } from '../render-test';
 import { test } from '../test-decorator';
 import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
 import { beginTestSteps, endTestSteps, verifySteps } from '@glimmer/util';
-import { createTag, consumeTag, dirtyTag, tracked } from '@glimmer/validator';
+import { createStorage, getValue, setValue, tracked } from '@glimmer/validator';
 
 export class EachSuite extends RenderTest {
   static suiteName = '#each';
@@ -53,20 +53,20 @@ export class EachSuite extends RenderTest {
 
     let list = {
       arr: [1, 2, 3, 4],
-      tag: createTag(),
+      storage: createStorage(null, false),
 
       [Symbol.iterator]() {
-        consumeTag(this.tag);
+        getValue(this.storage);
         return this.arr[Symbol.iterator]();
       },
 
       push(...vals: number[]) {
-        dirtyTag(this.tag);
+        setValue(this.storage, null);
         this.arr.push(...vals);
       },
 
       clear() {
-        dirtyTag(this.tag);
+        setValue(this.storage, null);
         this.arr.splice(0, this.arr.length);
       },
     };

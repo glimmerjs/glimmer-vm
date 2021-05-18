@@ -1,5 +1,4 @@
-// eslint-disable-next-line node/no-extraneous-import
-import { Reference } from '@glimmer/reference';
+import { Source } from './tracking';
 import { InternalComponentCapability, InternalComponentManager } from './managers';
 import { Dict } from './core';
 import { CompilableProgram } from './template';
@@ -37,6 +36,6 @@ export interface ComponentInstance<
 }
 
 export interface PreparedArguments {
-  positional: ReadonlyArray<Reference>;
-  named: Dict<Reference>;
+  positional: ReadonlyArray<Source>;
+  named: Dict<Source>;
 }

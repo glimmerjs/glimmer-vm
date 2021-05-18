@@ -7,23 +7,24 @@ import {
   Option,
   Owner,
   RuntimeResolver,
+  Source,
 } from '@glimmer/interfaces';
-import { createComputeRef, Reference, valueForRef } from '@glimmer/reference';
+import { createCache, getValue } from '@glimmer/validator';
 import { expect, isObject } from '@glimmer/util';
 import { curry, isCurriedType } from '../curried-value';
 
-export default function createCurryRef(
+export default function createCurrySource(
   type: CurriedType,
-  inner: Reference,
+  inner: Source,
   owner: Owner,
   args: Option<CapturedArguments>,
   resolver: RuntimeResolver,
   isStrict: boolean
-) {
+): Source<string | object | null> {
   let lastValue: Maybe<Dict> | string, curriedDefinition: object | string | null;
 
-  return createComputeRef(() => {
-    let value = valueForRef(inner) as Maybe<Dict> | string;
+  return createCache(() => {
+    let value = getValue(inner) as Maybe<Dict> | string;
 
     if (value === lastValue) {
       return curriedDefinition;

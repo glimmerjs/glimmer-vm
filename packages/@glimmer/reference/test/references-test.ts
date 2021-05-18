@@ -1,411 +1,409 @@
-import {
-  createComputeRef,
-  valueForRef,
-  createConstRef,
-  childRefFor,
-  isUpdatableRef,
-  updateRef,
-  createReadOnlyRef,
-  createUnboundRef,
-  createInvokableRef,
-  isInvokableRef,
-  createDebugAliasRef,
-} from '..';
-import { createTag, dirtyTag, consumeTag, tracked } from '@glimmer/validator';
-import { dict } from '@glimmer/util';
-import { GlobalContext, testOverrideGlobalContext } from '../../global-context';
-import { DEBUG } from '@glimmer/env';
-
-const { module, test } = QUnit;
-
-class TrackedDict<T> {
-  private tag = createTag();
-  private data = dict<T>();
-
-  get(key: string): T {
-    consumeTag(this.tag);
-    return this.data[key];
-  }
-
-  set(key: string, value: T) {
-    dirtyTag(this.tag);
-    return (this.data[key] = value);
-  }
-}
-
-module('References', (hooks) => {
-  let originalContext: GlobalContext | null;
-  let getCount = 0;
-  let setCount = 0;
-
-  hooks.beforeEach(() => {
-    originalContext = testOverrideGlobalContext!({
-      getProp(obj: object, key: string): unknown {
-        getCount++;
-        return (obj as Record<string, unknown>)[key];
-      },
-
-      setProp(obj: object, key: string, value: unknown) {
-        setCount++;
-        (obj as Record<string, unknown>)[key] = value;
-      },
-
-      scheduleRevalidate() {},
-    });
-  });
+// import {
+//   createComputeRef,
+//   valueForRef,
+//   createConstRef,
+//   pathSourceFor,
+//   isUpdatableSource,
+//   updateSource,
+//   createReadOnlySource,
+//   createUnboundSource,
+//   createInvokableSource,
+//   isInvokableSource,
+//   createDebugAliasSource,
+// } from '..';
+// import { createTag, dirtyTag, consumeTag, tracked } from '@glimmer/validator';
+// import { dict } from '@glimmer/util';
+// import { GlobalContext, testOverrideGlobalContext } from '../../global-context';
+// import { DEBUG } from '@glimmer/env';
+
+// const { module, test } = QUnit;
+
+// class TrackedDict<T> {
+//   private tag = createTag();
+//   private data = dict<T>();
+
+//   get(key: string): T {
+//     consumeTag(this.tag);
+//     return this.data[key];
+//   }
+
+//   set(key: string, value: T) {
+//     dirtyTag(this.tag);
+//     return (this.data[key] = value);
+//   }
+// }
+
+// module('References', (hooks) => {
+//   let originalContext: GlobalContext | null;
+//   let getCount = 0;
+//   let setCount = 0;
+
+//   hooks.before(() => {
+//     originalContext = testOverrideGlobalContext!({
+//       getProp(obj: object, key: string): unknown {
+//         getCount++;
+//         return (obj as Record<string, unknown>)[key];
+//       },
+
+//       setProp(obj: object, key: string, value: unknown) {
+//         setCount++;
+//         (obj as Record<string, unknown>)[key] = value;
+//       },
+//     });
+//   });
+
+//   hooks.after(() => {
+//     testOverrideGlobalContext!(originalContext);
+//   });
+
+//   hooks.beforeEach(() => {
+//     getCount = 0;
+//     setCount = 0;
+//   });
+
+//   module('const ref', () => {
+//     test('it works', (assert) => {
+//       let value = {};
+//       let constRef = createConstRef(value, 'test');
 
-  hooks.afterEach(() => {
-    testOverrideGlobalContext!(originalContext);
-  });
-
-  hooks.beforeEach(() => {
-    getCount = 0;
-    setCount = 0;
-  });
+//       assert.equal(valueForRef(constRef), value, 'value is correct');
+//       assert.notOk(isUpdatableSource(constRef), 'value is not updatable');
+//     });
 
-  module('const ref', () => {
-    test('it works', (assert) => {
-      let value = {};
-      let constRef = createConstRef(value, 'test');
+//     test('can create children of const refs', (assert) => {
+//       class Parent {
+//         @tracked child = 123;
+//       }
 
-      assert.equal(valueForRef(constRef), value, 'value is correct');
-      assert.notOk(isUpdatableRef(constRef), 'value is not updatable');
-    });
+//       let parent = new Parent();
 
-    test('can create children of const refs', (assert) => {
-      class Parent {
-        @tracked child = 123;
-      }
+//       let constRef = createConstRef(parent, 'test');
+//       let childRef = pathSourceFor(constRef, 'child');
 
-      let parent = new Parent();
+//       assert.equal(valueForRef(childRef), 123, 'value is correct');
+//       assert.equal(valueForRef(childRef), 123, 'value is correct');
+//       assert.equal(getCount, 1, 'get called correct number of times');
 
-      let constRef = createConstRef(parent, 'test');
-      let childRef = childRefFor(constRef, 'child');
+//       parent.child = 456;
 
-      assert.equal(valueForRef(childRef), 123, 'value is correct');
-      assert.equal(valueForRef(childRef), 123, 'value is correct');
-      assert.equal(getCount, 1, 'get called correct number of times');
+//       assert.equal(valueForRef(childRef), 456, 'value updated correctly');
+//       assert.equal(valueForRef(childRef), 456, 'value is correct');
+//       assert.equal(getCount, 2, 'get called correct number of times');
 
-      parent.child = 456;
+//       assert.equal(isUpdatableSource(childRef), true, 'childRef is updatable');
 
-      assert.equal(valueForRef(childRef), 456, 'value updated correctly');
-      assert.equal(valueForRef(childRef), 456, 'value is correct');
-      assert.equal(getCount, 2, 'get called correct number of times');
+//       updateSource(childRef, 789);
 
-      assert.equal(isUpdatableRef(childRef), true, 'childRef is updatable');
+//       assert.equal(valueForRef(childRef), 789, 'value updated correctly');
+//       assert.equal(getCount, 3, 'get called correct number of times');
+//       assert.equal(setCount, 1, 'set called correct number of times');
+//     });
+//   });
 
-      updateRef(childRef, 789);
+//   module('compute ref', () => {
+//     test('compute reference caches computation', (assert) => {
+//       let count = 0;
 
-      assert.equal(valueForRef(childRef), 789, 'value updated correctly');
-      assert.equal(getCount, 3, 'get called correct number of times');
-      assert.equal(setCount, 1, 'set called correct number of times');
-    });
-  });
+//       let dict = new TrackedDict<string>();
+//       let ref = createComputeRef(() => {
+//         count++;
+//         return dict.get('foo');
+//       });
 
-  module('compute ref', () => {
-    test('compute reference caches computation', (assert) => {
-      let count = 0;
+//       dict.set('foo', 'bar');
 
-      let dict = new TrackedDict<string>();
-      let ref = createComputeRef(() => {
-        count++;
-        return dict.get('foo');
-      });
+//       assert.strictEqual(count, 0, 'precond');
 
-      dict.set('foo', 'bar');
+//       assert.equal(valueForRef(ref), 'bar');
+//       assert.equal(valueForRef(ref), 'bar');
+//       assert.equal(valueForRef(ref), 'bar');
 
-      assert.strictEqual(count, 0, 'precond');
+//       assert.strictEqual(count, 1, 'computed');
 
-      assert.equal(valueForRef(ref), 'bar');
-      assert.equal(valueForRef(ref), 'bar');
-      assert.equal(valueForRef(ref), 'bar');
+//       dict.set('foo', 'BAR');
 
-      assert.strictEqual(count, 1, 'computed');
+//       assert.equal(valueForRef(ref), 'BAR');
+//       assert.equal(valueForRef(ref), 'BAR');
+//       assert.equal(valueForRef(ref), 'BAR');
 
-      dict.set('foo', 'BAR');
+//       assert.strictEqual(count, 2, 'computed');
 
-      assert.equal(valueForRef(ref), 'BAR');
-      assert.equal(valueForRef(ref), 'BAR');
-      assert.equal(valueForRef(ref), 'BAR');
+//       dict.set('baz', 'bat');
 
-      assert.strictEqual(count, 2, 'computed');
+//       assert.equal(valueForRef(ref), 'BAR');
+//       assert.equal(valueForRef(ref), 'BAR');
+//       assert.equal(valueForRef(ref), 'BAR');
 
-      dict.set('baz', 'bat');
+//       assert.strictEqual(count, 3, 'computed');
 
-      assert.equal(valueForRef(ref), 'BAR');
-      assert.equal(valueForRef(ref), 'BAR');
-      assert.equal(valueForRef(ref), 'BAR');
+//       dict.set('foo', 'bar');
 
-      assert.strictEqual(count, 3, 'computed');
+//       assert.equal(valueForRef(ref), 'bar');
+//       assert.equal(valueForRef(ref), 'bar');
+//       assert.equal(valueForRef(ref), 'bar');
 
-      dict.set('foo', 'bar');
+//       assert.strictEqual(count, 4, 'computed');
+//     });
 
-      assert.equal(valueForRef(ref), 'bar');
-      assert.equal(valueForRef(ref), 'bar');
-      assert.equal(valueForRef(ref), 'bar');
+//     test('compute refs cache nested computation correctly', (assert) => {
+//       let count = 0;
 
-      assert.strictEqual(count, 4, 'computed');
-    });
+//       let first = new TrackedDict<string>();
+//       let second = new TrackedDict<string>();
 
-    test('compute refs cache nested computation correctly', (assert) => {
-      let count = 0;
+//       let innerRef = createComputeRef(() => {
+//         count++;
+//         return first.get('foo');
+//       });
+//       let outerRef = createComputeRef(() => valueForRef(innerRef));
 
-      let first = new TrackedDict<string>();
-      let second = new TrackedDict<string>();
+//       first.set('foo', 'bar');
 
-      let innerRef = createComputeRef(() => {
-        count++;
-        return first.get('foo');
-      });
-      let outerRef = createComputeRef(() => valueForRef(innerRef));
+//       assert.strictEqual(count, 0, 'precond');
 
-      first.set('foo', 'bar');
+//       assert.equal(valueForRef(outerRef), 'bar');
+//       assert.equal(valueForRef(outerRef), 'bar');
+//       assert.equal(valueForRef(outerRef), 'bar');
 
-      assert.strictEqual(count, 0, 'precond');
+//       assert.strictEqual(count, 1, 'computed');
 
-      assert.equal(valueForRef(outerRef), 'bar');
-      assert.equal(valueForRef(outerRef), 'bar');
-      assert.equal(valueForRef(outerRef), 'bar');
+//       second.set('foo', 'BAR');
 
-      assert.strictEqual(count, 1, 'computed');
+//       assert.equal(valueForRef(outerRef), 'bar');
+//       assert.equal(valueForRef(outerRef), 'bar');
+//       assert.equal(valueForRef(outerRef), 'bar');
 
-      second.set('foo', 'BAR');
+//       assert.strictEqual(count, 1, 'computed');
 
-      assert.equal(valueForRef(outerRef), 'bar');
-      assert.equal(valueForRef(outerRef), 'bar');
-      assert.equal(valueForRef(outerRef), 'bar');
+//       first.set('foo', 'BAR');
 
-      assert.strictEqual(count, 1, 'computed');
+//       assert.equal(valueForRef(outerRef), 'BAR');
+//       assert.equal(valueForRef(outerRef), 'BAR');
+//       assert.equal(valueForRef(outerRef), 'BAR');
 
-      first.set('foo', 'BAR');
+//       assert.strictEqual(count, 2, 'computed');
+//     });
 
-      assert.equal(valueForRef(outerRef), 'BAR');
-      assert.equal(valueForRef(outerRef), 'BAR');
-      assert.equal(valueForRef(outerRef), 'BAR');
+//     test('can create children of compute refs', (assert) => {
+//       class Child {
+//         @tracked value = 123;
+//       }
 
-      assert.strictEqual(count, 2, 'computed');
-    });
+//       class Parent {
+//         @tracked child = new Child();
+//       }
 
-    test('can create children of compute refs', (assert) => {
-      class Child {
-        @tracked value = 123;
-      }
+//       let parent = new Parent();
 
-      class Parent {
-        @tracked child = new Child();
-      }
+//       let computeRef = createComputeRef(() => parent.child);
+//       let valueRef = pathSourceFor(computeRef, 'value');
 
-      let parent = new Parent();
+//       assert.equal(valueForRef(valueRef), 123, 'value is correct');
+//       assert.equal(valueForRef(valueRef), 123, 'value is correct');
+//       assert.equal(getCount, 1, 'get called correct number of times');
 
-      let computeRef = createComputeRef(() => parent.child);
-      let valueRef = childRefFor(computeRef, 'value');
+//       parent.child.value = 456;
 
-      assert.equal(valueForRef(valueRef), 123, 'value is correct');
-      assert.equal(valueForRef(valueRef), 123, 'value is correct');
-      assert.equal(getCount, 1, 'get called correct number of times');
+//       assert.equal(valueForRef(valueRef), 456, 'value updated correctly');
+//       assert.equal(valueForRef(valueRef), 456, 'value is correct');
+//       assert.equal(getCount, 2, 'get called correct number of times');
 
-      parent.child.value = 456;
+//       assert.equal(isUpdatableSource(valueRef), true, 'childRef is updatable');
 
-      assert.equal(valueForRef(valueRef), 456, 'value updated correctly');
-      assert.equal(valueForRef(valueRef), 456, 'value is correct');
-      assert.equal(getCount, 2, 'get called correct number of times');
+//       updateSource(valueRef, 789);
 
-      assert.equal(isUpdatableRef(valueRef), true, 'childRef is updatable');
+//       assert.equal(valueForRef(valueRef), 789, 'value updated correctly');
+//       assert.equal(getCount, 3, 'get called correct number of times');
+//       assert.equal(setCount, 1, 'set called correct number of times');
 
-      updateRef(valueRef, 789);
+//       parent.child = new Child();
 
-      assert.equal(valueForRef(valueRef), 789, 'value updated correctly');
-      assert.equal(getCount, 3, 'get called correct number of times');
-      assert.equal(setCount, 1, 'set called correct number of times');
+//       assert.equal(valueForRef(valueRef), 123, 'value updated correctly when parent changes');
+//       assert.equal(getCount, 4, 'get called correct number of times');
+//     });
+//   });
 
-      parent.child = new Child();
+//   module('unbound ref', () => {
+//     test('it works', (assert) => {
+//       let value = {};
+//       let constRef = createUnboundSource(value, 'test');
 
-      assert.equal(valueForRef(valueRef), 123, 'value updated correctly when parent changes');
-      assert.equal(getCount, 4, 'get called correct number of times');
-    });
-  });
+//       assert.equal(valueForRef(constRef), value, 'value is correct');
+//       assert.notOk(isUpdatableSource(constRef), 'value is not updatable');
+//     });
 
-  module('unbound ref', () => {
-    test('it works', (assert) => {
-      let value = {};
-      let constRef = createUnboundRef(value, 'test');
+//     test('children of unbound refs are not reactive', (assert) => {
+//       class Parent {
+//         @tracked child = 123;
+//       }
 
-      assert.equal(valueForRef(constRef), value, 'value is correct');
-      assert.notOk(isUpdatableRef(constRef), 'value is not updatable');
-    });
+//       let parent = new Parent();
 
-    test('children of unbound refs are not reactive', (assert) => {
-      class Parent {
-        @tracked child = 123;
-      }
+//       let constRef = createUnboundSource(parent, 'test');
+//       let childRef = pathSourceFor(constRef, 'child');
 
-      let parent = new Parent();
+//       assert.equal(valueForRef(childRef), 123, 'value is correct');
 
-      let constRef = createUnboundRef(parent, 'test');
-      let childRef = childRefFor(constRef, 'child');
+//       parent.child = 456;
 
-      assert.equal(valueForRef(childRef), 123, 'value is correct');
+//       assert.equal(valueForRef(childRef), 123, 'value updated correctly');
+//     });
+//   });
 
-      parent.child = 456;
+//   module('invokable ref', () => {
+//     test('can create invokable refs', (assert) => {
+//       let ref = createComputeRef(
+//         () => {},
+//         () => {}
+//       );
 
-      assert.equal(valueForRef(childRef), 123, 'value updated correctly');
-    });
-  });
+//       let invokableRef = createInvokableSource(ref);
 
-  module('invokable ref', () => {
-    test('can create invokable refs', (assert) => {
-      let ref = createComputeRef(
-        () => {},
-        () => {}
-      );
+//       assert.ok(isInvokableSource(invokableRef));
+//     });
 
-      let invokableRef = createInvokableRef(ref);
+//     test('can create children of invokable refs', (assert) => {
+//       class Child {
+//         @tracked value = 123;
+//       }
 
-      assert.ok(isInvokableRef(invokableRef));
-    });
+//       class Parent {
+//         @tracked child = new Child();
+//       }
 
-    test('can create children of invokable refs', (assert) => {
-      class Child {
-        @tracked value = 123;
-      }
+//       let parent = new Parent();
 
-      class Parent {
-        @tracked child = new Child();
-      }
+//       let computeRef = createComputeRef(
+//         () => parent.child,
+//         (value) => (parent.child = value)
+//       );
+//       let invokableRef = createInvokableSource(computeRef);
+//       let valueRef = pathSourceFor(invokableRef, 'value');
 
-      let parent = new Parent();
+//       assert.equal(valueForRef(valueRef), 123, 'value is correct');
+//       assert.equal(valueForRef(valueRef), 123, 'value is correct');
+//       assert.equal(getCount, 1, 'get called correct number of times');
 
-      let computeRef = createComputeRef(
-        () => parent.child,
-        (value) => (parent.child = value)
-      );
-      let invokableRef = createInvokableRef(computeRef);
-      let valueRef = childRefFor(invokableRef, 'value');
+//       parent.child.value = 456;
 
-      assert.equal(valueForRef(valueRef), 123, 'value is correct');
-      assert.equal(valueForRef(valueRef), 123, 'value is correct');
-      assert.equal(getCount, 1, 'get called correct number of times');
+//       assert.equal(valueForRef(valueRef), 456, 'value updated correctly');
+//       assert.equal(valueForRef(valueRef), 456, 'value is correct');
+//       assert.equal(getCount, 2, 'get called correct number of times');
 
-      parent.child.value = 456;
+//       assert.equal(isUpdatableSource(valueRef), true, 'childRef is updatable');
 
-      assert.equal(valueForRef(valueRef), 456, 'value updated correctly');
-      assert.equal(valueForRef(valueRef), 456, 'value is correct');
-      assert.equal(getCount, 2, 'get called correct number of times');
+//       updateSource(valueRef, 789);
 
-      assert.equal(isUpdatableRef(valueRef), true, 'childRef is updatable');
+//       assert.equal(valueForRef(valueRef), 789, 'value updated correctly');
+//       assert.equal(getCount, 3, 'get called correct number of times');
+//       assert.equal(setCount, 1, 'set called correct number of times');
 
-      updateRef(valueRef, 789);
+//       parent.child = new Child();
 
-      assert.equal(valueForRef(valueRef), 789, 'value updated correctly');
-      assert.equal(getCount, 3, 'get called correct number of times');
-      assert.equal(setCount, 1, 'set called correct number of times');
+//       assert.equal(valueForRef(valueRef), 123, 'value updated correctly when parent changes');
+//       assert.equal(getCount, 4, 'get called correct number of times');
+//     });
+//   });
 
-      parent.child = new Child();
+//   module('read only ref', () => {
+//     test('can convert an updatable ref to read only', (assert) => {
+//       class Parent {
+//         @tracked child = 123;
+//       }
 
-      assert.equal(valueForRef(valueRef), 123, 'value updated correctly when parent changes');
-      assert.equal(getCount, 4, 'get called correct number of times');
-    });
-  });
+//       let parent = new Parent();
 
-  module('read only ref', () => {
-    test('can convert an updatable ref to read only', (assert) => {
-      class Parent {
-        @tracked child = 123;
-      }
+//       let computeRef = createComputeRef(
+//         () => parent.child,
+//         (value) => (parent.child = value)
+//       );
 
-      let parent = new Parent();
+//       let readOnlyRef = createReadOnlySource(computeRef);
 
-      let computeRef = createComputeRef(
-        () => parent.child,
-        (value) => (parent.child = value)
-      );
+//       assert.ok(isUpdatableSource(computeRef), 'original ref is updatable');
+//       assert.notOk(isUpdatableSource(readOnlyRef), 'read only ref is not updatable');
+//     });
 
-      let readOnlyRef = createReadOnlyRef(computeRef);
+//     test('can create children of read only refs', (assert) => {
+//       class Child {
+//         @tracked value = 123;
+//       }
 
-      assert.ok(isUpdatableRef(computeRef), 'original ref is updatable');
-      assert.notOk(isUpdatableRef(readOnlyRef), 'read only ref is not updatable');
-    });
+//       class Parent {
+//         @tracked child = new Child();
+//       }
 
-    test('can create children of read only refs', (assert) => {
-      class Child {
-        @tracked value = 123;
-      }
+//       let parent = new Parent();
 
-      class Parent {
-        @tracked child = new Child();
-      }
+//       let computeRef = createComputeRef(
+//         () => parent.child,
+//         (value) => (parent.child = value)
+//       );
+//       let readOnlyRef = createReadOnlySource(computeRef);
+//       let valueRef = pathSourceFor(readOnlyRef, 'value');
 
-      let parent = new Parent();
+//       assert.equal(valueForRef(valueRef), 123, 'value is correct');
+//       assert.equal(valueForRef(valueRef), 123, 'value is correct');
+//       assert.equal(getCount, 1, 'get called correct number of times');
 
-      let computeRef = createComputeRef(
-        () => parent.child,
-        (value) => (parent.child = value)
-      );
-      let readOnlyRef = createReadOnlyRef(computeRef);
-      let valueRef = childRefFor(readOnlyRef, 'value');
+//       parent.child.value = 456;
 
-      assert.equal(valueForRef(valueRef), 123, 'value is correct');
-      assert.equal(valueForRef(valueRef), 123, 'value is correct');
-      assert.equal(getCount, 1, 'get called correct number of times');
+//       assert.equal(valueForRef(valueRef), 456, 'value updated correctly');
+//       assert.equal(valueForRef(valueRef), 456, 'value is correct');
+//       assert.equal(getCount, 2, 'get called correct number of times');
 
-      parent.child.value = 456;
+//       assert.equal(isUpdatableSource(valueRef), true, 'childRef is updatable');
 
-      assert.equal(valueForRef(valueRef), 456, 'value updated correctly');
-      assert.equal(valueForRef(valueRef), 456, 'value is correct');
-      assert.equal(getCount, 2, 'get called correct number of times');
+//       updateSource(valueRef, 789);
 
-      assert.equal(isUpdatableRef(valueRef), true, 'childRef is updatable');
+//       assert.equal(valueForRef(valueRef), 789, 'value updated correctly');
+//       assert.equal(getCount, 3, 'get called correct number of times');
+//       assert.equal(setCount, 1, 'set called correct number of times');
 
-      updateRef(valueRef, 789);
+//       parent.child = new Child();
 
-      assert.equal(valueForRef(valueRef), 789, 'value updated correctly');
-      assert.equal(getCount, 3, 'get called correct number of times');
-      assert.equal(setCount, 1, 'set called correct number of times');
+//       assert.equal(valueForRef(valueRef), 123, 'value updated correctly when parent changes');
+//       assert.equal(getCount, 4, 'get called correct number of times');
+//     });
+//   });
 
-      parent.child = new Child();
+//   if (DEBUG) {
+//     module('debugAliasRef', () => {
+//       test('debug alias refs are transparent', (assert) => {
+//         class Foo {
+//           @tracked value = 123;
+//         }
 
-      assert.equal(valueForRef(valueRef), 123, 'value updated correctly when parent changes');
-      assert.equal(getCount, 4, 'get called correct number of times');
-    });
-  });
+//         let foo = new Foo();
 
-  if (DEBUG) {
-    module('debugAliasRef', () => {
-      test('debug alias refs are transparent', (assert) => {
-        class Foo {
-          @tracked value = 123;
-        }
+//         let original = createComputeRef(
+//           () => foo.value,
+//           (newValue) => (foo.value = newValue)
+//         );
 
-        let foo = new Foo();
+//         let alias = createDebugAliasSource!('@test', original);
 
-        let original = createComputeRef(
-          () => foo.value,
-          (newValue) => (foo.value = newValue)
-        );
+//         assert.equal(valueForRef(original), 123, 'alias returns correct value');
+//         assert.equal(valueForRef(alias), 123, 'alias returns correct value');
+//         assert.ok(isUpdatableSource(alias), 'alias is updatable');
 
-        let alias = createDebugAliasRef!('@test', original);
+//         updateSource(alias, 456);
 
-        assert.equal(valueForRef(original), 123, 'alias returns correct value');
-        assert.equal(valueForRef(alias), 123, 'alias returns correct value');
-        assert.ok(isUpdatableRef(alias), 'alias is updatable');
+//         assert.equal(valueForRef(original), 456, 'alias returns correct value');
+//         assert.equal(valueForRef(alias), 456, 'alias returns correct value');
 
-        updateRef(alias, 456);
+//         let readOnly = createReadOnlySource(original);
+//         let readOnlyAlias = createDebugAliasSource!('@test', readOnly);
 
-        assert.equal(valueForRef(original), 456, 'alias returns correct value');
-        assert.equal(valueForRef(alias), 456, 'alias returns correct value');
+//         assert.equal(valueForRef(readOnly), 456, 'alias returns correct value');
+//         assert.equal(valueForRef(readOnlyAlias), 456, 'alias returns correct value');
+//         assert.notOk(isUpdatableSource(readOnly), 'alias is not updatable');
 
-        let readOnly = createReadOnlyRef(original);
-        let readOnlyAlias = createDebugAliasRef!('@test', readOnly);
+//         let invokable = createInvokableSource(original);
+//         let invokableAlias = createDebugAliasSource!('@test', invokable);
 
-        assert.equal(valueForRef(readOnly), 456, 'alias returns correct value');
-        assert.equal(valueForRef(readOnlyAlias), 456, 'alias returns correct value');
-        assert.notOk(isUpdatableRef(readOnly), 'alias is not updatable');
-
-        let invokable = createInvokableRef(original);
-        let invokableAlias = createDebugAliasRef!('@test', invokable);
-
-        assert.ok(isInvokableRef(invokableAlias), 'alias is invokable');
-      });
-    });
-  }
-});
+//         assert.ok(isInvokableSource(invokableAlias), 'alias is invokable');
+//       });
+//     });
+//   }
+// });

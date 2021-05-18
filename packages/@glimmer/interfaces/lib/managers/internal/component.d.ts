@@ -1,5 +1,3 @@
-// eslint-disable-next-line node/no-extraneous-import
-import { Reference } from '@glimmer/reference';
 import { SimpleElement } from '@simple-dom/interface';
 import { PreparedArguments, ComponentInstanceState } from '../../components';
 import { Option, Destroyable } from '../../core';
@@ -13,6 +11,7 @@ import { ProgramSymbolTable } from '../../tier1/symbol-table';
 import { DynamicScope } from '../../runtime/scope';
 import { RenderNode } from '../../runtime/debug-render-tree';
 import { Owner } from '../../runtime';
+import { Source } from '../../tracking';
 
 /**
  * Describes the capabilities of a particular component. The capabilities are
@@ -136,7 +135,7 @@ export interface InternalComponentManager<
   TComponentDefinition = object
 > {
   getCapabilities(state: TComponentDefinition): InternalComponentCapabilities;
-  getSelf(state: TComponentStateBucket): Reference;
+  getSelf(state: TComponentStateBucket): Source;
   getDestroyable(state: TComponentStateBucket): Option<Destroyable>;
   getDebugName(state: TComponentDefinition): string;
 }
@@ -189,7 +188,7 @@ export interface WithCreateInstance<
     args: Option<VMArguments>,
     env: Environment,
     dynamicScope: Option<DynamicScope>,
-    caller: Option<Reference>,
+    caller: Option<Source>,
     hasDefaultBlock: boolean
   ): ComponentInstanceState;
 

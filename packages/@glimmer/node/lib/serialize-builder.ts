@@ -1,8 +1,14 @@
-import type { Bounds, Environment, Option, ElementBuilder, Maybe } from '@glimmer/interfaces';
+import type {
+  Bounds,
+  Environment,
+  Option,
+  ElementBuilder,
+  Maybe,
+  Source,
+} from '@glimmer/interfaces';
 import { ConcreteBounds, NewElementBuilder } from '@glimmer/runtime';
 import { RemoteLiveBlock } from '@glimmer/runtime';
 import type { SimpleElement, SimpleNode, SimpleText } from '@simple-dom/interface';
-import { Cache } from '@glimmer/validator';
 
 const TEXT_NODE = 3;
 
@@ -88,7 +94,7 @@ class SerializeBuilder extends NewElementBuilder implements ElementBuilder {
     return super.__appendText(string);
   }
 
-  closeElement(): Option<Cache[]> {
+  closeElement(): Option<Source[]> {
     if (NEEDS_EXTRA_CLOSE.has(this.element)) {
       NEEDS_EXTRA_CLOSE.delete(this.element);
       super.closeElement();

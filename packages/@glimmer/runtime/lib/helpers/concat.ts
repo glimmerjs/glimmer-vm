@@ -1,5 +1,5 @@
 import { CapturedArguments } from '@glimmer/interfaces';
-import { createComputeRef } from '@glimmer/reference';
+import { createCache } from '@glimmer/validator';
 import { reifyPositional } from '@glimmer/runtime';
 import { internalHelper } from './internal-helper';
 
@@ -35,9 +35,5 @@ const normalizeTextValue = (value: unknown): string => {
   @method concat
 */
 export default internalHelper(({ positional }: CapturedArguments) => {
-  return createComputeRef(
-    () => reifyPositional(positional).map(normalizeTextValue).join(''),
-    null,
-    'concat'
-  );
+  return createCache(() => reifyPositional(positional).map(normalizeTextValue).join(''), 'concat');
 });

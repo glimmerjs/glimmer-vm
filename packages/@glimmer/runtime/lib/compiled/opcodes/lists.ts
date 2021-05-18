@@ -1,28 +1,29 @@
-import { createIteratorRef, valueForRef } from '@glimmer/reference';
+import { createIteratorSource } from '@glimmer/reference';
+import { getValue } from '@glimmer/validator';
 import { APPEND_OPCODES } from '../../opcodes';
-import { CheckReference, CheckIterator } from './-debug-strip';
+import { CheckSource, CheckIterator } from './-debug-strip';
 import { check } from '@glimmer/debug';
 import { Op } from '@glimmer/interfaces';
 import { AssertFilter } from './vm';
 
 APPEND_OPCODES.add(Op.EnterList, (vm, { op1: relativeStart, op2: elseTarget }) => {
   let stack = vm.stack;
-  let listRef = check(stack.pop(), CheckReference);
-  let keyRef = check(stack.pop(), CheckReference);
+  let listSource = check(stack.pop(), CheckSource);
+  let keySource = check(stack.pop(), CheckSource);
 
-  let keyValue = valueForRef(keyRef);
+  let keyValue = getValue(keySource);
   let key = keyValue === null ? '@identity' : String(keyValue);
 
-  let iteratorRef = createIteratorRef(listRef, key);
-  let iterator = valueForRef(iteratorRef);
+  let iteratorSource = createIteratorSource(listSource, key);
+  let iterator = getValue(iteratorSource);
 
-  vm.updateWith(new AssertFilter(iteratorRef, (iterator) => iterator.isEmpty()));
+  vm.updateWith(new AssertFilter(iteratorSource, (iterator) => iterator.isEmpty()));
 
   if (iterator.isEmpty() === true) {
     // TODO: Fix this offset, should be accurate
     vm.goto(elseTarget + 1);
   } else {
-    vm.enterList(iteratorRef, relativeStart);
+    vm.enterList(iteratorSource, relativeStart);
     vm.stack.push(iterator);
   }
 });

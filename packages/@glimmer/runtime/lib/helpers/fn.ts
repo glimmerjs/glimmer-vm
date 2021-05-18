@@ -1,12 +1,7 @@
 import { DEBUG } from '@glimmer/env';
-import { CapturedArguments } from '@glimmer/interfaces';
-import {
-  createComputeRef,
-  isInvokableRef,
-  Reference,
-  updateRef,
-  valueForRef,
-} from '@glimmer/reference';
+import { CapturedArguments, Source } from '@glimmer/interfaces';
+import { isInvokableSource, updateSource } from '@glimmer/reference';
+import { getValue, createCache, getDebugLabel } from '@glimmer/validator';
 import { reifyPositional } from '@glimmer/runtime';
 import { buildUntouchableThis } from '@glimmer/util';
 import { internalHelper } from './internal-helper';
@@ -78,41 +73,37 @@ const context = buildUntouchableThis('`fn` helper');
   @public
 */
 export default internalHelper(({ positional }: CapturedArguments) => {
-  let callbackRef = positional[0];
+  let callbackSource = positional[0];
 
-  if (DEBUG) assertCallbackIsFn(callbackRef);
+  if (DEBUG) assertCallbackIsFn(callbackSource);
 
-  return createComputeRef(
-    () => {
-      return (...invocationArgs: unknown[]) => {
-        let [fn, ...args] = reifyPositional(positional);
+  return createCache(() => {
+    return (...invocationArgs: unknown[]) => {
+      let [fn, ...args] = reifyPositional(positional);
 
-        if (DEBUG) assertCallbackIsFn(callbackRef);
+      if (DEBUG) assertCallbackIsFn(callbackSource);
 
-        if (isInvokableRef(callbackRef)) {
-          let value = args.length > 0 ? args[0] : invocationArgs[0];
-          return updateRef(callbackRef, value);
-        } else {
-          return (fn as Function).call(context, ...args, ...invocationArgs);
-        }
-      };
-    },
-    null,
-    'fn'
-  );
+      if (isInvokableSource(callbackSource)) {
+        let value = args.length > 0 ? args[0] : invocationArgs[0];
+        return updateSource(callbackSource, value);
+      } else {
+        return (fn as Function).call(context, ...args, ...invocationArgs);
+      }
+    };
+  }, 'fn');
 });
 
-function assertCallbackIsFn(callbackRef: Reference) {
+function assertCallbackIsFn(callbackSource: Source) {
   if (
     !(
-      callbackRef &&
-      (isInvokableRef(callbackRef) || typeof valueForRef(callbackRef) === 'function')
+      callbackSource &&
+      (isInvokableSource(callbackSource) || typeof getValue(callbackSource) === 'function')
     )
   ) {
     throw new Error(
       `You must pass a function as the \`fn\` helpers first argument, you passed ${
-        callbackRef ? valueForRef(callbackRef) : callbackRef
-      }. While rendering:\n\n${callbackRef?.debugLabel}`
+        callbackSource ? getValue(callbackSource) : callbackSource
+      }. While rendering:\n\n${callbackSource && getDebugLabel(callbackSource)}`
     );
   }
 }
