@@ -48,8 +48,16 @@ import { DEBUG } from '@glimmer/env';
 import createCurryRef from '../../references/curry-value';
 import { isCurriedType, resolveCurriedValue } from '../../curried-value';
 import { reifyPositional } from '../../vm/arguments';
+import createDynamicElementRef from '../../references/dynamic-element';
 
 export type FunctionExpression<T> = (vm: PublicVM) => Reference<T>;
+
+APPEND_OPCODES.add(Op.DynamicElement, (vm) => {
+  let stack = vm.stack;
+  let tagName = check(stack.pop(), CheckReference);
+
+  vm.loadValue($v0, createDynamicElementRef(tagName));
+});
 
 APPEND_OPCODES.add(Op.Curry, (vm, { op1: type, op2: _isStrict }) => {
   let stack = vm.stack;
