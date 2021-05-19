@@ -2,6 +2,7 @@ export * from './lib/core';
 export * from './lib/compile';
 export * from './lib/components';
 export * from './lib/curry';
+export * from './lib/effects';
 export * from './lib/managers';
 export * from './lib/content';
 export * from './lib/array';

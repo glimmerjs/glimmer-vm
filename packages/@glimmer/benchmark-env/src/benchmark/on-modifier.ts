@@ -1,7 +1,6 @@
 import { CapturedArguments, InternalModifierManager, Owner } from '@glimmer/interfaces';
 import { Reference, valueForRef } from '@glimmer/reference';
 import { castToBrowser } from '@glimmer/util';
-import { createUpdatableTag } from '@glimmer/validator';
 import { SimpleElement } from '@simple-dom/interface';
 
 interface OnModifierState {
@@ -49,10 +48,6 @@ class OnModifierManager implements InternalModifierManager<OnModifierState, obje
 
   getDestroyable(state: OnModifierState) {
     return state;
-  }
-
-  getTag() {
-    return createUpdatableTag();
   }
 }
 
