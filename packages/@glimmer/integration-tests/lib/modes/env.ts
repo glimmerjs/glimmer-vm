@@ -198,6 +198,10 @@ export const BaseEnv: EnvironmentDelegate = {
 
   enableDebugTooling: false,
 
+  scheduleEffects(_phase, callback) {
+    callback();
+  },
+
   onTransactionCommit() {
     for (let i = 0; i < scheduledDestroyables.length; i++) {
       scheduledDestructors[i](scheduledDestroyables[i]);

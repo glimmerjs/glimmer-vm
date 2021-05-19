@@ -872,18 +872,13 @@ operand-stack = [
 
 [syscall.comp_commit]
 
-format = "CommitComponentTransaction"
+format = ["CommitComponentTransaction", "state:register"]
 operation = "Commit the current cache group"
 
 [syscall.comp_created]
 
 format = ["DidCreateElement", "state:register"]
 operation = "Invoke didCreateElement on the current component manager"
-
-[syscall.comp_rendered]
-
-format = ["DidRenderLayout", "state:register"]
-operation = "Invoke didRenderLayout on the current component manager"
 
 [syscall.invokepartial]
 

@@ -314,7 +314,7 @@ function InvokeStaticComponent(
   op(Op.Constant, layoutOperand(layout));
   op(Op.CompileBlock);
   op(MachineOp.InvokeVirtual);
-  op(Op.DidRenderLayout, $s0);
+  op(Op.CommitComponentTransaction, $s0);
 
   op(MachineOp.PopFrame);
   op(Op.PopScope);
@@ -323,7 +323,6 @@ function InvokeStaticComponent(
     op(Op.PopDynamicScope);
   }
 
-  op(Op.CommitComponentTransaction);
   op(Op.Load, $s0);
 }
 
@@ -422,12 +421,11 @@ export function invokePreparedComponent(
 
   op(Op.Pop, 1);
   op(Op.InvokeComponentLayout, $s0);
-  op(Op.DidRenderLayout, $s0);
-  op(MachineOp.PopFrame);
+  op(Op.CommitComponentTransaction, $s0);
 
+  op(MachineOp.PopFrame);
   op(Op.PopScope);
   op(Op.PopDynamicScope);
-  op(Op.CommitComponentTransaction);
 }
 
 export function InvokeBareComponent(op: PushStatementOp): void {

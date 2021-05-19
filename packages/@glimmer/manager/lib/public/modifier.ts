@@ -178,10 +178,6 @@ export class CustomModifierManager<O extends Owner, ModifierInstance>
     return debugName!;
   }
 
-  getTag({ tag }: CustomModifierState<ModifierInstance>) {
-    return tag;
-  }
-
   install({ element, args, modifier, delegate }: CustomModifierState<ModifierInstance>) {
     let { capabilities } = delegate;
 

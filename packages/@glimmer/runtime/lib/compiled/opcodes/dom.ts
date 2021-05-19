@@ -1,12 +1,5 @@
 import { Reference, valueForRef, isConstRef, createComputeRef } from '@glimmer/reference';
-import {
-  Revision,
-  Tag,
-  valueForTag,
-  validateTag,
-  consumeTag,
-  CURRENT_TAG,
-} from '@glimmer/validator';
+import { Cache, createCache, getValue } from '@glimmer/validator';
 import {
   check,
   CheckString,
@@ -25,8 +18,8 @@ import {
   CurriedType,
   ModifierDefinitionState,
   Environment,
-  UpdatingVM,
   UpdatingOpcode,
+  EffectPhase,
 } from '@glimmer/interfaces';
 import { $t0 } from '@glimmer/vm';
 import { APPEND_OPCODES } from '../../opcodes';
@@ -37,7 +30,7 @@ import { CONSTANTS } from '../../symbols';
 import { assign, debugToString, expect, isObject } from '@glimmer/util';
 import { CurriedValue, isCurriedType, resolveCurriedValue } from '../../curried-value';
 import { DEBUG } from '@glimmer/env';
-import { associateDestroyableChild, destroy } from '@glimmer/destroyable';
+import { associateDestroyableChild, destroy, isDestroying } from '@glimmer/destroyable';
 
 APPEND_OPCODES.add(Op.Text, (vm, { op1: text }) => {
   vm.elements().appendText(vm[CONSTANTS].getValue(text));
@@ -83,7 +76,7 @@ APPEND_OPCODES.add(Op.PopRemoteElement, (vm) => {
 
 APPEND_OPCODES.add(Op.FlushElement, (vm) => {
   let operations = check(vm.fetchValue($t0), CheckOperations);
-  let modifiers: Option<ModifierInstance[]> = null;
+  let modifiers: Option<Cache[]> = null;
 
   if (operations) {
     modifiers = operations.flush(vm);
@@ -98,13 +91,8 @@ APPEND_OPCODES.add(Op.CloseElement, (vm) => {
 
   if (modifiers) {
     modifiers.forEach((modifier) => {
-      vm.env.scheduleInstallModifier(modifier);
-      let { manager, state } = modifier;
-      let d = manager.getDestroyable(state);
-
-      if (d) {
-        vm.associateDestroyable(d);
-      }
+      vm.env.registerEffect(EffectPhase.Layout, modifier);
+      vm.associateDestroyable(modifier);
     });
   }
 });
@@ -129,25 +117,32 @@ APPEND_OPCODES.add(Op.Modifier, (vm, { op1: handle }) => {
     args.capture()
   );
 
-  let instance: ModifierInstance = {
-    manager,
-    state,
-    definition,
-  };
-
   let operations = expect(
     check(vm.fetchValue($t0), CheckOperations),
     'BUG: ElementModifier could not find operations to append to'
   );
 
-  operations.addModifier(instance);
+  let didSetup = false;
 
-  let tag = manager.getTag(state);
+  let cache = createCache(() => {
+    if (isDestroying(cache)) return;
 
-  if (tag !== null) {
-    consumeTag(tag);
-    return vm.updateWith(new UpdateModifierOpcode(tag, instance));
+    if (didSetup === false) {
+      didSetup = true;
+
+      manager.install(state);
+    } else {
+      manager.update(state);
+    }
+  }, DEBUG && `- While rendering:\n  (instance of a \`${definition.resolvedName || manager.getDebugName(definition.state)}\` modifier)`);
+
+  let d = manager.getDestroyable(state);
+
+  if (d) {
+    associateDestroyableChild(cache, d);
   }
+
+  operations.addModifier(cache);
 });
 
 APPEND_OPCODES.add(Op.DynamicModifier, (vm) => {
@@ -161,7 +156,7 @@ APPEND_OPCODES.add(Op.DynamicModifier, (vm) => {
   let { constructing } = vm.elements();
   let initialOwner = vm.getOwner();
 
-  let instanceRef = createComputeRef(() => {
+  let instanceCache = createCache(() => {
     let value = valueForRef(ref);
     let owner: Owner;
 
@@ -226,65 +221,14 @@ APPEND_OPCODES.add(Op.DynamicModifier, (vm) => {
     };
   });
 
-  let instance = valueForRef(instanceRef);
-  let tag = null;
+  let instance: ModifierInstance | undefined;
 
-  if (instance !== undefined) {
-    let operations = expect(
-      check(vm.fetchValue($t0), CheckOperations),
-      'BUG: ElementModifier could not find operations to append to'
-    );
+  let cache = createCache(() => {
+    if (isDestroying(cache)) return;
 
-    operations.addModifier(instance);
+    let newInstance = getValue(instanceCache);
 
-    tag = instance.manager.getTag(instance.state);
-
-    if (tag !== null) {
-      consumeTag(tag);
-    }
-  }
-
-  if (!isConstRef(ref) || tag) {
-    return vm.updateWith(new UpdateDynamicModifierOpcode(tag, instance, instanceRef));
-  }
-});
-
-export class UpdateModifierOpcode implements UpdatingOpcode {
-  private lastUpdated: Revision;
-
-  constructor(private tag: Tag, private modifier: ModifierInstance) {
-    this.lastUpdated = valueForTag(tag);
-  }
-
-  evaluate(vm: UpdatingVM) {
-    let { modifier, tag, lastUpdated } = this;
-
-    consumeTag(tag);
-
-    if (!validateTag(tag, lastUpdated)) {
-      vm.env.scheduleUpdateModifier(modifier);
-      this.lastUpdated = valueForTag(tag);
-    }
-  }
-}
-
-export class UpdateDynamicModifierOpcode implements UpdatingOpcode {
-  private lastUpdated: Revision;
-
-  constructor(
-    private tag: Tag | null,
-    private instance: ModifierInstance | undefined,
-    private instanceRef: Reference<ModifierInstance | undefined>
-  ) {
-    this.lastUpdated = valueForTag(tag ?? CURRENT_TAG);
-  }
-
-  evaluate(vm: UpdatingVM) {
-    let { tag, lastUpdated, instance, instanceRef } = this;
-
-    let newInstance = valueForRef(instanceRef);
-
-    if (newInstance !== instance) {
+    if (instance !== newInstance) {
       if (instance !== undefined) {
         let destroyable = instance.manager.getDestroyable(instance.state);
 
@@ -298,30 +242,25 @@ export class UpdateDynamicModifierOpcode implements UpdatingOpcode {
         let destroyable = manager.getDestroyable(state);
 
         if (destroyable !== null) {
-          associateDestroyableChild(this, destroyable);
+          associateDestroyableChild(cache, destroyable);
         }
 
-        tag = manager.getTag(state);
-
-        if (tag !== null) {
-          this.lastUpdated = valueForTag(tag);
-        }
-
-        this.tag = tag;
-        vm.env.scheduleInstallModifier(newInstance!);
+        manager.install(newInstance.state);
       }
 
-      this.instance = newInstance;
-    } else if (tag !== null && !validateTag(tag, lastUpdated)) {
-      vm.env.scheduleUpdateModifier(instance!);
-      this.lastUpdated = valueForTag(tag);
+      instance = newInstance;
+    } else if (instance !== undefined) {
+      instance.manager.update(instance.state);
     }
+  }, DEBUG && `- While rendering:\n  (instance of a dynamic modifier)`);
 
-    if (tag !== null) {
-      consumeTag(tag);
-    }
-  }
-}
+  let operations = expect(
+    check(vm.fetchValue($t0), CheckOperations),
+    'BUG: ElementModifier could not find operations to append to'
+  );
+
+  operations.addModifier(cache);
+});
 
 APPEND_OPCODES.add(Op.StaticAttr, (vm, { op1: _name, op2: _value, op3: _namespace }) => {
   let name = vm[CONSTANTS].getValue<string>(_name);

@@ -4,114 +4,23 @@ import {
   EnvironmentOptions,
   GlimmerTreeChanges,
   GlimmerTreeConstruction,
-  Transaction,
   TransactionSymbol,
   RuntimeContext,
   RuntimeResolver,
-  Option,
   RuntimeArtifacts,
-  ComponentInstanceWithCreate,
-  ModifierInstance,
-  InternalModifierManager,
-  ModifierInstanceState,
+  EffectPhase,
 } from '@glimmer/interfaces';
 import { assert, expect, symbol } from '@glimmer/util';
-import { track, updateTag } from '@glimmer/validator';
+import { Cache } from '@glimmer/validator';
 import { DOMChangesImpl, DOMTreeConstruction } from './dom/helper';
 import { RuntimeProgramImpl } from '@glimmer/program';
 import DebugRenderTree from './debug-render-tree';
+import { EffectsManager } from './effects';
 
 export const TRANSACTION: TransactionSymbol = symbol('TRANSACTION');
 
-class TransactionImpl implements Transaction {
-  public scheduledInstallModifiers: ModifierInstance[] = [];
-  public scheduledUpdateModifiers: ModifierInstance[] = [];
-  public createdComponents: ComponentInstanceWithCreate[] = [];
-  public updatedComponents: ComponentInstanceWithCreate[] = [];
-
-  didCreate(component: ComponentInstanceWithCreate) {
-    this.createdComponents.push(component);
-  }
-
-  didUpdate(component: ComponentInstanceWithCreate) {
-    this.updatedComponents.push(component);
-  }
-
-  scheduleInstallModifier(modifier: ModifierInstance) {
-    this.scheduledInstallModifiers.push(modifier);
-  }
-
-  scheduleUpdateModifier(modifier: ModifierInstance) {
-    this.scheduledUpdateModifiers.push(modifier);
-  }
-
-  commit() {
-    let { createdComponents, updatedComponents } = this;
-
-    for (let i = 0; i < createdComponents.length; i++) {
-      let { manager, state } = createdComponents[i];
-      manager.didCreate(state);
-    }
-
-    for (let i = 0; i < updatedComponents.length; i++) {
-      let { manager, state } = updatedComponents[i];
-      manager.didUpdate(state);
-    }
-
-    let { scheduledInstallModifiers, scheduledUpdateModifiers } = this;
-
-    // Prevent a transpilation issue we guard against in Ember, the
-    // throw-if-closure-required issue
-    let manager: InternalModifierManager, state: ModifierInstanceState;
-
-    for (let i = 0; i < scheduledInstallModifiers.length; i++) {
-      let modifier = scheduledInstallModifiers[i];
-      manager = modifier.manager;
-      state = modifier.state;
-
-      let modifierTag = manager.getTag(state);
-
-      if (modifierTag !== null) {
-        let tag = track(
-          // eslint-disable-next-line no-loop-func
-          () => manager.install(state),
-          DEBUG &&
-            `- While rendering:\n  (instance of a \`${
-              modifier.definition.resolvedName || manager.getDebugName(modifier.definition.state)
-            }\` modifier)`
-        );
-        updateTag(modifierTag, tag);
-      } else {
-        manager.install(state);
-      }
-    }
-
-    for (let i = 0; i < scheduledUpdateModifiers.length; i++) {
-      let modifier = scheduledUpdateModifiers[i];
-      manager = modifier.manager;
-      state = modifier.state;
-
-      let modifierTag = manager.getTag(state);
-
-      if (modifierTag !== null) {
-        let tag = track(
-          // eslint-disable-next-line no-loop-func
-          () => manager.update(state),
-          DEBUG &&
-            `- While rendering:\n  (instance of a \`${
-              modifier.definition.resolvedName || manager.getDebugName(modifier.definition.state)
-            }\` modifier)`
-        );
-        updateTag(modifierTag, tag);
-      } else {
-        manager.update(state);
-      }
-    }
-  }
-}
-
 export class EnvironmentImpl implements Environment {
-  [TRANSACTION]: Option<TransactionImpl> = null;
+  [TRANSACTION] = false;
 
   protected appendOperations!: GlimmerTreeConstruction;
   protected updateOperations?: GlimmerTreeChanges;
@@ -120,6 +29,8 @@ export class EnvironmentImpl implements Environment {
   public isInteractive = this.delegate.isInteractive;
 
   debugRenderTree = this.delegate.enableDebugTooling ? new DebugRenderTree() : undefined;
+
+  private effectManager = new EffectsManager(this.delegate.scheduleEffects);
 
   constructor(options: EnvironmentOptions, private delegate: EnvironmentDelegate) {
     if (options.appendOperations) {
@@ -150,39 +61,21 @@ export class EnvironmentImpl implements Environment {
       'A glimmer transaction was begun, but one already exists. You may have a nested transaction, possibly caused by an earlier runtime exception while rendering. Please check your console for the stack trace of any prior exceptions.'
     );
 
+    this.effectManager.begin();
+
     this.debugRenderTree?.begin();
 
-    this[TRANSACTION] = new TransactionImpl();
+    this[TRANSACTION] = true;
   }
 
-  private get transaction(): TransactionImpl {
-    return expect(this[TRANSACTION]!, 'must be in a transaction');
-  }
-
-  didCreate(component: ComponentInstanceWithCreate) {
-    this.transaction.didCreate(component);
-  }
-
-  didUpdate(component: ComponentInstanceWithCreate) {
-    this.transaction.didUpdate(component);
-  }
-
-  scheduleInstallModifier(modifier: ModifierInstance) {
-    if (this.isInteractive) {
-      this.transaction.scheduleInstallModifier(modifier);
-    }
-  }
-
-  scheduleUpdateModifier(modifier: ModifierInstance) {
-    if (this.isInteractive) {
-      this.transaction.scheduleUpdateModifier(modifier);
-    }
+  registerEffect(phase: EffectPhase, effect: Cache) {
+    this.effectManager.registerEffect(phase, effect);
   }
 
   commit() {
-    let transaction = this.transaction;
-    this[TRANSACTION] = null;
-    transaction.commit();
+    this[TRANSACTION] = false;
+
+    this.effectManager.commit();
 
     this.debugRenderTree?.commit();
 
@@ -201,6 +94,17 @@ export interface EnvironmentDelegate {
    * Used to enable debug tooling
    */
   enableDebugTooling: boolean;
+
+  /**
+   * Allows the embedding environment to schedule effects to be run in the future.
+   * Different phases will be passed to this callback, and each one should be
+   * scheduled at an appropriate time for that phase. The callback will be
+   * called at the end each transaction.
+   *
+   * @param phase the phase of effects that are being scheduled
+   * @param runEffects the callback which runs the effects
+   */
+  scheduleEffects: (phase: EffectPhase, runEffects: () => void) => void;
 
   /**
    * Callback to be called when an environment transaction commits

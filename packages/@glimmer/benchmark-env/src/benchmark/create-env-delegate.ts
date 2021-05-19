@@ -116,6 +116,9 @@ export default function createEnvDelegate(isInteractive: boolean): EnvironmentDe
   return {
     isInteractive,
     enableDebugTooling: false,
+    scheduleEffects(_phase, callback) {
+      callback();
+    },
     onTransactionCommit() {
       flush(scheduledDestructors);
       flush(scheduledFinalizers);

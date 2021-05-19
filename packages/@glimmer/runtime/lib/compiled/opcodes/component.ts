@@ -31,12 +31,12 @@ import {
   CapturedArguments,
   CompilableProgram,
   ComponentInstance,
-  ModifierInstance,
-  ComponentInstanceWithCreate,
   Owner,
   CurriedType,
   UpdatingOpcode,
+  EffectPhase,
 } from '@glimmer/interfaces';
+import { Cache, consumeTag, createCache, untrack } from '@glimmer/validator';
 import { isConstRef, Reference, valueForRef } from '@glimmer/reference';
 import {
   assert,
@@ -460,7 +460,7 @@ type DeferredAttribute = {
 export class ComponentElementOperations implements ElementOperations {
   private attributes = dict<DeferredAttribute>();
   private classes: (string | Reference<unknown>)[] = [];
-  private modifiers: ModifierInstance[] = [];
+  private modifiers: Cache[] = [];
 
   setAttribute(
     name: string,
@@ -487,11 +487,11 @@ export class ComponentElementOperations implements ElementOperations {
     this.attributes[name] = deferred;
   }
 
-  addModifier(modifier: ModifierInstance): void {
+  addModifier(modifier: Cache): void {
     this.modifiers.push(modifier);
   }
 
-  flush(vm: InternalVM): ModifierInstance[] {
+  flush(vm: InternalVM): Cache[] {
     let type: DeferredAttribute | undefined;
     let attributes = this.attributes;
 
@@ -826,7 +826,7 @@ APPEND_OPCODES.add(Op.InvokeComponentLayout, (vm, { op1: _state }) => {
   vm.call(state.handle!);
 });
 
-APPEND_OPCODES.add(Op.DidRenderLayout, (vm, { op1: _state }) => {
+APPEND_OPCODES.add(Op.CommitComponentTransaction, (vm, { op1: _state }) => {
   let instance = check(vm.fetchValue(_state), CheckComponentInstance);
   let { manager, state, capabilities } = instance;
   let bounds = vm.elements().popBlock();
@@ -849,17 +849,40 @@ APPEND_OPCODES.add(Op.DidRenderLayout, (vm, { op1: _state }) => {
     }
   }
 
+  let tag = vm.commitCacheGroup();
+
   if (managerHasCapability(manager, capabilities, InternalComponentCapability.CreateInstance)) {
-    let mgr = check(manager, CheckInterface({ didRenderLayout: CheckFunction }));
+    let mgr = check(
+      manager,
+      CheckInterface({
+        didRenderLayout: CheckFunction,
+        didUpdateLayout: CheckFunction,
+        didCreate: CheckFunction,
+        didUpdate: CheckFunction,
+      })
+    );
     mgr.didRenderLayout(state, bounds);
 
-    vm.env.didCreate(instance as ComponentInstanceWithCreate);
-    vm.updateWith(new DidUpdateLayoutOpcode(instance as ComponentInstanceWithCreate, bounds));
-  }
-});
+    let didCreate = false;
 
-APPEND_OPCODES.add(Op.CommitComponentTransaction, (vm) => {
-  vm.commitCacheGroup();
+    let cache = createCache(() => {
+      consumeTag(tag);
+
+      untrack(() => {
+        if (didCreate === false) {
+          didCreate = true;
+
+          mgr.didCreate(state);
+        } else {
+          mgr.didUpdateLayout(state, bounds);
+          mgr.didUpdate(state);
+        }
+      });
+    });
+
+    vm.env.registerEffect(EffectPhase.Layout, cache);
+    vm.associateDestroyable(cache);
+  }
 });
 
 export class UpdateComponentOpcode implements UpdatingOpcode {
@@ -873,19 +896,6 @@ export class UpdateComponentOpcode implements UpdatingOpcode {
     let { component, manager, dynamicScope } = this;
 
     manager.update(component, dynamicScope);
-  }
-}
-
-export class DidUpdateLayoutOpcode implements UpdatingOpcode {
-  constructor(private component: ComponentInstanceWithCreate, private bounds: Bounds) {}
-
-  evaluate(vm: UpdatingVM) {
-    let { component, bounds } = this;
-    let { manager, state } = component;
-
-    manager.didUpdateLayout(state, bounds);
-
-    vm.env.didUpdate(component);
   }
 }
 

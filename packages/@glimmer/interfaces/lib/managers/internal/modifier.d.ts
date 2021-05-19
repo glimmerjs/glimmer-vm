@@ -19,10 +19,6 @@ export interface InternalModifierManager<
     args: CapturedArguments
   ): TModifierInstanceState;
 
-  // Convert the opaque modifier into a `RevisionTag` that determins when
-  // the modifier's update hooks need to be called (if at all).
-  getTag(modifier: TModifierInstanceState): UpdatableTag | null;
-
   getDebugName(Modifier: TModifierDefinitionState): string;
 
   // At initial render, the modifier gets a chance to install itself on the
