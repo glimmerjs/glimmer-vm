@@ -10,41 +10,11 @@ import { LOCAL_LOGGER } from '@glimmer/util';
 import pass0 from './passes/1-normalization/index';
 import { visit as pass2 } from './passes/2-encoding/index';
 
-declare function require(id: 'crypto'): Crypto;
-declare function require(id: string): unknown;
-
-interface Crypto {
-  createHash(
-    alg: 'sha1'
-  ): {
-    update(src: string, encoding: 'utf8'): void;
-    digest(encoding: 'base64'): string;
-  };
-}
-
+let templateId = 0;
 export const defaultId: TemplateIdFn = (() => {
-  let req: typeof require | undefined =
-    typeof module === 'object' && typeof module.require === 'function' ? module.require : require;
-
-  if (req) {
-    try {
-      const crypto = req('crypto');
-
-      let idFn: TemplateIdFn = (src) => {
-        let hash = crypto.createHash('sha1');
-        hash.update(src, 'utf8');
-        // trim to 6 bytes of data (2^48 - 1)
-        return hash.digest('base64').substring(0, 8);
-      };
-
-      idFn('test');
-
-      return idFn;
-    } catch (e) {}
-  }
-
-  return function idFn() {
-    return null;
+  return () => {
+    templateId++;
+    return String(templateId);
   };
 })();
 
