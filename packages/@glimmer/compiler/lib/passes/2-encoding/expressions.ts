@@ -43,6 +43,8 @@ export class ExpressionEncoder {
         return this.GetDynamicVar(expr);
       case 'Log':
         return this.Log(expr);
+      case 'DynamicElement':
+        return this.DynamicElement(expr);
     }
   }
 
@@ -170,6 +172,10 @@ export class ExpressionEncoder {
 
   Log({ positional }: mir.Log): WireFormat.Expressions.Log {
     return [SexpOpcodes.Log, this.Positional(positional)];
+  }
+
+  DynamicElement({ positional }: mir.DynamicElement): WireFormat.Expressions.DynamicElement {
+    return [SexpOpcodes.DynamicElement, this.Positional(positional)];
   }
 }
 
