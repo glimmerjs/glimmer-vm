@@ -140,12 +140,12 @@ export function createStorage<T>(
 }
 
 export function createCache<T>(
-  compute: (() => T) | null,
+  compute: () => T,
   debuggingContext?: string | false
 ): CacheSource<T> {
   assert(
-    typeof compute === 'function' || compute === null,
-    `createCache() must be passed a function or null as its first parameter. Called with: ${compute}`
+    typeof compute === 'function',
+    `createCache() must be passed a function as its first parameter. Called with: ${compute}`
   );
 
   let cache = new SourceImpl<T>();
@@ -246,27 +246,39 @@ export function getValue<T>(source: Source<T>): T {
 
   let { compute } = source;
 
-  if (compute !== null) {
-    if (beginCache(source)) {
-      try {
-        source.value = compute();
-      } finally {
-        endCache(source);
-      }
-    }
-  } else if (CURRENT_TRACKER !== null) {
+  if (CURRENT_TRACKER !== null) {
     CURRENT_TRACKER.add(source);
+  }
+
+  if (compute !== null && isDirty(source)) {
+    OPEN_CACHES.push(CURRENT_TRACKER);
+
+    CURRENT_TRACKER = new Tracker();
+
+    if (DEBUG) {
+      beginTrackingTransaction!(source.debuggingContext);
+    }
+
+    try {
+      source.value = compute();
+    } finally {
+      if (DEBUG) {
+        endTrackingTransaction!();
+      }
+
+      source.deps = CURRENT_TRACKER.toDeps();
+      source.valueRevision = source.revision = CURRENT_TRACKER.maxRevision;
+
+      CURRENT_TRACKER = OPEN_CACHES.pop() || null;
+    }
   }
 
   return source.value!;
 }
 
-type StorageValue<T extends StorageSource<unknown>> = T extends StorageSource<infer U> ? U : never;
+type SourceValue<T extends Source<unknown>> = T extends Source<infer U> ? U : never;
 
-export function setValue<T extends StorageSource<unknown>>(
-  storage: T,
-  value: StorageValue<T>
-): void {
+export function setValue<T extends Source<unknown>>(storage: T, value: SourceValue<T>): void {
   assert(isSourceImpl(storage), 'isConst was passed a value that was not a cache or storage');
   assert(storage.revision !== Revisions.CONSTANT, 'Attempted to update a constant tag');
   assert(storage.compute === null, 'Attempted to setValue on a non-settable cache');
@@ -303,6 +315,8 @@ class Tracker {
   private caches = new Set<SourceImpl<unknown>>();
   private last: SourceImpl<unknown> | null = null;
 
+  maxRevision: number = Revisions.INITIAL;
+
   add<T>(_cache: SourceImpl<T>) {
     let cache = _cache as SourceImpl<unknown>;
 
@@ -314,6 +328,7 @@ class Tracker {
       markCacheAsConsumed!(cache);
     }
 
+    this.maxRevision = max(this.maxRevision, getRevision(cache));
     this.last = cache as SourceImpl<unknown>;
   }
 
@@ -347,46 +362,79 @@ let CURRENT_TRACKER: Tracker | null = null;
 
 let OPEN_CACHES: (Tracker | null)[] = [];
 
-export function beginCache<T>(cache: CacheSource<T>): boolean {
-  assert(isSourceImpl(cache), 'passed a non-cache to beginCache');
+export class TrackFrameOpcode {
+  type = 'begin-track-frame';
 
-  if (CURRENT_TRACKER !== null) {
-    CURRENT_TRACKER.add(cache);
+  public source: Source | null = null;
+  public target: number | null = null;
+
+  constructor(private debuggingContext?: string) {
+    beginTrack(debuggingContext);
   }
 
-  if (isDirty(cache)) {
-    OPEN_CACHES.push(CURRENT_TRACKER);
-
-    CURRENT_TRACKER = new Tracker();
-
-    if (DEBUG) {
-      beginTrackingTransaction!(cache.debuggingContext);
+  evaluate(vm: { goto(target: number): void }) {
+    if (this.source === null || !isDirty(this.source)) {
+      vm.goto(this.target!);
+    } else {
+      beginTrack(DEBUG && this.debuggingContext);
     }
-
-    return true;
   }
 
-  return false;
+  generateEnd(): EndTrackFrameOpcode {
+    return new EndTrackFrameOpcode(this);
+  }
 }
 
-export function endCache<T>(cache: CacheSource<T>): void {
-  assert(isSourceImpl(cache), 'passed a non-cache to beginCache');
+export class EndTrackFrameOpcode {
+  type = 'end-track-frame';
 
-  assert(CURRENT_TRACKER, 'Expected current to be a tracker');
+  constructor(private begin: TrackFrameOpcode) {
+    this.evaluate();
+  }
+
+  evaluate() {
+    let current = endTrack();
+
+    let deps = current.toDeps();
+    let source = deps;
+
+    if (Array.isArray(source)) {
+      source = new SourceImpl();
+      source.deps = deps;
+      source.revision = source.valueRevision = current.maxRevision;
+    }
+
+    this.begin.source = source;
+  }
+}
+
+/**
+ * beginTrack(), and endTrack() specifically in the VM, and allow us to avoid
+ * creating extra caches unless absolutely necessary. In the future, once the VM
+ * is no longer executing sequential opcodes, we should be able to convert to
+ * using a standard cache.
+ */
+function beginTrack(debuggingContext?: false | string): void {
+  OPEN_CACHES.push(CURRENT_TRACKER);
 
   if (DEBUG) {
-    assert(OPEN_CACHES.length > 0, 'attempted to close a tracking frame, but one was not open');
+    beginTrackingTransaction!(debuggingContext);
+  }
 
+  CURRENT_TRACKER = new Tracker();
+}
+function endTrack(): Tracker {
+  let current = CURRENT_TRACKER;
+
+  assert(current, 'attempted to end track frame, expected a tracker to exist');
+
+  if (DEBUG) {
     endTrackingTransaction!();
   }
-  // reset cache
-  cache.deps = CURRENT_TRACKER.toDeps();
-  cache.lastChecked = Revisions.UNINITIALIZED;
-
-  // get current revision
-  cache.valueRevision = getRevision(cache);
 
   CURRENT_TRACKER = OPEN_CACHES.pop() || null;
+
+  return current;
 }
 
 // untrack() is currently mainly used to handle places that were previously not

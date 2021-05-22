@@ -2,8 +2,7 @@ import { getPath, toIterator } from '@glimmer/global-context';
 import { Option, Dict, Source } from '@glimmer/interfaces';
 import { EMPTY_ARRAY, isObject } from '@glimmer/util';
 import { DEBUG } from '@glimmer/env';
-import { createCache, createStorage, getValue, setValue } from '@glimmer/validator';
-import { createUpdatableCacheSource } from './reference';
+import { createCache, getValue } from '@glimmer/validator';
 
 export interface IterationItem<T, U> {
   key: unknown;
@@ -167,15 +166,6 @@ export function createIteratorSource(list: Source, key: string): Source<OpaqueIt
 
     return new IteratorWrapper(maybeIterator, keyFor);
   });
-}
-
-export function createIteratorItemSource(value: unknown) {
-  let storage = createStorage(value);
-
-  return createUpdatableCacheSource(
-    () => getValue(storage),
-    (newValue) => setValue(storage, newValue)
-  );
 }
 
 class IteratorWrapper implements OpaqueIterator {

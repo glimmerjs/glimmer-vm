@@ -16,19 +16,20 @@ export { storageFor, storageMetaFor, notifyStorageFor, StorageMeta } from './lib
 
 export {
   createStorage,
-  beginCache,
-  endCache,
   resetTracking,
   isTracking,
   untrack,
   createCache,
   isConst,
+  isDirty,
   getValue,
   setValue,
   setDeps,
   addDeps,
   getDebugLabel,
   isSourceImpl,
+  TrackFrameOpcode,
+  EndTrackFrameOpcode,
 } from './lib/cache';
 
 export { tracked } from './lib/tracked';

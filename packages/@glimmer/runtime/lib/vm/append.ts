@@ -24,14 +24,9 @@ import {
 } from '@glimmer/interfaces';
 import { LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
 import { RuntimeOpImpl } from '@glimmer/program';
-import {
-  createIteratorItemSource,
-  OpaqueIterationItem,
-  OpaqueIterator,
-  UNDEFINED_SOURCE,
-} from '@glimmer/reference';
+import { OpaqueIterationItem, OpaqueIterator, UNDEFINED_SOURCE } from '@glimmer/reference';
 import { assert, expect, LOCAL_LOGGER, Stack, unwrapHandle } from '@glimmer/util';
-import { createCache, resetTracking, endCache, beginCache } from '@glimmer/validator';
+import { resetTracking, TrackFrameOpcode, createStorage } from '@glimmer/validator';
 import {
   $fp,
   $pc,
@@ -375,8 +370,7 @@ export default class VM implements PublicVM, InternalVM {
 
   beginCacheGroup(name?: string) {
     let opcodes = this.updating();
-    let cache = createCache(null, name);
-    let beginCacheOp = new BeginTrackFrameOpcode(cache);
+    let beginCacheOp = new TrackFrameOpcode();
 
     opcodes.push(beginCacheOp);
     this[STACKS].cache.push(beginCacheOp);
@@ -412,8 +406,8 @@ export default class VM implements PublicVM, InternalVM {
   enterItem({ key, value, memo }: OpaqueIterationItem): ListItemOpcode {
     let { stack } = this;
 
-    let valueSource = createIteratorItemSource(value);
-    let memoSource = createIteratorItemSource(memo);
+    let valueSource = createStorage(value);
+    let memoSource = createStorage(memo);
 
     stack.push(valueSource);
     stack.push(memoSource);

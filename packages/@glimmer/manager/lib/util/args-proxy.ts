@@ -10,19 +10,19 @@ import { HAS_NATIVE_PROXY } from '@glimmer/util';
 import { getValue, untrack, createCache } from '@glimmer/validator';
 import { UNDEFINED_SOURCE } from '@glimmer/reference';
 
-const CUSTOM_Source_FOR = new WeakMap<object, (obj: object, key: string) => Source>();
+const CUSTOM_SOURCE_FOR = new WeakMap<object, (obj: object, key: string) => Source>();
 
 export function getCustomSourceFor(
   obj: object
 ): ((obj: object, key: string) => Source) | undefined {
-  return CUSTOM_Source_FOR.get(obj);
+  return CUSTOM_SOURCE_FOR.get(obj);
 }
 
 export function setCustomSourceFor(
   obj: object,
   customSourceFn: (obj: object, key: string) => Source
 ) {
-  CUSTOM_Source_FOR.set(obj, customSourceFn);
+  CUSTOM_SOURCE_FOR.set(obj, customSourceFn);
 }
 
 function convertToInt(prop: number | string | symbol): number | null {

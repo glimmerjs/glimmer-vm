@@ -19,7 +19,7 @@ import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
 import { OpaqueIterationItem, OpaqueIterator, updateSource } from '@glimmer/reference';
 import { associateDestroyableChild, destroy, destroyChildren } from '@glimmer/destroyable';
 import { expect, Stack, logStep } from '@glimmer/util';
-import { getValue, resetTracking, runInTrackingTransaction } from '@glimmer/validator';
+import { getValue, resetTracking, runInTrackingTransaction, setValue } from '@glimmer/validator';
 import { SimpleComment } from '@simple-dom/interface';
 import { clear, move as moveBounds } from '../bounds';
 import { InternalVM, VmInitCallback } from './append';
@@ -193,8 +193,8 @@ export class ListItemOpcode extends TryOpcode {
 
   updateReferences(item: OpaqueIterationItem) {
     this.retained = true;
-    updateSource(this.value, item.value);
-    updateSource(this.memo, item.memo);
+    setValue(this.value, item.value);
+    setValue(this.memo, item.memo);
   }
 
   shouldRemove(): boolean {

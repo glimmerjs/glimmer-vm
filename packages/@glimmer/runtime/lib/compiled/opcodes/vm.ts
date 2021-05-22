@@ -21,6 +21,7 @@ import {
   createCache,
   getValue,
   isConst,
+  isDirty,
 } from '@glimmer/validator';
 import { assert, decodeHandle, decodeImmediate, expect, isHandle } from '@glimmer/util';
 import {
@@ -274,24 +275,24 @@ export class AssertFilter<T, U> implements UpdatingOpcode {
   }
 }
 
-export class BeginTrackFrameOpcode implements UpdatingOpcode {
-  public target: number | null = null;
+// export class BeginTrackFrameOpcode implements UpdatingOpcode {
+//   public target: number | null = null;
 
-  constructor(public cache: CacheSource) {}
+//   constructor(public cache: CacheSource) {}
 
-  evaluate(vm: UpdatingVM) {
-    if (!beginCache(this.cache)) {
-      vm.goto(expect(this.target, 'VM BUG: Target must be set before attempting to jump'));
-    }
-  }
-}
+//   evaluate(vm: UpdatingVM) {
+//     if (!isDirty(this.cache)) {
+//       vm.goto(expect(this.target, 'VM BUG: Target must be set before attempting to jump'));
+//     }
+//   }
+// }
 
-export class EndTrackFrameOpcode implements UpdatingOpcode {
-  public type = 'end-track-frame';
+// export class EndTrackFrameOpcode implements UpdatingOpcode {
+//   public type = 'end-track-frame';
 
-  constructor(private cache: CacheSource) {}
+//   constructor(private cache: CacheSource) {}
 
-  evaluate() {
-    endCache(this.cache);
-  }
-}
+//   evaluate() {
+//     endCache(this.cache);
+//   }
+// }

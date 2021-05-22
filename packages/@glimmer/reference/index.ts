@@ -23,5 +23,4 @@ export {
   AbstractIterator,
   IteratorDelegate,
   createIteratorSource,
-  createIteratorItemSource,
 } from './lib/iterable';
