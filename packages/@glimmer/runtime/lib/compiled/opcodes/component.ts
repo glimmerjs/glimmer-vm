@@ -847,7 +847,7 @@ APPEND_OPCODES.add(Op.CommitComponentTransaction, (vm, { op1: _state }) => {
     }
   }
 
-  let componentCache = vm.commitCacheGroup();
+  let op = vm.commitCacheGroup();
 
   if (managerHasCapability(manager, capabilities, InternalComponentCapability.CreateInstance)) {
     let mgr = check(
@@ -864,8 +864,12 @@ APPEND_OPCODES.add(Op.CommitComponentTransaction, (vm, { op1: _state }) => {
     let didCreate = false;
 
     let cache = createCache(() => {
-      // Read and consume the component cache to entangle its state
-      getValue(componentCache);
+      let { source } = op;
+
+      if (source !== null) {
+        // Read and consume the component cache to entangle its state
+        getValue(source);
+      }
 
       untrack(() => {
         if (didCreate === false) {

@@ -42,7 +42,6 @@ import {
   SyscallRegister,
 } from '@glimmer/vm';
 import { associateDestroyableChild } from '@glimmer/destroyable';
-import { BeginTrackFrameOpcode, EndTrackFrameOpcode } from '../compiled/opcodes/vm';
 import { APPEND_OPCODES, DebugState } from '../opcodes';
 import { PartialScopeImpl } from '../scope';
 import { ARGS, CONSTANTS, DESTROYABLE_STACK, HEAP, INNER_VM, REGISTERS, STACKS } from '../symbols';
@@ -99,7 +98,7 @@ export interface InternalVM {
   associateDestroyable(d: Destroyable): void;
 
   beginCacheGroup(name?: string): void;
-  commitCacheGroup(): Source;
+  commitCacheGroup(): TrackFrameOpcode;
 
   /// Iteration ///
 
@@ -136,7 +135,7 @@ class Stacks {
   readonly scope = new Stack<Scope>();
   readonly dynamicScope = new Stack<DynamicScope>();
   readonly updating = new Stack<UpdatingOpcode[]>();
-  readonly cache = new Stack<BeginTrackFrameOpcode>();
+  readonly cache = new Stack<TrackFrameOpcode>();
   readonly list = new Stack<ListBlockOpcode>();
 }
 
@@ -370,26 +369,22 @@ export default class VM implements PublicVM, InternalVM {
 
   beginCacheGroup(name?: string) {
     let opcodes = this.updating();
-    let beginCacheOp = new TrackFrameOpcode();
+    let trackFrameOp = new TrackFrameOpcode(name);
 
-    opcodes.push(beginCacheOp);
-    this[STACKS].cache.push(beginCacheOp);
-
-    beginCache(cache);
+    opcodes.push(trackFrameOp);
+    this[STACKS].cache.push(trackFrameOp);
   }
 
-  commitCacheGroup(): Source {
+  commitCacheGroup(): TrackFrameOpcode {
     let opcodes = this.updating();
-    let beginCacheOp = expect(this[STACKS].cache.pop(), 'VM BUG: Expected a cache group');
+    let trackFrameOp = expect(this[STACKS].cache.pop(), 'VM BUG: Expected a cache group');
 
-    let { cache } = beginCacheOp;
+    opcodes.push(trackFrameOp.generateEnd());
 
-    endCache(cache);
-    opcodes.push(new EndTrackFrameOpcode(cache));
+    // Set the target after pushing the end opcode, so if we jump, we jump past the end.
+    trackFrameOp.target = opcodes.length;
 
-    beginCacheOp.target = opcodes.length;
-
-    return cache;
+    return trackFrameOp;
   }
 
   enter(args: number) {

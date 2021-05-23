@@ -155,7 +155,7 @@ module('@glimmer/validator: tracking', () => {
       test('createCache throws an error in DEBUG mode if users to use with a non-function', (assert) => {
         assert.throws(
           () => createCache(123 as any),
-          /Error: createCache\(\) must be passed a function or null as its first parameter. Called with: 123/
+          /Error: createCache\(\) must be passed a function as its first parameter. Called with: 123/
         );
       });
 

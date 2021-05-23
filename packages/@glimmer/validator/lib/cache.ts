@@ -6,6 +6,8 @@ import type {
   Source,
   StorageSource,
   STORAGE_SOURCE,
+  UpdatingOpcode,
+  UpdatingVM,
 } from '@glimmer/interfaces';
 import {
   assertCacheNotConsumed,
@@ -246,31 +248,21 @@ export function getValue<T>(source: Source<T>): T {
 
   let { compute } = source;
 
-  if (CURRENT_TRACKER !== null) {
-    CURRENT_TRACKER.add(source);
-  }
-
   if (compute !== null && isDirty(source)) {
-    OPEN_CACHES.push(CURRENT_TRACKER);
-
-    CURRENT_TRACKER = new Tracker();
-
-    if (DEBUG) {
-      beginTrackingTransaction!(source.debuggingContext);
-    }
+    beginTrack(DEBUG && source.debuggingContext);
 
     try {
       source.value = compute();
     } finally {
-      if (DEBUG) {
-        endTrackingTransaction!();
-      }
+      let current = endTrack();
 
-      source.deps = CURRENT_TRACKER.toDeps();
-      source.valueRevision = source.revision = CURRENT_TRACKER.maxRevision;
-
-      CURRENT_TRACKER = OPEN_CACHES.pop() || null;
+      source.deps = current.toDeps();
+      source.valueRevision = source.revision = current.maxRevision;
     }
+  }
+
+  if (CURRENT_TRACKER !== null) {
+    CURRENT_TRACKER.add(source);
   }
 
   return source.value!;
@@ -315,7 +307,7 @@ class Tracker {
   private caches = new Set<SourceImpl<unknown>>();
   private last: SourceImpl<unknown> | null = null;
 
-  maxRevision: number = Revisions.INITIAL;
+  maxRevision: number = Revisions.CONSTANT;
 
   add<T>(_cache: SourceImpl<T>) {
     let cache = _cache as SourceImpl<unknown>;
@@ -362,58 +354,6 @@ let CURRENT_TRACKER: Tracker | null = null;
 
 let OPEN_CACHES: (Tracker | null)[] = [];
 
-export class TrackFrameOpcode {
-  type = 'begin-track-frame';
-
-  public source: Source | null = null;
-  public target: number | null = null;
-
-  constructor(private debuggingContext?: string) {
-    beginTrack(debuggingContext);
-  }
-
-  evaluate(vm: { goto(target: number): void }) {
-    if (this.source === null || !isDirty(this.source)) {
-      vm.goto(this.target!);
-    } else {
-      beginTrack(DEBUG && this.debuggingContext);
-    }
-  }
-
-  generateEnd(): EndTrackFrameOpcode {
-    return new EndTrackFrameOpcode(this);
-  }
-}
-
-export class EndTrackFrameOpcode {
-  type = 'end-track-frame';
-
-  constructor(private begin: TrackFrameOpcode) {
-    this.evaluate();
-  }
-
-  evaluate() {
-    let current = endTrack();
-
-    let deps = current.toDeps();
-    let source = deps;
-
-    if (Array.isArray(source)) {
-      source = new SourceImpl();
-      source.deps = deps;
-      source.revision = source.valueRevision = current.maxRevision;
-    }
-
-    this.begin.source = source;
-  }
-}
-
-/**
- * beginTrack(), and endTrack() specifically in the VM, and allow us to avoid
- * creating extra caches unless absolutely necessary. In the future, once the VM
- * is no longer executing sequential opcodes, we should be able to convert to
- * using a standard cache.
- */
 function beginTrack(debuggingContext?: false | string): void {
   OPEN_CACHES.push(CURRENT_TRACKER);
 
@@ -435,6 +375,60 @@ function endTrack(): Tracker {
   CURRENT_TRACKER = OPEN_CACHES.pop() || null;
 
   return current;
+}
+
+/**
+ * These opcodes exist in this package for the time being so that we can avoid
+ * leaking internal details about the tracker.
+ */
+export class TrackFrameOpcode implements UpdatingOpcode {
+  public source: Source | null = null;
+  public target: number | null = null;
+
+  constructor(private debuggingContext?: string) {
+    beginTrack(debuggingContext);
+  }
+
+  evaluate(vm: UpdatingVM) {
+    if (this.source === null || !isDirty(this.source)) {
+      let { target } = this;
+
+      assert(target, 'VM BUG: expected a target to exist for a tracking opcode, but it did not');
+
+      vm.goto(target);
+    } else {
+      beginTrack(DEBUG && this.debuggingContext);
+    }
+  }
+
+  generateEnd(): UpdatingOpcode {
+    return new EndTrackFrameOpcode(this);
+  }
+}
+
+export class EndTrackFrameOpcode implements UpdatingOpcode {
+  constructor(private begin: TrackFrameOpcode) {
+    this.evaluate();
+  }
+
+  evaluate() {
+    let current = endTrack();
+
+    let deps = current.toDeps();
+    let source = deps;
+
+    if (Array.isArray(source)) {
+      source = new SourceImpl();
+      source.deps = deps;
+      source.revision = source.valueRevision = current.maxRevision;
+    }
+
+    if (CURRENT_TRACKER !== null && source !== null) {
+      CURRENT_TRACKER.add(source);
+    }
+
+    this.begin.source = source;
+  }
 }
 
 // untrack() is currently mainly used to handle places that were previously not

@@ -16,7 +16,7 @@ import {
   UpdatingOpcode,
 } from '@glimmer/interfaces';
 import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
-import { OpaqueIterationItem, OpaqueIterator, updateSource } from '@glimmer/reference';
+import { OpaqueIterationItem, OpaqueIterator } from '@glimmer/reference';
 import { associateDestroyableChild, destroy, destroyChildren } from '@glimmer/destroyable';
 import { expect, Stack, logStep } from '@glimmer/util';
 import { getValue, resetTracking, runInTrackingTransaction, setValue } from '@glimmer/validator';
@@ -340,8 +340,8 @@ export class ListBlockOpcode extends BlockOpcode {
 
     let { children } = this;
 
-    updateSource(opcode.memo, item.memo);
-    updateSource(opcode.value, item.value);
+    setValue(opcode.memo, item.memo);
+    setValue(opcode.value, item.value);
     opcode.retained = true;
 
     opcode.index = children.length;
@@ -378,8 +378,8 @@ export class ListBlockOpcode extends BlockOpcode {
   private moveItem(opcode: ListItemOpcode, item: OpaqueIterationItem, before: ListItemOpcode) {
     let { children } = this;
 
-    updateSource(opcode.memo, item.memo);
-    updateSource(opcode.value, item.value);
+    setValue(opcode.memo, item.memo);
+    setValue(opcode.value, item.value);
     opcode.retained = true;
 
     let currentSibling, nextSibling;

@@ -1,12 +1,5 @@
 import { toBool } from '@glimmer/global-context';
-import {
-  CompilableTemplate,
-  Option,
-  Op,
-  UpdatingOpcode,
-  Source,
-  CacheSource,
-} from '@glimmer/interfaces';
+import { CompilableTemplate, Option, Op, UpdatingOpcode, Source } from '@glimmer/interfaces';
 import {
   createPrimitiveSource,
   UNDEFINED_SOURCE,
@@ -14,15 +7,7 @@ import {
   TRUE_SOURCE,
   FALSE_SOURCE,
 } from '@glimmer/reference';
-import {
-  beginCache,
-  endCache,
-  createStorage,
-  createCache,
-  getValue,
-  isConst,
-  isDirty,
-} from '@glimmer/validator';
+import { createStorage, createCache, getValue, isConst } from '@glimmer/validator';
 import { assert, decodeHandle, decodeImmediate, expect, isHandle } from '@glimmer/util';
 import {
   CheckNumber,
@@ -274,25 +259,3 @@ export class AssertFilter<T, U> implements UpdatingOpcode {
     }
   }
 }
-
-// export class BeginTrackFrameOpcode implements UpdatingOpcode {
-//   public target: number | null = null;
-
-//   constructor(public cache: CacheSource) {}
-
-//   evaluate(vm: UpdatingVM) {
-//     if (!isDirty(this.cache)) {
-//       vm.goto(expect(this.target, 'VM BUG: Target must be set before attempting to jump'));
-//     }
-//   }
-// }
-
-// export class EndTrackFrameOpcode implements UpdatingOpcode {
-//   public type = 'end-track-frame';
-
-//   constructor(private cache: CacheSource) {}
-
-//   evaluate() {
-//     endCache(this.cache);
-//   }
-// }

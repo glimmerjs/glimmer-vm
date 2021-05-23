@@ -36,10 +36,6 @@ async function build(dist, out) {
           semicolons: false,
         },
       }),
-      strip({
-        functions: ['assert', 'deprecate'],
-        sourceMap: true,
-      }),
     ],
     onwarn(warning) {
       let { code } = warning;
