@@ -264,6 +264,7 @@ export function getValue<T>(source: Source<T>): T {
 
       source.deps = current.toDeps();
       source.valueRevision = source.revision = current.maxRevision;
+      source.lastChecked = $REVISION;
     }
   }
 
@@ -436,6 +437,7 @@ export class EndTrackFrameOpcode implements UpdatingOpcode {
       source = new SourceImpl<unknown>(undefined, null, null);
       source.deps = deps;
       source.revision = source.valueRevision = maxRevision;
+      source.lastChecked = $REVISION;
     }
 
     if (CURRENT_TRACKER !== null && source !== null) {
@@ -481,3 +483,26 @@ export function getDebugLabel(Source: Source) {
 
   return Source.debuggingContext;
 }
+
+// Warm
+
+let varStorage = createStorage(1);
+let constStorage = createConstStorage(null);
+
+let cache = createCache(() => {
+  getValue(varStorage);
+  getValue(constStorage);
+});
+
+getValue(cache);
+getValue(cache);
+
+setValue(varStorage, 2);
+
+getValue(cache);
+getValue(cache);
+
+setValue(varStorage, 2);
+
+getValue(cache);
+getValue(cache);

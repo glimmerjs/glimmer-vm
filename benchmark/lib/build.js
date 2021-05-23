@@ -26,16 +26,16 @@ async function build(dist, out) {
       strip({
         functions: ['assert', 'deprecate'],
       }),
-      terser({
-        compress: {
-          // eslint-disable-next-line @typescript-eslint/naming-convention
-          negate_iife: false,
-          sequences: 0,
-        },
-        output: {
-          semicolons: false,
-        },
-      }),
+      // terser({
+      //   compress: {
+      //     // eslint-disable-next-line @typescript-eslint/naming-convention
+      //     negate_iife: false,
+      //     sequences: 0,
+      //   },
+      //   output: {
+      //     semicolons: false,
+      //   },
+      // }),
     ],
     onwarn(warning) {
       let { code } = warning;
