@@ -36,8 +36,8 @@ import {
   UpdatingOpcode,
   EffectPhase,
 } from '@glimmer/interfaces';
-import { Cache, consumeTag, createCache, untrack } from '@glimmer/validator';
-import { isConstRef, Reference, valueForRef } from '@glimmer/reference';
+import { consumeTag, untrack } from '@glimmer/validator';
+import { createComputeRef, isConstRef, Reference, valueForRef } from '@glimmer/reference';
 import {
   assert,
   assign,
@@ -460,7 +460,7 @@ type DeferredAttribute = {
 export class ComponentElementOperations implements ElementOperations {
   private attributes = dict<DeferredAttribute>();
   private classes: (string | Reference<unknown>)[] = [];
-  private modifiers: Cache[] = [];
+  private modifiers: Reference[] = [];
 
   setAttribute(
     name: string,
@@ -487,11 +487,11 @@ export class ComponentElementOperations implements ElementOperations {
     this.attributes[name] = deferred;
   }
 
-  addModifier(modifier: Cache): void {
+  addModifier(modifier: Reference): void {
     this.modifiers.push(modifier);
   }
 
-  flush(vm: InternalVM): Cache[] {
+  flush(vm: InternalVM): Reference[] {
     let type: DeferredAttribute | undefined;
     let attributes = this.attributes;
 
@@ -865,7 +865,7 @@ APPEND_OPCODES.add(Op.CommitComponentTransaction, (vm, { op1: _state }) => {
 
     let didCreate = false;
 
-    let cache = createCache(() => {
+    let cache = createComputeRef(() => {
       consumeTag(tag);
 
       untrack(() => {

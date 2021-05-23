@@ -11,11 +11,11 @@ import {
   EffectPhase,
 } from '@glimmer/interfaces';
 import { assert, expect, symbol } from '@glimmer/util';
-import { Cache } from '@glimmer/validator';
 import { DOMChangesImpl, DOMTreeConstruction } from './dom/helper';
 import { RuntimeProgramImpl } from '@glimmer/program';
 import DebugRenderTree from './debug-render-tree';
 import { EffectsManager } from './effects';
+import { Reference } from '@glimmer/reference';
 
 export const TRANSACTION: TransactionSymbol = symbol('TRANSACTION');
 
@@ -68,7 +68,7 @@ export class EnvironmentImpl implements Environment {
     this[TRANSACTION] = true;
   }
 
-  registerEffect(phase: EffectPhase, effect: Cache) {
+  registerEffect(phase: EffectPhase, effect: Reference) {
     this.effectManager.registerEffect(phase, effect);
   }
 

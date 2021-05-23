@@ -1,5 +1,4 @@
 import { Reference, valueForRef, isConstRef, createComputeRef } from '@glimmer/reference';
-import { Cache, createCache, getValue } from '@glimmer/validator';
 import {
   check,
   CheckString,
@@ -76,7 +75,7 @@ APPEND_OPCODES.add(Op.PopRemoteElement, (vm) => {
 
 APPEND_OPCODES.add(Op.FlushElement, (vm) => {
   let operations = check(vm.fetchValue($t0), CheckOperations);
-  let modifiers: Option<Cache[]> = null;
+  let modifiers: Option<Reference[]> = null;
 
   if (operations) {
     modifiers = operations.flush(vm);
@@ -124,17 +123,24 @@ APPEND_OPCODES.add(Op.Modifier, (vm, { op1: handle }) => {
 
   let didSetup = false;
 
-  let cache = createCache(() => {
-    if (isDestroying(cache)) return;
+  let cache = createComputeRef(
+    () => {
+      if (isDestroying(cache)) return;
 
-    if (didSetup === false) {
-      didSetup = true;
+      if (didSetup === false) {
+        didSetup = true;
 
-      manager.install(state);
-    } else {
-      manager.update(state);
-    }
-  }, DEBUG && `- While rendering:\n  (instance of a \`${definition.resolvedName || manager.getDebugName(definition.state)}\` modifier)`);
+        manager.install(state);
+      } else {
+        manager.update(state);
+      }
+    },
+    null,
+    DEBUG &&
+      `- While rendering:\n  (instance of a \`${
+        definition.resolvedName || manager.getDebugName(definition.state)
+      }\` modifier)`
+  );
 
   let d = manager.getDestroyable(state);
 
@@ -156,7 +162,7 @@ APPEND_OPCODES.add(Op.DynamicModifier, (vm) => {
   let { constructing } = vm.elements();
   let initialOwner = vm.getOwner();
 
-  let instanceCache = createCache(() => {
+  let instanceCache = createComputeRef(() => {
     let value = valueForRef(ref);
     let owner: Owner;
 
@@ -223,36 +229,40 @@ APPEND_OPCODES.add(Op.DynamicModifier, (vm) => {
 
   let instance: ModifierInstance | undefined;
 
-  let cache = createCache(() => {
-    if (isDestroying(cache)) return;
+  let cache = createComputeRef(
+    () => {
+      if (isDestroying(cache)) return;
 
-    let newInstance = getValue(instanceCache);
+      let newInstance = valueForRef(instanceCache);
 
-    if (instance !== newInstance) {
-      if (instance !== undefined) {
-        let destroyable = instance.manager.getDestroyable(instance.state);
+      if (instance !== newInstance) {
+        if (instance !== undefined) {
+          let destroyable = instance.manager.getDestroyable(instance.state);
 
-        if (destroyable !== null) {
-          destroy(destroyable);
-        }
-      }
-
-      if (newInstance !== undefined) {
-        let { manager, state } = newInstance;
-        let destroyable = manager.getDestroyable(state);
-
-        if (destroyable !== null) {
-          associateDestroyableChild(cache, destroyable);
+          if (destroyable !== null) {
+            destroy(destroyable);
+          }
         }
 
-        manager.install(newInstance.state);
-      }
+        if (newInstance !== undefined) {
+          let { manager, state } = newInstance;
+          let destroyable = manager.getDestroyable(state);
 
-      instance = newInstance;
-    } else if (instance !== undefined) {
-      instance.manager.update(instance.state);
-    }
-  }, DEBUG && `- While rendering:\n  (instance of a dynamic modifier)`);
+          if (destroyable !== null) {
+            associateDestroyableChild(cache, destroyable);
+          }
+
+          manager.install(newInstance.state);
+        }
+
+        instance = newInstance;
+      } else if (instance !== undefined) {
+        instance.manager.update(instance.state);
+      }
+    },
+    null,
+    DEBUG && `- While rendering:\n  (instance of a dynamic modifier)`
+  );
 
   let operations = expect(
     check(vm.fetchValue($t0), CheckOperations),

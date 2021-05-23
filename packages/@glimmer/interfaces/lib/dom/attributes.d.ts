@@ -13,7 +13,7 @@ import { GlimmerTreeConstruction, GlimmerTreeChanges } from './changes';
 import { Stack } from '../stack';
 
 // eslint-disable-next-line node/no-extraneous-import
-import { Cache } from '@glimmer/validator';
+import { Reference } from '@glimmer/reference';
 
 export interface LiveBlock extends Bounds {
   openElement(element: SimpleElement): void;
@@ -44,7 +44,7 @@ export interface DOMStack {
   popRemoteElement(): void;
   popElement(): void;
   openElement(tag: string, _operations?: ElementOperations): SimpleElement;
-  flushElement(modifiers: Option<Cache[]>): void;
+  flushElement(modifiers: Option<Reference[]>): void;
   appendText(string: string): SimpleText;
   appendComment(string: string): SimpleComment;
 
@@ -61,7 +61,7 @@ export interface DOMStack {
     namespace: Option<string>
   ): AttributeOperation;
 
-  closeElement(): Option<Cache[]>;
+  closeElement(): Option<Reference[]>;
 }
 
 export interface TreeOperations {

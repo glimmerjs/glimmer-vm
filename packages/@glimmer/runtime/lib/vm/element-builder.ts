@@ -23,8 +23,8 @@ import {
 } from '@simple-dom/interface';
 import { clear, ConcreteBounds, CursorImpl, SingleNodeBounds } from '../bounds';
 import { destroy, registerDestructor } from '@glimmer/destroyable';
-import { Cache } from '@glimmer/validator';
 import { DynamicAttribute, dynamicAttribute } from './attributes/dynamic';
+import { Reference } from '@glimmer/reference';
 
 export interface FirstNode {
   firstNode(): SimpleNode;
@@ -80,7 +80,7 @@ export class NewElementBuilder implements ElementBuilder {
   private env: Environment;
 
   [CURSOR_STACK] = new Stack<Cursor>();
-  private modifierStack = new Stack<Option<Cache[]>>();
+  private modifierStack = new Stack<Option<Reference[]>>();
   private blockStack = new Stack<LiveBlock>();
 
   static forInitialRender(env: Environment, cursor: CursorImpl) {
@@ -182,7 +182,7 @@ export class NewElementBuilder implements ElementBuilder {
     return this.dom.createElement(tag, this.element);
   }
 
-  flushElement(modifiers: Option<Cache[]>) {
+  flushElement(modifiers: Option<Reference[]>) {
     let parent = this.element;
     let element = expect(
       this.constructing,
@@ -203,7 +203,7 @@ export class NewElementBuilder implements ElementBuilder {
     this.dom.insertBefore(parent, constructing, this.nextSibling);
   }
 
-  closeElement(): Option<Cache[]> {
+  closeElement(): Option<Reference[]> {
     this.willCloseElement();
     this.popElement();
     return this.popModifiers();
@@ -244,11 +244,11 @@ export class NewElementBuilder implements ElementBuilder {
     this[CURSOR_STACK].push(new CursorImpl(element, nextSibling));
   }
 
-  private pushModifiers(modifiers: Option<Cache[]>): void {
+  private pushModifiers(modifiers: Option<Reference[]>): void {
     this.modifierStack.push(modifiers);
   }
 
-  private popModifiers(): Option<Cache[]> {
+  private popModifiers(): Option<Reference[]> {
     return this.modifierStack.pop();
   }
 

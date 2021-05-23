@@ -1,6 +1,6 @@
 import { EffectPhase } from '@glimmer/interfaces';
 import { assert } from '@glimmer/util';
-import { Cache, getValue } from '@glimmer/validator';
+import { Reference, valueForRef } from '@glimmer/reference';
 import { DEBUG } from '@glimmer/env';
 import { registerDestructor } from '@glimmer/destroyable';
 
@@ -18,7 +18,7 @@ export class EffectsManager {
 
   constructor(private scheduleEffects: (phase: EffectPhase, callback: () => void) => void) {}
 
-  private effects: { [key in EffectPhase]: Cache[] } = {
+  private effects: { [key in EffectPhase]: Reference[] } = {
     [EffectPhase.Layout]: [],
   };
 
@@ -44,7 +44,7 @@ export class EffectsManager {
    * beginning of the overall effect queue at the end, and preserve the proper
    * order.
    */
-  private newEffects: { [key in EffectPhase]: Cache[] } = {
+  private newEffects: { [key in EffectPhase]: Reference[] } = {
     [EffectPhase.Layout]: [],
   };
 
@@ -54,7 +54,7 @@ export class EffectsManager {
     }
   }
 
-  registerEffect(phase: EffectPhase, effect: Cache) {
+  registerEffect(phase: EffectPhase, effect: Reference) {
     assert(this.inTransaction, 'You cannot register effects unless you are in a transaction');
 
     this.newEffects[phase].push(effect);
@@ -82,7 +82,7 @@ export class EffectsManager {
       newEffects[phase] = [];
 
       // weirdness here to avoid closure assertion in Ember
-      scheduleEffects(phase, queue.forEach.bind(queue, getValue));
+      scheduleEffects(phase, queue.forEach.bind(queue, valueForRef));
     }
   }
 }
