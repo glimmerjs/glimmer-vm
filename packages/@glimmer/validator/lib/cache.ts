@@ -386,13 +386,21 @@ function endTrack(): Tracker {
 export class TrackFrameOpcode implements UpdatingOpcode {
   public source: Source | null = null;
   public target: number | null = null;
+  public revision: Revision = Revisions.UNINITIALIZED;
 
   constructor(private debuggingContext?: string) {
     beginTrack(debuggingContext);
   }
 
   evaluate(vm: UpdatingVM) {
-    if (this.source === null || !isDirty(this.source)) {
+    let { source } = this;
+
+    assert(
+      source === null || isSourceImpl(source),
+      'VM BUG: Expected track opcode to have a source'
+    );
+
+    if (source === null || this.revision >= getRevision(source)) {
       let { target } = this;
 
       assert(target, 'VM BUG: expected a target to exist for a tracking opcode, but it did not');
@@ -417,12 +425,13 @@ export class EndTrackFrameOpcode implements UpdatingOpcode {
     let current = endTrack();
 
     let deps = current.toDeps();
+    let { maxRevision } = current;
     let source = deps;
 
     if (Array.isArray(source)) {
       source = new SourceImpl<unknown>(undefined, null, null);
       source.deps = deps;
-      source.revision = source.valueRevision = current.maxRevision;
+      source.revision = source.valueRevision = maxRevision;
     }
 
     if (CURRENT_TRACKER !== null && source !== null) {
@@ -430,6 +439,7 @@ export class EndTrackFrameOpcode implements UpdatingOpcode {
     }
 
     this.begin.source = source;
+    this.begin.revision = maxRevision;
   }
 }
 
