@@ -1,15 +1,15 @@
-import { Reference, valueForRef } from '@glimmer/reference';
 import { APPEND_OPCODES } from '../../opcodes';
 import { assert, unwrapHandle, decodeHandle } from '@glimmer/util';
 import { check } from '@glimmer/debug';
-import { Op, Dict } from '@glimmer/interfaces';
-import { CheckReference } from './-debug-strip';
+import { Op, Dict, Source } from '@glimmer/interfaces';
+import { CheckSource } from './-debug-strip';
 import { CONSTANTS } from '../../symbols';
+import { getValue } from '@glimmer/validator';
 
 APPEND_OPCODES.add(Op.InvokePartial, (vm, { op1: _symbols, op2: _evalInfo }) => {
   let { [CONSTANTS]: constants, stack } = vm;
 
-  let name = valueForRef(check(stack.pop(), CheckReference));
+  let name = getValue(check(stack.pop(), CheckSource));
   assert(typeof name === 'string', `Could not find a partial named "${String(name)}"`);
 
   let outerScope = vm.scope();
@@ -29,7 +29,7 @@ APPEND_OPCODES.add(Op.InvokePartial, (vm, { op1: _symbols, op2: _evalInfo }) => 
     partialScope.bindEvalScope(evalScope);
     partialScope.bindSelf(outerScope.getSelf());
 
-    let locals = Object.create(outerScope.getPartialMap()) as Dict<Reference>;
+    let locals = Object.create(outerScope.getPartialMap()) as Dict<Source>;
 
     for (let i = 0; i < evalInfo.length; i++) {
       let slot = evalInfo[i];

@@ -7,14 +7,15 @@ import {
   Option,
   Scope,
   Owner,
+  Source,
 } from '@glimmer/interfaces';
 import { assign } from '@glimmer/util';
-import { Reference, UNDEFINED_REFERENCE } from '@glimmer/reference';
+import { UNDEFINED_SOURCE } from '@glimmer/reference';
 
 export class DynamicScopeImpl implements DynamicScope {
-  private bucket: Dict<Reference>;
+  private bucket: Dict<Source>;
 
-  constructor(bucket?: Dict<Reference>) {
+  constructor(bucket?: Dict<Source>) {
     if (bucket) {
       this.bucket = assign({}, bucket);
     } else {
@@ -22,11 +23,11 @@ export class DynamicScopeImpl implements DynamicScope {
     }
   }
 
-  get(key: string): Reference {
+  get(key: string): Source {
     return this.bucket[key];
   }
 
-  set(key: string, reference: Reference): Reference {
+  set(key: string, reference: Source): Source {
     return (this.bucket[key] = reference);
   }
 
@@ -35,27 +36,27 @@ export class DynamicScopeImpl implements DynamicScope {
   }
 }
 
-export function isScopeReference(s: ScopeSlot): s is Reference {
+export function isScopeSource(s: ScopeSlot): s is Source {
   if (s === null || Array.isArray(s)) return false;
   return true;
 }
 
 export class PartialScopeImpl implements PartialScope {
-  static root(self: Reference<unknown>, size = 0, owner: Owner): PartialScope {
-    let refs: Reference<unknown>[] = new Array(size + 1);
+  static root(self: Source<unknown>, size = 0, owner: Owner): PartialScope {
+    let refs: Source<unknown>[] = new Array(size + 1);
 
     for (let i = 0; i <= size; i++) {
-      refs[i] = UNDEFINED_REFERENCE;
+      refs[i] = UNDEFINED_SOURCE;
     }
 
     return new PartialScopeImpl(refs, owner, null, null, null).init({ self });
   }
 
   static sized(size = 0, owner: Owner): Scope {
-    let refs: Reference<unknown>[] = new Array(size + 1);
+    let refs: Source<unknown>[] = new Array(size + 1);
 
     for (let i = 0; i <= size; i++) {
-      refs[i] = UNDEFINED_REFERENCE;
+      refs[i] = UNDEFINED_SOURCE;
     }
 
     return new PartialScopeImpl(refs, owner, null, null, null);
@@ -69,32 +70,32 @@ export class PartialScopeImpl implements PartialScope {
     // named arguments and blocks passed to a layout that uses eval
     private evalScope: Dict<ScopeSlot> | null,
     // locals in scope when the partial was invoked
-    private partialMap: Dict<Reference<unknown>> | null
+    private partialMap: Dict<Source<unknown>> | null
   ) {}
 
-  init({ self }: { self: Reference<unknown> }): this {
+  init({ self }: { self: Source<unknown> }): this {
     this.slots[0] = self;
     return this;
   }
 
-  getSelf(): Reference<unknown> {
-    return this.get<Reference<unknown>>(0);
+  getSelf(): Source<unknown> {
+    return this.get<Source<unknown>>(0);
   }
 
-  getSymbol(symbol: number): Reference<unknown> {
-    return this.get<Reference<unknown>>(symbol);
+  getSymbol(symbol: number): Source<unknown> {
+    return this.get<Source<unknown>>(symbol);
   }
 
   getBlock(symbol: number): Option<ScopeBlock> {
     let block = this.get(symbol);
-    return block === UNDEFINED_REFERENCE ? null : (block as ScopeBlock);
+    return block === UNDEFINED_SOURCE ? null : (block as ScopeBlock);
   }
 
   getEvalScope(): Option<Dict<ScopeSlot>> {
     return this.evalScope;
   }
 
-  getPartialMap(): Option<Dict<Reference<unknown>>> {
+  getPartialMap(): Option<Dict<Source<unknown>>> {
     return this.partialMap;
   }
 
@@ -102,11 +103,11 @@ export class PartialScopeImpl implements PartialScope {
     this.set(symbol, value);
   }
 
-  bindSelf(self: Reference<unknown>) {
-    this.set<Reference<unknown>>(0, self);
+  bindSelf(self: Source<unknown>) {
+    this.set<Source<unknown>>(0, self);
   }
 
-  bindSymbol(symbol: number, value: Reference<unknown>) {
+  bindSymbol(symbol: number, value: Source<unknown>) {
     this.set(symbol, value);
   }
 
@@ -118,7 +119,7 @@ export class PartialScopeImpl implements PartialScope {
     this.evalScope = map;
   }
 
-  bindPartialMap(map: Dict<Reference<unknown>>) {
+  bindPartialMap(map: Dict<Source<unknown>>) {
     this.partialMap = map;
   }
 

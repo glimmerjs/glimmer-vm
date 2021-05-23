@@ -1,6 +1,5 @@
-import { CapturedArguments, CurriedType, Owner } from '@glimmer/interfaces';
+import { CapturedArguments, CurriedType, Owner, Source } from '@glimmer/interfaces';
 import { symbol, _WeakSet } from '@glimmer/util';
-import { Reference } from '@glimmer/reference';
 
 const TYPE: unique symbol = symbol('TYPE');
 const INNER: unique symbol = symbol('INNER');
@@ -49,8 +48,8 @@ interface ResolvedCurriedValue<T> {
   definition: T;
   owner: Owner;
   resolved: boolean;
-  positional: Reference[] | undefined;
-  named: Record<string, Reference>[] | undefined;
+  positional: Source[] | undefined;
+  named: Record<string, Source>[] | undefined;
 }
 
 export function resolveCurriedValue(
@@ -63,8 +62,8 @@ export function resolveCurriedValue(
   curriedValue: CurriedValue<CurriedType>
 ): ResolvedCurriedValue<object | string> {
   let currentWrapper = curriedValue;
-  let positional: Reference[] | undefined;
-  let named: Record<string, Reference>[] | undefined;
+  let positional: Source[] | undefined;
+  let named: Record<string, Source>[] | undefined;
   let definition, owner, resolved;
 
   while (true) {

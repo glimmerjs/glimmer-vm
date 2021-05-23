@@ -10,15 +10,16 @@ import {
   CompileTimeCompilationContext,
   ComponentDefinitionState,
   Owner,
+  Source,
 } from '@glimmer/interfaces';
-import { childRefFor, createConstRef, Reference } from '@glimmer/reference';
+import { pathSourceFor } from '@glimmer/reference';
 import { expect, unwrapHandle } from '@glimmer/util';
 import { ARGS, CONSTANTS } from './symbols';
 import VM, { InternalVM } from './vm/append';
 import { DynamicScopeImpl } from './scope';
 import { inTransaction } from './environment';
 import { DEBUG } from '@glimmer/env';
-import { runInTrackingTransaction } from '@glimmer/validator';
+import { createConstStorage, runInTrackingTransaction } from '@glimmer/validator';
 
 class TemplateIteratorImpl implements TemplateIterator {
   constructor(private vm: InternalVM) {}
@@ -47,7 +48,7 @@ export function renderMain(
   runtime: RuntimeContext,
   context: CompileTimeCompilationContext,
   owner: Owner,
-  self: Reference,
+  self: Source,
   treeBuilder: ElementBuilder,
   layout: CompilableProgram,
   dynamicScope: DynamicScope = new DynamicScopeImpl()
@@ -70,7 +71,7 @@ function renderInvocation(
   context: CompileTimeCompilationContext,
   owner: Owner,
   definition: ComponentDefinitionState,
-  args: Record<string, Reference>
+  args: Record<string, Source>
 ): TemplateIterator {
   // Get a list of tuples of argument names and references, like
   // [['title', reference], ['name', reference]]
@@ -132,11 +133,11 @@ export function renderComponent(
   return renderInvocation(vm, context, owner, definition, recordToReference(args));
 }
 
-function recordToReference(record: Record<string, unknown>): Record<string, Reference> {
-  const root = createConstRef(record, 'args');
+function recordToReference(record: Record<string, unknown>): Record<string, Source> {
+  const root = createConstStorage(record, 'args');
 
   return Object.keys(record).reduce((acc, key) => {
-    acc[key] = childRefFor(root, key);
+    acc[key] = pathSourceFor(root, key);
     return acc;
-  }, {} as Record<string, Reference>);
+  }, {} as Record<string, Source>);
 }

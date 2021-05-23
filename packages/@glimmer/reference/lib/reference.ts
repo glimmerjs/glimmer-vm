@@ -1,268 +1,148 @@
 import { DEBUG } from '@glimmer/env';
 import { getProp, setProp } from '@glimmer/global-context';
-import { Option } from '@glimmer/interfaces';
-import { expect, isDict, symbol } from '@glimmer/util';
-import {
-  CONSTANT_TAG,
-  consumeTag,
-  INITIAL,
-  Revision,
-  Tag,
-  track,
-  validateTag,
-  valueForTag,
-} from '@glimmer/validator';
-
-export const REFERENCE: unique symbol = symbol('REFERENCE');
-
-const enum ReferenceType {
-  Constant,
-  Compute,
-  Unbound,
-  Invokable,
-}
-
-export interface Reference<_T = unknown> {
-  [REFERENCE]: ReferenceType;
-  debugLabel?: string;
-}
-
-export default Reference;
+import { Option, Source } from '@glimmer/interfaces';
+import { expect, isDict, _WeakSet } from '@glimmer/util';
+import { createCache, getValue, getDebugLabel, createConstStorage } from '@glimmer/validator';
 
 //////////
 
-export interface ReferenceEnvironment {
-  getProp(obj: unknown, path: string): unknown;
-  setProp(obj: unknown, path: string, value: unknown): unknown;
+export function createPrimitiveSource(value: unknown): Source {
+  return createConstStorage(value, DEBUG && String(value));
 }
 
-class ReferenceImpl<T = unknown> implements Reference {
-  [REFERENCE]: ReferenceType;
-  public tag: Option<Tag> = null;
-  public lastRevision: Revision = INITIAL;
-  public lastValue?: T;
+export const UNDEFINED_SOURCE = createPrimitiveSource(undefined);
+export const NULL_SOURCE = createPrimitiveSource(null);
+export const TRUE_SOURCE = createPrimitiveSource(true);
+export const FALSE_SOURCE = createPrimitiveSource(false);
 
-  public children: Option<Map<string | Reference, Reference>> = null;
+const UNBOUND_SOURCES = new _WeakSet();
 
-  public compute: Option<() => T> = null;
-  public update: Option<(val: T) => void> = null;
+export function createUnboundSource(value: unknown, debugLabel: false | string): Source {
+  let source = createConstStorage(value, DEBUG && debugLabel);
 
-  public debugLabel?: string;
+  UNBOUND_SOURCES.add(source);
 
-  constructor(type: ReferenceType) {
-    this[REFERENCE] = type;
-  }
+  return source;
 }
 
-export function createPrimitiveRef(value: unknown): Reference {
-  let ref = new ReferenceImpl(ReferenceType.Unbound);
-
-  ref.tag = CONSTANT_TAG;
-  ref.lastValue = value;
-
-  if (DEBUG) {
-    ref.debugLabel = String(value);
-  }
-
-  return ref;
-}
-
-export const UNDEFINED_REFERENCE = createPrimitiveRef(undefined);
-export const NULL_REFERENCE = createPrimitiveRef(null);
-export const TRUE_REFERENCE = createPrimitiveRef(true);
-export const FALSE_REFERENCE = createPrimitiveRef(false);
-
-export function createConstRef(value: unknown, debugLabel: false | string): Reference {
-  let ref = new ReferenceImpl(ReferenceType.Constant);
-
-  ref.lastValue = value;
-  ref.tag = CONSTANT_TAG;
-
-  if (DEBUG) {
-    ref.debugLabel = debugLabel as string;
-  }
-
-  return ref;
-}
-
-export function createUnboundRef(value: unknown, debugLabel: false | string): Reference {
-  let ref = new ReferenceImpl(ReferenceType.Unbound);
-
-  ref.lastValue = value;
-  ref.tag = CONSTANT_TAG;
-
-  if (DEBUG) {
-    ref.debugLabel = debugLabel as string;
-  }
-
-  return ref;
-}
-
-export function createComputeRef<T = unknown>(
+export function createUpdatableCacheSource<T = unknown>(
   compute: () => T,
   update: Option<(value: T) => void> = null,
   debugLabel: false | string = 'unknown'
-): Reference<T> {
-  let ref = new ReferenceImpl<T>(ReferenceType.Compute);
+): Source<T> {
+  let cache = createCache(compute, DEBUG && debugLabel);
 
-  ref.compute = compute;
-  ref.update = update;
+  cache.update = update as (value: unknown) => void;
 
-  if (DEBUG) {
-    ref.debugLabel = `(result of a \`${debugLabel}\` helper)`;
-  }
-
-  return ref;
+  return cache;
 }
 
-export function createReadOnlyRef(ref: Reference): Reference {
-  if (!isUpdatableRef(ref)) return ref;
+export function createReadOnlySource(source: Source): Source {
+  if (!isUpdatableSource(source)) return source;
 
-  return createComputeRef(() => valueForRef(ref), null, ref.debugLabel);
+  return createCache(() => getValue(source));
 }
 
-export function isInvokableRef(ref: Reference) {
-  return ref[REFERENCE] === ReferenceType.Invokable;
+const INVOKABLE_SOURCES = new _WeakSet<Source>();
+
+export function isInvokableSource(source: Source) {
+  return INVOKABLE_SOURCES.has(source);
 }
 
-export function createInvokableRef(inner: Reference): Reference {
-  let ref = createComputeRef(
-    () => valueForRef(inner),
-    (value) => updateRef(inner, value)
+export function createInvokableSource(inner: Source): Source {
+  let source = createUpdatableCacheSource(
+    () => getValue(inner),
+    (value) => updateSource(inner, value),
+    getDebugLabel(inner)
   );
-  ref.debugLabel = inner.debugLabel;
-  ref[REFERENCE] = ReferenceType.Invokable;
 
-  return ref;
+  INVOKABLE_SOURCES.add(source);
+
+  return source;
 }
 
-export function isConstRef(_ref: Reference) {
-  let ref = _ref as ReferenceImpl;
-
-  return ref.tag === CONSTANT_TAG;
+export function isUpdatableSource(source: Source): boolean {
+  return typeof source.update === 'function';
 }
 
-export function isUpdatableRef(_ref: Reference) {
-  let ref = _ref as ReferenceImpl;
-
-  return ref.update !== null;
-}
-
-export function valueForRef<T>(_ref: Reference<T>): T {
-  let ref = _ref as ReferenceImpl<T>;
-
-  let { tag } = ref;
-
-  if (tag === CONSTANT_TAG) {
-    return ref.lastValue as T;
-  }
-
-  let { lastRevision } = ref;
-  let lastValue;
-
-  if (tag === null || !validateTag(tag, lastRevision)) {
-    let { compute } = ref;
-
-    tag = ref.tag = track(() => {
-      lastValue = ref.lastValue = compute!();
-    }, DEBUG && ref.debugLabel);
-
-    ref.lastRevision = valueForTag(tag);
-  } else {
-    lastValue = ref.lastValue;
-  }
-
-  consumeTag(tag);
-
-  return lastValue as T;
-}
-
-export function updateRef(_ref: Reference, value: unknown) {
-  let ref = _ref as ReferenceImpl;
-
-  let update = expect(ref.update, 'called update on a non-updatable reference');
+export function updateSource(source: Source, value: unknown) {
+  let update = expect(source.update, 'called update on a non-updatable source');
 
   update(value);
 }
 
-export function childRefFor(_parentRef: Reference, path: string): Reference {
-  let parentRef = _parentRef as ReferenceImpl;
+export function pathSourceFor(parentSource: Source, path: string): Source {
+  let { paths } = parentSource;
+  let child: Source;
 
-  let type = parentRef[REFERENCE];
-
-  let children = parentRef.children;
-  let child: Reference;
-
-  if (children === null) {
-    children = parentRef.children = new Map();
+  if (paths === null) {
+    parentSource.paths = paths = new Map();
   } else {
-    child = children.get(path)!;
+    child = paths.get(path)!;
 
     if (child !== undefined) {
       return child;
     }
   }
 
-  if (type === ReferenceType.Unbound) {
-    let parent = valueForRef(parentRef);
+  if (UNBOUND_SOURCES.has(parentSource)) {
+    let parent = getValue(parentSource);
 
     if (isDict(parent)) {
-      child = createUnboundRef(
+      child = createUnboundSource(
         (parent as Record<string, unknown>)[path],
-        DEBUG && `${parentRef.debugLabel}.${path}`
+        DEBUG && `${getDebugLabel(parentSource)}.${path}`
       );
     } else {
-      child = UNDEFINED_REFERENCE;
+      child = UNDEFINED_SOURCE;
     }
   } else {
-    child = createComputeRef(
+    child = createUpdatableCacheSource(
       () => {
-        let parent = valueForRef(parentRef);
+        let parent = getValue(parentSource);
 
         if (isDict(parent)) {
           return getProp(parent, path);
         }
       },
       (val) => {
-        let parent = valueForRef(parentRef);
+        let parent = getValue(parentSource);
 
         if (isDict(parent)) {
           return setProp(parent, path, val);
         }
-      }
+      },
+      DEBUG && `${getDebugLabel(parentSource)}.${path}`
     );
-
-    if (DEBUG) {
-      child.debugLabel = `${parentRef.debugLabel}.${path}`;
-    }
   }
 
-  children.set(path, child);
+  paths.set(path, child);
 
   return child;
 }
 
-export function childRefFromParts(root: Reference, parts: string[]): Reference {
-  let reference = root;
+export function pathSourceFromParts(root: Source, parts: string[]): Source {
+  let source = root;
 
   for (let i = 0; i < parts.length; i++) {
-    reference = childRefFor(reference, parts[i]);
+    source = pathSourceFor(source, parts[i]);
   }
 
-  return reference;
+  return source;
 }
 
-export let createDebugAliasRef: undefined | ((debugLabel: string, inner: Reference) => Reference);
+export let createDebugAliasSource: undefined | ((debugLabel: string, inner: Source) => Source);
 
 if (DEBUG) {
-  createDebugAliasRef = (debugLabel: string, inner: Reference) => {
-    let update = isUpdatableRef(inner) ? (value: unknown) => updateRef(inner, value) : null;
-    let ref = createComputeRef(() => valueForRef(inner), update);
-
-    ref[REFERENCE] = inner[REFERENCE];
-
-    ref.debugLabel = debugLabel;
-
-    return ref;
+  createDebugAliasSource = (debugLabel: string, inner: Source) => {
+    if (isUpdatableSource(inner)) {
+      return createUpdatableCacheSource(
+        () => getValue(inner),
+        (value: unknown) => updateSource(inner, value),
+        DEBUG && debugLabel
+      );
+    } else {
+      return createCache(() => getValue(inner), DEBUG && debugLabel);
+    }
   };
 }

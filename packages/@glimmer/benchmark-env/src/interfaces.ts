@@ -1,6 +1,8 @@
 import { Dict, SerializedTemplateWithLazyBlock } from '@glimmer/interfaces';
 import { SimpleElement } from '@simple-dom/interface';
 
+export type ComponentArgs = Readonly<Dict<any>>;
+
 /**
  * This abstracts a tracked root.
  */
@@ -8,8 +10,6 @@ export interface Cell<T> {
   get(): T;
   set(value: T): void;
 }
-
-export type ComponentArgs = Readonly<Dict<any>>;
 
 export interface Benchmark {
   /**

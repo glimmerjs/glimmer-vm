@@ -12,58 +12,30 @@ if (globalObj[GLIMMER_VALIDATOR_REGISTRATION] === true) {
 
 globalObj[GLIMMER_VALIDATOR_REGISTRATION] = true;
 
-export {
-  ALLOW_CYCLES,
-  bump,
-  CombinatorTag,
-  combine,
-  COMPUTE,
-  CONSTANT_TAG,
-  CONSTANT,
-  ConstantTag,
-  createTag,
-  createUpdatableTag,
-  CurrentTag,
-  CURRENT_TAG,
-  DIRTY_TAG as dirtyTag,
-  DirtyableTag,
-  EntityTag,
-  INITIAL,
-  isConstTag,
-  Revision,
-  Tag,
-  UpdatableTag,
-  UPDATE_TAG as updateTag,
-  validateTag,
-  valueForTag,
-  VolatileTag,
-  VOLATILE_TAG,
-  VOLATILE,
-} from './lib/validators';
-
-export { dirtyTagFor, tagFor, tagMetaFor, TagMeta } from './lib/meta';
+export { storageFor, storageMetaFor, notifyStorageFor, StorageMeta } from './lib/meta';
 
 export {
-  beginTrackFrame,
-  endTrackFrame,
-  beginUntrackFrame,
-  endUntrackFrame,
+  createStorage,
+  createConstStorage,
   resetTracking,
-  consumeTag,
   isTracking,
-  track,
   untrack,
-  Cache,
   createCache,
   isConst,
   getValue,
-} from './lib/tracking';
+  setValue,
+  setDeps,
+  addDeps,
+  getDebugLabel,
+  isSourceImpl,
+  TrackFrameOpcode,
+  EndTrackFrameOpcode,
+} from './lib/cache';
 
-export { trackedData } from './lib/tracked-data';
+export { tracked } from './lib/tracked';
 
 export {
   logTrackingStack,
-  setTrackingTransactionEnv,
   runInTrackingTransaction,
   beginTrackingTransaction,
   endTrackingTransaction,

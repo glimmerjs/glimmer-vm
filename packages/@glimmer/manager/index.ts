@@ -20,4 +20,4 @@ export {
 } from './lib/public/helper';
 export { getComponentTemplate, setComponentTemplate } from './lib/public/template';
 export { capabilityFlagsFrom, hasCapability, managerHasCapability } from './lib/util/capabilities';
-export { getCustomTagFor, setCustomTagFor } from './lib/util/args-proxy';
+export { getCustomSourceFor, setCustomSourceFor } from './lib/util/args-proxy';

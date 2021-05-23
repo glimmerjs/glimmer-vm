@@ -1,15 +1,19 @@
-import { Dict, Maybe } from '@glimmer/interfaces';
-import { Reference, valueForRef, createComputeRef } from '@glimmer/reference';
+import { Source } from '@glimmer/interfaces';
+import { getValue, createCache } from '@glimmer/validator';
 
-export function createConcatRef(partsRefs: Reference[]) {
-  return createComputeRef(() => {
-    let parts = new Array<string>();
+export function createConcatSource(partSources: Source[]): Source<string | null> {
+  return createCache(() => {
+    let parts = [];
 
-    for (let i = 0; i < partsRefs.length; i++) {
-      let value = valueForRef(partsRefs[i]) as Maybe<Dict>;
+    for (let i = 0; i < partSources.length; i++) {
+      let part = getValue(partSources[i]);
 
-      if (value !== null && value !== undefined) {
-        parts[i] = castToString(value);
+      if (part !== null && part !== undefined) {
+        if (typeof (part as object).toString !== 'function') {
+          parts.push('');
+        } else {
+          parts.push(String(part));
+        }
       }
     }
 
@@ -19,12 +23,4 @@ export function createConcatRef(partsRefs: Reference[]) {
 
     return null;
   });
-}
-
-function castToString(value: Dict) {
-  if (typeof value.toString !== 'function') {
-    return '';
-  }
-
-  return String(value);
 }

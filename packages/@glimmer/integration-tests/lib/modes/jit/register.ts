@@ -10,7 +10,7 @@ import {
 } from '@glimmer/interfaces';
 import { EmberishCurlyComponent } from '../../components/emberish-curly';
 import { GlimmerishComponent } from '../../components/emberish-glimmer';
-import { UserHelper, createHelperRef } from '../../helpers';
+import { UserHelper, createHelper } from '../../helpers';
 import {
   TestModifierConstructor,
   TestModifierDefinitionState,
@@ -72,7 +72,7 @@ export function registerGlimmerishComponent(
 
 export function registerHelper(registry: TestJitRegistry, name: string, helper: UserHelper) {
   let state = {};
-  let glimmerHelper: GlimmerHelper = (args) => createHelperRef(helper, args);
+  let glimmerHelper: GlimmerHelper = (args) => createHelper(helper, args);
   setInternalHelperManager(glimmerHelper, state);
   registry.register('helper', name, state);
 }

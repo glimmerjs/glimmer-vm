@@ -58,6 +58,12 @@ class ObjectIterator extends BoundedIterator {
 }
 
 export const TestContext = {
+  assert(condition: unknown, error: string): asserts condition {
+    if (!condition) {
+      throw new Error(error);
+    }
+  },
+
   getProp(obj: unknown, path: string) {
     return (obj as any)[path];
   },
@@ -77,4 +83,6 @@ export const TestContext = {
 
     return null;
   },
+
+  scheduleRevalidate() {},
 };

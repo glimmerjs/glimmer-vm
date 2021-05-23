@@ -1,5 +1,5 @@
 import { DynamicScopeImpl } from '@glimmer/runtime';
-import { createPrimitiveRef } from '@glimmer/reference';
+import { createPrimitiveSource } from '@glimmer/reference';
 import { castToBrowser } from '@glimmer/util';
 import { RenderTest, Count } from '../render-test';
 import { ComponentKind } from '../components/types';
@@ -20,7 +20,7 @@ export class EntryPointTest extends RenderTest {
     let Title = defineComponent({}, `<h1>hello {{@title}}</h1>`);
 
     let element = delegate.getInitialElement();
-    let title = createPrimitiveRef('renderComponent');
+    let title = createPrimitiveSource('renderComponent');
     delegate.renderComponent(Title, { title }, element);
 
     QUnit.assert.equal(castToBrowser(element, 'HTML').innerHTML, '<h1>hello renderComponent</h1>');
@@ -32,12 +32,12 @@ export class EntryPointTest extends RenderTest {
     let Title = defineComponent({}, `<h1>hello {{@title}}</h1>`);
 
     let element = delegate.getInitialElement();
-    let title = createPrimitiveRef('renderComponent');
+    let title = createPrimitiveSource('renderComponent');
     delegate.renderComponent(Title, { title }, element);
     QUnit.assert.equal(castToBrowser(element, 'HTML').innerHTML, '<h1>hello renderComponent</h1>');
 
     element = delegate.getInitialElement();
-    let newTitle = createPrimitiveRef('new title');
+    let newTitle = createPrimitiveSource('new title');
     delegate.renderComponent(Title, { title: newTitle }, element);
     QUnit.assert.equal(castToBrowser(element, 'HTML').innerHTML, '<h1>hello new title</h1>');
   }
@@ -49,12 +49,12 @@ export class EntryPointTest extends RenderTest {
     let Body = defineComponent({}, `<p>body {{@body}}</p>`);
 
     let element = delegate.getInitialElement();
-    let title = createPrimitiveRef('renderComponent');
+    let title = createPrimitiveSource('renderComponent');
     delegate.renderComponent(Title, { title }, element);
     QUnit.assert.equal(castToBrowser(element, 'HTML').innerHTML, '<h1>hello renderComponent</h1>');
 
     element = delegate.getInitialElement();
-    let body = createPrimitiveRef('text');
+    let body = createPrimitiveSource('text');
     delegate.renderComponent(Body, { body }, element);
     QUnit.assert.equal(castToBrowser(element, 'HTML').innerHTML, '<p>body text</p>');
   }
@@ -66,7 +66,7 @@ export class EntryPointTest extends RenderTest {
 
     let element = delegate.getInitialElement();
     let dynamicScope = new DynamicScopeImpl({
-      locale: createPrimitiveRef('en_US'),
+      locale: createPrimitiveSource('en_US'),
     });
     delegate.renderComponent(Locale, {}, element, dynamicScope);
 

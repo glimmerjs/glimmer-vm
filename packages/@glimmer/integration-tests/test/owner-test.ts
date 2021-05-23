@@ -4,6 +4,7 @@ import {
   ResolvedComponentDefinition,
   WithCreateInstance,
   WithSubOwner,
+  Source,
 } from '@glimmer/interfaces';
 import {
   test,
@@ -16,7 +17,7 @@ import {
   GlimmerishComponent,
   defineComponent,
 } from '..';
-import { NULL_REFERENCE, Reference } from '@glimmer/reference';
+import { NULL_SOURCE } from '@glimmer/reference';
 import { setInternalComponentManager } from '@glimmer/manager';
 
 class OwnerJitRuntimeResolver extends TestJitRuntimeResolver {
@@ -64,8 +65,8 @@ class MountManager implements WithCreateInstance<object>, WithSubOwner<object> {
     return state.owner;
   }
 
-  getSelf(): Reference {
-    return NULL_REFERENCE;
+  getSelf(): Source {
+    return NULL_SOURCE;
   }
 
   didCreate() {}

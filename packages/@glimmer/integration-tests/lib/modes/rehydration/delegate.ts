@@ -6,9 +6,10 @@ import {
   Helper,
   Option,
   RenderResult,
+  Source,
 } from '@glimmer/interfaces';
 import { serializeBuilder } from '@glimmer/node';
-import { createConstRef, Reference } from '@glimmer/reference';
+import { createConstStorage } from '@glimmer/validator';
 import { ASTPluginBuilder, PrecompileOptions } from '@glimmer/syntax';
 import { assign, castToSimple } from '@glimmer/util';
 import createHTMLDocument from '@simple-dom/document';
@@ -63,7 +64,7 @@ export class RehydrationDelegate implements RenderDelegate {
 
   public rehydrationStats!: RehydrationStats;
 
-  private self: Option<Reference> = null;
+  private self: Option<Source> = null;
 
   constructor(options?: RenderDelegateOptions) {
     let delegate = assign(options?.env ?? {}, BaseEnv);
@@ -130,9 +131,9 @@ export class RehydrationDelegate implements RenderDelegate {
     return this.serialize(element);
   }
 
-  getSelf(_env: Environment, context: unknown): Reference {
+  getSelf(_env: Environment, context: unknown): Source {
     if (!this.self) {
-      this.self = createConstRef(context, 'this');
+      this.self = createConstStorage(context, 'this');
     }
 
     return this.self;

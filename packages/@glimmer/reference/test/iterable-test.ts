@@ -1,35 +1,36 @@
 import { module, test } from './utils/qunit';
 
-import {
-  createIteratorRef,
-  createComputeRef,
-  OpaqueIterationItem,
-  Reference,
-  valueForRef,
-} from '..';
+import { createIteratorSource, OpaqueIterationItem } from '..';
+import { Source } from '@glimmer/interfaces';
 import { symbol } from '@glimmer/util';
 import { testOverrideGlobalContext, GlobalContext } from '@glimmer/global-context';
-import { VOLATILE_TAG, consumeTag } from '@glimmer/validator';
+import { createCache, getValue, createStorage, setValue } from '@glimmer/validator';
 
 import { TestContext } from './utils/template';
 import objectValues from './utils/platform';
 
 class IterableWrapper {
-  private iterable: Reference<{ next(): OpaqueIterationItem | null }>;
+  private iterable: Source<{ next(): OpaqueIterationItem | null }>;
+
+  private dirtyStorage = createStorage(null, () => false);
 
   constructor(obj: unknown, key = '@identity') {
-    let valueRef = createComputeRef(() => {
-      consumeTag(VOLATILE_TAG);
+    let valueRef = createCache(() => {
+      getValue(this.dirtyStorage);
       return obj;
     });
-    this.iterable = createIteratorRef(valueRef, key);
+
+    this.iterable = createIteratorSource(valueRef, key);
   }
 
   private iterate() {
+    // dirty the iterable
+    setValue(this.dirtyStorage, null);
+
     let result: OpaqueIterationItem[] = [];
 
     // bootstrap
-    let iterator = valueForRef(this.iterable);
+    let iterator = getValue(this.iterable);
 
     while (true) {
       let item = iterator.next();

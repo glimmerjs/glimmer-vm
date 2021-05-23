@@ -1,7 +1,8 @@
 import { getPath, setPath } from '@glimmer/global-context';
 import { isDict } from '@glimmer/util';
 import { CapturedArguments } from '@glimmer/interfaces';
-import { createComputeRef, UNDEFINED_REFERENCE, valueForRef } from '@glimmer/reference';
+import { UNDEFINED_SOURCE, createUpdatableCacheSource } from '@glimmer/reference';
+import { getValue } from '@glimmer/validator';
 import { internalHelper } from './internal-helper';
 
 /**
@@ -82,22 +83,22 @@ import { internalHelper } from './internal-helper';
   @method get
  */
 export default internalHelper(({ positional }: CapturedArguments) => {
-  let sourceRef = positional[0] ?? UNDEFINED_REFERENCE;
-  let pathRef = positional[1] ?? UNDEFINED_REFERENCE;
+  let objSource = positional[0] ?? UNDEFINED_SOURCE;
+  let pathSource = positional[1] ?? UNDEFINED_SOURCE;
 
-  return createComputeRef(
+  return createUpdatableCacheSource(
     () => {
-      let source = valueForRef(sourceRef);
+      let obj = getValue(objSource);
 
-      if (isDict(source)) {
-        return getPath(source, String(valueForRef(pathRef)));
+      if (isDict(obj)) {
+        return getPath(obj, String(getValue(pathSource)));
       }
     },
     (value) => {
-      let source = valueForRef(sourceRef);
+      let obj = getValue(objSource);
 
-      if (isDict(source)) {
-        return setPath(source, String(valueForRef(pathRef)), value);
+      if (isDict(obj)) {
+        return setPath(obj, String(getValue(pathSource)), value);
       }
     },
     'get'

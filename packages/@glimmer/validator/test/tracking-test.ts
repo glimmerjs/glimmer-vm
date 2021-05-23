@@ -3,275 +3,28 @@ import { module, test } from './-utils';
 import { DEBUG } from '@glimmer/env';
 
 import {
-  consumeTag,
-  createTag,
-  beginTrackFrame,
-  endTrackFrame,
-  deprecateMutationsInTrackingTransaction,
-  dirtyTag,
-  dirtyTagFor,
+  // deprecateMutationsInTrackingTransaction,
   isTracking,
-  runInTrackingTransaction,
-  tagFor,
-  track,
-  trackedData,
+  // runInTrackingTransaction,
+  // tracked,
   untrack,
-  validateTag,
-  valueForTag,
   createCache,
+  createStorage,
   isConst,
   getValue,
+  setValue,
 } from '..';
 
 module('@glimmer/validator: tracking', () => {
-  module('track', () => {
-    test('it combines tags that are consumed within a track frame', (assert) => {
-      let tag1 = createTag();
-      let tag2 = createTag();
-
-      let combined = track(() => {
-        consumeTag(tag1);
-        consumeTag(tag2);
-      });
-
-      let snapshot = valueForTag(combined);
-      dirtyTag(tag1);
-      assert.notOk(validateTag(combined, snapshot));
-
-      snapshot = valueForTag(combined);
-      dirtyTag(tag2);
-      assert.notOk(validateTag(combined, snapshot));
-    });
-
-    test('it ignores tags consumed within an untrack frame', (assert) => {
-      let tag1 = createTag();
-      let tag2 = createTag();
-
-      let combined = track(() => {
-        consumeTag(tag1);
-
-        untrack(() => {
-          consumeTag(tag2);
-        });
-      });
-
-      let snapshot = valueForTag(combined);
-      dirtyTag(tag1);
-      assert.notOk(validateTag(combined, snapshot));
-
-      snapshot = valueForTag(combined);
-      dirtyTag(tag2);
-      assert.ok(validateTag(combined, snapshot));
-    });
-
-    test('it does not automatically consume tags in nested tracking frames', (assert) => {
-      let tag1 = createTag();
-      let tag2 = createTag();
-
-      let combined = track(() => {
-        consumeTag(tag1);
-
-        track(() => {
-          consumeTag(tag2);
-        });
-      });
-
-      let snapshot = valueForTag(combined);
-      dirtyTag(tag1);
-      assert.notOk(validateTag(combined, snapshot));
-
-      snapshot = valueForTag(combined);
-      dirtyTag(tag2);
-      assert.ok(validateTag(combined, snapshot));
-    });
-
-    test('it works for nested tags', (assert) => {
-      let tag1 = createTag();
-      let tag2 = createTag();
-
-      let combined = track(() => {
-        consumeTag(tag1);
-
-        let tag3 = track(() => {
-          consumeTag(tag2);
-        });
-
-        consumeTag(tag3);
-      });
-
-      let snapshot = valueForTag(combined);
-      dirtyTag(tag1);
-      assert.notOk(validateTag(combined, snapshot));
-
-      snapshot = valueForTag(combined);
-      dirtyTag(tag2);
-      assert.notOk(validateTag(combined, snapshot));
-    });
-
-    test('isTracking works within a track and untrack frame', (assert) => {
-      assert.notOk(isTracking());
-
-      track(() => {
-        assert.ok(isTracking());
-
-        untrack(() => {
-          assert.notOk(isTracking());
-        });
-      });
-    });
-
-    test('nested tracks work', (assert) => {
-      assert.notOk(isTracking());
-
-      track(() => {
-        assert.ok(isTracking());
-
-        untrack(() => {
-          assert.notOk(isTracking());
-        });
-      });
-    });
-
-    test('nested tracks and untracks work', (assert) => {
-      track(() => {
-        track(() => {
-          untrack(() => {
-            track(() => {
-              assert.ok(isTracking(), 'tracking');
-            });
-          });
-        });
-      });
-    });
-  });
-
-  module('manual track frames', () => {
-    test('it combines tags that are consumed within a track frame', (assert) => {
-      let tag1 = createTag();
-      let tag2 = createTag();
-
-      beginTrackFrame();
-
-      consumeTag(tag1);
-      consumeTag(tag2);
-
-      let combined = endTrackFrame();
-
-      let snapshot = valueForTag(combined);
-      dirtyTag(tag1);
-      assert.notOk(validateTag(combined, snapshot));
-
-      snapshot = valueForTag(combined);
-      dirtyTag(tag2);
-      assert.notOk(validateTag(combined, snapshot));
-    });
-
-    test('it ignores tags consumed within an untrack frame', (assert) => {
-      let tag1 = createTag();
-      let tag2 = createTag();
-
-      beginTrackFrame();
-
-      consumeTag(tag1);
-
-      untrack(() => {
-        consumeTag(tag2);
-      });
-
-      let combined = endTrackFrame();
-
-      let snapshot = valueForTag(combined);
-      dirtyTag(tag1);
-      assert.notOk(validateTag(combined, snapshot));
-
-      snapshot = valueForTag(combined);
-      dirtyTag(tag2);
-      assert.ok(validateTag(combined, snapshot));
-    });
-
-    test('it does not automatically consume tags in nested tracking frames', (assert) => {
-      let tag1 = createTag();
-      let tag2 = createTag();
-
-      beginTrackFrame();
-
-      consumeTag(tag1);
-
-      // begin inner track frame
-      beginTrackFrame();
-
-      consumeTag(tag2);
-
-      // end inner track frame
-      endTrackFrame();
-
-      let combined = endTrackFrame();
-
-      let snapshot = valueForTag(combined);
-      dirtyTag(tag1);
-      assert.notOk(validateTag(combined, snapshot));
-
-      snapshot = valueForTag(combined);
-      dirtyTag(tag2);
-      assert.ok(validateTag(combined, snapshot));
-    });
-
-    test('it works for nested tags', (assert) => {
-      let tag1 = createTag();
-      let tag2 = createTag();
-
-      beginTrackFrame();
-
-      consumeTag(tag1);
-
-      // begin inner track frame
-      beginTrackFrame();
-
-      consumeTag(tag2);
-
-      // end inner track frame
-      let tag3 = endTrackFrame();
-
-      consumeTag(tag3);
-
-      let combined = endTrackFrame();
-
-      let snapshot = valueForTag(combined);
-      dirtyTag(tag1);
-      assert.notOk(validateTag(combined, snapshot));
-
-      snapshot = valueForTag(combined);
-      dirtyTag(tag2);
-      assert.notOk(validateTag(combined, snapshot));
-    });
-
-    test('isTracking works within a track', (assert) => {
-      assert.notOk(isTracking());
-
-      beginTrackFrame();
-
-      assert.ok(isTracking());
-
-      endTrackFrame();
-    });
-
-    test('asserts if track frame was ended without one existing', (assert) => {
-      assert.throws(
-        () => endTrackFrame(),
-        /attempted to close a tracking frame, but one was not open/
-      );
-    });
-  });
-
-  module('tracking cache', () => {
+  module('basics', () => {
     test('it memoizes based on tags that are consumed within a track frame', (assert) => {
-      let tag1 = createTag();
-      let tag2 = createTag();
+      let storage1 = createStorage(false);
+      let storage2 = createStorage(false);
       let count = 0;
 
       let cache = createCache(() => {
-        consumeTag(tag1);
-        consumeTag(tag2);
+        getValue(storage1);
+        getValue(storage2);
 
         return ++count;
       });
@@ -279,24 +32,24 @@ module('@glimmer/validator: tracking', () => {
       assert.equal(getValue(cache), 1, 'called correctly the first time');
       assert.equal(getValue(cache), 1, 'memoized result returned second time');
 
-      dirtyTag(tag1);
-      assert.equal(getValue(cache), 2, 'cache busted when tag1 dirtied');
+      setValue(storage1, true);
+      assert.equal(getValue(cache), 2, 'cache busted when storage1 dirtied');
       assert.equal(getValue(cache), 2, 'memoized result returned when nothing dirtied');
 
-      dirtyTag(tag2);
-      assert.equal(getValue(cache), 3, 'cache busted when tag2 dirtied');
+      setValue(storage2, true);
+      assert.equal(getValue(cache), 3, 'cache busted when storage2 dirtied');
       assert.equal(getValue(cache), 3, 'memoized result returned when nothing dirtied');
     });
 
     test('it ignores tags consumed within an untrack frame', (assert) => {
-      let tag1 = createTag();
-      let tag2 = createTag();
+      let storage1 = createStorage(false);
+      let storage2 = createStorage(false);
       let count = 0;
 
       let cache = createCache(() => {
-        consumeTag(tag1);
+        getValue(storage1);
 
-        untrack(() => consumeTag(tag2));
+        untrack(() => getValue(storage2));
 
         return ++count;
       });
@@ -304,29 +57,29 @@ module('@glimmer/validator: tracking', () => {
       assert.equal(getValue(cache), 1, 'called correctly the first time');
       assert.equal(getValue(cache), 1, 'memoized result returned second time');
 
-      dirtyTag(tag1);
-      assert.equal(getValue(cache), 2, 'cache busted when tag1 dirtied');
+      setValue(storage1, true);
+      assert.equal(getValue(cache), 2, 'cache busted when storage1 dirtied');
       assert.equal(getValue(cache), 2, 'memoized result returned when nothing dirtied');
 
-      dirtyTag(tag2);
-      assert.equal(getValue(cache), 2, 'cache not busted when tag2 dirtied');
+      setValue(storage2, true);
+      assert.equal(getValue(cache), 2, 'cache not busted when storage2 dirtied');
     });
 
     test('nested memoizations work, and automatically propogate', (assert) => {
-      let innerTag = createTag();
-      let outerTag = createTag();
+      let innerStorage = createStorage(false);
+      let outerStorage = createStorage(false);
 
       let innerCount = 0;
       let outerCount = 0;
 
       let innerCache = createCache(() => {
-        consumeTag(innerTag);
+        getValue(innerStorage);
 
         return ++innerCount;
       });
 
       let outerCache = createCache(() => {
-        consumeTag(outerTag);
+        getValue(outerStorage);
 
         return [++outerCount, getValue(innerCache)];
       });
@@ -338,7 +91,7 @@ module('@glimmer/validator: tracking', () => {
       );
       assert.deepEqual(getValue(outerCache), [1, 1], 'memoized result returned correctly');
 
-      dirtyTag(outerTag);
+      setValue(outerStorage, true);
 
       assert.deepEqual(
         getValue(outerCache),
@@ -347,7 +100,7 @@ module('@glimmer/validator: tracking', () => {
       );
       assert.deepEqual(getValue(outerCache), [2, 1], 'memoized result returned correctly');
 
-      dirtyTag(innerTag);
+      setValue(innerStorage, true);
 
       assert.deepEqual(getValue(outerCache), [3, 2], 'both inner and outer result updated');
       assert.deepEqual(getValue(outerCache), [3, 2], 'memoized result returned correctly');
@@ -369,14 +122,14 @@ module('@glimmer/validator: tracking', () => {
     });
 
     test('isConst allows users to check if a memoized function is constant', (assert) => {
-      let tag = createTag();
+      let tag = createStorage(false);
 
       let constCache = createCache(() => {
         // do nothing;
       });
 
       let nonConstCache = createCache(() => {
-        consumeTag(tag);
+        getValue(tag);
       });
 
       getValue(constCache);
@@ -384,6 +137,18 @@ module('@glimmer/validator: tracking', () => {
 
       assert.ok(isConst(constCache), 'constant cache returns true');
       assert.notOk(isConst(nonConstCache), 'non-constant cache returns false');
+    });
+
+    test('isConst returns false when used on a brand new cache', (assert) => {
+      let cache = createCache(() => {
+        // do nothing;
+      });
+
+      assert.equal(isConst(cache), false, 'Cache is not constant when first created.');
+
+      getValue(cache);
+
+      assert.equal(isConst(cache), true, 'Cache becomes constant once evaluated.');
     });
 
     if (DEBUG) {
@@ -397,242 +162,128 @@ module('@glimmer/validator: tracking', () => {
       test('getValue throws an error in DEBUG mode if users to use with a non-cache', (assert) => {
         assert.throws(
           () => getValue(123 as any),
-          /Error: getValue\(\) can only be used on an instance of a cache created with createCache\(\). Called with: 123/
-        );
-      });
-
-      test('isConst throws an error in DEBUG mode if users attempt to check a function before it has been called', (assert) => {
-        let cache = createCache(() => {
-          // do nothing;
-        });
-
-        assert.throws(
-          () => isConst(cache),
-          /Error: isConst\(\) can only be used on a cache once getValue\(\) has been called at least once/
+          /Error: getValue\(\) can only be used on an instance of a cache created with createCache\(\) or a storage created with createStorage\(\). Called with: 123/
         );
       });
 
       test('isConst throws an error in DEBUG mode if users attempt to use with a non-cache', (assert) => {
         assert.throws(
           () => isConst(123 as any),
-          /Error: isConst\(\) can only be used on an instance of a cache created with createCache\(\). Called with: 123/
+          /Error: isConst\(\) can only be used on an instance of a cache created with createCache\(\) or a storage created with createStorage\(\). Called with: 123/
         );
       });
     }
   });
 
-  module('trackedData', () => {
-    test('it creates a storage cell that can be accessed and updated', (assert) => {
-      class Foo {
-        foo = 123;
-      }
+  // if (DEBUG) {
+  //   module('debug', () => {
+  //     test('it errors when attempting to update a value that has already been consumed in the same transaction', (assert) => {
+  //       let tag = createStorage(false);
 
-      let { getter, setter } = trackedData<Foo, keyof Foo>('foo');
+  //       assert.throws(() => {
+  //         runInTrackingTransaction!(() => {
+  //           track(() => {
+  //             getValue(tag);
+  //             dirtyTag(tag);
+  //           });
+  //         });
+  //       }, /Error: You attempted to update `\(an unknown tag\)`/);
+  //     });
 
-      let foo = new Foo();
+  //     test('it throws errors across track frames within the same debug transaction', (assert) => {
+  //       let tag = createStorage(false);
 
-      setter(foo, 456);
-      assert.equal(getter(foo), 456, 'value is set correctly');
-      assert.equal(foo.foo, 123, 'value is not set on the actual object');
-    });
+  //       assert.throws(() => {
+  //         runInTrackingTransaction!(() => {
+  //           track(() => {
+  //             getValue(tag);
+  //           });
 
-    test('it can receive an initializer', (assert) => {
-      class Foo {
-        foo = 123;
-        bar = 456;
-      }
+  //           track(() => {
+  //             dirtyTag(tag);
+  //           });
+  //         });
+  //       }, /Error: You attempted to update `\(an unknown tag\)`/);
+  //     });
 
-      let { getter } = trackedData<Foo, keyof Foo>('foo', function (this: Foo) {
-        return this.bar;
-      });
+  //     test('it ignores untrack for consumption', (assert) => {
+  //       assert.expect(0);
+  //       let tag = createStorage(false);
 
-      let foo = new Foo();
+  //       runInTrackingTransaction!(() => {
+  //         untrack(() => {
+  //           getValue(tag);
+  //         });
 
-      assert.equal(getter(foo), 456, 'value is initialized correctly');
-      assert.equal(foo.foo, 123, 'value is not set on the actual object');
-    });
+  //         track(() => {
+  //           dirtyTag(tag);
+  //         });
+  //       });
+  //     });
 
-    test('it tracks changes to the storage cell', (assert) => {
-      class Foo {
-        foo = 123;
-        bar = 456;
-      }
+  //     test('it does not ignore untrack for dirty', (assert) => {
+  //       let tag = createStorage(false);
 
-      let { getter, setter } = trackedData<Foo, keyof Foo>('foo', function (this: Foo) {
-        return this.bar;
-      });
+  //       assert.throws(() => {
+  //         runInTrackingTransaction!(() => {
+  //           track(() => {
+  //             getValue(tag);
+  //           });
 
-      let foo = new Foo();
-      let tag = track(() => {
-        assert.equal(getter(foo), 456, 'value is set correctly');
-      });
+  //           untrack(() => {
+  //             dirtyTag(tag);
+  //           });
+  //         });
+  //       }, /Error: You attempted to update `\(an unknown tag\)`/);
+  //     });
 
-      let snapshot = valueForTag(tag);
+  //     test('it can switch to warnings/deprecations', (assert) => {
+  //       let tag = createStorage(false);
 
-      setter(foo, 789);
-      assert.notOk(validateTag(tag, snapshot));
-    });
+  //       runInTrackingTransaction!(() => {
+  //         track(() => {
+  //           deprecateMutationsInTrackingTransaction!(() => {
+  //             getValue(tag);
+  //             dirtyTag(tag);
+  //           });
+  //         });
+  //       });
 
-    if (DEBUG) {
-      test('it errors when attempting to update a value already consumed in the same transaction', (assert) => {
-        class Foo {
-          foo = 123;
-          bar = 456;
-        }
+  //       assert.validateDeprecations(
+  //         /You attempted to update `.*`, but it had already been used previously in the same computation./
+  //       );
+  //     });
 
-        let { getter, setter } = trackedData<Foo, keyof Foo>('foo', function (this: Foo) {
-          return this.bar;
-        });
+  //     test('it switches back to errors with nested track calls', (assert) => {
+  //       let tag = createStorage(false);
 
-        let foo = new Foo();
+  //       assert.throws(() => {
+  //         runInTrackingTransaction!(() => {
+  //           deprecateMutationsInTrackingTransaction!(() => {
+  //             track(() => {
+  //               getValue(tag);
+  //               dirtyTag(tag);
+  //             });
+  //           });
+  //         });
+  //       }, /Error: You attempted to update `\(an unknown tag\)`/);
+  //     });
 
-        assert.throws(() => {
-          runInTrackingTransaction!(() => {
-            track(() => {
-              getter(foo);
-              setter(foo, 789);
-            });
-          });
-        }, /You attempted to update `foo` on `\(an instance of/);
-      });
+  //     test('it gets a better error message with tagFor', (assert) => {
+  //       class Foo {}
+  //       let foo = new Foo();
 
-      test('it can switches to warning/deprecations when attempting to update a value already consumed in the same transaction', (assert) => {
-        class Foo {
-          foo = 123;
-          bar = 456;
-        }
-
-        let { getter, setter } = trackedData<Foo, keyof Foo>('foo', function (this: Foo) {
-          return this.bar;
-        });
-
-        let foo = new Foo();
-
-        runInTrackingTransaction!(() => {
-          track(() => {
-            deprecateMutationsInTrackingTransaction!(() => {
-              getter(foo);
-              setter(foo, 789);
-            });
-          });
-        });
-
-        assert.validateDeprecations(
-          /You attempted to update `foo` on `.*`, but it had already been used previously in the same computation/
-        );
-      });
-    }
-  });
-
-  if (DEBUG) {
-    module('debug', () => {
-      test('it errors when attempting to update a value that has already been consumed in the same transaction', (assert) => {
-        let tag = createTag();
-
-        assert.throws(() => {
-          runInTrackingTransaction!(() => {
-            track(() => {
-              consumeTag(tag);
-              dirtyTag(tag);
-            });
-          });
-        }, /Error: You attempted to update `\(an unknown tag\)`/);
-      });
-
-      test('it throws errors across track frames within the same debug transaction', (assert) => {
-        let tag = createTag();
-
-        assert.throws(() => {
-          runInTrackingTransaction!(() => {
-            track(() => {
-              consumeTag(tag);
-            });
-
-            track(() => {
-              dirtyTag(tag);
-            });
-          });
-        }, /Error: You attempted to update `\(an unknown tag\)`/);
-      });
-
-      test('it ignores untrack for consumption', (assert) => {
-        assert.expect(0);
-        let tag = createTag();
-
-        runInTrackingTransaction!(() => {
-          untrack(() => {
-            consumeTag(tag);
-          });
-
-          track(() => {
-            dirtyTag(tag);
-          });
-        });
-      });
-
-      test('it does not ignore untrack for dirty', (assert) => {
-        let tag = createTag();
-
-        assert.throws(() => {
-          runInTrackingTransaction!(() => {
-            track(() => {
-              consumeTag(tag);
-            });
-
-            untrack(() => {
-              dirtyTag(tag);
-            });
-          });
-        }, /Error: You attempted to update `\(an unknown tag\)`/);
-      });
-
-      test('it can switch to warnings/deprecations', (assert) => {
-        let tag = createTag();
-
-        runInTrackingTransaction!(() => {
-          track(() => {
-            deprecateMutationsInTrackingTransaction!(() => {
-              consumeTag(tag);
-              dirtyTag(tag);
-            });
-          });
-        });
-
-        assert.validateDeprecations(
-          /You attempted to update `.*`, but it had already been used previously in the same computation./
-        );
-      });
-
-      test('it switches back to errors with nested track calls', (assert) => {
-        let tag = createTag();
-
-        assert.throws(() => {
-          runInTrackingTransaction!(() => {
-            deprecateMutationsInTrackingTransaction!(() => {
-              track(() => {
-                consumeTag(tag);
-                dirtyTag(tag);
-              });
-            });
-          });
-        }, /Error: You attempted to update `\(an unknown tag\)`/);
-      });
-
-      test('it gets a better error message with tagFor', (assert) => {
-        class Foo {}
-        let foo = new Foo();
-
-        assert.throws(() => {
-          runInTrackingTransaction!(() => {
-            deprecateMutationsInTrackingTransaction!(() => {
-              track(() => {
-                consumeTag(tagFor(foo, 'bar'));
-                dirtyTagFor(foo, 'bar');
-              });
-            });
-          });
-        }, /Error: You attempted to update `bar` on `\(an instance of .*\)`/);
-      });
-    });
-  }
+  //       assert.throws(() => {
+  //         runInTrackingTransaction!(() => {
+  //           deprecateMutationsInTrackingTransaction!(() => {
+  //             track(() => {
+  //               getValue(tagFor(foo, 'bar'));
+  //               dirtyTagFor(foo, 'bar');
+  //             });
+  //           });
+  //         });
+  //       }, /Error: You attempted to update `bar` on `\(an instance of .*\)`/);
+  //     });
+  //   });
+  // }
 });

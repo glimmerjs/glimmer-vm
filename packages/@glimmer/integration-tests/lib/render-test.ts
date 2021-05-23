@@ -8,7 +8,7 @@ import {
   DynamicScope,
 } from '@glimmer/interfaces';
 import { ASTPluginBuilder } from '@glimmer/syntax';
-import { dirtyTagFor } from '@glimmer/validator';
+import { setValue, storageFor } from '@glimmer/validator';
 import { assert, clearElement, dict, expect } from '@glimmer/util';
 import { SimpleElement, SimpleNode } from '@simple-dom/interface';
 import {
@@ -420,7 +420,7 @@ export class RenderTest implements IRenderTest {
 
   protected set(key: string, value: unknown): void {
     this.context[key] = value;
-    dirtyTagFor(this.context, key);
+    setValue(storageFor(this.context, key), null);
   }
 
   protected setProperties(properties: Dict<unknown>): void {

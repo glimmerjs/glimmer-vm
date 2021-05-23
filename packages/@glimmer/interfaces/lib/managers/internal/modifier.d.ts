@@ -1,6 +1,5 @@
 import { GlimmerTreeChanges } from '../../dom/changes';
 // eslint-disable-next-line node/no-extraneous-import
-import { UpdatableTag } from '@glimmer/validator';
 import { SimpleElement } from '@simple-dom/interface';
 import { Owner } from '../../runtime';
 import { Destroyable } from '../../core';
@@ -18,10 +17,6 @@ export interface InternalModifierManager<
     state: TModifierDefinitionState,
     args: CapturedArguments
   ): TModifierInstanceState;
-
-  // Convert the opaque modifier into a `RevisionTag` that determins when
-  // the modifier's update hooks need to be called (if at all).
-  getTag(modifier: TModifierInstanceState): UpdatableTag | null;
 
   getDebugName(Modifier: TModifierDefinitionState): string;
 

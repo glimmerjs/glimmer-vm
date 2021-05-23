@@ -1,37 +1,20 @@
-import {
-  tagMetaFor,
-  consumeTag,
-  dirtyTagFor,
-  TagMeta,
-  tagFor,
-  UpdatableTag,
-} from '@glimmer/validator';
+import { createStorage, getValue, setValue } from '@glimmer/validator';
+import { StorageSource } from '@glimmer/interfaces';
 import { Cell } from './interfaces';
 
 class CellImpl<T> implements Cell<T> {
-  private _meta: TagMeta;
-  private _obj: object;
-  private _key: string;
-  private _tag: UpdatableTag;
-  private _value: T;
+  private storage: StorageSource<T>;
 
-  constructor(obj: object, key: string, initialValue: T) {
-    const meta = tagMetaFor(obj);
-    this._meta = meta;
-    this._obj = obj;
-    this._key = key;
-    this._tag = tagFor(obj, key, meta) as UpdatableTag;
-    this._value = initialValue;
+  constructor(_obj: object, _key: string, initialValue: T) {
+    this.storage = createStorage(initialValue);
   }
 
   get(): T {
-    consumeTag(this._tag);
-    return this._value;
+    return getValue(this.storage);
   }
 
   set(value: T) {
-    dirtyTagFor(this._obj, this._key, this._meta);
-    this._value = value;
+    setValue(this.storage, value);
   }
 }
 

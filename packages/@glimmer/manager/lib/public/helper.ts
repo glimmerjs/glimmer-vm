@@ -11,7 +11,8 @@ import {
   InternalHelperManager,
   Owner,
 } from '@glimmer/interfaces';
-import { createComputeRef, createConstRef, UNDEFINED_REFERENCE } from '@glimmer/reference';
+import { UNDEFINED_SOURCE } from '@glimmer/reference';
+import { createCache, createConstStorage } from '@glimmer/validator';
 
 import { buildCapabilities, FROM_CAPABILITIES } from '../util/capabilities';
 import { argsProxyFor } from '../util/args-proxy';
@@ -115,9 +116,8 @@ export class CustomHelperManager<O extends Owner = Owner> implements InternalHel
       const bucket = manager.createHelper(definition, args);
 
       if (hasValue(manager)) {
-        let cache = createComputeRef(
+        let cache = createCache(
           () => (manager as HelperManagerWithValue<unknown>).getValue(bucket),
-          null,
           DEBUG && manager.getDebugName && manager.getDebugName(definition)
         );
 
@@ -127,16 +127,16 @@ export class CustomHelperManager<O extends Owner = Owner> implements InternalHel
 
         return cache;
       } else if (hasDestroyable(manager)) {
-        let ref = createConstRef(
+        let storage = createConstStorage(
           undefined,
           DEBUG && (manager.getDebugName?.(definition) ?? 'unknown helper')
         );
 
-        associateDestroyableChild(ref, manager.getDestroyable(bucket));
+        associateDestroyableChild(storage, manager.getDestroyable(bucket));
 
-        return ref;
+        return storage;
       } else {
-        return UNDEFINED_REFERENCE;
+        return UNDEFINED_SOURCE;
       }
     };
   }

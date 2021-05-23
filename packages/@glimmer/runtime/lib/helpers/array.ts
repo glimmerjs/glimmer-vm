@@ -1,5 +1,5 @@
-import { CapturedArguments } from '@glimmer/interfaces';
-import { createComputeRef, Reference } from '@glimmer/reference';
+import { CapturedArguments, Source } from '@glimmer/interfaces';
+import { createCache } from '@glimmer/validator';
 import { reifyPositional } from '@glimmer/runtime';
 import { internalHelper } from './internal-helper';
 
@@ -38,7 +38,7 @@ import { internalHelper } from './internal-helper';
  */
 
 export default internalHelper(
-  ({ positional }: CapturedArguments): Reference<unknown[]> => {
-    return createComputeRef(() => reifyPositional(positional), null, 'array');
+  ({ positional }: CapturedArguments): Source<unknown[]> => {
+    return createCache(() => reifyPositional(positional), 'array');
   }
 );

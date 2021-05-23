@@ -4,19 +4,25 @@ import {
   CapturedArguments,
   CapturedNamedArguments,
   CapturedPositionalArguments,
+  Source,
 } from '@glimmer/interfaces';
-import { Reference, valueForRef } from '@glimmer/reference';
 import { HAS_NATIVE_PROXY } from '@glimmer/util';
-import { Tag, track } from '@glimmer/validator';
+import { getValue, untrack, createCache } from '@glimmer/validator';
+import { UNDEFINED_SOURCE } from '@glimmer/reference';
 
-const CUSTOM_TAG_FOR = new WeakMap<object, (obj: object, key: string) => Tag>();
+const CUSTOM_SOURCE_FOR = new WeakMap<object, (obj: object, key: string) => Source>();
 
-export function getCustomTagFor(obj: object): ((obj: object, key: string) => Tag) | undefined {
-  return CUSTOM_TAG_FOR.get(obj);
+export function getCustomSourceFor(
+  obj: object
+): ((obj: object, key: string) => Source) | undefined {
+  return CUSTOM_SOURCE_FOR.get(obj);
 }
 
-export function setCustomTagFor(obj: object, customTagFn: (obj: object, key: string) => Tag) {
-  CUSTOM_TAG_FOR.set(obj, customTagFn);
+export function setCustomSourceFor(
+  obj: object,
+  customSourceFn: (obj: object, key: string) => Source
+) {
+  CUSTOM_SOURCE_FOR.set(obj, customSourceFn);
 }
 
 function convertToInt(prop: number | string | symbol): number | null {
@@ -29,28 +35,34 @@ function convertToInt(prop: number | string | symbol): number | null {
   return num % 1 === 0 ? num : null;
 }
 
-function tagForNamedArg(namedArgs: CapturedNamedArguments, key: string): Tag {
-  return track(() => {
-    if (key in namedArgs) {
-      valueForRef(namedArgs[key]);
-    }
-  });
+function SourceForNamedArg(namedArgs: CapturedNamedArguments, key: string): Source {
+  if (key in namedArgs) {
+    // bootstrap the cache if it was not already used.
+    untrack(() => getValue(namedArgs[key]));
+    return namedArgs[key];
+  }
+
+  return UNDEFINED_SOURCE;
 }
 
-function tagForPositionalArg(positionalArgs: CapturedPositionalArguments, key: string): Tag {
-  return track(() => {
-    if (key === '[]') {
-      // consume all of the tags in the positional array
-      positionalArgs.forEach(valueForRef);
-    }
+function SourceForPositionalArg(positionalArgs: CapturedPositionalArguments, key: string): Source {
+  if (key === '[]') {
+    // consume all of the tags in the positional array
+    let cache = createCache(() => positionalArgs.forEach(getValue));
+    untrack(() => getValue(cache));
+    return cache;
+  }
 
-    const parsed = convertToInt(key);
+  const parsed = convertToInt(key);
 
-    if (parsed !== null && parsed < positionalArgs.length) {
-      // consume the tag of the referenced index
-      valueForRef(positionalArgs[parsed]);
-    }
-  });
+  if (parsed !== null && parsed < positionalArgs.length) {
+    // consume the tag of the referenced index
+    let cache = positionalArgs[parsed];
+    untrack(() => getValue(cache));
+    return cache;
+  }
+
+  return UNDEFINED_SOURCE;
 }
 
 export let argsProxyFor: (
@@ -64,10 +76,10 @@ class NamedArgsProxy implements ProxyHandler<{}> {
   constructor(private named: CapturedNamedArguments) {}
 
   get(_target: {}, prop: string | number | symbol) {
-    const ref = this.named[prop as string];
+    const cache = this.named[prop as string];
 
-    if (ref !== undefined) {
-      return valueForRef(ref);
+    if (cache !== undefined) {
+      return getValue(cache);
     }
   }
 
@@ -115,7 +127,7 @@ class PositionalArgsProxy implements ProxyHandler<[]> {
     const parsed = convertToInt(prop);
 
     if (parsed !== null && parsed < positional.length) {
-      return valueForRef(positional[parsed]);
+      return getValue(positional[parsed]);
     }
 
     return (target as any)[prop];
@@ -136,8 +148,8 @@ if (HAS_NATIVE_PROXY) {
   argsProxyFor = (capturedArgs, type) => {
     const { named, positional } = capturedArgs;
 
-    let getNamedTag = (_obj: object, key: string) => tagForNamedArg(named, key);
-    let getPositionalTag = (_obj: object, key: string) => tagForPositionalArg(positional, key);
+    let getNamedTag = (_obj: object, key: string) => SourceForNamedArg(named, key);
+    let getPositionalTag = (_obj: object, key: string) => SourceForPositionalArg(positional, key);
 
     const namedHandler = new NamedArgsProxy(named);
     const positionalHandler = new PositionalArgsProxy(positional);
@@ -168,8 +180,8 @@ if (HAS_NATIVE_PROXY) {
     const namedProxy = new Proxy(namedTarget, namedHandler);
     const positionalProxy = new Proxy(positionalTarget, positionalHandler);
 
-    setCustomTagFor(namedProxy, getNamedTag);
-    setCustomTagFor(positionalProxy, getPositionalTag);
+    setCustomSourceFor(namedProxy, getNamedTag);
+    setCustomSourceFor(positionalProxy, getPositionalTag);
 
     return {
       named: namedProxy,
@@ -180,31 +192,31 @@ if (HAS_NATIVE_PROXY) {
   argsProxyFor = (capturedArgs, _type) => {
     const { named, positional } = capturedArgs;
 
-    let getNamedTag = (_obj: object, key: string) => tagForNamedArg(named, key);
-    let getPositionalTag = (_obj: object, key: string) => tagForPositionalArg(positional, key);
+    let getNamedTag = (_obj: object, key: string) => SourceForNamedArg(named, key);
+    let getPositionalTag = (_obj: object, key: string) => SourceForPositionalArg(positional, key);
 
     let namedProxy = {};
     let positionalProxy: unknown[] = [];
 
-    setCustomTagFor(namedProxy, getNamedTag);
-    setCustomTagFor(positionalProxy, getPositionalTag);
+    setCustomSourceFor(namedProxy, getNamedTag);
+    setCustomSourceFor(positionalProxy, getPositionalTag);
 
     Object.keys(named).forEach((name) => {
       Object.defineProperty(namedProxy, name, {
         enumerable: true,
         configurable: true,
         get() {
-          return valueForRef(named[name]);
+          return getValue(named[name]);
         },
       });
     });
 
-    positional.forEach((ref: Reference, index: number) => {
+    positional.forEach((source: Source, index: number) => {
       Object.defineProperty(positionalProxy, index, {
         enumerable: true,
         configurable: true,
         get() {
-          return valueForRef(ref);
+          return getValue(source);
         },
       });
     });

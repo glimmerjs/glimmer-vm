@@ -15,8 +15,9 @@ import {
   Option,
   Owner,
   VMArguments,
+  Source,
 } from '@glimmer/interfaces';
-import { createConstRef, Reference } from '@glimmer/reference';
+import { createConstStorage } from '@glimmer/validator';
 import { registerDestructor } from '@glimmer/destroyable';
 import { deprecateMutationsInTrackingTransaction } from '@glimmer/validator';
 import { buildCapabilities, FROM_CAPABILITIES } from '../util/capabilities';
@@ -188,8 +189,8 @@ export class CustomComponentManager<O extends Owner, ComponentInstance>
 
   didUpdateLayout(): void {}
 
-  getSelf({ component, delegate }: CustomComponentState<ComponentInstance>): Reference {
-    return createConstRef(delegate.getContext(component), 'this');
+  getSelf({ component, delegate }: CustomComponentState<ComponentInstance>): Source {
+    return createConstStorage(delegate.getContext(component), 'this');
   }
 
   getDestroyable(bucket: CustomComponentState<ComponentInstance>): Option<Destroyable> {

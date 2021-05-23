@@ -8,7 +8,13 @@ QUnit.test('assert against nested transactions', (assert) => {
     { document: castToSimple(document) },
     {
       onTransactionCommit() {},
+
+      scheduleEffects(_phase, callback) {
+        callback();
+      },
+
       isInteractive: true,
+
       enableDebugTooling: false,
     }
   );
@@ -23,24 +29,21 @@ QUnit.test('ensure commit cleans up when it can', (assert) => {
   let env = new EnvironmentImpl(
     { document: castToSimple(document) },
     {
-      onTransactionCommit() {},
+      onTransactionCommit() {
+        throw new Error('something failed');
+      },
+
+      scheduleEffects(_phase, callback) {
+        callback();
+      },
+
       isInteractive: true,
+
       enableDebugTooling: false,
     }
   );
-  env.begin();
 
-  // ghetto stub
-  Object.defineProperty(env, 'transaction', {
-    get() {
-      return {
-        scheduledInstallManagers(): void {},
-        commit(): void {
-          throw new Error('something failed');
-        },
-      };
-    },
-  });
+  env.begin();
 
   assert.throws(() => env.commit(), 'something failed'); // commit failed
 

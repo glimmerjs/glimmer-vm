@@ -12,10 +12,11 @@ import {
   Option,
   RenderResult,
   RuntimeContext,
+  Source,
 } from '@glimmer/interfaces';
 import { programCompilationContext } from '@glimmer/opcode-compiler';
 import { artifacts } from '@glimmer/program';
-import { createConstRef, Reference } from '@glimmer/reference';
+import { createConstStorage } from '@glimmer/validator';
 import {
   array,
   clientBuilder,
@@ -83,7 +84,7 @@ export class JitRenderDelegate implements RenderDelegate {
 
   private plugins: ASTPluginBuilder[] = [];
   private _context: JitTestDelegateContext | null = null;
-  private self: Option<Reference> = null;
+  private self: Option<Source> = null;
   private doc: SimpleDocument;
   private env: EnvironmentDelegate;
 
@@ -189,9 +190,9 @@ export class JitRenderDelegate implements RenderDelegate {
     registerPartial(this.registry, name, content);
   }
 
-  getSelf(_env: Environment, context: unknown): Reference {
+  getSelf(_env: Environment, context: unknown): Source {
     if (!this.self) {
-      this.self = createConstRef(context, 'this');
+      this.self = createConstStorage(context, 'this');
     }
 
     return this.self;

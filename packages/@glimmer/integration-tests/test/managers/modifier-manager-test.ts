@@ -1,5 +1,6 @@
+import { tracked } from '@glimmer/validator';
 import { Arguments, ModifierManager, Owner } from '@glimmer/interfaces';
-import { RenderTest, test, jitSuite, tracked, defineComponent, trackedObj } from '../..';
+import { RenderTest, test, jitSuite, defineComponent, trackedObj } from '../..';
 
 import { setModifierManager, modifierCapabilities } from '@glimmer/manager';
 import { getOwner, setOwner } from '@glimmer/owner';
@@ -231,7 +232,7 @@ abstract class ModifierManagerTest extends RenderTest {
     this.renderComponent(Main);
 
     assert.validateDeprecations(
-      /You attempted to update `foo` on `.*`, but it had already been used previously in the same computation/
+      /You attempted to update the storage for the `foo` property on an instance of .*, but it had already been used previously in the same computation./
     );
   }
 

@@ -11,7 +11,7 @@ import {
   Maybe,
   Option,
   UpdatableBlock,
-  ModifierInstance,
+  Source,
 } from '@glimmer/interfaces';
 import { assert, expect, Stack, symbol } from '@glimmer/util';
 import {
@@ -80,7 +80,7 @@ export class NewElementBuilder implements ElementBuilder {
   private env: Environment;
 
   [CURSOR_STACK] = new Stack<Cursor>();
-  private modifierStack = new Stack<Option<ModifierInstance[]>>();
+  private modifierStack = new Stack<Option<Source[]>>();
   private blockStack = new Stack<LiveBlock>();
 
   static forInitialRender(env: Environment, cursor: CursorImpl) {
@@ -182,7 +182,7 @@ export class NewElementBuilder implements ElementBuilder {
     return this.dom.createElement(tag, this.element);
   }
 
-  flushElement(modifiers: Option<ModifierInstance[]>) {
+  flushElement(modifiers: Option<Source[]>) {
     let parent = this.element;
     let element = expect(
       this.constructing,
@@ -203,7 +203,7 @@ export class NewElementBuilder implements ElementBuilder {
     this.dom.insertBefore(parent, constructing, this.nextSibling);
   }
 
-  closeElement(): Option<ModifierInstance[]> {
+  closeElement(): Option<Source[]> {
     this.willCloseElement();
     this.popElement();
     return this.popModifiers();
@@ -244,11 +244,11 @@ export class NewElementBuilder implements ElementBuilder {
     this[CURSOR_STACK].push(new CursorImpl(element, nextSibling));
   }
 
-  private pushModifiers(modifiers: Option<ModifierInstance[]>): void {
+  private pushModifiers(modifiers: Option<Source[]>): void {
     this.modifierStack.push(modifiers);
   }
 
-  private popModifiers(): Option<ModifierInstance[]> {
+  private popModifiers(): Option<Source[]> {
     return this.modifierStack.pop();
   }
 

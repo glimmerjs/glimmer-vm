@@ -1,6 +1,5 @@
 import { Environment } from './environment';
-// eslint-disable-next-line node/no-extraneous-import
-import { Reference } from '@glimmer/reference';
+import { Source } from '../tracking';
 import { Destroyable } from '../core';
 import { DynamicScope } from './scope';
 import { Owner } from './owner';
@@ -16,7 +15,7 @@ export interface VM<O extends Owner = Owner> {
   env: Environment;
   dynamicScope(): DynamicScope;
   getOwner(): O;
-  getSelf(): Reference;
+  getSelf(): Source;
   associateDestroyable(child: Destroyable): void;
 }
 

@@ -1,4 +1,5 @@
-import { jitSuite, RenderTest, test, GlimmerishComponent, tracked } from '../..';
+import { tracked } from '@glimmer/validator';
+import { jitSuite, RenderTest, test, GlimmerishComponent } from '../..';
 
 class GetTest extends RenderTest {
   static suiteName = 'Helpers test: {{get}}';

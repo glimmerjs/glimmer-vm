@@ -15,18 +15,14 @@ import {
   PositionalArguments,
   Scope,
   ScopeBlock,
+  Source,
   VMArguments,
 } from '@glimmer/interfaces';
-import {
-  createDebugAliasRef,
-  Reference,
-  UNDEFINED_REFERENCE,
-  valueForRef,
-} from '@glimmer/reference';
+import { createDebugAliasSource, UNDEFINED_SOURCE } from '@glimmer/reference';
 import { dict, emptyArray, EMPTY_STRING_ARRAY } from '@glimmer/util';
-import { CONSTANT_TAG, Tag } from '@glimmer/validator';
+import { getValue } from '@glimmer/validator';
 import { $sp } from '@glimmer/vm';
-import { CheckCompilableBlock, CheckReference, CheckScope } from '../compiled/opcodes/-debug-strip';
+import { CheckCompilableBlock, CheckSource, CheckScope } from '../compiled/opcodes/-debug-strip';
 import { REGISTERS } from '../symbols';
 import { EvaluationStack } from './stack';
 
@@ -97,7 +93,7 @@ export class VMArgumentsImpl implements VMArguments {
     return this.positional.length + this.named.length + this.blocks.length * 3;
   }
 
-  at(pos: number): Reference {
+  at(pos: number): Source {
     return this.positional.at(pos);
   }
 
@@ -131,7 +127,7 @@ export class VMArgumentsImpl implements VMArguments {
   }
 }
 
-const EMPTY_REFERENCES = emptyArray<Reference>();
+const EMPTY_REFERENCES = emptyArray<Source>();
 
 export class PositionalArgumentsImpl implements PositionalArguments {
   public base = 0;
@@ -139,7 +135,7 @@ export class PositionalArgumentsImpl implements PositionalArguments {
 
   private stack: EvaluationStack = null as any;
 
-  private _references: Option<readonly Reference[]> = null;
+  private _references: Option<readonly Source[]> = null;
 
   empty(stack: EvaluationStack, base: number) {
     this.stack = stack;
@@ -161,21 +157,21 @@ export class PositionalArgumentsImpl implements PositionalArguments {
     }
   }
 
-  at(position: number): Reference {
+  at(position: number): Source {
     let { base, length, stack } = this;
 
     if (position < 0 || position >= length) {
-      return UNDEFINED_REFERENCE;
+      return UNDEFINED_SOURCE;
     }
 
-    return check(stack.get(position, base), CheckReference);
+    return check(stack.get(position, base), CheckSource);
   }
 
   capture(): CapturedPositionalArguments {
     return this.references as CapturedPositionalArguments;
   }
 
-  prepend(other: Reference[]) {
+  prepend(other: Source[]) {
     let additions = other.length;
 
     if (additions > 0) {
@@ -192,12 +188,12 @@ export class PositionalArgumentsImpl implements PositionalArguments {
     }
   }
 
-  private get references(): readonly Reference[] {
+  private get references(): readonly Source[] {
     let references = this._references;
 
     if (!references) {
       let { stack, base, length } = this;
-      references = this._references = stack.slice<Reference>(base, base + length);
+      references = this._references = stack.slice<Source>(base, base + length);
     }
 
     return references;
@@ -210,7 +206,7 @@ export class NamedArgumentsImpl implements NamedArguments {
 
   private stack!: EvaluationStack;
 
-  private _references: Option<readonly Reference[]> = null;
+  private _references: Option<readonly Source[]> = null;
 
   private _names: Option<readonly string[]> = EMPTY_STRING_ARRAY;
   private _atNames: Option<readonly string[]> = EMPTY_STRING_ARRAY;
@@ -277,7 +273,7 @@ export class NamedArgumentsImpl implements NamedArguments {
     return this.names.indexOf(name) !== -1;
   }
 
-  get(name: string, atNames = false): Reference {
+  get(name: string, atNames = false): Source {
     let { base, stack } = this;
 
     let names = atNames ? this.atNames : this.names;
@@ -285,13 +281,13 @@ export class NamedArgumentsImpl implements NamedArguments {
     let idx = names.indexOf(name);
 
     if (idx === -1) {
-      return UNDEFINED_REFERENCE;
+      return UNDEFINED_SOURCE;
     }
 
-    let ref = stack.get<Reference>(idx, base);
+    let ref = stack.get<Source>(idx, base);
 
     if (DEBUG) {
-      return createDebugAliasRef!(atNames ? name : `@${name}`, ref);
+      return createDebugAliasSource!(atNames ? name : `@${name}`, ref);
     } else {
       return ref;
     }
@@ -299,13 +295,13 @@ export class NamedArgumentsImpl implements NamedArguments {
 
   capture(): CapturedNamedArguments {
     let { names, references } = this;
-    let map = dict<Reference>();
+    let map = dict<Source>();
 
     for (let i = 0; i < names.length; i++) {
       let name = names[i];
 
       if (DEBUG) {
-        map[name] = createDebugAliasRef!(`@${name}`, references[i]);
+        map[name] = createDebugAliasSource!(`@${name}`, references[i]);
       } else {
         map[name] = references[i];
       }
@@ -314,7 +310,7 @@ export class NamedArgumentsImpl implements NamedArguments {
     return map as CapturedNamedArguments;
   }
 
-  merge(other: Record<string, Reference>) {
+  merge(other: Record<string, Source>) {
     let keys = Object.keys(other);
 
     if (keys.length > 0) {
@@ -338,12 +334,12 @@ export class NamedArgumentsImpl implements NamedArguments {
     }
   }
 
-  private get references(): readonly Reference[] {
+  private get references(): readonly Source[] {
     let references = this._references;
 
     if (!references) {
       let { base, length, stack } = this;
-      references = this._references = stack.slice<Reference>(base, base + length);
+      references = this._references = stack.slice<Source>(base, base + length);
     }
 
     return references;
@@ -369,7 +365,6 @@ export class BlockArgumentsImpl implements BlockArguments {
   private internalValues: Option<readonly BlockValue[]> = null;
   private _symbolNames: Option<readonly string[]> = null;
 
-  public internalTag: Option<Tag> = null;
   public names: readonly string[] = EMPTY_STRING_ARRAY;
 
   public length = 0;
@@ -382,7 +377,6 @@ export class BlockArgumentsImpl implements BlockArguments {
     this.length = 0;
     this._symbolNames = null;
 
-    this.internalTag = CONSTANT_TAG;
     this.internalValues = EMPTY_BLOCK_VALUES;
   }
 
@@ -394,10 +388,8 @@ export class BlockArgumentsImpl implements BlockArguments {
     this._symbolNames = null;
 
     if (length === 0) {
-      this.internalTag = CONSTANT_TAG;
       this.internalValues = EMPTY_BLOCK_VALUES;
     } else {
-      this.internalTag = null;
       this.internalValues = null;
     }
   }
@@ -475,7 +467,7 @@ class CapturedBlockArgumentsImpl implements CapturedBlockArguments {
   }
 }
 
-export function createCapturedArgs(named: Dict<Reference>, positional: Reference[]) {
+export function createCapturedArgs(named: Dict<Source>, positional: Source[]) {
   return {
     named,
     positional,
@@ -486,14 +478,14 @@ export function reifyNamed(named: CapturedNamedArguments) {
   let reified = dict();
 
   for (let key in named) {
-    reified[key] = valueForRef(named[key]);
+    reified[key] = getValue(named[key]);
   }
 
   return reified;
 }
 
 export function reifyPositional(positional: CapturedPositionalArguments) {
-  return positional.map(valueForRef);
+  return positional.map(getValue);
 }
 
 export function reifyArgs(args: CapturedArguments) {

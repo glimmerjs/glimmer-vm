@@ -31,13 +31,13 @@ import {
   CapturedArguments,
   CompilableProgram,
   ComponentInstance,
-  ModifierInstance,
-  ComponentInstanceWithCreate,
   Owner,
   CurriedType,
   UpdatingOpcode,
+  EffectPhase,
+  Source,
 } from '@glimmer/interfaces';
-import { isConstRef, Reference, valueForRef } from '@glimmer/reference';
+import { createCache, untrack, getValue, isConst, getDebugLabel } from '@glimmer/validator';
 import {
   assert,
   assign,
@@ -53,7 +53,7 @@ import { managerHasCapability } from '@glimmer/manager';
 import { resolveComponent } from '../../component/resolve';
 import { hasCustomDebugRenderTreeLifecycle } from '../../component/interfaces';
 import { APPEND_OPCODES } from '../../opcodes';
-import createClassListRef from '../../references/class-list';
+import createClassListSource from '../../sources/class-list';
 import { ARGS, CONSTANTS } from '../../symbols';
 import { UpdatingVM } from '../../vm';
 import { InternalVM } from '../../vm/append';
@@ -64,7 +64,7 @@ import {
   CheckComponentInstance,
   CheckFinishedComponentInstance,
   CheckInvocation,
-  CheckReference,
+  CheckSource,
   CheckCurriedComponentDefinition,
 } from './-debug-strip';
 import { UpdateDynamicAttributeOpcode } from './dom';
@@ -132,7 +132,7 @@ APPEND_OPCODES.add(Op.PushComponentDefinition, (vm, { op1: handle }) => {
 APPEND_OPCODES.add(Op.ResolveDynamicComponent, (vm, { op1: _isStrict }) => {
   let stack = vm.stack;
   let component = check(
-    valueForRef(check(stack.pop(), CheckReference)),
+    getValue(check(stack.pop(), CheckSource)),
     CheckOr(CheckString, CheckCurriedComponentDefinition)
   );
   let constants = vm[CONSTANTS];
@@ -164,15 +164,19 @@ APPEND_OPCODES.add(Op.ResolveDynamicComponent, (vm, { op1: _isStrict }) => {
 
 APPEND_OPCODES.add(Op.ResolveCurriedComponent, (vm) => {
   let stack = vm.stack;
-  let ref = check(stack.pop(), CheckReference);
-  let value = valueForRef(ref);
+  let source = check(stack.pop(), CheckSource);
+  let value = getValue(source);
   let constants = vm[CONSTANTS];
 
   let definition: CurriedValue | ComponentDefinition | null;
 
   if (DEBUG && !(typeof value === 'function' || (typeof value === 'object' && value !== null))) {
     throw new Error(
-      `Expected a component definition, but received ${value}. You may have accidentally done <${ref.debugLabel}>, where "${ref.debugLabel}" was a string instead of a curried component definition. You must either use the component definition directly, or use the {{component}} helper to create a curried component definition when invoking dynamically.`
+      `Expected a component definition, but received ${value}. You may have accidentally done <${getDebugLabel(
+        source
+      )}>, where "${getDebugLabel(
+        source
+      )}" was a string instead of a curried component definition. You must either use the component definition directly, or use the {{component}} helper to create a curried component definition when invoking dynamically.`
     );
   }
 
@@ -183,13 +187,13 @@ APPEND_OPCODES.add(Op.ResolveCurriedComponent, (vm) => {
 
     if (DEBUG && definition === null) {
       throw new Error(
-        `Expected a dynamic component definition, but received an object or function that did not have a component manager associated with it. The dynamic invocation was \`<${
-          ref.debugLabel
-        }>\` or \`{{${
-          ref.debugLabel
-        }}}\`, and the incorrect definition is the value at the path \`${
-          ref.debugLabel
-        }\`, which was: ${debugToString!(value)}`
+        `Expected a dynamic component definition, but received an object or function that did not have a component manager associated with it. The dynamic invocation was \`<${getDebugLabel(
+          source
+        )}>\` or \`{{${getDebugLabel(
+          source
+        )}}}\`, and the incorrect definition is the value at the path \`${getDebugLabel(
+          source
+        )}\`, which was: ${debugToString!(value)}`
       );
     }
   }
@@ -365,7 +369,7 @@ APPEND_OPCODES.add(Op.CreateComponent, (vm, { op1: flags, op2: _state }) => {
     args = check(vm.stack.peek(), CheckArguments);
   }
 
-  let self: Option<Reference> = null;
+  let self: Option<Source> = null;
   if (managerHasCapability(manager, capabilities, InternalComponentCapability.CreateCaller)) {
     self = vm.getSelf();
   }
@@ -428,7 +432,7 @@ APPEND_OPCODES.add(Op.PutComponentOperations, (vm) => {
 APPEND_OPCODES.add(Op.ComponentAttr, (vm, { op1: _name, op2: _trusting, op3: _namespace }) => {
   let name = vm[CONSTANTS].getValue<string>(_name);
   let trusting = vm[CONSTANTS].getValue<boolean>(_trusting);
-  let reference = check(vm.stack.pop(), CheckReference);
+  let reference = check(vm.stack.pop(), CheckSource);
   let namespace = _namespace ? vm[CONSTANTS].getValue<string>(_namespace) : null;
 
   check(vm.fetchValue($t0), CheckInstanceof(ComponentElementOperations)).setAttribute(
@@ -452,22 +456,17 @@ APPEND_OPCODES.add(Op.StaticComponentAttr, (vm, { op1: _name, op2: _value, op3: 
 });
 
 type DeferredAttribute = {
-  value: string | Reference<unknown>;
+  value: string | Source;
   namespace: Option<string>;
   trusting?: boolean;
 };
 
 export class ComponentElementOperations implements ElementOperations {
   private attributes = dict<DeferredAttribute>();
-  private classes: (string | Reference<unknown>)[] = [];
-  private modifiers: ModifierInstance[] = [];
+  private classes: (string | Source)[] = [];
+  private modifiers: Source[] = [];
 
-  setAttribute(
-    name: string,
-    value: Reference<unknown>,
-    trusting: boolean,
-    namespace: Option<string>
-  ) {
+  setAttribute(name: string, value: Source, trusting: boolean, namespace: Option<string>) {
     let deferred = { value, namespace, trusting };
 
     if (name === 'class') {
@@ -487,11 +486,11 @@ export class ComponentElementOperations implements ElementOperations {
     this.attributes[name] = deferred;
   }
 
-  addModifier(modifier: ModifierInstance): void {
+  addModifier(modifier: Source): void {
     this.modifiers.push(modifier);
   }
 
-  flush(vm: InternalVM): ModifierInstance[] {
+  flush(vm: InternalVM): Source[] {
     let type: DeferredAttribute | undefined;
     let attributes = this.attributes;
 
@@ -517,7 +516,7 @@ export class ComponentElementOperations implements ElementOperations {
   }
 }
 
-function mergeClasses(classes: (string | Reference)[]): string | Reference<unknown> {
+function mergeClasses(classes: (string | Source)[]): string | Source {
   if (classes.length === 0) {
     return '';
   }
@@ -528,10 +527,10 @@ function mergeClasses(classes: (string | Reference)[]): string | Reference<unkno
     return classes.join(' ');
   }
 
-  return createClassListRef(classes as Reference[]);
+  return createClassListSource(classes as Source[]);
 }
 
-function allStringClasses(classes: (string | Reference<unknown>)[]): classes is string[] {
+function allStringClasses(classes: (string | Source)[]): classes is string[] {
   for (let i = 0; i < classes.length; i++) {
     if (typeof classes[i] !== 'string') {
       return false;
@@ -543,17 +542,16 @@ function allStringClasses(classes: (string | Reference<unknown>)[]): classes is 
 function setDeferredAttr(
   vm: InternalVM,
   name: string,
-  value: string | Reference<unknown>,
+  value: string | Source,
   namespace: Option<string>,
   trusting = false
 ) {
   if (typeof value === 'string') {
     vm.elements().setStaticAttribute(name, value, namespace);
   } else {
-    let attribute = vm
-      .elements()
-      .setDynamicAttribute(name, valueForRef(value), trusting, namespace);
-    if (!isConstRef(value)) {
+    let attribute = vm.elements().setDynamicAttribute(name, getValue(value), trusting, namespace);
+
+    if (!isConst(value)) {
       vm.updateWith(new UpdateDynamicAttributeOpcode(value, attribute, vm.env));
     }
   }
@@ -576,7 +574,7 @@ APPEND_OPCODES.add(Op.GetComponentSelf, (vm, { op1: _state, op2: _names }) => {
   let instance = check(vm.fetchValue(_state), CheckComponentInstance);
   let { definition, state } = instance;
   let { manager } = definition;
-  let selfRef = manager.getSelf(state);
+  let self = manager.getSelf(state);
 
   if (vm.env.debugRenderTree !== undefined) {
     let instance = check(vm.fetchValue(_state), CheckComponentInstance);
@@ -645,7 +643,7 @@ APPEND_OPCODES.add(Op.GetComponentSelf, (vm, { op1: _state, op2: _names }) => {
         name,
         args,
         template: moduleName,
-        instance: valueForRef(selfRef),
+        instance: getValue(self),
       });
 
       vm.associateDestroyable(instance);
@@ -658,7 +656,7 @@ APPEND_OPCODES.add(Op.GetComponentSelf, (vm, { op1: _state, op2: _names }) => {
     }
   }
 
-  vm.stack.push(selfRef);
+  vm.stack.push(self);
 });
 
 APPEND_OPCODES.add(Op.GetComponentTagName, (vm, { op1: _state }) => {
@@ -826,7 +824,7 @@ APPEND_OPCODES.add(Op.InvokeComponentLayout, (vm, { op1: _state }) => {
   vm.call(state.handle!);
 });
 
-APPEND_OPCODES.add(Op.DidRenderLayout, (vm, { op1: _state }) => {
+APPEND_OPCODES.add(Op.CommitComponentTransaction, (vm, { op1: _state }) => {
   let instance = check(vm.fetchValue(_state), CheckComponentInstance);
   let { manager, state, capabilities } = instance;
   let bounds = vm.elements().popBlock();
@@ -849,17 +847,45 @@ APPEND_OPCODES.add(Op.DidRenderLayout, (vm, { op1: _state }) => {
     }
   }
 
+  let op = vm.commitCacheGroup();
+
   if (managerHasCapability(manager, capabilities, InternalComponentCapability.CreateInstance)) {
-    let mgr = check(manager, CheckInterface({ didRenderLayout: CheckFunction }));
+    let mgr = check(
+      manager,
+      CheckInterface({
+        didRenderLayout: CheckFunction,
+        didUpdateLayout: CheckFunction,
+        didCreate: CheckFunction,
+        didUpdate: CheckFunction,
+      })
+    );
     mgr.didRenderLayout(state, bounds);
 
-    vm.env.didCreate(instance as ComponentInstanceWithCreate);
-    vm.updateWith(new DidUpdateLayoutOpcode(instance as ComponentInstanceWithCreate, bounds));
-  }
-});
+    let didCreate = false;
 
-APPEND_OPCODES.add(Op.CommitComponentTransaction, (vm) => {
-  vm.commitCacheGroup();
+    let cache = createCache(() => {
+      let { source } = op;
+
+      if (source !== null) {
+        // Read and consume the component cache to entangle its state
+        getValue(source);
+      }
+
+      untrack(() => {
+        if (didCreate === false) {
+          didCreate = true;
+
+          mgr.didCreate(state);
+        } else {
+          mgr.didUpdateLayout(state, bounds);
+          mgr.didUpdate(state);
+        }
+      });
+    });
+
+    vm.env.registerEffect(EffectPhase.Layout, cache);
+    vm.associateDestroyable(cache);
+  }
 });
 
 export class UpdateComponentOpcode implements UpdatingOpcode {
@@ -873,19 +899,6 @@ export class UpdateComponentOpcode implements UpdatingOpcode {
     let { component, manager, dynamicScope } = this;
 
     manager.update(component, dynamicScope);
-  }
-}
-
-export class DidUpdateLayoutOpcode implements UpdatingOpcode {
-  constructor(private component: ComponentInstanceWithCreate, private bounds: Bounds) {}
-
-  evaluate(vm: UpdatingVM) {
-    let { component, bounds } = this;
-    let { manager, state } = component;
-
-    manager.didUpdateLayout(state, bounds);
-
-    vm.env.didUpdate(component);
   }
 }
 

@@ -1,28 +1,13 @@
 import { toBool } from '@glimmer/global-context';
-import { CompilableTemplate, Option, Op, UpdatingOpcode } from '@glimmer/interfaces';
+import { CompilableTemplate, Option, Op, UpdatingOpcode, Source } from '@glimmer/interfaces';
 import {
-  Reference,
-  valueForRef,
-  isConstRef,
-  createPrimitiveRef,
-  UNDEFINED_REFERENCE,
-  NULL_REFERENCE,
-  TRUE_REFERENCE,
-  FALSE_REFERENCE,
-  createComputeRef,
-  createConstRef,
+  createPrimitiveSource,
+  UNDEFINED_SOURCE,
+  NULL_SOURCE,
+  TRUE_SOURCE,
+  FALSE_SOURCE,
 } from '@glimmer/reference';
-import {
-  CONSTANT_TAG,
-  Revision,
-  Tag,
-  valueForTag,
-  validateTag,
-  INITIAL,
-  beginTrackFrame,
-  endTrackFrame,
-  consumeTag,
-} from '@glimmer/validator';
+import { createCache, getValue, isConst, createConstStorage } from '@glimmer/validator';
 import { assert, decodeHandle, decodeImmediate, expect, isHandle } from '@glimmer/util';
 import {
   CheckNumber,
@@ -37,7 +22,7 @@ import { stackAssert } from './assert';
 import { APPEND_OPCODES } from '../../opcodes';
 import { UpdatingVM } from '../../vm';
 import { VMArgumentsImpl } from '../../vm/arguments';
-import { CheckReference, CheckScope } from './-debug-strip';
+import { CheckSource, CheckScope } from './-debug-strip';
 import { CONSTANTS } from '../../symbols';
 import { InternalVM } from '../../vm/append';
 
@@ -54,7 +39,7 @@ APPEND_OPCODES.add(Op.Constant, (vm, { op1: other }) => {
 });
 
 APPEND_OPCODES.add(Op.ConstantReference, (vm, { op1: other }) => {
-  vm.stack.push(createConstRef(vm[CONSTANTS].getValue(decodeHandle(other)), false));
+  vm.stack.push(createConstStorage(vm[CONSTANTS].getValue(decodeHandle(other))));
 });
 
 APPEND_OPCODES.add(Op.Primitive, (vm, { op1: primitive }) => {
@@ -76,15 +61,15 @@ APPEND_OPCODES.add(Op.PrimitiveReference, (vm) => {
   let ref;
 
   if (value === undefined) {
-    ref = UNDEFINED_REFERENCE;
+    ref = UNDEFINED_SOURCE;
   } else if (value === null) {
-    ref = NULL_REFERENCE;
+    ref = NULL_SOURCE;
   } else if (value === true) {
-    ref = TRUE_REFERENCE;
+    ref = TRUE_SOURCE;
   } else if (value === false) {
-    ref = FALSE_REFERENCE;
+    ref = FALSE_SOURCE;
   } else {
-    ref = createPrimitiveRef(value);
+    ref = createPrimitiveSource(value);
   }
 
   stack.push(ref);
@@ -185,10 +170,10 @@ APPEND_OPCODES.add(Op.InvokeYield, (vm) => {
 });
 
 APPEND_OPCODES.add(Op.JumpIf, (vm, { op1: target }) => {
-  let reference = check(vm.stack.pop(), CheckReference);
-  let value = Boolean(valueForRef(reference));
+  let source = check(vm.stack.pop(), CheckSource);
+  let value = Boolean(getValue(source));
 
-  if (isConstRef(reference)) {
+  if (isConst(source)) {
     if (value === true) {
       vm.goto(target);
     }
@@ -197,15 +182,15 @@ APPEND_OPCODES.add(Op.JumpIf, (vm, { op1: target }) => {
       vm.goto(target);
     }
 
-    vm.updateWith(new Assert(reference));
+    vm.updateWith(new Assert(source));
   }
 });
 
 APPEND_OPCODES.add(Op.JumpUnless, (vm, { op1: target }) => {
-  let reference = check(vm.stack.pop(), CheckReference);
-  let value = Boolean(valueForRef(reference));
+  let source = check(vm.stack.pop(), CheckSource);
+  let value = Boolean(getValue(source));
 
-  if (isConstRef(reference)) {
+  if (isConst(source)) {
     if (value === false) {
       vm.goto(target);
     }
@@ -214,7 +199,7 @@ APPEND_OPCODES.add(Op.JumpUnless, (vm, { op1: target }) => {
       vm.goto(target);
     }
 
-    vm.updateWith(new Assert(reference));
+    vm.updateWith(new Assert(source));
   }
 });
 
@@ -227,30 +212,30 @@ APPEND_OPCODES.add(Op.JumpEq, (vm, { op1: target, op2: comparison }) => {
 });
 
 APPEND_OPCODES.add(Op.AssertSame, (vm) => {
-  let reference = check(vm.stack.peek(), CheckReference);
+  let source = check(vm.stack.peek(), CheckSource);
 
-  if (isConstRef(reference) === false) {
-    vm.updateWith(new Assert(reference));
+  if (isConst(source) === false) {
+    vm.updateWith(new Assert(source));
   }
 });
 
 APPEND_OPCODES.add(Op.ToBoolean, (vm) => {
   let { stack } = vm;
-  let valueRef = check(stack.pop(), CheckReference);
+  let source = check(stack.pop(), CheckSource);
 
-  stack.push(createComputeRef(() => toBool(valueForRef(valueRef))));
+  stack.push(createCache(() => toBool(getValue(source))));
 });
 
 export class Assert implements UpdatingOpcode {
   private last: unknown;
 
-  constructor(private ref: Reference) {
-    this.last = valueForRef(ref);
+  constructor(private source: Source) {
+    this.last = getValue(source);
   }
 
   evaluate(vm: UpdatingVM) {
-    let { last, ref } = this;
-    let current = valueForRef(ref);
+    let { last, source } = this;
+    let current = getValue(source);
 
     if (last !== current) {
       vm.throw();
@@ -261,59 +246,16 @@ export class Assert implements UpdatingOpcode {
 export class AssertFilter<T, U> implements UpdatingOpcode {
   private last: U;
 
-  constructor(private ref: Reference<T>, private filter: (from: T) => U) {
-    this.last = filter(valueForRef(ref));
+  constructor(private source: Source<T>, private filter: (from: T) => U) {
+    this.last = filter(getValue(source));
   }
 
   evaluate(vm: UpdatingVM) {
-    let { last, ref, filter } = this;
-    let current = filter(valueForRef(ref));
+    let { last, source, filter } = this;
+    let current = filter(getValue(source));
 
     if (last !== current) {
       vm.throw();
     }
-  }
-}
-
-export class JumpIfNotModifiedOpcode implements UpdatingOpcode {
-  private tag: Tag = CONSTANT_TAG;
-  private lastRevision: Revision = INITIAL;
-  private target?: number;
-
-  finalize(tag: Tag, target: number) {
-    this.target = target;
-    this.didModify(tag);
-  }
-
-  evaluate(vm: UpdatingVM) {
-    let { tag, target, lastRevision } = this;
-
-    if (!vm.alwaysRevalidate && validateTag(tag, lastRevision)) {
-      consumeTag(tag);
-      vm.goto(expect(target, 'VM BUG: Target must be set before attempting to jump'));
-    }
-  }
-
-  didModify(tag: Tag) {
-    this.tag = tag;
-    this.lastRevision = valueForTag(this.tag);
-    consumeTag(tag);
-  }
-}
-
-export class BeginTrackFrameOpcode implements UpdatingOpcode {
-  constructor(private debugLabel?: string) {}
-
-  evaluate() {
-    beginTrackFrame(this.debugLabel);
-  }
-}
-
-export class EndTrackFrameOpcode implements UpdatingOpcode {
-  constructor(private target: JumpIfNotModifiedOpcode) {}
-
-  evaluate() {
-    let tag = endTrackFrame();
-    this.target.didModify(tag);
   }
 }

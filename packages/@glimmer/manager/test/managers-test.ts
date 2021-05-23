@@ -6,8 +6,7 @@ import {
   InternalHelperManager,
   ModifierManager,
 } from '@glimmer/interfaces';
-import { UNDEFINED_REFERENCE } from '@glimmer/reference';
-import { createUpdatableTag } from '@glimmer/validator';
+import { UNDEFINED_SOURCE } from '@glimmer/reference';
 
 import {
   setInternalComponentManager,
@@ -87,7 +86,7 @@ module('Managers', () => {
         }
 
         getSelf() {
-          return UNDEFINED_REFERENCE;
+          return UNDEFINED_SOURCE;
         }
       }
 
@@ -190,7 +189,7 @@ module('Managers', () => {
 
     test('it works with internal helpers', (assert) => {
       let helper = () => {
-        return UNDEFINED_REFERENCE;
+        return UNDEFINED_SOURCE;
       };
 
       let definition = setInternalHelperManager(helper, {});
@@ -294,10 +293,6 @@ module('Managers', () => {
 
         getDestroyable() {
           return null;
-        }
-
-        getTag() {
-          return createUpdatableTag();
         }
 
         install() {}

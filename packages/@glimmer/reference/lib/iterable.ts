@@ -1,9 +1,8 @@
 import { getPath, toIterator } from '@glimmer/global-context';
-import { Option, Dict } from '@glimmer/interfaces';
+import { Option, Dict, Source } from '@glimmer/interfaces';
 import { EMPTY_ARRAY, isObject } from '@glimmer/util';
 import { DEBUG } from '@glimmer/env';
-import { createTag, consumeTag, dirtyTag } from '@glimmer/validator';
-import { Reference, ReferenceEnvironment, valueForRef, createComputeRef } from './reference';
+import { createCache, getValue } from '@glimmer/validator';
 
 export interface IterationItem<T, U> {
   key: unknown;
@@ -22,11 +21,6 @@ export type OpaqueIterator = AbstractIterator<unknown, unknown, OpaqueIterationI
 export interface IteratorDelegate {
   isEmpty(): boolean;
   next(): { value: unknown; memo: unknown } | null;
-}
-
-export interface IteratorReferenceEnvironment extends ReferenceEnvironment {
-  getPath(obj: unknown, path: string): unknown;
-  toIterator(obj: unknown): Option<IteratorDelegate>;
 }
 
 type KeyFor = (item: unknown, index: unknown) => unknown;
@@ -154,9 +148,9 @@ function uniqueKeyFor(keyFor: KeyFor) {
   };
 }
 
-export function createIteratorRef(listRef: Reference, key: string) {
-  return createComputeRef(() => {
-    let iterable = valueForRef(listRef) as { [Symbol.iterator]: any } | null | false;
+export function createIteratorSource(list: Source, key: string): Source<OpaqueIterator> {
+  return createCache(() => {
+    let iterable = getValue(list) as { [Symbol.iterator]: any } | null | false;
 
     let keyFor = makeKeyFor(key);
 
@@ -172,24 +166,6 @@ export function createIteratorRef(listRef: Reference, key: string) {
 
     return new IteratorWrapper(maybeIterator, keyFor);
   });
-}
-
-export function createIteratorItemRef(_value: unknown) {
-  let value = _value;
-  let tag = createTag();
-
-  return createComputeRef(
-    () => {
-      consumeTag(tag);
-      return value;
-    },
-    (newValue) => {
-      if (value !== newValue) {
-        value = newValue;
-        dirtyTag(tag);
-      }
-    }
-  );
 }
 
 class IteratorWrapper implements OpaqueIterator {

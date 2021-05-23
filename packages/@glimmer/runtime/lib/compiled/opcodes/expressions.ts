@@ -9,19 +9,13 @@ import {
   RuntimeConstants,
   ScopeBlock,
   VM as PublicVM,
+  Source,
 } from '@glimmer/interfaces';
-import {
-  Reference,
-  childRefFor,
-  UNDEFINED_REFERENCE,
-  TRUE_REFERENCE,
-  FALSE_REFERENCE,
-  valueForRef,
-  createComputeRef,
-} from '@glimmer/reference';
+import { pathSourceFor, UNDEFINED_SOURCE, TRUE_SOURCE, FALSE_SOURCE } from '@glimmer/reference';
+import { createCache, getDebugLabel, getValue } from '@glimmer/validator';
 import { $v0 } from '@glimmer/vm';
 import { APPEND_OPCODES } from '../../opcodes';
-import { createConcatRef } from '../expressions/concat';
+import { createConcatSource } from '../expressions/concat';
 import { associateDestroyableChild, destroy, _hasDestroyableChildren } from '@glimmer/destroyable';
 import { assert, assign, debugToString, decodeHandle, isObject } from '@glimmer/util';
 import { toBool } from '@glimmer/global-context';
@@ -35,26 +29,26 @@ import {
 } from '@glimmer/debug';
 import {
   CheckArguments,
-  CheckReference,
+  CheckSource,
   CheckCompilableBlock,
   CheckScope,
   CheckHelper,
-  CheckUndefinedReference,
+  CheckUndefinedSource,
   CheckScopeBlock,
   CheckCapturedArguments,
 } from './-debug-strip';
 import { CONSTANTS } from '../../symbols';
 import { DEBUG } from '@glimmer/env';
-import createCurryRef from '../../references/curry-value';
+import createCurrySource from '../../sources/curry-value';
 import { isCurriedType, resolveCurriedValue } from '../../curried-value';
 import { reifyPositional } from '../../vm/arguments';
 
-export type FunctionExpression<T> = (vm: PublicVM) => Reference<T>;
+export type FunctionExpression<T> = (vm: PublicVM) => Source<T>;
 
 APPEND_OPCODES.add(Op.Curry, (vm, { op1: type, op2: _isStrict }) => {
   let stack = vm.stack;
 
-  let definition = check(stack.pop(), CheckReference);
+  let definition = check(stack.pop(), CheckSource);
   let capturedArgs = check(stack.pop(), CheckCapturedArguments);
 
   let owner = vm.getOwner();
@@ -69,24 +63,24 @@ APPEND_OPCODES.add(Op.Curry, (vm, { op1: type, op2: _isStrict }) => {
 
   vm.loadValue(
     $v0,
-    createCurryRef(type as CurriedType, definition, owner, capturedArgs, resolver, isStrict)
+    createCurrySource(type as CurriedType, definition, owner, capturedArgs, resolver, isStrict)
   );
 });
 
 APPEND_OPCODES.add(Op.DynamicHelper, (vm) => {
   let stack = vm.stack;
-  let ref = check(stack.pop(), CheckReference);
+  let ref = check(stack.pop(), CheckSource);
   let args = check(stack.pop(), CheckArguments).capture();
 
-  let helperRef: Reference;
+  let helperSource: Source;
   let initialOwner: Owner = vm.getOwner();
 
-  let helperInstanceRef = createComputeRef(() => {
-    if (helperRef !== undefined) {
-      destroy(helperRef);
+  let helperInstanceSource = createCache(() => {
+    if (helperSource !== undefined) {
+      destroy(helperSource);
     }
 
-    let definition = valueForRef(ref);
+    let definition = getValue(ref);
 
     if (isCurriedType(definition, CurriedType.Helper)) {
       let { definition: resolvedDef, owner, positional, named } = resolveCurriedValue(definition);
@@ -101,44 +95,46 @@ APPEND_OPCODES.add(Op.DynamicHelper, (vm) => {
         args.positional = positional.concat(args.positional) as CapturedPositionalArguments;
       }
 
-      helperRef = helper(args, owner);
+      helperSource = helper(args, owner);
 
-      associateDestroyableChild(helperInstanceRef, helperRef);
+      associateDestroyableChild(helperInstanceSource, helperSource);
     } else if (isObject(definition)) {
       let helper = resolveHelper(vm[CONSTANTS], definition, ref);
-      helperRef = helper(args, initialOwner);
+      helperSource = helper(args, initialOwner);
 
-      if (_hasDestroyableChildren(helperRef)) {
-        associateDestroyableChild(helperInstanceRef, helperRef);
+      if (_hasDestroyableChildren(helperSource)) {
+        associateDestroyableChild(helperInstanceSource, helperSource);
       }
     } else {
-      helperRef = UNDEFINED_REFERENCE;
+      helperSource = UNDEFINED_SOURCE;
     }
   });
 
-  let helperValueRef = createComputeRef(() => {
-    valueForRef(helperInstanceRef);
-    return valueForRef(helperRef);
+  let helperValueSource = createCache(() => {
+    getValue(helperInstanceSource);
+    return getValue(helperSource);
   });
 
-  vm.associateDestroyable(helperInstanceRef);
-  vm.loadValue($v0, helperValueRef);
+  vm.associateDestroyable(helperInstanceSource);
+  vm.loadValue($v0, helperValueSource);
 });
 
 function resolveHelper(
   constants: RuntimeConstants & ResolutionTimeConstants,
   definition: HelperDefinitionState,
-  ref: Reference
+  ref: Source
 ): Helper {
   let handle = constants.helper(definition, null, true)!;
 
   if (DEBUG && handle === null) {
     throw new Error(
-      `Expected a dynamic helper definition, but received an object or function that did not have a helper manager associated with it. The dynamic invocation was \`{{${
-        ref.debugLabel
-      }}}\` or \`(${ref.debugLabel})\`, and the incorrect definition is the value at the path \`${
-        ref.debugLabel
-      }\`, which was: ${debugToString!(definition)}`
+      `Expected a dynamic helper definition, but received an object or function that did not have a helper manager associated with it. The dynamic invocation was \`{{${getDebugLabel(
+        ref
+      )}}}\` or \`(${getDebugLabel(
+        ref
+      )})\`, and the incorrect definition is the value at the path \`${getDebugLabel(
+        ref
+      )}\`, which was: ${debugToString!(definition)}`
     );
   }
 
@@ -165,7 +161,7 @@ APPEND_OPCODES.add(Op.GetVariable, (vm, { op1: symbol }) => {
 });
 
 APPEND_OPCODES.add(Op.SetVariable, (vm, { op1: symbol }) => {
-  let expr = check(vm.stack.pop(), CheckReference);
+  let expr = check(vm.stack.pop(), CheckSource);
   vm.scope().bindSymbol(symbol, expr);
 });
 
@@ -183,7 +179,7 @@ APPEND_OPCODES.add(Op.ResolveMaybeLocal, (vm, { op1: _name }) => {
 
   let ref = locals[name];
   if (ref === undefined) {
-    ref = childRefFor(vm.getSelf(), name);
+    ref = pathSourceFor(vm.getSelf(), name);
   }
 
   vm.stack.push(ref);
@@ -195,8 +191,8 @@ APPEND_OPCODES.add(Op.RootScope, (vm, { op1: symbols }) => {
 
 APPEND_OPCODES.add(Op.GetProperty, (vm, { op1: _key }) => {
   let key = vm[CONSTANTS].getValue<string>(_key);
-  let expr = check(vm.stack.pop(), CheckReference);
-  vm.stack.push(childRefFor(expr, key));
+  let expr = check(vm.stack.pop(), CheckSource);
+  vm.stack.push(pathSourceFor(expr, key));
 });
 
 APPEND_OPCODES.add(Op.GetBlock, (vm, { op1: _block }) => {
@@ -208,9 +204,9 @@ APPEND_OPCODES.add(Op.GetBlock, (vm, { op1: _block }) => {
 
 APPEND_OPCODES.add(Op.SpreadBlock, (vm) => {
   let { stack } = vm;
-  let block = check(stack.pop(), CheckOption(CheckOr(CheckScopeBlock, CheckUndefinedReference)));
+  let block = check(stack.pop(), CheckOption(CheckOr(CheckScopeBlock, CheckUndefinedSource)));
 
-  if (block && !isUndefinedReference(block)) {
+  if (block && !isUndefinedSource(block)) {
     let [handleOrCompilable, scope, table] = block;
 
     stack.push(table);
@@ -223,22 +219,22 @@ APPEND_OPCODES.add(Op.SpreadBlock, (vm) => {
   }
 });
 
-function isUndefinedReference(input: ScopeBlock | Reference): input is Reference {
+function isUndefinedSource(input: ScopeBlock | Source): input is Source {
   assert(
-    Array.isArray(input) || input === UNDEFINED_REFERENCE,
+    Array.isArray(input) || input === UNDEFINED_SOURCE,
     'a reference other than UNDEFINED_REFERENCE is illegal here'
   );
-  return input === UNDEFINED_REFERENCE;
+  return input === UNDEFINED_SOURCE;
 }
 
 APPEND_OPCODES.add(Op.HasBlock, (vm) => {
   let { stack } = vm;
-  let block = check(stack.pop(), CheckOption(CheckOr(CheckScopeBlock, CheckUndefinedReference)));
+  let block = check(stack.pop(), CheckOption(CheckOr(CheckScopeBlock, CheckUndefinedSource)));
 
-  if (block && !isUndefinedReference(block)) {
-    stack.push(TRUE_REFERENCE);
+  if (block && !isUndefinedSource(block)) {
+    stack.push(TRUE_SOURCE);
   } else {
-    stack.push(FALSE_REFERENCE);
+    stack.push(FALSE_SOURCE);
   }
 });
 
@@ -252,42 +248,42 @@ APPEND_OPCODES.add(Op.HasBlockParams, (vm) => {
   let table = check(vm.stack.pop(), CheckMaybe(CheckBlockSymbolTable));
 
   let hasBlockParams = table && table.parameters.length;
-  vm.stack.push(hasBlockParams ? TRUE_REFERENCE : FALSE_REFERENCE);
+  vm.stack.push(hasBlockParams ? TRUE_SOURCE : FALSE_SOURCE);
 });
 
 APPEND_OPCODES.add(Op.Concat, (vm, { op1: count }) => {
-  let out: Array<Reference<unknown>> = new Array(count);
+  let out: Array<Source<unknown>> = new Array(count);
 
   for (let i = count; i > 0; i--) {
     let offset = i - 1;
-    out[offset] = check(vm.stack.pop(), CheckReference);
+    out[offset] = check(vm.stack.pop(), CheckSource);
   }
 
-  vm.stack.push(createConcatRef(out));
+  vm.stack.push(createConcatSource(out));
 });
 
 APPEND_OPCODES.add(Op.IfInline, (vm) => {
-  let condition = check(vm.stack.pop(), CheckReference);
-  let truthy = check(vm.stack.pop(), CheckReference);
-  let falsy = check(vm.stack.pop(), CheckReference);
+  let condition = check(vm.stack.pop(), CheckSource);
+  let truthy = check(vm.stack.pop(), CheckSource);
+  let falsy = check(vm.stack.pop(), CheckSource);
 
   vm.stack.push(
-    createComputeRef(() => {
-      if (toBool(valueForRef(condition)) === true) {
-        return valueForRef(truthy);
+    createCache(() => {
+      if (toBool(getValue(condition)) === true) {
+        return getValue(truthy);
       } else {
-        return valueForRef(falsy);
+        return getValue(falsy);
       }
     })
   );
 });
 
 APPEND_OPCODES.add(Op.Not, (vm) => {
-  let ref = check(vm.stack.pop(), CheckReference);
+  let ref = check(vm.stack.pop(), CheckSource);
 
   vm.stack.push(
-    createComputeRef(() => {
-      return !toBool(valueForRef(ref));
+    createCache(() => {
+      return !toBool(getValue(ref));
     })
   );
 });
@@ -295,12 +291,12 @@ APPEND_OPCODES.add(Op.Not, (vm) => {
 APPEND_OPCODES.add(Op.GetDynamicVar, (vm) => {
   let scope = vm.dynamicScope();
   let stack = vm.stack;
-  let nameRef = check(stack.pop(), CheckReference);
+  let nameSource = check(stack.pop(), CheckSource);
 
   stack.push(
-    createComputeRef(() => {
-      let name = String(valueForRef(nameRef));
-      return valueForRef(scope.get(name));
+    createCache(() => {
+      let name = String(getValue(nameSource));
+      return getValue(scope.get(name));
     })
   );
 });
@@ -310,7 +306,7 @@ APPEND_OPCODES.add(Op.Log, (vm) => {
 
   vm.loadValue(
     $v0,
-    createComputeRef(() => {
+    createCache(() => {
       // eslint-disable-next-line no-console
       console.log(...reifyPositional(positional));
     })

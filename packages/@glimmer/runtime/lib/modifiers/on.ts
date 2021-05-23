@@ -2,9 +2,8 @@ import { registerDestructor } from '@glimmer/destroyable';
 import { DEBUG } from '@glimmer/env';
 import { CapturedArguments, InternalModifierManager, Owner } from '@glimmer/interfaces';
 import { setInternalModifierManager } from '@glimmer/manager';
-import { valueForRef } from '@glimmer/reference';
+import { getValue, getDebugLabel } from '@glimmer/validator';
 import { reifyNamed } from '@glimmer/runtime';
-import { createUpdatableTag, UpdatableTag } from '@glimmer/validator';
 import { SimpleElement } from '@simple-dom/interface';
 import { buildUntouchableThis } from '@glimmer/util';
 
@@ -46,7 +45,6 @@ const SUPPORTS_EVENT_OPTIONS = (() => {
 })();
 
 export class OnModifierState {
-  public tag = createUpdatableTag();
   public element: Element;
   public args: CapturedArguments;
   public eventName!: string;
@@ -91,38 +89,38 @@ export class OnModifierState {
 
     if (
       DEBUG &&
-      (args.positional[0] === undefined || typeof valueForRef(args.positional[0]) !== 'string')
+      (args.positional[0] === undefined || typeof getValue(args.positional[0]) !== 'string')
     ) {
       throw new Error(
         'You must pass a valid DOM event name as the first argument to the `on` modifier'
       );
     }
 
-    let eventName = valueForRef(args.positional[0]) as string;
+    let eventName = getValue(args.positional[0]) as string;
     if (eventName !== this.eventName) {
       this.eventName = eventName;
       this.shouldUpdate = true;
     }
 
-    let userProvidedCallbackReference = args.positional[1];
+    let userProvidedCallbackSource = args.positional[1];
 
     if (DEBUG) {
       if (args.positional[1] === undefined) {
         throw new Error(`You must pass a function as the second argument to the \`on\` modifier.`);
       }
 
-      let value = valueForRef(userProvidedCallbackReference);
+      let value = getValue(userProvidedCallbackSource);
 
       if (typeof value !== 'function') {
         throw new Error(
           `You must pass a function as the second argument to the \`on\` modifier, you passed ${
             value === null ? 'null' : typeof value
-          }. While rendering:\n\n${userProvidedCallbackReference.debugLabel}`
+          }. While rendering:\n\n${getDebugLabel(userProvidedCallbackSource)}`
         );
       }
     }
 
-    let userProvidedCallback = valueForRef(userProvidedCallbackReference) as EventListener;
+    let userProvidedCallback = getValue(userProvidedCallbackSource) as EventListener;
     if (userProvidedCallback !== this.userProvidedCallback) {
       this.userProvidedCallback = userProvidedCallback;
       this.shouldUpdate = true;
@@ -327,14 +325,6 @@ class OnModifierManager implements InternalModifierManager<OnModifierState | nul
     args: CapturedArguments
   ): OnModifierState | null {
     return new OnModifierState(element as Element, args);
-  }
-
-  getTag(state: OnModifierState | null): UpdatableTag | null {
-    if (state === null) {
-      return null;
-    }
-
-    return state.tag;
   }
 
   install(state: OnModifierState | null): void {

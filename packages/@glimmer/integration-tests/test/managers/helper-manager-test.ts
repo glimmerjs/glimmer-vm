@@ -1,9 +1,9 @@
 import { helperCapabilities, setHelperManager, setModifierManager } from '@glimmer/manager';
+import { tracked } from '@glimmer/validator';
 import {
   RenderTest,
   test,
   jitSuite,
-  tracked,
   defineComponent,
   trackedObj,
   TestHelper,
@@ -153,7 +153,7 @@ class HelperManagerTest extends RenderTest {
 
     assert.throws(() => {
       this.renderComponent(defineComponent({ hello: Hello }, '{{hello}}'));
-    }, /You attempted to update `foo` on/);
+    }, /You attempted to update the storage for the `foo` property on an instance of .*/);
   }
 
   @test 'asserts against using both `hasValue` and `hasScheduledEffect`'(assert: Assert) {
@@ -256,7 +256,7 @@ class HelperManagerTest extends RenderTest {
 
     assert.throws(() => {
       this.renderComponent(defineComponent({ hello: Hello }, '{{hello}}'));
-    }, /You attempted to update `foo` on /);
+    }, /You attempted to update the storage for the `foo` property on an instance of .*/);
   }
 
   @test
@@ -278,7 +278,7 @@ class HelperManagerTest extends RenderTest {
 
     assert.throws(() => {
       this.renderComponent(defineComponent({ hello: Hello }, '{{hello}}'));
-    }, /You attempted to update `foo` on /);
+    }, /You attempted to update the storage for the `foo` property on an instance of .*/);
   }
 }
 

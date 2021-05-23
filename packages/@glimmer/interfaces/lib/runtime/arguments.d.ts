@@ -1,9 +1,6 @@
-// eslint-disable-next-line node/no-extraneous-import
-import { Reference } from '@glimmer/reference';
-// eslint-disable-next-line node/no-extraneous-import
-import { Tag } from '@glimmer/validator';
-import { Dict, Option } from '../core';
-import { ScopeBlock, Block } from './scope';
+import { Source } from '../tracking';
+import { Option } from '../core';
+import { ScopeBlock } from './scope';
 
 declare const CAPTURED_ARGS: unique symbol;
 
@@ -12,7 +9,7 @@ export interface VMArguments {
   positional: PositionalArguments;
   named: NamedArguments;
 
-  at(pos: number): Reference;
+  at(pos: number): Source;
   capture(): CapturedArguments;
 }
 
@@ -24,11 +21,11 @@ export interface CapturedArguments {
 
 export interface PositionalArguments {
   length: number;
-  at(position: number): Reference;
+  at(position: number): Source;
   capture(): CapturedPositionalArguments;
 }
 
-export interface CapturedPositionalArguments extends Array<Reference> {
+export interface CapturedPositionalArguments extends Array<Source> {
   [CAPTURED_ARGS]: true;
 }
 
@@ -36,7 +33,7 @@ export interface NamedArguments {
   names: readonly string[];
   length: number;
   has(name: string): boolean;
-  get(name: string): Reference;
+  get(name: string): Source;
   capture(): CapturedNamedArguments;
 }
 
@@ -56,7 +53,7 @@ export interface CapturedBlockArguments {
 }
 
 export interface CapturedNamedArguments {
-  [key: string]: Reference;
+  [key: string]: Source;
   [CAPTURED_ARGS]: true;
 }
 
