@@ -64,6 +64,10 @@ export class SourceImpl<T = unknown> {
   deps: SourceImpl<unknown> | SourceImpl<unknown>[] | null = null;
 
   isUpdating = false;
+
+  paths: Map<string | symbol, Source> | null = null;
+
+  update: ((value: unknown) => void) | null = null;
 }
 
 export function isSourceImpl<T>(cache: Source<T> | unknown): cache is SourceImpl<T> {

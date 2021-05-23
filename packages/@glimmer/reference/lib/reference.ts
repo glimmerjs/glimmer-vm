@@ -25,8 +25,6 @@ export function createUnboundSource(value: unknown, debugLabel: false | string):
   return source;
 }
 
-const UPDATE_FUNCTIONS = new WeakMap<Source, (value: unknown) => void>();
-
 export function createUpdatableCacheSource<T = unknown>(
   compute: () => T,
   update: Option<(value: T) => void> = null,
@@ -34,7 +32,7 @@ export function createUpdatableCacheSource<T = unknown>(
 ): Source<T> {
   let cache = createCache(compute, DEBUG && debugLabel);
 
-  UPDATE_FUNCTIONS.set(cache, update as (value: unknown) => void);
+  cache.update = update as (value: unknown) => void;
 
   return cache;
 }
@@ -63,27 +61,24 @@ export function createInvokableSource(inner: Source): Source {
   return source;
 }
 
-export function isUpdatableSource(cache: Source): boolean {
-  return UPDATE_FUNCTIONS.has(cache);
+export function isUpdatableSource(source: Source): boolean {
+  return typeof source.update === 'function';
 }
 
 export function updateSource(source: Source, value: unknown) {
-  let update = expect(UPDATE_FUNCTIONS.get(source), 'called update on a non-updatable source');
+  let update = expect(source.update, 'called update on a non-updatable source');
 
   update(value);
 }
 
-const CHILDREN = new WeakMap<Source, Map<string, Source>>();
-
 export function pathSourceFor(parentSource: Source, path: string): Source {
-  let children = CHILDREN.get(parentSource);
+  let { paths } = parentSource;
   let child: Source;
 
-  if (children === undefined) {
-    children = new Map();
-    CHILDREN.set(parentSource, children);
+  if (paths === null) {
+    parentSource.paths = paths = new Map();
   } else {
-    child = children.get(path)!;
+    child = paths.get(path)!;
 
     if (child !== undefined) {
       return child;
@@ -121,7 +116,7 @@ export function pathSourceFor(parentSource: Source, path: string): Source {
     );
   }
 
-  children.set(path, child);
+  paths.set(path, child);
 
   return child;
 }
