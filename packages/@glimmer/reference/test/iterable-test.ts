@@ -12,7 +12,7 @@ import objectValues from './utils/platform';
 class IterableWrapper {
   private iterable: Source<{ next(): OpaqueIterationItem | null }>;
 
-  private dirtyStorage = createStorage(null, false);
+  private dirtyStorage = createStorage(null, () => false);
 
   constructor(obj: unknown, key = '@identity') {
     let valueRef = createCache(() => {

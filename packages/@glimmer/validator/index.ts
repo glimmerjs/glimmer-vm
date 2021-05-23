@@ -16,12 +16,12 @@ export { storageFor, storageMetaFor, notifyStorageFor, StorageMeta } from './lib
 
 export {
   createStorage,
+  createConstStorage,
   resetTracking,
   isTracking,
   untrack,
   createCache,
   isConst,
-  isDirty,
   getValue,
   setValue,
   setDeps,

@@ -27,6 +27,7 @@ import {
   setValue,
   notifyStorageFor,
   createCache,
+  createConstStorage,
 } from '@glimmer/validator';
 import { keys, EMPTY_ARRAY, assign, unwrapTemplate } from '@glimmer/util';
 import { registerDestructor } from '@glimmer/destroyable';
@@ -50,7 +51,7 @@ let GUID = 1;
 export class EmberishCurlyComponent {
   public static positionalParams: string[] | string = [];
 
-  public dirtyStorage: StorageSource<null> = createStorage(null, false);
+  public dirtyStorage: StorageSource<null> = createStorage(null, () => false);
   public layout!: Template;
   public name!: string;
   public tagName: Option<string> = null;
@@ -234,7 +235,7 @@ export class EmberishCurlyComponentManager
 
     registerDestructor(component, () => component.destroy());
 
-    const self = createStorage(component, true, 'this');
+    const self = createConstStorage(component, 'this');
 
     return { component, self };
   }

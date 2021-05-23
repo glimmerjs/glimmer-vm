@@ -12,7 +12,7 @@ import {
   Owner,
 } from '@glimmer/interfaces';
 import { UNDEFINED_SOURCE } from '@glimmer/reference';
-import { createStorage, createCache } from '@glimmer/validator';
+import { createCache, createConstStorage } from '@glimmer/validator';
 
 import { buildCapabilities, FROM_CAPABILITIES } from '../util/capabilities';
 import { argsProxyFor } from '../util/args-proxy';
@@ -127,9 +127,8 @@ export class CustomHelperManager<O extends Owner = Owner> implements InternalHel
 
         return cache;
       } else if (hasDestroyable(manager)) {
-        let storage = createStorage(
+        let storage = createConstStorage(
           undefined,
-          true,
           DEBUG && (manager.getDebugName?.(definition) ?? 'unknown helper')
         );
 

@@ -53,7 +53,7 @@ export class EachSuite extends RenderTest {
 
     let list = {
       arr: [1, 2, 3, 4],
-      storage: createStorage(null, false),
+      storage: createStorage(null, () => false),
 
       [Symbol.iterator]() {
         getValue(this.storage);

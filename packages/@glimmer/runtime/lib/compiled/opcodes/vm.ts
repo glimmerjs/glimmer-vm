@@ -7,7 +7,7 @@ import {
   TRUE_SOURCE,
   FALSE_SOURCE,
 } from '@glimmer/reference';
-import { createStorage, createCache, getValue, isConst } from '@glimmer/validator';
+import { createCache, getValue, isConst, createConstStorage } from '@glimmer/validator';
 import { assert, decodeHandle, decodeImmediate, expect, isHandle } from '@glimmer/util';
 import {
   CheckNumber,
@@ -39,7 +39,7 @@ APPEND_OPCODES.add(Op.Constant, (vm, { op1: other }) => {
 });
 
 APPEND_OPCODES.add(Op.ConstantReference, (vm, { op1: other }) => {
-  vm.stack.push(createStorage(vm[CONSTANTS].getValue(decodeHandle(other)), true));
+  vm.stack.push(createConstStorage(vm[CONSTANTS].getValue(decodeHandle(other))));
 });
 
 APPEND_OPCODES.add(Op.Primitive, (vm, { op1: primitive }) => {

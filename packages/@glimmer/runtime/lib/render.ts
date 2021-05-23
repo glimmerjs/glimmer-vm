@@ -19,7 +19,7 @@ import VM, { InternalVM } from './vm/append';
 import { DynamicScopeImpl } from './scope';
 import { inTransaction } from './environment';
 import { DEBUG } from '@glimmer/env';
-import { createStorage, runInTrackingTransaction } from '@glimmer/validator';
+import { createConstStorage, runInTrackingTransaction } from '@glimmer/validator';
 
 class TemplateIteratorImpl implements TemplateIterator {
   constructor(private vm: InternalVM) {}
@@ -134,7 +134,7 @@ export function renderComponent(
 }
 
 function recordToReference(record: Record<string, unknown>): Record<string, Source> {
-  const root = createStorage(record, true, 'args');
+  const root = createConstStorage(record, 'args');
 
   return Object.keys(record).reduce((acc, key) => {
     acc[key] = pathSourceFor(root, key);

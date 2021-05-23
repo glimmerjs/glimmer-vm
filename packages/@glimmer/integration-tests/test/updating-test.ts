@@ -13,7 +13,14 @@ import {
 import { SimpleElement, SimpleNode } from '@simple-dom/interface';
 import { assert } from './support';
 import { expect } from '@glimmer/util';
-import { tracked, createStorage, getValue, setValue, createCache } from '@glimmer/validator';
+import {
+  tracked,
+  createStorage,
+  getValue,
+  setValue,
+  createCache,
+  createConstStorage,
+} from '@glimmer/validator';
 
 function makeSafeString(value: string): SafeString {
   return new SafeStringImpl(value);
@@ -391,7 +398,7 @@ class UpdatingTest extends RenderTest {
     let rawString = '<b>bold</b> and spicy';
 
     this.registerInternalHelper('const-foobar', () => {
-      return createStorage(makeSafeString(rawString), true, 'safe-string');
+      return createConstStorage(makeSafeString(rawString), 'safe-string');
     });
 
     this.render('<div>{{const-foobar}}</div>', {});
@@ -404,7 +411,7 @@ class UpdatingTest extends RenderTest {
     let rawString = '<b>bold</b> and spicy';
 
     this.registerInternalHelper('const-foobar', () => {
-      return createStorage(this.delegate.createTextNode(rawString), true, 'text-node');
+      return createConstStorage(this.delegate.createTextNode(rawString), 'text-node');
     });
 
     this.render('<div>{{const-foobar}}</div>');
@@ -417,7 +424,7 @@ class UpdatingTest extends RenderTest {
     let rawString = '<b>bold</b> and spicy';
 
     this.registerInternalHelper('const-foobar', () => {
-      return createStorage(makeSafeString(rawString), true, 'safe-string');
+      return createConstStorage(makeSafeString(rawString), 'safe-string');
     });
 
     this.render('<div>{{{const-foobar}}}</div>');
@@ -430,7 +437,7 @@ class UpdatingTest extends RenderTest {
     let rawString = '<b>bold</b> and spicy';
 
     this.registerInternalHelper('const-foobar', () => {
-      return createStorage(this.delegate.createTextNode(rawString), true, 'text-node');
+      return createConstStorage(this.delegate.createTextNode(rawString), 'text-node');
     });
 
     this.render('<div>{{{const-foobar}}}</div>');

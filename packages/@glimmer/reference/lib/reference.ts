@@ -2,12 +2,12 @@ import { DEBUG } from '@glimmer/env';
 import { getProp, setProp } from '@glimmer/global-context';
 import { Option, Source } from '@glimmer/interfaces';
 import { expect, isDict, _WeakSet } from '@glimmer/util';
-import { createStorage, createCache, getValue, getDebugLabel } from '@glimmer/validator';
+import { createCache, getValue, getDebugLabel, createConstStorage } from '@glimmer/validator';
 
 //////////
 
 export function createPrimitiveSource(value: unknown): Source {
-  return createStorage(value, true, DEBUG && String(value));
+  return createConstStorage(value, DEBUG && String(value));
 }
 
 export const UNDEFINED_SOURCE = createPrimitiveSource(undefined);
@@ -18,7 +18,7 @@ export const FALSE_SOURCE = createPrimitiveSource(false);
 const UNBOUND_SOURCES = new _WeakSet();
 
 export function createUnboundSource(value: unknown, debugLabel: false | string): Source {
-  let source = createStorage(value, true, DEBUG && debugLabel);
+  let source = createConstStorage(value, DEBUG && debugLabel);
 
   UNBOUND_SOURCES.add(source);
 

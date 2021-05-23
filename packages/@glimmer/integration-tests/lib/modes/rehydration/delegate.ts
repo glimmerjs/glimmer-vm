@@ -9,7 +9,7 @@ import {
   Source,
 } from '@glimmer/interfaces';
 import { serializeBuilder } from '@glimmer/node';
-import { createStorage } from '@glimmer/validator';
+import { createConstStorage } from '@glimmer/validator';
 import { ASTPluginBuilder, PrecompileOptions } from '@glimmer/syntax';
 import { assign, castToSimple } from '@glimmer/util';
 import createHTMLDocument from '@simple-dom/document';
@@ -133,7 +133,7 @@ export class RehydrationDelegate implements RenderDelegate {
 
   getSelf(_env: Environment, context: unknown): Source {
     if (!this.self) {
-      this.self = createStorage(context, true, 'this');
+      this.self = createConstStorage(context, 'this');
     }
 
     return this.self;

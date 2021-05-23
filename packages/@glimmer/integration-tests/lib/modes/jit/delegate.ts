@@ -16,7 +16,7 @@ import {
 } from '@glimmer/interfaces';
 import { programCompilationContext } from '@glimmer/opcode-compiler';
 import { artifacts } from '@glimmer/program';
-import { createStorage } from '@glimmer/validator';
+import { createConstStorage } from '@glimmer/validator';
 import {
   array,
   clientBuilder,
@@ -192,7 +192,7 @@ export class JitRenderDelegate implements RenderDelegate {
 
   getSelf(_env: Environment, context: unknown): Source {
     if (!this.self) {
-      this.self = createStorage(context, true, 'this');
+      this.self = createConstStorage(context, 'this');
     }
 
     return this.self;

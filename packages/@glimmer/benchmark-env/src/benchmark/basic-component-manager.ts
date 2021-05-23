@@ -7,7 +7,7 @@ import {
   Source,
   StorageSource,
 } from '@glimmer/interfaces';
-import { createStorage } from '@glimmer/validator';
+import { createConstStorage } from '@glimmer/validator';
 import { EMPTY_ARGS } from '@glimmer/runtime';
 import { getComponentTemplate } from '@glimmer/manager';
 import { ComponentArgs } from '../interfaces';
@@ -42,7 +42,7 @@ class BasicComponentManager
     args: VMArguments | null
   ): { instance: object; self: StorageSource } {
     const instance = new Component(argsProxy(args === null ? EMPTY_ARGS : args.capture()));
-    const self = createStorage(instance, true, 'this');
+    const self = createConstStorage(instance, 'this');
     return { instance, self };
   }
 

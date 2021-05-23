@@ -6,7 +6,7 @@ export function trackedObj<T extends Record<string, unknown>>(
   let trackedObj = {};
 
   for (let key in obj) {
-    let storage = createStorage(obj[key], false);
+    let storage = createStorage(obj[key], () => false);
 
     Object.defineProperty(trackedObj, key, {
       enumerable: true,

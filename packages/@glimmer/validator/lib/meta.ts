@@ -61,6 +61,10 @@ export function storageMetaFor(obj: object): StorageMeta {
   return tags;
 }
 
+function neverEq() {
+  return false;
+}
+
 export function storageFor(
   obj: object,
   key: string | symbol,
@@ -70,7 +74,7 @@ export function storageFor(
   let storage = meta.get(key);
 
   if (storage === undefined) {
-    storage = createStorage(initializer?.(), false, DEBUG && debugName(obj, key));
+    storage = createStorage(initializer?.(), neverEq, DEBUG && debugName(obj, key));
 
     meta.set(key, storage);
   }

@@ -5,10 +5,10 @@ import { dict, HAS_NATIVE_PROXY } from '@glimmer/util';
 import {
   getValue,
   untrack,
-  createStorage,
   storageFor,
   setDeps,
   createCache,
+  createConstStorage,
 } from '@glimmer/validator';
 import { deprecate } from '@glimmer/global-context';
 import { internalHelper } from './internal-helper';
@@ -185,6 +185,6 @@ if (HAS_NATIVE_PROXY) {
  */
 export default internalHelper(
   ({ named }: CapturedArguments): Source<Dict<unknown>> => {
-    return createStorage(hashProxyFor(named), false, 'hash');
+    return createConstStorage(hashProxyFor(named), 'hash');
   }
 );

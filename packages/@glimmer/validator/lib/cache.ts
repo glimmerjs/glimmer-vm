@@ -44,21 +44,24 @@ export class SourceImpl<T = unknown> {
 
   declare debuggingContext?: string;
 
-  lastChecked = Revisions.UNINITIALIZED;
-  value: T | undefined;
+  constructor(
+    public value: T | undefined,
+    public isEqual: ((oldValue: T, newValue: T) => boolean) | null,
 
-  // The goal here is that with a new Cache
-  //   1. isConst(cache) === false
-  //   2. isDirty(cache) === true
-  //   3. if the cache is evaluated once, and has no dependencies or only
-  //      constant dependencies, it becomes `isConst` true
-  revision = Revisions.CONSTANT;
-  valueRevision = Revisions.UNINITIALIZED;
+    public compute: (() => T) | null,
+
+    // The goal here is that with a new Cache
+    //   1. isConst(cache) === false
+    //   2. isDirty(cache) === true
+    //   3. if the cache is evaluated once, and has no dependencies or only
+    //      constant dependencies, it becomes `isConst` true
+    public revision: Revision = Revisions.INITIAL,
+    public valueRevision: Revision = Revisions.UNINITIALIZED
+  ) {}
+
+  lastChecked = Revisions.UNINITIALIZED;
 
   deps: SourceImpl<unknown> | SourceImpl<unknown>[] | null = null;
-
-  compute: (() => T) | null = null;
-  isEqual: ((oldValue: T, newValue: T) => boolean) | null = null;
 
   isUpdating = false;
 }
@@ -113,26 +116,22 @@ function tripleEq(oldValue: unknown, newValue: unknown) {
   return oldValue === newValue;
 }
 
-function neverEq() {
-  return false;
-}
-
 export function createStorage<T>(
   initialValue: T,
-  isEqual: boolean | ((oldValue: T, newValue: T) => boolean) = tripleEq,
+  isEqual: (oldValue: T, newValue: T) => boolean = tripleEq,
   debuggingContext?: string | false
 ): StorageSource<T> {
-  let storage = new SourceImpl<T>();
+  let storage = new SourceImpl(initialValue, isEqual, null);
 
-  storage.value = initialValue;
-
-  if (typeof isEqual === 'function') {
-    storage.revision = Revisions.INITIAL;
-    storage.isEqual = isEqual;
-  } else if (isEqual === false) {
-    storage.revision = Revisions.INITIAL;
-    storage.isEqual = neverEq;
+  if (DEBUG && debuggingContext) {
+    storage.debuggingContext = debuggingContext;
   }
+
+  return storage;
+}
+
+export function createConstStorage<T>(value: T, debuggingContext?: string | false) {
+  let storage = new SourceImpl(value, null, null, Revisions.CONSTANT, Revisions.CONSTANT);
 
   if (DEBUG && debuggingContext) {
     storage.debuggingContext = debuggingContext;
@@ -150,8 +149,7 @@ export function createCache<T>(
     `createCache() must be passed a function as its first parameter. Called with: ${compute}`
   );
 
-  let cache = new SourceImpl<T>();
-  cache.compute = compute;
+  let cache = new SourceImpl<T>(undefined, null, compute);
 
   if (DEBUG && debuggingContext) {
     cache.debuggingContext = debuggingContext;
@@ -222,7 +220,7 @@ export function addDeps(cache: StorageSource, newDeps: Source[]): void {
   cache.deps = deps;
 }
 
-export function isDirty<T>(source: Source<T>): boolean {
+function isDirty<T>(source: Source<T>): boolean {
   assert(
     isSourceImpl(source),
     `isDirty() can only be used on an instance of a cache created with createCache() or a storage created with createStorage(). Called with: ${source}`
@@ -237,7 +235,7 @@ export function isConst<T>(source: Source<T>): boolean {
     `isConst() can only be used on an instance of a cache created with createCache() or a storage created with createStorage(). Called with: ${source}`
   );
 
-  return getRevision(source) === Revisions.CONSTANT && !isDirty(source);
+  return source.valueRevision === Revisions.CONSTANT;
 }
 
 export function getValue<T>(source: Source<T>): T {
@@ -245,6 +243,10 @@ export function getValue<T>(source: Source<T>): T {
     isSourceImpl<T>(source),
     `getValue() can only be used on an instance of a cache created with createCache() or a storage created with createStorage(). Called with: ${source}`
   );
+
+  if (isConst(source)) {
+    return source.value!;
+  }
 
   let { compute } = source;
 
@@ -418,7 +420,7 @@ export class EndTrackFrameOpcode implements UpdatingOpcode {
     let source = deps;
 
     if (Array.isArray(source)) {
-      source = new SourceImpl();
+      source = new SourceImpl<unknown>(undefined, null, null);
       source.deps = deps;
       source.revision = source.valueRevision = current.maxRevision;
     }
