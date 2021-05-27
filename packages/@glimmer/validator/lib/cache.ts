@@ -148,7 +148,7 @@ export function createCache<T>(
   compute: () => T,
   debuggingContext?: string | false
 ): CacheSource<T> {
-  assert(
+  assert?.(
     typeof compute === 'function',
     `createCache() must be passed a function as its first parameter. Called with: ${compute}`
   );
@@ -225,7 +225,7 @@ export function addDeps(cache: StorageSource, newDeps: Source[]): void {
 }
 
 function isDirty<T>(source: Source<T>): boolean {
-  assert(
+  assert?.(
     isSourceImpl(source),
     `isDirty() can only be used on an instance of a cache created with createCache() or a storage created with createStorage(). Called with: ${source}`
   );
@@ -234,7 +234,7 @@ function isDirty<T>(source: Source<T>): boolean {
 }
 
 export function isConst<T>(source: Source<T>): boolean {
-  assert(
+  assert?.(
     isSourceImpl(source),
     `isConst() can only be used on an instance of a cache created with createCache() or a storage created with createStorage(). Called with: ${source}`
   );
@@ -243,7 +243,7 @@ export function isConst<T>(source: Source<T>): boolean {
 }
 
 export function getValue<T>(source: Source<T>): T {
-  assert(
+  assert?.(
     isSourceImpl<T>(source),
     `getValue() can only be used on an instance of a cache created with createCache() or a storage created with createStorage(). Called with: ${source}`
   );
@@ -278,9 +278,9 @@ export function getValue<T>(source: Source<T>): T {
 type SourceValue<T extends Source<unknown>> = T extends Source<infer U> ? U : never;
 
 export function setValue<T extends Source<unknown>>(storage: T, value: SourceValue<T>): void {
-  assert(isSourceImpl(storage), 'isConst was passed a value that was not a cache or storage');
-  assert(storage.revision !== Revisions.CONSTANT, 'Attempted to update a constant tag');
-  assert(storage.compute === null, 'Attempted to setValue on a non-settable cache');
+  assert?.(isSourceImpl(storage), 'isConst was passed a value that was not a cache or storage');
+  assert?.(storage.revision !== Revisions.CONSTANT, 'Attempted to update a constant tag');
+  assert?.(storage.compute === null, 'Attempted to setValue on a non-settable cache');
 
   if (DEBUG) {
     // Usually by this point, we've already asserted with better error information,
@@ -290,7 +290,7 @@ export function setValue<T extends Source<unknown>>(storage: T, value: SourceVal
 
   let { value: oldValue, isEqual } = storage;
 
-  assert(typeof isEqual === 'function', 'Attempted to set a storage without `isEqual`');
+  assert?.(typeof isEqual === 'function', 'Attempted to set a storage without `isEqual`');
 
   if (isEqual(oldValue, value) === false) {
     storage.value = value;
@@ -373,7 +373,7 @@ function beginTrack(debuggingContext?: false | string): void {
 function endTrack(): Tracker {
   let current = CURRENT_TRACKER;
 
-  assert(current, 'attempted to end track frame, expected a tracker to exist');
+  assert?.(current, 'attempted to end track frame, expected a tracker to exist');
 
   if (DEBUG) {
     endTrackingTransaction!();
