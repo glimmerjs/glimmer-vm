@@ -1,3 +1,13 @@
+## v0.56.2 (2021-06-03)
+
+#### :bug: Bug Fix
+* `@glimmer/syntax`
+  * [#1266](https://github.com/glimmerjs/glimmer-vm/pull/1266) Maintain relative order of attributes and comments within an `ElementNode` ([@charlespierce](https://github.com/charlespierce))
+
+#### Committers: 1
+- Charles Pierce ([@charlespierce](https://github.com/charlespierce))
+
+
 ## v0.56.1 (2020-08-11)
 
 #### :house: Internal
