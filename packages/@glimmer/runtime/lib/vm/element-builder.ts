@@ -97,7 +97,11 @@ export class NewElementBuilder implements ElementBuilder {
     return stack;
   }
 
-  constructor(env: Environment, parentNode: SimpleElement, nextSibling: Option<SimpleNode>) {
+  constructor(
+    env: Environment,
+    parentNode: SimpleElement | SimpleDocumentFragment,
+    nextSibling: Option<SimpleNode>
+  ) {
     this.pushElement(parentNode, nextSibling);
 
     this.env = env;
@@ -240,7 +244,10 @@ export class NewElementBuilder implements ElementBuilder {
     this.popElement();
   }
 
-  protected pushElement(element: SimpleElement, nextSibling: Maybe<SimpleNode> = null) {
+  protected pushElement(
+    element: SimpleElement | SimpleDocumentFragment,
+    nextSibling: Maybe<SimpleNode> = null
+  ) {
     this[CURSOR_STACK].push(new CursorImpl(element, nextSibling));
   }
 

@@ -1,9 +1,12 @@
 import { Bounds, Cursor, Option } from '@glimmer/interfaces';
-import { SimpleElement, SimpleNode } from '@simple-dom/interface';
+import { SimpleDocumentFragment, SimpleElement, SimpleNode } from '@simple-dom/interface';
 import { expect } from '@glimmer/util';
 
 export class CursorImpl implements Cursor {
-  constructor(public element: SimpleElement, public nextSibling: Option<SimpleNode>) {}
+  constructor(
+    public element: SimpleElement | SimpleDocumentFragment,
+    public nextSibling: Option<SimpleNode>
+  ) {}
 }
 
 export type DestroyableBounds = Bounds;
@@ -54,7 +57,11 @@ export function move(bounds: Bounds, reference: Option<SimpleNode>): Option<Simp
   while (true) {
     let next = current.nextSibling;
 
-    parent.insertBefore(current, reference);
+    if (reference !== null) {
+      reference?.parentNode?.insertBefore(current, reference);
+    } else {
+      parent.insertBefore(current, reference);
+    }
 
     if (current === last) {
       return next;
@@ -69,11 +76,22 @@ export function clear(bounds: Bounds): Option<SimpleNode> {
   let first = bounds.firstNode();
   let last = bounds.lastNode();
 
+  if (parent.nodeType === 11) {
+    if (first.parentNode === last.parentNode && last.parentNode !== null) {
+      if (first !== last) {
+        first.parentNode?.removeChild(first);
+        last.parentNode?.removeChild(last);
+      } else {
+        first.parentNode?.removeChild(first);
+      }
+    }
+    return null;
+  }
+
   let current: SimpleNode = first;
 
   while (true) {
     let next = current.nextSibling;
-
     parent.removeChild(current);
 
     if (current === last) {
