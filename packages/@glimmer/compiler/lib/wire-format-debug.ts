@@ -251,6 +251,9 @@ export default class WireFormatDebugger {
         case Op.Log:
           return ['log', this.formatParams(opcode[1])];
 
+        case Op.DynamicElement:
+          return ['element', this.formatParams(opcode[1])];
+
         case Op.WithDynamicVars:
           return ['-with-dynamic-vars', this.formatHash(opcode[1]), this.formatBlock(opcode[2])];
 

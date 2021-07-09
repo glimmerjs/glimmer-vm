@@ -203,3 +203,8 @@ EXPRESSIONS.add(SexpOpcodes.Log, (op, [, positional]) => {
   op(MachineOp.PopFrame);
   op(Op.Fetch, $v0);
 });
+
+EXPRESSIONS.add(SexpOpcodes.DynamicElement, (op, [, positional]) => {
+  SimpleArgs(op, positional, null, false);
+  op(Op.DynamicElement);
+});
