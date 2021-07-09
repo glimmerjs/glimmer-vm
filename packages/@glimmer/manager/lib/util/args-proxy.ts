@@ -84,18 +84,14 @@ class NamedArgsProxy implements ProxyHandler<{}> {
   }
 
   getOwnPropertyDescriptor(_target: {}, prop: string | number | symbol) {
-    if (DEBUG && !(prop in this.named)) {
-      throw new Error(
-        `args proxies do not have real property descriptors, so you should never need to call getOwnPropertyDescriptor yourself. This code exists for enumerability, such as in for-in loops and Object.keys(). Attempted to get the descriptor for \`${String(
-          prop
-        )}\``
-      );
+    if (prop in this.named) {
+      return {
+        enumerable: true,
+        configurable: true,
+      };
     }
 
-    return {
-      enumerable: true,
-      configurable: true,
-    };
+    return undefined;
   }
 }
 
