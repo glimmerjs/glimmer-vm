@@ -43,6 +43,10 @@ export class ExpressionEncoder {
         return this.GetDynamicVar(expr);
       case 'Log':
         return this.Log(expr);
+      case 'Equal':
+        return this.Equal(expr);
+      case 'NotEqual':
+        return this.NotEqual(expr);
     }
   }
 
@@ -170,6 +174,14 @@ export class ExpressionEncoder {
 
   Log({ positional }: mir.Log): WireFormat.Expressions.Log {
     return [SexpOpcodes.Log, this.Positional(positional)];
+  }
+
+  Equal({ positional }: mir.Equal): WireFormat.Expressions.Equal {
+    return [SexpOpcodes.Equal, this.Positional(positional)];
+  }
+
+  NotEqual({ positional }: mir.NotEqual): WireFormat.Expressions.NotEqual {
+    return [SexpOpcodes.NotEqual, this.Positional(positional)];
   }
 }
 

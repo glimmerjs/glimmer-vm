@@ -206,6 +206,28 @@ operand-stack = [
   ["Reference"]
 ]
 
+[syscall.eq]
+
+format = ["Eq", "count:u32"]
+operation = """
+Inline equal expression
+"""
+operand-stack = [
+  ["Reference"],
+  ["Reference"]
+]
+
+[syscall.neq]
+
+format = ["Neq", "count:u32"]
+operation = """
+Inline not equal expression
+"""
+operand-stack = [
+  ["Reference"],
+  ["Reference"]
+]
+
 [syscall.rconstload]
 
 format = ["Constant", "constant:unknown"]

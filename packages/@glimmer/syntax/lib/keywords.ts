@@ -21,6 +21,8 @@ export const KEYWORDS_TYPES: { [key: string]: KeywordType[] } = {
   let: ['Block'],
   'link-to': ['Append', 'Block'],
   log: ['Call', 'Append'],
+  eq: ['Call', 'Append'],
+  neq: ['Call', 'Append'],
   modifier: ['Call'],
   mount: ['Append'],
   mut: ['Call', 'Append'],

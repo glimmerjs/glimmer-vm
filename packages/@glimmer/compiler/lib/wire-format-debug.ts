@@ -265,6 +265,12 @@ export default class WireFormatDebugger {
             this.formatHash(opcode[3]),
             this.formatBlocks(opcode[4]),
           ];
+
+        case Op.Equal:
+          return ['eq', this.formatParams(opcode[1])];
+
+        case Op.NotEqual:
+          return ['neq', this.formatParams(opcode[1])];
       }
     } else {
       return opcode;
