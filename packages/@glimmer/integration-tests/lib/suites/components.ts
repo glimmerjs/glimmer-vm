@@ -1,9 +1,9 @@
 import { Dict, Owner } from '@glimmer/interfaces';
+import { tracked } from '@glimmer/validator';
 import { RenderTest } from '../render-test';
 import { test } from '../test-decorator';
 import { GlimmerishComponent } from '../components';
 import { strip, stripTight } from '../test-helpers/strings';
-import { tracked } from '../test-helpers/tracked';
 import { assertElement } from '../dom/simple-utils';
 import { assertElementShape } from '../dom/assertions';
 

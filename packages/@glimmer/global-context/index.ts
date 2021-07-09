@@ -133,6 +133,31 @@ export let deprecate: (
   }
 ) => void;
 
+/**
+ * Hook to create a classic decorator version of tracked, for usage in Ember's
+ * classic classes
+ */
+export let createClassicTrackedDecorator: (
+  args: unknown[]
+) => (
+  target: object,
+  key: string,
+  desc: (PropertyDescriptor & { initializer?: any }) | undefined
+) => unknown;
+
+/**
+ * Hook to customize the tracked property descriptor, adding to the get/set and
+ * adding any other relevant changes
+ */
+export let extendTrackedPropertyDesc: (
+  target: object,
+  key: string,
+  desc: {
+    get: () => unknown;
+    set: (value: unknown) => void;
+  }
+) => void;
+
 //////////
 
 export interface GlobalContext {
@@ -153,6 +178,18 @@ export interface GlobalContext {
     options: {
       id: string;
     }
+  ) => void;
+  createClassicTrackedDecorator: (
+    args: unknown[]
+  ) => (
+    target: object,
+    key: string,
+    desc: (PropertyDescriptor & { initializer?: any }) | undefined
+  ) => unknown;
+  extendTrackedPropertyDesc: (
+    target: object,
+    key: string,
+    desc: { get: () => unknown; set: (value: unknown) => void }
   ) => void;
 }
 
@@ -179,6 +216,8 @@ export default function setGlobalContext(context: GlobalContext) {
   warnIfStyleNotTrusted = context.warnIfStyleNotTrusted;
   assert = context.assert;
   deprecate = context.deprecate;
+  createClassicTrackedDecorator = context.createClassicTrackedDecorator;
+  extendTrackedPropertyDesc = context.extendTrackedPropertyDesc;
 }
 
 export let assertGlobalContextWasSet: (() => void) | undefined;
@@ -210,6 +249,8 @@ if (DEBUG) {
           warnIfStyleNotTrusted,
           assert,
           deprecate,
+          createClassicTrackedDecorator,
+          extendTrackedPropertyDesc,
         }
       : null;
 
@@ -233,6 +274,8 @@ if (DEBUG) {
     warnIfStyleNotTrusted = context?.warnIfStyleNotTrusted || (undefined as any);
     assert = context?.assert || (undefined as any);
     deprecate = context?.deprecate || (undefined as any);
+    createClassicTrackedDecorator = context?.createClassicTrackedDecorator || (undefined as any);
+    extendTrackedPropertyDesc = context?.extendTrackedPropertyDesc || (undefined as any);
 
     return originalGlobalContext;
   };

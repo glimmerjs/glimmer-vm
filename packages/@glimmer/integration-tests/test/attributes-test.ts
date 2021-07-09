@@ -1,5 +1,6 @@
 import { normalizeProperty } from '@glimmer/runtime';
-import { assertElement, hasAttribute, jitSuite, RenderTest, test, tracked } from '..';
+import { tracked } from '@glimmer/validator';
+import { assertElement, hasAttribute, jitSuite, RenderTest, test } from '..';
 import { Namespace, SimpleElement } from '@simple-dom/interface';
 import { castToBrowser, expect } from '@glimmer/util';
 

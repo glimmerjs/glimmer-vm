@@ -1,5 +1,6 @@
-import { jitSuite, RenderTest, test, GlimmerishComponent, tracked } from '../..';
+import { jitSuite, RenderTest, test, GlimmerishComponent } from '../..';
 import { HAS_NATIVE_PROXY } from '@glimmer/util';
+import { tracked } from '@glimmer/validator';
 
 class HashTest extends RenderTest {
   static suiteName = 'Helpers test: {{hash}}';

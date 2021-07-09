@@ -1,9 +1,8 @@
 import { RenderTest } from '../render-test';
 import { test } from '../test-decorator';
-import { tracked } from '../test-helpers/tracked';
 import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
 import { beginTestSteps, endTestSteps, verifySteps } from '@glimmer/util';
-import { createTag, consumeTag, dirtyTag } from '@glimmer/validator';
+import { createTag, consumeTag, dirtyTag, tracked } from '@glimmer/validator';
 
 export class EachSuite extends RenderTest {
   static suiteName = '#each';

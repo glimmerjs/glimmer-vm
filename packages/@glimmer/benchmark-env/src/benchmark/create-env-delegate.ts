@@ -104,6 +104,12 @@ setGlobalContext({
       console.warn(msg);
     }
   },
+
+  createClassicTrackedDecorator() {
+    throw new Error('Classic tracked decorators are not supported');
+  },
+
+  extendTrackedPropertyDesc() {},
 });
 
 export default function createEnvDelegate(isInteractive: boolean): EnvironmentDelegate {

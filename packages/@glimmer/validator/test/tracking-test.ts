@@ -14,7 +14,7 @@ import {
   runInTrackingTransaction,
   tagFor,
   track,
-  trackedData,
+  tracked,
   untrack,
   validateTag,
   valueForTag,
@@ -424,73 +424,59 @@ module('@glimmer/validator: tracking', () => {
   module('trackedData', () => {
     test('it creates a storage cell that can be accessed and updated', (assert) => {
       class Foo {
-        foo = 123;
+        @tracked foo = 123;
       }
-
-      let { getter, setter } = trackedData<Foo, keyof Foo>('foo');
 
       let foo = new Foo();
 
-      setter(foo, 456);
-      assert.equal(getter(foo), 456, 'value is set correctly');
-      assert.equal(foo.foo, 123, 'value is not set on the actual object');
+      assert.equal(foo.foo, 123, 'value is initialized correctly');
+
+      foo.foo = 456;
+      assert.equal(foo.foo, 456, 'value is set correctly');
     });
 
     test('it can receive an initializer', (assert) => {
       class Foo {
-        foo = 123;
         bar = 456;
-      }
 
-      let { getter } = trackedData<Foo, keyof Foo>('foo', function (this: Foo) {
-        return this.bar;
-      });
+        @tracked foo = this.bar;
+      }
 
       let foo = new Foo();
 
-      assert.equal(getter(foo), 456, 'value is initialized correctly');
-      assert.equal(foo.foo, 123, 'value is not set on the actual object');
+      assert.equal(foo.foo, 456, 'value is initialized correctly');
     });
 
     test('it tracks changes to the storage cell', (assert) => {
       class Foo {
-        foo = 123;
-        bar = 456;
+        @tracked foo = 123;
       }
-
-      let { getter, setter } = trackedData<Foo, keyof Foo>('foo', function (this: Foo) {
-        return this.bar;
-      });
 
       let foo = new Foo();
       let tag = track(() => {
-        assert.equal(getter(foo), 456, 'value is set correctly');
+        assert.equal(foo.foo, 123, 'value is set correctly');
       });
 
       let snapshot = valueForTag(tag);
 
-      setter(foo, 789);
+      foo.foo = 456;
       assert.notOk(validateTag(tag, snapshot));
     });
 
     if (DEBUG) {
       test('it errors when attempting to update a value already consumed in the same transaction', (assert) => {
         class Foo {
-          foo = 123;
-          bar = 456;
+          @tracked foo = 123;
         }
-
-        let { getter, setter } = trackedData<Foo, keyof Foo>('foo', function (this: Foo) {
-          return this.bar;
-        });
 
         let foo = new Foo();
 
         assert.throws(() => {
           runInTrackingTransaction!(() => {
             track(() => {
-              getter(foo);
-              setter(foo, 789);
+              // eslint-disable-next-line no-unused-expressions
+              foo.foo;
+              foo.foo = 456;
             });
           });
         }, /You attempted to update `foo` on `\(an instance of/);
@@ -498,21 +484,17 @@ module('@glimmer/validator: tracking', () => {
 
       test('it can switches to warning/deprecations when attempting to update a value already consumed in the same transaction', (assert) => {
         class Foo {
-          foo = 123;
-          bar = 456;
+          @tracked foo = 123;
         }
-
-        let { getter, setter } = trackedData<Foo, keyof Foo>('foo', function (this: Foo) {
-          return this.bar;
-        });
 
         let foo = new Foo();
 
         runInTrackingTransaction!(() => {
           track(() => {
             deprecateMutationsInTrackingTransaction!(() => {
-              getter(foo);
-              setter(foo, 789);
+              // eslint-disable-next-line no-unused-expressions
+              foo.foo;
+              foo.foo = 456;
             });
           });
         });

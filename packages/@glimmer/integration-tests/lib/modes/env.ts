@@ -148,6 +148,12 @@ setGlobalContext({
       actualDeprecations.push(msg);
     }
   },
+
+  createClassicTrackedDecorator() {
+    throw new Error('Classic tracked decorators are not supported');
+  },
+
+  extendTrackedPropertyDesc() {},
 });
 
 export class NativeIteratorDelegate<T = unknown> implements IteratorDelegate {

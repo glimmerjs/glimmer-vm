@@ -1,6 +1,6 @@
 import { Option } from '@glimmer/interfaces';
 import { createConstRef, createPrimitiveRef, createComputeRef } from '@glimmer/reference';
-import { RenderTest, test, jitSuite, JitRenderDelegate, GlimmerishComponent, tracked } from '..';
+import { RenderTest, test, jitSuite, JitRenderDelegate, GlimmerishComponent } from '..';
 import { associateDestroyableChild, registerDestructor } from '@glimmer/destroyable';
 import { SafeString } from '@glimmer/runtime';
 import {
@@ -13,7 +13,7 @@ import {
 import { SimpleElement, SimpleNode } from '@simple-dom/interface';
 import { assert } from './support';
 import { expect } from '@glimmer/util';
-import { createTag, consumeTag, dirtyTag } from '@glimmer/validator';
+import { createTag, consumeTag, dirtyTag, tracked } from '@glimmer/validator';
 
 function makeSafeString(value: string): SafeString {
   return new SafeStringImpl(value);
