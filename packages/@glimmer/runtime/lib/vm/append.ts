@@ -31,7 +31,7 @@ import {
   UNDEFINED_REFERENCE,
 } from '@glimmer/reference';
 import { assert, expect, LOCAL_LOGGER, Stack, unwrapHandle } from '@glimmer/util';
-import { beginTrackFrame, endTrackFrame, resetTracking } from '@glimmer/validator';
+import { beginTrackFrame, endTrackFrame, resetTracking, Tag } from '@glimmer/validator';
 import {
   $fp,
   $pc,
@@ -108,7 +108,7 @@ export interface InternalVM {
   associateDestroyable(d: Destroyable): void;
 
   beginCacheGroup(name?: string): void;
-  commitCacheGroup(): void;
+  commitCacheGroup(): Tag;
 
   /// Iteration ///
 
@@ -396,6 +396,7 @@ export default class VM implements PublicVM, InternalVM {
     opcodes.push(new EndTrackFrameOpcode(guard));
 
     guard.finalize(tag, opcodes.length);
+    return tag;
   }
 
   enter(args: number) {

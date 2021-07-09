@@ -7,7 +7,6 @@ import {
   ModifierManager,
 } from '@glimmer/interfaces';
 import { UNDEFINED_REFERENCE } from '@glimmer/reference';
-import { createUpdatableTag } from '@glimmer/validator';
 
 import {
   setInternalComponentManager,
@@ -294,10 +293,6 @@ module('Managers', () => {
 
         getDestroyable() {
           return null;
-        }
-
-        getTag() {
-          return createUpdatableTag();
         }
 
         install() {}

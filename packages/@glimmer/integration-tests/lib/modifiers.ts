@@ -7,7 +7,6 @@ import {
   CapturedArguments,
   Owner,
 } from '@glimmer/interfaces';
-import { UpdatableTag, createUpdatableTag } from '@glimmer/validator';
 import { registerDestructor } from '@glimmer/destroyable';
 import { reifyPositional, reifyNamed } from '@glimmer/runtime';
 
@@ -36,10 +35,6 @@ export class TestModifierManager
   ) {
     let instance = state.Klass ? new state.Klass() : undefined;
     return new TestModifier(element, instance, args);
-  }
-
-  getTag({ tag }: TestModifier): UpdatableTag {
-    return tag;
   }
 
   getDebugName() {
@@ -77,8 +72,6 @@ export class TestModifierManager
 }
 
 export class TestModifier {
-  public tag = createUpdatableTag();
-
   constructor(
     public element: SimpleElement,
     public instance: TestModifierInstance | undefined,

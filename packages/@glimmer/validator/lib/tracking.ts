@@ -182,7 +182,7 @@ export function getValue<T>(cache: Cache<T>): T | undefined {
   let snapshot = cache[SNAPSHOT];
 
   if (tag === undefined || !validateTag(tag, snapshot)) {
-    beginTrackFrame();
+    beginTrackFrame(DEBUG && cache[DEBUG_LABEL]);
 
     try {
       cache[LAST_VALUE] = fn();
