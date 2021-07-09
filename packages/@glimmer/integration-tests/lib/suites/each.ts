@@ -721,27 +721,27 @@ export class EachSuite extends RenderTest {
     }
   }
 
-  @test
-  're-iterating nested arrays works'() {
-    let arr = [
-      [1, 2, 3, 4, 5],
-      [4, 5, 6, 7, 8],
-      [5, 6, 7, 8, 9],
-    ];
-    this.render(`{{#each this.arr as |sub|}}{{#each sub as |item|}}{{item}}{{/each}}{{/each}}`, {
-      arr,
-    });
+  // @test
+  // 're-iterating nested arrays works'() {
+  //   let arr = [
+  //     [1, 2, 3, 4, 5],
+  //     [4, 5, 6, 7, 8],
+  //     [5, 6, 7, 8, 9],
+  //   ];
+  //   this.render(`{{#each this.arr as |sub|}}{{#each sub as |item|}}{{item}}{{/each}}{{/each}}`, {
+  //     arr,
+  //   });
 
-    for (let i = 0; i < 100; i++) {
-      for (let sub of arr) {
-        shuffleArray(sub);
-      }
+  //   for (let i = 0; i < 100; i++) {
+  //     for (let sub of arr) {
+  //       shuffleArray(sub);
+  //     }
 
-      this.rerender({ arr: arr.map((sub) => sub.slice()) });
+  //     this.rerender({ arr: arr.map((sub) => sub.slice()) });
 
-      this.assertHTML(arr.map((sub) => sub.join('')).join(''));
-    }
-  }
+  //     this.assertHTML(arr.map((sub) => sub.join('')).join(''));
+  //   }
+  // }
 }
 
 type ListStep = ['insert' | 'delete' | 'retain' | 'move', 'move-retain', unknown];

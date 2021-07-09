@@ -73,6 +73,10 @@ export namespace DOM {
       return this.document.createElementNS(namespace, tag);
     }
 
+    createDocumentFragment() {
+      return this.document.createDocumentFragment();
+    }
+
     setAttribute(
       element: SimpleElement,
       name: string,
@@ -108,6 +112,10 @@ export class DOMChangesImpl extends DOMOperations implements GlimmerTreeChanges 
   constructor(protected document: SimpleDocument) {
     super(document);
     this.namespace = null;
+  }
+
+  createDocumentFragment() {
+    return this.document.createDocumentFragment();
   }
 
   setAttribute(element: SimpleElement, name: string, value: string) {

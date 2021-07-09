@@ -8,7 +8,12 @@ import type {
 } from '@glimmer/interfaces';
 import { ConcreteBounds, NewElementBuilder } from '@glimmer/runtime';
 import { RemoteLiveBlock } from '@glimmer/runtime';
-import type { SimpleElement, SimpleNode, SimpleText } from '@simple-dom/interface';
+import type {
+  SimpleDocumentFragment,
+  SimpleElement,
+  SimpleNode,
+  SimpleText,
+} from '@simple-dom/interface';
 
 const TEXT_NODE = 3;
 
@@ -138,7 +143,7 @@ class SerializeBuilder extends NewElementBuilder implements ElementBuilder {
 
 export function serializeBuilder(
   env: Environment,
-  cursor: { element: SimpleElement; nextSibling: Option<SimpleNode> }
+  cursor: { element: SimpleElement | SimpleDocumentFragment; nextSibling: Option<SimpleNode> }
 ): ElementBuilder {
   return SerializeBuilder.forInitialRender(env, cursor);
 }

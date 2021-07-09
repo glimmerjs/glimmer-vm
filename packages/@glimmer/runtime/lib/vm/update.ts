@@ -25,7 +25,7 @@ import {
 import { associateDestroyableChild, destroy, destroyChildren } from '@glimmer/destroyable';
 import { expect, Stack, logStep } from '@glimmer/util';
 import { resetTracking, runInTrackingTransaction } from '@glimmer/validator';
-import { SimpleComment } from '@simple-dom/interface';
+import { SimpleComment, SimpleDocumentFragment } from '@simple-dom/interface';
 import { clear, move as moveBounds } from '../bounds';
 import { InternalVM, VmInitCallback } from './append';
 import { LiveBlockList, NewElementBuilder } from './element-builder';
@@ -134,6 +134,10 @@ export abstract class BlockOpcode implements UpdatingOpcode, Bounds {
     this.bounds = bounds;
   }
 
+  fakeParentElement() {
+    return this.runtime.env.getDOM().createDocumentFragment();
+  }
+
   parentElement() {
     return this.bounds.parentElement();
   }
@@ -218,6 +222,9 @@ export class ListBlockOpcode extends BlockOpcode {
   private opcodeMap = new Map<unknown, ListItemOpcode>();
   private marker: SimpleComment | null = null;
   private lastIterator: OpaqueIterator;
+  private fragment: SimpleDocumentFragment | null = null;
+  private fragmentMarker: SimpleComment | null = null;
+
 
   protected readonly bounds!: LiveBlockList;
 
@@ -253,7 +260,7 @@ export class ListBlockOpcode extends BlockOpcode {
 
       this.sync(iterator);
 
-      this.parentElement().removeChild(marker);
+      this.marker.parentNode?.removeChild(this.marker);
       this.marker = null;
       this.lastIterator = iterator;
     }
@@ -273,7 +280,9 @@ export class ListBlockOpcode extends BlockOpcode {
     while (true) {
       let item = iterator.next();
 
-      if (item === null) break;
+      if (item === null) {
+        break;
+      }
 
       let opcode = children[currentOpcodeIndex];
       let { key } = item;
@@ -285,9 +294,11 @@ export class ListBlockOpcode extends BlockOpcode {
       }
 
       if (opcode !== undefined && opcode.key === key) {
+        this.flushInserts();
         this.retainItem(opcode, item);
         currentOpcodeIndex++;
       } else if (itemMap.has(key)) {
+        this.flushInserts();
         let itemOpcode = itemMap.get(key)!;
 
         // The item opcode was seen already, so we should move it.
@@ -323,9 +334,11 @@ export class ListBlockOpcode extends BlockOpcode {
           }
         }
       } else {
-        this.insertItem(item, opcode);
+        this.scheduleInsert(item, opcode);
       }
     }
+
+    this.flushInserts();
 
     for (let i = 0; i < children.length; i++) {
       let opcode = children[i];
@@ -336,6 +349,29 @@ export class ListBlockOpcode extends BlockOpcode {
         opcode.reset();
       }
     }
+  }
+
+  private inserts: [OpaqueIterationItem, ListItemOpcode][] = [];
+
+  private scheduleInsert(item: OpaqueIterationItem, opcode: ListItemOpcode) {
+    this.inserts.push([item, opcode]);
+  }
+
+  private flushInserts() {
+    if (this.inserts.length === 0) {
+      return;
+    }
+    this.fragment = this.runtime.env.getDOM().createDocumentFragment();
+    this.fragmentMarker = this.runtime.env.getDOM().createComment('');
+    this.fragment.appendChild(this.fragmentMarker);
+    let node = this.inserts[0][1]?.firstNode() || this.marker || null;
+    this.inserts.forEach(([item]) => {
+      this.insertItem(item);
+    });
+    this.fragment.removeChild(this.fragmentMarker);
+    this.bounds.parentElement().insertBefore(this.fragment, node);
+    this.fragment = null;
+    this.inserts = [];
   }
 
   private retainItem(opcode: ListItemOpcode, item: OpaqueIterationItem) {
@@ -353,18 +389,18 @@ export class ListBlockOpcode extends BlockOpcode {
     children.push(opcode);
   }
 
-  private insertItem(item: OpaqueIterationItem, before: ListItemOpcode) {
+  private insertItem(item: OpaqueIterationItem) {
     if (LOCAL_DEBUG) {
       logStep!('list-updates', ['insert', item.key]);
     }
 
-    let { opcodeMap, bounds, state, runtime, children } = this;
+    let { opcodeMap, state, runtime, children } = this;
     let { key } = item;
-    let nextSibling = before === undefined ? this.marker : before.firstNode();
 
+    let element = this.fragment as SimpleDocumentFragment;
     let elementStack = NewElementBuilder.forInitialRender(runtime.env, {
-      element: bounds.parentElement(),
-      nextSibling,
+      element,
+      nextSibling: this.fragmentMarker,
     });
 
     let vm = state.resume(runtime, elementStack);

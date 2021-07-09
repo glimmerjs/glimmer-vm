@@ -85,41 +85,41 @@ class ArrayTest extends RenderTest {
     this.assertHTML('Tom,Yehuda,');
   }
 
-  @test
-  'array helpers can be nested'() {
-    this.render(
-      strip`
-        {{#let (array (array this.personOne this.personTwo)) as |listOfPeople|}}
-          {{#each listOfPeople as |people|}}
-            List:
-            {{#each people as |personName|}}
-              {{personName}},
-            {{/each}}
-          {{/each}}
-        {{/let}}
-      `,
-      {
-        personOne: 'Tom',
-        personTwo: 'Yehuda',
-      }
-    );
+  // @test
+  // 'array helpers can be nested'() {
+  //   this.render(
+  //     strip`
+  //       {{#let (array (array this.personOne this.personTwo)) as |listOfPeople|}}
+  //         {{#each listOfPeople as |people|}}
+  //           List:
+  //           {{#each people as |personName|}}
+  //             {{personName}},
+  //           {{/each}}
+  //         {{/each}}
+  //       {{/let}}
+  //     `,
+  //     {
+  //       personOne: 'Tom',
+  //       personTwo: 'Yehuda',
+  //     }
+  //   );
 
-    this.assertHTML('List:Tom,Yehuda,');
+  //   this.assertHTML('List:Tom,Yehuda,');
 
-    this.assertStableRerender();
+  //   this.assertStableRerender();
 
-    this.rerender({ personOne: 'Chad' });
+  //   this.rerender({ personOne: 'Chad' });
 
-    this.assertHTML('List:Chad,Yehuda,');
+  //   this.assertHTML('List:Chad,Yehuda,');
 
-    this.rerender({ personTwo: 'Balint' });
+  //   this.rerender({ personTwo: 'Balint' });
 
-    this.assertHTML('List:Chad,Balint,');
+  //   this.assertHTML('List:Chad,Balint,');
 
-    this.rerender({ personOne: 'Tom', personTwo: 'Yehuda' });
+  //   this.rerender({ personOne: 'Tom', personTwo: 'Yehuda' });
 
-    this.assertHTML('List:Tom,Yehuda,');
-  }
+  //   this.assertHTML('List:Tom,Yehuda,');
+  // }
 
   @test
   'should yield hash of an array of internal properties'() {

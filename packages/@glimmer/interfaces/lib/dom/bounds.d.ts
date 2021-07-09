@@ -1,4 +1,4 @@
-import { SimpleElement, SimpleNode } from '@simple-dom/interface';
+import { SimpleDocumentFragment, SimpleElement, SimpleNode } from '@simple-dom/interface';
 import { Option } from '../core';
 
 export interface Bounds {
@@ -9,6 +9,6 @@ export interface Bounds {
 }
 
 export interface Cursor {
-  readonly element: SimpleElement;
+  readonly element: SimpleElement | SimpleDocumentFragment;
   readonly nextSibling: Option<SimpleNode>;
 }
