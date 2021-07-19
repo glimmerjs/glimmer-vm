@@ -55,9 +55,7 @@ export interface Variable {
    * Differences:
    *
    * - strict mode variables always refer to in-scope variables
-   * - loose mode variables use this algorithm:
-   *   1. if the template is invoked as a partial, look for an in-scope partial variable
-   *   2. otherwise, fall back to `this.<name>`
+   * - loose mode variables fall back to `this.<name>`
    */
   mode: 'loose' | 'strict';
 }

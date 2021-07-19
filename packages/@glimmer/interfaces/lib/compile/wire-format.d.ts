@@ -47,7 +47,6 @@ export const enum SexpOpcodes {
 
   AttrSplat = 17,
   Yield = 18,
-  Partial = 19,
 
   DynamicArg = 20,
   StaticArg = 21,
@@ -70,7 +69,7 @@ export const enum SexpOpcodes {
   // Free variables are only keywords in strict mode
   GetStrictFree = 31,
 
-  // falls back to `this.` (or locals in the case of partials), but
+  // falls back to `this.`, but
   // never turns into a component or helper invocation
   GetFreeAsFallback = 33,
   // `{{x}}` in append position (might be a helper or component invocation, otherwise fall back to `this`)
@@ -346,7 +345,6 @@ export namespace Statements {
 
   export type AttrSplat = [SexpOpcodes.AttrSplat, YieldTo];
   export type Yield = [SexpOpcodes.Yield, YieldTo, Option<Params>];
-  export type Partial = [SexpOpcodes.Partial, Expression, Core.EvalInfo];
   export type DynamicArg = [SexpOpcodes.DynamicArg, string, Expression];
   export type StaticArg = [SexpOpcodes.StaticArg, string, Expression];
 
@@ -445,7 +443,6 @@ export namespace Statements {
     | Attribute
     | AttrSplat
     | Yield
-    | Partial
     | StaticArg
     | DynamicArg
     | Debugger

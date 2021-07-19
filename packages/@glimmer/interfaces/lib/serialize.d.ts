@@ -23,7 +23,7 @@
  * # CompileTimeLookup
  *
  * When compiling an application, the `CompileTimeLookup` is responsible
- * for resolving helpers, modifiers, components, and partials into "handles"
+ * for resolving helpers, modifiers, and components into "handles"
  * (numbers) that can be embedded into the program and used at runtime.
  *
  * # RuntimeResolver
@@ -31,9 +31,9 @@
  * The `RuntimeResolver` has two responsibilities.
  *
  * 1. To turn handles created by the `CompileTimeLookup` into live helpers,
- *    modifiers, components, and partials.
- * 2. To resolve dynamic components and partials at runtime that come from
- *    calls to `{{component dynamic}}` or `{{partial dynamic}}`.
+ *    modifiers, and components.
+ * 2. To resolve dynamic components at runtime that come from
+ *    calls to `{{component dynamic}}`.
  *
  * The `CompileTimeLookup` and `RuntimeResolver` must maintain symmetry
  * between:
@@ -55,10 +55,8 @@
  */
 
 import { Option } from './core';
-import { ProgramSymbolTable } from './tier1/symbol-table';
 import { ComponentDefinitionState, ComponentInstanceState } from './components';
 import { CompilableProgram, Template, HandleResult } from './template';
-import { CompileTimeCompilationContext } from './program';
 import { Owner, ModifierDefinitionState, HelperDefinitionState } from './runtime';
 import { InternalComponentCapability, InternalComponentManager } from './managers';
 
@@ -89,7 +87,6 @@ export interface CompileTimeResolver<O extends Owner = Owner> {
   lookupHelper(name: string, owner: O): Option<HelperDefinitionState>;
   lookupModifier(name: string, owner: O): Option<ModifierDefinitionState>;
   lookupComponent(name: string, owner: O): Option<ResolvedComponentDefinition>;
-  lookupPartial(name: string, owner: O): Option<PartialDefinition>;
 
   // TODO: These are used to lookup keywords that are implemented as helpers/modifiers.
   // We should try to figure out a cleaner way to do this.
@@ -97,15 +94,6 @@ export interface CompileTimeResolver<O extends Owner = Owner> {
   lookupBuiltInModifier(name: string): Option<ModifierDefinitionState>;
 }
 
-export interface PartialDefinition {
-  name: string; // for debugging
-
-  getPartial(
-    context: CompileTimeCompilationContext
-  ): { symbolTable: ProgramSymbolTable; handle: HandleResult };
-}
-
 export interface RuntimeResolver<O extends Owner = Owner> {
   lookupComponent(name: string, owner: O): Option<ResolvedComponentDefinition>;
-  lookupPartial(name: string, owner: O): Option<PartialDefinition>;
 }
