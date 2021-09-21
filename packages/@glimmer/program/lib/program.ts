@@ -21,7 +21,7 @@ const enum TableSlotState {
 export type Placeholder = [number, () => number];
 export type StdlibPlaceholder = [number, StdLibOperand];
 
-const PAGE_SIZE = Math.ceil(0x100000 / 10);
+const PAGE_SIZE = 0x100000;
 
 export class RuntimeHeapImpl implements RuntimeHeap {
   private heap: Int32Array;
