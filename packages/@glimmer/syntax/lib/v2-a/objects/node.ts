@@ -4,6 +4,36 @@ export interface BaseNodeFields {
   loc: SourceSpan;
 }
 
+class BaseNodeClass {
+  constructor(fields: object & { loc: unknown }) {
+    Object.defineProperty(this, 'loc', {
+      get() {
+        return fields.loc;
+      },
+    });
+    Object.assign(this, fields);
+  }
+}
+
+const nodeKlassCache: Record<string, unknown> = {};
+function cachedClass<T>(nodeName: T) {
+  if (!(nodeName in nodeKlassCache)) {
+    nodeKlassCache[(nodeName as unknown) as string] = class NodeKlass extends BaseNodeClass {
+      type: T = nodeName;
+    };
+  }
+
+  return nodeKlassCache[(nodeName as unknown) as string];
+}
+
+function klassForNode<T>(nodeName: T | undefined) {
+  if (nodeName === undefined) {
+    return BaseNodeClass;
+  } else {
+    return cachedClass<T>(nodeName);
+  }
+}
+
 /**
  * This is a convenience function for creating ASTv2 nodes, with an optional name and the node's
  * options.
@@ -39,7 +69,6 @@ export function node<T extends string>(
 ): {
   fields<Fields extends object>(): TypedNodeConstructor<T, Fields & BaseNodeFields>;
 };
-
 export function node<T extends string>(
   name?: T
 ):
@@ -49,42 +78,12 @@ export function node<T extends string>(
   | {
       fields<Fields extends object>(): NodeConstructor<Fields & BaseNodeFields>;
     } {
-  if (name !== undefined) {
-    const type = name;
-    return {
-      fields<Fields extends object>(): TypedNodeConstructor<T, BaseNodeFields & Fields> {
-        return class {
-          readonly loc: SourceSpan;
-          readonly type: T;
-
-          constructor(fields: BaseNodeFields & Fields) {
-            this.type = type;
-            this.loc = fields.loc;
-            copy(fields, (this as unknown) as ConstructingTypedNode<Fields>);
-          }
-        } as TypedNodeConstructor<T, BaseNodeFields & Fields>;
-      },
-    };
-  } else {
-    return {
-      fields<Fields>(): NodeConstructor<Fields & BaseNodeFields> {
-        return class {
-          readonly loc: SourceSpan;
-
-          constructor(fields: BaseNodeFields & Fields) {
-            this.loc = fields.loc;
-
-            copy(fields, (this as unknown) as ConstructingNode<Fields>);
-          }
-        } as NodeConstructor<BaseNodeFields & Fields>;
-      },
-    };
-  }
+  return {
+    fields<Fields>(): NodeConstructor<Fields & BaseNodeFields> {
+      return klassForNode<T>(name) as NodeConstructor<Fields & BaseNodeFields>;
+    },
+  };
 }
-
-type ConstructingTypedNode<Fields> = Fields & BaseNodeFields;
-
-type ConstructingNode<Fields> = BaseNodeFields & Fields;
 
 export interface NodeConstructor<Fields> {
   new (fields: Fields): Readonly<Fields>;
@@ -94,14 +93,4 @@ type TypedNode<T extends string, Fields> = { type: T } & Readonly<Fields>;
 
 export interface TypedNodeConstructor<T extends string, Fields> {
   new (options: Fields): TypedNode<T, Fields>;
-}
-
-function keys<O extends object>(object: O): (keyof O)[] {
-  return Object.keys(object) as (keyof O)[];
-}
-
-function copy<O extends object>(object1: O, object2: O) {
-  for (let key of keys(object1)) {
-    object2[key] = object1[key];
-  }
 }
