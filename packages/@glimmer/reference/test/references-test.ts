@@ -11,10 +11,9 @@ import {
   isInvokableRef,
   createDebugAliasRef,
 } from '..';
-import { createTag, dirtyTag, consumeTag } from '@glimmer/validator';
+import { createTag, dirtyTag, consumeTag, tracked } from '@glimmer/validator';
 import { dict } from '@glimmer/util';
 import { GlobalContext, testOverrideGlobalContext } from '../../global-context';
-import { tracked } from './support';
 import { DEBUG } from '@glimmer/env';
 
 const { module, test } = QUnit;

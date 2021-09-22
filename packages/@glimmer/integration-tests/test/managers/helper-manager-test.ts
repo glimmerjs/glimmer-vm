@@ -1,9 +1,9 @@
 import { helperCapabilities, setHelperManager, setModifierManager } from '@glimmer/manager';
+import { tracked } from '@glimmer/validator';
 import {
   RenderTest,
   test,
   jitSuite,
-  tracked,
   defineComponent,
   trackedObj,
   TestHelper,

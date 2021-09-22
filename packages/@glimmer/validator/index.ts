@@ -59,7 +59,7 @@ export {
   getValue,
 } from './lib/tracking';
 
-export { trackedData } from './lib/tracked-data';
+export { tracked } from './lib/tracked';
 
 export {
   logTrackingStack,
