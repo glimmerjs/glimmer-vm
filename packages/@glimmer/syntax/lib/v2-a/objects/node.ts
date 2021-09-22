@@ -5,10 +5,14 @@ export interface BaseNodeFields {
 }
 
 class BaseNodeClass {
+  _loc: unknown;
   constructor(fields: object & { loc: unknown }) {
     Object.defineProperty(this, 'loc', {
       get() {
-        return fields.loc;
+        return this._loc ?? fields.loc;
+      },
+      set(value) {
+        this._loc = value;
       },
     });
     Object.assign(this, fields);
