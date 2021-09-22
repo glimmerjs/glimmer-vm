@@ -1,3 +1,5 @@
+import { assign } from '@glimmer/util';
+
 import { SourceSpan } from '../../source/span';
 
 export interface BaseNodeFields {
@@ -5,8 +7,9 @@ export interface BaseNodeFields {
 }
 
 class BaseNodeClass {
-  _loc: unknown;
-  constructor(fields: object & { loc: unknown }) {
+  declare _loc?: SourceSpan;
+  declare loc: SourceSpan;
+  constructor(fields: object & { loc: SourceSpan }) {
     Object.defineProperty(this, 'loc', {
       get() {
         return this._loc ?? fields.loc;
@@ -15,11 +18,12 @@ class BaseNodeClass {
         this._loc = value;
       },
     });
-    Object.assign(this, fields);
+    assign(this, fields);
   }
 }
 
 const nodeKlassCache: Record<string, unknown> = {};
+
 function cachedClass<T>(nodeName: T) {
   if (!(nodeName in nodeKlassCache)) {
     nodeKlassCache[(nodeName as unknown) as string] = class NodeKlass extends BaseNodeClass {
