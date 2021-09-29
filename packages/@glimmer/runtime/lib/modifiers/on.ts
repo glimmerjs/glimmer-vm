@@ -4,7 +4,6 @@ import { CapturedArguments, InternalModifierManager, Owner } from '@glimmer/inte
 import { setInternalModifierManager } from '@glimmer/manager';
 import { valueForRef } from '@glimmer/reference';
 import { reifyNamed } from '@glimmer/runtime';
-import { createUpdatableTag, UpdatableTag } from '@glimmer/validator';
 import { SimpleElement } from '@simple-dom/interface';
 import { buildUntouchableThis } from '@glimmer/util';
 
@@ -46,7 +45,6 @@ const SUPPORTS_EVENT_OPTIONS = (() => {
 })();
 
 export class OnModifierState {
-  public tag = createUpdatableTag();
   public element: Element;
   public args: CapturedArguments;
   public eventName!: string;
@@ -327,14 +325,6 @@ class OnModifierManager implements InternalModifierManager<OnModifierState | nul
     args: CapturedArguments
   ): OnModifierState | null {
     return new OnModifierState(element as Element, args);
-  }
-
-  getTag(state: OnModifierState | null): UpdatableTag | null {
-    if (state === null) {
-      return null;
-    }
-
-    return state.tag;
   }
 
   install(state: OnModifierState | null): void {

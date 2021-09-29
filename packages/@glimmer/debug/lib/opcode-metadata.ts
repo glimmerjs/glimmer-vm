@@ -1267,16 +1267,6 @@ METADATA[Op.CommitComponentTransaction] = {
   mnemonic: 'comp_commit',
   before: null,
   stackChange: 0,
-  ops: [],
-  operands: 0,
-  check: true,
-};
-
-METADATA[Op.DidCreateElement] = {
-  name: 'DidCreateElement',
-  mnemonic: 'comp_created',
-  before: null,
-  stackChange: 0,
   ops: [
     {
       name: 'state',
@@ -1287,9 +1277,9 @@ METADATA[Op.DidCreateElement] = {
   check: true,
 };
 
-METADATA[Op.DidRenderLayout] = {
-  name: 'DidRenderLayout',
-  mnemonic: 'comp_rendered',
+METADATA[Op.DidCreateElement] = {
+  name: 'DidCreateElement',
+  mnemonic: 'comp_created',
   before: null,
   stackChange: 0,
   ops: [
