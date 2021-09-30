@@ -1,5 +1,5 @@
 import { IteratorDelegate } from '../..';
-import objectValues from './platform';
+import { objectValues } from '@glimmer/util';
 
 abstract class BoundedIterator implements IteratorDelegate {
   private position = 0;

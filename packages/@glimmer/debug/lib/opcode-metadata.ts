@@ -2,16 +2,7 @@
 
 import { MachineOp, Op, Option } from '@glimmer/interfaces';
 import { NormalizedMetadata } from './metadata';
-
-function fillNulls<T>(count: number): T[] {
-  let arr = new Array(count);
-
-  for (let i = 0; i < count; i++) {
-    arr[i] = null;
-  }
-
-  return arr;
-}
+import { fillArray } from '@glimmer/util';
 
 export function opcodeMetadata(op: MachineOp | Op, isMachine: 0 | 1): Option<NormalizedMetadata> {
   let value = isMachine ? MACHINE_METADATA[op] : METADATA[op];
@@ -19,8 +10,8 @@ export function opcodeMetadata(op: MachineOp | Op, isMachine: 0 | 1): Option<Nor
   return value || null;
 }
 
-const METADATA: Option<NormalizedMetadata>[] = fillNulls(Op.Size);
-const MACHINE_METADATA: Option<NormalizedMetadata>[] = fillNulls(MachineOp.Size);
+const METADATA: Option<NormalizedMetadata>[] = fillArray(Op.Size, null);
+const MACHINE_METADATA: Option<NormalizedMetadata>[] = fillArray(MachineOp.Size, null);
 MACHINE_METADATA[MachineOp.PushFrame] = {
   name: 'PushFrame',
   mnemonic: 'pushf',

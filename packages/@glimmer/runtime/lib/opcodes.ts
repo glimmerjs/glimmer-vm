@@ -2,7 +2,7 @@ import { debug, logOpcode, opcodeMetadata, recordStackSize } from '@glimmer/debu
 import { Dict, Maybe, Op, Option, RuntimeOp } from '@glimmer/interfaces';
 import { LOCAL_DEBUG, LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
 import { valueForRef } from '@glimmer/reference';
-import { assert, fillNulls, LOCAL_LOGGER } from '@glimmer/util';
+import { assert, fillArray, LOCAL_LOGGER } from '@glimmer/util';
 import { $fp, $pc, $ra, $sp } from '@glimmer/vm';
 import { isScopeReference } from './scope';
 import { CONSTANTS, DESTROYABLE_STACK, INNER_VM, STACKS } from './symbols';
@@ -42,7 +42,7 @@ export type DebugState = {
 };
 
 export class AppendOpcodes {
-  private evaluateOpcode: Evaluate[] = fillNulls<Evaluate>(Op.Size).slice();
+  private evaluateOpcode: Evaluate[] = fillArray<Evaluate, null>(Op.Size, null);
 
   add<Name extends Op>(name: Name, evaluate: Syscall): void;
   add<Name extends Op>(name: Name, evaluate: MachineOpcode, kind: 'machine'): void;

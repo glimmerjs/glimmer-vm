@@ -7,12 +7,11 @@ import {
   Reference,
   valueForRef,
 } from '..';
-import { symbol } from '@glimmer/util';
+import { symbol, objectValues } from '@glimmer/util';
 import { testOverrideGlobalContext, GlobalContext } from '@glimmer/global-context';
 import { VOLATILE_TAG, consumeTag } from '@glimmer/validator';
 
 import { TestContext } from './utils/template';
-import objectValues from './utils/platform';
 
 class IterableWrapper {
   private iterable: Reference<{ next(): OpaqueIterationItem | null }>;

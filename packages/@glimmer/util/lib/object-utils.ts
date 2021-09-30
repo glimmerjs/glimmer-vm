@@ -29,21 +29,24 @@ function assignFn(obj: any) {
 }
 
 export let assign = Object.assign ?? assignFn;
+export const objectValues = Object.values ?? objectValuesFn;
 
-export function fillNulls<T>(count: number): T[] {
+function objectValuesFn(obj: any) {
+  return Object.keys(obj).map((k) => obj[k]);
+}
+
+export const fillArray = 'fill' in Array.prototype ? fillArrayFnLight : fillArrayFnHeavy;
+
+function fillArrayFnLight<T, K>(count: number, placeholder: K): T[] {
+  return new Array(count).fill(placeholder);
+}
+
+function fillArrayFnHeavy<T, K>(count: number, placeholder: K): T[] {
   let arr = new Array(count);
 
   for (let i = 0; i < count; i++) {
-    arr[i] = null;
+    arr[i] = placeholder;
   }
 
   return arr;
-}
-
-export function values<T>(obj: { [s: string]: T }): T[] {
-  const vals = [];
-  for (const key in obj) {
-    vals.push(obj[key]);
-  }
-  return vals;
 }

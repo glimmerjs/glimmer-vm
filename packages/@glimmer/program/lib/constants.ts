@@ -78,15 +78,8 @@ export class RuntimeConstantsImpl implements RuntimeConstants {
   }
 
   getArray<T>(value: number): T[] {
-    let handles = this.getValue(value) as number[];
-    let reified: T[] = new Array(handles.length);
-
-    for (let i = 0; i < handles.length; i++) {
-      let n = handles[i];
-      reified[i] = this.getValue(n);
-    }
-
-    return reified;
+    let handles = this.values[value] as number[];
+    return handles.map((n) => this.values[n] as T);
   }
 }
 
@@ -312,14 +305,11 @@ export class ConstantsImpl
     let reified = reifiedArrs[index] as T[];
 
     if (reified === undefined) {
-      let names: number[] = this.getValue(index);
-      reified = new Array(names.length);
+      reifiedArrs[index] = (this.values[index] as number[]).map(
+        (name: number) => this.values[name]
+      );
 
-      for (let i = 0; i < names.length; i++) {
-        reified[i] = this.getValue(names[i]);
-      }
-
-      reifiedArrs[index] = reified;
+      return reifiedArrs[index] as T[];
     }
 
     return reified;

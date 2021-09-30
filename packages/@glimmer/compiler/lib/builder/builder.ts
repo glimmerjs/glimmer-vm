@@ -8,7 +8,15 @@ import {
   VariableResolutionContext,
   WireFormat,
 } from '@glimmer/interfaces';
-import { assert, assertNever, dict, exhausted, expect, isPresent, values } from '@glimmer/util';
+import {
+  assert,
+  assertNever,
+  dict,
+  exhausted,
+  expect,
+  isPresent,
+  objectValues,
+} from '@glimmer/util';
 import { AttrNamespace, Namespace } from '@simple-dom/interface';
 
 import {
@@ -109,7 +117,7 @@ class LocalSymbols implements Symbols {
   }
 
   get paramSymbols(): number[] {
-    return values(this.locals);
+    return objectValues(this.locals);
   }
 
   get top(): ProgramSymbols {
