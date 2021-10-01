@@ -31,11 +31,19 @@ export class Source {
     });
   }
 
+  private _hbsPosesFor = new Map<number, SourcePosition | null>();
+
   hbsPosFor(offset: number): Option<SourcePosition> {
+    const current = this._hbsPosesFor.get(offset);
+    if (current !== undefined) {
+      return current;
+    }
+
     let seenLines = 0;
     let seenChars = 0;
 
     if (offset > this.source.length) {
+      this._hbsPosesFor.set(offset, null);
       return null;
     }
 
@@ -43,10 +51,12 @@ export class Source {
       let nextLine = this.source.indexOf('\n', seenChars);
 
       if (offset <= nextLine || nextLine === -1) {
-        return {
+        let position = {
           line: seenLines + 1,
           column: offset - seenChars,
         };
+        this._hbsPosesFor.set(offset, position);
+        return position;
       } else {
         seenLines += 1;
         seenChars = nextLine + 1;
