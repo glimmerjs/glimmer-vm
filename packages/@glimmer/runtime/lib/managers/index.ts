@@ -40,10 +40,7 @@ const HELPER_MANAGERS = new WeakMap<
   ManagerFactory<Owner | undefined, HelperManager<unknown> | Helper>
 >();
 
-const OWNER_MANAGER_INSTANCES: WeakMap<
-  Owner,
-  WeakMap<ManagerFactory<Owner>, unknown>
-> = new WeakMap();
+const OWNER_MANAGER_INSTANCES: WeakMap<Owner, Map<ManagerFactory<Owner>, unknown>> = new WeakMap();
 const UNDEFINED_MANAGER_INSTANCES: WeakMap<ManagerFactory<Owner>, unknown> = new WeakMap();
 
 export type ManagerFactory<O, D extends ManagerDelegate = ManagerDelegate> = (owner: O) => D;
@@ -107,7 +104,7 @@ function getManagerInstanceForOwner<D extends ManagerDelegate>(
     managers = OWNER_MANAGER_INSTANCES.get(owner);
 
     if (managers === undefined) {
-      managers = new WeakMap();
+      managers = new Map();
       OWNER_MANAGER_INSTANCES.set(owner, managers);
     }
   }
