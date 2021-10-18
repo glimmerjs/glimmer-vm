@@ -1,3 +1,13 @@
+## v0.65.4 (2021-10-18)
+
+#### :bug: Bug Fix
+* `@glimmer/runtime`
+  * [#1347](https://github.com/glimmerjs/glimmer-vm/pull/1347) Avoid using a nested WeakMap for manager instances for a given owner. ([@rwjblue](https://github.com/rwjblue))
+
+#### Committers: 1
+- Robert Jackson ([@rwjblue](https://github.com/rwjblue))
+
+
 ## v0.65.3 (2021-05-03)
 
 #### :bug: Bug Fix
