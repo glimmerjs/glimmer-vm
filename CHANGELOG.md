@@ -1,3 +1,13 @@
+## v0.80.1 (2021-10-21)
+
+#### :rocket: Enhancement
+* `@glimmer/integration-tests`, `@glimmer/syntax`
+  * [#1352](https://github.com/glimmerjs/glimmer-vm/pull/1352) Support lexical scope in loose mode (Ember 3.28 backport) ([@rwjblue](https://github.com/rwjblue))
+
+#### Committers: 1
+- Robert Jackson ([@rwjblue](https://github.com/rwjblue))
+
+
 ## v0.80.0 (2021-06-29)
 
 #### :boom: Breaking Change
