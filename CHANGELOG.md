@@ -1,3 +1,14 @@
+## v0.80.2 (2021-10-22)
+
+#### :bug: Bug Fix
+* `@glimmer/compiler`
+  * [#1354](https://github.com/glimmerjs/glimmer-vm/pull/1354) Followup for loose-mode lexical scope ([@ef4](https://github.com/ef4))
+
+#### Committers: 1
+- Edward Faulkner ([@ef4](https://github.com/ef4))
+
+
+
 ## v0.80.1 (2021-10-21)
 
 #### :rocket: Enhancement
