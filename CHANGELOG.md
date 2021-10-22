@@ -1,3 +1,18 @@
+## v0.80.3 (2021-10-22)
+
+#### :bug: Bug Fix
+* `@glimmer/compiler`, `@glimmer/syntax`
+  * Backport: Cache `head` getter in `PathExpressionImplV1` by @chriskrycho in https://github.com/glimmerjs/glimmer-vm/pull/1358
+  * Backport: Use `_private` instead of `#private` properties by @chriskrycho in https://github.com/glimmerjs/glimmer-vm/pull/1355
+  * Backport: Use `Object.assign` instead of custom `copy` function by @chriskrycho in https://github.com/glimmerjs/glimmer-vm/pull/1356
+  * Backport: Remove unused scope from Walker by @chriskrycho in https://github.com/glimmerjs/glimmer-vm/pull/1357
+
+
+#### Committers: 1
+- Chris Krycho ([@chriskrycho](https://github.com/chriskrycho))
+
+
+
 ## v0.80.2 (2021-10-22)
 
 #### :bug: Bug Fix
