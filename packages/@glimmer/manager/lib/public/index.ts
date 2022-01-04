@@ -13,6 +13,13 @@ type Manager = ComponentManager<unknown> | ModifierManager<unknown> | HelperMana
 
 export type ManagerFactory<O, D extends Manager = Manager> = (owner: O) => D;
 
+/**
+  @method setComponentManager
+  @param {Function} factory a function to create the owner for an object
+  @param {Object} the object to associate with the componetn manager
+  @return {Object} the same object passed in
+  @public
+ */
 export function setComponentManager<O extends Owner, T extends object>(
   factory: ManagerFactory<O, ComponentManager<unknown>>,
   obj: T
