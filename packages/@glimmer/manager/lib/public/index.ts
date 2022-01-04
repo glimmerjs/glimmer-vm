@@ -20,7 +20,7 @@ export type ManagerFactory<O, D extends Manager = Manager> = (owner: O) => D;
 
   @method setComponentManager
   @param {Function} factory a function to create the owner for an object
-  @param {Object} the object to associate with the componetn manager
+  @param {Object} obj the object to associate with the componetn manager
   @return {Object} the same object passed in
   @public
  */
