@@ -14,6 +14,10 @@ type Manager = ComponentManager<unknown> | ModifierManager<unknown> | HelperMana
 export type ManagerFactory<O, D extends Manager = Manager> = (owner: O) => D;
 
 /**
+  Associate a class with a component manager (an object that is responsible for
+  coordinating the lifecycle events that occurs when invoking, rendering and
+  re-rendering a component).
+
   @method setComponentManager
   @param {Function} factory a function to create the owner for an object
   @param {Object} the object to associate with the componetn manager
