@@ -465,7 +465,7 @@ function updateTokenizerLocation(tokenizer: Parser['tokenizer'], content: HBS.Co
 function acceptCallNodes(
   compiler: HandlebarsNodeVisitors,
   node: {
-    path: HBS.PathExpression | HBS.SubExpression | ASTv1.StringLiteral;
+    path: HBS.PathExpression | HBS.SubExpression | HBS.StringLiteral;
     params: HBS.Expression[];
     hash: HBS.Hash;
   }
@@ -477,7 +477,7 @@ function acceptCallNodes(
   if (node.path.type === 'StringLiteral') {
     throw generateSyntaxError(
       `String "${node.path.original}" could not be used as path, replace ("${node.path.original}") with "${node.path.original}"`,
-      node.path.loc
+      compiler.source.spanFor(node.path.loc)
     );
   }
 
