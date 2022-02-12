@@ -35,5 +35,8 @@
       "changeProcessCWD": true
     }
   ],
-  "eslint.enable": true
+  "eslint.enable": true,
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  }
 }
