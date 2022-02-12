@@ -661,6 +661,12 @@ test('path expression with "dangling dot" throws error', function (assert) {
   }, syntaxErrorFor("'.' is not a supported path in Glimmer; check for a path with a trailing '.'", '.', 'test-module', 1, 8));
 });
 
+test('string literal as path throws error', function (assert) {
+  assert.throws(() => {
+    parse('{{("foo-baz")}}', { meta: { moduleName: 'test-module' } });
+  }, syntaxErrorFor(`String "foo-baz" could not be used as path, replace ("foo-baz") with "foo-baz"`, '.', 'test-module', 1, 3));
+});
+
 export function strip(strings: TemplateStringsArray, ...args: string[]) {
   return strings
     .map((str: string, i: number) => {
