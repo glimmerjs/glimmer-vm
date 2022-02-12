@@ -670,25 +670,25 @@ test('string literal as path throws error', function (assert) {
 test('boolean literal as path throws error', function (assert) {
   assert.throws(() => {
     parse('{{(true)}}', { meta: { moduleName: 'test-module' } });
-  }, syntaxErrorFor(`BooleanLiteral true could not be used as path, replace (true) with true`, 'true', 'test-module', 1, 3));
+  }, syntaxErrorFor(`BooleanLiteral "true" could not be used as path, replace (true) with true`, 'true', 'test-module', 1, 3));
 });
 
 test('undefined literal as path throws error', function (assert) {
   assert.throws(() => {
     parse('{{(undefined)}}', { meta: { moduleName: 'test-module' } });
-  }, syntaxErrorFor(`UndefinedLiteral undefined could not be used as path, replace (undefined) with undefined`, 'undefined', 'test-module', 1, 3));
+  }, syntaxErrorFor(`UndefinedLiteral "undefined" could not be used as path, replace (undefined) with undefined`, 'undefined', 'test-module', 1, 3));
 });
 
 test('null literal as path throws error', function (assert) {
   assert.throws(() => {
     parse('{{(null)}}', { meta: { moduleName: 'test-module' } });
-  }, syntaxErrorFor(`NullLiteral null could not be used as path, replace (null) with null`, 'null', 'test-module', 1, 3));
+  }, syntaxErrorFor(`NullLiteral "null" could not be used as path, replace (null) with null`, 'null', 'test-module', 1, 3));
 });
 
 test('number literal as path throws error', function (assert) {
   assert.throws(() => {
     parse('{{(42)}}', { meta: { moduleName: 'test-module' } });
-  }, syntaxErrorFor(`NumberLiteral 42 could not be used as path, replace (42) with 42`, '42', 'test-module', 1, 3));
+  }, syntaxErrorFor(`NumberLiteral "42" could not be used as path, replace (42) with 42`, '42', 'test-module', 1, 3));
 });
 
 export function strip(strings: TemplateStringsArray, ...args: string[]) {
