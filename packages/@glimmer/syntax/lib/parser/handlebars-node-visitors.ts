@@ -502,7 +502,9 @@ function acceptCallNodes(
       value = 'undefined';
     }
     throw generateSyntaxError(
-      `${path.type} "${value}" could not be used as path, replace (${value}) with ${value}`,
+      `${path.type} "${
+        path.type === 'StringLiteral' ? path.original : value
+      }" could not be used as path, replace (${value}) with ${value}`,
       compiler.source.spanFor(path.loc)
     );
   }
