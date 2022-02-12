@@ -465,7 +465,7 @@ function updateTokenizerLocation(tokenizer: Parser['tokenizer'], content: HBS.Co
 function acceptCallNodes(
   compiler: HandlebarsNodeVisitors,
   node: {
-    path: HBS.PathExpression | HBS.SubExpression;
+    path: HBS.PathExpression | HBS.SubExpression | ASTv1.StringLiteral;
     params: HBS.Expression[];
     hash: HBS.Hash;
   }
@@ -474,6 +474,13 @@ function acceptCallNodes(
   params: ASTv1.Expression[];
   hash: ASTv1.Hash;
 } {
+  if (node.path.type === 'StringLiteral') {
+    throw generateSyntaxError(
+      `String "${node.path.original}" could not be used as path, replace ("${node.path.original}") with "${node.path.original}"`,
+      node.path.loc
+    );
+  }
+
   let path =
     node.path.type === 'PathExpression'
       ? compiler.PathExpression(node.path)
@@ -487,10 +494,10 @@ function acceptCallNodes(
   let hash = node.hash
     ? compiler.Hash(node.hash)
     : ({
-        type: 'Hash',
-        pairs: [] as ASTv1.HashPair[],
-        loc: compiler.source.spanFor(end).collapse('end'),
-      } as const);
+      type: 'Hash',
+      pairs: [] as ASTv1.HashPair[],
+      loc: compiler.source.spanFor(end).collapse('end'),
+    } as const);
 
   return { path, params, hash };
 }
