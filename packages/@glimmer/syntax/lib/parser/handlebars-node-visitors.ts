@@ -465,7 +465,14 @@ function updateTokenizerLocation(tokenizer: Parser['tokenizer'], content: HBS.Co
 function acceptCallNodes(
   compiler: HandlebarsNodeVisitors,
   node: {
-    path: HBS.PathExpression | HBS.SubExpression | HBS.StringLiteral;
+    path:
+      | HBS.PathExpression
+      | HBS.SubExpression
+      | HBS.StringLiteral
+      | HBS.UndefinedLiteral
+      | HBS.NullLiteral
+      | HBS.NumberLiteral
+      | HBS.BooleanLiteral;
     params: HBS.Expression[];
     hash: HBS.Hash;
   }
@@ -474,17 +481,36 @@ function acceptCallNodes(
   params: ASTv1.Expression[];
   hash: ASTv1.Hash;
 } {
-  if (node.path.type === 'StringLiteral') {
+  if (node.path.type.endsWith('Literal')) {
+    const path = (node.path as unknown) as
+      | HBS.StringLiteral
+      | HBS.UndefinedLiteral
+      | HBS.NullLiteral
+      | HBS.NumberLiteral
+      | HBS.BooleanLiteral;
+
+    let value = '';
+    if (path.type === 'BooleanLiteral') {
+      value = path.original.toString();
+    } else if (path.type === 'StringLiteral') {
+      value = `"${path.original}"`;
+    } else if (path.type === 'NullLiteral') {
+      value = 'null';
+    } else if (path.type === 'NumberLiteral') {
+      value = path.value.toString();
+    } else {
+      value = 'undefined';
+    }
     throw generateSyntaxError(
-      `String "${node.path.original}" could not be used as path, replace ("${node.path.original}") with "${node.path.original}"`,
-      compiler.source.spanFor(node.path.loc)
+      `${path.type} "${value}" could not be used as path, replace (${value}) with ${value}`,
+      compiler.source.spanFor(path.loc)
     );
   }
 
   let path =
     node.path.type === 'PathExpression'
       ? compiler.PathExpression(node.path)
-      : compiler.SubExpression(node.path);
+      : compiler.SubExpression((node.path as unknown) as HBS.SubExpression);
   let params = node.params ? node.params.map((e) => compiler.acceptNode<ASTv1.Expression>(e)) : [];
 
   // if there is no hash, position it as a collapsed node immediately after the last param (or the
