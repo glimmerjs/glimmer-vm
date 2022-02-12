@@ -494,10 +494,10 @@ function acceptCallNodes(
   let hash = node.hash
     ? compiler.Hash(node.hash)
     : ({
-      type: 'Hash',
-      pairs: [] as ASTv1.HashPair[],
-      loc: compiler.source.spanFor(end).collapse('end'),
-    } as const);
+        type: 'Hash',
+        pairs: [] as ASTv1.HashPair[],
+        loc: compiler.source.spanFor(end).collapse('end'),
+      } as const);
 
   return { path, params, hash };
 }
