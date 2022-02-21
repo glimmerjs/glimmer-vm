@@ -15,6 +15,17 @@ function assertEqualKeyword(node: GenericKeywordNode): Result<ASTv2.PositionalAr
     return Err(generateSyntaxError(`(eq) does not take any named arguments`, node.loc));
   }
 
+  if (positional.size !== 2) {
+    return Err(
+      generateSyntaxError(
+        `(eq) must receive two positional parameters. Received ${
+          positional?.size ?? 0
+        } parameters.`,
+        node.loc
+      )
+    );
+  }
+
   return Ok(positional);
 }
 
@@ -43,6 +54,17 @@ function assertNotEqualKeyword(node: GenericKeywordNode): Result<ASTv2.Positiona
 
   if (named && !named.isEmpty()) {
     return Err(generateSyntaxError(`(neq) does not take any named arguments`, node.loc));
+  }
+
+  if (positional.size !== 2) {
+    return Err(
+      generateSyntaxError(
+        `(neq) must receive two positional parameters. Received ${
+          positional?.size ?? 0
+        } parameters.`,
+        node.loc
+      )
+    );
   }
 
   return Ok(positional);
