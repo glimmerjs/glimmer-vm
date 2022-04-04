@@ -21,6 +21,7 @@ let templates = [
   '<Foo />',
   '<Foo as |bar|>{{bar}}</Foo>',
   '{{#in-element this.someElement}}Content here{{/in-element}}',
+  '<Link></Link>',
 
   // void elements
   '<br>',
