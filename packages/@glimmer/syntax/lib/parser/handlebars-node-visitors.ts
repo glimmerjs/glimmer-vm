@@ -504,7 +504,7 @@ function acceptCallNodes(
     throw generateSyntaxError(
       `${path.type} "${
         path.type === 'StringLiteral' ? path.original : value
-      }" could not be used as path, replace (${value}) with ${value}`,
+      }" cannot be called as a sub-expression, replace (${value}) with ${value}`,
       compiler.source.spanFor(path.loc)
     );
   }
