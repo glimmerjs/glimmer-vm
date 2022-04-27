@@ -245,7 +245,7 @@ export default class Printer {
   }
 
   CloseElementNode(el: ASTv1.ElementNode): void {
-    if (el.selfClosing || voidMap[el.tag.toLowerCase()]) {
+    if (el.selfClosing || voidMap[el.tag]) {
       return;
     }
     this.buffer += `</${el.tag}>`;
