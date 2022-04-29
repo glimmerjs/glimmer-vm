@@ -44,7 +44,8 @@ let templates = [
   '<br />',
   '<input disabled>',
   '<input disabled />',
-  //
+  '<link>',
+
   // block-less components that *can* be void elements if lower-cased
   '<Area />',
   '<Base />',
