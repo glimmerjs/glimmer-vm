@@ -5,9 +5,10 @@ import {
   KEYWORDS_TYPES,
   KeywordType,
 } from '@glimmer/syntax';
-import { exhausted } from '@glimmer/util';
+import { assert, exhausted } from '@glimmer/util';
 
 import { Err, Result } from '../../../shared/result';
+import { LooseKeywordExpression } from '../../2-encoding/mir';
 import { NormalizationState } from '../context';
 
 export interface KeywordDelegate<Match extends KeywordMatch, V, Out> {
@@ -35,7 +36,7 @@ class KeywordImpl<
     protected keyword: S,
     type: KeywordType,
     private delegate: KeywordDelegate<KeywordMatches[K], Param, Out>,
-    private options?: { strictOnly: boolean }
+    private options?: { compatible: boolean }
   ) {
     let nodes = new Set<KeywordNode['type']>();
     for (let nodeType of KEYWORD_NODES[type]) {
@@ -50,11 +51,11 @@ class KeywordImpl<
     state: NormalizationState
   ): node is KeywordMatches[K] {
     // some keywords are enabled only in strict mode. None are planned to be loose mode only
-    if (this.options?.strictOnly) {
-      if (state.isStrict === false) {
-        return false;
-      }
-    }
+    // if (this.options?.strictOnly) {
+    //   if (state.isStrict === false) {
+    //     return false;
+    //   }
+    // }
 
     if (!this.types.has(node.type)) {
       return false;
@@ -62,18 +63,21 @@ class KeywordImpl<
 
     let path = getCalleeExpression(node);
 
+    // if the keyword is a local variable reference (including references to embedded in-scope local
+    // variables in strict mode), then the local variable wins over the keyword.
     if (path !== null && path.type === 'Path' && path.ref.type === 'Free') {
       if (path.tail.length > 0) {
+        // if we're looking at something like {{foo.bar baz}} in loose mode
         if (path.ref.resolution.serialize() === 'Loose') {
           // cannot be a keyword reference, keywords do not allow paths (must be
           // relying on implicit this fallback)
           return false;
         }
-      }
 
-      return path.ref.name === this.keyword;
-    } else {
-      return false;
+        return path.ref.name === this.keyword;
+      } else {
+        return false;
+      }
     }
   }
 
@@ -93,7 +97,32 @@ class KeywordImpl<
       }
 
       let param = this.delegate.assert(node, state);
-      return param.andThen((param) => this.delegate.translate({ node, state }, param));
+      let keyword = param.andThen((param) => this.delegate.translate({ node, state }, param));
+
+      let head = (path as ASTv2.PathExpression).ref;
+
+      assert(head.type === 'Free', 'only free variables should succeed the match() test');
+
+      // if we're in strict mode, then return the keyword
+      if (head.resolution === ASTv2.STRICT_RESOLUTION || this.options?.compatible !== true) {
+        return keyword;
+      }
+
+      // this code needs to be adjusted to handle non-calls
+
+      return keyword.mapOk(
+        (kw) =>
+          (new LooseKeywordExpression({
+            original: node as ASTv2.ExpressionNode,
+            keyword: kw as ASTv2.ExpressionNode,
+            loc: node.loc,
+          }) as unknown) as Out
+      );
+
+      if (this.options?.compatible) {
+        // if (path.head.type === 'Free') {
+        // in loose mode, a compatible keyword loses to a resolved value for the same keyword
+      }
     } else {
       return null;
     }

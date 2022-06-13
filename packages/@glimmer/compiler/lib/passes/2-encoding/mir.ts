@@ -67,6 +67,11 @@ export class Log extends node('Log').fields<{
   positional: Positional;
 }>() {}
 
+export class LooseKeywordExpression extends node('LooseKeywordExpression').fields<{
+  original: ExpressionNode;
+  keyword: ExpressionNode;
+}>() {}
+
 export class Equal extends node('Equal').fields<{
   positional: Positional;
 }>() {}
@@ -226,7 +231,8 @@ export type ExpressionNode =
   | GetDynamicVar
   | Log
   | Equal
-  | NotEqual;
+  | NotEqual
+  | LooseKeywordExpression;
 
 export type ElementParameter = StaticAttr | DynamicAttr | Modifier | SplatAttr;
 

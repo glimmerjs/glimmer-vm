@@ -8,6 +8,20 @@ import { hasBlockKeyword } from './utils/has-block';
 import { ifUnlessInlineKeyword } from './utils/if-unless';
 import { logKeyword } from './utils/log';
 
+/**
+ * Resolution of a variable that's not in the template:
+ *
+ * 1. external locally scoped variable a. this currently is only exposed in strict mode, but it is
+ *    possible in loose mode
+ * 2. keyword
+ * 3. resolver (not available in strict mode)
+ * 4. compatible keyword
+ *
+ * Therefore, adding a keyword is not a breaking change in strict mode, because keywords are always the last check in strict mode before failing.
+ *
+ * However, adding a keyword in loose mode is a breaking change because it will cause the keyword to win over resolved variables.
+ */
+
 export const CALL_KEYWORDS = keywords('Call')
   .kw('has-block', hasBlockKeyword('has-block'))
   .kw('has-block-params', hasBlockKeyword('has-block-params'))
