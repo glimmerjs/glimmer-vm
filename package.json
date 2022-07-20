@@ -48,6 +48,7 @@
     "@simple-dom/interface": "^1.4.0",
     "@simple-dom/serializer": "^1.4.0",
     "@simple-dom/void-map": "^1.4.0",
+    "@types/trusted-types": "^2.0.2",
     "babel-plugin-debug-macros": "^0.3.4",
     "fs-extra": "^9.0.0",
     "simple-html-tokenizer": "^0.5.11",

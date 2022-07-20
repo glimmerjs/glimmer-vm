@@ -1,3 +1,4 @@
+import '@types/trusted-types';
 import {
   SimpleElement,
   SimpleNode,
@@ -46,7 +47,7 @@ export interface DOMStack {
   appendText(string: string): SimpleText;
   appendComment(string: string): SimpleComment;
 
-  appendDynamicHTML(value: string): void;
+  appendDynamicHTML(value: string | TrustedHTML): void;
   appendDynamicText(value: string): SimpleText;
   appendDynamicFragment(value: SimpleDocumentFragment): void;
   appendDynamicNode(value: SimpleNode): void;

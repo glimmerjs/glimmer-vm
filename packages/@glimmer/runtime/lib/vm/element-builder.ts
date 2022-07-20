@@ -299,11 +299,11 @@ export class NewElementBuilder implements ElementBuilder {
     }
   }
 
-  __appendHTML(html: string): Bounds {
+  __appendHTML(html: string | TrustedHTML): Bounds {
     return this.dom.insertHTMLBefore(this.element, this.nextSibling, html);
   }
 
-  appendDynamicHTML(value: string): void {
+  appendDynamicHTML(value: string | TrustedHTML): void {
     let bounds = this.trustedContent(value);
     this.didAppendBounds(bounds);
   }
@@ -325,7 +325,7 @@ export class NewElementBuilder implements ElementBuilder {
     this.didAppendBounds(bounds);
   }
 
-  private trustedContent(value: string): Bounds {
+  private trustedContent(value: string | TrustedHTML): Bounds {
     return this.__appendHTML(value);
   }
 
