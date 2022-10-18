@@ -163,6 +163,8 @@ class Builders {
     loc,
     isDynamic = false,
     parts = [],
+    opened = false,
+    openedType = '',
   }: BuildElementOptions): ASTv1.ElementNode {
     return {
       type: 'ElementNode',
@@ -176,6 +178,8 @@ class Builders {
       loc,
       isDynamic,
       parts,
+      opened,
+      openedType,
     };
   }
 
@@ -407,6 +411,8 @@ export interface BuildElementOptions {
   loc: SourceSpan;
   isDynamic?: boolean;
   parts?: ASTv1.MustacheStatement[];
+  opened?: boolean;
+  openedType?: 'startTag' | 'endTag' | '';
 }
 
 // Expressions

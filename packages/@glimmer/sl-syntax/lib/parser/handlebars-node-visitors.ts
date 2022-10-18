@@ -99,6 +99,9 @@ export abstract class HandlebarsNodeVisitors extends Parser {
     // 需要将 poppedNode 的 children 迁移到 node 的children里面
     // 将 poppedNode 变成一个 open tag literal
 
+    gelog('program poppedNode', poppedNode);
+    gelog('program node', node);
+
     if (poppedNode !== node) {
       let elementNode = poppedNode as ASTv1.ElementNode;
 

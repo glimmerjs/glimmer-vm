@@ -13,7 +13,7 @@ import { generateSyntaxError } from '../syntax-error';
 import traverse from '../traversal/traverse';
 import { NodeVisitor } from '../traversal/visitor';
 import Walker from '../traversal/walker';
-import { appendChild, parseElementBlockParams } from '../utils';
+import { appendChild, parseElementBlockParams, childrenFor, clearChild } from '../utils';
 import * as ASTv1 from '../v1/api';
 import * as HBS from '../v1/handlebars-ast';
 import b from '../v1/parser-builders';
@@ -56,7 +56,6 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
   }
 
   finishData(): void {
-    gelog('finishData');
     this.currentData.loc = this.currentData.loc.withEnd(this.offset());
     appendChild(this.currentElement(), this.currentData);
   }
@@ -64,7 +63,6 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
   // Tags - basic
 
   tagOpen(): void {
-    gelog('tagOpen');
     this.tagOpenLine = this.tokenizer.line;
     this.tagOpenColumn = this.tokenizer.column;
   }
@@ -127,8 +125,6 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
   finishTag(): void {
     let tag = this.finish(this.currentTag);
 
-    gelog('finishTag', tag);
-
     if (tag.type === 'StartTag') {
       this.finishStartTag();
 
@@ -162,8 +158,6 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
       parts = [],
     } = this.finish(this.currentStartTag);
 
-    gelog('finishStartTag name', name);
-
     let element = b.element({
       tag: name,
       selfClosing,
@@ -177,7 +171,6 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
       parts,
     });
 
-    gelog('finishStartTag', element);
     this.elementStack.push(element);
   }
 
@@ -187,11 +180,16 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
     let element = this.elementStack.pop() as ASTv1.ElementNode;
     let parent = this.currentElement();
 
-    this.validateEndTag(tag, element, isVoid);
+    const valid = this.validateEndTag(tag, element, isVoid);
+
+    gelog('finishEndTag element', valid, element);
 
     element.loc = element.loc.withEnd(this.offset());
-    parseElementBlockParams(element);
-    appendChild(parent, element);
+
+    if (valid) {
+      parseElementBlockParams(element);
+      appendChild(parent, element);
+    }
   }
 
   finishOpenedStartTag(element: ASTv1.ElementNode): void {
@@ -202,9 +200,43 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
     element.loc = element.loc.withEnd(this.offset());
     element.opened = true;
 
-    gelog('finishOpenedTag element', element);
     parseElementBlockParams(element);
     appendChild(parent, element);
+  }
+
+  finishOpenedEndTag(tag: Tag<'EndTag'>, element: ASTv1.ElementNode): void {
+    let { name, loc, isDynamic = false, parts = [] } = tag;
+
+    // todo 这里要处理一下
+    // 如果是 opened tag
+    // 需要取此时 element 的 children 放到 tag 下面
+    // 再把自己放到 element 里面
+
+    const children = childrenFor(element) as ASTv1.Statement[];
+
+    let openedEndTagElement = b.element({
+      tag: name,
+      selfClosing: false,
+      attrs: [],
+      modifiers: [],
+      comments: [],
+      children,
+      blockParams: [],
+      loc,
+      isDynamic,
+      parts,
+      opened: true,
+      openedType: 'endTag',
+    });
+
+    clearChild(element);
+    appendChild(element, openedEndTagElement);
+
+    // 因为之前 valid end tag 的时候 pop 了 parent 出来
+    // 这里要重新 push 回去
+    this.elementStack.push(element);
+
+    gelog('finishOpenedEndTag element', element);
   }
 
   markTagAsSelfClosing(): void {
@@ -325,8 +357,16 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
     tag: Tag<'StartTag' | 'EndTag'>,
     element: ASTv1.ElementNode,
     selfClosing: boolean
-  ): void {
+  ): boolean {
     let error;
+
+    gelog('validateEndTag tag', tag);
+    gelog('validateEndTag element', element);
+
+    if (tag.type === 'EndTag' && (element.tag === undefined || element.tag !== tag.name)) {
+      this.finishOpenedEndTag(tag, element);
+      return false;
+    }
 
     if (voidMap[tag.name] && !selfClosing) {
       // EngTag is also called by StartTag for void and self-closing tags (i.e.
@@ -336,10 +376,6 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
     } else if (element.tag === undefined) {
       error = `Closing tag </${tag.name}> without an open tag`;
     } else if (element.tag !== tag.name) {
-      // todo 这里要处理一下
-      // 如果是 opened tag
-      // 需要取此时 element 的 children 放到 tag 下面
-      // 再把自己放到 element 里面
       error = `Closing tag </${tag.name}> did not match last open tag <${element.tag}> (on line ${element.loc.startPosition.line})`;
     }
 
@@ -347,7 +383,7 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
     // 完善判断逻辑
     if (tag.isDynamic && element.isDynamic) {
       if (tag.parts?.[0].path.original === element.parts?.[0].path.original) {
-        return;
+        return true;
       } else {
         error = `Dynamic tag did not match last open tag (on line ${element.loc.startPosition.line})`;
       }
@@ -356,6 +392,8 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
     if (error) {
       throw generateSyntaxError(error, tag.loc);
     }
+
+    return true;
   }
 
   assembleAttributeValue(

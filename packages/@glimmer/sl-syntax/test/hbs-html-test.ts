@@ -41,7 +41,7 @@ QUnit.module('[glimmer-le-syntax] hbs-html - AST');
 // });
 
 test('Unclose element as literal', function () {
-  let test = '{{#if}}<div>div{{/if}}';
+  let test = '<a>gua</a>{{#if}}div</div>{{/if}}';
 
   const ast = parse(test);
   gelog('result', ast);

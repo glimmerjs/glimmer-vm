@@ -86,6 +86,18 @@ export function childrenFor(
   }
 }
 
+export function clearChild(node: ASTv1.Block | ASTv1.Template | ASTv1.ElementNode): void {
+  switch (node.type) {
+    case 'Block':
+    case 'Template':
+      node.body = [];
+      break;
+    case 'ElementNode':
+      node.children = [];
+      break;
+  }
+}
+
 export function appendChild(
   parent: ASTv1.Block | ASTv1.Template | ASTv1.ElementNode,
   node: ASTv1.Statement

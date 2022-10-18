@@ -154,6 +154,7 @@ export interface ElementNode extends BaseNode {
   isDynamic?: boolean;
   parts?: MustacheStatement[];
   opened?: boolean;
+  openedType?: 'startTag' | 'endTag' | '';
 }
 
 export type StatementName =
