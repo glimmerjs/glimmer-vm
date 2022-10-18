@@ -8,36 +8,47 @@ const test = QUnit.test;
 
 QUnit.module('[glimmer-le-syntax] hbs-html - AST');
 
-test('Handlebars block helper embedded in an attribute', function () {
-  let t = '<img id="cd {{#test a}} hello {{/test}}">';
+// test('Handlebars block helper embedded in an attribute', function () {
+//   let t = '<img id="cd {{#test a}} hello {{/test}}">';
+//
+//   astEqual(
+//     t,
+//     b.program([
+//       element('img', [
+//         'attrs',
+//         [
+//           'id',
+//           b.concat([
+//             b.text('cd '),
+//             b.block(b.path('test'), [b.path('a')], b.hash(), b.blockItself([b.text(' hello ')])),
+//           ]),
+//         ],
+//       ]),
+//     ])
+//   );
+// });
+//
+// test('Dynamic element', function () {
+//   let t = '<{{tag}}>gua</{{tag}}>';
+//
+//   const ast = parse(t);
+//   gelog('result', ast);
+//
+//   astEqual(
+//     t,
+//     b.program([element('', ['body', b.text('gua')], ['parts', b.mustache(b.path('tag'))])])
+//   );
+// });
 
-  astEqual(
-    t,
-    b.program([
-      element('img', [
-        'attrs',
-        [
-          'id',
-          b.concat([
-            b.text('cd '),
-            b.block(b.path('test'), [b.path('a')], b.hash(), b.blockItself([b.text(' hello ')])),
-          ]),
-        ],
-      ]),
-    ])
-  );
-});
+test('Unclose element as literal', function () {
+  let test = '{{#if}}<div>div{{/if}}';
 
-test('Dynamic element', function () {
-  let t = '<{{tag}}>gua</{{tag}}>';
-
-  const ast = parse(t);
+  const ast = parse(test);
   gelog('result', ast);
 
-  astEqual(
-    t,
-    b.program([element('', ['body', b.text('gua')], ['parts', b.mustache(b.path('tag'))])])
-  );
+  let t = '<img id="cd">';
+
+  astEqual(t, b.program([element('img', ['attrs', ['id', b.text('cd')]])]));
 });
 
 QUnit.dump.maxDepth = 100;

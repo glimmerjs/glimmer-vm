@@ -136,6 +136,7 @@ export abstract class Parser {
   abstract markTagAsSelfClosing(): void;
   abstract beginEndTag(): void;
   abstract finishTag(): void;
+  abstract finishOpenedStartTag(element: ASTv1.ElementNode): void;
   abstract beginComment(): void;
   abstract appendToCommentData(char: string): void;
   abstract finishComment(): void;

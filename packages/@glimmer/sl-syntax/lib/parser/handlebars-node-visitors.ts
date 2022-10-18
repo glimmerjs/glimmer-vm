@@ -96,10 +96,20 @@ export abstract class HandlebarsNodeVisitors extends Parser {
       this.inlineFlag = false;
     }
 
+    // 需要将 poppedNode 的 children 迁移到 node 的children里面
+    // 将 poppedNode 变成一个 open tag literal
+
     if (poppedNode !== node) {
       let elementNode = poppedNode as ASTv1.ElementNode;
 
-      throw generateSyntaxError(`Unclosed element \`${elementNode.tag}\``, elementNode.loc);
+      // 不对称的 element 可能是包裹在 helper 内部
+      // 这里就当做是 OpenedElement 后续处理
+      this.finishOpenedStartTag(elementNode);
+
+      // 需要把正确的 node pop 出去
+      stack.pop();
+
+      // throw generateSyntaxError(`Unclosed element \`${elementNode.tag}\``, elementNode.loc);
     }
 
     return node;

@@ -153,6 +153,7 @@ export interface ElementNode extends BaseNode {
   children: Statement[];
   isDynamic?: boolean;
   parts?: MustacheStatement[];
+  opened?: boolean;
 }
 
 export type StatementName =

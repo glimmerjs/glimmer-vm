@@ -182,8 +182,6 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
   }
 
   finishEndTag(isVoid: boolean): void {
-    gelog('finishEndTag');
-    // 需要想一想怎么把 mustache 塞到 element 里面
     let tag = this.finish(this.currentTag);
 
     let element = this.elementStack.pop() as ASTv1.ElementNode;
@@ -192,6 +190,19 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
     this.validateEndTag(tag, element, isVoid);
 
     element.loc = element.loc.withEnd(this.offset());
+    parseElementBlockParams(element);
+    appendChild(parent, element);
+  }
+
+  finishOpenedStartTag(element: ASTv1.ElementNode): void {
+    // let tag = this.finish(this.currentTag);
+    let parent = this.currentElement();
+
+    // this.validateEndTag(tag, element, isVoid);
+    element.loc = element.loc.withEnd(this.offset());
+    element.opened = true;
+
+    gelog('finishOpenedTag element', element);
     parseElementBlockParams(element);
     appendChild(parent, element);
   }
@@ -325,6 +336,10 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
     } else if (element.tag === undefined) {
       error = `Closing tag </${tag.name}> without an open tag`;
     } else if (element.tag !== tag.name) {
+      // todo 这里要处理一下
+      // 如果是 opened tag
+      // 需要取此时 element 的 children 放到 tag 下面
+      // 再把自己放到 element 里面
       error = `Closing tag </${tag.name}> did not match last open tag <${element.tag}> (on line ${element.loc.startPosition.line})`;
     }
 
