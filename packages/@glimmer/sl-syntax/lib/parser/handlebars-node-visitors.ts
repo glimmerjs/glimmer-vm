@@ -89,20 +89,10 @@ export abstract class HandlebarsNodeVisitors extends Parser {
     // let poppedNode = this.elementStack.pop();
     let poppedNode = stack.pop();
 
-    // 退出 inline 的时候，需要恢复之前的 tokenizer.state
-    if (!this.inline() && this.inlineFlag) {
-      tokenizer.transitionTo(this.blockTokenizerState);
-      this.currentNode = this.blockCurrentNode;
-      this.inlineFlag = false;
-    }
-
-    // 需要将 poppedNode 的 children 迁移到 node 的children里面
-    // 将 poppedNode 变成一个 open tag literal
-
-    gelog('program poppedNode', poppedNode);
-    gelog('program node', node);
-
-    if (poppedNode !== node) {
+    // todo
+    // 这里要加上不闭合检查
+    // 将 opened tag 都找出来
+    while (poppedNode !== node) {
       let elementNode = poppedNode as ASTv1.ElementNode;
 
       // 不对称的 element 可能是包裹在 helper 内部
@@ -110,9 +100,16 @@ export abstract class HandlebarsNodeVisitors extends Parser {
       this.finishOpenedStartTag(elementNode);
 
       // 需要把正确的 node pop 出去
-      stack.pop();
+      poppedNode = stack.pop();
 
       // throw generateSyntaxError(`Unclosed element \`${elementNode.tag}\``, elementNode.loc);
+    }
+
+    // 退出 inline 的时候，需要恢复之前的 tokenizer.state
+    if (!this.inline() && this.inlineFlag) {
+      tokenizer.transitionTo(this.blockTokenizerState);
+      this.currentNode = this.blockCurrentNode;
+      this.inlineFlag = false;
     }
 
     return node;

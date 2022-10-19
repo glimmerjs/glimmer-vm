@@ -205,6 +205,7 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
     // this.validateEndTag(tag, element, isVoid);
     element.loc = element.loc.withEnd(this.offset());
     element.opened = true;
+    element.openedType = 'startTag';
 
     parseElementBlockParams(element);
     appendChild(parent, element);

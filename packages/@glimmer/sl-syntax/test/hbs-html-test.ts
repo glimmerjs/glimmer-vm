@@ -8,40 +8,46 @@ const test = QUnit.test;
 
 QUnit.module('[glimmer-le-syntax] hbs-html - AST');
 
-// test('Handlebars block helper embedded in an attribute', function () {
-//   let t = '<img id="cd {{#test a}} hello {{/test}}">';
-//
-//   astEqual(
-//     t,
-//     b.program([
-//       element('img', [
-//         'attrs',
-//         [
-//           'id',
-//           b.concat([
-//             b.text('cd '),
-//             b.block(b.path('test'), [b.path('a')], b.hash(), b.blockItself([b.text(' hello ')])),
-//           ]),
-//         ],
-//       ]),
-//     ])
-//   );
-// });
-//
-// test('Dynamic element', function () {
-//   let t = '<{{tag}}>gua</{{tag}}>';
-//
-//   const ast = parse(t);
-//   gelog('result', ast);
-//
-//   astEqual(
-//     t,
-//     b.program([element('', ['body', b.text('gua')], ['parts', b.mustache(b.path('tag'))])])
-//   );
-// });
+test('Block helper embedded in an attribute', function () {
+  let t = '<img id="cd {{#test a}} hello {{/test}}">';
 
-test('Unclose element support', function () {
+  astEqual(
+    t,
+    b.program([
+      element('img', [
+        'attrs',
+        [
+          'id',
+          b.concat([
+            b.text('cd '),
+            b.block(b.path('test'), [b.path('a')], b.hash(), b.blockItself([b.text(' hello ')])),
+          ]),
+        ],
+      ]),
+    ])
+  );
+});
+
+test('Dynamic element', function () {
+  let t = '<{{tag}}>gua</{{tag}}>';
+
+  astEqual(
+    t,
+    b.program([element('', ['body', b.text('gua')], ['parts', b.mustache(b.path('tag'))])])
+  );
+});
+
+test('Support unclose end tag', function () {
   let t = `{{#if valid}}hello</div>{{/if}}`;
+
+  // const test = `
+  // {{#if global.section.settings.parallax}}
+  //                 <div class="parallax-container">
+  //                   <div class="parallax">
+  //                 {{/if}}`;
+  //
+  // const ast = parse(test);
+  // gelog('result', ast);
 
   astEqual(
     t,
@@ -51,6 +57,32 @@ test('Unclose element support', function () {
         [b.path('valid')],
         b.hash(),
         b.blockItself([element('div', ['body', b.text('hello')], ['openedType', 'endTag'])])
+      ),
+    ])
+  );
+});
+
+test('Support unclose start tag', function () {
+  let t = `{{#if valid}}<div class="container"><div class="content">{{/if}}`;
+
+  astEqual(
+    t,
+    b.program([
+      b.block(
+        b.path('if'),
+        [b.path('valid')],
+        b.hash(),
+        b.blockItself([
+          element(
+            'div',
+            ['attrs', ['class', b.text('container')]],
+            ['openedType', 'startTag'],
+            [
+              'body',
+              element('div', ['attrs', ['class', b.text('content')]], ['openedType', 'startTag']),
+            ]
+          ),
+        ])
       ),
     ])
   );
