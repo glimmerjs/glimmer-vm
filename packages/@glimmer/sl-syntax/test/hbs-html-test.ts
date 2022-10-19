@@ -6,33 +6,10 @@ import { syntaxErrorFor } from '../../integration-tests';
 
 const test = QUnit.test;
 
-QUnit.module('[glimmer-le-syntax] hbs-html - AST');
+QUnit.module('[le-hbs-syntax] hbs-html - AST');
 
-// test('Block helper embedded in an attribute', function () {
-//   let t = '<img id="cd {{#test a}} hello {{/test}}">';
-//
-//   astEqual(
-//     t,
-//     b.program([
-//       element('img', [
-//         'attrs',
-//         [
-//           'id',
-//           b.concat([
-//             b.text('cd '),
-//             b.block(b.path('test'), [b.path('a')], b.hash(), b.blockItself([b.text(' hello ')])),
-//           ]),
-//         ],
-//       ]),
-//     ])
-//   );
-// });
-
-test('Block helper in attribute', function () {
-  let t = '<img style="{{#if a}}gua{{/if}}" id="cd">';
-
-  const ast = parse(t);
-  gelog('result', ast);
+test('Block helper embedded in an attribute', function () {
+  let t = '<img id="cd {{#test a}} hello {{/test}}">';
 
   astEqual(
     t,
@@ -51,56 +28,74 @@ test('Block helper in attribute', function () {
   );
 });
 
-// test('Dynamic element', function () {
-//   let t = '<{{tag}}>gua</{{tag}}>';
-//
-//   astEqual(
-//     t,
-//     b.program([element('', ['body', b.text('gua')], ['parts', b.mustache(b.path('tag'))])])
-//   );
-// });
+test('Block helper in attribute', function () {
+  let t = '<img {{#if a}}style="gua"{{/if}} id="cd">';
 
-// test('Support unclose end tag', function () {
-//   let t = `{{#if valid}}hello</div>{{/if}}`;
-//
-//   astEqual(
-//     t,
-//     b.program([
-//       b.block(
-//         b.path('if'),
-//         [b.path('valid')],
-//         b.hash(),
-//         b.blockItself([element('div', ['body', b.text('hello')], ['openedType', 'endTag'])])
-//       ),
-//     ])
-//   );
-// });
+  astEqual(
+    t,
+    b.program([
+      element(
+        'img',
+        ['attrs', ['id', b.text('cd')]],
+        [
+          'modifiers',
+          b.block(b.path('if'), [b.path('a')], b.hash(), b.blockItself([b.text('style="gua"')])),
+        ]
+      ),
+    ])
+  );
+});
 
-// test('Support unclose start tag', function () {
-//   let t = `{{#if valid}}<div class="container"><div class="content">{{/if}}`;
-//
-//   astEqual(
-//     t,
-//     b.program([
-//       b.block(
-//         b.path('if'),
-//         [b.path('valid')],
-//         b.hash(),
-//         b.blockItself([
-//           element(
-//             'div',
-//             ['attrs', ['class', b.text('container')]],
-//             ['openedType', 'startTag'],
-//             [
-//               'body',
-//               element('div', ['attrs', ['class', b.text('content')]], ['openedType', 'startTag']),
-//             ]
-//           ),
-//         ])
-//       ),
-//     ])
-//   );
-// });
+test('Dynamic element', function () {
+  let t = '<{{tag}}>gua</{{tag}}>';
+
+  astEqual(
+    t,
+    b.program([element('', ['body', b.text('gua')], ['parts', b.mustache(b.path('tag'))])])
+  );
+});
+
+test('Support unclose end tag', function () {
+  let t = `{{#if valid}}hello</div>{{/if}}`;
+
+  astEqual(
+    t,
+    b.program([
+      b.block(
+        b.path('if'),
+        [b.path('valid')],
+        b.hash(),
+        b.blockItself([element('div', ['body', b.text('hello')], ['openedType', 'endTag'])])
+      ),
+    ])
+  );
+});
+
+test('Support unclose start tag', function () {
+  let t = `{{#if valid}}<div class="container"><div class="content">{{/if}}`;
+
+  astEqual(
+    t,
+    b.program([
+      b.block(
+        b.path('if'),
+        [b.path('valid')],
+        b.hash(),
+        b.blockItself([
+          element(
+            'div',
+            ['attrs', ['class', b.text('container')]],
+            ['openedType', 'startTag'],
+            [
+              'body',
+              element('div', ['attrs', ['class', b.text('content')]], ['openedType', 'startTag']),
+            ]
+          ),
+        ])
+      ),
+    ])
+  );
+});
 
 QUnit.dump.maxDepth = 100;
 
@@ -129,6 +124,7 @@ export type PathSexp = string | ['path', string, LocSexp?];
 
 export type ModifierSexp =
   | string
+  | ASTv1.BlockStatement
   | [PathSexp, LocSexp?]
   | [PathSexp, ASTv1.Expression[], LocSexp?]
   | [PathSexp, ASTv1.Expression[], Dict<ASTv1.Expression>, LocSexp?];
@@ -275,9 +271,15 @@ export function normalizeAttr(sexp: AttrSexp): ASTv1.AttrNode {
   return b.attr(name, value);
 }
 
-export function normalizeModifier(sexp: ModifierSexp): ASTv1.ElementModifierStatement {
+export function normalizeModifier(
+  sexp: ModifierSexp
+): ASTv1.ElementModifierStatement | ASTv1.BlockStatement {
   if (typeof sexp === 'string') {
     return b.elementModifier(sexp);
+  }
+
+  if (sexp?.type === 'BlockStatement') {
+    return sexp as ASTv1.BlockStatement;
   }
 
   let path: ASTv1.Expression = normalizeHead(sexp[0]);
