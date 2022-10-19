@@ -49,10 +49,12 @@ export abstract class HandlebarsNodeVisitors extends Parser {
     // 这里最多只有两个 tree ，一个是 main 一个是 inline，inline 不会再套 inline
     let stack;
     let { tokenizer } = this;
+    gelog('program state', tokenizer.state);
     switch (tokenizer.state) {
       case TokenizerState.attributeValueDoubleQuoted:
       case TokenizerState.attributeValueSingleQuoted:
       case TokenizerState.attributeValueUnquoted:
+      case TokenizerState.beforeAttributeName:
         stack = this.inlineElementStack;
         break;
       default:
@@ -168,6 +170,9 @@ export abstract class HandlebarsNodeVisitors extends Parser {
       case TokenizerState.attributeValueUnquoted:
         this.appendDynamicAttributeValuePart(node);
         break;
+      case TokenizerState.beforeAttributeName:
+        this.currentStartTag.modifiers.push(node);
+        break;
       default:
         let parentProgram = this.currentElement();
         appendChild(parentProgram, node);
@@ -221,17 +226,18 @@ export abstract class HandlebarsNodeVisitors extends Parser {
     switch (tokenizer.state) {
       // Tag helpers
       case TokenizerState.tagOpen:
-        // 这里需要调用类似 beginStartTag
-        // 构造一个
+        // 动态 tag
         this.createMustacheTag(mustache);
         break;
       case TokenizerState.endTagOpen:
+        // 动态 tag
         this.closeMustacheTag(mustache);
         break;
       case TokenizerState.tagName:
         // 这里还是继续保持, 不要这么飞
         throw generateSyntaxError(`Cannot use mustaches in an elements tagname`, mustache.loc);
 
+      // dynamic attr
       case TokenizerState.beforeAttributeName:
         addElementModifier(this.currentStartTag, mustache);
         break;
