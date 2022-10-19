@@ -44,12 +44,11 @@ export abstract class HandlebarsNodeVisitors extends Parser {
       });
     }
 
-    // 这里如果切换了 inline 模式
-    // 相应的 tokenizer state 也需要切换，从头再来
-    // 这里最多只有两个 tree ，一个是 main 一个是 inline，inline 不会再套 inline
+    // switch to inline mode
+    // reset tokenizer state and rerun
+    // inline can not wrap inline
     let stack;
     let { tokenizer } = this;
-    gelog('program state', tokenizer.state);
     switch (tokenizer.state) {
       case TokenizerState.attributeValueDoubleQuoted:
       case TokenizerState.attributeValueSingleQuoted:
@@ -67,8 +66,7 @@ export abstract class HandlebarsNodeVisitors extends Parser {
     // this.elementStack.push(node);
     stack.push(node);
 
-    // 进入 inline 的时候，需要记录当前 tokenizer.state
-    // 后续不用再重复记录
+    // record tokenizer state and enter inline mode
     if (this.inline() && stack.length === 1) {
       this.blockTokenizerState = this.tokenizer.state;
       tokenizer.transitionTo(TokenizerState.beforeData);
@@ -91,23 +89,18 @@ export abstract class HandlebarsNodeVisitors extends Parser {
     // let poppedNode = this.elementStack.pop();
     let poppedNode = stack.pop();
 
-    // todo
-    // 这里要加上不闭合检查
-    // 将 opened tag 都找出来
+    // find correct node
     while (poppedNode !== node) {
       let elementNode = poppedNode as ASTv1.ElementNode;
 
-      // 不对称的 element 可能是包裹在 helper 内部
-      // 这里就当做是 OpenedElement 后续处理
+      // handle opened tag
       this.finishOpenedStartTag(elementNode);
 
-      // 需要把正确的 node pop 出去
+      // pop correct node
       poppedNode = stack.pop();
-
-      // throw generateSyntaxError(`Unclosed element \`${elementNode.tag}\``, elementNode.loc);
     }
 
-    // 退出 inline 的时候，需要恢复之前的 tokenizer.state
+    // reset tokenizer to main state and quit inline mode
     if (!this.inline() && this.inlineFlag) {
       tokenizer.transitionTo(this.blockTokenizerState);
       this.currentNode = this.blockCurrentNode;
@@ -185,8 +178,6 @@ export abstract class HandlebarsNodeVisitors extends Parser {
   MustacheStatement(rawMustache: HBS.MustacheStatement): ASTv1.MustacheStatement | void {
     let { tokenizer } = this;
 
-    // gelog('MustacheStatement', tokenizer.state);
-
     if (tokenizer.state === 'comment') {
       this.appendToCommentData(this.sourceForNode(rawMustache));
       return;
@@ -221,21 +212,18 @@ export abstract class HandlebarsNodeVisitors extends Parser {
       });
     }
 
-    gelog('MustacheStatement', mustache);
-
     switch (tokenizer.state) {
       // Tag helpers
       case TokenizerState.tagOpen:
-        // 动态 tag
+        // dynamic start tag
         this.createMustacheTag(mustache);
         break;
       case TokenizerState.endTagOpen:
-        // 动态 tag
+        // dynamic end tag
         this.closeMustacheTag(mustache);
         break;
       case TokenizerState.tagName:
-        // 这里还是继续保持, 不要这么飞
-        throw generateSyntaxError(`Cannot use mustaches in an elements tagname`, mustache.loc);
+        throw generateSyntaxError(`Cannot concat mustaches with elements tagname`, mustache.loc);
 
       // dynamic attr
       case TokenizerState.beforeAttributeName:
@@ -277,13 +265,6 @@ export abstract class HandlebarsNodeVisitors extends Parser {
     return mustache;
   }
 
-  // appendDynamicAttributeValuePart(part: ASTv1.MustacheStatement): void {
-  //   this.finalizeTextPart();
-  //   let attr = this.currentAttr;
-  //   attr.isDynamic = true;
-  //   attr.parts.push(part);
-  // }
-
   appendDynamicAttributeValuePart(part: ASTv1.MustacheStatement | ASTv1.BlockStatement): void {
     this.finalizeTextPart();
     let attr = this.currentAttr;
@@ -310,8 +291,6 @@ export abstract class HandlebarsNodeVisitors extends Parser {
 
     this.tokenizer.tokenizePart(content.value);
 
-    // 这里会调用 finishData 方法
-    // 然后是 appendChild
     this.tokenizer.flushData();
   }
 
@@ -391,7 +370,7 @@ export abstract class HandlebarsNodeVisitors extends Parser {
           this.source.spanFor(path.loc)
         );
       }
-      // 需要支持切换 context
+      // support change context
       // if (original.slice(0, 3) === '../') {
       //   throw generateSyntaxError(
       //     `Changing context using "../" is not supported in Glimmer`,

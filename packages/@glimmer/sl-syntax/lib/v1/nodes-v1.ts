@@ -148,7 +148,7 @@ export interface ElementNode extends BaseNode {
   selfClosing: boolean;
   attributes: AttrNode[];
   blockParams: string[];
-  modifiers: ElementModifierStatement[];
+  modifiers: (ElementModifierStatement | BlockStatement)[];
   comments: MustacheCommentStatement[];
   children: Statement[];
   isDynamic?: boolean;

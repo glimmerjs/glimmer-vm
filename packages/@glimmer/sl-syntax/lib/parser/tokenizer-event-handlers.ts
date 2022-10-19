@@ -110,7 +110,6 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
   }
 
   beginEndTag(): void {
-    gelog('beginEndTag');
     this.currentNode = {
       type: 'EndTag',
       name: '',
@@ -185,15 +184,17 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
     element.loc = element.loc.withEnd(this.offset());
 
     if (valid) {
+      // pass and go normal way
       parseElementBlockParams(element);
       appendChild(parent, element);
     } else {
-      // 没有闭环的标签需要特殊处理
+      // tag do not match
+      // handle as opened end tag
       this.finishOpenedEndTag(tag, element);
 
-      // 因为 validate 之前是从 elementStack pop 了当前的 element 出来验证
-      // 验证不通过，说明当前的 element 不是跟 tag 配对的
-      // 这里要重新 push 回去
+      // cause tag do not match element
+      // element should push back to element stack
+      // wait for next end tag
       this.elementStack.push(element);
     }
   }
@@ -214,11 +215,8 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
   finishOpenedEndTag(tag: Tag<'StartTag' | 'EndTag'>, element: ASTv1.ElementNode): void {
     let { name, loc, isDynamic = false, parts = [] } = tag;
 
-    // todo 这里要处理一下
-    // 如果是 opened tag
-    // 需要取此时 element 的 children 放到 tag 下面
-    // 再把自己放到 element 里面
-
+    // wrap element(parent)'s children
+    // push itself to element
     const children = childrenFor(element) as ASTv1.Statement[];
 
     let openedEndTagElement = b.element({
@@ -361,9 +359,6 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
   ): boolean {
     let error;
 
-    gelog('validateEndTag tag', tag);
-    gelog('validateEndTag element', element);
-
     if (voidMap[tag.name] && !selfClosing) {
       // EngTag is also called by StartTag for void and self-closing tags (i.e.
       // <input> or <br />, so we need to check for that here. Otherwise, we would
@@ -372,12 +367,10 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
       throw generateSyntaxError(error, tag.loc);
     }
 
-    // 判断标签是否闭环
     let opened = false;
 
     // todo
     // 完善判断逻辑
-    // 动态 tag 闭合验证
     if (tag.isDynamic) {
       const isStaticElement = !element.isDynamic;
       const notMatch = tag.parts?.[0].path.original !== element.parts?.[0].path.original;
