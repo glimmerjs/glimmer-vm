@@ -40,15 +40,20 @@ QUnit.module('[glimmer-le-syntax] hbs-html - AST');
 //   );
 // });
 
-test('Unclose element as literal', function () {
-  let test = '<a>gua</a>{{#if}}div</div>{{/if}}';
+test('Unclose element support', function () {
+  let t = `{{#if valid}}hello</div>{{/if}}`;
 
-  const ast = parse(test);
-  gelog('result', ast);
-
-  let t = '<img id="cd">';
-
-  astEqual(t, b.program([element('img', ['attrs', ['id', b.text('cd')]])]));
+  astEqual(
+    t,
+    b.program([
+      b.block(
+        b.path('if'),
+        [b.path('valid')],
+        b.hash(),
+        b.blockItself([element('div', ['body', b.text('hello')], ['openedType', 'endTag'])])
+      ),
+    ])
+  );
 });
 
 QUnit.dump.maxDepth = 100;
@@ -71,7 +76,8 @@ export type ElementParts =
   | ['comments', ...ElementComment[]]
   | ['as', ...string[]]
   | ['loc', ASTv1.SourceLocation]
-  | ['parts', ...ASTv1.MustacheStatement[]];
+  | ['parts', ...ASTv1.MustacheStatement[]]
+  | ['openedType', 'startTag' | 'endTag' | ''];
 
 export type PathSexp = string | ['path', string, LocSexp?];
 
@@ -104,6 +110,8 @@ export interface BuildElementOptions {
   loc?: ASTv1.SourceLocation;
   isDynamic?: boolean;
   parts?: ASTv1.MustacheStatement[];
+  opened?: boolean;
+  openedType?: 'startTag' | 'endTag' | '';
 }
 
 export type TagDescriptor = string | { name: string; selfClosing: boolean };
@@ -116,7 +124,16 @@ export function element(tag: TagDescriptor, ...options: ElementParts[]): ASTv1.E
     normalized = options || {};
   }
 
-  let { attrs, blockParams, modifiers, comments, children, loc, parts = [] } = normalized;
+  let {
+    attrs,
+    blockParams,
+    modifiers,
+    comments,
+    children,
+    loc,
+    parts = [],
+    openedType = '',
+  } = normalized;
 
   // this is used for backwards compat, prior to `selfClosing` being part of the ElementNode AST
   let selfClosing = false;
@@ -142,6 +159,8 @@ export function element(tag: TagDescriptor, ...options: ElementParts[]): ASTv1.E
     loc: b.loc(loc || null),
     isDynamic: parts.length > 0,
     parts,
+    opened: Boolean(openedType),
+    openedType,
   };
 }
 
@@ -184,6 +203,11 @@ export function normalizeElementParts(...args: ElementParts[]): BuildElementOpti
       case 'parts': {
         let [, ...rest] = arg;
         out.parts = rest;
+        break;
+      }
+      case 'openedType': {
+        let [, openedType] = arg;
+        out.openedType = openedType;
         break;
       }
     }

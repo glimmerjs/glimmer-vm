@@ -137,7 +137,7 @@ export abstract class Parser {
   abstract beginEndTag(): void;
   abstract finishTag(): void;
   abstract finishOpenedStartTag(element: ASTv1.ElementNode): void;
-  abstract finishOpenedEndTag(tag: Tag<'EndTag'>, element: ASTv1.ElementNode): void;
+  abstract finishOpenedEndTag(tag: Tag<'StartTag' | 'EndTag'>, element: ASTv1.ElementNode): void;
   abstract beginComment(): void;
   abstract appendToCommentData(char: string): void;
   abstract finishComment(): void;

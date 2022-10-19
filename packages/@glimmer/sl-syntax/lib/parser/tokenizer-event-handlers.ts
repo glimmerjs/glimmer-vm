@@ -182,13 +182,19 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
 
     const valid = this.validateEndTag(tag, element, isVoid);
 
-    gelog('finishEndTag element', valid, element);
-
     element.loc = element.loc.withEnd(this.offset());
 
     if (valid) {
       parseElementBlockParams(element);
       appendChild(parent, element);
+    } else {
+      // 没有闭环的标签需要特殊处理
+      this.finishOpenedEndTag(tag, element);
+
+      // 因为 validate 之前是从 elementStack pop 了当前的 element 出来验证
+      // 验证不通过，说明当前的 element 不是跟 tag 配对的
+      // 这里要重新 push 回去
+      this.elementStack.push(element);
     }
   }
 
@@ -204,7 +210,7 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
     appendChild(parent, element);
   }
 
-  finishOpenedEndTag(tag: Tag<'EndTag'>, element: ASTv1.ElementNode): void {
+  finishOpenedEndTag(tag: Tag<'StartTag' | 'EndTag'>, element: ASTv1.ElementNode): void {
     let { name, loc, isDynamic = false, parts = [] } = tag;
 
     // todo 这里要处理一下
@@ -231,12 +237,6 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
 
     clearChild(element);
     appendChild(element, openedEndTagElement);
-
-    // 因为之前 valid end tag 的时候 pop 了 parent 出来
-    // 这里要重新 push 回去
-    this.elementStack.push(element);
-
-    gelog('finishOpenedEndTag element', element);
   }
 
   markTagAsSelfClosing(): void {
@@ -363,35 +363,47 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
     gelog('validateEndTag tag', tag);
     gelog('validateEndTag element', element);
 
-    if (tag.type === 'EndTag' && (element.tag === undefined || element.tag !== tag.name)) {
-      this.finishOpenedEndTag(tag, element);
-      return false;
-    }
-
     if (voidMap[tag.name] && !selfClosing) {
       // EngTag is also called by StartTag for void and self-closing tags (i.e.
       // <input> or <br />, so we need to check for that here. Otherwise, we would
       // throw an error for those cases.
       error = `<${tag.name}> elements do not need end tags. You should remove it`;
-    } else if (element.tag === undefined) {
-      error = `Closing tag </${tag.name}> without an open tag`;
-    } else if (element.tag !== tag.name) {
-      error = `Closing tag </${tag.name}> did not match last open tag <${element.tag}> (on line ${element.loc.startPosition.line})`;
+      throw generateSyntaxError(error, tag.loc);
     }
+
+    // 判断标签是否闭环
+    let opened = false;
 
     // todo
     // 完善判断逻辑
-    if (tag.isDynamic && element.isDynamic) {
-      if (tag.parts?.[0].path.original === element.parts?.[0].path.original) {
-        return true;
-      } else {
-        error = `Dynamic tag did not match last open tag (on line ${element.loc.startPosition.line})`;
+    // 动态 tag 闭合验证
+    if (tag.isDynamic) {
+      const isStaticElement = !element.isDynamic;
+      const notMatch = tag.parts?.[0].path.original !== element.parts?.[0].path.original;
+      if (isStaticElement || notMatch) {
+        opened = true;
+      }
+    } else {
+      const isEndTag = tag.type === 'EndTag';
+      const notMatch = element.tag === undefined || element.tag !== tag.name;
+      if (isEndTag && notMatch) {
+        opened = true;
       }
     }
 
-    if (error) {
-      throw generateSyntaxError(error, tag.loc);
+    if (opened) {
+      return false;
     }
+
+    // if (element.tag === undefined) {
+    //   error = `Closing tag </${tag.name}> without an open tag`;
+    // } else if (element.tag !== tag.name) {
+    //   error = `Closing tag </${tag.name}> did not match last open tag <${element.tag}> (on line ${element.loc.startPosition.line})`;
+    // }
+    //
+    // if (error) {
+    //   throw generateSyntaxError(error, tag.loc);
+    // }
 
     return true;
   }
