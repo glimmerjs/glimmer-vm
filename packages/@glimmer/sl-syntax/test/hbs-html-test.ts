@@ -46,6 +46,24 @@ test('Block helper in attribute', function () {
   );
 });
 
+test('Inline block helper can not contain html', function (assert) {
+  assert.throws(() => {
+    parse('<img {{#if a}}</{{a}}>{{/if}}>', { meta: { moduleName: 'test-module' } });
+  }, syntaxErrorFor('Can not embed html tag in another tag attribute', '<img {{#if a}}', 'test-module', 1, 0));
+
+  assert.throws(() => {
+    parse('<img {{#if a}}<{{a}}>{{/if}}>', { meta: { moduleName: 'test-module' } });
+  }, syntaxErrorFor('Can not embed html tag in another tag attribute', '<img {{#if a}}', 'test-module', 1, 0));
+
+  assert.throws(() => {
+    parse('<img {{#if a}}</div>{{/if}}>', { meta: { moduleName: 'test-module' } });
+  }, syntaxErrorFor('Can not embed html tag in another tag attribute', '<img {{#if a}}', 'test-module', 1, 0));
+
+  assert.throws(() => {
+    parse('<img {{#if a}}<div></div>{{/if}}>', { meta: { moduleName: 'test-module' } });
+  }, syntaxErrorFor('Can not embed html tag in another tag attribute', '<img {{#if a}}', 'test-module', 1, 0));
+});
+
 test('Dynamic element', function () {
   let t = '<{{tag}}>gua</{{tag}}>';
 

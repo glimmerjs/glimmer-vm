@@ -63,6 +63,7 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
   // Tags - basic
 
   tagOpen(): void {
+    this.inlineTagCheck();
     this.tagOpenLine = this.tokenizer.line;
     this.tagOpenColumn = this.tokenizer.column;
   }
@@ -119,6 +120,18 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
       selfClosing: false,
       loc: this.source.offsetFor(this.tagOpenLine, this.tagOpenColumn),
     };
+  }
+
+  inlineTagCheck() {
+    if (this.inline()) {
+      throw generateSyntaxError(
+        'Can not embed html tag in another tag attribute',
+        this.source.spanFor({
+          start: this.source.offsetFor(this.tagOpenLine, this.tagOpenColumn).toJSON(),
+          end: this.offset().toJSON(),
+        })
+      );
+    }
   }
 
   finishTag(): void {
