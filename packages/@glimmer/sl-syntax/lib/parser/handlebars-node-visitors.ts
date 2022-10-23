@@ -384,11 +384,11 @@ export abstract class HandlebarsNodeVisitors extends Parser {
       //   );
       // }
       parts = [path.parts.join('/')];
-    } else if (original === '.') {
-      // throw generateSyntaxError(
-      //   `'.' is not a supported path in Glimmer; check for a path with a trailing '.'`,
-      //   this.source.spanFor(path.loc)
-      // );
+      // } else if (original === '.') {
+      //   throw generateSyntaxError(
+      //     `'.' is not a supported path in Glimmer; check for a path with a trailing '.'`,
+      //     this.source.spanFor(path.loc)
+      //   );
     } else {
       parts = path.parts;
     }
