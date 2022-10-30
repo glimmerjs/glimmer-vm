@@ -70,6 +70,7 @@ export abstract class Parser {
     >
   > = null;
   public tokenizer: EventedTokenizer;
+  public mode: 'precompile' | 'codemod';
 
   constructor(
     source: Source,
@@ -79,6 +80,7 @@ export abstract class Parser {
     this.source = source;
     this.lines = source.source.split(/(?:\r\n?|\n)/g);
     this.tokenizer = new EventedTokenizer(this, entityParser, mode);
+    this.mode = mode;
   }
 
   inline(): boolean {
