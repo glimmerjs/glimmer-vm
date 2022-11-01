@@ -137,10 +137,13 @@ export abstract class HandlebarsNodeVisitors extends Parser {
       block.inverse.loc = NON_EXISTENT_LOCATION;
     }
 
+    // 这里拿到的 blcok 其实是 handlebars 解析出来的 blockStatment
+    // 这里是重新去进入解析流程，将里面的字符串解析成html
     let program = this.Program(block.program);
 
     let inverse = block.inverse ? this.Program(block.inverse) : null;
 
+    // 这里用来构建节点
     let node = b.block({
       path,
       params,
@@ -247,6 +250,9 @@ export abstract class HandlebarsNodeVisitors extends Parser {
       case TokenizerState.attributeValueDoubleQuoted:
       case TokenizerState.attributeValueSingleQuoted:
       case TokenizerState.attributeValueUnquoted:
+        // 这里需要看看
+        // 这里解析的时候，因为没有 inline 的概念
+        // 所以，解析属性的时候，可以解析到当前的 tag
         this.appendDynamicAttributeValuePart(mustache);
         break;
 

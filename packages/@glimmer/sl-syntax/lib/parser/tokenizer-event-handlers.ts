@@ -223,17 +223,6 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
 
     parseElementBlockParams(element);
     appendChild(parent, element);
-
-    const whitespacesOnlyRE = /^[\t\n\f\r ]*$/;
-    const isEmpty =
-      element.children.length === 1 &&
-      element.children[0].type === 'TextNode' &&
-      whitespacesOnlyRE.test(element.children[0].chars);
-    if (this.mode === 'codemod' && isEmpty) {
-      // with codemod, whitespace should not be contained as element's child
-      appendChild(parent, element.children[0]);
-      element.children = [];
-    }
   }
 
   finishOpenedEndTag(tag: Tag<'StartTag' | 'EndTag'>, element: ASTv1.ElementNode): void {
