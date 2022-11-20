@@ -147,9 +147,18 @@ abstract class AbstractChaosMonkeyTest extends RenderTest {
             `should match after iteration ${i}; rerun with these query params: '${rerunUrl}'`
           );
         } catch (error) {
+          let message =
+            error instanceof Error ||
+            (error &&
+              typeof error === 'object' &&
+              'message' in error &&
+              typeof error.message === 'string')
+              ? error.message
+              : '(no message from error)';
+
           this.assert.pushResult({
             result: false,
-            actual: error.message,
+            actual: message,
             expected: undefined,
             message: `Error occurred during iteration ${i}; rerun with these query params: ${rerunUrl}`,
           });

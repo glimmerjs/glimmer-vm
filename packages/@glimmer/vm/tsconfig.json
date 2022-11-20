@@ -2,7 +2,7 @@
   "compilerOptions": {
     "composite": true,
     // Compilation Configuration
-    "target": "es2017",
+    "target": "es2021",
     "inlineSources": true,
     "inlineSourceMap": true,
     "declaration": true,

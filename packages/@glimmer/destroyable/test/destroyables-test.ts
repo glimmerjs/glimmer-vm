@@ -472,7 +472,13 @@ module('Destroyables', (hooks) => {
       try {
         assertDestroyablesDestroyed!();
       } catch (error) {
-        assert.deepEqual(error.destroyables, [obj1, obj2], 'destroyables property');
+        // SAFETY: it's "fine" if the error is something else because the test
+        // will fail either way.
+        assert.deepEqual(
+          (error as { destroyables: Array<unknown> }).destroyables,
+          [obj1, obj2],
+          'destroyables property'
+        );
       }
     });
 

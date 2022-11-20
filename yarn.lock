@@ -4447,9 +4447,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"broccoli-typescript-compiler@npm:^6.0.1":
-  version: 6.0.1
-  resolution: "broccoli-typescript-compiler@npm:6.0.1"
+"broccoli-typescript-compiler@npm:^8.0.0":
+  version: 8.0.0
+  resolution: "broccoli-typescript-compiler@npm:8.0.0"
   dependencies:
     broccoli-funnel: ^3.0.3
     broccoli-merge-trees: ^4.2.0
@@ -4457,9 +4457,10 @@ __metadata:
     fs-tree-diff: ^2.0.1
     heimdalljs: 0.3.3
     md5-hex: ^3.0.1
-    typescript: ~3.9.2
     walk-sync: ^2.1.0
-  checksum: 480d5179b521689644945f3d5823ba3a3df6aca20621b91721735c4b9ea689c577fd3219d269960df2a4d2cdb78c2587016064edc3f62687dcf77833b69b6042
+  peerDependencies:
+    typescript: ^4.0.3
+  checksum: 3cabbc3564a606b293e47b1420f8787a3dd90a6f501c4d7a52a64e6965c436e349e65b61c3044ee816585d2d9b273380508f21f6aa3de1bba6217f1eeef7cf52
   languageName: node
   linkType: hard
 
@@ -7501,7 +7502,7 @@ __metadata:
     broccoli-plugin: ^3.1.0
     broccoli-rollup: ^4.1.1
     broccoli-source: ^3.0.0
-    broccoli-typescript-compiler: ^6.0.1
+    broccoli-typescript-compiler: ^8.0.0
     chalk: ^3.0.0
     dag-map: ^2.0.2
     ember-cli: ~3.20.0
@@ -7535,7 +7536,7 @@ __metadata:
     symlink-or-copy: ^1.3.1
     testem-failure-only-reporter: ^0.0.1
     toml: ^3.0.0
-    typescript: 4.0.2
+    typescript: ~4.9.3
   languageName: unknown
   linkType: soft
 
@@ -13845,23 +13846,23 @@ __metadata:
   languageName: node
   linkType: hard
 
-"typescript@npm:4.0.2":
-  version: 4.0.2
-  resolution: "typescript@npm:4.0.2"
+"typescript@npm:~4.9.3":
+  version: 4.9.3
+  resolution: "typescript@npm:4.9.3"
   bin:
     tsc: bin/tsc
     tsserver: bin/tsserver
-  checksum: 6cf7028c276551d86682bd5c484dbcbe97c129134ce0721fd33631c8866de578b45fdef77742d5fe0e783dc9de548e4502676afcbf266b895353dd7c0cf16f1d
+  checksum: 17b8f816050b412403e38d48eef0e893deb6be522d6dc7caf105e54a72e34daf6835c447735fd2b28b66784e72bfbf87f627abb4818a8e43d1fa8106396128dc
   languageName: node
   linkType: hard
 
-"typescript@patch:typescript@npm%3A4.0.2#~builtin<compat/typescript>":
-  version: 4.0.2
-  resolution: "typescript@patch:typescript@npm%3A4.0.2#~builtin<compat/typescript>::version=4.0.2&hash=ed6a74"
+"typescript@patch:typescript@~4.9.3#~builtin<compat/typescript>":
+  version: 4.9.3
+  resolution: "typescript@patch:typescript@npm%3A4.9.3#~builtin<compat/typescript>::version=4.9.3&hash=d73830"
   bin:
     tsc: bin/tsc
     tsserver: bin/tsserver
-  checksum: b5d4ab564a427541d01c9da37d1ce46d401f21209432c24daaa33b9d82811c1928d64e0b16ae0f9c6cde67be3eed8ab9a214aab63e1f0643684313487d9a6b11
+  checksum: 67ca21a387c0572f1c04936e638dde7782c5aa520c3754aadc7cc9b7c915da9ebc3e27c601bfff4ccb7d7264e82dce6d277ada82ec09dc75024349e0ef64926d
   languageName: node
   linkType: hard
 

@@ -450,8 +450,16 @@ function normalizeBlockHash(
   let blockParams: Option<string[]> = null;
 
   entries(hash, (key, value) => {
+    // SAFETY: Because the `value` here might be a `Dict<BuilderHash>`, which
+    // from a types POV is inclusive of the possibility of a key named 'as',
+    // this doesn't actually narrow correctly. It's safe-ish to *treat* this as
+    // narrowing `value` because the *intent* here is that `as` only gets passed
+    // when `value` is `string | string[]`. We should go back and update the
+    // type for the `hash` passed here to be much stricter than `Dict` so that
+    // this can actually safely narrow.
     if (key === 'as') {
-      blockParams = Array.isArray(value) ? value : [value];
+      let val = value as string | string[];
+      blockParams = Array.isArray(val) ? val : [val];
     } else {
       out = out || dict();
       out[key] = normalizeExpression(value as BuilderExpression);

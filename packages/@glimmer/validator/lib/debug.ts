@@ -200,7 +200,10 @@ if (DEBUG) {
     try {
       assert(false, makeTrackingErrorMessage(transaction, obj, keyName));
     } catch (e) {
-      if (e.stack) {
+      if (
+        (e instanceof Error || (e && typeof e === 'object' && 'stack' in e)) &&
+        typeof e.stack === 'string'
+      ) {
         let updateStackBegin = e.stack.indexOf('Stack trace for the update:');
 
         if (updateStackBegin !== -1) {
