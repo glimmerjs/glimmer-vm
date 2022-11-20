@@ -5,7 +5,6 @@
   "repository": "https://github.com/glimmerjs/glimmer.js",
   "author": "Tom Dale <tom@tomdale.net>",
   "license": "MIT",
-  "private": false,
   "scripts": {
     "test": "mocha -r esm"
   },

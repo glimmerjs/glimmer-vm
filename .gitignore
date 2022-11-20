@@ -9,3 +9,12 @@ ts-dist/
 *.pdf
 instrumentation.*.json
 .vscode/
+
+# Yarn 3
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
