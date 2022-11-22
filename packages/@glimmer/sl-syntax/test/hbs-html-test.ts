@@ -28,6 +28,17 @@ test('Block helper embedded in an attribute', function () {
   );
 });
 
+test('Raw mustache embedded in an attribute', function () {
+  let t = '<img id="{{{class}}}">';
+
+  astEqual(
+    t,
+    b.program([element('img', ['attrs', ['id', b.concat(
+      [b.mustache(b.path('class'), undefined, undefined, true]
+    )]])])
+  );
+});
+
 test('Block helper in attribute', function () {
   let t = '<img {{#if a}}style="gua"{{/if}} id="cd">';
 

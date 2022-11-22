@@ -620,6 +620,8 @@ function addElementModifier(
     throw generateSyntaxError(`In ${tag}, ${modifier} is not a valid modifier`, mustache.loc);
   }
 
-  let modifier = b.elementModifier({ path, params, hash, loc });
-  element.modifiers.push(modifier);
+  // let modifier = b.elementModifier({ path, params, hash, loc });
+
+  // use mustache directly
+  element.modifiers.push(mustache);
 }

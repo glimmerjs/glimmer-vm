@@ -23,7 +23,11 @@ export interface Tag<T extends 'StartTag' | 'EndTag'> {
   readonly type: T;
   name: string;
   readonly attributes: ASTv1.AttrNode[];
-  readonly modifiers: (ASTv1.ElementModifierStatement | ASTv1.BlockStatement)[];
+  readonly modifiers: (
+    | ASTv1.ElementModifierStatement
+    | ASTv1.BlockStatement
+    | ASTv1.MustacheStatement
+  )[];
   readonly comments: ASTv1.MustacheCommentStatement[];
   selfClosing: boolean;
   readonly loc: SourceSpan;
