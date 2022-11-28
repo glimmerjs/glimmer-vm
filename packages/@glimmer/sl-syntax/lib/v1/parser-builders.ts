@@ -404,7 +404,7 @@ export interface BuildElementOptions {
   tag: string;
   selfClosing: boolean;
   attrs: ASTv1.AttrNode[];
-  modifiers: (ASTv1.ElementModifierStatement | ASTv1.BlockStatement)[];
+  modifiers: (ASTv1.ElementModifierStatement | ASTv1.BlockStatement | ASTv1.MustacheStatement)[];
   children: ASTv1.Statement[];
   comments: ElementComment[];
   blockParams: string[];
