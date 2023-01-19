@@ -198,6 +198,29 @@ export abstract class Parser {
     // return this.elementStack[this.elementStack.length - 1];
   }
 
+  currentStack() {
+    let stack: Element[];
+    if (this.inline()) {
+      stack = this.inlineElementStack;
+    } else {
+      // switch to inline mode
+      // reset tokenizer state and rerun
+      // inline can not wrap inline
+      switch (this.tokenizer.state) {
+        case TokenizerState.attributeValueDoubleQuoted:
+        case TokenizerState.attributeValueSingleQuoted:
+        case TokenizerState.attributeValueUnquoted:
+        case TokenizerState.beforeAttributeName:
+          stack = this.inlineElementStack;
+          break;
+        default:
+          stack = this.elementStack;
+      }
+    }
+
+    return stack;
+  }
+
   sourceForNode(node: HBS.Node, endNode?: { loc: HBS.SourceLocation }): string {
     let firstLine = node.loc.start.line - 1;
     let currentLine = firstLine - 1;

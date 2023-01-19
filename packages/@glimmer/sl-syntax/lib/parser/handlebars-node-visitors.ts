@@ -44,21 +44,7 @@ export abstract class HandlebarsNodeVisitors extends Parser {
       });
     }
 
-    // switch to inline mode
-    // reset tokenizer state and rerun
-    // inline can not wrap inline
-    let stack;
-    let { tokenizer } = this;
-    switch (tokenizer.state) {
-      case TokenizerState.attributeValueDoubleQuoted:
-      case TokenizerState.attributeValueSingleQuoted:
-      case TokenizerState.attributeValueUnquoted:
-      case TokenizerState.beforeAttributeName:
-        stack = this.inlineElementStack;
-        break;
-      default:
-        stack = this.elementStack;
-    }
+    const stack = this.currentStack();
 
     let i,
       l = program.body.length;
@@ -67,8 +53,9 @@ export abstract class HandlebarsNodeVisitors extends Parser {
     stack.push(node);
 
     // record tokenizer state and enter inline mode
+    let { tokenizer } = this;
     if (this.inline() && stack.length === 1) {
-      this.blockTokenizerState = this.tokenizer.state;
+      this.blockTokenizerState = tokenizer.state;
       tokenizer.transitionTo(TokenizerState.beforeData);
 
       this.blockCurrentNode = this.currentNode;
@@ -143,7 +130,6 @@ export abstract class HandlebarsNodeVisitors extends Parser {
 
     let inverse = block.inverse ? this.Program(block.inverse) : null;
 
-    // 这里用来构建节点
     let node = b.block({
       path,
       params,

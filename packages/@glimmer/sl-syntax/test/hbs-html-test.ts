@@ -9,6 +9,34 @@ const test = QUnit.test;
 QUnit.module('[le-hbs-syntax] hbs-html - AST');
 
 test('Block helper embedded in an attribute', function () {
+  let t = '<img id="cd {{#test a}} hello {{#if valid}}gua{{/if}}{{/test}}">';
+
+  astEqual(
+    t,
+    b.program([
+      element('img', [
+        'attrs',
+        [
+          'id',
+          b.concat([
+            b.text('cd '),
+            b.block(
+              b.path('test'),
+              [b.path('a')],
+              b.hash(),
+              b.blockItself([
+                b.text(' hello '),
+                b.block(b.path('if'), [b.path('valid')], b.hash(), b.blockItself([b.text('gua')])),
+              ])
+            ),
+          ]),
+        ],
+      ]),
+    ])
+  );
+});
+
+test('Block embedded in an attribute', function () {
   let t = '<img id="cd {{#test a}} hello {{/test}}">';
 
   astEqual(
