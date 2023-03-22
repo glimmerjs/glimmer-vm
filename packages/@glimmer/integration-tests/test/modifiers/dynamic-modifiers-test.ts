@@ -215,8 +215,8 @@ class DynamicModifiersResolutionModeTest extends RenderTest {
     this.rerender();
     this.assert.deepEqual(lifecycle, ['setup']);
 
-    state.isVisible = false;
-    this.rerender();
+    // KEY: destroy the whole element, rather than set the condition to false
+    this.destroy();
     this.assert.deepEqual(lifecycle, ['setup', 'cleanup']);
   }
 }
