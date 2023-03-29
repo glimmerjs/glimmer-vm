@@ -59,6 +59,17 @@ class HelperManagerTest extends RenderTest {
   }
 
   @test({ skip: SKIP_DEFAULT_HELPER_MANAGER_TESTS })
+  '(Default Helper Manager) plain functions from globalThis work as helpers'() {
+    let data = { foo: 'bar' };
+
+    const Main = defineComponent({ data }, '{{JSON.stringify data}}');
+
+    this.renderComponent(Main);
+
+    this.assertHTML('{ "foo": "bar" }');
+  }
+
+  @test({ skip: SKIP_DEFAULT_HELPER_MANAGER_TESTS })
   '(Default Helper Manager) plain functions passed as component arguments work as helpers'(
     assert: Assert
   ) {

@@ -342,6 +342,16 @@ class StaticStrictModeTest extends RenderTest {
   }
 
   @test
+  'Can use objects from globalThis'() {
+    const value = '{ "foo": "bar" }';
+    const Bar = defineComponent({ value }, '{{JSON.stringify (JSON.parse value)}}');
+
+    this.renderComponent(Bar);
+    this.assertHTML(value);
+    this.assertStableRerender();
+  }
+
+  @test
   'Can use constant values as arguments to components'() {
     const value = 'Hello, world!';
 
