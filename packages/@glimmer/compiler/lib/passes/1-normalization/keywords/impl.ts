@@ -5,9 +5,10 @@ import {
   KEYWORDS_TYPES,
   KeywordType,
 } from '@glimmer/syntax';
-import { exhausted } from '@glimmer/util';
+import { assert, exhausted } from '@glimmer/util';
 
 import { Err, Result } from '../../../shared/result';
+import { LooseKeywordExpression } from '../../2-encoding/mir';
 import { NormalizationState } from '../context';
 
 export interface KeywordDelegate<Match extends KeywordMatch, V, Out> {
@@ -34,7 +35,8 @@ class KeywordImpl<
   constructor(
     protected keyword: S,
     type: KeywordType,
-    private delegate: KeywordDelegate<KeywordMatches[K], Param, Out>
+    private delegate: KeywordDelegate<KeywordMatches[K], Param, Out>,
+    private options?: { compatible: boolean }
   ) {
     let nodes = new Set<KeywordNode['type']>();
     for (let nodeType of KEYWORD_NODES[type]) {
@@ -44,30 +46,43 @@ class KeywordImpl<
     this.types = nodes;
   }
 
-  protected match(node: KeywordCandidates[K]): node is KeywordMatches[K] {
+  protected match(
+    node: KeywordCandidates[K],
+    state: NormalizationState
+  ): node is KeywordMatches[K] {
+    // some keywords are enabled only in strict mode. None are planned to be loose mode only
+    // if (this.options?.strictOnly) {
+    //   if (state.isStrict === false) {
+    //     return false;
+    //   }
+    // }
+
     if (!this.types.has(node.type)) {
       return false;
     }
 
     let path = getCalleeExpression(node);
 
+    // if the keyword is a local variable reference (including references to embedded in-scope local
+    // variables in strict mode), then the local variable wins over the keyword.
     if (path !== null && path.type === 'Path' && path.ref.type === 'Free') {
       if (path.tail.length > 0) {
+        // if we're looking at something like {{foo.bar baz}} in loose mode
         if (path.ref.resolution.serialize() === 'Loose') {
           // cannot be a keyword reference, keywords do not allow paths (must be
           // relying on implicit this fallback)
           return false;
         }
-      }
 
-      return path.ref.name === this.keyword;
-    } else {
-      return false;
+        return path.ref.name === this.keyword;
+      } else {
+        return false;
+      }
     }
   }
 
   translate(node: KeywordMatches[K], state: NormalizationState): Result<Out> | null {
-    if (this.match(node)) {
+    if (this.match(node, state)) {
       let path = getCalleeExpression(node);
 
       if (path !== null && path.type === 'Path' && path.tail.length > 0) {
@@ -82,7 +97,32 @@ class KeywordImpl<
       }
 
       let param = this.delegate.assert(node, state);
-      return param.andThen((param) => this.delegate.translate({ node, state }, param));
+      let keyword = param.andThen((param) => this.delegate.translate({ node, state }, param));
+
+      let head = (path as ASTv2.PathExpression).ref;
+
+      assert(head.type === 'Free', 'only free variables should succeed the match() test');
+
+      // if we're in strict mode, then return the keyword
+      if (head.resolution === ASTv2.STRICT_RESOLUTION || this.options?.compatible !== true) {
+        return keyword;
+      }
+
+      // this code needs to be adjusted to handle non-calls
+
+      return keyword.mapOk(
+        (kw) =>
+          (new LooseKeywordExpression({
+            original: node as ASTv2.ExpressionNode,
+            keyword: kw as ASTv2.ExpressionNode,
+            loc: node.loc,
+          }) as unknown) as Out
+      );
+
+      if (this.options?.compatible) {
+        // if (path.head.type === 'Free') {
+        // in loose mode, a compatible keyword loses to a resolved value for the same keyword
+      }
     } else {
       return null;
     }
@@ -136,8 +176,13 @@ export function keyword<
   K extends KeywordType,
   D extends KeywordDelegate<KeywordMatches[K], unknown, Out>,
   Out = unknown
->(keyword: string, type: K, delegate: D): Keyword<K, Out> {
-  return new KeywordImpl(keyword, type, delegate as KeywordDelegate<KeywordMatch, unknown, Out>);
+>(keyword: string, type: K, delegate: D, options?: { strictOnly: boolean }): Keyword<K, Out> {
+  return new KeywordImpl(
+    keyword,
+    type,
+    delegate as KeywordDelegate<KeywordMatch, unknown, Out>,
+    options
+  );
 }
 
 export type PossibleKeyword = KeywordNode;
@@ -178,9 +223,10 @@ export class Keywords<K extends KeywordType, KeywordList extends Keyword<K> = ne
 
   kw<S extends string = string, Out = unknown>(
     name: S,
-    delegate: KeywordDelegate<KeywordMatches[K], unknown, Out>
+    delegate: KeywordDelegate<KeywordMatches[K], unknown, Out>,
+    options?: { strictOnly: boolean }
   ): Keywords<K, KeywordList | Keyword<K, Out>> {
-    this._keywords.push(keyword(name, this._type, delegate));
+    this._keywords.push(keyword(name, this._type, delegate, options));
 
     return this;
   }

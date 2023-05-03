@@ -144,6 +144,16 @@ EXPRESSIONS.add(SexpOpcodes.Not, (op, [, value]) => {
   op(Op.Not);
 });
 
+EXPRESSIONS.add(SexpOpcodes.Equal, (op, [, positional]) => {
+  SimpleArgs(op, positional, null, false);
+  op(Op.Equal);
+});
+
+EXPRESSIONS.add(SexpOpcodes.NotEqual, (op, [, positional]) => {
+  SimpleArgs(op, positional, null, false);
+  op(Op.NotEqual);
+});
+
 EXPRESSIONS.add(SexpOpcodes.GetDynamicVar, (op, [, expression]) => {
   expr(op, expression);
   op(Op.GetDynamicVar);

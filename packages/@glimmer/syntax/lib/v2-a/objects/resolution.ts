@@ -41,6 +41,17 @@ export class LooseModeResolution {
   /**
    * Namespaced resolution is used in an unambiguous syntax position:
    *
+   * Examples:
+   *
+   * `{{foo bar}}` in strict
+   *
+   * - emits roughly: `{{foo bar}}` : if foo is in scope, then it better be a helper, otherwise, it better be a keyword
+   *
+   * `{{foo bar}}` in loose
+   *
+   * - if foo is in scope, emits roughly `{{foo bar}}` (and it better be a helper)
+   * - otherwise, `{{helper:foo bar}}`
+   *
    * 1. `(sexp)` (namespace: `Helper`)
    * 2. `{{#block}}` (namespace: `Component`)
    * 3. `<a {{modifier}}>` (namespace: `Modifier`)
