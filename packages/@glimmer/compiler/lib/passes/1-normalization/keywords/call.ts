@@ -6,6 +6,7 @@ import { getDynamicVarKeyword } from './utils/dynamic-vars';
 import { hasBlockKeyword } from './utils/has-block';
 import { ifUnlessInlineKeyword } from './utils/if-unless';
 import { logKeyword } from './utils/log';
+import { dynamicElementKeyword } from './utils/dynamic-element';
 
 export const CALL_KEYWORDS = keywords('Call')
   .kw('has-block', hasBlockKeyword('has-block'))
@@ -16,4 +17,5 @@ export const CALL_KEYWORDS = keywords('Call')
   .kw('unless', ifUnlessInlineKeyword('unless'))
   .kw('component', curryKeyword(CurriedType.Component))
   .kw('helper', curryKeyword(CurriedType.Helper))
-  .kw('modifier', curryKeyword(CurriedType.Modifier));
+  .kw('modifier', curryKeyword(CurriedType.Modifier))
+  .kw('element', dynamicElementKeyword);

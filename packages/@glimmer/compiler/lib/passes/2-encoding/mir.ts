@@ -202,6 +202,10 @@ export class Args extends node('Args').fields<{
 }>() {}
 export class Tail extends node('Tail').fields<{ members: PresentArray<SourceSlice> }>() {}
 
+export class DynamicElement extends node('DynamicElement').fields<{
+  positional: Positional;
+}>() {}
+
 export type ExpressionNode =
   | ASTv2.LiteralExpression
   | Missing
@@ -216,7 +220,8 @@ export type ExpressionNode =
   | HasBlockParams
   | Curry
   | GetDynamicVar
-  | Log;
+  | Log
+  | DynamicElement;
 
 export type ElementParameter = StaticAttr | DynamicAttr | Modifier | SplatAttr;
 
