@@ -1,6 +1,7 @@
 import {
   RenderTest,
   test,
+  trackedObj,
   jitSuite,
   defineSimpleModifier,
   syntaxErrorFor,
@@ -167,6 +168,56 @@ class DynamicModifiersResolutionModeTest extends RenderTest {
     this.renderComponent(Bar);
     this.assertHTML('<div>Hello, world!</div>');
     this.assertStableRerender();
+  }
+
+  @test
+  'Can use a destructor in a dynamic modifier'() {
+    const lifecycle = [];
+    const bar = defineSimpleModifier((element: Element, value: string) => {
+      lifecycle.push('setup');
+
+      return () => lifecycle.push('cleanup');
+    });
+    const Bar = defineComponent({}, '<div {{this.bar}}></div>', {
+      definition: class extends GlimmerishComponent {
+        bar = bar;
+      },
+    });
+
+    this.renderComponent(Bar);
+    this.assertStableRerender();
+    this.destroy();
+    this.assert.deepEqual(lifecycle, ['setup', 'cleanup']);
+  }
+
+  @test
+  'Can use a destructor in a conditionally applied dynamic modifier'() {
+    const lifecycle = [];
+    const bar = defineSimpleModifier((element: Element, value: string) => {
+      lifecycle.push('setup');
+
+      return () => lifecycle.push('cleanup');
+    });
+
+    const state = trackedObj({ isVisible: false });
+    const Bar = defineComponent({}, '<div {{ (if this.state.isVisible this.bar) }}></div>', {
+      definition: class extends GlimmerishComponent {
+        bar = bar;
+        state = state;
+      },
+    });
+
+    this.renderComponent(Bar);
+    this.assertStableRerender();
+    this.assert.deepEqual(lifecycle, []);
+
+    state.isVisible = true;
+    this.rerender();
+    this.assert.deepEqual(lifecycle, ['setup']);
+
+    // KEY: destroy the whole element, rather than set the condition to false
+    this.destroy();
+    this.assert.deepEqual(lifecycle, ['setup', 'cleanup']);
   }
 }
 
