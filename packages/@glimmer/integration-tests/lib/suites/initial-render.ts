@@ -1,19 +1,10 @@
 import { type SimpleElement } from '@glimmer/interfaces';
-import { castToBrowser, checkNode, strip, unwrap } from '@glimmer/util';
+import { castToBrowser, checkNode, NS_SVG, strip, unwrap } from '@glimmer/util';
 
 import { assertNodeTagName } from '../dom/assertions';
 import { firstElementChild, getElementsByTagName } from '../dom/simple-utils';
 import { RenderTest } from '../render-test';
 import { test } from '../test-decorator';
-
-enum Namespace {
-  HTML = 'http://www.w3.org/1999/xhtml',
-  MathML = 'http://www.w3.org/1998/Math/MathML',
-  SVG = 'http://www.w3.org/2000/svg',
-  XLink = 'http://www.w3.org/1999/xlink',
-  XML = 'http://www.w3.org/XML/1998/namespace',
-  XMLNS = 'http://www.w3.org/2000/xmlns/',
-}
 
 export class InitialRenderSuite extends RenderTest {
   static suiteName = 'initial render';
@@ -649,7 +640,7 @@ export class InitialRenderSuite extends RenderTest {
     this.assertHTML('<svg viewBox="0 0 0 0"></svg>');
     const svg = this.element.firstChild;
     if (assertNodeTagName(svg, 'svg')) {
-      this.assert.strictEqual(svg.namespaceURI, Namespace.SVG);
+      this.assert.strictEqual(svg.namespaceURI, NS_SVG);
       this.assert.strictEqual(svg.getAttribute('viewBox'), '0 0 0 0');
     }
     this.assertStableRerender();
@@ -664,13 +655,13 @@ export class InitialRenderSuite extends RenderTest {
     const svg = this.element.firstChild;
 
     if (assertNodeTagName(svg, 'svg')) {
-      this.assert.strictEqual(svg.namespaceURI, Namespace.SVG);
+      this.assert.strictEqual(svg.namespaceURI, NS_SVG);
 
       const path = svg.firstChild;
       if (assertNodeTagName(path, 'path')) {
         this.assert.strictEqual(
           path.namespaceURI,
-          Namespace.SVG,
+          NS_SVG,
           'creates the path element with a namespace'
         );
         this.assert.strictEqual(path.getAttribute('d'), d);
@@ -688,14 +679,14 @@ export class InitialRenderSuite extends RenderTest {
     const svg = this.element.firstChild;
 
     if (assertNodeTagName(svg, 'svg')) {
-      this.assert.strictEqual(svg.namespaceURI, Namespace.SVG);
+      this.assert.strictEqual(svg.namespaceURI, NS_SVG);
 
       const foreignObject = svg.firstChild;
 
       if (assertNodeTagName(foreignObject, 'foreignObject')) {
         this.assert.strictEqual(
           foreignObject.namespaceURI,
-          Namespace.SVG,
+          NS_SVG,
           'creates the foreignObject element with a namespace'
         );
       }
@@ -716,13 +707,13 @@ export class InitialRenderSuite extends RenderTest {
 
     this.assert.strictEqual(
       castToBrowser(unwrap(firstChild), 'SVG').namespaceURI,
-      Namespace.SVG,
+      NS_SVG,
       'creates the first svg element with a namespace'
     );
 
     this.assert.strictEqual(
       castToBrowser(secondChild, 'SVG').namespaceURI,
-      Namespace.SVG,
+      NS_SVG,
       'creates the second svg element with a namespace'
     );
 
@@ -754,7 +745,7 @@ export class InitialRenderSuite extends RenderTest {
     }
 
     if (assertNodeTagName(svg, 'svg')) {
-      this.assert.strictEqual(svg.namespaceURI, Namespace.SVG, "svg's namespace is svgNamespace");
+      this.assert.strictEqual(svg.namespaceURI, NS_SVG, "svg's namespace is svgNamespace");
     }
 
     if (assertNodeTagName(secondDiv, 'div')) {

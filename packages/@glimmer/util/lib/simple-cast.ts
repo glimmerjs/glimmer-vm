@@ -1,16 +1,7 @@
 import type { Maybe, SimpleDocument, SimpleElement, SimpleNode } from '@glimmer/interfaces';
 
+import { DOCUMENT_NODE, ELEMENT_NODE } from './dom-utils';
 import { unreachable } from './platform-utils';
-
-export enum NodeType {
-  RAW_NODE = -1,
-  ELEMENT_NODE = 1,
-  TEXT_NODE = 3,
-  COMMENT_NODE = 8,
-  DOCUMENT_NODE = 9,
-  DOCUMENT_TYPE_NODE = 10,
-  DOCUMENT_FRAGMENT_NODE = 11,
-}
 
 interface GenericElementTags {
   HTML: HTMLElement;
@@ -105,15 +96,15 @@ function checkError(from: string, check: SugaryNodeCheck): Error {
 }
 
 function isDocument(node: Node | SimpleNode | SimpleDocument): node is Document | SimpleDocument {
-  return node.nodeType === NodeType.DOCUMENT_NODE;
+  return node.nodeType === DOCUMENT_NODE;
 }
 
 export function isSimpleElement(node: Maybe<SimpleNode | Node>): node is SimpleElement {
-  return node?.nodeType === NodeType.ELEMENT_NODE;
+  return node?.nodeType === ELEMENT_NODE;
 }
 
 export function isElement(node: Maybe<Node | SimpleNode>): node is Element {
-  return node?.nodeType === NodeType.ELEMENT_NODE && node instanceof Element;
+  return node?.nodeType === ELEMENT_NODE && node instanceof Element;
 }
 
 export function checkBrowserNode<S extends SugaryNodeCheck>(

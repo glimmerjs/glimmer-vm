@@ -16,6 +16,9 @@ import {
   exhausted,
   expect,
   isPresentArray,
+  NS_XLINK,
+  NS_XML,
+  NS_XMLNS,
   values,
 } from '@glimmer/util';
 
@@ -43,15 +46,6 @@ import {
 } from './builder-interface';
 
 import Op = WireFormat.SexpOpcodes;
-
-export enum Namespace {
-  HTML = 'http://www.w3.org/1999/xhtml',
-  MathML = 'http://www.w3.org/1998/Math/MathML',
-  SVG = 'http://www.w3.org/2000/svg',
-  XLink = 'http://www.w3.org/1999/xlink',
-  XML = 'http://www.w3.org/XML/1998/namespace',
-  XMLNS = 'http://www.w3.org/2000/xmlns/',
-}
 
 interface Symbols {
   top: ProgramSymbols;
@@ -448,7 +442,7 @@ export function buildElementParams(
 
 export function extractNamespace(name: string): Option<AttrNamespace> {
   if (name === 'xmlns') {
-    return Namespace.XMLNS;
+    return NS_XMLNS;
   }
 
   let match = /^([^:]*):([^:]*)$/.exec(name);
@@ -461,11 +455,11 @@ export function extractNamespace(name: string): Option<AttrNamespace> {
 
   switch (namespace) {
     case 'xlink':
-      return Namespace.XLink;
+      return NS_XLINK;
     case 'xml':
-      return Namespace.XML;
+      return NS_XML;
     case 'xmlns':
-      return Namespace.XMLNS;
+      return NS_XMLNS;
   }
 
   return null;

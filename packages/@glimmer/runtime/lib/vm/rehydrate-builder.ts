@@ -11,29 +11,18 @@ import {
   type SimpleNode,
   type SimpleText,
 } from '@glimmer/interfaces';
-import { assert, castToBrowser, castToSimple, expect, type Stack } from '@glimmer/util';
+import {
+  assert,
+  castToBrowser,
+  castToSimple,
+  COMMENT_NODE,
+  expect,
+  NS_SVG,
+  type Stack,
+} from '@glimmer/util';
 
 import { ConcreteBounds, CursorImpl } from '../bounds';
 import { CURSOR_STACK, NewElementBuilder, RemoteLiveBlock } from './element-builder';
-
-export enum Namespace {
-  HTML = 'http://www.w3.org/1999/xhtml',
-  MathML = 'http://www.w3.org/1998/Math/MathML',
-  SVG = 'http://www.w3.org/2000/svg',
-  XLink = 'http://www.w3.org/1999/xlink',
-  XML = 'http://www.w3.org/XML/1998/namespace',
-  XMLNS = 'http://www.w3.org/2000/xmlns/',
-}
-
-export enum NodeType {
-  RAW_NODE = -1,
-  ELEMENT_NODE = 1,
-  TEXT_NODE = 3,
-  COMMENT_NODE = 8,
-  DOCUMENT_NODE = 9,
-  DOCUMENT_TYPE_NODE = 10,
-  DOCUMENT_FRAGMENT_NODE = 11,
-}
 
 export const SERIALIZATION_FIRST_NODE_STRING = '%+b:0%';
 
@@ -521,11 +510,11 @@ function isComment(node: SimpleNode): node is SimpleComment {
 }
 
 function isOpenBlock(node: SimpleNode): node is SimpleComment {
-  return node.nodeType === NodeType.COMMENT_NODE && node.nodeValue.lastIndexOf('%+b:', 0) === 0;
+  return node.nodeType === COMMENT_NODE && node.nodeValue.lastIndexOf('%+b:', 0) === 0;
 }
 
 function isCloseBlock(node: SimpleNode): node is SimpleComment {
-  return node.nodeType === NodeType.COMMENT_NODE && node.nodeValue.lastIndexOf('%-b:', 0) === 0;
+  return node.nodeType === COMMENT_NODE && node.nodeValue.lastIndexOf('%-b:', 0) === 0;
 }
 
 function getBlockDepth(node: SimpleComment): number {
@@ -553,7 +542,7 @@ function isEmpty(node: SimpleNode): boolean {
 }
 
 function isSameNodeType(candidate: SimpleElement, tag: string) {
-  if (candidate.namespaceURI === Namespace.SVG) {
+  if (candidate.namespaceURI === NS_SVG) {
     return candidate.tagName === tag;
   }
   return candidate.tagName === tag.toUpperCase();

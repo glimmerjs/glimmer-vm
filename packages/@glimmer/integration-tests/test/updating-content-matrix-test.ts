@@ -1,19 +1,9 @@
 import { type SimpleElement, type SimpleNode } from '@glimmer/interfaces';
 import { type SafeString } from '@glimmer/runtime';
+import { NS_SVG } from '@glimmer/util';
 
 import { jitSuite, RenderTest, type RenderTestConstructor } from '..';
 import type RenderDelegate from '../lib/render-delegate';
-
-enum Namespace {
-  HTML = 'http://www.w3.org/1999/xhtml',
-  MathML = 'http://www.w3.org/1998/Math/MathML',
-  SVG = 'http://www.w3.org/2000/svg',
-  XLink = 'http://www.w3.org/1999/xlink',
-  XML = 'http://www.w3.org/XML/1998/namespace',
-  XMLNS = 'http://www.w3.org/2000/xmlns/',
-}
-
-const SVG_NAMESPACE = Namespace.SVG;
 
 function makeSafeString(value: string): SafeString {
   return new SafeStringImpl(value);
@@ -39,7 +29,7 @@ class ContentTest extends RenderTest {
   }
 
   makeSVGElement(tag: string, content: string): SimpleElement {
-    const el = this.delegate.createElementNS(SVG_NAMESPACE, tag);
+    const el = this.delegate.createElementNS(NS_SVG, tag);
     el.appendChild(this.delegate.createTextNode(content));
     return el;
   }

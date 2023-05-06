@@ -1,18 +1,8 @@
 import { type Option, type SimpleElement, type SimpleNode } from '@glimmer/interfaces';
-import { castToSimple } from '@glimmer/util';
+import { castToSimple, COMMENT_NODE, TEXT_NODE } from '@glimmer/util';
 import { type EndTag, type Token, tokenize } from 'simple-html-tokenizer';
 
 import { replaceHTML, toInnerHTML } from './dom/simple-utils';
-
-enum NodeType {
-  RAW_NODE = -1,
-  ELEMENT_NODE = 1,
-  TEXT_NODE = 3,
-  COMMENT_NODE = 8,
-  DOCUMENT_NODE = 9,
-  DOCUMENT_TYPE_NODE = 10,
-  DOCUMENT_FRAGMENT_NODE = 11,
-}
 
 export type IndividualSnapshot = 'up' | 'down' | SimpleNode;
 export type NodesSnapshot = IndividualSnapshot[];
@@ -69,11 +59,11 @@ function cleanEmberIds(tokens: Token[]) {
 }
 
 function isMarker(node: SimpleNode) {
-  if (node.nodeType === NodeType.COMMENT_NODE && node.nodeValue === '') {
+  if (node.nodeType === COMMENT_NODE && node.nodeValue === '') {
     return true;
   }
 
-  if (node.nodeType === NodeType.TEXT_NODE && node.nodeValue === '') {
+  if (node.nodeType === TEXT_NODE && node.nodeValue === '') {
     return true;
   }
 
@@ -144,7 +134,7 @@ export function equalSnapshots(a: SimpleNode[], b: SimpleNode[]) {
 }
 
 export function isServerMarker(node: SimpleNode) {
-  return node.nodeType === NodeType.COMMENT_NODE && node.nodeValue.charAt(0) === '%';
+  return node.nodeType === COMMENT_NODE && node.nodeValue.charAt(0) === '%';
 }
 
 export function normalizeSnapshot(

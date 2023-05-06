@@ -1,6 +1,7 @@
 import {
   type AttrNamespace,
   type ElementNamespace,
+  type Namespace,
   type NodeToken,
   type Option,
   type SimpleDocument,
@@ -8,18 +9,9 @@ import {
   type SimpleElement,
   type SimpleNode,
 } from '@glimmer/interfaces';
-import { assert, assign, dict } from '@glimmer/util';
+import { assert, assign, dict, NS_HTML } from '@glimmer/util';
 
 import { NodeTokensImpl } from './node-tokens';
-
-export enum Namespace {
-  HTML = 'http://www.w3.org/1999/xhtml',
-  MathML = 'http://www.w3.org/1998/Math/MathML',
-  SVG = 'http://www.w3.org/2000/svg',
-  XLink = 'http://www.w3.org/1999/xlink',
-  XML = 'http://www.w3.org/XML/1998/namespace',
-  XMLNS = 'http://www.w3.org/2000/xmlns/',
-}
 
 export enum ConstructionOperation {
   OpenElement,
@@ -43,8 +35,6 @@ function sizeof(opcode: number): OpSize {
 function opcodeof(opcode: number): ConstructionOperation {
   return opcode >> 3;
 }
-
-export const HTML = Namespace.HTML;
 
 export class Constants {
   private strings: string[] = [];
@@ -79,7 +69,7 @@ export class OperationsBuilder {
     };
   }
 
-  openElement(name: string, ns: Namespace = HTML): NodeToken {
+  openElement(name: string, ns: Namespace = NS_HTML): NodeToken {
     const nameConst = this.constants.get(name);
     const nsConst = this.constants.get(ns);
 
@@ -91,7 +81,7 @@ export class OperationsBuilder {
     this.ops.push(withSize(ConstructionOperation.CloseElement, 0));
   }
 
-  setAttribute(name: string, value: string, ns: Namespace = HTML) {
+  setAttribute(name: string, value: string, ns: Namespace = NS_HTML) {
     const nameConst = this.constants.get(name);
     const valueConst = this.constants.get(value);
     const nsConst = this.constants.get(ns);

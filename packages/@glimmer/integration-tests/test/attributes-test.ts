@@ -1,23 +1,14 @@
 import { type SimpleElement } from '@glimmer/interfaces';
 import { normalizeProperty } from '@glimmer/runtime';
-import { castToBrowser, expect } from '@glimmer/util';
+import { castToBrowser, expect, NS_SVG } from '@glimmer/util';
 
 import { assertingElement, hasAttribute, jitSuite, RenderTest, test, tracked } from '..';
-
-enum Namespace {
-  HTML = 'http://www.w3.org/1999/xhtml',
-  MathML = 'http://www.w3.org/1998/Math/MathML',
-  SVG = 'http://www.w3.org/2000/svg',
-  XLink = 'http://www.w3.org/1999/xlink',
-  XML = 'http://www.w3.org/XML/1998/namespace',
-  XMLNS = 'http://www.w3.org/2000/xmlns/',
-}
 
 export class AttributesTests extends RenderTest {
   static suiteName = 'Attributes';
 
   protected readDOMAttr(attr: string, element = this.element.firstChild as SimpleElement) {
-    const isSVG = element.namespaceURI === Namespace.SVG;
+    const isSVG = element.namespaceURI === NS_SVG;
     const { type, normalized } = normalizeProperty(element, attr);
 
     if (isSVG) {

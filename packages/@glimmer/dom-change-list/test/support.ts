@@ -1,5 +1,5 @@
 import {
-  type AttrNamespace,
+  type Namespace,
   type NodeTokens,
   type Option,
   type PresentArray,
@@ -7,32 +7,13 @@ import {
   type SimpleDocumentFragment,
   type SimpleElement,
 } from '@glimmer/interfaces';
+import { COMMENT_NODE, ELEMENT_NODE, NS_SVG, NS_XLINK, TEXT_NODE } from '@glimmer/util';
 import Serializer from '@simple-dom/serializer';
 import voidMap from '@simple-dom/void-map';
 
 import { type DOMTreeConstruction, type TreeBuilder } from '..';
 
-export enum NodeType {
-  RAW_NODE = -1,
-  ELEMENT_NODE = 1,
-  TEXT_NODE = 3,
-  COMMENT_NODE = 8,
-  DOCUMENT_NODE = 9,
-  DOCUMENT_TYPE_NODE = 10,
-  DOCUMENT_FRAGMENT_NODE = 11,
-}
-
-export enum Namespace {
-  HTML = 'http://www.w3.org/1999/xhtml',
-  MathML = 'http://www.w3.org/1998/Math/MathML',
-  SVG = 'http://www.w3.org/2000/svg',
-  XLink = 'http://www.w3.org/1999/xlink',
-  XML = 'http://www.w3.org/XML/1998/namespace',
-  XMLNS = 'http://www.w3.org/2000/xmlns/',
-}
-
-export const SVG = Namespace.SVG;
-export const XLINK = Namespace.XLink;
+export const XLINK = NS_XLINK;
 
 export function toHTML(parent: SimpleElement | SimpleDocumentFragment) {
   const serializer = new Serializer(voidMap);
@@ -48,7 +29,7 @@ export function toHTMLNS(parent: SimpleElement | SimpleDocumentFragment) {
 
 class NamespacedHTMLSerializer extends Serializer {
   override openTag(element: SimpleElement): string {
-    if (element.namespaceURI === SVG) {
+    if (element.namespaceURI === NS_SVG) {
       return '<svg:' + element.tagName.toLowerCase() + this.attributes(element.attributes) + '>';
     } else {
       return super.openTag(element);
@@ -56,7 +37,7 @@ class NamespacedHTMLSerializer extends Serializer {
   }
 
   override closeTag(element: SimpleElement): string {
-    if (element.namespaceURI === SVG) {
+    if (element.namespaceURI === NS_SVG) {
       return '</svg:' + element.tagName.toLowerCase() + '>';
     } else {
       return super.closeTag(element);
@@ -65,7 +46,7 @@ class NamespacedHTMLSerializer extends Serializer {
 
   override attr(original: SimpleAttr): string {
     let attr: { name: string; value: Option<string>; specified: boolean };
-    if (original.namespaceURI === XLINK) {
+    if (original.namespaceURI === NS_XLINK) {
       attr = {
         name: `xlink:${original.name}`,
         value: original.value,
@@ -103,7 +84,7 @@ export class Builder {
     this.tree.closeElement();
   }
 
-  setAttribute(name: string, value: string, namespace?: AttrNamespace) {
+  setAttribute(name: string, value: string, namespace?: Namespace) {
     this.tree.setAttribute(name, value, namespace);
   }
 
@@ -125,13 +106,13 @@ export class Builder {
       const reified = tokens.reify(i);
 
       switch (reified.nodeType) {
-        case NodeType.ELEMENT_NODE:
+        case ELEMENT_NODE:
           actual.push({ type: 'element', value: reified.tagName });
           break;
-        case NodeType.TEXT_NODE:
+        case TEXT_NODE:
           actual.push({ type: 'text', value: reified.nodeValue });
           break;
-        case NodeType.COMMENT_NODE:
+        case COMMENT_NODE:
           actual.push({ type: 'comment', value: reified.nodeValue });
           break;
       }

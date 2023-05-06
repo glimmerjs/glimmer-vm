@@ -1,25 +1,15 @@
 import {
+  type Namespace,
   type SimpleDocument,
   type SimpleDocumentFragment,
   type SimpleElement,
 } from '@glimmer/interfaces';
+import { NS_SVG, NS_XLINK } from '@glimmer/util';
 import createDocument from '@simple-dom/document';
 
 import { DOMTreeConstruction, type NodeTokensImpl } from '..';
 import { Builder as TestBuilder, toHTML, toHTMLNS } from './support';
 import { module, test, TestCase } from './test-case';
-
-export enum Namespace {
-  HTML = 'http://www.w3.org/1999/xhtml',
-  MathML = 'http://www.w3.org/1998/Math/MathML',
-  SVG = 'http://www.w3.org/2000/svg',
-  XLink = 'http://www.w3.org/1999/xlink',
-  XML = 'http://www.w3.org/XML/1998/namespace',
-  XMLNS = 'http://www.w3.org/2000/xmlns/',
-}
-
-const SVG = Namespace.SVG;
-const XLINK = Namespace.XLink;
 
 @module('[dom-change-list] DOMTreeConstruction')
 export class ChangeListTest extends TestCase {
@@ -93,7 +83,7 @@ export class ChangeListTest extends TestCase {
   'namespaced elements'() {
     const { tree } = this;
 
-    tree.openElement('svg', SVG);
+    tree.openElement('svg', NS_SVG);
     tree.closeElement();
 
     this.shouldEqualNS('<svg:svg></svg:svg>');
@@ -103,10 +93,10 @@ export class ChangeListTest extends TestCase {
   'namespaced attributes'() {
     const { tree } = this;
 
-    tree.openElement('svg', SVG);
-    tree.openElement('a', SVG);
+    tree.openElement('svg', NS_SVG);
+    tree.openElement('a', NS_SVG);
     tree.setAttribute('fill', 'red');
-    tree.setAttribute('href', 'linky', XLINK);
+    tree.setAttribute('href', 'linky', NS_XLINK);
     tree.closeElement();
     tree.closeElement();
 

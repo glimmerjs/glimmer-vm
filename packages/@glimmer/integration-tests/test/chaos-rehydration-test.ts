@@ -1,5 +1,13 @@
 import { type Dict, type Option, type SimpleElement } from '@glimmer/interfaces';
-import { castToBrowser, castToSimple, expect, isObject, LOCAL_LOGGER } from '@glimmer/util';
+import {
+  castToBrowser,
+  castToSimple,
+  COMMENT_NODE,
+  ELEMENT_NODE,
+  expect,
+  isObject,
+  LOCAL_LOGGER,
+} from '@glimmer/util';
 
 import {
   blockStack,
@@ -17,16 +25,6 @@ import {
   suite,
   test,
 } from '..';
-
-enum NodeType {
-  RAW_NODE = -1,
-  ELEMENT_NODE = 1,
-  TEXT_NODE = 3,
-  COMMENT_NODE = 8,
-  DOCUMENT_NODE = 9,
-  DOCUMENT_TYPE_NODE = 10,
-  DOCUMENT_FRAGMENT_NODE = 11,
-}
 
 // `window.ActiveXObject` is "falsey" in IE11 (but not `undefined` or `false`)
 // `"ActiveXObject" in window` returns `true` in all IE versions
@@ -103,10 +101,10 @@ abstract class AbstractChaosMonkeyTest extends RenderTest {
 
     let removedNodeDisplay: Option<string>;
     switch (nodeToRemove.nodeType) {
-      case NodeType.COMMENT_NODE:
+      case COMMENT_NODE:
         removedNodeDisplay = `<!--${nodeToRemove.nodeValue}-->`;
         break;
-      case NodeType.ELEMENT_NODE:
+      case ELEMENT_NODE:
         removedNodeDisplay = castToBrowser(nodeToRemove, ['HTML', 'SVG']).outerHTML;
         break;
       default:

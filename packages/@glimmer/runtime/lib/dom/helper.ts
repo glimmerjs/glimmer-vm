@@ -8,20 +8,11 @@ import {
   type SimpleElement,
   type SimpleNode,
 } from '@glimmer/interfaces';
-import { castToSimple } from '@glimmer/util';
+import { castToSimple, NS_SVG } from '@glimmer/util';
 
 import { applySVGInnerHTMLFix } from '../compat/svg-inner-html-fix';
 import { applyTextNodeMergingFix } from '../compat/text-node-merging-fix';
 import { BLACKLIST_TABLE, DOMOperations } from './operations';
-
-export enum Namespace {
-  HTML = 'http://www.w3.org/1999/xhtml',
-  MathML = 'http://www.w3.org/1998/Math/MathML',
-  SVG = 'http://www.w3.org/2000/svg',
-  XLink = 'http://www.w3.org/1999/xlink',
-  XML = 'http://www.w3.org/XML/1998/namespace',
-  XMLNS = 'http://www.w3.org/2000/xmlns/',
-}
 
 [
   'b',
@@ -106,7 +97,7 @@ export namespace DOM {
   appliedTreeConstruction = applySVGInnerHTMLFix(
     doc,
     appliedTreeConstruction,
-    Namespace.SVG
+    NS_SVG
   ) as typeof TreeConstruction;
 
   export const DOMTreeConstruction = appliedTreeConstruction;
@@ -137,9 +128,8 @@ export class DOMChangesImpl extends DOMOperations implements GlimmerTreeChanges 
 let helper = DOMChangesImpl;
 
 helper = applyTextNodeMergingFix(doc, helper) as typeof DOMChangesImpl;
-helper = applySVGInnerHTMLFix(doc, helper, Namespace.SVG) as typeof DOMChangesImpl;
+helper = applySVGInnerHTMLFix(doc, helper, NS_SVG) as typeof DOMChangesImpl;
 
 export default helper;
 export const DOMTreeConstruction = DOM.DOMTreeConstruction;
 export type DOMTreeConstruction = DOM.DOMTreeConstruction;
-export type DOMNamespace = Namespace;

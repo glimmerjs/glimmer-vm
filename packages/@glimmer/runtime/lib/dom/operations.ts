@@ -8,25 +8,10 @@ import {
   type SimpleNode,
   type SimpleText,
 } from '@glimmer/interfaces';
-import { expect } from '@glimmer/util';
+import { expect, INSERT_BEFORE_BEGIN, INSERT_BEFORE_END, NS_SVG } from '@glimmer/util';
 
 import { ConcreteBounds } from '../bounds';
 
-export enum Namespace {
-  HTML = 'http://www.w3.org/1999/xhtml',
-  MathML = 'http://www.w3.org/1998/Math/MathML',
-  SVG = 'http://www.w3.org/2000/svg',
-  XLink = 'http://www.w3.org/1999/xlink',
-  XML = 'http://www.w3.org/XML/1998/namespace',
-  XMLNS = 'http://www.w3.org/2000/xmlns/',
-}
-
-export enum InsertPosition {
-  beforebegin = 'beforebegin',
-  afterbegin = 'afterbegin',
-  beforeend = 'beforeend',
-  afterend = 'afterend',
-}
 // http://www.w3.org/TR/html/syntax.html#html-integration-point
 const SVG_INTEGRATION_POINTS = { foreignObject: 1, desc: 1, title: 1 };
 
@@ -56,7 +41,7 @@ export class DOMOperations {
     let isElementInSVGNamespace: boolean, isHTMLIntegrationPoint: boolean;
 
     if (context) {
-      isElementInSVGNamespace = context.namespaceURI === Namespace.SVG || tag === 'svg';
+      isElementInSVGNamespace = context.namespaceURI === NS_SVG || tag === 'svg';
       isHTMLIntegrationPoint = !!(SVG_INTEGRATION_POINTS as Dict<number>)[context.tagName];
     } else {
       isElementInSVGNamespace = tag === 'svg';
@@ -71,7 +56,7 @@ export class DOMOperations {
         throw new Error(`Cannot create a ${tag} inside an SVG context`);
       }
 
-      return this.document.createElementNS(Namespace.SVG, tag);
+      return this.document.createElementNS(NS_SVG, tag);
     } else {
       return this.document.createElement(tag);
     }
@@ -92,7 +77,7 @@ export class DOMOperations {
     let last: SimpleNode;
 
     if (nextSibling === null) {
-      parent.insertAdjacentHTML(InsertPosition.beforeend, html);
+      parent.insertAdjacentHTML(INSERT_BEFORE_END, html);
       last = expect(parent.lastChild, 'bug in insertAdjacentHTML?');
     } else if (nextSibling instanceof HTMLElement) {
       nextSibling.insertAdjacentHTML('beforebegin', html);
@@ -106,7 +91,7 @@ export class DOMOperations {
       const { uselessElement } = this;
 
       parent.insertBefore(uselessElement, nextSibling);
-      uselessElement.insertAdjacentHTML(InsertPosition.beforebegin, html);
+      uselessElement.insertAdjacentHTML(INSERT_BEFORE_BEGIN, html);
       last = expect(uselessElement.previousSibling, 'bug in insertAdjacentHTML?');
       parent.removeChild(uselessElement);
     }

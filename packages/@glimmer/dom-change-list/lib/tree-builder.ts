@@ -1,5 +1,6 @@
 import {
   type Dict,
+  type Namespace,
   type NodeToken,
   type NodeTokens,
   type Option,
@@ -7,21 +8,9 @@ import {
   type SimpleDocumentFragment,
   type SimpleElement,
 } from '@glimmer/interfaces';
+import { NS_HTML, NS_SVG } from '@glimmer/util';
 
-import { HTML } from './dom-operations';
 import { DOMTreeConstruction } from './tree-construction';
-
-export enum Namespace {
-  HTML = 'http://www.w3.org/1999/xhtml',
-  MathML = 'http://www.w3.org/1998/Math/MathML',
-  SVG = 'http://www.w3.org/2000/svg',
-  XLink = 'http://www.w3.org/1999/xlink',
-  XML = 'http://www.w3.org/XML/1998/namespace',
-  XMLNS = 'http://www.w3.org/2000/xmlns/',
-}
-
-export const SVG_NAMESPACE = Namespace.SVG;
-export const HTML_NAMESPACE = Namespace.HTML;
 
 // http://www.w3.org/TR/html/syntax.html#html-integration-point
 const SVG_INTEGRATION_POINTS = { foreignObject: 1, desc: 1, title: 1 };
@@ -104,7 +93,7 @@ export class TreeBuilder {
     let isSVG: boolean;
 
     if (context) {
-      isSVG = context.namespaceURI === SVG_NAMESPACE || tag === 'svg';
+      isSVG = context.namespaceURI === NS_SVG || tag === 'svg';
       isSVG = isSVG && !context.isIntegration;
     } else {
       isSVG = tag === 'svg';
@@ -117,13 +106,13 @@ export class TreeBuilder {
 
       this.contexts.push({
         tag,
-        namespaceURI: SVG_NAMESPACE,
+        namespaceURI: NS_SVG,
         isIntegration: !!(SVG_INTEGRATION_POINTS as Dict)[tag],
       });
-      return this.dom.openElement(tag, SVG_NAMESPACE);
+      return this.dom.openElement(tag, NS_SVG);
     }
 
-    this.contexts.push({ tag, namespaceURI: HTML, isIntegration: false });
+    this.contexts.push({ tag, namespaceURI: NS_HTML, isIntegration: false });
     return this.dom.openElement(tag);
   }
 

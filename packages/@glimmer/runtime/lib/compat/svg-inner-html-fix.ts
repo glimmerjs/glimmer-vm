@@ -5,18 +5,17 @@ import {
   type SimpleElement,
   type SimpleNode,
 } from '@glimmer/interfaces';
-import { assert, castToBrowser, clearElement, unwrap } from '@glimmer/util';
+import {
+  assert,
+  castToBrowser,
+  clearElement,
+  INSERT_AFTER_BEGIN,
+  INSERT_BEFORE_END,
+  NS_SVG,
+  unwrap,
+} from '@glimmer/util';
 
 import { type DOMOperations, moveNodesBefore } from '../dom/operations';
-
-export enum Namespace {
-  HTML = 'http://www.w3.org/1999/xhtml',
-  MathML = 'http://www.w3.org/1998/Math/MathML',
-  SVG = 'http://www.w3.org/2000/svg',
-  XLink = 'http://www.w3.org/1999/xlink',
-  XML = 'http://www.w3.org/XML/1998/namespace',
-  XMLNS = 'http://www.w3.org/2000/xmlns/',
-}
 
 export enum InsertPosition {
   beforebegin = 'beforebegin',
@@ -24,9 +23,6 @@ export enum InsertPosition {
   beforeend = 'beforeend',
   afterend = 'afterend',
 }
-
-export const SVG_NAMESPACE = Namespace.SVG;
-export type SVG_NAMESPACE = typeof SVG_NAMESPACE;
 
 // Patch:    insertAdjacentHTML on SVG Fix
 // Browsers: Safari, IE, Edge, Firefox ~33-34
@@ -42,7 +38,7 @@ export type SVG_NAMESPACE = typeof SVG_NAMESPACE;
 export function applySVGInnerHTMLFix(
   document: Option<SimpleDocument>,
   DOMClass: typeof DOMOperations,
-  svgNamespace: SVG_NAMESPACE
+  svgNamespace: typeof NS_SVG
 ): typeof DOMOperations {
   if (!document) return DOMClass;
 
@@ -89,7 +85,7 @@ function fixSVG(
     const wrappedHtml = '<svg><foreignObject>' + html + '</foreignObject></svg>';
 
     clearElement(div);
-    div.insertAdjacentHTML(InsertPosition.afterbegin, wrappedHtml);
+    div.insertAdjacentHTML(INSERT_AFTER_BEGIN, wrappedHtml);
 
     source = div.firstChild!.firstChild!;
   } else {
@@ -98,7 +94,7 @@ function fixSVG(
     const wrappedHtml = '<svg>' + html + '</svg>';
 
     clearElement(div);
-    div.insertAdjacentHTML(InsertPosition.afterbegin, wrappedHtml);
+    div.insertAdjacentHTML(INSERT_AFTER_BEGIN, wrappedHtml);
 
     source = div.firstChild!;
   }
@@ -106,11 +102,11 @@ function fixSVG(
   return moveNodesBefore(source, parent, reference);
 }
 
-function shouldApplyFix(document: SimpleDocument, svgNamespace: SVG_NAMESPACE) {
+function shouldApplyFix(document: SimpleDocument, svgNamespace: typeof NS_SVG) {
   const svg = document.createElementNS(svgNamespace, 'svg');
 
   try {
-    svg.insertAdjacentHTML(InsertPosition.beforeend, '<circle></circle>');
+    svg.insertAdjacentHTML(INSERT_BEFORE_END, '<circle></circle>');
   } catch (e) {
     // IE, Edge: Will throw, insertAdjacentHTML is unsupported on SVG
     // Safari: Will throw, insertAdjacentHTML is not present on SVG
@@ -118,7 +114,7 @@ function shouldApplyFix(document: SimpleDocument, svgNamespace: SVG_NAMESPACE) {
     // FF: Old versions will create a node in the wrong namespace
     if (
       svg.childNodes.length === 1 &&
-      castToBrowser(unwrap(svg.firstChild), 'SVG').namespaceURI === SVG_NAMESPACE
+      castToBrowser(unwrap(svg.firstChild), 'SVG').namespaceURI === NS_SVG
     ) {
       // The test worked as expected, no fix required
       return false;
