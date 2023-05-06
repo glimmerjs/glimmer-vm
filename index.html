@@ -7,60 +7,21 @@
 </head>
 
 <body>
-  <script>
-    if (typeof console === 'undefined') {
-      console = {
-        log: function () { },
-        warn: function () { },
-        error: function () { },
-        group: function () { },
-        groupEnd: function () { },
-      };
-    }
-  </script>
-
-  <div id="qunit">
-  </div>
-  <div id="qunit-fixture"></div>
   <script type="module">
-    import "qunit";
-    import "qunit/qunit/qunit.css";
-
+    // Do this first so that `@glimmer/integration-tests` will see the global
+    // `QUnit`. We should change the code structure here so that we don't
+    // rely on the global to bootstrap QUnit, but this is fine for now.
+    const QUnit = await import('qunit');
     QUnit.config.autostart = false;
-    globalThis.QUnit = QUnit;
-
-    // since all of our tests are synchronous, the QUnit
-    // UI never has a chance to rerender / update. This
-    // leads to a very long "white screen" when running
-    // the tests
-    //
-    // this adds a very small amount of async, just to allow
-    // the QUnit UI to rerender once per module completed
-    {
-      const pause  = () => new Promise((res) => {
-        setTimeout(res, 10);
-      });
-
-      let start = performance.now();
-      QUnit.testDone(function (test) {
-        var gap = performance.now() - start;
-        if (gap > 100) {
-          return pause();
-        }
-      });
-
-      QUnit.moduleDone(function () {
-        // breathe after module
-        return pause();
-      });
-    }
   </script>
   <script type="module">
+    import { setupQunit } from "@glimmer/integration-tests";
+    await setupQunit();
+
     const packages =  await import.meta.glob("./packages/@glimmer/*/test/**/*-test.ts");
 
-    for (const pkg of Object.values(packages)) {
-      await pkg();
-    }
+    // evaluate the tests before starting QUnit
+    for (const pkg of Object.values(packages)) await pkg();
 
     QUnit.start();
 
