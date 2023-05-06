@@ -1,5 +1,4 @@
-import { DEBUG } from '@glimmer/env';
-import { GlobalContext, testOverrideGlobalContext } from '@glimmer/global-context';
+import { type GlobalContext, testOverrideGlobalContext } from '@glimmer/global-context';
 
 import {
   assertDestroyablesDestroyed,
@@ -50,7 +49,7 @@ module('Destroyables', (hooks) => {
   });
 
   test('standard destructors work', (assert) => {
-    let destroyable = {};
+    const destroyable = {};
     let count = 0;
 
     registerDestructor(destroyable, () => count++);
@@ -72,7 +71,7 @@ module('Destroyables', (hooks) => {
   });
 
   test('destructors work with functions', (assert) => {
-    let destroyable = () => {};
+    const destroyable = () => {};
     let count = 0;
 
     registerDestructor(destroyable, () => count++);
@@ -94,7 +93,7 @@ module('Destroyables', (hooks) => {
   });
 
   test('can register multiple destructors', (assert) => {
-    let destroyable = {};
+    const destroyable = {};
     let count = 0;
 
     registerDestructor(destroyable, () => count++);
@@ -117,7 +116,7 @@ module('Destroyables', (hooks) => {
   });
 
   test('destruction only happens once', (assert) => {
-    let destroyable = {};
+    const destroyable = {};
     let count = 0;
 
     registerDestructor(destroyable, () => count++);
@@ -138,7 +137,7 @@ module('Destroyables', (hooks) => {
   });
 
   test('eager destructors work', (assert) => {
-    let destroyable = {};
+    const destroyable = {};
     let count = 0;
 
     registerDestructor(destroyable, () => count++, true);
@@ -157,10 +156,10 @@ module('Destroyables', (hooks) => {
   });
 
   test('can unregister a destructor', (assert) => {
-    let destroyable = {};
+    const destroyable = {};
     let count = 0;
 
-    let destructor = registerDestructor(destroyable, () => count++);
+    const destructor = registerDestructor(destroyable, () => count++);
     unregisterDestructor(destroyable, destructor);
 
     destroy(destroyable);
@@ -170,8 +169,8 @@ module('Destroyables', (hooks) => {
   });
 
   test('can associate destroyable children', (assert) => {
-    let parent = {};
-    let child = {};
+    const parent = {};
+    const child = {};
 
     associateDestroyableChild(parent, child);
     registerDestructor(parent, () => assert.step('parent'));
@@ -205,8 +204,8 @@ module('Destroyables', (hooks) => {
   });
 
   test('destroying child before a parent works', (assert) => {
-    let parent = {};
-    let child = {};
+    const parent = {};
+    const child = {};
 
     associateDestroyableChild(parent, child);
     registerDestructor(parent, () => assert.step('parent'));
@@ -250,9 +249,9 @@ module('Destroyables', (hooks) => {
   });
 
   test('children can have multiple parents, but only destroy once', (assert) => {
-    let parent1 = {};
-    let parent2 = {};
-    let child = {};
+    const parent1 = {};
+    const parent2 = {};
+    const child = {};
 
     associateDestroyableChild(parent1, child);
     associateDestroyableChild(parent2, child);
@@ -291,8 +290,8 @@ module('Destroyables', (hooks) => {
   });
 
   test('can destroy children with the destroyChildren API', (assert) => {
-    let parent = {};
-    let child = {};
+    const parent = {};
+    const child = {};
 
     associateDestroyableChild(parent, child);
     registerDestructor(parent, () => assert.step('parent'));
@@ -340,8 +339,8 @@ module('Destroyables', (hooks) => {
   test('destroyables are destroying during destruction but not destroyed', (assert) => {
     assert.expect(9);
 
-    let parent = {};
-    let child = {};
+    const parent = {};
+    const child = {};
 
     associateDestroyableChild(parent, child);
 
@@ -368,8 +367,8 @@ module('Destroyables', (hooks) => {
   test('destroyables are passed the correct object when destroying', (assert) => {
     assert.expect(3);
 
-    let parent = {};
-    let child = {};
+    const parent = {};
+    const child = {};
 
     associateDestroyableChild(parent, child);
     registerDestructor(parent, (_parent) =>
@@ -383,7 +382,7 @@ module('Destroyables', (hooks) => {
     flush();
   });
 
-  if (DEBUG) {
+  if (import.meta.env.DEV) {
     test('attempting to unregister a destructor that was not registered throws an error', (assert) => {
       assert.throws(() => {
         unregisterDestructor({}, () => 123);
@@ -392,7 +391,7 @@ module('Destroyables', (hooks) => {
 
     test('attempting to register a destructor on an object that isDestroying throws an error', (assert) => {
       assert.throws(() => {
-        let destroyable = {};
+        const destroyable = {};
         destroy(destroyable);
         registerDestructor(destroyable, () => 123);
       }, /Attempted to register a destructor with an object that is already destroying or destroyed/);
@@ -400,7 +399,7 @@ module('Destroyables', (hooks) => {
 
     test('attempting to unregister a destructor on an object that isDestroying throws an error', (assert) => {
       assert.throws(() => {
-        let destroyable = {};
+        const destroyable = {};
         destroy(destroyable);
         unregisterDestructor(destroyable, () => 123);
       }, /Attempted to unregister a destructor with an object that is already destroying or destroyed/);
@@ -420,7 +419,7 @@ module('Destroyables', (hooks) => {
       assert.expect(1);
       enableDestroyableTracking!();
 
-      let obj = {};
+      const obj = {};
       registerDestructor(obj, () => {});
       destroy(obj);
       flush();
@@ -432,7 +431,7 @@ module('Destroyables', (hooks) => {
       assert.expect(1);
       enableDestroyableTracking!();
 
-      let obj = {};
+      const obj = {};
 
       isDestroying(obj);
 
@@ -443,7 +442,7 @@ module('Destroyables', (hooks) => {
       assert.expect(1);
       enableDestroyableTracking!();
 
-      let obj = {};
+      const obj = {};
 
       isDestroyed(obj);
 
@@ -454,10 +453,10 @@ module('Destroyables', (hooks) => {
       assert.expect(2);
       enableDestroyableTracking!();
 
-      let obj1 = {};
+      const obj1 = {};
       registerDestructor(obj1, () => {});
 
-      let obj2 = {};
+      const obj2 = {};
       registerDestructor(obj2, () => {});
 
       try {

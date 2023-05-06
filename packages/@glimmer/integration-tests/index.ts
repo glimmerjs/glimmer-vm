@@ -1,3 +1,6 @@
+import './lib/setup';
+
+export * from './lib/base-env';
 export * from './lib/compile';
 export * from './lib/components';
 export * from './lib/dom/assertions';
@@ -11,6 +14,7 @@ export * from './lib/modes/jit/resolver';
 export * from './lib/modes/node/env';
 export * from './lib/modes/rehydration/delegate';
 export * from './lib/modes/rehydration/partial-rehydration-delegate';
+export type { RenderDelegateOptions } from './lib/render-delegate';
 export * from './lib/render-test';
 export * from './lib/snapshot';
 export * from './lib/suites';

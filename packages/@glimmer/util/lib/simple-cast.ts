@@ -1,6 +1,16 @@
-import { Maybe, NodeType, SimpleDocument, SimpleElement, SimpleNode } from '@glimmer/interfaces';
+import type { Maybe, SimpleDocument, SimpleElement, SimpleNode } from '@glimmer/interfaces';
 
 import { unreachable } from './platform-utils';
+
+export enum NodeType {
+  RAW_NODE = -1,
+  ELEMENT_NODE = 1,
+  TEXT_NODE = 3,
+  COMMENT_NODE = 8,
+  DOCUMENT_NODE = 9,
+  DOCUMENT_TYPE_NODE = 10,
+  DOCUMENT_FRAGMENT_NODE = 11,
+}
 
 interface GenericElementTags {
   HTML: HTMLElement;
@@ -87,7 +97,7 @@ export function castToBrowser<S extends SugaryNodeCheck>(
     );
   }
 
-  return checkNode<S>(node, sugaryCheck!);
+  return checkBrowserNode<S>(node, sugaryCheck!);
 }
 
 function checkError(from: string, check: SugaryNodeCheck): Error {
@@ -106,8 +116,8 @@ export function isElement(node: Maybe<Node | SimpleNode>): node is Element {
   return node?.nodeType === NodeType.ELEMENT_NODE && node instanceof Element;
 }
 
-export function checkNode<S extends SugaryNodeCheck>(
-  node: Node | null,
+export function checkBrowserNode<S extends SugaryNodeCheck>(
+  node: Node | SimpleNode | null,
   check: S
 ): NodeForSugaryCheck<S> {
   let isMatch = false;
@@ -122,14 +132,17 @@ export function checkNode<S extends SugaryNodeCheck>(
     }
   }
 
-  if (isMatch) {
+  if (isMatch && node instanceof Node) {
     return node as NodeForSugaryCheck<S>;
   } else {
     throw checkError(`SimpleElement(${node})`, check);
   }
 }
 
-function stringCheckNode<S extends BrowserTag>(node: Node, check: S): node is BrowserTags[S] {
+function stringCheckNode<S extends BrowserTag>(
+  node: Node | SimpleNode,
+  check: S
+): node is BrowserTags[S] {
   switch (check) {
     case 'NODE':
       return true;

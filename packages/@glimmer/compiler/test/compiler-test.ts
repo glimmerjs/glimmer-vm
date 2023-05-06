@@ -2,15 +2,15 @@
 /* eslint-disable qunit/no-test-expect-argument */
 
 import {
-  SerializedTemplate,
-  SerializedTemplateBlock,
-  SerializedTemplateWithLazyBlock,
+  type SerializedTemplate,
+  type SerializedTemplateBlock,
+  type SerializedTemplateWithLazyBlock,
 } from '@glimmer/interfaces';
 import { assign, strip } from '@glimmer/util';
 
 import {
   Builder,
-  BuilderStatement,
+  type BuilderStatement,
   buildStatements,
   c,
   NEWLINE,

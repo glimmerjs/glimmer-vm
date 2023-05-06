@@ -1,13 +1,13 @@
 import {
-  Namespace,
-  NodeToken,
-  SimpleDocument,
-  SimpleDocumentFragment,
-  SimpleElement,
+  type Namespace,
+  type NodeToken,
+  type SimpleDocument,
+  type SimpleDocumentFragment,
+  type SimpleElement,
 } from '@glimmer/interfaces';
 
 import { HTML, OperationsBuilder, run } from './dom-operations';
-import { NodeTokensImpl } from './node-tokens';
+import { type NodeTokensImpl } from './node-tokens';
 
 // https://github.com/whatwg/dom/issues/270
 

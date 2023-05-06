@@ -8,8 +8,9 @@
     "@simple-dom/document": "^1.4.0"
   },
   "devDependencies": {
+    "@glimmer/local-debug-flags": "workspace:^",
     "@simple-dom/serializer": "^1.4.0",
     "@simple-dom/void-map": "^1.4.0",
-    "@types/qunit": "^2.9.0"
+    "@types/qunit": "^2.19.5"
   }
 }

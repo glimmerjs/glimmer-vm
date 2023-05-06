@@ -1,11 +1,10 @@
 import {
-  AttrNamespace,
-  Dict,
-  Expressions,
-  GetContextualFreeOp,
-  Namespace,
-  Option,
-  PresentArray,
+  type AttrNamespace,
+  type Dict,
+  type Expressions,
+  type GetContextualFreeOp,
+  type Option,
+  type PresentArray,
   SexpOpcodes,
   VariableResolutionContext,
   WireFormat,
@@ -22,28 +21,37 @@ import {
 
 import {
   Builder,
-  BuilderComment,
-  BuilderStatement,
+  type BuilderComment,
+  type BuilderStatement,
   ExpressionKind,
   HeadKind,
-  NormalizedAngleInvocation,
-  NormalizedAttrs,
-  NormalizedBlock,
-  NormalizedBlocks,
-  NormalizedElement,
-  NormalizedExpression,
-  NormalizedHash,
-  NormalizedHead,
-  NormalizedKeywordStatement,
-  NormalizedParams,
-  NormalizedPath,
-  NormalizedStatement,
+  type NormalizedAngleInvocation,
+  type NormalizedAttrs,
+  type NormalizedBlock,
+  type NormalizedBlocks,
+  type NormalizedElement,
+  type NormalizedExpression,
+  type NormalizedHash,
+  type NormalizedHead,
+  type NormalizedKeywordStatement,
+  type NormalizedParams,
+  type NormalizedPath,
+  type NormalizedStatement,
   normalizeStatement,
-  Variable,
+  type Variable,
   VariableKind,
 } from './builder-interface';
 
 import Op = WireFormat.SexpOpcodes;
+
+export enum Namespace {
+  HTML = 'http://www.w3.org/1999/xhtml',
+  MathML = 'http://www.w3.org/1998/Math/MathML',
+  SVG = 'http://www.w3.org/2000/svg',
+  XLink = 'http://www.w3.org/1999/xlink',
+  XML = 'http://www.w3.org/XML/1998/namespace',
+  XMLNS = 'http://www.w3.org/2000/xmlns/',
+}
 
 interface Symbols {
   top: ProgramSymbols;

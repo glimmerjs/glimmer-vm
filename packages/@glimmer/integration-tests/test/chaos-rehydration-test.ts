@@ -1,11 +1,11 @@
-import { Dict, NodeType, Option, SimpleElement } from '@glimmer/interfaces';
+import { type Dict, type Option, type SimpleElement } from '@glimmer/interfaces';
 import { castToBrowser, castToSimple, expect, isObject, LOCAL_LOGGER } from '@glimmer/util';
 
 import {
   blockStack,
   CLOSE,
-  ComponentBlueprint,
-  Content,
+  type ComponentBlueprint,
+  type Content,
   content,
   equalTokens,
   OPEN,
@@ -17,6 +17,16 @@ import {
   suite,
   test,
 } from '..';
+
+enum NodeType {
+  RAW_NODE = -1,
+  ELEMENT_NODE = 1,
+  TEXT_NODE = 3,
+  COMMENT_NODE = 8,
+  DOCUMENT_NODE = 9,
+  DOCUMENT_TYPE_NODE = 10,
+  DOCUMENT_FRAGMENT_NODE = 11,
+}
 
 // `window.ActiveXObject` is "falsey" in IE11 (but not `undefined` or `false`)
 // `"ActiveXObject" in window` returns `true` in all IE versions
@@ -44,7 +54,7 @@ abstract class AbstractChaosMonkeyTest extends RenderTest {
       hex = '0000000' + hex;
     }
 
-    let result = hex.slice(-8);
+    const result = hex.slice(-8);
     let sample = parseInt(result, 16) || -1;
 
     // from https://github.com/qunitjs/qunit/blob/2.9.3/src/core/processing-queue.js#L134-L154
@@ -60,9 +70,9 @@ abstract class AbstractChaosMonkeyTest extends RenderTest {
   }
 
   wreakHavoc(iteration = 0, shouldLog = false) {
-    let element = castToBrowser(this.element, 'HTML');
+    const element = castToBrowser(this.element, 'HTML');
 
-    let original = element.innerHTML;
+    const original = element.innerHTML;
 
     function collectChildNodes(childNodes: Node[], node: Node): Node[] {
       // do some thing with the node here
@@ -83,10 +93,10 @@ abstract class AbstractChaosMonkeyTest extends RenderTest {
     nodes = nodes.slice(1, -1);
 
     // select a random node to remove
-    let indexToRemove = Math.floor(this.getRandomForIteration(iteration) * nodes.length);
+    const indexToRemove = Math.floor(this.getRandomForIteration(iteration) * nodes.length);
 
-    let nodeToRemove = this.guardPresent({ 'node to remove': nodes[indexToRemove] });
-    let parent = this.guardPresent({ 'parent node': nodeToRemove.parentNode });
+    const nodeToRemove = this.guardPresent({ 'node to remove': nodes[indexToRemove] });
+    const parent = this.guardPresent({ 'parent node': nodeToRemove.parentNode });
 
     // remove it
     parent.removeChild(nodeToRemove);
@@ -117,30 +127,30 @@ abstract class AbstractChaosMonkeyTest extends RenderTest {
   }
 
   runIterations(template: string, context: Dict<unknown>, expectedHTML: string, count: number) {
-    let element = castToBrowser(this.element, 'HTML');
-    let elementResetValue = element.innerHTML;
+    const element = castToBrowser(this.element, 'HTML');
+    const elementResetValue = element.innerHTML;
 
-    let urlParams = (QUnit as any).urlParams as Dict<string>;
+    const urlParams = (QUnit as any).urlParams as Dict<string>;
     if (urlParams['iteration']) {
       // runs a single iteration directly, no try/catch, with logging
-      let iteration = parseInt(urlParams['iteration'], 10);
+      const iteration = parseInt(urlParams['iteration'], 10);
       this.wreakHavoc(iteration, true);
 
       this.renderClientSide(template, context);
 
-      let element = castToBrowser(this.element, 'HTML');
+      const element = castToBrowser(this.element, 'HTML');
       this.assert.strictEqual(element.innerHTML, expectedHTML);
     } else {
       for (let i = 0; i < count; i++) {
-        let seed = QUnit.config.seed ? `&seed=${QUnit.config.seed}` : '';
-        let rerunUrl = `&testId=${QUnit.config.current.testId}&iteration=${i}${seed}`;
+        const seed = QUnit.config.seed ? `&seed=${QUnit.config.seed}` : '';
+        const rerunUrl = `&testId=${QUnit.config.current.testId}&iteration=${i}${seed}`;
 
         try {
           this.wreakHavoc(i);
 
           this.renderClientSide(template, context);
 
-          let element = castToBrowser(this.element, 'HTML');
+          const element = castToBrowser(this.element, 'HTML');
           this.assert.strictEqual(
             element.innerHTML,
             expectedHTML,
@@ -204,7 +214,7 @@ class ChaosMonkeyRehydration extends AbstractChaosMonkeyTest {
   }
 
   assertExactServerOutput(_expected: string) {
-    let output = expect(
+    const output = expect(
       this.serverOutput,
       'must renderServerSide before calling assertServerOutput'
     );
@@ -217,12 +227,12 @@ class ChaosMonkeyRehydration extends AbstractChaosMonkeyTest {
 
   @test
   'adjacent text nodes'() {
-    let template = '<div>a {{this.b}}{{this.c}}{{this.d}}</div>';
-    let context = { b: '', c: '', d: '' };
+    const template = '<div>a {{this.b}}{{this.c}}{{this.d}}</div>';
+    const context = { b: '', c: '', d: '' };
 
     this.renderServerSide(template, context);
 
-    let b = blockStack();
+    const b = blockStack();
     this.assertServerOutput(
       `<div>a ${b(1)}<!--% %-->${b(1)}${b(1)}<!--% %-->${b(1)}${b(1)}<!--% %-->${b(1)}</div>`
     );
@@ -232,11 +242,11 @@ class ChaosMonkeyRehydration extends AbstractChaosMonkeyTest {
 
   @test
   '<p> invoking a block which emits a <div>'() {
-    let template = '<p>hello {{#if this.show}}<div>world!</div>{{/if}}</p>';
-    let context = { show: true };
+    const template = '<p>hello {{#if this.show}}<div>world!</div>{{/if}}</p>';
+    const context = { show: true };
 
     this.renderServerSide(template, context);
-    let b = blockStack();
+    const b = blockStack();
 
     // assert that we are in a "browser corrected" state (note the `</p>` before the `<div>world!</div>`)
     if (isIE11) {

@@ -1,7 +1,7 @@
 import { guardArray } from '@glimmer/integration-tests';
 
-import { AST, preprocess as parse } from '..';
-import { SourceLocation } from '../lib/v1/api';
+import { type AST, preprocess as parse } from '..';
+import { type SourceLocation } from '../lib/v1/api';
 
 QUnit.module('[glimmer-syntax] Parser - Location Info');
 

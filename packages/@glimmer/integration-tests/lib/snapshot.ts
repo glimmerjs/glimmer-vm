@@ -1,8 +1,18 @@
-import { NodeType, Option, SimpleElement, SimpleNode } from '@glimmer/interfaces';
+import { type Option, type SimpleElement, type SimpleNode } from '@glimmer/interfaces';
 import { castToSimple } from '@glimmer/util';
-import { EndTag, Token, tokenize } from 'simple-html-tokenizer';
+import { type EndTag, type Token, tokenize } from 'simple-html-tokenizer';
 
 import { replaceHTML, toInnerHTML } from './dom/simple-utils';
+
+enum NodeType {
+  RAW_NODE = -1,
+  ELEMENT_NODE = 1,
+  TEXT_NODE = 3,
+  COMMENT_NODE = 8,
+  DOCUMENT_NODE = 9,
+  DOCUMENT_TYPE_NODE = 10,
+  DOCUMENT_FRAGMENT_NODE = 11,
+}
 
 export type IndividualSnapshot = 'up' | 'down' | SimpleNode;
 export type NodesSnapshot = IndividualSnapshot[];
@@ -20,13 +30,13 @@ export function equalTokens(
     throw new Error(`Unexpectedly passed null to equalTokens`);
   }
 
-  let fragTokens = generateTokens(testFragment);
-  let htmlTokens = generateTokens(testHTML);
+  const fragTokens = generateTokens(testFragment);
+  const htmlTokens = generateTokens(testHTML);
 
   cleanEmberIds(fragTokens.tokens);
   cleanEmberIds(htmlTokens.tokens);
 
-  let equiv = QUnit.equiv(fragTokens.tokens, htmlTokens.tokens);
+  const equiv = QUnit.equiv(fragTokens.tokens, htmlTokens.tokens);
 
   if (equiv && fragTokens.html !== htmlTokens.html) {
     QUnit.assert.deepEqual(
@@ -50,7 +60,7 @@ function cleanEmberIds(tokens: Token[]) {
   let id = 0;
 
   tokens.forEach((token) => {
-    let idAttr = 'attributes' in token && token.attributes.filter((a) => a[0] === 'id')[0];
+    const idAttr = 'attributes' in token && token.attributes.filter((a) => a[0] === 'id')[0];
 
     if (idAttr) {
       idAttr[1] = idAttr[1].replace(/ember(\d+|\*)/, `ember${++id}`);
@@ -71,7 +81,7 @@ function isMarker(node: SimpleNode) {
 }
 
 export function generateSnapshot(element: SimpleElement): SimpleNode[] {
-  let snapshot: SimpleNode[] = [];
+  const snapshot: SimpleNode[] = [];
   let node: Option<SimpleNode> = element.firstChild;
 
   while (node) {
@@ -134,7 +144,7 @@ export function equalSnapshots(a: SimpleNode[], b: SimpleNode[]) {
 }
 
 export function isServerMarker(node: SimpleNode) {
-  return node.nodeType === NodeType.COMMENT_NODE && node.nodeValue!.charAt(0) === '%';
+  return node.nodeType === NodeType.COMMENT_NODE && node.nodeValue.charAt(0) === '%';
 }
 
 export function normalizeSnapshot(
@@ -142,15 +152,15 @@ export function normalizeSnapshot(
   newSnapshot: NodesSnapshot,
   except: SimpleNode[]
 ): { oldSnapshot: IndividualSnapshot[]; newSnapshot: IndividualSnapshot[] } {
-  let oldIterator = new SnapshotIterator(oldSnapshot);
-  let newIterator = new SnapshotIterator(newSnapshot);
+  const oldIterator = new SnapshotIterator(oldSnapshot);
+  const newIterator = new SnapshotIterator(newSnapshot);
 
-  let normalizedOld: IndividualSnapshot[] = [];
-  let normalizedNew: IndividualSnapshot[] = [];
+  const normalizedOld: IndividualSnapshot[] = [];
+  const normalizedNew: IndividualSnapshot[] = [];
 
   while (true) {
-    let nextOld = oldIterator.peek();
-    let nextNew = newIterator.peek();
+    const nextOld = oldIterator.peek();
+    const nextNew = newIterator.peek();
 
     if (nextOld === null && newIterator.peek() === null) break;
 
@@ -186,7 +196,7 @@ class SnapshotIterator {
   }
 
   skip(): void {
-    let skipUntil = this.depth;
+    const skipUntil = this.depth;
     this.nextNode();
 
     if (this.snapshot[this.pos] === 'down') {
@@ -197,7 +207,7 @@ class SnapshotIterator {
   }
 
   private nextNode(): IndividualSnapshot {
-    let token = this.snapshot[this.pos++] as IndividualSnapshot;
+    const token = this.snapshot[this.pos++] as IndividualSnapshot;
 
     if (token === 'down') {
       this.depth++;

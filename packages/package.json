@@ -1,0 +1,6 @@
+{
+  "private": true,
+  "dependencies": {
+    "@types/qunit": "^2.19.5"
+  }
+}

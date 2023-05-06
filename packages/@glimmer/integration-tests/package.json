@@ -2,6 +2,7 @@
   "name": "@glimmer/integration-tests",
   "version": "0.84.3",
   "private": true,
+  "main": "index.ts",
   "repository": "https://github.com/glimmerjs/glimmer-vm/tree/master/packages/@glimmer/integration-tests",
   "dependencies": {
     "@glimmer/destroyable": "workspace:^",

@@ -16,7 +16,7 @@ export * from './lib/present';
 export {
   castToBrowser,
   castToSimple,
-  checkNode,
+  checkBrowserNode as checkNode,
   isElement,
   isSimpleElement,
 } from './lib/simple-cast';

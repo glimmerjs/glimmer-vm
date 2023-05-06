@@ -1,19 +1,27 @@
 import {
-  AttrNamespace,
-  ElementNamespace,
-  GlimmerTreeChanges,
-  GlimmerTreeConstruction,
-  Namespace,
-  Option,
-  SimpleDocument,
-  SimpleElement,
-  SimpleNode,
+  type AttrNamespace,
+  type ElementNamespace,
+  type GlimmerTreeChanges,
+  type GlimmerTreeConstruction,
+  type Option,
+  type SimpleDocument,
+  type SimpleElement,
+  type SimpleNode,
 } from '@glimmer/interfaces';
 import { castToSimple } from '@glimmer/util';
 
 import { applySVGInnerHTMLFix } from '../compat/svg-inner-html-fix';
 import { applyTextNodeMergingFix } from '../compat/text-node-merging-fix';
 import { BLACKLIST_TABLE, DOMOperations } from './operations';
+
+export enum Namespace {
+  HTML = 'http://www.w3.org/1999/xhtml',
+  MathML = 'http://www.w3.org/1998/Math/MathML',
+  SVG = 'http://www.w3.org/2000/svg',
+  XLink = 'http://www.w3.org/1999/xlink',
+  XML = 'http://www.w3.org/XML/1998/namespace',
+  XMLNS = 'http://www.w3.org/2000/xmlns/',
+}
 
 [
   'b',
@@ -64,7 +72,7 @@ import { BLACKLIST_TABLE, DOMOperations } from './operations';
 
 const WHITESPACE = /[\t-\r \xA0\u1680\u180E\u2000-\u200A\u2028\u2029\u202F\u205F\u3000\uFEFF]/;
 
-let doc: Option<SimpleDocument> = typeof document === 'undefined' ? null : castToSimple(document);
+const doc: Option<SimpleDocument> = typeof document === 'undefined' ? null : castToSimple(document);
 
 export function isWhitespace(string: string) {
   return WHITESPACE.test(string);

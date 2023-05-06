@@ -1,16 +1,24 @@
 import {
-  Dict,
-  Namespace,
-  NodeToken,
-  NodeTokens,
-  Option,
-  SimpleDocument,
-  SimpleDocumentFragment,
-  SimpleElement,
+  type Dict,
+  type NodeToken,
+  type NodeTokens,
+  type Option,
+  type SimpleDocument,
+  type SimpleDocumentFragment,
+  type SimpleElement,
 } from '@glimmer/interfaces';
 
 import { HTML } from './dom-operations';
 import { DOMTreeConstruction } from './tree-construction';
+
+export enum Namespace {
+  HTML = 'http://www.w3.org/1999/xhtml',
+  MathML = 'http://www.w3.org/1998/Math/MathML',
+  SVG = 'http://www.w3.org/2000/svg',
+  XLink = 'http://www.w3.org/1999/xlink',
+  XML = 'http://www.w3.org/XML/1998/namespace',
+  XMLNS = 'http://www.w3.org/2000/xmlns/',
+}
 
 export const SVG_NAMESPACE = Namespace.SVG;
 export const HTML_NAMESPACE = Namespace.HTML;
@@ -92,7 +100,7 @@ export class TreeBuilder {
   constructor(private dom: DOMTreeConstruction = new DOMTreeConstruction()) {}
 
   openElement(tag: string) {
-    let context = this.current;
+    const context = this.current;
     let isSVG: boolean;
 
     if (context) {
@@ -136,12 +144,12 @@ export class TreeBuilder {
   }
 
   get currentTag(): Option<string> {
-    let current = this.current;
+    const current = this.current;
     return current && current.tag;
   }
 
   get currentNamespace(): Option<Namespace> {
-    let current = this.current;
+    const current = this.current;
     return current && current.namespaceURI;
   }
 
@@ -150,8 +158,8 @@ export class TreeBuilder {
   }
 
   private get current(): Option<Context> {
-    let { contexts } = this;
-    let { length } = contexts;
+    const { contexts } = this;
+    const { length } = contexts;
 
     return length ? contexts[length - 1]! : null;
   }

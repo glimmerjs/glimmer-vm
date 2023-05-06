@@ -1,12 +1,12 @@
-import { GlobalContext, testOverrideGlobalContext } from '@glimmer/global-context';
+import { type GlobalContext, testOverrideGlobalContext } from '@glimmer/global-context';
 import { symbol } from '@glimmer/util';
 import { consumeTag, VOLATILE_TAG } from '@glimmer/validator';
 
 import {
   createComputeRef,
   createIteratorRef,
-  OpaqueIterationItem,
-  Reference,
+  type OpaqueIterationItem,
+  type Reference,
   valueForRef,
 } from '..';
 import objectValues from './utils/platform';

@@ -1,4 +1,4 @@
-import { IteratorDelegate } from '../..';
+import { type IteratorDelegate } from '../..';
 import objectValues from './platform';
 
 abstract class BoundedIterator implements IteratorDelegate {

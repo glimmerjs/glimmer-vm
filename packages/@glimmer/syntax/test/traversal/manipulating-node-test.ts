@@ -1,7 +1,7 @@
 import { guardArray } from '@glimmer/integration-tests';
 
 import {
-  AST,
+  type AST,
   builders as b,
   cannotRemoveNode,
   cannotReplaceNode,

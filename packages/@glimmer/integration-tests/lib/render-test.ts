@@ -1,33 +1,33 @@
 import { destroy } from '@glimmer/destroyable';
 import {
-  ComponentDefinitionState,
-  Dict,
-  DynamicScope,
-  Helper,
-  Maybe,
-  Option,
-  RenderResult,
-  SimpleElement,
-  SimpleNode,
+  type ComponentDefinitionState,
+  type Dict,
+  type DynamicScope,
+  type Helper,
+  type Maybe,
+  type Option,
+  type RenderResult,
+  type SimpleElement,
+  type SimpleNode,
 } from '@glimmer/interfaces';
 import { inTransaction } from '@glimmer/runtime';
-import { ASTPluginBuilder } from '@glimmer/syntax';
+import { type ASTPluginBuilder } from '@glimmer/syntax';
 import { assert, clearElement, dict, expect, isPresent } from '@glimmer/util';
 import { dirtyTagFor } from '@glimmer/validator';
 
 import {
-  ComponentBlueprint,
-  ComponentKind,
-  ComponentTypes,
+  type ComponentBlueprint,
+  type ComponentKind,
+  type ComponentTypes,
   CURLY_TEST_COMPONENT,
   GLIMMER_TEST_COMPONENT,
 } from './components';
 import { assertElementShape, assertEmberishElement } from './dom/assertions';
 import { assertingElement, toInnerHTML } from './dom/simple-utils';
-import { UserHelper } from './helpers';
-import { TestModifierConstructor } from './modifiers';
-import RenderDelegate from './render-delegate';
-import { equalTokens, isServerMarker, NodesSnapshot, normalizeSnapshot } from './snapshot';
+import { type UserHelper } from './helpers';
+import { type TestModifierConstructor } from './modifiers';
+import type RenderDelegate from './render-delegate';
+import { equalTokens, isServerMarker, type NodesSnapshot, normalizeSnapshot } from './snapshot';
 
 type Expand<T> = T extends infer O ? { [K in keyof O]: O[K] } : never;
 type Present<T> = Exclude<T, null | undefined>;

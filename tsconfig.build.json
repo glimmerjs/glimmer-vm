@@ -1,15 +1,19 @@
 {
   "compilerOptions": {
+    "composite": true,
     "allowJs": true,
-    "checkJs": true,
+    "checkJs": false,
     "target": "ES2019",
-    "moduleResolution": "node",
+    "moduleResolution": "nodenext",
     "module": "es2015",
     "typeRoots": [],
     "types": [],
     "baseUrl": ".",
-    "noEmit": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "emitDeclarationOnly": true,
+    "outDir": "ts-dist/build"
   },
   "include": [
     "benchmark/**/*",
@@ -18,7 +22,10 @@
     "lib/**/*",
     "server/**/*",
     "packages/build-utils/@glimmer/**/*",
-    "./*.js"
+    "testem.js",
+    "testem-browserstack.js",
+    "ember-cli-build.js",
+    "vite.config.mts"
   ],
-  "exclude": ["**/fixtures/**/*"]
+  "exclude": ["**/fixtures/**/*", "node_modules/**/*", "**/node_modules/**"]
 }

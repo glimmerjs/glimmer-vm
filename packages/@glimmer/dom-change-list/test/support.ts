@@ -1,30 +1,47 @@
 import {
-  AttrNamespace,
-  Namespace,
-  NodeTokens,
-  NodeType,
-  Option,
-  PresentArray,
-  SimpleAttr,
-  SimpleDocumentFragment,
-  SimpleElement,
+  type AttrNamespace,
+  type NodeTokens,
+  type Option,
+  type PresentArray,
+  type SimpleAttr,
+  type SimpleDocumentFragment,
+  type SimpleElement,
 } from '@glimmer/interfaces';
 import Serializer from '@simple-dom/serializer';
 import voidMap from '@simple-dom/void-map';
 
-import { DOMTreeConstruction, TreeBuilder } from '..';
+import { type DOMTreeConstruction, type TreeBuilder } from '..';
+
+export enum NodeType {
+  RAW_NODE = -1,
+  ELEMENT_NODE = 1,
+  TEXT_NODE = 3,
+  COMMENT_NODE = 8,
+  DOCUMENT_NODE = 9,
+  DOCUMENT_TYPE_NODE = 10,
+  DOCUMENT_FRAGMENT_NODE = 11,
+}
+
+export enum Namespace {
+  HTML = 'http://www.w3.org/1999/xhtml',
+  MathML = 'http://www.w3.org/1998/Math/MathML',
+  SVG = 'http://www.w3.org/2000/svg',
+  XLink = 'http://www.w3.org/1999/xlink',
+  XML = 'http://www.w3.org/XML/1998/namespace',
+  XMLNS = 'http://www.w3.org/2000/xmlns/',
+}
 
 export const SVG = Namespace.SVG;
 export const XLINK = Namespace.XLink;
 
 export function toHTML(parent: SimpleElement | SimpleDocumentFragment) {
-  let serializer = new Serializer(voidMap);
+  const serializer = new Serializer(voidMap);
 
   return serializer.serializeChildren(parent);
 }
 
 export function toHTMLNS(parent: SimpleElement | SimpleDocumentFragment) {
-  let serializer = new NamespacedHTMLSerializer(voidMap);
+  const serializer = new NamespacedHTMLSerializer(voidMap);
 
   return serializer.serializeChildren(parent);
 }
@@ -76,7 +93,7 @@ export class Builder {
 
   appendTo(parent: SimpleElement | SimpleDocumentFragment) {
     if (parent.nodeType === 1) {
-      this.expected[0].value = (parent as SimpleElement).tagName;
+      this.expected[0].value = parent.tagName;
     } else {
       this.expected[0].value = '#document-fragment';
     }
@@ -91,31 +108,31 @@ export class Builder {
   }
 
   appendText(text: string) {
-    let token = this.tree.appendText(text);
+    const token = this.tree.appendText(text);
     this.expected[token] = { type: 'text', value: text };
   }
 
   appendComment(text: string) {
-    let token = this.tree.appendComment(text);
+    const token = this.tree.appendComment(text);
     this.expected[token] = { type: 'comment', value: text };
   }
 
   reify(tokens: NodeTokens): { actual: ExpectedToken[]; expected: ExpectedToken[] } {
-    let actual: ExpectedToken[] = [];
-    let { expected } = this;
+    const actual: ExpectedToken[] = [];
+    const { expected } = this;
 
     for (let i = 0; i < expected.length; i++) {
-      let reified = tokens.reify(i);
+      const reified = tokens.reify(i);
 
       switch (reified.nodeType) {
         case NodeType.ELEMENT_NODE:
           actual.push({ type: 'element', value: reified.tagName });
           break;
         case NodeType.TEXT_NODE:
-          actual.push({ type: 'text', value: reified.nodeValue! });
+          actual.push({ type: 'text', value: reified.nodeValue });
           break;
         case NodeType.COMMENT_NODE:
-          actual.push({ type: 'comment', value: reified.nodeValue! });
+          actual.push({ type: 'comment', value: reified.nodeValue });
           break;
       }
     }

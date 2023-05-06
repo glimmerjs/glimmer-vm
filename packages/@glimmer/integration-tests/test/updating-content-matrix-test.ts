@@ -1,8 +1,17 @@
-import { Namespace, SimpleElement, SimpleNode } from '@glimmer/interfaces';
-import { SafeString } from '@glimmer/runtime';
+import { type SimpleElement, type SimpleNode } from '@glimmer/interfaces';
+import { type SafeString } from '@glimmer/runtime';
 
-import { jitSuite, RenderTest, RenderTestConstructor } from '..';
-import RenderDelegate from '../lib/render-delegate';
+import { jitSuite, RenderTest, type RenderTestConstructor } from '..';
+import type RenderDelegate from '../lib/render-delegate';
+
+enum Namespace {
+  HTML = 'http://www.w3.org/1999/xhtml',
+  MathML = 'http://www.w3.org/1998/Math/MathML',
+  SVG = 'http://www.w3.org/2000/svg',
+  XLink = 'http://www.w3.org/1999/xlink',
+  XML = 'http://www.w3.org/XML/1998/namespace',
+  XMLNS = 'http://www.w3.org/2000/xmlns/',
+}
 
 const SVG_NAMESPACE = Namespace.SVG;
 
@@ -24,19 +33,19 @@ class ContentTest extends RenderTest {
   static suiteName = 'Updating - Content';
 
   makeElement(tag: string, content: string): SimpleElement {
-    let el = this.delegate.createElement(tag);
+    const el = this.delegate.createElement(tag);
     el.appendChild(this.delegate.createTextNode(content));
     return el;
   }
 
   makeSVGElement(tag: string, content: string): SimpleElement {
-    let el = this.delegate.createElementNS(SVG_NAMESPACE, tag);
+    const el = this.delegate.createElementNS(SVG_NAMESPACE, tag);
     el.appendChild(this.delegate.createTextNode(content));
     return el;
   }
 
   makeFragment(nodes: SimpleNode[]) {
-    let frag = this.delegate.createDocumentFragment();
+    const frag = this.delegate.createDocumentFragment();
     nodes.forEach((node) => frag.appendChild(node));
     return frag;
   }
@@ -133,8 +142,8 @@ function generateContentTestCase(
       after: '<text>after</text></text></svg>',
     },
   ].forEach((wrapper) => {
-    let test = function (this: ContentTest) {
-      let template = wrapper.before + tc.template + wrapper.after;
+    const test = function (this: ContentTest) {
+      const template = wrapper.before + tc.template + wrapper.after;
       tc.values.forEach(({ input: _input, expected: _expected, description }, index) => {
         let input: unknown;
         let expected: string;

@@ -1,4 +1,4 @@
-import { AST, preprocess as parse, traverse } from '../..';
+import { type AST, preprocess as parse, traverse } from '../..';
 
 function traversalEqual(node: AST.Node, expectedTraversal: Array<[string, AST.Node | undefined]>) {
   let actualTraversal: Array<[string, AST.BaseNode]> = [];

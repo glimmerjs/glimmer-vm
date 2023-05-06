@@ -1,28 +1,43 @@
 import {
-  InsertPosition,
-  Maybe,
-  NodeType,
-  Option,
-  SerializableElement,
-  SerializableNode,
-  SimpleComment,
-  SimpleDocument,
-  SimpleDocumentFragment,
-  SimpleElement,
-  SimpleNode,
-  SimpleText,
+  type Maybe,
+  type Option,
+  type SerializableElement,
+  type SerializableNode,
+  type SimpleComment,
+  type SimpleDocument,
+  type SimpleDocumentFragment,
+  type SimpleElement,
+  type SimpleNode,
+  type SimpleText,
 } from '@glimmer/interfaces';
 import { clearElement } from '@glimmer/util';
 import Serializer from '@simple-dom/serializer';
 import voidMap from '@simple-dom/void-map';
 
+export enum InsertPosition {
+  beforebegin = 'beforebegin',
+  afterbegin = 'afterbegin',
+  beforeend = 'beforeend',
+  afterend = 'afterend',
+}
+
+export enum NodeType {
+  RAW_NODE = -1,
+  ELEMENT_NODE = 1,
+  TEXT_NODE = 3,
+  COMMENT_NODE = 8,
+  DOCUMENT_NODE = 9,
+  DOCUMENT_TYPE_NODE = 10,
+  DOCUMENT_FRAGMENT_NODE = 11,
+}
+
 export function toInnerHTML(parent: SimpleElement | SimpleDocumentFragment): string {
-  let serializer = new Serializer(voidMap);
+  const serializer = new Serializer(voidMap);
   return serializer.serializeChildren(parent);
 }
 
 export function toOuterHTML(parent: SimpleElement | SimpleDocumentFragment): string {
-  let serializer = new Serializer(voidMap);
+  const serializer = new Serializer(voidMap);
   return serializer.serialize(parent);
 }
 
@@ -115,7 +130,7 @@ export function getElementByClassName(
     if (classList(current).indexOf(className) > -1) {
       return current;
     } else {
-      let recurse = getElementByClassName(current, className);
+      const recurse = getElementByClassName(current, className);
 
       if (recurse) return recurse;
 
@@ -131,7 +146,7 @@ export function getElementsByTagName(
   tagName: string,
   accum: SimpleElement[] = []
 ): SimpleElement[] {
-  let tag = tagName.toUpperCase();
+  const tag = tagName.toUpperCase();
   let current = firstElementChild(element);
 
   while (current) {
@@ -147,7 +162,7 @@ export function getElementsByTagName(
 }
 
 export function classList(element: SimpleElement): string[] {
-  let attr = element.getAttribute('class');
+  const attr = element.getAttribute('class');
   if (attr === null) return [];
   return attr.split(/\s+/);
 }

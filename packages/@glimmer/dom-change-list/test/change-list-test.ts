@@ -1,14 +1,22 @@
 import {
-  Namespace,
-  SimpleDocument,
-  SimpleDocumentFragment,
-  SimpleElement,
+  type SimpleDocument,
+  type SimpleDocumentFragment,
+  type SimpleElement,
 } from '@glimmer/interfaces';
 import createDocument from '@simple-dom/document';
 
-import { DOMTreeConstruction, NodeTokensImpl } from '..';
+import { DOMTreeConstruction, type NodeTokensImpl } from '..';
 import { Builder as TestBuilder, toHTML, toHTMLNS } from './support';
 import { module, test, TestCase } from './test-case';
+
+export enum Namespace {
+  HTML = 'http://www.w3.org/1999/xhtml',
+  MathML = 'http://www.w3.org/1998/Math/MathML',
+  SVG = 'http://www.w3.org/2000/svg',
+  XLink = 'http://www.w3.org/1999/xlink',
+  XML = 'http://www.w3.org/XML/1998/namespace',
+  XMLNS = 'http://www.w3.org/2000/xmlns/',
+}
 
 const SVG = Namespace.SVG;
 const XLINK = Namespace.XLink;
@@ -42,7 +50,7 @@ export class ChangeListTest extends TestCase {
 
   @test
   'openElement and closeElement'() {
-    let { tree } = this;
+    const { tree } = this;
 
     tree.openElement('span');
     tree.appendText('hello world');
@@ -56,7 +64,7 @@ export class ChangeListTest extends TestCase {
 
   @test
   setAttribute() {
-    let { tree } = this;
+    const { tree } = this;
 
     tree.openElement('span');
     tree.setAttribute('class', 'chad');
@@ -67,7 +75,7 @@ export class ChangeListTest extends TestCase {
 
   @test
   'nested elements'() {
-    let { tree } = this;
+    const { tree } = this;
 
     tree.openElement('p');
     tree.setAttribute('class', 'chad');
@@ -83,7 +91,7 @@ export class ChangeListTest extends TestCase {
 
   @test
   'namespaced elements'() {
-    let { tree } = this;
+    const { tree } = this;
 
     tree.openElement('svg', SVG);
     tree.closeElement();
@@ -93,7 +101,7 @@ export class ChangeListTest extends TestCase {
 
   @test
   'namespaced attributes'() {
-    let { tree } = this;
+    const { tree } = this;
 
     tree.openElement('svg', SVG);
     tree.openElement('a', SVG);
@@ -111,18 +119,18 @@ export class ChangeListTest extends TestCase {
   }
 
   protected shouldEqual(expectedHTML: string) {
-    let tokens = this.append();
-    let actualHTML = toHTML(this.parent);
+    const tokens = this.append();
+    const actualHTML = toHTML(this.parent);
     QUnit.assert.strictEqual(actualHTML, expectedHTML);
 
-    let { expected, actual } = this.tree.reify(tokens);
+    const { expected, actual } = this.tree.reify(tokens);
 
     QUnit.assert.deepEqual(actual, expected);
   }
 
   protected shouldEqualNS(expected: string) {
     this.append();
-    let actual = toHTMLNS(this.parent);
+    const actual = toHTMLNS(this.parent);
     QUnit.assert.strictEqual(actual, expected);
   }
 }
@@ -131,7 +139,7 @@ export class Builder extends TestBuilder {
   protected declare tree: DOMTreeConstruction; // Hides property in base class
 
   openElement(tag: string, namespace?: Namespace) {
-    let token = this.tree.openElement(tag, namespace);
+    const token = this.tree.openElement(tag, namespace);
     this.expected[token] = { type: 'element', value: tag.toUpperCase() };
   }
 }
