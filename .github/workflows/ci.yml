@@ -27,7 +27,6 @@ jobs:
     timeout-minutes: 10
 
     steps:
-      - uses: actions/checkout@v3
       - uses: NullVoxPopuli/action-setup-pnpm@v2
       - run: pnpm lint
 
@@ -40,7 +39,7 @@ jobs:
     timeout-minutes: 10
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v1
       - uses: NullVoxPopuli/action-setup-pnpm@v2
       - run: pnpm test
 
