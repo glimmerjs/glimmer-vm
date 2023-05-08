@@ -15,6 +15,13 @@
     QUnit.config.autostart = false;
   </script>
   <script type="module">
+    import {
+      getConfig,
+      sessionStarted,
+      sessionFinished,
+      sessionFailed,
+    } from '@web/test-runner-core/browser/session.js';
+
     import { setupQunit } from "@glimmer/integration-tests";
     await setupQunit();
 
@@ -23,7 +30,101 @@
     // evaluate the tests before starting QUnit
     for (const pkg of Object.values(packages)) await pkg();
 
+    /**
+      We need to hook in to QUnit to report back to the test runner
+
+      @typedef {object} TestResult
+      @property {string} name test name
+      @property {string} module module name
+      @property {string} testId
+      @property {number} passed assertions
+      @property {number} failed assertions
+      @property {number} total assertions
+      @property {number} runtime
+      @property {boolean} skipped
+      @property {boolean} todo
+
+      @typedef {object} ModuleResult
+      @property {number} failed
+      @property {number} passed
+      @property {number} total
+      @property {number} runtime
+
+      @typedef {ModuleResult} ModuleCacheEntry
+      @property {TestResult[]} tests
+
+      @typedef {Map<string, ModuleCacheEntry>} ModuleCache
+    */
+
+    /** @type{ModuleCache} */
+    let modulesResults = new Map();
+
+    // Test the test-runner the tests have begun
+    QUnit.begin(sessionStarted);
+
+    function moduleFor(moduleName) {
+      let existing = moduleResults.get(moduleName);
+
+      if (!existing) {
+        throw new Error(`Could not find module named ${moduleName}`);
+      }
+
+      return existing;
+    }
+
+    QUnit.moduleStart((name) => {
+      modulesResults.set(name, {});
+    });
+    QUnit.moduleDone((details) => {
+      let { name, failed, passed, total, runtime } = details;
+
+      let testModule = moduleFor(name);
+
+      Object.assign(testModule, { failed, passed, total, runtime })
+    });
+
+    QUnit.testStart((details) => {
+      let testModule = moduleFor(details.module);
+
+      testModule.tests ||= [];
+    });
+    QUnit.testDone((details) => {
+      let testModule = moduleFor(details.module);
+
+      testModule.tests.push(details);
+    });
+
+
+    QUnit.done((details) => {
+      let { failed, passed, total, runtime } = details;
+      // type here: https://github.com/modernweb-dev/web/blob/master/packages/test-runner-core/src/test-session/TestSession.ts#L33
+      let testResults = {
+        name: 'Tests',
+        suites: [],
+        tests: [],
+      };
+
+      for (let [name, cache] of moduleResults.entries()) {
+        let tests = cache.tests.map(testResult => ({
+          name: testResult.name,
+          passed: testResult.failed === 0,
+          skipped: testResult.skipped || testResult.todo,
+          duration: testResult.runtime,
+        }));
+
+        testResults.push({
+          name: name,
+          tests,
+        });
+      }
+
+
+      sessionFinished({ passed, errors: failed, testResults });
+    });
+
+
     QUnit.start();
+
 
   </script>
 
