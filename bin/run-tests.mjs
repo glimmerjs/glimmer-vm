@@ -23,7 +23,7 @@ await new Promise((fulfill) => {
 });
 
 const browser = await puppeteer.launch({
-  headless: 'new',
+  headless: true,
 });
 
 // eslint-disable-next-line no-async-promise-executor
