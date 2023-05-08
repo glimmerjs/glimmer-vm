@@ -11,7 +11,7 @@ overrides:
 
 patchedDependencies:
   '@remcovaes/web-test-runner-vite-plugin@1.1.5':
-    hash: db6englak7mh7kuguhvdjrlwk4
+    hash: gzeq2ycfofrj7fagpklk6yqb2u
     path: patches/@remcovaes__web-test-runner-vite-plugin@1.1.5.patch
 
 importers:
@@ -66,7 +66,7 @@ importers:
         version: link:packages/@glimmer/integration-tests
       '@remcovaes/web-test-runner-vite-plugin':
         specifier: ^1.1.5
-        version: 1.1.5(patch_hash=db6englak7mh7kuguhvdjrlwk4)(vite@4.3.5)
+        version: 1.1.5(patch_hash=gzeq2ycfofrj7fagpklk6yqb2u)(vite@4.3.5)
       '@rollup/plugin-terser':
         specifier: ^0.4.1
         version: 0.4.1(rollup@3.21.5)
@@ -3306,7 +3306,7 @@ packages:
       - supports-color
     dev: true
 
-  /@remcovaes/web-test-runner-vite-plugin@1.1.5(patch_hash=db6englak7mh7kuguhvdjrlwk4)(vite@4.3.5):
+  /@remcovaes/web-test-runner-vite-plugin@1.1.5(patch_hash=gzeq2ycfofrj7fagpklk6yqb2u)(vite@4.3.5):
     resolution: {integrity: sha512-nDVsMBtgx+24MOVC/QzSCf7e62VsA2WyNHYMBcyUBJxOpmDovERXurfH9GoQFUgvxVIcFKYOWLzYLkV4/mZgng==}
     peerDependencies:
       vite: ^3.0.0 || ^4.0.0

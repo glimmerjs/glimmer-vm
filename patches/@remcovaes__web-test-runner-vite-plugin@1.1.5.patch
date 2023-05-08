@@ -1,8 +1,8 @@
 diff --git a/src/web-test-runner-vite.js b/src/web-test-runner-vite.js
-index 5d8cb143e587760dba1fe4aec0d90a49afe9ffcc..d7d2f0018d1bb5e93c3df33675914a471d8d50db 100644
+index 5d8cb143e587760dba1fe4aec0d90a49afe9ffcc..161a17aa7426eea7f8012c1cf1b5dba71b01758f 100644
 --- a/src/web-test-runner-vite.js
 +++ b/src/web-test-runner-vite.js
-@@ -1,6 +1,6 @@
+@@ -1,11 +1,18 @@
  import { existsSync } from 'node:fs';
  
 -import { createServer } from 'vite';
@@ -10,7 +10,19 @@ index 5d8cb143e587760dba1fe4aec0d90a49afe9ffcc..d7d2f0018d1bb5e93c3df33675914a47
  
  import { callWithFileNames } from './call-with-file-names.js';
  import { markExternal } from './mark-external.js';
-@@ -13,6 +13,7 @@ export const vitePlugin = () => {
+ import { proxy } from './proxy.js';
+ 
++
++// from the original:
++//   https://github.com/pndewit/web-test-runner-vite-plugin/blob/main/index.js
++function isTestRunnerFile(url) {
++  return url.startsWith('/__web-dev-server') || url.startsWith('/__web-test-runner');
++}
++
+ export const vitePlugin = () => {
+ 	let viteServer;
+ 	
+@@ -13,6 +20,7 @@ export const vitePlugin = () => {
  		name: "vite-plugin",
  		
  		async serverStart({ app, fileWatcher }) {
@@ -18,7 +30,7 @@ index 5d8cb143e587760dba1fe4aec0d90a49afe9ffcc..d7d2f0018d1bb5e93c3df33675914a47
  			const plugins = [
  				callWithFileNames(id => {
  					const file = id.split('?')[0];
-@@ -28,22 +29,38 @@ export const vitePlugin = () => {
+@@ -28,22 +36,38 @@ export const vitePlugin = () => {
  				]),
  			];
  			
