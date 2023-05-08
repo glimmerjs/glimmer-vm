@@ -13,8 +13,9 @@ import { webdriverLauncher } from '@web/test-runner-webdriver';
 // };
 
 export default {
-  // @web/test-runner does not decide what tests to run
-  files: ['**/*.ts'],
+  // We point at a lone file because we don't want @web/test-runner
+  // to actually do anything with `files`, but `files` is a required config option.
+  files: ['testem.js'],
   // Launches Vite
   plugins: [vitePlugin()],
   reporters: [defaultReporter({ reportTestProgress: true, reportTestResults: true })],
@@ -39,16 +40,16 @@ export default {
         },
       },
     }),
-    webdriverLauncher({
-      automationProtocol: 'webdriver',
-      path: '/',
-      capabilities: {
-        browserName: 'firefox',
-        'moz:firefoxOptions': {
-          args: ['-headless'],
-        },
-      },
-    }),
+    // webdriverLauncher({
+    //   automationProtocol: 'webdriver',
+    //   path: '/',
+    //   capabilities: {
+    //     browserName: 'firefox',
+    //     'moz:firefoxOptions': {
+    //       args: ['-headless'],
+    //     },
+    //   },
+    // }),
     // browserstackLauncher({
     //   ...sharedCapabilities,
     //   browserName: 'Chrome',

@@ -1,0 +1,50 @@
+diff --git a/src/web-test-runner-vite.js b/src/web-test-runner-vite.js
+index 5d8cb143e587760dba1fe4aec0d90a49afe9ffcc..e70d29cb8fc5a2e4606644fc80963349d2b37b0c 100644
+--- a/src/web-test-runner-vite.js
++++ b/src/web-test-runner-vite.js
+@@ -1,6 +1,6 @@
+ import { existsSync } from 'node:fs';
+ 
+-import { createServer } from 'vite';
++import { createServer, resolveConfig } from 'vite';
+ 
+ import { callWithFileNames } from './call-with-file-names.js';
+ import { markExternal } from './mark-external.js';
+@@ -13,6 +13,7 @@ export const vitePlugin = () => {
+ 		name: "vite-plugin",
+ 		
+ 		async serverStart({ app, fileWatcher }) {
++      console.log('starting...');
+ 			const plugins = [
+ 				callWithFileNames(id => {
+ 					const file = id.split('?')[0];
+@@ -28,22 +29,28 @@ export const vitePlugin = () => {
+ 				]),
+ 			];
+ 			
++      console.log('vite starting...');
+ 			viteServer = await createServer({
+ 				clearScreen: false,
+ 				plugins,
++        // config: await resolveConfig(),
+ 				/* Disable hmr in favor of the @web/test-runner to take care of
+ 				 * restarts. */
+ 				server: { hmr: false },
+ 			});
+ 			await viteServer.listen();
++      console.log('vite started...');
+ 			
+ 			const vitePort = viteServer.config.server.port;
+ 			const viteProtocol = viteServer.config.server.https ? "https" : "http";
++      const path = `${viteProtocol}://localhost:${vitePort}`
++      console.log(`\t${path}`);
+ 			
+-			app.use(proxy(`${viteProtocol}://localhost:${vitePort}`));
++			app.use(proxy(path));
+ 		},
+ 		
+ 		async serverStop() {
++      console.log('stopping server');
+ 			return viteServer.close();
+ 		},
+ 	};
