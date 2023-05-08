@@ -1,5 +1,5 @@
 diff --git a/src/web-test-runner-vite.js b/src/web-test-runner-vite.js
-index 5d8cb143e587760dba1fe4aec0d90a49afe9ffcc..e70d29cb8fc5a2e4606644fc80963349d2b37b0c 100644
+index 5d8cb143e587760dba1fe4aec0d90a49afe9ffcc..d7d2f0018d1bb5e93c3df33675914a471d8d50db 100644
 --- a/src/web-test-runner-vite.js
 +++ b/src/web-test-runner-vite.js
 @@ -1,6 +1,6 @@
@@ -18,7 +18,7 @@ index 5d8cb143e587760dba1fe4aec0d90a49afe9ffcc..e70d29cb8fc5a2e4606644fc80963349
  			const plugins = [
  				callWithFileNames(id => {
  					const file = id.split('?')[0];
-@@ -28,22 +29,28 @@ export const vitePlugin = () => {
+@@ -28,22 +29,38 @@ export const vitePlugin = () => {
  				]),
  			];
  			
@@ -29,19 +29,31 @@ index 5d8cb143e587760dba1fe4aec0d90a49afe9ffcc..e70d29cb8fc5a2e4606644fc80963349
 +        // config: await resolveConfig(),
  				/* Disable hmr in favor of the @web/test-runner to take care of
  				 * restarts. */
- 				server: { hmr: false },
+-				server: { hmr: false },
++				server: { hmr: false, port: 4444 },
  			});
  			await viteServer.listen();
 +      console.log('vite started...');
  			
  			const vitePort = viteServer.config.server.port;
  			const viteProtocol = viteServer.config.server.https ? "https" : "http";
-+      const path = `${viteProtocol}://localhost:${vitePort}`
-+      console.log(`\t${path}`);
- 			
+-			
 -			app.use(proxy(`${viteProtocol}://localhost:${vitePort}`));
++      const path = `${viteProtocol}://0.0.0.0:${vitePort}`
++      console.log(`\t${path}`);
++
 +			app.use(proxy(path));
  		},
++      async serve({ request }) {
++      if (isTestRunnerFile(request.url)) return;
++
++      try {
++        const result = await viteServer.transformRequest(request.path, {ssr: false});
++        return {body: result.code};
++      } catch (error) {
++        console.error('serve: couldn\'t transform the request', error);
++      }
++    },
  		
  		async serverStop() {
 +      console.log('stopping server');
