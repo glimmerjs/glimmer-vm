@@ -19,7 +19,7 @@ import {
   s,
   unicode,
   WireFormatDebugger,
-} from '..';
+} from '@glimmer/compiler';
 
 QUnit.module('@glimmer/compiler - compiling source to wire format');
 

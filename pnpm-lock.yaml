@@ -77,9 +77,12 @@ importers:
       '@types/preval.macro':
         specifier: ^3.0.0
         version: 3.0.0
+      '@types/puppeteer':
+        specifier: ^7.0.4
+        version: 7.0.4(typescript@5.0.4)
       '@types/qunit':
-        specifier: ^2.19.5
-        version: 2.19.5
+        specifier: workspace:^
+        version: link:packages/@types/qunit
       '@typescript-eslint/eslint-plugin':
         specifier: ^5.59.2
         version: 5.59.2(@typescript-eslint/parser@5.59.2)(eslint@8.40.0)(typescript@5.0.4)
@@ -164,6 +167,9 @@ importers:
       preval.macro:
         specifier: ^5.0.0
         version: 5.0.0
+      puppeteer:
+        specifier: ^20.1.2
+        version: 20.1.2(typescript@5.0.4)
       qunit:
         specifier: ^2.19.4
         version: 2.19.4
@@ -248,8 +254,8 @@ importers:
 
     dependencies:
       '@types/qunit':
-        specifier: ^2.19.5
-        version: 2.19.5
+        specifier: workspace:^
+        version: link:@types/qunit
 
   packages/@glimmer/benchmark-env:
     dependencies:
@@ -280,10 +286,6 @@ importers:
       '@glimmer/validator':
         specifier: workspace:^
         version: link:../validator
-    devDependencies:
-      '@types/qunit':
-        specifier: ^2.19.5
-        version: 2.19.5
 
   packages/@glimmer/compiler:
     dependencies:
@@ -307,6 +309,21 @@ importers:
         specifier: ^20.1.0
         version: 20.1.0
 
+  packages/@glimmer/compiler/test:
+    dependencies:
+      '@glimmer/compiler':
+        specifier: workspace:^
+        version: link:..
+      '@glimmer/interfaces':
+        specifier: workspace:^
+        version: link:../../interfaces
+      '@glimmer/syntax':
+        specifier: workspace:^
+        version: link:../../syntax
+      '@glimmer/util':
+        specifier: workspace:^
+        version: link:../../util
+
   packages/@glimmer/debug:
     dependencies:
       '@glimmer/interfaces':
@@ -322,9 +339,6 @@ importers:
       '@glimmer/local-debug-flags':
         specifier: workspace:^
         version: link:../local-debug-flags
-      '@types/qunit':
-        specifier: ^2.19.5
-        version: 2.19.5
       toml:
         specifier: ^3.0.0
         version: 3.0.0
@@ -348,6 +362,15 @@ importers:
         specifier: workspace:^
         version: link:../local-debug-flags
 
+  packages/@glimmer/destroyable/test:
+    dependencies:
+      '@glimmer/destroyable':
+        specifier: workspace:^
+        version: link:..
+      '@glimmer/global-context':
+        specifier: workspace:^
+        version: link:../../global-context
+
   packages/@glimmer/dom-change-list:
     dependencies:
       '@glimmer/interfaces':
@@ -356,44 +379,39 @@ importers:
       '@glimmer/util':
         specifier: workspace:^
         version: link:../util
-      '@simple-dom/document':
-        specifier: ^1.4.0
-        version: 1.4.0
     devDependencies:
       '@glimmer/local-debug-flags':
         specifier: workspace:^
         version: link:../local-debug-flags
+
+  packages/@glimmer/dom-change-list/test:
+    dependencies:
+      '@glimmer/dom-change-list':
+        specifier: workspace:^
+        version: link:..
+      '@glimmer/interfaces':
+        specifier: workspace:^
+        version: link:../../interfaces
+      '@glimmer/util':
+        specifier: workspace:^
+        version: link:../../util
+      '@simple-dom/document':
+        specifier: ^1.4.0
+        version: 1.4.0
       '@simple-dom/serializer':
         specifier: ^1.4.0
         version: 1.4.0
       '@simple-dom/void-map':
         specifier: ^1.4.0
         version: 1.4.0
-      '@types/qunit':
-        specifier: ^2.19.5
-        version: 2.19.5
 
   packages/@glimmer/encoder:
     dependencies:
-      '@glimmer/env':
-        specifier: 0.1.7
-        version: 0.1.7
       '@glimmer/interfaces':
         specifier: workspace:^
         version: link:../interfaces
-      '@glimmer/vm':
-        specifier: workspace:^
-        version: link:../vm
-    devDependencies:
-      '@glimmer/local-debug-flags':
-        specifier: workspace:^
-        version: link:../local-debug-flags
 
-  packages/@glimmer/global-context:
-    dependencies:
-      '@glimmer/env':
-        specifier: ^0.1.7
-        version: 0.1.7
+  packages/@glimmer/global-context: {}
 
   packages/@glimmer/integration-tests:
     dependencies:
@@ -433,6 +451,9 @@ importers:
       '@glimmer/syntax':
         specifier: workspace:^
         version: link:../syntax
+      '@glimmer/test-utils':
+        specifier: workspace:^
+        version: link:../test-utils
       '@glimmer/util':
         specifier: workspace:^
         version: link:../util
@@ -451,6 +472,9 @@ importers:
       '@simple-dom/void-map':
         specifier: ^1.4.0
         version: 1.4.0
+      js-reporters:
+        specifier: ^2.1.0
+        version: 2.1.0
       qunit:
         specifier: ^2.19.4
         version: 2.19.4
@@ -461,9 +485,12 @@ importers:
       '@glimmer/local-debug-flags':
         specifier: workspace:^
         version: link:../local-debug-flags
+      '@types/js-reporters':
+        specifier: workspace:^
+        version: link:../../@types/js-reporters
       '@types/qunit':
-        specifier: ^2.19.5
-        version: 2.19.5
+        specifier: workspace:^
+        version: link:../../@types/qunit
 
   packages/@glimmer/interfaces:
     dependencies:
@@ -504,6 +531,21 @@ importers:
         specifier: workspace:^
         version: link:../local-debug-flags
 
+  packages/@glimmer/manager/test:
+    dependencies:
+      '@glimmer/interfaces':
+        specifier: workspace:^
+        version: link:../../interfaces
+      '@glimmer/manager':
+        specifier: workspace:^
+        version: link:..
+      '@glimmer/reference':
+        specifier: workspace:^
+        version: link:../../reference
+      '@glimmer/validator':
+        specifier: workspace:^
+        version: link:../../validator
+
   packages/@glimmer/node:
     dependencies:
       '@glimmer/interfaces':
@@ -523,8 +565,8 @@ importers:
         specifier: workspace:^
         version: link:../compiler
       '@types/qunit':
-        specifier: ^2.19.5
-        version: 2.19.5
+        specifier: workspace:^
+        version: link:../../@types/qunit
 
   packages/@glimmer/opcode-compiler:
     dependencies:
@@ -573,6 +615,12 @@ importers:
         specifier: workspace:^
         version: link:../local-debug-flags
 
+  packages/@glimmer/owner/test:
+    dependencies:
+      '@glimmer/owner':
+        specifier: workspace:^
+        version: link:..
+
   packages/@glimmer/program:
     dependencies:
       '@glimmer/encoder':
@@ -598,6 +646,12 @@ importers:
         specifier: workspace:^
         version: link:../local-debug-flags
 
+  packages/@glimmer/program/test:
+    dependencies:
+      '@glimmer/program':
+        specifier: workspace:^
+        version: link:..
+
   packages/@glimmer/reference:
     dependencies:
       '@glimmer/env':
@@ -619,6 +673,21 @@ importers:
       '@glimmer/local-debug-flags':
         specifier: workspace:^
         version: link:../local-debug-flags
+
+  packages/@glimmer/reference/test:
+    dependencies:
+      '@glimmer/global-context':
+        specifier: workspace:^
+        version: link:../../global-context
+      '@glimmer/reference':
+        specifier: workspace:^
+        version: link:..
+      '@glimmer/util':
+        specifier: workspace:^
+        version: link:../../util
+      '@glimmer/validator':
+        specifier: workspace:^
+        version: link:../../validator
 
   packages/@glimmer/runtime:
     dependencies:
@@ -672,8 +741,8 @@ importers:
         specifier: workspace:^
         version: link:../opcode-compiler
       '@types/qunit':
-        specifier: ^2.19.5
-        version: 2.19.5
+        specifier: workspace:^
+        version: link:../../@types/qunit
 
   packages/@glimmer/syntax:
     dependencies:
@@ -694,8 +763,8 @@ importers:
         specifier: workspace:^
         version: link:../local-debug-flags
       '@types/qunit':
-        specifier: ^2.19.5
-        version: 2.19.5
+        specifier: workspace:^
+        version: link:../../@types/qunit
 
   packages/@glimmer/syntax/test:
     dependencies:
@@ -705,9 +774,24 @@ importers:
       '@glimmer/interfaces':
         specifier: workspace:^
         version: link:../../interfaces
+      '@glimmer/syntax':
+        specifier: workspace:^
+        version: link:..
+      '@glimmer/test-utils':
+        specifier: workspace:^
+        version: link:../../test-utils
       '@glimmer/util':
         specifier: workspace:^
         version: link:../../util
+
+  packages/@glimmer/test-utils:
+    dependencies:
+      '@glimmer/interfaces':
+        specifier: workspace:^
+        version: link:../interfaces
+      '@glimmer/util':
+        specifier: workspace:^
+        version: link:../util
 
   packages/@glimmer/util:
     dependencies:
@@ -722,8 +806,14 @@ importers:
         specifier: workspace:^
         version: link:../local-debug-flags
       '@types/qunit':
-        specifier: ^2.19.5
-        version: 2.19.5
+        specifier: workspace:^
+        version: link:../../@types/qunit
+
+  packages/@glimmer/util/test:
+    dependencies:
+      '@glimmer/util':
+        specifier: workspace:^
+        version: link:..
 
   packages/@glimmer/validator:
     dependencies:
@@ -744,6 +834,18 @@ importers:
         specifier: workspace:^
         version: link:../local-debug-flags
 
+  packages/@glimmer/validator/test:
+    dependencies:
+      '@glimmer/global-context':
+        specifier: workspace:^
+        version: link:../../global-context
+      '@glimmer/interfaces':
+        specifier: workspace:^
+        version: link:../../interfaces
+      '@glimmer/validator':
+        specifier: workspace:^
+        version: link:..
+
   packages/@glimmer/vm:
     dependencies:
       '@glimmer/interfaces':
@@ -752,10 +854,6 @@ importers:
       '@glimmer/util':
         specifier: workspace:^
         version: link:../util
-    devDependencies:
-      '@glimmer/local-debug-flags':
-        specifier: workspace:^
-        version: link:../local-debug-flags
 
   packages/@glimmer/wire-format:
     dependencies:
@@ -765,10 +863,10 @@ importers:
       '@glimmer/util':
         specifier: workspace:^
         version: link:../util
-    devDependencies:
-      '@glimmer/local-debug-flags':
-        specifier: workspace:^
-        version: link:../local-debug-flags
+
+  packages/@types/js-reporters: {}
+
+  packages/@types/qunit: {}
 
   packages/build-utils/@glimmer/vm-babel-plugins:
     dependencies:
@@ -3255,6 +3353,30 @@ packages:
       tslib: 2.5.0
     dev: true
 
+  /@puppeteer/browsers@1.1.0(typescript@5.0.4):
+    resolution: {integrity: sha512-+Nfk52G9cRAKq/V2LEaOlKIMsIuERSofk8hXEy6kMQtjg9Te1iuKymWOR+iKwwzj1RCkZU0fuOoSIclR839MNw==}
+    engines: {node: '>=16.0.0'}
+    hasBin: true
+    peerDependencies:
+      typescript: '>= 4.7.4 || 5'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+    dependencies:
+      debug: 4.3.4
+      extract-zip: 2.0.1
+      http-proxy-agent: 5.0.0
+      https-proxy-agent: 5.0.1
+      progress: 2.0.3
+      proxy-from-env: 1.1.0
+      tar-fs: 2.1.1
+      typescript: 5.0.4
+      unbzip2-stream: 1.4.3
+      yargs: 17.7.1
+    transitivePeerDependencies:
+      - supports-color
+    dev: true
+
   /@rollup/plugin-strip@3.0.2(rollup@3.21.3):
     resolution: {integrity: sha512-L8Whin/DB5XsLE586+xcud6yX/pMVUlfalA999uAsC+dtwmBHSiUwtAxMl3eVvykX3N5BhdeAjStqDlzMmfUXw==}
     engines: {node: '>=14.0.0'}
@@ -3323,14 +3445,17 @@ packages:
 
   /@simple-dom/interface@1.4.0:
     resolution: {integrity: sha512-l5qumKFWU0S+4ZzMaLXFU8tQZsicHEMEyAxI5kDFGhJsRqDwe0a7/iPA/GdxlGyDKseQQAgIz5kzU7eXTrlSpA==}
+    dev: false
 
   /@simple-dom/serializer@1.4.0:
     resolution: {integrity: sha512-mI1yRahsVs8atXLiQksineDsFEFqeG7RHwnnBTDOK6inbzl4tZQgjR+Z7edjgIJq5j5RhZvwPI6EuCji9B3eQw==}
     dependencies:
       '@simple-dom/interface': 1.4.0
+    dev: false
 
   /@simple-dom/void-map@1.4.0:
     resolution: {integrity: sha512-VDhLEyVCbuhOBBgHol9ShzIv9O8UCzdXeH4FoXu2DOcu/nnvTjLTck+BgXsCLv5ynDiUdoqsREEVFnoyPpFKVw==}
+    dev: false
 
   /@sindresorhus/is@0.14.0:
     resolution: {integrity: sha512-9NET910DNaIPngYnLLPeg+Ogzqsi9uM4mSboU5y6p8S5DzMTVEsJZrawi+BoDNUVBa2DhJqQYUFvMDfgU062LQ==}
@@ -3346,6 +3471,11 @@ packages:
     engines: {node: '>=6'}
     dependencies:
       defer-to-connect: 1.1.3
+    dev: true
+
+  /@tootallnate/once@2.0.0:
+    resolution: {integrity: sha512-XCuKFP5PS55gnMVu3dty8KPatLqUoy/ZYzDzAGCQ8JNFCkLXzmI7vNHCR+XpbZaMWQK/vQubr7PkYq8g470J/A==}
+    engines: {node: '>= 10'}
     dev: true
 
   /@types/babel-plugin-macros@3.1.0:
@@ -3527,12 +3657,22 @@ packages:
     resolution: {integrity: sha512-mm7qx+Aj9bhMcK9Y3UHNy6zCQneRj+GBFlCi+cxtx66iLU4yarOupVLrFadlG+Cd4TEsdo4og0REhzUQQ7m3fg==}
     dev: true
 
+  /@types/puppeteer@7.0.4(typescript@5.0.4):
+    resolution: {integrity: sha512-ja78vquZc8y+GM2al07GZqWDKQskQXygCDiu0e3uO0DMRKqE0MjrFBFmTulfPYzLB6WnL7Kl2tFPy0WXSpPomg==}
+    deprecated: This is a stub types definition. puppeteer provides its own type definitions, so you do not need this installed.
+    dependencies:
+      puppeteer: 20.1.2(typescript@5.0.4)
+    transitivePeerDependencies:
+      - bufferutil
+      - encoding
+      - supports-color
+      - typescript
+      - utf-8-validate
+    dev: true
+
   /@types/qs@6.9.7:
     resolution: {integrity: sha512-FGa1F62FT09qcrueBA6qYTrJPVDzah9a+493+o2PCXsesWHIn27G98TsSMs3WPNbZIEj4+VJf6saSFpvD+3Zsw==}
     dev: true
-
-  /@types/qunit@2.19.5:
-    resolution: {integrity: sha512-NvyN1m6nKlRpAXETsTdqzEfW6C+5xbIqrXxQbnm8PmfxM7Ixi73KPoHgXCLJZHw8fd9pvCm3gVeX3nBYRuZLYQ==}
 
   /@types/range-parser@1.2.4:
     resolution: {integrity: sha512-EEhsLsD6UsDM1yFhAvy0Cjr6VwmpMWqFBCb9w07wVugF7w9nfajxLuVmngTIpgS6svCnm6Vaw+MZhoDCKnOfsw==}
@@ -3572,6 +3712,14 @@ packages:
   /@types/symlink-or-copy@1.2.0:
     resolution: {integrity: sha512-Lja2xYuuf2B3knEsga8ShbOdsfNOtzT73GyJmZyY7eGl2+ajOqrs8yM5ze0fsSoYwvA6bw7/Qr7OZ7PEEmYwWg==}
     dev: true
+
+  /@types/yauzl@2.10.0:
+    resolution: {integrity: sha512-Cn6WYCm0tXv8p6k+A8PvbDG763EDpBoTzHdA+Q/MF6H3sapGjCm9NzoaJncJS9tUKSuCoDs9XHxYYsQDgxR6kw==}
+    requiresBuild: true
+    dependencies:
+      '@types/node': 20.1.0
+    dev: true
+    optional: true
 
   /@typescript-eslint/eslint-plugin@5.59.2(@typescript-eslint/parser@5.59.2)(eslint@8.40.0)(typescript@5.0.4):
     resolution: {integrity: sha512-yVrXupeHjRxLDcPKL10sGQ/QlVrA8J5IYOEWVqk0lJaSZP7X5DfnP7Ns3cc74/blmbipQ1htFNVGsHX6wsYm0A==}
@@ -4734,6 +4882,10 @@ packages:
       node-int64: 0.4.0
     dev: true
 
+  /buffer-crc32@0.2.13:
+    resolution: {integrity: sha512-VO9Ht/+p3SN7SKWqcrgEzjGbRSJYTx+Q1pTQC0wrWqHx0vpJraQ6GtHx8tvcg1rlK1byhU5gccxgOgj7B0TDkQ==}
+    dev: true
+
   /buffer-from@1.1.2:
     resolution: {integrity: sha512-E+XQCRwSbaaiChtv6k6Dwgc+bx+Bs6vuKJHHl5kox/BaKbhiXzqQOwK4cO22yElGp2OCmjwVhT3HmxgyPGnJfQ==}
     dev: true
@@ -4917,6 +5069,19 @@ packages:
       readdirp: 3.5.0
     optionalDependencies:
       fsevents: 2.1.3
+    dev: true
+
+  /chownr@1.1.4:
+    resolution: {integrity: sha512-jJ0bqzaylmJtVnNgzTeSOs8DPavpbYgEr/b0YL8/2GO3xJEhInFmhKMUnEJQjZumK7KXGFhUy89PrsJWlakBVg==}
+    dev: true
+
+  /chromium-bidi@0.4.7(devtools-protocol@0.0.1120988):
+    resolution: {integrity: sha512-6+mJuFXwTMU6I3vYLs6IL8A1DyQTPjCfIL971X0aMPVGRbGnNfl6i6Cl0NMbxi2bRYLGESt9T2ZIMRM5PAEcIQ==}
+    peerDependencies:
+      devtools-protocol: '*'
+    dependencies:
+      devtools-protocol: 0.0.1120988
+      mitt: 3.0.0
     dev: true
 
   /ci-info@3.8.0:
@@ -5405,6 +5570,24 @@ packages:
       yaml: 1.10.2
     dev: true
 
+  /cosmiconfig@8.1.3:
+    resolution: {integrity: sha512-/UkO2JKI18b5jVMJUp0lvKFMpa/Gye+ZgZjKD+DGEN9y7NRcf/nK1A0sp67ONmKtnDCNMS44E6jrk0Yc3bDuUw==}
+    engines: {node: '>=14'}
+    dependencies:
+      import-fresh: 3.3.0
+      js-yaml: 4.1.0
+      parse-json: 5.2.0
+      path-type: 4.0.0
+    dev: true
+
+  /cross-fetch@3.1.5:
+    resolution: {integrity: sha512-lvb1SBsI0Z7GDwmuid+mU3kWVBwTVUbe7S0H52yaaAdQOXq2YktTCZdlAcNKFzE6QtRz0snpw9bNiPeOIkkQvw==}
+    dependencies:
+      node-fetch: 2.6.7
+    transitivePeerDependencies:
+      - encoding
+    dev: true
+
   /cross-spawn@6.0.5:
     resolution: {integrity: sha512-eTVLrBSt7fjbDygz805pMnstIs2VTBNkRm0qxZd+M7A5XDdxVRWO5MxGBXZhjY4cqLYLdtrGqRf8mBPmzwSpWQ==}
     engines: {node: '>=4.8'}
@@ -5614,6 +5797,10 @@ packages:
   /detect-newline@3.1.0:
     resolution: {integrity: sha512-TLz+x/vEXm/Y7P7wn1EJFNLxYpUD4TgMosxY6fAVJUnJMbupHBOncxyWUG9OpTaH9EBD7uFI5LfEgmMOc54DsA==}
     engines: {node: '>=8'}
+    dev: true
+
+  /devtools-protocol@0.0.1120988:
+    resolution: {integrity: sha512-39fCpE3Z78IaIPChJsP6Lhmkbf4dWXOmzLk/KFTdRkNk/0JymRIfUynDVRndV9HoDz8PyalK1UH21ST/ivwW5Q==}
     dev: true
 
   /diff@4.0.2:
@@ -6616,6 +6803,20 @@ packages:
     engines: {node: '>=8'}
     dev: true
 
+  /extract-zip@2.0.1:
+    resolution: {integrity: sha512-GDhU9ntwuKyGXdZBUgTIe+vXnWj0fppUEtMDL0+idd5Sta8TGpHssn/eusA9mrPr9qNDym6SxAYZjNvCn/9RBg==}
+    engines: {node: '>= 10.17.0'}
+    hasBin: true
+    dependencies:
+      debug: 4.3.4
+      get-stream: 5.2.0
+      yauzl: 2.10.0
+    optionalDependencies:
+      '@types/yauzl': 2.10.0
+    transitivePeerDependencies:
+      - supports-color
+    dev: true
+
   /fast-deep-equal@3.1.3:
     resolution: {integrity: sha512-f3qQ9oQy9j2AhBe/H9VC91wLmKBCCU/gDOnKNAYG5hswO7BLKj09Hc5HYNz9cGI++xlpDCIgDaitVs03ATR84Q==}
     dev: true
@@ -6682,6 +6883,12 @@ packages:
     resolution: {integrity: sha512-p5161BqbuCaSnB8jIbzQHOlpgsPmK5rJVDfDKO91Axs5NC1uu3HRQm6wt9cd9/+GtQQIO53JdGXXoyDpTAsgYA==}
     dependencies:
       bser: 2.1.1
+    dev: true
+
+  /fd-slicer@1.1.0:
+    resolution: {integrity: sha512-cE1qsB/VwyQozZ+q1dGxR8LBYNZeofhEdUNGSMbQD3Gw2lAzX9Zb3uIU6Ebc/Fmyjo9AWWfnn0AUCHqtevs/8g==}
+    dependencies:
+      pend: 1.2.0
     dev: true
 
   /figures@2.0.0:
@@ -6903,6 +7110,10 @@ packages:
 
   /from@0.1.7:
     resolution: {integrity: sha512-twe20eF1OxVxp/ML/kq2p1uc6KvFK/+vs8WjEbeKmV2He22MKm7YF2ANIt+EOqhJ5L3K/SuuPhk0hWQDjOM23g==}
+    dev: true
+
+  /fs-constants@1.0.0:
+    resolution: {integrity: sha512-y6OAwoSIf7FyjMIv94u+b5rdheZEjzR63GTyZJm5qh4Bi+2YgwLCcI/fPFZkL5PSixOt6ZNKm+w+Hfp/Bciwow==}
     dev: true
 
   /fs-extra@0.24.0:
@@ -7532,6 +7743,17 @@ packages:
     resolution: {integrity: sha512-SGeBX54F94Wgu5RH3X5jsDtf4eHyRogWX1XGT3b4HuW3tQPM4AaBzoUji/4AAJNXCEOWZ5O0DgZmJw1947gD5Q==}
     dev: true
 
+  /http-proxy-agent@5.0.0:
+    resolution: {integrity: sha512-n2hY8YdoRE1i7r6M0w9DIw5GgZN0G25P8zLCRQ8rjXtTU3vsNFBI/vWK/UIeE6g5MUUz6avwAPXmL6Fy9D/90w==}
+    engines: {node: '>= 6'}
+    dependencies:
+      '@tootallnate/once': 2.0.0
+      agent-base: 6.0.2
+      debug: 4.3.4
+    transitivePeerDependencies:
+      - supports-color
+    dev: true
+
   /http-proxy@1.18.1:
     resolution: {integrity: sha512-7mz/721AbnJwIVbnaSv1Cz3Am0ZLT/UBwkC92VlxhXv/k/BBQfM2fXElQNC27BVGr0uwUpplYPQM9LnaBMR5NQ==}
     engines: {node: '>=8.0.0'}
@@ -8066,6 +8288,11 @@ packages:
       '@pkgjs/parseargs': 0.11.0
     dev: true
 
+  /js-reporters@2.1.0:
+    resolution: {integrity: sha512-Q4GcEcPSb6ovhqp91claM3WPbSntQxbIn+3JiJgEXturys2ttWgs31VC60Yja+2unpNOH2A2qyjWFU2thCQ8sg==}
+    engines: {node: '>=10'}
+    dev: false
+
   /js-sdsl@4.4.0:
     resolution: {integrity: sha512-FfVSdx6pJ41Oa+CF7RDaFmTnCaFhua+SNYQX74riGOpl96x+2jQCqEfQ2bnXu/5DPCqlRuiqyvTJM0Qjz26IVg==}
     dev: true
@@ -8082,6 +8309,7 @@ packages:
 
   /js-yaml@3.14.1:
     resolution: {integrity: sha512-okMH7OXXJ7YrN9Ok3/SXrnu4iX9yOk+25nqX4imS2npuvTYDmo/QEZoqwZkYaIDk3jVvBOTOIEgEhaLOynBS9g==}
+    hasBin: true
     dependencies:
       argparse: 1.0.10
       esprima: 4.0.1
@@ -8772,12 +9000,20 @@ packages:
     engines: {node: '>=8'}
     dev: true
 
+  /mitt@3.0.0:
+    resolution: {integrity: sha512-7dX2/10ITVyqh4aOSVI9gdape+t9l2/8QxHrFmUXu4EEUpdlxl6RudZUPZoc+zuY2hk1j7XxVroIVIan/pD/SQ==}
+    dev: true
+
   /mixin-deep@1.3.2:
     resolution: {integrity: sha512-WRoDn//mXBiJ1H40rqa3vH0toePwSsGb45iInWlTySa+Uu4k3tYUSxa2v1KqAiLtvlrSzaExqS1gtk96A9zvEA==}
     engines: {node: '>=0.10.0'}
     dependencies:
       for-in: 1.0.2
       is-extendable: 1.0.1
+    dev: true
+
+  /mkdirp-classic@0.5.3:
+    resolution: {integrity: sha512-gKLcREMhtuZRwRAfqP3RFW+TK4JqApVBtOIftVgjuABpAtpxhPGaDcfvbhNvD0B8iD1oUr/txX35NjcaY6Ns/A==}
     dev: true
 
   /mkdirp@0.5.6:
@@ -8923,6 +9159,18 @@ packages:
 
   /nice-try@1.0.5:
     resolution: {integrity: sha512-1nh45deeb5olNY7eX82BkPO7SSxR5SSYJiPTrTdFUVYwAl8CKMA5N9PjTYkHiRjisVcxcQ1HXdLhx2qxxJzLNQ==}
+    dev: true
+
+  /node-fetch@2.6.7:
+    resolution: {integrity: sha512-ZjMPFEfVx5j+y2yF35Kzx5sF7kDzxuDj6ziH4FFbOp87zKDZNx8yExJIb05OGF4Nlt9IHFIMBkRl41VdvcNdbQ==}
+    engines: {node: 4.x || >=6.0.0}
+    peerDependencies:
+      encoding: ^0.1.0
+    peerDependenciesMeta:
+      encoding:
+        optional: true
+    dependencies:
+      whatwg-url: 5.0.0
     dev: true
 
   /node-int64@0.4.0:
@@ -9426,6 +9674,10 @@ packages:
       through: 2.3.8
     dev: true
 
+  /pend@1.2.0:
+    resolution: {integrity: sha512-F3asv42UuXchdzt+xXqfW1OGlVBe+mxa2mqI0pg5yAHZPvFmY3Y6drSf/GQ1A86WgWEN9Kzh/WrgKa6iGcHXLg==}
+    dev: true
+
   /picocolors@1.0.0:
     resolution: {integrity: sha512-1fygroTLlHu66zi26VoTDv8yRgm0Fccecssto+MhsZ0D/DGW2sm8E8AjW7NU5VVTRt5GxbeZ5qBuJr+HyLYkjQ==}
 
@@ -9534,6 +9786,11 @@ packages:
       node-modules-path: 1.0.2
     dev: true
 
+  /progress@2.0.3:
+    resolution: {integrity: sha512-7PiHtLll5LdnKIMw100I+8xJXR5gW2QwWYkT6iJva0bXitZKa/XMrSbdmg3r2Xnaidz9Qumd0VPaMrZlF9V9sA==}
+    engines: {node: '>=0.4.0'}
+    dev: true
+
   /promise-map-series@0.2.3:
     resolution: {integrity: sha512-wx9Chrutvqu1N/NHzTayZjE1BgIwt6SJykQoCOic4IZ9yUDjKyVYrpLa/4YCNsV61eRENfs29hrEquVuB13Zlw==}
     dependencies:
@@ -9558,6 +9815,10 @@ packages:
       ipaddr.js: 1.9.1
     dev: true
 
+  /proxy-from-env@1.1.0:
+    resolution: {integrity: sha512-D+zkORCbA9f1tdWRK0RaCR3GPv50cMxcrz4X8k5LTSUD1Dkw47mKJEZQNunItRTkWwgtaUSo1RVFRIG9ZXiFYg==}
+    dev: true
+
   /ps-tree@1.2.0:
     resolution: {integrity: sha512-0VnamPPYHl4uaU/nSFeZZpR21QAWRz+sRv4iW9+v/GS/J5U5iZB5BNN6J0RMoOvdx2gWM2+ZFMIm58q24e4UYA==}
     engines: {node: '>= 0.10'}
@@ -9575,6 +9836,44 @@ packages:
   /punycode@2.3.0:
     resolution: {integrity: sha512-rRV+zQD8tVFys26lAGR9WUuS4iUAngJScM+ZRSKtvl5tKeZ2t5bvdNFdNHBW9FWR4guGHlgmsZ1G7BSm2wTbuA==}
     engines: {node: '>=6'}
+    dev: true
+
+  /puppeteer-core@20.1.2(typescript@5.0.4):
+    resolution: {integrity: sha512-S1BLte+jVC/ugZkNoxFW9Fvbyr30CKZ0IIumf98FFqLh06Vuc21fddsr34botKtz27T81pqkpDYXNXYomA01dg==}
+    engines: {node: '>=16.0.0'}
+    peerDependencies:
+      typescript: '>= 4.7.4 || 5'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+    dependencies:
+      '@puppeteer/browsers': 1.1.0(typescript@5.0.4)
+      chromium-bidi: 0.4.7(devtools-protocol@0.0.1120988)
+      cross-fetch: 3.1.5
+      debug: 4.3.4
+      devtools-protocol: 0.0.1120988
+      typescript: 5.0.4
+      ws: 8.13.0
+    transitivePeerDependencies:
+      - bufferutil
+      - encoding
+      - supports-color
+      - utf-8-validate
+    dev: true
+
+  /puppeteer@20.1.2(typescript@5.0.4):
+    resolution: {integrity: sha512-QYDp+iVMP30TwlkXFOocON9qR3Nac5ez7PdXbY90mfuEgZb9vf3/OXL2vHprxwPtb2hgD4AxXvLZhEIqfD2y8Q==}
+    requiresBuild: true
+    dependencies:
+      '@puppeteer/browsers': 1.1.0(typescript@5.0.4)
+      cosmiconfig: 8.1.3
+      puppeteer-core: 20.1.2(typescript@5.0.4)
+    transitivePeerDependencies:
+      - bufferutil
+      - encoding
+      - supports-color
+      - typescript
+      - utf-8-validate
     dev: true
 
   /qs@6.11.0:
@@ -10713,6 +11012,26 @@ packages:
     engines: {node: '>=6'}
     dev: true
 
+  /tar-fs@2.1.1:
+    resolution: {integrity: sha512-V0r2Y9scmbDRLCNex/+hYzvp/zyYjvFbHPNgVTKfQvVrb6guiE/fxP+XblDNR011utopbkex2nM4dHNV6GDsng==}
+    dependencies:
+      chownr: 1.1.4
+      mkdirp-classic: 0.5.3
+      pump: 3.0.0
+      tar-stream: 2.2.0
+    dev: true
+
+  /tar-stream@2.2.0:
+    resolution: {integrity: sha512-ujeqbceABgwMZxEJnk2HDY2DlnUZ+9oEcb1KzTVfYHio0UE6dG71n60d8D2I4qNvleWrrXpmjpt7vZeF1LnMZQ==}
+    engines: {node: '>=6'}
+    dependencies:
+      bl: 4.1.0
+      end-of-stream: 1.4.4
+      fs-constants: 1.0.0
+      inherits: 2.0.4
+      readable-stream: 3.6.2
+    dev: true
+
   /temp-fs@0.9.9:
     resolution: {integrity: sha512-WfecDCR1xC9b0nsrzSaxPf3ZuWeWLUWblW4vlDQAa1biQaKHiImHnJfeQocQe/hXKMcolRzgkcVX/7kK4zoWbw==}
     engines: {node: '>=0.8.0'}
@@ -11012,6 +11331,10 @@ packages:
     resolution: {integrity: sha512-y/mWCZinnvxjTKYhJ+pYxwD0mRLVvOtdS2Awbgxln6iEnt4rk0yBxeSBHkGJcPucRiG0e55mwWp+g/05rsrd6w==}
     dev: true
 
+  /tr46@0.0.3:
+    resolution: {integrity: sha512-N3WMsuqV66lT30CrXNbEjx4GEwlow3v6rr4mCcv6prnfwhS01rkgyFdjPNBYd9br7LpXV1+Emh01fHnq2Gdgrw==}
+    dev: true
+
   /tree-sync@1.4.0:
     resolution: {integrity: sha512-YvYllqh3qrR5TAYZZTXdspnIhlKAYezPYw11ntmweoceu4VK+keN356phHRIIo1d+RDmLpHZrUlmxga2gc9kSQ==}
     dependencies:
@@ -11151,6 +11474,13 @@ packages:
       has-bigints: 1.0.2
       has-symbols: 1.0.3
       which-boxed-primitive: 1.0.2
+    dev: true
+
+  /unbzip2-stream@1.4.3:
+    resolution: {integrity: sha512-mlExGW4w71ebDJviH16lQLtZS32VKqsSfk80GCfUlwT/4/hNRFsoscrF/c++9xinkMzECL1uL9DDwXqFWkruPg==}
+    dependencies:
+      buffer: 5.7.1
+      through: 2.3.8
     dev: true
 
   /underscore.string@3.3.6:
@@ -11405,6 +11735,10 @@ packages:
       defaults: 1.0.4
     dev: true
 
+  /webidl-conversions@3.0.1:
+    resolution: {integrity: sha512-2JAn3z8AR6rjK8Sm8orRC0h/bcl/DqL7tRPdGZ4I1CjdF+EaMLmYxBHyXuKL849eucPFhvBoxMsflfOb8kxaeQ==}
+    dev: true
+
   /websocket-driver@0.7.4:
     resolution: {integrity: sha512-b17KeDIQVjvb0ssuSDF2cYXSg2iztliJ4B9WdsuB6J952qCPKmnVq4DyW5motImXHDC1cBT/1UezrJVsKw5zjg==}
     engines: {node: '>=0.8.0'}
@@ -11417,6 +11751,13 @@ packages:
   /websocket-extensions@0.1.4:
     resolution: {integrity: sha512-OqedPIGOfsDlo31UNwYbCFMSaO9m9G/0faIHj5/dZFDMFqPTcx6UwqyOy3COEaEOg/9VsGIpdqn62W5KhoKSpg==}
     engines: {node: '>=0.8.0'}
+    dev: true
+
+  /whatwg-url@5.0.0:
+    resolution: {integrity: sha512-saE57nupxk6v3HY35+jzBwYa0rKSy0XR8JSxZPwgLr7ys0IBzhGviA1/TUGJLmSVqs8pb9AnvICXEuOHLprYTw==}
+    dependencies:
+      tr46: 0.0.3
+      webidl-conversions: 3.0.1
     dev: true
 
   /which-boxed-primitive@1.0.2:
@@ -11557,6 +11898,19 @@ packages:
         optional: true
     dev: true
 
+  /ws@8.13.0:
+    resolution: {integrity: sha512-x9vcZYTrFPC7aSIbj7sRCYo7L/Xb8Iy+pW0ng0wt2vCJv7M9HOMy0UoN3rr+IFC7hb7vXoqS+P9ktyLLLhO+LA==}
+    engines: {node: '>=10.0.0'}
+    peerDependencies:
+      bufferutil: ^4.0.1
+      utf-8-validate: '>=5.0.2'
+    peerDependenciesMeta:
+      bufferutil:
+        optional: true
+      utf-8-validate:
+        optional: true
+    dev: true
+
   /xdg-basedir@4.0.0:
     resolution: {integrity: sha512-PSNhEJDejZYV7h50BohL09Er9VaIefr2LMAf3OEmpCkjOi34eYyQYAXUTjEQtZJTKcF0E2UKTh+osDLsgNim9Q==}
     engines: {node: '>=8'}
@@ -11638,6 +11992,19 @@ packages:
       yargs-parser: 13.1.2
     dev: true
 
+  /yargs@17.7.1:
+    resolution: {integrity: sha512-cwiTb08Xuv5fqF4AovYacTFNxk62th7LKJ6BL9IGUpTJrWoU7/7WdQGTP2SjKf1dUNBGzDd28p/Yfs/GI6JrLw==}
+    engines: {node: '>=12'}
+    dependencies:
+      cliui: 8.0.1
+      escalade: 3.1.1
+      get-caller-file: 2.0.5
+      require-directory: 2.1.1
+      string-width: 4.2.3
+      y18n: 5.0.8
+      yargs-parser: 21.1.1
+    dev: true
+
   /yargs@17.7.2:
     resolution: {integrity: sha512-7dSzzRQ++CKnNI/krKnYRV7JKKPUXMEh61soaHKg9mrWEhzFWhFnxPxGl+69cD1Ou63C13NUPCnmIcrvqCuM6w==}
     engines: {node: '>=12'}
@@ -11649,6 +12016,13 @@ packages:
       string-width: 4.2.3
       y18n: 5.0.8
       yargs-parser: 21.1.1
+    dev: true
+
+  /yauzl@2.10.0:
+    resolution: {integrity: sha512-p4a9I6X6nu6IhoGmBqAcbJy1mlC4j27vEPZX9F4L4/vZT3Lyq1VkFHw/V/PUcB9Buo+DG3iHkT0x3Qya58zc3g==}
+    dependencies:
+      buffer-crc32: 0.2.13
+      fd-slicer: 1.1.0
     dev: true
 
   /yocto-queue@0.1.0:

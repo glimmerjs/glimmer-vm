@@ -24,7 +24,7 @@ import {
   setInternalHelperManager,
   setInternalModifierManager,
   setModifierManager,
-} from '..';
+} from '@glimmer/manager';
 
 const { module, test } = QUnit;
 

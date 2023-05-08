@@ -10,7 +10,7 @@ import {
   isDestroying,
   registerDestructor,
   unregisterDestructor,
-} from '..';
+} from '@glimmer/destroyable';
 
 const { module, test } = QUnit;
 

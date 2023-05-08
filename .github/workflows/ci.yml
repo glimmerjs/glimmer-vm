@@ -9,12 +9,12 @@ on:
       - 'v*'
   pull_request: {}
   schedule:
-    - cron:  '0 3 * * *' # daily, at 3am
+    - cron: '0 3 * * *' # daily, at 3am
 
 jobs:
   install_dependencies:
-    name: "Install Dependencies"
-    runs-on: "ubuntu-latest"
+    name: 'Install Dependencies'
+    runs-on: 'ubuntu-latest'
 
     steps:
       - uses: actions/checkout@v3
@@ -23,7 +23,7 @@ jobs:
   lint:
     name: Linting
     runs-on: ubuntu-latest
-    needs: ["install_dependencies"]
+    needs: ['install_dependencies']
     timeout-minutes: 10
 
     steps:
@@ -34,30 +34,29 @@ jobs:
   test-chrome:
     name: Chrome
     runs-on: ubuntu-latest
-    needs: ["install_dependencies"]
+    needs: ['install_dependencies']
     timeout-minutes: 10
 
     steps:
-    - uses: actions/checkout@v3
-    - uses: NullVoxPopuli/action-setup-pnpm@v2
-    - run: pnpm test
-
+      - uses: actions/checkout@v3
+      - uses: NullVoxPopuli/action-setup-pnpm@v2
+      - run: pnpm test
 
   test-node:
     name: Node
     runs-on: ubuntu-latest
-    needs: ["install_dependencies"]
+    needs: ['install_dependencies']
     timeout-minutes: 10
 
     steps:
-    - uses: actions/checkout@v3
-    - uses: NullVoxPopuli/action-setup-pnpm@v2
-    - run: pnpm test
+      - uses: actions/checkout@v3
+      - uses: NullVoxPopuli/action-setup-pnpm@v2
+      - run: pnpm test
 
   test-browserstack:
     name: Browserstack
     runs-on: ubuntu-latest
-    needs: ["install_dependencies"]
+    needs: ['install_dependencies']
     timeout-minutes: 20
 
     env:
@@ -75,7 +74,7 @@ jobs:
   test-types:
     name: Types
     runs-on: ubuntu-latest
-    needs: ["install_dependencies"]
+    needs: ['install_dependencies']
     timeout-minutes: 10
 
     steps:
@@ -87,7 +86,7 @@ jobs:
   floating-dependencies:
     name: Floating Dependencies
     runs-on: ubuntu-latest
-    needs: ["install_dependencies"]
+    needs: ['install_dependencies']
     timeout-minutes: 10
 
     steps:

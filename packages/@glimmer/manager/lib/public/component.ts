@@ -20,7 +20,7 @@ import { createConstRef, type Reference } from '@glimmer/reference';
 
 import { argsProxyFor } from '../util/args-proxy';
 import { buildCapabilities, FROM_CAPABILITIES } from '../util/capabilities';
-import { type ManagerFactory } from './index';
+import type { ManagerFactory } from './api';
 
 const CAPABILITIES = {
   dynamicLayout: false,

@@ -6,8 +6,5 @@
     "@glimmer/util": "workspace:^",
     "@glimmer/interfaces": "workspace:^"
   },
-  "typings": "index.ts",
-  "devDependencies": {
-    "@glimmer/local-debug-flags": "workspace:^"
-  }
+  "types": "index.ts"
 }

@@ -1,9 +1,27 @@
+import reporters from 'js-reporters';
+
 export async function setupQunit() {
   const qunit = await import('qunit');
   await import('qunit/qunit/qunit.css');
 
-  // @ts-expect-error
-  globalThis['QUnit'] = qunit;
+  const runner = reporters.autoRegister();
+  const tap = qunit.reporters.tap;
+  tap.init(runner, { log: console.info });
+  console.log({ tap, runner });
+
+  QUnit.config.urlConfig.push({
+    id: 'smoke_tests',
+    label: 'Enable Smoke Tests',
+    tooltip: 'Enable Smoke Tests',
+  });
+
+  QUnit.config.urlConfig.push({
+    id: 'ci',
+    label: 'Enable CI Mode',
+    tooltip: 'CI mode makes tests run faster by sacrificing UI responsiveness',
+  });
+
+  await Promise.resolve();
 
   const qunitDiv = document.createElement('div');
   qunitDiv.id = 'qunit';
@@ -12,24 +30,43 @@ export async function setupQunit() {
 
   document.body.append(qunitDiv, qunitFixtureDiv);
 
-  // since all of our tests are synchronous, the QUnit
-  // UI never has a chance to rerender / update. This
-  // leads to a very long "white screen" when running
-  // the tests
-  //
-  // this adds a very small amount of async, just to allow
-  // the QUnit UI to rerender once per module completed
+  console.log(`[HARNESS] ci=${hasFlag('ci')}`);
 
-  const pause = () =>
-    new Promise<void>((res) => {
-      setTimeout(res, 10);
+  if (!hasFlag('ci')) {
+    // since all of our tests are synchronous, the QUnit
+    // UI never has a chance to rerender / update. This
+    // leads to a very long "white screen" when running
+    // the tests
+    //
+    // this adds a very small amount of async, just to allow
+    // the QUnit UI to rerender once per module completed
+    const pause = () =>
+      new Promise<void>((res) => {
+        setTimeout(res, 1);
+      });
+
+    let start = performance.now();
+    qunit.testDone(async () => {
+      let gap = performance.now() - start;
+      if (gap > 200) {
+        await pause();
+        start = performance.now();
+      }
     });
 
-  let start = performance.now();
-  qunit.testDone(async () => {
-    let gap = performance.now() - start;
-    if (gap > 100) await pause();
+    qunit.moduleDone(pause);
+  }
+
+  qunit.done(() => {
+    console.log('[HARNESS] done');
   });
 
-  qunit.moduleDone(pause);
+  return {
+    smokeTest: hasFlag('smoke_test'),
+  };
+}
+
+function hasFlag(flag: string): boolean {
+  let location = typeof window !== 'undefined' && window.location;
+  return location && new RegExp(`[?&]${flag}`).test(location.search);
 }

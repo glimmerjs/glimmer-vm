@@ -6,3 +6,4 @@ packages:
   - 'packages/@glimmer/*'
   - 'packages/@glimmer/*/test'
   - 'packages/build-utils/@glimmer/*'
+  - 'packages/@types/*'

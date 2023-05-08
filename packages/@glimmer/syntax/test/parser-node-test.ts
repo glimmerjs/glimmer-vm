@@ -1,6 +1,6 @@
 import { type Dict } from '@glimmer/interfaces';
 
-import { syntaxErrorFor } from '../../integration-tests';
+import { syntaxErrorFor } from '@glimmer/test-utils';
 import { type ASTv1, builders as b, preprocess as parse } from '..';
 import { astEqual } from './support';
 

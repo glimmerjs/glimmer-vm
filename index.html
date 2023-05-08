@@ -16,12 +16,19 @@
   </script>
   <script type="module">
     import { setupQunit } from "@glimmer/integration-tests";
-    await setupQunit();
+    const { smokeTest } = await setupQunit();
 
     const packages =  await import.meta.glob("./packages/@glimmer/*/test/**/*-test.ts");
+    let smokeTestFile = './packages/@glimmer/integration-tests/test/smoke-test.ts';
 
     // evaluate the tests before starting QUnit
-    for (const pkg of Object.values(packages)) await pkg();
+    for (const [name, pkg] of Object.entries(packages)) {
+      if (name === smokeTestFile && !smokeTest) {
+        continue;
+      }
+
+      await pkg();
+    }
 
     QUnit.start();
 

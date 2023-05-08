@@ -8,7 +8,7 @@ import {
   type OpaqueIterationItem,
   type Reference,
   valueForRef,
-} from '..';
+} from '@glimmer/reference';
 import objectValues from './utils/platform';
 import { module, test } from './utils/qunit';
 import { TestContext } from './utils/template';

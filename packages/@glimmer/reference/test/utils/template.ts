@@ -1,4 +1,4 @@
-import { type IteratorDelegate } from '../..';
+import { type IteratorDelegate } from '@glimmer/reference';
 import objectValues from './platform';
 
 abstract class BoundedIterator implements IteratorDelegate {

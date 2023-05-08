@@ -1,7 +1,7 @@
 import { dict, unwrap } from '@glimmer/util';
 import { consumeTag, createTag, dirtyTag } from '@glimmer/validator';
 
-import { type GlobalContext, testOverrideGlobalContext } from '../../global-context';
+import { type GlobalContext, testOverrideGlobalContext } from '@glimmer/global-context';
 import {
   childRefFor,
   createComputeRef,

@@ -7,7 +7,7 @@ import {
   preprocess,
   type Syntax,
   Walker,
-} from '..';
+} from '@glimmer/syntax';
 
 const { test } = QUnit;
 

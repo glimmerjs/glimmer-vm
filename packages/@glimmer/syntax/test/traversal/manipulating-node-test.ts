@@ -1,4 +1,4 @@
-import { guardArray } from '@glimmer/integration-tests';
+import { guardArray } from '@glimmer/test-utils';
 
 import {
   type AST,
