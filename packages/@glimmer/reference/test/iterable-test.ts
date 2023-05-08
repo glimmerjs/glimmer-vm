@@ -1,7 +1,4 @@
 import { type GlobalContext, testOverrideGlobalContext } from '@glimmer/global-context';
-import { symbol } from '@glimmer/util';
-import { consumeTag, VOLATILE_TAG } from '@glimmer/validator';
-
 import {
   createComputeRef,
   createIteratorRef,
@@ -9,6 +6,9 @@ import {
   type Reference,
   valueForRef,
 } from '@glimmer/reference';
+import { symbol } from '@glimmer/util';
+import { consumeTag, VOLATILE_TAG } from '@glimmer/validator';
+
 import objectValues from './utils/platform';
 import { module, test } from './utils/qunit';
 import { TestContext } from './utils/template';

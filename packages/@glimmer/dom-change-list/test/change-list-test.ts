@@ -1,3 +1,4 @@
+import { DOMTreeConstruction, type NodeTokensImpl } from '@glimmer/dom-change-list';
 import {
   type Namespace,
   type SimpleDocument,
@@ -7,7 +8,6 @@ import {
 import { NS_SVG, NS_XLINK } from '@glimmer/util';
 import createDocument from '@simple-dom/document';
 
-import { DOMTreeConstruction, type NodeTokensImpl } from '@glimmer/dom-change-list';
 import { Builder as TestBuilder, toHTML, toHTMLNS } from './support';
 import { module, test, TestCase } from './test-case';
 

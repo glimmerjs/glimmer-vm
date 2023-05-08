@@ -1,3 +1,4 @@
+import { type DOMTreeConstruction, type TreeBuilder } from '@glimmer/dom-change-list';
 import {
   type Namespace,
   type NodeTokens,
@@ -10,8 +11,6 @@ import {
 import { COMMENT_NODE, ELEMENT_NODE, NS_SVG, NS_XLINK, TEXT_NODE } from '@glimmer/util';
 import Serializer from '@simple-dom/serializer';
 import voidMap from '@simple-dom/void-map';
-
-import { type DOMTreeConstruction, type TreeBuilder } from '@glimmer/dom-change-list';
 
 export const XLINK = NS_XLINK;
 

@@ -9,6 +9,8 @@
 //                 Timo Tijhof <https://github.com/Krinkle>
 // Definitions: https://github.com/DefinitelyTyped/DefinitelyTyped
 
+/* eslint-disable @typescript-eslint/naming-convention */
+
 declare global {
   interface Assert {
     /**
@@ -372,6 +374,7 @@ declare global {
 
   interface Reporter {
     init(
+      /* eslint-disable @typescript-eslint/consistent-type-imports */
       runner: import('@types/js-reporters').Runner,
       options: { log: (...args: unknown[]) => void }
     ): void;

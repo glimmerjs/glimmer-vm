@@ -1,41 +1,22 @@
 // Place your settings in this file to overwrite default and user settings.
 {
-  "[ignore]": {
+  "[ignore][properties][shellscript]": {
     "editor.defaultFormatter": "foxundermoon.shell-format"
   },
-  "[json]": {
+  "[json][jsonc][markdown][yaml]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
-  },
-  "[jsonc]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
-  },
-  "[markdown]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
-  },
-  "[properties]": {
-    "editor.defaultFormatter": "foxundermoon.shell-format"
-  },
-  "[shellscript]": {
-    "editor.defaultFormatter": "foxundermoon.shell-format"
   },
   "[javascript][typescript]": {
     "editor.formatOnSave": false,
     "editor.defaultFormatter": "esbenp.prettier-vscode",
-    "editor.codeActionsOnSave": ["source.formatDocument"]
+    "editor.codeActionsOnSave": ["source.formatDocument", "source.fixAll.eslint"]
   },
-  "[yaml]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
-  },
-  "editor.defaultFormatter": "dbaeumer.vscode-eslint",
   "editor.formatOnSave": true,
-  "editor.insertSpaces": true,
-  "editor.renderWhitespace": "boundary",
-  "editor.tabSize": 2,
   "eslint.enable": true,
-  "eslint.format.enable": true,
+  "eslint.packageManager": "npm",
   "eslint.workingDirectories": [
     {
-      "mode": "auto"
+      "mode": "location"
     }
   ],
   "explorer.excludeGitIgnore": true,

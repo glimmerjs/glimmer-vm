@@ -1,12 +1,13 @@
 // node files
 {
+  "root": false,
   "env": {
     "es6": true,
     "node": true
   },
   "parserOptions": {
     "ecmaVersion": "latest",
-    "project": ["tsconfig.build.json"]
+    "project": ["build/tsconfig.json"]
   },
 
   "rules": {

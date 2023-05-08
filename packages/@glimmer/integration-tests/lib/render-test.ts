@@ -12,6 +12,7 @@ import {
 } from '@glimmer/interfaces';
 import { inTransaction } from '@glimmer/runtime';
 import { type ASTPluginBuilder } from '@glimmer/syntax';
+import type { NTuple } from '@glimmer/test-utils';
 import { assert, clearElement, dict, expect, isPresent } from '@glimmer/util';
 import { dirtyTagFor } from '@glimmer/validator';
 
@@ -28,7 +29,6 @@ import { type UserHelper } from './helpers';
 import { type TestModifierConstructor } from './modifiers';
 import type RenderDelegate from './render-delegate';
 import { equalTokens, isServerMarker, type NodesSnapshot, normalizeSnapshot } from './snapshot';
-import type { NTuple } from '@glimmer/test-utils';
 
 type Expand<T> = T extends infer O ? { [K in keyof O]: O[K] } : never;
 type Present<T> = Exclude<T, null | undefined>;

@@ -2,13 +2,6 @@
 /* eslint-disable qunit/no-test-expect-argument */
 
 import {
-  type SerializedTemplate,
-  type SerializedTemplateBlock,
-  type SerializedTemplateWithLazyBlock,
-} from '@glimmer/interfaces';
-import { assign, strip } from '@glimmer/util';
-
-import {
   Builder,
   type BuilderStatement,
   buildStatements,
@@ -20,6 +13,12 @@ import {
   unicode,
   WireFormatDebugger,
 } from '@glimmer/compiler';
+import {
+  type SerializedTemplate,
+  type SerializedTemplateBlock,
+  type SerializedTemplateWithLazyBlock,
+} from '@glimmer/interfaces';
+import { assign, strip } from '@glimmer/util';
 
 QUnit.module('@glimmer/compiler - compiling source to wire format');
 

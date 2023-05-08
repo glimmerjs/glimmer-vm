@@ -5,9 +5,6 @@ import {
   type InternalHelperManager,
   type ModifierManager,
 } from '@glimmer/interfaces';
-import { UNDEFINED_REFERENCE } from '@glimmer/reference';
-import { createUpdatableTag } from '@glimmer/validator';
-
 import {
   componentCapabilities,
   CustomComponentManager,
@@ -25,6 +22,8 @@ import {
   setInternalModifierManager,
   setModifierManager,
 } from '@glimmer/manager';
+import { UNDEFINED_REFERENCE } from '@glimmer/reference';
+import { createUpdatableTag } from '@glimmer/validator';
 
 const { module, test } = QUnit;
 

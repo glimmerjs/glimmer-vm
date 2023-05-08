@@ -1,5 +1,3 @@
-import { expect } from '@glimmer/util';
-
 import {
   type AST,
   type ASTPluginBuilder,
@@ -8,6 +6,7 @@ import {
   type Syntax,
   Walker,
 } from '@glimmer/syntax';
+import { expect } from '@glimmer/util';
 
 const { test } = QUnit;
 

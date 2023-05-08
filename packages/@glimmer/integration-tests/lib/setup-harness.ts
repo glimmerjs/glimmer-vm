@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import reporters from 'js-reporters';
 
 export async function setupQunit() {
@@ -7,7 +8,6 @@ export async function setupQunit() {
   const runner = reporters.autoRegister();
   const tap = qunit.reporters.tap;
   tap.init(runner, { log: console.info });
-  console.log({ tap, runner });
 
   QUnit.config.urlConfig.push({
     id: 'smoke_tests',

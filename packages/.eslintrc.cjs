@@ -2,6 +2,7 @@ const { resolve } = require('path');
 
 /** @type {import("eslint").Linter.Config} */
 module.exports = {
+  root: false,
   overrides: [
     {
       files: ['*.ts'],
