@@ -1,12 +1,21 @@
 // @ts-check
 
 import child from 'child_process';
+import { resolve } from 'path';
 import puppeteer from 'puppeteer';
 
+const __root = new URL('..', import.meta.url).pathname;
+
+console.log('[ci] starting');
+
 await new Promise((fulfill) => {
-  const runvite = child.spawn('vite', ['--port', '60173', '--no-open'], {
-    stdio: 'pipe',
-  });
+  const runvite = child.spawn(
+    resolve(__root, 'node_modules', '.bin', 'vite'),
+    ['--port', '60173', '--no-open'],
+    {
+      stdio: 'pipe',
+    }
+  );
 
   process.on('exit', () => runvite.kill());
 
@@ -16,15 +25,23 @@ await new Promise((fulfill) => {
 
   runvite.stdout.on('data', (data) => {
     const chunk = String(data);
-    if (chunk.includes('Local: ')) {
+    console.log('stdout', chunk);
+    if (chunk.includes('Local') && chunk.includes('60173')) {
       fulfill();
     }
   });
+
+  console.log('[ci] spawning');
 });
 
+console.log('[ci] spawned');
+
 const browser = await puppeteer.launch({
-  headless: true,
+  headless: 'new',
+  args: ['--no-sandbox', '--disable-setuid-sandbox'],
 });
+
+console.log('[ci] puppeteer launched');
 
 // eslint-disable-next-line no-async-promise-executor
 await new Promise(async (fulfill) => {

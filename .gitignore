@@ -11,3 +11,4 @@ tmp/
 *.dot
 *.pdf
 instrumentation.*.json
+.cache
