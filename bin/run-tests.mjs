@@ -4,7 +4,7 @@ import child from 'child_process';
 import puppeteer from 'puppeteer';
 
 await new Promise((fulfill) => {
-  const runvite = child.spawn('vite', ['--port', '60173'], {
+  const runvite = child.spawn('vite', ['--port', '60173', '--no-open'], {
     stdio: 'pipe',
   });
 
