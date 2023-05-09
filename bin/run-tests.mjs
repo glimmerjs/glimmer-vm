@@ -2,7 +2,10 @@
 
 import child from 'child_process';
 import { resolve } from 'path';
-import puppeteer from 'puppeteer';
+import PCR from 'puppeteer-chromium-resolver';
+
+// eslint-disable-next-line new-cap
+const { puppeteer, executablePath } = await PCR({});
 
 const __root = new URL('..', import.meta.url).pathname;
 
@@ -38,6 +41,7 @@ console.log('[ci] spawned');
 
 const browser = await puppeteer.launch({
   headless: 'new',
+  executablePath,
   args: ['--no-sandbox', '--disable-setuid-sandbox'],
 });
 

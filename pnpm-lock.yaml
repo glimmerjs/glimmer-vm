@@ -170,6 +170,9 @@ importers:
       puppeteer:
         specifier: ^20.1.2
         version: 20.1.2(typescript@5.0.4)
+      puppeteer-chromium-resolver:
+        specifier: ^20.0.0
+        version: 20.0.0(typescript@5.0.4)
       qunit:
         specifier: ^2.19.4
         version: 2.19.4
@@ -3364,6 +3367,7 @@ packages:
   /@puppeteer/browsers@1.1.0(typescript@5.0.4):
     resolution: {integrity: sha512-+Nfk52G9cRAKq/V2LEaOlKIMsIuERSofk8hXEy6kMQtjg9Te1iuKymWOR+iKwwzj1RCkZU0fuOoSIclR839MNw==}
     engines: {node: '>=16.0.0'}
+    hasBin: true
     peerDependencies:
       typescript: '>= 4.7.4 || 5'
     peerDependenciesMeta:
@@ -5228,6 +5232,7 @@ packages:
 
   /color-support@1.1.3:
     resolution: {integrity: sha512-qiBjkpbMLO/HL68y+lh4q0/O1MZFj2RX6X/KmMa3+gJD3z+WwI1ZzDHysvqHGS3mP6mznPckpXmw1nI9cJjyRg==}
+    hasBin: true
     dev: true
 
   /colors@1.0.3:
@@ -5864,6 +5869,10 @@ packages:
     resolution: {integrity: sha512-WMwm9LhRUo+WUaRN+vRuETqG89IgZphVSNkdFgeb6sS/E4OrDIN7t48CAewSHXc6C8lefD8KKfr5vY61brQlow==}
     dev: true
 
+  /eight-colors@1.0.3:
+    resolution: {integrity: sha512-x6JCcDbcpZq78oWP5cFqhhM5kIBeGcGTKNkWzRcJnNgxfUKaj3EsWhFi0f4UQxhYhgtqPXVF++Q4hEd0ZX/taw==}
+    dev: true
+
   /electron-to-chromium@1.4.378:
     resolution: {integrity: sha512-RfCD26kGStl6+XalfX3DGgt3z2DNwJS5DKRHCpkPq5T/PqpZMPB1moSRXuK9xhkt/sF57LlpzJgNoYl7mO7Z6w==}
 
@@ -6266,6 +6275,7 @@ packages:
 
   /eslint-config-prettier@8.8.0(eslint@8.40.0):
     resolution: {integrity: sha512-wLbQiFre3tdGgpDv67NQKnJuTlcUVYHas3k+DZCc2U2BadthoEY4B7hLPvAxaqdyOGCzuLfii2fqGph10va7oA==}
+    hasBin: true
     peerDependencies:
       eslint: '>=7.0.0'
     dependencies:
@@ -6806,6 +6816,7 @@ packages:
   /extract-zip@2.0.1:
     resolution: {integrity: sha512-GDhU9ntwuKyGXdZBUgTIe+vXnWj0fppUEtMDL0+idd5Sta8TGpHssn/eusA9mrPr9qNDym6SxAYZjNvCn/9RBg==}
     engines: {node: '>= 10.17.0'}
+    hasBin: true
     dependencies:
       debug: 4.3.4
       get-stream: 5.2.0
@@ -7263,6 +7274,20 @@ packages:
       console-control-strings: 1.1.0
       has-unicode: 2.0.1
       signal-exit: 3.0.7
+      string-width: 4.2.3
+      strip-ansi: 6.0.1
+      wide-align: 1.1.5
+    dev: true
+
+  /gauge@5.0.1:
+    resolution: {integrity: sha512-CmykPMJGuNan/3S4kZOpvvPYSNqSHANiWnh9XcMU2pSjtBfF0XzZ2p1bFAxTbnFxyBuPxQYHhzwaoOmUdqzvxQ==}
+    engines: {node: ^14.17.0 || ^16.13.0 || >=18.0.0}
+    dependencies:
+      aproba: 2.0.0
+      color-support: 1.1.3
+      console-control-strings: 1.1.0
+      has-unicode: 2.0.1
+      signal-exit: 4.0.1
       string-width: 4.2.3
       strip-ansi: 6.0.1
       wide-align: 1.1.5
@@ -9825,6 +9850,22 @@ packages:
     engines: {node: '>=6'}
     dev: true
 
+  /puppeteer-chromium-resolver@20.0.0(typescript@5.0.4):
+    resolution: {integrity: sha512-c+laWfA6+CHxByGApB61k/mO50omzOM+HZ6phHN6vvdfCGeLKJUDJbbWlh5J2wfJZQu/nJGUntCQRjrkWbgSxQ==}
+    requiresBuild: true
+    dependencies:
+      '@puppeteer/browsers': 1.1.0(typescript@5.0.4)
+      eight-colors: 1.0.3
+      gauge: 5.0.1
+      puppeteer-core: 20.1.2(typescript@5.0.4)
+    transitivePeerDependencies:
+      - bufferutil
+      - encoding
+      - supports-color
+      - typescript
+      - utf-8-validate
+    dev: true
+
   /puppeteer-core@20.1.2(typescript@5.0.4):
     resolution: {integrity: sha512-S1BLte+jVC/ugZkNoxFW9Fvbyr30CKZ0IIumf98FFqLh06Vuc21fddsr34botKtz27T81pqkpDYXNXYomA01dg==}
     engines: {node: '>=16.0.0'}
@@ -11550,6 +11591,7 @@ packages:
 
   /update-browserslist-db@1.0.11(browserslist@4.21.5):
     resolution: {integrity: sha512-dCwEFf0/oT85M1fHBg4F0jtLwJrutGoHSQXCh7u4o2t1drG+c0a9Flnqww6XUKSfQMPpJBRjU8d4RXB09qtvaA==}
+    hasBin: true
     peerDependencies:
       browserslist: '>= 4.21.0'
     dependencies:
@@ -11622,6 +11664,7 @@ packages:
   /vite@4.3.5(@types/node@20.1.0):
     resolution: {integrity: sha512-0gEnL9wiRFxgz40o/i/eTBwm+NEbpUeTWhzKrZDSdKm6nplj+z4lKz8ANDgildxHm47Vg8EUia0aicKbawUVVA==}
     engines: {node: ^14.18.0 || >=16.0.0}
+    hasBin: true
     peerDependencies:
       '@types/node': '>= 14'
       less: '*'

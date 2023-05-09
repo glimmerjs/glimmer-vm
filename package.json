@@ -104,6 +104,7 @@
     "prettier": "^2.8.8",
     "preval.macro": "^5.0.0",
     "puppeteer": "^20.1.2",
+    "puppeteer-chromium-resolver": "^20.0.0",
     "qunit": "^2.19.4",
     "rimraf": "^5.0.0",
     "rollup": "^3.21.5",

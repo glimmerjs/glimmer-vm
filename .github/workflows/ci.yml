@@ -27,19 +27,28 @@ jobs:
     timeout-minutes: 10
 
     steps:
+      - uses: actions/checkout@v3
       - uses: NullVoxPopuli/action-setup-pnpm@v2
       - run: pnpm lint
 
   test-chrome:
     name: Chrome
     runs-on: ubuntu-latest
-    container:
-      image: ghcr.io/puppeteer/puppeteer:latest
     needs: ['install_dependencies']
     timeout-minutes: 10
 
     steps:
-      - uses: actions/checkout@v1
+      - name: install puppeteer libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -yq libgbm1 gconf-service libasound2 libatk1.0-0 libc6 \
+            libcups2 libdbus-1-3 libexpat1 libfontconfig1 libgcc1 libgconf-2-4 \
+            libgdk-pixbuf2.0-0 libglib2.0-0 libgtk-3-0 libnspr4 libpango-1.0-0 \
+            libpangocairo-1.0-0 libstdc++6 libx11-6 libx11-xcb1 libxcb1 libxcomposite1 \
+            libxcursor1 libxdamage1 libxext6 libxfixes3 libxi6 libxrandr2 libxrender1 \
+            libxss1 libxtst6 ca-certificates fonts-liberation libnss3 lsb-release \
+            xdg-utils wget libcairo2
+      - uses: actions/checkout@v3
       - uses: NullVoxPopuli/action-setup-pnpm@v2
       - run: pnpm test
 
