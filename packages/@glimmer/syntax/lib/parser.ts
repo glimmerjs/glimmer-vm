@@ -7,8 +7,6 @@ import {
 } from 'simple-html-tokenizer';
 
 import type * as src from './source/api';
-import { type SourcePosition } from './source/location';
-import { type Source } from './source/source';
 import type * as ASTv1 from './v1/api';
 import type * as HBS from './v1/handlebars-ast';
 
@@ -39,7 +37,7 @@ export interface Attribute {
 export abstract class Parser {
   protected elementStack: ASTv1.ParentNode[] = [];
   private lines: string[];
-  readonly source: Source;
+  readonly source: src.Source;
   public currentAttribute: Option<Attribute> = null;
   public currentNode: Option<
     Readonly<
@@ -52,7 +50,7 @@ export abstract class Parser {
   public tokenizer: EventedTokenizer;
 
   constructor(
-    source: Source,
+    source: src.Source,
     entityParser = new EntityParser(namedCharRefs),
     mode: 'precompile' | 'codemod' = 'precompile'
   ) {
@@ -66,7 +64,7 @@ export abstract class Parser {
     return this.source.offsetFor(line, column);
   }
 
-  pos({ line, column }: SourcePosition): src.SourceOffset {
+  pos({ line, column }: src.SourcePosition): src.SourceOffset {
     return this.source.offsetFor(line, column);
   }
 

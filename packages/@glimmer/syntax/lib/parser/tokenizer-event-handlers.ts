@@ -7,7 +7,6 @@ import print from '../generation/print';
 import { voidMap } from '../generation/printer';
 import { type Tag } from '../parser';
 import * as src from '../source/api';
-import { Source } from '../source/source';
 import { generateSyntaxError } from '../syntax-error';
 import traverse from '../traversal/traverse';
 import { type NodeVisitor } from '../traversal/visitor';
@@ -400,22 +399,22 @@ class CodemodEntityParser extends EntityParser {
 }
 
 export function preprocess(
-  input: string | Source | HBS.Program,
+  input: string | src.Source | HBS.Program,
   options: PreprocessOptions = {}
 ): ASTv1.Template {
   let mode = options.mode || 'precompile';
 
-  let source: Source;
+  let source: src.Source;
   let ast: HBS.Program;
   if (typeof input === 'string') {
-    source = new Source(input, options.meta?.moduleName);
+    source = new src.Source(input, options.meta?.moduleName);
 
     if (mode === 'codemod') {
       ast = parseWithoutProcessing(input, options.parseOptions) as HBS.Program;
     } else {
       ast = parse(input, options.parseOptions) as HBS.Program;
     }
-  } else if (input instanceof Source) {
+  } else if (input instanceof src.Source) {
     source = input;
 
     if (mode === 'codemod') {
@@ -424,7 +423,7 @@ export function preprocess(
       ast = parse(input.source, options.parseOptions) as HBS.Program;
     }
   } else {
-    source = new Source('', options.meta?.moduleName);
+    source = new src.Source('', options.meta?.moduleName);
     ast = input;
   }
 
