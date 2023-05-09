@@ -1,10 +1,10 @@
 {
-  "name": "@glimmer/local-debug-flags",
+  "name": "@glimmer-workspace/local-debug-flags",
   "version": "0.84.3",
   "repository": {
     "type": "git",
     "url": "https://github.com/glimmerjs/glimmer-vm.git",
-    "directory": "packages/@glimmer/local-debug-flags"
+    "directory": "packages/@glimmer-workspace/local-debug-flags"
   },
   "description": "Helpers for debugging during local development. These get stripped from published builds. This package should not be published.",
   "private": true,

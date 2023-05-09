@@ -3,11 +3,11 @@ module.exports = {
   root: false,
   overrides: [
     {
-      files: ['*.d.ts', '*.js'],
-      excludedFiles: ['*/node_modules'],
+      files: ['*.d.ts', '*.js', '*.ts'],
+      excludedFiles: ['node_modules', '*/node_modules'],
       parserOptions: {
         ecmaVersion: 'latest',
-        project: ['packages/build-utils/tsconfig.json'],
+        project: ['packages/@glimmer-workspace/tsconfig.json'],
       },
       extends: ['plugin:@typescript-eslint/recommended-requiring-type-checking'],
       rules: {

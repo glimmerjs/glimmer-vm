@@ -1,7 +1,7 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
 
-import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
 import { assertNever } from '@glimmer/util';
+import { LOCAL_DEBUG } from '@glimmer-workspace/local-debug-flags';
 
 import {
   BROKEN_LOCATION,

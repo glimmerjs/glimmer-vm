@@ -1,7 +1,7 @@
 import { debugSlice } from '@glimmer/debug';
 import { type HandleResult, type TemplateCompilationContext } from '@glimmer/interfaces';
-import { LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
 import { extractHandle } from '@glimmer/util';
+import { LOCAL_SHOULD_LOG } from '@glimmer-workspace/local-debug-flags';
 
 export let debugCompiler: (context: TemplateCompilationContext, handle: HandleResult) => void;
 

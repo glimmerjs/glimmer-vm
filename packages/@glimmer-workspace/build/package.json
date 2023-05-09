@@ -1,10 +1,13 @@
 {
   "private": true,
-  "name": "@glimmer/build-support",
+  "name": "@glimmer-workspace/build-support",
   "version": "1.0.0",
   "type": "module",
   "main": "index.js",
   "types": "index.d.ts",
+  "engines": {
+    "node": ">=16"
+  },
   "exports": {
     "default": "./index.js"
   },

@@ -1,4 +1,4 @@
-import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
+import { LOCAL_DEBUG } from '@glimmer-workspace/local-debug-flags';
 
 import { debugAssert as assert } from './assert';
 

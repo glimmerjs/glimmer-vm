@@ -6,5 +6,8 @@ packages:
   - 'lib/local-linker'
   - 'packages/@glimmer/*'
   - 'packages/@glimmer/*/test'
-  - 'packages/build-utils/@glimmer/*'
+  - 'packages/@glimmer-workspace/*'
+  - 'packages/@glimmer-workspace/*/test'
   - 'packages/@types/*'
+  - .yalc/*
+  - .yalc/@*/*

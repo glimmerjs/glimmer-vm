@@ -13,7 +13,7 @@
     "@glimmer/interfaces": "workspace:^"
   },
   "devDependencies": {
-    "@glimmer/local-debug-flags": "workspace:^",
+    "@glimmer-workspace/local-debug-flags": "workspace:^",
     "@types/node": "^20.1.0"
   }
 }

@@ -16,8 +16,8 @@ import {
   type SymbolTable,
   type WireFormat,
 } from '@glimmer/interfaces';
-import { LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
 import { EMPTY_ARRAY } from '@glimmer/util';
+import { LOCAL_SHOULD_LOG } from '@glimmer-workspace/local-debug-flags';
 
 import { debugCompiler } from './compiler';
 import { templateCompilationContext } from './opcode-builder/context';

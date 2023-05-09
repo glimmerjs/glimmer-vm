@@ -12,9 +12,9 @@ import {
 } from '@glimmer/interfaces';
 import { inTransaction } from '@glimmer/runtime';
 import { type ASTPluginBuilder } from '@glimmer/syntax';
-import type { NTuple } from '@glimmer/test-utils';
 import { assert, clearElement, dict, expect, isPresent } from '@glimmer/util';
 import { dirtyTagFor } from '@glimmer/validator';
+import type { NTuple } from '@glimmer-workspace/test-utils';
 
 import {
   type ComponentBlueprint,

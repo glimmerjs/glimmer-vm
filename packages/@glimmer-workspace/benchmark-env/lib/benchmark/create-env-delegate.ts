@@ -85,7 +85,9 @@ setGlobalContext({
     return null;
   },
 
-  warnIfStyleNotTrusted() {},
+  warnIfStyleNotTrusted() {
+    // noop
+  },
 
   scheduleDestroy<T extends Destroyable>(destroyable: T, destructor: Destructor<T>) {
     scheduledDestructors.push(() => destructor(destroyable));

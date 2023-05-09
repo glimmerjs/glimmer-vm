@@ -21,7 +21,6 @@ import {
   type UpdatingOpcode,
   type VM as PublicVM,
 } from '@glimmer/interfaces';
-import { LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
 import { type RuntimeOpImpl } from '@glimmer/program';
 import {
   createIteratorItemRef,
@@ -46,6 +45,7 @@ import {
   type Register,
   type SyscallRegister,
 } from '@glimmer/vm';
+import { LOCAL_SHOULD_LOG } from '@glimmer-workspace/local-debug-flags';
 
 import {
   BeginTrackFrameOpcode,

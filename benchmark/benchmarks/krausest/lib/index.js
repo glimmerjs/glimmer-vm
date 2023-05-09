@@ -1,4 +1,4 @@
-import { createBenchmark } from '@glimmer/benchmark-env';
+import { createBenchmark } from '@glimmer-workspace/benchmark-env';
 
 import Application from './components/Application';
 import ApplicationTemplate from './components/Application.hbs';

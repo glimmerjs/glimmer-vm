@@ -1,4 +1,4 @@
-import { Package } from '@glimmer/build-support';
+import { Package } from '@glimmer-workspace/build-support';
 import { execSync } from 'child_process';
 
 export default getPackages().flatMap((pkg) => Package.config(pkg.path));

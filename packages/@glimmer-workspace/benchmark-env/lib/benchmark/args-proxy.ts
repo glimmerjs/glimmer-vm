@@ -37,7 +37,7 @@ class ArgsProxy implements ProxyHandler<CapturedNamedArguments> {
     return typeof p === 'string' ? p in target : false;
   }
 
-  get(target: CapturedNamedArguments, p: PropertyKey): any {
+  get(target: CapturedNamedArguments, p: PropertyKey): unknown {
     if (typeof p === 'string' && p in target) {
       return valueForRef(target[p] as Reference);
     }

@@ -9,7 +9,8 @@ module.exports = function generateVmPlugins(options = {}) {
   return [
     [
       __loadPlugins
-        ? require('babel-plugin-debug-macros')
+        ? // eslint-disable-next-line @typescript-eslint/no-require-imports
+          require('babel-plugin-debug-macros')
         : require.resolve('babel-plugin-debug-macros'),
       {
         debugTools: {

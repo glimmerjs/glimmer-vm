@@ -1,0 +1,12 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "type": "npm",
+      "script": "lint:files",
+      "problemMatcher": ["$eslint-stylish"],
+      "label": "npm: lint:files",
+      "detail": "eslint . --cache"
+    }
+  ]
+}

@@ -7,6 +7,6 @@
     "@glimmer/interfaces": "workspace:^"
   },
   "devDependencies": {
-    "@glimmer/local-debug-flags": "workspace:^"
+    "@glimmer-workspace/local-debug-flags": "workspace:^"
   }
 }

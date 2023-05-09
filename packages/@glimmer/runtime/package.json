@@ -4,6 +4,14 @@
   "description": "Minimal runtime needed to render Glimmer templates",
   "repository": "https://github.com/glimmerjs/glimmer-vm/tree/master/packages/@glimmer/runtime",
   "license": "MIT",
+  "main": "index.ts",
+  "publishConfig": {
+    "exports": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js",
+      "control": "./dist/index.control.js"
+    }
+  },
   "dependencies": {
     "@glimmer/destroyable": "workspace:^",
     "@glimmer/env": "0.1.7",
@@ -20,7 +28,7 @@
     "@glimmer/wire-format": "workspace:^"
   },
   "devDependencies": {
-    "@glimmer/local-debug-flags": "workspace:^",
+    "@glimmer-workspace/local-debug-flags": "workspace:^",
     "@glimmer/opcode-compiler": "workspace:^",
     "@glimmer/debug": "workspace:^",
     "@types/qunit": "workspace:^"

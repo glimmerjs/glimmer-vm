@@ -349,15 +349,20 @@ export class Package {
 
     const ext = format === 'esm' ? 'js' : 'cjs';
 
+    const experiment = process.env['GLIMMER_EXPERIMENT'];
+
     /**
      * @param {[string, string]} entry
      * @returns {import("rollup").RollupOptions}
      */
     function entryPoint([exportName, ts]) {
+      const file =
+        experiment === undefined ? `${exportName}.${ext}` : `${exportName}.${experiment}.${ext}`;
+
       return {
         input: resolve(root, ts),
         output: {
-          file: resolve(root, 'dist', `${exportName}.${ext}`),
+          file: resolve(root, 'dist', file),
           format,
           sourcemap: true,
           exports: format === 'cjs' ? 'named' : 'auto',

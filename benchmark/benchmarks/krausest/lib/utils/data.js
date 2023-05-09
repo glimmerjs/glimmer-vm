@@ -1,4 +1,4 @@
-import { createCell } from '@glimmer/benchmark-env';
+import { createCell } from '@glimmer-workspace/benchmark-env';
 
 export class Item {
   /** @type {number} */

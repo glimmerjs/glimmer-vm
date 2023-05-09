@@ -15,7 +15,6 @@ import {
   type UpdatingOpcode,
   type UpdatingVM,
 } from '@glimmer/interfaces';
-import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
 import {
   type OpaqueIterationItem,
   type OpaqueIterator,
@@ -25,6 +24,7 @@ import {
 } from '@glimmer/reference';
 import { expect, logStep, Stack, unwrap } from '@glimmer/util';
 import { resetTracking, runInTrackingTransaction } from '@glimmer/validator';
+import { LOCAL_DEBUG } from '@glimmer-workspace/local-debug-flags';
 
 import { clear, move as moveBounds } from '../bounds';
 import { type InternalVM, type VmInitCallback } from './append';

@@ -8,7 +8,7 @@ import {
   type Option,
   type ProgramSymbolTable,
 } from '@glimmer/interfaces';
-import { LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
+import { LOCAL_SHOULD_LOG } from '@glimmer-workspace/local-debug-flags';
 
 import { debugCompiler } from './compiler';
 import { templateCompilationContext } from './opcode-builder/context';

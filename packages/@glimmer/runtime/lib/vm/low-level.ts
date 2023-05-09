@@ -5,9 +5,9 @@ import {
   type RuntimeOp,
   type RuntimeProgram,
 } from '@glimmer/interfaces';
-import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
 import { assert } from '@glimmer/util';
 import { $fp, $pc, $ra, $sp, type MachineRegister } from '@glimmer/vm';
+import { LOCAL_DEBUG } from '@glimmer-workspace/local-debug-flags';
 
 import { APPEND_OPCODES } from '../opcodes';
 import type VM from './append';

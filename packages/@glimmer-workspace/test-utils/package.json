@@ -1,6 +1,6 @@
 {
   "private": true,
-  "name": "@glimmer/test-utils",
+  "name": "@glimmer-workspace/test-utils",
   "main": "index.ts",
   "dependencies": {
     "@glimmer/interfaces": "workspace:^",

@@ -25,4 +25,4 @@ export * from './lib/test-helpers/strings';
 export * from './lib/test-helpers/test';
 export * from './lib/test-helpers/tracked';
 export * from './lib/test-helpers/tracked-object';
-export { syntaxErrorFor } from '@glimmer/test-utils';
+export { syntaxErrorFor } from '@glimmer-workspace/test-utils';

@@ -1,5 +1,5 @@
-import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
 import { deprecate, unwrap } from '@glimmer/util';
+import { LOCAL_DEBUG } from '@glimmer-workspace/local-debug-flags';
 
 import type * as ASTv1 from '../v1/api';
 import visitorKeys, { type VisitorKey, type VisitorKeys } from '../v1/visitor-keys';

@@ -1,5 +1,5 @@
 import { type AST, preprocess as parse, type src } from '@glimmer/syntax';
-import { guardArray } from '@glimmer/test-utils';
+import { guardArray } from '@glimmer-workspace/test-utils';
 
 QUnit.module('[glimmer-syntax] Parser - Location Info');
 

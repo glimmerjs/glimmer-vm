@@ -1,9 +1,9 @@
 {
-  "name": "@glimmer/integration-tests",
+  "name": "@glimmer-workspace/integration-tests",
   "version": "0.84.3",
   "private": true,
   "main": "index.ts",
-  "repository": "https://github.com/glimmerjs/glimmer-vm/tree/master/packages/@glimmer/integration-tests",
+  "repository": "https://github.com/glimmerjs/glimmer-vm/tree/master/packages/@glimmer-workspace/integration-tests",
   "dependencies": {
     "@glimmer/destroyable": "workspace:^",
     "@glimmer/global-context": "workspace:^",
@@ -16,7 +16,7 @@
     "@glimmer/util": "workspace:^",
     "@glimmer/wire-format": "workspace:^",
     "@glimmer/interfaces": "workspace:^",
-    "@glimmer/test-utils": "workspace:^",
+    "@glimmer-workspace/test-utils": "workspace:^",
     "@glimmer/node": "workspace:^",
     "@glimmer/opcode-compiler": "workspace:^",
     "@glimmer/owner": "workspace:^",
@@ -29,7 +29,7 @@
     "js-reporters": "^2.1.0"
   },
   "devDependencies": {
-    "@glimmer/local-debug-flags": "workspace:^",
+    "@glimmer-workspace/local-debug-flags": "workspace:^",
     "@types/qunit": "workspace:^",
     "@types/js-reporters": "workspace:^"
   }

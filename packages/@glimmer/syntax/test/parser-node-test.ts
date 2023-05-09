@@ -1,5 +1,5 @@
 import { type Dict } from '@glimmer/interfaces';
-import { syntaxErrorFor } from '@glimmer/test-utils';
+import { syntaxErrorFor } from '@glimmer-workspace/test-utils';
 
 import { type ASTv1, builders as b, preprocess as parse } from '..';
 import { astEqual } from './support';

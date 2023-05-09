@@ -1,6 +1,6 @@
 import { SexpOpcodes, type WellKnownAttrName, type WireFormat } from '@glimmer/interfaces';
-import { LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
 import { exhausted, LOCAL_LOGGER } from '@glimmer/util';
+import { LOCAL_SHOULD_LOG } from '@glimmer-workspace/local-debug-flags';
 
 import { type OptionalList } from '../../shared/list';
 import { deflateAttrName, deflateTagName } from '../../utils';
