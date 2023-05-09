@@ -1,0 +1,12 @@
+{
+  "root": false,
+  "overrides": [
+    {
+      "extends": ["plugin:@starbeam/esm"],
+      "files": ["index.js", "src/**/*.js", "index.d.ts", "src/**/*.d.ts"],
+      "parserOptions": {
+        "project": "tsconfig.json"
+      }
+    }
+  ]
+}

@@ -375,7 +375,7 @@ declare global {
   interface Reporter {
     init(
       /* eslint-disable @typescript-eslint/consistent-type-imports */
-      runner: import('@types/js-reporters').Runner,
+      runner: import('js-reporters').Runner,
       options: { log: (...args: unknown[]) => void }
     ): void;
   }

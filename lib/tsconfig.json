@@ -1,0 +1,4 @@
+{
+  "extends": "../tsconfig.js.json",
+  "includes": ["./local-linker/**/*.js"]
+}

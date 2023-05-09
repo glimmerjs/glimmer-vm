@@ -1,4 +1,4 @@
-import { type Source } from './index';
+import { type Source } from './api';
 import { type SerializedSourceSpan, SourceSpan } from './span';
 
 export type SerializedSourceSlice<Chars extends string = string> = [

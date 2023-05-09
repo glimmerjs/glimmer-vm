@@ -1,0 +1,17 @@
+{
+  "extends": "../tsconfig.js.json",
+  "compilerOptions": {
+    "composite": true,
+    "checkJs": true,
+    "strict": true,
+    "rootDir": ".",
+    "moduleResolution": "node",
+    "outDir": "../ts-dist/bench"
+  },
+  "includes": ["./index.js", "./lib/**/*.js", "./bin/**/*.js"],
+  "references": [
+    {
+      "path": "../packages/tsconfig.json"
+    }
+  ]
+}

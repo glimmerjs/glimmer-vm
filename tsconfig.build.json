@@ -1,16 +1,13 @@
 {
-  "extends": "./tsconfig.base.json",
+  "extends": "./tsconfig.js.json",
+  "compilerOptions": {
+    "baseUrl": "."
+  },
+  "files": [],
   "include": [
-    "benchmark/**/*",
-    "build/**/*",
-    "bin/**/*",
-    "lib/**/*",
-    "server/**/*",
     "packages/build-utils/@glimmer/**/*",
-    "testem.js",
-    "testem-browserstack.js",
-    "ember-cli-build.js",
-    "vite.config.mts"
+    "vite.config.mts",
+    "packages/build-utils/tsconfig.json"
   ],
   "exclude": ["**/fixtures/**/*", "node_modules/**/*", "**/node_modules/**"]
 }

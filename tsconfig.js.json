@@ -1,18 +1,14 @@
 {
   "compilerOptions": {
-    "composite": true,
     "allowJs": true,
     "checkJs": false,
-    "target": "ES2019",
+    "target": "esnext",
     "moduleResolution": "nodenext",
-    "module": "NodeNext",
-    "typeRoots": [],
-    "types": [],
+    "module": "esnext",
     "baseUrl": ".",
     "skipLibCheck": true,
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
-    "emitDeclarationOnly": true,
     "outDir": "ts-dist/build"
   }
 }

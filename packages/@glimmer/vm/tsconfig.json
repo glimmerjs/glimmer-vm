@@ -23,9 +23,8 @@
     "exactOptionalPropertyTypes": true,
 
     "newLine": "LF",
-    "noEmit": true,
 
     "skipLibCheck": true
   },
-  "include": ["lib/**/*.ts", "index.ts", "**/fixtures/**/*"]
+  "include": ["lib/**/*.ts", "index.ts"]
 }

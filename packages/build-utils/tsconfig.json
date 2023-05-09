@@ -1,0 +1,5 @@
+{
+  "extends": "../../tsconfig.js.json",
+  "compilerOptions": { "composite": true },
+  "includes": ["./@glimmer/*/index.js", "./@glimmer/*/lib/**/*.js", "./@glimmer/*/test/**/*.js"]
+}

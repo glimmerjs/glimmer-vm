@@ -2,7 +2,6 @@
   "compilerOptions": {
     "composite": true,
     // Compilation Configuration
-    "target": "es2020",
     "lib": ["esnext", "DOM", "DOM.Iterable"],
     "inlineSources": true,
     "inlineSourceMap": true,
@@ -16,6 +15,7 @@
 
     // Environment Configuration
     "experimentalDecorators": true,
+    "target": "es2020",
     "module": "ESNext",
     "moduleResolution": "bundler",
 
@@ -29,11 +29,17 @@
     "noUncheckedIndexedAccess": true,
 
     "newLine": "LF",
-    "noEmit": true,
 
     "skipLibCheck": true,
 
     "types": ["qunit", "node", "vite/client"]
   },
-  "exclude": ["**/dist", "**/ts-dist", "**/dist", "**/node_modules", "**/fixtures"]
+  "include": ["@glimmer/**/*"],
+  "exclude": ["**/dist", "**/ts-dist", "**/dist", "**/node_modules", "**/fixtures"],
+  "references": [
+    {
+      "path": "@glimmer/vm/tsconfig.json"
+    },
+    { "path": "build-utils/tsconfig.json" }
+  ]
 }

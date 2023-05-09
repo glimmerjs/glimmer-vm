@@ -6,8 +6,8 @@ import { EntityParser } from 'simple-html-tokenizer';
 import print from '../generation/print';
 import { voidMap } from '../generation/printer';
 import { type Tag } from '../parser';
+import * as src from '../source/api';
 import { Source } from '../source/source';
-import { type SourceOffset, SourceSpan } from '../source/span';
 import { generateSyntaxError } from '../syntax-error';
 import traverse from '../traversal/traverse';
 import { type NodeVisitor } from '../traversal/visitor';
@@ -200,7 +200,7 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
       current.loc = current.loc.withEnd(this.offset());
     } else {
       // initially assume the text node is a single char
-      let loc: SourceOffset = this.offset();
+      let loc: src.SourceOffset = this.offset();
 
       // the tokenizer line/column have already been advanced, correct location info
       if (char === '\n') {
@@ -286,7 +286,7 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
     parts: ASTv1.AttrPart[],
     isQuoted: boolean,
     isDynamic: boolean,
-    span: SourceSpan
+    span: src.SourceSpan
   ): ASTv1.AttrValue {
     if (isDynamic) {
       if (isQuoted) {
@@ -433,7 +433,7 @@ export function preprocess(
     entityParser = new CodemodEntityParser();
   }
 
-  let offsets = SourceSpan.forCharPositions(source, 0, source.source.length);
+  let offsets = src.SourceSpan.forCharPositions(source, 0, source.source.length);
   ast.loc = {
     source: '(program)',
     start: offsets.startPosition,

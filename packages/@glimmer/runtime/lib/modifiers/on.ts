@@ -385,4 +385,4 @@ class OnModifierManager implements InternalModifierManager<OnModifierState | nul
   }
 }
 
-export default setInternalModifierManager(new OnModifierManager(), {});
+export const on = setInternalModifierManager(new OnModifierManager(), {});
