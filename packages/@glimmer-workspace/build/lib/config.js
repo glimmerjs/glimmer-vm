@@ -103,7 +103,7 @@ export function typescript(pkg, config) {
 
 /** @type {['is' | 'startsWith', string[], 'inline' | 'external'][]} */
 const EXTERNAL_OPTIONS = [
-  ['is', ['tslib'], 'inline'],
+  ['is', ['tslib', '@glimmer-workspace/local-debug-flags'], 'inline'],
   ['is', ['@handlebars/parser', 'simple-html-tokenizer', 'babel-plugin-debug-macros'], 'external'],
   ['startsWith', ['.', '/', '#', '@babel/runtime/'], 'inline'],
   ['startsWith', ['@glimmer/', '@simple-dom/'], 'external'],
