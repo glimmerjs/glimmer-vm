@@ -14,6 +14,6 @@
   },
   "devDependencies": {
     "@glimmer-workspace/local-debug-flags": "workspace:^",
-    "@types/node": "^20.1.0"
+    "@types/node": "^18.16.6"
   }
 }

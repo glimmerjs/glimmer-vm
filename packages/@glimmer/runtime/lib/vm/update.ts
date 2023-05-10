@@ -23,7 +23,7 @@ import {
   valueForRef,
 } from '@glimmer/reference';
 import { expect, logStep, Stack, unwrap } from '@glimmer/util';
-import { resetTracking, runInTrackingTransaction } from '@glimmer/validator';
+import { debug, resetTracking } from '@glimmer/validator';
 import { LOCAL_DEBUG } from '@glimmer-workspace/local-debug-flags';
 
 import { clear, move as moveBounds } from '../bounds';
@@ -47,7 +47,10 @@ export default class UpdatingVMImpl implements UpdatingVM {
     if (import.meta.env.DEV) {
       let hasErrored = true;
       try {
-        runInTrackingTransaction!(() => this._execute(opcodes, handler), '- While rendering:');
+        debug.runInTrackingTransaction!(
+          () => this._execute(opcodes, handler),
+          '- While rendering:'
+        );
 
         // using a boolean here to avoid breaking ergonomics of "pause on uncaught exceptions"
         // which would happen with a `catch` + `throw`

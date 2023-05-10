@@ -1,5 +1,7 @@
-import pluginTester from 'babel-plugin-tester';
-import path from 'path';
+/* eslint-disable @typescript-eslint/no-require-imports */
+const path = require('node:path');
+// eslint-disable-next-line n/no-unpublished-require
+const pluginTester = require('babel-plugin-tester');
 
 // For correct .babelrc detection inside the fixture directory we need to force babel's cwd and root to be the package root.
 // This will ensure that the tests will run correctly from the mono repo root or package root.

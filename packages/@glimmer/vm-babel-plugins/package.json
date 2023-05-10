@@ -6,21 +6,22 @@
   "author": "Tom Dale <tom@tomdale.net>",
   "license": "MIT",
   "private": false,
+  "engines": {
+    "node": ">=16"
+  },
   "scripts": {
-    "test": "mocha -r esm"
+    "test": "mocha"
   },
   "dependencies": {
     "babel-plugin-debug-macros": "^0.3.4"
   },
   "devDependencies": {
-    "@babel/core": "^7.5.5",
-    "@babel/preset-env": "^7.8.3",
-    "babel-plugin-tester": "^10.0.0",
-    "esm": "^3.2.25",
-    "mocha": "^8.2.1"
+    "babel-plugin-tester": "^11.0.4",
+    "mocha": "^10.2.0"
   },
   "volta": {
-    "node": "12.16.1",
-    "yarn": "1.22.4"
+    "node": "16.20.0",
+    "yarn": "1.22.4",
+    "pnpm": "8.5.0"
   }
 }

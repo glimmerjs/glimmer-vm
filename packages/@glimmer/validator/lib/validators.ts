@@ -15,7 +15,7 @@ import type {
   VOLATILE_TAG_ID as IVOLATILE_TAG_ID,
 } from '@glimmer/interfaces';
 
-import { assertTagNotConsumed } from './debug';
+import { debug } from './debug';
 import { unwrap } from './utils';
 
 //////////
@@ -213,7 +213,7 @@ class MonomorphicTagImpl<T extends MonomorphicTagId = MonomorphicTagId> {
     if (import.meta.env.DEV && disableConsumptionAssertion !== true) {
       // Usually by this point, we've already asserted with better error information,
       // but this is our last line of defense.
-      unwrap(assertTagNotConsumed)(tag);
+      unwrap(debug.assertTagNotConsumed)(tag);
     }
 
     (tag as MonomorphicTagImpl).revision = ++$REVISION;

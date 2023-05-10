@@ -1,4 +1,5 @@
 /* eslint-disable no-console */
+import { debug } from '@glimmer/validator';
 import reporters from 'js-reporters';
 
 export async function setupQunit() {
@@ -31,6 +32,10 @@ export async function setupQunit() {
   document.body.append(qunitDiv, qunitFixtureDiv);
 
   console.log(`[HARNESS] ci=${hasFlag('ci')}`);
+
+  QUnit.testStart(() => {
+    debug.resetTrackingTransaction?.();
+  });
 
   if (!hasFlag('ci')) {
     // since all of our tests are synchronous, the QUnit

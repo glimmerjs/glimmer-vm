@@ -13,7 +13,7 @@ import {
 } from '@glimmer/interfaces';
 import { childRefFor, createConstRef, type Reference } from '@glimmer/reference';
 import { expect, unwrapHandle } from '@glimmer/util';
-import { runInTrackingTransaction } from '@glimmer/validator';
+import { debug } from '@glimmer/validator';
 
 import { inTransaction } from './environment';
 import { DynamicScopeImpl } from './scope';
@@ -28,7 +28,7 @@ class TemplateIteratorImpl implements TemplateIterator {
 
   sync(): RenderResult {
     if (import.meta.env.DEV) {
-      return runInTrackingTransaction!(() => this.vm.execute(), '- While rendering:');
+      return debug.runInTrackingTransaction!(() => this.vm.execute(), '- While rendering:');
     } else {
       return this.vm.execute();
     }

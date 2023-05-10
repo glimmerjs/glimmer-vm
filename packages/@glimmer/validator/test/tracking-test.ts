@@ -3,12 +3,12 @@ import {
   consumeTag,
   createCache,
   createTag,
+  debug,
   dirtyTag,
   endTrackFrame,
   getValue,
   isConst,
   isTracking,
-  runInTrackingTransaction,
   track,
   trackedData,
   untrack,
@@ -488,7 +488,7 @@ module('@glimmer/validator: tracking', () => {
         let foo = new Foo();
 
         assert.throws(() => {
-          runInTrackingTransaction!(() => {
+          debug.runInTrackingTransaction!(() => {
             track(() => {
               getter(foo);
               setter(foo, 789);
@@ -505,7 +505,7 @@ module('@glimmer/validator: tracking', () => {
         let tag = createTag();
 
         assert.throws(() => {
-          runInTrackingTransaction!(() => {
+          debug.runInTrackingTransaction!(() => {
             track(() => {
               consumeTag(tag);
               dirtyTag(tag);
@@ -518,7 +518,7 @@ module('@glimmer/validator: tracking', () => {
         let tag = createTag();
 
         assert.throws(() => {
-          runInTrackingTransaction!(() => {
+          debug.runInTrackingTransaction!(() => {
             track(() => {
               consumeTag(tag);
             });
@@ -534,7 +534,7 @@ module('@glimmer/validator: tracking', () => {
         assert.expect(0);
         let tag = createTag();
 
-        runInTrackingTransaction!(() => {
+        debug.runInTrackingTransaction!(() => {
           untrack(() => {
             consumeTag(tag);
           });
@@ -549,7 +549,7 @@ module('@glimmer/validator: tracking', () => {
         let tag = createTag();
 
         assert.throws(() => {
-          runInTrackingTransaction!(() => {
+          debug.runInTrackingTransaction!(() => {
             track(() => {
               consumeTag(tag);
             });
