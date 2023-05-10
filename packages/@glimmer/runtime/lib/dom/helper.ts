@@ -1,12 +1,12 @@
-import {
-  type AttrNamespace,
-  type ElementNamespace,
-  type GlimmerTreeChanges,
-  type GlimmerTreeConstruction,
-  type Option,
-  type SimpleDocument,
-  type SimpleElement,
-  type SimpleNode,
+import type {
+  AttrNamespace,
+  ElementNamespace,
+  GlimmerTreeChanges,
+  GlimmerTreeConstruction,
+  Option,
+  SimpleDocument,
+  SimpleElement,
+  SimpleNode,
 } from '@glimmer/interfaces';
 import { castToSimple, NS_SVG } from '@glimmer/util';
 

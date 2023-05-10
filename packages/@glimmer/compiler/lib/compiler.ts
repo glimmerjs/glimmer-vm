@@ -1,8 +1,9 @@
-import {
-  type SerializedTemplateBlock,
-  type SerializedTemplateWithLazyBlock,
-  type TemplateJavascript,
+import type {
+  SerializedTemplateBlock,
+  SerializedTemplateWithLazyBlock,
+  TemplateJavascript,
 } from '@glimmer/interfaces';
+import { LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
 import {
   normalize,
   type PrecompileOptions,
@@ -11,7 +12,6 @@ import {
   type TemplateIdFn,
 } from '@glimmer/syntax';
 import { LOCAL_LOGGER } from '@glimmer/util';
-import { LOCAL_SHOULD_LOG } from '@glimmer-workspace/local-debug-flags';
 
 import pass0 from './passes/1-normalization/index';
 import { visit as pass2 } from './passes/2-encoding/index';

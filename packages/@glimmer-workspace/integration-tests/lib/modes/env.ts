@@ -1,4 +1,4 @@
-import { type IteratorDelegate } from '@glimmer/reference';
+import type { IteratorDelegate } from '@glimmer/reference';
 
 export class NativeIteratorDelegate<T = unknown> implements IteratorDelegate {
   static from<T>(iterable: Iterable<T>) {

@@ -1,12 +1,12 @@
-import {
-  type Dict,
-  type DynamicScope,
-  type Option,
-  type Owner,
-  type PartialScope,
-  type Scope,
-  type ScopeBlock,
-  type ScopeSlot,
+import type {
+  Dict,
+  DynamicScope,
+  Option,
+  Owner,
+  PartialScope,
+  Scope,
+  ScopeBlock,
+  ScopeSlot,
 } from '@glimmer/interfaces';
 import { type Reference, UNDEFINED_REFERENCE } from '@glimmer/reference';
 import { assign, unwrap } from '@glimmer/util';

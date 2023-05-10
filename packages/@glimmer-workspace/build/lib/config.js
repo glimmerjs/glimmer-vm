@@ -11,7 +11,7 @@ import ts from 'typescript';
 import importMeta from './import-meta.js';
 import inline from './inline.js';
 
-const { ImportsNotUsedAsValues, ModuleKind, ModuleResolutionKind, ScriptTarget } = ts;
+const { ModuleKind, ModuleResolutionKind, ScriptTarget } = ts;
 
 const { default: commonjs } = await import('@rollup/plugin-commonjs');
 const { default: nodeResolve } = await import('@rollup/plugin-node-resolve');
@@ -71,7 +71,7 @@ export function tsconfig(updates) {
     noUnusedParameters: false,
     noImplicitReturns: true,
     noImplicitAny: true,
-    importsNotUsedAsValues: ImportsNotUsedAsValues.Error,
+    verbatimModuleSyntax: true,
     isolatedModules: true,
     skipLibCheck: true,
     skipDefaultLibCheck: true,
@@ -103,10 +103,10 @@ export function typescript(pkg, config) {
 
 /** @type {['is' | 'startsWith', string[], 'inline' | 'external'][]} */
 const EXTERNAL_OPTIONS = [
-  ['is', ['tslib', '@glimmer-workspace/local-debug-flags'], 'inline'],
+  ['is', ['tslib', '@glimmer/local-debug-flags'], 'inline'],
   ['is', ['@handlebars/parser', 'simple-html-tokenizer', 'babel-plugin-debug-macros'], 'external'],
   ['startsWith', ['.', '/', '#', '@babel/runtime/'], 'inline'],
-  ['startsWith', ['@glimmer/', '@simple-dom/'], 'external'],
+  ['startsWith', ['@glimmer/', '@simple-dom/', '@babel/', 'node:'], 'external'],
 ];
 
 /**

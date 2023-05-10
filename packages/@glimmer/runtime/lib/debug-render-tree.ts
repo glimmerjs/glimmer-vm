@@ -1,9 +1,9 @@
-import {
-  type Bounds,
-  type CapturedRenderNode,
-  type DebugRenderTree,
-  type Option,
-  type RenderNode,
+import type {
+  Bounds,
+  CapturedRenderNode,
+  DebugRenderTree,
+  Option,
+  RenderNode,
 } from '@glimmer/interfaces';
 import { assign, expect, Stack } from '@glimmer/util';
 

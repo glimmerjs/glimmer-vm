@@ -1,21 +1,21 @@
-import {
-  type CapturedRenderNode,
-  type CompileTimeCompilationContext,
-  type Cursor,
-  type Dict,
-  type DynamicScope,
-  type ElementBuilder,
-  type ElementNamespace,
-  type Environment,
-  type HandleResult,
-  type Helper,
-  type Option,
-  type RenderResult,
-  type RuntimeContext,
-  type SimpleDocument,
-  type SimpleDocumentFragment,
-  type SimpleElement,
-  type SimpleText,
+import type {
+  CapturedRenderNode,
+  CompileTimeCompilationContext,
+  Cursor,
+  Dict,
+  DynamicScope,
+  ElementBuilder,
+  ElementNamespace,
+  Environment,
+  HandleResult,
+  Helper,
+  Option,
+  RenderResult,
+  RuntimeContext,
+  SimpleDocument,
+  SimpleDocumentFragment,
+  SimpleElement,
+  SimpleText,
 } from '@glimmer/interfaces';
 import { programCompilationContext } from '@glimmer/opcode-compiler';
 import { artifacts, RuntimeOpImpl } from '@glimmer/program';
@@ -34,16 +34,16 @@ import {
   renderSync,
   runtimeContext,
 } from '@glimmer/runtime';
-import { type ASTPluginBuilder, type PrecompileOptions } from '@glimmer/syntax';
+import type { ASTPluginBuilder, PrecompileOptions } from '@glimmer/syntax';
 import { assign, castToBrowser, castToSimple, expect, unwrapTemplate } from '@glimmer/util';
 
 import { BaseEnv } from '../../base-env';
 import { preprocess } from '../../compile';
-import { type ComponentKind, type ComponentTypes } from '../../components';
-import { type UserHelper } from '../../helpers';
-import { type TestModifierConstructor } from '../../modifiers';
+import type { ComponentKind, ComponentTypes } from '../../components';
+import type { UserHelper } from '../../helpers';
+import type { TestModifierConstructor } from '../../modifiers';
 import type RenderDelegate from '../../render-delegate';
-import { type RenderDelegateOptions } from '../../render-delegate';
+import type { RenderDelegateOptions } from '../../render-delegate';
 import JitCompileTimeLookup from './compilation-context';
 import {
   componentHelper,

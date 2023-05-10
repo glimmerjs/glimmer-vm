@@ -1,4 +1,4 @@
-import { type CapturedArguments, type Dict } from '@glimmer/interfaces';
+import type { CapturedArguments, Dict } from '@glimmer/interfaces';
 import { createComputeRef, type Reference } from '@glimmer/reference';
 import { reifyNamed, reifyPositional } from '@glimmer/runtime';
 

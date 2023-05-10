@@ -1,6 +1,6 @@
-import { type Dict, type Option } from '@glimmer/interfaces';
+import type { Dict, Option } from '@glimmer/interfaces';
+import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
 import { asPresentArray, assert, assign, deprecate, isPresentArray } from '@glimmer/util';
-import { LOCAL_DEBUG } from '@glimmer-workspace/local-debug-flags';
 
 import { type SourceLocation, type SourcePosition, SYNTHETIC_LOCATION } from '../source/location';
 import { Source } from '../source/source';

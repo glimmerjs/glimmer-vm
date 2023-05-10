@@ -1,4 +1,4 @@
-import { type Option } from '@glimmer/interfaces';
+import type { Option } from '@glimmer/interfaces';
 
 import type * as ASTv1 from '../v1/api';
 

@@ -1,8 +1,8 @@
-import {
-  type Arguments,
-  type CapturedArguments,
-  type CapturedNamedArguments,
-  type CapturedPositionalArguments,
+import type {
+  Arguments,
+  CapturedArguments,
+  CapturedNamedArguments,
+  CapturedPositionalArguments,
 } from '@glimmer/interfaces';
 import { type Reference, valueForRef } from '@glimmer/reference';
 import { HAS_NATIVE_PROXY } from '@glimmer/util';

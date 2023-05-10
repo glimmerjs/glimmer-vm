@@ -1,20 +1,20 @@
 import { registerDestructor } from '@glimmer/destroyable';
-import {
-  type Arguments,
-  type ComponentCapabilities,
-  type ComponentCapabilitiesVersions,
-  type ComponentDefinitionState,
-  type ComponentManager,
-  type ComponentManagerWithAsyncLifeCycleCallbacks,
-  type ComponentManagerWithAsyncUpdateHook,
-  type ComponentManagerWithDestructors,
-  type ComponentManagerWithUpdateHook,
-  type Destroyable,
-  type InternalComponentCapabilities,
-  type InternalComponentManager,
-  type Option,
-  type Owner,
-  type VMArguments,
+import type {
+  Arguments,
+  ComponentCapabilities,
+  ComponentCapabilitiesVersions,
+  ComponentDefinitionState,
+  ComponentManager,
+  ComponentManagerWithAsyncLifeCycleCallbacks,
+  ComponentManagerWithAsyncUpdateHook,
+  ComponentManagerWithDestructors,
+  ComponentManagerWithUpdateHook,
+  Destroyable,
+  InternalComponentCapabilities,
+  InternalComponentManager,
+  Option,
+  Owner,
+  VMArguments,
 } from '@glimmer/interfaces';
 import { createConstRef, type Reference } from '@glimmer/reference';
 

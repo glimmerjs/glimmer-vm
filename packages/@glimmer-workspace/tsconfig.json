@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "composite": true,
-    "baseUrl": ".",
+    "baseUrl": "..",
 
     "target": "esnext",
     "module": "esnext",
@@ -22,7 +22,7 @@
     "skipLibCheck": true,
     "types": ["qunit", "node", "vite/client"]
   },
-  "include": ["*/index.*", "*/lib/**/*", "*/test/**/*"],
+  "include": ["./*/index.*", "./*/lib/**/*", "./*/test/**/*"],
   "references": [
     {
       "path": "../@glimmer/tsconfig.json"

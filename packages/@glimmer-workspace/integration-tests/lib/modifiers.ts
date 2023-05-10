@@ -1,12 +1,12 @@
 import { registerDestructor } from '@glimmer/destroyable';
-import {
-  type CapturedArguments,
-  type Destroyable,
-  type Dict,
-  type InternalModifierManager,
-  type Option,
-  type Owner,
-  type SimpleElement,
+import type {
+  CapturedArguments,
+  Destroyable,
+  Dict,
+  InternalModifierManager,
+  Option,
+  Owner,
+  SimpleElement,
 } from '@glimmer/interfaces';
 import { reifyNamed, reifyPositional } from '@glimmer/runtime';
 import { createUpdatableTag, type UpdatableTag } from '@glimmer/validator';

@@ -1,17 +1,17 @@
 import { destroy } from '@glimmer/destroyable';
-import {
-  type ComponentDefinitionState,
-  type Dict,
-  type DynamicScope,
-  type Helper,
-  type Maybe,
-  type Option,
-  type RenderResult,
-  type SimpleElement,
-  type SimpleNode,
+import type {
+  ComponentDefinitionState,
+  Dict,
+  DynamicScope,
+  Helper,
+  Maybe,
+  Option,
+  RenderResult,
+  SimpleElement,
+  SimpleNode,
 } from '@glimmer/interfaces';
 import { inTransaction } from '@glimmer/runtime';
-import { type ASTPluginBuilder } from '@glimmer/syntax';
+import type { ASTPluginBuilder } from '@glimmer/syntax';
 import { assert, clearElement, dict, expect, isPresent } from '@glimmer/util';
 import { dirtyTagFor } from '@glimmer/validator';
 import type { NTuple } from '@glimmer-workspace/test-utils';
@@ -25,8 +25,8 @@ import {
 } from './components';
 import { assertElementShape, assertEmberishElement } from './dom/assertions';
 import { assertingElement, toInnerHTML } from './dom/simple-utils';
-import { type UserHelper } from './helpers';
-import { type TestModifierConstructor } from './modifiers';
+import type { UserHelper } from './helpers';
+import type { TestModifierConstructor } from './modifiers';
 import type RenderDelegate from './render-delegate';
 import { equalTokens, isServerMarker, type NodesSnapshot, normalizeSnapshot } from './snapshot';
 

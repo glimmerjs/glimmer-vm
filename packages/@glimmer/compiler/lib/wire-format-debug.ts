@@ -1,12 +1,13 @@
-import {
+import type {
   CurriedType,
-  type Option,
-  type SerializedInlineBlock,
-  type SerializedTemplateBlock,
-  SexpOpcodes as Op,
-  type WireFormat,
+  Option,
+  SerializedInlineBlock,
+  SerializedTemplateBlock,
+  WireFormat,
 } from '@glimmer/interfaces';
 import { dict, exhausted } from '@glimmer/util';
+import { CurriedTypes } from '@glimmer/vm';
+import { SexpOpcodes as Op } from '@glimmer/wire-format';
 
 import { inflateAttrName, inflateTagName } from './utils';
 
@@ -267,11 +268,11 @@ export default class WireFormatDebugger {
 
   private formatCurryType(value: CurriedType) {
     switch (value) {
-      case CurriedType.Component:
+      case CurriedTypes.Component:
         return 'component';
-      case CurriedType.Helper:
+      case CurriedTypes.Helper:
         return 'helper';
-      case CurriedType.Modifier:
+      case CurriedTypes.Modifier:
         return 'modifier';
       default:
         throw exhausted(value);

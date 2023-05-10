@@ -1,4 +1,4 @@
-import { type SimpleElement, type SimpleNode } from '@glimmer/interfaces';
+import type { SimpleElement, SimpleNode } from '@glimmer/interfaces';
 import { assign, dict, unwrap } from '@glimmer/util';
 import {
   classes,

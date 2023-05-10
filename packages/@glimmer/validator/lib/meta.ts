@@ -1,4 +1,4 @@
-import { type ConstantTag, type UpdatableTag } from '@glimmer/interfaces';
+import type { ConstantTag, UpdatableTag } from '@glimmer/interfaces';
 
 import { debug } from './debug';
 import { type Indexable, unwrap } from './utils';

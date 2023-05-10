@@ -1,4 +1,4 @@
-import { type Maybe, type Present } from '@glimmer/interfaces';
+import type { Maybe, Present } from '@glimmer/interfaces';
 
 export type Factory<T> = new (...args: unknown[]) => T;
 

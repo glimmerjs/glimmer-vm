@@ -10,18 +10,29 @@
     "node": ">=16"
   },
   "scripts": {
-    "test": "mocha"
+    "test": "mocha",
+    "test:lint": "eslint .",
+    "test:types": "tsc --noEmit -p ../tsconfig.json",
+    "build": "rollup -c rollup.config.mjs"
   },
   "dependencies": {
     "babel-plugin-debug-macros": "^0.3.4"
   },
   "devDependencies": {
     "babel-plugin-tester": "^11.0.4",
-    "mocha": "^10.2.0"
+    "mocha": "^10.2.0",
+    "@glimmer-workspace/build-support": "workspace:^"
   },
-  "volta": {
-    "node": "16.20.0",
-    "yarn": "1.22.4",
-    "pnpm": "8.5.0"
+  "main": "index.ts",
+  "types": "index.ts",
+  "publishConfig": {
+    "access": "public",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "exports": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.cjs",
+      "default": "./dist/index.js"
+    }
   }
 }

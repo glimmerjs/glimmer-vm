@@ -1,12 +1,12 @@
-import {
-  type Dict,
-  type Namespace,
-  type NodeToken,
-  type NodeTokens,
-  type Option,
-  type SimpleDocument,
-  type SimpleDocumentFragment,
-  type SimpleElement,
+import type {
+  Dict,
+  Namespace,
+  NodeToken,
+  NodeTokens,
+  Option,
+  SimpleDocument,
+  SimpleDocumentFragment,
+  SimpleElement,
 } from '@glimmer/interfaces';
 import { NS_HTML, NS_SVG } from '@glimmer/util';
 

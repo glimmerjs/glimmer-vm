@@ -1,29 +1,29 @@
-import {
-  type BlockSymbolTable,
-  type BuilderOp,
-  type CompilableBlock,
-  type CompilableProgram,
-  type CompilableTemplate,
-  type CompileTimeCompilationContext,
-  type ContainingMetadata,
-  type HandleResult,
-  type HighLevelOp,
-  type LayoutWithContext,
-  type Option,
-  type SerializedBlock,
-  type SerializedInlineBlock,
-  type Statement,
-  type SymbolTable,
-  type WireFormat,
+import type {
+  BlockSymbolTable,
+  BuilderOp,
+  CompilableBlock,
+  CompilableProgram,
+  CompilableTemplate,
+  CompileTimeCompilationContext,
+  ContainingMetadata,
+  HandleResult,
+  HighLevelOp,
+  LayoutWithContext,
+  Option,
+  SerializedBlock,
+  SerializedInlineBlock,
+  Statement,
+  SymbolTable,
+  WireFormat,
 } from '@glimmer/interfaces';
+import { LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
 import { EMPTY_ARRAY } from '@glimmer/util';
-import { LOCAL_SHOULD_LOG } from '@glimmer-workspace/local-debug-flags';
 
 import { debugCompiler } from './compiler';
 import { templateCompilationContext } from './opcode-builder/context';
 import { encodeOp } from './opcode-builder/encoder';
 import { meta } from './opcode-builder/helpers/shared';
-import { type HighLevelStatementOp } from './syntax/compilers';
+import type { HighLevelStatementOp } from './syntax/compilers';
 import { STATEMENTS } from './syntax/statements';
 
 export const PLACEHOLDER_HANDLE = -1;

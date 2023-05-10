@@ -1,6 +1,11 @@
+// @ts-check
+
 /* eslint-disable no-inline-comments */
 const path = require('path');
-const rollup = require('rollup');
+const rollup = /** @type {{rollup: import("rollup").rollup}} */ (
+  /** @type {unknown} */
+  (require('rollup'))
+);
 const sourcemap = /** @type {import("@rollup/plugin-terser").default} */ (
   /** @type {unknown} */
   (require('rollup-plugin-sourcemaps'))

@@ -1,20 +1,20 @@
 import { check, CheckBlockSymbolTable, CheckHandle, CheckOption, CheckOr } from '@glimmer/debug';
-import {
-  type BlockArguments,
-  type BlockSymbolTable,
-  type BlockValue,
-  type CapturedArguments,
-  type CapturedBlockArguments,
-  type CapturedNamedArguments,
-  type CapturedPositionalArguments,
-  type CompilableBlock,
-  type Dict,
-  type NamedArguments,
-  type Option,
-  type PositionalArguments,
-  type Scope,
-  type ScopeBlock,
-  type VMArguments,
+import type {
+  BlockArguments,
+  BlockSymbolTable,
+  BlockValue,
+  CapturedArguments,
+  CapturedBlockArguments,
+  CapturedNamedArguments,
+  CapturedPositionalArguments,
+  CompilableBlock,
+  Dict,
+  NamedArguments,
+  Option,
+  PositionalArguments,
+  Scope,
+  ScopeBlock,
+  VMArguments,
 } from '@glimmer/interfaces';
 import {
   createDebugAliasRef,
@@ -28,7 +28,7 @@ import { $sp } from '@glimmer/vm';
 
 import { CheckCompilableBlock, CheckReference, CheckScope } from '../compiled/opcodes/-debug-strip';
 import { REGISTERS } from '../symbols';
-import { type EvaluationStack } from './stack';
+import type { EvaluationStack } from './stack';
 
 /*
   The calling convention is:

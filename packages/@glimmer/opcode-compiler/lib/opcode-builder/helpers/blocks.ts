@@ -1,7 +1,7 @@
-import { MachineOp, Op, type Option, type WireFormat } from '@glimmer/interfaces';
-import { $fp } from '@glimmer/vm';
+import type { Option, WireFormat } from '@glimmer/interfaces';
+import { $fp, MachineOp, Op } from '@glimmer/vm';
 
-import { type PushExpressionOp, type PushStatementOp } from '../../syntax/compilers';
+import type { PushExpressionOp, PushStatementOp } from '../../syntax/compilers';
 import { blockOperand, symbolTableOperand } from '../operands';
 import { SimpleArgs } from './shared';
 import { PushPrimitive } from './vm';

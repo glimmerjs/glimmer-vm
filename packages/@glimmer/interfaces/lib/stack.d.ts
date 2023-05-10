@@ -1,4 +1,4 @@
-import { type Option } from './core';
+import type { Option } from './core';
 
 export interface Stack<T> {
   current: Option<T>;

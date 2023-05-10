@@ -1,4 +1,4 @@
-import { type Option, type Recast } from '@glimmer/interfaces';
+import type { Option, Recast } from '@glimmer/interfaces';
 import { getLast, isPresentArray, unwrap } from '@glimmer/util';
 import type { TokenizerState } from 'simple-html-tokenizer';
 

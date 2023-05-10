@@ -1,34 +1,23 @@
 {
   "private": true,
   "name": "@glimmer-workspace/build-support",
-  "version": "1.0.0",
   "type": "module",
-  "main": "index.js",
-  "types": "index.d.ts",
+  "version": "1.0.0",
+  "main": "index.mjs",
+  "types": "index.d.mts",
   "engines": {
     "node": ">=16"
   },
   "exports": {
     "default": "./index.js"
   },
-  "publishConfig": {
-    "exports": {
-      ".": {
-        "types": "./dist/index.d.ts",
-        "import": "./dist/index.js",
-        "default": "./dist/index.cjs"
-      }
-    },
-    "main": "dist/index.cjs",
-    "types": "dist/index.d.ts"
-  },
   "starbeam": {
     "source": "js:typed",
     "type": "library:build-support"
   },
   "scripts": {
-    "test:lint": "eslint \"src/**/*.{js,d.ts}\"",
-    "test:types": "tsc -b"
+    "test:lint": "eslint .",
+    "test:types": "tsc --noEmit -p ../tsconfig.json"
   },
   "dependencies": {
     "@rollup/plugin-commonjs": "^24.1.0",

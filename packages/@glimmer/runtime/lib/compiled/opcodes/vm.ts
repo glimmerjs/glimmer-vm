@@ -8,7 +8,7 @@ import {
   CheckPrimitive,
 } from '@glimmer/debug';
 import { toBool } from '@glimmer/global-context';
-import { type CompilableTemplate, Op, type Option, type UpdatingOpcode } from '@glimmer/interfaces';
+import type { CompilableTemplate, Option, UpdatingOpcode } from '@glimmer/interfaces';
 import {
   createComputeRef,
   createConstRef,
@@ -33,11 +33,12 @@ import {
   validateTag,
   valueForTag,
 } from '@glimmer/validator';
+import { Op } from '@glimmer/vm';
 
 import { APPEND_OPCODES } from '../../opcodes';
 import { CONSTANTS } from '../../symbols';
-import { type UpdatingVM } from '../../vm';
-import { type InternalVM } from '../../vm/append';
+import type { UpdatingVM } from '../../vm';
+import type { InternalVM } from '../../vm/append';
 import { VMArgumentsImpl } from '../../vm/arguments';
 import { CheckReference, CheckScope } from './-debug-strip';
 import { stackAssert } from './assert';

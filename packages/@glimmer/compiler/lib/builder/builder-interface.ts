@@ -1,4 +1,4 @@
-import { type Dict, type DictValue, type Option, type PresentArray } from '@glimmer/interfaces';
+import type { Dict, DictValue, Option, PresentArray } from '@glimmer/interfaces';
 import { assertNever, dict, expect, isPresentArray } from '@glimmer/util';
 
 export type BuilderParams = BuilderExpression[];

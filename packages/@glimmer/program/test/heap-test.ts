@@ -10,12 +10,12 @@ QUnit.test('Can grow', (assert) => {
   let i = 0;
 
   while (i !== size - 1) {
-    heap.push(1);
+    heap.pushRaw(1);
     i++;
   }
 
   // Should grow here
-  heap.push(10);
+  heap.pushRaw(10);
 
   // Slices the buffer. Passing MAX_SAFE_INTEGER ensures
   // we get the whole thing out
@@ -24,7 +24,7 @@ QUnit.test('Can grow', (assert) => {
   assert.strictEqual(serializedHeap.length, size);
   assert.strictEqual(serializedHeap[size - 1], 10);
 
-  heap.push(11);
+  heap.pushRaw(11);
 
   serialized = heap.capture(Number.MAX_SAFE_INTEGER);
   serializedHeap = new Int32Array(serialized.buffer);

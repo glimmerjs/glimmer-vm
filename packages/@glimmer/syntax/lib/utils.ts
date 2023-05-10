@@ -1,4 +1,4 @@
-import { type Option } from '@glimmer/interfaces';
+import type { Option } from '@glimmer/interfaces';
 import { expect, unwrap } from '@glimmer/util';
 
 import { generateSyntaxError } from './syntax-error';

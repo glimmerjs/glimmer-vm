@@ -1,4 +1,4 @@
-import { type Dict } from '@glimmer/interfaces';
+import type { Dict } from '@glimmer/interfaces';
 import { syntaxErrorFor } from '@glimmer-workspace/test-utils';
 
 import { type ASTv1, builders as b, preprocess as parse } from '..';

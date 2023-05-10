@@ -1,11 +1,11 @@
 import { precompileJSON } from '@glimmer/compiler';
-import {
-  type SerializedTemplateWithLazyBlock,
-  type Template,
-  type TemplateFactory,
+import type {
+  SerializedTemplateWithLazyBlock,
+  Template,
+  TemplateFactory,
 } from '@glimmer/interfaces';
 import { templateFactory } from '@glimmer/opcode-compiler';
-import { type PrecompileOptions } from '@glimmer/syntax';
+import type { PrecompileOptions } from '@glimmer/syntax';
 
 // TODO: This fundamentally has little to do with testing and
 // most tests should just use a more generic preprocess, extracted

@@ -1,31 +1,31 @@
-import {
-  type Cursor,
-  type Dict,
-  type ElementBuilder,
-  type ElementNamespace,
-  type Environment,
-  type Helper,
-  type Option,
-  type RenderResult,
-  type SimpleDocument,
-  type SimpleDocumentFragment,
-  type SimpleElement,
-  type SimpleNode,
-  type SimpleText,
+import type {
+  Cursor,
+  Dict,
+  ElementBuilder,
+  ElementNamespace,
+  Environment,
+  Helper,
+  Option,
+  RenderResult,
+  SimpleDocument,
+  SimpleDocumentFragment,
+  SimpleElement,
+  SimpleNode,
+  SimpleText,
 } from '@glimmer/interfaces';
 import { serializeBuilder } from '@glimmer/node';
 import { createConstRef, type Reference } from '@glimmer/reference';
-import { type ASTPluginBuilder, type PrecompileOptions } from '@glimmer/syntax';
+import type { ASTPluginBuilder, PrecompileOptions } from '@glimmer/syntax';
 import { assign, castToSimple } from '@glimmer/util';
 import createHTMLDocument from '@simple-dom/document';
 
 import { BaseEnv } from '../../base-env';
-import { type ComponentKind } from '../../components';
+import type { ComponentKind } from '../../components';
 import { replaceHTML, toInnerHTML } from '../../dom/simple-utils';
-import { type UserHelper } from '../../helpers';
-import { type TestModifierConstructor } from '../../modifiers';
+import type { UserHelper } from '../../helpers';
+import type { TestModifierConstructor } from '../../modifiers';
 import type RenderDelegate from '../../render-delegate';
-import { type RenderDelegateOptions } from '../../render-delegate';
+import type { RenderDelegateOptions } from '../../render-delegate';
 import { JitDelegateContext, type JitTestDelegateContext } from '../jit/delegate';
 import {
   registerComponent,

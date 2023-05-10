@@ -1,9 +1,4 @@
-import {
-  type NamedBlocks,
-  type Option,
-  type SerializedInlineBlock,
-  type WireFormat,
-} from '@glimmer/interfaces';
+import type { NamedBlocks, Option, SerializedInlineBlock, WireFormat } from '@glimmer/interfaces';
 import { assign, dict, enumerate, unwrap } from '@glimmer/util';
 
 interface NamedBlocksDict {

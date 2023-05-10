@@ -6,10 +6,13 @@
   "license": "MIT",
   "main": "index.ts",
   "publishConfig": {
+    "access": "public",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
     "exports": {
       "types": "./dist/index.d.ts",
-      "default": "./dist/index.js",
-      "control": "./dist/index.control.js"
+      "require": "./dist/index.cjs",
+      "default": "./dist/index.js"
     }
   },
   "dependencies": {
@@ -28,9 +31,16 @@
     "@glimmer/wire-format": "workspace:^"
   },
   "devDependencies": {
-    "@glimmer-workspace/local-debug-flags": "workspace:^",
+    "@glimmer/local-debug-flags": "workspace:^",
     "@glimmer/opcode-compiler": "workspace:^",
     "@glimmer/debug": "workspace:^",
-    "@types/qunit": "workspace:^"
-  }
+    "@types/qunit": "workspace:^",
+    "@glimmer-workspace/build-support": "workspace:^"
+  },
+  "scripts": {
+    "test:lint": "eslint .",
+    "test:types": "tsc --noEmit -p ../tsconfig.json",
+    "build": "rollup -c rollup.config.mjs"
+  },
+  "types": "index.ts"
 }

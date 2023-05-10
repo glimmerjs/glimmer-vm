@@ -1,27 +1,28 @@
 import { associateDestroyableChild } from '@glimmer/destroyable';
 import { assertGlobalContextWasSet } from '@glimmer/global-context';
-import {
-  type CompilableTemplate,
-  type CompileTimeCompilationContext,
-  type Destroyable,
-  type DynamicScope,
-  type ElementBuilder,
-  type Environment,
-  type Option,
-  type Owner,
-  type PartialScope,
-  type RenderResult,
-  type ResolutionTimeConstants,
-  type RichIteratorResult,
-  type RuntimeConstants,
-  type RuntimeContext,
-  type RuntimeHeap,
-  type RuntimeProgram,
-  type Scope,
-  type UpdatingOpcode,
-  type VM as PublicVM,
+import type {
+  CompilableTemplate,
+  CompileTimeCompilationContext,
+  Destroyable,
+  DynamicScope,
+  ElementBuilder,
+  Environment,
+  Option,
+  Owner,
+  PartialScope,
+  RenderResult,
+  ResolutionTimeConstants,
+  RichIteratorResult,
+  RuntimeConstants,
+  RuntimeContext,
+  RuntimeHeap,
+  RuntimeProgram,
+  Scope,
+  UpdatingOpcode,
+  VM as PublicVM,
 } from '@glimmer/interfaces';
-import { type RuntimeOpImpl } from '@glimmer/program';
+import { LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
+import type { RuntimeOpImpl } from '@glimmer/program';
 import {
   createIteratorItemRef,
   type OpaqueIterationItem,
@@ -45,7 +46,6 @@ import {
   type Register,
   type SyscallRegister,
 } from '@glimmer/vm';
-import { LOCAL_SHOULD_LOG } from '@glimmer-workspace/local-debug-flags';
 
 import {
   BeginTrackFrameOpcode,
@@ -56,7 +56,7 @@ import { APPEND_OPCODES, type DebugState } from '../opcodes';
 import { PartialScopeImpl } from '../scope';
 import { ARGS, CONSTANTS, DESTROYABLE_STACK, HEAP, INNER_VM, REGISTERS, STACKS } from '../symbols';
 import { VMArgumentsImpl } from './arguments';
-import { type LiveBlockList } from './element-builder';
+import type { LiveBlockList } from './element-builder';
 import LowLevelVM from './low-level';
 import RenderResultImpl from './render-result';
 import EvaluationStackImpl, { type EvaluationStack } from './stack';

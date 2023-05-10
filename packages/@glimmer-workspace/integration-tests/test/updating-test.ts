@@ -1,7 +1,7 @@
 import { associateDestroyableChild, registerDestructor } from '@glimmer/destroyable';
-import { type Option, type SimpleElement, type SimpleNode } from '@glimmer/interfaces';
+import type { Option, SimpleElement, SimpleNode } from '@glimmer/interfaces';
 import { createComputeRef, createConstRef, createPrimitiveRef } from '@glimmer/reference';
-import { type SafeString } from '@glimmer/runtime';
+import type { SafeString } from '@glimmer/runtime';
 import { expect } from '@glimmer/util';
 import { consumeTag, createTag, dirtyTag } from '@glimmer/validator';
 

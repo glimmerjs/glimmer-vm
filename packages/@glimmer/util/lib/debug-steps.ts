@@ -1,6 +1,6 @@
 /// <reference types="qunit" />
 
-import { LOCAL_DEBUG } from '@glimmer-workspace/local-debug-flags';
+import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
 
 import assert from './assert';
 import { expect } from './platform-utils';

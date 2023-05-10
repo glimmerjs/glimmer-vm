@@ -1,12 +1,12 @@
-import {
-  type CapturedArguments,
-  type CapturedRenderNode,
-  type CustomRenderNode,
-  type Dict,
-  type InternalComponentManager,
-  type Owner,
-  type SimpleElement,
-  type SimpleNode,
+import type {
+  CapturedArguments,
+  CapturedRenderNode,
+  CustomRenderNode,
+  Dict,
+  InternalComponentManager,
+  Owner,
+  SimpleElement,
+  SimpleNode,
 } from '@glimmer/interfaces';
 import { setComponentTemplate } from '@glimmer/manager';
 import {

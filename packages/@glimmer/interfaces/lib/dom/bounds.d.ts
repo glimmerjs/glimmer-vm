@@ -1,4 +1,4 @@
-import { type Option } from '../core';
+import type { Option } from '../core';
 import type { SimpleElement, SimpleNode } from './simple';
 
 export interface Bounds {

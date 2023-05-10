@@ -1,8 +1,8 @@
-import {
-  type ComponentDefinitionState,
-  type ComponentInstanceState,
-  type InternalComponentManager,
-  type WithCustomDebugRenderTree,
+import type {
+  ComponentDefinitionState,
+  ComponentInstanceState,
+  InternalComponentManager,
+  WithCustomDebugRenderTree,
 } from '@glimmer/interfaces';
 
 /** @internal */

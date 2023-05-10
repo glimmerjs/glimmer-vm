@@ -1,20 +1,24 @@
+const { resolve } = require('path');
+
+const libTsconfig = resolve(__dirname, 'tsconfig.json');
+const testTsconfig = resolve(__dirname, 'tsconfig.test.json');
+
 /** @type {import("eslint").Linter.Config} */
 module.exports = {
   root: false,
   overrides: [
     {
-      files: ['*.ts', '*.js'],
-      excludedFiles: ['*/node_modules'],
+      files: ['*.{ts,js,d.ts}'],
       parserOptions: {
         ecmaVersion: 'latest',
-        project: ['packages/@glimmer/tsconfig.json'],
+        project: [libTsconfig, testTsconfig],
       },
       extends: ['plugin:@typescript-eslint/recommended-requiring-type-checking'],
       rules: {
         '@typescript-eslint/consistent-type-imports': [
           'error',
           {
-            fixStyle: 'inline-type-imports',
+            fixStyle: 'separate-type-imports',
           },
         ],
         '@typescript-eslint/consistent-type-exports': [
@@ -23,6 +27,7 @@ module.exports = {
             fixMixedExportsWithInlineTypeSpecifier: true,
           },
         ],
+        '@typescript-eslint/no-import-type-side-effects': 'error',
         '@typescript-eslint/naming-convention': [
           'error',
           {

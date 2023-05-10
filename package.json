@@ -16,14 +16,14 @@
     "browserstack:connect": "ember browserstack:connect",
     "browserstack:disconnect": "ember browserstack:disconnect",
     "browserstack:results": "ember browserstack:results",
-    "build": "rollup -c rollup.config.mjs",
+    "build": "dotenv -- turbo build",
     "build:control": "rollup -c rollup.config.mjs",
     "build:flags": "RETAIN_FLAGS=true ember build --env production --suppress-sizes",
     "build:typecheck": "tsc -p tsconfig.json --noEmit --pretty false",
     "lint": "npm-run-all lint:*",
-    "lint:files": "eslint . --cache",
+    "lint:files": "dotenv -- turbo lint",
     "force:lint:files": "eslint .",
-    "lint:types": "tsc -p tsconfig.json --noEmit",
+    "lint:types": "dotenv -- turbo typecheck",
     "start": "ember serve --port=7357",
     "test": "node bin/run-tests.mjs",
     "test:browserstack": "ember test --test-port=7774 --host 127.0.0.1 --config-file=testem-browserstack.js",
@@ -47,9 +47,9 @@
     }
   },
   "devDependencies": {
+    "@babel/plugin-syntax-dynamic-import": "^7.8.3",
     "@babel/plugin-transform-modules-commonjs": "^7.21.5",
     "@babel/plugin-transform-runtime": "^7.21.4",
-    "@babel/plugin-syntax-dynamic-import": "^7.8.3",
     "@babel/preset-env": "^7.21.5",
     "@babel/preset-typescript": "^7.21.5",
     "@babel/runtime": "^7.21.5",
@@ -60,7 +60,9 @@
     "@glimmer/env": "0.1.7",
     "@rollup/plugin-terser": "^0.4.1",
     "@types/babel-plugin-macros": "^3.1.0",
+    "@types/babel__core": "^7.20.0",
     "@types/babel__traverse": "^7.18.5",
+    "@types/eslint": "^8.37.0",
     "@types/node": "^18.16.6",
     "@types/preval.macro": "^3.0.0",
     "@types/qunit": "workspace:^",
@@ -72,6 +74,7 @@
     "babel-plugin-strip-glimmer-utils": "^0.1.1",
     "chalk": "^5.2.0",
     "dag-map": "^2.0.2",
+    "dotenv-cli": "^7.2.1",
     "ember-cli": "~4.12.1",
     "ember-cli-browserstack": "^2.0.1",
     "ensure-posix-path": "^1.1.1",
@@ -80,7 +83,6 @@
     "eslint-import-resolver-typescript": "^3.5.5",
     "eslint-plugin-import": "^2.27.5",
     "eslint-plugin-n": "^15.7.0",
-    "eslint-plugin-prettier": "^4.2.1",
     "eslint-plugin-qunit": "^7.3.4",
     "eslint-plugin-simple-import-sort": "^10.0.0",
     "eslint-plugin-unused-imports": "^2.0.0",
@@ -101,6 +103,8 @@
     "semver": "^7.5.0",
     "testem-failure-only-reporter": "^1.0.0",
     "toml": "^3.0.0",
+    "ts-node": "^10.9.1",
+    "turbo": "^1.9.3",
     "typescript": "^5.0.4",
     "vite": "^4.3.5"
   },
@@ -126,7 +130,7 @@
     "node": ">=16.0.0"
   },
   "volta": {
-    "node": "16.20.0",
+    "node": "20.1.0",
     "pnpm": "8.4.0"
   }
 }

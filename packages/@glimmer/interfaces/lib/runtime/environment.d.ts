@@ -1,15 +1,15 @@
 import type { SimpleDocument } from '@simple-dom/interface';
 
-import { type WithCreateInstance } from '../..';
-import {
-  type ComponentDefinitionState,
-  type ComponentInstance,
-  type ComponentInstanceState,
+import type { WithCreateInstance } from '../..';
+import type {
+  ComponentDefinitionState,
+  ComponentInstance,
+  ComponentInstanceState,
 } from '../components';
-import { type Option } from '../core';
-import { type GlimmerTreeChanges, type GlimmerTreeConstruction } from '../dom/changes';
-import { type DebugRenderTree } from './debug-render-tree';
-import { type ModifierInstance } from './modifier';
+import type { Option } from '../core';
+import type { GlimmerTreeChanges, GlimmerTreeConstruction } from '../dom/changes';
+import type { DebugRenderTree } from './debug-render-tree';
+import type { ModifierInstance } from './modifier';
 
 export interface EnvironmentOptions {
   document?: SimpleDocument;

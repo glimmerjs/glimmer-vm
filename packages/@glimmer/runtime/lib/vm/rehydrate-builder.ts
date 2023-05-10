@@ -1,15 +1,15 @@
-import {
-  type AttrNamespace,
-  type Bounds,
-  type ElementBuilder,
-  type Environment,
-  type Maybe,
-  type Option,
-  type SimpleAttr,
-  type SimpleComment,
-  type SimpleElement,
-  type SimpleNode,
-  type SimpleText,
+import type {
+  AttrNamespace,
+  Bounds,
+  ElementBuilder,
+  Environment,
+  Maybe,
+  Option,
+  SimpleAttr,
+  SimpleComment,
+  SimpleElement,
+  SimpleNode,
+  SimpleText,
 } from '@glimmer/interfaces';
 import {
   assert,

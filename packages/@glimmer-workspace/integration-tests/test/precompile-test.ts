@@ -1,5 +1,5 @@
 import { precompile } from '@glimmer/compiler';
-import { type SerializedTemplateWithLazyBlock } from '@glimmer/interfaces';
+import type { SerializedTemplateWithLazyBlock } from '@glimmer/interfaces';
 import {
   templateFactory,
   type TemplateFactoryWithIdAndMeta,

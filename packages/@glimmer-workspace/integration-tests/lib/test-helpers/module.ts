@@ -1,14 +1,14 @@
-import { type EnvironmentDelegate } from '@glimmer/runtime';
+import type { EnvironmentDelegate } from '@glimmer/runtime';
 import { keys } from '@glimmer/util';
 
-import { type ComponentKind } from '../components';
+import type { ComponentKind } from '../components';
 import { JitRenderDelegate } from '../modes/jit/delegate';
 import { NodeJitRenderDelegate } from '../modes/node/env';
 import type RenderDelegate from '../render-delegate';
-import { type RenderDelegateOptions } from '../render-delegate';
-import { type Count, type IRenderTest, type RenderTest } from '../render-test';
+import type { RenderDelegateOptions } from '../render-delegate';
+import type { Count, IRenderTest, RenderTest } from '../render-test';
 import { JitSerializationDelegate } from '../suites/custom-dom-helper';
-import { type DeclaredComponentKind } from '../test-decorator';
+import type { DeclaredComponentKind } from '../test-decorator';
 
 export interface RenderTestConstructor<D extends RenderDelegate, T extends IRenderTest> {
   suiteName: string;

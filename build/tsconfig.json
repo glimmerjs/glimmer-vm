@@ -6,6 +6,7 @@
     "outDir": "../ts-dist/build",
     "skipLibCheck": true
   },
-  "files": ["debug.js"],
+  "include": [],
+  "files": ["debug.mts"],
   "references": [{ "path": "../packages/@glimmer/tsconfig.json" }]
 }

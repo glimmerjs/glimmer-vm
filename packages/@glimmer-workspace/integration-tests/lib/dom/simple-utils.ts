@@ -1,14 +1,14 @@
-import {
-  type Maybe,
-  type Option,
-  type SerializableElement,
-  type SerializableNode,
-  type SimpleComment,
-  type SimpleDocument,
-  type SimpleDocumentFragment,
-  type SimpleElement,
-  type SimpleNode,
-  type SimpleText,
+import type {
+  Maybe,
+  Option,
+  SerializableElement,
+  SerializableNode,
+  SimpleComment,
+  SimpleDocument,
+  SimpleDocumentFragment,
+  SimpleElement,
+  SimpleNode,
+  SimpleText,
 } from '@glimmer/interfaces';
 import {
   clearElement,

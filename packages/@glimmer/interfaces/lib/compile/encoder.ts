@@ -1,40 +1,50 @@
-import { type CompileTimeComponent } from '../..';
-import { type Option } from '../core';
-import { type CompileTimeConstants } from '../program';
-import { type HandleResult, type NamedBlocks } from '../template';
-import { type MachineOp, type Op } from '../vm-opcodes';
-import { type SingleBuilderOperand } from './operands';
-import type * as WireFormat from './wire-format';
+import type { CompileTimeComponent } from '../..';
+import type { Option } from '../core';
+import type { CompileTimeConstants } from '../program';
+import type { HandleResult, NamedBlocks } from '../template';
+import type { VmMachineOp as MachineOp, VmOp as Op } from '../vm-opcodes';
+import type { SingleBuilderOperand } from './operands';
+import type * as WireFormat from './wire-format/api';
 
 // These values are used in the same space as standard opcodes, so we need to
 // start them at a higher value to prevent collisions
-export enum HighLevelBuilderOpcode {
-  Label = 1000,
-  StartLabels = 1001,
-  StopLabels = 1002,
+export type HighLevelLabel = 1000;
+export type HighLevelStartLabels = 1001;
+export type HighLevelStopLabels = 1002;
+export type HighLevelStart = HighLevelLabel;
+export type HighLevelEnd = HighLevelStopLabels;
 
-  Start = Label,
-  End = StopLabels,
-}
+export type HighLevelBuilderOpcode =
+  | HighLevelLabel
+  | HighLevelStartLabels
+  | HighLevelStopLabels
+  | HighLevelStart
+  | HighLevelEnd;
 
-export enum HighLevelResolutionOpcode {
-  ResolveModifier = 1003,
+export type HighLevelResolveModifier = 1003;
+export type HighLevelResolveComponent = 1004;
+export type HighLevelResolveHelper = 1005;
+export type HighLevelResolveOptionalHelper = 1006;
+export type HighLevelResolveComponentOrHelper = 1007;
+export type HighLevelResolveOptionalComponentOrHelper = 1008;
+export type HighLevelResolveFree = 1009;
+export type HighLevelResolveLocal = 1010;
+export type HighLevelResolveTemplateLocal = 1011;
+export type HighLevelResolveStart = HighLevelResolveModifier;
+export type HighLevelRevolveEnd = HighLevelResolveTemplateLocal;
 
-  ResolveComponent = 1004,
-
-  ResolveHelper = 1005,
-  ResolveOptionalHelper = 1006,
-
-  ResolveComponentOrHelper = 1007,
-  ResolveOptionalComponentOrHelper = 1008,
-
-  ResolveFree = 1009,
-  ResolveLocal = 1010,
-  ResolveTemplateLocal = 1011,
-
-  Start = ResolveModifier,
-  End = ResolveTemplateLocal,
-}
+export type HighLevelResolutionOpcode =
+  | HighLevelResolveModifier
+  | HighLevelResolveComponent
+  | HighLevelResolveHelper
+  | HighLevelResolveOptionalHelper
+  | HighLevelResolveComponentOrHelper
+  | HighLevelResolveOptionalComponentOrHelper
+  | HighLevelResolveFree
+  | HighLevelResolveLocal
+  | HighLevelResolveTemplateLocal
+  | HighLevelResolveStart
+  | HighLevelRevolveEnd;
 
 export interface SimpleArgsOptions {
   positional: Option<WireFormat.Core.Params>;
@@ -47,28 +57,28 @@ export interface ArgsOptions extends SimpleArgsOptions {
   blocks: NamedBlocks;
 }
 
-export type StartLabelsOp = [op: HighLevelBuilderOpcode.StartLabels];
+export type StartLabelsOp = [op: HighLevelStartLabels];
 
-export type StopLabelsOp = [op: HighLevelBuilderOpcode.StopLabels];
+export type StopLabelsOp = [op: HighLevelStopLabels];
 
-export type LabelOp = [op: HighLevelBuilderOpcode.Label, op1: string];
+export type LabelOp = [op: HighLevelLabel, op1: string];
 
 export type HighLevelBuilderOp = StartLabelsOp | StopLabelsOp | LabelOp;
 
 export type ResolveModifierOp = [
-  op: HighLevelResolutionOpcode.ResolveModifier,
+  op: HighLevelResolveModifier,
   op1: WireFormat.Expressions.Expression,
   op2: (handle: number) => void
 ];
 
 export type ResolveComponentOp = [
-  op: HighLevelResolutionOpcode.ResolveComponent,
+  op: HighLevelResolveComponent,
   op1: WireFormat.Expressions.Expression,
   op2: (component: CompileTimeComponent) => void
 ];
 
 export type ResolveComponentOrHelperOp = [
-  op: HighLevelResolutionOpcode.ResolveComponentOrHelper,
+  op: HighLevelResolveComponentOrHelper,
   op1: WireFormat.Expressions.Expression,
   op2: {
     ifComponent: (component: CompileTimeComponent) => void;
@@ -77,13 +87,13 @@ export type ResolveComponentOrHelperOp = [
 ];
 
 export type ResolveHelperOp = [
-  op: HighLevelResolutionOpcode.ResolveHelper,
+  op: HighLevelResolveHelper,
   op1: WireFormat.Expressions.Expression,
   op2: (handle: number) => void
 ];
 
 export type ResolveOptionalHelperOp = [
-  op: HighLevelResolutionOpcode.ResolveOptionalHelper,
+  op: HighLevelResolveOptionalHelper,
   op1: WireFormat.Expressions.Expression,
   op2: {
     ifHelper: (handle: number, name: string, moduleName: string) => void;
@@ -91,7 +101,7 @@ export type ResolveOptionalHelperOp = [
 ];
 
 export type ResolveOptionalComponentOrHelperOp = [
-  op: HighLevelResolutionOpcode.ResolveOptionalComponentOrHelper,
+  op: HighLevelResolveOptionalComponentOrHelper,
   op1: WireFormat.Expressions.Expression,
   op2: {
     ifComponent: (component: CompileTimeComponent) => void;
@@ -100,20 +110,16 @@ export type ResolveOptionalComponentOrHelperOp = [
   }
 ];
 
-export type ResolveFreeOp = [
-  op: HighLevelResolutionOpcode.ResolveFree,
-  op1: number,
-  op2: (handle: number) => void
-];
+export type ResolveFreeOp = [op: HighLevelResolveFree, op1: number, op2: (handle: number) => void];
 
 export type ResolveTemplateLocalOp = [
-  op: HighLevelResolutionOpcode.ResolveTemplateLocal,
+  op: HighLevelResolveTemplateLocal,
   op1: number,
   op2: (handle: number) => void
 ];
 
 export type ResolveLocalOp = [
-  op: HighLevelResolutionOpcode.ResolveLocal,
+  op: HighLevelResolveLocal,
   op1: number,
   op2: (name: string, moduleName: string) => void
 ];

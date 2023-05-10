@@ -1,12 +1,12 @@
-import {
-  type BlockSymbolTable,
-  type Dict,
-  type Maybe,
-  type Option,
-  type ProgramSymbolTable,
-  type SimpleDocumentFragment,
-  type SimpleElement,
-  type SimpleNode,
+import type {
+  BlockSymbolTable,
+  Dict,
+  Maybe,
+  Option,
+  ProgramSymbolTable,
+  SimpleDocumentFragment,
+  SimpleElement,
+  SimpleNode,
 } from '@glimmer/interfaces';
 
 export interface Checker<T> {

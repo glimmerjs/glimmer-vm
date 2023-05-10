@@ -14,9 +14,13 @@
   "editor.formatOnSave": true,
   "eslint.enable": true,
   "eslint.packageManager": "npm",
+  "eslint.codeAction.showDocumentation": {
+    "enable": true
+  },
+  "eslint.onIgnoredFiles": "warn",
   "eslint.workingDirectories": [
     {
-      "mode": "location"
+      "mode": "auto"
     }
   ],
   "explorer.excludeGitIgnore": true,

@@ -1,14 +1,14 @@
-import {
-  type Bounds,
-  type Option,
-  type SimpleComment,
-  type SimpleDocument,
-  type SimpleElement,
-  type SimpleNode,
+import type {
+  Bounds,
+  Option,
+  SimpleComment,
+  SimpleDocument,
+  SimpleElement,
+  SimpleNode,
 } from '@glimmer/interfaces';
 import { INSERT_BEFORE_END } from '@glimmer/util';
 
-import { type DOMOperations } from '../dom/operations';
+import type { DOMOperations } from '../dom/operations';
 
 // Patch:    Adjacent text node merging fix
 // Browsers: IE, Edge, Firefox w/o inspector open

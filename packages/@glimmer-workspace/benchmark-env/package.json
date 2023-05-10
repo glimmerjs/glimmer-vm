@@ -5,6 +5,7 @@
   "engines": {
     "node": ">=16"
   },
+  "main": "index.ts",
   "repository": "https://github.com/glimmerjs/glimmer-vm/tree/master/packages/@glimmer-workspace/benchmark-env",
   "dependencies": {
     "@glimmer/global-context": "workspace:^",
@@ -16,5 +17,9 @@
     "@glimmer/runtime": "workspace:^",
     "@glimmer/util": "workspace:^",
     "@glimmer/validator": "workspace:^"
+  },
+  "scripts": {
+    "test:lint": "eslint .",
+    "test:types": "tsc --noEmit -p ../tsconfig.json"
   }
 }

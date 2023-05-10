@@ -1,0 +1,17 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "pipeline": {
+    "build": {
+      "outputs": ["dist/**"]
+    },
+    "lint": {
+      "dependsOn": ["test:lint"]
+    },
+    "test:lint": {},
+    "typecheck": {
+      "dependsOn": ["test:types"]
+    },
+    "test:types": {}
+  },
+  "globalEnv": ["NODE_OPTIONS"]
+}

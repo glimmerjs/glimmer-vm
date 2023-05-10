@@ -1,9 +1,9 @@
-import {
-  type ComponentDefinition,
-  type Option,
-  type Owner,
-  type ResolutionTimeConstants,
-  type RuntimeResolver,
+import type {
+  ComponentDefinition,
+  Option,
+  Owner,
+  ResolutionTimeConstants,
+  RuntimeResolver,
 } from '@glimmer/interfaces';
 import { expect } from '@glimmer/util';
 

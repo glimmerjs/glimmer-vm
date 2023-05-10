@@ -1,4 +1,4 @@
-import { type SimpleElement } from '@glimmer/interfaces';
+import type { SimpleElement } from '@glimmer/interfaces';
 
 import { EmberishCurlyComponent } from '../components';
 import { assertEmberishElement, classes } from '../dom/assertions';

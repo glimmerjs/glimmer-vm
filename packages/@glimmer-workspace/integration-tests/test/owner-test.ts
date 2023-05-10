@@ -1,9 +1,9 @@
-import {
-  type InternalComponentCapabilities,
-  type Owner,
-  type ResolvedComponentDefinition,
-  type WithCreateInstance,
-  type WithSubOwner,
+import type {
+  InternalComponentCapabilities,
+  Owner,
+  ResolvedComponentDefinition,
+  WithCreateInstance,
+  WithSubOwner,
 } from '@glimmer/interfaces';
 import { setInternalComponentManager } from '@glimmer/manager';
 import { NULL_REFERENCE, type Reference } from '@glimmer/reference';

@@ -1,12 +1,12 @@
-import {
-  type Bounds,
-  type Dict,
-  type Option,
-  type SimpleComment,
-  type SimpleDocument,
-  type SimpleElement,
-  type SimpleNode,
-  type SimpleText,
+import type {
+  Bounds,
+  Dict,
+  Option,
+  SimpleComment,
+  SimpleDocument,
+  SimpleElement,
+  SimpleNode,
+  SimpleText,
 } from '@glimmer/interfaces';
 import { expect, INSERT_BEFORE_BEGIN, INSERT_BEFORE_END, NS_SVG } from '@glimmer/util';
 

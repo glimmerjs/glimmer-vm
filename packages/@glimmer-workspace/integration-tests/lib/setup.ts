@@ -1,6 +1,6 @@
 import setGlobalContext from '@glimmer/global-context';
-import { type Destroyable, type Destructor, type Dict, type Option } from '@glimmer/interfaces';
-import { type IteratorDelegate } from '@glimmer/reference';
+import type { Destroyable, Destructor, Dict, Option } from '@glimmer/interfaces';
+import type { IteratorDelegate } from '@glimmer/reference';
 import { consumeTag, dirtyTagFor, tagFor } from '@glimmer/validator';
 
 import { scheduleDidDestroy, scheduleWillDestroy } from './base-env';

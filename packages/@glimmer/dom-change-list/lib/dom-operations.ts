@@ -1,13 +1,13 @@
-import {
-  type AttrNamespace,
-  type ElementNamespace,
-  type Namespace,
-  type NodeToken,
-  type Option,
-  type SimpleDocument,
-  type SimpleDocumentFragment,
-  type SimpleElement,
-  type SimpleNode,
+import type {
+  AttrNamespace,
+  ElementNamespace,
+  Namespace,
+  NodeToken,
+  Option,
+  SimpleDocument,
+  SimpleDocumentFragment,
+  SimpleElement,
+  SimpleNode,
 } from '@glimmer/interfaces';
 import { assert, assign, dict, NS_HTML } from '@glimmer/util';
 

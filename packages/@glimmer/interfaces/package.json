@@ -7,5 +7,25 @@
   "main": "index.d.ts",
   "dependencies": {
     "@simple-dom/interface": "^1.4.0"
+  },
+  "scripts": {
+    "test:lint": "eslint .",
+    "test:types": "tsc --noEmit -p ../tsconfig.json"
+  },
+  "publishConfig": {
+    "access": "public",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "exports": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.cjs",
+      "default": "./dist/index.js"
+    }
+  },
+  "devDependencies": {
+    "@glimmer-workspace/build-support": "workspace:^"
+  },
+  "exports": {
+    "types": "./index.d.ts"
   }
 }

@@ -1,20 +1,21 @@
 import { associateDestroyableChild, destroy, destroyChildren } from '@glimmer/destroyable';
-import {
-  type Bounds,
-  type DynamicScope,
-  type ElementBuilder,
-  type Environment,
-  type ExceptionHandler,
-  type GlimmerTreeChanges,
-  type LiveBlock,
-  type Option,
-  type RuntimeContext,
-  type Scope,
-  type SimpleComment,
-  type UpdatableBlock,
-  type UpdatingOpcode,
-  type UpdatingVM,
+import type {
+  Bounds,
+  DynamicScope,
+  ElementBuilder,
+  Environment,
+  ExceptionHandler,
+  GlimmerTreeChanges,
+  LiveBlock,
+  Option,
+  RuntimeContext,
+  Scope,
+  SimpleComment,
+  UpdatableBlock,
+  UpdatingOpcode,
+  UpdatingVM,
 } from '@glimmer/interfaces';
+import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
 import {
   type OpaqueIterationItem,
   type OpaqueIterator,
@@ -24,10 +25,9 @@ import {
 } from '@glimmer/reference';
 import { expect, logStep, Stack, unwrap } from '@glimmer/util';
 import { debug, resetTracking } from '@glimmer/validator';
-import { LOCAL_DEBUG } from '@glimmer-workspace/local-debug-flags';
 
 import { clear, move as moveBounds } from '../bounds';
-import { type InternalVM, type VmInitCallback } from './append';
+import type { InternalVM, VmInitCallback } from './append';
 import { type LiveBlockList, NewElementBuilder } from './element-builder';
 
 export default class UpdatingVMImpl implements UpdatingVM {

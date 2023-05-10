@@ -1,12 +1,10 @@
-import {
-  type AttrNamespace,
-  type Dict,
-  type Expressions,
-  type GetContextualFreeOp,
-  type Option,
-  type PresentArray,
-  SexpOpcodes,
-  VariableResolutionContext,
+import type {
+  AttrNamespace,
+  Dict,
+  Expressions,
+  GetContextualFreeOpcode,
+  Option,
+  PresentArray,
   WireFormat,
 } from '@glimmer/interfaces';
 import {
@@ -21,6 +19,7 @@ import {
   NS_XMLNS,
   values,
 } from '@glimmer/util';
+import { SexpOpcodes as Op, VariableResolutionContext } from '@glimmer/wire-format';
 
 import {
   Builder,
@@ -44,8 +43,6 @@ import {
   type Variable,
   VariableKind,
 } from './builder-interface';
-
-import Op = WireFormat.SexpOpcodes;
 
 interface Symbols {
   top: ProgramSymbols;
@@ -633,21 +630,21 @@ export function buildVar(
   switch (head.kind) {
     case VariableKind.Free:
       if (context === 'Strict') {
-        op = SexpOpcodes.GetStrictKeyword;
+        op = Op.GetStrictKeyword;
       } else if (context === 'AppendBare') {
-        op = SexpOpcodes.GetFreeAsComponentOrHelperHeadOrThisFallback;
+        op = Op.GetFreeAsComponentOrHelperHeadOrThisFallback;
       } else if (context === 'AppendInvoke') {
-        op = SexpOpcodes.GetFreeAsComponentOrHelperHead;
+        op = Op.GetFreeAsComponentOrHelperHead;
       } else if (context === 'TrustedAppendBare') {
-        op = SexpOpcodes.GetFreeAsHelperHeadOrThisFallback;
+        op = Op.GetFreeAsHelperHeadOrThisFallback;
       } else if (context === 'TrustedAppendInvoke') {
-        op = SexpOpcodes.GetFreeAsHelperHead;
+        op = Op.GetFreeAsHelperHead;
       } else if (context === 'AttrValueBare') {
-        op = SexpOpcodes.GetFreeAsHelperHeadOrThisFallback;
+        op = Op.GetFreeAsHelperHeadOrThisFallback;
       } else if (context === 'AttrValueInvoke') {
-        op = SexpOpcodes.GetFreeAsHelperHead;
+        op = Op.GetFreeAsHelperHead;
       } else if (context === 'SubExpression') {
-        op = SexpOpcodes.GetFreeAsHelperHead;
+        op = Op.GetFreeAsHelperHead;
       } else {
         op = expressionContextOp(context);
       }
@@ -684,7 +681,7 @@ function getSymbolForVar(
   }
 }
 
-export function expressionContextOp(context: VariableResolutionContext): GetContextualFreeOp {
+export function expressionContextOp(context: VariableResolutionContext): GetContextualFreeOpcode {
   switch (context) {
     case VariableResolutionContext.Strict:
       return Op.GetStrictKeyword;

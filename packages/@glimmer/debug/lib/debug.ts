@@ -1,18 +1,18 @@
-import {
-  type CompileTimeConstants,
-  type Dict,
-  type Maybe,
-  type Recast,
-  type ResolutionTimeConstants,
-  type RuntimeOp,
-  type TemplateCompilationContext,
+import type {
+  CompileTimeConstants,
+  Dict,
+  Maybe,
+  Recast,
+  ResolutionTimeConstants,
+  RuntimeOp,
+  TemplateCompilationContext,
 } from '@glimmer/interfaces';
+import { LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
 import { decodeHandle, decodeImmediate, enumerate, LOCAL_LOGGER } from '@glimmer/util';
 import { $fp, $pc, $ra, $s0, $s1, $sp, $t0, $t1, $v0, type Register } from '@glimmer/vm';
-import { LOCAL_SHOULD_LOG } from '@glimmer-workspace/local-debug-flags';
 
 import { opcodeMetadata } from './opcode-metadata';
-import { type Primitive } from './stack-check';
+import type { Primitive } from './stack-check';
 
 export interface DebugConstants {
   getValue<T>(handle: number): T;

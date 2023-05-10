@@ -14,6 +14,7 @@
     "@glimmer/validator": "workspace:^",
     "@glimmer/compiler": "workspace:^",
     "@glimmer/util": "workspace:^",
+    "@glimmer/vm": "workspace:^",
     "@glimmer/wire-format": "workspace:^",
     "@glimmer/interfaces": "workspace:^",
     "@glimmer-workspace/test-utils": "workspace:^",
@@ -29,8 +30,12 @@
     "js-reporters": "^2.1.0"
   },
   "devDependencies": {
-    "@glimmer-workspace/local-debug-flags": "workspace:^",
+    "@glimmer/local-debug-flags": "workspace:^",
     "@types/qunit": "workspace:^",
     "@types/js-reporters": "workspace:^"
+  },
+  "scripts": {
+    "test:lint": "eslint .",
+    "test:types": "tsc --noEmit -p ../tsconfig.json"
   }
 }

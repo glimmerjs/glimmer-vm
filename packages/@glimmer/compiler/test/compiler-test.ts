@@ -13,10 +13,10 @@ import {
   unicode,
   WireFormatDebugger,
 } from '@glimmer/compiler';
-import {
-  type SerializedTemplate,
-  type SerializedTemplateBlock,
-  type SerializedTemplateWithLazyBlock,
+import type {
+  SerializedTemplate,
+  SerializedTemplateBlock,
+  SerializedTemplateWithLazyBlock,
 } from '@glimmer/interfaces';
 import { assign, strip } from '@glimmer/util';
 

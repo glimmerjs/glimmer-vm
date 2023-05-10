@@ -1,16 +1,16 @@
-import {
-  type ComponentInstanceWithCreate,
-  type Environment,
-  type EnvironmentOptions,
-  type GlimmerTreeChanges,
-  type GlimmerTreeConstruction,
-  type ModifierInstance,
-  type Option,
-  type RuntimeArtifacts,
-  type RuntimeContext,
-  type RuntimeResolver,
-  type Transaction,
-  type TransactionSymbol,
+import type {
+  ComponentInstanceWithCreate,
+  Environment,
+  EnvironmentOptions,
+  GlimmerTreeChanges,
+  GlimmerTreeConstruction,
+  ModifierInstance,
+  Option,
+  RuntimeArtifacts,
+  RuntimeContext,
+  RuntimeResolver,
+  Transaction,
+  TransactionSymbol,
 } from '@glimmer/interfaces';
 import { RuntimeProgramImpl } from '@glimmer/program';
 import { assert, expect } from '@glimmer/util';

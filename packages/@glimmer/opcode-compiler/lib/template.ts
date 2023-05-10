@@ -1,13 +1,13 @@
-import {
-  type CompilableProgram,
-  type LayoutWithContext,
-  type Option,
-  type Owner,
-  type SerializedTemplateBlock,
-  type SerializedTemplateWithLazyBlock,
-  type Template,
-  type TemplateFactory,
-  type TemplateOk,
+import type {
+  CompilableProgram,
+  LayoutWithContext,
+  Option,
+  Owner,
+  SerializedTemplateBlock,
+  SerializedTemplateWithLazyBlock,
+  Template,
+  TemplateFactory,
+  TemplateOk,
 } from '@glimmer/interfaces';
 import { assign } from '@glimmer/util';
 

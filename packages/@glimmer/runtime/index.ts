@@ -3,7 +3,7 @@
  */
 import './lib/bootstrap';
 
-import { type RichIteratorResult } from '@glimmer/interfaces';
+import type { RichIteratorResult } from '@glimmer/interfaces';
 
 export { clear, ConcreteBounds, CursorImpl } from './lib/bounds';
 export {

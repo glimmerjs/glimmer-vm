@@ -1,10 +1,4 @@
-import {
-  type Bounds,
-  type Cursor,
-  type Option,
-  type SimpleElement,
-  type SimpleNode,
-} from '@glimmer/interfaces';
+import type { Bounds, Cursor, Option, SimpleElement, SimpleNode } from '@glimmer/interfaces';
 import { expect } from '@glimmer/util';
 
 export class CursorImpl implements Cursor {

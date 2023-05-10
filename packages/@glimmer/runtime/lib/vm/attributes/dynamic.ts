@@ -1,13 +1,13 @@
 import { warnIfStyleNotTrusted } from '@glimmer/global-context';
-import {
-  type AttributeCursor,
-  type AttributeOperation,
-  type AttrNamespace,
-  type Dict,
-  type ElementBuilder,
-  type Environment,
-  type Option,
-  type SimpleElement,
+import type {
+  AttributeCursor,
+  AttributeOperation,
+  AttrNamespace,
+  Dict,
+  ElementBuilder,
+  Environment,
+  Option,
+  SimpleElement,
 } from '@glimmer/interfaces';
 import { castToBrowser, NS_SVG } from '@glimmer/util';
 

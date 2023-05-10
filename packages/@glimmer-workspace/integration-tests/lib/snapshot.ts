@@ -1,4 +1,4 @@
-import { type Option, type SimpleElement, type SimpleNode } from '@glimmer/interfaces';
+import type { Option, SimpleElement, SimpleNode } from '@glimmer/interfaces';
 import { castToSimple, COMMENT_NODE, TEXT_NODE } from '@glimmer/util';
 import { type EndTag, type Token, tokenize } from 'simple-html-tokenizer';
 

@@ -1,23 +1,23 @@
-import {
-  type Cursor,
-  type Dict,
-  type DynamicScope,
-  type ElementBuilder,
-  type ElementNamespace,
-  type Environment,
-  type Helper,
-  type RenderResult,
-  type SimpleDocument,
-  type SimpleDocumentFragment,
-  type SimpleElement,
-  type SimpleText,
+import type {
+  Cursor,
+  Dict,
+  DynamicScope,
+  ElementBuilder,
+  ElementNamespace,
+  Environment,
+  Helper,
+  RenderResult,
+  SimpleDocument,
+  SimpleDocumentFragment,
+  SimpleElement,
+  SimpleText,
 } from '@glimmer/interfaces';
-import { type Reference } from '@glimmer/reference';
-import { type EnvironmentDelegate } from '@glimmer/runtime';
-import { type ASTPluginBuilder } from '@glimmer/syntax';
+import type { Reference } from '@glimmer/reference';
+import type { EnvironmentDelegate } from '@glimmer/runtime';
+import type { ASTPluginBuilder } from '@glimmer/syntax';
 
-import { type ComponentKind, type ComponentTypes } from './components';
-import { type UserHelper } from './helpers';
+import type { ComponentKind, ComponentTypes } from './components';
+import type { UserHelper } from './helpers';
 import type { TestJitRegistry } from './modes/jit/registry';
 import type { TestJitRuntimeResolver } from './modes/jit/resolver';
 

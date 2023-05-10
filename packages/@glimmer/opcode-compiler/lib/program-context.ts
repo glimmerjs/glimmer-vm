@@ -1,12 +1,12 @@
-import {
-  type CompileTimeArtifacts,
-  type CompileTimeCompilationContext,
-  type CompileTimeConstants,
-  type CompileTimeHeap,
-  type CompileTimeResolver,
-  type CreateRuntimeOp,
-  type ResolutionTimeConstants,
-  type STDLib,
+import type {
+  CompileTimeArtifacts,
+  CompileTimeCompilationContext,
+  CompileTimeConstants,
+  CompileTimeHeap,
+  CompileTimeResolver,
+  CreateRuntimeOp,
+  ResolutionTimeConstants,
+  STDLib,
 } from '@glimmer/interfaces';
 
 import { compileStd } from './opcode-builder/helpers/stdlib';

@@ -5,5 +5,9 @@
   "dependencies": {
     "@glimmer/interfaces": "workspace:^",
     "@glimmer/util": "workspace:^"
+  },
+  "scripts": {
+    "test:lint": "eslint .",
+    "test:types": "tsc --noEmit -p ../tsconfig.json"
   }
 }

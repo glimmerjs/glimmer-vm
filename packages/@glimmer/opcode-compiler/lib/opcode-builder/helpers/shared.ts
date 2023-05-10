@@ -1,14 +1,14 @@
-import {
-  type ContainingMetadata,
-  type LayoutWithContext,
-  type NamedBlocks,
-  Op,
-  type Option,
-  type WireFormat,
+import type {
+  ContainingMetadata,
+  LayoutWithContext,
+  NamedBlocks,
+  Option,
+  WireFormat,
 } from '@glimmer/interfaces';
 import { EMPTY_ARRAY, EMPTY_STRING_ARRAY } from '@glimmer/util';
+import { Op } from '@glimmer/vm';
 
-import { type PushExpressionOp, type PushStatementOp } from '../../syntax/compilers';
+import type { PushExpressionOp, PushStatementOp } from '../../syntax/compilers';
 import { PushYieldableBlock } from './blocks';
 import { expr } from './expr';
 

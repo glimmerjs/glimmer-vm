@@ -16,19 +16,20 @@ import {
   CheckUnknown,
   wrap,
 } from '@glimmer/debug';
-import {
-  type CapturedArguments,
-  type CompilableBlock,
-  type CompilableProgram,
-  type ComponentDefinition,
-  type ComponentInstance,
-  type ElementOperations,
-  type Helper,
-  type InternalComponentManager,
-  type Invocation,
-  type Option,
-  type Scope,
-  type ScopeBlock,
+import type {
+  CapabilityMask,
+  CapturedArguments,
+  CompilableBlock,
+  CompilableProgram,
+  ComponentDefinition,
+  ComponentInstance,
+  ElementOperations,
+  Helper,
+  InternalComponentManager,
+  Invocation,
+  Option,
+  Scope,
+  ScopeBlock,
 } from '@glimmer/interfaces';
 import {
   type OpaqueIterator,
@@ -100,6 +101,8 @@ export const CheckComponentManager: Checker<InternalComponentManager<unknown>> =
   getCapabilities: CheckFunction,
 });
 
+export const CheckCapabilities: Checker<CapabilityMask> = CheckNumber as Checker<CapabilityMask>;
+
 export const CheckComponentInstance: Checker<ComponentInstance> = CheckInterface({
   definition: CheckUnknown,
   state: CheckUnknown,
@@ -146,6 +149,6 @@ export const CheckComponentDefinition: Checker<ComponentDefinition> = CheckInter
   handle: CheckNumber,
   state: CheckOr(CheckObject, CheckFunction),
   manager: CheckComponentManager,
-  capabilities: CheckNumber,
+  capabilities: CheckCapabilities,
   compilable: CheckCompilableProgram,
 });

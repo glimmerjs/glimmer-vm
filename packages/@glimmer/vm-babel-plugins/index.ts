@@ -1,8 +1,20 @@
-function defaultTo(value, defaultVal) {
-  return value === undefined ? defaultVal : value;
+import { createRequire } from 'node:module';
+
+const require = createRequire(import.meta.url);
+
+function defaultTo<T, U>(value: T, defaultVal: U): Exclude<T, undefined> | U {
+  return (value === undefined ? defaultVal : value) as Exclude<T, undefined> | U;
 }
 
-module.exports = function generateVmPlugins(options = {}) {
+interface Options {
+  isDebug?: boolean;
+  __loadPlugins?: boolean;
+}
+
+export default function generateVmPlugins(
+  options: Options = {}
+  // eslint-disable-next-line @typescript-eslint/consistent-type-imports
+): import('@babel/core').PluginItem[] {
   let isDebug = defaultTo(options.isDebug, true);
   let __loadPlugins = defaultTo(options.__loadPlugins, false);
 
@@ -25,4 +37,4 @@ module.exports = function generateVmPlugins(options = {}) {
       'glimmer-vm-debug-macros',
     ],
   ];
-};
+}

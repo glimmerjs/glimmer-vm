@@ -1,10 +1,9 @@
-import {
-  CurriedType,
-  type Helper as GlimmerHelper,
-  type InternalModifierManager,
-  type Option,
-  type ResolutionTimeConstants,
-  type TemplateFactory,
+import type {
+  Helper as GlimmerHelper,
+  InternalModifierManager,
+  Option,
+  ResolutionTimeConstants,
+  TemplateFactory,
 } from '@glimmer/interfaces';
 import {
   getInternalComponentManager,
@@ -13,9 +12,10 @@ import {
   setInternalModifierManager,
 } from '@glimmer/manager';
 import { type CurriedValue, curry, templateOnlyComponent } from '@glimmer/runtime';
+import { CurriedTypes } from '@glimmer/vm';
 
 import { createTemplate } from '../../compile';
-import { type ComponentKind, type ComponentTypes } from '../../components';
+import type { ComponentKind, ComponentTypes } from '../../components';
 import { EmberishCurlyComponent } from '../../components/emberish-curly';
 import { GlimmerishComponent } from '../../components/emberish-glimmer';
 import { createHelperRef, type UserHelper } from '../../helpers';
@@ -24,7 +24,7 @@ import {
   TestModifierDefinitionState,
   TestModifierManager,
 } from '../../modifiers';
-import { type TestJitRegistry } from './registry';
+import type { TestJitRegistry } from './registry';
 
 export function registerTemplateOnlyComponent(
   registry: TestJitRegistry,
@@ -169,7 +169,7 @@ export function componentHelper(
   if (definition === null) return null;
 
   return curry(
-    CurriedType.Component,
+    CurriedTypes.Component,
     constants.resolvedComponent(definition, name),
     {},
     null,

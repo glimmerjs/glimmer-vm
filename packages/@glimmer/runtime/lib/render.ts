@@ -1,15 +1,15 @@
-import {
-  type CompilableProgram,
-  type CompileTimeCompilationContext,
-  type ComponentDefinitionState,
-  type DynamicScope,
-  type ElementBuilder,
-  type Environment,
-  type Owner,
-  type RenderResult,
-  type RichIteratorResult,
-  type RuntimeContext,
-  type TemplateIterator,
+import type {
+  CompilableProgram,
+  CompileTimeCompilationContext,
+  ComponentDefinitionState,
+  DynamicScope,
+  ElementBuilder,
+  Environment,
+  Owner,
+  RenderResult,
+  RichIteratorResult,
+  RuntimeContext,
+  TemplateIterator,
 } from '@glimmer/interfaces';
 import { childRefFor, createConstRef, type Reference } from '@glimmer/reference';
 import { expect, unwrapHandle } from '@glimmer/util';

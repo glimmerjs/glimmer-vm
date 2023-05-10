@@ -1,12 +1,7 @@
 import { assert, isPresentArray } from '@glimmer/util';
 
 import { OffsetKind } from './kinds';
-import {
-  type CharPosition,
-  type HbsPosition,
-  type InvisiblePosition,
-  type PositionData,
-} from './offset';
+import type { CharPosition, HbsPosition, InvisiblePosition, PositionData } from './offset';
 
 /**
  * This file implements the DSL used by span and offset in places where they need to exhaustively

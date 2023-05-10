@@ -1,5 +1,5 @@
 import { testOverrideGlobalContext } from '@glimmer/global-context';
-import { type UpdatableTag } from '@glimmer/interfaces';
+import type { UpdatableTag } from '@glimmer/interfaces';
 
 import {
   ALLOW_CYCLES,

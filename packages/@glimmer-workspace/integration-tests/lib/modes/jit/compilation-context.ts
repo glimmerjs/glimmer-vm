@@ -1,12 +1,12 @@
-import {
-  type CompileTimeResolver,
-  type HelperDefinitionState,
-  type ModifierDefinitionState,
-  type Option,
-  type ResolvedComponentDefinition,
+import type {
+  CompileTimeResolver,
+  HelperDefinitionState,
+  ModifierDefinitionState,
+  Option,
+  ResolvedComponentDefinition,
 } from '@glimmer/interfaces';
 
-import { type TestJitRuntimeResolver } from './resolver';
+import type { TestJitRuntimeResolver } from './resolver';
 
 export default class JitCompileTimeLookup implements CompileTimeResolver {
   constructor(private resolver: TestJitRuntimeResolver) {}

@@ -1,12 +1,12 @@
-import { type DOMTreeConstruction, type TreeBuilder } from '@glimmer/dom-change-list';
-import {
-  type Namespace,
-  type NodeTokens,
-  type Option,
-  type PresentArray,
-  type SimpleAttr,
-  type SimpleDocumentFragment,
-  type SimpleElement,
+import type { DOMTreeConstruction, TreeBuilder } from '@glimmer/dom-change-list';
+import type {
+  Namespace,
+  NodeTokens,
+  Option,
+  PresentArray,
+  SimpleAttr,
+  SimpleDocumentFragment,
+  SimpleElement,
 } from '@glimmer/interfaces';
 import { COMMENT_NODE, ELEMENT_NODE, NS_SVG, NS_XLINK, TEXT_NODE } from '@glimmer/util';
 import Serializer from '@simple-dom/serializer';

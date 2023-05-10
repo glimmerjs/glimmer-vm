@@ -1,4 +1,4 @@
-import { type Dict, type Option, type PresentArray } from '@glimmer/interfaces';
+import type { Dict, Option, PresentArray } from '@glimmer/interfaces';
 
 // TODO: How do these map onto constant and machine types?
 export const OPERAND_TYPES = [

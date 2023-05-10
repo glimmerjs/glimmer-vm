@@ -1,8 +1,8 @@
-import {
-  type CapturedArguments,
-  type InternalModifierManager,
-  type Owner,
-  type SimpleElement,
+import type {
+  CapturedArguments,
+  InternalModifierManager,
+  Owner,
+  SimpleElement,
 } from '@glimmer/interfaces';
 import { type Reference, valueForRef } from '@glimmer/reference';
 import { castToBrowser } from '@glimmer/util';

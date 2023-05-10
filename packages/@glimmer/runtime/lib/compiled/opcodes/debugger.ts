@@ -1,6 +1,7 @@
-import { Op, type Scope } from '@glimmer/interfaces';
+import type { Scope } from '@glimmer/interfaces';
 import { childRefFor, type Reference, valueForRef } from '@glimmer/reference';
 import { decodeHandle, dict, unwrap } from '@glimmer/util';
+import { Op } from '@glimmer/vm';
 
 import { APPEND_OPCODES } from '../../opcodes';
 import { CONSTANTS } from '../../symbols';

@@ -1,4 +1,4 @@
-import { type Arguments, type ModifierManager, type Owner } from '@glimmer/interfaces';
+import type { Arguments, ModifierManager, Owner } from '@glimmer/interfaces';
 import { modifierCapabilities, setModifierManager } from '@glimmer/manager';
 import { getOwner, setOwner } from '@glimmer/owner';
 

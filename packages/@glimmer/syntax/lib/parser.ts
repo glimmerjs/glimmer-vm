@@ -1,4 +1,4 @@
-import { type Option } from '@glimmer/interfaces';
+import type { Option } from '@glimmer/interfaces';
 import { asPresentArray, assert, assign, expect, getLast, unwrap } from '@glimmer/util';
 import {
   EntityParser,

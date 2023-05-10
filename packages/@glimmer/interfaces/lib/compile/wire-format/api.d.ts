@@ -1,6 +1,60 @@
-import { type PresentArray } from '../array';
-import { type Dict, type Option } from '../core';
-import { type CurriedType } from '../curry';
+import type { PresentArray } from '../../array';
+import type { Dict, Option } from '../../core';
+import type { CurriedType } from '../../curry';
+import type {
+  AppendOpcode,
+  AttrOpcode,
+  AttrSplatOpcode,
+  BlockOpcode,
+  CallOpcode,
+  CloseElementOpcode,
+  CommentOpcode,
+  ComponentAttrOpcode,
+  ComponentOpcode,
+  ConcatOpcode,
+  CurryOpcode,
+  DebuggerOpcode,
+  DynamicArgOpcode,
+  DynamicAttrOpcode,
+  EachOpcode,
+  FlushElementOpcode,
+  GetDynamicVarOpcode,
+  GetFreeAsComponentHeadOpcode,
+  GetFreeAsComponentOrHelperHeadOpcode,
+  GetFreeAsComponentOrHelperHeadOrThisFallbackOpcode,
+  GetFreeAsDeprecatedHelperHeadOrThisFallbackOpcode,
+  GetFreeAsHelperHeadOpcode,
+  GetFreeAsHelperHeadOrThisFallbackOpcode,
+  GetFreeAsModifierHeadOpcode,
+  GetLexicalSymbolOpcode,
+  GetStrictKeywordOpcode,
+  GetSymbolOpcode,
+  HasBlockOpcode,
+  HasBlockParamsOpcode,
+  IfInlineOpcode,
+  IfOpcode,
+  InElementOpcode,
+  InvokeComponentOpcode,
+  LetOpcode,
+  LogOpcode,
+  ModifierOpcode,
+  NotOpcode,
+  OpenElementOpcode,
+  OpenElementWithSplatOpcode,
+  StaticArgOpcode,
+  StaticAttrOpcode,
+  StaticComponentAttrOpcode,
+  TrustingAppendOpcode,
+  TrustingComponentAttrOpcode,
+  TrustingDynamicAttrOpcode,
+  UndefinedOpcode,
+  WithDynamicVarsOpcode,
+  WithOpcode,
+  YieldOpcode,
+} from './opcodes';
+
+export * from './opcodes';
+export * from './resolution';
 
 export type TupleSyntax = Statement | TupleExpression;
 
@@ -11,118 +65,6 @@ interface JsonArray extends Array<JsonValue> {}
 
 export type TemplateReference = Option<SerializedBlock>;
 export type YieldTo = number;
-
-/**
- * A VariableResolutionContext explains how a variable name should be resolved.
- */
-export enum VariableResolutionContext {
-  Strict = 0,
-  AmbiguousAppend = 1,
-  AmbiguousAppendInvoke = 2,
-  AmbiguousInvoke = 3,
-  ResolveAsCallHead = 5,
-  ResolveAsModifierHead = 6,
-  ResolveAsComponentHead = 7,
-}
-
-export enum SexpOpcodes {
-  // Statements
-  Append = 1,
-  TrustingAppend = 2,
-  Comment = 3,
-  Modifier = 4,
-  StrictModifier = 5,
-  Block = 6,
-  StrictBlock = 7,
-  Component = 8,
-
-  OpenElement = 10,
-  OpenElementWithSplat = 11,
-  FlushElement = 12,
-  CloseElement = 13,
-  StaticAttr = 14,
-  DynamicAttr = 15,
-  ComponentAttr = 16,
-
-  AttrSplat = 17,
-  Yield = 18,
-
-  DynamicArg = 20,
-  StaticArg = 21,
-  TrustingDynamicAttr = 22,
-  TrustingComponentAttr = 23,
-  StaticComponentAttr = 24,
-
-  Debugger = 26,
-
-  // Expressions
-  Undefined = 27,
-  Call = 28,
-  Concat = 29,
-
-  // Get
-  // Get a local value via symbol
-  GetSymbol = 30, // GetPath + 0-2,
-  // Lexical symbols are values that are in scope in the template in strict mode
-  GetLexicalSymbol = 32,
-  // If a free variable is not a lexical symbol in strict mode, it must be a keyword.
-  // FIXME: Why does this make it to the wire format in the first place?
-  GetStrictKeyword = 31,
-
-  // `{{x}}` in append position (might be a helper or component invocation, otherwise fall back to `this`)
-  GetFreeAsComponentOrHelperHeadOrThisFallback = 34,
-  // a component or helper (`{{<expr> x}}` in append position)
-  GetFreeAsComponentOrHelperHead = 35,
-  // a helper or `this` fallback `attr={{x}}`
-  GetFreeAsHelperHeadOrThisFallback = 36,
-  // a helper or `this` fallback (deprecated) `@arg={{x}}`
-  GetFreeAsDeprecatedHelperHeadOrThisFallback = 99,
-  // a call head `(x)`
-  GetFreeAsHelperHead = 37,
-  GetFreeAsModifierHead = 38,
-  GetFreeAsComponentHead = 39,
-
-  // Keyword Statements
-  InElement = 40,
-  If = 41,
-  Each = 42,
-  With = 43,
-  Let = 44,
-  WithDynamicVars = 45,
-  InvokeComponent = 46,
-
-  // Keyword Expressions
-  HasBlock = 48,
-  HasBlockParams = 49,
-  Curry = 50,
-  Not = 51,
-  IfInline = 52,
-  GetDynamicVar = 53,
-  Log = 54,
-
-  GetStart = GetSymbol,
-  GetEnd = GetFreeAsComponentHead,
-  GetLooseFreeStart = GetFreeAsComponentOrHelperHeadOrThisFallback,
-  GetLooseFreeEnd = GetFreeAsComponentHead,
-  GetContextualFreeStart = GetFreeAsComponentOrHelperHeadOrThisFallback,
-}
-
-export type GetContextualFreeOp =
-  | SexpOpcodes.GetFreeAsComponentOrHelperHeadOrThisFallback
-  | SexpOpcodes.GetFreeAsComponentOrHelperHead
-  | SexpOpcodes.GetFreeAsHelperHeadOrThisFallback
-  | SexpOpcodes.GetFreeAsHelperHead
-  | SexpOpcodes.GetFreeAsModifierHead
-  | SexpOpcodes.GetFreeAsComponentHead
-  | SexpOpcodes.GetStrictKeyword;
-
-export type AttrOp =
-  | SexpOpcodes.StaticAttr
-  | SexpOpcodes.StaticComponentAttr
-  | SexpOpcodes.DynamicAttr
-  | SexpOpcodes.TrustingDynamicAttr
-  | SexpOpcodes.ComponentAttr
-  | SexpOpcodes.TrustingComponentAttr;
 
 export type StatementSexpOpcode = Statement[0];
 export type StatementSexpOpcodeMap = {
@@ -160,25 +102,22 @@ export namespace Expressions {
   export type Params = Core.Params;
   export type Hash = Core.Hash;
 
-  export type GetSymbol = [SexpOpcodes.GetSymbol, number];
-  export type GetLexicalSymbol = [SexpOpcodes.GetLexicalSymbol, number];
-  export type GetStrictFree = [SexpOpcodes.GetStrictKeyword, number];
+  export type GetSymbol = [GetSymbolOpcode, number];
+  export type GetLexicalSymbol = [GetLexicalSymbolOpcode, number];
+  export type GetStrictFree = [GetStrictKeywordOpcode, number];
   export type GetFreeAsComponentOrHelperHeadOrThisFallback = [
-    SexpOpcodes.GetFreeAsComponentOrHelperHeadOrThisFallback,
+    GetFreeAsComponentOrHelperHeadOrThisFallbackOpcode,
     number
   ];
-  export type GetFreeAsComponentOrHelperHead = [SexpOpcodes.GetFreeAsComponentOrHelperHead, number];
-  export type GetFreeAsHelperHeadOrThisFallback = [
-    SexpOpcodes.GetFreeAsHelperHeadOrThisFallback,
-    number
-  ];
+  export type GetFreeAsComponentOrHelperHead = [GetFreeAsComponentOrHelperHeadOpcode, number];
+  export type GetFreeAsHelperHeadOrThisFallback = [GetFreeAsHelperHeadOrThisFallbackOpcode, number];
   export type GetFreeAsDeprecatedHelperHeadOrThisFallback = [
-    SexpOpcodes.GetFreeAsDeprecatedHelperHeadOrThisFallback,
+    GetFreeAsDeprecatedHelperHeadOrThisFallbackOpcode,
     number
   ];
-  export type GetFreeAsHelperHead = [SexpOpcodes.GetFreeAsHelperHead, number];
-  export type GetFreeAsModifierHead = [SexpOpcodes.GetFreeAsModifierHead, number];
-  export type GetFreeAsComponentHead = [SexpOpcodes.GetFreeAsComponentHead, number];
+  export type GetFreeAsHelperHead = [GetFreeAsHelperHeadOpcode, number];
+  export type GetFreeAsModifierHead = [GetFreeAsModifierHeadOpcode, number];
+  export type GetFreeAsComponentHead = [GetFreeAsComponentHeadOpcode, number];
 
   export type GetContextualFree =
     | GetFreeAsComponentOrHelperHeadOrThisFallback
@@ -191,32 +130,32 @@ export namespace Expressions {
   export type GetFree = GetStrictFree | GetContextualFree;
   export type GetVar = GetSymbol | GetLexicalSymbol | GetFree;
 
-  export type GetPathSymbol = [SexpOpcodes.GetSymbol, number, Path];
-  export type GetPathTemplateSymbol = [SexpOpcodes.GetLexicalSymbol, number, Path];
-  export type GetPathStrictFree = [SexpOpcodes.GetStrictKeyword, number, Path];
+  export type GetPathSymbol = [GetSymbolOpcode, number, Path];
+  export type GetPathTemplateSymbol = [GetLexicalSymbolOpcode, number, Path];
+  export type GetPathStrictFree = [GetStrictKeywordOpcode, number, Path];
   export type GetPathFreeAsComponentOrHelperHeadOrThisFallback = [
-    SexpOpcodes.GetFreeAsComponentOrHelperHeadOrThisFallback,
+    GetFreeAsComponentOrHelperHeadOrThisFallbackOpcode,
     number,
     Path
   ];
   export type GetPathFreeAsComponentOrHelperHead = [
-    SexpOpcodes.GetFreeAsComponentOrHelperHead,
+    GetFreeAsComponentOrHelperHeadOpcode,
     number,
     Path
   ];
   export type GetPathFreeAsHelperHeadOrThisFallback = [
-    SexpOpcodes.GetFreeAsHelperHeadOrThisFallback,
+    GetFreeAsHelperHeadOrThisFallbackOpcode,
     number,
     Path
   ];
   export type GetPathFreeAsDeprecatedHelperHeadOrThisFallback = [
-    SexpOpcodes.GetFreeAsDeprecatedHelperHeadOrThisFallback,
+    GetFreeAsDeprecatedHelperHeadOrThisFallbackOpcode,
     number,
     Path
   ];
-  export type GetPathFreeAsHelperHead = [SexpOpcodes.GetFreeAsHelperHead, number, Path];
-  export type GetPathFreeAsModifierHead = [SexpOpcodes.GetFreeAsModifierHead, number, Path];
-  export type GetPathFreeAsComponentHead = [SexpOpcodes.GetFreeAsComponentHead, number, Path];
+  export type GetPathFreeAsHelperHead = [GetFreeAsHelperHeadOpcode, number, Path];
+  export type GetPathFreeAsModifierHead = [GetFreeAsModifierHeadOpcode, number, Path];
+  export type GetPathFreeAsComponentHead = [GetFreeAsComponentHeadOpcode, number, Path];
 
   export type GetPathContextualFree =
     | GetPathFreeAsComponentOrHelperHeadOrThisFallback
@@ -236,7 +175,7 @@ export namespace Expressions {
   export type BooleanValue = boolean;
   export type NullValue = null;
   export type Value = StringValue | NumberValue | BooleanValue | NullValue;
-  export type Undefined = [SexpOpcodes.Undefined];
+  export type Undefined = [UndefinedOpcode];
 
   export type TupleExpression =
     | Get
@@ -255,24 +194,24 @@ export namespace Expressions {
   // it would be better to handle that as an over-the-wire encoding concern
   export type Expression = TupleExpression | Value | undefined;
 
-  export type Concat = [SexpOpcodes.Concat, Core.ConcatParams];
-  export type Helper = [SexpOpcodes.Call, Expression, Option<Params>, Hash];
-  export type HasBlock = [SexpOpcodes.HasBlock, Expression];
-  export type HasBlockParams = [SexpOpcodes.HasBlockParams, Expression];
-  export type Curry = [SexpOpcodes.Curry, Expression, CurriedType, Params, Hash];
+  export type Concat = [ConcatOpcode, Core.ConcatParams];
+  export type Helper = [CallOpcode, Expression, Option<Params>, Hash];
+  export type HasBlock = [HasBlockOpcode, Expression];
+  export type HasBlockParams = [HasBlockParamsOpcode, Expression];
+  export type Curry = [CurryOpcode, Expression, CurriedType, Params, Hash];
 
   export type IfInline = [
-    op: SexpOpcodes.IfInline,
+    op: IfInlineOpcode,
     condition: Expression,
     truthyValue: Expression,
     falsyValue?: Option<Expression>
   ];
 
-  export type Not = [op: SexpOpcodes.Not, value: Expression];
+  export type Not = [op: NotOpcode, value: Expression];
 
-  export type GetDynamicVar = [op: SexpOpcodes.GetDynamicVar, value: Expression];
+  export type GetDynamicVar = [op: GetDynamicVarOpcode, value: Expression];
 
-  export type Log = [op: SexpOpcodes.Log, positional: Params];
+  export type Log = [op: LogOpcode, positional: Params];
 }
 
 export type Expression = Expressions.Expression;
@@ -280,22 +219,29 @@ export type Get = Expressions.GetVar;
 
 export type TupleExpression = Expressions.TupleExpression;
 
-export enum WellKnownAttrName {
-  class = 0,
-  id = 1,
-  value = 2,
-  name = 3,
-  type = 4,
-  style = 5,
-  href = 6,
-}
+export type ClassAttr = 0;
+export type IdAttr = 1;
+export type ValueAttr = 2;
+export type NameAttr = 3;
+export type TypeAttr = 4;
+export type StyleAttr = 5;
+export type HrefAttr = 6;
 
-export enum WellKnownTagName {
-  div = 0,
-  span = 1,
-  p = 2,
-  a = 3,
-}
+export type WellKnownAttrName =
+  | ClassAttr
+  | IdAttr
+  | ValueAttr
+  | NameAttr
+  | TypeAttr
+  | StyleAttr
+  | HrefAttr;
+
+export type DivTag = 0;
+export type SpanTag = 1;
+export type PTag = 2;
+export type ATag = 3;
+
+export type WellKnownTagName = DivTag | SpanTag | PTag | ATag;
 
 export namespace Statements {
   export type Expression = Expressions.Expression | undefined;
@@ -304,44 +250,44 @@ export namespace Statements {
   export type Blocks = Core.Blocks;
   export type Path = Core.Path;
 
-  export type Append = [SexpOpcodes.Append, Expression];
-  export type TrustingAppend = [SexpOpcodes.TrustingAppend, Expression];
-  export type Comment = [SexpOpcodes.Comment, string];
-  export type Modifier = [SexpOpcodes.Modifier, Expression, Params, Hash];
-  export type Block = [SexpOpcodes.Block, Expression, Params, Hash, Blocks];
+  export type Append = [AppendOpcode, Expression];
+  export type TrustingAppend = [TrustingAppendOpcode, Expression];
+  export type Comment = [CommentOpcode, string];
+  export type Modifier = [ModifierOpcode, Expression, Params, Hash];
+  export type Block = [BlockOpcode, Expression, Params, Hash, Blocks];
   export type Component = [
-    op: SexpOpcodes.Component,
+    op: ComponentOpcode,
     tag: Expression,
     parameters: Core.ElementParameters,
     args: Hash,
     blocks: Blocks
   ];
-  export type OpenElement = [SexpOpcodes.OpenElement, string | WellKnownTagName];
-  export type OpenElementWithSplat = [SexpOpcodes.OpenElementWithSplat, string | WellKnownTagName];
-  export type FlushElement = [SexpOpcodes.FlushElement];
-  export type CloseElement = [SexpOpcodes.CloseElement];
+  export type OpenElement = [OpenElementOpcode, string | WellKnownTagName];
+  export type OpenElementWithSplat = [OpenElementWithSplatOpcode, string | WellKnownTagName];
+  export type FlushElement = [FlushElementOpcode];
+  export type CloseElement = [CloseElementOpcode];
 
-  type Attr<Op extends AttrOp> = [
+  type Attr<Op extends AttrOpcode> = [
     op: Op,
     name: string | WellKnownAttrName,
     value: Expression,
     namespace?: string | undefined
   ];
 
-  export type StaticAttr = Attr<SexpOpcodes.StaticAttr>;
-  export type StaticComponentAttr = Attr<SexpOpcodes.StaticComponentAttr>;
+  export type StaticAttr = Attr<StaticAttrOpcode>;
+  export type StaticComponentAttr = Attr<StaticComponentAttrOpcode>;
 
   export type AnyStaticAttr = StaticAttr | StaticComponentAttr;
 
-  export type AttrSplat = [SexpOpcodes.AttrSplat, YieldTo];
-  export type Yield = [SexpOpcodes.Yield, YieldTo, Option<Params>];
-  export type DynamicArg = [SexpOpcodes.DynamicArg, string, Expression];
-  export type StaticArg = [SexpOpcodes.StaticArg, string, Expression];
+  export type AttrSplat = [AttrSplatOpcode, YieldTo];
+  export type Yield = [YieldOpcode, YieldTo, Option<Params>];
+  export type DynamicArg = [DynamicArgOpcode, string, Expression];
+  export type StaticArg = [StaticArgOpcode, string, Expression];
 
-  export type DynamicAttr = Attr<SexpOpcodes.DynamicAttr>;
-  export type ComponentAttr = Attr<SexpOpcodes.ComponentAttr>;
-  export type TrustingDynamicAttr = Attr<SexpOpcodes.TrustingDynamicAttr>;
-  export type TrustingComponentAttr = Attr<SexpOpcodes.TrustingComponentAttr>;
+  export type DynamicAttr = Attr<DynamicAttrOpcode>;
+  export type ComponentAttr = Attr<ComponentAttrOpcode>;
+  export type TrustingDynamicAttr = Attr<TrustingDynamicAttrOpcode>;
+  export type TrustingComponentAttr = Attr<TrustingComponentAttrOpcode>;
 
   export type AnyDynamicAttr =
     | DynamicAttr
@@ -349,9 +295,9 @@ export namespace Statements {
     | TrustingDynamicAttr
     | TrustingComponentAttr;
 
-  export type Debugger = [SexpOpcodes.Debugger, Core.DebugInfo];
+  export type Debugger = [DebuggerOpcode, Core.DebugInfo];
   export type InElement = [
-    op: SexpOpcodes.InElement,
+    op: InElementOpcode,
     block: SerializedInlineBlock,
     guid: string,
     destination: Expression,
@@ -359,14 +305,14 @@ export namespace Statements {
   ];
 
   export type If = [
-    op: SexpOpcodes.If,
+    op: IfOpcode,
     condition: Expression,
     block: SerializedInlineBlock,
     inverse: Option<SerializedInlineBlock>
   ];
 
   export type Each = [
-    op: SexpOpcodes.Each,
+    op: EachOpcode,
     condition: Expression,
     key: Option<Expression>,
     block: SerializedInlineBlock,
@@ -374,22 +320,22 @@ export namespace Statements {
   ];
 
   export type With = [
-    op: SexpOpcodes.With,
+    op: WithOpcode,
     value: Expression,
     block: SerializedInlineBlock,
     inverse: Option<SerializedInlineBlock>
   ];
 
-  export type Let = [op: SexpOpcodes.Let, positional: Core.Params, block: SerializedInlineBlock];
+  export type Let = [op: LetOpcode, positional: Core.Params, block: SerializedInlineBlock];
 
   export type WithDynamicVars = [
-    op: SexpOpcodes.WithDynamicVars,
+    op: WithDynamicVarsOpcode,
     args: Core.Hash,
     block: SerializedInlineBlock
   ];
 
   export type InvokeComponent = [
-    op: SexpOpcodes.InvokeComponent,
+    op: InvokeComponentOpcode,
     definition: Expression,
     positional: Core.Params,
     named: Core.Hash,

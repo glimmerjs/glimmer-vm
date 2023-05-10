@@ -1,20 +1,29 @@
 // @ts-check
 
-const fs = require('node:fs');
-const toml = require('toml');
-const prettier = require('prettier');
-const { normalizeAll, buildEnum, buildMetas, strip } = require('@glimmer/debug');
+import { buildEnum, buildMetas, normalizeAll, strip } from '@glimmer/debug';
+import { readFileSync, writeFileSync } from 'node:fs';
+import { parse as parseToml } from 'toml';
+import { resolveConfig, format as formatPrettier } from 'prettier';
 
-function parse(file) {
-  let opcodes = fs.readFileSync(file, { encoding: 'utf8' });
-  let raw = toml.parse(opcodes);
+// const fs = require('node:fs');
+// const toml = require('toml');
+// const prettier = require('prettier');
+// const { normalizeAll, buildEnum, buildMetas, strip } = require('@glimmer/debug');
+
+/**
+ * @param {string} file
+ */
+function parse(file: string) {
+  const opcodes = readFileSync(file, { encoding: 'utf8' });
+
+  const raw = parseToml(opcodes) as Parameters<typeof normalizeAll>[0];
   return normalizeAll(raw);
 }
 
-let parsed = parse('./packages/@glimmer/vm/lib/opcodes.toml');
+const parsed = parse('./packages/@glimmer/vm/lib/opcodes.toml');
 
-let machine = buildEnum('MachineOp', parsed.machine, 0, 15);
-let syscall = buildEnum('Op', parsed.syscall, 16);
+const machine = buildEnum('MachineOp', parsed.machine, 0, 15);
+const syscall = buildEnum('Op', parsed.syscall, 16);
 
 write(
   './packages/@glimmer/vm/lib/opcodes.ts',
@@ -58,7 +67,7 @@ debugMetadata += buildMetas('METADATA', parsed.syscall);
 
 write('./packages/@glimmer/debug/lib/opcode-metadata.ts', debugMetadata);
 
-function write(file, contents) {
+function write(file: string, contents: string) {
   console.log(`Generating ${file}`);
 
   format(
@@ -75,11 +84,11 @@ ${contents}
   Formats the string in accordance with our prettier rules to avoid
   test failures.
 */
-function format(file, contents) {
-  let options = prettier.resolveConfig.sync(file);
-  let newContents = prettier.format(contents, Object.assign({}, options, { filepath: file }));
+function format(file: string, contents: string) {
+  const options = resolveConfig.sync(file);
+  const newContents = formatPrettier(contents, Object.assign({}, options, { filepath: file }));
 
   if (newContents !== contents) {
-    fs.writeFileSync(file, newContents, { encoding: 'utf8' });
+    writeFileSync(file, newContents, { encoding: 'utf8' });
   }
 }

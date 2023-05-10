@@ -1,8 +1,8 @@
-import {
-  type Helper,
-  type InternalComponentManager,
-  type InternalModifierManager,
-  type Owner,
+import type {
+  Helper,
+  InternalComponentManager,
+  InternalModifierManager,
+  Owner,
 } from '@glimmer/interfaces';
 import { debugToString } from '@glimmer/util';
 

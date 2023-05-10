@@ -49,15 +49,19 @@
  * the `RuntimeResolver` to do dynamic resolution when necessary.
  */
 
-import { type ComponentDefinitionState, type ComponentInstanceState } from './components';
-import { type Option } from './core';
-import { type InternalComponentCapability, type InternalComponentManager } from './managers';
-import { type HelperDefinitionState, type ModifierDefinitionState, type Owner } from './runtime';
-import { type CompilableProgram, type Template } from './template';
+import type {
+  CapabilityMask,
+  ComponentDefinitionState,
+  ComponentInstanceState,
+} from './components';
+import type { Option } from './core';
+import type { InternalComponentManager } from './managers';
+import type { HelperDefinitionState, ModifierDefinitionState, Owner } from './runtime';
+import type { CompilableProgram, Template } from './template';
 
 export interface CompileTimeComponent {
   handle: number;
-  capabilities: InternalComponentCapability;
+  capabilities: CapabilityMask;
   compilable: Option<CompilableProgram>;
 }
 

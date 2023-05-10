@@ -1,13 +1,13 @@
 import { getProp, setProp } from '@glimmer/global-context';
-import {
-  type ComputeReference,
-  type ConstantReference,
-  type InvokableReference,
-  type Option,
-  type Reference,
-  type ReferenceSymbol,
-  type ReferenceType,
-  type UnboundReference,
+import type {
+  ComputeReference,
+  ConstantReference,
+  InvokableReference,
+  Option,
+  Reference,
+  ReferenceSymbol,
+  ReferenceType,
+  UnboundReference,
 } from '@glimmer/interfaces';
 import { expect, isDict } from '@glimmer/util';
 import {

@@ -1,5 +1,5 @@
-import { type SimpleElement, type SimpleNode } from '@glimmer/interfaces';
-import { type SafeString } from '@glimmer/runtime';
+import type { SimpleElement, SimpleNode } from '@glimmer/interfaces';
+import type { SafeString } from '@glimmer/runtime';
 import { NS_SVG } from '@glimmer/util';
 
 import { jitSuite, RenderTest, type RenderTestConstructor } from '..';

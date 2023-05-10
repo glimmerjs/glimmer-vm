@@ -1,4 +1,4 @@
-import { type Dict, type Option, type SimpleElement } from '@glimmer/interfaces';
+import type { Dict, Option, SimpleElement } from '@glimmer/interfaces';
 
 import { type Count, jitSuite, RenderTest, test } from '..';
 

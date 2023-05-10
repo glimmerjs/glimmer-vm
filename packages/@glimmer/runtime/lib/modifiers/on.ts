@@ -1,10 +1,10 @@
 import { check, CheckFunction, CheckString } from '@glimmer/debug';
 import { registerDestructor } from '@glimmer/destroyable';
-import {
-  type CapturedArguments,
-  type InternalModifierManager,
-  type Owner,
-  type SimpleElement,
+import type {
+  CapturedArguments,
+  InternalModifierManager,
+  Owner,
+  SimpleElement,
 } from '@glimmer/interfaces';
 import { setInternalModifierManager } from '@glimmer/manager';
 import { valueForRef } from '@glimmer/reference';

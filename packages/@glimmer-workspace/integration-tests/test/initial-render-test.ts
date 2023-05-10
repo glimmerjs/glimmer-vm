@@ -1,5 +1,5 @@
-import { type Dict, type Option, type SimpleElement } from '@glimmer/interfaces';
-import { type SafeString } from '@glimmer/runtime';
+import type { Dict, Option, SimpleElement } from '@glimmer/interfaces';
+import type { SafeString } from '@glimmer/runtime';
 import { castToBrowser, expect } from '@glimmer/util';
 
 import {

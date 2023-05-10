@@ -7,7 +7,7 @@ import RowTemplate from './components/Row.hbs';
 import buildData from './utils/data';
 
 /**
- * @param {HTMLElement | import('@simple-dom/interface').SimpleElement} element
+ * @param {HTMLElement | import('@glimmer/interfaces').SimpleElement} element
  * @param {boolean} isInteractive
  */
 export default async function render(element, isInteractive) {

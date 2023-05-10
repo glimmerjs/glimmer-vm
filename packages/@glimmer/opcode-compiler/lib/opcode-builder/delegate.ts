@@ -1,7 +1,7 @@
-import {
-  type CompileTimeComponent,
-  type InternalComponentCapabilities,
-  type Option,
+import type {
+  CompileTimeComponent,
+  InternalComponentCapabilities,
+  Option,
 } from '@glimmer/interfaces';
 
 export const DEFAULT_CAPABILITIES: InternalComponentCapabilities = {
