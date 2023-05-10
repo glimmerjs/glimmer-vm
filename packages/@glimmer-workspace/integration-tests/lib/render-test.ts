@@ -46,7 +46,8 @@ export class Count {
 
   expect(name: string, count = 1) {
     this.expected[name] = count;
-    this.actual[name] = (this.actual[name] || 0) + 1;
+    const prev = this.actual[name] ?? 0;
+    this.actual[name] = prev + 1;
   }
 
   assert() {

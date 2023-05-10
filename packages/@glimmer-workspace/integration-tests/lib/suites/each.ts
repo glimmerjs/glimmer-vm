@@ -11,13 +11,13 @@ export class EachSuite extends RenderTest {
 
   beforeEach() {
     if (LOCAL_DEBUG) {
-      beginTestSteps!();
+      beginTestSteps?.();
     }
   }
 
   afterEach() {
     if (LOCAL_DEBUG) {
-      endTestSteps!();
+      endTestSteps?.();
     }
   }
 
@@ -385,7 +385,7 @@ export class EachSuite extends RenderTest {
 
     this.rerender({ arr });
 
-    verifySteps!(
+    verifySteps?.(
       'list-updates',
       [
         ['retain', 1],
@@ -415,7 +415,7 @@ export class EachSuite extends RenderTest {
 
     this.rerender({ arr });
 
-    verifySteps!(
+    verifySteps?.(
       'list-updates',
       [
         ['move', 8],
@@ -445,7 +445,7 @@ export class EachSuite extends RenderTest {
 
     this.rerender({ arr });
 
-    verifySteps!(
+    verifySteps?.(
       'list-updates',
       [
         ['move', 7],
@@ -479,7 +479,7 @@ export class EachSuite extends RenderTest {
 
     this.rerender({ arr });
 
-    verifySteps!(
+    verifySteps?.(
       'list-updates',
       [
         ['retain', 1],
@@ -510,7 +510,7 @@ export class EachSuite extends RenderTest {
 
     this.rerender({ arr });
 
-    verifySteps!(
+    verifySteps?.(
       'list-updates',
       [
         ['retain', 1],
@@ -543,7 +543,7 @@ export class EachSuite extends RenderTest {
 
     this.rerender({ arr });
 
-    verifySteps!(
+    verifySteps?.(
       'list-updates',
       [
         ['retain', 1],
@@ -572,7 +572,7 @@ export class EachSuite extends RenderTest {
 
     this.rerender({ arr });
 
-    verifySteps!(
+    verifySteps?.(
       'list-updates',
       [
         ['retain', 2],
@@ -600,7 +600,7 @@ export class EachSuite extends RenderTest {
 
     this.rerender({ arr: shifted });
 
-    verifySteps!(
+    verifySteps?.(
       'list-updates',
       [
         ['move', 8],
@@ -627,7 +627,7 @@ export class EachSuite extends RenderTest {
 
     this.rerender({ arr: shifted });
 
-    verifySteps!(
+    verifySteps?.(
       'list-updates',
       [
         ['retain', 2],
@@ -655,7 +655,7 @@ export class EachSuite extends RenderTest {
       this.rerender({ arr });
 
       // eslint-disable-next-line no-loop-func
-      verifySteps!('list-updates', (steps) => {
+      verifySteps?.('list-updates', (steps) => {
         let stats = getStepStats(steps as ListStep[]);
 
         let changedNodes = stats.move + stats.retain;
@@ -682,7 +682,7 @@ export class EachSuite extends RenderTest {
       this.rerender({ arr: semiArr });
 
       // eslint-disable-next-line no-loop-func
-      verifySteps!('list-updates', (steps) => {
+      verifySteps?.('list-updates', (steps) => {
         let stats = getStepStats(steps as ListStep[]);
 
         let changedNodes = stats.move + stats.retain;
@@ -709,7 +709,7 @@ export class EachSuite extends RenderTest {
       this.rerender({ arr: semiArr });
 
       // eslint-disable-next-line no-loop-func
-      verifySteps!('list-updates', (steps) => {
+      verifySteps?.('list-updates', (steps) => {
         let stats = getStepStats(steps as ListStep[]);
 
         let changedNodes = stats.move + stats.retain + stats.insert + stats.delete;

@@ -11,19 +11,20 @@ class StyleWarningsTest extends RenderTest {
 
   beforeEach() {
     warnings = 0;
-    originalContext = testOverrideGlobalContext!({
-      warnIfStyleNotTrusted() {
-        warnings++;
-      },
+    originalContext =
+      testOverrideGlobalContext?.({
+        warnIfStyleNotTrusted() {
+          warnings++;
+        },
 
-      getProp(obj, key) {
-        return (obj as any)[key];
-      },
-    });
+        getProp(obj, key) {
+          return (obj as Record<string, unknown>)[key];
+        },
+      }) ?? null;
   }
 
   afterEach() {
-    testOverrideGlobalContext!(originalContext);
+    testOverrideGlobalContext?.(originalContext);
   }
 
   @test
