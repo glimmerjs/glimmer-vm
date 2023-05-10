@@ -1,6 +1,5 @@
 import { type SimpleElement, type SimpleNode } from '@glimmer/interfaces';
 import { assign, dict, unwrap } from '@glimmer/util';
-
 import {
   classes,
   createTemplate,
@@ -17,7 +16,8 @@ import {
   RenderTest,
   stripTight,
   test,
-} from '..';
+} from '@glimmer-workspace/integration-tests';
+
 import { assert } from './support';
 
 interface ComponentHooks {

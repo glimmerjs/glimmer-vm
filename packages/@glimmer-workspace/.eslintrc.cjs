@@ -11,6 +11,7 @@ module.exports = {
       },
       extends: ['plugin:@typescript-eslint/recommended-requiring-type-checking'],
       rules: {
+        '@typescript-eslint/restrict-plus-operands': 'off',
         '@typescript-eslint/no-require-imports': 'off',
         '@typescript-eslint/consistent-type-imports': [
           'error',
