@@ -16,7 +16,7 @@ import type {
   ResolutionTimeConstants,
   SingleBuilderOperand,
   STDLib,
-} from "@glimmer/interfaces";
+} from '@glimmer/interfaces';
 import {
   assert,
   dict,
@@ -97,19 +97,19 @@ export function encodeOp(
       case HighLevelResolutionOpcodes.OptionalComponentOrHelper:
         return resolveOptionalComponentOrHelper(resolver, constants, meta, op);
 
-      case HighLevelResolutionOpcodes.Local:
+      case HighLevelResolutionOpcodes.Local: {
         let freeVar = op[1];
         let name = expect(meta.upvars, 'BUG: attempted to resolve value but no upvars found')[
           freeVar
         ]!;
 
         let andThen = op[2];
-
         andThen(name, meta.moduleName);
 
         break;
+      }
 
-      case HighLevelResolutionOpcodes.TemplateLocal:
+      case HighLevelResolutionOpcodes.TemplateLocal: {
         let [, valueIndex, then] = op;
         let value = expect(
           meta.scopeValues,
@@ -119,6 +119,7 @@ export function encodeOp(
         then(constants.value(value));
 
         break;
+      }
 
       case HighLevelResolutionOpcodes.Free:
         if (import.meta.env.DEV) {

@@ -35,7 +35,7 @@ import {
   runtimeContext,
 } from '@glimmer/runtime';
 import type { ASTPluginBuilder, PrecompileOptions } from '@glimmer/syntax';
-import { assign, castToBrowser, castToSimple, expect, unwrap, unwrapTemplate } from '@glimmer/util';
+import { assign, castToBrowser, castToSimple, expect, unwrapTemplate } from '@glimmer/util';
 
 import { BaseEnv } from '../../base-env';
 import { preprocess } from '../../compile';

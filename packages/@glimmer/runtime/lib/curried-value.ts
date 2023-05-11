@@ -73,6 +73,7 @@ export function resolveCurriedValue(
   let named: Record<string, Reference>[] | undefined;
   let definition, owner, resolved;
 
+  // eslint-disable-next-line no-constant-condition
   while (true) {
     let { [ARGS]: curriedArgs, [INNER]: inner } = currentWrapper;
 

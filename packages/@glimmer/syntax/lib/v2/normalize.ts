@@ -43,7 +43,7 @@ export function normalize(
 
   let top = SymbolTable.top(
     normalizeOptions.locals,
-    // eslint-disable-next-line @typescript-eslint/unbound-method
+     
     {
       customizeComponentName: options.customizeComponentName ?? ((name) => name),
       lexicalScope: options.lexicalScope,
@@ -777,7 +777,7 @@ class Children {
           case 'HtmlComment':
             return false;
           case 'HtmlText':
-            return !/^\s*$/.exec(c.chars);
+            return !/^\s*$/u.test(c.chars);
           default:
             return true;
         }

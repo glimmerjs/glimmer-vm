@@ -11,6 +11,7 @@ import ts from 'typescript';
 import importMeta from './import-meta.js';
 import inline from './inline.js';
 
+// eslint-disable-next-line import/no-named-as-default-member
 const { ModuleKind, ModuleResolutionKind, ScriptTarget, ImportsNotUsedAsValues } = ts;
 
 const { default: commonjs } = await import('@rollup/plugin-commonjs');
@@ -391,6 +392,5 @@ async function viteConfig(config) {
  * @returns {T}
  */
 function parse(string) {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
   return JSON.parse(string);
 }

@@ -1,5 +1,5 @@
 import type { PresentArray } from '../../array';
-import type { Dict, Nullable } from '../../core';
+import type { Nullable } from '../../core';
 import type { CurriedType } from '../../curry';
 import type {
   AppendOpcode,
@@ -57,11 +57,6 @@ export * from './opcodes';
 export * from './resolution';
 
 export type TupleSyntax = Statement | TupleExpression;
-
-type JsonValue = string | number | boolean | JsonObject | JsonArray;
-
-interface JsonObject extends Dict<JsonValue> {}
-interface JsonArray extends Array<JsonValue> {}
 
 export type TemplateReference = Nullable<SerializedBlock>;
 export type YieldTo = number;

@@ -125,13 +125,15 @@ class ArrayTest extends RenderTest {
   'should yield hash of an array of internal properties'() {
     let fooBarInstance: FooBar;
 
+    const setInstance = (instance: FooBar) => (fooBarInstance = instance);
+
     class FooBar extends GlimmerishComponent {
       @tracked personOne;
 
       constructor(owner: object, args: Record<string, unknown>) {
         super(owner, args);
         this.personOne = 'Chad';
-        fooBarInstance = this;
+        setInstance(this);
       }
     }
 
@@ -171,12 +173,14 @@ class ArrayTest extends RenderTest {
   'should yield hash of an array of internal and external properties'() {
     let fooBarInstance: FooBar;
 
+    const setInstance = (instance: FooBar) => (fooBarInstance = instance);
+
     class FooBar extends GlimmerishComponent {
       @tracked personOne = 'Chad';
 
       constructor(owner: object, args: Record<string, unknown>) {
         super(owner, args);
-        fooBarInstance = this;
+        setInstance(this);
       }
     }
 
@@ -246,12 +250,14 @@ class ArrayTest extends RenderTest {
   'should return an entirely new array when any argument change'() {
     let fooBarInstance: FooBar;
 
+    const setInstance = (instance: FooBar) => (fooBarInstance = instance);
+
     class FooBar extends GlimmerishComponent {
       @tracked personOne = 'Chad';
 
       constructor(owner: object, args: Record<string, unknown>) {
         super(owner, args);
-        fooBarInstance = this;
+        setInstance(this);
       }
     }
 

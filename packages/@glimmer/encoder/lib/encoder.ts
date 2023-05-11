@@ -6,7 +6,7 @@ import type {
   SomeVmOp,
   VmMachineOp,
   VmOp,
-} from "@glimmer/interfaces";
+} from '@glimmer/interfaces';
 import { ARG_SHIFT, MAX_SIZE, TYPE_SIZE } from '@glimmer/vm';
 
 export class InstructionEncoderImpl implements InstructionEncoder {
@@ -16,7 +16,7 @@ export class InstructionEncoderImpl implements InstructionEncoder {
 
   encode(type: VmMachineOp, machine: MACHINE_MASK, ...operands: Operand[]): void;
   encode(type: VmOp, machine: 0, ...operands: Operand[]): void;
-  encode(type: SomeVmOp, machine: 0 | MACHINE_MASK) {
+  encode(type: SomeVmOp, machine: 0 | MACHINE_MASK, ...args: Operand[]) {
     if ((type as number) > TYPE_SIZE) {
       throw new Error(`Opcode type over 8-bits. Got ${type}.`);
     }
@@ -25,8 +25,7 @@ export class InstructionEncoderImpl implements InstructionEncoder {
 
     this.buffer.push(first);
 
-    for (let i = 2; i < arguments.length; i++) {
-      let op = arguments[i];
+    for (const op of args) {
       if (import.meta.env.DEV && typeof op === 'number' && op > MAX_SIZE) {
         throw new Error(`Operand over 32-bits. Got ${op}.`);
       }

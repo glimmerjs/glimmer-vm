@@ -211,13 +211,14 @@ export class GlimmerishComponents extends RenderTest {
     kind: 'glimmer',
   })
   'invoking dynamic component (named arg) via angle brackets supports args and attributes'() {
-    let instance: Foo;
+    let instance = this.capture<Foo>();
+
     class Foo extends GlimmerishComponent {
       @tracked localProperty: string;
 
       constructor(owner: Owner, args: Dict) {
         super(owner, args);
-        instance = this;
+        instance.capture(this);
         this.localProperty = 'local';
       }
     }
@@ -249,13 +250,13 @@ export class GlimmerishComponents extends RenderTest {
       `<div><div data-test1="OUTER" data-test2="static">[local static OUTER]</div></div>`
     );
 
-    instance!.localProperty = 'LOCAL';
+    instance.captured.localProperty = 'LOCAL';
     this.rerender();
     this.assertHTML(
       `<div><div data-test1="OUTER" data-test2="static">[LOCAL static OUTER]</div></div>`
     );
 
-    instance!.localProperty = 'local';
+    instance.captured.localProperty = 'local';
     this.rerender({ outer: 'outer' });
     this.assertHTML(
       `<div><div data-test1="outer" data-test2="static">[local static outer]</div></div>`
@@ -333,13 +334,13 @@ export class GlimmerishComponents extends RenderTest {
     kind: 'glimmer',
   })
   'invoking dynamic component (local) via angle brackets supports args, attributes, and blocks'() {
-    let instance: Foo;
+    let instance = this.capture<Foo>();
     class Foo extends GlimmerishComponent {
       @tracked localProperty: string;
 
       constructor(owner: Owner, args: Dict) {
         super(owner, args);
-        instance = this;
+        instance.capture(this);
         this.localProperty = 'local';
       }
     }
@@ -364,13 +365,13 @@ export class GlimmerishComponents extends RenderTest {
       `<div data-test1="OUTER" data-test2="static">[local static OUTER] - template</div>`
     );
 
-    instance!.localProperty = 'LOCAL';
+    instance.captured.localProperty = 'LOCAL';
     this.rerender();
     this.assertHTML(
       `<div data-test1="OUTER" data-test2="static">[LOCAL static OUTER] - template</div>`
     );
 
-    instance!.localProperty = 'local';
+    instance.captured.localProperty = 'local';
     this.rerender({ outer: 'outer' });
     this.assertHTML(
       `<div data-test1="outer" data-test2="static">[local static outer] - template</div>`
@@ -399,7 +400,7 @@ export class GlimmerishComponents extends RenderTest {
 
     this.assert.throws(() => {
       this.render('<TestHarness @Foo="Foo" />');
-    }, /Expected a component definition, but received Foo. You may have accidentally done <this.args.Foo>, where \"this.args.Foo\" was a string instead of a curried component definition. You must either use the component definition directly, or use the {{component}} helper to create a curried component definition when invoking dynamically/);
+    }, /Expected a component definition, but received Foo. You may have accidentally done <this.args.Foo>, where "this.args.Foo" was a string instead of a curried component definition. You must either use the component definition directly, or use the \{\{component\}\} helper to create a curried component definition when invoking dynamically/u);
   }
 
   @test({
@@ -425,7 +426,7 @@ export class GlimmerishComponents extends RenderTest {
   'invoking dynamic component (path) via angle brackets does not support implicit `this` fallback'() {
     this.assert.throws(() => {
       this.registerComponent('TemplateOnly', 'Test', '<stuff.Foo />');
-    }, /stuff is not in scope/);
+    }, /stuff is not in scope/u);
   }
 
   @test({
@@ -492,7 +493,8 @@ export class GlimmerishComponents extends RenderTest {
     kind: 'glimmer',
   })
   'invoking dynamic component (path) via angle brackets supports args, attributes, and blocks'() {
-    let instance: Foo;
+    let instance = this.capture<Foo>();
+
     class TestHarness extends GlimmerishComponent {
       public Foo: any;
 
@@ -507,7 +509,7 @@ export class GlimmerishComponents extends RenderTest {
 
       constructor(owner: Owner, args: Dict) {
         super(owner, args);
-        instance = this;
+        instance.capture(this);
         this.localProperty = 'local';
       }
     }
@@ -537,13 +539,13 @@ export class GlimmerishComponents extends RenderTest {
       `<div data-test1="OUTER" data-test2="static">[local static OUTER] - template</div>`
     );
 
-    instance!.localProperty = 'LOCAL';
+    instance.captured.localProperty = 'LOCAL';
     this.rerender();
     this.assertHTML(
       `<div data-test1="OUTER" data-test2="static">[LOCAL static OUTER] - template</div>`
     );
 
-    instance!.localProperty = 'local';
+    instance.captured.localProperty = 'local';
     this.rerender({ outer: 'outer' });
     this.assertHTML(
       `<div data-test1="outer" data-test2="static">[local static outer] - template</div>`
@@ -869,7 +871,7 @@ export class GlimmerishComponents extends RenderTest {
     // eslint-disable-next-line no-console
     console.error = (message: string) => {
       this.assert.ok(
-        message.match(/Error occurred:\n\n(- While rendering:\nBar\n {2}Foo)?/),
+        /Error occurred:\n{2}(- While rendering:\nBar\n {2}Foo)?/u.exec(message),
         'message logged'
       );
     };
@@ -897,7 +899,7 @@ export class GlimmerishComponents extends RenderTest {
 
       this.assert.throws(() => {
         this.rerender({ showing: true });
-      }, /something went wrong!/);
+      }, /something went wrong!/u);
 
       this.assertHTML(
         '<div class="first"></div><div class="second"></div><!---->',

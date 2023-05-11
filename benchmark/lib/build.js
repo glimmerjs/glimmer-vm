@@ -1,6 +1,6 @@
 // @ts-check
 
-/* eslint-disable no-inline-comments */
+ 
 const path = require('path');
 const rollup = /** @type {{rollup: import("rollup").rollup}} */ (
   /** @type {unknown} */
@@ -42,7 +42,7 @@ async function build(dist, out) {
       }),
       terser({
         compress: {
-          // eslint-disable-next-line @typescript-eslint/naming-convention
+           
           negate_iife: false,
           sequences: 0,
         },

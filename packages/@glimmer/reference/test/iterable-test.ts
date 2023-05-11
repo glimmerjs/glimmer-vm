@@ -29,13 +29,11 @@ class IterableWrapper {
 
     // bootstrap
     let iterator = valueForRef(this.iterable);
+    let item = iterator.next();
 
-    while (true) {
-      let item = iterator.next();
-
-      if (item === null) break;
-
+    while (item !== null) {
       result.push(item);
+      item = iterator.next();
     }
 
     return result;

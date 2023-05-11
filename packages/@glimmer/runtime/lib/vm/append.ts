@@ -20,7 +20,7 @@ import type {
   Scope,
   UpdatingOpcode,
   VM as PublicVM,
-} from "@glimmer/interfaces";
+} from '@glimmer/interfaces';
 import { LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
 import type { RuntimeOpImpl } from '@glimmer/program';
 import {
@@ -57,7 +57,7 @@ import { PartialScopeImpl } from '../scope';
 import { ARGS, CONSTANTS, DESTROYABLE_STACK, HEAP, INNER_VM, REGISTERS, STACKS } from '../symbols';
 import { VMArgumentsImpl } from './arguments';
 import type { LiveBlockList } from './element-builder';
-import LowLevelVM from './low-level';
+import { LowLevelVM } from './low-level';
 import RenderResultImpl from './render-result';
 import EvaluationStackImpl, { type EvaluationStack } from './stack';
 import {
@@ -149,7 +149,7 @@ class Stacks {
   readonly list = new Stack<ListBlockOpcode>();
 }
 
-export default class VM implements PublicVM, InternalVM {
+export class VM implements PublicVM, InternalVM {
   private readonly [STACKS] = new Stacks();
   private readonly [HEAP]: RuntimeHeap;
   private readonly destructor: object;
@@ -594,10 +594,8 @@ export default class VM implements PublicVM, InternalVM {
 
     let result: RichIteratorResult<null, RenderResult>;
 
-    while (true) {
-      result = this.next();
-      if (result.done) break;
-    }
+    do result = this.next();
+    while (!result.done);
 
     return result.value;
   }

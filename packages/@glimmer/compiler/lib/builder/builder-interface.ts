@@ -308,7 +308,7 @@ function normalizeVerboseStatement(statement: VerboseStatement): NormalizedState
 }
 
 function extractBlockHead(name: string): NormalizedHead {
-  const result = /^(#|!)(.*)$/.exec(name);
+  const result = /^(#|!)(.*)$/u.exec(name);
 
   if (result === null) {
     throw new Error(`Unexpected missing # in block head`);
@@ -318,7 +318,7 @@ function extractBlockHead(name: string): NormalizedHead {
 }
 
 function normalizeCallHead(name: string): NormalizedHead {
-  const result = /^\((.*)\)$/.exec(name);
+  const result = /^\((.*)\)$/u.exec(name);
 
   if (result === null) {
     throw new Error(`Unexpected missing () in call head`);
@@ -364,7 +364,7 @@ export function normalizePathHead(whole: string): Variable {
   let kind: VariableKind;
   let name: string;
 
-  if (/^this(\.|$)/.exec(whole)) {
+  if (/^this(?:\.|$)/u.test(whole)) {
     return {
       kind: VariableKind.This,
       name: whole,
@@ -529,27 +529,27 @@ export type InvocationElement =
   | [string, BuilderAttrs];
 
 export function isElement(input: [string, ...unknown[]]): input is BuilderElement {
-  const match = /^<([a-z0-9\-][a-zA-Z0-9\-]*)>$/.exec(input[0]);
+  const match = /^<([\d\-a-z][\d\-A-Za-z]*)>$/u.exec(input[0]);
 
   return !!match && !!match[1];
 }
 
 export function extractElement(input: string): Nullable<string> {
-  const match = /^<([a-z0-9\-][a-zA-Z0-9\-]*)>$/.exec(input);
+  const match = /^<([\d\-a-z][\d\-A-Za-z]*)>$/u.exec(input);
 
   return match?.[1] ?? null;
 }
 
 export function isAngleInvocation(input: [string, ...unknown[]]): input is InvocationElement {
   // TODO Paths
-  const match = /^<(@[a-zA-Z0-9]*|[A-Z][a-zA-Z0-9\-]*)>$/.exec(input[0]);
+  const match = /^<(@[\dA-Za-z]*|[A-Z][\d\-A-Za-z]*)>$/u.exec(input[0]);
 
   return !!match && !!match[1];
 }
 
 export function isBlock(input: [string, ...unknown[]]): input is BuilderBlockStatement {
   // TODO Paths
-  const match = /^#[^]?([a-zA-Z0-9]*|[A-Z][a-zA-Z0-9\-]*)$/.exec(input[0]);
+  const match = /^#[\s\S]?([\dA-Za-z]*|[A-Z][\d\-A-Za-z]*)$/u.exec(input[0]);
 
   return !!match && !!match[1];
 }

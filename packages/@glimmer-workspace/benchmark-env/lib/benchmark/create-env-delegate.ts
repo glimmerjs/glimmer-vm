@@ -1,6 +1,7 @@
 /* eslint-disable no-console */
+
 import setGlobalContext from '@glimmer/global-context';
-import type { Destroyable, Destructor, RenderResult } from '../../../../@glimmer/interfaces';
+import type { Destroyable, Destructor, RenderResult } from '@glimmer/interfaces';
 import type { EnvironmentDelegate } from '@glimmer/runtime';
 
 type Queue = (() => void)[];
@@ -105,7 +106,6 @@ setGlobalContext({
 
   deprecate(msg: string, test: unknown) {
     if (!test) {
-      // eslint-disable-next-line no-console
       console.warn(msg);
     }
   },

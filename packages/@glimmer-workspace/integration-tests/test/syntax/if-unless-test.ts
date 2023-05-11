@@ -1,4 +1,4 @@
-/* eslint-disable no-template-curly-in-string */
+ 
 import { jitSuite, preprocess, RenderTest, syntaxErrorFor, test } from '../..';
 
 let types = ['if', 'unless'];

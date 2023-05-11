@@ -654,7 +654,7 @@ export class EachSuite extends RenderTest {
       shuffleArray(arr);
       this.rerender({ arr });
 
-      // eslint-disable-next-line no-loop-func
+       
       verifySteps?.('list-updates', (steps) => {
         let stats = getStepStats(steps as ListStep[]);
 
@@ -681,7 +681,7 @@ export class EachSuite extends RenderTest {
       let semiArr = newArr.slice(0, 5);
       this.rerender({ arr: semiArr });
 
-      // eslint-disable-next-line no-loop-func
+       
       verifySteps?.('list-updates', (steps) => {
         let stats = getStepStats(steps as ListStep[]);
 
@@ -708,7 +708,7 @@ export class EachSuite extends RenderTest {
       let semiArr = newArr.slice(0, 5).concat([11, 12]);
       this.rerender({ arr: semiArr });
 
-      // eslint-disable-next-line no-loop-func
+       
       verifySteps?.('list-updates', (steps) => {
         let stats = getStepStats(steps as ListStep[]);
 

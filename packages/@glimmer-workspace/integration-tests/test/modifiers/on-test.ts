@@ -1,6 +1,6 @@
 import { getInternalModifierManager } from '@glimmer/manager';
 import { on } from '@glimmer/runtime';
-import { castToBrowser, expect, HAS_NATIVE_PROXY } from '@glimmer/util';
+import { castToBrowser, expect } from '@glimmer/util';
 
 import { jitSuite, RenderTest, test } from '../..';
 
@@ -30,7 +30,7 @@ let global = window as any;
 const isChrome = hasDom
   ? typeof global.chrome === 'object' && !(typeof global.opera === 'object')
   : false;
-const isFirefox = hasDom ? /Firefox|FxiOS/.test(navigator.userAgent) : false;
+const isFirefox = hasDom ? /Firefox|FxiOS/u.test(navigator.userAgent) : false;
 const isIE11 = !global.ActiveXObject && 'ActiveXObject' in window;
 
 interface Counters {
@@ -236,7 +236,7 @@ if (hasDom) {
     @test
     'setting passive named argument prevents calling preventDefault'(assert: Assert) {
       let matcher =
-        /You marked this listener as 'passive', meaning that you must not call 'event.preventDefault\(\)'/;
+        /You marked this listener as 'passive', meaning that you must not call 'event.preventDefault\(\)'/u;
 
       this.render('<button {{on "click" this.callback passive=true}}>Click Me</button>', {
         callback(event: UIEvent) {
@@ -349,7 +349,7 @@ if (hasDom) {
         this.render(`<button {{on undefined this.callback}}>Click Me</button>`, {
           callback() {},
         });
-      }, /You must pass a valid DOM event name as the first argument to the `on` modifier/);
+      }, /You must pass a valid DOM event name as the first argument to the `on` modifier/u);
     }
 
     @test
@@ -358,7 +358,7 @@ if (hasDom) {
         this.render(`<button {{on this.someUndefinedThing this.callback}}>Click Me</button>`, {
           callback() {},
         });
-      }, /You must pass a valid DOM event name as the first argument to the `on` modifier/);
+      }, /You must pass a valid DOM event name as the first argument to the `on` modifier/u);
     }
 
     @test
@@ -367,28 +367,28 @@ if (hasDom) {
         this.render(`<button {{on this.callback}}>Click Me</button>`, {
           callback() {},
         });
-      }, /You must pass a valid DOM event name as the first argument to the `on` modifier/);
+      }, /You must pass a valid DOM event name as the first argument to the `on` modifier/u);
     }
 
     @test
     'asserts when callback is missing'(assert: Assert) {
       assert.throws(() => {
         this.render(`<button {{on 'click'}}>Click Me</button>`);
-      }, /You must pass a function as the second argument to the `on` modifier/);
+      }, /You must pass a function as the second argument to the `on` modifier/u);
     }
 
     @test
     'asserts when callback is undefined'(assert: Assert) {
       assert.throws(() => {
         this.render(`<button {{on 'click' this.foo}}>Click Me</button>`);
-      }, /You must pass a function as the second argument to the `on` modifier; you passed undefined. While rendering:\n\nthis.foo/);
+      }, /You must pass a function as the second argument to the `on` modifier; you passed undefined. While rendering:\n{2}this.foo/u);
     }
 
     @test
     'asserts when callback is null'(assert: Assert) {
       assert.throws(() => {
         this.render(`<button {{on 'click' this.foo}}>Click Me</button>`, { foo: null });
-      }, /You must pass a function as the second argument to the `on` modifier; you passed null. While rendering:\n\nthis.foo/);
+      }, /You must pass a function as the second argument to the `on` modifier; you passed null. While rendering:\n{2}this.foo/u);
     }
 
     @test
@@ -397,15 +397,9 @@ if (hasDom) {
     ) {
       this.render(`<button {{on 'click' this.myFunc}}>Click Me</button>`, {
         myFunc(this: any) {
-          if (HAS_NATIVE_PROXY) {
-            assert.throws(() => {
-              // eslint-disable-next-line no-unused-expressions
-              this.arg1;
-            }, /You accessed `this.arg1` from a function passed to the `on` modifier, but the function itself was not bound to a valid `this` context. Consider updating to use a bound function/);
-          } else {
-            // IE11
-            assert.strictEqual(this, null, 'this is null on browsers without native proxy support');
-          }
+          assert.throws(() => {
+            this.arg1;
+          }, /You accessed `this.arg1` from a function passed to the `on` modifier, but the function itself was not bound to a valid `this` context. Consider updating to use a bound function/u);
         },
 
         arg1: 'foo',
@@ -421,7 +415,7 @@ if (hasDom) {
           callback() {},
           someArg: 'foo',
         });
-      }, /You can only pass two positional arguments \(event name and callback\) to the `on` modifier, but you provided 3. Consider using the `fn` helper to provide additional arguments to the `on` callback./);
+      }, /You can only pass two positional arguments \(event name and callback\) to the `on` modifier, but you provided 3. Consider using the `fn` helper to provide additional arguments to the `on` callback./u);
     }
 
     @test

@@ -21,7 +21,7 @@ export default function generateVmPlugins(
   return [
     [
       __loadPlugins
-        ? // eslint-disable-next-line @typescript-eslint/no-require-imports
+        ?  
           require('babel-plugin-debug-macros')
         : require.resolve('babel-plugin-debug-macros'),
       {

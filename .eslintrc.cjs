@@ -1,9 +1,13 @@
+// @ts-check
+
 const { resolve } = require('path');
 
 const cjsTsconfig = resolve(__dirname, 'tsconfig.cjs.json');
 
+/** @type {import("eslint").Linter.Config} */
 module.exports = {
   root: true,
+  reportUnusedDisableDirectives: true,
   extends: [],
   ignorePatterns: [
     'dist',
@@ -41,6 +45,7 @@ module.exports = {
     'prettier',
     'n',
   ],
+
   rules: {},
   overrides: [
     {

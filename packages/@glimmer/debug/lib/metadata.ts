@@ -1,4 +1,4 @@
-import type { Dict, Nullable, PresentArray } from "@glimmer/interfaces";
+import type { Dict, Nullable, PresentArray } from '@glimmer/interfaces';
 
 // TODO: How do these map onto constant and machine types?
 export const OPERAND_TYPES = [
@@ -194,12 +194,13 @@ export function strip(strings: TemplateStringsArray, ...args: unknown[]) {
     out += `${string}${dynamic}`;
   }
 
-  out = out.match(/^\s*?\n?([\s\S]*?)\n?\s*$/)![1] as string;
+  // eslint-disable-next-line regexp/no-super-linear-backtracking
+  out = /^\s*?\n?([\s\S]*?)\s*$/u.exec(out)![1] as string;
 
   let min = 9007199254740991; // Number.MAX_SAFE_INTEGER isn't available on IE11
 
   for (let line of out.split('\n')) {
-    let leading = line.match(/^\s*/)![0].length;
+    let leading = /^\s*/u.exec(line)![0].length;
 
     min = Math.min(min, leading);
   }

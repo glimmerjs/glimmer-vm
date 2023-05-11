@@ -4,7 +4,7 @@ import { syntaxErrorFor } from '@glimmer-workspace/test-utils';
 import { type ASTv1, builders as b, preprocess as parse } from '@glimmer/syntax';
 import { astEqual } from './support';
 
-const test = QUnit.test;
+const { test, skip } = QUnit;
 
 QUnit.module('[glimmer-syntax] Parser - AST');
 
@@ -477,22 +477,27 @@ test('Whitespace control - preserve all whitespace if config is set', function (
 });
 
 // TODO: Make these throw an error.
-//test("Awkward mustache in unquoted attribute value", function() {
-//  let t = "<div class=a{{foo}}></div>";
-//  astEqual(t, b.program([
-//    element('div', [ b.attr('class', concat([b.string("a"), b.sexpr([b.path('foo')])])) ])
-//  ]));
-//
-//  t = "<div class=a{{foo}}b></div>";
-//  astEqual(t, b.program([
-//    element('div', [ b.attr('class', concat([b.string("a"), b.sexpr([b.path('foo')]), b.string("b")])) ])
-//  ]));
-//
-//  t = "<div class={{foo}}b></div>";
-//  astEqual(t, b.program([
-//    element('div', [ b.attr('class', concat([b.sexpr([b.path('foo')]), b.string("b")])) ])
-//  ]));
-//});
+skip('Awkward mustache in unquoted attribute value', function () {
+  let t = '<div class=a{{foo}}></div>';
+  astEqual(
+    t,
+    b.program([element('div', ['attrs', ['class', b.concat([b.text('a'), b.mustache('foo')])]])])
+  );
+
+  t = '<div class=a{{foo}}b></div>';
+  astEqual(
+    t,
+    b.program([
+      element('div', ['attrs', ['class', b.concat([b.text('a'), b.mustache('foo'), b.text('b')])]]),
+    ])
+  );
+
+  t = '<div class={{foo}}b></div>';
+  astEqual(
+    t,
+    b.program([element('div', ['attrs', ['class', b.concat([b.mustache('foo'), b.text('b')])]])])
+  );
+});
 
 test('an HTML comment', function () {
   let t = 'before <!-- some comment --> after';

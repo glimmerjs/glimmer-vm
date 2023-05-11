@@ -169,13 +169,13 @@ export function assertEmberishElement(element: SimpleElement, tagName: string): 
 export function assertEmberishElement(...args: any[]): void {
   let [element, tagName, attrs, contents] = processAssertComponentArgs(args);
 
-  let fullAttrs = assign({ class: classes('ember-view'), id: regex(/^ember\d*$/) }, attrs);
+  let fullAttrs = assign({ class: classes('ember-view'), id: regex(/^ember\d*$/u) }, attrs);
 
   equalsElement(element, tagName, fullAttrs, contents);
 }
 
 export function assertSerializedInElement(result: string, expected: string, message?: string) {
-  let matched = result.match(/<script glmr="%cursor:[0-9]*.%"><\/script>/);
+  let matched = /<script glmr="%cursor:\d*.%"><\/script>/u.exec(result);
 
   if (matched) {
     QUnit.assert.ok(true, `has cursor ${matched[0]}`);

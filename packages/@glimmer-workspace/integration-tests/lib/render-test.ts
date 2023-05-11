@@ -12,7 +12,7 @@ import type {
 } from '@glimmer/interfaces';
 import { inTransaction } from '@glimmer/runtime';
 import type { ASTPluginBuilder } from '@glimmer/syntax';
-import { assert, clearElement, dict, expect, isPresent } from '@glimmer/util';
+import { assert, clearElement, dict, expect, isPresent, unwrap } from '@glimmer/util';
 import { dirtyTagFor } from '@glimmer/validator';
 import type { NTuple } from '@glimmer-workspace/test-utils';
 
@@ -41,8 +41,8 @@ export interface IRenderTest {
 }
 
 export class Count {
-  private expected = dict<number>();
-  private actual = dict<number>();
+  private expected: Record<string, number> = {};
+  private actual: Record<string, number> = {};
 
   expect(name: string, count = 1) {
     this.expected[name] = count;
@@ -68,6 +68,16 @@ export class RenderTest implements IRenderTest {
 
   constructor(protected delegate: RenderDelegate) {
     this.element = delegate.getInitialElement();
+  }
+
+  capture<T>() {
+    let instance: T;
+    return {
+      capture: (value: T) => (instance = value),
+      get captured(): T {
+        return unwrap(instance);
+      },
+    };
   }
 
   registerPlugin(plugin: ASTPluginBuilder): void {

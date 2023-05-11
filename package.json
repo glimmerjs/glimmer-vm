@@ -22,7 +22,7 @@
     "lint": "npm-run-all lint:*",
     "lint:files": "dotenv -- turbo lint",
     "force:lint:files": "eslint .",
-    "lint:types": "dotenv -- turbo typecheck",
+    "lint:types": "tsc -b",
     "start": "ember serve --port=7357",
     "test": "node bin/run-tests.mjs",
     "test:browserstack": "ember test --test-port=7774 --host 127.0.0.1 --config-file=testem-browserstack.js",
@@ -47,6 +47,7 @@
     }
   },
   "devDependencies": {
+    "@glimmer-workspace/eslint-plugin": "workspace:^",
     "@babel/plugin-syntax-dynamic-import": "^7.8.3",
     "@babel/plugin-transform-modules-commonjs": "^7.21.5",
     "@babel/plugin-transform-runtime": "^7.21.4",
@@ -106,7 +107,8 @@
     "ts-node": "^10.9.1",
     "turbo": "^1.9.3",
     "typescript": "^5.0.4",
-    "vite": "^4.3.5"
+    "vite": "^4.3.5",
+    "xo": "^0.54.2"
   },
   "publishConfig": {
     "registry": "https://registry.npmjs.org"

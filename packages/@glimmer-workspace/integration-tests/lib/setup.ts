@@ -5,6 +5,7 @@ import { consumeTag, dirtyTagFor, tagFor } from '@glimmer/validator';
 
 import { scheduleDidDestroy, scheduleWillDestroy } from './base-env';
 import { NativeIteratorDelegate } from './modes/env';
+import type { TestBase } from 'qunit';
 
 let actualDeprecations: string[] = [];
 
@@ -28,7 +29,7 @@ QUnit.assert.validateDeprecations = function (...expectedDeprecations: (string |
   actualDeprecations.forEach((actual, i) => {
     let expected = expectedDeprecations[i] as string | RegExp;
 
-    let result = expected instanceof RegExp ? Boolean(actual.match(expected)) : actual === expected;
+    let result = expected instanceof RegExp ? Boolean(expected.test(actual)) : actual === expected;
 
     this.pushResult({
       result,
@@ -42,12 +43,12 @@ QUnit.assert.validateDeprecations = function (...expectedDeprecations: (string |
 };
 
 QUnit.testStart(() => {
-  let test = QUnit.config.current;
+  let test = QUnit.config.current as TestBase & Assert;
   let finish = test.finish;
 
-  test.finish = function () {
+  test.finish = function (...args: Parameters<TestBase['finish']>) {
     if (actualDeprecations.length > 0) {
-      test.expected++;
+      test.expected = test.expected === null ? 1 : test.expected + 1;
 
       test.pushResult({
         result: false,
@@ -61,7 +62,7 @@ QUnit.testStart(() => {
       actualDeprecations = [];
     }
 
-    return finish.apply(this, arguments);
+    return finish.call(this, ...args);
   };
 });
 

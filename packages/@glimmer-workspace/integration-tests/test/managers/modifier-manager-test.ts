@@ -123,7 +123,7 @@ abstract class ModifierManagerTest extends RenderTest {
 
         override didInsertElement() {
           // consume first positional argument (ensures updates run)
-          // eslint-disable-next-line no-unused-expressions
+           
           this.args.positional[0];
 
           assert.strictEqual(this.element.tagName, 'H1');
@@ -165,14 +165,14 @@ abstract class ModifierManagerTest extends RenderTest {
       class extends CustomModifier {
         override didInsertElement() {
           // track the count of the first item
-          // eslint-disable-next-line no-unused-expressions
+           
           trackedOne.count;
           insertCount++;
         }
 
         override didUpdate() {
           // track the count of the second item
-          // eslint-disable-next-line no-unused-expressions
+           
           trackedTwo.count;
           updateCount++;
         }
@@ -215,7 +215,7 @@ abstract class ModifierManagerTest extends RenderTest {
         super(owner, args);
 
         // first read the tracked property
-        // eslint-disable-next-line no-unused-expressions
+         
         this.foo;
 
         // then attempt to update the tracked property
@@ -233,7 +233,7 @@ abstract class ModifierManagerTest extends RenderTest {
 
     assert.throws(() => {
       this.renderComponent(Main);
-    }, /You attempted to update `foo` on `.*`, but it had already been used previously in the same computation/);
+    }, /You attempted to update `foo` on `.*`, but it had already been used previously in the same computation/u);
   }
 
   @test
@@ -324,7 +324,7 @@ class ModifierManagerTest322 extends ModifierManagerTest {
           insertCount++;
 
           // consume the second positional
-          // eslint-disable-next-line no-unused-expressions
+           
           this.args.positional[1];
         }
 
@@ -332,7 +332,7 @@ class ModifierManagerTest322 extends ModifierManagerTest {
           updateCount++;
 
           // consume the second positional
-          // eslint-disable-next-line no-unused-expressions
+           
           this.args.positional[1];
         }
       }
@@ -376,9 +376,9 @@ class ModifierManagerTest322 extends ModifierManagerTest {
           insertCount++;
 
           // consume the second positional
-          // eslint-disable-next-line no-unused-expressions
+           
           // consume the second positional
-          // eslint-disable-next-line no-unused-expressions
+           
           this.args.named['qux'];
         }
 

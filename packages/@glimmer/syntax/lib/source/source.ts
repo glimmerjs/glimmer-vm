@@ -1,5 +1,3 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
-
 import type { Nullable } from '@glimmer/interfaces';
 import { assert } from '@glimmer/util';
 
@@ -44,6 +42,7 @@ export class Source {
       return null;
     }
 
+    // eslint-disable-next-line no-constant-condition
     while (true) {
       let nextLine = this.source.indexOf('\n', seenChars);
 
@@ -66,9 +65,7 @@ export class Source {
     let seenLines = 0;
     let seenChars = 0;
 
-    while (true) {
-      if (seenChars >= sourceLength) return sourceLength;
-
+    while (seenChars < sourceLength) {
       let nextLine = this.source.indexOf('\n', seenChars);
       if (nextLine === -1) nextLine = this.source.length;
 
@@ -93,5 +90,7 @@ export class Source {
         seenChars = nextLine + 1;
       }
     }
+
+    return sourceLength;
   }
 }

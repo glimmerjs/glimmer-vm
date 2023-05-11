@@ -1,6 +1,6 @@
+/* eslint-disable @typescript-eslint/no-var-requires */
 /* eslint-disable @typescript-eslint/no-require-imports */
 const path = require('node:path');
-// eslint-disable-next-line n/no-unpublished-require
 const pluginTester = require('babel-plugin-tester');
 
 // For correct .babelrc detection inside the fixture directory we need to force babel's cwd and root to be the package root.

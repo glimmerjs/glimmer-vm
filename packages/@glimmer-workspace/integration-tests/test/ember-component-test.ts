@@ -1,5 +1,5 @@
 import type { SimpleElement, SimpleNode } from '@glimmer/interfaces';
-import { assign, dict, unwrap } from '@glimmer/util';
+import { assign, castToSimple, unwrap } from '@glimmer/util';
 import {
   classes,
   createTemplate,
@@ -16,6 +16,8 @@ import {
   RenderTest,
   stripTight,
   test,
+  type AttrsDiff,
+  type Attrs,
 } from '@glimmer-workspace/integration-tests';
 
 import { assert } from './support';
@@ -38,8 +40,8 @@ interface HookedComponent {
 
 function inspectHooks<T extends EmberishCurlyComponentFactory>(ComponentClass: T): T {
   return class extends (ComponentClass as any) {
-    constructor() {
-      super();
+    constructor(...args: unknown[]) {
+      super(...args);
 
       (this as any).hooks = {
         didInitAttrs: 0,
@@ -54,48 +56,48 @@ function inspectHooks<T extends EmberishCurlyComponentFactory>(ComponentClass: T
       };
     }
 
-    didInitAttrs(this: any) {
-      super.didInitAttrs(...arguments);
+    didInitAttrs(this: any, options: { attrs: Attrs }) {
+      super.didInitAttrs(options);
       this.hooks['didInitAttrs']++;
     }
 
-    didUpdateAttrs(this: any) {
-      super.didUpdateAttrs(...arguments);
+    didUpdateAttrs(this: any, diff: AttrsDiff) {
+      super.didUpdateAttrs(diff);
       this.hooks['didUpdateAttrs']++;
     }
 
-    didReceiveAttrs(this: any) {
-      super.didReceiveAttrs(...arguments);
+    didReceiveAttrs(this: any, diff: AttrsDiff) {
+      super.didReceiveAttrs(diff);
       this.hooks['didReceiveAttrs']++;
     }
 
     willInsertElement(this: any) {
-      super.willInsertElement(...arguments);
+      super.willInsertElement();
       this.hooks['willInsertElement']++;
     }
 
     willUpdate(this: any) {
-      super.willUpdate(...arguments);
+      super.willUpdate();
       this.hooks['willUpdate']++;
     }
 
     willRender(this: any) {
-      super.willRender(...arguments);
+      super.willRender();
       this.hooks['willRender']++;
     }
 
     didInsertElement(this: any) {
-      super.didInsertElement(...arguments);
+      super.didInsertElement();
       this.hooks['didInsertElement']++;
     }
 
     didUpdate(this: any) {
-      super.didUpdate(...arguments);
+      super.didUpdate();
       this.hooks['didUpdate']++;
     }
 
     didRender(this: any) {
-      super.didRender(...arguments);
+      super.didRender();
       this.hooks['didRender']++;
     }
   } as any as T;
@@ -153,7 +155,7 @@ export function assertElementIsEmberishElement(
     [tagName, attrs, contents] = args;
   }
 
-  let fullAttrs = assign({ class: classes('ember-view'), id: regex(/^ember\d*$/) }, attrs);
+  let fullAttrs = assign({ class: classes('ember-view'), id: regex(/^ember\d*$/u) }, attrs);
   equalsElement(element, tagName, fullAttrs, contents);
 }
 
@@ -178,7 +180,7 @@ class CurlyTest extends RenderTest {
       [tagName, attrs, contents] = args;
     }
 
-    let fullAttrs = assign({ class: classes('ember-view'), id: regex(/^ember\d*$/) }, attrs);
+    let fullAttrs = assign({ class: classes('ember-view'), id: regex(/^ember\d*$/u) }, attrs);
     equalsElement(firstElementChild(this.element) as SimpleElement, tagName, fullAttrs, contents);
   }
 }
@@ -295,6 +297,8 @@ class CurlyDynamicCustomizationTest extends CurlyTest {
   'dynamic attribute bindings'() {
     let fooBarInstance: FooBar | undefined;
 
+    const setInstance = (instance: FooBar) => (fooBarInstance = instance);
+
     class FooBar extends EmberishCurlyComponent {
       override attributeBindings = ['style'];
       style: string | null = null;
@@ -302,7 +306,7 @@ class CurlyDynamicCustomizationTest extends CurlyTest {
       constructor() {
         super();
         this.style = 'color: red;';
-        fooBarInstance = this;
+        setInstance(this);
       }
     }
 
@@ -1290,15 +1294,16 @@ class CurlyIdsTest extends CurlyTest {
     // let second = assertingElement(first.nextSibling);
     // let third = assertingElement(second.nextSibling);
 
-    equalsElement(first, 'div', { id: regex(/^ember\d*$/), class: 'ember-view' }, '');
-    equalsElement(second, 'div', { id: regex(/^ember\d*$/), class: 'ember-view' }, '');
-    equalsElement(third, 'div', { id: regex(/^ember\d*$/), class: 'ember-view' }, '');
+    equalsElement(first, 'div', { id: regex(/^ember\d*$/u), class: 'ember-view' }, '');
+    equalsElement(second, 'div', { id: regex(/^ember\d*$/u), class: 'ember-view' }, '');
+    equalsElement(third, 'div', { id: regex(/^ember\d*$/u), class: 'ember-view' }, '');
 
-    let IDs = dict<number>();
+    let IDs: Record<string, number> = {};
 
     function markAsSeen(element: SimpleElement) {
       let id = unwrap(elementId(element));
-      IDs[id] = (IDs[id] || 0) + 1;
+
+      IDs[id] = (IDs[id] ?? 0) + 1;
     }
 
     let [firstChild, secondChild, thirdChild] = this.guardArray(
@@ -1518,11 +1523,13 @@ class CurlyGlimmerComponentTest extends CurlyTest {
   'Setting value attributeBinding to null results in empty string value'() {
     let instance: InputComponent | undefined;
 
+    const setInstance = (i: InputComponent) => (instance = i);
+
     class InputComponent extends EmberishCurlyComponent {
       override tagName = 'input';
       override attributeBindings = ['value'];
       override init() {
-        instance = this;
+        setInstance(this);
       }
     }
 
@@ -1562,10 +1569,12 @@ class CurlyGlimmerComponentTest extends CurlyTest {
   'Setting class attributeBinding does not clobber ember-view'() {
     let instance: FooBarComponent | undefined;
 
+    const setInstance = (i: FooBarComponent) => (instance = i);
+
     class FooBarComponent extends EmberishCurlyComponent {
       override attributeBindings = ['class'];
       override init() {
-        instance = this;
+        setInstance(this);
       }
     }
 
@@ -2023,7 +2032,7 @@ class CurlyLateLayoutTest extends CurlyTest {
       'div',
       {
         class: classes('ember-view'),
-        id: regex(/^ember\d*$/),
+        id: regex(/^ember\d*$/u),
       },
       'Swap - YIELD'
     );
@@ -2136,14 +2145,14 @@ class CurlyBoundsTrackingTest extends CurlyTest {
 
   @test
   'it works for wrapped (curly) components'() {
-    let instance: FooBar | undefined;
+    let instance = this.capture<FooBar>();
 
     class FooBar extends EmberishCurlyComponent {
       override tagName = 'span';
 
       constructor() {
         super();
-        instance = this;
+        instance.capture(this);
       }
     }
 
@@ -2159,24 +2168,26 @@ class CurlyBoundsTrackingTest extends CurlyTest {
 
     this.assertEmberishElement('span', {}, 'foo bar');
 
+    const { bounds, element } = instance.captured;
+
     assert.strictEqual(
-      instance.bounds.parentElement(),
+      bounds.parentElement(),
       document.querySelector('#qunit-fixture') as unknown as SimpleElement
     );
-    assert.strictEqual(instance.bounds.firstNode(), instance.element as unknown as SimpleNode);
-    assert.strictEqual(instance.bounds.lastNode(), instance.element as unknown as SimpleNode);
+    assert.strictEqual(bounds.firstNode(), castToSimple(element));
+    assert.strictEqual(bounds.lastNode(), castToSimple(element));
   }
 
   @test
   'it works for tagless components'() {
-    let instance: FooBar | undefined;
+    let instance = this.capture<FooBar>();
 
     class FooBar extends EmberishCurlyComponent {
       override tagName = '';
 
       constructor() {
         super();
-        instance = this;
+        instance.capture(this);
       }
     }
 
@@ -2189,26 +2200,22 @@ class CurlyBoundsTrackingTest extends CurlyTest {
 
     this.render('zomg {{foo-bar}} wow');
 
-    assert.ok(instance, 'instance is created');
-
-    if (instance === undefined) {
-      return;
-    }
-
     this.assertHTML(
       'zomg <span id="first-node">foo</span> <span id="before-last-node">bar</span>! wow'
     );
 
+    const { bounds } = instance.captured;
+
     assert.strictEqual(
-      check(instance.bounds.parentElement(), HTMLElement),
+      check(bounds.parentElement(), HTMLElement),
       check(document.querySelector('#qunit-fixture'), HTMLElement)
     );
     assert.strictEqual(
-      check(instance.bounds.firstNode(), HTMLElement),
+      check(bounds.firstNode(), HTMLElement),
       check(document.querySelector('#first-node'), HTMLElement)
     );
     assert.strictEqual(
-      check(instance.bounds.lastNode(), Node),
+      check(bounds.lastNode(), Node),
       document.querySelector('#before-last-node')!.nextSibling
     );
   }

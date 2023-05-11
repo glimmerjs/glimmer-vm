@@ -6,7 +6,7 @@ import type {
   ModifierDefinitionState,
   ResolvedComponentDefinition,
   SimpleElement,
-} from '../../../../@glimmer/interfaces';
+} from "@glimmer/interfaces";
 import {
   getComponentTemplate,
   getInternalComponentManager,

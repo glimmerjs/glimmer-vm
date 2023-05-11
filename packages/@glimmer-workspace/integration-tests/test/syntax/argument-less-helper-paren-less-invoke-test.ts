@@ -19,9 +19,11 @@ class ArgumentLessHelperParenLessInvokeTest extends RenderTest {
     assert.validateDeprecations(
       new RegExp(
         /The `foo` helper was used in the `\(unknown template module\)` template as /.source +
-          /`@content={{foo}}`\. This is ambigious between wanting the `@content` argument /.source +
+          /`@content=\{\{foo\}\}`\. This is ambigious between wanting the `@content` argument /
+            .source +
           /to be the `foo` helper itself, or the result of invoking the `foo` helper /.source +
-          /\(current behavior\)\. This implicit invocation behavior has been deprecated\./.source
+          /\(current behavior\)\. This implicit invocation behavior has been deprecated\./.source,
+        'u'
       )
     );
   }

@@ -302,12 +302,14 @@ class HelperManagerTest extends RenderTest {
     let count = 0;
     let instance: Hello;
 
+    const setInstance = (i: Hello) => (instance = i);
+
     class Hello extends TestHelper {
       @tracked foo = 123;
 
       constructor(owner: Owner, args: Arguments) {
         super(owner, args);
-        instance = this;
+        setInstance(this);
       }
 
       value() {
@@ -353,7 +355,6 @@ class HelperManagerTest extends RenderTest {
       @tracked foo = 123;
 
       value() {
-        // eslint-disable-next-line no-unused-expressions
         this.foo;
         this.foo = 456;
       }
@@ -361,7 +362,7 @@ class HelperManagerTest extends RenderTest {
 
     assert.throws(() => {
       this.renderComponent(defineComponent({ hello: Hello }, '{{hello}}'));
-    }, /You attempted to update `foo` on/);
+    }, /You attempted to update `foo` on/u);
   }
 
   @test 'asserts against using both `hasValue` and `hasScheduledEffect`'(assert: Assert) {
@@ -370,13 +371,13 @@ class HelperManagerTest extends RenderTest {
         hasValue: true,
         hasScheduledEffect: true,
       });
-    }, /You must pass either the `hasValue` OR the `hasScheduledEffect` capability when defining a helper manager. Passing neither, or both, is not permitted./);
+    }, /You must pass either the `hasValue` OR the `hasScheduledEffect` capability when defining a helper manager. Passing neither, or both, is not permitted./u);
   }
 
   @test 'asserts requiring either `hasValue` or `hasScheduledEffect`'(assert: Assert) {
     assert.throws(() => {
       helperCapabilities('3.23', {});
-    }, /You must pass either the `hasValue` OR the `hasScheduledEffect` capability when defining a helper manager. Passing neither, or both, is not permitted./);
+    }, /You must pass either the `hasValue` OR the `hasScheduledEffect` capability when defining a helper manager. Passing neither, or both, is not permitted./u);
   }
 
   @test 'asserts against using `hasScheduledEffect`'(assert: Assert) {
@@ -384,7 +385,7 @@ class HelperManagerTest extends RenderTest {
       helperCapabilities('3.23', {
         hasScheduledEffect: true,
       });
-    }, /The `hasScheduledEffect` capability has not yet been implemented for helper managers. Please pass `hasValue` instead/);
+    }, /The `hasScheduledEffect` capability has not yet been implemented for helper managers. Please pass `hasValue` instead/u);
   }
 
   @test 'asserts against using incorrect version for capabilities'(assert: Assert) {
@@ -392,7 +393,7 @@ class HelperManagerTest extends RenderTest {
       helperCapabilities('aoeu' as any, {
         hasScheduledEffect: true,
       });
-    }, /Invalid helper manager compatibility specified/);
+    }, /Invalid helper manager compatibility specified/u);
   }
 
   @test 'helper manager and modifier manager can be associated with the same value'() {
@@ -436,7 +437,7 @@ class HelperManagerTest extends RenderTest {
 
     assert.throws(() => {
       this.renderComponent(defineComponent({ hello: Hello }, '{{hello}}'));
-    }, /Custom helper managers must have a `capabilities` property that is the result of calling the `capabilities\('3.23'\)` \(imported via `import \{ capabilities \} from '@ember\/helper';`\). /);
+    }, /Custom helper managers must have a `capabilities` property that is the result of calling the `capabilities\('3.23'\)` \(imported via `import \{ capabilities \} from '@ember\/helper';`\). /u);
   }
 
   @test
@@ -450,7 +451,7 @@ class HelperManagerTest extends RenderTest {
         super(owner, args);
 
         // first read the tracked property
-        // eslint-disable-next-line no-unused-expressions
+
         this.foo;
 
         // then attempt to update the tracked property
@@ -464,7 +465,7 @@ class HelperManagerTest extends RenderTest {
 
     assert.throws(() => {
       this.renderComponent(defineComponent({ hello: Hello }, '{{hello}}'));
-    }, /You attempted to update `foo` on /);
+    }, /You attempted to update `foo` on /u);
   }
 
   @test
@@ -476,7 +477,7 @@ class HelperManagerTest extends RenderTest {
 
       value() {
         // first read the tracked property
-        // eslint-disable-next-line no-unused-expressions
+
         this.foo;
 
         // then attempt to update the tracked property
@@ -486,7 +487,7 @@ class HelperManagerTest extends RenderTest {
 
     assert.throws(() => {
       this.renderComponent(defineComponent({ hello: Hello }, '{{hello}}'));
-    }, /You attempted to update `foo` on /);
+    }, /You attempted to update `foo` on /u);
   }
 }
 

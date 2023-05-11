@@ -4,7 +4,7 @@ import type {
   SimpleDocument,
   SimpleElement,
   SimpleNode,
-} from "@glimmer/interfaces";
+} from '@glimmer/interfaces';
 import {
   assert,
   castToBrowser,
@@ -117,9 +117,11 @@ function shouldApplyFix(document: SimpleDocument, svgNamespace: typeof NS_SVG) {
       castToBrowser(unwrap(svg.firstChild), 'SVG').namespaceURI === NS_SVG
     ) {
       // The test worked as expected, no fix required
+      // eslint-disable-next-line no-unsafe-finally
       return false;
     }
 
+    // eslint-disable-next-line no-unsafe-finally
     return true;
   }
 }

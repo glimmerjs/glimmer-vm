@@ -50,7 +50,6 @@ export function module(name: string): (klass: new () => TestCase) => void {
       const test = proto[prop];
 
       if (isTestFunction(test)) {
-        // eslint-disable-next-line qunit/require-expect
         QUnit.test(prop, (assert) => new klass().run(test, assert));
       }
     }

@@ -13,8 +13,8 @@ import type {
   SimpleComment,
   UpdatableBlock,
   UpdatingOpcode,
-  UpdatingVM,
-} from "@glimmer/interfaces";
+  UpdatingVM as IUpdatingVM,
+} from '@glimmer/interfaces';
 import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
 import {
   type OpaqueIterationItem,
@@ -30,7 +30,7 @@ import { clear, move as moveBounds } from '../bounds';
 import type { InternalVM, VmInitCallback } from './append';
 import { type LiveBlockList, NewElementBuilder } from './element-builder';
 
-export default class UpdatingVMImpl implements UpdatingVM {
+export class UpdatingVM implements IUpdatingVM {
   public env: Environment;
   public dom: GlimmerTreeChanges;
   public alwaysRevalidate: boolean;
@@ -71,9 +71,7 @@ export default class UpdatingVMImpl implements UpdatingVM {
 
     this.try(opcodes, handler);
 
-    while (true) {
-      if (frameStack.isEmpty()) break;
-
+    while (!frameStack.isEmpty()) {
       let opcode = this.frame.nextStatement();
 
       if (opcode === undefined) {
@@ -149,7 +147,7 @@ export abstract class BlockOpcode implements UpdatingOpcode, Bounds {
     return this.bounds.lastNode();
   }
 
-  evaluate(vm: UpdatingVMImpl) {
+  evaluate(vm: UpdatingVM) {
     vm.try(this.children, null);
   }
 }
@@ -159,7 +157,7 @@ export class TryOpcode extends BlockOpcode implements ExceptionHandler {
 
   protected declare bounds: UpdatableBlock; // Hides property on base class
 
-  override evaluate(vm: UpdatingVMImpl) {
+  override evaluate(vm: UpdatingVM) {
     vm.try(this.children, this);
   }
 
@@ -240,7 +238,7 @@ export class ListBlockOpcode extends BlockOpcode {
     this.opcodeMap.set(opcode.key, opcode);
   }
 
-  override evaluate(vm: UpdatingVMImpl) {
+  override evaluate(vm: UpdatingVM) {
     let iterator = valueForRef(this.iterableRef);
 
     if (this.lastIterator !== iterator) {
@@ -273,6 +271,7 @@ export class ListBlockOpcode extends BlockOpcode {
 
     this.children = this.bounds.boundList = [];
 
+    // eslint-disable-next-line no-constant-condition
     while (true) {
       let item = iterator.next();
 

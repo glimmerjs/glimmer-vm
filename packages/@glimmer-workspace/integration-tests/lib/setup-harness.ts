@@ -1,12 +1,12 @@
 /* eslint-disable no-console */
 import { debug } from '@glimmer/validator';
-import reporters from 'js-reporters';
+import { autoRegister } from 'js-reporters';
 
 export async function setupQunit() {
   const qunit = await import('qunit');
   await import('qunit/qunit/qunit.css');
 
-  const runner = reporters.autoRegister();
+  const runner = autoRegister();
   const tap = qunit.reporters.tap;
   tap.init(runner, { log: console.info });
 

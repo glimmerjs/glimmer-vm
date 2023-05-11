@@ -339,11 +339,12 @@ function buildKeyword(
       return [Op.With, expect(params, 'with requires params')[0], block, inverse];
     case 'if':
       return [Op.If, expect(params, 'if requires params')[0], block, inverse];
-    case 'each':
+    case 'each': {
       let keyExpr = normalized.hash ? normalized.hash['key'] : null;
       let key = keyExpr ? buildExpression(keyExpr, 'Strict', symbols) : null;
-
       return [Op.Each, expect(params, 'if requires params')[0], key, block, inverse];
+    }
+
     default:
       throw new Error('unimplemented keyword');
   }
@@ -442,7 +443,7 @@ export function extractNamespace(name: string): Nullable<AttrNamespace> {
     return NS_XMLNS;
   }
 
-  let match = /^([^:]*):([^:]*)$/.exec(name);
+  let match = /^([^:]*):([^:]*)$/u.exec(name);
 
   if (match === null) {
     return null;

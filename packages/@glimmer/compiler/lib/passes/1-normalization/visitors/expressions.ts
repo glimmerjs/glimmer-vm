@@ -18,7 +18,7 @@ export class NormalizeExpressions {
         return this.Interpolate(node, state);
       case 'Path':
         return this.PathExpression(node);
-      case 'Call':
+      case 'Call': {
         let translated = CALL_KEYWORDS.translate(node, state);
 
         if (translated !== null) {
@@ -26,6 +26,7 @@ export class NormalizeExpressions {
         }
 
         return this.CallExpression(node, state);
+      }
       case 'DeprecatedCall':
         return this.DeprecaedCallExpression(node, state);
     }

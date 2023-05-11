@@ -8,7 +8,7 @@ const PROD = MODE === 'production';
 const STARBEAM_TRACE = process.env['STARBEAM_TRACE'] ?? false;
 
 export default createReplacePlugin(
-  (id) => /\.(j|t)sx?$/.test(id),
+  (id) => /\.[jt]sx?$/u.test(id),
   {
     'import.meta.env.MODE': process.env['MODE'] ?? 'development',
     'import.meta.env.DEV': DEV ? 'true' : 'false',

@@ -439,7 +439,7 @@ class DebugRenderTreeTest extends RenderTest {
 
     assert.throws(() => {
       this.render('<HelloWorld @arg="first"/>');
-    }, /oops!/);
+    }, /oops!/u);
 
     assert.deepEqual(this.delegate.getCapturedRenderTree(), [], 'there was no output');
   }

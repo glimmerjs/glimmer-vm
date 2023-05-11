@@ -7,6 +7,9 @@
     "development": "./index.ts",
     "import": "./dist/index.js"
   },
+  "engines": {
+    "node": ">= 16.0.0"
+  },
   "publishConfig": {
     "access": "public",
     "main": "dist/index.js",

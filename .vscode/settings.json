@@ -17,6 +17,8 @@
   "eslint.codeAction.showDocumentation": {
     "enable": true
   },
+  "eslint.codeActionsOnSave.mode": "all",
+  "eslint.lintTask.enable": true,
   "eslint.onIgnoredFiles": "warn",
   "eslint.workingDirectories": [
     {
@@ -48,5 +50,6 @@
   "typescript.tsc.autoDetect": "on",
   "typescript.tsdk": "node_modules/typescript/lib",
   "typescript.tsserver.experimental.enableProjectDiagnostics": false,
-  "typescript.workspaceSymbols.scope": "currentProject"
+  "typescript.workspaceSymbols.scope": "currentProject",
+  "eslint.problems.shortenToSingleLine": true
 }

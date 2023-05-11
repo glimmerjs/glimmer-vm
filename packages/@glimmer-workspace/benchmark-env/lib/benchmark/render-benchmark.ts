@@ -5,7 +5,7 @@ import type {
   RuntimeArtifacts,
   RuntimeResolver,
   SimpleElement,
-} from '../../../../@glimmer/interfaces';
+} from "@glimmer/interfaces";
 import { NewElementBuilder, renderComponent, renderSync, runtimeContext } from '@glimmer/runtime';
 
 import type { UpdateBenchmark } from '../interfaces';

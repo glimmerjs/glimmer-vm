@@ -11,7 +11,7 @@ import type {
   RuntimeResolver,
   Transaction,
   TransactionSymbol,
-} from "@glimmer/interfaces";
+} from '@glimmer/interfaces';
 import { RuntimeProgramImpl } from '@glimmer/program';
 import { assert, expect } from '@glimmer/util';
 import { track, updateTag } from '@glimmer/validator';
@@ -61,7 +61,6 @@ class TransactionImpl implements Transaction {
 
       if (modifierTag !== null) {
         let tag = track(
-          // eslint-disable-next-line no-loop-func
           () => manager.install(state),
           import.meta.env.DEV &&
             `- While rendering:\n  (instance of a \`${
@@ -79,7 +78,6 @@ class TransactionImpl implements Transaction {
 
       if (modifierTag !== null) {
         let tag = track(
-          // eslint-disable-next-line no-loop-func
           () => manager.update(state),
           import.meta.env.DEV &&
             `- While rendering:\n  (instance of a \`${

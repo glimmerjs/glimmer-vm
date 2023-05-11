@@ -1,4 +1,8 @@
-import type { Dict, SerializedTemplateWithLazyBlock, SimpleElement } from '../../../@glimmer/interfaces';
+import type {
+  Dict,
+  SerializedTemplateWithLazyBlock,
+  SimpleElement,
+} from "@glimmer/interfaces";
 
 /**
  * This abstracts a tracked root.

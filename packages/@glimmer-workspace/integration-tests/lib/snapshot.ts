@@ -53,7 +53,7 @@ function cleanEmberIds(tokens: Token[]) {
     const idAttr = 'attributes' in token && token.attributes.filter((a) => a[0] === 'id')[0];
 
     if (idAttr) {
-      idAttr[1] = idAttr[1].replace(/ember(\d+|\*)/, `ember${++id}`);
+      idAttr[1] = idAttr[1].replace(/ember(\d+|\*)/u, `ember${++id}`);
     }
   });
 }
@@ -148,6 +148,7 @@ export function normalizeSnapshot(
   const normalizedOld: IndividualSnapshot[] = [];
   const normalizedNew: IndividualSnapshot[] = [];
 
+  // eslint-disable-next-line no-constant-condition
   while (true) {
     const nextOld = oldIterator.peek();
     const nextNew = newIterator.peek();

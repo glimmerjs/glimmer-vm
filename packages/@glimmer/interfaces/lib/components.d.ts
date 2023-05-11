@@ -1,4 +1,3 @@
-// eslint-disable-next-line n/no-extraneous-import
 import type { Dict } from './core';
 import type { InternalComponentManager } from './managers';
 import type { Reference } from './references';

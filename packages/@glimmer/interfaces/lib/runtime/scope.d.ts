@@ -1,4 +1,3 @@
-// eslint-disable-next-line n/no-extraneous-import
 import type { Dict, Nullable } from '../core';
 import type { Reference } from '../references';
 import type { CompilableBlock } from '../template';

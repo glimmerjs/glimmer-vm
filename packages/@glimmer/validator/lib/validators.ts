@@ -13,7 +13,7 @@ import type {
   UPDATABLE_TAG_ID as IUPDATABLE_TAG_ID,
   UpdatableTag,
   VOLATILE_TAG_ID as IVOLATILE_TAG_ID,
-} from "@glimmer/interfaces";
+} from '@glimmer/interfaces';
 
 import { debug } from './debug';
 import { unwrap } from './utils';
@@ -76,7 +76,6 @@ export function validateTag(tag: Tag, snapshot: Revision): boolean {
 const TYPE: TagTypeSymbol = Symbol('TAG_TYPE') as TagTypeSymbol;
 
 // this is basically a const
-// eslint-disable-next-line @typescript-eslint/naming-convention
 export let ALLOW_CYCLES: WeakMap<Tag, boolean> | undefined;
 
 if (import.meta.env.DEV) {
@@ -98,10 +97,11 @@ class MonomorphicTagImpl<T extends MonomorphicTagId = MonomorphicTagId> {
         return CONSTANT_TAG;
       case 1:
         return tags[0] as Tag;
-      default:
+      default: {
         let tag: MonomorphicTagImpl = new MonomorphicTagImpl(COMBINATOR_TAG_ID);
         tag.subtag = tags;
         return tag;
+      }
     }
   }
 

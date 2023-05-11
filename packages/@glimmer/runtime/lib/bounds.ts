@@ -1,4 +1,4 @@
-import type { Bounds, Cursor, Nullable, SimpleElement, SimpleNode } from "@glimmer/interfaces";
+import type { Bounds, Cursor, Nullable, SimpleElement, SimpleNode } from '@glimmer/interfaces';
 import { expect } from '@glimmer/util';
 
 export class CursorImpl implements Cursor {
@@ -50,6 +50,7 @@ export function move(bounds: Bounds, reference: Nullable<SimpleNode>): Nullable<
 
   let current: SimpleNode = first;
 
+  // eslint-disable-next-line no-constant-condition
   while (true) {
     let next = current.nextSibling;
 
@@ -70,6 +71,7 @@ export function clear(bounds: Bounds): Nullable<SimpleNode> {
 
   let current: SimpleNode = first;
 
+  // eslint-disable-next-line no-constant-condition
   while (true) {
     let next = current.nextSibling;
 

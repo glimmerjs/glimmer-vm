@@ -20,7 +20,7 @@ export function createReplacePlugin(test, replacements, sourcemap) {
     '\\b(' +
       Object.keys(replacements)
         .map((str) => {
-          return str.replace(/[-[\]/{}()*+?.\\^$|]/g, '\\$&');
+          return str.replace(/[$()*+\-./?[\\\]^{|}]/gu, '\\$&');
         })
         .join('|') +
       ')\\b',

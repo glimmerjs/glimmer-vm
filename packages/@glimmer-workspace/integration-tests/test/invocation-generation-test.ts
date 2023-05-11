@@ -134,7 +134,7 @@ module(
           args: { foo: 'bar', baz: 1, bar: null },
           attributes: { 'data-foo': '"bar"', id: '"wat"' },
         });
-      }, /Cannot pass attributes to curly components/);
+      }, /Cannot pass attributes to curly components/u);
     });
 
     test("Can build curly invocation with 'attributes' in args", (assert) => {

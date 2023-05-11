@@ -1,4 +1,10 @@
-import type { Dict, Owner, Template, VMArguments, WithCreateInstance } from '../../../../@glimmer/interfaces';
+import type {
+  Dict,
+  Owner,
+  Template,
+  VMArguments,
+  WithCreateInstance,
+} from "@glimmer/interfaces";
 import { getComponentTemplate } from '@glimmer/manager';
 import { createConstRef, type Reference } from '@glimmer/reference';
 import { EMPTY_ARGS } from '@glimmer/runtime';

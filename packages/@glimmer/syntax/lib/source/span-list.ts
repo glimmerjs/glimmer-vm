@@ -1,4 +1,4 @@
-// eslint-disable-next-line import/no-extraneous-dependencies
+ 
 import type { PresentArray } from '@glimmer/interfaces';
 import { getFirst, getLast, isPresentArray } from '@glimmer/util';
 

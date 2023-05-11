@@ -155,7 +155,7 @@ export function getElementsByTagName(
 export function classList(element: SimpleElement): string[] {
   const attr = element.getAttribute('class');
   if (attr === null) return [];
-  return attr.split(/\s+/);
+  return attr.split(/\s+/u);
 }
 
 export function toTextContent(parent: SimpleElement): string {

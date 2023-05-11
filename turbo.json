@@ -19,7 +19,8 @@
     "tsconfig.json",
     "tsconfig.dist.json",
     "*/tsconfig.json",
-    "packages/*/tsconfig.json"
+    "packages/*/tsconfig.json",
+    "packages/@glimmer-workspace/eslint-plugin/**/*"
   ],
   "globalEnv": ["NODE_OPTIONS"]
 }

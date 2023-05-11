@@ -81,14 +81,14 @@ class GeneralStrictModeTest extends RenderTest {
 
     this.assert.throws(() => {
       this.renderComponent(Foo);
-    }, /Attempted to resolve a value in a strict mode template, but that value was not in scope: bar/);
+    }, /Attempted to resolve a value in a strict mode template, but that value was not in scope: bar/u);
   }
 
   @test
   '{{component}} throws an error if a string is used in strict (append position)'() {
     this.assert.throws(() => {
       defineComponent({}, '{{component "bar"}}');
-    }, /\(component\) cannot resolve string values in strict mode templates/);
+    }, /\(component\) cannot resolve string values in strict mode templates/u);
   }
 
   @test
@@ -101,7 +101,7 @@ class GeneralStrictModeTest extends RenderTest {
 
     this.assert.throws(() => {
       this.renderComponent(Foo);
-    }, /Error: Attempted to resolve a dynamic component with a string definition, `bar` in a strict mode template. In strict mode, using strings to resolve component definitions is prohibited. You can instead import the component definition and use it directly./);
+    }, /Error: Attempted to resolve a dynamic component with a string definition, `bar` in a strict mode template. In strict mode, using strings to resolve component definitions is prohibited. You can instead import the component definition and use it directly./u);
   }
 
   @test
@@ -110,7 +110,7 @@ class GeneralStrictModeTest extends RenderTest {
       defineComponent({}, '{{component.foo}}', {
         definition: class extends GlimmerishComponent {},
       });
-    }, /The `component` keyword was used incorrectly. It was used as `component.foo`, but it cannot be used with additional path segments./);
+    }, /The `component` keyword was used incorrectly. It was used as `component.foo`, but it cannot be used with additional path segments./u);
   }
 
   @test
@@ -129,14 +129,14 @@ class GeneralStrictModeTest extends RenderTest {
 
     this.assert.throws(() => {
       this.rerender();
-    }, /Error: Attempted to resolve a dynamic component with a string definition, `bar` in a strict mode template. In strict mode, using strings to resolve component definitions is prohibited. You can instead import the component definition and use it directly./);
+    }, /Error: Attempted to resolve a dynamic component with a string definition, `bar` in a strict mode template. In strict mode, using strings to resolve component definitions is prohibited. You can instead import the component definition and use it directly./u);
   }
 
   @test
   '{{component}} throws an error if a string is used in strict (block position)'() {
     this.assert.throws(() => {
       defineComponent({}, '{{#component "bar"}}{{/component}}');
-    }, /\(component\) cannot resolve string values in strict mode templates/);
+    }, /\(component\) cannot resolve string values in strict mode templates/u);
   }
 
   @test
@@ -149,7 +149,7 @@ class GeneralStrictModeTest extends RenderTest {
 
     this.assert.throws(() => {
       this.renderComponent(Foo);
-    }, /Error: Attempted to resolve a dynamic component with a string definition, `bar` in a strict mode template. In strict mode, using strings to resolve component definitions is prohibited. You can instead import the component definition and use it directly./);
+    }, /Error: Attempted to resolve a dynamic component with a string definition, `bar` in a strict mode template. In strict mode, using strings to resolve component definitions is prohibited. You can instead import the component definition and use it directly./u);
   }
 
   @test
@@ -168,14 +168,14 @@ class GeneralStrictModeTest extends RenderTest {
 
     this.assert.throws(() => {
       this.rerender();
-    }, /Error: Attempted to resolve a dynamic component with a string definition, `bar` in a strict mode template. In strict mode, using strings to resolve component definitions is prohibited. You can instead import the component definition and use it directly./);
+    }, /Error: Attempted to resolve a dynamic component with a string definition, `bar` in a strict mode template. In strict mode, using strings to resolve component definitions is prohibited. You can instead import the component definition and use it directly./u);
   }
 
   @test
   '{{component}} throws an error if a string is used in strict (expression position)'() {
     this.assert.throws(() => {
       defineComponent({}, '{{#let (component "bar") as |bar|}}{{/let}}');
-    }, /\(component\) cannot resolve string values in strict mode templates/);
+    }, /\(component\) cannot resolve string values in strict mode templates/u);
   }
 
   @test
@@ -188,7 +188,7 @@ class GeneralStrictModeTest extends RenderTest {
 
     this.assert.throws(() => {
       this.renderComponent(Bar);
-    }, /Error: Attempted to resolve a dynamic component with a string definition, `bar` in a strict mode template. In strict mode, using strings to resolve component definitions is prohibited. You can instead import the component definition and use it directly./);
+    }, /Error: Attempted to resolve a dynamic component with a string definition, `bar` in a strict mode template. In strict mode, using strings to resolve component definitions is prohibited. You can instead import the component definition and use it directly./u);
   }
 
   @test
@@ -207,7 +207,7 @@ class GeneralStrictModeTest extends RenderTest {
 
     this.assert.throws(() => {
       this.rerender();
-    }, /Error: Attempted to resolve a dynamic component with a string definition, `bar` in a strict mode template. In strict mode, using strings to resolve component definitions is prohibited. You can instead import the component definition and use it directly./);
+    }, /Error: Attempted to resolve a dynamic component with a string definition, `bar` in a strict mode template. In strict mode, using strings to resolve component definitions is prohibited. You can instead import the component definition and use it directly./u);
   }
 
   @test
@@ -390,7 +390,7 @@ class StaticStrictModeTest extends RenderTest {
 
     this.assert.throws(() => {
       this.renderComponent(Bar);
-    }, /Attempted to resolve a value in a strict mode template, but that value was not in scope: foo/);
+    }, /Attempted to resolve a value in a strict mode template, but that value was not in scope: foo/u);
   }
 
   @test
@@ -399,7 +399,7 @@ class StaticStrictModeTest extends RenderTest {
 
     this.assert.throws(() => {
       this.renderComponent(Bar);
-    }, /Attempted to resolve a component or helper in a strict mode template, but that value was not in scope: foo/);
+    }, /Attempted to resolve a component or helper in a strict mode template, but that value was not in scope: foo/u);
   }
 
   @test
@@ -409,7 +409,7 @@ class StaticStrictModeTest extends RenderTest {
 
     this.assert.throws(() => {
       this.renderComponent(Bar);
-    }, /Attempted to resolve a value in a strict mode template, but that value was not in scope: bar/);
+    }, /Attempted to resolve a value in a strict mode template, but that value was not in scope: bar/u);
   }
 
   @test
@@ -419,7 +419,7 @@ class StaticStrictModeTest extends RenderTest {
 
     this.assert.throws(() => {
       this.renderComponent(Bar);
-    }, /Attempted to resolve a helper in a strict mode template, but that value was not in scope: bar/);
+    }, /Attempted to resolve a helper in a strict mode template, but that value was not in scope: bar/u);
   }
 
   @test
@@ -429,7 +429,7 @@ class StaticStrictModeTest extends RenderTest {
 
     this.assert.throws(() => {
       this.renderComponent(Bar);
-    }, /Attempted to resolve a helper in a strict mode template, but that value was not in scope: bar/);
+    }, /Attempted to resolve a helper in a strict mode template, but that value was not in scope: bar/u);
   }
 
   @test
@@ -439,7 +439,7 @@ class StaticStrictModeTest extends RenderTest {
 
     this.assert.throws(() => {
       this.renderComponent(Bar);
-    }, /Attempted to resolve a value in a strict mode template, but that value was not in scope: foo/);
+    }, /Attempted to resolve a value in a strict mode template, but that value was not in scope: foo/u);
   }
 
   @test
@@ -449,7 +449,7 @@ class StaticStrictModeTest extends RenderTest {
 
     this.assert.throws(() => {
       this.renderComponent(Bar);
-    }, /Attempted to resolve a value in a strict mode template, but that value was not in scope: foo/);
+    }, /Attempted to resolve a value in a strict mode template, but that value was not in scope: foo/u);
   }
 
   @test
@@ -459,7 +459,7 @@ class StaticStrictModeTest extends RenderTest {
 
     this.assert.throws(() => {
       this.renderComponent(Bar);
-    }, /Attempted to resolve a component or helper in a strict mode template, but that value was not in scope: foo/);
+    }, /Attempted to resolve a component or helper in a strict mode template, but that value was not in scope: foo/u);
   }
 
   @test
@@ -470,7 +470,7 @@ class StaticStrictModeTest extends RenderTest {
 
     this.assert.throws(() => {
       this.renderComponent(Bar);
-    }, /Attempted to resolve a value in a strict mode template, but that value was not in scope: bar/);
+    }, /Attempted to resolve a value in a strict mode template, but that value was not in scope: bar/u);
   }
 
   @test
@@ -481,7 +481,7 @@ class StaticStrictModeTest extends RenderTest {
 
     this.assert.throws(() => {
       this.renderComponent(Bar);
-    }, /Attempted to resolve a helper in a strict mode template, but that value was not in scope: bar/);
+    }, /Attempted to resolve a helper in a strict mode template, but that value was not in scope: bar/u);
   }
 
   @test
@@ -492,7 +492,7 @@ class StaticStrictModeTest extends RenderTest {
 
     this.assert.throws(() => {
       this.renderComponent(Bar);
-    }, /Attempted to resolve a helper in a strict mode template, but that value was not in scope: bar/);
+    }, /Attempted to resolve a helper in a strict mode template, but that value was not in scope: bar/u);
   }
 
   @test
@@ -501,7 +501,7 @@ class StaticStrictModeTest extends RenderTest {
 
     this.assert.throws(() => {
       this.renderComponent(Bar);
-    }, /Attempted to resolve a modifier in a strict mode template, but it was not in scope: foo/);
+    }, /Attempted to resolve a modifier in a strict mode template, but it was not in scope: foo/u);
   }
 
   @test
@@ -511,7 +511,7 @@ class StaticStrictModeTest extends RenderTest {
 
     this.assert.throws(() => {
       this.renderComponent(Bar);
-    }, /Attempted to resolve a modifier in a strict mode template, but it was not in scope: foo/);
+    }, /Attempted to resolve a modifier in a strict mode template, but it was not in scope: foo/u);
   }
 
   @test
@@ -521,7 +521,7 @@ class StaticStrictModeTest extends RenderTest {
 
     this.assert.throws(() => {
       this.renderComponent(Bar);
-    }, /Attempted to load a component, but there wasn't a component manager associated with the definition. The definition was:/);
+    }, /Attempted to load a component, but there wasn't a component manager associated with the definition. The definition was:/u);
   }
 
   @test
@@ -531,7 +531,7 @@ class StaticStrictModeTest extends RenderTest {
 
     this.assert.throws(() => {
       this.renderComponent(Bar);
-    }, /Attempted to load a helper, but there wasn't a helper manager associated with the definition. The definition was:/);
+    }, /Attempted to load a helper, but there wasn't a helper manager associated with the definition. The definition was:/u);
   }
 
   @test
@@ -541,7 +541,7 @@ class StaticStrictModeTest extends RenderTest {
 
     this.assert.throws(() => {
       this.renderComponent(Bar);
-    }, /Attempted to load a modifier, but there wasn't a modifier manager associated with the definition. The definition was:/);
+    }, /Attempted to load a modifier, but there wasn't a modifier manager associated with the definition. The definition was:/u);
   }
 }
 
@@ -1069,7 +1069,7 @@ class DynamicStrictModeTest extends RenderTest {
 
     this.assert.throws(() => {
       this.renderComponent(Bar);
-    }, /Expected a dynamic modifier definition, but received an object or function that did not have a modifier manager associated with it. The dynamic invocation was `{{this.foo}}`, and the incorrect definition is the value at the path `this.foo`, which was:/);
+    }, /Expected a dynamic modifier definition, but received an object or function that did not have a modifier manager associated with it. The dynamic invocation was `\{\{this.foo\}\}`, and the incorrect definition is the value at the path `this.foo`, which was:/u);
   }
 
   @test
@@ -1170,7 +1170,7 @@ class DynamicStrictModeTest extends RenderTest {
 
     this.assert.throws(() => {
       this.renderComponent(Bar);
-    }, /Expected a dynamic component definition, but received an object or function that did not have a component manager associated with it. The dynamic invocation was `<this.Foo>` or `{{this.Foo}}`, and the incorrect definition is the value at the path `this.Foo`, which was:/);
+    }, /Expected a dynamic component definition, but received an object or function that did not have a component manager associated with it. The dynamic invocation was `<this.Foo>` or `\{\{this.Foo\}\}`, and the incorrect definition is the value at the path `this.Foo`, which was:/u);
   }
 
   @test
@@ -1238,7 +1238,7 @@ class DynamicStrictModeTest extends RenderTest {
 
     this.assert.throws(() => {
       this.renderComponent(Bar);
-    }, /Expected a dynamic helper definition, but received an object or function that did not have a helper manager associated with it. The dynamic invocation was `{{this.foo}}` or `\(this.foo\)`, and the incorrect definition is the value at the path `this.foo`, which was:/);
+    }, /Expected a dynamic helper definition, but received an object or function that did not have a helper manager associated with it. The dynamic invocation was `\{\{this.foo\}\}` or `\(this.foo\)`, and the incorrect definition is the value at the path `this.foo`, which was:/u);
   }
 }
 

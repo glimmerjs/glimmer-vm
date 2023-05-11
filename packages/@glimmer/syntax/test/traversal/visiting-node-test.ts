@@ -1,4 +1,4 @@
-import type { Maybe, Optional, OptionalArray, PresentArray } from '@glimmer/interfaces';
+import type { Optional, OptionalArray } from '@glimmer/interfaces';
 import { type AST, preprocess as parse, traverse, type WalkerPath } from '@glimmer/syntax';
 
 const { test } = QUnit;
@@ -293,12 +293,11 @@ test('Comments', function () {
 QUnit.module('[glimmer-syntax] Traversal - visiting - paths');
 
 test('Basics', function (assert) {
-  assert.expect(3);
-
   let ast = parse(`{{#if foo}}<div>bar</div>{{/if}}`);
 
   traverse(ast, {
     TextNode(node, path) {
+      assert.step('TextNode');
       assert.strictEqual(node.chars, 'bar');
       assert.strictEqual(path.node, node);
       assert.deepEqual(describeFullPath(path), [
@@ -310,17 +309,17 @@ test('Basics', function (assert) {
       ]);
     },
   });
+
+  assert.verifySteps(['TextNode']);
 });
 
 test('Helper', function (assert) {
-  assert.expect(2);
-
   let ast = parse(`{{#foo (bar this.blah)}}{{/foo}}`);
 
   traverse(ast, {
     PathExpression(node, path) {
       if (node.original === 'this.blah') {
-        // eslint-disable-next-line qunit/no-conditional-assertions
+        assert.step('PathExpression this.blah');
         assert.deepEqual(describeFullPath(path), [
           { nodeType: 'Template', key: 'body' },
           { nodeType: 'BlockStatement', key: 'params' },
@@ -328,24 +327,22 @@ test('Helper', function (assert) {
           { nodeType: 'PathExpression', key: null },
         ]);
 
-        // eslint-disable-next-line qunit/no-conditional-assertions
         assert.notEqual((path.parent!.node as AST.SubExpression).params.indexOf(node), -1);
       }
     },
   });
+
+  assert.verifySteps(['PathExpression this.blah']);
 });
 
 test('Modifier', function (assert) {
-  let hasSymbol = typeof Symbol !== 'undefined';
-
-  assert.expect(hasSymbol ? 3 : 2);
-
   let ast = parse(`<div {{foo}}></div>`);
 
   traverse(ast, {
     PathExpression(node, path) {
       if (node.original === 'foo') {
-        // eslint-disable-next-line qunit/no-conditional-assertions
+        assert.step('PathExpression foo');
+
         assert.deepEqual(describeFullPath(path), [
           { nodeType: 'Template', key: 'body' },
           { nodeType: 'ElementNode', key: 'modifiers' },
@@ -353,19 +350,17 @@ test('Modifier', function (assert) {
           { nodeType: 'PathExpression', key: null },
         ]);
 
-        if (hasSymbol) {
-          // eslint-disable-next-line qunit/no-conditional-assertions
-          assert.deepEqual(
-            Array.from(path.parents()).map((it) => (it as WalkerPath<AST.Node>).node.type),
-            ['ElementModifierStatement', 'ElementNode', 'Template']
-          );
-        }
+        assert.deepEqual(
+          Array.from(path.parents()).map((it) => (it as WalkerPath<AST.Node>).node.type),
+          ['ElementModifierStatement', 'ElementNode', 'Template']
+        );
 
-        // eslint-disable-next-line qunit/no-conditional-assertions
         assert.strictEqual((path.parent!.node as AST.ElementModifierStatement).path, node);
       }
     },
   });
+
+  assert.verifySteps(['PathExpression foo']);
 });
 
 function describeFullPath(

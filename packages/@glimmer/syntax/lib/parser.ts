@@ -55,7 +55,7 @@ export abstract class Parser {
     mode: 'precompile' | 'codemod' = 'precompile'
   ) {
     this.source = source;
-    this.lines = source.source.split(/(?:\r\n?|\n)/g);
+    this.lines = source.source.split(/\r\n?|\n/u);
     this.tokenizer = new EventedTokenizer(this, entityParser, mode);
   }
 

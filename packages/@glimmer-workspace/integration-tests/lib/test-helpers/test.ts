@@ -1,4 +1,3 @@
-import type { Dict } from '@glimmer/interfaces';
 import { keys } from '@glimmer/util';
 
 import type { ComponentTestMeta } from '../test-decorator';

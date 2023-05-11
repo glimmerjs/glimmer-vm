@@ -47,7 +47,9 @@ export const defaultId: TemplateIdFn = (() => {
       idFn('test');
 
       return idFn;
-    } catch (e) {}
+    } catch {
+      // do nothing
+    }
   }
 
   return function idFn() {

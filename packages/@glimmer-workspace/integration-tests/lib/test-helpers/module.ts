@@ -101,7 +101,7 @@ export function suite<D extends RenderDelegate>(
             instance!.count.assert();
           });
         } else {
-          // eslint-disable-next-line no-loop-func, qunit/require-expect
+          // eslint-disable-next-line no-loop-func
           QUnit.test(prop, (assert) => {
             let result = test.call(instance!, assert, instance!.count);
             instance!.count.assert();
@@ -133,7 +133,7 @@ function componentModule<D extends RenderDelegate, T extends IRenderTest>(
 
     return (type: ComponentKind, klass: RenderTestConstructor<D, T>) => {
       if (!shouldSkip) {
-        // eslint-disable-next-line qunit/require-expect
+         
         QUnit.test(prop, (assert) => {
           let instance = new klass(new Delegate());
           instance.testType = type;

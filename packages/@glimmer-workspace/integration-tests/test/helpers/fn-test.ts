@@ -1,6 +1,5 @@
 import type { CapturedArguments } from '@glimmer/interfaces';
 import { createInvokableRef } from '@glimmer/reference';
-import { HAS_NATIVE_PROXY } from '@glimmer/util';
 
 import { GlimmerishComponent, jitSuite, RenderTest, test } from '../..';
 
@@ -14,7 +13,7 @@ class FnTest extends RenderTest {
       return (fn as () => unknown)();
     });
 
-    let testContext = this;
+    const setStashedFn = (value: unknown) => (this.stashedFn = value as () => unknown);
 
     this.registerComponent(
       'Glimmer',
@@ -23,7 +22,7 @@ class FnTest extends RenderTest {
       class extends GlimmerishComponent {
         constructor(owner: object, args: Record<string, unknown>) {
           super(owner, args);
-          testContext.stashedFn = args['stashedFn'] as () => unknown;
+          setStashedFn(args['stashedFn']);
         }
       }
     );
@@ -130,7 +129,7 @@ class FnTest extends RenderTest {
         arg1: 'foo',
         arg2: 'bar',
       });
-    }, /You must pass a function as the `fn` helper's first argument./);
+    }, /You must pass a function as the `fn` helper's first argument./u);
   }
 
   @test
@@ -141,7 +140,7 @@ class FnTest extends RenderTest {
         arg1: 'foo',
         arg2: 'bar',
       });
-    }, /You must pass a function as the `fn` helper's first argument, you passed undefined. While rendering:\n\nthis.myFunc/);
+    }, /You must pass a function as the `fn` helper's first argument, you passed undefined. While rendering:\n{2}this.myFunc/u);
   }
 
   @test
@@ -152,17 +151,13 @@ class FnTest extends RenderTest {
         arg1: 'foo',
         arg2: 'bar',
       });
-    }, /You must pass a function as the `fn` helper's first argument, you passed null. While rendering:\n\nthis.myFunc/);
+    }, /You must pass a function as the `fn` helper's first argument, you passed null. While rendering:\n{2}this.myFunc/u);
   }
 
   @test
   'asserts if the provided function accesses `this` without being bound prior to passing to fn'(
     assert: Assert
   ) {
-    if (!HAS_NATIVE_PROXY) {
-      return;
-    }
-
     this.render(`<Stash @stashedFn={{fn this.myFunc this.arg1}}/>`, {
       myFunc(arg1: string) {
         return `arg1: ${arg1}, arg2: ${this['arg2']}`;
@@ -174,22 +169,21 @@ class FnTest extends RenderTest {
 
     assert.throws(() => {
       this.stashedFn?.();
-    }, /You accessed `this.arg2` from a function passed to the `fn` helper, but the function itself was not bound to a valid `this` context. Consider updating to use a bound function./);
+    }, /You accessed `this.arg2` from a function passed to the `fn` helper, but the function itself was not bound to a valid `this` context. Consider updating to use a bound function./u);
   }
 
   @test
   'there is no `this` context within the callback'(assert: Assert) {
-    if (HAS_NATIVE_PROXY) {
-      return;
-    }
-
     this.render(`<Stash @stashedFn={{fn this.myFunc this.arg1}}/>`, {
       myFunc() {
-        assert.strictEqual(this, null, 'this is bound to null in production builds');
+        assert.step('calling stashed function');
+        assert.throws(() => String(this), /not bound to a valid `this` context/u);
+        // assert.strictEqual(this, null, 'this is bound to null in production builds');
       },
     });
 
     this.stashedFn?.();
+    assert.verifySteps(['calling stashed function']);
   }
 
   @test

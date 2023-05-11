@@ -329,7 +329,7 @@ export abstract class HandlebarsNodeVisitors extends Parser {
     // escaping – such as `{{foo.["bar.baz"]}}` would mean lookup a property
     // named literally "bar.baz" on `this.foo`). By convention, we use `null`
     // for this purpose.
-    if (original.match(/^this(\..+)?$/)) {
+    if (/^this(?:\..+)?$/u.test(original)) {
       thisHead = true;
     }
 
@@ -429,7 +429,7 @@ function calculateRightStrippedOffsets(original: string, value: string) {
   // otherwise, return the number of newlines prior to
   // `value`
   const [difference] = original.split(value) as [string];
-  const lines = difference.split(/\n/);
+  const lines = difference.split(/\n/u);
   const lineCount = lines.length - 1;
 
   return {
