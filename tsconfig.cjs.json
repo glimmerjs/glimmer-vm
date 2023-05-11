@@ -11,5 +11,5 @@
     "outDir": "ts-dist/cjs"
   },
   "include": ["**/.eslintrc.cjs"],
-  "exclude": ["node_modules", "**/node_modules"]
+  "exclude": ["node_modules", "**/node_modules", "ts-dist"]
 }

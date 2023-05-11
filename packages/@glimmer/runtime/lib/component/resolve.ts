@@ -1,10 +1,10 @@
 import type {
   ComponentDefinition,
-  Option,
+  Nullable,
   Owner,
   ResolutionTimeConstants,
   RuntimeResolver,
-} from '@glimmer/interfaces';
+} from "@glimmer/interfaces";
 import { expect } from '@glimmer/util';
 
 export function resolveComponent(
@@ -12,7 +12,7 @@ export function resolveComponent(
   constants: ResolutionTimeConstants,
   name: string,
   owner: Owner | null
-): Option<ComponentDefinition> {
+): Nullable<ComponentDefinition> {
   let definition = resolver.lookupComponent(
     name,
     expect(owner, 'BUG: expected owner when looking up component')

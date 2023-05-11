@@ -7,14 +7,14 @@ import type {
   ExceptionHandler,
   GlimmerTreeChanges,
   LiveBlock,
-  Option,
+  Nullable,
   RuntimeContext,
   Scope,
   SimpleComment,
   UpdatableBlock,
   UpdatingOpcode,
   UpdatingVM,
-} from '@glimmer/interfaces';
+} from "@glimmer/interfaces";
 import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
 import {
   type OpaqueIterationItem,
@@ -93,7 +93,7 @@ export default class UpdatingVMImpl implements UpdatingVM {
     this.frame.goto(index);
   }
 
-  try(ops: UpdatingOpcode[], handler: Option<ExceptionHandler>) {
+  try(ops: UpdatingOpcode[], handler: Nullable<ExceptionHandler>) {
     this.frameStack.push(new UpdatingVMFrame(ops, handler));
   }
 
@@ -432,7 +432,10 @@ export class ListBlockOpcode extends BlockOpcode {
 class UpdatingVMFrame {
   private current = 0;
 
-  constructor(private ops: UpdatingOpcode[], private exceptionHandler: Option<ExceptionHandler>) {}
+  constructor(
+    private ops: UpdatingOpcode[],
+    private exceptionHandler: Nullable<ExceptionHandler>
+  ) {}
 
   goto(index: number) {
     this.current = index;

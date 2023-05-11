@@ -1,4 +1,4 @@
-import type { Option } from '@glimmer/interfaces';
+import type { Nullable } from '@glimmer/interfaces';
 import { assertPresentArray, assign, getFirst, getLast, isPresentArray } from '@glimmer/util';
 import { parse, parseWithoutProcessing } from '@handlebars/parser';
 import { EntityParser } from 'simple-html-tokenizer';
@@ -337,7 +337,7 @@ interface HandlebarsParseOptions {
 }
 
 export interface TemplateIdFn {
-  (src: string): Option<string>;
+  (src: string): Nullable<string>;
 }
 
 export interface PrecompileOptions extends PreprocessOptions {

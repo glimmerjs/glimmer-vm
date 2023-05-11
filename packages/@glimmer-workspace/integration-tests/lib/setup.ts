@@ -1,5 +1,5 @@
 import setGlobalContext from '@glimmer/global-context';
-import type { Destroyable, Destructor, Dict, Option } from '@glimmer/interfaces';
+import type { Destroyable, Destructor, Dict, Nullable } from '@glimmer/interfaces';
 import type { IteratorDelegate } from '@glimmer/reference';
 import { consumeTag, dirtyTagFor, tagFor } from '@glimmer/validator';
 
@@ -80,7 +80,7 @@ setGlobalContext({
     return Boolean(value);
   },
 
-  toIterator(value: any): Option<IteratorDelegate> {
+  toIterator(value: any): Nullable<IteratorDelegate> {
     if (value && value[Symbol.iterator]) {
       return NativeIteratorDelegate.from(value);
     }

@@ -1,4 +1,4 @@
-import type { Dict, Option, SimpleElement } from '@glimmer/interfaces';
+import type { Dict, Nullable, SimpleElement } from '@glimmer/interfaces';
 
 import { type Count, jitSuite, RenderTest, test } from '..';
 
@@ -29,7 +29,7 @@ class ModifierTests extends RenderTest {
         didInsertElement() {
           count.expect('didInsertElement');
           assert.ok(this.element, 'didInsertElement');
-          assert.strictEqual(this.element!.getAttribute('data-ok'), 'true', 'didInsertElement');
+          assert.strictEqual(this.element?.getAttribute('data-ok'), 'true', 'didInsertElement');
         }
 
         didUpdate() {
@@ -85,8 +85,8 @@ class ModifierTests extends RenderTest {
   'modifiers on components are forwarded to a single element receiving the splattributes'(
     assert: Assert
   ) {
-    let modifierParams: Option<unknown[]> = null;
-    let modifierNamedArgs: Option<Dict<unknown>> = null;
+    let modifierParams: Nullable<unknown[]> = null;
+    let modifierNamedArgs: Nullable<Dict<unknown>> = null;
     let modifiedElement: SimpleElement | undefined;
     class Bar extends AbstractInsertable {
       didInsertElement(params: unknown[], namedArgs: Dict<unknown>) {
@@ -111,7 +111,7 @@ class ModifierTests extends RenderTest {
   'modifiers on components are forwarded to all the elements receiving the splattributes'(
     assert: Assert
   ) {
-    let elementIds: Option<string>[] = [];
+    let elementIds: Nullable<string>[] = [];
     class Bar extends AbstractInsertable {
       didInsertElement(params: unknown[], namedArgs: Dict<unknown>) {
         assert.deepEqual(params, ['something']);
@@ -137,8 +137,8 @@ class ModifierTests extends RenderTest {
 
   @test
   'modifiers on components accept bound arguments and track changes on them'(assert: Assert) {
-    let modifierParams: Option<unknown[]> = null;
-    let modifierNamedArgs: Option<Dict<unknown>> = null;
+    let modifierParams: Nullable<unknown[]> = null;
+    let modifierNamedArgs: Nullable<Dict<unknown>> = null;
     let modifiedElement: SimpleElement | undefined;
     class Bar extends AbstractInsertable {
       didInsertElement(params: unknown[], namedArgs: Dict<unknown>) {
@@ -179,8 +179,8 @@ class ModifierTests extends RenderTest {
   'modifiers on components accept `this` in both positional params and named arguments, and updates when it changes'(
     assert: Assert
   ) {
-    let modifierParams: Option<unknown[]> = null;
-    let modifierNamedArgs: Option<Dict<unknown>> = null;
+    let modifierParams: Nullable<unknown[]> = null;
+    let modifierNamedArgs: Nullable<Dict<unknown>> = null;
     let modifiedElement: SimpleElement | undefined;
     class Bar extends AbstractInsertable {
       didInsertElement(params: unknown[], namedArgs: Dict<unknown>) {
@@ -220,8 +220,8 @@ class ModifierTests extends RenderTest {
   'modifiers on components accept local variables in both positional params and named arguments, and updates when they change'(
     assert: Assert
   ) {
-    let modifierParams: Option<unknown[]> = null;
-    let modifierNamedArgs: Option<Dict<unknown>> = null;
+    let modifierParams: Nullable<unknown[]> = null;
+    let modifierNamedArgs: Nullable<Dict<unknown>> = null;
     let modifiedElement: SimpleElement | undefined;
     class Bar extends AbstractInsertable {
       didInsertElement(params: unknown[], namedArgs: Dict<unknown>) {
@@ -264,9 +264,9 @@ class ModifierTests extends RenderTest {
 
   @test
   'modifiers on components can be received and forwarded to inner components'(assert: Assert) {
-    let modifierParams: Option<unknown[]> = null;
-    let modifierNamedArgs: Option<Dict<unknown>> = null;
-    let elementIds: Option<string>[] = [];
+    let modifierParams: Nullable<unknown[]> = null;
+    let modifierNamedArgs: Nullable<Dict<unknown>> = null;
+    let elementIds: Nullable<string>[] = [];
 
     class Bar extends AbstractInsertable {
       didInsertElement(params: unknown[], namedArgs: Dict<unknown>) {

@@ -1,4 +1,4 @@
-import type { Tag } from '@glimmer/interfaces';
+import type { Tag } from "@glimmer/interfaces";
 
 import { debug } from './debug';
 import { unwrap } from './utils';

@@ -1,5 +1,5 @@
 import { associateDestroyableChild, registerDestructor } from '@glimmer/destroyable';
-import type { Option, SimpleElement, SimpleNode } from '@glimmer/interfaces';
+import type { Nullable, SimpleElement, SimpleNode } from '@glimmer/interfaces';
 import { createComputeRef, createConstRef, createPrimitiveRef } from '@glimmer/reference';
 import type { SafeString } from '@glimmer/runtime';
 import { expect } from '@glimmer/util';
@@ -1183,7 +1183,7 @@ class UpdatingTest extends RenderTest {
   "clean content doesn't get blown away"() {
     this.render('<div>{{this.value}}</div>', { value: 'hello' });
 
-    let firstNode: Option<SimpleNode> = this.element.firstChild;
+    let firstNode: Nullable<SimpleNode> = this.element.firstChild;
     let textNode: Node | null;
     if (assertNodeTagName(firstNode, 'div')) {
       textNode = firstNode.firstChild;
@@ -1415,12 +1415,21 @@ class UpdatingTest extends RenderTest {
     let assertSelected = (expectedSelected: string[], label: string) => {
       let options = getElementsByTagName(this.element, 'option');
       let actualSelected = [];
-      for (let i = 0; i < options.length; i++) {
-        let option = options[i];
+
+      for (const option of options) {
         // TODO: these type errors reflect real incompatibility with
         // SimpleDOM
-        if ((option as any).selected) {
-          actualSelected.push((option as any).value);
+
+        if (!('selected' in option) || !('value' in option)) {
+          assert.notOk(
+            'selected' in options && 'value' in option,
+            'option is a browser <option> element'
+          );
+          continue;
+        }
+
+        if (option.selected) {
+          actualSelected.push(option.value);
         }
       }
 

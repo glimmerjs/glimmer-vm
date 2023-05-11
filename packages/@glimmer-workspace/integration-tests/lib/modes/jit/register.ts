@@ -1,7 +1,7 @@
 import type {
   Helper as GlimmerHelper,
   InternalModifierManager,
-  Option,
+  Nullable,
   ResolutionTimeConstants,
   TemplateFactory,
 } from '@glimmer/interfaces';
@@ -42,8 +42,8 @@ export function registerTemplateOnlyComponent(
 export function registerEmberishCurlyComponent(
   registry: TestJitRegistry,
   name: string,
-  Component: Option<ComponentTypes['Curly']>,
-  layoutSource: Option<string>
+  Component: Nullable<ComponentTypes['Curly']>,
+  layoutSource: Nullable<string>
 ): void {
   let ComponentClass = Component || class extends EmberishCurlyComponent {};
 
@@ -58,8 +58,8 @@ export function registerEmberishCurlyComponent(
 export function registerGlimmerishComponent(
   registry: TestJitRegistry,
   name: string,
-  Component: Option<ComponentTypes['Glimmer']>,
-  layoutSource: string
+  Component: Nullable<ComponentTypes['Glimmer']>,
+  layoutSource: Nullable<string>
 ): void {
   if (name.indexOf('-') !== -1) {
     throw new Error('DEPRECATED: dasherized components');
@@ -111,7 +111,7 @@ export function registerComponent<K extends ComponentKind>(
   registry: TestJitRegistry,
   type: K,
   name: string,
-  layout: string,
+  layout: Nullable<string>,
   Class?: ComponentTypes[K]
 ): void {
   switch (type) {
@@ -131,7 +131,7 @@ export function registerComponent<K extends ComponentKind>(
       );
       break;
     case 'TemplateOnly':
-      registerTemplateOnlyComponent(registry, name, layout);
+      registerTemplateOnlyComponent(registry, name, layout ?? '');
       break;
   }
 }

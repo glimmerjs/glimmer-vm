@@ -1,11 +1,11 @@
 import type {
   Bounds,
-  Option,
+  Nullable,
   SimpleComment,
   SimpleDocument,
   SimpleElement,
   SimpleNode,
-} from '@glimmer/interfaces';
+} from "@glimmer/interfaces";
 import { INSERT_BEFORE_END } from '@glimmer/util';
 
 import type { DOMOperations } from '../dom/operations';
@@ -23,7 +23,7 @@ import type { DOMOperations } from '../dom/operations';
 //           the base implementation of `insertHTMLBefore` already handles
 //           following text nodes correctly.
 export function applyTextNodeMergingFix(
-  document: Option<SimpleDocument>,
+  document: Nullable<SimpleDocument>,
   DOMClass: typeof DOMOperations
 ): typeof DOMOperations {
   if (!document) return DOMClass;
@@ -42,7 +42,7 @@ export function applyTextNodeMergingFix(
 
     override insertHTMLBefore(
       parent: SimpleElement,
-      nextSibling: Option<SimpleNode>,
+      nextSibling: Nullable<SimpleNode>,
       html: string
     ): Bounds {
       if (html === '') {

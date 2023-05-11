@@ -4,7 +4,7 @@ import type {
   Destroyable,
   Dict,
   InternalModifierManager,
-  Option,
+  Nullable,
   Owner,
   SimpleElement,
 } from '@glimmer/interfaces';
@@ -72,7 +72,7 @@ export class TestModifierManager
     }
   }
 
-  getDestroyable(modifier: TestModifier): Option<Destroyable> {
+  getDestroyable(modifier: TestModifier): Nullable<Destroyable> {
     return modifier.instance || null;
   }
 }

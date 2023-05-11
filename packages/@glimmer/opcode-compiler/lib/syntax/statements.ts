@@ -4,7 +4,7 @@ import type {
   WellKnownAttrName,
   WellKnownTagName,
   WireFormat,
-} from '@glimmer/interfaces';
+} from "@glimmer/interfaces";
 import { $fp, $sp, ContentType, MachineOp, Op } from '@glimmer/vm';
 import { SexpOpcodes } from '@glimmer/wire-format';
 

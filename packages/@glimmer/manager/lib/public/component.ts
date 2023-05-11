@@ -12,10 +12,10 @@ import type {
   Destroyable,
   InternalComponentCapabilities,
   InternalComponentManager,
-  Option,
+  Nullable,
   Owner,
   VMArguments,
-} from '@glimmer/interfaces';
+} from "@glimmer/interfaces";
 import { createConstRef, type Reference } from '@glimmer/reference';
 
 import { argsProxyFor } from '../util/args-proxy';
@@ -180,7 +180,7 @@ export class CustomComponentManager<O extends Owner, ComponentInstance>
     return createConstRef(delegate.getContext(component), 'this');
   }
 
-  getDestroyable(bucket: CustomComponentState<ComponentInstance>): Option<Destroyable> {
+  getDestroyable(bucket: CustomComponentState<ComponentInstance>): Nullable<Destroyable> {
     const { delegate } = bucket;
 
     if (hasDestructors(delegate)) {

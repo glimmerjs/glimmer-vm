@@ -9,7 +9,7 @@ import type {
   HelperManagerWithValue,
   InternalHelperManager,
   Owner,
-} from '@glimmer/interfaces';
+} from "@glimmer/interfaces";
 import { createComputeRef, createConstRef, UNDEFINED_REFERENCE } from '@glimmer/reference';
 
 import { argsProxyFor } from '../util/args-proxy';

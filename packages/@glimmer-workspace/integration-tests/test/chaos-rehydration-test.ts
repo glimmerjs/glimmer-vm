@@ -1,4 +1,4 @@
-import type { Dict, Option, SimpleElement } from '@glimmer/interfaces';
+import type { Dict, Nullable, SimpleElement } from '@glimmer/interfaces';
 import {
   castToBrowser,
   castToSimple,
@@ -99,7 +99,7 @@ abstract class AbstractChaosMonkeyTest extends RenderTest {
     // remove it
     parent.removeChild(nodeToRemove);
 
-    let removedNodeDisplay: Option<string>;
+    let removedNodeDisplay: Nullable<string>;
     switch (nodeToRemove.nodeType) {
       case COMMENT_NODE:
         removedNodeDisplay = `<!--${nodeToRemove.nodeValue}-->`;
@@ -190,7 +190,7 @@ class ChaosMonkeyRehydration extends AbstractChaosMonkeyTest {
   static suiteName = 'chaos-rehydration';
 
   protected declare delegate: RehydrationDelegate;
-  protected declare serverOutput: Option<string>;
+  protected declare serverOutput: Nullable<string>;
 
   renderServerSide(
     template: string | ComponentBlueprint,

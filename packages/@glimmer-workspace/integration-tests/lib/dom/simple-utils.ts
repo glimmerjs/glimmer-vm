@@ -1,6 +1,6 @@
 import type {
   Maybe,
-  Option,
+  Nullable,
   SerializableElement,
   SerializableNode,
   SimpleComment,
@@ -114,7 +114,7 @@ export function castToSimple<Type extends CastableNodeType>(
 export function getElementByClassName(
   element: SimpleElement,
   className: string
-): Option<SimpleElement> {
+): Nullable<SimpleElement> {
   let current = firstElementChild(element);
 
   while (current) {
@@ -189,7 +189,7 @@ export function hasAttribute(parent: SimpleElement, attr: string): boolean {
   return Array.from(parent.attributes).some((parentAttr) => parentAttr.name === attr);
 }
 
-export function firstElementChild(parent: SimpleElement): Option<SimpleElement> {
+export function firstElementChild(parent: SimpleElement): Nullable<SimpleElement> {
   let current = parent.firstChild;
 
   while (current) {
@@ -202,7 +202,7 @@ export function firstElementChild(parent: SimpleElement): Option<SimpleElement> 
   return null;
 }
 
-export function nextElementSibling(node: SimpleNode): Option<SimpleElement> {
+export function nextElementSibling(node: SimpleNode): Nullable<SimpleElement> {
   let current = node.nextSibling;
 
   while (current) {
@@ -215,7 +215,7 @@ export function nextElementSibling(node: SimpleNode): Option<SimpleElement> {
   return null;
 }
 
-export function elementId(element: SimpleElement): Option<string> {
+export function elementId(element: SimpleElement): Nullable<string> {
   return element.getAttribute('id');
 }
 

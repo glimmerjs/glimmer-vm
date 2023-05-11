@@ -24,7 +24,7 @@ import type {
   ElementOperations,
   InternalComponentManager,
   ModifierInstance,
-  Option,
+  Nullable,
   Owner,
   ProgramSymbolTable,
   Recast,
@@ -34,7 +34,7 @@ import type {
   WithDynamicTagName,
   WithElementHook,
   WithUpdateHook,
-} from '@glimmer/interfaces';
+} from "@glimmer/interfaces";
 import { managerHasCapability } from '@glimmer/manager';
 import { isConstRef, type Reference, valueForRef } from '@glimmer/reference';
 import {
@@ -87,12 +87,12 @@ import { UpdateDynamicAttributeOpcode } from './dom';
 
 export interface InitialComponentInstance {
   definition: ComponentDefinition;
-  manager: Option<InternalComponentManager>;
-  capabilities: Option<CapabilityMask>;
+  manager: Nullable<InternalComponentManager>;
+  capabilities: Nullable<CapabilityMask>;
   state: null;
-  handle: Option<number>;
-  table: Option<ProgramSymbolTable>;
-  lookup: Option<Dict<ScopeSlot>>;
+  handle: Nullable<number>;
+  table: Nullable<ProgramSymbolTable>;
+  lookup: Nullable<Dict<ScopeSlot>>;
 }
 
 export interface PopulatedComponentInstance {
@@ -101,12 +101,12 @@ export interface PopulatedComponentInstance {
   capabilities: CapabilityMask;
   state: null;
   handle: number;
-  table: Option<ProgramSymbolTable>;
-  lookup: Option<Dict<ScopeSlot>>;
+  table: Nullable<ProgramSymbolTable>;
+  lookup: Nullable<Dict<ScopeSlot>>;
 }
 
 export interface PartialComponentDefinition {
-  state: Option<ComponentDefinitionState>;
+  state: Nullable<ComponentDefinitionState>;
   manager: InternalComponentManager;
 }
 
@@ -356,19 +356,19 @@ APPEND_OPCODES.add(Op.CreateComponent, (vm, { op1: flags, op2: _state }) => {
     return;
   }
 
-  let dynamicScope: Option<DynamicScope> = null;
+  let dynamicScope: Nullable<DynamicScope> = null;
   if (managerHasCapability(manager, capabilities, InternalComponentCapabilities.dynamicScope)) {
     dynamicScope = vm.dynamicScope();
   }
 
   let hasDefaultBlock = flags & 1;
-  let args: Option<VMArguments> = null;
+  let args: Nullable<VMArguments> = null;
 
   if (managerHasCapability(manager, capabilities, InternalComponentCapabilities.createArgs)) {
     args = check(vm.stack.peek(), CheckArguments);
   }
 
-  let self: Option<Reference> = null;
+  let self: Nullable<Reference> = null;
   if (managerHasCapability(manager, capabilities, InternalComponentCapabilities.createCaller)) {
     self = vm.getSelf();
   }
@@ -456,7 +456,7 @@ APPEND_OPCODES.add(Op.StaticComponentAttr, (vm, { op1: _name, op2: _value, op3: 
 
 type DeferredAttribute = {
   value: string | Reference<unknown>;
-  namespace: Option<string>;
+  namespace: Nullable<string>;
   trusting?: boolean;
 };
 
@@ -469,7 +469,7 @@ export class ComponentElementOperations implements ElementOperations {
     name: string,
     value: Reference<unknown>,
     trusting: boolean,
-    namespace: Option<string>
+    namespace: Nullable<string>
   ) {
     let deferred = { value, namespace, trusting };
 
@@ -480,7 +480,7 @@ export class ComponentElementOperations implements ElementOperations {
     this.attributes[name] = deferred;
   }
 
-  setStaticAttribute(name: string, value: string, namespace: Option<string>): void {
+  setStaticAttribute(name: string, value: string, namespace: Nullable<string>): void {
     let deferred = { value, namespace };
 
     if (name === 'class') {
@@ -547,7 +547,7 @@ function setDeferredAttr(
   vm: InternalVM,
   name: string,
   value: string | Reference<unknown>,
-  namespace: Option<string>,
+  namespace: Nullable<string>,
   trusting = false
 ) {
   if (typeof value === 'string') {
@@ -868,7 +868,7 @@ export class UpdateComponentOpcode implements UpdatingOpcode {
   constructor(
     private component: ComponentInstanceState,
     private manager: WithUpdateHook,
-    private dynamicScope: Option<DynamicScope>
+    private dynamicScope: Nullable<DynamicScope>
   ) {}
 
   evaluate(_vm: UpdatingVM) {

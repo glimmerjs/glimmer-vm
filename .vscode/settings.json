@@ -23,22 +23,18 @@
       "mode": "auto"
     }
   ],
-  "explorer.excludeGitIgnore": true,
+  "explorer.excludeGitIgnore": false,
   "files.exclude": {
     "**/.DS_Store": true,
     "**/.git": true,
-    "**/dist/**": true,
     "**/node_modules/**": true,
-    "dist/**": true,
     "node_modules/**": true
   },
   "files.insertFinalNewline": true,
   "files.trimTrailingWhitespace": true,
   "files.watcherExclude": {
     "**/.git/objects/**": true,
-    "**/.git/subtree-cache/**": true,
-    "**/dist/**": true,
-    "dist": true
+    "**/.git/subtree-cache/**": true
   },
   "javascript.updateImportsOnFileMove.enabled": "always",
   "typescript.updateImportsOnFileMove.enabled": "always",

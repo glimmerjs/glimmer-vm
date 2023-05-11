@@ -2,6 +2,7 @@
   "$schema": "https://turbo.build/schema.json",
   "pipeline": {
     "build": {
+      "dependsOn": ["^build"],
       "outputs": ["dist/**"]
     },
     "lint": {
@@ -9,9 +10,16 @@
     },
     "test:lint": {},
     "typecheck": {
-      "dependsOn": ["test:types"]
+      "inputs": ["dist/**"],
+      "dependsOn": ["^build", "test:types"]
     },
     "test:types": {}
   },
+  "globalDependencies": [
+    "tsconfig.json",
+    "tsconfig.dist.json",
+    "*/tsconfig.json",
+    "packages/*/tsconfig.json"
+  ],
   "globalEnv": ["NODE_OPTIONS"]
 }

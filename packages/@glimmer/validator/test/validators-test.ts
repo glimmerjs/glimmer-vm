@@ -14,7 +14,7 @@ import {
   validateTag,
   valueForTag,
   VOLATILE_TAG,
-} from '..';
+} from '@glimmer/validator';
 import { module, test } from './-utils';
 
 function unwrap<T>(value: T | null | undefined): T {

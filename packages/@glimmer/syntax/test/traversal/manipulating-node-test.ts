@@ -7,7 +7,7 @@ import {
   cannotReplaceNode,
   preprocess as parse,
   traverse,
-} from '../..';
+} from '@glimmer/syntax';
 import { astEqual } from '../support';
 
 QUnit.module('[glimmer-syntax] Traversal - manipulating');

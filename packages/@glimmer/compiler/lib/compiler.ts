@@ -1,4 +1,5 @@
 import type {
+  Nullable,
   SerializedTemplateBlock,
   SerializedTemplateWithLazyBlock,
   TemplateJavascript,
@@ -73,10 +74,10 @@ const defaultOptions: PrecompileOptions = {
  * @return {string} a template javascript string
  */
 export function precompileJSON(
-  string: string,
+  string: Nullable<string>,
   options: PrecompileOptions | PrecompileOptionsWithLexicalScope = defaultOptions
 ): [block: SerializedTemplateBlock, usedLocals: string[]] {
-  const source = new src.Source(string, options.meta?.moduleName);
+  const source = new src.Source(string ?? '', options.meta?.moduleName);
   const [ast, locals] = normalize(source, { lexicalScope: () => false, ...options });
   const block = pass0(source, ast, options.strictMode ?? false).mapOk((pass2In) => {
     return pass2(pass2In);

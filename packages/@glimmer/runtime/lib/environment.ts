@@ -5,13 +5,13 @@ import type {
   GlimmerTreeChanges,
   GlimmerTreeConstruction,
   ModifierInstance,
-  Option,
+  Nullable,
   RuntimeArtifacts,
   RuntimeContext,
   RuntimeResolver,
   Transaction,
   TransactionSymbol,
-} from '@glimmer/interfaces';
+} from "@glimmer/interfaces";
 import { RuntimeProgramImpl } from '@glimmer/program';
 import { assert, expect } from '@glimmer/util';
 import { track, updateTag } from '@glimmer/validator';
@@ -95,7 +95,7 @@ class TransactionImpl implements Transaction {
 }
 
 export class EnvironmentImpl implements Environment {
-  [TRANSACTION]: Option<TransactionImpl> = null;
+  [TRANSACTION]: Nullable<TransactionImpl> = null;
 
   protected declare appendOperations: GlimmerTreeConstruction;
   protected updateOperations?: GlimmerTreeChanges | undefined;

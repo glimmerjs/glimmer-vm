@@ -3,7 +3,7 @@ import type {
   CompileTimeCompilationContext,
   ContainingMetadata,
   HighLevelOp,
-} from '@glimmer/interfaces';
+} from "@glimmer/interfaces";
 import { $s0, ContentType, MachineOp, Op } from '@glimmer/vm';
 
 import type { HighLevelStatementOp, PushStatementOp } from '../../syntax/compilers';

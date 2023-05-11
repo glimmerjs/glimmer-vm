@@ -1,6 +1,6 @@
 import { destroy } from '@glimmer/destroyable';
 import type { AST } from '@glimmer/syntax';
-import { assign } from '@glimmer/util';
+import { assign, unwrap } from '@glimmer/util';
 
 import { GlimmerishComponent } from '../components/emberish-glimmer';
 import { equalsElement } from '../dom/assertions';
@@ -340,7 +340,7 @@ export class InElementSuite extends RenderTest {
     this.assertHTML('BeforeYippie!<!---->After');
     this.assertStableRerender();
 
-    destroy(this.renderResult!);
+    destroy(unwrap(this.renderResult));
   }
 
   @test

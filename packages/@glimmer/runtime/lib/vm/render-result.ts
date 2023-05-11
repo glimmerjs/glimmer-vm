@@ -6,7 +6,7 @@ import type {
   SimpleElement,
   SimpleNode,
   UpdatingOpcode,
-} from '@glimmer/interfaces';
+} from "@glimmer/interfaces";
 
 import { clear } from '../bounds';
 import UpdatingVMImpl from './update';

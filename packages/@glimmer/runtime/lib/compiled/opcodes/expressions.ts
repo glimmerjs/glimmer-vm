@@ -18,7 +18,7 @@ import type {
   RuntimeConstants,
   ScopeBlock,
   VM as PublicVM,
-} from '@glimmer/interfaces';
+} from "@glimmer/interfaces";
 import {
   childRefFor,
   createComputeRef,

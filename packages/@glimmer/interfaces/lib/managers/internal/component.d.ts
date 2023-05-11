@@ -1,5 +1,5 @@
 import type { ComponentInstanceState, PreparedArguments } from '../../components';
-import type { Destroyable, Option } from '../../core';
+import type { Destroyable, Nullable } from '../../core';
 import type { Bounds } from '../../dom/bounds';
 import type { SimpleElement } from '../../dom/simple';
 import type { Reference } from '../../references';
@@ -151,7 +151,7 @@ export interface InternalComponentManager<
 > {
   getCapabilities(state: TComponentDefinition): InternalComponentCapabilities;
   getSelf(state: TComponentStateBucket): Reference;
-  getDestroyable(state: TComponentStateBucket): Option<Destroyable>;
+  getDestroyable(state: TComponentStateBucket): Nullable<Destroyable>;
   getDebugName(state: TComponentDefinition): string;
 }
 
@@ -181,7 +181,7 @@ export interface WithPrepareArgs<
   // for `create`. This allows for things like closure> components where the
   // args need to be curried before constructing the instance of the state
   // bucket.
-  prepareArgs(state: ComponentDefinitionState, args: VMArguments): Option<PreparedArguments>;
+  prepareArgs(state: ComponentDefinitionState, args: VMArguments): Nullable<PreparedArguments>;
 }
 
 export interface WithSubOwner<ComponentInstanceState = unknown, ComponentDefinitionState = unknown>
@@ -200,10 +200,10 @@ export interface WithCreateInstance<
   create(
     owner: O,
     state: ComponentDefinitionState,
-    args: Option<VMArguments>,
+    args: Nullable<VMArguments>,
     env: Environment,
-    dynamicScope: Option<DynamicScope>,
-    caller: Option<Reference>,
+    dynamicScope: Nullable<DynamicScope>,
+    caller: Nullable<Reference>,
     hasDefaultBlock: boolean
   ): ComponentInstanceState;
 
@@ -232,7 +232,7 @@ export interface WithUpdateHook<ComponentInstanceState = unknown>
   extends InternalComponentManager<ComponentInstanceState> {
   // When the component's tag has invalidated, the manager's `update` hook is
   // called.
-  update(state: ComponentInstanceState, dynamicScope: Option<DynamicScope>): void;
+  update(state: ComponentInstanceState, dynamicScope: Nullable<DynamicScope>): void;
 }
 
 export interface WithDynamicLayout<
@@ -250,7 +250,7 @@ export interface WithDynamicTagName<ComponentInstanceState>
   extends InternalComponentManager<ComponentInstanceState> {
   // If the component asks for the dynamic tag name capability, ask for
   // the tag name to use. (Only used in the "WrappedBuilder".)
-  getTagName(component: ComponentInstanceState): Option<string>;
+  getTagName(component: ComponentInstanceState): Nullable<string>;
 }
 
 export interface WithAttributeHook<ComponentInstanceState>

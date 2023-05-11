@@ -3,7 +3,7 @@ import type {
   Dict,
   Expressions,
   GetContextualFreeOpcode,
-  Option,
+  Nullable,
   PresentArray,
   WireFormat,
 } from '@glimmer/interfaces';
@@ -234,7 +234,7 @@ export function buildStatement(
 
     case HeadKind.Call: {
       let { head: path, params, hash, trusted } = normalized;
-      let builtParams: Option<WireFormat.Core.Params> = params
+      let builtParams: Nullable<WireFormat.Core.Params> = params
         ? buildParams(params, symbols)
         : null;
       let builtHash: WireFormat.Core.Hash = hash ? buildHash(hash, symbols) : null;
@@ -376,7 +376,7 @@ function buildElement(
   return out;
 }
 
-function hasSplat(attrs: Option<NormalizedAttrs>): boolean {
+function hasSplat(attrs: Nullable<NormalizedAttrs>): boolean {
   if (attrs === null) return false;
 
   return Object.keys(attrs).some((a) => attrs[a] === HeadKind.Splat);
@@ -437,7 +437,7 @@ export function buildElementParams(
   return { params, args: isPresentArray(keys) && isPresentArray(values) ? [keys, values] : null };
 }
 
-export function extractNamespace(name: string): Option<AttrNamespace> {
+export function extractNamespace(name: string): Nullable<AttrNamespace> {
   if (name === 'xmlns') {
     return NS_XMLNS;
   }
@@ -465,7 +465,7 @@ export function extractNamespace(name: string): Option<AttrNamespace> {
 export function buildAttributeValue(
   name: string,
   value: NormalizedExpression,
-  namespace: Option<AttrNamespace>,
+  namespace: Nullable<AttrNamespace>,
   symbols: Symbols
 ): WireFormat.Attribute[] {
   switch (value.type) {
@@ -703,9 +703,9 @@ export function expressionContextOp(context: VariableResolutionContext): GetCont
 }
 
 export function buildParams(
-  exprs: Option<NormalizedParams>,
+  exprs: Nullable<NormalizedParams>,
   symbols: Symbols
-): Option<WireFormat.Core.Params> {
+): Nullable<WireFormat.Core.Params> {
   if (exprs === null || !isPresentArray(exprs)) return null;
 
   return exprs.map((e) => buildExpression(e, 'Strict', symbols)) as WireFormat.Core.ConcatParams;
@@ -718,7 +718,7 @@ export function buildConcat(
   return exprs.map((e) => buildExpression(e, 'AttrValue', symbols)) as WireFormat.Core.ConcatParams;
 }
 
-export function buildHash(exprs: Option<NormalizedHash>, symbols: Symbols): WireFormat.Core.Hash {
+export function buildHash(exprs: Nullable<NormalizedHash>, symbols: Symbols): WireFormat.Core.Hash {
   if (exprs === null) return null;
 
   let out: [string[], WireFormat.Expression[]] = [[], []];
@@ -733,7 +733,7 @@ export function buildHash(exprs: Option<NormalizedHash>, symbols: Symbols): Wire
 
 export function buildBlocks(
   blocks: NormalizedBlocks,
-  blockParams: Option<string[]>,
+  blockParams: Nullable<string[]>,
   parent: Symbols
 ): WireFormat.Core.Blocks {
   let keys: string[] = [];

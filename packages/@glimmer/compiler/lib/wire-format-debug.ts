@@ -1,6 +1,6 @@
 import type {
   CurriedType,
-  Option,
+  Nullable,
   SerializedInlineBlock,
   SerializedTemplateBlock,
   WireFormat,
@@ -279,17 +279,17 @@ export default class WireFormatDebugger {
     }
   }
 
-  private formatElementParams(opcodes: Option<WireFormat.ElementParameter[]>): Option<unknown[]> {
+  private formatElementParams(opcodes: Nullable<WireFormat.ElementParameter[]>): Nullable<unknown[]> {
     if (opcodes === null) return null;
     return opcodes.map((o) => this.formatOpcode(o));
   }
 
-  private formatParams(opcodes: Option<WireFormat.Expression[]>): Option<unknown[]> {
+  private formatParams(opcodes: Nullable<WireFormat.Expression[]>): Nullable<unknown[]> {
     if (opcodes === null) return null;
     return opcodes.map((o) => this.formatOpcode(o));
   }
 
-  private formatHash(hash: WireFormat.Core.Hash): Option<object> {
+  private formatHash(hash: WireFormat.Core.Hash): Nullable<object> {
     if (hash === null) return null;
 
     return hash[0].reduce((accum, key, index) => {
@@ -298,7 +298,7 @@ export default class WireFormatDebugger {
     }, dict());
   }
 
-  private formatBlocks(blocks: WireFormat.Core.Blocks): Option<object> {
+  private formatBlocks(blocks: WireFormat.Core.Blocks): Nullable<object> {
     if (blocks === null) return null;
 
     return blocks[0].reduce((accum, key, index) => {

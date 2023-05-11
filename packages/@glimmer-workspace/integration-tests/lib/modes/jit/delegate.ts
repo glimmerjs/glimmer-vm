@@ -9,7 +9,7 @@ import type {
   Environment,
   HandleResult,
   Helper,
-  Option,
+  Nullable,
   RenderResult,
   RuntimeContext,
   SimpleDocument,
@@ -35,7 +35,7 @@ import {
   runtimeContext,
 } from '@glimmer/runtime';
 import type { ASTPluginBuilder, PrecompileOptions } from '@glimmer/syntax';
-import { assign, castToBrowser, castToSimple, expect, unwrapTemplate } from '@glimmer/util';
+import { assign, castToBrowser, castToSimple, expect, unwrap, unwrapTemplate } from '@glimmer/util';
 
 import { BaseEnv } from '../../base-env';
 import { preprocess } from '../../compile';
@@ -85,7 +85,7 @@ export class JitRenderDelegate implements RenderDelegate {
 
   private plugins: ASTPluginBuilder[] = [];
   private _context: JitTestDelegateContext | null = null;
-  private self: Option<Reference> = null;
+  private self: Nullable<Reference> = null;
   private doc: SimpleDocument;
   private env: EnvironmentDelegate;
 
@@ -164,17 +164,17 @@ export class JitRenderDelegate implements RenderDelegate {
     type: K,
     _testType: L,
     name: string,
-    layout: Option<string>,
+    layout: Nullable<string>,
     Class?: ComponentTypes[K]
   ): void;
   registerComponent<K extends ComponentKind, L extends ComponentKind>(
     type: K,
     _testType: L,
     name: string,
-    layout: Option<string>,
+    layout: Nullable<string>,
     Class?: ComponentTypes[K]
   ) {
-    registerComponent(this.registry, type, name, layout!, Class);
+    registerComponent(this.registry, type, name, layout, Class);
   }
 
   registerModifier(name: string, ModifierClass: TestModifierConstructor): void {
@@ -245,5 +245,5 @@ export class JitRenderDelegate implements RenderDelegate {
 }
 
 function isBrowserTestDocument(doc: SimpleDocument | Document): doc is Document {
-  return !!((doc as any).getElementById && (doc as any).getElementById('qunit-fixture'));
+  return 'getElementById' in doc && doc.getElementById('qunit-fixture') !== null;
 }

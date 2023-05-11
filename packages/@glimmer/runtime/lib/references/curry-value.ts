@@ -3,10 +3,10 @@ import type {
   CurriedType,
   Dict,
   Maybe,
-  Option,
+  Nullable,
   Owner,
   RuntimeResolver,
-} from '@glimmer/interfaces';
+} from "@glimmer/interfaces";
 import { createComputeRef, type Reference, valueForRef } from '@glimmer/reference';
 import { expect, isObject } from '@glimmer/util';
 import { CurriedTypes } from '@glimmer/vm';
@@ -17,7 +17,7 @@ export default function createCurryRef(
   type: CurriedType,
   inner: Reference,
   owner: Owner,
-  args: Option<CapturedArguments>,
+  args: Nullable<CapturedArguments>,
   resolver: RuntimeResolver,
   isStrict: boolean
 ) {

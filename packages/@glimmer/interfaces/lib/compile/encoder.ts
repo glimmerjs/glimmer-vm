@@ -1,5 +1,5 @@
 import type { CompileTimeComponent } from '../..';
-import type { Option } from '../core';
+import type { Nullable } from '../core';
 import type { CompileTimeConstants } from '../program';
 import type { HandleResult, NamedBlocks } from '../template';
 import type { VmMachineOp as MachineOp, VmOp as Op } from '../vm-opcodes';
@@ -47,8 +47,8 @@ export type HighLevelResolutionOpcode =
   | HighLevelRevolveEnd;
 
 export interface SimpleArgsOptions {
-  positional: Option<WireFormat.Core.Params>;
-  named: Option<WireFormat.Core.Hash>;
+  positional: Nullable<WireFormat.Core.Params>;
+  named: Nullable<WireFormat.Core.Hash>;
   atNames: boolean;
 }
 

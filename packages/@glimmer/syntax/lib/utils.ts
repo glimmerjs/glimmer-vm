@@ -1,4 +1,4 @@
-import type { Option } from '@glimmer/interfaces';
+import type { Nullable } from '@glimmer/interfaces';
 import { expect, unwrap } from '@glimmer/util';
 
 import { generateSyntaxError } from './syntax-error';
@@ -19,7 +19,7 @@ export function parseElementBlockParams(element: ASTv1.ElementNode): void {
   if (params) element.blockParams = params;
 }
 
-function parseBlockParams(element: ASTv1.ElementNode): Option<string[]> {
+function parseBlockParams(element: ASTv1.ElementNode): Nullable<string[]> {
   let l = element.attributes.length;
   let attrNames = [];
 

@@ -1,6 +1,6 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
 
-import type { Option } from '@glimmer/interfaces';
+import type { Nullable } from '@glimmer/interfaces';
 import { assert } from '@glimmer/util';
 
 import type { PrecompileOptions } from '../parser/tokenizer-event-handlers';
@@ -36,7 +36,7 @@ export class Source {
     });
   }
 
-  hbsPosFor(offset: number): Option<SourcePosition> {
+  hbsPosFor(offset: number): Nullable<SourcePosition> {
     let seenLines = 0;
     let seenChars = 0;
 

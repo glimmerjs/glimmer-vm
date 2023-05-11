@@ -1,5 +1,5 @@
 import type { PresentArray } from '../../array';
-import type { Dict, Option } from '../../core';
+import type { Dict, Nullable } from '../../core';
 import type { CurriedType } from '../../curry';
 import type {
   AppendOpcode,
@@ -63,7 +63,7 @@ type JsonValue = string | number | boolean | JsonObject | JsonArray;
 interface JsonObject extends Dict<JsonValue> {}
 interface JsonArray extends Array<JsonValue> {}
 
-export type TemplateReference = Option<SerializedBlock>;
+export type TemplateReference = Nullable<SerializedBlock>;
 export type YieldTo = number;
 
 export type StatementSexpOpcode = Statement[0];
@@ -84,13 +84,13 @@ export namespace Core {
   export type CallArgs = [Params, Hash];
   export type Path = [string, ...string[]];
   export type ConcatParams = PresentArray<Expression>;
-  export type Params = Option<ConcatParams>;
-  export type Hash = Option<[PresentArray<string>, PresentArray<Expression>]>;
-  export type Blocks = Option<[string[], SerializedInlineBlock[]]>;
+  export type Params = Nullable<ConcatParams>;
+  export type Hash = Nullable<[PresentArray<string>, PresentArray<Expression>]>;
+  export type Blocks = Nullable<[string[], SerializedInlineBlock[]]>;
   export type Args = [Params, Hash];
   export type NamedBlock = [string, SerializedInlineBlock];
   export type DebugInfo = number[];
-  export type ElementParameters = Option<PresentArray<ElementParameter>>;
+  export type ElementParameters = Nullable<PresentArray<ElementParameter>>;
 
   export type Syntax = Path | Params | ConcatParams | Hash | Blocks | Args | DebugInfo;
 }
@@ -195,7 +195,7 @@ export namespace Expressions {
   export type Expression = TupleExpression | Value | undefined;
 
   export type Concat = [ConcatOpcode, Core.ConcatParams];
-  export type Helper = [CallOpcode, Expression, Option<Params>, Hash];
+  export type Helper = [CallOpcode, Expression, Nullable<Params>, Hash];
   export type HasBlock = [HasBlockOpcode, Expression];
   export type HasBlockParams = [HasBlockParamsOpcode, Expression];
   export type Curry = [CurryOpcode, Expression, CurriedType, Params, Hash];
@@ -204,7 +204,7 @@ export namespace Expressions {
     op: IfInlineOpcode,
     condition: Expression,
     truthyValue: Expression,
-    falsyValue?: Option<Expression>
+    falsyValue?: Nullable<Expression>
   ];
 
   export type Not = [op: NotOpcode, value: Expression];
@@ -280,7 +280,7 @@ export namespace Statements {
   export type AnyStaticAttr = StaticAttr | StaticComponentAttr;
 
   export type AttrSplat = [AttrSplatOpcode, YieldTo];
-  export type Yield = [YieldOpcode, YieldTo, Option<Params>];
+  export type Yield = [YieldOpcode, YieldTo, Nullable<Params>];
   export type DynamicArg = [DynamicArgOpcode, string, Expression];
   export type StaticArg = [StaticArgOpcode, string, Expression];
 
@@ -308,22 +308,22 @@ export namespace Statements {
     op: IfOpcode,
     condition: Expression,
     block: SerializedInlineBlock,
-    inverse: Option<SerializedInlineBlock>
+    inverse: Nullable<SerializedInlineBlock>
   ];
 
   export type Each = [
     op: EachOpcode,
     condition: Expression,
-    key: Option<Expression>,
+    key: Nullable<Expression>,
     block: SerializedInlineBlock,
-    inverse: Option<SerializedInlineBlock>
+    inverse: Nullable<SerializedInlineBlock>
   ];
 
   export type With = [
     op: WithOpcode,
     value: Expression,
     block: SerializedInlineBlock,
-    inverse: Option<SerializedInlineBlock>
+    inverse: Nullable<SerializedInlineBlock>
   ];
 
   export type Let = [op: LetOpcode, positional: Core.Params, block: SerializedInlineBlock];
@@ -428,7 +428,7 @@ export type SerializedTemplateBlock = [
  */
 export interface SerializedTemplate {
   block: SerializedTemplateBlock;
-  id?: Option<string>;
+  id?: Nullable<string>;
   moduleName: string;
 }
 
@@ -441,7 +441,7 @@ export type SerializedTemplateBlockJSON = string;
  * A JSON object containing the SerializedTemplateBlock as JSON and TemplateMeta.
  */
 export interface SerializedTemplateWithLazyBlock {
-  id?: Option<string>;
+  id?: Nullable<string>;
   block: SerializedTemplateBlockJSON;
   moduleName: string;
   scope?: (() => unknown[]) | undefined | null;

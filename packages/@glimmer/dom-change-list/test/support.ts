@@ -2,7 +2,7 @@ import type { DOMTreeConstruction, TreeBuilder } from '@glimmer/dom-change-list'
 import type {
   Namespace,
   NodeTokens,
-  Option,
+  Nullable,
   PresentArray,
   SimpleAttr,
   SimpleDocumentFragment,
@@ -29,7 +29,7 @@ export function toHTMLNS(parent: SimpleElement | SimpleDocumentFragment) {
 class NamespacedHTMLSerializer extends Serializer {
   override openTag(element: SimpleElement): string {
     if (element.namespaceURI === NS_SVG) {
-      return '<svg:' + element.tagName.toLowerCase() + this.attributes(element.attributes) + '>';
+      return `<svg:${element.tagName.toLowerCase()}${this.attributes(element.attributes)}>`;
     } else {
       return super.openTag(element);
     }
@@ -37,14 +37,14 @@ class NamespacedHTMLSerializer extends Serializer {
 
   override closeTag(element: SimpleElement): string {
     if (element.namespaceURI === NS_SVG) {
-      return '</svg:' + element.tagName.toLowerCase() + '>';
+      return `</svg:${element.tagName.toLowerCase()}>`;
     } else {
       return super.closeTag(element);
     }
   }
 
   override attr(original: SimpleAttr): string {
-    let attr: { name: string; value: Option<string>; specified: boolean };
+    let attr: { name: string; value: Nullable<string>; specified: boolean };
     if (original.namespaceURI === NS_XLINK) {
       attr = {
         name: `xlink:${original.name}`,

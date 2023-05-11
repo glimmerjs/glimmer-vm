@@ -1,4 +1,4 @@
-import type { Option, RuntimeHeap, RuntimeOp, RuntimeProgram } from '@glimmer/interfaces';
+import type { Nullable, RuntimeHeap, RuntimeOp, RuntimeProgram } from "@glimmer/interfaces";
 import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
 import { assert } from '@glimmer/util';
 import { $fp, $pc, $ra, $sp, MachineOp, type MachineRegister } from '@glimmer/vm';
@@ -109,7 +109,7 @@ export default class LowLevelVM {
     this.setPc(this.registers[$ra]);
   }
 
-  nextStatement(): Option<RuntimeOp> {
+  nextStatement(): Nullable<RuntimeOp> {
     let { registers, program } = this;
 
     let pc = registers[$pc];

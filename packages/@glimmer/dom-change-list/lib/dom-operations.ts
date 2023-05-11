@@ -3,7 +3,7 @@ import type {
   ElementNamespace,
   Namespace,
   NodeToken,
-  Option,
+  Nullable,
   SimpleDocument,
   SimpleDocumentFragment,
   SimpleElement,
@@ -107,13 +107,13 @@ export class OperationsBuilder {
 
 interface ConstructionState {
   readonly document: SimpleDocument;
-  readonly nextSibling: Option<SimpleNode>;
+  readonly nextSibling: Nullable<SimpleNode>;
   readonly elements: Parent[]; // mutable
   readonly tokens: NodeTokensImpl;
 
   parent: Parent;
   constants: ReadonlyArray<string>;
-  constructing: Option<SimpleElement>;
+  constructing: Nullable<SimpleElement>;
 }
 
 export type Parent = SimpleElement | SimpleDocumentFragment;
@@ -121,7 +121,7 @@ export type Parent = SimpleElement | SimpleDocumentFragment;
 export interface RunOptions {
   document: SimpleDocument;
   parent: Parent;
-  nextSibling: Option<SimpleNode>;
+  nextSibling: Nullable<SimpleNode>;
   constants: ReadonlyArray<string>;
 }
 

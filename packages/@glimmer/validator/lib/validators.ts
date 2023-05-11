@@ -13,7 +13,7 @@ import type {
   UPDATABLE_TAG_ID as IUPDATABLE_TAG_ID,
   UpdatableTag,
   VOLATILE_TAG_ID as IVOLATILE_TAG_ID,
-} from '@glimmer/interfaces';
+} from "@glimmer/interfaces";
 
 import { debug } from './debug';
 import { unwrap } from './utils';

@@ -27,10 +27,10 @@ import type {
   Helper,
   InternalComponentManager,
   Invocation,
-  Option,
+  Nullable,
   Scope,
   ScopeBlock,
-} from '@glimmer/interfaces';
+} from "@glimmer/interfaces";
 import {
   type OpaqueIterator,
   REFERENCE,
@@ -47,7 +47,7 @@ export const CheckTag: Checker<Tag> = CheckInterface({
   [COMPUTE]: CheckFunction,
 });
 
-export const CheckOperations: Checker<Option<ComponentElementOperations>> = wrap(() =>
+export const CheckOperations: Checker<Nullable<ComponentElementOperations>> = wrap(() =>
   CheckOption(CheckInstanceof(ComponentElementOperations))
 );
 

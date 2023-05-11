@@ -10,6 +10,7 @@ import {
   unregisterDestructor,
 } from '@glimmer/destroyable';
 import { type GlobalContext, testOverrideGlobalContext } from '@glimmer/global-context';
+import { unwrap } from '@glimmer/util';
 
 const { module, test } = QUnit;
 
@@ -28,19 +29,21 @@ module('Destroyables', (hooks) => {
   let originalContext: GlobalContext | null;
 
   hooks.beforeEach(() => {
-    originalContext = testOverrideGlobalContext!({
-      scheduleDestroy<T extends object>(destroyable: T, destructor: (obj: T) => void) {
-        destroyQueue.push(() => destructor(destroyable));
-      },
+    originalContext = unwrap(
+      testOverrideGlobalContext?.({
+        scheduleDestroy<T extends object>(destroyable: T, destructor: (obj: T) => void) {
+          destroyQueue.push(() => destructor(destroyable));
+        },
 
-      scheduleDestroyed(fn: () => void) {
-        destroyedQueue.push(fn);
-      },
-    });
+        scheduleDestroyed(fn: () => void) {
+          destroyedQueue.push(fn);
+        },
+      })
+    );
   });
 
   hooks.afterEach(() => {
-    testOverrideGlobalContext!(originalContext);
+    unwrap(testOverrideGlobalContext)(originalContext);
   });
 
   hooks.afterEach((assert) => {
@@ -406,51 +409,51 @@ module('Destroyables', (hooks) => {
 
     test('can track destroyables during tests and assert if they were not destroyed', (assert) => {
       assert.throws(() => {
-        enableDestroyableTracking!();
+        unwrap(enableDestroyableTracking)();
 
         registerDestructor({}, () => {});
 
-        assertDestroyablesDestroyed!();
+        unwrap(assertDestroyablesDestroyed)();
       }, /Some destroyables were not destroyed during this test:/);
     });
 
     test('assertion does not throw if destroyables were destroyed', (assert) => {
       assert.expect(1);
-      enableDestroyableTracking!();
+      unwrap(enableDestroyableTracking)();
 
       const obj = {};
       registerDestructor(obj, () => {});
       destroy(obj);
       flush();
 
-      assertDestroyablesDestroyed!();
+      unwrap(assertDestroyablesDestroyed)();
     });
 
     test('checking isDestroying does not trigger assertion', (assert) => {
       assert.expect(1);
-      enableDestroyableTracking!();
+      unwrap(enableDestroyableTracking)();
 
       const obj = {};
 
       isDestroying(obj);
 
-      assertDestroyablesDestroyed!();
+      unwrap(assertDestroyablesDestroyed)();
     });
 
     test('checking isDestroyed does not trigger assertion', (assert) => {
       assert.expect(1);
-      enableDestroyableTracking!();
+      unwrap(enableDestroyableTracking)();
 
       const obj = {};
 
       isDestroyed(obj);
 
-      assertDestroyablesDestroyed!();
+      unwrap(assertDestroyablesDestroyed)();
     });
 
     test('error thrown attaches destroyables for helpful debugging', (assert) => {
       assert.expect(2);
-      enableDestroyableTracking!();
+      unwrap(enableDestroyableTracking)();
 
       const obj1 = {};
       registerDestructor(obj1, () => {});
@@ -459,7 +462,7 @@ module('Destroyables', (hooks) => {
       registerDestructor(obj2, () => {});
 
       try {
-        assertDestroyablesDestroyed!();
+        unwrap(assertDestroyablesDestroyed)();
       } catch (error) {
         assert.deepEqual(
           (error as { destroyables: unknown[] }).destroyables,
@@ -471,14 +474,14 @@ module('Destroyables', (hooks) => {
 
     test('attempting to call assertDestroyablesDestroyed() before calling enableDestroyableTracking() throws', (assert) => {
       assert.throws(() => {
-        assertDestroyablesDestroyed!();
+        unwrap(assertDestroyablesDestroyed)();
       }, /Attempted to assert destroyables destroyed, but you did not start a destroyable test. Did you forget to call `enableDestroyableTracking\(\)`/);
     });
 
     test('attempting to call enabledDestroyableTracking() twice before calling assertDestroyablesDestroyed throws', (assert) => {
       assert.throws(() => {
-        enableDestroyableTracking!();
-        enableDestroyableTracking!();
+        unwrap(enableDestroyableTracking)();
+        unwrap(enableDestroyableTracking)();
       }, /Attempted to start destroyable testing, but you did not end the previous destroyable test. Did you forget to call `assertDestroyablesDestroyed\(\)`/);
     });
   }

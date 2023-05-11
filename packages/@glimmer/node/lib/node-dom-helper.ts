@@ -1,6 +1,6 @@
 import type {
   Bounds,
-  Option,
+  Nullable,
   SimpleDocument,
   SimpleElement,
   SimpleNode,
@@ -10,7 +10,7 @@ import createHTMLDocument from '@simple-dom/document';
 
 export default class NodeDOMTreeConstruction extends DOMTreeConstruction {
   protected declare document: SimpleDocument; // Hides property on base class
-  constructor(doc: Option<SimpleDocument>) {
+  constructor(doc: Nullable<SimpleDocument>) {
     super(doc || createHTMLDocument());
   }
 
@@ -19,7 +19,7 @@ export default class NodeDOMTreeConstruction extends DOMTreeConstruction {
 
   override insertHTMLBefore(
     parent: SimpleElement,
-    reference: Option<SimpleNode>,
+    reference: Nullable<SimpleNode>,
     html: string
   ): Bounds {
     let raw = this.document.createRawHTMLSection!(html);

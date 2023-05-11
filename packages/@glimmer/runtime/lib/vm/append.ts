@@ -7,7 +7,7 @@ import type {
   DynamicScope,
   ElementBuilder,
   Environment,
-  Option,
+  Nullable,
   Owner,
   PartialScope,
   RenderResult,
@@ -20,7 +20,7 @@ import type {
   Scope,
   UpdatingOpcode,
   VM as PublicVM,
-} from '@glimmer/interfaces';
+} from "@glimmer/interfaces";
 import { LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
 import type { RuntimeOpImpl } from '@glimmer/program';
 import {
@@ -485,7 +485,7 @@ export default class VM implements PublicVM, InternalVM {
     associateDestroyableChild(parent, child);
   }
 
-  tryUpdating(): Option<UpdatingOpcode[]> {
+  tryUpdating(): Nullable<UpdatingOpcode[]> {
     return this[STACKS].updating.current;
   }
 

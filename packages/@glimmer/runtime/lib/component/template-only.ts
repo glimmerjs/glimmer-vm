@@ -1,4 +1,4 @@
-import type { InternalComponentCapabilities, InternalComponentManager } from '@glimmer/interfaces';
+import type { InternalComponentCapabilities, InternalComponentManager } from "@glimmer/interfaces";
 import { setInternalComponentManager } from '@glimmer/manager';
 import { NULL_REFERENCE, type Reference } from '@glimmer/reference';
 

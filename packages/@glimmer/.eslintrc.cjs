@@ -13,8 +13,12 @@ module.exports = {
         ecmaVersion: 'latest',
         project: [libTsconfig, testTsconfig],
       },
-      extends: ['plugin:@typescript-eslint/recommended-requiring-type-checking'],
+      extends: [
+        'plugin:@typescript-eslint/recommended-requiring-type-checking',
+        'plugin:import/recommended',
+      ],
       rules: {
+        'import/no-relative-packages': 'error',
         '@typescript-eslint/consistent-type-imports': [
           'error',
           {

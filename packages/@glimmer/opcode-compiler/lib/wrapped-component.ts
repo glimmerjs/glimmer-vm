@@ -5,9 +5,9 @@ import type {
   HandleResult,
   HighLevelOp,
   LayoutWithContext,
-  Option,
+  Nullable,
   ProgramSymbolTable,
-} from '@glimmer/interfaces';
+} from "@glimmer/interfaces";
 import { LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
 
 import { debugCompiler } from './compiler';
@@ -19,7 +19,7 @@ import type { HighLevelStatementOp } from './syntax/compilers';
 
 export class WrappedBuilder implements CompilableProgram {
   public symbolTable: ProgramSymbolTable;
-  private compiled: Option<number> = null;
+  private compiled: Nullable<number> = null;
   private attrsBlockNumber: number;
 
   constructor(private layout: LayoutWithContext, public moduleName: string) {

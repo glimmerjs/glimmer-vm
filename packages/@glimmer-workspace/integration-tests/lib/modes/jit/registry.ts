@@ -4,7 +4,7 @@ import type {
   InternalComponentManager,
   Invocation,
   ModifierDefinitionState,
-  Option,
+  Nullable,
   ResolvedComponentDefinition,
   Template,
 } from '@glimmer/interfaces';
@@ -37,7 +37,7 @@ export class TypedRegistry<T> {
     return name in this.byName;
   }
 
-  get(name: string): Option<T> {
+  get(name: string): Nullable<T> {
     return this.byName[name] ?? null;
   }
 
@@ -65,7 +65,7 @@ export class TestJitRegistry {
     registry.register(name, value);
   }
 
-  lookup<K extends LookupType>(type: K, name: string): Option<Lookup[K]> {
+  lookup<K extends LookupType>(type: K, name: string): Nullable<Lookup[K]> {
     if (this.registry[type].has(name)) {
       return this.registry[type].get(name) as Lookup[K];
     } else {
@@ -73,7 +73,7 @@ export class TestJitRegistry {
     }
   }
 
-  lookupComponent(name: string): Option<ResolvedComponentDefinition> {
+  lookupComponent(name: string): Nullable<ResolvedComponentDefinition> {
     let definition = this.lookup('component', name);
 
     if (definition === null) {

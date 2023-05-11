@@ -4,9 +4,9 @@ import type {
   CompileTimeComponent,
   LayoutWithContext,
   NamedBlocks,
-  Option,
+  Nullable,
   WireFormat,
-} from '@glimmer/interfaces';
+} from "@glimmer/interfaces";
 import { hasCapability } from '@glimmer/manager';
 import { EMPTY_STRING_ARRAY, reverse, unwrap } from '@glimmer/util';
 import {
@@ -31,7 +31,7 @@ import { CompileArgs, CompilePositional } from './shared';
 export const ATTRS_BLOCK = '&attrs';
 
 interface AnyComponent {
-  elementBlock: Option<WireFormat.SerializedInlineBlock>;
+  elementBlock: Nullable<WireFormat.SerializedInlineBlock>;
   positional: WireFormat.Core.Params;
   named: WireFormat.Core.Hash;
   blocks: NamedBlocks;
@@ -400,7 +400,7 @@ export function invokePreparedComponent(
   hasBlock: boolean,
   bindableBlocks: boolean,
   bindableAtNames: boolean,
-  populateLayout: Option<() => void> = null
+  populateLayout: Nullable<() => void> = null
 ): void {
   op(Op.BeginComponentTransaction, $s0);
   op(Op.PushDynamicScope);

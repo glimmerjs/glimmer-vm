@@ -52,10 +52,4 @@ export {
   VOLATILE_TAG,
   VolatileTag,
 } from './lib/validators';
-export type {
-  CombinatorTag,
-  ConstantTag,
-  DirtyableTag,
-  Tag,
-  UpdatableTag,
-} from '@glimmer/interfaces';
+export type { CombinatorTag, ConstantTag, DirtyableTag, Tag, UpdatableTag } from "@glimmer/interfaces";

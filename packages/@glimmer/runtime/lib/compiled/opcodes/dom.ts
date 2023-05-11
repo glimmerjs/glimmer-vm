@@ -13,11 +13,11 @@ import type {
   ModifierDefinition,
   ModifierDefinitionState,
   ModifierInstance,
-  Option,
+  Nullable,
   Owner,
   UpdatingOpcode,
   UpdatingVM,
-} from '@glimmer/interfaces';
+} from "@glimmer/interfaces";
 import { createComputeRef, isConstRef, type Reference, valueForRef } from '@glimmer/reference';
 import { assign, debugToString, expect, isObject } from '@glimmer/util';
 import {
@@ -81,7 +81,7 @@ APPEND_OPCODES.add(Op.PopRemoteElement, (vm) => {
 
 APPEND_OPCODES.add(Op.FlushElement, (vm) => {
   let operations = check(vm.fetchValue($t0), CheckOperations);
-  let modifiers: Option<ModifierInstance[]> = null;
+  let modifiers: Nullable<ModifierInstance[]> = null;
 
   if (operations) {
     modifiers = operations.flush(vm);

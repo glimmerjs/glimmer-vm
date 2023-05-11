@@ -1,5 +1,5 @@
-import type { Option, SimpleElement, SimpleNode } from '@glimmer/interfaces';
-import { castToSimple, COMMENT_NODE, TEXT_NODE } from '@glimmer/util';
+import type { Nullable, SimpleElement, SimpleNode } from '@glimmer/interfaces';
+import { castToSimple, COMMENT_NODE, TEXT_NODE, unwrap } from '@glimmer/util';
 import { type EndTag, type Token, tokenize } from 'simple-html-tokenizer';
 
 import { replaceHTML, toInnerHTML } from './dom/simple-utils';
@@ -14,7 +14,7 @@ export function snapshotIsNode(snapshot: IndividualSnapshot): snapshot is Simple
 export function equalTokens(
   testFragment: SimpleElement | string | null,
   testHTML: SimpleElement | string,
-  message: Option<string> = null
+  message: Nullable<string> = null
 ) {
   if (testFragment === null) {
     throw new Error(`Unexpectedly passed null to equalTokens`);
@@ -72,7 +72,7 @@ function isMarker(node: SimpleNode) {
 
 export function generateSnapshot(element: SimpleElement): SimpleNode[] {
   const snapshot: SimpleNode[] = [];
-  let node: Option<SimpleNode> = element.firstChild;
+  let node: Nullable<SimpleNode> = element.firstChild;
 
   while (node) {
     if (!isMarker(node)) {
@@ -175,12 +175,12 @@ class SnapshotIterator {
 
   constructor(private snapshot: NodesSnapshot) {}
 
-  peek(): Option<IndividualSnapshot> {
+  peek(): Nullable<IndividualSnapshot> {
     if (this.pos >= this.snapshot.length) return null;
-    return this.snapshot[this.pos] as IndividualSnapshot;
+    return this.snapshot[this.pos] ?? null;
   }
 
-  next(): Option<IndividualSnapshot> {
+  next(): Nullable<IndividualSnapshot> {
     if (this.pos >= this.snapshot.length) return null;
     return this.nextNode() || null;
   }
@@ -197,7 +197,7 @@ class SnapshotIterator {
   }
 
   private nextNode(): IndividualSnapshot {
-    const token = this.snapshot[this.pos++] as IndividualSnapshot;
+    const token = this.snapshot[this.pos++];
 
     if (token === 'down') {
       this.depth++;
@@ -205,6 +205,6 @@ class SnapshotIterator {
       this.depth--;
     }
 
-    return token;
+    return unwrap(token);
   }
 }

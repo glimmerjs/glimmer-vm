@@ -1,4 +1,4 @@
-import type { Option, Recast } from '@glimmer/interfaces';
+import type { Nullable, Recast } from '@glimmer/interfaces';
 import { getLast, isPresentArray, unwrap } from '@glimmer/util';
 import type { TokenizerState } from 'simple-html-tokenizer';
 
@@ -219,7 +219,7 @@ export abstract class HandlebarsNodeVisitors extends Parser {
     this.tokenizer.flushData();
   }
 
-  CommentStatement(rawComment: HBS.CommentStatement): Option<ASTv1.MustacheCommentStatement> {
+  CommentStatement(rawComment: HBS.CommentStatement): Nullable<ASTv1.MustacheCommentStatement> {
     const { tokenizer } = this;
 
     if (tokenizer.state === 'comment') {

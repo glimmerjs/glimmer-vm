@@ -3,11 +3,11 @@ import type {
   ElementNamespace,
   GlimmerTreeChanges,
   GlimmerTreeConstruction,
-  Option,
+  Nullable,
   SimpleDocument,
   SimpleElement,
   SimpleNode,
-} from '@glimmer/interfaces';
+} from "@glimmer/interfaces";
 import { castToSimple, NS_SVG } from '@glimmer/util';
 
 import { applySVGInnerHTMLFix } from '../compat/svg-inner-html-fix';
@@ -63,7 +63,8 @@ import { BLACKLIST_TABLE, DOMOperations } from './operations';
 
 const WHITESPACE = /[\t-\r \xA0\u1680\u180E\u2000-\u200A\u2028\u2029\u202F\u205F\u3000\uFEFF]/;
 
-const doc: Option<SimpleDocument> = typeof document === 'undefined' ? null : castToSimple(document);
+const doc: Nullable<SimpleDocument> =
+  typeof document === 'undefined' ? null : castToSimple(document);
 
 export function isWhitespace(string: string) {
   return WHITESPACE.test(string);
@@ -79,7 +80,7 @@ export namespace DOM {
       element: SimpleElement,
       name: string,
       value: string,
-      namespace: Option<AttrNamespace> = null
+      namespace: Nullable<AttrNamespace> = null
     ) {
       if (namespace) {
         element.setAttributeNS(namespace, name, value);
@@ -105,7 +106,7 @@ export namespace DOM {
 }
 
 export class DOMChangesImpl extends DOMOperations implements GlimmerTreeChanges {
-  protected namespace: Option<string>;
+  protected namespace: Nullable<string>;
 
   constructor(protected override document: SimpleDocument) {
     super(document);

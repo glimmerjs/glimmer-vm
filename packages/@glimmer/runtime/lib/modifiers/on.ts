@@ -5,7 +5,7 @@ import type {
   InternalModifierManager,
   Owner,
   SimpleElement,
-} from '@glimmer/interfaces';
+} from "@glimmer/interfaces";
 import { setInternalModifierManager } from '@glimmer/manager';
 import { valueForRef } from '@glimmer/reference';
 import { buildUntouchableThis, expect } from '@glimmer/util';

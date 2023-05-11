@@ -7,7 +7,7 @@ export interface DebugElement {
 }
 
 function isDebugElement(el: SimpleNode | Node | DebugElement): el is DebugElement {
-  return !(el as any).nodeType;
+  return !('nodeType' in el);
 }
 
 function extract(node: EqualsElement): DebugElement {

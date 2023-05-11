@@ -3,7 +3,7 @@ import type {
   InternalModifierManager,
   Owner,
   SimpleElement,
-} from '@glimmer/interfaces';
+} from '../../../../@glimmer/interfaces';
 import { type Reference, valueForRef } from '@glimmer/reference';
 import { castToBrowser } from '@glimmer/util';
 import { createUpdatableTag } from '@glimmer/validator';

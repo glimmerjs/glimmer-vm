@@ -10,7 +10,7 @@ import type {
   RichIteratorResult,
   RuntimeContext,
   TemplateIterator,
-} from '@glimmer/interfaces';
+} from "@glimmer/interfaces";
 import { childRefFor, createConstRef, type Reference } from '@glimmer/reference';
 import { expect, unwrapHandle } from '@glimmer/util';
 import { debug } from '@glimmer/validator';

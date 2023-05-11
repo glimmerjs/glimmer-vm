@@ -9,13 +9,13 @@ import type {
   HandleResult,
   HighLevelOp,
   LayoutWithContext,
-  Option,
+  Nullable,
   SerializedBlock,
   SerializedInlineBlock,
   Statement,
   SymbolTable,
   WireFormat,
-} from '@glimmer/interfaces';
+} from "@glimmer/interfaces";
 import { LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
 import { EMPTY_ARRAY } from '@glimmer/util';
 
@@ -29,7 +29,7 @@ import { STATEMENTS } from './syntax/statements';
 export const PLACEHOLDER_HANDLE = -1;
 
 class CompilableTemplateImpl<S extends SymbolTable> implements CompilableTemplate<S> {
-  compiled: Option<HandleResult> = null;
+  compiled: Nullable<HandleResult> = null;
 
   constructor(
     readonly statements: WireFormat.Statement[],

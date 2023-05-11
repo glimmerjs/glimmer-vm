@@ -2,11 +2,9 @@
   "name": "@glimmer/interfaces",
   "version": "0.84.3",
   "repository": "https://github.com/glimmerjs/glimmer-vm/tree/master/packages/@glimmer/interfaces",
-  "types": "index.d.ts",
-  "module": "index.d.ts",
-  "main": "index.d.ts",
-  "dependencies": {
-    "@simple-dom/interface": "^1.4.0"
+  "types": "index.ts",
+  "exports": {
+    "types": "./index.d.ts"
   },
   "scripts": {
     "test:lint": "eslint .",
@@ -22,10 +20,10 @@
       "default": "./dist/index.js"
     }
   },
+  "dependencies": {
+    "@simple-dom/interface": "^1.4.0"
+  },
   "devDependencies": {
     "@glimmer-workspace/build-support": "workspace:^"
-  },
-  "exports": {
-    "types": "./index.d.ts"
   }
 }

@@ -18,7 +18,7 @@ export function test(...args: any[]) {
   if (args.length === 1) {
     let meta: ComponentTestMeta = args[0];
     return (_target: Object, _name: string, descriptor: PropertyDescriptor) => {
-      let testFunction = descriptor.value as Function & Dict;
+      let testFunction = descriptor.value;
       keys(meta).forEach((key) => (testFunction[key] = meta[key]));
       setTestingDescriptor(descriptor);
     };
@@ -30,7 +30,7 @@ export function test(...args: any[]) {
 }
 
 function setTestingDescriptor(descriptor: PropertyDescriptor): void {
-  let testFunction = descriptor.value as Function & Dict;
+  let testFunction = descriptor.value;
   descriptor.enumerable = true;
   testFunction['isTest'] = true;
 }

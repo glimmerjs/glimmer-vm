@@ -8,7 +8,7 @@ import {
   CheckPrimitive,
 } from '@glimmer/debug';
 import { toBool } from '@glimmer/global-context';
-import type { CompilableTemplate, Option, UpdatingOpcode } from '@glimmer/interfaces';
+import type { CompilableTemplate, Nullable, UpdatingOpcode } from "@glimmer/interfaces";
 import {
   createComputeRef,
   createConstRef,
@@ -134,7 +134,7 @@ APPEND_OPCODES.add(Op.PushBlockScope, (vm) => {
 
 APPEND_OPCODES.add(Op.CompileBlock, (vm: InternalVM) => {
   let stack = vm.stack;
-  let block = stack.pop<Option<CompilableTemplate> | 0>();
+  let block = stack.pop<Nullable<CompilableTemplate> | 0>();
 
   if (block) {
     stack.push(vm.compile(block));

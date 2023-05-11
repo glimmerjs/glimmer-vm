@@ -6,6 +6,7 @@ import { assertingElement, toInnerHTML } from '../dom/simple-utils';
 import { type Count, RenderTest } from '../render-test';
 import { equalTokens } from '../snapshot';
 import { test } from '../test-decorator';
+import { unwrap } from '@glimmer/util';
 
 export class EmberishComponentTests extends RenderTest {
   static suiteName = 'Emberish';
@@ -19,7 +20,11 @@ export class EmberishComponentTests extends RenderTest {
         didInsertElement() {
           count.expect('didInsertElement');
           assert.ok(this.element, 'didInsertElement');
-          assert.strictEqual(this.element!.getAttribute('data-ok'), 'true', 'didInsertElement');
+          assert.strictEqual(
+            unwrap(this.element).getAttribute('data-ok'),
+            'true',
+            'didInsertElement'
+          );
         }
 
         didUpdate() {

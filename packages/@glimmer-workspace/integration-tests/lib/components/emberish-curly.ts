@@ -9,7 +9,7 @@ import type {
   ElementOperations,
   Environment,
   InternalComponentCapabilities,
-  Option,
+  Nullable,
   Owner,
   PreparedArguments,
   Reference,
@@ -41,7 +41,7 @@ import type { TestJitRuntimeResolver } from '../modes/jit/resolver';
 import type { TestComponentConstructor } from './types';
 
 export type Attrs = Dict;
-export type AttrsDiff = { oldAttrs: Option<Attrs>; newAttrs: Attrs };
+export type AttrsDiff = { oldAttrs: Nullable<Attrs>; newAttrs: Attrs };
 
 export interface EmberishCurlyComponentFactory
   extends TestComponentConstructor<EmberishCurlyComponent> {
@@ -59,12 +59,12 @@ export class EmberishCurlyComponent {
   public dirtinessTag: DirtyableTag = createTag();
   public declare layout: Template;
   public declare name: string;
-  public tagName: Option<string> = null;
-  public attributeBindings: Option<string[]> = null;
+  public tagName: Nullable<string> = null;
+  public attributeBindings: Nullable<string[]> = null;
   public declare attrs: Attrs;
   public declare element: Element;
   public declare bounds: Bounds;
-  public parentView: Option<EmberishCurlyComponent> = null;
+  public parentView: Nullable<EmberishCurlyComponent> = null;
   public declare args: CapturedNamedArguments;
 
   public _guid: string;
@@ -165,7 +165,7 @@ export class EmberishCurlyComponentManager
   prepareArgs(
     definition: EmberishCurlyComponentFactory,
     args: VMArguments
-  ): Option<PreparedArguments> {
+  ): Nullable<PreparedArguments> {
     const { positionalParams } = definition || EmberishCurlyComponent;
     if (typeof positionalParams === 'string') {
       if (args.named.has(positionalParams)) {
@@ -230,7 +230,7 @@ export class EmberishCurlyComponentManager
 
     component.args = args;
 
-    let dyn: Option<string[]> = klass.fromDynamicScope || null;
+    let dyn: Nullable<string[]> = klass.fromDynamicScope || null;
 
     if (dyn) {
       for (let i = 0; i < dyn.length; i++) {
@@ -257,7 +257,7 @@ export class EmberishCurlyComponentManager
     return selfRef;
   }
 
-  getTagName({ component: { tagName } }: EmberishCurlyComponentState): Option<string> {
+  getTagName({ component: { tagName } }: EmberishCurlyComponentState): Nullable<string> {
     if (tagName) {
       return tagName;
     } else if (tagName === null) {

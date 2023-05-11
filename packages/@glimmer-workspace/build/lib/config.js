@@ -11,7 +11,7 @@ import ts from 'typescript';
 import importMeta from './import-meta.js';
 import inline from './inline.js';
 
-const { ModuleKind, ModuleResolutionKind, ScriptTarget } = ts;
+const { ModuleKind, ModuleResolutionKind, ScriptTarget, ImportsNotUsedAsValues } = ts;
 
 const { default: commonjs } = await import('@rollup/plugin-commonjs');
 const { default: nodeResolve } = await import('@rollup/plugin-node-resolve');
@@ -57,24 +57,12 @@ const EXTERNAL = true;
  */
 export function tsconfig(updates) {
   return {
-    strict: true,
     declaration: true,
     declarationMap: true,
-    useDefineForClassFields: true,
-    allowSyntheticDefaultImports: true,
-    esModuleInterop: true,
-    resolveJsonModule: true,
+    verbatimModuleSyntax: true,
     module: ModuleKind.NodeNext,
     moduleResolution: ModuleResolutionKind.NodeNext,
     experimentalDecorators: true,
-    noUnusedLocals: false,
-    noUnusedParameters: false,
-    noImplicitReturns: true,
-    noImplicitAny: true,
-    verbatimModuleSyntax: true,
-    isolatedModules: true,
-    skipLibCheck: true,
-    skipDefaultLibCheck: true,
     ...updates,
   };
 }
@@ -85,7 +73,13 @@ export function tsconfig(updates) {
  * @returns {RollupPlugin}
  */
 export function typescript(pkg, config) {
-  const typeScriptConfig = { ...config };
+  const typeScriptConfig = {
+    ...config,
+    paths: {
+      '@glimmer/interfaces': [resolve(pkg.root, '../@glimmer/interfaces/index.d.ts')],
+      '@glimmer/*': [resolve(pkg.root, '../@glimmer/*/src/dist/index.d.ts')],
+    },
+  };
 
   /** @type {[string, object][]} */
   const presets = [['@babel/preset-typescript', { allowDeclareFields: true }]];
@@ -292,6 +286,7 @@ export class Package {
         postcss(),
         typescript(this.#package, {
           target: ScriptTarget.ES2022,
+          importsNotUsedAsValues: ImportsNotUsedAsValues.Preserve,
         }),
       ],
     }));

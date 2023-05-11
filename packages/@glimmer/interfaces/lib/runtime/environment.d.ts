@@ -6,7 +6,7 @@ import type {
   ComponentInstance,
   ComponentInstanceState,
 } from '../components';
-import type { Option } from '../core';
+import type { Nullable } from '../core';
 import type { GlimmerTreeChanges, GlimmerTreeConstruction } from '../dom/changes';
 import type { DebugRenderTree } from './debug-render-tree';
 import type { ModifierInstance } from './modifier';
@@ -29,7 +29,7 @@ export type ComponentInstanceWithCreate = ComponentInstance<
 >;
 
 export interface Environment {
-  [TransactionSymbol]: Option<Transaction>;
+  [TransactionSymbol]: Nullable<Transaction>;
 
   didCreate(component: ComponentInstanceWithCreate): void;
   didUpdate(component: ComponentInstanceWithCreate): void;

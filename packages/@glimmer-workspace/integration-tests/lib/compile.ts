@@ -1,5 +1,6 @@
 import { precompileJSON } from '@glimmer/compiler';
 import type {
+  Nullable,
   SerializedTemplateWithLazyBlock,
   Template,
   TemplateFactory,
@@ -17,7 +18,7 @@ export function preprocess(templateSource: string, options?: PrecompileOptions):
 let templateId = 0;
 
 export function createTemplate(
-  templateSource: string,
+  templateSource: Nullable<string>,
   options: PrecompileOptions = {},
   scopeValues: Record<string, unknown> = {}
 ): TemplateFactory {

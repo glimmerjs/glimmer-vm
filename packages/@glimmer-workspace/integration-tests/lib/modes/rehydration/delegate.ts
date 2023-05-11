@@ -5,7 +5,7 @@ import type {
   ElementNamespace,
   Environment,
   Helper,
-  Option,
+  Nullable,
   RenderResult,
   SimpleDocument,
   SimpleDocumentFragment,
@@ -62,7 +62,7 @@ export class RehydrationDelegate implements RenderDelegate {
 
   public declare rehydrationStats: RehydrationStats;
 
-  private self: Option<Reference> = null;
+  private self: Nullable<Reference> = null;
 
   constructor(options?: RenderDelegateOptions) {
     let delegate = assign(options?.env ?? {}, BaseEnv);

@@ -5,7 +5,7 @@ import type {
   DynamicScope,
   Helper,
   Maybe,
-  Option,
+  Nullable,
   RenderResult,
   SimpleElement,
   SimpleNode,
@@ -61,7 +61,7 @@ export class RenderTest implements IRenderTest {
   protected element: SimpleElement;
   protected assert = QUnit.assert;
   protected context: Dict = dict();
-  protected renderResult: Option<RenderResult> = null;
+  protected renderResult: Nullable<RenderResult> = null;
   protected helpers = dict<UserHelper>();
   protected snapshot: NodesSnapshot = [];
   readonly count = new Count();

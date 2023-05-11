@@ -1,4 +1,4 @@
-import type { Dict, Option, PresentArray } from '@glimmer/interfaces';
+import type { Dict, Nullable, PresentArray } from '@glimmer/interfaces';
 import { assert } from '@glimmer/util';
 
 import type { ParserNodeBuilder } from '../parser';
@@ -105,7 +105,7 @@ class Builders {
     params: ASTv1.Expression[];
     hash: ASTv1.Hash;
     defaultBlock: ASTv1.Block;
-    elseBlock?: Option<ASTv1.Block>;
+    elseBlock?: Nullable<ASTv1.Block>;
     loc: SourceSpan;
     openStrip: ASTv1.StripFlags;
     inverseStrip: ASTv1.StripFlags;

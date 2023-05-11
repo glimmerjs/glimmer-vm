@@ -54,7 +54,7 @@ import type {
   ComponentDefinitionState,
   ComponentInstanceState,
 } from './components';
-import type { Option } from './core';
+import type { Nullable } from './core';
 import type { InternalComponentManager } from './managers';
 import type { HelperDefinitionState, ModifierDefinitionState, Owner } from './runtime';
 import type { CompilableProgram, Template } from './template';
@@ -62,7 +62,7 @@ import type { CompilableProgram, Template } from './template';
 export interface CompileTimeComponent {
   handle: number;
   capabilities: CapabilityMask;
-  compilable: Option<CompilableProgram>;
+  compilable: Nullable<CompilableProgram>;
 }
 
 export interface ResolvedComponentDefinition<
@@ -83,16 +83,16 @@ export enum ResolverContext {
 }
 
 export interface CompileTimeResolver<O extends Owner = Owner> {
-  lookupHelper(name: string, owner: O): Option<HelperDefinitionState>;
-  lookupModifier(name: string, owner: O): Option<ModifierDefinitionState>;
-  lookupComponent(name: string, owner: O): Option<ResolvedComponentDefinition>;
+  lookupHelper(name: string, owner: O): Nullable<HelperDefinitionState>;
+  lookupModifier(name: string, owner: O): Nullable<ModifierDefinitionState>;
+  lookupComponent(name: string, owner: O): Nullable<ResolvedComponentDefinition>;
 
   // TODO: These are used to lookup keywords that are implemented as helpers/modifiers.
   // We should try to figure out a cleaner way to do this.
-  lookupBuiltInHelper(name: string): Option<HelperDefinitionState>;
-  lookupBuiltInModifier(name: string): Option<ModifierDefinitionState>;
+  lookupBuiltInHelper(name: string): Nullable<HelperDefinitionState>;
+  lookupBuiltInModifier(name: string): Nullable<ModifierDefinitionState>;
 }
 
 export interface RuntimeResolver<O extends Owner = Owner> {
-  lookupComponent(name: string, owner: O): Option<ResolvedComponentDefinition>;
+  lookupComponent(name: string, owner: O): Nullable<ResolvedComponentDefinition>;
 }

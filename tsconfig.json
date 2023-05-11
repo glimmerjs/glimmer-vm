@@ -10,7 +10,6 @@
   "references": [
     { "path": "benchmark/tsconfig.json" },
     { "path": "bin/tsconfig.json" },
-    { "path": "build/tsconfig.json" },
     { "path": "packages/@glimmer/tsconfig.json" },
     { "path": "packages/@glimmer/tsconfig.test.json" },
     { "path": "packages/@glimmer-workspace/tsconfig.json" },

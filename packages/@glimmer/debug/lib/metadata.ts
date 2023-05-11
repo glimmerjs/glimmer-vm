@@ -1,4 +1,4 @@
-import type { Dict, Option, PresentArray } from '@glimmer/interfaces';
+import type { Dict, Nullable, PresentArray } from "@glimmer/interfaces";
 
 // TODO: How do these map onto constant and machine types?
 export const OPERAND_TYPES = [
@@ -36,7 +36,7 @@ export interface NormalizedMetadata {
   name: string;
   mnemonic: string;
   before: null;
-  stackChange: Option<number>;
+  stackChange: Nullable<number>;
   ops: OperandList;
   operands: number;
   check: boolean;
@@ -82,7 +82,7 @@ export function normalize(key: string, input: RawOperandMetadata): NormalizedMet
   };
 }
 
-function stackChange(stack?: Stack): Option<number> {
+function stackChange(stack?: Stack): Nullable<number> {
   if (stack === undefined) {
     return 0;
   }
@@ -121,10 +121,15 @@ function op(input: `${string}:${string}`): Operand {
   }
 }
 
+export interface NormalizedOpcodes {
+  readonly machine: Dict<NormalizedMetadata>;
+  readonly syscall: Dict<NormalizedMetadata>;
+}
+
 export function normalizeAll(parsed: {
   machine: Dict<RawOperandMetadata>;
   syscall: Dict<RawOperandMetadata>;
-}): { machine: Dict<NormalizedMetadata>; syscall: Dict<NormalizedMetadata> } {
+}): NormalizedOpcodes {
   let machine = normalizeParsed(parsed.machine);
   let syscall = normalizeParsed(parsed.syscall);
 

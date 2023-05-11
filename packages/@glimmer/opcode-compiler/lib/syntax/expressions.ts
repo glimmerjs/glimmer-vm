@@ -1,5 +1,5 @@
 import { assert, deprecate } from '@glimmer/global-context';
-import type { ExpressionSexpOpcode } from '@glimmer/interfaces';
+import type { ExpressionSexpOpcode } from "@glimmer/interfaces";
 import { $v0, MachineOp, Op } from '@glimmer/vm';
 import { SexpOpcodes } from '@glimmer/wire-format';
 

@@ -1,4 +1,4 @@
-import type { WireFormat } from '@glimmer/interfaces';
+import type { WireFormat } from "@glimmer/interfaces";
 import { Op } from '@glimmer/vm';
 
 import type { PushExpressionOp } from '../../syntax/compilers';

@@ -25,7 +25,7 @@ export function test(...args: any[]) {
   if (args.length === 1) {
     let meta: Dict<unknown> = args[0];
     return (_target: Object, _name: string, descriptor: PropertyDescriptor) => {
-      let testFunction = descriptor.value as Function & Dict<unknown>;
+      let testFunction = descriptor.value;
       Object.keys(meta).forEach((key) => (testFunction[key] = meta[key]));
       setTestingDescriptor(descriptor);
     };
