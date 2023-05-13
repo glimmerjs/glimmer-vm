@@ -4,7 +4,6 @@
 /packages/@glimmer/integration-tests
 tmp
 .eslintcache
-ember-cli-build.js
 
 npm-debug.log
 sauce-example.log

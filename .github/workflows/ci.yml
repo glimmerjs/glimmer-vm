@@ -18,7 +18,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-      - uses: NullVoxPopuli/action-setup-pnpm@NullVoxPopuli-patch-1
+      - uses: NullVoxPopuli/action-setup-pnpm@v2.1.0
 
   lint:
     name: Linting
@@ -28,7 +28,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-      - uses: NullVoxPopuli/action-setup-pnpm@v2
+      - uses: NullVoxPopuli/action-setup-pnpm@v2.1.0
       - run: pnpm lint
 
   test-chrome:
@@ -49,7 +49,7 @@ jobs:
             libxss1 libxtst6 ca-certificates fonts-liberation libnss3 lsb-release \
             xdg-utils wget libcairo2
       - uses: actions/checkout@v3
-      - uses: NullVoxPopuli/action-setup-pnpm@v2
+      - uses: NullVoxPopuli/action-setup-pnpm@v2.1.0
       - run: pnpm test
 
   # test-browserstack:
@@ -96,7 +96,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-      - uses: NullVoxPopuli/action-setup-pnpm@v2
+      - uses: NullVoxPopuli/action-setup-pnpm@v2.1.0
       - run: pnpm build
       - run: pnpm test:types
 
@@ -108,7 +108,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-      - uses: NullVoxPopuli/action-setup-pnpm@v2
+      - uses: NullVoxPopuli/action-setup-pnpm@v2.1.0
         with:
           args: '--no-lockfile'
       - run: pnpm test

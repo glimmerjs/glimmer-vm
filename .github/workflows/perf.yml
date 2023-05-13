@@ -23,7 +23,7 @@ jobs:
       - uses: actions/checkout@v3
         with:
           fetch-depth: 0
-      - uses: NullVoxPopuli/action-setup-pnpm@v2
+      - uses: NullVoxPopuli/action-setup-pnpm@v2.1.0
       - name: Build Experiment
         run: |
           git checkout ${{ github.sha }}
@@ -43,10 +43,16 @@ jobs:
         with:
           build-control: false
           build-experiment: false
-          control-serve-command: pnpm --dir ${{env.TEMP_DIR}} benchmark:start --port 5173 --host
-          experiment-serve-command: pnpm --dir ${{github.workspace}} benchmark:start --port 5174 --host
-          control-url: http://localhost:5173/krausest
-          experiment-url: http://localhost:5174/krausest
+          pkg-manager: pnpm
+          control-dist: ${{env.TEMP_DIR}}/benchmark/benchmarks/krausest
+          experiment-dist: ${{github.workspace}}/benchmark/benchmarks/krausest
+          control-serve-command: |
+            pnpm -C ${{env.TEMP_DIR}}/benchmark/benchmarks/krausest run start --port 4200
+          experiment-serve-command: |
+            pnpm -C ${{github.workspace}}/benchmark/benchmarks/krausest run start --port 4201
+          control-url: http://localhost:4200
+          experiment-url: http://localhost:4201
+          debug: true
           regression-threshold: 25
           fidelity: high
           markers: 'navigationStart,renderStart,renderEnd'
