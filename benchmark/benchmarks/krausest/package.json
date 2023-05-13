@@ -1,6 +1,7 @@
 {
   "private": true,
   "name": "@glimmer-workspace/krausest",
+  "type": "module",
   "dependencies": {
     "@glimmer-workspace/benchmark-env": "workspace:^",
     "@glimmer/interfaces": "workspace:^",
@@ -20,6 +21,7 @@
     "tsconfig": "../../tsconfig.json"
   },
   "scripts": {
+    "start": "vite",
     "test:lint": "eslint .",
     "test:types": "tsc --noEmit -p ../../tsconfig.json"
   }

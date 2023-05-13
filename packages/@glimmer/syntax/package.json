@@ -1,6 +1,7 @@
 {
   "name": "@glimmer/syntax",
   "version": "0.84.3",
+  "type": "module",
   "repository": "https://github.com/glimmerjs/glimmer-vm/tree/master/packages/@glimmer/syntax",
   "dependencies": {
     "@glimmer/interfaces": "workspace:^",
@@ -21,6 +22,11 @@
   },
   "main": "index.ts",
   "types": "index.ts",
+  "exports": {
+    "types": "./index.ts",
+    "development": "./index.ts",
+    "default": "./dist/index.js"
+  },
   "publishConfig": {
     "access": "public",
     "main": "dist/index.js",

@@ -1,6 +1,7 @@
 {
   "name": "@glimmer/wire-format",
   "version": "0.84.3",
+  "type": "module",
   "description": "",
   "repository": "https://github.com/glimmerjs/glimmer-vm/tree/master/packages/@glimmer/wire-format",
   "license": "MIT",
@@ -15,6 +16,11 @@
   },
   "main": "index.ts",
   "types": "index.ts",
+  "exports": {
+    "types": "./index.ts",
+    "development": "./index.ts",
+    "default": "./dist/index.js"
+  },
   "publishConfig": {
     "access": "public",
     "main": "dist/index.js",

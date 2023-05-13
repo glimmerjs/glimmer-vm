@@ -1,6 +1,7 @@
 {
   "name": "@glimmer/util",
   "version": "0.84.3",
+  "type": "module",
   "description": "Common utilities used in Glimmer",
   "repository": "https://github.com/tildeio/glimmer/tree/master/packages/@glimmer/util",
   "license": "MIT",
@@ -15,6 +16,11 @@
   },
   "main": "index.ts",
   "types": "index.ts",
+  "exports": {
+    "types": "./index.ts",
+    "development": "./index.ts",
+    "default": "./dist/index.js"
+  },
   "publishConfig": {
     "access": "public",
     "main": "dist/index.js",

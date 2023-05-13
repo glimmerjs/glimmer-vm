@@ -1,0 +1,10 @@
+{
+  "experiment-url": "http://localhost:5173/krausest/",
+  "control-url": "http://localhost:5173/krausest/",
+  "build-control": false,
+  "build-experiment": false,
+  "regression-threshold": 25,
+  "fidelity": "high",
+  "markers": "navigationStart,renderStart,renderEnd",
+  "clean-after-analyze": false
+}

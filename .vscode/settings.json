@@ -25,7 +25,7 @@
       "mode": "auto"
     }
   ],
-  "explorer.excludeGitIgnore": false,
+  "explorer.excludeGitIgnore": true,
   "files.exclude": {
     "**/.DS_Store": true,
     "**/.git": true,

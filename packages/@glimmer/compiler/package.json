@@ -1,11 +1,12 @@
 {
   "name": "@glimmer/compiler",
   "version": "0.84.3",
+  "type": "module",
   "repository": "https://github.com/glimmerjs/glimmer-vm/tree/master/packages/@glimmer/compiler",
   "exports": {
     "types": "./index.ts",
     "development": "./index.ts",
-    "import": "./dist/index.js"
+    "default": "./dist/index.js"
   },
   "engines": {
     "node": ">= 16.0.0"
