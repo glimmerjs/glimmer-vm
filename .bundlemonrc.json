@@ -1,4 +1,0 @@
-{
-  "files": [{ "path": "packages/@glimmer/*/dist/*.production.js" }],
-  "defaultCompression": "brotli"
-}

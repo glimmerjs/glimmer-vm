@@ -13,6 +13,10 @@ import inline from './inline.js';
 import terser from '@rollup/plugin-terser';
 import { entries } from './utils.js';
 import { inspect } from 'node:util';
+import { sync as sizeSync } from 'brotli-size';
+import { constants as zlib } from 'node:zlib';
+import prettyBytes from 'pretty-bytes';
+import chalk from 'chalk';
 
 // eslint-disable-next-line import/no-named-as-default-member
 const { ModuleKind, ModuleResolutionKind, ScriptTarget, ImportsNotUsedAsValues } = ts;
@@ -22,7 +26,6 @@ const { default: nodeResolve } = await import('@rollup/plugin-node-resolve');
 const { default: postcss } = await import('rollup-plugin-postcss');
 const { default: nodePolyfills } = await import('rollup-plugin-polyfill-node');
 const { default: fonts } = await import('unplugin-fonts/vite');
-const { default: bundleSize } = await import('rollup-plugin-bundle-size');
 
 /** @typedef {import("typescript").CompilerOptions} CompilerOptions */
 /** @typedef {import("./config.js").ExternalOption} ExternalOption */
@@ -417,6 +420,7 @@ export class Package {
    * @returns {RollupOptions[]}
    */
   rollupESM(mode) {
+    /** @type {import("rollup").Plugin[]} */
     let productionPlugins =
       mode === 'production'
         ? [
@@ -427,7 +431,22 @@ export class Package {
               output: {},
               parse: {},
             }),
-            bundleSize(),
+            {
+              name: 'size',
+              renderChunk(code) {
+                let chunkSize = sizeSync(code, { quality: zlib.BROTLI_MAX_QUALITY });
+
+                console.log(
+                  `${chalk.green('size'.padStart('created'.length))} ${chalk.green.bold(
+                    prettyBytes(chunkSize, {
+                      locale: true,
+                      minimumFractionDigits: 0,
+                      maximumFractionDigits: 2,
+                    })
+                  )}`
+                );
+              },
+            },
           ]
         : [];
 
