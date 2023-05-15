@@ -30,7 +30,8 @@
     "**/.DS_Store": true,
     "**/.git": true,
     "**/node_modules/**": true,
-    "node_modules/**": true
+    "node_modules/**": true,
+    "**/dist": true
   },
   "files.insertFinalNewline": true,
   "files.trimTrailingWhitespace": true,
@@ -51,5 +52,24 @@
   "typescript.tsdk": "node_modules/typescript/lib",
   "typescript.tsserver.experimental.enableProjectDiagnostics": false,
   "typescript.workspaceSymbols.scope": "currentProject",
-  "eslint.problems.shortenToSingleLine": true
+  "eslint.problems.shortenToSingleLine": true,
+  "explorer.sortOrder": "foldersNestsFiles",
+  "explorer.fileNesting.enabled": true,
+  "explorer.fileNesting.expand": false,
+  "explorer.fileNesting.patterns": {
+    "*.ts": "${capture}.js",
+    "*.js": "${capture}.js.map, ${capture}.min.js, ${capture}.d.ts",
+    "*.jsx": "${capture}.js",
+    "*.tsx": "${capture}.ts",
+    "tsconfig.json": "tsconfig.*.json",
+    "package.json": "package-lock.json, yarn.lock, pnpm-lock.yaml, pnpm-workspace.yaml, .npm*",
+    ".eslintrc.cjs": ".eslintignore",
+    ".env": ".env.*",
+    "CONFIG.md": ".bundlemonrc.json, .madgerc, .watchmanconfig, .gitignore",
+    "BUILD.md": "rollup.config.mjs, .env.production",
+    "WORKSPACE.md": "turbo.json",
+    "FORMATTING.md": ".prettierrc.json, .editorconfig",
+    "README.md": "RELEASE.md, CHANGELOG.md, LICENSE",
+    "DEVELOPMENT.md": "index.html, vite.config.*, .env.development, .env.testing"
+  }
 }

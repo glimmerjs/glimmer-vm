@@ -2,7 +2,7 @@
 
 import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
 
-import assert from './assert';
+import { assert } from './assert';
 import { expect } from './platform-utils';
 
 export let beginTestSteps: (() => void) | undefined;

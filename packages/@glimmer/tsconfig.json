@@ -10,8 +10,10 @@
     "declarationMap": true,
     "outDir": "../../ts-dist/packages",
     "baseUrl": "..",
+    "removeComments": false,
 
     "verbatimModuleSyntax": true,
+    "noErrorTruncation": true,
 
     // Environment Configuration
     "experimentalDecorators": true,

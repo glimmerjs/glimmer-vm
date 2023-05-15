@@ -11,6 +11,7 @@
     "baseUrl": "..",
 
     "verbatimModuleSyntax": true,
+    "noErrorTruncation": true,
 
     "experimentalDecorators": true,
     "target": "ESNext",

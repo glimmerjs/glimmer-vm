@@ -9,6 +9,7 @@
     "allowSyntheticDefaultImports": true,
     "experimentalDecorators": true,
     "verbatimModuleSyntax": true,
+    "noErrorTruncation": true,
 
     "outDir": "../../ts-dist/@glimmer-workspace",
 

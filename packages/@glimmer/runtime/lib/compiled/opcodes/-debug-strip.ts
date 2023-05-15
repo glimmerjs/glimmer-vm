@@ -30,7 +30,7 @@ import type {
   Nullable,
   Scope,
   ScopeBlock,
-} from "@glimmer/interfaces";
+} from '@glimmer/interfaces';
 import {
   type OpaqueIterator,
   REFERENCE,
@@ -63,7 +63,10 @@ class ReferenceChecker {
   }
 }
 
-export const CheckReference: Checker<Reference> = new ReferenceChecker();
+/**@__PURE__*/
+export const CheckReference: Checker<Reference> = import.meta.env.DEV
+  ? new ReferenceChecker()
+  : (void 0 as unknown as Checker<Reference>);
 
 export const CheckIterator: Checker<OpaqueIterator> = CheckInterface({
   next: CheckFunction,

@@ -7,17 +7,27 @@ export function keys<T extends object>(obj: T): Array<keyof T> {
 }
 
 export function unwrap<T>(val: Maybe<T>): T {
-  if (val === null || val === undefined) throw new Error(`Expected value to be present`);
+  if (import.meta.env.DEV) {
+    if (val === null || val === undefined) throw new Error(`Expected value to be present`);
+    return val as T;
+  }
+
   return val as T;
 }
 
 export function expect<T>(val: T, message: string): Present<T> {
-  if (val === null || val === undefined) throw new Error(message);
+  if (import.meta.env.DEV) {
+    if (val === null || val === undefined) throw new Error(message);
+    return val as Present<T>;
+  }
+
   return val as Present<T>;
 }
 
-export function unreachable(message = 'unreachable'): Error {
-  return new Error(message);
+export function unreachable(message = 'unreachable'): never {
+  if (import.meta.env.DEV) {
+    throw new Error(message);
+  }
 }
 
 export function exhausted(value: never): never {

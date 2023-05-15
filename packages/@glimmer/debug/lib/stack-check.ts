@@ -7,7 +7,7 @@ import type {
   SimpleDocumentFragment,
   SimpleElement,
   SimpleNode,
-} from "@glimmer/interfaces";
+} from '@glimmer/interfaces';
 
 export interface Checker<T> {
   type: T;
@@ -263,8 +263,14 @@ class SafeStringChecker implements Checker<SafeString> {
   }
 }
 
+/*@__PURE__*/
+/*@__INLINE__*/
+export function strippable<T>(callback: () => Checker<T>): Checker<T> {
+  return import.meta.env.DEV ? callback() : (undefined as unknown as Checker<T>);
+}
+
 export function CheckInstanceof<T>(Class: Constructor<T>): Checker<T> {
-  return new InstanceofChecker<T>(Class);
+  return strippable(() => new InstanceofChecker<T>(Class));
 }
 
 export function CheckOption<T>(checker: Checker<T>): Checker<Nullable<T>> {
@@ -300,20 +306,26 @@ export function check<T>(
   message?: (value: unknown, expected: string) => string
 ): T;
 export function check<T, U extends T>(value: T, checker: (value: T) => asserts value is U): U;
+/*#__INLINE__*/
+/*#__PURE__*/
 export function check<T>(
   value: unknown,
   checker: Checker<T> | ((value: unknown) => void),
   message: (value: unknown, expected: string) => string = defaultMessage
 ): T {
-  if (typeof checker === 'function') {
-    checker(value);
-    return value as T;
+  if (import.meta.env.DEV) {
+    if (typeof checker === 'function') {
+      checker(value);
+      return value as T;
+    }
+    if (checker.validate(value)) {
+      return value;
+    } else {
+      throw new Error(message(value, checker.expected()));
+    }
   }
-  if (checker.validate(value)) {
-    return value;
-  } else {
-    throw new Error(message(value, checker.expected()));
-  }
+
+  return value as T;
 }
 
 let size = 0;

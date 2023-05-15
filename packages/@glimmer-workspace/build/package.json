@@ -22,6 +22,7 @@
   "dependencies": {
     "@rollup/plugin-commonjs": "^24.1.0",
     "@rollup/plugin-node-resolve": "^15.0.2",
+    "@rollup/plugin-terser": "^0.4.1",
     "eslint": "^8.40.0",
     "eslint-plugin-import": "^2.27.5",
     "eslint-plugin-json": "^3.1.0",
@@ -34,11 +35,13 @@
     "rollup-plugin-polyfill-node": "^0.12.0",
     "rollup-plugin-postcss": "^4.0.2",
     "rollup-plugin-ts": "^3.2.0",
+    "terser": "^5.17.3",
     "unplugin-fonts": "^1.0.3",
     "vite": "4.3.5"
   },
   "devDependencies": {
     "@types/node": "^18.16.6",
+    "rollup-plugin-bundle-size": "^1.0.3",
     "typescript": "*"
   }
 }

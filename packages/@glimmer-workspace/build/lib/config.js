@@ -10,6 +10,9 @@ import ts from 'typescript';
 
 import importMeta from './import-meta.js';
 import inline from './inline.js';
+import terser from '@rollup/plugin-terser';
+import { entries } from './utils.js';
+import { inspect } from 'node:util';
 
 // eslint-disable-next-line import/no-named-as-default-member
 const { ModuleKind, ModuleResolutionKind, ScriptTarget, ImportsNotUsedAsValues } = ts;
@@ -19,6 +22,7 @@ const { default: nodeResolve } = await import('@rollup/plugin-node-resolve');
 const { default: postcss } = await import('rollup-plugin-postcss');
 const { default: nodePolyfills } = await import('rollup-plugin-polyfill-node');
 const { default: fonts } = await import('unplugin-fonts/vite');
+const { default: bundleSize } = await import('rollup-plugin-bundle-size');
 
 /** @typedef {import("typescript").CompilerOptions} CompilerOptions */
 /** @typedef {import("./config.js").ExternalOption} ExternalOption */
@@ -33,6 +37,9 @@ const { default: fonts } = await import('unplugin-fonts/vite');
  * @typedef {import("./config.js").JsonObject} JsonObject
  * @typedef {import("./config.js").JsonArray} JsonArray
  * @typedef {import("./config.js").PackageJSON} PackageJson
+ * @typedef {import('./config.js').WorkspaceConfig} WorkspaceConfig
+ * @typedef {import('./config.js').ExternalConfig} ExternalConfig
+ * @typedef {import('./config.js').ExternalSpecifier} ExternalSpecifier
  */
 
 /**
@@ -61,9 +68,11 @@ export function tsconfig(updates) {
     declaration: true,
     declarationMap: true,
     verbatimModuleSyntax: true,
+    noErrorTruncation: true,
     module: ModuleKind.NodeNext,
     moduleResolution: ModuleResolutionKind.NodeNext,
     experimentalDecorators: true,
+    removeComments: false,
     ...updates,
   };
 }
@@ -96,24 +105,116 @@ export function typescript(pkg, config) {
   });
 }
 
-/** @type {['is' | 'startsWith', string[], 'inline' | 'external'][]} */
-const EXTERNAL_OPTIONS = [
-  ['is', ['tslib', '@glimmer/local-debug-flags'], 'inline'],
-  ['is', ['@handlebars/parser', 'simple-html-tokenizer', 'babel-plugin-debug-macros'], 'external'],
-  ['startsWith', ['.', '/', '#', '@babel/runtime/'], 'inline'],
-  ['startsWith', ['@glimmer/', '@simple-dom/', '@babel/', 'node:'], 'external'],
-];
+/**
+ *
+ * @param {ExternalSpecifier | undefined} specified
+ * @returns {readonly string[]}
+ */
+function normalizeExternalsSpecifier(specified) {
+  if (specified === undefined) {
+    return [];
+  } else if (typeof specified === 'string') {
+    return [specified];
+  } else {
+    return specified;
+  }
+}
+
+/** @type {Record<string, ExternalConfig>} */
+const PRESETS = {
+  'workspace:recommended': {
+    inline: {
+      is: ['tslib'],
+      startsWith: ['.', '/', '#', '@babel/runtime/'],
+    },
+    external: {
+      startsWith: ['@babel/', 'node:'],
+    },
+  },
+};
+
+// const EXTERNAL_OPTIONS = /** @type {const} */ ({
+//   inline: {
+//     is: ['@glimmer/local-debug-flags', '@glimmer/debug', '@glimmer/util', '@glimmer/vm'],
+//     startsWith: ['.', '/', '#', '@babel/runtime/'],
+//     endsWith: ['-debug-strip'],
+//   },
+//   external: {
+//     is: ['@handlebars/parser', 'simple-html-tokenizer', 'babel-plugin-debug-macros'],
+//     startsWith: ['@glimmer/', '@simple-dom/', '@babel/', 'node:'],
+//   },
+// });
+
+/**
+ * @param {Package} pkg
+ * @returns {(id: string) => boolean | null}
+ */
+const matchExternals = (pkg) => (id) => matchExternalsWithPackage(id, pkg);
 
 /**
  * @param {string} id
+ * @param {Package} pkg
  * @returns {boolean | null}
  */
-function matchExternals(id) {
-  for (const [operator, prefixes, kind] of EXTERNAL_OPTIONS) {
-    const result = match(id, operator, prefixes);
+function matchExternalsWithPackage(id, pkg) {
+  /** @type {ExternalConfig[]} */
+  const presets = (pkg.workspace?.presets ?? ['workspace:recommended']).map(
+    (preset) => PRESETS[preset]
+  );
 
-    if (result) {
-      return kind === 'inline' ? INLINE : EXTERNAL;
+  let inline = pkg.workspace?.inline;
+
+  if (inline) {
+    let result = matchExternalsEntry(id, 'inline', inline);
+    if (result !== null) return result;
+  }
+
+  let external = pkg.workspace?.external;
+
+  if (external) {
+    let result = matchExternalsEntry(id, 'external', external);
+    if (result !== null) return result;
+  }
+
+  for (const preset of presets) {
+    let result = matchExternalsConfig(id, preset);
+    if (result !== null) return result;
+  }
+
+  return null;
+}
+
+/**
+ * @param {string} id
+ * @param {ExternalConfig} externalsConfig
+ * @returns {boolean | null}
+ */
+function matchExternalsConfig(id, externalsConfig) {
+  for (const [kind, config] of entries(externalsConfig)) {
+    let result = matchExternalsEntry(id, kind, config);
+    if (result !== null) return result;
+  }
+
+  return null;
+}
+
+/**
+ * @param {string} id
+ * @param {"inline" | "external"} kind
+ * @param {import('./config.js').ExternalsConfig} config
+ * @returns {boolean | null}
+ */
+function matchExternalsEntry(id, kind, config) {
+  if (config !== undefined) {
+    // console.dir({ verifying: { id, externalsConfig } }, { depth: null });
+    for (const entry of entries(config)) {
+      if (entry === undefined) continue;
+      let [operator, patterns] = entry;
+      let result = match(id, operator, normalizeExternalsSpecifier(patterns));
+
+      if (result) {
+        return kind === 'inline' ? INLINE : EXTERNAL;
+      }
     }
   }
 
@@ -121,21 +222,39 @@ function matchExternals(id) {
 }
 
 /**
- * @template {string[]} Prefixes
+ * @template {readonly string[]} Prefixes
  * @param {string} id
- * @param {'is' | 'startsWith'} operator
+ * @param {'is' | 'startsWith' | 'endsWith'} operator
  * @param {Prefixes} prefixes
  */
 function match(id, operator, prefixes) {
   return prefixes.some((prefix) => {
     switch (operator) {
       case 'is':
-        return id === prefix;
+        return normalizeIsPattern(prefix)(id);
       case 'startsWith':
         return id.startsWith(prefix);
+      case 'endsWith':
+        return id.endsWith(prefix);
     }
   });
 }
+
+/**
+ * @param {string} pattern
+ * @returns {(input: string) => boolean}
+ */
+function normalizeIsPattern(pattern) {
+  if (pattern.includes('*')) {
+    let regexp = new RegExp(`^${pattern.replace('*', '.*')}$`, 'u');
+    return (string) => regexp.test(string);
+  } else {
+    return (string) => string === pattern;
+  }
+}
+
+/**
+ */
 
 /**
  * @implements {PackageInfo}
@@ -161,20 +280,26 @@ export class Package {
     const json = parse(readFileSync(resolve(root, 'package.json'), 'utf8'));
 
     if (json.main) {
-      return new Package({
-        name: json.name,
-        main: resolve(root, json.main),
-        root,
-      });
+      return new Package(
+        {
+          name: json.name,
+          main: resolve(root, json.main),
+          root,
+        },
+        json
+      );
     } else {
       for (const main of ['index.ts', 'index.js', 'index.d.ts']) {
         const path = resolve(root, main);
         if (existsSync(path)) {
-          return new Package({
-            name: json.name,
-            main: path,
-            root,
-          });
+          return new Package(
+            {
+              name: json.name,
+              main: path,
+              root,
+            },
+            json
+          );
         }
       }
 
@@ -211,11 +336,23 @@ export class Package {
   /** @readonly @type {PackageInfo} */
   #package;
 
+  /** @readonly @type {PackageJSON} */
+  #packageJSON;
+
   /***
    * @param {PackageInfo} pkg
+   * @param {PackageJSON} packageJSON
    */
-  constructor(pkg) {
+  constructor(pkg, packageJSON) {
     this.#package = pkg;
+    this.#packageJSON = packageJSON;
+  }
+
+  /**
+   * @returns {WorkspaceConfig | undefined}
+   */
+  get workspace() {
+    return this.#packageJSON.publishConfig?.workspace;
   }
 
   /**
@@ -243,7 +380,11 @@ export class Package {
    * @returns {import("rollup").RollupOptions[] | import("rollup").RollupOptions}
    */
   config() {
-    return [...this.rollupESM(), ...this.rollupCJS()];
+    if (process.env.MODE === 'production') {
+      return this.rollupESM('production');
+    } else {
+      return [...this.rollupESM('development'), ...this.rollupCJS()];
+    }
   }
 
   /**
@@ -272,23 +413,44 @@ export class Package {
   }
 
   /**
+   * @param {'development' | 'production'} mode
    * @returns {RollupOptions[]}
    */
-  rollupESM() {
-    return this.#shared('esm').map((options) => ({
+  rollupESM(mode) {
+    let productionPlugins =
+      mode === 'production'
+        ? [
+            terser({
+              module: true,
+              compress: {},
+              mangle: {},
+              output: {},
+              parse: {},
+            }),
+            bundleSize(),
+          ]
+        : [];
+
+    return this.#shared('esm', mode).map((options) => ({
       ...options,
       external: this.#external,
+      experimentalLogSideEffects: true,
+      treeshake: {
+        annotations: true,
+        moduleSideEffects: false,
+        tryCatchDeoptimization: false,
+      },
       plugins: [
         inline(),
         nodePolyfills(),
         commonjs(),
         nodeResolve(),
         importMeta,
-        postcss(),
         typescript(this.#package, {
           target: ScriptTarget.ES2022,
           importsNotUsedAsValues: ImportsNotUsedAsValues.Preserve,
         }),
+        ...productionPlugins,
       ],
     }));
   }
@@ -297,7 +459,7 @@ export class Package {
    * @returns {import("rollup").RollupOptions[]}
    */
   rollupCJS() {
-    return this.#shared('cjs').map((options) => ({
+    return this.#shared('cjs', 'development').map((options) => ({
       ...options,
       external: this.#external,
       plugins: [
@@ -325,10 +487,13 @@ export class Package {
      * @returns {boolean}
      */
     return (id) => {
-      const external = matchExternals(id);
+      const external = matchExternals(this)(id);
 
       if (external === null) {
-        console.warn('unhandled external', id);
+        console.warn('unhandled external', id, {
+          for: this.#package.name,
+          config: inspect(this.workspace, { depth: null }),
+        });
         return true;
       } else {
         return external;
@@ -338,22 +503,22 @@ export class Package {
 
   /**
    * @param {"esm" | "cjs"} format
+   * @param {"development" | "production"} mode
    * @returns {import("rollup").RollupOptions[]}
    */
-  #shared(format) {
+  #shared(format, mode) {
     const { root, main } = this.#package;
 
     const ext = format === 'esm' ? 'js' : 'cjs';
 
-    const experiment = process.env['GLIMMER_EXPERIMENT'];
+    const modeSuffix = mode === 'production' ? '.production' : '';
 
     /**
      * @param {[string, string]} entry
      * @returns {import("rollup").RollupOptions}
      */
     function entryPoint([exportName, ts]) {
-      const file =
-        experiment === undefined ? `${exportName}.${ext}` : `${exportName}.${experiment}.${ext}`;
+      const file = `${exportName}${modeSuffix}.${ext}`;
 
       return {
         input: resolve(root, ts),

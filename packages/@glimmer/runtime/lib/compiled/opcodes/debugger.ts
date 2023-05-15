@@ -25,11 +25,11 @@ let callback = debugCallback;
 
 // For testing purposes
 export function setDebuggerCallback(cb: DebugCallback) {
-  callback = cb;
+  if (import.meta.env.DEV) callback = cb;
 }
 
 export function resetDebuggerCallback() {
-  callback = debugCallback;
+  if (import.meta.env.DEV) callback = debugCallback;
 }
 
 class ScopeInspector {

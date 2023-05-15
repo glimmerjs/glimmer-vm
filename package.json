@@ -12,7 +12,8 @@
   "scripts": {
     "benchmark:start": "pnpm -r --filter @glimmer-workspace/krausest run start",
     "benchmark:build": "node benchmark/bin/build.js",
-    "build": "dotenv -- turbo build",
+    "build": "dotenv -c development -- turbo build",
+    "build:production": "dotenv -c production -- turbo build",
     "build:control": "rollup -c rollup.config.mjs",
     "lint": "npm-run-all lint:*",
     "lint:files": "dotenv -- turbo lint",

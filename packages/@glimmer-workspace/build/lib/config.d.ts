@@ -20,11 +20,30 @@ export type Setting<T extends keyof CompilerOptions> = CompilerOptions[T] & stri
 
 export type PackageJsonInline = string | [ExternalOperator, string];
 
+type ExternalSpecifier = readonly string[] | string;
+
+interface ExternalsConfig {
+  readonly startsWith?: ExternalSpecifier;
+  readonly is?: ExternalSpecifier;
+  readonly endsWith?: ExternalSpecifier;
+}
+
+interface WorkspaceConfig {
+  readonly presets?: readonly string[];
+  readonly inline: ExternalsConfig;
+  readonly external: ExternalsConfig;
+}
+
+type ExternalConfig = Omit<WorkspaceConfig, 'presets'>;
+
 export interface PackageJSON {
   readonly main: string;
   readonly types: string;
   readonly private: boolean;
   readonly name: string;
+  readonly publishConfig?: {
+    readonly workspace?: WorkspaceConfig;
+  };
 }
 
 type SimpleExternal = { [P in string]: 'inline' | 'external' };

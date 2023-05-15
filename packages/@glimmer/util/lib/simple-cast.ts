@@ -70,25 +70,29 @@ export function castToBrowser<S extends SugaryNodeCheck>(
   node: SimpleNode | BrowserNode | null | undefined,
   sugaryCheck?: S
 ): Document | NodeForSugaryCheck<S> | null {
-  if (node === null || node === undefined) {
-    return null;
+  if (import.meta.env.DEV) {
+    if (node === null || node === undefined) {
+      return null;
+    }
+
+    if (typeof document === undefined) {
+      throw new Error('Attempted to cast to a browser node in a non-browser context');
+    }
+
+    if (isDocument(node)) {
+      return node as Document;
+    }
+
+    if (node.ownerDocument !== document) {
+      throw new Error(
+        'Attempted to cast to a browser node with a node that was not created from this document'
+      );
+    }
+
+    return checkBrowserNode<S>(node, sugaryCheck!);
   }
 
-  if (typeof document === undefined) {
-    throw new Error('Attempted to cast to a browser node in a non-browser context');
-  }
-
-  if (isDocument(node)) {
-    return node as Document;
-  }
-
-  if (node.ownerDocument !== document) {
-    throw new Error(
-      'Attempted to cast to a browser node with a node that was not created from this document'
-    );
-  }
-
-  return checkBrowserNode<S>(node, sugaryCheck!);
+  return node as Document | NodeForSugaryCheck<S> | null;
 }
 
 function checkError(from: string, check: SugaryNodeCheck): Error {
@@ -111,23 +115,27 @@ export function checkBrowserNode<S extends SugaryNodeCheck>(
   node: Node | SimpleNode | null,
   check: S
 ): NodeForSugaryCheck<S> {
-  let isMatch = false;
+  if (import.meta.env.DEV) {
+    let isMatch = false;
 
-  if (node !== null) {
-    if (typeof check === 'string') {
-      isMatch = stringCheckNode(node, check);
-    } else if (Array.isArray(check)) {
-      isMatch = check.some((c) => stringCheckNode(node, c));
+    if (node !== null) {
+      if (typeof check === 'string') {
+        isMatch = stringCheckNode(node, check);
+      } else if (Array.isArray(check)) {
+        isMatch = check.some((c) => stringCheckNode(node, c));
+      } else {
+        throw unreachable();
+      }
+    }
+
+    if (isMatch && node instanceof Node) {
+      return node as NodeForSugaryCheck<S>;
     } else {
-      throw unreachable();
+      throw checkError(`SimpleElement(${node?.constructor?.name ?? 'null'})`, check);
     }
   }
 
-  if (isMatch && node instanceof Node) {
-    return node as NodeForSugaryCheck<S>;
-  } else {
-    throw checkError(`SimpleElement(${node?.constructor?.name ?? 'null'})`, check);
-  }
+  return node as NodeForSugaryCheck<S>;
 }
 
 function stringCheckNode<S extends BrowserTag>(

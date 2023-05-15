@@ -13,6 +13,7 @@
     "moduleResolution": "bundler",
     "allowSyntheticDefaultImports": true,
     "verbatimModuleSyntax": true,
+    "noErrorTruncation": true,
 
     "strict": true,
     "suppressImplicitAnyIndexErrors": false,

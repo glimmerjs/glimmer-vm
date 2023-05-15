@@ -1,5 +1,5 @@
 export * from './lib/array-utils';
-export { default as assert, deprecate } from './lib/assert';
+export { assert, deprecate } from './lib/assert';
 export { dict, isDict, isObject, StackImpl as Stack } from './lib/collections';
 export { beginTestSteps, endTestSteps, logStep, verifySteps } from './lib/debug-steps';
 export { default as debugToString } from './lib/debug-to-string';
