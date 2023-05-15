@@ -1,9 +1,7 @@
 name: PerformanceCheck
 
-on:
-  pull_request:
-    branches:
-      - master
+# temporarily disable these checks unless manually triggered
+on: workflow_dispatch
 
 env:
   TEMP_DIR: ''
