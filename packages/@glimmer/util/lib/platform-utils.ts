@@ -6,34 +6,33 @@ export function keys<T extends object>(obj: T): Array<keyof T> {
   return Object.keys(obj) as Array<keyof T>;
 }
 
-export function unwrap<T>(val: Maybe<T>): T {
-  if (import.meta.env.DEV) {
-    if (val === null || val === undefined) throw new Error(`Expected value to be present`);
-    return val as T;
-  }
+type Unwrap = <T>(val: Maybe<T>) => T;
 
-  return val as T;
-}
+export const unwrap: Unwrap = import.meta.env.DEV
+  ? <T>(val: Maybe<T>) => expect(val, `Expected value to be present`)
+  : (((val) => val) as Unwrap);
 
-export function expect<T>(val: T, message: string): Present<T> {
-  if (import.meta.env.DEV) {
-    if (val === null || val === undefined) throw new Error(message);
-    return val as Present<T>;
-  }
+type Expect = <T>(val: T, message: string) => Present<T>;
 
-  return val as Present<T>;
-}
+export const expect: Expect = import.meta.env.DEV
+  ? <T>(val: T, message: string): Present<T> => {
+      if (val === null || val === undefined) throw Error(message);
+      return val as Present<T>;
+    }
+  : (((val) => val) as Expect);
 
-export function unreachable(message = 'unreachable'): never {
-  if (import.meta.env.DEV) {
-    throw new Error(message);
-  }
-}
+type Unreachable = (message?: string) => never;
 
-export function exhausted(value: never): never {
-  throw new Error(`Exhausted ${String(value)}`);
-}
+export const unreachable: Unreachable = import.meta.env.DEV
+  ? (message = 'unreachable'): never => {
+      throw Error(message);
+    }
+  : ((() => {}) as Unreachable);
 
-export type Lit = string | number | boolean | undefined | null | void | {};
+type Exhausted = (value: never) => never;
 
-export const tuple = <T extends Lit[]>(...args: T) => args;
+export const exhausted: Exhausted = import.meta.env.DEV
+  ? (value: never): never => {
+      throw Error(`Exhausted ${String(value)}`);
+    }
+  : (((_value: never) => {}) as Exhausted);
