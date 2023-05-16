@@ -7,31 +7,31 @@ import type {
   Scope,
   ScopeBlock,
   ScopeSlot,
-} from "@glimmer/interfaces";
+} from '@glimmer/interfaces';
 import { type Reference, UNDEFINED_REFERENCE } from '@glimmer/reference';
 import { assign, unwrap } from '@glimmer/util';
 
 export class DynamicScopeImpl implements DynamicScope {
-  private bucket: Dict<Reference>;
+  readonly #bucket: Dict<Reference>;
 
   constructor(bucket?: Dict<Reference>) {
     if (bucket) {
-      this.bucket = assign({}, bucket);
+      this.#bucket = assign({}, bucket);
     } else {
-      this.bucket = {};
+      this.#bucket = {};
     }
   }
 
   get(key: string): Reference {
-    return unwrap(this.bucket[key]);
+    return unwrap(this.#bucket[key]);
   }
 
   set(key: string, reference: Reference): Reference {
-    return (this.bucket[key] = reference);
+    return (this.#bucket[key] = reference);
   }
 
   child(): DynamicScopeImpl {
-    return new DynamicScopeImpl(this.bucket);
+    return new DynamicScopeImpl(this.#bucket);
   }
 }
 
@@ -48,7 +48,7 @@ export class PartialScopeImpl implements PartialScope {
       refs[i] = UNDEFINED_REFERENCE;
     }
 
-    return new PartialScopeImpl(refs, owner, null, null, null).init({ self });
+    return new PartialScopeImpl(refs, owner, null, null).init({ self });
   }
 
   static sized(size = 0, owner: Owner): Scope {
@@ -58,19 +58,24 @@ export class PartialScopeImpl implements PartialScope {
       refs[i] = UNDEFINED_REFERENCE;
     }
 
-    return new PartialScopeImpl(refs, owner, null, null, null);
+    return new PartialScopeImpl(refs, owner, null, null);
   }
 
-  constructor(
+  #callerScope: Scope | null;
+  // named arguments and blocks passed to a layout that uses eval
+  #evalScope: Dict<ScopeSlot> | null;
+
+  private constructor(
     // the 0th slot is `self`
     readonly slots: Array<ScopeSlot>,
     readonly owner: Owner,
-    private callerScope: Scope | null,
+    callerScope: Scope | null,
     // named arguments and blocks passed to a layout that uses eval
-    private evalScope: Dict<ScopeSlot> | null,
-    // locals in scope when the partial was invoked
-    private partialMap: Dict<Reference<unknown>> | null
-  ) {}
+    evalScope: Dict<ScopeSlot> | null
+  ) {
+    this.#callerScope = callerScope;
+    this.#evalScope = evalScope;
+  }
 
   init({ self }: { self: Reference<unknown> }): this {
     this.slots[0] = self;
@@ -91,11 +96,7 @@ export class PartialScopeImpl implements PartialScope {
   }
 
   getEvalScope(): Nullable<Dict<ScopeSlot>> {
-    return this.evalScope;
-  }
-
-  getPartialMap(): Nullable<Dict<Reference<unknown>>> {
-    return this.partialMap;
+    return this.#evalScope;
   }
 
   bind(symbol: number, value: ScopeSlot) {
@@ -115,29 +116,19 @@ export class PartialScopeImpl implements PartialScope {
   }
 
   bindEvalScope(map: Nullable<Dict<ScopeSlot>>) {
-    this.evalScope = map;
-  }
-
-  bindPartialMap(map: Dict<Reference<unknown>>) {
-    this.partialMap = map;
+    this.#evalScope = map;
   }
 
   bindCallerScope(scope: Nullable<Scope>): void {
-    this.callerScope = scope;
+    this.#callerScope = scope;
   }
 
   getCallerScope(): Nullable<Scope> {
-    return this.callerScope;
+    return this.#callerScope;
   }
 
   child(): Scope {
-    return new PartialScopeImpl(
-      this.slots.slice(),
-      this.owner,
-      this.callerScope,
-      this.evalScope,
-      this.partialMap
-    );
+    return new PartialScopeImpl(this.slots.slice(), this.owner, this.#callerScope, this.#evalScope);
   }
 
   private get<T extends ScopeSlot>(index: number): T {

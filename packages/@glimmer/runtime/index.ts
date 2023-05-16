@@ -38,7 +38,7 @@ export { hash } from './lib/helpers/hash';
 export { invokeHelper } from './lib/helpers/invoke';
 export { on } from './lib/modifiers/on';
 export { renderComponent, renderMain, renderSync } from './lib/render';
-export { DynamicScopeImpl, PartialScopeImpl } from './lib/scope';
+export { DynamicScopeImpl } from './lib/scope';
 export type { SafeString } from './lib/upsert';
 export { type InternalVM, VM as LowLevelVM, UpdatingVM } from './lib/vm';
 export {

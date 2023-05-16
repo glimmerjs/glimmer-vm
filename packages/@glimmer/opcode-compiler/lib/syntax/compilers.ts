@@ -1,4 +1,4 @@
-import type { BuilderOp, HighLevelOp, SexpOpcode, SexpOpcodeMap } from "@glimmer/interfaces";
+import type { BuilderOp, HighLevelOp, SexpOpcode, SexpOpcodeMap } from '@glimmer/interfaces';
 import { assert, unwrap } from '@glimmer/util';
 
 export type PushExpressionOp = (...op: BuilderOp | HighLevelOp) => void;
@@ -15,23 +15,20 @@ export type CompilerFunction<PushOp extends PushExpressionOp, TSexp> = (
 ) => void;
 
 export class Compilers<PushOp extends PushExpressionOp, TSexpOpcodes extends SexpOpcode> {
-  private names: {
-    [name: number]: number;
-  } = {};
-
-  private funcs: CompilerFunction<PushOp, any>[] = [];
+  readonly #names: Record<number, number> = {};
+  readonly #funcs: CompilerFunction<PushOp, any>[] = [];
 
   add<TSexpOpcode extends TSexpOpcodes>(
     name: TSexpOpcode,
     func: CompilerFunction<PushOp, SexpOpcodeMap[TSexpOpcode]>
   ): void {
-    this.names[name] = this.funcs.push(func) - 1;
+    this.#names[name] = this.#funcs.push(func) - 1;
   }
 
   compile(op: PushOp, sexp: SexpOpcodeMap[TSexpOpcodes]): void {
     let name = sexp[0];
-    let index = unwrap(this.names[name]);
-    let func = this.funcs[index];
+    let index = unwrap(this.#names[name]);
+    let func = this.#funcs[index];
     assert(!!func, `expected an implementation for ${sexp[0]}`);
 
     func(op, sexp);

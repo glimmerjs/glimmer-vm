@@ -4,7 +4,7 @@ import type {
   DebugRenderTree,
   Nullable,
   RenderNode,
-} from "@glimmer/interfaces";
+} from '@glimmer/interfaces';
 import { assign, expect, Stack } from '@glimmer/util';
 
 import { reifyArgs } from './vm/arguments';
@@ -19,50 +19,54 @@ let GUID = 0;
 
 export class Ref<T extends object> {
   readonly id: number = GUID++;
-  private value: Nullable<T>;
+  #value: Nullable<T>;
 
   constructor(value: T) {
-    this.value = value;
+    this.#value = value;
   }
 
   get(): Nullable<T> {
-    return this.value;
+    return this.#value;
   }
 
   release(): void {
-    if (import.meta.env.DEV && this.value === null) {
+    if (import.meta.env.DEV && this.#value === null) {
       throw new Error('BUG: double release?');
     }
 
-    this.value = null;
+    this.#value = null;
   }
 
-  toString(): String {
-    let label = `Ref ${this.id}`;
+  toString(): string {
+    if (import.meta.env.DEV) {
+      let label = `Ref ${this.id}`;
 
-    if (this.value === null) {
-      return `${label} (released)`;
-    } else {
-      try {
-        return `${label}: ${this.value}`;
-      } catch {
-        return label;
+      if (this.#value === null) {
+        return `${label} (released)`;
+      } else {
+        try {
+          return `${label}: ${this.#value}`;
+        } catch {
+          return label;
+        }
       }
     }
+
+    return `Ref ${this.id}`;
   }
 }
 
 export default class DebugRenderTreeImpl<TBucket extends object>
   implements DebugRenderTree<TBucket>
 {
-  private stack = new Stack<TBucket>();
+  readonly #stack = new Stack<TBucket>();
 
-  private refs = new WeakMap<TBucket, Ref<TBucket>>();
-  private roots = new Set<Ref<TBucket>>();
-  private nodes = new WeakMap<TBucket, InternalRenderNode<TBucket>>();
+  readonly #refs = new WeakMap<TBucket, Ref<TBucket>>();
+  readonly #roots = new Set<Ref<TBucket>>();
+  readonly #nodes = new WeakMap<TBucket, InternalRenderNode<TBucket>>();
 
   begin(): void {
-    this.reset();
+    this.#reset();
   }
 
   create(state: TBucket, node: RenderNode): void {
@@ -70,38 +74,38 @@ export default class DebugRenderTreeImpl<TBucket extends object>
       bounds: null,
       refs: new Set<Ref<TBucket>>(),
     });
-    this.nodes.set(state, internalNode);
-    this.appendChild(internalNode, state);
-    this.enter(state);
+    this.#nodes.set(state, internalNode);
+    this.#appendChild(internalNode, state);
+    this.#enter(state);
   }
 
   update(state: TBucket): void {
-    this.enter(state);
+    this.#enter(state);
   }
 
   didRender(state: TBucket, bounds: Bounds): void {
-    if (import.meta.env.DEV && this.stack.current !== state) {
-      throw new Error(`BUG: expecting ${this.stack.current}, got ${state}`);
+    if (import.meta.env.DEV && this.#stack.current !== state) {
+      throw new Error(`BUG: expecting ${this.#stack.current}, got ${state}`);
     }
 
-    this.nodeFor(state).bounds = bounds;
-    this.exit();
+    this.#nodeFor(state).bounds = bounds;
+    this.#exit();
   }
 
   willDestroy(state: TBucket): void {
-    expect(this.refs.get(state), 'BUG: missing ref').release();
+    expect(this.#refs.get(state), 'BUG: missing ref').release();
   }
 
   commit(): void {
-    this.reset();
+    this.#reset();
   }
 
   capture(): CapturedRenderNode[] {
-    return this.captureRefs(this.roots);
+    return this.#captureRefs(this.#roots);
   }
 
-  private reset(): void {
-    if (this.stack.size !== 0) {
+  #reset(): void {
+    if (this.#stack.size !== 0) {
       // We probably encountered an error during the rendering loop. This will
       // likely trigger undefined behavior and memory leaks as the error left
       // things in an inconsistent state. It is recommended that the user
@@ -111,62 +115,62 @@ export default class DebugRenderTreeImpl<TBucket extends object>
 
       // Clean up the root reference to prevent errors from happening if we
       // attempt to capture the render tree (Ember Inspector may do this)
-      let root = expect(this.stack.toArray()[0], 'expected root state when resetting render tree');
-      let ref = this.refs.get(root);
+      let root = expect(this.#stack.toArray()[0], 'expected root state when resetting render tree');
+      let ref = this.#refs.get(root);
 
       if (ref !== undefined) {
-        this.roots.delete(ref);
+        this.#roots.delete(ref);
       }
 
-      while (!this.stack.isEmpty()) {
-        this.stack.pop();
+      while (!this.#stack.isEmpty()) {
+        this.#stack.pop();
       }
     }
   }
 
-  private enter(state: TBucket): void {
-    this.stack.push(state);
+  #enter(state: TBucket): void {
+    this.#stack.push(state);
   }
 
-  private exit(): void {
-    if (import.meta.env.DEV && this.stack.size === 0) {
+  #exit(): void {
+    if (import.meta.env.DEV && this.#stack.size === 0) {
       throw new Error('BUG: unbalanced pop');
     }
 
-    this.stack.pop();
+    this.#stack.pop();
   }
 
-  private nodeFor(state: TBucket): InternalRenderNode<TBucket> {
-    return expect(this.nodes.get(state), 'BUG: missing node');
+  #nodeFor(state: TBucket): InternalRenderNode<TBucket> {
+    return expect(this.#nodes.get(state), 'BUG: missing node');
   }
 
-  private appendChild(node: InternalRenderNode<TBucket>, state: TBucket): void {
-    if (import.meta.env.DEV && this.refs.has(state)) {
+  #appendChild(node: InternalRenderNode<TBucket>, state: TBucket): void {
+    if (import.meta.env.DEV && this.#refs.has(state)) {
       throw new Error('BUG: child already appended');
     }
 
-    let parent = this.stack.current;
+    let parent = this.#stack.current;
     let ref = new Ref(state);
 
-    this.refs.set(state, ref);
+    this.#refs.set(state, ref);
 
     if (parent) {
-      let parentNode = this.nodeFor(parent);
+      let parentNode = this.#nodeFor(parent);
       parentNode.refs.add(ref);
       node.parent = parentNode;
     } else {
-      this.roots.add(ref);
+      this.#roots.add(ref);
     }
   }
 
-  private captureRefs(refs: Set<Ref<TBucket>>): CapturedRenderNode[] {
+  #captureRefs(refs: Set<Ref<TBucket>>): CapturedRenderNode[] {
     let captured: CapturedRenderNode[] = [];
 
     refs.forEach((ref) => {
       let state = ref.get();
 
       if (state) {
-        captured.push(this.captureNode(`render-node:${ref.id}`, state));
+        captured.push(this.#captureNode(`render-node:${ref.id}`, state));
       } else {
         refs.delete(ref);
       }
@@ -175,20 +179,20 @@ export default class DebugRenderTreeImpl<TBucket extends object>
     return captured;
   }
 
-  private captureNode(id: string, state: TBucket): CapturedRenderNode {
-    let node = this.nodeFor(state);
+  #captureNode(id: string, state: TBucket): CapturedRenderNode {
+    let node = this.#nodeFor(state);
     let { type, name, args, instance, refs } = node;
-    let template = this.captureTemplate(node);
-    let bounds = this.captureBounds(node);
-    let children = this.captureRefs(refs);
+    let template = this.#captureTemplate(node);
+    let bounds = this.#captureBounds(node);
+    let children = this.#captureRefs(refs);
     return { id, type, name, args: reifyArgs(args), instance, template, bounds, children };
   }
 
-  private captureTemplate({ template }: InternalRenderNode<TBucket>): Nullable<string> {
+  #captureTemplate({ template }: InternalRenderNode<TBucket>): Nullable<string> {
     return template || null;
   }
 
-  private captureBounds(node: InternalRenderNode<TBucket>): CapturedRenderNode['bounds'] {
+  #captureBounds(node: InternalRenderNode<TBucket>): CapturedRenderNode['bounds'] {
     let bounds = expect(node.bounds, 'BUG: missing bounds');
     let parentElement = bounds.parentElement();
     let firstNode = bounds.firstNode();

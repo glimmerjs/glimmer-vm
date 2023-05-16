@@ -26,7 +26,7 @@ export class WrappedBuilder implements CompilableProgram {
   constructor(layout: LayoutWithContext, public moduleName: string) {
     this.#layout = layout;
     let { block } = layout;
-    let [, symbols, hasEval] = block;
+    let [, symbols, hasDebug] = block;
 
     symbols = symbols.slice();
 
@@ -39,7 +39,7 @@ export class WrappedBuilder implements CompilableProgram {
     }
 
     this.symbolTable = {
-      hasEval,
+      hasDebug,
       symbols,
     };
   }

@@ -22,16 +22,21 @@ import { ARGS, CONSTANTS } from './symbols';
 import { VM, type InternalVM } from './vm/append';
 
 class TemplateIteratorImpl implements TemplateIterator {
-  constructor(private vm: InternalVM) {}
+  readonly #vm: InternalVM;
+
+  constructor(vm: InternalVM) {
+    this.#vm = vm;
+  }
+
   next(): RichIteratorResult<null, RenderResult> {
-    return this.vm.next();
+    return this.#vm.next();
   }
 
   sync(): RenderResult {
     if (import.meta.env.DEV) {
-      return debug.runInTrackingTransaction!(() => this.vm.execute(), '- While rendering:');
+      return debug.runInTrackingTransaction!(() => this.#vm.execute(), '- While rendering:');
     } else {
-      return this.vm.execute();
+      return this.#vm.execute();
     }
   }
 }

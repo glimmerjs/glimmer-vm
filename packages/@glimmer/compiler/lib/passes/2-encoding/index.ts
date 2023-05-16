@@ -12,7 +12,7 @@ export function visit(template: mir.Template): WireFormat.SerializedTemplateBloc
   let block: WireFormat.SerializedTemplateBlock = [
     statements,
     scope.symbols,
-    scope.hasEval,
+    scope.hasDebug,
     scope.upvars,
   ];
 

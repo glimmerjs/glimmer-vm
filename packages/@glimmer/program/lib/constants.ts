@@ -9,7 +9,7 @@ import type {
   ResolvedComponentDefinition,
   RuntimeConstants,
   Template,
-} from "@glimmer/interfaces";
+} from '@glimmer/interfaces';
 import {
   capabilityFlagsFrom,
   getComponentTemplate,
@@ -106,11 +106,10 @@ export class ConstantsImpl
   modifierDefinitionCount = 0;
   componentDefinitionCount = 0;
 
-  private helperDefinitionCache = new WeakMap<HelperDefinitionState, number | null>();
+  readonly #helperDefinitionCache = new WeakMap<HelperDefinitionState, number | null>();
+  readonly #modifierDefinitionCache = new WeakMap<ModifierDefinitionState, number | null>();
 
-  private modifierDefinitionCache = new WeakMap<ModifierDefinitionState, number | null>();
-
-  private componentDefinitionCache = new WeakMap<
+  readonly #componentDefinitionCache = new WeakMap<
     ComponentDefinitionState | ResolvedComponentDefinition,
     ComponentDefinition | null
   >();
@@ -135,13 +134,13 @@ export class ConstantsImpl
     _resolvedName: string | null = null,
     isOptional?: true
   ): number | null {
-    let handle = this.helperDefinitionCache.get(definitionState);
+    let handle = this.#helperDefinitionCache.get(definitionState);
 
     if (handle === undefined) {
       let managerOrHelper = getInternalHelperManager(definitionState, isOptional);
 
       if (managerOrHelper === null) {
-        this.helperDefinitionCache.set(definitionState, null);
+        this.#helperDefinitionCache.set(definitionState, null);
         return null;
       }
 
@@ -154,7 +153,7 @@ export class ConstantsImpl
 
       handle = this.value(helper);
 
-      this.helperDefinitionCache.set(definitionState, handle);
+      this.#helperDefinitionCache.set(definitionState, handle);
       this.helperDefinitionCount++;
     }
 
@@ -172,13 +171,13 @@ export class ConstantsImpl
     resolvedName: string | null = null,
     isOptional?: true
   ): number | null {
-    let handle = this.modifierDefinitionCache.get(definitionState);
+    let handle = this.#modifierDefinitionCache.get(definitionState);
 
     if (handle === undefined) {
       let manager = getInternalModifierManager(definitionState, isOptional);
 
       if (manager === null) {
-        this.modifierDefinitionCache.set(definitionState, null);
+        this.#modifierDefinitionCache.set(definitionState, null);
         return null;
       }
 
@@ -190,7 +189,7 @@ export class ConstantsImpl
 
       handle = this.value(definition);
 
-      this.modifierDefinitionCache.set(definitionState, handle);
+      this.#modifierDefinitionCache.set(definitionState, handle);
       this.modifierDefinitionCount++;
     }
 
@@ -203,13 +202,13 @@ export class ConstantsImpl
     owner: object,
     isOptional?: true
   ): ComponentDefinition | null {
-    let definition = this.componentDefinitionCache.get(definitionState);
+    let definition = this.#componentDefinitionCache.get(definitionState);
 
     if (definition === undefined) {
       let manager = getInternalComponentManager(definitionState, isOptional);
 
       if (manager === null) {
-        this.componentDefinitionCache.set(definitionState, null);
+        this.#componentDefinitionCache.set(definitionState, null);
         return null;
       }
 
@@ -252,7 +251,7 @@ export class ConstantsImpl
       };
 
       definition.handle = this.value(definition);
-      this.componentDefinitionCache.set(definitionState, definition);
+      this.#componentDefinitionCache.set(definitionState, definition);
       this.componentDefinitionCount++;
     }
 
@@ -263,7 +262,7 @@ export class ConstantsImpl
     resolvedDefinition: ResolvedComponentDefinition,
     resolvedName: string
   ): ComponentDefinition {
-    let definition = this.componentDefinitionCache.get(resolvedDefinition);
+    let definition = this.#componentDefinitionCache.get(resolvedDefinition);
 
     if (definition === undefined) {
       let { manager, state, template } = resolvedDefinition;
@@ -299,7 +298,7 @@ export class ConstantsImpl
       };
 
       definition.handle = this.value(definition);
-      this.componentDefinitionCache.set(resolvedDefinition, definition);
+      this.#componentDefinitionCache.set(resolvedDefinition, definition);
       this.componentDefinitionCount++;
     }
 

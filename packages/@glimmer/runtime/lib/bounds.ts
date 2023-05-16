@@ -8,38 +8,46 @@ export class CursorImpl implements Cursor {
 export type DestroyableBounds = Bounds;
 
 export class ConcreteBounds implements Bounds {
-  constructor(
-    public parentNode: SimpleElement,
-    private first: SimpleNode,
-    private last: SimpleNode
-  ) {}
+  readonly #first: SimpleNode;
+  readonly #last: SimpleNode;
+
+  constructor(public parentNode: SimpleElement, first: SimpleNode, last: SimpleNode) {
+    this.#first = first;
+    this.#last = last;
+  }
 
   parentElement(): SimpleElement {
     return this.parentNode;
   }
 
   firstNode(): SimpleNode {
-    return this.first;
+    return this.#first;
   }
 
   lastNode(): SimpleNode {
-    return this.last;
+    return this.#last;
   }
 }
 
 export class SingleNodeBounds implements Bounds {
-  constructor(private parentNode: SimpleElement, private node: SimpleNode) {}
+  readonly #parentNode: SimpleElement;
+  readonly #node: SimpleNode;
+
+  constructor(parentNode: SimpleElement, node: SimpleNode) {
+    this.#parentNode = parentNode;
+    this.#node = node;
+  }
 
   parentElement(): SimpleElement {
-    return this.parentNode;
+    return this.#parentNode;
   }
 
   firstNode(): SimpleNode {
-    return this.node;
+    return this.#node;
   }
 
   lastNode(): SimpleNode {
-    return this.node;
+    return this.#node;
   }
 }
 

@@ -71,7 +71,7 @@ export class ProgramSymbolTable extends SymbolTable {
     this.#hasDebugger = true;
   }
 
-  get hasEval(): boolean {
+  get hasDebug(): boolean {
     return this.#hasDebugger;
   }
 

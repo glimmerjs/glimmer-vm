@@ -26,28 +26,28 @@ export type StdlibPlaceholder = [number, StdLibOperand];
 const PAGE_SIZE = 0x100000;
 
 export class RuntimeHeapImpl implements RuntimeHeap {
-  private heap: Int32Array;
-  private table: number[];
+  readonly #heap: Int32Array;
+  readonly #table: number[];
 
   constructor(serializedHeap: SerializedHeap) {
     let { buffer, table } = serializedHeap;
-    this.heap = new Int32Array(buffer);
-    this.table = table;
+    this.#heap = new Int32Array(buffer);
+    this.#table = table;
   }
 
   // It is illegal to close over this address, as compaction
   // may move it. However, it is legal to use this address
   // multiple times between compactions.
   getaddr(handle: number): number {
-    return unwrap(this.table[handle]);
+    return unwrap(this.#table[handle]);
   }
 
   getbyaddr(address: number): number {
-    return expect(this.heap[address], 'Access memory out of bounds of the heap');
+    return expect(this.#heap[address], 'Access memory out of bounds of the heap');
   }
 
   sizeof(handle: number): number {
-    return sizeof(this.table, handle);
+    return sizeof(this.#table, handle);
   }
 }
 
@@ -78,20 +78,39 @@ export function hydrateHeap(serializedHeap: SerializedHeap): RuntimeHeap {
 export class HeapImpl implements CompileTimeHeap, RuntimeHeap {
   offset = 0;
 
-  private heap: Int32Array;
-  private handleTable: number[];
-  private handleState: TableSlotState[];
-  private handle = 0;
+  #heap: Int32Array;
+  readonly #handleTable: number[];
+  readonly #handleState: TableSlotState[];
+  readonly #handle = 0;
+
+  declare readonly capture?: (offset?: number) => SerializedHeap;
 
   constructor() {
-    this.heap = new Int32Array(PAGE_SIZE);
-    this.handleTable = [];
-    this.handleState = [];
+    this.#heap = new Int32Array(PAGE_SIZE);
+    this.#handleTable = [];
+    this.#handleState = [];
+
+    if (import.meta.env.DEV) {
+      Object.defineProperty(this, 'capture', {
+        enumerable: false,
+        configurable: true,
+        writable: false,
+        value: (offset = this.offset): SerializedHeap => {
+          // Only called in eager mode
+          let buffer = this.#heap.slice(0, offset).buffer;
+          return {
+            handle: this.#handle,
+            table: this.#handleTable,
+            buffer: buffer as ArrayBuffer,
+          };
+        },
+      });
+    }
   }
 
   pushRaw(value: number): void {
-    this.sizeCheck();
-    this.heap[this.offset++] = value;
+    this.#growIfNeeded();
+    this.#heap[this.offset++] = value;
   }
 
   pushOp(item: number): void {
@@ -102,28 +121,27 @@ export class HeapImpl implements CompileTimeHeap, RuntimeHeap {
     this.pushRaw(item | MACHINE_MASK);
   }
 
-  private sizeCheck() {
-    let { heap } = this;
-
-    if (this.offset === this.heap.length) {
+  #growIfNeeded() {
+    const heap = this.#heap;
+    if (this.offset === heap.length) {
       let newHeap = new Int32Array(heap.length + PAGE_SIZE);
       newHeap.set(heap, 0);
-      this.heap = newHeap;
+      this.#heap = newHeap;
     }
   }
 
   getbyaddr(address: number): number {
-    return unwrap(this.heap[address]);
+    return unwrap(this.#heap[address]);
   }
 
   setbyaddr(address: number, value: number) {
-    this.heap[address] = value;
+    this.#heap[address] = value;
   }
 
   malloc(): number {
     // push offset, info, size
-    this.handleTable.push(this.offset);
-    return this.handleTable.length - 1;
+    this.#handleTable.push(this.offset);
+    return this.#handleTable.length - 1;
   }
 
   finishMalloc(handle: number): void {
@@ -131,108 +149,42 @@ export class HeapImpl implements CompileTimeHeap, RuntimeHeap {
     // wrapped to prevent us from allocating extra space in prod. In the future,
     // if we start using the compact API, we should change this.
     if (import.meta.env.DEV && LOCAL_DEBUG) {
-      this.handleState[handle] = TableSlotState.Allocated;
+      this.#handleState[handle] = TableSlotState.Allocated;
     }
-  }
-
-  size(): number {
-    return this.offset;
   }
 
   // It is illegal to close over this address, as compaction
   // may move it. However, it is legal to use this address
   // multiple times between compactions.
   getaddr(handle: number): number {
-    return unwrap(this.handleTable[handle]);
+    return unwrap(this.#handleTable[handle]);
   }
 
   sizeof(handle: number): number {
-    return sizeof(this.handleTable, handle);
+    return sizeof(this.#handleTable, handle);
   }
 
   free(handle: number): void {
-    this.handleState[handle] = TableSlotState.Freed;
-  }
-
-  /**
-   * The heap uses the [Mark-Compact Algorithm](https://en.wikipedia.org/wiki/Mark-compact_algorithm) to shift
-   * reachable memory to the bottom of the heap and freeable
-   * memory to the top of the heap. When we have shifted all
-   * the reachable memory to the top of the heap, we move the
-   * offset to the next free position.
-   */
-  compact(): void {
-    let compactedSize = 0;
-    let { handleTable, handleState, heap } = this;
-
-    for (let i = 0; i < length; i++) {
-      let offset = unwrap(handleTable[i]);
-      let size = unwrap(handleTable[i + 1]) - unwrap(offset);
-      let state = handleState[i];
-
-      if (state === TableSlotState.Purged) {
-        continue;
-      } else if (state === TableSlotState.Freed) {
-        // transition to "already freed" aka "purged"
-        // a good improvement would be to reuse
-        // these slots
-        handleState[i] = TableSlotState.Purged;
-        compactedSize += size;
-      } else if (state === TableSlotState.Allocated) {
-        for (let j = offset; j <= i + size; j++) {
-          heap[j - compactedSize] = unwrap(heap[j]);
-        }
-
-        handleTable[i] = offset - compactedSize;
-      } else if (state === TableSlotState.Pointer) {
-        handleTable[i] = offset - compactedSize;
-      }
-    }
-
-    this.offset = this.offset - compactedSize;
-  }
-
-  capture(offset = this.offset): SerializedHeap {
-    // Only called in eager mode
-    let buffer = slice(this.heap, 0, offset).buffer;
-    return {
-      handle: this.handle,
-      table: this.handleTable,
-      buffer: buffer as ArrayBuffer,
-    };
+    this.#handleState[handle] = TableSlotState.Freed;
   }
 }
 
 export class RuntimeProgramImpl implements RuntimeProgram {
   [key: number]: never;
 
-  private _opcode: RuntimeOpImpl;
+  readonly #opcode: RuntimeOpImpl;
 
   constructor(
     public constants: RuntimeConstants & ResolutionTimeConstants,
     public heap: RuntimeHeap
   ) {
-    this._opcode = new RuntimeOpImpl(this.heap);
+    this.#opcode = new RuntimeOpImpl(this.heap);
   }
 
   opcode(offset: number): RuntimeOpImpl {
-    this._opcode.offset = offset;
-    return this._opcode;
+    this.#opcode.offset = offset;
+    return this.#opcode;
   }
-}
-
-function slice(arr: Int32Array, start: number, end: number): Int32Array {
-  if (arr.slice !== undefined) {
-    return arr.slice(start, end);
-  }
-
-  let ret = new Int32Array(end);
-
-  for (; start < end; start++) {
-    ret[start] = unwrap(arr[start]);
-  }
-
-  return ret;
 }
 
 function sizeof(table: number[], handle: number) {

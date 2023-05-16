@@ -34,7 +34,7 @@ import type {
   WithDynamicTagName,
   WithElementHook,
   WithUpdateHook,
-} from "@glimmer/interfaces";
+} from '@glimmer/interfaces';
 import { managerHasCapability } from '@glimmer/manager';
 import { isConstRef, type Reference, valueForRef } from '@glimmer/reference';
 import {
@@ -772,10 +772,10 @@ APPEND_OPCODES.add(Op.VirtualRootScope, (vm, { op1: _state }) => {
   vm.pushRootScope(table.symbols.length + 1, owner);
 });
 
-APPEND_OPCODES.add(Op.SetupForEval, (vm, { op1: _state }) => {
+APPEND_OPCODES.add(Op.SetupForDebug, (vm, { op1: _state }) => {
   let state = check(vm.fetchValue(_state), CheckFinishedComponentInstance);
 
-  if (state.table.hasEval) {
+  if (state.table.hasDebug) {
     let lookup = (state.lookup = dict<ScopeSlot>());
     vm.scope().bindEvalScope(lookup);
   }

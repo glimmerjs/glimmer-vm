@@ -54,10 +54,14 @@ function tagForPositionalArg(positionalArgs: CapturedPositionalArguments, key: s
 class NamedArgsProxy implements ProxyHandler<{}> {
   declare set?: (target: {}, prop: string | number | symbol) => boolean;
 
-  constructor(private named: CapturedNamedArguments) {}
+  readonly #named: CapturedNamedArguments;
+
+  constructor(named: CapturedNamedArguments) {
+    this.#named = named;
+  }
 
   get(_target: {}, prop: string | number | symbol) {
-    const ref = this.named[prop as string];
+    const ref = this.#named[prop as string];
 
     if (ref !== undefined) {
       return valueForRef(ref);
@@ -65,11 +69,11 @@ class NamedArgsProxy implements ProxyHandler<{}> {
   }
 
   has(_target: {}, prop: string | number | symbol) {
-    return prop in this.named;
+    return prop in this.#named;
   }
 
   ownKeys() {
-    return Object.keys(this.named);
+    return Object.keys(this.#named);
   }
 
   isExtensible() {
@@ -77,7 +81,7 @@ class NamedArgsProxy implements ProxyHandler<{}> {
   }
 
   getOwnPropertyDescriptor(_target: {}, prop: string | number | symbol) {
-    if (import.meta.env.DEV && !(prop in this.named)) {
+    if (import.meta.env.DEV && !(prop in this.#named)) {
       throw new Error(
         `args proxies do not have real property descriptors, so you should never need to call getOwnPropertyDescriptor yourself. This code exists for enumerability, such as in for-in loops and Object.keys(). Attempted to get the descriptor for \`${String(
           prop
@@ -95,11 +99,14 @@ class NamedArgsProxy implements ProxyHandler<{}> {
 class PositionalArgsProxy implements ProxyHandler<[]> {
   declare set?: (target: [], prop: string | number | symbol) => boolean;
   declare ownKeys?: (target: []) => string[];
+  #positional: CapturedPositionalArguments;
 
-  constructor(private positional: CapturedPositionalArguments) {}
+  constructor(positional: CapturedPositionalArguments) {
+    this.#positional = positional;
+  }
 
   get(target: [], prop: string | number | symbol) {
-    let { positional } = this;
+    const positional = this.#positional;
 
     if (prop === 'length') {
       return positional.length;
@@ -121,7 +128,7 @@ class PositionalArgsProxy implements ProxyHandler<[]> {
   has(_target: [], prop: string | number | symbol) {
     const parsed = convertToInt(prop);
 
-    return parsed !== null && parsed < this.positional.length;
+    return parsed !== null && parsed < this.#positional.length;
   }
 }
 

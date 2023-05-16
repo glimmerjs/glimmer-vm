@@ -1220,21 +1220,6 @@ if (import.meta.env.DEV) {
     check: true,
   };
 
-  METADATA[Op.SetupForEval] = {
-    name: 'SetupForEval',
-    mnemonic: 'eval_setup',
-    before: null,
-    stackChange: 0,
-    ops: [
-      {
-        name: 'state',
-        type: 'register',
-      },
-    ],
-    operands: 1,
-    check: true,
-  };
-
   METADATA[Op.PopulateLayout] = {
     name: 'PopulateLayout',
     mnemonic: 'comp_layoutput',
@@ -1309,21 +1294,6 @@ if (import.meta.env.DEV) {
       {
         name: 'state',
         type: 'register',
-      },
-    ],
-    operands: 1,
-    check: true,
-  };
-
-  METADATA[Op.ResolveMaybeLocal] = {
-    name: 'ResolveMaybeLocal',
-    mnemonic: 'eval_varload',
-    before: null,
-    stackChange: 1,
-    ops: [
-      {
-        name: 'local',
-        type: 'str',
       },
     ],
     operands: 1,

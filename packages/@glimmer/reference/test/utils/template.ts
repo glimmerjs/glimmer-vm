@@ -3,9 +3,12 @@ import type { IteratorDelegate } from '@glimmer/reference';
 import objectValues from './platform';
 
 abstract class BoundedIterator implements IteratorDelegate {
-  private position = 0;
+  #position = 0;
+  readonly #length: number;
 
-  constructor(private length: number) {}
+  constructor(length: number) {
+    this.#length = length;
+  }
 
   isEmpty(): false {
     return false;
@@ -18,16 +21,16 @@ abstract class BoundedIterator implements IteratorDelegate {
   }
 
   next() {
-    let { length, position } = this;
+    const position = this.#position;
 
-    if (position >= length) {
+    if (position >= this.#length) {
       return null;
     }
 
     let value = this.valueFor(position);
     let memo = this.memoFor(position);
 
-    this.position++;
+    this.#position++;
 
     return { value, memo };
   }
@@ -45,16 +48,21 @@ class ObjectIterator extends BoundedIterator {
     return new this(keys, values);
   }
 
-  constructor(private keys: unknown[], private values: unknown[]) {
+  readonly #keys: unknown[];
+  readonly #values: unknown[];
+
+  constructor(keys: unknown[], values: unknown[]) {
     super(values.length);
+    this.#keys = keys;
+    this.#values = values;
   }
 
   valueFor(position: number): unknown {
-    return this.values[position];
+    return this.#values[position];
   }
 
   override memoFor(position: number): unknown {
-    return this.keys[position];
+    return this.#keys[position];
   }
 }
 

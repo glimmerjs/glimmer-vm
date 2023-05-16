@@ -36,7 +36,7 @@ export interface DebugConstants {
 }
 
 export function debugSlice(context: TemplateCompilationContext, start: number, end: number) {
-  if (LOCAL_SHOULD_LOG) {
+  if (import.meta.env.DEV && LOCAL_SHOULD_LOG) {
     LOCAL_LOGGER.group(`%c${start}:${end}`, 'color: #999');
 
     let heap = context.program.heap;

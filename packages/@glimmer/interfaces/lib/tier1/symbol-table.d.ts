@@ -1,6 +1,6 @@
 export interface ProgramSymbolTable {
-  hasEval: boolean;
-  symbols: string[];
+  readonly hasDebug: boolean;
+  readonly symbols: string[];
 }
 
 export interface BlockSymbolTable {

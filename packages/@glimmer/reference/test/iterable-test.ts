@@ -14,21 +14,21 @@ import { TestContext } from './utils/template';
 import { unwrap } from '@glimmer/util';
 
 class IterableWrapper {
-  private iterable: Reference<{ next(): OpaqueIterationItem | null }>;
+  readonly #iterable: Reference<{ next(): OpaqueIterationItem | null }>;
 
   constructor(obj: unknown, key = '@identity') {
     let valueRef = createComputeRef(() => {
       consumeTag(VOLATILE_TAG);
       return obj;
     });
-    this.iterable = createIteratorRef(valueRef, key);
+    this.#iterable = createIteratorRef(valueRef, key);
   }
 
-  private iterate() {
+  #iterate() {
     let result: OpaqueIterationItem[] = [];
 
     // bootstrap
-    let iterator = valueForRef(this.iterable);
+    let iterator = valueForRef(this.#iterable);
     let item = iterator.next();
 
     while (item !== null) {
@@ -40,11 +40,11 @@ class IterableWrapper {
   }
 
   toValues() {
-    return this.iterate().map((i) => i.value);
+    return this.#iterate().map((i) => i.value);
   }
 
   toKeys() {
-    return this.iterate().map((i) => i.key);
+    return this.#iterate().map((i) => i.key);
   }
 }
 

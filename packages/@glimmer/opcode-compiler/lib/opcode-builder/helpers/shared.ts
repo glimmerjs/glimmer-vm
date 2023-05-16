@@ -4,7 +4,7 @@ import type {
   NamedBlocks,
   Nullable,
   WireFormat,
-} from "@glimmer/interfaces";
+} from '@glimmer/interfaces';
 import { EMPTY_ARRAY, EMPTY_STRING_ARRAY } from '@glimmer/util';
 import { Op } from '@glimmer/vm';
 
@@ -120,7 +120,7 @@ export function meta(layout: LayoutWithContext): ContainingMetadata {
 
 export function evalSymbols(layout: LayoutWithContext): Nullable<string[]> {
   let { block } = layout;
-  let [, symbols, hasEval] = block;
+  let [, symbols, hasDebug] = block;
 
-  return hasEval ? symbols : null;
+  return hasDebug ? symbols : null;
 }

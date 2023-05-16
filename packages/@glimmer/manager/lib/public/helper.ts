@@ -9,7 +9,7 @@ import type {
   HelperManagerWithValue,
   InternalHelperManager,
   Owner,
-} from "@glimmer/interfaces";
+} from '@glimmer/interfaces';
 import { createComputeRef, createConstRef, UNDEFINED_REFERENCE } from '@glimmer/reference';
 
 import { argsProxyFor } from '../util/args-proxy';
@@ -64,17 +64,23 @@ export function hasDestroyable(
 ////////////
 
 export class CustomHelperManager<O extends Owner = Owner> implements InternalHelperManager<O> {
-  constructor(private factory: ManagerFactory<O | undefined, HelperManager<unknown>>) {}
+  readonly #factory: ManagerFactory<O | undefined, HelperManager<unknown>>;
+  constructor(factory: ManagerFactory<O | undefined, HelperManager<unknown>>) {
+    this.#factory = factory;
+  }
 
-  private helperManagerDelegates = new WeakMap<O, HelperManager<unknown>>();
-  private undefinedDelegate: HelperManager<unknown> | null = null;
+  readonly #helperManagerDelegates = new WeakMap<O, HelperManager<unknown>>();
+  #undefinedDelegate: HelperManager<unknown> | null = null;
 
-  private getDelegateForOwner(owner: O) {
-    let delegate = this.helperManagerDelegates.get(owner);
+  get factory() {
+    return this.#factory;
+  }
+
+  #getDelegateForOwner(owner: O) {
+    let delegate = this.#helperManagerDelegates.get(owner);
 
     if (delegate === undefined) {
-      let { factory } = this;
-      delegate = factory(owner);
+      delegate = this.#factory(owner);
 
       if (import.meta.env.DEV && !FROM_CAPABILITIES!.has(delegate.capabilities)) {
         // TODO: This error message should make sense in both Ember and Glimmer https://github.com/glimmerjs/glimmer-vm/issues/1200
@@ -85,7 +91,7 @@ export class CustomHelperManager<O extends Owner = Owner> implements InternalHel
         );
       }
 
-      this.helperManagerDelegates.set(owner, delegate);
+      this.#helperManagerDelegates.set(owner, delegate);
     }
 
     return delegate;
@@ -93,16 +99,13 @@ export class CustomHelperManager<O extends Owner = Owner> implements InternalHel
 
   getDelegateFor(owner: O | undefined) {
     if (owner === undefined) {
-      let { undefinedDelegate } = this;
-
-      if (undefinedDelegate === null) {
-        let { factory } = this;
-        this.undefinedDelegate = undefinedDelegate = factory(undefined);
+      if (this.#undefinedDelegate === null) {
+        this.#undefinedDelegate = this.#factory(undefined);
       }
 
-      return undefinedDelegate;
+      return this.#undefinedDelegate;
     } else {
-      return this.getDelegateForOwner(owner);
+      return this.#getDelegateForOwner(owner);
     }
   }
 

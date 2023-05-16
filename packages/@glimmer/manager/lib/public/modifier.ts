@@ -67,12 +67,19 @@ export interface CustomModifierState<ModifierInstance> {
 export class CustomModifierManager<O extends Owner, ModifierInstance>
   implements InternalModifierManager<CustomModifierState<ModifierInstance>>
 {
-  private componentManagerDelegates = new WeakMap<O, ModifierManager<ModifierInstance>>();
+  readonly #componentManagerDelegates = new WeakMap<O, ModifierManager<ModifierInstance>>();
+  readonly #factory: ManagerFactory<O, ModifierManager<ModifierInstance>>;
+  constructor(factory: ManagerFactory<O, ModifierManager<ModifierInstance>>) {
+    this.#factory = factory;
+  }
 
-  constructor(private factory: ManagerFactory<O, ModifierManager<ModifierInstance>>) {}
+  get factory() {
+    return this.#factory;
+  }
 
-  private getDelegateFor(owner: O) {
-    let { componentManagerDelegates } = this;
+  #getDelegateFor(owner: O) {
+    const componentManagerDelegates = this.#componentManagerDelegates;
+
     let delegate = componentManagerDelegates.get(owner);
 
     if (delegate === undefined) {
@@ -95,7 +102,7 @@ export class CustomModifierManager<O extends Owner, ModifierInstance>
   }
 
   create(owner: O, element: SimpleElement, definition: object, capturedArgs: CapturedArguments) {
-    let delegate = this.getDelegateFor(owner);
+    let delegate = this.#getDelegateFor(owner);
 
     let args = argsProxyFor(capturedArgs, 'modifier');
     let instance: ModifierInstance = delegate.createModifier(definition, args);

@@ -50,7 +50,7 @@ module('Managers', () => {
 
       assert.ok(instance instanceof CustomComponentManager, 'internal manager is a custom manager');
       assert.strictEqual(
-        instance['factory'],
+        instance.factory,
         factory,
         'delegate is an instance of the custom manager'
       );
@@ -175,7 +175,7 @@ module('Managers', () => {
         'function',
         'manager can generate helper function'
       );
-      assert.strictEqual(instance['factory'], factory, 'manager has correct delegate factory');
+      assert.strictEqual(instance.factory, factory, 'manager has correct delegate factory');
     });
 
     test('it determines the default manager', (assert) => {
@@ -189,7 +189,7 @@ module('Managers', () => {
         'manager can generate helper function'
       );
       assert.strictEqual(
-        instance['factory']({})?.getDebugName?.(myTestHelper),
+        instance.factory({})?.getDebugName?.(myTestHelper),
         '(helper function myTestHelper)'
       );
     });

@@ -102,10 +102,12 @@ export class EnvironmentImpl implements Environment {
   public isInteractive: boolean;
 
   debugRenderTree: DebugRenderTree<object> | undefined;
+  readonly #delegate: EnvironmentDelegate;
 
-  constructor(options: EnvironmentOptions, private delegate: EnvironmentDelegate) {
+  constructor(options: EnvironmentOptions, delegate: EnvironmentDelegate) {
+    this.#delegate = delegate;
     this.isInteractive = delegate.isInteractive;
-    this.debugRenderTree = this.delegate.enableDebugTooling ? new DebugRenderTree() : undefined;
+    this.debugRenderTree = this.#delegate.enableDebugTooling ? new DebugRenderTree() : undefined;
     if (options.appendOperations) {
       this.appendOperations = options.appendOperations;
       this.updateOperations = options.updateOperations;
@@ -139,6 +141,7 @@ export class EnvironmentImpl implements Environment {
     this[TRANSACTION] = new TransactionImpl();
   }
 
+  // FIXME: This is used for stubbing in env-test
   private get transaction(): TransactionImpl {
     return expect(this[TRANSACTION]!, 'must be in a transaction');
   }
@@ -170,7 +173,7 @@ export class EnvironmentImpl implements Environment {
 
     this.debugRenderTree?.commit();
 
-    this.delegate.onTransactionCommit();
+    this.#delegate.onTransactionCommit();
   }
 }
 

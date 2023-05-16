@@ -15,7 +15,7 @@ import type {
   Scope,
   ScopeBlock,
   VMArguments,
-} from "@glimmer/interfaces";
+} from '@glimmer/interfaces';
 import {
   createDebugAliasRef,
   type Reference,

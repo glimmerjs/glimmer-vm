@@ -15,7 +15,7 @@ import type {
   Nullable,
   Owner,
   VMArguments,
-} from "@glimmer/interfaces";
+} from '@glimmer/interfaces';
 import { createConstRef, type Reference } from '@glimmer/reference';
 
 import { argsProxyFor } from '../util/args-proxy';
@@ -107,17 +107,23 @@ export function hasDestructors<ComponentInstance>(
 export class CustomComponentManager<O extends Owner, ComponentInstance>
   implements InternalComponentManager<CustomComponentState<ComponentInstance>>
 {
-  private componentManagerDelegates = new WeakMap<O, ComponentManager<ComponentInstance>>();
+  readonly #componentManagerDelegates = new WeakMap<O, ComponentManager<ComponentInstance>>();
+  readonly #factory: ManagerFactory<O, ComponentManager<ComponentInstance>>;
 
-  constructor(private factory: ManagerFactory<O, ComponentManager<ComponentInstance>>) {}
+  constructor(factory: ManagerFactory<O, ComponentManager<ComponentInstance>>) {
+    this.#factory = factory;
+  }
 
-  private getDelegateFor(owner: O) {
-    let { componentManagerDelegates } = this;
+  get factory() {
+    return this.#factory;
+  }
+
+  #getDelegateFor(owner: O) {
+    let componentManagerDelegates = this.#componentManagerDelegates;
     let delegate = componentManagerDelegates.get(owner);
 
     if (delegate === undefined) {
-      let { factory } = this;
-      delegate = factory(owner);
+      delegate = this.#factory(owner);
 
       if (import.meta.env.DEV && !FROM_CAPABILITIES!.has(delegate.capabilities)) {
         // TODO: This error message should make sense in both Ember and Glimmer https://github.com/glimmerjs/glimmer-vm/issues/1200
@@ -139,7 +145,7 @@ export class CustomComponentManager<O extends Owner, ComponentInstance>
     definition: ComponentDefinitionState,
     vmArgs: VMArguments
   ): CustomComponentState<ComponentInstance> {
-    let delegate = this.getDelegateFor(owner);
+    let delegate = this.#getDelegateFor(owner);
     let args = argsProxyFor(vmArgs.capture(), 'component');
 
     let component: ComponentInstance = delegate.createComponent(definition, args);

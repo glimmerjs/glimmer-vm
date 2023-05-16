@@ -15,7 +15,7 @@ import type {
   Statement,
   SymbolTable,
   WireFormat,
-} from "@glimmer/interfaces";
+} from '@glimmer/interfaces';
 import { LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
 import { EMPTY_ARRAY } from '@glimmer/util';
 
@@ -47,13 +47,13 @@ class CompilableTemplateImpl<S extends SymbolTable> implements CompilableTemplat
 }
 
 export function compilable(layout: LayoutWithContext, moduleName: string): CompilableProgram {
-  let [statements, symbols, hasEval] = layout.block;
+  let [statements, symbols, hasDebug] = layout.block;
   return new CompilableTemplateImpl(
     statements,
     meta(layout),
     {
       symbols,
-      hasEval,
+      hasDebug,
     },
     moduleName
   );
@@ -98,7 +98,7 @@ export function compileStatements(
 
   let handle = context.encoder.commit(meta.size);
 
-  if (LOCAL_SHOULD_LOG) {
+  if (import.meta.env.DEV && LOCAL_SHOULD_LOG) {
     debugCompiler(context, handle);
   }
 

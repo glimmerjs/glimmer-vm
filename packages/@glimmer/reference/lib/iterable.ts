@@ -1,5 +1,5 @@
 import { getPath, toIterator } from '@glimmer/global-context';
-import type { Dict, Nullable } from "@glimmer/interfaces";
+import type { Dict, Nullable } from '@glimmer/interfaces';
 import { EMPTY_ARRAY, isObject } from '@glimmer/util';
 import { consumeTag, createTag, dirtyTag } from '@glimmer/validator';
 
@@ -71,39 +71,27 @@ function makeKeyFor(key: string) {
 }
 
 class WeakMapWithPrimitives<T> {
-  private _weakMap?: WeakMap<object, T>;
-  private _primitiveMap?: Map<unknown, T>;
+  #lazyWeakMap?: WeakMap<object, T>;
+  #lazyPrimitiveMap?: Map<unknown, T>;
 
-  private get weakMap() {
-    if (this._weakMap === undefined) {
-      this._weakMap = new WeakMap();
-    }
-
-    return this._weakMap;
+  get #weakMap() {
+    return (this.#lazyWeakMap ??= new WeakMap());
   }
 
-  private get primitiveMap() {
-    if (this._primitiveMap === undefined) {
-      this._primitiveMap = new Map();
-    }
-
-    return this._primitiveMap;
+  get #primitiveMap() {
+    return (this.#lazyPrimitiveMap ??= new Map());
   }
 
   set(key: unknown, value: T) {
     if (isObject(key)) {
-      this.weakMap.set(key, value);
+      this.#weakMap.set(key, value);
     } else {
-      this.primitiveMap.set(key, value);
+      this.#primitiveMap.set(key, value);
     }
   }
 
   get(key: unknown): T | undefined {
-    if (isObject(key)) {
-      return this.weakMap.get(key);
-    } else {
-      return this.primitiveMap.get(key);
-    }
+    return isObject(key) ? this.#weakMap.get(key) : this.#primitiveMap.get(key);
   }
 }
 
@@ -198,56 +186,67 @@ export function createIteratorItemRef(_value: unknown) {
 }
 
 class IteratorWrapper implements OpaqueIterator {
-  constructor(private inner: IteratorDelegate, private keyFor: KeyFor) {}
+  readonly #inner: IteratorDelegate;
+  readonly #keyFor: KeyFor;
+
+  constructor(inner: IteratorDelegate, keyFor: KeyFor) {
+    this.#inner = inner;
+    this.#keyFor = keyFor;
+  }
 
   isEmpty() {
-    return this.inner.isEmpty();
+    return this.#inner.isEmpty();
   }
 
   next() {
-    let nextValue = this.inner.next() as OpaqueIterationItem;
+    let nextValue = this.#inner.next() as OpaqueIterationItem;
 
     if (nextValue !== null) {
-      nextValue.key = this.keyFor(nextValue.value, nextValue.memo);
+      nextValue.key = this.#keyFor(nextValue.value, nextValue.memo);
     }
 
     return nextValue;
   }
 }
 
-class ArrayIterator implements OpaqueIterator {
-  private current: { kind: 'empty' } | { kind: 'first'; value: unknown } | { kind: 'progress' };
-  private pos = 0;
+const EMPTY = ['empty'] as const;
+const PROGRESS = ['progress'] as const;
 
-  constructor(private iterator: unknown[] | readonly unknown[], private keyFor: KeyFor) {
+class ArrayIterator implements OpaqueIterator {
+  readonly #iterator: unknown[] | readonly unknown[];
+  readonly #keyFor: KeyFor;
+  #current: readonly ['empty'] | readonly ['progress'] | readonly [kind: 'first', value: unknown];
+  #pos = 0;
+
+  constructor(iterator: unknown[] | readonly unknown[], keyFor: KeyFor) {
+    this.#iterator = iterator;
+    this.#keyFor = keyFor;
     if (iterator.length === 0) {
-      this.current = { kind: 'empty' };
+      this.#current = EMPTY;
     } else {
-      this.current = { kind: 'first', value: iterator[this.pos] };
+      this.#current = ['first', iterator[this.#pos]];
     }
   }
 
   isEmpty(): boolean {
-    return this.current.kind === 'empty';
+    return this.#current === EMPTY;
   }
 
   next(): Nullable<IterationItem<unknown, number>> {
     let value: unknown;
 
-    let current = this.current;
-    if (current.kind === 'first') {
-      this.current = { kind: 'progress' };
-      value = current.value;
-    } else if (this.pos >= this.iterator.length - 1) {
+    let current = this.#current;
+    if (current[0] === 'first') {
+      this.#current = PROGRESS;
+      value = current[1];
+    } else if (this.#pos >= this.#iterator.length - 1) {
       return null;
     } else {
-      value = this.iterator[++this.pos];
+      value = this.#iterator[++this.#pos];
     }
 
-    let { keyFor } = this;
-
-    let key = keyFor(value as Dict, this.pos);
-    let memo = this.pos;
+    let key = this.#keyFor(value as Dict, this.#pos);
+    let memo = this.#pos;
 
     return { key, value, memo };
   }
