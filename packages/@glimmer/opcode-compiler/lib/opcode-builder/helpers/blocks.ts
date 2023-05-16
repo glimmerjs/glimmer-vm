@@ -1,5 +1,21 @@
 import type { Nullable, WireFormat } from '@glimmer/interfaces';
-import { $fp, INVOKE_VIRTUAL_OP, Op, POP_FRAME_OP, PUSH_FRAME_OP } from '@glimmer/vm';
+import {
+  $fp,
+  CHILD_SCOPE_OP,
+  COMPILE_BLOCK_OP,
+  CONSTANT_OP,
+  DUP_OP,
+  GET_BLOCK_OP,
+  INVOKE_VIRTUAL_OP,
+  INVOKE_YIELD_OP,
+  POP_FRAME_OP,
+  POP_SCOPE_OP,
+  PUSH_BLOCK_SCOPE_OP,
+  PUSH_FRAME_OP,
+  PUSH_SYMBOL_TABLE_OP,
+  SET_VARIABLE_OP,
+  SPREAD_BLOCK_OP,
+} from '@glimmer/vm';
 
 import type { PushExpressionOp, PushStatementOp } from '../../syntax/compilers';
 import { blockOperand, symbolTableOperand } from '../operands';
@@ -18,11 +34,11 @@ export function YieldBlock(
   positional: Nullable<WireFormat.Core.Params>
 ): void {
   SimpleArgs(op, positional, null, true);
-  op(Op.GetBlock, to);
-  op(Op.SpreadBlock);
-  op(Op.CompileBlock);
-  op(Op.InvokeYield);
-  op(Op.PopScope);
+  op(GET_BLOCK_OP, to);
+  op(SPREAD_BLOCK_OP);
+  op(COMPILE_BLOCK_OP);
+  op(INVOKE_YIELD_OP);
+  op(POP_SCOPE_OP);
   op(POP_FRAME_OP);
 }
 
@@ -37,7 +53,7 @@ export function PushYieldableBlock(
   block: Nullable<WireFormat.SerializedInlineBlock>
 ): void {
   PushSymbolTable(op, block && block[1]);
-  op(Op.PushBlockScope);
+  op(PUSH_BLOCK_SCOPE_OP);
   PushCompilable(op, block);
 }
 
@@ -52,7 +68,7 @@ export function InvokeStaticBlock(
 ): void {
   op(PUSH_FRAME_OP);
   PushCompilable(op, block);
-  op(Op.CompileBlock);
+  op(COMPILE_BLOCK_OP);
   op(INVOKE_VIRTUAL_OP);
   op(POP_FRAME_OP);
 }
@@ -81,20 +97,20 @@ export function InvokeStaticBlockWithStack(
   op(PUSH_FRAME_OP);
 
   if (count) {
-    op(Op.ChildScope);
+    op(CHILD_SCOPE_OP);
 
     for (let i = 0; i < count; i++) {
-      op(Op.Dup, $fp, callerCount - i);
-      op(Op.SetVariable, parameters[i]);
+      op(DUP_OP, $fp, callerCount - i);
+      op(SET_VARIABLE_OP, parameters[i]);
     }
   }
 
   PushCompilable(op, block);
-  op(Op.CompileBlock);
+  op(COMPILE_BLOCK_OP);
   op(INVOKE_VIRTUAL_OP);
 
   if (count) {
-    op(Op.PopScope);
+    op(POP_SCOPE_OP);
   }
 
   op(POP_FRAME_OP);
@@ -102,7 +118,7 @@ export function InvokeStaticBlockWithStack(
 
 export function PushSymbolTable(op: PushExpressionOp, parameters: number[] | null): void {
   if (parameters !== null) {
-    op(Op.PushSymbolTable, symbolTableOperand({ parameters }));
+    op(PUSH_SYMBOL_TABLE_OP, symbolTableOperand({ parameters }));
   } else {
     PushPrimitive(op, null);
   }
@@ -115,6 +131,6 @@ export function PushCompilable(
   if (_block === null) {
     PushPrimitive(op, null);
   } else {
-    op(Op.Constant, blockOperand(_block));
+    op(CONSTANT_OP, blockOperand(_block));
   }
 }

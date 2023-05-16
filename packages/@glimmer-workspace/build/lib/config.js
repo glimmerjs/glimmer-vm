@@ -209,10 +209,10 @@ function matchExternalsConfig(id, externalsConfig) {
  */
 function matchExternalsEntry(id, kind, config) {
   if (config !== undefined) {
-    // console.dir({ verifying: { id, externalsConfig } }, { depth: null });
     for (const entry of entries(config)) {
       if (entry === undefined) continue;
       let [operator, patterns] = entry;
+
       let result = match(id, operator, normalizeExternalsSpecifier(patterns));
 
       if (result) {

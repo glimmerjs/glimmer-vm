@@ -30,20 +30,8 @@ import {
 } from '@glimmer/reference';
 import { assert, expect, LOCAL_LOGGER, reverse, Stack, unwrap, unwrapHandle } from '@glimmer/util';
 import { beginTrackFrame, endTrackFrame, resetTracking } from '@glimmer/validator';
-import {
-  $fp,
-  $pc,
-  $s0,
-  $s1,
-  $sp,
-  $t0,
-  $t1,
-  $v0,
-  isLowLevelRegister,
-  type MachineRegister,
-  type Register,
-  type SyscallRegister,
-} from '@glimmer/vm';
+import { $fp, $pc, $s0, $s1, $sp, $t0, $t1, $v0, isLowLevelRegister } from '@glimmer/vm';
+import type { $ra, MachineRegister, Register, SyscallRegister } from '@glimmer/vm';
 
 import {
   BeginTrackFrameOpcode,
@@ -85,7 +73,7 @@ export interface InternalVM {
   loadValue(register: Register, value: unknown): void;
   loadValue(register: Register | MachineRegister, value: unknown): void;
 
-  fetchValue(register: MachineRegister.ra | MachineRegister.pc): number;
+  fetchValue(register: $ra | $pc): number;
   // TODO: Something better than a type assertion?
   fetchValue<T>(register: Register): T;
   fetchValue(register: Register): unknown;

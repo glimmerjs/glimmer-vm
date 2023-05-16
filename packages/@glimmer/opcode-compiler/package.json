@@ -38,6 +38,11 @@
       "presets": [
         "workspace:recommended"
       ],
+      "external": {
+        "is": [
+          "@glimmer/owner"
+        ]
+      },
       "inline": {
         "is": [
           "@glimmer/*"

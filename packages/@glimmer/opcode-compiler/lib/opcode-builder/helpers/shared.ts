@@ -6,11 +6,11 @@ import type {
   WireFormat,
 } from '@glimmer/interfaces';
 import { EMPTY_ARRAY, EMPTY_STRING_ARRAY } from '@glimmer/util';
-import { Op } from '@glimmer/vm';
 
 import type { PushExpressionOp, PushStatementOp } from '../../syntax/compilers';
 import { PushYieldableBlock } from './blocks';
 import { expr } from './expr';
+import { PUSH_ARGS_OP, PUSH_EMPTY_ARGS_OP } from '@glimmer/vm';
 
 /**
  * Compile arguments, pushing an Arguments object onto the stack.
@@ -52,7 +52,7 @@ export function CompileArgs(
     }
   }
 
-  op(Op.PushArgs, names as string[], blockNames, flags);
+  op(PUSH_ARGS_OP, names as string[], blockNames, flags);
 }
 
 export function SimpleArgs(
@@ -62,7 +62,7 @@ export function SimpleArgs(
   atNames: boolean
 ): void {
   if (positional === null && named === null) {
-    op(Op.PushEmptyArgs);
+    op(PUSH_EMPTY_ARGS_OP);
     return;
   }
 
@@ -82,7 +82,7 @@ export function SimpleArgs(
     }
   }
 
-  op(Op.PushArgs, names, EMPTY_STRING_ARRAY, flags);
+  op(PUSH_ARGS_OP, names, EMPTY_STRING_ARRAY, flags);
 }
 
 /**

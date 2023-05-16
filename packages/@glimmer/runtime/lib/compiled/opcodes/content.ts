@@ -8,7 +8,16 @@ import {
 import { hasInternalComponentManager, hasInternalHelperManager } from '@glimmer/manager';
 import { isConstRef, valueForRef } from '@glimmer/reference';
 import { isObject } from '@glimmer/util';
-import { ContentType, CurriedType, Op } from '@glimmer/vm';
+import {
+  APPEND_DOCUMENT_FRAGMENT_OP,
+  APPEND_HTML_OP,
+  APPEND_NODE_OP,
+  APPEND_SAFE_HTML_OP,
+  APPEND_TEXT_OP,
+  CONTENT_TYPE_OP,
+  ContentType,
+  DYNAMIC_CONTENT_TYPE_OP,
+ CURRIED_COMPONENT, CURRIED_HELPER } from '@glimmer/vm';
 
 import { isCurriedType } from '../../curried-value';
 import { isEmpty, isFragment, isNode, isSafeString, shouldCoerce } from '../../dom/normalize';
@@ -21,14 +30,11 @@ function toContentType(value: unknown) {
   if (shouldCoerce(value)) {
     return ContentType.String;
   } else if (
-    isCurriedType(value, CurriedType.Component) ||
+    isCurriedType(value, CURRIED_COMPONENT) ||
     hasInternalComponentManager(value as object)
   ) {
     return ContentType.Component;
-  } else if (
-    isCurriedType(value, CurriedType.Helper) ||
-    hasInternalHelperManager(value as object)
-  ) {
+  } else if (isCurriedType(value, CURRIED_HELPER) || hasInternalHelperManager(value as object)) {
     return ContentType.Helper;
   } else if (isSafeString(value)) {
     return ContentType.SafeString;
@@ -46,12 +52,12 @@ function toDynamicContentType(value: unknown) {
     return ContentType.String;
   }
 
-  if (isCurriedType(value, CurriedType.Component) || hasInternalComponentManager(value)) {
+  if (isCurriedType(value, CURRIED_COMPONENT) || hasInternalComponentManager(value)) {
     return ContentType.Component;
   } else {
     if (
       import.meta.env.DEV &&
-      !isCurriedType(value, CurriedType.Helper) &&
+      !isCurriedType(value, CURRIED_HELPER) &&
       !hasInternalHelperManager(value)
     ) {
       throw new Error(
@@ -63,7 +69,7 @@ function toDynamicContentType(value: unknown) {
   }
 }
 
-APPEND_OPCODES.add(Op.ContentType, (vm) => {
+APPEND_OPCODES.add(CONTENT_TYPE_OP, (vm) => {
   let reference = check(vm.stack.peek(), CheckReference);
 
   vm.stack.push(toContentType(valueForRef(reference)));
@@ -73,7 +79,7 @@ APPEND_OPCODES.add(Op.ContentType, (vm) => {
   }
 });
 
-APPEND_OPCODES.add(Op.DynamicContentType, (vm) => {
+APPEND_OPCODES.add(DYNAMIC_CONTENT_TYPE_OP, (vm) => {
   let reference = check(vm.stack.peek(), CheckReference);
 
   vm.stack.push(toDynamicContentType(valueForRef(reference)));
@@ -83,7 +89,7 @@ APPEND_OPCODES.add(Op.DynamicContentType, (vm) => {
   }
 });
 
-APPEND_OPCODES.add(Op.AppendHTML, (vm) => {
+APPEND_OPCODES.add(APPEND_HTML_OP, (vm) => {
   let reference = check(vm.stack.pop(), CheckReference);
 
   let rawValue = valueForRef(reference);
@@ -92,7 +98,7 @@ APPEND_OPCODES.add(Op.AppendHTML, (vm) => {
   vm.elements().appendDynamicHTML(value);
 });
 
-APPEND_OPCODES.add(Op.AppendSafeHTML, (vm) => {
+APPEND_OPCODES.add(APPEND_SAFE_HTML_OP, (vm) => {
   let reference = check(vm.stack.pop(), CheckReference);
 
   let rawValue = check(valueForRef(reference), CheckSafeString).toHTML();
@@ -101,7 +107,7 @@ APPEND_OPCODES.add(Op.AppendSafeHTML, (vm) => {
   vm.elements().appendDynamicHTML(value);
 });
 
-APPEND_OPCODES.add(Op.AppendText, (vm) => {
+APPEND_OPCODES.add(APPEND_TEXT_OP, (vm) => {
   let reference = check(vm.stack.pop(), CheckReference);
 
   let rawValue = valueForRef(reference);
@@ -114,7 +120,7 @@ APPEND_OPCODES.add(Op.AppendText, (vm) => {
   }
 });
 
-APPEND_OPCODES.add(Op.AppendDocumentFragment, (vm) => {
+APPEND_OPCODES.add(APPEND_DOCUMENT_FRAGMENT_OP, (vm) => {
   let reference = check(vm.stack.pop(), CheckReference);
 
   let value = check(valueForRef(reference), CheckDocumentFragment);
@@ -122,7 +128,7 @@ APPEND_OPCODES.add(Op.AppendDocumentFragment, (vm) => {
   vm.elements().appendDynamicFragment(value);
 });
 
-APPEND_OPCODES.add(Op.AppendNode, (vm) => {
+APPEND_OPCODES.add(APPEND_NODE_OP, (vm) => {
   let reference = check(vm.stack.pop(), CheckReference);
 
   let value = check(valueForRef(reference), CheckNode);

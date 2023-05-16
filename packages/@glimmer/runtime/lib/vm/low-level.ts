@@ -3,18 +3,18 @@ import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
 import { assert } from '@glimmer/util';
 import {
   $fp,
-  $pc,
   $ra,
   $sp,
   PUSH_FRAME_OP,
-  type MachineRegister,
   POP_FRAME_OP,
   INVOKE_STATIC_OP,
   INVOKE_VIRTUAL_OP,
   JUMP_OP,
   RETURN_OP,
   RETURN_TO_OP,
+  $pc,
 } from '@glimmer/vm';
+import type { MachineRegister } from '@glimmer/vm';
 
 import { APPEND_OPCODES } from '../opcodes';
 import type { VM } from './append';
@@ -22,10 +22,10 @@ import { isMachine, opType, type RuntimeOpImpl } from '@glimmer/program';
 import { sizeof } from '@glimmer/program';
 
 export interface LowLevelRegisters {
-  [MachineRegister.pc]: number;
-  [MachineRegister.ra]: number;
-  [MachineRegister.sp]: number;
-  [MachineRegister.fp]: number;
+  [$pc]: number;
+  [$ra]: number;
+  [$sp]: number;
+  [$fp]: number;
 }
 
 export function initializeRegisters(): LowLevelRegisters {

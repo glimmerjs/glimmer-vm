@@ -26,7 +26,14 @@ import {
   isPresentArray,
   Stack,
 } from '@glimmer/util';
-import { ARG_SHIFT, isMachineOp, MACHINE_MASK, Op, RETURN_OP, TYPE_SIZE } from '@glimmer/vm';
+import {
+  ARG_SHIFT,
+  isMachineOp,
+  MACHINE_MASK,
+  PRIMITIVE_OP,
+  RETURN_OP,
+  TYPE_SIZE,
+} from '@glimmer/vm';
 
 import { compilableBlock } from '../compilable-template';
 import {
@@ -158,7 +165,7 @@ export class EncoderImpl implements Encoder {
   }
 
   error(error: EncoderError): void {
-    this.#encoder.encode(Op.Primitive, 0);
+    this.#encoder.encode(PRIMITIVE_OP, 0);
     this.#errors.push(error);
   }
 

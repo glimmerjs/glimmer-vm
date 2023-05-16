@@ -17,13 +17,6 @@ import {
 
 import { type DOMOperations, moveNodesBefore } from '../dom/operations';
 
-export enum InsertPosition {
-  beforebegin = 'beforebegin',
-  afterbegin = 'afterbegin',
-  beforeend = 'beforeend',
-  afterend = 'afterend',
-}
-
 // Patch:    insertAdjacentHTML on SVG Fix
 // Browsers: Safari, IE, Edge, Firefox ~33-34
 // Reason:   insertAdjacentHTML does not exist on SVG elements in Safari. It is

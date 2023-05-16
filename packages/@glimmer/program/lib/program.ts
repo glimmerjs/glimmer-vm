@@ -13,12 +13,10 @@ import { MACHINE_MASK } from '@glimmer/vm';
 
 import { RuntimeOpImpl } from './opcode';
 
-const enum TableSlotState {
-  Allocated,
-  Freed,
-  Purged,
-  Pointer,
-}
+const ALLOCATED_SLOT = 0;
+const FREED_SLOT = 1;
+
+type TableSlotState = 0 | 1;
 
 export type Placeholder = [number, () => number];
 export type StdlibPlaceholder = [number, StdLibOperand];
@@ -149,7 +147,7 @@ export class HeapImpl implements CompileTimeHeap, RuntimeHeap {
     // wrapped to prevent us from allocating extra space in prod. In the future,
     // if we start using the compact API, we should change this.
     if (import.meta.env.DEV && LOCAL_DEBUG) {
-      this.#handleState[handle] = TableSlotState.Allocated;
+      this.#handleState[handle] = ALLOCATED_SLOT;
     }
   }
 
@@ -165,7 +163,7 @@ export class HeapImpl implements CompileTimeHeap, RuntimeHeap {
   }
 
   free(handle: number): void {
-    this.#handleState[handle] = TableSlotState.Freed;
+    this.#handleState[handle] = FREED_SLOT;
   }
 }
 

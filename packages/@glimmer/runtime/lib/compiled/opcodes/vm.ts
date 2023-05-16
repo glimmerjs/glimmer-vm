@@ -33,7 +33,34 @@ import {
   validateTag,
   valueForTag,
 } from '@glimmer/validator';
-import { Op } from '@glimmer/vm';
+import {
+  ASSERT_SAME_OP,
+  BIND_DYNAMIC_SCOPE_OP,
+  CHILD_SCOPE_OP,
+  COMPILE_BLOCK_OP,
+  CONSTANT_OP,
+  CONSTANT_REFERENCE_OP,
+  DUP_OP,
+  ENTER_OP,
+  EXIT_OP,
+  FETCH_OP,
+  INVOKE_YIELD_OP,
+  JUMP_EQ_OP,
+  JUMP_IF_OP,
+  JUMP_UNLESS_OP,
+  LOAD_OP,
+  POP_DYNAMIC_SCOPE_OP,
+  POP_OP,
+  POP_SCOPE_OP,
+  PRIMITIVE_OP,
+  PRIMITIVE_REFERENCE_OP,
+  PUSH_BLOCK_SCOPE_OP,
+  PUSH_DYNAMIC_SCOPE_OP,
+  PUSH_SYMBOL_TABLE_OP,
+  TO_BOOLEAN_OP,
+  type MachineRegister,
+  type Register,
+} from '@glimmer/vm';
 
 import { APPEND_OPCODES } from '../../opcodes';
 import { CONSTANTS } from '../../symbols';
@@ -42,23 +69,23 @@ import { VMArgumentsImpl } from '../../vm/arguments';
 import { CheckReference, CheckScope } from './-debug-strip';
 import { stackAssert } from './assert';
 
-APPEND_OPCODES.add(Op.ChildScope, (vm) => vm.pushChildScope());
+APPEND_OPCODES.add(CHILD_SCOPE_OP, (vm) => vm.pushChildScope());
 
-APPEND_OPCODES.add(Op.PopScope, (vm) => vm.popScope());
+APPEND_OPCODES.add(POP_SCOPE_OP, (vm) => vm.popScope());
 
-APPEND_OPCODES.add(Op.PushDynamicScope, (vm) => vm.pushDynamicScope());
+APPEND_OPCODES.add(PUSH_DYNAMIC_SCOPE_OP, (vm) => vm.pushDynamicScope());
 
-APPEND_OPCODES.add(Op.PopDynamicScope, (vm) => vm.popDynamicScope());
+APPEND_OPCODES.add(POP_DYNAMIC_SCOPE_OP, (vm) => vm.popDynamicScope());
 
-APPEND_OPCODES.add(Op.Constant, (vm, { op1: other }) => {
+APPEND_OPCODES.add(CONSTANT_OP, (vm, { op1: other }) => {
   vm.stack.push(vm[CONSTANTS].getValue(decodeHandle(other)));
 });
 
-APPEND_OPCODES.add(Op.ConstantReference, (vm, { op1: other }) => {
+APPEND_OPCODES.add(CONSTANT_REFERENCE_OP, (vm, { op1: other }) => {
   vm.stack.push(createConstRef(vm[CONSTANTS].getValue(decodeHandle(other)), false));
 });
 
-APPEND_OPCODES.add(Op.Primitive, (vm, { op1: primitive }) => {
+APPEND_OPCODES.add(PRIMITIVE_OP, (vm, { op1: primitive }) => {
   let stack = vm.stack;
 
   if (isHandle(primitive)) {
@@ -71,7 +98,7 @@ APPEND_OPCODES.add(Op.Primitive, (vm, { op1: primitive }) => {
   }
 });
 
-APPEND_OPCODES.add(Op.PrimitiveReference, (vm) => {
+APPEND_OPCODES.add(PRIMITIVE_REFERENCE_OP, (vm) => {
   let stack = vm.stack;
   let value = check(stack.pop(), CheckPrimitive);
   let ref;
@@ -91,47 +118,47 @@ APPEND_OPCODES.add(Op.PrimitiveReference, (vm) => {
   stack.push(ref);
 });
 
-APPEND_OPCODES.add(Op.Dup, (vm, { op1: register, op2: offset }) => {
-  let position = check(vm.fetchValue(register), CheckNumber) - offset;
-  vm.stack.dup(position);
+APPEND_OPCODES.add(DUP_OP, (vm, { op1: register, op2: offset }) => {
+  let position = check(vm.fetchValue(register as Register), CheckNumber) - offset;
+  vm.stack.dup(position as MachineRegister);
 });
 
-APPEND_OPCODES.add(Op.Pop, (vm, { op1: count }) => {
+APPEND_OPCODES.add(POP_OP, (vm, { op1: count }) => {
   vm.stack.pop(count);
 });
 
-APPEND_OPCODES.add(Op.Load, (vm, { op1: register }) => {
-  vm.load(register);
+APPEND_OPCODES.add(LOAD_OP, (vm, { op1: register }) => {
+  vm.load(register as Register);
 });
 
-APPEND_OPCODES.add(Op.Fetch, (vm, { op1: register }) => {
-  vm.fetch(register);
+APPEND_OPCODES.add(FETCH_OP, (vm, { op1: register }) => {
+  vm.fetch(register as Register);
 });
 
-APPEND_OPCODES.add(Op.BindDynamicScope, (vm, { op1: _names }) => {
+APPEND_OPCODES.add(BIND_DYNAMIC_SCOPE_OP, (vm, { op1: _names }) => {
   let names = vm[CONSTANTS].getArray<string>(_names);
   vm.bindDynamicScope(names);
 });
 
-APPEND_OPCODES.add(Op.Enter, (vm, { op1: args }) => {
+APPEND_OPCODES.add(ENTER_OP, (vm, { op1: args }) => {
   vm.enter(args);
 });
 
-APPEND_OPCODES.add(Op.Exit, (vm) => {
+APPEND_OPCODES.add(EXIT_OP, (vm) => {
   vm.exit();
 });
 
-APPEND_OPCODES.add(Op.PushSymbolTable, (vm, { op1: _table }) => {
+APPEND_OPCODES.add(PUSH_SYMBOL_TABLE_OP, (vm, { op1: _table }) => {
   let stack = vm.stack;
   stack.push(vm[CONSTANTS].getValue(_table));
 });
 
-APPEND_OPCODES.add(Op.PushBlockScope, (vm) => {
+APPEND_OPCODES.add(PUSH_BLOCK_SCOPE_OP, (vm) => {
   let stack = vm.stack;
   stack.push(vm.scope());
 });
 
-APPEND_OPCODES.add(Op.CompileBlock, (vm: InternalVM) => {
+APPEND_OPCODES.add(COMPILE_BLOCK_OP, (vm: InternalVM) => {
   let stack = vm.stack;
   let block = stack.pop<Nullable<CompilableTemplate> | 0>();
 
@@ -142,7 +169,7 @@ APPEND_OPCODES.add(Op.CompileBlock, (vm: InternalVM) => {
   }
 });
 
-APPEND_OPCODES.add(Op.InvokeYield, (vm) => {
+APPEND_OPCODES.add(INVOKE_YIELD_OP, (vm) => {
   let { stack } = vm;
 
   let handle = check(stack.pop(), CheckOption(CheckHandle));
@@ -185,7 +212,7 @@ APPEND_OPCODES.add(Op.InvokeYield, (vm) => {
   vm.call(handle!);
 });
 
-APPEND_OPCODES.add(Op.JumpIf, (vm, { op1: target }) => {
+APPEND_OPCODES.add(JUMP_IF_OP, (vm, { op1: target }) => {
   let reference = check(vm.stack.pop(), CheckReference);
   let value = Boolean(valueForRef(reference));
 
@@ -202,7 +229,7 @@ APPEND_OPCODES.add(Op.JumpIf, (vm, { op1: target }) => {
   }
 });
 
-APPEND_OPCODES.add(Op.JumpUnless, (vm, { op1: target }) => {
+APPEND_OPCODES.add(JUMP_UNLESS_OP, (vm, { op1: target }) => {
   let reference = check(vm.stack.pop(), CheckReference);
   let value = Boolean(valueForRef(reference));
 
@@ -219,7 +246,7 @@ APPEND_OPCODES.add(Op.JumpUnless, (vm, { op1: target }) => {
   }
 });
 
-APPEND_OPCODES.add(Op.JumpEq, (vm, { op1: target, op2: comparison }) => {
+APPEND_OPCODES.add(JUMP_EQ_OP, (vm, { op1: target, op2: comparison }) => {
   let other = check(vm.stack.peek(), CheckNumber);
 
   if (other === comparison) {
@@ -227,7 +254,7 @@ APPEND_OPCODES.add(Op.JumpEq, (vm, { op1: target, op2: comparison }) => {
   }
 });
 
-APPEND_OPCODES.add(Op.AssertSame, (vm) => {
+APPEND_OPCODES.add(ASSERT_SAME_OP, (vm) => {
   let reference = check(vm.stack.peek(), CheckReference);
 
   if (isConstRef(reference) === false) {
@@ -235,7 +262,7 @@ APPEND_OPCODES.add(Op.AssertSame, (vm) => {
   }
 });
 
-APPEND_OPCODES.add(Op.ToBoolean, (vm) => {
+APPEND_OPCODES.add(TO_BOOLEAN_OP, (vm) => {
   let { stack } = vm;
   let valueRef = check(stack.pop(), CheckReference);
 

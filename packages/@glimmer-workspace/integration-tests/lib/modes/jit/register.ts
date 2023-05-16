@@ -12,7 +12,6 @@ import {
   setInternalModifierManager,
 } from '@glimmer/manager';
 import { type CurriedValue, curry, templateOnlyComponent } from '@glimmer/runtime';
-import { CurriedTypes } from '@glimmer/vm';
 
 import { createTemplate } from '../../compile';
 import type { ComponentKind, ComponentTypes } from '../../components';
@@ -25,6 +24,7 @@ import {
   TestModifierManager,
 } from '../../modifiers';
 import type { TestJitRegistry } from './registry';
+import { CURRIED_COMPONENT } from '@glimmer/vm';
 
 export function registerTemplateOnlyComponent(
   registry: TestJitRegistry,
@@ -168,11 +168,5 @@ export function componentHelper(
 
   if (definition === null) return null;
 
-  return curry(
-    CurriedTypes.Component,
-    constants.resolvedComponent(definition, name),
-    {},
-    null,
-    true
-  );
+  return curry(CURRIED_COMPONENT, constants.resolvedComponent(definition, name), {}, null, true);
 }

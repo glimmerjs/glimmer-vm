@@ -14,7 +14,7 @@
     "benchmark:start": "pnpm -r --filter @glimmer-workspace/krausest run start",
     "benchmark:build": "node benchmark/bin/build.js",
     "build": "dotenv -c development -- turbo build",
-    "build:production": "FORCE_COLOR=1 dotenv -c production -- turbo build -F @glimmer/runtime -F @glimmer/opcode-compiler --log-prefix none",
+    "build:production": "FORCE_COLOR=1 dotenv -c production -- turbo build -F @glimmer/runtime -F @glimmer/opcode-compiler -F @glimmer/owner --log-prefix none",
     "build:control": "rollup -c rollup.config.mjs",
     "lint": "npm-run-all lint:*",
     "lint:files": "dotenv -- turbo lint",

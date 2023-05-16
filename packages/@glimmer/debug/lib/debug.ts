@@ -142,7 +142,7 @@ export function debug(
           out[operand.name] = decodePrimitive(actualOperand, c);
           break;
         case 'register':
-          out[operand.name] = decodeRegister(actualOperand);
+          out[operand.name] = decodeRegister(actualOperand as Register);
           break;
         case 'unknown':
           out[operand.name] = c.getValue(actualOperand);

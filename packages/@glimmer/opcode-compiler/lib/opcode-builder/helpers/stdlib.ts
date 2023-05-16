@@ -5,7 +5,21 @@ import type {
   HighLevelOp,
   STDLib,
 } from '@glimmer/interfaces';
-import { $s0, ContentType, INVOKE_STATIC_OP, Op } from '@glimmer/vm';
+import {
+  $s0,
+  APPEND_DOCUMENT_FRAGMENT_OP,
+  APPEND_HTML_OP,
+  APPEND_NODE_OP,
+  APPEND_SAFE_HTML_OP,
+  APPEND_TEXT_OP,
+  ASSERT_SAME_OP,
+  CONTENT_TYPE_OP,
+  ContentType,
+  INVOKE_STATIC_OP,
+  MAIN_OP,
+  PUSH_DYNAMIC_COMPONENT_INSTANCE_OP,
+  RESOLVE_CURRIED_COMPONENT_OP,
+} from '@glimmer/vm';
 
 import type { HighLevelStatementOp, PushStatementOp } from '../../syntax/compilers';
 import { encodeOp, EncoderImpl } from '../encoder';
@@ -14,7 +28,7 @@ import { SwitchCases } from './conditional';
 import { CallDynamic } from './vm';
 
 export function main(op: PushStatementOp): void {
-  op(Op.Main, $s0);
+  op(MAIN_OP, $s0);
   invokePreparedComponent(op, false, false, true);
 }
 
@@ -33,21 +47,21 @@ export function StdAppend(
 ): void {
   SwitchCases(
     op,
-    () => op(Op.ContentType),
+    () => op(CONTENT_TYPE_OP),
     (when) => {
       when(ContentType.String, () => {
         if (trusting) {
-          op(Op.AssertSame);
-          op(Op.AppendHTML);
+          op(ASSERT_SAME_OP);
+          op(APPEND_HTML_OP);
         } else {
-          op(Op.AppendText);
+          op(APPEND_TEXT_OP);
         }
       });
 
       if (typeof nonDynamicAppend === 'number') {
         when(ContentType.Component, () => {
-          op(Op.ResolveCurriedComponent);
-          op(Op.PushDynamicComponentInstance);
+          op(RESOLVE_CURRIED_COMPONENT_OP);
+          op(PUSH_DYNAMIC_COMPONENT_INSTANCE_OP);
           InvokeBareComponent(op);
         });
 
@@ -60,27 +74,27 @@ export function StdAppend(
         // when non-dynamic, we can no longer call the value (potentially because we've already called it)
         // this prevents infinite loops. We instead coerce the value, whatever it is, into the DOM.
         when(ContentType.Component, () => {
-          op(Op.AppendText);
+          op(APPEND_TEXT_OP);
         });
 
         when(ContentType.Helper, () => {
-          op(Op.AppendText);
+          op(APPEND_TEXT_OP);
         });
       }
 
       when(ContentType.SafeString, () => {
-        op(Op.AssertSame);
-        op(Op.AppendSafeHTML);
+        op(ASSERT_SAME_OP);
+        op(APPEND_SAFE_HTML_OP);
       });
 
       when(ContentType.Fragment, () => {
-        op(Op.AssertSame);
-        op(Op.AppendDocumentFragment);
+        op(ASSERT_SAME_OP);
+        op(APPEND_DOCUMENT_FRAGMENT_OP);
       });
 
       when(ContentType.Node, () => {
-        op(Op.AssertSame);
-        op(Op.AppendNode);
+        op(ASSERT_SAME_OP);
+        op(APPEND_NODE_OP);
       });
     }
   );

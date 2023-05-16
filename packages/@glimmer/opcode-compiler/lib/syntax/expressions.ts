@@ -1,6 +1,23 @@
 import { assert, deprecate } from '@glimmer/global-context';
 import type { ExpressionSexpOpcode } from '@glimmer/interfaces';
-import { $v0, Op, POP_FRAME_OP , PUSH_FRAME_OP } from '@glimmer/vm';
+import {
+  $v0,
+  COMPILE_BLOCK_OP,
+  CONCAT_OP,
+  CONSTANT_REFERENCE_OP,
+  FETCH_OP,
+  GET_DYNAMIC_VAR_OP,
+  GET_PROPERTY_OP,
+  GET_VARIABLE_OP,
+  HAS_BLOCK_OP,
+  HAS_BLOCK_PARAMS_OP,
+  IF_INLINE_OP,
+  LOG_OP,
+  NOT_OP,
+  POP_FRAME_OP,
+  PUSH_FRAME_OP,
+  SPREAD_BLOCK_OP,
+} from '@glimmer/vm';
 import { SexpOpcodes } from '@glimmer/wire-format';
 
 import { expr } from '../opcode-builder/helpers/expr';
@@ -17,7 +34,7 @@ EXPRESSIONS.add(SexpOpcodes.Concat, (op, [, parts]) => {
     expr(op, part);
   }
 
-  op(Op.Concat, parts.length);
+  op(CONCAT_OP, parts.length);
 });
 
 EXPRESSIONS.add(SexpOpcodes.Call, (op, [, expression, positional, named]) => {
@@ -36,13 +53,13 @@ EXPRESSIONS.add(SexpOpcodes.Curry, (op, [, expr, type, positional, named]) => {
 });
 
 EXPRESSIONS.add(SexpOpcodes.GetSymbol, (op, [, sym, path]) => {
-  op(Op.GetVariable, sym);
+  op(GET_VARIABLE_OP, sym);
   withPath(op, path);
 });
 
 EXPRESSIONS.add(SexpOpcodes.GetLexicalSymbol, (op, [, sym, path]) => {
   op(HighLevelResolutionOpcodes.TemplateLocal, sym, (handle: number) => {
-    op(Op.ConstantReference, handle);
+    op(CONSTANT_REFERENCE_OP, handle);
     withPath(op, path);
   });
 });
@@ -111,21 +128,21 @@ function withPath(op: PushExpressionOp, path?: string[]) {
   if (path === undefined || path.length === 0) return;
 
   for (let i = 0; i < path.length; i++) {
-    op(Op.GetProperty, path[i]);
+    op(GET_PROPERTY_OP, path[i]);
   }
 }
 
 EXPRESSIONS.add(SexpOpcodes.Undefined, (op) => PushPrimitiveReference(op, undefined));
 EXPRESSIONS.add(SexpOpcodes.HasBlock, (op, [, block]) => {
   expr(op, block);
-  op(Op.HasBlock);
+  op(HAS_BLOCK_OP);
 });
 
 EXPRESSIONS.add(SexpOpcodes.HasBlockParams, (op, [, block]) => {
   expr(op, block);
-  op(Op.SpreadBlock);
-  op(Op.CompileBlock);
-  op(Op.HasBlockParams);
+  op(SPREAD_BLOCK_OP);
+  op(COMPILE_BLOCK_OP);
+  op(HAS_BLOCK_PARAMS_OP);
 });
 
 EXPRESSIONS.add(SexpOpcodes.IfInline, (op, [, condition, truthy, falsy]) => {
@@ -133,23 +150,23 @@ EXPRESSIONS.add(SexpOpcodes.IfInline, (op, [, condition, truthy, falsy]) => {
   expr(op, falsy);
   expr(op, truthy);
   expr(op, condition);
-  op(Op.IfInline);
+  op(IF_INLINE_OP);
 });
 
 EXPRESSIONS.add(SexpOpcodes.Not, (op, [, value]) => {
   expr(op, value);
-  op(Op.Not);
+  op(NOT_OP);
 });
 
 EXPRESSIONS.add(SexpOpcodes.GetDynamicVar, (op, [, expression]) => {
   expr(op, expression);
-  op(Op.GetDynamicVar);
+  op(GET_DYNAMIC_VAR_OP);
 });
 
 EXPRESSIONS.add(SexpOpcodes.Log, (op, [, positional]) => {
   op(PUSH_FRAME_OP);
   SimpleArgs(op, positional, null, false);
-  op(Op.Log);
+  op(LOG_OP);
   op(POP_FRAME_OP);
-  op(Op.Fetch, $v0);
+  op(FETCH_OP, $v0);
 });

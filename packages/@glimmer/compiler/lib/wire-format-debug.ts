@@ -6,10 +6,10 @@ import type {
   WireFormat,
 } from '@glimmer/interfaces';
 import { dict, exhausted } from '@glimmer/util';
-import { CurriedTypes } from '@glimmer/vm';
 import { SexpOpcodes as Op } from '@glimmer/wire-format';
 
 import { inflateAttrName, inflateTagName } from './utils';
+import { CURRIED_COMPONENT, CURRIED_HELPER, CURRIED_MODIFIER } from '@glimmer/vm';
 
 export default class WireFormatDebugger {
   private upvars: string[];
@@ -268,18 +268,20 @@ export default class WireFormatDebugger {
 
   private formatCurryType(value: CurriedType) {
     switch (value) {
-      case CurriedTypes.Component:
+      case CURRIED_COMPONENT:
         return 'component';
-      case CurriedTypes.Helper:
+      case CURRIED_HELPER:
         return 'helper';
-      case CurriedTypes.Modifier:
+      case CURRIED_MODIFIER:
         return 'modifier';
       default:
         throw exhausted(value);
     }
   }
 
-  private formatElementParams(opcodes: Nullable<WireFormat.ElementParameter[]>): Nullable<unknown[]> {
+  private formatElementParams(
+    opcodes: Nullable<WireFormat.ElementParameter[]>
+  ): Nullable<unknown[]> {
     if (opcodes === null) return null;
     return opcodes.map((o) => this.formatOpcode(o));
   }

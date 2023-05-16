@@ -15,3 +15,4 @@ instrumentation.*.json
 .cache
 **/.yalc
 .env.local
+control-dist

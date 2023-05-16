@@ -114,102 +114,100 @@ export const RETURN_OP: VmMachineReturn = 5;
 export const RETURN_TO_OP: VmMachineReturnTo = 6;
 export const SIZE_OP: VmMachineSize = 7;
 
-export const Op = {
-  Helper: 16 satisfies VmHelper,
-  SetNamedVariables: 17 satisfies VmSetNamedVariables,
-  SetBlocks: 18 satisfies VmSetBlocks,
-  SetVariable: 19 satisfies VmSetVariable,
-  SetBlock: 20 satisfies VmSetBlock,
-  GetVariable: 21 satisfies VmGetVariable,
-  GetProperty: 22 satisfies VmGetProperty,
-  GetBlock: 23 satisfies VmGetBlock,
-  SpreadBlock: 24 satisfies VmSpreadBlock,
-  HasBlock: 25 satisfies VmHasBlock,
-  HasBlockParams: 26 satisfies VmHasBlockParams,
-  Concat: 27 satisfies VmConcat,
-  Constant: 28 satisfies VmConstant,
-  ConstantReference: 29 satisfies VmConstantReference,
-  Primitive: 30 satisfies VmPrimitive,
-  PrimitiveReference: 31 satisfies VmPrimitiveReference,
-  ReifyU32: 32 satisfies VmReifyU32,
-  Dup: 33 satisfies VmDup,
-  Pop: 34 satisfies VmPop,
-  Load: 35 satisfies VmLoad,
-  Fetch: 36 satisfies VmFetch,
-  RootScope: 37 satisfies VmRootScope,
-  VirtualRootScope: 38 satisfies VmVirtualRootScope,
-  ChildScope: 39 satisfies VmChildScope,
-  PopScope: 40 satisfies VmPopScope,
-  Text: 41 satisfies VmText,
-  Comment: 42 satisfies VmComment,
-  AppendHTML: 43 satisfies VmAppendHTML,
-  AppendSafeHTML: 44 satisfies VmAppendSafeHTML,
-  AppendDocumentFragment: 45 satisfies VmAppendDocumentFragment,
-  AppendNode: 46 satisfies VmAppendNode,
-  AppendText: 47 satisfies VmAppendText,
-  OpenElement: 48 satisfies VmOpenElement,
-  OpenDynamicElement: 49 satisfies VmOpenDynamicElement,
-  PushRemoteElement: 50 satisfies VmPushRemoteElement,
-  StaticAttr: 51 satisfies VmStaticAttr,
-  DynamicAttr: 52 satisfies VmDynamicAttr,
-  ComponentAttr: 53 satisfies VmComponentAttr,
-  FlushElement: 54 satisfies VmFlushElement,
-  CloseElement: 55 satisfies VmCloseElement,
-  PopRemoteElement: 56 satisfies VmPopRemoteElement,
-  Modifier: 57 satisfies VmModifier,
-  BindDynamicScope: 58 satisfies VmBindDynamicScope,
-  PushDynamicScope: 59 satisfies VmPushDynamicScope,
-  PopDynamicScope: 60 satisfies VmPopDynamicScope,
-  CompileBlock: 61 satisfies VmCompileBlock,
-  PushBlockScope: 62 satisfies VmPushBlockScope,
-  PushSymbolTable: 63 satisfies VmPushSymbolTable,
-  InvokeYield: 64 satisfies VmInvokeYield,
-  JumpIf: 65 satisfies VmJumpIf,
-  JumpUnless: 66 satisfies VmJumpUnless,
-  JumpEq: 67 satisfies VmJumpEq,
-  AssertSame: 68 satisfies VmAssertSame,
-  Enter: 69 satisfies VmEnter,
-  Exit: 70 satisfies VmExit,
-  ToBoolean: 71 satisfies VmToBoolean,
-  EnterList: 72 satisfies VmEnterList,
-  ExitList: 73 satisfies VmExitList,
-  Iterate: 74 satisfies VmIterate,
-  Main: 75 satisfies VmMain,
-  ContentType: 76 satisfies VmContentType,
-  Curry: 77 satisfies VmCurry,
-  PushComponentDefinition: 78 satisfies VmPushComponentDefinition,
-  PushDynamicComponentInstance: 79 satisfies VmPushDynamicComponentInstance,
-  ResolveDynamicComponent: 80 satisfies VmResolveDynamicComponent,
-  ResolveCurriedComponent: 81 satisfies VmResolveCurriedComponent,
-  PushArgs: 82 satisfies VmPushArgs,
-  PushEmptyArgs: 83 satisfies VmPushEmptyArgs,
-  PopArgs: 84 satisfies VmPopArgs,
-  PrepareArgs: 85 satisfies VmPrepareArgs,
-  CaptureArgs: 86 satisfies VmCaptureArgs,
-  CreateComponent: 87 satisfies VmCreateComponent,
-  RegisterComponentDestructor: 88 satisfies VmRegisterComponentDestructor,
-  PutComponentOperations: 89 satisfies VmPutComponentOperations,
-  GetComponentSelf: 90 satisfies VmGetComponentSelf,
-  GetComponentTagName: 91 satisfies VmGetComponentTagName,
-  GetComponentLayout: 92 satisfies VmGetComponentLayout,
-  BindEvalScope: 93 satisfies VmBindEvalScope,
-  PopulateLayout: 95 satisfies VmPopulateLayout,
-  InvokeComponentLayout: 96 satisfies VmInvokeComponentLayout,
-  BeginComponentTransaction: 97 satisfies VmBeginComponentTransaction,
-  CommitComponentTransaction: 98 satisfies VmCommitComponentTransaction,
-  DidCreateElement: 99 satisfies VmDidCreateElement,
-  DidRenderLayout: 100 satisfies VmDidRenderLayout,
-  Debugger: 103 satisfies VmDebugger,
-  Size: 104 satisfies VmSize,
-  StaticComponentAttr: 105 satisfies VmStaticComponentAttr,
-  DynamicContentType: 106 satisfies VmDynamicContentType,
-  DynamicHelper: 107 satisfies VmDynamicHelper,
-  DynamicModifier: 108 satisfies VmDynamicModifier,
-  IfInline: 109 satisfies VmIfInline,
-  Not: 110 satisfies VmNot,
-  GetDynamicVar: 111 satisfies VmGetDynamicVar,
-  Log: 112 satisfies VmLog,
-} as const;
+export const HELPER_OP: VmHelper = 16;
+export const SET_NAMED_VARIABLES_OP: VmSetNamedVariables = 17;
+export const SET_BLOCKS_OP: VmSetBlocks = 18;
+export const SET_VARIABLE_OP: VmSetVariable = 19;
+export const SET_BLOCK_OP: VmSetBlock = 20;
+export const GET_VARIABLE_OP: VmGetVariable = 21;
+export const GET_PROPERTY_OP: VmGetProperty = 22;
+export const GET_BLOCK_OP: VmGetBlock = 23;
+export const SPREAD_BLOCK_OP: VmSpreadBlock = 24;
+export const HAS_BLOCK_OP: VmHasBlock = 25;
+export const HAS_BLOCK_PARAMS_OP: VmHasBlockParams = 26;
+export const CONCAT_OP: VmConcat = 27;
+export const CONSTANT_OP: VmConstant = 28;
+export const CONSTANT_REFERENCE_OP: VmConstantReference = 29;
+export const PRIMITIVE_OP: VmPrimitive = 30;
+export const PRIMITIVE_REFERENCE_OP: VmPrimitiveReference = 31;
+export const REIFY_U32_OP: VmReifyU32 = 32;
+export const DUP_OP: VmDup = 33;
+export const POP_OP: VmPop = 34;
+export const LOAD_OP: VmLoad = 35;
+export const FETCH_OP: VmFetch = 36;
+export const ROOT_SCOPE_OP: VmRootScope = 37;
+export const VIRTUAL_ROOT_SCOPE_OP: VmVirtualRootScope = 38;
+export const CHILD_SCOPE_OP: VmChildScope = 39;
+export const POP_SCOPE_OP: VmPopScope = 40;
+export const TEXT_OP: VmText = 41;
+export const COMMENT_OP: VmComment = 42;
+export const APPEND_HTML_OP: VmAppendHTML = 43;
+export const APPEND_SAFE_HTML_OP: VmAppendSafeHTML = 44;
+export const APPEND_DOCUMENT_FRAGMENT_OP: VmAppendDocumentFragment = 45;
+export const APPEND_NODE_OP: VmAppendNode = 46;
+export const APPEND_TEXT_OP: VmAppendText = 47;
+export const OPEN_ELEMENT_OP: VmOpenElement = 48;
+export const OPEN_DYNAMIC_ELEMENT_OP: VmOpenDynamicElement = 49;
+export const PUSH_REMOTE_ELEMENT_OP: VmPushRemoteElement = 50;
+export const STATIC_ATTR_OP: VmStaticAttr = 51;
+export const DYNAMIC_ATTR_OP: VmDynamicAttr = 52;
+export const COMPONENT_ATTR_OP: VmComponentAttr = 53;
+export const FLUSH_ELEMENT_OP: VmFlushElement = 54;
+export const CLOSE_ELEMENT_OP: VmCloseElement = 55;
+export const POP_REMOTE_ELEMENT_OP: VmPopRemoteElement = 56;
+export const MODIFIER_OP: VmModifier = 57;
+export const BIND_DYNAMIC_SCOPE_OP: VmBindDynamicScope = 58;
+export const PUSH_DYNAMIC_SCOPE_OP: VmPushDynamicScope = 59;
+export const POP_DYNAMIC_SCOPE_OP: VmPopDynamicScope = 60;
+export const COMPILE_BLOCK_OP: VmCompileBlock = 61;
+export const PUSH_BLOCK_SCOPE_OP: VmPushBlockScope = 62;
+export const PUSH_SYMBOL_TABLE_OP: VmPushSymbolTable = 63;
+export const INVOKE_YIELD_OP: VmInvokeYield = 64;
+export const JUMP_IF_OP: VmJumpIf = 65;
+export const JUMP_UNLESS_OP: VmJumpUnless = 66;
+export const JUMP_EQ_OP: VmJumpEq = 67;
+export const ASSERT_SAME_OP: VmAssertSame = 68;
+export const ENTER_OP: VmEnter = 69;
+export const EXIT_OP: VmExit = 70;
+export const TO_BOOLEAN_OP: VmToBoolean = 71;
+export const ENTER_LIST_OP: VmEnterList = 72;
+export const EXIT_LIST_OP: VmExitList = 73;
+export const ITERATE_OP: VmIterate = 74;
+export const MAIN_OP: VmMain = 75;
+export const CONTENT_TYPE_OP: VmContentType = 76;
+export const CURRY_OP: VmCurry = 77;
+export const PUSH_COMPONENT_DEFINITION_OP: VmPushComponentDefinition = 78;
+export const PUSH_DYNAMIC_COMPONENT_INSTANCE_OP: VmPushDynamicComponentInstance = 79;
+export const RESOLVE_DYNAMIC_COMPONENT_OP: VmResolveDynamicComponent = 80;
+export const RESOLVE_CURRIED_COMPONENT_OP: VmResolveCurriedComponent = 81;
+export const PUSH_ARGS_OP: VmPushArgs = 82;
+export const PUSH_EMPTY_ARGS_OP: VmPushEmptyArgs = 83;
+export const POP_ARGS_OP: VmPopArgs = 84;
+export const PREPARE_ARGS_OP: VmPrepareArgs = 85;
+export const CAPTURE_ARGS_OP: VmCaptureArgs = 86;
+export const CREATE_COMPONENT_OP: VmCreateComponent = 87;
+export const REGISTER_COMPONENT_DESTRUCTOR_OP: VmRegisterComponentDestructor = 88;
+export const PUT_COMPONENT_OPERATIONS_OP: VmPutComponentOperations = 89;
+export const GET_COMPONENT_SELF_OP: VmGetComponentSelf = 90;
+export const GET_COMPONENT_TAG_NAME_OP: VmGetComponentTagName = 91;
+export const GET_COMPONENT_LAYOUT_OP: VmGetComponentLayout = 92;
+export const BIND_EVAL_SCOPE_OP: VmBindEvalScope = 93;
+export const POPULATE_LAYOUT_OP: VmPopulateLayout = 95;
+export const INVOKE_COMPONENT_LAYOUT_OP: VmInvokeComponentLayout = 96;
+export const BEGIN_COMPONENT_TRANSACTION_OP: VmBeginComponentTransaction = 97;
+export const COMMIT_COMPONENT_TRANSACTION_OP: VmCommitComponentTransaction = 98;
+export const DID_CREATE_ELEMENT_OP: VmDidCreateElement = 99;
+export const DID_RENDER_LAYOUT_OP: VmDidRenderLayout = 100;
+export const DEBUGGER_OP: VmDebugger = 103;
+export const VM_SIZE_OP: VmSize = 104;
+export const STATIC_COMPONENT_ATTR_OP: VmStaticComponentAttr = 105;
+export const DYNAMIC_CONTENT_TYPE_OP: VmDynamicContentType = 106;
+export const DYNAMIC_HELPER_OP: VmDynamicHelper = 107;
+export const DYNAMIC_MODIFIER_OP: VmDynamicModifier = 108;
+export const IF_INLINE_OP: VmIfInline = 109;
+export const NOT_OP: VmNot = 110;
+export const GET_DYNAMIC_VAR_OP: VmGetDynamicVar = 111;
+export const LOG_OP: VmLog = 112;
 
 export function isMachineOp(value: number): value is VmMachineOp {
   return value >= 0 && value <= 15;

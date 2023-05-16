@@ -24,11 +24,9 @@ import type {
   WrappedCapability,
 } from '@glimmer/interfaces';
 
-export const CurriedTypes = {
-  Component: 0 satisfies CurriedComponent,
-  Helper: 1 satisfies CurriedHelper,
-  Modifier: 2 satisfies CurriedModifier,
-} as const;
+export const CURRIED_COMPONENT: CurriedComponent = 0;
+export const CURRIED_HELPER: CurriedHelper = 1;
+export const CURRIED_MODIFIER: CurriedModifier = 2;
 
 export const InternalComponentCapabilities = {
   Empty: 0 satisfies EmptyCapability,

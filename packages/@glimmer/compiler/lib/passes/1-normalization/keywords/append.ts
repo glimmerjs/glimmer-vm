@@ -1,5 +1,4 @@
 import { ASTv2, generateSyntaxError, src } from '@glimmer/syntax';
-import { CurriedTypes } from '@glimmer/vm';
 
 import { Err, Ok, Result } from '../../../shared/result';
 import * as mir from '../../2-encoding/mir';
@@ -12,6 +11,7 @@ import { getDynamicVarKeyword } from './utils/dynamic-vars';
 import { hasBlockKeyword } from './utils/has-block';
 import { ifUnlessInlineKeyword } from './utils/if-unless';
 import { logKeyword } from './utils/log';
+import { CURRIED_COMPONENT, CURRIED_HELPER } from '@glimmer/vm';
 
 export const APPEND_KEYWORDS = keywords('Append')
   .kw('has-block', toAppend(hasBlockKeyword('has-block')))
@@ -102,7 +102,7 @@ export const APPEND_KEYWORDS = keywords('Append')
     },
   })
   .kw('component', {
-    assert: assertCurryKeyword(CurriedTypes.Component),
+    assert: assertCurryKeyword(CURRIED_COMPONENT),
 
     translate(
       { node, state }: { node: ASTv2.AppendContent; state: NormalizationState },
@@ -123,7 +123,7 @@ export const APPEND_KEYWORDS = keywords('Append')
     },
   })
   .kw('helper', {
-    assert: assertCurryKeyword(CurriedTypes.Helper),
+    assert: assertCurryKeyword(CURRIED_HELPER),
 
     translate(
       { node, state }: { node: ASTv2.AppendContent; state: NormalizationState },

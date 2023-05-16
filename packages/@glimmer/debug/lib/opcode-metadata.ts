@@ -2,15 +2,102 @@
 
 import type { Nullable, VmMachineOp, VmOp } from '@glimmer/interfaces';
 import {
+  APPEND_DOCUMENT_FRAGMENT_OP,
+  APPEND_HTML_OP,
+  APPEND_NODE_OP,
+  APPEND_SAFE_HTML_OP,
+  APPEND_TEXT_OP,
+  ASSERT_SAME_OP,
+  BEGIN_COMPONENT_TRANSACTION_OP,
+  BIND_DYNAMIC_SCOPE_OP,
+  BIND_EVAL_SCOPE_OP,
+  CAPTURE_ARGS_OP,
+  CHILD_SCOPE_OP,
+  CLOSE_ELEMENT_OP,
+  COMMENT_OP,
+  COMMIT_COMPONENT_TRANSACTION_OP,
+  COMPILE_BLOCK_OP,
+  COMPONENT_ATTR_OP,
+  CONCAT_OP,
+  CONSTANT_OP,
+  CONSTANT_REFERENCE_OP,
+  CONTENT_TYPE_OP,
+  CREATE_COMPONENT_OP,
+  CURRY_OP,
+  DEBUGGER_OP,
+  DID_CREATE_ELEMENT_OP,
+  DID_RENDER_LAYOUT_OP,
+  DUP_OP,
+  DYNAMIC_ATTR_OP,
+  DYNAMIC_CONTENT_TYPE_OP,
+  DYNAMIC_HELPER_OP,
+  ENTER_LIST_OP,
+  ENTER_OP,
+  EXIT_LIST_OP,
+  EXIT_OP,
+  FETCH_OP,
+  FLUSH_ELEMENT_OP,
+  GET_BLOCK_OP,
+  GET_COMPONENT_LAYOUT_OP,
+  GET_COMPONENT_SELF_OP,
+  GET_COMPONENT_TAG_NAME_OP,
+  GET_PROPERTY_OP,
+  GET_VARIABLE_OP,
+  HAS_BLOCK_OP,
+  HAS_BLOCK_PARAMS_OP,
+  HELPER_OP,
+  IF_INLINE_OP,
+  INVOKE_COMPONENT_LAYOUT_OP,
   INVOKE_STATIC_OP,
   INVOKE_VIRTUAL_OP,
+  INVOKE_YIELD_OP,
+  ITERATE_OP,
+  JUMP_EQ_OP,
+  JUMP_IF_OP,
   JUMP_OP,
-  Op,
+  JUMP_UNLESS_OP,
+  LOAD_OP,
+  MAIN_OP,
+  MODIFIER_OP,
+  NOT_OP,
+  OPEN_DYNAMIC_ELEMENT_OP,
+  OPEN_ELEMENT_OP,
+  POPULATE_LAYOUT_OP,
+  POP_ARGS_OP,
+  POP_DYNAMIC_SCOPE_OP,
   POP_FRAME_OP,
+  POP_OP,
+  POP_REMOTE_ELEMENT_OP,
+  POP_SCOPE_OP,
+  PREPARE_ARGS_OP,
+  PRIMITIVE_OP,
+  PRIMITIVE_REFERENCE_OP,
+  PUSH_ARGS_OP,
+  PUSH_BLOCK_SCOPE_OP,
+  PUSH_COMPONENT_DEFINITION_OP,
+  PUSH_DYNAMIC_COMPONENT_INSTANCE_OP,
+  PUSH_DYNAMIC_SCOPE_OP,
+  PUSH_EMPTY_ARGS_OP,
   PUSH_FRAME_OP,
+  PUSH_REMOTE_ELEMENT_OP,
+  PUSH_SYMBOL_TABLE_OP,
+  PUT_COMPONENT_OPERATIONS_OP,
+  REGISTER_COMPONENT_DESTRUCTOR_OP,
+  REIFY_U32_OP,
+  RESOLVE_DYNAMIC_COMPONENT_OP,
   RETURN_OP,
   RETURN_TO_OP,
+  ROOT_SCOPE_OP,
+  SET_BLOCKS_OP,
+  SET_BLOCK_OP,
+  SET_NAMED_VARIABLES_OP,
+  SET_VARIABLE_OP,
   SIZE_OP,
+  SPREAD_BLOCK_OP,
+  STATIC_ATTR_OP,
+  TEXT_OP,
+  TO_BOOLEAN_OP,
+  VIRTUAL_ROOT_SCOPE_OP,
 } from '@glimmer/vm';
 
 import type { NormalizedMetadata } from './metadata';
@@ -32,7 +119,7 @@ let METADATA: Nullable<NormalizedMetadata>[] = [];
 let MACHINE_METADATA: Nullable<NormalizedMetadata>[] = [];
 
 if (import.meta.env.DEV) {
-  METADATA = new Array(Op.Size).fill(null);
+  METADATA = new Array(SIZE_OP).fill(null);
   MACHINE_METADATA = new Array(SIZE_OP).fill(null);
   MACHINE_METADATA[PUSH_FRAME_OP] = {
     name: 'PushFrame',
@@ -118,7 +205,7 @@ if (import.meta.env.DEV) {
     operands: 1,
     check: true,
   };
-  METADATA[Op.Helper] = {
+  METADATA[HELPER_OP] = {
     name: 'Helper',
     mnemonic: 'ncall',
     before: null,
@@ -133,7 +220,7 @@ if (import.meta.env.DEV) {
     check: true,
   };
 
-  METADATA[Op.DynamicHelper] = {
+  METADATA[DYNAMIC_HELPER_OP] = {
     name: 'DynamicHelper',
     mnemonic: 'dynamiccall',
     before: null,
@@ -143,7 +230,7 @@ if (import.meta.env.DEV) {
     check: true,
   };
 
-  METADATA[Op.SetNamedVariables] = {
+  METADATA[SET_NAMED_VARIABLES_OP] = {
     name: 'SetNamedVariables',
     mnemonic: 'vsargs',
     before: null,
@@ -158,7 +245,7 @@ if (import.meta.env.DEV) {
     check: true,
   };
 
-  METADATA[Op.SetBlocks] = {
+  METADATA[SET_BLOCKS_OP] = {
     name: 'SetBlocks',
     mnemonic: 'vbblocks',
     before: null,
@@ -173,7 +260,7 @@ if (import.meta.env.DEV) {
     check: true,
   };
 
-  METADATA[Op.SetVariable] = {
+  METADATA[SET_VARIABLE_OP] = {
     name: 'SetVariable',
     mnemonic: 'sbvar',
     before: null,
@@ -188,7 +275,7 @@ if (import.meta.env.DEV) {
     check: true,
   };
 
-  METADATA[Op.SetBlock] = {
+  METADATA[SET_BLOCK_OP] = {
     name: 'SetBlock',
     mnemonic: 'sblock',
     before: null,
@@ -203,7 +290,7 @@ if (import.meta.env.DEV) {
     check: true,
   };
 
-  METADATA[Op.GetVariable] = {
+  METADATA[GET_VARIABLE_OP] = {
     name: 'GetVariable',
     mnemonic: 'symload',
     before: null,
@@ -218,7 +305,7 @@ if (import.meta.env.DEV) {
     check: true,
   };
 
-  METADATA[Op.GetProperty] = {
+  METADATA[GET_PROPERTY_OP] = {
     name: 'GetProperty',
     mnemonic: 'getprop',
     before: null,
@@ -233,7 +320,7 @@ if (import.meta.env.DEV) {
     check: true,
   };
 
-  METADATA[Op.GetBlock] = {
+  METADATA[GET_BLOCK_OP] = {
     name: 'GetBlock',
     mnemonic: 'blockload',
     before: null,
@@ -248,7 +335,7 @@ if (import.meta.env.DEV) {
     check: true,
   };
 
-  METADATA[Op.SpreadBlock] = {
+  METADATA[SPREAD_BLOCK_OP] = {
     name: 'SpreadBlock',
     mnemonic: 'blockspread',
     before: null,
@@ -258,7 +345,7 @@ if (import.meta.env.DEV) {
     check: true,
   };
 
-  METADATA[Op.HasBlock] = {
+  METADATA[HAS_BLOCK_OP] = {
     name: 'HasBlock',
     mnemonic: 'hasblockload',
     before: null,
@@ -268,7 +355,7 @@ if (import.meta.env.DEV) {
     check: true,
   };
 
-  METADATA[Op.HasBlockParams] = {
+  METADATA[HAS_BLOCK_PARAMS_OP] = {
     name: 'HasBlockParams',
     mnemonic: 'hasparamsload',
     before: null,
@@ -278,7 +365,7 @@ if (import.meta.env.DEV) {
     check: true,
   };
 
-  METADATA[Op.Concat] = {
+  METADATA[CONCAT_OP] = {
     name: 'Concat',
     mnemonic: 'concat',
     before: null,
@@ -293,7 +380,7 @@ if (import.meta.env.DEV) {
     check: true,
   };
 
-  METADATA[Op.IfInline] = {
+  METADATA[IF_INLINE_OP] = {
     name: 'IfInline',
     mnemonic: 'ifinline',
     before: null,
@@ -308,7 +395,7 @@ if (import.meta.env.DEV) {
     check: true,
   };
 
-  METADATA[Op.Not] = {
+  METADATA[NOT_OP] = {
     name: 'Not',
     mnemonic: 'not',
     before: null,
@@ -323,7 +410,7 @@ if (import.meta.env.DEV) {
     check: true,
   };
 
-  METADATA[Op.Constant] = {
+  METADATA[CONSTANT_OP] = {
     name: 'Constant',
     mnemonic: 'rconstload',
     before: null,
@@ -338,7 +425,7 @@ if (import.meta.env.DEV) {
     check: true,
   };
 
-  METADATA[Op.ConstantReference] = {
+  METADATA[CONSTANT_REFERENCE_OP] = {
     name: 'ConstantReference',
     mnemonic: 'rconstrefload',
     before: null,
@@ -353,7 +440,7 @@ if (import.meta.env.DEV) {
     check: true,
   };
 
-  METADATA[Op.Primitive] = {
+  METADATA[PRIMITIVE_OP] = {
     name: 'Primitive',
     mnemonic: 'pconstload',
     before: null,
@@ -368,7 +455,7 @@ if (import.meta.env.DEV) {
     check: true,
   };
 
-  METADATA[Op.PrimitiveReference] = {
+  METADATA[PRIMITIVE_REFERENCE_OP] = {
     name: 'PrimitiveReference',
     mnemonic: 'ptoref',
     before: null,
@@ -378,7 +465,7 @@ if (import.meta.env.DEV) {
     check: true,
   };
 
-  METADATA[Op.ReifyU32] = {
+  METADATA[REIFY_U32_OP] = {
     name: 'ReifyU32',
     mnemonic: 'reifyload',
     before: null,
@@ -388,7 +475,7 @@ if (import.meta.env.DEV) {
     check: true,
   };
 
-  METADATA[Op.Dup] = {
+  METADATA[DUP_OP] = {
     name: 'Dup',
     mnemonic: 'dup',
     before: null,
@@ -407,7 +494,7 @@ if (import.meta.env.DEV) {
     check: true,
   };
 
-  METADATA[Op.Pop] = {
+  METADATA[POP_OP] = {
     name: 'Pop',
     mnemonic: 'pop',
     before: null,
@@ -422,7 +509,7 @@ if (import.meta.env.DEV) {
     check: false,
   };
 
-  METADATA[Op.Load] = {
+  METADATA[LOAD_OP] = {
     name: 'Load',
     mnemonic: 'put',
     before: null,
@@ -437,7 +524,7 @@ if (import.meta.env.DEV) {
     check: true,
   };
 
-  METADATA[Op.Fetch] = {
+  METADATA[FETCH_OP] = {
     name: 'Fetch',
     mnemonic: 'regload',
     before: null,
@@ -452,7 +539,7 @@ if (import.meta.env.DEV) {
     check: true,
   };
 
-  METADATA[Op.RootScope] = {
+  METADATA[ROOT_SCOPE_OP] = {
     name: 'RootScope',
     mnemonic: 'rscopepush',
     before: null,
@@ -467,7 +554,7 @@ if (import.meta.env.DEV) {
     check: true,
   };
 
-  METADATA[Op.VirtualRootScope] = {
+  METADATA[VIRTUAL_ROOT_SCOPE_OP] = {
     name: 'VirtualRootScope',
     mnemonic: 'vrscopepush',
     before: null,
@@ -482,7 +569,7 @@ if (import.meta.env.DEV) {
     check: true,
   };
 
-  METADATA[Op.ChildScope] = {
+  METADATA[CHILD_SCOPE_OP] = {
     name: 'ChildScope',
     mnemonic: 'cscopepush',
     before: null,
@@ -492,7 +579,7 @@ if (import.meta.env.DEV) {
     check: true,
   };
 
-  METADATA[Op.PopScope] = {
+  METADATA[POP_SCOPE_OP] = {
     name: 'PopScope',
     mnemonic: 'scopepop',
     before: null,
@@ -502,7 +589,7 @@ if (import.meta.env.DEV) {
     check: true,
   };
 
-  METADATA[Op.Text] = {
+  METADATA[TEXT_OP] = {
     name: 'Text',
     mnemonic: 'apnd_text',
     before: null,
@@ -517,7 +604,7 @@ if (import.meta.env.DEV) {
     check: true,
   };
 
-  METADATA[Op.Comment] = {
+  METADATA[COMMENT_OP] = {
     name: 'Comment',
     mnemonic: 'apnd_comment',
     before: null,
@@ -532,7 +619,7 @@ if (import.meta.env.DEV) {
     check: true,
   };
 
-  METADATA[Op.AppendHTML] = {
+  METADATA[APPEND_HTML_OP] = {
     name: 'AppendHTML',
     mnemonic: 'apnd_dynhtml',
     before: null,
@@ -542,7 +629,7 @@ if (import.meta.env.DEV) {
     check: true,
   };
 
-  METADATA[Op.AppendSafeHTML] = {
+  METADATA[APPEND_SAFE_HTML_OP] = {
     name: 'AppendSafeHTML',
     mnemonic: 'apnd_dynshtml',
     before: null,
@@ -552,7 +639,7 @@ if (import.meta.env.DEV) {
     check: true,
   };
 
-  METADATA[Op.AppendDocumentFragment] = {
+  METADATA[APPEND_DOCUMENT_FRAGMENT_OP] = {
     name: 'AppendDocumentFragment',
     mnemonic: 'apnd_dynfrag',
     before: null,
@@ -562,7 +649,7 @@ if (import.meta.env.DEV) {
     check: true,
   };
 
-  METADATA[Op.AppendNode] = {
+  METADATA[APPEND_NODE_OP] = {
     name: 'AppendNode',
     mnemonic: 'apnd_dynnode',
     before: null,
@@ -572,7 +659,7 @@ if (import.meta.env.DEV) {
     check: true,
   };
 
-  METADATA[Op.AppendText] = {
+  METADATA[APPEND_TEXT_OP] = {
     name: 'AppendText',
     mnemonic: 'apnd_dyntext',
     before: null,
@@ -582,7 +669,7 @@ if (import.meta.env.DEV) {
     check: true,
   };
 
-  METADATA[Op.OpenElement] = {
+  METADATA[OPEN_ELEMENT_OP] = {
     name: 'OpenElement',
     mnemonic: 'apnd_tag',
     before: null,
@@ -597,7 +684,7 @@ if (import.meta.env.DEV) {
     check: true,
   };
 
-  METADATA[Op.OpenDynamicElement] = {
+  METADATA[OPEN_DYNAMIC_ELEMENT_OP] = {
     name: 'OpenDynamicElement',
     mnemonic: 'apnd_dyntag',
     before: null,
@@ -607,7 +694,7 @@ if (import.meta.env.DEV) {
     check: true,
   };
 
-  METADATA[Op.PushRemoteElement] = {
+  METADATA[PUSH_REMOTE_ELEMENT_OP] = {
     name: 'PushRemoteElement',
     mnemonic: 'apnd_remotetag',
     before: null,
@@ -617,7 +704,7 @@ if (import.meta.env.DEV) {
     check: true,
   };
 
-  METADATA[Op.StaticAttr] = {
+  METADATA[STATIC_ATTR_OP] = {
     name: 'StaticAttr',
     mnemonic: 'apnd_attr',
     before: null,
@@ -640,7 +727,7 @@ if (import.meta.env.DEV) {
     check: true,
   };
 
-  METADATA[Op.DynamicAttr] = {
+  METADATA[DYNAMIC_ATTR_OP] = {
     name: 'DynamicAttr',
     mnemonic: 'apnd_dynattr',
     before: null,
@@ -663,7 +750,7 @@ if (import.meta.env.DEV) {
     check: true,
   };
 
-  METADATA[Op.ComponentAttr] = {
+  METADATA[COMPONENT_ATTR_OP] = {
     name: 'ComponentAttr',
     mnemonic: 'apnd_cattr',
     before: null,
@@ -686,7 +773,7 @@ if (import.meta.env.DEV) {
     check: true,
   };
 
-  METADATA[Op.FlushElement] = {
+  METADATA[FLUSH_ELEMENT_OP] = {
     name: 'FlushElement',
     mnemonic: 'apnd_flushtag',
     before: null,
@@ -696,7 +783,7 @@ if (import.meta.env.DEV) {
     check: true,
   };
 
-  METADATA[Op.CloseElement] = {
+  METADATA[CLOSE_ELEMENT_OP] = {
     name: 'CloseElement',
     mnemonic: 'apnd_closetag',
     before: null,
@@ -706,7 +793,7 @@ if (import.meta.env.DEV) {
     check: true,
   };
 
-  METADATA[Op.PopRemoteElement] = {
+  METADATA[POP_REMOTE_ELEMENT_OP] = {
     name: 'PopRemoteElement',
     mnemonic: 'apnd_closeremotetag',
     before: null,
@@ -716,7 +803,7 @@ if (import.meta.env.DEV) {
     check: true,
   };
 
-  METADATA[Op.Modifier] = {
+  METADATA[MODIFIER_OP] = {
     name: 'Modifier',
     mnemonic: 'apnd_modifier',
     before: null,
@@ -731,7 +818,7 @@ if (import.meta.env.DEV) {
     check: true,
   };
 
-  METADATA[Op.BindDynamicScope] = {
+  METADATA[BIND_DYNAMIC_SCOPE_OP] = {
     name: 'BindDynamicScope',
     mnemonic: 'setdynscope',
     before: null,
@@ -746,7 +833,7 @@ if (import.meta.env.DEV) {
     check: true,
   };
 
-  METADATA[Op.PushDynamicScope] = {
+  METADATA[PUSH_DYNAMIC_SCOPE_OP] = {
     name: 'PushDynamicScope',
     mnemonic: 'dynscopepush',
     before: null,
@@ -756,7 +843,7 @@ if (import.meta.env.DEV) {
     check: true,
   };
 
-  METADATA[Op.PopDynamicScope] = {
+  METADATA[POP_DYNAMIC_SCOPE_OP] = {
     name: 'PopDynamicScope',
     mnemonic: 'dynscopepop',
     before: null,
@@ -766,7 +853,7 @@ if (import.meta.env.DEV) {
     check: true,
   };
 
-  METADATA[Op.CompileBlock] = {
+  METADATA[COMPILE_BLOCK_OP] = {
     name: 'CompileBlock',
     mnemonic: 'cmpblock',
     before: null,
@@ -776,7 +863,7 @@ if (import.meta.env.DEV) {
     check: true,
   };
 
-  METADATA[Op.PushBlockScope] = {
+  METADATA[PUSH_BLOCK_SCOPE_OP] = {
     name: 'PushBlockScope',
     mnemonic: 'scopeload',
     before: null,
@@ -791,7 +878,7 @@ if (import.meta.env.DEV) {
     check: true,
   };
 
-  METADATA[Op.PushSymbolTable] = {
+  METADATA[PUSH_SYMBOL_TABLE_OP] = {
     name: 'PushSymbolTable',
     mnemonic: 'dsymload',
     before: null,
@@ -806,7 +893,7 @@ if (import.meta.env.DEV) {
     check: true,
   };
 
-  METADATA[Op.InvokeYield] = {
+  METADATA[INVOKE_YIELD_OP] = {
     name: 'InvokeYield',
     mnemonic: 'invokeyield',
     before: null,
@@ -816,7 +903,7 @@ if (import.meta.env.DEV) {
     check: true,
   };
 
-  METADATA[Op.JumpIf] = {
+  METADATA[JUMP_IF_OP] = {
     name: 'JumpIf',
     mnemonic: 'iftrue',
     before: null,
@@ -831,7 +918,7 @@ if (import.meta.env.DEV) {
     check: true,
   };
 
-  METADATA[Op.JumpUnless] = {
+  METADATA[JUMP_UNLESS_OP] = {
     name: 'JumpUnless',
     mnemonic: 'iffalse',
     before: null,
@@ -846,7 +933,7 @@ if (import.meta.env.DEV) {
     check: true,
   };
 
-  METADATA[Op.JumpEq] = {
+  METADATA[JUMP_EQ_OP] = {
     name: 'JumpEq',
     mnemonic: 'ifeq',
     before: null,
@@ -865,7 +952,7 @@ if (import.meta.env.DEV) {
     check: true,
   };
 
-  METADATA[Op.AssertSame] = {
+  METADATA[ASSERT_SAME_OP] = {
     name: 'AssertSame',
     mnemonic: 'assert_eq',
     before: null,
@@ -875,7 +962,7 @@ if (import.meta.env.DEV) {
     check: true,
   };
 
-  METADATA[Op.Enter] = {
+  METADATA[ENTER_OP] = {
     name: 'Enter',
     mnemonic: 'blk_start',
     before: null,
@@ -890,7 +977,7 @@ if (import.meta.env.DEV) {
     check: true,
   };
 
-  METADATA[Op.Exit] = {
+  METADATA[EXIT_OP] = {
     name: 'Exit',
     mnemonic: 'blk_end',
     before: null,
@@ -900,7 +987,7 @@ if (import.meta.env.DEV) {
     check: true,
   };
 
-  METADATA[Op.ToBoolean] = {
+  METADATA[TO_BOOLEAN_OP] = {
     name: 'ToBoolean',
     mnemonic: 'anytobool',
     before: null,
@@ -910,7 +997,7 @@ if (import.meta.env.DEV) {
     check: true,
   };
 
-  METADATA[Op.EnterList] = {
+  METADATA[ENTER_LIST_OP] = {
     name: 'EnterList',
     mnemonic: 'list_start',
     before: null,
@@ -929,7 +1016,7 @@ if (import.meta.env.DEV) {
     check: true,
   };
 
-  METADATA[Op.ExitList] = {
+  METADATA[EXIT_LIST_OP] = {
     name: 'ExitList',
     mnemonic: 'list_end',
     before: null,
@@ -939,7 +1026,7 @@ if (import.meta.env.DEV) {
     check: true,
   };
 
-  METADATA[Op.Iterate] = {
+  METADATA[ITERATE_OP] = {
     name: 'Iterate',
     mnemonic: 'iter',
     before: null,
@@ -954,7 +1041,7 @@ if (import.meta.env.DEV) {
     check: false,
   };
 
-  METADATA[Op.Main] = {
+  METADATA[MAIN_OP] = {
     name: 'Main',
     mnemonic: 'main',
     before: null,
@@ -969,7 +1056,7 @@ if (import.meta.env.DEV) {
     check: true,
   };
 
-  METADATA[Op.ContentType] = {
+  METADATA[CONTENT_TYPE_OP] = {
     name: 'ContentType',
     mnemonic: 'ctload',
     before: null,
@@ -979,7 +1066,7 @@ if (import.meta.env.DEV) {
     check: true,
   };
 
-  METADATA[Op.DynamicContentType] = {
+  METADATA[DYNAMIC_CONTENT_TYPE_OP] = {
     name: 'DynamicContentType',
     mnemonic: 'dctload',
     before: null,
@@ -989,7 +1076,7 @@ if (import.meta.env.DEV) {
     check: true,
   };
 
-  METADATA[Op.Curry] = {
+  METADATA[CURRY_OP] = {
     name: 'Curry',
     mnemonic: 'curry',
     before: null,
@@ -1008,7 +1095,7 @@ if (import.meta.env.DEV) {
     check: true,
   };
 
-  METADATA[Op.PushComponentDefinition] = {
+  METADATA[PUSH_COMPONENT_DEFINITION_OP] = {
     name: 'PushComponentDefinition',
     mnemonic: 'cmload',
     before: null,
@@ -1023,7 +1110,7 @@ if (import.meta.env.DEV) {
     check: true,
   };
 
-  METADATA[Op.PushDynamicComponentInstance] = {
+  METADATA[PUSH_DYNAMIC_COMPONENT_INSTANCE_OP] = {
     name: 'PushDynamicComponentInstance',
     mnemonic: 'dciload',
     before: null,
@@ -1033,7 +1120,7 @@ if (import.meta.env.DEV) {
     check: true,
   };
 
-  METADATA[Op.ResolveDynamicComponent] = {
+  METADATA[RESOLVE_DYNAMIC_COMPONENT_OP] = {
     name: 'ResolveDynamicComponent',
     mnemonic: 'cdload',
     before: null,
@@ -1048,7 +1135,7 @@ if (import.meta.env.DEV) {
     check: true,
   };
 
-  METADATA[Op.PushArgs] = {
+  METADATA[PUSH_ARGS_OP] = {
     name: 'PushArgs',
     mnemonic: 'argsload',
     before: null,
@@ -1071,7 +1158,7 @@ if (import.meta.env.DEV) {
     check: true,
   };
 
-  METADATA[Op.PushEmptyArgs] = {
+  METADATA[PUSH_EMPTY_ARGS_OP] = {
     name: 'PushEmptyArgs',
     mnemonic: 'emptyargsload',
     before: null,
@@ -1081,7 +1168,7 @@ if (import.meta.env.DEV) {
     check: true,
   };
 
-  METADATA[Op.PopArgs] = {
+  METADATA[POP_ARGS_OP] = {
     name: 'PopArgs',
     mnemonic: 'argspop',
     before: null,
@@ -1091,7 +1178,7 @@ if (import.meta.env.DEV) {
     check: true,
   };
 
-  METADATA[Op.PrepareArgs] = {
+  METADATA[PREPARE_ARGS_OP] = {
     name: 'PrepareArgs',
     mnemonic: 'argsprep',
     before: null,
@@ -1106,7 +1193,7 @@ if (import.meta.env.DEV) {
     check: false,
   };
 
-  METADATA[Op.CaptureArgs] = {
+  METADATA[CAPTURE_ARGS_OP] = {
     name: 'CaptureArgs',
     mnemonic: 'argscapture',
     before: null,
@@ -1116,7 +1203,7 @@ if (import.meta.env.DEV) {
     check: true,
   };
 
-  METADATA[Op.CreateComponent] = {
+  METADATA[CREATE_COMPONENT_OP] = {
     name: 'CreateComponent',
     mnemonic: 'comp_create',
     before: null,
@@ -1135,7 +1222,7 @@ if (import.meta.env.DEV) {
     check: true,
   };
 
-  METADATA[Op.RegisterComponentDestructor] = {
+  METADATA[REGISTER_COMPONENT_DESTRUCTOR_OP] = {
     name: 'RegisterComponentDestructor',
     mnemonic: 'comp_dest',
     before: null,
@@ -1150,7 +1237,7 @@ if (import.meta.env.DEV) {
     check: true,
   };
 
-  METADATA[Op.PutComponentOperations] = {
+  METADATA[PUT_COMPONENT_OPERATIONS_OP] = {
     name: 'PutComponentOperations',
     mnemonic: 'comp_elops',
     before: null,
@@ -1160,7 +1247,7 @@ if (import.meta.env.DEV) {
     check: true,
   };
 
-  METADATA[Op.GetComponentSelf] = {
+  METADATA[GET_COMPONENT_SELF_OP] = {
     name: 'GetComponentSelf',
     mnemonic: 'comp_selfload',
     before: null,
@@ -1175,7 +1262,7 @@ if (import.meta.env.DEV) {
     check: true,
   };
 
-  METADATA[Op.GetComponentTagName] = {
+  METADATA[GET_COMPONENT_TAG_NAME_OP] = {
     name: 'GetComponentTagName',
     mnemonic: 'comp_tagload',
     before: null,
@@ -1190,7 +1277,7 @@ if (import.meta.env.DEV) {
     check: true,
   };
 
-  METADATA[Op.GetComponentLayout] = {
+  METADATA[GET_COMPONENT_LAYOUT_OP] = {
     name: 'GetComponentLayout',
     mnemonic: 'comp_layoutload',
     before: null,
@@ -1205,7 +1292,7 @@ if (import.meta.env.DEV) {
     check: true,
   };
 
-  METADATA[Op.BindEvalScope] = {
+  METADATA[BIND_EVAL_SCOPE_OP] = {
     name: 'BindEvalScope',
     mnemonic: 'eval_scope',
     before: null,
@@ -1220,7 +1307,7 @@ if (import.meta.env.DEV) {
     check: true,
   };
 
-  METADATA[Op.PopulateLayout] = {
+  METADATA[POPULATE_LAYOUT_OP] = {
     name: 'PopulateLayout',
     mnemonic: 'comp_layoutput',
     before: null,
@@ -1235,7 +1322,7 @@ if (import.meta.env.DEV) {
     check: true,
   };
 
-  METADATA[Op.InvokeComponentLayout] = {
+  METADATA[INVOKE_COMPONENT_LAYOUT_OP] = {
     name: 'InvokeComponentLayout',
     mnemonic: 'comp_invokelayout',
     before: null,
@@ -1250,7 +1337,7 @@ if (import.meta.env.DEV) {
     check: true,
   };
 
-  METADATA[Op.BeginComponentTransaction] = {
+  METADATA[BEGIN_COMPONENT_TRANSACTION_OP] = {
     name: 'BeginComponentTransaction',
     mnemonic: 'comp_begin',
     before: null,
@@ -1260,7 +1347,7 @@ if (import.meta.env.DEV) {
     check: true,
   };
 
-  METADATA[Op.CommitComponentTransaction] = {
+  METADATA[COMMIT_COMPONENT_TRANSACTION_OP] = {
     name: 'CommitComponentTransaction',
     mnemonic: 'comp_commit',
     before: null,
@@ -1270,7 +1357,7 @@ if (import.meta.env.DEV) {
     check: true,
   };
 
-  METADATA[Op.DidCreateElement] = {
+  METADATA[DID_CREATE_ELEMENT_OP] = {
     name: 'DidCreateElement',
     mnemonic: 'comp_created',
     before: null,
@@ -1285,7 +1372,7 @@ if (import.meta.env.DEV) {
     check: true,
   };
 
-  METADATA[Op.DidRenderLayout] = {
+  METADATA[DID_RENDER_LAYOUT_OP] = {
     name: 'DidRenderLayout',
     mnemonic: 'comp_rendered',
     before: null,
@@ -1300,7 +1387,7 @@ if (import.meta.env.DEV) {
     check: true,
   };
 
-  METADATA[Op.Debugger] = {
+  METADATA[DEBUGGER_OP] = {
     name: 'Debugger',
     mnemonic: 'debugger',
     before: null,

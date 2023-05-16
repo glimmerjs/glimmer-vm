@@ -5,7 +5,6 @@
       "type": "shell",
       "command": "pnpm",
       "args": ["dotenv", "--", "turbo", "lint"],
-      // "script": "lint:files",
       "problemMatcher": ["$eslint-stylish"],
       "presentation": {
         "echo": true,
@@ -17,6 +16,13 @@
       },
       "label": "turbo: lint",
       "detail": "dotenv -- turbo lint"
+    },
+    {
+      "type": "npm",
+      "script": "lint:types",
+      "problemMatcher": ["$tsc"],
+      "label": "npm: lint:types",
+      "detail": "tsc -b"
     }
   ]
 }

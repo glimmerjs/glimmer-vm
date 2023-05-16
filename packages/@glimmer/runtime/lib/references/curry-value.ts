@@ -6,12 +6,12 @@ import type {
   Nullable,
   Owner,
   RuntimeResolver,
-} from "@glimmer/interfaces";
+} from '@glimmer/interfaces';
 import { createComputeRef, type Reference, valueForRef } from '@glimmer/reference';
 import { expect, isObject } from '@glimmer/util';
-import { CurriedTypes } from '@glimmer/vm';
 
 import { curry, isCurriedType } from '../curried-value';
+import { CURRIED_COMPONENT } from '@glimmer/vm';
 
 export default function createCurryRef(
   type: CurriedType,
@@ -32,7 +32,7 @@ export default function createCurryRef(
 
     if (isCurriedType(value, type)) {
       curriedDefinition = args ? curry(type, value, owner, args) : args;
-    } else if (type === CurriedTypes.Component && typeof value === 'string' && value) {
+    } else if (type === CURRIED_COMPONENT && typeof value === 'string' && value) {
       // Only components should enter this path, as helpers and modifiers do not
       // support string based resolution
 

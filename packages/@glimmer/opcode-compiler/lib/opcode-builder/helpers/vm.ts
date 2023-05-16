@@ -1,6 +1,23 @@
 import type { CurriedType, NonSmallIntOperand, Nullable, WireFormat } from '@glimmer/interfaces';
 import { encodeImmediate, isSmallInt } from '@glimmer/util';
-import { $fp, $v0, Op, POP_FRAME_OP, PUSH_FRAME_OP } from '@glimmer/vm';
+import {
+  $fp,
+  $v0,
+  BIND_DYNAMIC_SCOPE_OP,
+  CAPTURE_ARGS_OP,
+  CURRY_OP,
+  DUP_OP,
+  DYNAMIC_HELPER_OP,
+  FETCH_OP,
+  HELPER_OP,
+  POP_DYNAMIC_SCOPE_OP,
+  POP_FRAME_OP,
+  POP_OP,
+  PRIMITIVE_OP,
+  PRIMITIVE_REFERENCE_OP,
+  PUSH_DYNAMIC_SCOPE_OP,
+  PUSH_FRAME_OP,
+} from '@glimmer/vm';
 
 import type { PushExpressionOp, PushStatementOp } from '../../syntax/compilers';
 import { isStrictMode, nonSmallIntOperand } from '../operands';
@@ -21,7 +38,7 @@ export interface CompileHelper {
  */
 export function PushPrimitiveReference(op: PushExpressionOp, value: Primitive): void {
   PushPrimitive(op, value);
-  op(Op.PrimitiveReference);
+  op(PRIMITIVE_REFERENCE_OP);
 }
 
 /**
@@ -36,7 +53,7 @@ export function PushPrimitive(op: PushExpressionOp, primitive: Primitive): void 
     p = isSmallInt(p) ? encodeImmediate(p) : nonSmallIntOperand(p);
   }
 
-  op(Op.Primitive, p);
+  op(PRIMITIVE_OP, p);
 }
 
 /**
@@ -55,9 +72,9 @@ export function Call(
 ): void {
   op(PUSH_FRAME_OP);
   SimpleArgs(op, positional, named, false);
-  op(Op.Helper, handle);
+  op(HELPER_OP, handle);
   op(POP_FRAME_OP);
-  op(Op.Fetch, $v0);
+  op(FETCH_OP, $v0);
 }
 
 /**
@@ -75,17 +92,17 @@ export function CallDynamic(
 ): void {
   op(PUSH_FRAME_OP);
   SimpleArgs(op, positional, named, false);
-  op(Op.Dup, $fp, 1);
-  op(Op.DynamicHelper);
+  op(DUP_OP, $fp, 1);
+  op(DYNAMIC_HELPER_OP);
   if (append) {
-    op(Op.Fetch, $v0);
+    op(FETCH_OP, $v0);
     append();
     op(POP_FRAME_OP);
-    op(Op.Pop, 1);
+    op(POP_OP, 1);
   } else {
     op(POP_FRAME_OP);
-    op(Op.Pop, 1);
-    op(Op.Fetch, $v0);
+    op(POP_OP, 1);
+    op(FETCH_OP, $v0);
   }
 }
 
@@ -98,10 +115,10 @@ export function CallDynamic(
  * @param block a function that returns a list of statements to evaluate
  */
 export function DynamicScope(op: PushStatementOp, names: string[], block: () => void): void {
-  op(Op.PushDynamicScope);
-  op(Op.BindDynamicScope, names);
+  op(PUSH_DYNAMIC_SCOPE_OP);
+  op(BIND_DYNAMIC_SCOPE_OP, names);
   block();
-  op(Op.PopDynamicScope);
+  op(POP_DYNAMIC_SCOPE_OP);
 }
 
 export function Curry(
@@ -113,9 +130,9 @@ export function Curry(
 ): void {
   op(PUSH_FRAME_OP);
   SimpleArgs(op, positional, named, false);
-  op(Op.CaptureArgs);
+  op(CAPTURE_ARGS_OP);
   expr(op, definition);
-  op(Op.Curry, type, isStrictMode());
+  op(CURRY_OP, type, isStrictMode());
   op(POP_FRAME_OP);
-  op(Op.Fetch, $v0);
+  op(FETCH_OP, $v0);
 }
