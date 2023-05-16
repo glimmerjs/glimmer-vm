@@ -16,7 +16,7 @@
   },
   "dependencies": {
     "@glimmer/interfaces": "workspace:^",
-    "@glimmer/vm": "workspace:^"
+    "@glimmer/vm-constants": "workspace:^"
   },
   "scripts": {
     "test:lint": "eslint .",

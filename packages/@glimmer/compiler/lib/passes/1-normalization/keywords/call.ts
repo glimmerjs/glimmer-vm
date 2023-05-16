@@ -1,4 +1,4 @@
-import { CURRIED_COMPONENT, CURRIED_HELPER, CURRIED_MODIFIER } from '@glimmer/vm';
+import { CURRIED_COMPONENT, CURRIED_HELPER, CURRIED_MODIFIER } from '@glimmer/vm-constants';
 import { keywords } from './impl';
 import { curryKeyword } from './utils/curry';
 import { getDynamicVarKeyword } from './utils/dynamic-vars';

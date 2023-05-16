@@ -98,7 +98,7 @@ import {
   TEXT_OP,
   TO_BOOLEAN_OP,
   VIRTUAL_ROOT_SCOPE_OP,
-} from '@glimmer/vm';
+} from '@glimmer/vm-constants';
 
 import type { NormalizedMetadata } from './metadata';
 

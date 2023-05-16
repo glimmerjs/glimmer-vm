@@ -6,7 +6,7 @@
     "@glimmer/debug": "workspace:^",
     "@glimmer/destroyable": "workspace:^",
     "@glimmer/env": "0.1.7",
-    "@glimmer/vm": "workspace:^",
+    "@glimmer/vm-constants": "workspace:^",
     "@glimmer/global-context": "workspace:^",
     "@glimmer/interfaces": "workspace:^",
     "@glimmer/reference": "workspace:^",

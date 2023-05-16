@@ -42,7 +42,7 @@ import {
   PUSH_REMOTE_ELEMENT_OP,
   STATIC_ATTR_OP,
   TEXT_OP,
- CURRIED_MODIFIER } from '@glimmer/vm';
+ CURRIED_MODIFIER } from '@glimmer/vm-constants';
 
 import { type CurriedValue, isCurriedType, resolveCurriedValue } from '../../curried-value';
 import { APPEND_OPCODES } from '../../opcodes';
@@ -52,20 +52,20 @@ import { CheckArguments, CheckOperations, CheckReference } from './-debug-strip'
 import { Assert } from './vm';
 
 APPEND_OPCODES.add(TEXT_OP, (vm, { op1: text }) => {
-  vm.elements().appendText(vm[CONSTANTS].getValue(text));
+  vm._elements_().appendText(vm[CONSTANTS].getValue(text));
 });
 
 APPEND_OPCODES.add(COMMENT_OP, (vm, { op1: text }) => {
-  vm.elements().appendComment(vm[CONSTANTS].getValue(text));
+  vm._elements_().appendComment(vm[CONSTANTS].getValue(text));
 });
 
 APPEND_OPCODES.add(OPEN_ELEMENT_OP, (vm, { op1: tag }) => {
-  vm.elements().openElement(vm[CONSTANTS].getValue(tag));
+  vm._elements_().openElement(vm[CONSTANTS].getValue(tag));
 });
 
 APPEND_OPCODES.add(OPEN_DYNAMIC_ELEMENT_OP, (vm) => {
   let tagName = check(valueForRef(check(vm.stack.pop(), CheckReference)), CheckString);
-  vm.elements().openElement(tagName);
+  vm._elements_().openElement(tagName);
 });
 
 APPEND_OPCODES.add(PUSH_REMOTE_ELEMENT_OP, (vm) => {
@@ -78,35 +78,35 @@ APPEND_OPCODES.add(PUSH_REMOTE_ELEMENT_OP, (vm) => {
   let guid = valueForRef(guidRef) as string;
 
   if (!isConstRef(elementRef)) {
-    vm.updateWith(new Assert(elementRef));
+    vm._updateWith_(new Assert(elementRef));
   }
 
   if (insertBefore !== undefined && !isConstRef(insertBeforeRef)) {
-    vm.updateWith(new Assert(insertBeforeRef));
+    vm._updateWith_(new Assert(insertBeforeRef));
   }
 
-  let block = vm.elements().pushRemoteElement(element, guid, insertBefore);
-  if (block) vm.associateDestroyable(block);
+  let block = vm._elements_().pushRemoteElement(element, guid, insertBefore);
+  if (block) vm._associateDestroyable_(block);
 });
 
 APPEND_OPCODES.add(POP_REMOTE_ELEMENT_OP, (vm) => {
-  vm.elements().popRemoteElement();
+  vm._elements_().popRemoteElement();
 });
 
 APPEND_OPCODES.add(FLUSH_ELEMENT_OP, (vm) => {
-  let operations = check(vm.fetchValue($t0), CheckOperations);
+  let operations = check(vm._fetchValue_($t0), CheckOperations);
   let modifiers: Nullable<ModifierInstance[]> = null;
 
   if (operations) {
     modifiers = operations.flush(vm);
-    vm.loadValue($t0, null);
+    vm._loadValue_($t0, null);
   }
 
-  vm.elements().flushElement(modifiers);
+  vm._elements_().flushElement(modifiers);
 });
 
 APPEND_OPCODES.add(CLOSE_ELEMENT_OP, (vm) => {
-  let modifiers = vm.elements().closeElement();
+  let modifiers = vm._elements_().closeElement();
 
   if (modifiers) {
     modifiers.forEach((modifier) => {
@@ -115,7 +115,7 @@ APPEND_OPCODES.add(CLOSE_ELEMENT_OP, (vm) => {
       let d = manager.getDestroyable(state);
 
       if (d) {
-        vm.associateDestroyable(d);
+        vm._associateDestroyable_(d);
       }
     });
   }
@@ -126,13 +126,13 @@ APPEND_OPCODES.add(MODIFIER_OP, (vm, { op1: handle }) => {
     return;
   }
 
-  let owner = vm.getOwner();
+  let owner = vm._getOwner_();
   let args = check(vm.stack.pop(), CheckArguments);
   let definition = vm[CONSTANTS].getValue<ModifierDefinition>(handle);
 
   let { manager } = definition;
 
-  let { constructing } = vm.elements();
+  let { constructing } = vm._elements_();
 
   let state = manager.create(
     owner,
@@ -148,7 +148,7 @@ APPEND_OPCODES.add(MODIFIER_OP, (vm, { op1: handle }) => {
   };
 
   let operations = expect(
-    check(vm.fetchValue($t0), CheckOperations),
+    check(vm._fetchValue_($t0), CheckOperations),
     'BUG: ElementModifier could not find operations to append to'
   );
 
@@ -158,7 +158,7 @@ APPEND_OPCODES.add(MODIFIER_OP, (vm, { op1: handle }) => {
 
   if (tag !== null) {
     consumeTag(tag);
-    return vm.updateWith(new UpdateModifierOpcode(tag, instance));
+    return vm._updateWith_(new UpdateModifierOpcode(tag, instance));
   }
 });
 
@@ -170,8 +170,8 @@ APPEND_OPCODES.add(DYNAMIC_MODIFIER_OP, (vm) => {
   let { stack, [CONSTANTS]: constants } = vm;
   let ref = check(stack.pop(), CheckReference);
   let args = check(stack.pop(), CheckArguments).capture();
-  let { constructing } = vm.elements();
-  let initialOwner = vm.getOwner();
+  let { constructing } = vm._elements_();
+  let initialOwner = vm._getOwner_();
 
   let instanceRef = createComputeRef(() => {
     let value = valueForRef(ref);
@@ -243,7 +243,7 @@ APPEND_OPCODES.add(DYNAMIC_MODIFIER_OP, (vm) => {
 
   if (instance !== undefined) {
     let operations = expect(
-      check(vm.fetchValue($t0), CheckOperations),
+      check(vm._fetchValue_($t0), CheckOperations),
       'BUG: ElementModifier could not find operations to append to'
     );
 
@@ -257,7 +257,7 @@ APPEND_OPCODES.add(DYNAMIC_MODIFIER_OP, (vm) => {
   }
 
   if (!isConstRef(ref) || tag) {
-    return vm.updateWith(new UpdateDynamicModifierOpcode(tag, instance, instanceRef));
+    return vm._updateWith_(new UpdateDynamicModifierOpcode(tag, instance, instanceRef));
   }
 });
 
@@ -352,7 +352,7 @@ APPEND_OPCODES.add(STATIC_ATTR_OP, (vm, { op1: _name, op2: _value, op3: _namespa
   let value = vm[CONSTANTS].getValue<string>(_value);
   let namespace = _namespace ? vm[CONSTANTS].getValue<string>(_namespace) : null;
 
-  vm.elements().setStaticAttribute(name, value, namespace);
+  vm._elements_().setStaticAttribute(name, value, namespace);
 });
 
 APPEND_OPCODES.add(DYNAMIC_ATTR_OP, (vm, { op1: _name, op2: _trusting, op3: _namespace }) => {
@@ -362,10 +362,10 @@ APPEND_OPCODES.add(DYNAMIC_ATTR_OP, (vm, { op1: _name, op2: _trusting, op3: _nam
   let value = valueForRef(reference);
   let namespace = _namespace ? vm[CONSTANTS].getValue<string>(_namespace) : null;
 
-  let attribute = vm.elements().setDynamicAttribute(name, value, trusting, namespace);
+  let attribute = vm._elements_().setDynamicAttribute(name, value, trusting, namespace);
 
   if (!isConstRef(reference)) {
-    vm.updateWith(new UpdateDynamicAttributeOpcode(reference, attribute, vm.env));
+    vm._updateWith_(new UpdateDynamicAttributeOpcode(reference, attribute, vm.env));
   }
 });
 

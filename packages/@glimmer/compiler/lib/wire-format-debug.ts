@@ -9,7 +9,7 @@ import { dict, exhausted } from '@glimmer/util';
 import { SexpOpcodes as Op } from '@glimmer/wire-format';
 
 import { inflateAttrName, inflateTagName } from './utils';
-import { CURRIED_COMPONENT, CURRIED_HELPER, CURRIED_MODIFIER } from '@glimmer/vm';
+import { CURRIED_COMPONENT, CURRIED_HELPER, CURRIED_MODIFIER } from '@glimmer/vm-constants';
 
 export default class WireFormatDebugger {
   private upvars: string[];

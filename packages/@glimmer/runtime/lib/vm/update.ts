@@ -172,10 +172,10 @@ export class TryOpcode extends BlockOpcode implements ExceptionHandler {
     let updating: UpdatingOpcode[] = [];
     let children = (this.children = []);
 
-    let result = vm.execute((vm) => {
-      vm.pushUpdating(updating);
-      vm.updateWith(this);
-      vm.pushUpdating(children);
+    let result = vm._execute_((vm) => {
+      vm._pushUpdating_(updating);
+      vm._updateWith_(this);
+      vm._pushUpdating_(children);
     });
 
     associateDestroyableChild(this, result.drop);
@@ -369,9 +369,9 @@ export class ListBlockOpcode extends BlockOpcode {
 
     let vm = state.resume(runtime, elementStack);
 
-    vm.execute((vm) => {
-      vm.pushUpdating();
-      let opcode = vm.enterItem(item);
+    vm._execute_((vm) => {
+      vm._pushUpdating_();
+      let opcode = vm._enterItem_(item);
 
       opcode.index = children.length;
       children.push(opcode);

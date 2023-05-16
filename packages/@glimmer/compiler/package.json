@@ -25,7 +25,7 @@
     "@glimmer/interfaces": "workspace:^",
     "@glimmer/util": "workspace:^",
     "@glimmer/syntax": "workspace:^",
-    "@glimmer/vm": "workspace:^",
+    "@glimmer/vm-constants": "workspace:^",
     "@glimmer/wire-format": "workspace:^"
   },
   "devDependencies": {

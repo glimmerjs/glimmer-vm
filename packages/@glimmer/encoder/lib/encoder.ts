@@ -7,7 +7,7 @@ import type {
   VmMachineOp,
   VmOp,
 } from '@glimmer/interfaces';
-import { ARG_SHIFT, MAX_SIZE, TYPE_SIZE } from '@glimmer/vm';
+import { ARG_SHIFT, MAX_SIZE, TYPE_SIZE } from '@glimmer/vm-constants';
 
 export class InstructionEncoderImpl implements InstructionEncoder {
   constructor(readonly buffer: CompilerBuffer) {}

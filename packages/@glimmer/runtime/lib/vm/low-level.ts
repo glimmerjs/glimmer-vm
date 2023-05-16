@@ -13,8 +13,8 @@ import {
   RETURN_OP,
   RETURN_TO_OP,
   $pc,
-} from '@glimmer/vm';
-import type { MachineRegister } from '@glimmer/vm';
+} from '@glimmer/vm-constants';
+import type { MachineRegister } from '@glimmer/vm-constants';
 
 import { APPEND_OPCODES } from '../opcodes';
 import type { VM } from './append';

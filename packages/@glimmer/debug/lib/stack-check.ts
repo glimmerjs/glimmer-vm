@@ -273,41 +273,45 @@ export function CheckInstanceof<T>(Class: Constructor<T>): Checker<T> {
   return strippable(() => new InstanceofChecker<T>(Class));
 }
 
+/*@__PURE__*/
 export function CheckOption<T>(checker: Checker<T>): Checker<Nullable<T>> {
-  return new OptionChecker(checker, null);
+  return strippable(() => new OptionChecker(checker, null));
 }
 
+/*@__PURE__*/
 export function CheckMaybe<T>(checker: Checker<T>): Checker<Maybe<T>> {
-  return new MaybeChecker(checker);
+  return strippable(() => new MaybeChecker(checker));
 }
 
+/*@__PURE__*/
 export function CheckInterface<
   I extends { [P in keyof O]: O[P]['type'] },
   O extends Dict<Checker<unknown>>
 >(obj: O): Checker<I> {
-  return new PropertyChecker(obj);
+  return strippable(() => new PropertyChecker(obj));
 }
 
+/*@__PURE__*/
 export function CheckArray<T>(obj: Checker<T>): Checker<T[]> {
-  return new ArrayChecker(obj);
+  return strippable(() => new ArrayChecker(obj));
 }
 
+/*@__PURE__*/
 export function CheckDict<T>(obj: Checker<T>): Checker<Dict<T>> {
-  return new DictChecker(obj);
+  return strippable(() => new DictChecker(obj));
 }
 
 function defaultMessage(value: unknown, expected: string): string {
   return `Got ${value}, expected:\n${expected}`;
 }
 
+/*@__PURE__*/
 export function check<T>(
   value: unknown,
   checker: Checker<T>,
   message?: (value: unknown, expected: string) => string
 ): T;
 export function check<T, U extends T>(value: T, checker: (value: T) => asserts value is U): U;
-/*#__INLINE__*/
-/*#__PURE__*/
 export function check<T>(
   value: unknown,
   checker: Checker<T> | ((value: unknown) => void),
@@ -344,29 +348,47 @@ export function expectStackChange(stack: { sp: number }, expected: number, name:
   );
 }
 
-export const CheckPrimitive: Checker<Primitive> = new PrimitiveChecker();
-export const CheckFunction: Checker<Function> = new TypeofChecker<Function>('function');
-export const CheckNumber: Checker<number> = new TypeofChecker<number>('number');
-export const CheckBoolean: Checker<boolean> = new TypeofChecker<boolean>('boolean');
+/*#__PURE__*/
+export const CheckPrimitive: Checker<Primitive> = strippable(() => new PrimitiveChecker());
+/*#__PURE__*/
+export const CheckFunction: Checker<Function> = strippable(
+  () => new TypeofChecker<Function>('function')
+);
+/*#__PURE__*/
+export const CheckNumber: Checker<number> = strippable(() => new TypeofChecker<number>('number'));
+/*#__PURE__*/
+export const CheckBoolean: Checker<boolean> = strippable(
+  () => new TypeofChecker<boolean>('boolean')
+);
+/*#__PURE__*/
 export const CheckHandle: Checker<number> = CheckNumber;
-export const CheckString: Checker<string> = new TypeofChecker<string>('string');
-export const CheckNull: Checker<null> = new NullChecker();
-export const CheckUnknown: Checker<unknown> = new OpaqueChecker();
-export const CheckSafeString: Checker<SafeString> = new SafeStringChecker();
-export const CheckObject: Checker<object> = new ObjectChecker();
+/*#__PURE__*/
+export const CheckString: Checker<string> = strippable(() => new TypeofChecker<string>('string'));
+/*#__PURE__*/
+export const CheckNull: Checker<null> = strippable(() => new NullChecker());
+/*#__PURE__*/
+export const CheckUnknown: Checker<unknown> = strippable(() => new OpaqueChecker());
+/*#__PURE__*/
+export const CheckSafeString: Checker<SafeString> = strippable(() => new SafeStringChecker());
+/*#__PURE__*/
+export const CheckObject: Checker<object> = strippable(() => new ObjectChecker());
 
+/*@__PURE__*/
 export function CheckOr<T, U>(left: Checker<T>, right: Checker<U>): Checker<T | U> {
-  return new OrChecker(left, right);
+  return strippable(() => new OrChecker(left, right));
 }
 
+/*@__PURE__*/
 export function CheckValue<T>(value: T, desc = String(value)): Checker<T> {
-  return new ExactValueChecker(value, desc);
+  return strippable(() => new ExactValueChecker(value, desc));
 }
 
+/*@__PURE__*/
 export const CheckBlockSymbolTable: Checker<BlockSymbolTable> = CheckInterface({
   parameters: CheckArray(CheckNumber),
 });
 
+/*@__PURE__*/
 export const CheckProgramSymbolTable: Checker<ProgramSymbolTable> = CheckInterface({
   hasDebug: CheckBoolean,
   symbols: CheckArray(CheckString),

@@ -17,7 +17,7 @@ import {
   CONTENT_TYPE_OP,
   ContentType,
   DYNAMIC_CONTENT_TYPE_OP,
- CURRIED_COMPONENT, CURRIED_HELPER } from '@glimmer/vm';
+ CURRIED_COMPONENT, CURRIED_HELPER } from '@glimmer/vm-constants';
 
 import { isCurriedType } from '../../curried-value';
 import { isEmpty, isFragment, isNode, isSafeString, shouldCoerce } from '../../dom/normalize';
@@ -75,7 +75,7 @@ APPEND_OPCODES.add(CONTENT_TYPE_OP, (vm) => {
   vm.stack.push(toContentType(valueForRef(reference)));
 
   if (!isConstRef(reference)) {
-    vm.updateWith(new AssertFilter(reference, toContentType));
+    vm._updateWith_(new AssertFilter(reference, toContentType));
   }
 });
 
@@ -85,7 +85,7 @@ APPEND_OPCODES.add(DYNAMIC_CONTENT_TYPE_OP, (vm) => {
   vm.stack.push(toDynamicContentType(valueForRef(reference)));
 
   if (!isConstRef(reference)) {
-    vm.updateWith(new AssertFilter(reference, toDynamicContentType));
+    vm._updateWith_(new AssertFilter(reference, toDynamicContentType));
   }
 });
 
@@ -95,7 +95,7 @@ APPEND_OPCODES.add(APPEND_HTML_OP, (vm) => {
   let rawValue = valueForRef(reference);
   let value = isEmpty(rawValue) ? '' : String(rawValue);
 
-  vm.elements().appendDynamicHTML(value);
+  vm._elements_().appendDynamicHTML(value);
 });
 
 APPEND_OPCODES.add(APPEND_SAFE_HTML_OP, (vm) => {
@@ -104,7 +104,7 @@ APPEND_OPCODES.add(APPEND_SAFE_HTML_OP, (vm) => {
   let rawValue = check(valueForRef(reference), CheckSafeString).toHTML();
   let value = isEmpty(rawValue) ? '' : check(rawValue, CheckString);
 
-  vm.elements().appendDynamicHTML(value);
+  vm._elements_().appendDynamicHTML(value);
 });
 
 APPEND_OPCODES.add(APPEND_TEXT_OP, (vm) => {
@@ -113,10 +113,10 @@ APPEND_OPCODES.add(APPEND_TEXT_OP, (vm) => {
   let rawValue = valueForRef(reference);
   let value = isEmpty(rawValue) ? '' : String(rawValue);
 
-  let node = vm.elements().appendDynamicText(value);
+  let node = vm._elements_().appendDynamicText(value);
 
   if (!isConstRef(reference)) {
-    vm.updateWith(new DynamicTextContent(node, reference, value));
+    vm._updateWith_(new DynamicTextContent(node, reference, value));
   }
 });
 
@@ -125,7 +125,7 @@ APPEND_OPCODES.add(APPEND_DOCUMENT_FRAGMENT_OP, (vm) => {
 
   let value = check(valueForRef(reference), CheckDocumentFragment);
 
-  vm.elements().appendDynamicFragment(value);
+  vm._elements_().appendDynamicFragment(value);
 });
 
 APPEND_OPCODES.add(APPEND_NODE_OP, (vm) => {
@@ -133,5 +133,5 @@ APPEND_OPCODES.add(APPEND_NODE_OP, (vm) => {
 
   let value = check(valueForRef(reference), CheckNode);
 
-  vm.elements().appendDynamicNode(value);
+  vm._elements_().appendDynamicNode(value);
 });

@@ -1,0 +1,24 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "packages/@glimmer/owner"
+		},
+		{
+			"path": "packages/@glimmer/runtime"
+		},
+		{
+			"path": "packages/@glimmer/opcode-compiler"
+		}
+	],
+	"settings": {
+		"typescript.tsc.autoDetect": "on",
+		"typescript.tsdk": "node_modules/typescript/lib",
+		"typescript.tsserver.experimental.enableProjectDiagnostics": false,
+		"typescript.workspaceSymbols.scope": "currentProject",
+		"explorer.sortOrder": "foldersNestsFiles",
+		"explorer.fileNesting.expand": false
+	}
+}

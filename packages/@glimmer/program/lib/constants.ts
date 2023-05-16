@@ -20,7 +20,7 @@ import {
 } from '@glimmer/manager';
 import { templateFactory } from '@glimmer/opcode-compiler';
 import { assert, constants, enumerate, expect, unwrapTemplate } from '@glimmer/util';
-import { InternalComponentCapabilities } from '@glimmer/vm';
+import { InternalComponentCapabilities } from '@glimmer/vm-constants';
 
 import { DEFAULT_TEMPLATE } from './util/default-template';
 

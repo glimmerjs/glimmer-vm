@@ -56,7 +56,7 @@ import {
   PUSH_DYNAMIC_SCOPE_OP,
   PUSH_EMPTY_ARGS_OP,
   PUT_COMPONENT_OPERATIONS_OP,
-} from '@glimmer/vm';
+} from '@glimmer/vm-constants';
 
 import type { PushExpressionOp, PushStatementOp } from '../../syntax/compilers';
 import { namedBlocks } from '../../utils';
@@ -66,7 +66,7 @@ import { InvokeStaticBlock, PushYieldableBlock, YieldBlock } from './blocks';
 import { Replayable } from './conditional';
 import { expr } from './expr';
 import { CompileArgs, CompilePositional } from './shared';
-import { POP_FRAME_OP, PUSH_FRAME_OP } from '@glimmer/vm';
+import { POP_FRAME_OP, PUSH_FRAME_OP } from '@glimmer/vm-constants';
 
 export const ATTRS_BLOCK = '&attrs';
 

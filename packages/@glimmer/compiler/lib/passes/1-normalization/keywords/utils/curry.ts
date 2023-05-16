@@ -6,7 +6,7 @@ import * as mir from '../../../2-encoding/mir';
 import type { NormalizationState } from '../../context';
 import { VISIT_EXPRS } from '../../visitors/expressions';
 import type { KeywordDelegate } from '../impl';
-import { CURRIED_COMPONENT, CURRIED_HELPER, CURRIED_MODIFIER } from '@glimmer/vm';
+import { CURRIED_COMPONENT, CURRIED_HELPER, CURRIED_MODIFIER } from '@glimmer/vm-constants';
 
 const CurriedTypeToReadableType = {
   [CURRIED_COMPONENT]: 'component',

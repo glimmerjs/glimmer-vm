@@ -60,7 +60,7 @@ import {
   TO_BOOLEAN_OP,
   type MachineRegister,
   type Register,
-} from '@glimmer/vm';
+} from '@glimmer/vm-constants';
 
 import { APPEND_OPCODES } from '../../opcodes';
 import { CONSTANTS } from '../../symbols';
@@ -69,13 +69,13 @@ import { VMArgumentsImpl } from '../../vm/arguments';
 import { CheckReference, CheckScope } from './-debug-strip';
 import { stackAssert } from './assert';
 
-APPEND_OPCODES.add(CHILD_SCOPE_OP, (vm) => vm.pushChildScope());
+APPEND_OPCODES.add(CHILD_SCOPE_OP, (vm) => vm._pushChildScope_());
 
-APPEND_OPCODES.add(POP_SCOPE_OP, (vm) => vm.popScope());
+APPEND_OPCODES.add(POP_SCOPE_OP, (vm) => vm._popScope_());
 
-APPEND_OPCODES.add(PUSH_DYNAMIC_SCOPE_OP, (vm) => vm.pushDynamicScope());
+APPEND_OPCODES.add(PUSH_DYNAMIC_SCOPE_OP, (vm) => vm._pushDynamicScope_());
 
-APPEND_OPCODES.add(POP_DYNAMIC_SCOPE_OP, (vm) => vm.popDynamicScope());
+APPEND_OPCODES.add(POP_DYNAMIC_SCOPE_OP, (vm) => vm._popDynamicScope_());
 
 APPEND_OPCODES.add(CONSTANT_OP, (vm, { op1: other }) => {
   vm.stack.push(vm[CONSTANTS].getValue(decodeHandle(other)));
@@ -119,7 +119,7 @@ APPEND_OPCODES.add(PRIMITIVE_REFERENCE_OP, (vm) => {
 });
 
 APPEND_OPCODES.add(DUP_OP, (vm, { op1: register, op2: offset }) => {
-  let position = check(vm.fetchValue(register as Register), CheckNumber) - offset;
+  let position = check(vm._fetchValue_(register as Register), CheckNumber) - offset;
   vm.stack.dup(position as MachineRegister);
 });
 
@@ -128,24 +128,24 @@ APPEND_OPCODES.add(POP_OP, (vm, { op1: count }) => {
 });
 
 APPEND_OPCODES.add(LOAD_OP, (vm, { op1: register }) => {
-  vm.load(register as Register);
+  vm._load_(register as Register);
 });
 
 APPEND_OPCODES.add(FETCH_OP, (vm, { op1: register }) => {
-  vm.fetch(register as Register);
+  vm._fetch_(register as Register);
 });
 
 APPEND_OPCODES.add(BIND_DYNAMIC_SCOPE_OP, (vm, { op1: _names }) => {
   let names = vm[CONSTANTS].getArray<string>(_names);
-  vm.bindDynamicScope(names);
+  vm._bindDynamicScope_(names);
 });
 
 APPEND_OPCODES.add(ENTER_OP, (vm, { op1: args }) => {
-  vm.enter(args);
+  vm._enter_(args);
 });
 
 APPEND_OPCODES.add(EXIT_OP, (vm) => {
-  vm.exit();
+  vm._exit_();
 });
 
 APPEND_OPCODES.add(PUSH_SYMBOL_TABLE_OP, (vm, { op1: _table }) => {
@@ -155,7 +155,7 @@ APPEND_OPCODES.add(PUSH_SYMBOL_TABLE_OP, (vm, { op1: _table }) => {
 
 APPEND_OPCODES.add(PUSH_BLOCK_SCOPE_OP, (vm) => {
   let stack = vm.stack;
-  stack.push(vm.scope());
+  stack.push(vm._scope_());
 });
 
 APPEND_OPCODES.add(COMPILE_BLOCK_OP, (vm: InternalVM) => {
@@ -163,7 +163,7 @@ APPEND_OPCODES.add(COMPILE_BLOCK_OP, (vm: InternalVM) => {
   let block = stack.pop<Nullable<CompilableTemplate> | 0>();
 
   if (block) {
-    stack.push(vm.compile(block));
+    stack.push(vm._compile_(block));
   } else {
     stack.push(null);
   }
@@ -185,8 +185,8 @@ APPEND_OPCODES.add(INVOKE_YIELD_OP, (vm) => {
 
   if (table === null) {
     // To balance the pop{Frame,Scope}
-    vm.pushFrame();
-    vm.pushScope(scope ?? vm.scope());
+    vm._pushFrame_();
+    vm._pushScope_(scope ?? vm._scope_());
 
     return;
   }
@@ -207,9 +207,9 @@ APPEND_OPCODES.add(INVOKE_YIELD_OP, (vm) => {
     }
   }
 
-  vm.pushFrame();
-  vm.pushScope(invokingScope);
-  vm.call(handle!);
+  vm._pushFrame_();
+  vm._pushScope_(invokingScope);
+  vm._call_(handle!);
 });
 
 APPEND_OPCODES.add(JUMP_IF_OP, (vm, { op1: target }) => {
@@ -218,14 +218,14 @@ APPEND_OPCODES.add(JUMP_IF_OP, (vm, { op1: target }) => {
 
   if (isConstRef(reference)) {
     if (value === true) {
-      vm.goto(target);
+      vm._goto_(target);
     }
   } else {
     if (value === true) {
-      vm.goto(target);
+      vm._goto_(target);
     }
 
-    vm.updateWith(new Assert(reference));
+    vm._updateWith_(new Assert(reference));
   }
 });
 
@@ -235,14 +235,14 @@ APPEND_OPCODES.add(JUMP_UNLESS_OP, (vm, { op1: target }) => {
 
   if (isConstRef(reference)) {
     if (value === false) {
-      vm.goto(target);
+      vm._goto_(target);
     }
   } else {
     if (value === false) {
-      vm.goto(target);
+      vm._goto_(target);
     }
 
-    vm.updateWith(new Assert(reference));
+    vm._updateWith_(new Assert(reference));
   }
 });
 
@@ -250,7 +250,7 @@ APPEND_OPCODES.add(JUMP_EQ_OP, (vm, { op1: target, op2: comparison }) => {
   let other = check(vm.stack.peek(), CheckNumber);
 
   if (other === comparison) {
-    vm.goto(target);
+    vm._goto_(target);
   }
 });
 
@@ -258,7 +258,7 @@ APPEND_OPCODES.add(ASSERT_SAME_OP, (vm) => {
   let reference = check(vm.stack.peek(), CheckReference);
 
   if (isConstRef(reference) === false) {
-    vm.updateWith(new Assert(reference));
+    vm._updateWith_(new Assert(reference));
   }
 });
 

@@ -19,7 +19,7 @@ import {
   MAIN_OP,
   PUSH_DYNAMIC_COMPONENT_INSTANCE_OP,
   RESOLVE_CURRIED_COMPONENT_OP,
-} from '@glimmer/vm';
+} from '@glimmer/vm-constants';
 
 import type { HighLevelStatementOp, PushStatementOp } from '../../syntax/compilers';
 import { encodeOp, EncoderImpl } from '../encoder';

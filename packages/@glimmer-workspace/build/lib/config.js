@@ -138,7 +138,7 @@ const PRESETS = {
 
 // const EXTERNAL_OPTIONS = /** @type {const} */ ({
 //   inline: {
-//     is: ['@glimmer/local-debug-flags', '@glimmer/debug', '@glimmer/util', '@glimmer/vm'],
+//     is: ['@glimmer/local-debug-flags', '@glimmer/debug', '@glimmer/util', '@glimmer/vm-constants'],
 //     startsWith: ['.', '/', '#', '@babel/runtime/'],
 //     endsWith: ['-debug-strip'],
 //   },
@@ -453,6 +453,8 @@ export class Package {
             },
           ]
         : [];
+
+    productionPlugins = [];
 
     return this.#shared('esm', mode).map((options) => ({
       ...options,

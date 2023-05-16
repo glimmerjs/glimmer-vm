@@ -29,14 +29,14 @@ class TemplateIteratorImpl implements TemplateIterator {
   }
 
   next(): RichIteratorResult<null, RenderResult> {
-    return this.#vm.next();
+    return this.#vm._next_();
   }
 
   sync(): RenderResult {
     if (import.meta.env.DEV) {
-      return debug.runInTrackingTransaction!(() => this.#vm.execute(), '- While rendering:');
+      return debug.runInTrackingTransaction!(() => this.#vm._execute_(), '- While rendering:');
     } else {
-      return this.#vm.execute();
+      return this.#vm._execute_();
     }
   }
 }
@@ -88,7 +88,7 @@ function renderInvocation(
 
   let reified = vm[CONSTANTS].component(definition, owner);
 
-  vm.pushFrame();
+  vm._pushFrame_();
 
   // Push blocks on to the stack, three stack values per block
   for (let i = 0; i < 3 * blockNames.length; i++) {

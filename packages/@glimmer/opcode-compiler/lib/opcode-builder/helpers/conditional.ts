@@ -10,7 +10,7 @@ import {
   PUSH_FRAME_OP,
   RETURN_OP,
   RETURN_TO_OP,
-} from '@glimmer/vm';
+} from '@glimmer/vm-constants';
 
 import type { PushStatementOp } from '../../syntax/compilers';
 import { HighLevelBuilderOpcodes } from '../opcodes';

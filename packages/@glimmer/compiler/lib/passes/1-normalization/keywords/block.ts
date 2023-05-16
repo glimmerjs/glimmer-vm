@@ -7,7 +7,7 @@ import { VISIT_EXPRS } from '../visitors/expressions';
 import { VISIT_STMTS } from '../visitors/statements';
 import { keywords } from './impl';
 import { assertCurryKeyword } from './utils/curry';
-import { CURRIED_COMPONENT } from '@glimmer/vm';
+import { CURRIED_COMPONENT } from '@glimmer/vm-constants';
 
 export const BLOCK_KEYWORDS = keywords('Block')
   .kw('in-element', {

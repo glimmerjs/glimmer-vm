@@ -1,5 +1,5 @@
 {
-  "name": "@glimmer/vm",
+  "name": "@glimmer/vm-constants",
   "version": "0.84.3",
   "type": "module",
   "repository": "https://github.com/glimmerjs/glimmer-vm/tree/master/packages/@glimmer/vm",

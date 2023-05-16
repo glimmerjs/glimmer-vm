@@ -11,7 +11,7 @@ import { getDynamicVarKeyword } from './utils/dynamic-vars';
 import { hasBlockKeyword } from './utils/has-block';
 import { ifUnlessInlineKeyword } from './utils/if-unless';
 import { logKeyword } from './utils/log';
-import { CURRIED_COMPONENT, CURRIED_HELPER } from '@glimmer/vm';
+import { CURRIED_COMPONENT, CURRIED_HELPER } from '@glimmer/vm-constants';
 
 export const APPEND_KEYWORDS = keywords('Append')
   .kw('has-block', toAppend(hasBlockKeyword('has-block')))

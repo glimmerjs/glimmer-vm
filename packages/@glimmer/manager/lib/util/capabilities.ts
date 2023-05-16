@@ -24,7 +24,7 @@ import type {
   WithUpdateHook,
   WrappedCapability,
 } from '@glimmer/interfaces';
-import { InternalComponentCapabilities } from '@glimmer/vm';
+import { InternalComponentCapabilities } from '@glimmer/vm-constants';
 
 export const FROM_CAPABILITIES = import.meta.env.DEV ? new WeakSet() : undefined;
 

@@ -17,7 +17,7 @@ import {
   PRIMITIVE_REFERENCE_OP,
   PUSH_DYNAMIC_SCOPE_OP,
   PUSH_FRAME_OP,
-} from '@glimmer/vm';
+} from '@glimmer/vm-constants';
 
 import type { PushExpressionOp, PushStatementOp } from '../../syntax/compilers';
 import { isStrictMode, nonSmallIntOperand } from '../operands';

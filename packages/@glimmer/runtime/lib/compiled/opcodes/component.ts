@@ -77,7 +77,7 @@ import {
   RESOLVE_DYNAMIC_COMPONENT_OP,
   STATIC_COMPONENT_ATTR_OP,
   VIRTUAL_ROOT_SCOPE_OP,
-} from '@glimmer/vm';
+} from '@glimmer/vm-constants';
 
 import { hasCustomDebugRenderTreeLifecycle } from '../../component/interfaces';
 import { resolveComponent } from '../../component/resolve';
@@ -103,7 +103,7 @@ import {
   CheckReference,
 } from './-debug-strip';
 import { UpdateDynamicAttributeOpcode } from './dom';
-import { CURRIED_COMPONENT } from '@glimmer/vm';
+import { CURRIED_COMPONENT } from '@glimmer/vm-constants';
 
 /**
  * The VM creates a new ComponentInstance data structure for every component
@@ -166,10 +166,10 @@ APPEND_OPCODES.add(RESOLVE_DYNAMIC_COMPONENT_OP, (vm, { op1: _isStrict }) => {
     CheckOr(CheckString, CheckCurriedComponentDefinition)
   );
   let constants = vm[CONSTANTS];
-  let owner = vm.getOwner();
+  let owner = vm._getOwner_();
   let isStrict = constants.getValue<boolean>(_isStrict);
 
-  vm.loadValue($t1, null); // Clear the temp register
+  vm._loadValue_($t1, null); // Clear the temp register
 
   let definition: ComponentDefinition | CurriedValue;
 
@@ -212,7 +212,7 @@ APPEND_OPCODES.add(RESOLVE_CURRIED_COMPONENT_OP, (vm) => {
   if (isCurriedValue(value)) {
     definition = value;
   } else {
-    definition = constants.component(value as object, vm.getOwner(), true);
+    definition = constants.component(value as object, vm._getOwner_(), true);
 
     if (import.meta.env.DEV && definition === null) {
       throw new Error(
@@ -275,7 +275,7 @@ APPEND_OPCODES.add(CAPTURE_ARGS_OP, (vm) => {
 
 APPEND_OPCODES.add(PREPARE_ARGS_OP, (vm, { op1: _state }) => {
   let stack = vm.stack;
-  let instance = vm.fetchValue<ComponentInstance>(_state as Register);
+  let instance = vm._fetchValue_<ComponentInstance>(_state as Register);
   let args = check(stack.pop(), CheckInstanceof(VMArgumentsImpl));
 
   let { definition } = instance;
@@ -333,7 +333,7 @@ APPEND_OPCODES.add(PREPARE_ARGS_OP, (vm, { op1: _state }) => {
     // Save off the owner that this component was curried with. Later on,
     // we'll fetch the value of this register and set it as the owner on the
     // new root scope.
-    vm.loadValue($t1, owner);
+    vm._loadValue_($t1, owner);
   }
 
   let { manager, state } = definition;
@@ -376,7 +376,7 @@ APPEND_OPCODES.add(PREPARE_ARGS_OP, (vm, { op1: _state }) => {
 });
 
 APPEND_OPCODES.add(CREATE_COMPONENT_OP, (vm, { op1: flags, op2: _state }) => {
-  let instance = check(vm.fetchValue(_state as Register), CheckComponentInstance);
+  let instance = check(vm._fetchValue_(_state as Register), CheckComponentInstance);
   let { definition, manager, capabilities } = instance;
 
   if (!managerHasCapability(manager, capabilities, InternalComponentCapabilities.createInstance)) {
@@ -388,7 +388,7 @@ APPEND_OPCODES.add(CREATE_COMPONENT_OP, (vm, { op1: flags, op2: _state }) => {
 
   let dynamicScope: Nullable<DynamicScope> = null;
   if (managerHasCapability(manager, capabilities, InternalComponentCapabilities.dynamicScope)) {
-    dynamicScope = vm.dynamicScope();
+    dynamicScope = vm._dynamicScope_();
   }
 
   let hasDefaultBlock = flags & 1;
@@ -400,11 +400,11 @@ APPEND_OPCODES.add(CREATE_COMPONENT_OP, (vm, { op1: flags, op2: _state }) => {
 
   let self: Nullable<Reference> = null;
   if (managerHasCapability(manager, capabilities, InternalComponentCapabilities.createCaller)) {
-    self = vm.getSelf();
+    self = vm._getSelf_();
   }
 
   let state = manager.create(
-    vm.getOwner(),
+    vm._getOwner_(),
     definition.state,
     args,
     vm.env,
@@ -418,13 +418,13 @@ APPEND_OPCODES.add(CREATE_COMPONENT_OP, (vm, { op1: flags, op2: _state }) => {
   instance.state = state;
 
   if (managerHasCapability(manager, capabilities, InternalComponentCapabilities.updateHook)) {
-    vm.updateWith(new UpdateComponentOpcode(state, manager, dynamicScope));
+    vm._updateWith_(new UpdateComponentOpcode(state, manager, dynamicScope));
   }
 });
 
 APPEND_OPCODES.add(REGISTER_COMPONENT_DESTRUCTOR_OP, (vm, { op1: _state }) => {
   let { manager, state, capabilities } = check(
-    vm.fetchValue(_state as Register),
+    vm._fetchValue_(_state as Register),
     CheckComponentInstance
   );
 
@@ -441,24 +441,24 @@ APPEND_OPCODES.add(REGISTER_COMPONENT_DESTRUCTOR_OP, (vm, { op1: _state }) => {
     );
   }
 
-  if (d) vm.associateDestroyable(d);
+  if (d) vm._associateDestroyable_(d);
 });
 
 APPEND_OPCODES.add(BEGIN_COMPONENT_TRANSACTION_OP, (vm, { op1: _state }) => {
   let name;
 
   if (import.meta.env.DEV) {
-    let { definition, manager } = check(vm.fetchValue(_state as Register), CheckComponentInstance);
+    let { definition, manager } = check(vm._fetchValue_(_state as Register), CheckComponentInstance);
 
     name = definition.resolvedName ?? manager.getDebugName(definition.state);
   }
 
-  vm.beginCacheGroup(name);
-  vm.elements().pushSimpleBlock();
+  vm._beginCacheGroup_(name);
+  vm._elements_().pushSimpleBlock();
 });
 
 APPEND_OPCODES.add(PUT_COMPONENT_OPERATIONS_OP, (vm) => {
-  vm.loadValue($t0, new ComponentElementOperations());
+  vm._loadValue_($t0, new ComponentElementOperations());
 });
 
 APPEND_OPCODES.add(COMPONENT_ATTR_OP, (vm, { op1: _name, op2: _trusting, op3: _namespace }) => {
@@ -467,7 +467,7 @@ APPEND_OPCODES.add(COMPONENT_ATTR_OP, (vm, { op1: _name, op2: _trusting, op3: _n
   let reference = check(vm.stack.pop(), CheckReference);
   let namespace = _namespace ? vm[CONSTANTS].getValue<string>(_namespace) : null;
 
-  check(vm.fetchValue($t0), CheckInstanceof(ComponentElementOperations)).setAttribute(
+  check(vm._fetchValue_($t0), CheckInstanceof(ComponentElementOperations)).setAttribute(
     name,
     reference,
     trusting,
@@ -480,7 +480,7 @@ APPEND_OPCODES.add(STATIC_COMPONENT_ATTR_OP, (vm, { op1: _name, op2: _value, op3
   let value = vm[CONSTANTS].getValue<string>(_value);
   let namespace = _namespace ? vm[CONSTANTS].getValue<string>(_namespace) : null;
 
-  check(vm.fetchValue($t0), CheckInstanceof(ComponentElementOperations)).setStaticAttribute(
+  check(vm._fetchValue_($t0), CheckInstanceof(ComponentElementOperations)).setStaticAttribute(
     name,
     value,
     namespace
@@ -584,38 +584,38 @@ function setDeferredAttr(
   trusting = false
 ) {
   if (typeof value === 'string') {
-    vm.elements().setStaticAttribute(name, value, namespace);
+    vm._elements_().setStaticAttribute(name, value, namespace);
   } else {
     let attribute = vm
-      .elements()
+      ._elements_()
       .setDynamicAttribute(name, valueForRef(value), trusting, namespace);
     if (!isConstRef(value)) {
-      vm.updateWith(new UpdateDynamicAttributeOpcode(value, attribute, vm.env));
+      vm._updateWith_(new UpdateDynamicAttributeOpcode(value, attribute, vm.env));
     }
   }
 }
 
 APPEND_OPCODES.add(DID_CREATE_ELEMENT_OP, (vm, { op1: _state }) => {
-  let { definition, state } = check(vm.fetchValue(_state as Register), CheckComponentInstance);
+  let { definition, state } = check(vm._fetchValue_(_state as Register), CheckComponentInstance);
   let { manager } = definition;
 
-  let operations = check(vm.fetchValue($t0), CheckInstanceof(ComponentElementOperations));
+  let operations = check(vm._fetchValue_($t0), CheckInstanceof(ComponentElementOperations));
 
   (manager as WithElementHook<unknown>).didCreateElement(
     state,
-    expect(vm.elements().constructing, `Expected a constructing element in DidCreateOpcode`),
+    expect(vm._elements_().constructing, `Expected a constructing element in DidCreateOpcode`),
     operations
   );
 });
 
 APPEND_OPCODES.add(GET_COMPONENT_SELF_OP, (vm, { op1: _state, op2: _names }) => {
-  let instance = check(vm.fetchValue(_state as Register), CheckComponentInstance);
+  let instance = check(vm._fetchValue_(_state as Register), CheckComponentInstance);
   let { definition, state } = instance;
   let { manager } = definition;
   let selfRef = manager.getSelf(state);
 
   if (vm.env.debugRenderTree !== undefined) {
-    let instance = check(vm.fetchValue(_state as Register), CheckComponentInstance);
+    let instance = check(vm._fetchValue_(_state as Register), CheckComponentInstance);
     let { definition, manager } = instance;
 
     let args: CapturedArguments;
@@ -653,7 +653,7 @@ APPEND_OPCODES.add(GET_COMPONENT_SELF_OP, (vm, { op1: _state, op2: _names }) => 
     }
 
     // For tearing down the debugRenderTree
-    vm.associateDestroyable(instance);
+    vm._associateDestroyable_(instance);
 
     if (hasCustomDebugRenderTreeLifecycle(manager)) {
       let nodes = manager.getDebugCustomRenderTree(
@@ -671,7 +671,7 @@ APPEND_OPCODES.add(GET_COMPONENT_SELF_OP, (vm, { op1: _state, op2: _names }) => 
           vm.env.debugRenderTree?.willDestroy(bucket);
         });
 
-        vm.updateWith(new DebugRenderTreeUpdateOpcode(bucket));
+        vm._updateWith_(new DebugRenderTreeUpdateOpcode(bucket));
       });
     } else {
       let name = definition.resolvedName ?? manager.getDebugName(definition.state);
@@ -684,13 +684,13 @@ APPEND_OPCODES.add(GET_COMPONENT_SELF_OP, (vm, { op1: _state, op2: _names }) => 
         instance: valueForRef(selfRef),
       });
 
-      vm.associateDestroyable(instance);
+      vm._associateDestroyable_(instance);
 
       registerDestructor(instance, () => {
         vm.env.debugRenderTree?.willDestroy(instance);
       });
 
-      vm.updateWith(new DebugRenderTreeUpdateOpcode(instance));
+      vm._updateWith_(new DebugRenderTreeUpdateOpcode(instance));
     }
   }
 
@@ -698,7 +698,7 @@ APPEND_OPCODES.add(GET_COMPONENT_SELF_OP, (vm, { op1: _state, op2: _names }) => 
 });
 
 APPEND_OPCODES.add(GET_COMPONENT_TAG_NAME_OP, (vm, { op1: _state }) => {
-  let { definition, state } = check(vm.fetchValue(_state as Register), CheckComponentInstance);
+  let { definition, state } = check(vm._fetchValue_(_state as Register), CheckComponentInstance);
   let { manager } = definition;
 
   let tagName = (
@@ -711,7 +711,7 @@ APPEND_OPCODES.add(GET_COMPONENT_TAG_NAME_OP, (vm, { op1: _state }) => {
 
 // Dynamic Invocation Only
 APPEND_OPCODES.add(GET_COMPONENT_LAYOUT_OP, (vm, { op1: _state }) => {
-  let instance = check(vm.fetchValue(_state as Register), CheckComponentInstance);
+  let instance = check(vm._fetchValue_(_state as Register), CheckComponentInstance);
 
   let { manager, definition } = instance;
   let { stack } = vm;
@@ -759,7 +759,7 @@ APPEND_OPCODES.add(MAIN_OP, (vm, { op1: register }) => {
     lookup: null,
   };
 
-  vm.loadValue(register as Register, state);
+  vm._loadValue_(register as Register, state);
 });
 
 APPEND_OPCODES.add(POPULATE_LAYOUT_OP, (vm, { op1: _state }) => {
@@ -769,7 +769,7 @@ APPEND_OPCODES.add(POPULATE_LAYOUT_OP, (vm, { op1: _state }) => {
   let handle = check(stack.pop(), CheckHandle);
   let table = check(stack.pop(), CheckProgramSymbolTable);
 
-  let state = check(vm.fetchValue(_state as Register), CheckComponentInstance);
+  let state = check(vm._fetchValue_(_state as Register), CheckComponentInstance);
 
   state.handle = handle;
   state.table = table;
@@ -777,7 +777,7 @@ APPEND_OPCODES.add(POPULATE_LAYOUT_OP, (vm, { op1: _state }) => {
 
 APPEND_OPCODES.add(VIRTUAL_ROOT_SCOPE_OP, (vm, { op1: _state }) => {
   let { table, manager, capabilities, state } = check(
-    vm.fetchValue(_state as Register),
+    vm._fetchValue_(_state as Register),
     CheckFinishedComponentInstance
   );
 
@@ -785,29 +785,29 @@ APPEND_OPCODES.add(VIRTUAL_ROOT_SCOPE_OP, (vm, { op1: _state }) => {
 
   if (managerHasCapability(manager, capabilities, InternalComponentCapabilities.hasSubOwner)) {
     owner = manager.getOwner(state);
-    vm.loadValue($t1, null); // Clear the temp register
+    vm._loadValue_($t1, null); // Clear the temp register
   } else {
     // Check the temp register to see if an owner was resolved from currying
-    owner = vm.fetchValue<Owner | null>($t1);
+    owner = vm._fetchValue_<Owner | null>($t1);
 
     if (owner === null) {
       // If an owner wasn't found, default to using the current owner. This
       // will happen for normal dynamic component invocation,
       // e.g. <SomeClassicEmberComponent/>
-      owner = vm.getOwner();
+      owner = vm._getOwner_();
     } else {
       // Else the owner was found, so clear the temp register. This will happen
       // if we are loading a curried component, e.g. <@someCurriedComponent/>
-      vm.loadValue($t1, null);
+      vm._loadValue_($t1, null);
     }
   }
 
-  vm.pushRootScope(table.symbols.length + 1, owner);
+  vm._pushRootScope_(table.symbols.length + 1, owner);
 });
 
 APPEND_OPCODES.add(SET_NAMED_VARIABLES_OP, (vm, { op1: _state }) => {
-  let state = check(vm.fetchValue(_state as Register), CheckFinishedComponentInstance);
-  let scope = vm.scope();
+  let state = check(vm._fetchValue_(_state as Register), CheckFinishedComponentInstance);
+  let scope = vm._scope_();
 
   let args = check(vm.stack.peek(), CheckArguments);
   let callerNames = args.named.atNames;
@@ -832,12 +832,12 @@ function bindBlock(
   let symbol = state.table.symbols.indexOf(symbolName);
   let block = blocks.get(blockName);
 
-  if (symbol !== -1) vm.scope().bindBlock(symbol + 1, block);
+  if (symbol !== -1) vm._scope_().bindBlock(symbol + 1, block);
   if (state.lookup) state.lookup[symbolName] = block;
 }
 
 APPEND_OPCODES.add(SET_BLOCKS_OP, (vm, { op1: _state }) => {
-  let state = check(vm.fetchValue(_state as Register), CheckFinishedComponentInstance);
+  let state = check(vm._fetchValue_(_state as Register), CheckFinishedComponentInstance);
   let { blocks } = check(vm.stack.peek(), CheckArguments);
 
   for (const [i] of enumerate(blocks._names_)) {
@@ -847,15 +847,15 @@ APPEND_OPCODES.add(SET_BLOCKS_OP, (vm, { op1: _state }) => {
 
 // Dynamic Invocation Only
 APPEND_OPCODES.add(INVOKE_COMPONENT_LAYOUT_OP, (vm, { op1: _state }) => {
-  let state = check(vm.fetchValue(_state as Register), CheckFinishedComponentInstance);
+  let state = check(vm._fetchValue_(_state as Register), CheckFinishedComponentInstance);
 
-  vm.call(state.handle);
+  vm._call_(state.handle);
 });
 
 APPEND_OPCODES.add(DID_RENDER_LAYOUT_OP, (vm, { op1: _state }) => {
-  let instance = check(vm.fetchValue(_state as Register), CheckComponentInstance);
+  let instance = check(vm._fetchValue_(_state as Register), CheckComponentInstance);
   let { manager, state, capabilities } = instance;
-  let bounds = vm.elements().popBlock();
+  let bounds = vm._elements_().popBlock();
 
   if (vm.env.debugRenderTree !== undefined) {
     if (hasCustomDebugRenderTreeLifecycle(manager)) {
@@ -866,12 +866,12 @@ APPEND_OPCODES.add(DID_RENDER_LAYOUT_OP, (vm, { op1: _state }) => {
 
         vm.env.debugRenderTree!.didRender(bucket, bounds);
 
-        vm.updateWith(new DebugRenderTreeDidRenderOpcode(bucket, bounds));
+        vm._updateWith_(new DebugRenderTreeDidRenderOpcode(bucket, bounds));
       });
     } else {
       vm.env.debugRenderTree.didRender(instance, bounds);
 
-      vm.updateWith(new DebugRenderTreeDidRenderOpcode(instance, bounds));
+      vm._updateWith_(new DebugRenderTreeDidRenderOpcode(instance, bounds));
     }
   }
 
@@ -880,12 +880,12 @@ APPEND_OPCODES.add(DID_RENDER_LAYOUT_OP, (vm, { op1: _state }) => {
     mgr.didRenderLayout(state, bounds);
 
     vm.env.didCreate(instance as ComponentInstanceWithCreate);
-    vm.updateWith(new DidUpdateLayoutOpcode(instance as ComponentInstanceWithCreate, bounds));
+    vm._updateWith_(new DidUpdateLayoutOpcode(instance as ComponentInstanceWithCreate, bounds));
   }
 });
 
 APPEND_OPCODES.add(COMMIT_COMPONENT_TRANSACTION_OP, (vm) => {
-  vm.commitCacheGroup();
+  vm._commitCacheGroup_();
 });
 
 export class UpdateComponentOpcode implements UpdatingOpcode {

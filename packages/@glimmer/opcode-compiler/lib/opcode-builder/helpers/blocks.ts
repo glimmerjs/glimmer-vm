@@ -15,7 +15,7 @@ import {
   PUSH_SYMBOL_TABLE_OP,
   SET_VARIABLE_OP,
   SPREAD_BLOCK_OP,
-} from '@glimmer/vm';
+} from '@glimmer/vm-constants';
 
 import type { PushExpressionOp, PushStatementOp } from '../../syntax/compilers';
 import { blockOperand, symbolTableOperand } from '../operands';

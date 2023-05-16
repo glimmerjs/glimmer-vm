@@ -39,7 +39,7 @@ import {
   STATIC_COMPONENT_ATTR_OP,
   TEXT_OP,
   TO_BOOLEAN_OP,
-} from '@glimmer/vm';
+} from '@glimmer/vm-constants';
 import { SexpOpcodes } from '@glimmer/wire-format';
 
 import {

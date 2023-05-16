@@ -11,7 +11,7 @@ import { createComputeRef, type Reference, valueForRef } from '@glimmer/referenc
 import { expect, isObject } from '@glimmer/util';
 
 import { curry, isCurriedType } from '../curried-value';
-import { CURRIED_COMPONENT } from '@glimmer/vm';
+import { CURRIED_COMPONENT } from '@glimmer/vm-constants';
 
 export default function createCurryRef(
   type: CurriedType,

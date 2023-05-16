@@ -17,7 +17,7 @@ import {
   POP_FRAME_OP,
   PUSH_FRAME_OP,
   SPREAD_BLOCK_OP,
-} from '@glimmer/vm';
+} from '@glimmer/vm-constants';
 import { SexpOpcodes } from '@glimmer/wire-format';
 
 import { expr } from '../opcode-builder/helpers/expr';

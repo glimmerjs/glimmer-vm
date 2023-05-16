@@ -1,5 +1,5 @@
 import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
-import { $fp, $sp, type MachineRegister } from '@glimmer/vm';
+import { $fp, $sp, type MachineRegister } from '@glimmer/vm-constants';
 
 import { initializeRegistersWithSP, type LowLevelRegisters } from './low-level';
 

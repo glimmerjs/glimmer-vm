@@ -25,7 +25,7 @@ import {
   OPERAND_LEN_MASK,
   TYPE_MASK,
   type Register,
-} from '@glimmer/vm';
+} from '@glimmer/vm-constants';
 
 import { opcodeMetadata } from './opcode-metadata';
 import type { Primitive } from './stack-check';

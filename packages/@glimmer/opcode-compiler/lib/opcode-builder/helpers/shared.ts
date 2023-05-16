@@ -10,7 +10,7 @@ import { EMPTY_ARRAY, EMPTY_STRING_ARRAY } from '@glimmer/util';
 import type { PushExpressionOp, PushStatementOp } from '../../syntax/compilers';
 import { PushYieldableBlock } from './blocks';
 import { expr } from './expr';
-import { PUSH_ARGS_OP, PUSH_EMPTY_ARGS_OP } from '@glimmer/vm';
+import { PUSH_ARGS_OP, PUSH_EMPTY_ARGS_OP } from '@glimmer/vm-constants';
 
 /**
  * Compile arguments, pushing an Arguments object onto the stack.

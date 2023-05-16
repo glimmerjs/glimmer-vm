@@ -21,7 +21,7 @@
   "dependencies": {
     "@glimmer/interfaces": "workspace:^",
     "@glimmer/util": "workspace:^",
-    "@glimmer/vm": "workspace:^"
+    "@glimmer/vm-constants": "workspace:^"
   },
   "devDependencies": {
     "@glimmer/local-debug-flags": "workspace:^",

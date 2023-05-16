@@ -4,7 +4,7 @@ import { createIteratorRef, valueForRef } from '@glimmer/reference';
 import { APPEND_OPCODES } from '../../opcodes';
 import { CheckIterator, CheckReference } from './-debug-strip';
 import { AssertFilter } from './vm';
-import { ENTER_LIST_OP, EXIT_LIST_OP, ITERATE_OP } from '@glimmer/vm';
+import { ENTER_LIST_OP, EXIT_LIST_OP, ITERATE_OP } from '@glimmer/vm-constants';
 
 APPEND_OPCODES.add(ENTER_LIST_OP, (vm, { op1: relativeStart, op2: elseTarget }) => {
   let stack = vm.stack;
@@ -17,19 +17,19 @@ APPEND_OPCODES.add(ENTER_LIST_OP, (vm, { op1: relativeStart, op2: elseTarget }) 
   let iteratorRef = createIteratorRef(listRef, key);
   let iterator = valueForRef(iteratorRef);
 
-  vm.updateWith(new AssertFilter(iteratorRef, (iterator) => iterator.isEmpty()));
+  vm._updateWith_(new AssertFilter(iteratorRef, (iterator) => iterator.isEmpty()));
 
   if (iterator.isEmpty() === true) {
     // TODO: Fix this offset, should be accurate
-    vm.goto(elseTarget + 1);
+    vm._goto_(elseTarget + 1);
   } else {
-    vm.enterList(iteratorRef, relativeStart);
+    vm._enterList_(iteratorRef, relativeStart);
     vm.stack.push(iterator);
   }
 });
 
 APPEND_OPCODES.add(EXIT_LIST_OP, (vm) => {
-  vm.exitList();
+  vm._exitList_();
 });
 
 APPEND_OPCODES.add(ITERATE_OP, (vm, { op1: breaks }) => {
@@ -38,8 +38,8 @@ APPEND_OPCODES.add(ITERATE_OP, (vm, { op1: breaks }) => {
   let item = iterator.next();
 
   if (item !== null) {
-    vm.registerItem(vm.enterItem(item));
+    vm._registerItem_(vm._enterItem_(item));
   } else {
-    vm.goto(breaks);
+    vm._goto_(breaks);
   }
 });

@@ -513,9 +513,9 @@ importers:
       '@glimmer/validator':
         specifier: workspace:^
         version: link:../../@glimmer/validator
-      '@glimmer/vm':
+      '@glimmer/vm-constants':
         specifier: workspace:^
-        version: link:../../@glimmer/vm
+        version: link:../../@glimmer/vm-constants
       '@glimmer/wire-format':
         specifier: workspace:^
         version: link:../../@glimmer/wire-format
@@ -568,9 +568,9 @@ importers:
       '@glimmer/util':
         specifier: workspace:^
         version: link:../util
-      '@glimmer/vm':
+      '@glimmer/vm-constants':
         specifier: workspace:^
-        version: link:../vm
+        version: link:../vm-constants
       '@glimmer/wire-format':
         specifier: workspace:^
         version: link:../wire-format
@@ -608,9 +608,9 @@ importers:
       '@glimmer/util':
         specifier: workspace:^
         version: link:../util
-      '@glimmer/vm':
+      '@glimmer/vm-constants':
         specifier: workspace:^
-        version: link:../vm
+        version: link:../vm-constants
     devDependencies:
       '@glimmer-workspace/build-support':
         specifier: workspace:^
@@ -698,9 +698,9 @@ importers:
       '@glimmer/interfaces':
         specifier: workspace:^
         version: link:../interfaces
-      '@glimmer/vm':
+      '@glimmer/vm-constants':
         specifier: workspace:^
-        version: link:../vm
+        version: link:../vm-constants
     devDependencies:
       '@glimmer-workspace/build-support':
         specifier: workspace:^
@@ -750,9 +750,9 @@ importers:
       '@glimmer/validator':
         specifier: workspace:^
         version: link:../validator
-      '@glimmer/vm':
+      '@glimmer/vm-constants':
         specifier: workspace:^
-        version: link:../vm
+        version: link:../vm-constants
     devDependencies:
       '@glimmer-workspace/build-support':
         specifier: workspace:^
@@ -775,9 +775,9 @@ importers:
       '@glimmer/validator':
         specifier: workspace:^
         version: link:../../validator
-      '@glimmer/vm':
+      '@glimmer/vm-constants':
         specifier: workspace:^
-        version: link:../../vm
+        version: link:../../vm-constants
 
   packages/@glimmer/node:
     dependencies:
@@ -830,9 +830,9 @@ importers:
       '@glimmer/util':
         specifier: workspace:^
         version: link:../util
-      '@glimmer/vm':
+      '@glimmer/vm-constants':
         specifier: workspace:^
-        version: link:../vm
+        version: link:../vm-constants
       '@glimmer/wire-format':
         specifier: workspace:^
         version: link:../wire-format
@@ -883,9 +883,9 @@ importers:
       '@glimmer/util':
         specifier: workspace:^
         version: link:../util
-      '@glimmer/vm':
+      '@glimmer/vm-constants':
         specifier: workspace:^
-        version: link:../vm
+        version: link:../vm-constants
       '@glimmer/wire-format':
         specifier: workspace:^
         version: link:../wire-format
@@ -978,9 +978,9 @@ importers:
       '@glimmer/validator':
         specifier: workspace:^
         version: link:../validator
-      '@glimmer/vm':
+      '@glimmer/vm-constants':
         specifier: workspace:^
-        version: link:../vm
+        version: link:../vm-constants
       '@glimmer/wire-format':
         specifier: workspace:^
         version: link:../wire-format
@@ -1106,19 +1106,6 @@ importers:
         specifier: workspace:^
         version: link:..
 
-  packages/@glimmer/vm:
-    dependencies:
-      '@glimmer/interfaces':
-        specifier: workspace:^
-        version: link:../interfaces
-      '@glimmer/util':
-        specifier: workspace:^
-        version: link:../util
-    devDependencies:
-      '@glimmer-workspace/build-support':
-        specifier: workspace:^
-        version: link:../../@glimmer-workspace/build
-
   packages/@glimmer/vm-babel-plugins:
     dependencies:
       babel-plugin-debug-macros:
@@ -1134,6 +1121,19 @@ importers:
       mocha:
         specifier: ^10.2.0
         version: 10.2.0
+
+  packages/@glimmer/vm-constants:
+    dependencies:
+      '@glimmer/interfaces':
+        specifier: workspace:^
+        version: link:../interfaces
+      '@glimmer/util':
+        specifier: workspace:^
+        version: link:../util
+    devDependencies:
+      '@glimmer-workspace/build-support':
+        specifier: workspace:^
+        version: link:../../@glimmer-workspace/build
 
   packages/@glimmer/wire-format:
     dependencies:

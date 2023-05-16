@@ -48,7 +48,8 @@ import {
   SET_BLOCK_OP,
   SET_VARIABLE_OP,
   SPREAD_BLOCK_OP,
- CURRIED_HELPER } from '@glimmer/vm';
+  CURRIED_HELPER,
+} from '@glimmer/vm-constants';
 
 import { isCurriedType, resolveCurriedValue } from '../../curried-value';
 import { APPEND_OPCODES } from '../../opcodes';
@@ -75,7 +76,7 @@ APPEND_OPCODES.add(CURRY_OP, (vm, { op1: type, op2: _isStrict }) => {
   let definition = check(stack.pop(), CheckReference);
   let capturedArgs = check(stack.pop(), CheckCapturedArguments);
 
-  let owner = vm.getOwner();
+  let owner = vm._getOwner_();
   let resolver = vm.runtime.resolver;
 
   let isStrict = false;
@@ -85,7 +86,7 @@ APPEND_OPCODES.add(CURRY_OP, (vm, { op1: type, op2: _isStrict }) => {
     isStrict = vm[CONSTANTS].getValue<boolean>(decodeHandle(_isStrict));
   }
 
-  vm.loadValue(
+  vm._loadValue_(
     $v0,
     createCurryRef(type as CurriedType, definition, owner, capturedArgs, resolver, isStrict)
   );
@@ -97,7 +98,7 @@ APPEND_OPCODES.add(DYNAMIC_HELPER_OP, (vm) => {
   let args = check(stack.pop(), CheckArguments).capture();
 
   let helperRef: Reference;
-  let initialOwner: Owner = vm.getOwner();
+  let initialOwner: Owner = vm._getOwner_();
 
   let helperInstanceRef = createComputeRef(() => {
     if (helperRef !== undefined) {
@@ -139,8 +140,8 @@ APPEND_OPCODES.add(DYNAMIC_HELPER_OP, (vm) => {
     return valueForRef(helperRef);
   });
 
-  vm.associateDestroyable(helperInstanceRef);
-  vm.loadValue($v0, helperValueRef);
+  vm._associateDestroyable_(helperInstanceRef);
+  vm._loadValue_($v0, helperValueRef);
 });
 
 function resolveHelper(
@@ -167,24 +168,24 @@ APPEND_OPCODES.add(HELPER_OP, (vm, { op1: handle }) => {
   let stack = vm.stack;
   let helper = check(vm[CONSTANTS].getValue(handle), CheckHelper);
   let args = check(stack.pop(), CheckArguments);
-  let value = helper(args.capture(), vm.getOwner(), vm.dynamicScope());
+  let value = helper(args.capture(), vm._getOwner_(), vm._dynamicScope_());
 
   if (_hasDestroyableChildren(value)) {
-    vm.associateDestroyable(value);
+    vm._associateDestroyable_(value);
   }
 
-  vm.loadValue($v0, value);
+  vm._loadValue_($v0, value);
 });
 
 APPEND_OPCODES.add(GET_VARIABLE_OP, (vm, { op1: symbol }) => {
-  let expr = vm.referenceForSymbol(symbol);
+  let expr = vm._referenceForSymbol_(symbol);
 
   vm.stack.push(expr);
 });
 
 APPEND_OPCODES.add(SET_VARIABLE_OP, (vm, { op1: symbol }) => {
   let expr = check(vm.stack.pop(), CheckReference);
-  vm.scope().bindSymbol(symbol, expr);
+  vm._scope_().bindSymbol(symbol, expr);
 });
 
 APPEND_OPCODES.add(SET_BLOCK_OP, (vm, { op1: symbol }) => {
@@ -192,11 +193,11 @@ APPEND_OPCODES.add(SET_BLOCK_OP, (vm, { op1: symbol }) => {
   let scope = check(vm.stack.pop(), CheckScope);
   let table = check(vm.stack.pop(), CheckBlockSymbolTable);
 
-  vm.scope().bindBlock(symbol, [handle, scope, table]);
+  vm._scope_().bindBlock(symbol, [handle, scope, table]);
 });
 
 APPEND_OPCODES.add(ROOT_SCOPE_OP, (vm, { op1: symbols }) => {
-  vm.pushRootScope(symbols, vm.getOwner());
+  vm._pushRootScope_(symbols, vm._getOwner_());
 });
 
 APPEND_OPCODES.add(GET_PROPERTY_OP, (vm, { op1: _key }) => {
@@ -207,7 +208,7 @@ APPEND_OPCODES.add(GET_PROPERTY_OP, (vm, { op1: _key }) => {
 
 APPEND_OPCODES.add(GET_BLOCK_OP, (vm, { op1: _block }) => {
   let { stack } = vm;
-  let block = vm.scope().getBlock(_block);
+  let block = vm._scope_().getBlock(_block);
 
   stack.push(block);
 });
@@ -299,7 +300,7 @@ APPEND_OPCODES.add(NOT_OP, (vm) => {
 });
 
 APPEND_OPCODES.add(GET_DYNAMIC_VAR_OP, (vm) => {
-  let scope = vm.dynamicScope();
+  let scope = vm._dynamicScope_();
   let stack = vm.stack;
   let nameRef = check(stack.pop(), CheckReference);
 
@@ -314,7 +315,7 @@ APPEND_OPCODES.add(GET_DYNAMIC_VAR_OP, (vm) => {
 APPEND_OPCODES.add(LOG_OP, (vm) => {
   let { positional } = check(vm.stack.pop(), CheckArguments).capture();
 
-  vm.loadValue(
+  vm._loadValue_(
     $v0,
     createComputeRef(() => {
       // eslint-disable-next-line no-console

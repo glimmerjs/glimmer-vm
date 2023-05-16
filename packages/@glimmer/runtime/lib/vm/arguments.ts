@@ -24,7 +24,7 @@ import {
 } from '@glimmer/reference';
 import { dict, EMPTY_STRING_ARRAY, emptyArray, enumerate, unwrap } from '@glimmer/util';
 import { CONSTANT_TAG, type Tag } from '@glimmer/validator';
-import { $sp } from '@glimmer/vm';
+import { $sp } from '@glimmer/vm-constants';
 
 import { CheckCompilableBlock, CheckReference, CheckScope } from '../compiled/opcodes/-debug-strip';
 import type { EvaluationStack } from './stack';
@@ -44,7 +44,7 @@ export class VMArgumentsImpl implements VMArguments {
   public blocks = new BlockArgumentsImpl();
 
   empty(stack: EvaluationStack): this {
-    let base = stack['_registers_'][$sp] + 1;
+    let base = stack._registers_[$sp] + 1;
 
     this.named._empty_(stack, base);
     this.positional.empty(stack, base);
@@ -72,7 +72,7 @@ export class VMArgumentsImpl implements VMArguments {
 
     let named = this.named;
     let namedCount = names.length;
-    let namedBase = stack['_registers_'][$sp] - namedCount + 1;
+    let namedBase = stack._registers_[$sp] - namedCount + 1;
 
     named._setup_(stack, namedBase, namedCount, names, atNames);
 
@@ -113,7 +113,7 @@ export class VMArgumentsImpl implements VMArguments {
 
       positional.base += offset;
       named.base += offset;
-      stack['_registers_'][$sp] += offset;
+      stack._registers_[$sp] += offset;
     }
   }
 

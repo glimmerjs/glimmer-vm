@@ -24,7 +24,7 @@ import {
   TestModifierManager,
 } from '../../modifiers';
 import type { TestJitRegistry } from './registry';
-import { CURRIED_COMPONENT } from '@glimmer/vm';
+import { CURRIED_COMPONENT } from '@glimmer/vm-constants';
 
 export function registerTemplateOnlyComponent(
   registry: TestJitRegistry,

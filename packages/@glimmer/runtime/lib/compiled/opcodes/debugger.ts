@@ -4,7 +4,7 @@ import { decodeHandle, unwrap } from '@glimmer/util';
 
 import { APPEND_OPCODES } from '../../opcodes';
 import { CONSTANTS } from '../../symbols';
-import { DEBUGGER_OP } from '@glimmer/vm';
+import { DEBUGGER_OP } from '@glimmer/vm-constants';
 
 export type DebugGet = (path: string) => unknown;
 
@@ -69,6 +69,6 @@ class ScopeInspector {
 APPEND_OPCODES.add(DEBUGGER_OP, (vm, { op1: _symbols, op2: _debugInfo }) => {
   let symbols = vm[CONSTANTS].getArray<string>(_symbols);
   let debugInfo = vm[CONSTANTS].getArray<number>(decodeHandle(_debugInfo));
-  let inspector = new ScopeInspector(vm.scope(), symbols, debugInfo);
-  callback(valueForRef(vm.getSelf()), (path) => valueForRef(inspector.get(path)));
+  let inspector = new ScopeInspector(vm._scope_(), symbols, debugInfo);
+  callback(valueForRef(vm._getSelf_()), (path) => valueForRef(inspector.get(path)));
 });

@@ -9,7 +9,7 @@ import type {
 } from '@glimmer/interfaces';
 import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
 import { expect, unwrap } from '@glimmer/util';
-import { MACHINE_MASK } from '@glimmer/vm';
+import { MACHINE_MASK } from '@glimmer/vm-constants';
 
 import { RuntimeOpImpl } from './opcode';
 

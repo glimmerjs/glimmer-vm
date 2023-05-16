@@ -1,5 +1,5 @@
 import type { OpcodeHeap, RuntimeOp, SomeVmOp } from '@glimmer/interfaces';
-import { ARG_SHIFT, MACHINE_MASK, OPERAND_LEN_MASK, TYPE_MASK } from '@glimmer/vm';
+import { ARG_SHIFT, MACHINE_MASK, OPERAND_LEN_MASK, TYPE_MASK } from '@glimmer/vm-constants';
 
 type MACHINE_BOOL = 0 | 1;
 

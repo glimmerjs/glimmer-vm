@@ -13,10 +13,10 @@ import type { DynamicScope } from './scope';
  */
 export interface VM<O extends Owner = Owner> {
   env: Environment;
-  dynamicScope(): DynamicScope;
-  getOwner(): O;
-  getSelf(): Reference;
-  associateDestroyable(child: Destroyable): void;
+  _dynamicScope_(): DynamicScope;
+  _getOwner_(): O;
+  _getSelf_(): Reference;
+  _associateDestroyable_(child: Destroyable): void;
 }
 
 export interface UpdatingVM {

@@ -14,7 +14,7 @@
     "@glimmer/validator": "workspace:^",
     "@glimmer/compiler": "workspace:^",
     "@glimmer/util": "workspace:^",
-    "@glimmer/vm": "workspace:^",
+    "@glimmer/vm-constants": "workspace:^",
     "@glimmer/wire-format": "workspace:^",
     "@glimmer/interfaces": "workspace:^",
     "@glimmer-workspace/test-utils": "workspace:^",

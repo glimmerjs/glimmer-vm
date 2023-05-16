@@ -6,6 +6,6 @@
     "@glimmer/interfaces": "workspace:^",
     "@glimmer/reference": "workspace:^",
     "@glimmer/validator": "workspace:^",
-    "@glimmer/vm": "workspace:^"
+    "@glimmer/vm-constants": "workspace:^"
   }
 }

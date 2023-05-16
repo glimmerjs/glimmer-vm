@@ -33,7 +33,7 @@ import {
   PRIMITIVE_OP,
   RETURN_OP,
   TYPE_SIZE,
-} from '@glimmer/vm';
+} from '@glimmer/vm-constants';
 
 import { compilableBlock } from '../compilable-template';
 import {

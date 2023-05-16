@@ -71,5 +71,6 @@
     "FORMATTING.md": ".prettierrc.json, .editorconfig",
     "README.md": "RELEASE.md, CHANGELOG.md, LICENSE",
     "DEVELOPMENT.md": "index.html, vite.config.*, .env.development, .env.testing"
-  }
+  },
+  "eslint.ignoreUntitled": true
 }

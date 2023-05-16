@@ -11,7 +11,7 @@
     "@glimmer/manager": "workspace:^",
     "@glimmer/reference": "workspace:^",
     "@glimmer/util": "workspace:^",
-    "@glimmer/vm": "workspace:^",
+    "@glimmer/vm-constants": "workspace:^",
     "@glimmer/wire-format": "workspace:^"
   },
   "devDependencies": {
