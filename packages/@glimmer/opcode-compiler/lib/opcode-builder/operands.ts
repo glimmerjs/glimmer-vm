@@ -12,6 +12,7 @@ import type {
   LayoutOperandType,
   NonSmallIntOperand,
   NonSmallIntOperandType,
+  STDLibOpcode,
   SerializedBlock,
   SerializedInlineBlock,
   StdLibOperand,
@@ -19,7 +20,7 @@ import type {
   SymbolTable,
   SymbolTableOperand,
   SymbolTableOperandType,
-} from "@glimmer/interfaces";
+} from '@glimmer/interfaces';
 import { assert, isSmallInt } from '@glimmer/util';
 
 export const HighLevelOperands = {
@@ -49,14 +50,7 @@ export function blockOperand(value: SerializedInlineBlock | SerializedBlock): Bl
   return { type: HighLevelOperands.Block, value };
 }
 
-export function stdlibOperand(
-  value:
-    | 'main'
-    | 'trusting-append'
-    | 'cautious-append'
-    | 'trusting-non-dynamic-append'
-    | 'cautious-non-dynamic-append'
-): StdLibOperand {
+export function stdlibOperand(value: STDLibOpcode): StdLibOperand {
   return { type: HighLevelOperands.StdLib, value };
 }
 

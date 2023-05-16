@@ -1,5 +1,5 @@
-import type { Nullable, WireFormat } from "@glimmer/interfaces";
-import { $fp, MachineOp, Op } from '@glimmer/vm';
+import type { Nullable, WireFormat } from '@glimmer/interfaces';
+import { $fp, INVOKE_VIRTUAL_OP, Op, POP_FRAME_OP, PUSH_FRAME_OP } from '@glimmer/vm';
 
 import type { PushExpressionOp, PushStatementOp } from '../../syntax/compilers';
 import { blockOperand, symbolTableOperand } from '../operands';
@@ -23,7 +23,7 @@ export function YieldBlock(
   op(Op.CompileBlock);
   op(Op.InvokeYield);
   op(Op.PopScope);
-  op(MachineOp.PopFrame);
+  op(POP_FRAME_OP);
 }
 
 /**
@@ -50,11 +50,11 @@ export function InvokeStaticBlock(
   op: PushStatementOp,
   block: WireFormat.SerializedInlineBlock
 ): void {
-  op(MachineOp.PushFrame);
+  op(PUSH_FRAME_OP);
   PushCompilable(op, block);
   op(Op.CompileBlock);
-  op(MachineOp.InvokeVirtual);
-  op(MachineOp.PopFrame);
+  op(INVOKE_VIRTUAL_OP);
+  op(POP_FRAME_OP);
 }
 
 /**
@@ -78,7 +78,7 @@ export function InvokeStaticBlockWithStack(
     return;
   }
 
-  op(MachineOp.PushFrame);
+  op(PUSH_FRAME_OP);
 
   if (count) {
     op(Op.ChildScope);
@@ -91,13 +91,13 @@ export function InvokeStaticBlockWithStack(
 
   PushCompilable(op, block);
   op(Op.CompileBlock);
-  op(MachineOp.InvokeVirtual);
+  op(INVOKE_VIRTUAL_OP);
 
   if (count) {
     op(Op.PopScope);
   }
 
-  op(MachineOp.PopFrame);
+  op(POP_FRAME_OP);
 }
 
 export function PushSymbolTable(op: PushExpressionOp, parameters: number[] | null): void {

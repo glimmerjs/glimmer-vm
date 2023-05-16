@@ -107,16 +107,14 @@ import type {
   VmVirtualRootScope,
 } from '@glimmer/interfaces';
 
-export const MachineOp = {
-  PushFrame: 0 satisfies VmMachinePushFrame,
-  PopFrame: 1 satisfies VmMachinePopFrame,
-  InvokeVirtual: 2 satisfies VmMachineInvokeVirtual,
-  InvokeStatic: 3 satisfies VmMachineInvokeStatic,
-  Jump: 4 satisfies VmMachineJump,
-  Return: 5 satisfies VmMachineReturn,
-  ReturnTo: 6 satisfies VmMachineReturnTo,
-  Size: 7 satisfies VmMachineSize,
-} as const;
+export const PUSH_FRAME_OP: VmMachinePushFrame = 0;
+export const POP_FRAME_OP: VmMachinePopFrame = 1;
+export const INVOKE_VIRTUAL_OP: VmMachineInvokeVirtual = 2;
+export const INVOKE_STATIC_OP: VmMachineInvokeStatic = 3;
+export const JUMP_OP: VmMachineJump = 4;
+export const RETURN_OP: VmMachineReturn = 5;
+export const RETURN_TO_OP: VmMachineReturnTo = 6;
+export const SIZE_OP: VmMachineSize = 7;
 
 export const Op = {
   Helper: 16 satisfies VmHelper,

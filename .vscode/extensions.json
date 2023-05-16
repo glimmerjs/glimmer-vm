@@ -3,6 +3,7 @@
     "rohit-gohri.format-code-action",
     "dbaeumer.vscode-eslint",
     "esbenp.prettier-vscode",
-    "editorconfig.editorconfig"
+    "editorconfig.editorconfig",
+    "foxundermoon.shell-format"
   ]
 }

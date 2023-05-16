@@ -13,7 +13,7 @@ export let verifySteps:
   | undefined;
 export let logStep: ((type: string, steps: unknown) => void) | undefined;
 
-if (LOCAL_DEBUG) {
+if (import.meta.env.DEV && LOCAL_DEBUG) {
   let LOGGED_STEPS: Record<string, unknown[]> | null = null;
 
   beginTestSteps = () => {

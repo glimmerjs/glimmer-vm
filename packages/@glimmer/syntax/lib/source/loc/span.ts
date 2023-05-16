@@ -1,5 +1,3 @@
- 
-
 import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
 import { assertNever } from '@glimmer/util';
 
@@ -341,7 +339,7 @@ class CharPositionSpan implements SpanData {
   }
 
   locDidUpdate() {
-    if (LOCAL_DEBUG) {
+    if (import.meta.env.DEV && LOCAL_DEBUG) {
       // eslint-disable-next-line no-console
       console.warn(
         `updating a location that came from a CharPosition span doesn't work reliably. Don't try to update locations after the plugin phase`

@@ -1,4 +1,4 @@
-import type { NamedBlocks, Nullable, SerializedInlineBlock, WireFormat } from "@glimmer/interfaces";
+import type { NamedBlocks, Nullable, SerializedInlineBlock, WireFormat } from '@glimmer/interfaces';
 import { assign, dict, enumerate, unwrap } from '@glimmer/util';
 
 interface NamedBlocksDict {
@@ -7,34 +7,33 @@ interface NamedBlocksDict {
 
 export class NamedBlocksImpl implements NamedBlocks {
   public names: string[];
+  readonly #blocks: Nullable<NamedBlocksDict>;
 
-  constructor(private blocks: Nullable<NamedBlocksDict>) {
+  constructor(blocks: Nullable<NamedBlocksDict>) {
+    this.#blocks = blocks;
     this.names = blocks ? Object.keys(blocks) : [];
   }
 
   get(name: string): Nullable<SerializedInlineBlock> {
-    if (!this.blocks) return null;
+    if (!this.#blocks) return null;
 
-    return this.blocks[name] || null;
+    return this.#blocks[name] || null;
   }
 
   has(name: string): boolean {
-    let { blocks } = this;
-    return blocks !== null && name in blocks;
+    return this.#blocks !== null && name in this.#blocks;
   }
 
   with(name: string, block: Nullable<SerializedInlineBlock>): NamedBlocks {
-    let { blocks } = this;
-
-    if (blocks) {
-      return new NamedBlocksImpl(assign({}, blocks, { [name]: block }));
+    if (this.#blocks) {
+      return new NamedBlocksImpl(assign({}, this.#blocks, { [name]: block }));
     } else {
       return new NamedBlocksImpl({ [name]: block });
     }
   }
 
   get hasAny(): boolean {
-    return this.blocks !== null;
+    return this.#blocks !== null;
   }
 }
 

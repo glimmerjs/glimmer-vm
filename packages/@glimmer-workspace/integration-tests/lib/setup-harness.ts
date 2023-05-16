@@ -3,11 +3,10 @@ import { debug } from '@glimmer/validator';
 import { autoRegister } from 'js-reporters';
 
 export async function setupQunit() {
-  const qunit = await import('qunit');
   await import('qunit/qunit/qunit.css');
 
   const runner = autoRegister();
-  const tap = qunit.reporters.tap;
+  const tap = QUnit.reporters.tap;
   tap.init(runner, { log: console.info });
 
   QUnit.config.urlConfig.push({
@@ -51,7 +50,7 @@ export async function setupQunit() {
       });
 
     let start = performance.now();
-    qunit.testDone(async () => {
+    QUnit.testDone(async () => {
       let gap = performance.now() - start;
       if (gap > 200) {
         await pause();
@@ -59,10 +58,10 @@ export async function setupQunit() {
       }
     });
 
-    qunit.moduleDone(pause);
+    QUnit.moduleDone(pause);
   }
 
-  qunit.done(() => {
+  QUnit.done(() => {
     console.log('[HARNESS] done');
   });
 

@@ -3,5 +3,8 @@
   "dependencies": {
     "@types/qunit": "workspace:^",
     "vite": "^4.3.5"
+  },
+  "engines": {
+    "node": ">=16"
   }
 }

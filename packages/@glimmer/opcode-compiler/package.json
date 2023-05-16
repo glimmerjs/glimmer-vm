@@ -33,6 +33,16 @@
       "types": "./dist/index.d.ts",
       "require": "./dist/index.cjs",
       "default": "./dist/index.js"
+    },
+    "workspace": {
+      "presets": [
+        "workspace:recommended"
+      ],
+      "inline": {
+        "is": [
+          "@glimmer/*"
+        ]
+      }
     }
   }
 }

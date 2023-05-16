@@ -339,7 +339,7 @@ export class ListBlockOpcode extends BlockOpcode {
   }
 
   private retainItem(opcode: ListItemOpcode, item: OpaqueIterationItem) {
-    if (LOCAL_DEBUG) {
+    if (import.meta.env.DEV && LOCAL_DEBUG) {
       logStep!('list-updates', ['retain', item.key]);
     }
 
@@ -354,7 +354,7 @@ export class ListBlockOpcode extends BlockOpcode {
   }
 
   private insertItem(item: OpaqueIterationItem, before: ListItemOpcode | undefined) {
-    if (LOCAL_DEBUG) {
+    if (import.meta.env.DEV && LOCAL_DEBUG) {
       logStep!('list-updates', ['insert', item.key]);
     }
 
@@ -411,14 +411,14 @@ export class ListBlockOpcode extends BlockOpcode {
     opcode.index = children.length;
     children.push(opcode);
 
-    if (LOCAL_DEBUG) {
+    if (import.meta.env.DEV && LOCAL_DEBUG) {
       let type = currentSibling && currentSibling === nextSibling ? 'move-retain' : 'move';
       logStep!('list-updates', [type, item.key]);
     }
   }
 
   private deleteItem(opcode: ListItemOpcode) {
-    if (LOCAL_DEBUG) {
+    if (import.meta.env.DEV && LOCAL_DEBUG) {
       logStep!('list-updates', ['delete', opcode.key]);
     }
 

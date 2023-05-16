@@ -17,7 +17,7 @@ import type {
   Owner,
   UpdatingOpcode,
   UpdatingVM,
-} from "@glimmer/interfaces";
+} from '@glimmer/interfaces';
 import { createComputeRef, isConstRef, type Reference, valueForRef } from '@glimmer/reference';
 import { assign, debugToString, expect, isObject } from '@glimmer/util';
 import {

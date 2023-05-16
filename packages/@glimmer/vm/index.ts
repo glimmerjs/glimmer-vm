@@ -13,7 +13,7 @@ export {
   TYPE_MASK,
   TYPE_SIZE,
 } from './lib/flags';
-export { isMachineOp, isOp, MachineOp, Op } from './lib/opcodes';
+export * from './lib/opcodes';
 export {
   $fp,
   $pc,

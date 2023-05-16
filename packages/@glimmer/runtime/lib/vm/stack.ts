@@ -31,7 +31,7 @@ export default class EvaluationStackImpl implements EvaluationStack {
   constructor(private stack: unknown[] = [], registers: LowLevelRegisters) {
     this[REGISTERS] = registers;
 
-    if (LOCAL_DEBUG) {
+    if (import.meta.env.DEV && LOCAL_DEBUG) {
       Object.seal(this);
     }
   }

@@ -4,18 +4,16 @@ import type { HelperDefinitionState } from './runtime';
 import type { ModifierDefinitionState } from './runtime/modifier';
 import type { CompileTimeResolver, ResolvedComponentDefinition } from './serialize';
 import type { ContainingMetadata, STDLib, Template } from './template';
-import type { SomeVmOp, VmMachineOp, VmOp } from './vm-opcodes';
+import type { VmMachineOp, VmOp } from './vm-opcodes';
 
 export type CreateRuntimeOp = (heap: CompileTimeHeap) => RuntimeOp;
 
 export interface RuntimeOp {
+  readonly heap: OpcodeHeap;
   offset: number;
-  type: SomeVmOp;
   op1: number;
   op2: number;
   op3: number;
-  size: number;
-  isMachine: 0 | 1;
 }
 
 export interface SerializedHeap {

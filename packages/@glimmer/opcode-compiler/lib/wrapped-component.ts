@@ -7,7 +7,7 @@ import type {
   LayoutWithContext,
   Nullable,
   ProgramSymbolTable,
-} from "@glimmer/interfaces";
+} from '@glimmer/interfaces';
 import { LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
 
 import { debugCompiler } from './compiler';
@@ -19,10 +19,12 @@ import type { HighLevelStatementOp } from './syntax/compilers';
 
 export class WrappedBuilder implements CompilableProgram {
   public symbolTable: ProgramSymbolTable;
-  private compiled: Nullable<number> = null;
-  private attrsBlockNumber: number;
+  #compiled: Nullable<number> = null;
+  readonly #attrsBlockNumber: number;
+  readonly #layout: LayoutWithContext;
 
-  constructor(private layout: LayoutWithContext, public moduleName: string) {
+  constructor(layout: LayoutWithContext, public moduleName: string) {
+    this.#layout = layout;
     let { block } = layout;
     let [, symbols, hasEval] = block;
 
@@ -31,9 +33,9 @@ export class WrappedBuilder implements CompilableProgram {
     // ensure ATTRS_BLOCK is always included (only once) in the list of symbols
     let attrsBlockIndex = symbols.indexOf(ATTRS_BLOCK);
     if (attrsBlockIndex === -1) {
-      this.attrsBlockNumber = symbols.push(ATTRS_BLOCK);
+      this.#attrsBlockNumber = symbols.push(ATTRS_BLOCK);
     } else {
-      this.attrsBlockNumber = attrsBlockIndex + 1;
+      this.#attrsBlockNumber = attrsBlockIndex + 1;
     }
 
     this.symbolTable = {
@@ -43,9 +45,9 @@ export class WrappedBuilder implements CompilableProgram {
   }
 
   compile(syntax: CompileTimeCompilationContext): HandleResult {
-    if (this.compiled !== null) return this.compiled;
+    if (this.#compiled !== null) return this.#compiled;
 
-    let m = meta(this.layout);
+    let m = meta(this.#layout);
     let context = templateCompilationContext(syntax, m);
 
     let {
@@ -57,7 +59,7 @@ export class WrappedBuilder implements CompilableProgram {
       encodeOp(encoder, constants, resolver, m, op as BuilderOp | HighLevelOp);
     }
 
-    WrappedComponent(pushOp, this.layout, this.attrsBlockNumber);
+    WrappedComponent(pushOp, this.#layout, this.#attrsBlockNumber);
 
     let handle = context.encoder.commit(m.size);
 
@@ -65,9 +67,9 @@ export class WrappedBuilder implements CompilableProgram {
       return handle;
     }
 
-    this.compiled = handle;
+    this.#compiled = handle;
 
-    if (LOCAL_SHOULD_LOG) {
+    if (import.meta.env.DEV && LOCAL_SHOULD_LOG) {
       debugCompiler(context, handle);
     }
 

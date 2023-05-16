@@ -68,7 +68,7 @@ function getNodeHandler<N extends ASTv1.Node>(
 ): NodeTraversal<ASTv1.Node> | undefined {
   if (nodeType === 'Template' || nodeType === 'Block') {
     if (visitor.Program) {
-      if (LOCAL_DEBUG) {
+      if (import.meta.env.DEV && LOCAL_DEBUG) {
         deprecate(
           `The 'Program' visitor node is deprecated. Use 'Template' or 'Block' instead (node was '${nodeType}') `
         );
@@ -183,7 +183,7 @@ function visitKey<N extends ASTv1.Node>(
     if (result !== undefined) {
       // TODO: dynamically check the results by having a table of
       // expected node types in value space, not just type space
-       
+
       assignKey(node, key, value, result as any);
     }
   }

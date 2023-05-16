@@ -1,10 +1,25 @@
 import type { Nullable, RuntimeHeap, RuntimeOp, RuntimeProgram } from '@glimmer/interfaces';
 import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
 import { assert } from '@glimmer/util';
-import { $fp, $pc, $ra, $sp, MachineOp, type MachineRegister } from '@glimmer/vm';
+import {
+  $fp,
+  $pc,
+  $ra,
+  $sp,
+  PUSH_FRAME_OP,
+  type MachineRegister,
+  POP_FRAME_OP,
+  INVOKE_STATIC_OP,
+  INVOKE_VIRTUAL_OP,
+  JUMP_OP,
+  RETURN_OP,
+  RETURN_TO_OP,
+} from '@glimmer/vm';
 
 import { APPEND_OPCODES } from '../opcodes';
 import type { VM } from './append';
+import { isMachine, opType, type RuntimeOpImpl } from '@glimmer/program';
+import { sizeof } from '@glimmer/program';
 
 export interface LowLevelRegisters {
   [MachineRegister.pc]: number;
@@ -32,8 +47,8 @@ export interface Stack {
 }
 
 export interface Externs {
-  debugBefore(opcode: RuntimeOp): unknown;
-  debugAfter(state: unknown): void;
+  debugBefore: (opcode: RuntimeOp) => unknown;
+  debugAfter: (state: unknown) => void;
 }
 
 export class LowLevelVM {
@@ -43,8 +58,8 @@ export class LowLevelVM {
     public stack: Stack,
     public heap: RuntimeHeap,
     public program: RuntimeProgram,
-    public externs: Externs,
-    readonly registers: LowLevelRegisters
+    readonly registers: LowLevelRegisters,
+    public externs?: Externs | undefined
   ) {}
 
   fetchRegister(register: MachineRegister): number {
@@ -126,53 +141,54 @@ export class LowLevelVM {
     // in a jump because we have have already incremented the
     // program counter to the next instruction prior to executing.
     let opcode = program.opcode(pc);
-    let operationSize = (this.currentOpSize = opcode.size);
+    let operationSize = (this.currentOpSize = sizeof(opcode as RuntimeOpImpl));
     this.registers[$pc] += operationSize;
 
     return opcode;
   }
 
   evaluateOuter(opcode: RuntimeOp, vm: VM) {
-    if (LOCAL_DEBUG) {
+    if (import.meta.env.DEV && LOCAL_DEBUG && this.externs) {
       let {
         externs: { debugBefore, debugAfter },
       } = this;
-      let state = debugBefore(opcode);
+      let state = debugBefore?.(opcode);
       this.evaluateInner(opcode, vm);
-      debugAfter(state);
-    } else {
-      this.evaluateInner(opcode, vm);
+      debugAfter?.(state);
+      return;
     }
+
+    this.evaluateInner(opcode, vm);
   }
 
-  evaluateInner(opcode: RuntimeOp, vm: VM) {
-    if (opcode.isMachine) {
+  evaluateInner(opcode: RuntimeOp, vm: VM): void {
+    if (isMachine(opcode)) {
       this.evaluateMachine(opcode);
     } else {
       this.evaluateSyscall(opcode, vm);
     }
   }
 
-  evaluateMachine(opcode: RuntimeOp) {
-    switch (opcode.type) {
-      case MachineOp.PushFrame:
+  evaluateMachine(opcode: RuntimeOp): void {
+    switch (opType(opcode)) {
+      case PUSH_FRAME_OP:
         return this.pushFrame();
-      case MachineOp.PopFrame:
+      case POP_FRAME_OP:
         return this.popFrame();
-      case MachineOp.InvokeStatic:
+      case INVOKE_STATIC_OP:
         return this.call(opcode.op1);
-      case MachineOp.InvokeVirtual:
+      case INVOKE_VIRTUAL_OP:
         return this.call(this.stack.pop());
-      case MachineOp.Jump:
+      case JUMP_OP:
         return this.goto(opcode.op1);
-      case MachineOp.Return:
+      case RETURN_OP:
         return this.return();
-      case MachineOp.ReturnTo:
+      case RETURN_TO_OP:
         return this.returnTo(opcode.op1);
     }
   }
 
   evaluateSyscall(opcode: RuntimeOp, vm: VM) {
-    APPEND_OPCODES.evaluate(vm, opcode, opcode.type);
+    APPEND_OPCODES.evaluate(vm, opcode, opType(opcode));
   }
 }

@@ -6,7 +6,7 @@ import type {
   RuntimeProgram,
   SerializedHeap,
   StdLibOperand,
-} from "@glimmer/interfaces";
+} from '@glimmer/interfaces';
 import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
 import { expect, unwrap } from '@glimmer/util';
 import { MACHINE_MASK } from '@glimmer/vm';
@@ -130,7 +130,7 @@ export class HeapImpl implements CompileTimeHeap, RuntimeHeap {
     // @TODO: At the moment, garbage collection isn't actually used, so this is
     // wrapped to prevent us from allocating extra space in prod. In the future,
     // if we start using the compact API, we should change this.
-    if (LOCAL_DEBUG) {
+    if (import.meta.env.DEV && LOCAL_DEBUG) {
       this.handleState[handle] = TableSlotState.Allocated;
     }
   }
@@ -236,7 +236,7 @@ function slice(arr: Int32Array, start: number, end: number): Int32Array {
 }
 
 function sizeof(table: number[], handle: number) {
-  if (LOCAL_DEBUG) {
+  if (import.meta.env.DEV && LOCAL_DEBUG) {
     return unwrap(table[handle + 1]) - unwrap(table[handle]);
   } else {
     return -1;

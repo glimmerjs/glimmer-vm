@@ -8,7 +8,6 @@ export {
 } from './lib/opcode-builder/helpers/blocks';
 export { meta } from './lib/opcode-builder/helpers/shared';
 export { compileStd } from './lib/opcode-builder/helpers/stdlib';
-export { StdLib } from './lib/opcode-builder/stdlib';
 export * from './lib/program-context';
 export {
   templateCacheCounters,
@@ -16,5 +15,4 @@ export {
   type TemplateFactoryWithIdAndMeta,
   type TemplateWithIdAndReferrer,
 } from './lib/template';
-export { EMPTY_BLOCKS } from './lib/utils';
 export { WrappedBuilder } from './lib/wrapped-component';

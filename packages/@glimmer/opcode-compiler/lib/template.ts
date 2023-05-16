@@ -8,7 +8,7 @@ import type {
   Template,
   TemplateFactory,
   TemplateOk,
-} from "@glimmer/interfaces";
+} from '@glimmer/interfaces';
 import { assign } from '@glimmer/util';
 
 import { compilable } from './compilable-template';
@@ -104,38 +104,38 @@ export default function templateFactory({
 class TemplateImpl implements TemplateWithIdAndReferrer {
   readonly result = 'ok';
 
-  private layout: Nullable<CompilableProgram> = null;
-  private wrappedLayout: Nullable<CompilableProgram> = null;
+  #layout: Nullable<CompilableProgram> = null;
+  #wrappedLayout: Nullable<CompilableProgram> = null;
+  readonly #parsedLayout: LayoutWithContext;
 
-  constructor(private parsedLayout: LayoutWithContext) {}
+  constructor(parsedLayout: LayoutWithContext) {
+    this.#parsedLayout = parsedLayout;
+  }
 
   get moduleName() {
-    return this.parsedLayout.moduleName;
+    return this.#parsedLayout.moduleName;
   }
 
   get id() {
-    return this.parsedLayout.id;
+    return this.#parsedLayout.id;
   }
 
   // TODO(template-refactors): This should be removed in the near future, it is
   // only being exposed for backwards compatibility
   get referrer() {
     return {
-      moduleName: this.parsedLayout.moduleName,
-      owner: this.parsedLayout.owner,
+      moduleName: this.#parsedLayout.moduleName,
+      owner: this.#parsedLayout.owner,
     };
   }
 
   asLayout(): CompilableProgram {
-    if (this.layout) return this.layout;
-    return (this.layout = compilable(assign({}, this.parsedLayout), this.moduleName));
+    if (this.#layout) return this.#layout;
+    return (this.#layout = compilable(assign({}, this.#parsedLayout), this.moduleName));
   }
 
   asWrappedLayout(): CompilableProgram {
-    if (this.wrappedLayout) return this.wrappedLayout;
-    return (this.wrappedLayout = new WrappedBuilder(
-      assign({}, this.parsedLayout),
-      this.moduleName
-    ));
+    if (this.#wrappedLayout) return this.#wrappedLayout;
+    return (this.#wrappedLayout = new WrappedBuilder({ ...this.#parsedLayout }, this.moduleName));
   }
 }

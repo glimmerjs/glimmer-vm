@@ -14,8 +14,8 @@ import type {
   InstructionEncoder,
   Operand,
   ResolutionTimeConstants,
-  SingleBuilderOperand,
   STDLib,
+  SingleBuilderOperand,
 } from '@glimmer/interfaces';
 import {
   assert,
@@ -26,7 +26,7 @@ import {
   isPresentArray,
   Stack,
 } from '@glimmer/util';
-import { ARG_SHIFT, isMachineOp, MACHINE_MASK, MachineOp, Op, TYPE_SIZE } from '@glimmer/vm';
+import { ARG_SHIFT, isMachineOp, MACHINE_MASK, Op, RETURN_OP, TYPE_SIZE } from '@glimmer/vm';
 
 import { compilableBlock } from '../compilable-template';
 import {
@@ -141,32 +141,35 @@ export function encodeOp(
 }
 
 export class EncoderImpl implements Encoder {
-  private labelsStack = new Stack<Labels>();
-  private encoder: InstructionEncoder = new InstructionEncoderImpl([]);
-  private errors: EncoderError[] = [];
-  private handle: number;
+  readonly #labelsStack = new Stack<Labels>();
+  readonly #encoder: InstructionEncoder = new InstructionEncoderImpl([]);
+  readonly #errors: EncoderError[] = [];
+  readonly #handle: number;
 
-  constructor(
-    private heap: CompileTimeHeap,
-    private meta: ContainingMetadata,
-    private stdlib?: STDLib
-  ) {
-    this.handle = heap.malloc();
+  #heap: CompileTimeHeap;
+  #meta: ContainingMetadata;
+  #stdlib: STDLib | undefined;
+
+  constructor(heap: CompileTimeHeap, meta: ContainingMetadata, stdlib?: STDLib | undefined) {
+    this.#heap = heap;
+    this.#meta = meta;
+    this.#stdlib = stdlib;
+    this.#handle = heap.malloc();
   }
 
   error(error: EncoderError): void {
-    this.encoder.encode(Op.Primitive, 0);
-    this.errors.push(error);
+    this.#encoder.encode(Op.Primitive, 0);
+    this.#errors.push(error);
   }
 
   commit(size: number): HandleResult {
-    let handle = this.handle;
+    let handle = this.#handle;
 
-    this.heap.pushMachine(MachineOp.Return);
-    this.heap.finishMalloc(handle, size);
+    this.#heap.pushMachine(RETURN_OP);
+    this.#heap.finishMalloc(handle, size);
 
-    if (isPresentArray(this.errors)) {
-      return { errors: this.errors, handle };
+    if (isPresentArray(this.#errors)) {
+      return { errors: this.#errors, handle };
     } else {
       return handle;
     }
@@ -177,7 +180,7 @@ export class EncoderImpl implements Encoder {
     type: BuilderOpcode,
     ...args: SingleBuilderOperand[]
   ): void {
-    let { heap } = this;
+    let heap = this.#heap;
 
     if (import.meta.env.DEV && (type as number) > TYPE_SIZE) {
       throw new Error(`Opcode type over 8-bits. Got ${type}.`);
@@ -188,13 +191,12 @@ export class EncoderImpl implements Encoder {
 
     heap.pushRaw(first);
 
-    for (let i = 0; i < args.length; i++) {
-      let op = args[i];
-      heap.pushRaw(this.operand(constants, op));
+    for (const op of args) {
+      heap.pushRaw(this.#operand(constants, op));
     }
   }
 
-  private operand(constants: CompileTimeConstants, operand: SingleBuilderOperand): Operand {
+  #operand(constants: CompileTimeConstants, operand: SingleBuilderOperand): Operand {
     if (typeof operand === 'number') {
       return operand;
     }
@@ -205,21 +207,21 @@ export class EncoderImpl implements Encoder {
       } else {
         switch (operand.type) {
           case HighLevelOperands.Label:
-            this.currentLabels.target(this.heap.offset, operand.value);
+            this.#currentLabels.target(this.#heap.offset, operand.value);
             return -1;
 
           case HighLevelOperands.IsStrictMode:
-            return encodeHandle(constants.value(this.meta.isStrictMode));
+            return encodeHandle(constants.value(this.#meta.isStrictMode));
 
           case HighLevelOperands.DebugSymbols:
-            return encodeHandle(constants.array(this.meta.evalSymbols || EMPTY_STRING_ARRAY));
+            return encodeHandle(constants.array(this.#meta.evalSymbols || EMPTY_STRING_ARRAY));
 
           case HighLevelOperands.Block:
-            return encodeHandle(constants.value(compilableBlock(operand.value, this.meta)));
+            return encodeHandle(constants.value(compilableBlock(operand.value, this.#meta)));
 
           case HighLevelOperands.StdLib:
             return expect(
-              this.stdlib,
+              this.#stdlib,
               'attempted to encode a stdlib operand, but the encoder did not have a stdlib. Are you currently building the stdlib?'
             )[operand.value];
 
@@ -234,21 +236,21 @@ export class EncoderImpl implements Encoder {
     return encodeHandle(constants.value(operand));
   }
 
-  private get currentLabels(): Labels {
-    return expect(this.labelsStack.current, 'bug: not in a label stack');
+  get #currentLabels(): Labels {
+    return expect(this.#labelsStack.current, 'bug: not in a label stack');
   }
 
   label(name: string) {
-    this.currentLabels.label(name, this.heap.offset + 1);
+    this.#currentLabels.label(name, this.#heap.offset + 1);
   }
 
   startLabels() {
-    this.labelsStack.push(new Labels());
+    this.#labelsStack.push(new Labels());
   }
 
   stopLabels() {
-    let label = expect(this.labelsStack.pop(), 'unbalanced push and pop labels');
-    label.patch(this.heap);
+    let label = expect(this.#labelsStack.pop(), 'unbalanced push and pop labels');
+    label.patch(this.#heap);
   }
 }
 

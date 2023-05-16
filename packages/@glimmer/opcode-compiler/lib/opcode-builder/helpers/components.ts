@@ -6,15 +6,15 @@ import type {
   NamedBlocks,
   Nullable,
   WireFormat,
-} from "@glimmer/interfaces";
+} from '@glimmer/interfaces';
 import { hasCapability } from '@glimmer/manager';
 import { EMPTY_STRING_ARRAY, reverse, unwrap } from '@glimmer/util';
 import {
   $s0,
   $s1,
   $sp,
+  INVOKE_VIRTUAL_OP,
   InternalComponentCapabilities,
-  MachineOp,
   Op,
   type SavedRegister,
 } from '@glimmer/vm';
@@ -27,6 +27,7 @@ import { InvokeStaticBlock, PushYieldableBlock, YieldBlock } from './blocks';
 import { Replayable } from './conditional';
 import { expr } from './expr';
 import { CompileArgs, CompilePositional } from './shared';
+import { POP_FRAME_OP, PUSH_FRAME_OP } from '@glimmer/vm';
 
 export const ATTRS_BLOCK = '&attrs';
 
@@ -174,7 +175,7 @@ function InvokeStaticComponent(
   op(Op.Fetch, $s0);
   op(Op.Dup, $sp, 1);
   op(Op.Load, $s0);
-  op(MachineOp.PushFrame);
+  op(PUSH_FRAME_OP);
 
   // Setup arguments
   let { symbols } = symbolTable;
@@ -318,10 +319,10 @@ function InvokeStaticComponent(
 
   op(Op.Constant, layoutOperand(layout));
   op(Op.CompileBlock);
-  op(MachineOp.InvokeVirtual);
+  op(INVOKE_VIRTUAL_OP);
   op(Op.DidRenderLayout, $s0);
 
-  op(MachineOp.PopFrame);
+  op(POP_FRAME_OP);
   op(Op.PopScope);
 
   if (hasCapability(capabilities, InternalComponentCapabilities.dynamicScope)) {
@@ -348,7 +349,7 @@ export function InvokeNonStaticComponent(
   op(Op.Dup, $sp, 1);
   op(Op.Load, $s0);
 
-  op(MachineOp.PushFrame);
+  op(PUSH_FRAME_OP);
   CompileArgs(op, positional, named, blocks, atNames);
   op(Op.PrepareArgs, $s0);
 
@@ -428,7 +429,7 @@ export function invokePreparedComponent(
   op(Op.Pop, 1);
   op(Op.InvokeComponentLayout, $s0);
   op(Op.DidRenderLayout, $s0);
-  op(MachineOp.PopFrame);
+  op(POP_FRAME_OP);
 
   op(Op.PopScope);
   op(Op.PopDynamicScope);
@@ -440,7 +441,7 @@ export function InvokeBareComponent(op: PushStatementOp): void {
   op(Op.Dup, $sp, 1);
   op(Op.Load, $s0);
 
-  op(MachineOp.PushFrame);
+  op(PUSH_FRAME_OP);
   op(Op.PushEmptyArgs);
   op(Op.PrepareArgs, $s0);
   invokePreparedComponent(op, false, false, true, () => {

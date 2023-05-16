@@ -10,14 +10,15 @@ import type {
 } from '@glimmer/interfaces';
 import { LOCAL_DEBUG, LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
 import { valueForRef } from '@glimmer/reference';
-import { assert, fillNulls, LOCAL_LOGGER, unwrap } from '@glimmer/util';
-import { $fp, $pc, $ra, $sp, Op } from '@glimmer/vm';
+import { assert, LOCAL_LOGGER, unwrap } from '@glimmer/util';
+import { $fp, $pc, $ra, $sp } from '@glimmer/vm';
 
 import { isScopeReference } from './scope';
-import { CONSTANTS, DESTROYABLE_STACK, INNER_VM, STACKS } from './symbols';
-import type { LowLevelVM, VM } from './vm';
-import type { InternalVM } from './vm/append';
+import { CONSTANTS, DESTROYABLE_STACK, INNER_VM } from './symbols';
+import type { VM, LowLevelVM } from './vm';
+import type { DebugVM, InternalVM } from './vm/append';
 import { CURSOR_STACK } from './vm/element-builder';
+import { sizeof, type RuntimeOpImpl, isMachine, opType } from '@glimmer/program';
 
 export interface OpcodeJSON {
   type: number | string;
@@ -51,7 +52,7 @@ export type DebugState = {
 };
 
 export class AppendOpcodes {
-  private evaluateOpcode: Evaluate[] = fillNulls<Evaluate>(Op.Size).slice();
+  readonly #evaluateOpcode: Evaluate[] = [];
 
   add<Name extends VmOp>(name: Name, evaluate: Syscall): void;
   add<Name extends VmMachineOp>(name: Name, evaluate: MachineOpcode, kind: 'machine'): void;
@@ -60,126 +61,154 @@ export class AppendOpcodes {
     evaluate: Syscall | MachineOpcode,
     kind = 'syscall'
   ): void {
-    this.evaluateOpcode[name as number] = {
+    this.#evaluateOpcode[name as number] = {
       syscall: kind !== 'machine',
       evaluate,
     } as Evaluate;
   }
 
-  debugBefore(vm: VM, opcode: RuntimeOp): DebugState {
-    let params: Maybe<Dict> = undefined;
-    let opName: string | undefined = undefined;
+  static {
+    if (import.meta.env.DEV) {
+      Reflect.defineProperty(AppendOpcodes.prototype, 'debug', {
+        enumerable: false,
+        configurable: true,
+        writable: false,
+        value: {
+          before: (vm: VM, opcode: RuntimeOpImpl): DebugState => {
+            let params: Maybe<Dict> = undefined;
+            let opName: string | undefined = undefined;
 
-    if (LOCAL_SHOULD_LOG) {
-      let pos = vm[INNER_VM].fetchRegister($pc) - opcode.size;
+            if (LOCAL_SHOULD_LOG) {
+              let pos = vm[INNER_VM].fetchRegister($pc) - sizeof(opcode);
 
-      [opName, params] = debug(vm[CONSTANTS], opcode, opcode.isMachine)!;
+              [opName, params] = debug(vm[CONSTANTS], opcode, isMachine(opcode))!;
 
-      // console.log(`${typePos(vm['pc'])}.`);
-      LOCAL_LOGGER.log(`${pos}. ${logOpcode(opName, params)}`);
+              // console.log(`${typePos(vm['pc'])}.`);
+              LOCAL_LOGGER.log(`${pos}. ${logOpcode(opName, params)}`);
 
-      let debugParams = [];
-      for (let prop in params) {
-        debugParams.push(prop, '=', params[prop]);
-      }
+              let debugParams = [];
+              for (let prop in params) {
+                debugParams.push(prop, '=', params[prop]);
+              }
 
-      LOCAL_LOGGER.log(...debugParams);
+              LOCAL_LOGGER.log(...debugParams);
+            }
+
+            let sp: number;
+
+            if (LOCAL_DEBUG) {
+              sp = vm.fetchValue($sp);
+            }
+
+            recordStackSize(vm.fetchValue($sp));
+            return {
+              sp: sp!,
+              pc: vm.fetchValue($pc),
+              name: opName,
+              params,
+              type: opType(opcode),
+              isMachine: isMachine(opcode),
+              size: sizeof(opcode),
+              state: undefined,
+            };
+          },
+
+          after: (vm: VM, pre: DebugState, debug: DebugVM): void => {
+            let { sp, type, isMachine, pc } = pre;
+
+            if (import.meta.env.DEV && LOCAL_DEBUG) {
+              let meta = opcodeMetadata(type, isMachine);
+              let actualChange = vm.fetchValue($sp) - sp;
+              if (
+                meta &&
+                meta.check &&
+                typeof meta.stackChange! === 'number' &&
+                meta.stackChange !== actualChange
+              ) {
+                throw new Error(
+                  `Error in ${pre.name}:\n\n${pc}. ${logOpcode(
+                    pre.name!,
+                    pre.params
+                  )}\n\nStack changed by ${actualChange}, expected ${meta.stackChange}`
+                );
+              }
+
+              if (LOCAL_SHOULD_LOG) {
+                LOCAL_LOGGER.log(
+                  '%c -> pc: %d, ra: %d, fp: %d, sp: %d, s0: %O, s1: %O, t0: %O, t1: %O, v0: %O',
+                  'color: orange',
+                  vm[INNER_VM].registers[$pc],
+                  vm[INNER_VM].registers[$ra],
+                  vm[INNER_VM].registers[$fp],
+                  vm[INNER_VM].registers[$sp],
+                  vm['s0'],
+                  vm['s1'],
+                  vm['t0'],
+                  vm['t1'],
+                  vm['v0']
+                );
+                LOCAL_LOGGER.log('%c -> eval stack', 'color: red', vm.stack.toArray());
+                LOCAL_LOGGER.log(
+                  '%c -> block stack',
+                  'color: magenta',
+                  vm.elements().debugBlocks()
+                );
+                LOCAL_LOGGER.log(
+                  '%c -> destructor stack',
+                  'color: violet',
+                  vm[DESTROYABLE_STACK].toArray()
+                );
+                if (debug.getStacks(vm).scope.current === null) {
+                  LOCAL_LOGGER.log('%c -> scope', 'color: green', 'null');
+                } else {
+                  LOCAL_LOGGER.log(
+                    '%c -> scope',
+                    'color: green',
+                    vm.scope().slots.map((s) => (isScopeReference(s) ? valueForRef(s) : s))
+                  );
+                }
+
+                LOCAL_LOGGER.log(
+                  '%c -> elements',
+                  'color: blue',
+                  vm.elements()[CURSOR_STACK].current!.element
+                );
+
+                LOCAL_LOGGER.log(
+                  '%c -> constructing',
+                  'color: aqua',
+                  vm.elements()['constructing']
+                );
+              }
+            }
+          },
+        },
+      });
     }
-
-    let sp: number;
-
-    if (LOCAL_DEBUG) {
-      sp = vm.fetchValue($sp);
-    }
-
-    recordStackSize(vm.fetchValue($sp));
-    return {
-      sp: sp!,
-      pc: vm.fetchValue($pc),
-      name: opName,
-      params,
-      type: opcode.type,
-      isMachine: opcode.isMachine,
-      size: opcode.size,
-      state: undefined,
-    };
   }
 
-  debugAfter(vm: VM, pre: DebugState) {
-    let { sp, type, isMachine, pc } = pre;
-
-    if (import.meta.env.DEV && LOCAL_DEBUG) {
-      let meta = opcodeMetadata(type, isMachine);
-      let actualChange = vm.fetchValue($sp) - sp;
-      if (
-        meta &&
-        meta.check &&
-        typeof meta.stackChange! === 'number' &&
-        meta.stackChange !== actualChange
-      ) {
-        throw new Error(
-          `Error in ${pre.name}:\n\n${pc}. ${logOpcode(
-            pre.name!,
-            pre.params
-          )}\n\nStack changed by ${actualChange}, expected ${meta.stackChange}`
-        );
-      }
-
-      if (LOCAL_SHOULD_LOG) {
-        LOCAL_LOGGER.log(
-          '%c -> pc: %d, ra: %d, fp: %d, sp: %d, s0: %O, s1: %O, t0: %O, t1: %O, v0: %O',
-          'color: orange',
-          vm[INNER_VM].registers[$pc],
-          vm[INNER_VM].registers[$ra],
-          vm[INNER_VM].registers[$fp],
-          vm[INNER_VM].registers[$sp],
-          vm['s0'],
-          vm['s1'],
-          vm['t0'],
-          vm['t1'],
-          vm['v0']
-        );
-        LOCAL_LOGGER.log('%c -> eval stack', 'color: red', vm.stack.toArray());
-        LOCAL_LOGGER.log('%c -> block stack', 'color: magenta', vm.elements().debugBlocks());
-        LOCAL_LOGGER.log(
-          '%c -> destructor stack',
-          'color: violet',
-          vm[DESTROYABLE_STACK].toArray()
-        );
-        if (vm[STACKS].scope.current === null) {
-          LOCAL_LOGGER.log('%c -> scope', 'color: green', 'null');
-        } else {
-          LOCAL_LOGGER.log(
-            '%c -> scope',
-            'color: green',
-            vm.scope().slots.map((s) => (isScopeReference(s) ? valueForRef(s) : s))
-          );
-        }
-
-        LOCAL_LOGGER.log(
-          '%c -> elements',
-          'color: blue',
-          vm.elements()[CURSOR_STACK].current!.element
-        );
-
-        LOCAL_LOGGER.log('%c -> constructing', 'color: aqua', vm.elements()['constructing']);
-      }
-    }
-  }
+  declare readonly debug?: {
+    readonly before: (vm: VM, opcode: RuntimeOp) => DebugState;
+    readonly after: (vm: VM, pre: unknown, debug: DebugVM) => void;
+  };
 
   evaluate(vm: VM, opcode: RuntimeOp, type: number) {
-    let operation = unwrap(this.evaluateOpcode[type]);
+    let operation = unwrap(this.#evaluateOpcode[type]);
 
     if (operation.syscall) {
       assert(
-        !opcode.isMachine,
-        `BUG: Mismatch between operation.syscall (${operation.syscall}) and opcode.isMachine (${opcode.isMachine}) for ${opcode.type}`
+        !isMachine(opcode),
+        `BUG: Mismatch between operation.syscall (${
+          operation.syscall
+        }) and opcode.isMachine (${isMachine(opcode)}) for ${opType(opcode)}`
       );
       operation.evaluate(vm, opcode);
     } else {
       assert(
-        opcode.isMachine,
-        `BUG: Mismatch between operation.syscall (${operation.syscall}) and opcode.isMachine (${opcode.isMachine}) for ${opcode.type}`
+        isMachine(opcode),
+        `BUG: Mismatch between operation.syscall (${
+          operation.syscall
+        }) and opcode.isMachine (${isMachine(opcode)}) for ${opType(opcode)}`
       );
       operation.evaluate(vm[INNER_VM], opcode);
     }

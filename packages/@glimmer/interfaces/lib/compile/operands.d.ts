@@ -1,4 +1,4 @@
-import type { CompilableTemplate } from '../template';
+import type { CompilableTemplate, STDLibOpcode } from '../template';
 import type { SymbolTable } from '../tier1/symbol-table';
 import type * as WireFormat from './wire-format/api';
 
@@ -43,12 +43,7 @@ export interface BlockOperand {
 
 export interface StdLibOperand {
   type: StdLibOperandType;
-  value:
-    | 'main'
-    | 'trusting-append'
-    | 'cautious-append'
-    | 'trusting-non-dynamic-append'
-    | 'cautious-non-dynamic-append';
+  value: STDLibOpcode;
 }
 
 export interface NonSmallIntOperand {

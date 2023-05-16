@@ -16,17 +16,16 @@ import {
   TemplateOnlyComponentManager,
 } from '@glimmer/runtime';
 import { assign, expect } from '@glimmer/util';
-
+import type { EmberishCurlyComponent } from '@glimmer-workspace/integration-tests';
 import {
   BaseEnv,
-  createTemplate,
-  type EmberishCurlyComponent,
   GlimmerishComponent,
   JitRenderDelegate,
   RenderTest,
-  suite,
+  createTemplate,
   test,
-} from '..';
+  suite,
+} from '@glimmer-workspace/integration-tests';
 
 interface CapturedBounds {
   parentElement: SimpleElement;

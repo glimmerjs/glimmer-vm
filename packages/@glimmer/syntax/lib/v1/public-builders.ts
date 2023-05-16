@@ -64,7 +64,7 @@ function buildBlock(
   let elseBlock: Nullable<ASTv1.Block> | undefined;
 
   if (_defaultBlock.type === 'Template') {
-    if (LOCAL_DEBUG) {
+    if (import.meta.env.DEV && LOCAL_DEBUG) {
       deprecate(`b.program is deprecated. Use b.blockItself instead.`);
     }
 
@@ -74,7 +74,7 @@ function buildBlock(
   }
 
   if (_elseBlock !== undefined && _elseBlock !== null && _elseBlock.type === 'Template') {
-    if (LOCAL_DEBUG) {
+    if (import.meta.env.DEV && LOCAL_DEBUG) {
       deprecate(`b.program is deprecated. Use b.blockItself instead.`);
     }
 

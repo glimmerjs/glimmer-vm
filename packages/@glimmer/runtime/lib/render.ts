@@ -5,6 +5,7 @@ import type {
   DynamicScope,
   ElementBuilder,
   Environment,
+  ISTDLIB_MAIN,
   Owner,
   RenderResult,
   RichIteratorResult,
@@ -126,7 +127,7 @@ export function renderComponent(
 ): TemplateIterator {
   let vm = VM.empty(
     runtime,
-    { treeBuilder, handle: context.stdlib.main, dynamicScope, owner },
+    { treeBuilder, handle: 0 satisfies ISTDLIB_MAIN, dynamicScope, owner },
     context
   );
   return renderInvocation(vm, context, owner, definition, recordToReference(args));

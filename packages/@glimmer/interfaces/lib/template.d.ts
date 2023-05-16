@@ -57,17 +57,28 @@ export type Template = TemplateOk | TemplateError;
 
 export type TemplateFactory = (owner?: Owner) => Template;
 
-export interface STDLib {
-  main: number;
-  'cautious-append': number;
-  'trusting-append': number;
-  'cautious-non-dynamic-append': number;
-  'trusting-non-dynamic-append': number;
-}
+export type ISTDLIB_MAIN = 0;
+export type ISTDLIB_TRUSTING_GUARDED_APPEND = 1;
+export type ISTDLIB_CAUTIOUS_GUARDED_APPEND = 2;
+export type ISTDLIB_TRUSTING_NON_DYNAMIC_APPEND = 3;
+export type ISTDLIB_CAUTIOUS_NON_DYNAMIC_APPEND = 4;
+
+export type STDLibOpcode =
+  | ISTDLIB_MAIN
+  | ISTDLIB_TRUSTING_GUARDED_APPEND
+  | ISTDLIB_CAUTIOUS_GUARDED_APPEND
+  | ISTDLIB_TRUSTING_NON_DYNAMIC_APPEND
+  | ISTDLIB_CAUTIOUS_NON_DYNAMIC_APPEND;
+
+export type STDLib = [
+  main: number,
+  trustingGuardedAppend: number,
+  cautiousGuardedAppend: number,
+  trustingNonDynamicAppend: number,
+  cautiousNonDynamicAppend: number
+];
 
 export type SerializedStdlib = [number, number, number];
-
-export type STDLibName = keyof STDLib;
 
 export type CompilerBuffer = Array<Operand>;
 

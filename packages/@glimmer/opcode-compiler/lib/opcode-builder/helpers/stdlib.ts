@@ -3,12 +3,12 @@ import type {
   CompileTimeCompilationContext,
   ContainingMetadata,
   HighLevelOp,
-} from "@glimmer/interfaces";
-import { $s0, ContentType, MachineOp, Op } from '@glimmer/vm';
+  STDLib,
+} from '@glimmer/interfaces';
+import { $s0, ContentType, INVOKE_STATIC_OP, Op } from '@glimmer/vm';
 
 import type { HighLevelStatementOp, PushStatementOp } from '../../syntax/compilers';
 import { encodeOp, EncoderImpl } from '../encoder';
-import { StdLib } from '../stdlib';
 import { InvokeBareComponent, invokePreparedComponent } from './components';
 import { SwitchCases } from './conditional';
 import { CallDynamic } from './vm';
@@ -53,7 +53,7 @@ export function StdAppend(
 
         when(ContentType.Helper, () => {
           CallDynamic(op, null, null, () => {
-            op(MachineOp.InvokeStatic, nonDynamicAppend);
+            op(INVOKE_STATIC_OP, nonDynamicAppend);
           });
         });
       } else {
@@ -86,7 +86,7 @@ export function StdAppend(
   );
 }
 
-export function compileStd(context: CompileTimeCompilationContext): StdLib {
+export function compileStd(context: CompileTimeCompilationContext): STDLib {
   let mainHandle = build(context, (op) => main(op));
   let trustingGuardedNonDynamicAppend = build(context, (op) => StdAppend(op, true, null));
   let cautiousGuardedNonDynamicAppend = build(context, (op) => StdAppend(op, false, null));
@@ -98,13 +98,13 @@ export function compileStd(context: CompileTimeCompilationContext): StdLib {
     StdAppend(op, false, cautiousGuardedNonDynamicAppend)
   );
 
-  return new StdLib(
+  return [
     mainHandle,
     trustingGuardedDynamicAppend,
     cautiousGuardedDynamicAppend,
     trustingGuardedNonDynamicAppend,
-    cautiousGuardedNonDynamicAppend
-  );
+    cautiousGuardedNonDynamicAppend,
+  ];
 }
 
 export const STDLIB_META: ContainingMetadata = {

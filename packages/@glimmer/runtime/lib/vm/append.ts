@@ -22,7 +22,6 @@ import type {
   VM as PublicVM,
 } from '@glimmer/interfaces';
 import { LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
-import type { RuntimeOpImpl } from '@glimmer/program';
 import {
   createIteratorItemRef,
   type OpaqueIterationItem,
@@ -54,10 +53,10 @@ import {
 } from '../compiled/opcodes/vm';
 import { APPEND_OPCODES, type DebugState } from '../opcodes';
 import { PartialScopeImpl } from '../scope';
-import { ARGS, CONSTANTS, DESTROYABLE_STACK, HEAP, INNER_VM, REGISTERS, STACKS } from '../symbols';
+import { ARGS, CONSTANTS, DESTROYABLE_STACK, INNER_VM, REGISTERS } from '../symbols';
 import { VMArgumentsImpl } from './arguments';
 import type { LiveBlockList } from './element-builder';
-import { LowLevelVM } from './low-level';
+import { LowLevelVM, type Externs } from './low-level';
 import RenderResultImpl from './render-result';
 import EvaluationStackImpl, { type EvaluationStack } from './stack';
 import {
@@ -149,9 +148,15 @@ class Stacks {
   readonly list = new Stack<ListBlockOpcode>();
 }
 
+export interface DebugVM {
+  getStacks: (vm: VM) => Stacks;
+}
+
 export class VM implements PublicVM, InternalVM {
-  private readonly [STACKS] = new Stacks();
-  private readonly [HEAP]: RuntimeHeap;
+  declare debug?: DebugVM;
+
+  readonly #stacks = new Stacks();
+  readonly #heap: RuntimeHeap;
   private readonly destructor: object;
   private readonly [DESTROYABLE_STACK] = new Stack<object>();
   readonly [CONSTANTS]: RuntimeConstants & ResolutionTimeConstants;
@@ -293,26 +298,35 @@ export class VM implements PublicVM, InternalVM {
     evalStack[REGISTERS][$sp] = stack.length - 1;
     evalStack[REGISTERS][$fp] = -1;
 
-    this[HEAP] = this.program.heap;
+    this.#heap = this.program.heap;
     this[CONSTANTS] = this.program.constants;
     this.elementStack = elementStack;
-    this[STACKS].scope.push(scope);
-    this[STACKS].dynamicScope.push(dynamicScope);
+    this.#stacks.scope.push(scope);
+    this.#stacks.dynamicScope.push(dynamicScope);
     this[ARGS] = new VMArgumentsImpl();
     this[INNER_VM] = new LowLevelVM(
       evalStack,
-      this[HEAP],
+      this.#heap,
       runtime.program,
-      {
-        debugBefore: (opcode: RuntimeOpImpl): DebugState => {
-          return APPEND_OPCODES.debugBefore(this, opcode);
-        },
+      evalStack[REGISTERS],
+      import.meta.env.DEV
+        ? ((): Externs | undefined => {
+            const debug = APPEND_OPCODES.debug;
+            return debug
+              ? {
+                  debugBefore: (opcode): DebugState => {
+                    return debug.before(this, opcode);
+                  },
 
-        debugAfter: (state: DebugState): void => {
-          APPEND_OPCODES.debugAfter(this, state);
-        },
-      },
-      evalStack[REGISTERS]
+                  debugAfter: (state): void => {
+                    debug.after(this, state, {
+                      getStacks: (vm) => vm.#stacks,
+                    });
+                  },
+                }
+              : undefined;
+          })()
+        : undefined
     );
 
     this.destructor = {};
@@ -384,14 +398,14 @@ export class VM implements PublicVM, InternalVM {
 
     opcodes.push(guard);
     opcodes.push(new BeginTrackFrameOpcode(name));
-    this[STACKS].cache.push(guard);
+    this.#stacks.cache.push(guard);
 
     beginTrackFrame(name);
   }
 
   commitCacheGroup() {
     let opcodes = this.updating();
-    let guard = expect(this[STACKS].cache.pop(), 'VM BUG: Expected a cache group');
+    let guard = expect(this.#stacks.cache.pop(), 'VM BUG: Expected a cache group');
 
     let tag = endTrackFrame();
     opcodes.push(new EndTrackFrameOpcode(guard));
@@ -441,7 +455,7 @@ export class VM implements PublicVM, InternalVM {
 
     let opcode = new ListBlockOpcode(state, this.runtime, list, updating, iterableRef);
 
-    this[STACKS].list.push(opcode);
+    this.#stacks.list.push(opcode);
 
     this.didEnter(opcode);
   }
@@ -461,15 +475,15 @@ export class VM implements PublicVM, InternalVM {
 
   exitList() {
     this.exit();
-    this[STACKS].list.pop();
+    this.#stacks.list.pop();
   }
 
   pushUpdating(list: UpdatingOpcode[] = []): void {
-    this[STACKS].updating.push(list);
+    this.#stacks.updating.push(list);
   }
 
   popUpdating(): UpdatingOpcode[] {
-    return expect(this[STACKS].updating.pop(), "can't pop an empty stack");
+    return expect(this.#stacks.updating.pop(), "can't pop an empty stack");
   }
 
   updateWith(opcode: UpdatingOpcode) {
@@ -477,7 +491,7 @@ export class VM implements PublicVM, InternalVM {
   }
 
   listBlock(): ListBlockOpcode {
-    return expect(this[STACKS].list.current, 'expected a list block');
+    return expect(this.#stacks.list.current, 'expected a list block');
   }
 
   associateDestroyable(child: Destroyable): void {
@@ -486,12 +500,12 @@ export class VM implements PublicVM, InternalVM {
   }
 
   tryUpdating(): Nullable<UpdatingOpcode[]> {
-    return this[STACKS].updating.current;
+    return this.#stacks.updating.current;
   }
 
   updating(): UpdatingOpcode[] {
     return expect(
-      this[STACKS].updating.current,
+      this.#stacks.updating.current,
       'expected updating opcode on the updating opcode stack'
     );
   }
@@ -501,42 +515,42 @@ export class VM implements PublicVM, InternalVM {
   }
 
   scope(): Scope {
-    return expect(this[STACKS].scope.current, 'expected scope on the scope stack');
+    return expect(this.#stacks.scope.current, 'expected scope on the scope stack');
   }
 
   dynamicScope(): DynamicScope {
     return expect(
-      this[STACKS].dynamicScope.current,
+      this.#stacks.dynamicScope.current,
       'expected dynamic scope on the dynamic scope stack'
     );
   }
 
   pushChildScope() {
-    this[STACKS].scope.push(this.scope().child());
+    this.#stacks.scope.push(this.scope().child());
   }
 
   pushDynamicScope(): DynamicScope {
     let child = this.dynamicScope().child();
-    this[STACKS].dynamicScope.push(child);
+    this.#stacks.dynamicScope.push(child);
     return child;
   }
 
   pushRootScope(size: number, owner: Owner): PartialScope {
     let scope = PartialScopeImpl.sized(size, owner);
-    this[STACKS].scope.push(scope);
+    this.#stacks.scope.push(scope);
     return scope;
   }
 
   pushScope(scope: Scope) {
-    this[STACKS].scope.push(scope);
+    this.#stacks.scope.push(scope);
   }
 
   popScope() {
-    this[STACKS].scope.pop();
+    this.#stacks.scope.pop();
   }
 
   popDynamicScope() {
-    this[STACKS].dynamicScope.pop();
+    this.#stacks.dynamicScope.pop();
   }
 
   /// SCOPE HELPERS

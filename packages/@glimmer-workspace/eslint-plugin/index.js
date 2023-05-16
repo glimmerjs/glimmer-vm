@@ -33,6 +33,7 @@ module.exports = {
         'no-loop-func': 'error',
         'prefer-const': 'off',
         'no-fallthrough': 'off',
+        'import/no-cycle': 'off',
         'import/no-relative-packages': 'error',
         'import/default': 'off',
         'qunit/require-expect': ['error', 'never-except-zero'],

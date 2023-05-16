@@ -5,11 +5,27 @@ import type {
   Recast,
   ResolutionTimeConstants,
   RuntimeOp,
+  SomeVmOp,
   TemplateCompilationContext,
-} from "@glimmer/interfaces";
+} from '@glimmer/interfaces';
 import { LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
 import { decodeHandle, decodeImmediate, enumerate, LOCAL_LOGGER } from '@glimmer/util';
-import { $fp, $pc, $ra, $s0, $s1, $sp, $t0, $t1, $v0, type Register } from '@glimmer/vm';
+import {
+  $fp,
+  $pc,
+  $ra,
+  $s0,
+  $s1,
+  $sp,
+  $t0,
+  $t1,
+  $v0,
+  ARG_SHIFT,
+  MACHINE_MASK,
+  OPERAND_LEN_MASK,
+  TYPE_MASK,
+  type Register,
+} from '@glimmer/vm';
 
 import { opcodeMetadata } from './opcode-metadata';
 import type { Primitive } from './stack-check';
@@ -35,10 +51,10 @@ export function debugSlice(context: TemplateCompilationContext, start: number, e
           DebugConstants
         >,
         opcode,
-        opcode.isMachine
+        isMachine(opcode)
       )!;
       LOCAL_LOGGER.log(`${i}. ${logOpcode(name, params)}`);
-      _size = opcode.size;
+      _size = sizeof(opcode);
     }
     opcode.offset = -_size;
     LOCAL_LOGGER.groupEnd();
@@ -91,7 +107,7 @@ export function debug(
   isMachine: 0 | 1
 ): [string, Dict] | undefined {
   if (LOCAL_SHOULD_LOG) {
-    let metadata = opcodeMetadata(op.type, isMachine);
+    let metadata = opcodeMetadata(opType(op), isMachine);
 
     if (!metadata) {
       throw new Error(`Missing Opcode Metadata for ${op}`);
@@ -187,4 +203,20 @@ function decodePrimitive(primitive: number, constants: DebugConstants): Primitiv
     return constants.getValue(decodeHandle(primitive));
   }
   return decodeImmediate(primitive);
+}
+
+type MACHINE_BOOL = 0 | 1;
+
+function sizeof(runtime: RuntimeOp): number {
+  let rawType = runtime.heap.getbyaddr(runtime.offset);
+  return ((rawType & OPERAND_LEN_MASK) >> ARG_SHIFT) + 1;
+}
+
+function isMachine(op: RuntimeOp): MACHINE_BOOL {
+  let rawType = op.heap.getbyaddr(op.offset);
+  return rawType & MACHINE_MASK ? 1 : 0;
+}
+
+function opType(op: RuntimeOp): SomeVmOp {
+  return (op.heap.getbyaddr(op.offset) & TYPE_MASK) as SomeVmOp;
 }
