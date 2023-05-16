@@ -5,7 +5,7 @@ import type {
   SimpleDocument,
   SimpleElement,
   SimpleNode,
-} from "@glimmer/interfaces";
+} from '@glimmer/interfaces';
 import { INSERT_BEFORE_END } from '@glimmer/util';
 
 import type { DOMOperations } from '../dom/operations';
@@ -33,11 +33,11 @@ export function applyTextNodeMergingFix(
   }
 
   return class DOMChangesWithTextNodeMergingFix extends DOMClass {
-    private uselessComment: SimpleComment;
+    readonly #uselessComment: SimpleComment;
 
     constructor(document: SimpleDocument) {
       super(document);
-      this.uselessComment = document.createComment('');
+      this.#uselessComment = document.createComment('');
     }
 
     override insertHTMLBefore(
@@ -55,13 +55,13 @@ export function applyTextNodeMergingFix(
 
       if (nextPrevious && nextPrevious instanceof Text) {
         didSetUselessComment = true;
-        parent.insertBefore(this.uselessComment, nextSibling);
+        parent.insertBefore(this.#uselessComment, nextSibling);
       }
 
       const bounds = super.insertHTMLBefore(parent, nextSibling, html);
 
       if (didSetUselessComment) {
-        parent.removeChild(this.uselessComment);
+        parent.removeChild(this.#uselessComment);
       }
 
       return bounds;

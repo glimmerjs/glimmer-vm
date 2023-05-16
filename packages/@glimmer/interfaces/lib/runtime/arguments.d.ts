@@ -30,16 +30,14 @@ export interface CapturedPositionalArguments extends Array<Reference> {
 }
 
 export interface NamedArguments {
-  names: readonly string[];
-  length: number;
   has(name: string): boolean;
   get(name: string): Reference;
   capture(): CapturedNamedArguments;
 }
 
 export interface BlockArguments {
-  names: readonly string[];
-  length: number;
+  _names_: readonly string[];
+  _length_: number;
   has(name: string): boolean;
   get(name: string): Nullable<ScopeBlock>;
   capture(): CapturedBlockArguments;

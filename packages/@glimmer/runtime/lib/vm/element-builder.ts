@@ -19,54 +19,25 @@ import type {
   SimpleNode,
   SimpleText,
   UpdatableBlock,
-} from "@glimmer/interfaces";
+} from '@glimmer/interfaces';
 import { assert, expect, Stack } from '@glimmer/util';
 
 import { clear, ConcreteBounds, CursorImpl, SingleNodeBounds } from '../bounds';
 import { type DynamicAttribute, dynamicAttribute } from './attributes/dynamic';
 
-export interface FirstNode {
-  firstNode(): SimpleNode;
+export type FirstNode = Pick<Bounds, 'firstNode'>;
+export type LastNode = Pick<Bounds, 'lastNode'>;
+
+function First(node: SimpleNode): FirstNode {
+  return {
+    firstNode: () => node,
+  };
 }
 
-export interface LastNode {
-  lastNode(): SimpleNode;
-}
-
-class First {
-  constructor(private node: SimpleNode) {}
-
-  firstNode(): SimpleNode {
-    return this.node;
-  }
-}
-
-class Last {
-  constructor(private node: SimpleNode) {}
-
-  lastNode(): SimpleNode {
-    return this.node;
-  }
-}
-
-export class Fragment implements Bounds {
-  private bounds: Bounds;
-
-  constructor(bounds: Bounds) {
-    this.bounds = bounds;
-  }
-
-  parentElement(): SimpleElement {
-    return this.bounds.parentElement();
-  }
-
-  firstNode(): SimpleNode {
-    return this.bounds.firstNode();
-  }
-
-  lastNode(): SimpleNode {
-    return this.bounds.lastNode();
-  }
+function Last(node: SimpleNode): LastNode {
+  return {
+    lastNode: () => node,
+  };
 }
 
 export const CURSOR_STACK: CursorStackSymbol = Symbol('CURSOR_STACK') as CursorStackSymbol;
@@ -410,10 +381,10 @@ export class SimpleLiveBlock implements LiveBlock {
     if (this.nesting !== 0) return;
 
     if (!this.first) {
-      this.first = new First(node);
+      this.first = First(node);
     }
 
-    this.last = new Last(node);
+    this.last = Last(node);
   }
 
   didAppendBounds(bounds: Bounds) {

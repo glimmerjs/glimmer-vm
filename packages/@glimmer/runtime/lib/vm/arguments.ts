@@ -27,7 +27,6 @@ import { CONSTANT_TAG, type Tag } from '@glimmer/validator';
 import { $sp } from '@glimmer/vm';
 
 import { CheckCompilableBlock, CheckReference, CheckScope } from '../compiled/opcodes/-debug-strip';
-import { REGISTERS } from '../symbols';
 import type { EvaluationStack } from './stack';
 
 /*
@@ -39,15 +38,15 @@ import type { EvaluationStack } from './stack';
 */
 
 export class VMArgumentsImpl implements VMArguments {
-  private stack: Nullable<EvaluationStack> = null;
+  #stack: Nullable<EvaluationStack> = null;
   public positional = new PositionalArgumentsImpl();
   public named = new NamedArgumentsImpl();
   public blocks = new BlockArgumentsImpl();
 
   empty(stack: EvaluationStack): this {
-    let base = stack[REGISTERS][$sp] + 1;
+    let base = stack['_registers_'][$sp] + 1;
 
-    this.named.empty(stack, base);
+    this.named._empty_(stack, base);
     this.positional.empty(stack, base);
     this.blocks.empty(stack, base);
 
@@ -61,7 +60,7 @@ export class VMArgumentsImpl implements VMArguments {
     positionalCount: number,
     atNames: boolean
   ) {
-    this.stack = stack;
+    this.#stack = stack;
 
     /*
            | ... | blocks      | positional  | named |
@@ -73,9 +72,9 @@ export class VMArgumentsImpl implements VMArguments {
 
     let named = this.named;
     let namedCount = names.length;
-    let namedBase = stack[REGISTERS][$sp] - namedCount + 1;
+    let namedBase = stack['_registers_'][$sp] - namedCount + 1;
 
-    named.setup(stack, namedBase, namedCount, names, atNames);
+    named._setup_(stack, namedBase, namedCount, names, atNames);
 
     let positional = this.positional;
     let positionalBase = namedBase - positionalCount;
@@ -94,15 +93,15 @@ export class VMArgumentsImpl implements VMArguments {
   }
 
   get length(): number {
-    return this.positional.length + this.named.length + this.blocks.length * 3;
+    return this.positional.length + this.named.length + this.blocks._length_ * 3;
   }
 
   at(pos: number): Reference {
     return this.positional.at(pos);
   }
 
-  realloc(offset: number) {
-    let { stack } = this;
+  _realloc_(offset: number) {
+    let stack = this.#stack;
     if (offset > 0 && stack !== null) {
       let { positional, named } = this;
       let newBase = positional.base + offset;
@@ -114,7 +113,7 @@ export class VMArgumentsImpl implements VMArguments {
 
       positional.base += offset;
       named.base += offset;
-      stack[REGISTERS][$sp] += offset;
+      stack['_registers_'][$sp] += offset;
     }
   }
 
@@ -126,7 +125,8 @@ export class VMArgumentsImpl implements VMArguments {
   }
 
   clear(): void {
-    let { stack, length } = this;
+    let { length } = this;
+    let stack = this.#stack;
     if (length > 0 && stack !== null) stack.pop(length);
   }
 }
@@ -137,67 +137,66 @@ export class PositionalArgumentsImpl implements PositionalArguments {
   public base = 0;
   public length = 0;
 
-  private stack: EvaluationStack = null as any;
-
-  private _references: Nullable<readonly Reference[]> = null;
+  #stack: EvaluationStack = null as any;
+  #lazyReferences: Nullable<readonly Reference[]> = null;
 
   empty(stack: EvaluationStack, base: number) {
-    this.stack = stack;
+    this.#stack = stack;
     this.base = base;
     this.length = 0;
 
-    this._references = EMPTY_REFERENCES;
+    this.#lazyReferences = EMPTY_REFERENCES;
   }
 
   setup(stack: EvaluationStack, base: number, length: number) {
-    this.stack = stack;
+    this.#stack = stack;
     this.base = base;
     this.length = length;
 
     if (length === 0) {
-      this._references = EMPTY_REFERENCES;
+      this.#lazyReferences = EMPTY_REFERENCES;
     } else {
-      this._references = null;
+      this.#lazyReferences = null;
     }
   }
 
   at(position: number): Reference {
-    let { base, length, stack } = this;
+    let { base, length } = this;
 
     if (position < 0 || position >= length) {
       return UNDEFINED_REFERENCE;
     }
 
-    return check(stack.get(position, base), CheckReference);
+    return check(this.#stack.get(position, base), CheckReference);
   }
 
   capture(): CapturedPositionalArguments {
-    return this.references as CapturedPositionalArguments;
+    return this.#references as CapturedPositionalArguments;
   }
 
   prepend(other: Reference[]) {
     let additions = other.length;
 
     if (additions > 0) {
-      let { base, length, stack } = this;
+      let { base, length } = this;
 
       this.base = base = base - additions;
       this.length = length + additions;
 
       for (let i = 0; i < additions; i++) {
-        stack.set(other[i], i, base);
+        this.#stack.set(other[i], i, base);
       }
 
-      this._references = null;
+      this.#lazyReferences = null;
     }
   }
 
-  private get references(): readonly Reference[] {
-    let references = this._references;
+  get #references(): readonly Reference[] {
+    let references = this.#lazyReferences;
 
     if (!references) {
-      let { stack, base, length } = this;
-      references = this._references = stack.slice<Reference>(base, base + length);
+      let { base, length } = this;
+      references = this.#lazyReferences = this.#stack.slice<Reference>(base, base + length);
     }
 
     return references;
@@ -208,79 +207,78 @@ export class NamedArgumentsImpl implements NamedArguments {
   public base = 0;
   public length = 0;
 
-  private declare stack: EvaluationStack;
+  #stack: EvaluationStack | undefined;
 
-  private _references: Nullable<readonly Reference[]> = null;
+  #lazyReferences: Nullable<readonly Reference[]> = null;
+  #lazyNames: Nullable<readonly string[]> = EMPTY_STRING_ARRAY;
+  #atNames: Nullable<readonly string[]> = EMPTY_STRING_ARRAY;
 
-  private _names: Nullable<readonly string[]> = EMPTY_STRING_ARRAY;
-  private _atNames: Nullable<readonly string[]> = EMPTY_STRING_ARRAY;
-
-  empty(stack: EvaluationStack, base: number) {
-    this.stack = stack;
+  _empty_(stack: EvaluationStack, base: number) {
+    this.#stack = stack;
     this.base = base;
     this.length = 0;
 
-    this._references = EMPTY_REFERENCES;
-    this._names = EMPTY_STRING_ARRAY;
-    this._atNames = EMPTY_STRING_ARRAY;
+    this.#lazyReferences = EMPTY_REFERENCES;
+    this.#lazyNames = EMPTY_STRING_ARRAY;
+    this.#atNames = EMPTY_STRING_ARRAY;
   }
 
-  setup(
+  _setup_(
     stack: EvaluationStack,
     base: number,
     length: number,
     names: readonly string[],
     atNames: boolean
   ) {
-    this.stack = stack;
+    this.#stack = stack;
     this.base = base;
     this.length = length;
 
     if (length === 0) {
-      this._references = EMPTY_REFERENCES;
-      this._names = EMPTY_STRING_ARRAY;
-      this._atNames = EMPTY_STRING_ARRAY;
+      this.#lazyReferences = EMPTY_REFERENCES;
+      this.#lazyNames = EMPTY_STRING_ARRAY;
+      this.#atNames = EMPTY_STRING_ARRAY;
     } else {
-      this._references = null;
+      this.#lazyReferences = null;
 
       if (atNames) {
-        this._names = null;
-        this._atNames = names;
+        this.#lazyNames = null;
+        this.#atNames = names;
       } else {
-        this._names = names;
-        this._atNames = null;
+        this.#lazyNames = names;
+        this.#atNames = null;
       }
     }
   }
 
-  get names(): readonly string[] {
-    let names = this._names;
+  get #names(): readonly string[] {
+    let names = this.#lazyNames;
 
     if (!names) {
-      names = this._names = this._atNames!.map(this.toSyntheticName);
+      names = this.#lazyNames = this.#atNames!.map(toSyntheticName);
     }
 
     return names;
   }
 
   get atNames(): readonly string[] {
-    let atNames = this._atNames;
+    let atNames = this.#atNames;
 
     if (!atNames) {
-      atNames = this._atNames = this._names!.map(this.toAtName);
+      atNames = this.#atNames = this.#lazyNames!.map(toAtName);
     }
 
     return atNames;
   }
 
   has(name: string): boolean {
-    return this.names.indexOf(name) !== -1;
+    return this.#names.indexOf(name) !== -1;
   }
 
   get(name: string, atNames = false): Reference {
-    let { base, stack } = this;
+    let { base } = this;
 
-    let names = atNames ? this.atNames : this.names;
+    let names = atNames ? this.atNames : this.#names;
 
     let idx = names.indexOf(name);
 
@@ -288,7 +286,7 @@ export class NamedArgumentsImpl implements NamedArguments {
       return UNDEFINED_REFERENCE;
     }
 
-    let ref = stack.get<Reference>(idx, base);
+    let ref = unwrap(this.#stack).get<Reference>(idx, base);
 
     if (import.meta.env.DEV) {
       return createDebugAliasRef!(atNames ? name : `@${name}`, ref);
@@ -298,61 +296,64 @@ export class NamedArgumentsImpl implements NamedArguments {
   }
 
   capture(): CapturedNamedArguments {
-    let { names, references } = this;
     let map = dict<Reference>();
 
-    for (const [i, name] of enumerate(names)) {
+    for (const [i, name] of enumerate(this.#names)) {
       if (import.meta.env.DEV) {
-        map[name] = createDebugAliasRef!(`@${name}`, unwrap(references[i]));
+        map[name] = createDebugAliasRef!(`@${name}`, unwrap(this.#references[i]));
       } else {
-        map[name] = unwrap(references[i]);
+        map[name] = unwrap(this.#references[i]);
       }
     }
 
     return map as CapturedNamedArguments;
   }
 
-  merge(other: Record<string, Reference>) {
+  _merge_(...others: Record<string, Reference>[]) {
+    this.#merge(Object.assign({}, ...others));
+  }
+
+  #merge(other: Record<string, Reference>) {
     let keys = Object.keys(other);
 
     if (keys.length > 0) {
-      let { names, length, stack } = this;
-      let newNames = names.slice();
+      let { length } = this;
+      let newNames = this.#names.slice();
 
       for (const name of keys) {
         let idx = newNames.indexOf(name);
 
         if (idx === -1) {
           length = newNames.push(name);
-          stack.push(other[name]);
+          unwrap(this.#stack).push(other[name]);
         }
       }
 
       this.length = length;
-      this._references = null;
-      this._names = newNames;
-      this._atNames = null;
+      this.#lazyReferences = null;
+      this.#lazyNames = newNames;
+      this.#atNames = null;
     }
   }
 
-  private get references(): readonly Reference[] {
-    let references = this._references;
+  get #references(): readonly Reference[] {
+    let references = this.#lazyReferences;
 
     if (!references) {
-      let { base, length, stack } = this;
-      references = this._references = stack.slice<Reference>(base, base + length);
+      let { base, length } = this;
+      references = this.#lazyReferences = unwrap(this.#stack).slice<Reference>(base, base + length);
     }
 
     return references;
   }
+}
 
-  private toSyntheticName(this: void, name: string): string {
-    return name.slice(1);
-  }
+function toSyntheticName(this: void, name: string): string {
+  return name.slice(1);
+}
 
-  private toAtName(this: void, name: string): string {
-    return `@${name}`;
-  }
+function toAtName(this: void, name: string): string {
+  return `@${name}`;
 }
 
 function toSymbolName(name: string): string {
@@ -362,66 +363,70 @@ function toSymbolName(name: string): string {
 const EMPTY_BLOCK_VALUES = emptyArray<BlockValue>();
 
 export class BlockArgumentsImpl implements BlockArguments {
-  private declare stack: EvaluationStack;
-  private internalValues: Nullable<readonly BlockValue[]> = null;
-  private _symbolNames: Nullable<readonly string[]> = null;
+  #stack: EvaluationStack | undefined;
+  #internalValues: Nullable<readonly BlockValue[]> = null;
+  #symbolNames: Nullable<readonly string[]> = null;
 
   public internalTag: Nullable<Tag> = null;
-  public names: readonly string[] = EMPTY_STRING_ARRAY;
+  public _names_: readonly string[] = EMPTY_STRING_ARRAY;
 
-  public length = 0;
+  public _length_ = 0;
   public base = 0;
 
   empty(stack: EvaluationStack, base: number) {
-    this.stack = stack;
-    this.names = EMPTY_STRING_ARRAY;
+    this.#stack = stack;
+    this._names_ = EMPTY_STRING_ARRAY;
     this.base = base;
-    this.length = 0;
-    this._symbolNames = null;
+    this._length_ = 0;
+    this.#symbolNames = null;
 
     this.internalTag = CONSTANT_TAG;
-    this.internalValues = EMPTY_BLOCK_VALUES;
+    this.#internalValues = EMPTY_BLOCK_VALUES;
   }
 
   setup(stack: EvaluationStack, base: number, length: number, names: readonly string[]) {
-    this.stack = stack;
-    this.names = names;
+    this.#stack = stack;
+    this._names_ = names;
     this.base = base;
-    this.length = length;
-    this._symbolNames = null;
+    this._length_ = length;
+    this.#symbolNames = null;
 
     if (length === 0) {
       this.internalTag = CONSTANT_TAG;
-      this.internalValues = EMPTY_BLOCK_VALUES;
+      this.#internalValues = EMPTY_BLOCK_VALUES;
     } else {
       this.internalTag = null;
-      this.internalValues = null;
+      this.#internalValues = null;
     }
   }
 
   get values(): readonly BlockValue[] {
-    let values = this.internalValues;
+    let values = this.#internalValues;
 
     if (!values) {
-      let { base, length, stack } = this;
-      values = this.internalValues = stack.slice<BlockValue>(base, base + length * 3);
+      let { base, _length_ } = this;
+      values = this.#internalValues = unwrap(this.#stack).slice<BlockValue>(
+        base,
+        base + _length_ * 3
+      );
     }
 
     return values;
   }
 
   has(name: string): boolean {
-    return this.names.indexOf(name) !== -1;
+    return this._names_.indexOf(name) !== -1;
   }
 
   get(name: string): Nullable<ScopeBlock> {
-    let idx = this.names.indexOf(name);
+    let idx = this._names_.indexOf(name);
 
     if (idx === -1) {
       return null;
     }
 
-    let { base, stack } = this;
+    let { base } = this;
+    let stack = unwrap(this.#stack);
 
     let table = check(stack.get(idx * 3, base), CheckOption(CheckBlockSymbolTable));
     let scope = check(stack.get(idx * 3 + 1, base), CheckOption(CheckScope));
@@ -434,14 +439,14 @@ export class BlockArgumentsImpl implements BlockArguments {
   }
 
   capture(): CapturedBlockArguments {
-    return new CapturedBlockArgumentsImpl(this.names, this.values);
+    return new CapturedBlockArgumentsImpl(this._names_, this.values);
   }
 
   get symbolNames(): readonly string[] {
-    let symbolNames = this._symbolNames;
+    let symbolNames = this.#symbolNames;
 
     if (symbolNames === null) {
-      symbolNames = this._symbolNames = this.names.map(toSymbolName);
+      symbolNames = this.#symbolNames = this._names_.map(toSymbolName);
     }
 
     return symbolNames;

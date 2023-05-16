@@ -53,48 +53,51 @@ export interface Externs {
 
 export class LowLevelVM {
   public currentOpSize = 0;
+  readonly #registers: LowLevelRegisters;
 
   constructor(
     public stack: Stack,
     public heap: RuntimeHeap,
     public program: RuntimeProgram,
-    readonly registers: LowLevelRegisters,
+    registers: LowLevelRegisters,
     public externs?: Externs | undefined
-  ) {}
+  ) {
+    this.#registers = registers;
+  }
 
   fetchRegister(register: MachineRegister): number {
-    return this.registers[register];
+    return this.#registers[register];
   }
 
   loadRegister(register: MachineRegister, value: number) {
-    this.registers[register] = value;
+    this.#registers[register] = value;
   }
 
   setPc(pc: number): void {
     assert(typeof pc === 'number' && !isNaN(pc), 'pc is set to a number');
-    this.registers[$pc] = pc;
+    this.#registers[$pc] = pc;
   }
 
   // Start a new frame and save $ra and $fp on the stack
   pushFrame() {
-    this.stack.push(this.registers[$ra]);
-    this.stack.push(this.registers[$fp]);
-    this.registers[$fp] = this.registers[$sp] - 1;
+    this.stack.push(this.#registers[$ra]);
+    this.stack.push(this.#registers[$fp]);
+    this.#registers[$fp] = this.#registers[$sp] - 1;
   }
 
   // Restore $ra, $sp and $fp
   popFrame() {
-    this.registers[$sp] = this.registers[$fp] - 1;
-    this.registers[$ra] = this.stack.get(0);
-    this.registers[$fp] = this.stack.get(1);
+    this.#registers[$sp] = this.#registers[$fp] - 1;
+    this.#registers[$ra] = this.stack.get(0);
+    this.#registers[$fp] = this.stack.get(1);
   }
 
   pushSmallFrame() {
-    this.stack.push(this.registers[$ra]);
+    this.stack.push(this.#registers[$ra]);
   }
 
   popSmallFrame() {
-    this.registers[$ra] = this.stack.pop();
+    this.#registers[$ra] = this.stack.pop();
   }
 
   // Jump to an address in `program`
@@ -103,31 +106,31 @@ export class LowLevelVM {
   }
 
   target(offset: number) {
-    return this.registers[$pc] + offset - this.currentOpSize;
+    return this.#registers[$pc] + offset - this.currentOpSize;
   }
 
   // Save $pc into $ra, then jump to a new address in `program` (jal in MIPS)
   call(handle: number) {
     assert(handle < 0xffffffff, `Jumping to placeholder address`);
 
-    this.registers[$ra] = this.registers[$pc];
+    this.#registers[$ra] = this.#registers[$pc];
     this.setPc(this.heap.getaddr(handle));
   }
 
   // Put a specific `program` address in $ra
   returnTo(offset: number) {
-    this.registers[$ra] = this.target(offset);
+    this.#registers[$ra] = this.target(offset);
   }
 
   // Return to the `program` address stored in $ra
   return() {
-    this.setPc(this.registers[$ra]);
+    this.setPc(this.#registers[$ra]);
   }
 
   nextStatement(): Nullable<RuntimeOp> {
-    let { registers, program } = this;
+    let { program } = this;
 
-    let pc = registers[$pc];
+    let pc = this.#registers[$pc];
 
     assert(typeof pc === 'number', 'pc is a number');
 
@@ -142,7 +145,7 @@ export class LowLevelVM {
     // program counter to the next instruction prior to executing.
     let opcode = program.opcode(pc);
     let operationSize = (this.currentOpSize = sizeof(opcode as RuntimeOpImpl));
-    this.registers[$pc] += operationSize;
+    this.#registers[$pc] += operationSize;
 
     return opcode;
   }

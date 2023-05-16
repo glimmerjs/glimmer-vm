@@ -427,7 +427,11 @@ export class Package {
             terser({
               module: true,
               compress: {},
-              mangle: {},
+              mangle: {
+                properties: {
+                  regex: /^_.*_$/u,
+                },
+              },
               output: {},
               parse: {},
             }),

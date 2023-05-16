@@ -248,37 +248,49 @@ APPEND_OPCODES.add(Op.DynamicModifier, (vm) => {
 });
 
 export class UpdateModifierOpcode implements UpdatingOpcode {
-  private lastUpdated: Revision;
-
-  constructor(private tag: Tag, private modifier: ModifierInstance) {
-    this.lastUpdated = valueForTag(tag);
+  #lastUpdated: Revision;
+  readonly #tag: Tag;
+  readonly #modifier: ModifierInstance;
+  constructor(tag: Tag, modifier: ModifierInstance) {
+    this.#tag = tag;
+    this.#modifier = modifier;
+    this.#lastUpdated = valueForTag(tag);
   }
 
   evaluate(vm: UpdatingVM) {
-    let { modifier, tag, lastUpdated } = this;
+    let tag = this.#tag;
 
     consumeTag(tag);
 
-    if (!validateTag(tag, lastUpdated)) {
-      vm.env.scheduleUpdateModifier(modifier);
-      this.lastUpdated = valueForTag(tag);
+    if (!validateTag(tag, this.#lastUpdated)) {
+      vm.env.scheduleUpdateModifier(this.#modifier);
+      this.#lastUpdated = valueForTag(tag);
     }
   }
 }
 
 export class UpdateDynamicModifierOpcode implements UpdatingOpcode {
-  private lastUpdated: Revision;
+  #lastUpdated: Revision;
+  #tag: Tag | null;
+  #instance: ModifierInstance | undefined;
+  readonly #instanceRef: Reference<ModifierInstance | undefined>;
 
   constructor(
-    private tag: Tag | null,
-    private instance: ModifierInstance | undefined,
-    private instanceRef: Reference<ModifierInstance | undefined>
+    tag: Tag | null,
+    instance: ModifierInstance | undefined,
+    instanceRef: Reference<ModifierInstance | undefined>
   ) {
-    this.lastUpdated = valueForTag(tag ?? CURRENT_TAG);
+    this.#tag = tag;
+    this.#instance = instance;
+    this.#instanceRef = instanceRef;
+    this.#lastUpdated = valueForTag(tag ?? CURRENT_TAG);
   }
 
   evaluate(vm: UpdatingVM) {
-    let { tag, lastUpdated, instance, instanceRef } = this;
+    let tag = this.#tag;
+    let lastUpdated = this.#lastUpdated;
+    let instance = this.#instance;
+    let instanceRef = this.#instanceRef;
 
     let newInstance = valueForRef(instanceRef);
 
@@ -302,17 +314,17 @@ export class UpdateDynamicModifierOpcode implements UpdatingOpcode {
         tag = manager.getTag(state);
 
         if (tag !== null) {
-          this.lastUpdated = valueForTag(tag);
+          this.#lastUpdated = valueForTag(tag);
         }
 
-        this.tag = tag;
+        this.#tag = tag;
         vm.env.scheduleInstallModifier(newInstance);
       }
 
-      this.instance = newInstance;
+      this.#instance = newInstance;
     } else if (tag !== null && !validateTag(tag, lastUpdated)) {
       vm.env.scheduleUpdateModifier(instance!);
-      this.lastUpdated = valueForTag(tag);
+      this.#lastUpdated = valueForTag(tag);
     }
 
     if (tag !== null) {
@@ -344,12 +356,12 @@ APPEND_OPCODES.add(Op.DynamicAttr, (vm, { op1: _name, op2: _trusting, op3: _name
 });
 
 export class UpdateDynamicAttributeOpcode implements UpdatingOpcode {
-  private updateRef: Reference;
+  readonly #updateRef: Reference;
 
   constructor(reference: Reference<unknown>, attribute: DynamicAttribute, env: Environment) {
     let initialized = false;
 
-    this.updateRef = createComputeRef(() => {
+    this.#updateRef = createComputeRef(() => {
       let value = valueForRef(reference);
 
       if (initialized === true) {
@@ -359,10 +371,10 @@ export class UpdateDynamicAttributeOpcode implements UpdatingOpcode {
       }
     });
 
-    valueForRef(this.updateRef);
+    valueForRef(this.#updateRef);
   }
 
   evaluate() {
-    valueForRef(this.updateRef);
+    valueForRef(this.#updateRef);
   }
 }

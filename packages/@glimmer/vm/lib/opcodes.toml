@@ -671,11 +671,6 @@ operand-stack = [[], ["ProgramSymbolTable", "handle"]]
 format = ["BindEvalScope", "state:register"]
 operation = "Populate the eval lookup if necessary."
 
-[syscall.eval_setup]
-
-format = ["SetupForDebug", "state:register"]
-operation = "Setup for debugger"
-
 [syscall.comp_layoutput]
 
 format = ["PopulateLayout", "state:register"]

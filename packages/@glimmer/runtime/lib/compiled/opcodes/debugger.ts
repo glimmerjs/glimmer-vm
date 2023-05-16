@@ -1,6 +1,6 @@
-import type { Scope } from '@glimmer/interfaces';
+import type { Dict, Scope } from '@glimmer/interfaces';
 import { childRefFor, type Reference, valueForRef } from '@glimmer/reference';
-import { decodeHandle, dict, unwrap } from '@glimmer/util';
+import { decodeHandle, unwrap } from '@glimmer/util';
 import { Op } from '@glimmer/vm';
 
 import { APPEND_OPCODES } from '../../opcodes';
@@ -33,32 +33,32 @@ export function resetDebuggerCallback() {
 }
 
 class ScopeInspector {
-  private locals = dict<Reference>();
+  readonly #locals: Dict<Reference> = {};
+  readonly #scope: Scope;
 
-  constructor(private scope: Scope, symbols: string[], debugInfo: number[]) {
+  constructor(scope: Scope, symbols: string[], debugInfo: number[]) {
+    this.#scope = scope;
     for (const slot of debugInfo) {
       let name = unwrap(symbols[slot - 1]);
       let ref = scope.getSymbol(slot);
-      this.locals[name] = ref;
+      this.#locals[name] = ref;
     }
   }
 
   get(path: string): Reference {
-    let { scope, locals } = this;
+    let locals = this.#locals;
+
     let parts = path.split('.');
     let [head, ...tail] = path.split('.') as [string, ...string[]];
 
-    let evalScope = scope.getEvalScope()!;
     let ref: Reference;
 
     if (head === 'this') {
-      ref = scope.getSelf();
+      ref = this.#scope.getSelf();
     } else if (locals[head]) {
       ref = unwrap(locals[head]);
-    } else if (head.indexOf('@') === 0 && evalScope[head]) {
-      ref = evalScope[head] as Reference;
     } else {
-      ref = this.scope.getSelf();
+      ref = this.#scope.getSelf();
       tail = parts;
     }
 

@@ -243,32 +243,37 @@ APPEND_OPCODES.add(Op.ToBoolean, (vm) => {
 });
 
 export class Assert implements UpdatingOpcode {
-  private last: unknown;
+  #last: unknown;
+  #ref: Reference;
 
-  constructor(private ref: Reference) {
-    this.last = valueForRef(ref);
+  constructor(ref: Reference) {
+    this.#ref = ref;
+    this.#last = valueForRef(ref);
   }
 
   evaluate(vm: UpdatingVM) {
-    let { last, ref } = this;
-    let current = valueForRef(ref);
+    let current = valueForRef(this.#ref);
 
-    if (last !== current) {
+    if (this.#last !== current) {
       vm.throw();
     }
   }
 }
 
 export class AssertFilter<T, U> implements UpdatingOpcode {
-  private last: U;
+  #last: U;
+  readonly #ref: Reference<T>;
+  readonly #filter: (from: T) => U;
 
-  constructor(private ref: Reference<T>, private filter: (from: T) => U) {
-    this.last = filter(valueForRef(ref));
+  constructor(ref: Reference<T>, filter: (from: T) => U) {
+    this.#ref = ref;
+    this.#filter = filter;
+    this.#last = filter(valueForRef(ref));
   }
 
   evaluate(vm: UpdatingVM) {
-    let { last, ref, filter } = this;
-    let current = filter(valueForRef(ref));
+    let last = this.#last;
+    let current = this.#filter(valueForRef(this.#ref));
 
     if (last !== current) {
       vm.throw();
@@ -277,44 +282,49 @@ export class AssertFilter<T, U> implements UpdatingOpcode {
 }
 
 export class JumpIfNotModifiedOpcode implements UpdatingOpcode {
-  private tag: Tag = CONSTANT_TAG;
-  private lastRevision: Revision = INITIAL;
-  private target?: number;
+  #tag: Tag = CONSTANT_TAG;
+  #lastRevision: Revision = INITIAL;
+  #target: number | undefined;
 
   finalize(tag: Tag, target: number) {
-    this.target = target;
+    this.#target = target;
     this.didModify(tag);
   }
 
   evaluate(vm: UpdatingVM) {
-    let { tag, target, lastRevision } = this;
-
-    if (!vm.alwaysRevalidate && validateTag(tag, lastRevision)) {
+    let tag = this.#tag;
+    if (!vm.alwaysRevalidate && validateTag(tag, this.#lastRevision)) {
       consumeTag(tag);
-      vm.goto(expect(target, 'VM BUG: Target must be set before attempting to jump'));
+      vm.goto(expect(this.#target, 'VM BUG: Target must be set before attempting to jump'));
     }
   }
 
   didModify(tag: Tag) {
-    this.tag = tag;
-    this.lastRevision = valueForTag(this.tag);
+    this.#tag = tag;
+    this.#lastRevision = valueForTag(this.#tag);
     consumeTag(tag);
   }
 }
 
 export class BeginTrackFrameOpcode implements UpdatingOpcode {
-  constructor(private debugLabel?: string) {}
+  readonly #debugLabel: string | undefined;
+  constructor(debugLabel?: string) {
+    this.#debugLabel = debugLabel;
+  }
 
   evaluate() {
-    beginTrackFrame(this.debugLabel);
+    beginTrackFrame(this.#debugLabel);
   }
 }
 
 export class EndTrackFrameOpcode implements UpdatingOpcode {
-  constructor(private target: JumpIfNotModifiedOpcode) {}
+  readonly #target: JumpIfNotModifiedOpcode;
+  constructor(target: JumpIfNotModifiedOpcode) {
+    this.#target = target;
+  }
 
   evaluate() {
     let tag = endTrackFrame();
-    this.target.didModify(tag);
+    this.#target.didModify(tag);
   }
 }

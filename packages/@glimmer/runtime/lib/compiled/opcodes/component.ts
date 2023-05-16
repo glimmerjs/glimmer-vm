@@ -39,9 +39,7 @@ import { managerHasCapability } from '@glimmer/manager';
 import { isConstRef, type Reference, valueForRef } from '@glimmer/reference';
 import {
   assert,
-  assign,
   debugToString,
-  dict,
   EMPTY_STRING_ARRAY,
   enumerate,
   expect,
@@ -280,11 +278,11 @@ APPEND_OPCODES.add(Op.PrepareArgs, (vm, { op1: _state }) => {
     }
 
     if (named !== undefined) {
-      args.named.merge(assign({}, ...named));
+      args.named._merge_(...named);
     }
 
     if (positional !== undefined) {
-      args.realloc(positional.length);
+      args._realloc_(positional.length);
       args.positional.prepend(positional);
     }
 
@@ -315,7 +313,7 @@ APPEND_OPCODES.add(Op.PrepareArgs, (vm, { op1: _state }) => {
   }
 
   let blocks = args.blocks.values;
-  let blockNames = args.blocks.names;
+  let blockNames = args.blocks._names_;
   let preparedArgs = manager.prepareArgs(state, args);
 
   if (preparedArgs) {
@@ -461,9 +459,9 @@ type DeferredAttribute = {
 };
 
 export class ComponentElementOperations implements ElementOperations {
-  private attributes = dict<DeferredAttribute>();
-  private classes: (string | Reference<unknown>)[] = [];
-  private modifiers: ModifierInstance[] = [];
+  readonly #attributes: Dict<DeferredAttribute> = {};
+  readonly #classes: (string | Reference<unknown>)[] = [];
+  readonly #modifiers: ModifierInstance[] = [];
 
   setAttribute(
     name: string,
@@ -474,39 +472,39 @@ export class ComponentElementOperations implements ElementOperations {
     let deferred = { value, namespace, trusting };
 
     if (name === 'class') {
-      this.classes.push(value);
+      this.#classes.push(value);
     }
 
-    this.attributes[name] = deferred;
+    this.#attributes[name] = deferred;
   }
 
   setStaticAttribute(name: string, value: string, namespace: Nullable<string>): void {
     let deferred = { value, namespace };
 
     if (name === 'class') {
-      this.classes.push(value);
+      this.#classes.push(value);
     }
 
-    this.attributes[name] = deferred;
+    this.#attributes[name] = deferred;
   }
 
   addModifier(modifier: ModifierInstance): void {
-    this.modifiers.push(modifier);
+    this.#modifiers.push(modifier);
   }
 
   flush(vm: InternalVM): ModifierInstance[] {
     let type: DeferredAttribute | undefined;
-    let attributes = this.attributes;
+    let attributes = this.#attributes;
 
-    for (let name in this.attributes) {
+    for (let name in this.#attributes) {
       if (name === 'type') {
         type = attributes[name];
         continue;
       }
 
-      let attr = unwrap(this.attributes[name]);
+      let attr = unwrap(this.#attributes[name]);
       if (name === 'class') {
-        setDeferredAttr(vm, 'class', mergeClasses(this.classes), attr.namespace, attr.trusting);
+        setDeferredAttr(vm, 'class', mergeClasses(this.#classes), attr.namespace, attr.trusting);
       } else {
         setDeferredAttr(vm, name, attr.value, attr.namespace, attr.trusting);
       }
@@ -516,7 +514,7 @@ export class ComponentElementOperations implements ElementOperations {
       setDeferredAttr(vm, 'type', type.value, type.namespace, type.trusting);
     }
 
-    return this.modifiers;
+    return this.#modifiers;
   }
 }
 
@@ -772,15 +770,6 @@ APPEND_OPCODES.add(Op.VirtualRootScope, (vm, { op1: _state }) => {
   vm.pushRootScope(table.symbols.length + 1, owner);
 });
 
-APPEND_OPCODES.add(Op.SetupForDebug, (vm, { op1: _state }) => {
-  let state = check(vm.fetchValue(_state), CheckFinishedComponentInstance);
-
-  if (state.table.hasDebug) {
-    let lookup = (state.lookup = dict<ScopeSlot>());
-    vm.scope().bindEvalScope(lookup);
-  }
-});
-
 APPEND_OPCODES.add(Op.SetNamedVariables, (vm, { op1: _state }) => {
   let state = check(vm.fetchValue(_state), CheckFinishedComponentInstance);
   let scope = vm.scope();
@@ -816,8 +805,8 @@ APPEND_OPCODES.add(Op.SetBlocks, (vm, { op1: _state }) => {
   let state = check(vm.fetchValue(_state), CheckFinishedComponentInstance);
   let { blocks } = check(vm.stack.peek(), CheckArguments);
 
-  for (const [i] of enumerate(blocks.names)) {
-    bindBlock(unwrap(blocks.symbolNames[i]), unwrap(blocks.names[i]), state, blocks, vm);
+  for (const [i] of enumerate(blocks._names_)) {
+    bindBlock(unwrap(blocks.symbolNames[i]), unwrap(blocks._names_[i]), state, blocks, vm);
   }
 });
 
@@ -865,44 +854,65 @@ APPEND_OPCODES.add(Op.CommitComponentTransaction, (vm) => {
 });
 
 export class UpdateComponentOpcode implements UpdatingOpcode {
+  readonly #component: ComponentInstanceState;
+  readonly #manager: WithUpdateHook;
+  readonly #dynamicScope: Nullable<DynamicScope>;
+
   constructor(
-    private component: ComponentInstanceState,
-    private manager: WithUpdateHook,
-    private dynamicScope: Nullable<DynamicScope>
-  ) {}
+    component: ComponentInstanceState,
+    manager: WithUpdateHook,
+    dynamicScope: Nullable<DynamicScope>
+  ) {
+    this.#component = component;
+    this.#manager = manager;
+    this.#dynamicScope = dynamicScope;
+  }
 
   evaluate(_vm: UpdatingVM) {
-    let { component, manager, dynamicScope } = this;
-
-    manager.update(component, dynamicScope);
+    this.#manager.update(this.#component, this.#dynamicScope);
   }
 }
 
 export class DidUpdateLayoutOpcode implements UpdatingOpcode {
-  constructor(private component: ComponentInstanceWithCreate, private bounds: Bounds) {}
+  readonly #component: ComponentInstanceWithCreate;
+  readonly #bounds: Bounds;
+
+  constructor(component: ComponentInstanceWithCreate, bounds: Bounds) {
+    this.#component = component;
+    this.#bounds = bounds;
+  }
 
   evaluate(vm: UpdatingVM) {
-    let { component, bounds } = this;
+    let component = this.#component;
     let { manager, state } = component;
 
-    manager.didUpdateLayout(state, bounds);
+    manager.didUpdateLayout(state, this.#bounds);
 
     vm.env.didUpdate(component);
   }
 }
 
 class DebugRenderTreeUpdateOpcode implements UpdatingOpcode {
-  constructor(private bucket: object) {}
+  readonly #bucket: object;
+  constructor(bucket: object) {
+    this.#bucket = bucket;
+  }
 
   evaluate(vm: UpdatingVM) {
-    vm.env.debugRenderTree?.update(this.bucket);
+    vm.env.debugRenderTree?.update(this.#bucket);
   }
 }
 
 class DebugRenderTreeDidRenderOpcode implements UpdatingOpcode {
-  constructor(private bucket: object, private bounds: Bounds) {}
+  readonly #bucket: object;
+  readonly #bounds: Bounds;
+
+  constructor(bucket: object, bounds: Bounds) {
+    this.#bucket = bucket;
+    this.#bounds = bounds;
+  }
 
   evaluate(vm: UpdatingVM) {
-    vm.env.debugRenderTree?.didRender(this.bucket, this.bounds);
+    vm.env.debugRenderTree?.didRender(this.#bucket, this.#bounds);
   }
 }

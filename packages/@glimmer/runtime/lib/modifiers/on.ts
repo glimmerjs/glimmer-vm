@@ -5,7 +5,7 @@ import type {
   InternalModifierManager,
   Owner,
   SimpleElement,
-} from "@glimmer/interfaces";
+} from '@glimmer/interfaces';
 import { setInternalModifierManager } from '@glimmer/manager';
 import { valueForRef } from '@glimmer/reference';
 import { buildUntouchableThis, expect } from '@glimmer/util';
@@ -51,16 +51,17 @@ const SUPPORTS_EVENT_OPTIONS = (() => {
 })();
 
 export class OnModifierState {
+  #userProvidedCallback: EventListener | undefined;
+
   public tag = createUpdatableTag();
   public element: Element;
   public args: CapturedArguments;
   public declare eventName: string;
   public declare callback: EventListener;
-  private declare userProvidedCallback: EventListener;
-  public once?: boolean | undefined;
-  public passive?: boolean | undefined;
-  public capture?: boolean | undefined;
-  public options?: AddEventListenerOptions | undefined;
+  public once: boolean | undefined;
+  public passive: boolean | undefined;
+  public capture: boolean | undefined;
+  public options: AddEventListenerOptions | undefined;
   public shouldUpdate = true;
 
   constructor(element: Element, args: CapturedArguments) {
@@ -127,8 +128,8 @@ export class OnModifierState {
       }
     ) as EventListener;
 
-    if (userProvidedCallback !== this.userProvidedCallback) {
-      this.userProvidedCallback = userProvidedCallback;
+    if (userProvidedCallback !== this.#userProvidedCallback) {
+      this.#userProvidedCallback = userProvidedCallback;
       this.shouldUpdate = true;
     }
 

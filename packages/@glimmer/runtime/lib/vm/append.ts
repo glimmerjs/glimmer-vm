@@ -9,7 +9,6 @@ import type {
   Environment,
   Nullable,
   Owner,
-  PartialScope,
   RenderResult,
   ResolutionTimeConstants,
   RichIteratorResult,
@@ -29,7 +28,7 @@ import {
   type Reference,
   UNDEFINED_REFERENCE,
 } from '@glimmer/reference';
-import { assert, expect, LOCAL_LOGGER, reverse, Stack, unwrapHandle } from '@glimmer/util';
+import { assert, expect, LOCAL_LOGGER, reverse, Stack, unwrap, unwrapHandle } from '@glimmer/util';
 import { beginTrackFrame, endTrackFrame, resetTracking } from '@glimmer/validator';
 import {
   $fp,
@@ -52,8 +51,8 @@ import {
   JumpIfNotModifiedOpcode,
 } from '../compiled/opcodes/vm';
 import { APPEND_OPCODES, type DebugState } from '../opcodes';
-import { PartialScopeImpl } from '../scope';
-import { ARGS, CONSTANTS, DESTROYABLE_STACK, INNER_VM, REGISTERS } from '../symbols';
+import { ScopeImpl } from '../scope';
+import { ARGS, CONSTANTS, INNER_VM } from '../symbols';
 import { VMArgumentsImpl } from './arguments';
 import type { LiveBlockList } from './element-builder';
 import { LowLevelVM, type Externs } from './low-level';
@@ -116,7 +115,7 @@ export interface InternalVM {
   enterItem(item: OpaqueIterationItem): ListItemOpcode;
   registerItem(item: ListItemOpcode): void;
 
-  pushRootScope(size: number, owner: Owner): PartialScope;
+  pushRootScope(size: number, owner: Owner): Scope;
   pushChildScope(): void;
   popScope(): void;
   pushScope(scope: Scope): void;
@@ -149,19 +148,21 @@ class Stacks {
 }
 
 export interface DebugVM {
-  getStacks: (vm: VM) => Stacks;
+  readonly getStacks: (vm: VM) => Stacks;
+  readonly destroyableStack: Stack<object>;
 }
 
 export class VM implements PublicVM, InternalVM {
-  declare debug?: DebugVM;
-
   readonly #stacks = new Stacks();
   readonly #heap: RuntimeHeap;
-  private readonly destructor: object;
-  private readonly [DESTROYABLE_STACK] = new Stack<object>();
+  readonly #destructor: object;
+  readonly #destroyableStack = new Stack<object>();
   readonly [CONSTANTS]: RuntimeConstants & ResolutionTimeConstants;
   readonly [ARGS]: VMArgumentsImpl;
   readonly [INNER_VM]: LowLevelVM;
+  readonly #elementStack: ElementBuilder;
+
+  declare readonly debug?: DebugVM;
 
   get stack(): EvaluationStack {
     return this[INNER_VM].stack as EvaluationStack;
@@ -282,25 +283,36 @@ export class VM implements PublicVM, InternalVM {
   constructor(
     readonly runtime: RuntimeContext,
     { pc, scope, dynamicScope, stack }: VMState,
-    private readonly elementStack: ElementBuilder,
+    elementStack: ElementBuilder,
     readonly context: CompileTimeCompilationContext
   ) {
+    this.#elementStack = elementStack;
     if (import.meta.env.DEV) {
       assertGlobalContextWasSet!();
+
+      Object.defineProperty(this, 'debug', {
+        enumerable: false,
+        configurable: true,
+        writable: false,
+        value: {
+          destroyableStack: this.#destroyableStack,
+          getStacks: (vm) => vm.#stacks,
+        } satisfies DebugVM,
+      });
     }
 
-    this.resume = initVM(context);
+    this.#resume = initVM(context);
     let evalStack = EvaluationStackImpl.restore(stack);
 
     assert(typeof pc === 'number', 'pc is a number');
 
-    evalStack[REGISTERS][$pc] = pc;
-    evalStack[REGISTERS][$sp] = stack.length - 1;
-    evalStack[REGISTERS][$fp] = -1;
+    evalStack['_registers_'][$pc] = pc;
+    evalStack['_registers_'][$sp] = stack.length - 1;
+    evalStack['_registers_'][$fp] = -1;
 
     this.#heap = this.program.heap;
     this[CONSTANTS] = this.program.constants;
-    this.elementStack = elementStack;
+    this.#elementStack = elementStack;
     this.#stacks.scope.push(scope);
     this.#stacks.dynamicScope.push(dynamicScope);
     this[ARGS] = new VMArgumentsImpl();
@@ -308,7 +320,7 @@ export class VM implements PublicVM, InternalVM {
       evalStack,
       this.#heap,
       runtime.program,
-      evalStack[REGISTERS],
+      evalStack['_registers_'],
       import.meta.env.DEV
         ? ((): Externs | undefined => {
             const debug = APPEND_OPCODES.debug;
@@ -319,9 +331,7 @@ export class VM implements PublicVM, InternalVM {
                   },
 
                   debugAfter: (state): void => {
-                    debug.after(this, state, {
-                      getStacks: (vm) => vm.#stacks,
-                    });
+                    debug.after(this, state, unwrap(this.debug));
                   },
                 }
               : undefined;
@@ -329,8 +339,8 @@ export class VM implements PublicVM, InternalVM {
         : undefined
     );
 
-    this.destructor = {};
-    this[DESTROYABLE_STACK].push(this.destructor);
+    this.#destructor = {};
+    this.#destroyableStack.push(this.#destructor);
   }
 
   static initial(
@@ -338,7 +348,7 @@ export class VM implements PublicVM, InternalVM {
     context: CompileTimeCompilationContext,
     { handle, self, dynamicScope, treeBuilder, numSymbols, owner }: InitOptions
   ) {
-    let scope = PartialScopeImpl.root(self, numSymbols, owner);
+    let scope = ScopeImpl.root(self, numSymbols, owner);
     let state = vmState(runtime.program.heap.getaddr(handle), scope, dynamicScope);
     let vm = initVM(context)(runtime, state, treeBuilder);
     vm.pushUpdating();
@@ -354,7 +364,7 @@ export class VM implements PublicVM, InternalVM {
       runtime,
       vmState(
         runtime.program.heap.getaddr(handle),
-        PartialScopeImpl.root(UNDEFINED_REFERENCE, 0, owner),
+        ScopeImpl.root(UNDEFINED_REFERENCE, 0, owner),
         dynamicScope
       ),
       treeBuilder
@@ -363,7 +373,7 @@ export class VM implements PublicVM, InternalVM {
     return vm;
   }
 
-  private resume: VmInitCallback;
+  readonly #resume: VmInitCallback;
 
   compile(block: CompilableTemplate): number {
     let handle = unwrapHandle(block.compile(this.context));
@@ -389,7 +399,7 @@ export class VM implements PublicVM, InternalVM {
   }
 
   capture(args: number, pc = this[INNER_VM].fetchRegister($pc)): ResumableVMState {
-    return new ResumableVMStateImpl(this.captureState(args, pc), this.resume);
+    return new ResumableVMStateImpl(this.captureState(args, pc), this.#resume);
   }
 
   beginCacheGroup(name?: string) {
@@ -421,7 +431,7 @@ export class VM implements PublicVM, InternalVM {
 
     let tryOpcode = new TryOpcode(state, this.runtime, block, updating);
 
-    this.didEnter(tryOpcode);
+    this.#didEnter(tryOpcode);
   }
 
   enterItem({ key, value, memo }: OpaqueIterationItem): ListItemOpcode {
@@ -437,7 +447,7 @@ export class VM implements PublicVM, InternalVM {
     let block = this.elements().pushUpdatableBlock();
 
     let opcode = new ListItemOpcode(state, this.runtime, block, key, memoRef, valueRef);
-    this.didEnter(opcode);
+    this.#didEnter(opcode);
 
     return opcode;
   }
@@ -457,18 +467,18 @@ export class VM implements PublicVM, InternalVM {
 
     this.#stacks.list.push(opcode);
 
-    this.didEnter(opcode);
+    this.#didEnter(opcode);
   }
 
-  private didEnter(opcode: BlockOpcode) {
+  #didEnter(opcode: BlockOpcode) {
     this.associateDestroyable(opcode);
-    this[DESTROYABLE_STACK].push(opcode);
+    this.#destroyableStack.push(opcode);
     this.updateWith(opcode);
     this.pushUpdating(opcode.children);
   }
 
   exit() {
-    this[DESTROYABLE_STACK].pop();
+    this.#destroyableStack.pop();
     this.elements().popBlock();
     this.popUpdating();
   }
@@ -495,7 +505,7 @@ export class VM implements PublicVM, InternalVM {
   }
 
   associateDestroyable(child: Destroyable): void {
-    let parent = expect(this[DESTROYABLE_STACK].current, 'Expected destructor parent');
+    let parent = expect(this.#destroyableStack.current, 'Expected destructor parent');
     associateDestroyableChild(parent, child);
   }
 
@@ -511,7 +521,7 @@ export class VM implements PublicVM, InternalVM {
   }
 
   elements(): ElementBuilder {
-    return this.elementStack;
+    return this.#elementStack;
   }
 
   scope(): Scope {
@@ -535,8 +545,8 @@ export class VM implements PublicVM, InternalVM {
     return child;
   }
 
-  pushRootScope(size: number, owner: Owner): PartialScope {
-    let scope = PartialScopeImpl.sized(size, owner);
+  pushRootScope(size: number, owner: Owner): Scope {
+    let scope = ScopeImpl.sized(size, owner);
     this.#stacks.scope.push(scope);
     return scope;
   }
@@ -573,7 +583,7 @@ export class VM implements PublicVM, InternalVM {
     if (import.meta.env.DEV) {
       let hasErrored = true;
       try {
-        let value = this._execute(initialize);
+        let value = this.#execute(initialize);
 
         // using a boolean here to avoid breaking ergonomics of "pause on uncaught exceptions"
         // which would happen with a `catch` + `throw`
@@ -595,16 +605,16 @@ export class VM implements PublicVM, InternalVM {
         }
       }
     } else {
-      return this._execute(initialize);
+      return this.#execute(initialize);
     }
   }
 
-  private _execute(initialize?: (vm: this) => void): RenderResult {
+  #execute(initialize?: (vm: this) => void): RenderResult {
     if (LOCAL_SHOULD_LOG) {
       LOCAL_LOGGER.log(`EXECUTING FROM ${this[INNER_VM].fetchRegister($pc)}`);
     }
 
-    if (initialize) initialize(this);
+    initialize?.(this);
 
     let result: RichIteratorResult<null, RenderResult>;
 
@@ -615,7 +625,7 @@ export class VM implements PublicVM, InternalVM {
   }
 
   next(): RichIteratorResult<null, RenderResult> {
-    let { env, elementStack } = this;
+    let { env } = this;
     let opcode = this[INNER_VM].nextStatement();
     let result: RichIteratorResult<null, RenderResult>;
     if (opcode !== null) {
@@ -630,8 +640,8 @@ export class VM implements PublicVM, InternalVM {
         value: new RenderResultImpl(
           env,
           this.popUpdating(),
-          elementStack.popBlock(),
-          this.destructor
+          this.#elementStack.popBlock(),
+          this.#destructor
         ),
       };
     }

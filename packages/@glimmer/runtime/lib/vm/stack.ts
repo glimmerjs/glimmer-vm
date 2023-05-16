@@ -1,11 +1,10 @@
 import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
 import { $fp, $sp, type MachineRegister } from '@glimmer/vm';
 
-import { REGISTERS } from '../symbols';
 import { initializeRegistersWithSP, type LowLevelRegisters } from './low-level';
 
 export interface EvaluationStack {
-  [REGISTERS]: LowLevelRegisters;
+  readonly _registers_: LowLevelRegisters;
 
   push(value: unknown): void;
   dup(position?: MachineRegister): void;
@@ -25,11 +24,13 @@ export default class EvaluationStackImpl implements EvaluationStack {
     return new this(snapshot.slice(), initializeRegistersWithSP(snapshot.length - 1));
   }
 
-  readonly [REGISTERS]: LowLevelRegisters;
+  readonly _registers_: LowLevelRegisters;
+  readonly #stack: unknown[];
 
   // fp -> sp
-  constructor(private stack: unknown[] = [], registers: LowLevelRegisters) {
-    this[REGISTERS] = registers;
+  constructor(stack: unknown[] = [], registers: LowLevelRegisters) {
+    this.#stack = stack;
+    this._registers_ = registers;
 
     if (import.meta.env.DEV && LOCAL_DEBUG) {
       Object.seal(this);
@@ -37,50 +38,50 @@ export default class EvaluationStackImpl implements EvaluationStack {
   }
 
   push(value: unknown): void {
-    this.stack[++this[REGISTERS][$sp]] = value;
+    this.#stack[++this._registers_[$sp]] = value;
   }
 
-  dup(position = this[REGISTERS][$sp]): void {
-    this.stack[++this[REGISTERS][$sp]] = this.stack[position];
+  dup(position = this._registers_[$sp]): void {
+    this.#stack[++this._registers_[$sp]] = this.#stack[position];
   }
 
   copy(from: number, to: number): void {
-    this.stack[to] = this.stack[from];
+    this.#stack[to] = this.#stack[from];
   }
 
   pop<T>(n = 1): T {
-    let top = this.stack[this[REGISTERS][$sp]] as T;
-    this[REGISTERS][$sp] -= n;
+    let top = this.#stack[this._registers_[$sp]] as T;
+    this._registers_[$sp] -= n;
     return top;
   }
 
   peek<T>(offset = 0): T {
-    return this.stack[this[REGISTERS][$sp] - offset] as T;
+    return this.#stack[this._registers_[$sp] - offset] as T;
   }
 
-  get<T>(offset: number, base = this[REGISTERS][$fp]): T {
-    return this.stack[base + offset] as T;
+  get<T>(offset: number, base = this._registers_[$fp]): T {
+    return this.#stack[base + offset] as T;
   }
 
-  set(value: unknown, offset: number, base = this[REGISTERS][$fp]) {
-    this.stack[base + offset] = value;
+  set(value: unknown, offset: number, base = this._registers_[$fp]) {
+    this.#stack[base + offset] = value;
   }
 
   slice<T = unknown>(start: number, end: number): T[] {
-    return this.stack.slice(start, end) as T[];
+    return this.#stack.slice(start, end) as T[];
   }
 
   capture(items: number): unknown[] {
-    let end = this[REGISTERS][$sp] + 1;
+    let end = this._registers_[$sp] + 1;
     let start = end - items;
-    return this.stack.slice(start, end);
+    return this.#stack.slice(start, end);
   }
 
   reset() {
-    this.stack.length = 0;
+    this.#stack.length = 0;
   }
 
   toArray() {
-    return this.stack.slice(this[REGISTERS][$fp], this[REGISTERS][$sp] + 1);
+    return this.#stack.slice(this._registers_[$fp], this._registers_[$sp] + 1);
   }
 }

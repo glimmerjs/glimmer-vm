@@ -14,7 +14,7 @@ import { assert, LOCAL_LOGGER, unwrap } from '@glimmer/util';
 import { $fp, $pc, $ra, $sp } from '@glimmer/vm';
 
 import { isScopeReference } from './scope';
-import { CONSTANTS, DESTROYABLE_STACK, INNER_VM } from './symbols';
+import { CONSTANTS, INNER_VM } from './symbols';
 import type { VM, LowLevelVM } from './vm';
 import type { DebugVM, InternalVM } from './vm/append';
 import { CURSOR_STACK } from './vm/element-builder';
@@ -137,10 +137,10 @@ export class AppendOpcodes {
                 LOCAL_LOGGER.log(
                   '%c -> pc: %d, ra: %d, fp: %d, sp: %d, s0: %O, s1: %O, t0: %O, t1: %O, v0: %O',
                   'color: orange',
-                  vm[INNER_VM].registers[$pc],
-                  vm[INNER_VM].registers[$ra],
-                  vm[INNER_VM].registers[$fp],
-                  vm[INNER_VM].registers[$sp],
+                  vm[INNER_VM].fetchRegister($pc),
+                  vm[INNER_VM].fetchRegister($ra),
+                  vm[INNER_VM].fetchRegister($fp),
+                  vm[INNER_VM].fetchRegister($sp),
                   vm['s0'],
                   vm['s1'],
                   vm['t0'],
@@ -156,7 +156,7 @@ export class AppendOpcodes {
                 LOCAL_LOGGER.log(
                   '%c -> destructor stack',
                   'color: violet',
-                  vm[DESTROYABLE_STACK].toArray()
+                  unwrap(vm.debug).destroyableStack.toArray()
                 );
                 if (debug.getStacks(vm).scope.current === null) {
                   LOCAL_LOGGER.log('%c -> scope', 'color: green', 'null');

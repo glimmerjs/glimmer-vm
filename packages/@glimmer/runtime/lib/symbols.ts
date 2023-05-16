@@ -3,8 +3,6 @@
 // Glimmer's API.
 
 export const INNER_VM: unique symbol = Symbol('INNER_VM');
-export const DESTROYABLE_STACK: unique symbol = Symbol('DESTROYABLE_STACK');
-export const REGISTERS: unique symbol = Symbol('REGISTERS');
 export const CONSTANTS: unique symbol = Symbol('CONSTANTS');
 export const ARGS: unique symbol = Symbol('ARGS');
 export const PC: unique symbol = Symbol('PC');
