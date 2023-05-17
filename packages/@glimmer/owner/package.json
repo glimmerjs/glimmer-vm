@@ -11,6 +11,14 @@
     "@glimmer/local-debug-flags": "workspace:^",
     "@glimmer-workspace/build-support": "workspace:^"
   },
+  "workspace": {
+    "entry": true,
+    "inline": {
+      "is": [
+        "@glimmer/util"
+      ]
+    }
+  },
   "scripts": {
     "test:lint": "eslint .",
     "test:types": "tsc --noEmit -p ../tsconfig.json",

@@ -1,11 +1,13 @@
 {
-  "name": "@glimmer/vm-constants",
+  "name": "@glimmer/vm",
   "version": "0.84.3",
   "type": "module",
   "repository": "https://github.com/glimmerjs/glimmer-vm/tree/master/packages/@glimmer/vm",
   "dependencies": {
     "@glimmer/util": "workspace:^",
-    "@glimmer/interfaces": "workspace:^"
+    "@glimmer/interfaces": "workspace:^",
+    "@glimmer/runtime": "workspace:^",
+    "@glimmer/node": "workspace:^"
   },
   "types": "index.ts",
   "scripts": {
@@ -17,7 +19,7 @@
     "entry": true,
     "inline": {
       "is": [
-        "@glimmer/util"
+        "@glimmer/*"
       ]
     }
   },

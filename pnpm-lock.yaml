@@ -722,7 +722,11 @@ importers:
         specifier: workspace:^
         version: link:../../@glimmer-workspace/build
 
-  packages/@glimmer/local-debug-flags: {}
+  packages/@glimmer/local-debug-flags:
+    devDependencies:
+      '@glimmer-workspace/build-support':
+        specifier: workspace:^
+        version: link:../../@glimmer-workspace/build
 
   packages/@glimmer/manager:
     dependencies:
@@ -1105,6 +1109,22 @@ importers:
       '@glimmer/validator':
         specifier: workspace:^
         version: link:..
+
+  packages/@glimmer/vm:
+    dependencies:
+      '@glimmer/interfaces':
+        specifier: workspace:^
+        version: link:../interfaces
+      '@glimmer/runtime':
+        specifier: workspace:^
+        version: link:../runtime
+      '@glimmer/util':
+        specifier: workspace:^
+        version: link:../util
+    devDependencies:
+      '@glimmer-workspace/build-support':
+        specifier: workspace:^
+        version: link:../../@glimmer-workspace/build
 
   packages/@glimmer/vm-babel-plugins:
     dependencies:

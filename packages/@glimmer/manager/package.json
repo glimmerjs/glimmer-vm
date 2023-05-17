@@ -13,6 +13,7 @@
     "@glimmer/util": "workspace:^",
     "@glimmer/validator": "workspace:^"
   },
+  "workspace": {},
   "devDependencies": {
     "@glimmer/local-debug-flags": "workspace:^",
     "@glimmer-workspace/build-support": "workspace:^"

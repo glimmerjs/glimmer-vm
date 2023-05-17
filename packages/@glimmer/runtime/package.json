@@ -13,21 +13,6 @@
       "types": "./dist/index.d.ts",
       "require": "./dist/index.cjs",
       "default": "./dist/index.js"
-    },
-    "workspace": {
-      "presets": [
-        "workspace:recommended"
-      ],
-      "external": {
-        "is": [
-          "@glimmer/owner"
-        ]
-      },
-      "inline": {
-        "is": [
-          "@glimmer/*"
-        ]
-      }
     }
   },
   "dependencies": {

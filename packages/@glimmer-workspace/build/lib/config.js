@@ -355,7 +355,7 @@ export class Package {
    * @returns {WorkspaceConfig | undefined}
    */
   get workspace() {
-    return this.#packageJSON.publishConfig?.workspace;
+    return this.#packageJSON.workspace;
   }
 
   /**
@@ -454,7 +454,7 @@ export class Package {
           ]
         : [];
 
-    productionPlugins = [];
+    // productionPlugins = [];
 
     return this.#shared('esm', mode).map((options) => ({
       ...options,

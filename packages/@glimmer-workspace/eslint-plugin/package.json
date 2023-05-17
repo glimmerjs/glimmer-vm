@@ -20,5 +20,9 @@
   "devDependencies": {
     "eslint": "^8.40.0",
     "@types/eslint": "^8.37.0"
+  },
+  "scripts": {
+    "test:lint": "eslint .",
+    "test:types": "tsc --noEmit -p ../tsconfig.json"
   }
 }

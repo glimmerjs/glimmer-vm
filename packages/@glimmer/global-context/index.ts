@@ -182,6 +182,8 @@ export default function setGlobalContext(context: GlobalContext) {
   deprecate = context.deprecate;
 }
 
+export { setGlobalContext };
+
 export let assertGlobalContextWasSet: (() => void) | undefined;
 export let testOverrideGlobalContext:
   | ((context: Partial<GlobalContext> | null) => GlobalContext | null)

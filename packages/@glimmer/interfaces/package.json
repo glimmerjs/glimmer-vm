@@ -8,7 +8,8 @@
   },
   "scripts": {
     "test:lint": "eslint .",
-    "test:types": "tsc --noEmit -p ../tsconfig.json"
+    "test:types": "tsc --noEmit -p ../tsconfig.json",
+    "build": "rollup -c rollup.config.mjs"
   },
   "publishConfig": {
     "access": "public",
@@ -25,5 +26,6 @@
   },
   "devDependencies": {
     "@glimmer-workspace/build-support": "workspace:^"
-  }
+  },
+  "main": "index.ts"
 }

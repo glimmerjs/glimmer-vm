@@ -4,6 +4,7 @@
     "dbaeumer.vscode-eslint",
     "esbenp.prettier-vscode",
     "editorconfig.editorconfig",
-    "foxundermoon.shell-format"
+    "foxundermoon.shell-format",
+    "bierner.github-markdown-preview"
   ]
 }

@@ -1,24 +1,53 @@
 {
-	"folders": [
-		{
-			"path": "."
-		},
-		{
-			"path": "packages/@glimmer/owner"
-		},
-		{
-			"path": "packages/@glimmer/runtime"
-		},
-		{
-			"path": "packages/@glimmer/opcode-compiler"
-		}
-	],
-	"settings": {
-		"typescript.tsc.autoDetect": "on",
-		"typescript.tsdk": "node_modules/typescript/lib",
-		"typescript.tsserver.experimental.enableProjectDiagnostics": false,
-		"typescript.workspaceSymbols.scope": "currentProject",
-		"explorer.sortOrder": "foldersNestsFiles",
-		"explorer.fileNesting.expand": false
-	}
+  "folders": [
+    {
+      "path": "packages/@glimmer/owner"
+    },
+    {
+      "path": "packages/@glimmer/runtime"
+    },
+    {
+      "path": "packages/@glimmer/opcode-compiler"
+    },
+    {
+      "path": "packages/@glimmer/vm"
+    }
+  ],
+  "settings": {
+    "typescript.tsc.autoDetect": "on",
+    "typescript.tsdk": "node_modules/typescript/lib",
+    "typescript.tsserver.experimental.enableProjectDiagnostics": false,
+    "typescript.workspaceSymbols.scope": "currentProject",
+    "explorer.sortOrder": "foldersNestsFiles",
+    "explorer.fileNesting.expand": false,
+    "eslint.enable": false,
+    "explorer.excludeGitIgnore": false,
+    "editor.formatOnSave": false,
+    "window.zoomLevel": 2,
+    "editor.fontSize": 13,
+    "workbench.editor.centeredLayoutFixedWidth": true,
+    "workbench.preferredDarkColorTheme": "IKKI VSCode Dark Theme",
+    "workbench.preferredHighContrastLightColorTheme": "IKKI VSCode Light Theme",
+    "workbench.colorTheme": "IKKI VSCode Dark Theme",
+    "workbench.colorCustomizations": {
+      "activityBar.activeBackground": "#3399ff",
+      "activityBar.background": "#3399ff",
+      "activityBar.foreground": "#15202b",
+      "activityBar.inactiveForeground": "#15202b99",
+      "activityBarBadge.background": "#bf0060",
+      "activityBarBadge.foreground": "#e7e7e7",
+      "commandCenter.border": "#e7e7e799",
+      "sash.hoverBorder": "#3399ff",
+      "statusBar.background": "#007fff",
+      "statusBar.foreground": "#e7e7e7",
+      "statusBarItem.hoverBackground": "#3399ff",
+      "statusBarItem.remoteBackground": "#007fff",
+      "statusBarItem.remoteForeground": "#e7e7e7",
+      "titleBar.activeBackground": "#007fff",
+      "titleBar.activeForeground": "#e7e7e7",
+      "titleBar.inactiveBackground": "#007fff99",
+      "titleBar.inactiveForeground": "#e7e7e799"
+    },
+    "peacock.remoteColor": "#007fff",
+  }
 }

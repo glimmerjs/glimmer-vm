@@ -14,7 +14,8 @@
     "benchmark:start": "pnpm -r --filter @glimmer-workspace/krausest run start",
     "benchmark:build": "node benchmark/bin/build.js",
     "build": "dotenv -c development -- turbo build",
-    "build:production": "FORCE_COLOR=1 dotenv -c production -- turbo build -F @glimmer/runtime -F @glimmer/opcode-compiler -F @glimmer/owner --log-prefix none",
+    "build:production": "dotenv -c production -- turbo build",
+    "build:production:entry": "FORCE_COLOR=1 dotenv -c production -- turbo build -F @glimmer/runtime -F @glimmer/opcode-compiler -F @glimmer/owner -F @glimmer/vm --log-prefix none",
     "build:control": "rollup -c rollup.config.mjs",
     "lint": "npm-run-all lint:*",
     "lint:files": "dotenv -- turbo lint",
@@ -38,6 +39,22 @@
         "@rollup/pluginutils": "5",
         "rollup": "3"
       }
+    }
+  },
+  "workspace": {
+    "presets": [
+      "workspace:recommended"
+    ],
+    "external": {
+      "is": [
+        "@glimmer/owner",
+        "@glimmer/vm-constants"
+      ]
+    },
+    "inline": {
+      "is": [
+        "@glimmer/*"
+      ]
     }
   },
   "devDependencies": {

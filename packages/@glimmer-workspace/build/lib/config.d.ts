@@ -41,9 +41,7 @@ export interface PackageJSON {
   readonly types: string;
   readonly private: boolean;
   readonly name: string;
-  readonly publishConfig?: {
-    readonly workspace?: WorkspaceConfig;
-  };
+  readonly workspace?: WorkspaceConfig;
 }
 
 type SimpleExternal = { [P in string]: 'inline' | 'external' };

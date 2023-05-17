@@ -1,9 +1,12 @@
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
-import chalk from 'chalk';
+import chalk, { type ChalkInstance } from 'chalk';
 
-import { type Package, packages } from './packages.mjs';
+import { type Package, packages, type PackageJSON } from './packages.mjs';
+
+const ERROR_MARKER = '[!]';
+const PAD = ' '.repeat(ERROR_MARKER.length);
 
 const ROLLUP_CONFIG = [
   `import { Package } from '@glimmer-workspace/build-support'`,
@@ -12,17 +15,21 @@ const ROLLUP_CONFIG = [
   .map((line) => `${line};\n`)
   .join('\n');
 
-for (const pkg of packages('@glimmer')) {
-  if (pkg.private) {
-    console.error(`Unexpected private package in @glimmer namespace`, pkg.name);
-  } else {
-    const updated = [];
-    const { updates, packageJSON } = update(pkg, updatePublic);
-    updated.push(...updates);
-    updated.push(...updateRollupConfig(pkg, packageJSON));
+type Update = OkUpdate | ErrUpdate;
 
-    report(pkg, updated);
-  }
+type ErrUpdate = [type: 'err', title: string, message: string];
+
+interface OkUpdate {
+  file: string;
+  operation: 'add' | 'rm' | 'update';
+}
+for (const pkg of packages('@glimmer')) {
+  const updated: Update[] = [];
+  const { updates, packageJSON } = update(pkg, updatePublic);
+  updated.push(...updates);
+  updated.push(...updateRollupConfig(pkg, packageJSON));
+
+  report(pkg, updated);
 }
 
 for (const pkg of packages('@glimmer-workspace')) {
@@ -30,42 +37,112 @@ for (const pkg of packages('@glimmer-workspace')) {
   report(pkg, updates);
 }
 
-function report(pkg: Package, updates: string[]) {
-  if (updates.length > 0) {
-    const marker = updates.length > 1 ? chalk.magenta(` (${updates.length}) `) : '';
-    console.log(
-      `${chalk.gray('-')} ${chalk.yellowBright(pkg.name)}${marker} ${chalk.gray(
-        updates.join(', ')
-      )}`
-    );
+function report(pkg: Package, updates: Update[]) {
+  if (updates.length === 0) {
+    reportLine('∅', chalk.gray, pkg.name);
   } else {
-    console.log(`${chalk.gray('-')} ${chalk.gray(pkg.name)}`);
+    const { add, rm, change, errors } = groupUpdates(updates);
+
+    reportGroup('+', chalk.green, add, pkg);
+    reportGroup('-', chalk.red, rm, pkg);
+    reportGroup('~', chalk.yellow, change, pkg);
+
+    if (errors.length > 0) {
+      reportLine('!', [chalk.red, chalk.red, chalk.red], pkg.name, {
+        marker: '(error)',
+      });
+      // console.error(chalk.red(ERROR_MARKER), chalk.red.bold(pkg.name));
+      for (const error of errors) {
+        console.error(`${PAD}${chalk.yellow.bold(`- ${error.title}`)}`);
+        console.error(`${PAD}  ${chalk.yellow(error.message)}`);
+      }
+    }
   }
 }
 
-interface PackageJSON extends Record<string, unknown> {
-  name?: string | undefined;
-  main?: string | undefined;
-  types?: string | undefined;
-  scripts?: Record<string, string> | undefined;
-  devDependencies?: Record<string, string> | undefined;
-  config?:
-    | {
-        tsconfig?: string | undefined;
-      }
-    | undefined;
+function reportGroup(op: string, color: ChalkInstance, group: string[], pkg: Package) {
+  if (group.length > 0) {
+    const marker = group.length > 1 ? `(${group.length})` : '';
+    reportLine(op, [color, color.bold, chalk.magenta], pkg.name, {
+      marker,
+      message: group.join(', '),
+    });
+  }
+}
+
+type Color = ChalkInstance | [op: ChalkInstance, pkg: ChalkInstance, marker: ChalkInstance];
+
+function reportLine(
+  op: string,
+  color: Color,
+  packageName: string,
+  options: {
+    marker?: string;
+    message?: string;
+  } = {}
+) {
+  const [opColor, pkgColor, markerColor = chalk.magenta] = Array.isArray(color)
+    ? color
+    : [color, color];
+
+  const marker = options.marker ? ` ${markerColor(options.marker)} ` : '';
+  const message = options.message ? ` ${chalk.gray(options.message)}` : '';
+  console.log(`${opColor(`[${op}]`)} ${pkgColor.bold(packageName)}${marker}${message}`);
+}
+
+interface ErrorMessage {
+  title: string;
+  message: string;
+}
+
+function groupUpdates(updates: Update[]): {
+  add: string[];
+  rm: string[];
+  change: string[];
+  errors: ErrorMessage[];
+} {
+  const add: string[] = [];
+  const rm: string[] = [];
+  const change: string[] = [];
+  const errors: ErrorMessage[] = [];
+
+  for (const update of updates) {
+    if (Array.isArray(update)) {
+      errors.push({ title: update[1], message: update[2] });
+      continue;
+    }
+
+    switch (update.operation) {
+      case 'add':
+        add.push(update.file);
+        break;
+      case 'rm':
+        rm.push(update.file);
+        break;
+      case 'update':
+        change.push(update.file);
+    }
+  }
+
+  return { add, rm, change, errors };
 }
 
 function update(
   pkg: Package,
-  updater: (packageJSON: PackageJSON) => PackageJSON
-): { updates: string[]; packageJSON: PackageJSON } {
+  updater: (packageJSON: PackageJSON) => PackageJSON | ErrUpdate
+): { updates: Update[]; packageJSON: PackageJSON } {
   let packageJSON: PackageJSON = JSON.parse(
     readFileSync(`${pkg.path}/package.json`, { encoding: 'utf-8' })
   );
   const original = JSON.stringify(packageJSON);
 
-  packageJSON = updater(packageJSON);
+  const result = updater(packageJSON);
+
+  if (Array.isArray(result)) {
+    return { updates: [result], packageJSON };
+  }
+
+  packageJSON = result;
 
   if (original === JSON.stringify(packageJSON)) {
     return { updates: [], packageJSON };
@@ -74,24 +151,45 @@ function update(
     encoding: 'utf-8',
   });
 
-  return { updates: ['package.json'], packageJSON };
+  return { updates: [{ file: 'package.json', operation: 'update' }], packageJSON };
 }
 
-function updateRollupConfig(pkg: Package, packageJSON: PackageJSON): string[] {
+function updateRollupConfig(pkg: Package, packageJSON: PackageJSON): Update[] {
   if (packageJSON.main === 'index.d.ts') return [];
 
   const config = resolve(pkg.path, 'rollup.config.mjs');
+  if (packageJSON.workspace?.entry) {
+    if (packageJSON.private) {
+      return [
+        [
+          'err',
+          `invalid private package`,
+          `entry points (workspace.entry=true) are not allowed in private packages`,
+        ],
+      ];
+    }
 
-  if (existsSync(config)) {
-    const contents = readFileSync(config, { encoding: 'utf-8' });
-    if (contents === ROLLUP_CONFIG) return [];
+    const exists = existsSync(config);
+
+    if (exists) {
+      const contents = readFileSync(config, { encoding: 'utf-8' });
+      if (contents === ROLLUP_CONFIG) return [];
+    }
+
+    writeFileSync(config, ROLLUP_CONFIG, { encoding: 'utf-8' });
+    return [{ file: 'rollup.config.mjs', operation: exists ? 'update' : 'add' }];
+  } else if (existsSync(config)) {
+    rmSync(config);
+    return [{ file: 'rollup.config.mjs', operation: 'rm' }];
   }
 
-  writeFileSync(config, ROLLUP_CONFIG, { encoding: 'utf-8' });
-  return ['rollup.config.mjs'];
+  return [];
 }
 
 function updatePublic(packageJSON: PackageJSON) {
+  if (packageJSON.workspace?.entry && packageJSON.private) {
+  }
+
   return updateExports(updatePublicDependencies(updatePublicScripts(packageJSON)));
 }
 
@@ -117,7 +215,7 @@ function updateBuildScripts(packageJSON: PackageJSON) {
   });
 }
 
-function updateExports(packageJSON: PackageJSON) {
+function updateExports(packageJSON: PackageJSON): PackageJSON {
   if (packageJSON.main === 'index.js' || packageJSON.main === 'index.mjs') {
     if (packageJSON.types === 'index.d.ts' || packageJSON.types === 'index.d.mts') {
       return {

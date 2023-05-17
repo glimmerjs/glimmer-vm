@@ -12,6 +12,20 @@
   "types": "index.ts",
   "scripts": {
     "test:lint": "eslint .",
-    "test:types": "tsc --noEmit -p ../tsconfig.json"
+    "test:types": "tsc --noEmit -p ../tsconfig.json",
+    "build": "rollup -c rollup.config.mjs"
+  },
+  "devDependencies": {
+    "@glimmer-workspace/build-support": "workspace:^"
+  },
+  "publishConfig": {
+    "access": "public",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "exports": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.cjs",
+      "default": "./dist/index.js"
+    }
   }
 }
