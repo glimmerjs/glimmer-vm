@@ -25,7 +25,6 @@ import {
   GET_COMPONENT_TAG_NAME_OP,
   INVOKE_COMPONENT_LAYOUT_OP,
   INVOKE_VIRTUAL_OP,
-  InternalComponentCapabilities,
   JUMP_UNLESS_OP,
   LOAD_OP,
   POPULATE_LAYOUT_OP,
@@ -56,6 +55,10 @@ import {
   PUSH_DYNAMIC_SCOPE_OP,
   PUSH_EMPTY_ARGS_OP,
   PUT_COMPONENT_OPERATIONS_OP,
+  PREPARE_ARGS_CAPABILITY,
+  CREATE_ARGS_CAPABILITY,
+  DYNAMIC_SCOPE_CAPABILITY,
+  CREATE_INSTANCE_CAPABILITY,
 } from '@glimmer/vm-constants';
 
 import type { PushExpressionOp, PushStatementOp } from '../../syntax/compilers';
@@ -194,8 +197,7 @@ function InvokeStaticComponent(
 ): void {
   let { symbolTable } = layout;
 
-  let bailOut =
-    symbolTable.hasDebug || hasCapability(capabilities, InternalComponentCapabilities.prepareArgs);
+  let bailOut = symbolTable.hasDebug || hasCapability(capabilities, PREPARE_ARGS_CAPABILITY);
 
   if (bailOut) {
     InvokeNonStaticComponent(op, {
@@ -252,7 +254,7 @@ function InvokeStaticComponent(
   // Next up we have arguments. If the component has the `createArgs` capability,
   // then it wants access to the arguments in JavaScript. We can't know whether
   // or not an argument is used, so we have to give access to all of them.
-  if (hasCapability(capabilities, InternalComponentCapabilities.createArgs)) {
+  if (hasCapability(capabilities, CREATE_ARGS_CAPABILITY)) {
     // First we push positional arguments
     let count = CompilePositional(op, positional);
 
@@ -308,17 +310,17 @@ function InvokeStaticComponent(
 
   op(BEGIN_COMPONENT_TRANSACTION_OP, $s0);
 
-  if (hasCapability(capabilities, InternalComponentCapabilities.dynamicScope)) {
+  if (hasCapability(capabilities, DYNAMIC_SCOPE_CAPABILITY)) {
     op(PUSH_DYNAMIC_SCOPE_OP);
   }
 
-  if (hasCapability(capabilities, InternalComponentCapabilities.createInstance)) {
+  if (hasCapability(capabilities, CREATE_INSTANCE_CAPABILITY)) {
     op(CREATE_COMPONENT_OP, (blocks.has('default') as any) | 0, $s0);
   }
 
   op(REGISTER_COMPONENT_DESTRUCTOR_OP, $s0);
 
-  if (hasCapability(capabilities, InternalComponentCapabilities.createArgs)) {
+  if (hasCapability(capabilities, CREATE_ARGS_CAPABILITY)) {
     op(GET_COMPONENT_SELF_OP, $s0);
   } else {
     op(GET_COMPONENT_SELF_OP, $s0, argNames);
@@ -364,7 +366,7 @@ function InvokeStaticComponent(
   op(POP_FRAME_OP);
   op(POP_SCOPE_OP);
 
-  if (hasCapability(capabilities, InternalComponentCapabilities.dynamicScope)) {
+  if (hasCapability(capabilities, DYNAMIC_SCOPE_CAPABILITY)) {
     op(POP_DYNAMIC_SCOPE_OP);
   }
 
@@ -379,7 +381,7 @@ export function InvokeNonStaticComponent(
   let bindableBlocks = !!namedBlocks;
   let bindableAtNames =
     capabilities === true ||
-    hasCapability(capabilities, InternalComponentCapabilities.prepareArgs) ||
+    !!hasCapability(capabilities, PREPARE_ARGS_CAPABILITY) ||
     !!(named && named[0].length !== 0);
 
   let blocks = namedBlocks.with('attrs', elementBlock);

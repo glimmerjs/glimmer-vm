@@ -1,18 +1,4 @@
-export { ContentType } from './lib/content';
-export {
-  ARG_SHIFT,
-  InternalComponentCapabilities,
-  /** @deprecated */
-  InternalComponentCapabilities as InternalComponentCapability,
-  MACHINE_MASK,
-  MAX_SIZE,
-  OPERAND_LEN_MASK,
-  TYPE_MASK,
-  TYPE_SIZE,
-  CURRIED_COMPONENT,
-  CURRIED_HELPER,
-  CURRIED_MODIFIER,
-} from './lib/flags';
+export * from './lib/flags';
 export * from './lib/opcodes';
 export {
   $fp,
@@ -31,3 +17,4 @@ export {
   type SyscallRegister,
   type TemporaryRegister,
 } from './lib/registers';
+export * from './lib/content';

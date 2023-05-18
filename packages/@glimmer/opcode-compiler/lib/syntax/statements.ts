@@ -8,7 +8,6 @@ import type {
 import {
   $fp,
   $sp,
-  ContentType,
   PUSH_FRAME_OP,
   POP_FRAME_OP,
   INVOKE_STATIC_OP,
@@ -39,6 +38,8 @@ import {
   STATIC_COMPONENT_ATTR_OP,
   TEXT_OP,
   TO_BOOLEAN_OP,
+  COMPONENT_CONTENT,
+  HELPER_CONTENT,
 } from '@glimmer/vm-constants';
 import { SexpOpcodes } from '@glimmer/wire-format';
 
@@ -220,7 +221,7 @@ STATEMENTS.add(SexpOpcodes.Append, (op, [, value]) => {
           op(DYNAMIC_CONTENT_TYPE_OP);
         },
         (when) => {
-          when(ContentType.Component, () => {
+          when(COMPONENT_CONTENT, () => {
             op(RESOLVE_CURRIED_COMPONENT_OP);
             op(PUSH_DYNAMIC_COMPONENT_INSTANCE_OP);
             InvokeNonStaticComponent(op, {
@@ -233,7 +234,7 @@ STATEMENTS.add(SexpOpcodes.Append, (op, [, value]) => {
             });
           });
 
-          when(ContentType.Helper, () => {
+          when(HELPER_CONTENT, () => {
             CallDynamic(op, positional, named, () => {
               op(INVOKE_STATIC_OP, stdlibOperand(STDLIB_CAUTIOUS_NON_DYNAMIC_APPEND));
             });

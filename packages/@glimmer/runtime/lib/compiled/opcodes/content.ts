@@ -15,9 +15,17 @@ import {
   APPEND_SAFE_HTML_OP,
   APPEND_TEXT_OP,
   CONTENT_TYPE_OP,
-  ContentType,
   DYNAMIC_CONTENT_TYPE_OP,
- CURRIED_COMPONENT, CURRIED_HELPER } from '@glimmer/vm-constants';
+  CURRIED_COMPONENT,
+  CURRIED_HELPER,
+
+  COMPONENT_CONTENT,
+  FRAGMENT_CONTENT,
+  HELPER_CONTENT,
+  NODE_CONTENT,
+  SAFE_STRING_CONTENT,
+  STRING_CONTENT,
+} from '@glimmer/vm-constants';
 
 import { isCurriedType } from '../../curried-value';
 import { isEmpty, isFragment, isNode, isSafeString, shouldCoerce } from '../../dom/normalize';
@@ -28,32 +36,35 @@ import { AssertFilter } from './vm';
 
 function toContentType(value: unknown) {
   if (shouldCoerce(value)) {
-    return ContentType.String;
-  } else if (
-    isCurriedType(value, CURRIED_COMPONENT) ||
-    hasInternalComponentManager(value as object)
-  ) {
-    return ContentType.Component;
-  } else if (isCurriedType(value, CURRIED_HELPER) || hasInternalHelperManager(value as object)) {
-    return ContentType.Helper;
-  } else if (isSafeString(value)) {
-    return ContentType.SafeString;
-  } else if (isFragment(value)) {
-    return ContentType.Fragment;
-  } else if (isNode(value)) {
-    return ContentType.Node;
-  } else {
-    return ContentType.String;
+    return STRING_CONTENT;
   }
+
+  if (isCurriedType(value, CURRIED_COMPONENT) || hasInternalComponentManager(value as object)) {
+    return COMPONENT_CONTENT;
+  }
+
+  if (isCurriedType(value, CURRIED_HELPER) || hasInternalHelperManager(value as object)) {
+    return HELPER_CONTENT;
+  }
+
+  if (isSafeString(value)) {
+    return SAFE_STRING_CONTENT;
+  }
+
+  if (isNode(value)) {
+    return isFragment(value) ? FRAGMENT_CONTENT : NODE_CONTENT;
+  }
+
+  return STRING_CONTENT;
 }
 
 function toDynamicContentType(value: unknown) {
   if (!isObject(value)) {
-    return ContentType.String;
+    return STRING_CONTENT;
   }
 
   if (isCurriedType(value, CURRIED_COMPONENT) || hasInternalComponentManager(value)) {
-    return ContentType.Component;
+    return COMPONENT_CONTENT;
   } else {
     if (
       import.meta.env.DEV &&
@@ -65,7 +76,7 @@ function toDynamicContentType(value: unknown) {
       );
     }
 
-    return ContentType.Helper;
+    return HELPER_CONTENT;
   }
 }
 

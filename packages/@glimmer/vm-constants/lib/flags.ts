@@ -28,22 +28,39 @@ export const CURRIED_COMPONENT: CurriedComponent = 0;
 export const CURRIED_HELPER: CurriedHelper = 1;
 export const CURRIED_MODIFIER: CurriedModifier = 2;
 
-export const InternalComponentCapabilities = {
-  Empty: 0 satisfies EmptyCapability,
-  dynamicLayout: 0b0000000000001 satisfies DynamicLayoutCapability,
-  dynamicTag: 0b0000000000010 satisfies DynamicTagCapability,
-  prepareArgs: 0b0000000000100 satisfies PrepareArgsCapability,
-  createArgs: 0b0000000001000 satisfies CreateArgsCapability,
-  attributeHook: 0b0000000010000 satisfies AttributeHookCapability,
-  elementHook: 0b0000000100000 satisfies ElementHookCapability,
-  dynamicScope: 0b0000001000000 satisfies DynamicScopeCapability,
-  createCaller: 0b0000010000000 satisfies CreateCallerCapability,
-  updateHook: 0b0000100000000 satisfies UpdateHookCapability,
-  createInstance: 0b0001000000000 satisfies CreateInstanceCapability,
-  wrapped: 0b0010000000000 satisfies WrappedCapability,
-  willDestroy: 0b0100000000000 satisfies WillDestroyCapability,
-  hasSubOwner: 0b1000000000000 satisfies HasSubOwnerCapability,
-} as const;
+// prettier-ignore
+export const EMPTY_CAPABILITY: EmptyCapability = 0;
+export const DYNAMIC_LAYOUT_CAPABILITY: DynamicLayoutCapability = 0b0000000000001;
+export const DYNAMIC_TAG_CAPABILITY: DynamicTagCapability = 0b0000000000010;
+export const PREPARE_ARGS_CAPABILITY: PrepareArgsCapability = 0b0000000000100;
+export const CREATE_ARGS_CAPABILITY: CreateArgsCapability = 0b0000000001000;
+export const ATTRIBUTE_HOOK_CAPABILITY: AttributeHookCapability = 0b0000000010000;
+export const ELEMENT_HOOK_CAPABILITY: ElementHookCapability = 0b0000000100000;
+export const DYNAMIC_SCOPE_CAPABILITY: DynamicScopeCapability = 0b0000001000000;
+export const CREATE_CALLER_CAPABILITY: CreateCallerCapability = 0b0000010000000;
+export const UPDATE_HOOK_CAPABILITY: UpdateHookCapability = 0b0000100000000;
+export const CREATE_INSTANCE_CAPABILITY: CreateInstanceCapability = 0b0001000000000;
+export const WRAPPED_CAPABILITY: WrappedCapability = 0b0010000000000;
+export const WILL_DESTROY_CAPABILITY: WillDestroyCapability = 0b0100000000000;
+export const HAS_SUB_OWNER_CAPABILITY: HasSubOwnerCapability = 0b1000000000000;
+
+export type InternalComponentCapability =
+  | DynamicLayoutCapability
+  | DynamicTagCapability
+  | PrepareArgsCapability
+  | CreateArgsCapability
+  | AttributeHookCapability
+  | ElementHookCapability
+  | DynamicScopeCapability
+  | CreateCallerCapability
+  | UpdateHookCapability
+  | CreateInstanceCapability
+  | WrappedCapability
+  | WillDestroyCapability
+  | HasSubOwnerCapability;
+
+/** @deprecated Use {@linkcode InternalComponentCapability} */
+export type InternalComponentCapabilities = InternalComponentCapability;
 
 export const ARG_SHIFT = 8 as const satisfies IARG_SHIFT;
 export const MAX_SIZE = 0x7fffffff as const satisfies IMAX_SIZE;

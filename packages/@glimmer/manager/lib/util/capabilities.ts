@@ -3,6 +3,7 @@ import type {
   AttributeHookCapability,
   Capabilities,
   CapabilityMask,
+  ComponentCapabilityName,
   CreateArgsCapability,
   CreateCallerCapability,
   CreateInstanceCapability,
@@ -14,6 +15,7 @@ import type {
   HasSubOwnerCapability,
   InternalComponentCapability,
   InternalComponentManager,
+  MACHINE_BOOL,
   PrepareArgsCapability,
   UpdateHookCapability,
   WillDestroyCapability,
@@ -24,7 +26,22 @@ import type {
   WithUpdateHook,
   WrappedCapability,
 } from '@glimmer/interfaces';
-import { InternalComponentCapabilities } from '@glimmer/vm-constants';
+import {
+  ATTRIBUTE_HOOK_CAPABILITY,
+  CREATE_ARGS_CAPABILITY,
+  CREATE_CALLER_CAPABILITY,
+  CREATE_INSTANCE_CAPABILITY,
+  DYNAMIC_LAYOUT_CAPABILITY,
+  DYNAMIC_SCOPE_CAPABILITY,
+  DYNAMIC_TAG_CAPABILITY,
+  ELEMENT_HOOK_CAPABILITY,
+  EMPTY_CAPABILITY,
+  HAS_SUB_OWNER_CAPABILITY,
+  PREPARE_ARGS_CAPABILITY,
+  UPDATE_HOOK_CAPABILITY,
+  WILL_DESTROY_CAPABILITY,
+  WRAPPED_CAPABILITY,
+} from '@glimmer/vm-constants';
 
 export const FROM_CAPABILITIES = import.meta.env.DEV ? new WeakSet() : undefined;
 
@@ -37,37 +54,31 @@ export function buildCapabilities<T extends object>(capabilities: T): T & Capabi
   return capabilities as T & Capabilities;
 }
 
-const EMPTY = InternalComponentCapabilities.Empty;
-
 type CapabilityOptions = Expand<{
-  [P in keyof Omit<typeof InternalComponentCapabilities, 'Empty'>]?: boolean | undefined;
+  [P in ComponentCapabilityName]?: boolean | undefined;
 }>;
 
 /**
  * Converts a ComponentCapabilities object into a 32-bit integer representation.
  */
 export function capabilityFlagsFrom(capabilities: CapabilityOptions): CapabilityMask {
-  return (EMPTY |
-    capability(capabilities, 'dynamicLayout') |
-    capability(capabilities, 'dynamicTag') |
-    capability(capabilities, 'prepareArgs') |
-    capability(capabilities, 'createArgs') |
-    capability(capabilities, 'attributeHook') |
-    capability(capabilities, 'elementHook') |
-    capability(capabilities, 'dynamicScope') |
-    capability(capabilities, 'createCaller') |
-    capability(capabilities, 'updateHook') |
-    capability(capabilities, 'createInstance') |
-    capability(capabilities, 'wrapped') |
-    capability(capabilities, 'willDestroy') |
-    capability(capabilities, 'hasSubOwner')) as CapabilityMask;
-}
+  let mask = EMPTY_CAPABILITY;
 
-function capability(
-  capabilities: CapabilityOptions,
-  capability: keyof CapabilityOptions
-): InternalComponentCapability {
-  return capabilities[capability] ? InternalComponentCapabilities[capability] : EMPTY;
+  if (capabilities.dynamicLayout) mask |= DYNAMIC_LAYOUT_CAPABILITY;
+  if (capabilities.dynamicTag) mask |= DYNAMIC_TAG_CAPABILITY;
+  if (capabilities.prepareArgs) mask |= PREPARE_ARGS_CAPABILITY;
+  if (capabilities.createArgs) mask |= CREATE_ARGS_CAPABILITY;
+  if (capabilities.attributeHook) mask |= ATTRIBUTE_HOOK_CAPABILITY;
+  if (capabilities.elementHook) mask |= ELEMENT_HOOK_CAPABILITY;
+  if (capabilities.dynamicScope) mask |= DYNAMIC_SCOPE_CAPABILITY;
+  if (capabilities.createCaller) mask |= CREATE_CALLER_CAPABILITY;
+  if (capabilities.updateHook) mask |= UPDATE_HOOK_CAPABILITY;
+  if (capabilities.createInstance) mask |= CREATE_INSTANCE_CAPABILITY;
+  if (capabilities.wrapped) mask |= WRAPPED_CAPABILITY;
+  if (capabilities.willDestroy) mask |= WILL_DESTROY_CAPABILITY;
+  if (capabilities.hasSubOwner) mask |= HAS_SUB_OWNER_CAPABILITY;
+
+  return mask as CapabilityMask;
 }
 
 export type InternalComponentCapabilityFor<C extends InternalComponentCapability> =
@@ -104,14 +115,14 @@ export function managerHasCapability<F extends InternalComponentCapability>(
   capabilities: CapabilityMask,
   capability: F
 ): _manager is InternalComponentCapabilityFor<F> {
-  check(capabilities, CheckNumber);
+  check(capabilities, /** @__PURE__ */ CheckNumber);
   return !!(capabilities & capability);
 }
 
 export function hasCapability(
   capabilities: CapabilityMask,
   capability: InternalComponentCapability
-): boolean {
-  check(capabilities, CheckNumber);
-  return !!(capabilities & capability);
+): MACHINE_BOOL {
+  check(capabilities, /** @__PURE__ */ CheckNumber);
+  return capabilities & capability;
 }

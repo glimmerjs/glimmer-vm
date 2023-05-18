@@ -49,7 +49,6 @@ import {
 import {
   $t0,
   $t1,
-  InternalComponentCapabilities,
   SET_NAMED_VARIABLES_OP,
   type Register,
   SET_BLOCKS_OP,
@@ -77,6 +76,16 @@ import {
   RESOLVE_DYNAMIC_COMPONENT_OP,
   STATIC_COMPONENT_ATTR_OP,
   VIRTUAL_ROOT_SCOPE_OP,
+  PREPARE_ARGS_CAPABILITY,
+  CREATE_ARGS_CAPABILITY,
+  CREATE_CALLER_CAPABILITY,
+  CREATE_INSTANCE_CAPABILITY,
+  DYNAMIC_LAYOUT_CAPABILITY,
+  DYNAMIC_SCOPE_CAPABILITY,
+  HAS_SUB_OWNER_CAPABILITY,
+  UPDATE_HOOK_CAPABILITY,
+  WILL_DESTROY_CAPABILITY,
+  WRAPPED_CAPABILITY,
 } from '@glimmer/vm-constants';
 
 import { hasCustomDebugRenderTreeLifecycle } from '../../component/interfaces';
@@ -339,7 +348,7 @@ APPEND_OPCODES.add(PREPARE_ARGS_OP, (vm, { op1: _state }) => {
   let { manager, state } = definition;
   let capabilities = instance.capabilities;
 
-  if (!managerHasCapability(manager, capabilities, InternalComponentCapabilities.prepareArgs)) {
+  if (!managerHasCapability(manager, capabilities, PREPARE_ARGS_CAPABILITY)) {
     stack.push(args);
     return;
   }
@@ -379,7 +388,7 @@ APPEND_OPCODES.add(CREATE_COMPONENT_OP, (vm, { op1: flags, op2: _state }) => {
   let instance = check(vm._fetchValue_(_state as Register), CheckComponentInstance);
   let { definition, manager, capabilities } = instance;
 
-  if (!managerHasCapability(manager, capabilities, InternalComponentCapabilities.createInstance)) {
+  if (!managerHasCapability(manager, capabilities, CREATE_INSTANCE_CAPABILITY)) {
     // TODO: Closure and Main components are always invoked dynamically, so this
     // opcode may run even if this capability is not enabled. In the future we
     // should handle this in a better way.
@@ -387,19 +396,19 @@ APPEND_OPCODES.add(CREATE_COMPONENT_OP, (vm, { op1: flags, op2: _state }) => {
   }
 
   let dynamicScope: Nullable<DynamicScope> = null;
-  if (managerHasCapability(manager, capabilities, InternalComponentCapabilities.dynamicScope)) {
+  if (managerHasCapability(manager, capabilities, DYNAMIC_SCOPE_CAPABILITY)) {
     dynamicScope = vm._dynamicScope_();
   }
 
   let hasDefaultBlock = flags & 1;
   let args: Nullable<VMArguments> = null;
 
-  if (managerHasCapability(manager, capabilities, InternalComponentCapabilities.createArgs)) {
+  if (managerHasCapability(manager, capabilities, CREATE_ARGS_CAPABILITY)) {
     args = check(vm.stack.peek(), CheckArguments);
   }
 
   let self: Nullable<Reference> = null;
-  if (managerHasCapability(manager, capabilities, InternalComponentCapabilities.createCaller)) {
+  if (managerHasCapability(manager, capabilities, CREATE_CALLER_CAPABILITY)) {
     self = vm._getSelf_();
   }
 
@@ -417,7 +426,7 @@ APPEND_OPCODES.add(CREATE_COMPONENT_OP, (vm, { op1: flags, op2: _state }) => {
   // only transition at exactly one place.
   instance.state = state;
 
-  if (managerHasCapability(manager, capabilities, InternalComponentCapabilities.updateHook)) {
+  if (managerHasCapability(manager, capabilities, UPDATE_HOOK_CAPABILITY)) {
     vm._updateWith_(new UpdateComponentOpcode(state, manager, dynamicScope));
   }
 });
@@ -432,7 +441,7 @@ APPEND_OPCODES.add(REGISTER_COMPONENT_DESTRUCTOR_OP, (vm, { op1: _state }) => {
 
   if (
     import.meta.env.DEV &&
-    !managerHasCapability(manager, capabilities, InternalComponentCapabilities.willDestroy) &&
+    !managerHasCapability(manager, capabilities, WILL_DESTROY_CAPABILITY) &&
     d !== null &&
     typeof 'willDestroy' in d
   ) {
@@ -448,7 +457,10 @@ APPEND_OPCODES.add(BEGIN_COMPONENT_TRANSACTION_OP, (vm, { op1: _state }) => {
   let name;
 
   if (import.meta.env.DEV) {
-    let { definition, manager } = check(vm._fetchValue_(_state as Register), CheckComponentInstance);
+    let { definition, manager } = check(
+      vm._fetchValue_(_state as Register),
+      CheckComponentInstance
+    );
 
     name = definition.resolvedName ?? manager.getDebugName(definition.state);
   }
@@ -633,11 +645,7 @@ APPEND_OPCODES.add(GET_COMPONENT_SELF_OP, (vm, { op1: _state, op2: _names }) => 
 
     if (compilable === null) {
       assert(
-        managerHasCapability(
-          manager,
-          instance.capabilities,
-          InternalComponentCapabilities.dynamicLayout
-        ),
+        managerHasCapability(manager, instance.capabilities, DYNAMIC_LAYOUT_CAPABILITY),
         'BUG: No template was found for this component, and the component did not have the dynamic layout capability'
       );
 
@@ -722,14 +730,14 @@ APPEND_OPCODES.add(GET_COMPONENT_LAYOUT_OP, (vm, { op1: _state }) => {
     let { capabilities } = instance;
 
     assert(
-      managerHasCapability(manager, capabilities, InternalComponentCapabilities.dynamicLayout),
+      managerHasCapability(manager, capabilities, DYNAMIC_LAYOUT_CAPABILITY),
       'BUG: No template was found for this component, and the component did not have the dynamic layout capability'
     );
 
     compilable = manager.getDynamicLayout(instance.state, vm.runtime.resolver);
 
     if (compilable === null) {
-      if (managerHasCapability(manager, capabilities, InternalComponentCapabilities.wrapped)) {
+      if (managerHasCapability(manager, capabilities, WRAPPED_CAPABILITY)) {
         compilable = unwrapTemplate(vm[CONSTANTS].defaultTemplate).asWrappedLayout();
       } else {
         compilable = unwrapTemplate(vm[CONSTANTS].defaultTemplate).asLayout();
@@ -783,7 +791,7 @@ APPEND_OPCODES.add(VIRTUAL_ROOT_SCOPE_OP, (vm, { op1: _state }) => {
 
   let owner;
 
-  if (managerHasCapability(manager, capabilities, InternalComponentCapabilities.hasSubOwner)) {
+  if (managerHasCapability(manager, capabilities, HAS_SUB_OWNER_CAPABILITY)) {
     owner = manager.getOwner(state);
     vm._loadValue_($t1, null); // Clear the temp register
   } else {
@@ -875,7 +883,7 @@ APPEND_OPCODES.add(DID_RENDER_LAYOUT_OP, (vm, { op1: _state }) => {
     }
   }
 
-  if (managerHasCapability(manager, capabilities, InternalComponentCapabilities.createInstance)) {
+  if (managerHasCapability(manager, capabilities, CREATE_INSTANCE_CAPABILITY)) {
     let mgr = check(manager, CheckInterface({ didRenderLayout: CheckFunction }));
     mgr.didRenderLayout(state, bounds);
 

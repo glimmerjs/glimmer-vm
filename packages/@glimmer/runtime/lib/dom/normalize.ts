@@ -55,8 +55,8 @@ export function isNode(value: unknown): value is SimpleNode {
   return typeof value === 'object' && value !== null && typeof (value as any).nodeType === 'number';
 }
 
-export function isFragment(value: unknown): value is SimpleDocumentFragment {
-  return isNode(value) && value.nodeType === 11;
+export function isFragment(value: SimpleNode): value is SimpleDocumentFragment {
+  return value.nodeType === 11;
 }
 
 export function isString(value: unknown): value is string {

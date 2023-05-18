@@ -14,11 +14,17 @@ import {
   APPEND_TEXT_OP,
   ASSERT_SAME_OP,
   CONTENT_TYPE_OP,
-  ContentType,
   INVOKE_STATIC_OP,
   MAIN_OP,
   PUSH_DYNAMIC_COMPONENT_INSTANCE_OP,
   RESOLVE_CURRIED_COMPONENT_OP,
+
+  COMPONENT_CONTENT,
+  FRAGMENT_CONTENT,
+  HELPER_CONTENT,
+  NODE_CONTENT,
+  SAFE_STRING_CONTENT,
+  STRING_CONTENT,
 } from '@glimmer/vm-constants';
 
 import type { HighLevelStatementOp, PushStatementOp } from '../../syntax/compilers';
@@ -49,7 +55,7 @@ export function StdAppend(
     op,
     () => op(CONTENT_TYPE_OP),
     (when) => {
-      when(ContentType.String, () => {
+      when(STRING_CONTENT, () => {
         if (trusting) {
           op(ASSERT_SAME_OP);
           op(APPEND_HTML_OP);
@@ -59,13 +65,13 @@ export function StdAppend(
       });
 
       if (typeof nonDynamicAppend === 'number') {
-        when(ContentType.Component, () => {
+        when(COMPONENT_CONTENT, () => {
           op(RESOLVE_CURRIED_COMPONENT_OP);
           op(PUSH_DYNAMIC_COMPONENT_INSTANCE_OP);
           InvokeBareComponent(op);
         });
 
-        when(ContentType.Helper, () => {
+        when(HELPER_CONTENT, () => {
           CallDynamic(op, null, null, () => {
             op(INVOKE_STATIC_OP, nonDynamicAppend);
           });
@@ -73,26 +79,26 @@ export function StdAppend(
       } else {
         // when non-dynamic, we can no longer call the value (potentially because we've already called it)
         // this prevents infinite loops. We instead coerce the value, whatever it is, into the DOM.
-        when(ContentType.Component, () => {
+        when(COMPONENT_CONTENT, () => {
           op(APPEND_TEXT_OP);
         });
 
-        when(ContentType.Helper, () => {
+        when(HELPER_CONTENT, () => {
           op(APPEND_TEXT_OP);
         });
       }
 
-      when(ContentType.SafeString, () => {
+      when(SAFE_STRING_CONTENT, () => {
         op(ASSERT_SAME_OP);
         op(APPEND_SAFE_HTML_OP);
       });
 
-      when(ContentType.Fragment, () => {
+      when(FRAGMENT_CONTENT, () => {
         op(ASSERT_SAME_OP);
         op(APPEND_DOCUMENT_FRAGMENT_OP);
       });
 
-      when(ContentType.Node, () => {
+      when(NODE_CONTENT, () => {
         op(ASSERT_SAME_OP);
         op(APPEND_NODE_OP);
       });

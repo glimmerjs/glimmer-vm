@@ -127,6 +127,21 @@ export type WrappedCapability = 0b0010000000000;
 export type WillDestroyCapability = 0b0100000000000;
 export type HasSubOwnerCapability = 0b1000000000000;
 
+export type ComponentCapabilityName =
+  | 'dynamicLayout'
+  | 'dynamicTag'
+  | 'prepareArgs'
+  | 'createArgs'
+  | 'attributeHook'
+  | 'elementHook'
+  | 'dynamicScope'
+  | 'createCaller'
+  | 'updateHook'
+  | 'createInstance'
+  | 'wrapped'
+  | 'willDestroy'
+  | 'hasSubOwner';
+
 export type InternalComponentCapability =
   | EmptyCapability
   | DynamicLayoutCapability

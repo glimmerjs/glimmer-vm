@@ -20,9 +20,9 @@ import {
 } from '@glimmer/manager';
 import { templateFactory } from '@glimmer/opcode-compiler';
 import { assert, constants, enumerate, expect, unwrapTemplate } from '@glimmer/util';
-import { InternalComponentCapabilities } from '@glimmer/vm-constants';
 
 import { DEFAULT_TEMPLATE } from './util/default-template';
+import { DYNAMIC_LAYOUT_CAPABILITY, WRAPPED_CAPABILITY } from '@glimmer/vm-constants';
 
 const WELL_KNOWN_EMPTY_ARRAY: unknown = Object.freeze([]);
 const STARTER_CONSTANTS = constants(WELL_KNOWN_EMPTY_ARRAY);
@@ -221,9 +221,7 @@ export class ConstantsImpl
       let compilable = null;
       let template;
 
-      if (
-        !managerHasCapability(manager, capabilities, InternalComponentCapabilities.dynamicLayout)
-      ) {
+      if (!managerHasCapability(manager, capabilities, DYNAMIC_LAYOUT_CAPABILITY)) {
         template = templateFactory?.(owner) ?? this.defaultTemplate;
       } else {
         template = templateFactory?.(owner);
@@ -232,11 +230,7 @@ export class ConstantsImpl
       if (template !== undefined) {
         template = unwrapTemplate(template);
 
-        compilable = managerHasCapability(
-          manager,
-          capabilities,
-          InternalComponentCapabilities.wrapped
-        )
+        compilable = managerHasCapability(manager, capabilities, WRAPPED_CAPABILITY)
           ? template.asWrappedLayout()
           : template.asLayout();
       }
@@ -270,20 +264,14 @@ export class ConstantsImpl
 
       let compilable = null;
 
-      if (
-        !managerHasCapability(manager, capabilities, InternalComponentCapabilities.dynamicLayout)
-      ) {
+      if (!managerHasCapability(manager, capabilities, DYNAMIC_LAYOUT_CAPABILITY)) {
         template = template ?? this.defaultTemplate;
       }
 
       if (template !== null) {
         template = unwrapTemplate(template);
 
-        compilable = managerHasCapability(
-          manager,
-          capabilities,
-          InternalComponentCapabilities.wrapped
-        )
+        compilable = managerHasCapability(manager, capabilities, WRAPPED_CAPABILITY)
           ? template.asWrappedLayout()
           : template.asLayout();
       }

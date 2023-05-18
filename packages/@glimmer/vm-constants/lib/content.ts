@@ -1,10 +1,8 @@
-export const ContentType = {
-  Component: 0,
-  Helper: 1,
-  String: 2,
-  Empty: 3,
-  SafeString: 4,
-  Fragment: 5,
-  Node: 6,
-  Other: 8,
-} as const;
+export const COMPONENT_CONTENT = 0;
+export const HELPER_CONTENT = 1;
+export const STRING_CONTENT = 2;
+export const EMPTY_CONTENT = 3;
+export const SAFE_STRING_CONTENT = 4;
+export const FRAGMENT_CONTENT = 5;
+export const NODE_CONTENT = 6;
+export const OTHER_CONTENT = 8;

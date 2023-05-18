@@ -9,6 +9,9 @@ export type TYPE_MASK = 0b00000000000000000000000011111111;
 export type OPERAND_LEN_MASK = 0b00000000000000000000001100000000;
 export type MACHINE_MASK = 0b00000000000000000000010000000000;
 
+/** 0 is false, anything else is true */
+export type MACHINE_BOOL = number;
+
 export interface InstructionEncoder {
   size: number;
   readonly buffer: CompilerBuffer;
