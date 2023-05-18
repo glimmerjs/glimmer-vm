@@ -27,7 +27,7 @@ export function modifierCapabilities<Version extends keyof ModifierCapabilitiesV
   }
 
   return buildCapabilities({
-    disableAutoTracking: Boolean(optionalFeatures.disableAutoTracking),
+    disableAutoTracking: !!optionalFeatures.disableAutoTracking,
   });
 }
 

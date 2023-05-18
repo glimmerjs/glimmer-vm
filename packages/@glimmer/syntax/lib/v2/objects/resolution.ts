@@ -7,7 +7,15 @@
  */
 
 import type { GetContextualFreeOpcode } from '@glimmer/interfaces';
-import { SexpOpcodes } from '@glimmer/wire-format';
+import {
+  WIRE_GET_FREE_AS_COMPONENT_HEAD,
+  WIRE_GET_FREE_AS_COMPONENT_OR_HELPER_HEAD,
+  WIRE_GET_FREE_AS_COMPONENT_OR_HELPER_HEAD_OR_THIS_FALLBACK,
+  WIRE_GET_FREE_AS_HELPER_HEAD,
+  WIRE_GET_FREE_AS_HELPER_HEAD_OR_THIS_FALLBACK,
+  WIRE_GET_FREE_AS_MODIFIER_HEAD,
+  WIRE_GET_STRICT_KEYWORD,
+} from '@glimmer/wire-format';
 
 /**
  * Strict resolution is used:
@@ -16,7 +24,7 @@ import { SexpOpcodes } from '@glimmer/wire-format';
  * 2. in an unambiguous invocation with dot paths
  */
 export const STRICT_RESOLUTION = {
-  resolution: (): GetContextualFreeOpcode => SexpOpcodes.GetStrictKeyword,
+  resolution: (): GetContextualFreeOpcode => WIRE_GET_STRICT_KEYWORD,
   serialize: (): SerializedResolution => 'Strict',
   isAngleBracket: false as const,
 };
@@ -151,28 +159,28 @@ export class LooseModeResolution {
 
   resolution(): GetContextualFreeOpcode {
     if (this.ambiguity.namespaces.length === 0) {
-      return SexpOpcodes.GetStrictKeyword;
+      return WIRE_GET_STRICT_KEYWORD;
     } else if (this.ambiguity.namespaces.length === 1) {
       if (this.ambiguity.fallback) {
         // simple namespaced resolution with fallback must be attr={{x}}
-        return SexpOpcodes.GetFreeAsHelperHeadOrThisFallback;
+        return WIRE_GET_FREE_AS_HELPER_HEAD_OR_THIS_FALLBACK;
       } else {
         // simple namespaced resolution without fallback
         switch (this.ambiguity.namespaces[0]) {
           case FreeVarNamespace.Helper:
-            return SexpOpcodes.GetFreeAsHelperHead;
+            return WIRE_GET_FREE_AS_HELPER_HEAD;
           case FreeVarNamespace.Modifier:
-            return SexpOpcodes.GetFreeAsModifierHead;
+            return WIRE_GET_FREE_AS_MODIFIER_HEAD;
           case FreeVarNamespace.Component:
-            return SexpOpcodes.GetFreeAsComponentHead;
+            return WIRE_GET_FREE_AS_COMPONENT_HEAD;
         }
       }
     } else if (this.ambiguity.fallback) {
       // component or helper + fallback ({{something}})
-      return SexpOpcodes.GetFreeAsComponentOrHelperHeadOrThisFallback;
+      return WIRE_GET_FREE_AS_COMPONENT_OR_HELPER_HEAD_OR_THIS_FALLBACK;
     } else {
       // component or helper without fallback ({{something something}})
-      return SexpOpcodes.GetFreeAsComponentOrHelperHead;
+      return WIRE_GET_FREE_AS_COMPONENT_OR_HELPER_HEAD;
     }
   }
 

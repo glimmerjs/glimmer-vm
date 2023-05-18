@@ -13,7 +13,7 @@
     "test": "mocha",
     "test:lint": "eslint .",
     "test:types": "tsc --noEmit -p ../tsconfig.json",
-    "build": "rollup -c rollup.config.mjs"
+    "build": "rollup -c rollup.config.mjs --experimentalLogSideEffects"
   },
   "dependencies": {
     "babel-plugin-debug-macros": "^0.3.4"

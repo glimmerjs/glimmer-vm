@@ -26,7 +26,7 @@ export interface SimpleLiveBlock extends LiveBlock {
   lastNode(): SimpleNode;
 }
 
-export type RemoteLiveBlock = SimpleLiveBlock
+export type RemoteLiveBlock = SimpleLiveBlock;
 
 export interface UpdatableBlock extends SimpleLiveBlock {
   reset(env: Environment): Nullable<SimpleNode>;
@@ -81,9 +81,9 @@ export interface ElementBuilder extends Cursor, DOMStack, TreeOperations {
   [CURSOR_STACK]: Stack<Cursor>;
 
   nextSibling: Nullable<SimpleNode>;
-  dom: GlimmerTreeConstruction;
-  updateOperations: GlimmerTreeChanges;
-  constructing: Nullable<SimpleElement>;
+  _dom_: GlimmerTreeConstruction;
+  _updateOperations_: GlimmerTreeChanges;
+  _constructing_: Nullable<SimpleElement>;
   element: SimpleElement;
 
   hasBlocks: boolean;

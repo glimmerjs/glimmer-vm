@@ -1,6 +1,6 @@
 /* eslint-disable no-console */
 
-import setGlobalContext from '@glimmer/global-context';
+import { setGlobalContext } from '@glimmer/global-context';
 import type { Destroyable, Destructor, RenderResult } from '@glimmer/interfaces';
 import type { EnvironmentDelegate } from '@glimmer/runtime';
 
@@ -79,7 +79,7 @@ setGlobalContext({
   },
 
   toBool(value) {
-    return Boolean(value);
+    return !!value;
   },
 
   toIterator() {

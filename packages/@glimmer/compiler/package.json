@@ -34,7 +34,7 @@
     "@types/node": "^18.16.12"
   },
   "scripts": {
-    "build": "rollup -c rollup.config.mjs",
+    "build": "rollup -c rollup.config.mjs --experimentalLogSideEffects",
     "test:lint": "eslint .",
     "test:types": "tsc --noEmit -p ../tsconfig.json"
   },

@@ -52,7 +52,7 @@ import {
 } from '@glimmer/vm-constants';
 
 import { isCurriedType, resolveCurriedValue } from '../../curried-value';
-import { APPEND_OPCODES } from '../../opcodes';
+import { define } from '../../opcodes';
 import createCurryRef from '../../references/curry-value';
 import { CONSTANTS } from '../../symbols';
 import { reifyPositional } from '../../vm/arguments';
@@ -70,7 +70,7 @@ import {
 
 export type FunctionExpression<T> = (vm: PublicVM) => Reference<T>;
 
-APPEND_OPCODES.add(CURRY_OP, (vm, { op1: type, op2: _isStrict }) => {
+define(CURRY_OP, (vm, { op1: type, op2: _isStrict }) => {
   let stack = vm.stack;
 
   let definition = check(stack.pop(), CheckReference);
@@ -92,7 +92,7 @@ APPEND_OPCODES.add(CURRY_OP, (vm, { op1: type, op2: _isStrict }) => {
   );
 });
 
-APPEND_OPCODES.add(DYNAMIC_HELPER_OP, (vm) => {
+define(DYNAMIC_HELPER_OP, (vm) => {
   let stack = vm.stack;
   let ref = check(stack.pop(), CheckReference);
   let args = check(stack.pop(), CheckArguments).capture();
@@ -164,7 +164,7 @@ function resolveHelper(
   return constants.getValue(handle);
 }
 
-APPEND_OPCODES.add(HELPER_OP, (vm, { op1: handle }) => {
+define(HELPER_OP, (vm, { op1: handle }) => {
   let stack = vm.stack;
   let helper = check(vm[CONSTANTS].getValue(handle), CheckHelper);
   let args = check(stack.pop(), CheckArguments);
@@ -177,18 +177,18 @@ APPEND_OPCODES.add(HELPER_OP, (vm, { op1: handle }) => {
   vm._loadValue_($v0, value);
 });
 
-APPEND_OPCODES.add(GET_VARIABLE_OP, (vm, { op1: symbol }) => {
+define(GET_VARIABLE_OP, (vm, { op1: symbol }) => {
   let expr = vm._referenceForSymbol_(symbol);
 
   vm.stack.push(expr);
 });
 
-APPEND_OPCODES.add(SET_VARIABLE_OP, (vm, { op1: symbol }) => {
+define(SET_VARIABLE_OP, (vm, { op1: symbol }) => {
   let expr = check(vm.stack.pop(), CheckReference);
   vm._scope_().bindSymbol(symbol, expr);
 });
 
-APPEND_OPCODES.add(SET_BLOCK_OP, (vm, { op1: symbol }) => {
+define(SET_BLOCK_OP, (vm, { op1: symbol }) => {
   let handle = check(vm.stack.pop(), CheckCompilableBlock);
   let scope = check(vm.stack.pop(), CheckScope);
   let table = check(vm.stack.pop(), CheckBlockSymbolTable);
@@ -196,24 +196,24 @@ APPEND_OPCODES.add(SET_BLOCK_OP, (vm, { op1: symbol }) => {
   vm._scope_().bindBlock(symbol, [handle, scope, table]);
 });
 
-APPEND_OPCODES.add(ROOT_SCOPE_OP, (vm, { op1: symbols }) => {
+define(ROOT_SCOPE_OP, (vm, { op1: symbols }) => {
   vm._pushRootScope_(symbols, vm._getOwner_());
 });
 
-APPEND_OPCODES.add(GET_PROPERTY_OP, (vm, { op1: _key }) => {
+define(GET_PROPERTY_OP, (vm, { op1: _key }) => {
   let key = vm[CONSTANTS].getValue<string>(_key);
   let expr = check(vm.stack.pop(), CheckReference);
   vm.stack.push(childRefFor(expr, key));
 });
 
-APPEND_OPCODES.add(GET_BLOCK_OP, (vm, { op1: _block }) => {
+define(GET_BLOCK_OP, (vm, { op1: _block }) => {
   let { stack } = vm;
   let block = vm._scope_().getBlock(_block);
 
   stack.push(block);
 });
 
-APPEND_OPCODES.add(SPREAD_BLOCK_OP, (vm) => {
+define(SPREAD_BLOCK_OP, (vm) => {
   let { stack } = vm;
   let block = check(stack.pop(), CheckOption(CheckOr(CheckScopeBlock, CheckUndefinedReference)));
 
@@ -238,7 +238,7 @@ function isUndefinedReference(input: ScopeBlock | Reference): input is Reference
   return input === UNDEFINED_REFERENCE;
 }
 
-APPEND_OPCODES.add(HAS_BLOCK_OP, (vm) => {
+define(HAS_BLOCK_OP, (vm) => {
   let { stack } = vm;
   let block = check(stack.pop(), CheckOption(CheckOr(CheckScopeBlock, CheckUndefinedReference)));
 
@@ -249,7 +249,7 @@ APPEND_OPCODES.add(HAS_BLOCK_OP, (vm) => {
   }
 });
 
-APPEND_OPCODES.add(HAS_BLOCK_PARAMS_OP, (vm) => {
+define(HAS_BLOCK_PARAMS_OP, (vm) => {
   // FIXME(mmun): should only need to push the symbol table
   let block = vm.stack.pop();
   let scope = vm.stack.pop();
@@ -262,7 +262,7 @@ APPEND_OPCODES.add(HAS_BLOCK_PARAMS_OP, (vm) => {
   vm.stack.push(hasBlockParams ? TRUE_REFERENCE : FALSE_REFERENCE);
 });
 
-APPEND_OPCODES.add(CONCAT_OP, (vm, { op1: count }) => {
+define(CONCAT_OP, (vm, { op1: count }) => {
   let out: Array<Reference<unknown>> = new Array(count);
 
   for (let i = count; i > 0; i--) {
@@ -273,7 +273,7 @@ APPEND_OPCODES.add(CONCAT_OP, (vm, { op1: count }) => {
   vm.stack.push(createConcatRef(out));
 });
 
-APPEND_OPCODES.add(IF_INLINE_OP, (vm) => {
+define(IF_INLINE_OP, (vm) => {
   let condition = check(vm.stack.pop(), CheckReference);
   let truthy = check(vm.stack.pop(), CheckReference);
   let falsy = check(vm.stack.pop(), CheckReference);
@@ -289,7 +289,7 @@ APPEND_OPCODES.add(IF_INLINE_OP, (vm) => {
   );
 });
 
-APPEND_OPCODES.add(NOT_OP, (vm) => {
+define(NOT_OP, (vm) => {
   let ref = check(vm.stack.pop(), CheckReference);
 
   vm.stack.push(
@@ -299,7 +299,7 @@ APPEND_OPCODES.add(NOT_OP, (vm) => {
   );
 });
 
-APPEND_OPCODES.add(GET_DYNAMIC_VAR_OP, (vm) => {
+define(GET_DYNAMIC_VAR_OP, (vm) => {
   let scope = vm._dynamicScope_();
   let stack = vm.stack;
   let nameRef = check(stack.pop(), CheckReference);
@@ -312,7 +312,7 @@ APPEND_OPCODES.add(GET_DYNAMIC_VAR_OP, (vm) => {
   );
 });
 
-APPEND_OPCODES.add(LOG_OP, (vm) => {
+define(LOG_OP, (vm) => {
   let { positional } = check(vm.stack.pop(), CheckArguments).capture();
 
   vm._loadValue_(

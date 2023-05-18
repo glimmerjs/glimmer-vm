@@ -415,13 +415,27 @@ export class Package {
         ? [
             terser({
               module: true,
-              compress: {},
+              ecma: 2020,
+              toplevel: true,
+              compress: {
+                arguments: true,
+                ecma: 2020,
+                hoist_funs: true,
+                keep_fargs: false,
+                module: true,
+                passes: 2,
+                toplevel: true,
+              },
               mangle: {
+                module: true,
                 properties: {
                   regex: /^_.*_$/u,
                 },
               },
-              output: {},
+              format: {
+                ecma: 2020,
+                wrap_func_args: false,
+              },
               parse: {},
             }),
             {
@@ -471,7 +485,6 @@ export class Package {
     return this.#shared('esm', mode).map((options) => ({
       ...options,
       external: this.#external,
-      experimentalLogSideEffects: true,
       treeshake: {
         annotations: true,
         moduleSideEffects: false,

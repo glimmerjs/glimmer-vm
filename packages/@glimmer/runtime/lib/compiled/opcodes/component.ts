@@ -615,7 +615,7 @@ APPEND_OPCODES.add(DID_CREATE_ELEMENT_OP, (vm, { op1: _state }) => {
 
   (manager as WithElementHook<unknown>).didCreateElement(
     state,
-    expect(vm._elements_().constructing, `Expected a constructing element in DidCreateOpcode`),
+    expect(vm._elements_()._constructing_, `Expected a constructing element in DidCreateOpcode`),
     operations
   );
 });

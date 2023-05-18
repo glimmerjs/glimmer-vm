@@ -19,7 +19,36 @@ import {
   NS_XMLNS,
   values,
 } from '@glimmer/util';
-import { SexpOpcodes as Op, VariableResolutionContext } from '@glimmer/wire-format';
+import { VariableResolutionContext ,
+  WIRE_TRUSTING_APPEND,
+  WIRE_APPEND,
+  WIRE_CALL,
+  WIRE_COMMENT,
+  WIRE_BLOCK,
+  WIRE_WITH,
+  WIRE_IF,
+  WIRE_EACH,
+  WIRE_OPEN_ELEMENT_WITH_SPLAT,
+  WIRE_OPEN_ELEMENT,
+  WIRE_FLUSH_ELEMENT,
+  WIRE_CLOSE_ELEMENT,
+  WIRE_COMPONENT,
+  WIRE_ATTR_SPLAT,
+  WIRE_STATIC_ATTR,
+  WIRE_DYNAMIC_ATTR,
+  WIRE_CONCAT,
+  WIRE_HAS_BLOCK,
+  WIRE_HAS_BLOCK_PARAMS,
+  WIRE_UNDEFINED,
+  WIRE_GET_SYMBOL,
+  WIRE_GET_STRICT_KEYWORD,
+  WIRE_GET_FREE_AS_COMPONENT_OR_HELPER_HEAD_OR_THIS_FALLBACK,
+  WIRE_GET_FREE_AS_COMPONENT_OR_HELPER_HEAD,
+  WIRE_GET_FREE_AS_HELPER_HEAD_OR_THIS_FALLBACK,
+  WIRE_GET_FREE_AS_HELPER_HEAD,
+  WIRE_GET_FREE_AS_MODIFIER_HEAD,
+  WIRE_GET_FREE_AS_COMPONENT_HEAD,
+} from '@glimmer/wire-format';
 
 import {
   Builder,
@@ -213,7 +242,7 @@ export function buildStatement(
     case HeadKind.AppendPath: {
       return [
         [
-          normalized.trusted ? Op.TrustingAppend : Op.Append,
+          normalized.trusted ? WIRE_TRUSTING_APPEND : WIRE_APPEND,
           buildGetPath(normalized.path, symbols),
         ],
       ];
@@ -222,7 +251,7 @@ export function buildStatement(
     case HeadKind.AppendExpr: {
       return [
         [
-          normalized.trusted ? Op.TrustingAppend : Op.Append,
+          normalized.trusted ? WIRE_TRUSTING_APPEND : WIRE_APPEND,
           buildExpression(
             normalized.expr,
             normalized.trusted ? 'TrustedAppend' : 'Append',
@@ -247,16 +276,19 @@ export function buildStatement(
       );
 
       return [
-        [trusted ? Op.TrustingAppend : Op.Append, [Op.Call, builtExpr, builtParams, builtHash]],
+        [
+          trusted ? WIRE_TRUSTING_APPEND : WIRE_APPEND,
+          [WIRE_CALL, builtExpr, builtParams, builtHash],
+        ],
       ];
     }
 
     case HeadKind.Literal: {
-      return [[Op.Append, normalized.value]];
+      return [[WIRE_APPEND, normalized.value]];
     }
 
     case HeadKind.Comment: {
-      return [[Op.Comment, normalized.value]];
+      return [[WIRE_COMMENT, normalized.value]];
     }
 
     case HeadKind.Block: {
@@ -269,7 +301,7 @@ export function buildStatement(
         symbols
       );
 
-      return [[Op.Block, path, params, hash, blocks]];
+      return [[WIRE_BLOCK, path, params, hash, blocks]];
     }
 
     case HeadKind.Keyword: {
@@ -336,13 +368,13 @@ function buildKeyword(
 
   switch (name) {
     case 'with':
-      return [Op.With, expect(params, 'with requires params')[0], block, inverse];
+      return [WIRE_WITH, expect(params, 'with requires params')[0], block, inverse];
     case 'if':
-      return [Op.If, expect(params, 'if requires params')[0], block, inverse];
+      return [WIRE_IF, expect(params, 'if requires params')[0], block, inverse];
     case 'each': {
       let keyExpr = normalized.hash ? normalized.hash['key'] : null;
       let key = keyExpr ? buildExpression(keyExpr, 'Strict', symbols) : null;
-      return [Op.Each, expect(params, 'if requires params')[0], key, block, inverse];
+      return [WIRE_EACH, expect(params, 'if requires params')[0], key, block, inverse];
     }
 
     default:
@@ -355,14 +387,14 @@ function buildElement(
   symbols: Symbols
 ): WireFormat.Statement[] {
   let out: WireFormat.Statement[] = [
-    hasSplat(attrs) ? [Op.OpenElementWithSplat, name] : [Op.OpenElement, name],
+    hasSplat(attrs) ? [WIRE_OPEN_ELEMENT_WITH_SPLAT, name] : [WIRE_OPEN_ELEMENT, name],
   ];
   if (attrs) {
     let { params, args } = buildElementParams(attrs, symbols);
     out.push(...params);
     assert(args === null, `Can't pass args to a simple element`);
   }
-  out.push([Op.FlushElement]);
+  out.push([WIRE_FLUSH_ELEMENT]);
 
   if (Array.isArray(block)) {
     block.forEach((s) => out.push(...buildStatement(s, symbols)));
@@ -372,7 +404,7 @@ function buildElement(
     throw assertNever(block);
   }
 
-  out.push([Op.CloseElement]);
+  out.push([WIRE_CLOSE_ELEMENT]);
 
   return out;
 }
@@ -400,7 +432,7 @@ export function buildAngleInvocation(
   if (block) blockList = buildNormalizedStatements(block, symbols);
 
   return [
-    Op.Component,
+    WIRE_COMPONENT,
     buildExpression(head, VariableResolutionContext.ResolveAsComponentHead, symbols),
     isPresentArray(paramList) ? paramList : null,
     args,
@@ -418,7 +450,7 @@ export function buildElementParams(
 
   for (const [key, value] of Object.entries(attrs)) {
     if (value === HeadKind.Splat) {
-      params.push([Op.AttrSplat, symbols.block('&attrs')]);
+      params.push([WIRE_ATTR_SPLAT, symbols.block('&attrs')]);
     } else if (key[0] === '@') {
       keys.push(key);
       values.push(buildExpression(value, 'Strict', symbols));
@@ -476,9 +508,9 @@ export function buildAttributeValue(
       if (val === false) {
         return [];
       } else if (val === true) {
-        return [[Op.StaticAttr, name, '', namespace ?? undefined]];
+        return [[WIRE_STATIC_ATTR, name, '', namespace ?? undefined]];
       } else if (typeof val === 'string') {
-        return [[Op.StaticAttr, name, val, namespace ?? undefined]];
+        return [[WIRE_STATIC_ATTR, name, val, namespace ?? undefined]];
       } else {
         throw new Error(`Unexpected/unimplemented literal attribute ${JSON.stringify(val)}`);
       }
@@ -487,7 +519,7 @@ export function buildAttributeValue(
     default:
       return [
         [
-          Op.DynamicAttr,
+          WIRE_DYNAMIC_ATTR,
           name,
           buildExpression(value, 'AttrValue', symbols),
           namespace ?? undefined,
@@ -532,7 +564,7 @@ export function buildExpression(
     }
 
     case ExpressionKind.Concat: {
-      return [Op.Concat, buildConcat(expr.params, symbols)];
+      return [WIRE_CONCAT, buildConcat(expr.params, symbols)];
     }
 
     case ExpressionKind.Call: {
@@ -544,12 +576,12 @@ export function buildExpression(
         symbols
       );
 
-      return [Op.Call, builtExpr, builtParams, builtHash];
+      return [WIRE_CALL, builtExpr, builtParams, builtHash];
     }
 
     case ExpressionKind.HasBlock: {
       return [
-        Op.HasBlock,
+        WIRE_HAS_BLOCK,
         buildVar(
           { kind: VariableKind.Block, name: expr.name, mode: 'loose' },
           VariableResolutionContext.Strict,
@@ -560,7 +592,7 @@ export function buildExpression(
 
     case ExpressionKind.HasBlockParams: {
       return [
-        Op.HasBlockParams,
+        WIRE_HAS_BLOCK_PARAMS,
         buildVar(
           { kind: VariableKind.Block, name: expr.name, mode: 'loose' },
           VariableResolutionContext.Strict,
@@ -571,7 +603,7 @@ export function buildExpression(
 
     case ExpressionKind.Literal: {
       if (expr.value === undefined) {
-        return [Op.Undefined];
+        return [WIRE_UNDEFINED];
       } else {
         return expr.value;
       }
@@ -626,33 +658,33 @@ export function buildVar(
   symbols: Symbols,
   path?: PresentArray<string>
 ): Expressions.GetPath | Expressions.GetVar {
-  let op: Expressions.GetVar[0] = Op.GetSymbol;
+  let op: Expressions.GetVar[0] = WIRE_GET_SYMBOL;
   let sym: number;
   switch (head.kind) {
     case VariableKind.Free:
       if (context === 'Strict') {
-        op = Op.GetStrictKeyword;
+        op = WIRE_GET_STRICT_KEYWORD;
       } else if (context === 'AppendBare') {
-        op = Op.GetFreeAsComponentOrHelperHeadOrThisFallback;
+        op = WIRE_GET_FREE_AS_COMPONENT_OR_HELPER_HEAD_OR_THIS_FALLBACK;
       } else if (context === 'AppendInvoke') {
-        op = Op.GetFreeAsComponentOrHelperHead;
+        op = WIRE_GET_FREE_AS_COMPONENT_OR_HELPER_HEAD;
       } else if (context === 'TrustedAppendBare') {
-        op = Op.GetFreeAsHelperHeadOrThisFallback;
+        op = WIRE_GET_FREE_AS_HELPER_HEAD_OR_THIS_FALLBACK;
       } else if (context === 'TrustedAppendInvoke') {
-        op = Op.GetFreeAsHelperHead;
+        op = WIRE_GET_FREE_AS_HELPER_HEAD;
       } else if (context === 'AttrValueBare') {
-        op = Op.GetFreeAsHelperHeadOrThisFallback;
+        op = WIRE_GET_FREE_AS_HELPER_HEAD_OR_THIS_FALLBACK;
       } else if (context === 'AttrValueInvoke') {
-        op = Op.GetFreeAsHelperHead;
+        op = WIRE_GET_FREE_AS_HELPER_HEAD;
       } else if (context === 'SubExpression') {
-        op = Op.GetFreeAsHelperHead;
+        op = WIRE_GET_FREE_AS_HELPER_HEAD;
       } else {
         op = expressionContextOp(context);
       }
       sym = symbols.freeVar(head.name);
       break;
     default:
-      op = Op.GetSymbol;
+      op = WIRE_GET_SYMBOL;
       sym = getSymbolForVar(head.kind, symbols, head.name);
   }
 
@@ -685,19 +717,19 @@ function getSymbolForVar(
 export function expressionContextOp(context: VariableResolutionContext): GetContextualFreeOpcode {
   switch (context) {
     case VariableResolutionContext.Strict:
-      return Op.GetStrictKeyword;
+      return WIRE_GET_STRICT_KEYWORD;
     case VariableResolutionContext.AmbiguousAppend:
-      return Op.GetFreeAsComponentOrHelperHeadOrThisFallback;
+      return WIRE_GET_FREE_AS_COMPONENT_OR_HELPER_HEAD_OR_THIS_FALLBACK;
     case VariableResolutionContext.AmbiguousAppendInvoke:
-      return Op.GetFreeAsComponentOrHelperHead;
+      return WIRE_GET_FREE_AS_COMPONENT_OR_HELPER_HEAD;
     case VariableResolutionContext.AmbiguousInvoke:
-      return Op.GetFreeAsHelperHeadOrThisFallback;
+      return WIRE_GET_FREE_AS_HELPER_HEAD_OR_THIS_FALLBACK;
     case VariableResolutionContext.ResolveAsCallHead:
-      return Op.GetFreeAsHelperHead;
+      return WIRE_GET_FREE_AS_HELPER_HEAD;
     case VariableResolutionContext.ResolveAsModifierHead:
-      return Op.GetFreeAsModifierHead;
+      return WIRE_GET_FREE_AS_MODIFIER_HEAD;
     case VariableResolutionContext.ResolveAsComponentHead:
-      return Op.GetFreeAsComponentHead;
+      return WIRE_GET_FREE_AS_COMPONENT_HEAD;
     default:
       return exhausted(context);
   }

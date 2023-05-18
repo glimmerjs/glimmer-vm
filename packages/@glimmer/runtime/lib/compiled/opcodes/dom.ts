@@ -132,11 +132,11 @@ APPEND_OPCODES.add(MODIFIER_OP, (vm, { op1: handle }) => {
 
   let { manager } = definition;
 
-  let { constructing } = vm._elements_();
+  let { _constructing_ } = vm._elements_();
 
   let state = manager.create(
     owner,
-    expect(constructing, 'BUG: ElementModifier could not find the element it applies to'),
+    expect(_constructing_, 'BUG: ElementModifier could not find the element it applies to'),
     definition.state,
     args.capture()
   );
@@ -170,7 +170,7 @@ APPEND_OPCODES.add(DYNAMIC_MODIFIER_OP, (vm) => {
   let { stack, [CONSTANTS]: constants } = vm;
   let ref = check(stack.pop(), CheckReference);
   let args = check(stack.pop(), CheckArguments).capture();
-  let { constructing } = vm._elements_();
+  let { _constructing_ } = vm._elements_();
   let initialOwner = vm._getOwner_();
 
   let instanceRef = createComputeRef(() => {
@@ -226,7 +226,7 @@ APPEND_OPCODES.add(DYNAMIC_MODIFIER_OP, (vm) => {
 
     let state = manager.create(
       owner,
-      expect(constructing, 'BUG: ElementModifier could not find the element it applies to'),
+      expect(_constructing_, 'BUG: ElementModifier could not find the element it applies to'),
       definition.state,
       args
     );

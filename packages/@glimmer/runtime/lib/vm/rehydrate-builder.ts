@@ -71,7 +71,7 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
       // We need to add an extra block before the first block to rehydrate correctly
       // The extra block is needed since the renderComponent API creates a synthetic component invocation which generates the extra block
       const newBlockDepth = startingBlockOffset - 1;
-      const newCandidate = this.dom.createComment(`%+b:${newBlockDepth}%`);
+      const newCandidate = this._dom_.createComment(`%+b:${newBlockDepth}%`);
 
       node.parentNode!.insertBefore(newCandidate, this.candidate);
       let closingNode = node.nextSibling;
@@ -83,7 +83,7 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
       }
 
       assert(closingNode, 'Must have closing comment for starting block comment');
-      const newClosingBlock = this.dom.createComment(`%-b:${newBlockDepth}%`);
+      const newClosingBlock = this._dom_.createComment(`%-b:${newBlockDepth}%`);
       node.parentNode!.insertBefore(newClosingBlock, closingNode.nextSibling);
       this.candidate = newCandidate;
       this.startingBlockOffset = newBlockDepth;
@@ -428,7 +428,7 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
     const { unmatchedAttributes: unmatched } = this;
     if (unmatched) {
       for (const attr of unmatched) {
-        this.constructing!.removeAttribute(attr.name);
+        this._constructing_!.removeAttribute(attr.name);
       }
       this.unmatchedAttributes = null;
     } else {

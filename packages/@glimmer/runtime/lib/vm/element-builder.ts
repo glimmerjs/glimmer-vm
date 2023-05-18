@@ -43,9 +43,9 @@ function Last(node: SimpleNode): LastNode {
 export const CURSOR_STACK: CursorStackSymbol = Symbol('CURSOR_STACK') as CursorStackSymbol;
 
 export class NewElementBuilder implements ElementBuilder {
-  public dom: GlimmerTreeConstruction;
-  public updateOperations: GlimmerTreeChanges;
-  public constructing: Nullable<SimpleElement> = null;
+  public _dom_: GlimmerTreeConstruction;
+  public _updateOperations_: GlimmerTreeChanges;
+  public _constructing_: Nullable<SimpleElement> = null;
   public operations: Nullable<ElementOperations> = null;
   private env: Environment;
 
@@ -71,8 +71,8 @@ export class NewElementBuilder implements ElementBuilder {
     this.pushElement(parentNode, nextSibling);
 
     this.env = env;
-    this.dom = env.getAppendOperations();
-    this.updateOperations = env.getDOM();
+    this._dom_ = env.getAppendOperations();
+    this._updateOperations_ = env.getDOM();
   }
 
   protected initialize(): this {
@@ -143,25 +143,25 @@ export class NewElementBuilder implements ElementBuilder {
   // todo return seems unused
   openElement(tag: string): SimpleElement {
     let element = this.__openElement(tag);
-    this.constructing = element;
+    this._constructing_ = element;
 
     return element;
   }
 
   __openElement(tag: string): SimpleElement {
-    return this.dom.createElement(tag, this.element);
+    return this._dom_.createElement(tag, this.element);
   }
 
   flushElement(modifiers: Nullable<ModifierInstance[]>) {
     let parent = this.element;
     let element = expect(
-      this.constructing,
+      this._constructing_,
       `flushElement should only be called when constructing an element`
     );
 
     this.__flushElement(parent, element);
 
-    this.constructing = null;
+    this._constructing_ = null;
     this.operations = null;
 
     this.pushModifiers(modifiers);
@@ -170,7 +170,7 @@ export class NewElementBuilder implements ElementBuilder {
   }
 
   __flushElement(parent: SimpleElement, constructing: SimpleElement) {
-    this.dom.insertBefore(parent, constructing, this.nextSibling);
+    this._dom_.insertBefore(parent, constructing, this.nextSibling);
   }
 
   closeElement(): Nullable<ModifierInstance[]> {
@@ -246,14 +246,14 @@ export class NewElementBuilder implements ElementBuilder {
   }
 
   __appendText(text: string): SimpleText {
-    let { dom, element, nextSibling } = this;
-    let node = dom.createTextNode(text);
-    dom.insertBefore(element, node, nextSibling);
+    let { _dom_, element, nextSibling } = this;
+    let node = _dom_.createTextNode(text);
+    _dom_.insertBefore(element, node, nextSibling);
     return node;
   }
 
   __appendNode(node: SimpleNode): SimpleNode {
-    this.dom.insertBefore(this.element, node, this.nextSibling);
+    this._dom_.insertBefore(this.element, node, this.nextSibling);
     return node;
   }
 
@@ -262,7 +262,7 @@ export class NewElementBuilder implements ElementBuilder {
 
     if (first) {
       let ret = new ConcreteBounds(this.element, first, fragment.lastChild!);
-      this.dom.insertBefore(this.element, fragment, this.nextSibling);
+      this._dom_.insertBefore(this.element, fragment, this.nextSibling);
       return ret;
     } else {
       return new SingleNodeBounds(this.element, this.__appendComment(''));
@@ -270,7 +270,7 @@ export class NewElementBuilder implements ElementBuilder {
   }
 
   __appendHTML(html: string): Bounds {
-    return this.dom.insertHTMLBefore(this.element, this.nextSibling, html);
+    return this._dom_.insertHTMLBefore(this.element, this.nextSibling, html);
   }
 
   appendDynamicHTML(value: string): void {
@@ -308,18 +308,18 @@ export class NewElementBuilder implements ElementBuilder {
   }
 
   __appendComment(string: string): SimpleComment {
-    let { dom, element, nextSibling } = this;
-    let node = dom.createComment(string);
-    dom.insertBefore(element, node, nextSibling);
+    let { _dom_, element, nextSibling } = this;
+    let node = _dom_.createComment(string);
+    _dom_.insertBefore(element, node, nextSibling);
     return node;
   }
 
   __setAttribute(name: string, value: string, namespace: Nullable<AttrNamespace>): void {
-    this.dom.setAttribute(this.constructing!, name, value, namespace);
+    this._dom_.setAttribute(this._constructing_!, name, value, namespace);
   }
 
   __setProperty(name: string, value: unknown): void {
-    (this.constructing! as any)[name] = value;
+    (this._constructing_! as any)[name] = value;
   }
 
   setStaticAttribute(name: string, value: string, namespace: Nullable<AttrNamespace>): void {
@@ -332,7 +332,7 @@ export class NewElementBuilder implements ElementBuilder {
     trusting: boolean,
     namespace: Nullable<AttrNamespace>
   ): DynamicAttribute {
-    let element = this.constructing!;
+    let element = this._constructing_!;
     let attribute = dynamicAttribute(element, name, namespace, trusting);
     attribute.set(this, value, this.env);
     return attribute;

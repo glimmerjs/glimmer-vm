@@ -41,9 +41,9 @@ export function helperCapabilities<Version extends keyof HelperCapabilitiesVersi
   }
 
   return buildCapabilities({
-    hasValue: Boolean(options.hasValue),
-    hasDestroyable: Boolean(options.hasDestroyable),
-    hasScheduledEffect: Boolean(options.hasScheduledEffect),
+    hasValue: !!options.hasValue,
+    hasDestroyable: !!options.hasDestroyable,
+    hasScheduledEffect: !!options.hasScheduledEffect,
   });
 }
 

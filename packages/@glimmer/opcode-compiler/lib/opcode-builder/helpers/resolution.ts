@@ -12,9 +12,19 @@ import type {
   ResolveOptionalComponentOrHelperOp,
   ResolveOptionalHelperOp,
   SexpOpcode,
-} from "@glimmer/interfaces";
+} from '@glimmer/interfaces';
 import { assert, debugToString, expect, unwrap } from '@glimmer/util';
-import { SexpOpcodes } from '@glimmer/wire-format';
+import {
+  WIRE_GET_FREE_AS_COMPONENT_HEAD,
+  WIRE_GET_FREE_AS_COMPONENT_OR_HELPER_HEAD,
+  WIRE_GET_FREE_AS_COMPONENT_OR_HELPER_HEAD_OR_THIS_FALLBACK,
+  WIRE_GET_FREE_AS_DEPRECATED_HELPER_HEAD_OR_THIS_FALLBACK,
+  WIRE_GET_FREE_AS_HELPER_HEAD,
+  WIRE_GET_FREE_AS_HELPER_HEAD_OR_THIS_FALLBACK,
+  WIRE_GET_FREE_AS_MODIFIER_HEAD,
+  WIRE_GET_LEXICAL_SYMBOL,
+  WIRE_GET_STRICT_KEYWORD,
+} from '@glimmer/wire-format';
 
 function isGetLikeTuple(opcode: Expressions.Expression): opcode is Expressions.TupleExpression {
   return Array.isArray(opcode) && opcode.length === 2;
@@ -29,37 +39,35 @@ function makeResolutionTypeVerifier(typeToVerify: SexpOpcode) {
     let type = opcode[0];
 
     return (
-      type === SexpOpcodes.GetStrictKeyword ||
-      type === SexpOpcodes.GetLexicalSymbol ||
-      type === typeToVerify
+      type === WIRE_GET_STRICT_KEYWORD || type === WIRE_GET_LEXICAL_SYMBOL || type === typeToVerify
     );
   };
 }
 
-export const isGetFreeComponent = makeResolutionTypeVerifier(SexpOpcodes.GetFreeAsComponentHead);
+export const isGetFreeComponent = makeResolutionTypeVerifier(WIRE_GET_FREE_AS_COMPONENT_HEAD);
 
-export const isGetFreeModifier = makeResolutionTypeVerifier(SexpOpcodes.GetFreeAsModifierHead);
+export const isGetFreeModifier = makeResolutionTypeVerifier(WIRE_GET_FREE_AS_MODIFIER_HEAD);
 
-export const isGetFreeHelper = makeResolutionTypeVerifier(SexpOpcodes.GetFreeAsHelperHead);
+export const isGetFreeHelper = makeResolutionTypeVerifier(WIRE_GET_FREE_AS_HELPER_HEAD);
 
 export const isGetFreeComponentOrHelper = makeResolutionTypeVerifier(
-  SexpOpcodes.GetFreeAsComponentOrHelperHead
+  WIRE_GET_FREE_AS_COMPONENT_OR_HELPER_HEAD
 );
 
 export const isGetFreeOptionalHelper = makeResolutionTypeVerifier(
-  SexpOpcodes.GetFreeAsHelperHeadOrThisFallback
+  WIRE_GET_FREE_AS_HELPER_HEAD_OR_THIS_FALLBACK
 );
 
 export function isGetFreeDeprecatedHelper(
   opcode: Expressions.Expression
 ): opcode is Expressions.GetPathFreeAsDeprecatedHelperHeadOrThisFallback {
   return (
-    Array.isArray(opcode) && opcode[0] === SexpOpcodes.GetFreeAsDeprecatedHelperHeadOrThisFallback
+    Array.isArray(opcode) && opcode[0] === WIRE_GET_FREE_AS_DEPRECATED_HELPER_HEAD_OR_THIS_FALLBACK
   );
 }
 
 export const isGetFreeOptionalComponentOrHelper = makeResolutionTypeVerifier(
-  SexpOpcodes.GetFreeAsComponentOrHelperHeadOrThisFallback
+  WIRE_GET_FREE_AS_COMPONENT_OR_HELPER_HEAD_OR_THIS_FALLBACK
 );
 
 interface ResolvedContainingMetadata extends ContainingMetadata {
@@ -100,7 +108,7 @@ export function resolveComponent(
 
   let type = expr[0];
 
-  if (import.meta.env.DEV && expr[0] === SexpOpcodes.GetStrictKeyword) {
+  if (import.meta.env.DEV && expr[0] === WIRE_GET_STRICT_KEYWORD) {
     throw new Error(
       `Attempted to resolve a component in a strict mode template, but that value was not in scope: ${
         meta.upvars![expr[1]] ?? '{unknown variable}'
@@ -108,7 +116,7 @@ export function resolveComponent(
     );
   }
 
-  if (type === SexpOpcodes.GetLexicalSymbol) {
+  if (type === WIRE_GET_LEXICAL_SYMBOL) {
     let { scopeValues, owner } = meta;
     let definition = expect(scopeValues, 'BUG: scopeValues must exist if template symbol is used')[
       expr[1]
@@ -150,14 +158,14 @@ export function resolveHelper(
 
   let type = expr[0];
 
-  if (type === SexpOpcodes.GetLexicalSymbol) {
+  if (type === WIRE_GET_LEXICAL_SYMBOL) {
     let { scopeValues } = meta;
     let definition = expect(scopeValues, 'BUG: scopeValues must exist if template symbol is used')[
       expr[1]
     ];
 
     then(constants.helper(definition as object));
-  } else if (type === SexpOpcodes.GetStrictKeyword) {
+  } else if (type === WIRE_GET_STRICT_KEYWORD) {
     then(
       lookupBuiltInHelper(expr as Expressions.GetStrictFree, resolver, meta, constants, 'helper')
     );
@@ -192,14 +200,14 @@ export function resolveModifier(
 
   let type = expr[0];
 
-  if (type === SexpOpcodes.GetLexicalSymbol) {
+  if (type === WIRE_GET_LEXICAL_SYMBOL) {
     let { scopeValues } = meta;
     let definition = expect(scopeValues, 'BUG: scopeValues must exist if template symbol is used')[
       expr[1]
     ];
 
     then(constants.modifier(definition as object));
-  } else if (type === SexpOpcodes.GetStrictKeyword) {
+  } else if (type === WIRE_GET_STRICT_KEYWORD) {
     let { upvars } = assertResolverInvariants(meta);
     let name = unwrap(upvars[expr[1]]);
     let modifier = resolver.lookupBuiltInModifier(name);
@@ -242,7 +250,7 @@ export function resolveComponentOrHelper(
 
   let type = expr[0];
 
-  if (type === SexpOpcodes.GetLexicalSymbol) {
+  if (type === WIRE_GET_LEXICAL_SYMBOL) {
     let { scopeValues, owner } = meta;
     let definition = expect(scopeValues, 'BUG: scopeValues must exist if template symbol is used')[
       expr[1]
@@ -270,7 +278,7 @@ export function resolveComponentOrHelper(
     }
 
     ifHelper(expect(helper, 'BUG: helper must exist'));
-  } else if (type === SexpOpcodes.GetStrictKeyword) {
+  } else if (type === WIRE_GET_STRICT_KEYWORD) {
     ifHelper(
       lookupBuiltInHelper(
         expr as Expressions.GetStrictFree,
@@ -341,7 +349,7 @@ export function resolveOptionalComponentOrHelper(
 
   let type = expr[0];
 
-  if (type === SexpOpcodes.GetLexicalSymbol) {
+  if (type === WIRE_GET_LEXICAL_SYMBOL) {
     let { scopeValues, owner } = meta;
     let definition = expect(scopeValues, 'BUG: scopeValues must exist if template symbol is used')[
       expr[1]
@@ -375,7 +383,7 @@ export function resolveOptionalComponentOrHelper(
     }
 
     ifValue(constants.value(definition));
-  } else if (type === SexpOpcodes.GetStrictKeyword) {
+  } else if (type === WIRE_GET_STRICT_KEYWORD) {
     ifHelper(
       lookupBuiltInHelper(expr as Expressions.GetStrictFree, resolver, meta, constants, 'value')
     );

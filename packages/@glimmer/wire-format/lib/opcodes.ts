@@ -51,57 +51,53 @@ import type {
   YieldOpcode,
 } from '@glimmer/interfaces';
 
-export const opcodes = {
-  Append: 1 satisfies AppendOpcode,
-  TrustingAppend: 2 satisfies TrustingAppendOpcode,
-  Comment: 3 satisfies CommentOpcode,
-  Modifier: 4 satisfies ModifierOpcode,
-  StrictModifier: 5 satisfies StrictModifierOpcode,
-  Block: 6 satisfies BlockOpcode,
-  StrictBlock: 7 satisfies StrictBlockOpcode,
-  Component: 8 satisfies ComponentOpcode,
-  OpenElement: 10 satisfies OpenElementOpcode,
-  OpenElementWithSplat: 11 satisfies OpenElementWithSplatOpcode,
-  FlushElement: 12 satisfies FlushElementOpcode,
-  CloseElement: 13 satisfies CloseElementOpcode,
-  StaticAttr: 14 satisfies StaticAttrOpcode,
-  DynamicAttr: 15 satisfies DynamicAttrOpcode,
-  ComponentAttr: 16 satisfies ComponentAttrOpcode,
-  AttrSplat: 17 satisfies AttrSplatOpcode,
-  Yield: 18 satisfies YieldOpcode,
-  DynamicArg: 20 satisfies DynamicArgOpcode,
-  StaticArg: 21 satisfies StaticArgOpcode,
-  TrustingDynamicAttr: 22 satisfies TrustingDynamicAttrOpcode,
-  TrustingComponentAttr: 23 satisfies TrustingComponentAttrOpcode,
-  StaticComponentAttr: 24 satisfies StaticComponentAttrOpcode,
-  Debugger: 26 satisfies DebuggerOpcode,
-  Undefined: 27 satisfies UndefinedOpcode,
-  Call: 28 satisfies CallOpcode,
-  Concat: 29 satisfies ConcatOpcode,
-  GetSymbol: 30 satisfies GetSymbolOpcode,
-  GetLexicalSymbol: 32 satisfies GetLexicalSymbolOpcode,
-  GetStrictKeyword: 31 satisfies GetStrictKeywordOpcode,
-  GetFreeAsComponentOrHelperHeadOrThisFallback:
-    34 satisfies GetFreeAsComponentOrHelperHeadOrThisFallbackOpcode,
-  GetFreeAsComponentOrHelperHead: 35 satisfies GetFreeAsComponentOrHelperHeadOpcode,
-  GetFreeAsHelperHeadOrThisFallback: 36 satisfies GetFreeAsHelperHeadOrThisFallbackOpcode,
-  GetFreeAsDeprecatedHelperHeadOrThisFallback:
-    99 satisfies GetFreeAsDeprecatedHelperHeadOrThisFallbackOpcode,
-  GetFreeAsHelperHead: 37 satisfies GetFreeAsHelperHeadOpcode,
-  GetFreeAsModifierHead: 38 satisfies GetFreeAsModifierHeadOpcode,
-  GetFreeAsComponentHead: 39 satisfies GetFreeAsComponentHeadOpcode,
-  InElement: 40 satisfies InElementOpcode,
-  If: 41 satisfies IfOpcode,
-  Each: 42 satisfies EachOpcode,
-  With: 43 satisfies WithOpcode,
-  Let: 44 satisfies LetOpcode,
-  WithDynamicVars: 45 satisfies WithDynamicVarsOpcode,
-  InvokeComponent: 46 satisfies InvokeComponentOpcode,
-  HasBlock: 48 satisfies HasBlockOpcode,
-  HasBlockParams: 49 satisfies HasBlockParamsOpcode,
-  Curry: 50 satisfies CurryOpcode,
-  Not: 51 satisfies NotOpcode,
-  IfInline: 52 satisfies IfInlineOpcode,
-  GetDynamicVar: 53 satisfies GetDynamicVarOpcode,
-  Log: 54 satisfies LogOpcode,
-} as const;
+export const WIRE_APPEND: AppendOpcode = 1;
+export const WIRE_TRUSTING_APPEND: TrustingAppendOpcode = 2;
+export const WIRE_COMMENT: CommentOpcode = 3;
+export const WIRE_MODIFIER: ModifierOpcode = 4;
+export const WIRE_STRICT_MODIFIER: StrictModifierOpcode = 5;
+export const WIRE_BLOCK: BlockOpcode = 6;
+export const WIRE_STRICT_BLOCK: StrictBlockOpcode = 7;
+export const WIRE_COMPONENT: ComponentOpcode = 8;
+export const WIRE_OPEN_ELEMENT: OpenElementOpcode = 10;
+export const WIRE_OPEN_ELEMENT_WITH_SPLAT: OpenElementWithSplatOpcode = 11;
+export const WIRE_FLUSH_ELEMENT: FlushElementOpcode = 12;
+export const WIRE_CLOSE_ELEMENT: CloseElementOpcode = 13;
+export const WIRE_STATIC_ATTR: StaticAttrOpcode = 14;
+export const WIRE_DYNAMIC_ATTR: DynamicAttrOpcode = 15;
+export const WIRE_COMPONENT_ATTR: ComponentAttrOpcode = 16;
+export const WIRE_ATTR_SPLAT: AttrSplatOpcode = 17;
+export const WIRE_YIELD: YieldOpcode = 18;
+export const WIRE_DYNAMIC_ARG: DynamicArgOpcode = 20;
+export const WIRE_STATIC_ARG: StaticArgOpcode = 21;
+export const WIRE_TRUSTING_DYNAMIC_ATTR: TrustingDynamicAttrOpcode = 22;
+export const WIRE_TRUSTING_COMPONENT_ATTR: TrustingComponentAttrOpcode = 23;
+export const WIRE_STATIC_COMPONENT_ATTR: StaticComponentAttrOpcode = 24;
+export const WIRE_DEBUGGER: DebuggerOpcode = 26;
+export const WIRE_UNDEFINED: UndefinedOpcode = 27;
+export const WIRE_CALL: CallOpcode = 28;
+export const WIRE_CONCAT: ConcatOpcode = 29;
+export const WIRE_GET_SYMBOL: GetSymbolOpcode = 30;
+export const WIRE_GET_LEXICAL_SYMBOL: GetLexicalSymbolOpcode = 32;
+export const WIRE_GET_STRICT_KEYWORD: GetStrictKeywordOpcode = 31;
+export const WIRE_GET_FREE_AS_COMPONENT_OR_HELPER_HEAD_OR_THIS_FALLBACK: GetFreeAsComponentOrHelperHeadOrThisFallbackOpcode = 34;
+export const WIRE_GET_FREE_AS_COMPONENT_OR_HELPER_HEAD: GetFreeAsComponentOrHelperHeadOpcode = 35;
+export const WIRE_GET_FREE_AS_HELPER_HEAD_OR_THIS_FALLBACK: GetFreeAsHelperHeadOrThisFallbackOpcode = 36;
+export const WIRE_GET_FREE_AS_DEPRECATED_HELPER_HEAD_OR_THIS_FALLBACK: GetFreeAsDeprecatedHelperHeadOrThisFallbackOpcode = 99;
+export const WIRE_GET_FREE_AS_HELPER_HEAD: GetFreeAsHelperHeadOpcode = 37;
+export const WIRE_GET_FREE_AS_MODIFIER_HEAD: GetFreeAsModifierHeadOpcode = 38;
+export const WIRE_GET_FREE_AS_COMPONENT_HEAD: GetFreeAsComponentHeadOpcode = 39;
+export const WIRE_IN_ELEMENT: InElementOpcode = 40;
+export const WIRE_IF: IfOpcode = 41;
+export const WIRE_EACH: EachOpcode = 42;
+export const WIRE_WITH: WithOpcode = 43;
+export const WIRE_LET: LetOpcode = 44;
+export const WIRE_WITH_DYNAMIC_VARS: WithDynamicVarsOpcode = 45;
+export const WIRE_INVOKE_COMPONENT: InvokeComponentOpcode = 46;
+export const WIRE_HAS_BLOCK: HasBlockOpcode = 48;
+export const WIRE_HAS_BLOCK_PARAMS: HasBlockParamsOpcode = 49;
+export const WIRE_CURRY: CurryOpcode = 50;
+export const WIRE_NOT: NotOpcode = 51;
+export const WIRE_IF_INLINE: IfInlineOpcode = 52;
+export const WIRE_GET_DYNAMIC_VAR: GetDynamicVarOpcode = 53;
+export const WIRE_LOG: LogOpcode = 54;

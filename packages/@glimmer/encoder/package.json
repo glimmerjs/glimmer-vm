@@ -21,7 +21,7 @@
   "scripts": {
     "test:lint": "eslint .",
     "test:types": "tsc --noEmit -p ../tsconfig.json",
-    "build": "rollup -c rollup.config.mjs"
+    "build": "rollup -c rollup.config.mjs --experimentalLogSideEffects"
   },
   "devDependencies": {
     "@glimmer-workspace/build-support": "workspace:^"

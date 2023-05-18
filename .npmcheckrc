@@ -1,7 +1,8 @@
 {
   "depcheck": {
     "ignoreMatches": [
-      "@handlebars/parser"
+      "@handlebars/parser",
+      "@types/node"
     ]
   }
 }

@@ -6,10 +6,59 @@ import type {
   WireFormat,
 } from '@glimmer/interfaces';
 import { dict, exhausted } from '@glimmer/util';
-import { SexpOpcodes as Op } from '@glimmer/wire-format';
 
 import { inflateAttrName, inflateTagName } from './utils';
 import { CURRIED_COMPONENT, CURRIED_HELPER, CURRIED_MODIFIER } from '@glimmer/vm-constants';
+import {
+  WIRE_APPEND,
+  WIRE_ATTR_SPLAT,
+  WIRE_BLOCK,
+  WIRE_CALL,
+  WIRE_CLOSE_ELEMENT,
+  WIRE_COMMENT,
+  WIRE_COMPONENT,
+  WIRE_COMPONENT_ATTR,
+  WIRE_CONCAT,
+  WIRE_CURRY,
+  WIRE_DEBUGGER,
+  WIRE_DYNAMIC_ARG,
+  WIRE_DYNAMIC_ATTR,
+  WIRE_EACH,
+  WIRE_FLUSH_ELEMENT,
+  WIRE_GET_DYNAMIC_VAR,
+  WIRE_GET_FREE_AS_COMPONENT_HEAD,
+  WIRE_GET_FREE_AS_COMPONENT_OR_HELPER_HEAD,
+  WIRE_GET_FREE_AS_COMPONENT_OR_HELPER_HEAD_OR_THIS_FALLBACK,
+  WIRE_GET_FREE_AS_DEPRECATED_HELPER_HEAD_OR_THIS_FALLBACK,
+  WIRE_GET_FREE_AS_HELPER_HEAD,
+  WIRE_GET_FREE_AS_HELPER_HEAD_OR_THIS_FALLBACK,
+  WIRE_GET_FREE_AS_MODIFIER_HEAD,
+  WIRE_GET_LEXICAL_SYMBOL,
+  WIRE_GET_STRICT_KEYWORD,
+  WIRE_GET_SYMBOL,
+  WIRE_HAS_BLOCK,
+  WIRE_HAS_BLOCK_PARAMS,
+  WIRE_IF,
+  WIRE_IF_INLINE,
+  WIRE_INVOKE_COMPONENT,
+  WIRE_IN_ELEMENT,
+  WIRE_LET,
+  WIRE_LOG,
+  WIRE_MODIFIER,
+  WIRE_NOT,
+  WIRE_OPEN_ELEMENT,
+  WIRE_OPEN_ELEMENT_WITH_SPLAT,
+  WIRE_STATIC_ARG,
+  WIRE_STATIC_ATTR,
+  WIRE_STATIC_COMPONENT_ATTR,
+  WIRE_TRUSTING_APPEND,
+  WIRE_TRUSTING_COMPONENT_ATTR,
+  WIRE_TRUSTING_DYNAMIC_ATTR,
+  WIRE_UNDEFINED,
+  WIRE_WITH,
+  WIRE_WITH_DYNAMIC_VARS,
+  WIRE_YIELD,
+} from '@glimmer/wire-format';
 
 export default class WireFormatDebugger {
   private upvars: string[];
@@ -33,12 +82,12 @@ export default class WireFormatDebugger {
   formatOpcode(opcode: WireFormat.Syntax): unknown {
     if (Array.isArray(opcode)) {
       switch (opcode[0]) {
-        case Op.Append:
+        case WIRE_APPEND:
           return ['append', this.formatOpcode(opcode[1])];
-        case Op.TrustingAppend:
+        case WIRE_TRUSTING_APPEND:
           return ['trusting-append', this.formatOpcode(opcode[1])];
 
-        case Op.Block:
+        case WIRE_BLOCK:
           return [
             'block',
             this.formatOpcode(opcode[1]),
@@ -47,7 +96,7 @@ export default class WireFormatDebugger {
             this.formatBlocks(opcode[4]),
           ];
 
-        case Op.InElement:
+        case WIRE_IN_ELEMENT:
           return [
             'in-element',
             opcode[1],
@@ -55,25 +104,25 @@ export default class WireFormatDebugger {
             opcode[3] ? this.formatOpcode(opcode[3]) : undefined,
           ];
 
-        case Op.OpenElement:
+        case WIRE_OPEN_ELEMENT:
           return ['open-element', inflateTagName(opcode[1])];
 
-        case Op.OpenElementWithSplat:
+        case WIRE_OPEN_ELEMENT_WITH_SPLAT:
           return ['open-element-with-splat', inflateTagName(opcode[1])];
 
-        case Op.CloseElement:
+        case WIRE_CLOSE_ELEMENT:
           return ['close-element'];
 
-        case Op.FlushElement:
+        case WIRE_FLUSH_ELEMENT:
           return ['flush-element'];
 
-        case Op.StaticAttr:
+        case WIRE_STATIC_ATTR:
           return ['static-attr', inflateAttrName(opcode[1]), opcode[2], opcode[3]];
 
-        case Op.StaticComponentAttr:
+        case WIRE_STATIC_COMPONENT_ATTR:
           return ['static-component-attr', inflateAttrName(opcode[1]), opcode[2], opcode[3]];
 
-        case Op.DynamicAttr:
+        case WIRE_DYNAMIC_ATTR:
           return [
             'dynamic-attr',
             inflateAttrName(opcode[1]),
@@ -81,7 +130,7 @@ export default class WireFormatDebugger {
             opcode[3],
           ];
 
-        case Op.ComponentAttr:
+        case WIRE_COMPONENT_ATTR:
           return [
             'component-attr',
             inflateAttrName(opcode[1]),
@@ -89,19 +138,19 @@ export default class WireFormatDebugger {
             opcode[3],
           ];
 
-        case Op.AttrSplat:
+        case WIRE_ATTR_SPLAT:
           return ['attr-splat'];
 
-        case Op.Yield:
+        case WIRE_YIELD:
           return ['yield', opcode[1], this.formatParams(opcode[2])];
 
-        case Op.DynamicArg:
+        case WIRE_DYNAMIC_ARG:
           return ['dynamic-arg', opcode[1], this.formatOpcode(opcode[2])];
 
-        case Op.StaticArg:
+        case WIRE_STATIC_ARG:
           return ['static-arg', opcode[1], this.formatOpcode(opcode[2])];
 
-        case Op.TrustingDynamicAttr:
+        case WIRE_TRUSTING_DYNAMIC_ATTR:
           return [
             'trusting-dynamic-attr',
             inflateAttrName(opcode[1]),
@@ -109,7 +158,7 @@ export default class WireFormatDebugger {
             opcode[3],
           ];
 
-        case Op.TrustingComponentAttr:
+        case WIRE_TRUSTING_COMPONENT_ATTR:
           return [
             'trusting-component-attr',
             inflateAttrName(opcode[1]),
@@ -117,13 +166,13 @@ export default class WireFormatDebugger {
             opcode[3],
           ];
 
-        case Op.Debugger:
+        case WIRE_DEBUGGER:
           return ['debugger', opcode[1]];
 
-        case Op.Comment:
+        case WIRE_COMMENT:
           return ['comment', opcode[1]];
 
-        case Op.Modifier:
+        case WIRE_MODIFIER:
           return [
             'modifier',
             this.formatOpcode(opcode[1]),
@@ -131,7 +180,7 @@ export default class WireFormatDebugger {
             this.formatHash(opcode[3]),
           ];
 
-        case Op.Component:
+        case WIRE_COMPONENT:
           return [
             'component',
             this.formatOpcode(opcode[1]),
@@ -140,13 +189,13 @@ export default class WireFormatDebugger {
             this.formatBlocks(opcode[4]),
           ];
 
-        case Op.HasBlock:
+        case WIRE_HAS_BLOCK:
           return ['has-block', this.formatOpcode(opcode[1])];
 
-        case Op.HasBlockParams:
+        case WIRE_HAS_BLOCK_PARAMS:
           return ['has-block-params', this.formatOpcode(opcode[1])];
 
-        case Op.Curry:
+        case WIRE_CURRY:
           return [
             'curry',
             this.formatOpcode(opcode[1]),
@@ -155,10 +204,10 @@ export default class WireFormatDebugger {
             this.formatHash(opcode[4]),
           ];
 
-        case Op.Undefined:
+        case WIRE_UNDEFINED:
           return ['undefined'];
 
-        case Op.Call:
+        case WIRE_CALL:
           return [
             'call',
             this.formatOpcode(opcode[1]),
@@ -166,38 +215,38 @@ export default class WireFormatDebugger {
             this.formatHash(opcode[3]),
           ];
 
-        case Op.Concat:
+        case WIRE_CONCAT:
           return ['concat', this.formatParams(opcode[1] as WireFormat.Core.Params)];
 
-        case Op.GetStrictKeyword:
+        case WIRE_GET_STRICT_KEYWORD:
           return ['get-strict-free', this.upvars[opcode[1]], opcode[2]];
 
-        case Op.GetFreeAsComponentOrHelperHeadOrThisFallback:
+        case WIRE_GET_FREE_AS_COMPONENT_OR_HELPER_HEAD_OR_THIS_FALLBACK:
           return [
             'GetFreeAsComponentOrHelperHeadOrThisFallback',
             this.upvars[opcode[1]],
             opcode[2],
           ];
 
-        case Op.GetFreeAsComponentOrHelperHead:
+        case WIRE_GET_FREE_AS_COMPONENT_OR_HELPER_HEAD:
           return ['GetFreeAsComponentOrHelperHead', this.upvars[opcode[1]], opcode[2]];
 
-        case Op.GetFreeAsHelperHeadOrThisFallback:
+        case WIRE_GET_FREE_AS_HELPER_HEAD_OR_THIS_FALLBACK:
           return ['GetFreeAsHelperHeadOrThisFallback', this.upvars[opcode[1]], opcode[2]];
 
-        case Op.GetFreeAsDeprecatedHelperHeadOrThisFallback:
+        case WIRE_GET_FREE_AS_DEPRECATED_HELPER_HEAD_OR_THIS_FALLBACK:
           return ['GetFreeAsDeprecatedHelperHeadOrThisFallback', this.upvars[opcode[1]]];
 
-        case Op.GetFreeAsHelperHead:
+        case WIRE_GET_FREE_AS_HELPER_HEAD:
           return ['GetFreeAsHelperHead', this.upvars[opcode[1]], opcode[2]];
 
-        case Op.GetFreeAsComponentHead:
+        case WIRE_GET_FREE_AS_COMPONENT_HEAD:
           return ['GetFreeAsComponentHead', this.upvars[opcode[1]], opcode[2]];
 
-        case Op.GetFreeAsModifierHead:
+        case WIRE_GET_FREE_AS_MODIFIER_HEAD:
           return ['GetFreeAsModifierHead', this.upvars[opcode[1]], opcode[2]];
 
-        case Op.GetSymbol: {
+        case WIRE_GET_SYMBOL: {
           if (opcode[1] === 0) {
             return ['get-symbol', 'this', opcode[2]];
           } else {
@@ -205,11 +254,11 @@ export default class WireFormatDebugger {
           }
         }
 
-        case Op.GetLexicalSymbol: {
+        case WIRE_GET_LEXICAL_SYMBOL: {
           return ['get-template-symbol', opcode[1], opcode[2]];
         }
 
-        case Op.If:
+        case WIRE_IF:
           return [
             'if',
             this.formatOpcode(opcode[1]),
@@ -217,13 +266,13 @@ export default class WireFormatDebugger {
             opcode[3] ? this.formatBlock(opcode[3]) : null,
           ];
 
-        case Op.IfInline:
+        case WIRE_IF_INLINE:
           return ['if-inline'];
 
-        case Op.Not:
+        case WIRE_NOT:
           return ['not'];
 
-        case Op.Each:
+        case WIRE_EACH:
           return [
             'each',
             this.formatOpcode(opcode[1]),
@@ -232,7 +281,7 @@ export default class WireFormatDebugger {
             opcode[4] ? this.formatBlock(opcode[4]) : null,
           ];
 
-        case Op.With:
+        case WIRE_WITH:
           return [
             'with',
             this.formatOpcode(opcode[1]),
@@ -240,19 +289,19 @@ export default class WireFormatDebugger {
             opcode[3] ? this.formatBlock(opcode[3]) : null,
           ];
 
-        case Op.Let:
+        case WIRE_LET:
           return ['let', this.formatParams(opcode[1]), this.formatBlock(opcode[2])];
 
-        case Op.Log:
+        case WIRE_LOG:
           return ['log', this.formatParams(opcode[1])];
 
-        case Op.WithDynamicVars:
+        case WIRE_WITH_DYNAMIC_VARS:
           return ['-with-dynamic-vars', this.formatHash(opcode[1]), this.formatBlock(opcode[2])];
 
-        case Op.GetDynamicVar:
+        case WIRE_GET_DYNAMIC_VAR:
           return ['-get-dynamic-vars', this.formatOpcode(opcode[1])];
 
-        case Op.InvokeComponent:
+        case WIRE_INVOKE_COMPONENT:
           return [
             'component',
             this.formatOpcode(opcode[1]),

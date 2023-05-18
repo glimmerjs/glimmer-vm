@@ -51,21 +51,22 @@ export type DebugState = {
   state: unknown;
 };
 
+type Add = (<Name extends VmOp>(name: Name, evaluate: Syscall) => void) &
+  (<Name extends VmMachineOp>(name: Name, evaluate: MachineOpcode, kind: 'machine') => void);
+
 export class AppendOpcodes {
   readonly #evaluateOpcode: Evaluate[] = [];
 
-  add<Name extends VmOp>(name: Name, evaluate: Syscall): void;
-  add<Name extends VmMachineOp>(name: Name, evaluate: MachineOpcode, kind: 'machine'): void;
-  add<Name extends SomeVmOp>(
+  add: Add = <Name extends SomeVmOp>(
     name: Name,
     evaluate: Syscall | MachineOpcode,
     kind = 'syscall'
-  ): void {
+  ): void => {
     this.#evaluateOpcode[name as number] = {
       syscall: kind !== 'machine',
       evaluate,
     } as Evaluate;
-  }
+  };
 
   static {
     if (import.meta.env.DEV) {
@@ -179,7 +180,7 @@ export class AppendOpcodes {
                 LOCAL_LOGGER.log(
                   '%c -> constructing',
                   'color: aqua',
-                  vm._elements_()['constructing']
+                  vm._elements_()['_constructing_']
                 );
               }
             }
@@ -218,3 +219,4 @@ export class AppendOpcodes {
 }
 
 export const APPEND_OPCODES = new AppendOpcodes();
+export const define = APPEND_OPCODES.add;

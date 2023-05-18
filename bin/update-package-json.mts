@@ -211,7 +211,7 @@ function updateBuildScripts(packageJSON: PackageJSON) {
   if (packageJSON.main === 'index.d.ts') return packageJSON;
 
   return updateScripts(packageJSON, {
-    build: 'rollup -c rollup.config.mjs',
+    build: 'rollup -c rollup.config.mjs --experimentalLogSideEffects',
   });
 }
 

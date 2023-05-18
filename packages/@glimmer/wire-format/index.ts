@@ -1,8 +1,22 @@
 import type { Expression, Expressions, Statement, Statements } from '@glimmer/interfaces';
+import {
+  WIRE_ATTR_SPLAT,
+  WIRE_CALL,
+  WIRE_COMPONENT_ATTR,
+  WIRE_DYNAMIC_ARG,
+  WIRE_DYNAMIC_ATTR,
+  WIRE_FLUSH_ELEMENT,
+  WIRE_GET_SYMBOL,
+  WIRE_MODIFIER,
+  WIRE_STATIC_ARG,
+  WIRE_STATIC_ATTR,
+  WIRE_STATIC_COMPONENT_ATTR,
+  WIRE_TRUSTING_COMPONENT_ATTR,
+  WIRE_TRUSTING_DYNAMIC_ATTR,
+} from './lib/opcodes';
 
-import { opcodes } from './lib/opcodes';
+export * from './lib/opcodes';
 
-export { opcodes as SexpOpcodes } from './lib/opcodes';
 export { resolution as VariableResolutionContext } from './lib/resolution';
 export { WellKnownAttrNames, WellKnownTagNames } from './lib/well-known';
 
@@ -13,18 +27,18 @@ export function is<T>(variant: number): (value: any) => value is T {
 }
 
 // Statements
-export const isFlushElement = is<Statements.FlushElement>(opcodes.FlushElement);
+export const isFlushElement = is<Statements.FlushElement>(WIRE_FLUSH_ELEMENT);
 
 export function isAttribute(val: Statement): val is Statements.Attribute {
   return (
-    val[0] === opcodes.StaticAttr ||
-    val[0] === opcodes.DynamicAttr ||
-    val[0] === opcodes.TrustingDynamicAttr ||
-    val[0] === opcodes.ComponentAttr ||
-    val[0] === opcodes.StaticComponentAttr ||
-    val[0] === opcodes.TrustingComponentAttr ||
-    val[0] === opcodes.AttrSplat ||
-    val[0] === opcodes.Modifier
+    val[0] === WIRE_STATIC_ATTR ||
+    val[0] === WIRE_DYNAMIC_ATTR ||
+    val[0] === WIRE_TRUSTING_DYNAMIC_ATTR ||
+    val[0] === WIRE_COMPONENT_ATTR ||
+    val[0] === WIRE_STATIC_COMPONENT_ATTR ||
+    val[0] === WIRE_TRUSTING_COMPONENT_ATTR ||
+    val[0] === WIRE_ATTR_SPLAT ||
+    val[0] === WIRE_MODIFIER
   );
 }
 
@@ -37,12 +51,12 @@ export function getStringFromValue(expr: Expressions.StringValue): string {
 }
 
 export function isArgument(val: Statement): val is Statements.Argument {
-  return val[0] === opcodes.StaticArg || val[0] === opcodes.DynamicArg;
+  return val[0] === WIRE_STATIC_ARG || val[0] === WIRE_DYNAMIC_ARG;
 }
 
 export function isHelper(expr: Expression): expr is Expressions.Helper {
-  return Array.isArray(expr) && expr[0] === opcodes.Call;
+  return Array.isArray(expr) && expr[0] === WIRE_CALL;
 }
 
 // Expressions
-export const isGet = is<Expressions.GetSymbol>(opcodes.GetSymbol);
+export const isGet = is<Expressions.GetSymbol>(WIRE_GET_SYMBOL);

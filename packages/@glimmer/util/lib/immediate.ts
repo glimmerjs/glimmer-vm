@@ -109,6 +109,7 @@ export function encodeHandle(num: number) {
   return num;
 }
 
+/* @__INLINE__ */
 export function decodeHandle(num: number) {
   if (import.meta.env.DEV && LOCAL_DEBUG) {
     assert(num % 1 === 0 && num <= MAX_SMI && num >= 0, `Could not decode handle: ${num}`);

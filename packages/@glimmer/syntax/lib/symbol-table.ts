@@ -1,8 +1,8 @@
 import type { Core, Dict } from '@glimmer/interfaces';
 import { dict, unwrap } from '@glimmer/util';
-import { SexpOpcodes } from '@glimmer/wire-format';
 
 import * as ASTv2 from './v2/api';
+import { WIRE_GET_FREE_AS_COMPONENT_HEAD } from '@glimmer/wire-format';
 
 export interface Upvar {
   readonly name: string;
@@ -102,10 +102,7 @@ export class ProgramSymbolTable extends SymbolTable {
   allocateFree(name: string, resolution: ASTv2.FreeVarResolution): number {
     // If the name in question is an uppercase (i.e. angle-bracket) component invocation, run
     // the optional `customizeComponentName` function provided to the precompiler.
-    if (
-      resolution.resolution() === SexpOpcodes.GetFreeAsComponentHead &&
-      resolution.isAngleBracket
-    ) {
+    if (resolution.resolution() === WIRE_GET_FREE_AS_COMPONENT_HEAD && resolution.isAngleBracket) {
       name = this.options.customizeComponentName(name);
     }
 

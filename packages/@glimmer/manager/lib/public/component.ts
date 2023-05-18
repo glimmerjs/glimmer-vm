@@ -46,11 +46,11 @@ export function componentCapabilities<Version extends keyof ComponentCapabilitie
     throw new Error('Invalid component manager compatibility specified');
   }
 
-  let updateHook = Boolean((options as ComponentCapabilitiesVersions['3.13']).updateHook);
+  let updateHook = !!(options as ComponentCapabilitiesVersions['3.13']).updateHook;
 
   return buildCapabilities({
-    asyncLifeCycleCallbacks: Boolean(options.asyncLifecycleCallbacks),
-    destructor: Boolean(options.destructor),
+    asyncLifeCycleCallbacks: !!options.asyncLifecycleCallbacks,
+    destructor: !!options.destructor,
     updateHook,
   });
 }

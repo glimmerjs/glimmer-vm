@@ -116,7 +116,7 @@ class SerializeBuilder extends NewElementBuilder implements ElementBuilder {
         // under the auto inserted tbody. Rehydration builder needs to
         // account for the insertion since it is injected here and not
         // really in the template.
-        NEEDS_EXTRA_CLOSE.set(this.constructing!, true);
+        NEEDS_EXTRA_CLOSE.set(this._constructing_!, true);
         this.flushElement(null);
       }
     }
@@ -129,10 +129,10 @@ class SerializeBuilder extends NewElementBuilder implements ElementBuilder {
     cursorId: string,
     insertBefore: Maybe<SimpleNode> = null
   ): Nullable<RemoteLiveBlock> {
-    let { dom } = this;
-    let script = dom.createElement('script');
+    let { _dom_ } = this;
+    let script = _dom_.createElement('script');
     script.setAttribute('glmr', cursorId);
-    dom.insertBefore(element, script, insertBefore);
+    _dom_.insertBefore(element, script, insertBefore);
     return super.pushRemoteElement(element, cursorId, insertBefore);
   }
 }

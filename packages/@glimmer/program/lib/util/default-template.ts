@@ -1,11 +1,11 @@
-import type { SerializedTemplateBlock, SerializedTemplateWithLazyBlock } from "@glimmer/interfaces";
-import { SexpOpcodes as op } from '@glimmer/wire-format';
+import type { SerializedTemplateBlock, SerializedTemplateWithLazyBlock } from '@glimmer/interfaces';
+import { WIRE_YIELD } from '@glimmer/wire-format';
 
 /**
  * Default component template, which is a plain yield
  */
 const DEFAULT_TEMPLATE_BLOCK: SerializedTemplateBlock = [
-  [[op.Yield, 1, null]],
+  [[WIRE_YIELD, 1, null]],
   ['&default'],
   false,
   [],

@@ -62,30 +62,29 @@ import {
   type Register,
 } from '@glimmer/vm-constants';
 
-import { APPEND_OPCODES } from '../../opcodes';
+import { define } from '../../opcodes';
 import { CONSTANTS } from '../../symbols';
 import type { InternalVM } from '../../vm/append';
 import { VMArgumentsImpl } from '../../vm/arguments';
 import { CheckReference, CheckScope } from './-debug-strip';
-import { stackAssert } from './assert';
 
-APPEND_OPCODES.add(CHILD_SCOPE_OP, (vm) => vm._pushChildScope_());
+define(CHILD_SCOPE_OP, (vm) => vm._pushChildScope_());
 
-APPEND_OPCODES.add(POP_SCOPE_OP, (vm) => vm._popScope_());
+define(POP_SCOPE_OP, (vm) => vm._popScope_());
 
-APPEND_OPCODES.add(PUSH_DYNAMIC_SCOPE_OP, (vm) => vm._pushDynamicScope_());
+define(PUSH_DYNAMIC_SCOPE_OP, (vm) => vm._pushDynamicScope_());
 
-APPEND_OPCODES.add(POP_DYNAMIC_SCOPE_OP, (vm) => vm._popDynamicScope_());
+define(POP_DYNAMIC_SCOPE_OP, (vm) => vm._popDynamicScope_());
 
-APPEND_OPCODES.add(CONSTANT_OP, (vm, { op1: other }) => {
+define(CONSTANT_OP, (vm, { op1: other }) => {
   vm.stack.push(vm[CONSTANTS].getValue(decodeHandle(other)));
 });
 
-APPEND_OPCODES.add(CONSTANT_REFERENCE_OP, (vm, { op1: other }) => {
+define(CONSTANT_REFERENCE_OP, (vm, { op1: other }) => {
   vm.stack.push(createConstRef(vm[CONSTANTS].getValue(decodeHandle(other)), false));
 });
 
-APPEND_OPCODES.add(PRIMITIVE_OP, (vm, { op1: primitive }) => {
+define(PRIMITIVE_OP, (vm, { op1: primitive }) => {
   let stack = vm.stack;
 
   if (isHandle(primitive)) {
@@ -98,7 +97,7 @@ APPEND_OPCODES.add(PRIMITIVE_OP, (vm, { op1: primitive }) => {
   }
 });
 
-APPEND_OPCODES.add(PRIMITIVE_REFERENCE_OP, (vm) => {
+define(PRIMITIVE_REFERENCE_OP, (vm) => {
   let stack = vm.stack;
   let value = check(stack.pop(), CheckPrimitive);
   let ref;
@@ -118,47 +117,47 @@ APPEND_OPCODES.add(PRIMITIVE_REFERENCE_OP, (vm) => {
   stack.push(ref);
 });
 
-APPEND_OPCODES.add(DUP_OP, (vm, { op1: register, op2: offset }) => {
+define(DUP_OP, (vm, { op1: register, op2: offset }) => {
   let position = check(vm._fetchValue_(register as Register), CheckNumber) - offset;
   vm.stack.dup(position as MachineRegister);
 });
 
-APPEND_OPCODES.add(POP_OP, (vm, { op1: count }) => {
+define(POP_OP, (vm, { op1: count }) => {
   vm.stack.pop(count);
 });
 
-APPEND_OPCODES.add(LOAD_OP, (vm, { op1: register }) => {
+define(LOAD_OP, (vm, { op1: register }) => {
   vm._load_(register as Register);
 });
 
-APPEND_OPCODES.add(FETCH_OP, (vm, { op1: register }) => {
+define(FETCH_OP, (vm, { op1: register }) => {
   vm._fetch_(register as Register);
 });
 
-APPEND_OPCODES.add(BIND_DYNAMIC_SCOPE_OP, (vm, { op1: _names }) => {
+define(BIND_DYNAMIC_SCOPE_OP, (vm, { op1: _names }) => {
   let names = vm[CONSTANTS].getArray<string>(_names);
   vm._bindDynamicScope_(names);
 });
 
-APPEND_OPCODES.add(ENTER_OP, (vm, { op1: args }) => {
+define(ENTER_OP, (vm, { op1: args }) => {
   vm._enter_(args);
 });
 
-APPEND_OPCODES.add(EXIT_OP, (vm) => {
+define(EXIT_OP, (vm) => {
   vm._exit_();
 });
 
-APPEND_OPCODES.add(PUSH_SYMBOL_TABLE_OP, (vm, { op1: _table }) => {
+define(PUSH_SYMBOL_TABLE_OP, (vm, { op1: _table }) => {
   let stack = vm.stack;
   stack.push(vm[CONSTANTS].getValue(_table));
 });
 
-APPEND_OPCODES.add(PUSH_BLOCK_SCOPE_OP, (vm) => {
+define(PUSH_BLOCK_SCOPE_OP, (vm) => {
   let stack = vm.stack;
   stack.push(vm._scope_());
 });
 
-APPEND_OPCODES.add(COMPILE_BLOCK_OP, (vm: InternalVM) => {
+define(COMPILE_BLOCK_OP, (vm: InternalVM) => {
   let stack = vm.stack;
   let block = stack.pop<Nullable<CompilableTemplate> | 0>();
 
@@ -169,7 +168,7 @@ APPEND_OPCODES.add(COMPILE_BLOCK_OP, (vm: InternalVM) => {
   }
 });
 
-APPEND_OPCODES.add(INVOKE_YIELD_OP, (vm) => {
+define(INVOKE_YIELD_OP, (vm) => {
   let { stack } = vm;
 
   let handle = check(stack.pop(), CheckOption(CheckHandle));
@@ -178,7 +177,7 @@ APPEND_OPCODES.add(INVOKE_YIELD_OP, (vm) => {
 
   assert(
     table === null || (table && typeof table === 'object' && Array.isArray(table.parameters)),
-    stackAssert('Option<BlockSymbolTable>', table)
+    `Expected top of stack to be Option<BlockSymbolTable>, was ${String(table)}`
   );
 
   let args = check(stack.pop(), CheckInstanceof(VMArgumentsImpl));
@@ -212,41 +211,33 @@ APPEND_OPCODES.add(INVOKE_YIELD_OP, (vm) => {
   vm._call_(handle!);
 });
 
-APPEND_OPCODES.add(JUMP_IF_OP, (vm, { op1: target }) => {
-  let reference = check(vm.stack.pop(), CheckReference);
-  let value = Boolean(valueForRef(reference));
+// nl.add(65,((t,e)=>{let{op1:n}=e,s=t.stack.pop(),i=O(s);C(s)?i&&t.O(n):(i&&t.O(n),t.M(new al(s)))})),
+
+define(JUMP_IF_OP, (vm, { op1: target }) => {
+  let reference = check(vm.stack.pop(), /* @__PURE__ */ CheckReference);
+  let value = valueForRef(reference);
 
   if (isConstRef(reference)) {
-    if (value === true) {
-      vm._goto_(target);
-    }
+    if (value) vm._goto_(target);
   } else {
-    if (value === true) {
-      vm._goto_(target);
-    }
-
+    if (value) vm._goto_(target);
     vm._updateWith_(new Assert(reference));
   }
 });
 
-APPEND_OPCODES.add(JUMP_UNLESS_OP, (vm, { op1: target }) => {
+define(JUMP_UNLESS_OP, (vm, { op1: target }) => {
   let reference = check(vm.stack.pop(), CheckReference);
-  let value = Boolean(valueForRef(reference));
+  let value = valueForRef(reference);
 
   if (isConstRef(reference)) {
-    if (value === false) {
-      vm._goto_(target);
-    }
+    if (!value) vm._goto_(target);
   } else {
-    if (value === false) {
-      vm._goto_(target);
-    }
-
+    if (!value) vm._goto_(target);
     vm._updateWith_(new Assert(reference));
   }
 });
 
-APPEND_OPCODES.add(JUMP_EQ_OP, (vm, { op1: target, op2: comparison }) => {
+define(JUMP_EQ_OP, (vm, { op1: target, op2: comparison }) => {
   let other = check(vm.stack.peek(), CheckNumber);
 
   if (other === comparison) {
@@ -254,7 +245,7 @@ APPEND_OPCODES.add(JUMP_EQ_OP, (vm, { op1: target, op2: comparison }) => {
   }
 });
 
-APPEND_OPCODES.add(ASSERT_SAME_OP, (vm) => {
+define(ASSERT_SAME_OP, (vm) => {
   let reference = check(vm.stack.peek(), CheckReference);
 
   if (isConstRef(reference) === false) {
@@ -262,7 +253,7 @@ APPEND_OPCODES.add(ASSERT_SAME_OP, (vm) => {
   }
 });
 
-APPEND_OPCODES.add(TO_BOOLEAN_OP, (vm) => {
+define(TO_BOOLEAN_OP, (vm) => {
   let { stack } = vm;
   let valueRef = check(stack.pop(), CheckReference);
 

@@ -1,7 +1,7 @@
 // eslint-disable-next-line @typescript-eslint/triple-slash-reference
 /// <reference types="qunit" />
 
-import setGlobalContext from '@glimmer/global-context';
+import { setGlobalContext } from '@glimmer/global-context';
 import type { Destroyable, Destructor, Dict, Nullable } from '@glimmer/interfaces';
 import type { IteratorDelegate } from '@glimmer/reference';
 import { consumeTag, dirtyTagFor, tagFor } from '@glimmer/validator';
@@ -9,18 +9,10 @@ import { consumeTag, dirtyTagFor, tagFor } from '@glimmer/validator';
 import { scheduleDidDestroy, scheduleWillDestroy } from './base-env';
 import { NativeIteratorDelegate } from './modes/env';
 import type { TestBase } from 'qunit';
-// import 'qunit';
 
 QUnit.config.autostart = false;
 
 let actualDeprecations: string[] = [];
-
-// Reflect.defineProperty(globalThis, 'QUnit', {
-//   configurable: true,
-//   enumerable: true,
-//   writable: true,
-//   value: qunit,
-// });
 
 // Override the types on Assert to add our own helper
 declare global {
