@@ -18,11 +18,11 @@ export type ReferenceType =
   | UnboundReference
   | InvokableReference;
 
-declare const REFERENCE: unique symbol;
-export type ReferenceSymbol = typeof REFERENCE;
-
 export interface Reference<T = unknown> {
-  [REFERENCE]: ReferenceType;
+  /**
+   * This is used in Ember
+   * @preserve
+   */
   debugLabel?: string | undefined;
   compute: Nullable<() => T>;
   children: null | Map<string | Reference, Reference>;
