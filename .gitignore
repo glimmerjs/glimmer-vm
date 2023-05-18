@@ -16,3 +16,5 @@ instrumentation.*.json
 **/.yalc
 .env.local
 control-dist
+stats.*.html
+stats.html

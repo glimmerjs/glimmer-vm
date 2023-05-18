@@ -1,4 +1,4 @@
-import type { Dict, SimpleDocumentFragment, SimpleNode } from "@glimmer/interfaces";
+import type { Dict, SimpleDocumentFragment, SimpleNode } from '@glimmer/interfaces';
 
 export interface SafeString {
   toHTML(): string;
@@ -9,38 +9,42 @@ export type CautiousInsertion = string | SafeString | SimpleNode;
 export type TrustingInsertion = string | SimpleNode;
 
 export function normalizeStringValue(value: unknown): string {
-  if (isEmpty(value)) {
-    return '';
-  }
-  return String(value);
+  return isEmpty(value) ? '' : String(value);
 }
 
 export function normalizeTrustedValue(value: unknown): TrustingInsertion {
-  if (isEmpty(value)) {
-    return '';
-  }
-  if (isString(value)) {
-    return value;
-  }
-  if (isSafeString(value)) {
-    return value.toHTML();
-  }
-  if (isNode(value)) {
-    return value;
-  }
+  if (isEmpty(value)) return '';
+  if (isString(value) || isNode(value)) return value;
+  if (isSafeString(value)) return value.toHTML();
+
   return String(value);
 }
 
 export function shouldCoerce(
   value: unknown
 ): value is string | number | boolean | null | undefined {
-  return (
-    isString(value) || isEmpty(value) || typeof value === 'boolean' || typeof value === 'number'
-  );
+  return isPrimitive(value) || notStringifiable(value);
+}
+
+function isPrimitive(value: unknown) {
+  if (value == null) return true;
+
+  switch (typeof value) {
+    case 'boolean':
+    case 'number':
+    case 'string':
+      return true;
+    default:
+      return false;
+  }
 }
 
 export function isEmpty(value: unknown): boolean {
-  return value === null || value === undefined || typeof (value as Dict).toString !== 'function';
+  return value == null || notStringifiable(value);
+}
+
+export function notStringifiable(value: unknown): boolean {
+  return typeof (value as Dict).toString !== 'function';
 }
 
 export function isSafeString(value: unknown): value is SafeString {

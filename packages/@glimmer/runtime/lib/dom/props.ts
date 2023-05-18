@@ -1,36 +1,29 @@
-import type { Dict, SimpleElement } from '@glimmer/interfaces';
+import type { SimpleElement } from '@glimmer/interfaces';
 
-/*
- * @method normalizeProperty
- * @param element {HTMLElement}
- * @param slotName {String}
- * @returns {Object} { name, type }
- */
-export function normalizeProperty(element: SimpleElement, slotName: string) {
-  let type, normalized;
+export const ATTR = 0;
+export const PROP = 1;
+export type AttrType = 0 | 1;
+export type NormalizedProperty = [type: AttrType, normalized: string];
 
-  if (slotName in element) {
-    normalized = slotName;
-    type = 'prop';
+export function normalizeProperty(element: SimpleElement, slotName: string): NormalizedProperty {
+  if (slotName in element) return triage(element, slotName);
+
+  let lower = slotName.toLowerCase();
+  if (lower in element) {
+    return triage(element, lower);
   } else {
-    let lower = slotName.toLowerCase();
-    if (lower in element) {
-      type = 'prop';
-      normalized = lower;
-    } else {
-      type = 'attr';
-      normalized = slotName;
-    }
+    return [ATTR, slotName];
   }
+}
 
-  if (
-    type === 'prop' &&
-    (normalized.toLowerCase() === 'style' || preferAttr(element.tagName, normalized))
-  ) {
-    type = 'attr';
-  }
+function triage(element: SimpleElement, normalized: string): [type: AttrType, normalized: string] {
+  return [triageType(element, normalized), normalized];
+}
 
-  return { normalized, type };
+function triageType(element: SimpleElement, normalized: string): AttrType {
+  return normalized.toLowerCase() === 'style' || preferAttr(element.tagName, normalized)
+    ? ATTR
+    : PROP;
 }
 
 export function normalizePropertyValue(value: unknown): unknown {
@@ -41,35 +34,9 @@ export function normalizePropertyValue(value: unknown): unknown {
   return value;
 }
 
-// properties that MUST be set as attributes, due to:
-// * browser bug
-// * strange spec outlier
-const ATTR_OVERRIDES: Dict<string | string[]> = {
-  INPUT: [
-    'form',
-    // Chrome 46.0.2464.0: 'autocorrect' in document.createElement('input') === false
-    // Safari 8.0.7: 'autocorrect' in document.createElement('input') === false
-    // Mobile Safari (iOS 8.4 simulator): 'autocorrect' in document.createElement('input') === true
-    'autocorrect',
-    // Chrome 54.0.2840.98: 'list' in document.createElement('input') === true
-    // Safari 9.1.3: 'list' in document.createElement('input') === false
-    'list',
-  ],
-
-  // element.form is actually a legitimate readOnly property, that is to be
-  // mutated, but must be mutated by setAttribute...
-  SELECT: 'form',
-  OPTION: 'form',
-  TEXTAREA: 'form',
-  LABEL: 'form',
-  FIELDSET: 'form',
-  LEGEND: 'form',
-  OBJECT: 'form',
-  OUTPUT: 'form',
-  BUTTON: 'form',
-};
+const FORM = 'INPUT|SELECT|OPTION|TEXTAREA|LABEL|FIELDSET|LEGEND|OBJECT|OUTPUT|BUTTON'.split('|');
 
 function preferAttr(tagName: string, propName: string) {
-  let props = ATTR_OVERRIDES[tagName.toUpperCase()];
-  return typeof props === 'string' ? propName === props : props?.includes(propName);
+  if (propName === 'form') return FORM.includes(tagName);
+  if (tagName === 'INPUT') return propName === 'autocorrect' || propName === 'list';
 }

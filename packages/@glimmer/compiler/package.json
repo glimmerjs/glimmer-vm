@@ -31,7 +31,7 @@
   "devDependencies": {
     "@glimmer/local-debug-flags": "workspace:^",
     "@glimmer-workspace/build-support": "workspace:^",
-    "@types/node": "^18.16.6"
+    "@types/node": "^18.16.12"
   },
   "scripts": {
     "build": "rollup -c rollup.config.mjs",

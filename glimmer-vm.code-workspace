@@ -11,6 +11,9 @@
     },
     {
       "path": "packages/@glimmer/vm"
+    },
+    {
+      "path": "packages/@glimmer/vm-constants"
     }
   ],
   "settings": {

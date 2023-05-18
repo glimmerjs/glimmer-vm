@@ -17,6 +17,7 @@ import { sync as sizeSync } from 'brotli-size';
 import { constants as zlib } from 'node:zlib';
 import prettyBytes from 'pretty-bytes';
 import chalk from 'chalk';
+import { visualizer } from 'rollup-plugin-visualizer';
 
 // eslint-disable-next-line import/no-named-as-default-member
 const { ModuleKind, ModuleResolutionKind, ScriptTarget, ImportsNotUsedAsValues } = ts;
@@ -135,18 +136,6 @@ const PRESETS = {
     },
   },
 };
-
-// const EXTERNAL_OPTIONS = /** @type {const} */ ({
-//   inline: {
-//     is: ['@glimmer/local-debug-flags', '@glimmer/debug', '@glimmer/util', '@glimmer/vm-constants'],
-//     startsWith: ['.', '/', '#', '@babel/runtime/'],
-//     endsWith: ['-debug-strip'],
-//   },
-//   external: {
-//     is: ['@handlebars/parser', 'simple-html-tokenizer', 'babel-plugin-debug-macros'],
-//     startsWith: ['@glimmer/', '@simple-dom/', '@babel/', 'node:'],
-//   },
-// });
 
 /**
  * @param {Package} pkg
@@ -451,6 +440,29 @@ export class Package {
                 );
               },
             },
+            visualizer({
+              brotliSize: true,
+              template: 'network',
+              filename: 'stats.network.html',
+            }),
+            visualizer({
+              brotliSize: true,
+              template: 'treemap',
+              filename: 'stats.treemap.html',
+            }),
+            visualizer({
+              brotliSize: true,
+              gzipSize: true,
+
+              template: 'sunburst',
+              filename: 'stats.sunburst.html',
+            }),
+            visualizer({
+              sourcemap: true,
+              brotliSize: true,
+              template: 'treemap',
+              filename: 'stats.precise.html',
+            }),
           ]
         : [];
 

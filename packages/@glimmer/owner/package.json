@@ -15,7 +15,7 @@
     "entry": true,
     "inline": {
       "is": [
-        "@glimmer/util"
+        "@glimmer/*"
       ]
     }
   },

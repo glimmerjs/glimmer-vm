@@ -8,11 +8,11 @@ import type {
   Environment,
   Nullable,
   SimpleElement,
-} from "@glimmer/interfaces";
+} from '@glimmer/interfaces';
 import { castToBrowser, NS_SVG } from '@glimmer/util';
 
 import { normalizeStringValue } from '../../dom/normalize';
-import { normalizeProperty } from '../../dom/props';
+import { ATTR, normalizeProperty } from '../../dom/props';
 import { requiresSanitization, sanitizeAttributeValue } from '../../dom/sanitized-values';
 
 export function dynamicAttribute(
@@ -32,13 +32,11 @@ export function dynamicAttribute(
     return buildDynamicAttribute(tagName, attr, attribute);
   }
 
-  const { type, normalized } = normalizeProperty(element, attr);
+  const [type, normalized] = normalizeProperty(element, attr);
 
-  if (type === 'attr') {
-    return buildDynamicAttribute(tagName, normalized, attribute);
-  } else {
-    return buildDynamicProperty(tagName, normalized, attribute);
-  }
+  return type === ATTR
+    ? buildDynamicAttribute(tagName, normalized, attribute)
+    : buildDynamicProperty(tagName, normalized, attribute);
 }
 
 function buildDynamicAttribute(

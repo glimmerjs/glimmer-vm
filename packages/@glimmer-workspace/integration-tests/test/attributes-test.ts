@@ -1,5 +1,5 @@
 import type { SimpleElement } from '@glimmer/interfaces';
-import { normalizeProperty } from '@glimmer/runtime';
+import { ATTR, normalizeProperty } from '@glimmer/runtime';
 import { castToBrowser, expect, NS_SVG } from '@glimmer/util';
 
 import { assertingElement, hasAttribute, jitSuite, RenderTest, test, tracked } from '..';
@@ -9,13 +9,13 @@ export class AttributesTests extends RenderTest {
 
   protected readDOMAttr(attr: string, element = this.element.firstChild as SimpleElement) {
     const isSVG = element.namespaceURI === NS_SVG;
-    const { type, normalized } = normalizeProperty(element, attr);
+    const [type, normalized] = normalizeProperty(element, attr);
 
     if (isSVG) {
       return element.getAttribute(normalized);
     }
 
-    if (type === 'attr') {
+    if (type === ATTR) {
       return element.getAttribute(normalized);
     }
 

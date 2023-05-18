@@ -4,10 +4,21 @@
   "type": "module",
   "repository": "https://github.com/glimmerjs/glimmer-vm/tree/master/packages/@glimmer/vm",
   "dependencies": {
+    "@glimmer/owner": "workspace:^"
+  },
+  "devDependencies": {
+    "@glimmer-workspace/build-support": "workspace:^",
     "@glimmer/util": "workspace:^",
     "@glimmer/interfaces": "workspace:^",
     "@glimmer/runtime": "workspace:^",
-    "@glimmer/node": "workspace:^"
+    "@glimmer/node": "workspace:^",
+    "@glimmer/global-context": "workspace:^",
+    "@glimmer/reference": "workspace:^",
+    "@glimmer/destroyable": "workspace:^",
+    "@glimmer/program": "workspace:^",
+    "@glimmer/validator": "workspace:^",
+    "@glimmer/manager": "workspace:^",
+    "@glimmer/opcode-compiler": "workspace:^"
   },
   "types": "index.ts",
   "scripts": {
@@ -17,6 +28,11 @@
   },
   "workspace": {
     "entry": true,
+    "external": {
+      "is": [
+        "@simple-dom/*"
+      ]
+    },
     "inline": {
       "is": [
         "@glimmer/*"
@@ -38,8 +54,5 @@
       "require": "./dist/index.cjs",
       "default": "./dist/index.js"
     }
-  },
-  "devDependencies": {
-    "@glimmer-workspace/build-support": "workspace:^"
   }
 }
