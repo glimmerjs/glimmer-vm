@@ -51,7 +51,11 @@ export class SingleNodeBounds implements Bounds {
   }
 }
 
-export function move(bounds: Bounds, reference: Nullable<SimpleNode>): Nullable<SimpleNode> {
+/** @__INLINE__ */
+function withBounds(
+  bounds: Bounds,
+  action: (parent: SimpleElement, node: SimpleNode) => void
+): SimpleNode | null {
   let parent = bounds.parentElement();
   let first = bounds.firstNode();
   let last = bounds.lastNode();
@@ -61,34 +65,15 @@ export function move(bounds: Bounds, reference: Nullable<SimpleNode>): Nullable<
   // eslint-disable-next-line no-constant-condition
   while (true) {
     let next = current.nextSibling;
+    action(parent, current);
 
-    parent.insertBefore(current, reference);
-
-    if (current === last) {
-      return next;
-    }
-
+    if (current === last) return next;
     current = expect(next, 'invalid bounds');
   }
 }
 
-export function clear(bounds: Bounds): Nullable<SimpleNode> {
-  let parent = bounds.parentElement();
-  let first = bounds.firstNode();
-  let last = bounds.lastNode();
+export const move = (bounds: Bounds, reference: Nullable<SimpleNode>): Nullable<SimpleNode> =>
+  withBounds(bounds, (parent, node) => parent.insertBefore(node, reference));
 
-  let current: SimpleNode = first;
-
-  // eslint-disable-next-line no-constant-condition
-  while (true) {
-    let next = current.nextSibling;
-
-    parent.removeChild(current);
-
-    if (current === last) {
-      return next;
-    }
-
-    current = expect(next, 'invalid bounds');
-  }
-}
+export const clear = (bounds: Bounds): Nullable<SimpleNode> =>
+  withBounds(bounds, (parent, node) => parent.removeChild(node));

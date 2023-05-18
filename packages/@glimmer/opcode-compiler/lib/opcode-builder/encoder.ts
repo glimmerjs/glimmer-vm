@@ -44,7 +44,21 @@ import {
   resolveOptionalComponentOrHelper,
   resolveOptionalHelper,
 } from './helpers/resolution';
-import { HighLevelBuilderOpcodes, HighLevelResolutionOpcodes } from './opcodes';
+import {
+  LABEL_OP,
+  RESOLVE_COMPONENT,
+  RESOLVE_COMPONENT_OR_HELPER,
+  RESOLVE_FREE,
+  RESOLVE_HELPER,
+  RESOLVE_LOCAL,
+  RESOLVE_MODIFIER,
+  RESOLVE_OPTIONAL_COMPONENT_OR_HELPER,
+  RESOLVE_OPTIONAL_HELPER,
+  RESOLVE_TEMPLATE_LOCAL,
+  START_LABELS_OP,
+  START_OP,
+  STOP_LABELS_OP,
+} from './opcodes';
 import { HighLevelOperands } from './operands';
 
 export class Labels {
@@ -84,27 +98,27 @@ export function encodeOp(
     encoder.push(constants, type, ...(operands as SingleBuilderOperand[]));
   } else {
     switch (op[0]) {
-      case HighLevelBuilderOpcodes.Label:
+      case LABEL_OP:
         return encoder.label(op[1]);
-      case HighLevelBuilderOpcodes.StartLabels:
+      case START_LABELS_OP:
         return encoder.startLabels();
-      case HighLevelBuilderOpcodes.StopLabels:
+      case STOP_LABELS_OP:
         return encoder.stopLabels();
 
-      case HighLevelResolutionOpcodes.Component:
+      case RESOLVE_COMPONENT:
         return resolveComponent(resolver, constants, meta, op);
-      case HighLevelResolutionOpcodes.Modifier:
+      case RESOLVE_MODIFIER:
         return resolveModifier(resolver, constants, meta, op);
-      case HighLevelResolutionOpcodes.Helper:
+      case RESOLVE_HELPER:
         return resolveHelper(resolver, constants, meta, op);
-      case HighLevelResolutionOpcodes.ComponentOrHelper:
+      case RESOLVE_COMPONENT_OR_HELPER:
         return resolveComponentOrHelper(resolver, constants, meta, op);
-      case HighLevelResolutionOpcodes.OptionalHelper:
+      case RESOLVE_OPTIONAL_HELPER:
         return resolveOptionalHelper(resolver, constants, meta, op);
-      case HighLevelResolutionOpcodes.OptionalComponentOrHelper:
+      case RESOLVE_OPTIONAL_COMPONENT_OR_HELPER:
         return resolveOptionalComponentOrHelper(resolver, constants, meta, op);
 
-      case HighLevelResolutionOpcodes.Local: {
+      case RESOLVE_LOCAL: {
         let freeVar = op[1];
         let name = expect(meta.upvars, 'BUG: attempted to resolve value but no upvars found')[
           freeVar
@@ -116,7 +130,7 @@ export function encodeOp(
         break;
       }
 
-      case HighLevelResolutionOpcodes.TemplateLocal: {
+      case RESOLVE_TEMPLATE_LOCAL: {
         let [, valueIndex, then] = op;
         let value = expect(
           meta.scopeValues,
@@ -128,7 +142,7 @@ export function encodeOp(
         break;
       }
 
-      case HighLevelResolutionOpcodes.Free:
+      case RESOLVE_FREE:
         if (import.meta.env.DEV) {
           let [, upvarIndex] = op;
           let freeName = expect(meta.upvars, 'BUG: attempted to resolve value but no upvars found')[
@@ -262,5 +276,5 @@ export class EncoderImpl implements Encoder {
 }
 
 function isBuilderOpcode(op: number): op is BuilderOpcode {
-  return op < HighLevelBuilderOpcodes.Start;
+  return op < START_OP;
 }

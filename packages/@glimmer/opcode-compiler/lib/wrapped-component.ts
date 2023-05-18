@@ -15,7 +15,7 @@ import { templateCompilationContext } from './opcode-builder/context';
 import { encodeOp } from './opcode-builder/encoder';
 import { ATTRS_BLOCK, WrappedComponent } from './opcode-builder/helpers/components';
 import { meta } from './opcode-builder/helpers/shared';
-import type { HighLevelStatementOp } from './syntax/compilers';
+import type { HighLevelStatementOp } from './syntax/compiler-impl';
 
 export class WrappedBuilder implements CompilableProgram {
   public symbolTable: ProgramSymbolTable;

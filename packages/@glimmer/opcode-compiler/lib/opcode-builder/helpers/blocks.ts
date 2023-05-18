@@ -17,7 +17,7 @@ import {
   SPREAD_BLOCK_OP,
 } from '@glimmer/vm-constants';
 
-import type { PushExpressionOp, PushStatementOp } from '../../syntax/compilers';
+import type { PushExpressionOp, PushStatementOp } from '../../syntax/compiler-impl';
 import { blockOperand, symbolTableOperand } from '../operands';
 import { SimpleArgs } from './shared';
 import { PushPrimitive } from './vm';

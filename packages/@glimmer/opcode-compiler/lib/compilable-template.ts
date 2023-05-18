@@ -1,3 +1,6 @@
+import './syntax/expressions';
+import './syntax/statements';
+
 import type {
   BlockSymbolTable,
   BuilderOp,
@@ -23,8 +26,8 @@ import { debugCompiler } from './compiler';
 import { templateCompilationContext } from './opcode-builder/context';
 import { encodeOp } from './opcode-builder/encoder';
 import { meta } from './opcode-builder/helpers/shared';
-import type { HighLevelStatementOp } from './syntax/compilers';
-import { STATEMENTS } from './syntax/statements';
+import type { HighLevelStatementOp } from './syntax/compiler-impl';
+import { compileStatement } from './syntax/compilers';
 
 export const PLACEHOLDER_HANDLE = -1;
 
@@ -80,7 +83,6 @@ export function compileStatements(
   meta: ContainingMetadata,
   syntaxContext: CompileTimeCompilationContext
 ): HandleResult {
-  let sCompiler = STATEMENTS;
   let context = templateCompilationContext(syntaxContext, meta);
 
   let {
@@ -93,7 +95,7 @@ export function compileStatements(
   }
 
   for (const statement of statements) {
-    sCompiler.compile(pushOp, statement);
+    compileStatement(pushOp, statement);
   }
 
   let handle = context.encoder.commit(meta.size);

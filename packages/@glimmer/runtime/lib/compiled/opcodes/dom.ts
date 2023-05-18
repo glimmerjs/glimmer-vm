@@ -42,33 +42,34 @@ import {
   PUSH_REMOTE_ELEMENT_OP,
   STATIC_ATTR_OP,
   TEXT_OP,
- CURRIED_MODIFIER } from '@glimmer/vm-constants';
+  CURRIED_MODIFIER,
+} from '@glimmer/vm-constants';
 
 import { type CurriedValue, isCurriedType, resolveCurriedValue } from '../../curried-value';
-import { APPEND_OPCODES } from '../../opcodes';
+import { define } from '../../opcodes';
 import { CONSTANTS } from '../../symbols';
 import type { DynamicAttribute } from '../../vm/attributes/dynamic';
 import { CheckArguments, CheckOperations, CheckReference } from './-debug-strip';
 import { Assert } from './vm';
 
-APPEND_OPCODES.add(TEXT_OP, (vm, { op1: text }) => {
+define(TEXT_OP, (vm, { op1: text }) => {
   vm._elements_().appendText(vm[CONSTANTS].getValue(text));
 });
 
-APPEND_OPCODES.add(COMMENT_OP, (vm, { op1: text }) => {
+define(COMMENT_OP, (vm, { op1: text }) => {
   vm._elements_().appendComment(vm[CONSTANTS].getValue(text));
 });
 
-APPEND_OPCODES.add(OPEN_ELEMENT_OP, (vm, { op1: tag }) => {
+define(OPEN_ELEMENT_OP, (vm, { op1: tag }) => {
   vm._elements_().openElement(vm[CONSTANTS].getValue(tag));
 });
 
-APPEND_OPCODES.add(OPEN_DYNAMIC_ELEMENT_OP, (vm) => {
+define(OPEN_DYNAMIC_ELEMENT_OP, (vm) => {
   let tagName = check(valueForRef(check(vm.stack.pop(), CheckReference)), CheckString);
   vm._elements_().openElement(tagName);
 });
 
-APPEND_OPCODES.add(PUSH_REMOTE_ELEMENT_OP, (vm) => {
+define(PUSH_REMOTE_ELEMENT_OP, (vm) => {
   let elementRef = check(vm.stack.pop(), CheckReference);
   let insertBeforeRef = check(vm.stack.pop(), CheckReference);
   let guidRef = check(vm.stack.pop(), CheckReference);
@@ -89,11 +90,11 @@ APPEND_OPCODES.add(PUSH_REMOTE_ELEMENT_OP, (vm) => {
   if (block) vm._associateDestroyable_(block);
 });
 
-APPEND_OPCODES.add(POP_REMOTE_ELEMENT_OP, (vm) => {
+define(POP_REMOTE_ELEMENT_OP, (vm) => {
   vm._elements_().popRemoteElement();
 });
 
-APPEND_OPCODES.add(FLUSH_ELEMENT_OP, (vm) => {
+define(FLUSH_ELEMENT_OP, (vm) => {
   let operations = check(vm._fetchValue_($t0), CheckOperations);
   let modifiers: Nullable<ModifierInstance[]> = null;
 
@@ -105,7 +106,7 @@ APPEND_OPCODES.add(FLUSH_ELEMENT_OP, (vm) => {
   vm._elements_().flushElement(modifiers);
 });
 
-APPEND_OPCODES.add(CLOSE_ELEMENT_OP, (vm) => {
+define(CLOSE_ELEMENT_OP, (vm) => {
   let modifiers = vm._elements_().closeElement();
 
   if (modifiers) {
@@ -121,7 +122,7 @@ APPEND_OPCODES.add(CLOSE_ELEMENT_OP, (vm) => {
   }
 });
 
-APPEND_OPCODES.add(MODIFIER_OP, (vm, { op1: handle }) => {
+define(MODIFIER_OP, (vm, { op1: handle }) => {
   if (vm.env.isInteractive === false) {
     return;
   }
@@ -162,7 +163,7 @@ APPEND_OPCODES.add(MODIFIER_OP, (vm, { op1: handle }) => {
   }
 });
 
-APPEND_OPCODES.add(DYNAMIC_MODIFIER_OP, (vm) => {
+define(DYNAMIC_MODIFIER_OP, (vm) => {
   if (vm.env.isInteractive === false) {
     return;
   }
@@ -347,7 +348,7 @@ export class UpdateDynamicModifierOpcode implements UpdatingOpcode {
   }
 }
 
-APPEND_OPCODES.add(STATIC_ATTR_OP, (vm, { op1: _name, op2: _value, op3: _namespace }) => {
+define(STATIC_ATTR_OP, (vm, { op1: _name, op2: _value, op3: _namespace }) => {
   let name = vm[CONSTANTS].getValue<string>(_name);
   let value = vm[CONSTANTS].getValue<string>(_value);
   let namespace = _namespace ? vm[CONSTANTS].getValue<string>(_namespace) : null;
@@ -355,7 +356,7 @@ APPEND_OPCODES.add(STATIC_ATTR_OP, (vm, { op1: _name, op2: _value, op3: _namespa
   vm._elements_().setStaticAttribute(name, value, namespace);
 });
 
-APPEND_OPCODES.add(DYNAMIC_ATTR_OP, (vm, { op1: _name, op2: _trusting, op3: _namespace }) => {
+define(DYNAMIC_ATTR_OP, (vm, { op1: _name, op2: _trusting, op3: _namespace }) => {
   let name = vm[CONSTANTS].getValue<string>(_name);
   let trusting = vm[CONSTANTS].getValue<boolean>(_trusting);
   let reference = check(vm.stack.pop(), CheckReference);

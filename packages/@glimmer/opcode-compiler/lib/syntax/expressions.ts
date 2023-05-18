@@ -1,5 +1,4 @@
 import { assert, deprecate } from '@glimmer/global-context';
-import type { ExpressionSexpOpcode } from '@glimmer/interfaces';
 import {
   $v0,
   COMPILE_BLOCK_OP,
@@ -23,8 +22,7 @@ import { expr } from '../opcode-builder/helpers/expr';
 import { isGetFreeHelper } from '../opcode-builder/helpers/resolution';
 import { SimpleArgs } from '../opcode-builder/helpers/shared';
 import { Call, CallDynamic, Curry, PushPrimitiveReference } from '../opcode-builder/helpers/vm';
-import { HighLevelResolutionOpcodes } from '../opcode-builder/opcodes';
-import { Compilers, type PushExpressionOp } from './compilers';
+import type { PushExpressionOp } from './compiler-impl';
 import {
   WIRE_CALL,
   WIRE_CONCAT,
@@ -43,10 +41,16 @@ import {
   WIRE_NOT,
   WIRE_UNDEFINED,
 } from '@glimmer/wire-format';
+import { defineExpr } from './compilers';
+import {
+  RESOLVE_FREE,
+  RESOLVE_HELPER,
+  RESOLVE_LOCAL,
+  RESOLVE_OPTIONAL_HELPER,
+  RESOLVE_TEMPLATE_LOCAL,
+} from '../opcode-builder/opcodes';
 
-export const EXPRESSIONS = new Compilers<PushExpressionOp, ExpressionSexpOpcode>();
-
-EXPRESSIONS.add(WIRE_CONCAT, (op, [, parts]) => {
+defineExpr(WIRE_CONCAT, (op, [, parts]) => {
   for (let part of parts) {
     expr(op, part);
   }
@@ -54,9 +58,9 @@ EXPRESSIONS.add(WIRE_CONCAT, (op, [, parts]) => {
   op(CONCAT_OP, parts.length);
 });
 
-EXPRESSIONS.add(WIRE_CALL, (op, [, expression, positional, named]) => {
+defineExpr(WIRE_CALL, (op, [, expression, positional, named]) => {
   if (isGetFreeHelper(expression)) {
-    op(HighLevelResolutionOpcodes.Helper, expression, (handle: number) => {
+    op(RESOLVE_HELPER, expression, (handle: number) => {
       Call(op, handle, positional, named);
     });
   } else {
@@ -65,29 +69,29 @@ EXPRESSIONS.add(WIRE_CALL, (op, [, expression, positional, named]) => {
   }
 });
 
-EXPRESSIONS.add(WIRE_CURRY, (op, [, expr, type, positional, named]) => {
+defineExpr(WIRE_CURRY, (op, [, expr, type, positional, named]) => {
   Curry(op, type, expr, positional, named);
 });
 
-EXPRESSIONS.add(WIRE_GET_SYMBOL, (op, [, sym, path]) => {
+defineExpr(WIRE_GET_SYMBOL, (op, [, sym, path]) => {
   op(GET_VARIABLE_OP, sym);
   withPath(op, path);
 });
 
-EXPRESSIONS.add(WIRE_GET_LEXICAL_SYMBOL, (op, [, sym, path]) => {
-  op(HighLevelResolutionOpcodes.TemplateLocal, sym, (handle: number) => {
+defineExpr(WIRE_GET_LEXICAL_SYMBOL, (op, [, sym, path]) => {
+  op(RESOLVE_TEMPLATE_LOCAL, sym, (handle: number) => {
     op(CONSTANT_REFERENCE_OP, handle);
     withPath(op, path);
   });
 });
 
-EXPRESSIONS.add(WIRE_GET_STRICT_KEYWORD, (op, [, sym, _path]) => {
-  op(HighLevelResolutionOpcodes.Free, sym, (_handle: unknown) => {
+defineExpr(WIRE_GET_STRICT_KEYWORD, (op, [, sym, _path]) => {
+  op(RESOLVE_FREE, sym, (_handle: unknown) => {
     // TODO: Implement in strict mode
   });
 });
 
-EXPRESSIONS.add(WIRE_GET_FREE_AS_COMPONENT_OR_HELPER_HEAD_OR_THIS_FALLBACK, () => {
+defineExpr(WIRE_GET_FREE_AS_COMPONENT_OR_HELPER_HEAD_OR_THIS_FALLBACK, () => {
   // TODO: The logic for this opcode currently exists in STATEMENTS.Append, since
   // we want different wrapping logic depending on if we are invoking a component,
   // helper, or {{this}} fallback. Eventually we fix the opcodes so that we can
@@ -95,11 +99,11 @@ EXPRESSIONS.add(WIRE_GET_FREE_AS_COMPONENT_OR_HELPER_HEAD_OR_THIS_FALLBACK, () =
   throw new Error('unimplemented opcode');
 });
 
-EXPRESSIONS.add(WIRE_GET_FREE_AS_HELPER_HEAD_OR_THIS_FALLBACK, (op, expr) => {
+defineExpr(WIRE_GET_FREE_AS_HELPER_HEAD_OR_THIS_FALLBACK, (op, expr) => {
   // <div id={{baz}}>
 
-  op(HighLevelResolutionOpcodes.Local, expr[1], (_name: string) => {
-    op(HighLevelResolutionOpcodes.OptionalHelper, expr, {
+  op(RESOLVE_LOCAL, expr[1], (_name: string) => {
+    op(RESOLVE_OPTIONAL_HELPER, expr, {
       ifHelper: (handle: number) => {
         Call(op, handle, null, null);
       },
@@ -107,11 +111,11 @@ EXPRESSIONS.add(WIRE_GET_FREE_AS_HELPER_HEAD_OR_THIS_FALLBACK, (op, expr) => {
   });
 });
 
-EXPRESSIONS.add(WIRE_GET_FREE_AS_DEPRECATED_HELPER_HEAD_OR_THIS_FALLBACK, (op, expr) => {
+defineExpr(WIRE_GET_FREE_AS_DEPRECATED_HELPER_HEAD_OR_THIS_FALLBACK, (op, expr) => {
   // <Foo @bar={{baz}}>
 
-  op(HighLevelResolutionOpcodes.Local, expr[1], (_name: string) => {
-    op(HighLevelResolutionOpcodes.OptionalHelper, expr, {
+  op(RESOLVE_LOCAL, expr[1], (_name: string) => {
+    op(RESOLVE_OPTIONAL_HELPER, expr, {
       ifHelper: (handle: number, name: string, moduleName: string) => {
         assert(expr[2] && expr[2].length === 1, '[BUG] Missing argument name');
 
@@ -149,20 +153,20 @@ function withPath(op: PushExpressionOp, path?: string[]) {
   }
 }
 
-EXPRESSIONS.add(WIRE_UNDEFINED, (op) => PushPrimitiveReference(op, undefined));
-EXPRESSIONS.add(WIRE_HAS_BLOCK, (op, [, block]) => {
+defineExpr(WIRE_UNDEFINED, (op) => PushPrimitiveReference(op, undefined));
+defineExpr(WIRE_HAS_BLOCK, (op, [, block]) => {
   expr(op, block);
   op(HAS_BLOCK_OP);
 });
 
-EXPRESSIONS.add(WIRE_HAS_BLOCK_PARAMS, (op, [, block]) => {
+defineExpr(WIRE_HAS_BLOCK_PARAMS, (op, [, block]) => {
   expr(op, block);
   op(SPREAD_BLOCK_OP);
   op(COMPILE_BLOCK_OP);
   op(HAS_BLOCK_PARAMS_OP);
 });
 
-EXPRESSIONS.add(WIRE_IF_INLINE, (op, [, condition, truthy, falsy]) => {
+defineExpr(WIRE_IF_INLINE, (op, [, condition, truthy, falsy]) => {
   // Push in reverse order
   expr(op, falsy);
   expr(op, truthy);
@@ -170,17 +174,17 @@ EXPRESSIONS.add(WIRE_IF_INLINE, (op, [, condition, truthy, falsy]) => {
   op(IF_INLINE_OP);
 });
 
-EXPRESSIONS.add(WIRE_NOT, (op, [, value]) => {
+defineExpr(WIRE_NOT, (op, [, value]) => {
   expr(op, value);
   op(NOT_OP);
 });
 
-EXPRESSIONS.add(WIRE_GET_DYNAMIC_VAR, (op, [, expression]) => {
+defineExpr(WIRE_GET_DYNAMIC_VAR, (op, [, expression]) => {
   expr(op, expression);
   op(GET_DYNAMIC_VAR_OP);
 });
 
-EXPRESSIONS.add(WIRE_LOG, (op, [, positional]) => {
+defineExpr(WIRE_LOG, (op, [, positional]) => {
   op(PUSH_FRAME_OP);
   SimpleArgs(op, positional, null, false);
   op(LOG_OP);

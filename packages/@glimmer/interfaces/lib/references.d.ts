@@ -1,5 +1,3 @@
-import type { Nullable } from './core';
-
 export type ConstantReference = 0;
 export type ComputeReference = 1;
 export type UnboundReference = 2;
@@ -18,12 +16,11 @@ export type ReferenceType =
   | UnboundReference
   | InvokableReference;
 
-export interface Reference<T = unknown> {
+export interface Reference<_T = unknown> {
   /**
    * This is used in Ember
    * @preserve
    */
   debugLabel?: string | undefined;
-  compute: Nullable<() => T>;
-  children: null | Map<string | Reference, Reference>;
+  _updateChildren_(children: Map<string | Reference, Reference>): void;
 }

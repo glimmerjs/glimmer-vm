@@ -43,7 +43,7 @@ export class UpdatingVM implements IUpdatingVM {
     this.alwaysRevalidate = alwaysRevalidate;
   }
 
-  execute(opcodes: UpdatingOpcode[], handler: ExceptionHandler) {
+  execute(opcodes: readonly UpdatingOpcode[], handler: ExceptionHandler) {
     if (import.meta.env.DEV) {
       let hasErrored = true;
       try {
@@ -66,7 +66,7 @@ export class UpdatingVM implements IUpdatingVM {
     }
   }
 
-  private _execute(opcodes: UpdatingOpcode[], handler: ExceptionHandler) {
+  private _execute(opcodes: readonly UpdatingOpcode[], handler: ExceptionHandler) {
     let { frameStack } = this;
 
     this.try(opcodes, handler);
@@ -91,7 +91,7 @@ export class UpdatingVM implements IUpdatingVM {
     this.frame.goto(index);
   }
 
-  try(ops: UpdatingOpcode[], handler: Nullable<ExceptionHandler>) {
+  try(ops: readonly UpdatingOpcode[], handler: Nullable<ExceptionHandler>) {
     this.frameStack.push(new UpdatingVMFrame(ops, handler));
   }
 
@@ -178,7 +178,7 @@ export class TryOpcode extends BlockOpcode implements ExceptionHandler {
       vm._pushUpdating_(children);
     });
 
-    associateDestroyableChild(this, result.drop);
+    result._link_(this);
   }
 }
 
@@ -216,9 +216,10 @@ export class ListBlockOpcode extends BlockOpcode {
   public type = 'list-block';
   public declare children: ListItemOpcode[];
 
-  private opcodeMap = new Map<unknown, ListItemOpcode>();
-  private marker: SimpleComment | null = null;
-  private lastIterator: OpaqueIterator;
+  readonly #opcodeMap = new Map<unknown, ListItemOpcode>();
+  #marker: SimpleComment | null = null;
+  #lastIterator: OpaqueIterator;
+  readonly #iterableRef: Reference<OpaqueIterator>;
 
   protected declare readonly bounds: LiveBlockList;
 
@@ -227,44 +228,46 @@ export class ListBlockOpcode extends BlockOpcode {
     runtime: RuntimeContext,
     bounds: LiveBlockList,
     children: ListItemOpcode[],
-    private iterableRef: Reference<OpaqueIterator>
+    iterableRef: Reference<OpaqueIterator>
   ) {
     super(state, runtime, bounds, children);
-    this.lastIterator = valueForRef(iterableRef);
+    this.#iterableRef = iterableRef;
+    this.#lastIterator = valueForRef(iterableRef);
   }
 
   initializeChild(opcode: ListItemOpcode) {
     opcode.index = this.children.length - 1;
-    this.opcodeMap.set(opcode.key, opcode);
+    this.#opcodeMap.set(opcode.key, opcode);
   }
 
   override evaluate(vm: UpdatingVM) {
-    let iterator = valueForRef(this.iterableRef);
+    let iterator = valueForRef(this.#iterableRef);
 
-    if (this.lastIterator !== iterator) {
+    if (this.#lastIterator !== iterator) {
       let { bounds } = this;
       let { dom } = vm;
 
-      let marker = (this.marker = dom.createComment(''));
+      let marker = (this.#marker = dom.createComment(''));
       dom.insertAfter(
         bounds.parentElement(),
         marker,
         expect(bounds.lastNode(), "can't insert after an empty bounds")
       );
 
-      this.sync(iterator);
+      this.#sync(iterator);
 
       this.parentElement().removeChild(marker);
-      this.marker = null;
-      this.lastIterator = iterator;
+      this.#marker = null;
+      this.#lastIterator = iterator;
     }
 
     // Run now-updated updating opcodes
     super.evaluate(vm);
   }
 
-  private sync(iterator: OpaqueIterator) {
-    let { opcodeMap: itemMap, children } = this;
+  #sync(iterator: OpaqueIterator) {
+    let { children } = this;
+    let itemMap = this.#opcodeMap;
 
     let currentOpcodeIndex = 0;
     let seenIndex = 0;
@@ -273,28 +276,28 @@ export class ListBlockOpcode extends BlockOpcode {
 
     // eslint-disable-next-line no-constant-condition
     while (true) {
-      let item = iterator.next();
+      let item = iterator._next_();
 
-      if (item === null) break;
+      if (!item) break;
 
       let opcode = children[currentOpcodeIndex];
       let { key } = item;
 
       // Items that have already been found and moved will already be retained,
       // we can continue until we find the next unretained item
-      while (opcode !== undefined && opcode.retained === true) {
+      while (opcode && opcode.retained) {
         opcode = children[++currentOpcodeIndex];
       }
 
-      if (opcode !== undefined && opcode.key === key) {
-        this.retainItem(opcode, item);
+      if (opcode && opcode.key === key) {
+        this.#retainItem(opcode, item);
         currentOpcodeIndex++;
       } else if (itemMap.has(key)) {
         let itemOpcode = itemMap.get(key)!;
 
         // The item opcode was seen already, so we should move it.
         if (itemOpcode.index < seenIndex) {
-          this.moveItem(itemOpcode, item, opcode);
+          this.#moveItem(itemOpcode, item, opcode);
         } else {
           // Update the seen index, we are going to be moving this item around
           // so any other items that come before it will likely need to move as
@@ -307,7 +310,7 @@ export class ListBlockOpcode extends BlockOpcode {
           // the position of the item's opcode, and determine if they are all
           // retained.
           for (let i = currentOpcodeIndex + 1; i < seenIndex; i++) {
-            if (unwrap(children[i]).retained === false) {
+            if (!unwrap(children[i]).retained) {
               seenUnretained = true;
               break;
             }
@@ -316,29 +319,29 @@ export class ListBlockOpcode extends BlockOpcode {
           // If we have seen only retained opcodes between this and the matching
           // opcode, it means that all the opcodes in between have been moved
           // already, and we can safely retain this item's opcode.
-          if (seenUnretained === false) {
-            this.retainItem(itemOpcode, item);
+          if (!seenUnretained) {
+            this.#retainItem(itemOpcode, item);
             currentOpcodeIndex = seenIndex + 1;
           } else {
-            this.moveItem(itemOpcode, item, opcode);
+            this.#moveItem(itemOpcode, item, opcode);
             currentOpcodeIndex++;
           }
         }
       } else {
-        this.insertItem(item, opcode);
+        this.#insertItem(item, opcode);
       }
     }
 
     for (const opcode of children) {
-      if (opcode.retained === false) {
-        this.deleteItem(opcode);
+      if (!opcode.retained) {
+        this.#deleteItem(opcode);
       } else {
         opcode.reset();
       }
     }
   }
 
-  private retainItem(opcode: ListItemOpcode, item: OpaqueIterationItem) {
+  #retainItem(opcode: ListItemOpcode, item: OpaqueIterationItem) {
     if (import.meta.env.DEV && LOCAL_DEBUG) {
       logStep!('list-updates', ['retain', item.key]);
     }
@@ -353,14 +356,15 @@ export class ListBlockOpcode extends BlockOpcode {
     children.push(opcode);
   }
 
-  private insertItem(item: OpaqueIterationItem, before: ListItemOpcode | undefined) {
+  #insertItem(item: OpaqueIterationItem, before: ListItemOpcode | undefined) {
     if (import.meta.env.DEV && LOCAL_DEBUG) {
       logStep!('list-updates', ['insert', item.key]);
     }
 
-    let { opcodeMap, bounds, state, runtime, children } = this;
+    let { bounds, state, runtime, children } = this;
+    let opcodeMap = this.#opcodeMap;
     let { key } = item;
-    let nextSibling = before === undefined ? this.marker : before.firstNode();
+    let nextSibling = before === undefined ? this.#marker : before.firstNode();
 
     let elementStack = NewElementBuilder.forInitialRender(runtime.env, {
       element: bounds.parentElement(),
@@ -380,11 +384,7 @@ export class ListBlockOpcode extends BlockOpcode {
     });
   }
 
-  private moveItem(
-    opcode: ListItemOpcode,
-    item: OpaqueIterationItem,
-    before: ListItemOpcode | undefined
-  ) {
+  #moveItem(opcode: ListItemOpcode, item: OpaqueIterationItem, before: ListItemOpcode | undefined) {
     let { children } = this;
 
     updateRef(opcode.memo, item.memo);
@@ -394,7 +394,7 @@ export class ListBlockOpcode extends BlockOpcode {
     let currentSibling, nextSibling;
 
     if (before === undefined) {
-      moveBounds(opcode, this.marker);
+      moveBounds(opcode, this.#marker);
     } else {
       currentSibling = opcode.lastNode().nextSibling;
       nextSibling = before.firstNode();
@@ -417,36 +417,36 @@ export class ListBlockOpcode extends BlockOpcode {
     }
   }
 
-  private deleteItem(opcode: ListItemOpcode) {
+  #deleteItem(opcode: ListItemOpcode) {
     if (import.meta.env.DEV && LOCAL_DEBUG) {
       logStep!('list-updates', ['delete', opcode.key]);
     }
 
     destroy(opcode);
     clear(opcode);
-    this.opcodeMap.delete(opcode.key);
+    this.#opcodeMap.delete(opcode.key);
   }
 }
 
 class UpdatingVMFrame {
-  private current = 0;
+  #current = 0;
+  readonly #ops: readonly UpdatingOpcode[];
+  readonly #exceptionHandler: Nullable<ExceptionHandler>;
 
-  constructor(
-    private ops: UpdatingOpcode[],
-    private exceptionHandler: Nullable<ExceptionHandler>
-  ) {}
+  constructor(ops: readonly UpdatingOpcode[], exceptionHandler: Nullable<ExceptionHandler>) {
+    this.#ops = ops;
+    this.#exceptionHandler = exceptionHandler;
+  }
 
   goto(index: number) {
-    this.current = index;
+    this.#current = index;
   }
 
   nextStatement(): UpdatingOpcode | undefined {
-    return this.ops[this.current++];
+    return this.#ops[this.#current++];
   }
 
   handleException() {
-    if (this.exceptionHandler) {
-      this.exceptionHandler.handleException();
-    }
+    if (this.#exceptionHandler) this.#exceptionHandler.handleException();
   }
 }

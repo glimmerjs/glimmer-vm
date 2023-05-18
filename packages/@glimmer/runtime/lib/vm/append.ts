@@ -38,7 +38,7 @@ import {
   EndTrackFrameOpcode,
   JumpIfNotModifiedOpcode,
 } from '../compiled/opcodes/vm';
-import { APPEND_OPCODES, type DebugState } from '../opcodes';
+import { debugOp, type DebugState } from '../opcodes';
 import { ScopeImpl } from '../scope';
 import { ARGS, CONSTANTS, INNER_VM } from '../symbols';
 import { VMArgumentsImpl } from './arguments';
@@ -298,17 +298,12 @@ export class VM implements PublicVM, InternalVM {
       evalStack._registers_,
       import.meta.env.DEV
         ? ((): Externs | undefined => {
-            const debug = APPEND_OPCODES.debug;
+            const debug = debugOp;
             return debug
-              ? {
-                  debugBefore: (opcode): DebugState => {
-                    return debug.before(this, opcode);
-                  },
-
-                  debugAfter: (state): void => {
-                    debug.after(this, state, unwrap(this.debug));
-                  },
-                }
+              ? ({
+                  debugBefore: (opcode): DebugState => debug.before(this, opcode),
+                  debugAfter: (state): void => debug.after(this, state, unwrap(this.debug)),
+                } as const)
               : undefined;
           })()
         : undefined

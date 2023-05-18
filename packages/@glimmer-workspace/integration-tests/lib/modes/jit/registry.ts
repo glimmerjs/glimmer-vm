@@ -8,8 +8,13 @@ import type {
   ResolvedComponentDefinition,
   Template,
 } from '@glimmer/interfaces';
-import { getComponentTemplate } from '@glimmer/manager';
+import {
+  capabilityMaskFrom,
+  getComponentTemplate,
+  hasCapability,
+} from '@glimmer/manager';
 import { assert, dict } from '@glimmer/util';
+import { DYNAMIC_LAYOUT_CAPABILITY } from '@glimmer/vm-constants';
 
 // This is used to replicate a requirement of Ember's template referrers, which
 // assign the `owner` to the template meta. The requirement is that the template
@@ -88,7 +93,8 @@ export class TestJitRegistry {
       let templateFactory = getComponentTemplate(state);
 
       assert(
-        templateFactory || capabilities.dynamicLayout,
+        templateFactory ||
+          hasCapability(capabilityMaskFrom(capabilities), DYNAMIC_LAYOUT_CAPABILITY),
         'expected a template to be associated with this component'
       );
 

@@ -195,7 +195,7 @@ export class AppendOpcodes {
     readonly after: (vm: VM, pre: unknown, debug: DebugVM) => void;
   };
 
-  evaluate(vm: VM, opcode: RuntimeOp, type: number) {
+  evaluate = (vm: VM, opcode: RuntimeOp, type: number) => {
     let operation = unwrap(this.#evaluateOpcode[type]);
 
     if (operation.syscall) {
@@ -215,8 +215,10 @@ export class AppendOpcodes {
       );
       operation.evaluate(vm[INNER_VM], opcode);
     }
-  }
+  };
 }
 
-export const APPEND_OPCODES = new AppendOpcodes();
+const APPEND_OPCODES = new AppendOpcodes();
 export const define = APPEND_OPCODES.add;
+export const evaluate = APPEND_OPCODES.evaluate;
+export const debugOp = APPEND_OPCODES.debug;

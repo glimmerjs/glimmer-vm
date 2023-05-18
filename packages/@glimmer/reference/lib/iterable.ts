@@ -1,5 +1,5 @@
 import { getPath, toIterator } from '@glimmer/global-context';
-import type { Dict, Nullable } from '@glimmer/interfaces';
+import type { Dict, Nullable, Optional } from '@glimmer/interfaces';
 import { EMPTY_ARRAY, isObject } from '@glimmer/util';
 import { consumeTag, createTag, dirtyTag } from '@glimmer/validator';
 
@@ -17,8 +17,8 @@ export interface IterationItem<T, U> {
 }
 
 export interface AbstractIterator<T, U, V extends IterationItem<T, U>> {
-  isEmpty(): boolean;
-  next(): Nullable<V>;
+  _isEmpty_(): boolean;
+  _next_(): Nullable<V>;
 }
 
 export type OpaqueIterationItem = IterationItem<unknown, unknown>;
@@ -82,7 +82,7 @@ class WeakMapWithPrimitives<T> {
     return (this.#lazyPrimitiveMap ??= new Map());
   }
 
-  set(key: unknown, value: T) {
+  _set_(key: unknown, value: T) {
     if (isObject(key)) {
       this.#weakMap.set(key, value);
     } else {
@@ -90,25 +90,25 @@ class WeakMapWithPrimitives<T> {
     }
   }
 
-  get(key: unknown): T | undefined {
+  _get_(key: unknown): T | undefined {
     return isObject(key) ? this.#weakMap.get(key) : this.#primitiveMap.get(key);
   }
 }
 
 const IDENTITIES = new WeakMapWithPrimitives<object[]>();
 
-function identityForNthOccurence(value: any, count: number) {
-  let identities = IDENTITIES.get(value);
+function identityForNthOccurence(value: unknown, count: number): object {
+  let identities = IDENTITIES._get_(value);
 
-  if (identities === undefined) {
+  if (!identities) {
     identities = [];
-    IDENTITIES.set(value, identities);
+    IDENTITIES._set_(value, identities);
   }
 
-  let identity = identities[count];
+  let identity: Optional<object> = identities[count];
 
-  if (identity === undefined) {
-    identity = { value, count };
+  if (!identity) {
+    identity = import.meta.env.DEV ? { value, count } : {};
     identities[count] = identity;
   }
 
@@ -130,14 +130,14 @@ function identityForNthOccurence(value: any, count: number) {
  * and encounter an item for the nth time, we can get the _same_ key, and let
  * Glimmer know that it should reuse the DOM for the previous nth occurence.
  */
-function uniqueKeyFor(keyFor: KeyFor) {
+function uniqueKeyFor(keyFor: KeyFor): (value: unknown, memo: unknown) => unknown {
   let seen = new WeakMapWithPrimitives<number>();
 
-  return (value: unknown, memo: unknown) => {
+  return (value: unknown, memo: unknown): unknown => {
     let key = keyFor(value, memo);
-    let count = seen.get(key) || 0;
+    let count = seen._get_(key) || 0;
 
-    seen.set(key, count + 1);
+    seen._set_(key, count + 1);
 
     if (count === 0) {
       return key;
@@ -194,11 +194,11 @@ class IteratorWrapper implements OpaqueIterator {
     this.#keyFor = keyFor;
   }
 
-  isEmpty() {
+  _isEmpty_() {
     return this.#inner.isEmpty();
   }
 
-  next() {
+  _next_() {
     let nextValue = this.#inner.next() as OpaqueIterationItem;
 
     if (nextValue !== null) {
@@ -228,11 +228,11 @@ class ArrayIterator implements OpaqueIterator {
     }
   }
 
-  isEmpty(): boolean {
+  _isEmpty_(): boolean {
     return this.#current === EMPTY;
   }
 
-  next(): Nullable<IterationItem<unknown, number>> {
+  _next_(): Nullable<IterationItem<unknown, number>> {
     let value: unknown;
 
     let current = this.#current;

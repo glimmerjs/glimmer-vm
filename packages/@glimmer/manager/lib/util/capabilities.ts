@@ -61,7 +61,11 @@ type CapabilityOptions = Expand<{
 /**
  * Converts a ComponentCapabilities object into a 32-bit integer representation.
  */
-export function capabilityFlagsFrom(capabilities: CapabilityOptions): CapabilityMask {
+export function capabilityMaskFrom(
+  capabilities: CapabilityOptions | CapabilityMask
+): CapabilityMask {
+  if (typeof capabilities === 'number') return capabilities;
+
   let mask = EMPTY_CAPABILITY;
 
   if (capabilities.dynamicLayout) mask |= DYNAMIC_LAYOUT_CAPABILITY;

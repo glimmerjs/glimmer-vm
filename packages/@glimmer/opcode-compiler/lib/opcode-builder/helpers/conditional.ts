@@ -12,7 +12,7 @@ import {
   RETURN_TO_OP,
 } from '@glimmer/vm-constants';
 
-import type { PushStatementOp } from '../../syntax/compilers';
+import type { PushStatementOp } from '../../syntax/compiler-impl';
 import { HighLevelBuilderOpcodes } from '../opcodes';
 import { labelOperand } from '../operands';
 

@@ -16,10 +16,10 @@ import {
 } from '@glimmer/vm-constants';
 import type { MachineRegister } from '@glimmer/vm-constants';
 
-import { APPEND_OPCODES } from '../opcodes';
 import type { VM } from './append';
 import { isMachine, opType, type RuntimeOpImpl } from '@glimmer/program';
 import { sizeof } from '@glimmer/program';
+import { evaluate } from '../opcodes';
 
 export interface LowLevelRegisters {
   [$pc]: number;
@@ -192,6 +192,6 @@ export class LowLevelVM {
   }
 
   evaluateSyscall(opcode: RuntimeOp, vm: VM) {
-    APPEND_OPCODES.evaluate(vm, opcode, opType(opcode));
+    evaluate(vm, opcode, opType(opcode));
   }
 }

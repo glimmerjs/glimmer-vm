@@ -2,7 +2,7 @@ import type { Dict, Scope } from '@glimmer/interfaces';
 import { childRefFor, type Reference, valueForRef } from '@glimmer/reference';
 import { decodeHandle, unwrap } from '@glimmer/util';
 
-import { APPEND_OPCODES } from '../../opcodes';
+import { define } from '../../opcodes';
 import { CONSTANTS } from '../../symbols';
 import { DEBUGGER_OP } from '@glimmer/vm-constants';
 
@@ -66,7 +66,7 @@ class ScopeInspector {
   }
 }
 
-APPEND_OPCODES.add(DEBUGGER_OP, (vm, { op1: _symbols, op2: _debugInfo }) => {
+define(DEBUGGER_OP, (vm, { op1: _symbols, op2: _debugInfo }) => {
   let symbols = vm[CONSTANTS].getArray<string>(_symbols);
   let debugInfo = vm[CONSTANTS].getArray<number>(decodeHandle(_debugInfo));
   let inspector = new ScopeInspector(vm._scope_(), symbols, debugInfo);

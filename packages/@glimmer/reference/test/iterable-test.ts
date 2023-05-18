@@ -14,7 +14,7 @@ import { TestContext } from './utils/template';
 import { unwrap } from '@glimmer/util';
 
 class IterableWrapper {
-  readonly #iterable: Reference<{ next(): OpaqueIterationItem | null }>;
+  readonly #iterable: Reference<{ _next_(): OpaqueIterationItem | null }>;
 
   constructor(obj: unknown, key = '@identity') {
     let valueRef = createComputeRef(() => {
@@ -29,11 +29,11 @@ class IterableWrapper {
 
     // bootstrap
     let iterator = valueForRef(this.#iterable);
-    let item = iterator.next();
+    let item = iterator._next_();
 
     while (item !== null) {
       result.push(item);
-      item = iterator.next();
+      item = iterator._next_();
     }
 
     return result;

@@ -18,7 +18,6 @@ import {
   DYNAMIC_CONTENT_TYPE_OP,
   CURRIED_COMPONENT,
   CURRIED_HELPER,
-
   COMPONENT_CONTENT,
   FRAGMENT_CONTENT,
   HELPER_CONTENT,
@@ -29,7 +28,7 @@ import {
 
 import { isCurriedType } from '../../curried-value';
 import { isEmpty, isFragment, isNode, isSafeString, shouldCoerce } from '../../dom/normalize';
-import { APPEND_OPCODES } from '../../opcodes';
+import { define } from '../../opcodes';
 import DynamicTextContent from '../../vm/content/text';
 import { CheckReference } from './-debug-strip';
 import { AssertFilter } from './vm';
@@ -80,7 +79,7 @@ function toDynamicContentType(value: unknown) {
   }
 }
 
-APPEND_OPCODES.add(CONTENT_TYPE_OP, (vm) => {
+define(CONTENT_TYPE_OP, (vm) => {
   let reference = check(vm.stack.peek(), CheckReference);
 
   vm.stack.push(toContentType(valueForRef(reference)));
@@ -90,7 +89,7 @@ APPEND_OPCODES.add(CONTENT_TYPE_OP, (vm) => {
   }
 });
 
-APPEND_OPCODES.add(DYNAMIC_CONTENT_TYPE_OP, (vm) => {
+define(DYNAMIC_CONTENT_TYPE_OP, (vm) => {
   let reference = check(vm.stack.peek(), CheckReference);
 
   vm.stack.push(toDynamicContentType(valueForRef(reference)));
@@ -100,7 +99,7 @@ APPEND_OPCODES.add(DYNAMIC_CONTENT_TYPE_OP, (vm) => {
   }
 });
 
-APPEND_OPCODES.add(APPEND_HTML_OP, (vm) => {
+define(APPEND_HTML_OP, (vm) => {
   let reference = check(vm.stack.pop(), CheckReference);
 
   let rawValue = valueForRef(reference);
@@ -109,7 +108,7 @@ APPEND_OPCODES.add(APPEND_HTML_OP, (vm) => {
   vm._elements_().appendDynamicHTML(value);
 });
 
-APPEND_OPCODES.add(APPEND_SAFE_HTML_OP, (vm) => {
+define(APPEND_SAFE_HTML_OP, (vm) => {
   let reference = check(vm.stack.pop(), CheckReference);
 
   let rawValue = check(valueForRef(reference), CheckSafeString).toHTML();
@@ -118,7 +117,7 @@ APPEND_OPCODES.add(APPEND_SAFE_HTML_OP, (vm) => {
   vm._elements_().appendDynamicHTML(value);
 });
 
-APPEND_OPCODES.add(APPEND_TEXT_OP, (vm) => {
+define(APPEND_TEXT_OP, (vm) => {
   let reference = check(vm.stack.pop(), CheckReference);
 
   let rawValue = valueForRef(reference);
@@ -131,7 +130,7 @@ APPEND_OPCODES.add(APPEND_TEXT_OP, (vm) => {
   }
 });
 
-APPEND_OPCODES.add(APPEND_DOCUMENT_FRAGMENT_OP, (vm) => {
+define(APPEND_DOCUMENT_FRAGMENT_OP, (vm) => {
   let reference = check(vm.stack.pop(), CheckReference);
 
   let value = check(valueForRef(reference), CheckDocumentFragment);
@@ -139,7 +138,7 @@ APPEND_OPCODES.add(APPEND_DOCUMENT_FRAGMENT_OP, (vm) => {
   vm._elements_().appendDynamicFragment(value);
 });
 
-APPEND_OPCODES.add(APPEND_NODE_OP, (vm) => {
+define(APPEND_NODE_OP, (vm) => {
   let reference = check(vm.stack.pop(), CheckReference);
 
   let value = check(valueForRef(reference), CheckNode);

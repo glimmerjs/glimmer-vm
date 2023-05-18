@@ -1,4 +1,4 @@
-import type { ComponentInstanceState, PreparedArguments } from '../../components';
+import type { CapabilityMask, ComponentInstanceState, PreparedArguments } from '../../components';
 import type { Destroyable, Nullable } from '../../core';
 import type { Bounds } from '../../dom/bounds';
 import type { SimpleElement } from '../../dom/simple';
@@ -164,7 +164,7 @@ export interface InternalComponentManager<
   TComponentStateBucket = unknown,
   TComponentDefinition = object
 > {
-  getCapabilities(state: TComponentDefinition): InternalComponentCapabilities;
+  getCapabilities(state: TComponentDefinition): InternalComponentCapabilities | CapabilityMask;
   getSelf(state: TComponentStateBucket): Reference;
   getDestroyable(state: TComponentStateBucket): Nullable<Destroyable>;
   getDebugName(state: TComponentDefinition): string;

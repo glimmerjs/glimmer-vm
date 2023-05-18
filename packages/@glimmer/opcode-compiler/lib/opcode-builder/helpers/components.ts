@@ -61,7 +61,7 @@ import {
   CREATE_INSTANCE_CAPABILITY,
 } from '@glimmer/vm-constants';
 
-import type { PushExpressionOp, PushStatementOp } from '../../syntax/compilers';
+import type { PushExpressionOp, PushStatementOp } from '../../syntax/compiler-impl';
 import { namedBlocks } from '../../utils';
 import { HighLevelBuilderOpcodes } from '../opcodes';
 import { isStrictMode, labelOperand, layoutOperand, symbolTableOperand } from '../operands';

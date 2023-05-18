@@ -12,32 +12,43 @@ import { clear } from '../bounds';
 import { UpdatingVM } from './update';
 
 export default class RenderResultImpl implements RenderResult {
+  readonly #drop: object;
+  readonly #updating: readonly UpdatingOpcode[];
+  readonly #bounds: LiveBlock;
+
   constructor(
     public env: Environment,
-    private updating: UpdatingOpcode[],
-    private bounds: LiveBlock,
-    readonly drop: object
+    updating: UpdatingOpcode[],
+    bounds: LiveBlock,
+    drop: object
   ) {
+    this.#drop = drop;
+    this.#updating = updating;
+    this.#bounds = bounds;
     associateDestroyableChild(this, drop);
-    registerDestructor(this, () => clear(this.bounds));
+    registerDestructor(this, () => clear(this.#bounds));
+  }
+
+  _link_(parent: object) {
+    associateDestroyableChild(parent, this.#drop);
   }
 
   rerender({ alwaysRevalidate = false } = { alwaysRevalidate: false }) {
-    let { env, updating } = this;
+    let { env } = this;
     let vm = new UpdatingVM(env, { alwaysRevalidate });
-    vm.execute(updating, this);
+    vm.execute(this.#updating, this);
   }
 
   parentElement(): SimpleElement {
-    return this.bounds.parentElement();
+    return this.#bounds.parentElement();
   }
 
   firstNode(): SimpleNode {
-    return this.bounds.firstNode();
+    return this.#bounds.firstNode();
   }
 
   lastNode(): SimpleNode {
-    return this.bounds.lastNode();
+    return this.#bounds.lastNode();
   }
 
   handleException() {

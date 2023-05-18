@@ -1,11 +1,11 @@
-import { capabilityFlagsFrom, managerHasCapability } from '@glimmer/manager';
+import { capabilityMaskFrom, managerHasCapability } from '@glimmer/manager';
 import { DYNAMIC_LAYOUT_CAPABILITY, DYNAMIC_TAG_CAPABILITY, PREPARE_ARGS_CAPABILITY, CREATE_ARGS_CAPABILITY, ATTRIBUTE_HOOK_CAPABILITY, ELEMENT_HOOK_CAPABILITY, DYNAMIC_SCOPE_CAPABILITY, CREATE_CALLER_CAPABILITY, UPDATE_HOOK_CAPABILITY, CREATE_INSTANCE_CAPABILITY, WILL_DESTROY_CAPABILITY, HAS_SUB_OWNER_CAPABILITY } from '@glimmer/vm-constants';
 
 QUnit.module('Capabilities Bitmaps');
 
 QUnit.test('encodes a capabilities object into a bitmap', (assert) => {
   assert.strictEqual(
-    capabilityFlagsFrom({
+    capabilityMaskFrom({
       dynamicLayout: false,
       dynamicTag: false,
       prepareArgs: false,
@@ -25,7 +25,7 @@ QUnit.test('encodes a capabilities object into a bitmap', (assert) => {
   );
 
   assert.strictEqual(
-    capabilityFlagsFrom({
+    capabilityMaskFrom({
       dynamicLayout: true,
       dynamicTag: true,
       prepareArgs: true,
@@ -45,7 +45,7 @@ QUnit.test('encodes a capabilities object into a bitmap', (assert) => {
   );
 
   assert.strictEqual(
-    capabilityFlagsFrom({
+    capabilityMaskFrom({
       dynamicLayout: true,
       dynamicTag: false,
       prepareArgs: true,
@@ -66,7 +66,7 @@ QUnit.test('encodes a capabilities object into a bitmap', (assert) => {
 });
 
 QUnit.test('allows querying bitmap for a capability', (assert) => {
-  let capabilities = capabilityFlagsFrom({
+  let capabilities = capabilityMaskFrom({
     dynamicLayout: true,
     dynamicTag: false,
     prepareArgs: true,

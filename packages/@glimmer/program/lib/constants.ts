@@ -11,7 +11,7 @@ import type {
   Template,
 } from '@glimmer/interfaces';
 import {
-  capabilityFlagsFrom,
+  capabilityMaskFrom,
   getComponentTemplate,
   getInternalComponentManager,
   getInternalHelperManager,
@@ -214,7 +214,7 @@ export class ConstantsImpl
 
       assert(manager, 'BUG: expected manager');
 
-      let capabilities = capabilityFlagsFrom(manager.getCapabilities(definitionState));
+      let capabilities = capabilityMaskFrom(manager.getCapabilities(definitionState));
 
       let templateFactory = getComponentTemplate(definitionState);
 
@@ -260,7 +260,7 @@ export class ConstantsImpl
 
     if (definition === undefined) {
       let { manager, state, template } = resolvedDefinition;
-      let capabilities = capabilityFlagsFrom(manager.getCapabilities(resolvedDefinition));
+      let capabilities = capabilityMaskFrom(manager.getCapabilities(resolvedDefinition));
 
       let compilable = null;
 

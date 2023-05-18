@@ -19,7 +19,7 @@ import {
   PUSH_FRAME_OP,
 } from '@glimmer/vm-constants';
 
-import type { PushExpressionOp, PushStatementOp } from '../../syntax/compilers';
+import type { PushExpressionOp, PushStatementOp } from '../../syntax/compiler-impl';
 import { isStrictMode, nonSmallIntOperand } from '../operands';
 import { expr } from './expr';
 import { SimpleArgs } from './shared';

@@ -281,7 +281,7 @@ export type { CustomRenderNode, WithCustomDebugRenderTree } from '@glimmer/inter
 // @ember/-internals/glimmer/lib/component-managers.ts
 // @ember/-internals/glimmer/lib/component-managers/outlet.ts
 // @ember/-internals/glimmer/lib/component-managers/root.ts
-export { capabilityFlagsFrom } from '@glimmer/manager';
+export { capabilityMaskFrom } from '@glimmer/manager';
 export type { ComponentDefinition } from '@glimmer/interfaces';
 
 // @ember/-internals/glimmer/lib/component-managers/outlet.ts

@@ -65,8 +65,8 @@ export const CheckReference: Checker<Reference> = import.meta.env.DEV
   : (void 0 as unknown as Checker<Reference>);
 
 export const CheckIterator: Checker<OpaqueIterator> = CheckInterface({
-  next: CheckFunction,
-  isEmpty: CheckFunction,
+  _next_: CheckFunction,
+  _isEmpty_: CheckFunction,
 });
 
 export const CheckArguments: Checker<VMArgumentsImpl> = wrap(() =>

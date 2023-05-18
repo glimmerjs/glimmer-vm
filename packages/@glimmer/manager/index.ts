@@ -9,7 +9,7 @@ export {
   setInternalHelperManager,
   setInternalModifierManager,
 } from './lib/internal/api';
-export { componentCapabilities, CustomComponentManager } from './lib/public/component';
+export { componentCapabilities,  CustomComponentManager } from './lib/public/component';
 export {
   CustomHelperManager,
   hasDestroyable,
@@ -20,4 +20,4 @@ export { setComponentManager, setHelperManager, setModifierManager } from './lib
 export { CustomModifierManager, modifierCapabilities } from './lib/public/modifier';
 export { getComponentTemplate, setComponentTemplate } from './lib/public/template';
 export { getCustomTagFor, setCustomTagFor } from './lib/util/args-proxy';
-export { capabilityFlagsFrom, hasCapability, managerHasCapability } from './lib/util/capabilities';
+export { capabilityMaskFrom, hasCapability, managerHasCapability } from './lib/util/capabilities';

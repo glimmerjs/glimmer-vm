@@ -1,26 +1,11 @@
-import type { InternalComponentCapabilities, InternalComponentManager } from "@glimmer/interfaces";
+import type { CapabilityMask, InternalComponentManager } from '@glimmer/interfaces';
 import { setInternalComponentManager } from '@glimmer/manager';
 import { NULL_REFERENCE, type Reference } from '@glimmer/reference';
-
-const CAPABILITIES: InternalComponentCapabilities = {
-  dynamicLayout: false,
-  dynamicTag: false,
-  prepareArgs: false,
-  createArgs: false,
-  attributeHook: false,
-  elementHook: false,
-  createCaller: false,
-  dynamicScope: false,
-  updateHook: false,
-  createInstance: false,
-  wrapped: false,
-  willDestroy: false,
-  hasSubOwner: false,
-};
+import { EMPTY_CAPABILITY } from '@glimmer/vm-constants';
 
 export class TemplateOnlyComponentManager implements InternalComponentManager {
-  getCapabilities(): InternalComponentCapabilities {
-    return CAPABILITIES;
+  getCapabilities(): CapabilityMask {
+    return EMPTY_CAPABILITY as CapabilityMask;
   }
 
   getDebugName({ name }: TemplateOnlyComponentDefinition): string {

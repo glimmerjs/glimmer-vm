@@ -86,7 +86,7 @@ export const hash = internalHelper(({ named }: CapturedArguments): Reference<Dic
     children.set(name, named[name]);
   }
 
-  ref.children = children;
+  ref._updateChildren_(children);
 
   return ref;
 });

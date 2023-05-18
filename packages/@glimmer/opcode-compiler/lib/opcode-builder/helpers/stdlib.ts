@@ -27,7 +27,7 @@ import {
   STRING_CONTENT,
 } from '@glimmer/vm-constants';
 
-import type { HighLevelStatementOp, PushStatementOp } from '../../syntax/compilers';
+import type { HighLevelStatementOp, PushStatementOp } from '../../syntax/compiler-impl';
 import { encodeOp, EncoderImpl } from '../encoder';
 import { InvokeBareComponent, invokePreparedComponent } from './components';
 import { SwitchCases } from './conditional';

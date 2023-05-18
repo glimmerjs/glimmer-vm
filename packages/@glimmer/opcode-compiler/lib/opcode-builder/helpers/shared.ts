@@ -7,7 +7,7 @@ import type {
 } from '@glimmer/interfaces';
 import { EMPTY_ARRAY, EMPTY_STRING_ARRAY } from '@glimmer/util';
 
-import type { PushExpressionOp, PushStatementOp } from '../../syntax/compilers';
+import type { PushExpressionOp, PushStatementOp } from '../../syntax/compiler-impl';
 import { PushYieldableBlock } from './blocks';
 import { expr } from './expr';
 import { PUSH_ARGS_OP, PUSH_EMPTY_ARGS_OP } from '@glimmer/vm-constants';
