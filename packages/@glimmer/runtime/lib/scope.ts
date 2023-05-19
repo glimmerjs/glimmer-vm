@@ -8,17 +8,13 @@ import type {
   ScopeSlot,
 } from '@glimmer/interfaces';
 import { type Reference, UNDEFINED_REFERENCE } from '@glimmer/reference';
-import { assign, unwrap } from '@glimmer/util';
+import { unwrap } from '@glimmer/util';
 
 export class DynamicScopeImpl implements DynamicScope {
   readonly #bucket: Dict<Reference>;
 
   constructor(bucket?: Dict<Reference>) {
-    if (bucket) {
-      this.#bucket = assign({}, bucket);
-    } else {
-      this.#bucket = {};
-    }
+    this.#bucket = bucket ? Object.assign({}, bucket) : {};
   }
 
   get(key: string): Reference {
@@ -41,23 +37,23 @@ export function isScopeReference(s: ScopeSlot): s is Reference {
 
 export class ScopeImpl implements Scope {
   static root(self: Reference<unknown>, size = 0, owner: Owner): Scope {
-    let refs: Reference<unknown>[] = new Array(size + 1);
+    let references: Reference<unknown>[] = new Array(size + 1);
 
-    for (let i = 0; i <= size; i++) {
-      refs[i] = UNDEFINED_REFERENCE;
+    for (let index = 0; index <= size; index++) {
+      references[index] = UNDEFINED_REFERENCE;
     }
 
-    return new ScopeImpl(refs, owner).init({ self });
+    return new ScopeImpl(references, owner).init({ self });
   }
 
   static sized(size = 0, owner: Owner): Scope {
-    let refs: Reference<unknown>[] = new Array(size + 1);
+    let references: Reference<unknown>[] = new Array(size + 1);
 
-    for (let i = 0; i <= size; i++) {
-      refs[i] = UNDEFINED_REFERENCE;
+    for (let index = 0; index <= size; index++) {
+      references[index] = UNDEFINED_REFERENCE;
     }
 
-    return new ScopeImpl(refs, owner);
+    return new ScopeImpl(references, owner);
   }
 
   private constructor(
@@ -101,7 +97,7 @@ export class ScopeImpl implements Scope {
   }
 
   child(): Scope {
-    return new ScopeImpl(this.slots.slice(), this.owner);
+    return new ScopeImpl([...this.slots], this.owner);
   }
 
   #get<T extends ScopeSlot>(index: number): T {

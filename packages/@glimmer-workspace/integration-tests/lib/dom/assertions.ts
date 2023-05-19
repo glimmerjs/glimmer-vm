@@ -1,13 +1,13 @@
 import type { Dict, SimpleElement, SimpleNode } from '@glimmer/interfaces';
-import { assign, dict, isSimpleElement } from '@glimmer/util';
+import { dict, isSimpleElement } from '@glimmer/util';
 
 export interface DebugElement {
   element: SimpleElement | null | undefined;
   description: string;
 }
 
-function isDebugElement(el: SimpleNode | Node | DebugElement): el is DebugElement {
-  return !('nodeType' in el);
+function isDebugElement(element: SimpleNode | Node | DebugElement): element is DebugElement {
+  return !('nodeType' in element);
 }
 
 function extract(node: EqualsElement): DebugElement {
@@ -51,38 +51,32 @@ export function equalsElement(
     message: `expect ${description}'s tagName to be ${tagName}`,
   });
 
-  let expectedAttrs: Dict<Matcher> = dict<Matcher>();
+  let expectedAttributes: Dict<Matcher> = dict<Matcher>();
 
   let expectedCount = 0;
-  for (let [prop, expected] of Object.entries(attributes)) {
+  for (let [property, expected] of Object.entries(attributes)) {
     expectedCount++;
 
     let matcher: Matcher = isMatcher(expected) ? expected : equalsAttr(expected);
-    expectedAttrs[prop] = matcher;
+    expectedAttributes[property] = matcher;
 
     QUnit.assert.pushResult({
-      result: matcher.match(element && element.getAttribute(prop)),
-      actual: matcher.fail(element && element.getAttribute(prop)),
-      expected: matcher.fail(element && element.getAttribute(prop)),
-      message: `Expected ${description}'s ${prop} attribute ${matcher.expected()}`,
+      result: matcher.match(element && element.getAttribute(property)),
+      actual: matcher.fail(element && element.getAttribute(property)),
+      expected: matcher.fail(element && element.getAttribute(property)),
+      message: `Expected ${description}'s ${property} attribute ${matcher.expected()}`,
     });
   }
 
   let actualAttributes = dict();
   if (element) {
+    // eslint-disable-next-line unicorn/prefer-spread
     for (const attribute of Array.from(element.attributes)) {
       actualAttributes[attribute.name] = attribute.value;
     }
   }
 
-  if (!(element instanceof HTMLElement)) {
-    QUnit.assert.pushResult({
-      result: element instanceof HTMLElement,
-      actual: null,
-      expected: null,
-      message: 'Element must be an HTML Element, not an SVG Element',
-    });
-  } else {
+  if (element instanceof HTMLElement) {
     QUnit.assert.pushResult({
       result: element.attributes.length === expectedCount,
       actual: element.attributes.length,
@@ -98,6 +92,13 @@ export function equalsElement(
         message: `${description} had '${content}' as its content`,
       });
     }
+  } else {
+    QUnit.assert.pushResult({
+      result: element instanceof HTMLElement,
+      actual: null,
+      expected: null,
+      message: 'Element must be an HTML Element, not an SVG Element',
+    });
   }
 }
 
@@ -156,10 +157,14 @@ export function equalsAttr(expected: any): Matcher {
 export function assertEmberishElement(
   element: SimpleElement,
   tagName: string,
-  attrs: Object,
+  attributes: Object,
   contents: string
 ): void;
-export function assertEmberishElement(element: SimpleElement, tagName: string, attrs: Object): void;
+export function assertEmberishElement(
+  element: SimpleElement,
+  tagName: string,
+  attributes: Object
+): void;
 export function assertEmberishElement(
   element: SimpleElement,
   tagName: string,
@@ -167,11 +172,15 @@ export function assertEmberishElement(
 ): void;
 export function assertEmberishElement(element: SimpleElement, tagName: string): void;
 export function assertEmberishElement(...args: any[]): void {
-  let [element, tagName, attrs, contents] = processAssertComponentArgs(args);
+  let [element, tagName, attributes, contents] = processAssertComponentArgs(args);
 
-  let fullAttrs = assign({ class: classes('ember-view'), id: regex(/^ember\d*$/u) }, attrs);
+  let fullAttributes = {
+    class: classes('ember-view'),
+    id: regex(/^ember\d*$/u),
+    ...attributes,
+  };
 
-  equalsElement(element, tagName, fullAttrs, contents);
+  equalsElement(element, tagName, fullAttributes, contents);
 }
 
 export function assertSerializedInElement(result: string, expected: string, message?: string) {
@@ -246,8 +255,9 @@ export function processAssertComponentArgs(
   let element = args[0];
 
   if (args.length === 3) {
-    if (typeof args[2] === 'string') return [element, args[1], {}, args[2]];
-    else return [element, args[1], args[2], null];
+    return typeof args[2] === 'string'
+      ? [element, args[1], {}, args[2]]
+      : [element, args[1], args[2], null];
   } else if (args.length === 2) {
     return [element, args[1], {}, null];
   } else {
@@ -258,14 +268,18 @@ export function processAssertComponentArgs(
 export function assertElementShape(
   element: SimpleElement,
   tagName: string,
-  attrs: Object,
+  attributes: Object,
   contents: string
 ): void;
-export function assertElementShape(element: SimpleElement, tagName: string, attrs: Object): void;
+export function assertElementShape(
+  element: SimpleElement,
+  tagName: string,
+  attributes: Object
+): void;
 export function assertElementShape(element: SimpleElement, tagName: string, contents: string): void;
 export function assertElementShape(element: SimpleElement, tagName: string): void;
 export function assertElementShape(...args: any[]): void {
-  let [element, tagName, attrs, contents] = processAssertComponentArgs(args);
+  let [element, tagName, attributes, contents] = processAssertComponentArgs(args);
 
-  equalsElement(element, tagName, attrs, contents);
+  equalsElement(element, tagName, attributes, contents);
 }

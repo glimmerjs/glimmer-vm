@@ -6,6 +6,8 @@
     "target": "esnext",
     "module": "esnext",
     "moduleResolution": "bundler",
+    "allowJs": true,
+    "checkJs": true,
     "allowSyntheticDefaultImports": true,
     "experimentalDecorators": true,
     "verbatimModuleSyntax": true,

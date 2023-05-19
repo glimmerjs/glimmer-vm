@@ -24,7 +24,7 @@ const SVG_INTEGRATION_POINTS = { foreignObject: 1, desc: 1, title: 1 };
 // http://www.w3.org/TR/html/syntax.html#parsing-main-inforeign
 export const BLACKLIST_TABLE = Object.create(null);
 
-[
+for (const tag of [
   'b',
   'big',
   'blockquote',
@@ -69,7 +69,7 @@ export const BLACKLIST_TABLE = Object.create(null);
   'u',
   'ul',
   'var',
-].forEach((tag) => (BLACKLIST_TABLE[tag] = 1));
+]) (BLACKLIST_TABLE[tag] = 1);
 
 interface Context {
   tag: string;

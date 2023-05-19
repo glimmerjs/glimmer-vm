@@ -13,7 +13,7 @@ import {
 } from '@glimmer/vm-constants';
 
 import type { PushStatementOp } from '../../syntax/compiler-impl';
-import { HighLevelBuilderOpcodes } from '../opcodes';
+import { LABEL_OP, START_LABELS_OP, STOP_LABELS_OP } from '../opcodes';
 import { labelOperand } from '../operands';
 
 export type When = (match: number, callback: () => void) => void;
@@ -38,7 +38,7 @@ export function SwitchCases(
   // Emit the opcodes for the switch
   op(ENTER_OP, 1);
   bootstrap();
-  op(HighLevelBuilderOpcodes.StartLabels);
+  op(START_LABELS_OP);
 
   // First, emit the jump opcodes. We don't need a jump for the last
   // opcode, since it bleeds directly into its clause.
@@ -51,7 +51,7 @@ export function SwitchCases(
   for (let i = clauses.length - 1; i >= 0; i--) {
     let clause = unwrap(clauses[i]);
 
-    op(HighLevelBuilderOpcodes.Label, clause.label);
+    op(LABEL_OP, clause.label);
     op(POP_OP, 1);
     clause.callback();
 
@@ -62,8 +62,8 @@ export function SwitchCases(
     }
   }
 
-  op(HighLevelBuilderOpcodes.Label, 'END');
-  op(HighLevelBuilderOpcodes.StopLabels);
+  op(LABEL_OP, 'END');
+  op(STOP_LABELS_OP);
   op(EXIT_OP);
 }
 
@@ -132,7 +132,7 @@ export function Replayable(op: PushStatementOp, args: () => number, body: () => 
   // Start a new label frame, to give END and RETURN
   // a unique meaning.
 
-  op(HighLevelBuilderOpcodes.StartLabels);
+  op(START_LABELS_OP);
   op(PUSH_FRAME_OP);
 
   // If the body invokes a block, its return will return to
@@ -164,7 +164,7 @@ export function Replayable(op: PushStatementOp, args: () => number, body: () => 
   // All execution paths in the body should run the FINALLY once
   // they are done. It is executed both during initial execution
   // and during updating execution.
-  op(HighLevelBuilderOpcodes.Label, 'FINALLY');
+  op(LABEL_OP, 'FINALLY');
 
   // Finalize the DOM.
   op(EXIT_OP);
@@ -176,9 +176,9 @@ export function Replayable(op: PushStatementOp, args: () => number, body: () => 
 
   // Cleanup code for the block. Runs on initial execution
   // but not on updating.
-  op(HighLevelBuilderOpcodes.Label, 'ENDINITIAL');
+  op(LABEL_OP, 'ENDINITIAL');
   op(POP_FRAME_OP);
-  op(HighLevelBuilderOpcodes.StopLabels);
+  op(STOP_LABELS_OP);
 }
 
 /**
@@ -211,7 +211,7 @@ export function ReplayableIf(
     // the cleanup code. In the updating VM, it exits the updating
     // routine.
     op(JUMP_OP, labelOperand('FINALLY'));
-    op(HighLevelBuilderOpcodes.Label, 'ELSE');
+    op(LABEL_OP, 'ELSE');
 
     // If the conditional is false, and code associatied ith the
     // false branch was provided, execute it. If there was no code

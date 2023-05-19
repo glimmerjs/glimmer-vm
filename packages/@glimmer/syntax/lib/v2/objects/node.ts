@@ -51,7 +51,20 @@ export function node<T extends string>(
   | {
       fields<Fields extends object>(): NodeConstructor<Fields & BaseNodeFields>;
     } {
-  if (name !== undefined) {
+  if (name === undefined) {
+    return {
+      fields<Fields>(): NodeConstructor<Fields & BaseNodeFields> {
+        return class {
+          // SAFETY: initialized via `assign` in the constructor.
+          declare readonly loc: SourceSpan;
+
+          constructor(fields: BaseNodeFields & Fields) {
+            assign(this, fields);
+          }
+        } as NodeConstructor<BaseNodeFields & Fields>;
+      },
+    };
+  } else {
     const type = name;
     return {
       fields<Fields extends object>(): TypedNodeConstructor<T, BaseNodeFields & Fields> {
@@ -65,19 +78,6 @@ export function node<T extends string>(
             assign(this, fields);
           }
         } as TypedNodeConstructor<T, BaseNodeFields & Fields>;
-      },
-    };
-  } else {
-    return {
-      fields<Fields>(): NodeConstructor<Fields & BaseNodeFields> {
-        return class {
-          // SAFETY: initialized via `assign` in the constructor.
-          declare readonly loc: SourceSpan;
-
-          constructor(fields: BaseNodeFields & Fields) {
-            assign(this, fields);
-          }
-        } as NodeConstructor<BaseNodeFields & Fields>;
       },
     };
   }

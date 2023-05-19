@@ -28,7 +28,7 @@ import {
   valueForRef,
 } from '@glimmer/reference';
 import { reifyNamed, reifyPositional } from '@glimmer/runtime';
-import { assign, EMPTY_ARRAY, keys, unwrapTemplate } from '@glimmer/util';
+import { EMPTY_ARRAY, keys, unwrapTemplate } from '@glimmer/util';
 import {
   consumeTag,
   createTag,
@@ -184,19 +184,19 @@ export class EmberishCurlyComponentManager
 
       return { positional: EMPTY_ARRAY, named } as PreparedArguments;
     } else if (Array.isArray(positionalParams)) {
-      let named = assign({}, args.named.capture());
+      let named = { ...args.named.capture()};
       let count = Math.min(positionalParams.length, args.positional.length);
 
-      for (let i = 0; i < count; i++) {
-        let name = positionalParams[i] as string;
+      for (let index = 0; index < count; index++) {
+        let name = positionalParams[index] as string;
 
         if (named[name]) {
           throw new Error(
-            `You cannot specify both a positional param (at position ${i}) and the hash argument \`${name}\`.`
+            `You cannot specify both a positional param (at position ${index}) and the hash argument \`${name}\`.`
           );
         }
 
-        named[name] = args.positional.at(i);
+        named[name] = args.positional.at(index);
       }
 
       return { positional: EMPTY_ARRAY, named } as PreparedArguments;
@@ -209,7 +209,7 @@ export class EmberishCurlyComponentManager
     _owner: Owner,
     definition: EmberishCurlyComponentFactory,
     _args: VMArguments,
-    _env: Environment,
+    _environment: Environment,
     dynamicScope: DynamicScope,
     callerSelf: Reference,
     hasDefaultBlock: boolean
@@ -217,15 +217,15 @@ export class EmberishCurlyComponentManager
     let klass = definition || EmberishCurlyComponent;
     let self = valueForRef(callerSelf);
     let args = _args.named.capture();
-    let attrs = reifyNamed(args);
-    let merged = assign(
-      {},
-      attrs,
-      { attrs },
-      { args },
-      { targetObject: self },
-      { HAS_BLOCK: hasDefaultBlock }
-    );
+    let attributes = reifyNamed(args);
+    let merged = {
+
+      ...attributes,
+      attrs: attributes,
+      args,
+      targetObject: self,
+      HAS_BLOCK: hasDefaultBlock
+    };
     let component = klass.create(merged);
 
     component.args = args;
@@ -233,24 +233,24 @@ export class EmberishCurlyComponentManager
     let dyn: Nullable<string[]> = klass.fromDynamicScope || null;
 
     if (dyn) {
-      for (let i = 0; i < dyn.length; i++) {
-        let name = dyn[i] as string;
+      for (const element of dyn) {
+        let name = element;
         component.set(name, valueForRef(dynamicScope.get(name)));
       }
     }
 
     consumeTag(component.dirtinessTag);
 
-    component.didInitAttrs({ attrs });
-    component.didReceiveAttrs({ oldAttrs: null, newAttrs: attrs });
+    component.didInitAttrs({ attrs: attributes });
+    component.didReceiveAttrs({ oldAttrs: null, newAttrs: attributes });
     component.willInsertElement();
     component.willRender();
 
     registerDestructor(component, () => component.destroy());
 
-    const selfRef = createConstRef(component, 'this');
+    const selfReference = createConstRef(component, 'this');
 
-    return { component, selfRef };
+    return { component, selfRef: selfReference };
   }
 
   getSelf({ selfRef }: EmberishCurlyComponentState): Reference<unknown> {
@@ -300,15 +300,15 @@ export class EmberishCurlyComponentManager
   }
 
   update({ component }: EmberishCurlyComponentState): void {
-    let oldAttrs = component.attrs;
-    let newAttrs = reifyNamed(component.args);
-    let merged = assign({}, newAttrs, { attrs: newAttrs });
+    let oldAttributes = component.attrs;
+    let newAttributes = reifyNamed(component.args);
+    let merged = { ...newAttributes, attrs: newAttributes};
 
     consumeTag(component.dirtinessTag);
 
     component.setProperties(merged);
-    component.didUpdateAttrs({ oldAttrs, newAttrs });
-    component.didReceiveAttrs({ oldAttrs, newAttrs });
+    component.didUpdateAttrs({ oldAttrs: oldAttributes, newAttrs: newAttributes });
+    component.didReceiveAttrs({ oldAttrs: oldAttributes, newAttrs: newAttributes });
     component.willUpdate();
     component.willRender();
   }

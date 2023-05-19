@@ -63,14 +63,14 @@ export type ISTDLIB_CAUTIOUS_GUARDED_APPEND = 2;
 export type ISTDLIB_TRUSTING_NON_DYNAMIC_APPEND = 3;
 export type ISTDLIB_CAUTIOUS_NON_DYNAMIC_APPEND = 4;
 
-export type STDLibOpcode =
+export type STDLibraryOpcode =
   | ISTDLIB_MAIN
   | ISTDLIB_TRUSTING_GUARDED_APPEND
   | ISTDLIB_CAUTIOUS_GUARDED_APPEND
   | ISTDLIB_TRUSTING_NON_DYNAMIC_APPEND
   | ISTDLIB_CAUTIOUS_NON_DYNAMIC_APPEND;
 
-export type STDLib = [
+export type STDLibrary = [
   main: number,
   trustingGuardedAppend: number,
   cautiousGuardedAppend: number,
@@ -89,12 +89,12 @@ export interface ResolvedLayout {
 }
 
 export type OkHandle = number;
-export interface ErrHandle {
+export interface ErrorHandle {
   handle: number;
   errors: PresentArray<EncoderError>;
 }
 
-export type HandleResult = OkHandle | ErrHandle;
+export type HandleResult = OkHandle | ErrorHandle;
 
 export interface NamedBlocks {
   get(name: string): Nullable<SerializedInlineBlock>;

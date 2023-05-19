@@ -1,5 +1,5 @@
 import type { NamedBlocks, Nullable, SerializedInlineBlock, WireFormat } from '@glimmer/interfaces';
-import { assign, dict, enumerate, unwrap } from '@glimmer/util';
+import { dict, enumerate, unwrap } from '@glimmer/util';
 
 interface NamedBlocksDict {
   [key: string]: Nullable<WireFormat.SerializedInlineBlock>;
@@ -25,11 +25,9 @@ export class NamedBlocksImpl implements NamedBlocks {
   }
 
   with(name: string, block: Nullable<SerializedInlineBlock>): NamedBlocks {
-    if (this.#blocks) {
-      return new NamedBlocksImpl(assign({}, this.#blocks, { [name]: block }));
-    } else {
-      return new NamedBlocksImpl({ [name]: block });
-    }
+    return this.#blocks
+      ? new NamedBlocksImpl({ ...this.#blocks, [name]: block})
+      : new NamedBlocksImpl({ [name]: block });
   }
 
   get hasAny(): boolean {
@@ -48,8 +46,8 @@ export function namedBlocks(blocks: WireFormat.Core.Blocks): NamedBlocks {
 
   let [keys, values] = blocks;
 
-  for (const [i, key] of enumerate(keys)) {
-    out[key] = unwrap(values[i]);
+  for (const [index, key] of enumerate(keys)) {
+    out[key] = unwrap(values[index]);
   }
 
   return new NamedBlocksImpl(out);

@@ -24,11 +24,6 @@ export { isUpdatableRef } from '@glimmer/reference';
 // @ember/-internals/glimmer/lib/views/outlet.ts
 export { updateRef } from '@glimmer/reference';
 
-// @ember/-internals/glimmer/lib/dom.ts
-export { rehydrationBuilder } from '@glimmer/runtime';
-// FIXME: What's up with this?
-export { NodeDOMTreeConstruction, serializeBuilder } from '@glimmer/node';
-
 // @ember/-internals/glimmer/lib/environment.ts
 export type { EnvironmentDelegate } from '@glimmer/runtime';
 export { setGlobalContext } from '@glimmer/global-context';

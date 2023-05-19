@@ -15,10 +15,10 @@ import {
   templateOnlyComponent,
   TemplateOnlyComponentManager,
 } from '@glimmer/runtime';
-import { assign, expect } from '@glimmer/util';
+import { expect } from '@glimmer/util';
 import type { EmberishCurlyComponent } from '@glimmer-workspace/integration-tests';
 import {
-  BaseEnv,
+  BaseEnvironment,
   GlimmerishComponent,
   JitRenderDelegate,
   RenderTest,
@@ -35,7 +35,7 @@ interface CapturedBounds {
 
 type Expected<T> = T | ((actual: T) => boolean);
 
-function isExpectedFunc<T>(expected: Expected<T>): expected is (actual: T) => boolean {
+function isExpectedFunction<T>(expected: Expected<T>): expected is (actual: T) => boolean {
   return typeof expected === 'function';
 }
 
@@ -499,10 +499,10 @@ class DebugRenderTreeTest extends RenderTest {
       actual = actual.sort(byTypeAndName);
       expectedNodes = expectedNodes.sort(byTypeAndName);
 
-      actual.forEach((actualNode, i) => {
-        let expected = this.guardPresent({ [`node (${i})`]: expectedNodes[i] });
+      for (const [index, actualNode] of actual.entries()) {
+        let expected = this.guardPresent({ [`node (${index})`]: expectedNodes[index] });
         this.assertRenderNode(actualNode, expected, `${actualNode.type}:${actualNode.name}`);
-      });
+      }
     } else {
       this.assert.deepEqual(actual, [], path);
     }
@@ -524,7 +524,7 @@ class DebugRenderTreeTest extends RenderTest {
   }
 
   assertProperty<T>(actual: T, expected: Expected<T>, deep: boolean, path: string): void {
-    if (isExpectedFunc(expected)) {
+    if (isExpectedFunction(expected)) {
       this.assert.ok(expected(actual), `Matching ${path}, got ${actual}`);
     } else if (deep) {
       this.assert.deepEqual(actual, expected, `Matching ${path}`);
@@ -535,7 +535,5 @@ class DebugRenderTreeTest extends RenderTest {
 }
 
 suite(DebugRenderTreeTest, DebugRenderTreeDelegate, {
-  env: assign({}, BaseEnv, {
-    enableDebugTooling: true,
-  }),
+  env: { ...BaseEnvironment, enableDebugTooling: true,},
 });

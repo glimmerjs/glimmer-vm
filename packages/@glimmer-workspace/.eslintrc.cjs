@@ -8,9 +8,8 @@ module.exports = {
   overrides: [
     {
       files: ['*/index.{js,ts,d.ts}', '*/lib/**/*.{js,ts,d.ts}', '*/test/**/*.{js,ts,d.ts}'],
-      excludedFiles: ['node_modules', '*/node_modules'],
+      excludedFiles: ['node_modules', '*/node_modules', '*.cjs'],
       parserOptions: {
-        ecmaVersion: 'latest',
         project: [tsconfig],
       },
       plugins: ['@glimmer-workspace'],

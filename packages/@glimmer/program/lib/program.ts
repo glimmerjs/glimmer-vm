@@ -5,7 +5,7 @@ import type {
   RuntimeHeap,
   RuntimeProgram,
   SerializedHeap,
-  StdLibOperand,
+  StdLibraryOperand,
 } from '@glimmer/interfaces';
 import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
 import { expect, unwrap } from '@glimmer/util';
@@ -19,9 +19,9 @@ const FREED_SLOT = 1;
 type TableSlotState = 0 | 1;
 
 export type Placeholder = [number, () => number];
-export type StdlibPlaceholder = [number, StdLibOperand];
+export type StdlibPlaceholder = [number, StdLibraryOperand];
 
-const PAGE_SIZE = 0x100000;
+const PAGE_SIZE = 0x10_00_00;
 
 export class RuntimeHeapImpl implements RuntimeHeap {
   readonly #heap: Int32Array;
@@ -186,9 +186,7 @@ export class RuntimeProgramImpl implements RuntimeProgram {
 }
 
 function sizeof(table: number[], handle: number) {
-  if (import.meta.env.DEV && LOCAL_DEBUG) {
-    return unwrap(table[handle + 1]) - unwrap(table[handle]);
-  } else {
-    return -1;
-  }
+  return import.meta.env.DEV && LOCAL_DEBUG
+    ? unwrap(table[handle + 1]) - unwrap(table[handle])
+    : -1;
 }

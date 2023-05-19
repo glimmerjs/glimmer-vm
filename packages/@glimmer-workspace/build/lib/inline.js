@@ -21,14 +21,14 @@ export const inline = () => {
       }
     },
 
-    async load(id) {
+    load(id) {
       if (id.startsWith(INLINE_PREFIX)) {
         const path = id.slice(INLINE_PREFIX.length);
         const code = readFileSync(path, 'utf8');
 
-        return Promise.resolve({
+        return {
           code: `export default ${JSON.stringify(code)};`,
-        });
+        };
       }
     },
   };

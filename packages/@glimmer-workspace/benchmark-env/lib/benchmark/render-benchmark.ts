@@ -5,11 +5,11 @@ import type {
   RuntimeArtifacts,
   RuntimeResolver,
   SimpleElement,
-} from "@glimmer/interfaces";
+} from '@glimmer/interfaces';
 import { NewElementBuilder, renderComponent, renderSync, runtimeContext } from '@glimmer/runtime';
 
 import type { UpdateBenchmark } from '../interfaces';
-import createEnvDelegate, { registerResult } from './create-env-delegate';
+import createEnvironmentDelegate, { registerResult } from './create-env-delegate';
 import { measureRender } from './util';
 
 export default async function renderBenchmark(
@@ -25,21 +25,21 @@ export default async function renderBenchmark(
 
   await measureRender('render', 'renderStart', 'renderEnd', () => {
     const document = element.ownerDocument;
-    const envDelegate = createEnvDelegate(isInteractive);
+    const environmentDelegate = createEnvironmentDelegate(isInteractive);
     const runtime = runtimeContext(
       {
         document,
       },
-      envDelegate,
+      environmentDelegate,
       artifacts,
       runtimeResolver
     );
-    const env = runtime.env;
+    const environment = runtime.env;
     const cursor = { element, nextSibling: null };
-    const treeBuilder = NewElementBuilder.forInitialRender(env, cursor);
+    const treeBuilder = NewElementBuilder.forInitialRender(environment, cursor);
 
     const result = renderSync(
-      env,
+      environment,
       renderComponent(runtime, treeBuilder, context, {}, component.state, args)
     );
 

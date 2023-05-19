@@ -41,9 +41,16 @@
   },
   "main": "index.ts",
   "exports": {
-    "types": "./index.ts",
-    "development": "./index.ts",
-    "default": "./dist/index.js"
+    ".": {
+      "types": "./index.ts",
+      "development": "./index.ts",
+      "default": "./dist/index.js"
+    },
+    "./ssr": {
+      "types": "./lib/ssr.ts",
+      "development": "./lib/ssr.ts",
+      "default": "./dist/ssr.js"
+    }
   },
   "publishConfig": {
     "access": "public",

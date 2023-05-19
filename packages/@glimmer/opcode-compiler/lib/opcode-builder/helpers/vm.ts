@@ -22,7 +22,7 @@ import {
 import type { PushExpressionOp, PushStatementOp } from '../../syntax/compiler-impl';
 import { isStrictMode, nonSmallIntOperand } from '../operands';
 import { expr } from './expr';
-import { SimpleArgs } from './shared';
+import { SimpleArguments } from './shared';
 
 export type Primitive = undefined | null | boolean | number | string;
 
@@ -36,7 +36,7 @@ export interface CompileHelper {
  * Push a reference onto the stack corresponding to a statically known primitive
  * @param value A JavaScript primitive (undefined, null, boolean, number or string)
  */
-export function PushPrimitiveReference(op: PushExpressionOp, value: Primitive): void {
+export function PushPrimitiveReference(op: PushExpressionOp, value?: Primitive): void {
   PushPrimitive(op, value);
   op(PRIMITIVE_REFERENCE_OP);
 }
@@ -71,7 +71,7 @@ export function Call(
   named: WireFormat.Core.Hash
 ): void {
   op(PUSH_FRAME_OP);
-  SimpleArgs(op, positional, named, false);
+  SimpleArguments(op, positional, named, false);
   op(HELPER_OP, handle);
   op(POP_FRAME_OP);
   op(FETCH_OP, $v0);
@@ -91,7 +91,7 @@ export function CallDynamic(
   append?: () => void
 ): void {
   op(PUSH_FRAME_OP);
-  SimpleArgs(op, positional, named, false);
+  SimpleArguments(op, positional, named, false);
   op(DUP_OP, $fp, 1);
   op(DYNAMIC_HELPER_OP);
   if (append) {
@@ -129,7 +129,7 @@ export function Curry(
   named: WireFormat.Core.Hash
 ): void {
   op(PUSH_FRAME_OP);
-  SimpleArgs(op, positional, named, false);
+  SimpleArguments(op, positional, named, false);
   op(CAPTURE_ARGS_OP);
   expr(op, definition);
   op(CURRY_OP, type, isStrictMode());

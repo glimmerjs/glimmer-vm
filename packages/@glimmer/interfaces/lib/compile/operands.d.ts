@@ -1,4 +1,4 @@
-import type { CompilableTemplate, STDLibOpcode } from '../template';
+import type { CompilableTemplate, STDLibraryOpcode as STDLibraryOpcode } from '../template';
 import type { SymbolTable } from '../tier1/symbol-table';
 import type * as WireFormat from './wire-format/api';
 
@@ -6,7 +6,7 @@ export type LabelOperandType = 1;
 export type IsStrictModeOperandType = 2;
 export type DebugSymbolsOperandType = 3;
 export type BlockOperandType = 4;
-export type StdLibOperandType = 5;
+export type StdLibraryOperandType = 5;
 export type NonSmallIntOperandType = 6;
 export type SymbolTableOperandType = 7;
 export type LayoutOperandType = 8;
@@ -16,7 +16,7 @@ export type OperandType =
   | IsStrictModeOperandType
   | DebugSymbolsOperandType
   | BlockOperandType
-  | StdLibOperandType
+  | StdLibraryOperandType
   | NonSmallIntOperandType
   | SymbolTableOperandType
   | LayoutOperandType;
@@ -41,9 +41,9 @@ export interface BlockOperand {
   value: WireFormat.SerializedInlineBlock | WireFormat.SerializedBlock;
 }
 
-export interface StdLibOperand {
-  type: StdLibOperandType;
-  value: STDLibOpcode;
+export interface StdLibraryOperand {
+  type: StdLibraryOperandType;
+  value: STDLibraryOpcode;
 }
 
 export interface NonSmallIntOperand {
@@ -65,7 +65,7 @@ export type HighLevelBuilderOperand =
   | LabelOperand
   | IsStrictModeOperand
   | DebugSymbolsOperand
-  | StdLibOperand
+  | StdLibraryOperand
   | BlockOperand
   | NonSmallIntOperand
   | SymbolTableOperand

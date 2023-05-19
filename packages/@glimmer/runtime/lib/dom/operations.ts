@@ -1,19 +1,28 @@
+/* eslint-disable unicorn/prefer-dom-node-remove */
+/* eslint-disable unicorn/prefer-modern-dom-apis */
+
 import type {
   Bounds,
-  Dict,
   Nullable,
   SimpleComment,
   SimpleDocument,
   SimpleElement,
   SimpleNode,
   SimpleText,
+  InsertPosition,
 } from '@glimmer/interfaces';
-import { expect, INSERT_BEFORE_BEGIN, INSERT_BEFORE_END, NS_SVG } from '@glimmer/util';
+import {
+  castToBrowser,
+  expect,
+  INSERT_BEFORE_BEGIN,
+  INSERT_BEFORE_END,
+  NS_SVG,
+} from '@glimmer/util';
 
 import { ConcreteBounds } from '../bounds';
 
 // http://www.w3.org/TR/html/syntax.html#html-integration-point
-const SVG_INTEGRATION_POINTS = { foreignObject: 1, desc: 1, title: 1 };
+const SVG_INTEGRATION_POINTS = 'foreignObject|desc|title'.split('|');
 
 // http://www.w3.org/TR/html/syntax.html#adjust-svg-attributes
 // TODO: Adjust SVG attributes
@@ -22,7 +31,7 @@ const SVG_INTEGRATION_POINTS = { foreignObject: 1, desc: 1, title: 1 };
 // TODO: Adjust SVG elements
 
 // http://www.w3.org/TR/html/syntax.html#parsing-main-inforeign
-export const BLACKLIST_TABLE = Object.create(null);
+export const DISALLOWED_FOREIGN_TAGS = new Set();
 
 export class DOMOperations {
   protected declare uselessElement: SimpleElement; // Set by this.setupUselessElement() in constructor
@@ -34,7 +43,7 @@ export class DOMOperations {
   // split into separate method so that NodeDOMTreeConstruction
   // can override it.
   protected setupUselessElement() {
-    this.uselessElement = this.document.createElement('div');
+    this.uselessElement = this.document.createElement('template');
   }
 
   createElement(tag: string, context?: SimpleElement): SimpleElement {
@@ -42,7 +51,7 @@ export class DOMOperations {
 
     if (context) {
       isElementInSVGNamespace = context.namespaceURI === NS_SVG || tag === 'svg';
-      isHTMLIntegrationPoint = !!(SVG_INTEGRATION_POINTS as Dict<number>)[context.tagName];
+      isHTMLIntegrationPoint = SVG_INTEGRATION_POINTS.includes(context.tagName);
     } else {
       isElementInSVGNamespace = tag === 'svg';
       isHTMLIntegrationPoint = false;
@@ -52,7 +61,7 @@ export class DOMOperations {
       // FIXME: This does not properly handle <font> with color, face, or
       // size attributes, which is also disallowed by the spec. We should fix
       // this.
-      if (BLACKLIST_TABLE[tag]) {
+      if (DISALLOWED_FOREIGN_TAGS.has(tag)) {
         throw new Error(`Cannot create a ${tag} inside an SVG context`);
       }
 
@@ -73,14 +82,14 @@ export class DOMOperations {
       return new ConcreteBounds(parent, comment, comment);
     }
 
-    const prev = nextSibling ? nextSibling.previousSibling : parent.lastChild;
+    const previous = nextSibling ? nextSibling.previousSibling : parent.lastChild;
     let last: SimpleNode;
 
     if (nextSibling === null) {
-      parent.insertAdjacentHTML(INSERT_BEFORE_END, html);
+      insertAdjacentHTML(parent, INSERT_BEFORE_END, html);
       last = expect(parent.lastChild, 'bug in insertAdjacentHTML?');
     } else if (nextSibling instanceof HTMLElement) {
-      nextSibling.insertAdjacentHTML('beforebegin', html);
+      insertAdjacentHTML(nextSibling, INSERT_BEFORE_BEGIN, html);
       last = expect(nextSibling.previousSibling, 'bug in insertAdjacentHTML?');
     } else {
       // Non-element nodes do not support insertAdjacentHTML, so add an
@@ -91,12 +100,15 @@ export class DOMOperations {
       const { uselessElement } = this;
 
       parent.insertBefore(uselessElement, nextSibling);
-      uselessElement.insertAdjacentHTML(INSERT_BEFORE_BEGIN, html);
+      insertAdjacentHTML(castToBrowser(uselessElement, 'ELEMENT'), INSERT_BEFORE_BEGIN, html);
       last = expect(uselessElement.previousSibling, 'bug in insertAdjacentHTML?');
       parent.removeChild(uselessElement);
     }
 
-    const first = expect(prev ? prev.nextSibling : parent.firstChild, 'bug in insertAdjacentHTML?');
+    const first = expect(
+      previous ? previous.nextSibling : parent.firstChild,
+      'bug in insertAdjacentHTML?'
+    );
     return new ConcreteBounds(parent, first, last);
   }
 
@@ -128,4 +140,12 @@ export function moveNodesBefore(
   }
 
   return new ConcreteBounds(target, first, last);
+}
+
+function insertAdjacentHTML(
+  element: Element | SimpleElement,
+  position: InsertPosition,
+  html: string
+): void {
+  element.insertAdjacentHTML(position, html);
 }

@@ -16,10 +16,10 @@ import type {
 import { serializeBuilder } from '@glimmer/node';
 import { createConstRef, type Reference } from '@glimmer/reference';
 import type { ASTPluginBuilder, PrecompileOptions } from '@glimmer/syntax';
-import { assign, castToSimple } from '@glimmer/util';
+import { castToSimple } from '@glimmer/util';
 import createHTMLDocument from '@simple-dom/document';
 
-import { BaseEnv } from '../../base-env';
+import { BaseEnvironment as BaseEnvironment } from '../../base-env';
 import type { ComponentKind } from '../../components';
 import { replaceHTML, toInnerHTML } from '../../dom/simple-utils';
 import type { UserHelper } from '../../helpers';
@@ -65,7 +65,7 @@ export class RehydrationDelegate implements RenderDelegate {
   private self: Nullable<Reference> = null;
 
   constructor(options?: RenderDelegateOptions) {
-    let delegate = assign(options?.env ?? {}, BaseEnv);
+    let delegate = Object.assign(options?.env ?? {}, BaseEnvironment);
 
     this.clientDoc = castToSimple(document);
     this.clientRegistry = new TestJitRegistry();
@@ -98,19 +98,19 @@ export class RehydrationDelegate implements RenderDelegate {
     return this.clientDoc.createDocumentFragment();
   }
 
-  getElementBuilder(env: Environment, cursor: Cursor): ElementBuilder {
+  getElementBuilder(environment: Environment, cursor: Cursor): ElementBuilder {
     if (cursor.element instanceof Node) {
-      return debugRehydration(env, cursor);
+      return debugRehydration(environment, cursor);
     }
 
-    return serializeBuilder(env, cursor);
+    return serializeBuilder(environment, cursor);
   }
 
   renderServerSide(
     template: string,
     context: Dict<unknown>,
     takeSnapshot: () => void,
-    element: SimpleElement | undefined = undefined
+    element: SimpleElement | undefined
   ): string {
     element = element || this.serverDoc.createElement('div');
     let cursor = { element, nextSibling: null };
@@ -129,7 +129,7 @@ export class RehydrationDelegate implements RenderDelegate {
     return this.serialize(element);
   }
 
-  getSelf(_env: Environment, context: unknown): Reference {
+  getSelf(_environment: Environment, context: unknown): Reference {
     if (!this.self) {
       this.self = createConstRef(context, 'this');
     }
@@ -142,16 +142,16 @@ export class RehydrationDelegate implements RenderDelegate {
   }
 
   renderClientSide(template: string, context: Dict<unknown>, element: SimpleElement): RenderResult {
-    let env = this.clientEnv.runtime.env;
+    let environment = this.clientEnv.runtime.env;
     this.self = null;
 
     // Client-side rehydration
     let cursor = { element, nextSibling: null };
-    let builder = this.getElementBuilder(env, cursor) as DebugRehydrationBuilder;
+    let builder = this.getElementBuilder(environment, cursor) as DebugRehydrationBuilder;
     let result = renderTemplate(
       template,
       this.clientEnv,
-      this.getSelf(env, context),
+      this.getSelf(environment, context),
       builder,
       this.precompileOptions
     );
@@ -171,7 +171,7 @@ export class RehydrationDelegate implements RenderDelegate {
   ): RenderResult {
     let serialized = this.renderServerSide(template, context, snapshot);
     replaceHTML(element, serialized);
-    qunitFixture().appendChild(element);
+    qunitFixture().append(element);
 
     return this.renderClientSide(template, context, element);
   }
@@ -210,5 +210,5 @@ export class RehydrationDelegate implements RenderDelegate {
 }
 
 export function qunitFixture(): SimpleElement {
-  return castToSimple(document.getElementById('qunit-fixture')!);
+  return castToSimple(document.querySelector('#qunit-fixture')!);
 }

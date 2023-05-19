@@ -3,7 +3,7 @@ import type {
   CompileTimeCompilationContext,
   ContainingMetadata,
   HighLevelOp,
-  STDLib,
+  STDLibrary,
 } from '@glimmer/interfaces';
 import {
   $s0,
@@ -106,7 +106,7 @@ export function StdAppend(
   );
 }
 
-export function compileStd(context: CompileTimeCompilationContext): STDLib {
+export function compileStd(context: CompileTimeCompilationContext): STDLibrary {
   let mainHandle = build(context, (op) => main(op));
   let trustingGuardedNonDynamicAppend = build(context, (op) => StdAppend(op, true, null));
   let cautiousGuardedNonDynamicAppend = build(context, (op) => StdAppend(op, false, null));
@@ -154,10 +154,10 @@ function build(
 
   let result = encoder.commit(0);
 
-  if (typeof result !== 'number') {
-    // This shouldn't be possible
-    throw new Error(`Unexpected errors compiling std`);
-  } else {
+  if (typeof result === 'number') {
     return result;
+  } else {
+    // This shouldn't be possible
+    throw new TypeError(`Unexpected errors compiling std`);
   }
 }

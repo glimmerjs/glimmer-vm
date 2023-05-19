@@ -3,7 +3,7 @@ import type { ComponentDefinition, ComponentDefinitionState } from './components
 import type { HelperDefinitionState } from './runtime';
 import type { ModifierDefinitionState } from './runtime/modifier';
 import type { CompileTimeResolver, ResolvedComponentDefinition } from './serialize';
-import type { ContainingMetadata, STDLib, Template } from './template';
+import type { ContainingMetadata, STDLibrary, Template } from './template';
 import type { VmMachineOp, VmOp } from './vm-opcodes';
 
 export type CreateRuntimeOp = (heap: CompileTimeHeap) => RuntimeOp;
@@ -48,7 +48,7 @@ export interface RuntimeHeap extends OpcodeHeap {
 
 export interface CompileTimeCompilationContext {
   // The offsets to stdlib functions
-  readonly stdlib: STDLib;
+  readonly stdlib: STDLibrary;
 
   readonly createOp: CreateRuntimeOp;
 

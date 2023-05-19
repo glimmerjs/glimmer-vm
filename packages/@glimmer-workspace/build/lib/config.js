@@ -3,7 +3,6 @@
 
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
 
 import rollupTS from 'rollup-plugin-ts';
 import ts from 'typescript';
@@ -18,6 +17,7 @@ import { constants as zlib } from 'node:zlib';
 import prettyBytes from 'pretty-bytes';
 import chalk from 'chalk';
 import { visualizer } from 'rollup-plugin-visualizer';
+import { isPresent } from '@glimmer/util';
 
 // eslint-disable-next-line import/no-named-as-default-member
 const { ModuleKind, ModuleResolutionKind, ScriptTarget, ImportsNotUsedAsValues } = ts;
@@ -26,7 +26,6 @@ const { default: commonjs } = await import('@rollup/plugin-commonjs');
 const { default: nodeResolve } = await import('@rollup/plugin-node-resolve');
 const { default: postcss } = await import('rollup-plugin-postcss');
 const { default: nodePolyfills } = await import('rollup-plugin-polyfill-node');
-const { default: fonts } = await import('unplugin-fonts/vite');
 
 /** @typedef {import("typescript").CompilerOptions} CompilerOptions */
 /** @typedef {import("./config.js").ExternalOption} ExternalOption */
@@ -150,9 +149,9 @@ const matchExternals = (pkg) => (id) => matchExternalsWithPackage(id, pkg);
  */
 function matchExternalsWithPackage(id, pkg) {
   /** @type {ExternalConfig[]} */
-  const presets = (pkg.workspace?.presets ?? ['workspace:recommended']).map(
-    (preset) => PRESETS[preset]
-  );
+  const presets = (pkg.workspace?.presets ?? ['workspace:recommended'])
+    .map((preset) => PRESETS[preset])
+    .filter(isPresent);
 
   let inline = pkg.workspace?.inline;
 
@@ -257,8 +256,8 @@ export class Package {
    * @returns {string}
    */
   static root(meta) {
-    const dir = fileURLToPath(meta.url);
-    return dirname(resolve(dir));
+    const directory = new URL(meta.url).pathname;
+    return dirname(resolve(directory));
   }
 
   /**
@@ -306,23 +305,7 @@ export class Package {
   static config(meta) {
     const pkg = Package.at(meta);
 
-    if (pkg) {
-      return pkg.config();
-    } else {
-      return [];
-    }
-  }
-
-  /**
-   * @param {ImportMeta | string} meta
-   * @returns {Promise<ViteConfig>}
-   */
-  static async viteConfig(meta) {
-    const pkg = Package.at(meta);
-
-    if (pkg) return pkg.#viteConfig();
-
-    throw Error(`No package found at ${typeof meta === 'string' ? meta : Package.root(meta)}`);
+    return pkg ? pkg.config() : [];
   }
 
   /** @readonly @type {PackageInfo} */
@@ -372,36 +355,9 @@ export class Package {
    * @returns {import("rollup").RollupOptions[] | import("rollup").RollupOptions}
    */
   config() {
-    if (process.env.MODE === 'production') {
-      return this.rollupESM('production');
-    } else {
-      return [...this.rollupESM('development'), ...this.rollupCJS()];
-    }
-  }
-
-  /**
-   * @returns {Promise<import("./config.js").ViteConfig>}
-   */
-  async #viteConfig() {
-    return viteConfig({
-      plugins: [
-        fonts({
-          google: {
-            families: ['Roboto:wght@300;400;500;700'],
-            display: 'swap',
-            preconnect: true,
-          },
-        }),
-      ],
-      optimizeDeps: {
-        esbuildOptions: {
-          define: {
-            global: 'globalThis',
-          },
-        },
-      },
-      build: {},
-    });
+    return process.env['MODE'] === 'production'
+      ? this.rollupESM('production')
+      : [...this.rollupESM('development'), ...this.rollupCJS()];
   }
 
   /**
@@ -559,7 +515,7 @@ export class Package {
   #shared(format, mode) {
     const { root, main } = this.#package;
 
-    const ext = format === 'esm' ? 'js' : 'cjs';
+    const extension = format === 'esm' ? 'js' : 'cjs';
 
     const modeSuffix = mode === 'production' ? '.production' : '';
 
@@ -568,7 +524,7 @@ export class Package {
      * @returns {import("rollup").RollupOptions}
      */
     function entryPoint([exportName, ts]) {
-      const file = `${exportName}${modeSuffix}.${ext}`;
+      const file = `${exportName}${modeSuffix}.${extension}`;
 
       return {
         input: resolve(root, ts),
@@ -592,13 +548,6 @@ export class Package {
 
     return [entryPoint([`index`, main])];
   }
-}
-
-/**
- * @param {import("./config.js").ViteConfig} config
- */
-async function viteConfig(config) {
-  return Promise.resolve(config);
 }
 
 /**

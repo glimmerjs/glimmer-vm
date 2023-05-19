@@ -21,19 +21,11 @@ export function ifPresent<T, U, V>(
   ifPresent: (input: PresentArray<T>) => U,
   otherwise: () => V
 ): U | V {
-  if (isPresentArray(list)) {
-    return ifPresent(list);
-  } else {
-    return otherwise();
-  }
+  return isPresentArray(list) ? ifPresent(list) : otherwise();
 }
 
 export function arrayToOption<T>(list: T[]): Nullable<PresentArray<T>> {
-  if (isPresentArray(list)) {
-    return list;
-  } else {
-    return null;
-  }
+  return isPresentArray(list) ? list : null;
 }
 
 export function assertPresentArray<T>(
@@ -53,7 +45,7 @@ export function asPresentArray<T>(list: T[], message = `unexpected empty list`):
 export function getLast<T>(list: PresentArray<T>): T;
 export function getLast<T>(list: T[]): T | undefined;
 export function getLast<T>(list: T[]): T | undefined {
-  return list.length === 0 ? undefined : (list[list.length - 1] as T);
+  return list.length === 0 ? undefined : (list.at(-1) as T);
 }
 
 export function getFirst<T>(list: PresentArray<T>): T;

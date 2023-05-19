@@ -221,13 +221,13 @@ export class Builder {
   }
 
   deprecatedCall(
-    arg: SourceSlice,
+    argument: SourceSlice,
     callee: ASTv2.FreeVarReference,
     loc: SourceSpan
   ): ASTv2.DeprecatedCallExpression {
     return new ASTv2.DeprecatedCallExpression({
       loc,
-      arg,
+      arg: argument,
       callee,
     });
   }
@@ -343,7 +343,7 @@ export class BuildElement {
 
   simple(tag: SourceSlice, body: ASTv2.ContentNode[], loc: SourceSpan): ASTv2.SimpleElement {
     return new ASTv2.SimpleElement(
-      assign(
+      Object.assign(
         {
           tag,
           body,

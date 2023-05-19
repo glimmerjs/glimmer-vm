@@ -1,5 +1,5 @@
 import type { SimpleElement, SimpleNode } from '@glimmer/interfaces';
-import { assign, castToSimple, unwrap } from '@glimmer/util';
+import { castToSimple, unwrap } from '@glimmer/util';
 import {
   classes,
   createTemplate,
@@ -124,13 +124,13 @@ function assertFired(component: HookedComponent, name: string, count = 1) {
 export function assertElementIsEmberishElement(
   element: SimpleElement | null,
   tagName: string,
-  attrs: Object,
+  attributes: Object,
   contents: string
 ): void;
 export function assertElementIsEmberishElement(
   element: SimpleElement | null,
   tagName: string,
-  attrs: Object
+  attributes: Object
 ): void;
 export function assertElementIsEmberishElement(
   element: SimpleElement | null,
@@ -145,18 +145,18 @@ export function assertElementIsEmberishElement(
   element: SimpleElement | null,
   ...args: any[]
 ): void {
-  let tagName, attrs, contents;
+  let tagName, attributes, contents;
   if (args.length === 2) {
-    if (typeof args[1] === 'string') [tagName, attrs, contents] = [args[0], {}, args[1]];
-    else [tagName, attrs, contents] = [args[0], args[1], null];
+    if (typeof args[1] === 'string') [tagName, attributes, contents] = [args[0], {}, args[1]];
+    else [tagName, attributes, contents] = [args[0], args[1], null];
   } else if (args.length === 1) {
-    [tagName, attrs, contents] = [args[0], {}, null];
+    [tagName, attributes, contents] = [args[0], {}, null];
   } else {
-    [tagName, attrs, contents] = args;
+    [tagName, attributes, contents] = args;
   }
 
-  let fullAttrs = assign({ class: classes('ember-view'), id: regex(/^ember\d*$/u) }, attrs);
-  equalsElement(element, tagName, fullAttrs, contents);
+  let fullAttributes = Object.assign({ class: classes('ember-view'), id: regex(/^ember\d*$/u) }, attributes);
+  equalsElement(element, tagName, fullAttributes, contents);
 }
 
 // function rerender() {
@@ -165,23 +165,23 @@ export function assertElementIsEmberishElement(
 // }
 
 class CurlyTest extends RenderTest {
-  assertEmberishElement(tagName: string, attrs: Object, contents: string): void;
-  assertEmberishElement(tagName: string, attrs: Object): void;
+  assertEmberishElement(tagName: string, attributes: Object, contents: string): void;
+  assertEmberishElement(tagName: string, attributes: Object): void;
   assertEmberishElement(tagName: string, contents: string): void;
   assertEmberishElement(tagName: string): void;
   assertEmberishElement(...args: any[]): void {
-    let tagName, attrs, contents;
+    let tagName, attributes, contents;
     if (args.length === 2) {
-      if (typeof args[1] === 'string') [tagName, attrs, contents] = [args[0], {}, args[1]];
-      else [tagName, attrs, contents] = [args[0], args[1], null];
+      if (typeof args[1] === 'string') [tagName, attributes, contents] = [args[0], {}, args[1]];
+      else [tagName, attributes, contents] = [args[0], args[1], null];
     } else if (args.length === 1) {
-      [tagName, attrs, contents] = [args[0], {}, null];
+      [tagName, attributes, contents] = [args[0], {}, null];
     } else {
-      [tagName, attrs, contents] = args;
+      [tagName, attributes, contents] = args;
     }
 
-    let fullAttrs = assign({ class: classes('ember-view'), id: regex(/^ember\d*$/u) }, attrs);
-    equalsElement(firstElementChild(this.element) as SimpleElement, tagName, fullAttrs, contents);
+    let fullAttributes = Object.assign({ class: classes('ember-view'), id: regex(/^ember\d*$/u) }, attributes);
+    equalsElement(firstElementChild(this.element) as SimpleElement, tagName, fullAttributes, contents);
   }
 }
 
@@ -597,11 +597,11 @@ class CurlyScopeTest extends CurlyTest {
 
     let items = [];
 
-    for (let i = 0; i < 3; i++) {
+    for (let index = 0; index < 3; index++) {
       let subitems = [];
       let subitemId = 0;
 
-      for (let j = 0; j < 2; j++) {
+      for (let index_ = 0; index_ < 2; index_++) {
         subitems.push({
           id: `${itemId}.${subitemId++}`,
         });
@@ -609,7 +609,7 @@ class CurlyScopeTest extends CurlyTest {
 
       items.push({
         id: String(itemId++),
-        visible: i % 2 === 0,
+        visible: index % 2 === 0,
         subitems,
       });
     }
@@ -1523,7 +1523,7 @@ class CurlyGlimmerComponentTest extends CurlyTest {
   'Setting value attributeBinding to null results in empty string value'() {
     let instance: InputComponent | undefined;
 
-    const setInstance = (i: InputComponent) => (instance = i);
+    const setInstance = (index: InputComponent) => (instance = index);
 
     class InputComponent extends EmberishCurlyComponent {
       override tagName = 'input';
@@ -1569,7 +1569,7 @@ class CurlyGlimmerComponentTest extends CurlyTest {
   'Setting class attributeBinding does not clobber ember-view'() {
     let instance: FooBarComponent | undefined;
 
-    const setInstance = (i: FooBarComponent) => (instance = i);
+    const setInstance = (index: FooBarComponent) => (instance = index);
 
     class FooBarComponent extends EmberishCurlyComponent {
       override attributeBindings = ['class'];
@@ -1804,34 +1804,34 @@ class CurlyTeardownTest extends CurlyTest {
 
     this.registerComponent('Curly', 'DestroyMe', '<div>destroy me!</div>', DestroyMeComponent);
 
-    let val1 = { val: 1 };
-    let val2 = { val: 2 };
-    let val3 = { val: 3 };
-    let val4 = { val: 4 };
-    let val5 = { val: 5 };
+    let value1 = { val: 1 };
+    let value2 = { val: 2 };
+    let value3 = { val: 3 };
+    let value4 = { val: 4 };
+    let value5 = { val: 5 };
 
     this.render(
       `{{#each this.list key='@identity' as |item|}}<DestroyMe @item={{item}} />{{/each}}`,
       {
-        list: [val1, val2, val3, val4, val5],
+        list: [value1, value2, value3, value4, value5],
       }
     );
 
     assert.strictEqual(destroyed.length, 0, 'destroy should not be called');
 
-    this.rerender({ list: [val1, val2, val3] });
+    this.rerender({ list: [value1, value2, value3] });
 
-    assert.deepEqual(destroyed, [val4, val5], 'destroy should be called exactly twice');
+    assert.deepEqual(destroyed, [value4, value5], 'destroy should be called exactly twice');
 
-    this.rerender({ list: [val3, val2, val1] });
+    this.rerender({ list: [value3, value2, value1] });
 
-    assert.deepEqual(destroyed, [val4, val5], 'destroy should be called exactly twice');
+    assert.deepEqual(destroyed, [value4, value5], 'destroy should be called exactly twice');
 
     this.rerender({ list: [] });
 
     assert.deepEqual(
       destroyed,
-      [val4, val5, val1, val2, val3],
+      [value4, value5, value1, value2, value3],
       'destroy should be called for each item'
     );
   }
@@ -2019,7 +2019,7 @@ class CurlyLateLayoutTest extends CurlyTest {
   @test
   'can bind the layout late'() {
     class FooBar extends EmberishCurlyComponent {
-      override layout = createTemplate('Swap - {{yield}}')(undefined);
+      override layout = createTemplate('Swap - {{yield}}')();
     }
 
     this.delegate.registerComponent('Curly', 'Curly', 'foo-bar', null, FooBar);
@@ -2249,6 +2249,6 @@ function check<T>(node: Node | SimpleNode | null, Type: { new (...args: any[]): 
   if (node instanceof Type) {
     return node;
   } else {
-    throw Error(`Expected ${Type.name} but got ${node?.constructor.name ?? 'null'}`);
+    throw new TypeError(`Expected ${Type.name} but got ${node?.constructor.name ?? 'null'}`);
   }
 }

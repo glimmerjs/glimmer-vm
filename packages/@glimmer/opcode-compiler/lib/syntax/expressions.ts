@@ -20,7 +20,7 @@ import {
 
 import { expr } from '../opcode-builder/helpers/expr';
 import { isGetFreeHelper } from '../opcode-builder/helpers/resolution';
-import { SimpleArgs } from '../opcode-builder/helpers/shared';
+import { SimpleArguments } from '../opcode-builder/helpers/shared';
 import { Call, CallDynamic, Curry, PushPrimitiveReference } from '../opcode-builder/helpers/vm';
 import type { PushExpressionOp } from './compiler-impl';
 import {
@@ -119,14 +119,14 @@ defineExpr(WIRE_GET_FREE_AS_DEPRECATED_HELPER_HEAD_OR_THIS_FALLBACK, (op, expr) 
       ifHelper: (handle: number, name: string, moduleName: string) => {
         assert(expr[2] && expr[2].length === 1, '[BUG] Missing argument name');
 
-        let arg = expr[2][0];
+        let argument = expr[2][0];
 
         deprecate(
-          `The \`${name}\` helper was used in the \`${moduleName}\` template as \`${arg}={{${name}}}\`. ` +
-            `This is ambigious between wanting the \`${arg}\` argument to be the \`${name}\` helper itself, ` +
+          `The \`${name}\` helper was used in the \`${moduleName}\` template as \`${argument}={{${name}}}\`. ` +
+            `This is ambigious between wanting the \`${argument}\` argument to be the \`${name}\` helper itself, ` +
             `or the result of invoking the \`${name}\` helper (current behavior). ` +
             `This implicit invocation behavior has been deprecated.\n\n` +
-            `Instead, please explicitly invoke the helper with parenthesis, i.e. \`${arg}={{(${name})}}\`.\n\n` +
+            `Instead, please explicitly invoke the helper with parenthesis, i.e. \`${argument}={{(${name})}}\`.\n\n` +
             `Note: the parenthesis are only required in this exact scenario where an ambiguity is present – where ` +
             `\`${name}\` referes to a global helper (as opposed to a local variable), AND ` +
             `the \`${name}\` helper invocation does not take any arguments, AND ` +
@@ -148,12 +148,12 @@ defineExpr(WIRE_GET_FREE_AS_DEPRECATED_HELPER_HEAD_OR_THIS_FALLBACK, (op, expr) 
 function withPath(op: PushExpressionOp, path?: string[]) {
   if (path === undefined || path.length === 0) return;
 
-  for (let i = 0; i < path.length; i++) {
-    op(GET_PROPERTY_OP, path[i]);
+  for (const element of path) {
+    op(GET_PROPERTY_OP, element);
   }
 }
 
-defineExpr(WIRE_UNDEFINED, (op) => PushPrimitiveReference(op, undefined));
+defineExpr(WIRE_UNDEFINED, (op) => PushPrimitiveReference(op, void 0));
 defineExpr(WIRE_HAS_BLOCK, (op, [, block]) => {
   expr(op, block);
   op(HAS_BLOCK_OP);
@@ -186,7 +186,7 @@ defineExpr(WIRE_GET_DYNAMIC_VAR, (op, [, expression]) => {
 
 defineExpr(WIRE_LOG, (op, [, positional]) => {
   op(PUSH_FRAME_OP);
-  SimpleArgs(op, positional, null, false);
+  SimpleArguments(op, positional, null, false);
   op(LOG_OP);
   op(POP_FRAME_OP);
   op(FETCH_OP, $v0);

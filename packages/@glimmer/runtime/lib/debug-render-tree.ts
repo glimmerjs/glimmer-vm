@@ -5,7 +5,7 @@ import type {
   Nullable,
   RenderNode,
 } from '@glimmer/interfaces';
-import { assign, expect, Stack } from '@glimmer/util';
+import { expect, Stack } from '@glimmer/util';
 
 import { reifyArgs } from './vm/arguments';
 
@@ -70,7 +70,7 @@ export default class DebugRenderTreeImpl<TBucket extends object>
   }
 
   create(state: TBucket, node: RenderNode): void {
-    let internalNode: InternalRenderNode<TBucket> = assign({}, node, {
+    let internalNode: InternalRenderNode<TBucket> = Object.assign({}, node, {
       bounds: null,
       refs: new Set<Ref<TBucket>>(),
     });
@@ -105,7 +105,7 @@ export default class DebugRenderTreeImpl<TBucket extends object>
   }
 
   #reset(): void {
-    if (this.#stack.size !== 0) {
+    if (this.#stack.size > 0) {
       // We probably encountered an error during the rendering loop. This will
       // likely trigger undefined behavior and memory leaks as the error left
       // things in an inconsistent state. It is recommended that the user
@@ -116,10 +116,10 @@ export default class DebugRenderTreeImpl<TBucket extends object>
       // Clean up the root reference to prevent errors from happening if we
       // attempt to capture the render tree (Ember Inspector may do this)
       let root = expect(this.#stack.toArray()[0], 'expected root state when resetting render tree');
-      let ref = this.#refs.get(root);
+      let reference = this.#refs.get(root);
 
-      if (ref !== undefined) {
-        this.#roots.delete(ref);
+      if (reference !== undefined) {
+        this.#roots.delete(reference);
       }
 
       while (!this.#stack.isEmpty()) {
@@ -150,31 +150,31 @@ export default class DebugRenderTreeImpl<TBucket extends object>
     }
 
     let parent = this.#stack.current;
-    let ref = new Ref(state);
+    let reference = new Ref(state);
 
-    this.#refs.set(state, ref);
+    this.#refs.set(state, reference);
 
     if (parent) {
       let parentNode = this.#nodeFor(parent);
-      parentNode.refs.add(ref);
+      parentNode.refs.add(reference);
       node.parent = parentNode;
     } else {
-      this.#roots.add(ref);
+      this.#roots.add(reference);
     }
   }
 
-  #captureRefs(refs: Set<Ref<TBucket>>): CapturedRenderNode[] {
+  #captureRefs(references: Set<Ref<TBucket>>): CapturedRenderNode[] {
     let captured: CapturedRenderNode[] = [];
 
-    refs.forEach((ref) => {
-      let state = ref.get();
+    for (const reference of references) {
+      let state = reference.get();
 
       if (state) {
-        captured.push(this.#captureNode(`render-node:${ref.id}`, state));
+        captured.push(this.#captureNode(`render-node:${reference.id}`, state));
       } else {
-        refs.delete(ref);
+        references.delete(reference);
       }
-    });
+    }
 
     return captured;
   }

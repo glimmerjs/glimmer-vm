@@ -1,4 +1,3 @@
-import { assign } from '@glimmer/util';
 
 interface NestedHooks {
   test(name: string, callback: (assert: Assert) => void): void;
@@ -46,7 +45,7 @@ export function module(name: string, second?: any, third?: any) {
   }
 
   return QUnit.module(`integration - ${name}`, setup, (supplied) => {
-    nested(assign({}, supplied, { test: QUnit.test }));
+    nested(Object.assign({}, supplied, { test: QUnit.test }));
   });
 }
 

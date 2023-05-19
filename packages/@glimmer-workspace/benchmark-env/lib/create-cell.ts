@@ -16,12 +16,12 @@ class CellImpl<T> implements Cell<T> {
   private _tag: UpdatableTag;
   private _value: T;
 
-  constructor(obj: object, key: string, initialValue: T) {
-    const meta = tagMetaFor(obj);
+  constructor(parent: object, key: string, initialValue: T) {
+    const meta = tagMetaFor(parent);
     this._meta = meta;
-    this._obj = obj;
+    this._obj = parent;
     this._key = key;
-    this._tag = tagFor(obj, key, meta) as UpdatableTag;
+    this._tag = tagFor(parent, key, meta) as UpdatableTag;
     this._value = initialValue;
   }
 
@@ -36,6 +36,6 @@ class CellImpl<T> implements Cell<T> {
   }
 }
 
-export default function createCell<T>(obj: object, key: string, initialValue: T): Cell<T> {
-  return new CellImpl(obj, key, initialValue);
+export default function createCell<T>(value: object, key: string, initialValue: T): Cell<T> {
+  return new CellImpl(value, key, initialValue);
 }

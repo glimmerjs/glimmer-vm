@@ -6,7 +6,7 @@ import { initializeRegistersWithSP, type LowLevelRegisters } from './low-level';
 export interface EvaluationStack {
   readonly _registers_: LowLevelRegisters;
 
-  push(value: unknown): void;
+  push(...values: unknown[]): void;
   dup(position?: MachineRegister): void;
   copy(from: number, to: number): void;
   pop<T>(n?: number): T;
@@ -21,7 +21,7 @@ export interface EvaluationStack {
 
 export default class EvaluationStackImpl implements EvaluationStack {
   static restore(snapshot: unknown[]): EvaluationStackImpl {
-    return new this(snapshot.slice(), initializeRegistersWithSP(snapshot.length - 1));
+    return new this([...snapshot], initializeRegistersWithSP(snapshot.length - 1));
   }
 
   readonly _registers_: LowLevelRegisters;
@@ -37,8 +37,10 @@ export default class EvaluationStackImpl implements EvaluationStack {
     }
   }
 
-  push(value: unknown): void {
-    this.#stack[++this._registers_[$sp]] = value;
+  push(...values: unknown[]): void {
+    for (const value of values) {
+      this.#stack[++this._registers_[$sp]] = value;
+    }
   }
 
   dup(position = this._registers_[$sp]): void {

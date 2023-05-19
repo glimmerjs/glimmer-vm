@@ -19,8 +19,8 @@ export function createReplacePlugin(test, replacements, sourcemap) {
   const pattern = new RegExp(
     '\\b(' +
       Object.keys(replacements)
-        .map((str) => {
-          return str.replace(/[$()*+\-./?[\\\]^{|}]/gu, '\\$&');
+        .map((text) => {
+          return text.replaceAll(/[$()*+\-./?[\\\]^{|}]/gu, '\\$&');
         })
         .join('|') +
       ')\\b',

@@ -14,7 +14,7 @@ import type {
   InstructionEncoder,
   Operand,
   ResolutionTimeConstants,
-  STDLib,
+  STDLibrary,
   SingleBuilderOperand,
 } from '@glimmer/interfaces';
 import {
@@ -59,7 +59,16 @@ import {
   START_OP,
   STOP_LABELS_OP,
 } from './opcodes';
-import { HighLevelOperands } from './operands';
+import {
+  BLOCK_OPERAND,
+  DEBUG_SYMBOLS_OPERAND,
+  IS_STRICT_MODE_OPERAND,
+  LABEL_OPERAND,
+  LAYOUT_OPERAND,
+  NON_SMALL_INT_OPERAND,
+  STD_LIB_OPERAND,
+  SYMBOL_TABLE_OPERAND,
+} from './operands';
 
 export class Labels {
   labels: Dict<number> = dict();
@@ -119,9 +128,9 @@ export function encodeOp(
         return resolveOptionalComponentOrHelper(resolver, constants, meta, op);
 
       case RESOLVE_LOCAL: {
-        let freeVar = op[1];
+        let freeVariable = op[1];
         let name = expect(meta.upvars, 'BUG: attempted to resolve value but no upvars found')[
-          freeVar
+          freeVariable
         ]!;
 
         let andThen = op[2];
@@ -169,9 +178,9 @@ export class EncoderImpl implements Encoder {
 
   #heap: CompileTimeHeap;
   #meta: ContainingMetadata;
-  #stdlib: STDLib | undefined;
+  #stdlib: STDLibrary | undefined;
 
-  constructor(heap: CompileTimeHeap, meta: ContainingMetadata, stdlib?: STDLib | undefined) {
+  constructor(heap: CompileTimeHeap, meta: ContainingMetadata, stdlib?: STDLibrary | undefined) {
     this.#heap = heap;
     this.#meta = meta;
     this.#stdlib = stdlib;
@@ -189,17 +198,13 @@ export class EncoderImpl implements Encoder {
     this.#heap.pushMachine(RETURN_OP);
     this.#heap.finishMalloc(handle, size);
 
-    if (isPresentArray(this.#errors)) {
-      return { errors: this.#errors, handle };
-    } else {
-      return handle;
-    }
+    return isPresentArray(this.#errors) ? { errors: this.#errors, handle } : handle;
   }
 
   push(
     constants: CompileTimeConstants,
     type: BuilderOpcode,
-    ...args: SingleBuilderOperand[]
+    ...operands: SingleBuilderOperand[]
   ): void {
     let heap = this.#heap;
 
@@ -208,11 +213,11 @@ export class EncoderImpl implements Encoder {
     }
 
     let machine = isMachineOp(type) ? MACHINE_MASK : 0;
-    let first = type | machine | (args.length << ARG_SHIFT);
+    let first = type | machine | (operands.length << ARG_SHIFT);
 
     heap.pushRaw(first);
 
-    for (const op of args) {
+    for (const op of operands) {
       heap.pushRaw(this.#operand(constants, op));
     }
   }
@@ -227,28 +232,28 @@ export class EncoderImpl implements Encoder {
         return encodeHandle(constants.array(operand));
       } else {
         switch (operand.type) {
-          case HighLevelOperands.Label:
+          case LABEL_OPERAND:
             this.#currentLabels.target(this.#heap.offset, operand.value);
             return -1;
 
-          case HighLevelOperands.IsStrictMode:
+          case IS_STRICT_MODE_OPERAND:
             return encodeHandle(constants.value(this.#meta.isStrictMode));
 
-          case HighLevelOperands.DebugSymbols:
+          case DEBUG_SYMBOLS_OPERAND:
             return encodeHandle(constants.array(this.#meta.evalSymbols || EMPTY_STRING_ARRAY));
 
-          case HighLevelOperands.Block:
+          case BLOCK_OPERAND:
             return encodeHandle(constants.value(compilableBlock(operand.value, this.#meta)));
 
-          case HighLevelOperands.StdLib:
+          case STD_LIB_OPERAND:
             return expect(
               this.#stdlib,
               'attempted to encode a stdlib operand, but the encoder did not have a stdlib. Are you currently building the stdlib?'
             )[operand.value];
 
-          case HighLevelOperands.NonSmallInt:
-          case HighLevelOperands.SymbolTable:
-          case HighLevelOperands.Layout:
+          case NON_SMALL_INT_OPERAND:
+          case SYMBOL_TABLE_OPERAND:
+          case LAYOUT_OPERAND:
             return constants.value(operand.value);
         }
       }

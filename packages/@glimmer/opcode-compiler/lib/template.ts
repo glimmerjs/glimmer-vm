@@ -9,7 +9,6 @@ import type {
   TemplateFactory,
   TemplateOk,
 } from '@glimmer/interfaces';
-import { assign } from '@glimmer/util';
 
 import { compilable } from './compilable-template';
 import { WrappedBuilder } from './wrapped-component';
@@ -131,7 +130,7 @@ class TemplateImpl implements TemplateWithIdAndReferrer {
 
   asLayout(): CompilableProgram {
     if (this.#layout) return this.#layout;
-    return (this.#layout = compilable(assign({}, this.#parsedLayout), this.moduleName));
+    return (this.#layout = compilable(Object.assign({}, this.#parsedLayout), this.moduleName));
   }
 
   asWrappedLayout(): CompilableProgram {

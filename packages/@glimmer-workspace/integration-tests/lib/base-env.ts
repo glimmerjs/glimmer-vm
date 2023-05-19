@@ -17,7 +17,7 @@ export function scheduleDidDestroy(fn: () => void) {
   scheduledFinishDestruction.push(fn);
 }
 
-export const BaseEnv: EnvironmentDelegate = {
+export const BaseEnvironment: EnvironmentDelegate = {
   isInteractive: true,
 
   enableDebugTooling: false,
@@ -27,7 +27,7 @@ export const BaseEnv: EnvironmentDelegate = {
       destructor(destroyable);
     }
 
-    scheduledFinishDestruction.forEach((fn) => fn());
+    for (const fn of scheduledFinishDestruction) fn();
 
     scheduled = [];
     scheduledFinishDestruction = [];

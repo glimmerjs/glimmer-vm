@@ -39,22 +39,22 @@ setGlobalContext({
             resolveRender();
           }
         })
-        .catch((e) => console.error(e));
+        .catch((error) => console.error(error));
     }
   },
 
-  getProp(obj: unknown, prop: string) {
-    return (obj as Record<string, unknown>)[prop];
+  getProp(value: unknown, property: string) {
+    return (value as Record<string, unknown>)[property];
   },
 
-  setProp(obj: unknown, prop: string, value: unknown) {
-    (obj as Record<string, unknown>)[prop] = value;
+  setProp(parent: unknown, property: string, value: unknown) {
+    (parent as Record<string, unknown>)[property] = value;
   },
 
-  getPath(obj: unknown, path: string) {
+  getPath(value: unknown, path: string) {
     let parts = path.split('.');
 
-    let current: unknown = obj;
+    let current: unknown = value;
 
     for (let part of parts) {
       if (typeof current === 'function' || (typeof current === 'object' && current !== null)) {
@@ -65,10 +65,10 @@ setGlobalContext({
     return current;
   },
 
-  setPath(obj: unknown, path: string, value: unknown) {
+  setPath(parent: unknown, path: string, value: unknown) {
     let parts = path.split('.');
 
-    let current: unknown = obj;
+    let current: unknown = parent;
     let pathToSet = parts.pop()!;
 
     for (let part of parts) {
@@ -98,20 +98,20 @@ setGlobalContext({
     scheduledFinalizers.push(fn);
   },
 
-  assert(test: unknown, msg: string) {
+  assert(test: unknown, message: string) {
     if (!test) {
-      throw new Error(msg);
+      throw new Error(message);
     }
   },
 
-  deprecate(msg: string, test: unknown) {
+  deprecate(message: string, test: unknown) {
     if (!test) {
-      console.warn(msg);
+      console.warn(message);
     }
   },
 });
 
-export default function createEnvDelegate(isInteractive: boolean): EnvironmentDelegate {
+export default function createEnvironmentDelegate(isInteractive: boolean): EnvironmentDelegate {
   return {
     isInteractive,
     enableDebugTooling: false,

@@ -6,7 +6,7 @@ import type {
   CompileTimeResolver,
   CreateRuntimeOp,
   ResolutionTimeConstants,
-  STDLib,
+  STDLibrary,
 } from "@glimmer/interfaces";
 
 import { compileStd } from './opcode-builder/helpers/stdlib';
@@ -14,7 +14,7 @@ import { compileStd } from './opcode-builder/helpers/stdlib';
 export class CompileTimeCompilationContextImpl implements CompileTimeCompilationContext {
   readonly constants: CompileTimeConstants & ResolutionTimeConstants;
   readonly heap: CompileTimeHeap;
-  readonly stdlib: STDLib;
+  readonly stdlib: STDLibrary;
 
   constructor(
     { constants, heap }: CompileTimeArtifacts,

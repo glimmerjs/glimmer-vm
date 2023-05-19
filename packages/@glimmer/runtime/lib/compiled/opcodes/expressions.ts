@@ -53,10 +53,10 @@ import {
 
 import { isCurriedType, resolveCurriedValue } from '../../curried-value';
 import { define } from '../../opcodes';
-import createCurryRef from '../../references/curry-value';
+import createCurryReference from '../../references/curry-value';
 import { CONSTANTS } from '../../symbols';
 import { reifyPositional } from '../../vm/arguments';
-import { createConcatRef } from '../expressions/concat';
+import { createConcatRef as createConcatReference } from '../expressions/concat';
 import {
   CheckArguments,
   CheckCapturedArguments,
@@ -88,29 +88,29 @@ define(CURRY_OP, (vm, { op1: type, op2: _isStrict }) => {
 
   vm._loadValue_(
     $v0,
-    createCurryRef(type as CurriedType, definition, owner, capturedArgs, resolver, isStrict)
+    createCurryReference(type as CurriedType, definition, owner, capturedArgs, resolver, isStrict)
   );
 });
 
 define(DYNAMIC_HELPER_OP, (vm) => {
   let stack = vm.stack;
-  let ref = check(stack.pop(), CheckReference);
+  let reference = check(stack.pop(), CheckReference);
   let args = check(stack.pop(), CheckArguments).capture();
 
-  let helperRef: Reference;
+  let helperReference: Reference;
   let initialOwner: Owner = vm._getOwner_();
 
-  let helperInstanceRef = createComputeRef(() => {
-    if (helperRef !== undefined) {
-      destroy(helperRef);
+  let helperInstanceReference = createComputeRef(() => {
+    if (helperReference !== undefined) {
+      destroy(helperReference);
     }
 
-    let definition = valueForRef(ref);
+    let definition = valueForRef(reference);
 
     if (isCurriedType(definition, CURRIED_HELPER)) {
       let { definition: resolvedDef, owner, positional, named } = resolveCurriedValue(definition);
 
-      let helper = resolveHelper(vm[CONSTANTS], resolvedDef, ref);
+      let helper = resolveHelper(vm[CONSTANTS], resolvedDef, reference);
 
       if (named !== undefined) {
         args.named = assign({}, ...named, args.named);
@@ -120,43 +120,45 @@ define(DYNAMIC_HELPER_OP, (vm) => {
         args.positional = positional.concat(args.positional) as CapturedPositionalArguments;
       }
 
-      helperRef = helper(args, owner);
+      helperReference = helper(args, owner);
 
-      associateDestroyableChild(helperInstanceRef, helperRef);
+      associateDestroyableChild(helperInstanceReference, helperReference);
     } else if (isObject(definition)) {
-      let helper = resolveHelper(vm[CONSTANTS], definition, ref);
-      helperRef = helper(args, initialOwner);
+      let helper = resolveHelper(vm[CONSTANTS], definition, reference);
+      helperReference = helper(args, initialOwner);
 
-      if (_hasDestroyableChildren(helperRef)) {
-        associateDestroyableChild(helperInstanceRef, helperRef);
+      if (_hasDestroyableChildren(helperReference)) {
+        associateDestroyableChild(helperInstanceReference, helperReference);
       }
     } else {
-      helperRef = UNDEFINED_REFERENCE;
+      helperReference = UNDEFINED_REFERENCE;
     }
   });
 
-  let helperValueRef = createComputeRef(() => {
-    valueForRef(helperInstanceRef);
-    return valueForRef(helperRef);
+  let helperValueReference = createComputeRef(() => {
+    valueForRef(helperInstanceReference);
+    return valueForRef(helperReference);
   });
 
-  vm._associateDestroyable_(helperInstanceRef);
-  vm._loadValue_($v0, helperValueRef);
+  vm._associateDestroyable_(helperInstanceReference);
+  vm._loadValue_($v0, helperValueReference);
 });
 
 function resolveHelper(
   constants: RuntimeConstants & ResolutionTimeConstants,
   definition: HelperDefinitionState,
-  ref: Reference
+  reference: Reference
 ): Helper {
   let handle = constants.helper(definition, null, true)!;
 
   if (import.meta.env.DEV && handle === null) {
     throw new Error(
       `Expected a dynamic helper definition, but received an object or function that did not have a helper manager associated with it. The dynamic invocation was \`{{${
-        ref.debugLabel
-      }}}\` or \`(${ref.debugLabel})\`, and the incorrect definition is the value at the path \`${
-        ref.debugLabel
+        reference.debugLabel
+      }}}\` or \`(${
+        reference.debugLabel
+      })\`, and the incorrect definition is the value at the path \`${
+        reference.debugLabel
       }\`, which was: ${debugToString!(definition)}`
     );
   }
@@ -220,13 +222,9 @@ define(SPREAD_BLOCK_OP, (vm) => {
   if (block && !isUndefinedReference(block)) {
     let [handleOrCompilable, scope, table] = block;
 
-    stack.push(table);
-    stack.push(scope);
-    stack.push(handleOrCompilable);
+    stack.push(table, scope, handleOrCompilable);
   } else {
-    stack.push(null);
-    stack.push(null);
-    stack.push(null);
+    stack.push(null, null, null);
   }
 });
 
@@ -258,19 +256,19 @@ define(HAS_BLOCK_PARAMS_OP, (vm) => {
   check(scope, CheckMaybe(CheckScope));
   let table = check(vm.stack.pop(), CheckMaybe(CheckBlockSymbolTable));
 
-  let hasBlockParams = table && table.parameters.length;
-  vm.stack.push(hasBlockParams ? TRUE_REFERENCE : FALSE_REFERENCE);
+  let hasBlockParameters = table && table.parameters.length > 0;
+  vm.stack.push(hasBlockParameters ? TRUE_REFERENCE : FALSE_REFERENCE);
 });
 
 define(CONCAT_OP, (vm, { op1: count }) => {
-  let out: Array<Reference<unknown>> = new Array(count);
+  let out: Array<Reference<unknown>> = Array.from({ length: count });
 
-  for (let i = count; i > 0; i--) {
-    let offset = i - 1;
+  for (let index = count; index > 0; index--) {
+    let offset = index - 1;
     out[offset] = check(vm.stack.pop(), CheckReference);
   }
 
-  vm.stack.push(createConcatRef(out));
+  vm.stack.push(createConcatReference(out));
 });
 
 define(IF_INLINE_OP, (vm) => {
@@ -280,21 +278,17 @@ define(IF_INLINE_OP, (vm) => {
 
   vm.stack.push(
     createComputeRef(() => {
-      if (toBool(valueForRef(condition)) === true) {
-        return valueForRef(truthy);
-      } else {
-        return valueForRef(falsy);
-      }
+      return toBool(valueForRef(condition)) === true ? valueForRef(truthy) : valueForRef(falsy);
     })
   );
 });
 
 define(NOT_OP, (vm) => {
-  let ref = check(vm.stack.pop(), CheckReference);
+  let reference = check(vm.stack.pop(), CheckReference);
 
   vm.stack.push(
     createComputeRef(() => {
-      return !toBool(valueForRef(ref));
+      return !toBool(valueForRef(reference));
     })
   );
 });
@@ -302,11 +296,11 @@ define(NOT_OP, (vm) => {
 define(GET_DYNAMIC_VAR_OP, (vm) => {
   let scope = vm._dynamicScope_();
   let stack = vm.stack;
-  let nameRef = check(stack.pop(), CheckReference);
+  let nameReference = check(stack.pop(), CheckReference);
 
   stack.push(
     createComputeRef(() => {
-      let name = String(valueForRef(nameRef));
+      let name = String(valueForRef(nameReference));
       return valueForRef(scope.get(name));
     })
   );

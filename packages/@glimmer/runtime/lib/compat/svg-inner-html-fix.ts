@@ -100,7 +100,7 @@ function shouldApplyFix(document: SimpleDocument, svgNamespace: typeof NS_SVG) {
 
   try {
     svg.insertAdjacentHTML(INSERT_BEFORE_END, '<circle></circle>');
-  } catch (e) {
+  } catch {
     // IE, Edge: Will throw, insertAdjacentHTML is unsupported on SVG
     // Safari: Will throw, insertAdjacentHTML is not present on SVG
   } finally {

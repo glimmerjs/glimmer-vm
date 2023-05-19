@@ -20,7 +20,7 @@ import { PUSH_ARGS_OP, PUSH_EMPTY_ARGS_OP } from '@glimmer/vm-constants';
  * @param args.blocks
  * @param args.atNames
  */
-export function CompileArgs(
+export function CompileArguments(
   op: PushStatementOp,
   positional: WireFormat.Core.Params,
   named: WireFormat.Core.Hash,
@@ -46,16 +46,16 @@ export function CompileArgs(
 
   if (named) {
     names = named[0];
-    let val = named[1];
-    for (let i = 0; i < val.length; i++) {
-      expr(op, val[i]);
+    let value = named[1];
+    for (const element of value) {
+      expr(op, element);
     }
   }
 
   op(PUSH_ARGS_OP, names as string[], blockNames, flags);
 }
 
-export function SimpleArgs(
+export function SimpleArguments(
   op: PushExpressionOp,
   positional: Nullable<WireFormat.Core.Params>,
   named: Nullable<WireFormat.Core.Hash>,
@@ -76,9 +76,9 @@ export function SimpleArgs(
 
   if (named) {
     names = named[0];
-    let val = named[1];
-    for (let i = 0; i < val.length; i++) {
-      expr(op, val[i]);
+    let value = named[1];
+    for (const element of value) {
+      expr(op, element);
     }
   }
 
@@ -97,8 +97,8 @@ export function CompilePositional(
 ): number {
   if (positional === null) return 0;
 
-  for (let i = 0; i < positional.length; i++) {
-    expr(op, positional[i]);
+  for (const element of positional) {
+    expr(op, element);
   }
 
   return positional.length;

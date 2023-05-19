@@ -35,9 +35,9 @@ import {
   runtimeContext,
 } from '@glimmer/runtime';
 import type { ASTPluginBuilder, PrecompileOptions } from '@glimmer/syntax';
-import { assign, castToBrowser, castToSimple, expect, unwrapTemplate } from '@glimmer/util';
+import { castToBrowser, castToSimple, expect, unwrapTemplate } from '@glimmer/util';
 
-import { BaseEnv } from '../../base-env';
+import { BaseEnvironment as BaseEnvironment } from '../../base-env';
 import { preprocess } from '../../compile';
 import type { ComponentKind, ComponentTypes } from '../../components';
 import type { UserHelper } from '../../helpers';
@@ -62,9 +62,9 @@ export interface JitTestDelegateContext {
 }
 
 export function JitDelegateContext(
-  doc: SimpleDocument,
+  document: SimpleDocument,
   resolver: TestJitRuntimeResolver,
-  env: EnvironmentDelegate
+  environment: EnvironmentDelegate
 ): JitTestDelegateContext {
   let sharedArtifacts = artifacts();
   let context = programCompilationContext(
@@ -72,7 +72,7 @@ export function JitDelegateContext(
     new JitCompileTimeLookup(resolver),
     (heap) => new RuntimeOpImpl(heap)
   );
-  let runtime = runtimeContext({ document: doc }, env, sharedArtifacts, resolver);
+  let runtime = runtimeContext({ document: document }, environment, sharedArtifacts, resolver);
   return { runtime, program: context };
 }
 
@@ -97,7 +97,7 @@ export class JitRenderDelegate implements RenderDelegate {
     this.registry = new TestJitRegistry();
     this.resolver = resolver(this.registry);
     this.doc = castToSimple(doc ?? document);
-    this.env = assign({}, env ?? BaseEnv);
+    this.env = { ...env ?? BaseEnvironment};
     this.registry.register('modifier', 'on', on);
     this.registry.register('helper', 'fn', fn);
     this.registry.register('helper', 'hash', hash);
@@ -122,11 +122,9 @@ export class JitRenderDelegate implements RenderDelegate {
   }
 
   getInitialElement(): SimpleElement {
-    if (isBrowserTestDocument(this.doc)) {
-      return castToSimple(castToBrowser(this.doc).getElementById('qunit-fixture')!);
-    } else {
-      return this.createElement('div');
-    }
+    return isBrowserTestDocument(this.doc)
+      ? castToSimple(castToBrowser(this.doc).querySelector('#qunit-fixture')!)
+      : this.createElement('div');
   }
 
   createElement(tagName: string): SimpleElement {
@@ -189,11 +187,11 @@ export class JitRenderDelegate implements RenderDelegate {
     registerInternalHelper(this.registry, name, helper);
   }
 
-  getElementBuilder(env: Environment, cursor: Cursor): ElementBuilder {
-    return clientBuilder(env, cursor);
+  getElementBuilder(environment: Environment, cursor: Cursor): ElementBuilder {
+    return clientBuilder(environment, cursor);
   }
 
-  getSelf(_env: Environment, context: unknown): Reference {
+  getSelf(_environment: Environment, context: unknown): Reference {
     if (!this.self) {
       this.self = createConstRef(context, 'this');
     }
@@ -244,6 +242,6 @@ export class JitRenderDelegate implements RenderDelegate {
   }
 }
 
-function isBrowserTestDocument(doc: SimpleDocument | Document): doc is Document {
-  return 'getElementById' in doc && doc.getElementById('qunit-fixture') !== null;
+function isBrowserTestDocument(document: SimpleDocument | Document): document is Document {
+  return 'getElementById' in document && document.querySelector('#qunit-fixture') !== null;
 }

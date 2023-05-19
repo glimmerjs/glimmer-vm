@@ -98,7 +98,7 @@ export interface InternalVM {
 
   /// Iteration ///
 
-  _enterList_(iterableRef: Reference<OpaqueIterator>, offset: number): void;
+  _enterList_(iterableReference: Reference<OpaqueIterator>, offset: number): void;
   _exitList_(): void;
   _enterItem_(item: OpaqueIterationItem): ListItemOpcode;
   _registerItem_(item: ListItemOpcode): void;
@@ -167,7 +167,7 @@ export class VM implements PublicVM, InternalVM {
     return this[INNER_VM].fetchRegister($pc);
   }
 
-  #registers = new Array($v0 - $s0).fill(null) as [
+  #registers = Array.from({ length: $v0 - $s0 }).fill(null) as [
     s0: unknown,
     s1: unknown,
     t0: unknown,
@@ -376,8 +376,7 @@ export class VM implements PublicVM, InternalVM {
     let opcodes = this.updating();
     let guard = new JumpIfNotModifiedOpcode();
 
-    opcodes.push(guard);
-    opcodes.push(new BeginTrackFrameOpcode(name));
+    opcodes.push(guard, new BeginTrackFrameOpcode(name));
     this.#stacks._cache_.push(guard);
 
     beginTrackFrame(name);
@@ -407,16 +406,15 @@ export class VM implements PublicVM, InternalVM {
   _enterItem_({ key, value, memo }: OpaqueIterationItem): ListItemOpcode {
     let { stack } = this;
 
-    let valueRef = createIteratorItemRef(value);
-    let memoRef = createIteratorItemRef(memo);
+    let valueReference = createIteratorItemRef(value);
+    let memoReference = createIteratorItemRef(memo);
 
-    stack.push(valueRef);
-    stack.push(memoRef);
+    stack.push(valueReference, memoReference);
 
     let state = this.capture(2);
     let block = this._elements_().pushUpdatableBlock();
 
-    let opcode = new ListItemOpcode(state, this.runtime, block, key, memoRef, valueRef);
+    let opcode = new ListItemOpcode(state, this.runtime, block, key, memoReference, valueReference);
     this.#didEnter(opcode);
 
     return opcode;
@@ -426,14 +424,14 @@ export class VM implements PublicVM, InternalVM {
     this.listBlock().initializeChild(opcode);
   }
 
-  _enterList_(iterableRef: Reference<OpaqueIterator>, offset: number) {
+  _enterList_(iterableReference: Reference<OpaqueIterator>, offset: number) {
     let updating: ListItemOpcode[] = [];
 
     let addr = this[INNER_VM].target(offset);
     let state = this.capture(0, addr);
     let list = this._elements_().pushBlockList(updating) as LiveBlockList;
 
-    let opcode = new ListBlockOpcode(state, this.runtime, list, updating, iterableRef);
+    let opcode = new ListBlockOpcode(state, this.runtime, list, updating, iterableReference);
 
     this.#stacks._list_.push(opcode);
 
@@ -598,10 +596,7 @@ export class VM implements PublicVM, InternalVM {
     let { env } = this;
     let opcode = this[INNER_VM].nextStatement();
     let result: RichIteratorResult<null, RenderResult>;
-    if (opcode !== null) {
-      this[INNER_VM].evaluateOuter(opcode, this);
-      result = { done: false, value: null };
-    } else {
+    if (opcode === null) {
       // Unload the stack
       this.stack.reset();
 
@@ -614,6 +609,9 @@ export class VM implements PublicVM, InternalVM {
           this.#destructor
         ),
       };
+    } else {
+      this[INNER_VM].evaluateOuter(opcode, this);
+      result = { done: false, value: null };
     }
     return result;
   }

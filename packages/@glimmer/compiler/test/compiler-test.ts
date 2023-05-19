@@ -17,7 +17,7 @@ import type {
   SerializedTemplateBlock,
   SerializedTemplateWithLazyBlock,
 } from '@glimmer/interfaces';
-import { assign, strip } from '@glimmer/util';
+import { strip } from '@glimmer/util';
 
 QUnit.module('@glimmer/compiler - compiling source to wire format');
 
@@ -25,7 +25,7 @@ function compile(content: string): SerializedTemplate {
   let parsed = JSON.parse(precompile(content, {})) as unknown as SerializedTemplateWithLazyBlock;
   let block = JSON.parse(parsed.block);
 
-  return assign({}, parsed, { block });
+  return { ...parsed, block};
 }
 
 function test(desc: string, template: string, ...expectedStatements: BuilderStatement[]) {
@@ -150,9 +150,9 @@ test(
 );
 
 let voidElements = 'area base br embed hr img input keygen link meta param source track wbr';
-voidElements.split(' ').forEach((tagName) => {
+for (const tagName of voidElements.split(' ')) {
   test(`void ${tagName}`, `<${tagName}>`, [`<${tagName}>`, []]);
-});
+}
 
 test(
   'nested HTML',
@@ -445,13 +445,13 @@ test('simple helpers', `<div>{{testing title}}</div>`, [
 
 test('constant negative numbers', `<div>{{testing -123321}}</div>`, [
   '<div>',
-  [['(^testing)', [-123321]]],
+  [['(^testing)', [-123_321]]],
 ]);
 
 test(
   'Large numeric literals (Number.MAX_SAFE_INTEGER)',
   '<div>{{testing 9007199254740991}}</div>',
-  ['<div>', [['(^testing)', [9007199254740991]]]]
+  ['<div>', [['(^testing)', [9_007_199_254_740_991]]]]
 );
 
 test('Constant float numbers can render', `<div>{{testing 0.123}}</div>`, [

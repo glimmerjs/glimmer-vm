@@ -2,7 +2,7 @@ export function blockStack() {
   let stack: number[] = [];
 
   return (id: number) => {
-    if (stack.indexOf(id) > -1) {
+    if (stack.includes(id)) {
       let close = `<!--%-b:${id}%-->`;
       stack.pop();
       return close;

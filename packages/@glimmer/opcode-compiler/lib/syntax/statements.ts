@@ -59,7 +59,7 @@ import {
   isGetFreeModifier,
   isGetFreeOptionalComponentOrHelper,
 } from '../opcode-builder/helpers/resolution';
-import { CompilePositional, SimpleArgs } from '../opcode-builder/helpers/shared';
+import { CompilePositional, SimpleArguments } from '../opcode-builder/helpers/shared';
 import {
   Call,
   CallDynamic,
@@ -67,7 +67,7 @@ import {
   PushPrimitiveReference,
 } from '../opcode-builder/helpers/vm';
 import {
-  HighLevelBuilderOpcodes,
+  LABEL_OP,
   RESOLVE_COMPONENT,
   RESOLVE_COMPONENT_OR_HELPER,
   RESOLVE_MODIFIER,
@@ -122,8 +122,8 @@ export function inflateTagName(tagName: string | WellKnownTagName): string {
   return typeof tagName === 'string' ? tagName : INFLATE_TAG_TABLE[tagName];
 }
 
-export function inflateAttrName(attrName: string | WellKnownAttrName): string {
-  return typeof attrName === 'string' ? attrName : INFLATE_ATTR_TABLE[attrName];
+export function inflateAttributeName(attributeName: string | WellKnownAttrName): string {
+  return typeof attributeName === 'string' ? attributeName : INFLATE_ATTR_TABLE[attributeName];
 }
 
 defineStatement(WIRE_COMMENT, (op, sexp) => op(COMMENT_OP, sexp[1]));
@@ -134,14 +134,14 @@ defineStatement(WIRE_MODIFIER, (op, [, expression, positional, named]) => {
   if (isGetFreeModifier(expression)) {
     op(RESOLVE_MODIFIER, expression, (handle: number) => {
       op(PUSH_FRAME_OP);
-      SimpleArgs(op, positional, named, false);
+      SimpleArguments(op, positional, named, false);
       op(MODIFIER_OP, handle);
       op(POP_FRAME_OP);
     });
   } else {
     expr(op, expression);
     op(PUSH_FRAME_OP);
-    SimpleArgs(op, positional, named, false);
+    SimpleArguments(op, positional, named, false);
     op(DUP_OP, $fp, 1);
     op(DYNAMIC_MODIFIER_OP);
     op(POP_FRAME_OP);
@@ -149,31 +149,31 @@ defineStatement(WIRE_MODIFIER, (op, [, expression, positional, named]) => {
 });
 
 defineStatement(WIRE_STATIC_ATTR, (op, [, name, value, namespace]) => {
-  op(STATIC_ATTR_OP, inflateAttrName(name), value as string, namespace ?? null);
+  op(STATIC_ATTR_OP, inflateAttributeName(name), value as string, namespace ?? null);
 });
 
 defineStatement(WIRE_STATIC_COMPONENT_ATTR, (op, [, name, value, namespace]) => {
-  op(STATIC_COMPONENT_ATTR_OP, inflateAttrName(name), value as string, namespace ?? null);
+  op(STATIC_COMPONENT_ATTR_OP, inflateAttributeName(name), value as string, namespace ?? null);
 });
 
 defineStatement(WIRE_DYNAMIC_ATTR, (op, [, name, value, namespace]) => {
   expr(op, value);
-  op(DYNAMIC_ATTR_OP, inflateAttrName(name), false, namespace ?? null);
+  op(DYNAMIC_ATTR_OP, inflateAttributeName(name), false, namespace ?? null);
 });
 
 defineStatement(WIRE_TRUSTING_DYNAMIC_ATTR, (op, [, name, value, namespace]) => {
   expr(op, value);
-  op(DYNAMIC_ATTR_OP, inflateAttrName(name), true, namespace ?? null);
+  op(DYNAMIC_ATTR_OP, inflateAttributeName(name), true, namespace ?? null);
 });
 
 defineStatement(WIRE_COMPONENT_ATTR, (op, [, name, value, namespace]) => {
   expr(op, value);
-  op(COMPONENT_ATTR_OP, inflateAttrName(name), false, namespace ?? null);
+  op(COMPONENT_ATTR_OP, inflateAttributeName(name), false, namespace ?? null);
 });
 
 defineStatement(WIRE_TRUSTING_COMPONENT_ATTR, (op, [, name, value, namespace]) => {
   expr(op, value);
-  op(COMPONENT_ATTR_OP, inflateAttrName(name), true, namespace ?? null);
+  op(COMPONENT_ATTR_OP, inflateAttributeName(name), true, namespace ?? null);
 });
 
 defineStatement(WIRE_OPEN_ELEMENT, (op, [, tag]) => {
@@ -197,7 +197,7 @@ defineStatement(WIRE_COMPONENT, (op, [, expr, elementBlock, named, blocks]) => {
   }
 });
 
-defineStatement(WIRE_YIELD, (op, [, to, params]) => YieldBlock(op, to, params));
+defineStatement(WIRE_YIELD, (op, [, to, parameters]) => YieldBlock(op, to, parameters));
 
 defineStatement(WIRE_ATTR_SPLAT, (op, [, to]) => YieldBlock(op, to, null));
 
@@ -235,7 +235,7 @@ defineStatement(WIRE_APPEND, (op, [, value]) => {
     if (isGetFreeComponentOrHelper(expression)) {
       op(RESOLVE_COMPONENT_OR_HELPER, expression, {
         ifComponent(component: CompileTimeComponent) {
-          InvokeComponent(op, component, null, positional, hashToArgs(named), null);
+          InvokeComponent(op, component, null, positional, hashToArguments(named), null);
         },
         ifHelper(handle: number) {
           op(PUSH_FRAME_OP);
@@ -282,20 +282,20 @@ defineStatement(WIRE_APPEND, (op, [, value]) => {
 });
 
 defineStatement(WIRE_TRUSTING_APPEND, (op, [, value]) => {
-  if (!Array.isArray(value)) {
-    op(TEXT_OP, value === null || value === undefined ? '' : String(value));
-  } else {
+  if (Array.isArray(value)) {
     op(PUSH_FRAME_OP);
     expr(op, value);
     op(INVOKE_STATIC_OP, stdlibOperand(STDLIB_TRUSTING_GUARDED_APPEND));
     op(POP_FRAME_OP);
+  } else {
+    op(TEXT_OP, value === null || value === undefined ? '' : String(value));
   }
 });
 
 defineStatement(WIRE_BLOCK, (op, [, expr, positional, named, blocks]) => {
   if (isGetFreeComponent(expr)) {
     op(RESOLVE_COMPONENT, expr, (component: CompileTimeComponent) => {
-      InvokeComponent(op, component, null, positional, hashToArgs(named), blocks);
+      InvokeComponent(op, component, null, positional, hashToArguments(named), blocks);
     });
   } else {
     InvokeDynamicComponent(op, expr, null, positional, named, blocks, false, false);
@@ -310,7 +310,7 @@ defineStatement(WIRE_IN_ELEMENT, (op, [, block, guid, destination, insertBefore]
       expr(op, guid);
 
       if (insertBefore === undefined) {
-        PushPrimitiveReference(op, undefined);
+        PushPrimitiveReference(op);
       } else {
         expr(op, insertBefore);
       }
@@ -372,17 +372,17 @@ defineStatement(WIRE_EACH, (op, [, value, key, block, inverse]) =>
       op(PUSH_FRAME_OP);
       op(DUP_OP, $fp, 1);
       op(RETURN_TO_OP, labelOperand('ITER'));
-      op(HighLevelBuilderOpcodes.Label, 'ITER');
+      op(LABEL_OP, 'ITER');
       op(ITERATE_OP, labelOperand('BREAK'));
-      op(HighLevelBuilderOpcodes.Label, 'BODY');
+      op(LABEL_OP, 'BODY');
       InvokeStaticBlockWithStack(op, block, 2);
       op(POP_OP, 2);
       op(JUMP_OP, labelOperand('FINALLY'));
-      op(HighLevelBuilderOpcodes.Label, 'BREAK');
+      op(LABEL_OP, 'BREAK');
       op(POP_FRAME_OP);
       op(EXIT_LIST_OP);
       op(JUMP_OP, labelOperand('FINALLY'));
-      op(HighLevelBuilderOpcodes.Label, 'ELSE');
+      op(LABEL_OP, 'ELSE');
 
       if (inverse) {
         InvokeStaticBlock(op, inverse);
@@ -436,14 +436,14 @@ defineStatement(WIRE_WITH_DYNAMIC_VARS, (op, [, named, block]) => {
 defineStatement(WIRE_INVOKE_COMPONENT, (op, [, expr, positional, named, blocks]) => {
   if (isGetFreeComponent(expr)) {
     op(RESOLVE_COMPONENT, expr, (component: CompileTimeComponent) => {
-      InvokeComponent(op, component, null, positional, hashToArgs(named), blocks);
+      InvokeComponent(op, component, null, positional, hashToArguments(named), blocks);
     });
   } else {
     InvokeDynamicComponent(op, expr, null, positional, named, blocks, false, false);
   }
 });
 
-function hashToArgs(hash: WireFormat.Core.Hash | null): WireFormat.Core.Hash | null {
+function hashToArguments(hash: WireFormat.Core.Hash | null): WireFormat.Core.Hash | null {
   if (hash === null) return null;
   let names = hash[0].map((key) => `@${key}`);
   return [names as [string, ...string[]], hash[1]];

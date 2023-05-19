@@ -1,6 +1,6 @@
 import type { Dict, Nullable } from '@glimmer/interfaces';
 import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
-import { asPresentArray, assert, assign, deprecate, isPresentArray } from '@glimmer/util';
+import { asPresentArray, assert, deprecate, isPresentArray } from '@glimmer/util';
 
 import { type SourceLocation, type SourcePosition, SYNTHETIC_LOCATION } from '../source/location';
 import { Source } from '../source/source';
@@ -27,7 +27,7 @@ export type TagDescriptor = string | { name: string; selfClosing: boolean };
 
 function buildMustache(
   path: BuilderHead | ASTv1.Literal,
-  params?: ASTv1.Expression[],
+  parameters?: ASTv1.Expression[],
   hash?: ASTv1.Hash,
   raw?: boolean,
   loc?: SourceLocation,
@@ -40,7 +40,7 @@ function buildMustache(
   return {
     type: 'MustacheStatement',
     path,
-    params: params || [],
+    params: parameters || [],
     hash: hash || buildHash([]),
     escaped: !raw,
     trusting: !!raw,
@@ -51,7 +51,7 @@ function buildMustache(
 
 function buildBlock(
   path: BuilderHead,
-  params: Nullable<ASTv1.Expression[]>,
+  parameters: Nullable<ASTv1.Expression[]>,
   hash: Nullable<ASTv1.Hash>,
   _defaultBlock: ASTv1.PossiblyDeprecatedBlock,
   _elseBlock?: Nullable<ASTv1.PossiblyDeprecatedBlock>,
@@ -68,7 +68,7 @@ function buildBlock(
       deprecate(`b.program is deprecated. Use b.blockItself instead.`);
     }
 
-    defaultBlock = assign({}, _defaultBlock, { type: 'Block' }) as unknown as ASTv1.Block;
+    defaultBlock = { ..._defaultBlock, type: 'Block' } as unknown as ASTv1.Block;
   } else {
     defaultBlock = _defaultBlock;
   }
@@ -78,7 +78,7 @@ function buildBlock(
       deprecate(`b.program is deprecated. Use b.blockItself instead.`);
     }
 
-    elseBlock = assign({}, _elseBlock, { type: 'Block' }) as unknown as ASTv1.Block;
+    elseBlock = { ..._elseBlock, type: 'Block' } as unknown as ASTv1.Block;
   } else {
     elseBlock = _elseBlock;
   }
@@ -86,7 +86,7 @@ function buildBlock(
   return {
     type: 'BlockStatement',
     path: buildPath(path),
-    params: params || [],
+    params: parameters || [],
     hash: hash || buildHash([]),
     program: defaultBlock || null,
     inverse: elseBlock || null,
@@ -99,14 +99,14 @@ function buildBlock(
 
 function buildElementModifier(
   path: BuilderHead | ASTv1.Expression,
-  params?: ASTv1.Expression[],
+  parameters?: ASTv1.Expression[],
   hash?: ASTv1.Hash,
   loc?: Nullable<SourceLocation>
 ): ASTv1.ElementModifierStatement {
   return {
     type: 'ElementModifierStatement',
     path: buildPath(path),
-    params: params || [],
+    params: parameters || [],
     hash: hash || buildHash([]),
     loc: buildLoc(loc || null),
   };
@@ -114,7 +114,7 @@ function buildElementModifier(
 
 function buildPartial(
   name: ASTv1.PathExpression,
-  params?: ASTv1.Expression[],
+  parameters?: ASTv1.Expression[],
   hash?: ASTv1.Hash,
   indent?: string,
   loc?: SourceLocation
@@ -122,7 +122,7 @@ function buildPartial(
   return {
     type: 'PartialStatement',
     name: name,
-    params: params || [],
+    params: parameters || [],
     hash: hash || buildHash([]),
     indent: indent || '',
     strip: { open: false, close: false },
@@ -232,7 +232,7 @@ function buildElement(tag: TagDescriptor, options: BuildElementOptions = {}): AS
   };
 }
 
-function buildAttr(
+function buildAttribute(
   name: string,
   value: ASTv1.AttrNode['value'],
   loc?: SourceLocation
@@ -257,14 +257,14 @@ function buildText(chars?: string, loc?: SourceLocation): ASTv1.TextNode {
 
 function buildSexpr(
   path: BuilderHead,
-  params?: ASTv1.Expression[],
+  parameters?: ASTv1.Expression[],
   hash?: ASTv1.Hash,
   loc?: SourceLocation
 ): ASTv1.SubExpression {
   return {
     type: 'SubExpression',
     path: buildPath(path),
-    params: params || [],
+    params: parameters || [],
     hash: hash || buildHash([]),
     loc: buildLoc(loc || null),
   };
@@ -331,7 +331,7 @@ function buildAtName(name: string, loc: SourceLocation): ASTv1.PathHead {
   };
 }
 
-function buildVar(name: string, loc: SourceLocation): ASTv1.PathHead {
+function buildVariable(name: string, loc: SourceLocation): ASTv1.PathHead {
   assert(name !== 'this', `You called builders.var() with 'this'. Call builders.this instead`);
   assert(
     name[0] !== '@',
@@ -351,7 +351,7 @@ function buildHeadFromString(head: string, loc: SourceLocation): ASTv1.PathHead 
   } else if (head === 'this') {
     return buildThis(loc);
   } else {
-    return buildVar(head, loc);
+    return buildVariable(head, loc);
   }
 }
 
@@ -446,27 +446,27 @@ function buildPair(key: string, value: ASTv1.Expression, loc?: SourceLocation): 
 
 function buildProgram(
   body?: ASTv1.Statement[],
-  blockParams?: string[],
+  blockParameters?: string[],
   loc?: SourceLocation
 ): ASTv1.Template {
   return {
     type: 'Template',
     body: body || [],
-    blockParams: blockParams || [],
+    blockParams: blockParameters || [],
     loc: buildLoc(loc || null),
   };
 }
 
 function buildBlockItself(
   body?: ASTv1.Statement[],
-  blockParams?: string[],
+  blockParameters?: string[],
   chained = false,
   loc?: SourceLocation
 ): ASTv1.Block {
   return {
     type: 'Block',
     body: body || [],
-    blockParams: blockParams || [],
+    blockParams: blockParameters || [],
     chained,
     loc: buildLoc(loc || null),
   };
@@ -474,13 +474,13 @@ function buildBlockItself(
 
 function buildTemplate(
   body?: ASTv1.Statement[],
-  blockParams?: string[],
+  blockParameters?: string[],
   loc?: SourceLocation
 ): ASTv1.Template {
   return {
     type: 'Template',
     body: body || [],
-    blockParams: blockParams || [],
+    blockParams: blockParameters || [],
     loc: buildLoc(loc || null),
   };
 }
@@ -505,11 +505,9 @@ function buildLoc(...args: any[]): SourceSpan {
   if (args.length === 1) {
     let loc = args[0];
 
-    if (loc && typeof loc === 'object') {
-      return SourceSpan.forHbsLoc(SOURCE(), loc);
-    } else {
-      return SourceSpan.forHbsLoc(SOURCE(), SYNTHETIC_LOCATION);
-    }
+    return loc && typeof loc === 'object'
+      ? SourceSpan.forHbsLoc(SOURCE(), loc)
+      : SourceSpan.forHbsLoc(SOURCE(), SYNTHETIC_LOCATION);
   } else {
     let [startLine, startColumn, endLine, endColumn, _source] = args;
     let source = _source ? new Source('', _source) : SOURCE();
@@ -535,7 +533,7 @@ export default {
   mustacheComment: buildMustacheComment,
   element: buildElement,
   elementModifier: buildElementModifier,
-  attr: buildAttr,
+  attr: buildAttribute,
   text: buildText,
   sexpr: buildSexpr,
 
@@ -554,7 +552,7 @@ export default {
   fullPath: buildCleanPath,
   head: buildHeadFromString,
   at: buildAtName,
-  var: buildVar,
+  var: buildVariable,
   this: buildThis,
   blockName: buildNamedBlockName,
 
@@ -562,7 +560,7 @@ export default {
   boolean: literal('BooleanLiteral') as (value: boolean) => ASTv1.BooleanLiteral,
   number: literal('NumberLiteral') as (value: number) => ASTv1.NumberLiteral,
   undefined(): ASTv1.UndefinedLiteral {
-    return buildLiteral('UndefinedLiteral', undefined);
+    return buildLiteral('UndefinedLiteral', void 0);
   },
   null(): ASTv1.NullLiteral {
     return buildLiteral('NullLiteral', null);

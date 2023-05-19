@@ -1,17 +1,17 @@
 /**
  * @template T
- * @param {Record<string, T>} obj
+ * @param {Record<string, T>} record
  * @returns {T[]}
  */
-export function values(obj) {
-  return Object.values(obj);
+export function values(record) {
+  return Object.values(record);
 }
 
 /**
  * @template {object} D
- * @param {D} obj
- * @returns {import("@glimmer/util/lib/object-utils").ObjectEntry<D>[]}
+ * @param {D} record
+ * @returns {import("@glimmer/util").ObjectEntry<D>[]}
  */
-export function entries(obj) {
-  return Object.entries(obj);
+export function entries(record) {
+  return Object.entries(record);
 }

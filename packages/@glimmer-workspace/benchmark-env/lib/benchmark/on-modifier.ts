@@ -3,7 +3,7 @@ import type {
   InternalModifierManager,
   Owner,
   SimpleElement,
-} from "@glimmer/interfaces";
+} from '@glimmer/interfaces';
 import { type Reference, valueForRef } from '@glimmer/reference';
 import { castToBrowser } from '@glimmer/util';
 import { createUpdatableTag } from '@glimmer/validator';
@@ -17,11 +17,11 @@ interface OnModifierState {
 }
 
 class OnModifierManager implements InternalModifierManager<OnModifierState, object> {
-  create(_owner: Owner, element: SimpleElement, _: {}, args: CapturedArguments) {
+  create(_owner: Owner, element: SimpleElement, _: {}, captured: CapturedArguments) {
     return {
       element,
-      nameRef: args.positional[0] as Reference<string>,
-      listenerRef: args.positional[1] as Reference<EventListener>,
+      nameRef: captured.positional[0] as Reference<string>,
+      listenerRef: captured.positional[1] as Reference<EventListener>,
       name: null,
       listener: null,
     };

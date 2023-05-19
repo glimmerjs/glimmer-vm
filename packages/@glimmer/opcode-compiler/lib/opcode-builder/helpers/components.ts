@@ -63,13 +63,13 @@ import {
 
 import type { PushExpressionOp, PushStatementOp } from '../../syntax/compiler-impl';
 import { namedBlocks } from '../../utils';
-import { HighLevelBuilderOpcodes } from '../opcodes';
 import { isStrictMode, labelOperand, layoutOperand, symbolTableOperand } from '../operands';
 import { InvokeStaticBlock, PushYieldableBlock, YieldBlock } from './blocks';
 import { Replayable } from './conditional';
 import { expr } from './expr';
-import { CompileArgs, CompilePositional } from './shared';
+import { CompileArguments, CompilePositional } from './shared';
 import { POP_FRAME_OP, PUSH_FRAME_OP } from '@glimmer/vm-constants';
+import { LABEL_OP, START_LABELS_OP, STOP_LABELS_OP } from '../opcodes';
 
 export const ATTRS_BLOCK = '&attrs';
 
@@ -186,7 +186,7 @@ export function InvokeDynamicComponent(
         atNames,
         blocks,
       });
-      op(HighLevelBuilderOpcodes.Label, 'ELSE');
+      op(LABEL_OP, 'ELSE');
     }
   );
 }
@@ -224,8 +224,8 @@ function InvokeStaticComponent(
   // As we push values onto the stack, we store the symbols associated  with them
   // so that we can set them on the scope later on with SetVariable and SetBlock
   let blockSymbols: number[] = [];
-  let argSymbols: number[] = [];
-  let argNames: string[] = [];
+  let argumentSymbols: number[] = [];
+  let argumentNames: string[] = [];
 
   // First we push the blocks onto the stack
   let blockNames = blocks.names;
@@ -271,13 +271,13 @@ function InvokeStaticComponent(
     // we store the symbol as -1 (this is used later).
     if (named !== null) {
       names = named[0];
-      let val = named[1];
+      let value = named[1];
 
-      for (let i = 0; i < val.length; i++) {
-        let symbol = symbols.indexOf(unwrap(names[i]));
+      for (const [index, element] of value.entries()) {
+        let symbol = symbols.indexOf(unwrap(names[index]));
 
-        expr(op, val[i]);
-        argSymbols.push(symbol);
+        expr(op, element);
+        argumentSymbols.push(symbol);
       }
     }
 
@@ -288,22 +288,22 @@ function InvokeStaticComponent(
 
     // And push an extra pop operation to remove the args before we begin setting
     // variables on the local context
-    argSymbols.push(-1);
+    argumentSymbols.push(-1);
   } else if (named !== null) {
     // If the component does not have the `createArgs` capability, then the only
     // expressions we need to push onto the stack are those that are actually
     // referenced in the template of the invoked component (e.g. have symbols).
     let names = named[0];
-    let val = named[1];
+    let value = named[1];
 
-    for (let i = 0; i < val.length; i++) {
-      let name = unwrap(names[i]);
+    for (const [index, element] of value.entries()) {
+      let name = unwrap(names[index]);
       let symbol = symbols.indexOf(name);
 
       if (symbol !== -1) {
-        expr(op, val[i]);
-        argSymbols.push(symbol);
-        argNames.push(name);
+        expr(op, element);
+        argumentSymbols.push(symbol);
+        argumentNames.push(name);
       }
     }
   }
@@ -315,7 +315,7 @@ function InvokeStaticComponent(
   }
 
   if (hasCapability(capabilities, CREATE_INSTANCE_CAPABILITY)) {
-    op(CREATE_COMPONENT_OP, (blocks.has('default') as any) | 0, $s0);
+    op(CREATE_COMPONENT_OP, Math.trunc(blocks.has('default') as any), $s0);
   }
 
   op(REGISTER_COMPONENT_DESTRUCTOR_OP, $s0);
@@ -323,7 +323,7 @@ function InvokeStaticComponent(
   if (hasCapability(capabilities, CREATE_ARGS_CAPABILITY)) {
     op(GET_COMPONENT_SELF_OP, $s0);
   } else {
-    op(GET_COMPONENT_SELF_OP, $s0, argNames);
+    op(GET_COMPONENT_SELF_OP, $s0, argumentNames);
   }
 
   // Setup the new root scope for the component
@@ -335,7 +335,7 @@ function InvokeStaticComponent(
 
   // Going in reverse, now we pop the args/blocks off the stack, starting with
   // arguments, and assign them to their symbols in the new scope.
-  for (const symbol of reverse(argSymbols)) {
+  for (const symbol of reverse(argumentSymbols)) {
     // for (let i = argSymbols.length - 1; i >= 0; i--) {
     //   let symbol = argSymbols[i];
 
@@ -382,7 +382,7 @@ export function InvokeNonStaticComponent(
   let bindableAtNames =
     capabilities === true ||
     !!hasCapability(capabilities, PREPARE_ARGS_CAPABILITY) ||
-    !!(named && named[0].length !== 0);
+    !!(named && named[0].length > 0);
 
   let blocks = namedBlocks.with('attrs', elementBlock);
 
@@ -391,7 +391,7 @@ export function InvokeNonStaticComponent(
   op(LOAD_OP, $s0);
 
   op(PUSH_FRAME_OP);
-  CompileArgs(op, positional, named, blocks, atNames);
+  CompileArguments(op, positional, named, blocks, atNames);
   op(PREPARE_ARGS_OP, $s0);
 
   invokePreparedComponent(op, blocks.has('default'), bindableBlocks, bindableAtNames, () => {
@@ -412,9 +412,9 @@ export function InvokeNonStaticComponent(
 export function WrappedComponent(
   op: PushStatementOp,
   layout: LayoutWithContext,
-  attrsBlockNumber: number
+  attributesBlockNumber: number
 ): void {
-  op(HighLevelBuilderOpcodes.StartLabels);
+  op(START_LABELS_OP);
   WithSavedRegister(op, $s1, () => {
     op(GET_COMPONENT_TAG_NAME_OP, $s0);
     op(PRIMITIVE_REFERENCE_OP);
@@ -425,16 +425,16 @@ export function WrappedComponent(
   op(PUT_COMPONENT_OPERATIONS_OP);
   op(OPEN_DYNAMIC_ELEMENT_OP);
   op(DID_CREATE_ELEMENT_OP, $s0);
-  YieldBlock(op, attrsBlockNumber, null);
+  YieldBlock(op, attributesBlockNumber, null);
   op(FLUSH_ELEMENT_OP);
-  op(HighLevelBuilderOpcodes.Label, 'BODY');
+  op(LABEL_OP, 'BODY');
   InvokeStaticBlock(op, [layout.block[0], []]);
   op(FETCH_OP, $s1);
   op(JUMP_UNLESS_OP, labelOperand('END'));
   op(CLOSE_ELEMENT_OP);
-  op(HighLevelBuilderOpcodes.Label, 'END');
+  op(LABEL_OP, 'END');
   op(LOAD_OP, $s1);
-  op(HighLevelBuilderOpcodes.StopLabels);
+  op(STOP_LABELS_OP);
 }
 
 export function invokePreparedComponent(
@@ -447,7 +447,7 @@ export function invokePreparedComponent(
   op(BEGIN_COMPONENT_TRANSACTION_OP, $s0);
   op(PUSH_DYNAMIC_SCOPE_OP);
 
-  op(CREATE_COMPONENT_OP, (hasBlock as any) | 0, $s0);
+  op(CREATE_COMPONENT_OP, Math.trunc(hasBlock as any), $s0);
 
   // this has to run after createComponent to allow
   // for late-bound layouts, but a caller is free

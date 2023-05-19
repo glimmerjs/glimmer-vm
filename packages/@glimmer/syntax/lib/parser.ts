@@ -1,17 +1,17 @@
 import type { Nullable } from '@glimmer/interfaces';
-import { asPresentArray, assert, assign, expect, getLast, unwrap } from '@glimmer/util';
+import { asPresentArray, assert, expect, getLast, unwrap } from '@glimmer/util';
 import {
   EntityParser,
   EventedTokenizer,
-  HTML5NamedCharRefs as namedCharRefs,
+  HTML5NamedCharRefs as namedCharReferences,
 } from 'simple-html-tokenizer';
 
-import type * as src from './source/api';
+import type * as source from './source/api';
 import type * as ASTv1 from './v1/api';
 import type * as HBS from './v1/handlebars-ast';
 
-export type ParserNodeBuilder<N extends { loc: src.SourceSpan }> = Omit<N, 'loc'> & {
-  loc: src.SourceOffset;
+export type ParserNodeBuilder<N extends { loc: source.SourceSpan }> = Omit<N, 'loc'> & {
+  loc: source.SourceOffset;
 };
 
 export interface Tag<T extends 'StartTag' | 'EndTag'> {
@@ -21,7 +21,7 @@ export interface Tag<T extends 'StartTag' | 'EndTag'> {
   readonly modifiers: ASTv1.ElementModifierStatement[];
   readonly comments: ASTv1.MustacheCommentStatement[];
   selfClosing: boolean;
-  readonly loc: src.SourceSpan;
+  readonly loc: source.SourceSpan;
 }
 
 export interface Attribute {
@@ -30,14 +30,14 @@ export interface Attribute {
   parts: (ASTv1.MustacheStatement | ASTv1.TextNode)[];
   isQuoted: boolean;
   isDynamic: boolean;
-  start: src.SourceOffset;
-  valueSpan: src.SourceSpan;
+  start: source.SourceOffset;
+  valueSpan: source.SourceSpan;
 }
 
 export abstract class Parser {
   protected elementStack: ASTv1.ParentNode[] = [];
   private lines: string[];
-  readonly source: src.Source;
+  readonly source: source.Source;
   public currentAttribute: Nullable<Attribute> = null;
   public currentNode: Nullable<
     Readonly<
@@ -50,8 +50,8 @@ export abstract class Parser {
   public tokenizer: EventedTokenizer;
 
   constructor(
-    source: src.Source,
-    entityParser = new EntityParser(namedCharRefs),
+    source: source.Source,
+    entityParser = new EntityParser(namedCharReferences),
     mode: 'precompile' | 'codemod' = 'precompile'
   ) {
     this.source = source;
@@ -59,17 +59,17 @@ export abstract class Parser {
     this.tokenizer = new EventedTokenizer(this, entityParser, mode);
   }
 
-  offset(): src.SourceOffset {
+  offset(): source.SourceOffset {
     let { line, column } = this.tokenizer;
     return this.source.offsetFor(line, column);
   }
 
-  pos({ line, column }: src.SourcePosition): src.SourceOffset {
+  pos({ line, column }: source.SourcePosition): source.SourceOffset {
     return this.source.offsetFor(line, column);
   }
 
-  finish<T extends { loc: src.SourceSpan }>(node: ParserNodeBuilder<T>): T {
-    return assign({}, node, {
+  finish<T extends { loc: source.SourceSpan }>(node: ParserNodeBuilder<T>): T {
+    return Object.assign({}, node, {
       loc: node.loc.until(this.offset()),
     } as const) as unknown as T;
 

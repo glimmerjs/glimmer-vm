@@ -1,17 +1,17 @@
 import type { Nullable } from '@glimmer/interfaces';
-import { assertPresentArray, assign, getFirst, getLast, isPresentArray } from '@glimmer/util';
+import { assertPresentArray, getFirst, getLast, isPresentArray } from '@glimmer/util';
 import { parse, parseWithoutProcessing } from '@handlebars/parser';
 import { EntityParser } from 'simple-html-tokenizer';
 
 import print from '../generation/print';
 import { voidMap } from '../generation/printer';
 import type { Tag } from '../parser';
-import * as src from '../source/api';
+import * as source_ from '../source/api';
 import { generateSyntaxError } from '../syntax-error';
 import traverse from '../traversal/traverse';
 import type { NodeVisitor } from '../traversal/visitor';
 import Walker from '../traversal/walker';
-import { appendChild, parseElementBlockParams } from '../utils';
+import { appendChild, parseElementBlockParams as parseElementBlockParameters } from '../utils';
 import type * as ASTv1 from '../v1/api';
 import type * as HBS from '../v1/handlebars-ast';
 import b from '../v1/parser-builders';
@@ -117,7 +117,7 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
   finishStartTag(): void {
     let {
       name,
-      attributes: attrs,
+      attributes: attributes,
       modifiers,
       comments,
       selfClosing,
@@ -127,7 +127,7 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
     let element = b.element({
       tag: name,
       selfClosing,
-      attrs,
+      attrs: attributes,
       modifiers,
       comments,
       children: [],
@@ -146,7 +146,7 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
     let parent = this.currentElement();
 
     element.loc = element.loc.withEnd(this.offset());
-    parseElementBlockParams(element);
+    parseElementBlockParameters(element);
     appendChild(parent, element);
   }
 
@@ -188,7 +188,7 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
 
   appendToAttributeValue(char: string): void {
     let parts = this.currentAttr.parts;
-    let lastPart = parts[parts.length - 1];
+    let lastPart = parts.at(-1);
 
     let current = this.currentAttr.currentPart;
 
@@ -199,7 +199,7 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
       current.loc = current.loc.withEnd(this.offset());
     } else {
       // initially assume the text node is a single char
-      let loc: src.SourceOffset = this.offset();
+      let loc: source_.SourceOffset = this.offset();
 
       // the tokenizer line/column have already been advanced, correct location info
       if (char === '\n') {
@@ -285,7 +285,7 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
     parts: ASTv1.AttrPart[],
     isQuoted: boolean,
     isDynamic: boolean,
-    span: src.SourceSpan
+    span: source_.SourceSpan
   ): ASTv1.AttrValue {
     if (isDynamic) {
       if (isQuoted) {
@@ -317,8 +317,8 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
   ASTPlugins can make changes to the Glimmer template AST before
   compilation begins.
 */
-export interface ASTPluginBuilder<TEnv extends ASTPluginEnvironment = ASTPluginEnvironment> {
-  (env: TEnv): ASTPlugin;
+export interface ASTPluginBuilder<TEnvironment extends ASTPluginEnvironment = ASTPluginEnvironment> {
+  (environment: TEnvironment): ASTPlugin;
 }
 
 export interface ASTPlugin {
@@ -337,7 +337,7 @@ interface HandlebarsParseOptions {
 }
 
 export interface TemplateIdFn {
-  (src: string): Nullable<string>;
+  (source: string): Nullable<string>;
 }
 
 export interface PrecompileOptions extends PreprocessOptions {
@@ -399,40 +399,32 @@ class CodemodEntityParser extends EntityParser {
 }
 
 export function preprocess(
-  input: string | src.Source | HBS.Program,
+  input: string | source_.Source | HBS.Program,
   options: PreprocessOptions = {}
 ): ASTv1.Template {
   let mode = options.mode || 'precompile';
 
-  let source: src.Source;
+  let source: source_.Source;
   let ast: HBS.Program;
   if (typeof input === 'string') {
-    source = new src.Source(input, options.meta?.moduleName);
+    source = new source_.Source(input, options.meta?.moduleName);
 
-    if (mode === 'codemod') {
-      ast = parseWithoutProcessing(input, options.parseOptions) as HBS.Program;
-    } else {
-      ast = parse(input, options.parseOptions) as HBS.Program;
-    }
-  } else if (input instanceof src.Source) {
+    ast = mode === 'codemod' ? parseWithoutProcessing(input, options.parseOptions) as HBS.Program : parse(input, options.parseOptions) as HBS.Program;
+  } else if (input instanceof source_.Source) {
     source = input;
 
-    if (mode === 'codemod') {
-      ast = parseWithoutProcessing(input.source, options.parseOptions) as HBS.Program;
-    } else {
-      ast = parse(input.source, options.parseOptions) as HBS.Program;
-    }
+    ast = mode === 'codemod' ? parseWithoutProcessing(input.source, options.parseOptions) as HBS.Program : parse(input.source, options.parseOptions) as HBS.Program;
   } else {
-    source = new src.Source('', options.meta?.moduleName);
+    source = new source_.Source('', options.meta?.moduleName);
     ast = input;
   }
 
-  let entityParser = undefined;
+  let entityParser;
   if (mode === 'codemod') {
     entityParser = new CodemodEntityParser();
   }
 
-  let offsets = src.SourceSpan.forCharPositions(source, 0, source.source.length);
+  let offsets = source_.SourceSpan.forCharPositions(source, 0, source.source.length);
   ast.loc = {
     source: '(program)',
     start: offsets.startPosition,
@@ -447,9 +439,14 @@ export function preprocess(
 
   if (options && options.plugins && options.plugins.ast) {
     for (const transform of options.plugins.ast) {
-      let env: ASTPluginEnvironment = assign({}, options, { syntax }, { plugins: undefined });
+      let environment: ASTPluginEnvironment = Object.assign(
+        {},
+        options,
+        { syntax },
+        { plugins: undefined }
+      );
 
-      let pluginResult = transform(env);
+      let pluginResult = transform(environment);
 
       traverse(program, pluginResult.visitor);
     }

@@ -1,3 +1,4 @@
+/* eslint-disable unicorn/prefer-modern-dom-apis */
 import type {
   AttrNamespace,
   ElementNamespace,
@@ -9,7 +10,7 @@ import type {
   SimpleElement,
   SimpleNode,
 } from '@glimmer/interfaces';
-import { assert, assign, dict, NS_HTML } from '@glimmer/util';
+import { assert, dict, NS_HTML } from '@glimmer/util';
 
 import { NodeTokensImpl } from './node-tokens';
 
@@ -132,31 +133,32 @@ export function run(opcodes: ReadonlyArray<number>, options: RunOptions) {
 
   tokens.register(options.parent);
 
-  const state: ConstructionState = assign({}, options, {
+  const state: ConstructionState = {
+    ...options,
     elements: [options.parent],
     constructing: null,
     tokens,
-  });
+  };
 
   while (offset < end) {
     const value = opcodes[offset]!;
     const size = sizeof(value);
     const opcode = opcodeof(value);
 
-    const func = ConstructionOperations[opcode]!;
+    const function_ = ConstructionOperations[opcode]!;
 
     switch (size) {
       case 0:
-        func(state);
+        function_(state);
         break;
       case 1:
-        func(state, opcodes[offset + 1]!);
+        function_(state, opcodes[offset + 1]!);
         break;
       case 2:
-        func(state, opcodes[offset + 1]!, opcodes[offset + 2]!);
+        function_(state, opcodes[offset + 1]!, opcodes[offset + 2]!);
         break;
       case 3:
-        func(state, opcodes[offset + 1]!, opcodes[offset + 2]!, opcodes[offset + 3]!);
+        function_(state, opcodes[offset + 1]!, opcodes[offset + 2]!, opcodes[offset + 3]!);
         break;
     }
 
@@ -175,16 +177,19 @@ const ConstructionOperations: ConstructionFunction[] = [
 
     if (state.constructing) flush(state);
 
-    const el = document.createElementNS(constants[namespace] as ElementNamespace, constants[tag]!);
-    state.constructing = el;
-    state.tokens.register(el);
+    const element = document.createElementNS(
+      constants[namespace] as ElementNamespace,
+      constants[tag]!
+    );
+    state.constructing = element;
+    state.tokens.register(element);
   },
 
   /* (CloseElement) */
   (state) => {
     if (state.constructing) flush(state);
     state.elements.pop();
-    state.parent = state.elements[state.elements.length - 1]!;
+    state.parent = state.elements.at(-1)!;
   },
 
   /* (SetAttribute name value namespace) */
@@ -209,6 +214,7 @@ const ConstructionOperations: ConstructionFunction[] = [
 
     const parentElement = constructing ? flush(state) : parent;
     const textNode = document.createTextNode(constants[text]!);
+
     parentElement.insertBefore(textNode, nextSibling);
     state.tokens.register(textNode);
   },

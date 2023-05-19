@@ -1,5 +1,5 @@
 import { assert } from '@glimmer/global-context';
-import type { Tag } from "@glimmer/interfaces";
+import type { Tag } from '@glimmer/interfaces';
 import { asPresentArray, getLast } from '@glimmer/util';
 
 interface DebugTransaction {
@@ -12,7 +12,7 @@ interface DebugTransaction {
   resetTrackingTransaction?: undefined | (() => string);
   setTrackingTransactionEnv?:
     | undefined
-    | ((env: { debugMessage?(obj?: unknown, keyName?: string): string }) => void);
+    | ((environment: { debugMessage?(obj?: unknown, keyName?: string): string }) => void);
   assertTagNotConsumed?:
     | undefined
     | (<T>(tag: Tag, obj?: T, keyName?: keyof T | string | symbol) => void);
@@ -58,14 +58,14 @@ if (import.meta.env.DEV) {
     },
   };
 
-  debug.setTrackingTransactionEnv = (env) => Object.assign(TRANSACTION_ENV, env);
+  debug.setTrackingTransactionEnv = (environment) => Object.assign(TRANSACTION_ENV, environment);
 
   debug.beginTrackingTransaction = (_debugLabel?: string | false) => {
     CONSUMED_TAGS = CONSUMED_TAGS || new WeakMap();
 
     let debugLabel = _debugLabel || undefined;
 
-    let parent = TRANSACTION_STACK[TRANSACTION_STACK.length - 1] ?? null;
+    let parent = TRANSACTION_STACK.at(-1) ?? null;
 
     TRANSACTION_STACK.push({
       parent,
@@ -89,7 +89,7 @@ if (import.meta.env.DEV) {
     let stack = '';
 
     if (TRANSACTION_STACK.length > 0) {
-      stack = debug.logTrackingStack!(TRANSACTION_STACK[TRANSACTION_STACK.length - 1]);
+      stack = debug.logTrackingStack!(TRANSACTION_STACK.at(-1));
     }
 
     TRANSACTION_STACK.splice(0, TRANSACTION_STACK.length);
@@ -129,15 +129,15 @@ if (import.meta.env.DEV) {
     }
   };
 
-  let nthIndex = (str: string, pattern: string, n: number, startingPos = -1) => {
-    let i = startingPos;
+  let nthIndex = (text: string, pattern: string, n: number, startingPos = -1) => {
+    let index = startingPos;
 
-    while (n-- > 0 && i++ < str.length) {
-      i = str.indexOf(pattern, i);
-      if (i < 0) break;
+    while (n-- > 0 && index++ < text.length) {
+      index = text.indexOf(pattern, index);
+      if (index < 0) break;
     }
 
-    return i;
+    return index;
   };
 
   let makeTrackingErrorMessage = <T>(
@@ -149,9 +149,7 @@ if (import.meta.env.DEV) {
 
     message.push(`\`${String(keyName)}\` was first used:`);
 
-    message.push(debug.logTrackingStack!(transaction));
-
-    message.push(`Stack trace for the update:`);
+    message.push(debug.logTrackingStack!(transaction), `Stack trace for the update:`);
 
     return message.join('\n\n');
   };
@@ -159,7 +157,7 @@ if (import.meta.env.DEV) {
   debug.logTrackingStack = (transaction?: Transaction) => {
     let trackingStack = [];
     let current: Transaction | null | undefined =
-      transaction || TRANSACTION_STACK[TRANSACTION_STACK.length - 1];
+      transaction || TRANSACTION_STACK.at(-1);
 
     if (current === undefined) return '';
 
@@ -172,7 +170,7 @@ if (import.meta.env.DEV) {
     }
 
     // TODO: Use String.prototype.repeat here once we can drop support for IE11
-    return trackingStack.map((label, index) => Array(2 * index + 1).join(' ') + label).join('\n');
+    return trackingStack.map((label, index) => Array.from({length: 2 * index + 1}).join(' ') + label).join('\n');
   };
 
   debug.markTagAsConsumed = (_tag: Tag) => {
@@ -206,18 +204,18 @@ if (import.meta.env.DEV) {
     // occurred.
     try {
       assert(false, makeTrackingErrorMessage(transaction, obj, keyName));
-    } catch (e) {
-      if (hasStack(e)) {
-        let updateStackBegin = e.stack.indexOf('Stack trace for the update:');
+    } catch (error) {
+      if (hasStack(error)) {
+        let updateStackBegin = error.stack.indexOf('Stack trace for the update:');
 
         if (updateStackBegin !== -1) {
-          let start = nthIndex(e.stack, '\n', 1, updateStackBegin);
-          let end = nthIndex(e.stack, '\n', 4, updateStackBegin);
-          e.stack = e.stack.substr(0, start) + e.stack.substr(end);
+          let start = nthIndex(error.stack, '\n', 1, updateStackBegin);
+          let end = nthIndex(error.stack, '\n', 4, updateStackBegin);
+          error.stack = error.stack.slice(0, Math.max(0, start)) + error.stack.slice(end);
         }
       }
 
-      throw e;
+      throw error;
     }
   };
 }

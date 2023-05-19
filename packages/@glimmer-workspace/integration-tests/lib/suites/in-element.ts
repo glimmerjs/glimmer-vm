@@ -1,6 +1,6 @@
 import { destroy } from '@glimmer/destroyable';
 import type { AST } from '@glimmer/syntax';
-import { assign, unwrap } from '@glimmer/util';
+import { unwrap } from '@glimmer/util';
 
 import { GlimmerishComponent } from '../components/emberish-glimmer';
 import { equalsElement } from '../dom/assertions';
@@ -15,17 +15,13 @@ export class InElementSuite extends RenderTest {
 
   @test
   'It works with AST transforms'() {
-    this.registerPlugin((env) => ({
+    this.registerPlugin((environment) => ({
       name: 'maybe-in-element',
       visitor: {
         BlockStatement(node: AST.BlockStatement) {
-          let b = env.syntax.builders;
+          let b = environment.syntax.builders;
           let { path, ...rest } = node;
-          if (path.type !== 'SubExpression' && path.original === 'maybe-in-element') {
-            return assign({ path: b.path('in-element', path.loc) }, rest);
-          } else {
-            return node;
-          }
+          return path.type !== 'SubExpression' && path.original === 'maybe-in-element' ? Object.assign({ path: b.path('in-element', path.loc) }, rest) : node;
         },
       },
     }));

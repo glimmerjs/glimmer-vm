@@ -23,6 +23,15 @@
       "problemMatcher": ["$tsc"],
       "label": "npm: lint:types",
       "detail": "tsc -b"
+    },
+    {
+      "type": "eslint",
+      "problemMatcher": ["$eslint-stylish"],
+      "label": "eslint: lint whole folder",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
     }
   ]
 }

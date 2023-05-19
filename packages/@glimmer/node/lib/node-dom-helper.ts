@@ -10,8 +10,8 @@ import createHTMLDocument from '@simple-dom/document';
 
 export default class NodeDOMTreeConstruction extends DOMTreeConstruction {
   protected declare document: SimpleDocument; // Hides property on base class
-  constructor(doc: Nullable<SimpleDocument>) {
-    super(doc || createHTMLDocument());
+  constructor(document: Nullable<SimpleDocument>) {
+    super(document || createHTMLDocument());
   }
 
   // override to prevent usage of `this.document` until after the constructor
@@ -23,6 +23,7 @@ export default class NodeDOMTreeConstruction extends DOMTreeConstruction {
     html: string
   ): Bounds {
     let raw = this.document.createRawHTMLSection!(html);
+    // eslint-disable-next-line unicorn/prefer-modern-dom-apis
     parent.insertBefore(raw, reference);
     return new ConcreteBounds(parent, raw, raw);
   }

@@ -19,7 +19,7 @@ import type {
   UpdatingVM,
 } from '@glimmer/interfaces';
 import { createComputeRef, isConstRef, type Reference, valueForRef } from '@glimmer/reference';
-import { assign, debugToString, expect, isObject } from '@glimmer/util';
+import { debugToString, expect, isObject } from '@glimmer/util';
 import {
   consumeTag,
   CURRENT_TAG,
@@ -70,20 +70,20 @@ define(OPEN_DYNAMIC_ELEMENT_OP, (vm) => {
 });
 
 define(PUSH_REMOTE_ELEMENT_OP, (vm) => {
-  let elementRef = check(vm.stack.pop(), CheckReference);
-  let insertBeforeRef = check(vm.stack.pop(), CheckReference);
-  let guidRef = check(vm.stack.pop(), CheckReference);
+  let elementReference = check(vm.stack.pop(), CheckReference);
+  let insertBeforeReference = check(vm.stack.pop(), CheckReference);
+  let guidReference = check(vm.stack.pop(), CheckReference);
 
-  let element = check(valueForRef(elementRef), CheckElement);
-  let insertBefore = check(valueForRef(insertBeforeRef), CheckMaybe(CheckOption(CheckNode)));
-  let guid = valueForRef(guidRef) as string;
+  let element = check(valueForRef(elementReference), CheckElement);
+  let insertBefore = check(valueForRef(insertBeforeReference), CheckMaybe(CheckOption(CheckNode)));
+  let guid = valueForRef(guidReference) as string;
 
-  if (!isConstRef(elementRef)) {
-    vm._updateWith_(new Assert(elementRef));
+  if (!isConstRef(elementReference)) {
+    vm._updateWith_(new Assert(elementReference));
   }
 
-  if (insertBefore !== undefined && !isConstRef(insertBeforeRef)) {
-    vm._updateWith_(new Assert(insertBeforeRef));
+  if (insertBefore !== undefined && !isConstRef(insertBeforeReference)) {
+    vm._updateWith_(new Assert(insertBeforeReference));
   }
 
   let block = vm._elements_().pushRemoteElement(element, guid, insertBefore);
@@ -110,7 +110,7 @@ define(CLOSE_ELEMENT_OP, (vm) => {
   let modifiers = vm._elements_().closeElement();
 
   if (modifiers) {
-    modifiers.forEach((modifier) => {
+    for (const modifier of modifiers) {
       vm.env.scheduleInstallModifier(modifier);
       let { manager, state } = modifier;
       let d = manager.getDestroyable(state);
@@ -118,7 +118,7 @@ define(CLOSE_ELEMENT_OP, (vm) => {
       if (d) {
         vm._associateDestroyable_(d);
       }
-    });
+    }
   }
 });
 
@@ -169,13 +169,13 @@ define(DYNAMIC_MODIFIER_OP, (vm) => {
   }
 
   let { stack, [CONSTANTS]: constants } = vm;
-  let ref = check(stack.pop(), CheckReference);
+  let reference = check(stack.pop(), CheckReference);
   let args = check(stack.pop(), CheckArguments).capture();
   let { _constructing_ } = vm._elements_();
   let initialOwner = vm._getOwner_();
 
-  let instanceRef = createComputeRef(() => {
-    let value = valueForRef(ref);
+  let instanceReference = createComputeRef(() => {
+    let value = valueForRef(reference);
     let owner: Owner;
 
     if (!isObject(value)) {
@@ -200,7 +200,7 @@ define(DYNAMIC_MODIFIER_OP, (vm) => {
       }
 
       if (named !== undefined) {
-        args.named = assign({}, ...named, args.named);
+        args.named = Object.assign({}, ...named, args.named);
       }
     } else {
       hostDefinition = value;
@@ -212,9 +212,9 @@ define(DYNAMIC_MODIFIER_OP, (vm) => {
     if (import.meta.env.DEV && handle === null) {
       throw new Error(
         `Expected a dynamic modifier definition, but received an object or function that did not have a modifier manager associated with it. The dynamic invocation was \`{{${
-          ref.debugLabel
+          reference.debugLabel
         }}}\`, and the incorrect definition is the value at the path \`${
-          ref.debugLabel
+          reference.debugLabel
         }\`, which was: ${debugToString!(hostDefinition)}`
       );
     }
@@ -239,7 +239,7 @@ define(DYNAMIC_MODIFIER_OP, (vm) => {
     };
   });
 
-  let instance = valueForRef(instanceRef);
+  let instance = valueForRef(instanceReference);
   let tag = null;
 
   if (instance !== undefined) {
@@ -257,8 +257,8 @@ define(DYNAMIC_MODIFIER_OP, (vm) => {
     }
   }
 
-  if (!isConstRef(ref) || tag) {
-    return vm._updateWith_(new UpdateDynamicModifierOpcode(tag, instance, instanceRef));
+  if (!isConstRef(reference) || tag) {
+    return vm._updateWith_(new UpdateDynamicModifierOpcode(tag, instance, instanceReference));
   }
 });
 
@@ -293,11 +293,11 @@ export class UpdateDynamicModifierOpcode implements UpdatingOpcode {
   constructor(
     tag: Tag | null,
     instance: ModifierInstance | undefined,
-    instanceRef: Reference<ModifierInstance | undefined>
+    instanceReference: Reference<ModifierInstance | undefined>
   ) {
     this.#tag = tag;
     this.#instance = instance;
-    this.#instanceRef = instanceRef;
+    this.#instanceRef = instanceReference;
     this.#lastUpdated = valueForTag(tag ?? CURRENT_TAG);
   }
 
@@ -305,9 +305,9 @@ export class UpdateDynamicModifierOpcode implements UpdatingOpcode {
     let tag = this.#tag;
     let lastUpdated = this.#lastUpdated;
     let instance = this.#instance;
-    let instanceRef = this.#instanceRef;
+    let instanceReference = this.#instanceRef;
 
-    let newInstance = valueForRef(instanceRef);
+    let newInstance = valueForRef(instanceReference);
 
     if (newInstance !== instance) {
       if (instance !== undefined) {
@@ -373,14 +373,14 @@ define(DYNAMIC_ATTR_OP, (vm, { op1: _name, op2: _trusting, op3: _namespace }) =>
 export class UpdateDynamicAttributeOpcode implements UpdatingOpcode {
   readonly #updateRef: Reference;
 
-  constructor(reference: Reference<unknown>, attribute: DynamicAttribute, env: Environment) {
+  constructor(reference: Reference<unknown>, attribute: DynamicAttribute, environment: Environment) {
     let initialized = false;
 
     this.#updateRef = createComputeRef(() => {
       let value = valueForRef(reference);
 
       if (initialized === true) {
-        attribute.update(value, env);
+        attribute.update(value, environment);
       } else {
         initialized = true;
       }

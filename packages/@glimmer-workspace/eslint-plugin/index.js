@@ -1,4 +1,4 @@
-// @ts-check
+/* eslint-env node */
 
 /** @type {import("eslint").ESLint.Plugin} */
 module.exports = {
@@ -8,9 +8,17 @@ module.exports = {
   },
   configs: {
     recommended: {
+      env: {
+        es2022: true,
+      },
+      parserOptions: {
+        ecmaVersion: 'latest',
+        sourceType: 'module',
+      },
       plugins: [
         '@typescript-eslint',
         'prettier',
+        'unicorn',
         'qunit',
         'simple-import-sort',
         'unused-imports',
@@ -25,9 +33,38 @@ module.exports = {
         'plugin:import/recommended',
         'plugin:qunit/recommended',
         'plugin:regexp/recommended',
+        'plugin:unicorn/recommended',
         'prettier',
       ],
       rules: {
+        'prefer-object-spread': 'error',
+        'unicorn/no-null': 'off',
+        'unicorn/consistent-destructuring': 'off',
+        'unicorn/switch-case-braces': ['error', 'avoid'],
+        'unicorn/prefer-modern-dom-apis': 'warn',
+        'unicorn/prefer-dom-node-remove': 'warn',
+        'unicorn/no-array-callback-reference': 'off',
+        'unicorn/prevent-abbreviations': [
+          'warn',
+          {
+            checkFilenames: false,
+
+            replacements: {
+              args: false,
+              fn: false,
+              obj: {
+                object: false,
+                value: true,
+                parent: true,
+              },
+              pkg: false,
+              str: {
+                string: false,
+                text: true,
+              },
+            },
+          },
+        ],
         'no-console': 'error',
         'no-debugger': 'error',
         'no-loop-func': 'error',

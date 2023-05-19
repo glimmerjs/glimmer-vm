@@ -107,8 +107,8 @@ export class VMArgumentsImpl implements VMArguments {
       let newBase = positional.base + offset;
       let length = positional.length + named.length;
 
-      for (let i = length - 1; i >= 0; i--) {
-        stack.copy(i + positional.base, i + newBase);
+      for (let index = length - 1; index >= 0; index--) {
+        stack.copy(index + positional.base, index + newBase);
       }
 
       positional.base += offset;
@@ -153,11 +153,7 @@ export class PositionalArgumentsImpl implements PositionalArguments {
     this.base = base;
     this.length = length;
 
-    if (length === 0) {
-      this.#lazyReferences = EMPTY_REFERENCES;
-    } else {
-      this.#lazyReferences = null;
-    }
+    this.#lazyReferences = length === 0 ? EMPTY_REFERENCES : null;
   }
 
   at(position: number): Reference {
@@ -183,8 +179,8 @@ export class PositionalArgumentsImpl implements PositionalArguments {
       this.base = base = base - additions;
       this.length = length + additions;
 
-      for (let i = 0; i < additions; i++) {
-        this.#stack.set(other[i], i, base);
+      for (let index = 0; index < additions; index++) {
+        this.#stack.set(other[index], index, base);
       }
 
       this.#lazyReferences = null;
@@ -272,7 +268,7 @@ export class NamedArgumentsImpl implements NamedArguments {
   }
 
   has(name: string): boolean {
-    return this.#names.indexOf(name) !== -1;
+    return this.#names.includes(name);
   }
 
   get(name: string, atNames = false): Reference {
@@ -280,30 +276,22 @@ export class NamedArgumentsImpl implements NamedArguments {
 
     let names = atNames ? this.atNames : this.#names;
 
-    let idx = names.indexOf(name);
+    let index = names.indexOf(name);
 
-    if (idx === -1) {
+    if (index === -1) {
       return UNDEFINED_REFERENCE;
     }
 
-    let ref = unwrap(this.#stack).get<Reference>(idx, base);
+    let reference = unwrap(this.#stack).get<Reference>(index, base);
 
-    if (import.meta.env.DEV) {
-      return createDebugAliasRef!(atNames ? name : `@${name}`, ref);
-    } else {
-      return ref;
-    }
+    return import.meta.env.DEV ? createDebugAliasRef!(atNames ? name : `@${name}`, reference) : reference;
   }
 
   capture(): CapturedNamedArguments {
     let map = dict<Reference>();
 
-    for (const [i, name] of enumerate(this.#names)) {
-      if (import.meta.env.DEV) {
-        map[name] = createDebugAliasRef!(`@${name}`, unwrap(this.#references[i]));
-      } else {
-        map[name] = unwrap(this.#references[i]);
-      }
+    for (const [index, name] of enumerate(this.#names)) {
+      map[name] = import.meta.env.DEV ? createDebugAliasRef!(`@${name}`, unwrap(this.#references[index])) : unwrap(this.#references[index]);
     }
 
     return map as CapturedNamedArguments;
@@ -318,12 +306,12 @@ export class NamedArgumentsImpl implements NamedArguments {
 
     if (keys.length > 0) {
       let { length } = this;
-      let newNames = this.#names.slice();
+      let newNames = [...this.#names];
 
       for (const name of keys) {
-        let idx = newNames.indexOf(name);
+        let index = newNames.indexOf(name);
 
-        if (idx === -1) {
+        if (index === -1) {
           length = newNames.push(name);
           unwrap(this.#stack).push(other[name]);
         }
@@ -415,23 +403,23 @@ export class BlockArgumentsImpl implements BlockArguments {
   }
 
   has(name: string): boolean {
-    return this._names_.indexOf(name) !== -1;
+    return this._names_.includes(name);
   }
 
   get(name: string): Nullable<ScopeBlock> {
-    let idx = this._names_.indexOf(name);
+    let index = this._names_.indexOf(name);
 
-    if (idx === -1) {
+    if (index === -1) {
       return null;
     }
 
     let { base } = this;
     let stack = unwrap(this.#stack);
 
-    let table = check(stack.get(idx * 3, base), CheckOption(CheckBlockSymbolTable));
-    let scope = check(stack.get(idx * 3 + 1, base), CheckOption(CheckScope));
+    let table = check(stack.get(index * 3, base), CheckOption(CheckBlockSymbolTable));
+    let scope = check(stack.get(index * 3 + 1, base), CheckOption(CheckScope));
     let handle = check(
-      stack.get(idx * 3 + 2, base),
+      stack.get(index * 3 + 2, base),
       CheckOption(CheckOr(CheckHandle, CheckCompilableBlock))
     );
 
@@ -461,18 +449,18 @@ class CapturedBlockArgumentsImpl implements CapturedBlockArguments {
   }
 
   has(name: string): boolean {
-    return this.names.indexOf(name) !== -1;
+    return this.names.includes(name);
   }
 
   get(name: string): Nullable<ScopeBlock> {
-    let idx = this.names.indexOf(name);
+    let index = this.names.indexOf(name);
 
-    if (idx === -1) return null;
+    if (index === -1) return null;
 
     return [
-      this.values[idx * 3 + 2] as CompilableBlock,
-      this.values[idx * 3 + 1] as Scope,
-      this.values[idx * 3] as BlockSymbolTable,
+      this.values[index * 3 + 2] as CompilableBlock,
+      this.values[index * 3 + 1] as Scope,
+      this.values[index * 3] as BlockSymbolTable,
     ];
   }
 }

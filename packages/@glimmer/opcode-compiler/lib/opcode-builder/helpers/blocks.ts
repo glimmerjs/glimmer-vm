@@ -19,7 +19,7 @@ import {
 
 import type { PushExpressionOp, PushStatementOp } from '../../syntax/compiler-impl';
 import { blockOperand, symbolTableOperand } from '../operands';
-import { SimpleArgs } from './shared';
+import { SimpleArguments } from './shared';
 import { PushPrimitive } from './vm';
 
 /**
@@ -33,7 +33,7 @@ export function YieldBlock(
   to: number,
   positional: Nullable<WireFormat.Core.Params>
 ): void {
-  SimpleArgs(op, positional, null, true);
+  SimpleArguments(op, positional, null, true);
   op(GET_BLOCK_OP, to);
   op(SPREAD_BLOCK_OP);
   op(COMPILE_BLOCK_OP);
@@ -99,9 +99,9 @@ export function InvokeStaticBlockWithStack(
   if (count) {
     op(CHILD_SCOPE_OP);
 
-    for (let i = 0; i < count; i++) {
-      op(DUP_OP, $fp, callerCount - i);
-      op(SET_VARIABLE_OP, parameters[i]);
+    for (let index = 0; index < count; index++) {
+      op(DUP_OP, $fp, callerCount - index);
+      op(SET_VARIABLE_OP, parameters[index]);
     }
   }
 
@@ -117,10 +117,10 @@ export function InvokeStaticBlockWithStack(
 }
 
 export function PushSymbolTable(op: PushExpressionOp, parameters: number[] | null): void {
-  if (parameters !== null) {
-    op(PUSH_SYMBOL_TABLE_OP, symbolTableOperand({ parameters }));
-  } else {
+  if (parameters === null) {
     PushPrimitive(op, null);
+  } else {
+    op(PUSH_SYMBOL_TABLE_OP, symbolTableOperand({ parameters }));
   }
 }
 
