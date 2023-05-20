@@ -40,14 +40,14 @@ import {
 import type { TestJitRuntimeResolver } from '../modes/jit/resolver';
 import type { TestComponentConstructor } from './types';
 
-export type Attrs = Dict;
-export type AttrsDiff = { oldAttrs: Nullable<Attrs>; newAttrs: Attrs };
+export type Attributes = Dict;
+export type AttributesDiff = { oldAttrs: Nullable<Attributes>; newAttrs: Attributes };
 
 export interface EmberishCurlyComponentFactory
   extends TestComponentConstructor<EmberishCurlyComponent> {
   fromDynamicScope?: string[];
   positionalParams: string | string[];
-  create(options: { attrs: Attrs; targetObject: any }): EmberishCurlyComponent;
+  create(options: { attrs: Attributes; targetObject: any }): EmberishCurlyComponent;
   new (...args: unknown[]): this;
 }
 
@@ -61,7 +61,7 @@ export class EmberishCurlyComponent {
   public declare name: string;
   public tagName: Nullable<string> = null;
   public attributeBindings: Nullable<string[]> = null;
-  public declare attrs: Attrs;
+  public declare attrs: Attributes;
   public declare element: Element;
   public declare bounds: Bounds;
   public parentView: Nullable<EmberishCurlyComponent> = null;
@@ -71,7 +71,7 @@ export class EmberishCurlyComponent {
 
   // create(options: { attrs: Attrs; targetObject: any }): EmberishCurlyComponent
 
-  static create(args: { attrs: Attrs; targetObject: any }): EmberishCurlyComponent {
+  static create(args: { attrs: Attributes; targetObject: any }): EmberishCurlyComponent {
     let c = new this();
 
     for (let key of keys(args)) {
@@ -105,9 +105,9 @@ export class EmberishCurlyComponent {
 
   destroy() {}
 
-  didInitAttrs(_options: { attrs: Attrs }) {}
-  didUpdateAttrs(_diff: AttrsDiff) {}
-  didReceiveAttrs(_diff: AttrsDiff) {}
+  didInitAttrs(_options: { attrs: Attributes }) {}
+  didUpdateAttrs(_diff: AttributesDiff) {}
+  didReceiveAttrs(_diff: AttributesDiff) {}
   willInsertElement() {}
   willDestroyElement() {}
   willUpdate() {}
@@ -184,7 +184,7 @@ export class EmberishCurlyComponentManager
 
       return { positional: EMPTY_ARRAY, named } as PreparedArguments;
     } else if (Array.isArray(positionalParams)) {
-      let named = { ...args.named.capture()};
+      let named = { ...args.named.capture() };
       let count = Math.min(positionalParams.length, args.positional.length);
 
       for (let index = 0; index < count; index++) {
@@ -219,12 +219,11 @@ export class EmberishCurlyComponentManager
     let args = _args.named.capture();
     let attributes = reifyNamed(args);
     let merged = {
-
       ...attributes,
       attrs: attributes,
       args,
       targetObject: self,
-      HAS_BLOCK: hasDefaultBlock
+      HAS_BLOCK: hasDefaultBlock,
     };
     let component = klass.create(merged);
 
@@ -302,7 +301,7 @@ export class EmberishCurlyComponentManager
   update({ component }: EmberishCurlyComponentState): void {
     let oldAttributes = component.attrs;
     let newAttributes = reifyNamed(component.args);
-    let merged = { ...newAttributes, attrs: newAttributes};
+    let merged = { ...newAttributes, attrs: newAttributes };
 
     consumeTag(component.dirtinessTag);
 

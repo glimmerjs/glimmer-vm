@@ -188,12 +188,10 @@ export class LooseModeResolution {
     if (this.ambiguity.namespaces.length === 0) {
       return 'Loose';
     } else if (this.ambiguity.namespaces.length === 1) {
-      if (this.ambiguity.fallback) {
-        // simple namespaced resolution with fallback must be attr={{x}}
-        return ['ambiguous', SerializedAmbiguity.Attribute];
-      } else {
-        return ['ns', this.ambiguity.namespaces[0]];
-      }
+      return this.ambiguity.fallback
+        ? // simple namespaced resolution with fallback must be attr={{x}}
+          ['ambiguous', SerializedAmbiguity.Attribute]
+        : ['ns', this.ambiguity.namespaces[0]];
     } else if (this.ambiguity.fallback) {
       // component or helper + fallback ({{something}})
       return ['ambiguous', SerializedAmbiguity.Append];

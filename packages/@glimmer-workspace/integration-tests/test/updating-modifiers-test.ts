@@ -1,3 +1,4 @@
+/* eslint-disable unicorn/prefer-dom-node-dataset */
 import type { SimpleElement } from '@glimmer/interfaces';
 
 import { jitSuite, RenderTest, test } from '..';
@@ -7,12 +8,12 @@ function makeSyncDataAttributeModifier(hooks: string[]) {
   return class SyncDataAttributeModifier {
     declare element: SimpleElement;
     didInsertElement([parameter]: string[]) {
-      this.element.dataset.modifier = `installed - ${parameter}`;
+      this.element.setAttribute('data-modifier', `installed - ${parameter}`);
       hooks.push('didInsertElement');
     }
 
     didUpdate([parameter]: string[]) {
-      this.element.dataset.modifier = `updated - ${parameter}`;
+      this.element.setAttribute(`data-modifier`, `updated - ${parameter}`);
       hooks.push('didUpdate');
     }
 

@@ -10,13 +10,13 @@ import ts from 'typescript';
 import importMeta from './import-meta.js';
 import inline from './inline.js';
 import terser from '@rollup/plugin-terser';
-import { entries } from './utils.js';
 import { inspect } from 'node:util';
 import { sync as sizeSync } from 'brotli-size';
 import { constants as zlib } from 'node:zlib';
 import prettyBytes from 'pretty-bytes';
 import chalk from 'chalk';
 import { visualizer } from 'rollup-plugin-visualizer';
+import { entries } from './utils.js';
 
 // eslint-disable-next-line import/no-named-as-default-member
 const { ModuleKind, ModuleResolutionKind, ScriptTarget, ImportsNotUsedAsValues } = ts;

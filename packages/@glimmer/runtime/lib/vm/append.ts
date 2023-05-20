@@ -19,6 +19,7 @@ import type {
   Scope,
   UpdatingOpcode,
   VM as PublicVM,
+  Cursor,
 } from '@glimmer/interfaces';
 import { LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
 import {
@@ -137,6 +138,7 @@ class Stacks {
 
 export interface DebugVM {
   readonly getStacks: (vm: VM) => Stacks;
+  readonly getCursors: (vm: VM) => Stack<Cursor>;
   readonly destroyableStack: Stack<object>;
   readonly registers: () => { s0: unknown; s1: unknown; t0: unknown; t1: unknown; v0: unknown };
 }
@@ -265,6 +267,7 @@ export class VM implements PublicVM, InternalVM {
         value: {
           destroyableStack: this.#destroyableStack,
           getStacks: (vm) => vm.#stacks,
+          getCursors: (vm) => vm._elements_().cursors,
           registers: () => ({
             s0: this.#registers[$s0 - $s0],
             s1: this.#registers[$s1 - $s0],

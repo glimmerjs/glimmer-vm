@@ -26,7 +26,7 @@ export function test(...args: any[]) {
     let meta: Dict<unknown> = args[0];
     return (_target: Object, _name: string, descriptor: PropertyDescriptor) => {
       let testFunction = descriptor.value;
-      for (let key of Object.keys(meta)) (testFunction[key] = meta[key]);
+      for (let key of Object.keys(meta)) testFunction[key] = meta[key];
       setTestingDescriptor(descriptor);
     };
   }
@@ -41,13 +41,14 @@ export interface Constructor<T = unknown, Prototype = T> {
   prototype: Prototype;
 }
 
-export function module(name: string): (klass: new () => TestCase) => void {
+export function describe(name: string): (klass: new () => TestCase) => void {
   return function (klass: new () => TestCase) {
     QUnit.module(name);
 
     let proto = klass.prototype as Dict<unknown>;
     for (let property in proto) {
-      let test = proto[property];
+      // eslint-disable-next-line prefer-let/prefer-let
+      const test = proto[property];
 
       if (isTestFunction(test)) {
         QUnit.test(property, (assert) => new klass().run(test, assert));

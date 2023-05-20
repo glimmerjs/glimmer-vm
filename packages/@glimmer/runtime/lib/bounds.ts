@@ -1,8 +1,16 @@
-import type { Bounds, Cursor, Nullable, SimpleElement, SimpleNode } from '@glimmer/interfaces';
+import type {
+  Bounds,
+  Cursor,
+  DOMEnvironment,
+  Nullable,
+  SimpleElement,
+  SimpleNode,
+  UpdatableBounds,
+} from '@glimmer/interfaces';
 import { expect } from '@glimmer/util';
 
-export class CursorImpl implements Cursor {
-  constructor(public element: SimpleElement, public nextSibling: Nullable<SimpleNode>) {}
+export class CursorImpl<E extends DOMEnvironment = DOMEnvironment> implements Cursor {
+  constructor(public element: E['element'], public nextSibling: Nullable<E['child']>) {}
 }
 
 export type DestroyableBounds = Bounds;
@@ -53,14 +61,14 @@ export class SingleNodeBounds implements Bounds {
 
 /** @__INLINE__ */
 function withBounds(
-  bounds: Bounds,
-  action: (parent: SimpleElement, node: SimpleNode) => void
-): SimpleNode | null {
+  bounds: UpdatableBounds,
+  action: (parent: Element, node: ChildNode) => void
+): ChildNode | null {
   let parent = bounds.parentElement();
   let first = bounds.firstNode();
   let last = bounds.lastNode();
 
-  let current: SimpleNode = first;
+  let current = first;
 
   // eslint-disable-next-line no-constant-condition
   while (true) {
@@ -72,8 +80,9 @@ function withBounds(
   }
 }
 
-export const move = (bounds: Bounds, reference: Nullable<SimpleNode>): Nullable<SimpleNode> =>
+export const move = (bounds: UpdatableBounds, reference: Nullable<Node>): Nullable<Node> =>
+  // eslint-disable-next-line unicorn/prefer-modern-dom-apis
   withBounds(bounds, (parent, node) => parent.insertBefore(node, reference));
 
-export const clear = (bounds: Bounds): Nullable<SimpleNode> =>
-  withBounds(bounds, (parent, node) => parent.removeChild(node));
+export const clear = (bounds: UpdatableBounds): Nullable<ChildNode> =>
+  withBounds(bounds, (parent, node) => node.remove());

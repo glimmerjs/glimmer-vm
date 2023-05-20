@@ -5,7 +5,7 @@ import type {
   SerializedTemplateBlock,
   WireFormat,
 } from '@glimmer/interfaces';
-import { dict, exhausted } from '@glimmer/util';
+import { exhausted, unwrap } from '@glimmer/util';
 
 import { inflateAttrName as inflateAttributeName, inflateTagName } from './utils';
 import { CURRIED_COMPONENT, CURRIED_HELPER, CURRIED_MODIFIER } from '@glimmer/vm-constants';
@@ -247,12 +247,12 @@ export default class WireFormatDebugger {
           return ['GetFreeAsModifierHead', this.upvars[opcode[1]], opcode[2]];
 
         case WIRE_GET_SYMBOL:
-          return opcode[1] === 0 ? ['get-symbol', 'this', opcode[2]] : ['get-symbol', this.symbols[opcode[1] - 1], opcode[2]];
-        
+          return opcode[1] === 0
+            ? ['get-symbol', 'this', opcode[2]]
+            : ['get-symbol', this.symbols[opcode[1] - 1], opcode[2]];
 
         case WIRE_GET_LEXICAL_SYMBOL:
           return ['get-template-symbol', opcode[1], opcode[2]];
-        
 
         case WIRE_IF:
           return [
@@ -339,19 +339,17 @@ export default class WireFormatDebugger {
   private formatHash(hash: WireFormat.Core.Hash): Nullable<object> {
     if (hash === null) return null;
 
-    return hash[0].reduce((accum, key, index) => {
-      accum[key] = this.formatOpcode(hash[1][index]);
-      return accum;
-    }, dict());
+    return Object.fromEntries(
+      hash[0].map((key, index) => [key, this.formatOpcode(hash[1][index])])
+    );
   }
 
   private formatBlocks(blocks: WireFormat.Core.Blocks): Nullable<object> {
     if (blocks === null) return null;
 
-    return blocks[0].reduce((accum, key, index) => {
-      accum[key] = this.formatBlock(blocks[1][index] as SerializedInlineBlock);
-      return accum;
-    }, dict());
+    return Object.fromEntries(
+      blocks[0].map((key, index) => [key, this.formatBlock(unwrap(blocks[1][index]))])
+    );
   }
 
   private formatBlock(block: SerializedInlineBlock): object {

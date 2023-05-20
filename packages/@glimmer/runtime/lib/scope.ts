@@ -14,7 +14,7 @@ export class DynamicScopeImpl implements DynamicScope {
   readonly #bucket: Dict<Reference>;
 
   constructor(bucket?: Dict<Reference>) {
-    this.#bucket = bucket ? ({ ...bucket}) : {};
+    this.#bucket = bucket ? { ...bucket } : {};
   }
 
   get(key: string): Reference {
@@ -37,7 +37,7 @@ export function isScopeReference(s: ScopeSlot): s is Reference {
 
 export class ScopeImpl implements Scope {
   static root(self: Reference<unknown>, size = 0, owner: Owner): Scope {
-    let references: Reference<unknown>[] = new Array(size + 1);
+    let references: Reference<unknown>[] = Array.from({ length: size + 1 });
 
     for (let index = 0; index <= size; index++) {
       references[index] = UNDEFINED_REFERENCE;
@@ -47,7 +47,7 @@ export class ScopeImpl implements Scope {
   }
 
   static sized(size = 0, owner: Owner): Scope {
-    let references: Reference<unknown>[] = new Array(size + 1);
+    let references: Reference<unknown>[] = Array.from({ length: size + 1 });
 
     for (let index = 0; index <= size; index++) {
       references[index] = UNDEFINED_REFERENCE;

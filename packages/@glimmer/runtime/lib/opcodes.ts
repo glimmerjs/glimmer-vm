@@ -17,7 +17,6 @@ import { isScopeReference } from './scope';
 import { CONSTANTS, INNER_VM } from './symbols';
 import type { VM, LowLevelVM } from './vm';
 import type { DebugVM, InternalVM } from './vm/append';
-import { CURSOR_STACK } from './vm/element-builder';
 import { sizeof, type RuntimeOpImpl, isMachine, opType } from '@glimmer/program';
 
 export interface OpcodeJSON {
@@ -174,7 +173,7 @@ export class AppendOpcodes {
                 LOCAL_LOGGER.log(
                   '%c -> elements',
                   'color: blue',
-                  vm._elements_()[CURSOR_STACK].current!.element
+                  vm._elements_()._debug_?.getCursors().current!.element
                 );
 
                 LOCAL_LOGGER.log(

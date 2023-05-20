@@ -124,17 +124,17 @@ class CompileErrorTests extends RenderTest {
         }),
       expectedError('class\n=\n{{foo}}&amp;bar', 2, 0)
     );
-
-    function expectedError(code: string, line: number, column: number) {
-      return syntaxErrorFor(
-        `An unquoted attribute value must be a string or a mustache, preceded by whitespace or a '=' character, and followed by whitespace, a '>' character, or '/>'`,
-        code,
-        'test-module',
-        line,
-        column
-      );
-    }
   }
+}
+
+function expectedError(code: string, line: number, column: number) {
+  return syntaxErrorFor(
+    `An unquoted attribute value must be a string or a mustache, preceded by whitespace or a '=' character, and followed by whitespace, a '>' character, or '/>'`,
+    code,
+    'test-module',
+    line,
+    column
+  );
 }
 
 jitSuite(CompileErrorTests);

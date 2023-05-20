@@ -4,6 +4,7 @@ import type {
   AttributeOperation,
   AttrNamespace,
   Dict,
+  DOMEnvironment,
   ElementBuilder,
   Environment,
   Nullable,
@@ -17,22 +18,22 @@ import { requiresSanitization, sanitizeAttributeValue } from '../../dom/sanitize
 
 export function dynamicAttribute(
   element: SimpleElement,
-  attribute_: string,
+  attributeName: string,
   namespace: Nullable<AttrNamespace>,
   isTrusting = false
 ): DynamicAttribute {
   let { tagName, namespaceURI } = element;
-  let attribute = { element, name: attribute_, namespace };
+  let attribute = { element, name: attributeName, namespace };
 
-  if (import.meta.env.DEV && attribute_ === 'style' && !isTrusting) {
+  if (import.meta.env.DEV && attributeName === 'style' && !isTrusting) {
     return new DebugStyleAttributeManager(attribute);
   }
 
   if (namespaceURI === NS_SVG) {
-    return buildDynamicAttribute(tagName, attribute_, attribute);
+    return buildDynamicAttribute(tagName, attributeName, attribute);
   }
 
-  let [type, normalized] = normalizeProperty(element, attribute_);
+  let [type, normalized] = normalizeProperty(element, attributeName);
 
   return type === ATTR
     ? buildDynamicAttribute(tagName, normalized, attribute)
@@ -44,7 +45,9 @@ function buildDynamicAttribute(
   name: string,
   attribute: AttributeCursor
 ): DynamicAttribute {
-  return requiresSanitization(tagName, name) ? new SafeDynamicAttribute(attribute) : new SimpleDynamicAttribute(attribute);
+  return requiresSanitization(tagName, name)
+    ? new SafeDynamicAttribute(attribute)
+    : new SimpleDynamicAttribute(attribute);
 }
 
 function buildDynamicProperty(
@@ -67,10 +70,12 @@ function buildDynamicProperty(
   return new DefaultDynamicProperty(name, attribute);
 }
 
-export abstract class DynamicAttribute implements AttributeOperation {
+export abstract class DynamicAttribute<E extends DOMEnvironment = DOMEnvironment>
+  implements AttributeOperation<E>
+{
   constructor(public attribute: AttributeCursor) {}
 
-  abstract set(dom: ElementBuilder, value: unknown, environment: Environment): void;
+  abstract set(dom: ElementBuilder<E>, value: unknown, environment: Environment): void;
   abstract update(value: unknown, environment: Environment): void;
 }
 

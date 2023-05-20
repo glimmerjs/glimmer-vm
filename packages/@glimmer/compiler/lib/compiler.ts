@@ -1,3 +1,6 @@
+/* eslint-disable unicorn/prefer-module */
+// TODO [1.0]: Be more principled about the crypto module dependency
+
 import type {
   Nullable,
   SerializedTemplateBlock,
@@ -149,6 +152,4 @@ export function precompile(
   return stringified;
 }
 
-
-
-export {type PrecompileOptions} from '@glimmer/syntax';
+export { type PrecompileOptions } from '@glimmer/syntax';

@@ -1,3 +1,4 @@
+/* eslint-disable unicorn/prefer-dom-node-append */
 import type { SimpleElement, SimpleNode } from '@glimmer/interfaces';
 import type { SafeString } from '@glimmer/runtime';
 import { NS_SVG } from '@glimmer/util';
@@ -24,19 +25,19 @@ class ContentTest extends RenderTest {
 
   makeElement(tag: string, content: string): SimpleElement {
     let element = this.delegate.createElement(tag);
-    element.append(this.delegate.createTextNode(content));
+    element.appendChild(this.delegate.createTextNode(content));
     return element;
   }
 
   makeSVGElement(tag: string, content: string): SimpleElement {
     let element = this.delegate.createElementNS(NS_SVG, tag);
-    element.append(this.delegate.createTextNode(content));
+    element.appendChild(this.delegate.createTextNode(content));
     return element;
   }
 
   makeFragment(nodes: SimpleNode[]) {
     let frag = this.delegate.createDocumentFragment();
-    for (let node of nodes) frag.append(node);
+    for (let node of nodes) frag.appendChild(node);
     return frag;
   }
 }
@@ -134,7 +135,10 @@ function generateContentTestCase(
   ]) {
     let test = function (this: ContentTest) {
       let template = wrapper.before + tc.template + wrapper.after;
-      for (let [index, { input: _input, expected: _expected, description }] of tc.values.entries()) {
+      for (let [
+        index,
+        { input: _input, expected: _expected, description },
+      ] of tc.values.entries()) {
         let input: unknown;
         let expected: string;
 
@@ -221,10 +225,12 @@ generateContentTestCase(ContentTest, {
     },
     {
       input: (test, isHTML) => {
-        return isHTML ? test.makeFragment([test.makeElement('p', 'one'), test.makeElement('p', 'two')]) : test.makeFragment([
-            test.makeSVGElement('text', 'one'),
-            test.makeSVGElement('text', 'two'),
-          ]);
+        return isHTML
+          ? test.makeFragment([test.makeElement('p', 'one'), test.makeElement('p', 'two')])
+          : test.makeFragment([
+              test.makeSVGElement('text', 'one'),
+              test.makeSVGElement('text', 'two'),
+            ]);
       },
       expected: (_test, isHTML) =>
         isHTML ? '<p>one</p><p>two</p>' : '<text>one</text><text>two</text>',
@@ -324,10 +330,12 @@ generateContentTestCase(ContentTest, {
     },
     {
       input: (test, isHTML) => {
-        return isHTML ? test.makeFragment([test.makeElement('p', 'one'), test.makeElement('p', 'two')]) : test.makeFragment([
-            test.makeSVGElement('text', 'one'),
-            test.makeSVGElement('text', 'two'),
-          ]);
+        return isHTML
+          ? test.makeFragment([test.makeElement('p', 'one'), test.makeElement('p', 'two')])
+          : test.makeFragment([
+              test.makeSVGElement('text', 'one'),
+              test.makeSVGElement('text', 'two'),
+            ]);
       },
       expected: (_test, isHTML) =>
         isHTML ? '<p>one</p><p>two</p>' : '<text>one</text><text>two</text>',

@@ -1,3 +1,5 @@
+// https://github.com/sindresorhus/eslint-plugin-unicorn/issues/2088
+
 import type { CapturedArguments } from '@glimmer/interfaces';
 import { createInvokableRef } from '@glimmer/reference';
 
@@ -55,8 +57,10 @@ class FnTest extends RenderTest {
 
   @test
   'updates when the function changes'() {
-    let function1 = (argument1: string, argument2: string) => `arg1: ${argument1}, arg2: ${argument2}`;
-    let function2 = (argument1: string, argument2: string) => `arg2: ${argument2}, arg1: ${argument1}`;
+    let function1 = (argument1: string, argument2: string) =>
+      `arg1: ${argument1}, arg2: ${argument2}`;
+    let function2 = (argument1: string, argument2: string) =>
+      `arg2: ${argument2}, arg1: ${argument1}`;
 
     this.render(`{{invoke (fn this.myFunc this.arg1 this.arg2)}}`, {
       myFunc: function1,
@@ -102,8 +106,10 @@ class FnTest extends RenderTest {
   'a stashed fn result invokes the correct function when the bound function changes'(
     assert: Assert
   ) {
-    let function1 = (argument1: string, argument2: string) => `arg1: ${argument1}, arg2: ${argument2}`;
-    let function2 = (argument1: string, argument2: string) => `arg2: ${argument2}, arg1: ${argument1}`;
+    let function1 = (argument1: string, argument2: string) =>
+      `arg1: ${argument1}, arg2: ${argument2}`;
+    let function2 = (argument1: string, argument2: string) =>
+      `arg2: ${argument2}, arg1: ${argument1}`;
 
     this.render(`<Stash @stashedFn={{fn this.myFunc this.arg1 this.arg2}}/>`, {
       myFunc: function1,

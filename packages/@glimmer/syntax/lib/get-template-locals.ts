@@ -14,7 +14,7 @@ interface GetTemplateLocalsOptions {
 function tokensFromType(
   node: ASTv1.Node,
   scopedTokens: string[],
-  options: GetTemplateLocalsOptions
+  options: GetTemplateLocalsOptions | undefined
 ): string | void {
   if (node.type === 'PathExpression') {
     if (node.head.type === 'AtHead' || node.head.type === 'ThisHead') {
@@ -35,7 +35,7 @@ function tokensFromType(
       return;
     }
 
-    if (!options.includeHtmlElements && !tag.includes('.') && tag.toLowerCase() === tag) {
+    if (!options?.includeHtmlElements && !tag.includes('.') && tag.toLowerCase() === tag) {
       return;
     }
 
@@ -67,11 +67,11 @@ function addTokens(
   tokensSet: Set<string>,
   node: ASTv1.Node,
   scopedTokens: string[],
-  options: GetTemplateLocalsOptions
+  options: GetTemplateLocalsOptions | undefined
 ) {
   let maybeTokens = tokensFromType(node, scopedTokens, options);
 
-  for (let maybeToken of (Array.isArray(maybeTokens) ? maybeTokens : [maybeTokens])) {
+  for (let maybeToken of Array.isArray(maybeTokens) ? maybeTokens : [maybeTokens]) {
     if (maybeToken !== undefined && maybeToken[0] !== '@') {
       let maybeTokenFirstSegment = maybeToken.split('.')[0];
       if (!scopedTokens.includes(maybeTokenFirstSegment)) {
@@ -86,13 +86,7 @@ function addTokens(
  * referenced that could possible come from the parent scope. Can exclude known keywords
  * optionally.
  */
-export function getTemplateLocals(
-  html: string,
-  options: GetTemplateLocalsOptions = {
-    includeHtmlElements: false,
-    includeKeywords: false,
-  }
-): string[] {
+export function getTemplateLocals(html: string, options?: GetTemplateLocalsOptions): string[] {
   let ast = preprocess(html);
   let tokensSet = new Set<string>();
   let scopedTokens: string[] = [];
@@ -106,9 +100,7 @@ export function getTemplateLocals(
       },
 
       exit({ blockParams }) {
-        blockParams.forEach(() => {
-          scopedTokens.pop();
-        });
+        for (let _ of blockParams) scopedTokens.pop();
       },
     },
 
@@ -121,9 +113,7 @@ export function getTemplateLocals(
       },
 
       exit({ blockParams }) {
-        blockParams.forEach(() => {
-          scopedTokens.pop();
-        });
+        for (let _ of blockParams) scopedTokens.pop();
       },
     },
 

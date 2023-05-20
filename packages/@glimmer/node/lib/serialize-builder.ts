@@ -5,6 +5,7 @@ import type {
   Maybe,
   ModifierInstance,
   Nullable,
+  SimpleDOMEnvironment,
   SimpleElement,
   SimpleNode,
   SimpleText,
@@ -16,14 +17,20 @@ const TEXT_NODE = 3;
 const NEEDS_EXTRA_CLOSE = new WeakMap<SimpleNode>();
 
 function currentNode(
-  cursor: ElementBuilder | { element: SimpleElement; nextSibling: SimpleNode }
-): Nullable<SimpleNode> {
+  cursor:
+    | ElementBuilder
+    | { element: SimpleElement; nextSibling: SimpleNode }
+    | { element: Element; nextSibling: Nullable<ChildNode> }
+): Nullable<SimpleNode | Node> {
   let { element, nextSibling } = cursor;
 
   return nextSibling === null ? element.lastChild : nextSibling.previousSibling;
 }
 
-class SerializeBuilder extends NewElementBuilder implements ElementBuilder {
+class SerializeBuilder
+  extends NewElementBuilder<SimpleDOMEnvironment>
+  implements ElementBuilder<SimpleDOMEnvironment>
+{
   private serializeBlockDepth = 0;
 
   override __openBlock(): void {
@@ -101,19 +108,20 @@ class SerializeBuilder extends NewElementBuilder implements ElementBuilder {
   }
 
   override openElement(tag: string) {
-    if (tag === 'tr' && 
-        this.element.tagName !== 'TBODY' &&
-        this.element.tagName !== 'THEAD' &&
-        this.element.tagName !== 'TFOOT'
-      ) {
-        this.openElement('tbody');
-        // This prevents the closeBlock comment from being re-parented
-        // under the auto inserted tbody. Rehydration builder needs to
-        // account for the insertion since it is injected here and not
-        // really in the template.
-        NEEDS_EXTRA_CLOSE.set(this._constructing_!, true);
-        this.flushElement(null);
-      }
+    if (
+      tag === 'tr' &&
+      this.element.tagName !== 'TBODY' &&
+      this.element.tagName !== 'THEAD' &&
+      this.element.tagName !== 'TFOOT'
+    ) {
+      this.openElement('tbody');
+      // This prevents the closeBlock comment from being re-parented
+      // under the auto inserted tbody. Rehydration builder needs to
+      // account for the insertion since it is injected here and not
+      // really in the template.
+      NEEDS_EXTRA_CLOSE.set(this._constructing_!, true);
+      this.flushElement(null);
+    }
 
     return super.openElement(tag);
   }

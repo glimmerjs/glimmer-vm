@@ -1,5 +1,6 @@
-/* eslint-disable @typescript-eslint/no-var-requires */
-/* eslint-disable @typescript-eslint/no-require-imports */
+/* eslint-disable unicorn/prefer-module, @typescript-eslint/no-var-requires, @typescript-eslint/no-require-imports */
+'use strict';
+
 const path = require('node:path');
 const pluginTester = require('babel-plugin-tester');
 

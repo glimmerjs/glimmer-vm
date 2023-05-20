@@ -20,9 +20,9 @@ export class Compilers<PushOp extends PushExpressionOp, TSexpOpcodes extends Sex
 
   readonly add = <TSexpOpcode extends TSexpOpcodes>(
     name: TSexpOpcode,
-    function_: CompilerFunction<PushOp, SexpOpcodeMap[TSexpOpcode]>
+    fn: CompilerFunction<PushOp, SexpOpcodeMap[TSexpOpcode]>
   ): void => {
-    this.#names[name] = this.#funcs.push(function_) - 1;
+    this.#names[name] = this.#funcs.push(fn) - 1;
   };
 
   readonly compile = (op: PushOp, sexp: SexpOpcodeMap[TSexpOpcodes]): void => {

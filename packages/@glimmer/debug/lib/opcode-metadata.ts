@@ -119,8 +119,8 @@ let METADATA: Nullable<NormalizedMetadata>[] = [];
 let MACHINE_METADATA: Nullable<NormalizedMetadata>[] = [];
 
 if (import.meta.env.DEV) {
-  METADATA = new Array(SIZE_OP).fill(null);
-  MACHINE_METADATA = new Array(SIZE_OP).fill(null);
+  METADATA = Array.from<Nullable<NormalizedMetadata>>({ length: SIZE_OP }).fill(null);
+  MACHINE_METADATA = Array.from<Nullable<NormalizedMetadata>>({ length: SIZE_OP }).fill(null);
   MACHINE_METADATA[PUSH_FRAME_OP] = {
     name: 'PushFrame',
     mnemonic: 'pushf',

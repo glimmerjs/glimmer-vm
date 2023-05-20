@@ -1,5 +1,5 @@
 import type {
-  InternalComponentCapabilities,
+  CapabilityMask,
   Owner,
   ResolvedComponentDefinition,
   WithCreateInstance,
@@ -20,6 +20,7 @@ import {
   test,
   TestJitRuntimeResolver,
 } from '..';
+import { CREATE_INSTANCE_CAPABILITY, HAS_SUB_OWNER_CAPABILITY } from '@glimmer/vm-constants';
 
 class OwnerJitRuntimeResolver extends TestJitRuntimeResolver {
   override lookupComponent(name: string, owner: () => void): ResolvedComponentDefinition | null {
@@ -38,28 +39,15 @@ class OwnerJitRenderDelegate extends JitRenderDelegate {
   }
 }
 
-const CAPABILITIES = {
-  dynamicLayout: false,
-  dynamicTag: false,
-  prepareArgs: false,
-  createArgs: false,
-  attributeHook: false,
-  elementHook: false,
-  createCaller: false,
-  dynamicScope: false,
-  updateHook: false,
-  createInstance: true,
-  wrapped: false,
-  willDestroy: false,
-  hasSubOwner: true,
-};
+const CAPABILITIES = (CREATE_INSTANCE_CAPABILITY | HAS_SUB_OWNER_CAPABILITY) as CapabilityMask;
 
+// eslint-disable-next-line unicorn/no-static-only-class
 class MountComponent {
   static owner: object;
 }
 
 class MountManager implements WithCreateInstance<object>, WithSubOwner<object> {
-  getCapabilities(): InternalComponentCapabilities {
+  getCapabilities(): CapabilityMask {
     return CAPABILITIES;
   }
 
@@ -119,20 +107,29 @@ class OwnerTest extends RenderTest {
 
   @test
   'owner can be used per-template in compile time resolver'(assert: Assert) {
-    class FooBar extends EmberishCurlyComponent {
-      override layout = createTemplate('<FooBaz/>')(() => {
+    {
+      let layout = createTemplate('<FooBaz/>')(() => {
         assert.step('foo-bar owner called');
       });
+
+      class FooBar extends EmberishCurlyComponent {
+        override layout = layout;
+      }
+
+      this.delegate.registerComponent('Curly', 'Curly', 'FooBar', null, FooBar);
     }
 
-    class FooBaz extends EmberishCurlyComponent {
-      override layout = createTemplate('<FooQux/>')(() => {
+    {
+      let layout = createTemplate('<FooQux/>')(() => {
         assert.step('foo-baz owner called');
       });
+      class FooBaz extends EmberishCurlyComponent {
+        override layout = layout;
+      }
+
+      this.delegate.registerComponent('Curly', 'Curly', 'FooBaz', null, FooBaz);
     }
 
-    this.delegate.registerComponent('Curly', 'Curly', 'FooBar', null, FooBar);
-    this.delegate.registerComponent('Curly', 'Curly', 'FooBaz', null, FooBaz);
     this.delegate.registerComponent('TemplateOnly', 'TemplateOnly', 'FooQux', 'testing');
 
     this.render('<FooBar/>');
@@ -144,29 +141,37 @@ class OwnerTest extends RenderTest {
   'owner can be used per-template in runtime resolver'(assert: Assert) {
     this.delegate.registerComponent('TemplateOnly', 'TemplateOnly', 'FooQux', 'testing');
 
-    this.delegate.registerComponent(
-      'Curly',
-      'Curly',
-      'FooBaz',
-      null,
-      class FooBaz extends EmberishCurlyComponent {
-        override layout = createTemplate('<FooQux/>')(() => {
-          assert.step('foo-baz owner called');
-        });
-      }
-    );
+    {
+      let layout = createTemplate('<FooQux/>')(() => {
+        assert.step('foo-baz owner called');
+      });
 
-    this.delegate.registerComponent(
-      'Curly',
-      'Curly',
-      'FooBar',
-      null,
-      class FooBar extends EmberishCurlyComponent {
-        override layout = createTemplate('<FooBaz/>')(() => {
-          assert.step('foo-bar owner called');
-        });
-      }
-    );
+      this.delegate.registerComponent(
+        'Curly',
+        'Curly',
+        'FooBaz',
+        null,
+        class FooBaz extends EmberishCurlyComponent {
+          override layout = layout;
+        }
+      );
+    }
+
+    {
+      let layout = createTemplate('<FooBaz/>')(() => {
+        assert.step('foo-bar owner called');
+      });
+
+      this.delegate.registerComponent(
+        'Curly',
+        'Curly',
+        'FooBar',
+        null,
+        class FooBar extends EmberishCurlyComponent {
+          override layout = layout;
+        }
+      );
+    }
 
     this.render('<FooBar/>');
 

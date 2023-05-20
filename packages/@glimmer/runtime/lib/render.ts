@@ -33,7 +33,9 @@ class TemplateIteratorImpl implements TemplateIterator {
   }
 
   sync(): RenderResult {
-    return import.meta.env.DEV ? debug.runInTrackingTransaction!(() => this.#vm._execute_(), '- While rendering:') : this.#vm._execute_();
+    return import.meta.env.DEV
+      ? debug.runInTrackingTransaction!(() => this.#vm._execute_(), '- While rendering:')
+      : this.#vm._execute_();
   }
 }
 
@@ -135,8 +137,5 @@ export function renderComponent(
 function recordToReference(record: Record<string, unknown>): Record<string, Reference> {
   let root = createConstRef(record, 'args');
 
-  return Object.keys(record).reduce((accumulator, key) => {
-    accumulator[key] = childRefFor(root, key);
-    return accumulator;
-  }, {} as Record<string, Reference>);
+  return Object.fromEntries(Object.keys(record).map((key) => [key, childRefFor(root, key)]));
 }

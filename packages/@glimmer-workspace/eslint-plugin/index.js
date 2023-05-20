@@ -46,12 +46,19 @@ module.exports = {
         'unicorn/prefer-modern-dom-apis': 'warn',
         'unicorn/prefer-dom-node-remove': 'warn',
         'unicorn/no-array-callback-reference': 'off',
+        'unicorn/consistent-function-scoping': [
+          'error',
+          {
+            checkArrowFunctions: false,
+          },
+        ],
         'unicorn/prevent-abbreviations': [
-          'warn',
+          'off',
           {
             checkFilenames: false,
             checkShorthandImports: false,
             checkDefaultAndNamespaceImports: false,
+            ignore: [/Ref($|[A-Z])/u],
             replacements: {
               args: false,
               fn: false,

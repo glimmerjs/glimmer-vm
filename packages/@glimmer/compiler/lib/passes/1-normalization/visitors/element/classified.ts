@@ -9,10 +9,10 @@ import { MODIFIER_KEYWORDS } from '../../keywords';
 import { assertIsValidModifier, isHelperInvocation } from '../../utils/is-node';
 import { convertPathToCallIfKeyword, VISIT_EXPRS } from '../expressions';
 
-export type ValidAttr = mir.StaticAttr | mir.DynamicAttr | mir.SplatAttr;
+export type ValidAttribute = mir.StaticAttr | mir.DynamicAttr | mir.SplatAttr;
 
 type ProcessedAttributes = {
-  attrs: ValidAttr[];
+  attrs: ValidAttribute[];
   args: mir.NamedArguments;
 };
 
@@ -38,7 +38,7 @@ export class ClassifiedElement {
     return this.prepare().andThen((prepared) => this.delegate.toStatement(this, prepared));
   }
 
-  private attr(attribute: ASTv2.HtmlAttr): Result<ValidAttr> {
+  private attr(attribute: ASTv2.HtmlAttr): Result<ValidAttribute> {
     let name = attribute.name;
     let rawValue = attribute.value;
     let namespace = getAttributeNamespace(name.chars) || undefined;
@@ -98,7 +98,7 @@ export class ClassifiedElement {
   }
 
   private attrs(): Result<ProcessedAttributes> {
-    let attributes = new ResultArray<ValidAttr>();
+    let attributes = new ResultArray<ValidAttribute>();
     let args = new ResultArray<mir.NamedArgument>();
 
     // Unlike most attributes, the `type` attribute can change how
@@ -108,12 +108,18 @@ export class ClassifiedElement {
     // precedence, this re-ordering happens at runtime instead.
     // See https://github.com/glimmerjs/glimmer-vm/pull/726
     let typeAttribute: ASTv2.AttrNode | null = null;
-    let simple = this.element.attrs.filter((attribute) => attribute.type === 'SplatAttr').length === 0;
+    let simple =
+      this.element.attrs.filter((attribute) => attribute.type === 'SplatAttr').length === 0;
 
     for (let attribute of this.element.attrs) {
       if (attribute.type === 'SplatAttr') {
         attributes.add(
-          Ok(new mir.SplatAttr({ loc: attribute.loc, symbol: this.state.scope.allocateBlock('attrs') }))
+          Ok(
+            new mir.SplatAttr({
+              loc: attribute.loc,
+              symbol: this.state.scope.allocateBlock('attrs'),
+            })
+          )
         );
       } else if (attribute.name.chars === 'type' && simple) {
         typeAttribute = attribute;
@@ -173,5 +179,5 @@ export function hasDynamicFeatures({
   }
 
   // Splattributes need the special ComponentOperations to merge into
-  return !!attrs.find((attribute) => attribute.type === 'SplatAttr');
+  return attrs.some((attribute) => attribute.type === 'SplatAttr');
 }

@@ -288,7 +288,7 @@ export interface WithElementHook<ComponentInstanceState>
   // process, to provide hooks for user code.
   didCreateElement(
     component: ComponentInstanceState,
-    element: SimpleElement,
+    element: SimpleElement | Element,
     operations: ElementOperations
   ): void;
 }

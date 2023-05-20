@@ -7,14 +7,16 @@ import type {
 import { valueForRef } from '@glimmer/reference';
 import { type Tag, track } from '@glimmer/validator';
 
-const CUSTOM_TAG_FOR = new WeakMap<object, (obj: object, key: string) => Tag>();
+const CUSTOM_TAG_FOR = new WeakMap<object, (object: object, key: string) => Tag>();
 
-export function getCustomTagFor(obj: object): ((obj: object, key: string) => Tag) | undefined {
-  return CUSTOM_TAG_FOR.get(obj);
+export function getCustomTagFor(
+  object: object
+): ((object: object, key: string) => Tag) | undefined {
+  return CUSTOM_TAG_FOR.get(object);
 }
 
-export function setCustomTagFor(obj: object, customTagFn: (obj: object, key: string) => Tag) {
-  CUSTOM_TAG_FOR.set(obj, customTagFn);
+export function setCustomTagFor(object: object, customTagFn: (object: object, key: string) => Tag) {
+  CUSTOM_TAG_FOR.set(object, customTagFn);
 }
 
 function convertToInt(property: number | string | symbol): number | null {
@@ -22,7 +24,7 @@ function convertToInt(property: number | string | symbol): number | null {
 
   let number_ = Number(property);
 
-  if (isNaN(number_)) return null;
+  if (Number.isNaN(number_)) return null;
 
   return number_ % 1 === 0 ? number_ : null;
 }
@@ -39,7 +41,9 @@ function tagForPositionalArgument(positionalArgs: CapturedPositionalArguments, k
   return track(() => {
     if (key === '[]') {
       // consume all of the tags in the positional array
-      positionalArgs.forEach(valueForRef);
+      for (let argument of positionalArgs) {
+        valueForRef(argument);
+      }
     }
 
     let parsed = convertToInt(key);
@@ -138,8 +142,8 @@ export const argsProxyFor = (
 ): Arguments => {
   let { named, positional } = capturedArgs;
 
-  let getNamedTag = (_obj: object, key: string) => tagForNamedArgument(named, key);
-  let getPositionalTag = (_obj: object, key: string) => tagForPositionalArgument(positional, key);
+  let getNamedTag = (_: object, key: string) => tagForNamedArgument(named, key);
+  let getPositionalTag = (_: object, key: string) => tagForPositionalArgument(positional, key);
 
   let namedHandler = new NamedArgsProxy(named);
   let positionalHandler = new PositionalArgsProxy(positional);

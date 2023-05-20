@@ -15,7 +15,7 @@ const TEXT_REGEX_TEST = /[&<>\u{A0}]/u;
 const TEXT_REGEX_REPLACE = new RegExp(TEXT_REGEX_TEST.source, 'gu');
 
 function attributeValueReplacer(char: string): string {
-  switch (char.charCodeAt(0)) {
+  switch (char.codePointAt(0)) {
     case Char.NBSP:
       return '&nbsp;';
     case Char.QUOT:
@@ -28,7 +28,7 @@ function attributeValueReplacer(char: string): string {
 }
 
 function textReplacer(char: string): string {
-  switch (char.charCodeAt(0)) {
+  switch (char.codePointAt(0)) {
     case Char.NBSP:
       return '&nbsp;';
     case Char.AMP:

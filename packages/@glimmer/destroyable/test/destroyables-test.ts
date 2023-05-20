@@ -31,7 +31,7 @@ module('Destroyables', (hooks) => {
   hooks.beforeEach(() => {
     originalContext = unwrap(
       testOverrideGlobalContext?.({
-        scheduleDestroy<T extends object>(destroyable: T, destructor: (obj: T) => void) {
+        scheduleDestroy<T extends object>(destroyable: T, destructor: (value: T) => void) {
           destroyQueue.push(() => destructor(destroyable));
         },
 
@@ -73,24 +73,23 @@ module('Destroyables', (hooks) => {
   });
 
   test('destructors work with functions', (assert) => {
-    let destroyable = () => {};
     let count = 0;
 
-    registerDestructor(destroyable, () => count++);
+    registerDestructor(noop, () => count++);
 
-    assert.false(isDestroying(destroyable), 'not destroying at first');
-    assert.false(isDestroyed(destroyable), 'not destroyed at first');
+    assert.false(isDestroying(noop), 'not destroying at first');
+    assert.false(isDestroyed(noop), 'not destroyed at first');
 
-    destroy(destroyable);
+    destroy(noop);
 
-    assert.true(isDestroying(destroyable), 'destroying immediately after destroy() called');
-    assert.false(isDestroyed(destroyable), 'not destroyed immediately after destroy()');
+    assert.true(isDestroying(noop), 'destroying immediately after destroy() called');
+    assert.false(isDestroyed(noop), 'not destroyed immediately after destroy()');
     assert.strictEqual(count, 0, 'count has not increased');
 
     flush();
 
-    assert.true(isDestroying(destroyable), 'still destroying after flush');
-    assert.true(isDestroyed(destroyable), 'destroyed after flush');
+    assert.true(isDestroying(noop), 'still destroying after flush');
+    assert.true(isDestroyed(noop), 'destroyed after flush');
     assert.strictEqual(count, 1, 'destructor was run');
   });
 
@@ -425,9 +424,9 @@ module('Destroyables', (hooks) => {
     test('assertion does not throw if destroyables were destroyed', () => {
       unwrap(enableDestroyableTracking)();
 
-      let obj = {};
-      registerDestructor(obj, () => {});
-      destroy(obj);
+      let object = {};
+      registerDestructor(object, () => {});
+      destroy(object);
       flush();
 
       unwrap(assertDestroyablesDestroyed)();
@@ -436,9 +435,9 @@ module('Destroyables', (hooks) => {
     test('checking isDestroying does not trigger assertion', () => {
       unwrap(enableDestroyableTracking)();
 
-      let obj = {};
+      let object = {};
 
-      isDestroying(obj);
+      isDestroying(object);
 
       unwrap(assertDestroyablesDestroyed)();
     });
@@ -446,9 +445,9 @@ module('Destroyables', (hooks) => {
     test('checking isDestroyed does not trigger assertion', () => {
       unwrap(enableDestroyableTracking)();
 
-      let obj = {};
+      let object = {};
 
-      isDestroyed(obj);
+      isDestroyed(object);
 
       unwrap(assertDestroyablesDestroyed)();
     });
@@ -456,11 +455,11 @@ module('Destroyables', (hooks) => {
     test('error thrown attaches destroyables for helpful debugging', (assert) => {
       unwrap(enableDestroyableTracking)();
 
-      let obj1 = {};
-      registerDestructor(obj1, () => {});
+      let object1 = {};
+      registerDestructor(object1, () => {});
 
-      let obj2 = {};
-      registerDestructor(obj2, () => {});
+      let object2 = {};
+      registerDestructor(object2, () => {});
 
       try {
         unwrap(assertDestroyablesDestroyed)();
@@ -468,7 +467,7 @@ module('Destroyables', (hooks) => {
         assert.step('catch handler');
         assert.deepEqual(
           (error as { destroyables: unknown[] }).destroyables,
-          [obj1, obj2],
+          [object1, object2],
           'destroyables property'
         );
       }
@@ -490,3 +489,7 @@ module('Destroyables', (hooks) => {
     });
   }
 });
+
+function noop() {
+  // noop
+}

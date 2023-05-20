@@ -262,15 +262,15 @@ export namespace Statements {
   export type FlushElement = [FlushElementOpcode];
   export type CloseElement = [CloseElementOpcode];
 
-  type Attribute_<Op extends AttributeOpcode> = [
+  type AttributeLike<Op extends AttributeOpcode> = [
     op: Op,
     name: string | WellKnownAttrName,
     value: Expression,
     namespace?: string | undefined
   ];
 
-  export type StaticAttr = Attribute_<StaticAttributeOpcode>;
-  export type StaticComponentAttr = Attribute_<StaticComponentAttributeOpcode>;
+  export type StaticAttr = AttributeLike<StaticAttributeOpcode>;
+  export type StaticComponentAttr = AttributeLike<StaticComponentAttributeOpcode>;
 
   export type AnyStaticAttr = StaticAttr | StaticComponentAttr;
 
@@ -279,10 +279,10 @@ export namespace Statements {
   export type DynamicArg = [DynamicArgumentOpcode, string, Expression];
   export type StaticArg = [StaticArgumentOpcode, string, Expression];
 
-  export type DynamicAttr = Attribute_<DynamicAttributeOpcode>;
-  export type ComponentAttr = Attribute_<ComponentAttributeOpcode>;
-  export type TrustingDynamicAttr = Attribute_<TrustingDynamicAttrOpcode>;
-  export type TrustingComponentAttr = Attribute_<TrustingComponentAttrOpcode>;
+  export type DynamicAttr = AttributeLike<DynamicAttributeOpcode>;
+  export type ComponentAttr = AttributeLike<ComponentAttributeOpcode>;
+  export type TrustingDynamicAttr = AttributeLike<TrustingDynamicAttrOpcode>;
+  export type TrustingComponentAttr = AttributeLike<TrustingComponentAttrOpcode>;
 
   export type AnyDynamicAttr =
     | DynamicAttr

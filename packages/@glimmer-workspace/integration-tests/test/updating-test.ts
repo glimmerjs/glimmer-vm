@@ -1500,12 +1500,16 @@ class UpdatingTest extends RenderTest {
     assert.strictEqual(
       result.firstNode(),
       this.element.firstChild,
-      `The firstNode of the result is the same as the root's firstChild${message ? ': ' + message : ''}`
+      `The firstNode of the result is the same as the root's firstChild${
+        message ? ': ' + message : ''
+      }`
     );
     assert.strictEqual(
       result.lastNode(),
       this.element.lastChild,
-      `The lastNode of the result is the same as the roots's lastChild${message ? ': ' + message : ''}`
+      `The lastNode of the result is the same as the roots's lastChild${
+        message ? ': ' + message : ''
+      }`
     );
   }
 

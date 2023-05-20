@@ -1,3 +1,4 @@
+/* eslint-disable unicorn/prefer-dom-node-append */
 import type {
   Cursor,
   Dict,
@@ -110,7 +111,7 @@ export class RehydrationDelegate implements RenderDelegate {
     template: string,
     context: Dict<unknown>,
     takeSnapshot: () => void,
-    element: SimpleElement | undefined
+    element?: SimpleElement | undefined
   ): string {
     element = element || this.serverDoc.createElement('div');
     let cursor = { element, nextSibling: null };
@@ -171,7 +172,7 @@ export class RehydrationDelegate implements RenderDelegate {
   ): RenderResult {
     let serialized = this.renderServerSide(template, context, snapshot);
     replaceHTML(element, serialized);
-    qunitFixture().append(element);
+    qunitFixture().appendChild(element);
 
     return this.renderClientSide(template, context, element);
   }

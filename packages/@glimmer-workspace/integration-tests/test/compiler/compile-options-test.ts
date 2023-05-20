@@ -23,6 +23,23 @@ module('[glimmer-compiler] Compile options', ({ test }) => {
   });
 });
 
+function compile(
+  template: string,
+  locals: string[],
+  evaluate: (source: string) => WireFormat.SerializedTemplateWithLazyBlock
+) {
+  let source = precompile(template, {
+    lexicalScope: (variable: string) => locals.includes(variable),
+  });
+
+  let wire = evaluate(`(${source})`);
+
+  return {
+    ...wire,
+    block: JSON.parse(wire.block),
+  };
+}
+
 module('[glimmer-compiler] precompile', ({ test }) => {
   test('returned module name correct', (assert) => {
     let wire = JSON.parse(
@@ -33,23 +50,6 @@ module('[glimmer-compiler] precompile', ({ test }) => {
 
     assert.strictEqual(wire.moduleName, 'my/module-name', 'Template has correct meta');
   });
-
-  function compile(
-    template: string,
-    locals: string[],
-    evaluate: (source: string) => WireFormat.SerializedTemplateWithLazyBlock
-  ) {
-    let source = precompile(template, {
-      lexicalScope: (variable: string) => locals.includes(variable),
-    });
-
-    let wire = evaluate(`(${source})`);
-
-    return {
-      ...wire,
-      block: JSON.parse(wire.block),
-    };
-  }
 
   test('lexicalScope is used if present', (assert) => {
     let wire = compile(`<hello /><div />`, ['hello'], (source) => eval(source));
@@ -128,6 +128,7 @@ module('[glimmer-compiler] precompile', ({ test }) => {
 
     let block: WireFormat.SerializedTemplateBlock = JSON.parse(wire.block);
 
+    // eslint-disable-next-line unicorn/no-unreadable-array-destructuring
     let [[, , letBlock]] = block[0] as [WireFormat.Statements.Let];
     let [[, componentNameExpr]] = letBlock[0] as [WireFormat.Statements.Component];
 
@@ -188,7 +189,7 @@ module('[glimmer-compiler] precompile', ({ test }) => {
     let wire = JSON.parse(
       precompile('<rental />', {
         customizeComponentName(input: string) {
-          return input.split('').reverse().join('');
+          return [...input].reverse().join('');
         },
       })
     );

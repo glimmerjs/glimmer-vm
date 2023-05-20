@@ -19,7 +19,8 @@ import {
   NS_XMLNS,
   values,
 } from '@glimmer/util';
-import { VariableResolutionContext ,
+import {
+  VariableResolutionContext,
   WIRE_TRUSTING_APPEND,
   WIRE_APPEND,
   WIRE_CALL,
@@ -57,7 +58,7 @@ import {
   ExpressionKind,
   HeadKind,
   type NormalizedAngleInvocation,
-  type NormalizedAttrs,
+  type NormalizedAttributes,
   type NormalizedBlock,
   type NormalizedBlocks,
   type NormalizedElement,
@@ -65,7 +66,7 @@ import {
   type NormalizedHash,
   type NormalizedHead,
   type NormalizedKeywordStatement,
-  type NormalizedParams,
+  type NormalizedParameters,
   type NormalizedPath,
   type NormalizedStatement,
   normalizeStatement,
@@ -166,7 +167,7 @@ class LocalSymbols implements Symbols {
   }
 
   local(name: string): number {
-    return name in this.locals ? this.locals[name] as number : this.parent.local(name);
+    return name in this.locals ? (this.locals[name] as number) : this.parent.local(name);
   }
 
   this(): number {
@@ -239,7 +240,6 @@ export function buildStatement(
         ],
       ];
 
-
     case HeadKind.AppendExpr:
       return [
         [
@@ -251,7 +251,6 @@ export function buildStatement(
           ),
         ],
       ];
-
 
     case HeadKind.Call: {
       let { head: path, params, hash, trusted } = normalized;
@@ -278,10 +277,8 @@ export function buildStatement(
     case HeadKind.Literal:
       return [[WIRE_APPEND, normalized.value]];
 
-
     case HeadKind.Comment:
       return [[WIRE_COMMENT, normalized.value]];
-
 
     case HeadKind.Block: {
       let blocks = buildBlocks(normalized.blocks, normalized.blockParams, symbols);
@@ -298,7 +295,6 @@ export function buildStatement(
 
     case HeadKind.Keyword:
       return [buildKeyword(normalized, symbols)];
-
 
     case HeadKind.Element:
       return buildElement(normalized, symbols);
@@ -319,7 +315,8 @@ export function s(
   ...interpolated: unknown[]
 ): [Builder.Literal, string] {
   let result = array.reduce(
-    (result, string, index) => result + `${string}${interpolated[index] ? String(interpolated[index]) : ''}`,
+    (result, string, index) =>
+      result + `${string}${interpolated[index] ? String(interpolated[index]) : ''}`,
     ''
   );
 
@@ -328,7 +325,8 @@ export function s(
 
 export function c(array: TemplateStringsArray, ...interpolated: unknown[]): BuilderComment {
   let result = array.reduce(
-    (result, string, index) => result + `${string}${interpolated[index] ? String(interpolated[index]) : ''}`,
+    (result, string, index) =>
+      result + `${string}${interpolated[index] ? String(interpolated[index]) : ''}`,
     ''
   );
 
@@ -336,7 +334,7 @@ export function c(array: TemplateStringsArray, ...interpolated: unknown[]): Buil
 }
 
 export function unicode(charCode: string): string {
-  return String.fromCharCode(Number.parseInt(charCode, 16));
+  return String.fromCodePoint(Number.parseInt(charCode, 16));
 }
 
 export const NEWLINE = '\n';
@@ -401,7 +399,7 @@ function buildElement(
   return out;
 }
 
-function hasSplat(attributes: Nullable<NormalizedAttrs>): boolean {
+function hasSplat(attributes: Nullable<NormalizedAttributes>): boolean {
   if (attributes === null) return false;
 
   return Object.keys(attributes).some((a) => attributes[a] === HeadKind.Splat);
@@ -433,7 +431,7 @@ export function buildAngleInvocation(
 }
 
 export function buildElementParams(
-  attributes: NormalizedAttrs,
+  attributes: NormalizedAttributes,
   symbols: Symbols
 ): { params: WireFormat.ElementParameter[]; args: WireFormat.Core.Hash } {
   let parameters: WireFormat.ElementParameter[] = [];
@@ -459,7 +457,10 @@ export function buildElementParams(
     }
   }
 
-  return { params: parameters, args: isPresentArray(keys) && isPresentArray(values) ? [keys, values] : null };
+  return {
+    params: parameters,
+    args: isPresentArray(keys) && isPresentArray(values) ? [keys, values] : null,
+  };
 }
 
 export function extractNamespace(name: string): Nullable<AttrNamespace> {
@@ -550,14 +551,11 @@ export function buildExpression(
     case ExpressionKind.GetPath:
       return buildGetPath(expr, symbols);
 
-
     case ExpressionKind.GetVariable:
       return buildVar(expr.variable, variableContext(context, true), symbols);
 
-
     case ExpressionKind.Concat:
       return [WIRE_CONCAT, buildConcat(expr.params, symbols)];
-
 
     case ExpressionKind.Call: {
       let builtParameters = buildParams(expr.params, symbols);
@@ -581,7 +579,6 @@ export function buildExpression(
         ),
       ];
 
-
     case ExpressionKind.HasBlockParameters:
       return [
         WIRE_HAS_BLOCK_PARAMS,
@@ -592,10 +589,8 @@ export function buildExpression(
         ),
       ];
 
-
     case ExpressionKind.Literal:
       return expr.value === undefined ? [WIRE_UNDEFINED] : expr.value;
-
 
     default:
       assertNever(expr);
@@ -607,7 +602,9 @@ export function buildCallHead(
   context: VariableResolution,
   symbols: Symbols
 ): Expressions.GetVar | Expressions.GetPath {
-  return callHead.type === ExpressionKind.GetVariable ? buildVar(callHead.variable, context, symbols) : buildGetPath(callHead, symbols);
+  return callHead.type === ExpressionKind.GetVariable
+    ? buildVar(callHead.variable, context, symbols)
+    : buildGetPath(callHead, symbols);
 }
 
 export function buildGetPath(head: NormalizedPath, symbols: Symbols): Expressions.GetPath {
@@ -647,49 +644,48 @@ export function buildVar(
   switch (head.kind) {
     case VariableKind.Free:
       switch (context) {
-      case 'Strict':
-        op = WIRE_GET_STRICT_KEYWORD;
+        case 'Strict':
+          op = WIRE_GET_STRICT_KEYWORD;
 
-      break;
+          break;
 
-      case 'AppendBare':
-        op = WIRE_GET_FREE_AS_COMPONENT_OR_HELPER_HEAD_OR_THIS_FALLBACK;
+        case 'AppendBare':
+          op = WIRE_GET_FREE_AS_COMPONENT_OR_HELPER_HEAD_OR_THIS_FALLBACK;
 
-      break;
+          break;
 
-      case 'AppendInvoke':
-        op = WIRE_GET_FREE_AS_COMPONENT_OR_HELPER_HEAD;
+        case 'AppendInvoke':
+          op = WIRE_GET_FREE_AS_COMPONENT_OR_HELPER_HEAD;
 
-      break;
+          break;
 
-      case 'TrustedAppendBare':
-        op = WIRE_GET_FREE_AS_HELPER_HEAD_OR_THIS_FALLBACK;
+        case 'TrustedAppendBare':
+          op = WIRE_GET_FREE_AS_HELPER_HEAD_OR_THIS_FALLBACK;
 
-      break;
+          break;
 
-      case 'TrustedAppendInvoke':
-        op = WIRE_GET_FREE_AS_HELPER_HEAD;
+        case 'TrustedAppendInvoke':
+          op = WIRE_GET_FREE_AS_HELPER_HEAD;
 
-      break;
+          break;
 
-      case 'AttrValueBare':
-        op = WIRE_GET_FREE_AS_HELPER_HEAD_OR_THIS_FALLBACK;
+        case 'AttrValueBare':
+          op = WIRE_GET_FREE_AS_HELPER_HEAD_OR_THIS_FALLBACK;
 
-      break;
+          break;
 
-      case 'AttrValueInvoke':
-        op = WIRE_GET_FREE_AS_HELPER_HEAD;
+        case 'AttrValueInvoke':
+          op = WIRE_GET_FREE_AS_HELPER_HEAD;
 
-      break;
+          break;
 
-      case 'SubExpression':
-        op = WIRE_GET_FREE_AS_HELPER_HEAD;
+        case 'SubExpression':
+          op = WIRE_GET_FREE_AS_HELPER_HEAD;
 
-      break;
+          break;
 
-      default:
-        op = expressionContextOp(context);
-
+        default:
+          op = expressionContextOp(context);
       }
       sym = symbols.freeVar(head.name);
       break;
@@ -742,7 +738,7 @@ export function expressionContextOp(context: VariableResolutionContext): GetCont
 }
 
 export function buildParams(
-  exprs: Nullable<NormalizedParams>,
+  exprs: Nullable<NormalizedParameters>,
   symbols: Symbols
 ): Nullable<WireFormat.Core.Params> {
   if (exprs === null || !isPresentArray(exprs)) return null;

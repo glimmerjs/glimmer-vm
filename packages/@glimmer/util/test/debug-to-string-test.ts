@@ -12,10 +12,12 @@ if (import.meta.env.DEV) {
     assert.deepEqual(typeof maybeDebugToString, 'function');
   });
   QUnit.test('should return debug name for named [function]', function (assert) {
+    // eslint-disable-next-line unicorn/consistent-function-scoping
     function foo() {}
     assert.deepEqual(debugToString(foo), 'foo');
   });
   QUnit.test('should return debug name for arrow [function]', function (assert) {
+    // eslint-disable-next-line unicorn/consistent-function-scoping
     let foo = () => {};
     assert.deepEqual(debugToString(foo), 'foo');
   });
@@ -23,7 +25,7 @@ if (import.meta.env.DEV) {
     assert.deepEqual(debugToString(1), '1');
   });
   QUnit.test('should return debug name for primitive [undefined]', function (assert) {
-    assert.deepEqual(debugToString(), 'undefined');
+    assert.deepEqual(debugToString(void 0), 'undefined');
   });
   QUnit.test('should return debug name for primitive [string]', function (assert) {
     assert.deepEqual(debugToString('foo'), 'foo');

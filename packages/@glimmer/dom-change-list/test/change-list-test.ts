@@ -9,9 +9,9 @@ import { NS_SVG, NS_XLINK } from '@glimmer/util';
 import createDocument from '@simple-dom/document';
 
 import { Builder as TestBuilder, toHTML, toHTMLNS } from './support';
-import { module, test, TestCase } from './test-case';
+import { describe, test, TestCase } from './test-case';
 
-@module('[dom-change-list] DOMTreeConstruction')
+@describe('[dom-change-list] DOMTreeConstruction')
 export class ChangeListTest extends TestCase {
   // These definitely assigned properties are set in before()
   protected declare document: SimpleDocument;

@@ -196,7 +196,7 @@ define(DYNAMIC_MODIFIER_OP, (vm) => {
       owner = curriedOwner;
 
       if (positional !== undefined) {
-        args.positional = positional.concat(args.positional) as CapturedPositionalArguments;
+        args.positional = [...positional, ...args.positional] as CapturedPositionalArguments;
       }
 
       if (named !== undefined) {
@@ -373,7 +373,11 @@ define(DYNAMIC_ATTR_OP, (vm, { op1: _name, op2: _trusting, op3: _namespace }) =>
 export class UpdateDynamicAttributeOpcode implements UpdatingOpcode {
   readonly #updateRef: Reference;
 
-  constructor(reference: Reference<unknown>, attribute: DynamicAttribute, environment: Environment) {
+  constructor(
+    reference: Reference<unknown>,
+    attribute: DynamicAttribute,
+    environment: Environment
+  ) {
     let initialized = false;
 
     this.#updateRef = createComputeRef(() => {

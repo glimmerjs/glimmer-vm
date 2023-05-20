@@ -47,9 +47,9 @@ function isVoidTag(tag: string): boolean {
 
 export default class Printer {
   private buffer = '';
-  private options: PrinterOptions;
+  private options: PrinterOptions | undefined;
 
-  constructor(options: PrinterOptions) {
+  constructor(options?: PrinterOptions) {
     this.options = options;
   }
 
@@ -63,7 +63,7 @@ export default class Printer {
     formatting in each AST node if no modifications are made to it.
   */
   handledByOverride(node: ASTv1.Node, ensureLeadingWhitespace = false): boolean {
-    if (this.options.override !== undefined) {
+    if (this.options?.override !== undefined) {
       let result = this.options.override(node, this.options);
       if (typeof result === 'string') {
         if (ensureLeadingWhitespace && NON_WHITESPACE.test(result)) {
@@ -143,7 +143,9 @@ export default class Printer {
     }
   }
 
-  TopLevelStatement(statement: ASTv1.TopLevelStatement | ASTv1.Template | ASTv1.AttributeNode): void {
+  TopLevelStatement(
+    statement: ASTv1.TopLevelStatement | ASTv1.Template | ASTv1.AttributeNode
+  ): void {
     switch (statement.type) {
       case 'MustacheStatement':
         return this.MustacheStatement(statement);
@@ -292,7 +294,7 @@ export default class Printer {
       return;
     }
 
-    if (this.options.entityEncoding === 'raw') {
+    if (this.options?.entityEncoding === 'raw') {
       this.buffer += text.chars;
     } else if (isAttribute) {
       this.buffer += escapeAttributeValue(text.chars);
@@ -407,15 +409,15 @@ export default class Printer {
     this.buffer += `{{!--${comment.value}--}}`;
   }
 
-  ElementModifierStatement(module_: ASTv1.ElementModifierStatement): void {
-    if (this.handledByOverride(module_)) {
+  ElementModifierStatement(modifier: ASTv1.ElementModifierStatement): void {
+    if (this.handledByOverride(modifier)) {
       return;
     }
 
     this.buffer += '{{';
-    this.Expression(module_.path);
-    this.Params(module_.params);
-    this.Hash(module_.hash);
+    this.Expression(modifier.path);
+    this.Params(modifier.params);
+    this.Hash(modifier.hash);
     this.buffer += '}}';
   }
 
@@ -522,7 +524,7 @@ export default class Printer {
   print(node: ASTv1.Node): string {
     let { options } = this;
 
-    if (options.override) {
+    if (options?.override) {
       let result = options.override(node, options);
 
       if (result !== undefined) {

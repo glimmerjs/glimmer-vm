@@ -704,7 +704,7 @@ export function strip(strings: TemplateStringsArray, ...args: string[]) {
       return `${text
         .split('\n')
         .map((s) => s.trim())
-        .join('')}${args[index] ? args[index] : ''}`;
+        .join('')}${args[index] ?? ''}`;
     })
     .join('');
 }

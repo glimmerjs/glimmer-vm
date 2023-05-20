@@ -13,7 +13,7 @@ export interface InternalModifierManager<
   // Create is meant to only produce the state bucket
   create(
     owner: Owner,
-    element: SimpleElement,
+    element: SimpleElement | Element,
     state: TModifierDefinitionState,
     args: CapturedArguments
   ): TModifierInstanceState;

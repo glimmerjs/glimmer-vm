@@ -116,11 +116,11 @@ if (hasDom) {
 
     @test
     'passes the event to the listener'(assert: Assert) {
-      let event: UIEvent;
+      let capturedEvent: UIEvent;
 
       this.render('<button {{on "click" this.callback}}>Click Me</button>', {
-        callback(event_: UIEvent) {
-          event = event_;
+        callback(uiEvent: UIEvent) {
+          capturedEvent = uiEvent;
         },
       });
 
@@ -128,7 +128,7 @@ if (hasDom) {
 
       button.click();
 
-      assert.strictEqual(event!.target, button, 'has a valid event with a target');
+      assert.strictEqual(capturedEvent!.target, button, 'has a valid event with a target');
 
       this.assertCounts({ adds: 1, removes: 0 });
     }

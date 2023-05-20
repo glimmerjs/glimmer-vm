@@ -1,3 +1,5 @@
+/* eslint-disable unicorn/prefer-dom-node-append */
+
 import type { SimpleElement } from '@glimmer/interfaces';
 import { NS_HTML, NS_SVG, NS_XLINK } from '@glimmer/util';
 
@@ -37,7 +39,7 @@ class UpdatingSvgTest extends RenderTest {
   'context.root <foreignObject> tag is SVG namespaced'() {
     let parent = this.element;
     let svg = this.delegate.createElementNS(NS_SVG, 'svg');
-    this.element.append(svg);
+    this.element.appendChild(svg);
     this.element = svg;
 
     let assertNamespaces = () => {

@@ -24,8 +24,8 @@ function debugCallback(context: unknown, get: DebugGet): void {
 let callback = debugCallback;
 
 // For testing purposes
-export function setDebuggerCallback(callback_: DebugCallback) {
-  if (import.meta.env.DEV) callback = callback_;
+export function setDebuggerCallback(fn: DebugCallback) {
+  if (import.meta.env.DEV) callback = fn;
 }
 
 export function resetDebuggerCallback() {
@@ -62,7 +62,9 @@ class ScopeInspector {
       tail = parts;
     }
 
-    return tail.reduce((r, part) => childRefFor(r, part), reference);
+    let ref = reference;
+    for (let part of tail) ref = childRefFor(ref, part);
+    return ref;
   }
 }
 

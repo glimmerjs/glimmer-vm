@@ -1,4 +1,4 @@
-import type { Nullable, SimpleElement } from "@glimmer/interfaces";
+import type { DOMEnvironment, Nullable } from '@glimmer/interfaces';
 
 import { isSafeString, normalizeStringValue } from '../dom/normalize';
 
@@ -89,7 +89,7 @@ if (
 }
 
 export function sanitizeAttributeValue(
-  element: SimpleElement,
+  element: DOMEnvironment['element'],
   attribute: string,
   value: unknown
 ): unknown {

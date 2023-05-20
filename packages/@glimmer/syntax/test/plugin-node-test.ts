@@ -50,24 +50,6 @@ test('plugins are provided the syntax package', (assert) => {
 });
 
 test('can support the legacy AST transform API via ASTPlugin', (assert) => {
-  function ensurePlugin(FunctionOrPlugin: any): ASTPluginBuilder {
-    return FunctionOrPlugin.prototype && FunctionOrPlugin.prototype.transform ? (environment: ASTPluginEnvironment) => {
-        return {
-          name: 'plugin-a',
-
-          visitor: {
-            Program(node: AST.Program) {
-              let plugin = new FunctionOrPlugin(environment);
-
-              plugin.syntax = environment.syntax;
-
-              return plugin.transform(node);
-            },
-          },
-        };
-      } : FunctionOrPlugin;
-  }
-
   class Plugin {
     declare syntax: Syntax;
 
@@ -174,3 +156,23 @@ test('AST plugins can access meta from environment', (assert) => {
 
   assert.verifySteps(['Program']);
 });
+
+function ensurePlugin(FunctionOrPlugin: any): ASTPluginBuilder {
+  return FunctionOrPlugin.prototype && FunctionOrPlugin.prototype.transform
+    ? (environment: ASTPluginEnvironment) => {
+        return {
+          name: 'plugin-a',
+
+          visitor: {
+            Program(node: AST.Program) {
+              let plugin = new FunctionOrPlugin(environment);
+
+              plugin.syntax = environment.syntax;
+
+              return plugin.transform(node);
+            },
+          },
+        };
+      }
+    : FunctionOrPlugin;
+}

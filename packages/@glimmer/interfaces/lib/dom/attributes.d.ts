@@ -1,7 +1,7 @@
 import type { Maybe, Nullable } from '../core';
 import type { ElementOperations, Environment, ModifierInstance } from '../runtime';
 import type { Stack } from '../stack';
-import type { Bounds, Cursor } from './bounds';
+import type { Bounds, Cursor, DOMEnvironment } from './bounds';
 import type { GlimmerTreeChanges, GlimmerTreeConstruction } from './changes';
 import type {
   AttrNamespace as AttributeNamespace,
@@ -12,27 +12,27 @@ import type {
   SimpleText,
 } from './simple';
 
-export interface LiveBlock extends Bounds {
-  openElement(element: SimpleElement): void;
+export interface LiveBlock<E extends DOMEnvironment = DOMEnvironment> extends Bounds<E> {
+  openElement(element: E['element']): void;
   closeElement(): void;
-  didAppendNode(node: SimpleNode): void;
-  didAppendBounds(bounds: Bounds): void;
-  finalize(stack: ElementBuilder): void;
+  didAppendNode(node: E['child']): void;
+  didAppendBounds(bounds: Bounds<E>): void;
+  finalize(stack: ElementBuilder<E>): void;
 }
 
-export interface SimpleLiveBlock extends LiveBlock {
-  parentElement(): SimpleElement;
-  firstNode(): SimpleNode;
-  lastNode(): SimpleNode;
+export interface SimpleLiveBlock<E extends DOMEnvironment = DOMEnvironment> extends LiveBlock<E> {
+  parentElement(): E['element'];
+  firstNode(): E['child'];
+  lastNode(): E['child'];
 }
 
 export type RemoteLiveBlock = SimpleLiveBlock;
 
 export interface UpdatableBlock extends SimpleLiveBlock {
-  reset(environment: Environment): Nullable<SimpleNode>;
+  reset(environment: Environment): Nullable<ChildNode>;
 }
 
-export interface DOMStack {
+export interface DOMStack<E extends DOMEnvironment = DOMEnvironment> {
   pushRemoteElement(
     element: SimpleElement,
     guid: string,
@@ -56,7 +56,7 @@ export interface DOMStack {
     value: unknown,
     isTrusting: boolean,
     namespace: Nullable<string>
-  ): AttributeOperation;
+  ): AttributeOperation<E>;
 
   closeElement(): Nullable<ModifierInstance[]>;
 }
@@ -74,17 +74,20 @@ export interface TreeOperations {
   __setProperty(name: string, value: unknown): void;
 }
 
-declare const CURSOR_STACK: unique symbol;
-export type CursorStackSymbol = typeof CURSOR_STACK;
+interface DebugElementBuilder<E extends DOMEnvironment = DOMEnvironment> {
+  getCursors: () => Stack<Cursor<E>>;
+}
 
-export interface ElementBuilder extends Cursor, DOMStack, TreeOperations {
-  [CURSOR_STACK]: Stack<Cursor>;
-
-  nextSibling: Nullable<SimpleNode>;
+export interface ElementBuilder<E extends DOMEnvironment = DOMEnvironment>
+  extends Cursor<E>,
+    DOMStack,
+    TreeOperations {
+  nextSibling: Nullable<E['child']>;
   _dom_: GlimmerTreeConstruction;
   _updateOperations_: GlimmerTreeChanges;
-  _constructing_: Nullable<SimpleElement>;
-  element: SimpleElement;
+  _constructing_: Nullable<E['element']>;
+  _debug_?: DebugElementBuilder<E>;
+  element: E['element'];
 
   hasBlocks: boolean;
   debugBlocks(): LiveBlock[];
@@ -97,14 +100,14 @@ export interface ElementBuilder extends Cursor, DOMStack, TreeOperations {
   didAppendBounds(bounds: Bounds): void;
 }
 
-export interface AttributeCursor {
-  element: SimpleElement;
+export interface AttributeCursor<E extends DOMEnvironment = DOMEnvironment> {
+  element: E['element'];
   name: string;
   namespace: Nullable<AttributeNamespace>;
 }
 
-export interface AttributeOperation {
+export interface AttributeOperation<E extends DOMEnvironment = DOMEnvironment> {
   attribute: AttributeCursor;
-  set(dom: ElementBuilder, value: unknown, environment: Environment): void;
+  set(dom: ElementBuilder<E>, value: unknown, environment: Environment): void;
   update(value: unknown, environment: Environment): void;
 }

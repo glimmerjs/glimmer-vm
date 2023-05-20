@@ -28,8 +28,8 @@ const INVOKABLE: InvokableReference = 3;
 //////////
 
 export interface ReferenceEnvironment {
-  getProp(obj: unknown, path: string): unknown;
-  setProp(obj: unknown, path: string, value: unknown): unknown;
+  getProp(parent: unknown, path: string): unknown;
+  setProp(parent: unknown, path: string, value: unknown): unknown;
 }
 
 class ReferenceImpl<T = unknown> implements Reference<T> {

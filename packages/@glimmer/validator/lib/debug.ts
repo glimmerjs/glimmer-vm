@@ -147,17 +147,18 @@ if (import.meta.env.DEV) {
   ) => {
     let message = [TRANSACTION_ENV.debugMessage(obj, keyName && String(keyName))];
 
-    message.push(`\`${String(keyName)}\` was first used:`);
-
-    message.push(debug.logTrackingStack!(transaction), `Stack trace for the update:`);
+    message.push(
+      `\`${String(keyName)}\` was first used:`,
+      debug.logTrackingStack!(transaction),
+      `Stack trace for the update:`
+    );
 
     return message.join('\n\n');
   };
 
   debug.logTrackingStack = (transaction?: Transaction) => {
     let trackingStack = [];
-    let current: Transaction | null | undefined =
-      transaction || TRANSACTION_STACK.at(-1);
+    let current: Transaction | null | undefined = transaction || TRANSACTION_STACK.at(-1);
 
     if (current === undefined) return '';
 
@@ -170,7 +171,9 @@ if (import.meta.env.DEV) {
     }
 
     // TODO: Use String.prototype.repeat here once we can drop support for IE11
-    return trackingStack.map((label, index) => Array.from({length: 2 * index + 1}).join(' ') + label).join('\n');
+    return trackingStack
+      .map((label, index) => Array.from({ length: 2 * index + 1 }).join(' ') + label)
+      .join('\n');
   };
 
   debug.markTagAsConsumed = (_tag: Tag) => {
@@ -186,7 +189,7 @@ if (import.meta.env.DEV) {
     if (!subtag || !debug.markTagAsConsumed) return;
 
     if (Array.isArray(subtag)) {
-      subtag.forEach(debug.markTagAsConsumed);
+      for (let tag of subtag) debug.markTagAsConsumed(tag);
     } else {
       debug.markTagAsConsumed(subtag);
     }

@@ -29,23 +29,27 @@ class KeywordImpl<
   Parameter = unknown,
   Out = unknown
 > {
-  protected types: Set<KeywordCandidates[K]['type']>;
+  protected _types_: Set<KeywordCandidates[K]['type']>;
+  protected _keyword_: S;
+  readonly #delegate: KeywordDelegate<KeywordMatches[K], Parameter, Out>;
 
   constructor(
-    protected keyword: S,
+    keyword: S,
     type: KeywordType,
-    private delegate: KeywordDelegate<KeywordMatches[K], Parameter, Out>
+    delegate: KeywordDelegate<KeywordMatches[K], Parameter, Out>
   ) {
+    this._keyword_ = keyword;
+    this.#delegate = delegate;
     let nodes = new Set<KeywordNode['type']>();
     for (let nodeType of KEYWORD_NODES[type]) {
       nodes.add(nodeType);
     }
 
-    this.types = nodes;
+    this._types_ = nodes;
   }
 
-  protected match(node: KeywordCandidates[K]): node is KeywordMatches[K] {
-    if (!this.types.has(node.type)) {
+  protected _matchNode_(node: KeywordCandidates[K]): node is KeywordMatches[K] {
+    if (!this._types_.has(node.type)) {
       return false;
     }
 
@@ -53,34 +57,34 @@ class KeywordImpl<
 
     if (path !== null && path.type === 'Path' && path.ref.type === 'Free') {
       if (path.tail.length > 0 && path.ref.resolution.serialize() === 'Loose') {
-          // cannot be a keyword reference, keywords do not allow paths (must be
-          // relying on implicit this fallback)
-          return false;
-        }
+        // cannot be a keyword reference, keywords do not allow paths (must be
+        // relying on implicit this fallback)
+        return false;
+      }
 
-      return path.ref.name === this.keyword;
+      return path.ref.name === this._keyword_;
     } else {
       return false;
     }
   }
 
   translate(node: KeywordMatches[K], state: NormalizationState): Result<Out> | null {
-    if (this.match(node)) {
+    if (this._matchNode_(node)) {
       let path = getCalleeExpression(node);
 
       if (path !== null && path.type === 'Path' && path.tail.length > 0) {
         return Error_(
           generateSyntaxError(
             `The \`${
-              this.keyword
+              this._keyword_
             }\` keyword was used incorrectly. It was used as \`${path.loc.asString()}\`, but it cannot be used with additional path segments. \n\nError caused by`,
             node.loc
           )
         );
       }
 
-      let parameter = this.delegate.assert(node, state);
-      return parameter.andThen((parameter) => this.delegate.translate({ node, state }, parameter));
+      let parameter = this.#delegate.assert(node, state);
+      return parameter.andThen((parameter) => this.#delegate.translate({ node, state }, parameter));
     } else {
       return null;
     }

@@ -3,9 +3,9 @@ import type { SimpleDocument, SimpleDocumentFragment, SimpleElement } from '@gli
 import createHTMLDocument from '@simple-dom/document';
 
 import { Builder as TestBuilder, toHTML, toHTMLNS, XLINK } from './support';
-import { module, test, TestCase } from './test-case';
+import { describe, test, TestCase } from './test-case';
 
-@module('[dom-change-list] TreeBuilder')
+@describe('[dom-change-list] TreeBuilder')
 export class ChangeListTest extends TestCase {
   // These definitely assigned properties are set in before()
   protected declare document: SimpleDocument;

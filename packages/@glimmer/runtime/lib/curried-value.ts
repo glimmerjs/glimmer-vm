@@ -5,7 +5,7 @@ import type {
   CurriedModifier,
   CurriedType,
   Owner,
-} from "@glimmer/interfaces";
+} from '@glimmer/interfaces';
 import type { Reference } from '@glimmer/reference';
 
 const TYPE: unique symbol = Symbol('TYPE');
@@ -82,7 +82,7 @@ export function resolveCurriedValue(
 
       if (curriedPositional.length > 0) {
         positional =
-          positional === undefined ? curriedPositional : curriedPositional.concat(positional);
+          positional === undefined ? curriedPositional : [...curriedPositional, ...positional];
       }
 
       if (named === undefined) {

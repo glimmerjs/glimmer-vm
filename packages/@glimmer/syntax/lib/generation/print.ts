@@ -1,10 +1,7 @@
 import type * as ASTv1 from '../v1/api';
 import Printer, { type PrinterOptions } from './printer';
 
-export default function build(
-  ast: ASTv1.Node,
-  options: PrinterOptions = { entityEncoding: 'transformed' }
-): string {
+export default function build(ast: ASTv1.Node, options?: PrinterOptions): string {
   if (!ast) {
     return '';
   }

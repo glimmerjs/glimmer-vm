@@ -44,7 +44,7 @@ function parseBlockParameters(element: ASTv1.ElementNode): Nullable<string[]> {
     // Some basic validation, since we're doing the parsing ourselves
     let parametersString = attributeNames.slice(asIndex).join(' ');
     if (
-      parametersString.charAt(parametersString.length - 1) !== '|' ||
+      parametersString.at(-1) !== '|' ||
       expect(parametersString.match(/\|/gu), `block params must exist here`).length !== 2
     ) {
       throw generateSyntaxError(

@@ -16,8 +16,8 @@ import {
   RenderTest,
   stripTight,
   test,
-  type AttrsDiff,
-  type Attrs,
+  type AttributesDiff,
+  type Attributes,
 } from '@glimmer-workspace/integration-tests';
 
 import { assert } from './support';
@@ -56,17 +56,17 @@ function inspectHooks<T extends EmberishCurlyComponentFactory>(ComponentClass: T
       };
     }
 
-    didInitAttrs(this: any, options: { attrs: Attrs }) {
+    didInitAttrs(this: any, options: { attrs: Attributes }) {
       super.didInitAttrs(options);
       this.hooks['didInitAttrs']++;
     }
 
-    didUpdateAttrs(this: any, diff: AttrsDiff) {
+    didUpdateAttrs(this: any, diff: AttributesDiff) {
       super.didUpdateAttrs(diff);
       this.hooks['didUpdateAttrs']++;
     }
 
-    didReceiveAttrs(this: any, diff: AttrsDiff) {
+    didReceiveAttrs(this: any, diff: AttributesDiff) {
       super.didReceiveAttrs(diff);
       this.hooks['didReceiveAttrs']++;
     }

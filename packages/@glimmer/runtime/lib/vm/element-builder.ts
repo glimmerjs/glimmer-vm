@@ -3,8 +3,9 @@ import { destroy, registerDestructor } from '@glimmer/destroyable';
 import type {
   AttrNamespace,
   Bounds,
+  BrowserDOMEnvironment,
   Cursor,
-  CursorStackSymbol,
+  DebugElementBuilder,
   ElementBuilder,
   ElementOperations,
   Environment,
@@ -20,49 +21,62 @@ import type {
   SimpleNode,
   SimpleText,
   UpdatableBlock,
+  UpdatableBounds,
 } from '@glimmer/interfaces';
-import { assert, expect, Stack } from '@glimmer/util';
+import { assert, castToSimple, expect, Stack } from '@glimmer/util';
 
-import { clear, ConcreteBounds, CursorImpl, SingleNodeBounds } from '../bounds';
+import {
+  clear,
+  ConcreteBounds,
+  CursorImpl,
+  SingleNodeBounds,
+  type DOMEnvironment,
+} from '../bounds';
 import { type DynamicAttribute, dynamicAttribute } from './attributes/dynamic';
 
-export type FirstNode = Pick<Bounds, 'firstNode'>;
-export type LastNode = Pick<Bounds, 'lastNode'>;
+export type FirstNode = Pick<UpdatableBounds, 'firstNode'>;
+export type LastNode = Pick<UpdatableBounds, 'lastNode'>;
 
-function First(node: SimpleNode): FirstNode {
+function First(node: ChildNode): FirstNode {
   return {
     firstNode: () => node,
   };
 }
 
-function Last(node: SimpleNode): LastNode {
+function Last(node: ChildNode): LastNode {
   return {
     lastNode: () => node,
   };
 }
 
-export const CURSOR_STACK: CursorStackSymbol = Symbol('CURSOR_STACK') as CursorStackSymbol;
-
-export class NewElementBuilder implements ElementBuilder {
+export class NewElementBuilder<E extends DOMEnvironment = DOMEnvironment>
+  implements ElementBuilder<E>
+{
   public _dom_: GlimmerTreeConstruction;
   public _updateOperations_: GlimmerTreeChanges;
-  public _constructing_: Nullable<SimpleElement> = null;
+  public _constructing_: Nullable<E['element']> = null;
   public operations: Nullable<ElementOperations> = null;
   private env: Environment;
 
-  [CURSOR_STACK] = new Stack<Cursor>();
+  readonly #cursors = new Stack<Cursor<E>>();
   private modifierStack = new Stack<Nullable<ModifierInstance[]>>();
-  private blockStack = new Stack<LiveBlock>();
+  private blockStack = new Stack<LiveBlock<E>>();
 
-  static forInitialRender(environment: Environment, cursor: CursorImpl) {
+  static forInitialRender<E extends DOMEnvironment>(
+    environment: Environment,
+    cursor: CursorImpl<E>
+  ) {
     return new this(environment, cursor.element, cursor.nextSibling).initialize();
   }
 
-  static resume(environment: Environment, block: UpdatableBlock): NewElementBuilder {
+  static resume(
+    environment: Environment,
+    block: UpdatableBlock
+  ): NewElementBuilder<BrowserDOMEnvironment> {
     let parentNode = block.parentElement();
     let nextSibling = block.reset(environment);
 
-    let stack = new this(environment, parentNode, nextSibling).initialize();
+    let stack = new this(environment, castToSimple(parentNode), nextSibling).initialize();
     stack.pushLiveBlock(block);
 
     return stack;
@@ -70,14 +84,33 @@ export class NewElementBuilder implements ElementBuilder {
 
   constructor(
     environment: Environment,
-    parentNode: SimpleElement,
-    nextSibling: Nullable<SimpleNode>
+    parentNode: SimpleElement | Element,
+    nextSibling: Nullable<SimpleNode | ChildNode>
   ) {
     this.pushElement(parentNode, nextSibling);
 
     this.env = environment;
     this._dom_ = environment.getAppendOperations();
     this._updateOperations_ = environment.getDOM();
+
+    if (import.meta.env.DEV) {
+      Object.defineProperty(this, '_debug_', {
+        enumerable: true,
+        configurable: true,
+        writable: false,
+        value: {
+          getCursors: () => this.#cursors,
+        } satisfies DebugElementBuilder<E>,
+      });
+    }
+  }
+
+  protected get _currentCursor_(): Nullable<Cursor<E>> {
+    return this.#cursors.current;
+  }
+
+  protected _pushCursor_(cursor: Cursor<E>) {
+    this.#cursors.push(cursor);
   }
 
   protected initialize(): this {
@@ -89,12 +122,12 @@ export class NewElementBuilder implements ElementBuilder {
     return this.blockStack.toArray();
   }
 
-  get element(): SimpleElement {
-    return this[CURSOR_STACK].current!.element;
+  get element(): E['element'] {
+    return this.#cursors.current!.element;
   }
 
-  get nextSibling(): Nullable<SimpleNode> {
-    return this[CURSOR_STACK].current!.nextSibling;
+  get nextSibling(): Nullable<E['child']> {
+    return this.#cursors.current!.nextSibling;
   }
 
   get hasBlocks() {
@@ -106,15 +139,15 @@ export class NewElementBuilder implements ElementBuilder {
   }
 
   popElement() {
-    this[CURSOR_STACK].pop();
-    expect(this[CURSOR_STACK].current, "can't pop past the last element");
+    this.#cursors.pop();
+    expect(this.#cursors.current, "can't pop past the last element");
   }
 
   pushSimpleBlock(): LiveBlock {
     return this.pushLiveBlock(new SimpleLiveBlock(this.element));
   }
 
-  pushUpdatableBlock(): UpdatableBlockImpl {
+  pushUpdatableBlock(): UpdatableBlockImpl<E> {
     return this.pushLiveBlock(new UpdatableBlockImpl(this.element));
   }
 
@@ -213,8 +246,11 @@ export class NewElementBuilder implements ElementBuilder {
     this.popElement();
   }
 
-  protected pushElement(element: SimpleElement, nextSibling: Maybe<SimpleNode> = null) {
-    this[CURSOR_STACK].push(new CursorImpl(element, nextSibling));
+  protected pushElement(
+    element: SimpleElement | Element,
+    nextSibling: Maybe<SimpleNode | ChildNode> = null
+  ) {
+    this.#cursors.push(new CursorImpl(element, nextSibling));
   }
 
   private pushModifiers(modifiers: Nullable<ModifierInstance[]>): void {
@@ -318,11 +354,11 @@ export class NewElementBuilder implements ElementBuilder {
   }
 
   __setAttribute(name: string, value: string, namespace: Nullable<AttrNamespace>): void {
-    this._dom_.setAttribute(this._constructing_!, name, value, namespace);
+    this._dom_.setAttribute(this._constructing_, name, value, namespace);
   }
 
   __setProperty(name: string, value: unknown): void {
-    (this._constructing_! as any)[name] = value;
+    (this._constructing_ as any)[name] = value;
   }
 
   setStaticAttribute(name: string, value: string, namespace: Nullable<AttrNamespace>): void {
@@ -335,25 +371,28 @@ export class NewElementBuilder implements ElementBuilder {
     trusting: boolean,
     namespace: Nullable<AttrNamespace>
   ): DynamicAttribute {
-    let element = this._constructing_!;
+    let element = this._constructing_;
     let attribute = dynamicAttribute(element, name, namespace, trusting);
     attribute.set(this, value, this.env);
     return attribute;
   }
 }
 
-export class SimpleLiveBlock implements LiveBlock {
+export class SimpleLiveBlock<E extends DOMEnvironment = DOMEnvironment> implements LiveBlock<E> {
   protected first: Nullable<FirstNode> = null;
   protected last: Nullable<LastNode> = null;
   protected nesting = 0;
+  readonly #parent: Element;
 
-  constructor(private parent: SimpleElement) {}
-
-  parentElement() {
-    return this.parent;
+  constructor(parent: E['element']) {
+    this.#parent = parent;
   }
 
-  firstNode(): SimpleNode {
+  parentElement() {
+    return this.#parent;
+  }
+
+  firstNode(): ChildNode {
     let first = expect(
       this.first,
       'cannot call `firstNode()` while `SimpleLiveBlock` is still initializing'
@@ -362,7 +401,7 @@ export class SimpleLiveBlock implements LiveBlock {
     return first.firstNode();
   }
 
-  lastNode(): SimpleNode {
+  lastNode(): ChildNode {
     let last = expect(
       this.last,
       'cannot call `lastNode()` while `SimpleLiveBlock` is still initializing'
@@ -407,8 +446,8 @@ export class SimpleLiveBlock implements LiveBlock {
   }
 }
 
-export class RemoteLiveBlock extends SimpleLiveBlock {
-  constructor(parent: SimpleElement) {
+export class RemoteLiveBlock<E extends DOMEnvironment = DOMEnvironment> extends SimpleLiveBlock<E> {
+  constructor(parent: E['element']) {
     super(parent);
 
     registerDestructor(this, () => {
@@ -443,8 +482,11 @@ export class RemoteLiveBlock extends SimpleLiveBlock {
   }
 }
 
-export class UpdatableBlockImpl extends SimpleLiveBlock implements UpdatableBlock {
-  reset(): Nullable<SimpleNode> {
+export class UpdatableBlockImpl
+  extends SimpleLiveBlock<BrowserDOMEnvironment>
+  implements UpdatableBlock
+{
+  reset(): Nullable<ChildNode> {
     destroy(this);
     let nextSibling = clear(this);
 
@@ -457,7 +499,7 @@ export class UpdatableBlockImpl extends SimpleLiveBlock implements UpdatableBloc
 }
 
 // FIXME: All the noops in here indicate a modelling problem
-export class LiveBlockList implements LiveBlock {
+export class LiveBlockList<E extends DOMEnvironment = DOMEnvironment> implements LiveBlock<E> {
   constructor(private readonly parent: SimpleElement, public boundList: LiveBlock[]) {
     this.parent = parent;
     this.boundList = boundList;
@@ -467,7 +509,7 @@ export class LiveBlockList implements LiveBlock {
     return this.parent;
   }
 
-  firstNode(): SimpleNode {
+  firstNode(): E['child'] {
     let head = expect(
       this.boundList[0],
       'cannot call `firstNode()` while `LiveBlockList` is still initializing'
@@ -476,7 +518,7 @@ export class LiveBlockList implements LiveBlock {
     return head.firstNode();
   }
 
-  lastNode(): SimpleNode {
+  lastNode(): E['child'] {
     let boundList = this.boundList;
 
     let tail = expect(

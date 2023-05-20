@@ -8,10 +8,10 @@ export function values(record) {
 }
 
 /**
- * @template {object} D
+ * @template {Record<string, unknown>} D
  * @param {D} record
  * @returns {import("@glimmer/util").ObjectEntry<D>[]}
  */
 export function entries(record) {
-  return Object.entries(record);
+  return /** @type {any} */ (Object.entries(record));
 }

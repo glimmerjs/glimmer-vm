@@ -117,7 +117,7 @@ define(DYNAMIC_HELPER_OP, (vm) => {
       }
 
       if (positional !== undefined) {
-        args.positional = positional.concat(args.positional) as CapturedPositionalArguments;
+        args.positional = [...positional, ...args.positional] as CapturedPositionalArguments;
       }
 
       helperReference = helper(args, owner);
