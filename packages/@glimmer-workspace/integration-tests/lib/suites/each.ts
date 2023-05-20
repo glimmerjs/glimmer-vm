@@ -103,8 +103,7 @@ export class EachSuite extends RenderTest {
     this.assertHTML('hello');
     this.assertStableRerender();
 
-    list.push({ text: ' ' });
-    list.push({ text: 'World' });
+    list.push({ text: ' ' }, { text: 'World' });
     this.rerender({ list });
     this.assertHTML('hello World');
     this.assertStableNodes();
@@ -150,16 +149,16 @@ export class EachSuite extends RenderTest {
 
   @test
   'receives the index as the second parameter (when key=@identity)'() {
-    let v1 = val(1);
-    let v2 = val(2);
-    let v3 = val(3);
-    let v4 = val(4);
-    let v5 = val(5);
-    let v6 = val(6);
+    let v1 = value(1);
+    let v2 = value(2);
+    let v3 = value(3);
+    let v4 = value(4);
+    let v5 = value(5);
+    let v6 = value(6);
 
     let list = [v1, v2, v3, v4];
     this.render(
-      '{{#each this.list key="@identity" as |item i|}}{{item.val}}-{{i}}{{else}}Empty{{/each}}',
+      '{{#each this.list key="@identity" as |item i|}}{{item.current}}-{{i}}{{else}}Empty{{/each}}',
       {
         list,
       }
@@ -172,7 +171,7 @@ export class EachSuite extends RenderTest {
     this.assertHTML('1-02-13-24-35-46-5');
     this.assertStableNodes();
 
-    v1.val = 1000;
+    v1.current = 1000;
     this.rerender({ list });
     this.assertHTML('1000-02-13-24-35-46-5');
     this.assertStableNodes();
@@ -182,7 +181,7 @@ export class EachSuite extends RenderTest {
     this.assertHTML('Empty');
     this.assertStableNodes();
 
-    list = [val(1), val(2), val(3), val(4)];
+    list = [value(1), value(2), value(3), value(4)];
     this.rerender({ list });
     this.assertHTML('1-02-13-24-3');
     this.assertStableNodes();
@@ -248,7 +247,7 @@ export class EachSuite extends RenderTest {
     this.assertHTML('HelloHelloHello');
     this.assertStableRerender();
 
-    list.forEach((item) => (item.text = 'Goodbye'));
+    for (let item of list) item.text = 'Goodbye';
 
     this.rerender({ list });
     this.assertHTML('GoodbyeGoodbyeGoodbye');
@@ -280,7 +279,7 @@ export class EachSuite extends RenderTest {
     this.assertHTML('HelloHelloHello');
     this.assertStableRerender();
 
-    list.forEach((item) => (item.text = 'Goodbye'));
+    for (let item of list) item.text = 'Goodbye';
 
     this.rerender({ list });
     this.assertHTML('GoodbyeGoodbyeGoodbye');
@@ -304,7 +303,7 @@ export class EachSuite extends RenderTest {
     this.assertHTML('HelloHelloHello');
     this.assertStableRerender();
 
-    list.forEach((item) => (item.text = 'Goodbye'));
+    for (let item of list) item.text = 'Goodbye';
 
     this.rerender({ list });
     this.assertHTML('HelloHelloHello');
@@ -375,15 +374,15 @@ export class EachSuite extends RenderTest {
   'When re-iterated via swap #1, the original references are updated'() {
     if (!LOCAL_DEBUG) return;
 
-    let arr = numbers();
-    this.render(`{{#each this.arr as |item|}}{{item}}{{/each}}`, { arr });
+    let array = numbers();
+    this.render(`{{#each this.arr as |item|}}{{item}}{{/each}}`, { arr: array });
 
-    let a = arr[1];
-    let b = arr[7];
-    arr[7] = a;
-    arr[1] = b;
+    let a = array[1];
+    let b = array[7];
+    array[7] = a;
+    array[1] = b;
 
-    this.rerender({ arr });
+    this.rerender({ arr: array });
 
     verifySteps?.(
       'list-updates',
@@ -405,15 +404,15 @@ export class EachSuite extends RenderTest {
   'When re-iterated via swap #2, the original references are updated'() {
     if (!LOCAL_DEBUG) return;
 
-    let arr = numbers();
-    this.render(`{{#each this.arr as |item|}}{{item}}{{/each}}`, { arr });
+    let array = numbers();
+    this.render(`{{#each this.arr as |item|}}{{item}}{{/each}}`, { arr: array });
 
-    let a = arr[0];
-    let b = arr[7];
-    arr[7] = a;
-    arr[0] = b;
+    let a = array[0];
+    let b = array[7];
+    array[7] = a;
+    array[0] = b;
 
-    this.rerender({ arr });
+    this.rerender({ arr: array });
 
     verifySteps?.(
       'list-updates',
@@ -435,15 +434,15 @@ export class EachSuite extends RenderTest {
   'When re-iterated via swap #3, the original references are updated'() {
     if (!LOCAL_DEBUG) return;
 
-    let arr = numbers();
-    this.render(`{{#each this.arr as |item|}}{{item}}{{/each}}`, { arr });
+    let array = numbers();
+    this.render(`{{#each this.arr as |item|}}{{item}}{{/each}}`, { arr: array });
 
-    let a = arr[0];
-    let b = arr[6];
-    arr[6] = a;
-    arr[0] = b;
+    let a = array[0];
+    let b = array[6];
+    array[6] = a;
+    array[0] = b;
 
-    this.rerender({ arr });
+    this.rerender({ arr: array });
 
     verifySteps?.(
       'list-updates',
@@ -465,19 +464,19 @@ export class EachSuite extends RenderTest {
   'When re-iterated via swap #4, the original references are updated'() {
     if (!LOCAL_DEBUG) return;
 
-    let arr = numbers();
-    this.render(`{{#each this.arr as |item|}}{{item}}{{/each}}`, { arr });
+    let array = numbers();
+    this.render(`{{#each this.arr as |item|}}{{item}}{{/each}}`, { arr: array });
 
-    let a = arr[1];
-    let b = arr[3];
-    let c = arr[4];
-    let d = arr[6];
-    arr[6] = b;
-    arr[4] = a;
-    arr[3] = d;
-    arr[1] = c;
+    let a = array[1];
+    let b = array[3];
+    let c = array[4];
+    let d = array[6];
+    array[6] = b;
+    array[4] = a;
+    array[3] = d;
+    array[1] = c;
 
-    this.rerender({ arr });
+    this.rerender({ arr: array });
 
     verifySteps?.(
       'list-updates',
@@ -499,16 +498,16 @@ export class EachSuite extends RenderTest {
   'When re-iterated via swap #5, the original references are updated'() {
     if (!LOCAL_DEBUG) return;
 
-    let arr = numbers();
-    this.render(`{{#each this.arr as |item|}}{{item}}{{/each}}`, { arr });
+    let array = numbers();
+    this.render(`{{#each this.arr as |item|}}{{item}}{{/each}}`, { arr: array });
 
-    let a = arr[1];
-    let b = arr[3];
-    arr[3] = a;
-    arr[1] = b;
-    arr.push(9);
+    let a = array[1];
+    let b = array[3];
+    array[3] = a;
+    array[1] = b;
+    array.push(9);
 
-    this.rerender({ arr });
+    this.rerender({ arr: array });
 
     verifySteps?.(
       'list-updates',
@@ -531,17 +530,17 @@ export class EachSuite extends RenderTest {
   'When re-iterated via swap #6, the original references are updated'() {
     if (!LOCAL_DEBUG) return;
 
-    let arr = numbers();
-    this.render(`{{#each this.arr as |item|}}{{item}}{{/each}}`, { arr });
+    let array = numbers();
+    this.render(`{{#each this.arr as |item|}}{{item}}{{/each}}`, { arr: array });
 
-    let a = arr[1];
-    let b = arr[6];
-    arr[6] = a;
-    arr[1] = b;
+    let a = array[1];
+    let b = array[6];
+    array[6] = a;
+    array[1] = b;
 
-    arr.splice(2, 0, 9);
+    array.splice(2, 0, 9);
 
-    this.rerender({ arr });
+    this.rerender({ arr: array });
 
     verifySteps?.(
       'list-updates',
@@ -564,13 +563,13 @@ export class EachSuite extends RenderTest {
   'When re-iterated via swap #7, the original references are updated'() {
     if (!LOCAL_DEBUG) return;
 
-    let arr = [1, 2, 3, 4, 5, 6, 7, 8];
-    this.render(`{{#each this.arr as |item|}}{{item}}{{/each}}`, { arr });
+    let array = [1, 2, 3, 4, 5, 6, 7, 8];
+    this.render(`{{#each this.arr as |item|}}{{item}}{{/each}}`, { arr: array });
 
-    arr.shift();
-    arr.splice(2, 0, 9);
+    array.shift();
+    array.splice(2, 0, 9);
 
-    this.rerender({ arr });
+    this.rerender({ arr: array });
 
     verifySteps?.(
       'list-updates',
@@ -593,8 +592,8 @@ export class EachSuite extends RenderTest {
   'When re-iterated via swap #8, the original references are updated'() {
     if (!LOCAL_DEBUG) return;
 
-    let arr = [1, 2, 3, 4, 5, 6, 7, 8];
-    this.render(`{{#each this.arr as |item|}}{{item}}{{/each}}`, { arr });
+    let array = [1, 2, 3, 4, 5, 6, 7, 8];
+    this.render(`{{#each this.arr as |item|}}{{item}}{{/each}}`, { arr: array });
 
     let shifted = [8, 1, 2, 3, 4, 5, 6, 7];
 
@@ -620,8 +619,8 @@ export class EachSuite extends RenderTest {
   'When re-iterated via swap #9, the original references are updated'() {
     if (!LOCAL_DEBUG) return;
 
-    let arr = [1, 2, 3, 4, 5, 6, 7, 8];
-    this.render(`{{#each this.arr as |item|}}{{item}}{{/each}}`, { arr });
+    let array = [1, 2, 3, 4, 5, 6, 7, 8];
+    this.render(`{{#each this.arr as |item|}}{{item}}{{/each}}`, { arr: array });
 
     let shifted = [2, 3, 4, 5, 6, 7, 8, 1];
 
@@ -647,23 +646,23 @@ export class EachSuite extends RenderTest {
   'When re-iterated via swap #10, the original references are updated'(assert: Assert) {
     if (!LOCAL_DEBUG) return;
 
-    let arr = [1, 2, 3, 4, 5, 6, 7, 8];
-    this.render(`{{#each this.arr as |item|}}{{item}}{{/each}}`, { arr });
+    let array = [1, 2, 3, 4, 5, 6, 7, 8];
+    this.render(`{{#each this.arr as |item|}}{{item}}{{/each}}`, { arr: array });
 
-    for (let i = 0; i < 100; i++) {
-      shuffleArray(arr);
-      this.rerender({ arr });
+    for (let index = 0; index < 100; index++) {
+      shuffleArray(array);
+      this.rerender({ arr: array });
 
       verifySteps?.('list-updates', (steps) => {
         let stats = getStepStats(steps as ListStep[]);
 
         let changedNodes = stats.move + stats.retain;
-        assert.ok(changedNodes <= arr.length, 'changed nodes count');
+        assert.ok(changedNodes <= array.length, 'changed nodes count');
         assert.strictEqual(stats.insert, 0, 'inserted nodes count');
         assert.strictEqual(stats.delete, 0, 'deleted nodes count');
       });
 
-      this.assertHTML(arr.join(''));
+      this.assertHTML(array.join(''));
     }
   }
 
@@ -671,25 +670,25 @@ export class EachSuite extends RenderTest {
   'When re-iterated via swap #11, the original references are updated'(assert: Assert) {
     if (!LOCAL_DEBUG) return;
 
-    let arr = [1, 2, 3, 4, 5, 6, 7, 8];
-    this.render(`{{#each this.arr as |item|}}{{item}}{{/each}}`, { arr });
+    let array = [1, 2, 3, 4, 5, 6, 7, 8];
+    this.render(`{{#each this.arr as |item|}}{{item}}{{/each}}`, { arr: array });
 
-    for (let i = 0; i < 100; i++) {
-      let newArr = arr.slice();
-      shuffleArray(newArr);
-      let semiArr = newArr.slice(0, 5);
-      this.rerender({ arr: semiArr });
+    for (let index = 0; index < 100; index++) {
+      let newArray = [...array];
+      shuffleArray(newArray);
+      let semiArray = newArray.slice(0, 5);
+      this.rerender({ arr: semiArray });
 
       verifySteps?.('list-updates', (steps) => {
         let stats = getStepStats(steps as ListStep[]);
 
         let changedNodes = stats.move + stats.retain;
-        assert.ok(changedNodes <= arr.length, 'changed nodes count');
+        assert.ok(changedNodes <= array.length, 'changed nodes count');
         assert.ok(stats.insert <= 3, 'inserted nodes count');
         assert.ok(stats.delete <= 3, 'deleted nodes count');
       });
 
-      this.assertHTML(semiArr.join(''));
+      this.assertHTML(semiArray.join(''));
     }
   }
 
@@ -697,47 +696,47 @@ export class EachSuite extends RenderTest {
   'When re-iterated via swap #12, the original references are updated'(assert: Assert) {
     if (!LOCAL_DEBUG) return;
 
-    let arr = [1, 2, 3, 4, 5, 6, 7, 8];
-    this.render(`{{#each this.arr as |item|}}{{item}}{{/each}}`, { arr });
+    let array = [1, 2, 3, 4, 5, 6, 7, 8];
+    this.render(`{{#each this.arr as |item|}}{{item}}{{/each}}`, { arr: array });
 
-    for (let i = 0; i < 100; i++) {
-      let newArr = arr.slice();
-      shuffleArray(newArr);
-      let semiArr = newArr.slice(0, 5).concat([11, 12]);
-      this.rerender({ arr: semiArr });
+    for (let index = 0; index < 100; index++) {
+      let newArray = [...array];
+      shuffleArray(newArray);
+      let semiArray = [...newArray.slice(0, 5), 11, 12];
+      this.rerender({ arr: semiArray });
 
       verifySteps?.('list-updates', (steps) => {
         let stats = getStepStats(steps as ListStep[]);
 
         let changedNodes = stats.move + stats.retain + stats.insert + stats.delete;
-        assert.ok(changedNodes <= semiArr.length + 3, 'changed nodes count');
+        assert.ok(changedNodes <= semiArray.length + 3, 'changed nodes count');
         assert.ok(stats.insert <= 3, 'inserted nodes count');
         assert.ok(stats.delete <= 3, 'deleted nodes count');
       });
 
-      this.assertHTML(semiArr.join(''));
+      this.assertHTML(semiArray.join(''));
     }
   }
 
   @test
   're-iterating nested arrays works'() {
-    let arr = [
+    let array = [
       [1, 2, 3, 4, 5],
       [4, 5, 6, 7, 8],
       [5, 6, 7, 8, 9],
     ];
     this.render(`{{#each this.arr as |sub|}}{{#each sub as |item|}}{{item}}{{/each}}{{/each}}`, {
-      arr,
+      arr: array,
     });
 
-    for (let i = 0; i < 100; i++) {
-      for (let sub of arr) {
+    for (let index = 0; index < 100; index++) {
+      for (let sub of array) {
         shuffleArray(sub);
       }
 
-      this.rerender({ arr: arr.map((sub) => sub.slice()) });
+      this.rerender({ arr: array.map((sub) => [...sub]) });
 
-      this.assertHTML(arr.map((sub) => sub.join('')).join(''));
+      this.assertHTML(array.map((sub) => sub.join('')).join(''));
     }
   }
 }
@@ -761,22 +760,22 @@ function getStepStats(history: ListStep[]) {
 }
 
 function shuffleArray(array: unknown[]) {
-  for (let i = array.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [array[i], array[j]] = [array[j], array[i]];
+  for (let index = array.length - 1; index > 0; index--) {
+    let index_ = Math.floor(Math.random() * (index + 1));
+    [array[index], array[index_]] = [array[index_], array[index]];
   }
 }
 
-class Val {
-  @tracked val: number;
+class Value {
+  @tracked current: number;
 
-  constructor(val: number) {
-    this.val = val;
+  constructor(initial: number) {
+    this.current = initial;
   }
 }
 
-function val(i: number): Val {
-  return new Val(i);
+function value(index: number): Value {
+  return new Value(index);
 }
 
 function numbers() {

@@ -28,15 +28,11 @@ export class WrappedBuilder implements CompilableProgram {
     let { block } = layout;
     let [, symbols, hasDebug] = block;
 
-    symbols = symbols.slice();
+    symbols = [...symbols];
 
     // ensure ATTRS_BLOCK is always included (only once) in the list of symbols
-    let attrsBlockIndex = symbols.indexOf(ATTRS_BLOCK);
-    if (attrsBlockIndex === -1) {
-      this.#attrsBlockNumber = symbols.push(ATTRS_BLOCK);
-    } else {
-      this.#attrsBlockNumber = attrsBlockIndex + 1;
-    }
+    let attributesBlockIndex = symbols.indexOf(ATTRS_BLOCK);
+    this.#attrsBlockNumber = attributesBlockIndex === -1 ? symbols.push(ATTRS_BLOCK) : attributesBlockIndex + 1;
 
     this.symbolTable = {
       hasDebug,

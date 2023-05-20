@@ -33,18 +33,14 @@ class TemplateIteratorImpl implements TemplateIterator {
   }
 
   sync(): RenderResult {
-    if (import.meta.env.DEV) {
-      return debug.runInTrackingTransaction!(() => this.#vm._execute_(), '- While rendering:');
-    } else {
-      return this.#vm._execute_();
-    }
+    return import.meta.env.DEV ? debug.runInTrackingTransaction!(() => this.#vm._execute_(), '- While rendering:') : this.#vm._execute_();
   }
 }
 
-export function renderSync(env: Environment, iterator: TemplateIterator): RenderResult {
+export function renderSync(environment: Environment, iterator: TemplateIterator): RenderResult {
   let result: RenderResult;
 
-  inTransaction(env, () => (result = iterator.sync()));
+  inTransaction(environment, () => (result = iterator.sync()));
 
   return result!;
 }
@@ -59,13 +55,13 @@ export function renderMain(
   dynamicScope: DynamicScope = new DynamicScopeImpl()
 ): TemplateIterator {
   let handle = unwrapHandle(layout.compile(context));
-  let numSymbols = layout.symbolTable.symbols.length;
+  let numberSymbols = layout.symbolTable.symbols.length;
   let vm = VM.initial(runtime, context, {
     self,
     dynamicScope,
     treeBuilder,
     handle,
-    numSymbols,
+    numSymbols: numberSymbols,
     owner,
   });
   return new TemplateIteratorImpl(vm);
@@ -80,43 +76,41 @@ function renderInvocation(
 ): TemplateIterator {
   // Get a list of tuples of argument names and references, like
   // [['title', reference], ['name', reference]]
-  const argList = Object.keys(args).map((key) => [key, args[key]] as const);
+  let argumentList = Object.keys(args).map((key) => [key, args[key]] as const);
 
-  const blockNames = ['main', 'else', 'attrs'];
+  let blockNames = ['main', 'else', 'attrs'];
   // Prefix argument names with `@` symbol
-  const argNames = argList.map(([name]) => `@${name}`);
+  let argumentNames = argumentList.map(([name]) => `@${name}`);
 
   let reified = vm[CONSTANTS].component(definition, owner);
 
   vm._pushFrame_();
 
   // Push blocks on to the stack, three stack values per block
-  for (let i = 0; i < 3 * blockNames.length; i++) {
+  for (let index = 0; index < 3 * blockNames.length; index++) {
     vm.stack.push(null);
   }
 
   vm.stack.push(null);
 
   // For each argument, push its backing reference on to the stack
-  argList.forEach(([, reference]) => {
+  for (let [, reference] of argumentList) {
     vm.stack.push(reference);
-  });
+  }
 
   // Configure VM based on blocks and args just pushed on to the stack.
-  vm[ARGS].setup(vm.stack, argNames, blockNames, 0, true);
+  vm[ARGS].setup(vm.stack, argumentNames, blockNames, 0, true);
 
-  const compilable = expect(
+  let compilable = expect(
     reified.compilable,
     'BUG: Expected the root component rendered with renderComponent to have an associated template, set with setComponentTemplate'
   );
-  const layoutHandle = unwrapHandle(compilable.compile(context));
-  const invocation = { handle: layoutHandle, symbolTable: compilable.symbolTable };
+  let layoutHandle = unwrapHandle(compilable.compile(context));
+  let invocation = { handle: layoutHandle, symbolTable: compilable.symbolTable };
 
   // Needed for the Op.Main opcode: arguments, component invocation object, and
   // component definition.
-  vm.stack.push(vm[ARGS]);
-  vm.stack.push(invocation);
-  vm.stack.push(reified);
+  vm.stack.push(vm[ARGS], invocation, reified);
 
   return new TemplateIteratorImpl(vm);
 }
@@ -139,10 +133,10 @@ export function renderComponent(
 }
 
 function recordToReference(record: Record<string, unknown>): Record<string, Reference> {
-  const root = createConstRef(record, 'args');
+  let root = createConstRef(record, 'args');
 
-  return Object.keys(record).reduce((acc, key) => {
-    acc[key] = childRefFor(root, key);
-    return acc;
+  return Object.keys(record).reduce((accumulator, key) => {
+    accumulator[key] = childRefFor(root, key);
+    return accumulator;
   }, {} as Record<string, Reference>);
 }

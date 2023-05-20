@@ -450,11 +450,11 @@ class UpdatingTest extends RenderTest {
     });
 
     this.registerInternalHelper('destroy-me', (_args) => {
-      let ref = createPrimitiveRef('destroy me!');
+      let reference = createPrimitiveRef('destroy me!');
 
-      associateDestroyableChild(ref, destroyable);
+      associateDestroyableChild(reference, destroyable);
 
-      return ref;
+      return reference;
     });
 
     this.render('<div>{{destroy-me}}</div>', {});
@@ -476,14 +476,14 @@ class UpdatingTest extends RenderTest {
 
   testStatefulHelper<T, U>(
     assert: typeof QUnit.assert,
-    arg1: {
+    argument1: {
       template: string;
       truthyValue: T;
       falsyValue: U;
       element?: SimpleElement;
     }
   ) {
-    let { template, truthyValue, falsyValue, element } = arg1;
+    let { template, truthyValue, falsyValue, element } = argument1;
     let didCreate = 0;
     let didDestroy = 0;
     let tag = createTag();
@@ -492,7 +492,7 @@ class UpdatingTest extends RenderTest {
     this.registerInternalHelper('stateful-foo', (_args) => {
       didCreate++;
 
-      let ref = createComputeRef(() => {
+      let reference = createComputeRef(() => {
         consumeTag(tag);
         return currentValue;
       });
@@ -500,9 +500,9 @@ class UpdatingTest extends RenderTest {
       let destroyable = {};
 
       registerDestructor(destroyable, () => didDestroy++);
-      associateDestroyableChild(ref, destroyable);
+      associateDestroyableChild(reference, destroyable);
 
-      return ref;
+      return reference;
     });
 
     assert.strictEqual(didCreate, 0, 'didCreate: before render');
@@ -897,7 +897,7 @@ class UpdatingTest extends RenderTest {
       @tracked last = 'Godfrey';
     }
 
-    const person = { name: new Name('Godfrey', 'Chan') };
+    let person = { name: new Name('Godfrey', 'Chan') };
 
     this.render('<div>{{#with this.person.name.first as |f|}}{{f}}{{/with}}</div>', {
       person,
@@ -1122,7 +1122,7 @@ class UpdatingTest extends RenderTest {
 
   @test
   'block arguments cannot be accessed through {{this}}'() {
-    this.registerHelper('noop', (params) => params[0]);
+    this.registerHelper('noop', (parameters) => parameters[0]);
 
     this.render(
       stripTight`
@@ -1205,8 +1205,8 @@ class UpdatingTest extends RenderTest {
 
   @test
   'helper calls follow the normal dirtying rules'() {
-    this.registerHelper('capitalize', function (params) {
-      let value = params[0];
+    this.registerHelper('capitalize', function (parameters) {
+      let value = parameters[0];
       if (value !== null && value !== undefined && typeof value === 'string') {
         return value.toUpperCase();
       }
@@ -1416,7 +1416,7 @@ class UpdatingTest extends RenderTest {
       let options = getElementsByTagName(this.element, 'option');
       let actualSelected = [];
 
-      for (const option of options) {
+      for (let option of options) {
         // TODO: these type errors reflect real incompatibility with
         // SimpleDOM
 
@@ -1494,18 +1494,18 @@ class UpdatingTest extends RenderTest {
     assertSelected([], 'selection after update 3 & 4 back to falsey');
   }
 
-  assertInvariants(msg?: string) {
+  assertInvariants(message?: string) {
     let result = expect(this.renderResult, 'must render before asserting invariants');
 
     assert.strictEqual(
       result.firstNode(),
       this.element.firstChild,
-      `The firstNode of the result is the same as the root's firstChild${msg ? ': ' + msg : ''}`
+      `The firstNode of the result is the same as the root's firstChild${message ? ': ' + message : ''}`
     );
     assert.strictEqual(
       result.lastNode(),
       this.element.lastChild,
-      `The lastNode of the result is the same as the roots's lastChild${msg ? ': ' + msg : ''}`
+      `The lastNode of the result is the same as the roots's lastChild${message ? ': ' + message : ''}`
     );
   }
 
@@ -1650,7 +1650,7 @@ class UpdatingTest extends RenderTest {
     );
 
     let items = getElementsByTagName(this.element, 'li');
-    let lastNode = items[items.length - 1];
+    let lastNode = items.at(-1);
 
     this.assertHTML('<ul><li></li></ul>', 'Initial render');
 
@@ -1658,7 +1658,7 @@ class UpdatingTest extends RenderTest {
     this.assertHTML('<ul><li>first!</li><li></li></ul>', 'After prepending list item');
 
     let newItems = getElementsByTagName(this.element, 'li');
-    let newLastNode = newItems[newItems.length - 1];
+    let newLastNode = newItems.at(-1);
 
     assert.strictEqual(
       newLastNode,

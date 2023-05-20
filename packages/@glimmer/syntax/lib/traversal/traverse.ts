@@ -20,11 +20,7 @@ function getEnterFunction<N extends ASTv1.Node, K extends VisitorKey<N>>(
 function getEnterFunction<N extends ASTv1.Node, K extends VisitorKey<N>>(
   handler: NodeTraversal<N> | KeyTraversal<N, K>
 ): NodeHandler<N> | KeyHandler<N, K> | undefined {
-  if (typeof handler === 'function') {
-    return handler;
-  } else {
-    return handler.enter as NodeHandler<N> | KeyHandler<N, K>;
-  }
+  return typeof handler === 'function' ? handler : handler.enter as NodeHandler<N> | KeyHandler<N, K>;
 }
 
 function getExitFunction<N extends ASTv1.Node>(
@@ -36,18 +32,14 @@ function getExitFunction<N extends ASTv1.Node, K extends VisitorKey<N>>(
 function getExitFunction<N extends ASTv1.Node, K extends VisitorKey<N>>(
   handler: NodeTraversal<N> | KeyTraversal<N, K>
 ): NodeHandler<N> | KeyHandler<N, K> | undefined {
-  if (typeof handler === 'function') {
-    return undefined;
-  } else {
-    return handler.exit as NodeHandler<N> | KeyHandler<N, K>;
-  }
+  return typeof handler === 'function' ? undefined : handler.exit as NodeHandler<N> | KeyHandler<N, K>;
 }
 
 function getKeyHandler<N extends ASTv1.Node, K extends VisitorKey<N>>(
   handler: NodeTraversal<N>,
   key: K
 ): KeyTraversal<N, K> | KeyTraversal<N, VisitorKey<N>> | undefined {
-  let keyVisitor = typeof handler !== 'function' ? handler.keys : undefined;
+  let keyVisitor = typeof handler === 'function' ? undefined : handler.keys;
   if (keyVisitor === undefined) return;
 
   let keyHandler = keyVisitor[key];
@@ -66,8 +58,7 @@ function getNodeHandler<N extends ASTv1.Node>(
   visitor: NodeVisitor,
   nodeType: N['type']
 ): NodeTraversal<ASTv1.Node> | undefined {
-  if (nodeType === 'Template' || nodeType === 'Block') {
-    if (visitor.Program) {
+  if ((nodeType === 'Template' || nodeType === 'Block') && visitor.Program) {
       if (import.meta.env.DEV && LOCAL_DEBUG) {
         deprecate(
           `The 'Program' visitor node is deprecated. Use 'Template' or 'Block' instead (node was '${nodeType}') `
@@ -76,7 +67,6 @@ function getNodeHandler<N extends ASTv1.Node>(
 
       return visitor.Program as NodeTraversal<ASTv1.Node>;
     }
-  }
 
   let handler = visitor[nodeType];
   if (handler !== undefined) {
@@ -120,8 +110,8 @@ function visitNode<N extends ASTv1.Node>(
   if (result === undefined) {
     let keys = visitorKeys[node.type];
 
-    for (let i = 0; i < keys.length; i++) {
-      let key = keys[i] as VisitorKeys[N['type']] & keyof N;
+    for (let key_ of keys) {
+      let key = key_ as VisitorKeys[N['type']] & keyof N;
       // we know if it has child keys we can widen to a ParentNode
       visitKey(visitor, handler, path, key);
     }
@@ -169,11 +159,9 @@ function visitKey<N extends ASTv1.Node>(
     }
   }
 
-  if (keyEnter !== undefined) {
-    if (keyEnter(node, key) !== undefined) {
+  if (keyEnter !== undefined && keyEnter(node, key) !== undefined) {
       throw cannotReplaceOrRemoveInKeyHandlerYet(node, key);
     }
-  }
 
   if (Array.isArray(value)) {
     visitArray(visitor, value, path, key);
@@ -188,11 +176,9 @@ function visitKey<N extends ASTv1.Node>(
     }
   }
 
-  if (keyExit !== undefined) {
-    if (keyExit(node, key) !== undefined) {
+  if (keyExit !== undefined && keyExit(node, key) !== undefined) {
       throw cannotReplaceOrRemoveInKeyHandlerYet(node, key);
     }
-  }
 }
 
 function visitArray(
@@ -201,12 +187,12 @@ function visitArray(
   parent: WalkerPath<ASTv1.Node> | null,
   parentKey: string | null
 ) {
-  for (let i = 0; i < array.length; i++) {
-    let node = unwrap(array[i]);
+  for (let index = 0; index < array.length; index++) {
+    let node = unwrap(array[index]);
     let path = new WalkerPath(node, parent, parentKey);
     let result = visitNode(visitor, path);
     if (result !== undefined) {
-      i += spliceArray(array, i, result) - 1;
+      index += spliceArray(array, index, result) - 1;
     }
   }
 }
@@ -223,11 +209,8 @@ function assignKey<N extends ASTv1.Node, K extends VisitorKey<N>>(
     if (result.length === 1) {
       set(node, key, result[0]);
     } else {
-      if (result.length === 0) {
-        throw cannotRemoveNode(value, node, key);
-      } else {
-        throw cannotReplaceNode(value, node, key);
-      }
+      let error = result.length === 0 ? cannotRemoveNode(value, node, key) : cannotReplaceNode(value, node, key);
+      throw error;
     }
   } else {
     set(node, key, result);

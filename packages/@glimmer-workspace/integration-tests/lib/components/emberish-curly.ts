@@ -166,7 +166,7 @@ export class EmberishCurlyComponentManager
     definition: EmberishCurlyComponentFactory,
     args: VMArguments
   ): Nullable<PreparedArguments> {
-    const { positionalParams } = definition || EmberishCurlyComponent;
+    let { positionalParams } = definition || EmberishCurlyComponent;
     if (typeof positionalParams === 'string') {
       if (args.named.has(positionalParams)) {
         if (args.positional.length === 0) {
@@ -233,7 +233,7 @@ export class EmberishCurlyComponentManager
     let dyn: Nullable<string[]> = klass.fromDynamicScope || null;
 
     if (dyn) {
-      for (const element of dyn) {
+      for (let element of dyn) {
         let name = element;
         component.set(name, valueForRef(dynamicScope.get(name)));
       }
@@ -248,7 +248,7 @@ export class EmberishCurlyComponentManager
 
     registerDestructor(component, () => component.destroy());
 
-    const selfReference = createConstRef(component, 'this');
+    let selfReference = createConstRef(component, 'this');
 
     return { component, selfRef: selfReference };
   }
@@ -280,7 +280,7 @@ export class EmberishCurlyComponentManager
     let bindings = component.attributeBindings;
 
     if (bindings) {
-      for (const attribute of bindings) {
+      for (let attribute of bindings) {
         let reference = childRefFor(selfRef, attribute);
 
         operations.setAttribute(attribute, reference, false, null);

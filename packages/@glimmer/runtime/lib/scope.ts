@@ -14,7 +14,7 @@ export class DynamicScopeImpl implements DynamicScope {
   readonly #bucket: Dict<Reference>;
 
   constructor(bucket?: Dict<Reference>) {
-    this.#bucket = bucket ? Object.assign({}, bucket) : {};
+    this.#bucket = bucket ? ({ ...bucket}) : {};
   }
 
   get(key: string): Reference {

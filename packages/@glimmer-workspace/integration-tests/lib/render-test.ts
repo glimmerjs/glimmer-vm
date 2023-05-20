@@ -46,8 +46,8 @@ export class Count {
 
   expect(name: string, count = 1) {
     this.expected[name] = count;
-    const prev = this.actual[name] ?? 0;
-    this.actual[name] = prev + 1;
+    let previous = this.actual[name] ?? 0;
+    this.actual[name] = previous + 1;
   }
 
   assert() {
@@ -139,37 +139,33 @@ export class RenderTest implements IRenderTest {
     }
 
     return `${Object.keys(args)
-      .map((arg) => {
+      .map((argument) => {
         let rightSide: string;
 
-        let value = args[arg] as Maybe<string[]>;
+        let value = args[argument] as Maybe<string[]>;
         if (needsCurlies) {
           let isString = value && (value[0] === "'" || value[0] === '"');
-          if (isString) {
-            rightSide = `${value}`;
-          } else {
-            rightSide = `{{${value}}}`;
-          }
+          rightSide = isString ? `${value}` : `{{${value}}}`;
         } else {
           rightSide = `${value}`;
         }
 
-        return `${sigil}${arg}=${rightSide}`;
+        return `${sigil}${argument}=${rightSide}`;
       })
       .join(' ')}`;
   }
 
-  private buildBlockParams(blockParams: string[]): string {
-    return `${blockParams.length > 0 ? ` as |${blockParams.join(' ')}|` : ''}`;
+  private buildBlockParams(blockParameters: string[]): string {
+    return `${blockParameters.length > 0 ? ` as |${blockParameters.join(' ')}|` : ''}`;
   }
 
   private buildElse(elseBlock: string | undefined): string {
     return `${elseBlock ? `{{else}}${elseBlock}` : ''}`;
   }
 
-  private buildAttributes(attrs: Dict = {}): string {
-    return Object.keys(attrs)
-      .map((attr) => `${attr}=${attrs[attr]}`)
+  private buildAttributes(attributes: Dict = {}): string {
+    return Object.keys(attributes)
+      .map((attribute) => `${attribute}=${attributes[attribute]}`)
       .join(' ');
   }
 
@@ -179,7 +175,7 @@ export class RenderTest implements IRenderTest {
       attributes = {},
       template,
       name = GLIMMER_TEST_COMPONENT,
-      blockParams = [],
+      blockParams: blockParameters = [],
     } = blueprint;
 
     let invocation: string | string[] = [];
@@ -192,9 +188,9 @@ export class RenderTest implements IRenderTest {
       invocation.push(componentArgs);
     }
 
-    let attrs = this.buildAttributes(attributes);
-    if (attrs !== '') {
-      invocation.push(attrs);
+    let attributes_ = this.buildAttributes(attributes);
+    if (attributes_ !== '') {
+      invocation.push(attributes_);
     }
 
     let open = invocation.join(' ');
@@ -202,17 +198,14 @@ export class RenderTest implements IRenderTest {
 
     if (template) {
       let block: string | string[] = [];
-      let params = this.buildBlockParams(blockParams);
-      if (params !== '') {
-        block.push(params);
+      let parameters = this.buildBlockParams(blockParameters);
+      if (parameters !== '') {
+        block.push(parameters);
       }
-      block.push(`>`);
-      block.push(template);
-      block.push(`</${name}>`);
+      block.push(`>`, template, `</${name}>`);
       invocation.push(block.join(''));
     } else {
-      invocation.push(' ');
-      invocation.push(`/>`);
+      invocation.push(' ', `/>`);
     }
 
     return invocation.join('');
@@ -221,16 +214,16 @@ export class RenderTest implements IRenderTest {
   private buildGlimmerComponent(blueprint: ComponentBlueprint): string {
     let { tag = 'div', layout, name = GLIMMER_TEST_COMPONENT } = blueprint;
     let invocation = this.buildAngleBracketComponent(blueprint);
-    let layoutAttrs = this.buildAttributes(blueprint.layoutAttributes);
+    let layoutAttributes = this.buildAttributes(blueprint.layoutAttributes);
     this.assert.ok(
       true,
-      `generated glimmer layout as ${`<${tag} ${layoutAttrs} ...attributes>${layout}</${tag}>`}`
+      `generated glimmer layout as ${`<${tag} ${layoutAttributes} ...attributes>${layout}</${tag}>`}`
     );
     this.delegate.registerComponent(
       'Glimmer',
       this.testType,
       name,
-      `<${tag} ${layoutAttrs} ...attributes>${layout}</${tag}>`
+      `<${tag} ${layoutAttributes} ...attributes>${layout}</${tag}>`
     );
     this.assert.ok(true, `generated glimmer invocation as ${invocation}`);
     return invocation;
@@ -239,15 +232,17 @@ export class RenderTest implements IRenderTest {
   private buildCurlyBlockTemplate(
     name: string,
     template: string,
-    blockParams: string[],
+    blockParameters: string[],
     elseBlock?: string
   ): string {
     let block: string[] = [];
-    block.push(this.buildBlockParams(blockParams));
-    block.push('}}');
-    block.push(template);
-    block.push(this.buildElse(elseBlock));
-    block.push(`{{/${name}}}`);
+    block.push(
+      this.buildBlockParams(blockParameters),
+      '}}',
+      template,
+      this.buildElse(elseBlock),
+      `{{/${name}}}`
+    );
     return block.join('');
   }
 
@@ -259,7 +254,7 @@ export class RenderTest implements IRenderTest {
       attributes,
       else: elseBlock,
       name = CURLY_TEST_COMPONENT,
-      blockParams = [],
+      blockParams: blockParameters = [],
     } = blueprint;
 
     if (attributes) {
@@ -277,12 +272,11 @@ export class RenderTest implements IRenderTest {
     let componentArgs = this.buildArgs(args);
 
     if (componentArgs !== '') {
-      invocation.push(' ');
-      invocation.push(componentArgs);
+      invocation.push(' ', componentArgs);
     }
 
     if (template) {
-      invocation.push(this.buildCurlyBlockTemplate(name, template, blockParams, elseBlock));
+      invocation.push(this.buildCurlyBlockTemplate(name, template, blockParameters, elseBlock));
     } else {
       invocation.push('}}');
     }
@@ -310,7 +304,7 @@ export class RenderTest implements IRenderTest {
       attributes,
       else: elseBlock,
       name = GLIMMER_TEST_COMPONENT,
-      blockParams = [],
+      blockParams: blockParameters = [],
     } = blueprint;
 
     if (attributes) {
@@ -327,12 +321,13 @@ export class RenderTest implements IRenderTest {
     let componentArgs = this.buildArgs(args);
 
     if (componentArgs !== '') {
-      invocation.push(' ');
-      invocation.push(componentArgs);
+      invocation.push(' ', componentArgs);
     }
 
     if (template) {
-      invocation.push(this.buildCurlyBlockTemplate('component', template, blockParams, elseBlock));
+      invocation.push(
+        this.buildCurlyBlockTemplate('component', template, blockParameters, elseBlock)
+      );
     } else {
       invocation.push('}}');
     }
@@ -417,17 +412,17 @@ export class RenderTest implements IRenderTest {
     let result = expect(this.renderResult, 'the test should call render() before rerender()');
 
     try {
-      result.env.begin();
+      result.environment.begin();
       result.rerender();
     } finally {
-      result.env.commit();
+      result.environment.commit();
     }
   }
 
   destroy(): void {
     let result = expect(this.renderResult, 'the test should call render() before destroy()');
 
-    inTransaction(result.env, () => destroy(result));
+    inTransaction(result.environment, () => destroy(result));
   }
 
   protected set(key: string, value: unknown): void {
@@ -485,7 +480,7 @@ export class RenderTest implements IRenderTest {
     if (condition) {
       this.assert.ok(condition, message);
     } else {
-      throw Error(`Guard Failed: message`);
+      throw new Error(`Guard Failed: message`);
     }
   }
 
@@ -502,7 +497,7 @@ export class RenderTest implements IRenderTest {
       );
       return value;
     } else {
-      throw Error(
+      throw new Error(
         `Guard Failed: ${description} didn't satisfy ${condition.name ?? '{anonymous guard}'}`
       );
     }
@@ -514,7 +509,7 @@ export class RenderTest implements IRenderTest {
     let missing = value === undefined || value === null;
 
     if (missing) {
-      throw Error(`Guard Failed: ${description} was not present (was ${String(value)})`);
+      throw new Error(`Guard Failed: ${description} was not present (was ${String(value)})`);
     }
 
     this.assert.ok(!missing, `${description} was present`);
@@ -554,12 +549,12 @@ export class RenderTest implements IRenderTest {
   ): unknown[] {
     let [message, list] = Object.entries(desc)[0] as [string, unknown[]];
 
-    let array: unknown[] = Array.from(list);
+    let array: unknown[] = [...list];
     let condition: (value: unknown) => boolean;
 
     if (typeof options?.min === 'number') {
       if (array.length < options.min) {
-        throw Error(
+        throw new Error(
           `Guard Failed: expected to have at least ${options.min} (of ${message}), but got ${array.length}`
         );
       }
@@ -579,7 +574,7 @@ export class RenderTest implements IRenderTest {
     if (succeeds) {
       this.assert.ok(succeeds, message);
     } else {
-      throw Error(`Guard Failed: ${message}`);
+      throw new Error(`Guard Failed: ${message}`);
     }
 
     return array;
@@ -594,15 +589,15 @@ export class RenderTest implements IRenderTest {
     this.takeSnapshot();
   }
 
-  protected assertComponent(content: string, attrs: Object = {}) {
+  protected assertComponent(content: string, attributes: Object = {}) {
     let element = assertingElement(this.element.firstChild);
 
     switch (this.testType) {
       case 'Glimmer':
-        assertElementShape(element, 'div', attrs, content);
+        assertElementShape(element, 'div', attributes, content);
         break;
       default:
-        assertEmberishElement(element, 'div', attrs, content);
+        assertEmberishElement(element, 'div', attributes, content);
     }
 
     this.takeSnapshot();
@@ -613,17 +608,14 @@ export class RenderTest implements IRenderTest {
   }
 
   protected assertStableNodes(
+    // eslint-disable-next-line unicorn/no-object-as-default-parameter
     { except: _except }: { except: SimpleNode | SimpleNode[] } = {
       except: [],
     }
   ) {
     let except: Array<SimpleNode>;
 
-    if (Array.isArray(_except)) {
-      except = uniq(_except);
-    } else {
-      except = [_except];
-    }
+    except = Array.isArray(_except) ? uniq(_except) : [_except];
 
     let { oldSnapshot, newSnapshot } = normalizeSnapshot(
       this.snapshot,
@@ -635,9 +627,6 @@ export class RenderTest implements IRenderTest {
   }
 }
 
-function uniq(arr: any[]) {
-  return arr.reduce((accum, val) => {
-    if (accum.indexOf(val) === -1) accum.push(val);
-    return accum;
-  }, []);
+function uniq(array: any[]) {
+  return [...new Set(array)];
 }

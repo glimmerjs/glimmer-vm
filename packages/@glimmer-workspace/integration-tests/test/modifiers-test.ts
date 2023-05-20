@@ -4,13 +4,13 @@ import { type Count, jitSuite, RenderTest, test } from '..';
 
 class BaseModifier {
   element?: SimpleElement;
-  didInsertElement(_params: unknown[], _hash: Dict<unknown>): void {}
+  didInsertElement(_parameters: unknown[], _hash: Dict<unknown>): void {}
   willDestroyElement(): void {}
-  didUpdate(_params: unknown[], _hash: Dict<unknown>): void {}
+  didUpdate(_parameters: unknown[], _hash: Dict<unknown>): void {}
 }
 
 abstract class AbstractInsertable extends BaseModifier {
-  abstract override didInsertElement(_params: unknown[], _hash: Dict<unknown>): void;
+  abstract override didInsertElement(_parameters: unknown[], _hash: Dict<unknown>): void;
 }
 
 abstract class AbstractDestroyable extends BaseModifier {
@@ -85,12 +85,12 @@ class ModifierTests extends RenderTest {
   'modifiers on components are forwarded to a single element receiving the splattributes'(
     assert: Assert
   ) {
-    let modifierParams: Nullable<unknown[]> = null;
+    let modifierParameters: Nullable<unknown[]> = null;
     let modifierNamedArgs: Nullable<Dict<unknown>> = null;
     let modifiedElement: SimpleElement | undefined;
     class Bar extends AbstractInsertable {
-      didInsertElement(params: unknown[], namedArgs: Dict<unknown>) {
-        modifierParams = params;
+      didInsertElement(parameters: unknown[], namedArgs: Dict<unknown>) {
+        modifierParameters = parameters;
         modifierNamedArgs = namedArgs;
         modifiedElement = this.element;
       }
@@ -98,7 +98,7 @@ class ModifierTests extends RenderTest {
     this.registerComponent('Glimmer', 'TheFoo', '<div id="inner-div" ...attributes>Foo</div>');
     this.registerModifier('bar', Bar);
     this.render('<TheFoo {{bar "something" foo="else"}}/>');
-    assert.deepEqual(modifierParams, ['something']);
+    assert.deepEqual(modifierParameters, ['something']);
     assert.deepEqual(modifierNamedArgs, { foo: 'else' });
     assert.strictEqual(
       modifiedElement && modifiedElement.getAttribute('id'),
@@ -113,8 +113,8 @@ class ModifierTests extends RenderTest {
   ) {
     let elementIds: Nullable<string>[] = [];
     class Bar extends AbstractInsertable {
-      didInsertElement(params: unknown[], namedArgs: Dict<unknown>) {
-        assert.deepEqual(params, ['something']);
+      didInsertElement(parameters: unknown[], namedArgs: Dict<unknown>) {
+        assert.deepEqual(parameters, ['something']);
         assert.deepEqual(namedArgs, { foo: 'else' });
         if (this.element) {
           elementIds.push(this.element.getAttribute('id'));
@@ -137,17 +137,17 @@ class ModifierTests extends RenderTest {
 
   @test
   'modifiers on components accept bound arguments and track changes on them'(assert: Assert) {
-    let modifierParams: Nullable<unknown[]> = null;
+    let modifierParameters: Nullable<unknown[]> = null;
     let modifierNamedArgs: Nullable<Dict<unknown>> = null;
     let modifiedElement: SimpleElement | undefined;
     class Bar extends AbstractInsertable {
-      didInsertElement(params: unknown[], namedArgs: Dict<unknown>) {
-        modifierParams = params;
+      didInsertElement(parameters: unknown[], namedArgs: Dict<unknown>) {
+        modifierParameters = parameters;
         modifierNamedArgs = namedArgs;
         modifiedElement = this.element;
       }
-      override didUpdate(params: unknown[], namedArgs: Dict<unknown>) {
-        modifierParams = params;
+      override didUpdate(parameters: unknown[], namedArgs: Dict<unknown>) {
+        modifierParameters = parameters;
         modifierNamedArgs = namedArgs;
         modifiedElement = this.element;
       }
@@ -158,7 +158,7 @@ class ModifierTests extends RenderTest {
       something: 'something',
       foo: 'else',
     });
-    assert.deepEqual(modifierParams, ['something']);
+    assert.deepEqual(modifierParameters, ['something']);
     assert.deepEqual(modifierNamedArgs, { foo: 'else' });
     assert.strictEqual(
       modifiedElement && modifiedElement.getAttribute('id'),
@@ -166,7 +166,7 @@ class ModifierTests extends RenderTest {
       'Modifier is called on the element receiving the splattributes'
     );
     this.rerender({ something: 'another', foo: 'thingy' });
-    assert.deepEqual(modifierParams, ['another']);
+    assert.deepEqual(modifierParameters, ['another']);
     assert.deepEqual(modifierNamedArgs, { foo: 'thingy' });
     assert.strictEqual(
       modifiedElement && modifiedElement.getAttribute('id'),
@@ -179,17 +179,17 @@ class ModifierTests extends RenderTest {
   'modifiers on components accept `this` in both positional params and named arguments, and updates when it changes'(
     assert: Assert
   ) {
-    let modifierParams: Nullable<unknown[]> = null;
+    let modifierParameters: Nullable<unknown[]> = null;
     let modifierNamedArgs: Nullable<Dict<unknown>> = null;
     let modifiedElement: SimpleElement | undefined;
     class Bar extends AbstractInsertable {
-      didInsertElement(params: unknown[], namedArgs: Dict<unknown>) {
-        modifierParams = params;
+      didInsertElement(parameters: unknown[], namedArgs: Dict<unknown>) {
+        modifierParameters = parameters;
         modifierNamedArgs = namedArgs;
         modifiedElement = this.element;
       }
-      override didUpdate(params: unknown[], namedArgs: Dict<unknown>) {
-        modifierParams = params;
+      override didUpdate(parameters: unknown[], namedArgs: Dict<unknown>) {
+        modifierParameters = parameters;
         modifierNamedArgs = namedArgs;
         modifiedElement = this.element;
       }
@@ -199,7 +199,7 @@ class ModifierTests extends RenderTest {
     this.registerComponent('Glimmer', 'TheFoo', '<div id="inner-div" ...attributes>Foo</div>');
     this.registerModifier('bar', Bar);
     this.render('<TheFoo {{bar "name" this foo=this}}/>', context);
-    assert.deepEqual(modifierParams, ['name', context]);
+    assert.deepEqual(modifierParameters, ['name', context]);
     assert.deepEqual(modifierNamedArgs, { foo: context });
     assert.strictEqual(
       modifiedElement && modifiedElement.getAttribute('id'),
@@ -207,7 +207,7 @@ class ModifierTests extends RenderTest {
       'Modifier is called on the element receiving the splattributes'
     );
     this.rerender(context2);
-    assert.deepEqual(modifierParams, ['name', context2]);
+    assert.deepEqual(modifierParameters, ['name', context2]);
     assert.deepEqual(modifierNamedArgs, { foo: context2 });
     assert.strictEqual(
       modifiedElement && modifiedElement.getAttribute('id'),
@@ -220,17 +220,17 @@ class ModifierTests extends RenderTest {
   'modifiers on components accept local variables in both positional params and named arguments, and updates when they change'(
     assert: Assert
   ) {
-    let modifierParams: Nullable<unknown[]> = null;
+    let modifierParameters: Nullable<unknown[]> = null;
     let modifierNamedArgs: Nullable<Dict<unknown>> = null;
     let modifiedElement: SimpleElement | undefined;
     class Bar extends AbstractInsertable {
-      didInsertElement(params: unknown[], namedArgs: Dict<unknown>) {
-        modifierParams = params;
+      didInsertElement(parameters: unknown[], namedArgs: Dict<unknown>) {
+        modifierParameters = parameters;
         modifierNamedArgs = namedArgs;
         modifiedElement = this.element;
       }
-      override didUpdate(params: unknown[], namedArgs: Dict<unknown>) {
-        modifierParams = params;
+      override didUpdate(parameters: unknown[], namedArgs: Dict<unknown>) {
+        modifierParameters = parameters;
         modifierNamedArgs = namedArgs;
         modifiedElement = this.element;
       }
@@ -245,7 +245,7 @@ class ModifierTests extends RenderTest {
     `,
       { foo: 'bar' }
     );
-    assert.deepEqual(modifierParams, ['bar']);
+    assert.deepEqual(modifierParameters, ['bar']);
     assert.deepEqual(modifierNamedArgs, { foo: 'bar' });
     assert.strictEqual(
       modifiedElement && modifiedElement.getAttribute('id'),
@@ -253,7 +253,7 @@ class ModifierTests extends RenderTest {
       'Modifier is called on the element receiving the splattributes'
     );
     this.rerender({ foo: 'qux' });
-    assert.deepEqual(modifierParams, ['qux']);
+    assert.deepEqual(modifierParameters, ['qux']);
     assert.deepEqual(modifierNamedArgs, { foo: 'qux' });
     assert.strictEqual(
       modifiedElement && modifiedElement.getAttribute('id'),
@@ -264,13 +264,13 @@ class ModifierTests extends RenderTest {
 
   @test
   'modifiers on components can be received and forwarded to inner components'(assert: Assert) {
-    let modifierParams: Nullable<unknown[]> = null;
+    let modifierParameters: Nullable<unknown[]> = null;
     let modifierNamedArgs: Nullable<Dict<unknown>> = null;
     let elementIds: Nullable<string>[] = [];
 
     class Bar extends AbstractInsertable {
-      didInsertElement(params: unknown[], namedArgs: Dict<unknown>) {
-        modifierParams = params;
+      didInsertElement(parameters: unknown[], namedArgs: Dict<unknown>) {
+        modifierParameters = parameters;
         modifierNamedArgs = namedArgs;
         if (this.element) {
           elementIds.push(this.element.getAttribute('id'));
@@ -296,7 +296,7 @@ class ModifierTests extends RenderTest {
     `,
       { foo: 'bar' }
     );
-    assert.deepEqual(modifierParams, ['bar']);
+    assert.deepEqual(modifierParameters, ['bar']);
     assert.deepEqual(modifierNamedArgs, { foo: 'bar' });
     assert.deepEqual(elementIds, ['outer-div', 'inner-div'], 'Modifiers are called on all levels');
   }
@@ -478,11 +478,11 @@ class ModifierTests extends RenderTest {
   @test
   'with hash'(assert: Assert, count: Count) {
     class Foo extends BaseModifier {
-      override didInsertElement(_params: unknown[], { bar }: Dict<string>) {
+      override didInsertElement(_parameters: unknown[], { bar }: Dict<string>) {
         count.expect('didInsertElement');
         assert.strictEqual(bar, 'bar');
       }
-      override didUpdate(_params: unknown[], { bar }: Dict<string>) {
+      override didUpdate(_parameters: unknown[], { bar }: Dict<string>) {
         count.expect('didUpdate');
         assert.strictEqual(bar, 'foo');
       }

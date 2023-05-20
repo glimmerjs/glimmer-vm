@@ -29,7 +29,7 @@ const untouchableContext = buildUntouchableThis('`on` modifier');
 */
 const SUPPORTS_EVENT_OPTIONS = (() => {
   try {
-    const div = document.createElement('div');
+    let div = document.createElement('div');
     let counter = 0;
     div.addEventListener('click', () => counter++, { once: true });
 
@@ -45,7 +45,7 @@ const SUPPORTS_EVENT_OPTIONS = (() => {
     div.dispatchEvent(event);
 
     return counter === 1;
-  } catch (error) {
+  } catch {
     return false;
   }
 })();
@@ -113,12 +113,12 @@ export class OnModifierState {
       this.shouldUpdate = true;
     }
 
-    const userProvidedCallbackReference = expect(
+    let userProvidedCallbackReference = expect(
       args.positional[1],
       'You must pass a function as the second argument to the `on` modifier'
     );
 
-    const userProvidedCallback = check(
+    let userProvidedCallback = check(
       valueForRef(userProvidedCallbackReference),
       CheckFunction,
       (actual) => {

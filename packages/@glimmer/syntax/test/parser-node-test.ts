@@ -1,3 +1,4 @@
+/* eslint-disable unicorn/prefer-spread */
 import type { Dict } from '@glimmer/interfaces';
 import { syntaxErrorFor } from '@glimmer-workspace/test-utils';
 
@@ -63,7 +64,7 @@ function buildIntegrationPointTest(integrationPoint: string) {
   };
 }
 
-for (const integrationPoint of integrationPoints) {
+for (let integrationPoint of integrationPoints) {
   test(
     'svg content with html content inline for ' + integrationPoint,
     buildIntegrationPointTest(integrationPoint)
@@ -129,8 +130,8 @@ test('Handlebars embedded in an attribute (unquoted)', function () {
 test('Handlebars embedded in an attribute of a self-closing tag (unqouted)', function () {
   let t = '<input value={{foo}}/>';
 
-  let el = element('input/', ['attrs', ['value', b.mustache(b.path('foo'))]]);
-  astEqual(t, b.program([el]));
+  let element_ = element('input/', ['attrs', ['value', b.mustache(b.path('foo'))]]);
+  astEqual(t, b.program([element_]));
 });
 
 test('Handlebars embedded in an attribute (sexprs)', function () {
@@ -630,8 +631,8 @@ test('disallowed mustaches in the tagName space', function (assert) {
 
 test('mustache immediately followed by self closing tag does not error', function () {
   let ast = parse('<FooBar data-foo={{blah}}/>');
-  let el = element('FooBar/', ['attrs', ['data-foo', b.mustache('blah')]]);
-  astEqual(ast, b.program([el]));
+  let element_ = element('FooBar/', ['attrs', ['data-foo', b.mustache('blah')]]);
+  astEqual(ast, b.program([element_]));
 });
 
 QUnit.dump.maxDepth = 100;
@@ -649,7 +650,7 @@ test('named blocks', () => {
     </Tab>
   `);
 
-  let el = element('Tab', [
+  let element_ = element('Tab', [
     'body',
     element(':header', ['body', b.text(`It's a header!`)]),
     element(
@@ -658,7 +659,7 @@ test('named blocks', () => {
       ['as', 'contents']
     ),
   ]);
-  astEqual(ast, b.program([el]));
+  astEqual(ast, b.program([element_]));
 });
 
 test('path expression with "dangling dot" throws error', function (assert) {
@@ -699,11 +700,11 @@ test('number literal as path throws error', function (assert) {
 
 export function strip(strings: TemplateStringsArray, ...args: string[]) {
   return strings
-    .map((str: string, i: number) => {
-      return `${str
+    .map((text: string, index: number) => {
+      return `${text
         .split('\n')
         .map((s) => s.trim())
-        .join('')}${args[i] ? args[i] : ''}`;
+        .join('')}${args[index] ? args[index] : ''}`;
     })
     .join('');
 }
@@ -724,7 +725,7 @@ export type ModifierSexp =
   | [PathSexp, ASTv1.Expression[], LocSexp?]
   | [PathSexp, ASTv1.Expression[], Dict<ASTv1.Expression>, LocSexp?];
 
-export type AttrSexp = [string, ASTv1.AttrNode['value'] | string, LocSexp?];
+export type AttrSexp = [string, ASTv1.AttributeNode['value'] | string, LocSexp?];
 
 export type LocSexp = ['loc', ASTv1.SourceLocation];
 
@@ -739,7 +740,7 @@ export type SexpValue =
   | undefined;
 
 export interface BuildElementOptions {
-  attrs?: ASTv1.AttrNode[];
+  attrs?: ASTv1.AttributeNode[];
   modifiers?: ASTv1.ElementModifierStatement[];
   children?: ASTv1.Statement[];
   comments?: ElementComment[];
@@ -751,11 +752,7 @@ export type TagDescriptor = string | { name: string; selfClosing: boolean };
 
 export function element(tag: TagDescriptor, ...options: ElementParts[]): ASTv1.ElementNode {
   let normalized: BuildElementOptions;
-  if (Array.isArray(options)) {
-    normalized = normalizeElementParts(...options);
-  } else {
-    normalized = options || {};
-  }
+  normalized = Array.isArray(options) ? normalizeElementParts(...options) : options || {};
 
   let { attrs, blockParams, modifiers, comments, children, loc } = normalized;
 
@@ -787,36 +784,36 @@ export function element(tag: TagDescriptor, ...options: ElementParts[]): ASTv1.E
 export function normalizeElementParts(...args: ElementParts[]): BuildElementOptions {
   let out: BuildElementOptions = {};
 
-  for (let arg of args) {
-    switch (arg[0]) {
+  for (let argument of args) {
+    switch (argument[0]) {
       case 'attrs': {
-        let [, ...rest] = arg;
+        let [, ...rest] = argument;
         out.attrs = rest.map(normalizeAttr);
         break;
       }
       case 'modifiers': {
-        let [, ...rest] = arg;
+        let [, ...rest] = argument;
         out.modifiers = rest.map(normalizeModifier);
         break;
       }
       case 'body': {
-        let [, ...rest] = arg;
+        let [, ...rest] = argument;
         out.children = rest;
         break;
       }
       case 'comments': {
-        let [, ...rest] = arg;
+        let [, ...rest] = argument;
 
         out.comments = rest;
         break;
       }
       case 'as': {
-        let [, ...rest] = arg;
+        let [, ...rest] = argument;
         out.blockParams = rest;
         break;
       }
       case 'loc': {
-        let [, rest] = arg;
+        let [, rest] = argument;
         out.loc = rest;
         break;
       }
@@ -826,15 +823,11 @@ export function normalizeElementParts(...args: ElementParts[]): BuildElementOpti
   return out;
 }
 
-export function normalizeAttr(sexp: AttrSexp): ASTv1.AttrNode {
+export function normalizeAttr(sexp: AttrSexp): ASTv1.AttributeNode {
   let name = sexp[0];
   let value;
 
-  if (typeof sexp[1] === 'string') {
-    value = b.text(sexp[1]);
-  } else {
-    value = sexp[1];
-  }
+  value = typeof sexp[1] === 'string' ? b.text(sexp[1]) : sexp[1];
 
   return b.attr(name, value);
 }
@@ -845,7 +838,7 @@ export function normalizeModifier(sexp: ModifierSexp): ASTv1.ElementModifierStat
   }
 
   let path: ASTv1.Expression = normalizeHead(sexp[0]);
-  let params: ASTv1.Expression[] | undefined;
+  let parameters: ASTv1.Expression[] | undefined;
   let hash: ASTv1.Hash | undefined;
   let loc: ASTv1.SourceLocation | null = null;
 
@@ -854,7 +847,7 @@ export function normalizeModifier(sexp: ModifierSexp): ASTv1.ElementModifierStat
 
   _process: {
     if (isParamsSexp(next)) {
-      params = next;
+      parameters = next;
     } else {
       break _process;
     }
@@ -875,18 +868,14 @@ export function normalizeModifier(sexp: ModifierSexp): ASTv1.ElementModifierStat
   return {
     type: 'ElementModifierStatement',
     path,
-    params: params || [],
+    params: parameters || [],
     hash: hash || b.hash([]),
     loc: b.loc(loc || null),
   };
 }
 
 export function normalizeHead(path: PathSexp): ASTv1.Expression {
-  if (typeof path === 'string') {
-    return b.path(path);
-  } else {
-    return b.path(path[1], path[2] && path[2][1]);
-  }
+  return typeof path === 'string' ? b.path(path) : b.path(path[1], path[2] && path[2][1]);
 }
 
 export function normalizeHash(

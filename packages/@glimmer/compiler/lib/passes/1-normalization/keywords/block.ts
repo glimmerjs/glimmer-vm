@@ -1,6 +1,6 @@
 import { type ASTv2, generateSyntaxError } from '@glimmer/syntax';
 
-import { Err, Ok, Result } from '../../../shared/result';
+import { Err as Error_, Ok, Result } from '../../../shared/result';
 import * as mir from '../../2-encoding/mir';
 import type { NormalizationState } from '../context';
 import { VISIT_EXPRS } from '../visitors/expressions';
@@ -20,14 +20,14 @@ export const BLOCK_KEYWORDS = keywords('Block')
       let guid = args.get('guid');
 
       if (guid) {
-        return Err(generateSyntaxError(`Cannot pass \`guid\` to \`{{#in-element}}\``, guid.loc));
+        return Error_(generateSyntaxError(`Cannot pass \`guid\` to \`{{#in-element}}\``, guid.loc));
       }
 
       let insertBefore = args.get('insertBefore');
       let destination = args.nth(0);
 
       if (destination === null) {
-        return Err(
+        return Error_(
           generateSyntaxError(
             `{{#in-element}} requires a target element as its first positional parameter`,
             args.loc
@@ -58,21 +58,17 @@ export const BLOCK_KEYWORDS = keywords('Block')
             destination: mir.ExpressionNode;
             insertBefore: mir.ExpressionNode;
           }> => {
-            if (insertBefore) {
-              return VISIT_EXPRS.visit(insertBefore, state).mapOk((insertBefore) => ({
+            return insertBefore ? VISIT_EXPRS.visit(insertBefore, state).mapOk((insertBefore) => ({
                 body,
                 destination,
                 insertBefore,
-              }));
-            } else {
-              return Ok({
+              })) : Ok({
                 body,
                 destination,
                 insertBefore: new mir.Missing({
                   loc: node.callee.loc.collapse('end'),
                 }),
               });
-            }
           }
         )
         .mapOk(
@@ -94,7 +90,7 @@ export const BLOCK_KEYWORDS = keywords('Block')
       let { args } = node;
 
       if (!args.named.isEmpty()) {
-        return Err(
+        return Error_(
           generateSyntaxError(
             `{{#if}} cannot receive named parameters, received ${args.named.entries
               .map((e) => e.name.chars)
@@ -105,7 +101,7 @@ export const BLOCK_KEYWORDS = keywords('Block')
       }
 
       if (args.positional.size > 1) {
-        return Err(
+        return Error_(
           generateSyntaxError(
             `{{#if}} can only receive one positional parameter in block form, the conditional value. Received ${args.positional.size} parameters`,
             node.loc
@@ -116,7 +112,7 @@ export const BLOCK_KEYWORDS = keywords('Block')
       let condition = args.nth(0);
 
       if (condition === null) {
-        return Err(
+        return Error_(
           generateSyntaxError(
             `{{#if}} requires a condition as its first positional parameter, did not receive any parameters`,
             node.loc
@@ -156,7 +152,7 @@ export const BLOCK_KEYWORDS = keywords('Block')
       let { args } = node;
 
       if (!args.named.isEmpty()) {
-        return Err(
+        return Error_(
           generateSyntaxError(
             `{{#unless}} cannot receive named parameters, received ${args.named.entries
               .map((e) => e.name.chars)
@@ -167,7 +163,7 @@ export const BLOCK_KEYWORDS = keywords('Block')
       }
 
       if (args.positional.size > 1) {
-        return Err(
+        return Error_(
           generateSyntaxError(
             `{{#unless}} can only receive one positional parameter in block form, the conditional value. Received ${args.positional.size} parameters`,
             node.loc
@@ -178,7 +174,7 @@ export const BLOCK_KEYWORDS = keywords('Block')
       let condition = args.nth(0);
 
       if (condition === null) {
-        return Err(
+        return Error_(
           generateSyntaxError(
             `{{#unless}} requires a condition as its first positional parameter, did not receive any parameters`,
             node.loc
@@ -219,7 +215,7 @@ export const BLOCK_KEYWORDS = keywords('Block')
       let { args } = node;
 
       if (!args.named.entries.every((e) => e.name.chars === 'key')) {
-        return Err(
+        return Error_(
           generateSyntaxError(
             `{{#each}} can only receive the 'key' named parameter, received ${args.named.entries
               .filter((e) => e.name.chars !== 'key')
@@ -231,7 +227,7 @@ export const BLOCK_KEYWORDS = keywords('Block')
       }
 
       if (args.positional.size > 1) {
-        return Err(
+        return Error_(
           generateSyntaxError(
             `{{#each}} can only receive one positional parameter, the collection being iterated. Received ${args.positional.size} parameters`,
             args.positional.loc
@@ -243,7 +239,7 @@ export const BLOCK_KEYWORDS = keywords('Block')
       let key = args.get('key');
 
       if (value === null) {
-        return Err(
+        return Error_(
           generateSyntaxError(
             `{{#each}} requires an iterable value to be passed as its first positional parameter, did not receive any parameters`,
             args.loc
@@ -286,7 +282,7 @@ export const BLOCK_KEYWORDS = keywords('Block')
       let { args } = node;
 
       if (!args.named.isEmpty()) {
-        return Err(
+        return Error_(
           generateSyntaxError(
             `{{#with}} cannot receive named parameters, received ${args.named.entries
               .map((e) => e.name.chars)
@@ -297,7 +293,7 @@ export const BLOCK_KEYWORDS = keywords('Block')
       }
 
       if (args.positional.size > 1) {
-        return Err(
+        return Error_(
           generateSyntaxError(
             `{{#with}} can only receive one positional parameter. Received ${args.positional.size} parameters`,
             args.positional.loc
@@ -308,7 +304,7 @@ export const BLOCK_KEYWORDS = keywords('Block')
       let value = args.nth(0);
 
       if (value === null) {
-        return Err(
+        return Error_(
           generateSyntaxError(
             `{{#with}} requires a value as its first positional parameter, did not receive any parameters`,
             args.loc
@@ -348,7 +344,7 @@ export const BLOCK_KEYWORDS = keywords('Block')
       let { args } = node;
 
       if (!args.named.isEmpty()) {
-        return Err(
+        return Error_(
           generateSyntaxError(
             `{{#let}} cannot receive named parameters, received ${args.named.entries
               .map((e) => e.name.chars)
@@ -359,7 +355,7 @@ export const BLOCK_KEYWORDS = keywords('Block')
       }
 
       if (args.positional.size === 0) {
-        return Err(
+        return Error_(
           generateSyntaxError(
             `{{#let}} requires at least one value as its first positional parameter, did not receive any parameters`,
             args.positional.loc
@@ -368,7 +364,7 @@ export const BLOCK_KEYWORDS = keywords('Block')
       }
 
       if (node.blocks.get('else')) {
-        return Err(
+        return Error_(
           generateSyntaxError(`{{#let}} cannot receive an {{else}} block`, args.positional.loc)
         );
       }

@@ -7,15 +7,11 @@ function normalizeNode(obj: AST.Node | Array<AST.Node>): AST.Node | Array<AST.No
 
 function normalizeValue<T extends AST.Node | AST.Node[] | unknown>(obj: T): T {
   if (obj && typeof obj === 'object') {
-    if (Array.isArray(obj)) {
-      return obj.map(normalizeValue) as T;
-    } else {
-      return fromEntries(
+    return Array.isArray(obj) ? obj.map(normalizeValue) as T : fromEntries(
         entries(obj).flatMap(([key, value]) =>
           key === 'loc' ? [] : [[key, normalizeValue(value)]]
         )
       ) as T;
-    }
   } else {
     return obj;
   }
@@ -27,9 +23,9 @@ type FromEntries<T extends [PropertyKey, unknown][]> = {
 };
 
 function fromEntries<T extends [PropertyKey, unknown][]>(entries: T): FromEntries<T> {
-  const out: any = {};
+  let out: any = {};
 
-  for (const [key, value] of entries) {
+  for (let [key, value] of entries) {
     out[key as string] = value;
   }
 

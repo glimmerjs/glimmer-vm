@@ -6,7 +6,7 @@ import type {
   ModifierDefinitionState,
   ResolvedComponentDefinition,
   SimpleElement,
-} from "@glimmer/interfaces";
+} from '@glimmer/interfaces';
 import {
   getComponentTemplate,
   getInternalComponentManager,
@@ -53,9 +53,9 @@ export interface Registry {
 }
 
 export default function createRegistry(): Registry {
-  const components = new Map<string, ResolvedComponentDefinition>();
-  const helpers = new Map<string, HelperDefinitionState>();
-  const modifiers = new Map<string, ModifierDefinitionState>();
+  let components = new Map<string, ResolvedComponentDefinition>();
+  let helpers = new Map<string, HelperDefinitionState>();
+  let modifiers = new Map<string, ModifierDefinitionState>();
 
   return {
     registerComponent: (name: string, component: object) => {
@@ -77,8 +77,8 @@ export default function createRegistry(): Registry {
       modifiers.set(name, modifier);
     },
     render: (entry, args, element, isIteractive) => {
-      const sharedArtifacts = artifacts();
-      const context = programCompilationContext(
+      let sharedArtifacts = artifacts();
+      let context = programCompilationContext(
         sharedArtifacts,
         {
           lookupHelper: (name) => helpers.get(name) ?? null,
@@ -90,7 +90,7 @@ export default function createRegistry(): Registry {
         },
         (heap) => new RuntimeOpImpl(heap)
       );
-      const component = components.get(entry);
+      let component = components.get(entry);
       if (!component) {
         throw new Error(`missing ${entry} component`);
       }

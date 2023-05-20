@@ -41,7 +41,7 @@ abstract class ModifierManagerTest extends RenderTest {
       }
     );
 
-    const Main = defineComponent({ foo }, '<h1 {{foo}}>hello world</h1>');
+    let Main = defineComponent({ foo }, '<h1 {{foo}}>hello world</h1>');
 
     this.renderComponent(Main);
 
@@ -65,7 +65,7 @@ abstract class ModifierManagerTest extends RenderTest {
       }
     );
 
-    const Main = defineComponent(
+    let Main = defineComponent(
       { foo },
       '{{#if @truthy}}<h1 {{foo @truthy}}>hello world</h1>{{/if}}'
     );
@@ -107,7 +107,7 @@ abstract class ModifierManagerTest extends RenderTest {
       }
     }
 
-    const Main = defineComponent({ bar: Bar }, '<h1 {{bar @truthy}}>hello world</h1>');
+    let Main = defineComponent({ bar: Bar }, '<h1 {{bar @truthy}}>hello world</h1>');
 
     this.renderComponent(Main, { truthy: true });
     this.assertHTML(`<h1>hello world</h1>`);
@@ -140,7 +140,7 @@ abstract class ModifierManagerTest extends RenderTest {
       }
     );
 
-    const Main = defineComponent({ foo }, '<h1 {{foo @truthy}}>hello world</h1>');
+    let Main = defineComponent({ foo }, '<h1 {{foo @truthy}}>hello world</h1>');
     let args = trackedObj({ truthy: true });
 
     this.renderComponent(Main, args);

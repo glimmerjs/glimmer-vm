@@ -148,7 +148,7 @@ defineExpr(WIRE_GET_FREE_AS_DEPRECATED_HELPER_HEAD_OR_THIS_FALLBACK, (op, expr) 
 function withPath(op: PushExpressionOp, path?: string[]) {
   if (path === undefined || path.length === 0) return;
 
-  for (const element of path) {
+  for (let element of path) {
     op(GET_PROPERTY_OP, element);
   }
 }

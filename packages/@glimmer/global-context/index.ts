@@ -87,7 +87,7 @@ export let getProp: (obj: object, path: string) => unknown;
  * @param prop The prop to set the value at
  * @param value The value to set the value to
  */
-export let setProp: (obj: object, prop: string, value: unknown) => void;
+export let setProp: (obj: object, property: string, value: unknown) => void;
 
 /**
  * Hook for specifying how Glimmer should access paths in cases where it needs
@@ -117,14 +117,14 @@ export let warnIfStyleNotTrusted: (value: unknown) => void;
  * Hook to customize assertion messages in the VM. Usages can be stripped out
  * by using the @glimmer/vm-babel-plugins package.
  */
-export let assert: (test: unknown, msg: string, options?: { id: string }) => asserts test;
+export let assert: (test: unknown, message: string, options?: { id: string }) => asserts test;
 
 /**
  * Hook to customize deprecation messages in the VM. Usages can be stripped out
  * by using the @glimmer/vm-babel-plugins package.
  */
 export let deprecate: (
-  msg: string,
+  message: string,
   test: unknown,
   options: {
     id: string;
@@ -140,13 +140,13 @@ export interface GlobalContext {
   toIterator: (value: unknown) => IteratorDelegate | null;
   toBool: (value: unknown) => boolean;
   getProp: (obj: object, path: string) => unknown;
-  setProp: (obj: object, prop: string, value: unknown) => void;
+  setProp: (obj: object, property: string, value: unknown) => void;
   getPath: (obj: object, path: string) => unknown;
-  setPath: (obj: object, prop: string, value: unknown) => void;
+  setPath: (obj: object, property: string, value: unknown) => void;
   warnIfStyleNotTrusted: (value: unknown) => void;
-  assert: (test: unknown, msg: string, options?: { id: string }) => asserts test;
+  assert: (test: unknown, message: string, options?: { id: string }) => asserts test;
   deprecate: (
-    msg: string,
+    message: string,
     test: unknown,
     options: {
       id: string;
@@ -216,11 +216,7 @@ if (import.meta.env.DEV) {
         }
       : null;
 
-    if (context === null) {
-      globalContextWasSet = false;
-    } else {
-      globalContextWasSet = true;
-    }
+    globalContextWasSet = context === null ? false : true;
 
     // We use `undefined as any` here to unset the values when resetting the
     // context at the end of a test.

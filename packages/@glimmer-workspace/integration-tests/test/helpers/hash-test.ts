@@ -86,7 +86,7 @@ class HashTest extends RenderTest {
   'should yield hash of internal properties'() {
     let fooBarInstance: FooBar;
 
-    const assignInstance = (instance: FooBar) => (fooBarInstance = instance);
+    let assignInstance = (instance: FooBar) => (fooBarInstance = instance);
 
     class FooBar extends GlimmerishComponent {
       @tracked firstName = 'Chad';
@@ -122,7 +122,7 @@ class HashTest extends RenderTest {
   'should yield hash of internal and external properties'() {
     let fooBarInstance: FooBar;
 
-    const assignInstance = (instance: FooBar) => (fooBarInstance = instance);
+    let assignInstance = (instance: FooBar) => (fooBarInstance = instance);
 
     class FooBar extends GlimmerishComponent {
       @tracked firstName = 'Chad';

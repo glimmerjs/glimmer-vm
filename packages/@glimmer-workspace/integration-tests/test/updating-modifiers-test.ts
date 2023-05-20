@@ -3,16 +3,16 @@ import type { SimpleElement } from '@glimmer/interfaces';
 import { jitSuite, RenderTest, test } from '..';
 import { assert } from './support';
 
-function makeSyncDataAttrModifier(hooks: string[]) {
-  return class SyncDataAttrModifier {
+function makeSyncDataAttributeModifier(hooks: string[]) {
+  return class SyncDataAttributeModifier {
     declare element: SimpleElement;
-    didInsertElement([param]: string[]) {
-      this.element.setAttribute('data-modifier', `installed - ${param}`);
+    didInsertElement([parameter]: string[]) {
+      this.element.dataset.modifier = `installed - ${parameter}`;
       hooks.push('didInsertElement');
     }
 
-    didUpdate([param]: string[]) {
-      this.element.setAttribute('data-modifier', `updated - ${param}`);
+    didUpdate([parameter]: string[]) {
+      this.element.dataset.modifier = `updated - ${parameter}`;
       hooks.push('didUpdate');
     }
 
@@ -29,7 +29,7 @@ class UpdatingModifiers extends RenderTest {
   'Updating a element modifier'() {
     let hooks: string[] = [];
 
-    this.registerModifier('foo', makeSyncDataAttrModifier(hooks));
+    this.registerModifier('foo', makeSyncDataAttributeModifier(hooks));
 
     this.render('<div><div {{foo this.bar baz=this.fizz}}></div></div>', {
       bar: 'Super Metroid',
@@ -58,7 +58,7 @@ class UpdatingModifiers extends RenderTest {
   "Const input doesn't trigger update in a element modifier"() {
     let hooks: string[] = [];
 
-    this.registerModifier('foo', makeSyncDataAttrModifier(hooks));
+    this.registerModifier('foo', makeSyncDataAttributeModifier(hooks));
 
     this.render('<div><div {{foo "bar"}}></div></div>', {});
     this.assertHTML('<div><div data-modifier="installed - bar"></div></div>', 'initial render');
@@ -74,7 +74,7 @@ class UpdatingModifiers extends RenderTest {
   'Destructor is triggered on element modifiers'() {
     let hooks: string[] = [];
 
-    this.registerModifier('foo', makeSyncDataAttrModifier(hooks));
+    this.registerModifier('foo', makeSyncDataAttributeModifier(hooks));
 
     this.render('{{#if this.bar}}<div {{foo this.bar}}></div>{{else}}<div></div>{{/if}}', {
       bar: true,

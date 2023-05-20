@@ -157,5 +157,5 @@ export function to32Bit(value: number) {
 }
 
 // Warm
-for (const x of [1, 2, 3]) decodeHandle(encodeHandle(x));
-for (const x of [1, -1]) decodeImmediate(encodeImmediate(x));
+for (let x of [1, 2, 3]) decodeHandle(encodeHandle(x));
+for (let x of [1, -1]) decodeImmediate(encodeImmediate(x));

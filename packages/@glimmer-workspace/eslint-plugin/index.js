@@ -23,6 +23,7 @@ module.exports = {
         'simple-import-sort',
         'unused-imports',
         'prettier',
+        'prefer-let',
         'n',
       ],
       extends: [
@@ -38,6 +39,7 @@ module.exports = {
       ],
       rules: {
         'prefer-object-spread': 'error',
+        'prefer-let/prefer-let': 'error',
         'unicorn/no-null': 'off',
         'unicorn/consistent-destructuring': 'off',
         'unicorn/switch-case-braces': ['error', 'avoid'],
@@ -48,7 +50,8 @@ module.exports = {
           'warn',
           {
             checkFilenames: false,
-
+            checkShorthandImports: false,
+            checkDefaultAndNamespaceImports: false,
             replacements: {
               args: false,
               fn: false,

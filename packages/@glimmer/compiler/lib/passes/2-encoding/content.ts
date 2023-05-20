@@ -13,7 +13,7 @@ import { LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
 import { exhausted, LOCAL_LOGGER } from '@glimmer/util';
 
 import type { OptionalList } from '../../shared/list';
-import { deflateAttrName, deflateTagName } from '../../utils';
+import { deflateAttrName as deflateAttributeName, deflateTagName } from '../../utils';
 import { EXPR } from './expressions';
 import type * as mir from './mir';
 import {
@@ -130,11 +130,7 @@ export class ContentEncoder {
     let wireDestination = EXPR.expr(destination);
     let wireInsertBefore = EXPR.expr(insertBefore);
 
-    if (wireInsertBefore === undefined) {
-      return [WIRE_IN_ELEMENT, wireBlock, guid, wireDestination];
-    } else {
-      return [WIRE_IN_ELEMENT, wireBlock, guid, wireDestination, wireInsertBefore];
-    }
+    return wireInsertBefore === undefined ? [WIRE_IN_ELEMENT, wireBlock, guid, wireDestination] : [WIRE_IN_ELEMENT, wireBlock, guid, wireDestination, wireInsertBefore];
   }
 
   InvokeBlock({ head, args, blocks }: mir.InvokeBlock): WireFormat.Statements.Block {
@@ -178,16 +174,16 @@ export class ContentEncoder {
     return body.map((p) => CONTENT.ElementParameter(p));
   }
 
-  ElementParameter(param: mir.ElementParameter): WireFormat.ElementParameter {
-    switch (param.type) {
+  ElementParameter(parameter: mir.ElementParameter): WireFormat.ElementParameter {
+    switch (parameter.type) {
       case 'SplatAttr':
-        return [WIRE_ATTR_SPLAT, param.symbol];
+        return [WIRE_ATTR_SPLAT, parameter.symbol];
       case 'DynamicAttr':
-        return [dynamicAttrOp(param.kind), ...dynamicAttr(param)];
+        return [dynamicAttributeOp(parameter.kind), ...dynamicAttribute(parameter)];
       case 'StaticAttr':
-        return [staticAttrOp(param.kind), ...staticAttr(param)];
+        return [staticAttributeOp(parameter.kind), ...staticAttribute(parameter)];
       case 'Modifier':
-        return [WIRE_MODIFIER, EXPR.expr(param.callee), ...EXPR.Args(param.args)];
+        return [WIRE_MODIFIER, EXPR.expr(parameter.callee), ...EXPR.Args(parameter.args)];
     }
   }
 
@@ -268,8 +264,8 @@ export const CONTENT = new ContentEncoder();
 
 export type StaticAttrArgs = [name: string | WellKnownAttrName, value: string, namespace?: string];
 
-function staticAttr({ name, value, namespace }: mir.StaticAttr): StaticAttrArgs {
-  let out: StaticAttrArgs = [deflateAttrName(name.chars), value.chars];
+function staticAttribute({ name, value, namespace }: mir.StaticAttr): StaticAttrArgs {
+  let out: StaticAttrArgs = [deflateAttributeName(name.chars), value.chars];
 
   if (namespace) {
     out.push(namespace);
@@ -284,8 +280,8 @@ export type DynamicAttrArgs = [
   namespace?: string
 ];
 
-function dynamicAttr({ name, value, namespace }: mir.DynamicAttr): DynamicAttrArgs {
-  let out: DynamicAttrArgs = [deflateAttrName(name.chars), EXPR.expr(value)];
+function dynamicAttribute({ name, value, namespace }: mir.DynamicAttr): DynamicAttrArgs {
+  let out: DynamicAttrArgs = [deflateAttributeName(name.chars), EXPR.expr(value)];
 
   if (namespace) {
     out.push(namespace);
@@ -294,17 +290,13 @@ function dynamicAttr({ name, value, namespace }: mir.DynamicAttr): DynamicAttrAr
   return out;
 }
 
-function staticAttrOp(kind: { component: boolean }): StaticAttrOpcode | StaticComponentAttrOpcode;
-function staticAttrOp(kind: { component: boolean }): AttrOpcode {
-  if (kind.component) {
-    return WIRE_STATIC_COMPONENT_ATTR;
-  } else {
-    return WIRE_STATIC_ATTR;
-  }
+function staticAttributeOp(kind: { component: boolean }): StaticAttrOpcode | StaticComponentAttrOpcode;
+function staticAttributeOp(kind: { component: boolean }): AttrOpcode {
+  return kind.component ? WIRE_STATIC_COMPONENT_ATTR : WIRE_STATIC_ATTR;
 }
 
-function dynamicAttrOp(
-  kind: mir.AttrKind
+function dynamicAttributeOp(
+  kind: mir.AttributeKind
 ):
   | TrustingComponentAttrOpcode
   | TrustingDynamicAttrOpcode

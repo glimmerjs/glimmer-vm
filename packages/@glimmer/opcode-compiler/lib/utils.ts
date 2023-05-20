@@ -46,7 +46,7 @@ export function namedBlocks(blocks: WireFormat.Core.Blocks): NamedBlocks {
 
   let [keys, values] = blocks;
 
-  for (const [index, key] of enumerate(keys)) {
+  for (let [index, key] of enumerate(keys)) {
     out[key] = unwrap(values[index]);
   }
 

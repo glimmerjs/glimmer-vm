@@ -37,12 +37,12 @@ export function guardArray(
 ): unknown[] {
   let [message, list] = Object.entries(desc)[0] as [string, unknown[]];
 
-  let array: unknown[] = Array.from(list);
+  let array: unknown[] = [...list];
   let condition: (value: unknown) => boolean;
 
   if (typeof options?.min === 'number') {
     if (array.length < options.min) {
-      throw Error(
+      throw new Error(
         `Guard Failed: expected to have at least ${options.min} (of ${message}), but got ${array.length}`
       );
     }
@@ -62,7 +62,7 @@ export function guardArray(
   if (succeeds) {
     QUnit.assert.ok(succeeds, message);
   } else {
-    throw Error(`Guard Failed: ${message}`);
+    throw new Error(`Guard Failed: ${message}`);
   }
 
   return array;

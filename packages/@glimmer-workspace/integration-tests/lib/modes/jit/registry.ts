@@ -8,11 +8,7 @@ import type {
   ResolvedComponentDefinition,
   Template,
 } from '@glimmer/interfaces';
-import {
-  capabilityMaskFrom,
-  getComponentTemplate,
-  hasCapability,
-} from '@glimmer/manager';
+import { capabilityMaskFrom, getComponentTemplate, hasCapability } from '@glimmer/manager';
 import { assert, dict } from '@glimmer/util';
 import { DYNAMIC_LAYOUT_CAPABILITY } from '@glimmer/vm-constants';
 
@@ -71,11 +67,7 @@ export class TestJitRegistry {
   }
 
   lookup<K extends LookupType>(type: K, name: string): Nullable<Lookup[K]> {
-    if (this.registry[type].has(name)) {
-      return this.registry[type].get(name) as Lookup[K];
-    } else {
-      return null;
-    }
+    return this.registry[type].has(name) ? this.registry[type].get(name) as Lookup[K] : null;
   }
 
   lookupComponent(name: string): Nullable<ResolvedComponentDefinition> {

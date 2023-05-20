@@ -575,7 +575,7 @@ class ElementNormalizer {
     }
   }
 
-  private attr(m: ASTv1.AttrNode): ASTv2.HtmlOrSplatAttr {
+  private attr(m: ASTv1.AttributeNode): ASTv2.HtmlOrSplatAttr {
     assert(m.name[0] !== '@', 'An attr name must not start with `@`');
 
     if (m.name === '...attributes') {
@@ -650,7 +650,7 @@ class ElementNormalizer {
     };
   }
 
-  private arg(argument: ASTv1.AttrNode): ASTv2.ComponentArg {
+  private arg(argument: ASTv1.AttributeNode): ASTv2.ComponentArg {
     assert(argument.name[0] === '@', 'An arg name must start with `@`');
 
     let offsets = this.context.loc(argument.loc);

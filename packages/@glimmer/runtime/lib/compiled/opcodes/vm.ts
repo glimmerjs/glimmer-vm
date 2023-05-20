@@ -100,21 +100,35 @@ define(PRIMITIVE_OP, (vm, { op1: primitive }) => {
 define(PRIMITIVE_REFERENCE_OP, (vm) => {
   let stack = vm.stack;
   let value = check(stack.pop(), CheckPrimitive);
-  let ref;
+  let reference;
 
-  if (value === undefined) {
-    ref = UNDEFINED_REFERENCE;
-  } else if (value === null) {
-    ref = NULL_REFERENCE;
-  } else if (value === true) {
-    ref = TRUE_REFERENCE;
-  } else if (value === false) {
-    ref = FALSE_REFERENCE;
-  } else {
-    ref = createPrimitiveRef(value);
+  switch (value) {
+  case undefined:
+    reference = UNDEFINED_REFERENCE;
+  
+  break;
+  
+  case null:
+    reference = NULL_REFERENCE;
+  
+  break;
+  
+  case true:
+    reference = TRUE_REFERENCE;
+  
+  break;
+  
+  case false:
+    reference = FALSE_REFERENCE;
+  
+  break;
+  
+  default:
+    reference = createPrimitiveRef(value);
+  
   }
 
-  stack.push(ref);
+  stack.push(reference);
 });
 
 define(DUP_OP, (vm, { op1: register, op2: offset }) => {
@@ -200,8 +214,8 @@ define(INVOKE_YIELD_OP, (vm) => {
     if (localsCount > 0) {
       invokingScope = invokingScope.child();
 
-      for (let i = 0; i < localsCount; i++) {
-        invokingScope.bindSymbol(unwrap(locals[i]), args.at(i));
+      for (let index = 0; index < localsCount; index++) {
+        invokingScope.bindSymbol(unwrap(locals[index]), args.at(index));
       }
     }
   }
@@ -255,18 +269,18 @@ define(ASSERT_SAME_OP, (vm) => {
 
 define(TO_BOOLEAN_OP, (vm) => {
   let { stack } = vm;
-  let valueRef = check(stack.pop(), CheckReference);
+  let valueReference = check(stack.pop(), CheckReference);
 
-  stack.push(createComputeRef(() => toBool(valueForRef(valueRef))));
+  stack.push(createComputeRef(() => toBool(valueForRef(valueReference))));
 });
 
 export class Assert implements UpdatingOpcode {
   #last: unknown;
   #ref: Reference;
 
-  constructor(ref: Reference) {
-    this.#ref = ref;
-    this.#last = valueForRef(ref);
+  constructor(reference: Reference) {
+    this.#ref = reference;
+    this.#last = valueForRef(reference);
   }
 
   evaluate(vm: UpdatingVM) {
@@ -283,10 +297,10 @@ export class AssertFilter<T, U> implements UpdatingOpcode {
   readonly #ref: Reference<T>;
   readonly #filter: (from: T) => U;
 
-  constructor(ref: Reference<T>, filter: (from: T) => U) {
-    this.#ref = ref;
+  constructor(reference: Reference<T>, filter: (from: T) => U) {
+    this.#ref = reference;
     this.#filter = filter;
-    this.#last = filter(valueForRef(ref));
+    this.#last = filter(valueForRef(reference));
   }
 
   evaluate(vm: UpdatingVM) {

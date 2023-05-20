@@ -72,7 +72,7 @@ function walkBody(
   body: ASTv1.Statement[],
   callback: NodeCallback<ASTv1.Statement>
 ) {
-  for (const child of body) {
+  for (let child of body) {
     walker.visit(child, callback);
   }
 }

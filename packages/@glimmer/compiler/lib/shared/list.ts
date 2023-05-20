@@ -71,11 +71,7 @@ export class EmptyList<T> implements OptionalList<T> {
 // export type OptionalList<T> = PresentList<T> | EmptyList<T>;
 
 export function OptionalList<T>(value: readonly T[]): AnyOptionalList<T> {
-  if (isPresentArray(value)) {
-    return new PresentList(value);
-  } else {
-    return new EmptyList<T>();
-  }
+  return isPresentArray(value) ? new PresentList(value) : new EmptyList<T>();
 }
 
 export type AnyOptionalList<T> = (PresentList<T> | EmptyList<T>) & OptionalList<T>;

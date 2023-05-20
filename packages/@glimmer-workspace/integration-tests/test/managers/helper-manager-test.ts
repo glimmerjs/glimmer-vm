@@ -23,7 +23,7 @@ class HelperManagerTest extends RenderTest {
       }
     }
 
-    const Main = defineComponent({ hello: Hello }, '{{hello}}');
+    let Main = defineComponent({ hello: Hello }, '{{hello}}');
 
     this.renderComponent(Main);
 
@@ -38,12 +38,12 @@ class HelperManagerTest extends RenderTest {
   '(Default Helper Manager) plain functions work as helpers'(assert: Assert) {
     let count = 0;
 
-    const hello = () => {
+    let hello = () => {
       count++;
       return 'plain function';
     };
 
-    const Main = defineComponent({ hello }, '{{hello}}');
+    let Main = defineComponent({ hello }, '{{hello}}');
 
     this.renderComponent(Main);
 
@@ -62,12 +62,12 @@ class HelperManagerTest extends RenderTest {
   ) {
     let count = 0;
 
-    const hello = () => {
+    let hello = () => {
       count++;
       return 'plain function';
     };
 
-    const Main = defineComponent({}, '{{(@hello)}}');
+    let Main = defineComponent({}, '{{(@hello)}}');
 
     this.renderComponent(Main, {
       hello,
@@ -88,7 +88,7 @@ class HelperManagerTest extends RenderTest {
   ) {
     let count = 0;
 
-    const Main = defineComponent({}, '{{(this.hello)}}', {
+    let Main = defineComponent({}, '{{(this.hello)}}', {
       definition: class extends GlimmerishComponent {
         hello = () => {
           count++;
@@ -302,7 +302,7 @@ class HelperManagerTest extends RenderTest {
     let count = 0;
     let instance: Hello;
 
-    const setInstance = (i: Hello) => (instance = i);
+    let setInstance = (index: Hello) => (instance = index);
 
     class Hello extends TestHelper {
       @tracked foo = 123;

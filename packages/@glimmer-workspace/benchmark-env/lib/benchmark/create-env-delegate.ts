@@ -10,7 +10,7 @@ const scheduledDestructors: Queue = [];
 const scheduledFinalizers: Queue = [];
 
 function flush(queue: Queue) {
-  for (const fn of queue) fn();
+  for (let fn of queue) fn();
   queue.length = 0;
 }
 
@@ -29,11 +29,11 @@ setGlobalContext({
     if (!revalidateScheduled) {
       Promise.resolve()
         .then(() => {
-          const { env } = result;
-          env.begin();
+          let { environment } = result;
+          environment.begin();
           result.rerender();
           revalidateScheduled = false;
-          env.commit();
+          environment.commit();
           // only resolve if commit didn't dirty again
           if (!revalidateScheduled && resolveRender !== undefined) {
             resolveRender();

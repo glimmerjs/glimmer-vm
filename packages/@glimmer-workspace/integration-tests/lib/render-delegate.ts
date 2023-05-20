@@ -56,6 +56,6 @@ export default interface RenderDelegate {
     element: SimpleElement,
     dynamicScope?: DynamicScope
   ): RenderResult;
-  getElementBuilder(env: Environment, cursor: Cursor): ElementBuilder;
-  getSelf(env: Environment, context: unknown): Reference;
+  getElementBuilder(environment: Environment, cursor: Cursor): ElementBuilder;
+  getSelf(environment: Environment, context: unknown): Reference;
 }

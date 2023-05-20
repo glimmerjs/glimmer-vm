@@ -77,12 +77,12 @@ export class DOMOperations {
 
   insertHTMLBefore(parent: SimpleElement, nextSibling: Nullable<SimpleNode>, html: string): Bounds {
     if (html === '') {
-      const comment = this.createComment('');
+      let comment = this.createComment('');
       parent.insertBefore(comment, nextSibling);
       return new ConcreteBounds(parent, comment, comment);
     }
 
-    const previous = nextSibling ? nextSibling.previousSibling : parent.lastChild;
+    let previous = nextSibling ? nextSibling.previousSibling : parent.lastChild;
     let last: SimpleNode;
 
     if (nextSibling === null) {
@@ -97,7 +97,7 @@ export class DOMOperations {
       //
       // This also protects Edge, IE and Firefox w/o the inspector open
       // from merging adjacent text nodes. See ./compat/text-node-merging-fix.ts
-      const { uselessElement } = this;
+      let { uselessElement } = this;
 
       parent.insertBefore(uselessElement, nextSibling);
       insertAdjacentHTML(castToBrowser(uselessElement, 'ELEMENT'), INSERT_BEFORE_BEGIN, html);
@@ -105,7 +105,7 @@ export class DOMOperations {
       parent.removeChild(uselessElement);
     }
 
-    const first = expect(
+    let first = expect(
       previous ? previous.nextSibling : parent.firstChild,
       'bug in insertAdjacentHTML?'
     );
@@ -126,12 +126,12 @@ export function moveNodesBefore(
   target: SimpleElement,
   nextSibling: Nullable<SimpleNode>
 ): Bounds {
-  const first = expect(source.firstChild, 'source is empty');
+  let first = expect(source.firstChild, 'source is empty');
   let last: SimpleNode = first;
   let current: Nullable<SimpleNode> = first;
 
   while (current) {
-    const next: Nullable<SimpleNode> = current.nextSibling;
+    let next: Nullable<SimpleNode> = current.nextSibling;
 
     target.insertBefore(current, nextSibling);
 

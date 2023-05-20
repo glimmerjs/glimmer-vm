@@ -4,14 +4,14 @@ import { unwrap } from '@glimmer/util';
 QUnit.module('Heap');
 
 QUnit.test('Can grow', (assert) => {
-  let size = 0x100000;
+  let size = 0x10_00_00;
   let heap = new HeapImpl();
 
-  let i = 0;
+  let index = 0;
 
-  while (i !== size - 1) {
+  while (index !== size - 1) {
     heap.pushRaw(1);
-    i++;
+    index++;
   }
 
   // Should grow here

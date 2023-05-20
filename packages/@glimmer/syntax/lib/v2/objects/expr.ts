@@ -3,7 +3,7 @@ import type { PresentArray } from '@glimmer/interfaces';
 import { SourceSlice } from '../../source/slice';
 import type { CallFields } from './base';
 import { node } from './node';
-import type { FreeVarReference, VariableReference } from './refs';
+import type { FreeVarReference as FreeVariableReference, VariableReference } from './refs';
 
 /**
  * A Handlebars literal.
@@ -97,7 +97,7 @@ export class CallExpression extends node('Call').fields<CallFields>() {}
  */
 export class DeprecatedCallExpression extends node('DeprecatedCall').fields<{
   arg: SourceSlice;
-  callee: FreeVarReference;
+  callee: FreeVariableReference;
 }>() {}
 
 /**

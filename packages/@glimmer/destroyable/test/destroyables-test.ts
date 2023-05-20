@@ -18,8 +18,8 @@ let destroyQueue: (() => void)[] = [];
 let destroyedQueue: (() => void)[] = [];
 
 function flush() {
-  destroyQueue.forEach((fn) => fn());
-  destroyedQueue.forEach((fn) => fn());
+  for (let fn of destroyQueue) fn();
+  for (let fn of destroyedQueue) fn();
 
   destroyQueue = [];
   destroyedQueue = [];
@@ -51,7 +51,7 @@ module('Destroyables', (hooks) => {
   });
 
   test('standard destructors work', (assert) => {
-    const destroyable = {};
+    let destroyable = {};
     let count = 0;
 
     registerDestructor(destroyable, () => count++);
@@ -73,7 +73,7 @@ module('Destroyables', (hooks) => {
   });
 
   test('destructors work with functions', (assert) => {
-    const destroyable = () => {};
+    let destroyable = () => {};
     let count = 0;
 
     registerDestructor(destroyable, () => count++);
@@ -95,7 +95,7 @@ module('Destroyables', (hooks) => {
   });
 
   test('can register multiple destructors', (assert) => {
-    const destroyable = {};
+    let destroyable = {};
     let count = 0;
 
     registerDestructor(destroyable, () => count++);
@@ -118,7 +118,7 @@ module('Destroyables', (hooks) => {
   });
 
   test('destruction only happens once', (assert) => {
-    const destroyable = {};
+    let destroyable = {};
     let count = 0;
 
     registerDestructor(destroyable, () => count++);
@@ -139,7 +139,7 @@ module('Destroyables', (hooks) => {
   });
 
   test('eager destructors work', (assert) => {
-    const destroyable = {};
+    let destroyable = {};
     let count = 0;
 
     registerDestructor(destroyable, () => count++, true);
@@ -158,10 +158,10 @@ module('Destroyables', (hooks) => {
   });
 
   test('can unregister a destructor', (assert) => {
-    const destroyable = {};
+    let destroyable = {};
     let count = 0;
 
-    const destructor = registerDestructor(destroyable, () => count++);
+    let destructor = registerDestructor(destroyable, () => count++);
     unregisterDestructor(destroyable, destructor);
 
     destroy(destroyable);
@@ -171,8 +171,8 @@ module('Destroyables', (hooks) => {
   });
 
   test('can associate destroyable children', (assert) => {
-    const parent = {};
-    const child = {};
+    let parent = {};
+    let child = {};
 
     associateDestroyableChild(parent, child);
     registerDestructor(parent, () => assert.step('parent'));
@@ -206,8 +206,8 @@ module('Destroyables', (hooks) => {
   });
 
   test('destroying child before a parent works', (assert) => {
-    const parent = {};
-    const child = {};
+    let parent = {};
+    let child = {};
 
     associateDestroyableChild(parent, child);
     registerDestructor(parent, () => assert.step('parent'));
@@ -251,9 +251,9 @@ module('Destroyables', (hooks) => {
   });
 
   test('children can have multiple parents, but only destroy once', (assert) => {
-    const parent1 = {};
-    const parent2 = {};
-    const child = {};
+    let parent1 = {};
+    let parent2 = {};
+    let child = {};
 
     associateDestroyableChild(parent1, child);
     associateDestroyableChild(parent2, child);
@@ -292,8 +292,8 @@ module('Destroyables', (hooks) => {
   });
 
   test('can destroy children with the destroyChildren API', (assert) => {
-    const parent = {};
-    const child = {};
+    let parent = {};
+    let child = {};
 
     associateDestroyableChild(parent, child);
     registerDestructor(parent, () => assert.step('parent'));
@@ -339,8 +339,8 @@ module('Destroyables', (hooks) => {
   });
 
   test('destroyables are destroying during destruction but not destroyed', (assert) => {
-    const parent = {};
-    const child = {};
+    let parent = {};
+    let child = {};
 
     associateDestroyableChild(parent, child);
 
@@ -370,8 +370,8 @@ module('Destroyables', (hooks) => {
   });
 
   test('destroyables are passed the correct object when destroying', (assert) => {
-    const parent = {};
-    const child = {};
+    let parent = {};
+    let child = {};
 
     associateDestroyableChild(parent, child);
     registerDestructor(parent, (_parent) => {
@@ -398,7 +398,7 @@ module('Destroyables', (hooks) => {
 
     test('attempting to register a destructor on an object that isDestroying throws an error', (assert) => {
       assert.throws(() => {
-        const destroyable = {};
+        let destroyable = {};
         destroy(destroyable);
         registerDestructor(destroyable, () => 123);
       }, /Attempted to register a destructor with an object that is already destroying or destroyed/u);
@@ -406,7 +406,7 @@ module('Destroyables', (hooks) => {
 
     test('attempting to unregister a destructor on an object that isDestroying throws an error', (assert) => {
       assert.throws(() => {
-        const destroyable = {};
+        let destroyable = {};
         destroy(destroyable);
         unregisterDestructor(destroyable, () => 123);
       }, /Attempted to unregister a destructor with an object that is already destroying or destroyed/u);
@@ -425,7 +425,7 @@ module('Destroyables', (hooks) => {
     test('assertion does not throw if destroyables were destroyed', () => {
       unwrap(enableDestroyableTracking)();
 
-      const obj = {};
+      let obj = {};
       registerDestructor(obj, () => {});
       destroy(obj);
       flush();
@@ -436,7 +436,7 @@ module('Destroyables', (hooks) => {
     test('checking isDestroying does not trigger assertion', () => {
       unwrap(enableDestroyableTracking)();
 
-      const obj = {};
+      let obj = {};
 
       isDestroying(obj);
 
@@ -446,7 +446,7 @@ module('Destroyables', (hooks) => {
     test('checking isDestroyed does not trigger assertion', () => {
       unwrap(enableDestroyableTracking)();
 
-      const obj = {};
+      let obj = {};
 
       isDestroyed(obj);
 
@@ -456,10 +456,10 @@ module('Destroyables', (hooks) => {
     test('error thrown attaches destroyables for helpful debugging', (assert) => {
       unwrap(enableDestroyableTracking)();
 
-      const obj1 = {};
+      let obj1 = {};
       registerDestructor(obj1, () => {});
 
-      const obj2 = {};
+      let obj2 = {};
       registerDestructor(obj2, () => {});
 
       try {

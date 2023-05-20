@@ -165,7 +165,7 @@ export class BlockSymbolTable extends SymbolTable {
   }
 
   has(name: string): boolean {
-    return this.symbols.indexOf(name) !== -1 || this.parent.has(name);
+    return this.symbols.includes(name) || this.parent.has(name);
   }
 
   get(name: string): [number, boolean] {
@@ -180,7 +180,7 @@ export class BlockSymbolTable extends SymbolTable {
 
   getLocalsMap(): Dict<number> {
     let dict = this.parent.getLocalsMap();
-    this.symbols.forEach((symbol) => (dict[symbol] = this.get(symbol)[0]));
+    for (let symbol of this.symbols) (dict[symbol] = this.get(symbol)[0]);
     return dict;
   }
 

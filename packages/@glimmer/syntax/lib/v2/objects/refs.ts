@@ -1,6 +1,6 @@
 import type { SourceSlice } from '../../source/slice';
 import { node } from './node';
-import type { FreeVarResolution } from './resolution';
+import type { FreeVarResolution as FreeVariableResolution } from './resolution';
 
 /**
  * Corresponds to `this` at the head of an expression.
@@ -33,7 +33,7 @@ export class LocalVarReference extends node('Local').fields<{
  */
 export class FreeVarReference extends node('Free').fields<{
   name: string;
-  resolution: FreeVarResolution;
+  resolution: FreeVariableResolution;
   symbol: number;
 }>() {}
 

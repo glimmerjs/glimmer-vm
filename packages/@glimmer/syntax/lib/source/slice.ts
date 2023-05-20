@@ -1,27 +1,27 @@
-import * as src from './api';
+import * as source_ from './api';
 
 export type SerializedSourceSlice<Chars extends string = string> = [
   chars: Chars,
-  span: src.SerializedSourceSpan
+  span: source_.SerializedSourceSpan
 ];
 
 export class SourceSlice<Chars extends string = string> {
   static synthetic<S extends string>(chars: S): SourceSlice<S> {
-    let offsets = src.SourceSpan.synthetic(chars);
+    let offsets = source_.SourceSpan.synthetic(chars);
     return new SourceSlice({ loc: offsets, chars: chars });
   }
 
-  static load(source: src.Source, slice: SerializedSourceSlice): SourceSlice {
+  static load(source: source_.Source, slice: SerializedSourceSlice): SourceSlice {
     return new SourceSlice({
-      loc: src.SourceSpan.load(source, slice[1]),
+      loc: source_.SourceSpan.load(source, slice[1]),
       chars: slice[0],
     });
   }
 
   readonly chars: Chars;
-  readonly loc: src.SourceSpan;
+  readonly loc: source_.SourceSpan;
 
-  constructor(options: { loc: src.SourceSpan; chars: Chars }) {
+  constructor(options: { loc: source_.SourceSpan; chars: Chars }) {
     this.loc = options.loc;
     this.chars = options.chars;
   }

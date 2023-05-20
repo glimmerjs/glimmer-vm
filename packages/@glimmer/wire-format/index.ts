@@ -29,16 +29,16 @@ export function is<T>(variant: number): (value: any) => value is T {
 // Statements
 export const isFlushElement = is<Statements.FlushElement>(WIRE_FLUSH_ELEMENT);
 
-export function isAttribute(val: Statement): val is Statements.Attribute {
+export function isAttribute(value: Statement): value is Statements.Attribute {
   return (
-    val[0] === WIRE_STATIC_ATTR ||
-    val[0] === WIRE_DYNAMIC_ATTR ||
-    val[0] === WIRE_TRUSTING_DYNAMIC_ATTR ||
-    val[0] === WIRE_COMPONENT_ATTR ||
-    val[0] === WIRE_STATIC_COMPONENT_ATTR ||
-    val[0] === WIRE_TRUSTING_COMPONENT_ATTR ||
-    val[0] === WIRE_ATTR_SPLAT ||
-    val[0] === WIRE_MODIFIER
+    value[0] === WIRE_STATIC_ATTR ||
+    value[0] === WIRE_DYNAMIC_ATTR ||
+    value[0] === WIRE_TRUSTING_DYNAMIC_ATTR ||
+    value[0] === WIRE_COMPONENT_ATTR ||
+    value[0] === WIRE_STATIC_COMPONENT_ATTR ||
+    value[0] === WIRE_TRUSTING_COMPONENT_ATTR ||
+    value[0] === WIRE_ATTR_SPLAT ||
+    value[0] === WIRE_MODIFIER
   );
 }
 
@@ -50,8 +50,8 @@ export function getStringFromValue(expr: Expressions.StringValue): string {
   return expr;
 }
 
-export function isArgument(val: Statement): val is Statements.Argument {
-  return val[0] === WIRE_STATIC_ARG || val[0] === WIRE_DYNAMIC_ARG;
+export function isArgument(value: Statement): value is Statements.Argument {
+  return value[0] === WIRE_STATIC_ARG || value[0] === WIRE_DYNAMIC_ARG;
 }
 
 export function isHelper(expr: Expression): expr is Expressions.Helper {

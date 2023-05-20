@@ -38,7 +38,7 @@ export default class EvaluationStackImpl implements EvaluationStack {
   }
 
   push(...values: unknown[]): void {
-    for (const value of values) {
+    for (let value of values) {
       this.#stack[++this._registers_[$sp]] = value;
     }
   }

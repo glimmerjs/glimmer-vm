@@ -6,10 +6,10 @@ type KeywordName = keyof typeof KEYWORDS_TYPES;
 const TYPES: Record<KeywordName, readonly KeywordType[]> = KEYWORDS_TYPES;
 const KEYWORDS = Object.keys(KEYWORDS_TYPES) as KeywordName[];
 
-const BLOCK_KEYWORDS = KEYWORDS.filter((key) => TYPES[key].includes('Block'));
-const APPEND_KEYWORDS = KEYWORDS.filter((key) => TYPES[key].includes('Append'));
-const CALL_KEYWORDS = KEYWORDS.filter((key) => TYPES[key].includes('Call'));
-const MODIFIER_KEYWORDS = KEYWORDS.filter((key) => TYPES[key].includes('Modifier'));
+const BLOCK_KEYWORDS = new Set(KEYWORDS.filter((key) => TYPES[key].includes('Block')));
+const APPEND_KEYWORDS = new Set(KEYWORDS.filter((key) => TYPES[key].includes('Append')));
+const CALL_KEYWORDS = new Set(KEYWORDS.filter((key) => TYPES[key].includes('Call')));
+const MODIFIER_KEYWORDS = new Set(KEYWORDS.filter((key) => TYPES[key].includes('Modifier')));
 
 for (let keyword of KEYWORDS) {
   class KeywordSyntaxErrors extends RenderTest {
@@ -143,7 +143,7 @@ for (let keyword of KEYWORDS) {
 
     @test
     'non-block keywords cannot be used as blocks'() {
-      if (BLOCK_KEYWORDS.indexOf(keyword) !== -1) {
+      if (BLOCK_KEYWORDS.has(keyword)) {
         return;
       }
 
@@ -154,7 +154,7 @@ for (let keyword of KEYWORDS) {
 
     @test
     'non-append keywords cannot be used as appends'() {
-      if (APPEND_KEYWORDS.indexOf(keyword) !== -1) {
+      if (APPEND_KEYWORDS.has(keyword)) {
         return;
       }
 
@@ -165,7 +165,7 @@ for (let keyword of KEYWORDS) {
 
     @test
     'non-expr keywords cannot be used as expr'() {
-      if (CALL_KEYWORDS.indexOf(keyword) !== -1) {
+      if (CALL_KEYWORDS.has(keyword)) {
         return;
       }
 
@@ -176,7 +176,7 @@ for (let keyword of KEYWORDS) {
 
     @test
     'non-modifier keywords cannot be used as modifier'() {
-      if (MODIFIER_KEYWORDS.indexOf(keyword) !== -1) {
+      if (MODIFIER_KEYWORDS.has(keyword)) {
         return;
       }
 

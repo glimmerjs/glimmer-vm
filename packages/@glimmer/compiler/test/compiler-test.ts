@@ -56,7 +56,7 @@ const Concat = Builder.Concat;
 QUnit.test(
   '@arguments are on regular non-component/regular HTML nodes throws syntax error',
   function (assert) {
-    const template = strip`
+    let template = strip`
     <a @onClick={{action "hi"}}>Link</a>
   `;
     assert.throws(
@@ -150,7 +150,7 @@ test(
 );
 
 let voidElements = 'area base br embed hr img input keygen link meta param source track wbr';
-for (const tagName of voidElements.split(' ')) {
+for (let tagName of voidElements.split(' ')) {
   test(`void ${tagName}`, `<${tagName}>`, [`<${tagName}>`, []]);
 }
 

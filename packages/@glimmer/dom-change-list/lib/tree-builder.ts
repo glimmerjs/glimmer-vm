@@ -24,7 +24,7 @@ const SVG_INTEGRATION_POINTS = { foreignObject: 1, desc: 1, title: 1 };
 // http://www.w3.org/TR/html/syntax.html#parsing-main-inforeign
 export const BLACKLIST_TABLE = Object.create(null);
 
-for (const tag of [
+for (let tag of [
   'b',
   'big',
   'blockquote',
@@ -89,7 +89,7 @@ export class TreeBuilder {
   constructor(private dom: DOMTreeConstruction = new DOMTreeConstruction()) {}
 
   openElement(tag: string) {
-    const context = this.current;
+    let context = this.current;
     let isSVG: boolean;
 
     if (context) {
@@ -133,12 +133,12 @@ export class TreeBuilder {
   }
 
   get currentTag(): Nullable<string> {
-    const current = this.current;
+    let current = this.current;
     return current && current.tag;
   }
 
   get currentNamespace(): Nullable<Namespace> {
-    const current = this.current;
+    let current = this.current;
     return current && current.namespaceURI;
   }
 
@@ -147,8 +147,8 @@ export class TreeBuilder {
   }
 
   private get current(): Nullable<Context> {
-    const { contexts } = this;
-    const { length } = contexts;
+    let { contexts } = this;
+    let { length } = contexts;
 
     return length ? contexts[length - 1]! : null;
   }

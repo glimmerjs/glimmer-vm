@@ -21,7 +21,7 @@ export class PartialRehydrationDelegate extends RehydrationDelegate {
 
     let iterator = renderComponent(runtime, builder, program, {}, component.state, args);
 
-    const result = renderSync(runtime.env, iterator);
+    let result = renderSync(runtime.env, iterator);
 
     this.rehydrationStats = {
       clearedNodes: builder.clearedNodes,
@@ -31,7 +31,7 @@ export class PartialRehydrationDelegate extends RehydrationDelegate {
   }
 
   renderComponentServerSide(name: string, args: Dict<unknown>): string {
-    const element = this.serverDoc.createElement('div');
+    let element = this.serverDoc.createElement('div');
     let cursor = { element, nextSibling: null };
     let { program, runtime } = this.serverEnv;
     let builder = this.getElementBuilder(runtime.env, cursor);

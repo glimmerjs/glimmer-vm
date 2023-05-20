@@ -1,6 +1,6 @@
 import { type ASTv2, generateSyntaxError } from '@glimmer/syntax';
 
-import { Err, Ok, Result } from '../../../../shared/result';
+import { Err as Error_, Ok, Result } from '../../../../shared/result';
 import * as mir from '../../../2-encoding/mir';
 import type { NormalizationState } from '../../context';
 import { VISIT_EXPRS } from '../../visitors/expressions';
@@ -21,7 +21,7 @@ function assertIfUnlessInlineKeyword(type: string) {
     let positional = node.type === 'Call' ? node.args.positional : null;
 
     if (named && !named.isEmpty()) {
-      return Err(
+      return Error_(
         generateSyntaxError(
           `(${type}) cannot receive named parameters, received ${named.entries
             .map((e) => e.name.chars)
@@ -34,7 +34,7 @@ function assertIfUnlessInlineKeyword(type: string) {
     let condition = positional?.nth(0);
 
     if (!positional || !condition) {
-      return Err(
+      return Error_(
         generateSyntaxError(
           `When used inline, (${type}) requires at least two parameters 1. the condition that determines the state of the (${type}), and 2. the value to return if the condition is ${
             inverted ? 'false' : 'true'
@@ -48,7 +48,7 @@ function assertIfUnlessInlineKeyword(type: string) {
     let falsy = positional.nth(2);
 
     if (truthy === null) {
-      return Err(
+      return Error_(
         generateSyntaxError(
           `When used inline, (${type}) requires at least two parameters 1. the condition that determines the state of the (${type}), and 2. the value to return if the condition is ${
             inverted ? 'false' : 'true'
@@ -59,7 +59,7 @@ function assertIfUnlessInlineKeyword(type: string) {
     }
 
     if (positional.size > 3) {
-      return Err(
+      return Error_(
         generateSyntaxError(
           `When used inline, (${type}) can receive a maximum of three positional parameters 1. the condition that determines the state of the (${type}), 2. the value to return if the condition is ${
             inverted ? 'false' : 'true'

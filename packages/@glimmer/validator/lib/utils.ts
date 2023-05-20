@@ -12,7 +12,7 @@ export function indexable<T extends object>(input: T): T & Indexable {
 }
 
 export function getGlobal(): Indexable {
-  // eslint-disable-next-line n/no-unsupported-features/es-builtins
+   
   if (typeof globalThis !== 'undefined') return indexable(globalThis);
   if (typeof self !== 'undefined') return indexable(self);
   if (typeof window !== 'undefined') return indexable(window);
@@ -21,7 +21,7 @@ export function getGlobal(): Indexable {
   throw new Error('unable to locate global object');
 }
 
-export function unwrap<T>(val: T | null | undefined): T {
-  if (val === null || val === undefined) throw new Error(`Expected value to be present`);
-  return val as T;
+export function unwrap<T>(value: T | null | undefined): T {
+  if (value === null || value === undefined) throw new Error(`Expected value to be present`);
+  return value as T;
 }

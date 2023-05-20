@@ -78,7 +78,7 @@ export class CustomModifierManager<O extends Owner, ModifierInstance>
   }
 
   #getDelegateFor(owner: O) {
-    const componentManagerDelegates = this.#componentManagerDelegates;
+    let componentManagerDelegates = this.#componentManagerDelegates;
 
     let delegate = componentManagerDelegates.get(owner);
 
@@ -166,7 +166,7 @@ export function reifyArgs({ named, positional }: CapturedArguments): {
 } {
   let reifiedNamed = dict();
 
-  for (const [key, value] of Object.entries(named)) {
+  for (let [key, value] of Object.entries(named)) {
     reifiedNamed[key] = valueForRef(value);
   }
 

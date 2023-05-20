@@ -41,7 +41,7 @@ export function initializeRegistersWithPC(pc: number): LowLevelRegisters {
 }
 
 export interface Stack {
-  push(value: unknown): void;
+  push(...values: unknown[]): void;
   get(position: number): number;
   pop<T>(): T;
 }
@@ -74,14 +74,13 @@ export class LowLevelVM {
   }
 
   setPc(pc: number): void {
-    assert(typeof pc === 'number' && !isNaN(pc), 'pc is set to a number');
+    assert(typeof pc === 'number' && !Number.isNaN(pc), 'pc is set to a number');
     this.#registers[$pc] = pc;
   }
 
   // Start a new frame and save $ra and $fp on the stack
   pushFrame() {
-    this.stack.push(this.#registers[$ra]);
-    this.stack.push(this.#registers[$fp]);
+    this.stack.push(this.#registers[$ra], this.#registers[$fp]);
     this.#registers[$fp] = this.#registers[$sp] - 1;
   }
 
@@ -111,7 +110,7 @@ export class LowLevelVM {
 
   // Save $pc into $ra, then jump to a new address in `program` (jal in MIPS)
   call(handle: number) {
-    assert(handle < 0xffffffff, `Jumping to placeholder address`);
+    assert(handle < 0xff_ff_ff_ff, `Jumping to placeholder address`);
 
     this.#registers[$ra] = this.#registers[$pc];
     this.setPc(this.heap.getaddr(handle));

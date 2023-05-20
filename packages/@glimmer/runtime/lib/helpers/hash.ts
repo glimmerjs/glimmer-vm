@@ -64,7 +64,7 @@ if (import.meta.env.DEV) {
    @public
  */
 export const hash = internalHelper(({ named }: CapturedArguments): Reference<Dict<unknown>> => {
-  let ref = createComputeRef(
+  let reference = createComputeRef(
     () => {
       let hash = reifyNamed(named);
 
@@ -86,7 +86,7 @@ export const hash = internalHelper(({ named }: CapturedArguments): Reference<Dic
     children.set(name, named[name]);
   }
 
-  ref._updateChildren_(children);
+  reference._updateChildren_(children);
 
-  return ref;
+  return reference;
 });

@@ -720,7 +720,7 @@ export class GlimmerishComponents extends RenderTest {
     this.registerComponent('Glimmer', 'Foo', '<Bar data-bar={{@childName}} @data={{@data}} />');
     this.registerComponent('Glimmer', 'Bar', '<div ...attributes>Hello World</div>');
 
-    let el = this.delegate.getInitialElement();
+    let element = this.delegate.getInitialElement();
 
     this.render(
       strip`
@@ -730,13 +730,13 @@ export class GlimmerishComponents extends RenderTest {
       {{/in-element}}
     {{/each}}
     `,
-      { components: [{ name: 'Foo', child: 'Bar', mount: el, data: { wat: 'Wat' } }] }
+      { components: [{ name: 'Foo', child: 'Bar', mount: element, data: { wat: 'Wat' } }] }
     );
 
-    let first = assertingElement(el.firstChild);
+    let first = assertingElement(element.firstChild);
 
     assertElementShape(first, 'div', { 'data-bar': 'Bar' }, 'Hello World');
-    this.rerender({ components: [{ name: 'Foo', child: 'Bar', mount: el, data: { wat: 'Wat' } }] });
+    this.rerender({ components: [{ name: 'Foo', child: 'Bar', mount: element, data: { wat: 'Wat' } }] });
     assertElementShape(first, 'div', { 'data-bar': 'Bar' }, 'Hello World');
   }
 

@@ -1,16 +1,16 @@
-export function strip(strings: TemplateStringsArray, ...args: string[]) {
+export function strip(strings: TemplateStringsArray, ...dynamic: string[]) {
   return strings
-    .map((str: string, i: number) => {
-      return `${str
+    .map((text: string, index: number) => {
+      return `${text
         .split('\n')
         .map((s) => s.trim())
-        .join('')}${args[i] ? args[i] : ''}`;
+        .join('')}${dynamic[index] ?? ''}`;
     })
     .join('');
 }
 
 export function stripTight(strings: TemplateStringsArray) {
-  const [first] = strings;
+  let [first] = strings;
   if (!first) return '';
 
   return first
@@ -20,7 +20,7 @@ export function stripTight(strings: TemplateStringsArray) {
 }
 
 export function trimLines(strings: TemplateStringsArray) {
-  const [first] = strings;
+  let [first] = strings;
   if (!first) return '';
 
   return first

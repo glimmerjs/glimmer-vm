@@ -17,7 +17,6 @@ import { constants as zlib } from 'node:zlib';
 import prettyBytes from 'pretty-bytes';
 import chalk from 'chalk';
 import { visualizer } from 'rollup-plugin-visualizer';
-import { isPresent } from '@glimmer/util';
 
 // eslint-disable-next-line import/no-named-as-default-member
 const { ModuleKind, ModuleResolutionKind, ScriptTarget, ImportsNotUsedAsValues } = ts;
@@ -86,7 +85,7 @@ export function tsconfig(updates) {
  * @returns {RollupPlugin}
  */
 export function typescript(pkg, config) {
-  const typeScriptConfig = {
+  let typeScriptConfig = {
     ...config,
     paths: {
       '@glimmer/interfaces': [resolve(pkg.root, '../@glimmer/interfaces/index.d.ts')],
@@ -95,9 +94,9 @@ export function typescript(pkg, config) {
   };
 
   /** @type {[string, object][]} */
-  const presets = [['@babel/preset-typescript', { allowDeclareFields: true }]];
+  let presets = [['@babel/preset-typescript', { allowDeclareFields: true }]];
 
-  const ts = tsconfig(typeScriptConfig);
+  let ts = tsconfig(typeScriptConfig);
 
   return rollupTS({
     transpiler: 'babel',
@@ -143,13 +142,22 @@ const PRESETS = {
 const matchExternals = (pkg) => (id) => matchExternalsWithPackage(id, pkg);
 
 /**
+ * @template T
+ * @param {T | null | undefined} x
+ * @returns {x is T}
+ */
+function isPresent(x) {
+  return x !== undefined && x !== null;
+}
+
+/**
  * @param {string} id
  * @param {Package} pkg
  * @returns {boolean | null}
  */
 function matchExternalsWithPackage(id, pkg) {
   /** @type {ExternalConfig[]} */
-  const presets = (pkg.workspace?.presets ?? ['workspace:recommended'])
+  let presets = (pkg.workspace?.presets ?? ['workspace:recommended'])
     .map((preset) => PRESETS[preset])
     .filter(isPresent);
 
@@ -167,7 +175,7 @@ function matchExternalsWithPackage(id, pkg) {
     if (result !== null) return result;
   }
 
-  for (const preset of presets) {
+  for (let preset of presets) {
     let result = matchExternalsConfig(id, preset);
     if (result !== null) return result;
   }
@@ -181,7 +189,7 @@ function matchExternalsWithPackage(id, pkg) {
  * @returns {boolean | null}
  */
 function matchExternalsConfig(id, externalsConfig) {
-  for (const [kind, config] of entries(externalsConfig)) {
+  for (let [kind, config] of entries(externalsConfig)) {
     let result = matchExternalsEntry(id, kind, config);
     if (result !== null) return result;
   }
@@ -197,7 +205,7 @@ function matchExternalsConfig(id, externalsConfig) {
  */
 function matchExternalsEntry(id, kind, config) {
   if (config !== undefined) {
-    for (const entry of entries(config)) {
+    for (let entry of entries(config)) {
       if (entry === undefined) continue;
       let [operator, patterns] = entry;
 
@@ -256,7 +264,7 @@ export class Package {
    * @returns {string}
    */
   static root(meta) {
-    const directory = new URL(meta.url).pathname;
+    let directory = new URL(meta.url).pathname;
     return dirname(resolve(directory));
   }
 
@@ -265,10 +273,10 @@ export class Package {
    * @returns {Package | undefined}
    */
   static at(meta) {
-    const root = typeof meta === 'string' ? meta : Package.root(meta);
+    let root = typeof meta === 'string' ? meta : Package.root(meta);
 
     /** @type {PackageJSON} */
-    const json = parse(readFileSync(resolve(root, 'package.json'), 'utf8'));
+    let json = parse(readFileSync(resolve(root, 'package.json'), 'utf8'));
 
     if (json.main) {
       return new Package(
@@ -280,8 +288,8 @@ export class Package {
         json
       );
     } else {
-      for (const main of ['index.ts', 'index.js', 'index.d.ts']) {
-        const path = resolve(root, main);
+      for (let main of ['index.ts', 'index.js', 'index.d.ts']) {
+        let path = resolve(root, main);
         if (existsSync(path)) {
           return new Package(
             {
@@ -303,7 +311,7 @@ export class Package {
    * @returns {import("./config.js").RollupExport}
    */
   static config(meta) {
-    const pkg = Package.at(meta);
+    let pkg = Package.at(meta);
 
     return pkg ? pkg.config() : [];
   }
@@ -493,7 +501,7 @@ export class Package {
      * @returns {boolean}
      */
     return (id) => {
-      const external = matchExternals(this)(id);
+      let external = matchExternals(this)(id);
 
       if (external === null) {
         console.warn('unhandled external', id, {
@@ -513,18 +521,18 @@ export class Package {
    * @returns {import("rollup").RollupOptions[]}
    */
   #shared(format, mode) {
-    const { root, main } = this.#package;
+    let { root, main } = this.#package;
 
-    const extension = format === 'esm' ? 'js' : 'cjs';
+    let extension = format === 'esm' ? 'js' : 'cjs';
 
-    const modeSuffix = mode === 'production' ? '.production' : '';
+    let modeSuffix = mode === 'production' ? '.production' : '';
 
     /**
      * @param {[string, string]} entry
      * @returns {import("rollup").RollupOptions}
      */
     function entryPoint([exportName, ts]) {
-      const file = `${exportName}${modeSuffix}.${extension}`;
+      let file = `${exportName}${modeSuffix}.${extension}`;
 
       return {
         input: resolve(root, ts),

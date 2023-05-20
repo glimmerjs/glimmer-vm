@@ -119,8 +119,8 @@ if (hasDom) {
       let event: UIEvent;
 
       this.render('<button {{on "click" this.callback}}>Click Me</button>', {
-        callback(evt: UIEvent) {
-          event = evt;
+        callback(event_: UIEvent) {
+          event = event_;
         },
       });
 

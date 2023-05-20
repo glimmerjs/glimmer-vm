@@ -8,7 +8,7 @@ import onModifier from './benchmark/on-modifier';
 import type { Benchmark } from './interfaces';
 
 export default function createBenchmark(): Benchmark {
-  const registry = createRegistry();
+  let registry = createRegistry();
   registry.registerModifier('on', {}, onModifier);
   return {
     templateOnlyComponent: (name, template) => {

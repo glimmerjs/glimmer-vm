@@ -58,7 +58,7 @@ class OkImpl<T> extends ResultImpl<T> {
   }
 }
 
-class ErrImpl<T> extends ResultImpl<T> {
+class ErrorImpl<T> extends ResultImpl<T> {
   readonly isOk = false;
   readonly isErr = true;
 
@@ -101,14 +101,10 @@ export function isResult<T>(input: MaybeResult<T>): input is Result<T> {
 }
 
 export function intoResult<T>(input: MaybeResult<T>): Result<T> {
-  if (isResult(input)) {
-    return input;
-  } else {
-    return Ok(input);
-  }
+  return isResult(input) ? input : Ok(input);
 }
 
-export type Result<T> = OkImpl<T> | ErrImpl<T>;
+export type Result<T> = OkImpl<T> | ErrorImpl<T>;
 
 type MapAllOk<T extends Result<unknown>[]> = {
   [P in keyof T]: T[P] extends Result<infer Inner> ? Inner : never;
@@ -123,10 +119,10 @@ export function Ok<T>(value: T): Result<T> {
 export type Ok<T> = OkImpl<T>;
 
 export function Err<T>(reason: GlimmerSyntaxError): Result<T> {
-  return new ErrImpl(reason);
+  return new ErrorImpl(reason);
 }
 
-export type Err<T> = ErrImpl<T>;
+export type Err<T> = ErrorImpl<T>;
 
 export type MaybeResult<T> = T | Result<T>;
 
@@ -152,16 +148,12 @@ export class ResultArray<T> {
   }
 
   toArray(): Result<T[]> {
-    let err = this.items.filter((item): item is ErrImpl<T> => item instanceof ErrImpl)[0];
+    let error = this.items.find((item): item is ErrorImpl<T> => item instanceof ErrorImpl);
 
-    if (err !== undefined) {
-      return err.cast<T[]>();
-    } else {
-      return Ok((this.items as OkImpl<T>[]).map((item) => item.value));
-    }
+    return error === undefined ? Ok((this.items as OkImpl<T>[]).map((item) => item.value)) : error.cast<T[]>();
   }
 
   toOptionalList(): Result<AnyOptionalList<T>> {
-    return this.toArray().mapOk((arr) => OptionalList(arr));
+    return this.toArray().mapOk((array) => OptionalList(array));
   }
 }

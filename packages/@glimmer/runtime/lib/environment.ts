@@ -46,20 +46,22 @@ class TransactionImpl implements Transaction {
   commit() {
     let { createdComponents, updatedComponents } = this;
 
-    for (const { manager, state } of createdComponents) {
+    for (let { manager, state } of createdComponents) {
       manager.didCreate(state);
     }
 
-    for (const { manager, state } of updatedComponents) {
+    for (let { manager, state } of updatedComponents) {
       manager.didUpdate(state);
     }
 
     let { scheduledInstallModifiers, scheduledUpdateModifiers } = this;
 
-    for (const { manager, state, definition } of scheduledInstallModifiers) {
+    for (let { manager, state, definition } of scheduledInstallModifiers) {
       let modifierTag = manager.getTag(state);
 
-      if (modifierTag !== null) {
+      if (modifierTag === null) {
+        manager.install(state);
+      } else {
         let tag = track(
           () => manager.install(state),
           import.meta.env.DEV &&
@@ -68,15 +70,15 @@ class TransactionImpl implements Transaction {
             }\` modifier)`
         );
         updateTag(modifierTag, tag);
-      } else {
-        manager.install(state);
       }
     }
 
-    for (const { manager, state, definition } of scheduledUpdateModifiers) {
+    for (let { manager, state, definition } of scheduledUpdateModifiers) {
       let modifierTag = manager.getTag(state);
 
-      if (modifierTag !== null) {
+      if (modifierTag === null) {
+        manager.update(state);
+      } else {
         let tag = track(
           () => manager.update(state),
           import.meta.env.DEV &&
@@ -85,8 +87,6 @@ class TransactionImpl implements Transaction {
             }\` modifier)`
         );
         updateTag(modifierTag, tag);
-      } else {
-        manager.update(state);
       }
     }
   }
@@ -208,16 +208,16 @@ export function runtimeContext(
   };
 }
 
-export function inTransaction(env: Environment, block: () => void): void {
-  if (!env[TRANSACTION]) {
-    env.begin();
+export function inTransaction(environment: Environment, block: () => void): void {
+  if (environment[TRANSACTION]) {
+    block();
+  } else {
+    environment.begin();
     try {
       block();
     } finally {
-      env.commit();
+      environment.commit();
     }
-  } else {
-    block();
   }
 }
 

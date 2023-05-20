@@ -16,14 +16,14 @@ export function isEmptyArray(input: unknown[] | readonly unknown[]): boolean {
 }
 
 export function* reverse<T>(input: T[]): IterableIterator<T> {
-  for (let i = input.length - 1; i >= 0; i--) {
-    yield input[i]!;
+  for (let index = input.length - 1; index >= 0; index--) {
+    yield input[index]!;
   }
 }
 
 export function* enumerate<T>(input: Iterable<T>): IterableIterator<[number, T]> {
-  let i = 0;
-  for (const item of input) {
-    yield [i++, item];
+  let index = 0;
+  for (let item of input) {
+    yield [index++, item];
   }
 }

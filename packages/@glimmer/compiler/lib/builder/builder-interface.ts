@@ -43,7 +43,7 @@ export enum HeadKind {
 export enum VariableKind {
   Local = 'Local',
   Free = 'Free',
-  Arg = 'Arg',
+  Argument = 'Arg',
   Block = 'Block',
   This = 'This',
 }
@@ -142,19 +142,17 @@ export function normalizeAppendHead(
   head: NormalizedHead,
   trusted: boolean
 ): AppendExpr | AppendPath {
-  if (head.type === ExpressionKind.GetPath) {
-    return {
-      kind: HeadKind.AppendPath,
-      path: head,
-      trusted,
-    };
-  } else {
-    return {
-      kind: HeadKind.AppendExpr,
-      expr: head,
-      trusted,
-    };
-  }
+  return head.type === ExpressionKind.GetPath
+    ? {
+        kind: HeadKind.AppendPath,
+        path: head,
+        trusted,
+      }
+    : {
+        kind: HeadKind.AppendExpr,
+        expr: head,
+        trusted,
+      };
 }
 
 function isSugaryArrayStatement(statement: BuilderStatement): statement is SugaryArrayStatement {
@@ -178,19 +176,19 @@ export type SugaryArrayStatement = BuilderCallExpression | BuilderElement | Buil
 export function normalizeSugaryArrayStatement(
   statement: SugaryArrayStatement
 ): NormalizedStatement {
-  const name = statement[0];
+  let name = statement[0];
 
   switch (name[0]) {
     case '(': {
-      let params: Nullable<NormalizedParams> = null;
+      let parameters: Nullable<NormalizedParams> = null;
       let hash: Nullable<NormalizedHash> = null;
 
       if (statement.length === 3) {
-        params = normalizeParams(statement[1] as Params);
+        parameters = normalizeParams(statement[1] as Parameters_);
         hash = normalizeHash(statement[2] as Hash);
       } else if (statement.length === 2) {
         if (Array.isArray(statement[1])) {
-          params = normalizeParams(statement[1] as Params);
+          parameters = normalizeParams(statement[1] as Parameters_);
         } else {
           hash = normalizeHash(statement[1] as Hash);
         }
@@ -199,14 +197,14 @@ export function normalizeSugaryArrayStatement(
       return {
         kind: HeadKind.Call,
         head: normalizeCallHead(name),
-        params,
+        params: parameters,
         hash,
         trusted: false,
       };
     }
 
     case '#': {
-      const {
+      let {
         head: path,
         params,
         hash,
@@ -225,8 +223,8 @@ export function normalizeSugaryArrayStatement(
     }
 
     case '!': {
-      const name = statement[0].slice(1);
-      const { params, hash, blocks, blockParams } = normalizeBuilderBlockStatement(
+      let name = statement[0].slice(1);
+      let { params, hash, blocks, blockParams } = normalizeBuilderBlockStatement(
         statement as BuilderBlockStatement
       );
 
@@ -241,24 +239,24 @@ export function normalizeSugaryArrayStatement(
     }
 
     case '<': {
-      let attrs: NormalizedAttrs = dict();
+      let attributes: NormalizedAttrs = dict();
       let block: NormalizedBlock = [];
 
       if (statement.length === 3) {
-        attrs = normalizeAttrs(statement[1] as BuilderAttrs);
+        attributes = normalizeAttributes(statement[1] as BuilderAttrs);
         block = normalizeBlock(statement[2] as BuilderBlock);
       } else if (statement.length === 2) {
         if (Array.isArray(statement[1])) {
           block = normalizeBlock(statement[1] as BuilderBlock);
         } else {
-          attrs = normalizeAttrs(statement[1] as BuilderAttrs);
+          attributes = normalizeAttributes(statement[1] as BuilderAttrs);
         }
       }
 
       return {
         kind: HeadKind.Element,
         name: expect(extractElement(name), `BUG: expected ${name} to look like a tag name`),
-        attrs,
+        attrs: attributes,
         block,
       };
     }
@@ -270,45 +268,40 @@ export function normalizeSugaryArrayStatement(
 
 function normalizeVerboseStatement(statement: VerboseStatement): NormalizedStatement {
   switch (statement[0]) {
-    case Builder.Literal: {
+    case Builder.Literal:
       return {
         kind: HeadKind.Literal,
         value: statement[1],
       };
-    }
 
-    case Builder.Append: {
+    case Builder.Append:
       return normalizeAppendExpression(statement[1], statement[2]);
-    }
 
-    case Builder.Modifier: {
+    case Builder.Modifier:
       return {
         kind: HeadKind.Modifier,
         params: normalizeParams(statement[1]),
         hash: normalizeHash(statement[2]),
       };
-    }
 
-    case Builder.DynamicComponent: {
+    case Builder.DynamicComponent:
       return {
         kind: HeadKind.DynamicComponent,
         expr: normalizeExpression(statement[1]),
         hash: normalizeHash(statement[2]),
         block: normalizeBlock(statement[3]),
       };
-    }
 
-    case Builder.Comment: {
+    case Builder.Comment:
       return {
         kind: HeadKind.Comment,
         value: statement[1],
       };
-    }
   }
 }
 
 function extractBlockHead(name: string): NormalizedHead {
-  const result = /^(#|!)(.*)$/u.exec(name);
+  let result = /^(#|!)(.*)$/u.exec(name);
 
   if (result === null) {
     throw new Error(`Unexpected missing # in block head`);
@@ -318,7 +311,7 @@ function extractBlockHead(name: string): NormalizedHead {
 }
 
 function normalizeCallHead(name: string): NormalizedHead {
-  const result = /^\((.*)\)$/u.exec(name);
+  let result = /^\((.*)\)$/u.exec(name);
 
   if (result === null) {
     throw new Error(`Unexpected missing () in call head`);
@@ -328,36 +321,32 @@ function normalizeCallHead(name: string): NormalizedHead {
 }
 
 function normalizePath(head: string, tail: string[] = []): NormalizedHead {
-  const pathHead = normalizePathHead(head);
+  let pathHead = normalizePathHead(head);
 
-  if (isPresentArray(tail)) {
-    return {
-      type: ExpressionKind.GetPath,
-      path: {
-        head: pathHead,
-        tail,
-      },
-    };
-  } else {
-    return {
-      type: ExpressionKind.GetVar,
-      variable: pathHead,
-    };
-  }
+  return isPresentArray(tail)
+    ? {
+        type: ExpressionKind.GetPath,
+        path: {
+          head: pathHead,
+          tail,
+        },
+      }
+    : {
+        type: ExpressionKind.GetVariable,
+        variable: pathHead,
+      };
 }
 
 function normalizeDottedPath(whole: string): NormalizedHead {
-  const { kind, name: rest } = normalizePathHead(whole);
+  let { kind, name: rest } = normalizePathHead(whole);
 
-  const [name, ...tail] = rest.split('.') as [string, ...string[]];
+  let [name, ...tail] = rest.split('.') as [string, ...string[]];
 
-  const variable: Variable = { kind, name, mode: 'loose' };
+  let variable: Variable = { kind, name, mode: 'loose' };
 
-  if (isPresentArray(tail)) {
-    return { type: ExpressionKind.GetPath, path: { head: variable, tail } };
-  } else {
-    return { type: ExpressionKind.GetVar, variable };
-  }
+  return isPresentArray(tail)
+    ? { type: ExpressionKind.GetPath, path: { head: variable, tail } }
+    : { type: ExpressionKind.GetVariable, variable };
 }
 
 export function normalizePathHead(whole: string): Variable {
@@ -379,7 +368,7 @@ export function normalizePathHead(whole: string): Variable {
       break;
 
     case '@':
-      kind = VariableKind.Arg;
+      kind = VariableKind.Argument;
       name = whole.slice(1);
       break;
 
@@ -412,33 +401,44 @@ export interface NormalizedBuilderBlockStatement {
 export function normalizeBuilderBlockStatement(
   statement: BuilderBlockStatement
 ): NormalizedBuilderBlockStatement {
-  const head = statement[0];
+  let head = statement[0];
   let blocks: NormalizedBlocks = dict();
-  let params: Nullable<NormalizedParams> = null;
+  let parameters: Nullable<NormalizedParams> = null;
   let hash: Nullable<NormalizedHash> = null;
-  let blockParams: Nullable<string[]> = null;
+  let blockParameters: Nullable<string[]> = null;
 
-  if (statement.length === 2) {
-    blocks = normalizeBlocks(statement[1]);
-  } else if (statement.length === 3) {
-    if (Array.isArray(statement[1])) {
-      params = normalizeParams(statement[1]);
-    } else {
-      ({ hash, blockParams } = normalizeBlockHash(statement[1]));
-    }
+  switch (statement.length) {
+    case 2:
+      blocks = normalizeBlocks(statement[1]);
 
-    blocks = normalizeBlocks(statement[2]);
-  } else if (statement.length === 4) {
-    params = normalizeParams(statement[1]);
-    ({ hash, blockParams } = normalizeBlockHash(statement[2]));
-    blocks = normalizeBlocks(statement[3]);
+      break;
+
+    case 3:
+      if (Array.isArray(statement[1])) {
+        parameters = normalizeParams(statement[1]);
+      } else {
+        ({ hash, blockParams: blockParameters } = normalizeBlockHash(statement[1]));
+      }
+
+      blocks = normalizeBlocks(statement[2]);
+
+      break;
+
+    case 4:
+      parameters = normalizeParams(statement[1]);
+      ({ hash, blockParams: blockParameters } = normalizeBlockHash(statement[2]));
+      blocks = normalizeBlocks(statement[3]);
+
+      break;
+
+    // No default
   }
 
   return {
     head: extractBlockHead(head),
-    params,
+    params: parameters,
     hash,
-    blockParams,
+    blockParams: blockParameters,
     blocks,
   };
 }
@@ -452,51 +452,49 @@ function normalizeBlockHash(hash: BuilderBlockHash): {
   }
 
   let out: Nullable<Dict<NormalizedExpression>> = null;
-  let blockParams: Nullable<string[]> = null;
+  let blockParameters: Nullable<string[]> = null;
 
   entries(hash, (key, value) => {
     if (key === 'as') {
-      blockParams = Array.isArray(value) ? (value as string[]) : [value as string];
+      blockParameters = Array.isArray(value) ? (value as string[]) : [value as string];
     } else {
       out = out || dict();
       out[key] = normalizeExpression(value as BuilderExpression);
     }
   });
 
-  return { hash: out, blockParams };
+  return { hash: out, blockParams: blockParameters };
 }
 
 export function entries<D extends Dict>(
   dict: D,
   callback: <K extends keyof D>(key: K, value: D[K]) => void
 ): void {
-  Object.keys(dict).forEach((key) => {
-    const value = dict[key];
+  for (let key of Object.keys(dict)) {
+    let value = dict[key];
     callback(key, value as D[keyof D]);
-  });
+  }
 }
 
 function normalizeBlocks(value: BuilderBlock | BuilderBlocks): NormalizedBlocks {
-  if (Array.isArray(value)) {
-    return { default: normalizeBlock(value) };
-  } else {
-    return mapObject(value, normalizeBlock);
-  }
+  return Array.isArray(value)
+    ? { default: normalizeBlock(value) }
+    : mapObject(value, normalizeBlock);
 }
 
 function normalizeBlock(block: BuilderBlock): NormalizedBlock {
   return block.map((s) => normalizeStatement(s));
 }
 
-function normalizeAttrs(attrs: BuilderAttrs): NormalizedAttrs {
-  return mapObject(attrs, (a) => normalizeAttr(a).expr);
+function normalizeAttributes(attributes: BuilderAttrs): NormalizedAttrs {
+  return mapObject(attributes, (a) => normalizeAttribute(a).expr);
 }
 
-function normalizeAttr(attr: BuilderAttr): { expr: NormalizedAttr; trusted: boolean } {
-  if (attr === 'splat') {
+function normalizeAttribute(attribute: BuilderAttr): { expr: NormalizedAttr; trusted: boolean } {
+  if (attribute === 'splat') {
     return { expr: HeadKind.Splat, trusted: false };
   } else {
-    const expr = normalizeExpression(attr);
+    let expr = normalizeExpression(attribute);
     return { expr, trusted: false };
   }
 }
@@ -505,7 +503,7 @@ function mapObject<T extends Dict<unknown>, Out>(
   object: T,
   mapper: (value: DictValue<T>, key: keyof T) => Out
 ): { [P in keyof T]: Out } {
-  const out = dict() as { [P in keyof T]?: Out };
+  let out = dict() as { [P in keyof T]?: Out };
 
   Object.keys(object).forEach(<K extends keyof T>(k: K) => {
     out[k] = mapper(object[k] as DictValue<T>, k);
@@ -529,27 +527,27 @@ export type InvocationElement =
   | [string, BuilderAttrs];
 
 export function isElement(input: [string, ...unknown[]]): input is BuilderElement {
-  const match = /^<([\d\-a-z][\d\-A-Za-z]*)>$/u.exec(input[0]);
+  let match = /^<([\d\-a-z][\d\-A-Za-z]*)>$/u.exec(input[0]);
 
   return !!match && !!match[1];
 }
 
 export function extractElement(input: string): Nullable<string> {
-  const match = /^<([\d\-a-z][\d\-A-Za-z]*)>$/u.exec(input);
+  let match = /^<([\d\-a-z][\d\-A-Za-z]*)>$/u.exec(input);
 
   return match?.[1] ?? null;
 }
 
 export function isAngleInvocation(input: [string, ...unknown[]]): input is InvocationElement {
   // TODO Paths
-  const match = /^<(@[\dA-Za-z]*|[A-Z][\d\-A-Za-z]*)>$/u.exec(input[0]);
+  let match = /^<(@[\dA-Za-z]*|[A-Z][\d\-A-Za-z]*)>$/u.exec(input[0]);
 
   return !!match && !!match[1];
 }
 
 export function isBlock(input: [string, ...unknown[]]): input is BuilderBlockStatement {
   // TODO Paths
-  const match = /^#[\s\S]?([\dA-Za-z]*|[A-Z][\d\-A-Za-z]*)$/u.exec(input[0]);
+  let match = /^#[\s\S]?([\dA-Za-z]*|[A-Z][\d\-A-Za-z]*)$/u.exec(input[0]);
 
   return !!match && !!match[1];
 }
@@ -563,7 +561,7 @@ export enum Builder {
   Get,
   Concat,
   HasBlock,
-  HasBlockParams,
+  HasBlockParameters,
 }
 
 export type VerboseStatement =
@@ -571,7 +569,7 @@ export type VerboseStatement =
   | [Builder.Comment, string]
   | [Builder.Append, BuilderExpression, true]
   | [Builder.Append, BuilderExpression]
-  | [Builder.Modifier, Params, Hash]
+  | [Builder.Modifier, Parameters_, Hash]
   | [Builder.DynamicComponent, BuilderExpression, Hash, BuilderBlock];
 
 export type BuilderStatement =
@@ -588,20 +586,20 @@ export type TupleBuilderExpression =
   | [Builder.Get, string, string[]]
   | [Builder.Concat, ...BuilderExpression[]]
   | [Builder.HasBlock, string]
-  | [Builder.HasBlockParams, string]
+  | [Builder.HasBlockParameters, string]
   | BuilderCallExpression;
 
-type Params = BuilderParams;
+type Parameters_ = BuilderParams;
 type Hash = Dict<BuilderExpression>;
 
 export enum ExpressionKind {
   Literal = 'Literal',
   Call = 'Call',
   GetPath = 'GetPath',
-  GetVar = 'GetVar',
+  GetVariable = 'GetVar',
   Concat = 'Concat',
   HasBlock = 'HasBlock',
-  HasBlockParams = 'HasBlockParams',
+  HasBlockParameters = 'HasBlockParams',
 }
 
 export interface NormalizedCallExpression {
@@ -616,12 +614,12 @@ export interface NormalizedPath {
   path: Path;
 }
 
-export interface NormalizedVar {
-  type: ExpressionKind.GetVar;
+export interface NormalizedVariable {
+  type: ExpressionKind.GetVariable;
   variable: Variable;
 }
 
-export type NormalizedHead = NormalizedPath | NormalizedVar;
+export type NormalizedHead = NormalizedPath | NormalizedVariable;
 
 export interface NormalizedConcat {
   type: ExpressionKind.Concat;
@@ -635,14 +633,14 @@ export type NormalizedExpression =
     }
   | NormalizedCallExpression
   | NormalizedPath
-  | NormalizedVar
+  | NormalizedVariable
   | NormalizedConcat
   | {
       type: ExpressionKind.HasBlock;
       name: string;
     }
   | {
-      type: ExpressionKind.HasBlockParams;
+      type: ExpressionKind.HasBlockParameters;
       name: string;
     };
 
@@ -668,11 +666,11 @@ export function normalizeAppendExpression(
           trusted: false,
         };
 
-      case Builder.Get: {
+      case Builder.Get:
         return normalizeAppendHead(normalizePath(expression[1], expression[2]), forceTrusted);
-      }
+
       case Builder.Concat: {
-        const expr: NormalizedConcat = {
+        let expr: NormalizedConcat = {
           type: ExpressionKind.Concat,
           params: normalizeParams(expression.slice(1)) as [
             NormalizedExpression,
@@ -697,17 +695,17 @@ export function normalizeAppendExpression(
           trusted: forceTrusted,
         };
 
-      case Builder.HasBlockParams:
+      case Builder.HasBlockParameters:
         return {
           expr: {
-            type: ExpressionKind.HasBlockParams,
+            type: ExpressionKind.HasBlockParameters,
             name: expression[1],
           },
           kind: HeadKind.AppendExpr,
           trusted: forceTrusted,
         };
 
-      default: {
+      default:
         if (isBuilderCallExpression(expression)) {
           return {
             expr: normalizeCallExpression(expression),
@@ -721,14 +719,16 @@ export function normalizeAppendExpression(
             } isn't wrapped in parens, so it isn't a call): ${JSON.stringify(expression)}`
           );
         }
-      }
+
       // BuilderCallExpression
     }
-  } else if (typeof expression !== 'object') {
+  } else if (typeof expression === 'object') {
+    throw assertNever(expression);
+  } else {
     switch (typeof expression) {
-      case 'string': {
+      case 'string':
         return normalizeAppendHead(normalizeDottedPath(expression), forceTrusted);
-      }
+
       case 'boolean':
       case 'number':
         return {
@@ -740,8 +740,6 @@ export function normalizeAppendExpression(
       default:
         throw assertNever(expression);
     }
-  } else {
-    throw assertNever(expression);
   }
 }
 
@@ -756,11 +754,11 @@ export function normalizeExpression(expression: BuilderExpression): NormalizedEx
       case Builder.Literal:
         return { type: ExpressionKind.Literal, value: expression[1] };
 
-      case Builder.Get: {
+      case Builder.Get:
         return normalizePath(expression[1], expression[2]);
-      }
+
       case Builder.Concat: {
-        const expr: NormalizedConcat = {
+        let expr: NormalizedConcat = {
           type: ExpressionKind.Concat,
           params: normalizeParams(expression.slice(1)) as [
             NormalizedExpression,
@@ -777,13 +775,13 @@ export function normalizeExpression(expression: BuilderExpression): NormalizedEx
           name: expression[1],
         };
 
-      case Builder.HasBlockParams:
+      case Builder.HasBlockParameters:
         return {
-          type: ExpressionKind.HasBlockParams,
+          type: ExpressionKind.HasBlockParameters,
           name: expression[1],
         };
 
-      default: {
+      default:
         if (isBuilderCallExpression(expression)) {
           return normalizeCallExpression(expression);
         } else {
@@ -793,14 +791,16 @@ export function normalizeExpression(expression: BuilderExpression): NormalizedEx
             } isn't wrapped in parens, so it isn't a call): ${JSON.stringify(expression)}`
           );
         }
-      }
+
       // BuilderCallExpression
     }
-  } else if (typeof expression !== 'object') {
+  } else if (typeof expression === 'object') {
+    throw assertNever(expression);
+  } else {
     switch (typeof expression) {
-      case 'string': {
+      case 'string':
         return normalizeDottedPath(expression);
-      }
+
       case 'boolean':
       case 'number':
         return { type: ExpressionKind.Literal, value: expression };
@@ -808,8 +808,6 @@ export function normalizeExpression(expression: BuilderExpression): NormalizedEx
       default:
         throw assertNever(expression);
     }
-  } else {
-    throw assertNever(expression);
   }
 }
 
@@ -847,7 +845,7 @@ export function statementIsExpression(
     return false;
   }
 
-  const name = statement[0];
+  let name = statement[0];
 
   if (typeof name === 'number') {
     switch (name) {
@@ -855,7 +853,7 @@ export function statementIsExpression(
       case Builder.Get:
       case Builder.Concat:
       case Builder.HasBlock:
-      case Builder.HasBlockParams:
+      case Builder.HasBlockParameters:
         return true;
       default:
         return false;
@@ -879,9 +877,12 @@ export type MiniBuilderBlock = BuilderStatement[];
 
 export type BuilderBlock = MiniBuilderBlock;
 
-export type BuilderCallExpression = [string] | [string, Params | Hash] | [string, Params, Hash];
+export type BuilderCallExpression =
+  | [string]
+  | [string, Parameters_ | Hash]
+  | [string, Parameters_, Hash];
 
-export function normalizeParams(input: Params): NormalizedParams {
+export function normalizeParams(input: Parameters_): NormalizedParams {
   return input.map(normalizeExpression);
 }
 
@@ -899,23 +900,20 @@ export function normalizeCallExpression(expr: BuilderCallExpression): Normalized
         params: null,
         hash: null,
       };
-    case 2: {
-      if (Array.isArray(expr[1])) {
-        return {
-          type: ExpressionKind.Call,
-          head: normalizeCallHead(expr[0]),
-          params: normalizeParams(expr[1]),
-          hash: null,
-        };
-      } else {
-        return {
-          type: ExpressionKind.Call,
-          head: normalizeCallHead(expr[0]),
-          params: null,
-          hash: normalizeHash(expr[1]),
-        };
-      }
-    }
+    case 2:
+      return Array.isArray(expr[1])
+        ? {
+            type: ExpressionKind.Call,
+            head: normalizeCallHead(expr[0]),
+            params: normalizeParams(expr[1]),
+            hash: null,
+          }
+        : {
+            type: ExpressionKind.Call,
+            head: normalizeCallHead(expr[0]),
+            params: null,
+            hash: normalizeHash(expr[1]),
+          };
 
     case 3:
       return {

@@ -304,7 +304,7 @@ class GetTest extends RenderTest {
   'the result of a get helper can be yielded'() {
     let fooBarInstance: FooBar;
 
-    const setInstance = (instance: FooBar) => (fooBarInstance = instance);
+    let setInstance = (instance: FooBar) => (fooBarInstance = instance);
 
     class FooBar extends GlimmerishComponent {
       @tracked mcintosh = 'red';

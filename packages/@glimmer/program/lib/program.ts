@@ -120,7 +120,7 @@ export class HeapImpl implements CompileTimeHeap, RuntimeHeap {
   }
 
   #growIfNeeded() {
-    const heap = this.#heap;
+    let heap = this.#heap;
     if (this.offset === heap.length) {
       let newHeap = new Int32Array(heap.length + PAGE_SIZE);
       newHeap.set(heap, 0);

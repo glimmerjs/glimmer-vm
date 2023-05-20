@@ -23,11 +23,11 @@ export const BaseEnvironment: EnvironmentDelegate = {
   enableDebugTooling: false,
 
   onTransactionCommit() {
-    for (const { destroyable, destructor } of scheduled) {
+    for (let { destroyable, destructor } of scheduled) {
       destructor(destroyable);
     }
 
-    for (const fn of scheduledFinishDestruction) fn();
+    for (let fn of scheduledFinishDestruction) fn();
 
     scheduled = [];
     scheduledFinishDestruction = [];

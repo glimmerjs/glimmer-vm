@@ -28,11 +28,11 @@ export { updateRef } from '@glimmer/reference';
 export type { EnvironmentDelegate } from '@glimmer/runtime';
 export { setGlobalContext } from '@glimmer/global-context';
 
-const setTrackingTransactionEnv = import.meta.env.DEV
+const setTrackingTransactionEnvironment = import.meta.env.DEV
   ? debug.setTrackingTransactionEnv!
   : undefined;
 /** @deprecated use debbug.setTrackingTransactionEnv instead */
-export { setTrackingTransactionEnv };
+export { setTrackingTransactionEnvironment as setTrackingTransactionEnv };
 
 // @ember/-internals/glimmer/lib/{environment,renderer,component}.ts
 // @ember/-internals/glimmer/lib/component-managers.ts
@@ -53,7 +53,7 @@ export type { DirtyableTag } from '@glimmer/validator';
 
 // @ember/-internals/glimmer/lib/{helper,component}.ts
 // @ember/-internals/glimmer/lib/views/outlet.ts
-export { createTag, dirtyTag } from '@glimmer/validator';
+export { createTag, dirtyTag, debug } from '@glimmer/validator';
 
 // @ember/routing/lib/dsl.ts
 // @ember/-internals/glimmer/lib/renderer.ts
@@ -259,7 +259,7 @@ export { invokeHelper } from '@glimmer/runtime';
 // ember/tests/reexports_test.js
 export { isSerializationFirstNode } from '@glimmer/runtime';
 
-export { debug };
+
 
 //////////////////////////////
 ////////// MANAGERS //////////

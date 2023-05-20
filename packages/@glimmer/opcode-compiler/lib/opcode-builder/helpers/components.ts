@@ -242,7 +242,7 @@ function InvokeStaticComponent(
 
   // Followed by the other blocks, if they exist and are referenced in the component.
   // Also store the index of the associated symbol.
-  for (const name of blockNames) {
+  for (let name of blockNames) {
     let symbol = symbols.indexOf(`&${name}`);
 
     if (symbol !== -1) {
@@ -273,7 +273,7 @@ function InvokeStaticComponent(
       names = named[0];
       let value = named[1];
 
-      for (const [index, element] of value.entries()) {
+      for (let [index, element] of value.entries()) {
         let symbol = symbols.indexOf(unwrap(names[index]));
 
         expr(op, element);
@@ -296,7 +296,7 @@ function InvokeStaticComponent(
     let names = named[0];
     let value = named[1];
 
-    for (const [index, element] of value.entries()) {
+    for (let [index, element] of value.entries()) {
       let name = unwrap(names[index]);
       let symbol = symbols.indexOf(name);
 
@@ -335,7 +335,7 @@ function InvokeStaticComponent(
 
   // Going in reverse, now we pop the args/blocks off the stack, starting with
   // arguments, and assign them to their symbols in the new scope.
-  for (const symbol of reverse(argumentSymbols)) {
+  for (let symbol of reverse(argumentSymbols)) {
     // for (let i = argSymbols.length - 1; i >= 0; i--) {
     //   let symbol = argSymbols[i];
 
@@ -354,7 +354,7 @@ function InvokeStaticComponent(
   }
 
   // Finish up by popping off and assigning blocks
-  for (const symbol of reverse(blockSymbols)) {
+  for (let symbol of reverse(blockSymbols)) {
     op(SET_BLOCK_OP, symbol + 1);
   }
 

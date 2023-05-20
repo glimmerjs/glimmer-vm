@@ -1,9 +1,9 @@
 import { createComputeRef, type Reference, valueForRef } from '@glimmer/reference';
 import { normalizeStringValue } from '../../dom/normalize';
 
-export function createConcatRef(partsRefs: Reference[]) {
+export function createConcatRef(partsReferences: Reference[]) {
   return createComputeRef(() => {
-    let parts = partsRefs
+    let parts = partsReferences
       .map(valueForRef)
       .filter((value) => value != null)
       .map(normalizeStringValue);

@@ -241,7 +241,7 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
   assembleConcatenatedValue(
     parts: (ASTv1.MustacheStatement | ASTv1.TextNode)[]
   ): ASTv1.ConcatStatement {
-    for (const part of parts) {
+    for (let part of parts) {
       if (part.type !== 'MustacheStatement' && part.type !== 'TextNode') {
         throw generateSyntaxError(
           `Unsupported node in quoted attribute value: ${part['type'] as string}`,
@@ -255,6 +255,7 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
     let first = getFirst(parts);
     let last = getLast(parts);
 
+    // eslint-disable-next-line unicorn/prefer-spread
     return b.concat(parts, this.source.spanFor(first.loc).extend(this.source.spanFor(last.loc)));
   }
 
@@ -282,18 +283,18 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
   }
 
   assembleAttributeValue(
-    parts: ASTv1.AttrPart[],
+    parts: ASTv1.AttributePart[],
     isQuoted: boolean,
     isDynamic: boolean,
     span: source_.SourceSpan
-  ): ASTv1.AttrValue {
+  ): ASTv1.AttributeValue {
     if (isDynamic) {
       if (isQuoted) {
         return this.assembleConcatenatedValue(parts);
       } else {
         assertPresentArray(parts);
 
-        const [head, a] = parts;
+        let [head, a] = parts;
         if (a === undefined || (a.type === 'TextNode' && a.chars === '/')) {
           return head;
         } else {
@@ -317,7 +318,9 @@ export class TokenizerEventHandlers extends HandlebarsNodeVisitors {
   ASTPlugins can make changes to the Glimmer template AST before
   compilation begins.
 */
-export interface ASTPluginBuilder<TEnvironment extends ASTPluginEnvironment = ASTPluginEnvironment> {
+export interface ASTPluginBuilder<
+  TEnvironment extends ASTPluginEnvironment = ASTPluginEnvironment
+> {
   (environment: TEnvironment): ASTPlugin;
 }
 
@@ -409,11 +412,17 @@ export function preprocess(
   if (typeof input === 'string') {
     source = new source_.Source(input, options.meta?.moduleName);
 
-    ast = mode === 'codemod' ? parseWithoutProcessing(input, options.parseOptions) as HBS.Program : parse(input, options.parseOptions) as HBS.Program;
+    ast =
+      mode === 'codemod'
+        ? (parseWithoutProcessing(input, options.parseOptions) as HBS.Program)
+        : (parse(input, options.parseOptions) as HBS.Program);
   } else if (input instanceof source_.Source) {
     source = input;
 
-    ast = mode === 'codemod' ? parseWithoutProcessing(input.source, options.parseOptions) as HBS.Program : parse(input.source, options.parseOptions) as HBS.Program;
+    ast =
+      mode === 'codemod'
+        ? (parseWithoutProcessing(input.source, options.parseOptions) as HBS.Program)
+        : (parse(input.source, options.parseOptions) as HBS.Program);
   } else {
     source = new source_.Source('', options.meta?.moduleName);
     ast = input;
@@ -438,13 +447,11 @@ export function preprocess(
   }
 
   if (options && options.plugins && options.plugins.ast) {
-    for (const transform of options.plugins.ast) {
-      let environment: ASTPluginEnvironment = Object.assign(
-        {},
-        options,
-        { syntax },
-        { plugins: undefined }
-      );
+    for (let transform of options.plugins.ast) {
+      let environment: ASTPluginEnvironment = {
+        ...options,
+        syntax,
+      };
 
       let pluginResult = transform(environment);
 

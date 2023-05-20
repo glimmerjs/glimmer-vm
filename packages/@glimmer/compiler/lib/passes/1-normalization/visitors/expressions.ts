@@ -54,7 +54,7 @@ export class NormalizeExpressions {
    * VariableReference in ASTv2.
    */
   PathExpression(path: ASTv2.PathExpression): Result<mir.ExpressionNode> {
-    let ref = this.VariableReference(path.ref);
+    let reference = this.VariableReference(path.ref);
     let { tail } = path;
 
     if (isPresentArray(tail)) {
@@ -62,17 +62,17 @@ export class NormalizeExpressions {
       return Ok(
         new mir.PathExpression({
           loc: path.loc,
-          head: ref,
+          head: reference,
           tail: new mir.Tail({ loc: tailLoc, members: tail }),
         })
       );
     } else {
-      return Ok(ref);
+      return Ok(reference);
     }
   }
 
-  VariableReference(ref: ASTv2.VariableReference): ASTv2.VariableReference {
-    return ref;
+  VariableReference(reference: ASTv2.VariableReference): ASTv2.VariableReference {
+    return reference;
   }
 
   Literal(literal: ASTv2.LiteralExpression): ASTv2.LiteralExpression {
@@ -94,9 +94,7 @@ export class NormalizeExpressions {
     expr: ASTv2.CallExpression,
     state: NormalizationState
   ): Result<mir.ExpressionNode> {
-    if (!hasPath(expr)) {
-      throw new Error(`unimplemented subexpression at the head of a subexpression`);
-    } else {
+    if (hasPath(expr)) {
       return Result.all(
         VISIT_EXPRS.visit(expr.callee, state),
         VISIT_EXPRS.Args(expr.args, state)
@@ -108,6 +106,8 @@ export class NormalizeExpressions {
             args,
           })
       );
+    } else {
+      throw new Error(`unimplemented subexpression at the head of a subexpression`);
     }
   }
 
@@ -146,14 +146,14 @@ export class NormalizeExpressions {
     named: ASTv2.NamedArguments,
     state: NormalizationState
   ): Result<mir.NamedArguments> {
-    let pairs = named.entries.map((arg) => {
-      let value = convertPathToCallIfKeyword(arg.value);
+    let pairs = named.entries.map((argument) => {
+      let value = convertPathToCallIfKeyword(argument.value);
 
       return VISIT_EXPRS.visit(value, state).mapOk(
         (value) =>
           new mir.NamedArgument({
-            loc: arg.loc,
-            key: arg.name,
+            loc: argument.loc,
+            key: argument.name,
             value,
           })
       );

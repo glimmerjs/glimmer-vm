@@ -1,3 +1,4 @@
+/* eslint-disable unicorn/prefer-dom-node-dataset */
 import type { SimpleElement } from '@glimmer/interfaces';
 
 import { EmberishCurlyComponent } from '../components';

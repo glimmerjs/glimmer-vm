@@ -178,11 +178,11 @@ class OwnerTest extends RenderTest {
     let owner1 = { name: 'owner1' };
     let owner2 = { name: 'owner2' };
 
-    const CheckOwner2 = defineCheckOwnerComponent(owner1, assert);
-    const CheckOwner1 = defineCheckOwnerComponent(owner1, assert);
+    let CheckOwner2 = defineCheckOwnerComponent(owner1, assert);
+    let CheckOwner1 = defineCheckOwnerComponent(owner1, assert);
 
-    const Mount2 = defineMountComponent(owner2, { CheckOwner2 }, `<CheckOwner2/>{{yield}}`);
-    const Mount1 = defineMountComponent(
+    let Mount2 = defineMountComponent(owner2, { CheckOwner2 }, `<CheckOwner2/>{{yield}}`);
+    let Mount1 = defineMountComponent(
       owner1,
       { CheckOwner1, Mount2 },
       `<CheckOwner1/><Mount2><CheckOwner1/></Mount2>`
@@ -196,11 +196,11 @@ class OwnerTest extends RenderTest {
     let owner1 = { name: 'owner1' };
     let owner2 = { name: 'owner2' };
 
-    const CheckOwner2 = defineCheckOwnerComponent(owner1, assert);
-    const CheckOwner1 = defineCheckOwnerComponent(owner1, assert);
+    let CheckOwner2 = defineCheckOwnerComponent(owner1, assert);
+    let CheckOwner1 = defineCheckOwnerComponent(owner1, assert);
 
-    const Mount2 = defineMountComponent(owner2, { CheckOwner2 }, `<CheckOwner2/><@CheckOwner1/>`);
-    const Mount1 = defineMountComponent(
+    let Mount2 = defineMountComponent(owner2, { CheckOwner2 }, `<CheckOwner2/><@CheckOwner1/>`);
+    let Mount1 = defineMountComponent(
       owner1,
       { CheckOwner1, Mount2 },
       `<CheckOwner1/><Mount2 @CheckOwner1={{component CheckOwner1}}/>`
@@ -217,11 +217,11 @@ class OwnerTest extends RenderTest {
     let owner1 = { name: 'owner1' };
     let owner2 = { name: 'owner2' };
 
-    const CheckOwner2 = defineCheckOwnerComponent(owner1, assert);
-    const CheckOwner1 = defineCheckOwnerComponent(owner1, assert);
+    let CheckOwner2 = defineCheckOwnerComponent(owner1, assert);
+    let CheckOwner1 = defineCheckOwnerComponent(owner1, assert);
 
-    const Mount2 = defineMountComponent(owner2, { CheckOwner2 }, `<CheckOwner2/><@CheckOwner2/>`);
-    const Mount1 = defineMountComponent(
+    let Mount2 = defineMountComponent(owner2, { CheckOwner2 }, `<CheckOwner2/><@CheckOwner2/>`);
+    let Mount1 = defineMountComponent(
       owner1,
       { CheckOwner1, CheckOwner2, Mount2 },
       `<CheckOwner1/><Mount2 @CheckOwner2={{CheckOwner2}}/>`
@@ -234,8 +234,8 @@ class OwnerTest extends RenderTest {
   'resolution mode components defined within strict mode components receive correct owner during compilation'() {
     this.registerComponent('TemplateOnly', 'Foo', 'Hello, world!');
 
-    const Bar = defineComponent(null, '<Foo/>');
-    const Baz = defineComponent({ Bar }, '<Bar/>');
+    let Bar = defineComponent(null, '<Foo/>');
+    let Baz = defineComponent({ Bar }, '<Bar/>');
 
     this.renderComponent(Baz);
   }

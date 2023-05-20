@@ -38,9 +38,9 @@ class Tracker {
     } else if (tags.size === 1) {
       return this.last as Tag;
     } else {
-      let tagsArr: Tag[] = [];
-      tags.forEach((tag) => tagsArr.push(tag));
-      return combine(tagsArr);
+      let tagsArray: Tag[] = [];
+      for (let tag of tags) tagsArray.push(tag);
+      return combine(tagsArray);
     }
   }
 }

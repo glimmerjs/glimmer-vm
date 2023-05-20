@@ -1,7 +1,3 @@
 export default function objectValues(obj: any) {
-  if (typeof Object.values === 'function') {
-    return Object.values(obj);
-  } else {
-    return Object.keys(obj).map((k) => obj[k]);
-  }
+  return typeof Object.values === 'function' ? Object.values(obj) : Object.keys(obj).map((k) => obj[k]);
 }

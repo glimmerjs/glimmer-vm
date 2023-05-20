@@ -20,7 +20,7 @@ QUnit.test('encodes a capabilities object into a bitmap', (assert) => {
       willDestroy: false,
       hasSubOwner: false,
     }),
-    0b0000000000000,
+    0b0_0000_0000_0000,
     'empty capabilities'
   );
 
@@ -40,7 +40,7 @@ QUnit.test('encodes a capabilities object into a bitmap', (assert) => {
       willDestroy: true,
       hasSubOwner: true,
     }),
-    0b1111111111111,
+    0b1_1111_1111_1111,
     'all capabilities'
   );
 
@@ -60,7 +60,7 @@ QUnit.test('encodes a capabilities object into a bitmap', (assert) => {
       willDestroy: false,
       hasSubOwner: false,
     }),
-    0b0010100100101,
+    0b0_0101_0010_0101,
     'random sample'
   );
 });

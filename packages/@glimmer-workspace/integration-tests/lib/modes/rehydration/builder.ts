@@ -6,7 +6,7 @@ export class DebugRehydrationBuilder extends RehydrateBuilder {
   clearedNodes: SimpleNode[] = [];
 
   override remove(node: SimpleNode) {
-    const next = super.remove(node);
+    let next = super.remove(node);
 
     if (node.nodeType !== COMMENT_NODE) {
       if (node.nodeType === ELEMENT_NODE) {
@@ -23,6 +23,6 @@ export class DebugRehydrationBuilder extends RehydrateBuilder {
   }
 }
 
-export function debugRehydration(env: Environment, cursor: Cursor): ElementBuilder {
-  return DebugRehydrationBuilder.forInitialRender(env, cursor);
+export function debugRehydration(environment: Environment, cursor: Cursor): ElementBuilder {
+  return DebugRehydrationBuilder.forInitialRender(environment, cursor);
 }

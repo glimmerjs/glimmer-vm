@@ -17,17 +17,17 @@ export function setCustomTagFor(obj: object, customTagFn: (obj: object, key: str
   CUSTOM_TAG_FOR.set(obj, customTagFn);
 }
 
-function convertToInt(prop: number | string | symbol): number | null {
-  if (typeof prop === 'symbol') return null;
+function convertToInt(property: number | string | symbol): number | null {
+  if (typeof property === 'symbol') return null;
 
-  const num = Number(prop);
+  let number_ = Number(property);
 
-  if (isNaN(num)) return null;
+  if (isNaN(number_)) return null;
 
-  return num % 1 === 0 ? num : null;
+  return number_ % 1 === 0 ? number_ : null;
 }
 
-function tagForNamedArg(namedArgs: CapturedNamedArguments, key: string): Tag {
+function tagForNamedArgument(namedArgs: CapturedNamedArguments, key: string): Tag {
   return track(() => {
     if (key in namedArgs) {
       valueForRef(namedArgs[key]!);
@@ -35,14 +35,14 @@ function tagForNamedArg(namedArgs: CapturedNamedArguments, key: string): Tag {
   });
 }
 
-function tagForPositionalArg(positionalArgs: CapturedPositionalArguments, key: string): Tag {
+function tagForPositionalArgument(positionalArgs: CapturedPositionalArguments, key: string): Tag {
   return track(() => {
     if (key === '[]') {
       // consume all of the tags in the positional array
       positionalArgs.forEach(valueForRef);
     }
 
-    const parsed = convertToInt(key);
+    let parsed = convertToInt(key);
 
     if (parsed !== null && parsed < positionalArgs.length) {
       // consume the tag of the referenced index
@@ -52,7 +52,7 @@ function tagForPositionalArg(positionalArgs: CapturedPositionalArguments, key: s
 }
 
 class NamedArgsProxy implements ProxyHandler<{}> {
-  declare set?: (target: {}, prop: string | number | symbol) => boolean;
+  declare set?: (target: {}, property: string | number | symbol) => boolean;
 
   readonly #named: CapturedNamedArguments;
 
@@ -60,16 +60,16 @@ class NamedArgsProxy implements ProxyHandler<{}> {
     this.#named = named;
   }
 
-  get(_target: {}, prop: string | number | symbol) {
-    const ref = this.#named[prop as string];
+  get(_target: {}, property: string | number | symbol) {
+    let reference = this.#named[property as string];
 
-    if (ref !== undefined) {
-      return valueForRef(ref);
+    if (reference !== undefined) {
+      return valueForRef(reference);
     }
   }
 
-  has(_target: {}, prop: string | number | symbol) {
-    return prop in this.#named;
+  has(_target: {}, property: string | number | symbol) {
+    return property in this.#named;
   }
 
   ownKeys() {
@@ -80,11 +80,11 @@ class NamedArgsProxy implements ProxyHandler<{}> {
     return false;
   }
 
-  getOwnPropertyDescriptor(_target: {}, prop: string | number | symbol) {
-    if (import.meta.env.DEV && !(prop in this.#named)) {
+  getOwnPropertyDescriptor(_target: {}, property: string | number | symbol) {
+    if (import.meta.env.DEV && !(property in this.#named)) {
       throw new Error(
         `args proxies do not have real property descriptors, so you should never need to call getOwnPropertyDescriptor yourself. This code exists for enumerability, such as in for-in loops and Object.keys(). Attempted to get the descriptor for \`${String(
-          prop
+          property
         )}\``
       );
     }
@@ -97,7 +97,7 @@ class NamedArgsProxy implements ProxyHandler<{}> {
 }
 
 class PositionalArgsProxy implements ProxyHandler<[]> {
-  declare set?: (target: [], prop: string | number | symbol) => boolean;
+  declare set?: (target: [], property: string | number | symbol) => boolean;
   declare ownKeys?: (target: []) => string[];
   #positional: CapturedPositionalArguments;
 
@@ -105,28 +105,28 @@ class PositionalArgsProxy implements ProxyHandler<[]> {
     this.#positional = positional;
   }
 
-  get(target: [], prop: string | number | symbol) {
-    const positional = this.#positional;
+  get(target: [], property: string | number | symbol) {
+    let positional = this.#positional;
 
-    if (prop === 'length') {
+    if (property === 'length') {
       return positional.length;
     }
 
-    const parsed = convertToInt(prop);
+    let parsed = convertToInt(property);
 
     if (parsed !== null && parsed < positional.length) {
       return valueForRef(positional[parsed]!);
     }
 
-    return (target as any)[prop];
+    return (target as any)[property];
   }
 
   isExtensible() {
     return false;
   }
 
-  has(_target: [], prop: string | number | symbol) {
-    const parsed = convertToInt(prop);
+  has(_target: [], property: string | number | symbol) {
+    let parsed = convertToInt(property);
 
     return parsed !== null && parsed < this.#positional.length;
   }
@@ -136,27 +136,27 @@ export const argsProxyFor = (
   capturedArgs: CapturedArguments,
   type: 'component' | 'helper' | 'modifier'
 ): Arguments => {
-  const { named, positional } = capturedArgs;
+  let { named, positional } = capturedArgs;
 
-  let getNamedTag = (_obj: object, key: string) => tagForNamedArg(named, key);
-  let getPositionalTag = (_obj: object, key: string) => tagForPositionalArg(positional, key);
+  let getNamedTag = (_obj: object, key: string) => tagForNamedArgument(named, key);
+  let getPositionalTag = (_obj: object, key: string) => tagForPositionalArgument(positional, key);
 
-  const namedHandler = new NamedArgsProxy(named);
-  const positionalHandler = new PositionalArgsProxy(positional);
+  let namedHandler = new NamedArgsProxy(named);
+  let positionalHandler = new PositionalArgsProxy(positional);
 
-  const namedTarget = Object.create(null);
-  const positionalTarget: unknown[] = [];
+  let namedTarget = Object.create(null);
+  let positionalTarget: unknown[] = [];
 
   if (import.meta.env.DEV) {
-    const setHandler = function (_target: unknown, prop: symbol | string | number): never {
+    let setHandler = function (_target: unknown, property: symbol | string | number): never {
       throw new Error(
         `You attempted to set ${String(
-          prop
+          property
         )} on the arguments of a component, helper, or modifier. Arguments are immutable and cannot be updated directly; they always represent the values that are passed down. If you want to set default values, you should use a getter and local tracked state instead.`
       );
     };
 
-    const forInDebugHandler = (): never => {
+    let forInDebugHandler = (): never => {
       throw new Error(
         `Object.keys() was called on the positional arguments array for a ${type}, which is not supported. This function is a low-level function that should not need to be called for positional argument arrays. You may be attempting to iterate over the array using for...in instead of for...of.`
       );
@@ -167,8 +167,8 @@ export const argsProxyFor = (
     positionalHandler.ownKeys = forInDebugHandler;
   }
 
-  const namedProxy = new Proxy(namedTarget, namedHandler);
-  const positionalProxy = new Proxy(positionalTarget, positionalHandler);
+  let namedProxy = new Proxy(namedTarget, namedHandler);
+  let positionalProxy = new Proxy(positionalTarget, positionalHandler);
 
   setCustomTagFor(namedProxy, getNamedTag);
   setCustomTagFor(positionalProxy, getPositionalTag);

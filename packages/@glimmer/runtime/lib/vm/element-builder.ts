@@ -1,3 +1,4 @@
+/* eslint-disable unicorn/prefer-dom-node-remove */
 import { destroy, registerDestructor } from '@glimmer/destroyable';
 import type {
   AttrNamespace,
@@ -53,26 +54,30 @@ export class NewElementBuilder implements ElementBuilder {
   private modifierStack = new Stack<Nullable<ModifierInstance[]>>();
   private blockStack = new Stack<LiveBlock>();
 
-  static forInitialRender(env: Environment, cursor: CursorImpl) {
-    return new this(env, cursor.element, cursor.nextSibling).initialize();
+  static forInitialRender(environment: Environment, cursor: CursorImpl) {
+    return new this(environment, cursor.element, cursor.nextSibling).initialize();
   }
 
-  static resume(env: Environment, block: UpdatableBlock): NewElementBuilder {
+  static resume(environment: Environment, block: UpdatableBlock): NewElementBuilder {
     let parentNode = block.parentElement();
-    let nextSibling = block.reset(env);
+    let nextSibling = block.reset(environment);
 
-    let stack = new this(env, parentNode, nextSibling).initialize();
+    let stack = new this(environment, parentNode, nextSibling).initialize();
     stack.pushLiveBlock(block);
 
     return stack;
   }
 
-  constructor(env: Environment, parentNode: SimpleElement, nextSibling: Nullable<SimpleNode>) {
+  constructor(
+    environment: Environment,
+    parentNode: SimpleElement,
+    nextSibling: Nullable<SimpleNode>
+  ) {
     this.pushElement(parentNode, nextSibling);
 
-    this.env = env;
-    this._dom_ = env.getAppendOperations();
-    this._updateOperations_ = env.getDOM();
+    this.env = environment;
+    this._dom_ = environment.getAppendOperations();
+    this._updateOperations_ = environment.getDOM();
   }
 
   protected initialize(): this {
@@ -120,10 +125,8 @@ export class NewElementBuilder implements ElementBuilder {
   protected pushLiveBlock<T extends LiveBlock>(block: T, isRemote = false): T {
     let current = this.blockStack.current;
 
-    if (current !== null) {
-      if (!isRemote) {
-        current.didAppendBounds(block);
-      }
+    if (current !== null && !isRemote) {
+      current.didAppendBounds(block);
     }
 
     this.__openBlock();
@@ -261,9 +264,9 @@ export class NewElementBuilder implements ElementBuilder {
     let first = fragment.firstChild;
 
     if (first) {
-      let ret = new ConcreteBounds(this.element, first, fragment.lastChild!);
+      let returnValue = new ConcreteBounds(this.element, first, fragment.lastChild!);
       this._dom_.insertBefore(this.element, fragment, this.nextSibling);
-      return ret;
+      return returnValue;
     } else {
       return new SingleNodeBounds(this.element, this.__appendComment(''));
     }
@@ -477,7 +480,7 @@ export class LiveBlockList implements LiveBlock {
     let boundList = this.boundList;
 
     let tail = expect(
-      boundList[boundList.length - 1],
+      boundList.at(-1),
       'cannot call `lastNode()` while `LiveBlockList` is still initializing'
     );
 
@@ -503,6 +506,6 @@ export class LiveBlockList implements LiveBlock {
   }
 }
 
-export function clientBuilder(env: Environment, cursor: CursorImpl): ElementBuilder {
-  return NewElementBuilder.forInitialRender(env, cursor);
+export function clientBuilder(environment: Environment, cursor: CursorImpl): ElementBuilder {
+  return NewElementBuilder.forInitialRender(environment, cursor);
 }

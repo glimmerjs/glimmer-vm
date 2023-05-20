@@ -112,20 +112,20 @@ export interface InternalComponentCapabilities {
  * Enum used for bit flags version of the capabilities, used once the component
  * has been loaded for the first time
  */
-export type EmptyCapability = 0b0000000000000;
-export type DynamicLayoutCapability = 0b0000000000001;
-export type DynamicTagCapability = 0b0000000000010;
-export type PrepareArgsCapability = 0b0000000000100;
-export type CreateArgsCapability = 0b0000000001000;
-export type AttributeHookCapability = 0b0000000010000;
-export type ElementHookCapability = 0b0000000100000;
-export type DynamicScopeCapability = 0b0000001000000;
-export type CreateCallerCapability = 0b0000010000000;
-export type UpdateHookCapability = 0b0000100000000;
-export type CreateInstanceCapability = 0b0001000000000;
-export type WrappedCapability = 0b0010000000000;
-export type WillDestroyCapability = 0b0100000000000;
-export type HasSubOwnerCapability = 0b1000000000000;
+export type EmptyCapability = 0b0_0000_0000_0000;
+export type DynamicLayoutCapability = 0b0_0000_0000_0001;
+export type DynamicTagCapability = 0b0_0000_0000_0010;
+export type PrepareArgsCapability = 0b0_0000_0000_0100;
+export type CreateArgsCapability = 0b0_0000_0000_1000;
+export type AttributeHookCapability = 0b0_0000_0001_0000;
+export type ElementHookCapability = 0b0_0000_0010_0000;
+export type DynamicScopeCapability = 0b0_0000_0100_0000;
+export type CreateCallerCapability = 0b0_0000_1000_0000;
+export type UpdateHookCapability = 0b0_0001_0000_0000;
+export type CreateInstanceCapability = 0b0_0010_0000_0000;
+export type WrappedCapability = 0b0_0100_0000_0000;
+export type WillDestroyCapability = 0b0_1000_0000_0000;
+export type HasSubOwnerCapability = 0b1_0000_0000_0000;
 
 export type ComponentCapabilityName =
   | 'dynamicLayout'
@@ -216,7 +216,7 @@ export interface WithCreateInstance<
     owner: O,
     state: ComponentDefinitionState,
     args: Nullable<VMArguments>,
-    env: Environment,
+    environment: Environment,
     dynamicScope: Nullable<DynamicScope>,
     caller: Nullable<Reference>,
     hasDefaultBlock: boolean

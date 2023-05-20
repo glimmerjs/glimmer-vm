@@ -23,20 +23,20 @@ class ContentTest extends RenderTest {
   static suiteName = 'Updating - Content';
 
   makeElement(tag: string, content: string): SimpleElement {
-    const el = this.delegate.createElement(tag);
-    el.appendChild(this.delegate.createTextNode(content));
-    return el;
+    let element = this.delegate.createElement(tag);
+    element.append(this.delegate.createTextNode(content));
+    return element;
   }
 
   makeSVGElement(tag: string, content: string): SimpleElement {
-    const el = this.delegate.createElementNS(NS_SVG, tag);
-    el.appendChild(this.delegate.createTextNode(content));
-    return el;
+    let element = this.delegate.createElementNS(NS_SVG, tag);
+    element.append(this.delegate.createTextNode(content));
+    return element;
   }
 
   makeFragment(nodes: SimpleNode[]) {
-    const frag = this.delegate.createDocumentFragment();
-    nodes.forEach((node) => frag.appendChild(node));
+    let frag = this.delegate.createDocumentFragment();
+    for (let node of nodes) frag.append(node);
     return frag;
   }
 }
@@ -76,7 +76,7 @@ function generateContentTestCase(
   suite: RenderTestConstructor<RenderDelegate, RenderTest>,
   tc: ContentTestCase
 ): void {
-  [
+  for (let wrapper of [
     {
       name: 'HTML context, as the only child',
       isHTML: true,
@@ -131,24 +131,16 @@ function generateContentTestCase(
       before: '<svg><text><text>before</text>',
       after: '<text>after</text></text></svg>',
     },
-  ].forEach((wrapper) => {
-    const test = function (this: ContentTest) {
-      const template = wrapper.before + tc.template + wrapper.after;
-      tc.values.forEach(({ input: _input, expected: _expected, description }, index) => {
+  ]) {
+    let test = function (this: ContentTest) {
+      let template = wrapper.before + tc.template + wrapper.after;
+      for (let [index, { input: _input, expected: _expected, description }] of tc.values.entries()) {
         let input: unknown;
         let expected: string;
 
-        if (typeof _input === 'function') {
-          input = _input(this, wrapper.isHTML);
-        } else {
-          input = _input;
-        }
+        input = typeof _input === 'function' ? _input(this, wrapper.isHTML) : _input;
 
-        if (typeof _expected === 'function') {
-          expected = _expected(this, wrapper.isHTML);
-        } else {
-          expected = _expected;
-        }
+        expected = typeof _expected === 'function' ? _expected(this, wrapper.isHTML) : _expected;
 
         if (index === 0) {
           this.render(template, { value: input });
@@ -163,13 +155,13 @@ function generateContentTestCase(
             `expected updated render (${description})`
           );
         }
-      });
+      }
     };
 
     (test as any).isTest = true;
     (suite as any).prototype[`updating ${tc.name} produces expected result in ${wrapper.name}`] =
       test;
-  });
+  }
 }
 
 generateContentTestCase(ContentTest, {
@@ -229,14 +221,10 @@ generateContentTestCase(ContentTest, {
     },
     {
       input: (test, isHTML) => {
-        if (isHTML) {
-          return test.makeFragment([test.makeElement('p', 'one'), test.makeElement('p', 'two')]);
-        } else {
-          return test.makeFragment([
+        return isHTML ? test.makeFragment([test.makeElement('p', 'one'), test.makeElement('p', 'two')]) : test.makeFragment([
             test.makeSVGElement('text', 'one'),
             test.makeSVGElement('text', 'two'),
           ]);
-        }
       },
       expected: (_test, isHTML) =>
         isHTML ? '<p>one</p><p>two</p>' : '<text>one</text><text>two</text>',
@@ -336,14 +324,10 @@ generateContentTestCase(ContentTest, {
     },
     {
       input: (test, isHTML) => {
-        if (isHTML) {
-          return test.makeFragment([test.makeElement('p', 'one'), test.makeElement('p', 'two')]);
-        } else {
-          return test.makeFragment([
+        return isHTML ? test.makeFragment([test.makeElement('p', 'one'), test.makeElement('p', 'two')]) : test.makeFragment([
             test.makeSVGElement('text', 'one'),
             test.makeSVGElement('text', 'two'),
           ]);
-        }
       },
       expected: (_test, isHTML) =>
         isHTML ? '<p>one</p><p>two</p>' : '<text>one</text><text>two</text>',

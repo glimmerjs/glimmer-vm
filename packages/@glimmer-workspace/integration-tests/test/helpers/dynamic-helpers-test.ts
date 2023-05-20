@@ -12,7 +12,7 @@ class DynamicHelpersResolutionModeTest extends RenderTest {
 
   @test
   'Can invoke a yielded nested helper in resolution mode'() {
-    const foo = defineSimpleHelper(() => 'Hello, world!');
+    let foo = defineSimpleHelper(() => 'Hello, world!');
     this.registerComponent('TemplateOnly', 'Bar', '{{#let @x as |x|}}{{x.foo}}{{/let}}');
 
     this.render('<Bar @x={{this.x}} />', { x: { foo } });
@@ -22,9 +22,9 @@ class DynamicHelpersResolutionModeTest extends RenderTest {
 
   @test
   'Can use a dynamic helper with nested helpers'() {
-    const foo = defineSimpleHelper(() => 'world!');
-    const bar = defineSimpleHelper((value: string) => 'Hello, ' + value);
-    const Bar = defineComponent({ foo }, '{{this.bar (foo)}}', {
+    let foo = defineSimpleHelper(() => 'world!');
+    let bar = defineSimpleHelper((value: string) => 'Hello, ' + value);
+    let Bar = defineComponent({ foo }, '{{this.bar (foo)}}', {
       definition: class extends GlimmerishComponent {
         bar = bar;
       },
@@ -37,9 +37,9 @@ class DynamicHelpersResolutionModeTest extends RenderTest {
 
   @test
   'Can use a dynamic helper with nested dynamic helpers'() {
-    const foo = defineSimpleHelper(() => 'world!');
-    const bar = defineSimpleHelper((value: string) => 'Hello, ' + value);
-    const Bar = defineComponent({}, '{{this.bar (this.foo)}}', {
+    let foo = defineSimpleHelper(() => 'world!');
+    let bar = defineSimpleHelper((value: string) => 'Hello, ' + value);
+    let Bar = defineComponent({}, '{{this.bar (this.foo)}}', {
       definition: class extends GlimmerishComponent {
         foo = foo;
         bar = bar;

@@ -298,6 +298,7 @@ export class VM implements PublicVM, InternalVM {
       evalStack._registers_,
       import.meta.env.DEV
         ? ((): Externs | undefined => {
+            // eslint-disable-next-line prefer-let/prefer-let
             const debug = debugOp;
             return debug
               ? ({
@@ -619,7 +620,7 @@ export class VM implements PublicVM, InternalVM {
   _bindDynamicScope_(names: string[]) {
     let scope = this._dynamicScope_();
 
-    for (const name of reverse(names)) {
+    for (let name of reverse(names)) {
       scope.set(name, this.stack.pop<Reference<unknown>>());
     }
   }

@@ -116,9 +116,5 @@ function printPathHead(head: ASTv2.VariableReference): string {
 export function isTrustingNode(
   value: ASTv2.AppendContent | ASTv2.HtmlText | ASTv2.InterpolateExpression
 ): boolean {
-  if (value.type === 'AppendContent') {
-    return value.trusting;
-  } else {
-    return false;
-  }
+  return value.type === 'AppendContent' ? value.trusting : false;
 }

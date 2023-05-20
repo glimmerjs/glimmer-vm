@@ -85,8 +85,8 @@ export class InitialRenderSuite extends RenderTest {
 
   @test
   'Void Elements'() {
-    const voidElements = 'area base br embed hr img input keygen link meta param source track wbr';
-    voidElements.split(' ').forEach((tagName) => this.shouldBeVoid(tagName));
+    let voidElements = 'area base br embed hr img input keygen link meta param source track wbr';
+    for (let tagName of voidElements.split(' ')) this.shouldBeVoid(tagName);
   }
 
   @test
@@ -195,8 +195,8 @@ export class InitialRenderSuite extends RenderTest {
 
   @test
   'Attributes containing a helper are treated like a block'() {
-    this.registerHelper('testing', (params) => {
-      this.assert.deepEqual(params, [123]);
+    this.registerHelper('testing', (parameters) => {
+      this.assert.deepEqual(parameters, [123]);
       return 'example.com';
     });
 
@@ -485,22 +485,22 @@ export class InitialRenderSuite extends RenderTest {
       }
     );
 
-    const selectNode = firstElementChild(this.element);
+    let selectNode = firstElementChild(this.element);
     this.assert.ok(selectNode, 'rendered select');
     if (selectNode === null) {
       return;
     }
-    const options = getElementsByTagName(selectNode, 'option');
-    const selected: SimpleElement[] = [];
+    let options = getElementsByTagName(selectNode, 'option');
+    let selected: SimpleElement[] = [];
 
-    for (const option of options) {
+    for (let option of options) {
       // TODO: This is a real discrepancy with SimpleDOM
       if ((option as any).selected) {
         selected.push(option);
       }
     }
 
-    const [first, second] = this.guardArray({ selected }, { min: 2 });
+    let [first, second] = this.guardArray({ selected }, { min: 2 });
 
     this.assertHTML(strip`
       <select multiple="">
@@ -607,9 +607,9 @@ export class InitialRenderSuite extends RenderTest {
     this.assertHTML(
       `<svg xmlns:xlink="http://www.w3.org/1999/xlink"><use xlink:href="home"></use></svg>`
     );
-    const svg = this.element.firstChild;
+    let svg = this.element.firstChild;
     if (assertNodeTagName(svg, 'svg')) {
-      const use = svg.firstChild;
+      let use = svg.firstChild;
       if (assertNodeTagName(use, 'use')) {
         this.assert.strictEqual(use.href.baseVal, 'home');
       }
@@ -625,9 +625,9 @@ export class InitialRenderSuite extends RenderTest {
     this.assertHTML(
       `<svg xmlns:xlink="http://www.w3.org/1999/xlink"><use xlink:href="home"></use></svg>`
     );
-    const svg = this.element.firstChild;
+    let svg = this.element.firstChild;
     if (assertNodeTagName(svg, 'svg')) {
-      const use = svg.firstChild;
+      let use = svg.firstChild;
       if (assertNodeTagName(use, 'use')) {
         this.assert.strictEqual(use.href.baseVal, 'home');
       }
@@ -638,7 +638,7 @@ export class InitialRenderSuite extends RenderTest {
   '<svg> tag with case-sensitive attribute'() {
     this.render('<svg viewBox="0 0 0 0"></svg>');
     this.assertHTML('<svg viewBox="0 0 0 0"></svg>');
-    const svg = this.element.firstChild;
+    let svg = this.element.firstChild;
     if (assertNodeTagName(svg, 'svg')) {
       this.assert.strictEqual(svg.namespaceURI, NS_SVG);
       this.assert.strictEqual(svg.getAttribute('viewBox'), '0 0 0 0');
@@ -648,16 +648,16 @@ export class InitialRenderSuite extends RenderTest {
 
   @test
   'nested element in the SVG namespace'() {
-    const d = 'M 0 0 L 100 100';
+    let d = 'M 0 0 L 100 100';
     this.render(`<svg><path d="${d}"></path></svg>`);
     this.assertHTML(`<svg><path d="${d}"></path></svg>`);
 
-    const svg = this.element.firstChild;
+    let svg = this.element.firstChild;
 
     if (assertNodeTagName(svg, 'svg')) {
       this.assert.strictEqual(svg.namespaceURI, NS_SVG);
 
-      const path = svg.firstChild;
+      let path = svg.firstChild;
       if (assertNodeTagName(path, 'path')) {
         this.assert.strictEqual(
           path.namespaceURI,
@@ -676,12 +676,12 @@ export class InitialRenderSuite extends RenderTest {
     this.render('<svg><foreignObject>Hi</foreignObject></svg>');
     this.assertHTML('<svg><foreignObject>Hi</foreignObject></svg>');
 
-    const svg = this.element.firstChild;
+    let svg = this.element.firstChild;
 
     if (assertNodeTagName(svg, 'svg')) {
       this.assert.strictEqual(svg.namespaceURI, NS_SVG);
 
-      const foreignObject = svg.firstChild;
+      let foreignObject = svg.firstChild;
 
       if (assertNodeTagName(foreignObject, 'foreignObject')) {
         this.assert.strictEqual(
@@ -700,7 +700,7 @@ export class InitialRenderSuite extends RenderTest {
     this.render('<svg></svg><svg></svg><div></div>');
     this.assertHTML('<svg></svg><svg></svg><div></div>');
 
-    const [firstChild, secondChild, thirdChild] = this.guardArray(
+    let [firstChild, secondChild, thirdChild] = this.guardArray(
       { childNodes: this.element.childNodes },
       { min: 3 }
     );
@@ -730,9 +730,9 @@ export class InitialRenderSuite extends RenderTest {
   'Namespaced and non-namespaced elements with nesting'() {
     this.render('<div><svg></svg></div><div></div>');
 
-    const firstDiv = this.element.firstChild;
-    const secondDiv = this.element.lastChild;
-    const svg = firstDiv && firstDiv.firstChild;
+    let firstDiv = this.element.firstChild;
+    let secondDiv = this.element.lastChild;
+    let svg = firstDiv && firstDiv.firstChild;
 
     this.assertHTML('<div><svg></svg></div><div></div>');
 
@@ -878,7 +878,7 @@ export class InitialRenderSuite extends RenderTest {
 
   @test
   'Safe HTML curlies'() {
-    const title = {
+    let title = {
       toHTML() {
         return '<span>hello</span> <em>world</em>';
       },
@@ -890,7 +890,7 @@ export class InitialRenderSuite extends RenderTest {
 
   @test
   'Triple curlies'() {
-    const title = '<span>hello</span> <em>world</em>';
+    let title = '<span>hello</span> <em>world</em>';
     this.render('<div>{{{this.title}}}</div>', { title });
     this.assertHTML('<div><span>hello</span> <em>world</em></div>');
     this.assertStableRerender();
@@ -898,8 +898,8 @@ export class InitialRenderSuite extends RenderTest {
 
   @test
   'Triple curlie helpers'() {
-    this.registerHelper('unescaped', ([param]) => param);
-    this.registerHelper('escaped', ([param]) => param);
+    this.registerHelper('unescaped', ([parameter]) => parameter);
+    this.registerHelper('escaped', ([parameter]) => parameter);
     this.render('{{{unescaped "<strong>Yolo</strong>"}}} {{escaped "<strong>Yolo</strong>"}}');
     this.assertHTML('<strong>Yolo</strong> &lt;strong&gt;Yolo&lt;/strong&gt;');
     this.assertStableRerender();
@@ -907,7 +907,7 @@ export class InitialRenderSuite extends RenderTest {
 
   @test
   'Top level triple curlies'() {
-    const title = '<span>hello</span> <em>world</em>';
+    let title = '<span>hello</span> <em>world</em>';
     this.render('{{{this.title}}}', { title });
     this.assertHTML('<span>hello</span> <em>world</em>');
     this.assertStableRerender();
@@ -915,7 +915,7 @@ export class InitialRenderSuite extends RenderTest {
 
   @test
   'Top level unescaped tr'() {
-    const title = '<tr><td>Yo</td></tr>';
+    let title = '<tr><td>Yo</td></tr>';
     this.render('<table>{{{this.title}}}</table>', { title });
     this.assertHTML('<table><tbody><tr><td>Yo</td></tr></tbody></table>');
     this.assertStableRerender();
@@ -958,13 +958,13 @@ export class InitialRenderSuite extends RenderTest {
     this.assertHTML('<div><p>chancancode</p>!</div>');
     this.assertStableRerender();
 
-    const p = this.element.firstChild!.firstChild!;
+    let p = this.element.firstChild!.firstChild!;
 
     this.rerender({ admin: false });
     this.assertHTML('<div><!---->!</div>');
     this.assertStableNodes({ except: p });
 
-    const comment = this.element.firstChild!.firstChild!;
+    let comment = this.element.firstChild!.firstChild!;
 
     this.rerender({ admin: true });
     this.assertHTML('<div><p>chancancode</p>!</div>');
@@ -990,7 +990,7 @@ export class InitialRenderSuite extends RenderTest {
     this.assertHTML('<div><!---->!</div>');
     this.assertStableNodes({ except: p });
 
-    const comment = this.element.firstChild!.firstChild!;
+    let comment = this.element.firstChild!.firstChild!;
 
     this.rerender({ admin: true });
     this.assertHTML('<div><p>chancancode</p>!</div>');
@@ -1059,20 +1059,20 @@ export class InitialRenderSuite extends RenderTest {
 
   @test
   'Integer powers of 2'() {
-    const ints = [];
-    let i = 9007199254740991; // Number.MAX_SAFE_INTEGER isn't available on IE11
-    while (i > 1) {
-      ints.push(i);
-      i = Math.round(i / 2);
+    let ints = [];
+    let index = 9_007_199_254_740_991; // Number.MAX_SAFE_INTEGER isn't available on IE11
+    while (index > 1) {
+      ints.push(index);
+      index = Math.round(index / 2);
     }
-    i = -9007199254740991; // Number.MIN_SAFE_INTEGER isn't available on IE11
-    while (i < -1) {
-      ints.push(i);
-      i = Math.round(i / 2);
+    index = -9_007_199_254_740_991; // Number.MIN_SAFE_INTEGER isn't available on IE11
+    while (index < -1) {
+      ints.push(index);
+      index = Math.round(index / 2);
     }
     this.registerHelper('testing', ([id]) => id);
-    this.render(ints.map((i) => `{{${i}}}`).join('-'));
-    this.assertHTML(ints.map((i) => `${i}`).join('-'));
+    this.render(ints.map((index) => `{{${index}}}`).join('-'));
+    this.assertHTML(ints.map((index) => `${index}`).join('-'));
     this.assertStableRerender();
   }
 
@@ -1096,8 +1096,8 @@ export class InitialRenderSuite extends RenderTest {
   @test
   'GH#13999 The compiler can handle simple helpers with inline null parameter'() {
     let value;
-    this.registerHelper('say-hello', function (params) {
-      value = params[0];
+    this.registerHelper('say-hello', function (parameters) {
+      value = parameters[0];
       return 'hello';
     });
     this.render('<div>{{say-hello null}}</div>');
@@ -1109,8 +1109,8 @@ export class InitialRenderSuite extends RenderTest {
   @test
   'GH#13999 The compiler can handle simple helpers with inline string literal null parameter'() {
     let value;
-    this.registerHelper('say-hello', function (params) {
-      value = params[0];
+    this.registerHelper('say-hello', function (parameters) {
+      value = parameters[0];
       return 'hello';
     });
 
@@ -1124,9 +1124,9 @@ export class InitialRenderSuite extends RenderTest {
   'GH#13999 The compiler can handle simple helpers with inline undefined parameter'() {
     let value: unknown = 'PLACEHOLDER';
     let length;
-    this.registerHelper('say-hello', function (params) {
-      length = params.length;
-      value = params[0];
+    this.registerHelper('say-hello', function (parameters) {
+      length = parameters.length;
+      value = parameters[0];
       return 'hello';
     });
 
@@ -1141,9 +1141,9 @@ export class InitialRenderSuite extends RenderTest {
   'GH#13999 The compiler can handle simple helpers with positional parameter undefined string literal'() {
     let value: unknown = 'PLACEHOLDER';
     let length;
-    this.registerHelper('say-hello', function (params) {
-      length = params.length;
-      value = params[0];
+    this.registerHelper('say-hello', function (parameters) {
+      length = parameters.length;
+      value = parameters[0];
       return 'hello';
     });
 
@@ -1226,8 +1226,8 @@ export class InitialRenderSuite extends RenderTest {
 
   @test
   'Sexpr helpers'() {
-    this.registerHelper('testing', function (params) {
-      return `${params[0]}!`;
+    this.registerHelper('testing', function (parameters) {
+      return `${parameters[0]}!`;
     });
 
     this.render('<div>{{testing (testing "hello")}}</div>');
@@ -1237,8 +1237,8 @@ export class InitialRenderSuite extends RenderTest {
 
   @test
   'The compiler can handle multiple invocations of sexprs'() {
-    this.registerHelper('testing', function (params) {
-      return `${params[0]}${params[1]}`;
+    this.registerHelper('testing', function (parameters) {
+      return `${parameters[0]}${parameters[1]}`;
     });
 
     this.render(
@@ -1266,8 +1266,8 @@ export class InitialRenderSuite extends RenderTest {
 
   @test
   'Attributes can be populated with helpers that generate a string'() {
-    this.registerHelper('testing', function (params) {
-      return params[0];
+    this.registerHelper('testing', function (parameters) {
+      return parameters[0];
     });
 
     this.render('<a href="{{testing this.url}}">linky</a>', { url: 'linky.html' });
@@ -1288,8 +1288,8 @@ export class InitialRenderSuite extends RenderTest {
 
   @test
   'Attributes containing multiple helpers are treated like a block'() {
-    this.registerHelper('testing', function (params) {
-      return params[0];
+    this.registerHelper('testing', function (parameters) {
+      return parameters[0];
     });
 
     this.render('<a href="http://{{this.foo}}/{{testing this.bar}}/{{testing "baz"}}">linky</a>', {

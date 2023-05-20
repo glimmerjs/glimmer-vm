@@ -17,7 +17,7 @@ export default class RenderResultImpl implements RenderResult {
   readonly #bounds: LiveBlock;
 
   constructor(
-    public env: Environment,
+    public environment: Environment,
     updating: UpdatingOpcode[],
     bounds: LiveBlock,
     drop: object
@@ -33,9 +33,9 @@ export default class RenderResultImpl implements RenderResult {
     associateDestroyableChild(parent, this.#drop);
   }
 
-  rerender({ alwaysRevalidate = false } = { alwaysRevalidate: false }) {
-    let { env } = this;
-    let vm = new UpdatingVM(env, { alwaysRevalidate });
+  rerender(options?: { alwaysRevalidate?: boolean }) {
+    let { environment } = this;
+    let vm = new UpdatingVM(environment, options);
     vm.execute(this.#updating, this);
   }
 

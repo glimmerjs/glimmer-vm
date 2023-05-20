@@ -101,11 +101,11 @@ QUnit.module('[glimmer-syntax] Code generation', function () {
     return print(parse(template));
   }
 
-  templates.forEach((template) => {
+  for (let template of templates) {
     test(`${template} is stable when printed`, function (assert) {
       assert.strictEqual(printTransform(template), template);
     });
-  });
+  }
 
   test('TextNode: chars escape - but do not match', (assert) => {
     assert.strictEqual(

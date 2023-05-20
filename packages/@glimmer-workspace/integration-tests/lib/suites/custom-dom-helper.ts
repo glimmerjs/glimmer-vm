@@ -39,8 +39,8 @@ export class CompilationTests extends RenderTest {
 export class JitSerializationDelegate extends NodeJitRenderDelegate {
   static override style = 'jit serialization';
 
-  override getElementBuilder(env: Environment, cursor: Cursor): ElementBuilder {
-    return serializeBuilder(env, cursor);
+  override getElementBuilder(environment: Environment, cursor: Cursor): ElementBuilder {
+    return serializeBuilder(environment, cursor);
   }
 }
 
@@ -64,7 +64,7 @@ export class SerializedDOMHelperTests extends DOMHelperTests {
 
   @test
   'Unescaped helpers render correctly'() {
-    this.registerHelper('testing-unescaped', (params) => params[0]);
+    this.registerHelper('testing-unescaped', (parameters) => parameters[0]);
     this.render('{{{testing-unescaped "<span>hi</span>"}}}');
     let b = blockStack();
     this.assertHTML(strip`

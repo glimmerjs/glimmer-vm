@@ -11,8 +11,8 @@ export const inline = () => {
 
     async resolveId(source, importer, options) {
       if (source.endsWith('?inline')) {
-        const path = source.slice(0, -7);
-        const resolved = await this.resolve(path, importer, options);
+        let path = source.slice(0, -7);
+        let resolved = await this.resolve(path, importer, options);
 
         if (resolved && !resolved.external) {
           await this.load(resolved);
@@ -23,8 +23,8 @@ export const inline = () => {
 
     load(id) {
       if (id.startsWith(INLINE_PREFIX)) {
-        const path = id.slice(INLINE_PREFIX.length);
-        const code = readFileSync(path, 'utf8');
+        let path = id.slice(INLINE_PREFIX.length);
+        let code = readFileSync(path, 'utf8');
 
         return {
           code: `export default ${JSON.stringify(code)};`,

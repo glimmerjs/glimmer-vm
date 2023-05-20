@@ -187,10 +187,11 @@ export class CustomComponentManager<O extends Owner, ComponentInstance>
   }
 
   getDestroyable(bucket: CustomComponentState<ComponentInstance>): Nullable<Destroyable> {
+    // eslint-disable-next-line prefer-let/prefer-let
     const { delegate } = bucket;
 
     if (hasDestructors(delegate)) {
-      const { component } = bucket;
+      let { component } = bucket;
 
       registerDestructor(bucket, () => delegate.destroyComponent(component));
       return bucket;

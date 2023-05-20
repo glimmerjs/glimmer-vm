@@ -23,12 +23,12 @@ import Serializer from '@simple-dom/serializer';
 import voidMap from '@simple-dom/void-map';
 
 export function toInnerHTML(parent: SimpleElement | SimpleDocumentFragment): string {
-  const serializer = new Serializer(voidMap);
+  let serializer = new Serializer(voidMap);
   return serializer.serializeChildren(parent);
 }
 
 export function toOuterHTML(parent: SimpleElement | SimpleDocumentFragment): string {
-  const serializer = new Serializer(voidMap);
+  let serializer = new Serializer(voidMap);
   return serializer.serialize(parent);
 }
 
@@ -68,14 +68,14 @@ export function castToBrowser(
 ): CastToBrowserDom[keyof CastToBrowserDom]['browser'] | null {
   if (node === null) {
     return null;
-  } else if (nodeType !== undefined) {
+  } else if (nodeType === undefined) {
+    return node as unknown as CastableBrowserDom;
+  } else {
     if (node.nodeType === nodeType) {
       return node as unknown as CastableBrowserDom;
     } else {
       throw new Error(`ASSERT: invalid cast to ${nodeType}`);
     }
-  } else {
-    return node as unknown as CastableBrowserDom;
   }
 }
 
@@ -118,10 +118,10 @@ export function getElementByClassName(
   let current = firstElementChild(element);
 
   while (current) {
-    if (classList(current).indexOf(className) > -1) {
+    if (classList(current).includes(className)) {
       return current;
     } else {
-      const recurse = getElementByClassName(current, className);
+      let recurse = getElementByClassName(current, className);
 
       if (recurse) return recurse;
 
@@ -137,7 +137,7 @@ export function getElementsByTagName(
   tagName: string,
   accum: SimpleElement[] = []
 ): SimpleElement[] {
-  const tag = tagName.toUpperCase();
+  let tag = tagName.toUpperCase();
   let current = firstElementChild(element);
 
   while (current) {
@@ -153,9 +153,9 @@ export function getElementsByTagName(
 }
 
 export function classList(element: SimpleElement): string[] {
-  const attr = element.getAttribute('class');
-  if (attr === null) return [];
-  return attr.split(/\s+/u);
+  let attribute = element.getAttribute('class');
+  if (attribute === null) return [];
+  return attribute.split(/\s+/u);
 }
 
 export function toTextContent(parent: SimpleElement): string {
@@ -185,8 +185,8 @@ export function assertElement(node: Maybe<SimpleNode>): asserts node is SimpleEl
   }
 }
 
-export function hasAttribute(parent: SimpleElement, attr: string): boolean {
-  return Array.from(parent.attributes).some((parentAttr) => parentAttr.name === attr);
+export function hasAttribute(parent: SimpleElement, attribute: string): boolean {
+  return [...parent.attributes].some((parentAttribute) => parentAttribute.name === attribute);
 }
 
 export function firstElementChild(parent: SimpleElement): Nullable<SimpleElement> {

@@ -20,11 +20,7 @@ function currentNode(
 ): Nullable<SimpleNode> {
   let { element, nextSibling } = cursor;
 
-  if (nextSibling === null) {
-    return element.lastChild;
-  } else {
-    return nextSibling.previousSibling;
-  }
+  return nextSibling === null ? element.lastChild : nextSibling.previousSibling;
 }
 
 class SerializeBuilder extends NewElementBuilder implements ElementBuilder {
@@ -105,8 +101,7 @@ class SerializeBuilder extends NewElementBuilder implements ElementBuilder {
   }
 
   override openElement(tag: string) {
-    if (tag === 'tr') {
-      if (
+    if (tag === 'tr' && 
         this.element.tagName !== 'TBODY' &&
         this.element.tagName !== 'THEAD' &&
         this.element.tagName !== 'TFOOT'
@@ -119,7 +114,6 @@ class SerializeBuilder extends NewElementBuilder implements ElementBuilder {
         NEEDS_EXTRA_CLOSE.set(this._constructing_!, true);
         this.flushElement(null);
       }
-    }
 
     return super.openElement(tag);
   }
@@ -138,8 +132,8 @@ class SerializeBuilder extends NewElementBuilder implements ElementBuilder {
 }
 
 export function serializeBuilder(
-  env: Environment,
+  environment: Environment,
   cursor: { element: SimpleElement; nextSibling: Nullable<SimpleNode> }
 ): ElementBuilder {
-  return SerializeBuilder.forInitialRender(env, cursor);
+  return SerializeBuilder.forInitialRender(environment, cursor);
 }

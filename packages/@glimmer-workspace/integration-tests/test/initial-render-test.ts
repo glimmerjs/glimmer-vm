@@ -1,3 +1,5 @@
+/* eslint-disable unicorn/prefer-dom-node-dataset */
+/* eslint-disable unicorn/prefer-dom-node-append */
 import type { Dict, Nullable, SimpleElement } from '@glimmer/interfaces';
 import type { SafeString } from '@glimmer/runtime';
 import { castToBrowser, expect } from '@glimmer/util';
@@ -47,7 +49,7 @@ class AbstractRehydrationTests extends InitialRenderSuite {
   renderServerSide(
     template: string | ComponentBlueprint,
     context: Dict<unknown>,
-    element: SimpleElement | undefined = undefined
+    element?: SimpleElement | undefined
   ): void {
     this.serverOutput = this.delegate.renderServerSide(
       template as string,
@@ -212,7 +214,7 @@ class Rehydration extends AbstractRehydrationTests {
     let element = castToBrowser(this.element, 'HTML');
     let [div] = this.guardArray({ children: element.children }, { min: 1 });
     let commentToRemove = this.guardArray({ children: div.childNodes }, { min: 4 })[3];
-    div.removeChild(commentToRemove);
+    commentToRemove.remove();
 
     this.renderClientSide(template, context);
     this.assertHTML('<div>a </div>');
@@ -372,13 +374,13 @@ class Rehydration extends AbstractRehydrationTests {
   @test
   'does not mutate attributes that already match'() {
     let observer = new MutationObserver((mutationList) => {
-      mutationList.forEach((mutation) => {
+      for (let mutation of mutationList) {
         let target = castToBrowser(mutation.target, 'HTML');
         this.assert.ok(
           false,
           `should not have updated ${mutation.attributeName} on ${target.outerHTML}`
         );
-      });
+      }
     });
 
     let template = '<div data-foo="whatever"></div>';
@@ -397,12 +399,12 @@ class Rehydration extends AbstractRehydrationTests {
   'Node curlies'() {
     let template = '<div>{{this.node}}</div>';
 
-    let doc = this.delegate.serverDoc;
-    let node = doc.createTextNode('hello');
+    let document = this.delegate.serverDoc;
+    let node = document.createTextNode('hello');
     this.renderServerSide(template, { node });
     this.assertServerOutput('<div>', OPEN, 'hello', CLOSE, '</div>');
-    doc = this.delegate.clientDoc;
-    let clientNode = doc.createTextNode('hello');
+    document = this.delegate.clientDoc;
+    let clientNode = document.createTextNode('hello');
     this.context = { node: clientNode };
     this.renderClientSide(template, { node: clientNode });
     this.assertHTML('<div>hello</div>', 'first clean rerender');
@@ -410,7 +412,7 @@ class Rehydration extends AbstractRehydrationTests {
     this.assertRehydrationStats({ nodesRemoved: 0 });
     this.assertStableRerender();
 
-    let clientNode2 = doc.createTextNode('goodbye');
+    let clientNode2 = document.createTextNode('goodbye');
     this.rerender({ node: clientNode2 });
     this.assertHTML('<div>goodbye</div>', 'rerender after node update');
     this.assertStableNodes({ except: clientNode });
@@ -427,10 +429,10 @@ class Rehydration extends AbstractRehydrationTests {
       {{#in-element this.remote}}<inner>Wat Wat</inner>{{/in-element}}
       <suffix></suffix></outer>
       `;
-    let doc = this.delegate.serverDoc;
-    let remote = doc.createElement('remote');
-    let prefix = doc.createElement('prefix');
-    let suffix = doc.createElement('suffix');
+    let document = this.delegate.serverDoc;
+    let remote = document.createElement('remote');
+    let prefix = document.createElement('prefix');
+    let suffix = document.createElement('suffix');
     remote.appendChild(prefix);
     remote.appendChild(suffix);
 
@@ -446,9 +448,9 @@ class Rehydration extends AbstractRehydrationTests {
     `
     );
 
-    doc = this.delegate.clientDoc;
-    let clientRemote = (remote = doc.createElement('remote'));
-    let host = doc.createElement('div');
+    document = this.delegate.clientDoc;
+    let clientRemote = (remote = document.createElement('remote'));
+    let host = document.createElement('div');
     host.appendChild(this.element);
     host.appendChild(clientRemote);
     replaceHTML(clientRemote, serializedRemote);
@@ -466,10 +468,10 @@ class Rehydration extends AbstractRehydrationTests {
       {{#in-element this.remote insertBefore=null}}<inner>Wat Wat</inner>{{/in-element}}
       <suffix></suffix></outer>
       `;
-    let doc = this.delegate.serverDoc;
-    let remote = doc.createElement('remote');
-    let prefix = doc.createElement('prefix');
-    let suffix = doc.createElement('suffix');
+    let document = this.delegate.serverDoc;
+    let remote = document.createElement('remote');
+    let prefix = document.createElement('prefix');
+    let suffix = document.createElement('suffix');
     remote.appendChild(prefix);
     remote.appendChild(suffix);
 
@@ -485,9 +487,9 @@ class Rehydration extends AbstractRehydrationTests {
     `
     );
 
-    doc = this.delegate.clientDoc;
-    let clientRemote = (remote = doc.createElement('remote'));
-    let host = doc.createElement('div');
+    document = this.delegate.clientDoc;
+    let clientRemote = (remote = document.createElement('remote'));
+    let host = document.createElement('div');
     host.appendChild(this.element);
     host.appendChild(clientRemote);
     replaceHTML(clientRemote, serializedRemote);
@@ -508,10 +510,10 @@ class Rehydration extends AbstractRehydrationTests {
       {{#in-element this.remote insertBefore=this.prefix}}<inner>Wat Wat</inner>{{/in-element}}
       <suffix></suffix></outer>
       `;
-    let doc = this.delegate.serverDoc;
-    let remote = doc.createElement('remote');
-    let prefix = doc.createElement('prefix');
-    let suffix = doc.createElement('suffix');
+    let document = this.delegate.serverDoc;
+    let remote = document.createElement('remote');
+    let prefix = document.createElement('prefix');
+    let suffix = document.createElement('suffix');
     remote.appendChild(prefix);
     remote.appendChild(suffix);
 
@@ -529,9 +531,9 @@ class Rehydration extends AbstractRehydrationTests {
     `
     );
 
-    doc = this.delegate.clientDoc;
-    let clientRemote = (remote = doc.createElement('remote'));
-    let host = doc.createElement('div');
+    document = this.delegate.clientDoc;
+    let clientRemote = (remote = document.createElement('remote'));
+    let host = document.createElement('div');
     host.appendChild(this.element);
     host.appendChild(clientRemote);
     replaceHTML(clientRemote, serializedRemote);
@@ -553,15 +555,15 @@ class Rehydration extends AbstractRehydrationTests {
       {{#in-element this.remote insertBefore=undefined}}<inner>Wat Wat</inner>{{/in-element}}
       </outer>
       `;
-    let doc = this.delegate.serverDoc;
-    let remote = doc.createElement('remote');
+    let document = this.delegate.serverDoc;
+    let remote = document.createElement('remote');
 
     this.renderServerSide(template, { remote });
     let serializedRemote = '<preexisting><preexisting>';
 
-    doc = this.delegate.clientDoc;
-    let clientRemote = (remote = doc.createElement('remote'));
-    let host = doc.createElement('div');
+    document = this.delegate.clientDoc;
+    let clientRemote = (remote = document.createElement('remote'));
+    let host = document.createElement('div');
     host.appendChild(this.element);
     host.appendChild(clientRemote);
     replaceHTML(clientRemote, serializedRemote);
@@ -579,17 +581,17 @@ class Rehydration extends AbstractRehydrationTests {
       {{#in-element this.remote insertBefore=null}}<inner>Wat Wat</inner>{{/in-element}}
       </outer>
       `;
-    let doc = this.delegate.serverDoc;
-    let remote = doc.createElement('remote');
-    let preexisting = doc.createElement('preexisting');
+    let document = this.delegate.serverDoc;
+    let remote = document.createElement('remote');
+    let preexisting = document.createElement('preexisting');
     remote.appendChild(preexisting);
 
     this.renderServerSide(template, { remote, preexisting });
     let serializedRemote = '<preexisting></preexisting>';
 
-    doc = this.delegate.clientDoc;
-    let clientRemote = (remote = doc.createElement('remote'));
-    let host = doc.createElement('div');
+    document = this.delegate.clientDoc;
+    let clientRemote = (remote = document.createElement('remote'));
+    let host = document.createElement('div');
     host.appendChild(this.element);
     host.appendChild(clientRemote);
     replaceHTML(clientRemote, serializedRemote);
@@ -610,19 +612,19 @@ class Rehydration extends AbstractRehydrationTests {
       {{#in-element this.remote insertBefore=this.preexisting}}<inner>Wat Wat</inner>{{/in-element}}
       </outer>
       `;
-    let doc = this.delegate.serverDoc;
-    let remote = doc.createElement('remote');
-    let prefix = doc.createElement('prefix');
-    let preexisting = doc.createElement('preexisting');
+    let document = this.delegate.serverDoc;
+    let remote = document.createElement('remote');
+    let prefix = document.createElement('prefix');
+    let preexisting = document.createElement('preexisting');
     remote.appendChild(prefix);
     remote.appendChild(preexisting);
 
     this.renderServerSide(template, { remote, prefix, preexisting });
     let serializedRemote = '<prefix></prefix><preexisting></preexisting>';
 
-    doc = this.delegate.clientDoc;
-    let clientRemote = (remote = doc.createElement('remote'));
-    let host = doc.createElement('div');
+    document = this.delegate.clientDoc;
+    let clientRemote = (remote = document.createElement('remote'));
+    let host = document.createElement('div');
     host.appendChild(this.element);
     host.appendChild(clientRemote);
     replaceHTML(clientRemote, serializedRemote);
@@ -650,9 +652,9 @@ class Rehydration extends AbstractRehydrationTests {
       {{/in-element}}
     </outer>
     `;
-    let doc = this.delegate.serverDoc;
-    let remoteParent = doc.createElement('remote');
-    let remoteChild = doc.createElement('other');
+    let document = this.delegate.serverDoc;
+    let remoteParent = document.createElement('remote');
+    let remoteChild = document.createElement('other');
 
     this.renderServerSide(template, { remoteParent, remoteChild });
     let serializedParentRemote = this.delegate.serialize(remoteParent);
@@ -676,10 +678,10 @@ class Rehydration extends AbstractRehydrationTests {
     `,
       'Serialized nested remote'
     );
-    doc = this.delegate.clientDoc;
-    let clientRemoteParent = doc.createElement('remote');
-    let clientRemoteChild = doc.createElement('other');
-    let host = doc.createElement('div');
+    document = this.delegate.clientDoc;
+    let clientRemoteParent = document.createElement('remote');
+    let clientRemoteChild = document.createElement('other');
+    let host = document.createElement('div');
     host.appendChild(this.element);
     host.appendChild(clientRemoteParent);
     host.appendChild(clientRemoteChild);
@@ -973,16 +975,16 @@ class RehydratingComponents extends AbstractRehydrationTests {
     return template;
   }
 
-  assertServerComponent(html: string, attrs: Object = {}) {
+  assertServerComponent(html: string, attributes: Object = {}) {
     // the Dynamic test type is using {{component 'foo'}} style invocation
     // and therefore an extra node is added delineating the block start
     let elementIndex = this.testType === 'Dynamic' ? 3 : 2;
     let element = assertingElement(this.element.childNodes[elementIndex]);
 
     if (this.testType === 'Glimmer') {
-      assertElementShape(element, 'div', attrs, html);
+      assertElementShape(element, 'div', attributes, html);
     } else {
-      assertEmberishElement(element, 'div', attrs, html);
+      assertEmberishElement(element, 'div', attributes, html);
     }
   }
 
@@ -1081,7 +1083,7 @@ class RehydratingComponents extends AbstractRehydrationTests {
   'Component invocations with block params'() {
     let layout = 'Hello {{yield @name}}';
     let template = '{{this.name}}';
-    let blockParams = ['name'];
+    let blockParameters = ['name'];
     let args = { name: 'this.name' };
 
     this.renderServerSide(
@@ -1089,7 +1091,7 @@ class RehydratingComponents extends AbstractRehydrationTests {
         layout,
         template,
         args,
-        blockParams,
+        blockParams: blockParameters,
       },
       { name: 'Filewatcher' }
     );
@@ -1102,7 +1104,7 @@ class RehydratingComponents extends AbstractRehydrationTests {
         layout,
         template,
         args,
-        blockParams,
+        blockParams: blockParameters,
       },
       { name: 'Filewatcher' }
     );
@@ -1115,7 +1117,7 @@ class RehydratingComponents extends AbstractRehydrationTests {
   'Mismatched Component invocations with block params'() {
     let layout = 'Hello {{yield @name}}';
     let template = '{{this.name}}';
-    let blockParams = ['name'];
+    let blockParameters = ['name'];
     let args = { name: 'this.name' };
 
     this.renderServerSide(
@@ -1123,7 +1125,7 @@ class RehydratingComponents extends AbstractRehydrationTests {
         layout,
         template,
         args,
-        blockParams,
+        blockParams: blockParameters,
       },
       { name: 'Filewatcher' }
     );
@@ -1136,7 +1138,7 @@ class RehydratingComponents extends AbstractRehydrationTests {
         layout,
         template,
         args,
-        blockParams,
+        blockParams: blockParameters,
       },
       { name: 'Chad' }
     );
@@ -1277,11 +1279,10 @@ class RehydratingComponents extends AbstractRehydrationTests {
       this.assertServerComponent(`${b(2)}Hello <!--%|%-->World${b(2)}`);
     }
 
-    if (this.testType === 'Dynamic' || this.testType === 'Curly') {
-      template = '{{#foo-bar}}Chad{{/foo-bar}}';
-    } else {
-      template = '<FooBar>Chad</FooBar>';
-    }
+    template =
+      this.testType === 'Dynamic' || this.testType === 'Curly'
+        ? '{{#foo-bar}}Chad{{/foo-bar}}'
+        : '<FooBar>Chad</FooBar>';
 
     this.renderClientSide({
       layout,
@@ -1294,6 +1295,12 @@ class RehydratingComponents extends AbstractRehydrationTests {
 
   @test
   'interacting with builtins'() {
+    let isDynamic = this.testType === 'Dynamic';
+
+    function id(integer: number) {
+      return isDynamic ? integer + 1 : integer;
+    }
+
     let layout = strip`
       <ul>
         {{#each @items key="id" as |item i|}}
@@ -1306,18 +1313,18 @@ class RehydratingComponents extends AbstractRehydrationTests {
       </ul>`;
     this.registerHelper(
       'even',
-      (params: ReadonlyArray<unknown>) => (params[0] as number) % 2 === 0
+      (parameters: ReadonlyArray<unknown>) => (parameters[0] as number) % 2 === 0
     );
     let template = '{{#if (even i)}}<FooBar @count={{i}} />{{/if}}';
     this.registerComponent('TemplateOnly', 'FooBar', '<li>{{@count}}</li>');
-    let blockParams = ['i'];
+    let blockParameters = ['i'];
     let args = { items: 'this.items' };
 
     this.renderServerSide(
       {
         layout,
         template,
-        blockParams,
+        blockParams: blockParameters,
         args,
       },
       {
@@ -1330,8 +1337,6 @@ class RehydratingComponents extends AbstractRehydrationTests {
     );
 
     let b = blockStack();
-
-    let id = (num: number) => (this.testType === 'Dynamic' ? num + 1 : num);
 
     this.assertServerComponent(strip`
       <ul>
@@ -1375,7 +1380,7 @@ class RehydratingComponents extends AbstractRehydrationTests {
       {
         layout,
         template,
-        blockParams,
+        blockParams: blockParameters,
         args,
       },
       {
@@ -1394,6 +1399,12 @@ class RehydratingComponents extends AbstractRehydrationTests {
 
   @test
   'mismatched interacting with builtins'() {
+    let isDynamic = this.testType === 'Dynamic';
+
+    function id(integer: number) {
+      return isDynamic ? integer + 1 : integer;
+    }
+
     let layout = strip`
       <ul>
         {{#each @items key="id" as |item i|}}
@@ -1406,18 +1417,18 @@ class RehydratingComponents extends AbstractRehydrationTests {
       </ul>`;
     this.registerHelper(
       'even',
-      (params: ReadonlyArray<unknown>) => (params[0] as number) % 2 === 0
+      (parameters: ReadonlyArray<unknown>) => (parameters[0] as number) % 2 === 0
     );
     let template = '{{#if (even i)}}<FooBar @count={{i}} />{{/if}}';
     this.registerComponent('TemplateOnly', 'FooBar', '<li>{{@count}}</li>');
-    let blockParams = ['i'];
+    let blockParameters = ['i'];
     let args = { items: 'this.items' };
 
     this.renderServerSide(
       {
         layout,
         template,
-        blockParams,
+        blockParams: blockParameters,
         args,
       },
       {
@@ -1430,8 +1441,6 @@ class RehydratingComponents extends AbstractRehydrationTests {
     );
 
     let b = blockStack();
-
-    let id = (num: number) => (this.testType === 'Dynamic' ? num + 1 : num);
 
     this.assertServerComponent(strip`
       <ul>
@@ -1475,7 +1484,7 @@ class RehydratingComponents extends AbstractRehydrationTests {
       {
         layout,
         template,
-        blockParams,
+        blockParams: blockParameters,
         args,
       },
       {
@@ -1493,6 +1502,12 @@ class RehydratingComponents extends AbstractRehydrationTests {
 
   @test
   'mismatched blocks interacting with builtins'() {
+    let isDynamic = this.testType === 'Dynamic';
+
+    function id(integer: number) {
+      return isDynamic ? integer + 1 : integer;
+    }
+
     let layout = strip`
       <ul>
         {{#each @items key="id" as |item i|}}
@@ -1515,18 +1530,18 @@ class RehydratingComponents extends AbstractRehydrationTests {
     `;
     this.registerHelper(
       'even',
-      (params: ReadonlyArray<unknown>) => (params[0] as number) % 2 === 0
+      (parameters: ReadonlyArray<unknown>) => (parameters[0] as number) % 2 === 0
     );
     let template = '{{#if (even i)}}<FooBar @count={{i}} />{{/if}}';
     this.registerComponent('TemplateOnly', 'FooBar', '<li>{{@count}}</li>');
-    let blockParams = ['i'];
+    let blockParameters = ['i'];
     let args = { items: 'this.items', things: 'this.things' };
 
     this.renderServerSide(
       {
         layout,
         template,
-        blockParams,
+        blockParams: blockParameters,
         args,
       },
       {
@@ -1539,8 +1554,6 @@ class RehydratingComponents extends AbstractRehydrationTests {
     );
 
     let b = blockStack();
-
-    let id = (num: number) => (this.testType === 'Dynamic' ? num + 1 : num);
 
     this.assertServerComponent(strip`
       <ul>
@@ -1589,7 +1602,7 @@ class RehydratingComponents extends AbstractRehydrationTests {
       {
         layout,
         template,
-        blockParams,
+        blockParams: blockParameters,
         args,
       },
       {

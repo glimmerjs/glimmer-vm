@@ -110,7 +110,7 @@ define(CLOSE_ELEMENT_OP, (vm) => {
   let modifiers = vm._elements_().closeElement();
 
   if (modifiers) {
-    for (const modifier of modifiers) {
+    for (let modifier of modifiers) {
       vm.env.scheduleInstallModifier(modifier);
       let { manager, state } = modifier;
       let d = manager.getDestroyable(state);

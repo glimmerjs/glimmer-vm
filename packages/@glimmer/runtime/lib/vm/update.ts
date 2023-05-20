@@ -37,9 +37,12 @@ export class UpdatingVM implements IUpdatingVM {
 
   private frameStack: Stack<UpdatingVMFrame> = new Stack<UpdatingVMFrame>();
 
-  constructor(env: Environment, { alwaysRevalidate = false }) {
-    this.env = env;
-    this.dom = env.getDOM();
+  constructor(
+    environment: Environment,
+    { alwaysRevalidate = false }: { alwaysRevalidate?: boolean } = {}
+  ) {
+    this.env = environment;
+    this.dom = environment.getDOM();
     this.alwaysRevalidate = alwaysRevalidate;
   }
 
@@ -228,11 +231,11 @@ export class ListBlockOpcode extends BlockOpcode {
     runtime: RuntimeContext,
     bounds: LiveBlockList,
     children: ListItemOpcode[],
-    iterableRef: Reference<OpaqueIterator>
+    iterableReference: Reference<OpaqueIterator>
   ) {
     super(state, runtime, bounds, children);
-    this.#iterableRef = iterableRef;
-    this.#lastIterator = valueForRef(iterableRef);
+    this.#iterableRef = iterableReference;
+    this.#lastIterator = valueForRef(iterableReference);
   }
 
   initializeChild(opcode: ListItemOpcode) {
@@ -309,8 +312,8 @@ export class ListBlockOpcode extends BlockOpcode {
           // iterate through all of the opcodes between the current position and
           // the position of the item's opcode, and determine if they are all
           // retained.
-          for (let i = currentOpcodeIndex + 1; i < seenIndex; i++) {
-            if (!unwrap(children[i]).retained) {
+          for (let index = currentOpcodeIndex + 1; index < seenIndex; index++) {
+            if (!unwrap(children[index]).retained) {
               seenUnretained = true;
               break;
             }
@@ -319,12 +322,12 @@ export class ListBlockOpcode extends BlockOpcode {
           // If we have seen only retained opcodes between this and the matching
           // opcode, it means that all the opcodes in between have been moved
           // already, and we can safely retain this item's opcode.
-          if (!seenUnretained) {
-            this.#retainItem(itemOpcode, item);
-            currentOpcodeIndex = seenIndex + 1;
-          } else {
+          if (seenUnretained) {
             this.#moveItem(itemOpcode, item, opcode);
             currentOpcodeIndex++;
+          } else {
+            this.#retainItem(itemOpcode, item);
+            currentOpcodeIndex = seenIndex + 1;
           }
         }
       } else {
@@ -332,11 +335,11 @@ export class ListBlockOpcode extends BlockOpcode {
       }
     }
 
-    for (const opcode of children) {
-      if (!opcode.retained) {
-        this.#deleteItem(opcode);
-      } else {
+    for (let opcode of children) {
+      if (opcode.retained) {
         opcode.reset();
+      } else {
+        this.#deleteItem(opcode);
       }
     }
   }

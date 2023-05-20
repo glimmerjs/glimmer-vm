@@ -24,9 +24,9 @@ export default async function renderBenchmark(
   let resolveRender: (() => void) | undefined;
 
   await measureRender('render', 'renderStart', 'renderEnd', () => {
-    const document = element.ownerDocument;
-    const environmentDelegate = createEnvironmentDelegate(isInteractive);
-    const runtime = runtimeContext(
+    let document = element.ownerDocument;
+    let environmentDelegate = createEnvironmentDelegate(isInteractive);
+    let runtime = runtimeContext(
       {
         document,
       },
@@ -34,11 +34,11 @@ export default async function renderBenchmark(
       artifacts,
       runtimeResolver
     );
-    const environment = runtime.env;
-    const cursor = { element, nextSibling: null };
-    const treeBuilder = NewElementBuilder.forInitialRender(environment, cursor);
+    let environment = runtime.env;
+    let cursor = { element, nextSibling: null };
+    let treeBuilder = NewElementBuilder.forInitialRender(environment, cursor);
 
-    const result = renderSync(
+    let result = renderSync(
       environment,
       renderComponent(runtime, treeBuilder, context, {}, component.state, args)
     );

@@ -1,4 +1,4 @@
-import * as WireFormat from './lib/compile/wire-format/api';
+
 
 export * from './lib/array';
 export * from './lib/compile';
@@ -24,4 +24,6 @@ export * from './lib/tier1/symbol-table';
 export * from './lib/type-utils';
 export * from './lib/vm-opcodes';
 
-export { WireFormat };
+
+
+export * as WireFormat from './lib/compile/wire-format/api';

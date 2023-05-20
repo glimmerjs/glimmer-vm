@@ -7,12 +7,12 @@ import {
 } from '@glimmer/syntax';
 import { exhausted } from '@glimmer/util';
 
-import { Err, type Result } from '../../../shared/result';
+import { Err as Error_, type Result } from '../../../shared/result';
 import type { NormalizationState } from '../context';
 
 export interface KeywordDelegate<Match extends KeywordMatch, V, Out> {
   assert(options: Match, state: NormalizationState): Result<V>;
-  translate(options: { node: Match; state: NormalizationState }, param: V): Result<Out>;
+  translate(options: { node: Match; state: NormalizationState }, parameter: V): Result<Out>;
 }
 
 export interface Keyword<K extends KeywordType = KeywordType, Out = unknown> {
@@ -26,7 +26,7 @@ export interface BlockKeyword<Out = unknown> {
 class KeywordImpl<
   K extends KeywordType,
   S extends string = string,
-  Param = unknown,
+  Parameter = unknown,
   Out = unknown
 > {
   protected types: Set<KeywordCandidates[K]['type']>;
@@ -34,7 +34,7 @@ class KeywordImpl<
   constructor(
     protected keyword: S,
     type: KeywordType,
-    private delegate: KeywordDelegate<KeywordMatches[K], Param, Out>
+    private delegate: KeywordDelegate<KeywordMatches[K], Parameter, Out>
   ) {
     let nodes = new Set<KeywordNode['type']>();
     for (let nodeType of KEYWORD_NODES[type]) {
@@ -52,13 +52,11 @@ class KeywordImpl<
     let path = getCalleeExpression(node);
 
     if (path !== null && path.type === 'Path' && path.ref.type === 'Free') {
-      if (path.tail.length > 0) {
-        if (path.ref.resolution.serialize() === 'Loose') {
+      if (path.tail.length > 0 && path.ref.resolution.serialize() === 'Loose') {
           // cannot be a keyword reference, keywords do not allow paths (must be
           // relying on implicit this fallback)
           return false;
         }
-      }
 
       return path.ref.name === this.keyword;
     } else {
@@ -71,7 +69,7 @@ class KeywordImpl<
       let path = getCalleeExpression(node);
 
       if (path !== null && path.type === 'Path' && path.tail.length > 0) {
-        return Err(
+        return Error_(
           generateSyntaxError(
             `The \`${
               this.keyword
@@ -81,8 +79,8 @@ class KeywordImpl<
         );
       }
 
-      let param = this.delegate.assert(node, state);
-      return param.andThen((param) => this.delegate.translate({ node, state }, param));
+      let parameter = this.delegate.assert(node, state);
+      return parameter.andThen((parameter) => this.delegate.translate({ node, state }, parameter));
     } else {
       return null;
     }
@@ -205,7 +203,7 @@ export class Keywords<K extends KeywordType, KeywordList extends Keyword<K> = ne
       let validTypes: readonly KeywordType[] = KEYWORDS_TYPES[name];
 
       if (!validTypes.includes(usedType)) {
-        return Err(
+        return Error_(
           generateSyntaxError(
             `The \`${name}\` keyword was used incorrectly. It was used as ${
               typesToReadableName[usedType]

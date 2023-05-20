@@ -27,8 +27,8 @@ function traversalEqual(
 
   let nodesEqual = true;
 
-  for (let i = 0; i < actualTraversal.length; i++) {
-    if (actualTraversal[i]?.[1] !== expectedTraversal[i]?.[1]) {
+  for (let [index, element] of actualTraversal.entries()) {
+    if (element?.[1] !== expectedTraversal[index]?.[1]) {
       nodesEqual = false;
       break;
     }
@@ -43,18 +43,18 @@ test('Elements and attributes', function () {
   let ast = parse(
     `<div id="id" class="large {{this.classes}}" value={{this.value}}><b></b><b></b></div>`
   );
-  let el = ast.body[0] as AST.ElementNode;
-  let concat = el.attributes[1]?.value;
+  let element = ast.body[0] as AST.ElementNode;
+  let concat = element.attributes[1]?.value;
   let concatMustache = getParts(concat)?.[1];
-  let attrMustache = el.attributes[2]?.value;
+  let attributeMustache = element.attributes[2]?.value;
   traversalEqual(ast, [
     ['enter', ast],
-    ['enter', el],
-    ['enter', el.attributes[0]],
-    ['enter', el.attributes[0]?.value],
-    ['exit', el.attributes[0]?.value],
-    ['exit', el.attributes[0]],
-    ['enter', el.attributes[1]],
+    ['enter', element],
+    ['enter', element.attributes[0]],
+    ['enter', element.attributes[0]?.value],
+    ['exit', element.attributes[0]?.value],
+    ['exit', element.attributes[0]],
+    ['enter', element.attributes[1]],
     ['enter', concat],
     ['enter', getFirstPart(concat)],
     ['exit', getFirstPart(concat)],
@@ -65,55 +65,55 @@ test('Elements and attributes', function () {
     ['exit', getHash(concatMustache)],
     ['exit', concatMustache],
     ['exit', concat],
-    ['exit', el.attributes[1]],
-    ['enter', el.attributes[2]],
-    ['enter', attrMustache],
-    ['enter', getPath(attrMustache)],
-    ['exit', getPath(attrMustache)],
-    ['enter', getHash(attrMustache)],
-    ['exit', getHash(attrMustache)],
-    ['exit', attrMustache],
-    ['exit', el.attributes[2]],
-    ['enter', el.children[0]],
-    ['exit', el.children[0]],
-    ['enter', el.children[1]],
-    ['exit', el.children[1]],
-    ['exit', el],
+    ['exit', element.attributes[1]],
+    ['enter', element.attributes[2]],
+    ['enter', attributeMustache],
+    ['enter', getPath(attributeMustache)],
+    ['exit', getPath(attributeMustache)],
+    ['enter', getHash(attributeMustache)],
+    ['exit', getHash(attributeMustache)],
+    ['exit', attributeMustache],
+    ['exit', element.attributes[2]],
+    ['enter', element.children[0]],
+    ['exit', element.children[0]],
+    ['enter', element.children[1]],
+    ['exit', element.children[1]],
+    ['exit', element],
     ['exit', ast],
   ]);
 });
 
 test('Element modifiers', function () {
   let ast = parse(`<div {{modifier}}{{modifier param1 param2 key1=value key2=value}}></div>`);
-  let el = ast.body[0] as AST.ElementNode;
+  let element = ast.body[0] as AST.ElementNode;
   traversalEqual(ast, [
     ['enter', ast],
-    ['enter', el],
-    ['enter', el.modifiers[0]],
-    ['enter', el.modifiers[0]?.path],
-    ['exit', el.modifiers[0]?.path],
-    ['enter', el.modifiers[0]?.hash],
-    ['exit', el.modifiers[0]?.hash],
-    ['exit', el.modifiers[0]],
-    ['enter', el.modifiers[1]],
-    ['enter', el.modifiers[1]?.path],
-    ['exit', el.modifiers[1]?.path],
-    ['enter', el.modifiers[1]?.params[0]],
-    ['exit', el.modifiers[1]?.params[0]],
-    ['enter', el.modifiers[1]?.params[1]],
-    ['exit', el.modifiers[1]?.params[1]],
-    ['enter', el.modifiers[1]?.hash],
-    ['enter', el.modifiers[1]?.hash.pairs[0]],
-    ['enter', el.modifiers[1]?.hash.pairs[0]?.value],
-    ['exit', el.modifiers[1]?.hash.pairs[0]?.value],
-    ['exit', el.modifiers[1]?.hash.pairs[0]],
-    ['enter', el.modifiers[1]?.hash.pairs[1]],
-    ['enter', el.modifiers[1]?.hash.pairs[1]?.value],
-    ['exit', el.modifiers[1]?.hash.pairs[1]?.value],
-    ['exit', el.modifiers[1]?.hash.pairs[1]],
-    ['exit', el.modifiers[1]?.hash],
-    ['exit', el.modifiers[1]],
-    ['exit', el],
+    ['enter', element],
+    ['enter', element.modifiers[0]],
+    ['enter', element.modifiers[0]?.path],
+    ['exit', element.modifiers[0]?.path],
+    ['enter', element.modifiers[0]?.hash],
+    ['exit', element.modifiers[0]?.hash],
+    ['exit', element.modifiers[0]],
+    ['enter', element.modifiers[1]],
+    ['enter', element.modifiers[1]?.path],
+    ['exit', element.modifiers[1]?.path],
+    ['enter', element.modifiers[1]?.params[0]],
+    ['exit', element.modifiers[1]?.params[0]],
+    ['enter', element.modifiers[1]?.params[1]],
+    ['exit', element.modifiers[1]?.params[1]],
+    ['enter', element.modifiers[1]?.hash],
+    ['enter', element.modifiers[1]?.hash.pairs[0]],
+    ['enter', element.modifiers[1]?.hash.pairs[0]?.value],
+    ['exit', element.modifiers[1]?.hash.pairs[0]?.value],
+    ['exit', element.modifiers[1]?.hash.pairs[0]],
+    ['enter', element.modifiers[1]?.hash.pairs[1]],
+    ['enter', element.modifiers[1]?.hash.pairs[1]?.value],
+    ['exit', element.modifiers[1]?.hash.pairs[1]?.value],
+    ['exit', element.modifiers[1]?.hash.pairs[1]],
+    ['exit', element.modifiers[1]?.hash],
+    ['exit', element.modifiers[1]],
+    ['exit', element],
     ['exit', ast],
   ]);
 });
@@ -241,8 +241,8 @@ test('Nested helpers', function () {
     ['enter', nestedSexp1],
     ['enter', getPath(nestedSexp1)],
     ['exit', getPath(nestedSexp1)],
-    ['enter', getParams(nestedSexp1)?.[0]],
-    ['exit', getParams(nestedSexp1)?.[0]],
+    ['enter', getParameters(nestedSexp1)?.[0]],
+    ['exit', getParameters(nestedSexp1)?.[0]],
     ['enter', getHash(nestedSexp1)],
     ['exit', getHash(nestedSexp1)],
     ['exit', nestedSexp1],
@@ -256,8 +256,8 @@ test('Nested helpers', function () {
     ['enter', deeplyNestedSexp],
     ['enter', getPath(deeplyNestedSexp)],
     ['exit', getPath(deeplyNestedSexp)],
-    ['enter', getParams(deeplyNestedSexp)?.[0]],
-    ['exit', getParams(deeplyNestedSexp)?.[0]],
+    ['enter', getParameters(deeplyNestedSexp)?.[0]],
+    ['exit', getParameters(deeplyNestedSexp)?.[0]],
     ['enter', getHash(deeplyNestedSexp)],
     ['exit', getHash(deeplyNestedSexp)],
     ['exit', deeplyNestedSexp],
@@ -275,17 +275,17 @@ test('Comments', function () {
   let ast = parse(
     `<!-- HTML comment -->{{!-- Handlebars comment --}}<div {{! Other Comment }}></div>`
   );
-  let el = ast.body[2] as AST.ElementNode;
+  let element = ast.body[2] as AST.ElementNode;
   traversalEqual(ast, [
     ['enter', ast],
     ['enter', ast.body[0]],
     ['exit', ast.body[0]],
     ['enter', ast.body[1]],
     ['exit', ast.body[1]],
-    ['enter', el],
-    ['enter', el.comments[0]],
-    ['exit', el.comments[0]],
-    ['exit', el],
+    ['enter', element],
+    ['enter', element.comments[0]],
+    ['exit', element.comments[0]],
+    ['exit', element],
     ['exit', ast],
   ]);
 });
@@ -351,7 +351,7 @@ test('Modifier', function (assert) {
         ]);
 
         assert.deepEqual(
-          Array.from(path.parents()).map((it) => (it as WalkerPath<AST.Node>).node.type),
+          [...path.parents()].map((it) => (it as WalkerPath<AST.Node>).node.type),
           ['ElementModifierStatement', 'ElementNode', 'Template']
         );
 
@@ -377,7 +377,7 @@ function describeFullPath(
   return description;
 }
 
-function getFirstPart(value: AST.AttrValue | undefined): Optional<AST.AttrPart> {
+function getFirstPart(value: AST.AttributeValue | undefined): Optional<AST.AttributePart> {
   let parts = getParts(value);
 
   if (parts === undefined) return undefined;
@@ -385,7 +385,7 @@ function getFirstPart(value: AST.AttrValue | undefined): Optional<AST.AttrPart> 
   return parts[0];
 }
 
-function getParts(value: AST.AttrValue | undefined): OptionalArray<AST.AttrPart> {
+function getParts(value: AST.AttributeValue | undefined): OptionalArray<AST.AttributePart> {
   if (value === undefined) return undefined;
 
   switch (value.type) {
@@ -397,7 +397,7 @@ function getParts(value: AST.AttrValue | undefined): OptionalArray<AST.AttrPart>
   }
 }
 
-function getPath(part: Optional<AST.Expression | AST.AttrValue>): Optional<AST.Expression> {
+function getPath(part: Optional<AST.Expression | AST.AttributeValue>): Optional<AST.Expression> {
   if (part === undefined) return undefined;
 
   if ('path' in part) {
@@ -405,7 +405,7 @@ function getPath(part: Optional<AST.Expression | AST.AttrValue>): Optional<AST.E
   }
 }
 
-function getParams(part: Optional<AST.Expression | AST.AttrValue>): Optional<AST.Expression[]> {
+function getParameters(part: Optional<AST.Expression | AST.AttributeValue>): Optional<AST.Expression[]> {
   if (part === undefined) return undefined;
 
   if ('params' in part) {
@@ -413,7 +413,7 @@ function getParams(part: Optional<AST.Expression | AST.AttrValue>): Optional<AST
   }
 }
 
-function getHash(part: Optional<AST.Expression | AST.AttrValue>): Optional<AST.Hash> {
+function getHash(part: Optional<AST.Expression | AST.AttributeValue>): Optional<AST.Hash> {
   if (part === undefined) return undefined;
 
   if ('hash' in part) {

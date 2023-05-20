@@ -28,7 +28,7 @@ export function CompileArguments(
   atNames: boolean
 ): void {
   let blockNames: string[] = blocks.names;
-  for (const name of blockNames) {
+  for (let name of blockNames) {
     PushYieldableBlock(op, blocks.get(name));
   }
 
@@ -47,7 +47,7 @@ export function CompileArguments(
   if (named) {
     names = named[0];
     let value = named[1];
-    for (const element of value) {
+    for (let element of value) {
       expr(op, element);
     }
   }
@@ -77,7 +77,7 @@ export function SimpleArguments(
   if (named) {
     names = named[0];
     let value = named[1];
-    for (const element of value) {
+    for (let element of value) {
       expr(op, element);
     }
   }
@@ -97,7 +97,7 @@ export function CompilePositional(
 ): number {
   if (positional === null) return 0;
 
-  for (const element of positional) {
+  for (let element of positional) {
     expr(op, element);
   }
 

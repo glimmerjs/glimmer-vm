@@ -6,7 +6,7 @@ import { module } from './support';
 // "I-N-U-R" cycle
 // initial render -> no-op rerender -> update(s) via mutation(s) -> reset via replacement
 module('Render Tests: I-N-U-R', ({ test }) => {
-  let doc = castToSimple(document);
+  let document_ = castToSimple(document);
 
    
   test('Can set properties', (assert) => {
@@ -21,9 +21,9 @@ module('Render Tests: I-N-U-R', ({ test }) => {
 
    
   test('Can take basic snapshots', (assert) => {
-    let div = doc.createElement('div');
-    let text = doc.createTextNode('Foo');
-    div.appendChild(text);
+    let div = document_.createElement('div');
+    let text = document_.createTextNode('Foo');
+    div.append(text);
 
     new (class extends RenderTest {
       override element = div;
@@ -37,11 +37,11 @@ module('Render Tests: I-N-U-R', ({ test }) => {
 
    
   test('Can take nested snapshots', (assert) => {
-    let div = doc.createElement('div');
-    let p = doc.createElement('p');
-    let text = doc.createTextNode('Foo');
-    p.appendChild(text);
-    div.appendChild(p);
+    let div = document_.createElement('div');
+    let p = document_.createElement('p');
+    let text = document_.createTextNode('Foo');
+    p.append(text);
+    div.append(p);
 
     new (class extends RenderTest {
       override element = div;
@@ -55,13 +55,13 @@ module('Render Tests: I-N-U-R', ({ test }) => {
 
    
   test('Can take nested snapshots of serialized blocks', (assert) => {
-    let div = doc.createElement('div');
-    let open = doc.createComment('<!--%+b:0%-->');
-    let text = doc.createTextNode('Foo');
-    let close = doc.createComment('<!--%-b:0%-->');
-    div.appendChild(open);
-    div.appendChild(text);
-    div.appendChild(close);
+    let div = document_.createElement('div');
+    let open = document_.createComment('<!--%+b:0%-->');
+    let text = document_.createTextNode('Foo');
+    let close = document_.createComment('<!--%-b:0%-->');
+    div.append(open);
+    div.append(text);
+    div.append(close);
 
     new (class extends RenderTest {
       override element = div;

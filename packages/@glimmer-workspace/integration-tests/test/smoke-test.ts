@@ -7,7 +7,7 @@ class SmokeTests extends RenderTest {
   'can create many blocks without overflowing'() {
     let input = '';
     let output = '';
-    for (let i = 0; i < 10000; i++) {
+    for (let index = 0; index < 10_000; index++) {
       input +=
         '<div id="test">{{#if true}}Hello{{else}}Bye{{/if}}{{#if false}}Hello{{else}}Bye{{/if}}</div>';
       output += '<div id="test">HelloBye</div>';

@@ -8,13 +8,13 @@ import { preprocess } from '../../compile';
 import type { JitTestDelegateContext } from './delegate';
 
 export function renderTemplate(
-  src: string,
+  source: string,
   { runtime, program }: JitTestDelegateContext,
   self: Reference,
   builder: ElementBuilder,
   options?: PrecompileOptions
 ): RenderResult {
-  let template = preprocess(src, options);
+  let template = preprocess(source, options);
 
   let iterator = renderMain(
     runtime,

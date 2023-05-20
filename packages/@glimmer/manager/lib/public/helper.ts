@@ -100,7 +100,7 @@ export class CustomHelperManager<O extends Owner = Owner> implements InternalHel
   getDelegateFor(owner: O | undefined) {
     if (owner === undefined) {
       if (this.#undefinedDelegate === null) {
-        this.#undefinedDelegate = this.#factory(undefined);
+        this.#undefinedDelegate = this.#factory(void 0);
       }
 
       return this.#undefinedDelegate;
@@ -113,8 +113,8 @@ export class CustomHelperManager<O extends Owner = Owner> implements InternalHel
     return (capturedArgs, owner) => {
       let manager = this.getDelegateFor(owner as O | undefined);
 
-      const args = argsProxyFor(capturedArgs, 'helper');
-      const bucket = manager.createHelper(definition, args);
+      let args = argsProxyFor(capturedArgs, 'helper');
+      let bucket = manager.createHelper(definition, args);
 
       if (hasValue(manager)) {
         let cache = createComputeRef(
@@ -129,14 +129,14 @@ export class CustomHelperManager<O extends Owner = Owner> implements InternalHel
 
         return cache;
       } else if (hasDestroyable(manager)) {
-        let ref = createConstRef(
+        let reference = createConstRef(
           undefined,
           import.meta.env.DEV && (manager.getDebugName?.(definition) ?? 'unknown helper')
         );
 
-        associateDestroyableChild(ref, manager.getDestroyable(bucket));
+        associateDestroyableChild(reference, manager.getDestroyable(bucket));
 
-        return ref;
+        return reference;
       } else {
         return UNDEFINED_REFERENCE;
       }

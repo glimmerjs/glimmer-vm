@@ -4,17 +4,15 @@ import { LOCAL_LOGGER } from '../index';
 
 // let alreadyWarned = false;
 
-export function assert(test: any, msg: string): asserts test {
+export function assert(test: any, message: string): asserts test {
   // if (!alreadyWarned) {
   //   alreadyWarned = true;
   //   Logger.warn("Don't leave debug assertions on in public builds");
   // }
 
-  if (import.meta.env.DEV) {
-    if (!test) {
-      throw new Error(msg || 'assertion failure');
+  if (import.meta.env.DEV && !test) {
+      throw new Error(message || 'assertion failure');
     }
-  }
 }
 
 export function deprecate(desc: string) {

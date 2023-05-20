@@ -32,17 +32,17 @@ class OnModifierManager implements InternalModifierManager<OnModifierState, obje
   }
 
   install(state: OnModifierState) {
-    const name = valueForRef(state.nameRef);
-    const listener = valueForRef(state.listenerRef);
+    let name = valueForRef(state.nameRef);
+    let listener = valueForRef(state.listenerRef);
     castToBrowser(state.element, 'ELEMENT').addEventListener(name, listener);
     state.listener = listener;
     state.name = name;
   }
 
   update(state: OnModifierState) {
-    const element = castToBrowser(state.element, 'ELEMENT');
-    const name = valueForRef(state.nameRef);
-    const listener = valueForRef(state.listenerRef);
+    let element = castToBrowser(state.element, 'ELEMENT');
+    let name = valueForRef(state.nameRef);
+    let listener = valueForRef(state.listenerRef);
     if (name !== state.name || listener !== state.listener) {
       element.removeEventListener(state.name!, state.listener!);
       element.addEventListener(name, listener);

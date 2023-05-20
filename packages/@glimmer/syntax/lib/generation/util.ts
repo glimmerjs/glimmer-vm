@@ -8,13 +8,13 @@ const enum Char {
   AMP = 0x26,
 }
 
-const ATTR_VALUE_REGEX_TEST = /["&\xA0]/u;
+const ATTR_VALUE_REGEX_TEST = /["&\u{A0}]/u;
 const ATTR_VALUE_REGEX_REPLACE = new RegExp(ATTR_VALUE_REGEX_TEST.source, 'gu');
 
-const TEXT_REGEX_TEST = /[&<>\xA0]/u;
+const TEXT_REGEX_TEST = /[&<>\u{A0}]/u;
 const TEXT_REGEX_REPLACE = new RegExp(TEXT_REGEX_TEST.source, 'gu');
 
-function attrValueReplacer(char: string): string {
+function attributeValueReplacer(char: string): string {
   switch (char.charCodeAt(0)) {
     case Char.NBSP:
       return '&nbsp;';
@@ -42,16 +42,16 @@ function textReplacer(char: string): string {
   }
 }
 
-export function escapeAttrValue(attrValue: string): string {
-  if (ATTR_VALUE_REGEX_TEST.test(attrValue)) {
-    return attrValue.replace(ATTR_VALUE_REGEX_REPLACE, attrValueReplacer);
+export function escapeAttrValue(attributeValue: string): string {
+  if (ATTR_VALUE_REGEX_TEST.test(attributeValue)) {
+    return attributeValue.replaceAll(ATTR_VALUE_REGEX_REPLACE, attributeValueReplacer);
   }
-  return attrValue;
+  return attributeValue;
 }
 
 export function escapeText(text: string): string {
   if (TEXT_REGEX_TEST.test(text)) {
-    return text.replace(TEXT_REGEX_REPLACE, textReplacer);
+    return text.replaceAll(TEXT_REGEX_REPLACE, textReplacer);
   }
   return text;
 }

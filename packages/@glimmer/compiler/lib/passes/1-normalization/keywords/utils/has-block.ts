@@ -1,6 +1,6 @@
 import { ASTv2, generateSyntaxError, SourceSlice } from '@glimmer/syntax';
 
-import { Err, Ok, type Result } from '../../../../shared/result';
+import { Err as Error_, Ok, type Result } from '../../../../shared/result';
 import * as mir from '../../../2-encoding/mir';
 import type { NormalizationState } from '../../context';
 import type { GenericKeywordNode, KeywordDelegate } from '../impl';
@@ -13,25 +13,21 @@ function assertHasBlockKeyword(type: string) {
     let positionals = call.type === 'Call' ? call.args.positional : null;
 
     if (named && !named.isEmpty()) {
-      return Err(generateSyntaxError(`(${type}) does not take any named arguments`, call.loc));
+      return Error_(generateSyntaxError(`(${type}) does not take any named arguments`, call.loc));
     }
 
     if (!positionals || positionals.isEmpty()) {
       return Ok(SourceSlice.synthetic('default'));
     } else if (positionals.exprs.length === 1) {
       let positional = positionals.exprs[0] as ASTv2.ExpressionNode;
-      if (ASTv2.isLiteral(positional, 'string')) {
-        return Ok(positional.toSlice());
-      } else {
-        return Err(
+      return ASTv2.isLiteral(positional, 'string') ? Ok(positional.toSlice()) : Error_(
           generateSyntaxError(
             `(${type}) can only receive a string literal as its first argument`,
             call.loc
           )
         );
-      }
     } else {
-      return Err(
+      return Error_(
         generateSyntaxError(`(${type}) only takes a single positional argument`, call.loc)
       );
     }

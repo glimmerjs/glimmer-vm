@@ -20,13 +20,13 @@ export function equalTokens(
     throw new Error(`Unexpectedly passed null to equalTokens`);
   }
 
-  const fragTokens = generateTokens(testFragment);
-  const htmlTokens = generateTokens(testHTML);
+  let fragTokens = generateTokens(testFragment);
+  let htmlTokens = generateTokens(testHTML);
 
   cleanEmberIds(fragTokens.tokens);
   cleanEmberIds(htmlTokens.tokens);
 
-  const equiv = QUnit.equiv(fragTokens.tokens, htmlTokens.tokens);
+  let equiv = QUnit.equiv(fragTokens.tokens, htmlTokens.tokens);
 
   if (equiv && fragTokens.html !== htmlTokens.html) {
     QUnit.assert.deepEqual(
@@ -49,13 +49,13 @@ export function equalTokens(
 function cleanEmberIds(tokens: Token[]) {
   let id = 0;
 
-  tokens.forEach((token) => {
-    const idAttr = 'attributes' in token && token.attributes.filter((a) => a[0] === 'id')[0];
+  for (let token of tokens) {
+    let idAttribute = 'attributes' in token && token.attributes.find((a) => a[0] === 'id');
 
-    if (idAttr) {
-      idAttr[1] = idAttr[1].replace(/ember(\d+|\*)/u, `ember${++id}`);
+    if (idAttribute) {
+      idAttribute[1] = idAttribute[1].replace(/ember(\d+|\*)/u, `ember${++id}`);
     }
-  });
+  }
 }
 
 function isMarker(node: SimpleNode) {
@@ -71,7 +71,7 @@ function isMarker(node: SimpleNode) {
 }
 
 export function generateSnapshot(element: SimpleElement): SimpleNode[] {
-  const snapshot: SimpleNode[] = [];
+  let snapshot: SimpleNode[] = [];
   let node: Nullable<SimpleNode> = element.firstChild;
 
   while (node) {
@@ -95,7 +95,7 @@ function generateTokens(divOrHTML: SimpleElement | string): { tokens: Token[]; h
 
   let tokens = tokenize(toInnerHTML(div), {});
 
-  tokens = tokens.reduce((tokens, token) => {
+  tokens = tokens.flatMap((token) => {
     if (token.type === 'StartTag') {
       if (token.attributes) {
         token.attributes.sort((a, b) => {
@@ -111,8 +111,7 @@ function generateTokens(divOrHTML: SimpleElement | string): { tokens: Token[]; h
 
       if (token.selfClosing) {
         token.selfClosing = false;
-        tokens.push(token);
-        tokens.push({ type: 'EndTag', tagName: token.tagName } as EndTag);
+        tokens.push(token, { type: 'EndTag', tagName: token.tagName } as EndTag);
       } else {
         tokens.push(token);
       }
@@ -121,15 +120,15 @@ function generateTokens(divOrHTML: SimpleElement | string): { tokens: Token[]; h
     }
 
     return tokens;
-  }, new Array<Token>());
+  });
 
   return { tokens, html: toInnerHTML(div) };
 }
 
 export function equalSnapshots(a: SimpleNode[], b: SimpleNode[]) {
   QUnit.assert.strictEqual(a.length, b.length, 'Same number of nodes');
-  for (let i = 0; i < b.length; i++) {
-    QUnit.assert.strictEqual(a[i], b[i], 'Nodes are the same');
+  for (let [index, element] of b.entries()) {
+    QUnit.assert.strictEqual(a[index], element, 'Nodes are the same');
   }
 }
 
@@ -142,22 +141,22 @@ export function normalizeSnapshot(
   newSnapshot: NodesSnapshot,
   except: SimpleNode[]
 ): { oldSnapshot: IndividualSnapshot[]; newSnapshot: IndividualSnapshot[] } {
-  const oldIterator = new SnapshotIterator(oldSnapshot);
-  const newIterator = new SnapshotIterator(newSnapshot);
+  let oldIterator = new SnapshotIterator(oldSnapshot);
+  let newIterator = new SnapshotIterator(newSnapshot);
 
-  const normalizedOld: IndividualSnapshot[] = [];
-  const normalizedNew: IndividualSnapshot[] = [];
+  let normalizedOld: IndividualSnapshot[] = [];
+  let normalizedNew: IndividualSnapshot[] = [];
 
   // eslint-disable-next-line no-constant-condition
   while (true) {
-    const nextOld = oldIterator.peek();
-    const nextNew = newIterator.peek();
+    let nextOld = oldIterator.peek();
+    let nextNew = newIterator.peek();
 
     if (nextOld === null && newIterator.peek() === null) break;
 
     if (
-      (nextOld && snapshotIsNode(nextOld) && except.indexOf(nextOld) > -1) ||
-      (nextNew && snapshotIsNode(nextNew) && except.indexOf(nextNew) > -1)
+      (nextOld && snapshotIsNode(nextOld) && except.includes(nextOld)) ||
+      (nextNew && snapshotIsNode(nextNew) && except.includes(nextNew))
     ) {
       oldIterator.skip();
       newIterator.skip();
@@ -187,7 +186,7 @@ class SnapshotIterator {
   }
 
   skip(): void {
-    const skipUntil = this.depth;
+    let skipUntil = this.depth;
     this.nextNode();
 
     if (this.snapshot[this.pos] === 'down') {
@@ -198,7 +197,7 @@ class SnapshotIterator {
   }
 
   private nextNode(): IndividualSnapshot {
-    const token = this.snapshot[this.pos++];
+    let token = this.snapshot[this.pos++];
 
     if (token === 'down') {
       this.depth++;

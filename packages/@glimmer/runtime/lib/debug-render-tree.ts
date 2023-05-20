@@ -70,10 +70,8 @@ export default class DebugRenderTreeImpl<TBucket extends object>
   }
 
   create(state: TBucket, node: RenderNode): void {
-    let internalNode: InternalRenderNode<TBucket> = Object.assign({}, node, {
-      bounds: null,
-      refs: new Set<Ref<TBucket>>(),
-    });
+    let internalNode: InternalRenderNode<TBucket> = { ...node, bounds: null,
+      refs: new Set<Ref<TBucket>>(),};
     this.#nodes.set(state, internalNode);
     this.#appendChild(internalNode, state);
     this.#enter(state);
@@ -166,7 +164,7 @@ export default class DebugRenderTreeImpl<TBucket extends object>
   #captureRefs(references: Set<Ref<TBucket>>): CapturedRenderNode[] {
     let captured: CapturedRenderNode[] = [];
 
-    for (const reference of references) {
+    for (let reference of references) {
       let state = reference.get();
 
       if (state) {

@@ -96,7 +96,7 @@ export class Component extends node('Component').fields<{
   blocks: NamedBlocks;
 }>() {}
 
-export interface AttrKind {
+export interface AttributeKind {
   // triple-curly
   trusting: boolean;
   // this attribute is on an element with component features:
@@ -114,7 +114,7 @@ export class StaticAttr extends node('StaticAttr').fields<{
 }>() {}
 
 export class DynamicAttr extends node('DynamicAttr').fields<{
-  kind: AttrKind;
+  kind: AttributeKind;
   name: SourceSlice;
   value: ExpressionNode;
   namespace?: string | undefined;

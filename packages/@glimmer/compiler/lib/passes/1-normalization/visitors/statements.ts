@@ -112,17 +112,13 @@ class NormalizationStatements {
     let value = VISIT_EXPRS.visit(append.value, state);
 
     return value.mapOk((value) => {
-      if (append.trusting) {
-        return new mir.AppendTrustedHTML({
+      return append.trusting ? new mir.AppendTrustedHTML({
           loc: append.loc,
           html: value,
-        });
-      } else {
-        return new mir.AppendTextNode({
+        }) : new mir.AppendTextNode({
           loc: append.loc,
           text: value,
         });
-      }
     });
   }
 

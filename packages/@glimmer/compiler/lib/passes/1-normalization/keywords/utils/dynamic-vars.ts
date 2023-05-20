@@ -1,39 +1,39 @@
 import { type ASTv2, generateSyntaxError } from '@glimmer/syntax';
 
-import { Err, Ok, type Result } from '../../../../shared/result';
+import { Err as Error_, Ok, type Result } from '../../../../shared/result';
 import * as mir from '../../../2-encoding/mir';
 import type { NormalizationState } from '../../context';
 import { VISIT_EXPRS } from '../../visitors/expressions';
 import type { GenericKeywordNode, KeywordDelegate } from '../impl';
 
-function assertGetDynamicVarKeyword(node: GenericKeywordNode): Result<ASTv2.ExpressionNode> {
+function assertGetDynamicVariableKeyword(node: GenericKeywordNode): Result<ASTv2.ExpressionNode> {
   let call = node.type === 'AppendContent' ? node.value : node;
 
   let named = call.type === 'Call' ? call.args.named : null;
   let positionals = call.type === 'Call' ? call.args.positional : null;
 
   if (named && !named.isEmpty()) {
-    return Err(
+    return Error_(
       generateSyntaxError(`(-get-dynamic-vars) does not take any named arguments`, node.loc)
     );
   }
 
-  let varName = positionals?.nth(0);
+  let variableName = positionals?.nth(0);
 
-  if (!varName) {
-    return Err(generateSyntaxError(`(-get-dynamic-vars) requires a var name to get`, node.loc));
+  if (!variableName) {
+    return Error_(generateSyntaxError(`(-get-dynamic-vars) requires a var name to get`, node.loc));
   }
 
   if (positionals && positionals.size > 1) {
-    return Err(
+    return Error_(
       generateSyntaxError(`(-get-dynamic-vars) only receives one positional arg`, node.loc)
     );
   }
 
-  return Ok(varName);
+  return Ok(variableName);
 }
 
-function translateGetDynamicVarKeyword(
+function translateGetDynamicVariableKeyword(
   { node, state }: { node: GenericKeywordNode; state: NormalizationState },
   name: ASTv2.ExpressionNode
 ): Result<mir.GetDynamicVar> {
@@ -47,6 +47,6 @@ export const getDynamicVarKeyword: KeywordDelegate<
   ASTv2.ExpressionNode,
   mir.GetDynamicVar
 > = {
-  assert: assertGetDynamicVarKeyword,
-  translate: translateGetDynamicVarKeyword,
+  assert: assertGetDynamicVariableKeyword,
+  translate: translateGetDynamicVariableKeyword,
 };

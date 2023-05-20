@@ -56,7 +56,7 @@ class ArgumentLessHelperParenLessInvokeTest extends RenderTest {
   'passing a local helper in named argument position is not deprecated'() {
     this.registerHelper('is-string', ([value]: readonly unknown[]) => typeof value === 'string');
 
-    const foo = defineSimpleHelper(() => 'Hello, world!');
+    let foo = defineSimpleHelper(() => 'Hello, world!');
 
     this.registerComponent('TemplateOnly', 'Bar', '[{{is-string @content}}][{{@content}}]');
 
@@ -69,7 +69,7 @@ class ArgumentLessHelperParenLessInvokeTest extends RenderTest {
   'invoking a local helper with parens in named argument position is not deprecated'() {
     this.registerHelper('is-string', ([value]: readonly unknown[]) => typeof value === 'string');
 
-    const foo = defineSimpleHelper(() => 'Hello, world!');
+    let foo = defineSimpleHelper(() => 'Hello, world!');
 
     this.registerComponent('TemplateOnly', 'Bar', '[{{is-string @content}}][{{@content}}]');
 

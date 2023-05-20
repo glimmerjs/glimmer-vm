@@ -25,8 +25,8 @@ class LogTest extends RenderTest {
     this.assertHTML('');
     this.assert.strictEqual(this.logCalls.length, values.length);
 
-    for (let i = 0, len = values.length; i < len; i++) {
-      this.assert.strictEqual(this.logCalls[i], values[i]);
+    for (let index = 0, length = values.length; index < length; index++) {
+      this.assert.strictEqual(this.logCalls[index], values[index]);
     }
   }
 

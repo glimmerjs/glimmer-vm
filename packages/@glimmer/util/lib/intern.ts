@@ -37,13 +37,13 @@
   @private
   @return {String} interned version of the provided string
 */
-export default function intern(str: string): string {
+export default function intern(text: string): string {
   let obj: Record<string, number> = {};
-  obj[str] = 1;
+  obj[text] = 1;
   for (let key in obj) {
-    if (key === str) {
+    if (key === text) {
       return key;
     }
   }
-  return str;
+  return text;
 }

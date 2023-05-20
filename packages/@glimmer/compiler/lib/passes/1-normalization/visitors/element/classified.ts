@@ -2,7 +2,7 @@ import { ASTv2, maybeLoc, src } from '@glimmer/syntax';
 
 import { OptionalList } from '../../../../shared/list';
 import { Ok, Result, ResultArray } from '../../../../shared/result';
-import { getAttrNamespace } from '../../../../utils';
+import { getAttrNamespace as getAttributeNamespace } from '../../../../utils';
 import * as mir from '../../../2-encoding/mir';
 import type { NormalizationState } from '../../context';
 import { MODIFIER_KEYWORDS } from '../../keywords';
@@ -19,7 +19,7 @@ type ProcessedAttributes = {
 export interface Classified {
   readonly dynamicFeatures: boolean;
 
-  arg(attr: ASTv2.AttrNode, classified: ClassifiedElement): Result<mir.NamedArgument>;
+  arg(attribute: ASTv2.AttrNode, classified: ClassifiedElement): Result<mir.NamedArgument>;
   toStatement(classified: ClassifiedElement, prepared: PreparedArgs): Result<mir.Statement>;
 }
 
@@ -38,15 +38,15 @@ export class ClassifiedElement {
     return this.prepare().andThen((prepared) => this.delegate.toStatement(this, prepared));
   }
 
-  private attr(attr: ASTv2.HtmlAttr): Result<ValidAttr> {
-    let name = attr.name;
-    let rawValue = attr.value;
-    let namespace = getAttrNamespace(name.chars) || undefined;
+  private attr(attribute: ASTv2.HtmlAttr): Result<ValidAttr> {
+    let name = attribute.name;
+    let rawValue = attribute.value;
+    let namespace = getAttributeNamespace(name.chars) || undefined;
 
     if (ASTv2.isLiteral(rawValue, 'string')) {
       return Ok(
         new mir.StaticAttr({
-          loc: attr.loc,
+          loc: attribute.loc,
           name,
           value: rawValue.toSlice(),
           namespace,
@@ -58,10 +58,10 @@ export class ClassifiedElement {
     }
 
     return VISIT_EXPRS.visit(convertPathToCallIfKeyword(rawValue), this.state).mapOk((value) => {
-      let isTrusting = attr.trusting;
+      let isTrusting = attribute.trusting;
 
       return new mir.DynamicAttr({
-        loc: attr.loc,
+        loc: attribute.loc,
         name,
         value: value,
         namespace,
@@ -98,7 +98,7 @@ export class ClassifiedElement {
   }
 
   private attrs(): Result<ProcessedAttributes> {
-    let attrs = new ResultArray<ValidAttr>();
+    let attributes = new ResultArray<ValidAttr>();
     let args = new ResultArray<mir.NamedArgument>();
 
     // Unlike most attributes, the `type` attribute can change how
@@ -107,31 +107,31 @@ export class ClassifiedElement {
     // last. For elements with splattributes, where attribute order affects
     // precedence, this re-ordering happens at runtime instead.
     // See https://github.com/glimmerjs/glimmer-vm/pull/726
-    let typeAttr: ASTv2.AttrNode | null = null;
-    let simple = this.element.attrs.filter((attr) => attr.type === 'SplatAttr').length === 0;
+    let typeAttribute: ASTv2.AttrNode | null = null;
+    let simple = this.element.attrs.filter((attribute) => attribute.type === 'SplatAttr').length === 0;
 
-    for (let attr of this.element.attrs) {
-      if (attr.type === 'SplatAttr') {
-        attrs.add(
-          Ok(new mir.SplatAttr({ loc: attr.loc, symbol: this.state.scope.allocateBlock('attrs') }))
+    for (let attribute of this.element.attrs) {
+      if (attribute.type === 'SplatAttr') {
+        attributes.add(
+          Ok(new mir.SplatAttr({ loc: attribute.loc, symbol: this.state.scope.allocateBlock('attrs') }))
         );
-      } else if (attr.name.chars === 'type' && simple) {
-        typeAttr = attr;
+      } else if (attribute.name.chars === 'type' && simple) {
+        typeAttribute = attribute;
       } else {
-        attrs.add(this.attr(attr));
+        attributes.add(this.attr(attribute));
       }
     }
 
-    for (let arg of this.element.componentArgs) {
-      args.add(this.delegate.arg(arg, this));
+    for (let argument of this.element.componentArgs) {
+      args.add(this.delegate.arg(argument, this));
     }
 
-    if (typeAttr) {
-      attrs.add(this.attr(typeAttr));
+    if (typeAttribute) {
+      attributes.add(this.attr(typeAttribute));
     }
 
-    return Result.all(args.toArray(), attrs.toArray()).mapOk(([args, attrs]) => ({
-      attrs,
+    return Result.all(args.toArray(), attributes.toArray()).mapOk(([args, attributes]) => ({
+      attrs: attributes,
       args: new mir.NamedArguments({
         loc: maybeLoc(args, src.SourceSpan.NON_EXISTENT),
         entries: OptionalList(args),
@@ -140,20 +140,20 @@ export class ClassifiedElement {
   }
 
   private prepare(): Result<PreparedArgs> {
-    let attrs = this.attrs();
+    let attributes = this.attrs();
     let modifiers = new ResultArray(this.element.modifiers.map((m) => this.modifier(m))).toArray();
 
-    return Result.all(attrs, modifiers).mapOk(([result, modifiers]) => {
+    return Result.all(attributes, modifiers).mapOk(([result, modifiers]) => {
       let { attrs, args } = result;
 
-      let elementParams = [...attrs, ...modifiers];
+      let elementParameters = [...attrs, ...modifiers];
 
-      let params = new mir.ElementParameters({
-        loc: maybeLoc(elementParams, src.SourceSpan.NON_EXISTENT),
-        body: OptionalList(elementParams),
+      let parameters = new mir.ElementParameters({
+        loc: maybeLoc(elementParameters, src.SourceSpan.NON_EXISTENT),
+        body: OptionalList(elementParameters),
       });
 
-      return { args, params };
+      return { args, params: parameters };
     });
   }
 }
@@ -173,5 +173,5 @@ export function hasDynamicFeatures({
   }
 
   // Splattributes need the special ComponentOperations to merge into
-  return !!attrs.filter((attr) => attr.type === 'SplatAttr')[0];
+  return !!attrs.find((attribute) => attribute.type === 'SplatAttr');
 }

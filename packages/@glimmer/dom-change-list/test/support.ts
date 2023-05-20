@@ -12,50 +12,38 @@ import { COMMENT_NODE, ELEMENT_NODE, NS_SVG, NS_XLINK, TEXT_NODE } from '@glimme
 import Serializer from '@simple-dom/serializer';
 import voidMap from '@simple-dom/void-map';
 
-export const XLINK = NS_XLINK;
+
 
 export function toHTML(parent: SimpleElement | SimpleDocumentFragment) {
-  const serializer = new Serializer(voidMap);
+  let serializer = new Serializer(voidMap);
 
   return serializer.serializeChildren(parent);
 }
 
 export function toHTMLNS(parent: SimpleElement | SimpleDocumentFragment) {
-  const serializer = new NamespacedHTMLSerializer(voidMap);
+  let serializer = new NamespacedHTMLSerializer(voidMap);
 
   return serializer.serializeChildren(parent);
 }
 
 class NamespacedHTMLSerializer extends Serializer {
   override openTag(element: SimpleElement): string {
-    if (element.namespaceURI === NS_SVG) {
-      return `<svg:${element.tagName.toLowerCase()}${this.attributes(element.attributes)}>`;
-    } else {
-      return super.openTag(element);
-    }
+    return element.namespaceURI === NS_SVG ? `<svg:${element.tagName.toLowerCase()}${this.attributes(element.attributes)}>` : super.openTag(element);
   }
 
   override closeTag(element: SimpleElement): string {
-    if (element.namespaceURI === NS_SVG) {
-      return `</svg:${element.tagName.toLowerCase()}>`;
-    } else {
-      return super.closeTag(element);
-    }
+    return element.namespaceURI === NS_SVG ? `</svg:${element.tagName.toLowerCase()}>` : super.closeTag(element);
   }
 
   override attr(original: SimpleAttr): string {
-    let attr: { name: string; value: Nullable<string>; specified: boolean };
-    if (original.namespaceURI === NS_XLINK) {
-      attr = {
+    let attribute: { name: string; value: Nullable<string>; specified: boolean };
+    attribute = original.namespaceURI === NS_XLINK ? {
         name: `xlink:${original.name}`,
         value: original.value,
         specified: original.specified,
-      };
-    } else {
-      attr = original;
-    }
+      } : original;
 
-    return super.attr(attr as SimpleAttr);
+    return super.attr(attribute as SimpleAttr);
   }
 }
 
@@ -72,11 +60,7 @@ export class Builder {
   }
 
   appendTo(parent: SimpleElement | SimpleDocumentFragment) {
-    if (parent.nodeType === 1) {
-      this.expected[0].value = parent.tagName;
-    } else {
-      this.expected[0].value = '#document-fragment';
-    }
+    this.expected[0].value = parent.nodeType === 1 ? parent.tagName : '#document-fragment';
   }
 
   closeElement() {
@@ -88,21 +72,21 @@ export class Builder {
   }
 
   appendText(text: string) {
-    const token = this.tree.appendText(text);
+    let token = this.tree.appendText(text);
     this.expected[token] = { type: 'text', value: text };
   }
 
   appendComment(text: string) {
-    const token = this.tree.appendComment(text);
+    let token = this.tree.appendComment(text);
     this.expected[token] = { type: 'comment', value: text };
   }
 
   reify(tokens: NodeTokens): { actual: ExpectedToken[]; expected: ExpectedToken[] } {
-    const actual: ExpectedToken[] = [];
-    const { expected } = this;
+    let actual: ExpectedToken[] = [];
+    let { expected } = this;
 
-    for (let i = 0; i < expected.length; i++) {
-      const reified = tokens.reify(i);
+    for (let index = 0; index < expected.length; index++) {
+      let reified = tokens.reify(index);
 
       switch (reified.nodeType) {
         case ELEMENT_NODE:
@@ -120,3 +104,5 @@ export class Builder {
     return { expected, actual };
   }
 }
+
+export {NS_XLINK as XLINK} from '@glimmer/util';

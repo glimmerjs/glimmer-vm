@@ -36,8 +36,8 @@ class WhenList<Out> {
   }
 
   first(kind: OffsetKind): Out | null {
-    for (const when of this._whens) {
-      const value = when.match(kind);
+    for (let when of this._whens) {
+      let value = when.match(kind);
       if (isPresentArray(value)) {
         return value[0];
       }
@@ -69,12 +69,12 @@ class When<Out> {
   }
 
   match(kind: OffsetKind): Out[] {
-    const pattern = patternFor(kind);
+    let pattern = patternFor(kind);
 
-    const out: Out[] = [];
+    let out: Out[] = [];
 
-    const exact = this._map.get(pattern);
-    const fallback = this._map.get(MatchAny);
+    let exact = this._map.get(pattern);
+    let fallback = this._map.get(MatchAny);
 
     if (exact) {
       out.push(exact);
@@ -119,14 +119,14 @@ class Matcher<Out, M extends Matches = Matches> {
     left: OffsetKind,
     right: OffsetKind
   ): (left: PositionData, right: PositionData) => Out {
-    const nesteds = this._whens.match(left);
+    let nesteds = this._whens.match(left);
 
     assert(
       isPresentArray(nesteds),
       `no match defined for (${left}, ${right}) and no AnyMatch defined either`
     );
 
-    const callback = new WhenList(nesteds).first(right);
+    let callback = new WhenList(nesteds).first(right);
 
     assert(
       callback !== null,

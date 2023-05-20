@@ -294,9 +294,7 @@ export function resolveComponentOrHelper(
     let name = unwrap(upvars[expr[1]]);
     let definition = resolver.lookupComponent(name, owner);
 
-    if (definition !== null) {
-      ifComponent(constants.resolvedComponent(definition, name));
-    } else {
+    if (definition === null) {
       let helper = resolver.lookupHelper(name, owner);
 
       if (import.meta.env.DEV && helper === null) {
@@ -306,6 +304,8 @@ export function resolveComponentOrHelper(
       }
 
       ifHelper(constants.helper(helper!, name));
+    } else {
+      ifComponent(constants.resolvedComponent(definition, name));
     }
   }
 }

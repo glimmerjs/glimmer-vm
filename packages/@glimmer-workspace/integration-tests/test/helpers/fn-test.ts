@@ -13,7 +13,7 @@ class FnTest extends RenderTest {
       return (fn as () => unknown)();
     });
 
-    const setStashedFn = (value: unknown) => (this.stashedFn = value as () => unknown);
+    let setStashedFn = (value: unknown) => (this.stashedFn = value as () => unknown);
 
     this.registerComponent(
       'Glimmer',
@@ -31,8 +31,8 @@ class FnTest extends RenderTest {
   @test
   'updates when arguments change'() {
     this.render(`{{invoke (fn this.myFunc this.arg1 this.arg2)}}`, {
-      myFunc(arg1: string, arg2: string) {
-        return `arg1: ${arg1}, arg2: ${arg2}`;
+      myFunc(argument1: string, argument2: string) {
+        return `arg1: ${argument1}, arg2: ${argument2}`;
       },
 
       arg1: 'foo',
@@ -55,11 +55,11 @@ class FnTest extends RenderTest {
 
   @test
   'updates when the function changes'() {
-    let func1 = (arg1: string, arg2: string) => `arg1: ${arg1}, arg2: ${arg2}`;
-    let func2 = (arg1: string, arg2: string) => `arg2: ${arg2}, arg1: ${arg1}`;
+    let function1 = (argument1: string, argument2: string) => `arg1: ${argument1}, arg2: ${argument2}`;
+    let function2 = (argument1: string, argument2: string) => `arg2: ${argument2}, arg1: ${argument1}`;
 
     this.render(`{{invoke (fn this.myFunc this.arg1 this.arg2)}}`, {
-      myFunc: func1,
+      myFunc: function1,
 
       arg1: 'foo',
       arg2: 'bar',
@@ -68,18 +68,18 @@ class FnTest extends RenderTest {
     this.assertHTML('arg1: foo, arg2: bar');
     this.assertStableRerender();
 
-    this.rerender({ myFunc: func2 });
+    this.rerender({ myFunc: function2 });
     this.assertHTML('arg2: bar, arg1: foo');
 
-    this.rerender({ myFunc: func1 });
+    this.rerender({ myFunc: function1 });
     this.assertHTML('arg1: foo, arg2: bar');
   }
 
   @test
   'a stashed fn result update arguments when invoked'(assert: Assert) {
     this.render(`<Stash @stashedFn={{fn this.myFunc this.arg1 this.arg2}}/>`, {
-      myFunc(arg1: string, arg2: string) {
-        return `arg1: ${arg1}, arg2: ${arg2}`;
+      myFunc(argument1: string, argument2: string) {
+        return `arg1: ${argument1}, arg2: ${argument2}`;
       },
 
       arg1: 'foo',
@@ -102,11 +102,11 @@ class FnTest extends RenderTest {
   'a stashed fn result invokes the correct function when the bound function changes'(
     assert: Assert
   ) {
-    let func1 = (arg1: string, arg2: string) => `arg1: ${arg1}, arg2: ${arg2}`;
-    let func2 = (arg1: string, arg2: string) => `arg2: ${arg2}, arg1: ${arg1}`;
+    let function1 = (argument1: string, argument2: string) => `arg1: ${argument1}, arg2: ${argument2}`;
+    let function2 = (argument1: string, argument2: string) => `arg2: ${argument2}, arg1: ${argument1}`;
 
     this.render(`<Stash @stashedFn={{fn this.myFunc this.arg1 this.arg2}}/>`, {
-      myFunc: func1,
+      myFunc: function1,
 
       arg1: 'foo',
       arg2: 'bar',
@@ -114,10 +114,10 @@ class FnTest extends RenderTest {
 
     assert.strictEqual(this.stashedFn?.(), 'arg1: foo, arg2: bar');
 
-    this.rerender({ myFunc: func2 });
+    this.rerender({ myFunc: function2 });
     assert.strictEqual(this.stashedFn?.(), 'arg2: bar, arg1: foo');
 
-    this.rerender({ myFunc: func1 });
+    this.rerender({ myFunc: function1 });
     assert.strictEqual(this.stashedFn?.(), 'arg1: foo, arg2: bar');
   }
 
@@ -159,8 +159,8 @@ class FnTest extends RenderTest {
     assert: Assert
   ) {
     this.render(`<Stash @stashedFn={{fn this.myFunc this.arg1}}/>`, {
-      myFunc(arg1: string) {
-        return `arg1: ${arg1}, arg2: ${this['arg2']}`;
+      myFunc(argument1: string) {
+        return `arg1: ${argument1}, arg2: ${this['arg2']}`;
       },
 
       arg1: 'foo',
@@ -189,8 +189,8 @@ class FnTest extends RenderTest {
   @test
   'can use `this` if bound prior to passing to fn'(assert: Assert) {
     let context = {
-      myFunc(arg1: string) {
-        return `arg1: ${arg1}, arg2: ${this.arg2}`;
+      myFunc(argument1: string) {
+        return `arg1: ${argument1}, arg2: ${this.arg2}`;
       },
 
       arg1: 'foo',
@@ -207,8 +207,8 @@ class FnTest extends RenderTest {
   @test
   'partially applies each layer when nested [GH#17959]'() {
     this.render(`{{invoke (fn (fn (fn this.myFunc this.arg1) this.arg2) this.arg3)}}`, {
-      myFunc(arg1: string, arg2: string, arg3: string) {
-        return `arg1: ${arg1}, arg2: ${arg2}, arg3: ${arg3}`;
+      myFunc(argument1: string, argument2: string, argument3: string) {
+        return `arg1: ${argument1}, arg2: ${argument2}, arg3: ${argument3}`;
       },
 
       arg1: 'foo',

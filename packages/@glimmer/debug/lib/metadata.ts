@@ -19,7 +19,7 @@ export const OPERAND_TYPES = [
 ];
 
 function isOperandType(s: string): s is OperandType {
-  return OPERAND_TYPES.indexOf(s as any) !== -1;
+  return OPERAND_TYPES.includes(s as any);
 }
 
 export type OperandType = (typeof OPERAND_TYPES)[number];
@@ -63,11 +63,7 @@ export function normalize(key: string, input: RawOperandMetadata): NormalizedMet
     throw new Error(`Missing format in ${JSON.stringify(input)}`);
   }
 
-  if (Array.isArray(input.format)) {
-    name = input.format[0];
-  } else {
-    name = input.format;
-  }
+  name = Array.isArray(input.format) ? input.format[0] : input.format;
 
   let ops: OperandList = Array.isArray(input.format) ? operands(input.format.slice(1)) : [];
 
@@ -99,14 +95,14 @@ function stackChange(stack?: Stack): Nullable<number> {
 
 function hasRest(input: string[]): boolean {
   if (!Array.isArray(input)) {
-    throw new Error(`Unexpected stack entry: ${JSON.stringify(input)}`);
+    throw new TypeError(`Unexpected stack entry: ${JSON.stringify(input)}`);
   }
   return input.some((s) => s.slice(-3) === '...');
 }
 
 function operands(input: `${string}:${string}`[]): OperandList {
   if (!Array.isArray(input)) {
-    throw new Error(`Expected operands array, got ${JSON.stringify(input)}`);
+    throw new TypeError(`Expected operands array, got ${JSON.stringify(input)}`);
   }
   return input.map(op) as OperandList;
 }
@@ -139,7 +135,7 @@ export function normalizeAll(parsed: {
 export function normalizeParsed(parsed: Dict<RawOperandMetadata>): Dict<NormalizedMetadata> {
   let out = Object.create(null) as Dict<NormalizedMetadata>;
 
-  for (const [key, value] of Object.entries(parsed)) {
+  for (let [key, value] of Object.entries(parsed)) {
     out[key] = normalize(key, value);
   }
 
@@ -156,40 +152,34 @@ export function buildEnum(
 
   let last: number;
 
-  Object.values(parsed).forEach((value, i) => {
-    e.push(`  ${value.name} = ${offset + i},`);
-    last = i;
-  });
+  for (let [index, value] of Object.values(parsed).entries()) {
+    e.push(`  ${value.name} = ${offset + index},`);
+    last = index;
+  }
 
-  e.push(`  Size = ${last! + offset + 1},`);
-  e.push('}');
+  e.push(`  Size = ${last! + offset + 1},`, '}');
 
   let enumString = e.join('\n');
 
   let predicate;
 
-  if (max) {
-    predicate = strip`
+  predicate = max ? strip`
       export function is${name}(value: number): value is ${name} {
         return value >= ${offset} && value <= ${max};
       }
-    `;
-  } else {
-    predicate = strip`
+    ` : strip`
       export function is${name}(value: number): value is ${name} {
         return value >= ${offset};
       }
     `;
-  }
 
   return { enumString, predicate };
 }
 
 export function strip(strings: TemplateStringsArray, ...args: unknown[]) {
   let out = '';
-  for (let i = 0; i < strings.length; i++) {
-    let string = strings[i];
-    let dynamic = args[i] !== undefined ? String(args[i]) : '';
+  for (let [index, string] of strings.entries()) {
+    let dynamic = args[index] === undefined ? '' : String(args[index]);
 
     out += `${string}${dynamic}`;
   }
@@ -197,7 +187,7 @@ export function strip(strings: TemplateStringsArray, ...args: unknown[]) {
   // eslint-disable-next-line regexp/no-super-linear-backtracking
   out = /^\s*?\n?([\s\S]*?)\s*$/u.exec(out)![1] as string;
 
-  let min = 9007199254740991; // Number.MAX_SAFE_INTEGER isn't available on IE11
+  let min = 9_007_199_254_740_991; // Number.MAX_SAFE_INTEGER isn't available on IE11
 
   for (let line of out.split('\n')) {
     let leading = /^\s*/u.exec(line)![0].length;

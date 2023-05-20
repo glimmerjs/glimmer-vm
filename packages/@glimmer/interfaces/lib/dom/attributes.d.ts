@@ -4,7 +4,7 @@ import type { Stack } from '../stack';
 import type { Bounds, Cursor } from './bounds';
 import type { GlimmerTreeChanges, GlimmerTreeConstruction } from './changes';
 import type {
-  AttrNamespace,
+  AttrNamespace as AttributeNamespace,
   SimpleComment,
   SimpleDocumentFragment,
   SimpleElement,
@@ -29,7 +29,7 @@ export interface SimpleLiveBlock extends LiveBlock {
 export type RemoteLiveBlock = SimpleLiveBlock;
 
 export interface UpdatableBlock extends SimpleLiveBlock {
-  reset(env: Environment): Nullable<SimpleNode>;
+  reset(environment: Environment): Nullable<SimpleNode>;
 }
 
 export interface DOMStack {
@@ -100,11 +100,11 @@ export interface ElementBuilder extends Cursor, DOMStack, TreeOperations {
 export interface AttributeCursor {
   element: SimpleElement;
   name: string;
-  namespace: Nullable<AttrNamespace>;
+  namespace: Nullable<AttributeNamespace>;
 }
 
 export interface AttributeOperation {
   attribute: AttributeCursor;
-  set(dom: ElementBuilder, value: unknown, env: Environment): void;
-  update(value: unknown, env: Environment): void;
+  set(dom: ElementBuilder, value: unknown, environment: Environment): void;
+  update(value: unknown, environment: Environment): void;
 }

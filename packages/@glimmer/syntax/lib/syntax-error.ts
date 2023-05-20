@@ -1,11 +1,11 @@
-import type * as src from './source/api';
+import type * as source from './source/api';
 
 export interface GlimmerSyntaxError extends Error {
-  location: src.SourceSpan | null;
+  location: source.SourceSpan | null;
   code: string | null;
 }
 
-export function generateSyntaxError(message: string, location: src.SourceSpan): GlimmerSyntaxError {
+export function generateSyntaxError(message: string, location: source.SourceSpan): GlimmerSyntaxError {
   let { module, loc } = location;
   let { line, column } = loc.start;
 

@@ -60,7 +60,7 @@ export class SourceOffset {
    * Get the character offset for this `SourceOffset`, if possible.
    */
   get offset(): number | null {
-    const charPos = this.data.toCharPos();
+    let charPos = this.data.toCharPos();
     return charPos === null ? null : charPos.offset;
   }
 
@@ -95,18 +95,14 @@ export class SourceOffset {
    * returns a broken offset.
    */
   move(by: number): SourceOffset {
-    const charPos = this.data.toCharPos();
+    let charPos = this.data.toCharPos();
 
     if (charPos === null) {
       return SourceOffset.broken();
     } else {
-      const result = charPos.offset + by;
+      let result = charPos.offset + by;
 
-      if (charPos.source.check(result)) {
-        return new CharPosition(charPos.source, result).wrap();
-      } else {
-        return SourceOffset.broken();
-      }
+      return charPos.source.check(result) ? new CharPosition(charPos.source, result).wrap() : SourceOffset.broken();
     }
   }
 
@@ -149,7 +145,7 @@ export class CharPosition implements PositionData {
    * computed using {@see SourceOffset#move}, this will compute the `SourcePosition` for the offset.
    */
   toJSON(): SourcePosition {
-    const hbs = this.toHbsPos();
+    let hbs = this.toHbsPos();
     return hbs === null ? UNKNOWN_POSITION : hbs.toJSON();
   }
 
@@ -174,13 +170,9 @@ export class CharPosition implements PositionData {
     let locPos = this._locPos;
 
     if (locPos === null) {
-      const hbsPos = this.source.hbsPosFor(this.charPos);
+      let hbsPos = this.source.hbsPosFor(this.charPos);
 
-      if (hbsPos === null) {
-        this._locPos = locPos = BROKEN;
-      } else {
-        this._locPos = locPos = new HbsPosition(this.source, hbsPos, this.charPos);
-      }
+      this._locPos = locPos = hbsPos === null ? BROKEN : new HbsPosition(this.source, hbsPos, this.charPos);
     }
 
     return locPos === BROKEN ? null : locPos;
@@ -210,13 +202,9 @@ export class HbsPosition implements PositionData {
     let charPos = this._charPos;
 
     if (charPos === null) {
-      const charPosNumber = this.source.charPosFor(this.hbsPos);
+      let charPosNumber = this.source.charPosFor(this.hbsPos);
 
-      if (charPosNumber === null) {
-        this._charPos = charPos = BROKEN;
-      } else {
-        this._charPos = charPos = new CharPosition(this.source, charPosNumber);
-      }
+      this._charPos = charPos = charPosNumber === null ? BROKEN : new CharPosition(this.source, charPosNumber);
     }
 
     return charPos === BROKEN ? null : charPos;

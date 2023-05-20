@@ -1,5 +1,5 @@
 import { associateDestroyableChild, isDestroyed, isDestroying } from '@glimmer/destroyable';
-import type { Arguments, InternalHelperManager } from "@glimmer/interfaces";
+import type { Arguments, InternalHelperManager } from '@glimmer/interfaces';
 import { getInternalHelperManager, hasDestroyable, hasValue } from '@glimmer/manager';
 import { getOwner } from '@glimmer/owner';
 import { debugToString } from '@glimmer/util';
@@ -54,8 +54,8 @@ export function invokeHelper(
     );
   }
 
-  const owner = getOwner(context);
-  const internalManager = getInternalHelperManager(definition)!;
+  let owner = getOwner(context);
+  let internalManager = getInternalHelperManager(definition)!;
 
   // TODO: figure out why assert isn't using the TS assert thing
   if (import.meta.env.DEV && !internalManager) {
@@ -72,6 +72,7 @@ export function invokeHelper(
     );
   }
 
+  // eslint-disable-next-line prefer-let/prefer-let
   const manager = (internalManager as InternalHelperManager<object>).getDelegateFor(owner);
   let args = new SimpleArgsProxy(context, computeArgs);
   let bucket = manager.createHelper(definition, args);

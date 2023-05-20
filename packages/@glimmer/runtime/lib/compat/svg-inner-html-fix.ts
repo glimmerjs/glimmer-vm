@@ -39,7 +39,7 @@ export function applySVGInnerHTMLFix(
     return DOMClass;
   }
 
-  const div = document.createElement('div');
+  let div = document.createElement('div');
 
   return class DOMChangesWithSVGInnerHTMLFix extends DOMClass {
     override insertHTMLBefore(
@@ -75,7 +75,7 @@ function fixSVG(
   if (parent.tagName.toUpperCase() === 'FOREIGNOBJECT') {
     // IE, Edge: also do not correctly support using `innerHTML` on SVG
     // namespaced elements. So here a wrapper is used.
-    const wrappedHtml = '<svg><foreignObject>' + html + '</foreignObject></svg>';
+    let wrappedHtml = '<svg><foreignObject>' + html + '</foreignObject></svg>';
 
     clearElement(div);
     div.insertAdjacentHTML(INSERT_AFTER_BEGIN, wrappedHtml);
@@ -84,7 +84,7 @@ function fixSVG(
   } else {
     // IE, Edge: also do not correctly support using `innerHTML` on SVG
     // namespaced elements. So here a wrapper is used.
-    const wrappedHtml = '<svg>' + html + '</svg>';
+    let wrappedHtml = '<svg>' + html + '</svg>';
 
     clearElement(div);
     div.insertAdjacentHTML(INSERT_AFTER_BEGIN, wrappedHtml);
@@ -96,7 +96,7 @@ function fixSVG(
 }
 
 function shouldApplyFix(document: SimpleDocument, svgNamespace: typeof NS_SVG) {
-  const svg = document.createElementNS(svgNamespace, 'svg');
+  let svg = document.createElementNS(svgNamespace, 'svg');
 
   try {
     svg.insertAdjacentHTML(INSERT_BEFORE_END, '<circle></circle>');

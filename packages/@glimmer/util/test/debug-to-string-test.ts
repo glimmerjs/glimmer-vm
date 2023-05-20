@@ -7,7 +7,7 @@ const isIE11 = !(window as any).ActiveXObject && 'ActiveXObject' in window;
 QUnit.module('debug-to-string tests');
 
 if (import.meta.env.DEV) {
-  const debugToString = maybeDebugToString as (value: unknown) => string;
+  let debugToString = maybeDebugToString as (value: unknown) => string;
   QUnit.test('[debugToString] should be an function in debug mode', (assert) => {
     assert.deepEqual(typeof maybeDebugToString, 'function');
   });
@@ -23,7 +23,7 @@ if (import.meta.env.DEV) {
     assert.deepEqual(debugToString(1), '1');
   });
   QUnit.test('should return debug name for primitive [undefined]', function (assert) {
-    assert.deepEqual(debugToString(undefined), 'undefined');
+    assert.deepEqual(debugToString(), 'undefined');
   });
   QUnit.test('should return debug name for primitive [string]', function (assert) {
     assert.deepEqual(debugToString('foo'), 'foo');
@@ -32,10 +32,10 @@ if (import.meta.env.DEV) {
     assert.deepEqual(debugToString(null), 'null');
   });
   QUnit.test('should return debug name for primitive [NaN]', function (assert) {
-    assert.deepEqual(debugToString(NaN), 'NaN');
+    assert.deepEqual(debugToString(Number.NaN), 'NaN');
   });
   QUnit.test('should return debug name for primitive [Infinity]', function (assert) {
-    assert.deepEqual(debugToString(Infinity), 'Infinity');
+    assert.deepEqual(debugToString(Number.POSITIVE_INFINITY), 'Infinity');
   });
   if (!isIE11) {
     QUnit.test('should return debug name for primitive [Symbol]', function (assert) {

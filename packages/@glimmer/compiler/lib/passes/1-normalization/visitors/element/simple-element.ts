@@ -1,6 +1,6 @@
 import { type ASTv2, generateSyntaxError, type SourceSlice } from '@glimmer/syntax';
 
-import { Err, type Result } from '../../../../shared/result';
+import { Err as Error_, type Result } from '../../../../shared/result';
 import * as mir from '../../../2-encoding/mir';
 import { VISIT_STMTS } from '../statements';
 import type { Classified, ClassifiedElement, PreparedArgs } from './classified';
@@ -14,11 +14,11 @@ export class ClassifiedSimpleElement implements Classified {
 
   readonly isComponent = false;
 
-  arg(attr: ASTv2.ComponentArg): Result<mir.NamedArgument> {
-    return Err(
+  arg(attribute: ASTv2.ComponentArg): Result<mir.NamedArgument> {
+    return Error_(
       generateSyntaxError(
-        `${attr.name.chars} is not a valid attribute name. @arguments are only allowed on components, but the tag for this element (\`${this.tag.chars}\`) is a regular, non-component HTML element.`,
-        attr.loc
+        `${attribute.name.chars} is not a valid attribute name. @arguments are only allowed on components, but the tag for this element (\`${this.tag.chars}\`) is a regular, non-component HTML element.`,
+        attribute.loc
       )
     );
   }

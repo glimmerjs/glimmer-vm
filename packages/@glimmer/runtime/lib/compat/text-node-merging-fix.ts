@@ -1,3 +1,5 @@
+/* eslint-disable unicorn/prefer-dom-node-append */
+/* eslint-disable unicorn/prefer-dom-node-remove */
 import type {
   Bounds,
   Nullable,
@@ -51,14 +53,14 @@ export function applyTextNodeMergingFix(
 
       let didSetUselessComment = false;
 
-      const nextPrevious = nextSibling ? nextSibling.previousSibling : parent.lastChild;
+      let nextPrevious = nextSibling ? nextSibling.previousSibling : parent.lastChild;
 
       if (nextPrevious && nextPrevious instanceof Text) {
         didSetUselessComment = true;
         parent.insertBefore(this.#uselessComment, nextSibling);
       }
 
-      const bounds = super.insertHTMLBefore(parent, nextSibling, html);
+      let bounds = super.insertHTMLBefore(parent, nextSibling, html);
 
       if (didSetUselessComment) {
         parent.removeChild(this.#uselessComment);
@@ -70,7 +72,7 @@ export function applyTextNodeMergingFix(
 }
 
 function shouldApplyFix(document: SimpleDocument) {
-  const mergingTextDiv = document.createElement('div');
+  let mergingTextDiv = document.createElement('div');
 
   mergingTextDiv.appendChild(document.createTextNode('first'));
   mergingTextDiv.insertAdjacentHTML(INSERT_BEFORE_END, 'second');

@@ -43,9 +43,9 @@ export function debugSlice(context: TemplateCompilationContext, start: number, e
     let opcode = context.program.createOp(heap);
 
     let _size = 0;
-    for (let i = start; i < end; i = i + _size) {
-      opcode.offset = i;
-      let [name, params] = debug(
+    for (let index = start; index < end; index = index + _size) {
+      opcode.offset = index;
+      let [name, parameters] = debug(
         context.program.constants as Recast<
           CompileTimeConstants & ResolutionTimeConstants,
           DebugConstants
@@ -53,7 +53,7 @@ export function debugSlice(context: TemplateCompilationContext, start: number, e
         opcode,
         isMachine(opcode)
       )!;
-      LOCAL_LOGGER.log(`${i}. ${logOpcode(name, params)}`);
+      LOCAL_LOGGER.log(`${index}. ${logOpcode(name, parameters)}`);
       _size = sizeof(opcode);
     }
     opcode.offset = -_size;
@@ -61,13 +61,13 @@ export function debugSlice(context: TemplateCompilationContext, start: number, e
   }
 }
 
-export function logOpcode(type: string, params: Maybe<Dict>): string | void {
+export function logOpcode(type: string, parameters: Maybe<Dict>): string | void {
   if (LOCAL_SHOULD_LOG) {
     let out = type;
 
-    if (params) {
-      let args = Object.keys(params)
-        .map((p) => ` ${p}=${json(params[p])}`)
+    if (parameters) {
+      let args = Object.keys(parameters)
+        .map((p) => ` ${p}=${json(parameters[p])}`)
         .join('');
       out += args;
     }
@@ -75,16 +75,16 @@ export function logOpcode(type: string, params: Maybe<Dict>): string | void {
   }
 }
 
-function json(param: unknown) {
+function json(parameter: unknown) {
   if (LOCAL_SHOULD_LOG) {
-    if (typeof param === 'function') {
+    if (typeof parameter === 'function') {
       return '<function>';
     }
 
     let string;
     try {
-      string = JSON.stringify(param);
-    } catch (e) {
+      string = JSON.stringify(parameter);
+    } catch {
       return '<object>';
     }
 
@@ -115,7 +115,7 @@ export function debug(
 
     let out = Object.create(null);
 
-    for (const [index, operand] of enumerate(metadata.ops)) {
+    for (let [index, operand] of enumerate(metadata.ops)) {
       let actualOperand = opcodeOperand(op, index);
 
       switch (operand.type) {

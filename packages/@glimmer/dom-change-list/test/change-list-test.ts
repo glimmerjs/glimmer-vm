@@ -40,7 +40,7 @@ export class ChangeListTest extends TestCase {
 
   @test
   'openElement and closeElement'() {
-    const { tree } = this;
+    let { tree } = this;
 
     tree.openElement('span');
     tree.appendText('hello world');
@@ -54,7 +54,7 @@ export class ChangeListTest extends TestCase {
 
   @test
   setAttribute() {
-    const { tree } = this;
+    let { tree } = this;
 
     tree.openElement('span');
     tree.setAttribute('class', 'chad');
@@ -65,7 +65,7 @@ export class ChangeListTest extends TestCase {
 
   @test
   'nested elements'() {
-    const { tree } = this;
+    let { tree } = this;
 
     tree.openElement('p');
     tree.setAttribute('class', 'chad');
@@ -81,7 +81,7 @@ export class ChangeListTest extends TestCase {
 
   @test
   'namespaced elements'() {
-    const { tree } = this;
+    let { tree } = this;
 
     tree.openElement('svg', NS_SVG);
     tree.closeElement();
@@ -91,7 +91,7 @@ export class ChangeListTest extends TestCase {
 
   @test
   'namespaced attributes'() {
-    const { tree } = this;
+    let { tree } = this;
 
     tree.openElement('svg', NS_SVG);
     tree.openElement('a', NS_SVG);
@@ -109,18 +109,18 @@ export class ChangeListTest extends TestCase {
   }
 
   protected shouldEqual(expectedHTML: string) {
-    const tokens = this.append();
-    const actualHTML = toHTML(this.parent);
+    let tokens = this.append();
+    let actualHTML = toHTML(this.parent);
     QUnit.assert.strictEqual(actualHTML, expectedHTML);
 
-    const { expected, actual } = this.tree.reify(tokens);
+    let { expected, actual } = this.tree.reify(tokens);
 
     QUnit.assert.deepEqual(actual, expected);
   }
 
   protected shouldEqualNS(expected: string) {
     this.append();
-    const actual = toHTMLNS(this.parent);
+    let actual = toHTMLNS(this.parent);
     QUnit.assert.strictEqual(actual, expected);
   }
 }
@@ -129,7 +129,7 @@ export class Builder extends TestBuilder {
   protected declare tree: DOMTreeConstruction; // Hides property in base class
 
   openElement(tag: string, namespace?: Namespace) {
-    const token = this.tree.openElement(tag, namespace);
+    let token = this.tree.openElement(tag, namespace);
     this.expected[token] = { type: 'element', value: tag.toUpperCase() };
   }
 }

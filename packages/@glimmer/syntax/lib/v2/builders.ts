@@ -342,17 +342,12 @@ export class BuildElement {
   }
 
   simple(tag: SourceSlice, body: ASTv2.ContentNode[], loc: SourceSpan): ASTv2.SimpleElement {
-    return new ASTv2.SimpleElement(
-      Object.assign(
-        {
-          tag,
-          body,
-          componentArgs: [],
-          loc,
-        },
-        this.base
-      )
-    );
+    return new ASTv2.SimpleElement({
+      tag,
+      body,
+      loc,
+      ...this.base,
+    });
   }
 
   named(name: SourceSlice, block: ASTv2.Block, loc: SourceSpan): ASTv2.NamedBlock {

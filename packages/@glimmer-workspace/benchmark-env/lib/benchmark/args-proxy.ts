@@ -18,7 +18,7 @@ class ArgsProxy implements ProxyHandler<CapturedNamedArguments> {
   ): PropertyDescriptor | undefined {
     let desc: PropertyDescriptor | undefined;
     if (typeof p === 'string' && p in target) {
-      const value = valueForRef(target[p] as Reference);
+      let value = valueForRef(target[p] as Reference);
       desc = {
         enumerable: true,
         configurable: false,

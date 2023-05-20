@@ -130,7 +130,7 @@ class TemplateImpl implements TemplateWithIdAndReferrer {
 
   asLayout(): CompilableProgram {
     if (this.#layout) return this.#layout;
-    return (this.#layout = compilable(Object.assign({}, this.#parsedLayout), this.moduleName));
+    return (this.#layout = compilable({ ...this.#parsedLayout}, this.moduleName));
   }
 
   asWrappedLayout(): CompilableProgram {

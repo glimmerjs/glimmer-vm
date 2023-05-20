@@ -100,7 +100,7 @@ export class NamedArguments extends node().fields<{
   }
 
   get(name: string): ExpressionNode | null {
-    let entry = this.entries.filter((e) => e.name.chars === name)[0];
+    let entry = this.entries.find((e) => e.name.chars === name);
 
     return entry ? entry.value : null;
   }

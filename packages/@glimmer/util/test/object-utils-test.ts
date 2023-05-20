@@ -2,7 +2,7 @@
 QUnit.module('object-utils tests');
 
 QUnit.test('assign should ignore null/undefined arguments', function (assert) {
-  let result = Object.assign({}, { foo: 'bar' }, null, undefined, { derp: 'herk' });
+  let result = { foo: 'bar', ...null, ...undefined, derp: 'herk'};
 
   assert.deepEqual(result, { foo: 'bar', derp: 'herk' }, 'has correct result');
 });

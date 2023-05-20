@@ -31,8 +31,8 @@ QUnit.assert.validateDeprecations = function (...expectedDeprecations: (string |
     });
   }
 
-  actualDeprecations.forEach((actual, i) => {
-    let expected = expectedDeprecations[i] as string | RegExp;
+  for (let [index, actual] of actualDeprecations.entries()) {
+    let expected = expectedDeprecations[index] as string | RegExp;
 
     let result = expected instanceof RegExp ? Boolean(expected.test(actual)) : actual === expected;
 
@@ -40,9 +40,9 @@ QUnit.assert.validateDeprecations = function (...expectedDeprecations: (string |
       result,
       actual,
       expected,
-      message: `Deprecation ${i + 1} matches: "${actual}"`,
+      message: `Deprecation ${index + 1} matches: "${actual}"`,
     });
-  });
+  }
 
   actualDeprecations = [];
 };
@@ -82,9 +82,7 @@ setGlobalContext({
     scheduleDidDestroy(fn);
   },
 
-  toBool(value) {
-    return Boolean(value);
-  },
+  toBool: Boolean,
 
   toIterator(value: any): Nullable<IteratorDelegate> {
     if (value && value[Symbol.iterator]) {
@@ -139,15 +137,15 @@ setGlobalContext({
 
   warnIfStyleNotTrusted() {},
 
-  assert(test: unknown, msg: string) {
+  assert(test: unknown, message: string) {
     if (!test) {
-      throw new Error(msg);
+      throw new Error(message);
     }
   },
 
-  deprecate(msg: string, test: unknown) {
+  deprecate(message: string, test: unknown) {
     if (!test) {
-      actualDeprecations.push(msg);
+      actualDeprecations.push(message);
     }
   },
 });

@@ -5,8 +5,8 @@ class LexicalScopeTest extends RenderTest {
 
   @test
   'Can use a component in scope'() {
-    const Foo = defineComponent({}, 'Hello, world!', { strictMode: false });
-    const Bar = defineComponent({ Foo }, '<Foo/>', { strictMode: false });
+    let Foo = defineComponent({}, 'Hello, world!', { strictMode: false });
+    let Bar = defineComponent({ Foo }, '<Foo/>', { strictMode: false });
 
     this.renderComponent(Bar);
     this.assertHTML('Hello, world!');

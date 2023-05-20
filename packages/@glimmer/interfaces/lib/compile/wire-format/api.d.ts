@@ -3,22 +3,22 @@ import type { Nullable } from '../../core';
 import type { CurriedType } from '../../curry';
 import type {
   AppendOpcode,
-  AttrOpcode,
-  AttrSplatOpcode,
+  AttrOpcode as AttributeOpcode,
+  AttrSplatOpcode as AttributeSplatOpcode,
   BlockOpcode,
   CallOpcode,
   CloseElementOpcode,
   CommentOpcode,
-  ComponentAttrOpcode,
+  ComponentAttrOpcode as ComponentAttributeOpcode,
   ComponentOpcode,
   ConcatOpcode,
   CurryOpcode,
   DebuggerOpcode,
-  DynamicArgOpcode,
-  DynamicAttrOpcode,
+  DynamicArgOpcode as DynamicArgumentOpcode,
+  DynamicAttrOpcode as DynamicAttributeOpcode,
   EachOpcode,
   FlushElementOpcode,
-  GetDynamicVarOpcode,
+  GetDynamicVarOpcode as GetDynamicVariableOpcode,
   GetFreeAsComponentHeadOpcode,
   GetFreeAsComponentOrHelperHeadOpcode,
   GetFreeAsComponentOrHelperHeadOrThisFallbackOpcode,
@@ -30,7 +30,7 @@ import type {
   GetStrictKeywordOpcode,
   GetSymbolOpcode,
   HasBlockOpcode,
-  HasBlockParamsOpcode,
+  HasBlockParamsOpcode as HasBlockParametersOpcode,
   IfInlineOpcode,
   IfOpcode,
   InElementOpcode,
@@ -41,9 +41,9 @@ import type {
   NotOpcode,
   OpenElementOpcode,
   OpenElementWithSplatOpcode,
-  StaticArgOpcode,
-  StaticAttrOpcode,
-  StaticComponentAttrOpcode,
+  StaticArgOpcode as StaticArgumentOpcode,
+  StaticAttrOpcode as StaticAttributeOpcode,
+  StaticComponentAttrOpcode as StaticComponentAttributeOpcode,
   TrustingAppendOpcode,
   TrustingComponentAttrOpcode,
   TrustingDynamicAttrOpcode,
@@ -192,7 +192,7 @@ export namespace Expressions {
   export type Concat = [ConcatOpcode, Core.ConcatParams];
   export type Helper = [CallOpcode, Expression, Nullable<Params>, Hash];
   export type HasBlock = [HasBlockOpcode, Expression];
-  export type HasBlockParams = [HasBlockParamsOpcode, Expression];
+  export type HasBlockParams = [HasBlockParametersOpcode, Expression];
   export type Curry = [CurryOpcode, Expression, CurriedType, Params, Hash];
 
   export type IfInline = [
@@ -204,7 +204,7 @@ export namespace Expressions {
 
   export type Not = [op: NotOpcode, value: Expression];
 
-  export type GetDynamicVar = [op: GetDynamicVarOpcode, value: Expression];
+  export type GetDynamicVar = [op: GetDynamicVariableOpcode, value: Expression];
 
   export type Log = [op: LogOpcode, positional: Params];
 }
@@ -262,27 +262,27 @@ export namespace Statements {
   export type FlushElement = [FlushElementOpcode];
   export type CloseElement = [CloseElementOpcode];
 
-  type Attr<Op extends AttrOpcode> = [
+  type Attribute_<Op extends AttributeOpcode> = [
     op: Op,
     name: string | WellKnownAttrName,
     value: Expression,
     namespace?: string | undefined
   ];
 
-  export type StaticAttr = Attr<StaticAttrOpcode>;
-  export type StaticComponentAttr = Attr<StaticComponentAttrOpcode>;
+  export type StaticAttr = Attribute_<StaticAttributeOpcode>;
+  export type StaticComponentAttr = Attribute_<StaticComponentAttributeOpcode>;
 
   export type AnyStaticAttr = StaticAttr | StaticComponentAttr;
 
-  export type AttrSplat = [AttrSplatOpcode, YieldTo];
+  export type AttrSplat = [AttributeSplatOpcode, YieldTo];
   export type Yield = [YieldOpcode, YieldTo, Nullable<Params>];
-  export type DynamicArg = [DynamicArgOpcode, string, Expression];
-  export type StaticArg = [StaticArgOpcode, string, Expression];
+  export type DynamicArg = [DynamicArgumentOpcode, string, Expression];
+  export type StaticArg = [StaticArgumentOpcode, string, Expression];
 
-  export type DynamicAttr = Attr<DynamicAttrOpcode>;
-  export type ComponentAttr = Attr<ComponentAttrOpcode>;
-  export type TrustingDynamicAttr = Attr<TrustingDynamicAttrOpcode>;
-  export type TrustingComponentAttr = Attr<TrustingComponentAttrOpcode>;
+  export type DynamicAttr = Attribute_<DynamicAttributeOpcode>;
+  export type ComponentAttr = Attribute_<ComponentAttributeOpcode>;
+  export type TrustingDynamicAttr = Attribute_<TrustingDynamicAttrOpcode>;
+  export type TrustingComponentAttr = Attribute_<TrustingComponentAttrOpcode>;
 
   export type AnyDynamicAttr =
     | DynamicAttr

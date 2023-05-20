@@ -65,7 +65,7 @@ export function node<T extends string>(
       },
     };
   } else {
-    const type = name;
+    let type = name;
     return {
       fields<Fields extends object>(): TypedNodeConstructor<T, BaseNodeFields & Fields> {
         return class {

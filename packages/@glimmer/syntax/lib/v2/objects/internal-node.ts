@@ -2,7 +2,7 @@ import type { SourceSlice } from '../../source/slice';
 import { SpanList } from '../../source/span-list';
 import type { BlockSymbolTable, ProgramSymbolTable } from '../../symbol-table';
 import { Args, NamedArguments } from './args';
-import type { ComponentArg, ElementModifier, HtmlOrSplatAttr } from './attr-block';
+import type { ComponentArg as ComponentArgument, ElementModifier, HtmlOrSplatAttr as HtmlOrSplatAttribute } from './attr-block';
 import type { GlimmerParentNodeOptions } from './base';
 import { type BaseNodeFields, node } from './node';
 
@@ -33,7 +33,7 @@ export class NamedBlocks extends node().fields<{ blocks: readonly NamedBlock[] }
   get(name: 'default'): NamedBlock;
   get(name: string): NamedBlock | null;
   get(name: string): NamedBlock | null {
-    return this.blocks.filter((block) => block.name.chars === name)[0] || null;
+    return this.blocks.find((block) => block.name.chars === name) || null;
   }
 }
 
@@ -42,8 +42,8 @@ export interface NamedBlockFields extends BaseNodeFields {
   block: Block;
 
   // these are not currently supported, but are here for future expansion
-  attrs: readonly HtmlOrSplatAttr[];
-  componentArgs: readonly ComponentArg[];
+  attrs: readonly HtmlOrSplatAttribute[];
+  componentArgs: readonly ComponentArgument[];
   modifiers: readonly ElementModifier[];
 }
 

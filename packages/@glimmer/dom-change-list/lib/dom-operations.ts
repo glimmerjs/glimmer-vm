@@ -71,8 +71,8 @@ export class OperationsBuilder {
   }
 
   openElement(name: string, ns: Namespace = NS_HTML): NodeToken {
-    const nameConst = this.constants.get(name);
-    const nsConst = this.constants.get(ns);
+    let nameConst = this.constants.get(name);
+    let nsConst = this.constants.get(ns);
 
     this.ops.push(withSize(ConstructionOperation.OpenElement, 2), nameConst, nsConst);
     return this.token++;
@@ -83,9 +83,9 @@ export class OperationsBuilder {
   }
 
   setAttribute(name: string, value: string, ns: Namespace = NS_HTML) {
-    const nameConst = this.constants.get(name);
-    const valueConst = this.constants.get(value);
-    const nsConst = this.constants.get(ns);
+    let nameConst = this.constants.get(name);
+    let valueConst = this.constants.get(value);
+    let nsConst = this.constants.get(ns);
 
     this.ops.push(withSize(ConstructionOperation.SetAttribute, 3), nameConst, valueConst, nsConst);
   }
@@ -128,12 +128,12 @@ export interface RunOptions {
 
 export function run(opcodes: ReadonlyArray<number>, options: RunOptions) {
   let offset = 0;
-  const end = opcodes.length;
-  const tokens = new NodeTokensImpl();
+  let end = opcodes.length;
+  let tokens = new NodeTokensImpl();
 
   tokens.register(options.parent);
 
-  const state: ConstructionState = {
+  let state: ConstructionState = {
     ...options,
     elements: [options.parent],
     constructing: null,
@@ -141,11 +141,11 @@ export function run(opcodes: ReadonlyArray<number>, options: RunOptions) {
   };
 
   while (offset < end) {
-    const value = opcodes[offset]!;
-    const size = sizeof(value);
-    const opcode = opcodeof(value);
+    let value = opcodes[offset]!;
+    let size = sizeof(value);
+    let opcode = opcodeof(value);
 
-    const function_ = ConstructionOperations[opcode]!;
+    let function_ = ConstructionOperations[opcode]!;
 
     switch (size) {
       case 0:
@@ -173,11 +173,11 @@ type ConstructionFunction = (state: ConstructionState, ...args: number[]) => voi
 const ConstructionOperations: ConstructionFunction[] = [
   /* (OpenElement tag namespace) */
   (state, tag, namespace) => {
-    const { constants, document } = state;
+    let { constants, document } = state;
 
     if (state.constructing) flush(state);
 
-    const element = document.createElementNS(
+    let element = document.createElementNS(
       constants[namespace] as ElementNamespace,
       constants[tag]!
     );
@@ -194,7 +194,7 @@ const ConstructionOperations: ConstructionFunction[] = [
 
   /* (SetAttribute name value namespace) */
   (state, name, value, namespace) => {
-    const { constants, constructing } = state;
+    let { constants, constructing } = state;
 
     assert(
       constructing !== null,
@@ -210,10 +210,10 @@ const ConstructionOperations: ConstructionFunction[] = [
 
   /* (AppendText text) */
   (state, text) => {
-    const { constants, document, parent, nextSibling, constructing } = state;
+    let { constants, document, parent, nextSibling, constructing } = state;
 
-    const parentElement = constructing ? flush(state) : parent;
-    const textNode = document.createTextNode(constants[text]!);
+    let parentElement = constructing ? flush(state) : parent;
+    let textNode = document.createTextNode(constants[text]!);
 
     parentElement.insertBefore(textNode, nextSibling);
     state.tokens.register(textNode);
@@ -221,9 +221,9 @@ const ConstructionOperations: ConstructionFunction[] = [
 
   /* (AppendComment text) */
   (state, text) => {
-    const { constants, document, parent, nextSibling } = state;
-    const parentElement = state.constructing ? flush(state) : parent;
-    const commentNode = document.createComment(constants[text]!);
+    let { constants, document, parent, nextSibling } = state;
+    let parentElement = state.constructing ? flush(state) : parent;
+    let commentNode = document.createComment(constants[text]!);
     parentElement.insertBefore(commentNode, nextSibling);
     state.tokens.register(commentNode);
   },
@@ -235,7 +235,7 @@ const ConstructionOperations: ConstructionFunction[] = [
 ];
 
 function flush(state: ConstructionState): SimpleElement {
-  const { constructing, nextSibling, elements } = state;
+  let { constructing, nextSibling, elements } = state;
   state.parent.insertBefore(constructing!, nextSibling);
   state.constructing = null;
   state.parent = constructing!;

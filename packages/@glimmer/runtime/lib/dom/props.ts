@@ -9,11 +9,7 @@ export function normalizeProperty(element: SimpleElement, slotName: string): Nor
   if (slotName in element) return triage(element, slotName);
 
   let lower = slotName.toLowerCase();
-  if (lower in element) {
-    return triage(element, lower);
-  } else {
-    return [ATTR, slotName];
-  }
+  return lower in element ? triage(element, lower) : [ATTR, slotName];
 }
 
 function triage(element: SimpleElement, normalized: string): [type: AttrType, normalized: string] {
@@ -21,7 +17,7 @@ function triage(element: SimpleElement, normalized: string): [type: AttrType, no
 }
 
 function triageType(element: SimpleElement, normalized: string): AttrType {
-  return normalized.toLowerCase() === 'style' || preferAttr(element.tagName, normalized)
+  return normalized.toLowerCase() === 'style' || preferAttribute(element.tagName, normalized)
     ? ATTR
     : PROP;
 }
@@ -36,7 +32,7 @@ export function normalizePropertyValue(value: unknown): unknown {
 
 const FORM = 'INPUT|SELECT|OPTION|TEXTAREA|LABEL|FIELDSET|LEGEND|OBJECT|OUTPUT|BUTTON'.split('|');
 
-function preferAttr(tagName: string, propName: string) {
-  if (propName === 'form') return FORM.includes(tagName);
-  if (tagName === 'INPUT') return propName === 'autocorrect' || propName === 'list';
+function preferAttribute(tagName: string, propertyName: string) {
+  if (propertyName === 'form') return FORM.includes(tagName);
+  if (tagName === 'INPUT') return propertyName === 'autocorrect' || propertyName === 'list';
 }

@@ -290,7 +290,7 @@ export class NamedArgumentsImpl implements NamedArguments {
   capture(): CapturedNamedArguments {
     let map = dict<Reference>();
 
-    for (const [index, name] of enumerate(this.#names)) {
+    for (let [index, name] of enumerate(this.#names)) {
       map[name] = import.meta.env.DEV ? createDebugAliasRef!(`@${name}`, unwrap(this.#references[index])) : unwrap(this.#references[index]);
     }
 
@@ -308,7 +308,7 @@ export class NamedArgumentsImpl implements NamedArguments {
       let { length } = this;
       let newNames = [...this.#names];
 
-      for (const name of keys) {
+      for (let name of keys) {
         let index = newNames.indexOf(name);
 
         if (index === -1) {
@@ -475,7 +475,7 @@ export function createCapturedArgs(named: Dict<Reference>, positional: Reference
 export function reifyNamed(named: CapturedNamedArguments) {
   let reified = dict();
 
-  for (const [key, value] of Object.entries(named)) {
+  for (let [key, value] of Object.entries(named)) {
     reified[key] = valueForRef(value);
   }
 

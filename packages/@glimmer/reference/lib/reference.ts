@@ -25,9 +25,6 @@ const COMPUTE: ComputeReference = 1;
 const UNBOUND: UnboundReference = 2;
 const INVOKABLE: InvokableReference = 3;
 
-export type { Reference as default };
-export type { Reference };
-
 //////////
 
 export interface ReferenceEnvironment {
@@ -36,30 +33,30 @@ export interface ReferenceEnvironment {
 }
 
 class ReferenceImpl<T = unknown> implements Reference<T> {
-  static _isInvokableRef_ = (ref: Reference) => {
-    return (ref as ReferenceImpl).#type === INVOKABLE;
+  static _isInvokableRef_ = (reference: Reference) => {
+    return (reference as ReferenceImpl).#type === INVOKABLE;
   };
 
-  static _isUnboundRef_ = (ref: Reference) => {
-    return (ref as ReferenceImpl).#type === UNBOUND;
+  static _isUnboundRef_ = (reference: Reference) => {
+    return (reference as ReferenceImpl).#type === UNBOUND;
   };
 
-  static _getType_ = (ref: Reference) => {
-    return (ref as ReferenceImpl).#type;
+  static _getType_ = (reference: Reference) => {
+    return (reference as ReferenceImpl).#type;
   };
 
   static _is_ = (value: unknown): value is Reference => {
     return !!(value && value instanceof ReferenceImpl);
   };
 
-  static _childRefFor_ = (_parentRef: Reference, path: string): Reference => {
-    const parentRef = _parentRef as ReferenceImpl;
+  static _childRefFor_ = (_parentReference: Reference, path: string): Reference => {
+    let parentReference = _parentReference as ReferenceImpl;
 
-    let children = parentRef.#children;
+    let children = parentReference.#children;
     let child: Reference;
 
     if (children === null) {
-      children = parentRef.#children = new Map();
+      children = parentReference.#children = new Map();
     } else {
       child = children.get(path)!;
 
@@ -68,37 +65,35 @@ class ReferenceImpl<T = unknown> implements Reference<T> {
       }
     }
 
-    if (isUnboundRef(parentRef)) {
-      const parent = valueForRef(parentRef);
+    if (isUnboundReference(parentReference)) {
+      let parent = valueForRef(parentReference);
 
-      if (isDict(parent)) {
-        child = createUnboundRef(
-          (parent as Record<string, unknown>)[path],
-          import.meta.env.DEV && `${parentRef.debugLabel}.${path}`
-        );
-      } else {
-        child = UNDEFINED_REFERENCE;
-      }
+      child = isDict(parent)
+        ? createUnboundRef(
+            (parent as Record<string, unknown>)[path],
+            import.meta.env.DEV && `${parentReference.debugLabel}.${path}`
+          )
+        : UNDEFINED_REFERENCE;
     } else {
       child = createComputeRef(
         () => {
-          const parent = valueForRef(parentRef);
+          let parent = valueForRef(parentReference);
 
           if (isDict(parent)) {
             return getProp(parent, path);
           }
         },
-        (val) => {
-          const parent = valueForRef(parentRef);
+        (value) => {
+          let parent = valueForRef(parentReference);
 
           if (isDict(parent)) {
-            return setProp(parent, path, val);
+            return setProp(parent, path, value);
           }
         }
       );
 
       if (import.meta.env.DEV) {
-        child.debugLabel = `${parentRef.debugLabel}.${path}`;
+        child.debugLabel = `${parentReference.debugLabel}.${path}`;
       }
     }
 
@@ -107,28 +102,28 @@ class ReferenceImpl<T = unknown> implements Reference<T> {
     return child;
   };
 
-  static _valueForRef_ = <T>(_ref: Reference<T>): T => {
-    const ref = _ref as ReferenceImpl<T>;
+  static _valueForRef_ = <T>(_reference: Reference<T>): T => {
+    let reference = _reference as ReferenceImpl<T>;
 
-    let { tag } = ref;
+    let { tag } = reference;
 
     if (tag === CONSTANT_TAG) {
-      return ref.lastValue as T;
+      return reference.lastValue as T;
     }
 
-    const { lastRevision } = ref;
+    let { lastRevision } = reference;
     let lastValue;
 
     if (tag === null || !validateTag(tag, lastRevision)) {
-      const newTag = track(() => {
-        lastValue = ref.lastValue = ref.#compute!();
-      }, import.meta.env.DEV && ref.debugLabel);
+      let newTag = track(() => {
+        lastValue = reference.lastValue = reference.#compute!();
+      }, import.meta.env.DEV && reference.debugLabel);
 
-      tag = ref.tag = newTag;
+      tag = reference.tag = newTag;
 
-      ref.lastRevision = valueForTag(newTag);
+      reference.lastRevision = valueForTag(newTag);
     } else {
-      lastValue = ref.lastValue;
+      lastValue = reference.lastValue;
     }
 
     consumeTag(tag);
@@ -141,59 +136,59 @@ class ReferenceImpl<T = unknown> implements Reference<T> {
     update: Nullable<(value: T) => void> = null,
     debugLabel: false | string = 'unknown'
   ): Reference<T> => {
-    const ref = new ReferenceImpl<T>(COMPUTE);
+    let reference = new ReferenceImpl<T>(COMPUTE);
 
-    ref.#compute = compute;
-    ref.#update = update;
+    reference.#compute = compute;
+    reference.#update = update;
 
     if (import.meta.env.DEV) {
-      ref.debugLabel = `(result of a \`${debugLabel}\` helper)`;
+      reference.debugLabel = `(result of a \`${debugLabel}\` helper)`;
     }
 
-    return ref;
+    return reference;
   };
 
   static _createInvokableRef_ = (inner: Reference): Reference => {
-    const ref = new ReferenceImpl(INVOKABLE, inner.debugLabel);
+    let reference = new ReferenceImpl(INVOKABLE, inner.debugLabel);
 
-    ref._updateCompute_(() => valueForRef(inner));
-    ref.#update = (value) => updateRef(inner, value);
+    reference._updateCompute_(() => valueForRef(inner));
+    reference.#update = (value) => updateRef(inner, value);
 
-    return ref;
+    return reference;
   };
 
-  static _isConstRef_ = (ref: Reference) => (ref as ReferenceImpl).tag === CONSTANT_TAG;
-  static _isUpdatableRef_ = (ref: Reference) => (ref as ReferenceImpl).#update !== null;
+  static _isConstRef_ = (reference: Reference) => (reference as ReferenceImpl).tag === CONSTANT_TAG;
+  static _isUpdatableRef_ = (reference: Reference) => (reference as ReferenceImpl).#update !== null;
 
-  static _updateRef_ = (ref: Reference, value: unknown) =>
+  static _updateRef_ = (reference: Reference, value: unknown) =>
     void expect(
-      (ref as ReferenceImpl).#update,
+      (reference as ReferenceImpl).#update,
       'called update on a non-updatable reference'
     )(value);
 
   static _childRefFromParts_ = (root: Reference, parts: string[]): Reference => {
     let reference = root;
-    for (const part of parts) reference = childRefFor(reference, part);
+    for (let part of parts) reference = childRefFor(reference, part);
     return reference;
   };
 
   static _createDebugAliasRef_ = import.meta.env.DEV
     ? (debugLabel: string, inner: Reference) => {
-        const update = isUpdatableRef(inner) ? (value: unknown) => updateRef(inner, value) : null;
+        let update = isUpdatableRef(inner) ? (value: unknown) => updateRef(inner, value) : null;
 
-        const ref = new ReferenceImpl(
+        let reference = new ReferenceImpl(
           getType(inner),
           /*@__PURE__*/ `(result of a \`${debugLabel}\` helper)`
         );
 
-        ref._updateCompute_(() => valueForRef(inner));
-        ref.#update = update;
+        reference._updateCompute_(() => valueForRef(inner));
+        reference.#update = update;
 
         if (import.meta.env.DEV) {
-          ref.debugLabel = `(result of a \`${debugLabel}\` helper)`;
+          reference.debugLabel = `(result of a \`${debugLabel}\` helper)`;
         }
 
-        return ref;
+        return reference;
       }
     : undefined;
 
@@ -205,7 +200,7 @@ class ReferenceImpl<T = unknown> implements Reference<T> {
   #children: Nullable<Map<string | Reference, Reference>> = null;
 
   #compute: Nullable<() => T> = null;
-  #update: Nullable<(val: T) => void> = null;
+  #update: Nullable<(value: T) => void> = null;
 
   public debugLabel: string | undefined;
 
@@ -227,53 +222,53 @@ class ReferenceImpl<T = unknown> implements Reference<T> {
 }
 
 export function createPrimitiveRef(value: unknown): Reference {
-  const ref = new ReferenceImpl(UNBOUND);
+  let reference = new ReferenceImpl(UNBOUND);
 
-  ref.tag = CONSTANT_TAG;
-  ref.lastValue = value;
+  reference.tag = CONSTANT_TAG;
+  reference.lastValue = value;
 
   if (import.meta.env.DEV) {
-    ref.debugLabel = String(value);
+    reference.debugLabel = String(value);
   }
 
-  return ref;
+  return reference;
 }
 
-export const UNDEFINED_REFERENCE = createPrimitiveRef(undefined);
+export const UNDEFINED_REFERENCE = createPrimitiveRef(void 0);
 export const NULL_REFERENCE = createPrimitiveRef(null);
 export const TRUE_REFERENCE = createPrimitiveRef(true);
 export const FALSE_REFERENCE = createPrimitiveRef(false);
 
 export function createConstRef(value: unknown, debugLabel: false | string): Reference {
-  const ref = new ReferenceImpl(CONSTANT);
+  let reference = new ReferenceImpl(CONSTANT);
 
-  ref.lastValue = value;
-  ref.tag = CONSTANT_TAG;
+  reference.lastValue = value;
+  reference.tag = CONSTANT_TAG;
 
   if (import.meta.env.DEV) {
-    ref.debugLabel = debugLabel as string;
+    reference.debugLabel = debugLabel as string;
   }
 
-  return ref;
+  return reference;
 }
 
 export function createUnboundRef(value: unknown, debugLabel: false | string): Reference {
-  const ref = new ReferenceImpl(UNBOUND);
+  let reference = new ReferenceImpl(UNBOUND);
 
-  ref.lastValue = value;
-  ref.tag = CONSTANT_TAG;
+  reference.lastValue = value;
+  reference.tag = CONSTANT_TAG;
 
   if (import.meta.env.DEV) {
-    ref.debugLabel = debugLabel as string;
+    reference.debugLabel = debugLabel as string;
   }
 
-  return ref;
+  return reference;
 }
 
-export function createReadOnlyRef(ref: Reference): Reference {
-  if (!isUpdatableRef(ref)) return ref;
+export function createReadOnlyRef(reference: Reference): Reference {
+  if (!isUpdatableRef(reference)) return reference;
 
-  return createComputeRef(() => valueForRef(ref), null, ref.debugLabel);
+  return createComputeRef(() => valueForRef(reference), null, reference.debugLabel);
 }
 
 export const isInvokableRef = ReferenceImpl._isInvokableRef_;
@@ -287,5 +282,7 @@ export const childRefFromParts = ReferenceImpl._childRefFromParts_;
 export const createDebugAliasRef = ReferenceImpl._createDebugAliasRef_;
 export const createInvokableRef = ReferenceImpl._createInvokableRef_;
 export const isConstRef = ReferenceImpl._isConstRef_;
-const isUnboundRef = ReferenceImpl._isUnboundRef_;
+const isUnboundReference = ReferenceImpl._isUnboundRef_;
 const getType = ReferenceImpl._getType_;
+
+export type { Reference as default, Reference } from '@glimmer/interfaces';

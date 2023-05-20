@@ -20,17 +20,17 @@ export class Compilers<PushOp extends PushExpressionOp, TSexpOpcodes extends Sex
 
   readonly add = <TSexpOpcode extends TSexpOpcodes>(
     name: TSexpOpcode,
-    func: CompilerFunction<PushOp, SexpOpcodeMap[TSexpOpcode]>
+    function_: CompilerFunction<PushOp, SexpOpcodeMap[TSexpOpcode]>
   ): void => {
-    this.#names[name] = this.#funcs.push(func) - 1;
+    this.#names[name] = this.#funcs.push(function_) - 1;
   };
 
   readonly compile = (op: PushOp, sexp: SexpOpcodeMap[TSexpOpcodes]): void => {
     let name = sexp[0];
     let index = unwrap(this.#names[name]);
-    let func = this.#funcs[index];
-    assert(!!func, `expected an implementation for ${sexp[0]}`);
+    let function_ = this.#funcs[index];
+    assert(!!function_, `expected an implementation for ${sexp[0]}`);
 
-    func(op, sexp);
+    function_(op, sexp);
   };
 }

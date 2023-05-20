@@ -1,7 +1,4 @@
-import type {
-  CompileTimeCompilationContext,
-  CompileTimeComponent,
-} from "@glimmer/interfaces";
+import type { CompileTimeCompilationContext, CompileTimeComponent } from '@glimmer/interfaces';
 import { unwrapHandle } from '@glimmer/util';
 
 export function compileEntry(entry: CompileTimeComponent, context: CompileTimeCompilationContext) {
@@ -14,7 +11,7 @@ export async function measureRender(
   endMark: string,
   render: () => Promise<void> | void
 ) {
-  const endObserved = new Promise<void>((resolve) => {
+  let endObserved = new Promise<void>((resolve) => {
     new PerformanceObserver((entries, observer) => {
       if (entries.getEntriesByName(endMark, 'mark').length > 0) {
         resolve();

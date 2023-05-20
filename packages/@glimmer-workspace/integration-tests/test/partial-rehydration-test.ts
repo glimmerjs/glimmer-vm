@@ -26,13 +26,13 @@ export class PartialRehydrationTest extends RenderTest {
       '<div id="placeholder"><RehydratingComponent @a={{@a}} @b={{@b}} @c={{@c}}/></div>'
     );
 
-    const args = {
+    let args = {
       a: 'a',
       b: 'b',
       c: 'c',
     };
 
-    const html = this.delegate.renderComponentServerSide('Root', args);
+    let html = this.delegate.renderComponentServerSide('Root', args);
     this.assert.strictEqual(
       html,
       content([
@@ -62,7 +62,7 @@ export class PartialRehydrationTest extends RenderTest {
     this.renderResult = this.delegate.renderComponentClientSide(
       'RehydratingComponent',
       args,
-      castToSimple(document.getElementById('placeholder')!)
+      castToSimple(document.querySelector('#placeholder')!)
     );
     this.assertHTML(content([OPEN, OPEN, '<div id="placeholder">abc</div>', CLOSE, CLOSE]));
     this.assert.ok(
@@ -92,7 +92,7 @@ export class PartialRehydrationTest extends RenderTest {
       `
     );
 
-    const args = {
+    let args = {
       nav: {
         title: 'Nav',
       },
@@ -101,7 +101,7 @@ export class PartialRehydrationTest extends RenderTest {
       },
     };
 
-    const html = this.delegate.renderComponentServerSide('Root', args);
+    let html = this.delegate.renderComponentServerSide('Root', args);
     this.assert.strictEqual(
       html,
       content([

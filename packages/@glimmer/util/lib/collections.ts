@@ -40,8 +40,8 @@ export class StackImpl<T> implements Stack<T> {
   }
 
   nth(from: number): Nullable<T> {
-    let len = this.stack.length;
-    return len < from ? null : unwrap(this.stack[len - from]);
+    let length = this.stack.length;
+    return length < from ? null : unwrap(this.stack[length - from]);
   }
 
   isEmpty(): boolean {

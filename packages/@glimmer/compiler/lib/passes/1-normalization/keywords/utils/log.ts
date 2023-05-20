@@ -1,6 +1,6 @@
 import { type ASTv2, generateSyntaxError } from '@glimmer/syntax';
 
-import { Err, Ok, type Result } from '../../../../shared/result';
+import { Err as Error_, Ok, type Result } from '../../../../shared/result';
 import * as mir from '../../../2-encoding/mir';
 import type { NormalizationState } from '../../context';
 import { VISIT_EXPRS } from '../../visitors/expressions';
@@ -12,7 +12,7 @@ function assertLogKeyword(node: GenericKeywordNode): Result<ASTv2.PositionalArgu
   } = node;
 
   if (named && !named.isEmpty()) {
-    return Err(generateSyntaxError(`(log) does not take any named arguments`, node.loc));
+    return Error_(generateSyntaxError(`(log) does not take any named arguments`, node.loc));
   }
 
   return Ok(positional);

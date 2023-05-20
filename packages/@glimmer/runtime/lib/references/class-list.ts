@@ -2,15 +2,15 @@ import { createComputeRef, type Reference, valueForRef } from '@glimmer/referenc
 
 import { normalizeStringValue } from '../dom/normalize';
 
-export default function createClassListRef(list: Reference[]) {
+export default function createClassListReference(list: Reference[]) {
   return createComputeRef(() => {
-    let ret: string[] = [];
+    let returnValue: string[] = [];
 
-    for (const ref of list) {
-      let value = normalizeStringValue(typeof ref === 'string' ? ref : valueForRef(ref));
-      if (value) ret.push(value);
+    for (let reference of list) {
+      let value = normalizeStringValue(typeof reference === 'string' ? reference : valueForRef(reference));
+      if (value) returnValue.push(value);
     }
 
-    return ret.length === 0 ? null : ret.join(' ');
+    return returnValue.length === 0 ? null : returnValue.join(' ');
   });
 }

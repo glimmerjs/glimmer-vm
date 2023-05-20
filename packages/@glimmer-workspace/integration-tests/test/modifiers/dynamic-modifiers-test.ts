@@ -14,7 +14,7 @@ class DynamicModifiersResolutionModeTest extends RenderTest {
 
   @test
   'Can use a dynamic modifier'() {
-    const foo = defineSimpleModifier((element: Element) => (element.innerHTML = 'Hello, world!'));
+    let foo = defineSimpleModifier((element: Element) => (element.innerHTML = 'Hello, world!'));
 
     this.registerComponent(
       'Glimmer',
@@ -32,7 +32,7 @@ class DynamicModifiersResolutionModeTest extends RenderTest {
 
   @test
   'Can use a nested argument as a modifier'() {
-    const foo = defineSimpleModifier((element: Element) => (element.innerHTML = 'Hello, world!'));
+    let foo = defineSimpleModifier((element: Element) => (element.innerHTML = 'Hello, world!'));
     this.registerComponent('TemplateOnly', 'Foo', '<div {{@x.foo}}></div>');
 
     this.render('<Foo @x={{this.x}}/>', { x: { foo } });
@@ -42,7 +42,7 @@ class DynamicModifiersResolutionModeTest extends RenderTest {
 
   @test
   'Can pass curried modifier as argument and invoke dynamically'() {
-    const foo = defineSimpleModifier((element: Element, [value]: [string]): void => {
+    let foo = defineSimpleModifier((element: Element, [value]: [string]): void => {
       element.innerHTML = value;
     });
     this.registerComponent('TemplateOnly', 'Foo', '<div {{@value}}></div>');
@@ -54,7 +54,7 @@ class DynamicModifiersResolutionModeTest extends RenderTest {
 
   @test
   'Can pass curried modifier as argument and invoke dynamically (with args, multi-layer)'() {
-    const foo = defineSimpleModifier(
+    let foo = defineSimpleModifier(
       (element: Element, values: string[]) => (element.innerHTML = values.join(' '))
     );
     this.registerComponent('TemplateOnly', 'Foo', '<div {{@value "three"}}></div>');
@@ -67,7 +67,7 @@ class DynamicModifiersResolutionModeTest extends RenderTest {
 
   @test
   'Can pass curried modifier as argument and invoke dynamically (with args)'() {
-    const foo = defineSimpleModifier(
+    let foo = defineSimpleModifier(
       (element: Element, [first, second]: string[]) => (element.innerHTML = `${first} ${second}`)
     );
     this.registerComponent('TemplateOnly', 'Foo', '<div {{@value "world!"}}></div>');
@@ -79,7 +79,7 @@ class DynamicModifiersResolutionModeTest extends RenderTest {
 
   @test
   'Can pass curried modifier as argument and invoke dynamically (with named args)'() {
-    const foo = defineSimpleModifier(
+    let foo = defineSimpleModifier(
       (element: Element, _: unknown, { greeting }: { greeting: string }) =>
         (element.innerHTML = greeting)
     );
@@ -96,7 +96,7 @@ class DynamicModifiersResolutionModeTest extends RenderTest {
 
   @test
   'Can pass curried modifier as argument and invoke dynamically (with named args, multi-layer)'() {
-    const foo = defineSimpleModifier(
+    let foo = defineSimpleModifier(
       (element: Element, _: unknown, { greeting, name }: { greeting: string; name: string }) =>
         (element.innerHTML = `${greeting} ${name}`)
     );
@@ -115,7 +115,7 @@ class DynamicModifiersResolutionModeTest extends RenderTest {
 
   @test
   'Can invoke a yielded nested modifier'() {
-    const foo = defineSimpleModifier((element: Element) => (element.innerHTML = 'Hello, world!'));
+    let foo = defineSimpleModifier((element: Element) => (element.innerHTML = 'Hello, world!'));
     this.registerComponent(
       'TemplateOnly',
       'Bar',
@@ -136,11 +136,11 @@ class DynamicModifiersResolutionModeTest extends RenderTest {
 
   @test
   'Can use a dynamic modifier with a nested helper'() {
-    const foo = defineSimpleHelper(() => 'Hello, world!');
-    const bar = defineSimpleModifier(
+    let foo = defineSimpleHelper(() => 'Hello, world!');
+    let bar = defineSimpleModifier(
       (element: Element, value: string) => (element.innerHTML = value)
     );
-    const Bar = defineComponent({ foo }, '<div {{this.bar (foo)}}></div>', {
+    let Bar = defineComponent({ foo }, '<div {{this.bar (foo)}}></div>', {
       definition: class extends GlimmerishComponent {
         bar = bar;
       },
@@ -153,11 +153,11 @@ class DynamicModifiersResolutionModeTest extends RenderTest {
 
   @test
   'Can use a dynamic modifier with a nested dynamic helper'() {
-    const foo = defineSimpleHelper(() => 'Hello, world!');
-    const bar = defineSimpleModifier(
+    let foo = defineSimpleHelper(() => 'Hello, world!');
+    let bar = defineSimpleModifier(
       (element: Element, value: string) => (element.innerHTML = value)
     );
-    const Bar = defineComponent({}, '<div {{this.bar (this.foo)}}></div>', {
+    let Bar = defineComponent({}, '<div {{this.bar (this.foo)}}></div>', {
       definition: class extends GlimmerishComponent {
         foo = foo;
         bar = bar;

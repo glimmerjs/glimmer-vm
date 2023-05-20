@@ -2,8 +2,8 @@ import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
 
-function defaultTo<T, U>(value: T, defaultVal: U): Exclude<T, undefined> | U {
-  return (value === undefined ? defaultVal : value) as Exclude<T, undefined> | U;
+function defaultTo<T, U>(value: T, defaultValue: U): Exclude<T, undefined> | U {
+  return (value === undefined ? defaultValue : value) as Exclude<T, undefined> | U;
 }
 
 interface Options {

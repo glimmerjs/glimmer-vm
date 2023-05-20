@@ -32,11 +32,11 @@ interface Transaction {
 if (import.meta.env.DEV) {
   let CONSUMED_TAGS: WeakMap<Tag, Transaction> | null = null;
 
-  const TRANSACTION_STACK: Transaction[] = [];
+  let TRANSACTION_STACK: Transaction[] = [];
 
   /////////
 
-  const TRANSACTION_ENV = {
+  let TRANSACTION_ENV = {
     debugMessage(obj?: unknown, keyName?: string) {
       let objName;
 

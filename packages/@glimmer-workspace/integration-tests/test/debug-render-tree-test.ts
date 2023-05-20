@@ -55,7 +55,7 @@ class DebugRenderTreeDelegate extends JitRenderDelegate {
     template: string,
     Manager: { new (): InternalComponentManager<unknown> }
   ) {
-    const ComponentClass = templateOnlyComponent();
+    let ComponentClass = templateOnlyComponent();
 
     setComponentTemplate(createTemplate(template), ComponentClass);
 
@@ -499,7 +499,7 @@ class DebugRenderTreeTest extends RenderTest {
       actual = actual.sort(byTypeAndName);
       expectedNodes = expectedNodes.sort(byTypeAndName);
 
-      for (const [index, actualNode] of actual.entries()) {
+      for (let [index, actualNode] of actual.entries()) {
         let expected = this.guardPresent({ [`node (${index})`]: expectedNodes[index] });
         this.assertRenderNode(actualNode, expected, `${actualNode.type}:${actualNode.name}`);
       }

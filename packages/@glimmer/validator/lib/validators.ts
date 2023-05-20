@@ -24,7 +24,7 @@ export type Revision = number;
 
 export const CONSTANT: Revision = 0;
 export const INITIAL: Revision = 1;
-export const VOLATILE: Revision = NaN;
+export const VOLATILE: Revision = Number.NaN;
 
 export let $REVISION = INITIAL;
 
@@ -83,11 +83,7 @@ if (import.meta.env.DEV) {
 }
 
 function allowsCycles(tag: Tag): boolean {
-  if (ALLOW_CYCLES === undefined) {
-    return true;
-  } else {
-    return ALLOW_CYCLES.has(tag);
-  }
+  return ALLOW_CYCLES === undefined ? true : ALLOW_CYCLES.has(tag);
 }
 
 class MonomorphicTagImpl<T extends MonomorphicTagId = MonomorphicTagId> {
@@ -137,7 +133,7 @@ class MonomorphicTagImpl<T extends MonomorphicTagId = MonomorphicTagId> {
 
         if (subtag !== null) {
           if (Array.isArray(subtag)) {
-            for (const tag of subtag) {
+            for (let tag of subtag) {
               let value = tag[COMPUTE]();
               revision = Math.max(value, revision);
             }

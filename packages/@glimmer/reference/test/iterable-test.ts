@@ -17,11 +17,11 @@ class IterableWrapper {
   readonly #iterable: Reference<{ _next_(): OpaqueIterationItem | null }>;
 
   constructor(obj: unknown, key = '@identity') {
-    let valueRef = createComputeRef(() => {
+    let valueReference = createComputeRef(() => {
       consumeTag(VOLATILE_TAG);
       return obj;
     });
-    this.#iterable = createIteratorRef(valueRef, key);
+    this.#iterable = createIteratorRef(valueReference, key);
   }
 
   #iterate() {
@@ -40,11 +40,11 @@ class IterableWrapper {
   }
 
   toValues() {
-    return this.#iterate().map((i) => i.value);
+    return this.#iterate().map((index) => index.value);
   }
 
   toKeys() {
-    return this.#iterate().map((i) => i.key);
+    return this.#iterate().map((index) => index.key);
   }
 }
 
@@ -92,21 +92,21 @@ module('@glimmer/reference: IterableReference', (hooks) => {
 
   module('keys', () => {
     test('@identity works', (assert) => {
-      let arr = [
+      let array = [
         { key: 'a', name: 'Yehuda' },
         { key: 'b', name: 'Godfrey' },
       ];
-      let target = new IterableWrapper(arr);
+      let target = new IterableWrapper(array);
 
-      assert.deepEqual(target.toKeys(), arr);
+      assert.deepEqual(target.toKeys(), array);
     });
 
     test('@identity works with multiple values that are the same', (assert) => {
       let yehuda = { key: 'a', name: 'Yehuda' };
       let godfrey = { key: 'b', name: 'Godfrey' };
-      let arr = [yehuda, godfrey, godfrey];
+      let array = [yehuda, godfrey, godfrey];
 
-      let target = new IterableWrapper(arr);
+      let target = new IterableWrapper(array);
 
       let keys1 = target.toKeys();
 
@@ -114,8 +114,8 @@ module('@glimmer/reference: IterableReference', (hooks) => {
       assert.strictEqual(keys1[0], yehuda);
       assert.strictEqual(keys1[1], godfrey);
 
-      arr.pop();
-      arr.unshift(godfrey);
+      array.pop();
+      array.unshift(godfrey);
 
       let keys2 = target.toKeys();
 
@@ -128,20 +128,20 @@ module('@glimmer/reference: IterableReference', (hooks) => {
     });
 
     test('@identity works with primitives (except null)', (assert) => {
-      let arr = [undefined, 123, 'foo', Symbol('bar'), true];
-      let target = new IterableWrapper(arr);
+      let array = [undefined, 123, 'foo', Symbol('bar'), true];
+      let target = new IterableWrapper(array);
 
-      assert.deepEqual(target.toValues(), arr);
-      assert.deepEqual(target.toKeys(), arr);
+      assert.deepEqual(target.toValues(), array);
+      assert.deepEqual(target.toKeys(), array);
     });
 
     test('@identity works with null', (assert) => {
-      let arr: any[] = [null];
-      let target = new IterableWrapper(arr);
+      let array: any[] = [null];
+      let target = new IterableWrapper(array);
 
       let keys1 = target.toKeys();
 
-      arr.unshift(undefined);
+      array.unshift(undefined);
 
       let keys2 = target.toKeys();
 
@@ -149,12 +149,12 @@ module('@glimmer/reference: IterableReference', (hooks) => {
     });
 
     test('@identity works with multiple null values', (assert) => {
-      let arr: any[] = [null];
-      let target = new IterableWrapper(arr);
+      let array: any[] = [null];
+      let target = new IterableWrapper(array);
 
       let keys1 = target.toKeys();
 
-      arr.push(null);
+      array.push(null);
 
       let keys2 = target.toKeys();
 
@@ -164,41 +164,41 @@ module('@glimmer/reference: IterableReference', (hooks) => {
     });
 
     test('@key works', (assert) => {
-      let arr = [
+      let array = [
         { key: 'a', name: 'Yehuda' },
         { key: 'b', name: 'Godfrey' },
       ];
-      let target = new IterableWrapper(arr, '@key');
+      let target = new IterableWrapper(array, '@key');
 
       assert.deepEqual(target.toKeys(), [0, 1]);
     });
 
     test('@index works', (assert) => {
-      let arr = [
+      let array = [
         { key: 'a', name: 'Yehuda' },
         { key: 'b', name: 'Godfrey' },
       ];
-      let target = new IterableWrapper(arr, '@index');
+      let target = new IterableWrapper(array, '@index');
 
       assert.deepEqual(target.toKeys(), ['0', '1']);
     });
 
     test('paths work', (assert) => {
-      let arr = [
+      let array = [
         { key: 'a', name: 'Yehuda' },
         { key: 'b', name: 'Godfrey' },
       ];
-      let target = new IterableWrapper(arr, 'key');
+      let target = new IterableWrapper(array, 'key');
 
       assert.deepEqual(target.toKeys(), ['a', 'b']);
     });
 
     test('it works with dictionaries', (assert) => {
-      let arr = [Object.create(null), Object.create(null)];
-      let target = new IterableWrapper(arr);
+      let array = [Object.create(null), Object.create(null)];
+      let target = new IterableWrapper(array);
 
-      assert.deepEqual(target.toValues(), arr);
-      assert.deepEqual(target.toKeys(), arr);
+      assert.deepEqual(target.toValues(), array);
+      assert.deepEqual(target.toKeys(), array);
     });
   });
 });

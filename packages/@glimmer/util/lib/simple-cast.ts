@@ -33,8 +33,8 @@ type NodeForSugaryCheck<S extends SugaryNodeCheck<BrowserTag>> = S extends NodeC
 
 type BrowserNode = Element | Document | DocumentFragment | Text | Comment | Node;
 
-export function castToSimple(doc: Document | SimpleDocument): SimpleDocument;
-export function castToSimple(elem: Element | SimpleElement): SimpleElement;
+export function castToSimple(document: Document | SimpleDocument): SimpleDocument;
+export function castToSimple(element: Element | SimpleElement): SimpleElement;
 export function castToSimple(node: Node | SimpleNode): SimpleNode;
 export function castToSimple(
   node: Document | Element | Node | SimpleDocument | SimpleElement | SimpleNode
@@ -49,7 +49,7 @@ export function castToSimple(
 }
 
 // If passed a document, verify we're in the browser and return it as a Document
-export function castToBrowser(doc: Document | SimpleDocument): Document;
+export function castToBrowser(document: Document | SimpleDocument): Document;
 // If we don't know what this is, but the check requires it to be an element,
 // the cast will mandate that it's a browser element
 export function castToBrowser<S extends SugaryNodeCheck<BrowserElementTag>>(
@@ -76,7 +76,7 @@ export function castToBrowser<S extends SugaryNodeCheck>(
     }
 
     if (typeof document === undefined) {
-      throw new Error('Attempted to cast to a browser node in a non-browser context');
+      throw new TypeError('Attempted to cast to a browser node in a non-browser context');
     }
 
     if (isDocument(node)) {

@@ -67,10 +67,10 @@ module('References', (hooks) => {
   module('const ref', () => {
     test('it works', (assert) => {
       let value = {};
-      let constRef = createConstRef(value, 'test');
+      let constReference = createConstRef(value, 'test');
 
-      assert.strictEqual(valueForRef(constRef), value, 'value is correct');
-      assert.notOk(isUpdatableRef(constRef), 'value is not updatable');
+      assert.strictEqual(valueForRef(constReference), value, 'value is correct');
+      assert.notOk(isUpdatableRef(constReference), 'value is not updatable');
     });
 
     test('can create children of const refs', (assert) => {
@@ -80,24 +80,24 @@ module('References', (hooks) => {
 
       let parent = new Parent();
 
-      let constRef = createConstRef(parent, 'test');
-      let childRef = childRefFor(constRef, 'child');
+      let constReference = createConstRef(parent, 'test');
+      let childReference = childRefFor(constReference, 'child');
 
-      assert.strictEqual(valueForRef(childRef), 123, 'value is correct');
-      assert.strictEqual(valueForRef(childRef), 123, 'value is correct');
+      assert.strictEqual(valueForRef(childReference), 123, 'value is correct');
+      assert.strictEqual(valueForRef(childReference), 123, 'value is correct');
       assert.strictEqual(getCount, 1, 'get called correct number of times');
 
       parent.child = 456;
 
-      assert.strictEqual(valueForRef(childRef), 456, 'value updated correctly');
-      assert.strictEqual(valueForRef(childRef), 456, 'value is correct');
+      assert.strictEqual(valueForRef(childReference), 456, 'value updated correctly');
+      assert.strictEqual(valueForRef(childReference), 456, 'value is correct');
       assert.strictEqual(getCount, 2, 'get called correct number of times');
 
-      assert.true(isUpdatableRef(childRef), 'childRef is updatable');
+      assert.true(isUpdatableRef(childReference), 'childRef is updatable');
 
-      updateRef(childRef, 789);
+      updateRef(childReference, 789);
 
-      assert.strictEqual(valueForRef(childRef), 789, 'value updated correctly');
+      assert.strictEqual(valueForRef(childReference), 789, 'value updated correctly');
       assert.strictEqual(getCount, 3, 'get called correct number of times');
       assert.strictEqual(setCount, 1, 'set called correct number of times');
     });
@@ -108,7 +108,7 @@ module('References', (hooks) => {
       let count = 0;
 
       let dict = new TrackedDict<string>();
-      let ref = createComputeRef(() => {
+      let reference = createComputeRef(() => {
         count++;
         return dict.get('foo');
       });
@@ -117,33 +117,33 @@ module('References', (hooks) => {
 
       assert.strictEqual(count, 0, 'precond');
 
-      assert.strictEqual(valueForRef(ref), 'bar');
-      assert.strictEqual(valueForRef(ref), 'bar');
-      assert.strictEqual(valueForRef(ref), 'bar');
+      assert.strictEqual(valueForRef(reference), 'bar');
+      assert.strictEqual(valueForRef(reference), 'bar');
+      assert.strictEqual(valueForRef(reference), 'bar');
 
       assert.strictEqual(count, 1, 'computed');
 
       dict.set('foo', 'BAR');
 
-      assert.strictEqual(valueForRef(ref), 'BAR');
-      assert.strictEqual(valueForRef(ref), 'BAR');
-      assert.strictEqual(valueForRef(ref), 'BAR');
+      assert.strictEqual(valueForRef(reference), 'BAR');
+      assert.strictEqual(valueForRef(reference), 'BAR');
+      assert.strictEqual(valueForRef(reference), 'BAR');
 
       assert.strictEqual(count, 2, 'computed');
 
       dict.set('baz', 'bat');
 
-      assert.strictEqual(valueForRef(ref), 'BAR');
-      assert.strictEqual(valueForRef(ref), 'BAR');
-      assert.strictEqual(valueForRef(ref), 'BAR');
+      assert.strictEqual(valueForRef(reference), 'BAR');
+      assert.strictEqual(valueForRef(reference), 'BAR');
+      assert.strictEqual(valueForRef(reference), 'BAR');
 
       assert.strictEqual(count, 3, 'computed');
 
       dict.set('foo', 'bar');
 
-      assert.strictEqual(valueForRef(ref), 'bar');
-      assert.strictEqual(valueForRef(ref), 'bar');
-      assert.strictEqual(valueForRef(ref), 'bar');
+      assert.strictEqual(valueForRef(reference), 'bar');
+      assert.strictEqual(valueForRef(reference), 'bar');
+      assert.strictEqual(valueForRef(reference), 'bar');
 
       assert.strictEqual(count, 4, 'computed');
     });
@@ -154,35 +154,35 @@ module('References', (hooks) => {
       let first = new TrackedDict<string>();
       let second = new TrackedDict<string>();
 
-      let innerRef = createComputeRef(() => {
+      let innerReference = createComputeRef(() => {
         count++;
         return first.get('foo');
       });
-      let outerRef = createComputeRef(() => valueForRef(innerRef));
+      let outerReference = createComputeRef(() => valueForRef(innerReference));
 
       first.set('foo', 'bar');
 
       assert.strictEqual(count, 0, 'precond');
 
-      assert.strictEqual(valueForRef(outerRef), 'bar');
-      assert.strictEqual(valueForRef(outerRef), 'bar');
-      assert.strictEqual(valueForRef(outerRef), 'bar');
+      assert.strictEqual(valueForRef(outerReference), 'bar');
+      assert.strictEqual(valueForRef(outerReference), 'bar');
+      assert.strictEqual(valueForRef(outerReference), 'bar');
 
       assert.strictEqual(count, 1, 'computed');
 
       second.set('foo', 'BAR');
 
-      assert.strictEqual(valueForRef(outerRef), 'bar');
-      assert.strictEqual(valueForRef(outerRef), 'bar');
-      assert.strictEqual(valueForRef(outerRef), 'bar');
+      assert.strictEqual(valueForRef(outerReference), 'bar');
+      assert.strictEqual(valueForRef(outerReference), 'bar');
+      assert.strictEqual(valueForRef(outerReference), 'bar');
 
       assert.strictEqual(count, 1, 'computed');
 
       first.set('foo', 'BAR');
 
-      assert.strictEqual(valueForRef(outerRef), 'BAR');
-      assert.strictEqual(valueForRef(outerRef), 'BAR');
-      assert.strictEqual(valueForRef(outerRef), 'BAR');
+      assert.strictEqual(valueForRef(outerReference), 'BAR');
+      assert.strictEqual(valueForRef(outerReference), 'BAR');
+      assert.strictEqual(valueForRef(outerReference), 'BAR');
 
       assert.strictEqual(count, 2, 'computed');
     });
@@ -198,30 +198,30 @@ module('References', (hooks) => {
 
       let parent = new Parent();
 
-      let computeRef = createComputeRef(() => parent.child);
-      let valueRef = childRefFor(computeRef, 'value');
+      let computeReference = createComputeRef(() => parent.child);
+      let valueReference = childRefFor(computeReference, 'value');
 
-      assert.strictEqual(valueForRef(valueRef), 123, 'value is correct');
-      assert.strictEqual(valueForRef(valueRef), 123, 'value is correct');
+      assert.strictEqual(valueForRef(valueReference), 123, 'value is correct');
+      assert.strictEqual(valueForRef(valueReference), 123, 'value is correct');
       assert.strictEqual(getCount, 1, 'get called correct number of times');
 
       parent.child.value = 456;
 
-      assert.strictEqual(valueForRef(valueRef), 456, 'value updated correctly');
-      assert.strictEqual(valueForRef(valueRef), 456, 'value is correct');
+      assert.strictEqual(valueForRef(valueReference), 456, 'value updated correctly');
+      assert.strictEqual(valueForRef(valueReference), 456, 'value is correct');
       assert.strictEqual(getCount, 2, 'get called correct number of times');
 
-      assert.true(isUpdatableRef(valueRef), 'childRef is updatable');
+      assert.true(isUpdatableRef(valueReference), 'childRef is updatable');
 
-      updateRef(valueRef, 789);
+      updateRef(valueReference, 789);
 
-      assert.strictEqual(valueForRef(valueRef), 789, 'value updated correctly');
+      assert.strictEqual(valueForRef(valueReference), 789, 'value updated correctly');
       assert.strictEqual(getCount, 3, 'get called correct number of times');
       assert.strictEqual(setCount, 1, 'set called correct number of times');
 
       parent.child = new Child();
 
-      assert.strictEqual(valueForRef(valueRef), 123, 'value updated correctly when parent changes');
+      assert.strictEqual(valueForRef(valueReference), 123, 'value updated correctly when parent changes');
       assert.strictEqual(getCount, 4, 'get called correct number of times');
     });
   });
@@ -229,10 +229,10 @@ module('References', (hooks) => {
   module('unbound ref', () => {
     test('it works', (assert) => {
       let value = {};
-      let constRef = createUnboundRef(value, 'test');
+      let constReference = createUnboundRef(value, 'test');
 
-      assert.strictEqual(valueForRef(constRef), value, 'value is correct');
-      assert.notOk(isUpdatableRef(constRef), 'value is not updatable');
+      assert.strictEqual(valueForRef(constReference), value, 'value is correct');
+      assert.notOk(isUpdatableRef(constReference), 'value is not updatable');
     });
 
     test('children of unbound refs are not reactive', (assert) => {
@@ -242,27 +242,27 @@ module('References', (hooks) => {
 
       let parent = new Parent();
 
-      let constRef = createUnboundRef(parent, 'test');
-      let childRef = childRefFor(constRef, 'child');
+      let constReference = createUnboundRef(parent, 'test');
+      let childReference = childRefFor(constReference, 'child');
 
-      assert.strictEqual(valueForRef(childRef), 123, 'value is correct');
+      assert.strictEqual(valueForRef(childReference), 123, 'value is correct');
 
       parent.child = 456;
 
-      assert.strictEqual(valueForRef(childRef), 123, 'value updated correctly');
+      assert.strictEqual(valueForRef(childReference), 123, 'value updated correctly');
     });
   });
 
   module('invokable ref', () => {
     test('can create invokable refs', (assert) => {
-      let ref = createComputeRef(
+      let reference = createComputeRef(
         () => {},
         () => {}
       );
 
-      let invokableRef = createInvokableRef(ref);
+      let invokableReference = createInvokableRef(reference);
 
-      assert.ok(isInvokableRef(invokableRef));
+      assert.ok(isInvokableRef(invokableReference));
     });
 
     test('can create children of invokable refs', (assert) => {
@@ -276,34 +276,34 @@ module('References', (hooks) => {
 
       let parent = new Parent();
 
-      let computeRef = createComputeRef(
+      let computeReference = createComputeRef(
         () => parent.child,
         (value) => (parent.child = value)
       );
-      let invokableRef = createInvokableRef(computeRef);
-      let valueRef = childRefFor(invokableRef, 'value');
+      let invokableReference = createInvokableRef(computeReference);
+      let valueReference = childRefFor(invokableReference, 'value');
 
-      assert.strictEqual(valueForRef(valueRef), 123, 'value is correct');
-      assert.strictEqual(valueForRef(valueRef), 123, 'value is correct');
+      assert.strictEqual(valueForRef(valueReference), 123, 'value is correct');
+      assert.strictEqual(valueForRef(valueReference), 123, 'value is correct');
       assert.strictEqual(getCount, 1, 'get called correct number of times');
 
       parent.child.value = 456;
 
-      assert.strictEqual(valueForRef(valueRef), 456, 'value updated correctly');
-      assert.strictEqual(valueForRef(valueRef), 456, 'value is correct');
+      assert.strictEqual(valueForRef(valueReference), 456, 'value updated correctly');
+      assert.strictEqual(valueForRef(valueReference), 456, 'value is correct');
       assert.strictEqual(getCount, 2, 'get called correct number of times');
 
-      assert.true(isUpdatableRef(valueRef), 'childRef is updatable');
+      assert.true(isUpdatableRef(valueReference), 'childRef is updatable');
 
-      updateRef(valueRef, 789);
+      updateRef(valueReference, 789);
 
-      assert.strictEqual(valueForRef(valueRef), 789, 'value updated correctly');
+      assert.strictEqual(valueForRef(valueReference), 789, 'value updated correctly');
       assert.strictEqual(getCount, 3, 'get called correct number of times');
       assert.strictEqual(setCount, 1, 'set called correct number of times');
 
       parent.child = new Child();
 
-      assert.strictEqual(valueForRef(valueRef), 123, 'value updated correctly when parent changes');
+      assert.strictEqual(valueForRef(valueReference), 123, 'value updated correctly when parent changes');
       assert.strictEqual(getCount, 4, 'get called correct number of times');
     });
   });
@@ -316,15 +316,15 @@ module('References', (hooks) => {
 
       let parent = new Parent();
 
-      let computeRef = createComputeRef(
+      let computeReference = createComputeRef(
         () => parent.child,
         (value) => (parent.child = value)
       );
 
-      let readOnlyRef = createReadOnlyRef(computeRef);
+      let readOnlyReference = createReadOnlyRef(computeReference);
 
-      assert.ok(isUpdatableRef(computeRef), 'original ref is updatable');
-      assert.notOk(isUpdatableRef(readOnlyRef), 'read only ref is not updatable');
+      assert.ok(isUpdatableRef(computeReference), 'original ref is updatable');
+      assert.notOk(isUpdatableRef(readOnlyReference), 'read only ref is not updatable');
     });
 
     test('can create children of read only refs', (assert) => {
@@ -338,34 +338,34 @@ module('References', (hooks) => {
 
       let parent = new Parent();
 
-      let computeRef = createComputeRef(
+      let computeReference = createComputeRef(
         () => parent.child,
         (value) => (parent.child = value)
       );
-      let readOnlyRef = createReadOnlyRef(computeRef);
-      let valueRef = childRefFor(readOnlyRef, 'value');
+      let readOnlyReference = createReadOnlyRef(computeReference);
+      let valueReference = childRefFor(readOnlyReference, 'value');
 
-      assert.strictEqual(valueForRef(valueRef), 123, 'value is correct');
-      assert.strictEqual(valueForRef(valueRef), 123, 'value is correct');
+      assert.strictEqual(valueForRef(valueReference), 123, 'value is correct');
+      assert.strictEqual(valueForRef(valueReference), 123, 'value is correct');
       assert.strictEqual(getCount, 1, 'get called correct number of times');
 
       parent.child.value = 456;
 
-      assert.strictEqual(valueForRef(valueRef), 456, 'value updated correctly');
-      assert.strictEqual(valueForRef(valueRef), 456, 'value is correct');
+      assert.strictEqual(valueForRef(valueReference), 456, 'value updated correctly');
+      assert.strictEqual(valueForRef(valueReference), 456, 'value is correct');
       assert.strictEqual(getCount, 2, 'get called correct number of times');
 
-      assert.true(isUpdatableRef(valueRef), 'childRef is updatable');
+      assert.true(isUpdatableRef(valueReference), 'childRef is updatable');
 
-      updateRef(valueRef, 789);
+      updateRef(valueReference, 789);
 
-      assert.strictEqual(valueForRef(valueRef), 789, 'value updated correctly');
+      assert.strictEqual(valueForRef(valueReference), 789, 'value updated correctly');
       assert.strictEqual(getCount, 3, 'get called correct number of times');
       assert.strictEqual(setCount, 1, 'set called correct number of times');
 
       parent.child = new Child();
 
-      assert.strictEqual(valueForRef(valueRef), 123, 'value updated correctly when parent changes');
+      assert.strictEqual(valueForRef(valueReference), 123, 'value updated correctly when parent changes');
       assert.strictEqual(getCount, 4, 'get called correct number of times');
     });
   });

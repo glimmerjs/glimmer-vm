@@ -1,6 +1,6 @@
 import type { Dict, Nullable, PresentArray, WireFormat } from '@glimmer/interfaces';
 
-import type * as src from '../source/api';
+import type * as source from '../source/api';
 
 export interface Symbols {
   symbols: string[];
@@ -32,7 +32,7 @@ export interface BaseNode {
   // The type property should be a string literal. For example, Identifier
   // has: `type: "Identifier"`
   type: NodeType;
-  loc: src.SourceSpan;
+  loc: source.SourceSpan;
 }
 
 export interface CommonProgram extends BaseNode {
@@ -132,20 +132,20 @@ export interface MustacheCommentStatement extends BaseNode {
 export interface NamedBlockName {
   type: 'NamedBlockName';
   name: string;
-  loc: src.SourceLocation;
+  loc: source.SourceLocation;
 }
 
 export interface ElementName {
   type: 'ElementName';
   name: string;
-  loc: src.SourceLocation;
+  loc: source.SourceLocation;
 }
 
 export interface ElementNode extends BaseNode {
   type: 'ElementNode';
   tag: string;
   selfClosing: boolean;
-  attributes: AttrNode[];
+  attributes: AttributeNode[];
   blockParams: string[];
   modifiers: ElementModifierStatement[];
   comments: MustacheCommentStatement[];
@@ -161,14 +161,14 @@ export type StatementName =
   | 'TextNode'
   | 'ElementNode';
 
-export interface AttrNode extends BaseNode {
+export interface AttributeNode extends BaseNode {
   type: 'AttrNode';
   name: string;
-  value: AttrValue;
+  value: AttributeValue;
 }
 
-export type AttrValue = TextNode | MustacheStatement | ConcatStatement;
-export type AttrPart = TextNode | MustacheStatement;
+export type AttributeValue = TextNode | MustacheStatement | ConcatStatement;
+export type AttributePart = TextNode | MustacheStatement;
 
 export interface TextNode extends BaseNode {
   type: 'TextNode';
@@ -191,34 +191,34 @@ export interface SubExpression extends Call {
 
 export interface ThisHead {
   type: 'ThisHead';
-  loc: src.SourceLocation;
+  loc: source.SourceLocation;
 }
 
 export interface AtHead {
   type: 'AtHead';
   name: string;
-  loc: src.SourceLocation;
+  loc: source.SourceLocation;
 }
 
-export interface VarHead {
+export interface VariableHead {
   type: 'VarHead';
   name: string;
-  loc: src.SourceLocation;
+  loc: source.SourceLocation;
 }
 
-export interface FreeVarHead {
+export interface FreeVariableHead {
   type: 'FreeVarHead';
   name: string;
-  loc: src.SourceLocation;
+  loc: source.SourceLocation;
 }
 
-export interface LocalVarHead {
+export interface LocalVariableHead {
   type: 'LocalVarHead';
   name: string;
-  loc: src.SourceLocation;
+  loc: source.SourceLocation;
 }
 
-export type PathHead = ThisHead | AtHead | VarHead;
+export type PathHead = ThisHead | AtHead | VariableHead;
 
 export interface MinimalPathExpression extends BaseNode {
   type: 'PathExpression';
@@ -310,7 +310,7 @@ export type SharedNodes = {
   MustacheStatement: MustacheStatement;
   ElementModifierStatement: ElementModifierStatement;
   PartialStatement: PartialStatement;
-  AttrNode: AttrNode;
+  AttrNode: AttributeNode;
   ConcatStatement: ConcatStatement;
 };
 

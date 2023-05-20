@@ -17,7 +17,7 @@ class CellImpl<T> implements Cell<T> {
   private _value: T;
 
   constructor(parent: object, key: string, initialValue: T) {
-    const meta = tagMetaFor(parent);
+    let meta = tagMetaFor(parent);
     this._meta = meta;
     this._obj = parent;
     this._key = key;

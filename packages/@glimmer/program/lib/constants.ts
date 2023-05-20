@@ -31,7 +31,7 @@ const WELL_KNOWN_EMPTY_ARRAY_POSITION: number = STARTER_CONSTANTS.indexOf(WELL_K
 export class CompileTimeConstantImpl implements CompileTimeConstants {
   // `0` means NULL
 
-  protected values: unknown[] = STARTER_CONSTANTS.slice();
+  protected values: unknown[] = [...STARTER_CONSTANTS];
   protected indexMap: Map<unknown, number> = new Map(
     this.values.map((value, index) => [value, index])
   );
@@ -53,10 +53,10 @@ export class CompileTimeConstantImpl implements CompileTimeConstants {
       return WELL_KNOWN_EMPTY_ARRAY_POSITION;
     }
 
-    let handles: number[] = new Array(values.length);
+    let handles: number[] = Array.from({length: values.length});
 
-    for (let i = 0; i < values.length; i++) {
-      handles[i] = this.value(values[i]);
+    for (let [index, value] of values.entries()) {
+      handles[index] = this.value(value);
     }
 
     return this.value(handles);
@@ -80,10 +80,10 @@ export class RuntimeConstantsImpl implements RuntimeConstants {
 
   getArray<T>(value: number): T[] {
     let handles = this.getValue<number[]>(value);
-    let reified: T[] = new Array(handles.length);
+    let reified: T[] = Array.from({length: handles.length});
 
-    for (const [i, n] of enumerate(handles)) {
-      reified[i] = this.getValue(n);
+    for (let [index, n] of enumerate(handles)) {
+      reified[index] = this.getValue(n);
     }
 
     return reified;
@@ -221,11 +221,7 @@ export class ConstantsImpl
       let compilable = null;
       let template;
 
-      if (!managerHasCapability(manager, capabilities, DYNAMIC_LAYOUT_CAPABILITY)) {
-        template = templateFactory?.(owner) ?? this.defaultTemplate;
-      } else {
-        template = templateFactory?.(owner);
-      }
+      template = managerHasCapability(manager, capabilities, DYNAMIC_LAYOUT_CAPABILITY) ? templateFactory?.(owner) : templateFactory?.(owner) ?? this.defaultTemplate;
 
       if (template !== undefined) {
         template = unwrapTemplate(template);
@@ -305,10 +301,10 @@ export class ConstantsImpl
 
     if (reified === undefined) {
       let names: number[] = this.getValue(index);
-      reified = new Array(names.length);
+      reified = Array.from({length: names.length});
 
-      for (const [i, name] of enumerate(names)) {
-        reified[i] = this.getValue(name);
+      for (let [index_, name] of enumerate(names)) {
+        reified[index_] = this.getValue(name);
       }
 
       reifiedArrs[index] = reified;

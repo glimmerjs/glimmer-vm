@@ -96,8 +96,8 @@ jitSuite(
     }
 
     assertRangeValue(value: number): void {
-      let attr = (this.element.firstChild as any)['value'];
-      this.assert.strictEqual(attr, value.toString());
+      let attribute = (this.element.firstChild as any)['value'];
+      this.assert.strictEqual(attribute, value.toString());
     }
   }
 );
@@ -113,8 +113,8 @@ jitSuite(
     }
 
     assertRangeValue(value: number): void {
-      let attr = this.readDOMAttr('value');
-      this.assert.strictEqual(attr, value.toString());
+      let attribute = this.readDOMAttr('value');
+      this.assert.strictEqual(attribute, value.toString());
     }
   }
 );
@@ -130,8 +130,8 @@ jitSuite(
     }
 
     assertRangeValue(value: number): void {
-      let attr = this.readDOMAttr('value');
-      this.assert.strictEqual(attr, value.toString());
+      let attribute = this.readDOMAttr('value');
+      this.assert.strictEqual(attribute, value.toString());
     }
   }
 );
@@ -151,8 +151,8 @@ jitSuite(
     }
 
     assertRangeValue(value: number): void {
-      let attr = this.readDOMAttr('value');
-      this.assert.strictEqual(attr, value.toString());
+      let attribute = this.readDOMAttr('value');
+      this.assert.strictEqual(attribute, value.toString());
     }
   }
 );

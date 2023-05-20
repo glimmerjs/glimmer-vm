@@ -28,17 +28,17 @@ export interface SerializedThisReference extends SerializedBaseNode {
   type: 'This';
 }
 
-export interface SerializedArgReference extends SerializedBaseNode {
+export interface SerializedArgumentReference extends SerializedBaseNode {
   type: 'Arg';
   name: SerializedSourceSlice;
 }
 
-export interface SerializedLocalVarReference extends SerializedBaseNode {
+export interface SerializedLocalVariableReference extends SerializedBaseNode {
   type: 'Local';
   name: string;
 }
 
-export interface SerializedFreeVarReference extends SerializedBaseNode {
+export interface SerializedFreeVariableReference extends SerializedBaseNode {
   type: 'Free';
   name: string;
   resolution: ASTv2.SerializedResolution;
@@ -46,9 +46,9 @@ export interface SerializedFreeVarReference extends SerializedBaseNode {
 
 export type SerializedVariableReference =
   | SerializedThisReference
-  | SerializedArgReference
-  | SerializedLocalVarReference
-  | SerializedFreeVarReference;
+  | SerializedArgumentReference
+  | SerializedLocalVariableReference
+  | SerializedFreeVariableReference;
 
 export interface SerializedCallNode extends SerializedBaseNode {
   callee: SerializedExpressionNode;
@@ -61,7 +61,7 @@ export interface SerializedCallExpression extends SerializedCallNode {
 
 export interface SerializedDeprecatedCallExpression extends SerializedBaseNode {
   type: 'DeprecatedCall';
-  callee: SerializedFreeVarReference;
+  callee: SerializedFreeVariableReference;
 }
 
 export type SerializedExpressionNode =
@@ -132,14 +132,14 @@ export interface SerializedSimpleElement extends SerializedBaseNode {
 
 export type SerializedSplatAttr = SerializedSourceSlice<'...attributes'>;
 
-export interface SerializedAttrOrArg extends SerializedBaseNode {
+export interface SerializedAttributeOrArgument extends SerializedBaseNode {
   name: SerializedSourceSlice;
   value: SerializedExpressionNode;
   trusting: boolean;
 }
 
-export type SerializedHtmlOrSplatAttr = SerializedSplatAttr | SerializedAttrOrArg;
-export type SerializedAttrNode = SerializedSplatAttr | SerializedAttrOrArg;
+export type SerializedHtmlOrSplatAttr = SerializedSplatAttr | SerializedAttributeOrArgument;
+export type SerializedAttrNode = SerializedSplatAttr | SerializedAttributeOrArgument;
 
 export type SerializedComponentArg = SerializedBaseNode;
 export type SerializedElementModifier = SerializedCallNode;

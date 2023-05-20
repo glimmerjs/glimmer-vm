@@ -31,8 +31,8 @@ function traversalEqual(node: AST.Node, expectedTraversal: Array<[string, AST.No
 
   let nodesEqual = true;
 
-  for (let i = 0; i < actualTraversal.length; i++) {
-    if (actualTraversal[i]?.[1] !== expectedTraversal[i]?.[1]) {
+  for (let [index, element] of actualTraversal.entries()) {
+    if (element?.[1] !== expectedTraversal[index]?.[1]) {
       nodesEqual = false;
       break;
     }

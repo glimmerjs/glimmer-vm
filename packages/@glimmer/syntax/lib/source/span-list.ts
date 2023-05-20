@@ -63,9 +63,5 @@ export function hasSpan(span: MaybeHasSourceSpan): span is HasSourceSpan {
 }
 
 export function maybeLoc(location: MaybeHasSourceSpan, fallback: SourceSpan): SourceSpan {
-  if (hasSpan(location)) {
-    return loc(location);
-  } else {
-    return fallback;
-  }
+  return hasSpan(location) ? loc(location) : fallback;
 }

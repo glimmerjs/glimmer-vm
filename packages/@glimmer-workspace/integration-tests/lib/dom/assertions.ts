@@ -71,7 +71,7 @@ export function equalsElement(
   let actualAttributes = dict();
   if (element) {
     // eslint-disable-next-line unicorn/prefer-spread
-    for (const attribute of Array.from(element.attributes)) {
+    for (let attribute of Array.from(element.attributes)) {
       actualAttributes[attribute.name] = attribute.value;
     }
   }
@@ -123,8 +123,8 @@ export function assertNodeTagName<
   U extends CompatibleTagNameMap[T]
 >(node: SimpleNode | null, tagName: T): node is SimpleNode & U {
   if (assertIsElement(node)) {
-    const lowerTagName = node.tagName.toLowerCase();
-    const nodeTagName = node.tagName;
+    let lowerTagName = node.tagName.toLowerCase();
+    let nodeTagName = node.tagName;
 
     QUnit.assert.pushResult({
       result: lowerTagName === tagName || nodeTagName === tagName,

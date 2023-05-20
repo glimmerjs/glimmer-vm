@@ -96,7 +96,7 @@ import {
   isCurriedValue,
   resolveCurriedValue,
 } from '../../curried-value';
-import createClassListRef from '../../references/class-list';
+import createClassListReference from '../../references/class-list';
 import { ARGS, CONSTANTS } from '../../symbols';
 import type { UpdatingVM } from '../../vm';
 import type { InternalVM } from '../../vm/append';
@@ -203,8 +203,8 @@ define(RESOLVE_DYNAMIC_COMPONENT_OP, (vm, { op1: _isStrict }) => {
 
 define(RESOLVE_CURRIED_COMPONENT_OP, (vm) => {
   let stack = vm.stack;
-  let ref = check(stack.pop(), CheckReference);
-  let value = valueForRef(ref);
+  let reference = check(stack.pop(), CheckReference);
+  let value = valueForRef(reference);
   let constants = vm[CONSTANTS];
 
   let definition: CurriedValue | ComponentDefinition | null;
@@ -214,7 +214,7 @@ define(RESOLVE_CURRIED_COMPONENT_OP, (vm) => {
     !(typeof value === 'function' || (typeof value === 'object' && value !== null))
   ) {
     throw new Error(
-      `Expected a component definition, but received ${value}. You may have accidentally done <${ref.debugLabel}>, where "${ref.debugLabel}" was a string instead of a curried component definition. You must either use the component definition directly, or use the {{component}} helper to create a curried component definition when invoking dynamically.`
+      `Expected a component definition, but received ${value}. You may have accidentally done <${reference.debugLabel}>, where "${reference.debugLabel}" was a string instead of a curried component definition. You must either use the component definition directly, or use the {{component}} helper to create a curried component definition when invoking dynamically.`
     );
   }
 
@@ -226,11 +226,11 @@ define(RESOLVE_CURRIED_COMPONENT_OP, (vm) => {
     if (import.meta.env.DEV && definition === null) {
       throw new Error(
         `Expected a dynamic component definition, but received an object or function that did not have a component manager associated with it. The dynamic invocation was \`<${
-          ref.debugLabel
+          reference.debugLabel
         }>\` or \`{{${
-          ref.debugLabel
+          reference.debugLabel
         }}}\`, and the incorrect definition is the value at the path \`${
-          ref.debugLabel
+          reference.debugLabel
         }\`, which was: ${debugToString!(value)}`
       );
     }
@@ -360,22 +360,22 @@ define(PREPARE_ARGS_OP, (vm, { op1: _state }) => {
   if (preparedArgs) {
     args.clear();
 
-    for (let i = 0; i < blocks.length; i++) {
-      stack.push(blocks[i]);
+    for (let block of blocks) {
+      stack.push(block);
     }
 
     let { positional, named } = preparedArgs;
 
     let positionalCount = positional.length;
 
-    for (let i = 0; i < positionalCount; i++) {
-      stack.push(positional[i]);
+    for (let index = 0; index < positionalCount; index++) {
+      stack.push(positional[index]);
     }
 
     let names = Object.keys(named);
 
-    for (let i = 0; i < names.length; i++) {
-      stack.push(named[unwrap(names[i])]);
+    for (let name of names) {
+      stack.push(named[unwrap(name)]);
     }
 
     args.setup(stack, names, blockNames, positionalCount, false);
@@ -549,16 +549,16 @@ export class ComponentElementOperations implements ElementOperations {
         continue;
       }
 
-      let attr = unwrap(this.#attributes[name]);
+      let attribute = unwrap(this.#attributes[name]);
       if (name === 'class') {
-        setDeferredAttr(vm, 'class', mergeClasses(this.#classes), attr.namespace, attr.trusting);
+        setDeferredAttribute(vm, 'class', mergeClasses(this.#classes), attribute.namespace, attribute.trusting);
       } else {
-        setDeferredAttr(vm, name, attr.value, attr.namespace, attr.trusting);
+        setDeferredAttribute(vm, name, attribute.value, attribute.namespace, attribute.trusting);
       }
     }
 
     if (type !== undefined) {
-      setDeferredAttr(vm, 'type', type.value, type.namespace, type.trusting);
+      setDeferredAttribute(vm, 'type', type.value, type.namespace, type.trusting);
     }
 
     return this.#modifiers;
@@ -576,19 +576,19 @@ function mergeClasses(classes: (string | Reference)[]): string | Reference<unkno
     return classes.join(' ');
   }
 
-  return createClassListRef(classes as Reference[]);
+  return createClassListReference(classes as Reference[]);
 }
 
 function allStringClasses(classes: (string | Reference<unknown>)[]): classes is string[] {
-  for (let i = 0; i < classes.length; i++) {
-    if (typeof classes[i] !== 'string') {
+  for (let class_ of classes) {
+    if (typeof class_ !== 'string') {
       return false;
     }
   }
   return true;
 }
 
-function setDeferredAttr(
+function setDeferredAttribute(
   vm: InternalVM,
   name: string,
   value: string | Reference<unknown>,
@@ -624,7 +624,7 @@ define(GET_COMPONENT_SELF_OP, (vm, { op1: _state, op2: _names }) => {
   let instance = check(vm._fetchValue_(_state as Register), CheckComponentInstance);
   let { definition, state } = instance;
   let { manager } = definition;
-  let selfRef = manager.getSelf(state);
+  let selfReference = manager.getSelf(state);
 
   if (vm.env.debugRenderTree !== undefined) {
     let instance = check(vm._fetchValue_(_state as Register), CheckComponentInstance);
@@ -651,11 +651,7 @@ define(GET_COMPONENT_SELF_OP, (vm, { op1: _state, op2: _names }) => {
 
       compilable = manager.getDynamicLayout(state, vm.runtime.resolver);
 
-      if (compilable !== null) {
-        moduleName = compilable.moduleName;
-      } else {
-        moduleName = '__default__.hbs';
-      }
+      moduleName = compilable === null ? '__default__.hbs' : compilable.moduleName;
     } else {
       moduleName = compilable.moduleName;
     }
@@ -671,16 +667,16 @@ define(GET_COMPONENT_SELF_OP, (vm, { op1: _state, op2: _names }) => {
         moduleName
       );
 
-      nodes.forEach((node) => {
+      for (let node of nodes) {
         let { bucket } = node;
-        vm.env.debugRenderTree!.create(bucket, node);
+        vm.env.debugRenderTree.create(bucket, node);
 
         registerDestructor(instance, () => {
           vm.env.debugRenderTree?.willDestroy(bucket);
         });
 
         vm._updateWith_(new DebugRenderTreeUpdateOpcode(bucket));
-      });
+      }
     } else {
       let name = definition.resolvedName ?? manager.getDebugName(definition.state);
 
@@ -689,7 +685,7 @@ define(GET_COMPONENT_SELF_OP, (vm, { op1: _state, op2: _names }) => {
         name,
         args,
         template: moduleName,
-        instance: valueForRef(selfRef),
+        instance: valueForRef(selfReference),
       });
 
       vm._associateDestroyable_(instance);
@@ -702,7 +698,7 @@ define(GET_COMPONENT_SELF_OP, (vm, { op1: _state, op2: _names }) => {
     }
   }
 
-  vm.stack.push(selfRef);
+  vm.stack.push(selfReference);
 });
 
 define(GET_COMPONENT_TAG_NAME_OP, (vm, { op1: _state }) => {
@@ -737,18 +733,13 @@ define(GET_COMPONENT_LAYOUT_OP, (vm, { op1: _state }) => {
     compilable = manager.getDynamicLayout(instance.state, vm.runtime.resolver);
 
     if (compilable === null) {
-      if (managerHasCapability(manager, capabilities, WRAPPED_CAPABILITY)) {
-        compilable = unwrapTemplate(vm[CONSTANTS].defaultTemplate).asWrappedLayout();
-      } else {
-        compilable = unwrapTemplate(vm[CONSTANTS].defaultTemplate).asLayout();
-      }
+      compilable = managerHasCapability(manager, capabilities, WRAPPED_CAPABILITY) ? unwrapTemplate(vm[CONSTANTS].defaultTemplate).asWrappedLayout() : unwrapTemplate(vm[CONSTANTS].defaultTemplate).asLayout();
     }
   }
 
   let handle = compilable.compile(vm.context);
 
-  stack.push(compilable.symbolTable);
-  stack.push(handle);
+  stack.push(compilable.symbolTable, handle);
 });
 
 define(MAIN_OP, (vm, { op1: register }) => {
@@ -820,8 +811,8 @@ define(SET_NAMED_VARIABLES_OP, (vm, { op1: _state }) => {
   let args = check(vm.stack.peek(), CheckArguments);
   let callerNames = args.named.atNames;
 
-  for (let i = callerNames.length - 1; i >= 0; i--) {
-    let atName = unwrap(callerNames[i]);
+  for (let index = callerNames.length - 1; index >= 0; index--) {
+    let atName = unwrap(callerNames[index]);
     let symbol = state.table.symbols.indexOf(atName);
     let value = args.named.get(atName, true);
 
@@ -848,8 +839,8 @@ define(SET_BLOCKS_OP, (vm, { op1: _state }) => {
   let state = check(vm._fetchValue_(_state as Register), CheckFinishedComponentInstance);
   let { blocks } = check(vm.stack.peek(), CheckArguments);
 
-  for (const [i] of enumerate(blocks._names_)) {
-    bindBlock(unwrap(blocks.symbolNames[i]), unwrap(blocks._names_[i]), state, blocks, vm);
+  for (let [index] of enumerate(blocks._names_)) {
+    bindBlock(unwrap(blocks.symbolNames[index]), unwrap(blocks._names_[index]), state, blocks, vm);
   }
 });
 
@@ -869,13 +860,13 @@ define(DID_RENDER_LAYOUT_OP, (vm, { op1: _state }) => {
     if (hasCustomDebugRenderTreeLifecycle(manager)) {
       let nodes = manager.getDebugCustomRenderTree(instance.definition.state, state, EMPTY_ARGS);
 
-      nodes.reverse().forEach((node) => {
+      for (let node of nodes.reverse()) {
         let { bucket } = node;
 
-        vm.env.debugRenderTree!.didRender(bucket, bounds);
+        vm.env.debugRenderTree.didRender(bucket, bounds);
 
         vm._updateWith_(new DebugRenderTreeDidRenderOpcode(bucket, bounds));
-      });
+      }
     } else {
       vm.env.debugRenderTree.didRender(instance, bounds);
 

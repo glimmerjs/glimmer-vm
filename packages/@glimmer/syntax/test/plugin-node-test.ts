@@ -51,25 +51,21 @@ test('plugins are provided the syntax package', (assert) => {
 
 test('can support the legacy AST transform API via ASTPlugin', (assert) => {
   function ensurePlugin(FunctionOrPlugin: any): ASTPluginBuilder {
-    if (FunctionOrPlugin.prototype && FunctionOrPlugin.prototype.transform) {
-      return (env: ASTPluginEnvironment) => {
+    return FunctionOrPlugin.prototype && FunctionOrPlugin.prototype.transform ? (environment: ASTPluginEnvironment) => {
         return {
           name: 'plugin-a',
 
           visitor: {
             Program(node: AST.Program) {
-              let plugin = new FunctionOrPlugin(env);
+              let plugin = new FunctionOrPlugin(environment);
 
-              plugin.syntax = env.syntax;
+              plugin.syntax = environment.syntax;
 
               return plugin.transform(node);
             },
           },
         };
-      };
-    } else {
-      return FunctionOrPlugin;
-    }
+      } : FunctionOrPlugin;
   }
 
   class Plugin {
@@ -145,14 +141,14 @@ test('AST plugins can be chained', (assert) => {
 });
 
 test('AST plugins can access meta from environment', (assert) => {
-  let hasExposedEnvMeta = (env: ASTPluginEnvironment) => {
+  let hasExposedEnvironmentMeta = (environment: ASTPluginEnvironment) => {
     return {
       name: 'exposedMetaTemplateData',
       visitor: {
         Program() {
           assert.step('Program');
-          const { meta } = env;
-          const { moduleName } = expectPresent(
+          let { meta } = environment;
+          let { moduleName } = expectPresent(
             meta as { moduleName: 'string' },
             'expected meta to not be null'
           );
@@ -172,7 +168,7 @@ test('AST plugins can access meta from environment', (assert) => {
       moduleName: 'template/module/name',
     },
     plugins: {
-      ast: [hasExposedEnvMeta],
+      ast: [hasExposedEnvironmentMeta],
     },
   });
 

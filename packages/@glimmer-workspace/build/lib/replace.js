@@ -16,7 +16,7 @@ const { default: MagicString } = await import('magic-string');
  * @returns {RollupPlugin}
  */
 export function createReplacePlugin(test, replacements, sourcemap) {
-  const pattern = new RegExp(
+  let pattern = new RegExp(
     '\\b(' +
       Object.keys(replacements)
         .map((text) => {
@@ -36,7 +36,7 @@ export function createReplacePlugin(test, replacements, sourcemap) {
      */
     transform(code, id) {
       if (test(id)) {
-        const s = new MagicString(code);
+        let s = new MagicString(code);
         let hasReplaced = false;
 
         /** @type {RegExpMatchArray | null} */
@@ -44,11 +44,11 @@ export function createReplacePlugin(test, replacements, sourcemap) {
 
         while ((match = pattern.exec(code))) {
           hasReplaced = true;
-          const start = /** @type {number} */ (match.index);
-          const [wholeMatch, partialMatch] = /** @type {[string, string]} */ (match);
+          let start = /** @type {number} */ (match.index);
+          let [wholeMatch, partialMatch] = /** @type {[string, string]} */ (match);
 
-          const end = start + wholeMatch.length;
-          const replacement = replacements[partialMatch];
+          let end = start + wholeMatch.length;
+          let replacement = replacements[partialMatch];
 
           if (replacement === undefined) {
             throw new Error(
@@ -68,7 +68,7 @@ export function createReplacePlugin(test, replacements, sourcemap) {
         }
 
         /** @type {TransformResult} */
-        const result = { code: s.toString() };
+        let result = { code: s.toString() };
         if (sourcemap) {
           result.map = s.generateMap({ hires: true });
         }

@@ -17,7 +17,7 @@ import { createTemplate } from '../../compile';
 import type { ComponentKind, ComponentTypes } from '../../components';
 import { EmberishCurlyComponent } from '../../components/emberish-curly';
 import { GlimmerishComponent } from '../../components/emberish-glimmer';
-import { createHelperRef, type UserHelper } from '../../helpers';
+import { createHelperRef as createHelperReference, type UserHelper } from '../../helpers';
 import {
   type TestModifierConstructor,
   TestModifierDefinitionState,
@@ -50,7 +50,7 @@ export function registerEmberishCurlyComponent(
   registerSomeComponent(
     registry,
     name,
-    layoutSource !== null ? createTemplate(layoutSource) : null,
+    layoutSource === null ? null : createTemplate(layoutSource),
     ComponentClass
   );
 }
@@ -61,7 +61,7 @@ export function registerGlimmerishComponent(
   Component: Nullable<ComponentTypes['Glimmer']>,
   layoutSource: Nullable<string>
 ): void {
-  if (name.indexOf('-') !== -1) {
+  if (name.includes('-')) {
     throw new Error('DEPRECATED: dasherized components');
   }
   let ComponentClass = Component || class extends GlimmerishComponent {};
@@ -71,7 +71,7 @@ export function registerGlimmerishComponent(
 
 export function registerHelper(registry: TestJitRegistry, name: string, helper: UserHelper) {
   let state = {};
-  let glimmerHelper: GlimmerHelper = (args) => createHelperRef(helper, args);
+  let glimmerHelper: GlimmerHelper = (args) => createHelperReference(helper, args);
   setInternalHelperManager(glimmerHelper, state);
   registry.register('helper', name, state);
 }

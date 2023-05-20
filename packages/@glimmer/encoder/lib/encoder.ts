@@ -25,7 +25,7 @@ export class InstructionEncoderImpl implements InstructionEncoder {
 
     this.buffer.push(first);
 
-    for (const op of args) {
+    for (let op of args) {
       if (import.meta.env.DEV && typeof op === 'number' && op > MAX_SIZE) {
         throw new Error(`Operand over 32-bits. Got ${op}.`);
       }

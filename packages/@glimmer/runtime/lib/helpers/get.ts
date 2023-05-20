@@ -83,22 +83,22 @@ import { internalHelper } from './internal-helper';
   @method get
  */
 export const get = internalHelper(({ positional }: CapturedArguments) => {
-  let sourceRef = positional[0] ?? UNDEFINED_REFERENCE;
-  let pathRef = positional[1] ?? UNDEFINED_REFERENCE;
+  let sourceReference = positional[0] ?? UNDEFINED_REFERENCE;
+  let pathReference = positional[1] ?? UNDEFINED_REFERENCE;
 
   return createComputeRef(
     () => {
-      let source = valueForRef(sourceRef);
+      let source = valueForRef(sourceReference);
 
       if (isDict(source)) {
-        return getPath(source, String(valueForRef(pathRef)));
+        return getPath(source, String(valueForRef(pathReference)));
       }
     },
     (value) => {
-      let source = valueForRef(sourceRef);
+      let source = valueForRef(sourceReference);
 
       if (isDict(source)) {
-        return setPath(source, String(valueForRef(pathRef)), value);
+        return setPath(source, String(valueForRef(pathReference)), value);
       }
     },
     'get'

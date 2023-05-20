@@ -12,13 +12,13 @@ export class ClassifiedComponent implements Classified {
 
   constructor(private tag: mir.ExpressionNode, private element: ASTv2.InvokeComponent) {}
 
-  arg(attr: ASTv2.ComponentArg, { state }: ClassifiedElement): Result<mir.NamedArgument> {
-    let name = attr.name;
+  arg(attribute: ASTv2.ComponentArg, { state }: ClassifiedElement): Result<mir.NamedArgument> {
+    let name = attribute.name;
 
-    return VISIT_EXPRS.visit(convertPathToCallIfKeyword(attr.value), state).mapOk(
+    return VISIT_EXPRS.visit(convertPathToCallIfKeyword(attribute.value), state).mapOk(
       (value) =>
         new mir.NamedArgument({
-          loc: attr.loc,
+          loc: attribute.loc,
           key: name,
           value,
         })

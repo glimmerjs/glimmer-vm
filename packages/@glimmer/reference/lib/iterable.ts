@@ -4,10 +4,10 @@ import { EMPTY_ARRAY, isObject } from '@glimmer/util';
 import { consumeTag, createTag, dirtyTag } from '@glimmer/validator';
 
 import {
-  createComputeRef,
+  createComputeRef as createComputeReference,
   type Reference,
   type ReferenceEnvironment,
-  valueForRef,
+  valueForRef as valueForReference,
 } from './reference';
 
 export interface IterationItem<T, U> {
@@ -147,9 +147,9 @@ function uniqueKeyFor(keyFor: KeyFor): (value: unknown, memo: unknown) => unknow
   };
 }
 
-export function createIteratorRef(listRef: Reference, key: string) {
-  return createComputeRef(() => {
-    let iterable = valueForRef(listRef) as { [Symbol.iterator]: any } | null | false;
+export function createIteratorRef(listReference: Reference, key: string) {
+  return createComputeReference(() => {
+    let iterable = valueForReference(listReference) as { [Symbol.iterator]: any } | null | false;
 
     let keyFor = makeKeyFor(key);
 
@@ -171,7 +171,7 @@ export function createIteratorItemRef(_value: unknown) {
   let value = _value;
   let tag = createTag();
 
-  return createComputeRef(
+  return createComputeReference(
     () => {
       consumeTag(tag);
       return value;
@@ -221,11 +221,7 @@ class ArrayIterator implements OpaqueIterator {
   constructor(iterator: unknown[] | readonly unknown[], keyFor: KeyFor) {
     this.#iterator = iterator;
     this.#keyFor = keyFor;
-    if (iterator.length === 0) {
-      this.#current = EMPTY;
-    } else {
-      this.#current = ['first', iterator[this.#pos]];
-    }
+    this.#current = iterator.length === 0 ? EMPTY : ['first', iterator[this.#pos]];
   }
 
   _isEmpty_(): boolean {

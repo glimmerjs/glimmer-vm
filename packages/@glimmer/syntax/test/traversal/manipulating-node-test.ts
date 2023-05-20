@@ -12,11 +12,11 @@ import { astEqual } from '../support';
 
 QUnit.module('[glimmer-syntax] Traversal - manipulating');
 
-(['enter', 'exit'] as Array<'enter' | 'exit'>).forEach((eventName) => {
+for (let eventName of (['enter', 'exit'] as Array<'enter' | 'exit'>)) {
   QUnit.test(`[${eventName}] Replacing self in a key (returning null)`, (assert) => {
     let ast = parse(`<x y={{z}} />`);
-    let el = ast.body[0] as AST.ElementNode;
-    let [attr] = guardArray({ attributes: el.attributes }, { min: 1 });
+    let element = ast.body[0] as AST.ElementNode;
+    let [attribute] = guardArray({ attributes: element.attributes }, { min: 1 });
 
     assert.throws(() => {
       traverse(ast, {
@@ -29,13 +29,13 @@ QUnit.module('[glimmer-syntax] Traversal - manipulating');
           },
         },
       });
-    }, cannotRemoveNode(attr.value, attr, 'value'));
+    }, cannotRemoveNode(attribute.value, attribute, 'value'));
   });
 
   QUnit.test(`[${eventName}] Replacing self in a key (returning an empty array)`, (assert) => {
     let ast = parse(`<x y={{z}} />`);
-    let el = ast.body[0] as AST.ElementNode;
-    let [attr] = guardArray({ attributes: el.attributes }, { min: 1 });
+    let element = ast.body[0] as AST.ElementNode;
+    let [attribute] = guardArray({ attributes: element.attributes }, { min: 1 });
 
     assert.throws(() => {
       traverse(ast, {
@@ -48,7 +48,7 @@ QUnit.module('[glimmer-syntax] Traversal - manipulating');
           },
         },
       });
-    }, cannotRemoveNode(attr.value, attr, 'value'));
+    }, cannotRemoveNode(attribute.value, attribute, 'value'));
   });
 
   QUnit.test(`[${eventName}] Replacing self in a key (returning a node)`, () => {
@@ -92,8 +92,8 @@ QUnit.module('[glimmer-syntax] Traversal - manipulating');
     `[${eventName}] Replacing self in a key (returning an array with multiple nodes)`,
     (assert) => {
       let ast = parse(`<x y={{z}} />`);
-      let el = ast.body[0] as AST.ElementNode;
-      let [attr] = guardArray({ attributes: el.attributes }, { min: 1 });
+      let element = ast.body[0] as AST.ElementNode;
+      let [attribute] = guardArray({ attributes: element.attributes }, { min: 1 });
 
       assert.throws(() => {
         traverse(ast, {
@@ -106,7 +106,7 @@ QUnit.module('[glimmer-syntax] Traversal - manipulating');
             },
           },
         });
-      }, cannotReplaceNode(attr.value, attr, 'value'));
+      }, cannotReplaceNode(attribute.value, attribute, 'value'));
     }
   );
 
@@ -200,7 +200,7 @@ QUnit.module('[glimmer-syntax] Traversal - manipulating');
       astEqual(ast, `{{x}}{{a}}{{b}}{{c}}{{z}}`);
     }
   );
-});
+}
 
 QUnit.module('[glimmer-syntax] Traversal - manipulating (edge cases)');
 

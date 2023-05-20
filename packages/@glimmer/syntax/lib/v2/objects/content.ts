@@ -2,7 +2,7 @@ import type { SourceSlice } from '../../source/slice';
 import { SpanList } from '../../source/span-list';
 import type { SymbolTable } from '../../symbol-table';
 import { Args, NamedArguments } from './args';
-import type { ComponentArg, ElementModifier, HtmlOrSplatAttr } from './attr-block';
+import type { ComponentArg as ComponentArgument, ElementModifier, HtmlOrSplatAttr as HtmlOrSplatAttribute } from './attr-block';
 import type { CallFields } from './base';
 import type { ExpressionNode } from './expr';
 import type { NamedBlock, NamedBlocks } from './internal-node';
@@ -33,19 +33,11 @@ export class AppendContent extends node('AppendContent').fields<{
   table: SymbolTable;
 }>() {
   get callee(): ExpressionNode {
-    if (this.value.type === 'Call') {
-      return this.value.callee;
-    } else {
-      return this.value;
-    }
+    return this.value.type === 'Call' ? this.value.callee : this.value;
   }
 
   get args(): Args {
-    if (this.value.type === 'Call') {
-      return this.value.args;
-    } else {
-      return Args.empty(this.value.loc.collapse('end'));
-    }
+    return this.value.type === 'Call' ? this.value.args : Args.empty(this.value.loc.collapse('end'));
   }
 }
 
@@ -56,8 +48,8 @@ export class InvokeBlock extends node('InvokeBlock').fields<
 interface InvokeComponentFields {
   callee: ExpressionNode;
   blocks: NamedBlocks;
-  attrs: readonly HtmlOrSplatAttr[];
-  componentArgs: readonly ComponentArg[];
+  attrs: readonly HtmlOrSplatAttribute[];
+  componentArgs: readonly ComponentArgument[];
   modifiers: readonly ElementModifier[];
 }
 
@@ -82,8 +74,8 @@ export class InvokeComponent extends node('InvokeComponent').fields<InvokeCompon
 interface SimpleElementOptions extends BaseNodeFields {
   tag: SourceSlice;
   body: readonly ContentNode[];
-  attrs: readonly HtmlOrSplatAttr[];
-  componentArgs: readonly ComponentArg[];
+  attrs: readonly HtmlOrSplatAttribute[];
+  componentArgs: readonly ComponentArgument[];
   modifiers: readonly ElementModifier[];
 }
 

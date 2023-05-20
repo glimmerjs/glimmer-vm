@@ -5,17 +5,15 @@ import { autoRegister } from 'js-reporters';
 export async function setupQunit() {
   await import('qunit/qunit/qunit.css');
 
-  const runner = autoRegister();
-  const tap = QUnit.reporters.tap;
+  let runner = autoRegister();
+  let tap = QUnit.reporters.tap;
   tap.init(runner, { log: console.info });
 
   QUnit.config.urlConfig.push({
     id: 'smoke_tests',
     label: 'Enable Smoke Tests',
     tooltip: 'Enable Smoke Tests',
-  });
-
-  QUnit.config.urlConfig.push({
+  }, {
     id: 'ci',
     label: 'Enable CI Mode',
     tooltip: 'CI mode makes tests run faster by sacrificing UI responsiveness',
@@ -23,9 +21,9 @@ export async function setupQunit() {
 
   await Promise.resolve();
 
-  const qunitDiv = document.createElement('div');
+  let qunitDiv = document.createElement('div');
   qunitDiv.id = 'qunit';
-  const qunitFixtureDiv = document.createElement('div');
+  let qunitFixtureDiv = document.createElement('div');
   qunitFixtureDiv.id = 'qunit-fixture';
 
   document.body.append(qunitDiv, qunitFixtureDiv);
@@ -44,7 +42,7 @@ export async function setupQunit() {
     //
     // this adds a very small amount of async, just to allow
     // the QUnit UI to rerender once per module completed
-    const pause = () =>
+    let pause = () =>
       new Promise<void>((res) => {
         setTimeout(res, 1);
       });

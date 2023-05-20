@@ -7,42 +7,32 @@ export interface AstCallParts {
   hash: ASTv1.Hash;
 }
 
-export interface VarPath extends ASTv1.PathExpression {
-  head: ASTv1.VarHead;
+export interface VariablePath extends ASTv1.PathExpression {
+  head: ASTv1.VariableHead;
 }
 
 export function SexpSyntaxContext(node: ASTv1.SubExpression): ASTv2.FreeVarResolution | null {
-  if (isSimpleCallee(node)) {
-    return ASTv2.LooseModeResolution.namespaced(ASTv2.HELPER_NAMESPACE);
-  } else {
-    return null;
-  }
+  return isSimpleCallee(node) ? ASTv2.LooseModeResolution.namespaced(ASTv2.HELPER_NAMESPACE) : null;
 }
 
 export function ModifierSyntaxContext(
   node: ASTv1.ElementModifierStatement
 ): ASTv2.FreeVarResolution | null {
-  if (isSimpleCallee(node)) {
-    return ASTv2.LooseModeResolution.namespaced(ASTv2.MODIFIER_NAMESPACE);
-  } else {
-    return null;
-  }
+  return isSimpleCallee(node)
+    ? ASTv2.LooseModeResolution.namespaced(ASTv2.MODIFIER_NAMESPACE)
+    : null;
 }
 
 export function BlockSyntaxContext(node: ASTv1.BlockStatement): ASTv2.FreeVarResolution | null {
-  if (isSimpleCallee(node)) {
-    return ASTv2.LooseModeResolution.namespaced(ASTv2.COMPONENT_NAMESPACE);
-  } else {
-    return ASTv2.LooseModeResolution.fallback();
-  }
+  return isSimpleCallee(node)
+    ? ASTv2.LooseModeResolution.namespaced(ASTv2.COMPONENT_NAMESPACE)
+    : ASTv2.LooseModeResolution.fallback();
 }
 
 export function ComponentSyntaxContext(node: ASTv1.PathExpression): ASTv2.FreeVarResolution | null {
-  if (isSimplePath(node)) {
-    return ASTv2.LooseModeResolution.namespaced(ASTv2.FreeVarNamespace.Component, true);
-  } else {
-    return null;
-  }
+  return isSimplePath(node)
+    ? ASTv2.LooseModeResolution.namespaced(ASTv2.FreeVariableNamespace.Component, true)
+    : null;
 }
 
 /**
@@ -55,7 +45,7 @@ export function AttrValueSyntaxContext(node: ASTv1.MustacheStatement): ASTv2.Fre
 
   if (isSimple) {
     return isInvoke
-      ? ASTv2.LooseModeResolution.namespaced(ASTv2.FreeVarNamespace.Helper)
+      ? ASTv2.LooseModeResolution.namespaced(ASTv2.FreeVariableNamespace.Helper)
       : ASTv2.LooseModeResolution.attr();
   } else {
     return isInvoke ? ASTv2.STRICT_RESOLUTION : ASTv2.LooseModeResolution.fallback();
@@ -117,14 +107,12 @@ function isSimpleCallee(node: AstCallParts): boolean {
   return isSimplePath(path);
 }
 
-type SimplePath = ASTv1.PathExpression & { head: ASTv1.VarHead };
+type SimplePath = ASTv1.PathExpression & { head: ASTv1.VariableHead };
 
 function isSimplePath(node: ASTv1.Expression): node is SimplePath {
-  if (node.type === 'PathExpression' && node.head.type === 'VarHead') {
-    return node.tail.length === 0;
-  } else {
-    return false;
-  }
+  return node.type === 'PathExpression' && node.head.type === 'VarHead'
+    ? node.tail.length === 0
+    : false;
 }
 
 /**

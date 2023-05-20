@@ -6,11 +6,7 @@ export class NativeIteratorDelegate<T = unknown> implements IteratorDelegate {
     let result = iterator.next();
     let { done } = result;
 
-    if (done) {
-      return null;
-    } else {
-      return new this(iterator, result);
-    }
+    return done ? null : new this(iterator, result);
   }
 
   private position = 0;

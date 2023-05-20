@@ -1,5 +1,5 @@
 import type * as ASTv1 from '../v1/api';
-import { escapeAttrValue, escapeText, sortByLoc } from './util';
+import { escapeAttrValue as escapeAttributeValue, escapeText, sortByLoc } from './util';
 
 export const voidMap: {
   [tagName: string]: boolean;
@@ -7,9 +7,9 @@ export const voidMap: {
 
 let voidTagNames =
   'area base br col command embed hr img input keygen link meta param source track wbr';
-voidTagNames.split(' ').forEach((tagName) => {
+for (let tagName of voidTagNames.split(' ')) {
   voidMap[tagName] = true;
-});
+}
 
 const NON_WHITESPACE = /^\S/u;
 
@@ -143,7 +143,7 @@ export default class Printer {
     }
   }
 
-  TopLevelStatement(statement: ASTv1.TopLevelStatement | ASTv1.Template | ASTv1.AttrNode): void {
+  TopLevelStatement(statement: ASTv1.TopLevelStatement | ASTv1.Template | ASTv1.AttributeNode): void {
     switch (statement.type) {
       case 'MustacheStatement':
         return this.MustacheStatement(statement);
@@ -216,24 +216,24 @@ export default class Printer {
   }
 
   TopLevelStatements(statements: ASTv1.TopLevelStatement[]): void {
-    statements.forEach((statement) => this.TopLevelStatement(statement));
+    for (let statement of statements) this.TopLevelStatement(statement);
   }
 
-  ElementNode(el: ASTv1.ElementNode): void {
-    if (this.handledByOverride(el)) {
+  ElementNode(element: ASTv1.ElementNode): void {
+    if (this.handledByOverride(element)) {
       return;
     }
 
-    this.OpenElementNode(el);
-    this.TopLevelStatements(el.children);
-    this.CloseElementNode(el);
+    this.OpenElementNode(element);
+    this.TopLevelStatements(element.children);
+    this.CloseElementNode(element);
   }
 
-  OpenElementNode(el: ASTv1.ElementNode): void {
-    this.buffer += `<${el.tag}`;
-    const parts = [...el.attributes, ...el.modifiers, ...el.comments].sort(sortByLoc);
+  OpenElementNode(element: ASTv1.ElementNode): void {
+    this.buffer += `<${element.tag}`;
+    let parts = [...element.attributes, ...element.modifiers, ...element.comments].sort(sortByLoc);
 
-    for (const part of parts) {
+    for (let part of parts) {
       this.buffer += ' ';
       switch (part.type) {
         case 'AttrNode':
@@ -247,28 +247,28 @@ export default class Printer {
           break;
       }
     }
-    if (el.blockParams.length) {
-      this.BlockParams(el.blockParams);
+    if (element.blockParams.length > 0) {
+      this.BlockParams(element.blockParams);
     }
-    if (el.selfClosing) {
+    if (element.selfClosing) {
       this.buffer += ' /';
     }
     this.buffer += '>';
   }
 
-  CloseElementNode(el: ASTv1.ElementNode): void {
-    if (el.selfClosing || isVoidTag(el.tag)) {
+  CloseElementNode(element: ASTv1.ElementNode): void {
+    if (element.selfClosing || isVoidTag(element.tag)) {
       return;
     }
-    this.buffer += `</${el.tag}>`;
+    this.buffer += `</${element.tag}>`;
   }
 
-  AttrNode(attr: ASTv1.AttrNode): void {
-    if (this.handledByOverride(attr)) {
+  AttrNode(attribute: ASTv1.AttributeNode): void {
+    if (this.handledByOverride(attribute)) {
       return;
     }
 
-    let { name, value } = attr;
+    let { name, value } = attribute;
 
     this.buffer += name;
     if (value.type !== 'TextNode' || value.chars.length > 0) {
@@ -277,7 +277,7 @@ export default class Printer {
     }
   }
 
-  AttrNodeValue(value: ASTv1.AttrNode['value']): void {
+  AttrNodeValue(value: ASTv1.AttributeNode['value']): void {
     if (value.type === 'TextNode') {
       this.buffer += '"';
       this.TextNode(value, true);
@@ -287,15 +287,15 @@ export default class Printer {
     }
   }
 
-  TextNode(text: ASTv1.TextNode, isAttr?: boolean): void {
+  TextNode(text: ASTv1.TextNode, isAttribute?: boolean): void {
     if (this.handledByOverride(text)) {
       return;
     }
 
     if (this.options.entityEncoding === 'raw') {
       this.buffer += text.chars;
-    } else if (isAttr) {
-      this.buffer += escapeAttrValue(text.chars);
+    } else if (isAttribute) {
+      this.buffer += escapeAttributeValue(text.chars);
     } else {
       this.buffer += escapeText(text.chars);
     }
@@ -338,7 +338,7 @@ export default class Printer {
     this.Expression(block.path);
     this.Params(block.params);
     this.Hash(block.hash);
-    if (block.program.blockParams.length) {
+    if (block.program.blockParams.length > 0) {
       this.BlockParams(block.program.blockParams);
     }
 
@@ -367,8 +367,8 @@ export default class Printer {
     }
   }
 
-  BlockParams(blockParams: string[]): void {
-    this.buffer += ` as |${blockParams.join(' ')}|`;
+  BlockParams(blockParameters: string[]): void {
+    this.buffer += ` as |${blockParameters.join(' ')}|`;
   }
 
   PartialStatement(partial: ASTv1.PartialStatement): void {
@@ -389,13 +389,13 @@ export default class Printer {
     }
 
     this.buffer += '"';
-    concat.parts.forEach((part) => {
+    for (let part of concat.parts) {
       if (part.type === 'TextNode') {
         this.TextNode(part, true);
       } else {
         this.Node(part);
       }
-    });
+    }
     this.buffer += '"';
   }
 
@@ -407,15 +407,15 @@ export default class Printer {
     this.buffer += `{{!--${comment.value}--}}`;
   }
 
-  ElementModifierStatement(mod: ASTv1.ElementModifierStatement): void {
-    if (this.handledByOverride(mod)) {
+  ElementModifierStatement(module_: ASTv1.ElementModifierStatement): void {
+    if (this.handledByOverride(module_)) {
       return;
     }
 
     this.buffer += '{{';
-    this.Expression(mod.path);
-    this.Params(mod.params);
-    this.Hash(mod.hash);
+    this.Expression(module_.path);
+    this.Params(module_.params);
+    this.Hash(module_.hash);
     this.buffer += '}}';
   }
 
@@ -447,14 +447,14 @@ export default class Printer {
     this.buffer += ')';
   }
 
-  Params(params: ASTv1.Expression[]): void {
+  Params(parameters: ASTv1.Expression[]): void {
     // TODO: implement a top level Params AST node (just like the Hash object)
     // so that this can also be overridden
-    if (params.length) {
-      params.forEach((param) => {
+    if (parameters.length > 0) {
+      for (let parameter of parameters) {
         this.buffer += ' ';
-        this.Expression(param);
-      });
+        this.Expression(parameter);
+      }
     }
   }
 
@@ -463,10 +463,10 @@ export default class Printer {
       return;
     }
 
-    hash.pairs.forEach((pair) => {
+    for (let pair of hash.pairs) {
       this.buffer += ' ';
       this.HashPair(pair);
-    });
+    }
   }
 
   HashPair(pair: ASTv1.HashPair): void {
@@ -479,12 +479,12 @@ export default class Printer {
     this.Node(pair.value);
   }
 
-  StringLiteral(str: ASTv1.StringLiteral): void {
-    if (this.handledByOverride(str)) {
+  StringLiteral(text: ASTv1.StringLiteral): void {
+    if (this.handledByOverride(text)) {
       return;
     }
 
-    this.buffer += JSON.stringify(str.value);
+    this.buffer += JSON.stringify(text.value);
   }
 
   BooleanLiteral(bool: ASTv1.BooleanLiteral): void {

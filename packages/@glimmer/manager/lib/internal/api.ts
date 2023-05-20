@@ -60,7 +60,7 @@ function getManager<M extends InternalManager>(
 ): M | undefined {
   let pointer = obj;
   while (pointer !== undefined && pointer !== null) {
-    const manager = map.get(pointer);
+    let manager = map.get(pointer);
 
     if (manager !== undefined) {
       return manager;
@@ -100,7 +100,7 @@ export function getInternalModifierManager(
     );
   }
 
-  const manager = getManager(MODIFIER_MANAGERS, definition)!;
+  let manager = getManager(MODIFIER_MANAGERS, definition)!;
 
   if (manager === undefined) {
     if (isOptional === true) {
@@ -194,7 +194,7 @@ export function getInternalComponentManager(
     );
   }
 
-  const manager = getManager(COMPONENT_MANAGERS, definition)!;
+  let manager = getManager(COMPONENT_MANAGERS, definition)!;
 
   if (manager === undefined) {
     if (isOptional === true) {

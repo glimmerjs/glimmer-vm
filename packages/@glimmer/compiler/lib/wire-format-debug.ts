@@ -7,7 +7,7 @@ import type {
 } from '@glimmer/interfaces';
 import { dict, exhausted } from '@glimmer/util';
 
-import { inflateAttrName, inflateTagName } from './utils';
+import { inflateAttrName as inflateAttributeName, inflateTagName } from './utils';
 import { CURRIED_COMPONENT, CURRIED_HELPER, CURRIED_MODIFIER } from '@glimmer/vm-constants';
 import {
   WIRE_APPEND,
@@ -117,15 +117,15 @@ export default class WireFormatDebugger {
           return ['flush-element'];
 
         case WIRE_STATIC_ATTR:
-          return ['static-attr', inflateAttrName(opcode[1]), opcode[2], opcode[3]];
+          return ['static-attr', inflateAttributeName(opcode[1]), opcode[2], opcode[3]];
 
         case WIRE_STATIC_COMPONENT_ATTR:
-          return ['static-component-attr', inflateAttrName(opcode[1]), opcode[2], opcode[3]];
+          return ['static-component-attr', inflateAttributeName(opcode[1]), opcode[2], opcode[3]];
 
         case WIRE_DYNAMIC_ATTR:
           return [
             'dynamic-attr',
-            inflateAttrName(opcode[1]),
+            inflateAttributeName(opcode[1]),
             this.formatOpcode(opcode[2]),
             opcode[3],
           ];
@@ -133,7 +133,7 @@ export default class WireFormatDebugger {
         case WIRE_COMPONENT_ATTR:
           return [
             'component-attr',
-            inflateAttrName(opcode[1]),
+            inflateAttributeName(opcode[1]),
             this.formatOpcode(opcode[2]),
             opcode[3],
           ];
@@ -153,7 +153,7 @@ export default class WireFormatDebugger {
         case WIRE_TRUSTING_DYNAMIC_ATTR:
           return [
             'trusting-dynamic-attr',
-            inflateAttrName(opcode[1]),
+            inflateAttributeName(opcode[1]),
             this.formatOpcode(opcode[2]),
             opcode[3],
           ];
@@ -161,7 +161,7 @@ export default class WireFormatDebugger {
         case WIRE_TRUSTING_COMPONENT_ATTR:
           return [
             'trusting-component-attr',
-            inflateAttrName(opcode[1]),
+            inflateAttributeName(opcode[1]),
             this.formatOpcode(opcode[2]),
             opcode[3],
           ];
@@ -246,17 +246,13 @@ export default class WireFormatDebugger {
         case WIRE_GET_FREE_AS_MODIFIER_HEAD:
           return ['GetFreeAsModifierHead', this.upvars[opcode[1]], opcode[2]];
 
-        case WIRE_GET_SYMBOL: {
-          if (opcode[1] === 0) {
-            return ['get-symbol', 'this', opcode[2]];
-          } else {
-            return ['get-symbol', this.symbols[opcode[1] - 1], opcode[2]];
-          }
-        }
+        case WIRE_GET_SYMBOL:
+          return opcode[1] === 0 ? ['get-symbol', 'this', opcode[2]] : ['get-symbol', this.symbols[opcode[1] - 1], opcode[2]];
+        
 
-        case WIRE_GET_LEXICAL_SYMBOL: {
+        case WIRE_GET_LEXICAL_SYMBOL:
           return ['get-template-symbol', opcode[1], opcode[2]];
-        }
+        
 
         case WIRE_IF:
           return [

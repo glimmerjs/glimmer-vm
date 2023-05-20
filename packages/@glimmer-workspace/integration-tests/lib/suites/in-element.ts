@@ -21,7 +21,9 @@ export class InElementSuite extends RenderTest {
         BlockStatement(node: AST.BlockStatement) {
           let b = environment.syntax.builders;
           let { path, ...rest } = node;
-          return path.type !== 'SubExpression' && path.original === 'maybe-in-element' ? Object.assign({ path: b.path('in-element', path.loc) }, rest) : node;
+          return path.type !== 'SubExpression' && path.original === 'maybe-in-element'
+            ? { path: b.path('in-element', path.loc), ...rest }
+            : node;
         },
       },
     }));
@@ -421,7 +423,7 @@ export class InElementSuite extends RenderTest {
       }
     );
 
-    const [first, second, third] = roots;
+    let [first, second, third] = roots;
     this.guard(first && second && third, 'the roots exists');
 
     equalsElement(first.element, 'div', {}, '<p>foo</p>');

@@ -103,9 +103,9 @@ test('element modifier', function () {
       bar=wat}}></div>
   `);
 
-  let el = ast.body[1];
-  if (assertNodeType(el, 'ElementNode')) {
-    locEqual(el.modifiers[0], 2, 9, 4, 15, 'element modifier');
+  let element = ast.body[1];
+  if (assertNodeType(element, 'ElementNode')) {
+    locEqual(element.modifiers[0], 2, 9, 4, 15, 'element modifier');
   }
 });
 
@@ -318,9 +318,9 @@ test('element dynamic attribute', function () {
 
   let [img] = ast.body;
   if (assertNodeType(img, 'ElementNode')) {
-    let [src] = guardArray({ attributes: img.attributes }, { min: 1 });
-    locEqual(src, 1, 5, 1, 17);
-    let { value } = src;
+    let [source] = guardArray({ attributes: img.attributes }, { min: 1 });
+    locEqual(source, 1, 5, 1, 17);
+    let { value } = source;
     locEqual(value, 1, 9, 1, 17);
   }
 });

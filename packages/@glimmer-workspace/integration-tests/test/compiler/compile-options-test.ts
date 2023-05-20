@@ -54,7 +54,7 @@ module('[glimmer-compiler] precompile', ({ test }) => {
   test('lexicalScope is used if present', (assert) => {
     let wire = compile(`<hello /><div />`, ['hello'], (source) => eval(source));
 
-    const hello = { varname: 'hello' };
+    let hello = { varname: 'hello' };
     assert.ok(hello, 'avoid unused variable lint');
 
     let [statements] = wire.block;
@@ -77,7 +77,7 @@ module('[glimmer-compiler] precompile', ({ test }) => {
   test('lexicalScope works if the component name is a path', (assert) => {
     let wire = compile(`<f.hello /><div />`, ['f'], (source) => eval(source));
 
-    const f = {};
+    let f = {};
     assert.ok(f, 'avoid unused variable lint');
 
     let [statements] = wire.block;
@@ -100,7 +100,7 @@ module('[glimmer-compiler] precompile', ({ test }) => {
     let wire = JSON.parse(
       precompile('<XFoo />', {
         customizeComponentName(input: string) {
-          return input.split('').reverse().join('');
+          return [...input].reverse().join('');
         },
       })
     );

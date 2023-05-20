@@ -1,3 +1,4 @@
+/* eslint-disable unicorn/prefer-dom-node-remove */
 import type { Dict, Nullable, SimpleElement } from '@glimmer/interfaces';
 import {
   castToBrowser,
@@ -35,25 +36,25 @@ abstract class AbstractChaosMonkeyTest extends RenderTest {
   abstract renderClientSide(template: string | ComponentBlueprint, context: Dict<unknown>): void;
 
   getRandomForIteration(iteration: number) {
-    const { seed } = QUnit.config;
+    let { seed } = QUnit.config;
 
-    const str = `${iteration}\x1C${seed}`;
+    let text = `${iteration}\u001C${seed}`;
 
     // from https://github.com/qunitjs/qunit/blob/2.9.3/src/core/utilities.js#L144-L158
     let hash = 0;
 
-    for (let i = 0; i < str.length; i++) {
-      hash = (hash << 5) - hash + str.charCodeAt(i);
-      hash |= 0;
+    for (let index = 0; index < text.length; index++) {
+      hash = (hash << 5) - hash + (text.codePointAt(index) ?? 0);
+      hash = Math.trunc(hash);
     }
 
-    let hex = (0x100000000 + hash).toString(16);
+    let hex = (0x1_00_00_00_00 + hash).toString(16);
     if (hex.length < 8) {
       hex = '0000000' + hex;
     }
 
-    const result = hex.slice(-8);
-    let sample = parseInt(result, 16) || -1;
+    let result = hex.slice(-8);
+    let sample = Number.parseInt(result, 16) || -1;
 
     // from https://github.com/qunitjs/qunit/blob/2.9.3/src/core/processing-queue.js#L134-L154
     sample ^= sample << 13;
@@ -61,25 +62,25 @@ abstract class AbstractChaosMonkeyTest extends RenderTest {
     sample ^= sample << 5;
 
     if (sample < 0) {
-      sample += 0x100000000;
+      sample += 0x1_00_00_00_00;
     }
 
-    return sample / 0x100000000;
+    return sample / 0x1_00_00_00_00;
   }
 
   wreakHavoc(iteration = 0, shouldLog = false) {
-    const element = castToBrowser(this.element, 'HTML');
+    let element = castToBrowser(this.element, 'HTML');
 
-    const original = element.innerHTML;
+    let original = element.innerHTML;
 
     function collectChildNodes(childNodes: Node[], node: Node): Node[] {
       // do some thing with the node here
 
-      node.childNodes.forEach((child) => {
+      for (let child of node.childNodes) {
         childNodes.push(child);
 
         collectChildNodes(childNodes, child);
-      });
+      }
 
       return childNodes;
     }
@@ -91,10 +92,10 @@ abstract class AbstractChaosMonkeyTest extends RenderTest {
     nodes = nodes.slice(1, -1);
 
     // select a random node to remove
-    const indexToRemove = Math.floor(this.getRandomForIteration(iteration) * nodes.length);
+    let indexToRemove = Math.floor(this.getRandomForIteration(iteration) * nodes.length);
 
-    const nodeToRemove = this.guardPresent({ 'node to remove': nodes[indexToRemove] });
-    const parent = this.guardPresent({ 'parent node': nodeToRemove.parentNode });
+    let nodeToRemove = this.guardPresent({ 'node to remove': nodes[indexToRemove] });
+    let parent = this.guardPresent({ 'parent node': nodeToRemove.parentNode });
 
     // remove it
     parent.removeChild(nodeToRemove);
@@ -125,41 +126,41 @@ abstract class AbstractChaosMonkeyTest extends RenderTest {
   }
 
   runIterations(template: string, context: Dict<unknown>, expectedHTML: string, count: number) {
-    const element = castToBrowser(this.element, 'HTML');
-    const elementResetValue = element.innerHTML;
+    let element = castToBrowser(this.element, 'HTML');
+    let elementResetValue = element.innerHTML;
 
-    const urlParams = (QUnit as any).urlParams as Dict<string>;
-    if (urlParams['iteration']) {
+    let urlParameters = (QUnit as any).urlParams as Dict<string>;
+    if (urlParameters['iteration']) {
       // runs a single iteration directly, no try/catch, with logging
-      const iteration = parseInt(urlParams['iteration'], 10);
+      let iteration = Number.parseInt(urlParameters['iteration'], 10);
       this.wreakHavoc(iteration, true);
 
       this.renderClientSide(template, context);
 
-      const element = castToBrowser(this.element, 'HTML');
+      let element = castToBrowser(this.element, 'HTML');
       this.assert.strictEqual(element.innerHTML, expectedHTML);
     } else {
-      for (let i = 0; i < count; i++) {
-        const seed = QUnit.config.seed ? `&seed=${QUnit.config.seed}` : '';
-        const rerunUrl = `&testId=${QUnit.config.current.testId}&iteration=${i}${seed}`;
+      for (let index = 0; index < count; index++) {
+        let seed = QUnit.config.seed ? `&seed=${QUnit.config.seed}` : '';
+        let rerunUrl = `&testId=${QUnit.config.current.testId}&iteration=${index}${seed}`;
 
         try {
-          this.wreakHavoc(i);
+          this.wreakHavoc(index);
 
           this.renderClientSide(template, context);
 
-          const element = castToBrowser(this.element, 'HTML');
+          let element = castToBrowser(this.element, 'HTML');
           this.assert.strictEqual(
             element.innerHTML,
             expectedHTML,
-            `should match after iteration ${i}; rerun with these query params: '${rerunUrl}'`
+            `should match after iteration ${index}; rerun with these query params: '${rerunUrl}'`
           );
         } catch (error) {
           this.assert.pushResult({
             result: false,
             actual: getErrorMessage(this.assert, error),
             expected: undefined,
-            message: `Error occurred during iteration ${i}; rerun with these query params: ${rerunUrl}`,
+            message: `Error occurred during iteration ${index}; rerun with these query params: ${rerunUrl}`,
           });
 
           throw error;
@@ -195,7 +196,7 @@ class ChaosMonkeyRehydration extends AbstractChaosMonkeyTest {
   renderServerSide(
     template: string | ComponentBlueprint,
     context: Dict<unknown>,
-    element: SimpleElement | undefined = undefined
+    element?: SimpleElement | undefined
   ): void {
     this.serverOutput = this.delegate.renderServerSide(
       template as string,
@@ -212,7 +213,7 @@ class ChaosMonkeyRehydration extends AbstractChaosMonkeyTest {
   }
 
   assertExactServerOutput(_expected: string) {
-    const output = expect(
+    let output = expect(
       this.serverOutput,
       'must renderServerSide before calling assertServerOutput'
     );
@@ -225,12 +226,12 @@ class ChaosMonkeyRehydration extends AbstractChaosMonkeyTest {
 
   @test
   'adjacent text nodes'() {
-    const template = '<div>a {{this.b}}{{this.c}}{{this.d}}</div>';
-    const context = { b: '', c: '', d: '' };
+    let template = '<div>a {{this.b}}{{this.c}}{{this.d}}</div>';
+    let context = { b: '', c: '', d: '' };
 
     this.renderServerSide(template, context);
 
-    const b = blockStack();
+    let b = blockStack();
     this.assertServerOutput(
       `<div>a ${b(1)}<!--% %-->${b(1)}${b(1)}<!--% %-->${b(1)}${b(1)}<!--% %-->${b(1)}</div>`
     );
@@ -240,11 +241,11 @@ class ChaosMonkeyRehydration extends AbstractChaosMonkeyTest {
 
   @test
   '<p> invoking a block which emits a <div>'() {
-    const template = '<p>hello {{#if this.show}}<div>world!</div>{{/if}}</p>';
-    const context = { show: true };
+    let template = '<p>hello {{#if this.show}}<div>world!</div>{{/if}}</p>';
+    let context = { show: true };
 
     this.renderServerSide(template, context);
-    const b = blockStack();
+    let b = blockStack();
 
     // assert that we are in a "browser corrected" state (note the `</p>` before the `<div>world!</div>`)
     if (isIE11) {
@@ -268,14 +269,14 @@ class ChaosMonkeyPartialRehydration extends AbstractChaosMonkeyTest {
 
   @test
   'adjacent text nodes'() {
-    const args = { b: 'b', c: 'c', d: 'd' };
+    let args = { b: 'b', c: 'c', d: 'd' };
 
     this.delegate.registerTemplateOnlyComponent('RehydratingComponent', 'a {{@b}}{{@c}}{{@d}}');
     this.delegate.registerTemplateOnlyComponent(
       'Root',
       '<div><RehydratingComponent @b={{@b}} @c={{@c}} @d={{@d}}/></div>'
     );
-    const html = this.delegate.renderComponentServerSide('Root', args);
+    let html = this.delegate.renderComponentServerSide('Root', args);
 
     this.assert.strictEqual(
       html,
@@ -308,7 +309,7 @@ class ChaosMonkeyPartialRehydration extends AbstractChaosMonkeyTest {
 
   @test
   '<p> invoking a block which emits a <div>'() {
-    const args = { show: true };
+    let args = { show: true };
 
     this.delegate.registerTemplateOnlyComponent(
       'RehydratingComponent',
@@ -319,7 +320,7 @@ class ChaosMonkeyPartialRehydration extends AbstractChaosMonkeyTest {
       'Root',
       '<div><RehydratingComponent @show={{@show}}/></div>'
     );
-    const html = this.delegate.renderComponentServerSide('Root', args);
+    let html = this.delegate.renderComponentServerSide('Root', args);
     this.assert.strictEqual(
       html,
       content([

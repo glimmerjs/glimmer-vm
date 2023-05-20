@@ -24,7 +24,7 @@ export function jitSuite<T extends IRenderTest>(
 
 export function nodeSuite<T extends IRenderTest>(
   klass: RenderTestConstructor<RenderDelegate, T>,
-  options = { componentModule: false }
+  options?: { componentModule: boolean }
 ): void {
   return suite(klass, NodeJitRenderDelegate, options);
 }
@@ -43,7 +43,7 @@ export function jitComponentSuite<T extends IRenderTest>(
 
 export function jitSerializeSuite<T extends IRenderTest>(
   klass: RenderTestConstructor<RenderDelegate, T>,
-  options = { componentModule: false }
+  options?: { componentModule: boolean }
 ): void {
   return suite(klass, JitSerializationDelegate, options);
 }
@@ -90,19 +90,19 @@ export function suite<D extends RenderDelegate>(
       },
     });
 
-    for (let prop in klass.prototype) {
-      const test = klass.prototype[prop];
+    for (let property in klass.prototype) {
+      let test = klass.prototype[property];
 
       if (isTestFunction(test) && shouldRunTest<D>(Delegate)) {
         if (isSkippedTest(test)) {
           // eslint-disable-next-line no-loop-func
-          QUnit.skip(prop, (assert) => {
+          QUnit.skip(property, (assert) => {
             test.call(instance!, assert, instance!.count);
             instance!.count.assert();
           });
         } else {
           // eslint-disable-next-line no-loop-func
-          QUnit.test(prop, (assert) => {
+          QUnit.test(property, (assert) => {
             let result = test.call(instance!, assert, instance!.count);
             instance!.count.assert();
             return result;
@@ -125,7 +125,7 @@ function componentModule<D extends RenderDelegate, T extends IRenderTest>(
     templateOnly: [],
   };
 
-  function createTest(prop: string, test: any, skip?: boolean) {
+  function createTest(property: string, test: any, skip?: boolean) {
     let shouldSkip: boolean;
     if (skip === true || test.skip === true) {
       shouldSkip = true;
@@ -133,8 +133,7 @@ function componentModule<D extends RenderDelegate, T extends IRenderTest>(
 
     return (type: ComponentKind, klass: RenderTestConstructor<D, T>) => {
       if (!shouldSkip) {
-         
-        QUnit.test(prop, (assert) => {
+        QUnit.test(property, (assert) => {
           let instance = new klass(new Delegate());
           instance.testType = type;
           return test.call(instance, assert, instance.count);
@@ -143,39 +142,39 @@ function componentModule<D extends RenderDelegate, T extends IRenderTest>(
     };
   }
 
-  for (let prop in klass.prototype) {
-    const test = klass.prototype[prop];
+  for (let property in klass.prototype) {
+    let test = klass.prototype[property];
     if (isTestFunction(test)) {
       if (test['kind'] === undefined) {
         let skip = test['skip'];
         switch (skip) {
           case 'glimmer':
-            tests.curly.push(createTest(prop, test));
-            tests.dynamic.push(createTest(prop, test));
-            tests.glimmer.push(createTest(prop, test, true));
+            tests.curly.push(createTest(property, test));
+            tests.dynamic.push(createTest(property, test));
+            tests.glimmer.push(createTest(property, test, true));
             break;
           case 'curly':
-            tests.glimmer.push(createTest(prop, test));
-            tests.dynamic.push(createTest(prop, test));
-            tests.curly.push(createTest(prop, test, true));
+            tests.glimmer.push(createTest(property, test));
+            tests.dynamic.push(createTest(property, test));
+            tests.curly.push(createTest(property, test, true));
             break;
           case 'dynamic':
-            tests.glimmer.push(createTest(prop, test));
-            tests.curly.push(createTest(prop, test));
-            tests.dynamic.push(createTest(prop, test, true));
+            tests.glimmer.push(createTest(property, test));
+            tests.curly.push(createTest(property, test));
+            tests.dynamic.push(createTest(property, test, true));
             break;
           case true:
             if (test['kind'] === 'templateOnly') {
-              tests.templateOnly.push(createTest(prop, test, true));
+              tests.templateOnly.push(createTest(property, test, true));
             } else {
-              ['glimmer', 'curly', 'dynamic'].forEach((kind) => {
-                tests[kind as DeclaredComponentKind].push(createTest(prop, test, true));
-              });
+              for (let kind of ['glimmer', 'curly', 'dynamic']) {
+                tests[kind as DeclaredComponentKind].push(createTest(property, test, true));
+              }
             }
           default:
-            tests.glimmer.push(createTest(prop, test));
-            tests.curly.push(createTest(prop, test));
-            tests.dynamic.push(createTest(prop, test));
+            tests.glimmer.push(createTest(property, test));
+            tests.curly.push(createTest(property, test));
+            tests.dynamic.push(createTest(property, test));
         }
         continue;
       }
@@ -183,21 +182,21 @@ function componentModule<D extends RenderDelegate, T extends IRenderTest>(
       let kind = test['kind'];
 
       if (kind === 'curly') {
-        tests.curly.push(createTest(prop, test));
-        tests.dynamic.push(createTest(prop, test));
+        tests.curly.push(createTest(property, test));
+        tests.dynamic.push(createTest(property, test));
       }
 
       if (kind === 'glimmer') {
-        tests.glimmer.push(createTest(prop, test));
+        tests.glimmer.push(createTest(property, test));
       }
 
       if (kind === 'dynamic') {
-        tests.curly.push(createTest(prop, test));
-        tests.dynamic.push(createTest(prop, test));
+        tests.curly.push(createTest(property, test));
+        tests.dynamic.push(createTest(property, test));
       }
 
       if (kind === 'templateOnly') {
-        tests.templateOnly.push(createTest(prop, test));
+        tests.templateOnly.push(createTest(property, test));
       }
     }
   }
@@ -217,26 +216,26 @@ function nestedComponentModules<D extends RenderDelegate, T extends IRenderTest>
   klass: RenderTestConstructor<D, T>,
   tests: ComponentTests
 ): void {
-  keys(tests).forEach((type) => {
+  for (let type of keys(tests)) {
     let formattedType = upperFirst(type);
 
     QUnit.module(`[integration] ${formattedType}`, () => {
-      const allTests = [...tests[type]].reverse();
+      let allTests = [...tests[type]].reverse();
 
-      for (const t of allTests) {
+      for (let t of allTests) {
         t(formattedType, klass);
       }
 
       tests[type] = [];
     });
-  });
+  }
 }
 
 function upperFirst<T extends string>(
-  str: T extends '' ? `upperFirst only takes (statically) non-empty strings` : T
+  text: T extends '' ? `upperFirst only takes (statically) non-empty strings` : T
 ): string {
-  let first = str[0] as string;
-  let rest = str.slice(1);
+  let first = text[0] as string;
+  let rest = text.slice(1);
 
   return `${first.toUpperCase()}${rest}`;
 }

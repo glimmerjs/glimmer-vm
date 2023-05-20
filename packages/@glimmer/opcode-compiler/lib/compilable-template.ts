@@ -94,7 +94,7 @@ export function compileStatements(
     encodeOp(encoder, constants, resolver, meta, op as BuilderOp | HighLevelOp);
   }
 
-  for (const statement of statements) {
+  for (let statement of statements) {
     compileStatement(pushOp, statement);
   }
 

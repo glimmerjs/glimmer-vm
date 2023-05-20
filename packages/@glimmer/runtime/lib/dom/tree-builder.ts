@@ -1,3 +1,4 @@
+/* eslint-disable unicorn/prefer-dom-node-append */
 import type { AttrNamespace, ElementNamespace, Nullable } from '@glimmer/interfaces';
 import { INSERT_BEFORE_END, unwrap } from '@glimmer/util';
 
@@ -17,13 +18,13 @@ export class TreeConstruction {
   }
 
   text(text: string) {
-    const node = this.#document.createTextNode(text);
+    let node = this.#document.createTextNode(text);
     this.#parent.appendChild(node);
     return node;
   }
 
   comment(data: string) {
-    const node = this.#document.createComment(data);
+    let node = this.#document.createComment(data);
     this.#parent.appendChild(node);
     return node;
   }
@@ -32,15 +33,15 @@ export class TreeConstruction {
     this.#buffer = ElementBuffer(tag);
   }
 
-  addAttr(attrName: string, attrValue: string | boolean = true) {
-    if (attrValue === true) attrValue = '';
-    if (attrValue === false) return;
+  addAttr(attributeName: string, attributeValue: string | boolean = true) {
+    if (attributeValue === true) attributeValue = '';
+    if (attributeValue === false) return;
 
-    unwrap(this.#buffer).attr(attrName, attrValue);
+    unwrap(this.#buffer).attr(attributeName, attributeValue);
   }
 
   flushElement() {
-    const buffer = unwrap(this.#buffer);
+    let buffer = unwrap(this.#buffer);
     return buffer.flush(this.#parent);
   }
 
@@ -97,14 +98,9 @@ interface MinimalDocumentFragment {
 }
 
 type Child = MinimalText | MinimalComment | MinimalDocumentFragment;
-type _Parent = MinimalDocument | MinimalElement;
-
-function createSet(string: string): Set<string> {
-  return new Set(string.split('|'));
-}
 
 interface ElementBuffer {
-  attr: (attrName: string, attrValue?: string | boolean) => void;
+  attr: (attributeName: string, attributeValue?: string | boolean) => void;
   flush: (parent: MinimalElement) => MinimalElement;
 }
 
@@ -112,11 +108,11 @@ function ElementBuffer(tag: string): ElementBuffer {
   let buffer = `<${tag}>`;
 
   return {
-    attr(attrName: string, attrValue: string | boolean = '') {
-      if (attrValue === false) return;
-      if (attrValue === true) attrValue = '';
+    attr(attributeName: string, attributeValue: string | boolean = '') {
+      if (attributeValue === false) return;
+      if (attributeValue === true) attributeValue = '';
 
-      buffer += ` ${attrName}="${attrValue}"`;
+      buffer += ` ${attributeName}="${attributeValue}"`;
     },
 
     flush(parent: MinimalElement): MinimalElement {

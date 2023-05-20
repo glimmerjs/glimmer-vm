@@ -47,9 +47,7 @@ if (import.meta.env.DEV) {
     return name || className;
   };
 
-  let getPrimitiveName = (value: any) => {
-    return String(value);
-  };
+  let getPrimitiveName = String;
 
   debugToString = (value: unknown) => {
     if (typeof value === 'function') {

@@ -4,25 +4,25 @@ import { SourceSlice } from '../../source/slice';
 import type * as ASTv2 from '../api';
 import type {
   SerializedAppendContent,
-  SerializedArgReference,
+  SerializedArgumentReference,
   SerializedArgs,
-  SerializedAttrOrArg,
+  SerializedAttributeOrArgument,
   SerializedBlock,
   SerializedCallExpression,
   SerializedContentNode,
   SerializedDeprecatedCallExpression,
   SerializedElementModifier,
   SerializedExpressionNode,
-  SerializedFreeVarReference,
+  SerializedFreeVariableReference,
   SerializedGlimmerComment,
   SerializedHtmlComment,
-  SerializedHtmlOrSplatAttr,
+  SerializedHtmlOrSplatAttr as SerializedHtmlOrSplatAttribute,
   SerializedHtmlText,
   SerializedInterpolateExpression,
   SerializedInvokeBlock,
   SerializedInvokeComponent,
   SerializedLiteralExpression,
-  SerializedLocalVarReference,
+  SerializedLocalVariableReference,
   SerializedNamed,
   SerializedNamedArgument,
   SerializedNamedBlock,
@@ -35,35 +35,35 @@ import type {
 } from './types';
 
 export class RefSerializer {
-  arg(ref: ASTv2.ArgReference): SerializedArgReference {
+  arg(reference: ASTv2.ArgReference): SerializedArgumentReference {
     return {
       type: 'Arg',
-      loc: ref.loc.serialize(),
-      name: ref.name.serialize(),
+      loc: reference.loc.serialize(),
+      name: reference.name.serialize(),
     };
   }
 
-  free(ref: ASTv2.FreeVarReference): SerializedFreeVarReference {
+  free(reference: ASTv2.FreeVarReference): SerializedFreeVariableReference {
     return {
       type: 'Free',
-      loc: ref.loc.serialize(),
-      resolution: ref.resolution.serialize(),
-      name: ref.name,
+      loc: reference.loc.serialize(),
+      resolution: reference.resolution.serialize(),
+      name: reference.name,
     };
   }
 
-  local(ref: ASTv2.LocalVarReference): SerializedLocalVarReference {
+  local(reference: ASTv2.LocalVarReference): SerializedLocalVariableReference {
     return {
       type: 'Local',
-      loc: ref.loc.serialize(),
-      name: ref.name,
+      loc: reference.loc.serialize(),
+      name: reference.name,
     };
   }
 
-  self(ref: ASTv2.ThisReference): SerializedThisReference {
+  self(reference: ASTv2.ThisReference): SerializedThisReference {
     return {
       type: 'This',
-      loc: ref.loc.serialize(),
+      loc: reference.loc.serialize(),
     };
   }
 }
@@ -220,7 +220,7 @@ export class ContentSerializer {
 
 const CONTENT = new ContentSerializer();
 
-class AttrBlockSerializer {
+class AttributeBlockSerializer {
   modifier(node: ASTv2.ElementModifier): SerializedElementModifier {
     return {
       loc: node.loc.serialize(),
@@ -229,11 +229,11 @@ class AttrBlockSerializer {
     };
   }
 
-  arg(node: ASTv2.ComponentArg): SerializedAttrOrArg {
+  arg(node: ASTv2.ComponentArg): SerializedAttributeOrArgument {
     return this.anyAttr(node);
   }
 
-  anyAttr(node: ASTv2.ComponentArg | ASTv2.HtmlAttr): SerializedAttrOrArg {
+  anyAttr(node: ASTv2.ComponentArg | ASTv2.HtmlAttr): SerializedAttributeOrArgument {
     return {
       loc: node.loc.serialize(),
       name: node.name.serialize(),
@@ -243,7 +243,7 @@ class AttrBlockSerializer {
   }
 }
 
-const ATTRS = new AttrBlockSerializer();
+const ATTRS = new AttributeBlockSerializer();
 
 class InternalSerializer {
   block(node: ASTv2.Block): SerializedBlock {
@@ -287,24 +287,22 @@ const visit = {
     }
   },
 
-  attr(node: ASTv2.HtmlOrSplatAttr): SerializedHtmlOrSplatAttr {
-    if (node.type === 'SplatAttr') {
-      return new SourceSlice({ loc: node.loc, chars: '...attributes' }).serialize();
-    } else {
-      return ATTRS.anyAttr(node);
-    }
+  attr(node: ASTv2.HtmlOrSplatAttr): SerializedHtmlOrSplatAttribute {
+    return node.type === 'SplatAttr'
+      ? new SourceSlice({ loc: node.loc, chars: '...attributes' }).serialize()
+      : ATTRS.anyAttr(node);
   },
 
-  ref(ref: ASTv2.VariableReference): SerializedVariableReference {
-    switch (ref.type) {
+  ref(reference: ASTv2.VariableReference): SerializedVariableReference {
+    switch (reference.type) {
       case 'Arg':
-        return REF.arg(ref);
+        return REF.arg(reference);
       case 'Free':
-        return REF.free(ref);
+        return REF.free(reference);
       case 'Local':
-        return REF.local(ref);
+        return REF.local(reference);
       case 'This':
-        return REF.self(ref);
+        return REF.self(reference);
     }
   },
 

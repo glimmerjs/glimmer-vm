@@ -3,8 +3,8 @@ import { getFirst, getLast, isPresentArray } from './present';
 
 export function strip(strings: TemplateStringsArray, ...args: unknown[]) {
   let out = '';
-  for (const [i, string] of enumerate(strings)) {
-    let dynamic = args[i] !== undefined ? String(args[i]) : '';
+  for (let [index, string] of enumerate(strings)) {
+    let dynamic = args[index] === undefined ? '' : String(args[index]);
 
     out += `${string}${dynamic}`;
   }
@@ -19,7 +19,7 @@ export function strip(strings: TemplateStringsArray, ...args: unknown[]) {
     lines.pop();
   }
 
-  let min = Infinity;
+  let min = Number.POSITIVE_INFINITY;
 
   for (let line of lines) {
     let leading = /^\s*/u.exec(line)![0].length;

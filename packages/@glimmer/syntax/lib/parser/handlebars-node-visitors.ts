@@ -27,25 +27,21 @@ export abstract class HandlebarsNodeVisitors extends Parser {
   Program(program: HBS.Program): ASTv1.Template;
   Program(program: HBS.Program): ASTv1.Template | ASTv1.Block;
   Program(program: HBS.Program): ASTv1.Block | ASTv1.Template {
-    const body: ASTv1.Statement[] = [];
+    let body: ASTv1.Statement[] = [];
     let node;
 
-    if (this.isTopLevel) {
-      node = b.template({
+    node = this.isTopLevel ? b.template({
         body,
         blockParams: program.blockParams,
         loc: this.source.spanFor(program.loc),
-      });
-    } else {
-      node = b.blockItself({
+      }) : b.blockItself({
         body,
         blockParams: program.blockParams,
         chained: program.chained,
         loc: this.source.spanFor(program.loc),
       });
-    }
 
-    let i,
+    let index,
       l = program.body.length;
 
     this.elementStack.push(node);
@@ -54,14 +50,14 @@ export abstract class HandlebarsNodeVisitors extends Parser {
       return this.elementStack.pop() as ASTv1.Block | ASTv1.Template;
     }
 
-    for (i = 0; i < l; i++) {
-      this.acceptNode(unwrap(program.body[i]));
+    for (index = 0; index < l; index++) {
+      this.acceptNode(unwrap(program.body[index]));
     }
 
     // Ensure that that the element stack is balanced properly.
-    const poppedNode = this.elementStack.pop();
+    let poppedNode = this.elementStack.pop();
     if (poppedNode !== node) {
-      const elementNode = poppedNode as ASTv1.ElementNode;
+      let elementNode = poppedNode as ASTv1.ElementNode;
 
       throw generateSyntaxError(`Unclosed element \`${elementNode.tag}\``, elementNode.loc);
     }
@@ -82,7 +78,7 @@ export abstract class HandlebarsNodeVisitors extends Parser {
       );
     }
 
-    const { path, params, hash } = acceptCallNodes(this, block);
+    let { path, params, hash } = acceptCallNodes(this, block);
 
     // These are bugs in Handlebars upstream
     if (!block.program.loc) {
@@ -93,10 +89,10 @@ export abstract class HandlebarsNodeVisitors extends Parser {
       block.inverse.loc = NON_EXISTENT_LOCATION;
     }
 
-    const program = this.Program(block.program);
-    const inverse = block.inverse ? this.Program(block.inverse) : null;
+    let program = this.Program(block.program);
+    let inverse = block.inverse ? this.Program(block.inverse) : null;
 
-    const node = b.block({
+    let node = b.block({
       path,
       params,
       hash,
@@ -108,13 +104,13 @@ export abstract class HandlebarsNodeVisitors extends Parser {
       closeStrip: block.closeStrip,
     });
 
-    const parentProgram = this.currentElement();
+    let parentProgram = this.currentElement();
 
     appendChild(parentProgram, node);
   }
 
   MustacheStatement(rawMustache: HBS.MustacheStatement): ASTv1.MustacheStatement | void {
-    const { tokenizer } = this;
+    let { tokenizer } = this;
 
     if (tokenizer.state === 'comment') {
       this.appendToCommentData(this.sourceForNode(rawMustache));
@@ -122,7 +118,7 @@ export abstract class HandlebarsNodeVisitors extends Parser {
     }
 
     let mustache: ASTv1.MustacheStatement;
-    const { escaped, loc, strip } = rawMustache;
+    let { escaped, loc, strip } = rawMustache;
 
     if (isHBSLiteral(rawMustache.path)) {
       mustache = b.mustache({
@@ -134,7 +130,7 @@ export abstract class HandlebarsNodeVisitors extends Parser {
         strip,
       });
     } else {
-      const { path, params, hash } = acceptCallNodes(
+      let { path, params, hash } = acceptCallNodes(
         this,
         rawMustache as HBS.MustacheStatement & {
           path: HBS.PathExpression | HBS.SubExpression;
@@ -194,14 +190,14 @@ export abstract class HandlebarsNodeVisitors extends Parser {
 
   appendDynamicAttributeValuePart(part: ASTv1.MustacheStatement): void {
     this.finalizeTextPart();
-    const attr = this.currentAttr;
-    attr.isDynamic = true;
-    attr.parts.push(part);
+    let attribute = this.currentAttr;
+    attribute.isDynamic = true;
+    attribute.parts.push(part);
   }
 
   finalizeTextPart(): void {
-    const attr = this.currentAttr;
-    const text = attr.currentPart;
+    let attribute = this.currentAttr;
+    let text = attribute.currentPart;
     if (text !== null) {
       this.currentAttr.parts.push(text);
       this.startTextPart();
@@ -220,15 +216,15 @@ export abstract class HandlebarsNodeVisitors extends Parser {
   }
 
   CommentStatement(rawComment: HBS.CommentStatement): Nullable<ASTv1.MustacheCommentStatement> {
-    const { tokenizer } = this;
+    let { tokenizer } = this;
 
     if (tokenizer.state === 'comment') {
       this.appendToCommentData(this.sourceForNode(rawComment));
       return null;
     }
 
-    const { value, loc } = rawComment;
-    const comment = b.mustacheComment(value, this.source.spanFor(loc));
+    let { value, loc } = rawComment;
+    let comment = b.mustacheComment(value, this.source.spanFor(loc));
 
     switch (tokenizer.state) {
       case 'beforeAttributeName':
@@ -280,15 +276,15 @@ export abstract class HandlebarsNodeVisitors extends Parser {
   }
 
   SubExpression(sexpr: HBS.SubExpression): ASTv1.SubExpression {
-    const { path, params, hash } = acceptCallNodes(this, sexpr);
+    let { path, params, hash } = acceptCallNodes(this, sexpr);
     return b.sexpr({ path, params, hash, loc: this.source.spanFor(sexpr.loc) });
   }
 
   PathExpression(path: HBS.PathExpression): ASTv1.PathExpression {
-    const { original } = path;
+    let { original } = path;
     let parts: string[];
 
-    if (original.indexOf('/') !== -1) {
+    if (original.includes('/')) {
       if (original.slice(0, 2) === './') {
         throw generateSyntaxError(
           `Using "./" is not supported in Glimmer and unnecessary`,
@@ -301,7 +297,7 @@ export abstract class HandlebarsNodeVisitors extends Parser {
           this.source.spanFor(path.loc)
         );
       }
-      if (original.indexOf('.') !== -1) {
+      if (original.includes('.')) {
         throw generateSyntaxError(
           `Mixing '.' and '/' in paths is not supported in Glimmer; use only '.' to separate property paths`,
           this.source.spanFor(path.loc)
@@ -343,7 +339,7 @@ export abstract class HandlebarsNodeVisitors extends Parser {
         },
       };
     } else if (path.data) {
-      const head = parts.shift();
+      let head = parts.shift();
 
       if (head === undefined) {
         throw generateSyntaxError(
@@ -361,7 +357,7 @@ export abstract class HandlebarsNodeVisitors extends Parser {
         },
       };
     } else {
-      const head = parts.shift();
+      let head = parts.shift();
 
       if (head === undefined) {
         throw generateSyntaxError(
@@ -384,7 +380,7 @@ export abstract class HandlebarsNodeVisitors extends Parser {
   }
 
   Hash(hash: HBS.Hash): ASTv1.Hash {
-    const pairs = hash.pairs.map((pair) =>
+    let pairs = hash.pairs.map((pair) =>
       b.pair({
         key: pair.key,
         value: this.acceptNode(pair.value),
@@ -428,9 +424,9 @@ function calculateRightStrippedOffsets(original: string, value: string) {
 
   // otherwise, return the number of newlines prior to
   // `value`
-  const [difference] = original.split(value) as [string];
-  const lines = difference.split(/\n/u);
-  const lineCount = lines.length - 1;
+  let [difference] = original.split(value) as [string];
+  let lines = difference.split(/\n/u);
+  let lineCount = lines.length - 1;
 
   return {
     lines: lineCount,
@@ -442,17 +438,13 @@ function updateTokenizerLocation(tokenizer: Parser['tokenizer'], content: HBS.Co
   let line = content.loc.start.line;
   let column = content.loc.start.column;
 
-  const offsets = calculateRightStrippedOffsets(
+  let offsets = calculateRightStrippedOffsets(
     content.original as Recast<HBS.StripFlags, string>,
     content.value
   );
 
   line = line + offsets.lines;
-  if (offsets.lines) {
-    column = offsets.columns;
-  } else {
-    column = column + offsets.columns;
-  }
+  column = offsets.lines ? offsets.columns : column + offsets.columns;
 
   tokenizer.line = line;
   tokenizer.column = column;
@@ -478,7 +470,7 @@ function acceptCallNodes(
   hash: ASTv1.Hash;
 } {
   if (node.path.type.endsWith('Literal')) {
-    const path = node.path as unknown as
+    let path = node.path as unknown as
       | HBS.StringLiteral
       | HBS.UndefinedLiteral
       | HBS.NullLiteral
@@ -486,16 +478,30 @@ function acceptCallNodes(
       | HBS.BooleanLiteral;
 
     let value = '';
-    if (path.type === 'BooleanLiteral') {
+    switch (path.type) {
+    case 'BooleanLiteral':
       value = path.original.toString();
-    } else if (path.type === 'StringLiteral') {
+    
+    break;
+    
+    case 'StringLiteral':
       value = `"${path.original}"`;
-    } else if (path.type === 'NullLiteral') {
+    
+    break;
+    
+    case 'NullLiteral':
       value = 'null';
-    } else if (path.type === 'NumberLiteral') {
+    
+    break;
+    
+    case 'NumberLiteral':
       value = path.value.toString();
-    } else {
+    
+    break;
+    
+    default:
       value = 'undefined';
+    
     }
     throw generateSyntaxError(
       `${path.type} "${
@@ -505,19 +511,19 @@ function acceptCallNodes(
     );
   }
 
-  const path =
+  let path =
     node.path.type === 'PathExpression'
       ? compiler.PathExpression(node.path)
       : compiler.SubExpression(node.path as unknown as HBS.SubExpression);
-  const params = node.params
+  let parameters = node.params
     ? node.params.map((e) => compiler.acceptNode<ASTv1.Expression>(e))
     : [];
 
   // if there is no hash, position it as a collapsed node immediately after the last param (or the
   // path, if there are also no params)
-  const end = isPresentArray(params) ? getLast(params).loc : path.loc;
+  let end = isPresentArray(parameters) ? getLast(parameters).loc : path.loc;
 
-  const hash = node.hash
+  let hash = node.hash
     ? compiler.Hash(node.hash)
     : ({
         type: 'Hash',
@@ -525,22 +531,22 @@ function acceptCallNodes(
         loc: compiler.source.spanFor(end).collapse('end'),
       } as const);
 
-  return { path, params, hash };
+  return { path, params: parameters, hash };
 }
 
 function addElementModifier(
   element: ParserNodeBuilder<Tag<'StartTag'>>,
   mustache: ASTv1.MustacheStatement
 ) {
-  const { path, params, hash, loc } = mustache;
+  let { path, params, hash, loc } = mustache;
 
   if (isHBSLiteral(path)) {
-    const modifier = `{{${printLiteral(path)}}}`;
-    const tag = `<${element.name} ... ${modifier} ...`;
+    let modifier = `{{${printLiteral(path)}}}`;
+    let tag = `<${element.name} ... ${modifier} ...`;
 
     throw generateSyntaxError(`In ${tag}, ${modifier} is not a valid modifier`, mustache.loc);
   }
 
-  const modifier = b.elementModifier({ path, params, hash, loc });
+  let modifier = b.elementModifier({ path, params, hash, loc });
   element.modifiers.push(modifier);
 }

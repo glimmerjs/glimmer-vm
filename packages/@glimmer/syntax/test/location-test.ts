@@ -56,11 +56,11 @@ const cases: Dict<[string, number | null][]> = {
 
 QUnit.module('locations - position');
 
-for (const [string, testCase] of Object.entries(cases)) {
+for (let [string, testCase] of Object.entries(cases)) {
   let source = new src.Source(string);
 
   for (let [span, offset] of testCase) {
-    let [line, column] = span.split(':').map((i) => parseInt(i, 10));
+    let [line, column] = span.split(':').map((index) => Number.parseInt(index, 10));
 
     if (offset === null) continue;
 
@@ -72,11 +72,11 @@ for (const [string, testCase] of Object.entries(cases)) {
 
 QUnit.module('locations - location');
 
-for (const [string, testCase] of Object.entries(cases)) {
+for (let [string, testCase] of Object.entries(cases)) {
   let source = new src.Source(string);
 
   for (let [span, offset] of testCase) {
-    let [line, column] = span.split(':').map((i) => parseInt(i, 10)) as [number, number];
+    let [line, column] = span.split(':').map((index) => Number.parseInt(index, 10)) as [number, number];
 
     if (offset === null) continue;
 

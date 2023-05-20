@@ -21,25 +21,25 @@ function tokensFromType(
       return;
     }
 
-    const possbleToken = node.head.name;
+    let possbleToken = node.head.name;
 
-    if (scopedTokens.indexOf(possbleToken) === -1) {
+    if (!scopedTokens.includes(possbleToken)) {
       return possbleToken;
     }
   } else if (node.type === 'ElementNode') {
-    const { tag } = node;
+    let { tag } = node;
 
-    const char = tag.charAt(0);
+    let char = tag.charAt(0);
 
     if (char === ':' || char === '@') {
       return;
     }
 
-    if (!options.includeHtmlElements && tag.indexOf('.') === -1 && tag.toLowerCase() === tag) {
+    if (!options.includeHtmlElements && !tag.includes('.') && tag.toLowerCase() === tag) {
       return;
     }
 
-    if (tag.substr(0, 5) === 'this.') {
+    if (tag.slice(0, 5) === 'this.') {
       return;
     }
 
@@ -69,16 +69,16 @@ function addTokens(
   scopedTokens: string[],
   options: GetTemplateLocalsOptions
 ) {
-  const maybeTokens = tokensFromType(node, scopedTokens, options);
+  let maybeTokens = tokensFromType(node, scopedTokens, options);
 
-  (Array.isArray(maybeTokens) ? maybeTokens : [maybeTokens]).forEach((maybeToken) => {
+  for (let maybeToken of (Array.isArray(maybeTokens) ? maybeTokens : [maybeTokens])) {
     if (maybeToken !== undefined && maybeToken[0] !== '@') {
-      const maybeTokenFirstSegment = maybeToken.split('.')[0];
+      let maybeTokenFirstSegment = maybeToken.split('.')[0];
       if (!scopedTokens.includes(maybeTokenFirstSegment)) {
         tokensSet.add(maybeToken.split('.')[0]);
       }
     }
-  });
+  }
 }
 
 /**
@@ -93,16 +93,16 @@ export function getTemplateLocals(
     includeKeywords: false,
   }
 ): string[] {
-  const ast = preprocess(html);
-  const tokensSet = new Set<string>();
-  const scopedTokens: string[] = [];
+  let ast = preprocess(html);
+  let tokensSet = new Set<string>();
+  let scopedTokens: string[] = [];
 
   traverse(ast, {
     Block: {
       enter({ blockParams }) {
-        blockParams.forEach((param) => {
-          scopedTokens.push(param);
-        });
+        for (let parameter of blockParams) {
+          scopedTokens.push(parameter);
+        }
       },
 
       exit({ blockParams }) {
@@ -114,9 +114,9 @@ export function getTemplateLocals(
 
     ElementNode: {
       enter(node) {
-        node.blockParams.forEach((param) => {
-          scopedTokens.push(param);
-        });
+        for (let parameter of node.blockParams) {
+          scopedTokens.push(parameter);
+        }
         addTokens(tokensSet, node, scopedTokens, options);
       },
 
@@ -134,7 +134,7 @@ export function getTemplateLocals(
 
   let tokens: string[] = [];
 
-  tokensSet.forEach((s) => tokens.push(s));
+  for (let s of tokensSet) tokens.push(s);
 
   if (!options?.includeKeywords) {
     tokens = tokens.filter((token) => !isKeyword(token));

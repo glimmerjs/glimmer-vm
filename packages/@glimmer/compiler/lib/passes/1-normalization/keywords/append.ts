@@ -1,13 +1,13 @@
 import { ASTv2, generateSyntaxError, src } from '@glimmer/syntax';
 
-import { Err, Ok, Result } from '../../../shared/result';
+import { Err as Error_, Ok, Result } from '../../../shared/result';
 import * as mir from '../../2-encoding/mir';
 import type { NormalizationState } from '../context';
 import { VISIT_EXPRS } from '../visitors/expressions';
 import { keywords } from './impl';
 import { toAppend } from './utils/call-to-append';
 import { assertCurryKeyword } from './utils/curry';
-import { getDynamicVarKeyword } from './utils/dynamic-vars';
+import { getDynamicVarKeyword as getDynamicVariableKeyword } from './utils/dynamic-vars';
 import { hasBlockKeyword } from './utils/has-block';
 import { ifUnlessInlineKeyword } from './utils/if-unless';
 import { logKeyword } from './utils/log';
@@ -16,7 +16,7 @@ import { CURRIED_COMPONENT, CURRIED_HELPER } from '@glimmer/vm-constants';
 export const APPEND_KEYWORDS = keywords('Append')
   .kw('has-block', toAppend(hasBlockKeyword('has-block')))
   .kw('has-block-params', toAppend(hasBlockKeyword('has-block-params')))
-  .kw('-get-dynamic-var', toAppend(getDynamicVarKeyword))
+  .kw('-get-dynamic-var', toAppend(getDynamicVariableKeyword))
   .kw('log', toAppend(logKeyword))
   .kw('if', toAppend(ifUnlessInlineKeyword('if')))
   .kw('unless', toAppend(ifUnlessInlineKeyword('unless')))
@@ -36,18 +36,14 @@ export const APPEND_KEYWORDS = keywords('Append')
         let target = args.named.get('to');
 
         if (args.named.size > 1 || target === null) {
-          return Err(
+          return Error_(
             generateSyntaxError(`yield only takes a single named argument: 'to'`, args.named.loc)
           );
         }
 
-        if (ASTv2.isLiteral(target, 'string')) {
-          return Ok({ target: target.toSlice(), positional: args.positional });
-        } else {
-          return Err(
-            generateSyntaxError(`you can only yield to a literal string value`, target.loc)
-          );
-        }
+        return ASTv2.isLiteral(target, 'string')
+          ? Ok({ target: target.toSlice(), positional: args.positional })
+          : Error_(generateSyntaxError(`you can only yield to a literal string value`, target.loc));
       }
     },
 
@@ -78,15 +74,13 @@ export const APPEND_KEYWORDS = keywords('Append')
       let { positional } = args;
 
       if (args.isEmpty()) {
-        return Ok(undefined);
+        return Ok(void 0);
       } else {
-        if (positional.isEmpty()) {
-          return Err(generateSyntaxError(`debugger does not take any named arguments`, node.loc));
-        } else {
-          return Err(
-            generateSyntaxError(`debugger does not take any positional arguments`, node.loc)
-          );
-        }
+        return positional.isEmpty()
+          ? Error_(generateSyntaxError(`debugger does not take any named arguments`, node.loc))
+          : Error_(
+              generateSyntaxError(`debugger does not take any positional arguments`, node.loc)
+            );
       }
     },
 

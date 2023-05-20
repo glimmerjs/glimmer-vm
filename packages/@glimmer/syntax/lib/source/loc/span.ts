@@ -123,14 +123,14 @@ export class SourceSpan implements SourceLocation {
   }
 
   static forHbsLoc(source: Source, loc: SourceLocation): SourceSpan {
-    const start = new HbsPosition(source, loc.start);
-    const end = new HbsPosition(source, loc.end);
+    let start = new HbsPosition(source, loc.start);
+    let end = new HbsPosition(source, loc.end);
     return new HbsSpan(source, { start, end }, loc).wrap();
   }
 
   static forCharPositions(source: Source, startPos: number, endPos: number): SourceSpan {
-    const start = new CharPosition(source, startPos);
-    const end = new CharPosition(source, endPos);
+    let start = new CharPosition(source, startPos);
+    let end = new CharPosition(source, endPos);
 
     return new CharPositionSpan(source, { start, end }).wrap();
   }
@@ -159,7 +159,7 @@ export class SourceSpan implements SourceLocation {
   }
 
   get loc(): SourceLocation {
-    const span = this.data.toHbsSpan();
+    let span = this.data.toHbsSpan();
     return span === null ? BROKEN_LOCATION : span.toHbsLoc();
   }
 
@@ -212,10 +212,9 @@ export class SourceSpan implements SourceLocation {
    * string.
    */
   toSlice(expected?: string): SourceSlice {
-    const chars = this.data.asString();
+    let chars = this.data.asString();
 
-    if (import.meta.env.DEV) {
-      if (expected !== undefined && chars !== expected) {
+    if (import.meta.env.DEV && expected !== undefined && chars !== expected) {
         // eslint-disable-next-line no-console
         console.warn(
           `unexpectedly found ${JSON.stringify(
@@ -223,7 +222,6 @@ export class SourceSpan implements SourceLocation {
           )} when slicing source, but expected ${JSON.stringify(expected)}`
         );
       }
-    }
 
     return new SourceSlice({
       loc: this,
@@ -351,33 +349,25 @@ class CharPositionSpan implements SpanData {
     let locPosSpan = this._locPosSpan;
 
     if (locPosSpan === null) {
-      const start = this.charPositions.start.toHbsPos();
-      const end = this.charPositions.end.toHbsPos();
+      let start = this.charPositions.start.toHbsPos();
+      let end = this.charPositions.end.toHbsPos();
 
-      if (start === null || end === null) {
-        locPosSpan = this._locPosSpan = BROKEN;
-      } else {
-        locPosSpan = this._locPosSpan = new HbsSpan(this.source, {
+      locPosSpan = this._locPosSpan = start === null || end === null ? BROKEN : new HbsSpan(this.source, {
           start,
           end,
         });
-      }
     }
 
     return locPosSpan === BROKEN ? null : locPosSpan;
   }
 
   serialize(): SerializedSourceSpan {
-    const {
+    let {
       start: { charPos: start },
       end: { charPos: end },
     } = this.charPositions;
 
-    if (start === end) {
-      return start;
-    } else {
-      return [start, end];
-    }
+    return start === end ? start : [start, end];
   }
 
   toCharPosSpan(): CharPositionSpan {
@@ -402,7 +392,7 @@ export class HbsSpan implements SpanData {
   }
 
   serialize(): SerializedConcreteSourceSpan {
-    const charPos = this.toCharPosSpan();
+    let charPos = this.toCharPosSpan();
     return charPos === null ? OffsetKind.Broken : charPos.wrap().serialize();
   }
 
@@ -436,7 +426,7 @@ export class HbsSpan implements SpanData {
   }
 
   asString(): string {
-    const span = this.toCharPosSpan();
+    let span = this.toCharPosSpan();
     return span === null ? '' : span.asString();
   }
 
@@ -467,8 +457,8 @@ export class HbsSpan implements SpanData {
     let charPosSpan = this._charPosSpan;
 
     if (charPosSpan === null) {
-      const start = this.hbsPositions.start.toCharPos();
-      const end = this.hbsPositions.end.toCharPos();
+      let start = this.hbsPositions.start.toCharPos();
+      let end = this.hbsPositions.end.toCharPos();
 
       if (start && end) {
         charPosSpan = this._charPosSpan = new CharPositionSpan(this.source, {
@@ -563,22 +553,14 @@ export const span: MatchFn<SourceSpan> = match((m) =>
       }).wrap()
     )
     .when(OffsetKind.CharPosition, OffsetKind.HbsPosition, (left, right) => {
-      const rightCharPos = right.toCharPos();
+      let rightCharPos = right.toCharPos();
 
-      if (rightCharPos === null) {
-        return new InvisibleSpan(OffsetKind.Broken, BROKEN_LOCATION).wrap();
-      } else {
-        return span(left, rightCharPos);
-      }
+      return rightCharPos === null ? new InvisibleSpan(OffsetKind.Broken, BROKEN_LOCATION).wrap() : span(left, rightCharPos);
     })
     .when(OffsetKind.HbsPosition, OffsetKind.CharPosition, (left, right) => {
-      const leftCharPos = left.toCharPos();
+      let leftCharPos = left.toCharPos();
 
-      if (leftCharPos === null) {
-        return new InvisibleSpan(OffsetKind.Broken, BROKEN_LOCATION).wrap();
-      } else {
-        return span(leftCharPos, right);
-      }
+      return leftCharPos === null ? new InvisibleSpan(OffsetKind.Broken, BROKEN_LOCATION).wrap() : span(leftCharPos, right);
     })
     .when(IsInvisible, MatchAny, (left) => new InvisibleSpan(left.kind, BROKEN_LOCATION).wrap())
     .when(MatchAny, IsInvisible, (_, right) =>

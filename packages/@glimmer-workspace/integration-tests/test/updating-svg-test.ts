@@ -11,7 +11,7 @@ class UpdatingSvgTest extends RenderTest {
   'HTML namespace from root element is continued to child templates'() {
     this.render('<svg>{{#if this.hasCircle}}<circle />{{/if}}</svg>', { hasCircle: true });
 
-    const assertNamespaces = () => {
+    let assertNamespaces = () => {
       if (assertNodeTagName(this.element.firstChild, 'svg')) {
         assert.strictEqual(this.element.firstChild.namespaceURI, NS_SVG);
         if (assertNodeTagName(this.element.firstChild.firstChild, 'circle')) {
@@ -35,12 +35,12 @@ class UpdatingSvgTest extends RenderTest {
 
   @test
   'context.root <foreignObject> tag is SVG namespaced'() {
-    const parent = this.element;
-    const svg = this.delegate.createElementNS(NS_SVG, 'svg');
-    this.element.appendChild(svg);
+    let parent = this.element;
+    let svg = this.delegate.createElementNS(NS_SVG, 'svg');
+    this.element.append(svg);
     this.element = svg;
 
-    const assertNamespaces = () => {
+    let assertNamespaces = () => {
       if (assertNodeTagName(parent.firstChild, 'svg')) {
         assert.strictEqual(parent.firstChild.namespaceURI, NS_SVG);
         if (assertNodeTagName(parent.firstChild.firstChild, 'foreignObject')) {
@@ -73,7 +73,7 @@ class UpdatingSvgTest extends RenderTest {
       hasDiv: true,
     });
 
-    const assertNamespaces = () => {
+    let assertNamespaces = () => {
       if (assertNodeTagName(this.element.firstChild, 'svg')) {
         assert.strictEqual(this.element.firstChild.namespaceURI, NS_SVG);
         if (assertNodeTagName(this.element.firstChild.firstChild, 'foreignObject')) {
@@ -103,14 +103,14 @@ class UpdatingSvgTest extends RenderTest {
   'Namespaced attribute with a quoted expression'() {
     this.render('<svg xlink:title="{{this.title}}">content</svg>', { title: 'svg-title' });
 
-    const assertNamespaces = () => {
+    let assertNamespaces = () => {
       if (assertNodeTagName(this.element.firstChild, 'svg')) {
         assert.strictEqual(this.element.firstChild.namespaceURI, NS_SVG);
-        const [attr] = this.guardArray(
+        let [attribute] = this.guardArray(
           { attributes: this.element.firstChild.attributes },
           { min: 1 }
         );
-        assert.strictEqual(attr.namespaceURI, NS_XLINK);
+        assert.strictEqual(attribute.namespaceURI, NS_XLINK);
       }
     };
 
@@ -133,7 +133,7 @@ class UpdatingSvgTest extends RenderTest {
   '<svg> tag and expression as sibling'() {
     this.render('<svg></svg>{{this.name}}', { name: 'svg-title' });
 
-    const assertNamespace = () => {
+    let assertNamespace = () => {
       if (assertNodeTagName(this.element.firstChild, 'svg')) {
         assert.strictEqual(this.element.firstChild.namespaceURI, NS_SVG);
       }
@@ -158,7 +158,7 @@ class UpdatingSvgTest extends RenderTest {
   '<svg> tag and unsafe expression as sibling'() {
     this.render('<svg></svg>{{{this.name}}}', { name: '<i>Biff</i>' });
 
-    const assertNamespaces = (isUnsafe: boolean) => {
+    let assertNamespaces = (isUnsafe: boolean) => {
       if (assertNodeTagName(this.element.firstChild, 'svg')) {
         assert.strictEqual(this.element.firstChild.namespaceURI, NS_SVG);
       }
@@ -188,7 +188,7 @@ class UpdatingSvgTest extends RenderTest {
       content: '<path></path>',
     });
 
-    const assertNamespaces = (withElement: (svg: SimpleElement) => void) => {
+    let assertNamespaces = (withElement: (svg: SimpleElement) => void) => {
       if (assertNodeTagName(this.element.firstChild, 'svg')) {
         assert.strictEqual(this.element.firstChild.namespaceURI, NS_SVG);
         withElement(this.element.firstChild as SimpleElement);
@@ -278,7 +278,7 @@ class UpdatingSvgTest extends RenderTest {
       content: 'Milly',
     });
 
-    const assertNamespaces = () => {
+    let assertNamespaces = () => {
       if (assertNodeTagName(this.element.firstChild, 'div')) {
         assert.strictEqual(this.element.firstChild.namespaceURI, NS_HTML);
         if (assertNodeTagName(this.element.firstChild.firstChild, 'svg')) {
@@ -306,7 +306,7 @@ class UpdatingSvgTest extends RenderTest {
   'expression nested inside a namespaced context.root element'() {
     this.render('<svg>{{this.content}}</svg>', { content: 'Maurice' });
 
-    const assertSvg = (withSVG?: (svg: SVGSVGElement) => void) => {
+    let assertSvg = (withSVG?: (svg: SVGSVGElement) => void) => {
       if (assertNodeTagName(this.element.firstChild, 'svg')) {
         assert.strictEqual(this.element.firstChild.namespaceURI, NS_SVG);
         if (withSVG) withSVG(this.element.firstChild);
@@ -335,7 +335,7 @@ class UpdatingSvgTest extends RenderTest {
       isTrue: true,
     });
 
-    const assertNamespaces = (isTrue: boolean) => {
+    let assertNamespaces = (isTrue: boolean) => {
       if (isTrue) {
         if (assertNodeTagName(this.element.firstChild, 'svg')) {
           assert.strictEqual(this.element.firstChild.namespaceURI, NS_SVG);
@@ -369,7 +369,7 @@ class UpdatingSvgTest extends RenderTest {
   'HTML namespace is continued to child templates'() {
     this.render('<div><svg>{{#if this.isTrue}}<circle />{{/if}}</svg></div>', { isTrue: true });
 
-    const assertNamespaces = (isTrue: boolean) => {
+    let assertNamespaces = (isTrue: boolean) => {
       if (assertNodeTagName(this.element.firstChild, 'div')) {
         assert.strictEqual(this.element.firstChild.namespaceURI, NS_HTML);
         if (assertNodeTagName(this.element.firstChild.firstChild, 'svg')) {

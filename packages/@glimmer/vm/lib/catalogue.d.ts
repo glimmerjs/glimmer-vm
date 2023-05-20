@@ -1,4 +1,4 @@
-import { debug } from '@glimmer/validator';
+
 
 // @ember/-internals/glimmer/lib/helpers/internal-helper.ts
 // @ember/-internals/glimmer/lib/resolver.ts
@@ -64,11 +64,11 @@ export { NodeDOMTreeConstruction, serializeBuilder } from '@glimmer/node';
 export type { EnvironmentDelegate } from '@glimmer/runtime';
 export { setGlobalContext } from '@glimmer/global-context';
 
-declare const setTrackingTransactionEnv:
+declare const setTrackingTransactionEnvironment:
   | undefined
-  | ((env: { debugMessage?(obj?: unknown, keyName?: string): string }) => void);
+  | ((environment: { debugMessage?(obj?: unknown, keyName?: string): string }) => void);
 /** @deprecated use debbug.setTrackingTransactionEnv instead */
-export { setTrackingTransactionEnv };
+export { setTrackingTransactionEnvironment as setTrackingTransactionEnv };
 
 // @ember/-internals/glimmer/lib/{environment,renderer,component}.ts
 // @ember/-internals/glimmer/lib/component-managers.ts
@@ -106,7 +106,7 @@ export type { DirtyableTag } from '@glimmer/validator';
 
 // @ember/-internals/glimmer/lib/{helper,component}.ts
 // @ember/-internals/glimmer/lib/views/outlet.ts
-export { createTag, dirtyTag } from '@glimmer/validator';
+export { createTag, dirtyTag, debug } from '@glimmer/validator';
 
 // @ember/routing/lib/dsl.ts
 // @ember/-internals/glimmer/lib/{resolver,reenderer}.ts
@@ -567,4 +567,4 @@ export type { ModifierManager } from '@glimmer/interfaces';
 // ember/tests/reexports_test.js
 export { isSerializationFirstNode } from '@glimmer/runtime';
 
-export { debug };
+

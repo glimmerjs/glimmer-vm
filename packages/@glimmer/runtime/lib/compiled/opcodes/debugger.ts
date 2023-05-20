@@ -24,8 +24,8 @@ function debugCallback(context: unknown, get: DebugGet): void {
 let callback = debugCallback;
 
 // For testing purposes
-export function setDebuggerCallback(cb: DebugCallback) {
-  if (import.meta.env.DEV) callback = cb;
+export function setDebuggerCallback(callback_: DebugCallback) {
+  if (import.meta.env.DEV) callback = callback_;
 }
 
 export function resetDebuggerCallback() {
@@ -38,10 +38,10 @@ class ScopeInspector {
 
   constructor(scope: Scope, symbols: string[], debugInfo: number[]) {
     this.#scope = scope;
-    for (const slot of debugInfo) {
+    for (let slot of debugInfo) {
       let name = unwrap(symbols[slot - 1]);
-      let ref = scope.getSymbol(slot);
-      this.#locals[name] = ref;
+      let reference = scope.getSymbol(slot);
+      this.#locals[name] = reference;
     }
   }
 
@@ -51,18 +51,18 @@ class ScopeInspector {
     let parts = path.split('.');
     let [head, ...tail] = path.split('.') as [string, ...string[]];
 
-    let ref: Reference;
+    let reference: Reference;
 
     if (head === 'this') {
-      ref = this.#scope.getSelf();
+      reference = this.#scope.getSelf();
     } else if (locals[head]) {
-      ref = unwrap(locals[head]);
+      reference = unwrap(locals[head]);
     } else {
-      ref = this.#scope.getSelf();
+      reference = this.#scope.getSelf();
       tail = parts;
     }
 
-    return tail.reduce((r, part) => childRefFor(r, part), ref);
+    return tail.reduce((r, part) => childRefFor(r, part), reference);
   }
 }
 

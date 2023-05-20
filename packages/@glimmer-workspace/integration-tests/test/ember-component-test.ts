@@ -155,7 +155,10 @@ export function assertElementIsEmberishElement(
     [tagName, attributes, contents] = args;
   }
 
-  let fullAttributes = Object.assign({ class: classes('ember-view'), id: regex(/^ember\d*$/u) }, attributes);
+  let fullAttributes = {
+    class: classes('ember-view'), id: regex(/^ember\d*$/u),
+    ...attributes
+  };
   equalsElement(element, tagName, fullAttributes, contents);
 }
 
@@ -180,8 +183,16 @@ class CurlyTest extends RenderTest {
       [tagName, attributes, contents] = args;
     }
 
-    let fullAttributes = Object.assign({ class: classes('ember-view'), id: regex(/^ember\d*$/u) }, attributes);
-    equalsElement(firstElementChild(this.element) as SimpleElement, tagName, fullAttributes, contents);
+    let fullAttributes = {
+      class: classes('ember-view'), id: regex(/^ember\d*$/u),
+      ...attributes
+    };
+    equalsElement(
+      firstElementChild(this.element) as SimpleElement,
+      tagName,
+      fullAttributes,
+      contents
+    );
   }
 }
 
@@ -297,7 +308,7 @@ class CurlyDynamicCustomizationTest extends CurlyTest {
   'dynamic attribute bindings'() {
     let fooBarInstance: FooBar | undefined;
 
-    const setInstance = (instance: FooBar) => (fooBarInstance = instance);
+    let setInstance = (instance: FooBar) => (fooBarInstance = instance);
 
     class FooBar extends EmberishCurlyComponent {
       override attributeBindings = ['style'];
@@ -1523,7 +1534,7 @@ class CurlyGlimmerComponentTest extends CurlyTest {
   'Setting value attributeBinding to null results in empty string value'() {
     let instance: InputComponent | undefined;
 
-    const setInstance = (index: InputComponent) => (instance = index);
+    let setInstance = (index: InputComponent) => (instance = index);
 
     class InputComponent extends EmberishCurlyComponent {
       override tagName = 'input';
@@ -1569,7 +1580,7 @@ class CurlyGlimmerComponentTest extends CurlyTest {
   'Setting class attributeBinding does not clobber ember-view'() {
     let instance: FooBarComponent | undefined;
 
-    const setInstance = (index: FooBarComponent) => (instance = index);
+    let setInstance = (index: FooBarComponent) => (instance = index);
 
     class FooBarComponent extends EmberishCurlyComponent {
       override attributeBindings = ['class'];
@@ -2168,7 +2179,7 @@ class CurlyBoundsTrackingTest extends CurlyTest {
 
     this.assertEmberishElement('span', {}, 'foo bar');
 
-    const { bounds, element } = instance.captured;
+    let { bounds, element } = instance.captured;
 
     assert.strictEqual(
       bounds.parentElement(),
@@ -2204,7 +2215,7 @@ class CurlyBoundsTrackingTest extends CurlyTest {
       'zomg <span id="first-node">foo</span> <span id="before-last-node">bar</span>! wow'
     );
 
-    const { bounds } = instance.captured;
+    let { bounds } = instance.captured;
 
     assert.strictEqual(
       check(bounds.parentElement(), HTMLElement),

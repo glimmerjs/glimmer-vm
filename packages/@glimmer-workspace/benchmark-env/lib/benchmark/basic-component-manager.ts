@@ -1,10 +1,4 @@
-import type {
-  Dict,
-  Owner,
-  Template,
-  VMArguments,
-  WithCreateInstance,
-} from "@glimmer/interfaces";
+import type { Dict, Owner, Template, VMArguments, WithCreateInstance } from '@glimmer/interfaces';
 import { getComponentTemplate } from '@glimmer/manager';
 import { createConstRef, type Reference } from '@glimmer/reference';
 import { EMPTY_ARGS } from '@glimmer/runtime';
@@ -41,8 +35,8 @@ class BasicComponentManager
     Component: { new (args: ComponentArgs): object },
     args: VMArguments | null
   ) {
-    const instance = new Component(argsProxy(args === null ? EMPTY_ARGS : args.capture()));
-    const self = createConstRef(instance, 'this');
+    let instance = new Component(argsProxy(args === null ? EMPTY_ARGS : args.capture()));
+    let self = createConstRef(instance, 'this');
     return { instance, self };
   }
 

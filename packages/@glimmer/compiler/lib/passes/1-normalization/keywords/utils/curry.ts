@@ -1,7 +1,7 @@
 import type { CurriedType } from '@glimmer/interfaces';
 import { ASTv2, generateSyntaxError } from '@glimmer/syntax';
 
-import { Err, Ok, Result } from '../../../../shared/result';
+import { Err as Error_, Ok, Result } from '../../../../shared/result';
 import * as mir from '../../../2-encoding/mir';
 import type { NormalizationState } from '../../context';
 import { VISIT_EXPRS } from '../../visitors/expressions';
@@ -30,7 +30,7 @@ export function assertCurryKeyword(curriedType: CurriedType) {
     let definition = args.nth(0);
 
     if (definition === null) {
-      return Err(
+      return Error_(
         generateSyntaxError(
           `(${readableType}) requires a ${readableType} definition or identifier as its first positional parameter, did not receive any parameters.`,
           args.loc
@@ -40,14 +40,14 @@ export function assertCurryKeyword(curriedType: CurriedType) {
 
     if (definition.type === 'Literal') {
       if (stringsAllowed && state.isStrict) {
-        return Err(
+        return Error_(
           generateSyntaxError(
             `(${readableType}) cannot resolve string values in strict mode templates`,
             node.loc
           )
         );
       } else if (!stringsAllowed) {
-        return Err(
+        return Error_(
           generateSyntaxError(
             `(${readableType}) cannot resolve string values, you must pass a ${readableType} definition directly`,
             node.loc

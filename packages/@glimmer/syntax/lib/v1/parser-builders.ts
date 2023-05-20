@@ -28,7 +28,7 @@ class Builders {
 
   blockItself({
     body = [],
-    blockParams = [],
+    blockParams: blockParameters = [],
     chained = false,
     loc,
   }: {
@@ -40,7 +40,7 @@ class Builders {
     return {
       type: 'Block',
       body: body,
-      blockParams: blockParams,
+      blockParams: blockParameters,
       chained,
       loc,
     };
@@ -201,9 +201,9 @@ class Builders {
     loc,
   }: {
     name: string;
-    value: ASTv1.AttrNode['value'];
+    value: ASTv1.AttributeNode['value'];
     loc: SourceSpan;
-  }): ASTv1.AttrNode {
+  }): ASTv1.AttributeNode {
     return {
       type: 'AttrNode',
       name: name,
@@ -378,7 +378,7 @@ export type ModifierSexp =
   | [PathSexp, ASTv1.Expression[], LocSexp?]
   | [PathSexp, ASTv1.Expression[], Dict<ASTv1.Expression>, LocSexp?];
 
-export type AttrSexp = [string, ASTv1.AttrNode['value'] | string, LocSexp?];
+export type AttrSexp = [string, ASTv1.AttributeNode['value'] | string, LocSexp?];
 
 export type LocSexp = ['loc', SourceLocation];
 
@@ -395,7 +395,7 @@ export type SexpValue =
 export interface BuildElementOptions {
   tag: string;
   selfClosing: boolean;
-  attrs: ASTv1.AttrNode[];
+  attrs: ASTv1.AttributeNode[];
   modifiers: ASTv1.ElementModifierStatement[];
   children: ASTv1.Statement[];
   comments: ElementComment[];

@@ -34,8 +34,8 @@ const WHITELIST: Dict<string | undefined> = {
   'xmlns:xlink': XMLNS,
 };
 
-export function getAttrNamespace(attrName: string): string | undefined {
-  return WHITELIST[attrName];
+export function getAttrNamespace(attributeName: string): string | undefined {
+  return WHITELIST[attributeName];
 }
 
 const DEFLATE_TAG_TABLE: {
@@ -75,10 +75,10 @@ const INFLATE_ATTR_TABLE: {
   [I in WellKnownAttrName]: string;
 } = ['class', 'id', 'value', 'name', 'type', 'style', 'href'];
 
-export function deflateAttrName(attrName: string): string | WellKnownAttrName {
-  return DEFLATE_ATTR_TABLE[attrName] ?? attrName;
+export function deflateAttrName(attributeName: string): string | WellKnownAttrName {
+  return DEFLATE_ATTR_TABLE[attributeName] ?? attributeName;
 }
 
-export function inflateAttrName(attrName: string | WellKnownAttrName): string {
-  return typeof attrName === 'string' ? attrName : INFLATE_ATTR_TABLE[attrName];
+export function inflateAttrName(attributeName: string | WellKnownAttrName): string {
+  return typeof attributeName === 'string' ? attributeName : INFLATE_ATTR_TABLE[attributeName];
 }

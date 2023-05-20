@@ -26,7 +26,7 @@ export function test(...args: any[]) {
     let meta: Dict<unknown> = args[0];
     return (_target: Object, _name: string, descriptor: PropertyDescriptor) => {
       let testFunction = descriptor.value;
-      Object.keys(meta).forEach((key) => (testFunction[key] = meta[key]));
+      for (let key of Object.keys(meta)) (testFunction[key] = meta[key]);
       setTestingDescriptor(descriptor);
     };
   }
@@ -46,11 +46,11 @@ export function module(name: string): (klass: new () => TestCase) => void {
     QUnit.module(name);
 
     let proto = klass.prototype as Dict<unknown>;
-    for (let prop in proto) {
-      const test = proto[prop];
+    for (let property in proto) {
+      let test = proto[property];
 
       if (isTestFunction(test)) {
-        QUnit.test(prop, (assert) => new klass().run(test, assert));
+        QUnit.test(property, (assert) => new klass().run(test, assert));
       }
     }
   };

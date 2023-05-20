@@ -34,14 +34,14 @@ export type AttrBlockNode = AttrNode | ElementModifier;
  * - `...attributes` is `SplatAttr`
  * - `@x=<value>` is `ComponentArg`
  */
-export class HtmlAttr extends node('HtmlAttr').fields<AttrNodeOptions>() {}
+export class HtmlAttr extends node('HtmlAttr').fields<AttributeNodeOptions>() {}
 
 export class SplatAttr extends node('SplatAttr').fields<{ symbol: number }>() {}
 
 /**
  * Corresponds to an argument passed by a component (`@x=<value>`)
  */
-export class ComponentArg extends node().fields<AttrNodeOptions>() {
+export class ComponentArg extends node().fields<AttributeNodeOptions>() {
   /**
    * Convert the component argument into a named argument node
    */
@@ -58,7 +58,7 @@ export class ComponentArg extends node().fields<AttrNodeOptions>() {
  */
 export class ElementModifier extends node('ElementModifier').fields<CallFields>() {}
 
-export interface AttrNodeOptions {
+export interface AttributeNodeOptions {
   name: SourceSlice;
   value: ExpressionNode;
   trusting: boolean;

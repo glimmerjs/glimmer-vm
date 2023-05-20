@@ -62,7 +62,7 @@ export class LooseModeResolution {
    *
    * @see {NamespacedAmbiguity}
    */
-  static namespaced(namespace: FreeVarNamespace, isAngleBracket = false): LooseModeResolution {
+  static namespaced(namespace: FreeVariableNamespace, isAngleBracket = false): LooseModeResolution {
     return new LooseModeResolution(
       {
         namespaces: [namespace],
@@ -107,7 +107,7 @@ export class LooseModeResolution {
    */
   static append({ invoke }: { invoke: boolean }): LooseModeResolution {
     return new LooseModeResolution({
-      namespaces: [FreeVarNamespace.Component, FreeVarNamespace.Helper],
+      namespaces: [FreeVariableNamespace.Component, FreeVariableNamespace.Helper],
       fallback: !invoke,
     });
   }
@@ -133,7 +133,7 @@ export class LooseModeResolution {
    */
   static trustingAppend({ invoke }: { invoke: boolean }): LooseModeResolution {
     return new LooseModeResolution({
-      namespaces: [FreeVarNamespace.Helper],
+      namespaces: [FreeVariableNamespace.Helper],
       fallback: !invoke,
     });
   }
@@ -152,7 +152,7 @@ export class LooseModeResolution {
    * @see {HelperAmbiguity}
    */
   static attr(): LooseModeResolution {
-    return new LooseModeResolution({ namespaces: [FreeVarNamespace.Helper], fallback: true });
+    return new LooseModeResolution({ namespaces: [FreeVariableNamespace.Helper], fallback: true });
   }
 
   constructor(readonly ambiguity: Ambiguity, readonly isAngleBracket = false) {}
@@ -167,11 +167,11 @@ export class LooseModeResolution {
       } else {
         // simple namespaced resolution without fallback
         switch (this.ambiguity.namespaces[0]) {
-          case FreeVarNamespace.Helper:
+          case FreeVariableNamespace.Helper:
             return WIRE_GET_FREE_AS_HELPER_HEAD;
-          case FreeVarNamespace.Modifier:
+          case FreeVariableNamespace.Modifier:
             return WIRE_GET_FREE_AS_MODIFIER_HEAD;
-          case FreeVarNamespace.Component:
+          case FreeVariableNamespace.Component:
             return WIRE_GET_FREE_AS_COMPONENT_HEAD;
         }
       }
@@ -190,7 +190,7 @@ export class LooseModeResolution {
     } else if (this.ambiguity.namespaces.length === 1) {
       if (this.ambiguity.fallback) {
         // simple namespaced resolution with fallback must be attr={{x}}
-        return ['ambiguous', SerializedAmbiguity.Attr];
+        return ['ambiguous', SerializedAmbiguity.Attribute];
       } else {
         return ['ns', this.ambiguity.namespaces[0]];
       }
@@ -206,15 +206,15 @@ export class LooseModeResolution {
 
 export const ARGUMENT_RESOLUTION = LooseModeResolution.fallback();
 
-export enum FreeVarNamespace {
+export enum FreeVariableNamespace {
   Helper = 'Helper',
   Modifier = 'Modifier',
   Component = 'Component',
 }
 
-export const HELPER_NAMESPACE = FreeVarNamespace.Helper;
-export const MODIFIER_NAMESPACE = FreeVarNamespace.Modifier;
-export const COMPONENT_NAMESPACE = FreeVarNamespace.Component;
+export const HELPER_NAMESPACE = FreeVariableNamespace.Helper;
+export const MODIFIER_NAMESPACE = FreeVariableNamespace.Modifier;
+export const COMPONENT_NAMESPACE = FreeVariableNamespace.Component;
 
 /**
  * A `ComponentOrHelperAmbiguity` might be a component or a helper, with an optional fallback
@@ -232,7 +232,7 @@ export const COMPONENT_NAMESPACE = FreeVarNamespace.Component;
  * ^ `x` is resolved in the `component` and `helper` namespaces, without fallback
  */
 type ComponentOrHelperAmbiguity = {
-  namespaces: [FreeVarNamespace.Component, FreeVarNamespace.Helper];
+  namespaces: [FreeVariableNamespace.Component, FreeVariableNamespace.Helper];
   fallback: boolean;
 };
 
@@ -247,7 +247,7 @@ type ComponentOrHelperAmbiguity = {
  *
  * ^ `x` is resolved in the `helper` namespace with fallback
  */
-type HelperAmbiguity = { namespaces: [FreeVarNamespace.Helper]; fallback: boolean };
+type HelperAmbiguity = { namespaces: [FreeVariableNamespace.Helper]; fallback: boolean };
 
 /**
  * A `NamespacedAmbiguity` must be resolved in a particular namespace, without fallback.
@@ -271,7 +271,9 @@ type HelperAmbiguity = { namespaces: [FreeVarNamespace.Helper]; fallback: boolea
  * ^ `x` is resolved in the `modifier` namespace without fallback
  */
 type NamespacedAmbiguity = {
-  namespaces: [FreeVarNamespace.Component | FreeVarNamespace.Helper | FreeVarNamespace.Modifier];
+  namespaces: [
+    FreeVariableNamespace.Component | FreeVariableNamespace.Helper | FreeVariableNamespace.Modifier
+  ];
   fallback: false;
 };
 
@@ -294,7 +296,7 @@ const enum SerializedAmbiguity {
   // {{x}}
   Append = 'Append',
   // href={{x}}
-  Attr = 'Attr',
+  Attribute = 'Attribute',
   // {{x y}} (not attr)
   Invoke = 'Invoke',
 }
@@ -302,7 +304,7 @@ const enum SerializedAmbiguity {
 export type SerializedResolution =
   | 'Strict'
   | 'Loose'
-  | ['ns', FreeVarNamespace]
+  | ['ns', FreeVariableNamespace]
   | ['ambiguous', SerializedAmbiguity];
 
 export function loadResolution(resolution: SerializedResolution): FreeVarResolution {
@@ -320,7 +322,7 @@ export function loadResolution(resolution: SerializedResolution): FreeVarResolut
       switch (resolution[1]) {
         case SerializedAmbiguity.Append:
           return LooseModeResolution.append({ invoke: false });
-        case SerializedAmbiguity.Attr:
+        case SerializedAmbiguity.Attribute:
           return LooseModeResolution.attr();
         case SerializedAmbiguity.Invoke:
           return LooseModeResolution.append({ invoke: true });

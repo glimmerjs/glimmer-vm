@@ -8,22 +8,22 @@ import { ENTER_LIST_OP, EXIT_LIST_OP, ITERATE_OP } from '@glimmer/vm-constants';
 
 define(ENTER_LIST_OP, (vm, { op1: relativeStart, op2: elseTarget }) => {
   let stack = vm.stack;
-  let listRef = check(stack.pop(), CheckReference);
-  let keyRef = check(stack.pop(), CheckReference);
+  let listReference = check(stack.pop(), CheckReference);
+  let keyReference = check(stack.pop(), CheckReference);
 
-  let keyValue = valueForRef(keyRef);
+  let keyValue = valueForRef(keyReference);
   let key = keyValue === null ? '@identity' : String(keyValue);
 
-  let iteratorRef = createIteratorRef(listRef, key);
-  let iterator = valueForRef(iteratorRef);
+  let iteratorReference = createIteratorRef(listReference, key);
+  let iterator = valueForRef(iteratorReference);
 
-  vm._updateWith_(new AssertFilter(iteratorRef, (iterator) => iterator._isEmpty_()));
+  vm._updateWith_(new AssertFilter(iteratorReference, (iterator) => iterator._isEmpty_()));
 
   if (iterator._isEmpty_() === true) {
     // TODO: Fix this offset, should be accurate
     vm._goto_(elseTarget + 1);
   } else {
-    vm._enterList_(iteratorRef, relativeStart);
+    vm._enterList_(iteratorReference, relativeStart);
     vm.stack.push(iterator);
   }
 });
@@ -37,9 +37,9 @@ define(ITERATE_OP, (vm, { op1: breaks }) => {
   let iterator = check(stack.peek(), CheckIterator);
   let item = iterator._next_();
 
-  if (item !== null) {
-    vm._registerItem_(vm._enterItem_(item));
-  } else {
+  if (item === null) {
     vm._goto_(breaks);
+  } else {
+    vm._registerItem_(vm._enterItem_(item));
   }
 });

@@ -3,7 +3,7 @@ import {
   EachSuite,
   EmberishComponentTests,
   GlimmerishComponents,
-  HasBlockParamsHelperSuite,
+  HasBlockParamsHelperSuite as HasBlockParametersHelperSuite,
   HasBlockSuite,
   InElementSuite,
   jitComponentSuite,
@@ -11,7 +11,7 @@ import {
   ScopeSuite,
   ShadowingSuite,
   TemplateOnlyComponents,
-  WithDynamicVarsSuite,
+  WithDynamicVarsSuite as WithDynamicVariablesSuite,
   YieldSuite,
 } from '..';
 
@@ -23,8 +23,8 @@ jitComponentSuite(GlimmerishComponents);
 jitComponentSuite(TemplateOnlyComponents);
 jitComponentSuite(EmberishComponentTests);
 jitComponentSuite(HasBlockSuite);
-jitComponentSuite(HasBlockParamsHelperSuite);
+jitComponentSuite(HasBlockParametersHelperSuite);
 jitComponentSuite(ScopeSuite);
 jitComponentSuite(ShadowingSuite);
-jitComponentSuite(WithDynamicVarsSuite);
+jitComponentSuite(WithDynamicVariablesSuite);
 jitComponentSuite(YieldSuite);

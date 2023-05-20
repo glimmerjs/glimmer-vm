@@ -8,7 +8,7 @@ import type {
 
 import { DISALLOWED_FOREIGN_TAGS, DOMOperations } from './operations';
 
-for (const tag of [
+for (let tag of [
   'b',
   'big',
   'blockquote',

@@ -13,7 +13,7 @@ const badAttributes = ['href', 'src', 'background', 'action'];
 const badAttributesForDataURI = ['src'];
 
 function has(array: Array<string>, item: string): boolean {
-  return array.indexOf(item) !== -1;
+  return array.includes(item);
 }
 
 function checkURI(tagName: Nullable<string>, attribute: string): boolean {
@@ -70,7 +70,7 @@ if (
       let url = new URL(_url);
 
       return url.protocol;
-    } catch (error) {
+    } catch {
       // any non-fully qualified url string will trigger an error (because there is no
       // baseURI that we can provide; in that case we **know** that the protocol is
       // "safe" because it isn't specifically one of the `badProtocols` listed above
@@ -103,24 +103,20 @@ export function sanitizeAttributeValue(
     return value.toHTML();
   }
 
-  if (!element) {
-    tagName = null;
-  } else {
-    tagName = element.tagName.toUpperCase();
-  }
+  tagName = element ? element.tagName.toUpperCase() : null;
 
-  let str = normalizeStringValue(value);
+  let text = normalizeStringValue(value);
 
   if (checkURI(tagName, attribute)) {
-    let protocol = protocolForUrl(str);
+    let protocol = protocolForUrl(text);
     if (has(badProtocols, protocol)) {
-      return `unsafe:${str}`;
+      return `unsafe:${text}`;
     }
   }
 
   if (checkDataURI(tagName, attribute)) {
-    return `unsafe:${str}`;
+    return `unsafe:${text}`;
   }
 
-  return str;
+  return text;
 }

@@ -65,11 +65,7 @@ export class ExpressionEncoder {
   Literal({
     value,
   }: ASTv2.LiteralExpression): WireFormat.Expressions.Value | WireFormat.Expressions.Undefined {
-    if (value === undefined) {
-      return [WIRE_UNDEFINED];
-    } else {
-      return value;
-    }
+    return value === undefined ? [WIRE_UNDEFINED] : value;
   }
 
   Missing(): undefined {

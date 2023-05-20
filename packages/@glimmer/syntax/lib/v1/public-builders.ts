@@ -179,7 +179,7 @@ export type ModifierSexp =
   | [PathSexp, ASTv1.Expression[], LocSexp?]
   | [PathSexp, ASTv1.Expression[], Dict<ASTv1.Expression>, LocSexp?];
 
-export type AttrSexp = [string, ASTv1.AttrNode['value'] | string, LocSexp?];
+export type AttrSexp = [string, ASTv1.AttributeNode['value'] | string, LocSexp?];
 
 export type LocSexp = ['loc', SourceLocation];
 
@@ -194,7 +194,7 @@ export type SexpValue =
   | undefined;
 
 export interface BuildElementOptions {
-  attrs?: ASTv1.AttrNode[];
+  attrs?: ASTv1.AttributeNode[];
   modifiers?: ASTv1.ElementModifierStatement[];
   children?: ASTv1.Statement[];
   comments?: ElementComment[];
@@ -234,9 +234,9 @@ function buildElement(tag: TagDescriptor, options: BuildElementOptions = {}): AS
 
 function buildAttribute(
   name: string,
-  value: ASTv1.AttrNode['value'],
+  value: ASTv1.AttributeNode['value'],
   loc?: SourceLocation
-): ASTv1.AttrNode {
+): ASTv1.AttributeNode {
   return {
     type: 'AttrNode',
     name: name,

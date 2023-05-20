@@ -21,7 +21,7 @@ abstract class BoundedIterator implements IteratorDelegate {
   }
 
   next() {
-    const position = this.#position;
+    let position = this.#position;
 
     if (position >= this.#length) {
       return null;

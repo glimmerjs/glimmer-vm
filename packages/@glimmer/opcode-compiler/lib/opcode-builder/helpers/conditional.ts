@@ -48,8 +48,8 @@ export function SwitchCases(
 
   // Enumerate the clauses in reverse order. Earlier matches will
   // require fewer checks.
-  for (let i = clauses.length - 1; i >= 0; i--) {
-    let clause = unwrap(clauses[i]);
+  for (let index = clauses.length - 1; index >= 0; index--) {
+    let clause = unwrap(clauses[index]);
 
     op(LABEL_OP, clause.label);
     op(POP_OP, 1);
@@ -57,7 +57,7 @@ export function SwitchCases(
 
     // The first match is special: it is placed directly before the END
     // label, so no additional jump is needed at the end of it.
-    if (i !== 0) {
+    if (index !== 0) {
       op(JUMP_OP, labelOperand('END'));
     }
   }

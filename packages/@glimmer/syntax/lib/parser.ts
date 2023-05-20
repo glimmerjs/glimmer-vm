@@ -17,7 +17,7 @@ export type ParserNodeBuilder<N extends { loc: source.SourceSpan }> = Omit<N, 'l
 export interface Tag<T extends 'StartTag' | 'EndTag'> {
   readonly type: T;
   name: string;
-  readonly attributes: ASTv1.AttrNode[];
+  readonly attributes: ASTv1.AttributeNode[];
   readonly modifiers: ASTv1.ElementModifierStatement[];
   readonly comments: ASTv1.MustacheCommentStatement[];
   selfClosing: boolean;
@@ -69,9 +69,9 @@ export abstract class Parser {
   }
 
   finish<T extends { loc: source.SourceSpan }>(node: ParserNodeBuilder<T>): T {
-    return Object.assign({}, node, {
+    return ({ ...node, ...{
       loc: node.loc.until(this.offset()),
-    } as const) as unknown as T;
+    } as const}) as unknown as T;
 
     // node.loc = node.loc.withEnd(end);
   }

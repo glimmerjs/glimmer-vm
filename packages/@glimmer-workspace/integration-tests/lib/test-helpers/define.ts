@@ -103,12 +103,8 @@ export function defineComponent(
   templateSource: string,
   options: DefineComponentOptions = {}
 ) {
-  let strictMode: boolean;
-  if (typeof options.strictMode === 'boolean') {
-    strictMode = options.strictMode;
-  } else {
-    strictMode = scopeValues !== null;
-  }
+  let strictMode =
+    typeof options.strictMode === 'boolean' ? options.strictMode : scopeValues !== null;
 
   let definition = options.definition ?? templateOnlyComponent();
   let templateFactory = createTemplate(templateSource, { strictMode }, scopeValues ?? {});

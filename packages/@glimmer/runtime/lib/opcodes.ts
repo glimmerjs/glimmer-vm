@@ -76,23 +76,23 @@ export class AppendOpcodes {
         writable: false,
         value: {
           before: (vm: VM, opcode: RuntimeOpImpl): DebugState => {
-            let params: Maybe<Dict> = undefined;
-            let opName: string | undefined = undefined;
+            let parameters: Maybe<Dict>;
+            let opName: string | undefined;
 
             if (LOCAL_SHOULD_LOG) {
               let pos = vm[INNER_VM].fetchRegister($pc) - sizeof(opcode);
 
-              [opName, params] = debug(vm[CONSTANTS], opcode, isMachine(opcode))!;
+              [opName, parameters] = debug(vm[CONSTANTS], opcode, isMachine(opcode))!;
 
               // console.log(`${typePos(vm['pc'])}.`);
-              LOCAL_LOGGER.log(`${pos}. ${logOpcode(opName, params)}`);
+              LOCAL_LOGGER.log(`${pos}. ${logOpcode(opName, parameters)}`);
 
-              let debugParams = [];
-              for (let prop in params) {
-                debugParams.push(prop, '=', params[prop]);
+              let debugParameters = [];
+              for (let property in parameters) {
+                debugParameters.push(property, '=', parameters[property]);
               }
 
-              LOCAL_LOGGER.log(...debugParams);
+              LOCAL_LOGGER.log(...debugParameters);
             }
 
             let sp: number;
@@ -106,7 +106,7 @@ export class AppendOpcodes {
               sp: sp!,
               pc: vm._fetchValue_($pc),
               name: opName,
-              params,
+              params: parameters,
               type: opType(opcode),
               isMachine: isMachine(opcode),
               size: sizeof(opcode),
@@ -135,7 +135,7 @@ export class AppendOpcodes {
               }
 
               if (LOCAL_SHOULD_LOG) {
-                const registers = debug.registers();
+                let registers = debug.registers();
 
                 LOCAL_LOGGER.log(
                   '%c -> pc: %d, ra: %d, fp: %d, sp: %d, s0: %O, s1: %O, t0: %O, t1: %O, v0: %O',

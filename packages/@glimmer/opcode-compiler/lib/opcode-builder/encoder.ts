@@ -85,7 +85,7 @@ export class Labels {
   patch(heap: CompileTimeHeap): void {
     let { targets, labels } = this;
 
-    for (const { at, target } of targets) {
+    for (let { at, target } of targets) {
       let address = labels[target]! - at;
 
       assert(heap.getbyaddr(at) === -1, 'Expected heap to contain a placeholder, but it did not');
@@ -217,7 +217,7 @@ export class EncoderImpl implements Encoder {
 
     heap.pushRaw(first);
 
-    for (const op of operands) {
+    for (let op of operands) {
       heap.pushRaw(this.#operand(constants, op));
     }
   }

@@ -49,7 +49,7 @@ function iterate<T extends object>(collection: OneOrMany<T>, fn: (item: T) => vo
 function remove<T extends object>(collection: OneOrMany<T>, item: T, message: string | false) {
   if (import.meta.env.DEV) {
     let collectionIsItem = collection === item;
-    let collectionContainsItem = Array.isArray(collection) && collection.indexOf(item) !== -1;
+    let collectionContainsItem = Array.isArray(collection) && collection.includes(item);
 
     if (!collectionIsItem && !collectionContainsItem) {
       throw new Error(String(message));
@@ -241,12 +241,11 @@ if (import.meta.env.DEV) {
     DESTROYABLE_META = new WeakMap();
 
     let undestroyed: object[] = [];
-
-    map.forEach((meta) => {
+    for (let meta of map.values()) {
       if (meta.state !== DESTROYED_STATE) {
         undestroyed.push(meta.source!);
       }
-    });
+    }
 
     if (undestroyed.length > 0) {
       let objectsToString = undestroyed.map(debugToString!).join('\n    ');

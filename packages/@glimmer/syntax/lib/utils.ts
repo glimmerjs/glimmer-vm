@@ -15,24 +15,24 @@ let ID_INVERSE_PATTERN = /[!"#%&'()*+./;<=>@[\\\]^`{|}~]/u;
 // removes the corresponding attributes from the element.
 
 export function parseElementBlockParams(element: ASTv1.ElementNode): void {
-  let params = parseBlockParams(element);
-  if (params) element.blockParams = params;
+  let parameters = parseBlockParameters(element);
+  if (parameters) element.blockParams = parameters;
 }
 
-function parseBlockParams(element: ASTv1.ElementNode): Nullable<string[]> {
+function parseBlockParameters(element: ASTv1.ElementNode): Nullable<string[]> {
   let l = element.attributes.length;
-  let attrNames = [];
+  let attributeNames = [];
 
-  for (let i = 0; i < l; i++) {
-    attrNames.push(unwrap(element.attributes[i]).name);
+  for (let index = 0; index < l; index++) {
+    attributeNames.push(unwrap(element.attributes[index]).name);
   }
 
-  let asIndex = attrNames.indexOf('as');
+  let asIndex = attributeNames.indexOf('as');
 
   if (
     asIndex === -1 &&
-    attrNames.length > 0 &&
-    unwrap(attrNames[attrNames.length - 1]).charAt(0) === '|'
+    attributeNames.length > 0 &&
+    unwrap(attributeNames.at(-1)).charAt(0) === '|'
   ) {
     throw generateSyntaxError(
       'Block parameters must be preceded by the `as` keyword, detected block parameters without `as`',
@@ -40,39 +40,39 @@ function parseBlockParams(element: ASTv1.ElementNode): Nullable<string[]> {
     );
   }
 
-  if (asIndex !== -1 && l > asIndex && unwrap(attrNames[asIndex + 1]).charAt(0) === '|') {
+  if (asIndex !== -1 && l > asIndex && unwrap(attributeNames[asIndex + 1]).charAt(0) === '|') {
     // Some basic validation, since we're doing the parsing ourselves
-    let paramsString = attrNames.slice(asIndex).join(' ');
+    let parametersString = attributeNames.slice(asIndex).join(' ');
     if (
-      paramsString.charAt(paramsString.length - 1) !== '|' ||
-      expect(paramsString.match(/\|/gu), `block params must exist here`).length !== 2
+      parametersString.charAt(parametersString.length - 1) !== '|' ||
+      expect(parametersString.match(/\|/gu), `block params must exist here`).length !== 2
     ) {
       throw generateSyntaxError(
-        "Invalid block parameters syntax, '" + paramsString + "'",
+        "Invalid block parameters syntax, '" + parametersString + "'",
         element.loc
       );
     }
 
-    let params = [];
-    for (let i = asIndex + 1; i < l; i++) {
-      let param = unwrap(attrNames[i]).replace(/\|/gu, '');
-      if (param !== '') {
-        if (ID_INVERSE_PATTERN.test(param)) {
+    let parameters = [];
+    for (let index = asIndex + 1; index < l; index++) {
+      let parameter = unwrap(attributeNames[index]).replaceAll('|', '');
+      if (parameter !== '') {
+        if (ID_INVERSE_PATTERN.test(parameter)) {
           throw generateSyntaxError(
-            "Invalid identifier for block parameters, '" + param + "'",
+            "Invalid identifier for block parameters, '" + parameter + "'",
             element.loc
           );
         }
-        params.push(param);
+        parameters.push(parameter);
       }
     }
 
-    if (params.length === 0) {
+    if (parameters.length === 0) {
       throw generateSyntaxError('Cannot use zero block parameters', element.loc);
     }
 
     element.attributes = element.attributes.slice(0, asIndex);
-    return params;
+    return parameters;
   }
 
   return null;
@@ -112,11 +112,7 @@ export function isHBSLiteral(
 }
 
 export function printLiteral(literal: ASTv1.Literal): string {
-  if (literal.type === 'UndefinedLiteral') {
-    return 'undefined';
-  } else {
-    return JSON.stringify(literal.value);
-  }
+  return literal.type === 'UndefinedLiteral' ? 'undefined' : JSON.stringify(literal.value);
 }
 
 export function isUpperCase(tag: string): boolean {
