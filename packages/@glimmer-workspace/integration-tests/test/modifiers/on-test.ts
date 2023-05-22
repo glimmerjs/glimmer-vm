@@ -233,7 +233,7 @@ if (hasDom) {
       }
     }
 
-    @test.todo
+    @test
     'setting passive named argument prevents calling preventDefault'(assert: Assert) {
       let matcher =
         /You marked this listener as 'passive', meaning that you must not call 'event.preventDefault\(\)'/u;
@@ -391,7 +391,7 @@ if (hasDom) {
       }, /You must pass a function as the second argument to the `on` modifier; you passed null. While rendering:\n{2}this.foo/u);
     }
 
-    @test.todo
+    @test
     'asserts if the provided callback accesses `this` without being bound prior to passing to on'(
       assert: Assert
     ) {

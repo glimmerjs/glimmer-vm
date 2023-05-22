@@ -12,7 +12,7 @@ import { unwrap } from '@glimmer/util';
 export class EmberishComponentTests extends RenderTest {
   static suiteName = 'Emberish';
 
-  @test.todo
+  @test
   'Element modifier with hooks'(assert: Assert, count: Count) {
     this.registerModifier(
       'foo',

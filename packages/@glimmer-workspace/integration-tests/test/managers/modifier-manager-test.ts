@@ -32,7 +32,7 @@ abstract class ModifierManagerTest extends RenderTest {
     }, Klass);
   }
 
-  @test.todo 'can register a custom element modifier and render it'() {
+  @test 'can register a custom element modifier and render it'() {
     let foo = this.defineModifier(
       class extends CustomModifier {
         override didInsertElement() {}
@@ -204,7 +204,7 @@ abstract class ModifierManagerTest extends RenderTest {
     assert.strictEqual(updateCount, 2);
   }
 
-  @test.todo
+  @test
   'provides a helpful deprecation when mutating a tracked value that was consumed already within constructor'(
     assert: Assert
   ) {
@@ -236,7 +236,7 @@ abstract class ModifierManagerTest extends RenderTest {
     }, /You attempted to update `foo` on `.*`, but it had already been used previously in the same computation/u);
   }
 
-  @test.todo
+  @test
   'does not eagerly access arguments during destruction'(assert: Assert) {
     class Foo extends CustomModifier {}
 

@@ -356,7 +356,7 @@ export class InitialRenderSuite extends RenderTest {
     this.assertStableNodes();
   }
 
-  @test.todo
+  @test
   'Unquoted a href attribute is not rendered when set to `undefined`'() {
     this.render('<a href={{this.href}}></a>', { href: undefined });
     this.assertHTML('<a></a>');

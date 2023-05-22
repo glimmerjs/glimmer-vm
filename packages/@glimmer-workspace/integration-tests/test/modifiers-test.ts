@@ -20,7 +20,7 @@ abstract class AbstractDestroyable extends BaseModifier {
 class ModifierTests extends RenderTest {
   static suiteName = 'modifiers';
 
-  @test.todo
+  @test
   'Element modifier with hooks'(assert: Assert, count: Count) {
     this.registerModifier(
       'foo',
@@ -53,7 +53,7 @@ class ModifierTests extends RenderTest {
     this.rerender({ ok: false });
   }
 
-  @test.todo
+  @test
   'didUpdate is not called when params are constants'(assert: Assert, count: Count) {
     this.registerModifier(
       'foo',
@@ -458,7 +458,7 @@ class ModifierTests extends RenderTest {
     assert.deepEqual(destructionOrder, ['bar', 'baz', 'foo']);
   }
 
-  @test.todo
+  @test
   'with params'(assert: Assert, count: Count) {
     class Foo extends BaseModifier {
       override didInsertElement([bar]: string[]) {
@@ -475,7 +475,7 @@ class ModifierTests extends RenderTest {
     this.rerender({ bar: 'foo' });
   }
 
-  @test.todo
+  @test
   'with hash'(assert: Assert, count: Count) {
     class Foo extends BaseModifier {
       override didInsertElement(_parameters: unknown[], { bar }: Dict<string>) {
@@ -492,7 +492,7 @@ class ModifierTests extends RenderTest {
     this.rerender({ bar: 'foo' });
   }
 
-  @test.todo
+  @test
   'with hash and params'(assert: Assert, count: Count) {
     class Foo extends BaseModifier {
       override didInsertElement([baz]: string[], { bar }: Dict<string>) {

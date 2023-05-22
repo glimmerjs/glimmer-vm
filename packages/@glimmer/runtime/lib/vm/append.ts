@@ -147,6 +147,7 @@ export interface InternalVM {
   _next_(): RichIteratorResult<null, RenderResult>;
 }
 
+
 class Stacks {
   readonly _scope_ = new StackImpl<Scope>();
   readonly _dynamicScope_ = new StackImpl<DynamicScope>();

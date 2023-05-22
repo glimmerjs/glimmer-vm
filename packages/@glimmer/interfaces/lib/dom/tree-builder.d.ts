@@ -71,8 +71,13 @@ export interface DebugDOMTreeBuilder {
   readonly finalize: () => void;
 }
 
+interface ElementRef {
+  current: Element | null;
+}
+
 export interface DOMTreeBuilder {
   readonly debug?: DebugDOMTreeBuilder;
+  readonly _constructing_: ElementRef;
 
   startBlock(): BlockBoundsRef;
   endBlock(): BlockBoundsRef;
@@ -96,13 +101,20 @@ export interface DOMTreeBuilder {
 export type AttributeValue = string | boolean | undefined;
 export type AttributeRef = [qualifiedName: string, element: Element | null];
 
-export interface BlockBoundsRef {
-  current: BlockBounds | null;
+export interface MinimalBlockBoundsRef {
+  current: MinimalBlockBounds | null;
 }
 
 export interface RuntimeBlockBoundsRef {
   current: RuntimeBlockBounds | null;
 }
+
+export type BlockBoundsRef =
+  | MinimalBlockBoundsRef
+  | RuntimeBlockBoundsRef
+  | {
+      current: BlockBounds;
+    };
 
 export type BoundsEdgeFor<B extends BlockBoundsRef> = B extends RuntimeBlockBoundsRef
   ? ChildNode

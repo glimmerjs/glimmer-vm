@@ -1320,7 +1320,7 @@ class UpdatingTest extends RenderTest {
     this.assertHTML("<div data-value='hello world'>hello</div>");
   }
 
-  @test.todo
+  @test
   'attributes values are normalized correctly'() {
     this.render('<div data-value={{this.value}}>hello</div>', {
       value: {

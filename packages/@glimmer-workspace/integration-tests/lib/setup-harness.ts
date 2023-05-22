@@ -27,9 +27,10 @@ export async function setupQunit() {
       label: 'TODOs',
       tooltip: 'What to do with TODOs',
       value: {
-        initial: "QUnit's default behavior",
-        'hide-valid': 'Hide TODOs that are still failing',
-        'show-only-invalid': 'Show TODOs that are passing and nothing else',
+        initial: 'Show all TODOs (default)',
+        'hide-valid': 'Hide failing TODOs',
+        'show-only-invalid': 'Show only passing TODOs',
+        ignore: 'Hide all TODOs',
       },
     }
   );
@@ -72,6 +73,13 @@ export async function setupQunit() {
       case 'show-only-invalid':
         style.innerHTML = `
           #qunit-tests li:not(.fail.todo) {
+            display: none;
+          }
+        `;
+        break;
+      case 'ignore':
+        style.innerHTML = `
+          #qunit-tests li.todo {
             display: none;
           }
         `;

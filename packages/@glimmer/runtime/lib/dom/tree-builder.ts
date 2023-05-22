@@ -4,6 +4,7 @@ import type {
   BlockBoundsRef,
   DOMTreeBuilder,
   DebugDOMTreeBuilder,
+  ElementRef,
   MinimalChild,
   MinimalCursor,
   MinimalDocument,
@@ -81,7 +82,6 @@ export class TreeConstruction implements DOMTreeBuilder {
   #document: MinimalDocument;
   #cursor: MinimalCursor;
   #buffer: ElementBuffer | null;
-  #finalBlock: BlockBoundsRef | null = null;
 
   declare debug?: DebugDOMTreeBuilder;
 
@@ -117,6 +117,10 @@ export class TreeConstruction implements DOMTreeBuilder {
         },
       });
     }
+  }
+
+  get _constructing_(): ElementRef {
+    return unwrap(this.#buffer).ref;
   }
 
   html(html: string): [MinimalChild | null, MinimalChild | null] {
@@ -176,14 +180,10 @@ export class TreeConstruction implements DOMTreeBuilder {
     }
 
     ref.current = {
-      parent: this.#cursor[PARENT_ELEMENT] as Element,
-      start: unwrap(start) as ChildNode | BlockBoundsRef,
-      end: unwrap(end) as ChildNode | BlockBoundsRef,
-    };
-
-    if (this.#blocks.size === 0) {
-      this.#finalBlock = ref;
-    }
+      parent: this.#cursor[PARENT_ELEMENT],
+      start: unwrap(start),
+      end: unwrap(end),
+    } as BlockBounds;
 
     return ref;
   }
@@ -198,10 +198,10 @@ export class TreeConstruction implements DOMTreeBuilder {
     }
 
     ref.current = {
-      parent: this.#cursor[PARENT_ELEMENT] as Element,
+      parent: this.#cursor[PARENT_ELEMENT],
       start: unwrap(start),
       end: unwrap(end),
-    };
+    } as BlockBounds;
 
     this.#blocks.pop();
     this.#addChild([ref, ref]);
@@ -228,10 +228,7 @@ export class TreeConstruction implements DOMTreeBuilder {
     this.#buffer = ElementBuffer(tag);
   }
 
-  addAttr(attributeName: string, attributeValue: string | boolean = true): AttributeRef {
-    if (attributeValue === true) attributeValue = '';
-    // if (attributeValue === false) return;
-
+  addAttr(attributeName: string, attributeValue: string | boolean | undefined): AttributeRef {
     return unwrap(this.#buffer).attr(attributeName, attributeValue);
   }
 
@@ -318,6 +315,7 @@ export const NEXT_SIBLING = 1;
 export const PARENT_CURSOR = 2;
 
 interface ElementBuffer {
+  readonly ref: ElementRef;
   attr: (attributeName: string, attributeValue?: string | boolean) => AttributeRef;
   flush: (parent: MinimalCursor) => MinimalElement;
 }
@@ -325,12 +323,18 @@ interface ElementBuffer {
 function ElementBuffer(tag: string): ElementBuffer {
   let buffer = `<${tag}`;
   let refs: AttributeRef[] = [];
+  let elementRef: ElementRef = {
+    current: null,
+  };
 
   return {
+    get ref(): ElementRef {
+      return elementRef;
+    },
+
     attr(qualifiedName: string, attributeValue: unknown) {
       let ref: AttributeRef = [qualifiedName, null];
       refs.push(ref);
-
       attributeValue = specialAttributeValue(tag, qualifiedName, attributeValue);
 
       if (attributeValue === false) return ref;
@@ -342,6 +346,7 @@ function ElementBuffer(tag: string): ElementBuffer {
 
     flush(cursor: MinimalCursor): MinimalElement {
       let [el] = insertHTML(cursor, `${buffer}>`) as [Element, Element];
+      elementRef.current = el;
       for (let ref of refs) ref[1] = el;
       return el as MinimalElement;
     },
@@ -399,7 +404,7 @@ function specialCases(tagName: string, qualifiedName: string, value: unknown): s
 }
 
 function toString(value: unknown) {
-  if (typeof value === 'object') return '';
+  if (value && typeof value === 'object' && typeof value.toString !== 'function') return '';
 
   return String(value);
 }

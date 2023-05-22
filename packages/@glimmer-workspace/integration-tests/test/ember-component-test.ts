@@ -520,7 +520,7 @@ class CurlyScopeTest extends CurlyTest {
     this.assertHTML('<div>NULL</div>');
   }
 
-  @test.todo
+  @test
   '`undefined` class name do not render'() {
     this.render('<div class={{this.isUndefined}}>UNDEFINED</div>', { isUndefined: undefined });
     this.assertHTML('<div>UNDEFINED</div>');
@@ -1418,7 +1418,7 @@ class CurlyGlimmerComponentTest extends CurlyTest {
     this.assertHTML('<div>hi!</div>');
   }
 
-  @test.todo
+  @test
   'Custom element with element modifier'() {
     this.registerModifier('foo', class {});
 

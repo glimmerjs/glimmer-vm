@@ -27,7 +27,7 @@ class StyleWarningsTest extends RenderTest {
     testOverrideGlobalContext?.(originalContext);
   }
 
-  @test.todo
+  @test
   'Standard element with static style and element modifier does not give you a warning'() {
     this.registerModifier('foo', class {});
     this.render('<button style="display: flex" {{foo}}>click me</button>', {});
@@ -53,7 +53,7 @@ class StyleWarningsTest extends RenderTest {
     this.assertHTML('<div style="background: red">Thing</div>', 'initial render');
   }
 
-  @test.todo
+  @test
   'triple curlies are trusted'() {
     this.render(`<div foo={{this.foo}} style={{{this.styles}}}>Thing</div>`, {
       styles: 'background: red',
