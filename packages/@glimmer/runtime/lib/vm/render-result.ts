@@ -1,32 +1,35 @@
 import { associateDestroyableChild, registerDestructor } from '@glimmer/destroyable';
 import type {
+  BlockBoundsRef,
   Environment,
-  LiveBlock,
   RenderResult,
-  SimpleElement,
-  SimpleNode,
+  RuntimeBlockBounds,
   UpdatingOpcode,
 } from '@glimmer/interfaces';
 
-import { clear } from '../bounds';
-import { UpdatingVM } from './update';
+import { UpdatingVM, getBlockBoundsEnd, getBlockBoundsStart } from './update';
+import { clearBlockBounds } from '../dom/tree-builder';
+import { unwrap } from '@glimmer/util';
 
 export default class RenderResultImpl implements RenderResult {
   readonly #drop: object;
   readonly #updating: readonly UpdatingOpcode[];
-  readonly #bounds: LiveBlock;
+  readonly #bounds: BlockBoundsRef;
 
   constructor(
     public environment: Environment,
     updating: UpdatingOpcode[],
-    bounds: LiveBlock,
+    bounds: BlockBoundsRef,
     drop: object
   ) {
     this.#drop = drop;
     this.#updating = updating;
     this.#bounds = bounds;
     associateDestroyableChild(this, drop);
-    registerDestructor(this, () => clear(this.#bounds));
+    registerDestructor(
+      this,
+      () => this.#bounds.current && clearBlockBounds(this.#bounds.current as RuntimeBlockBounds)
+    );
   }
 
   _link_(parent: object) {
@@ -39,16 +42,20 @@ export default class RenderResultImpl implements RenderResult {
     vm.execute(this.#updating, this);
   }
 
-  parentElement(): SimpleElement {
-    return this.#bounds.parentElement();
+  get _blockBounds_(): BlockBoundsRef {
+    return this.#bounds;
   }
 
-  firstNode(): SimpleNode {
-    return this.#bounds.firstNode();
+  parentElement(): Element {
+    return unwrap(this.#bounds.current?.parent) as Element;
   }
 
-  lastNode(): SimpleNode {
-    return this.#bounds.lastNode();
+  firstNode(): ChildNode {
+    return getBlockBoundsStart(this.#bounds) as ChildNode;
+  }
+
+  lastNode(): ChildNode {
+    return getBlockBoundsEnd(this.#bounds) as ChildNode;
   }
 
   handleException() {

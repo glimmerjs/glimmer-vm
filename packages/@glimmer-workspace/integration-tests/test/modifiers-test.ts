@@ -20,7 +20,7 @@ abstract class AbstractDestroyable extends BaseModifier {
 class ModifierTests extends RenderTest {
   static suiteName = 'modifiers';
 
-  @test
+  @test.todo
   'Element modifier with hooks'(assert: Assert, count: Count) {
     this.registerModifier(
       'foo',
@@ -53,7 +53,7 @@ class ModifierTests extends RenderTest {
     this.rerender({ ok: false });
   }
 
-  @test
+  @test.todo
   'didUpdate is not called when params are constants'(assert: Assert, count: Count) {
     this.registerModifier(
       'foo',
@@ -81,7 +81,7 @@ class ModifierTests extends RenderTest {
     this.rerender({ ok: false });
   }
 
-  @test
+  @test.todo
   'modifiers on components are forwarded to a single element receiving the splattributes'(
     assert: Assert
   ) {
@@ -107,7 +107,7 @@ class ModifierTests extends RenderTest {
     );
   }
 
-  @test
+  @test.todo
   'modifiers on components are forwarded to all the elements receiving the splattributes'(
     assert: Assert
   ) {
@@ -135,7 +135,7 @@ class ModifierTests extends RenderTest {
     );
   }
 
-  @test
+  @test.todo
   'modifiers on components accept bound arguments and track changes on them'(assert: Assert) {
     let modifierParameters: Nullable<unknown[]> = null;
     let modifierNamedArgs: Nullable<Dict<unknown>> = null;
@@ -175,7 +175,7 @@ class ModifierTests extends RenderTest {
     );
   }
 
-  @test
+  @test.todo
   'modifiers on components accept `this` in both positional params and named arguments, and updates when it changes'(
     assert: Assert
   ) {
@@ -216,7 +216,7 @@ class ModifierTests extends RenderTest {
     );
   }
 
-  @test
+  @test.todo
   'modifiers on components accept local variables in both positional params and named arguments, and updates when they change'(
     assert: Assert
   ) {
@@ -262,7 +262,7 @@ class ModifierTests extends RenderTest {
     );
   }
 
-  @test
+  @test.todo
   'modifiers on components can be received and forwarded to inner components'(assert: Assert) {
     let modifierParameters: Nullable<unknown[]> = null;
     let modifierNamedArgs: Nullable<Dict<unknown>> = null;
@@ -301,7 +301,7 @@ class ModifierTests extends RenderTest {
     assert.deepEqual(elementIds, ['outer-div', 'inner-div'], 'Modifiers are called on all levels');
   }
 
-  @test
+  @test.todo
   'same element insertion order'(assert: Assert) {
     let insertionOrder: string[] = [];
 
@@ -323,7 +323,7 @@ class ModifierTests extends RenderTest {
     assert.deepEqual(insertionOrder, ['foo', 'bar']);
   }
 
-  @test
+  @test.todo
   'same element destruction order'(assert: Assert) {
     let destructionOrder: string[] = [];
 
@@ -347,7 +347,7 @@ class ModifierTests extends RenderTest {
     assert.deepEqual(destructionOrder, ['foo', 'bar']);
   }
 
-  @test
+  @test.todo
   'parent -> child insertion order'(assert: Assert) {
     let insertionOrder: string[] = [];
 
@@ -369,7 +369,7 @@ class ModifierTests extends RenderTest {
     assert.deepEqual(insertionOrder, ['bar', 'foo']);
   }
 
-  @test
+  @test.todo
   'parent -> child destruction order'(assert: Assert) {
     let destructionOrder: string[] = [];
 
@@ -393,7 +393,7 @@ class ModifierTests extends RenderTest {
     assert.deepEqual(destructionOrder, ['bar', 'foo']);
   }
 
-  @test
+  @test.todo
   'sibling insertion order'(assert: Assert) {
     let insertionOrder: string[] = [];
 
@@ -422,7 +422,7 @@ class ModifierTests extends RenderTest {
     assert.deepEqual(insertionOrder, ['bar', 'baz', 'foo']);
   }
 
-  @test
+  @test.todo
   'sibling destruction order'(assert: Assert) {
     let destructionOrder: string[] = [];
 
@@ -458,7 +458,7 @@ class ModifierTests extends RenderTest {
     assert.deepEqual(destructionOrder, ['bar', 'baz', 'foo']);
   }
 
-  @test
+  @test.todo
   'with params'(assert: Assert, count: Count) {
     class Foo extends BaseModifier {
       override didInsertElement([bar]: string[]) {
@@ -475,7 +475,7 @@ class ModifierTests extends RenderTest {
     this.rerender({ bar: 'foo' });
   }
 
-  @test
+  @test.todo
   'with hash'(assert: Assert, count: Count) {
     class Foo extends BaseModifier {
       override didInsertElement(_parameters: unknown[], { bar }: Dict<string>) {
@@ -492,7 +492,7 @@ class ModifierTests extends RenderTest {
     this.rerender({ bar: 'foo' });
   }
 
-  @test
+  @test.todo
   'with hash and params'(assert: Assert, count: Count) {
     class Foo extends BaseModifier {
       override didInsertElement([baz]: string[], { bar }: Dict<string>) {

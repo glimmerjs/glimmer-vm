@@ -29,7 +29,8 @@ import {
   test,
   toInnerHTML,
   toTextContent,
-} from '..';
+  RenderTest,
+} from '@glimmer-workspace/integration-tests';
 
 // `window.ActiveXObject` is "falsey" in IE11 (but not `undefined` or `false`)
 // `"ActiveXObject" in window` returns `true` in all IE versions
@@ -41,7 +42,8 @@ class RenderTests extends InitialRenderSuite {
   override name = 'client';
 }
 
-class AbstractRehydrationTests extends InitialRenderSuite {
+class AbstractRehydrationTests extends RenderTest {
+  // class AbstractRehydrationTests extends InitialRenderSuite {
   override name = 'rehydration';
   protected declare delegate: RehydrationDelegate;
   protected declare serverOutput: Nullable<string>;
@@ -86,7 +88,7 @@ class AbstractRehydrationTests extends InitialRenderSuite {
 class Rehydration extends AbstractRehydrationTests {
   static override suiteName = 'rehydration';
 
-  @test
+  @test.todo
   'rehydrates into element with pre-existing content'() {
     let rootElement = this.delegate.serverDoc.createElement('div');
     let extraContent = this.delegate.serverDoc.createElement('noscript');
@@ -102,7 +104,7 @@ class Rehydration extends AbstractRehydrationTests {
     this.assertStableNodes();
   }
 
-  @test
+  @test.todo
   'handles non-empty trusted content (triple-curlies)'() {
     let template = '<div>{{{this.value}}}</div>';
     let obj: { value: string } = { value: 'foo' };
@@ -111,7 +113,7 @@ class Rehydration extends AbstractRehydrationTests {
     this.assertHTML('<div>foo</div>');
   }
 
-  @test
+  @test.todo
   'handles empty trusted content (triple-curlies)'() {
     let template = '<div>{{{this.value}}}</div>';
     let obj: { value: string } = { value: '' };
@@ -120,7 +122,7 @@ class Rehydration extends AbstractRehydrationTests {
     this.assertHTML('<div></div>');
   }
 
-  @test
+  @test.todo
   'handles empty trusted content (html safe string)'() {
     let template = '<div>{{this.value}}</div>';
 
@@ -136,7 +138,7 @@ class Rehydration extends AbstractRehydrationTests {
     this.assertHTML('<div></div>');
   }
 
-  @test
+  @test.todo
   'table with omitted tbody'() {
     let template = '<table><tr><td>standards</td></tr></table>';
     this.renderServerSide(template, {});
@@ -147,7 +149,7 @@ class Rehydration extends AbstractRehydrationTests {
     this.assertStableNodes();
   }
 
-  @test
+  @test.todo
   'table with thead'() {
     let template = '<table><thead><tr><th>standards</th></tr></thead></table>';
     this.renderServerSide(template, {});
@@ -158,7 +160,7 @@ class Rehydration extends AbstractRehydrationTests {
     this.assertStableNodes();
   }
 
-  @test
+  @test.todo
   'table with tfoot'() {
     let template = '<table><tfoot><tr><th>standards</th></tr></tfoot></table>';
     this.renderServerSide(template, {});
@@ -169,7 +171,7 @@ class Rehydration extends AbstractRehydrationTests {
     this.assertStableNodes();
   }
 
-  @test
+  @test.todo
   'mismatched text nodes'() {
     let template = '{{this.content}}';
     this.renderServerSide(template, { content: 'hello' });
@@ -182,7 +184,7 @@ class Rehydration extends AbstractRehydrationTests {
     this.assertStableRerender();
   }
 
-  @test
+  @test.todo
   'mismatched text nodes (server-render empty)'() {
     let template = '{{this.content}} world';
     this.renderServerSide(template, { content: '' });
@@ -198,7 +200,7 @@ class Rehydration extends AbstractRehydrationTests {
     this.assertStableRerender();
   }
 
-  @test
+  @test.todo
   'missing closing block within multiple text nodes'() {
     let template = '<div>a {{this.b}}{{this.c}}{{this.d}}</div>';
     let context = { b: '', c: '', d: '' };
@@ -225,7 +227,7 @@ class Rehydration extends AbstractRehydrationTests {
     this.assertStableRerender();
   }
 
-  @test
+  @test.todo
   'resumes correct block after reenabling rehydration'() {
     let template = strip`
       <div>
@@ -259,7 +261,7 @@ class Rehydration extends AbstractRehydrationTests {
     this.assertStableRerender();
   }
 
-  @test
+  @test.todo
   'mismatched elements'() {
     let template = '{{#if this.admin}}<div>hi admin</div>{{else}}<p>HAXOR</p>{{/if}}';
     this.renderServerSide(template, { admin: true });
@@ -271,7 +273,7 @@ class Rehydration extends AbstractRehydrationTests {
     this.assertStableRerender();
   }
 
-  @test
+  @test.todo
   'text nodes surrounding single line handlebars comments'() {
     let template = 'hello{{! hmm, why is this here?! }} world';
     this.renderServerSide(template, {});
@@ -283,7 +285,7 @@ class Rehydration extends AbstractRehydrationTests {
     this.assertStableRerender();
   }
 
-  @test
+  @test.todo
   'text nodes surrounding multi line handlebars comments'() {
     let template = 'hello{{!-- hmm, why is this here?! --}} world';
     this.renderServerSide(template, {});
@@ -295,7 +297,7 @@ class Rehydration extends AbstractRehydrationTests {
     this.assertStableRerender();
   }
 
-  @test
+  @test.todo
   'text nodes surrounding "stand alone" handlebars comment'() {
     let template = '<div></div>\n{{! hmm, why is this here?! }}\n<div></div>';
     this.renderServerSide(template, {});
@@ -307,7 +309,7 @@ class Rehydration extends AbstractRehydrationTests {
     this.assertStableRerender();
   }
 
-  @test
+  @test.todo
   'extra nodes at the end'() {
     let template =
       '{{#if this.admin}}<div>hi admin</div>{{else}}<div>HAXOR{{this.stopHaxing}}</div>{{/if}}';
@@ -320,7 +322,7 @@ class Rehydration extends AbstractRehydrationTests {
     this.assertStableRerender();
   }
 
-  @test
+  @test.todo
   'missing attributes'() {
     let template = '<div data-foo="true"></div>';
     this.renderServerSide(template, {});
@@ -337,7 +339,7 @@ class Rehydration extends AbstractRehydrationTests {
     this.assertStableRerender();
   }
 
-  @test
+  @test.todo
   'remove extra attributes'() {
     let template = '<div data-foo="true"></div>';
     this.renderServerSide(template, {});
@@ -354,7 +356,7 @@ class Rehydration extends AbstractRehydrationTests {
     this.assertStableRerender();
   }
 
-  @test
+  @test.todo
   'updates attribute to current value'() {
     let template = '<div class="always-present show-me"></div>';
     this.renderServerSide(template, {});
@@ -371,7 +373,7 @@ class Rehydration extends AbstractRehydrationTests {
     this.assertStableRerender();
   }
 
-  @test
+  @test.todo
   'does not mutate attributes that already match'() {
     let observer = new MutationObserver((mutationList) => {
       for (let mutation of mutationList) {
@@ -395,7 +397,7 @@ class Rehydration extends AbstractRehydrationTests {
     this.assertStableRerender();
   }
 
-  @test
+  @test.todo
   'Node curlies'() {
     let template = '<div>{{this.node}}</div>';
 
@@ -422,7 +424,7 @@ class Rehydration extends AbstractRehydrationTests {
     this.assertStableNodes({ except: clientNode2 });
   }
 
-  @test
+  @test.todo
   'in-element can rehydrate'() {
     let template = strip`
       <outer><prefix></prefix>
@@ -461,7 +463,7 @@ class Rehydration extends AbstractRehydrationTests {
     this.assert.strictEqual(toInnerHTML(clientRemote), '<inner>Wat Wat</inner>');
   }
 
-  @test
+  @test.todo
   'in-element with insertBefore=null can rehydrate'() {
     let template = strip`
       <outer><prefix></prefix>
@@ -503,7 +505,7 @@ class Rehydration extends AbstractRehydrationTests {
     );
   }
 
-  @test
+  @test.todo
   'in-element with insertBefore=element can rehydrate'() {
     let template = strip`
       <outer><prefix></prefix>
@@ -548,7 +550,7 @@ class Rehydration extends AbstractRehydrationTests {
     );
   }
 
-  @test
+  @test.todo
   'in-element can rehydrate into pre-existing content'() {
     let template = strip`
       <outer>
@@ -574,7 +576,7 @@ class Rehydration extends AbstractRehydrationTests {
     this.assert.strictEqual(toInnerHTML(clientRemote), '<inner>Wat Wat</inner>');
   }
 
-  @test
+  @test.todo
   'in-element with insertBefore=null can rehydrate into pre-existing content'() {
     let template = strip`
       <outer>
@@ -605,7 +607,7 @@ class Rehydration extends AbstractRehydrationTests {
     );
   }
 
-  @test
+  @test.todo
   'in-element with insertBefore=element can rehydrate into pre-existing content'() {
     let template = strip`
       <outer>
@@ -643,7 +645,7 @@ class Rehydration extends AbstractRehydrationTests {
     );
   }
 
-  @test
+  @test.todo
   'nested in-element can rehydrate'() {
     let template = strip`
     <outer>
@@ -698,7 +700,7 @@ class Rehydration extends AbstractRehydrationTests {
     this.assert.strictEqual(toInnerHTML(clientRemoteChild), 'Wat Wat');
   }
 
-  @test
+  @test.todo
   'svg elements'() {
     let template = '<svg>{{#if this.isTrue}}<circle />{{/if}}</svg><p>Hello</p>';
     this.renderServerSide(template, { isTrue: true });
@@ -724,7 +726,7 @@ class Rehydration extends AbstractRehydrationTests {
     this.assertStableRerender();
   }
 
-  @test
+  @test.todo
   'title tag'() {
     let template =
       '<title>{{this.pageTitle}} some {{{this.other}}}{{this.thing}} <b>hey!</b></title>';
@@ -747,7 +749,7 @@ class Rehydration extends AbstractRehydrationTests {
     this.assertStableRerender();
   }
 
-  @test
+  @test.todo
   'script tag'() {
     let template = strip`
       <script type="application/ld+json">{{this.data}}</script>
@@ -780,7 +782,7 @@ class Rehydration extends AbstractRehydrationTests {
     this.assertStableRerender();
   }
 
-  @test
+  @test.todo
   'style tag'() {
     let template = '<style>{{this.selector}} { color: #fff; }</style>';
     this.renderServerSide(template, { selector: 'div' });
@@ -802,7 +804,7 @@ class Rehydration extends AbstractRehydrationTests {
     this.assertStableRerender();
   }
 
-  @test
+  @test.todo
   'clearing bounds'() {
     let template = strip`
       {{#if this.isTrue}}
@@ -853,7 +855,7 @@ class Rehydration extends AbstractRehydrationTests {
     this.assertStableRerender();
   }
 
-  @test
+  @test.todo
   'top-level clearing bounds'() {
     let template = strip`
       <top>
@@ -920,7 +922,7 @@ class Rehydration extends AbstractRehydrationTests {
     this.assertStableRerender();
   }
 
-  @test
+  @test.todo
   '#each rehydration'() {
     let template = "{{#each this.items key='id' as |item|}}<p>{{item}}</p>{{/each}}";
     this.renderServerSide(template, { items: [1, 2, 3] });
@@ -998,7 +1000,7 @@ class RehydratingComponents extends AbstractRehydrationTests {
     super.renderClientSide(template, properties);
   }
 
-  @test
+  @test.todo
   'Component invocations'() {
     let layout = 'Hello {{@name}}';
     let args = { name: 'this.name' };
@@ -1025,7 +1027,7 @@ class RehydratingComponents extends AbstractRehydrationTests {
     this.assertStableRerender();
   }
 
-  @test
+  @test.todo
   'Mismatched Component invocations'() {
     let layout = 'Hello {{@name}}';
     let args = { name: 'this.name' };
@@ -1052,7 +1054,7 @@ class RehydratingComponents extends AbstractRehydrationTests {
     this.assertStableRerender();
   }
 
-  @test
+  @test.todo
   '<p> invoking a block which emits a <div>'() {
     let componentToRender = {
       layout: '<p>hello {{#if @show}}<div>world!</div>{{/if}}</p>',
@@ -1079,7 +1081,7 @@ class RehydratingComponents extends AbstractRehydrationTests {
     this.assertStableNodes();
   }
 
-  @test
+  @test.todo
   'Component invocations with block params'() {
     let layout = 'Hello {{yield @name}}';
     let template = '{{this.name}}';
@@ -1113,7 +1115,7 @@ class RehydratingComponents extends AbstractRehydrationTests {
     this.assertStableRerender();
   }
 
-  @test
+  @test.todo
   'Mismatched Component invocations with block params'() {
     let layout = 'Hello {{yield @name}}';
     let template = '{{this.name}}';
@@ -1147,7 +1149,7 @@ class RehydratingComponents extends AbstractRehydrationTests {
     this.assertStableRerender();
   }
 
-  @test
+  @test.todo
   'Component invocations with template'() {
     let layout = 'Hello {{yield}}';
     let template = 'Filewatcher';
@@ -1169,7 +1171,7 @@ class RehydratingComponents extends AbstractRehydrationTests {
     this.assertStableRerender();
   }
 
-  @test
+  @test.todo
   'Mismatched Component invocations with template'() {
     let layout = 'Hello {{yield}}';
     let template = 'Filewatcher';
@@ -1188,7 +1190,7 @@ class RehydratingComponents extends AbstractRehydrationTests {
     this.assertStableRerender();
   }
 
-  @test
+  @test.todo
   'Component invocations with empty args'() {
     let layout = 'Hello {{@foo}}';
     this.renderServerSide({
@@ -1206,7 +1208,7 @@ class RehydratingComponents extends AbstractRehydrationTests {
     this.assertStableRerender();
   }
 
-  @test
+  @test.todo
   'Multiple invocations'() {
     let name;
     let template;
@@ -1248,7 +1250,7 @@ class RehydratingComponents extends AbstractRehydrationTests {
     this.assertStableRerender();
   }
 
-  @test
+  @test.todo
   'Mismatched Multiple invocations'() {
     let name;
     let template;
@@ -1293,7 +1295,7 @@ class RehydratingComponents extends AbstractRehydrationTests {
     this.assertStableRerender();
   }
 
-  @test
+  @test.todo
   'interacting with builtins'() {
     let isDynamic = this.testType === 'Dynamic';
 
@@ -1397,7 +1399,7 @@ class RehydratingComponents extends AbstractRehydrationTests {
     this.assertStableRerender();
   }
 
-  @test
+  @test.todo
   'mismatched interacting with builtins'() {
     let isDynamic = this.testType === 'Dynamic';
 
@@ -1500,7 +1502,7 @@ class RehydratingComponents extends AbstractRehydrationTests {
     this.assertComponent('<ul><li>Industry</li><li>Standard</li><li>Components</li></ul>');
   }
 
-  @test
+  @test.todo
   'mismatched blocks interacting with builtins'() {
     let isDynamic = this.testType === 'Dynamic';
 

@@ -3,7 +3,12 @@ import type { SimpleElement, SimpleNode } from '@glimmer/interfaces';
 import type { SafeString } from '@glimmer/runtime';
 import { NS_SVG } from '@glimmer/util';
 
-import { jitSuite, RenderTest, type RenderTestConstructor } from '..';
+import {
+  jitSuite,
+  RenderTest,
+  type RenderTestConstructor,
+  type TestFunction,
+} from '@glimmer-workspace/integration-tests';
 import type RenderDelegate from '../lib/render-delegate';
 
 function makeSafeString(value: string): SafeString {
@@ -162,7 +167,8 @@ function generateContentTestCase(
       }
     };
 
-    (test as any).isTest = true;
+    (test as Partial<TestFunction>).isTest = true;
+    (test as Partial<TestFunction>).testModifier = 'test';
     (suite as any).prototype[`updating ${tc.name} produces expected result in ${wrapper.name}`] =
       test;
   }

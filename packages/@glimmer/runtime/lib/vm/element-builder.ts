@@ -4,8 +4,12 @@ import type {
   AttrNamespace,
   Bounds,
   BrowserDOMEnvironment,
+  ChildNodeFor,
+  CommentFor,
   Cursor,
   DebugElementBuilder,
+  DocumentFragmentFor,
+  DOMEnvironment,
   ElementBuilder,
   ElementOperations,
   Environment,
@@ -14,36 +18,30 @@ import type {
   LiveBlock,
   Maybe,
   ModifierInstance,
+  NodeFor,
   Nullable,
-  SimpleComment,
   SimpleDocumentFragment,
   SimpleElement,
   SimpleNode,
-  SimpleText,
+  TextFor,
   UpdatableBlock,
-  UpdatableBounds,
 } from '@glimmer/interfaces';
-import { assert, castToSimple, expect, Stack } from '@glimmer/util';
+import { assert, castToBrowser, expect, Stack } from '@glimmer/util';
 
-import {
-  clear,
-  ConcreteBounds,
-  CursorImpl,
-  SingleNodeBounds,
-  type DOMEnvironment,
-} from '../bounds';
+import { clear, ConcreteBounds, CursorImpl, SingleNodeBounds } from '../bounds';
 import { type DynamicAttribute, dynamicAttribute } from './attributes/dynamic';
+import { clearBlockBounds, type BlockBoundsRef } from '../dom/tree-builder';
 
-export type FirstNode = Pick<UpdatableBounds, 'firstNode'>;
-export type LastNode = Pick<UpdatableBounds, 'lastNode'>;
+export type FirstNode<E extends DOMEnvironment = DOMEnvironment> = Pick<Bounds<E>, 'firstNode'>;
+export type LastNode<E extends DOMEnvironment = DOMEnvironment> = Pick<Bounds<E>, 'lastNode'>;
 
-function First(node: ChildNode): FirstNode {
+function First<E extends DOMEnvironment = DOMEnvironment>(node: E['child']): FirstNode<E> {
   return {
     firstNode: () => node,
   };
 }
 
-function Last(node: ChildNode): LastNode {
+function Last<E extends DOMEnvironment = DOMEnvironment>(node: E['child']): LastNode<E> {
   return {
     lastNode: () => node,
   };
@@ -52,7 +50,7 @@ function Last(node: ChildNode): LastNode {
 export class NewElementBuilder<E extends DOMEnvironment = DOMEnvironment>
   implements ElementBuilder<E>
 {
-  public _dom_: GlimmerTreeConstruction;
+  public _dom_: GlimmerTreeConstruction<E>;
   public _updateOperations_: GlimmerTreeChanges;
   public _constructing_: Nullable<E['element']> = null;
   public operations: Nullable<ElementOperations> = null;
@@ -60,7 +58,7 @@ export class NewElementBuilder<E extends DOMEnvironment = DOMEnvironment>
 
   readonly #cursors = new Stack<Cursor<E>>();
   private modifierStack = new Stack<Nullable<ModifierInstance[]>>();
-  private blockStack = new Stack<LiveBlock<E>>();
+  private blockStack = new Stack<LiveBlock>();
 
   static forInitialRender<E extends DOMEnvironment>(
     environment: Environment,
@@ -71,12 +69,16 @@ export class NewElementBuilder<E extends DOMEnvironment = DOMEnvironment>
 
   static resume(
     environment: Environment,
-    block: UpdatableBlock
+    block: BlockBoundsRef
   ): NewElementBuilder<BrowserDOMEnvironment> {
-    let parentNode = block.parentElement();
-    let nextSibling = block.reset(environment);
+    let parentNode = block.parent;
+    let nextSibling = clearBlockBounds(block);
 
-    let stack = new this(environment, castToSimple(parentNode), nextSibling).initialize();
+    let stack = new NewElementBuilder<BrowserDOMEnvironment>(
+      environment,
+      castToBrowser(parentNode, 'ELEMENT'),
+      nextSibling
+    ).initialize();
     stack.pushLiveBlock(block);
 
     return stack;
@@ -90,7 +92,7 @@ export class NewElementBuilder<E extends DOMEnvironment = DOMEnvironment>
     this.pushElement(parentNode, nextSibling);
 
     this.env = environment;
-    this._dom_ = environment.getAppendOperations();
+    this._dom_ = environment.getAppendOperations([parentNode, nextSibling, null]);
     this._updateOperations_ = environment.getDOM();
 
     if (import.meta.env.DEV) {
@@ -118,7 +120,7 @@ export class NewElementBuilder<E extends DOMEnvironment = DOMEnvironment>
     return this;
   }
 
-  debugBlocks(): LiveBlock[] {
+  debugBlocks(): LiveBlock<E>[] {
     return this.blockStack.toArray();
   }
 
@@ -134,7 +136,7 @@ export class NewElementBuilder<E extends DOMEnvironment = DOMEnvironment>
     return this.blockStack.size > 0;
   }
 
-  protected block(): LiveBlock {
+  protected block(): LiveBlock<E> {
     return expect(this.blockStack.current, 'Expected a current live block');
   }
 
@@ -143,15 +145,16 @@ export class NewElementBuilder<E extends DOMEnvironment = DOMEnvironment>
     expect(this.#cursors.current, "can't pop past the last element");
   }
 
-  pushSimpleBlock(): LiveBlock {
+  pushSimpleBlock(): LiveBlock<E> {
     return this.pushLiveBlock(new SimpleLiveBlock(this.element));
   }
 
-  pushUpdatableBlock(): UpdatableBlockImpl<E> {
+  pushUpdatableBlock(): UpdatableBlockImpl {
+    // TODO [2023-05-22] don't emit updatable blocks in SSR
     return this.pushLiveBlock(new UpdatableBlockImpl(this.element));
   }
 
-  pushBlockList(list: LiveBlock[]): LiveBlockList {
+  pushBlockList(list: LiveBlock<E>[]): LiveBlockList<E> {
     return this.pushLiveBlock(new LiveBlockList(this.element, list));
   }
 
@@ -167,7 +170,7 @@ export class NewElementBuilder<E extends DOMEnvironment = DOMEnvironment>
     return block;
   }
 
-  popBlock(): LiveBlock {
+  popBlock(): LiveBlock<E> {
     this.block().finalize(this);
     this.__closeBlock();
     return expect(this.blockStack.pop(), 'Expected popBlock to return a block');
@@ -177,14 +180,14 @@ export class NewElementBuilder<E extends DOMEnvironment = DOMEnvironment>
   __closeBlock(): void {}
 
   // todo return seems unused
-  openElement(tag: string): SimpleElement {
+  openElement(tag: string): E['element'] {
     let element = this.__openElement(tag);
     this._constructing_ = element;
 
     return element;
   }
 
-  __openElement(tag: string): SimpleElement {
+  __openElement(tag: string): E['element'] {
     return this._dom_.createElement(tag, this.element);
   }
 
@@ -205,7 +208,7 @@ export class NewElementBuilder<E extends DOMEnvironment = DOMEnvironment>
     this.didOpenElement(element);
   }
 
-  __flushElement(parent: SimpleElement, constructing: SimpleElement) {
+  __flushElement(parent: E['element'], constructing: E['element']) {
     this._dom_.insertBefore(parent, constructing, this.nextSibling);
   }
 
@@ -216,18 +219,18 @@ export class NewElementBuilder<E extends DOMEnvironment = DOMEnvironment>
   }
 
   pushRemoteElement(
-    element: SimpleElement,
+    element: E['element'],
     guid: string,
-    insertBefore: Maybe<SimpleNode>
-  ): Nullable<RemoteLiveBlock> {
+    insertBefore: Maybe<NodeFor<E>>
+  ): Nullable<RemoteLiveBlock<E>> {
     return this.__pushRemoteElement(element, guid, insertBefore);
   }
 
   __pushRemoteElement(
-    element: SimpleElement,
+    element: E['element'],
     _guid: string,
-    insertBefore: Maybe<SimpleNode>
-  ): Nullable<RemoteLiveBlock> {
+    insertBefore: Maybe<NodeFor<E>>
+  ): Nullable<RemoteLiveBlock<E>> {
     this.pushElement(element, insertBefore);
 
     if (insertBefore === undefined) {
@@ -261,12 +264,12 @@ export class NewElementBuilder<E extends DOMEnvironment = DOMEnvironment>
     return this.modifierStack.pop();
   }
 
-  didAppendBounds(bounds: Bounds): Bounds {
+  didAppendBounds(bounds: Bounds<E>): Bounds {
     this.block().didAppendBounds(bounds);
     return bounds;
   }
 
-  didAppendNode<T extends SimpleNode>(node: T): T {
+  didAppendNode<T extends ChildNodeFor<E>>(node: T): T {
     this.block().didAppendNode(node);
     return node;
   }
@@ -280,23 +283,23 @@ export class NewElementBuilder<E extends DOMEnvironment = DOMEnvironment>
     this.block().closeElement();
   }
 
-  appendText(string: string): SimpleText {
+  appendText(string: string): TextFor<E> {
     return this.didAppendNode(this.__appendText(string));
   }
 
-  __appendText(text: string): SimpleText {
+  __appendText(text: string): TextFor<E> {
     let { _dom_, element, nextSibling } = this;
     let node = _dom_.createTextNode(text);
     _dom_.insertBefore(element, node, nextSibling);
     return node;
   }
 
-  __appendNode(node: SimpleNode): SimpleNode {
+  __appendNode(node: E['child']): E['child'] {
     this._dom_.insertBefore(this.element, node, this.nextSibling);
     return node;
   }
 
-  __appendFragment(fragment: SimpleDocumentFragment): Bounds {
+  __appendFragment(fragment: DocumentFragmentFor<E>): Bounds<E> {
     let first = fragment.firstChild;
 
     if (first) {
@@ -308,7 +311,7 @@ export class NewElementBuilder<E extends DOMEnvironment = DOMEnvironment>
     }
   }
 
-  __appendHTML(html: string): Bounds {
+  __appendHTML(html: string): Bounds<E> {
     return this._dom_.insertHTMLBefore(this.element, this.nextSibling, html);
   }
 
@@ -317,36 +320,36 @@ export class NewElementBuilder<E extends DOMEnvironment = DOMEnvironment>
     this.didAppendBounds(bounds);
   }
 
-  appendDynamicText(value: string): SimpleText {
+  appendDynamicText(value: string): TextFor<E> {
     let node = this.untrustedContent(value);
     this.didAppendNode(node);
     return node;
   }
 
-  appendDynamicFragment(value: SimpleDocumentFragment): void {
+  appendDynamicFragment(value: NodeFor<E, SimpleDocumentFragment | DocumentFragment>): void {
     let bounds = this.__appendFragment(value);
     this.didAppendBounds(bounds);
   }
 
-  appendDynamicNode(value: SimpleNode): void {
+  appendDynamicNode(value: NodeFor<E>): void {
     let node = this.__appendNode(value);
     let bounds = new SingleNodeBounds(this.element, node);
     this.didAppendBounds(bounds);
   }
 
-  private trustedContent(value: string): Bounds {
+  private trustedContent(value: string): Bounds<E> {
     return this.__appendHTML(value);
   }
 
-  private untrustedContent(value: string): SimpleText {
+  private untrustedContent(value: string): TextFor<E> {
     return this.__appendText(value);
   }
 
-  appendComment(string: string): SimpleComment {
+  appendComment(string: string): CommentFor<E> {
     return this.didAppendNode(this.__appendComment(string));
   }
 
-  __appendComment(string: string): SimpleComment {
+  __appendComment(string: string): CommentFor<E> {
     let { _dom_, element, nextSibling } = this;
     let node = _dom_.createComment(string);
     _dom_.insertBefore(element, node, nextSibling);
@@ -354,7 +357,7 @@ export class NewElementBuilder<E extends DOMEnvironment = DOMEnvironment>
   }
 
   __setAttribute(name: string, value: string, namespace: Nullable<AttrNamespace>): void {
-    this._dom_.setAttribute(this._constructing_, name, value, namespace);
+    this._dom_.setAttribute(this._constructing_!, name, value, namespace);
   }
 
   __setProperty(name: string, value: unknown): void {
@@ -370,7 +373,7 @@ export class NewElementBuilder<E extends DOMEnvironment = DOMEnvironment>
     value: unknown,
     trusting: boolean,
     namespace: Nullable<AttrNamespace>
-  ): DynamicAttribute {
+  ): DynamicAttribute<E> {
     let element = this._constructing_;
     let attribute = dynamicAttribute(element, name, namespace, trusting);
     attribute.set(this, value, this.env);
@@ -382,7 +385,7 @@ export class SimpleLiveBlock<E extends DOMEnvironment = DOMEnvironment> implemen
   protected first: Nullable<FirstNode> = null;
   protected last: Nullable<LastNode> = null;
   protected nesting = 0;
-  readonly #parent: Element;
+  readonly #parent: E['element'];
 
   constructor(parent: E['element']) {
     this.#parent = parent;
@@ -392,7 +395,7 @@ export class SimpleLiveBlock<E extends DOMEnvironment = DOMEnvironment> implemen
     return this.#parent;
   }
 
-  firstNode(): ChildNode {
+  firstNode(): E['child'] {
     let first = expect(
       this.first,
       'cannot call `firstNode()` while `SimpleLiveBlock` is still initializing'
@@ -401,7 +404,7 @@ export class SimpleLiveBlock<E extends DOMEnvironment = DOMEnvironment> implemen
     return first.firstNode();
   }
 
-  lastNode(): ChildNode {
+  lastNode(): E['child'] {
     let last = expect(
       this.last,
       'cannot call `lastNode()` while `SimpleLiveBlock` is still initializing'
@@ -410,7 +413,7 @@ export class SimpleLiveBlock<E extends DOMEnvironment = DOMEnvironment> implemen
     return last.lastNode();
   }
 
-  openElement(element: SimpleElement) {
+  openElement(element: E['element']) {
     this.didAppendNode(element);
     this.nesting++;
   }
@@ -419,7 +422,7 @@ export class SimpleLiveBlock<E extends DOMEnvironment = DOMEnvironment> implemen
     this.nesting--;
   }
 
-  didAppendNode(node: SimpleNode) {
+  didAppendNode(node: E['child']) {
     if (this.nesting !== 0) return;
 
     if (!this.first) {
@@ -429,7 +432,7 @@ export class SimpleLiveBlock<E extends DOMEnvironment = DOMEnvironment> implemen
     this.last = Last(node);
   }
 
-  didAppendBounds(bounds: Bounds) {
+  didAppendBounds(bounds: Bounds<E>) {
     if (this.nesting !== 0) return;
 
     if (!this.first) {
@@ -439,7 +442,7 @@ export class SimpleLiveBlock<E extends DOMEnvironment = DOMEnvironment> implemen
     this.last = bounds;
   }
 
-  finalize(stack: ElementBuilder) {
+  finalize(stack: ElementBuilder<E>) {
     if (this.first === null) {
       stack.appendComment('');
     }
@@ -484,7 +487,7 @@ export class RemoteLiveBlock<E extends DOMEnvironment = DOMEnvironment> extends 
 
 export class UpdatableBlockImpl
   extends SimpleLiveBlock<BrowserDOMEnvironment>
-  implements UpdatableBlock
+  implements LiveBlock<BrowserDOMEnvironment>, UpdatableBlock
 {
   reset(): Nullable<ChildNode> {
     destroy(this);
@@ -500,12 +503,12 @@ export class UpdatableBlockImpl
 
 // FIXME: All the noops in here indicate a modelling problem
 export class LiveBlockList<E extends DOMEnvironment = DOMEnvironment> implements LiveBlock<E> {
-  constructor(private readonly parent: SimpleElement, public boundList: LiveBlock[]) {
+  constructor(private readonly parent: E['element'], public boundList: LiveBlock<E>[]) {
     this.parent = parent;
     this.boundList = boundList;
   }
 
-  parentElement() {
+  parentElement(): E['element'] {
     return this.parent;
   }
 
@@ -529,7 +532,7 @@ export class LiveBlockList<E extends DOMEnvironment = DOMEnvironment> implements
     return tail.lastNode();
   }
 
-  openElement(_element: SimpleElement) {
+  openElement(_element: E['element']) {
     assert(false, 'Cannot openElement directly inside a block list');
   }
 
@@ -537,13 +540,13 @@ export class LiveBlockList<E extends DOMEnvironment = DOMEnvironment> implements
     assert(false, 'Cannot closeElement directly inside a block list');
   }
 
-  didAppendNode(_node: SimpleNode) {
+  didAppendNode(_node: E['child']) {
     assert(false, 'Cannot create a new node directly inside a block list');
   }
 
-  didAppendBounds(_bounds: Bounds) {}
+  didAppendBounds(_bounds: Bounds<E>) {}
 
-  finalize(_stack: ElementBuilder) {
+  finalize(_stack: ElementBuilder<E>) {
     assert(this.boundList.length > 0, 'boundsList cannot be empty');
   }
 }

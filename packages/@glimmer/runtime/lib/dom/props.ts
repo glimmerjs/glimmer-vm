@@ -1,22 +1,28 @@
-import type { SimpleElement } from '@glimmer/interfaces';
+import type { DOMEnvironment, SimpleElement } from '@glimmer/interfaces';
 
 export const ATTR = 0;
 export const PROP = 1;
 export type AttrType = 0 | 1;
 export type NormalizedProperty = [type: AttrType, normalized: string];
 
-export function normalizeProperty(element: SimpleElement, slotName: string): NormalizedProperty {
+export function normalizeProperty<E extends DOMEnvironment>(
+  element: Element | SimpleElement,
+  slotName: string
+): NormalizedProperty {
   if (slotName in element) return triage(element, slotName);
 
   let lower = slotName.toLowerCase();
   return lower in element ? triage(element, lower) : [ATTR, slotName];
 }
 
-function triage(element: SimpleElement, normalized: string): [type: AttrType, normalized: string] {
+function triage(
+  element: Element | SimpleElement,
+  normalized: string
+): [type: AttrType, normalized: string] {
   return [triageType(element, normalized), normalized];
 }
 
-function triageType(element: SimpleElement, normalized: string): AttrType {
+function triageType(element: Element | SimpleElement, normalized: string): AttrType {
   return normalized.toLowerCase() === 'style' || preferAttribute(element.tagName, normalized)
     ? ATTR
     : PROP;

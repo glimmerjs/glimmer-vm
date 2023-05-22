@@ -3,8 +3,6 @@ import type {
   Cursor,
   DOMEnvironment,
   Nullable,
-  SimpleElement,
-  SimpleNode,
   UpdatableBounds,
 } from '@glimmer/interfaces';
 import { expect } from '@glimmer/util';
@@ -15,46 +13,46 @@ export class CursorImpl<E extends DOMEnvironment = DOMEnvironment> implements Cu
 
 export type DestroyableBounds = Bounds;
 
-export class ConcreteBounds implements Bounds {
-  readonly #first: SimpleNode;
-  readonly #last: SimpleNode;
+export class ConcreteBounds<E extends DOMEnvironment = DOMEnvironment> implements Bounds<E> {
+  readonly #first: E['child'];
+  readonly #last: E['child'];
 
-  constructor(public parentNode: SimpleElement, first: SimpleNode, last: SimpleNode) {
+  constructor(public parentNode: E['element'], first: E['child'], last: E['child']) {
     this.#first = first;
     this.#last = last;
   }
 
-  parentElement(): SimpleElement {
+  parentElement(): E['element'] {
     return this.parentNode;
   }
 
-  firstNode(): SimpleNode {
+  firstNode(): E['child'] {
     return this.#first;
   }
 
-  lastNode(): SimpleNode {
+  lastNode(): E['child'] {
     return this.#last;
   }
 }
 
-export class SingleNodeBounds implements Bounds {
-  readonly #parentNode: SimpleElement;
-  readonly #node: SimpleNode;
+export class SingleNodeBounds<E extends DOMEnvironment = DOMEnvironment> implements Bounds<E> {
+  readonly #parentNode: E['element'];
+  readonly #node: E['child'];
 
-  constructor(parentNode: SimpleElement, node: SimpleNode) {
+  constructor(parentNode: E['element'], node: E['child']) {
     this.#parentNode = parentNode;
     this.#node = node;
   }
 
-  parentElement(): SimpleElement {
+  parentElement(): E['element'] {
     return this.#parentNode;
   }
 
-  firstNode(): SimpleNode {
+  firstNode(): E['child'] {
     return this.#node;
   }
 
-  lastNode(): SimpleNode {
+  lastNode(): E['child'] {
     return this.#node;
   }
 }

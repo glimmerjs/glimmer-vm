@@ -1,5 +1,4 @@
 const { setupQunit } = await import('@glimmer-workspace/integration-tests');
-console.log('wat', { autostart: QUnit.config.autostart });
 
 const { smokeTest } = await setupQunit();
 

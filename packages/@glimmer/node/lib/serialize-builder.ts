@@ -1,5 +1,6 @@
 import type {
   Bounds,
+  BrowserDOMEnvironment,
   ElementBuilder,
   Environment,
   Maybe,
@@ -55,7 +56,7 @@ class SerializeBuilder
     }
   }
 
-  override __appendHTML(html: string): Bounds {
+  override __appendHTML(html: string): Bounds<BrowserDOMEnvironment> {
     let { tagName } = this.element;
 
     if (tagName === 'TITLE' || tagName === 'SCRIPT' || tagName === 'STYLE') {
@@ -142,6 +143,6 @@ class SerializeBuilder
 export function serializeBuilder(
   environment: Environment,
   cursor: { element: SimpleElement; nextSibling: Nullable<SimpleNode> }
-): ElementBuilder {
-  return SerializeBuilder.forInitialRender(environment, cursor);
+): ElementBuilder<SimpleDOMEnvironment> {
+  return SerializeBuilder.forInitialRender<SimpleDOMEnvironment>(environment, cursor);
 }

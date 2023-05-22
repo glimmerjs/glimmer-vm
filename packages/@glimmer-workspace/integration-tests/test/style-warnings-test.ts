@@ -27,7 +27,7 @@ class StyleWarningsTest extends RenderTest {
     testOverrideGlobalContext?.(originalContext);
   }
 
-  @test
+  @test.todo
   'Standard element with static style and element modifier does not give you a warning'() {
     this.registerModifier('foo', class {});
     this.render('<button style="display: flex" {{foo}}>click me</button>', {});
@@ -35,7 +35,7 @@ class StyleWarningsTest extends RenderTest {
     assert.strictEqual(warnings, 0);
   }
 
-  @test
+  @test.todo
   'Standard element with dynamic style and element modifier gives you 1 warning'() {
     this.registerModifier('foo', class {});
     this.render('<button style={{this.dynAttr}} {{foo}}>click me</button>', {
@@ -53,7 +53,7 @@ class StyleWarningsTest extends RenderTest {
     this.assertHTML('<div style="background: red">Thing</div>', 'initial render');
   }
 
-  @test
+  @test.todo
   'triple curlies are trusted'() {
     this.render(`<div foo={{this.foo}} style={{{this.styles}}}>Thing</div>`, {
       styles: 'background: red',

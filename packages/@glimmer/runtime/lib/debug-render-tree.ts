@@ -1,16 +1,21 @@
 import type {
+  BlockBounds,
   Bounds,
   CapturedRenderNode,
   DebugRenderTree,
+  MinimalChild,
+  MinimalElement,
+  MinimalParent,
   Nullable,
   RenderNode,
 } from '@glimmer/interfaces';
 import { expect, Stack } from '@glimmer/util';
 
 import { reifyArgs } from './vm/arguments';
+import { getBlockBoundsStart } from './vm/update';
 
 interface InternalRenderNode<T extends object> extends RenderNode {
-  bounds: Nullable<Bounds>;
+  bounds: Nullable<BlockBounds>;
   refs: Set<Ref<T>>;
   parent?: InternalRenderNode<T>;
 }
@@ -70,8 +75,11 @@ export default class DebugRenderTreeImpl<TBucket extends object>
   }
 
   create(state: TBucket, node: RenderNode): void {
-    let internalNode: InternalRenderNode<TBucket> = { ...node, bounds: null,
-      refs: new Set<Ref<TBucket>>(),};
+    let internalNode: InternalRenderNode<TBucket> = {
+      ...node,
+      bounds: null,
+      refs: new Set<Ref<TBucket>>(),
+    };
     this.#nodes.set(state, internalNode);
     this.#appendChild(internalNode, state);
     this.#enter(state);
@@ -86,7 +94,11 @@ export default class DebugRenderTreeImpl<TBucket extends object>
       throw new Error(`BUG: expecting ${this.#stack.current}, got ${state}`);
     }
 
-    this.#nodeFor(state).bounds = bounds;
+    this.#nodeFor(state).bounds = {
+      parent: bounds.parentElement() as MinimalParent,
+      start: bounds.firstNode() as MinimalChild,
+      end: bounds.lastNode() as MinimalChild,
+    };
     this.#exit();
   }
 
@@ -192,9 +204,10 @@ export default class DebugRenderTreeImpl<TBucket extends object>
 
   #captureBounds(node: InternalRenderNode<TBucket>): CapturedRenderNode['bounds'] {
     let bounds = expect(node.bounds, 'BUG: missing bounds');
-    let parentElement = bounds.parentElement();
-    let firstNode = bounds.firstNode();
-    let lastNode = bounds.lastNode();
-    return { parentElement, firstNode, lastNode };
+    return {
+      parentElement: bounds.parent as MinimalElement,
+      firstNode: getBlockBoundsStart({ current: bounds }),
+      lastNode: bounds.end as MinimalChild,
+    };
   }
 }

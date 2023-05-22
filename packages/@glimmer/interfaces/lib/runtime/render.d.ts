@@ -1,23 +1,25 @@
-import type { SimpleElement, SimpleNode } from '@simple-dom/interface';
-
 import type { RichIteratorResult } from '../core';
-import type { Bounds } from '../dom/bounds';
+import type { Bounds, DOMEnvironment } from '../dom/bounds';
+import type { BlockBoundsRef } from '../dom/tree-builder';
 import type { Environment } from './environment';
 
 export interface ExceptionHandler {
   handleException(): void;
 }
 
-export interface RenderResult extends Bounds, ExceptionHandler {
+export interface RenderResult<E extends DOMEnvironment = DOMEnvironment>
+  extends Bounds<E>,
+    ExceptionHandler {
   readonly environment: Environment;
+  readonly _blockBounds_: BlockBoundsRef;
   _link_(parent: object): void;
 
   rerender(options?: { alwaysRevalidate?: boolean | false }): void;
 
-  parentElement(): SimpleElement;
+  parentElement(): E['element'];
 
-  firstNode(): SimpleNode;
-  lastNode(): SimpleNode;
+  firstNode(): E['child'];
+  lastNode(): E['child'];
 }
 
 export interface TemplateIterator {

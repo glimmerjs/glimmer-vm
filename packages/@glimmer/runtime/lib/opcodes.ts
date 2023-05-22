@@ -2,6 +2,9 @@ import { debug, logOpcode, opcodeMetadata, recordStackSize } from '@glimmer/debu
 import type {
   Dict,
   Maybe,
+  MinimalChild,
+  MinimalCursor,
+  MinimalParent,
   Nullable,
   RuntimeOp,
   SomeVmOp,
@@ -153,14 +156,14 @@ export class AppendOpcodes {
                 LOCAL_LOGGER.log(
                   '%c -> block stack',
                   'color: magenta',
-                  vm._elements_().debugBlocks()
+                  vm._elements_().debug!.cursor
                 );
                 LOCAL_LOGGER.log(
                   '%c -> destructor stack',
                   'color: violet',
                   unwrap(vm.debug).destroyableStack.toArray()
                 );
-                if (debug.getStacks(vm)._scope_.current === null) {
+                if (debug.getStacks()._scope_.current === null) {
                   LOCAL_LOGGER.log('%c -> scope', 'color: green', 'null');
                 } else {
                   LOCAL_LOGGER.log(
@@ -170,17 +173,39 @@ export class AppendOpcodes {
                   );
                 }
 
-                LOCAL_LOGGER.log(
-                  '%c -> elements',
-                  'color: blue',
-                  vm._elements_()._debug_?.getCursors().current!.element
-                );
+                let blocks = getBlockStack(vm._elements_().debug!.cursor);
+                LOCAL_LOGGER.log('%c -> blocks', 'color: blue', blocks);
 
                 LOCAL_LOGGER.log(
                   '%c -> constructing',
                   'color: aqua',
-                  vm._elements_()['_constructing_']
+                  vm._elements_().debug!.constructing
                 );
+
+                interface CursorBlock {
+                  parent: MinimalParent;
+                  nextSibling: MinimalChild | null;
+                }
+
+                // eslint-disable-next-line no-inner-declarations
+                function getBlockStack(cursor: MinimalCursor) {
+                  let blocks: CursorBlock[] = [];
+
+                  addToBlockStack(cursor, blocks);
+
+                  return blocks.reverse();
+                }
+
+                // eslint-disable-next-line no-inner-declarations
+                function addToBlockStack(cursor: MinimalCursor, blocks: CursorBlock[]) {
+                  let [parent, nextSibling, parentCursor] = cursor;
+
+                  blocks.push({ parent, nextSibling });
+
+                  if (parentCursor) addToBlockStack(parentCursor, blocks);
+
+                  return blocks;
+                }
               }
             }
           },

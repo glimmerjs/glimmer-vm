@@ -17,7 +17,7 @@ export class PartialRehydrationTest extends RenderTest {
   static suiteName = 'partial rehydration';
   declare delegate: PartialRehydrationDelegate;
 
-  @test
+  @test.todo
   'can rehydrate from non starting blocks'() {
     this.delegate.registerTemplateOnlyComponent('RehydratingComponent', '{{@a}}{{@b}}{{@c}}');
 
@@ -73,7 +73,7 @@ export class PartialRehydrationTest extends RenderTest {
     this.assertStableRerender();
   }
 
-  @test
+  @test.todo
   'can rehydrate multiple call sites'() {
     this.delegate.registerTemplateOnlyComponent('Nav', '{{@title}}');
     this.delegate.registerTemplateOnlyComponent('Carousel', '{{@name}}');

@@ -23,7 +23,14 @@ export {
   DOMChangesImpl as IDOMChanges,
   isWhitespace,
 } from './lib/dom/helper';
-export { normalizeProperty, ATTR, PROP, type AttrType, type NormalizedProperty } from './lib/dom/props';
+export { TreeConstruction } from './lib/dom/tree-builder';
+export {
+  normalizeProperty,
+  ATTR,
+  PROP,
+  type AttrType,
+  type NormalizedProperty,
+} from './lib/dom/props';
 export {
   type EnvironmentDelegate,
   EnvironmentImpl,

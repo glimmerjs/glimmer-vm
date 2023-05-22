@@ -10,6 +10,7 @@ import {
 } from '@glimmer/debug';
 import { registerDestructor } from '@glimmer/destroyable';
 import type {
+  BlockBoundsRef,
   Bounds,
   CapabilityMask,
   CapturedArguments,
@@ -113,6 +114,7 @@ import {
 import { UpdateDynamicAttributeOpcode } from './dom';
 import { CURRIED_COMPONENT } from '@glimmer/vm-constants';
 import { define } from '../../opcodes';
+import { getClassicBoundsFor } from '../../vm/update';
 
 /**
  * The VM creates a new ComponentInstance data structure for every component
@@ -466,7 +468,7 @@ define(BEGIN_COMPONENT_TRANSACTION_OP, (vm, { op1: _state }) => {
   }
 
   vm._beginCacheGroup_(name);
-  vm._elements_().pushSimpleBlock();
+  vm._elements_().startBlock();
 });
 
 define(PUT_COMPONENT_OPERATIONS_OP, (vm) => {
@@ -551,7 +553,13 @@ export class ComponentElementOperations implements ElementOperations {
 
       let attribute = unwrap(this.#attributes[name]);
       if (name === 'class') {
-        setDeferredAttribute(vm, 'class', mergeClasses(this.#classes), attribute.namespace, attribute.trusting);
+        setDeferredAttribute(
+          vm,
+          'class',
+          mergeClasses(this.#classes),
+          attribute.namespace,
+          attribute.trusting
+        );
       } else {
         setDeferredAttribute(vm, name, attribute.value, attribute.namespace, attribute.trusting);
       }
@@ -596,11 +604,9 @@ function setDeferredAttribute(
   trusting = false
 ) {
   if (typeof value === 'string') {
-    vm._elements_().setStaticAttribute(name, value, namespace);
+    vm._elements_().addAttr(name, value);
   } else {
-    let attribute = vm
-      ._elements_()
-      .setDynamicAttribute(name, valueForRef(value), trusting, namespace);
+    let attribute = vm._elements_().addAttr(name, valueForRef(value));
     if (!isConstRef(value)) {
       vm._updateWith_(new UpdateDynamicAttributeOpcode(value, attribute, vm.env));
     }
@@ -615,7 +621,10 @@ define(DID_CREATE_ELEMENT_OP, (vm, { op1: _state }) => {
 
   (manager as WithElementHook<unknown>).didCreateElement(
     state,
-    expect(vm._elements_()._constructing_, `Expected a constructing element in DidCreateOpcode`),
+    expect(
+      vm._elements_()._currentElement_,
+      `Expected a constructing element in DidCreateOpcode`
+    ) as Element,
     operations
   );
 });
@@ -733,7 +742,9 @@ define(GET_COMPONENT_LAYOUT_OP, (vm, { op1: _state }) => {
     compilable = manager.getDynamicLayout(instance.state, vm.runtime.resolver);
 
     if (compilable === null) {
-      compilable = managerHasCapability(manager, capabilities, WRAPPED_CAPABILITY) ? unwrapTemplate(vm[CONSTANTS].defaultTemplate).asWrappedLayout() : unwrapTemplate(vm[CONSTANTS].defaultTemplate).asLayout();
+      compilable = managerHasCapability(manager, capabilities, WRAPPED_CAPABILITY)
+        ? unwrapTemplate(vm[CONSTANTS].defaultTemplate).asWrappedLayout()
+        : unwrapTemplate(vm[CONSTANTS].defaultTemplate).asLayout();
     }
   }
 
@@ -854,7 +865,9 @@ define(INVOKE_COMPONENT_LAYOUT_OP, (vm, { op1: _state }) => {
 define(DID_RENDER_LAYOUT_OP, (vm, { op1: _state }) => {
   let instance = check(vm._fetchValue_(_state as Register), CheckComponentInstance);
   let { manager, state, capabilities } = instance;
-  let bounds = vm._elements_().popBlock();
+  let bounds = vm._elements_().endBlock();
+
+  let debugBounds = getClassicBoundsFor(bounds);
 
   if (vm.env.debugRenderTree !== undefined) {
     if (hasCustomDebugRenderTreeLifecycle(manager)) {
@@ -863,14 +876,14 @@ define(DID_RENDER_LAYOUT_OP, (vm, { op1: _state }) => {
       for (let node of nodes.reverse()) {
         let { bucket } = node;
 
-        vm.env.debugRenderTree.didRender(bucket, bounds);
+        vm.env.debugRenderTree.didRender(bucket, debugBounds);
 
-        vm._updateWith_(new DebugRenderTreeDidRenderOpcode(bucket, bounds));
+        vm._updateWith_(new DebugRenderTreeDidRenderOpcode(bucket, debugBounds));
       }
     } else {
-      vm.env.debugRenderTree.didRender(instance, bounds);
+      vm.env.debugRenderTree.didRender(instance, debugBounds);
 
-      vm._updateWith_(new DebugRenderTreeDidRenderOpcode(instance, bounds));
+      vm._updateWith_(new DebugRenderTreeDidRenderOpcode(instance, debugBounds));
     }
   }
 
@@ -909,9 +922,9 @@ export class UpdateComponentOpcode implements UpdatingOpcode {
 
 export class DidUpdateLayoutOpcode implements UpdatingOpcode {
   readonly #component: ComponentInstanceWithCreate;
-  readonly #bounds: Bounds;
+  readonly #bounds: BlockBoundsRef;
 
-  constructor(component: ComponentInstanceWithCreate, bounds: Bounds) {
+  constructor(component: ComponentInstanceWithCreate, bounds: BlockBoundsRef) {
     this.#component = component;
     this.#bounds = bounds;
   }
@@ -920,7 +933,7 @@ export class DidUpdateLayoutOpcode implements UpdatingOpcode {
     let component = this.#component;
     let { manager, state } = component;
 
-    manager.didUpdateLayout(state, this.#bounds);
+    manager.didUpdateLayout(state, getClassicBoundsFor(this.#bounds));
 
     vm.env.didUpdate(component);
   }

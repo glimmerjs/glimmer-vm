@@ -4,8 +4,9 @@ import type {
   CustomRenderNode,
   Dict,
   InternalComponentManager,
+  MinimalChild,
+  MinimalElement,
   Owner,
-  SimpleElement,
   SimpleNode,
 } from '@glimmer/interfaces';
 import { setComponentTemplate } from '@glimmer/manager';
@@ -28,9 +29,9 @@ import {
 } from '@glimmer-workspace/integration-tests';
 
 interface CapturedBounds {
-  parentElement: SimpleElement;
-  firstNode: SimpleNode;
-  lastNode: SimpleNode;
+  parentElement: MinimalElement;
+  firstNode: MinimalChild;
+  lastNode: MinimalChild;
 }
 
 type Expected<T> = T | ((actual: T) => boolean);
@@ -447,20 +448,17 @@ class DebugRenderTreeTest extends RenderTest {
     let node = expect(_node, 'BUG: Expected node');
 
     return {
-      parentElement: expect(
-        node.parentNode,
-        'BUG: detached node'
-      ) as unknown as SimpleNode as SimpleElement,
-      firstNode: node as unknown as SimpleNode,
-      lastNode: node as unknown as SimpleNode,
+      parentElement: expect(node.parentNode, 'BUG: detached node') as unknown as MinimalElement,
+      firstNode: node as unknown as MinimalChild,
+      lastNode: node as unknown as MinimalChild,
     };
   }
 
   elementBounds(element: Element): CapturedBounds {
     return {
-      parentElement: element as unknown as SimpleElement,
-      firstNode: element.firstChild! as unknown as SimpleNode,
-      lastNode: element.lastChild! as unknown as SimpleNode,
+      parentElement: element as unknown as MinimalElement,
+      firstNode: element.firstChild! as unknown as MinimalChild,
+      lastNode: element.lastChild! as unknown as MinimalChild,
     };
   }
 
@@ -535,5 +533,5 @@ class DebugRenderTreeTest extends RenderTest {
 }
 
 suite(DebugRenderTreeTest, DebugRenderTreeDelegate, {
-  env: { ...BaseEnvironment, enableDebugTooling: true,},
+  env: { ...BaseEnvironment, enableDebugTooling: true },
 });

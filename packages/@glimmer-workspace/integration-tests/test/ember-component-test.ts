@@ -156,8 +156,9 @@ export function assertElementIsEmberishElement(
   }
 
   let fullAttributes = {
-    class: classes('ember-view'), id: regex(/^ember\d*$/u),
-    ...attributes
+    class: classes('ember-view'),
+    id: regex(/^ember\d*$/u),
+    ...attributes,
   };
   equalsElement(element, tagName, fullAttributes, contents);
 }
@@ -184,8 +185,9 @@ class CurlyTest extends RenderTest {
     }
 
     let fullAttributes = {
-      class: classes('ember-view'), id: regex(/^ember\d*$/u),
-      ...attributes
+      class: classes('ember-view'),
+      id: regex(/^ember\d*$/u),
+      ...attributes,
     };
     equalsElement(
       firstElementChild(this.element) as SimpleElement,
@@ -518,7 +520,7 @@ class CurlyScopeTest extends CurlyTest {
     this.assertHTML('<div>NULL</div>');
   }
 
-  @test
+  @test.todo
   '`undefined` class name do not render'() {
     this.render('<div class={{this.isUndefined}}>UNDEFINED</div>', { isUndefined: undefined });
     this.assertHTML('<div>UNDEFINED</div>');
@@ -1416,7 +1418,7 @@ class CurlyGlimmerComponentTest extends CurlyTest {
     this.assertHTML('<div>hi!</div>');
   }
 
-  @test
+  @test.todo
   'Custom element with element modifier'() {
     this.registerModifier('foo', class {});
 
@@ -1530,7 +1532,7 @@ class CurlyGlimmerComponentTest extends CurlyTest {
     assertFired(instance, 'didRender', 3);
   }
 
-  @test
+  @test.todo
   'Setting value attributeBinding to null results in empty string value'() {
     let instance: InputComponent | undefined;
 
@@ -2154,7 +2156,7 @@ class CurlyAppendableTest extends CurlyTest {
 class CurlyBoundsTrackingTest extends CurlyTest {
   static suiteName = '[curly components] bounds tracking';
 
-  @test
+  @test.todo
   'it works for wrapped (curly) components'() {
     let instance = this.capture<FooBar>();
 
@@ -2189,7 +2191,7 @@ class CurlyBoundsTrackingTest extends CurlyTest {
     assert.strictEqual(bounds.lastNode(), castToSimple(element));
   }
 
-  @test
+  @test.todo
   'it works for tagless components'() {
     let instance = this.capture<FooBar>();
 

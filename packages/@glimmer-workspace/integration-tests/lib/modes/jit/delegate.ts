@@ -2,13 +2,15 @@ import type {
   CapturedRenderNode,
   CompileTimeCompilationContext,
   Cursor,
+  DOMTreeBuilder,
   Dict,
   DynamicScope,
-  ElementBuilder,
   ElementNamespace,
   Environment,
   HandleResult,
   Helper,
+  MinimalChild,
+  MinimalElement,
   Nullable,
   RenderResult,
   RuntimeContext,
@@ -22,7 +24,6 @@ import { artifacts, RuntimeOpImpl } from '@glimmer/program';
 import { createConstRef, type Reference } from '@glimmer/reference';
 import {
   array,
-  clientBuilder,
   concat,
   type CurriedValue,
   type EnvironmentDelegate,
@@ -33,6 +34,7 @@ import {
   renderComponent,
   renderSync,
   runtimeContext,
+  TreeConstruction,
 } from '@glimmer/runtime';
 import type { ASTPluginBuilder, PrecompileOptions } from '@glimmer/syntax';
 import { castToBrowser, castToSimple, expect, unwrapTemplate } from '@glimmer/util';
@@ -97,7 +99,7 @@ export class JitRenderDelegate implements RenderDelegate {
     this.registry = new TestJitRegistry();
     this.resolver = resolver(this.registry);
     this.doc = castToSimple(doc ?? document);
-    this.env = { ...env ?? BaseEnvironment};
+    this.env = { ...(env ?? BaseEnvironment) };
     this.registry.register('modifier', 'on', on);
     this.registry.register('helper', 'fn', fn);
     this.registry.register('helper', 'hash', hash);
@@ -187,8 +189,12 @@ export class JitRenderDelegate implements RenderDelegate {
     registerInternalHelper(this.registry, name, helper);
   }
 
-  getElementBuilder(environment: Environment, cursor: Cursor): ElementBuilder {
-    return clientBuilder(environment, cursor);
+  getElementBuilder(environment: Environment, cursor: Cursor): DOMTreeBuilder {
+    return TreeConstruction._forCursor_([
+      cursor.element as MinimalElement,
+      cursor.nextSibling as MinimalChild,
+      null,
+    ]);
   }
 
   getSelf(_environment: Environment, context: unknown): Reference {

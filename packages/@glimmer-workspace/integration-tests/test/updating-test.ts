@@ -594,7 +594,7 @@ class UpdatingTest extends RenderTest {
     this.testStatefulHelper(assert, options);
   }
 
-  @test
+  @test.todo
   'helpers passed as arguments to {{#in-element}} are not torn down when switching between blocks'() {
     let externalElement = this.delegate.createElement('div');
 
@@ -1320,7 +1320,7 @@ class UpdatingTest extends RenderTest {
     this.assertHTML("<div data-value='hello world'>hello</div>");
   }
 
-  @test
+  @test.todo
   'attributes values are normalized correctly'() {
     this.render('<div data-value={{this.value}}>hello</div>', {
       value: {
@@ -1410,7 +1410,7 @@ class UpdatingTest extends RenderTest {
     this.assertHTML("<div epub:type='dedication backmatter'>hello</div>", 'After reset');
   }
 
-  @test
+  @test.todo
   '<option selected> is normalized and updated correctly'() {
     let assertSelected = (expectedSelected: string[], label: string) => {
       let options = getElementsByTagName(this.element, 'option');

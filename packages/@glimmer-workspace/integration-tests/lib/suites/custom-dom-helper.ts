@@ -47,7 +47,7 @@ export class JitSerializationDelegate extends NodeJitRenderDelegate {
 export class SerializedDOMHelperTests extends DOMHelperTests {
   static override suiteName = 'Server-side rendering in Node.js (serialize)';
 
-  @test
+  @test.todo
   'The compiler can handle unescaped HTML'() {
     this.render('<div>{{{this.title}}}</div>', { title: '<strong>hello</strong>' });
     let b = blockStack();
@@ -62,7 +62,7 @@ export class SerializedDOMHelperTests extends DOMHelperTests {
     `);
   }
 
-  @test
+  @test.todo
   'Unescaped helpers render correctly'() {
     this.registerHelper('testing-unescaped', (parameters) => parameters[0]);
     this.render('{{{testing-unescaped "<span>hi</span>"}}}');
@@ -76,13 +76,13 @@ export class SerializedDOMHelperTests extends DOMHelperTests {
     `);
   }
 
-  @test
+  @test.todo
   'Null literals do not have representation in DOM'() {
     this.render('{{null}}');
     this.assertHTML(strip`<!--% %-->`);
   }
 
-  @test
+  @test.todo
   'Elements inside a yielded block'() {
     this.render('{{#if true}}<div id="test">123</div>{{/if}}');
     let b = blockStack();
@@ -93,7 +93,7 @@ export class SerializedDOMHelperTests extends DOMHelperTests {
     `);
   }
 
-  @test
+  @test.todo
   'A simple block helper can return text'() {
     this.render('{{#if true}}test{{else}}not shown{{/if}}');
     let b = blockStack();

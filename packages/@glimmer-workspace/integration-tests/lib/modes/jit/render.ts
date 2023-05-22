@@ -1,4 +1,4 @@
-import type { ElementBuilder, RenderResult } from '@glimmer/interfaces';
+import type { DOMTreeBuilder, RenderResult } from '@glimmer/interfaces';
 import type { Reference } from '@glimmer/reference';
 import { renderMain, renderSync } from '@glimmer/runtime';
 import type { PrecompileOptions } from '@glimmer/syntax';
@@ -11,7 +11,7 @@ export function renderTemplate(
   source: string,
   { runtime, program }: JitTestDelegateContext,
   self: Reference,
-  builder: ElementBuilder,
+  builder: DOMTreeBuilder,
   options?: PrecompileOptions
 ): RenderResult {
   let template = preprocess(source, options);

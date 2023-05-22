@@ -8,6 +8,7 @@ import {
 } from '@glimmer/debug';
 import { associateDestroyableChild, destroy } from '@glimmer/destroyable';
 import type {
+  AttributeRef,
   CapturedPositionalArguments,
   Environment,
   ModifierDefinition,
@@ -48,25 +49,25 @@ import {
 import { type CurriedValue, isCurriedType, resolveCurriedValue } from '../../curried-value';
 import { define } from '../../opcodes';
 import { CONSTANTS } from '../../symbols';
-import type { DynamicAttribute } from '../../vm/attributes/dynamic';
 import { CheckArguments, CheckOperations, CheckReference } from './-debug-strip';
 import { Assert } from './vm';
+import { updateAttributeRef } from '../../dom/tree-builder';
 
 define(TEXT_OP, (vm, { op1: text }) => {
-  vm._elements_().appendText(vm[CONSTANTS].getValue(text));
+  vm._elements_().text(vm[CONSTANTS].getValue(text));
 });
 
 define(COMMENT_OP, (vm, { op1: text }) => {
-  vm._elements_().appendComment(vm[CONSTANTS].getValue(text));
+  vm._elements_().comment(vm[CONSTANTS].getValue(text));
 });
 
 define(OPEN_ELEMENT_OP, (vm, { op1: tag }) => {
-  vm._elements_().openElement(vm[CONSTANTS].getValue(tag));
+  vm._elements_().startElement(vm[CONSTANTS].getValue(tag));
 });
 
 define(OPEN_DYNAMIC_ELEMENT_OP, (vm) => {
   let tagName = check(valueForRef(check(vm.stack.pop(), CheckReference)), CheckString);
-  vm._elements_().openElement(tagName);
+  vm._elements_().startElement(tagName);
 });
 
 define(PUSH_REMOTE_ELEMENT_OP, (vm) => {
@@ -107,19 +108,19 @@ define(FLUSH_ELEMENT_OP, (vm) => {
 });
 
 define(CLOSE_ELEMENT_OP, (vm) => {
-  let modifiers = vm._elements_().closeElement();
+  let modifiers = vm._elements_().endElement();
 
-  if (modifiers) {
-    for (let modifier of modifiers) {
-      vm.env.scheduleInstallModifier(modifier);
-      let { manager, state } = modifier;
-      let d = manager.getDestroyable(state);
+  // if (modifiers) {
+  //   for (let modifier of modifiers) {
+  //     vm.env.scheduleInstallModifier(modifier);
+  //     let { manager, state } = modifier;
+  //     let d = manager.getDestroyable(state);
 
-      if (d) {
-        vm._associateDestroyable_(d);
-      }
-    }
-  }
+  //     if (d) {
+  //       vm._associateDestroyable_(d);
+  //     }
+  //   }
+  // }
 });
 
 define(MODIFIER_OP, (vm, { op1: handle }) => {
@@ -353,7 +354,7 @@ define(STATIC_ATTR_OP, (vm, { op1: _name, op2: _value, op3: _namespace }) => {
   let value = vm[CONSTANTS].getValue<string>(_value);
   let namespace = _namespace ? vm[CONSTANTS].getValue<string>(_namespace) : null;
 
-  vm._elements_().setStaticAttribute(name, value, namespace);
+  vm._elements_().addAttr(name, value);
 });
 
 define(DYNAMIC_ATTR_OP, (vm, { op1: _name, op2: _trusting, op3: _namespace }) => {
@@ -363,7 +364,7 @@ define(DYNAMIC_ATTR_OP, (vm, { op1: _name, op2: _trusting, op3: _namespace }) =>
   let value = valueForRef(reference);
   let namespace = _namespace ? vm[CONSTANTS].getValue<string>(_namespace) : null;
 
-  let attribute = vm._elements_().setDynamicAttribute(name, value, trusting, namespace);
+  let attribute = vm._elements_().addAttr(name, value);
 
   if (!isConstRef(reference)) {
     vm._updateWith_(new UpdateDynamicAttributeOpcode(reference, attribute, vm.env));
@@ -373,18 +374,15 @@ define(DYNAMIC_ATTR_OP, (vm, { op1: _name, op2: _trusting, op3: _namespace }) =>
 export class UpdateDynamicAttributeOpcode implements UpdatingOpcode {
   readonly #updateRef: Reference;
 
-  constructor(
-    reference: Reference<unknown>,
-    attribute: DynamicAttribute,
-    environment: Environment
-  ) {
+  constructor(reference: Reference<unknown>, attribute: AttributeRef, environment: Environment) {
     let initialized = false;
 
     this.#updateRef = createComputeRef(() => {
       let value = valueForRef(reference);
 
       if (initialized === true) {
-        attribute.update(value, environment);
+        updateAttributeRef(attribute, value);
+        // attribute.update(value, environment);
       } else {
         initialized = true;
       }

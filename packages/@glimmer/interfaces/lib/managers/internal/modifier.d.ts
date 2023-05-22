@@ -1,4 +1,3 @@
-import type { SimpleElement } from '@simple-dom/interface';
 
 import type { Destroyable } from '../../core';
 import type { Owner } from '../../runtime';
@@ -13,7 +12,7 @@ export interface InternalModifierManager<
   // Create is meant to only produce the state bucket
   create(
     owner: Owner,
-    element: SimpleElement | Element,
+    element: Element,
     state: TModifierDefinitionState,
     args: CapturedArguments
   ): TModifierInstanceState;

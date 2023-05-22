@@ -1,9 +1,9 @@
 import type {
+  AppendOperations,
   ComponentInstanceWithCreate,
   Environment,
   EnvironmentOptions,
   GlimmerTreeChanges,
-  GlimmerTreeConstruction,
   ModifierInstance,
   Nullable,
   RuntimeArtifacts,
@@ -17,7 +17,8 @@ import { assert, expect } from '@glimmer/util';
 import { track, updateTag } from '@glimmer/validator';
 
 import DebugRenderTree from './debug-render-tree';
-import { DOMChangesImpl, DOMTreeConstruction } from './dom/helper';
+import { DOMChangesImpl } from './dom/helper';
+import { TreeConstruction } from './dom/tree-builder';
 
 export const TRANSACTION: TransactionSymbol = Symbol('TRANSACTION') as TransactionSymbol;
 
@@ -95,7 +96,7 @@ class TransactionImpl implements Transaction {
 export class EnvironmentImpl implements Environment {
   [TRANSACTION]: Nullable<TransactionImpl> = null;
 
-  protected declare appendOperations: GlimmerTreeConstruction;
+  readonly getAppendOperations: AppendOperations;
   protected updateOperations?: GlimmerTreeChanges | undefined;
 
   // Delegate methods and values
@@ -108,19 +109,16 @@ export class EnvironmentImpl implements Environment {
     this.#delegate = delegate;
     this.isInteractive = delegate.isInteractive;
     this.debugRenderTree = this.#delegate.enableDebugTooling ? new DebugRenderTree() : undefined;
-    if (options.appendOperations) {
-      this.appendOperations = options.appendOperations;
-      this.updateOperations = options.updateOperations;
-    } else if (options.document) {
-      this.appendOperations = new DOMTreeConstruction(options.document);
-      this.updateOperations = new DOMChangesImpl(options.document);
-    } else if (import.meta.env.DEV) {
+
+    if (import.meta.env && !options.appendOperations && !options.document) {
       throw new Error('you must pass document or appendOperations to a new runtime');
     }
-  }
 
-  getAppendOperations(): GlimmerTreeConstruction {
-    return this.appendOperations;
+    this.getAppendOperations =
+      options.appendOperations ?? ((cursor) => TreeConstruction._forCursor_(cursor));
+    this.updateOperations =
+      options.updateOperations ?? new DOMChangesImpl(options.document as unknown as Document);
+
   }
 
   getDOM(): GlimmerTreeChanges {

@@ -1,6 +1,5 @@
-import type { SimpleElement, SimpleNode } from '@simple-dom/interface';
-
 import type { Bounds } from '../dom/bounds';
+import type { MinimalChild, MinimalElement } from '../dom/tree-builder';
 import type { Arguments, CapturedArguments } from './arguments';
 
 export type RenderNodeType = 'outlet' | 'engine' | 'route-template' | 'component';
@@ -21,9 +20,9 @@ export interface CapturedRenderNode {
   instance: unknown;
   template: string | null;
   bounds: null | {
-    parentElement: SimpleElement;
-    firstNode: SimpleNode;
-    lastNode: SimpleNode;
+    parentElement: MinimalElement;
+    firstNode: MinimalChild;
+    lastNode: MinimalChild;
   };
   children: CapturedRenderNode[];
 }

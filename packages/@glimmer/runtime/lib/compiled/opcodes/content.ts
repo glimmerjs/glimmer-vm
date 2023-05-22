@@ -32,6 +32,7 @@ import { define } from '../../opcodes';
 import DynamicTextContent from '../../vm/content/text';
 import { CheckReference } from './-debug-strip';
 import { AssertFilter } from './vm';
+import type { MinimalChild, MinimalDocumentFragment } from '@glimmer/interfaces';
 
 function toContentType(value: unknown) {
   if (shouldCoerce(value)) {
@@ -105,7 +106,7 @@ define(APPEND_HTML_OP, (vm) => {
   let rawValue = valueForRef(reference);
   let value = isEmpty(rawValue) ? '' : String(rawValue);
 
-  vm._elements_().appendDynamicHTML(value);
+  vm._elements_().html(value);
 });
 
 define(APPEND_SAFE_HTML_OP, (vm) => {
@@ -114,7 +115,7 @@ define(APPEND_SAFE_HTML_OP, (vm) => {
   let rawValue = check(valueForRef(reference), CheckSafeString).toHTML();
   let value = isEmpty(rawValue) ? '' : check(rawValue, CheckString);
 
-  vm._elements_().appendDynamicHTML(value);
+  vm._elements_().html(value);
 });
 
 define(APPEND_TEXT_OP, (vm) => {
@@ -123,7 +124,7 @@ define(APPEND_TEXT_OP, (vm) => {
   let rawValue = valueForRef(reference);
   let value = isEmpty(rawValue) ? '' : String(rawValue);
 
-  let node = vm._elements_().appendDynamicText(value);
+  let node = vm._elements_().text(value);
 
   if (!isConstRef(reference)) {
     vm._updateWith_(new DynamicTextContent(node, reference, value));
@@ -135,7 +136,7 @@ define(APPEND_DOCUMENT_FRAGMENT_OP, (vm) => {
 
   let value = check(valueForRef(reference), CheckDocumentFragment);
 
-  vm._elements_().appendDynamicFragment(value);
+  vm._elements_().child(value as MinimalDocumentFragment);
 });
 
 define(APPEND_NODE_OP, (vm) => {
@@ -143,5 +144,5 @@ define(APPEND_NODE_OP, (vm) => {
 
   let value = check(valueForRef(reference), CheckNode);
 
-  vm._elements_().appendDynamicNode(value);
+  vm._elements_().child(value as MinimalChild);
 });

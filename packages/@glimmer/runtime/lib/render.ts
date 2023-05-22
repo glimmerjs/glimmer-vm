@@ -2,8 +2,8 @@ import type {
   CompilableProgram,
   CompileTimeCompilationContext,
   ComponentDefinitionState,
+  DOMTreeBuilder,
   DynamicScope,
-  ElementBuilder,
   Environment,
   ISTDLIB_MAIN,
   Owner,
@@ -33,9 +33,18 @@ class TemplateIteratorImpl implements TemplateIterator {
   }
 
   sync(): RenderResult {
-    return import.meta.env.DEV
-      ? debug.runInTrackingTransaction!(() => this.#vm._execute_(), '- While rendering:')
-      : this.#vm._execute_();
+    if (import.meta.env.DEV) {
+      let result = debug.runInTrackingTransaction!(
+        () => this.#vm._execute_(),
+        '- While rendering:'
+      );
+
+      this.#vm.debug!.finalize();
+
+      return result;
+    }
+
+    return this.#vm._execute_();
   }
 }
 
@@ -52,7 +61,7 @@ export function renderMain(
   context: CompileTimeCompilationContext,
   owner: Owner,
   self: Reference,
-  treeBuilder: ElementBuilder,
+  treeBuilder: DOMTreeBuilder,
   layout: CompilableProgram,
   dynamicScope: DynamicScope = new DynamicScopeImpl()
 ): TemplateIterator {
@@ -119,7 +128,7 @@ function renderInvocation(
 
 export function renderComponent(
   runtime: RuntimeContext,
-  treeBuilder: ElementBuilder,
+  treeBuilder: DOMTreeBuilder,
   context: CompileTimeCompilationContext,
   owner: Owner,
   definition: ComponentDefinitionState,

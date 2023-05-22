@@ -6,14 +6,15 @@ import type {
   ComponentInstanceState,
 } from '../components';
 import type { Nullable } from '../core';
-import type { GlimmerTreeChanges, GlimmerTreeConstruction } from '../dom/changes';
+import type { GlimmerTreeChanges } from '../dom/changes';
 import type { DebugRenderTree } from './debug-render-tree';
 import type { ModifierInstance } from './modifier';
 import type { WithCreateInstance } from '../managers';
+import type { DOMTreeBuilder, MinimalCursor } from '../dom/tree-builder';
 
 export interface EnvironmentOptions {
   document?: SimpleDocument;
-  appendOperations?: GlimmerTreeConstruction;
+  appendOperations?: (cursor: MinimalCursor) => TreeC;
   updateOperations?: GlimmerTreeChanges;
 }
 
@@ -28,6 +29,8 @@ export type ComponentInstanceWithCreate = ComponentInstance<
   WithCreateInstance
 >;
 
+export type AppendOperations = (cursor: MinimalCursor) => DOMTreeBuilder;
+
 export interface Environment {
   [TransactionSymbol]: Nullable<Transaction>;
 
@@ -41,7 +44,7 @@ export interface Environment {
   commit(): void;
 
   getDOM(): GlimmerTreeChanges;
-  getAppendOperations(): GlimmerTreeConstruction;
+  getAppendOperations: AppendOperations;
 
   isInteractive: boolean;
   debugRenderTree?: DebugRenderTree | undefined;

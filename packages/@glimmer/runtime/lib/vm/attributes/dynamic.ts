@@ -8,7 +8,6 @@ import type {
   ElementBuilder,
   Environment,
   Nullable,
-  SimpleElement,
 } from '@glimmer/interfaces';
 import { castToBrowser, NS_SVG } from '@glimmer/util';
 
@@ -16,17 +15,17 @@ import { normalizeStringValue } from '../../dom/normalize';
 import { ATTR, normalizeProperty } from '../../dom/props';
 import { requiresSanitization, sanitizeAttributeValue } from '../../dom/sanitized-values';
 
-export function dynamicAttribute(
-  element: SimpleElement,
+export function dynamicAttribute<E extends DOMEnvironment>(
+  element: E['element'],
   attributeName: string,
   namespace: Nullable<AttrNamespace>,
   isTrusting = false
-): DynamicAttribute {
+): DynamicAttribute<E> {
   let { tagName, namespaceURI } = element;
   let attribute = { element, name: attributeName, namespace };
 
   if (import.meta.env.DEV && attributeName === 'style' && !isTrusting) {
-    return new DebugStyleAttributeManager(attribute);
+    return new DebugStyleAttributeManager<E>(attribute);
   }
 
   if (namespaceURI === NS_SVG) {
@@ -40,31 +39,31 @@ export function dynamicAttribute(
     : buildDynamicProperty(tagName, normalized, attribute);
 }
 
-function buildDynamicAttribute(
+function buildDynamicAttribute<E extends DOMEnvironment>(
   tagName: string,
   name: string,
-  attribute: AttributeCursor
-): DynamicAttribute {
+  attribute: AttributeCursor<E>
+): DynamicAttribute<E> {
   return requiresSanitization(tagName, name)
-    ? new SafeDynamicAttribute(attribute)
-    : new SimpleDynamicAttribute(attribute);
+    ? new SafeDynamicAttribute<E>(attribute)
+    : new SimpleDynamicAttribute<E>(attribute);
 }
 
-function buildDynamicProperty(
+function buildDynamicProperty<E extends DOMEnvironment = DOMEnvironment>(
   tagName: string,
   name: string,
-  attribute: AttributeCursor
-): DynamicAttribute {
+  attribute: AttributeCursor<E>
+): DynamicAttribute<E> {
   if (requiresSanitization(tagName, name)) {
     return new SafeDynamicProperty(name, attribute);
   }
 
   if (isUserInputValue(tagName, name)) {
-    return new InputValueDynamicAttribute(name, attribute);
+    return new InputValueDynamicAttribute<E>(name, attribute);
   }
 
   if (isOptionSelected(tagName, name)) {
-    return new OptionSelectedDynamicAttribute(name, attribute);
+    return new OptionSelectedDynamicAttribute<E>(name, attribute);
   }
 
   return new DefaultDynamicProperty(name, attribute);
@@ -73,14 +72,16 @@ function buildDynamicProperty(
 export abstract class DynamicAttribute<E extends DOMEnvironment = DOMEnvironment>
   implements AttributeOperation<E>
 {
-  constructor(public attribute: AttributeCursor) {}
+  constructor(public attribute: AttributeCursor<E>) {}
 
   abstract set(dom: ElementBuilder<E>, value: unknown, environment: Environment): void;
   abstract update(value: unknown, environment: Environment): void;
 }
 
-export class SimpleDynamicAttribute extends DynamicAttribute {
-  set(dom: ElementBuilder, value: unknown, _environment: Environment): void {
+export class SimpleDynamicAttribute<
+  E extends DOMEnvironment = DOMEnvironment
+> extends DynamicAttribute<E> {
+  set(dom: ElementBuilder<E>, value: unknown, _environment: Environment): void {
     let normalizedValue = normalizeValue(value);
 
     if (normalizedValue !== null) {
@@ -101,13 +102,15 @@ export class SimpleDynamicAttribute extends DynamicAttribute {
   }
 }
 
-export class DefaultDynamicProperty extends DynamicAttribute {
-  constructor(private normalizedName: string, attribute: AttributeCursor) {
+export class DefaultDynamicProperty<
+  E extends DOMEnvironment = DOMEnvironment
+> extends DynamicAttribute<E> {
+  constructor(private normalizedName: string, attribute: AttributeCursor<E>) {
     super(attribute);
   }
 
   value: unknown;
-  set(dom: ElementBuilder, value: unknown, _environment: Environment): void {
+  set(dom: ElementBuilder<E>, value: unknown, _environment: Environment): void {
     if (value !== null && value !== undefined) {
       this.value = value;
       dom.__setProperty(this.normalizedName, value);
@@ -139,8 +142,10 @@ export class DefaultDynamicProperty extends DynamicAttribute {
   }
 }
 
-export class SafeDynamicProperty extends DefaultDynamicProperty {
-  override set(dom: ElementBuilder, value: unknown, environment: Environment): void {
+export class SafeDynamicProperty<
+  E extends DOMEnvironment = DOMEnvironment
+> extends DefaultDynamicProperty<E> {
+  override set(dom: ElementBuilder<E>, value: unknown, environment: Environment): void {
     let { element, name } = this.attribute;
     let sanitized = sanitizeAttributeValue(element, name, value);
     super.set(dom, sanitized, environment);
@@ -153,8 +158,10 @@ export class SafeDynamicProperty extends DefaultDynamicProperty {
   }
 }
 
-export class SafeDynamicAttribute extends SimpleDynamicAttribute {
-  override set(dom: ElementBuilder, value: unknown, environment: Environment): void {
+export class SafeDynamicAttribute<
+  E extends DOMEnvironment = DOMEnvironment
+> extends SimpleDynamicAttribute<E> {
+  override set(dom: ElementBuilder<E>, value: unknown, environment: Environment): void {
     let { element, name } = this.attribute;
     let sanitized = sanitizeAttributeValue(element, name, value);
     super.set(dom, sanitized, environment);
@@ -167,8 +174,10 @@ export class SafeDynamicAttribute extends SimpleDynamicAttribute {
   }
 }
 
-export class InputValueDynamicAttribute extends DefaultDynamicProperty {
-  override set(dom: ElementBuilder, value: unknown) {
+export class InputValueDynamicAttribute<
+  E extends DOMEnvironment = DOMEnvironment
+> extends DefaultDynamicProperty<E> {
+  override set(dom: ElementBuilder<E>, value: unknown) {
     dom.__setProperty('value', normalizeStringValue(value));
   }
 
@@ -182,8 +191,10 @@ export class InputValueDynamicAttribute extends DefaultDynamicProperty {
   }
 }
 
-export class OptionSelectedDynamicAttribute extends DefaultDynamicProperty {
-  override set(dom: ElementBuilder, value: unknown): void {
+export class OptionSelectedDynamicAttribute<
+  E extends DOMEnvironment = DOMEnvironment
+> extends DefaultDynamicProperty<E> {
+  override set(dom: ElementBuilder<E>, value: unknown): void {
     if (value !== null && value !== undefined && value !== false) {
       dom.__setProperty('selected', true);
     }
@@ -225,12 +236,14 @@ function normalizeValue(value: unknown): Nullable<string> {
 }
 
 let DebugStyleAttributeManager: {
-  new (attribute: AttributeCursor): AttributeOperation;
+  new <E extends DOMEnvironment = DOMEnvironment>(
+    attribute: AttributeCursor<E>
+  ): AttributeOperation<E> & DynamicAttribute<E>;
 };
 
 if (import.meta.env.DEV) {
-  DebugStyleAttributeManager = class extends SimpleDynamicAttribute {
-    override set(dom: ElementBuilder, value: unknown, environment: Environment): void {
+  DebugStyleAttributeManager = class<E extends DOMEnvironment> extends SimpleDynamicAttribute<E> {
+    override set(dom: ElementBuilder<E>, value: unknown, environment: Environment): void {
       warnIfStyleNotTrusted(value);
 
       super.set(dom, value, environment);

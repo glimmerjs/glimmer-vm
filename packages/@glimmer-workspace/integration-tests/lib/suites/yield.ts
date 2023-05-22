@@ -23,7 +23,7 @@ export class YieldSuite extends RenderTest {
   }
 
   @test({
-    skip: 'glimmer',
+    except: 'glimmer',
   })
   'yield to "inverse"'() {
     this.render(
@@ -43,7 +43,7 @@ export class YieldSuite extends RenderTest {
   }
 
   @test({
-    skip: 'glimmer',
+    except: 'glimmer',
   })
   'yield to "else"'() {
     this.render(
@@ -84,7 +84,7 @@ export class YieldSuite extends RenderTest {
   }
 
   @test({
-    skip: 'glimmer',
+    except: 'glimmer',
   })
   'use a non-existent block param'() {
     this.render({

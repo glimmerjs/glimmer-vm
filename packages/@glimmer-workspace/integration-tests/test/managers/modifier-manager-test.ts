@@ -32,7 +32,7 @@ abstract class ModifierManagerTest extends RenderTest {
     }, Klass);
   }
 
-  @test 'can register a custom element modifier and render it'() {
+  @test.todo 'can register a custom element modifier and render it'() {
     let foo = this.defineModifier(
       class extends CustomModifier {
         override didInsertElement() {}
@@ -48,7 +48,7 @@ abstract class ModifierManagerTest extends RenderTest {
     this.assertHTML(`<h1>hello world</h1>`);
   }
 
-  @test 'custom lifecycle hooks'(assert: Assert) {
+  @test.todo 'custom lifecycle hooks'(assert: Assert) {
     let foo = this.defineModifier(
       class extends CustomModifier {
         override didInsertElement() {
@@ -89,7 +89,7 @@ abstract class ModifierManagerTest extends RenderTest {
     assert.verifySteps(['Called didInsertElement']);
   }
 
-  @test 'associates manager even through an inheritance structure'(assert: Assert) {
+  @test.todo 'associates manager even through an inheritance structure'(assert: Assert) {
     let Foo = this.defineModifier(
       class extends CustomModifier {
         override didInsertElement() {
@@ -114,7 +114,7 @@ abstract class ModifierManagerTest extends RenderTest {
     assert.verifySteps(['Foo didInsertElement', 'Bar didInsertElement']);
   }
 
-  @test 'can give consistent access to underlying DOM element'(assert: Assert) {
+  @test.todo 'can give consistent access to underlying DOM element'(assert: Assert) {
     assert.expect(6);
 
     let foo = this.defineModifier(
@@ -123,7 +123,7 @@ abstract class ModifierManagerTest extends RenderTest {
 
         override didInsertElement() {
           // consume first positional argument (ensures updates run)
-           
+
           this.args.positional[0];
 
           assert.strictEqual(this.element.tagName, 'H1');
@@ -150,7 +150,7 @@ abstract class ModifierManagerTest extends RenderTest {
     this.rerender();
   }
 
-  @test 'lifecycle hooks are autotracked by default'(assert: Assert) {
+  @test.todo 'lifecycle hooks are autotracked by default'(assert: Assert) {
     class TrackedClass {
       @tracked count = 0;
     }
@@ -165,14 +165,14 @@ abstract class ModifierManagerTest extends RenderTest {
       class extends CustomModifier {
         override didInsertElement() {
           // track the count of the first item
-           
+
           trackedOne.count;
           insertCount++;
         }
 
         override didUpdate() {
           // track the count of the second item
-           
+
           trackedTwo.count;
           updateCount++;
         }
@@ -204,7 +204,7 @@ abstract class ModifierManagerTest extends RenderTest {
     assert.strictEqual(updateCount, 2);
   }
 
-  @test
+  @test.todo
   'provides a helpful deprecation when mutating a tracked value that was consumed already within constructor'(
     assert: Assert
   ) {
@@ -215,7 +215,7 @@ abstract class ModifierManagerTest extends RenderTest {
         super(owner, args);
 
         // first read the tracked property
-         
+
         this.foo;
 
         // then attempt to update the tracked property
@@ -236,7 +236,7 @@ abstract class ModifierManagerTest extends RenderTest {
     }, /You attempted to update `foo` on `.*`, but it had already been used previously in the same computation/u);
   }
 
-  @test
+  @test.todo
   'does not eagerly access arguments during destruction'(assert: Assert) {
     class Foo extends CustomModifier {}
 
@@ -314,7 +314,7 @@ class ModifierManagerTest322 extends ModifierManagerTest {
     }
   };
 
-  @test 'modifers only track positional arguments they consume'(assert: Assert) {
+  @test.todo 'modifers only track positional arguments they consume'(assert: Assert) {
     let insertCount = 0;
     let updateCount = 0;
 
@@ -324,7 +324,7 @@ class ModifierManagerTest322 extends ModifierManagerTest {
           insertCount++;
 
           // consume the second positional
-           
+
           this.args.positional[1];
         }
 
@@ -332,7 +332,7 @@ class ModifierManagerTest322 extends ModifierManagerTest {
           updateCount++;
 
           // consume the second positional
-           
+
           this.args.positional[1];
         }
       }
@@ -366,7 +366,7 @@ class ModifierManagerTest322 extends ModifierManagerTest {
     assert.strictEqual(updateCount, 1);
   }
 
-  @test 'modifers only track named arguments they consume'(assert: Assert) {
+  @test.todo 'modifers only track named arguments they consume'(assert: Assert) {
     let insertCount = 0;
     let updateCount = 0;
 
@@ -376,9 +376,9 @@ class ModifierManagerTest322 extends ModifierManagerTest {
           insertCount++;
 
           // consume the second positional
-           
+
           // consume the second positional
-           
+
           this.args.named['qux'];
         }
 

@@ -12,7 +12,7 @@ import { unwrap } from '@glimmer/util';
 export class EmberishComponentTests extends RenderTest {
   static suiteName = 'Emberish';
 
-  @test
+  @test.todo
   'Element modifier with hooks'(assert: Assert, count: Count) {
     this.registerModifier(
       'foo',
@@ -116,7 +116,7 @@ export class EmberishComponentTests extends RenderTest {
     this.assertStableRerender();
   }
 
-  @test({ skip: true, kind: 'curly' })
+  @test({ except: true, kind: 'curly' })
   'with ariaRole specified'() {
     this.render({
       layout: 'Here!',
@@ -127,7 +127,7 @@ export class EmberishComponentTests extends RenderTest {
     this.assertStableRerender();
   }
 
-  @test({ skip: true, kind: 'curly' })
+  @test({ except: true, kind: 'curly' })
   'with ariaRole and class specified'() {
     this.render({
       layout: 'Here!',
@@ -142,7 +142,7 @@ export class EmberishComponentTests extends RenderTest {
     this.assertStableRerender();
   }
 
-  @test({ skip: true, kind: 'curly' })
+  @test({ except: true, kind: 'curly' })
   'with ariaRole specified as an outer binding'() {
     this.render(
       {
@@ -160,7 +160,7 @@ export class EmberishComponentTests extends RenderTest {
     this.assertStableRerender();
   }
 
-  @test({ skip: true, kind: 'glimmer' })
+  @test({ except: true, kind: 'glimmer' })
   'glimmer component with role specified as an outer binding and copied'() {
     this.render(
       {

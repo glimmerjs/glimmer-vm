@@ -4,6 +4,7 @@
   "dependencies": {
     "@glimmer/interfaces": "workspace:^",
     "@glimmer/util": "workspace:^",
+    "@glimmer-workspace/integration-tests": "workspace:^",
     "@glimmer/dom-change-list": "workspace:^",
     "@simple-dom/document": "^1.4.0",
     "@simple-dom/serializer": "^1.4.0",

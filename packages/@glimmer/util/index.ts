@@ -1,6 +1,12 @@
 export * from './lib/array-utils';
 export { assert, deprecate } from './lib/assert';
-export { dict, isDict, isObject, StackImpl as Stack } from './lib/collections';
+export {
+  dict,
+  isDict,
+  isObject,
+  StackImpl as Stack,
+  PresentStackImpl as PresentStack,
+} from './lib/collections';
 export { beginTestSteps, endTestSteps, logStep, verifySteps } from './lib/debug-steps';
 export { default as debugToString } from './lib/debug-to-string';
 export * from './lib/dom';

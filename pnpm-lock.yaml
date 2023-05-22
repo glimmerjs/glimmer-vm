@@ -677,6 +677,9 @@ importers:
 
   packages/@glimmer/dom-change-list/test:
     dependencies:
+      '@glimmer-workspace/integration-tests':
+        specifier: workspace:^
+        version: link:../../../@glimmer-workspace/integration-tests
       '@glimmer/dom-change-list':
         specifier: workspace:^
         version: link:..

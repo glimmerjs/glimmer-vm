@@ -11,8 +11,8 @@ export function assert(test: any, message: string): asserts test {
   // }
 
   if (import.meta.env.DEV && !test) {
-      throw new Error(message || 'assertion failure');
-    }
+    throw new Error(message || 'assertion failure');
+  }
 }
 
 export function deprecate(desc: string) {

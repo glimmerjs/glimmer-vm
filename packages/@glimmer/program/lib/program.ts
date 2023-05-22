@@ -186,7 +186,8 @@ export class RuntimeProgramImpl implements RuntimeProgram {
 }
 
 function sizeof(table: number[], handle: number) {
-  return import.meta.env.DEV && LOCAL_DEBUG
-    ? unwrap(table[handle + 1]) - unwrap(table[handle])
-    : -1;
+  return -1;
+  // return import.meta.env.DEV && LOCAL_DEBUG
+  //   ? unwrap(table[handle + 1]) - unwrap(table[handle])
+  //   : -1;
 }

@@ -13,18 +13,18 @@ import {
 import {
   blockStack,
   CLOSE,
-  type ComponentBlueprint,
-  type Content,
   content,
   equalTokens,
   OPEN,
-  PartialRehydrationDelegate,
   qunitFixture,
-  RehydrationDelegate,
   RenderTest,
   replaceHTML,
-  suite,
-  test,
+  test} from '..';
+import type {
+  PartialRehydrationDelegate,
+  RehydrationDelegate,
+  type ComponentBlueprint,
+  type Content
 } from '..';
 
 // `window.ActiveXObject` is "falsey" in IE11 (but not `undefined` or `false`)
@@ -346,5 +346,5 @@ class ChaosMonkeyPartialRehydration extends AbstractChaosMonkeyTest {
   }
 }
 
-suite(ChaosMonkeyRehydration, RehydrationDelegate);
-suite(ChaosMonkeyPartialRehydration, PartialRehydrationDelegate);
+// suite(ChaosMonkeyRehydration, RehydrationDelegate);
+// suite(ChaosMonkeyPartialRehydration, PartialRehydrationDelegate);

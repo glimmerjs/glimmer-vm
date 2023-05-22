@@ -1,16 +1,17 @@
 import type { Maybe, Nullable } from '../core';
 import type { ElementOperations, Environment, ModifierInstance } from '../runtime';
 import type { Stack } from '../stack';
-import type { Bounds, Cursor, DOMEnvironment } from './bounds';
-import type { GlimmerTreeChanges, GlimmerTreeConstruction } from './changes';
 import type {
-  AttrNamespace as AttributeNamespace,
-  SimpleComment,
-  SimpleDocumentFragment,
-  SimpleElement,
-  SimpleNode,
-  SimpleText,
-} from './simple';
+  Bounds,
+  BrowserDOMEnvironment,
+  CommentFor,
+  Cursor,
+  DOMEnvironment,
+  NodeFor,
+  TextFor,
+} from './bounds';
+import type { GlimmerTreeChanges, GlimmerTreeConstruction } from './changes';
+import type { AttrNamespace as AttributeNamespace, SimpleDocumentFragment } from './simple';
 
 export interface LiveBlock<E extends DOMEnvironment = DOMEnvironment> extends Bounds<E> {
   openElement(element: E['element']): void;
@@ -26,29 +27,29 @@ export interface SimpleLiveBlock<E extends DOMEnvironment = DOMEnvironment> exte
   lastNode(): E['child'];
 }
 
-export type RemoteLiveBlock = SimpleLiveBlock;
+export type RemoteLiveBlock<E extends DOMEnvironment = DOMEnvironment> = SimpleLiveBlock<E>;
 
-export interface UpdatableBlock extends SimpleLiveBlock {
+export interface UpdatableBlock extends SimpleLiveBlock<BrowserDOMEnvironment> {
   reset(environment: Environment): Nullable<ChildNode>;
 }
 
 export interface DOMStack<E extends DOMEnvironment = DOMEnvironment> {
   pushRemoteElement(
-    element: SimpleElement,
+    element: E['element'],
     guid: string,
-    insertBefore: Maybe<SimpleNode>
-  ): Nullable<RemoteLiveBlock>;
+    insertBefore: Maybe<NodeFor<E>>
+  ): Nullable<RemoteLiveBlock<E>>;
   popRemoteElement(): void;
   popElement(): void;
-  openElement(tag: string, _operations?: ElementOperations): SimpleElement;
+  openElement(tag: string, _operations?: ElementOperations): E['element'];
   flushElement(modifiers: Nullable<ModifierInstance[]>): void;
-  appendText(string: string): SimpleText;
-  appendComment(string: string): SimpleComment;
+  appendText(string: string): TextFor<E>;
+  appendComment(string: string): CommentFor<E>;
 
   appendDynamicHTML(value: string): void;
-  appendDynamicText(value: string): SimpleText;
-  appendDynamicFragment(value: SimpleDocumentFragment): void;
-  appendDynamicNode(value: SimpleNode): void;
+  appendDynamicText(value: string): TextFor<E>;
+  appendDynamicFragment(value: NodeFor<E, SimpleDocumentFragment | DocumentFragment>): void;
+  appendDynamicNode(value: NodeFor<E>): void;
 
   setStaticAttribute(name: string, value: string, namespace: Nullable<string>): void;
   setDynamicAttribute(
@@ -61,15 +62,15 @@ export interface DOMStack<E extends DOMEnvironment = DOMEnvironment> {
   closeElement(): Nullable<ModifierInstance[]>;
 }
 
-export interface TreeOperations {
-  __openElement(tag: string): SimpleElement;
-  __flushElement(parent: SimpleElement, constructing: SimpleElement): void;
+export interface TreeOperations<E extends DOMEnvironment = DOMEnvironment> {
+  __openElement(tag: string): E['element'];
+  __flushElement(parent: E['element'], constructing: E['element']): void;
   __openBlock(): void;
   __closeBlock(): void;
-  __appendText(text: string): SimpleText;
-  __appendComment(string: string): SimpleComment;
-  __appendNode(node: SimpleNode): SimpleNode;
-  __appendHTML(html: string): Bounds;
+  __appendText(text: string): TextFor<E>;
+  __appendComment(string: string): CommentFor<E>;
+  __appendNode(node: E['child']): E['child'];
+  __appendHTML(html: string): Bounds<E>;
   __setAttribute(name: string, value: string, namespace: Nullable<string>): void;
   __setProperty(name: string, value: unknown): void;
 }
@@ -80,24 +81,24 @@ interface DebugElementBuilder<E extends DOMEnvironment = DOMEnvironment> {
 
 export interface ElementBuilder<E extends DOMEnvironment = DOMEnvironment>
   extends Cursor<E>,
-    DOMStack,
+    DOMStack<E>,
     TreeOperations {
   nextSibling: Nullable<E['child']>;
-  _dom_: GlimmerTreeConstruction;
+  _dom_: GlimmerTreeConstruction<E>;
   _updateOperations_: GlimmerTreeChanges;
   _constructing_: Nullable<E['element']>;
   _debug_?: DebugElementBuilder<E>;
   element: E['element'];
 
   hasBlocks: boolean;
-  debugBlocks(): LiveBlock[];
+  debugBlocks(): LiveBlock<E>[];
 
-  pushSimpleBlock(): LiveBlock;
+  pushSimpleBlock(): LiveBlock<E>;
   pushUpdatableBlock(): UpdatableBlock;
-  pushBlockList(list: Bounds[]): LiveBlock;
-  popBlock(): LiveBlock;
+  pushBlockList(list: Bounds[]): LiveBlock<E>;
+  popBlock(): LiveBlock<E>;
 
-  didAppendBounds(bounds: Bounds): void;
+  didAppendBounds(bounds: Bounds<E>): void;
 }
 
 export interface AttributeCursor<E extends DOMEnvironment = DOMEnvironment> {

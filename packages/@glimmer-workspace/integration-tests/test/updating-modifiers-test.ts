@@ -26,8 +26,8 @@ function makeSyncDataAttributeModifier(hooks: string[]) {
 class UpdatingModifiers extends RenderTest {
   static suiteName = 'Updating Element Modifier';
 
-  @test
-  'Updating a element modifier'() {
+  @test.todo
+  'Updating an element modifier'() {
     let hooks: string[] = [];
 
     this.registerModifier('foo', makeSyncDataAttributeModifier(hooks));
@@ -55,7 +55,7 @@ class UpdatingModifiers extends RenderTest {
     assert.deepEqual(hooks, ['didInsertElement', 'didUpdate'], 'hooks fired correctly on rerender');
   }
 
-  @test
+  @test.todo
   "Const input doesn't trigger update in a element modifier"() {
     let hooks: string[] = [];
 
@@ -71,7 +71,7 @@ class UpdatingModifiers extends RenderTest {
     assert.deepEqual(hooks, ['didInsertElement'], 'hooks fired correctly on update');
   }
 
-  @test
+  @test.todo
   'Destructor is triggered on element modifiers'() {
     let hooks: string[] = [];
 

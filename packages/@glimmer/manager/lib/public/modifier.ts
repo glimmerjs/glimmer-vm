@@ -7,7 +7,6 @@ import type {
   ModifierCapabilitiesVersions,
   ModifierManager,
   Owner,
-  SimpleElement,
   UpdatableTag,
 } from '@glimmer/interfaces';
 import { valueForRef } from '@glimmer/reference';
@@ -33,7 +32,7 @@ export function modifierCapabilities<Version extends keyof ModifierCapabilitiesV
 
 export interface CustomModifierState<ModifierInstance> {
   tag: UpdatableTag;
-  element: SimpleElement;
+  element: Element;
   modifier: ModifierInstance;
   delegate: ModifierManager<ModifierInstance>;
   args: Arguments;
@@ -101,7 +100,7 @@ export class CustomModifierManager<O extends Owner, ModifierInstance>
     return delegate;
   }
 
-  create(owner: O, element: SimpleElement, definition: object, capturedArgs: CapturedArguments) {
+  create(owner: O, element: Element, definition: object, capturedArgs: CapturedArguments) {
     let delegate = this.#getDelegateFor(owner);
 
     let args = argsProxyFor(capturedArgs, 'modifier');

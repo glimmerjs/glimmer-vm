@@ -1,8 +1,8 @@
 import type {
   Cursor,
+  DOMTreeBuilder,
   Dict,
   DynamicScope,
-  ElementBuilder,
   ElementNamespace,
   Environment,
   Helper,
@@ -56,6 +56,6 @@ export default interface RenderDelegate {
     element: SimpleElement,
     dynamicScope?: DynamicScope
   ): RenderResult;
-  getElementBuilder(environment: Environment, cursor: Cursor): ElementBuilder;
+  getElementBuilder(environment: Environment, cursor: Cursor): DOMTreeBuilder;
   getSelf(environment: Environment, context: unknown): Reference;
 }

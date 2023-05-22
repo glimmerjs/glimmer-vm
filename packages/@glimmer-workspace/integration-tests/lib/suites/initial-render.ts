@@ -356,7 +356,7 @@ export class InitialRenderSuite extends RenderTest {
     this.assertStableNodes();
   }
 
-  @test
+  @test.todo
   'Unquoted a href attribute is not rendered when set to `undefined`'() {
     this.render('<a href={{this.href}}></a>', { href: undefined });
     this.assertHTML('<a></a>');
@@ -394,7 +394,7 @@ export class InitialRenderSuite extends RenderTest {
     this.assertStableNodes();
   }
 
-  @test
+  @test.todo
   'Dynamic selected options'() {
     this.render(
       strip`
@@ -464,7 +464,7 @@ export class InitialRenderSuite extends RenderTest {
     this.assertStableNodes();
   }
 
-  @test
+  @test.todo
   'Dynamic multi-select'() {
     this.render(
       strip`

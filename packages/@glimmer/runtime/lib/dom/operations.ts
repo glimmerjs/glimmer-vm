@@ -4,12 +4,10 @@
 import type {
   Bounds,
   Nullable,
-  SimpleComment,
-  SimpleDocument,
   SimpleElement,
   SimpleNode,
-  SimpleText,
   InsertPosition,
+  DOMEnvironment,
 } from '@glimmer/interfaces';
 import {
   castToBrowser,
@@ -33,10 +31,10 @@ const SVG_INTEGRATION_POINTS = 'foreignObject|desc|title'.split('|');
 // http://www.w3.org/TR/html/syntax.html#parsing-main-inforeign
 export const DISALLOWED_FOREIGN_TAGS = new Set();
 
-export class DOMOperations {
-  protected declare uselessElement: SimpleElement; // Set by this.setupUselessElement() in constructor
+export class DOMOperations<E extends DOMEnvironment = DOMEnvironment> {
+  protected declare uselessElement: E['element']; // Set by this.setupUselessElement() in constructor
 
-  constructor(protected document: SimpleDocument) {
+  constructor(protected document: E['element']['ownerDocument']) {
     this.setupUselessElement();
   }
 
@@ -46,7 +44,7 @@ export class DOMOperations {
     this.uselessElement = this.document.createElement('template');
   }
 
-  createElement(tag: string, context?: SimpleElement): SimpleElement {
+  createElement(tag: string, context?: E['element']): E['element'] {
     let isElementInSVGNamespace: boolean, isHTMLIntegrationPoint: boolean;
 
     if (context) {
@@ -71,11 +69,15 @@ export class DOMOperations {
     }
   }
 
-  insertBefore(parent: SimpleElement, node: SimpleNode, reference: Nullable<SimpleNode>) {
+  insertBefore(parent: E['element'], node: E['child'], reference: Nullable<E['child']>) {
     parent.insertBefore(node, reference);
   }
 
-  insertHTMLBefore(parent: SimpleElement, nextSibling: Nullable<SimpleNode>, html: string): Bounds {
+  insertHTMLBefore(
+    parent: E['element'],
+    nextSibling: Nullable<E['child']>,
+    html: string
+  ): Bounds<E> {
     if (html === '') {
       let comment = this.createComment('');
       parent.insertBefore(comment, nextSibling);
@@ -112,11 +114,11 @@ export class DOMOperations {
     return new ConcreteBounds(parent, first, last);
   }
 
-  createTextNode(text: string): SimpleText {
+  createTextNode(text: string): TextFor<E> {
     return this.document.createTextNode(text);
   }
 
-  createComment(data: string): SimpleComment {
+  createComment(data: string): CommentFor<E> {
     return this.document.createComment(data);
   }
 }

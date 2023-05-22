@@ -1,11 +1,11 @@
-import type { SimpleText, UpdatingOpcode } from "@glimmer/interfaces";
+import type { MinimalText, UpdatingOpcode } from '@glimmer/interfaces';
 import { type Reference, valueForRef } from '@glimmer/reference';
 
 import { isEmpty, isString } from '../../dom/normalize';
 
 export default class DynamicTextContent implements UpdatingOpcode {
   constructor(
-    public node: SimpleText,
+    public node: MinimalText,
     private reference: Reference<unknown>,
     private lastValue: string
   ) {}

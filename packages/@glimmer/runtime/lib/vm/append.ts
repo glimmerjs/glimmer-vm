@@ -5,7 +5,6 @@ import type {
   CompileTimeCompilationContext,
   Destroyable,
   DynamicScope,
-  ElementBuilder,
   Environment,
   Nullable,
   Owner,
@@ -17,9 +16,13 @@ import type {
   RuntimeHeap,
   RuntimeProgram,
   Scope,
+  Stack,
   UpdatingOpcode,
   VM as PublicVM,
   Cursor,
+  SimpleDOMEnvironment,
+  DOMTreeBuilder,
+  RuntimeBlockBoundsRef,
 } from '@glimmer/interfaces';
 import { LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
 import {
@@ -29,7 +32,15 @@ import {
   type Reference,
   UNDEFINED_REFERENCE,
 } from '@glimmer/reference';
-import { assert, expect, LOCAL_LOGGER, reverse, Stack, unwrap, unwrapHandle } from '@glimmer/util';
+import {
+  assert,
+  expect,
+  LOCAL_LOGGER,
+  reverse,
+  Stack as StackImpl,
+  unwrap,
+  unwrapHandle,
+} from '@glimmer/util';
 import { beginTrackFrame, endTrackFrame, resetTracking } from '@glimmer/validator';
 import { $fp, $pc, $s0, $s1, $sp, $t0, $t1, $v0, isLowLevelRegister } from '@glimmer/vm-constants';
 import type { $ra, MachineRegister, Register, SyscallRegister } from '@glimmer/vm-constants';
@@ -43,7 +54,6 @@ import { debugOp, type DebugState } from '../opcodes';
 import { ScopeImpl } from '../scope';
 import { ARGS, CONSTANTS, INNER_VM } from '../symbols';
 import { VMArgumentsImpl } from './arguments';
-import type { LiveBlockList } from './element-builder';
 import { LowLevelVM, type Externs } from './low-level';
 import RenderResultImpl from './render-result';
 import EvaluationStackImpl, { type EvaluationStack } from './stack';
@@ -57,6 +67,13 @@ import {
   type VMState,
 } from './update';
 
+export interface DebugInternalVM {
+  /**
+   * Verify the stack once all opcodes have been executed.
+   */
+  finalize: () => void;
+}
+
 /**
  * This interface is used by internal opcodes, and is more stable than
  * the implementation of the Append VM itself.
@@ -69,6 +86,8 @@ export interface InternalVM {
   readonly stack: EvaluationStack;
   readonly runtime: RuntimeContext;
   readonly context: CompileTimeCompilationContext;
+
+  readonly debug?: DebugInternalVM;
 
   _loadValue_(register: MachineRegister, value: number): void;
   _loadValue_(register: Register, value: unknown): void;
@@ -85,7 +104,7 @@ export interface InternalVM {
   _compile_(block: CompilableTemplate): number;
 
   _scope_(): Scope;
-  _elements_(): ElementBuilder;
+  _elements_(): DOMTreeBuilder;
 
   _getOwner_(): Owner;
   _getSelf_(): Reference;
@@ -129,16 +148,16 @@ export interface InternalVM {
 }
 
 class Stacks {
-  readonly _scope_ = new Stack<Scope>();
-  readonly _dynamicScope_ = new Stack<DynamicScope>();
-  readonly _updating_ = new Stack<UpdatingOpcode[]>();
-  readonly _cache_ = new Stack<JumpIfNotModifiedOpcode>();
-  readonly _list_ = new Stack<ListBlockOpcode>();
+  readonly _scope_ = new StackImpl<Scope>();
+  readonly _dynamicScope_ = new StackImpl<DynamicScope>();
+  readonly _updating_ = new StackImpl<UpdatingOpcode[]>();
+  readonly _cache_ = new StackImpl<JumpIfNotModifiedOpcode>();
+  readonly _list_ = new StackImpl<ListBlockOpcode>();
 }
 
 export interface DebugVM {
-  readonly getStacks: (vm: VM) => Stacks;
-  readonly getCursors: (vm: VM) => Stack<Cursor>;
+  readonly getStacks: () => Stacks;
+  readonly getCursors: () => Stack<Cursor<SimpleDOMEnvironment>>;
   readonly destroyableStack: Stack<object>;
   readonly registers: () => { s0: unknown; s1: unknown; t0: unknown; t1: unknown; v0: unknown };
 }
@@ -147,13 +166,13 @@ export class VM implements PublicVM, InternalVM {
   readonly #stacks = new Stacks();
   readonly #heap: RuntimeHeap;
   readonly #destructor: object;
-  readonly #destroyableStack = new Stack<object>();
+  readonly #destroyableStack = new StackImpl<object>();
   readonly [CONSTANTS]: RuntimeConstants & ResolutionTimeConstants;
   readonly [ARGS]: VMArgumentsImpl;
   readonly [INNER_VM]: LowLevelVM;
-  readonly #elementStack: ElementBuilder;
+  readonly #elementStack: DOMTreeBuilder;
 
-  declare readonly debug?: DebugVM;
+  declare readonly debug?: DebugVM & DebugInternalVM;
 
   get #scopeStack(): Stack<Scope> {
     return this.#stacks._scope_;
@@ -253,7 +272,7 @@ export class VM implements PublicVM, InternalVM {
   constructor(
     readonly runtime: RuntimeContext,
     { pc, scope, dynamicScope, stack }: VMState,
-    elementStack: ElementBuilder,
+    elementStack: DOMTreeBuilder,
     readonly context: CompileTimeCompilationContext
   ) {
     this.#elementStack = elementStack;
@@ -266,8 +285,10 @@ export class VM implements PublicVM, InternalVM {
         writable: false,
         value: {
           destroyableStack: this.#destroyableStack,
-          getStacks: (vm) => vm.#stacks,
-          getCursors: (vm) => vm._elements_().cursors,
+          getStacks: () => this.#stacks,
+          // TODO [2023-05-22]
+          // @ts-expect-error TODO
+          getCursors: () => unwrap(this._elements_()._debug_?.getCursors()),
           registers: () => ({
             s0: this.#registers[$s0 - $s0],
             s1: this.#registers[$s1 - $s0],
@@ -275,7 +296,10 @@ export class VM implements PublicVM, InternalVM {
             t1: this.#registers[$t1 - $s0],
             v0: this.#registers[$v0 - $s0],
           }),
-        } satisfies DebugVM,
+          finalize: () => {
+            this.#elementStack.debug!.finalize();
+          },
+        } satisfies DebugVM & DebugInternalVM,
       });
     }
 
@@ -400,9 +424,9 @@ export class VM implements PublicVM, InternalVM {
     let updating: UpdatingOpcode[] = [];
 
     let state = this.capture(args);
-    let block = this._elements_().pushUpdatableBlock();
+    let block = this._elements_().startBlock();
 
-    let tryOpcode = new TryOpcode(state, this.runtime, block, updating);
+    let tryOpcode = new TryOpcode(state, this.runtime, block as RuntimeBlockBoundsRef, updating);
 
     this.#didEnter(tryOpcode);
   }
@@ -416,9 +440,16 @@ export class VM implements PublicVM, InternalVM {
     stack.push(valueReference, memoReference);
 
     let state = this.capture(2);
-    let block = this._elements_().pushUpdatableBlock();
+    let block = this._elements_().startBlock();
 
-    let opcode = new ListItemOpcode(state, this.runtime, block, key, memoReference, valueReference);
+    let opcode = new ListItemOpcode(
+      state,
+      this.runtime,
+      block as RuntimeBlockBoundsRef,
+      key,
+      memoReference,
+      valueReference
+    );
     this.#didEnter(opcode);
 
     return opcode;
@@ -433,9 +464,15 @@ export class VM implements PublicVM, InternalVM {
 
     let addr = this[INNER_VM].target(offset);
     let state = this.capture(0, addr);
-    let list = this._elements_().pushBlockList(updating) as LiveBlockList;
+    let list = this._elements_().startBlock();
 
-    let opcode = new ListBlockOpcode(state, this.runtime, list, updating, iterableReference);
+    let opcode = new ListBlockOpcode(
+      state,
+      this.runtime,
+      list as RuntimeBlockBoundsRef,
+      updating,
+      iterableReference
+    );
 
     this.#stacks._list_.push(opcode);
 
@@ -451,7 +488,7 @@ export class VM implements PublicVM, InternalVM {
 
   _exit_() {
     this.#destroyableStack.pop();
-    this._elements_().popBlock();
+    this._elements_().endBlock();
     this.popUpdating();
   }
 
@@ -492,7 +529,7 @@ export class VM implements PublicVM, InternalVM {
     );
   }
 
-  _elements_(): ElementBuilder {
+  _elements_(): DOMTreeBuilder {
     return this.#elementStack;
   }
 
@@ -567,10 +604,7 @@ export class VM implements PublicVM, InternalVM {
           // If any existing blocks are open, due to an error or something like
           // that, we need to close them all and clean things up properly.
           let elements = this._elements_();
-
-          while (elements.hasBlocks) {
-            elements.popBlock();
-          }
+          elements.recover();
 
           // eslint-disable-next-line no-console
           console.error(`\n\nError occurred:\n\n${resetTracking()}\n\n`);
@@ -609,7 +643,7 @@ export class VM implements PublicVM, InternalVM {
         value: new RenderResultImpl(
           env,
           this.popUpdating(),
-          this.#elementStack.popBlock(),
+          this.#elementStack.return(),
           this.#destructor
         ),
       };
@@ -640,7 +674,7 @@ function vmState(pc: number, scope: Scope, dynamicScope: DynamicScope) {
 
 export interface MinimalInitOptions {
   handle: number;
-  treeBuilder: ElementBuilder;
+  treeBuilder: DOMTreeBuilder;
   dynamicScope: DynamicScope;
   owner: Owner;
 }
@@ -654,7 +688,7 @@ export type VmInitCallback = (
   this: void,
   runtime: RuntimeContext,
   state: VMState,
-  builder: ElementBuilder
+  builder: DOMTreeBuilder
 ) => InternalVM;
 
 function initVM(context: CompileTimeCompilationContext): VmInitCallback {
