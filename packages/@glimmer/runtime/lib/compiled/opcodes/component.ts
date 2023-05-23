@@ -24,12 +24,14 @@ import type {
   DynamicScope,
   ElementOperations,
   InternalComponentManager,
+  ModifierDefinition,
   ModifierInstance,
   Nullable,
   Owner,
   ProgramSymbolTable,
   Recast,
   ScopeSlot,
+  UpdatableTag,
   UpdatingOpcode,
   VMArguments,
   WithDynamicTagName,
@@ -111,10 +113,11 @@ import {
   CheckInvocation,
   CheckReference,
 } from './-debug-strip';
-import { UpdateDynamicAttributeOpcode } from './dom';
+import { UpdateDynamicAttributeOpcode, type ModifierInstanceRef } from './dom';
 import { CURRIED_COMPONENT } from '@glimmer/vm-constants';
 import { define } from '../../opcodes';
 import { getClassicBoundsFor } from '../../vm/update';
+import { CONSTANT_TAG, updateTag } from '@glimmer/validator';
 
 /**
  * The VM creates a new ComponentInstance data structure for every component
@@ -507,10 +510,17 @@ type DeferredAttribute = {
   trusting?: boolean;
 };
 
+type QueuedModifier = [
+  definition: ModifierDefinition,
+  arguments: CapturedArguments,
+  tag: UpdatableTag,
+  instance: ModifierInstanceRef
+];
+
 export class ComponentElementOperations implements ElementOperations {
   readonly #attributes: Dict<DeferredAttribute> = {};
   readonly #classes: (string | Reference<unknown>)[] = [];
-  readonly #modifiers: ModifierInstance[] = [];
+  readonly #modifiers: QueuedModifier[] = [];
 
   setAttribute(
     name: string,
@@ -537,8 +547,13 @@ export class ComponentElementOperations implements ElementOperations {
     this.#attributes[name] = deferred;
   }
 
-  addModifier(modifier: ModifierInstance): void {
-    this.#modifiers.push(modifier);
+  addModifier(
+    definition: ModifierDefinition,
+    args: CapturedArguments,
+    tag: UpdatableTag,
+    instance: ModifierInstanceRef
+  ): void {
+    this.#modifiers.push([definition, args, tag, instance]);
   }
 
   flush(vm: InternalVM): ModifierInstance[] {
@@ -569,7 +584,23 @@ export class ComponentElementOperations implements ElementOperations {
       setDeferredAttribute(vm, 'type', type.value, type.namespace, type.trusting);
     }
 
-    return this.#modifiers;
+    let element = vm._elements_().flushElement() as Element;
+
+    return this.#modifiers.map(([definition, args, initialTag, instance]) => {
+      let manager = definition.manager;
+      let owner = vm._getOwner_();
+
+      let state = manager.create(owner, element, definition.state, args);
+
+      let tag = manager.getTag(state);
+      updateTag(initialTag, tag ?? CONSTANT_TAG);
+
+      return (instance.current = {
+        manager,
+        state,
+        definition,
+      });
+    });
   }
 }
 

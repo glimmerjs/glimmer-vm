@@ -1,9 +1,9 @@
-import type { Dict, Nullable, SimpleElement } from '@glimmer/interfaces';
+import type { Dict, Nullable } from '@glimmer/interfaces';
 
 import { type Count, jitSuite, RenderTest, test } from '..';
 
 class BaseModifier {
-  element?: SimpleElement;
+  element?: Element;
   didInsertElement(_parameters: unknown[], _hash: Dict<unknown>): void {}
   willDestroyElement(): void {}
   didUpdate(_parameters: unknown[], _hash: Dict<unknown>): void {}
@@ -25,7 +25,7 @@ class ModifierTests extends RenderTest {
     this.registerModifier(
       'foo',
       class {
-        element?: SimpleElement;
+        element?: Element;
         didInsertElement() {
           count.expect('didInsertElement');
           assert.ok(this.element, 'didInsertElement');
@@ -58,7 +58,7 @@ class ModifierTests extends RenderTest {
     this.registerModifier(
       'foo',
       class {
-        element?: SimpleElement;
+        element?: Element;
         didInsertElement() {
           count.expect('didInsertElement');
           assert.ok(true);
@@ -81,13 +81,13 @@ class ModifierTests extends RenderTest {
     this.rerender({ ok: false });
   }
 
-  @test.todo
+  @test
   'modifiers on components are forwarded to a single element receiving the splattributes'(
     assert: Assert
   ) {
     let modifierParameters: Nullable<unknown[]> = null;
     let modifierNamedArgs: Nullable<Dict<unknown>> = null;
-    let modifiedElement: SimpleElement | undefined;
+    let modifiedElement: Element | undefined;
     class Bar extends AbstractInsertable {
       didInsertElement(parameters: unknown[], namedArgs: Dict<unknown>) {
         modifierParameters = parameters;
@@ -107,7 +107,7 @@ class ModifierTests extends RenderTest {
     );
   }
 
-  @test.todo
+  @test
   'modifiers on components are forwarded to all the elements receiving the splattributes'(
     assert: Assert
   ) {
@@ -135,11 +135,11 @@ class ModifierTests extends RenderTest {
     );
   }
 
-  @test.todo
+  @test
   'modifiers on components accept bound arguments and track changes on them'(assert: Assert) {
     let modifierParameters: Nullable<unknown[]> = null;
     let modifierNamedArgs: Nullable<Dict<unknown>> = null;
-    let modifiedElement: SimpleElement | undefined;
+    let modifiedElement: Element | undefined;
     class Bar extends AbstractInsertable {
       didInsertElement(parameters: unknown[], namedArgs: Dict<unknown>) {
         modifierParameters = parameters;
@@ -175,13 +175,13 @@ class ModifierTests extends RenderTest {
     );
   }
 
-  @test.todo
+  @test
   'modifiers on components accept `this` in both positional params and named arguments, and updates when it changes'(
     assert: Assert
   ) {
     let modifierParameters: Nullable<unknown[]> = null;
     let modifierNamedArgs: Nullable<Dict<unknown>> = null;
-    let modifiedElement: SimpleElement | undefined;
+    let modifiedElement: Element | undefined;
     class Bar extends AbstractInsertable {
       didInsertElement(parameters: unknown[], namedArgs: Dict<unknown>) {
         modifierParameters = parameters;
@@ -216,13 +216,13 @@ class ModifierTests extends RenderTest {
     );
   }
 
-  @test.todo
+  @test
   'modifiers on components accept local variables in both positional params and named arguments, and updates when they change'(
     assert: Assert
   ) {
     let modifierParameters: Nullable<unknown[]> = null;
     let modifierNamedArgs: Nullable<Dict<unknown>> = null;
-    let modifiedElement: SimpleElement | undefined;
+    let modifiedElement: Element | undefined;
     class Bar extends AbstractInsertable {
       didInsertElement(parameters: unknown[], namedArgs: Dict<unknown>) {
         modifierParameters = parameters;
@@ -262,7 +262,7 @@ class ModifierTests extends RenderTest {
     );
   }
 
-  @test.todo
+  @test
   'modifiers on components can be received and forwarded to inner components'(assert: Assert) {
     let modifierParameters: Nullable<unknown[]> = null;
     let modifierNamedArgs: Nullable<Dict<unknown>> = null;
@@ -301,7 +301,7 @@ class ModifierTests extends RenderTest {
     assert.deepEqual(elementIds, ['outer-div', 'inner-div'], 'Modifiers are called on all levels');
   }
 
-  @test.todo
+  @test
   'same element insertion order'(assert: Assert) {
     let insertionOrder: string[] = [];
 
@@ -323,7 +323,7 @@ class ModifierTests extends RenderTest {
     assert.deepEqual(insertionOrder, ['foo', 'bar']);
   }
 
-  @test.todo
+  @test
   'same element destruction order'(assert: Assert) {
     let destructionOrder: string[] = [];
 

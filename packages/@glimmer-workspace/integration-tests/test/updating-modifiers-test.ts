@@ -1,12 +1,11 @@
 /* eslint-disable unicorn/prefer-dom-node-dataset */
-import type { SimpleElement } from '@glimmer/interfaces';
 
 import { jitSuite, RenderTest, test } from '..';
 import { assert } from './support';
 
 function makeSyncDataAttributeModifier(hooks: string[]) {
   return class SyncDataAttributeModifier {
-    declare element: SimpleElement;
+    declare element: Element;
     didInsertElement([parameter]: string[]) {
       this.element.setAttribute('data-modifier', `installed - ${parameter}`);
       hooks.push('didInsertElement');
@@ -26,7 +25,7 @@ function makeSyncDataAttributeModifier(hooks: string[]) {
 class UpdatingModifiers extends RenderTest {
   static suiteName = 'Updating Element Modifier';
 
-  @test.todo
+  @test
   'Updating an element modifier'() {
     let hooks: string[] = [];
 
@@ -55,7 +54,7 @@ class UpdatingModifiers extends RenderTest {
     assert.deepEqual(hooks, ['didInsertElement', 'didUpdate'], 'hooks fired correctly on rerender');
   }
 
-  @test.todo
+  @test
   "Const input doesn't trigger update in a element modifier"() {
     let hooks: string[] = [];
 
@@ -71,7 +70,7 @@ class UpdatingModifiers extends RenderTest {
     assert.deepEqual(hooks, ['didInsertElement'], 'hooks fired correctly on update');
   }
 
-  @test.todo
+  @test
   'Destructor is triggered on element modifiers'() {
     let hooks: string[] = [];
 

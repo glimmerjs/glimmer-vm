@@ -87,7 +87,7 @@ if (hasDom) {
       }
     }
 
-    @test.todo
+    @test
     'it adds an event listener'(assert: Assert) {
       let count = 0;
 
@@ -114,7 +114,7 @@ if (hasDom) {
       this.assertCounts({ adds: 1, removes: 0 });
     }
 
-    @test.todo
+    @test
     'passes the event to the listener'(assert: Assert) {
       let capturedEvent: UIEvent;
 
@@ -133,7 +133,7 @@ if (hasDom) {
       this.assertCounts({ adds: 1, removes: 0 });
     }
 
-    @test.todo
+    @test
     'the listener callback is bound'(assert: Assert) {
       let first = 0;
       let second = 0;
@@ -164,7 +164,7 @@ if (hasDom) {
       this.assertCounts({ adds: 2, removes: 1 });
     }
 
-    @test.todo
+    @test
     'setting once named argument ensures the callback is only called once'(assert: Assert) {
       let count = 0;
 
@@ -196,7 +196,7 @@ if (hasDom) {
       }
     }
 
-    @test.todo
+    @test
     'changing from `once=false` to `once=true` ensures the callback can only be called once'(
       assert: Assert
     ) {
@@ -249,7 +249,7 @@ if (hasDom) {
       this.findButton().click();
     }
 
-    @test.todo
+    @test
     'by default bubbling is used (capture: false)'(assert: Assert) {
       this.render(
         `
@@ -272,7 +272,7 @@ if (hasDom) {
       assert.verifySteps(['inner clicked', 'outer clicked'], 'uses capture: false by default');
     }
 
-    @test.todo
+    @test
     'specifying capture named argument uses capture semantics'(assert: Assert) {
       this.render(
         `
@@ -295,7 +295,7 @@ if (hasDom) {
       assert.verifySteps(['outer clicked', 'inner clicked'], 'capture works');
     }
 
-    @test.todo
+    @test
     'can use capture and once together'(assert: Assert) {
       this.render(
         `
@@ -322,7 +322,7 @@ if (hasDom) {
       assert.verifySteps(['inner clicked'], 'once works');
     }
 
-    @test.todo
+    @test
     'unrelated updates to `this` context does not result in removing + re-adding'(assert: Assert) {
       let called = false;
 
@@ -343,7 +343,7 @@ if (hasDom) {
       this.assertCounts({ adds: 1, removes: 0 });
     }
 
-    @test.todo
+    @test
     'asserts when eventName is missing'(assert: Assert) {
       assert.throws(() => {
         this.render(`<button {{on undefined this.callback}}>Click Me</button>`, {
@@ -352,7 +352,7 @@ if (hasDom) {
       }, /You must pass a valid DOM event name as the first argument to the `on` modifier/u);
     }
 
-    @test.todo
+    @test
     'asserts when eventName is a bound undefined value'(assert: Assert) {
       assert.throws(() => {
         this.render(`<button {{on this.someUndefinedThing this.callback}}>Click Me</button>`, {
@@ -361,7 +361,7 @@ if (hasDom) {
       }, /You must pass a valid DOM event name as the first argument to the `on` modifier/u);
     }
 
-    @test.todo
+    @test
     'asserts when eventName is a function'(assert: Assert) {
       assert.throws(() => {
         this.render(`<button {{on this.callback}}>Click Me</button>`, {
@@ -370,21 +370,21 @@ if (hasDom) {
       }, /You must pass a valid DOM event name as the first argument to the `on` modifier/u);
     }
 
-    @test.todo
+    @test
     'asserts when callback is missing'(assert: Assert) {
       assert.throws(() => {
         this.render(`<button {{on 'click'}}>Click Me</button>`);
       }, /You must pass a function as the second argument to the `on` modifier/u);
     }
 
-    @test.todo
+    @test
     'asserts when callback is undefined'(assert: Assert) {
       assert.throws(() => {
         this.render(`<button {{on 'click' this.foo}}>Click Me</button>`);
       }, /You must pass a function as the second argument to the `on` modifier; you passed undefined. While rendering:\n{2}this.foo/u);
     }
 
-    @test.todo
+    @test
     'asserts when callback is null'(assert: Assert) {
       assert.throws(() => {
         this.render(`<button {{on 'click' this.foo}}>Click Me</button>`, { foo: null });
@@ -408,7 +408,7 @@ if (hasDom) {
       this.findButton().click();
     }
 
-    @test.todo
+    @test
     'asserts if more than 2 positional parameters are provided'(assert: Assert) {
       assert.throws(() => {
         this.render(`<button {{on 'click' this.callback this.someArg}}>Click Me</button>`, {
@@ -418,7 +418,7 @@ if (hasDom) {
       }, /You can only pass two positional arguments \(event name and callback\) to the `on` modifier, but you provided 3. Consider using the `fn` helper to provide additional arguments to the `on` callback./u);
     }
 
-    @test.todo
+    @test
     'it removes the modifier when the element is removed'(assert: Assert) {
       let count = 0;
 

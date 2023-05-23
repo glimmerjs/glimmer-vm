@@ -6,7 +6,6 @@ import type {
   InternalModifierManager,
   Nullable,
   Owner,
-  SimpleElement,
 } from '@glimmer/interfaces';
 import { reifyNamed, reifyPositional } from '@glimmer/runtime';
 import { createUpdatableTag, type UpdatableTag } from '@glimmer/validator';
@@ -16,7 +15,7 @@ export interface TestModifierConstructor {
 }
 
 export interface TestModifierInstance {
-  element?: SimpleElement;
+  element?: Element;
   didInsertElement?(_parameters: unknown[], _hash: Dict<unknown>): void;
   didUpdate?(_parameters: unknown[], _hash: Dict<unknown>): void;
   willDestroyElement?(): void;
@@ -31,7 +30,7 @@ export class TestModifierManager
 {
   create(
     _owner: Owner,
-    element: SimpleElement,
+    element: Element,
     state: TestModifierDefinitionState,
     args: CapturedArguments
   ) {
@@ -81,7 +80,7 @@ export class TestModifier {
   public tag = createUpdatableTag();
 
   constructor(
-    public element: SimpleElement,
+    public element: Element,
     public instance: TestModifierInstance | undefined,
     public args: CapturedArguments
   ) {}

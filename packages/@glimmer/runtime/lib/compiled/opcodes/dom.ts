@@ -28,6 +28,7 @@ import {
   type Tag,
   validateTag,
   valueForTag,
+  createUpdatableTag,
 } from '@glimmer/validator';
 import {
   $t0,
@@ -97,18 +98,29 @@ define(POP_REMOTE_ELEMENT_OP, (vm) => {
 
 define(FLUSH_ELEMENT_OP, (vm) => {
   let operations = check(vm._fetchValue_($t0), CheckOperations);
+
   let modifiers: Nullable<ModifierInstance[]> = null;
 
   if (operations) {
     modifiers = operations.flush(vm);
     vm._loadValue_($t0, null);
-  }
 
-  vm._elements_().flushElement(modifiers);
+    if (modifiers) {
+      for (let modifier of modifiers) {
+        vm.env.scheduleInstallModifier(modifier);
+        let { manager, state } = modifier;
+        let d = manager.getDestroyable(state);
+
+        if (d) vm._associateDestroyable_(d);
+      }
+    }
+  } else {
+    vm._elements_().flushElement();
+  }
 });
 
 define(CLOSE_ELEMENT_OP, (vm) => {
-  let modifiers = vm._elements_().endElement();
+  vm._elements_().endElement();
 
   // if (modifiers) {
   //   for (let modifier of modifiers) {
@@ -134,29 +146,29 @@ define(MODIFIER_OP, (vm, { op1: handle }) => {
 
   let { manager } = definition;
 
-  let { _constructing_ } = vm._elements_();
+  // let { _constructing_ } = vm._elements_();
 
-  let state = manager.create(
-    owner,
-    expect(_constructing_, 'BUG: ElementModifier could not find the element it applies to'),
-    definition.state,
-    args.capture()
-  );
+  // let state = manager.create(
+  //   owner,
+  //   expect(_constructing_, 'BUG: ElementModifier could not find the element it applies to'),
+  //   definition.state,
+  //   args.capture()
+  // );
 
-  let instance: ModifierInstance = {
-    manager,
-    state,
-    definition,
-  };
+  // let instance: ModifierInstance = {
+  //   manager,
+  //   state,
+  //   definition,
+  // };
 
   let operations = expect(
     check(vm._fetchValue_($t0), CheckOperations),
     'BUG: ElementModifier could not find operations to append to'
   );
 
-  operations.addModifier(instance);
-
-  let tag = manager.getTag(state);
+  let tag = createUpdatableTag();
+  let instance: ModifierInstanceRef = { current: null };
+  operations.addModifier(definition, args.capture(), tag, instance);
 
   if (tag !== null) {
     consumeTag(tag);
@@ -263,11 +275,15 @@ define(DYNAMIC_MODIFIER_OP, (vm) => {
   }
 });
 
+export interface ModifierInstanceRef {
+  current: ModifierInstance | null;
+}
+
 export class UpdateModifierOpcode implements UpdatingOpcode {
   #lastUpdated: Revision;
   readonly #tag: Tag;
-  readonly #modifier: ModifierInstance;
-  constructor(tag: Tag, modifier: ModifierInstance) {
+  readonly #modifier: ModifierInstanceRef;
+  constructor(tag: Tag, modifier: ModifierInstanceRef) {
     this.#tag = tag;
     this.#modifier = modifier;
     this.#lastUpdated = valueForTag(tag);
@@ -279,7 +295,11 @@ export class UpdateModifierOpcode implements UpdatingOpcode {
     consumeTag(tag);
 
     if (!validateTag(tag, this.#lastUpdated)) {
-      vm.env.scheduleUpdateModifier(this.#modifier);
+      let modifier = expect(
+        this.#modifier.current,
+        `BUG: Modifier instance should exist by the time its associated UpdatingOpcode is evaluated`
+      );
+      vm.env.scheduleUpdateModifier(modifier);
       this.#lastUpdated = valueForTag(tag);
     }
   }

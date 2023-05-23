@@ -267,7 +267,7 @@ class StaticStrictModeTest extends RenderTest {
     this.assertStableRerender();
   }
 
-  @test.todo
+  @test
   'Can use a custom modifier in scope'() {
     let foo = defineSimpleModifier((element: Element) => (element.innerHTML = 'Hello, world!'));
     let Bar = defineComponent({ foo }, '<div {{foo}}></div>');
@@ -1283,7 +1283,7 @@ class BuiltInsStrictModeTest extends RenderTest {
     this.assertStableRerender();
   }
 
-  @test.todo
+  @test
   'Can use on and fn'(assert: Assert) {
     assert.expect(3);
 

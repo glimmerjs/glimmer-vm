@@ -48,7 +48,7 @@ abstract class ModifierManagerTest extends RenderTest {
     this.assertHTML(`<h1>hello world</h1>`);
   }
 
-  @test.todo 'custom lifecycle hooks'(assert: Assert) {
+  @test 'custom lifecycle hooks'(assert: Assert) {
     let foo = this.defineModifier(
       class extends CustomModifier {
         override didInsertElement() {
@@ -89,7 +89,7 @@ abstract class ModifierManagerTest extends RenderTest {
     assert.verifySteps(['Called didInsertElement']);
   }
 
-  @test.todo 'associates manager even through an inheritance structure'(assert: Assert) {
+  @test 'associates manager even through an inheritance structure'(assert: Assert) {
     let Foo = this.defineModifier(
       class extends CustomModifier {
         override didInsertElement() {
@@ -114,7 +114,7 @@ abstract class ModifierManagerTest extends RenderTest {
     assert.verifySteps(['Foo didInsertElement', 'Bar didInsertElement']);
   }
 
-  @test.todo 'can give consistent access to underlying DOM element'(assert: Assert) {
+  @test 'can give consistent access to underlying DOM element'(assert: Assert) {
     assert.expect(6);
 
     let foo = this.defineModifier(
@@ -150,7 +150,7 @@ abstract class ModifierManagerTest extends RenderTest {
     this.rerender();
   }
 
-  @test.todo 'lifecycle hooks are autotracked by default'(assert: Assert) {
+  @test 'lifecycle hooks are autotracked by default'(assert: Assert) {
     class TrackedClass {
       @tracked count = 0;
     }
@@ -314,7 +314,7 @@ class ModifierManagerTest322 extends ModifierManagerTest {
     }
   };
 
-  @test.todo 'modifers only track positional arguments they consume'(assert: Assert) {
+  @test 'modifiers only track positional arguments they consume'(assert: Assert) {
     let insertCount = 0;
     let updateCount = 0;
 
@@ -366,7 +366,7 @@ class ModifierManagerTest322 extends ModifierManagerTest {
     assert.strictEqual(updateCount, 1);
   }
 
-  @test.todo 'modifers only track named arguments they consume'(assert: Assert) {
+  @test 'modifiers only track named arguments they consume'(assert: Assert) {
     let insertCount = 0;
     let updateCount = 0;
 

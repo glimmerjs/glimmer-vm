@@ -1,5 +1,4 @@
 /* eslint-disable unicorn/prefer-dom-node-dataset */
-import type { SimpleElement } from '@glimmer/interfaces';
 
 import { EmberishCurlyComponent } from '../components';
 import { assertEmberishElement, classes } from '../dom/assertions';
@@ -17,7 +16,7 @@ export class EmberishComponentTests extends RenderTest {
     this.registerModifier(
       'foo',
       class {
-        element?: SimpleElement;
+        element?: Element;
         didInsertElement() {
           count.expect('didInsertElement');
           assert.ok(this.element, 'didInsertElement');
