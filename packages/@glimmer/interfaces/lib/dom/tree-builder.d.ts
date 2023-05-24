@@ -1,5 +1,5 @@
 import type { AttrNamespace } from '@simple-dom/interface';
-import type { Nullable } from '../core';
+import type { Destroyable, Nullable } from '../core';
 
 export interface MinimalDocument {
   readonly nodeType: number;
@@ -12,10 +12,12 @@ export interface MinimalDocument {
   insertBefore(newChild: MinimalChild, nextSibling: MinimalChild | null): void;
 }
 
-export type MinimalCursor = [
+export type MinimalCursor = [parent: MinimalParent, nextSibling: MinimalChild | null];
+
+export type MinimalInternalCursor = [
   parent: MinimalParent,
   nextSibling: MinimalChild | null,
-  parentCursor: MinimalCursor | null
+  parentCursor: MinimalInternalCursor | null
 ];
 
 export interface MinimalChild {
@@ -32,6 +34,8 @@ export interface MinimalParent {
   readonly firstChild: MinimalChild | null;
   readonly lastChild: MinimalChild | null;
   readonly ownerDocument: MinimalDocument;
+
+  innerHTML: string;
 
   insertBefore(newChild: MinimalChild, nextSibling: MinimalChild | null): void;
 }
@@ -59,7 +63,7 @@ export interface MinimalDocumentFragment extends MinimalChild, MinimalParent {
 }
 
 export interface DebugDOMTreeBuilder {
-  readonly cursor: MinimalCursor;
+  readonly cursor: MinimalInternalCursor;
   /**
    * Element Buffer
    */
@@ -92,6 +96,8 @@ export interface DOMTreeBuilder {
   addAttr(attributeName: string, attributeValue: unknown): AttributeRef;
   flushElement(): MinimalElement;
   endElement(): MinimalElement;
+  startInElement(cursor: MinimalCursor, guid: string): void;
+  endInElement(): Destroyable;
 
   recover(): void;
 

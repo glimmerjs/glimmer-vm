@@ -18,7 +18,7 @@ export interface NodeEnvironmentOptions {
 }
 
 export class NodeJitRenderDelegate extends JitRenderDelegate {
-  static override style = 'node jit';
+  static override style = 'ssr';
 
   constructor(options: RenderDelegateOptions = {}) {
     options.doc = options.doc || createHTMLDocument();

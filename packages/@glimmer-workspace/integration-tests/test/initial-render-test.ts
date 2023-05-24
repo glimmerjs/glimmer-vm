@@ -1622,5 +1622,5 @@ class RehydratingComponents extends AbstractRehydrationTests {
 }
 
 suite.todo(Rehydration, RehydrationDelegate);
-jitSuite.todo(RenderTests);
+jitSuite(RenderTests);
 componentSuite.pending(RehydratingComponents, RehydrationDelegate);

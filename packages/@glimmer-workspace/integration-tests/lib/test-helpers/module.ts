@@ -6,7 +6,7 @@ import { JitRenderDelegate } from '../modes/jit/delegate';
 import { NodeJitRenderDelegate } from '../modes/node/env';
 import type RenderDelegate from '../render-delegate';
 import type { RenderDelegateOptions } from '../render-delegate';
-import type { Count, IRenderTest } from '../render-test';
+import type { Count, IRenderTest, RenderTest } from '../render-test';
 import { JitSerializationDelegate } from '../suites/custom-dom-helper';
 import type { ComponentTestMeta, DeclaredComponentKind } from '../test-decorator';
 
@@ -96,11 +96,11 @@ export function suite<D extends RenderDelegate>(
 
   if (options.componentModule) {
     if (shouldRunTest<D>(Delegate)) {
-      QUnit.module(`${Delegate.style} :: Components :: ${suiteName}`);
-
-      QUnit.todo('TODO', (assert) => {
-        assert.ok(false, 'the entire suite is pending');
-      });
+      componentModule(
+        `${Delegate.style} :: Components :: ${suiteName}`,
+        klass as any as RenderTestConstructor<D, RenderTest>,
+        Delegate
+      );
     }
   } else {
     let instance: IRenderTest | null = null;

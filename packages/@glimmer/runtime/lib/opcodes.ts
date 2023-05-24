@@ -3,7 +3,7 @@ import type {
   Dict,
   Maybe,
   MinimalChild,
-  MinimalCursor,
+  MinimalInternalCursor,
   MinimalParent,
   Nullable,
   RuntimeOp,
@@ -188,7 +188,7 @@ export class AppendOpcodes {
                 }
 
                 // eslint-disable-next-line no-inner-declarations
-                function getBlockStack(cursor: MinimalCursor) {
+                function getBlockStack(cursor: MinimalInternalCursor) {
                   let blocks: CursorBlock[] = [];
 
                   addToBlockStack(cursor, blocks);
@@ -197,7 +197,7 @@ export class AppendOpcodes {
                 }
 
                 // eslint-disable-next-line no-inner-declarations
-                function addToBlockStack(cursor: MinimalCursor, blocks: CursorBlock[]) {
+                function addToBlockStack(cursor: MinimalInternalCursor, blocks: CursorBlock[]) {
                   let [parent, nextSibling, parentCursor] = cursor;
 
                   blocks.push({ parent, nextSibling });

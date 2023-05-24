@@ -1,3 +1,4 @@
+import { registerDestructor } from '@glimmer/destroyable';
 import type {
   AttributeRef,
   BlockBounds,
@@ -6,13 +7,15 @@ import type {
   DebugDOMTreeBuilder,
   ElementRef,
   MinimalChild,
-  MinimalCursor,
+  MinimalInternalCursor,
   MinimalDocument,
   MinimalDocumentFragment,
   MinimalElement,
   MinimalParent,
   PresentStack,
   RuntimeBlockBounds,
+  MinimalCursor,
+  Destroyable,
 } from '@glimmer/interfaces';
 import {
   INSERT_BEFORE_END,
@@ -60,7 +63,7 @@ export class TreeConstruction implements DOMTreeBuilder {
     return new TreeConstruction(parent.ownerDocument, [parent, null, null], null);
   }
 
-  static _forCursor_(cursor: MinimalCursor) {
+  static _forCursor_(cursor: MinimalInternalCursor) {
     return new TreeConstruction(cursor[PARENT_ELEMENT].ownerDocument, cursor, null);
   }
 
@@ -80,7 +83,7 @@ export class TreeConstruction implements DOMTreeBuilder {
   }
 
   #document: MinimalDocument;
-  #cursor: MinimalCursor;
+  #cursor: MinimalInternalCursor;
   #buffer: ElementBuffer | null;
 
   declare debug?: DebugDOMTreeBuilder;
@@ -97,7 +100,11 @@ export class TreeConstruction implements DOMTreeBuilder {
     undefined,
   ]);
 
-  constructor(document: MinimalDocument, cursor: MinimalCursor, buffer: ElementBuffer | null) {
+  constructor(
+    document: MinimalDocument,
+    cursor: MinimalInternalCursor,
+    buffer: ElementBuffer | null
+  ) {
     this.#document = document;
     this.#cursor = cursor;
 
@@ -247,6 +254,28 @@ export class TreeConstruction implements DOMTreeBuilder {
     this.#cursor = unwrap(this.#cursor[PARENT_CURSOR]);
     return element as MinimalElement;
   }
+
+  startInElement([parent, next]: MinimalCursor): void {
+    if (next === undefined && parent.firstChild) {
+      parent.innerHTML = '';
+    }
+
+    this.#cursor = [parent, next, this.#cursor];
+    this.#depth++;
+    this.startBlock();
+  }
+
+  endInElement(): Destroyable {
+    let block = this.endBlock();
+    this.endElement();
+    let destroyable = {};
+
+    registerDestructor(destroyable, () => {
+      if (block.current) clearBlockBounds(block.current as RuntimeBlockBounds);
+    });
+
+    return destroyable;
+  }
 }
 
 const ELEMENT_NODE = 1;
@@ -255,7 +284,7 @@ const DOCUMENT_FRAGMENT_NODE = 11;
 type DOCUMENT_FRAGMENT_NODE = typeof DOCUMENT_FRAGMENT_NODE;
 
 function insert(
-  cursor: MinimalCursor,
+  cursor: MinimalInternalCursor,
   child: MinimalChild
 ): [MinimalChild | null, MinimalChild | null] {
   if (child.nodeType === DOCUMENT_FRAGMENT_NODE) {
@@ -268,7 +297,7 @@ function insert(
 }
 
 function insertDocumentFragment(
-  cursor: MinimalCursor,
+  cursor: MinimalInternalCursor,
   child: MinimalDocumentFragment
 ): [MinimalChild, MinimalChild] {
   // If the document fragment is empty, insert a comment to represent it. In a future
@@ -286,7 +315,7 @@ function insertDocumentFragment(
 }
 
 function insertHTML(
-  cursor: MinimalCursor,
+  cursor: MinimalInternalCursor,
   html: string
 ): [MinimalChild | null, MinimalChild | null] {
   let parent = cursor[PARENT_ELEMENT];
@@ -319,7 +348,7 @@ export const PARENT_CURSOR = 2;
 interface ElementBuffer {
   readonly ref: ElementRef;
   attr: (attributeName: string, attributeValue?: string | boolean) => AttributeRef;
-  flush: (parent: MinimalCursor) => MinimalElement;
+  flush: (parent: MinimalInternalCursor) => MinimalElement;
 }
 
 function ElementBuffer(tag: string): ElementBuffer {
@@ -346,7 +375,7 @@ function ElementBuffer(tag: string): ElementBuffer {
       return ref;
     },
 
-    flush(cursor: MinimalCursor): MinimalElement {
+    flush(cursor: MinimalInternalCursor): MinimalElement {
       let [el] = insertHTML(cursor, `${buffer}>`) as [Element, Element];
       elementRef.current = el;
       for (let ref of refs) ref[1] = el;

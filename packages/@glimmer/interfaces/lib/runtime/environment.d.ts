@@ -9,11 +9,11 @@ import type { Destroyable, Nullable } from '../core';
 import type { GlimmerTreeChanges } from '../dom/changes';
 import type { DebugRenderTree } from './debug-render-tree';
 import type { WithCreateInstance } from '../managers';
-import type { DOMTreeBuilder, MinimalCursor } from '../dom/tree-builder';
+import type { DOMTreeBuilder, MinimalInternalCursor } from '../dom/tree-builder';
 
 export interface EnvironmentOptions {
   document?: SimpleDocument;
-  appendOperations?: (cursor: MinimalCursor) => DOMTreeBuilder;
+  appendOperations?: (cursor: MinimalInternalCursor) => DOMTreeBuilder;
   updateOperations?: GlimmerTreeChanges;
 }
 
@@ -28,7 +28,7 @@ export type ComponentInstanceWithCreate = ComponentInstance<
   WithCreateInstance
 >;
 
-export type AppendOperations = (cursor: MinimalCursor) => DOMTreeBuilder;
+export type AppendOperations = (cursor: MinimalInternalCursor) => DOMTreeBuilder;
 
 interface InstallableModifier {
   readonly element: Element;

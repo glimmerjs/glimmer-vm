@@ -13,6 +13,10 @@ import type {
   Destroyable,
   Environment,
   InstallableModifier,
+  Maybe,
+  MinimalChild,
+  MinimalCursor,
+  MinimalElement,
   ModifierDefinition,
   ModifierDefinitionState,
   ModifierInstance,
@@ -85,8 +89,11 @@ define(PUSH_REMOTE_ELEMENT_OP, (vm) => {
   let insertBeforeReference = check(vm.stack.pop(), CheckReference);
   let guidReference = check(vm.stack.pop(), CheckReference);
 
-  let element = check(valueForRef(elementReference), CheckElement);
-  let insertBefore = check(valueForRef(insertBeforeReference), CheckMaybe(CheckOption(CheckNode)));
+  let element = check(valueForRef(elementReference), CheckElement) as unknown as MinimalElement;
+  let insertBefore = check(
+    valueForRef(insertBeforeReference),
+    CheckMaybe(CheckOption(CheckNode))
+  ) as Maybe<MinimalChild>;
   let guid = valueForRef(guidReference) as string;
 
   if (!isConstRef(elementReference)) {
@@ -97,12 +104,12 @@ define(PUSH_REMOTE_ELEMENT_OP, (vm) => {
     vm._updateWith_(new Assert(insertBeforeReference));
   }
 
-  let block = vm._elements_().pushRemoteElement(element, guid, insertBefore);
-  if (block) vm._associateDestroyable_(block);
+  vm._elements_().startInElement([element, insertBefore] as MinimalCursor, guid);
 });
 
 define(POP_REMOTE_ELEMENT_OP, (vm) => {
-  vm._elements_().popRemoteElement();
+  let block = vm._elements_().endInElement();
+  if (block) vm._associateDestroyable_(block);
 });
 
 define(FLUSH_ELEMENT_OP, (vm) => {

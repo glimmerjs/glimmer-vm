@@ -594,7 +594,7 @@ class UpdatingTest extends RenderTest {
     this.testStatefulHelper(assert, options);
   }
 
-  @test.todo
+  @test
   'helpers passed as arguments to {{#in-element}} are not torn down when switching between blocks'() {
     let externalElement = this.delegate.createElement('div');
 
