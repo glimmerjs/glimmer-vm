@@ -112,6 +112,7 @@ export interface InternalVM {
   _updateWith_(opcode: UpdatingOpcode): void;
 
   _associateDestroyable_(d: Destroyable): void;
+  _getDestroyableParent_(): Destroyable;
 
   _beginCacheGroup_(name?: string): void;
   _commitCacheGroup_(): void;
@@ -286,7 +287,7 @@ export class VM implements PublicVM, InternalVM {
         value: {
           destroyableStack: this.#destroyableStack,
           getStacks: () => this.#stacks,
-          // TODO [2023-05-22]
+          // TODO [2023-05-25]
           // @ts-expect-error TODO
           getCursors: () => unwrap(this._elements_()._debug_?.getCursors()),
           registers: () => ({
@@ -511,6 +512,10 @@ export class VM implements PublicVM, InternalVM {
 
   listBlock(): ListBlockOpcode {
     return expect(this.#stacks._list_.current, 'expected a list block');
+  }
+
+  _getDestroyableParent_(): Destroyable {
+    return expect(this.#destroyableStack.current, 'expected a destroyable parent');
   }
 
   _associateDestroyable_(child: Destroyable): void {

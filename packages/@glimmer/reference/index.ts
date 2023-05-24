@@ -29,4 +29,5 @@ export {
   UNDEFINED_REFERENCE,
   updateRef,
   valueForRef,
+  _createCacheRef_,
 } from './lib/reference';

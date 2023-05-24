@@ -1,23 +1,22 @@
 /* eslint-disable unicorn/prefer-dom-node-dataset */
 
 import { jitSuite, RenderTest, test } from '..';
-import { assert } from './support';
 
-function makeSyncDataAttributeModifier(hooks: string[]) {
+function makeSyncDataAttributeModifier(step: (name: string) => void) {
   return class SyncDataAttributeModifier {
     declare element: Element;
     didInsertElement([parameter]: string[]) {
       this.element.setAttribute('data-modifier', `installed - ${parameter}`);
-      hooks.push('didInsertElement');
+      step('didInsertElement');
     }
 
     didUpdate([parameter]: string[]) {
       this.element.setAttribute(`data-modifier`, `updated - ${parameter}`);
-      hooks.push('didUpdate');
+      step('didUpdate');
     }
 
     willDestroyElement() {
-      hooks.push('willDestroyElement');
+      step('willDestroyElement');
     }
   };
 }
@@ -26,10 +25,11 @@ class UpdatingModifiers extends RenderTest {
   static suiteName = 'Updating Element Modifier';
 
   @test
-  'Updating an element modifier'() {
-    let hooks: string[] = [];
-
-    this.registerModifier('foo', makeSyncDataAttributeModifier(hooks));
+  'Updating an element modifier'(assert: Assert) {
+    this.registerModifier(
+      'foo',
+      makeSyncDataAttributeModifier((name) => assert.step(name))
+    );
 
     this.render('<div><div {{foo this.bar baz=this.fizz}}></div></div>', {
       bar: 'Super Metroid',
@@ -39,7 +39,7 @@ class UpdatingModifiers extends RenderTest {
       '<div><div data-modifier="installed - Super Metroid"></div></div>',
       'initial render'
     );
-    assert.deepEqual(hooks, ['didInsertElement'], 'hooks fired correctly on initial render');
+    assert.verifySteps(['didInsertElement']);
 
     this.rerender();
 
@@ -47,59 +47,53 @@ class UpdatingModifiers extends RenderTest {
       '<div><div data-modifier="installed - Super Metroid"></div></div>',
       'modifier updated'
     );
-    assert.deepEqual(hooks, ['didInsertElement'], 'hooks not fired on rerender without changes');
+    assert.verifySteps([]);
 
     this.rerender({ bar: 'Super Mario' });
     this.assertHTML('<div><div data-modifier="updated - Super Mario"></div></div>', 'no change');
-    assert.deepEqual(hooks, ['didInsertElement', 'didUpdate'], 'hooks fired correctly on rerender');
+    assert.verifySteps(['didUpdate']);
   }
 
   @test
-  "Const input doesn't trigger update in a element modifier"() {
-    let hooks: string[] = [];
-
-    this.registerModifier('foo', makeSyncDataAttributeModifier(hooks));
+  "Const input doesn't trigger update in a element modifier"(assert: Assert) {
+    this.registerModifier(
+      'foo',
+      makeSyncDataAttributeModifier((name) => assert.step(name))
+    );
 
     this.render('<div><div {{foo "bar"}}></div></div>', {});
     this.assertHTML('<div><div data-modifier="installed - bar"></div></div>', 'initial render');
-    assert.deepEqual(hooks, ['didInsertElement'], 'hooks fired correctly on initial render');
+    assert.verifySteps(['didInsertElement']);
 
     this.rerender();
 
     this.assertHTML('<div><div data-modifier="installed - bar"></div></div>', 'no change');
-    assert.deepEqual(hooks, ['didInsertElement'], 'hooks fired correctly on update');
+    assert.verifySteps([]);
   }
 
   @test
-  'Destructor is triggered on element modifiers'() {
-    let hooks: string[] = [];
-
-    this.registerModifier('foo', makeSyncDataAttributeModifier(hooks));
+  'Destructor is triggered on element modifiers'(assert: Assert) {
+    this.registerModifier(
+      'foo',
+      makeSyncDataAttributeModifier((name) => assert.step(name))
+    );
 
     this.render('{{#if this.bar}}<div {{foo this.bar}}></div>{{else}}<div></div>{{/if}}', {
       bar: true,
     });
 
     this.assertHTML('<div data-modifier="installed - true"></div>', 'initial render');
-    assert.deepEqual(hooks, ['didInsertElement'], 'hooks fired correctly on initial render');
+    assert.verifySteps(['didInsertElement']);
 
     this.rerender({ bar: false });
 
     this.assertHTML('<div></div>', 'no more modifier');
-    assert.deepEqual(
-      hooks,
-      ['didInsertElement', 'willDestroyElement'],
-      'hooks fired correctly on rerender'
-    );
+    assert.verifySteps(['willDestroyElement']);
 
     this.rerender({ bar: true });
 
     this.assertHTML('<div data-modifier="installed - true"></div>', 'back to default render');
-    assert.deepEqual(
-      hooks,
-      ['didInsertElement', 'willDestroyElement', 'didInsertElement'],
-      'hooks fired correctly on rerender'
-    );
+    assert.verifySteps(['didInsertElement']);
   }
 }
 

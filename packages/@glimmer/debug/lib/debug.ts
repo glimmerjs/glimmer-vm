@@ -110,7 +110,7 @@ export function debug(
     let metadata = opcodeMetadata(opType(op), isMachine);
 
     if (!metadata) {
-      throw new Error(`Missing Opcode Metadata for ${op}`);
+      throw new Error(`Missing Opcode Metadata for ${opType(op)}`);
     }
 
     let out = Object.create(null);

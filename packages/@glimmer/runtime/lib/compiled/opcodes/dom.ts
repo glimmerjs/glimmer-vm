@@ -6,29 +6,36 @@ import {
   CheckOption,
   CheckString,
 } from '@glimmer/debug';
-import { associateDestroyableChild, destroy } from '@glimmer/destroyable';
 import type {
   AttributeRef,
+  CapturedArguments,
   CapturedPositionalArguments,
+  Destroyable,
   Environment,
+  InstallableModifier,
   ModifierDefinition,
   ModifierDefinitionState,
   ModifierInstance,
   Nullable,
-  Owner,
+  Optional,
+  Revision,
+  Tag,
+  UpdatableTag,
   UpdatingOpcode,
-  UpdatingVM,
 } from '@glimmer/interfaces';
 import { createComputeRef, isConstRef, type Reference, valueForRef } from '@glimmer/reference';
-import { debugToString, expect, isObject } from '@glimmer/util';
+import { debugToString, expect, isObject, unwrap } from '@glimmer/util';
 import {
+  createCache,
+  type TrackedCache,
   consumeTag,
-  CURRENT_TAG,
-  type Revision,
-  type Tag,
   validateTag,
-  valueForTag,
+  getTaggedValue,
+  now,
   createUpdatableTag,
+  updateTag,
+  beginTrackFrame,
+  endTrackFrame,
 } from '@glimmer/validator';
 import {
   $t0,
@@ -53,6 +60,8 @@ import { CONSTANTS } from '../../symbols';
 import { CheckArguments, CheckOperations, CheckReference } from './-debug-strip';
 import { Assert } from './vm';
 import { updateAttributeRef } from '../../dom/tree-builder';
+import { associateDestroyableChild, destroy } from '@glimmer/destroyable';
+import type { UpdatingVM } from '../../vm';
 
 define(TEXT_OP, (vm, { op1: text }) => {
   vm._elements_().text(vm[CONSTANTS].getValue(text));
@@ -99,20 +108,15 @@ define(POP_REMOTE_ELEMENT_OP, (vm) => {
 define(FLUSH_ELEMENT_OP, (vm) => {
   let operations = check(vm._fetchValue_($t0), CheckOperations);
 
-  let modifiers: Nullable<ModifierInstance[]> = null;
+  // let modifiers: Nullable<ReferenceModifierInstance[]> = null;
 
   if (operations) {
-    modifiers = operations.flush(vm);
+    let modifiers = operations.flush(vm);
     vm._loadValue_($t0, null);
+    let parent = vm._getDestroyableParent_();
 
-    if (modifiers) {
-      for (let modifier of modifiers) {
-        vm.env.scheduleInstallModifier(modifier);
-        let { manager, state } = modifier;
-        let d = manager.getDestroyable(state);
-
-        if (d) vm._associateDestroyable_(d);
-      }
+    for (let modifier of modifiers) {
+      vm.env.scheduleInstallModifier(modifier, parent);
     }
   } else {
     vm._elements_().flushElement();
@@ -120,19 +124,8 @@ define(FLUSH_ELEMENT_OP, (vm) => {
 });
 
 define(CLOSE_ELEMENT_OP, (vm) => {
-  vm._elements_().endElement();
-
-  // if (modifiers) {
-  //   for (let modifier of modifiers) {
-  //     vm.env.scheduleInstallModifier(modifier);
-  //     let { manager, state } = modifier;
-  //     let d = manager.getDestroyable(state);
-
-  //     if (d) {
-  //       vm._associateDestroyable_(d);
-  //     }
-  //   }
-  // }
+  let element = vm._elements_().endElement();
+  vm.env.didAppend(element as Element);
 });
 
 define(MODIFIER_OP, (vm, { op1: handle }) => {
@@ -140,40 +133,22 @@ define(MODIFIER_OP, (vm, { op1: handle }) => {
     return;
   }
 
-  let owner = vm._getOwner_();
   let args = check(vm.stack.pop(), CheckArguments);
   let definition = vm[CONSTANTS].getValue<ModifierDefinition>(handle);
-
-  let { manager } = definition;
-
-  // let { _constructing_ } = vm._elements_();
-
-  // let state = manager.create(
-  //   owner,
-  //   expect(_constructing_, 'BUG: ElementModifier could not find the element it applies to'),
-  //   definition.state,
-  //   args.capture()
-  // );
-
-  // let instance: ModifierInstance = {
-  //   manager,
-  //   state,
-  //   definition,
-  // };
 
   let operations = expect(
     check(vm._fetchValue_($t0), CheckOperations),
     'BUG: ElementModifier could not find operations to append to'
   );
 
-  let tag = createUpdatableTag();
-  let instance: ModifierInstanceRef = { current: null };
-  operations.addModifier(definition, args.capture(), tag, instance);
+  let owner = vm._getOwner_();
+  let modifier = operations.addModifier(
+    createCache(() => ({ definition, owner }), 'modifier definition'),
+    args.capture()
+  );
 
-  if (tag !== null) {
-    consumeTag(tag);
-    return vm._updateWith_(new UpdateModifierOpcode(tag, instance));
-  }
+  consumeTag(modifier.tag);
+  return vm._updateWith_(modifier);
 });
 
 define(DYNAMIC_MODIFIER_OP, (vm) => {
@@ -184,15 +159,14 @@ define(DYNAMIC_MODIFIER_OP, (vm) => {
   let { stack, [CONSTANTS]: constants } = vm;
   let reference = check(stack.pop(), CheckReference);
   let args = check(stack.pop(), CheckArguments).capture();
-  let { _constructing_ } = vm._elements_();
-  let initialOwner = vm._getOwner_();
+  let currentOwner = vm._getOwner_();
 
-  let instanceReference = createComputeRef(() => {
+  let cache = createCache(() => {
     let value = valueForRef(reference);
-    let owner: Owner;
+    let owner = currentOwner;
 
     if (!isObject(value)) {
-      return;
+      return {};
     }
 
     let hostDefinition: CurriedValue | ModifierDefinitionState;
@@ -217,7 +191,6 @@ define(DYNAMIC_MODIFIER_OP, (vm) => {
       }
     } else {
       hostDefinition = value;
-      owner = initialOwner;
     }
 
     let handle = constants.modifier(hostDefinition, null, true);
@@ -232,142 +205,322 @@ define(DYNAMIC_MODIFIER_OP, (vm) => {
       );
     }
 
-    let definition = constants.getValue<ModifierDefinition>(
-      expect(handle, 'BUG: modifier handle expected')
-    );
-
-    let { manager } = definition;
-
-    let state = manager.create(
-      owner,
-      expect(_constructing_, 'BUG: ElementModifier could not find the element it applies to'),
-      definition.state,
-      args
-    );
-
     return {
-      manager,
-      state,
-      definition,
+      definition: constants.getValue<ModifierDefinition>(
+        expect(handle, 'BUG: modifier handle expected')
+      ),
+      owner,
     };
   });
 
-  let instance = valueForRef(instanceReference);
-  let tag = null;
+  let operations = expect(
+    check(vm._fetchValue_($t0), CheckOperations),
+    'BUG: ElementModifier could not find operations to append to'
+  );
 
-  if (instance !== undefined) {
-    let operations = expect(
-      check(vm._fetchValue_($t0), CheckOperations),
-      'BUG: ElementModifier could not find operations to append to'
-    );
+  let modifier = operations.addModifier(cache, args);
+  consumeTag(modifier.tag);
 
-    operations.addModifier(instance);
-
-    tag = instance.manager.getTag(instance.state);
-
-    if (tag !== null) {
-      consumeTag(tag);
-    }
-  }
-
-  if (!isConstRef(reference) || tag) {
-    return vm._updateWith_(new UpdateDynamicModifierOpcode(tag, instance, instanceReference));
-  }
+  return vm._updateWith_(modifier);
 });
 
 export interface ModifierInstanceRef {
-  current: ModifierInstance | null;
+  current: ModifierInstance | undefined;
 }
 
-export class UpdateModifierOpcode implements UpdatingOpcode {
-  #lastUpdated: Revision;
-  readonly #tag: Tag;
-  readonly #modifier: ModifierInstanceRef;
-  constructor(tag: Tag, modifier: ModifierInstanceRef) {
-    this.#tag = tag;
-    this.#modifier = modifier;
-    this.#lastUpdated = valueForTag(tag);
+type DefinitionCache = TrackedCache<LastDefinition>;
+
+interface LastDefinition {
+  definition?: ModifierDefinition | undefined;
+  owner: object;
+  element: Element;
+  args: CapturedArguments;
+}
+
+export class UpdateModifierOpcode implements UpdatingOpcode, InstallableModifier {
+  readonly #cache: DefinitionCache;
+  #lastUpdated: number;
+  #lastTag: Optional<Tag>;
+  #lastDestroyable: Nullable<Destroyable> = null;
+  #lastDefinition: Optional<[LastDefinition, Tag]>;
+  #lastInstance: Optional<ModifierInstance>;
+  #tag: UpdatableTag;
+
+  constructor(cache: DefinitionCache) {
+    this.#lastUpdated = now();
+    this.#cache = cache;
+    this.#tag = createUpdatableTag();
   }
+
+  get element() {
+    let [{ element }] = this.#initialized;
+    return element;
+  }
+
+  get tag() {
+    return this.#tag;
+  }
+
+  get #initialized() {
+    if (this.#lastTag && validateTag(this.#lastTag, this.#lastUpdated)) {
+      return this.#lastDefinition;
+    }
+
+    let [definitionValue, definitionTag] = getTaggedValue(this.#cache);
+
+    return (this.#lastDefinition = [definitionValue, definitionTag]);
+  }
+
+  destroy(): void {
+    console.log('destroying');
+    destroy(this);
+  }
+
+  render() {
+    let [definitionValue, definitionTag] = this.#initialized;
+
+    if (!definitionValue) {
+      updateTag(this.#tag, definitionTag);
+      return;
+    }
+
+    let { definition, owner, element, args } = definitionValue;
+
+    if (!definition) {
+      updateTag(this.#tag, definitionTag);
+      return;
+    }
+
+    let manager = definition.manager;
+
+    beginTrackFrame();
+
+    try {
+      consumeTag(definitionTag);
+      let state = manager.create(owner, element, definition.state, args);
+      let managerTag = manager.getTag(state);
+      if (managerTag) consumeTag(managerTag);
+      manager.install(state);
+      let destroyable = manager.getDestroyable(state);
+      if (destroyable) {
+        associateDestroyableChild(this, destroyable);
+        this.#lastDestroyable = destroyable;
+      }
+      this.#lastInstance = {
+        manager,
+        state,
+        definition,
+      };
+    } finally {
+      let userTag = endTrackFrame();
+      updateTag(this.#tag, userTag);
+    }
+
+    this.#lastUpdated = now();
+
+    // let [instance, tag] = getTaggedValue(this.#cache);
+    // this.#lastInstance = instance;
+    // this.#lastTag = tag;
+    // this.#lastUpdated = current();
+
+    // if (!instance) return;
+
+    // let { manager, definition, state } = instance;
+    // let modifierTag = manager.getTag(state);
+    // updateTag(this.#tag, modifierTag ?? CONSTANT_TAG);
+
+    // if (modifierTag) {
+    //   let tag = track(
+    //     () => manager.install(state),
+    //     import.meta.env.DEV &&
+    //       `- While rendering:\n  (instance of a \`${
+    //         definition.resolvedName || manager.getDebugName(definition.state)
+    //       }\` modifier)`
+    //   );
+    //   updateTag(modifierTag, tag);
+    // } else {
+    //   manager.install(state);
+    // }
+
+    // let d = manager.getDestroyable(state);
+    // if (d) {
+    //   associateDestroyableChild(this, d);
+    //   this.#lastDestroyable = d;
+    // }
+  }
+
+  #cleanup() {
+    if (this.#lastDestroyable) {
+      destroy(this.#lastDestroyable);
+      this.#lastDestroyable = null;
+    }
+  }
+
+  update() {
+    // let [{ definition: newDefinition, owner, element, args }, definitionTag] = getTaggedValue(
+    //   this.#cache
+    // );
+    // let [{ definition: lastDefinition }, lastDefinitionTag] = unwrap(this.#lastDefinition);
+
+    let [, lastDefinitionTag] = unwrap(this.#lastDefinition);
+
+    if (!validateTag(lastDefinitionTag, this.#lastUpdated)) {
+      this.#cleanup();
+      this.render();
+      this.#lastUpdated = now();
+      return;
+      // throw new Error(`unimplemented: regenerating definition`);
+    }
+
+    let { state, manager } = unwrap(this.#lastInstance);
+
+    if (!validateTag(this.#tag, this.#lastUpdated)) {
+      manager.update(state);
+      this.#lastUpdated = now();
+    }
+
+    // if (lastDefinition !== newDefinition) {
+    //   debugger;
+    //   this.#cleanup();
+    // }
+
+    // this.#lastInstance = instance;
+    // this.#lastTag = tag;
+    // this.#lastUpdated = current();
+    // if (!instance) {
+    //   if (this.#lastDestroyable) destroy(this.#lastDestroyable);
+    //   this.#lastDestroyable = undefined;
+    //   return;
+    // }
+    // if (instance !== this.#lastInstance) {
+    //   throw new Error(`unimplemented: teardown`);
+    // }
+    // let { manager, definition, state } = instance;
+    // let modifierTag = manager.getTag(state);
+    // updateTag(this.#tag, modifierTag ?? CONSTANT_TAG);
+    // if (modifierTag) {
+    //   let tag = track(
+    //     () => manager.update(state),
+    //     import.meta.env.DEV &&
+    //       `- While rendering:\n  (instance of a \`${
+    //         definition.resolvedName || manager.getDebugName(definition.state)
+    //       }\` modifier)`
+    //   );
+    //   updateTag(modifierTag, tag);
+    // } else {
+    //   manager.update(state);
+    // }
+    // let d = manager.getDestroyable(state);
+    // if (d) associateDestroyableChild(this, d);
+  }
+
+  // destroy() {}
 
   evaluate(vm: UpdatingVM) {
-    let tag = this.#tag;
+    consumeTag(this.#tag);
+    console.log({ evaluate: this });
+    // let next;
+    let isValid = this.#lastTag ? validateTag(this.#lastTag, this.#lastUpdated) : false;
 
-    consumeTag(tag);
+    if (isValid) return;
 
-    if (!validateTag(tag, this.#lastUpdated)) {
-      let modifier = expect(
-        this.#modifier.current,
-        `BUG: Modifier instance should exist by the time its associated UpdatingOpcode is evaluated`
-      );
-      vm.env.scheduleUpdateModifier(modifier);
-      this.#lastUpdated = valueForTag(tag);
-    }
+    vm.env.scheduleUpdateModifier(this);
+
+    // let lastTag = track(() => (next = getValue(this.#cache)));
+    // console.log({ update: valueForTag(this.#opcodeTag), lastTag: valueForTag(lastTag) });
+    // console.log(valueForTag(lastTag), current());
+    // debugger;
+    // let isOpcodeValid = validateTag(this.#opcodeTag, this.#lastUpdated);
+    // let isCacheValid =
+    //   this.#lastCacheTag !== undefined && validateTag(this.#lastCacheTag, this.#lastUpdated);
+    // if (isOpcodeValid && isCacheValid) {
+    //   return;
+    // }
+    // let next;
+    // this.#lastCacheTag = track(() => (next = getValue(this.#cache)));
+    // this.#lastUpdated = valueForTag(this.#opcodeTag);
+    // if (next) vm.env.scheduleUpdateModifier(next);
+    // validate(this.#opcodeTag, this.#lastUpdated, (revision) => {
+    //   this.#lastUpdated = revision;
+    //   let next = getValue(this.#cache);
+    //   if (next) vm.env.scheduleUpdateModifier(next);
+    // });
   }
 }
 
-export class UpdateDynamicModifierOpcode implements UpdatingOpcode {
-  #lastUpdated: Revision;
-  #tag: Tag | null;
-  #instance: ModifierInstance | undefined;
-  readonly #instanceRef: Reference<ModifierInstance | undefined>;
+function validate<T>(
+  tag: Tag,
+  lastUpdated: Revision,
+  ifInvalid: (revision: Revision) => T,
+  ifValid?: () => T
+): T | undefined {
+  consumeTag(tag);
 
-  constructor(
-    tag: Tag | null,
-    instance: ModifierInstance | undefined,
-    instanceReference: Reference<ModifierInstance | undefined>
-  ) {
-    this.#tag = tag;
-    this.#instance = instance;
-    this.#instanceRef = instanceReference;
-    this.#lastUpdated = valueForTag(tag ?? CURRENT_TAG);
-  }
-
-  evaluate(vm: UpdatingVM) {
-    let tag = this.#tag;
-    let lastUpdated = this.#lastUpdated;
-    let instance = this.#instance;
-    let instanceReference = this.#instanceRef;
-
-    let newInstance = valueForRef(instanceReference);
-
-    if (newInstance !== instance) {
-      if (instance !== undefined) {
-        let destroyable = instance.manager.getDestroyable(instance.state);
-
-        if (destroyable !== null) {
-          destroy(destroyable);
-        }
-      }
-
-      if (newInstance !== undefined) {
-        let { manager, state } = newInstance;
-        let destroyable = manager.getDestroyable(state);
-
-        if (destroyable !== null) {
-          associateDestroyableChild(this, destroyable);
-        }
-
-        tag = manager.getTag(state);
-
-        if (tag !== null) {
-          this.#lastUpdated = valueForTag(tag);
-        }
-
-        this.#tag = tag;
-        vm.env.scheduleInstallModifier(newInstance);
-      }
-
-      this.#instance = newInstance;
-    } else if (tag !== null && !validateTag(tag, lastUpdated)) {
-      vm.env.scheduleUpdateModifier(instance!);
-      this.#lastUpdated = valueForTag(tag);
-    }
-
-    if (tag !== null) {
-      consumeTag(tag);
-    }
-  }
+  return validateTag(tag, lastUpdated) ? ifValid?.() : ifInvalid(lastUpdated);
 }
+
+// export class UpdateDynamicModifierOpcode implements UpdatingOpcode {
+//   #lastUpdated: Revision;
+//   #tag: Tag | null;
+//   #instance: Reference<ModifierInstance>;
+//   #last: ModifierInstance | undefined;
+
+//   constructor(
+//     tag: Tag | null,
+//     element: Element,
+//     owner: object,
+//     instance: Reference<ModifierInstance>
+//   ) {
+//     this.#tag = tag;
+//     this.#instance = instance;
+//     this.#lastUpdated = valueForTag(tag ?? CURRENT_TAG);
+//   }
+
+//   evaluate(vm: UpdatingVM) {
+//     let tag = this.#tag;
+//     let lastUpdated = this.#lastUpdated;
+//     let instance = valueForRef(this.#instance);
+
+//     let newInstance = valueForRef(instanceReference);
+
+//     if (newInstance !== instance) {
+//       if (instance !== undefined) {
+//         let destroyable = instance.manager.getDestroyable(instance.state);
+
+//         if (destroyable !== null) {
+//           destroy(destroyable);
+//         }
+//       }
+
+//       if (newInstance !== undefined) {
+//         let { manager, state } = newInstance;
+//         let destroyable = manager.getDestroyable(state);
+
+//         if (destroyable !== null) {
+//           associateDestroyableChild(this, destroyable);
+//         }
+
+//         tag = manager.getTag(state);
+
+//         if (tag !== null) {
+//           this.#lastUpdated = valueForTag(tag);
+//         }
+
+//         this.#tag = tag;
+//         vm.env.scheduleInstallModifier(newInstance);
+//       }
+
+//       this.#instance.current = newInstance;
+//     } else if (tag !== null && !validateTag(tag, lastUpdated)) {
+//       vm.env.scheduleUpdateModifier(instance);
+//       this.#lastUpdated = valueForTag(tag);
+//     }
+
+//     if (tag !== null) {
+//       consumeTag(tag);
+//     }
+//   }
+// }
 
 define(STATIC_ATTR_OP, (vm, { op1: _name, op2: _value, op3: _namespace }) => {
   let name = vm[CONSTANTS].getValue<string>(_name);

@@ -103,29 +103,28 @@ define(PRIMITIVE_REFERENCE_OP, (vm) => {
   let reference;
 
   switch (value) {
-  case undefined:
-    reference = UNDEFINED_REFERENCE;
-  
-  break;
-  
-  case null:
-    reference = NULL_REFERENCE;
-  
-  break;
-  
-  case true:
-    reference = TRUE_REFERENCE;
-  
-  break;
-  
-  case false:
-    reference = FALSE_REFERENCE;
-  
-  break;
-  
-  default:
-    reference = createPrimitiveRef(value);
-  
+    case undefined:
+      reference = UNDEFINED_REFERENCE;
+
+      break;
+
+    case null:
+      reference = NULL_REFERENCE;
+
+      break;
+
+    case true:
+      reference = TRUE_REFERENCE;
+
+      break;
+
+    case false:
+      reference = FALSE_REFERENCE;
+
+      break;
+
+    default:
+      reference = createPrimitiveRef(value);
   }
 
   stack.push(reference);

@@ -1,4 +1,4 @@
-import type { Tag } from "@glimmer/interfaces";
+import type { Tag } from '@glimmer/interfaces';
 
 import { debug } from './debug';
 import { unwrap } from './utils';
@@ -133,6 +133,9 @@ export interface Cache<T = unknown> {
   [CACHE_KEY]: T;
 }
 
+// `Cache` is a global in browsers so it works poorly with auto-import.
+export type TrackedCache<T = unknown> = Cache<T>;
+
 const FN = Symbol('FN');
 const LAST_VALUE = Symbol('LAST_VALUE');
 const TAG = Symbol('TAG');
@@ -168,7 +171,7 @@ export function createCache<T>(fn: () => T, debuggingLabel?: string | false): Ca
   return cache as unknown as Cache<T>;
 }
 
-export function getValue<T>(cache: Cache<T>): T | undefined {
+export function getValue<T>(cache: Cache<T>): T {
   assertCache(cache, 'getValue');
 
   let fn = cache[FN];
@@ -190,7 +193,8 @@ export function getValue<T>(cache: Cache<T>): T | undefined {
     consumeTag(tag);
   }
 
-  return cache[LAST_VALUE];
+  // TODO [2023/05/24] replace the `!` with unwrap() once the current refactor is done
+  return cache[LAST_VALUE]!;
 }
 
 export function isConst(cache: Cache): boolean {
@@ -225,6 +229,20 @@ function assertTag(tag: Tag | undefined, cache: InternalCache): asserts tag is T
       )}`
     );
   }
+}
+
+export function getTaggedValue<T>(cache: TrackedCache<T>): [value: T, tag: Tag] {
+  beginTrackFrame();
+  let tag: Tag;
+  let value: T;
+
+  try {
+    value = getValue(cache);
+  } finally {
+    tag = endTrackFrame();
+  }
+
+  return [value, tag];
 }
 
 //////////

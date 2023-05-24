@@ -7,6 +7,7 @@ import type {
   Dict,
   DynamicScope,
   ElementOperations,
+  ElementRef,
   Environment,
   InternalComponentCapabilities,
   Nullable,
@@ -39,6 +40,7 @@ import {
 
 import type { TestJitRuntimeResolver } from '../modes/jit/resolver';
 import type { TestComponentConstructor } from './types';
+import { unwrap } from '@glimmer/validator/lib/utils';
 
 export type Attributes = Dict;
 export type AttributesDiff = { oldAttrs: Nullable<Attributes>; newAttrs: Attributes };
@@ -62,7 +64,7 @@ export class EmberishCurlyComponent {
   public tagName: Nullable<string> = null;
   public attributeBindings: Nullable<string[]> = null;
   public declare attrs: Attributes;
-  public declare element: Element;
+  public declare elementRef: ElementRef;
   public declare bounds: Bounds;
   public parentView: Nullable<EmberishCurlyComponent> = null;
   public declare args: CapturedNamedArguments;
@@ -86,6 +88,10 @@ export class EmberishCurlyComponent {
   constructor() {
     this._guid = `${GUID++}`;
     this.init();
+  }
+
+  get element() {
+    return unwrap(this.elementRef.current);
   }
 
   set(key: string, value: unknown) {
@@ -268,10 +274,10 @@ export class EmberishCurlyComponentManager
 
   didCreateElement(
     { component, selfRef }: EmberishCurlyComponentState,
-    element: Element,
+    element: ElementRef,
     operations: ElementOperations
   ): void {
-    component.element = element;
+    component.elementRef = element;
 
     operations.setAttribute('id', createPrimitiveRef(`ember${component._guid}`), false, null);
     operations.setAttribute('class', createPrimitiveRef('ember-view'), false, null);

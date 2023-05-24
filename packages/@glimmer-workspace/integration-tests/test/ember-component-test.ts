@@ -1532,7 +1532,7 @@ class CurlyGlimmerComponentTest extends CurlyTest {
     assertFired(instance, 'didRender', 3);
   }
 
-  @test.todo
+  @test
   'Setting value attributeBinding to null results in empty string value'() {
     let instance: InputComponent | undefined;
 
@@ -2156,7 +2156,7 @@ class CurlyAppendableTest extends CurlyTest {
 class CurlyBoundsTrackingTest extends CurlyTest {
   static suiteName = '[curly components] bounds tracking';
 
-  @test.todo
+  @test
   'it works for wrapped (curly) components'() {
     let instance = this.capture<FooBar>();
 
@@ -2191,7 +2191,7 @@ class CurlyBoundsTrackingTest extends CurlyTest {
     assert.strictEqual(bounds.lastNode(), castToSimple(element));
   }
 
-  @test.todo
+  @test
   'it works for tagless components'() {
     let instance = this.capture<FooBar>();
 

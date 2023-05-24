@@ -31,7 +31,6 @@ import type {
   ProgramSymbolTable,
   Recast,
   ScopeSlot,
-  UpdatableTag,
   UpdatingOpcode,
   VMArguments,
   WithDynamicTagName,
@@ -113,11 +112,11 @@ import {
   CheckInvocation,
   CheckReference,
 } from './-debug-strip';
-import { UpdateDynamicAttributeOpcode, type ModifierInstanceRef } from './dom';
+import { UpdateDynamicAttributeOpcode, UpdateModifierOpcode } from './dom';
 import { CURRIED_COMPONENT } from '@glimmer/vm-constants';
 import { define } from '../../opcodes';
 import { getClassicBoundsFor } from '../../vm/update';
-import { CONSTANT_TAG, updateTag } from '@glimmer/validator';
+import { createUpdatableTag, type TrackedCache, getValue, createCache } from '@glimmer/validator';
 
 /**
  * The VM creates a new ComponentInstance data structure for every component
@@ -510,12 +509,7 @@ type DeferredAttribute = {
   trusting?: boolean;
 };
 
-type QueuedModifier = [
-  definition: ModifierDefinition,
-  arguments: CapturedArguments,
-  tag: UpdatableTag,
-  instance: ModifierInstanceRef
-];
+type QueuedModifier = [opcode: UpdateModifierOpcode, initialize: (element: Element) => void];
 
 export class ComponentElementOperations implements ElementOperations {
   readonly #attributes: Dict<DeferredAttribute> = {};
@@ -548,15 +542,91 @@ export class ComponentElementOperations implements ElementOperations {
   }
 
   addModifier(
-    definition: ModifierDefinition,
-    args: CapturedArguments,
-    tag: UpdatableTag,
-    instance: ModifierInstanceRef
-  ): void {
-    this.#modifiers.push([definition, args, tag, instance]);
+    definitionCache: TrackedCache<{
+      definition?: ModifierDefinition | undefined;
+      owner: object;
+    }>,
+    args: CapturedArguments
+  ): UpdateModifierOpcode {
+    let lastDestroyable: object | null;
+
+    let element: Element | undefined;
+
+    let lastInstance: ModifierInstance | undefined;
+    let isRegenerated = false;
+    let tag = createUpdatableTag();
+
+    // let multiLayerCache = createCache(() => {
+    //   let currentDefinition = getValue(definitionCache);
+
+    //   if (lastDestroyable) destroy(lastDestroyable);
+    //   if (currentDefinition === undefined) return;
+
+    //   // eslint-disable-next-line prefer-let/prefer-let
+    //   const { definition, owner: curriedOwner } = currentDefinition;
+    //   if (definition === undefined) return;
+
+    //   let manager = definition.manager;
+
+    //   lastDestroyable = manager.getDestroyable(definition.state);
+
+    //   if (lastInstance) {
+    //     isRegenerated = true;
+    //     lastInstance = undefined;
+    //   }
+
+    //   return createCache(() => {
+    //     if (modifierArgs === undefined) return;
+
+    //     let [element, owner] = modifierArgs;
+
+    //     if (lastInstance) {
+    //       let state = lastInstance.state;
+    //       manager.update(state);
+    //       lastDestroyable = manager.getDestroyable(state);
+    //       let managerTag = manager.getTag(state);
+    //       if (managerTag) updateTag(tag, managerTag);
+
+    //       return lastInstance;
+    //     } else {
+    //       if (isRegenerated) debugger;
+    //       let state = manager.create(curriedOwner ?? owner, element, definition.state, args);
+    //       lastDestroyable = manager.getDestroyable(state);
+
+    //       let managerTag = manager.getTag(state);
+    //       if (managerTag) updateTag(tag, managerTag);
+
+    //       return (lastInstance = {
+    //         manager,
+    //         state,
+    //         definition,
+    //       } satisfies ModifierInstance);
+    //     }
+    //   });
+    // }, 'modifier');
+
+    // let cache = createCache(() => {
+    //   consumeTag(tag);
+    //   let a = getValue(multiLayerCache);
+    //   return a && getValue(a);
+    // }, 'modifier');
+
+    let modifier = new UpdateModifierOpcode(
+      createCache(() => {
+        let { definition, owner } = getValue(definitionCache);
+        return {
+          definition,
+          owner,
+          args,
+          element: unwrap(element),
+        };
+      })
+    );
+    this.#modifiers.push([modifier, (newElement) => (element = newElement)]);
+    return modifier;
   }
 
-  flush(vm: InternalVM): ModifierInstance[] {
+  flush(vm: InternalVM): UpdateModifierOpcode[] {
     let type: DeferredAttribute | undefined;
     let attributes = this.#attributes;
 
@@ -586,20 +656,9 @@ export class ComponentElementOperations implements ElementOperations {
 
     let element = vm._elements_().flushElement() as Element;
 
-    return this.#modifiers.map(([definition, args, initialTag, instance]) => {
-      let manager = definition.manager;
-      let owner = vm._getOwner_();
-
-      let state = manager.create(owner, element, definition.state, args);
-
-      let tag = manager.getTag(state);
-      updateTag(initialTag, tag ?? CONSTANT_TAG);
-
-      return (instance.current = {
-        manager,
-        state,
-        definition,
-      });
+    return this.#modifiers.map(([opcode, initialize]) => {
+      initialize(element);
+      return opcode;
     });
   }
 }
@@ -652,10 +711,7 @@ define(DID_CREATE_ELEMENT_OP, (vm, { op1: _state }) => {
 
   (manager as WithElementHook<unknown>).didCreateElement(
     state,
-    expect(
-      vm._elements_()._currentElement_,
-      `Expected a constructing element in DidCreateOpcode`
-    ) as Element,
+    expect(vm._elements_()._constructing_, `Expected a constructing element in DidCreateOpcode`),
     operations
   );
 });
@@ -920,7 +976,7 @@ define(DID_RENDER_LAYOUT_OP, (vm, { op1: _state }) => {
 
   if (managerHasCapability(manager, capabilities, CREATE_INSTANCE_CAPABILITY)) {
     let mgr = check(manager, CheckInterface({ didRenderLayout: CheckFunction }));
-    mgr.didRenderLayout(state, bounds);
+    mgr.didRenderLayout(state, getClassicBoundsFor(bounds));
 
     vm.env.didCreate(instance as ComponentInstanceWithCreate);
     vm._updateWith_(new DidUpdateLayoutOpcode(instance as ComponentInstanceWithCreate, bounds));

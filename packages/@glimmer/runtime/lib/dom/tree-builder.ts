@@ -241,9 +241,11 @@ export class TreeConstruction implements DOMTreeBuilder {
     return child;
   }
 
-  endElement() {
+  endElement(): MinimalElement {
     this.#depth--;
+    let element = unwrap(this.#cursor[PARENT_ELEMENT]);
     this.#cursor = unwrap(this.#cursor[PARENT_CURSOR]);
+    return element as MinimalElement;
   }
 }
 

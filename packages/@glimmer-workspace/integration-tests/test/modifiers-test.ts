@@ -54,21 +54,19 @@ class ModifierTests extends RenderTest {
   }
 
   @test
-  'didUpdate is not called when params are constants'(assert: Assert, count: Count) {
+  'didUpdate is not called when params are constants'(assert: Assert) {
     this.registerModifier(
       'foo',
       class {
         element?: Element;
         didInsertElement() {
-          count.expect('didInsertElement');
-          assert.ok(true);
+          assert.step('hook: didInsertElement');
         }
         didUpdate() {
-          count.expect('didUpdate', 0);
-          assert.ok(false);
+          assert.step('hook: didUpdate');
         }
         willDestroyElement() {
-          count.expect('willDestroyElement');
+          assert.step('hook: willDestroy');
         }
       }
     );
@@ -77,8 +75,17 @@ class ModifierTests extends RenderTest {
       ok: true,
       data: 'ok',
     });
+
+    assert.verifySteps(['hook: didInsertElement']);
+
+    assert.true(true, '=benign rerender=');
     this.rerender({ data: 'yup' });
+    assert.verifySteps([]);
+
+    assert.true(true, '=remove parent element=');
     this.rerender({ ok: false });
+
+    assert.verifySteps(['hook: willDestroy']);
   }
 
   @test
@@ -347,29 +354,27 @@ class ModifierTests extends RenderTest {
     assert.deepEqual(destructionOrder, ['foo', 'bar']);
   }
 
-  @test.todo
+  @test
   'parent -> child insertion order'(assert: Assert) {
-    let insertionOrder: string[] = [];
-
-    class Foo extends AbstractInsertable {
+    class Parent extends AbstractInsertable {
       didInsertElement() {
-        insertionOrder.push('foo');
+        assert.step('parent: didInsertElement');
       }
     }
 
-    class Bar extends AbstractInsertable {
+    class Child extends AbstractInsertable {
       didInsertElement() {
-        insertionOrder.push('bar');
+        assert.step('child: didInsertElement');
       }
     }
-    this.registerModifier('bar', Bar);
-    this.registerModifier('foo', Foo);
+    this.registerModifier('parent', Parent);
+    this.registerModifier('child', Child);
 
-    this.render('<div {{foo}}><div {{bar}}></div></div>');
-    assert.deepEqual(insertionOrder, ['bar', 'foo']);
+    this.render('<div {{parent}}><div {{child}}></div></div>');
+    assert.verifySteps(['child: didInsertElement', 'parent: didInsertElement']);
   }
 
-  @test.todo
+  @test
   'parent -> child destruction order'(assert: Assert) {
     let destructionOrder: string[] = [];
 
@@ -393,7 +398,7 @@ class ModifierTests extends RenderTest {
     assert.deepEqual(destructionOrder, ['bar', 'foo']);
   }
 
-  @test.todo
+  @test
   'sibling insertion order'(assert: Assert) {
     let insertionOrder: string[] = [];
 
@@ -422,12 +427,13 @@ class ModifierTests extends RenderTest {
     assert.deepEqual(insertionOrder, ['bar', 'baz', 'foo']);
   }
 
-  @test.todo
+  @test
   'sibling destruction order'(assert: Assert) {
     let destructionOrder: string[] = [];
 
     class Foo extends AbstractDestroyable {
       willDestroyElement() {
+        debugger;
         destructionOrder.push('foo');
       }
     }

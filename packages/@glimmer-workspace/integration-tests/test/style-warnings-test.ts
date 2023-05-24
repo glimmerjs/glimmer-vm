@@ -20,6 +20,8 @@ class StyleWarningsTest extends RenderTest {
         getProp(obj, key) {
           return (obj as Record<string, unknown>)[key];
         },
+
+        scheduleRevalidate() {},
       }) ?? null;
   }
 

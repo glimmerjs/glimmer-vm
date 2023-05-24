@@ -91,7 +91,7 @@ export interface DOMTreeBuilder {
   startElement(tag: string): void;
   addAttr(attributeName: string, attributeValue: unknown): AttributeRef;
   flushElement(): MinimalElement;
-  endElement(): void;
+  endElement(): MinimalElement;
 
   recover(): void;
 

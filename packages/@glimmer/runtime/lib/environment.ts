@@ -1,10 +1,11 @@
 import type {
   AppendOperations,
   ComponentInstanceWithCreate,
+  Destroyable,
   Environment,
   EnvironmentOptions,
   GlimmerTreeChanges,
-  ModifierInstance,
+  InstallableModifier,
   Nullable,
   RuntimeArtifacts,
   RuntimeContext,
@@ -14,83 +15,130 @@ import type {
 } from '@glimmer/interfaces';
 import { RuntimeProgramImpl } from '@glimmer/program';
 import { assert, expect } from '@glimmer/util';
-import { track, updateTag } from '@glimmer/validator';
 
 import DebugRenderTree from './debug-render-tree';
 import { DOMChangesImpl } from './dom/helper';
 import { TreeConstruction } from './dom/tree-builder';
+import { associateDestroyableChild } from '@glimmer/destroyable';
 
 export const TRANSACTION: TransactionSymbol = Symbol('TRANSACTION') as TransactionSymbol;
 
+type QueuedModifier = [modifier: InstallableModifier, parent: Destroyable];
+
 class TransactionImpl implements Transaction {
-  public scheduledInstallModifiers: ModifierInstance[] = [];
-  public scheduledUpdateModifiers: ModifierInstance[] = [];
-  public createdComponents: ComponentInstanceWithCreate[] = [];
-  public updatedComponents: ComponentInstanceWithCreate[] = [];
+  #flushedModifiers: WeakMap<Element, QueuedModifier[]> = new WeakMap();
+  #scheduledInstallModifiers: QueuedModifier[] = [];
+  #scheduledUpdateModifiers: InstallableModifier[] = [];
+
+  #createdComponents: ComponentInstanceWithCreate[] = [];
+  #updatedComponents: ComponentInstanceWithCreate[] = [];
 
   didCreate(component: ComponentInstanceWithCreate) {
-    this.createdComponents.push(component);
+    this.#createdComponents.push(component);
   }
 
   didUpdate(component: ComponentInstanceWithCreate) {
-    this.updatedComponents.push(component);
+    this.#updatedComponents.push(component);
   }
 
-  scheduleInstallModifier(modifier: ModifierInstance) {
-    this.scheduledInstallModifiers.push(modifier);
+  didAppend(element: Element) {
+    let queuedModifiers = this.#flushedModifiers.get(element);
+
+    if (queuedModifiers) {
+      for (let [modifier, parent] of queuedModifiers) {
+        this.#scheduledInstallModifiers.push([modifier, parent]);
+      }
+      this.#flushedModifiers.delete(element);
+    }
   }
 
-  scheduleUpdateModifier(modifier: ModifierInstance) {
-    this.scheduledUpdateModifiers.push(modifier);
+  scheduleInstallModifier(modifier: InstallableModifier, parent: object) {
+    let element = modifier.element;
+
+    let queuedModifiers = this.#flushedModifiers.get(element);
+
+    if (queuedModifiers === undefined) {
+      queuedModifiers = [];
+      this.#flushedModifiers.set(element, queuedModifiers);
+    }
+
+    queuedModifiers.push([modifier, parent]);
   }
 
-  commit() {
-    let { createdComponents, updatedComponents } = this;
+  scheduleUpdateModifier(modifier: InstallableModifier) {
+    this.#scheduledUpdateModifiers.push(modifier);
+  }
 
-    for (let { manager, state } of createdComponents) {
+  commit(env: Environment) {
+    for (let { manager, state } of this.#createdComponents) {
       manager.didCreate(state);
     }
 
-    for (let { manager, state } of updatedComponents) {
+    for (let { manager, state } of this.#updatedComponents) {
       manager.didUpdate(state);
     }
 
-    let { scheduledInstallModifiers, scheduledUpdateModifiers } = this;
-
-    for (let { manager, state, definition } of scheduledInstallModifiers) {
-      let modifierTag = manager.getTag(state);
-
-      if (modifierTag === null) {
-        manager.install(state);
-      } else {
-        let tag = track(
-          () => manager.install(state),
-          import.meta.env.DEV &&
-            `- While rendering:\n  (instance of a \`${
-              definition.resolvedName || manager.getDebugName(definition.state)
-            }\` modifier)`
-        );
-        updateTag(modifierTag, tag);
-      }
+    for (let [modifier, parent] of this.#scheduledInstallModifiers) {
+      modifier.render();
+      associateDestroyableChild(parent, modifier);
     }
 
-    for (let { manager, state, definition } of scheduledUpdateModifiers) {
-      let modifierTag = manager.getTag(state);
-
-      if (modifierTag === null) {
-        manager.update(state);
-      } else {
-        let tag = track(
-          () => manager.update(state),
-          import.meta.env.DEV &&
-            `- While rendering:\n  (instance of a \`${
-              definition.resolvedName || manager.getDebugName(definition.state)
-            }\` modifier)`
-        );
-        updateTag(modifierTag, tag);
-      }
+    for (let modifier of this.#scheduledUpdateModifiers) {
+      modifier.update(env);
+      // let modifierTag = manager.getTag(state);
+      // if (modifierTag === null) {
+      //   manager.update(state);
+      // } else {
+      //   let tag = track(
+      //     () => manager.update(state),
+      //     import.meta.env.DEV &&
+      //       `- While rendering:\n  (instance of a \`${
+      //         definition.resolvedName || manager.getDebugName(definition.state)
+      //       }\` modifier)`
+      //   );
+      //   updateTag(modifierTag, tag);
+      // }
     }
   }
+}
+
+const DOCUMENT_POSITION_DISCONNECTED = 1;
+const DOCUMENT_POSITION_PRECEDING = 2;
+const DOCUMENT_POSITION_FOLLOWING = 4;
+const DOCUMENT_POSITION_CONTAINS = 8;
+const DOCUMENT_POSITION_CONTAINED_BY = 16;
+const DOCUMENT_POSITION_IMPLEMENTATION_SPECIFIC = 32;
+
+function sortModifiers(modifiers: InstallableModifier[]) {
+  // sort by document containment:
+  // - bottom to top
+  // - left to right
+  //
+  // each modifier has an `element` property
+
+  return modifiers.sort((a, b) => {
+    let aElement = a.element;
+    let bElement = b.element;
+    let compare = aElement.compareDocumentPosition(bElement);
+
+    if (compare & DOCUMENT_POSITION_CONTAINS) {
+      return -1;
+    }
+
+    if (compare & DOCUMENT_POSITION_CONTAINED_BY) {
+      return 1;
+    }
+
+    if (compare & DOCUMENT_POSITION_PRECEDING) {
+      return 1;
+    }
+
+    if (compare & DOCUMENT_POSITION_FOLLOWING) {
+      return -1;
+    }
+
+    return 0;
+  });
 }
 
 export class EnvironmentImpl implements Environment {
@@ -118,7 +166,6 @@ export class EnvironmentImpl implements Environment {
       options.appendOperations ?? ((cursor) => TreeConstruction._forCursor_(cursor));
     this.updateOperations =
       options.updateOperations ?? new DOMChangesImpl(options.document as unknown as Document);
-
   }
 
   getDOM(): GlimmerTreeChanges {
@@ -152,13 +199,19 @@ export class EnvironmentImpl implements Environment {
     this.transaction.didUpdate(component);
   }
 
-  scheduleInstallModifier(modifier: ModifierInstance) {
+  didAppend(element: Element): void {
     if (this.isInteractive) {
-      this.transaction.scheduleInstallModifier(modifier);
+      this.transaction.didAppend(element);
     }
   }
 
-  scheduleUpdateModifier(modifier: ModifierInstance) {
+  scheduleInstallModifier(modifier: InstallableModifier, parent: Destroyable) {
+    if (this.isInteractive) {
+      this.transaction.scheduleInstallModifier(modifier, parent);
+    }
+  }
+
+  scheduleUpdateModifier(modifier: InstallableModifier) {
     if (this.isInteractive) {
       this.transaction.scheduleUpdateModifier(modifier);
     }
@@ -167,7 +220,7 @@ export class EnvironmentImpl implements Environment {
   commit() {
     let transaction = this.transaction;
     this[TRANSACTION] = null;
-    transaction.commit();
+    transaction.commit(this);
 
     this.debugRenderTree?.commit();
 

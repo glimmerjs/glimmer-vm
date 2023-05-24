@@ -17,6 +17,7 @@ import type {
 
 import { debug } from './debug';
 import { unwrap } from './utils';
+import { LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
 
 //////////
 
@@ -28,8 +29,22 @@ export const VOLATILE: Revision = Number.NaN;
 
 export let $REVISION = INITIAL;
 
-export function bump(): void {
-  $REVISION++;
+export function bump(debug?: string): Revision {
+  if (import.meta.env.DEV && LOCAL_SHOULD_LOG) {
+    {
+      // eslint-disable-next-line no-console
+      console.groupCollapsed(`[validator] revision->${$REVISION + 1}${debug ? ` (${debug})` : ''}`);
+      // eslint-disable-next-line no-console
+      console.trace();
+      // eslint-disable-next-line no-console
+      console.groupEnd();
+    }
+  }
+  return ++$REVISION;
+}
+
+export function now(): Revision {
+  return $REVISION;
 }
 
 //////////
@@ -101,64 +116,6 @@ class MonomorphicTagImpl<T extends MonomorphicTagId = MonomorphicTagId> {
     }
   }
 
-  private revision = INITIAL;
-  private lastChecked = INITIAL;
-  private lastValue = INITIAL;
-
-  private isUpdating = false;
-  public subtag: Tag | Tag[] | null = null;
-  private subtagBufferCache: Revision | null = null;
-
-  [TYPE]: T;
-
-  constructor(type: T) {
-    this[TYPE] = type;
-  }
-
-  [COMPUTE](): Revision {
-    let { lastChecked } = this;
-
-    if (this.isUpdating === true) {
-      if (import.meta.env.DEV && !allowsCycles(this)) {
-        throw new Error('Cycles in tags are not allowed');
-      }
-
-      this.lastChecked = ++$REVISION;
-    } else if (lastChecked !== $REVISION) {
-      this.isUpdating = true;
-      this.lastChecked = $REVISION;
-
-      try {
-        let { subtag, revision } = this;
-
-        if (subtag !== null) {
-          if (Array.isArray(subtag)) {
-            for (let tag of subtag) {
-              let value = tag[COMPUTE]();
-              revision = Math.max(value, revision);
-            }
-          } else {
-            let subtagValue = subtag[COMPUTE]();
-
-            if (subtagValue === this.subtagBufferCache) {
-              revision = Math.max(revision, this.lastValue);
-            } else {
-              // Clear the temporary buffer cache
-              this.subtagBufferCache = null;
-              revision = Math.max(revision, subtagValue);
-            }
-          }
-        }
-
-        this.lastValue = revision;
-      } finally {
-        this.isUpdating = false;
-      }
-    }
-
-    return this.lastValue;
-  }
-
   static updateTag(this: void, _tag: UpdatableTag, _subtag: Tag) {
     if (import.meta.env.DEV && _tag[TYPE] !== UPDATABLE_TAG_ID) {
       throw new Error('Attempted to update a tag that was not updatable');
@@ -212,9 +169,67 @@ class MonomorphicTagImpl<T extends MonomorphicTagId = MonomorphicTagId> {
       unwrap(debug.assertTagNotConsumed)(tag);
     }
 
-    (tag as MonomorphicTagImpl).revision = ++$REVISION;
+    (tag as MonomorphicTagImpl).revision = import.meta.env.DEV ? bump() : bump();
 
     scheduleRevalidate();
+  }
+
+  private revision = INITIAL;
+  private lastChecked = INITIAL;
+  private lastValue = INITIAL;
+
+  private isUpdating = false;
+  public subtag: Tag | Tag[] | null = null;
+  private subtagBufferCache: Revision | null = null;
+
+  [TYPE]: T;
+
+  constructor(type: T) {
+    this[TYPE] = type;
+  }
+
+  [COMPUTE](): Revision {
+    let { lastChecked } = this;
+
+    if (this.isUpdating === true) {
+      if (import.meta.env.DEV && !allowsCycles(this)) {
+        throw new Error('Cycles in tags are not allowed');
+      }
+
+      this.lastChecked = bump();
+    } else if (lastChecked !== now()) {
+      this.isUpdating = true;
+      this.lastChecked = now();
+
+      try {
+        let { subtag, revision } = this;
+
+        if (subtag !== null) {
+          if (Array.isArray(subtag)) {
+            for (let tag of subtag) {
+              let value = tag[COMPUTE]();
+              revision = Math.max(value, revision);
+            }
+          } else {
+            let subtagValue = subtag[COMPUTE]();
+
+            if (subtagValue === this.subtagBufferCache) {
+              revision = Math.max(revision, this.lastValue);
+            } else {
+              // Clear the temporary buffer cache
+              this.subtagBufferCache = null;
+              revision = Math.max(revision, subtagValue);
+            }
+          }
+        }
+
+        this.lastValue = revision;
+      } finally {
+        this.isUpdating = false;
+      }
+    }
+
+    return this.lastValue;
   }
 }
 

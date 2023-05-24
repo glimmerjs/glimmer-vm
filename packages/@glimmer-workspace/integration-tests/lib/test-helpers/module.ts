@@ -6,7 +6,7 @@ import { JitRenderDelegate } from '../modes/jit/delegate';
 import { NodeJitRenderDelegate } from '../modes/node/env';
 import type RenderDelegate from '../render-delegate';
 import type { RenderDelegateOptions } from '../render-delegate';
-import type { Count, IRenderTest, RenderTest } from '../render-test';
+import type { Count, IRenderTest } from '../render-test';
 import { JitSerializationDelegate } from '../suites/custom-dom-helper';
 import type { ComponentTestMeta, DeclaredComponentKind } from '../test-decorator';
 
@@ -27,6 +27,13 @@ export function jitSuite<T extends IRenderTest>(
 ): void {
   return suite(klass, JitRenderDelegate, options);
 }
+
+jitSuite.todo = <T extends IRenderTest>(
+  klass: RenderTestConstructor<RenderDelegate, T>,
+  options?: { componentModule?: boolean; env?: EnvironmentDelegate }
+): void => {
+  return suite.todo(klass, JitRenderDelegate, options);
+};
 
 export function nodeSuite<T extends IRenderTest>(
   klass: RenderTestConstructor<RenderDelegate, T>,
@@ -67,6 +74,19 @@ export function componentSuite<D extends RenderDelegate>(
   return suite(klass, Delegate, { componentModule: true });
 }
 
+componentSuite.pending = <D extends RenderDelegate>(
+  klass: RenderTestConstructor<D, IRenderTest>,
+  Delegate: RenderDelegateConstructor<D>
+): void => {
+  let suiteName = klass.suiteName;
+
+  QUnit.module(`${Delegate.style} :: Components :: ${suiteName}`);
+
+  QUnit.todo('pending', (assert) => {
+    assert.ok(false, 'the entire suite is pending');
+  });
+};
+
 export function suite<D extends RenderDelegate>(
   klass: RenderTestConstructor<D, IRenderTest>,
   Delegate: RenderDelegateConstructor<D>,
@@ -76,11 +96,11 @@ export function suite<D extends RenderDelegate>(
 
   if (options.componentModule) {
     if (shouldRunTest<D>(Delegate)) {
-      componentModule(
-        `${Delegate.style} :: Components :: ${suiteName}`,
-        klass as any as RenderTestConstructor<D, RenderTest>,
-        Delegate
-      );
+      QUnit.module(`${Delegate.style} :: Components :: ${suiteName}`);
+
+      QUnit.todo('TODO', (assert) => {
+        assert.ok(false, 'the entire suite is pending');
+      });
     }
   } else {
     let instance: IRenderTest | null = null;
@@ -109,6 +129,51 @@ export function suite<D extends RenderDelegate>(
     }
   }
 }
+
+suite.todo = <D extends RenderDelegate>(
+  klass: RenderTestConstructor<D, IRenderTest>,
+  Delegate: RenderDelegateConstructor<D>,
+  options: { componentModule?: boolean; env?: EnvironmentDelegate } = {}
+): void => {
+  let suiteName = klass.suiteName;
+
+  if (options.componentModule) {
+    // eslint-disable-next-line no-console
+    console.warn(`TODO suites are not supported in component modules (try componentSuite.pending)`);
+    QUnit.module(`${Delegate.style} :: Components :: ${suiteName}`);
+
+    QUnit.todo('pending', (assert) => {
+      assert.ok(false, 'the entire suite is pending');
+    });
+  } else {
+    let instance: IRenderTest | null = null;
+    QUnit.module(`[integration] ${Delegate.style} :: ${suiteName}`, {
+      beforeEach() {
+        instance = new klass(new Delegate({ env: options.env }));
+        if (instance.beforeEach) instance.beforeEach();
+      },
+    });
+
+    for (let property of Object.keys(klass.prototype)) {
+      let desc = Object.getOwnPropertyDescriptor(klass.prototype, property);
+      if (desc && isTestFunction(desc.value)) {
+        desc.value.testModifier = 'todo';
+      }
+    }
+
+    // for (let property in klass.prototype) {
+    //   let test = klass.prototype[property];
+
+    //   if (isTestFunction(test) && shouldRunTest<D>(Delegate)) {
+    //     // eslint-disable-next-line no-loop-func
+    //     QUnit[test.testModifier](property, (assert) => {
+    //       test.call(instance!, assert, instance!.count);
+    //       instance!.count.assert();
+    //     });
+    //   }
+    // }
+  }
+};
 
 type ComponentTestFunction<D extends RenderDelegate, T extends IRenderTest> = (
   type: ComponentKind,

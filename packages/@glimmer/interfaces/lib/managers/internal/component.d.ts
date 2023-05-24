@@ -1,7 +1,7 @@
 import type { CapabilityMask, ComponentInstanceState, PreparedArguments } from '../../components';
 import type { Destroyable, Nullable } from '../../core';
 import type { Bounds } from '../../dom/bounds';
-import type { SimpleElement } from '../../dom/simple';
+import type { ElementRef } from '../../dom/tree-builder';
 import type { Reference } from '../../references';
 import type { Owner } from '../../runtime';
 import type { CapturedArguments, VMArguments } from '../../runtime/arguments';
@@ -288,7 +288,9 @@ export interface WithElementHook<ComponentInstanceState>
   // process, to provide hooks for user code.
   didCreateElement(
     component: ComponentInstanceState,
-    element: SimpleElement | Element,
+    // TODO [2023/05/25]: If this remains, it's a breaking change that needs
+    // to be documented and incorporated
+    element: ElementRef,
     operations: ElementOperations
   ): void;
 }

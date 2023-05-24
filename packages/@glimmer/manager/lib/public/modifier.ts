@@ -10,7 +10,7 @@ import type {
   UpdatableTag,
 } from '@glimmer/interfaces';
 import { valueForRef } from '@glimmer/reference';
-import { castToBrowser, dict } from '@glimmer/util';
+import { dict } from '@glimmer/util';
 import { createUpdatableTag, untrack } from '@glimmer/validator';
 
 import { argsProxyFor } from '../util/args-proxy';
@@ -138,9 +138,9 @@ export class CustomModifierManager<O extends Owner, ModifierInstance>
     let { capabilities } = delegate;
 
     if (capabilities.disableAutoTracking === true) {
-      untrack(() => delegate.installModifier(modifier, castToBrowser(element, 'ELEMENT'), args));
+      untrack(() => delegate.installModifier(modifier, element, args));
     } else {
-      delegate.installModifier(modifier, castToBrowser(element, 'ELEMENT'), args);
+      delegate.installModifier(modifier, element, args);
     }
   }
 

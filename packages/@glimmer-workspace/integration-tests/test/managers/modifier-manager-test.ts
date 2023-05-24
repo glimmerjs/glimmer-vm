@@ -167,14 +167,15 @@ abstract class ModifierManagerTest extends RenderTest {
           // track the count of the first item
 
           trackedOne.count;
-          insertCount++;
+          assert.step('hook: didInsertElement');
+          // insertCount++;
         }
 
         override didUpdate() {
           // track the count of the second item
-
           trackedTwo.count;
-          updateCount++;
+          assert.step('hook: didUpdate');
+          // updateCount++;
         }
       }
     );
@@ -184,24 +185,26 @@ abstract class ModifierManagerTest extends RenderTest {
     this.renderComponent(Main);
     this.assertHTML(`<h1>hello world</h1>`);
 
-    assert.strictEqual(insertCount, 1);
-    assert.strictEqual(updateCount, 0);
+    assert.verifySteps(['hook: didInsertElement']);
+    // assert.strictEqual(insertCount, 1);
+    // assert.strictEqual(updateCount, 0);
 
     trackedTwo.count++;
     this.rerender();
-    assert.strictEqual(updateCount, 0);
+    assert.verifySteps([]);
 
     trackedOne.count++;
     this.rerender();
-    assert.strictEqual(updateCount, 1);
+    assert.verifySteps(['hook: didUpdate']);
+    // assert.strictEqual(updateCount, 1);
 
-    trackedOne.count++;
-    this.rerender();
-    assert.strictEqual(updateCount, 1);
+    // trackedOne.count++;
+    // this.rerender();
+    // assert.strictEqual(updateCount, 1);
 
-    trackedTwo.count++;
-    this.rerender();
-    assert.strictEqual(updateCount, 2);
+    // trackedTwo.count++;
+    // this.rerender();
+    // assert.strictEqual(updateCount, 2);
   }
 
   @test

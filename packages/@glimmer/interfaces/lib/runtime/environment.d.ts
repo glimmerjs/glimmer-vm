@@ -5,16 +5,15 @@ import type {
   ComponentInstance,
   ComponentInstanceState,
 } from '../components';
-import type { Nullable } from '../core';
+import type { Destroyable, Nullable } from '../core';
 import type { GlimmerTreeChanges } from '../dom/changes';
 import type { DebugRenderTree } from './debug-render-tree';
-import type { ModifierInstance } from './modifier';
 import type { WithCreateInstance } from '../managers';
 import type { DOMTreeBuilder, MinimalCursor } from '../dom/tree-builder';
 
 export interface EnvironmentOptions {
   document?: SimpleDocument;
-  appendOperations?: (cursor: MinimalCursor) => TreeC;
+  appendOperations?: (cursor: MinimalCursor) => DOMTreeBuilder;
   updateOperations?: GlimmerTreeChanges;
 }
 
@@ -31,14 +30,22 @@ export type ComponentInstanceWithCreate = ComponentInstance<
 
 export type AppendOperations = (cursor: MinimalCursor) => DOMTreeBuilder;
 
+interface InstallableModifier {
+  readonly element: Element;
+  render(): void;
+  update(env: Environment): void;
+  destroy(): void;
+}
+
 export interface Environment {
   [TransactionSymbol]: Nullable<Transaction>;
 
   didCreate(component: ComponentInstanceWithCreate): void;
   didUpdate(component: ComponentInstanceWithCreate): void;
+  didAppend(element: Element): void;
 
-  scheduleInstallModifier(modifier: ModifierInstance): void;
-  scheduleUpdateModifier(modifier: ModifierInstance): void;
+  scheduleInstallModifier(modifier: InstallableModifier, parent: Destroyable): void;
+  scheduleUpdateModifier(modifier: InstallableModifier): void;
 
   begin(): void;
   commit(): void;

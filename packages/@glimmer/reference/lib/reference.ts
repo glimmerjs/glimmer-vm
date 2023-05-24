@@ -18,6 +18,8 @@ import {
   track,
   validateTag,
   valueForTag,
+  createCache,
+  getValue,
 } from '@glimmer/validator';
 
 const CONSTANT: ConstantReference = 0;
@@ -239,7 +241,7 @@ export const NULL_REFERENCE = createPrimitiveRef(null);
 export const TRUE_REFERENCE = createPrimitiveRef(true);
 export const FALSE_REFERENCE = createPrimitiveRef(false);
 
-export function createConstRef(value: unknown, debugLabel: false | string): Reference {
+export function createConstRef<T>(value: T, debugLabel: false | string): Reference<T> {
   let reference = new ReferenceImpl(CONSTANT);
 
   reference.lastValue = value;
@@ -269,6 +271,11 @@ export function createReadOnlyRef(reference: Reference): Reference {
   if (!isUpdatableRef(reference)) return reference;
 
   return createComputeRef(() => valueForRef(reference), null, reference.debugLabel);
+}
+
+export function _createCacheRef_<T>(fn: () => T, debuggingLabel?: string | false): Reference<T> {
+  let cache = createCache(fn, debuggingLabel);
+  return createComputeRef(() => getValue(cache), null, debuggingLabel);
 }
 
 export const isInvokableRef = ReferenceImpl._isInvokableRef_;

@@ -12,7 +12,7 @@ import {
 class DynamicModifiersResolutionModeTest extends RenderTest {
   static suiteName = 'dynamic modifiers in resolution mode';
 
-  @test.todo
+  @test
   'Can use a dynamic modifier'() {
     let foo = defineSimpleModifier((element: Element) => (element.innerHTML = 'Hello, world!'));
 
@@ -30,7 +30,7 @@ class DynamicModifiersResolutionModeTest extends RenderTest {
     this.assertStableRerender();
   }
 
-  @test.todo
+  @test
   'Can use a nested argument as a modifier'() {
     let foo = defineSimpleModifier((element: Element) => (element.innerHTML = 'Hello, world!'));
     this.registerComponent('TemplateOnly', 'Foo', '<div {{@x.foo}}></div>');
@@ -40,7 +40,7 @@ class DynamicModifiersResolutionModeTest extends RenderTest {
     this.assertStableRerender();
   }
 
-  @test.todo
+  @test
   'Can pass curried modifier as argument and invoke dynamically'() {
     let foo = defineSimpleModifier((element: Element, [value]: [string]): void => {
       element.innerHTML = value;
@@ -52,7 +52,7 @@ class DynamicModifiersResolutionModeTest extends RenderTest {
     this.assertStableRerender();
   }
 
-  @test.todo
+  @test
   'Can pass curried modifier as argument and invoke dynamically (with args, multi-layer)'() {
     let foo = defineSimpleModifier(
       (element: Element, values: string[]) => (element.innerHTML = values.join(' '))
@@ -65,7 +65,7 @@ class DynamicModifiersResolutionModeTest extends RenderTest {
     this.assertStableRerender();
   }
 
-  @test.todo
+  @test
   'Can pass curried modifier as argument and invoke dynamically (with args)'() {
     let foo = defineSimpleModifier(
       (element: Element, [first, second]: string[]) => (element.innerHTML = `${first} ${second}`)
@@ -77,7 +77,7 @@ class DynamicModifiersResolutionModeTest extends RenderTest {
     this.assertStableRerender();
   }
 
-  @test.todo
+  @test
   'Can pass curried modifier as argument and invoke dynamically (with named args)'() {
     let foo = defineSimpleModifier(
       (element: Element, _: unknown, { greeting }: { greeting: string }) =>
@@ -94,7 +94,7 @@ class DynamicModifiersResolutionModeTest extends RenderTest {
     this.assertStableRerender();
   }
 
-  @test.todo
+  @test
   'Can pass curried modifier as argument and invoke dynamically (with named args, multi-layer)'() {
     let foo = defineSimpleModifier(
       (element: Element, _: unknown, { greeting, name }: { greeting: string; name: string }) =>
@@ -113,7 +113,7 @@ class DynamicModifiersResolutionModeTest extends RenderTest {
     this.assertStableRerender();
   }
 
-  @test.todo
+  @test
   'Can invoke a yielded nested modifier'() {
     let foo = defineSimpleModifier((element: Element) => (element.innerHTML = 'Hello, world!'));
     this.registerComponent(
@@ -134,7 +134,7 @@ class DynamicModifiersResolutionModeTest extends RenderTest {
     }, syntaxErrorFor('You attempted to invoke a path (`{{#x.foo}}`) as a modifier, but x was not in scope. Try adding `this` to the beginning of the path', '{{x.foo}}', 'an unknown module', 1, 5));
   }
 
-  @test.todo
+  @test
   'Can use a dynamic modifier with a nested helper'() {
     let foo = defineSimpleHelper(() => 'Hello, world!');
     let bar = defineSimpleModifier(
@@ -151,7 +151,7 @@ class DynamicModifiersResolutionModeTest extends RenderTest {
     this.assertStableRerender();
   }
 
-  @test.todo
+  @test
   'Can use a dynamic modifier with a nested dynamic helper'() {
     let foo = defineSimpleHelper(() => 'Hello, world!');
     let bar = defineSimpleModifier(

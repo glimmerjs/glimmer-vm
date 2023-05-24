@@ -1,8 +1,27 @@
+import { dirtyTag } from '..';
 import { dirtyTagFor, tagFor } from './meta';
 import { consumeTag } from './tracking';
+import { createTag } from './validators';
 
 export type Getter<T, K extends keyof T> = (self: T) => T[K] | undefined;
 export type Setter<T, K extends keyof T> = (self: T, value: T[K]) => void;
+
+export type TrackedCell<T> = [get: () => T, set: (value: T) => void];
+
+export function trackedCell<T>(value: T): TrackedCell<T> {
+  let tag = createTag();
+  let get = () => {
+    consumeTag(tag);
+    return value;
+  };
+
+  let set = (newValue: T): void => {
+    dirtyTag(tag);
+    value = newValue;
+  };
+
+  return [get, set];
+}
 
 export function trackedData<T extends object, K extends keyof T>(
   key: K,

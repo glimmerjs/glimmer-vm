@@ -19,13 +19,12 @@ import {
   qunitFixture,
   RenderTest,
   replaceHTML,
-  test} from '..';
-import type {
+  test,
   PartialRehydrationDelegate,
+  suite,
   RehydrationDelegate,
-  type ComponentBlueprint,
-  type Content
-} from '..';
+} from '@glimmer-workspace/integration-tests';
+import type { ComponentBlueprint, Content } from '@glimmer-workspace/integration-tests';
 
 // `window.ActiveXObject` is "falsey" in IE11 (but not `undefined` or `false`)
 // `"ActiveXObject" in window` returns `true` in all IE versions
@@ -346,5 +345,5 @@ class ChaosMonkeyPartialRehydration extends AbstractChaosMonkeyTest {
   }
 }
 
-// suite(ChaosMonkeyRehydration, RehydrationDelegate);
-// suite(ChaosMonkeyPartialRehydration, PartialRehydrationDelegate);
+suite.todo(ChaosMonkeyRehydration, RehydrationDelegate);
+suite.todo(ChaosMonkeyPartialRehydration, PartialRehydrationDelegate);

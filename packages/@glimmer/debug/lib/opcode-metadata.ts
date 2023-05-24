@@ -31,6 +31,7 @@ import {
   DYNAMIC_ATTR_OP,
   DYNAMIC_CONTENT_TYPE_OP,
   DYNAMIC_HELPER_OP,
+  DYNAMIC_MODIFIER_OP,
   ENTER_LIST_OP,
   ENTER_OP,
   EXIT_LIST_OP,
@@ -815,6 +816,16 @@ if (import.meta.env.DEV) {
       },
     ],
     operands: 1,
+    check: true,
+  };
+
+  METADATA[DYNAMIC_MODIFIER_OP] = {
+    name: 'DynamicModifier',
+    mnemonic: 'apnd_dynmodifier',
+    before: null,
+    stackChange: -2,
+    ops: [],
+    operands: 0,
     check: true,
   };
 
