@@ -19,6 +19,10 @@ export abstract class SymbolTable {
     return new ProgramSymbolTable(locals, options);
   }
 
+  hasBinding(name: string): boolean {
+    return this.has(name) || this.hasLexical(name);
+  }
+
   abstract has(name: string): boolean;
   abstract get(name: string): [symbol: number, isRoot: boolean];
 
@@ -156,6 +160,10 @@ export class BlockSymbolTable extends SymbolTable {
     return this.symbols;
   }
 
+  get hasBlockParams(): boolean {
+    return this.locals.length > 0;
+  }
+
   getLexical(name: string): number {
     return this.parent.getLexical(name);
   }
@@ -180,7 +188,7 @@ export class BlockSymbolTable extends SymbolTable {
 
   getLocalsMap(): Dict<number> {
     let dict = this.parent.getLocalsMap();
-    for (let symbol of this.symbols) (dict[symbol] = this.get(symbol)[0]);
+    for (let symbol of this.symbols) dict[symbol] = this.get(symbol)[0];
     return dict;
   }
 

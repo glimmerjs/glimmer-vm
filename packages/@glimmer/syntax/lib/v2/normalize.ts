@@ -31,7 +31,7 @@ import {
 
 export function normalize(
   source: Source,
-  options: PrecompileOptionsWithLexicalScope = { lexicalScope: () => false }
+  options?: PrecompileOptionsWithLexicalScope
 ): [ast: ASTv2.Template, locals: string[]] {
   let ast = preprocess(source, options);
 
@@ -45,15 +45,15 @@ export function normalize(
     normalizeOptions.locals,
 
     {
-      customizeComponentName: options.customizeComponentName ?? ((name) => name),
-      lexicalScope: options.lexicalScope,
+      customizeComponentName: options?.customizeComponentName ?? ((name) => name),
+      lexicalScope: options?.lexicalScope ?? (() => false),
     }
   );
   let block = new BlockContext(source, normalizeOptions, top);
   let normalizer = new StatementNormalizer(block);
 
   let astV2 = new TemplateChildren(
-    block.loc(ast.loc),
+    block.span(ast.loc),
     ast.body.map((b) => normalizer.normalize(b)),
     block
   ).assertTemplate(top);
@@ -85,11 +85,46 @@ export class BlockContext<Table extends SymbolTable = SymbolTable> {
     this.builder = new Builder();
   }
 
-  get strict(): boolean {
-    return this.options.strictMode || false;
+  /**
+   * Requires all variable resolution to be lexically scoped. In strict resolution mode, no AST node
+   * that assumes runtime resolution will be created.
+   */
+  get strictResolution(): boolean {
+    let strictMode = this.options.strictMode;
+    if (strictMode && typeof strictMode === 'object') {
+      return strictMode.variables ?? false;
+    }
+
+    return strictMode ?? false;
   }
 
-  loc(loc: SourceLocation): SourceSpan {
+  /**
+   * Assumes that all attributes are actually attributes and not properties.
+   *
+   * In loose attributes mode, attributes are converted into modifiers that use the classic behavior.
+   */
+  get strictAttributes(): boolean {
+    let strictMode = this.options.strictMode;
+    if (strictMode && typeof strictMode === 'object') {
+      return strictMode.attributes ?? false;
+    }
+
+    return false;
+  }
+
+  get el(): ElementNormalizer {
+    return new ElementNormalizer(this);
+  }
+
+  get expr(): ExpressionNormalizer {
+    return new ExpressionNormalizer(this);
+  }
+
+  get stmt(): StatementNormalizer {
+    return new StatementNormalizer(this);
+  }
+
+  span(loc: SourceLocation): SourceSpan {
     return this.source.spanFor(loc);
   }
 
@@ -97,7 +132,7 @@ export class BlockContext<Table extends SymbolTable = SymbolTable> {
     node: N,
     resolution: Resolution<N>
   ): { result: ASTv2.FreeVarResolution } | { result: 'error'; path: string; head: string } {
-    if (this.strict) {
+    if (this.strictResolution) {
       return { result: ASTv2.STRICT_RESOLUTION };
     }
 
@@ -149,14 +184,84 @@ export class BlockContext<Table extends SymbolTable = SymbolTable> {
   }
 }
 
+class Normalizer<Table extends SymbolTable = SymbolTable> {
+  readonly #block: BlockContext<Table>;
+
+  constructor(block: BlockContext<Table>) {
+    this.#block = block;
+  }
+
+  get strict() {
+    return {
+      attributes: this.#block.strictAttributes,
+      resolution: this.#block.strictResolution,
+    };
+  }
+
+  get table() {
+    return this.#block.table;
+  }
+
+  get b() {
+    return this.#block.builder;
+  }
+
+  get el(): ElementNormalizer {
+    return this.#block.el;
+  }
+
+  get expr(): ExpressionNormalizer {
+    return this.#block.expr;
+  }
+
+  get stmt(): StatementNormalizer {
+    return this.#block.stmt;
+  }
+
+  child<T>(
+    blockParams: string[],
+    body: ASTv1.Statement[],
+    build: (statements: ASTv2.TopLevelNode[], block: BlockContext<BlockSymbolTable>) => T
+  ): T {
+    let child = this.#block.child(blockParams);
+    let normalizer = new StatementNormalizer(child);
+
+    let statements = body.map((s) => normalizer.normalize(s));
+
+    return build(statements, child);
+
+    // let child = this.child(blockParams);
+    // let normalizer = new StatementNormalizer(child);
+    // return new BlockChildren(
+    //   this.loc(loc),
+    //   body.map((b) => normalizer.normalize(b)),
+    //   this.block
+    // ).assertBlock(child.table);
+
+    // let child = this.context.child(element.blockParams);
+    // let normalizer = new StatementNormalizer(child);
+
+    // let childNodes = element.children.map((s) => normalizer.normalize(s));
+  }
+
+  resolutionFor<N extends ASTv1.CallNode | ASTv1.PathExpression>(
+    node: N,
+    resolution: Resolution<N>
+  ): { result: ASTv2.FreeVarResolution } | { result: 'error'; path: string; head: string } {
+    return this.#block.resolutionFor(node, resolution);
+  }
+
+  loc(node: SourceLocation | ASTv1.Node) {
+    return 'type' in node ? this.#block.span(node.loc) : this.#block.span(node);
+  }
+}
+
 /**
  * An `ExpressionNormalizer` normalizes expressions within a block.
  *
  * `ExpressionNormalizer` is stateless.
  */
-class ExpressionNormalizer {
-  constructor(private block: BlockContext) {}
-
+class ExpressionNormalizer extends Normalizer {
   /**
    * The `normalize` method takes an arbitrary expression and its original syntax context and
    * normalizes it to an ASTv2 expression.
@@ -180,11 +285,11 @@ class ExpressionNormalizer {
       case 'NumberLiteral':
       case 'StringLiteral':
       case 'UndefinedLiteral':
-        return this.block.builder.literal(expr.value, this.block.loc(expr.loc));
+        return this.b.literal(expr.value, this.loc(expr.loc));
       case 'PathExpression':
         return this.path(expr, resolution);
       case 'SubExpression': {
-        let resolution = this.block.resolutionFor(expr, SexpSyntaxContext);
+        let resolution = this.resolutionFor(expr, SexpSyntaxContext);
 
         if (resolution.result === 'error') {
           throw generateSyntaxError(
@@ -193,10 +298,7 @@ class ExpressionNormalizer {
           );
         }
 
-        return this.block.builder.sexp(
-          this.callParts(expr, resolution.result),
-          this.block.loc(expr.loc)
-        );
+        return this.b.sexp(this.callParts(expr, resolution.result), this.loc(expr.loc));
       }
     }
   }
@@ -205,7 +307,7 @@ class ExpressionNormalizer {
     expr: ASTv1.MinimalPathExpression,
     resolution: ASTv2.FreeVarResolution
   ): ASTv2.PathExpression {
-    let headOffsets = this.block.loc(expr.head.loc);
+    let headOffsets = this.loc(expr.head.loc);
 
     let tail = [];
 
@@ -222,7 +324,7 @@ class ExpressionNormalizer {
       );
     }
 
-    return this.block.builder.path(this.ref(expr.head, resolution), tail, this.block.loc(expr.loc));
+    return this.b.path(this.ref(expr.head, resolution), tail, this.loc(expr.loc));
   }
 
   /**
@@ -235,31 +337,31 @@ class ExpressionNormalizer {
     let callee = this.normalize(path, context);
     let parameterList = params.map((p) => this.normalize(p, ASTv2.ARGUMENT_RESOLUTION));
     let parameterLoc = SpanList.range(parameterList, callee.loc.collapse('end'));
-    let namedLoc = this.block.loc(hash.loc);
+    let namedLoc = this.loc(hash.loc);
     let argsLoc = SpanList.range([parameterLoc, namedLoc]);
 
-    let positional = this.block.builder.positional(
+    let positional = this.b.positional(
       params.map((p) => this.normalize(p, ASTv2.ARGUMENT_RESOLUTION)),
       parameterLoc
     );
 
-    let named = this.block.builder.named(
+    let named = this.b.named(
       hash.pairs.map((p) => this.namedArgument(p)),
-      this.block.loc(hash.loc)
+      this.loc(hash.loc)
     );
 
     return {
       callee,
-      args: this.block.builder.args(positional, named, argsLoc),
+      args: this.b.args(positional, named, argsLoc),
     };
   }
 
   private namedArgument(pair: ASTv1.HashPair): ASTv2.NamedArgument {
-    let offsets = this.block.loc(pair.loc);
+    let offsets = this.loc(pair.loc);
 
     let keyOffsets = offsets.sliceStartChars({ chars: pair.key.length });
 
-    return this.block.builder.namedArgument(
+    return this.b.namedArgument(
       new SourceSlice({ chars: pair.key, loc: keyOffsets }),
       this.normalize(pair.value, ASTv2.ARGUMENT_RESOLUTION)
     );
@@ -276,27 +378,26 @@ class ExpressionNormalizer {
    * the behavior of free variables.
    */
   private ref(head: ASTv1.PathHead, resolution: ASTv2.FreeVarResolution): ASTv2.VariableReference {
-    let { block } = this;
-    let { builder, table } = block;
-    let offsets = block.loc(head.loc);
+    let { b, table } = this;
+    let offsets = this.loc(head.loc);
 
     switch (head.type) {
       case 'ThisHead':
-        return builder.self(offsets);
+        return b.self(offsets);
       case 'AtHead': {
         let symbol = table.allocateNamed(head.name);
-        return builder.at(head.name, symbol, offsets);
+        return b.at(head.name, symbol, offsets);
       }
       case 'VarHead':
-        if (block.hasBinding(head.name)) {
+        if (table.hasBinding(head.name)) {
           let [symbol, isRoot] = table.get(head.name);
 
-          return block.builder.localVar(head.name, symbol, isRoot, offsets);
+          return b.localVar(head.name, symbol, isRoot, offsets);
         } else {
-          let context = block.strict ? ASTv2.STRICT_RESOLUTION : resolution;
-          let symbol = block.table.allocateFree(head.name, context);
+          let context = this.strict.resolution ? ASTv2.STRICT_RESOLUTION : resolution;
+          let symbol = table.allocateFree(head.name, context);
 
-          return block.builder.freeVar({
+          return b.freeVar({
             name: head.name,
             context,
             symbol,
@@ -310,17 +411,17 @@ class ExpressionNormalizer {
 /**
  * `TemplateNormalizer` normalizes top-level ASTv1 statements to ASTv2.
  */
-class StatementNormalizer {
-  constructor(private readonly block: BlockContext) {}
+class StatementNormalizer extends Normalizer {
+  // constructor(private readonly block: BlockContext) {}
 
-  normalize(node: ASTv1.Statement): ASTv2.ContentNode | ASTv2.NamedBlock {
+  normalize(node: ASTv1.Statement): ASTv2.TopLevelNode {
     switch (node.type) {
       case 'PartialStatement':
         throw new Error(`Handlebars partial syntax ({{> ...}}) is not allowed in Glimmer`);
       case 'BlockStatement':
         return this.BlockStatement(node);
       case 'ElementNode':
-        return new ElementNormalizer(this.block).ElementNode(node);
+        return this.el.ElementNode(node);
       case 'MustacheStatement':
         return this.MustacheStatement(node);
 
@@ -329,7 +430,7 @@ class StatementNormalizer {
         return this.MustacheCommentStatement(node);
 
       case 'CommentStatement': {
-        let loc = this.block.loc(node.loc);
+        let loc = this.loc(node);
         return new ASTv2.HtmlComment({
           loc,
           text: loc.slice({ skipStart: 4, skipEnd: 3 }).toSlice(node.value),
@@ -338,14 +439,14 @@ class StatementNormalizer {
 
       case 'TextNode':
         return new ASTv2.HtmlText({
-          loc: this.block.loc(node.loc),
+          loc: this.loc(node),
           chars: node.chars,
         });
     }
   }
 
   MustacheCommentStatement(node: ASTv1.MustacheCommentStatement): ASTv2.GlimmerComment {
-    let loc = this.block.loc(node.loc);
+    let loc = this.loc(node);
     let textLoc: SourceSpan;
 
     textLoc =
@@ -363,8 +464,8 @@ class StatementNormalizer {
    * Normalizes an ASTv1.MustacheStatement to an ASTv2.AppendStatement
    */
   MustacheStatement(mustache: ASTv1.MustacheStatement): ASTv2.AppendContent {
-    let { escaped } = mustache;
-    let loc = this.block.loc(mustache.loc);
+    let { trusting } = mustache;
+    let loc = this.loc(mustache);
 
     // Normalize the call parts in AppendSyntaxContext
     let callParts = this.expr.callParts(
@@ -376,14 +477,12 @@ class StatementNormalizer {
       AppendSyntaxContext(mustache)
     );
 
-    let value = callParts.args.isEmpty()
-      ? callParts.callee
-      : this.block.builder.sexp(callParts, loc);
+    let value = callParts.args.isEmpty() ? callParts.callee : this.b.sexp(callParts, loc);
 
-    return this.block.builder.append(
+    return this.b.append(
       {
-        table: this.block.table,
-        trusting: !escaped,
+        table: this.table,
+        trusting,
         value,
       },
       loc
@@ -395,9 +494,9 @@ class StatementNormalizer {
    */
   BlockStatement(block: ASTv1.BlockStatement): ASTv2.InvokeBlock {
     let { program, inverse } = block;
-    let loc = this.block.loc(block.loc);
+    let loc = this.loc(block);
 
-    let resolution = this.block.resolutionFor(block, BlockSyntaxContext);
+    let resolution = this.resolutionFor(block, BlockSyntaxContext);
 
     if (resolution.result === 'error') {
       throw generateSyntaxError(
@@ -408,10 +507,10 @@ class StatementNormalizer {
 
     let callParts = this.expr.callParts(block, resolution.result);
 
-    return this.block.builder.blockStatement(
+    return this.b.blockStatement(
       assign(
         {
-          symbols: this.block.table,
+          symbols: this.table,
           program: this.Block(program),
           inverse: inverse ? this.Block(inverse) : null,
         },
@@ -422,23 +521,20 @@ class StatementNormalizer {
   }
 
   Block({ body, loc, blockParams }: ASTv1.Block): ASTv2.Block {
-    let child = this.block.child(blockParams);
-    let normalizer = new StatementNormalizer(child);
-    return new BlockChildren(
-      this.block.loc(loc),
-      body.map((b) => normalizer.normalize(b)),
-      this.block
-    ).assertBlock(child.table);
-  }
-
-  private get expr(): ExpressionNormalizer {
-    return new ExpressionNormalizer(this.block);
+    return this.child(blockParams, body, (children, block) =>
+      new BlockChildren(this.loc(loc), children, block).intoBlock()
+    );
+    // let child = this.child(blockParams);
+    // let normalizer = new StatementNormalizer(child);
+    // return new BlockChildren(
+    //   this.loc(loc),
+    //   body.map((b) => normalizer.normalize(b)),
+    //   this.block
+    // ).assertBlock(child.table);
   }
 }
 
-class ElementNormalizer {
-  constructor(private readonly context: BlockContext) {}
-
+class ElementNormalizer extends Normalizer {
   /**
    * Normalizes an ASTv1.ElementNode to:
    *
@@ -453,60 +549,51 @@ class ElementNormalizer {
    * - the part before the first `.` is a reference to an in-scope variable binding
    * - it begins with an uppercase character
    */
-  ElementNode(element: ASTv1.ElementNode): ASTv2.ElementNode {
-    let { tag, selfClosing, comments } = element;
-    let loc = this.context.loc(element.loc);
+  ElementNode(original: ASTv1.ElementNode): ASTv2.ElementNode {
+    let { tag, selfClosing, comments } = original;
+    let span = this.loc(original);
 
     let [tagHead, ...rest] = asPresentArray(tag.split('.'));
 
-    // the head, attributes and modifiers are in the current scope
-    let path = this.classifyTag(tagHead, rest, element.loc);
+    let attributes: ASTv2.HtmlOrSplatAttr[] = [];
+    let modifiers: ASTv2.ElementModifier[] = original.modifiers.map((m) => this.modifier(m));
+    let args: ASTv2.ComponentArg[] = [];
 
-    let attributes = element.attributes.filter((a) => a.name[0] !== '@').map((a) => this.attr(a));
-    let args = element.attributes.filter((a) => a.name[0] === '@').map((a) => this.arg(a));
+    for (let attr of original.attributes) {
+      if (attr.name[0] === '@') {
+        args.push(this.arg(attr));
+      } else {
+        let normalized = this.attr(attr);
 
-    let modifiers = element.modifiers.map((m) => this.modifier(m));
+        if (normalized.type === 'ElementModifier') {
+          modifiers.push(normalized);
+        } else {
+          attributes.push(normalized);
+        }
+      }
+    }
 
     // the element's block params are in scope for the children
-    let child = this.context.child(element.blockParams);
-    let normalizer = new StatementNormalizer(child);
+    return this.child(original.blockParams, original.children, (statements, childBlock) => {
+      let element = this.b.element({
+        selfClosing,
+        attrs: attributes,
+        componentArgs: args,
+        modifiers,
+        comments: comments.map((c) => this.stmt.MustacheCommentStatement(c)),
+        span,
+      });
 
-    let childNodes = element.children.map((s) => normalizer.normalize(s));
+      let children = new ElementChildren(element, statements, childBlock);
+      let tagSpan = span.sliceStartChars({ chars: tag.length, skipStart: 1 });
 
-    let element_ = this.context.builder.element({
-      selfClosing,
-      attrs: attributes,
-      componentArgs: args,
-      modifiers,
-      comments: comments.map((c) =>
-        new StatementNormalizer(this.context).MustacheCommentStatement(c)
-      ),
+      // the head, attributes and modifiers are in the current scope
+      return children.finalize(this.classifyTag(tagHead, rest, span), tagSpan);
     });
-
-    let children = new ElementChildren(element_, loc, childNodes, this.context);
-
-    let offsets = this.context.loc(element.loc);
-    let tagOffsets = offsets.sliceStartChars({ chars: tag.length, skipStart: 1 });
-
-    if (path === 'ElementHead') {
-      return tag[0] === ':'
-        ? children.assertNamedBlock(
-            tagOffsets.slice({ skipStart: 1 }).toSlice(tag.slice(1)),
-            child.table
-          )
-        : children.assertElement(tagOffsets.toSlice(tag), element.blockParams.length > 0);
-    }
-
-    if (element.selfClosing) {
-      return element_.selfClosingComponent(path, loc);
-    } else {
-      let blocks = children.assertComponent(tag, child.table, element.blockParams.length > 0);
-      return element_.componentWithNamedBlocks(path, blocks, loc);
-    }
   }
 
   private modifier(m: ASTv1.ElementModifierStatement): ASTv2.ElementModifier {
-    let resolution = this.context.resolutionFor(m, ModifierSyntaxContext);
+    let resolution = this.resolutionFor(m, ModifierSyntaxContext);
 
     if (resolution.result === 'error') {
       throw generateSyntaxError(
@@ -516,7 +603,7 @@ class ElementNormalizer {
     }
 
     let callParts = this.expr.callParts(m, resolution.result);
-    return this.context.builder.modifier(callParts, this.context.loc(m.loc));
+    return this.b.modifier(callParts, this.loc(m));
   }
 
   /**
@@ -530,9 +617,9 @@ class ElementNormalizer {
    */
   private mustacheAttr(mustache: ASTv1.MustacheStatement): ASTv2.ExpressionNode {
     // Normalize the call parts in AttrValueSyntaxContext
-    let sexp = this.context.builder.sexp(
+    let sexp = this.b.sexp(
       this.expr.callParts(mustache, AttributeValueSyntaxContext(mustache)),
-      this.context.loc(mustache.loc)
+      this.loc(mustache)
     );
 
     // If there are no params or hash, just return the function part as its own expression
@@ -549,10 +636,10 @@ class ElementNormalizer {
   } {
     switch (part.type) {
       case 'MustacheStatement':
-        return { expr: this.mustacheAttr(part), trusting: !part.escaped };
+        return { expr: this.mustacheAttr(part), trusting: part.trusting };
       case 'TextNode':
         return {
-          expr: this.context.builder.literal(part.chars, this.context.loc(part.loc)),
+          expr: this.b.literal(part.chars, this.loc(part)),
           trusting: true,
         };
     }
@@ -566,7 +653,7 @@ class ElementNormalizer {
       case 'ConcatStatement': {
         let parts = part.parts.map((p) => this.attrPart(p).expr);
         return {
-          expr: this.context.builder.interpolate(parts, this.context.loc(part.loc)),
+          expr: this.b.interpolate(parts, this.loc(part)),
           trusting: false,
         };
       }
@@ -575,31 +662,45 @@ class ElementNormalizer {
     }
   }
 
-  private attr(m: ASTv1.AttributeNode): ASTv2.HtmlOrSplatAttr {
+  private attr(m: ASTv1.AttributeNode): ASTv2.ElementModifier | ASTv2.HtmlOrSplatAttr {
     assert(m.name[0] !== '@', 'An attr name must not start with `@`');
 
     if (m.name === '...attributes') {
-      return this.context.builder.splatAttr(
-        this.context.table.allocateBlock('attrs'),
-        this.context.loc(m.loc)
-      );
+      return this.b.splatAttr(this.table.allocateBlock('attrs'), this.loc(m.loc));
     }
 
-    let offsets = this.context.loc(m.loc);
+    let offsets = this.loc(m);
     let nameSlice = offsets.sliceStartChars({ chars: m.name.length }).toSlice(m.name);
 
     let value = this.attrValue(m.value);
-    return this.context.builder.attr(
-      { name: nameSlice, value: value.expr, trusting: value.trusting },
-      offsets
-    );
+
+    return this.b.attr({ name: nameSlice, value: value.expr, trusting: value.trusting }, offsets);
+
+    // return this.context.strictAttributes
+    //   ? this.b.attr(
+    //       { name: nameSlice, value: value.expr, trusting: value.trusting },
+    //       offsets
+    //     )
+    //   : this.b.modifier(
+    //       {
+    //         callee: this.context.builder.keyword(
+    //           'classic:attr',
+    //           SourceSlice.synthetic('classic:attr').loc
+    //         ),
+    //       },
+    //       // {
+    //       //   callee: 'classic:attr',
+    //       //   args: this.context.builder.args([nameSlice, value.expr]),
+    //       // },
+    //       offsets
+    //     );
   }
 
   private maybeDeprecatedCall(
     argument: SourceSlice,
     part: ASTv1.MustacheStatement | ASTv1.TextNode | ASTv1.ConcatStatement
   ): { expr: ASTv2.DeprecatedCallExpression; trusting: boolean } | null {
-    if (this.context.strict) {
+    if (this.strict.resolution) {
       return null;
     }
 
@@ -623,7 +724,7 @@ class ElementNormalizer {
       return null;
     }
 
-    if (this.context.hasBinding(name)) {
+    if (this.table.hasBinding(name)) {
       return null;
     }
 
@@ -637,15 +738,15 @@ class ElementNormalizer {
 
     let context = ASTv2.LooseModeResolution.attr();
 
-    let callee = this.context.builder.freeVar({
+    let callee = this.b.freeVar({
       name,
       context,
-      symbol: this.context.table.allocateFree(name, context),
+      symbol: this.table.allocateFree(name, context),
       loc: path.loc,
     });
 
     return {
-      expr: this.context.builder.deprecatedCall(argument, callee, part.loc),
+      expr: this.b.deprecatedCall(argument, callee, part.loc),
       trusting: false,
     };
   }
@@ -653,15 +754,12 @@ class ElementNormalizer {
   private arg(argument: ASTv1.AttributeNode): ASTv2.ComponentArg {
     assert(argument.name[0] === '@', 'An arg name must start with `@`');
 
-    let offsets = this.context.loc(argument.loc);
+    let offsets = this.loc(argument);
     let nameSlice = offsets.sliceStartChars({ chars: argument.name.length }).toSlice(argument.name);
 
     let value =
       this.maybeDeprecatedCall(nameSlice, argument.value) || this.attrValue(argument.value);
-    return this.context.builder.arg(
-      { name: nameSlice, value: value.expr, trusting: value.trusting },
-      offsets
-    );
+    return this.b.arg({ name: nameSlice, value: value.expr, trusting: value.trusting }, offsets);
   }
 
   /**
@@ -685,9 +783,9 @@ class ElementNormalizer {
     loc: SourceSpan
   ): ASTv2.ExpressionNode | 'ElementHead' {
     let uppercase = isUpperCase(variable);
-    let inScope = variable[0] === '@' || variable === 'this' || this.context.hasBinding(variable);
+    let inScope = variable[0] === '@' || variable === 'this' || this.table.hasBinding(variable);
 
-    if (this.context.strict && !inScope) {
+    if (this.strict.resolution && !inScope) {
       if (uppercase) {
         throw generateSyntaxError(
           `Attempted to invoke a component that was not in scope in a strict mode template, \`<${variable}>\`. If you wanted to create an element with that name, convert it to lowercase - \`<${variable.toLowerCase()}>\``,
@@ -717,9 +815,9 @@ class ElementNormalizer {
         loc: pathLoc,
       });
 
-      let resolution = this.context.isLexicalVar(variable)
+      let resolution = this.table.hasLexical(variable)
         ? { result: ASTv2.STRICT_RESOLUTION }
-        : this.context.resolutionFor(path, ComponentSyntaxContext);
+        : this.resolutionFor(path, ComponentSyntaxContext);
 
       if (resolution.result === 'error') {
         throw generateSyntaxError(
@@ -728,9 +826,9 @@ class ElementNormalizer {
         );
       }
 
-      return new ExpressionNormalizer(this.context).normalize(path, resolution.result);
+      return this.expr.normalize(path, resolution.result);
     } else {
-      this.context.table.allocateFree(variable, ASTv2.STRICT_RESOLUTION);
+      this.table.allocateFree(variable, ASTv2.STRICT_RESOLUTION);
     }
 
     // If the tag name wasn't a valid component but contained a `.`, it's
@@ -744,22 +842,19 @@ class ElementNormalizer {
 
     return 'ElementHead';
   }
-
-  private get expr(): ExpressionNormalizer {
-    return new ExpressionNormalizer(this.context);
-  }
 }
 
-class Children {
+class Children<Table extends SymbolTable> extends Normalizer<Table> {
   readonly namedBlocks: ASTv2.NamedBlock[];
   readonly hasSemanticContent: boolean;
   readonly nonBlockChildren: ASTv2.ContentNode[];
 
   constructor(
-    readonly loc: SourceSpan,
+    readonly span: SourceSpan,
     readonly children: (ASTv2.ContentNode | ASTv2.NamedBlock)[],
-    readonly block: BlockContext
+    readonly block: BlockContext<Table>
   ) {
+    super(block);
     this.namedBlocks = children.filter((c): c is ASTv2.NamedBlock => c instanceof ASTv2.NamedBlock);
     this.hasSemanticContent = children.some((c): c is ASTv2.ContentNode => {
       if (c instanceof ASTv2.NamedBlock) {
@@ -781,55 +876,78 @@ class Children {
   }
 }
 
-class TemplateChildren extends Children {
+class TemplateChildren extends Children<ProgramSymbolTable> {
   assertTemplate(table: ProgramSymbolTable): ASTv2.Template {
     if (isPresentArray(this.namedBlocks)) {
-      throw generateSyntaxError(`Unexpected named block at the top-level of a template`, this.loc);
+      throw generateSyntaxError(`Unexpected named block at the top-level of a template`, this.span);
     }
 
-    return this.block.builder.template(table, this.nonBlockChildren, this.block.loc(this.loc));
+    return this.b.template(table, this.nonBlockChildren, this.loc(this.span));
   }
 }
 
-class BlockChildren extends Children {
-  assertBlock(table: BlockSymbolTable): ASTv2.Block {
+class BlockChildren extends Children<BlockSymbolTable> {
+  intoBlock(): ASTv2.Block {
     if (isPresentArray(this.namedBlocks)) {
-      throw generateSyntaxError(`Unexpected named block nested in a normal block`, this.loc);
+      throw generateSyntaxError(`Unexpected named block nested in a normal block`, this.span);
     }
 
-    return this.block.builder.block(table, this.nonBlockChildren, this.loc);
+    return this.b.block(this.block.table, this.nonBlockChildren, this.span);
   }
 }
 
-class ElementChildren extends Children {
+class ElementChildren extends Children<BlockSymbolTable> {
   constructor(
     private element: BuildElement,
-    loc: SourceSpan,
     children: (ASTv2.ContentNode | ASTv2.NamedBlock)[],
-    block: BlockContext
+    block: BlockContext<BlockSymbolTable>
   ) {
-    super(loc, children, block);
+    super(element.base.span, children, block);
+  }
+
+  finalizeComponent(path: ASTv2.ExpressionNode, tagSpan: SourceSpan) {
+    if (this.element.base.selfClosing) {
+      return this.element.selfClosingComponent(path, this.span);
+    } else {
+      let blocks = this.assertComponent(tagSpan.asString(), this.block.table);
+      return this.element.componentWithNamedBlocks(path, blocks, this.span);
+    }
+  }
+
+  finalize(path: ASTv2.ExpressionNode | 'ElementHead', tagSpan: SourceSpan) {
+    return path === 'ElementHead'
+      ? this.#finalizeElement(tagSpan, this.block.table)
+      : this.finalizeComponent(path, tagSpan);
+  }
+
+  #finalizeElement(
+    tagSpan: SourceSpan,
+    table: BlockSymbolTable
+  ): ASTv2.SimpleElement | ASTv2.NamedBlock {
+    return tagSpan.asString()[0] === ':'
+      ? this.assertNamedBlock(tagSpan.slice({ skipStart: 1 }).toSlice(), table)
+      : this.assertElement(tagSpan.toSlice(), table.hasBlockParams);
   }
 
   assertNamedBlock(name: SourceSlice, table: BlockSymbolTable): ASTv2.NamedBlock {
     if (this.element.base.selfClosing) {
       throw generateSyntaxError(
         `<:${name.chars}/> is not a valid named block: named blocks cannot be self-closing`,
-        this.loc
+        this.span
       );
     }
 
     if (isPresentArray(this.namedBlocks)) {
       throw generateSyntaxError(
         `Unexpected named block inside <:${name.chars}> named block: named blocks cannot contain nested named blocks`,
-        this.loc
+        this.span
       );
     }
 
     if (!isLowerCase(name.chars)) {
       throw generateSyntaxError(
         `<:${name.chars}> is not a valid named block, and named blocks must begin with a lowercase letter`,
-        this.loc
+        this.span
       );
     }
 
@@ -840,24 +958,20 @@ class ElementChildren extends Children {
     ) {
       throw generateSyntaxError(
         `named block <:${name.chars}> cannot have attributes, arguments, or modifiers`,
-        this.loc
+        this.span
       );
     }
 
-    let offsets = SpanList.range(this.nonBlockChildren, this.loc);
+    let offsets = SpanList.range(this.nonBlockChildren, this.span);
 
-    return this.block.builder.namedBlock(
-      name,
-      this.block.builder.block(table, this.nonBlockChildren, offsets),
-      this.loc
-    );
+    return this.b.namedBlock(name, this.b.block(table, this.nonBlockChildren, offsets), this.span);
   }
 
   assertElement(name: SourceSlice, hasBlockParameters: boolean): ASTv2.SimpleElement {
     if (hasBlockParameters) {
       throw generateSyntaxError(
         `Unexpected block params in <${name}>: simple elements cannot have block params`,
-        this.loc
+        this.span
       );
     }
 
@@ -867,37 +981,33 @@ class ElementChildren extends Children {
       if (names.length === 1) {
         throw generateSyntaxError(
           `Unexpected named block <:foo> inside <${name.chars}> HTML element`,
-          this.loc
+          this.span
         );
       } else {
         let printedNames = names.map((n) => `<:${n.chars}>`).join(', ');
         throw generateSyntaxError(
           `Unexpected named blocks inside <${name.chars}> HTML element (${printedNames})`,
-          this.loc
+          this.span
         );
       }
     }
 
-    return this.element.simple(name, this.nonBlockChildren, this.loc);
+    return this.element.simple(name, this.nonBlockChildren, this.span);
   }
 
-  assertComponent(
-    name: string,
-    table: BlockSymbolTable,
-    hasBlockParameters: boolean
-  ): PresentArray<ASTv2.NamedBlock> {
+  assertComponent(name: string, table: BlockSymbolTable): PresentArray<ASTv2.NamedBlock> {
     if (isPresentArray(this.namedBlocks) && this.hasSemanticContent) {
       throw generateSyntaxError(
         `Unexpected content inside <${name}> component invocation: when using named blocks, the tag cannot contain other content`,
-        this.loc
+        this.span
       );
     }
 
     if (isPresentArray(this.namedBlocks)) {
-      if (hasBlockParameters) {
+      if (table.hasBlockParams) {
         throw generateSyntaxError(
           `Unexpected block params list on <${name}> component invocation: when passing named blocks, the invocation tag cannot take block params`,
-          this.loc
+          this.span
         );
       }
 
@@ -909,7 +1019,7 @@ class ElementChildren extends Children {
         if (seenNames.has(name)) {
           throw generateSyntaxError(
             `Component had two named blocks with the same name, \`<:${name}>\`. Only one block with a given name may be passed`,
-            this.loc
+            this.span
           );
         }
 
@@ -919,7 +1029,7 @@ class ElementChildren extends Children {
         ) {
           throw generateSyntaxError(
             `Component has both <:else> and <:inverse> block. <:inverse> is an alias for <:else>`,
-            this.loc
+            this.span
           );
         }
 
@@ -929,10 +1039,10 @@ class ElementChildren extends Children {
       return this.namedBlocks;
     } else {
       return [
-        this.block.builder.namedBlock(
+        this.b.namedBlock(
           SourceSlice.synthetic('default'),
-          this.block.builder.block(table, this.nonBlockChildren, this.loc),
-          this.loc
+          this.b.block(table, this.nonBlockChildren, this.span),
+          this.span
         ),
       ];
     }

@@ -153,6 +153,13 @@ export class Builder {
     });
   }
 
+  keyword(name: string, loc: SourceSpan): ASTv2.KeywordReference {
+    return new ASTv2.KeywordReference({
+      name,
+      loc,
+    });
+  }
+
   at(name: string, symbol: number, loc: SourceSpan): ASTv2.VariableReference {
     // the `@` should be included so we have a complete source range
     assert(name[0] === '@', `call builders.at() with a string that starts with '@'`);
@@ -333,6 +340,7 @@ export interface BuildBaseElement {
   componentArgs: ASTv2.ComponentArg[];
   modifiers: ASTv2.ElementModifier[];
   comments: ASTv2.GlimmerComment[];
+  span: SourceSpan;
 }
 
 export class BuildElement {

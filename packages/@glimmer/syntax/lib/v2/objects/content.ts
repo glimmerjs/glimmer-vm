@@ -2,7 +2,11 @@ import type { SourceSlice } from '../../source/slice';
 import { SpanList } from '../../source/span-list';
 import type { SymbolTable } from '../../symbol-table';
 import { Args, NamedArguments } from './args';
-import type { ComponentArg as ComponentArgument, ElementModifier, HtmlOrSplatAttr as HtmlOrSplatAttribute } from './attr-block';
+import type {
+  ComponentArg as ComponentArgument,
+  ElementModifier,
+  HtmlOrSplatAttr as HtmlOrSplatAttribute,
+} from './attr-block';
 import type { CallFields } from './base';
 import type { ExpressionNode } from './expr';
 import type { NamedBlock, NamedBlocks } from './internal-node';
@@ -23,6 +27,8 @@ export type ContentNode =
   | SimpleElement
   | GlimmerComment;
 
+export type TopLevelNode = ContentNode | NamedBlock;
+
 export class GlimmerComment extends node('GlimmerComment').fields<{ text: SourceSlice }>() {}
 export class HtmlText extends node('HtmlText').fields<{ chars: string }>() {}
 export class HtmlComment extends node('HtmlComment').fields<{ text: SourceSlice }>() {}
@@ -37,7 +43,9 @@ export class AppendContent extends node('AppendContent').fields<{
   }
 
   get args(): Args {
-    return this.value.type === 'Call' ? this.value.args : Args.empty(this.value.loc.collapse('end'));
+    return this.value.type === 'Call'
+      ? this.value.args
+      : Args.empty(this.value.loc.collapse('end'));
   }
 }
 

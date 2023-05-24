@@ -37,4 +37,8 @@ export class FreeVarReference extends node('Free').fields<{
   symbol: number;
 }>() {}
 
+export class KeywordReference extends node('keyword').fields<{
+  name: string;
+}>() {}
+
 export type VariableReference = ThisReference | ArgReference | LocalVarReference | FreeVarReference;

@@ -353,7 +353,12 @@ export interface PrecompileOptionsWithLexicalScope extends PrecompileOptions {
 }
 
 export interface PreprocessOptions {
-  strictMode?: boolean;
+  strictMode?:
+    | boolean
+    | {
+        variables?: boolean;
+        attributes?: boolean;
+      };
   locals?: string[];
   meta?: {
     moduleName?: string;
