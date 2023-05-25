@@ -30,7 +30,7 @@ export class ClassifiedSimpleElement implements Classified {
 
     return body.mapOk(
       (body) =>
-        new mir.SimpleElement({
+        mir.SimpleElement.of({
           loc: element.loc,
           tag: this.tag,
           params,

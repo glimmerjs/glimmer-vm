@@ -266,7 +266,7 @@ export namespace Statements {
     op: Op,
     name: string | WellKnownAttrName,
     value: Expression,
-    namespace?: string | undefined
+    strict?: 0 | 1
   ];
 
   export type StaticAttr = AttributeLike<StaticAttributeOpcode>;

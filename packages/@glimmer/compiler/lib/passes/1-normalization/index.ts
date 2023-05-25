@@ -70,7 +70,7 @@ export default function normalize(
     }
   }
 
-  return body.mapOk(
-    (body) => new mir.Template({ loc: root.loc, scope: root.table, body: body.toArray() })
+  return body.mapOk((body) =>
+    mir.Template.of({ loc: root.loc, scope: root.table, body: body.toArray() })
   );
 }

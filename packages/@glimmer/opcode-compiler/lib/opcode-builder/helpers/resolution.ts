@@ -333,6 +333,7 @@ export function resolveOptionalHelper(
   }
 }
 
+// eslint-disable-next-line etc/no-commented-out-code
 /**
  * {{maybeHelperOrComponent}}
  */

@@ -20,12 +20,14 @@ function assertHasBlockKeyword(type: string) {
       return Ok(SourceSlice.synthetic('default'));
     } else if (positionals.exprs.length === 1) {
       let positional = positionals.exprs[0] as ASTv2.ExpressionNode;
-      return ASTv2.isLiteral(positional, 'string') ? Ok(positional.toSlice()) : Error_(
-          generateSyntaxError(
-            `(${type}) can only receive a string literal as its first argument`,
-            call.loc
-          )
-        );
+      return ASTv2.isLiteral(positional, 'string')
+        ? Ok(positional.toSlice())
+        : Error_(
+            generateSyntaxError(
+              `(${type}) can only receive a string literal as its first argument`,
+              call.loc
+            )
+          );
     } else {
       return Error_(
         generateSyntaxError(`(${type}) only takes a single positional argument`, call.loc)
@@ -41,8 +43,8 @@ function translateHasBlockKeyword(type: string) {
   ): Result<mir.HasBlock | mir.HasBlockParams> => {
     let block =
       type === 'has-block'
-        ? new mir.HasBlock({ loc: node.loc, target, symbol: scope.allocateBlock(target.chars) })
-        : new mir.HasBlockParams({
+        ? mir.HasBlock.of({ loc: node.loc, target, symbol: scope.allocateBlock(target.chars) })
+        : mir.HasBlockParams.of({
             loc: node.loc,
             target,
             symbol: scope.allocateBlock(target.chars),

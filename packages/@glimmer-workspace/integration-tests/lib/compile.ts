@@ -31,7 +31,10 @@ export function createTemplate(
     block: JSON.stringify(block),
     moduleName: options.meta?.moduleName ?? '(unknown template module)',
     scope: reifiedScopeValues.length > 0 ? () => reifiedScopeValues : null,
-    isStrictMode: options.strictMode ?? false,
+    isStrictMode:
+      typeof options.strictMode === 'boolean'
+        ? options.strictMode
+        : options.strictMode?.variables ?? false,
   };
 
   return templateFactory(templateBlock);

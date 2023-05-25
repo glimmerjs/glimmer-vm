@@ -23,7 +23,7 @@ function translateLogKeyword(
   positional: ASTv2.PositionalArguments
 ): Result<mir.Log> {
   return VISIT_EXPRS.Positional(positional, state).mapOk(
-    (positional) => new mir.Log({ positional, loc: node.loc })
+    (positional) => mir.Log.of({ positional, loc: node.loc })
   );
 }
 

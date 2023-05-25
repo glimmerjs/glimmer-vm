@@ -85,60 +85,8 @@ class TransactionImpl implements Transaction {
 
     for (let modifier of this.#scheduledUpdateModifiers) {
       modifier.update(env);
-      // let modifierTag = manager.getTag(state);
-      // if (modifierTag === null) {
-      //   manager.update(state);
-      // } else {
-      //   let tag = track(
-      //     () => manager.update(state),
-      //     import.meta.env.DEV &&
-      //       `- While rendering:\n  (instance of a \`${
-      //         definition.resolvedName || manager.getDebugName(definition.state)
-      //       }\` modifier)`
-      //   );
-      //   updateTag(modifierTag, tag);
-      // }
     }
   }
-}
-
-const DOCUMENT_POSITION_DISCONNECTED = 1;
-const DOCUMENT_POSITION_PRECEDING = 2;
-const DOCUMENT_POSITION_FOLLOWING = 4;
-const DOCUMENT_POSITION_CONTAINS = 8;
-const DOCUMENT_POSITION_CONTAINED_BY = 16;
-const DOCUMENT_POSITION_IMPLEMENTATION_SPECIFIC = 32;
-
-function sortModifiers(modifiers: InstallableModifier[]) {
-  // sort by document containment:
-  // - bottom to top
-  // - left to right
-  //
-  // each modifier has an `element` property
-
-  return modifiers.sort((a, b) => {
-    let aElement = a.element;
-    let bElement = b.element;
-    let compare = aElement.compareDocumentPosition(bElement);
-
-    if (compare & DOCUMENT_POSITION_CONTAINS) {
-      return -1;
-    }
-
-    if (compare & DOCUMENT_POSITION_CONTAINED_BY) {
-      return 1;
-    }
-
-    if (compare & DOCUMENT_POSITION_PRECEDING) {
-      return 1;
-    }
-
-    if (compare & DOCUMENT_POSITION_FOLLOWING) {
-      return -1;
-    }
-
-    return 0;
-  });
 }
 
 export class EnvironmentImpl implements Environment {

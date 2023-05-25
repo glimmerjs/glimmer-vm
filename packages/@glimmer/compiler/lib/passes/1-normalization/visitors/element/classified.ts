@@ -2,7 +2,6 @@ import { ASTv2, maybeLoc, src } from '@glimmer/syntax';
 
 import { OptionalList } from '../../../../shared/list';
 import { Ok, Result, ResultArray } from '../../../../shared/result';
-import { getAttrNamespace as getAttributeNamespace } from '../../../../utils';
 import * as mir from '../../../2-encoding/mir';
 import type { NormalizationState } from '../../context';
 import { MODIFIER_KEYWORDS } from '../../keywords';
@@ -41,15 +40,14 @@ export class ClassifiedElement {
   private attr(attribute: ASTv2.HtmlAttr): Result<ValidAttribute> {
     let name = attribute.name;
     let rawValue = attribute.value;
-    let namespace = getAttributeNamespace(name.chars) || undefined;
 
     if (ASTv2.isLiteral(rawValue, 'string')) {
       return Ok(
-        new mir.StaticAttr({
+        mir.StaticAttr.of({
           loc: attribute.loc,
           name,
           value: rawValue.toSlice(),
-          namespace,
+          strict: attribute.strict,
           kind: {
             component: this.delegate.dynamicFeatures,
           },
@@ -60,11 +58,11 @@ export class ClassifiedElement {
     return VISIT_EXPRS.visit(convertPathToCallIfKeyword(rawValue), this.state).mapOk((value) => {
       let isTrusting = attribute.trusting;
 
-      return new mir.DynamicAttr({
+      return mir.DynamicAttr.of({
         loc: attribute.loc,
         name,
         value: value,
-        namespace,
+        strict: attribute.strict,
         kind: {
           trusting: isTrusting,
           component: this.delegate.dynamicFeatures,
@@ -87,13 +85,12 @@ export class ClassifiedElement {
     let head = VISIT_EXPRS.visit(modifier.callee, this.state);
     let args = VISIT_EXPRS.Args(modifier.args, this.state);
 
-    return Result.all(head, args).mapOk(
-      ([head, args]) =>
-        new mir.Modifier({
-          loc: modifier.loc,
-          callee: head,
-          args,
-        })
+    return Result.all(head, args).mapOk(([head, args]) =>
+      mir.Modifier.of({
+        loc: modifier.loc,
+        callee: head,
+        args,
+      })
     );
   }
 
@@ -115,7 +112,7 @@ export class ClassifiedElement {
       if (attribute.type === 'SplatAttr') {
         attributes.add(
           Ok(
-            new mir.SplatAttr({
+            mir.SplatAttr.of({
               loc: attribute.loc,
               symbol: this.state.scope.allocateBlock('attrs'),
             })
@@ -138,7 +135,7 @@ export class ClassifiedElement {
 
     return Result.all(args.toArray(), attributes.toArray()).mapOk(([args, attributes]) => ({
       attrs: attributes,
-      args: new mir.NamedArguments({
+      args: mir.NamedArguments.of({
         loc: maybeLoc(args, src.SourceSpan.NON_EXISTENT),
         entries: OptionalList(args),
       }),
@@ -154,7 +151,7 @@ export class ClassifiedElement {
 
       let elementParameters = [...attrs, ...modifiers];
 
-      let parameters = new mir.ElementParameters({
+      let parameters = mir.ElementParameters.of({
         loc: maybeLoc(elementParameters, src.SourceSpan.NON_EXISTENT),
         body: OptionalList(elementParameters),
       });

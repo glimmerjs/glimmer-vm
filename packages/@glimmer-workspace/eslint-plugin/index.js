@@ -24,6 +24,7 @@ module.exports = {
         'unused-imports',
         'prettier',
         'prefer-let',
+        'etc',
         'n',
       ],
       extends: [
@@ -38,6 +39,7 @@ module.exports = {
         'prettier',
       ],
       rules: {
+        'etc/no-commented-out-code': 'error',
         'prefer-object-spread': 'error',
         'prefer-let/prefer-let': 'error',
         'unicorn/no-null': 'off',

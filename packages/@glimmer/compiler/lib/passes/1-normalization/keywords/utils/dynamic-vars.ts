@@ -37,8 +37,8 @@ function translateGetDynamicVariableKeyword(
   { node, state }: { node: GenericKeywordNode; state: NormalizationState },
   name: ASTv2.ExpressionNode
 ): Result<mir.GetDynamicVar> {
-  return VISIT_EXPRS.visit(name, state).mapOk(
-    (name) => new mir.GetDynamicVar({ name, loc: node.loc })
+  return VISIT_EXPRS.visit(name, state).mapOk((name) =>
+    mir.GetDynamicVar.of({ name, loc: node.loc })
   );
 }
 

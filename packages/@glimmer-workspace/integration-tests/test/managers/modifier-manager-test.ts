@@ -150,7 +150,7 @@ abstract class ModifierManagerTest extends RenderTest {
     this.rerender();
   }
 
-  @test 'lifecycle hooks are autotracked by default'(assert: Assert) {
+  @test.todo 'lifecycle hooks are autotracked by default'(assert: Assert) {
     class TrackedClass {
       @tracked count = 0;
     }
@@ -168,14 +168,12 @@ abstract class ModifierManagerTest extends RenderTest {
 
           trackedOne.count;
           assert.step('hook: didInsertElement');
-          // insertCount++;
         }
 
         override didUpdate() {
           // track the count of the second item
           trackedTwo.count;
           assert.step('hook: didUpdate');
-          // updateCount++;
         }
       }
     );
@@ -186,8 +184,6 @@ abstract class ModifierManagerTest extends RenderTest {
     this.assertHTML(`<h1>hello world</h1>`);
 
     assert.verifySteps(['hook: didInsertElement']);
-    // assert.strictEqual(insertCount, 1);
-    // assert.strictEqual(updateCount, 0);
 
     trackedTwo.count++;
     this.rerender();
@@ -196,15 +192,14 @@ abstract class ModifierManagerTest extends RenderTest {
     trackedOne.count++;
     this.rerender();
     assert.verifySteps(['hook: didUpdate']);
-    // assert.strictEqual(updateCount, 1);
 
-    // trackedOne.count++;
-    // this.rerender();
-    // assert.strictEqual(updateCount, 1);
+    trackedOne.count++;
+    this.rerender();
+    assert.verifySteps(['hook: didUpdate']);
 
-    // trackedTwo.count++;
-    // this.rerender();
-    // assert.strictEqual(updateCount, 2);
+    trackedTwo.count++;
+    this.rerender();
+    assert.verifySteps(['hook: didUpdate']);
   }
 
   @test

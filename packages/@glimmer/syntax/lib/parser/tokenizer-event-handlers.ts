@@ -1,4 +1,4 @@
-import type { Nullable } from '@glimmer/interfaces';
+import type { Nullable, Optional } from '@glimmer/interfaces';
 import { assertPresentArray, getFirst, getLast, isPresentArray } from '@glimmer/util';
 import { parse, parseWithoutProcessing } from '@handlebars/parser';
 import { EntityParser } from 'simple-html-tokenizer';
@@ -350,6 +350,18 @@ export interface PrecompileOptions extends PreprocessOptions {
 
 export interface PrecompileOptionsWithLexicalScope extends PrecompileOptions {
   lexicalScope: (variable: string) => boolean;
+}
+
+export function hasStrictVariables(
+  options: Optional<
+    | boolean
+    | {
+        variables?: boolean;
+        attributes?: boolean;
+      }
+  >
+) {
+  return typeof options === 'boolean' ? options : !!options?.variables;
 }
 
 export interface PreprocessOptions {

@@ -1,3 +1,4 @@
+/* eslint-disable etc/no-commented-out-code */
 /**
  * A free variable is resolved according to a resolution rule:
  *

@@ -1,7 +1,7 @@
 import type { SourceSlice } from '../../source/slice';
 import type { SourceSpan } from '../../source/span';
 import type { ExpressionNode } from './expr';
-import { node } from './node';
+import { AstNode } from './node';
 
 /**
  * Corresponds to syntaxes with positional and named arguments:
@@ -14,12 +14,13 @@ import { node } from './node';
  * If `Args` is empty, the `SourceOffsets` for this node should be the collapsed position
  * immediately after the parent call node's `callee`.
  */
-export class Args extends node().fields<{
-  positional: PositionalArguments;
-  named: NamedArguments;
-}>() {
+export class Args extends AstNode {
+  readonly type = 'Args';
+  declare positional: PositionalArguments;
+  declare named: NamedArguments;
+
   static empty(loc: SourceSpan): Args {
-    return new Args({
+    return Args.of({
       loc,
       positional: PositionalArguments.empty(loc),
       named: NamedArguments.empty(loc),
@@ -27,7 +28,7 @@ export class Args extends node().fields<{
   }
 
   static named(named: NamedArguments): Args {
-    return new Args({
+    return Args.of({
       loc: named.loc,
       positional: PositionalArguments.empty(named.loc.collapse('end')),
       named,
@@ -53,11 +54,12 @@ export class Args extends node().fields<{
  * If `PositionalArguments` is empty, the `SourceOffsets` for this node should be the collapsed
  * position immediately after the parent call node's `callee`.
  */
-export class PositionalArguments extends node().fields<{
-  exprs: readonly ExpressionNode[];
-}>() {
+export class PositionalArguments extends AstNode {
+  readonly type = 'PositionalArguments';
+  declare exprs: readonly ExpressionNode[];
+
   static empty(loc: SourceSpan): PositionalArguments {
-    return new PositionalArguments({
+    return PositionalArguments.of({
       loc,
       exprs: [],
     });
@@ -85,11 +87,12 @@ export class PositionalArguments extends node().fields<{
  * If `PositionalArguments` is not empty but `NamedArguments` is empty, the `SourceOffsets` for this
  * node should be the collapsed position immediately after the last positional argument.
  */
-export class NamedArguments extends node().fields<{
-  entries: readonly NamedArgument[];
-}>() {
+export class NamedArguments extends AstNode {
+  readonly type = 'NamedArguments';
+  declare entries: readonly NamedArgument[];
+
   static empty(loc: SourceSpan): NamedArguments {
-    return new NamedArguments({
+    return NamedArguments.of({
       loc,
       entries: [],
     });
@@ -117,14 +120,8 @@ export class NamedArguments extends node().fields<{
  * x=<expr>
  * ```
  */
-export class NamedArgument {
-  readonly loc: SourceSpan;
-  readonly name: SourceSlice;
-  readonly value: ExpressionNode;
-
-  constructor(options: { name: SourceSlice; value: ExpressionNode }) {
-    this.loc = options.name.loc.extend(options.value.loc);
-    this.name = options.name;
-    this.value = options.value;
-  }
+export class NamedArgument extends AstNode {
+  readonly type = 'NamedArgument';
+  declare name: SourceSlice;
+  declare value: ExpressionNode;
 }

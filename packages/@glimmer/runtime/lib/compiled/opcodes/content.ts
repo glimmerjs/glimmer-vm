@@ -32,7 +32,6 @@ import { define } from '../../opcodes';
 import DynamicTextContent from '../../vm/content/text';
 import { CheckReference } from './-debug-strip';
 import { AssertFilter } from './vm';
-import type { MinimalChild, MinimalDocumentFragment } from '@glimmer/interfaces';
 
 function toContentType(value: unknown) {
   if (shouldCoerce(value)) {
@@ -136,7 +135,7 @@ define(APPEND_DOCUMENT_FRAGMENT_OP, (vm) => {
 
   let value = check(valueForRef(reference), CheckDocumentFragment);
 
-  vm._elements_().child(value as MinimalDocumentFragment);
+  vm._elements_().child(value);
 });
 
 define(APPEND_NODE_OP, (vm) => {
@@ -144,5 +143,5 @@ define(APPEND_NODE_OP, (vm) => {
 
   let value = check(valueForRef(reference), CheckNode);
 
-  vm._elements_().child(value as MinimalChild);
+  vm._elements_().child(value);
 });

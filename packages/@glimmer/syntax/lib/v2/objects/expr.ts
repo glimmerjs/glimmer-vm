@@ -1,9 +1,10 @@
 import type { PresentArray } from '@glimmer/interfaces';
 
 import { SourceSlice } from '../../source/slice';
-import type { CallFields } from './base';
-import { node } from './node';
 import type { FreeVarReference as FreeVariableReference, VariableReference } from './refs';
+import { AstNode } from './node';
+import type { CallNodeFields } from './base';
+import type { Args } from './args';
 
 /**
  * A Handlebars literal.
@@ -25,7 +26,10 @@ export interface LiteralTypes {
  *
  * @see {LiteralValue}
  */
-export class LiteralExpression extends node('Literal').fields<{ value: LiteralValue }>() {
+export class LiteralExpression extends AstNode {
+  readonly type = 'Literal';
+  declare value: LiteralValue;
+
   toSlice(this: StringLiteral): SourceSlice {
     return new SourceSlice({ loc: this.loc, chars: this.value });
   }
@@ -65,10 +69,11 @@ export function isLiteral<K extends keyof LiteralTypes = keyof LiteralTypes>(
  * x.y
  * ```
  */
-export class PathExpression extends node('Path').fields<{
-  ref: VariableReference;
-  tail: readonly SourceSlice[];
-}>() {}
+export class PathExpression extends AstNode {
+  readonly type = 'Path';
+  declare ref: VariableReference;
+  declare tail: readonly SourceSlice[];
+}
 
 /**
  * Corresponds to a parenthesized call expression.
@@ -80,7 +85,11 @@ export class PathExpression extends node('Path').fields<{
  * (x.y z)
  * ```
  */
-export class CallExpression extends node('Call').fields<CallFields>() {}
+export class CallExpression extends AstNode implements CallNodeFields {
+  readonly type = 'Call';
+  declare callee: ExpressionNode;
+  declare args: Args;
+}
 
 /**
  * Corresponds to a possible deprecated helper call. Must be:
@@ -95,10 +104,11 @@ export class CallExpression extends node('Call').fields<CallFields>() {}
  * <Foo @bar={{helper}} />
  * ```
  */
-export class DeprecatedCallExpression extends node('DeprecatedCall').fields<{
-  arg: SourceSlice;
-  callee: FreeVariableReference;
-}>() {}
+export class DeprecatedCallExpression extends AstNode {
+  readonly type = 'DeprecatedCall';
+  declare arg: SourceSlice;
+  declare callee: FreeVariableReference;
+}
 
 /**
  * Corresponds to an interpolation in attribute value position.
@@ -107,9 +117,10 @@ export class DeprecatedCallExpression extends node('DeprecatedCall').fields<{
  * <a href="{{url}}.html"
  * ```
  */
-export class InterpolateExpression extends node('Interpolate').fields<{
-  parts: PresentArray<ExpressionNode>;
-}>() {}
+export class InterpolateExpression extends AstNode {
+  readonly type = 'Interpolate';
+  declare parts: PresentArray<ExpressionNode>;
+}
 
 export type ExpressionNode =
   | LiteralExpression

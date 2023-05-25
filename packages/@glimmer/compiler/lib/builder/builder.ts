@@ -443,17 +443,9 @@ export function buildElementParams(
       parameters.push([WIRE_ATTR_SPLAT, symbols.block('&attrs')]);
     } else if (key[0] === '@') {
       keys.push(key);
-      values.push(buildExpression(value, 'Strict', symbols));
+      values.push(buildExpression(value[0], 'Strict', symbols));
     } else {
-      parameters.push(
-        ...buildAttributeValue(
-          key,
-          value,
-          // TODO: extract namespace from key
-          extractNamespace(key),
-          symbols
-        )
-      );
+      parameters.push(...buildAttributeValue(key, value[0], value[1].strict, symbols));
     }
   }
 
@@ -491,7 +483,7 @@ export function extractNamespace(name: string): Nullable<AttrNamespace> {
 export function buildAttributeValue(
   name: string,
   value: NormalizedExpression,
-  namespace: Nullable<AttrNamespace>,
+  strict: boolean,
   symbols: Symbols
 ): WireFormat.Attribute[] {
   switch (value.type) {
@@ -501,9 +493,9 @@ export function buildAttributeValue(
       if (value_ === false) {
         return [];
       } else if (value_ === true) {
-        return [[WIRE_STATIC_ATTR, name, '', namespace ?? undefined]];
+        return [[WIRE_STATIC_ATTR, name, '', strict ? 1 : 0]];
       } else if (typeof value_ === 'string') {
-        return [[WIRE_STATIC_ATTR, name, value_, namespace ?? undefined]];
+        return [[WIRE_STATIC_ATTR, name, value_, strict ? 1 : 0]];
       } else {
         throw new TypeError(`Unexpected/unimplemented literal attribute ${JSON.stringify(value_)}`);
       }
@@ -511,12 +503,7 @@ export function buildAttributeValue(
 
     default:
       return [
-        [
-          WIRE_DYNAMIC_ATTR,
-          name,
-          buildExpression(value, 'AttrValue', symbols),
-          namespace ?? undefined,
-        ],
+        [WIRE_DYNAMIC_ATTR, name, buildExpression(value, 'AttrValue', symbols), strict ? 1 : 0],
       ];
   }
 }

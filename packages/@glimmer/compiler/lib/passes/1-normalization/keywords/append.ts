@@ -57,14 +57,13 @@ export const APPEND_KEYWORDS = keywords('Append')
         positional: ASTv2.PositionalArguments;
       }
     ): Result<mir.Statement> {
-      return VISIT_EXPRS.Positional(positional, state).mapOk(
-        (positional) =>
-          new mir.Yield({
-            loc: node.loc,
-            target,
-            to: state.scope.allocateBlock(target.chars),
-            positional,
-          })
+      return VISIT_EXPRS.Positional(positional, state).mapOk((positional) =>
+        mir.Yield.of({
+          loc: node.loc,
+          target,
+          to: state.scope.allocateBlock(target.chars),
+          positional,
+        })
       );
     },
   })
@@ -92,7 +91,7 @@ export const APPEND_KEYWORDS = keywords('Append')
       state: NormalizationState;
     }): Result<mir.Statement> {
       scope.setHasDebugger();
-      return Ok(new mir.Debugger({ loc: node.loc, scope }));
+      return Ok(mir.Debugger.of({ loc: node.loc, scope }));
     },
   })
   .kw('component', {
@@ -107,7 +106,7 @@ export const APPEND_KEYWORDS = keywords('Append')
 
       return Result.all(definitionResult, argsResult).mapOk(
         ([definition, args]) =>
-          new mir.InvokeComponent({
+          mir.InvokeComponent.of({
             loc: node.loc,
             definition,
             args,
@@ -127,9 +126,9 @@ export const APPEND_KEYWORDS = keywords('Append')
       let argsResult = VISIT_EXPRS.Args(args, state);
 
       return Result.all(definitionResult, argsResult).mapOk(([definition, args]) => {
-        let text = new mir.CallExpression({ callee: definition, args, loc: node.loc });
+        let text = mir.CallExpression.of({ callee: definition, args, loc: node.loc });
 
-        return new mir.AppendTextNode({
+        return mir.AppendTextNode.of({
           loc: node.loc,
           text,
         });

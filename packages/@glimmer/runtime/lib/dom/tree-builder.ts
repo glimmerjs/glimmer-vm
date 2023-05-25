@@ -77,8 +77,6 @@ export class TreeConstruction implements DOMTreeBuilder {
       null
     );
 
-    // tree.#blocks.push(tree.#blocks.current);
-
     return tree;
   }
 

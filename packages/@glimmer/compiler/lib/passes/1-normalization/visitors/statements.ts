@@ -51,14 +51,13 @@ class NormalizationStatements {
     let args = VISIT_EXPRS.Args(node.args, state);
 
     return Result.all(head, args).andThen(([head, args]) =>
-      this.NamedBlocks(node.blocks, state).mapOk(
-        (blocks) =>
-          new mir.InvokeBlock({
-            loc: node.loc,
-            head,
-            args,
-            blocks,
-          })
+      this.NamedBlocks(node.blocks, state).mapOk((blocks) =>
+        mir.InvokeBlock.of({
+          loc: node.loc,
+          head,
+          args,
+          blocks,
+        })
       )
     );
   }
@@ -68,14 +67,14 @@ class NormalizationStatements {
 
     return list
       .toArray()
-      .mapOk((list) => new mir.NamedBlocks({ loc: blocks.loc, blocks: OptionalList(list) }));
+      .mapOk((list) => mir.NamedBlocks.of({ loc: blocks.loc, blocks: OptionalList(list) }));
   }
 
   NamedBlock(named: ASTv2.NamedBlock, state: NormalizationState): Result<mir.NamedBlock> {
     let body = state.visitBlock(named.block);
 
     return body.mapOk((body) => {
-      return new mir.NamedBlock({
+      return mir.NamedBlock.of({
         loc: named.loc,
         name: named.name,
         body: body.toArray(),
@@ -112,25 +111,27 @@ class NormalizationStatements {
     let value = VISIT_EXPRS.visit(append.value, state);
 
     return value.mapOk((value) => {
-      return append.trusting ? new mir.AppendTrustedHTML({
-          loc: append.loc,
-          html: value,
-        }) : new mir.AppendTextNode({
-          loc: append.loc,
-          text: value,
-        });
+      return append.trusting
+        ? mir.AppendTrustedHTML.of({
+            loc: append.loc,
+            html: value,
+          })
+        : mir.AppendTextNode.of({
+            loc: append.loc,
+            text: value,
+          });
     });
   }
 
   TextNode(text: ASTv2.HtmlText): mir.Statement {
-    return new mir.AppendTextNode({
+    return mir.AppendTextNode.of({
       loc: text.loc,
-      text: new ASTv2.LiteralExpression({ loc: text.loc, value: text.chars }),
+      text: ASTv2.LiteralExpression.of({ loc: text.loc, value: text.chars }),
     });
   }
 
   HtmlComment(comment: ASTv2.HtmlComment): mir.Statement {
-    return new mir.AppendComment({
+    return mir.AppendComment.of({
       loc: comment.loc,
       value: comment.text,
     });

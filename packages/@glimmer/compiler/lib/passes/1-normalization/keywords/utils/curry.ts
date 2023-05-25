@@ -56,8 +56,8 @@ export function assertCurryKeyword(curriedType: CurriedType) {
       }
     }
 
-    args = new ASTv2.Args({
-      positional: new ASTv2.PositionalArguments({
+    args = ASTv2.Args.of({
+      positional: ASTv2.PositionalArguments.of({
         exprs: args.positional.exprs.slice(1),
         loc: args.positional.loc,
       }),
@@ -80,14 +80,13 @@ function translateCurryKeyword(curriedType: CurriedType) {
     let definitionResult = VISIT_EXPRS.visit(definition, state);
     let argsResult = VISIT_EXPRS.Args(args, state);
 
-    return Result.all(definitionResult, argsResult).mapOk(
-      ([definition, args]) =>
-        new mir.Curry({
-          loc: node.loc,
-          curriedType,
-          definition,
-          args,
-        })
+    return Result.all(definitionResult, argsResult).mapOk(([definition, args]) =>
+      mir.Curry.of({
+        loc: node.loc,
+        curriedType,
+        definition,
+        args,
+      })
     );
   };
 }

@@ -2,11 +2,11 @@ import type {
   BlockSymbolTable,
   Dict,
   Maybe,
+  MinimalChild,
+  MinimalDocumentFragment,
   Nullable,
   ProgramSymbolTable,
-  SimpleDocumentFragment,
   SimpleElement,
-  SimpleNode,
 } from '@glimmer/interfaces';
 
 export interface Checker<T> {
@@ -348,29 +348,29 @@ export function expectStackChange(stack: { sp: number }, expected: number, name:
   );
 }
 
-/*#__PURE__*/
+/*@__PURE__*/
 export const CheckPrimitive: Checker<Primitive> = strippable(() => new PrimitiveChecker());
-/*#__PURE__*/
+/*@__PURE__*/
 export const CheckFunction: Checker<Function> = strippable(
   () => new TypeofChecker<Function>('function')
 );
-/*#__PURE__*/
+/*@__PURE__*/
 export const CheckNumber: Checker<number> = strippable(() => new TypeofChecker<number>('number'));
-/*#__PURE__*/
+/*@__PURE__*/
 export const CheckBoolean: Checker<boolean> = strippable(
   () => new TypeofChecker<boolean>('boolean')
 );
-/*#__PURE__*/
+/*@__PURE__*/
 export const CheckHandle: Checker<number> = CheckNumber;
-/*#__PURE__*/
+/*@__PURE__*/
 export const CheckString: Checker<string> = strippable(() => new TypeofChecker<string>('string'));
-/*#__PURE__*/
+/*@__PURE__*/
 export const CheckNull: Checker<null> = strippable(() => new NullChecker());
-/*#__PURE__*/
+/*@__PURE__*/
 export const CheckUnknown: Checker<unknown> = strippable(() => new OpaqueChecker());
-/*#__PURE__*/
+/*@__PURE__*/
 export const CheckSafeString: Checker<SafeString> = strippable(() => new SafeStringChecker());
-/*#__PURE__*/
+/*@__PURE__*/
 export const CheckObject: Checker<object> = strippable(() => new ObjectChecker());
 
 /*@__PURE__*/
@@ -400,12 +400,12 @@ export const CheckElement: Checker<SimpleElement> = CheckInterface({
   nextSibling: CheckUnknown,
 });
 
-export const CheckDocumentFragment: Checker<SimpleDocumentFragment> = CheckInterface({
+export const CheckDocumentFragment: Checker<MinimalDocumentFragment> = CheckInterface({
   nodeType: CheckValue(11),
   nextSibling: CheckUnknown,
 });
 
-export const CheckNode: Checker<SimpleNode> = CheckInterface({
+export const CheckNode: Checker<MinimalChild> = CheckInterface({
   nodeType: CheckNumber,
   nextSibling: CheckUnknown,
 });

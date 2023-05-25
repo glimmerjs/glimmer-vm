@@ -25,7 +25,6 @@ import type {
   ElementOperations,
   InternalComponentManager,
   ModifierDefinition,
-  ModifierInstance,
   Nullable,
   Owner,
   ProgramSymbolTable,
@@ -116,7 +115,7 @@ import { UpdateDynamicAttributeOpcode, UpdateModifierOpcode } from './dom';
 import { CURRIED_COMPONENT } from '@glimmer/vm-constants';
 import { define } from '../../opcodes';
 import { getClassicBoundsFor } from '../../vm/update';
-import { createUpdatableTag, type TrackedCache, getValue, createCache } from '@glimmer/validator';
+import { type TrackedCache, getValue, createCache } from '@glimmer/validator';
 
 /**
  * The VM creates a new ComponentInstance data structure for every component
@@ -543,73 +542,12 @@ export class ComponentElementOperations implements ElementOperations {
 
   addModifier(
     definitionCache: TrackedCache<{
-      definition?: ModifierDefinition | undefined;
+      definition: ModifierDefinition | undefined;
       owner: object;
     }>,
     args: CapturedArguments
   ): UpdateModifierOpcode {
-    let lastDestroyable: object | null;
-
     let element: Element | undefined;
-
-    let lastInstance: ModifierInstance | undefined;
-    let isRegenerated = false;
-    let tag = createUpdatableTag();
-
-    // let multiLayerCache = createCache(() => {
-    //   let currentDefinition = getValue(definitionCache);
-
-    //   if (lastDestroyable) destroy(lastDestroyable);
-    //   if (currentDefinition === undefined) return;
-
-    //   // eslint-disable-next-line prefer-let/prefer-let
-    //   const { definition, owner: curriedOwner } = currentDefinition;
-    //   if (definition === undefined) return;
-
-    //   let manager = definition.manager;
-
-    //   lastDestroyable = manager.getDestroyable(definition.state);
-
-    //   if (lastInstance) {
-    //     isRegenerated = true;
-    //     lastInstance = undefined;
-    //   }
-
-    //   return createCache(() => {
-    //     if (modifierArgs === undefined) return;
-
-    //     let [element, owner] = modifierArgs;
-
-    //     if (lastInstance) {
-    //       let state = lastInstance.state;
-    //       manager.update(state);
-    //       lastDestroyable = manager.getDestroyable(state);
-    //       let managerTag = manager.getTag(state);
-    //       if (managerTag) updateTag(tag, managerTag);
-
-    //       return lastInstance;
-    //     } else {
-    //       if (isRegenerated) debugger;
-    //       let state = manager.create(curriedOwner ?? owner, element, definition.state, args);
-    //       lastDestroyable = manager.getDestroyable(state);
-
-    //       let managerTag = manager.getTag(state);
-    //       if (managerTag) updateTag(tag, managerTag);
-
-    //       return (lastInstance = {
-    //         manager,
-    //         state,
-    //         definition,
-    //       } satisfies ModifierInstance);
-    //     }
-    //   });
-    // }, 'modifier');
-
-    // let cache = createCache(() => {
-    //   consumeTag(tag);
-    //   let a = getValue(multiLayerCache);
-    //   return a && getValue(a);
-    // }, 'modifier');
 
     let modifier = new UpdateModifierOpcode(
       createCache(() => {

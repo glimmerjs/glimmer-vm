@@ -41,11 +41,11 @@ export interface MinimalParent {
 }
 
 export interface MinimalText extends MinimalChild {
-  readonly data: string;
+  nodeValue: string;
 }
 
 export interface MinimalComment extends MinimalChild {
-  readonly data: string;
+  nodeValue: string;
 }
 
 export interface MinimalElement extends MinimalChild, MinimalParent {

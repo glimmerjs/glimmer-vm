@@ -433,7 +433,6 @@ class ModifierTests extends RenderTest {
 
     class Foo extends AbstractDestroyable {
       willDestroyElement() {
-        debugger;
         destructionOrder.push('foo');
       }
     }

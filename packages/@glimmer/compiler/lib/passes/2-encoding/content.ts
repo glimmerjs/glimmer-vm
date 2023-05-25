@@ -126,11 +126,12 @@ export class ContentEncoder {
     block,
   }: mir.InElement): WireFormat.Statements.InElement {
     let wireBlock = CONTENT.NamedBlock(block)[1];
-    // let guid = args.guid;
     let wireDestination = EXPR.expr(destination);
     let wireInsertBefore = EXPR.expr(insertBefore);
 
-    return wireInsertBefore === undefined ? [WIRE_IN_ELEMENT, wireBlock, guid, wireDestination] : [WIRE_IN_ELEMENT, wireBlock, guid, wireDestination, wireInsertBefore];
+    return wireInsertBefore === undefined
+      ? [WIRE_IN_ELEMENT, wireBlock, guid, wireDestination]
+      : [WIRE_IN_ELEMENT, wireBlock, guid, wireDestination, wireInsertBefore];
   }
 
   InvokeBlock({ head, args, blocks }: mir.InvokeBlock): WireFormat.Statements.Block {
@@ -262,35 +263,25 @@ export class ContentEncoder {
 
 export const CONTENT = new ContentEncoder();
 
-export type StaticAttrArgs = [name: string | WellKnownAttrName, value: string, namespace?: string];
+export type StaticAttrArgs = [name: string | WellKnownAttrName, value: string, strict: 0 | 1];
 
-function staticAttribute({ name, value, namespace }: mir.StaticAttr): StaticAttrArgs {
-  let out: StaticAttrArgs = [deflateAttributeName(name.chars), value.chars];
-
-  if (namespace) {
-    out.push(namespace);
-  }
-
-  return out;
+function staticAttribute({ name, value, strict }: mir.StaticAttr): StaticAttrArgs {
+  return [deflateAttributeName(name.chars), value.chars, strict ? 1 : 0];
 }
 
 export type DynamicAttrArgs = [
   name: string | WellKnownAttrName,
   value: WireFormat.Expression,
-  namespace?: string
+  strict: 0 | 1
 ];
 
-function dynamicAttribute({ name, value, namespace }: mir.DynamicAttr): DynamicAttrArgs {
-  let out: DynamicAttrArgs = [deflateAttributeName(name.chars), EXPR.expr(value)];
-
-  if (namespace) {
-    out.push(namespace);
-  }
-
-  return out;
+function dynamicAttribute({ name, value, strict }: mir.DynamicAttr): DynamicAttrArgs {
+  return [deflateAttributeName(name.chars), EXPR.expr(value), strict ? 1 : 0];
 }
 
-function staticAttributeOp(kind: { component: boolean }): StaticAttrOpcode | StaticComponentAttrOpcode;
+function staticAttributeOp(kind: {
+  component: boolean;
+}): StaticAttrOpcode | StaticComponentAttrOpcode;
 function staticAttributeOp(kind: { component: boolean }): AttrOpcode {
   return kind.component ? WIRE_STATIC_COMPONENT_ATTR : WIRE_STATIC_ATTR;
 }

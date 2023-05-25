@@ -12,7 +12,9 @@ export type NormalizedHash = Dict<NormalizedExpression>;
 export type NormalizedBlock = NormalizedStatement[];
 export type NormalizedBlocks = Dict<NormalizedBlock>;
 export type NormalizedAttributes = Dict<NormalizedAttribute>;
-export type NormalizedAttribute = HeadKind.Splat | NormalizedExpression;
+export type NormalizedAttribute =
+  | HeadKind.Splat
+  | [expr: NormalizedExpression, flags: { trusted: boolean; strict: boolean }];
 
 export interface NormalizedElement {
   name: string;
@@ -487,18 +489,15 @@ function normalizeBlock(block: BuilderBlock): NormalizedBlock {
 }
 
 function normalizeAttributes(attributes: BuilderAttributes): NormalizedAttributes {
-  return mapObject(attributes, (a) => normalizeAttribute(a).expr);
+  return mapObject(attributes, (a) => normalizeAttribute(a, false));
 }
 
-function normalizeAttribute(attribute: BuilderAttribute): {
-  expr: NormalizedAttribute;
-  trusted: boolean;
-} {
+function normalizeAttribute(attribute: BuilderAttribute, strict: boolean): NormalizedAttribute {
   if (attribute === 'splat') {
-    return { expr: HeadKind.Splat, trusted: false };
+    return HeadKind.Splat;
   } else {
     let expr = normalizeExpression(attribute);
-    return { expr, trusted: false };
+    return [expr, { trusted: false, strict }];
   }
 }
 

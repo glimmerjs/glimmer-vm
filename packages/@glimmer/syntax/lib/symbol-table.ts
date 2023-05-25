@@ -1,8 +1,9 @@
 import type { Core, Dict } from '@glimmer/interfaces';
 import { dict, unwrap } from '@glimmer/util';
 
-import * as ASTv2 from './v2/api';
+import type * as ASTv2 from './v2/api';
 import { WIRE_GET_FREE_AS_COMPONENT_HEAD } from '@glimmer/wire-format';
+import { HTML_RESOLUTION } from './v2/objects/resolution';
 
 export interface Upvar {
   readonly name: string;
@@ -64,7 +65,7 @@ export class ProgramSymbolTable extends SymbolTable {
   }
 
   getLexical(name: string): number {
-    return this.allocateFree(name, ASTv2.HTML_RESOLUTION);
+    return this.allocateFree(name, HTML_RESOLUTION);
   }
 
   getUsedTemplateLocals(): string[] {

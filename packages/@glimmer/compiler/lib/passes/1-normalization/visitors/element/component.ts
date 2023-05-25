@@ -17,7 +17,7 @@ export class ClassifiedComponent implements Classified {
 
     return VISIT_EXPRS.visit(convertPathToCallIfKeyword(attribute.value), state).mapOk(
       (value) =>
-        new mir.NamedArgument({
+        mir.NamedArgument.of({
           loc: attribute.loc,
           key: name,
           value,
@@ -30,7 +30,7 @@ export class ClassifiedComponent implements Classified {
 
     return this.blocks(state).mapOk(
       (blocks) =>
-        new mir.Component({
+        mir.Component.of({
           loc: element.loc,
           tag: this.tag,
           params,

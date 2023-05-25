@@ -14,6 +14,7 @@ import {
   type PrecompileOptionsWithLexicalScope,
   src,
   type TemplateIdFn,
+  hasStrictVariables,
 } from '@glimmer/syntax';
 import { LOCAL_LOGGER } from '@glimmer/util';
 
@@ -84,7 +85,7 @@ export function precompileJSON(
 ): [block: SerializedTemplateBlock, usedLocals: string[]] {
   let source = new src.Source(string ?? '', options.meta?.moduleName);
   let [ast, locals] = normalize(source, { lexicalScope: () => false, ...options });
-  let block = pass0(source, ast, options.strictMode ?? false).mapOk((pass2In) => {
+  let block = pass0(source, ast, hasStrictVariables(options.strictMode)).mapOk((pass2In) => {
     return pass2(pass2In);
   });
 
@@ -133,7 +134,7 @@ export function precompile(
     // lying to the type checker here because we're going to
     // replace it just below, after stringification
     scope: SCOPE_PLACEHOLDER as unknown as null,
-    isStrictMode: options.strictMode ?? false,
+    isStrictMode: hasStrictVariables(options.strictMode),
   };
 
   if (usedLocals.length === 0) {

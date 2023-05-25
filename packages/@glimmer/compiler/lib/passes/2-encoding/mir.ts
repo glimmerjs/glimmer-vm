@@ -1,100 +1,127 @@
 import type { CurriedType, PresentArray } from '@glimmer/interfaces';
-import {
-  type ASTv2,
-  type BlockSymbolTable,
-  node,
-  type ProgramSymbolTable,
-  type SourceSlice,
-  type SymbolTable,
+import { ASTv2 } from '@glimmer/syntax';
+import type {
+  SymbolTable,
+  SourceSlice,
+  BlockSymbolTable,
+  ProgramSymbolTable,
 } from '@glimmer/syntax';
 
 import type { AnyOptionalList, OptionalList, PresentList } from '../../shared/list';
 
-export class Template extends node('Template').fields<{
-  scope: ProgramSymbolTable;
-  body: Statement[];
-}>() {}
+const AstNode = ASTv2.AstNode;
 
-export class InElement extends node('InElement').fields<{
-  guid: string;
-  insertBefore: ExpressionNode | Missing;
-  destination: ExpressionNode;
-  block: NamedBlock;
-}>() {}
+export class Template extends AstNode {
+  readonly type = 'Template';
+  declare scope: ProgramSymbolTable;
+  declare body: Statement[];
+}
 
-export class Not extends node('Not').fields<{ value: ExpressionNode }>() {}
+export class InElement extends AstNode {
+  readonly type = 'InElement';
+  declare guid: string;
+  declare insertBefore: ExpressionNode | Missing;
+  declare destination: ExpressionNode;
+  declare block: NamedBlock;
+}
 
-export class If extends node('If').fields<{
-  condition: ExpressionNode;
-  block: NamedBlock;
-  inverse: NamedBlock | null;
-}>() {}
+export class Not extends AstNode {
+  readonly type = 'Not';
+  declare value: ExpressionNode;
+}
 
-export class IfInline extends node('IfInline').fields<{
-  condition: ExpressionNode;
-  truthy: ExpressionNode;
-  falsy: ExpressionNode | null;
-}>() {}
+export class If extends AstNode {
+  readonly type = 'If';
+  declare condition: ExpressionNode;
+  declare block: NamedBlock;
+  declare inverse: NamedBlock | null;
+}
 
-export class Each extends node('Each').fields<{
-  value: ExpressionNode;
-  key: ExpressionNode | null;
-  block: NamedBlock;
-  inverse: NamedBlock | null;
-}>() {}
+export class IfInline extends AstNode {
+  readonly type = 'IfInline';
+  declare condition: ExpressionNode;
+  declare truthy: ExpressionNode;
+  declare falsy: ExpressionNode | null;
+}
 
-export class With extends node('With').fields<{
-  value: ExpressionNode;
-  block: NamedBlock;
-  inverse: NamedBlock | null;
-}>() {}
+export class Each extends AstNode {
+  readonly type = 'Each';
+  declare value: ExpressionNode;
+  declare key: ExpressionNode | null;
+  declare block: NamedBlock;
+  declare inverse: NamedBlock | null;
+}
 
-export class Let extends node('Let').fields<{
-  positional: Positional;
-  block: NamedBlock;
-}>() {}
+export class With extends AstNode {
+  readonly type = 'With';
+  declare value: ExpressionNode;
+  declare block: NamedBlock;
+  declare inverse: NamedBlock | null;
+}
 
-export class WithDynamicVars extends node('WithDynamicVars').fields<{
-  named: NamedArguments;
-  block: NamedBlock;
-}>() {}
+export class Let extends AstNode {
+  readonly type = 'Let';
+  declare positional: Positional;
+  declare block: NamedBlock;
+}
 
-export class GetDynamicVar extends node('GetDynamicVar').fields<{
-  name: ExpressionNode;
-}>() {}
+export class WithDynamicVars extends AstNode {
+  readonly type = 'WithDynamicVars';
+  declare named: NamedArguments;
+  declare block: NamedBlock;
+}
 
-export class Log extends node('Log').fields<{
-  positional: Positional;
-}>() {}
+export class GetDynamicVar extends AstNode {
+  readonly type = 'GetDynamicVar';
+  declare name: ExpressionNode;
+}
 
-export class InvokeComponent extends node('InvokeComponent').fields<{
-  definition: ExpressionNode;
-  args: Args;
-  blocks: NamedBlocks | null;
-}>() {}
+export class Log extends AstNode {
+  readonly type = 'Log';
+  declare positional: Positional;
+}
 
-export class NamedBlocks extends node('NamedBlocks').fields<{
-  blocks: OptionalList<NamedBlock>;
-}>() {}
+export class InvokeComponent extends AstNode {
+  readonly type = 'InvokeComponent';
+  declare definition: ExpressionNode;
+  declare args: Args;
+  declare blocks: NamedBlocks | null;
+}
 
-export class NamedBlock extends node('NamedBlock').fields<{
-  scope: BlockSymbolTable;
-  name: SourceSlice;
-  body: Statement[];
-}>() {}
-export class EndBlock extends node('EndBlock').fields() {}
-export class AppendTrustedHTML extends node('AppendTrustedHTML').fields<{
-  html: ExpressionNode;
-}>() {}
-export class AppendTextNode extends node('AppendTextNode').fields<{ text: ExpressionNode }>() {}
-export class AppendComment extends node('AppendComment').fields<{ value: SourceSlice }>() {}
+export class NamedBlocks extends AstNode {
+  readonly type = 'NamedBlocks';
+  declare blocks: OptionalList<NamedBlock>;
+}
 
-export class Component extends node('Component').fields<{
-  tag: ExpressionNode;
-  params: ElementParameters;
-  args: NamedArguments;
-  blocks: NamedBlocks;
-}>() {}
+export class NamedBlock extends AstNode {
+  readonly type = 'NamedBlock';
+  declare scope: BlockSymbolTable;
+  declare name: SourceSlice;
+  declare body: Statement[];
+}
+export class EndBlock extends AstNode {
+  readonly type = 'EndBlock';
+}
+export class AppendTrustedHTML extends AstNode {
+  readonly type = 'AppendTrustedHTML';
+  declare html: ExpressionNode;
+}
+export class AppendTextNode extends AstNode {
+  readonly type = 'AppendTextNode';
+  declare text: ExpressionNode;
+}
+export class AppendComment extends AstNode {
+  readonly type = 'AppendComment';
+  declare value: SourceSlice;
+}
+
+export class Component extends AstNode {
+  readonly type = 'Component';
+  declare tag: ExpressionNode;
+  declare params: ElementParameters;
+  declare args: NamedArguments;
+  declare blocks: NamedBlocks;
+}
 
 export interface AttributeKind {
   // triple-curly
@@ -106,101 +133,144 @@ export interface AttributeKind {
   component: boolean;
 }
 
-export class StaticAttr extends node('StaticAttr').fields<{
-  kind: { component: boolean };
-  name: SourceSlice;
-  value: SourceSlice;
-  namespace?: string | undefined;
-}>() {}
+export class StaticAttr extends AstNode {
+  readonly type = 'StaticAttr';
+  declare kind: { component: boolean };
+  declare name: SourceSlice;
+  declare value: SourceSlice;
+  declare strict: boolean;
+}
 
-export class DynamicAttr extends node('DynamicAttr').fields<{
-  kind: AttributeKind;
-  name: SourceSlice;
-  value: ExpressionNode;
-  namespace?: string | undefined;
-}>() {}
+export class DynamicAttr extends AstNode {
+  readonly type = 'DynamicAttr';
+  declare kind: AttributeKind;
+  declare name: SourceSlice;
+  declare value: ExpressionNode;
+  declare strict: boolean;
+}
 
-export class SimpleElement extends node('SimpleElement').fields<{
-  tag: SourceSlice;
-  params: ElementParameters;
-  body: Statement[];
-  dynamicFeatures: boolean;
-}>() {}
+export class SimpleElement extends AstNode {
+  readonly type = 'SimpleElement';
+  declare tag: SourceSlice;
+  declare params: ElementParameters;
+  declare body: Statement[];
+  declare dynamicFeatures: boolean;
+}
 
-export class ElementParameters extends node('ElementParameters').fields<{
-  body: AnyOptionalList<ElementParameter>;
-}>() {}
+export class ElementParameters extends AstNode {
+  readonly type = 'ElementParameters';
+  declare body: AnyOptionalList<ElementParameter>;
+}
 
-export class Yield extends node('Yield').fields<{
-  target: SourceSlice;
-  to: number;
-  positional: Positional;
-}>() {}
-export class Debugger extends node('Debugger').fields<{ scope: SymbolTable }>() {}
+export class Yield extends AstNode {
+  readonly type = 'Yield';
+  declare target: SourceSlice;
+  declare to: number;
+  declare positional: Positional;
+}
+export class Debugger extends AstNode {
+  readonly type = 'Debugger';
+  declare scope: SymbolTable;
+}
 
-export class CallExpression extends node('CallExpression').fields<{
-  callee: ExpressionNode;
-  args: Args;
-}>() {}
-export class DeprecatedCallExpression extends node('DeprecatedCallExpression').fields<{
-  arg: SourceSlice;
-  callee: ASTv2.FreeVarReference;
-}>() {}
+export class CallExpression extends AstNode {
+  readonly type = 'CallExpression';
+  declare callee: ExpressionNode;
+  declare args: Args;
+}
+export class DeprecatedCallExpression extends AstNode {
+  readonly type = 'DeprecatedCallExpression';
+  declare arg: SourceSlice;
+  declare callee: ASTv2.FreeVarReference;
+}
 
-export class Modifier extends node('Modifier').fields<{ callee: ExpressionNode; args: Args }>() {}
-export class InvokeBlock extends node('InvokeBlock').fields<{
-  head: ExpressionNode;
-  args: Args;
-  blocks: NamedBlocks;
-}>() {}
-export class SplatAttr extends node('SplatAttr').fields<{ symbol: number }>() {}
-export class PathExpression extends node('PathExpression').fields<{
-  head: ExpressionNode;
-  tail: Tail;
-}>() {}
-export class GetWithResolver extends node('GetWithResolver').fields<{
-  symbol: number;
-}>() {}
+export class Modifier extends AstNode {
+  readonly type = 'Modifier';
+  declare callee: ExpressionNode;
+  declare args: Args;
+}
+export class InvokeBlock extends AstNode {
+  readonly type = 'InvokeBlock';
+  declare head: ExpressionNode;
+  declare args: Args;
+  declare blocks: NamedBlocks;
+}
+export class SplatAttr extends AstNode {
+  readonly type = 'SplatAttr';
+  declare symbol: number;
+}
+export class PathExpression extends AstNode {
+  readonly type = 'PathExpression';
+  declare head: ExpressionNode;
+  declare tail: Tail;
+}
+export class GetWithResolver extends AstNode {
+  readonly type = 'GetWithResolver';
+  declare symbol: number;
+}
 
-export class GetSymbol extends node('GetSymbol').fields<{ symbol: number }>() {}
-export class GetFreeWithContext extends node('GetFreeWithContext').fields<{
-  symbol: number;
-  context: ASTv2.FreeVarResolution;
-}>() {}
+export class GetSymbol extends AstNode {
+  readonly type = 'GetSymbol';
+  declare symbol: number;
+}
+export class GetFreeWithContext extends AstNode {
+  readonly type = 'GetFreeWithContext';
+  declare symbol: number;
+  declare context: ASTv2.FreeVarResolution;
+}
 /** strict mode */
-export class GetFree extends node('GetFree').fields<{
-  symbol: number;
-}>() {}
+export class GetFree extends AstNode {
+  readonly type = 'GetFree';
+  declare symbol: number;
+}
 
-export class Missing extends node('Missing').fields() {}
-export class InterpolateExpression extends node('InterpolateExpression').fields<{
-  parts: PresentList<ExpressionNode>;
-}>() {}
-export class HasBlock extends node('HasBlock').fields<{ target: SourceSlice; symbol: number }>() {}
-export class HasBlockParams extends node('HasBlockParams').fields<{
-  target: SourceSlice;
-  symbol: number;
-}>() {}
-export class Curry extends node('Curry').fields<{
-  definition: ExpressionNode;
-  curriedType: CurriedType;
-  args: Args;
-}>() {}
-export class Positional extends node('Positional').fields<{
-  list: OptionalList<ExpressionNode>;
-}>() {}
-export class NamedArguments extends node('NamedArguments').fields<{
-  entries: OptionalList<NamedArgument>;
-}>() {}
-export class NamedArgument extends node('NamedArgument').fields<{
-  key: SourceSlice;
-  value: ExpressionNode;
-}>() {}
-export class Args extends node('Args').fields<{
-  positional: Positional;
-  named: NamedArguments;
-}>() {}
-export class Tail extends node('Tail').fields<{ members: PresentArray<SourceSlice> }>() {}
+export class Missing extends AstNode {
+  readonly type = 'Missing';
+}
+export class InterpolateExpression extends AstNode {
+  readonly type = 'InterpolateExpression';
+  declare parts: PresentList<ExpressionNode>;
+}
+export class HasBlock extends AstNode {
+  readonly type = 'HasBlock';
+  declare target: SourceSlice;
+  declare symbol: number;
+}
+
+export class HasBlockParams extends AstNode {
+  readonly type = 'HasBlockParams';
+  declare target: SourceSlice;
+  declare symbol: number;
+}
+export class Curry extends AstNode {
+  readonly type = 'Curry';
+  declare definition: ExpressionNode;
+  declare curriedType: CurriedType;
+  declare args: Args;
+}
+export class Positional extends AstNode {
+  readonly type = 'Positional';
+  declare list: OptionalList<ExpressionNode>;
+}
+export class NamedArguments extends AstNode {
+  readonly type = 'NamedArguments';
+  declare entries: OptionalList<NamedArgument>;
+}
+export class NamedArgument extends AstNode {
+  readonly type = 'NamedArgument';
+  declare key: SourceSlice;
+  declare value: ExpressionNode;
+}
+export class Args extends AstNode {
+  readonly type = 'Args';
+  declare positional: Positional;
+  declare named: NamedArguments;
+}
+
+export class Tail extends AstNode {
+  readonly type = 'Tail';
+  declare members: PresentArray<SourceSlice>;
+}
 
 export type ExpressionNode =
   | ASTv2.LiteralExpression

@@ -58,28 +58,29 @@ export const BLOCK_KEYWORDS = keywords('Block')
             destination: mir.ExpressionNode;
             insertBefore: mir.ExpressionNode;
           }> => {
-            return insertBefore ? VISIT_EXPRS.visit(insertBefore, state).mapOk((insertBefore) => ({
-                body,
-                destination,
-                insertBefore,
-              })) : Ok({
-                body,
-                destination,
-                insertBefore: new mir.Missing({
-                  loc: node.callee.loc.collapse('end'),
-                }),
-              });
+            return insertBefore
+              ? VISIT_EXPRS.visit(insertBefore, state).mapOk((insertBefore) => ({
+                  body,
+                  destination,
+                  insertBefore,
+                }))
+              : Ok({
+                  body,
+                  destination,
+                  insertBefore: mir.Missing.of({
+                    loc: node.callee.loc.collapse('end'),
+                  }),
+                });
           }
         )
-        .mapOk(
-          ({ body, destination, insertBefore }) =>
-            new mir.InElement({
-              loc: node.loc,
-              block: body,
-              insertBefore,
-              guid: state.generateUniqueCursor(),
-              destination,
-            })
+        .mapOk(({ body, destination, insertBefore }) =>
+          mir.InElement.of({
+            loc: node.loc,
+            block: body,
+            insertBefore,
+            guid: state.generateUniqueCursor(),
+            destination,
+          })
         );
     },
   })
@@ -136,7 +137,7 @@ export const BLOCK_KEYWORDS = keywords('Block')
 
       return Result.all(conditionResult, blockResult, inverseResult).mapOk(
         ([condition, block, inverse]) =>
-          new mir.If({
+          mir.If.of({
             loc: node.loc,
             condition,
             block,
@@ -198,9 +199,9 @@ export const BLOCK_KEYWORDS = keywords('Block')
 
       return Result.all(conditionResult, blockResult, inverseResult).mapOk(
         ([condition, block, inverse]) =>
-          new mir.If({
+          mir.If.of({
             loc: node.loc,
-            condition: new mir.Not({ value: condition, loc: node.loc }),
+            condition: mir.Not.of({ value: condition, loc: node.loc }),
             block,
             inverse,
           })
@@ -265,7 +266,7 @@ export const BLOCK_KEYWORDS = keywords('Block')
 
       return Result.all(valueResult, keyResult, blockResult, inverseResult).mapOk(
         ([value, key, block, inverse]) =>
-          new mir.Each({
+          mir.Each.of({
             loc: node.loc,
             value,
             key,
@@ -326,14 +327,13 @@ export const BLOCK_KEYWORDS = keywords('Block')
       let blockResult = VISIT_STMTS.NamedBlock(block, state);
       let inverseResult = inverse ? VISIT_STMTS.NamedBlock(inverse, state) : Ok(null);
 
-      return Result.all(valueResult, blockResult, inverseResult).mapOk(
-        ([value, block, inverse]) =>
-          new mir.With({
-            loc: node.loc,
-            value,
-            block,
-            inverse,
-          })
+      return Result.all(valueResult, blockResult, inverseResult).mapOk(([value, block, inverse]) =>
+        mir.With.of({
+          loc: node.loc,
+          value,
+          block,
+          inverse,
+        })
       );
     },
   })
@@ -381,13 +381,12 @@ export const BLOCK_KEYWORDS = keywords('Block')
       let positionalResult = VISIT_EXPRS.Positional(positional, state);
       let blockResult = VISIT_STMTS.NamedBlock(block, state);
 
-      return Result.all(positionalResult, blockResult).mapOk(
-        ([positional, block]) =>
-          new mir.Let({
-            loc: node.loc,
-            positional,
-            block,
-          })
+      return Result.all(positionalResult, blockResult).mapOk(([positional, block]) =>
+        mir.Let.of({
+          loc: node.loc,
+          positional,
+          block,
+        })
       );
     },
   })
@@ -407,13 +406,12 @@ export const BLOCK_KEYWORDS = keywords('Block')
       let namedResult = VISIT_EXPRS.NamedArguments(named, state);
       let blockResult = VISIT_STMTS.NamedBlock(block, state);
 
-      return Result.all(namedResult, blockResult).mapOk(
-        ([named, block]) =>
-          new mir.WithDynamicVars({
-            loc: node.loc,
-            named,
-            block,
-          })
+      return Result.all(namedResult, blockResult).mapOk(([named, block]) =>
+        mir.WithDynamicVars.of({
+          loc: node.loc,
+          named,
+          block,
+        })
       );
     },
   })
@@ -430,7 +428,7 @@ export const BLOCK_KEYWORDS = keywords('Block')
 
       return Result.all(definitionResult, argsResult, blocksResult).mapOk(
         ([definition, args, blocks]) =>
-          new mir.InvokeComponent({
+          mir.InvokeComponent.of({
             loc: node.loc,
             definition,
             args,
