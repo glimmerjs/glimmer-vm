@@ -317,6 +317,8 @@ test('top-level comments', `<!-- {{foo}} -->`, c` {{foo}} `);
 
 test('handlebars comments', `<div>{{! Better not break! }}content</div>`, ['<div>', [s`content`]]);
 
+test('handlebars comments with whitespace removal', '<div>  {{~! some comment ~}}  content</div>', ['<div>', [s`content`]]);
+
 test('namespaced attribute', `<svg xlink:title='svg-title'>content</svg>`, [
   '<svg>',
   { 'xlink:title': s`svg-title` },
