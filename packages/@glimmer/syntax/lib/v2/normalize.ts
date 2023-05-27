@@ -8,6 +8,7 @@ import {
   preprocess,
 } from '../parser/tokenizer-event-handlers';
 import type { SourceLocation } from '../source/location';
+import { SYNTHETIC_LOCATION } from '../source/location';
 import { SourceSlice } from '../source/slice';
 import type { Source } from '../source/source';
 import type { SourceSpan } from '../source/span';
@@ -593,7 +594,20 @@ class ElementNormalizer {
     }
 
     let offsets = this.ctx.loc(m.loc);
-    let nameSlice = offsets.sliceStartChars({ chars: m.name.length }).toSlice(m.name);
+
+    let synthetic_loc = JSON.stringify(SYNTHETIC_LOCATION);
+
+    let nameSlice;
+
+    // Don't try to pull synthetic attributes from the source
+    if (JSON.stringify(offsets) === JSON.stringify(synthetic_loc)) {
+      nameSlice = new SourceSlice({
+        loc: offsets,
+        chars: m.name
+      });
+    } else {
+      nameSlice = offsets.sliceStartChars({ chars: m.name.length }).toSlice(m.name);
+    }
 
     let value = this.attrValue(m.value);
     return this.ctx.builder.attr(
@@ -661,7 +675,20 @@ class ElementNormalizer {
     assert(arg.name[0] === '@', 'An arg name must start with `@`');
 
     let offsets = this.ctx.loc(arg.loc);
-    let nameSlice = offsets.sliceStartChars({ chars: arg.name.length }).toSlice(arg.name);
+
+    let synthetic_loc = JSON.stringify(SYNTHETIC_LOCATION);
+
+    let nameSlice;
+
+    // Don't try to pull synthetic arguments from the source
+    if (JSON.stringify(offsets) === JSON.stringify(synthetic_loc)) {
+      nameSlice = new SourceSlice({
+        loc: offsets,
+        chars: arg.name
+      });
+    } else {
+      nameSlice = offsets.sliceStartChars({ chars: arg.name.length }).toSlice(arg.name);
+    }
 
     let value = this.maybeDeprecatedCall(nameSlice, arg.value) || this.attrValue(arg.value);
     return this.ctx.builder.arg(
