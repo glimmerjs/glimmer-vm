@@ -1,9 +1,14 @@
-import { consumeTag, dirtyTagFor, tagFor } from '@glimmer/validator';
+import { consumeTag, dirtyTagFor, tagFor, OBJECT_DEBUG, unwrapDebug } from '@glimmer/validator';
 
 export function trackedObj<T extends Record<string, unknown>>(
-  obj: T = {} as T
+  obj: T = {} as T,
+  name?: string
 ): Record<string, unknown> {
   let trackedObj = {};
+
+  if (import.meta.env.DEV) {
+    unwrapDebug(OBJECT_DEBUG).set(trackedObj, name ?? 'tracked.object');
+  }
 
   for (let key in obj) {
     Object.defineProperty(trackedObj, key, {

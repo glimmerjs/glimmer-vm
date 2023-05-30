@@ -6,18 +6,20 @@ import type {
   CURRENT_TAG_ID as ICURRENT_TAG_ID,
   DIRTYABLE_TAG_ID as IDIRTYABLE_TAG_ID,
   DirtyableTag,
-  MonomorphicTagId,
+  MonomorphicTagTypeId,
   Tag,
   TagComputeSymbol,
   TagTypeSymbol,
   UPDATABLE_TAG_ID as IUPDATABLE_TAG_ID,
   UpdatableTag,
   VOLATILE_TAG_ID as IVOLATILE_TAG_ID,
+  TagDebug,
 } from '@glimmer/interfaces';
 
 import { debug } from './debug';
 import { unwrap } from './utils';
-import { LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
+import { LOCAL_SHOULD_LOG_TRACES, LOCAL_SHOULD_LOG_TRACKING } from '@glimmer/local-debug-flags';
+import { LOCAL_LOGGER } from '@glimmer/util';
 
 //////////
 
@@ -29,11 +31,17 @@ export const VOLATILE: Revision = Number.NaN;
 
 export let $REVISION = INITIAL;
 
-export function bump(debug?: string): Revision {
-  if (import.meta.env.DEV && LOCAL_SHOULD_LOG) {
+export function bump(tag?: TagDebug): Revision {
+  if (import.meta.env.DEV && LOCAL_SHOULD_LOG_TRACES && tag) {
     {
       // eslint-disable-next-line no-console
-      console.groupCollapsed(`[validator] revision->${$REVISION + 1}${debug ? ` (${debug})` : ''}`);
+      console.groupCollapsed(
+        `%cbumped %c${tag} %c→ %c${$REVISION + 1}`,
+        'font-weight: normal; color: #999',
+        'font-weight: normal; color: #959',
+        'font-weight: normal; color: #999',
+        'font-weight: normal; color: #595'
+      );
       // eslint-disable-next-line no-console
       console.trace();
       // eslint-disable-next-line no-console
@@ -53,6 +61,7 @@ const DIRYTABLE_TAG_ID: IDIRTYABLE_TAG_ID = 0;
 const UPDATABLE_TAG_ID: IUPDATABLE_TAG_ID = 1;
 const COMBINATOR_TAG_ID: ICOMBINATOR_TAG_ID = 2;
 const CONSTANT_TAG_ID: ICONSTANT_TAG_ID = 3;
+type TagTypeId = IDIRTYABLE_TAG_ID | IUPDATABLE_TAG_ID | ICOMBINATOR_TAG_ID | ICONSTANT_TAG_ID;
 
 //////////
 
@@ -83,6 +92,33 @@ export function valueForTag(tag: Tag): Revision {
  * @param snapshot
  */
 export function validateTag(tag: Tag, snapshot: Revision): boolean {
+  if (import.meta.env.DEV && LOCAL_SHOULD_LOG_TRACKING) {
+    let subtags = tag.debug?.subtags;
+    let header = [
+      `%cvalidate %c${tag} %c@ %c${snapshot} %c→ ${snapshot >= tag[COMPUTE]() ? 'fresh' : 'stale'}`,
+      'font-weight: normal; color: #999',
+      'font-weight: normal; color: #959',
+      'font-weight: normal; color: #999',
+      'font-weight: normal; color: #595',
+      'font-weight: normal; color: #599',
+    ];
+
+    if (subtags) {
+      LOCAL_LOGGER.groupCollapsed(...header);
+      for (let subtag of subtags) {
+        LOCAL_LOGGER.log(
+          `%c%c${String(subtag)} %c(updated @ ${subtag.updatedAt})`,
+          'font-weight: normal; color: #999;',
+          'font-weight: normal; color: #959;',
+          'font-weight: normal; font-style: italic; color: #595'
+        );
+      }
+      LOCAL_LOGGER.groupEnd();
+    } else {
+      LOCAL_LOGGER.log(...header);
+    }
+  }
+
   return snapshot >= tag[COMPUTE]();
 }
 
@@ -101,15 +137,17 @@ function allowsCycles(tag: Tag): boolean {
   return ALLOW_CYCLES === undefined ? true : ALLOW_CYCLES.has(tag);
 }
 
-class MonomorphicTagImpl<T extends MonomorphicTagId = MonomorphicTagId> {
-  static combine(this: void, tags: Tag[]): Tag {
+let id = 0;
+
+class MonomorphicTagImpl<T extends MonomorphicTagTypeId = MonomorphicTagTypeId> implements Tag {
+  static combine(this: void, tags: Tag[], name?: string): Tag {
     switch (tags.length) {
       case 0:
         return CONSTANT_TAG;
       case 1:
         return tags[0] as Tag;
       default: {
-        let tag: MonomorphicTagImpl = new MonomorphicTagImpl(COMBINATOR_TAG_ID);
+        let tag: MonomorphicTagImpl = new MonomorphicTagImpl(COMBINATOR_TAG_ID, name);
         tag.subtag = tags;
         return tag;
       }
@@ -169,7 +207,7 @@ class MonomorphicTagImpl<T extends MonomorphicTagId = MonomorphicTagId> {
       unwrap(debug.assertTagNotConsumed)(tag);
     }
 
-    (tag as MonomorphicTagImpl).revision = import.meta.env.DEV ? bump() : bump();
+    (tag as MonomorphicTagImpl).revision = import.meta.env.DEV ? bump(tag.debug) : bump();
 
     scheduleRevalidate();
   }
@@ -177,15 +215,19 @@ class MonomorphicTagImpl<T extends MonomorphicTagId = MonomorphicTagId> {
   private revision = INITIAL;
   private lastChecked = INITIAL;
   private lastValue = INITIAL;
+  readonly id = id++;
 
   private isUpdating = false;
   public subtag: Tag | Tag[] | null = null;
   private subtagBufferCache: Revision | null = null;
 
   [TYPE]: T;
+  declare readonly debug?: TagDebug;
 
-  constructor(type: T) {
+  constructor(type: T, name?: string) {
     this[TYPE] = type;
+
+    if (import.meta.env.DEV) installDebugInfo(name, this, type);
   }
 
   [COMPUTE](): Revision {
@@ -196,7 +238,7 @@ class MonomorphicTagImpl<T extends MonomorphicTagId = MonomorphicTagId> {
         throw new Error('Cycles in tags are not allowed');
       }
 
-      this.lastChecked = bump();
+      this.lastChecked = bump(this.debug);
     } else if (lastChecked !== now()) {
       this.isUpdating = true;
       this.lastChecked = now();
@@ -238,12 +280,12 @@ export const UPDATE_TAG = MonomorphicTagImpl.updateTag;
 
 //////////
 
-export function createTag(): DirtyableTag {
-  return new MonomorphicTagImpl(DIRYTABLE_TAG_ID);
+export function createTag(name?: string): DirtyableTag {
+  return new MonomorphicTagImpl(DIRYTABLE_TAG_ID, name);
 }
 
-export function createUpdatableTag(): UpdatableTag {
-  return new MonomorphicTagImpl(UPDATABLE_TAG_ID);
+export function createUpdatableTag(name?: string): UpdatableTag {
+  return new MonomorphicTagImpl(UPDATABLE_TAG_ID, name);
 }
 
 //////////
@@ -260,6 +302,12 @@ const VOLATILE_TAG_ID: IVOLATILE_TAG_ID = 100;
 
 export class VolatileTag implements Tag {
   readonly [TYPE] = VOLATILE_TAG_ID;
+  readonly id = id++;
+
+  constructor(name?: string) {
+    if (import.meta.env.DEV) installDebugInfo(name, this);
+  }
+
   [COMPUTE](): Revision {
     return VOLATILE;
   }
@@ -273,12 +321,101 @@ const CURRENT_TAG_ID: ICURRENT_TAG_ID = 101;
 
 export class CurrentTag implements Tag {
   readonly [TYPE] = CURRENT_TAG_ID;
+  readonly id = id++;
+
+  constructor(name?: string) {
+    if (import.meta.env.DEV) installDebugInfo(name, this);
+  }
+
   [COMPUTE](): Revision {
     return $REVISION;
   }
 }
 
 export const CURRENT_TAG = new CurrentTag();
+
+//////////
+
+function installDebugInfo(
+  specifiedName: string | undefined,
+  target: object & Partial<{ name: string }>,
+  type: TagTypeId | string = target.name ?? 'Tag'
+): void {
+  if (import.meta.env.DEV) {
+    // eslint-disable-next-line no-inner-declarations
+    function getTagName(): string {
+      if (typeof type === 'string') {
+        return type;
+      }
+
+      switch (type) {
+        case UPDATABLE_TAG_ID:
+          return 'UpdatableTag';
+        case DIRYTABLE_TAG_ID:
+          return 'DirtyableTag';
+        case CONSTANT_TAG_ID:
+          return 'ConstantTag';
+        case COMBINATOR_TAG_ID:
+          return 'CombinatorTag';
+      }
+    }
+
+    let tagName = getTagName();
+
+    Reflect.defineProperty(target, 'toString', {
+      configurable: true,
+      value: function (this: Tag): string {
+        return specifiedName ? `{${specifiedName} id=${this.id}}` : `{${tagName} id=${this.id}}`;
+      },
+    });
+    Reflect.defineProperty(target, Symbol.toStringTag, {
+      configurable: true,
+      value: tagName,
+    });
+    Reflect.defineProperty(target, 'debug', {
+      configurable: true,
+      get: function (this: Tag): TagDebug {
+        // eslint-disable-next-line prefer-let/prefer-let
+        const subtag = this.subtag;
+
+        let debug = {
+          type: this[TYPE],
+          id: this.id,
+          updatedAt: () => this[COMPUTE](),
+          toString: () => {
+            return String(this);
+          },
+        };
+
+        if (Array.isArray(subtag)) {
+          Object.defineProperty(debug, 'subtags', {
+            configurable: true,
+            get: () => {
+              return subtag.map((tag) => unwrap(tag.debug));
+            },
+          });
+        } else if (subtag) {
+          Object.defineProperty(debug, 'subtag', {
+            configurable: true,
+            get: () => unwrap(subtag.debug),
+          });
+        }
+
+        return debug;
+      },
+    });
+
+    if (LOCAL_SHOULD_LOG_TRACES) {
+      LOCAL_LOGGER.groupCollapsed(
+        `%ccreated %c${target}`,
+        'font-weight: normal; color: #999',
+        'font-weight: normal; color: #959'
+      );
+      LOCAL_LOGGER.trace();
+      LOCAL_LOGGER.groupEnd();
+    }
+  }
+}
 
 //////////
 

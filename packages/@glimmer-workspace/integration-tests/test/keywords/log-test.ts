@@ -1,3 +1,4 @@
+import { LOCAL_LOGGER } from '@glimmer/util';
 import { jitSuite, RenderTest, test } from '../..';
 
 class LogTest extends RenderTest {
@@ -10,6 +11,7 @@ class LogTest extends RenderTest {
     /* eslint-disable no-console */
     this.originalLog = console.log;
     console.log = (...args: unknown[]) => {
+      if (LOCAL_LOGGER.isInternalLog) return;
       this.logCalls.push(...args);
       /* eslint-enable no-console */
     };

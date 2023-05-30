@@ -559,7 +559,7 @@ export class ComponentElementOperations implements ElementOperations {
           args,
           element: unwrap(element),
         };
-      })
+      }, 'ModifierDefinition')
     );
     this.#modifiers.push([modifier, (newElement) => (element = newElement)]);
     return modifier;

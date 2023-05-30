@@ -15,7 +15,7 @@ export type CONSTANT_TAG_ID = 3;
  * performance reasons, any type of tag that is meant to be used frequently should
  * be added to the monomorphic tag.
  */
-export type MonomorphicTagId =
+export type MonomorphicTagTypeId =
   | DIRTYABLE_TAG_ID
   | UPDATABLE_TAG_ID
   | COMBINATOR_TAG_ID
@@ -24,20 +24,40 @@ export type MonomorphicTagId =
 export type VOLATILE_TAG_ID = 100;
 export type CURRENT_TAG_ID = 101;
 
-export type PolymorphicTagId = VOLATILE_TAG_ID | CURRENT_TAG_ID;
+export type PolymorphicTagTypeId = VOLATILE_TAG_ID | CURRENT_TAG_ID;
 
-export type TagId = MonomorphicTagId | PolymorphicTagId;
+export type TagTypeId = MonomorphicTagTypeId | PolymorphicTagTypeId;
 
 export type Revision = number;
 
+export interface TagDebug {
+  id: number;
+  type: TagTypeId;
+  updatedAt: () => number;
+  /**
+   * A tag has a subtags array if it's a combinator tag.
+   */
+  subtags?: TagDebug[] | undefined;
+
+  /**
+   * A tag has a delegate if its subtag is a single tag. For practical purposes,
+   * the delegate is the tag itself, just not yet fully committed.
+   */
+  delegate?: TagDebug | undefined;
+
+  toString(): string;
+}
+
 export interface Tag {
-  readonly [TYPE]: TagId;
+  readonly [TYPE]: TagTypeId;
+  readonly id: number;
   readonly subtag?: Tag | Tag[] | null | undefined;
+  readonly debug?: TagDebug;
   [COMPUTE](): Revision;
 }
 
 export interface MonomorphicTag extends Tag {
-  readonly [TYPE]: MonomorphicTagId;
+  readonly [TYPE]: MonomorphicTagTypeId;
 }
 
 export interface UpdatableTag extends MonomorphicTag {

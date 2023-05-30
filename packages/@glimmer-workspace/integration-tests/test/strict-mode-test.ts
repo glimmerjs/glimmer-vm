@@ -12,7 +12,7 @@ import {
   test,
   TestHelper,
   trackedObj,
-} from '..';
+} from '@glimmer-workspace/integration-tests';
 
 class GeneralStrictModeTest extends RenderTest {
   static suiteName = 'strict mode: general properties';
@@ -957,7 +957,7 @@ class DynamicStrictModeTest extends RenderTest {
     });
 
     let Foo = defineComponent({}, '<div {{@modifier}}></div>');
-    let args = trackedObj({ modifier: modifier1 });
+    let args = trackedObj({ modifier: modifier1 }, 'args');
 
     this.renderComponent(Foo, args);
     this.assertHTML('<div>Hello, world!</div>');

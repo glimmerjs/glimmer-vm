@@ -30,6 +30,11 @@ export async function setupQunit() {
       tooltip: 'Log information about tracking frames and consumption.',
     },
     {
+      id: 'local-log-step-markers',
+      label: '🗒️ Step Markers',
+      tooltip: 'Log step markers to the console.',
+    },
+    {
       id: 'ci',
       label: 'Enable CI Mode',
       tooltip: 'CI mode makes tests run faster by sacrificing UI responsiveness',

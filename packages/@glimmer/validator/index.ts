@@ -13,7 +13,7 @@ if (globalObj[GLIMMER_VALIDATOR_REGISTRATION] === true) {
 globalObj[GLIMMER_VALIDATOR_REGISTRATION] = true;
 
 export { debug } from './lib/debug';
-export { dirtyTagFor, tagFor, type TagMeta, tagMetaFor } from './lib/meta';
+export { dirtyTagFor, tagFor, type TagMeta, tagMetaFor, OBJECT_DEBUG } from './lib/meta';
 export { trackedData, trackedCell, type TrackedCell } from './lib/tracked-data';
 export {
   beginTrackFrame,
@@ -62,3 +62,4 @@ export type {
   Tag,
   UpdatableTag,
 } from '@glimmer/interfaces';
+export { unwrapDebug } from './lib/utils';

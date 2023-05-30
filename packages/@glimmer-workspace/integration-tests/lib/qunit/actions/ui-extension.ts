@@ -131,13 +131,19 @@ export function installUiExtensions(qunit: QUnit) {
   });
 }
 
+function isInternal(line: string) {
+  return (
+    line.includes('node_modules/qunit') || line.includes('@glimmer-workspace/integration-tests/lib')
+  );
+}
+
 // convert lines like `at foo (http://some.local/foo.ts?foo=bar)` to
 // `at foo (<button onclick='console.log('this.innerHTML')'>http://some.local/foo.ts?foo=bar</button>)`
 function linkify(source: string, details: HTMLDetailsElement): DocumentFragment {
   let seenInternals = false;
 
   let fragments = source.split('\n').map((line) => {
-    if (line.includes('node_modules/qunit')) {
+    if (isInternal(line)) {
       let span = mapStackLine(line);
       span.classList.add('internals');
 
@@ -147,7 +153,7 @@ function linkify(source: string, details: HTMLDetailsElement): DocumentFragment 
         span.innerHTML += '<span class="more-internals"> ...</span>';
         let button = document.createElement('button');
         button.classList.add('show-internals');
-        button.innerHTML = '<span>show</span> qunit internals';
+        button.innerHTML = '<span>show</span> test internals';
         let showHideSpan = button.firstElementChild as HTMLSpanElement;
         button.addEventListener('click', () => {
           showHideSpan.innerHTML = details.classList.toggle('internals-shown') ? 'hide' : 'show';
@@ -180,21 +186,10 @@ function mapStackLine(line: string) {
       }) +
     `</span>`;
 
-  // debugger;
   let template = document.createElement('template');
   template.innerHTML = output;
 
-  if (template.content.lastChild?.tagName === 'SPAN') {
-    return template.content.lastChild as HTMLSpanElement;
-  } else {
-    console.groupCollapsed(`⚠️ Bug in test harness: couldn't extract URL`);
-    console.warn('line', line);
-    console.warn('element', template.innerHTML);
-    console.groupEnd();
-    let output = `<span>${line}</span>`;
-    template.innerHTML = output;
-    return template.content.firstChild as HTMLSpanElement;
-  }
+  return template.content.lastChild as HTMLSpanElement;
 }
 
 function replaceStep(input: string): string {

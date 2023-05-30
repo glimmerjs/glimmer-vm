@@ -1,7 +1,7 @@
-import type { Tag } from '@glimmer/interfaces';
+import type { Tag, TagDebug } from '@glimmer/interfaces';
 
 import { debug } from './debug';
-import { unwrap } from './utils';
+import { unwrap, unwrapDebug } from './utils';
 import {
   combine,
   CONSTANT_TAG,
@@ -10,7 +10,7 @@ import {
   validateTag,
   valueForTag,
 } from './validators';
-import { LOCAL_SHOULD_LOG_TRACKING } from '@glimmer/local-debug-flags';
+import { LOCAL_SHOULD_LOG_TRACES, LOCAL_SHOULD_LOG_TRACKING } from '@glimmer/local-debug-flags';
 import { LOCAL_LOGGER } from '@glimmer/util';
 
 /**
@@ -19,6 +19,11 @@ import { LOCAL_LOGGER } from '@glimmer/util';
 class Tracker {
   private tags = new Set<Tag>();
   private last: Tag | null = null;
+  declare readonly name?: string | undefined;
+
+  constructor(name?: string) {
+    if (import.meta.env.DEV) this.name = name;
+  }
 
   add(tag: Tag) {
     if (tag === CONSTANT_TAG) return;
@@ -42,7 +47,7 @@ class Tracker {
     } else {
       let tagsArray: Tag[] = [];
       for (let tag of tags) tagsArray.push(tag);
-      return combine(tagsArray);
+      return import.meta.env.DEV ? combine(tagsArray, this.name) : combine(tagsArray);
     }
   }
 }
@@ -65,43 +70,31 @@ let CURRENT_TRACKER: Tracker | null = null;
 const OPEN_TRACK_FRAMES: (Tracker | null)[] = [];
 
 export function beginTrackFrame(debuggingContext?: string | false): void {
-  if (import.meta.env.DEV && LOCAL_SHOULD_LOG_TRACKING) {
-    if (typeof debuggingContext === 'string') {
-      LOCAL_LOGGER.groupCollapsed('beginTrackFrame', debuggingContext);
-    } else {
-      LOCAL_LOGGER.groupCollapsed('beginTrackFrame');
+  if (import.meta.env.DEV) {
+    if (LOCAL_SHOULD_LOG_TRACKING) {
+      if (typeof debuggingContext === 'string') {
+        LOCAL_LOGGER.groupCollapsed(
+          `%ctracking frame: %c${debuggingContext}`,
+          `color: #999; font-weight: normal`,
+          `color: #599; font-weight: normal`
+        );
+      } else {
+        LOCAL_LOGGER.groupCollapsed('tracking frame');
+      }
     }
+
+    OPEN_TRACK_FRAMES.push(CURRENT_TRACKER);
+    CURRENT_TRACKER = new Tracker(debuggingContext || undefined);
+
+    unwrap(debug.beginTrackingTransaction)(debuggingContext);
+    return;
   }
 
   OPEN_TRACK_FRAMES.push(CURRENT_TRACKER);
-
   CURRENT_TRACKER = new Tracker();
-
-  if (import.meta.env.DEV) {
-    unwrap(debug.beginTrackingTransaction)(debuggingContext);
-  }
 }
 
 export function endTrackFrame(): Tag {
-  // if (import.meta.env.DEV) {
-  //   try {
-  //     if (OPEN_TRACK_FRAMES.length === 0) {
-  //       throw new Error('attempted to close a tracking frame, but one was not open');
-  //     }
-
-  //     unwrap(debug.endTrackingTransaction)();
-  //   } finally {
-  //     if (LOCAL_SHOULD_LOG_TRACKING) {
-  //       LOCAL_LOGGER.groupEnd();
-  //     }
-
-  //     // eslint-disable-next-line no-unsafe-finally
-  //     return endFrame();
-  //   }
-  // } else {
-  //   return endFrame();
-  // }
-
   let current = CURRENT_TRACKER;
 
   if (import.meta.env.DEV) {
@@ -113,20 +106,14 @@ export function endTrackFrame(): Tag {
   }
 
   CURRENT_TRACKER = OPEN_TRACK_FRAMES.pop() || null;
+  let tag = unwrap(current).combine();
 
-  try {
-    return unwrap(current).combine();
-  } finally {
-    if (import.meta.env.DEV && LOCAL_SHOULD_LOG_TRACKING) {
-      LOCAL_LOGGER.groupEnd();
-    }
+  if (import.meta.env.DEV && LOCAL_SHOULD_LOG_TRACKING) {
+    LOCAL_LOGGER.log(`%cframe revision = %c${valueForTag(tag)}`, `color: #999;`, `color: #595;`);
+    LOCAL_LOGGER.groupEnd();
   }
-}
 
-function endFrame(): Tag {
-  let current = CURRENT_TRACKER;
-  CURRENT_TRACKER = OPEN_TRACK_FRAMES.pop() || null;
-  return unwrap(current).combine();
+  return tag;
 }
 
 export function beginUntrackFrame(): void {
@@ -161,6 +148,53 @@ export function isTracking(): boolean {
 
 export function consumeTag(tag: Tag): void {
   if (CURRENT_TRACKER !== null) {
+    if (import.meta.env.DEV && LOCAL_SHOULD_LOG_TRACKING) {
+      let debug = unwrapDebug(tag.debug);
+      logTag(debug);
+
+      // eslint-disable-next-line no-inner-declarations
+      function logTag(tag: TagDebug) {
+        if (tag.subtags) {
+          if (tag.subtags.length === 0) {
+            LOCAL_LOGGER.log(...leaf(tag, ' consumed '));
+          } else {
+            LOCAL_LOGGER.groupCollapsed(...leaf(tag, 'consumed '));
+            for (let subtag of leafSubtags(tag.subtags)) {
+              LOCAL_LOGGER.log(...leaf(subtag, `╰► `));
+            }
+            LOCAL_LOGGER.groupEnd();
+          }
+        } else if (tag.delegate) {
+          logTag(tag.delegate);
+        } else {
+          LOCAL_LOGGER.log(...leaf(tag, 'consumed '));
+        }
+      }
+
+      // eslint-disable-next-line no-inner-declarations
+      function leaf(tag: TagDebug, label?: string): unknown[] {
+        return [
+          `%c${label}%c${String(tag)} %c(updated @ ${tag.updatedAt()})`,
+          'font-weight: normal; color: #999;',
+          'font-weight: normal; color: #959;',
+          'font-weight: normal; font-style: italic; color: #595',
+        ];
+      }
+
+      // eslint-disable-next-line no-inner-declarations
+      function leafSubtags(tags: TagDebug[]): TagDebug[] {
+        return tags.flatMap((tag) => {
+          if (tag.delegate) {
+            return leafSubtags([tag.delegate]);
+          } else if (tag.subtags) {
+            return leafSubtags(tag.subtags);
+          } else {
+            return [tag];
+          }
+        });
+      }
+    }
+
     CURRENT_TRACKER.add(tag);
   }
 }
@@ -183,12 +217,21 @@ const TAG = Symbol('TAG');
 const SNAPSHOT = Symbol('SNAPSHOT');
 const DEBUG_LABEL = Symbol('DEBUG_LABEL');
 
+interface CacheDebug {
+  label: string;
+  tag: TagDebug;
+  id: number;
+}
+
+let id = 0;
+
 interface InternalCache<T = unknown> {
   [FN]: (...args: unknown[]) => T;
   [LAST_VALUE]: T | undefined;
   [TAG]: Tag | undefined;
   [SNAPSHOT]: Revision;
   [DEBUG_LABEL]?: string | false | undefined;
+  debug?: CacheDebug;
 }
 
 export function createCache<T>(fn: () => T, debuggingLabel?: string | false): Cache<T> {
@@ -207,6 +250,41 @@ export function createCache<T>(fn: () => T, debuggingLabel?: string | false): Ca
 
   if (import.meta.env.DEV) {
     cache[DEBUG_LABEL] = debuggingLabel;
+
+    let cacheId = ++id;
+
+    Reflect.defineProperty(cache, 'debug', {
+      configurable: true,
+      value: {
+        label: debuggingLabel || 'cache',
+        id: cacheId,
+        get tag(): TagDebug {
+          return unwrapDebug(cache[TAG]?.debug);
+        },
+      } satisfies CacheDebug,
+    });
+
+    Reflect.defineProperty(cache, Symbol.toStringTag, {
+      configurable: true,
+      value: 'TrackedCache',
+    });
+
+    Reflect.defineProperty(cache, 'toString', {
+      configurable: true,
+      value: () => {
+        return debuggingLabel ? `{cache ${debuggingLabel} id=${cacheId}}` : `{cache id=${cacheId}}`;
+      },
+    });
+
+    if (LOCAL_SHOULD_LOG_TRACES) {
+      LOCAL_LOGGER.groupCollapsed(
+        `%cnew cache %c${cache}`,
+        `color: #999; font-weight: normal`,
+        `color: #959; font-weight: normal`
+      );
+      LOCAL_LOGGER.trace();
+      LOCAL_LOGGER.groupEnd();
+    }
   }
 
   return cache as unknown as Cache<T>;
@@ -220,7 +298,11 @@ export function getValue<T>(cache: Cache<T>): T {
   let snapshot = cache[SNAPSHOT];
 
   if (tag === undefined || !validateTag(tag, snapshot)) {
-    beginTrackFrame();
+    if (import.meta.env.DEV) {
+      beginTrackFrame(cache.debug?.label || 'getValue');
+    } else {
+      beginTrackFrame();
+    }
 
     try {
       cache[LAST_VALUE] = fn();
@@ -273,7 +355,12 @@ function assertTag(tag: Tag | undefined, cache: InternalCache): asserts tag is T
 }
 
 export function getTaggedValue<T>(cache: TrackedCache<T>): [value: T, tag: Tag] {
-  beginTrackFrame();
+  if (import.meta.env.DEV) {
+    beginTrackFrame((cache as InternalCache).debug?.label || 'getTaggedValue');
+  } else {
+    beginTrackFrame();
+  }
+
   let tag: Tag;
   let value: T;
 

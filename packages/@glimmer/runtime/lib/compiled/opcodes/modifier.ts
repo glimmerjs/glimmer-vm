@@ -22,6 +22,7 @@ import {
   beginTrackFrame,
   endTrackFrame,
   type TrackedCache,
+  combine,
 } from '@glimmer/validator';
 
 import { associateDestroyableChild, destroy } from '@glimmer/destroyable';
@@ -31,17 +32,25 @@ export class UpdateModifierOpcode implements UpdatingOpcode, InstallableModifier
   readonly #cache: DefinitionCache;
   #lastUpdated: number;
   #lastTag: Optional<Tag>;
-  #installTag: Optional<Tag>;
+  readonly #installTag: UpdatableTag;
+  readonly #definitionTag: UpdatableTag;
+  readonly #userTag: UpdatableTag;
   #lastDestroyable: Nullable<Destroyable> = null;
   #lastDefinition: Optional<[LastDefinition, Tag]>;
   #lastInstance: Optional<ModifierInstance>;
-  #tag: UpdatableTag;
+  readonly #tag: Tag;
   #lastArgs: CapturedArguments | null = null;
 
   constructor(cache: DefinitionCache) {
     this.#lastUpdated = now();
     this.#cache = cache;
-    this.#tag = createUpdatableTag();
+    this.#installTag = createUpdatableTag(`UpdateModifierOpcode::install`);
+    this.#definitionTag = createUpdatableTag(`UpdateModifierOpcode::definition`);
+    this.#userTag = createUpdatableTag(`UpdateModifierOpcode::userspace`);
+    this.#tag = combine(
+      [this.#installTag, this.#definitionTag, this.#userTag],
+      `UpdateModifierOpcode`
+    );
   }
 
   get element() {
@@ -59,7 +68,7 @@ export class UpdateModifierOpcode implements UpdatingOpcode, InstallableModifier
     }
 
     let [definitionValue, definitionTag] = getTaggedValue(this.#cache);
-    updateTag(this.#tag, definitionTag);
+    updateTag(this.#definitionTag, definitionTag);
 
     return (this.#lastDefinition = [definitionValue, definitionTag]);
   }
@@ -69,9 +78,9 @@ export class UpdateModifierOpcode implements UpdatingOpcode, InstallableModifier
   }
 
   render() {
-    console.log("rendering");
+    console.log('rendering');
     let [definitionValue, definitionTag] = unwrap(this.#initialized);
-    updateTag(this.#tag, definitionTag);
+    updateTag(this.#definitionTag, definitionTag);
 
     if (!definitionValue) {
       return;
@@ -86,7 +95,7 @@ export class UpdateModifierOpcode implements UpdatingOpcode, InstallableModifier
 
     let manager = definition.manager;
 
-    beginTrackFrame();
+    beginTrackFrame('ModifierOp::render');
 
     try {
       let state = manager.create(owner, element, definition.state, args);
@@ -105,8 +114,7 @@ export class UpdateModifierOpcode implements UpdatingOpcode, InstallableModifier
       };
     } finally {
       let userTag = endTrackFrame();
-      this.#installTag = userTag;
-      updateTag(this.#tag, userTag);
+      updateTag(this.#installTag, userTag);
     }
 
     consumeTag(this.#tag);
@@ -134,11 +142,11 @@ export class UpdateModifierOpcode implements UpdatingOpcode, InstallableModifier
 
     if (!validateTag(this.#tag, this.#lastUpdated)) {
       try {
-        beginTrackFrame();
+        beginTrackFrame('update modifier');
         manager.update(state);
       } finally {
         let userTag = endTrackFrame();
-        updateTag(this.#tag, userTag);
+        updateTag(this.#userTag, userTag);
         this.#lastUpdated = now();
       }
     }

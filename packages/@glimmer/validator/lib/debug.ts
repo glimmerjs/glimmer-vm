@@ -120,12 +120,6 @@ if (import.meta.env.DEV) {
       if (didError !== true) {
         debug.endTrackingTransaction!();
       }
-
-      // if (id !== TRANSACTION_STACK.length) {
-      //   throw new Error(
-      //     `attempted to close a tracking transaction (${id}), but it was not the last transaction (${TRANSACTION_STACK.length})`
-      //   );
-      // }
     }
   };
 

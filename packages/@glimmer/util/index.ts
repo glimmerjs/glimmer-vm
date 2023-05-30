@@ -33,6 +33,34 @@ export { default as buildUntouchableThis } from './lib/untouchable-this';
 
 export type FIXME<T, S extends string> = (T & S) | T;
 
+let INTERNAL_LOGGER = console;
+
+if (import.meta.env.DEV) {
+  let IS_INTERNAL_LOG = false;
+
+  INTERNAL_LOGGER = new Proxy(console, {
+    get(target, prop) {
+      if (prop === 'isInternalLog') {
+        return IS_INTERNAL_LOG;
+      }
+
+      // eslint-disable-next-line prefer-let/prefer-let
+      const maybeMethod = Reflect.getOwnPropertyDescriptor(target, prop);
+
+      return maybeMethod && 'value' in maybeMethod && typeof maybeMethod.value === 'function'
+        ? (...args: unknown[]) => {
+            try {
+              IS_INTERNAL_LOG = true;
+              maybeMethod.value.call(this, ...args);
+            } finally {
+              IS_INTERNAL_LOG = false;
+            }
+          }
+        : maybeMethod;
+    },
+  });
+}
+
 /**
  * This constant exists to make it easier to differentiate normal logs from
  * errant console.logs. LOCAL_LOGGER should only be used inside a
@@ -41,7 +69,7 @@ export type FIXME<T, S extends string> = (T & S) | T;
  * It does not alleviate the need to check LOCAL_SHOULD_LOG, which is used
  * for stripping.
  */
-export const LOCAL_LOGGER = console;
+export const LOCAL_LOGGER: typeof console & { isInternalLog?: boolean } = INTERNAL_LOGGER;
 
 /**
  * This constant exists to make it easier to differentiate normal logs from

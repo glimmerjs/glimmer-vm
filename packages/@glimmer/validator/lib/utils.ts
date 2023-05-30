@@ -12,7 +12,6 @@ export function indexable<T extends object>(input: T): T & Indexable {
 }
 
 export function getGlobal(): Indexable {
-   
   if (typeof globalThis !== 'undefined') return indexable(globalThis);
   if (typeof self !== 'undefined') return indexable(self);
   if (typeof window !== 'undefined') return indexable(window);
@@ -23,5 +22,13 @@ export function getGlobal(): Indexable {
 
 export function unwrap<T>(value: T | null | undefined): T {
   if (value === null || value === undefined) throw new Error(`Expected value to be present`);
+  return value as T;
+}
+
+export function unwrapDebug<T>(value: T | null | undefined): T {
+  if (value === null || value === undefined)
+    throw new Error(
+      `Expected value to be present in debug (when wrapped in a check for import.meta.env.DEV)`
+    );
   return value as T;
 }

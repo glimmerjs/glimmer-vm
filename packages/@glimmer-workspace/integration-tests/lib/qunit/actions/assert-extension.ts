@@ -1,3 +1,6 @@
+import { LOCAL_SHOULD_LOG_STEP_MARKERS } from '@glimmer/local-debug-flags';
+import { LOCAL_LOGGER } from '@glimmer/util';
+
 export function installExtensions(qunit: QUnit) {
   qunit.assert.expect = function (
     this: Assert & { test: QUnit.TestBase },
@@ -29,6 +32,10 @@ export function installExtensions(qunit: QUnit) {
       result = false;
     }
 
+    if (LOCAL_SHOULD_LOG_STEP_MARKERS) {
+      LOCAL_LOGGER.log(`%caction %c${message}`, 'color: #9f9; font-weight: bold', 'color: #aa5');
+    }
+
     this.pushResult({
       result,
       message: `[action] ${assertionMessage}`,
@@ -43,6 +50,10 @@ export function installExtensions(qunit: QUnit) {
     } else if (typeof message !== 'string') {
       message = 'You must provide a string value to assert.step';
       result = false;
+    }
+
+    if (LOCAL_SHOULD_LOG_STEP_MARKERS) {
+      LOCAL_LOGGER.log(`%cstep %c${message}`, 'color: #6cc; font-weight: bold', 'color: #aa5');
     }
 
     this.pushResult({

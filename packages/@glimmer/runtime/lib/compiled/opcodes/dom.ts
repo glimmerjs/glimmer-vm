@@ -27,10 +27,7 @@ import {
   createConstRef,
 } from '@glimmer/reference';
 import { debugToString, expect, isObject } from '@glimmer/util';
-import {
-  createCache,
-  consumeTag,
-} from '@glimmer/validator';
+import { createCache, consumeTag } from '@glimmer/validator';
 import {
   $t0,
   CLOSE_ELEMENT_OP,
@@ -208,7 +205,7 @@ define(DYNAMIC_MODIFIER_OP, (vm) => {
       ),
       owner,
     };
-  });
+  }, 'DynamicModifierDefinition');
 
   let operations = expect(
     check(vm._fetchValue_($t0), CheckOperations),
