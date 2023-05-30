@@ -7,6 +7,7 @@ import { debug } from '@glimmer/validator';
 import { autoRegister } from 'js-reporters';
 import { QUnitEnv } from './env';
 import { Actions } from './actions/extension';
+import { LOCAL_LOGGER } from '@glimmer/util';
 
 export async function setupQunit() {
   Reporter.init();
@@ -65,7 +66,7 @@ export async function setupQunit() {
     tap.init(runner, { log: console.info });
   }
 
-  console.log(`[HARNESS] ci=${env.hasFlag('ci')}`);
+  LOCAL_LOGGER.log(`[HARNESS] ci=${env.hasFlag('ci')}`);
 
   let todos = env.getFlag('todo-behavior');
 
@@ -133,7 +134,7 @@ export async function setupQunit() {
 
   if (ci) {
     QUnit.done(() => {
-      console.log('[HARNESS] done');
+      LOCAL_LOGGER.log('[HARNESS] done');
     });
   }
 

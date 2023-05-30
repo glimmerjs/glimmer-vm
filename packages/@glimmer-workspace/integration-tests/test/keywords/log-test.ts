@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import { LOCAL_LOGGER } from '@glimmer/util';
 import { jitSuite, RenderTest, test } from '../..';
 
@@ -8,19 +9,15 @@ class LogTest extends RenderTest {
   logCalls: unknown[] = [];
 
   beforeEach() {
-    /* eslint-disable no-console */
     this.originalLog = console.log;
     console.log = (...args: unknown[]) => {
       if (LOCAL_LOGGER.isInternalLog) return;
       this.logCalls.push(...args);
-      /* eslint-enable no-console */
     };
   }
 
   afterEach() {
-    /* eslint-disable no-console */
     console.log = this.originalLog!;
-    /* eslint-enable no-console */
   }
 
   assertLog(values: unknown[]) {

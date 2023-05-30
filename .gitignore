@@ -18,6 +18,8 @@ instrumentation.*.json
 control-dist
 stats.*.html
 stats.html
+**/stats.html
+**/stats.*.html
 
 # Local Netlify folder
 .netlify

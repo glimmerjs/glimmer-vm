@@ -78,7 +78,6 @@ export class UpdateModifierOpcode implements UpdatingOpcode, InstallableModifier
   }
 
   render() {
-    console.log('rendering');
     let [definitionValue, definitionTag] = unwrap(this.#initialized);
     updateTag(this.#definitionTag, definitionTag);
 
