@@ -3,6 +3,7 @@ import { modifierCapabilities, setModifierManager } from '@glimmer/manager';
 import { getOwner, setOwner } from '@glimmer/owner';
 
 import { defineComponent, jitSuite, RenderTest, test, tracked, trackedObj } from '../..';
+import { trackedCell } from '@glimmer/validator';
 
 abstract class CustomModifier {
   static create<This extends { new (owner: object, args: Arguments): unknown }>(
@@ -20,7 +21,7 @@ abstract class CustomModifier {
 
   didInsertElement(): void {}
   didUpdate(): void {}
-  willDestroyElement(): void {}
+  willDestroyModifier(): void {}
 }
 
 abstract class ModifierManagerTest extends RenderTest {
@@ -37,7 +38,7 @@ abstract class ModifierManagerTest extends RenderTest {
       class extends CustomModifier {
         override didInsertElement() {}
         override didUpdate() {}
-        override willDestroyElement() {}
+        override willDestroyModifier() {}
       }
     );
 
@@ -52,15 +53,15 @@ abstract class ModifierManagerTest extends RenderTest {
     let foo = this.defineModifier(
       class extends CustomModifier {
         override didInsertElement() {
-          assert.step('Called didInsertElement');
+          assert.action('Called didInsertElement');
           assert.strictEqual(this.args.positional[0], true, 'gets initial args');
         }
         override didUpdate() {
-          assert.step('Called didUpdate');
+          assert.action('Called didUpdate');
           assert.strictEqual(this.args.positional[0], 'true', 'gets updated args');
         }
-        override willDestroyElement() {
-          assert.step('Called willDestroyElement');
+        override willDestroyModifier() {
+          assert.action('Called willDestroyModifier');
         }
       }
     );
@@ -74,26 +75,26 @@ abstract class ModifierManagerTest extends RenderTest {
     this.renderComponent(Main, args);
 
     this.assertHTML(`<h1>hello world</h1>`);
-    assert.verifySteps(['Called didInsertElement']);
+    assert.verifyActions(['Called didInsertElement']);
 
     args['truthy'] = 'true';
     this.rerender();
-    assert.verifySteps(['Called didUpdate']);
+    assert.verifyActions(['Called didUpdate']);
 
     args['truthy'] = false;
     this.rerender();
-    assert.verifySteps(['Called willDestroyElement']);
+    assert.verifyActions(['Called willDestroyModifier']);
 
     args['truthy'] = true;
     this.rerender();
-    assert.verifySteps(['Called didInsertElement']);
+    assert.verifyActions(['Called didInsertElement']);
   }
 
   @test 'associates manager even through an inheritance structure'(assert: Assert) {
     let Foo = this.defineModifier(
       class extends CustomModifier {
         override didInsertElement() {
-          assert.step('Foo didInsertElement');
+          assert.action('Foo didInsertElement');
           assert.strictEqual(this.args.positional[0], true, 'gets initial args');
         }
       }
@@ -102,7 +103,7 @@ abstract class ModifierManagerTest extends RenderTest {
     class Bar extends Foo {
       override didInsertElement() {
         super.didInsertElement();
-        assert.step('Bar didInsertElement');
+        assert.action('Bar didInsertElement');
         assert.strictEqual(this.args.positional[0], true, 'gets initial args');
       }
     }
@@ -111,30 +112,30 @@ abstract class ModifierManagerTest extends RenderTest {
 
     this.renderComponent(Main, { truthy: true });
     this.assertHTML(`<h1>hello world</h1>`);
-    assert.verifySteps(['Foo didInsertElement', 'Bar didInsertElement']);
+    assert.verifyActions(['Foo didInsertElement', 'Bar didInsertElement']);
   }
 
   @test 'can give consistent access to underlying DOM element'(assert: Assert) {
-    assert.expect(6);
-
     let foo = this.defineModifier(
       class extends CustomModifier {
         savedElement?: Element;
 
         override didInsertElement() {
           // consume first positional argument (ensures updates run)
-
           this.args.positional[0];
 
+          assert.action('hook: didInsertElement');
           assert.strictEqual(this.element.tagName, 'H1');
           this.savedElement = this.element;
         }
 
         override didUpdate() {
+          assert.action('hook: didUpdate');
           assert.strictEqual(this.element, this.savedElement);
         }
 
-        override willDestroyElement() {
+        override willDestroyModifier() {
+          assert.action('hook: willDestroy');
           assert.strictEqual(this.element, this.savedElement);
         }
       }
@@ -145,9 +146,11 @@ abstract class ModifierManagerTest extends RenderTest {
 
     this.renderComponent(Main, args);
     this.assertHTML(`<h1>hello world</h1>`);
+    assert.verifyActions(['hook: didInsertElement']);
 
     args['truthy'] = 'true';
     this.rerender();
+    assert.verifyActions(['hook: didUpdate']);
   }
 
   @test.todo 'lifecycle hooks are autotracked by default'(assert: Assert) {
@@ -158,48 +161,51 @@ abstract class ModifierManagerTest extends RenderTest {
     let trackedOne = new TrackedClass();
     let trackedTwo = new TrackedClass();
 
-    let insertCount = 0;
-    let updateCount = 0;
-
     let foo = this.defineModifier(
       class extends CustomModifier {
         override didInsertElement() {
           // track the count of the first item
 
           trackedOne.count;
-          assert.step('hook: didInsertElement');
+          assert.action('hook: didInstall');
+        }
+
+        override willDestroyModifier() {
+          assert.action('hook: willDestroy');
         }
 
         override didUpdate() {
           // track the count of the second item
           trackedTwo.count;
-          assert.step('hook: didUpdate');
+          assert.action('hook: didUpdate');
         }
       }
     );
 
-    let Main = defineComponent({ foo }, '<h1 {{foo}}>hello world</h1>');
+    let arg = trackedCell(0);
+
+    let Main = defineComponent({ foo, arg }, '<h1 {{foo arg.current}}>hello world</h1>');
 
     this.renderComponent(Main);
     this.assertHTML(`<h1>hello world</h1>`);
 
-    assert.verifySteps(['hook: didInsertElement']);
+    assert.verifyActions(['hook: didInstall']);
 
     trackedTwo.count++;
     this.rerender();
-    assert.verifySteps([]);
+    assert.verifyActions([]);
 
     trackedOne.count++;
     this.rerender();
-    assert.verifySteps(['hook: didUpdate']);
+    assert.verifyActions(['hook: didInstall', 'hook: willDestroy']);
 
     trackedOne.count++;
     this.rerender();
-    assert.verifySteps(['hook: didUpdate']);
+    assert.verifyActions(['hook: didInstall', 'hook: willDestroy']);
 
     trackedTwo.count++;
     this.rerender();
-    assert.verifySteps(['hook: didUpdate']);
+    assert.verifyActions([]);
   }
 
   @test
@@ -222,7 +228,7 @@ abstract class ModifierManagerTest extends RenderTest {
 
       override didInsertElement() {}
       override didUpdate() {}
-      override willDestroyElement() {}
+      override willDestroyModifier() {}
     }
 
     let foo = this.defineModifier(Foo);
@@ -308,30 +314,23 @@ class ModifierManagerTest322 extends ModifierManagerTest {
     }
 
     destroyModifier(instance: CustomModifier) {
-      instance.willDestroyElement();
+      instance.willDestroyModifier();
     }
   };
 
   @test 'modifiers only track positional arguments they consume'(assert: Assert) {
-    let insertCount = 0;
-    let updateCount = 0;
-
     let foo = this.defineModifier(
       class extends CustomModifier {
         override didInsertElement() {
-          insertCount++;
-
           // consume the second positional
-
           this.args.positional[1];
+          assert.action('hook: didInsertElement');
         }
 
         override didUpdate() {
-          updateCount++;
-
           // consume the second positional
-
           this.args.positional[1];
+          assert.action('hook: didUpdate');
         }
       }
     );
@@ -351,27 +350,23 @@ class ModifierManagerTest322 extends ModifierManagerTest {
     this.renderComponent(Main, args);
 
     this.assertHTML(`<h1>hello world</h1>`);
+    assert.verifyActions(['hook: didInsertElement']);
 
-    assert.strictEqual(insertCount, 1);
-    assert.strictEqual(updateCount, 0);
-
+    assert.step('[updating] unused positional');
     args['positionOne'] = 'no first?';
     this.rerender();
-    assert.strictEqual(updateCount, 0);
+    assert.verifyActions([]);
 
     args['positionTwo'] = 'YASSSSSSS!!!';
     this.rerender();
-    assert.strictEqual(updateCount, 1);
+    assert.verifyActions(['hook: didUpdate']);
   }
 
   @test 'modifiers only track named arguments they consume'(assert: Assert) {
-    let insertCount = 0;
-    let updateCount = 0;
-
     let foo = this.defineModifier(
       class extends CustomModifier {
         override didInsertElement() {
-          insertCount++;
+          assert.action('hook: didInsertElement');
 
           // consume the second positional
 
@@ -381,7 +376,7 @@ class ModifierManagerTest322 extends ModifierManagerTest {
         }
 
         override didUpdate() {
-          updateCount++;
+          assert.action('hook: didUpdate');
         }
       }
     );
@@ -399,17 +394,15 @@ class ModifierManagerTest322 extends ModifierManagerTest {
     this.renderComponent(Main, args);
 
     this.assertHTML(`<h1>hello world</h1>`);
-
-    assert.strictEqual(insertCount, 1);
-    assert.strictEqual(updateCount, 0);
+    assert.verifyActions(['hook: didInsertElement']);
 
     args['bar'] = 'other bar';
     this.rerender();
-    assert.strictEqual(updateCount, 0);
+    assert.verifyActions([]);
 
     args['qux'] = 'quuuuxxxxxx';
     this.rerender();
-    assert.strictEqual(updateCount, 1);
+    assert.verifyActions(['hook: didUpdate']);
   }
 }
 

@@ -28,7 +28,7 @@ class UpdatingModifiers extends RenderTest {
   'Updating an element modifier'(assert: Assert) {
     this.registerModifier(
       'foo',
-      makeSyncDataAttributeModifier((name) => assert.step(name))
+      makeSyncDataAttributeModifier((name) => assert.action(name))
     );
 
     this.render('<div><div {{foo this.bar baz=this.fizz}}></div></div>', {
@@ -39,7 +39,7 @@ class UpdatingModifiers extends RenderTest {
       '<div><div data-modifier="installed - Super Metroid"></div></div>',
       'initial render'
     );
-    assert.verifySteps(['didInsertElement']);
+    assert.verifyActions(['didInsertElement']);
 
     this.rerender();
 
@@ -47,35 +47,35 @@ class UpdatingModifiers extends RenderTest {
       '<div><div data-modifier="installed - Super Metroid"></div></div>',
       'modifier updated'
     );
-    assert.verifySteps([]);
+    assert.verifyActions([]);
 
     this.rerender({ bar: 'Super Mario' });
     this.assertHTML('<div><div data-modifier="updated - Super Mario"></div></div>', 'no change');
-    assert.verifySteps(['didUpdate']);
+    assert.verifyActions(['didUpdate']);
   }
 
   @test
   "Const input doesn't trigger update in a element modifier"(assert: Assert) {
     this.registerModifier(
       'foo',
-      makeSyncDataAttributeModifier((name) => assert.step(name))
+      makeSyncDataAttributeModifier((name) => assert.action(name))
     );
 
     this.render('<div><div {{foo "bar"}}></div></div>', {});
     this.assertHTML('<div><div data-modifier="installed - bar"></div></div>', 'initial render');
-    assert.verifySteps(['didInsertElement']);
+    assert.verifyActions(['didInsertElement']);
 
     this.rerender();
 
     this.assertHTML('<div><div data-modifier="installed - bar"></div></div>', 'no change');
-    assert.verifySteps([]);
+    assert.verifyActions([]);
   }
 
   @test
   'Destructor is triggered on element modifiers'(assert: Assert) {
     this.registerModifier(
       'foo',
-      makeSyncDataAttributeModifier((name) => assert.step(name))
+      makeSyncDataAttributeModifier((name) => assert.action(name))
     );
 
     this.render('{{#if this.bar}}<div {{foo this.bar}}></div>{{else}}<div></div>{{/if}}', {
@@ -83,17 +83,17 @@ class UpdatingModifiers extends RenderTest {
     });
 
     this.assertHTML('<div data-modifier="installed - true"></div>', 'initial render');
-    assert.verifySteps(['didInsertElement']);
+    assert.verifyActions(['didInsertElement']);
 
     this.rerender({ bar: false });
 
     this.assertHTML('<div></div>', 'no more modifier');
-    assert.verifySteps(['willDestroyElement']);
+    assert.verifyActions(['willDestroyElement']);
 
     this.rerender({ bar: true });
 
     this.assertHTML('<div data-modifier="installed - true"></div>', 'back to default render');
-    assert.verifySteps(['didInsertElement']);
+    assert.verifyActions(['didInsertElement']);
   }
 }
 

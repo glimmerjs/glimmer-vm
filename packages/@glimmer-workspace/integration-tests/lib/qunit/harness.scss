@@ -1,0 +1,611 @@
+:root {
+  --same-bg: oklch(95% 0 190);
+  --same-fg: oklch(70% 0 190);
+  --step-fg: oklch(54% 0.01 190);
+  --step-bg: oklch(98% 0.01 190);
+  --step-accent-bg: oklch(93% 0.01 190);
+  --step-accent-fg: oklch(99% 0.01 190);
+
+  --same-hue: 190;
+  --action-hue: 320;
+  --step-hue: 250;
+  --expected-hue: 30;
+  --todo-hue: 40;
+  --expected-fg: oklch(52% 0.18 var(--expected-hue));
+  --expected-bg: oklch(93% 0.07 var(--expected-hue));
+  --actual-hue: 190;
+  --actual-fg: oklch(66% 0.2 var(--actual-hue));
+  --actual-bg: oklch(93% 0.07 var(--actual-hue));
+  --assert-pad-start: 10px;
+  --pill-pad: var(--gap-xs) var(--gap-md);
+  --ratio: 1.6;
+  --gap-xs: calc(var(--gap-sm) / var(--ratio));
+  --gap-sm: 3px;
+  --gap-md: calc(var(--gap-sm) * var(--ratio));
+  --gap-lg: calc(var(--gap-md) * var(--ratio));
+  --gap-xl: calc(var(--gap-lg) * var(--ratio));
+
+  --fg-lightness: 52%;
+  --bg-lightness: 93%;
+  --fg-chroma: 0.18;
+  --bg-chroma: 0.07;
+  --muted-bg-lightness: 97%;
+  --muted-bg-chroma: 0.03;
+  --muted-fg-lightness: 85%;
+  --muted-fg-chroma: 0.05;
+  --marker-bg-lightness: 94%;
+  --marker-bg-chroma: 0.1;
+
+  --fail-hue: 30;
+  --fail-muted-bg: oklch(var(--muted-bg-lightness) var(--muted-bg-chroma) var(--fail-hue));
+  --fail-muted-fg: oklch(var(--muted-fg-lightness) var(--muted-fg-chroma) var(--fail-hue));
+  --fail-fg: oklch(var(--fg-lightness) var(--fg-chroma) var(--fail-hue));
+  --fail-bg: oklch(var(--bg-lightness) var(--bg-chroma) var(--fail-hue));
+
+  --pass-hue: 120;
+  --pass-muted-bg: oklch(var(--muted-bg-lightness) var(--muted-bg-chroma) var(--pass-hue));
+  --pass-muted-fg: oklch(var(--muted-fg-lightness) var(--muted-fg-chroma) var(--pass-hue));
+  --pass-fg: oklch(var(--fg-lightness) var(--fg-chroma) var(--pass-hue));
+  --pass-bg: oklch(var(--bg-lightness) var(--bg-chroma) var(--pass-hue));
+
+  --gutter-size: 10px;
+
+  --warning-bg: oklch(97% 0.05 110);
+}
+
+#qunit #qunit-tests {
+  list-style-type: none;
+  scrollbar-gutter: stable;
+  overflow: auto;
+
+  // li:has(.qunit-collapsed) {
+  //   display: flex;
+  //   align-items: center;
+  // }
+
+  em.qunit-todo-label {
+    --color-bg: oklch(var(--muted-bg-lightness) var(--muted-bg-chroma) var(--todo-hue));
+    color: var(--color-fg);
+    background-color: var(--color-bg);
+    height: 1lh;
+    border-radius: var(--gap-md);
+
+    &:has(~ .qunit-assert-list:not(.qunit-collapsed)) {
+      --color-bg: oklch(var(--bg-lightness) var(--bg-chroma) var(--todo-hue));
+    }
+  }
+
+  > li {
+    display: grid;
+    align-items: center;
+    padding-inline-end: var(--gutter-size);
+    grid-template:
+      'label header rerun runtime' auto
+      'list list list list ' auto
+      'source source source source' auto
+      / max-content max-content max-content 1fr;
+
+    &:hover > span.runtime {
+      opacity: 1;
+    }
+
+    > .qunit-todo-label {
+      grid-area: label;
+    }
+
+    > strong {
+      grid-area: header;
+    }
+
+    > a {
+      grid-area: rerun;
+    }
+
+    > span.runtime {
+      grid-area: runtime;
+      justify-self: end;
+    }
+
+    > .qunit-assert-list {
+      grid-area: list;
+    }
+  }
+
+  > li.fail {
+    --color-hue: var(--fail-hue);
+  }
+
+  > li.pass {
+    --color-hue: var(--pass-hue);
+  }
+
+  > li.pass.todo,
+  > li.fail.todo {
+    --color-hue: var(--todo-hue);
+  }
+
+  li.pass.marker {
+    &.action {
+      --color-hue: var(--action-hue);
+    }
+  }
+
+  li.pass,
+  li.fail {
+    --color-fg: oklch(var(--fg-lightness) var(--fg-chroma) var(--color-hue));
+    --color-bg: oklch(var(--bg-lightness) var(--bg-chroma) var(--color-hue));
+    --color-muted-bg: oklch(var(--muted-bg-lightness) var(--muted-bg-chroma) var(--color-hue));
+    --color-muted-fg: oklch(var(--muted-fg-lightness) var(--muted-fg-chroma) var(--color-hue));
+    --assert-marker-bg: oklch(var(--marker-bg-lightness) var(--marker-bg-chroma) var(--color-hue));
+  }
+
+  li.fail > .test-message {
+    display: block;
+  }
+
+  li[id^='qunit-test-output-'] {
+    background-color: var(--color-bg);
+    transition: background-color 0.3s ease-in-out;
+
+    .runtime {
+      opacity: 0;
+      transition: opacity 0.3s ease-in-out;
+    }
+
+    &:hover .runtime {
+      opacity: 0.5;
+    }
+
+    &,
+    .test-name {
+      color: var(--color-fg);
+    }
+
+    .qunit-assert-list {
+      border-radius: 0;
+      border-start-start-radius: var(--gap-md);
+
+      border-block-start: 1px solid var(--color-muted-fg);
+      border-inline-start: 1px solid var(--color-muted-fg);
+
+      li:hover .runtime {
+        opacity: 1;
+      }
+    }
+
+    &:has(.qunit-assert-list:not(.qunit-collapsed)) {
+      background-color: var(--color-muted-bg);
+      border: 1px solid var(--color-muted-fg);
+      padding-inline-end: 0;
+      padding-block-end: 0;
+    }
+  }
+
+  .qunit-source {
+    display: none;
+  }
+
+  .pass {
+    background-color: transparent;
+  }
+
+  li.verify-steps {
+    .pass .test-message::before {
+      content: 'action verification passed: ';
+    }
+
+    .fail .test-message::before {
+      content: 'action verification failed: ';
+    }
+
+    .test-message {
+      .verify {
+        display: none;
+      }
+    }
+  }
+
+  ol.qunit-assert-list:not(.qunit-collapsed) {
+    list-style-type: none;
+    display: grid;
+    row-gap: 0;
+
+    > li {
+      --color-bg: oklch(var(--muted-bg-lightness) var(--muted-bg-chroma) var(--color-hue));
+      --color-fg: oklch(var(--fg-lightness) var(--fg-chroma) var(--color-hue));
+      display: grid;
+      padding: 0;
+
+      border-inline-start: 0;
+      color: var(--color-fg);
+
+      column-gap: var(--gap-xl);
+
+      span.test-message {
+        grid-area: header;
+      }
+
+      .runtime {
+        grid-area: runtime;
+      }
+
+      &:not(.marker) {
+        align-items: first baseline;
+      }
+
+      &:not(.marker)::before {
+        grid-area: marker;
+        text-align: center;
+        align-content: center;
+        content: var(--marker-content);
+        height: 100%;
+        // padding-block: var(--gap-sm);
+        background-color: var(--color-bg);
+        // align-content: center;
+      }
+
+      &:not(.marker) .test-message {
+        grid-area: header;
+        column-gap: var(--gap-md);
+        align-content: center;
+      }
+
+      table {
+        grid-area: message;
+      }
+    }
+
+    > li.marker {
+      counter-increment: list-item 0;
+      background-color: var(--color-bg);
+      padding-block: var(--gap-xl);
+    }
+
+    > li.pass {
+      --color-hue: var(--pass-hue);
+      --marker-content: '✓';
+
+      span.test-message {
+        align-self: center;
+      }
+
+      &.marker {
+        grid-template:
+          'marker header runtime' auto /
+          2em auto max-content;
+      }
+
+      &:not(.marker) {
+        min-height: 2lh;
+        grid-template:
+          'marker header runtime' 100% /
+          2em auto max-content;
+        align-items: center;
+        align-content: center;
+
+        &::before {
+          display: grid;
+        }
+      }
+    }
+
+    > li.fail {
+      --color-hue: var(--fail-hue);
+      --marker-content: '𐄂';
+      row-gap: var(--gap-xl);
+      grid-template:
+        'marker header runtime' auto
+        'marker message .' auto /
+        2em auto max-content;
+    }
+
+    > li.pass.step {
+      --color-hue: var(--step-hue);
+    }
+
+    > li.pass.step::marker {
+      opacity: 0 !important;
+    }
+
+    > li.marker.step {
+      --color-hue: var(--step-hue);
+
+      align-content: center;
+
+      + li.marker.step {
+        border-block-start: none;
+      }
+    }
+
+    > li.marker .marker {
+      display: none;
+    }
+  }
+
+  span {
+    &.step {
+      --color-hue: var(--step-hue);
+      text-transform: uppercase;
+      border: 1px solid var(--border-fg);
+    }
+
+    &.marker,
+    &.tag {
+      font-weight: bold;
+      color: var(--color-fg);
+      background-color: var(--color-bg);
+      border-radius: var(--gap-sm);
+      padding: var(--pill-pad);
+    }
+
+    &.tag {
+      --fg-lightness: 40%;
+      --bg-lightness: 85%;
+      --color-fg: oklch(var(--fg-lightness) var(--fg-chroma) var(--color-hue));
+      --color-bg: oklch(var(--bg-lightness) var(--bg-chroma) var(--color-hue));
+    }
+
+    &.action.tag {
+      --color-hue: var(--action-hue);
+    }
+
+    &.step.tag {
+      --color-hue: var(--step-hue);
+    }
+  }
+
+  span.expected-step {
+    color: var(--color-fg);
+    background-color: var(--color-bg);
+    padding: var(--pill-pad);
+    border-radius: var(--gap-md);
+  }
+
+  li.fail table {
+    display: grid;
+    margin: var(--assert-pad-start);
+    grid-template-columns: max-content 1fr;
+    row-gap: var(--gap-md);
+    align-items: baseline;
+    // width: 100cqw;
+    overflow: hidden;
+
+    tbody,
+    tr {
+      display: contents;
+    }
+
+    .test-diff pre {
+      display: grid;
+      grid-auto-columns: max-content;
+      grid-auto-flow: column;
+      column-gap: var(--gap-md);
+    }
+  }
+
+  li.fail {
+    tr.test-source {
+      summary {
+        padding-block: var(--gap-md);
+        cursor: pointer;
+        opacity: 0.5;
+        transition: opacity 0.2s ease-in-out;
+      }
+
+      :is(details[open], details:hover) summary {
+        opacity: 1;
+      }
+
+      details.internals-shown {
+        span.internals {
+          display: grid;
+        }
+
+        span.more-internals {
+          display: none;
+        }
+      }
+
+      details:has(span.internals:hover) span.internals {
+        opacity: 1;
+      }
+
+      details {
+        span {
+          display: grid;
+          grid-auto-flow: column;
+          grid-auto-columns: max-content;
+          line-height: 1.5;
+        }
+
+        span.internals {
+          display: none;
+          opacity: 0.5;
+          transition: opacity 0.2s ease-in-out;
+          font-style: italic;
+
+          &.first-internals {
+            display: grid;
+          }
+
+          button.show-internals {
+            --color-hue: var(--action-hue);
+            display: inline-grid;
+            align-items: center;
+
+            appearance: none;
+            cursor: pointer;
+            grid-auto-flow: column;
+            align-content: center;
+            height: 1em;
+            margin-inline-start: 1ch;
+            background-color: transparent;
+            padding: var(--pill-pad);
+            color: 1px solid var(--color-fg);
+            border-radius: var(--gap-sm);
+            border-block: none;
+
+            &:hover {
+              color: oklch(var(--fg-lightness) var(--fg-chroma) var(--color-hue));
+              background-color: oklch(var(--bg-lightness) var(--bg-chroma) var(--color-hue));
+              border-inline: 1px solid oklch(var(--fg-lightness) var(--fg-chroma) var(--color-hue));
+            }
+
+            &:active {
+              color: oklch(var(--muted-fg-lightness) var(--muted-fg-chroma) var(--color-hue));
+              background-color: oklch(
+                var(--muted-bg-lightness) var(--muted-bg-chroma) var(--color-hue)
+              );
+              border-inline: 1px solid
+                oklch(var(--muted-fg-lightness) var(--muted-fg-chroma) var(--color-hue));
+            }
+          }
+        }
+      }
+
+      details span {
+        display: grid;
+        align-items: first baseline;
+      }
+
+      td {
+        display: grid;
+        white-space: pre-wrap;
+        padding-block: var(--pill-pad);
+        font-family: monospace;
+
+        button.log-link {
+          display: contents;
+          font-family: inherit;
+          font-size: inherit;
+
+          span {
+            text-decoration: underline;
+            text-overflow: ellipsis;
+            cursor: pointer;
+          }
+        }
+      }
+    }
+  }
+
+  li.fail.verify-steps {
+    // container-type: inline-size;
+
+    .test-diff {
+      > td > span {
+        display: none;
+      }
+
+      del {
+        display: flex;
+      }
+    }
+
+    .test-expected,
+    .test-actual {
+      display: none;
+    }
+
+    .test-actual {
+      --color-fg: var(--actual-fg);
+      --color-bg: var(--actual-bg);
+    }
+
+    .test-expected {
+      --color-fg: var(--expected-fg);
+      --color-bg: var(--expected-bg);
+    }
+
+    .test-diff {
+      ins,
+      del {
+        display: contents;
+      }
+
+      pre {
+        font-family: inherit;
+        display: grid;
+
+        span:has(> span) {
+          display: contents;
+        }
+
+        > span {
+          --color-fg: var(--same-fg);
+          --color-bg: var(--same-bg);
+        }
+
+        span:empty {
+          display: none;
+        }
+      }
+    }
+
+    td {
+      display: grid;
+      grid-auto-columns: initial;
+      grid-template-columns: 1fr;
+      grid-auto-flow: row;
+      row-gap: 10px;
+
+      ins,
+      del {
+        display: contents;
+      }
+
+      ins,
+      .legend .ins {
+        --color-fg: var(--actual-fg);
+        --color-bg: var(--actual-bg);
+      }
+
+      .legend {
+        display: grid;
+        grid-auto-flow: column;
+        grid-auto-columns: max-content;
+        align-items: baseline;
+        column-gap: var(--gap-md);
+        opacity: 0.8;
+
+        span {
+          display: inline-grid;
+          padding: var(--gap-sm);
+        }
+      }
+
+      ins > .expected-step {
+        &::before {
+          content: '+ ';
+          font-weight: bold;
+        }
+      }
+
+      del > .expected-step {
+        &::before {
+          content: '- ';
+          font-weight: bold;
+        }
+      }
+
+      del,
+      .legend .del {
+        --color-fg: var(--expected-fg);
+        --color-bg: var(--expected-bg);
+      }
+
+      .legend .same {
+        --color-fg: var(--same-fg);
+        --color-bg: var(--same-bg);
+      }
+
+      &:empty::before {
+        content: 'Ø';
+        padding: var(--pill-pad);
+        display: grid;
+        align-content: center;
+        height: calc(1lh + var(--pill-pad) * 2);
+      }
+    }
+  }
+}

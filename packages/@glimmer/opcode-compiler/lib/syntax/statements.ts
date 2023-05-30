@@ -39,6 +39,8 @@ import {
   TO_BOOLEAN_OP,
   COMPONENT_CONTENT,
   HELPER_CONTENT,
+  STRICT_STATIC_COMPONENT_ATTR_OP,
+  STRICT_STATIC_ATTR_OP,
 } from '@glimmer/vm-constants';
 
 import {
@@ -148,12 +150,16 @@ defineStatement(WIRE_MODIFIER, (op, [, expression, positional, named]) => {
   }
 });
 
-defineStatement(WIRE_STATIC_ATTR, (op, [, name, value, namespace]) => {
-  op(STATIC_ATTR_OP, inflateAttributeName(name), value as string, namespace ?? null);
+defineStatement(WIRE_STATIC_ATTR, (op, [, name, value, strict]) => {
+  op(strict ? STRICT_STATIC_ATTR_OP : STATIC_ATTR_OP, inflateAttributeName(name), value as string);
 });
 
-defineStatement(WIRE_STATIC_COMPONENT_ATTR, (op, [, name, value, namespace]) => {
-  op(STATIC_COMPONENT_ATTR_OP, inflateAttributeName(name), value as string, namespace ?? null);
+defineStatement(WIRE_STATIC_COMPONENT_ATTR, (op, [, name, value, strict]) => {
+  op(
+    strict ? STRICT_STATIC_COMPONENT_ATTR_OP : STATIC_COMPONENT_ATTR_OP,
+    inflateAttributeName(name),
+    value as string
+  );
 });
 
 defineStatement(WIRE_DYNAMIC_ATTR, (op, [, name, value, namespace]) => {

@@ -15,6 +15,7 @@ import type {
   VmCommitComponentTransaction,
   VmCompileBlock,
   VmComponentAttr,
+  VmStrictComponentAttr,
   VmConcat,
   VmConstant,
   VmConstantReference,
@@ -29,6 +30,7 @@ import type {
   VmDynamicContentType,
   VmDynamicHelper,
   VmDynamicModifier,
+  VmStrictDynamicAttr,
   VmEnter,
   VmEnterList,
   VmExit,
@@ -100,6 +102,8 @@ import type {
   VmSpreadBlock,
   VmStaticAttr,
   VmStaticComponentAttr,
+  VmStrictStaticAttr,
+  VmStrictStaticComponentAttr,
   VmText,
   VmToBoolean,
   VmVirtualRootScope,
@@ -208,6 +212,10 @@ export const IF_INLINE_OP: VmIfInline = 109;
 export const NOT_OP: VmNot = 110;
 export const GET_DYNAMIC_VAR_OP: VmGetDynamicVar = 111;
 export const LOG_OP: VmLog = 112;
+export const STRICT_STATIC_ATTR_OP: VmStrictStaticAttr = 113;
+export const STRICT_DYNAMIC_ATTR_OP: VmStrictDynamicAttr = 114;
+export const STRICT_COMPONENT_ATTR_OP: VmStrictComponentAttr = 115;
+export const STRICT_STATIC_COMPONENT_ATTR_OP: VmStrictStaticComponentAttr = 116;
 
 export function isMachineOp(value: number): value is VmMachineOp {
   return value >= 0 && value <= 15;

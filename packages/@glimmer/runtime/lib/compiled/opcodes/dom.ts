@@ -8,9 +8,7 @@ import {
 } from '@glimmer/debug';
 import type {
   AttributeRef,
-  CapturedArguments,
   CapturedPositionalArguments,
-  Destroyable,
   Environment,
   InstallableModifier,
   Maybe,
@@ -19,26 +17,19 @@ import type {
   MinimalElement,
   ModifierDefinition,
   ModifierDefinitionState,
-  ModifierInstance,
-  Nullable,
-  Optional,
-  Tag,
-  UpdatableTag,
   UpdatingOpcode,
 } from '@glimmer/interfaces';
-import { createComputeRef, isConstRef, type Reference, valueForRef } from '@glimmer/reference';
-import { debugToString, expect, isObject, unwrap } from '@glimmer/util';
+import {
+  createComputeRef,
+  isConstRef,
+  type Reference,
+  valueForRef,
+  createConstRef,
+} from '@glimmer/reference';
+import { debugToString, expect, isObject } from '@glimmer/util';
 import {
   createCache,
-  type TrackedCache,
   consumeTag,
-  validateTag,
-  getTaggedValue,
-  now,
-  createUpdatableTag,
-  updateTag,
-  beginTrackFrame,
-  endTrackFrame,
 } from '@glimmer/validator';
 import {
   $t0,
@@ -63,7 +54,6 @@ import { CONSTANTS } from '../../symbols';
 import { CheckArguments, CheckOperations, CheckReference } from './-debug-strip';
 import { Assert } from './vm';
 import { updateAttributeRef } from '../../dom/tree-builder';
-import { associateDestroyableChild, destroy } from '@glimmer/destroyable';
 import type { UpdatingVM } from '../../vm';
 
 define(TEXT_OP, (vm, { op1: text }) => {
@@ -231,143 +221,39 @@ define(DYNAMIC_MODIFIER_OP, (vm) => {
   return vm._updateWith_(modifier);
 });
 
-export interface ModifierInstanceRef {
-  current: ModifierInstance | undefined;
-}
+export class UpdateLooseAttrOpcode implements UpdatingOpcode, InstallableModifier {
+  readonly #name: Reference<string>;
+  readonly #value: Reference<unknown>;
 
-type DefinitionCache = TrackedCache<LastDefinition>;
+  constructor(name: Reference<string>, value: Reference<unknown>) {
+    this.#name = name;
+    this.#value = value;
+  }
 
-interface LastDefinition {
-  definition?: ModifierDefinition | undefined;
-  owner: object;
+  evaluate(vm: UpdatingVM): void {
+    throw new Error('Method not implemented.');
+  }
   element: Element;
-  args: CapturedArguments;
-}
-
-export class UpdateModifierOpcode implements UpdatingOpcode, InstallableModifier {
-  readonly #cache: DefinitionCache;
-  #lastUpdated: number;
-  #lastTag: Optional<Tag>;
-  #lastDestroyable: Nullable<Destroyable> = null;
-  #lastDefinition: Optional<[LastDefinition, Tag]>;
-  #lastInstance: Optional<ModifierInstance>;
-  #tag: UpdatableTag;
-
-  constructor(cache: DefinitionCache) {
-    this.#lastUpdated = now();
-    this.#cache = cache;
-    this.#tag = createUpdatableTag();
+  render(): void {
+    throw new Error('Method not implemented.');
   }
-
-  get element() {
-    let [{ element }] = unwrap(this.#initialized);
-    return element;
+  update(env: Environment): void {
+    throw new Error('Method not implemented.');
   }
-
-  get tag() {
-    return this.#tag;
-  }
-
-  get #initialized(): Optional<[LastDefinition, Tag]> {
-    if (this.#lastTag && validateTag(this.#lastTag, this.#lastUpdated)) {
-      return this.#lastDefinition;
-    }
-
-    let [definitionValue, definitionTag] = getTaggedValue(this.#cache);
-
-    return (this.#lastDefinition = [definitionValue, definitionTag]);
-  }
-
   destroy(): void {
-    destroy(this);
-  }
-
-  render() {
-    let [definitionValue, definitionTag] = unwrap(this.#initialized);
-
-    if (!definitionValue) {
-      updateTag(this.#tag, definitionTag);
-      return;
-    }
-
-    let { definition, owner, element, args } = definitionValue;
-
-    if (!definition) {
-      updateTag(this.#tag, definitionTag);
-      return;
-    }
-
-    let manager = definition.manager;
-
-    beginTrackFrame();
-
-    try {
-      consumeTag(definitionTag);
-      let state = manager.create(owner, element, definition.state, args);
-      let managerTag = manager.getTag(state);
-      if (managerTag) consumeTag(managerTag);
-      manager.install(state);
-      let destroyable = manager.getDestroyable(state);
-      if (destroyable) {
-        associateDestroyableChild(this, destroyable);
-        this.#lastDestroyable = destroyable;
-      }
-      this.#lastInstance = {
-        manager,
-        state,
-        definition,
-      };
-    } finally {
-      let userTag = endTrackFrame();
-      updateTag(this.#tag, userTag);
-    }
-
-    this.#lastUpdated = now();
-  }
-
-  #cleanup() {
-    if (this.#lastDestroyable) {
-      destroy(this.#lastDestroyable);
-      this.#lastDestroyable = null;
-    }
-  }
-
-  update() {
-    let [, lastDefinitionTag] = unwrap(this.#lastDefinition);
-
-    if (!validateTag(lastDefinitionTag, this.#lastUpdated)) {
-      this.#cleanup();
-      this.render();
-      this.#lastUpdated = now();
-      return;
-    }
-
-    let { state, manager } = unwrap(this.#lastInstance);
-
-    if (!validateTag(this.#tag, this.#lastUpdated)) {
-      manager.update(state);
-      this.#lastUpdated = now();
-    }
-  }
-
-  evaluate(vm: UpdatingVM) {
-    consumeTag(this.#tag);
-    let isValid = this.#lastTag ? validateTag(this.#lastTag, this.#lastUpdated) : false;
-
-    if (isValid) return;
-
-    vm.env.scheduleUpdateModifier(this);
+    throw new Error('Method not implemented.');
   }
 }
 
-define(STATIC_ATTR_OP, (vm, { op1: _name, op2: _value, op3: _namespace }) => {
+define(STATIC_ATTR_OP, (vm, { op1: _name, op2: _value }) => {
   let name = vm[CONSTANTS].getValue<string>(_name);
   let value = vm[CONSTANTS].getValue<string>(_value);
 
+  let attribute = new UpdateLooseAttrOpcode(createConstRef(name), createConstRef(value));
   vm._elements_().addAttr(name, value);
 });
 
-define(DYNAMIC_ATTR_OP, (vm, { op1: _name, op2: _trusting, op3: _namespace }) => {
+define(DYNAMIC_ATTR_OP, (vm, { op1: _name, op2: _trusting }) => {
   let name = vm[CONSTANTS].getValue<string>(_name);
   let trusting = vm[CONSTANTS].getValue<boolean>(_trusting);
   let reference = check(vm.stack.pop(), CheckReference);

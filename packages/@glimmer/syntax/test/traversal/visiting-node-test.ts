@@ -297,7 +297,7 @@ test('Basics', function (assert) {
 
   traverse(ast, {
     TextNode(node, path) {
-      assert.step('TextNode');
+      assert.action('TextNode');
       assert.strictEqual(node.chars, 'bar');
       assert.strictEqual(path.node, node);
       assert.deepEqual(describeFullPath(path), [
@@ -310,7 +310,7 @@ test('Basics', function (assert) {
     },
   });
 
-  assert.verifySteps(['TextNode']);
+  assert.verifyActions(['TextNode']);
 });
 
 test('Helper', function (assert) {
@@ -319,7 +319,7 @@ test('Helper', function (assert) {
   traverse(ast, {
     PathExpression(node, path) {
       if (node.original === 'this.blah') {
-        assert.step('PathExpression this.blah');
+        assert.action('PathExpression this.blah');
         assert.deepEqual(describeFullPath(path), [
           { nodeType: 'Template', key: 'body' },
           { nodeType: 'BlockStatement', key: 'params' },
@@ -332,7 +332,7 @@ test('Helper', function (assert) {
     },
   });
 
-  assert.verifySteps(['PathExpression this.blah']);
+  assert.verifyActions(['PathExpression this.blah']);
 });
 
 test('Modifier', function (assert) {
@@ -341,7 +341,7 @@ test('Modifier', function (assert) {
   traverse(ast, {
     PathExpression(node, path) {
       if (node.original === 'foo') {
-        assert.step('PathExpression foo');
+        assert.action('PathExpression foo');
 
         assert.deepEqual(describeFullPath(path), [
           { nodeType: 'Template', key: 'body' },
@@ -360,7 +360,7 @@ test('Modifier', function (assert) {
     },
   });
 
-  assert.verifySteps(['PathExpression foo']);
+  assert.verifyActions(['PathExpression foo']);
 });
 
 function describeFullPath(

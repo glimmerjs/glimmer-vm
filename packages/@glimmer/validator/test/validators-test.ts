@@ -43,7 +43,7 @@ module('@glimmer/validator: validators', () => {
     test('it calls scheduleRevalidate', (assert) => {
       let originalContext = unwrap(testOverrideGlobalContext)({
         scheduleRevalidate() {
-          assert.step('scheduleRevalidate');
+          assert.action('scheduleRevalidate');
           assert.ok(true, 'called');
         },
       });
@@ -56,7 +56,7 @@ module('@glimmer/validator: validators', () => {
         unwrap(testOverrideGlobalContext)(originalContext);
       }
 
-      assert.verifySteps(['scheduleRevalidate']);
+      assert.verifyActions(['scheduleRevalidate']);
     });
 
     if (import.meta.env.DEV) {

@@ -107,32 +107,32 @@ module('@glimmer/validator: tracking', () => {
       assert.notOk(isTracking());
 
       track(() => {
-        assert.step('track');
+        assert.action('track');
         assert.ok(isTracking());
 
         untrack(() => {
-          assert.step('untrack');
+          assert.action('untrack');
           assert.notOk(isTracking());
         });
       });
 
-      assert.verifySteps(['track', 'untrack']);
+      assert.verifyActions(['track', 'untrack']);
     });
 
     test('nested tracks work', (assert) => {
       assert.notOk(isTracking());
 
       track(() => {
-        assert.step('track');
+        assert.action('track');
         assert.ok(isTracking());
 
         untrack(() => {
-          assert.step('untrack');
+          assert.action('untrack');
           assert.notOk(isTracking());
         });
       });
 
-      assert.verifySteps(['track', 'untrack']);
+      assert.verifyActions(['track', 'untrack']);
     });
 
     test('nested tracks and untracks work', (assert) => {
@@ -140,14 +140,14 @@ module('@glimmer/validator: tracking', () => {
         track(() => {
           untrack(() => {
             track(() => {
-              assert.step('supernested');
+              assert.action('supernested');
               assert.ok(isTracking(), 'tracking');
             });
           });
         });
       });
 
-      assert.verifySteps(['supernested']);
+      assert.verifyActions(['supernested']);
     });
   });
 
@@ -363,18 +363,18 @@ module('@glimmer/validator: tracking', () => {
       assert.notOk(isTracking());
 
       let cache = createCache(() => {
-        assert.step('cache called');
+        assert.action('cache called');
         assert.ok(isTracking());
 
         untrack(() => {
-          assert.step('untrack');
+          assert.action('untrack');
           assert.notOk(isTracking());
         });
       });
 
       getValue(cache);
 
-      assert.verifySteps(['cache called', 'untrack']);
+      assert.verifyActions(['cache called', 'untrack']);
     });
 
     test('isConst allows users to check if a memoized function is constant', (assert) => {

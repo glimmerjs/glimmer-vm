@@ -182,14 +182,14 @@ class FnTest extends RenderTest {
   'there is no `this` context within the callback'(assert: Assert) {
     this.render(`<Stash @stashedFn={{fn this.myFunc this.arg1}}/>`, {
       myFunc() {
-        assert.step('calling stashed function');
+        assert.action('calling stashed function');
         assert.throws(() => String(this), /not bound to a valid `this` context/u);
         // assert.strictEqual(this, null, 'this is bound to null in production builds');
       },
     });
 
     this.stashedFn?.();
-    assert.verifySteps(['calling stashed function']);
+    assert.verifyActions(['calling stashed function']);
   }
 
   @test

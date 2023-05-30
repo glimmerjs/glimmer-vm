@@ -278,6 +278,10 @@ export function _createCacheRef_<T>(fn: () => T, debuggingLabel?: string | false
   return createComputeRef(() => getValue(cache), null, debuggingLabel);
 }
 
+export function _tagForRef_(reference: Reference): Nullable<Tag> {
+  return (reference as ReferenceImpl).tag;
+}
+
 export const isInvokableRef = ReferenceImpl._isInvokableRef_;
 export const isRef = ReferenceImpl._is_;
 export const childRefFor = ReferenceImpl._childRefFor_;

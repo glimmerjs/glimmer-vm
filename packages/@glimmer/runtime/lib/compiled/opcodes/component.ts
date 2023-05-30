@@ -111,11 +111,12 @@ import {
   CheckInvocation,
   CheckReference,
 } from './-debug-strip';
-import { UpdateDynamicAttributeOpcode, UpdateModifierOpcode } from './dom';
+import { UpdateDynamicAttributeOpcode } from './dom';
 import { CURRIED_COMPONENT } from '@glimmer/vm-constants';
 import { define } from '../../opcodes';
 import { getClassicBoundsFor } from '../../vm/update';
 import { type TrackedCache, getValue, createCache } from '@glimmer/validator';
+import { UpdateModifierOpcode } from './modifier';
 
 /**
  * The VM creates a new ComponentInstance data structure for every component

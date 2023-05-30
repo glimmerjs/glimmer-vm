@@ -200,11 +200,9 @@ if (hasDom) {
     'changing from `once=false` to `once=true` ensures the callback can only be called once'(
       assert: Assert
     ) {
-      let count = 0;
-
       this.render('<button {{on "click" this.callback once=this.once}}>Click Me</button>', {
         callback() {
-          count++;
+          assert.action('callback: called');
         },
 
         once: false,
@@ -212,25 +210,23 @@ if (hasDom) {
 
       let button = this.findButton();
 
-      button.click();
-      assert.strictEqual(count, 1, 'has been called 1 time');
+      function clickButton() {
+        button.click();
+        assert.step('[ui event] button click');
+      }
 
-      button.click();
-      assert.strictEqual(count, 2, 'has been called 2 times');
+      clickButton();
+      assert.verifyActions(['callback: called']);
+
+      clickButton();
+      assert.verifyActions(['callback: called']);
 
       this.rerender({ once: true });
+      clickButton();
+      assert.verifyActions(['callback: called']);
 
-      button.click();
-      assert.strictEqual(count, 3, 'has been called 3 time');
-
-      button.click();
-      assert.strictEqual(count, 3, 'is not called again');
-
-      if (isIE11) {
-        this.assertCounts({ adds: 2, removes: 2 });
-      } else {
-        this.assertCounts({ adds: 2, removes: 1 });
-      }
+      clickButton();
+      assert.verifyActions([]);
     }
 
     @test
@@ -259,17 +255,17 @@ if (hasDom) {
         `,
         {
           handleOuterClick() {
-            assert.step('outer clicked');
+            assert.action('outer clicked');
           },
           handleInnerClick() {
-            assert.step('inner clicked');
+            assert.action('inner clicked');
           },
         }
       );
 
       this.findButton('.inner').click();
 
-      assert.verifySteps(['inner clicked', 'outer clicked'], 'uses capture: false by default');
+      assert.verifyActions(['inner clicked', 'outer clicked'], 'uses capture: false by default');
     }
 
     @test
@@ -282,17 +278,17 @@ if (hasDom) {
         `,
         {
           handleOuterClick() {
-            assert.step('outer clicked');
+            assert.action('outer clicked');
           },
           handleInnerClick() {
-            assert.step('inner clicked');
+            assert.action('inner clicked');
           },
         }
       );
 
       this.findButton('.inner').click();
 
-      assert.verifySteps(['outer clicked', 'inner clicked'], 'capture works');
+      assert.verifyActions(['outer clicked', 'inner clicked'], 'capture works');
     }
 
     @test
@@ -305,21 +301,21 @@ if (hasDom) {
         `,
         {
           handleOuterClick() {
-            assert.step('outer clicked');
+            assert.action('outer clicked');
           },
           handleInnerClick() {
-            assert.step('inner clicked');
+            assert.action('inner clicked');
           },
         }
       );
 
       this.findButton('.inner').click();
 
-      assert.verifySteps(['outer clicked', 'inner clicked'], 'capture works');
+      assert.verifyActions(['outer clicked', 'inner clicked'], 'capture works');
 
       this.findButton('.inner').click();
 
-      assert.verifySteps(['inner clicked'], 'once works');
+      assert.verifyActions(['inner clicked'], 'once works');
     }
 
     @test

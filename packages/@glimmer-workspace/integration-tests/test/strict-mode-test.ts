@@ -706,7 +706,7 @@ class DynamicStrictModeTest extends RenderTest {
       }
 
       override willDestroy() {
-        assert.step('willDestroy 1 called');
+        assert.action('willDestroy 1 called');
       }
     }
 
@@ -716,7 +716,7 @@ class DynamicStrictModeTest extends RenderTest {
       }
 
       override willDestroy() {
-        assert.step('willDestroy 2 called');
+        assert.action('willDestroy 2 called');
       }
     }
 
@@ -732,14 +732,14 @@ class DynamicStrictModeTest extends RenderTest {
     this.rerender();
     this.assertHTML('Hello, earth!');
     this.assertStableRerender();
-    assert.verifySteps(['willDestroy 1 called']);
+    assert.verifyActions(['willDestroy 1 called']);
 
     args['helper'] = undefined;
 
     this.rerender();
     this.assertHTML('');
     this.assertStableRerender();
-    assert.verifySteps(['willDestroy 2 called']);
+    assert.verifyActions(['willDestroy 2 called']);
   }
 
   @test
@@ -750,7 +750,7 @@ class DynamicStrictModeTest extends RenderTest {
       }
 
       override willDestroy() {
-        assert.step('willDestroy 1 called');
+        assert.action('willDestroy 1 called');
       }
     }
 
@@ -760,7 +760,7 @@ class DynamicStrictModeTest extends RenderTest {
       }
 
       override willDestroy() {
-        assert.step('willDestroy 2 called');
+        assert.action('willDestroy 2 called');
       }
     }
 
@@ -777,14 +777,14 @@ class DynamicStrictModeTest extends RenderTest {
     this.rerender();
     this.assertHTML('Goodbye, world!');
     this.assertStableRerender();
-    assert.verifySteps(['willDestroy 1 called']);
+    assert.verifyActions(['willDestroy 1 called']);
 
     args['helper'] = undefined;
 
     this.rerender();
     this.assertHTML('');
     this.assertStableRerender();
-    assert.verifySteps(['willDestroy 2 called']);
+    assert.verifyActions(['willDestroy 2 called']);
   }
 
   @test
@@ -944,7 +944,7 @@ class DynamicStrictModeTest extends RenderTest {
       element.innerHTML = 'Hello, world!';
 
       return () => {
-        assert.step('willDestroy 1 called');
+        assert.action('willDestroy 1 called');
       };
     });
 
@@ -952,7 +952,7 @@ class DynamicStrictModeTest extends RenderTest {
       element.innerHTML = 'Hello, earth!';
 
       return () => {
-        assert.step('willDestroy 2 called');
+        assert.action('willDestroy 2 called');
       };
     });
 
@@ -964,18 +964,18 @@ class DynamicStrictModeTest extends RenderTest {
     this.assertStableRerender();
 
     args['modifier'] = modifier2;
+    this.rerender(undefined, 'updated modifier');
 
-    this.rerender();
+    assert.verifyActions(['willDestroy 1 called']);
     this.assertHTML('<div>Hello, earth!</div>');
     this.assertStableRerender();
-    assert.verifySteps(['willDestroy 1 called']);
 
     args['modifier'] = undefined;
 
     this.rerender();
     this.assertHTML('<div>Hello, earth!</div>');
     this.assertStableRerender();
-    assert.verifySteps(['willDestroy 2 called']);
+    assert.verifyActions(['willDestroy 2 called']);
   }
 
   @test
@@ -984,7 +984,7 @@ class DynamicStrictModeTest extends RenderTest {
       element.innerHTML = `Hello, ${name}!`;
 
       return () => {
-        assert.step('willDestroy 1 called');
+        assert.action('willDestroy 1 called');
       };
     });
 
@@ -992,7 +992,7 @@ class DynamicStrictModeTest extends RenderTest {
       element.innerHTML = `Goodbye, ${name}!`;
 
       return () => {
-        assert.step('willDestroy 2 called');
+        assert.action('willDestroy 2 called');
       };
     });
 
@@ -1009,25 +1009,22 @@ class DynamicStrictModeTest extends RenderTest {
     this.rerender();
     this.assertHTML('<div>Goodbye, world!</div>');
     this.assertStableRerender();
-    assert.verifySteps(['willDestroy 1 called']);
+    assert.verifyActions(['willDestroy 1 called']);
 
     args['modifier'] = undefined;
 
     this.rerender();
     this.assertHTML('<div>Goodbye, world!</div>');
     this.assertStableRerender();
-    assert.verifySteps(['willDestroy 2 called']);
+    assert.verifyActions(['willDestroy 2 called']);
   }
 
   @test
   'Calling a dynamic modifier using if helper'(assert: Assert) {
-    // Make sure the destructor gets called
-    assert.expect(14);
-
     let world = defineSimpleModifier((element: Element) => {
       element.innerHTML = `Hello, world!`;
 
-      return () => assert.ok(true, 'destructor called');
+      return () => assert.action('destructor');
     });
     let nebula = defineSimpleModifier(
       (element: Element, [name]: string[]) => (element.innerHTML = `Hello, ${name}!`)
@@ -1045,7 +1042,8 @@ class DynamicStrictModeTest extends RenderTest {
     this.assertStableRerender();
 
     args['inSpace'] = true;
-    this.rerender();
+    this.rerender(undefined, 'update modifier arg');
+    assert.expect(['destructor']);
     this.assertHTML('<div>Hello, Nebula!</div>');
     this.assertStableRerender();
 

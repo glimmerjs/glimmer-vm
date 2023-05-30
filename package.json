@@ -110,6 +110,7 @@
     "puppeteer-chromium-resolver": "^20.0.0",
     "qunit": "^2.19.4",
     "rimraf": "^5.0.1",
+    "sass": "^1.62.1",
     "semver": "^7.5.1",
     "testem-failure-only-reporter": "^1.0.0",
     "toml": "^3.0.0",

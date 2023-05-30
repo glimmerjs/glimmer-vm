@@ -1,9 +1,17 @@
+import './qunit.scss';
+import './harness.scss';
+import { Reporter } from './reporter';
+
 /* eslint-disable no-console */
 import { debug } from '@glimmer/validator';
 import { autoRegister } from 'js-reporters';
+import { QUnitEnv } from './env';
+import { Actions } from './actions/extension';
 
 export async function setupQunit() {
-  await import('qunit/qunit/qunit.css');
+  Reporter.init();
+
+  let env = QUnitEnv.initGlobal();
 
   QUnit.config.urlConfig.push(
     {
@@ -13,9 +21,13 @@ export async function setupQunit() {
     },
     {
       id: 'local-should-log',
-      label: 'Enable Local Logging',
-      tooltip:
-        'Local logging is internal logs that are only ever used when developing Glimmer itself',
+      label: '🗒️ VM',
+      tooltip: 'Log the VM state as it evaluates.',
+    },
+    {
+      id: 'local-log-tracking',
+      label: '🗒️ Tracking',
+      tooltip: 'Log information about tracking frames and consumption.',
     },
     {
       id: 'ci',
@@ -28,8 +40,8 @@ export async function setupQunit() {
       tooltip: 'What to do with TODOs',
       value: {
         initial: 'Show all TODOs (default)',
-        'hide-valid': 'Hide failing TODOs',
-        'show-only-invalid': 'Show only passing TODOs',
+        'hide-valid': 'Hide expected TODOs (still failing)',
+        'show-only-invalid': 'Show only unexpected TODOs (passing)',
         ignore: 'Hide all TODOs',
       },
     }
@@ -37,14 +49,10 @@ export async function setupQunit() {
 
   await Promise.resolve();
 
-  let qunitDiv = document.createElement('div');
-  qunitDiv.id = 'qunit';
-  let qunitFixtureDiv = document.createElement('div');
-  qunitFixtureDiv.id = 'qunit-fixture';
+  env.setupTestDOM();
+  env.use(Actions);
 
-  document.body.append(qunitDiv, qunitFixtureDiv);
-
-  let ci = hasFlag('ci');
+  let ci = env.hasFlag('ci');
 
   if (ci) {
     let runner = autoRegister();
@@ -52,9 +60,9 @@ export async function setupQunit() {
     tap.init(runner, { log: console.info });
   }
 
-  console.log(`[HARNESS] ci=${hasFlag('ci')}`);
+  console.log(`[HARNESS] ci=${env.hasFlag('ci')}`);
 
-  let todos = getFlag('todo-behavior');
+  let todos = env.getFlag('todo-behavior');
 
   if (todos) {
     let style = document.createElement('style');
@@ -65,21 +73,21 @@ export async function setupQunit() {
         break;
       case 'hide-valid':
         style.innerHTML = `
-          #qunit-tests li.pass.todo {
+          #qunit #qunit-tests li.pass.todo {
             display: none;
           }
         `;
         break;
       case 'show-only-invalid':
         style.innerHTML = `
-          #qunit-tests li:not(.fail.todo) {
+          #qunit #qunit-tests li:not(.fail.todo) {
             display: none;
           }
         `;
         break;
       case 'ignore':
         style.innerHTML = `
-          #qunit-tests li.todo {
+          #qunit #qunit-tests li.todo {
             display: none;
           }
         `;
@@ -93,7 +101,7 @@ export async function setupQunit() {
     debug.resetTrackingTransaction?.();
   });
 
-  if (!hasFlag('ci')) {
+  if (!env.hasFlag('ci')) {
     // since all of our tests are synchronous, the QUnit
     // UI never has a chance to rerender / update. This
     // leads to a very long "white screen" when running
@@ -125,15 +133,6 @@ export async function setupQunit() {
   }
 
   return {
-    smokeTest: hasFlag('smoke_test'),
+    smokeTest: env.hasFlag('smoke_test'),
   };
-}
-
-function hasFlag(flag: string): boolean {
-  let location = typeof window !== 'undefined' && window.location;
-  return location && new RegExp(`[?&]${flag}`).test(location.search);
-}
-
-function getFlag(flag: string): string | null {
-  return new URL(location.href).searchParams.get(flag);
 }

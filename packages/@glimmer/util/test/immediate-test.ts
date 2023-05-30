@@ -19,9 +19,9 @@ module('immediate encoding tests', () => {
       assert.strictEqual(value, decodeImmediate(encoded), 'correctly encoded and decoded');
       let isSMI = encoded >= MIN_SMI && encoded <= MAX_SMI;
       assert.true(isSMI, 'encoded as an SMI');
-      assert.step(`testing ${value}`);
+      assert.action(`testing ${value}`);
     }
 
-    assert.verifySteps(cases.map((value) => `testing ${value}`));
+    assert.verifyActions(cases.map((value) => `testing ${value}`));
   });
 });

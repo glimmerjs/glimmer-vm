@@ -72,12 +72,16 @@ declare global {
      * recorded in a given test. If afterwards the number of assertions does not match the
      * expected count, the test will fail.
      *
-     * It is recommended to test asynchronous code with `assert.step()` or `assert.async()`
+     * It is recommended to test asynchronous code with `assert.action()` or `assert.async()`
      * instead.
      *
-     * @param {number} amount Number of expected assertions in this test
+     * @param amount Number of expected assertions in this test
      */
     expect(amount: number): void;
+    /**
+     * @param actions A list of expected actions
+     */
+    expect(actions: string[]): void;
 
     /**
      * A strict comparison that passes if the first argument is boolean `false`.
@@ -260,8 +264,8 @@ declare global {
      */
     pushResult(assertResult: {
       result: boolean;
-      actual: any;
-      expected: any;
+      actual?: unknown;
+      expected?: unknown;
       message?: string | undefined;
       source?: string | undefined;
     }): void;
@@ -305,11 +309,13 @@ declare global {
      * Record a step for later verification.
      *
      * This assertion registers a passing assertion with the provided string. This and any
-     * other steps should be verified later in the test via `assert.verifySteps()`.
+     * other steps should be verified later in the test via `assert.verifyActions()`.
      *
      * @param value Relevant string value, or short description, to mark this step.
      */
     step(value: string): void;
+
+    action(value: string): void;
 
     /**
      * A strict type and value comparison.
@@ -364,12 +370,12 @@ declare global {
      * and shown as part of the test failure.
      *
      * This assertion compares a given array of string values to a list of previously recorded
-     * steps, as marked via previous calls to `assert.step()`.
+     * steps, as marked via previous calls to `assert.action()`.
      *
-     * @param steps List of strings
+     * @param actions List of strings
      * @param message Short description of the assertion
      */
-    verifySteps(steps: string[], message?: string): void;
+    verifyActions(actions: string[], message?: string): void;
   }
 
   interface Reporter {
@@ -543,7 +549,7 @@ declare global {
       expected: null | number;
       // assertions: Array<{ result: boolean; message: string }>;
       module: Module;
-      // steps: unknown[];
+      steps: string[];
       // timeout: undefined;
       // data: unknown;
       // withData: boolean;
@@ -591,6 +597,100 @@ declare global {
     type Test = AssertionTest | SkipTest | TodoTest;
   }
 
+  type Expand<T> = T extends infer O ? { [K in keyof O]: O[K] } : never;
+
+  interface AssertionReport {
+    passed: boolean;
+    message: string | undefined;
+    actual: unknown;
+    expected: unknown;
+    stack: string | undefined;
+    todo: boolean;
+  }
+
+  interface TestCounts {
+    total: number;
+    skipped: number;
+    todo: number;
+    passed: number;
+    failed: number;
+  }
+
+  interface BaseDetails {
+    name: string;
+    fullName: string[];
+  }
+
+  interface BaseReport extends BaseDetails {
+    status: Status;
+    runtime: number;
+  }
+
+  interface TestDetails extends BaseDetails {
+    suiteName: string;
+  }
+
+  interface TestReport extends BaseReport {
+    suiteName: string;
+    runtime: number;
+    assertions: AssertionReport[];
+  }
+
+  interface SuiteReport extends BaseReport {
+    tests: TestReport[];
+    childSuites: SuiteReport[];
+  }
+
+  interface SuiteDetails extends BaseDetails {
+    tests: TestDetails[];
+    childSuites: SuiteDetails[];
+    testCounts: Pick<TestCounts, 'total'>;
+  }
+
+  interface TestDetails extends BaseDetails {
+    moduleName: string | null;
+  }
+
+  interface TestReport extends BaseReport {
+    errors: AssertionReport[];
+  }
+
+  interface RunDetails {
+    testCounts: Pick<TestCounts, 'total'>;
+    childSuites: SuiteDetails[];
+  }
+
+  interface RunReport {
+    status: Status;
+    testCounts: TestCounts;
+    runtime: number;
+    childSuites: SuiteReport[];
+  }
+
+  type Status = 'passed' | 'failed' | 'skipped' | 'todo';
+
+  interface QUnitOn {
+    (event: 'runStart', callback: (details: Expand<RunDetails>) => void): void;
+    (event: 'runEnd', callback: (details: Expand<RunReport>) => void): void;
+    (event: 'suiteStart', callback: (details: Expand<SuiteDetails>) => void): void;
+    (event: 'suiteEnd', callback: (details: Expand<SuiteReport>) => void): void;
+    (event: 'testStart', callback: (details: Expand<TestDetails>) => void): void;
+    (event: 'testEnd', callback: (details: Expand<TestReport>) => void): void;
+
+    (event: 'error', callback: (details: unknown) => void): void;
+    (event: 'assertion', callback: (details: AssertionReport) => void): void;
+  }
+
+  interface TestDoneDetails {
+    name: string;
+    testId: string;
+    module: string;
+    failed: number;
+    passed: number;
+    total: number;
+    runtime: number;
+  }
+
   interface QUnit {
     /**
      * Namespace for QUnit assertions
@@ -602,6 +702,8 @@ declare global {
      * This object has properties for each of QUnit's built-in assertion methods.
      */
     assert: Assert;
+
+    on: QUnitOn;
 
     /**
      * Register a callback to fire whenever the test suite begins.
@@ -850,16 +952,7 @@ declare global {
      *
      * @param callback Callback to execute
      */
-    testDone(
-      callback: (details: {
-        name: string;
-        module: string;
-        failed: number;
-        passed: number;
-        total: number;
-        runtime: number;
-      }) => void | Promise<void>
-    ): void;
+    testDone(callback: (details: TestDoneDetails) => void | Promise<void>): void;
 
     /**
      * Register a callback to fire whenever a test begins.

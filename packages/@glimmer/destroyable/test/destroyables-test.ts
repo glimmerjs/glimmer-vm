@@ -174,8 +174,8 @@ module('Destroyables', (hooks) => {
     let child = {};
 
     associateDestroyableChild(parent, child);
-    registerDestructor(parent, () => assert.step('parent'));
-    registerDestructor(child, () => assert.step('child'));
+    registerDestructor(parent, () => assert.action('parent'));
+    registerDestructor(child, () => assert.action('child'));
 
     assert.false(isDestroying(parent), 'parent not destroying at first');
     assert.false(isDestroyed(parent), 'parent not destroyed at first');
@@ -191,7 +191,9 @@ module('Destroyables', (hooks) => {
     assert.true(isDestroying(child), 'child destroying immediately after destroy() called');
     assert.false(isDestroyed(child), 'child not destroyed immediately after destroy()');
 
-    assert.verifySteps([], 'nothing destroyed yet');
+    assert.verifyActions([], 'nothing destroyed yet');
+
+    assert.step('flush');
 
     flush();
 
@@ -201,7 +203,7 @@ module('Destroyables', (hooks) => {
     assert.true(isDestroying(child), 'child still destroying after flush');
     assert.true(isDestroyed(child), 'child destroyed after flush');
 
-    assert.verifySteps(['child', 'parent'], 'destructors run in correct order');
+    assert.verifyActions(['child', 'parent'], 'destructors run in correct order');
   });
 
   test('destroying child before a parent works', (assert) => {
@@ -209,8 +211,8 @@ module('Destroyables', (hooks) => {
     let child = {};
 
     associateDestroyableChild(parent, child);
-    registerDestructor(parent, () => assert.step('parent'));
-    registerDestructor(child, () => assert.step('child'));
+    registerDestructor(parent, () => assert.action('parent'));
+    registerDestructor(child, () => assert.action('child'));
 
     assert.false(isDestroying(parent), 'parent not destroying at first');
     assert.false(isDestroyed(parent), 'parent not destroyed at first');
@@ -226,7 +228,7 @@ module('Destroyables', (hooks) => {
     assert.true(isDestroying(child), 'child destroying immediately after destroy()');
     assert.false(isDestroyed(child), 'child not destroyed immediately after destroy() called');
 
-    assert.verifySteps([], 'nothing destroyed yet');
+    assert.verifyActions([], 'nothing destroyed yet');
     flush();
 
     assert.false(isDestroying(parent), 'parent still not destroying after flush');
@@ -235,7 +237,7 @@ module('Destroyables', (hooks) => {
     assert.true(isDestroying(child), 'child still destroying after flush');
     assert.true(isDestroyed(child), 'child destroyed after flush');
 
-    assert.verifySteps(['child'], 'child destructor run');
+    assert.verifyActions(['child'], 'child destructor run');
     destroy(parent);
 
     assert.true(isDestroying(parent), 'parent destroying after destroy()');
@@ -246,7 +248,7 @@ module('Destroyables', (hooks) => {
     assert.true(isDestroying(parent), 'parent still destroying after flush');
     assert.true(isDestroyed(parent), 'parent destroyed after flush');
 
-    assert.verifySteps(['parent'], 'parent destructor run');
+    assert.verifyActions(['parent'], 'parent destructor run');
   });
 
   test('children can have multiple parents, but only destroy once', (assert) => {
@@ -257,9 +259,9 @@ module('Destroyables', (hooks) => {
     associateDestroyableChild(parent1, child);
     associateDestroyableChild(parent2, child);
 
-    registerDestructor(parent1, () => assert.step('parent1'));
-    registerDestructor(parent2, () => assert.step('parent2'));
-    registerDestructor(child, () => assert.step('child'));
+    registerDestructor(parent1, () => assert.action('parent1'));
+    registerDestructor(parent2, () => assert.action('parent2'));
+    registerDestructor(child, () => assert.action('child'));
 
     destroy(parent1);
     flush();
@@ -273,7 +275,7 @@ module('Destroyables', (hooks) => {
     assert.true(isDestroying(child), 'child destroying');
     assert.true(isDestroyed(child), 'child destroyed');
 
-    assert.verifySteps(['child', 'parent1'], 'first parent and child destroyed');
+    assert.verifyActions(['child', 'parent1'], 'first parent and child destroyed');
 
     destroy(parent2);
     flush();
@@ -287,7 +289,7 @@ module('Destroyables', (hooks) => {
     assert.true(isDestroying(child), 'child destroying');
     assert.true(isDestroyed(child), 'child destroyed');
 
-    assert.verifySteps(['parent2'], 'second parent destroyed');
+    assert.verifyActions(['parent2'], 'second parent destroyed');
   });
 
   test('can destroy children with the destroyChildren API', (assert) => {
@@ -295,8 +297,8 @@ module('Destroyables', (hooks) => {
     let child = {};
 
     associateDestroyableChild(parent, child);
-    registerDestructor(parent, () => assert.step('parent'));
-    registerDestructor(child, () => assert.step('child'));
+    registerDestructor(parent, () => assert.action('parent'));
+    registerDestructor(child, () => assert.action('child'));
 
     assert.false(isDestroying(parent), 'parent not destroying at first');
     assert.false(isDestroyed(parent), 'parent not destroyed at first');
@@ -312,7 +314,7 @@ module('Destroyables', (hooks) => {
     assert.true(isDestroying(child), 'child destroying immediately after destroy()');
     assert.false(isDestroyed(child), 'child not destroyed immediately after destroy() called');
 
-    assert.verifySteps([], 'nothing destroyed yet');
+    assert.verifyActions([], 'nothing destroyed yet');
 
     flush();
 
@@ -322,7 +324,7 @@ module('Destroyables', (hooks) => {
     assert.true(isDestroying(child), 'child still destroying after flush');
     assert.true(isDestroyed(child), 'child destroyed after flush');
 
-    assert.verifySteps(['child'], 'child destructor called');
+    assert.verifyActions(['child'], 'child destructor called');
 
     destroy(parent);
 
@@ -334,7 +336,7 @@ module('Destroyables', (hooks) => {
     assert.true(isDestroying(parent), 'parent still destroying after flush');
     assert.true(isDestroyed(parent), 'parent destroyed after flush');
 
-    assert.verifySteps(['parent'], 'parent destructor called');
+    assert.verifyActions(['parent'], 'parent destructor called');
   });
 
   test('destroyables are destroying during destruction but not destroyed', (assert) => {
@@ -344,7 +346,7 @@ module('Destroyables', (hooks) => {
     associateDestroyableChild(parent, child);
 
     registerDestructor(parent, () => {
-      assert.step('parent destructor');
+      assert.action('parent destructor');
 
       assert.ok(isDestroying(parent), 'parent is destroying');
       assert.ok(isDestroying(child), 'child is destroying');
@@ -354,7 +356,7 @@ module('Destroyables', (hooks) => {
     });
 
     registerDestructor(child, () => {
-      assert.step('child destructor');
+      assert.action('child destructor');
       assert.ok(isDestroying(parent), 'parent is destroying');
       assert.ok(isDestroying(child), 'child is destroying');
 
@@ -365,7 +367,7 @@ module('Destroyables', (hooks) => {
     destroy(parent);
     flush();
 
-    assert.verifySteps(['child destructor', 'parent destructor'], 'destructors run bottom up');
+    assert.verifyActions(['child destructor', 'parent destructor'], 'destructors run bottom up');
   });
 
   test('destroyables are passed the correct object when destroying', (assert) => {
@@ -374,18 +376,18 @@ module('Destroyables', (hooks) => {
 
     associateDestroyableChild(parent, child);
     registerDestructor(parent, (_parent) => {
-      assert.step('parent destructor');
+      assert.action('parent destructor');
       assert.strictEqual(parent, _parent, 'passed the correct value');
     });
     registerDestructor(child, (_child) => {
-      assert.step('child destructor');
+      assert.action('child destructor');
       assert.strictEqual(child, _child, 'passed the correct value');
     });
 
     destroy(parent);
     flush();
 
-    assert.verifySteps(['child destructor', 'parent destructor'], 'destructors run bottom up');
+    assert.verifyActions(['child destructor', 'parent destructor'], 'destructors run bottom up');
   });
 
   if (import.meta.env.DEV) {
@@ -464,7 +466,7 @@ module('Destroyables', (hooks) => {
       try {
         unwrap(assertDestroyablesDestroyed)();
       } catch (error) {
-        assert.step('catch handler');
+        assert.action('catch handler');
         assert.deepEqual(
           (error as { destroyables: unknown[] }).destroyables,
           [object1, object2],
@@ -472,7 +474,7 @@ module('Destroyables', (hooks) => {
         );
       }
 
-      assert.verifySteps(['catch handler']);
+      assert.verifyActions(['catch handler']);
     });
 
     test('attempting to call assertDestroyablesDestroyed() before calling enableDestroyableTracking() throws', (assert) => {

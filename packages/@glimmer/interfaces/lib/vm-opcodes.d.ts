@@ -114,6 +114,10 @@ export type VmIfInline = 109;
 export type VmNot = 110;
 export type VmGetDynamicVar = 111;
 export type VmLog = 112;
+export type VmStrictStaticAttr = 113;
+export type VmStrictDynamicAttr = 114;
+export type VmStrictComponentAttr = 115;
+export type VmStrictStaticComponentAttr = 116;
 
 export type VmOp =
   | VmHelper
@@ -152,8 +156,13 @@ export type VmOp =
   | VmOpenDynamicElement
   | VmPushRemoteElement
   | VmStaticAttr
+  | VmStrictStaticAttr
   | VmDynamicAttr
+  | VmStrictDynamicAttr
   | VmComponentAttr
+  | VmStrictComponentAttr
+  | VmStaticComponentAttr
+  | VmStrictStaticComponentAttr
   | VmFlushElement
   | VmCloseElement
   | VmPopRemoteElement
@@ -203,7 +212,6 @@ export type VmOp =
   | VmResolveMaybeLocal
   | VmDebugger
   | VmSize
-  | VmStaticComponentAttr
   | VmDynamicContentType
   | VmDynamicHelper
   | VmDynamicModifier

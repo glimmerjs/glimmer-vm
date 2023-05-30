@@ -85,6 +85,7 @@ import {
   PUT_COMPONENT_OPERATIONS_OP,
   REGISTER_COMPONENT_DESTRUCTOR_OP,
   REIFY_U32_OP,
+  RESOLVE_CURRIED_COMPONENT_OP,
   RESOLVE_DYNAMIC_COMPONENT_OP,
   RETURN_OP,
   RETURN_TO_OP,
@@ -96,6 +97,7 @@ import {
   SIZE_OP,
   SPREAD_BLOCK_OP,
   STATIC_ATTR_OP,
+  STATIC_COMPONENT_ATTR_OP,
   TEXT_OP,
   TO_BOOLEAN_OP,
   VIRTUAL_ROOT_SCOPE_OP,
@@ -1146,6 +1148,16 @@ if (import.meta.env.DEV) {
     check: true,
   };
 
+  METADATA[RESOLVE_CURRIED_COMPONENT_OP] = {
+    name: 'ResolveCurriedComponent',
+    mnemonic: 'ccload',
+    before: null,
+    stackChange: 0,
+    ops: [],
+    operands: 0,
+    check: true,
+  };
+
   METADATA[PUSH_ARGS_OP] = {
     name: 'PushArgs',
     mnemonic: 'argsload',
@@ -1417,3 +1429,26 @@ if (import.meta.env.DEV) {
     check: true,
   };
 }
+
+METADATA[STATIC_COMPONENT_ATTR_OP] = {
+  name: 'StaticComponentAttr',
+  mnemonic: 'comp_attr',
+  before: null,
+  stackChange: 0,
+  ops: [
+    {
+      name: 'state',
+      type: 'str',
+    },
+    {
+      name: 'value',
+      type: 'str',
+    },
+    {
+      name: 'namespace',
+      type: 'option-str',
+    },
+  ],
+  operands: 3,
+  check: true,
+};

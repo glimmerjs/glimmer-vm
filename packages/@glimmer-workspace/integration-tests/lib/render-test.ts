@@ -51,7 +51,19 @@ export class Count {
   }
 
   assert() {
-    QUnit.assert.deepEqual(this.actual, this.expected, 'TODO');
+    if (Object.keys(this.actual).length > 0 || Object.keys(this.expected).length > 0) {
+      QUnit.assert.deepEqual(
+        this.actual,
+        this.expected,
+        `counts match expectations (${JSON.stringify(this.expected)})`
+      );
+    } else {
+      // FIXME: this means that the test has no assertions
+      QUnit.assert.pushResult({
+        result: true,
+        message: `no counts found`,
+      });
+    }
   }
 }
 
@@ -360,7 +372,7 @@ export class RenderTest implements IRenderTest {
 
   render(template: string | ComponentBlueprint, properties: Dict<unknown> = {}): void {
     try {
-      QUnit.assert.ok(true, `Rendering ${template} with ${JSON.stringify(properties)}`);
+      QUnit.assert.ok(true, `Rendering ${template}${formatArgs(properties)}`);
     } catch {
       // couldn't stringify, possibly has a circular dependency
     }
@@ -387,7 +399,7 @@ export class RenderTest implements IRenderTest {
     dynamicScope?: DynamicScope
   ): void {
     try {
-      QUnit.assert.ok(true, `Rendering ${String(component)} with ${JSON.stringify(args)}`);
+      QUnit.assert.step(`[rendering] ${String(component)}${formatArgs(args)}`);
     } catch {
       // couldn't stringify, possibly has a circular dependency
     }
@@ -400,9 +412,13 @@ export class RenderTest implements IRenderTest {
     this.renderResult = this.delegate.renderComponent(component, args, this.element, dynamicScope);
   }
 
-  rerender(properties: Dict<unknown> = {}): void {
+  rerender(properties: Dict<unknown> = {}, message?: string): void {
+    let stepMessage = message ? `[rerender] ${message}` : `[rerender]`;
+
     try {
-      QUnit.assert.ok(true, `rerender ${JSON.stringify(properties)}`);
+      QUnit.assert.step(
+        Object.keys(properties).length > 0 ? `${stepMessage}${formatArgs(properties)}` : stepMessage
+      );
     } catch {
       // couldn't stringify, possibly has a circular dependency
     }
@@ -629,4 +645,17 @@ export class RenderTest implements IRenderTest {
 
 function uniq(array: any[]) {
   return [...new Set(array)];
+}
+
+function formatArgs(properties: Dict<unknown>) {
+  if (Object.keys(properties).length === 0) {
+    return '';
+  }
+
+  return (
+    ' with ' +
+    Object.entries(properties)
+      .map(([key, value]) => `@${key}=${JSON.stringify(value)}`)
+      .join(' ')
+  );
 }

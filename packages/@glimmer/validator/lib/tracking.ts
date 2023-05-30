@@ -10,6 +10,8 @@ import {
   validateTag,
   valueForTag,
 } from './validators';
+import { LOCAL_SHOULD_LOG_TRACKING } from '@glimmer/local-debug-flags';
+import { LOCAL_LOGGER } from '@glimmer/util';
 
 /**
  * An object that that tracks @tracked properties that were consumed.
@@ -63,6 +65,14 @@ let CURRENT_TRACKER: Tracker | null = null;
 const OPEN_TRACK_FRAMES: (Tracker | null)[] = [];
 
 export function beginTrackFrame(debuggingContext?: string | false): void {
+  if (import.meta.env.DEV && LOCAL_SHOULD_LOG_TRACKING) {
+    if (typeof debuggingContext === 'string') {
+      LOCAL_LOGGER.groupCollapsed('beginTrackFrame', debuggingContext);
+    } else {
+      LOCAL_LOGGER.groupCollapsed('beginTrackFrame');
+    }
+  }
+
   OPEN_TRACK_FRAMES.push(CURRENT_TRACKER);
 
   CURRENT_TRACKER = new Tracker();
@@ -73,6 +83,25 @@ export function beginTrackFrame(debuggingContext?: string | false): void {
 }
 
 export function endTrackFrame(): Tag {
+  // if (import.meta.env.DEV) {
+  //   try {
+  //     if (OPEN_TRACK_FRAMES.length === 0) {
+  //       throw new Error('attempted to close a tracking frame, but one was not open');
+  //     }
+
+  //     unwrap(debug.endTrackingTransaction)();
+  //   } finally {
+  //     if (LOCAL_SHOULD_LOG_TRACKING) {
+  //       LOCAL_LOGGER.groupEnd();
+  //     }
+
+  //     // eslint-disable-next-line no-unsafe-finally
+  //     return endFrame();
+  //   }
+  // } else {
+  //   return endFrame();
+  // }
+
   let current = CURRENT_TRACKER;
 
   if (import.meta.env.DEV) {
@@ -85,6 +114,18 @@ export function endTrackFrame(): Tag {
 
   CURRENT_TRACKER = OPEN_TRACK_FRAMES.pop() || null;
 
+  try {
+    return unwrap(current).combine();
+  } finally {
+    if (import.meta.env.DEV && LOCAL_SHOULD_LOG_TRACKING) {
+      LOCAL_LOGGER.groupEnd();
+    }
+  }
+}
+
+function endFrame(): Tag {
+  let current = CURRENT_TRACKER;
+  CURRENT_TRACKER = OPEN_TRACK_FRAMES.pop() || null;
   return unwrap(current).combine();
 }
 

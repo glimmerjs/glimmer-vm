@@ -60,13 +60,13 @@ class ModifierTests extends RenderTest {
       class {
         element?: Element;
         didInsertElement() {
-          assert.step('hook: didInsertElement');
+          assert.action('hook: didInsertElement');
         }
         didUpdate() {
-          assert.step('hook: didUpdate');
+          assert.action('hook: didUpdate');
         }
         willDestroyElement() {
-          assert.step('hook: willDestroy');
+          assert.action('hook: willDestroy');
         }
       }
     );
@@ -76,16 +76,13 @@ class ModifierTests extends RenderTest {
       data: 'ok',
     });
 
-    assert.verifySteps(['hook: didInsertElement']);
+    assert.expect(['hook: didInsertElement']);
 
-    assert.true(true, '=benign rerender=');
-    this.rerender({ data: 'yup' });
-    assert.verifySteps([]);
+    this.rerender({ data: 'yup' }, 'benign rerender');
+    assert.expect([]);
 
-    assert.true(true, '=remove parent element=');
-    this.rerender({ ok: false });
-
-    assert.verifySteps(['hook: willDestroy']);
+    this.rerender({ ok: false }, 'remove parent element');
+    assert.expect(['hook: willDestroy']);
   }
 
   @test
@@ -358,20 +355,20 @@ class ModifierTests extends RenderTest {
   'parent -> child insertion order'(assert: Assert) {
     class Parent extends AbstractInsertable {
       didInsertElement() {
-        assert.step('parent: didInsertElement');
+        assert.action('parent: didInsertElement');
       }
     }
 
     class Child extends AbstractInsertable {
       didInsertElement() {
-        assert.step('child: didInsertElement');
+        assert.action('child: didInsertElement');
       }
     }
     this.registerModifier('parent', Parent);
     this.registerModifier('child', Child);
 
     this.render('<div {{parent}}><div {{child}}></div></div>');
-    assert.verifySteps(['child: didInsertElement', 'parent: didInsertElement']);
+    assert.verifyActions(['child: didInsertElement', 'parent: didInsertElement']);
   }
 
   @test

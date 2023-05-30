@@ -109,7 +109,7 @@ class OwnerTest extends RenderTest {
   'owner can be used per-template in compile time resolver'(assert: Assert) {
     {
       let layout = createTemplate('<FooBaz/>')(() => {
-        assert.step('foo-bar owner called');
+        assert.action('foo-bar owner called');
       });
 
       class FooBar extends EmberishCurlyComponent {
@@ -121,7 +121,7 @@ class OwnerTest extends RenderTest {
 
     {
       let layout = createTemplate('<FooQux/>')(() => {
-        assert.step('foo-baz owner called');
+        assert.action('foo-baz owner called');
       });
       class FooBaz extends EmberishCurlyComponent {
         override layout = layout;
@@ -134,7 +134,7 @@ class OwnerTest extends RenderTest {
 
     this.render('<FooBar/>');
 
-    assert.verifySteps(['foo-bar owner called', 'foo-baz owner called'], 'owners used correctly');
+    assert.verifyActions(['foo-bar owner called', 'foo-baz owner called'], 'owners used correctly');
   }
 
   @test
@@ -143,7 +143,7 @@ class OwnerTest extends RenderTest {
 
     {
       let layout = createTemplate('<FooQux/>')(() => {
-        assert.step('foo-baz owner called');
+        assert.action('foo-baz owner called');
       });
 
       this.delegate.registerComponent(
@@ -159,7 +159,7 @@ class OwnerTest extends RenderTest {
 
     {
       let layout = createTemplate('<FooBaz/>')(() => {
-        assert.step('foo-bar owner called');
+        assert.action('foo-bar owner called');
       });
 
       this.delegate.registerComponent(
@@ -175,7 +175,7 @@ class OwnerTest extends RenderTest {
 
     this.render('<FooBar/>');
 
-    assert.verifySteps(['foo-bar owner called', 'foo-baz owner called'], 'owners used correctly');
+    assert.verifyActions(['foo-bar owner called', 'foo-baz owner called'], 'owners used correctly');
   }
 
   @test
