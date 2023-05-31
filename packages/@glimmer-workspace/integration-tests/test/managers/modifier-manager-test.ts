@@ -153,7 +153,7 @@ abstract class ModifierManagerTest extends RenderTest {
     assert.verifyActions(['hook: didUpdate']);
   }
 
-  @test.todo 'lifecycle hooks are autotracked by default'(assert: Assert) {
+  @test 'lifecycle hooks are autotracked by default'(assert: Assert) {
     class TrackedClass {
       @tracked count = 0;
     }
@@ -197,15 +197,15 @@ abstract class ModifierManagerTest extends RenderTest {
 
     trackedOne.count++;
     this.rerender();
-    assert.verifyActions(['hook: didInstall', 'hook: willDestroy']);
+    assert.verifyActions(['hook: didUpdate']);
 
     trackedOne.count++;
     this.rerender();
-    assert.verifyActions(['hook: didInstall', 'hook: willDestroy']);
+    assert.verifyActions([]);
 
     trackedTwo.count++;
     this.rerender();
-    assert.verifyActions([]);
+    assert.verifyActions(['hook: didUpdate']);
   }
 
   @test

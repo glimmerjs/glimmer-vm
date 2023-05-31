@@ -395,6 +395,7 @@ declare global {
     autostart: boolean;
     collapse: boolean;
     current: any;
+    disableHtmlReporter?: boolean;
     failOnZeroTests: boolean;
     filter: string | RegExp;
     fixture: string;
@@ -543,13 +544,28 @@ declare global {
       // ignored?: boolean;
     }
 
+    interface ActionData {
+      readonly type?: string | undefined;
+      readonly description: string;
+    }
+
+    interface Action extends ActionData {
+      readonly type: string | undefined;
+      readonly description: string;
+
+      /**
+       * A specification is a type/description formatted as `${type}: ${description}`.
+       */
+      matches(specification: string | ActionData): boolean;
+    }
+
     interface TestBase {
       testId: string;
       testName: string;
       expected: null | number;
       // assertions: Array<{ result: boolean; message: string }>;
       module: Module;
-      steps: string[];
+      steps: Action[];
       // timeout: undefined;
       // data: unknown;
       // withData: boolean;

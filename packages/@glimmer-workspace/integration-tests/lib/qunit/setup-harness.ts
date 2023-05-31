@@ -1,3 +1,4 @@
+/// <reference types="qunit" />
 import './qunit.scss';
 import './harness.scss';
 import { Reporter } from './reporter';

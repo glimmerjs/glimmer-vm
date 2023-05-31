@@ -1,5 +1,6 @@
 import { LOCAL_SHOULD_LOG_STEP_MARKERS } from '@glimmer/local-debug-flags';
 import { LOCAL_LOGGER } from '@glimmer/util';
+import { Action, Step } from './steps';
 
 export function installExtensions(qunit: QUnit) {
   qunit.assert.expect = function (
@@ -16,68 +17,62 @@ export function installExtensions(qunit: QUnit) {
   };
 
   qunit.assert.action = function (this: Assert & { test: QUnit.TestBase }, rawMessage: string) {
-    let msg = rawMessage.split(/:\s*/u);
-    let type = msg.length > 1 ? msg[0] : undefined;
-    let message = msg.length > 1 ? msg.slice(1).join(':') : rawMessage;
+    let action = Action.parse(rawMessage);
 
-    let assertionMessage = type ? `[${type}] ${message}` : message;
-    let result = !!message;
-
-    this.test.steps.push(rawMessage);
-
-    if (message === undefined || message === '') {
-      assertionMessage = 'You must provide a message to assert.action';
-    } else if (typeof message !== 'string') {
-      assertionMessage = 'You must provide a string value to assert.action';
-      result = false;
-    }
+    this.test.steps.push(action);
 
     if (LOCAL_SHOULD_LOG_STEP_MARKERS) {
-      LOCAL_LOGGER.log(`%caction %c${message}`, 'color: #9f9; font-weight: bold', 'color: #aa5');
+      LOCAL_LOGGER.log(`%caction %c${action}`, 'color: #9f9; font-weight: bold', 'color: #aa5');
     }
 
     this.pushResult({
-      result,
-      message: `[action] ${assertionMessage}`,
+      result: true,
+      message: `[[action]] ${JSON.stringify(action)}`,
     });
   };
 
   qunit.assert.step = function (this: Assert & { test: QUnit.TestBase }, message: string) {
-    let result = !!message;
-
-    if (message === undefined || message === '') {
-      message = 'You must provide a message to assert.step';
-    } else if (typeof message !== 'string') {
-      message = 'You must provide a string value to assert.step';
-      result = false;
-    }
+    let step = Step.parse(message);
 
     if (LOCAL_SHOULD_LOG_STEP_MARKERS) {
       LOCAL_LOGGER.log(`%cstep %c${message}`, 'color: #6cc; font-weight: bold', 'color: #aa5');
     }
 
     this.pushResult({
-      result,
-      message: `[step] ${message}`,
+      result: true,
+      expected: step,
+      actual: step,
+      message: `[[step]] ${JSON.stringify(step)}`,
     });
   };
 
   qunit.assert.verifyActions = function (
     this: Assert & { test: QUnit.TestBase },
-    expectedSteps,
+    expectedSpecification,
     message
   ) {
     // Since the steps array is just string values, we can clone with slice
-    let actualStepsClone = [...this.test.steps];
+    let actualActions = [...this.test.steps];
+    let expectedActions = expectedSpecification.map((spec) => Action.parse(spec));
 
     function getMessage() {
       let hasMissing = false;
       let hasUnexpected = false;
-      if (expectedSteps.some((step) => !actualStepsClone.includes(step))) {
+      if (
+        expectedActions.some(
+          (expectedAction) =>
+            !actualActions.some((actualAction) => actualAction.matches(expectedAction))
+        )
+      ) {
         hasMissing = true;
       }
 
-      if (actualStepsClone.some((step) => !expectedSteps.includes(step))) {
+      if (
+        actualActions.some(
+          (actualAction) =>
+            !expectedActions.some((expectedAction) => actualAction.matches(expectedAction))
+        )
+      ) {
         hasUnexpected = true;
       }
 
@@ -88,26 +83,26 @@ export function installExtensions(qunit: QUnit) {
       } else if (hasUnexpected) {
         return `some unexpected actions are present`;
       } else {
-        let actions = actualStepsClone.length === 0 ? 'no actions' : actualStepsClone.join(', ');
+        let actions = actualActions.length === 0 ? 'no actions' : actualActions.join(', ');
         return `valid actions (${actions})`;
       }
     }
 
     let assertionMessage = getMessage();
 
-    if (JSON.stringify(expectedSteps) === JSON.stringify(actualStepsClone)) {
+    if (JSON.stringify(expectedActions) === JSON.stringify(actualActions)) {
       this.pushResult({
         result: true,
         message: message ?? `[verify] ${assertionMessage}`,
-        actual: actualStepsClone.map((step) => `[step: ${step}]`),
-        expected: expectedSteps.map((step) => `[step: ${step}]`),
+        actual: actualActions,
+        expected: expectedActions,
       });
     } else {
       this.pushResult({
         result: false,
         message: message ?? `[verify] ${assertionMessage}`,
-        actual: actualStepsClone.map((step) => `[step: ${step}]`),
-        expected: expectedSteps.map((step) => `[step: ${step}]`),
+        actual: actualActions,
+        expected: expectedActions,
       });
     }
 

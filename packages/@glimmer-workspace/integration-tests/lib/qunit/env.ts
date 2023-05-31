@@ -1,5 +1,9 @@
 export class QUnitEnv {
   static initGlobal(): QUnitEnv {
+    Object.defineProperty(globalThis, 'QUnit', {
+      configurable: true,
+      value: QUnit,
+    });
     return new QUnitEnv(QUnit);
   }
 

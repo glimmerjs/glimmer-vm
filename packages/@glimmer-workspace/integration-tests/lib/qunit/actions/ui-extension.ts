@@ -1,3 +1,6 @@
+import { enumerate, unwrap } from '@glimmer/util';
+import { Action, ActionData, DiffEntry, frag } from './steps';
+
 export function installUiExtensions(qunit: QUnit) {
   qunit.begin(() => {
     let observer = new MutationObserver((mutations) => {
@@ -10,6 +13,9 @@ export function installUiExtensions(qunit: QUnit) {
           let nodes = target.querySelectorAll('ol.qunit-assert-list > li');
 
           for (let node of nodes) {
+            if (node.classList.contains('qunit-extended')) continue;
+            node.classList.add('qunit-extended');
+
             normalizeTag(node, 'action');
             normalizeTag(node, 'step');
 
@@ -32,90 +38,24 @@ export function installUiExtensions(qunit: QUnit) {
             }
 
             if (node.innerHTML.includes('[verify] ')) {
-              node.classList.add('verify-steps');
+              let expectedRow = node.querySelector(':scope tr.test-expected') as
+                | HTMLTableRowElement
+                | undefined;
+              let actualRow = node.querySelector(':scope tr.test-actual') as
+                | HTMLTableRowElement
+                | undefined;
+              let diffRow = node.querySelector(':scope tr.test-diff') as
+                | HTMLTableRowElement
+                | undefined;
 
-              normalizeText(node.querySelector('.test-message')!, 'verify');
+              if (expectedRow && actualRow && diffRow) {
+                let expectedActions = convertSteps(expectedRow, 'expected');
+                let actualActions = convertSteps(actualRow, 'actual');
 
-              for (let preNode of node.querySelectorAll(
-                ':scope :is(tr.test-expected, tr.test-actual) pre'
-              )) {
-                preNode.outerHTML = (JSON.parse(preNode.textContent!) as string[])
-                  .map((step) => {
-                    return replaceStep(step);
-                  })
-                  .join('');
-              }
-
-              for (let headerNode of node.querySelectorAll(':scope tr.test-diff > th')) {
-                headerNode.innerHTML = `<span>Delta</span>`;
-              }
-
-              let order: ('insertion' | 'deletion' | 'same')[] = [];
-
-              for (let preNode of node.querySelectorAll(':scope :is(tr.test-diff) pre')) {
-                let nodes: ChildNode[] = [];
-
-                for (let node of preNode.children) {
-                  if (node.tagName === 'INS') {
-                    order.push('insertion');
-                  } else if (node.tagName === 'DEL') {
-                    order.push('deletion');
-                  } else if (node.textContent?.includes('[step:')) {
-                    order.push('same');
-                  }
-
-                  node.innerHTML =
-                    node.tagName === 'INS' || node.tagName === 'DEL'
-                      ? replaceStep(node.textContent ?? '')
-                      : replaceStep(
-                          (node.textContent ?? '')
-                            .replaceAll(/^\s*\[/gu, '')
-                            .replaceAll(/\]\s*$/gu, '')
-                        );
-                  nodes.push(node);
-                }
-
-                preNode.replaceChildren(...nodes);
-              }
-
-              if (order.some((step) => step !== 'same')) {
-                let legend = document.createElement('div');
-                legend.classList.add('legend');
-                let html = '';
-
-                let seen = {
-                  insertion: false,
-                  deletion: false,
-                  same: false,
-                };
-
-                for (let operation of order) {
-                  if (seen[operation]) {
-                    continue;
-                  }
-
-                  seen[operation] = true;
-
-                  switch (operation) {
-                    case 'insertion':
-                      html += `<span class="expected-step ins">actual (unexpected)</span>`;
-                      break;
-                    case 'deletion':
-                      html += `<span class="expected-step del">expected (missing)</span>`;
-                      break;
-                    case 'same':
-                      html += `<span class="expected-step same">expected and actual</span>`;
-                      break;
-                  }
-                }
-
-                legend.innerHTML = html;
-
-                let row = document.createElement('tr');
-                let header = document.createElement('th');
-                header.textContent = 'Legend';
-                let diffRow = node.querySelector(':scope tr.test-diff')!;
-                diffRow.parentElement?.insertBefore(row, diffRow.nextSibling);
+                let diff = diffSteps(expectedActions, actualActions);
+                convertDiff(diffRow, diff);
+                expectedRow.after(diffRow);
+                actualRow.after(expectedRow);
               }
             }
           }
@@ -135,6 +75,59 @@ function isInternal(line: string) {
   return (
     line.includes('node_modules/qunit') || line.includes('@glimmer-workspace/integration-tests/lib')
   );
+}
+
+function convertSteps(element: HTMLTableRowElement, kind: string) {
+  let td = element.querySelector(':scope td') as HTMLTableCellElement;
+  td.classList.add(kind, 'token-list');
+  let steps = td.querySelector(':scope pre') as HTMLPreElement;
+  let actions = JSON.parse(steps.textContent!) as QUnit.ActionData[];
+
+  if (actions.length === 0) {
+    steps.replaceWith(Action.empty());
+    return [];
+  } else {
+    steps.replaceWith(...actions.map((action) => Action.toFragment(action)));
+    return actions.map((action) => Action.from(action));
+  }
+}
+
+function convertDiff(element: HTMLTableRowElement, diff: DiffEntry[]) {
+  let td = element.querySelector(':scope td') as HTMLTableCellElement;
+  td.classList.add('diff', 'token-list');
+  let diffContainer = td.querySelector(':scope pre') as HTMLPreElement;
+  diffContainer.replaceWith(
+    ...diff.map((entry) => entry.toFragment()),
+    frag`<button class='show-details' onclick='this.closest("table").classList.toggle("details-shown") ? this.innerText = "hide details" : this.innerText = "show details"'>show details</button>`
+  );
+}
+
+function diffSteps(expected: QUnit.Action[], actual: QUnit.Action[]): DiffEntry[] {
+  let diff: DiffEntry[] = [];
+
+  for (let [i, expectedAction] of enumerate(expected)) {
+    if (i >= actual.length) {
+      diff.push(new DiffEntry('missing', expectedAction));
+      continue;
+    }
+
+    let actualAction = actual[i] as QUnit.Action;
+
+    if (expectedAction.matches(actualAction)) {
+      diff.push(new DiffEntry('match', expectedAction));
+    } else {
+      diff.push(
+        new DiffEntry('missing', expectedAction),
+        new DiffEntry('unexpected', actualAction)
+      );
+    }
+  }
+
+  for (let extraAction of actual.slice(expected.length)) {
+    diff.push(new DiffEntry('unexpected', extraAction));
+  }
+
+  return diff;
 }
 
 // convert lines like `at foo (http://some.local/foo.ts?foo=bar)` to
@@ -192,33 +185,21 @@ function mapStackLine(line: string) {
   return template.content.lastChild as HTMLSpanElement;
 }
 
-function replaceStep(input: string): string {
-  return input.replaceAll(
-    /\s*(?:[,[]\s*)?(?:["']\s*)?\[step: (.*?)\]\s*(?:["']\s*)?/gu,
-    `<span class="expected-step">$1</span>`
-  );
-}
-
 function normalizeTag(element: Element, what: 'action' | 'step'): void {
-  let stringTag = `[${what}]`;
+  let stringTag = `[[${what}]]`;
 
   if (element.textContent?.includes(stringTag)) {
+    let messageElement = element.querySelector(':scope span.test-message') as HTMLSpanElement;
+    let rawData = messageElement.textContent?.slice(stringTag.length + 1);
+    let data = ActionData.from(JSON.parse(unwrap(rawData)), what);
     element.classList.add(what, 'marker');
-    let result = element.innerHTML
-      .replaceAll(stringTag, `<span class="${what} marker">action</span>`)
-      .replaceAll(/\[(.*?)\]/gu, `<span class="${what} tag">$1</span>`);
 
-    element.innerHTML = result;
-  }
-}
-
-function normalizeText(element: Element, tag: string): void {
-  let stringTag = `[${tag}]`;
-
-  if (element.textContent?.includes(stringTag)) {
-    let result = element.innerHTML.replaceAll(stringTag, `<span class="verify">${tag}</span>`);
-
-    element.innerHTML = result;
+    messageElement.replaceWith(
+      frag`<span class="${what} tag">${what}</span><span class="${what} marker">${ActionData.toFragment(
+        data,
+        what
+      )}</span>`
+    );
   }
 }
 

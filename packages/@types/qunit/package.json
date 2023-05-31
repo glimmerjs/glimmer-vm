@@ -2,6 +2,12 @@
   "private": true,
   "name": "@types/qunit",
   "types": "index.d.ts",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts"
+    }
+  },
   "dependencies": {
     "@types/js-reporters": "workspace:^"
   }

@@ -32,25 +32,19 @@ export class UpdateModifierOpcode implements UpdatingOpcode, InstallableModifier
   readonly #cache: DefinitionCache;
   #lastUpdated: number;
   #lastTag: Optional<Tag>;
-  readonly #installTag: UpdatableTag;
   readonly #definitionTag: UpdatableTag;
   readonly #userTag: UpdatableTag;
   #lastDestroyable: Nullable<Destroyable> = null;
   #lastDefinition: Optional<[LastDefinition, Tag]>;
   #lastInstance: Optional<ModifierInstance>;
   readonly #tag: Tag;
-  #lastArgs: CapturedArguments | null = null;
 
   constructor(cache: DefinitionCache) {
     this.#lastUpdated = now();
     this.#cache = cache;
-    this.#installTag = createUpdatableTag(`UpdateModifierOpcode::install`);
     this.#definitionTag = createUpdatableTag(`UpdateModifierOpcode::definition`);
     this.#userTag = createUpdatableTag(`UpdateModifierOpcode::userspace`);
-    this.#tag = combine(
-      [this.#installTag, this.#definitionTag, this.#userTag],
-      `UpdateModifierOpcode`
-    );
+    this.#tag = combine([this.#definitionTag, this.#userTag], `UpdateModifierOpcode`);
   }
 
   get element() {
@@ -86,7 +80,6 @@ export class UpdateModifierOpcode implements UpdatingOpcode, InstallableModifier
     }
 
     let { definition, owner, element, args } = definitionValue;
-    this.#lastArgs ??= args;
 
     if (!definition) {
       return;
@@ -113,7 +106,7 @@ export class UpdateModifierOpcode implements UpdatingOpcode, InstallableModifier
       };
     } finally {
       let userTag = endTrackFrame();
-      updateTag(this.#installTag, userTag);
+      updateTag(this.#userTag, userTag);
     }
 
     consumeTag(this.#tag);
