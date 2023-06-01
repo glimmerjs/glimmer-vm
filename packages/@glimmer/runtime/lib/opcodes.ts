@@ -1,6 +1,7 @@
 import { debug, logOpcode, opcodeMetadata, recordStackSize } from '@glimmer/debug';
 import type {
   Dict,
+  DomTypes,
   Maybe,
   MinimalChild,
   MinimalInternalCursor,
@@ -35,7 +36,7 @@ export type Operand1 = number;
 export type Operand2 = number;
 export type Operand3 = number;
 
-export type Syscall = (vm: InternalVM, opcode: RuntimeOp) => void;
+export type Syscall = (vm: InternalVM<DomTypes>, opcode: RuntimeOp) => void;
 export type MachineOpcode = (vm: LowLevelVM, opcode: RuntimeOp) => void;
 
 export type Evaluate =
@@ -77,7 +78,7 @@ export class AppendOpcodes {
         configurable: true,
         writable: false,
         value: {
-          before: (vm: VM, opcode: RuntimeOpImpl): DebugState => {
+          before: (vm: VM<DomTypes>, opcode: RuntimeOpImpl): DebugState => {
             let parameters: Maybe<Dict>;
             let opName: string | undefined;
 
@@ -86,7 +87,6 @@ export class AppendOpcodes {
 
               [opName, parameters] = debug(vm[CONSTANTS], opcode, isMachine(opcode))!;
 
-              // console.log(`${typePos(vm['pc'])}.`);
               LOCAL_LOGGER.log(`${pos}. ${logOpcode(opName, parameters)}`);
 
               let debugParameters = [];
@@ -116,7 +116,7 @@ export class AppendOpcodes {
             };
           },
 
-          after: (vm: VM, pre: DebugState, debug: DebugVM): void => {
+          after: (vm: VM<DomTypes>, pre: DebugState, debug: DebugVM): void => {
             let { sp, type, isMachine, pc } = pre;
 
             if (import.meta.env.DEV && LOCAL_DEBUG) {
@@ -215,11 +215,11 @@ export class AppendOpcodes {
   }
 
   declare readonly debug?: {
-    readonly before: (vm: VM, opcode: RuntimeOp) => DebugState;
-    readonly after: (vm: VM, pre: unknown, debug: DebugVM) => void;
+    readonly before: (vm: VM<DomTypes>, opcode: RuntimeOp) => DebugState;
+    readonly after: (vm: VM<DomTypes>, pre: unknown, debug: DebugVM) => void;
   };
 
-  evaluate = (vm: VM, opcode: RuntimeOp, type: number) => {
+  evaluate = (vm: VM<DomTypes>, opcode: RuntimeOp, type: number) => {
     let operation = unwrap(this.#evaluateOpcode[type]);
 
     if (operation.syscall) {

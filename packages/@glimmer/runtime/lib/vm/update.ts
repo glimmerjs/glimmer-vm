@@ -11,15 +11,13 @@ import type {
   UpdatingOpcode,
   UpdatingVM as IUpdatingVM,
   BrowserDOMEnvironment,
-  DOMTreeBuilder,
   BlockBoundsRef,
-  MinimalParent,
-  MinimalChild,
   RuntimeBlockBoundsRef,
   BoundsEdgeFor,
   SimpleElement,
   SimpleNode,
   RuntimeBlockBounds,
+  DomTypes,
 } from '@glimmer/interfaces';
 import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
 import {
@@ -33,8 +31,7 @@ import { assert, expect, logStep, Stack, unwrap } from '@glimmer/util';
 import { debug, resetTracking } from '@glimmer/validator';
 
 import { clear, move as moveBounds } from '../bounds';
-import type { InternalVM, VmInitCallback } from './append';
-import { TreeConstruction } from '../dom/tree-builder';
+import { BrowserVmDelegate, type InternalVM, type VmDelegate, type VmInitCallback } from './append';
 
 export class UpdatingVM implements IUpdatingVM {
   public env: Environment;
@@ -118,14 +115,14 @@ export interface VMState {
 }
 
 export interface ResumableVMState {
-  resume(runtime: RuntimeContext, builder: DOMTreeBuilder): InternalVM;
+  resume<D extends DomTypes>(runtime: RuntimeContext, delegate: VmDelegate<D>): InternalVM<D>;
 }
 
 export class ResumableVMStateImpl implements ResumableVMState {
   constructor(readonly state: VMState, private resumeCallback: VmInitCallback) {}
 
-  resume(runtime: RuntimeContext, builder: DOMTreeBuilder): InternalVM {
-    return this.resumeCallback(runtime, this.state, builder);
+  resume<D extends DomTypes>(runtime: RuntimeContext, delegate: VmDelegate<D>): InternalVM<D> {
+    return this.resumeCallback(runtime, this.state, delegate);
   }
 }
 
@@ -202,8 +199,7 @@ export class TryOpcode extends BlockOpcode implements ExceptionHandler {
 
     destroyChildren(this);
 
-    let elementStack = TreeConstruction._resume_(unwrap(_boundsRef_.current));
-    let vm = state.resume(runtime, elementStack);
+    let vm = state.resume(runtime, BrowserVmDelegate._resume_(_boundsRef_));
 
     let updating: UpdatingOpcode[] = [];
     let children = (this.children = []);
@@ -418,13 +414,7 @@ export class ListBlockOpcode extends BlockOpcode {
       `BUG: expected the next sibling to be a child of the parent`
     );
 
-    let elementStack = TreeConstruction._forCursor_([
-      unwrap(_boundsRef_.current).parent as MinimalParent,
-      nextSibling as MinimalChild,
-      null,
-    ]);
-
-    let vm = state.resume(runtime, elementStack);
+    let vm = state.resume(runtime, BrowserVmDelegate._resumeForCursor_(_boundsRef_, nextSibling));
 
     let result = vm._execute_((vm) => {
       vm._pushUpdating_();

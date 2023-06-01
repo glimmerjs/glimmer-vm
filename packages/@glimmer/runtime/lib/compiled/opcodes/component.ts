@@ -12,6 +12,7 @@ import { registerDestructor } from '@glimmer/destroyable';
 import type {
   BlockBoundsRef,
   Bounds,
+  BrowserTreeBuilderInterface,
   CapabilityMask,
   CapturedArguments,
   CompilableProgram,
@@ -21,6 +22,7 @@ import type {
   ComponentInstanceState,
   ComponentInstanceWithCreate,
   Dict,
+  DomTypes,
   DynamicScope,
   ElementOperations,
   InternalComponentManager,
@@ -30,6 +32,7 @@ import type {
   ProgramSymbolTable,
   Recast,
   ScopeSlot,
+  ServerTreeBuilderInterface,
   UpdatingOpcode,
   VMArguments,
   WithDynamicTagName,
@@ -474,7 +477,7 @@ define(BEGIN_COMPONENT_TRANSACTION_OP, (vm, { op1: _state }) => {
 });
 
 define(PUT_COMPONENT_OPERATIONS_OP, (vm) => {
-  vm._loadValue_($t0, new ComponentElementOperations());
+  vm._loadOperations_();
 });
 
 define(COMPONENT_ATTR_OP, (vm, { op1: _name, op2: _trusting, op3: _namespace }) => {
@@ -511,7 +514,56 @@ type DeferredAttribute = {
 
 type QueuedModifier = [opcode: UpdateModifierOpcode, initialize: (element: Element) => void];
 
-export class ComponentElementOperations implements ElementOperations {
+interface ServerDomTypes extends DomTypes {
+  vm: InternalVM<ServerDomTypes>;
+  opcodes: void;
+  addModifierFn: undefined;
+  domTree: ServerTreeBuilderInterface;
+}
+
+export class ComponentElementOperations {}
+
+export class ServerComponentElementOperations
+  extends ComponentElementOperations
+  implements ElementOperations<ServerDomTypes>
+{
+  readonly #attributes: Dict<DeferredAttribute> = {};
+  readonly #classes: (string | Reference<unknown>)[] = [];
+
+  flush(vm: InternalVM<ServerDomTypes>): void {
+    throw new Error('Method not implemented.');
+  }
+  setAttribute(
+    name: string,
+    value: Reference<unknown>,
+    trusting: boolean,
+    namespace: Nullable<string>
+  ): void {
+    throw new Error('Method not implemented.');
+  }
+  setStaticAttribute(name: string, value: string, namespace: Nullable<string>): void {
+    throw new Error('Method not implemented.');
+  }
+  addModifier: undefined;
+}
+
+export interface BrowserDomTypes extends DomTypes {
+  vm: InternalVM<BrowserDomTypes>;
+  opcodes: UpdateModifierOpcode[];
+  addModifierFn: (
+    definitionCache: TrackedCache<{
+      definition: ModifierDefinition | undefined;
+      owner: object;
+    }>,
+    args: CapturedArguments
+  ) => UpdateModifierOpcode;
+  treeBuilder: BrowserTreeBuilderInterface;
+}
+
+export class BrowserComponentElementOperations
+  extends ComponentElementOperations
+  implements ElementOperations<BrowserDomTypes>
+{
   readonly #attributes: Dict<DeferredAttribute> = {};
   readonly #classes: (string | Reference<unknown>)[] = [];
   readonly #modifiers: QueuedModifier[] = [];
@@ -521,7 +573,7 @@ export class ComponentElementOperations implements ElementOperations {
     value: Reference<unknown>,
     trusting: boolean,
     namespace: Nullable<string>
-  ) {
+  ): void {
     let deferred = { value, namespace, trusting };
 
     if (name === 'class') {
@@ -565,7 +617,7 @@ export class ComponentElementOperations implements ElementOperations {
     return modifier;
   }
 
-  flush(vm: InternalVM): UpdateModifierOpcode[] {
+  flush(vm: InternalVM<BrowserDomTypes>): UpdateModifierOpcode[] {
     let type: DeferredAttribute | undefined;
     let attributes = this.#attributes;
 

@@ -1,6 +1,7 @@
 /* eslint-disable unicorn/prefer-dom-node-append */
 import type {
   Cursor,
+  DOMTreeBuilder,
   Dict,
   ElementBuilder,
   ElementNamespace,
@@ -99,7 +100,7 @@ export class RehydrationDelegate implements RenderDelegate {
     return this.clientDoc.createDocumentFragment();
   }
 
-  getElementBuilder(environment: Environment, cursor: Cursor): ElementBuilder {
+  getElementBuilder(environment: Environment, cursor: Cursor): DOMTreeBuilder {
     if (cursor.element instanceof Node) {
       return debugRehydration(environment, cursor);
     }

@@ -23,7 +23,7 @@ export {
   DOMChangesImpl as IDOMChanges,
   isWhitespace,
 } from './lib/dom/helper';
-export { TreeConstruction } from './lib/dom/tree-builder';
+export { BrowserTreeBuilder } from './lib/dom/tree-builder';
 export {
   normalizeProperty,
   ATTR,

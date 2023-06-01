@@ -34,7 +34,7 @@ import {
   renderComponent,
   renderSync,
   runtimeContext,
-  TreeConstruction,
+  BrowserTreeBuilder,
 } from '@glimmer/runtime';
 import type { ASTPluginBuilder, PrecompileOptions } from '@glimmer/syntax';
 import { castToBrowser, castToSimple, expect, unwrapTemplate } from '@glimmer/util';
@@ -190,7 +190,7 @@ export class JitRenderDelegate implements RenderDelegate {
   }
 
   getElementBuilder(environment: Environment, cursor: Cursor): DOMTreeBuilder {
-    return TreeConstruction._forCursor_([
+    return BrowserTreeBuilder._forCursor_([
       cursor.element as MinimalElement,
       cursor.nextSibling as MinimalChild,
       null,

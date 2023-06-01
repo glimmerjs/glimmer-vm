@@ -18,7 +18,7 @@ import { assert, expect } from '@glimmer/util';
 
 import DebugRenderTree from './debug-render-tree';
 import { DOMChangesImpl } from './dom/helper';
-import { TreeConstruction } from './dom/tree-builder';
+import { BrowserTreeBuilder } from './dom/tree-builder';
 import { associateDestroyableChild } from '@glimmer/destroyable';
 
 export const TRANSACTION: TransactionSymbol = Symbol('TRANSACTION') as TransactionSymbol;
@@ -111,7 +111,7 @@ export class EnvironmentImpl implements Environment {
     }
 
     this.getAppendOperations =
-      options.appendOperations ?? ((cursor) => TreeConstruction._forCursor_(cursor));
+      options.appendOperations ?? ((cursor) => BrowserTreeBuilder._forCursor_(cursor));
     this.updateOperations =
       options.updateOperations ?? new DOMChangesImpl(options.document as unknown as Document);
   }

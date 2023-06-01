@@ -21,8 +21,13 @@ import type {
   VM as PublicVM,
   Cursor,
   SimpleDOMEnvironment,
-  DOMTreeBuilder,
   RuntimeBlockBoundsRef,
+  DomTypes,
+  ElementOperations,
+  TreeBuilder,
+  BrowserTreeBuilderInterface,
+  MinimalParent,
+  MinimalChild,
 } from '@glimmer/interfaces';
 import { LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
 import {
@@ -66,6 +71,11 @@ import {
   TryOpcode,
   type VMState,
 } from './update';
+import {
+  BrowserComponentElementOperations,
+  type BrowserDomTypes,
+} from '../compiled/opcodes/component';
+import { BrowserTreeBuilder } from '../..';
 
 export interface DebugInternalVM {
   /**
@@ -78,7 +88,7 @@ export interface DebugInternalVM {
  * This interface is used by internal opcodes, and is more stable than
  * the implementation of the Append VM itself.
  */
-export interface InternalVM {
+export interface InternalVM<D extends DomTypes> {
   readonly [CONSTANTS]: RuntimeConstants & ResolutionTimeConstants;
   readonly [ARGS]: VMArgumentsImpl;
 
@@ -88,6 +98,8 @@ export interface InternalVM {
   readonly context: CompileTimeCompilationContext;
 
   readonly debug?: DebugInternalVM;
+
+  _loadOperations_(): void;
 
   _loadValue_(register: MachineRegister, value: number): void;
   _loadValue_(register: Register, value: unknown): void;
@@ -104,7 +116,7 @@ export interface InternalVM {
   _compile_(block: CompilableTemplate): number;
 
   _scope_(): Scope;
-  _elements_(): DOMTreeBuilder;
+  _elements_(): D['treeBuilder'];
 
   _getOwner_(): Owner;
   _getSelf_(): Reference;
@@ -163,7 +175,12 @@ export interface DebugVM {
   readonly registers: () => { s0: unknown; s1: unknown; t0: unknown; t1: unknown; v0: unknown };
 }
 
-export class VM implements PublicVM, InternalVM {
+export interface VmDelegate<D extends DomTypes> {
+  readonly stack: D['treeBuilder'];
+  _createOperations_(): ElementOperations<D>;
+}
+
+export class VM<D extends DomTypes> implements PublicVM, InternalVM<D> {
   readonly #stacks = new Stacks();
   readonly #heap: RuntimeHeap;
   readonly #destructor: object;
@@ -171,7 +188,7 @@ export class VM implements PublicVM, InternalVM {
   readonly [CONSTANTS]: RuntimeConstants & ResolutionTimeConstants;
   readonly [ARGS]: VMArgumentsImpl;
   readonly [INNER_VM]: LowLevelVM;
-  readonly #elementStack: DOMTreeBuilder;
+  readonly #delegate: VmDelegate<D>;
 
   declare readonly debug?: DebugVM & DebugInternalVM;
 
@@ -220,6 +237,10 @@ export class VM implements PublicVM, InternalVM {
     }
 
     return this.#registers[register - $s0];
+  }
+
+  _loadOperations_(): void {
+    this._loadValue_($t0, new BrowserComponentElementOperations());
   }
 
   // Load a value into a register
@@ -273,10 +294,14 @@ export class VM implements PublicVM, InternalVM {
   constructor(
     readonly runtime: RuntimeContext,
     { pc, scope, dynamicScope, stack }: VMState,
-    elementStack: DOMTreeBuilder,
+    delegate: VmDelegate<D>,
     readonly context: CompileTimeCompilationContext
   ) {
-    this.#elementStack = elementStack;
+    if (delegate instanceof BrowserTreeBuilder) {
+      debugger;
+    }
+
+    this.#delegate = delegate;
     if (import.meta.env.DEV) {
       assertGlobalContextWasSet!();
 
@@ -298,7 +323,7 @@ export class VM implements PublicVM, InternalVM {
             v0: this.#registers[$v0 - $s0],
           }),
           finalize: () => {
-            this.#elementStack.debug!.finalize();
+            this.#elementStack.debug?.finalize();
           },
         } satisfies DebugVM & DebugInternalVM,
       });
@@ -315,7 +340,6 @@ export class VM implements PublicVM, InternalVM {
 
     this.#heap = this.program.heap;
     this[CONSTANTS] = this.program.constants;
-    this.#elementStack = elementStack;
     this.#scopeStack.push(scope);
     this.#stacks._dynamicScope_.push(dynamicScope);
     this[ARGS] = new VMArgumentsImpl();
@@ -349,7 +373,7 @@ export class VM implements PublicVM, InternalVM {
   ) {
     let scope = ScopeImpl.root(self, numSymbols, owner);
     let state = vmState(runtime.program.heap.getaddr(handle), scope, dynamicScope);
-    let vm = initVM(context)(runtime, state, treeBuilder);
+    let vm = initVM(context)(runtime, state, delegateForBuilder(treeBuilder));
     vm._pushUpdating_();
     return vm;
   }
@@ -366,13 +390,17 @@ export class VM implements PublicVM, InternalVM {
         ScopeImpl.root(UNDEFINED_REFERENCE, 0, owner),
         dynamicScope
       ),
-      treeBuilder
+      delegateForBuilder(treeBuilder)
     );
     vm._pushUpdating_();
     return vm;
   }
 
   readonly #resume: VmInitCallback;
+
+  get #elementStack(): D['treeBuilder'] {
+    return this.#delegate.stack;
+  }
 
   _compile_(block: CompilableTemplate): number {
     let handle = unwrapHandle(block.compile(this.context));
@@ -534,7 +562,7 @@ export class VM implements PublicVM, InternalVM {
     );
   }
 
-  _elements_(): DOMTreeBuilder {
+  _elements_(): D['treeBuilder'] {
     return this.#elementStack;
   }
 
@@ -668,6 +696,44 @@ export class VM implements PublicVM, InternalVM {
   }
 }
 
+export class BrowserVmDelegate implements VmDelegate<BrowserDomTypes> {
+  static _resume_(ref: RuntimeBlockBoundsRef) {
+    let elementStack = BrowserTreeBuilder._resume_(unwrap(ref.current));
+    return new BrowserVmDelegate(elementStack);
+  }
+
+  static _resumeForCursor_(ref: RuntimeBlockBoundsRef, nextSibling: ChildNode) {
+    let elementStack = BrowserTreeBuilder._forCursor_([
+      unwrap(ref.current).parent as MinimalParent,
+      nextSibling as MinimalChild,
+      null,
+    ]);
+    return new BrowserVmDelegate(elementStack);
+  }
+
+  readonly stack: BrowserTreeBuilderInterface;
+
+  constructor(stack: BrowserTreeBuilderInterface) {
+    this.stack = stack;
+  }
+
+  _createOperations_(): ElementOperations<BrowserDomTypes> {
+    return new BrowserComponentElementOperations();
+  }
+}
+
+export function delegateForBuilder(builder: TreeBuilder): VmDelegate<DomTypes> {
+  switch (builder.type) {
+    case 'browser':
+      return new BrowserVmDelegate(builder);
+    case 'server':
+      throw new Error('Not implemented');
+
+    case 'custom':
+      throw new Error('Not implemented');
+  }
+}
+
 function vmState(pc: number, scope: Scope, dynamicScope: DynamicScope) {
   return {
     pc,
@@ -679,7 +745,7 @@ function vmState(pc: number, scope: Scope, dynamicScope: DynamicScope) {
 
 export interface MinimalInitOptions {
   handle: number;
-  treeBuilder: DOMTreeBuilder;
+  treeBuilder: TreeBuilder;
   dynamicScope: DynamicScope;
   owner: Owner;
 }
@@ -689,13 +755,13 @@ export interface InitOptions extends MinimalInitOptions {
   numSymbols: number;
 }
 
-export type VmInitCallback = (
+export type VmInitCallback = <D extends DomTypes>(
   this: void,
   runtime: RuntimeContext,
   state: VMState,
-  builder: DOMTreeBuilder
-) => InternalVM;
+  delegate: VmDelegate<D>
+) => InternalVM<D>;
 
 function initVM(context: CompileTimeCompilationContext): VmInitCallback {
-  return (runtime, state, builder) => new VM(runtime, state, builder, context);
+  return (runtime, state, delegate) => new VM(runtime, state, delegate, context);
 }

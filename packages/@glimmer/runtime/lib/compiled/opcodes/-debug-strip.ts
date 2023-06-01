@@ -23,7 +23,6 @@ import type {
   CompilableProgram,
   ComponentDefinition,
   ComponentInstance,
-  ElementOperations,
   Helper,
   InternalComponentManager,
   Invocation,
@@ -36,15 +35,15 @@ import { COMPUTE, type Tag } from '@glimmer/validator';
 
 import { ScopeImpl } from '../../scope';
 import { VMArgumentsImpl } from '../../vm/arguments';
-import { ComponentElementOperations } from './component';
 import { isRef } from '@glimmer/reference';
+import { BrowserComponentElementOperations } from './component';
 
 export const CheckTag: Checker<Tag> = CheckInterface({
   [COMPUTE]: CheckFunction,
 });
 
-export const CheckOperations: Checker<Nullable<ComponentElementOperations>> = wrap(() =>
-  CheckOption(CheckInstanceof(ComponentElementOperations))
+export const CheckOperations: Checker<Nullable<BrowserComponentElementOperations>> = wrap(() =>
+  CheckOption(CheckInstanceof(BrowserComponentElementOperations))
 );
 
 class ReferenceChecker {
@@ -114,10 +113,6 @@ export const CheckCurriedComponentDefinition = CheckOr(CheckObject, CheckFunctio
 export const CheckInvocation: Checker<Invocation> = CheckInterface({
   handle: CheckNumber,
   symbolTable: CheckProgramSymbolTable,
-});
-
-export const CheckElementOperations: Checker<ElementOperations> = CheckInterface({
-  setAttribute: CheckFunction,
 });
 
 export const CheckFinishedComponentInstance: Checker<ComponentInstance> = CheckInterface({

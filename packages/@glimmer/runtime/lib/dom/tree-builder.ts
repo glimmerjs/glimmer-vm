@@ -3,7 +3,6 @@ import type {
   AttributeRef,
   BlockBounds,
   BlockBoundsRef,
-  DOMTreeBuilder,
   DebugDOMTreeBuilder,
   ElementRef,
   MinimalChild,
@@ -16,6 +15,8 @@ import type {
   RuntimeBlockBounds,
   MinimalCursor,
   Destroyable,
+  BrowserTreeBuilderInterface,
+  ElementBuffer,
 } from '@glimmer/interfaces';
 import {
   INSERT_BEFORE_END,
@@ -58,20 +59,20 @@ const BLOCK_REF = 1;
 const START_NODE = 2;
 const END_NODE = 3;
 
-export class TreeConstruction implements DOMTreeBuilder {
+export class BrowserTreeBuilder implements BrowserTreeBuilderInterface {
   static _forContext_(parent: MinimalElement) {
-    return new TreeConstruction(parent.ownerDocument, [parent, null, null], null);
+    return new BrowserTreeBuilder(parent.ownerDocument, [parent, null, null], null);
   }
 
   static _forCursor_(cursor: MinimalInternalCursor) {
-    return new TreeConstruction(cursor[PARENT_ELEMENT].ownerDocument, cursor, null);
+    return new BrowserTreeBuilder(cursor[PARENT_ELEMENT].ownerDocument, cursor, null);
   }
 
-  static _resume_(block: RuntimeBlockBounds): TreeConstruction {
+  static _resume_(block: RuntimeBlockBounds): BrowserTreeBuilder {
     let parentNode = block.parent;
     let nextSibling = clearBlockBounds(block);
 
-    let tree = new TreeConstruction(
+    let tree = new BrowserTreeBuilder(
       parentNode.ownerDocument as MinimalDocument,
       [parentNode as MinimalParent, nextSibling as MinimalChild, null],
       null
@@ -80,9 +81,11 @@ export class TreeConstruction implements DOMTreeBuilder {
     return tree;
   }
 
+  readonly type = 'browser';
+
   #document: MinimalDocument;
   #cursor: MinimalInternalCursor;
-  #buffer: ElementBuffer | null;
+  #buffer: BrowserElementBuffer | null;
 
   declare debug?: DebugDOMTreeBuilder;
 
@@ -101,7 +104,7 @@ export class TreeConstruction implements DOMTreeBuilder {
   constructor(
     document: MinimalDocument,
     cursor: MinimalInternalCursor,
-    buffer: ElementBuffer | null
+    buffer: BrowserElementBuffer | null
   ) {
     this.#document = document;
     this.#cursor = cursor;
@@ -122,6 +125,10 @@ export class TreeConstruction implements DOMTreeBuilder {
         },
       });
     }
+  }
+
+  ifDOM(block: (value: BrowserTreeBuilderInterface) => void): void {
+    block(this);
   }
 
   get _constructing_(): ElementRef {
@@ -230,7 +237,7 @@ export class TreeConstruction implements DOMTreeBuilder {
   }
 
   startElement(tag: string) {
-    this.#buffer = ElementBuffer(tag);
+    this.#buffer = BrowserElementBuffer(tag);
   }
 
   addAttr(attributeName: string, attributeValue: string | boolean | undefined): AttributeRef {
@@ -239,7 +246,11 @@ export class TreeConstruction implements DOMTreeBuilder {
 
   flushElement() {
     let buffer = unwrap(this.#buffer);
-    let child = buffer.flush(this.#cursor);
+    let html = buffer.flush();
+
+    let [child] = insertHTML(this.#cursor, html) as [MinimalElement, MinimalElement];
+    buffer.initialize(child as Element);
+
     this.#addChild([child, child]);
     this.#depth++;
     this.#cursor = [child, null, this.#cursor];
@@ -343,13 +354,13 @@ export const PARENT_ELEMENT = 0;
 export const NEXT_SIBLING = 1;
 export const PARENT_CURSOR = 2;
 
-interface ElementBuffer {
+interface BrowserElementBuffer extends ElementBuffer {
   readonly ref: ElementRef;
   attr: (attributeName: string, attributeValue?: string | boolean) => AttributeRef;
-  flush: (parent: MinimalInternalCursor) => MinimalElement;
+  initialize: (element: Element) => void;
 }
 
-function ElementBuffer(tag: string): ElementBuffer {
+function BrowserElementBuffer(tag: string): BrowserElementBuffer {
   let buffer = `<${tag}`;
   let refs: AttributeRef[] = [];
   let elementRef: ElementRef = {
@@ -359,6 +370,11 @@ function ElementBuffer(tag: string): ElementBuffer {
   return {
     get ref(): ElementRef {
       return elementRef;
+    },
+
+    initialize: (element: Element): void => {
+      elementRef.current = element;
+      for (let ref of refs) ref[1] = element;
     },
 
     attr(qualifiedName: string, attributeValue: unknown) {
@@ -373,11 +389,8 @@ function ElementBuffer(tag: string): ElementBuffer {
       return ref;
     },
 
-    flush(cursor: MinimalInternalCursor): MinimalElement {
-      let [el] = insertHTML(cursor, `${buffer}>`) as [Element, Element];
-      elementRef.current = el;
-      for (let ref of refs) ref[1] = el;
-      return el as MinimalElement;
+    flush(): string {
+      return `${buffer}>`;
     },
   };
 }

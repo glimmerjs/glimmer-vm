@@ -79,13 +79,45 @@ interface ElementRef {
   current: Element | null;
 }
 
-export interface DOMTreeBuilder {
+export interface DOMTreeBuilderInterface {
   readonly debug?: DebugDOMTreeBuilder;
+
+  startBlock(): void;
+  endBlock(): void;
+  return(): void;
+
+  text(text: string): void;
+  html(html: string): void;
+  comment(data: string): void;
+  startElement(tag: string): void;
+  addAttr(attributeName: string, attributeValue: unknown): void;
+  flushElement(): void;
+  endElement(): void;
+
+  ifDOM(block: (value: BrowserTreeBuilderInterface) => void): void;
+
+  /**
+   * Reset the builder's state.
+   */
+  recover(): void;
+}
+
+export interface ServerTreeBuilderInterface extends DOMTreeBuilderInterface {
+  readonly type: 'server';
+}
+
+export interface CustomTreeBuilderInterface extends DOMTreeBuilderInterface {
+  readonly type: 'custom';
+}
+
+export interface BrowserTreeBuilderInterface extends DOMTreeBuilderInterface {
+  readonly type: 'browser';
+
   readonly _constructing_: ElementRef;
+  readonly _currentElement_: MinimalElement | null;
 
   startBlock(): BlockBoundsRef;
   endBlock(): BlockBoundsRef;
-
   return(): BlockBoundsRef;
 
   text(text: string): MinimalText;
@@ -98,11 +130,12 @@ export interface DOMTreeBuilder {
   endElement(): MinimalElement;
   startInElement(cursor: MinimalCursor, guid: string): void;
   endInElement(): Destroyable;
-
-  recover(): void;
-
-  readonly _currentElement_: MinimalElement | null;
 }
+
+export type TreeBuilder =
+  | ServerTreeBuilderInterface
+  | BrowserTreeBuilderInterface
+  | CustomTreeBuilderInterface;
 
 export type AttributeValue = string | boolean | undefined;
 export type AttributeRef = [qualifiedName: string, element: Element | null];

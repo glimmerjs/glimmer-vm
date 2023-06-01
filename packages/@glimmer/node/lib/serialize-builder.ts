@@ -1,6 +1,7 @@
 import type {
   Bounds,
   BrowserDOMEnvironment,
+  DOMTreeBuilder,
   ElementBuilder,
   Environment,
   Maybe,
@@ -27,6 +28,8 @@ function currentNode(
 
   return nextSibling === null ? element.lastChild : nextSibling.previousSibling;
 }
+
+class SerializeTreeBuilder implements DOMTreeBuilder {}
 
 class SerializeBuilder
   extends NewElementBuilder<SimpleDOMEnvironment>
@@ -143,6 +146,6 @@ class SerializeBuilder
 export function serializeBuilder(
   environment: Environment,
   cursor: { element: SimpleElement; nextSibling: Nullable<SimpleNode> }
-): ElementBuilder<SimpleDOMEnvironment> {
+): DOMTreeBuilder {
   return SerializeBuilder.forInitialRender<SimpleDOMEnvironment>(environment, cursor);
 }
