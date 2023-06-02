@@ -23,6 +23,8 @@ export interface RenderDelegateOptions {
 export default interface RenderDelegate {
   getInitialBuilder(): TreeBuilder;
   getCurrentBuilder(): TreeBuilder;
+  getHTML(): string;
+  asElement(): Element;
   registerComponent<K extends ComponentKind, L extends ComponentKind>(
     type: K,
     testType: L,

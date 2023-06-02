@@ -28,20 +28,20 @@ class SafeStringImpl implements SafeString {
 class ContentTest extends RenderTest {
   static suiteName = 'Updating - Content';
 
-  makeElement(tag: string, content: string): SimpleElement {
-    let element = this.delegate.createElement(tag);
-    element.appendChild(this.delegate.createTextNode(content));
+  makeElement(tag: string, content: string): Element {
+    let element = document.createElement(tag);
+    element.appendChild(document.createTextNode(content));
     return element;
   }
 
-  makeSVGElement(tag: string, content: string): SimpleElement {
-    let element = this.delegate.createElementNS(NS_SVG, tag);
-    element.appendChild(this.delegate.createTextNode(content));
+  makeSVGElement(tag: string, content: string): Element {
+    let element = document.createElementNS(NS_SVG, tag);
+    element.appendChild(document.createTextNode(content));
     return element;
   }
 
-  makeFragment(nodes: SimpleNode[]) {
-    let frag = this.delegate.createDocumentFragment();
+  makeFragment(nodes: ChildNode[]) {
+    let frag = document.createDocumentFragment();
     for (let node of nodes) frag.appendChild(node);
     return frag;
   }

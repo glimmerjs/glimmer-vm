@@ -103,7 +103,7 @@ export interface DOMTreeBuilderInterface {
 export interface ServerTreeBuilderInterface extends DOMTreeBuilderInterface {
   readonly type: 'server';
 
-  flush(): string;
+  _flush_(): string;
 }
 
 export interface CustomTreeBuilderInterface<Output> extends DOMTreeBuilderInterface {
@@ -117,6 +117,7 @@ export interface BrowserTreeBuilderInterface extends DOMTreeBuilderInterface {
 
   readonly _constructing_: ElementRef;
   readonly _currentElement_: MinimalElement | null;
+  readonly _root_: MinimalElement | null;
 
   startBlock(): BlockBoundsRef;
   endBlock(): BlockBoundsRef;

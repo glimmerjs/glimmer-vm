@@ -10,13 +10,13 @@ export class ServerSideSuite extends AbstractNodeTest {
     this.assertHTML('content');
   }
 
-  @test.todo
+  @test
   'HTML tags'() {
     this.render('<h1>hello!</h1><div>content</div>');
     this.assertHTML('<h1>hello!</h1><div>content</div>');
   }
 
-  @test.todo
+  @test
   'HTML tags re-rendered'() {
     this.render('<h1>hello!</h1><div>content</div>');
     this.assertHTML('<h1>hello!</h1><div>content</div>');
@@ -24,19 +24,19 @@ export class ServerSideSuite extends AbstractNodeTest {
     this.assertHTML('<h1>hello!</h1><div>content</div>');
   }
 
-  @test.todo
+  @test
   'HTML attributes'() {
     this.render("<div id='bar' class='foo'>content</div>");
     this.assertHTML('<div id="bar" class="foo">content</div>');
   }
 
-  @test.todo
+  @test
   'HTML tag with empty attribute'() {
     this.render("<div class=''>content</div>");
     this.assertHTML('<div class>content</div>');
   }
 
-  @test.todo
+  @test
   "HTML boolean attribute 'disabled'"() {
     this.render('<input disabled>');
     this.assertHTML('<input disabled>');
@@ -54,19 +54,19 @@ export class ServerSideSuite extends AbstractNodeTest {
     this.assertHTML('<input>');
   }
 
-  @test.todo
+  @test
   'Attribute expression can be followed by another attribute'() {
     this.render('<div foo="{{this.funstuff}}" name="Alice"></div>', { funstuff: 'oh my' });
     this.assertHTML('<div foo="oh my" name="Alice"></div>');
   }
 
-  @test.todo
+  @test
   'HTML tag with data- attribute'() {
     this.render("<div data-some-data='foo'>content</div>");
     this.assertHTML('<div data-some-data="foo">content</div>');
   }
 
-  @test.todo
+  @test
   'The compiler can handle nesting'() {
     this.render(
       '<div class="foo"><p><span id="bar" data-foo="bar">hi!</span></p></div>&nbsp;More content'
@@ -78,25 +78,25 @@ export class ServerSideSuite extends AbstractNodeTest {
     );
   }
 
-  @test.todo
+  @test
   'The compiler can handle comments'() {
     this.render('<div><!-- Just passing through --></div>');
     this.assertHTML('<div><!-- Just passing through --></div>');
   }
 
-  @test.todo
+  @test
   'The compiler can handle HTML comments with mustaches in them'() {
     this.render('<div><!-- {{foo}} --></div>', { foo: 'bar' });
     this.assertHTML('<div><!-- {{foo}} --></div>');
   }
 
-  @test.todo
+  @test
   'The compiler can handle HTML comments with complex mustaches in them'() {
     this.render('<div><!-- {{foo bar baz}} --></div>', { foo: 'bar' });
     this.assertHTML('<div><!-- {{foo bar baz}} --></div>');
   }
 
-  @test.todo
+  @test
   'The compiler can handle HTML comments with multi-line mustaches in them'() {
     this.render('<div><!-- {{#each foo as |bar|}}\n{{bar}}\n\n{{/each}} --></div>', { foo: 'bar' });
 
@@ -109,19 +109,19 @@ export class ServerSideSuite extends AbstractNodeTest {
     this.assertHTML('<!-- {{foo}} -->');
   }
 
-  @test.todo
+  @test
   'The compiler can handle simple handlebars'() {
     this.render('<div>{{this.title}}</div>', { title: 'hello' });
     this.assertHTML('<div>hello</div>');
   }
 
-  @test.todo
+  @test
   'The compiler can handle escaping HTML'() {
     this.render('<div>{{this.title}}</div>', { title: '<strong>hello</strong>' });
     this.assertHTML('<div>&lt;strong&gt;hello&lt;/strong&gt;</div>');
   }
 
-  @test.todo
+  @test
   'The compiler can handle unescaped HTML'() {
     this.render('<div>{{{this.title}}}</div>', { title: '<strong>hello</strong>' });
     this.assertHTML('<div><strong>hello</strong></div>');
@@ -140,7 +140,7 @@ export class ServerSideSuite extends AbstractNodeTest {
     this.assertHTML('');
   }
 
-  @test.todo
+  @test
   'Attributes can be populated with helpers that generate a string'() {
     this.registerHelper('testing', (parameters) => {
       return parameters[0];
@@ -150,7 +150,7 @@ export class ServerSideSuite extends AbstractNodeTest {
     this.assertHTML('<a href="linky.html">linky</a>');
   }
 
-  @test.todo
+  @test
   'Elements inside a yielded block'() {
     this.render('{{#if true}}<div id="test">123</div>{{/if}}');
     this.assertHTML('<div id="test">123</div>');
@@ -162,7 +162,7 @@ export class ServerSideSuite extends AbstractNodeTest {
     this.assertHTML('test');
   }
 
-  @test.todo
+  @test
   'SVG: basic element'() {
     let template = `
       <svg xmlns="http://www.w3.org/2000/svg">
@@ -173,7 +173,7 @@ export class ServerSideSuite extends AbstractNodeTest {
     this.assertHTML(template);
   }
 
-  @test.todo
+  @test
   'SVG: element with xlink:href'() {
     let template = `
       <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">

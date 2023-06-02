@@ -83,7 +83,7 @@ export class RenderTest implements IRenderTest {
   }
 
   #currentBuilderElement(): Element | SimpleElement {
-    return this.delegate.getCurrentBuilder()._currentElement_ as Element | SimpleElement;
+    return this.delegate.getCurrentBuilder()._root_ as Element | SimpleElement;
   }
 
   capture<T>() {
@@ -394,11 +394,10 @@ export class RenderTest implements IRenderTest {
     }
 
     this.setProperties(properties);
-    let builder = this.delegate.getCurrentBuilder();
-    let element = builder._currentElement_;
+    let builder = this.delegate.getInitialBuilder();
 
     this.renderResult = this.delegate.renderTemplate(template, this.context, builder, () =>
-      this.takeSnapshot(element)
+      this.takeSnapshot(this.delegate.asElement())
     );
   }
 
@@ -470,7 +469,9 @@ export class RenderTest implements IRenderTest {
     element: Element | SimpleElement = this.#currentBuilderElement()
   ): NodesSnapshot {
     let snapshot: NodesSnapshot = (this.snapshot = []);
+    debugger;
 
+    let builder = this.delegate.getCurrentBuilder();
     let node: Nullable<Node | SimpleNode> = element.firstChild;
     let upped = false;
 
@@ -664,7 +665,7 @@ export class RenderTest implements IRenderTest {
 
 export class BrowserRenderTest extends RenderTest {
   get element() {
-    return this.delegate.getCurrentBuilder()._currentElement_;
+    return this.delegate.getCurrentBuilder()._root_;
   }
 }
 

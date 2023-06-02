@@ -25,12 +25,9 @@ module('Render Tests: I-N-U-R', ({ test }) => {
     div.appendChild(text);
 
     new (class extends BrowserRenderTest {
-      override get element() {
-        return div;
-      }
       constructor(delegate: JitRenderDelegate) {
         super(delegate);
-        let snapShot = this.takeSnapshot();
+        let snapShot = this.takeSnapshot(div);
         assert.deepEqual(snapShot, [text, 'up']);
       }
     })(new JitRenderDelegate());
@@ -44,12 +41,9 @@ module('Render Tests: I-N-U-R', ({ test }) => {
     div.appendChild(p);
 
     new (class extends BrowserRenderTest {
-      override get element() {
-        return div;
-      }
       constructor(delegate: JitRenderDelegate) {
         super(delegate);
-        let snapShot = this.takeSnapshot();
+        let snapShot = this.takeSnapshot(div);
         assert.deepEqual(snapShot, [p, 'down', text, 'up', 'up']);
       }
     })(new JitRenderDelegate());
@@ -65,12 +59,9 @@ module('Render Tests: I-N-U-R', ({ test }) => {
     div.appendChild(close);
 
     new (class extends BrowserRenderTest {
-      override get element() {
-        return div;
-      }
       constructor(delegate: JitRenderDelegate) {
         super(delegate);
-        let snapShot = this.takeSnapshot();
+        let snapShot = this.takeSnapshot(div);
         assert.deepEqual(snapShot, [open, text, close, 'up']);
       }
     })(new JitRenderDelegate());

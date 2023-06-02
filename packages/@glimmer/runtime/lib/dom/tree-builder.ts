@@ -60,10 +60,45 @@ const BLOCK_REF = 1;
 const START_NODE = 2;
 const END_NODE = 3;
 
+class CurrentElement {
+  readonly #tag: string;
+  readonly #parent: CurrentElement | null;
+
+  constructor(tag: string, parent: CurrentElement | null) {
+    this.#tag = tag;
+    this.#parent = parent;
+  }
+
+  child(tag: string) {
+    return new CurrentElement(tag, this);
+  }
+
+  get tag() {
+    return this.#tag;
+  }
+
+  end(): CurrentElement | null {
+    return this.#parent;
+  }
+}
+
+export const voidMap: {
+  [tagName: string]: boolean;
+} = Object.create(null);
+
+let voidTagNames =
+  'area base br col command embed hr img input keygen link meta param source track wbr';
+for (let tagName of voidTagNames.split(' ')) {
+  voidMap[tagName] = true;
+}
+
+
 export class ServerTreeBuilder implements ServerTreeBuilderInterface {
+
   readonly type = 'server';
 
   #buffer = '';
+  #element: CurrentElement | null = null;
 
   _flush_(): string {
     let buffer = this.#buffer;
@@ -72,38 +107,47 @@ export class ServerTreeBuilder implements ServerTreeBuilderInterface {
   }
 
   startBlock(): void {
-    throw new Error('Method not implemented.');
   }
   endBlock(): void {
-    throw new Error('Method not implemented.');
   }
   return(): void {
-    throw new Error('Method not implemented.');
   }
   text(text: string): void {
-    throw new Error('Method not implemented.');
+    this.#buffer += escapeHTML(text);
   }
   html(html: string): void {
-    throw new Error('Method not implemented.');
+    this.#buffer += html;
   }
   comment(data: string): void {
-    throw new Error('Method not implemented.');
+    this.#buffer += `<!--${data}-->`;
   }
   startElement(tag: string): void {
-    throw new Error('Method not implemented.');
+    this.#buffer += `<${tag}`;
+    this.#element = new CurrentElement(tag, this.#element);
   }
   addAttr(attributeName: string, attributeValue: unknown): void {
-    throw new Error('Method not implemented.');
+    if (attributeValue == null || attributeValue === false) return;
+    if (attributeValue === true) attributeValue = '';
+    this.#buffer += attributeValue ? ` ${attributeName}="${attributeValue}"` : ` ${attributeName}`;
   }
   flushElement(): void {
-    throw new Error('Method not implemented.');
+    this.#buffer += '>';
   }
   endElement(): void {
-    throw new Error('Method not implemented.');
+    let element = unwrap(this.#element);
+    let tag = element.tag;
+    this.#element = element.end();
+
+    if (voidMap[tag]) return;
+    this.#buffer += `</${tag}>`;
   }
   recover(): void {
     throw new Error('Method not implemented.');
   }
+}
+
+function escapeHTML(text: string): string {
+  return text.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
 }
 
 export class BrowserTreeBuilder implements BrowserTreeBuilderInterface {
@@ -176,6 +220,10 @@ export class BrowserTreeBuilder implements BrowserTreeBuilderInterface {
 
   get _constructing_(): ElementRef {
     return unwrap(this.#buffer).ref;
+  }
+
+  get _root_(): MinimalElement {
+    return this.#cursor[0];
   }
 
   html(html: string): [MinimalChild | null, MinimalChild | null] {

@@ -12,12 +12,12 @@ import {
   GlimmerishComponent,
   type JitRenderDelegate,
   jitSuite,
-  RenderTest,
   stripTight,
   test,
   tracked,
   trimLines,
-} from '..';
+  BrowserRenderTest,
+} from '@glimmer-workspace/integration-tests';
 import { assert } from './support';
 
 function makeSafeString(value: string): SafeString {
@@ -34,7 +34,7 @@ class SafeStringImpl implements SafeString {
   }
 }
 
-class UpdatingTest extends RenderTest {
+class UpdatingTest extends BrowserRenderTest {
   static suiteName = 'Updating';
 
   declare delegate: JitRenderDelegate;
@@ -405,7 +405,7 @@ class UpdatingTest extends RenderTest {
     let rawString = '<b>bold</b> and spicy';
 
     this.registerInternalHelper('const-foobar', () => {
-      return createConstRef(this.delegate.createTextNode(rawString), 'text-node');
+      return createConstRef(document.createTextNode(rawString), 'text-node');
     });
 
     this.render('<div>{{const-foobar}}</div>');
@@ -431,7 +431,7 @@ class UpdatingTest extends RenderTest {
     let rawString = '<b>bold</b> and spicy';
 
     this.registerInternalHelper('const-foobar', () => {
-      return createConstRef(this.delegate.createTextNode(rawString), 'text-node');
+      return createConstRef(document.createTextNode(rawString), 'text-node');
     });
 
     this.render('<div>{{{const-foobar}}}</div>');
@@ -596,7 +596,7 @@ class UpdatingTest extends RenderTest {
 
   @test
   'helpers passed as arguments to {{#in-element}} are not torn down when switching between blocks'() {
-    let externalElement = this.delegate.createElement('div');
+    let externalElement = document.createElement('div');
 
     let options = {
       template: '{{#in-element (stateful-foo)}}Yes{{/in-element}}',

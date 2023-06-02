@@ -72,18 +72,17 @@ export function JitDelegateContext(
   return { runtime, program: context };
 }
 
-export class JitRenderDelegate implements RenderDelegate {
-  static readonly isEager = false;
-  static style = 'jit';
-
+export abstract class BasicRenderDelegate implements RenderDelegate {
   protected registry: TestJitRegistry;
   protected resolver: TestJitRuntimeResolver;
 
   private plugins: ASTPluginBuilder[] = [];
   private _context: JitTestDelegateContext | null = null;
   private self: Nullable<Reference> = null;
-  private env: EnvironmentDelegate;
-  #builder = BrowserTreeBuilder._forContext_(this.element as MinimalElement);
+  readonly env: EnvironmentDelegate;
+
+  abstract readonly program: CompileTimeCompilationContext;
+  abstract readonly runtime: RuntimeContext;
 
   constructor({
     env,
@@ -100,39 +99,13 @@ export class JitRenderDelegate implements RenderDelegate {
     this.registry.register('helper', 'concat', concat);
   }
 
-  get element(): Element {
-    return unwrap(document.querySelector('#qunit-fixture'));
-  }
-
-  get builder(): TreeBuilder {
-    return this.#builder;
-  }
-
-  getInitialBuilder(): TreeBuilder {
-    return this.#builder;
-  }
-
-  getCurrentBuilder(): TreeBuilder {
-    return this.#builder;
-  }
-
-  get context(): JitTestDelegateContext {
-    if (this._context === null) {
-      this._context = JitDelegateContext(this.resolver, this.env, document as MinimalDocument);
-    }
-
-    return this._context;
-  }
-
-  getCapturedRenderTree(): CapturedRenderNode[] {
-    return expect(
-      this.context.runtime.env.debugRenderTree,
-      'Attempted to capture the DebugRenderTree during tests, but it was not created. Did you enable it in the environment?'
-    ).capture();
-  }
+  abstract getInitialBuilder(): TreeBuilder;
+  abstract getCurrentBuilder(): TreeBuilder;
+  abstract getHTML(): string;
+  abstract asElement(): Element;
 
   createCurriedComponent(name: string): CurriedValue | null {
-    return componentHelper(this.registry, name, this.context.program.constants);
+    return componentHelper(this.registry, name, this.program.constants);
   }
 
   registerPlugin(plugin: ASTPluginBuilder): void {
@@ -186,15 +159,15 @@ export class JitRenderDelegate implements RenderDelegate {
   compileTemplate(template: string): HandleResult {
     let compiled = preprocess(template, this.precompileOptions);
 
-    return unwrapTemplate(compiled).asLayout().compile(this.context.program);
+    return unwrapTemplate(compiled).asLayout().compile(this.program);
   }
 
   renderTemplate(template: string, context: Dict<unknown>, builder: TreeBuilder): RenderResult {
-    let { env } = this.context.runtime;
+    let { env } = this.runtime;
 
     return renderTemplate(
       template,
-      this.context,
+      { runtime: this.runtime, program: this.program },
       this.getSelf(env, context),
       builder,
       this.precompileOptions
@@ -207,7 +180,7 @@ export class JitRenderDelegate implements RenderDelegate {
     builder: TreeBuilder,
     dynamicScope?: DynamicScope
   ): RenderResult {
-    let { program, runtime } = this.context;
+    let { program, runtime } = this;
     let iterator = renderComponent(runtime, builder, program, {}, component, args, dynamicScope);
 
     return renderSync(runtime.env, iterator);
@@ -220,4 +193,68 @@ export class JitRenderDelegate implements RenderDelegate {
       },
     };
   }
+}
+
+export class JitRenderDelegate extends BasicRenderDelegate implements RenderDelegate {
+  static readonly isEager = false;
+  static style = 'jit';
+
+  #context: JitTestDelegateContext | null = null;
+  #builder = BrowserTreeBuilder._forContext_(this.element as MinimalElement);
+
+  constructor({
+    env,
+    resolver = (registry) => new TestJitRuntimeResolver(registry),
+  }: RenderDelegateOptions = {}) {
+    super({env, resolver})
+
+  }
+
+  getHTML(): string {
+    return this.element.innerHTML;
+  }
+
+  asElement(): Element {
+    return this.element;
+  }
+
+  get element(): Element {
+    return unwrap(document.querySelector('#qunit-fixture'));
+  }
+
+  get builder(): TreeBuilder {
+    return this.#builder;
+  }
+
+  get runtime(): RuntimeContext {
+    return this.context.runtime;
+  }
+
+  get program(): CompileTimeCompilationContext {
+    return this.context.program;
+  }
+
+  getInitialBuilder(): TreeBuilder {
+    return this.#builder;
+  }
+
+  getCurrentBuilder(): TreeBuilder {
+    return this.#builder;
+  }
+
+  get context(): JitTestDelegateContext {
+    if (this.#context === null) {
+      this.#context = JitDelegateContext(this.resolver, this.env, document as MinimalDocument);
+    }
+
+    return this.#context;
+  }
+
+  getCapturedRenderTree(): CapturedRenderNode[] {
+    return expect(
+      this.context.runtime.env.debugRenderTree,
+      'Attempted to capture the DebugRenderTree during tests, but it was not created. Did you enable it in the environment?'
+    ).capture();
+  }
+
 }

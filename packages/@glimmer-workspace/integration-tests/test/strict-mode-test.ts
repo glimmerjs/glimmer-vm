@@ -2,6 +2,7 @@ import { array, concat, fn, get, hash, on } from '@glimmer/runtime';
 import { castToBrowser } from '@glimmer/util';
 
 import {
+  BrowserRenderTest,
   defineComponent,
   defineSimpleHelper,
   defineSimpleModifier,
@@ -14,7 +15,7 @@ import {
   trackedObj,
 } from '@glimmer-workspace/integration-tests';
 
-class GeneralStrictModeTest extends RenderTest {
+class GeneralStrictModeTest extends BrowserRenderTest {
   static suiteName = 'strict mode: general properties';
 
   @test
@@ -1233,7 +1234,7 @@ class DynamicStrictModeTest extends RenderTest {
   }
 }
 
-class BuiltInsStrictModeTest extends RenderTest {
+class BuiltInsStrictModeTest extends BrowserRenderTest {
   static suiteName = 'strict mode: built in modifiers and helpers';
 
   @test

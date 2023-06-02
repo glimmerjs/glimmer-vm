@@ -3,10 +3,10 @@
 import type { SimpleElement } from '@glimmer/interfaces';
 import { NS_HTML, NS_SVG, NS_XLINK } from '@glimmer/util';
 
-import { assertNodeTagName, jitSuite, RenderTest, test } from '..';
+import { assertNodeTagName, BrowserRenderTest, jitSuite, test } from '@glimmer-workspace/integration-tests';
 import { assert } from './support';
 
-class UpdatingSvgTest extends RenderTest {
+class UpdatingSvgTest extends BrowserRenderTest {
   static suiteName = 'Updating SVG';
 
   @test
@@ -38,9 +38,8 @@ class UpdatingSvgTest extends RenderTest {
   @test
   'context.root <foreignObject> tag is SVG namespaced'() {
     let parent = this.element;
-    let svg = this.delegate.createElementNS(NS_SVG, 'svg');
+    let svg = document.createElementNS(NS_SVG, 'svg');
     this.element.appendChild(svg);
-    this.element = svg;
 
     let assertNamespaces = () => {
       if (assertNodeTagName(parent.firstChild, 'svg')) {
@@ -51,8 +50,9 @@ class UpdatingSvgTest extends RenderTest {
       }
     };
 
-    this.render('{{#if this.hasForeignObject}}<foreignObject><div></div></foreignObject>{{/if}}', {
+    this.render('{{#in-element this.svg}}{{#if this.hasForeignObject}}<foreignObject><div></div></foreignObject>{{/if}}{{/in-element}}', {
       hasForeignObject: true,
+      svg
     });
 
     this.assertHTML('<svg><foreignObject><div></div></foreignObject></svg>', parent);

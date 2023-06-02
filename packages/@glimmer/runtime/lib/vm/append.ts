@@ -28,6 +28,7 @@ import type {
   BrowserTreeBuilderInterface,
   MinimalParent,
   MinimalChild,
+  ServerTreeBuilderInterface,
 } from '@glimmer/interfaces';
 import { LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
 import {
@@ -73,6 +74,7 @@ import {
 } from './update';
 import {
   BrowserComponentElementOperations,
+  ServerComponentElementOperations,
   type BrowserDomTypes,
 } from '../compiled/opcodes/component';
 import { BrowserTreeBuilder } from '../..';
@@ -722,12 +724,27 @@ export class BrowserVmDelegate implements VmDelegate<BrowserDomTypes> {
   }
 }
 
+
+
+export class ServerVmDelegate implements VmDelegate<DomTypes> {
+
+
+  readonly stack: ServerTreeBuilderInterface;
+
+  constructor(stack: ServerTreeBuilderInterface) {
+    this.stack = stack;
+  }
+
+  _createOperations_(): ElementOperations<DomTypes> {
+    return new ServerComponentElementOperations();
+  }
+}
 export function delegateForBuilder(builder: TreeBuilder): VmDelegate<DomTypes> {
   switch (builder.type) {
     case 'browser':
       return new BrowserVmDelegate(builder);
     case 'server':
-      throw new Error('Not implemented');
+      return new ServerVmDelegate(builder);
 
     case 'custom':
       throw new Error('Not implemented');
