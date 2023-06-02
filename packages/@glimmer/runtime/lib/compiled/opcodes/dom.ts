@@ -7,25 +7,20 @@ import {
   CheckString,
 } from '@glimmer/debug';
 import type {
+  AttributeOperation,
   AttributeRef,
+  BrowserTreeBuilderInterface,
   CapturedPositionalArguments,
-  Environment,
-  InstallableModifier,
   Maybe,
   MinimalChild,
   MinimalCursor,
   MinimalElement,
   ModifierDefinition,
   ModifierDefinitionState,
+  PropRef,
   UpdatingOpcode,
 } from '@glimmer/interfaces';
-import {
-  createComputeRef,
-  isConstRef,
-  type Reference,
-  valueForRef,
-  createConstRef,
-} from '@glimmer/reference';
+import { createComputeRef, isConstRef, type Reference, valueForRef } from '@glimmer/reference';
 import { debugToString, expect, isObject } from '@glimmer/util';
 import { createCache, consumeTag } from '@glimmer/validator';
 import {
@@ -50,8 +45,8 @@ import { define } from '../../opcodes';
 import { CONSTANTS } from '../../symbols';
 import { CheckArguments, CheckOperations, CheckReference } from './-debug-strip';
 import { Assert } from './vm';
-import { updateAttributeRef } from '../../dom/tree-builder';
-import type { UpdatingVM } from '../../vm';
+import { dynamicAttribute } from '../../..';
+import { REF_ELEMENT } from '../../dom/tree-builder';
 
 define(TEXT_OP, (vm, { op1: text }) => {
   vm._elements_().text(vm[CONSTANTS].getValue(text));
@@ -218,35 +213,10 @@ define(DYNAMIC_MODIFIER_OP, (vm) => {
   return vm._updateWith_(modifier);
 });
 
-export class UpdateLooseAttrOpcode implements UpdatingOpcode, InstallableModifier {
-  readonly #name: Reference<string>;
-  readonly #value: Reference<unknown>;
-
-  constructor(name: Reference<string>, value: Reference<unknown>) {
-    this.#name = name;
-    this.#value = value;
-  }
-
-  evaluate(vm: UpdatingVM): void {
-    throw new Error('Method not implemented.');
-  }
-  element: Element;
-  render(): void {
-    throw new Error('Method not implemented.');
-  }
-  update(env: Environment): void {
-    throw new Error('Method not implemented.');
-  }
-  destroy(): void {
-    throw new Error('Method not implemented.');
-  }
-}
-
 define(STATIC_ATTR_OP, (vm, { op1: _name, op2: _value }) => {
   let name = vm[CONSTANTS].getValue<string>(_name);
   let value = vm[CONSTANTS].getValue<string>(_value);
 
-  let attribute = new UpdateLooseAttrOpcode(createConstRef(name), createConstRef(value));
   vm._elements_().addAttr(name, value);
 });
 
@@ -256,24 +226,37 @@ define(DYNAMIC_ATTR_OP, (vm, { op1: _name, op2: _trusting }) => {
   let reference = check(vm.stack.pop(), CheckReference);
   let value = valueForRef(reference);
 
-  let attribute = vm._elements_().addAttr(name, value);
+  let dom = vm._elements_() as BrowserTreeBuilderInterface;
+  let tag = dom._currentTag_ as string;
 
+  debugger;
+  let attribute = dynamicAttribute(tag, name, trusting);
+
+  let ref = attribute.client(dom, value);
   if (!isConstRef(reference)) {
-    vm._updateWith_(new UpdateDynamicAttributeOpcode(reference, attribute, vm.env));
+    vm._updateWith_(new UpdateDynamicAttributeOpcode(reference, attribute, ref));
   }
 });
 
 export class UpdateDynamicAttributeOpcode implements UpdatingOpcode {
   readonly #updateRef: Reference;
+  readonly #opRef: AttributeRef | PropRef;
 
-  constructor(reference: Reference<unknown>, attribute: AttributeRef, environment: Environment) {
+  // FIXME: element should turn into a reference inside of AttributeOperation (like modifiers),
+  // which ultimately will fix SSR.
+  constructor(
+    reference: Reference<unknown>,
+    attribute: AttributeOperation,
+    opRef: AttributeRef | PropRef
+  ) {
+    this.#opRef = opRef;
     let initialized = false;
 
     this.#updateRef = createComputeRef(() => {
       let value = valueForRef(reference);
-
       if (initialized === true) {
-        updateAttributeRef(attribute, value);
+        let element = this.#opRef[REF_ELEMENT];
+        if (element) attribute.update(element, value);
       } else {
         initialized = true;
       }

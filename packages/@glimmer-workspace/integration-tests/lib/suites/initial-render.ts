@@ -7,7 +7,7 @@ import { BrowserRenderTest } from '../render-test';
 import { test } from '../test-decorator';
 
 export class InitialRenderSuite extends BrowserRenderTest {
-  static suiteName = 'initial render';
+  static suiteName = 'initial render (loose attributes)';
 
   name = 'BASE';
   @test
@@ -301,7 +301,7 @@ export class InitialRenderSuite extends BrowserRenderTest {
 
   @test
   'Unquoted img src attribute is not rendered when set to `null`'() {
-    this.render("<img src='{{this.src}}'>", { src: null });
+    this.render('<img src={{this.src}}>', { src: null });
     this.assertHTML('<img>');
     this.assertStableRerender();
 
@@ -320,7 +320,7 @@ export class InitialRenderSuite extends BrowserRenderTest {
 
   @test
   'Unquoted img src attribute is not rendered when set to `undefined`'() {
-    this.render("<img src='{{this.src}}'>", { src: undefined });
+    this.render('<img src={{this.src}}>', { src: undefined });
     this.assertHTML('<img>');
     this.assertStableRerender();
 
@@ -394,7 +394,7 @@ export class InitialRenderSuite extends BrowserRenderTest {
     this.assertStableNodes();
   }
 
-  @test.todo
+  @test
   'Dynamic selected options'() {
     this.render(
       strip`
@@ -410,7 +410,7 @@ export class InitialRenderSuite extends BrowserRenderTest {
     this.assertHTML(strip`
       <select>
         <option>1</option>
-        <option ${this.name === 'rehydration' ? ' selected=true' : ''}>2</option>
+        <option>2</option>
         <option>3</option>
       </select>
     `);
@@ -439,7 +439,7 @@ export class InitialRenderSuite extends BrowserRenderTest {
     this.assertHTML(strip`
       <select>
         <option>1</option>
-        <option ${this.name === 'rehydration' ? ' selected=true' : ''}>2</option>
+        <option>2</option>
         <option>3</option>
       </select>
     `);
@@ -454,7 +454,7 @@ export class InitialRenderSuite extends BrowserRenderTest {
     this.assertHTML(strip`
       <select>
         <option>1</option>
-        <option ${this.name === 'rehydration' ? ' selected=true' : ''}>2</option>
+        <option>2</option>
         <option>3</option>
       </select>
     `);

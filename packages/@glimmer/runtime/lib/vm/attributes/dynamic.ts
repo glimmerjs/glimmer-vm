@@ -2,97 +2,92 @@ import { warnIfStyleNotTrusted } from '@glimmer/global-context';
 import type {
   AttributeCursor,
   AttributeOperation,
-  AttrNamespace,
+  AttributeRef,
+  BrowserTreeBuilderInterface,
   Dict,
-  DOMEnvironment,
-  ElementBuilder,
-  Environment,
   Nullable,
+  PropRef,
+  ServerTreeBuilderInterface,
 } from '@glimmer/interfaces';
-import { castToBrowser, NS_SVG } from '@glimmer/util';
+import { castToBrowser } from '@glimmer/util';
 
 import { normalizeStringValue } from '../../dom/normalize';
 import { ATTR, normalizeProperty } from '../../dom/props';
 import { requiresSanitization, sanitizeAttributeValue } from '../../dom/sanitized-values';
+import type { ServerTreeBuilder } from '../../dom/tree-builder';
 
-export function dynamicAttribute<E extends DOMEnvironment>(
-  element: E['element'],
+export function dynamicAttribute(
+  tagName: string,
   attributeName: string,
-  namespace: Nullable<AttrNamespace>,
   isTrusting = false
-): DynamicAttribute<E> {
-  let { tagName, namespaceURI } = element;
-  let attribute = { element, name: attributeName, namespace };
+): DynamicAttribute {
+  let attribute: AttributeCursor = { tag: tagName, name: attributeName, normalized: attributeName };
 
   if (import.meta.env.DEV && attributeName === 'style' && !isTrusting) {
-    return new DebugStyleAttributeManager<E>(attribute);
+    return new DebugStyleAttributeManager(attribute);
   }
 
-  if (namespaceURI === NS_SVG) {
-    return buildDynamicAttribute(tagName, attributeName, attribute);
-  }
+  // TODO [2023/06/05] Fix after everything else works
+  // if (namespaceURI === NS_SVG) {
+  //   return buildDynamicAttribute(tagName, attributeName, attribute);
+  // }
 
-  let [type, normalized] = normalizeProperty(element, attributeName);
+  let [type, normalized] = normalizeProperty(document.createElement(tagName), attributeName);
+  attribute.normalized = normalized;
 
-  return type === ATTR
-    ? buildDynamicAttribute(tagName, normalized, attribute)
-    : buildDynamicProperty(tagName, normalized, attribute);
+  return type === ATTR ? buildDynamicAttribute(attribute) : buildDynamicProperty(attribute);
 }
 
-function buildDynamicAttribute<E extends DOMEnvironment>(
-  tagName: string,
-  name: string,
-  attribute: AttributeCursor<E>
-): DynamicAttribute<E> {
-  return requiresSanitization(tagName, name)
-    ? new SafeDynamicAttribute<E>(attribute)
-    : new SimpleDynamicAttribute<E>(attribute);
+function buildDynamicAttribute(attribute: AttributeCursor): DynamicAttribute {
+  return requiresSanitization(attribute.tag, attribute.name)
+    ? new SafeDynamicAttribute(attribute)
+    : new SimpleDynamicAttribute(attribute);
 }
 
-function buildDynamicProperty<E extends DOMEnvironment = DOMEnvironment>(
-  tagName: string,
-  name: string,
-  attribute: AttributeCursor<E>
-): DynamicAttribute<E> {
+function buildDynamicProperty(attribute: AttributeCursor): DynamicAttribute {
+  let { name, tag } = attribute;
+  let tagName = tag.toUpperCase();
   if (requiresSanitization(tagName, name)) {
     return new SafeDynamicProperty(name, attribute);
   }
 
   if (isUserInputValue(tagName, name)) {
-    return new InputValueDynamicAttribute<E>(name, attribute);
+    return new InputValueDynamicAttribute(name, attribute);
   }
 
   if (isOptionSelected(tagName, name)) {
-    return new OptionSelectedDynamicAttribute<E>(name, attribute);
+    return new OptionSelectedDynamicAttribute(name, attribute);
   }
 
   return new DefaultDynamicProperty(name, attribute);
 }
 
-export abstract class DynamicAttribute<E extends DOMEnvironment = DOMEnvironment>
-  implements AttributeOperation<E>
-{
-  constructor(public attribute: AttributeCursor<E>) {}
+export abstract class DynamicAttribute implements AttributeOperation {
+  constructor(public attribute: AttributeCursor) {}
 
-  abstract set(dom: ElementBuilder<E>, value: unknown, environment: Environment): void;
-  abstract update(value: unknown, environment: Environment): void;
+  abstract server(dom: ServerTreeBuilderInterface, value: unknown): void;
+  abstract client(dom: BrowserTreeBuilderInterface, value: unknown): AttributeRef | PropRef;
+  rehydrate(_dom: BrowserTreeBuilderInterface, _element: Element, _value: unknown): void {
+    throw new Error(`Method not implemented (${this.constructor.name}#rehydrate).`);
+  }
+  abstract update(element: Element, value: unknown): void;
 }
 
-export class SimpleDynamicAttribute<
-  E extends DOMEnvironment = DOMEnvironment
-> extends DynamicAttribute<E> {
-  set(dom: ElementBuilder<E>, value: unknown, _environment: Environment): void {
-    let normalizedValue = normalizeValue(value);
-
-    if (normalizedValue !== null) {
-      let { name, namespace } = this.attribute;
-      dom.__setAttribute(name, normalizedValue, namespace);
-    }
+export class SimpleDynamicAttribute extends DynamicAttribute {
+  server(dom: ServerTreeBuilder, value: unknown) {
+    dom.addAttr(this.attribute.name, value);
   }
 
-  update(value: unknown, _environment: Environment): void {
+  client(dom: BrowserTreeBuilderInterface, value: unknown): AttributeRef {
     let normalizedValue = normalizeValue(value);
-    let { element, name } = this.attribute;
+
+    let { name } = this.attribute;
+    return dom.addAttr(name, normalizedValue);
+  }
+
+  update(element: Element, value: unknown): void {
+    let normalizedValue = normalizeValue(value);
+    let { name } = this.attribute;
 
     if (normalizedValue === null) {
       element.removeAttribute(name);
@@ -102,87 +97,93 @@ export class SimpleDynamicAttribute<
   }
 }
 
-export class DefaultDynamicProperty<
-  E extends DOMEnvironment = DOMEnvironment
-> extends DynamicAttribute<E> {
-  constructor(private normalizedName: string, attribute: AttributeCursor<E>) {
+export class DefaultDynamicProperty extends DynamicAttribute {
+  #lastValue: unknown;
+
+  constructor(private normalizedName: string, attribute: AttributeCursor) {
     super(attribute);
   }
 
-  value: unknown;
-  set(dom: ElementBuilder<E>, value: unknown, _environment: Environment): void {
-    if (value !== null && value !== undefined) {
-      this.value = value;
-      dom.__setProperty(this.normalizedName, value);
+  override server(dom: ServerTreeBuilderInterface, value: unknown): void {
+    let normalizedValue = normalizeValue(value);
+
+    if (normalizedValue !== null) {
+      let { name } = this.attribute;
+      dom.addAttr(name, normalizedValue);
     }
   }
 
-  update(value: unknown, _environment: Environment): void {
-    let { element } = this.attribute;
+  override client(dom: BrowserTreeBuilderInterface, value: unknown) {
+    this.#lastValue = value;
+    return dom.addProp(this.normalizedName, (element) => {
+      if (value != null) Reflect.set(element, this.attribute.name, value);
+    });
+  }
 
-    if (this.value !== value) {
-      (element as any)[this.normalizedName] = this.value = value;
+  update(element: Element, value: unknown): void {
+    if (this.#lastValue !== value) {
+      (element as any)[this.normalizedName] = this.#lastValue = value;
 
       if (value === null || value === undefined) {
-        this.removeAttribute();
+        this.removeAttribute(element);
       }
     }
   }
 
-  protected removeAttribute() {
+  protected removeAttribute(element: Element) {
     // TODO this sucks but to preserve properties first and to meet current
     // semantics we must do this.
-    let { element, namespace } = this.attribute;
-
-    if (namespace) {
-      element.removeAttributeNS(namespace, this.normalizedName);
-    } else {
-      element.removeAttribute(this.normalizedName);
-    }
+    element.removeAttribute(this.normalizedName);
   }
 }
 
-export class SafeDynamicProperty<
-  E extends DOMEnvironment = DOMEnvironment
-> extends DefaultDynamicProperty<E> {
-  override set(dom: ElementBuilder<E>, value: unknown, environment: Environment): void {
-    let { element, name } = this.attribute;
-    let sanitized = sanitizeAttributeValue(element, name, value);
-    super.set(dom, sanitized, environment);
+export class SafeDynamicProperty extends DefaultDynamicProperty {
+  override server(dom: ServerTreeBuilderInterface, value: unknown): void {
+    let { name } = this.attribute;
+    let sanitized = sanitizeAttributeValue(this.attribute.tag.toUpperCase(), name, value);
+    super.server(dom, sanitized);
   }
 
-  override update(value: unknown, environment: Environment): void {
-    let { element, name } = this.attribute;
-    let sanitized = sanitizeAttributeValue(element, name, value);
-    super.update(sanitized, environment);
-  }
-}
-
-export class SafeDynamicAttribute<
-  E extends DOMEnvironment = DOMEnvironment
-> extends SimpleDynamicAttribute<E> {
-  override set(dom: ElementBuilder<E>, value: unknown, environment: Environment): void {
-    let { element, name } = this.attribute;
-    let sanitized = sanitizeAttributeValue(element, name, value);
-    super.set(dom, sanitized, environment);
+  override client(dom: BrowserTreeBuilderInterface, value: unknown): PropRef {
+    let { name } = this.attribute;
+    let sanitized = sanitizeAttributeValue(this.attribute.tag.toUpperCase(), name, value);
+    return super.client(dom, sanitized);
   }
 
-  override update(value: unknown, environment: Environment): void {
-    let { element, name } = this.attribute;
-    let sanitized = sanitizeAttributeValue(element, name, value);
-    super.update(sanitized, environment);
+  override update(element: Element, value: unknown): void {
+    let { name } = this.attribute;
+    let sanitized = sanitizeAttributeValue(this.attribute.tag.toUpperCase(), name, value);
+    super.update(element, sanitized);
   }
 }
 
-export class InputValueDynamicAttribute<
-  E extends DOMEnvironment = DOMEnvironment
-> extends DefaultDynamicProperty<E> {
-  override set(dom: ElementBuilder<E>, value: unknown) {
-    dom.__setProperty('value', normalizeStringValue(value));
+export class SafeDynamicAttribute extends SimpleDynamicAttribute {
+  override client(dom: BrowserTreeBuilderInterface, value: unknown): AttributeRef {
+    let { name } = this.attribute;
+    let sanitized = sanitizeAttributeValue(this.attribute.tag.toUpperCase(), name, value);
+    return super.client(dom, sanitized);
   }
 
-  override update(value: unknown) {
-    let input = castToBrowser(this.attribute.element, ['input', 'textarea']);
+  override update(element: Element, value: unknown): void {
+    let { name } = this.attribute;
+    let sanitized = sanitizeAttributeValue(this.attribute.tag.toUpperCase(), name, value);
+    super.update(element, sanitized);
+  }
+}
+
+export class InputValueDynamicAttribute extends DefaultDynamicProperty {
+  override client(dom: BrowserTreeBuilderInterface, value: unknown): PropRef {
+    return dom.addProp('value', (element) =>
+      Reflect.set(element, 'value', normalizeStringValue(value))
+    );
+  }
+
+  override server(dom: ServerTreeBuilderInterface, value: unknown): void {
+    dom.addAttr('value', normalizeStringValue(value));
+  }
+
+  override update(element: Element, value: unknown): void {
+    let input = castToBrowser(element, ['input', 'textarea']);
     let currentValue = input.value;
     let normalizedValue = normalizeStringValue(value);
     if (currentValue !== normalizedValue) {
@@ -191,17 +192,13 @@ export class InputValueDynamicAttribute<
   }
 }
 
-export class OptionSelectedDynamicAttribute<
-  E extends DOMEnvironment = DOMEnvironment
-> extends DefaultDynamicProperty<E> {
-  override set(dom: ElementBuilder<E>, value: unknown): void {
-    if (value !== null && value !== undefined && value !== false) {
-      dom.__setProperty('selected', true);
-    }
+export class OptionSelectedDynamicAttribute extends DefaultDynamicProperty {
+  override client(dom: BrowserTreeBuilderInterface, value: unknown) {
+    return dom.addProp('selected', value);
   }
 
-  override update(value: unknown): void {
-    let option = castToBrowser(this.attribute.element, 'option');
+  override update(element: Element, value: unknown): void {
+    let option = castToBrowser(element, 'option');
 
     option.selected = value ? true : false;
   }
@@ -236,22 +233,19 @@ function normalizeValue(value: unknown): Nullable<string> {
 }
 
 let DebugStyleAttributeManager: {
-  new <E extends DOMEnvironment = DOMEnvironment>(
-    attribute: AttributeCursor<E>
-  ): AttributeOperation<E> & DynamicAttribute<E>;
+  new (attribute: AttributeCursor): AttributeOperation & DynamicAttribute;
 };
 
 if (import.meta.env.DEV) {
-  DebugStyleAttributeManager = class<E extends DOMEnvironment> extends SimpleDynamicAttribute<E> {
-    override set(dom: ElementBuilder<E>, value: unknown, environment: Environment): void {
+  DebugStyleAttributeManager = class extends SimpleDynamicAttribute {
+    override client(dom: BrowserTreeBuilderInterface, value: unknown) {
       warnIfStyleNotTrusted(value);
-
-      super.set(dom, value, environment);
+      return super.client(dom, value);
     }
-    override update(value: unknown, environment: Environment): void {
-      warnIfStyleNotTrusted(value);
 
-      super.update(value, environment);
+    override update(element: Element, value: unknown): void {
+      warnIfStyleNotTrusted(value);
+      super.update(element, value);
     }
   };
 }

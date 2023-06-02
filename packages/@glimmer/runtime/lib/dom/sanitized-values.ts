@@ -1,4 +1,4 @@
-import type { DOMEnvironment, Nullable } from '@glimmer/interfaces';
+import type { Nullable } from '@glimmer/interfaces';
 
 import { isSafeString, normalizeStringValue } from '../dom/normalize';
 
@@ -89,12 +89,10 @@ if (
 }
 
 export function sanitizeAttributeValue(
-  element: DOMEnvironment['element'],
+  tagName: Nullable<string>,
   attribute: string,
   value: unknown
 ): unknown {
-  let tagName: Nullable<string> = null;
-
   if (value === null || value === undefined) {
     return value;
   }
@@ -102,8 +100,6 @@ export function sanitizeAttributeValue(
   if (isSafeString(value)) {
     return value.toHTML();
   }
-
-  tagName = element ? element.tagName.toUpperCase() : null;
 
   let text = normalizeStringValue(value);
 

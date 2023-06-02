@@ -1,5 +1,5 @@
 import type { AttrNamespace } from '@simple-dom/interface';
-import type { Destroyable, Nullable } from '../core';
+import type { Destroyable, Nullable, Optional } from '../core';
 
 export interface MinimalDocument {
   readonly nodeType: number;
@@ -81,6 +81,7 @@ interface ElementRef {
 
 export interface DOMTreeBuilderInterface {
   readonly debug?: DebugDOMTreeBuilder;
+  readonly _currentTag_: string | null;
 
   startBlock(): void;
   endBlock(): void;
@@ -129,6 +130,7 @@ export interface BrowserTreeBuilderInterface extends DOMTreeBuilderInterface {
   comment(data: string): MinimalComment;
   startElement(tag: string): void;
   addAttr(attributeName: string, attributeValue: unknown): AttributeRef;
+  addProp(propName: string, insert: (value: Element) => void): PropRef;
   flushElement(): MinimalElement;
   endElement(): MinimalElement;
   startInElement(cursor: MinimalCursor, guid: string): void;
@@ -140,8 +142,19 @@ export type TreeBuilder =
   | BrowserTreeBuilderInterface
   | CustomTreeBuilderInterface<unknown>;
 
-export type AttributeValue = string | boolean | undefined;
-export type AttributeRef = [qualifiedName: string, element: Element | null];
+export type AttributeValue = Optional<string | boolean>;
+export type AttributeRef = [qualifiedName: string, element: Nullable<Element>];
+
+export type IREF_NAME = 0;
+export type IREF_ELEMENT = 1;
+
+export type PropRef = [
+  propName: string,
+  element: Nullable<Element>,
+  insert: (element: Element) => void
+];
+
+export type IPROP_REF_VALUE = 2;
 
 export interface MinimalBlockBoundsRef {
   current: MinimalBlockBounds | null;

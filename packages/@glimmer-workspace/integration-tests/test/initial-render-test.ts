@@ -38,7 +38,7 @@ import {
 const isIE11 = !(window as any).ActiveXObject && 'ActiveXObject' in window;
 
 class RenderTests extends InitialRenderSuite {
-  static override suiteName = 'initial render (client)';
+  static override suiteName = 'initial render (loose attributes, client)';
   override name = 'client';
 }
 

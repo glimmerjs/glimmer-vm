@@ -11,7 +11,8 @@ import type {
   TextFor,
 } from './bounds';
 import type { GlimmerTreeChanges, GlimmerTreeConstruction } from './changes';
-import type { AttrNamespace as AttributeNamespace, SimpleDocumentFragment } from './simple';
+import type { SimpleDocumentFragment } from './simple';
+import type { BrowserTreeBuilderInterface, ServerTreeBuilderInterface } from './tree-builder';
 
 export interface LiveBlock<E extends DOMEnvironment = DOMEnvironment> extends Bounds<E> {
   openElement(element: E['element']): void;
@@ -101,14 +102,18 @@ export interface ElementBuilder<E extends DOMEnvironment = DOMEnvironment>
   didAppendBounds(bounds: Bounds<E>): void;
 }
 
-export interface AttributeCursor<E extends DOMEnvironment = DOMEnvironment> {
-  element: E['element'];
+export interface AttributeCursor {
+  tag: string;
+  /** The specified attribute name */
   name: string;
-  namespace: Nullable<AttributeNamespace>;
+  /** The normalized attribute name (e.g. ') */
+  normalized: string;
 }
 
-export interface AttributeOperation<E extends DOMEnvironment = DOMEnvironment> {
+export interface AttributeOperation {
   attribute: AttributeCursor;
-  set(dom: ElementBuilder<E>, value: unknown, environment: Environment): void;
-  update(value: unknown, environment: Environment): void;
+  server(dom: ServerTreeBuilderInterface, value: unknown): void;
+  client(dom: BrowserTreeBuilderInterface, value: unknown): void;
+  rehydrate(_dom: BrowserTreeBuilderInterface, _element: Element, _value: unknown): void;
+  update(element: Element, value: unknown): void;
 }

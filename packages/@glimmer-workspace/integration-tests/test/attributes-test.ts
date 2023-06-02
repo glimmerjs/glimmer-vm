@@ -249,7 +249,7 @@ export class AttributesTests extends BrowserRenderTest {
     this.assertStableNodes();
   }
 
-  @test.todo.todo
+  @test.todo
   'handles successive updates to the same value'() {
     class Model {
       @tracked value = '';
@@ -283,7 +283,7 @@ export class AttributesTests extends BrowserRenderTest {
     this.assertStableNodes();
   }
 
-  @test.todo.todo
+  @test.todo
   'input[checked] prop updates when set to undefined'() {
     this.registerHelper('if', (parameters) => {
       return parameters[0] ? parameters[1] : parameters[2];
@@ -302,7 +302,7 @@ export class AttributesTests extends BrowserRenderTest {
     this.assertStableNodes();
   }
 
-  @test.todo.todo
+  @test.todo
   'input[checked] prop updates when set to null'() {
     this.render('<input checked={{this.foo}} />', { foo: true });
     this.assert.strictEqual(this.readDOMAttr('checked'), true);
@@ -317,7 +317,7 @@ export class AttributesTests extends BrowserRenderTest {
     this.assertStableNodes();
   }
 
-  @test.todo.todo
+  @test.todo
   'select[value] prop updates when set to undefined'() {
     // setting `select[value]` only works after initial render, just use
     this.render(
@@ -337,7 +337,7 @@ export class AttributesTests extends BrowserRenderTest {
     this.assertStableNodes();
   }
 
-  @test.todo.todo
+  @test.todo
   'handles empty string textarea values'() {
     this.render('<textarea value={{this.name}} />', { name: '' });
     this.assert.strictEqual(this.readDOMAttr('value'), '');
@@ -352,7 +352,7 @@ export class AttributesTests extends BrowserRenderTest {
     this.assert.strictEqual(this.readDOMAttr('value'), '');
   }
 
-  @test.todo.todo
+  @test.todo
   'handles empty string input placeholders'() {
     this.render('<input type="text" placeholder={{this.name}} />', { name: '' });
     this.assert.strictEqual(this.readDOMAttr('placeholder'), '');
@@ -366,7 +366,7 @@ export class AttributesTests extends BrowserRenderTest {
     this.assertStableNodes();
   }
 
-  @test.todo.todo
+  @test.todo
   'type attribute can be set to non-valid type'() {
     this.render('<input type="yolo" />');
     this.assert.strictEqual(this.readDOMAttr('type'), 'text');
@@ -376,7 +376,7 @@ export class AttributesTests extends BrowserRenderTest {
     this.assertStableNodes();
   }
 
-  @test.todo.todo
+  @test.todo
   'does not set undefined attributes'() {
     this.render('<div data-foo={{this.isUndefined}} /><div data-foo={{this.isNotUndefined}} />', {
       isUndefined: undefined,
@@ -412,7 +412,7 @@ export class AttributesTests extends BrowserRenderTest {
     this.assertStableNodes();
   }
 
-  @test.todo.todo
+  @test.todo
   'does not set null attributes'() {
     this.render('<div data-foo={{this.isNull}} /><div data-foo={{this.isNotNull}} />', {
       isNull: null,
@@ -452,7 +452,7 @@ export class AttributesTests extends BrowserRenderTest {
     this.assertStableNodes();
   }
 
-  @test.todo.todo
+  @test.todo
   'does not set undefined properties initially'() {
     this.render('<div title={{this.isUndefined}} /><div title={{this.isNotUndefined}} />', {
       isUndefined: undefined,
@@ -489,7 +489,7 @@ export class AttributesTests extends BrowserRenderTest {
     this.assertHTML('<div></div><div title="hello"></div>');
   }
 
-  @test.todo.todo
+  @test.todo
   'does not set null properties initially'() {
     this.render('<div title={{this.isNull}} /><div title={{this.isNotNull}} />', {
       isNull: undefined,
@@ -526,7 +526,7 @@ export class AttributesTests extends BrowserRenderTest {
     this.assertHTML('<div></div><div title="hello"></div>');
   }
 
-  @test.todo.todo
+  @test.todo
   'input list attribute updates properly'() {
     this.render('<input list="{{this.foo}}" />', { foo: 'bar' });
     this.assertHTML('<input list="bar" />');
@@ -541,7 +541,7 @@ export class AttributesTests extends BrowserRenderTest {
     this.assertStableNodes();
   }
 
-  @test.todo.todo
+  @test.todo
   'normalizes lowercase dynamic properties correctly'() {
     this.render('<div tiTle={{this.foo}} />', { foo: 'bar' });
     this.assertHTML('<div title="bar" />');
@@ -556,7 +556,7 @@ export class AttributesTests extends BrowserRenderTest {
     this.assertStableNodes();
   }
 
-  @test.todo.todo
+  @test.todo
   'normalizes mix-case dynamic properties correctly'() {
     this.render('<svg viewBox={{this.foo}} />', { foo: '0 0 100 100' });
     this.assertHTML('<svg viewBox="0 0 100 100" />');
@@ -580,7 +580,7 @@ abstract class BoundValuesToSpecialAttributeTests extends RenderTest {
   protected isEmptyElement = false;
   protected selfClosing = true;
 
-  @test.todo.todo
+  @test.todo
   'marks javascript: protocol as unsafe'() {
     this.render(this.tmplt('{{this.foo}}'), {
       foo: 'javascript:foo()',
@@ -597,7 +597,7 @@ abstract class BoundValuesToSpecialAttributeTests extends RenderTest {
     this.assertStableNodes();
   }
 
-  @test.todo.todo
+  @test.todo
   'marks javascript: protocol as unsafe, http as safe'() {
     this.render(this.tmplt('{{this.foo}}'), { foo: 'javascript:foo()' });
     this.assertHTML(this.tmplt('unsafe:javascript:foo()'));
@@ -612,7 +612,7 @@ abstract class BoundValuesToSpecialAttributeTests extends RenderTest {
     this.assertStableNodes();
   }
 
-  @test.todo.todo
+  @test.todo
   'marks javascript: protocol as unsafe on updates'() {
     this.render(this.tmplt('{{this.foo}}'), { foo: 'http://foo.bar' });
     this.assertHTML(this.tmplt('http://foo.bar', true));
@@ -627,7 +627,7 @@ abstract class BoundValuesToSpecialAttributeTests extends RenderTest {
     this.assertStableNodes();
   }
 
-  @test.todo.todo
+  @test.todo
   'marks vbscript: protocol as unsafe'() {
     this.render(this.tmplt('{{this.foo}}'), { foo: 'vbscript:foo()' });
     this.assertHTML(this.tmplt('unsafe:vbscript:foo()', true));
@@ -642,7 +642,7 @@ abstract class BoundValuesToSpecialAttributeTests extends RenderTest {
     this.assertStableNodes();
   }
 
-  @test.todo.todo
+  @test.todo
   'can be removed by setting to `null`'() {
     this.render(this.tmplt('{{this.foo}}', false), { foo: 'http://foo.bar/derp.jpg' });
     this.assertHTML(this.tmplt('http://foo.bar/derp.jpg'));
@@ -657,7 +657,7 @@ abstract class BoundValuesToSpecialAttributeTests extends RenderTest {
     this.assertStableNodes();
   }
 
-  @test.todo.todo
+  @test.todo
   'can be removed by setting to `undefined`'() {
     this.render(this.tmplt('{{this.foo}}', false), { foo: 'http://foo.bar/derp.jpg' });
     this.assertHTML(this.tmplt('http://foo.bar/derp.jpg'));

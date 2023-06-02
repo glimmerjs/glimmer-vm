@@ -469,9 +469,7 @@ export class RenderTest implements IRenderTest {
     element: Element | SimpleElement = this.#currentBuilderElement()
   ): NodesSnapshot {
     let snapshot: NodesSnapshot = (this.snapshot = []);
-    debugger;
 
-    let builder = this.delegate.getCurrentBuilder();
     let node: Nullable<Node | SimpleNode> = element.firstChild;
     let upped = false;
 

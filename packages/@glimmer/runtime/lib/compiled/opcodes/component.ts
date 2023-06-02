@@ -121,6 +121,7 @@ import { getClassicBoundsFor } from '../../vm/update';
 import { type TrackedCache, getValue, createCache } from '@glimmer/validator';
 import { UpdateModifierOpcode } from './modifier';
 import { _readValue_ } from '@glimmer/reference/lib/reference';
+import { dynamicAttribute } from '../../vm/attributes/dynamic';
 
 /**
  * The VM creates a new ComponentInstance data structure for every component
@@ -654,17 +655,24 @@ export class BrowserComponentElementOperations
   override addAttr(
     vm: InternalVM<BrowserDomTypes>,
     name: string,
-    value: string | Reference<unknown>,
+    attrValue: string | Reference<unknown>,
     _namespace: Nullable<string>,
-    _trusting: boolean
+    trusting: boolean
   ): void {
-    if (typeof value === 'string') {
-      vm._elements_().addAttr(name, value);
-    } else {
-      let attribute = vm._elements_().addAttr(name, valueForRef(value));
-      if (!isConstRef(value)) {
-        vm._updateWith_(new UpdateDynamicAttributeOpcode(value, attribute, vm.env));
-      }
+    let dom = vm._elements_();
+
+    if (typeof attrValue === 'string') {
+      dom.addAttr(name, attrValue);
+      return;
+    }
+
+    let tag = dom._currentTag_ as string;
+
+    let attribute = dynamicAttribute(tag, name, trusting);
+
+    let ref = attribute.client(dom, valueForRef(attrValue));
+    if (!isConstRef(attrValue)) {
+      vm._updateWith_(new UpdateDynamicAttributeOpcode(attrValue, attribute, ref));
     }
   }
 

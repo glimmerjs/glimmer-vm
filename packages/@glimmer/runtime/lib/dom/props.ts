@@ -1,11 +1,11 @@
-import type { DOMEnvironment, SimpleElement } from '@glimmer/interfaces';
+import type { SimpleElement } from '@glimmer/interfaces';
 
 export const ATTR = 0;
 export const PROP = 1;
 export type AttrType = 0 | 1;
 export type NormalizedProperty = [type: AttrType, normalized: string];
 
-export function normalizeProperty<E extends DOMEnvironment>(
+export function normalizeProperty(
   element: Element | SimpleElement,
   slotName: string
 ): NormalizedProperty {

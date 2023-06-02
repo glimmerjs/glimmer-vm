@@ -1,5 +1,6 @@
 import { registerDestructor } from '@glimmer/destroyable';
 import type {
+  IREF_ELEMENT,
   AttributeRef,
   BlockBounds,
   BlockBoundsRef,
@@ -18,6 +19,8 @@ import type {
   BrowserTreeBuilderInterface,
   ElementBuffer,
   ServerTreeBuilderInterface,
+  PropRef,
+  Nullable,
 } from '@glimmer/interfaces';
 import {
   INSERT_BEFORE_END,
@@ -26,6 +29,8 @@ import {
   assert,
   PresentStack as PresentStackImpl,
 } from '@glimmer/util';
+
+export const REF_ELEMENT: IREF_ELEMENT = 1;
 
 function getBoundsNodes(bounds: BlockBounds): [start: MinimalChild, end: MinimalChild] {
   let { start, end } = bounds;
@@ -92,9 +97,7 @@ for (let tagName of voidTagNames.split(' ')) {
   voidMap[tagName] = true;
 }
 
-
 export class ServerTreeBuilder implements ServerTreeBuilderInterface {
-
   readonly type = 'server';
 
   #buffer = '';
@@ -106,12 +109,13 @@ export class ServerTreeBuilder implements ServerTreeBuilderInterface {
     return buffer;
   }
 
-  startBlock(): void {
+  get _currentTag_(): Nullable<string> {
+    return this.#element?.tag ?? null;
   }
-  endBlock(): void {
-  }
-  return(): void {
-  }
+
+  startBlock(): void {}
+  endBlock(): void {}
+  return(): void {}
   text(text: string): void {
     this.#buffer += escapeHTML(text);
   }
@@ -226,6 +230,10 @@ export class BrowserTreeBuilder implements BrowserTreeBuilderInterface {
     return this.#cursor[0];
   }
 
+  get _currentTag_(): Nullable<string> {
+    return this.#buffer?.tag ?? null;
+  }
+
   html(html: string): [MinimalChild | null, MinimalChild | null] {
     let [start, end] = insertHTML(this.#cursor, html);
 
@@ -333,6 +341,10 @@ export class BrowserTreeBuilder implements BrowserTreeBuilderInterface {
 
   addAttr(attributeName: string, attributeValue: string | boolean | undefined): AttributeRef {
     return unwrap(this.#buffer).attr(attributeName, attributeValue);
+  }
+
+  addProp(propName: string, insert: (element: Element) => void): PropRef {
+    return unwrap(this.#buffer).prop(propName, insert);
   }
 
   flushElement() {
@@ -447,25 +459,35 @@ export const PARENT_CURSOR = 2;
 
 interface BrowserElementBuffer extends ElementBuffer {
   readonly ref: ElementRef;
+  readonly tag: string;
   attr: (attributeName: string, attributeValue?: string | boolean) => AttributeRef;
+  prop: (propName: string, insert: (element: Element) => void) => PropRef;
+
   initialize: (element: Element) => void;
 }
 
 function BrowserElementBuffer(tag: string): BrowserElementBuffer {
   let buffer = `<${tag}`;
   let refs: AttributeRef[] = [];
+  let props: PropRef[] = [];
   let elementRef: ElementRef = {
     current: null,
   };
 
   return {
+    tag,
     get ref(): ElementRef {
       return elementRef;
     },
 
     initialize: (element: Element): void => {
       elementRef.current = element;
-      for (let ref of refs) ref[1] = element;
+      for (let ref of refs) ref[REF_ELEMENT] = element;
+      for (let prop of props) {
+        prop[REF_ELEMENT] = element;
+        let propValue = prop[2];
+        propValue(element);
+      }
     },
 
     attr(qualifiedName: string, attributeValue: unknown) {
@@ -473,10 +495,16 @@ function BrowserElementBuffer(tag: string): BrowserElementBuffer {
       refs.push(ref);
       attributeValue = specialAttributeValue(tag, qualifiedName, attributeValue);
 
-      if (attributeValue === false) return ref;
+      if (attributeValue === false || attributeValue === null) return ref;
       if (attributeValue === true) attributeValue = '';
 
       buffer += ` ${qualifiedName}="${attributeValue}"`;
+      return ref;
+    },
+
+    prop(propName: string, insert: (element: Element) => void) {
+      let ref: PropRef = [propName, null, insert];
+      props.push(ref);
       return ref;
     },
 
