@@ -9,6 +9,7 @@ import {
   getValue,
   isConst,
   isTracking,
+  resetTracking,
   track,
   trackedData,
   untrack,
@@ -18,7 +19,11 @@ import {
 
 import { module, test } from './utils';
 
-module('@glimmer/validator: tracking', () => {
+module('@glimmer/validator: tracking', ({ beforeEach }) => {
+  beforeEach(() => {
+    resetTracking();
+  });
+
   module('track', () => {
     test('it combines tags that are consumed within a track frame', (assert) => {
       let tag1 = createTag();
