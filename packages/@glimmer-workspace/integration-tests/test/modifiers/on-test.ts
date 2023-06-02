@@ -2,7 +2,11 @@ import { getInternalModifierManager } from '@glimmer/manager';
 import { on } from '@glimmer/runtime';
 import { castToBrowser, expect } from '@glimmer/util';
 
-import { jitSuite, RenderTest, test } from '../..';
+import {
+  BrowserRenderTest,
+  jitSuite,
+  test,
+} from '@glimmer-workspace/integration-tests';
 
 // check if window exists and actually is the global
 const hasDom =
@@ -48,7 +52,7 @@ function getOnManager() {
 }
 
 if (hasDom) {
-  class OnTest extends RenderTest {
+  class OnTest extends BrowserRenderTest {
     static suiteName = '{{on}} Modifier';
 
     startingCounters: Counters = { adds: 0, removes: 0 };

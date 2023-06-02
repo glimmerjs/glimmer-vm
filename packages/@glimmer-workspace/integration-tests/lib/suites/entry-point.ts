@@ -4,11 +4,11 @@ import { castToBrowser } from '@glimmer/util';
 
 import type { ComponentKind } from '../components/types';
 import { JitRenderDelegate } from '../modes/jit/delegate';
-import { Count, RenderTest } from '../render-test';
+import { BrowserRenderTest, Count } from '../render-test';
 import { test } from '../test-decorator';
 import { defineComponent } from '../test-helpers/define';
 
-export class EntryPointTest extends RenderTest {
+export class EntryPointTest extends BrowserRenderTest {
   static suiteName = 'entry points';
 
   declare readonly testType: ComponentKind;
@@ -20,12 +20,12 @@ export class EntryPointTest extends RenderTest {
     let delegate = new JitRenderDelegate();
     let Title = defineComponent({}, `<h1>hello {{@title}}</h1>`);
 
-    let element = delegate.getInitialElement();
+    let builder = delegate.getInitialBuilder();
     let title = createPrimitiveRef('renderComponent');
-    delegate.renderComponent(Title, { title }, element);
+    delegate.renderComponent(Title, { title }, builder);
 
     QUnit.assert.strictEqual(
-      castToBrowser(element, 'HTML').innerHTML,
+      castToBrowser(builder._currentElement_, 'HTML').innerHTML,
       '<h1>hello renderComponent</h1>'
     );
   }
@@ -35,7 +35,7 @@ export class EntryPointTest extends RenderTest {
     let delegate = new JitRenderDelegate();
     let Title = defineComponent({}, `<h1>hello {{@title}}</h1>`);
 
-    let element = delegate.getInitialElement();
+    let element = this.element;
     let title = createPrimitiveRef('renderComponent');
     delegate.renderComponent(Title, { title }, element);
     QUnit.assert.strictEqual(
@@ -43,7 +43,7 @@ export class EntryPointTest extends RenderTest {
       '<h1>hello renderComponent</h1>'
     );
 
-    element = delegate.getInitialElement();
+    element = this.element;
     let newTitle = createPrimitiveRef('new title');
     delegate.renderComponent(Title, { title: newTitle }, element);
     QUnit.assert.strictEqual(castToBrowser(element, 'HTML').innerHTML, '<h1>hello new title</h1>');
@@ -55,7 +55,7 @@ export class EntryPointTest extends RenderTest {
     let Title = defineComponent({}, `<h1>hello {{@title}}</h1>`);
     let Body = defineComponent({}, `<p>body {{@body}}</p>`);
 
-    let element = delegate.getInitialElement();
+    let element = this.element;
     let title = createPrimitiveRef('renderComponent');
     delegate.renderComponent(Title, { title }, element);
     QUnit.assert.strictEqual(
@@ -63,7 +63,7 @@ export class EntryPointTest extends RenderTest {
       '<h1>hello renderComponent</h1>'
     );
 
-    element = delegate.getInitialElement();
+    element = this.element;
     let body = createPrimitiveRef('text');
     delegate.renderComponent(Body, { body }, element);
     QUnit.assert.strictEqual(castToBrowser(element, 'HTML').innerHTML, '<p>body text</p>');
@@ -74,7 +74,7 @@ export class EntryPointTest extends RenderTest {
     let delegate = new JitRenderDelegate();
     let Locale = defineComponent({}, `{{-get-dynamic-var "locale"}}`);
 
-    let element = delegate.getInitialElement();
+    let element = this.element;
     let dynamicScope = new DynamicScopeImpl({
       locale: createPrimitiveRef('en_US'),
     });

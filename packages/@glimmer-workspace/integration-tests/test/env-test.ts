@@ -1,11 +1,11 @@
+import type { MinimalDocument } from '@glimmer/interfaces';
 import { EnvironmentImpl } from '@glimmer/runtime';
-import { castToSimple } from '@glimmer/util';
 
 QUnit.module('[integration] env');
 
 QUnit.test('assert against nested transactions', (assert) => {
   let environment = new EnvironmentImpl(
-    { document: castToSimple(document) },
+    { document: document as MinimalDocument },
     {
       onTransactionCommit() {},
       isInteractive: true,
@@ -21,7 +21,7 @@ QUnit.test('assert against nested transactions', (assert) => {
 
 QUnit.test('ensure commit cleans up when it can', (assert) => {
   let environment = new EnvironmentImpl(
-    { document: castToSimple(document) },
+    { document: document as MinimalDocument },
     {
       onTransactionCommit() {},
       isInteractive: true,

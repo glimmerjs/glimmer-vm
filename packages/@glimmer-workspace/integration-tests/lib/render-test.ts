@@ -70,16 +70,20 @@ export class Count {
 export class RenderTest implements IRenderTest {
   testType: ComponentKind = 'unknown';
 
-  protected element: SimpleElement;
   protected assert = QUnit.assert;
   protected context: Dict = dict();
   protected renderResult: Nullable<RenderResult> = null;
   protected helpers = dict<UserHelper>();
   protected snapshot: NodesSnapshot = [];
+  protected delegate: RenderDelegate;
   readonly count = new Count();
 
-  constructor(protected delegate: RenderDelegate) {
-    this.element = delegate.getInitialElement();
+  constructor(delegate: RenderDelegate) {
+    this.delegate = delegate;
+  }
+
+  #currentBuilderElement(): Element | SimpleElement {
+    return this.delegate.getCurrentBuilder()._currentElement_ as Element | SimpleElement;
   }
 
   capture<T>() {
@@ -353,14 +357,17 @@ export class RenderTest implements IRenderTest {
   }
 
   shouldBeVoid(tagName: string) {
-    clearElement(this.element);
+    let element = this.#currentBuilderElement();
+    clearElement(element);
+    let builder = this.delegate.getCurrentBuilder();
+
     let html = '<' + tagName + " data-foo='bar'><p>hello</p>";
-    this.delegate.renderTemplate(html, this.context, this.element, () => this.takeSnapshot());
+    this.delegate.renderTemplate(html, this.context, builder, () => this.takeSnapshot());
 
     let tag = '<' + tagName + ' data-foo="bar">';
     let closing = '</' + tagName + '>';
     let extra = '<p>hello</p>';
-    html = toInnerHTML(this.element);
+    html = toInnerHTML(element);
 
     QUnit.assert.pushResult({
       result: html === tag + extra || html === tag + closing + extra,
@@ -387,9 +394,11 @@ export class RenderTest implements IRenderTest {
     }
 
     this.setProperties(properties);
+    let builder = this.delegate.getCurrentBuilder();
+    let element = builder._currentElement_;
 
-    this.renderResult = this.delegate.renderTemplate(template, this.context, this.element, () =>
-      this.takeSnapshot()
+    this.renderResult = this.delegate.renderTemplate(template, this.context, builder, () =>
+      this.takeSnapshot(element)
     );
   }
 
@@ -409,7 +418,12 @@ export class RenderTest implements IRenderTest {
       'Attempted to render a component, but the delegate did not implement renderComponent'
     );
 
-    this.renderResult = this.delegate.renderComponent(component, args, this.element, dynamicScope);
+    this.renderResult = this.delegate.renderComponent(
+      component,
+      args,
+      this.delegate.getInitialBuilder(),
+      dynamicScope
+    );
   }
 
   rerender(properties: Dict<unknown> = {}, message?: string): void {
@@ -452,13 +466,15 @@ export class RenderTest implements IRenderTest {
     }
   }
 
-  protected takeSnapshot(): NodesSnapshot {
+  protected takeSnapshot(
+    element: Element | SimpleElement = this.#currentBuilderElement()
+  ): NodesSnapshot {
     let snapshot: NodesSnapshot = (this.snapshot = []);
 
-    let node = this.element.firstChild;
+    let node: Nullable<Node | SimpleNode> = element.firstChild;
     let upped = false;
 
-    while (node && node !== this.element) {
+    while (node && node !== element) {
       if (upped) {
         if (node.nextSibling) {
           node = node.nextSibling;
@@ -487,7 +503,7 @@ export class RenderTest implements IRenderTest {
   }
 
   protected assertStableRerender() {
-    this.takeSnapshot();
+    this.takeSnapshot(this.delegate.getCurrentBuilder()._currentElement_);
     this.runTask(() => this.rerender());
     this.assertStableNodes();
   }
@@ -597,16 +613,19 @@ export class RenderTest implements IRenderTest {
   }
 
   protected assertHTML(html: string, elementOrMessage?: SimpleElement | string, message?: string) {
+    let element = this.#currentBuilderElement();
     if (typeof elementOrMessage === 'object') {
-      equalTokens(elementOrMessage || this.element, html, message ? `${html} (${message})` : html);
+      equalTokens(elementOrMessage || element, html, message ? `${html} (${message})` : html);
     } else {
-      equalTokens(this.element, html, elementOrMessage ? `${html} (${elementOrMessage})` : html);
+      equalTokens(element, html, elementOrMessage ? `${html} (${elementOrMessage})` : html);
     }
-    this.takeSnapshot();
+    this.takeSnapshot(element);
   }
 
   protected assertComponent(content: string, attributes: Object = {}) {
-    let element = assertingElement(this.element.firstChild);
+    let parent = this.#currentBuilderElement();
+
+    let element = assertingElement(parent.firstChild);
 
     switch (this.testType) {
       case 'Glimmer':
@@ -616,7 +635,7 @@ export class RenderTest implements IRenderTest {
         assertEmberishElement(element, 'div', attributes, content);
     }
 
-    this.takeSnapshot();
+    this.takeSnapshot(element);
   }
 
   private runTask<T>(callback: () => T): T {
@@ -635,11 +654,17 @@ export class RenderTest implements IRenderTest {
 
     let { oldSnapshot, newSnapshot } = normalizeSnapshot(
       this.snapshot,
-      this.takeSnapshot(),
+      this.takeSnapshot(this.#currentBuilderElement()),
       except
     );
 
     this.assert.deepEqual(oldSnapshot, newSnapshot, 'DOM nodes are stable');
+  }
+}
+
+export class BrowserRenderTest extends RenderTest {
+  get element() {
+    return this.delegate.getCurrentBuilder()._currentElement_;
   }
 }
 

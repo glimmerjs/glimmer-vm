@@ -22,7 +22,9 @@ import {
 import Serializer from '@simple-dom/serializer';
 import voidMap from '@simple-dom/void-map';
 
-export function toInnerHTML(parent: SimpleElement | SimpleDocumentFragment): string {
+export function toInnerHTML(
+  parent: SimpleElement | Element | SimpleDocumentFragment | DocumentFragment
+): string {
   let serializer = new Serializer(voidMap);
   return serializer.serializeChildren(parent);
 }
@@ -167,12 +169,12 @@ export function replaceHTML(parent: SimpleElement, value: string): void {
   parent.insertAdjacentHTML(INSERT_AFTER_BEGIN, value);
 }
 
-export function assertingElement(node: Maybe<SimpleNode>): SimpleElement {
+export function assertingElement(node: Maybe<SimpleNode | Node>): SimpleElement | Element {
   if (!node || node.nodeType !== ELEMENT_NODE) {
     throw new Error(`Expected element, got ${node}`);
   }
 
-  return node;
+  return node as SimpleElement | Element;
 }
 
 export function isSimpleElement(node: Maybe<SimpleNode>): node is SimpleElement {

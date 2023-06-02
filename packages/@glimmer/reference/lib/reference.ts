@@ -282,6 +282,10 @@ export function _tagForRef_(reference: Reference): Nullable<Tag> {
   return (reference as ReferenceImpl).tag;
 }
 
+export function _readValue_<T>(reference: Reference<T> | T): T {
+  return isRef(reference) ? valueForRef(reference) : reference;
+}
+
 export const isInvokableRef = ReferenceImpl._isInvokableRef_;
 export const isRef = ReferenceImpl._is_;
 export const childRefFor = ReferenceImpl._childRefFor_;

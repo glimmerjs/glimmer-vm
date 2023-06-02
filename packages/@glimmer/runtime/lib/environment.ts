@@ -106,7 +106,7 @@ export class EnvironmentImpl implements Environment {
     this.isInteractive = delegate.isInteractive;
     this.debugRenderTree = this.#delegate.enableDebugTooling ? new DebugRenderTree() : undefined;
 
-    if (import.meta.env && !options.appendOperations && !options.document) {
+    if (import.meta.env.DEV && !options.appendOperations && !options.document) {
       throw new Error('you must pass document or appendOperations to a new runtime');
     }
 

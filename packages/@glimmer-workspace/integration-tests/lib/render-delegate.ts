@@ -1,16 +1,10 @@
 import type {
-  Cursor,
-  DOMTreeBuilder,
   Dict,
   DynamicScope,
-  ElementNamespace,
   Environment,
   Helper,
   RenderResult,
-  SimpleDocument,
-  SimpleDocumentFragment,
-  SimpleElement,
-  SimpleText,
+  TreeBuilder,
 } from '@glimmer/interfaces';
 import type { Reference } from '@glimmer/reference';
 import type { EnvironmentDelegate } from '@glimmer/runtime';
@@ -22,17 +16,13 @@ import type { TestJitRegistry } from './modes/jit/registry';
 import type { TestJitRuntimeResolver } from './modes/jit/resolver';
 
 export interface RenderDelegateOptions {
-  doc?: SimpleDocument | Document | undefined;
   env?: EnvironmentDelegate | undefined;
   resolver?: (registry: TestJitRegistry) => TestJitRuntimeResolver;
 }
 
 export default interface RenderDelegate {
-  getInitialElement(): SimpleElement;
-  createElement(tagName: string): SimpleElement;
-  createTextNode(content: string): SimpleText;
-  createElementNS(namespace: ElementNamespace, tagName: string): SimpleElement;
-  createDocumentFragment(): SimpleDocumentFragment;
+  getInitialBuilder(): TreeBuilder;
+  getCurrentBuilder(): TreeBuilder;
   registerComponent<K extends ComponentKind, L extends ComponentKind>(
     type: K,
     testType: L,
@@ -47,15 +37,14 @@ export default interface RenderDelegate {
   renderTemplate(
     template: string,
     context: Dict<unknown>,
-    element: SimpleElement,
+    builder: TreeBuilder,
     snapshot: () => void
   ): RenderResult;
   renderComponent?(
     component: object,
     args: Record<string, unknown>,
-    element: SimpleElement,
+    element: TreeBuilder,
     dynamicScope?: DynamicScope
   ): RenderResult;
-  getElementBuilder(environment: Environment, cursor: Cursor): DOMTreeBuilder;
   getSelf(environment: Environment, context: unknown): Reference;
 }

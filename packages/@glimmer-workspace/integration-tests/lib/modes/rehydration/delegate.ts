@@ -1,12 +1,10 @@
 /* eslint-disable unicorn/prefer-dom-node-append */
 import type {
-  Cursor,
-  DOMTreeBuilder,
   Dict,
-  ElementBuilder,
   ElementNamespace,
   Environment,
   Helper,
+  MinimalDocument,
   Nullable,
   RenderResult,
   SimpleDocument,
@@ -14,8 +12,8 @@ import type {
   SimpleElement,
   SimpleNode,
   SimpleText,
+  TreeBuilder,
 } from '@glimmer/interfaces';
-import { serializeBuilder } from '@glimmer/node';
 import { createConstRef, type Reference } from '@glimmer/reference';
 import type { ASTPluginBuilder, PrecompileOptions } from '@glimmer/syntax';
 import { castToSimple } from '@glimmer/util';
@@ -23,7 +21,7 @@ import createHTMLDocument from '@simple-dom/document';
 
 import { BaseEnvironment as BaseEnvironment } from '../../base-env';
 import type { ComponentKind } from '../../components';
-import { replaceHTML, toInnerHTML } from '../../dom/simple-utils';
+import { toInnerHTML } from '../../dom/simple-utils';
 import type { UserHelper } from '../../helpers';
 import type { TestModifierConstructor } from '../../modifiers';
 import type RenderDelegate from '../../render-delegate';
@@ -38,7 +36,8 @@ import {
 import { TestJitRegistry } from '../jit/registry';
 import { renderTemplate } from '../jit/render';
 import { TestJitRuntimeResolver } from '../jit/resolver';
-import { debugRehydration, type DebugRehydrationBuilder } from './builder';
+import type { DebugRehydrationBuilder } from './builder';
+import { ServerTreeBuilder } from '@glimmer/runtime/lib/dom/tree-builder';
 
 export interface RehydrationStats {
   clearedNodes: SimpleNode[];
@@ -67,17 +66,17 @@ export class RehydrationDelegate implements RenderDelegate {
   private self: Nullable<Reference> = null;
 
   constructor(options?: RenderDelegateOptions) {
-    let delegate = Object.assign(options?.env ?? {}, BaseEnvironment);
+    let env = Object.assign(options?.env ?? {}, BaseEnvironment);
 
     this.clientDoc = castToSimple(document);
     this.clientRegistry = new TestJitRegistry();
     this.clientResolver = new TestJitRuntimeResolver(this.clientRegistry);
-    this.clientEnv = JitDelegateContext(this.clientDoc, this.clientResolver, delegate);
+    this.clientEnv = JitDelegateContext(this.clientResolver, env, document as MinimalDocument);
 
     this.serverDoc = createHTMLDocument();
     this.serverRegistry = new TestJitRegistry();
     this.serverResolver = new TestJitRuntimeResolver(this.serverRegistry);
-    this.serverEnv = JitDelegateContext(this.serverDoc, this.serverResolver, delegate);
+    this.serverEnv = JitDelegateContext(this.serverResolver, env);
   }
 
   getInitialElement(): SimpleElement {
@@ -100,35 +99,25 @@ export class RehydrationDelegate implements RenderDelegate {
     return this.clientDoc.createDocumentFragment();
   }
 
-  getElementBuilder(environment: Environment, cursor: Cursor): DOMTreeBuilder {
-    if (cursor.element instanceof Node) {
-      return debugRehydration(environment, cursor);
-    }
-
-    return serializeBuilder(environment, cursor);
+  getElementBuilder(): ServerTreeBuilder {
+    return new ServerTreeBuilder();
   }
 
-  renderServerSide(
-    template: string,
-    context: Dict<unknown>,
-    takeSnapshot: () => void,
-    element?: SimpleElement | undefined
-  ): string {
-    element = element || this.serverDoc.createElement('div');
-    let cursor = { element, nextSibling: null };
+  renderServerSide(template: string, context: Dict<unknown>, takeSnapshot: () => void): string {
     let { env } = this.serverEnv.runtime;
+    let builder = this.getElementBuilder();
 
     // Emulate server-side render
     renderTemplate(
       template,
       this.serverEnv,
       this.getSelf(env, context),
-      this.getElementBuilder(env, cursor),
+      builder,
       this.precompileOptions
     );
 
     takeSnapshot();
-    return this.serialize(element);
+    return builder._flush_();
   }
 
   getSelf(_environment: Environment, context: unknown): Reference {
@@ -143,13 +132,14 @@ export class RehydrationDelegate implements RenderDelegate {
     return toInnerHTML(element);
   }
 
+  // TODO [6/7/2022]: this code needs to use a (not yet existing) RehydrationTreeBuilder
   renderClientSide(template: string, context: Dict<unknown>, element: SimpleElement): RenderResult {
     let environment = this.clientEnv.runtime.env;
     this.self = null;
 
     // Client-side rehydration
-    let cursor = { element, nextSibling: null };
-    let builder = this.getElementBuilder(environment, cursor) as DebugRehydrationBuilder;
+    // @ts-expect-error see above todo
+    let builder = this.getElementBuilder() as DebugRehydrationBuilder;
     let result = renderTemplate(
       template,
       this.clientEnv,
@@ -165,16 +155,18 @@ export class RehydrationDelegate implements RenderDelegate {
     return result;
   }
 
+  // TODO [6/7/2022]: this code needs to use a (not yet existing) RehydrationTreeBuilder
   renderTemplate(
     template: string,
     context: Dict<unknown>,
-    element: SimpleElement,
+    builder: TreeBuilder,
     snapshot: () => void
   ): RenderResult {
     let serialized = this.renderServerSide(template, context, snapshot);
-    replaceHTML(element, serialized);
+    // @ts-expect-error see above
     qunitFixture().appendChild(element);
 
+    // @ts-expect-error see above
     return this.renderClientSide(template, context, element);
   }
 

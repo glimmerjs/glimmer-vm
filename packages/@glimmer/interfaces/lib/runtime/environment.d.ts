@@ -1,5 +1,3 @@
-import type { SimpleDocument } from '@simple-dom/interface';
-
 import type {
   ComponentDefinitionState,
   ComponentInstance,
@@ -9,11 +7,11 @@ import type { Destroyable, Nullable } from '../core';
 import type { GlimmerTreeChanges } from '../dom/changes';
 import type { DebugRenderTree } from './debug-render-tree';
 import type { WithCreateInstance } from '../managers';
-import type { DOMTreeBuilder, MinimalInternalCursor } from '../dom/tree-builder';
+import type { MinimalDocument, MinimalInternalCursor, TreeBuilder } from '../dom/tree-builder';
 
 export interface EnvironmentOptions {
-  document?: SimpleDocument;
-  appendOperations?: (cursor: MinimalInternalCursor) => DOMTreeBuilder;
+  document?: MinimalDocument | undefined;
+  appendOperations?: (cursor: MinimalInternalCursor) => TreeBuilder;
   updateOperations?: GlimmerTreeChanges;
 }
 

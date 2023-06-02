@@ -120,6 +120,7 @@ import { define } from '../../opcodes';
 import { getClassicBoundsFor } from '../../vm/update';
 import { type TrackedCache, getValue, createCache } from '@glimmer/validator';
 import { UpdateModifierOpcode } from './modifier';
+import { _readValue_ } from '@glimmer/reference/lib/reference';
 
 /**
  * The VM creates a new ComponentInstance data structure for every component
@@ -517,56 +518,40 @@ type QueuedModifier = [opcode: UpdateModifierOpcode, initialize: (element: Eleme
 interface ServerDomTypes extends DomTypes {
   vm: InternalVM<ServerDomTypes>;
   opcodes: void;
-  addModifierFn: undefined;
   domTree: ServerTreeBuilderInterface;
 }
 
-export class ComponentElementOperations {}
-
-export class ServerComponentElementOperations
-  extends ComponentElementOperations
-  implements ElementOperations<ServerDomTypes>
+export abstract class ComponentElementOperations<D extends DomTypes>
+  implements ElementOperations<D>
 {
+  static flush<D extends DomTypes>(
+    operations: ComponentElementOperations<D>,
+    vm: InternalVM<D>
+  ): ReturnType<D['treeBuilder']['flushElement']> {
+    let type: DeferredAttribute | undefined;
+    let attributes = operations.#attributes;
+
+    for (let name in operations.#attributes) {
+      if (name === 'type') {
+        type = attributes[name];
+        continue;
+      }
+
+      let attribute = unwrap(operations.#attributes[name]);
+      let value = name === 'class' ? mergeClasses(operations.#classes) : attribute.value;
+
+      operations.addAttr(vm, name, value, attribute.namespace, attribute.trusting ?? false);
+    }
+
+    if (type !== undefined) {
+      operations.addAttr(vm, 'type', type.value, type.namespace, type.trusting ?? false);
+    }
+
+    return vm._elements_().flushElement() as ReturnType<D['treeBuilder']['flushElement']>;
+  }
+
   readonly #attributes: Dict<DeferredAttribute> = {};
   readonly #classes: (string | Reference<unknown>)[] = [];
-
-  flush(vm: InternalVM<ServerDomTypes>): void {
-    throw new Error('Method not implemented.');
-  }
-  setAttribute(
-    name: string,
-    value: Reference<unknown>,
-    trusting: boolean,
-    namespace: Nullable<string>
-  ): void {
-    throw new Error('Method not implemented.');
-  }
-  setStaticAttribute(name: string, value: string, namespace: Nullable<string>): void {
-    throw new Error('Method not implemented.');
-  }
-  addModifier: undefined;
-}
-
-export interface BrowserDomTypes extends DomTypes {
-  vm: InternalVM<BrowserDomTypes>;
-  opcodes: UpdateModifierOpcode[];
-  addModifierFn: (
-    definitionCache: TrackedCache<{
-      definition: ModifierDefinition | undefined;
-      owner: object;
-    }>,
-    args: CapturedArguments
-  ) => UpdateModifierOpcode;
-  treeBuilder: BrowserTreeBuilderInterface;
-}
-
-export class BrowserComponentElementOperations
-  extends ComponentElementOperations
-  implements ElementOperations<BrowserDomTypes>
-{
-  readonly #attributes: Dict<DeferredAttribute> = {};
-  readonly #classes: (string | Reference<unknown>)[] = [];
-  readonly #modifiers: QueuedModifier[] = [];
 
   setAttribute(
     name: string,
@@ -593,6 +578,55 @@ export class BrowserComponentElementOperations
     this.#attributes[name] = deferred;
   }
 
+  abstract addAttr(
+    vm: InternalVM<D>,
+    name: string,
+    value: string | Reference<unknown>,
+    namespace: Nullable<string>,
+    trusting: boolean
+  ): void;
+
+  abstract flush(vm: D['vm']): D['opcodes'];
+}
+
+export class ServerComponentElementOperations
+  extends ComponentElementOperations<ServerDomTypes>
+  implements ElementOperations<ServerDomTypes>
+{
+  override addAttr(
+    vm: InternalVM<ServerDomTypes>,
+    name: string,
+    value: string | Reference<unknown>,
+    namespace: Nullable<string>,
+    trusting: boolean
+  ): void {
+    vm._elements_().addAttr(name, _readValue_(value));
+  }
+
+  override flush(vm: InternalVM<ServerDomTypes>): void {
+    ComponentElementOperations.flush(this, vm);
+  }
+}
+
+export interface BrowserDomTypes extends DomTypes {
+  vm: InternalVM<BrowserDomTypes>;
+  opcodes: UpdateModifierOpcode[];
+  addModifierFn: (
+    definitionCache: TrackedCache<{
+      definition: ModifierDefinition | undefined;
+      owner: object;
+    }>,
+    args: CapturedArguments
+  ) => UpdateModifierOpcode;
+  treeBuilder: BrowserTreeBuilderInterface;
+}
+
+export class BrowserComponentElementOperations
+  extends ComponentElementOperations<BrowserDomTypes>
+  implements ElementOperations<BrowserDomTypes>
+{
+  readonly #modifiers: QueuedModifier[] = [];
+
   addModifier(
     definitionCache: TrackedCache<{
       definition: ModifierDefinition | undefined;
@@ -617,38 +651,28 @@ export class BrowserComponentElementOperations
     return modifier;
   }
 
-  flush(vm: InternalVM<BrowserDomTypes>): UpdateModifierOpcode[] {
-    let type: DeferredAttribute | undefined;
-    let attributes = this.#attributes;
-
-    for (let name in this.#attributes) {
-      if (name === 'type') {
-        type = attributes[name];
-        continue;
-      }
-
-      let attribute = unwrap(this.#attributes[name]);
-      if (name === 'class') {
-        setDeferredAttribute(
-          vm,
-          'class',
-          mergeClasses(this.#classes),
-          attribute.namespace,
-          attribute.trusting
-        );
-      } else {
-        setDeferredAttribute(vm, name, attribute.value, attribute.namespace, attribute.trusting);
+  override addAttr(
+    vm: InternalVM<BrowserDomTypes>,
+    name: string,
+    value: string | Reference<unknown>,
+    _namespace: Nullable<string>,
+    _trusting: boolean
+  ): void {
+    if (typeof value === 'string') {
+      vm._elements_().addAttr(name, value);
+    } else {
+      let attribute = vm._elements_().addAttr(name, valueForRef(value));
+      if (!isConstRef(value)) {
+        vm._updateWith_(new UpdateDynamicAttributeOpcode(value, attribute, vm.env));
       }
     }
+  }
 
-    if (type !== undefined) {
-      setDeferredAttribute(vm, 'type', type.value, type.namespace, type.trusting);
-    }
-
-    let element = vm._elements_().flushElement() as Element;
+  override flush(vm: InternalVM<BrowserDomTypes>): UpdateModifierOpcode[] {
+    let element = ComponentElementOperations.flush(this, vm);
 
     return this.#modifiers.map(([opcode, initialize]) => {
-      initialize(element);
+      initialize(element as Element);
       return opcode;
     });
   }
@@ -675,23 +699,6 @@ function allStringClasses(classes: (string | Reference<unknown>)[]): classes is 
     }
   }
   return true;
-}
-
-function setDeferredAttribute(
-  vm: InternalVM,
-  name: string,
-  value: string | Reference<unknown>,
-  namespace: Nullable<string>,
-  trusting = false
-) {
-  if (typeof value === 'string') {
-    vm._elements_().addAttr(name, value);
-  } else {
-    let attribute = vm._elements_().addAttr(name, valueForRef(value));
-    if (!isConstRef(value)) {
-      vm._updateWith_(new UpdateDynamicAttributeOpcode(value, attribute, vm.env));
-    }
-  }
 }
 
 define(DID_CREATE_ELEMENT_OP, (vm, { op1: _state }) => {

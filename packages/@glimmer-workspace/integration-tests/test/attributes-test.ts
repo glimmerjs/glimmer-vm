@@ -2,9 +2,17 @@ import type { SimpleElement } from '@glimmer/interfaces';
 import { ATTR, normalizeProperty } from '@glimmer/runtime';
 import { castToBrowser, expect, NS_SVG } from '@glimmer/util';
 
-import { assertingElement, hasAttribute, jitSuite, RenderTest, test, tracked } from '..';
+import {
+  assertingElement,
+  BrowserRenderTest,
+  hasAttribute,
+  jitSuite,
+  RenderTest,
+  test,
+  tracked,
+} from '@glimmer-workspace/integration-tests';
 
-export class AttributesTests extends RenderTest {
+export class AttributesTests extends BrowserRenderTest {
   static suiteName = 'Attributes';
 
   protected readDOMAttr(attribute: string, element = this.element.firstChild as SimpleElement) {

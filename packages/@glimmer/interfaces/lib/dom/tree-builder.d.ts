@@ -94,8 +94,6 @@ export interface DOMTreeBuilderInterface {
   flushElement(): void;
   endElement(): void;
 
-  ifDOM(block: (value: BrowserTreeBuilderInterface) => void): void;
-
   /**
    * Reset the builder's state.
    */
@@ -104,10 +102,14 @@ export interface DOMTreeBuilderInterface {
 
 export interface ServerTreeBuilderInterface extends DOMTreeBuilderInterface {
   readonly type: 'server';
+
+  flush(): string;
 }
 
-export interface CustomTreeBuilderInterface extends DOMTreeBuilderInterface {
+export interface CustomTreeBuilderInterface<Output> extends DOMTreeBuilderInterface {
   readonly type: 'custom';
+
+  flush(): Output;
 }
 
 export interface BrowserTreeBuilderInterface extends DOMTreeBuilderInterface {
@@ -135,7 +137,7 @@ export interface BrowserTreeBuilderInterface extends DOMTreeBuilderInterface {
 export type TreeBuilder =
   | ServerTreeBuilderInterface
   | BrowserTreeBuilderInterface
-  | CustomTreeBuilderInterface;
+  | CustomTreeBuilderInterface<unknown>;
 
 export type AttributeValue = string | boolean | undefined;
 export type AttributeRef = [qualifiedName: string, element: Element | null];

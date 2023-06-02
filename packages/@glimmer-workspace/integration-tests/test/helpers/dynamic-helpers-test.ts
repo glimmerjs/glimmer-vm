@@ -1,13 +1,13 @@
 import {
+  BrowserRenderTest,
   defineComponent,
   defineSimpleHelper,
   GlimmerishComponent,
   jitSuite,
-  RenderTest,
   test,
-} from '../..';
+} from '@glimmer-workspace/integration-tests';
 
-class DynamicHelpersResolutionModeTest extends RenderTest {
+class DynamicHelpersResolutionModeTest extends BrowserRenderTest {
   static suiteName = 'dynamic helpers in resolution mode';
 
   @test

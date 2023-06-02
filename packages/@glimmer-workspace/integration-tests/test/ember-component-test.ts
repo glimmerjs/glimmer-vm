@@ -13,11 +13,11 @@ import {
   type JitRenderDelegate,
   jitSuite,
   regex,
-  RenderTest,
   stripTight,
   test,
   type AttributesDiff,
   type Attributes,
+  BrowserRenderTest,
 } from '@glimmer-workspace/integration-tests';
 
 import { assert } from './support';
@@ -168,7 +168,7 @@ export function assertElementIsEmberishElement(
 //   view.rerender();
 // }
 
-class CurlyTest extends RenderTest {
+class CurlyTest extends BrowserRenderTest {
   assertEmberishElement(tagName: string, attributes: Object, contents: string): void;
   assertEmberishElement(tagName: string, attributes: Object): void;
   assertEmberishElement(tagName: string, contents: string): void;

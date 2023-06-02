@@ -297,8 +297,8 @@ export class VM<D extends DomTypes> implements PublicVM, InternalVM<D> {
     delegate: VmDelegate<D>,
     readonly context: CompileTimeCompilationContext
   ) {
-    if (delegate instanceof BrowserTreeBuilder) {
-      debugger;
+    if (delegate === undefined) {
+      throw new Error('VM delegate must be defined');
     }
 
     this.#delegate = delegate;

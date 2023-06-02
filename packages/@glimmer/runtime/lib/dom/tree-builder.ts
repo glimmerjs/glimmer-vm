@@ -17,6 +17,7 @@ import type {
   Destroyable,
   BrowserTreeBuilderInterface,
   ElementBuffer,
+  ServerTreeBuilderInterface,
 } from '@glimmer/interfaces';
 import {
   INSERT_BEFORE_END,
@@ -58,6 +59,52 @@ const DEPTH = 0;
 const BLOCK_REF = 1;
 const START_NODE = 2;
 const END_NODE = 3;
+
+export class ServerTreeBuilder implements ServerTreeBuilderInterface {
+  readonly type = 'server';
+
+  #buffer = '';
+
+  _flush_(): string {
+    let buffer = this.#buffer;
+    this.#buffer = '';
+    return buffer;
+  }
+
+  startBlock(): void {
+    throw new Error('Method not implemented.');
+  }
+  endBlock(): void {
+    throw new Error('Method not implemented.');
+  }
+  return(): void {
+    throw new Error('Method not implemented.');
+  }
+  text(text: string): void {
+    throw new Error('Method not implemented.');
+  }
+  html(html: string): void {
+    throw new Error('Method not implemented.');
+  }
+  comment(data: string): void {
+    throw new Error('Method not implemented.');
+  }
+  startElement(tag: string): void {
+    throw new Error('Method not implemented.');
+  }
+  addAttr(attributeName: string, attributeValue: unknown): void {
+    throw new Error('Method not implemented.');
+  }
+  flushElement(): void {
+    throw new Error('Method not implemented.');
+  }
+  endElement(): void {
+    throw new Error('Method not implemented.');
+  }
+  recover(): void {
+    throw new Error('Method not implemented.');
+  }
+}
 
 export class BrowserTreeBuilder implements BrowserTreeBuilderInterface {
   static _forContext_(parent: MinimalElement) {
@@ -125,10 +172,6 @@ export class BrowserTreeBuilder implements BrowserTreeBuilderInterface {
         },
       });
     }
-  }
-
-  ifDOM(block: (value: BrowserTreeBuilderInterface) => void): void {
-    block(this);
   }
 
   get _constructing_(): ElementRef {

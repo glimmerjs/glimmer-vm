@@ -3,10 +3,10 @@ import { castToBrowser, checkNode, NS_SVG, strip, unwrap } from '@glimmer/util';
 
 import { assertNodeTagName } from '../dom/assertions';
 import { firstElementChild, getElementsByTagName } from '../dom/simple-utils';
-import { RenderTest } from '../render-test';
+import { BrowserRenderTest } from '../render-test';
 import { test } from '../test-decorator';
 
-export class InitialRenderSuite extends RenderTest {
+export class InitialRenderSuite extends BrowserRenderTest {
   static suiteName = 'initial render';
 
   name = 'BASE';

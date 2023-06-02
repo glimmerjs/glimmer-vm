@@ -1,23 +1,17 @@
 import type {
   CapturedRenderNode,
   CompileTimeCompilationContext,
-  Cursor,
-  DOMTreeBuilder,
   Dict,
   DynamicScope,
-  ElementNamespace,
   Environment,
   HandleResult,
   Helper,
-  MinimalChild,
+  MinimalDocument,
   MinimalElement,
   Nullable,
   RenderResult,
   RuntimeContext,
-  SimpleDocument,
-  SimpleDocumentFragment,
-  SimpleElement,
-  SimpleText,
+  TreeBuilder,
 } from '@glimmer/interfaces';
 import { programCompilationContext } from '@glimmer/opcode-compiler';
 import { artifacts, RuntimeOpImpl } from '@glimmer/program';
@@ -37,7 +31,7 @@ import {
   BrowserTreeBuilder,
 } from '@glimmer/runtime';
 import type { ASTPluginBuilder, PrecompileOptions } from '@glimmer/syntax';
-import { castToBrowser, castToSimple, expect, unwrapTemplate } from '@glimmer/util';
+import { expect, unwrap, unwrapTemplate } from '@glimmer/util';
 
 import { BaseEnvironment as BaseEnvironment } from '../../base-env';
 import { preprocess } from '../../compile';
@@ -64,9 +58,9 @@ export interface JitTestDelegateContext {
 }
 
 export function JitDelegateContext(
-  document: SimpleDocument,
   resolver: TestJitRuntimeResolver,
-  environment: EnvironmentDelegate
+  environment: EnvironmentDelegate,
+  document?: MinimalDocument
 ): JitTestDelegateContext {
   let sharedArtifacts = artifacts();
   let context = programCompilationContext(
@@ -74,7 +68,7 @@ export function JitDelegateContext(
     new JitCompileTimeLookup(resolver),
     (heap) => new RuntimeOpImpl(heap)
   );
-  let runtime = runtimeContext({ document: document }, environment, sharedArtifacts, resolver);
+  let runtime = runtimeContext({ document }, environment, sharedArtifacts, resolver);
   return { runtime, program: context };
 }
 
@@ -88,17 +82,15 @@ export class JitRenderDelegate implements RenderDelegate {
   private plugins: ASTPluginBuilder[] = [];
   private _context: JitTestDelegateContext | null = null;
   private self: Nullable<Reference> = null;
-  private doc: SimpleDocument;
   private env: EnvironmentDelegate;
+  #builder = BrowserTreeBuilder._forContext_(this.element as MinimalElement);
 
   constructor({
-    doc,
     env,
     resolver = (registry) => new TestJitRuntimeResolver(registry),
   }: RenderDelegateOptions = {}) {
     this.registry = new TestJitRegistry();
     this.resolver = resolver(this.registry);
-    this.doc = castToSimple(doc ?? document);
     this.env = { ...(env ?? BaseEnvironment) };
     this.registry.register('modifier', 'on', on);
     this.registry.register('helper', 'fn', fn);
@@ -108,9 +100,25 @@ export class JitRenderDelegate implements RenderDelegate {
     this.registry.register('helper', 'concat', concat);
   }
 
+  get element(): Element {
+    return unwrap(document.querySelector('#qunit-fixture'));
+  }
+
+  get builder(): TreeBuilder {
+    return this.#builder;
+  }
+
+  getInitialBuilder(): TreeBuilder {
+    return this.#builder;
+  }
+
+  getCurrentBuilder(): TreeBuilder {
+    return this.#builder;
+  }
+
   get context(): JitTestDelegateContext {
     if (this._context === null) {
-      this._context = JitDelegateContext(this.doc, this.resolver, this.env);
+      this._context = JitDelegateContext(this.resolver, this.env, document as MinimalDocument);
     }
 
     return this._context;
@@ -121,28 +129,6 @@ export class JitRenderDelegate implements RenderDelegate {
       this.context.runtime.env.debugRenderTree,
       'Attempted to capture the DebugRenderTree during tests, but it was not created. Did you enable it in the environment?'
     ).capture();
-  }
-
-  getInitialElement(): SimpleElement {
-    return isBrowserTestDocument(this.doc)
-      ? castToSimple(castToBrowser(this.doc).querySelector('#qunit-fixture')!)
-      : this.createElement('div');
-  }
-
-  createElement(tagName: string): SimpleElement {
-    return this.doc.createElement(tagName);
-  }
-
-  createTextNode(content: string): SimpleText {
-    return this.doc.createTextNode(content);
-  }
-
-  createElementNS(namespace: ElementNamespace, tagName: string): SimpleElement {
-    return this.doc.createElementNS(namespace, tagName);
-  }
-
-  createDocumentFragment(): SimpleDocumentFragment {
-    return this.doc.createDocumentFragment();
   }
 
   createCurriedComponent(name: string): CurriedValue | null {
@@ -189,14 +175,6 @@ export class JitRenderDelegate implements RenderDelegate {
     registerInternalHelper(this.registry, name, helper);
   }
 
-  getElementBuilder(environment: Environment, cursor: Cursor): DOMTreeBuilder {
-    return BrowserTreeBuilder._forCursor_([
-      cursor.element as MinimalElement,
-      cursor.nextSibling as MinimalChild,
-      null,
-    ]);
-  }
-
   getSelf(_environment: Environment, context: unknown): Reference {
     if (!this.self) {
       this.self = createConstRef(context, 'this');
@@ -211,16 +189,14 @@ export class JitRenderDelegate implements RenderDelegate {
     return unwrapTemplate(compiled).asLayout().compile(this.context.program);
   }
 
-  renderTemplate(template: string, context: Dict<unknown>, element: SimpleElement): RenderResult {
-    let cursor = { element, nextSibling: null };
-
+  renderTemplate(template: string, context: Dict<unknown>, builder: TreeBuilder): RenderResult {
     let { env } = this.context.runtime;
 
     return renderTemplate(
       template,
       this.context,
       this.getSelf(env, context),
-      this.getElementBuilder(env, cursor),
+      builder,
       this.precompileOptions
     );
   }
@@ -228,12 +204,10 @@ export class JitRenderDelegate implements RenderDelegate {
   renderComponent(
     component: object,
     args: Record<string, unknown>,
-    element: SimpleElement,
+    builder: TreeBuilder,
     dynamicScope?: DynamicScope
   ): RenderResult {
-    let cursor = { element, nextSibling: null };
     let { program, runtime } = this.context;
-    let builder = this.getElementBuilder(runtime.env, cursor);
     let iterator = renderComponent(runtime, builder, program, {}, component, args, dynamicScope);
 
     return renderSync(runtime.env, iterator);
@@ -246,8 +220,4 @@ export class JitRenderDelegate implements RenderDelegate {
       },
     };
   }
-}
-
-function isBrowserTestDocument(document: SimpleDocument | Document): document is Document {
-  return 'getElementById' in document && document.querySelector('#qunit-fixture') !== null;
 }

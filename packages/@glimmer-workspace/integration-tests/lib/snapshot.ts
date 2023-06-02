@@ -4,7 +4,7 @@ import { type EndTag, type Token, tokenize } from 'simple-html-tokenizer';
 
 import { replaceHTML, toInnerHTML } from './dom/simple-utils';
 
-export type IndividualSnapshot = 'up' | 'down' | SimpleNode;
+export type IndividualSnapshot = 'up' | 'down' | SimpleNode | Node;
 export type NodesSnapshot = IndividualSnapshot[];
 
 export function snapshotIsNode(snapshot: IndividualSnapshot): snapshot is SimpleNode {
@@ -12,8 +12,8 @@ export function snapshotIsNode(snapshot: IndividualSnapshot): snapshot is Simple
 }
 
 export function equalTokens(
-  testFragment: SimpleElement | string | null,
-  testHTML: SimpleElement | string,
+  testFragment: SimpleElement | Element | string | null,
+  testHTML: SimpleElement | Element | string,
   message: Nullable<string> = null
 ) {
   if (testFragment === null) {
@@ -84,8 +84,11 @@ export function generateSnapshot(element: SimpleElement): SimpleNode[] {
   return snapshot;
 }
 
-function generateTokens(divOrHTML: SimpleElement | string): { tokens: Token[]; html: string } {
-  let div: SimpleElement;
+function generateTokens(divOrHTML: SimpleElement | Element | string): {
+  tokens: Token[];
+  html: string;
+} {
+  let div: SimpleElement | Element;
   if (typeof divOrHTML === 'string') {
     div = castToSimple(document.createElement('div'));
     replaceHTML(div, divOrHTML);
@@ -132,8 +135,8 @@ export function equalSnapshots(a: SimpleNode[], b: SimpleNode[]) {
   }
 }
 
-export function isServerMarker(node: SimpleNode) {
-  return node.nodeType === COMMENT_NODE && node.nodeValue.charAt(0) === '%';
+export function isServerMarker(node: Node | SimpleNode) {
+  return node.nodeType === COMMENT_NODE && node.nodeValue?.charAt(0) === '%';
 }
 
 export function normalizeSnapshot(

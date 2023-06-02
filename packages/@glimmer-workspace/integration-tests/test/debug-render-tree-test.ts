@@ -17,12 +17,14 @@ import {
   TemplateOnlyComponentManager,
 } from '@glimmer/runtime';
 import { expect } from '@glimmer/util';
-import type { EmberishCurlyComponent } from '@glimmer-workspace/integration-tests';
+import {
+  BrowserRenderTest,
+  type EmberishCurlyComponent,
+} from '@glimmer-workspace/integration-tests';
 import {
   BaseEnvironment,
   GlimmerishComponent,
   JitRenderDelegate,
-  RenderTest,
   createTemplate,
   test,
   suite,
@@ -71,7 +73,7 @@ class DebugRenderTreeDelegate extends JitRenderDelegate {
   }
 }
 
-class DebugRenderTreeTest extends RenderTest {
+class DebugRenderTreeTest extends BrowserRenderTest {
   static suiteName = 'Application test: debug render tree';
 
   declare delegate: DebugRenderTreeDelegate;
@@ -93,7 +95,7 @@ class DebugRenderTreeTest extends RenderTest {
         args: { positional: [], named: { arg: 'first' } },
         instance: null,
         template: '(unknown template module)',
-        bounds: this.nodeBounds(this.delegate.getInitialElement().firstChild),
+        bounds: this.nodeBounds(this.element.firstChild),
         children: [],
       },
     ]);
@@ -107,7 +109,7 @@ class DebugRenderTreeTest extends RenderTest {
         args: { positional: [], named: { arg: 'first' } },
         instance: null,
         template: '(unknown template module)',
-        bounds: this.nodeBounds(this.delegate.getInitialElement().firstChild),
+        bounds: this.nodeBounds(this.element.firstChild),
         children: [],
       },
       {
@@ -116,7 +118,7 @@ class DebugRenderTreeTest extends RenderTest {
         args: { positional: [], named: { arg: 'second' } },
         instance: null,
         template: '(unknown template module)',
-        bounds: this.nodeBounds(this.delegate.getInitialElement().lastChild),
+        bounds: this.nodeBounds(this.element.lastChild),
         children: [],
       },
     ]);
@@ -130,7 +132,7 @@ class DebugRenderTreeTest extends RenderTest {
         args: { positional: [], named: { arg: 'first' } },
         instance: null,
         template: '(unknown template module)',
-        bounds: this.nodeBounds(this.delegate.getInitialElement().firstChild),
+        bounds: this.nodeBounds(this.element.firstChild),
         children: [],
       },
     ]);
@@ -153,7 +155,7 @@ class DebugRenderTreeTest extends RenderTest {
         args: { positional: [], named: { arg: 'first' } },
         instance: (instance: EmberishCurlyComponent) => (instance as any).arg === 'first',
         template: '(unknown template module)',
-        bounds: this.nodeBounds(this.delegate.getInitialElement().firstChild),
+        bounds: this.nodeBounds(this.element.firstChild),
         children: [],
       },
     ]);
@@ -213,7 +215,7 @@ class DebugRenderTreeTest extends RenderTest {
         args: { positional: [], named: { arg: 'first' } },
         instance: (instance: GlimmerishComponent) => instance.args['arg'] === 'first',
         template: '(unknown template module)',
-        bounds: this.nodeBounds(this.delegate.getInitialElement().firstChild),
+        bounds: this.nodeBounds(this.element.firstChild),
         children: [],
       },
     ]);
@@ -310,7 +312,7 @@ class DebugRenderTreeTest extends RenderTest {
         args: { positional: [], named: { arg: 'first' } },
         instance: null,
         template: '(unknown template module)',
-        bounds: this.nodeBounds(this.delegate.getInitialElement().firstChild),
+        bounds: this.nodeBounds(this.element.firstChild),
         children: [],
       },
     ]);
@@ -390,7 +392,7 @@ class DebugRenderTreeTest extends RenderTest {
         args: { positional: [], named: { arg: 'first' } },
         instance: null,
         template: '(unknown template module)',
-        bounds: this.nodeBounds(this.delegate.getInitialElement().firstChild),
+        bounds: this.nodeBounds(this.element.firstChild),
         children: [],
       },
     ]);

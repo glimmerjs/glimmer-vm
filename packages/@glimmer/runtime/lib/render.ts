@@ -2,7 +2,6 @@ import type {
   CompilableProgram,
   CompileTimeCompilationContext,
   ComponentDefinitionState,
-  DOMTreeBuilder,
   DynamicScope,
   Environment,
   ISTDLIB_MAIN,
@@ -11,6 +10,7 @@ import type {
   RichIteratorResult,
   RuntimeContext,
   TemplateIterator,
+  TreeBuilder,
 } from '@glimmer/interfaces';
 import { childRefFor, createConstRef, type Reference } from '@glimmer/reference';
 import { expect, unwrapHandle } from '@glimmer/util';
@@ -128,7 +128,7 @@ function renderInvocation(
 
 export function renderComponent(
   runtime: RuntimeContext,
-  treeBuilder: DOMTreeBuilder,
+  treeBuilder: TreeBuilder,
   context: CompileTimeCompilationContext,
   owner: Owner,
   definition: ComponentDefinitionState,

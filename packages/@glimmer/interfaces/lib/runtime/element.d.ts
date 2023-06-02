@@ -5,7 +5,7 @@ import type { Reference } from '../references';
 export interface DomTypes {
   vm: unknown;
   opcodes: unknown;
-  addModifierFn: unknown;
+  addModifierFn?: (...args: any[]) => unknown;
   treeBuilder: TreeBuilder;
 }
 
@@ -23,5 +23,5 @@ export interface ElementOperations<D extends DomTypes> {
     namespace: Nullable<string>
   ): void;
   setStaticAttribute(name: string, value: string, namespace: Nullable<string>): void;
-  addModifier: D['addModifierFn'];
+  addModifier?: D['addModifierFn'];
 }

@@ -1,7 +1,7 @@
 /* eslint-disable unicorn/prefer-dom-node-append */
 import { castToSimple } from '@glimmer/util';
 
-import { JitRenderDelegate, RenderTest } from '..';
+import { BrowserRenderTest, JitRenderDelegate } from '@glimmer-workspace/integration-tests';
 import { module } from './support';
 
 // "I-N-U-R" cycle
@@ -10,7 +10,7 @@ module('Render Tests: I-N-U-R', ({ test }) => {
   let document_ = castToSimple(document);
 
   test('Can set properties', (assert) => {
-    new (class extends RenderTest {
+    new (class extends BrowserRenderTest {
       constructor(delegate: JitRenderDelegate) {
         super(delegate);
         this.setProperties({ foo: 'bar' });
@@ -24,8 +24,10 @@ module('Render Tests: I-N-U-R', ({ test }) => {
     let text = document_.createTextNode('Foo');
     div.appendChild(text);
 
-    new (class extends RenderTest {
-      override element = div;
+    new (class extends BrowserRenderTest {
+      override get element() {
+        return div;
+      }
       constructor(delegate: JitRenderDelegate) {
         super(delegate);
         let snapShot = this.takeSnapshot();
@@ -41,8 +43,10 @@ module('Render Tests: I-N-U-R', ({ test }) => {
     p.appendChild(text);
     div.appendChild(p);
 
-    new (class extends RenderTest {
-      override element = div;
+    new (class extends BrowserRenderTest {
+      override get element() {
+        return div;
+      }
       constructor(delegate: JitRenderDelegate) {
         super(delegate);
         let snapShot = this.takeSnapshot();
@@ -60,8 +64,10 @@ module('Render Tests: I-N-U-R', ({ test }) => {
     div.appendChild(text);
     div.appendChild(close);
 
-    new (class extends RenderTest {
-      override element = div;
+    new (class extends BrowserRenderTest {
+      override get element() {
+        return div;
+      }
       constructor(delegate: JitRenderDelegate) {
         super(delegate);
         let snapShot = this.takeSnapshot();

@@ -3,7 +3,7 @@ import type { Dict, Owner } from '@glimmer/interfaces';
 import { GlimmerishComponent } from '../components';
 import { assertElementShape } from '../dom/assertions';
 import { assertingElement } from '../dom/simple-utils';
-import { RenderTest } from '../render-test';
+import { BrowserRenderTest, RenderTest } from '../render-test';
 import { test } from '../test-decorator';
 import { strip, stripTight } from '../test-helpers/strings';
 import { tracked } from '../test-helpers/tracked';
@@ -65,7 +65,7 @@ export class TemplateOnlyComponents extends RenderTest {
   }
 }
 
-export class GlimmerishComponents extends RenderTest {
+export class GlimmerishComponents extends BrowserRenderTest {
   static suiteName = 'Glimmerish';
 
   @test({
@@ -720,7 +720,7 @@ export class GlimmerishComponents extends RenderTest {
     this.registerComponent('Glimmer', 'Foo', '<Bar data-bar={{@childName}} @data={{@data}} />');
     this.registerComponent('Glimmer', 'Bar', '<div ...attributes>Hello World</div>');
 
-    let element = this.delegate.getInitialElement();
+    let element = this.element;
 
     this.render(
       strip`
@@ -736,7 +736,9 @@ export class GlimmerishComponents extends RenderTest {
     let first = assertingElement(element.firstChild);
 
     assertElementShape(first, 'div', { 'data-bar': 'Bar' }, 'Hello World');
-    this.rerender({ components: [{ name: 'Foo', child: 'Bar', mount: element, data: { wat: 'Wat' } }] });
+    this.rerender({
+      components: [{ name: 'Foo', child: 'Bar', mount: element, data: { wat: 'Wat' } }],
+    });
     assertElementShape(first, 'div', { 'data-bar': 'Bar' }, 'Hello World');
   }
 

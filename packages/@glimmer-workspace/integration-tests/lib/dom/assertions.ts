@@ -155,22 +155,22 @@ export function equalsAttr(expected: any): Matcher {
 }
 
 export function assertEmberishElement(
-  element: SimpleElement,
+  element: SimpleElement | Element,
   tagName: string,
   attributes: Object,
   contents: string
 ): void;
 export function assertEmberishElement(
-  element: SimpleElement,
+  element: SimpleElement | Element,
   tagName: string,
   attributes: Object
 ): void;
 export function assertEmberishElement(
-  element: SimpleElement,
+  element: SimpleElement | Element,
   tagName: string,
   contents: string
 ): void;
-export function assertEmberishElement(element: SimpleElement, tagName: string): void;
+export function assertEmberishElement(element: SimpleElement | Element, tagName: string): void;
 export function assertEmberishElement(...args: any[]): void {
   let [element, tagName, attributes, contents] = processAssertComponentArgs(args);
 
@@ -266,18 +266,22 @@ export function processAssertComponentArgs(
 }
 
 export function assertElementShape(
-  element: SimpleElement,
+  element: SimpleElement | Element,
   tagName: string,
   attributes: Object,
   contents: string
 ): void;
 export function assertElementShape(
-  element: SimpleElement,
+  element: SimpleElement | Element,
   tagName: string,
   attributes: Object
 ): void;
-export function assertElementShape(element: SimpleElement, tagName: string, contents: string): void;
-export function assertElementShape(element: SimpleElement, tagName: string): void;
+export function assertElementShape(
+  element: SimpleElement | Element,
+  tagName: string,
+  contents: string
+): void;
+export function assertElementShape(element: SimpleElement | Element, tagName: string): void;
 export function assertElementShape(...args: any[]): void {
   let [element, tagName, attributes, contents] = processAssertComponentArgs(args);
 
