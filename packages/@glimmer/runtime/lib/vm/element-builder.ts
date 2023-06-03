@@ -375,7 +375,7 @@ export class NewElementBuilder<E extends DOMEnvironment = DOMEnvironment>
     namespace: Nullable<AttrNamespace>
   ): DynamicAttribute<E> {
     let element = this._constructing_;
-    let attribute = dynamicAttribute(element, name, namespace, trusting);
+    let attribute = dynamicAttribute(this, element, name, namespace, trusting);
     attribute.set(this, value, this.env);
     return attribute;
   }

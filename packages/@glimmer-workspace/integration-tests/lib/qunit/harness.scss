@@ -60,38 +60,40 @@
 
 #qunit #qunit-tests {
   li.qunit-extended {
-    td.token-list button.show-details {
-      opacity: 0;
-      transition: opacity 0.2s ease-in-out;
-    }
-
-    &:is(:hover, :focus-within) td.token-list button.show-details,
-    .details-shown td.token-list button.show-details {
-      opacity: 1;
-    }
-
-    &.fail table {
-      grid-auto-rows: max-content;
-      row-gap: 0;
-
-      &.details-shown {
-        row-gap: var(--gap-lg);
+    &.has-steps {
+      td.token-list button.show-details {
+        opacity: 0;
+        transition: opacity 0.2s ease-in-out;
       }
-    }
 
-    table tr:is(.test-expected, .test-actual) > * {
-      transition: transform 0.2s ease-in-out, height 0.2s ease-in-out, opacity 0.2s ease-in-out;
-      opacity: 0;
-      transform: scaleY(0);
-      height: 0;
-      contain: paint;
-    }
+      &:is(:hover, :focus-within) td.token-list button.show-details,
+      .details-shown td.token-list button.show-details {
+        opacity: 1;
+      }
 
-    table.details-shown tr:is(.test-expected, .test-actual) > * {
-      transform: scaleY(1);
-      height: revert;
-      opacity: 1;
-      overflow: visible;
+      &.fail table {
+        grid-auto-rows: max-content;
+        row-gap: 0;
+
+        &.details-shown {
+          row-gap: var(--gap-lg);
+        }
+      }
+
+      table tr:is(.test-expected, .test-actual) > * {
+        transition: transform 0.2s ease-in-out, height 0.2s ease-in-out, opacity 0.2s ease-in-out;
+        opacity: 0;
+        transform: scaleY(0);
+        height: 0;
+        contain: paint;
+      }
+
+      table.details-shown tr:is(.test-expected, .test-actual) > * {
+        transform: scaleY(1);
+        height: revert;
+        opacity: 1;
+        overflow: visible;
+      }
     }
 
     tr.test-expected th {

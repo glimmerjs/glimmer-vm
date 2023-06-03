@@ -1410,7 +1410,7 @@ class UpdatingTest extends BrowserRenderTest {
     this.assertHTML("<div epub:type='dedication backmatter'>hello</div>", 'After reset');
   }
 
-  @test.todo
+  @test
   '<option selected> is normalized and updated correctly'() {
     let assertSelected = (expectedSelected: string[], label: string) => {
       let options = getElementsByTagName(this.element, 'option');

@@ -8,6 +8,7 @@ import type {
   Nullable,
   PropRef,
   ServerTreeBuilderInterface,
+  TreeBuilder,
 } from '@glimmer/interfaces';
 import { castToBrowser } from '@glimmer/util';
 
@@ -17,10 +18,15 @@ import { requiresSanitization, sanitizeAttributeValue } from '../../dom/sanitize
 import type { ServerTreeBuilder } from '../../dom/tree-builder';
 
 export function dynamicAttribute(
+  dom: TreeBuilder,
   tagName: string,
   attributeName: string,
   isTrusting = false
 ): DynamicAttribute {
+  if (dom.type === 'server') {
+    return buildDynamicAttribute({ tag: tagName, name: attributeName, normalized: attributeName });
+  }
+
   let attribute: AttributeCursor = { tag: tagName, name: attributeName, normalized: attributeName };
 
   if (import.meta.env.DEV && attributeName === 'style' && !isTrusting) {
@@ -194,7 +200,7 @@ export class InputValueDynamicAttribute extends DefaultDynamicProperty {
 
 export class OptionSelectedDynamicAttribute extends DefaultDynamicProperty {
   override client(dom: BrowserTreeBuilderInterface, value: unknown) {
-    return dom.addProp('selected', value);
+    return dom.addProp('selected', (element) => Reflect.set(element, 'selected', value));
   }
 
   override update(element: Element, value: unknown): void {

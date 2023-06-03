@@ -668,7 +668,7 @@ export class BrowserComponentElementOperations
 
     let tag = dom._currentTag_ as string;
 
-    let attribute = dynamicAttribute(tag, name, trusting);
+    let attribute = dynamicAttribute(dom, tag, name, trusting);
 
     let ref = attribute.client(dom, valueForRef(attrValue));
     if (!isConstRef(attrValue)) {

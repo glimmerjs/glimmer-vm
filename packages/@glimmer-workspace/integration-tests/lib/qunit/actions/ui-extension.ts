@@ -38,6 +38,7 @@ export function installUiExtensions(qunit: QUnit) {
             }
 
             if (node.innerHTML.includes('[verify] ')) {
+              node.classList.add('has-steps');
               let expectedRow = node.querySelector(':scope tr.test-expected') as
                 | HTMLTableRowElement
                 | undefined;

@@ -464,7 +464,7 @@ export class InitialRenderSuite extends BrowserRenderTest {
     this.assertStableNodes();
   }
 
-  @test.todo
+  @test
   'Dynamic multi-select'() {
     this.render(
       strip`

@@ -15,7 +15,7 @@ import {
 export class AttributesTests extends BrowserRenderTest {
   static suiteName = 'Attributes';
 
-  protected readDOMAttr(attribute: string, element = this.element.firstChild as SimpleElement) {
+  protected readDOMAttr(attribute: string, element = this.element.firstChild as SimpleElement | Element) {
     let isSVG = element.namespaceURI === NS_SVG;
     let [type, normalized] = normalizeProperty(element, attribute);
 
@@ -249,7 +249,7 @@ export class AttributesTests extends BrowserRenderTest {
     this.assertStableNodes();
   }
 
-  @test.todo
+  @test
   'handles successive updates to the same value'() {
     class Model {
       @tracked value = '';
@@ -283,7 +283,7 @@ export class AttributesTests extends BrowserRenderTest {
     this.assertStableNodes();
   }
 
-  @test.todo
+  @test
   'input[checked] prop updates when set to undefined'() {
     this.registerHelper('if', (parameters) => {
       return parameters[0] ? parameters[1] : parameters[2];
@@ -302,7 +302,7 @@ export class AttributesTests extends BrowserRenderTest {
     this.assertStableNodes();
   }
 
-  @test.todo
+  @test
   'input[checked] prop updates when set to null'() {
     this.render('<input checked={{this.foo}} />', { foo: true });
     this.assert.strictEqual(this.readDOMAttr('checked'), true);
@@ -317,7 +317,7 @@ export class AttributesTests extends BrowserRenderTest {
     this.assertStableNodes();
   }
 
-  @test.todo
+  @test
   'select[value] prop updates when set to undefined'() {
     // setting `select[value]` only works after initial render, just use
     this.render(
@@ -337,7 +337,7 @@ export class AttributesTests extends BrowserRenderTest {
     this.assertStableNodes();
   }
 
-  @test.todo
+  @test
   'handles empty string textarea values'() {
     this.render('<textarea value={{this.name}} />', { name: '' });
     this.assert.strictEqual(this.readDOMAttr('value'), '');
@@ -352,7 +352,7 @@ export class AttributesTests extends BrowserRenderTest {
     this.assert.strictEqual(this.readDOMAttr('value'), '');
   }
 
-  @test.todo
+  @test
   'handles empty string input placeholders'() {
     this.render('<input type="text" placeholder={{this.name}} />', { name: '' });
     this.assert.strictEqual(this.readDOMAttr('placeholder'), '');
@@ -366,7 +366,7 @@ export class AttributesTests extends BrowserRenderTest {
     this.assertStableNodes();
   }
 
-  @test.todo
+  @test
   'type attribute can be set to non-valid type'() {
     this.render('<input type="yolo" />');
     this.assert.strictEqual(this.readDOMAttr('type'), 'text');
@@ -376,7 +376,7 @@ export class AttributesTests extends BrowserRenderTest {
     this.assertStableNodes();
   }
 
-  @test.todo
+  @test
   'does not set undefined attributes'() {
     this.render('<div data-foo={{this.isUndefined}} /><div data-foo={{this.isNotUndefined}} />', {
       isUndefined: undefined,
@@ -412,7 +412,7 @@ export class AttributesTests extends BrowserRenderTest {
     this.assertStableNodes();
   }
 
-  @test.todo
+  @test
   'does not set null attributes'() {
     this.render('<div data-foo={{this.isNull}} /><div data-foo={{this.isNotNull}} />', {
       isNull: null,
@@ -452,7 +452,7 @@ export class AttributesTests extends BrowserRenderTest {
     this.assertStableNodes();
   }
 
-  @test.todo
+  @test
   'does not set undefined properties initially'() {
     this.render('<div title={{this.isUndefined}} /><div title={{this.isNotUndefined}} />', {
       isUndefined: undefined,
@@ -489,7 +489,7 @@ export class AttributesTests extends BrowserRenderTest {
     this.assertHTML('<div></div><div title="hello"></div>');
   }
 
-  @test.todo
+  @test
   'does not set null properties initially'() {
     this.render('<div title={{this.isNull}} /><div title={{this.isNotNull}} />', {
       isNull: undefined,
@@ -526,7 +526,7 @@ export class AttributesTests extends BrowserRenderTest {
     this.assertHTML('<div></div><div title="hello"></div>');
   }
 
-  @test.todo
+  @test
   'input list attribute updates properly'() {
     this.render('<input list="{{this.foo}}" />', { foo: 'bar' });
     this.assertHTML('<input list="bar" />');
@@ -556,7 +556,7 @@ export class AttributesTests extends BrowserRenderTest {
     this.assertStableNodes();
   }
 
-  @test.todo
+  @test
   'normalizes mix-case dynamic properties correctly'() {
     this.render('<svg viewBox={{this.foo}} />', { foo: '0 0 100 100' });
     this.assertHTML('<svg viewBox="0 0 100 100" />');

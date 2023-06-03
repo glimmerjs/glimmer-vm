@@ -146,7 +146,8 @@ export class ServerTreeBuilder implements ServerTreeBuilderInterface {
     this.#buffer += `</${tag}>`;
   }
   recover(): void {
-    throw new Error('Method not implemented.');
+    this.#buffer = '';
+    this.#element = null;
   }
 }
 
@@ -428,7 +429,8 @@ function insertDocumentFragment(
 
 function insertHTML(
   cursor: MinimalInternalCursor,
-  html: string
+  html: string,
+  before?: (first: MinimalChild | null, last: MinimalChild | null) => void
 ): [MinimalChild | null, MinimalChild | null] {
   let parent = cursor[PARENT_ELEMENT];
   let next = cursor[NEXT_SIBLING];
@@ -449,6 +451,7 @@ function insertHTML(
   let fragment = range.createContextualFragment(html) as unknown as MinimalDocumentFragment;
   let first = fragment.firstChild;
   let last = fragment.lastChild;
+  before?.(first, last);
   template.replaceWith(fragment);
   return [first, last];
 }
@@ -493,7 +496,7 @@ function BrowserElementBuffer(tag: string): BrowserElementBuffer {
     attr(qualifiedName: string, attributeValue: unknown) {
       let ref: AttributeRef = [qualifiedName, null];
       refs.push(ref);
-      attributeValue = specialAttributeValue(tag, qualifiedName, attributeValue);
+      attributeValue = specialAttributeValue(attributeValue);
 
       if (attributeValue === false || attributeValue === null) return ref;
       if (attributeValue === true) attributeValue = '';
@@ -514,15 +517,11 @@ function BrowserElementBuffer(tag: string): BrowserElementBuffer {
   };
 }
 
-function specialAttributeValue(
-  tagName: string,
-  qualifiedName: string,
-  attributeValue: unknown
-): string | false {
+function specialAttributeValue(attributeValue: unknown): string | false {
   let normalized = normalizeAttributeValue(attributeValue);
 
   if (normalized === null) {
-    normalized = specialCases(tagName, qualifiedName, attributeValue);
+    normalized = normalizeValue(attributeValue);
   }
 
   return normalized;
@@ -531,7 +530,7 @@ function specialAttributeValue(
 export function updateAttributeRef(attributeRef: AttributeRef, value: unknown) {
   let [qualifiedName, element] = attributeRef;
 
-  let normalized = specialAttributeValue(unwrap(element).tagName, qualifiedName, value);
+  let normalized = specialAttributeValue(value);
 
   if (normalized === false) {
     unwrap(element).removeAttribute(qualifiedName);
@@ -550,17 +549,7 @@ function normalizeAttributeValue(value: unknown): string | false | null {
 /**
  * These special cases are probably not necessary but they avoid breaking the tests during refactoring.
  */
-function specialCases(tagName: string, qualifiedName: string, value: unknown): string | false {
-  switch (tagName.toUpperCase()) {
-    case 'INPUT':
-      switch (qualifiedName) {
-        case 'disabled':
-          return value == null ? false : '';
-        case 'value':
-          if (value == null) return '';
-      }
-  }
-
+function normalizeValue(value: unknown): string | false {
   return value === null || value === undefined ? false : toString(value);
 }
 

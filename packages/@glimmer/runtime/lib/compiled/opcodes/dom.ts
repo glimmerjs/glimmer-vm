@@ -229,8 +229,8 @@ define(DYNAMIC_ATTR_OP, (vm, { op1: _name, op2: _trusting }) => {
   let dom = vm._elements_() as BrowserTreeBuilderInterface;
   let tag = dom._currentTag_ as string;
 
-  debugger;
-  let attribute = dynamicAttribute(tag, name, trusting);
+
+  let attribute = dynamicAttribute(dom, tag, name, trusting);
 
   let ref = attribute.client(dom, value);
   if (!isConstRef(reference)) {

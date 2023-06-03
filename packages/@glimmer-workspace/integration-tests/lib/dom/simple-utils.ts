@@ -187,7 +187,7 @@ export function assertElement(node: Maybe<SimpleNode>): asserts node is SimpleEl
   }
 }
 
-export function hasAttribute(parent: SimpleElement, attribute: string): boolean {
+export function hasAttribute(parent: SimpleElement | Element, attribute: string): boolean {
   return parent.getAttribute(attribute) !== null;
 }
 

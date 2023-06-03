@@ -37,7 +37,7 @@ class StyleWarningsTest extends RenderTest {
     assert.strictEqual(warnings, 0);
   }
 
-  @test.todo
+  @test
   'Standard element with dynamic style and element modifier gives you 1 warning'() {
     this.registerModifier('foo', class {});
     this.render('<button style={{this.dynAttr}} {{foo}}>click me</button>', {
