@@ -1,4 +1,6 @@
 :root {
+  color-scheme: light dark;
+
   --same-bg: oklch(95% 0 190);
   --same-fg: oklch(70% 0 190);
   --step-fg: oklch(54% 0.01 190);
@@ -30,14 +32,22 @@
   --bg-lightness: 93%;
   --fg-chroma: 0.18;
   --bg-chroma: 0.07;
+
   --muted-bg-lightness: 97%;
   --muted-bg-chroma: 0.03;
   --muted-fg-lightness: 85%;
   --muted-fg-chroma: 0.05;
-  --strong-bg-lightness: 50%;
+
+  --ultramuted-bg-lightness: 99%;
+  --ultramuted-bg-chroma: 0.01;
+  --ultramuted-fg-lightness: 85%;
+  --ultramuted-fg-chroma: 0.05;
+
+  --strong-bg-lightness: 90%;
   --strong-bg-chroma: 0.1;
-  --strong-fg-lightness: 80%;
+  --strong-fg-lightness: 50%;
   --strong-fg-chroma: 0.1;
+
   --marker-bg-lightness: 94%;
   --marker-bg-chroma: 0.1;
 
@@ -55,7 +65,82 @@
 
   --gutter-size: 10px;
 
-  --warning-bg: oklch(97% 0.05 110);
+  --warning-bg: oklch(var(--muted-bg-lightness) var(--muted-bg-chroma) 110);
+
+  --primary-hue: 190;
+  --primary-bg: oklch(
+    var(--ultramuted-bg-lightness) var(--ultramuted-bg-chroma) var(--primary-hue)
+  );
+  --primary-fg: oklch(
+    var(--ultramuted-fg-lightness) var(--ultramuted-fg-chroma) var(--primary-hue)
+  );
+
+  --accent-bg: oklch(var(--strong-bg-lightness) var(--muted-bg-chroma) var(--primary-hue));
+  --accent-fg: oklch(var(--strong-fg-lightness) var(--strong-fg-chroma) var(--primary-hue));
+
+  --active-bg: oklch(var(--muted-bg-lightness) var(--muted-bg-chroma) var(--primary-hue));
+  --active-fg: oklch(var(--muted-fg-lightness) var(--muted-fg-chroma) var(--primary-hue));
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --fg-lightness: 70%;
+    --bg-lightness: 7%;
+
+    --muted-bg-lightness: 3%;
+    --muted-fg-lightness: 85%;
+
+    --ultramuted-bg-lightness: 1%;
+    --ultramuted-fg-lightness: 85%;
+
+    --strong-bg-lightness: 30%;
+    --strong-fg-lightness: 90%;
+
+    --marker-bg-lightness: 6%;
+  }
+}
+
+body,
+#qunit .qunit-assert-list,
+#qunit #qunit-tests li,
+#qunit #qunit-testresult {
+  background-color: var(--primary-bg);
+}
+
+#qunit #qunit-testrunner-toolbar {
+  button {
+    color: var(--primary-fg);
+    background-color: var(--primary-bg);
+
+    &:hover {
+      background-color: var(--accent-bg);
+      color: var(--accent-fg);
+    }
+
+    &:active {
+      background-color: var(--active-bg);
+      color: var(--active-fg);
+    }
+  }
+}
+
+#qunit-modulefilter-dropdown {
+  background-color: var(--primary-bg);
+  color: var(--primary-fg);
+
+  .clickable:hover {
+    background-color: var(--accent-bg);
+    color: var(--accent-fg);
+  }
+}
+
+#qunit-modulefilter-search-container::after {
+  color: var(--primary-fg);
+}
+
+#qunit-testrunner-toolbar {
+  background-color: var(--accent-bg);
+  color: var(--accent-fg);
 }
 
 #qunit #qunit-tests {

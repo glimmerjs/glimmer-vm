@@ -495,6 +495,7 @@ function BrowserElementBuffer(tag: string): BrowserElementBuffer {
 
     attr(qualifiedName: string, attributeValue: unknown) {
       let ref: AttributeRef = [qualifiedName, null];
+
       refs.push(ref);
       attributeValue = specialAttributeValue(attributeValue);
 

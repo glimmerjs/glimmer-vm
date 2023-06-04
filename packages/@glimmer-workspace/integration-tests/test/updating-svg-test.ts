@@ -3,7 +3,12 @@
 import type { SimpleElement } from '@glimmer/interfaces';
 import { NS_HTML, NS_SVG, NS_XLINK } from '@glimmer/util';
 
-import { assertNodeTagName, BrowserRenderTest, jitSuite, test } from '@glimmer-workspace/integration-tests';
+import {
+  assertNodeTagName,
+  BrowserRenderTest,
+  jitSuite,
+  test,
+} from '@glimmer-workspace/integration-tests';
 import { assert } from './support';
 
 class UpdatingSvgTest extends BrowserRenderTest {
@@ -50,22 +55,25 @@ class UpdatingSvgTest extends BrowserRenderTest {
       }
     };
 
-    this.render('{{#in-element this.svg}}{{#if this.hasForeignObject}}<foreignObject><div></div></foreignObject>{{/if}}{{/in-element}}', {
-      hasForeignObject: true,
-      svg
-    });
+    this.render(
+      '{{#in-element this.svg}}{{#if this.hasForeignObject}}<foreignObject><div></div></foreignObject>{{/if}}{{/in-element}}',
+      {
+        hasForeignObject: true,
+        svg,
+      }
+    );
 
-    this.assertHTML('<svg><foreignObject><div></div></foreignObject></svg>', parent);
+    this.assertHTML('<svg><foreignObject><div></div></foreignObject></svg><!---->', parent);
     assertNamespaces();
     this.assertStableRerender();
 
     this.rerender({ hasForeignObject: false });
 
-    this.assertHTML('<svg><!----></svg>', parent);
+    this.assertHTML('<svg><!----></svg><!---->', parent);
 
     this.rerender({ hasForeignObject: true });
 
-    this.assertHTML('<svg><foreignObject><div></div></foreignObject></svg>', parent);
+    this.assertHTML('<svg><foreignObject><div></div></foreignObject></svg><!---->', parent);
     assertNamespaces();
   }
 

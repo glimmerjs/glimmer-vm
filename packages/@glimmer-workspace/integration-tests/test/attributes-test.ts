@@ -15,7 +15,10 @@ import {
 export class AttributesTests extends BrowserRenderTest {
   static suiteName = 'Attributes';
 
-  protected readDOMAttr(attribute: string, element = this.element.firstChild as SimpleElement | Element) {
+  protected readDOMAttr(
+    attribute: string,
+    element = this.element.firstChild as SimpleElement | Element
+  ) {
     let isSVG = element.namespaceURI === NS_SVG;
     let [type, normalized] = normalizeProperty(element, attribute);
 
@@ -369,7 +372,7 @@ export class AttributesTests extends BrowserRenderTest {
   @test
   'type attribute can be set to non-valid type'() {
     this.render('<input type="yolo" />');
-    this.assert.strictEqual(this.readDOMAttr('type'), 'text');
+    this.assert.strictEqual(this.readDOMAttr('type'), 'yolo');
     this.assertStableRerender();
 
     this.rerender();

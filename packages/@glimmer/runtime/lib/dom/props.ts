@@ -9,10 +9,33 @@ export function normalizeProperty(
   element: Element | SimpleElement,
   slotName: string
 ): NormalizedProperty {
+  if (
+    isConstrainableElement(element.tagName) &&
+    !isBooleanAttribute(slotName) &&
+    slotName !== 'value'
+  )
+    return [ATTR, slotName];
+
   if (slotName in element) return triage(element, slotName);
 
   let lower = slotName.toLowerCase();
   return lower in element ? triage(element, lower) : [ATTR, slotName];
+}
+
+const CONSTRAINABLE_ELEMENTS = new Set(`INPUT SELECT TEXTAREA`.split(' '));
+const CONSTRAINT_ATTRS = new Set(`min max step pattern minlength maxlength required`.split(' '));
+const BOOLEAN_ATTRS = new Set('checked disabled multiple'.split(' '));
+
+function isBooleanAttribute(name: string) {
+  return BOOLEAN_ATTRS.has(name);
+}
+
+function isConstrainableElement(tagName: string) {
+  return CONSTRAINABLE_ELEMENTS.has(tagName);
+}
+
+function isConstraintAttr(name: string) {
+  return CONSTRAINT_ATTRS.has(name);
 }
 
 function triage(
