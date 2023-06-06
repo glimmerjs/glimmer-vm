@@ -129,7 +129,7 @@ export class ServerTreeBuilder implements ServerTreeBuilderInterface {
     this.#buffer += `<${tag}`;
     this.#element = new CurrentElement(tag, this.#element);
   }
-  addAttr(attributeName: string, attributeValue: unknown): void {
+  setAttribute(attributeName: string, attributeValue: unknown): void {
     if (attributeValue == null || attributeValue === false) return;
     if (attributeValue === true) attributeValue = '';
     this.#buffer += attributeValue ? ` ${attributeName}="${attributeValue}"` : ` ${attributeName}`;
@@ -340,7 +340,7 @@ export class BrowserTreeBuilder implements BrowserTreeBuilderInterface {
     this.#buffer = BrowserElementBuffer(tag);
   }
 
-  addAttr(attributeName: string, attributeValue: string | boolean | undefined): AttributeRef {
+  setAttribute(attributeName: string, attributeValue: string | boolean | undefined): AttributeRef {
     return unwrap(this.#buffer).attr(attributeName, attributeValue);
   }
 

@@ -192,7 +192,7 @@ export class ServerSideSuite extends AbstractNodeTest {
 export class ServerSideComponentSuite extends AbstractNodeTest {
   static suiteName = 'Server Side Components';
 
-  @test.todo
+  @test
   'can render components'() {
     this.render({
       layout: '<h1>Hello World!</h1>',
@@ -200,7 +200,7 @@ export class ServerSideComponentSuite extends AbstractNodeTest {
     this.assertComponent('<h1>Hello World!</h1>');
   }
 
-  @test.todo
+  @test
   'can render components with yield'() {
     this.render({
       layout: '<h1>Hello {{yield}}!</h1>',
@@ -209,7 +209,7 @@ export class ServerSideComponentSuite extends AbstractNodeTest {
     this.assertComponent('<h1>Hello World!</h1>');
   }
 
-  @test.todo
+  @test
   'can render components with args'() {
     this.render(
       {
@@ -222,7 +222,7 @@ export class ServerSideComponentSuite extends AbstractNodeTest {
     this.assertComponent('<h1>Hello World!</h1>');
   }
 
-  @test.todo
+  @test
   'can render components with block params'() {
     this.render(
       {

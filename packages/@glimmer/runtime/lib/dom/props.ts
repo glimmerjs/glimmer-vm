@@ -1,4 +1,5 @@
 import type { SimpleElement } from '@glimmer/interfaces';
+import { NS_MATHML, NS_SVG } from '@glimmer/util';
 
 export const ATTR = 0;
 export const PROP = 1;
@@ -9,12 +10,16 @@ export function normalizeProperty(
   element: Element | SimpleElement,
   slotName: string
 ): NormalizedProperty {
+  if (element.namespaceURI === NS_SVG || element.namespaceURI === NS_MATHML)
+    return [ATTR, slotName];
+
   if (
     isConstrainableElement(element.tagName) &&
     !isBooleanAttribute(slotName) &&
     slotName !== 'value'
-  )
-    return [ATTR, slotName];
+  ) {
+    return [ATTR, slotName.toLowerCase()];
+  }
 
   if (slotName in element) return triage(element, slotName);
 

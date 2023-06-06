@@ -2,6 +2,7 @@ import type {
   CompilableProgram,
   CompileTimeCompilationContext,
   ComponentDefinitionState,
+  DomTypes,
   DynamicScope,
   Environment,
   ISTDLIB_MAIN,
@@ -22,9 +23,9 @@ import { ARGS, CONSTANTS } from './symbols';
 import { VM, type InternalVM } from './vm/append';
 
 class TemplateIteratorImpl implements TemplateIterator {
-  readonly #vm: InternalVM;
+  readonly #vm: InternalVM<DomTypes>;
 
-  constructor(vm: InternalVM) {
+  constructor(vm: InternalVM<DomTypes>) {
     this.#vm = vm;
   }
 

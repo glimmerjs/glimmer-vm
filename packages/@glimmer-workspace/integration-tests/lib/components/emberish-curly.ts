@@ -5,6 +5,7 @@ import type {
   CompilableProgram,
   Destroyable,
   Dict,
+  DomTypes,
   DynamicScope,
   ElementOperations,
   ElementRef,
@@ -15,19 +16,14 @@ import type {
   PreparedArguments,
   Reference,
   Template,
+  TreeBuilder,
   VMArguments,
   WithCreateInstance,
   WithDynamicLayout,
   WithDynamicTagName,
 } from '@glimmer/interfaces';
 import { setInternalComponentManager } from '@glimmer/manager';
-import {
-  childRefFor,
-  createComputeRef,
-  createConstRef,
-  createPrimitiveRef,
-  valueForRef,
-} from '@glimmer/reference';
+import { childRefFor, createComputeRef, createConstRef, valueForRef } from '@glimmer/reference';
 import { reifyNamed, reifyPositional } from '@glimmer/runtime';
 import { EMPTY_ARRAY, keys, unwrapTemplate } from '@glimmer/util';
 import {
@@ -70,8 +66,6 @@ export class EmberishCurlyComponent {
   public declare args: CapturedNamedArguments;
 
   public _guid: string;
-
-  // create(options: { attrs: Attrs; targetObject: any }): EmberishCurlyComponent
 
   static create(args: { attrs: Attributes; targetObject: any }): EmberishCurlyComponent {
     let c = new this();
@@ -134,6 +128,7 @@ const EMBERISH_CURLY_CAPABILITIES: InternalComponentCapabilities = {
   prepareArgs: true,
   createArgs: true,
   attributeHook: true,
+  flushHook: true,
   elementHook: true,
   dynamicScope: true,
   createCaller: true,
@@ -166,6 +161,11 @@ export class EmberishCurlyComponentManager
     }
 
     return null;
+  }
+
+  flush({ component }: EmberishCurlyComponentState, dom: TreeBuilder) {
+    dom.setAttribute('id', `ember${component._guid}`);
+    dom.setAttribute('class', 'ember-view');
   }
 
   prepareArgs(
@@ -275,12 +275,9 @@ export class EmberishCurlyComponentManager
   didCreateElement(
     { component, selfRef }: EmberishCurlyComponentState,
     element: ElementRef,
-    operations: ElementOperations
+    operations: ElementOperations<DomTypes>
   ): void {
     component.elementRef = element;
-
-    operations.setAttribute('id', createPrimitiveRef(`ember${component._guid}`), false, null);
-    operations.setAttribute('class', createPrimitiveRef('ember-view'), false, null);
 
     let bindings = component.attributeBindings;
 

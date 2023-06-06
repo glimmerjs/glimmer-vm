@@ -12,7 +12,11 @@ import { RenderTest } from '../../render-test';
 import { ServerTreeBuilder } from '@glimmer/runtime/lib/dom/tree-builder';
 import { unwrap } from '@glimmer/validator/lib/utils';
 import { assert, isElement } from '@glimmer/util';
-import { BasicRenderDelegate, JitDelegateContext, type JitTestDelegateContext } from '../jit/delegate';
+import {
+  BasicRenderDelegate,
+  JitDelegateContext,
+  type JitTestDelegateContext,
+} from '../jit/delegate';
 
 export interface NodeEnvironmentOptions {
   document: SimpleDocument;
@@ -63,7 +67,6 @@ export class NodeJitRenderDelegate extends BasicRenderDelegate {
     assert(isElement(first), 'First child should be an element');
     return first;
   }
-
 }
 
 export class AbstractNodeTest extends RenderTest {
@@ -77,7 +80,7 @@ export class AbstractNodeTest extends RenderTest {
   }
 
   override assertComponent(html: string) {
-    let element = assertingElement(this.delegate.asElement().firstChild);
+    let element = assertingElement(this.delegate.asElement());
 
     if (this.testType !== 'Glimmer') {
       this.assert.strictEqual(element.getAttribute('class'), 'ember-view');

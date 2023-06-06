@@ -17,7 +17,6 @@ import type {
 import { assert, castToBrowser, castToSimple, COMMENT_NODE, expect, NS_SVG } from '@glimmer/util';
 
 import { ConcreteBounds, CursorImpl } from '../bounds';
-import { NewElementBuilder, RemoteLiveBlock } from './element-builder';
 
 export const SERIALIZATION_FIRST_NODE_STRING = '%+b:0%';
 

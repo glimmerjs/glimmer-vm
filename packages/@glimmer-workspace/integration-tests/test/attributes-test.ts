@@ -544,7 +544,7 @@ export class AttributesTests extends BrowserRenderTest {
     this.assertStableNodes();
   }
 
-  @test.todo
+  @test
   'normalizes lowercase dynamic properties correctly'() {
     this.render('<div tiTle={{this.foo}} />', { foo: 'bar' });
     this.assertHTML('<div title="bar" />');

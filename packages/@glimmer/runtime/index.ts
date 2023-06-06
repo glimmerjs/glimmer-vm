@@ -62,18 +62,6 @@ export {
   dynamicAttribute,
   SimpleDynamicAttribute,
 } from './lib/vm/attributes/dynamic';
-export {
-  clientBuilder,
-  NewElementBuilder,
-  RemoteLiveBlock,
-  UpdatableBlockImpl,
-} from './lib/vm/element-builder';
-export {
-  isSerializationFirstNode,
-  RehydrateBuilder,
-  rehydrationBuilder,
-  SERIALIZATION_FIRST_NODE_STRING,
-} from './lib/vm/rehydrate-builder';
 
 // Currently we need to re-export these values for @glimmer/component
 // https://github.com/glimmerjs/glimmer.js/issues/319

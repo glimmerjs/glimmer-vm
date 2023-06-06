@@ -24,10 +24,10 @@ export function dynamicAttribute(
   isTrusting = false
 ): DynamicAttribute {
   if (dom.type === 'server') {
-    return buildDynamicAttribute({ tag: tagName, name: attributeName, normalized: attributeName });
+    return buildDynamicAttribute({ tag: tagName, name: attributeName });
   }
 
-  let attribute: AttributeCursor = { tag: tagName, name: attributeName, normalized: attributeName };
+  let attribute: AttributeCursor = { tag: tagName, name: attributeName };
 
   if (import.meta.env.DEV && attributeName === 'style' && !isTrusting) {
     return new DebugStyleAttributeManager(attribute);
@@ -39,7 +39,7 @@ export function dynamicAttribute(
   // }
 
   let [type, normalized] = normalizeProperty(document.createElement(tagName), attributeName);
-  attribute.normalized = normalized;
+  attribute.name = normalized;
 
   return type === ATTR ? buildDynamicAttribute(attribute) : buildDynamicProperty(attribute);
 }
@@ -81,14 +81,14 @@ export abstract class DynamicAttribute implements AttributeOperation {
 
 export class SimpleDynamicAttribute extends DynamicAttribute {
   server(dom: ServerTreeBuilder, value: unknown) {
-    dom.addAttr(this.attribute.name, value);
+    dom.setAttribute(this.attribute.name, value);
   }
 
   client(dom: BrowserTreeBuilderInterface, value: unknown): AttributeRef {
     let normalizedValue = normalizeValue(value);
 
     let { name } = this.attribute;
-    return dom.addAttr(name, normalizedValue);
+    return dom.setAttribute(name, normalizedValue);
   }
 
   update(element: Element, value: unknown): void {
@@ -115,7 +115,7 @@ export class DefaultDynamicProperty extends DynamicAttribute {
 
     if (normalizedValue !== null) {
       let { name } = this.attribute;
-      dom.addAttr(name, normalizedValue);
+      dom.setAttribute(name, normalizedValue);
     }
   }
 
@@ -185,7 +185,7 @@ export class InputValueDynamicAttribute extends DefaultDynamicProperty {
   }
 
   override server(dom: ServerTreeBuilderInterface, value: unknown): void {
-    dom.addAttr('value', normalizeStringValue(value));
+    dom.setAttribute('value', normalizeStringValue(value));
   }
 
   override update(element: Element, value: unknown): void {

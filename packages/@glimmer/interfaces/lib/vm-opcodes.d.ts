@@ -118,6 +118,7 @@ export type VmStrictStaticAttr = 113;
 export type VmStrictDynamicAttr = 114;
 export type VmStrictComponentAttr = 115;
 export type VmStrictStaticComponentAttr = 116;
+export type VmWillFlushElement = 117;
 
 export type VmOp =
   | VmHelper
@@ -163,6 +164,7 @@ export type VmOp =
   | VmStrictComponentAttr
   | VmStaticComponentAttr
   | VmStrictStaticComponentAttr
+  | VmWillFlushElement
   | VmFlushElement
   | VmCloseElement
   | VmPopRemoteElement

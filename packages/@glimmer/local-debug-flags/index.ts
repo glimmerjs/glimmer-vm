@@ -18,6 +18,23 @@ export const LOCAL_SHOULD_LOG: true | false = import.meta.env.DEV
     })()
   : false;
 
+let expectRenderError = false;
+
+export function expectingRenderError(block: () => void) {
+  if (import.meta.env.DEV) {
+    expectRenderError = true;
+    try {
+      block();
+    } finally {
+      expectRenderError = false;
+    }
+  }
+}
+
+export function isExpectedError() {
+  return import.meta.env.DEV && expectRenderError;
+}
+
 export const LOCAL_SHOULD_LOG_TRACKING: true | false = import.meta.env.DEV
   ? (() => {
       let location = typeof window !== 'undefined' && window.location;

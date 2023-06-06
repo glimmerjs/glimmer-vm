@@ -101,6 +101,7 @@ import {
   TEXT_OP,
   TO_BOOLEAN_OP,
   VIRTUAL_ROOT_SCOPE_OP,
+  WILL_FLUSH_ELEMENT_OP,
 } from '@glimmer/vm-constants';
 
 import type { NormalizedMetadata } from './metadata';
@@ -773,6 +774,21 @@ if (import.meta.env.DEV) {
       },
     ],
     operands: 3,
+    check: true,
+  };
+
+  METADATA[WILL_FLUSH_ELEMENT_OP] = {
+    name: 'WillFlushElement',
+    mnemonic: 'apnd_willflushtag',
+    before: null,
+    stackChange: 0,
+    ops: [
+      {
+        name: 'state',
+        type: 'register',
+      },
+    ],
+    operands: 1,
     check: true,
   };
 

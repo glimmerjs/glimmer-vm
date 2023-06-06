@@ -59,6 +59,7 @@ import {
   CREATE_ARGS_CAPABILITY,
   DYNAMIC_SCOPE_CAPABILITY,
   CREATE_INSTANCE_CAPABILITY,
+  WILL_FLUSH_ELEMENT_OP,
 } from '@glimmer/vm-constants';
 
 import type { PushExpressionOp, PushStatementOp } from '../../syntax/compiler-impl';
@@ -426,6 +427,7 @@ export function WrappedComponent(
   op(OPEN_DYNAMIC_ELEMENT_OP);
   op(DID_CREATE_ELEMENT_OP, $s0);
   YieldBlock(op, attributesBlockNumber, null);
+  op(WILL_FLUSH_ELEMENT_OP, $s0);
   op(FLUSH_ELEMENT_OP);
   op(LABEL_OP, 'BODY');
   InvokeStaticBlock(op, [layout.block[0], []]);

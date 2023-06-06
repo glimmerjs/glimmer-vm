@@ -29,6 +29,7 @@ import {
   test,
   suite,
 } from '@glimmer-workspace/integration-tests';
+import { expectingRenderError } from '@glimmer/local-debug-flags';
 
 interface CapturedBounds {
   parentElement: MinimalElement;
@@ -440,7 +441,7 @@ class DebugRenderTreeTest extends BrowserRenderTest {
     );
 
     assert.throws(() => {
-      this.render('<HelloWorld @arg="first"/>');
+      expectingRenderError(() => this.render('<HelloWorld @arg="first"/>'));
     }, /oops!/u);
 
     assert.deepEqual(this.delegate.getCapturedRenderTree(), [], 'there was no output');

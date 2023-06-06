@@ -12,6 +12,7 @@ import type {
   DynamicTagCapability,
   ElementHookCapability,
   Expand,
+  HasFlushHookCapability,
   HasSubOwnerCapability,
   InternalComponentCapability,
   InternalComponentManager,
@@ -21,6 +22,7 @@ import type {
   WillDestroyCapability,
   WithCreateInstance,
   WithDynamicLayout,
+  WithFlushHook,
   WithPrepareArgs,
   WithSubOwner,
   WithUpdateHook,
@@ -36,6 +38,7 @@ import {
   DYNAMIC_TAG_CAPABILITY,
   ELEMENT_HOOK_CAPABILITY,
   EMPTY_CAPABILITY,
+  HAS_FLUSH_HOOK_CAPABILITY,
   HAS_SUB_OWNER_CAPABILITY,
   PREPARE_ARGS_CAPABILITY,
   UPDATE_HOOK_CAPABILITY,
@@ -81,6 +84,7 @@ export function capabilityMaskFrom(
   if (capabilities.wrapped) mask |= WRAPPED_CAPABILITY;
   if (capabilities.willDestroy) mask |= WILL_DESTROY_CAPABILITY;
   if (capabilities.hasSubOwner) mask |= HAS_SUB_OWNER_CAPABILITY;
+  if (capabilities.flushHook) mask |= HAS_FLUSH_HOOK_CAPABILITY;
 
   return mask as CapabilityMask;
 }
@@ -112,6 +116,8 @@ export type InternalComponentCapabilityFor<C extends InternalComponentCapability
     ? InternalComponentManager
     : C extends HasSubOwnerCapability
     ? WithSubOwner
+    : C extends HasFlushHookCapability
+    ? WithFlushHook
     : never;
 
 export function managerHasCapability<F extends InternalComponentCapability>(

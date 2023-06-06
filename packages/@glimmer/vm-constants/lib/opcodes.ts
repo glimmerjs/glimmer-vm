@@ -107,6 +107,7 @@ import type {
   VmText,
   VmToBoolean,
   VmVirtualRootScope,
+  VmWillFlushElement,
 } from '@glimmer/interfaces';
 
 export const PUSH_FRAME_OP: VmMachinePushFrame = 0;
@@ -216,6 +217,7 @@ export const STRICT_STATIC_ATTR_OP: VmStrictStaticAttr = 113;
 export const STRICT_DYNAMIC_ATTR_OP: VmStrictDynamicAttr = 114;
 export const STRICT_COMPONENT_ATTR_OP: VmStrictComponentAttr = 115;
 export const STRICT_STATIC_COMPONENT_ATTR_OP: VmStrictStaticComponentAttr = 116;
+export const WILL_FLUSH_ELEMENT_OP: VmWillFlushElement = 117;
 
 export function isMachineOp(value: number): value is VmMachineOp {
   return value >= 0 && value <= 15;

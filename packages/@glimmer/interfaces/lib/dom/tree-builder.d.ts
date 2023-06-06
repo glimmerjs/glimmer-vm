@@ -91,7 +91,7 @@ export interface DOMTreeBuilderInterface {
   html(html: string): void;
   comment(data: string): void;
   startElement(tag: string): void;
-  addAttr(attributeName: string, attributeValue: unknown): void;
+  setAttribute(attributeName: string, attributeValue: unknown): void;
   flushElement(): void;
   endElement(): void;
 
@@ -129,7 +129,7 @@ export interface BrowserTreeBuilderInterface extends DOMTreeBuilderInterface {
   child(child: MinimalChild): MinimalChild;
   comment(data: string): MinimalComment;
   startElement(tag: string): void;
-  addAttr(attributeName: string, attributeValue: unknown): AttributeRef;
+  setAttribute(attributeName: string, attributeValue: unknown): AttributeRef;
   addProp(propName: string, insert: (value: Element) => void): PropRef;
   flushElement(): MinimalElement;
   endElement(): MinimalElement;

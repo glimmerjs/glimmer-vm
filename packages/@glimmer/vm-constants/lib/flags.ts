@@ -22,6 +22,7 @@ import type {
   UpdateHookCapability,
   WillDestroyCapability,
   WrappedCapability,
+  HasFlushHookCapability,
 } from '@glimmer/interfaces';
 
 export const CURRIED_COMPONENT: CurriedComponent = 0;
@@ -30,19 +31,20 @@ export const CURRIED_MODIFIER: CurriedModifier = 2;
 
 // prettier-ignore
 export const EMPTY_CAPABILITY: EmptyCapability = 0;
-export const DYNAMIC_LAYOUT_CAPABILITY: DynamicLayoutCapability = 0b0_0000_0000_0001;
-export const DYNAMIC_TAG_CAPABILITY: DynamicTagCapability = 0b0_0000_0000_0010;
-export const PREPARE_ARGS_CAPABILITY: PrepareArgsCapability = 0b0_0000_0000_0100;
-export const CREATE_ARGS_CAPABILITY: CreateArgsCapability = 0b0_0000_0000_1000;
-export const ATTRIBUTE_HOOK_CAPABILITY: AttributeHookCapability = 0b0_0000_0001_0000;
-export const ELEMENT_HOOK_CAPABILITY: ElementHookCapability = 0b0_0000_0010_0000;
-export const DYNAMIC_SCOPE_CAPABILITY: DynamicScopeCapability = 0b0_0000_0100_0000;
-export const CREATE_CALLER_CAPABILITY: CreateCallerCapability = 0b0_0000_1000_0000;
-export const UPDATE_HOOK_CAPABILITY: UpdateHookCapability = 0b0_0001_0000_0000;
-export const CREATE_INSTANCE_CAPABILITY: CreateInstanceCapability = 0b0_0010_0000_0000;
-export const WRAPPED_CAPABILITY: WrappedCapability = 0b0_0100_0000_0000;
-export const WILL_DESTROY_CAPABILITY: WillDestroyCapability = 0b0_1000_0000_0000;
-export const HAS_SUB_OWNER_CAPABILITY: HasSubOwnerCapability = 0b1_0000_0000_0000;
+export const DYNAMIC_LAYOUT_CAPABILITY: DynamicLayoutCapability = 0b00_0000_0000_0001;
+export const DYNAMIC_TAG_CAPABILITY: DynamicTagCapability = 0b00_0000_0000_0010;
+export const PREPARE_ARGS_CAPABILITY: PrepareArgsCapability = 0b00_0000_0000_0100;
+export const CREATE_ARGS_CAPABILITY: CreateArgsCapability = 0b00_0000_0000_1000;
+export const ATTRIBUTE_HOOK_CAPABILITY: AttributeHookCapability = 0b00_0000_0001_0000;
+export const ELEMENT_HOOK_CAPABILITY: ElementHookCapability = 0b00_0000_0010_0000;
+export const DYNAMIC_SCOPE_CAPABILITY: DynamicScopeCapability = 0b00_0000_0100_0000;
+export const CREATE_CALLER_CAPABILITY: CreateCallerCapability = 0b00_0000_1000_0000;
+export const UPDATE_HOOK_CAPABILITY: UpdateHookCapability = 0b00_0001_0000_0000;
+export const CREATE_INSTANCE_CAPABILITY: CreateInstanceCapability = 0b00_0010_0000_0000;
+export const WRAPPED_CAPABILITY: WrappedCapability = 0b00_0100_0000_0000;
+export const WILL_DESTROY_CAPABILITY: WillDestroyCapability = 0b00_1000_0000_0000;
+export const HAS_SUB_OWNER_CAPABILITY: HasSubOwnerCapability = 0b01_0000_0000_0000;
+export const HAS_FLUSH_HOOK_CAPABILITY: HasFlushHookCapability = 0b10_0000_0000_0000;
 
 export type InternalComponentCapability =
   | DynamicLayoutCapability
@@ -68,4 +70,5 @@ export const TYPE_SIZE = 0b1111_1111 as const satisfies ITYPE_SIZE;
 export const TYPE_MASK = 0b0000_0000_0000_0000_0000_0000_1111_1111 as const satisfies ITYPE_MASK;
 export const OPERAND_LEN_MASK =
   0b0000_0000_0000_0000_0000_0011_0000_0000 as const satisfies IOPERAND_LEN_MASK;
-export const MACHINE_MASK = 0b0000_0000_0000_0000_0000_0100_0000_0000 as const satisfies IMACHINE_MASK;
+export const MACHINE_MASK =
+  0b0000_0000_0000_0000_0000_0100_0000_0000 as const satisfies IMACHINE_MASK;

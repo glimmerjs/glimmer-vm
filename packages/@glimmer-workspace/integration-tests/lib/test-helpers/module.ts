@@ -9,6 +9,7 @@ import type { RenderDelegateOptions } from '../render-delegate';
 import type { Count, IRenderTest, RenderTest } from '../render-test';
 import { JitSerializationDelegate } from '../suites/custom-dom-helper';
 import type { ComponentTestMeta, DeclaredComponentKind } from '../test-decorator';
+import { expectingRenderError } from '@glimmer/local-debug-flags';
 
 export interface RenderTestConstructor<D extends RenderDelegate, T extends IRenderTest> {
   suiteName: string;
@@ -263,13 +264,14 @@ class ComponentTests<D extends RenderDelegate, T extends IRenderTest> {
     test: TestFunction,
     modifier = test.testModifier
   ): (type: ComponentKind, klass: RenderTestConstructor<D, T>) => void {
-    let shouldSkip: boolean;
-
     return (type: ComponentKind, klass: RenderTestConstructor<D, T>) => {
       QUnit[modifier](property, (assert) => {
         let instance = new klass(new this.#Delegate());
         instance.testType = type;
-        return test.call(instance, assert, instance.count);
+
+        return modifier === 'todo' || modifier === 'skip'
+          ? expectingRenderError(() => test.call(instance, assert, instance.count))
+          : test.call(instance, assert, instance.count);
       });
     };
   }

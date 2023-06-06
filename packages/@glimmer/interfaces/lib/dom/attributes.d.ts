@@ -106,8 +106,6 @@ export interface AttributeCursor {
   tag: string;
   /** The specified attribute name */
   name: string;
-  /** The normalized attribute name (e.g. ') */
-  normalized: string;
 }
 
 export interface AttributeOperation {

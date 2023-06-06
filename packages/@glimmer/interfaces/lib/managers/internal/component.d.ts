@@ -6,7 +6,7 @@ import type { Reference } from '../../references';
 import type { Owner } from '../../runtime';
 import type { CapturedArguments, VMArguments } from '../../runtime/arguments';
 import type { RenderNode } from '../../runtime/debug-render-tree';
-import type { ElementOperations } from '../../runtime/element';
+import type { DomTypes, ElementOperations } from '../../runtime/element';
 import type { Environment } from '../../runtime/environment';
 import type { DynamicScope } from '../../runtime/scope';
 import type { RuntimeResolver } from '../../serialize';
@@ -75,6 +75,14 @@ export interface InternalComponentCapabilities {
   attributeHook: boolean;
 
   /**
+   * Whether to call the `willFlushElement` hook on the component manager.
+   *
+   * This hook runs after all attributes have already been applied, but before
+   * the element has been flushed from the element buffer.
+   */
+  flushHook: boolean;
+
+  /**
    * Whether to call the `didCreateElement` hook on the component manager.
    */
   elementHook: boolean;
@@ -112,20 +120,21 @@ export interface InternalComponentCapabilities {
  * Enum used for bit flags version of the capabilities, used once the component
  * has been loaded for the first time
  */
-export type EmptyCapability = 0b0_0000_0000_0000;
-export type DynamicLayoutCapability = 0b0_0000_0000_0001;
-export type DynamicTagCapability = 0b0_0000_0000_0010;
-export type PrepareArgsCapability = 0b0_0000_0000_0100;
-export type CreateArgsCapability = 0b0_0000_0000_1000;
-export type AttributeHookCapability = 0b0_0000_0001_0000;
-export type ElementHookCapability = 0b0_0000_0010_0000;
-export type DynamicScopeCapability = 0b0_0000_0100_0000;
-export type CreateCallerCapability = 0b0_0000_1000_0000;
-export type UpdateHookCapability = 0b0_0001_0000_0000;
-export type CreateInstanceCapability = 0b0_0010_0000_0000;
-export type WrappedCapability = 0b0_0100_0000_0000;
-export type WillDestroyCapability = 0b0_1000_0000_0000;
-export type HasSubOwnerCapability = 0b1_0000_0000_0000;
+export type EmptyCapability = 0b00_0000_0000_0000;
+export type DynamicLayoutCapability = 0b00_0000_0000_0001;
+export type DynamicTagCapability = 0b00_0000_0000_0010;
+export type PrepareArgsCapability = 0b00_0000_0000_0100;
+export type CreateArgsCapability = 0b00_0000_0000_1000;
+export type AttributeHookCapability = 0b00_0000_0001_0000;
+export type ElementHookCapability = 0b00_0000_0010_0000;
+export type DynamicScopeCapability = 0b00_0000_0100_0000;
+export type CreateCallerCapability = 0b00_0000_1000_0000;
+export type UpdateHookCapability = 0b00_0001_0000_0000;
+export type CreateInstanceCapability = 0b00_0010_0000_0000;
+export type WrappedCapability = 0b00_0100_0000_0000;
+export type WillDestroyCapability = 0b00_1000_0000_0000;
+export type HasSubOwnerCapability = 0b01_0000_0000_0000;
+export type HasFlushHookCapability = 0b10_0000_0000_0000;
 
 export type ComponentCapabilityName =
   | 'dynamicLayout'
@@ -133,6 +142,7 @@ export type ComponentCapabilityName =
   | 'prepareArgs'
   | 'createArgs'
   | 'attributeHook'
+  | 'flushHook'
   | 'elementHook'
   | 'dynamicScope'
   | 'createCaller'
@@ -156,7 +166,8 @@ export type InternalComponentCapability =
   | CreateInstanceCapability
   | WrappedCapability
   | WillDestroyCapability
-  | HasSubOwnerCapability;
+  | HasSubOwnerCapability
+  | HasFlushHookCapability;
 
 ////////////
 
@@ -250,6 +261,13 @@ export interface WithUpdateHook<ComponentInstanceState = unknown>
   update(state: ComponentInstanceState, dynamicScope: Nullable<DynamicScope>): void;
 }
 
+export interface WithFlushHook<ComponentInstanceState = unknown>
+  extends InternalComponentManager<ComponentInstanceState> {
+  // When the element's opening tag is completely rendered (including attributes
+  // and splattributes), the manager's `flush` hook is called.
+  flush(state: ComponentInstanceState, operations: ElementOperations<DomTypes>): void;
+}
+
 export interface WithDynamicLayout<
   I = ComponentInstanceState,
   R extends RuntimeResolver = RuntimeResolver
@@ -273,7 +291,7 @@ export interface WithAttributeHook<ComponentInstanceState>
   didSplatAttributes(
     component: ComponentInstanceState,
     element: ComponentInstanceState,
-    operations: ElementOperations
+    operations: ElementOperations<DomTypes>
   ): void;
 }
 
@@ -291,7 +309,7 @@ export interface WithElementHook<ComponentInstanceState>
     // TODO [2023/05/25]: If this remains, it's a breaking change that needs
     // to be documented and incorporated
     element: ElementRef,
-    operations: ElementOperations
+    operations: ElementOperations<DomTypes>
   ): void;
 }
 

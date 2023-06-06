@@ -1,6 +1,5 @@
 import { precompile } from '@glimmer/compiler';
-import type { Cursor, ElementBuilder, Environment } from '@glimmer/interfaces';
-import { NodeDOMTreeConstruction, serializeBuilder } from '@glimmer/node';
+import { NodeDOMTreeConstruction } from '@glimmer/node';
 
 import { blockStack } from '../dom/blocks';
 import { toInnerHTML } from '../dom/simple-utils';
@@ -38,10 +37,6 @@ export class CompilationTests extends RenderTest {
 
 export class JitSerializationDelegate extends NodeJitRenderDelegate {
   static override style = 'jit serialization';
-
-  override getElementBuilder(environment: Environment, cursor: Cursor): ElementBuilder {
-    return serializeBuilder(environment, cursor);
-  }
 }
 
 export class SerializedDOMHelperTests extends DOMHelperTests {

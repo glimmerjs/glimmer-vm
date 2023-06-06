@@ -90,6 +90,8 @@ import {
   UPDATE_HOOK_CAPABILITY,
   WILL_DESTROY_CAPABILITY,
   WRAPPED_CAPABILITY,
+  WILL_FLUSH_ELEMENT_OP,
+  HAS_FLUSH_HOOK_CAPABILITY,
 } from '@glimmer/vm-constants';
 
 import { hasCustomDebugRenderTreeLifecycle } from '../../component/interfaces';
@@ -601,7 +603,7 @@ export class ServerComponentElementOperations
     namespace: Nullable<string>,
     trusting: boolean
   ): void {
-    vm._elements_().addAttr(name, _readValue_(value));
+    vm._elements_().setAttribute(name, _readValue_(value));
   }
 
   override flush(vm: InternalVM<ServerDomTypes>): void {
@@ -662,7 +664,7 @@ export class BrowserComponentElementOperations
     let dom = vm._elements_();
 
     if (typeof attrValue === 'string') {
-      dom.addAttr(name, attrValue);
+      dom.setAttribute(name, attrValue);
       return;
     }
 
@@ -714,10 +716,13 @@ define(DID_CREATE_ELEMENT_OP, (vm, { op1: _state }) => {
   let { manager } = definition;
 
   let operations = check(vm._fetchValue_($t0), CheckInstanceof(ComponentElementOperations));
+  let elements = vm._elements_();
+
+  if (elements.type !== 'browser') return;
 
   (manager as WithElementHook<unknown>).didCreateElement(
     state,
-    expect(vm._elements_()._constructing_, `Expected a constructing element in DidCreateOpcode`),
+    elements._constructing_,
     operations
   );
 });
@@ -953,6 +958,17 @@ define(INVOKE_COMPONENT_LAYOUT_OP, (vm, { op1: _state }) => {
   let state = check(vm._fetchValue_(_state as Register), CheckFinishedComponentInstance);
 
   vm._call_(state.handle);
+});
+
+define(WILL_FLUSH_ELEMENT_OP, (vm, { op1: _state }) => {
+  let instance = check(vm._fetchValue_(_state as Register), CheckComponentInstance);
+  let { manager, state, capabilities } = instance;
+
+  if (managerHasCapability(manager, capabilities, HAS_FLUSH_HOOK_CAPABILITY)) {
+    let operations = check(vm._fetchValue_($t0), CheckInstanceof(ComponentElementOperations));
+
+    manager.flush(state, operations);
+  }
 });
 
 define(DID_RENDER_LAYOUT_OP, (vm, { op1: _state }) => {

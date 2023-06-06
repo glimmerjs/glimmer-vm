@@ -30,7 +30,7 @@ import type {
   MinimalChild,
   ServerTreeBuilderInterface,
 } from '@glimmer/interfaces';
-import { LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
+import { LOCAL_SHOULD_LOG, isExpectedError } from '@glimmer/local-debug-flags';
 import {
   createIteratorItemRef,
   type OpaqueIterationItem,
@@ -641,8 +641,10 @@ export class VM<D extends DomTypes> implements PublicVM, InternalVM<D> {
           let elements = this._elements_();
           elements.recover();
 
-          // eslint-disable-next-line no-console
-          console.error(`\n\nError occurred:\n\n${resetTracking()}\n\n`);
+          if (!isExpectedError()) {
+            // eslint-disable-next-line no-console
+            console.error(`\n\nError occurred:\n\n${resetTracking()}\n\n`);
+          }
         }
       }
     } else {
@@ -724,11 +726,7 @@ export class BrowserVmDelegate implements VmDelegate<BrowserDomTypes> {
   }
 }
 
-
-
 export class ServerVmDelegate implements VmDelegate<DomTypes> {
-
-
   readonly stack: ServerTreeBuilderInterface;
 
   constructor(stack: ServerTreeBuilderInterface) {

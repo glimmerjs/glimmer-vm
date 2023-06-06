@@ -217,7 +217,7 @@ define(STATIC_ATTR_OP, (vm, { op1: _name, op2: _value }) => {
   let name = vm[CONSTANTS].getValue<string>(_name);
   let value = vm[CONSTANTS].getValue<string>(_value);
 
-  vm._elements_().addAttr(name, value);
+  vm._elements_().setAttribute(name, value);
 });
 
 define(DYNAMIC_ATTR_OP, (vm, { op1: _name, op2: _trusting }) => {
@@ -228,7 +228,6 @@ define(DYNAMIC_ATTR_OP, (vm, { op1: _name, op2: _trusting }) => {
 
   let dom = vm._elements_() as BrowserTreeBuilderInterface;
   let tag = dom._currentTag_ as string;
-
 
   let attribute = dynamicAttribute(dom, tag, name, trusting);
 
