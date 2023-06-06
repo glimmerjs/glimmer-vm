@@ -109,6 +109,10 @@ export class ServerTreeBuilder implements ServerTreeBuilderInterface {
     return buffer;
   }
 
+  protected _append_(buffer: string): void {
+    this.#buffer += buffer;
+  }
+
   get _currentTag_(): Nullable<string> {
     return this.#element?.tag ?? null;
   }
@@ -148,6 +152,22 @@ export class ServerTreeBuilder implements ServerTreeBuilderInterface {
   recover(): void {
     this.#buffer = '';
     this.#element = null;
+  }
+}
+
+const GLMR = `<!--%glmr%-->`;
+
+export class RehydratableServerTreeBuilder extends ServerTreeBuilder {
+  #blockNumber = 0;
+
+  override startBlock(): void {
+    this._append_(`<!--%+b:${this.#blockNumber++}%-->`);
+  }
+  override endBlock(): void {
+    this._append_(`<!--%-b:${--this.#blockNumber}%-->`);
+  }
+  override html(html: string): void {
+    this._append_(GLMR + html + GLMR);
   }
 }
 

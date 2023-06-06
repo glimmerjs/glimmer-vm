@@ -2,7 +2,7 @@ import { precompile } from '@glimmer/compiler';
 import { NodeDOMTreeConstruction } from '@glimmer/node';
 
 import { blockStack } from '../dom/blocks';
-import { toInnerHTML } from '../dom/simple-utils';
+import { toOuterHTML } from '../dom/simple-utils';
 import { AbstractNodeTest, NodeJitRenderDelegate } from '../modes/node/env';
 import { RenderTest } from '../render-test';
 import { test } from '../test-decorator';
@@ -101,7 +101,7 @@ export class SerializedDOMHelperTests extends DOMHelperTests {
 
   override assertHTML(html: string) {
     let b = blockStack();
-    let serialized = toInnerHTML(this.element);
+    let serialized = toOuterHTML(this.element);
     this.assert.strictEqual(serialized, `${b(0)}${html}${b(0)}`);
   }
 }

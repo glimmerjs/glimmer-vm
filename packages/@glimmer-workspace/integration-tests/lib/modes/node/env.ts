@@ -4,6 +4,7 @@ import type {
   GlimmerTreeConstruction,
   RuntimeContext,
   SimpleDocument,
+  SimpleElement,
 } from '@glimmer/interfaces';
 
 import { assertingElement, toInnerHTML } from '../../dom/simple-utils';
@@ -70,8 +71,16 @@ export class NodeJitRenderDelegate extends BasicRenderDelegate {
 }
 
 export class AbstractNodeTest extends RenderTest {
+  #element: Element | SimpleElement | undefined;
+
   constructor(delegate: RenderDelegate) {
     super(delegate);
+  }
+
+  get element() {
+    if (this.#element) return this.#element;
+    this.#element = assertingElement(this.delegate.asElement());
+    return this.#element;
   }
 
   override assertHTML(html: string) {
@@ -80,7 +89,7 @@ export class AbstractNodeTest extends RenderTest {
   }
 
   override assertComponent(html: string) {
-    let element = assertingElement(this.delegate.asElement());
+    let element = assertingElement(this.element);
 
     if (this.testType !== 'Glimmer') {
       this.assert.strictEqual(element.getAttribute('class'), 'ember-view');

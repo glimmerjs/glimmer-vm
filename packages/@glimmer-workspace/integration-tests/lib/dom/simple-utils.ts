@@ -29,7 +29,9 @@ export function toInnerHTML(
   return serializer.serializeChildren(parent);
 }
 
-export function toOuterHTML(parent: SimpleElement | SimpleDocumentFragment): string {
+export function toOuterHTML(
+  parent: SimpleElement | Element | DocumentFragment | SimpleDocumentFragment
+): string {
   let serializer = new Serializer(voidMap);
   return serializer.serialize(parent);
 }

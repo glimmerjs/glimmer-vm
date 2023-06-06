@@ -138,6 +138,7 @@ export class AppendOpcodes {
 
               if (LOCAL_SHOULD_LOG) {
                 let registers = debug.registers();
+                let cursor = vm._elements_().debug?.cursor;
 
                 LOCAL_LOGGER.log(
                   '%c -> pc: %d, ra: %d, fp: %d, sp: %d, s0: %O, s1: %O, t0: %O, t1: %O, v0: %O',
@@ -153,11 +154,7 @@ export class AppendOpcodes {
                   registers.v0
                 );
                 LOCAL_LOGGER.log('%c -> eval stack', 'color: red', vm.stack.toArray());
-                LOCAL_LOGGER.log(
-                  '%c -> block stack',
-                  'color: magenta',
-                  vm._elements_().debug!.cursor
-                );
+                LOCAL_LOGGER.log('%c -> block stack', 'color: magenta', cursor);
                 LOCAL_LOGGER.log(
                   '%c -> destructor stack',
                   'color: violet',
@@ -173,13 +170,15 @@ export class AppendOpcodes {
                   );
                 }
 
-                let blocks = getBlockStack(vm._elements_().debug!.cursor);
-                LOCAL_LOGGER.log('%c -> blocks', 'color: blue', blocks);
+                if (cursor) {
+                  let blocks = getBlockStack(cursor);
+                  LOCAL_LOGGER.log('%c -> blocks', 'color: blue', blocks);
+                }
 
                 LOCAL_LOGGER.log(
                   '%c -> constructing',
                   'color: aqua',
-                  vm._elements_().debug!.constructing
+                  vm._elements_().debug?.constructing
                 );
 
                 interface CursorBlock {
