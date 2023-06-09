@@ -1,6 +1,13 @@
 import type { Dict } from '@glimmer/interfaces';
-import type { TestFunction, TestFunctionType } from '@glimmer-workspace/integration-tests';
+import type {
+  ComponentKind,
+  Count,
+  IRenderTest,
+  TestFunction,
+  TestFunctionType,
+} from '@glimmer-workspace/integration-tests';
 import { isTestFunction } from '@glimmer-workspace/integration-tests';
+import { keys } from '@glimmer/util';
 
 // A bunch of this file was extracted from the Glimmer testing harness.
 // TODO: Clean this up and eliminate anything that isn't generically unnecessary.
@@ -34,19 +41,30 @@ test.todo = (...args: any[]) => {
   return setupTest('todo', ...args);
 };
 
+type MethodDecorator = <F extends Function>(value: F, context: ClassMethodDecoratorContext) => F;
+
 function setupTest(type: TestFunctionType, ...args: any[]) {
   if (args.length === 1) {
-    let meta: Dict<unknown> = args[0];
-    return (_target: Object, _name: string, descriptor: PropertyDescriptor) => {
-      let testFunction = descriptor.value;
-      for (let key of Object.keys(meta)) testFunction[key] = meta[key];
-      setTestingDescriptor(descriptor, type);
+    let [options] = args as [object];
+
+    return <F extends Function>(testFunction: F, context: ClassMethodDecoratorContext) => {
+      for (let key of keys(options)) {
+        testFunction[key] = options[key];
+      }
+
+      context.addInitializer(function (this: any) {
+        let desc = Object.getOwnPropertyDescriptor(this, context.name)!;
+        setTestingDescriptor(desc, type);
+      });
     };
   }
 
-  let descriptor = args[2];
-  setTestingDescriptor(descriptor, type);
-  return descriptor;
+  let [testFunction, context] = args as [Function, ClassMethodDecoratorContext];
+  context.addInitializer(function (this: any) {
+    let desc = Object.getOwnPropertyDescriptor(this, context.name)!;
+    setTestingDescriptor(desc, type);
+  });
+  return testFunction;
 }
 
 export interface Constructor<T = unknown, Prototype = T> {
@@ -74,7 +92,9 @@ export function describe(name: string): (klass: new () => TestCase, other: unkno
   };
 }
 
-export abstract class TestCase {
+export abstract class TestCase implements IRenderTest {
+  abstract count: Count;
+  abstract testType: ComponentKind;
   before() {}
 
   run(test: TestFunction, assert: typeof QUnit.assert): void | Promise<void> {

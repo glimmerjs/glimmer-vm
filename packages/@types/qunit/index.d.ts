@@ -394,7 +394,7 @@ declare global {
     altertitle: boolean;
     autostart: boolean;
     collapse: boolean;
-    current: any;
+    current: QUnit.TestBase;
     disableHtmlReporter?: boolean;
     failOnZeroTests: boolean;
     filter: string | RegExp;
@@ -563,9 +563,10 @@ declare global {
       testId: string;
       testName: string;
       expected: null | number;
-      // assertions: Array<{ result: boolean; message: string }>;
+      assertions: Array<{ result: boolean; message: string }>;
       module: Module;
-      steps: Action[];
+      steps: [];
+      actions: Action[];
       // timeout: undefined;
       // data: unknown;
       // withData: boolean;
@@ -574,7 +575,7 @@ declare global {
       // stackOffset: 0 | 1 | 2 | 3 | 5;
       // errorForStack: Error;
       // testReport: unknown;
-      // stack: string;
+      stack: string;
       // before: () => unknown;
       // run: () => unknown;
       // after: () => void;
@@ -589,7 +590,7 @@ declare global {
       // preserveTestEnvironment: () => unknown;
       // queue: () => void;
       // pushResult: (resultInfo: unknown) => void;
-      pushFailure: (message: string, source: string, actual: unknown) => void;
+      pushFailure: (message: string, source: string, actual?: unknown) => void;
       skip?: true;
       // callback: ((assert: Assert) => void) | ((assert: Assert) => Promise<void>);
       todo?: boolean;

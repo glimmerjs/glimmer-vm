@@ -17,7 +17,7 @@
 
     "strict": true,
     "suppressImplicitAnyIndexErrors": false,
-    "useDefineForClassFields": false,
+    "useDefineForClassFields": true,
     "exactOptionalPropertyTypes": true,
     "noImplicitOverride": true,
     "noPropertyAccessFromIndexSignature": true,

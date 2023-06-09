@@ -16,7 +16,7 @@ import { internalHelper } from './internal-helper';
   import { tracked } from '@glimmer/tracking';
 
   export default class extends Component {
-    @tracked developer = {
+    @tracked accessor developer = {
       name: "Sandi Metz",
       language: "Ruby"
     }
@@ -47,12 +47,12 @@ import { internalHelper } from './internal-helper';
   import { tracked } from '@glimmer/tracking';
 
   export default class extends Component {
-    @tracked developer = {
+    @tracked accessor developer = {
       name: "Sandi Metz",
       language: "Ruby"
     }
 
-    @tracked currentFact = 'name'
+    @tracked accessor currentFact = 'name'
 
     showFact = (fact) => {
       this.currentFact = fact;

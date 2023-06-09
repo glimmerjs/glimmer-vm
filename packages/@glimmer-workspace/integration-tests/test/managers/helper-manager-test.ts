@@ -12,6 +12,7 @@ import {
   tracked,
   trackedObj,
 } from '../..';
+import { trackedCell, type TrackedCell } from '@glimmer/validator';
 
 class HelperManagerTest extends RenderTest {
   static suiteName = 'Helper Managers';
@@ -299,69 +300,44 @@ class HelperManagerTest extends RenderTest {
   }
 
   @test 'tracks changes to tracked properties'(assert: Assert) {
-    let count = 0;
-    let instance: Hello;
+    let cell = trackedCell(123);
+    this.renderComponent(defineComponent({ hello: TrackedHelper }, '{{hello @mutable}}'), {
+      mutable: cell,
+    });
+    assert.expect(['[tracked] value()']);
 
-    let setInstance = (index: Hello) => (instance = index);
-
-    class Hello extends TestHelper {
-      @tracked foo = 123;
-
-      constructor(owner: Owner, args: Arguments) {
-        super(owner, args);
-        setInstance(this);
-      }
-
-      value() {
-        count++;
-        return this.foo;
-      }
-    }
-    this.renderComponent(defineComponent({ hello: Hello }, '{{hello}}'));
-
-    assert.strictEqual(count, 1, 'rendered once');
     this.assertHTML('123');
 
     this.rerender();
 
-    assert.strictEqual(count, 1, 'rendered once');
     this.assertHTML('123');
 
-    instance!.foo = 456;
+    let [, set] = cell;
+    set(456);
     this.rerender();
 
-    assert.strictEqual(count, 2, 'rendered twice');
+    assert.expect(['[tracked] value()']);
     this.assertHTML('456');
+
+    this.destroy();
+    assert.expect(['[tracked] willDestroy']);
   }
 
   @test 'destroyable is associated correctly'(assert: Assert) {
-    class Hello extends TestHelper {
-      value() {
-        return 'hello';
-      }
-
-      override willDestroy() {
-        assert.ok(true, 'destructor called');
-      }
-    }
-
-    this.renderComponent(defineComponent({ hello: Hello }, '{{hello}}'));
+    this.renderComponent(defineComponent({ hello: DestroyableHelper }, '{{hello}}'));
 
     this.assertHTML('hello');
+
+    this.destroy();
+
+    assert.verifyActions(['[destroyable] willDestroy']);
   }
 
   @test 'debug name is used for backtracking message'(assert: Assert) {
-    class Hello extends TestHelper {
-      @tracked foo = 123;
-
-      value() {
-        this.foo;
-        this.foo = 456;
-      }
-    }
-
     assert.throws(() => {
-      this.renderComponent(defineComponent({ hello: Hello }, '{{hello}}'));
+      this.renderComponent(
+        defineComponent({ hello: IllegallyMutatingHelperInConstructor }, '{{hello}}')
+      );
     }, /You attempted to update `foo` on/u);
   }
 
@@ -397,17 +373,7 @@ class HelperManagerTest extends RenderTest {
   }
 
   @test 'helper manager and modifier manager can be associated with the same value'() {
-    abstract class TestModifierHelper extends TestHelper {}
-
-    setModifierManager(() => ({} as any), TestHelper);
-
-    class Hello extends TestModifierHelper {
-      value() {
-        return 'hello';
-      }
-    }
-
-    this.renderComponent(defineComponent({ hello: Hello }, '{{hello}}'));
+    this.renderComponent(defineComponent({ hello: TestModifierHelper() }, '{{hello}}'));
 
     this.assertHTML('hello');
 
@@ -417,26 +383,10 @@ class HelperManagerTest extends RenderTest {
   }
 
   @test 'capabilities helper function must be used to generate capabilities'(assert: Assert) {
-    class OverrideTestHelperManager extends TestHelperManager {
-      override capabilities = {
-        hasValue: true,
-        hasDestroyable: true,
-        hasScheduledEffect: false,
-      } as any;
-    }
-
-    class TestHelper {}
-
-    setHelperManager((owner) => new OverrideTestHelperManager(owner), TestHelper);
-
-    class Hello extends TestHelper {
-      value() {
-        return 'hello';
-      }
-    }
+    setHelperManager((owner) => new OverrideTestHelperManager(owner), EmptyTestHelper);
 
     assert.throws(() => {
-      this.renderComponent(defineComponent({ hello: Hello }, '{{hello}}'));
+      this.renderComponent(defineComponent({ hello: SimpleTestHelper }, '{{hello}}'));
     }, /Custom helper managers must have a `capabilities` property that is the result of calling the `capabilities\('3.23'\)` \(imported via `import \{ capabilities \} from '@ember\/helper';`\). /u);
   }
 
@@ -444,27 +394,10 @@ class HelperManagerTest extends RenderTest {
   'custom helpers gives helpful assertion when reading then mutating a tracked value within constructor'(
     assert: Assert
   ) {
-    class Hello extends TestHelper {
-      @tracked foo = 123;
-
-      constructor(owner: Owner, args: Arguments) {
-        super(owner, args);
-
-        // first read the tracked property
-
-        this.foo;
-
-        // then attempt to update the tracked property
-        this.foo = 456;
-      }
-
-      value() {
-        return this.foo;
-      }
-    }
-
     assert.throws(() => {
-      this.renderComponent(defineComponent({ hello: Hello }, '{{hello}}'));
+      this.renderComponent(
+        defineComponent({ hello: IllegallyMutatingHelperInConstructor }, '{{hello}}')
+      );
     }, /You attempted to update `foo` on /u);
   }
 
@@ -472,22 +405,103 @@ class HelperManagerTest extends RenderTest {
   'custom helpers gives helpful assertion when reading then mutating a tracked value within value'(
     assert: Assert
   ) {
-    class Hello extends TestHelper {
-      @tracked foo = 123;
-
-      value() {
-        // first read the tracked property
-
-        this.foo;
-
-        // then attempt to update the tracked property
-        this.foo = 456;
-      }
-    }
-
     assert.throws(() => {
-      this.renderComponent(defineComponent({ hello: Hello }, '{{hello}}'));
+      this.renderComponent(
+        defineComponent({ hello: IllegallyMutatingHelperInGetter }, '{{hello}}')
+      );
     }, /You attempted to update `foo` on /u);
+  }
+}
+
+class TrackedHelper extends TestHelper {
+  #number: TrackedCell<number>;
+
+  constructor(owner: Owner, args: Arguments & { positional: [TrackedCell<number>] }) {
+    super(owner, args);
+    this.#number = args.positional[0];
+  }
+
+  value() {
+    QUnit.assert.action('[tracked] value()');
+    let [get] = this.#number;
+    return get();
+  }
+
+  override willDestroy(): void {
+    QUnit.assert.action('[tracked] willDestroy');
+  }
+}
+
+function TestModifierHelper() {
+  class EmptyTestHelper {}
+
+  abstract class TestModifierHelper extends EmptyTestHelper {}
+
+  setModifierManager(() => ({} as any), EmptyTestHelper);
+
+  return class Hello extends TestModifierHelper {
+    value() {
+      QUnit.assert.action('[modifier] value()');
+      return 'hello';
+    }
+  };
+}
+
+class EmptyTestHelper {}
+
+class DestroyableHelper extends TestHelper {
+  value() {
+    return 'hello';
+  }
+
+  override willDestroy() {
+    QUnit.assert.action('[destroyable] willDestroy');
+  }
+}
+
+class SimpleTestHelper extends TestHelper {
+  value() {
+    return 'hello';
+  }
+}
+
+class OverrideTestHelperManager extends TestHelperManager {
+  override capabilities = {
+    hasValue: true,
+    hasDestroyable: true,
+    hasScheduledEffect: false,
+  } as any;
+}
+
+class IllegallyMutatingHelperInConstructor extends TestHelper {
+  @tracked accessor foo = 123;
+
+  constructor(owner: Owner, args: Arguments) {
+    super(owner, args);
+
+    // first read the tracked property
+
+    this.foo;
+
+    // then attempt to update the tracked property
+    this.foo = 456;
+  }
+
+  value() {
+    return this.foo;
+  }
+}
+
+class IllegallyMutatingHelperInGetter extends TestHelper {
+  @tracked accessor foo = 123;
+
+  value() {
+    // first read the tracked property
+
+    this.foo;
+
+    // then attempt to update the tracked property
+    this.foo = 456;
   }
 }
 

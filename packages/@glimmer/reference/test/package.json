@@ -5,6 +5,7 @@
     "@glimmer/reference": "workspace:^",
     "@glimmer/validator": "workspace:^",
     "@glimmer/util": "workspace:^",
-    "@glimmer/global-context": "workspace:^"
+    "@glimmer/global-context": "workspace:^",
+    "@glimmer-workspace/integration-tests": "workspace:^"
   }
 }

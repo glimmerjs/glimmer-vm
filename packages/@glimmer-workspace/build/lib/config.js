@@ -73,7 +73,7 @@ export function tsconfig(updates) {
     noErrorTruncation: true,
     module: ModuleKind.NodeNext,
     moduleResolution: ModuleResolutionKind.NodeNext,
-    experimentalDecorators: true,
+    experimentalDecorators: false,
     removeComments: false,
     ...updates,
   };

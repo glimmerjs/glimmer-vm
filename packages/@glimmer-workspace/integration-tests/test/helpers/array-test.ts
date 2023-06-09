@@ -1,4 +1,12 @@
-import { GlimmerishComponent, jitSuite, RenderTest, strip, test, tracked } from '../..';
+import {
+  capturingComponent,
+  GlimmerishComponent,
+  jitSuite,
+  RenderTest,
+  strip,
+  test,
+  tracked,
+} from '../..';
 
 class ArrayTest extends RenderTest {
   static suiteName = 'Helpers test: {{array}}';
@@ -123,25 +131,13 @@ class ArrayTest extends RenderTest {
 
   @test
   'should yield hash of an array of internal properties'() {
-    let fooBarInstance: FooBar;
-
-    let setInstance = (instance: FooBar) => (fooBarInstance = instance);
-
-    class FooBar extends GlimmerishComponent {
-      @tracked personOne;
-
-      constructor(owner: object, args: Record<string, unknown>) {
-        super(owner, args);
-        this.personOne = 'Chad';
-        setInstance(this);
-      }
-    }
+    let { Class, instance } = capturingComponent(ComponentWithTrackedField);
 
     this.registerComponent(
       'Glimmer',
       'FooBar',
       '{{yield (hash people=(array this.personOne))}}',
-      FooBar
+      Class
     );
 
     this.render(
@@ -158,12 +154,12 @@ class ArrayTest extends RenderTest {
 
     this.assertStableRerender();
 
-    fooBarInstance!.personOne = 'Godfrey';
+    instance.value.personOne = 'Godfrey';
 
     this.rerender();
     this.assertHTML('Godfrey');
 
-    fooBarInstance!.personOne = 'Chad';
+    instance.value.personOne = 'Chad';
 
     this.rerender();
     this.assertHTML('Chad');
@@ -171,24 +167,13 @@ class ArrayTest extends RenderTest {
 
   @test
   'should yield hash of an array of internal and external properties'() {
-    let fooBarInstance: FooBar;
-
-    let setInstance = (instance: FooBar) => (fooBarInstance = instance);
-
-    class FooBar extends GlimmerishComponent {
-      @tracked personOne = 'Chad';
-
-      constructor(owner: object, args: Record<string, unknown>) {
-        super(owner, args);
-        setInstance(this);
-      }
-    }
+    let { Class, instance } = capturingComponent(ComponentWithTrackedField);
 
     this.registerComponent(
       'Glimmer',
       'FooBar',
       `{{yield (hash people=(array this.personOne @personTwo))}}`,
-      FooBar
+      Class
     );
 
     this.render(
@@ -208,12 +193,12 @@ class ArrayTest extends RenderTest {
 
     this.assertStableRerender();
 
-    fooBarInstance!.personOne = 'Godfrey';
+    instance.value.personOne = 'Godfrey';
 
     this.rerender({ model: { personTwo: 'Yehuda' } });
     this.assertHTML('Godfrey,Yehuda,');
 
-    fooBarInstance!.personOne = 'Chad';
+    instance.value.personOne = 'Chad';
 
     this.rerender({ model: { personTwo: 'Tom' } });
     this.assertHTML('Chad,Tom,');
@@ -248,18 +233,7 @@ class ArrayTest extends RenderTest {
 
   @test
   'should return an entirely new array when any argument change'() {
-    let fooBarInstance: FooBar;
-
-    let setInstance = (instance: FooBar) => (fooBarInstance = instance);
-
-    class FooBar extends GlimmerishComponent {
-      @tracked personOne = 'Chad';
-
-      constructor(owner: object, args: Record<string, unknown>) {
-        super(owner, args);
-        setInstance(this);
-      }
-    }
+    let { Class, instance } = capturingComponent(ComponentWithTrackedField);
 
     this.registerComponent(
       'Glimmer',
@@ -269,17 +243,17 @@ class ArrayTest extends RenderTest {
           {{personName}},
         {{/each}}
       `,
-      FooBar
+      Class
     );
 
     this.render(strip`<FooBar @people={{array "Tom" this.personTwo}}/>`, { personTwo: 'Chad' });
 
-    let firstArray = fooBarInstance!.args['people'];
+    let firstArray = instance.value.args['people'];
 
     this.rerender({ personTwo: 'Godfrey' });
 
     this.assert.ok(
-      firstArray !== fooBarInstance!.args['people'],
+      firstArray !== instance.value.args['people'],
       'should have created an entirely new array'
     );
   }
@@ -316,6 +290,10 @@ class ArrayTest extends RenderTest {
 
     this.assertHTML('thing');
   }
+}
+
+class ComponentWithTrackedField extends GlimmerishComponent {
+  @tracked accessor personOne = 'Chad';
 }
 
 jitSuite(ArrayTest);

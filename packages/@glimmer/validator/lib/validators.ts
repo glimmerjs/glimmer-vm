@@ -14,6 +14,7 @@ import type {
   UpdatableTag,
   VOLATILE_TAG_ID as IVOLATILE_TAG_ID,
   TagDebug,
+  DebugName,
 } from '@glimmer/interfaces';
 
 import { debug } from './debug';
@@ -140,7 +141,7 @@ function allowsCycles(tag: Tag): boolean {
 let id = 0;
 
 class MonomorphicTagImpl<T extends MonomorphicTagTypeId = MonomorphicTagTypeId> implements Tag {
-  static combine(this: void, tags: Tag[], name?: string): Tag {
+  static combine(this: void, tags: Tag[], name?: DebugName): Tag {
     switch (tags.length) {
       case 0:
         return CONSTANT_TAG;
@@ -224,7 +225,7 @@ class MonomorphicTagImpl<T extends MonomorphicTagTypeId = MonomorphicTagTypeId> 
   [TYPE]: T;
   declare readonly debug?: TagDebug;
 
-  constructor(type: T, name?: string) {
+  constructor(type: T, name?: DebugName) {
     this[TYPE] = type;
 
     if (import.meta.env.DEV) installDebugInfo(name, this, type);
@@ -280,11 +281,11 @@ export const UPDATE_TAG = MonomorphicTagImpl.updateTag;
 
 //////////
 
-export function createTag(name?: string): DirtyableTag {
+export function createTag(name?: DebugName): DirtyableTag {
   return new MonomorphicTagImpl(DIRYTABLE_TAG_ID, name);
 }
 
-export function createUpdatableTag(name?: string): UpdatableTag {
+export function createUpdatableTag(name?: DebugName): UpdatableTag {
   return new MonomorphicTagImpl(UPDATABLE_TAG_ID, name);
 }
 
@@ -304,7 +305,7 @@ export class VolatileTag implements Tag {
   readonly [TYPE] = VOLATILE_TAG_ID;
   readonly id = id++;
 
-  constructor(name?: string) {
+  constructor(name?: DebugName) {
     if (import.meta.env.DEV) installDebugInfo(name, this);
   }
 
@@ -323,7 +324,7 @@ export class CurrentTag implements Tag {
   readonly [TYPE] = CURRENT_TAG_ID;
   readonly id = id++;
 
-  constructor(name?: string) {
+  constructor(name?: DebugName) {
     if (import.meta.env.DEV) installDebugInfo(name, this);
   }
 
@@ -337,12 +338,11 @@ export const CURRENT_TAG = new CurrentTag();
 //////////
 
 function installDebugInfo(
-  specifiedName: string | undefined,
+  debugName: DebugName | undefined,
   target: object & Partial<{ name: string }>,
   type: TagTypeId | string = target.name ?? 'Tag'
 ): void {
   if (import.meta.env.DEV) {
-    // eslint-disable-next-line no-inner-declarations
     function getTagName(): string {
       if (typeof type === 'string') {
         return type;
@@ -360,12 +360,43 @@ function installDebugInfo(
       }
     }
 
-    let tagName = getTagName();
+    function getUnknown(): string {
+      if (typeof type === 'string') {
+        return type;
+      }
 
+      switch (type) {
+        case UPDATABLE_TAG_ID:
+        case DIRYTABLE_TAG_ID:
+          return '(an unknown tracked value)';
+        case CONSTANT_TAG_ID:
+          return '(an unknown constant value)';
+        case COMBINATOR_TAG_ID:
+          return '(an unknown combined value)';
+      }
+    }
+
+    let tagName = getTagName();
+    let unknownDesc = getUnknown();
+
+    let specifiedName = debugName
+      ? typeof debugName === 'string'
+        ? debugName
+        : debugName.key
+      : undefined;
+    let parentName = debugName && typeof debugName !== 'string' ? debugName.parent : undefined;
+    let key = specifiedName ?? unknownDesc;
+
+    Reflect.defineProperty(target, 'name', {
+      configurable: true,
+      value: key,
+    });
     Reflect.defineProperty(target, 'toString', {
       configurable: true,
       value: function (this: Tag): string {
-        return specifiedName ? `{${specifiedName} id=${this.id}}` : `{${tagName} id=${this.id}}`;
+        return specifiedName
+          ? `{${specifiedName} id=${this.id}}`
+          : `{${unknownDesc} id=${this.id}}`;
       },
     });
     Reflect.defineProperty(target, Symbol.toStringTag, {
@@ -381,6 +412,7 @@ function installDebugInfo(
         let debug = {
           type: this[TYPE],
           id: this.id,
+          name: parentName ? { parent: parentName, key } : key,
           updatedAt: () => this[COMPUTE](),
           toString: () => {
             return String(this);

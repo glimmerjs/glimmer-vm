@@ -230,14 +230,6 @@ export class EachSuite extends RenderTest {
 
   @test
   'it renders all items with duplicate key values'() {
-    class Item {
-      @tracked text: string;
-
-      constructor(text: string) {
-        this.text = text;
-      }
-    }
-
     let list = [new Item('Hello'), new Item('Hello'), new Item('Hello')];
 
     this.render(`{{#each this.list key="text" as |item|}}{{item.text}}{{/each}}`, {
@@ -262,14 +254,6 @@ export class EachSuite extends RenderTest {
 
   @test
   'it updates items if their key has not changed, and the items are tracked'() {
-    class Item {
-      @tracked public text: string;
-
-      constructor(text: string) {
-        this.text = text;
-      }
-    }
-
     let list = [new Item('Hello'), new Item('Hello'), new Item('Hello')];
 
     this.render(`{{#each this.list key="@identity" as |item|}}{{item.text}}{{/each}}`, {
@@ -766,8 +750,16 @@ function shuffleArray(array: unknown[]) {
   }
 }
 
+class Item {
+  @tracked accessor text: string;
+
+  constructor(text: string) {
+    this.text = text;
+  }
+}
+
 class Value {
-  @tracked current: number;
+  @tracked accessor current: number;
 
   constructor(initial: number) {
     this.current = initial;

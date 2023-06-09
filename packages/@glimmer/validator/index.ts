@@ -14,7 +14,7 @@ globalObj[GLIMMER_VALIDATOR_REGISTRATION] = true;
 
 export { debug } from './lib/debug';
 export { dirtyTagFor, tagFor, type TagMeta, tagMetaFor, OBJECT_DEBUG } from './lib/meta';
-export { trackedData, trackedCell, type TrackedCell } from './lib/tracked-data';
+export { trackedData, trackedCell, type TrackedCell, type TrackedData } from './lib/tracked-data';
 export {
   beginTrackFrame,
   beginUntrackFrame,

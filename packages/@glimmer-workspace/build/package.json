@@ -21,30 +21,30 @@
   },
   "dependencies": {
     "@rollup/plugin-commonjs": "^25.0.0",
-    "@rollup/plugin-node-resolve": "^15.0.2",
+    "@rollup/plugin-node-resolve": "^15.1.0",
     "@rollup/plugin-terser": "^0.4.3",
-    "eslint": "^8.40.0",
+    "eslint": "^8.42.0",
     "eslint-plugin-import": "^2.27.5",
     "eslint-plugin-json": "^3.1.0",
     "eslint-plugin-prettier": "^4.2.1",
     "eslint-plugin-simple-import-sort": "^10.0.0",
     "eslint-plugin-unused-imports": "^2.0.0",
     "magic-string": "^0.30.0",
-    "postcss": "^8.4.23",
-    "rollup": "^3.22.0",
+    "postcss": "^8.4.24",
+    "rollup": "^3.23.1",
     "rollup-plugin-polyfill-node": "^0.12.0",
     "rollup-plugin-postcss": "^4.0.2",
     "rollup-plugin-ts": "^3.2.0",
-    "terser": "^5.17.4",
+    "terser": "^5.17.7",
     "unplugin-fonts": "^1.0.3",
-    "vite": "4.3.8"
+    "vite": "4.3.9"
   },
   "devDependencies": {
-    "@types/node": "^18.16.13",
+    "@types/node": "^18.16.16",
     "brotli-size": "^4.0.0",
     "chalk": "^5.2.0",
     "pretty-bytes": "^6.1.0",
     "rollup-plugin-visualizer": "^5.9.0",
-    "typescript": "^5.0.4"
+    "typescript": "^5.1.3"
   }
 }

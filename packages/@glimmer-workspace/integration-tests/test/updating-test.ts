@@ -19,6 +19,7 @@ import {
   BrowserRenderTest,
 } from '@glimmer-workspace/integration-tests';
 import { assert } from './support';
+import { DestroyComponents } from './ember-component-test';
 
 function makeSafeString(value: string): SafeString {
   return new SafeStringImpl(value);
@@ -893,8 +894,8 @@ class UpdatingTest extends BrowserRenderTest {
         this.last = last;
       }
 
-      @tracked first = 'Godfrey';
-      @tracked last = 'Godfrey';
+      @tracked accessor first = 'Godfrey';
+      @tracked accessor last = 'Godfrey';
     }
 
     let person = { name: new Name('Godfrey', 'Chan') };
@@ -2068,17 +2069,15 @@ class UpdatingTest extends BrowserRenderTest {
 
   @test
   '{{each}} items destroy correctly if they were added after initial render'() {
+    let components = DestroyComponents();
+
     let destroyCount = 0;
 
     this.registerComponent(
       'Glimmer',
       'DestroyableComponent',
       '{{@item}}',
-      class extends GlimmerishComponent {
-        override willDestroy() {
-          destroyCount++;
-        }
-      }
+      components.DestroyGlimmer
     );
 
     this.render(
@@ -2098,7 +2097,7 @@ class UpdatingTest extends BrowserRenderTest {
     this.assertHTML(`<div>initial</div><div>update</div>`);
 
     this.rerender({ list: ['initial'] });
-    assert.strictEqual(destroyCount, 1, 'new list item was correctly destroyed');
+    assert.verifyActions(['[glimmerish] willDestroy']);
   }
 
   // TODO: port https://github.com/emberjs/ember.js/pull/14082

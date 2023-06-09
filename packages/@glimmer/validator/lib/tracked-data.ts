@@ -1,3 +1,4 @@
+import type { DebugName } from '@glimmer/interfaces';
 import { dirtyTag } from '..';
 import { dirtyTagFor, tagFor } from './meta';
 import { consumeTag } from './tracking';
@@ -8,8 +9,8 @@ export type Setter<T, K extends keyof T> = (self: T, value: T[K]) => void;
 
 export type TrackedCell<T> = [get: () => T, set: (value: T) => void];
 
-export function trackedCell<T>(value: T): TrackedCell<T> {
-  let tag = createTag();
+export function trackedCell<T>(value: T, debug?: DebugName): TrackedCell<T> {
+  let tag = createTag(debug);
   let get = () => {
     consumeTag(tag);
     return value;
@@ -23,10 +24,15 @@ export function trackedCell<T>(value: T): TrackedCell<T> {
   return [get, set];
 }
 
+export type TrackedData<T extends object, K extends keyof T> = {
+  getter: Getter<T, K>;
+  setter: Setter<T, K>;
+};
+
 export function trackedData<T extends object, K extends keyof T>(
   key: K,
   initializer?: (this: T) => T[K]
-): { getter: Getter<T, K>; setter: Setter<T, K> } {
+): TrackedData<T, K> {
   let values = new WeakMap<T, T[K]>();
   let hasInitializer = typeof initializer === 'function';
 

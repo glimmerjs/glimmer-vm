@@ -6,7 +6,7 @@ import type {
   RuntimeResolver,
   SimpleElement,
 } from '@glimmer/interfaces';
-import { NewElementBuilder, renderComponent, renderSync, runtimeContext } from '@glimmer/runtime';
+import { renderComponent, renderSync, runtimeContext } from '@glimmer/runtime';
 
 import type { UpdateBenchmark } from '../interfaces';
 import createEnvironmentDelegate, { registerResult } from './create-env-delegate';

@@ -2,6 +2,7 @@ import type {
   CapabilityMask,
   Owner,
   ResolvedComponentDefinition,
+  Template,
   WithCreateInstance,
   WithSubOwner,
 } from '@glimmer/interfaces';
@@ -100,6 +101,12 @@ function defineCheckOwnerComponent(ownerToCheck: object | undefined, assert: Ass
   });
 }
 
+function EmberishComponentWithLayout(layout: Template) {
+  return class EmberishComponentWithLayout extends EmberishCurlyComponent {
+    override layout = layout;
+  };
+}
+
 class OwnerTest extends RenderTest {
   static suiteName = '[owner]';
 
@@ -112,22 +119,27 @@ class OwnerTest extends RenderTest {
         assert.action('foo-bar owner called');
       });
 
-      class FooBar extends EmberishCurlyComponent {
-        override layout = layout;
-      }
-
-      this.delegate.registerComponent('Curly', 'Curly', 'FooBar', null, FooBar);
+      this.delegate.registerComponent(
+        'Curly',
+        'Curly',
+        'FooBar',
+        null,
+        EmberishComponentWithLayout(layout)
+      );
     }
 
     {
       let layout = createTemplate('<FooQux/>')(() => {
         assert.action('foo-baz owner called');
       });
-      class FooBaz extends EmberishCurlyComponent {
-        override layout = layout;
-      }
 
-      this.delegate.registerComponent('Curly', 'Curly', 'FooBaz', null, FooBaz);
+      this.delegate.registerComponent(
+        'Curly',
+        'Curly',
+        'FooBaz',
+        null,
+        EmberishComponentWithLayout(layout)
+      );
     }
 
     this.delegate.registerComponent('TemplateOnly', 'TemplateOnly', 'FooQux', 'testing');
@@ -151,9 +163,7 @@ class OwnerTest extends RenderTest {
         'Curly',
         'FooBaz',
         null,
-        class FooBaz extends EmberishCurlyComponent {
-          override layout = layout;
-        }
+        EmberishComponentWithLayout(layout)
       );
     }
 
@@ -167,9 +177,7 @@ class OwnerTest extends RenderTest {
         'Curly',
         'FooBar',
         null,
-        class FooBar extends EmberishCurlyComponent {
-          override layout = layout;
-        }
+        EmberishComponentWithLayout(layout)
       );
     }
 

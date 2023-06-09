@@ -14,6 +14,7 @@
   --step-hue: 250;
   --expected-hue: 30;
   --todo-hue: 40;
+  --unverified-hue: 70;
   --expected-fg: oklch(52% 0.18 var(--expected-hue));
   --expected-bg: oklch(93% 0.07 var(--expected-hue));
   --actual-hue: 190;
@@ -247,7 +248,8 @@ body,
     }
 
     span.action,
-    span.step {
+    span.step,
+    span.unverified {
       --color-fg: oklch(var(--fg-lightness) var(--fg-chroma) var(--color-hue));
       --color-bg: oklch(var(--bg-lightness) var(--bg-chroma) var(--color-hue));
       display: grid;
@@ -343,7 +345,8 @@ body,
   }
 
   li.pass.marker {
-    &.action {
+    &.action,
+    &.unverified {
       --color-hue: var(--action-hue);
     }
   }
@@ -473,6 +476,10 @@ body,
       }
     }
 
+    > li.unverified {
+      display: grid;
+    }
+
     > li.marker {
       counter-increment: list-item 0;
       background-color: var(--color-bg);
@@ -481,6 +488,39 @@ body,
         'marker tag header . runtime' max-content /
         0em max-content max-content 1fr max-content;
       align-items: baseline;
+
+      &.unverified {
+        grid-template:
+          'marker . message . runtime' max-content
+          'marker tag header . .' max-content
+          'marker source source source .' max-content /
+          0em max-content max-content 1fr max-content;
+
+        > span.test-message {
+          grid-area: message;
+        }
+
+        > span.list {
+          grid-area: header;
+          display: flex;
+          flex-direction: row;
+          flex-wrap: wrap;
+          column-gap: var(--gap-md);
+        }
+
+        > table {
+          grid-area: source;
+        }
+      }
+
+      span.unverified.tag {
+        display: none;
+      }
+
+      span.unverified.marker {
+        grid-area: header;
+        width: max-content;
+      }
 
       span.tag {
         grid-area: tag;
@@ -492,6 +532,10 @@ body,
 
       span.action.marker {
         --color-hue: var(--actual-hue);
+      }
+
+      span.unverified.marker {
+        --color-hue: var(--unverified-hue);
       }
     }
 
@@ -569,7 +613,8 @@ body,
       --color-bg: oklch(var(--bg-lightness) var(--bg-chroma) var(--color-hue));
     }
 
-    &.action.tag {
+    &.action.tag,
+    &.unverified.tag {
       --color-hue: var(--action-hue);
     }
 

@@ -196,7 +196,6 @@ export abstract class BasicRenderDelegate implements RenderDelegate {
 }
 
 export class JitRenderDelegate extends BasicRenderDelegate implements RenderDelegate {
-  static readonly isEager = false;
   static style = 'jit';
 
   #context: JitTestDelegateContext | null = null;
@@ -206,8 +205,7 @@ export class JitRenderDelegate extends BasicRenderDelegate implements RenderDele
     env,
     resolver = (registry) => new TestJitRuntimeResolver(registry),
   }: RenderDelegateOptions = {}) {
-    super({env, resolver})
-
+    super({ env, resolver });
   }
 
   getHTML(): string {
@@ -216,6 +214,10 @@ export class JitRenderDelegate extends BasicRenderDelegate implements RenderDele
 
   asElement(): Element {
     return this.element;
+  }
+
+  reset() {
+    this.element.innerHTML = '';
   }
 
   get element(): Element {
@@ -256,5 +258,4 @@ export class JitRenderDelegate extends BasicRenderDelegate implements RenderDele
       'Attempted to capture the DebugRenderTree during tests, but it was not created. Did you enable it in the environment?'
     ).capture();
   }
-
 }

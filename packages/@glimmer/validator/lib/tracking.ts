@@ -14,7 +14,7 @@ import { LOCAL_SHOULD_LOG_TRACES, LOCAL_SHOULD_LOG_TRACKING } from '@glimmer/loc
 import { LOCAL_LOGGER } from '@glimmer/util';
 
 /**
- * An object that that tracks @tracked properties that were consumed.
+ * An object that that tracks @tracked accessor properties that were consumed.
  */
 class Tracker {
   private tags = new Set<Tag>();

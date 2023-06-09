@@ -81,6 +81,7 @@ module.exports = {
         'no-debugger': 'error',
         'no-loop-func': 'error',
         'prefer-const': 'off',
+        'no-inner-declarations': 'off',
         'no-fallthrough': 'off',
         'import/no-cycle': 'off',
         'import/no-relative-packages': 'error',

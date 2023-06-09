@@ -1,4 +1,5 @@
 import { enumerate, unwrap } from '@glimmer/util';
+import type { Step } from './steps';
 import { Action, ActionData, DiffEntry, frag } from './steps';
 
 export function installUiExtensions(qunit: QUnit) {
@@ -18,6 +19,7 @@ export function installUiExtensions(qunit: QUnit) {
 
             normalizeTag(node, 'action');
             normalizeTag(node, 'step');
+            normalizeTag(node, 'unverified');
 
             for (let sourceNode of node.querySelectorAll(':scope tr.test-source')) {
               let header = sourceNode.querySelector(':scope th') as HTMLTableCellElement;
@@ -186,22 +188,40 @@ function mapStackLine(line: string) {
   return template.content.lastChild as HTMLSpanElement;
 }
 
-function normalizeTag(element: Element, what: 'action' | 'step'): void {
+function normalizeTag(element: Element, what: 'action' | 'step' | 'unverified'): void {
   let stringTag = `[[${what}]]`;
 
   if (element.textContent?.includes(stringTag)) {
     let messageElement = element.querySelector(':scope span.test-message') as HTMLSpanElement;
     let rawData = messageElement.textContent?.slice(stringTag.length + 1);
-    let data = ActionData.from(JSON.parse(unwrap(rawData)), what);
+
     element.classList.add(what, 'marker');
 
-    messageElement.replaceWith(
-      frag`<span class="${what} tag">${what}</span><span class="${what} marker">${ActionData.toFragment(
-        data,
-        what
-      )}</span>`
-    );
+    if (what === 'unverified') {
+      let parsed: QUnit.ActionData[] = JSON.parse(unwrap(rawData));
+      let data = parsed.map((action) => Action.from(action));
+
+      let spans = frag`<span class="list">${data.map((data) => tagSpan(what, data))}</span>`;
+
+      messageElement.replaceWith(
+        frag`<span class="test-message">You recorded actions during this test, but did not verify them before the end of the test. Unverified actions:</span>`,
+        spans
+      );
+
+      return;
+    }
+
+    let data = ActionData.from(JSON.parse(unwrap(rawData)), what);
+
+    messageElement.replaceWith(tagSpan(what, data));
   }
+}
+
+function tagSpan(what: 'action' | 'step' | 'unverified', data: Action | Step) {
+  return frag`<span class="${what} tag">${what}</span><span class="${what} marker">${ActionData.toFragment(
+    data,
+    what
+  )}</span>`;
 }
 
 function isElement(node: Node): node is Element {

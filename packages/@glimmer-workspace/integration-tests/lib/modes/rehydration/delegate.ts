@@ -1,6 +1,8 @@
 /* eslint-disable unicorn/prefer-dom-node-append */
 import type {
+  DOMEnvironment,
   Dict,
+  DynamicScope,
   ElementNamespace,
   Environment,
   Helper,
@@ -44,7 +46,6 @@ export interface RehydrationStats {
 }
 
 export class RehydrationDelegate implements RenderDelegate {
-  static readonly isEager = false;
   static readonly style = 'rehydration';
 
   private plugins: ASTPluginBuilder[] = [];
@@ -77,6 +78,35 @@ export class RehydrationDelegate implements RenderDelegate {
     this.serverRegistry = new TestJitRegistry();
     this.serverResolver = new TestJitRuntimeResolver(this.serverRegistry);
     this.serverEnv = JitDelegateContext(this.serverResolver, env);
+  }
+
+  getInitialBuilder(): TreeBuilder {
+    throw new Error('RehydrationDelegate#getInitialBuilder is not implemented.');
+  }
+
+  getCurrentBuilder(): TreeBuilder {
+    throw new Error('RehydrationDelegate#getCurrentBuilder is not implemented.');
+  }
+
+  getHTML(): string {
+    throw new Error('RehydrationDelegate#getHTML is not implemented.');
+  }
+
+  asElement(): Element {
+    throw new Error('RehydrationDelegate#asElement is not implemented.');
+  }
+
+  reset(): void {
+    throw new Error('RehydrationDelegate#reset is not implemented.');
+  }
+
+  renderComponent?(
+    _component: object,
+    _args: Record<string, unknown>,
+    _element: TreeBuilder,
+    _dynamicScope?: DynamicScope | undefined
+  ): RenderResult<DOMEnvironment> {
+    throw new Error('Method not implemented.');
   }
 
   getInitialElement(): SimpleElement {

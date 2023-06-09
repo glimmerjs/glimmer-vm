@@ -1,4 +1,11 @@
-import { GlimmerishComponent, jitSuite, RenderTest, test, tracked } from '../..';
+import {
+  capturingComponent,
+  GlimmerishComponent,
+  jitSuite,
+  RenderTest,
+  test,
+  tracked,
+} from '../..';
 
 class GetTest extends RenderTest {
   static suiteName = 'Helpers test: {{get}}';
@@ -302,20 +309,9 @@ class GetTest extends RenderTest {
 
   @test
   'the result of a get helper can be yielded'() {
-    let fooBarInstance: FooBar;
+    let { Class, instance } = capturingComponent(ComponentWithInitializedTrackedField);
 
-    let setInstance = (instance: FooBar) => (fooBarInstance = instance);
-
-    class FooBar extends GlimmerishComponent {
-      @tracked mcintosh = 'red';
-
-      constructor(owner: object, args: Record<string, unknown>) {
-        super(owner, args);
-        setInstance(this);
-      }
-    }
-
-    this.registerComponent('Glimmer', 'FooBar', '{{yield (get @colors this.mcintosh)}}', FooBar);
+    this.registerComponent('Glimmer', 'FooBar', '{{yield (get @colors this.mcintosh)}}', Class);
 
     this.render(`<FooBar @colors={{this.colors}} as |value|>{{value}}</FooBar>`, {
       colors: {
@@ -326,11 +322,11 @@ class GetTest extends RenderTest {
     this.assertHTML('banana');
     this.assertStableRerender();
 
-    fooBarInstance!.mcintosh = 'yellow';
+    instance.value.mcintosh = 'yellow';
     this.rerender({ colors: { yellow: 'bus' } });
     this.assertHTML('bus');
 
-    fooBarInstance!.mcintosh = 'red';
+    instance.value.mcintosh = 'red';
     this.rerender({ colors: { red: 'banana' } });
     this.assertHTML('banana');
   }
@@ -386,15 +382,11 @@ class GetTest extends RenderTest {
 
   @test
   'should be able to get an object value with a path from this.args in a glimmer component'() {
-    class PersonComponent extends GlimmerishComponent {
-      options = ['first', 'last', 'age'];
-    }
-
     this.registerComponent(
       'Glimmer',
       'PersonWrapper',
       '{{#each this.options as |option|}}{{get this.args option}}{{/each}}',
-      PersonComponent
+      ComponentWithArrayField
     );
 
     this.render('<PersonWrapper @first={{this.first}} @last={{this.last}} @age={{this.age}}/>', {
@@ -441,6 +433,14 @@ class GetTest extends RenderTest {
     this.rerender({ name: 'Zoey', key: 'length' });
     this.assertHTML('[4] [4]');
   }
+}
+
+class ComponentWithArrayField extends GlimmerishComponent {
+  options = ['first', 'last', 'age'];
+}
+
+class ComponentWithInitializedTrackedField extends GlimmerishComponent {
+  @tracked accessor mcintosh = 'red';
 }
 
 jitSuite(GetTest);

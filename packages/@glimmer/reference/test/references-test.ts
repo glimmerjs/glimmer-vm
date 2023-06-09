@@ -15,7 +15,7 @@ import {
   updateRef,
   valueForRef,
 } from '@glimmer/reference';
-import { tracked } from './support';
+import { tracked } from '@glimmer-workspace/integration-tests';
 
 const { module, test } = QUnit;
 
@@ -75,7 +75,7 @@ module('References', (hooks) => {
 
     test('can create children of const refs', (assert) => {
       class Parent {
-        @tracked child = 123;
+        @tracked accessor child = 123;
       }
 
       let parent = new Parent();
@@ -189,11 +189,11 @@ module('References', (hooks) => {
 
     test('can create children of compute refs', (assert) => {
       class Child {
-        @tracked value = 123;
+        @tracked accessor value = 123;
       }
 
       class Parent {
-        @tracked child = new Child();
+        @tracked accessor child = new Child();
       }
 
       let parent = new Parent();
@@ -221,7 +221,11 @@ module('References', (hooks) => {
 
       parent.child = new Child();
 
-      assert.strictEqual(valueForRef(valueReference), 123, 'value updated correctly when parent changes');
+      assert.strictEqual(
+        valueForRef(valueReference),
+        123,
+        'value updated correctly when parent changes'
+      );
       assert.strictEqual(getCount, 4, 'get called correct number of times');
     });
   });
@@ -237,7 +241,7 @@ module('References', (hooks) => {
 
     test('children of unbound refs are not reactive', (assert) => {
       class Parent {
-        @tracked child = 123;
+        @tracked accessor child = 123;
       }
 
       let parent = new Parent();
@@ -267,11 +271,11 @@ module('References', (hooks) => {
 
     test('can create children of invokable refs', (assert) => {
       class Child {
-        @tracked value = 123;
+        @tracked accessor value = 123;
       }
 
       class Parent {
-        @tracked child = new Child();
+        @tracked accessor child = new Child();
       }
 
       let parent = new Parent();
@@ -303,7 +307,11 @@ module('References', (hooks) => {
 
       parent.child = new Child();
 
-      assert.strictEqual(valueForRef(valueReference), 123, 'value updated correctly when parent changes');
+      assert.strictEqual(
+        valueForRef(valueReference),
+        123,
+        'value updated correctly when parent changes'
+      );
       assert.strictEqual(getCount, 4, 'get called correct number of times');
     });
   });
@@ -311,7 +319,7 @@ module('References', (hooks) => {
   module('read only ref', () => {
     test('can convert an updatable ref to read only', (assert) => {
       class Parent {
-        @tracked child = 123;
+        @tracked accessor child = 123;
       }
 
       let parent = new Parent();
@@ -329,11 +337,11 @@ module('References', (hooks) => {
 
     test('can create children of read only refs', (assert) => {
       class Child {
-        @tracked value = 123;
+        @tracked accessor value = 123;
       }
 
       class Parent {
-        @tracked child = new Child();
+        @tracked accessor child = new Child();
       }
 
       let parent = new Parent();
@@ -365,7 +373,11 @@ module('References', (hooks) => {
 
       parent.child = new Child();
 
-      assert.strictEqual(valueForRef(valueReference), 123, 'value updated correctly when parent changes');
+      assert.strictEqual(
+        valueForRef(valueReference),
+        123,
+        'value updated correctly when parent changes'
+      );
       assert.strictEqual(getCount, 4, 'get called correct number of times');
     });
   });
@@ -374,7 +386,7 @@ module('References', (hooks) => {
     module('debugAliasRef', () => {
       test('debug alias refs are transparent', (assert) => {
         class Foo {
-          @tracked value = 123;
+          @tracked accessor value = 123;
         }
 
         let foo = new Foo();

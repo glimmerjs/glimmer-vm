@@ -1,0 +1,9 @@
+{
+  "$schema": "https://json.schemastore.org/swcrc.json",
+  "module": { "type": "es6" },
+  "jsc": {
+    "target": "es2022",
+    "transform": { "useDefineForClassFields": true, "decoratorVersion": "2022-03" },
+    "parser": { "syntax": "typescript", "tsx": false, "decorators": true }
+  }
+}

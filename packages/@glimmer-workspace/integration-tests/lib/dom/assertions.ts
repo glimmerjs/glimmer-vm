@@ -2,7 +2,7 @@ import type { Dict, SimpleElement, SimpleNode } from '@glimmer/interfaces';
 import { dict, isSimpleElement } from '@glimmer/util';
 
 export interface DebugElement {
-  element: SimpleElement | null | undefined;
+  element: SimpleElement | Element | null | undefined;
   description: string;
 }
 

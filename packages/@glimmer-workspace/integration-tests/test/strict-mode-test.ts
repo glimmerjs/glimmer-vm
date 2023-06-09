@@ -1,5 +1,4 @@
 import { array, concat, fn, get, hash, on } from '@glimmer/runtime';
-import { castToBrowser } from '@glimmer/util';
 
 import {
   BrowserRenderTest,
@@ -1287,7 +1286,7 @@ class BuiltInsStrictModeTest extends BrowserRenderTest {
     assert.expect(3);
 
     let handleClick = (value: number) => {
-      assert.strictEqual(value, 123, 'handler called with correct value');
+      assert.action(`[click] ${value}`);
     };
 
     let Foo = defineComponent(
@@ -1297,7 +1296,9 @@ class BuiltInsStrictModeTest extends BrowserRenderTest {
 
     this.renderComponent(Foo);
 
-    castToBrowser(this.element, 'div').querySelector('button')!.click();
+    this.element.querySelector('button')!.click();
+
+    assert.verifyActions(['[click] 123']);
   }
 }
 

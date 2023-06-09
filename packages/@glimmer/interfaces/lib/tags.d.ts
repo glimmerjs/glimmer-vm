@@ -30,9 +30,12 @@ export type TagTypeId = MonomorphicTagTypeId | PolymorphicTagTypeId;
 
 export type Revision = number;
 
+export type DebugName = string | { key: string; parent: string };
+
 export interface TagDebug {
   id: number;
   type: TagTypeId;
+  name: DebugName;
   updatedAt: () => number;
   /**
    * A tag has a subtags array if it's a combinator tag.

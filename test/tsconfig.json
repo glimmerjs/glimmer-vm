@@ -16,15 +16,15 @@
     "noErrorTruncation": true,
 
     // Environment Configuration
-    "experimentalDecorators": true,
-    "target": "ESNext",
-    "module": "ESNext",
+    "experimentalDecorators": false,
+    "target": "esnext",
+    "module": "esnext",
     "moduleResolution": "bundler",
 
     // Enhance Strictness
     "strict": true,
     "suppressImplicitAnyIndexErrors": false,
-    "useDefineForClassFields": false,
+    "useDefineForClassFields": true,
     "exactOptionalPropertyTypes": true,
     "noImplicitOverride": true,
     "noPropertyAccessFromIndexSignature": true,

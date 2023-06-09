@@ -524,7 +524,7 @@ module('@glimmer/validator: tracking', ({ beforeEach }) => {
               dirtyTag(tag);
             });
           });
-        }, /Error: You attempted to update `\(an unknown tag\)`/u);
+        }, /Error: You attempted to update `\(an unknown tracked value\)`/u);
       });
 
       test('it throws errors across track frames within the same debug transaction', (assert) => {
@@ -540,7 +540,7 @@ module('@glimmer/validator: tracking', ({ beforeEach }) => {
               dirtyTag(tag);
             });
           });
-        }, /Error: You attempted to update `\(an unknown tag\)`/u);
+        }, /Error: You attempted to update `\(an unknown tracked value\)`/u);
       });
 
       test('it ignores untrack for consumption', (assert) => {
@@ -571,7 +571,7 @@ module('@glimmer/validator: tracking', ({ beforeEach }) => {
               dirtyTag(tag);
             });
           });
-        }, /Error: You attempted to update `\(an unknown tag\)`/u);
+        }, /Error: You attempted to update `\(an unknown tracked value\)`/u);
       });
     });
   }

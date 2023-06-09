@@ -2,13 +2,13 @@ import { destroy } from '@glimmer/destroyable';
 import type { AST } from '@glimmer/syntax';
 import { unwrap } from '@glimmer/util';
 
-import { GlimmerishComponent } from '../components/emberish-glimmer';
 import { equalsElement } from '../dom/assertions';
 import { replaceHTML } from '../dom/simple-utils';
-import { BrowserRenderTest, RenderTest } from '../render-test';
+import { BrowserRenderTest } from '../render-test';
 import { test } from '../test-decorator';
 import { stripTight } from '../test-helpers/strings';
 import { tracked } from '../test-helpers/tracked';
+import { DestroyComponents } from '../../test/ember-component-test';
 
 export class InElementSuite extends BrowserRenderTest {
   static suiteName = '#in-element';
@@ -389,18 +389,6 @@ export class InElementSuite extends BrowserRenderTest {
 
   @test
   'Inside a loop'() {
-    let { delegate } = this;
-
-    class Item {
-      element = document.createElement('div');
-
-      @tracked value: string;
-
-      constructor(value: string) {
-        this.value = value;
-      }
-    }
-
     this.testType = 'Dynamic';
     this.registerComponent('TemplateOnly', 'FooBar', '<p>{{@value}}</p>');
 
@@ -411,10 +399,9 @@ export class InElementSuite extends BrowserRenderTest {
     this.render(
       stripTight`
         {{~#each this.roots as |root|~}}
-          {{~log root~}}
+        {{debugger}}
           {{~#in-element root.element ~}}
             <FooBar @value={{root.value}} />
-            {{!component 'FooBar' value=root.value}}
           {{~/in-element~}}
         {{~/each}}
         `,
@@ -512,17 +499,10 @@ export class InElementSuite extends BrowserRenderTest {
   }
 
   @test
-  'Components are destroyed'() {
-    let destroyed = 0;
+  'Components are destroyed'(assert: Assert) {
+    let components = DestroyComponents();
 
-    class DestroyMeComponent extends GlimmerishComponent {
-      override willDestroy() {
-        super.willDestroy();
-        destroyed++;
-      }
-    }
-
-    this.registerComponent('Glimmer', 'DestroyMe', 'destroy me!', DestroyMeComponent as any);
+    this.registerComponent('Glimmer', 'DestroyMe', 'destroy me!', components.DestroyGlimmer);
     let externalElement = document.createElement('div');
 
     this.render(
@@ -538,20 +518,31 @@ export class InElementSuite extends BrowserRenderTest {
     );
 
     equalsElement(externalElement, 'div', {}, stripTight``);
-    this.assert.strictEqual(destroyed, 0, 'component was destroyed');
+
+    assert.verifyActions([]);
     this.assertHTML('<!---->');
     this.assertStableRerender();
 
     this.rerender({ showExternal: true });
     equalsElement(externalElement, 'div', {}, stripTight`[destroy me!]`);
-    this.assert.strictEqual(destroyed, 0, 'component was destroyed');
+    assert.verifyActions([]);
     this.assertHTML('<!---->');
     this.assertStableRerender();
 
     this.rerender({ showExternal: false });
     equalsElement(externalElement, 'div', {}, stripTight``);
-    this.assert.strictEqual(destroyed, 1, 'component was destroyed');
+    assert.verifyActions(['[glimmerish] willDestroy']);
     this.assertHTML('<!---->');
     this.assertStableRerender();
+  }
+}
+
+class Item {
+  element = document.createElement('div');
+
+  @tracked accessor value: string;
+
+  constructor(value: string) {
+    this.value = value;
   }
 }

@@ -37,7 +37,7 @@ if (import.meta.env.DEV) {
   /////////
 
   let TRANSACTION_ENV = {
-    debugMessage(obj?: unknown, keyName?: string) {
+    debugMessage(obj?: unknown, keyName?: string, tag?: Tag) {
       let objName;
 
       if (typeof obj === 'function') {
@@ -47,7 +47,16 @@ if (import.meta.env.DEV) {
 
         objName = `(an instance of ${className})`;
       } else if (obj === undefined) {
-        objName = '(an unknown tag)';
+        let name = tag?.debug?.name;
+
+        if (name === undefined) {
+          objName = '(an unknown tracked value)';
+        } else if (typeof name === 'string') {
+          objName = name;
+        } else {
+          objName = name.parent;
+          keyName = name.key;
+        }
       } else {
         objName = String(obj);
       }
@@ -137,9 +146,10 @@ if (import.meta.env.DEV) {
   let makeTrackingErrorMessage = <T>(
     transaction: Transaction,
     obj?: T,
-    keyName?: keyof T | string | symbol
+    keyName?: keyof T | string | symbol,
+    tag?: Tag
   ) => {
-    let message = [TRANSACTION_ENV.debugMessage(obj, keyName && String(keyName))];
+    let message = [TRANSACTION_ENV.debugMessage(obj, keyName && String(keyName), tag)];
 
     message.push(
       `\`${String(keyName)}\` was first used:`,
@@ -200,7 +210,7 @@ if (import.meta.env.DEV) {
     // few lines of the stack trace and let users know where the actual error
     // occurred.
     try {
-      assert(false, makeTrackingErrorMessage(transaction, obj, keyName));
+      assert(false, makeTrackingErrorMessage(transaction, obj, keyName, tag));
     } catch (error) {
       if (hasStack(error)) {
         let updateStackBegin = error.stack.indexOf('Stack trace for the update:');

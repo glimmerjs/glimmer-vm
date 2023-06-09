@@ -8,12 +8,12 @@ export abstract class ActionData implements QUnit.Action, QUnit.ActionData {
   static from(
     this: typeof ActionData,
     data: QUnit.ActionData,
-    type: 'action' | 'step'
+    type: 'action' | 'step' | 'unverified'
   ): Action | Step;
   static from<This extends typeof Action | typeof Step | typeof ActionData>(
     this: This,
     data: QUnit.ActionData,
-    type?: 'action' | 'step'
+    type?: 'action' | 'step' | 'unverified'
   ): Action | Step {
     return this.create(data, type);
   }
@@ -25,12 +25,12 @@ export abstract class ActionData implements QUnit.Action, QUnit.ActionData {
   static toFragment(
     this: typeof ActionData,
     data: QUnit.ActionData,
-    type: 'action' | 'step'
+    type: 'action' | 'step' | 'unverified'
   ): DocumentFragment;
   static toFragment<This extends typeof Action | typeof Step | typeof ActionData>(
     this: This,
     data: QUnit.ActionData,
-    type?: 'action' | 'step'
+    type?: 'action' | 'step' | 'unverified'
   ): DocumentFragment {
     let typeFragment = data.type ? frag`<span class="type">${data.type}</span>` : undefined;
     type = this === ActionData ? unwrap(type) : (this as typeof Action | typeof Step).type;
@@ -45,7 +45,7 @@ export abstract class ActionData implements QUnit.Action, QUnit.ActionData {
   static parse<This extends typeof Action | typeof Step | typeof ActionData>(
     this: This,
     data: string,
-    kind?: 'action' | 'step'
+    kind?: 'action' | 'step' | 'unverified'
   ): Action | Step {
     return this.create(parseData(data), kind);
   }
@@ -53,10 +53,12 @@ export abstract class ActionData implements QUnit.Action, QUnit.ActionData {
   private static create<This extends typeof Action | typeof Step | typeof ActionData>(
     this: This,
     { type, description }: QUnit.ActionData,
-    kind?: 'action' | 'step'
+    kind?: 'action' | 'step' | 'unverified'
   ): Action | Step {
     if (this === ActionData) {
-      return kind === 'action' ? new Action(type, description) : new Step(type, description);
+      return kind === 'action' || kind === 'unverified'
+        ? new Action(type, description)
+        : new Step(type, description);
     } else {
       return new (this as typeof Action | typeof Step)(type, description);
     }
@@ -154,14 +156,14 @@ export function frag(raw: TemplateStringsArray, ...dynamic: unknown[]): Document
   let template = document.createElement('template');
 
   let html = '';
-  let placeholders: Record<number, ChildNode> = {};
+  let placeholders: Record<number, ChildNode | ChildNode[]> = {};
 
   for (let [i, part] of raw.entries()) {
     html += part;
     if (i < dynamic.length) {
       let value = dynamic[i];
 
-      if (value && value instanceof Node) {
+      if ((value && value instanceof Node) || Array.isArray(value)) {
         html += `<template id='template-${i}'></template>`;
         placeholders[i] = value as ChildNode;
       } else if (value !== undefined) {
@@ -175,7 +177,15 @@ export function frag(raw: TemplateStringsArray, ...dynamic: unknown[]): Document
 
   for (let [i, child] of Object.entries(placeholders)) {
     let placeholder = fragment.querySelector(`#template-${i}`);
-    placeholder?.parentElement?.insertBefore(child, placeholder);
+
+    if (Array.isArray(child)) {
+      for (let node of child) {
+        placeholder?.parentElement?.insertBefore(node, placeholder);
+      }
+    } else {
+      placeholder?.parentElement?.insertBefore(child, placeholder);
+    }
+
     placeholder?.remove();
   }
 

@@ -1,4 +1,11 @@
-import { GlimmerishComponent, jitSuite, RenderTest, test, tracked } from '../..';
+import {
+  capturingComponent,
+  GlimmerishComponent,
+  jitSuite,
+  RenderTest,
+  test,
+  tracked,
+} from '../..';
 
 class HashTest extends RenderTest {
   static suiteName = 'Helpers test: {{hash}}';
@@ -84,60 +91,33 @@ class HashTest extends RenderTest {
 
   @test
   'should yield hash of internal properties'() {
-    let fooBarInstance: FooBar;
+    let { Class, instance } = capturingComponent(ComponentWithTrackedField);
 
-    let assignInstance = (instance: FooBar) => (fooBarInstance = instance);
-
-    class FooBar extends GlimmerishComponent {
-      @tracked firstName = 'Chad';
-
-      constructor(owner: object, args: Record<string, unknown>) {
-        super(owner, args);
-        assignInstance(this);
-      }
-    }
-
-    this.registerComponent(
-      'Glimmer',
-      'FooBar',
-      `{{yield (hash firstName=this.firstName)}}`,
-      FooBar
-    );
+    this.registerComponent('Glimmer', 'FooBar', `{{yield (hash firstName=this.firstName)}}`, Class);
 
     this.render(`<FooBar as |values|>{{values.firstName}}</FooBar>`);
 
     this.assertHTML('Chad');
     this.assertStableRerender();
 
-    fooBarInstance!.firstName = 'Godfrey';
+    instance.value.firstName = 'Godfrey';
     this.rerender();
     this.assertHTML('Godfrey');
 
-    fooBarInstance!.firstName = 'Chad';
+    instance.value.firstName = 'Chad';
     this.rerender();
     this.assertHTML('Chad');
   }
 
   @test
   'should yield hash of internal and external properties'() {
-    let fooBarInstance: FooBar;
-
-    let assignInstance = (instance: FooBar) => (fooBarInstance = instance);
-
-    class FooBar extends GlimmerishComponent {
-      @tracked firstName = 'Chad';
-
-      constructor(owner: object, args: Record<string, unknown>) {
-        super(owner, args);
-        assignInstance(this);
-      }
-    }
+    let { Class, instance } = capturingComponent(ComponentWithTrackedField);
 
     this.registerComponent(
       'Glimmer',
       'FooBar',
       `{{yield (hash firstName=this.firstName lastName=@lastName)}}`,
-      FooBar
+      Class
     );
 
     this.render(
@@ -150,12 +130,12 @@ class HashTest extends RenderTest {
     this.assertHTML('Chad Hietala');
     this.assertStableRerender();
 
-    fooBarInstance!.firstName = 'Godfrey';
+    instance.value.firstName = 'Godfrey';
     this.rerender({ lastName: 'Chan' });
 
     this.assertHTML('Godfrey Chan');
 
-    fooBarInstance!.firstName = 'Chad';
+    instance.value.firstName = 'Chad';
     this.rerender({ lastName: 'Hietala' });
 
     this.assertHTML('Chad Hietala');
@@ -163,21 +143,11 @@ class HashTest extends RenderTest {
 
   @test
   'individual hash values are accessed lazily'(assert: Assert) {
-    class FooBar extends GlimmerishComponent {
-      firstName = 'Godfrey';
-
-      get lastName() {
-        assert.ok(false, 'lastName was accessed');
-
-        return;
-      }
-    }
-
     this.registerComponent(
       'Glimmer',
       'FooBar',
       `{{yield (hash firstName=@firstName lastName=this.lastName)}}`,
-      FooBar
+      ComponentWithUpdatableHashField({}, { firstName: 'Godfrey' })
     );
 
     this.render(`<FooBar @firstName="Godfrey" as |values|>{{values.firstName}}</FooBar>`);
@@ -188,16 +158,11 @@ class HashTest extends RenderTest {
 
   @test
   'defined hash keys can be updated'(assert: Assert) {
-    class FooBar extends GlimmerishComponent {
-      constructor(owner: object, args: { hash: Record<string, unknown> }) {
-        super(owner, args);
-        args.hash['firstName'] = 'Chad';
+    let { Class, instance } = capturingComponent(
+      ComponentWithUpdatableHashField({ firstName: 'Chad' })
+    );
 
-        assert.strictEqual(args.hash['firstName'], 'Chad', 'Name updated in JS');
-      }
-    }
-
-    this.registerComponent('Glimmer', 'FooBar', `{{yield @hash}}`, FooBar);
+    this.registerComponent('Glimmer', 'FooBar', `{{yield @hash}}`, Class);
 
     this.render(
       `<FooBar @hash={{hash firstName="Godfrey" lastName="Hietala"}} as |values|>{{values.firstName}} {{values.lastName}}</FooBar>`
@@ -215,18 +180,9 @@ class HashTest extends RenderTest {
 
   @test
   'defined hash keys are reset whenever the upstream changes'(assert: Assert) {
-    class FooBar extends GlimmerishComponent {
-      constructor(owner: object, args: { hash: Record<string, unknown> }) {
-        super(owner, args);
-        args.hash['name'] = 'Chad';
-      }
+    let { Class, instance } = capturingComponent(ComponentWithUpdatableHashField({ name: 'Chad' }));
 
-      get alias() {
-        return (this.args['hash'] as Record<string, unknown>)['name'];
-      }
-    }
-
-    this.registerComponent('Glimmer', 'FooBar', `{{yield @hash this.alias}}`, FooBar);
+    this.registerComponent('Glimmer', 'FooBar', `{{yield @hash this.alias}}`, Class);
 
     this.render(
       `<FooBar @hash={{hash name=this.name}} as |values alias|>{{values.name}} {{alias}}</FooBar>`,
@@ -252,14 +208,12 @@ class HashTest extends RenderTest {
 
   @test
   'undefined hash keys can be updated'(assert: Assert) {
-    class FooBar extends GlimmerishComponent {
-      constructor(owner: object, args: { hash: Record<string, unknown> }) {
-        super(owner, args);
-        args.hash['lastName'] = 'Chan';
-      }
-    }
-
-    this.registerComponent('Glimmer', 'FooBar', `{{yield @hash}}`, FooBar);
+    this.registerComponent(
+      'Glimmer',
+      'FooBar',
+      `{{yield @hash}}`,
+      ComponentWithUpdatableHashField({ lastName: 'Chan' })
+    );
 
     this.render(
       `<FooBar @hash={{hash firstName="Godfrey"}} as |values|>{{values.firstName}} {{values.lastName}}</FooBar>`
@@ -272,6 +226,31 @@ class HashTest extends RenderTest {
       /You set the 'lastName' property on a \{\{hash\}\} object. Setting properties on objects generated by \{\{hash\}\} is deprecated. Please update to use an object created with a tracked property or getter, or with a custom helper./u
     );
   }
+}
+
+function ComponentWithUpdatableHashField(
+  updates: Record<string, unknown>,
+  fields?: Record<string, unknown>
+) {
+  return class ComponentWithUpdatableHashField extends GlimmerishComponent {
+    constructor(owner: object, args: { hash: Record<string, unknown> }) {
+      super(owner, args);
+
+      Object.assign(this, fields ?? {});
+
+      for (let [key, value] of Object.entries(updates)) {
+        args.hash[key] = value;
+      }
+    }
+
+    get alias() {
+      return (this.args['hash'] as Record<string, unknown>)['name'];
+    }
+  };
+}
+
+class ComponentWithTrackedField extends GlimmerishComponent {
+  @tracked accessor firstName = 'Chad';
 }
 
 jitSuite(HashTest);

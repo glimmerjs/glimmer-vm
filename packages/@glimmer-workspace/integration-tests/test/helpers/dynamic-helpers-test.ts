@@ -24,10 +24,8 @@ class DynamicHelpersResolutionModeTest extends BrowserRenderTest {
   'Can use a dynamic helper with nested helpers'() {
     let foo = defineSimpleHelper(() => 'world!');
     let bar = defineSimpleHelper((value: string) => 'Hello, ' + value);
-    let Bar = defineComponent({ foo }, '{{this.bar (foo)}}', {
-      definition: class extends GlimmerishComponent {
-        bar = bar;
-      },
+    let Bar = defineComponent({ foo }, '{{this.helper (foo)}}', {
+      definition: ComponentWithHelperField(bar),
     });
 
     this.renderComponent(Bar);
@@ -37,19 +35,31 @@ class DynamicHelpersResolutionModeTest extends BrowserRenderTest {
 
   @test
   'Can use a dynamic helper with nested dynamic helpers'() {
-    let foo = defineSimpleHelper(() => 'world!');
+    let foo = defineSimpleHelper(() => {
+      return 'world!';
+    });
     let bar = defineSimpleHelper((value: string) => 'Hello, ' + value);
-    let Bar = defineComponent({}, '{{this.bar (this.foo)}}', {
-      definition: class extends GlimmerishComponent {
-        foo = foo;
-        bar = bar;
-      },
+    let Bar = defineComponent({}, '{{this.second (this.first)}}', {
+      definition: ComponentWithNestedHelperCalls(foo, bar),
     });
 
     this.renderComponent(Bar);
     this.assertHTML('Hello, world!');
     this.assertStableRerender();
   }
+}
+
+function ComponentWithHelperField(helper: (input: string) => string) {
+  return class SimpleComponent extends GlimmerishComponent {
+    helper = helper;
+  };
+}
+
+function ComponentWithNestedHelperCalls(first: () => string, second: (value: string) => string) {
+  return class SimpleComponent extends GlimmerishComponent {
+    first = first;
+    second = second;
+  };
 }
 
 jitSuite(DynamicHelpersResolutionModeTest);

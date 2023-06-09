@@ -269,32 +269,7 @@ class DebugRenderTreeTest extends BrowserRenderTest {
     this.delegate.registerCustomComponent(
       'HelloWorld',
       '{{@arg}}',
-      class extends TemplateOnlyComponentManager {
-        getDebugCustomRenderTree(
-          _definition: TemplateOnlyComponent,
-          _state: null,
-          args: CapturedArguments
-        ): CustomRenderNode[] {
-          return [
-            {
-              bucket: bucket1,
-              type: 'route-template',
-              name: 'foo',
-              instance: instance1,
-              args,
-              template: undefined,
-            },
-            {
-              bucket: bucket2,
-              type: 'engine',
-              name: 'bar',
-              instance: instance2,
-              args: EMPTY_ARGS,
-              template: undefined,
-            },
-          ];
-        }
-      }
+      NormalDebugRenderTreeManager(bucket1, bucket2, instance1, instance2)
     );
 
     this.registerComponent('TemplateOnly', 'HelloWorld2', '{{@arg}}');
@@ -366,16 +341,8 @@ class DebugRenderTreeTest extends BrowserRenderTest {
     ]);
   }
 
-  @test 'empty getDebugCustomRenderTree works'() {
-    this.delegate.registerCustomComponent(
-      'HelloWorld',
-      '{{@arg}}',
-      class extends TemplateOnlyComponentManager {
-        getDebugCustomRenderTree(): CustomRenderNode[] {
-          return [];
-        }
-      }
-    );
+  @test ['empty getDebugCustomRenderTree works']() {
+    this.delegate.registerCustomComponent('HelloWorld', '{{@arg}}', EmptyDebugRenderTreeManager);
 
     this.registerComponent('TemplateOnly', 'HelloWorld2', '{{@arg}}');
 
@@ -428,17 +395,7 @@ class DebugRenderTreeTest extends BrowserRenderTest {
   }
 
   @test 'cleans up correctly after errors'(assert: Assert) {
-    this.registerComponent(
-      'Glimmer',
-      'HelloWorld',
-      'Hello World',
-      class extends GlimmerishComponent {
-        constructor(owner: Owner, args: Dict) {
-          super(owner, args);
-          throw new Error('oops!');
-        }
-      }
-    );
+    this.registerComponent('Glimmer', 'HelloWorld', 'Hello World', ComponentThrowingInConstructor);
 
     assert.throws(() => {
       expectingRenderError(() => this.render('<HelloWorld @arg="first"/>'));
@@ -532,6 +489,53 @@ class DebugRenderTreeTest extends BrowserRenderTest {
     } else {
       this.assert.strictEqual(actual, expected, `Matching ${path}`);
     }
+  }
+}
+
+function NormalDebugRenderTreeManager(
+  bucket1: object,
+  bucket2: object,
+  instance1: unknown,
+  instance2: unknown
+) {
+  return class NormalDebugRenderTreeManager extends TemplateOnlyComponentManager {
+    getDebugCustomRenderTree(
+      _definition: TemplateOnlyComponent,
+      _state: null,
+      args: CapturedArguments
+    ): CustomRenderNode[] {
+      return [
+        {
+          bucket: bucket1,
+          type: 'route-template',
+          name: 'foo',
+          instance: instance1,
+          args,
+          template: undefined,
+        },
+        {
+          bucket: bucket2,
+          type: 'engine',
+          name: 'bar',
+          instance: instance2,
+          args: EMPTY_ARGS,
+          template: undefined,
+        },
+      ];
+    }
+  };
+}
+
+class EmptyDebugRenderTreeManager extends TemplateOnlyComponentManager {
+  getDebugCustomRenderTree(): CustomRenderNode[] {
+    return [];
+  }
+}
+
+class ComponentThrowingInConstructor extends GlimmerishComponent {
+  constructor(owner: Owner, args: Dict) {
+    super(owner, args);
+    throw new Error('oops!');
   }
 }
 

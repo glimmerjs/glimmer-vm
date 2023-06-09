@@ -9,7 +9,7 @@
     "allowJs": true,
     "checkJs": true,
     "allowSyntheticDefaultImports": true,
-    "experimentalDecorators": true,
+    "experimentalDecorators": false,
     "verbatimModuleSyntax": true,
     "noErrorTruncation": true,
 
@@ -17,7 +17,7 @@
 
     "strict": true,
     "suppressImplicitAnyIndexErrors": false,
-    "useDefineForClassFields": false,
+    "useDefineForClassFields": true,
     "exactOptionalPropertyTypes": true,
     "noImplicitOverride": true,
     "noPropertyAccessFromIndexSignature": true,

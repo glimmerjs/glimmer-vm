@@ -3,6 +3,30 @@ import { LOCAL_LOGGER } from '@glimmer/util';
 import { Action, Step } from './steps';
 
 export function installExtensions(qunit: QUnit) {
+  qunit.begin(() => {
+    qunit.config.requireExpects = false;
+  });
+  qunit.testStart(() => {
+    let test = qunit.config.current;
+
+    test.actions = [];
+
+    let finish = test.finish;
+
+    test.finish = function (...args: Parameters<QUnit.TestBase['finish']>) {
+      if (test.assertions.length === 0) {
+        test.expected = 0;
+      }
+
+      if (test.actions.length > 0) {
+        test.pushFailure(`[[unverified]] ${JSON.stringify(test.actions)}`, test.stack);
+        test.actions.length = 0;
+      }
+
+      return finish.call(this, ...args);
+    };
+  });
+
   qunit.assert.expect = function (
     this: Assert & { test: QUnit.TestBase },
     expected?: number | string[]
@@ -18,8 +42,15 @@ export function installExtensions(qunit: QUnit) {
 
   qunit.assert.action = function (this: Assert & { test: QUnit.TestBase }, rawMessage: string) {
     let action = Action.parse(rawMessage);
+    let test = QUnit.config.current;
 
-    this.test.steps.push(action);
+    if (!test) {
+      throw new Error(
+        `You attempted to record an action outside of a test context. Perhaps you forgot to await a promise?`
+      );
+    }
+
+    test.actions.push(action);
 
     if (LOCAL_SHOULD_LOG_STEP_MARKERS) {
       LOCAL_LOGGER.log(`%caction %c${action}`, 'color: #9f9; font-weight: bold', 'color: #aa5');
@@ -51,8 +82,15 @@ export function installExtensions(qunit: QUnit) {
     expectedSpecification,
     message
   ) {
-    // Since the steps array is just string values, we can clone with slice
-    let actualActions = [...this.test.steps];
+    let test = QUnit.config.current;
+
+    if (!test) {
+      throw new Error(
+        `You attempted to verify actions outside of a test context. Perhaps you forgot to await a promise?`
+      );
+    }
+
+    let actualActions = [...test.actions];
     let expectedActions = expectedSpecification.map((spec) => Action.parse(spec));
 
     function getMessage() {
@@ -106,6 +144,6 @@ export function installExtensions(qunit: QUnit) {
       });
     }
 
-    this.test.steps.length = 0;
+    test.actions.length = 0;
   };
 }

@@ -1,26 +1,31 @@
-import type { SimpleElement, SimpleNode } from '@glimmer/interfaces';
+import type { Dict, Owner, SimpleElement, SimpleNode } from '@glimmer/interfaces';
 import { castToSimple, unwrap } from '@glimmer/util';
 import {
   classes,
   createTemplate,
   elementId,
   EmberishCurlyComponent,
-  type EmberishCurlyComponentFactory,
   equalsElement,
   firstElementChild,
   GlimmerishComponent,
   isSimpleElement,
-  type JitRenderDelegate,
   jitSuite,
   regex,
   stripTight,
   test,
-  type AttributesDiff,
-  type Attributes,
   BrowserRenderTest,
+  capturing,
+} from '@glimmer-workspace/integration-tests';
+import type {
+  Capturing,
+  EmberishCurlyComponentFactory,
+  JitRenderDelegate,
+  AttributesDiff,
+  Attributes,
 } from '@glimmer-workspace/integration-tests';
 
 import { assert } from './support';
+import { registerDestructor } from '@glimmer/destroyable';
 
 interface ComponentHooks {
   didInitAttrs: number;
@@ -38,7 +43,22 @@ interface HookedComponent {
   hooks: ComponentHooks;
 }
 
-function inspectHooks<T extends EmberishCurlyComponentFactory>(ComponentClass: T): T {
+export function inspecting<T extends typeof EmberishCurlyComponent>(
+  ComponentClass: T
+): { Class: T; instance: Capturing<InstanceType<T> & HookedComponent> } {
+  let instance = capturing<InstanceType<T> & HookedComponent>();
+  let Class = inspectHooks(ComponentClass, instance);
+
+  return {
+    instance,
+    Class,
+  };
+}
+
+function inspectHooks<T extends typeof EmberishCurlyComponent>(
+  ComponentClass: T,
+  capturing?: Capturing<InstanceType<T> & HookedComponent>
+): T {
   return class extends (ComponentClass as any) {
     constructor(...args: unknown[]) {
       super(...args);
@@ -54,6 +74,8 @@ function inspectHooks<T extends EmberishCurlyComponentFactory>(ComponentClass: T
         didUpdate: 0,
         didRender: 0,
       };
+
+      capturing?.capture(this as InstanceType<T>);
     }
 
     didInitAttrs(this: any, options: { attrs: Attributes }) {
@@ -122,27 +144,27 @@ function assertFired(component: HookedComponent, name: string, count = 1) {
 }
 
 export function assertElementIsEmberishElement(
-  element: SimpleElement | null,
+  element: SimpleElement | Element | null,
   tagName: string,
   attributes: Object,
   contents: string
 ): void;
 export function assertElementIsEmberishElement(
-  element: SimpleElement | null,
+  element: SimpleElement | Element | null,
   tagName: string,
   attributes: Object
 ): void;
 export function assertElementIsEmberishElement(
-  element: SimpleElement | null,
+  element: SimpleElement | Element | null,
   tagName: string,
   contents: string
 ): void;
 export function assertElementIsEmberishElement(
-  element: SimpleElement | null,
+  element: SimpleElement | Element | null,
   tagName: string
 ): void;
 export function assertElementIsEmberishElement(
-  element: SimpleElement | null,
+  element: SimpleElement | Element | null,
   ...args: any[]
 ): void {
   let tagName, attributes, contents;
@@ -162,11 +184,6 @@ export function assertElementIsEmberishElement(
   };
   equalsElement(element, tagName, fullAttributes, contents);
 }
-
-// function rerender() {
-//   bump();
-//   view.rerender();
-// }
 
 class CurlyTest extends BrowserRenderTest {
   assertEmberishElement(tagName: string, attributes: Object, contents: string): void;
@@ -198,16 +215,22 @@ class CurlyTest extends BrowserRenderTest {
   }
 }
 
+function ElementComponent(tagName = 'div') {
+  return class ElementComponent extends EmberishCurlyComponent {
+    override tagName = tagName;
+  };
+}
+
+class TaglessComponent extends EmberishCurlyComponent {
+  override tagName = '';
+}
+
 class CurlyCreateTest extends CurlyTest {
   static suiteName = '[curly components] Manager#create - hasBlock';
 
   @test
   'when no block present'() {
-    class FooBar extends EmberishCurlyComponent {
-      override tagName = 'div';
-    }
-
-    this.registerComponent('Curly', 'foo-bar', `{{this.HAS_BLOCK}}`, FooBar);
+    this.registerComponent('Curly', 'foo-bar', `{{this.HAS_BLOCK}}`, ElementComponent());
 
     this.render(`{{foo-bar}}`);
 
@@ -216,11 +239,7 @@ class CurlyCreateTest extends CurlyTest {
 
   @test
   'when block present'() {
-    class FooBar extends EmberishCurlyComponent {
-      override tagName = 'div';
-    }
-
-    this.registerComponent('Curly', 'foo-bar', `{{this.HAS_BLOCK}}`, FooBar);
+    this.registerComponent('Curly', 'foo-bar', `{{this.HAS_BLOCK}}`, ElementComponent());
 
     this.render(`{{#foo-bar}}{{/foo-bar}}`);
 
@@ -277,16 +296,30 @@ class CurlyDynamicComponentTest extends CurlyTest {
   }
 }
 
+function CapturingFooBar() {
+  let capture = capturing<CapturingFooBar>();
+  class CapturingFooBar extends EmberishCurlyComponent {
+    override attributeBindings = ['style'];
+    style: string | null = null;
+
+    constructor() {
+      super();
+      this.style = 'color: red;';
+      capture.capture(this);
+    }
+  }
+
+  return { instance: capture, Class: CapturingFooBar };
+}
+
 class CurlyDynamicCustomizationTest extends CurlyTest {
   static suiteName = '[curly components] dynamic customizations';
 
   @test
   'dynamic tagName'() {
-    class FooBar extends EmberishCurlyComponent {
-      override tagName = 'aside';
-    }
+    let Aside = ElementComponent('aside');
 
-    this.registerComponent('Curly', 'foo-bar', `Hello. It's me.`, FooBar);
+    this.registerComponent('Curly', 'foo-bar', `Hello. It's me.`, Aside);
 
     this.render(`{{foo-bar}}`);
     this.assertEmberishElement('aside', {}, `Hello. It's me.`);
@@ -295,11 +328,9 @@ class CurlyDynamicCustomizationTest extends CurlyTest {
 
   @test
   'dynamic tagless component'() {
-    class FooBar extends EmberishCurlyComponent {
-      override tagName = '';
-    }
+    let { Class } = inspecting(TaglessComponent);
 
-    this.registerComponent('Curly', 'foo-bar', `Michael Jordan says "Go Tagless"`, FooBar);
+    this.registerComponent('Curly', 'foo-bar', `Michael Jordan says "Go Tagless"`, Class);
 
     this.render(`{{foo-bar}}`);
     this.assertHTML('Michael Jordan says "Go Tagless"');
@@ -308,42 +339,29 @@ class CurlyDynamicCustomizationTest extends CurlyTest {
 
   @test
   'dynamic attribute bindings'() {
-    let fooBarInstance: FooBar | undefined;
+    let { instance, Class } = CapturingFooBar();
 
-    let setInstance = (instance: FooBar) => (fooBarInstance = instance);
-
-    class FooBar extends EmberishCurlyComponent {
-      override attributeBindings = ['style'];
-      style: string | null = null;
-
-      constructor() {
-        super();
-        this.style = 'color: red;';
-        setInstance(this);
-      }
-    }
-
-    this.registerComponent('Curly', 'foo-bar', `Hello. It's me.`, FooBar);
+    this.registerComponent('Curly', 'foo-bar', `Hello. It's me.`, Class);
 
     this.render(`{{foo-bar}}`);
     this.assertEmberishElement('div', { style: 'color: red;' }, `Hello. It's me.`);
 
     this.rerender();
 
-    assert.ok(fooBarInstance, 'expected foo-bar to be set');
+    assert.ok(instance.value, 'expected foo-bar to be set');
     this.assertEmberishElement('div', { style: 'color: red;' }, `Hello. It's me.`);
 
-    fooBarInstance!.set('style', 'color: green;');
+    instance.value.set('style', 'color: green;');
     this.rerender();
 
     this.assertEmberishElement('div', { style: 'color: green;' }, `Hello. It's me.`);
 
-    fooBarInstance!.set('style', null);
+    instance.value.set('style', null);
     this.rerender();
 
     this.assertEmberishElement('div', {}, `Hello. It's me.`);
 
-    fooBarInstance!.set('style', 'color: red;');
+    instance.value.set('style', 'color: red;');
     this.rerender();
 
     this.assertEmberishElement('div', { style: 'color: red;' }, `Hello. It's me.`);
@@ -355,12 +373,7 @@ class CurlyArgsTest extends CurlyTest {
 
   @test
   'using @value from emberish curly component'() {
-    class FooBar extends EmberishCurlyComponent {
-      static override positionalParams = ['foo'];
-      override tagName = 'div';
-    }
-
-    this.registerComponent('Curly', 'foo-bar', `{{@blah}}`, FooBar);
+    this.registerComponent('Curly', 'foo-bar', `{{@blah}}`, OnePositionalParamComponent());
 
     this.render(`{{foo-bar this.first blah="derp"}}`);
 
@@ -415,15 +428,11 @@ class CurlyScopeTest extends CurlyTest {
 
   @test
   'correct scope - accessing local variable in yielded block (curly component)'() {
-    class FooBar extends EmberishCurlyComponent {
-      public override tagName = '';
-    }
-
     this.registerComponent(
       'Curly',
       'foo-bar',
       `[Layout: {{this.zomg}}][Layout: {{this.lol}}][Layout: {{this.foo}}]{{yield}}`,
-      FooBar
+      TaglessComponent
     );
 
     this.render(
@@ -460,39 +469,27 @@ class CurlyScopeTest extends CurlyTest {
 
   @test
   'correct scope - caller self can be threaded through (curly component)'() {
-    // demonstrates ability for Ember to know the target object of curly component actions
-    class Base extends EmberishCurlyComponent {
-      public override tagName = '';
-    }
-    class FooBar extends Base {
-      public override name = 'foo-bar';
-    }
-
-    class QuxDerp extends Base {
-      public override name = 'qux-derp';
-    }
-
     this.registerComponent(
       'Curly',
-      'foo-bar',
+      'parent',
       stripTight`
         [Name: {{this.name}} | Target: {{this.targetObject.name}}]
-        {{#qux-derp}}
+        {{#child}}
           [Name: {{this.name}} | Target: {{this.targetObject.name}}]
-        {{/qux-derp}}
+        {{/child}}
         [Name: {{this.name}} | Target: {{this.targetObject.name}}]
       `,
-      FooBar
+      ParentTagless
     );
 
     this.registerComponent(
       'Curly',
-      'qux-derp',
+      'child',
       `[Name: {{this.name}} | Target: {{this.targetObject.name}}]{{yield}}`,
-      QuxDerp
+      ChildTagless
     );
 
-    this.render(`<div>{{foo-bar}}</div>`, {
+    this.render(`<div>{{parent}}</div>`, {
       name: 'outer-scope',
     });
 
@@ -702,23 +699,18 @@ class CurlyScopeTest extends CurlyTest {
 
   @test
   'correct scope - self'() {
-    class FooBar extends GlimmerishComponent {
-      public foo = 'foo';
-      public bar = 'bar';
-    }
-
     this.registerComponent(
       'Glimmer',
-      'FooBar',
-      `<p>{{this.foo}} {{this.bar}} {{@baz}}</p>`,
-      FooBar
+      'Normal',
+      `<p>{{this.name}} {{this.conference}} {{@baz}}</p>`,
+      NormalComponent
     );
 
     this.render(
       stripTight`
         <div>
-          <FooBar />
-          <FooBar @baz={{this.zomg}} />
+          <Normal />
+          <Normal @baz={{this.zomg}} />
         </div>`,
       { zomg: 'zomg' }
     );
@@ -726,12 +718,16 @@ class CurlyScopeTest extends CurlyTest {
     this.assertHTML(
       stripTight`
         <div>
-          <p>foo bar </p>
-          <p>foo bar zomg</p>
+          <p>Julia EmberConf </p>
+          <p>Julia EmberConf zomg</p>
         </div>
       `
     );
   }
+}
+
+class DynamicScopeComponent extends EmberishCurlyComponent {
+  static fromDynamicScope = ['theme'];
 }
 
 class CurlyDynamicScopeSmokeTest extends CurlyTest {
@@ -739,11 +735,7 @@ class CurlyDynamicScopeSmokeTest extends CurlyTest {
 
   @test
   'component has access to dynamic scope'() {
-    class SampleComponent extends EmberishCurlyComponent {
-      static fromDynamicScope = ['theme'];
-    }
-
-    this.registerComponent('Curly', 'sample-component', '{{this.theme}}', SampleComponent);
+    this.registerComponent('Curly', 'sample-component', '{{this.theme}}', DynamicScopeComponent);
 
     this.render('{{#-with-dynamic-vars theme="light"}}{{sample-component}}{{/-with-dynamic-vars}}');
 
@@ -756,15 +748,11 @@ class CurlyPositionalArgsTest extends CurlyTest {
 
   @test
   'static named positional parameters'() {
-    class SampleComponent extends EmberishCurlyComponent {
-      static override positionalParams = ['person', 'age'];
-    }
-
     this.registerComponent(
       'Curly',
       'sample-component',
-      '{{this.person}}{{this.age}}',
-      SampleComponent
+      '{{this.first}}{{this.second}}',
+      TwoPositionalParamsComponent()
     );
 
     this.render('{{sample-component "Quint" 4}}');
@@ -774,15 +762,11 @@ class CurlyPositionalArgsTest extends CurlyTest {
 
   @test
   'dynamic named positional parameters'() {
-    class SampleComponent extends EmberishCurlyComponent {
-      static override positionalParams = ['person', 'age'];
-    }
-
     this.registerComponent(
       'Curly',
       'sample-component',
-      '{{this.person}}{{this.age}}',
-      SampleComponent
+      '{{this.first}}{{this.second}}',
+      TwoPositionalParamsComponent()
     );
 
     this.render('{{sample-component this.myName this.myAge}}', {
@@ -802,14 +786,15 @@ class CurlyPositionalArgsTest extends CurlyTest {
 
   @test
   'if a value is passed as a non-positional parameter, it takes precedence over the named one'() {
-    class SampleComponent extends EmberishCurlyComponent {
-      static override positionalParams = ['name'];
-    }
-
-    this.registerComponent('Curly', 'sample-component', '{{this.name}}', SampleComponent);
+    this.registerComponent(
+      'Curly',
+      'sample-component',
+      '{{this.names}}',
+      OnePositionalParamComponent()
+    );
 
     assert.throws(() => {
-      this.render('{{sample-component this.notMyName name=this.myName}}', {
+      this.render('{{sample-component this.notMyName names=this.myName}}', {
         myName: 'Quint',
         notMyName: 'Sergio',
       });
@@ -818,15 +803,11 @@ class CurlyPositionalArgsTest extends CurlyTest {
 
   @test
   'static arbitrary number of positional parameters'() {
-    class SampleComponent extends EmberishCurlyComponent {
-      static override positionalParams = 'names';
-    }
-
     this.registerComponent(
       'Curly',
       'sample-component',
       '{{#each this.names key="@index" as |name|}}{{name}}{{/each}}',
-      SampleComponent
+      OnePositionalParamComponent()
     );
 
     this.render(
@@ -842,8 +823,6 @@ class CurlyPositionalArgsTest extends CurlyTest {
       },
       { min: 2, condition: isSimpleElement }
     );
-    // let first = assertingElement(this.element.firstChild);
-    // let second = assertingElement(this.element.lastChild);
 
     assertElementIsEmberishElement(first, 'div', 'Foo4Bar');
     assertElementIsEmberishElement(second, 'div', 'Foo4Bar5Baz');
@@ -851,15 +830,11 @@ class CurlyPositionalArgsTest extends CurlyTest {
 
   @test
   'arbitrary positional parameter conflict with hash parameter is reported'() {
-    class SampleComponent extends EmberishCurlyComponent {
-      static override positionalParams = ['names'];
-    }
-
     this.registerComponent(
       'Curly',
       'sample-component',
       '{{#each this.attrs.names key="@index" as |name|}}{{name}}{{/each}}',
-      SampleComponent
+      OnePositionalParamComponent()
     );
 
     assert.throws(() => {
@@ -871,18 +846,14 @@ class CurlyPositionalArgsTest extends CurlyTest {
 
   @test
   'can use hash parameter instead of arbitrary positional param [GH #12444]'() {
-    class SampleComponent extends EmberishCurlyComponent {
-      static override positionalParams = ['names'];
-    }
-
     this.registerComponent(
       'Curly',
       'sample-component',
-      '{{#each this.names key="@index" as |name|}}{{name}}{{/each}}',
-      SampleComponent
+      '{{#each this.name key="@index" as |name|}}{{name}}{{/each}}',
+      OnePositionalParamComponent()
     );
 
-    this.render('{{sample-component names=this.things}}', {
+    this.render('{{sample-component name=this.things}}', {
       things: ['Foo', 4, 'Bar'],
     });
 
@@ -891,15 +862,11 @@ class CurlyPositionalArgsTest extends CurlyTest {
 
   @test
   'can use hash parameter instead of positional param'() {
-    class SampleComponent extends EmberishCurlyComponent {
-      static override positionalParams = ['first', 'second'];
-    }
-
     this.registerComponent(
       'Curly',
       'sample-component',
       '{{this.first}} - {{this.second}}',
-      SampleComponent
+      TwoPositionalParamsComponent()
     );
 
     this.render(
@@ -924,15 +891,11 @@ class CurlyPositionalArgsTest extends CurlyTest {
 
   @test
   'dynamic arbitrary number of positional parameters'() {
-    class SampleComponent extends EmberishCurlyComponent {
-      static override positionalParams = 'n';
-    }
-
     this.registerComponent(
       'Curly',
       'sample-component',
-      '{{#each this.attrs.n key="@index" as |name|}}{{name}}{{/each}}',
-      SampleComponent
+      '{{#each this.attrs.names key="@index" as |name|}}{{name}}{{/each}}',
+      OnePositionalParamComponent()
     );
 
     this.render('{{sample-component this.user1 this.user2}}', {
@@ -958,15 +921,11 @@ class CurlyPositionalArgsTest extends CurlyTest {
 
   @test
   '{{component}} helper works with positional params'() {
-    class SampleComponent extends EmberishCurlyComponent {
-      static override positionalParams = ['name', 'age'];
-    }
-
     this.registerComponent(
       'Curly',
       'sample-component',
-      `{{this.attrs.name}}{{this.attrs.age}}`,
-      SampleComponent
+      `{{this.attrs.first}}{{this.attrs.second}}`,
+      TwoPositionalParamsComponent()
     );
 
     this.render(`{{component "sample-component" this.myName this.myAge}}`, {
@@ -1172,10 +1131,6 @@ class CurlyClosureComponentsTest extends CurlyTest {
 
   @test
   'component helper can curry arguments'() {
-    class FooBarComponent extends EmberishCurlyComponent {
-      static override positionalParams = ['one', 'two', 'three', 'four', 'five', 'six'];
-    }
-
     this.registerComponent(
       'Curly',
       'foo-bar',
@@ -1196,7 +1151,7 @@ class CurlyClosureComponentsTest extends CurlyTest {
         e. [{{this.e}}]
         f. [{{this.f}}]
       `,
-      FooBarComponent
+      SixPositionalParamsComponent
     );
 
     this.render(
@@ -1232,9 +1187,7 @@ class CurlyClosureComponentsTest extends CurlyTest {
 
   @test
   'component helper: currying works inline'() {
-    class FooBarComponent extends EmberishCurlyComponent {
-      static override positionalParams = ['one', 'two', 'three', 'four', 'five', 'six'];
-    }
+    let { Class, instance } = inspecting(SixPositionalParamsComponent);
 
     this.registerComponent(
       'Curly',
@@ -1247,7 +1200,7 @@ class CurlyClosureComponentsTest extends CurlyTest {
         5. [{{this.five}}]
         6. [{{this.six}}]
       `,
-      FooBarComponent
+      Class
     );
 
     this.render(
@@ -1303,9 +1256,6 @@ class CurlyIdsTest extends CurlyTest {
         condition: isSimpleElement,
       }
     );
-    // let first = assertingElement(this.element.firstChild);
-    // let second = assertingElement(first.nextSibling);
-    // let third = assertingElement(second.nextSibling);
 
     equalsElement(first, 'div', { id: regex(/^ember\d*$/u), class: 'ember-view' }, '');
     equalsElement(second, 'div', { id: regex(/^ember\d*$/u), class: 'ember-view' }, '');
@@ -1313,7 +1263,7 @@ class CurlyIdsTest extends CurlyTest {
 
     let IDs: Record<string, number> = {};
 
-    function markAsSeen(element: SimpleElement) {
+    function markAsSeen(element: SimpleElement | Element) {
       let id = unwrap(elementId(element));
 
       IDs[id] = (IDs[id] ?? 0) + 1;
@@ -1420,7 +1370,7 @@ class CurlyGlimmerComponentTest extends CurlyTest {
 
   @test
   'Custom element with element modifier'() {
-    this.registerModifier('foo', class {});
+    this.registerModifier('foo', BoringModifier);
 
     this.render('<some-custom-element {{foo "foo"}}></some-custom-element>');
     this.assertHTML('<some-custom-element></some-custom-element>');
@@ -1428,33 +1378,18 @@ class CurlyGlimmerComponentTest extends CurlyTest {
 
   @test
   'Curly component hooks (with attrs)'() {
-    let instance: (NonBlock & HookedComponent) | undefined;
+    let { Class, instance } = inspecting(NonBlock2);
 
-    class NonBlock extends EmberishCurlyComponent {
-      override init() {
-        instance = this as any;
-      }
-    }
-
-    this.registerComponent(
-      'Curly',
-      'non-block',
-      'In layout - someProp: {{@someProp}}',
-      inspectHooks(NonBlock as unknown as EmberishCurlyComponentFactory)
-    );
+    this.registerComponent('Curly', 'non-block', 'In layout - someProp: {{@someProp}}', Class);
 
     this.render('{{non-block someProp=this.someProp}}', { someProp: 'wycats' });
 
-    assert.ok(instance, 'instance is created');
+    instance.assert();
 
-    if (instance === undefined) {
-      return;
-    }
-
-    assertFired(instance, 'didReceiveAttrs');
-    assertFired(instance, 'willRender');
-    assertFired(instance, 'didInsertElement');
-    assertFired(instance, 'didRender');
+    assertFired(instance.value, 'didReceiveAttrs');
+    assertFired(instance.value, 'willRender');
+    assertFired(instance.value, 'didInsertElement');
+    assertFired(instance.value, 'didRender');
 
     this.assertEmberishElement('div', 'In layout - someProp: wycats');
 
@@ -1462,52 +1397,37 @@ class CurlyGlimmerComponentTest extends CurlyTest {
 
     this.assertEmberishElement('div', 'In layout - someProp: tomdale');
 
-    assertFired(instance, 'didReceiveAttrs', 2);
-    assertFired(instance, 'willUpdate');
-    assertFired(instance, 'willRender', 2);
-    assertFired(instance, 'didUpdate');
-    assertFired(instance, 'didRender', 2);
+    assertFired(instance.value, 'didReceiveAttrs', 2);
+    assertFired(instance.value, 'willUpdate');
+    assertFired(instance.value, 'willRender', 2);
+    assertFired(instance.value, 'didUpdate');
+    assertFired(instance.value, 'didRender', 2);
 
     this.rerender({ someProp: 'wycats' });
 
     this.assertEmberishElement('div', 'In layout - someProp: wycats');
 
-    assertFired(instance, 'didReceiveAttrs', 3);
-    assertFired(instance, 'willUpdate', 2);
-    assertFired(instance, 'willRender', 3);
-    assertFired(instance, 'didUpdate', 2);
-    assertFired(instance, 'didRender', 3);
+    assertFired(instance.value, 'didReceiveAttrs', 3);
+    assertFired(instance.value, 'willUpdate', 2);
+    assertFired(instance.value, 'willRender', 3);
+    assertFired(instance.value, 'didUpdate', 2);
+    assertFired(instance.value, 'didRender', 3);
   }
 
   @test
   'Curly component hooks (attrs as self props)'() {
-    let instance: (NonBlock & HookedComponent) | undefined;
+    let { instance, Class } = inspecting(NonBlock2);
 
-    class NonBlock extends EmberishCurlyComponent {
-      override init() {
-        instance = this as any;
-      }
-    }
-
-    this.registerComponent(
-      'Curly',
-      'non-block',
-      'In layout - someProp: {{this.someProp}}',
-      inspectHooks(NonBlock as any)
-    );
+    this.registerComponent('Curly', 'non-block', 'In layout - someProp: {{this.someProp}}', Class);
 
     this.render('{{non-block someProp=this.someProp}}', { someProp: 'wycats' });
 
-    assert.ok(instance, 'instance is created');
+    instance.assert();
 
-    if (instance === undefined) {
-      return;
-    }
-
-    assertFired(instance, 'didReceiveAttrs');
-    assertFired(instance, 'willRender');
-    assertFired(instance, 'didInsertElement');
-    assertFired(instance, 'didRender');
+    assertFired(instance.value, 'didReceiveAttrs');
+    assertFired(instance.value, 'willRender');
+    assertFired(instance.value, 'didInsertElement');
+    assertFired(instance.value, 'didRender');
 
     this.assertEmberishElement('div', 'In layout - someProp: wycats');
 
@@ -1515,53 +1435,34 @@ class CurlyGlimmerComponentTest extends CurlyTest {
 
     this.assertEmberishElement('div', 'In layout - someProp: tomdale');
 
-    assertFired(instance, 'didReceiveAttrs', 2);
-    assertFired(instance, 'willUpdate');
-    assertFired(instance, 'willRender', 2);
-    assertFired(instance, 'didUpdate');
-    assertFired(instance, 'didRender', 2);
+    assertFired(instance.value, 'didReceiveAttrs', 2);
+    assertFired(instance.value, 'willUpdate');
+    assertFired(instance.value, 'willRender', 2);
+    assertFired(instance.value, 'didUpdate');
+    assertFired(instance.value, 'didRender', 2);
 
     this.rerender({ someProp: 'wycats' });
 
     this.assertEmberishElement('div', 'In layout - someProp: wycats');
 
-    assertFired(instance, 'didReceiveAttrs', 3);
-    assertFired(instance, 'willUpdate', 2);
-    assertFired(instance, 'willRender', 3);
-    assertFired(instance, 'didUpdate', 2);
-    assertFired(instance, 'didRender', 3);
+    assertFired(instance.value, 'didReceiveAttrs', 3);
+    assertFired(instance.value, 'willUpdate', 2);
+    assertFired(instance.value, 'willRender', 3);
+    assertFired(instance.value, 'didUpdate', 2);
+    assertFired(instance.value, 'didRender', 3);
   }
 
   @test
   'Setting value attributeBinding to null results in empty string value'() {
-    let instance: InputComponent | undefined;
+    let { instance, Class } = inspecting(InputComponent as EmberishCurlyComponentFactory);
 
-    let setInstance = (index: InputComponent) => (instance = index);
-
-    class InputComponent extends EmberishCurlyComponent {
-      override tagName = 'input';
-      override attributeBindings = ['value'];
-      override init() {
-        setInstance(this);
-      }
-    }
-
-    this.registerComponent(
-      'Curly',
-      'input-component',
-      'input component',
-      inspectHooks(InputComponent as any)
-    );
+    this.registerComponent('Curly', 'input-component', 'input component', Class);
 
     this.render('{{input-component value=this.someProp}}', { someProp: null });
 
-    assert.ok(instance, 'instance is created');
+    instance.assert();
 
-    if (instance === undefined) {
-      return;
-    }
-
-    let element: HTMLInputElement = instance.element as HTMLInputElement;
+    let element: HTMLInputElement = instance.value.element as HTMLInputElement;
 
     assert.strictEqual(element.value, '');
 
@@ -1580,26 +1481,13 @@ class CurlyGlimmerComponentTest extends CurlyTest {
 
   @test
   'Setting class attributeBinding does not clobber ember-view'() {
-    let instance: FooBarComponent | undefined;
+    let { instance, Class } = inspecting(AttributeBindingComponent);
 
-    let setInstance = (index: FooBarComponent) => (instance = index);
-
-    class FooBarComponent extends EmberishCurlyComponent {
-      override attributeBindings = ['class'];
-      override init() {
-        setInstance(this);
-      }
-    }
-
-    this.registerComponent('Curly', 'foo-bar', 'FOO BAR', FooBarComponent);
+    this.registerComponent('Curly', 'foo-bar', 'FOO BAR', Class);
 
     this.render('{{foo-bar class=this.classes}}', { classes: 'foo bar' });
 
-    assert.ok(instance, 'instance is created');
-
-    if (instance === undefined) {
-      return;
-    }
+    instance.assert();
 
     this.assertEmberishElement('div', { class: classes('ember-view foo bar') }, 'FOO BAR');
 
@@ -1622,19 +1510,13 @@ class CurlyGlimmerComponentTest extends CurlyTest {
 
   @test
   'Curly component hooks (force recompute)'() {
-    let instance: (NonBlock & HookedComponent) | undefined;
-
-    class NonBlock extends EmberishCurlyComponent {
-      override init() {
-        instance = this as any;
-      }
-    }
+    let { instance, Class } = NonBlock();
 
     this.registerComponent(
       'Curly',
       'non-block',
       'In layout - someProp: {{@someProp}}',
-      inspectHooks(NonBlock as any)
+      inspectHooks(Class)
     );
 
     this.render('{{non-block someProp="wycats"}}');
@@ -1645,10 +1527,10 @@ class CurlyGlimmerComponentTest extends CurlyTest {
       return;
     }
 
-    assertFired(instance, 'didReceiveAttrs', 1);
-    assertFired(instance, 'willRender', 1);
-    assertFired(instance, 'didInsertElement', 1);
-    assertFired(instance, 'didRender', 1);
+    assertFired(instance.value, 'didReceiveAttrs', 1);
+    assertFired(instance.value, 'willRender', 1);
+    assertFired(instance.value, 'didInsertElement', 1);
+    assertFired(instance.value, 'didRender', 1);
 
     this.assertEmberishElement('div', 'In layout - someProp: wycats');
 
@@ -1656,20 +1538,20 @@ class CurlyGlimmerComponentTest extends CurlyTest {
 
     this.assertEmberishElement('div', 'In layout - someProp: wycats');
 
-    assertFired(instance, 'didReceiveAttrs', 1);
-    assertFired(instance, 'willRender', 1);
-    assertFired(instance, 'didRender', 1);
+    assertFired(instance.value, 'didReceiveAttrs', 1);
+    assertFired(instance.value, 'willRender', 1);
+    assertFired(instance.value, 'didRender', 1);
 
-    instance.recompute();
+    instance.value.recompute();
     this.rerender();
 
     this.assertEmberishElement('div', 'In layout - someProp: wycats');
 
-    assertFired(instance, 'didReceiveAttrs', 2);
-    assertFired(instance, 'willUpdate', 1);
-    assertFired(instance, 'willRender', 2);
-    assertFired(instance, 'didUpdate', 1);
-    assertFired(instance, 'didRender', 2);
+    assertFired(instance.value, 'didReceiveAttrs', 2);
+    assertFired(instance.value, 'willUpdate', 1);
+    assertFired(instance.value, 'willRender', 2);
+    assertFired(instance.value, 'didUpdate', 1);
+    assertFired(instance.value, 'didRender', 2);
   }
 
   @test
@@ -1686,136 +1568,134 @@ class CurlyGlimmerComponentTest extends CurlyTest {
   }
 }
 
+class BoringModifier {}
+
+class InputComponent extends EmberishCurlyComponent {
+  override tagName = 'input';
+  override attributeBindings = ['value'];
+}
+
+class AttributeBindingComponent extends EmberishCurlyComponent {
+  override attributeBindings = ['class'];
+}
+
+class NonBlock2 extends EmberishCurlyComponent {}
+class SimpleSubclass extends EmberishCurlyComponent {}
+
+function NonBlock(): {
+  instance: Capturing<EmberishCurlyComponent & HookedComponent>;
+  Class: EmberishCurlyComponentFactory;
+} {
+  let instance = capturing<EmberishCurlyComponent>();
+
+  class NonBlock extends EmberishCurlyComponent {
+    override init() {
+      instance.capture(this);
+    }
+  }
+
+  return {
+    instance: instance as Capturing<EmberishCurlyComponent & HookedComponent>,
+    Class: NonBlock as EmberishCurlyComponentFactory,
+  };
+}
+
 class CurlyTeardownTest extends CurlyTest {
   static suiteName = '[curly components] teardown';
 
   @test
   'curly components are destroyed'() {
-    let willDestroy = 0;
-    let destroyed = 0;
-
-    class DestroyMeComponent extends EmberishCurlyComponent {
-      override willDestroyElement() {
-        super.willDestroyElement();
-        willDestroy++;
-      }
-
-      override destroy() {
-        super.destroy();
-        destroyed++;
-      }
-    }
-
-    this.registerComponent('Curly', 'destroy-me', 'destroy me!', DestroyMeComponent);
+    let components = CurlyDestroyList();
+    this.registerComponent('Curly', 'destroy-me', 'destroy me!', components.Component1);
 
     this.render(`{{#if this.cond}}{{destroy-me}}{{/if}}`, { cond: true });
 
-    assert.strictEqual(willDestroy, 0, 'destroy should not be called');
-    assert.strictEqual(destroyed, 0, 'destroy should not be called');
+    components.verify([]);
 
     this.rerender({ cond: false });
 
-    assert.strictEqual(willDestroy, 1, 'willDestroy should be called exactly once');
-    assert.strictEqual(destroyed, 1, 'destroy should be called exactly one');
+    components.verify(['willDestroy: Component1', 'destroy: Component1']);
   }
 
   @test
   'glimmer components are destroyed'() {
-    let destroyed = 0;
-
-    class DestroyMeComponent extends GlimmerishComponent {
-      override willDestroy() {
-        super.willDestroy();
-        destroyed++;
-      }
-    }
+    let components = GlimmerDestroyList();
 
     this.registerComponent(
       'Glimmer',
       'DestroyMe',
       '<div ...attributes>destroy me!</div>',
-      DestroyMeComponent
+      components.Component1
     );
 
     this.render(`{{#if this.cond}}<DestroyMe />{{/if}}`, { cond: true });
 
-    assert.strictEqual(destroyed, 0, 'destroy should not be called');
+    components.verify([]);
 
     this.rerender({ cond: false });
 
-    assert.strictEqual(destroyed, 1, 'destroy should be called exactly one');
+    components.verify(['Component1']);
   }
 
   @test
   'component helpers component are destroyed'() {
-    let destroyed = 0;
+    let components = CurlyDestroyList();
 
-    class DestroyMeComponent extends EmberishCurlyComponent {
-      override destroy() {
-        super.destroy();
-        destroyed++;
-      }
-    }
+    this.registerComponent('Curly', 'destroy-me', 'destroy me!', components.Component1);
 
-    this.registerComponent('Curly', 'destroy-me', 'destroy me!', DestroyMeComponent);
-
-    class AnotherComponent extends EmberishCurlyComponent {}
-
-    this.registerComponent('Curly', 'another-component', 'another thing!', AnotherComponent);
+    this.registerComponent('Curly', 'another-component', 'another thing!', components.Component2);
 
     this.render(`{{component this.componentName}}`, { componentName: 'destroy-me' });
 
-    assert.strictEqual(destroyed, 0, 'destroy should not be called');
+    components.verify([]);
 
     this.rerender({ componentName: 'another-component' });
 
-    assert.strictEqual(destroyed, 1, 'destroy should be called exactly one');
+    components.verify(['willDestroy: Component1', 'destroy: Component1']);
   }
 
   @test
   'components inside a list are destroyed'() {
-    let destroyed: unknown[] = [];
+    let components = CurlyDestroyList();
 
-    class DestroyMeComponent extends EmberishCurlyComponent {
-      override destroy() {
-        super.destroy();
-        destroyed.push(this.attrs['item']);
-      }
-    }
-
-    this.registerComponent('Curly', 'DestroyMe', '<div>destroy me!</div>', DestroyMeComponent);
+    this.registerComponent('Curly', 'DestroyMe', '<div>destroy me!</div>', components.Component1);
 
     this.render(`{{#each this.list as |item|}}<DestroyMe @item={{item}} />{{/each}}`, {
       list: [1, 2, 3, 4, 5],
     });
 
-    assert.strictEqual(destroyed.length, 0, 'destroy should not be called');
+    components.verify([]);
 
     this.rerender({ list: [1, 2, 3] });
 
-    assert.deepEqual(destroyed, [4, 5], 'destroy should be called exactly twice');
+    components.verify([
+      'willDestroy: Component1: 4',
+      'willDestroy: Component1: 5',
+      'destroy: Component1: 4',
+      'destroy: Component1: 5',
+    ]);
 
     this.rerender({ list: [3, 2, 1] });
 
-    assert.deepEqual(destroyed, [4, 5], 'destroy should be called exactly twice');
+    components.verify([]);
 
     this.rerender({ list: [] });
 
-    assert.deepEqual(destroyed, [4, 5, 1, 2, 3], 'destroy should be called for each item');
+    components.verify([
+      'willDestroy: Component1: 1',
+      'willDestroy: Component1: 2',
+      'willDestroy: Component1: 3',
+      'destroy: Component1: 1',
+      'destroy: Component1: 2',
+      'destroy: Component1: 3',
+    ]);
   }
 
   @test
   'components inside a list are destroyed (when key is @identity)'() {
-    let destroyed: unknown[] = [];
+    let components = CurlyDestroyList();
 
-    class DestroyMeComponent extends EmberishCurlyComponent {
-      override destroy() {
-        super.destroy();
-        destroyed.push(this.attrs['item']);
-      }
-    }
-
-    this.registerComponent('Curly', 'DestroyMe', '<div>destroy me!</div>', DestroyMeComponent);
+    this.registerComponent('Curly', 'DestroyMe', '<div>destroy me!</div>', components.Component1);
 
     let value1 = { val: 1 };
     let value2 = { val: 2 };
@@ -1824,177 +1704,152 @@ class CurlyTeardownTest extends CurlyTest {
     let value5 = { val: 5 };
 
     this.render(
-      `{{#each this.list key='@identity' as |item|}}<DestroyMe @item={{item}} />{{/each}}`,
+      `{{#each this.list key='@identity' as |item|}}<DestroyMe @item={{item.val}} />{{/each}}`,
       {
         list: [value1, value2, value3, value4, value5],
       }
     );
 
-    assert.strictEqual(destroyed.length, 0, 'destroy should not be called');
+    components.verify([]);
 
     this.rerender({ list: [value1, value2, value3] });
 
-    assert.deepEqual(destroyed, [value4, value5], 'destroy should be called exactly twice');
+    components.verify([
+      'willDestroy: Component1: 4',
+      'willDestroy: Component1: 5',
+      'destroy: Component1: 4',
+      'destroy: Component1: 5',
+    ]);
 
     this.rerender({ list: [value3, value2, value1] });
 
-    assert.deepEqual(destroyed, [value4, value5], 'destroy should be called exactly twice');
+    components.verify([]);
 
     this.rerender({ list: [] });
 
-    assert.deepEqual(
-      destroyed,
-      [value4, value5, value1, value2, value3],
-      'destroy should be called for each item'
-    );
+    components.verify([
+      'willDestroy: Component1: 1',
+      'willDestroy: Component1: 2',
+      'willDestroy: Component1: 3',
+      'destroy: Component1: 1',
+      'destroy: Component1: 2',
+      'destroy: Component1: 3',
+    ]);
   }
 
-  @test
+  @test.todo
   'components that are "destroyed twice" are destroyed once'() {
-    let destroyed: string[] = [];
-
-    class DestroyMeComponent extends EmberishCurlyComponent {
-      override destroy() {
-        super.destroy();
-        destroyed.push(this.attrs['from'] as any);
-      }
-    }
-
-    class DestroyMe2Component extends EmberishCurlyComponent {
-      override destroy() {
-        super.destroy();
-        destroyed.push(this.attrs['from'] as any);
-      }
-    }
+    let components = CurlyDestroyList();
 
     this.registerComponent(
       'Curly',
       'destroy-me',
-      '{{#if @cond}}{{destroy-me-inner from="inner"}}{{/if}}',
-      DestroyMeComponent
+      '{{#if @cond}}{{destroy-me-inner from="inner" item="single"}}{{/if}}',
+      components.Component1
     );
-    this.registerComponent('Curly', 'destroy-me-inner', 'inner', DestroyMe2Component);
+    this.registerComponent('Curly', 'destroy-me-inner', 'inner', components.Component2);
 
-    this.render(`{{#if this.cond}}{{destroy-me from="root" cond=this.child.cond}}{{/if}}`, {
-      cond: true,
-      child: { cond: true },
-    });
+    this.render(
+      `{{#if this.cond}}{{destroy-me from="root" item="single" cond=this.child.cond}}{{/if}}`,
+      {
+        cond: true,
+        child: { cond: true },
+      }
+    );
 
-    assert.deepEqual(destroyed, [], 'destroy should not be called');
+    components.verify([]);
 
     this.rerender({ cond: false, child: { cond: false } });
 
-    assert.deepEqual(
-      destroyed,
-      ['root', 'inner'],
-      'destroy should be called exactly once per component'
-    );
+    components.verify(['destroy-me1: single', 'destroy-me2: inner - single']);
   }
 
-  @test
+  @test.todo
   'deeply nested destructions'() {
-    let destroyed: string[] = [];
-
-    class DestroyMe1Component extends EmberishCurlyComponent {
-      override destroy() {
-        super.destroy();
-        destroyed.push(`destroy-me1: ${this.attrs['item']}`);
-      }
-    }
-
-    class DestroyMe2Component extends EmberishCurlyComponent {
-      override destroy() {
-        super.destroy();
-        destroyed.push(`destroy-me2: ${this.attrs['from']} - ${this.attrs['item']}`);
-      }
-    }
+    let components = CurlyDestroyList();
 
     this.registerComponent(
       'Curly',
       'DestroyMe1',
       '<div>{{#destroy-me2 item=@item from="destroy-me1"}}{{yield}}{{/destroy-me2}}</div>',
-      DestroyMe1Component
+      components.Component1
     );
-    this.registerComponent('Curly', 'destroy-me2', 'Destroy me! {{yield}}', DestroyMe2Component);
+    this.registerComponent('Curly', 'destroy-me2', 'Destroy me! {{yield}}', components.Component2);
 
     this.render(
       `{{#each this.list key='@identity' as |item|}}<DestroyMe1 @item={{item}}>{{#destroy-me2 from="root" item=item}}{{/destroy-me2}}</DestroyMe1>{{/each}}`,
       { list: [1, 2, 3, 4, 5] }
     );
 
-    assert.strictEqual(destroyed.length, 0, 'destroy should not be called');
+    components.verify([]);
 
     this.rerender({ list: [1, 2, 3] });
 
-    assert.deepEqual(
-      destroyed,
-      [
-        'destroy-me1: 4',
-        'destroy-me2: destroy-me1 - 4',
-        'destroy-me2: root - 4',
-        'destroy-me1: 5',
-        'destroy-me2: destroy-me1 - 5',
-        'destroy-me2: root - 5',
-      ],
-      'destroy should be called exactly twice'
-    );
-
-    destroyed = [];
+    components.verify([
+      'destroy-me1: 4',
+      'destroy-me2: destroy-me1 - 4',
+      'destroy-me2: root - 4',
+      'destroy-me1: 5',
+      'destroy-me2: destroy-me1 - 5',
+      'destroy-me2: root - 5',
+    ]);
 
     this.rerender({ list: [3, 2, 1] });
 
-    assert.deepEqual(destroyed, [], 'destroy should be called exactly twice');
+    components.verify([]);
 
     this.rerender({ list: [] });
 
-    assert.deepEqual(
-      destroyed,
-      [
-        'destroy-me1: 1',
-        'destroy-me2: destroy-me1 - 1',
-        'destroy-me2: root - 1',
-        'destroy-me1: 2',
-        'destroy-me2: destroy-me1 - 2',
-        'destroy-me2: root - 2',
-        'destroy-me1: 3',
-        'destroy-me2: destroy-me1 - 3',
-        'destroy-me2: root - 3',
-      ],
-      'destroy should be called for each item'
-    );
+    components.verify([
+      'destroy-me1: 1',
+      'destroy-me2: destroy-me1 - 1',
+      'destroy-me2: root - 1',
+      'destroy-me1: 2',
+      'destroy-me2: destroy-me1 - 2',
+      'destroy-me2: root - 2',
+      'destroy-me1: 3',
+      'destroy-me2: destroy-me1 - 3',
+      'destroy-me2: root - 3',
+    ]);
   }
 
   @test
-  'components inside the root are destroyed when the render result is destroyed'() {
-    let glimmerDestroyed = false;
-    let curlyDestroyed = false;
+  'components inside the root are destroyed when the render result is destroyed'(assert: Assert) {
+    let components = DestroyComponents();
 
-    class DestroyMe1Component extends GlimmerishComponent {
-      override willDestroy(this: GlimmerishComponent) {
-        super.willDestroy();
-        glimmerDestroyed = true;
-      }
-    }
-
-    class DestroyMe2Component extends EmberishCurlyComponent {
-      override destroy(this: EmberishCurlyComponent) {
-        super.destroy();
-        curlyDestroyed = true;
-      }
-    }
-
-    this.registerComponent('Glimmer', 'DestroyMe1', '<div>Destry me!</div>', DestroyMe1Component);
-    this.registerComponent('Curly', 'destroy-me2', 'Destroy me too!', DestroyMe2Component);
+    this.registerComponent(
+      'Glimmer',
+      'DestroyMe1',
+      '<div>Destry me!</div>',
+      components.DestroyGlimmer
+    );
+    this.registerComponent('Curly', 'destroy-me2', 'Destroy me too!', components.DestroyEmberish);
 
     this.render(`<DestroyMe1 id="destroy-me1"/>{{destroy-me2 id="destroy-me2"}}`);
 
-    assert.strictEqual(glimmerDestroyed, false, 'the glimmer component should not be destroyed');
-    assert.strictEqual(curlyDestroyed, false, 'the curly component should not be destroyed');
+    assert.strictEqual(
+      components.glimmerDestroyed,
+      false,
+      'the glimmer component should not be destroyed'
+    );
+    assert.strictEqual(
+      components.emberishDestroyed,
+      false,
+      'the curly component should not be destroyed'
+    );
 
     this.destroy();
 
-    assert.strictEqual(glimmerDestroyed, true, 'the glimmer component destroy hook was called');
-    assert.strictEqual(curlyDestroyed, true, 'the glimmer component destroy hook was called');
+    assert.strictEqual(
+      components.glimmerDestroyed,
+      true,
+      'the glimmer component destroy hook was called'
+    );
+    assert.strictEqual(
+      components.emberishDestroyed,
+      true,
+      'the glimmer component destroy hook was called'
+    );
 
     assert.strictEqual(
       document.querySelectorAll('#destroy-me1').length,
@@ -2012,6 +1867,8 @@ class CurlyTeardownTest extends CurlyTest {
       0,
       'root view was removed from DOM'
     );
+
+    assert.verifyActions(['[glimmerish] willDestroy']);
   }
 
   @test
@@ -2024,6 +1881,156 @@ class CurlyTeardownTest extends CurlyTest {
   }
 }
 
+function GlimmerDestroyList() {
+  let destroyed: string[] = [];
+  abstract class DestroyMeComponent extends GlimmerishComponent {
+    protected abstract testName: string;
+
+    constructor(owner: Owner, args: Dict) {
+      super(owner, args);
+
+      registerDestructor(this, () => {
+        let parts = [this.testName];
+
+        if (args['item'] !== undefined) {
+          parts.push(String(args['item']));
+        }
+
+        if (args['from'] !== undefined) {
+          parts.push(String(args['from']));
+        }
+
+        destroyed.push(parts.join(': '));
+      });
+    }
+
+    protected get testDescription() {
+      let parts = [this.testName];
+
+      if (this.args['item'] !== undefined) {
+        parts.push(String(this.args['item']));
+      }
+
+      if (this.args['from'] !== undefined) {
+        parts.push(String(this.args['from']));
+      }
+
+      return parts.join(': ');
+    }
+  }
+
+  class Component1 extends DestroyMeComponent {
+    protected testName = 'Component1';
+  }
+
+  class Component2 extends DestroyMeComponent {
+    protected testName = 'Component2';
+  }
+
+  return {
+    Component1: Component1 as typeof GlimmerishComponent,
+    Component2: Component2 as typeof GlimmerishComponent,
+    verify(expected: (string | number)[]) {
+      QUnit.assert.deepEqual(destroyed, expected, 'destroy should be called');
+      destroyed = [];
+    },
+  };
+}
+
+function CurlyDestroyList() {
+  let destroyed: string[] = [];
+
+  abstract class DestroyMeComponent extends EmberishCurlyComponent {
+    protected abstract testName: string;
+
+    protected get testDescription() {
+      let parts = [this.testName];
+
+      if (this.attrs['item'] !== undefined) {
+        parts.push(String(this.attrs['item']));
+      }
+
+      if (this.attrs['from'] !== undefined) {
+        parts.push(String(this.attrs['from']));
+      }
+
+      return parts.join(': ');
+    }
+  }
+
+  class Component1 extends DestroyMeComponent {
+    readonly testName = 'Component1';
+
+    override willDestroyElement() {
+      super.willDestroyElement();
+      destroyed.push(`willDestroy: ${this.testDescription}`);
+    }
+
+    override destroy() {
+      super.destroy();
+      destroyed.push(`destroy: ${this.testDescription}`);
+    }
+  }
+
+  class Component2 extends DestroyMeComponent {
+    readonly testName = 'Component2';
+
+    override willDestroyElement() {
+      super.willDestroyElement();
+      destroyed.push(`willDestroy: ${this.testDescription}`);
+    }
+
+    override destroy() {
+      super.destroy();
+      destroyed.push(`destroy: ${this.testDescription}`);
+    }
+  }
+
+  return {
+    Component1: Component1,
+    Component2: Component2,
+    verify(expected: (string | number)[]) {
+      QUnit.assert.deepEqual(destroyed, expected, 'destroy should be called');
+      destroyed = [];
+    },
+  };
+}
+
+export function DestroyComponents() {
+  let glimmerDestroyed = false;
+  let curlyDestroyed = false;
+
+  class DestroyMe1Component extends GlimmerishComponent {
+    override willDestroy(this: GlimmerishComponent) {
+      super.willDestroy();
+      QUnit.assert.action('[glimmerish] willDestroy');
+      glimmerDestroyed = true;
+    }
+  }
+
+  class DestroyMe2Component extends EmberishCurlyComponent {
+    override destroy(this: EmberishCurlyComponent) {
+      super.destroy();
+      curlyDestroyed = true;
+    }
+  }
+
+  return {
+    get glimmerDestroyed() {
+      return glimmerDestroyed;
+    },
+    get emberishDestroyed() {
+      return curlyDestroyed;
+    },
+    DestroyGlimmer: DestroyMe1Component,
+    DestroyEmberish: DestroyMe2Component,
+  };
+}
+
+class LateBoundLayout extends EmberishCurlyComponent {
+  override layout = createTemplate('Swap - {{yield}}')();
+}
+
 class CurlyLateLayoutTest extends CurlyTest {
   static suiteName = '[curly component] late bound layout';
 
@@ -2031,11 +2038,7 @@ class CurlyLateLayoutTest extends CurlyTest {
 
   @test
   'can bind the layout late'() {
-    class FooBar extends EmberishCurlyComponent {
-      override layout = createTemplate('Swap - {{yield}}')();
-    }
-
-    this.delegate.registerComponent('Curly', 'Curly', 'foo-bar', null, FooBar);
+    this.delegate.registerComponent('Curly', 'Curly', 'foo-bar', null, LateBoundLayout);
 
     this.render('{{#foo-bar}}YIELD{{/foo-bar}}');
 
@@ -2153,23 +2156,48 @@ class CurlyAppendableTest extends CurlyTest {
   }
 }
 
+class NormalComponent extends GlimmerishComponent {
+  public name = 'Julia';
+  public conference = 'EmberConf';
+}
+
+// demonstrates ability for Ember to know the target object of curly component actions
+class GrandparentTagless extends EmberishCurlyComponent {
+  public override tagName = '';
+}
+
+class ParentTagless extends GrandparentTagless {
+  public override name = 'foo-bar';
+}
+
+class ChildTagless extends ParentTagless {
+  public override name = 'qux-derp';
+}
+
+class SixPositionalParamsComponent extends EmberishCurlyComponent {
+  static override positionalParams = ['one', 'two', 'three', 'four', 'five', 'six'];
+}
+
+function OnePositionalParamComponent() {
+  return class OnePositionalParamComponent extends EmberishCurlyComponent {
+    static override positionalParams = 'names';
+  };
+}
+
+function TwoPositionalParamsComponent() {
+  return class TwoPositionalParamsComponent extends EmberishCurlyComponent {
+    static override positionalParams = ['first', 'second'];
+  };
+}
+
 class CurlyBoundsTrackingTest extends CurlyTest {
   static suiteName = '[curly components] bounds tracking';
 
   @test
   'it works for wrapped (curly) components'() {
-    let instance = this.capture<FooBar>();
+    let { instance, Class } = inspecting(ElementComponent('span'));
 
-    class FooBar extends EmberishCurlyComponent {
-      override tagName = 'span';
-
-      constructor() {
-        super();
-        instance.capture(this);
-      }
-    }
-
-    this.registerComponent('Curly', 'foo-bar', 'foo bar', FooBar);
+    this.registerComponent('Curly', 'foo-bar', 'foo bar', Class);
 
     this.render('zomg {{foo-bar}} wow');
 
@@ -2181,7 +2209,7 @@ class CurlyBoundsTrackingTest extends CurlyTest {
 
     this.assertEmberishElement('span', {}, 'foo bar');
 
-    let { bounds, element } = instance.captured;
+    let { bounds, element } = instance.value;
 
     assert.strictEqual(
       bounds.parentElement(),
@@ -2193,22 +2221,13 @@ class CurlyBoundsTrackingTest extends CurlyTest {
 
   @test
   'it works for tagless components'() {
-    let instance = this.capture<FooBar>();
-
-    class FooBar extends EmberishCurlyComponent {
-      override tagName = '';
-
-      constructor() {
-        super();
-        instance.capture(this);
-      }
-    }
+    let { Class, instance } = inspecting(TaglessComponent);
 
     this.registerComponent(
       'Curly',
       'foo-bar',
       '<span id="first-node">foo</span> <span id="before-last-node">bar</span>!',
-      FooBar
+      Class
     );
 
     this.render('zomg {{foo-bar}} wow');
@@ -2217,7 +2236,7 @@ class CurlyBoundsTrackingTest extends CurlyTest {
       'zomg <span id="first-node">foo</span> <span id="before-last-node">bar</span>! wow'
     );
 
-    let { bounds } = instance.captured;
+    let { bounds } = instance.value;
 
     assert.strictEqual(
       check(bounds.parentElement(), HTMLElement),

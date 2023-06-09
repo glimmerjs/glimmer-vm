@@ -63,7 +63,6 @@ export function jitSerializeSuite<T extends IRenderTest>(
 }
 
 export interface RenderDelegateConstructor<Delegate extends RenderDelegate> {
-  readonly isEager: boolean;
   readonly style: string;
   new (options?: RenderDelegateOptions): Delegate;
 }
@@ -117,17 +116,26 @@ export function suite<D extends RenderDelegate>(
       },
     });
 
-    for (let property in klass.prototype) {
-      let test = klass.prototype[property];
+    eachTest(klass.prototype, (name, test) => {
+      QUnit[test.testModifier](name, (assert) => {
+        test.call(instance!, assert, instance!.count);
+        instance!.count.assert();
+      });
+    });
+  }
+}
 
-      if (isTestFunction(test) && shouldRunTest<D>(Delegate)) {
-        // eslint-disable-next-line no-loop-func
-        QUnit[test.testModifier](property, (assert) => {
-          test.call(instance!, assert, instance!.count);
-          instance!.count.assert();
-        });
-      }
+function eachTest(target: object, block: (name: string, test: TestFunction) => void) {
+  for (let [name, desc] of Object.entries(Object.getOwnPropertyDescriptors(target))) {
+    if (typeof name === 'string' && isTestFunction(desc.value)) {
+      block(name, desc.value);
     }
+  }
+
+  let proto = Reflect.getPrototypeOf(target);
+
+  if (proto) {
+    eachTest(proto, block);
   }
 }
 
@@ -155,24 +163,9 @@ suite.todo = <D extends RenderDelegate>(
       },
     });
 
-    for (let property of Object.keys(klass.prototype)) {
-      let desc = Object.getOwnPropertyDescriptor(klass.prototype, property);
-      if (desc && isTestFunction(desc.value)) {
-        desc.value.testModifier = 'todo';
-      }
-    }
-
-    // for (let property in klass.prototype) {
-    //   let test = klass.prototype[property];
-
-    //   if (isTestFunction(test) && shouldRunTest<D>(Delegate)) {
-    //     // eslint-disable-next-line no-loop-func
-    //     QUnit[test.testModifier](property, (assert) => {
-    //       test.call(instance!, assert, instance!.count);
-    //       instance!.count.assert();
-    //     });
-    //   }
-    // }
+    eachTest(klass.prototype, (_, test) => {
+      test.testModifier = 'todo';
+    });
   }
 };
 
@@ -350,20 +343,8 @@ function upperFirst<T extends string>(
   return `${first.toUpperCase()}${rest}`;
 }
 
-const HAS_TYPED_ARRAYS = typeof Uint16Array !== 'undefined';
-
-function shouldRunTest<T extends RenderDelegate>(Delegate: RenderDelegateConstructor<T>) {
-  let isEagerDelegate = Delegate['isEager'];
-
-  if (HAS_TYPED_ARRAYS) {
-    return true;
-  }
-
-  if (!HAS_TYPED_ARRAYS && !isEagerDelegate) {
-    return true;
-  }
-
-  return false;
+function shouldRunTest<T extends RenderDelegate>(_Delegate: RenderDelegateConstructor<T>) {
+  return true;
 }
 
 export type TestFunctionType = 'skip' | 'todo' | 'test';

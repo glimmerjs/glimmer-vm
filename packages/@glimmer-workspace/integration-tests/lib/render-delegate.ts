@@ -25,6 +25,7 @@ export default interface RenderDelegate {
   getCurrentBuilder(): TreeBuilder;
   getHTML(): string;
   asElement(): Element;
+  reset(): void;
   registerComponent<K extends ComponentKind, L extends ComponentKind>(
     type: K,
     testType: L,

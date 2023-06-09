@@ -21,42 +21,45 @@ export interface ComponentTestMeta {
   todo?: boolean | DeclaredComponentKind;
 }
 
-export function test(meta: ComponentTestMeta): MethodDecorator;
-export function test<T>(
-  _target: Object | ComponentTestMeta,
-  _name?: string,
-  descriptor?: TypedPropertyDescriptor<T>
-): TypedPropertyDescriptor<T> | void;
-export function test(...args: any[]) {
-  return setupTest('test', ...args);
+export function test(
+  options: ComponentTestMeta
+): <F extends Function>(fn: F, context: ClassMethodDecoratorContext) => void;
+export function test<F extends Function>(fn: F, context: ClassMethodDecoratorContext): void;
+export function test(
+  ...args: [fn: Function, context: ClassMethodDecoratorContext] | [options: ComponentTestMeta]
+): any {
+  return setupTest2('test', ...args);
 }
 
 test.skip = (...args: any[]) => {
-  return setupTest('skip', ...args);
+  setupTest2('skip', ...args);
 };
 
 test.todo = (...args: any[]) => {
-  return setupTest('todo', ...args);
+  setupTest2('todo', ...args);
 };
 
-function setupTest(type: TestFunctionType, ...args: any[]) {
-  if (args.length === 1) {
-    let meta: ComponentTestMeta = args[0];
-    return (_target: Object, _name: string, descriptor: PropertyDescriptor) => {
-      let testFunction = descriptor.value;
-      for (let key of keys(meta)) testFunction[key] = meta[key];
-      setTestingDescriptor(descriptor, type);
+function setupTest2(
+  type: TestFunctionType,
+  ...args: [fn: Function, context: ClassMethodDecoratorContext] | [options: ComponentTestMeta]
+) {
+  if (args.length === 2) {
+    let [testFunction] = args;
+
+    Reflect.set(testFunction, 'isTest', true);
+    Reflect.set(testFunction, 'testModifier', type);
+
+    return testFunction;
+  } else {
+    let [options] = args;
+    return (testFunction: Function, context: ClassMethodDecoratorContext) => {
+      setupTest2(type, testFunction, context);
+
+      for (let key of keys(options)) {
+        Reflect.set(testFunction, key, options[key]);
+      }
+
+      return testFunction;
     };
   }
-
-  let descriptor = args[2];
-  setTestingDescriptor(descriptor, type);
-  return descriptor;
-}
-
-function setTestingDescriptor(descriptor: PropertyDescriptor, type: TestFunctionType): void {
-  let testFunction = descriptor.value;
-  descriptor.enumerable = true;
-  testFunction['isTest'] = true;
-  testFunction['testModifier'] = type;
 }

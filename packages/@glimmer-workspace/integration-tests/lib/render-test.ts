@@ -58,11 +58,9 @@ export class Count {
         `counts match expectations (${JSON.stringify(this.expected)})`
       );
     } else {
-      // FIXME: this means that the test has no assertions
-      QUnit.assert.pushResult({
-        result: true,
-        message: `no counts found`,
-      });
+      let test = QUnit.config.current;
+
+      test.expected = null;
     }
   }
 }
@@ -80,10 +78,6 @@ export class RenderTest implements IRenderTest {
 
   constructor(delegate: RenderDelegate) {
     this.delegate = delegate;
-  }
-
-  #currentBuilderElement(): Element | SimpleElement {
-    return this.delegate.getCurrentBuilder()._root_ as Element | SimpleElement;
   }
 
   capture<T>() {
@@ -357,7 +351,7 @@ export class RenderTest implements IRenderTest {
   }
 
   shouldBeVoid(tagName: string) {
-    let element = this.#currentBuilderElement();
+    let element = this.delegate.asElement();
     clearElement(element);
     let builder = this.delegate.getCurrentBuilder();
 
@@ -466,7 +460,7 @@ export class RenderTest implements IRenderTest {
   }
 
   protected takeSnapshot(
-    element: Element | SimpleElement = this.#currentBuilderElement()
+    element: Element | SimpleElement = this.delegate.asElement()
   ): NodesSnapshot {
     let snapshot: NodesSnapshot = (this.snapshot = []);
 
@@ -502,7 +496,7 @@ export class RenderTest implements IRenderTest {
   }
 
   protected assertStableRerender() {
-    this.takeSnapshot(this.delegate.getCurrentBuilder()._currentElement_);
+    this.takeSnapshot();
     this.runTask(() => this.rerender());
     this.assertStableNodes();
   }
@@ -612,7 +606,7 @@ export class RenderTest implements IRenderTest {
   }
 
   protected assertHTML(html: string, elementOrMessage?: SimpleElement | string, message?: string) {
-    let element = this.#currentBuilderElement();
+    let element = this.delegate.asElement();
     if (typeof elementOrMessage === 'object') {
       equalTokens(elementOrMessage || element, html, message ? `${html} (${message})` : html);
     } else {
@@ -622,7 +616,7 @@ export class RenderTest implements IRenderTest {
   }
 
   protected assertComponent(content: string, attributes: Object = {}) {
-    let parent = this.#currentBuilderElement();
+    let parent = this.delegate.asElement();
 
     let element = assertingElement(parent.firstChild);
 
@@ -653,7 +647,7 @@ export class RenderTest implements IRenderTest {
 
     let { oldSnapshot, newSnapshot } = normalizeSnapshot(
       this.snapshot,
-      this.takeSnapshot(this.#currentBuilderElement()),
+      this.takeSnapshot(),
       except
     );
 
@@ -663,7 +657,7 @@ export class RenderTest implements IRenderTest {
 
 export class BrowserRenderTest extends RenderTest {
   get element() {
-    return this.delegate.getCurrentBuilder()._root_;
+    return this.delegate.asElement();
   }
 }
 

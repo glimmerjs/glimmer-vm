@@ -116,9 +116,9 @@ export function castToSimple<Type extends CastableNodeType>(
 }
 
 export function getElementByClassName(
-  element: SimpleElement,
+  element: SimpleElement | Element,
   className: string
-): Nullable<SimpleElement> {
+): Nullable<SimpleElement | Element> {
   let current = firstElementChild(element);
 
   while (current) {
@@ -137,10 +137,10 @@ export function getElementByClassName(
 }
 
 export function getElementsByTagName(
-  element: SimpleElement,
+  element: SimpleElement | Element,
   tagName: string,
-  accum: SimpleElement[] = []
-): SimpleElement[] {
+  accum: (SimpleElement | Element)[] = []
+): (SimpleElement | Element)[] {
   let tag = tagName.toUpperCase();
   let current = firstElementChild(element);
 
@@ -156,17 +156,17 @@ export function getElementsByTagName(
   return accum;
 }
 
-export function classList(element: SimpleElement): string[] {
+export function classList(element: SimpleElement | Element): string[] {
   let attribute = element.getAttribute('class');
   if (attribute === null) return [];
   return attribute.split(/\s+/u);
 }
 
-export function toTextContent(parent: SimpleElement): string {
+export function toTextContent(parent: SimpleElement | Element): string {
   return new TextSerializer(voidMap).serializeChildren(parent);
 }
 
-export function replaceHTML(parent: SimpleElement, value: string): void {
+export function replaceHTML(parent: SimpleElement | Element, value: string): void {
   clearElement(parent);
   parent.insertAdjacentHTML(INSERT_AFTER_BEGIN, value);
 }
@@ -179,7 +179,7 @@ export function assertingElement(node: Maybe<SimpleNode | Node>): SimpleElement 
   return node as SimpleElement | Element;
 }
 
-export function isSimpleElement(node: Maybe<SimpleNode>): node is SimpleElement {
+export function isSimpleElement(node: Maybe<SimpleNode | Node>): node is SimpleElement | Element {
   return !node || node.nodeType !== ELEMENT_NODE;
 }
 
@@ -193,12 +193,14 @@ export function hasAttribute(parent: SimpleElement | Element, attribute: string)
   return parent.getAttribute(attribute) !== null;
 }
 
-export function firstElementChild(parent: SimpleElement): Nullable<SimpleElement> {
+export function firstElementChild(
+  parent: SimpleElement | Element
+): Nullable<SimpleElement | Element> {
   let current = parent.firstChild;
 
   while (current) {
     if (current.nodeType === ELEMENT_NODE) {
-      return current;
+      return current as Element | SimpleElement;
     }
     current = current.nextSibling;
   }
@@ -206,12 +208,12 @@ export function firstElementChild(parent: SimpleElement): Nullable<SimpleElement
   return null;
 }
 
-export function nextElementSibling(node: SimpleNode): Nullable<SimpleElement> {
+export function nextElementSibling(node: SimpleNode | Node): Nullable<SimpleElement | Element> {
   let current = node.nextSibling;
 
   while (current) {
     if (current.nodeType === ELEMENT_NODE) {
-      return current;
+      return current as Element | SimpleElement;
     }
     current = current.nextSibling;
   }
@@ -219,7 +221,7 @@ export function nextElementSibling(node: SimpleNode): Nullable<SimpleElement> {
   return null;
 }
 
-export function elementId(element: SimpleElement): Nullable<string> {
+export function elementId(element: SimpleElement | Element): Nullable<string> {
   return element.getAttribute('id');
 }
 

@@ -2,6 +2,7 @@ import type {
   CompileTimeCompilationContext,
   GlimmerTreeChanges,
   GlimmerTreeConstruction,
+  MinimalDocument,
   RuntimeContext,
   SimpleDocument,
   SimpleElement,
@@ -11,7 +12,6 @@ import { assertingElement, toInnerHTML } from '../../dom/simple-utils';
 import type RenderDelegate from '../../render-delegate';
 import { RenderTest } from '../../render-test';
 import { ServerTreeBuilder } from '@glimmer/runtime/lib/dom/tree-builder';
-import { unwrap } from '@glimmer/validator/lib/utils';
 import { assert, isElement } from '@glimmer/util';
 import {
   BasicRenderDelegate,
@@ -34,7 +34,7 @@ export class NodeJitRenderDelegate extends BasicRenderDelegate {
 
   get context(): JitTestDelegateContext {
     if (this.#context === null) {
-      this.#context = JitDelegateContext(this.resolver, this.env, document);
+      this.#context = JitDelegateContext(this.resolver, this.env, document as MinimalDocument);
     }
 
     return this.#context;
@@ -48,12 +48,19 @@ export class NodeJitRenderDelegate extends BasicRenderDelegate {
     return this.context.program;
   }
 
+  reset() {
+    this.#html = undefined;
+    this.#builder = undefined;
+    this.#context = null;
+  }
+
   getInitialBuilder(): ServerTreeBuilder {
     return (this.#builder = new ServerTreeBuilder());
   }
   getCurrentBuilder(): ServerTreeBuilder {
-    return unwrap(this.#builder);
+    return (this.#builder ??= this.getInitialBuilder());
   }
+
   getHTML(): string {
     if (this.#html) return this.#html;
     return (this.#html = this.getCurrentBuilder()._flush_());

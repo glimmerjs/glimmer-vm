@@ -214,7 +214,7 @@ export class GlimmerishComponents extends BrowserRenderTest {
     let instance = this.capture<Foo>();
 
     class Foo extends GlimmerishComponent {
-      @tracked localProperty: string;
+      @tracked accessor localProperty: string;
 
       constructor(owner: Owner, args: Dict) {
         super(owner, args);
@@ -336,7 +336,7 @@ export class GlimmerishComponents extends BrowserRenderTest {
   'invoking dynamic component (local) via angle brackets supports args, attributes, and blocks'() {
     let instance = this.capture<Foo>();
     class Foo extends GlimmerishComponent {
-      @tracked localProperty: string;
+      @tracked accessor localProperty: string;
 
       constructor(owner: Owner, args: Dict) {
         super(owner, args);
@@ -505,7 +505,7 @@ export class GlimmerishComponents extends BrowserRenderTest {
     }
 
     class Foo extends GlimmerishComponent {
-      @tracked localProperty: string;
+      @tracked accessor localProperty: string;
 
       constructor(owner: Owner, args: Dict) {
         super(owner, args);

@@ -13,14 +13,14 @@
     "verbatimModuleSyntax": true,
     "noErrorTruncation": true,
 
-    "experimentalDecorators": true,
-    "target": "ESNext",
-    "module": "ESNext",
+    "experimentalDecorators": false,
+    "target": "esnext",
+    "module": "esnext",
     "moduleResolution": "bundler",
 
     "strict": true,
     "suppressImplicitAnyIndexErrors": false,
-    "useDefineForClassFields": false,
+    "useDefineForClassFields": true,
     "exactOptionalPropertyTypes": true,
     "noImplicitOverride": true,
     "noPropertyAccessFromIndexSignature": true,
