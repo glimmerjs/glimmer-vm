@@ -307,7 +307,7 @@ export class BeginTrackFrameOpcode implements UpdatingOpcode {
   constructor(private debugLabel?: string) {}
 
   evaluate() {
-    beginTrackFrame(this.debugLabel);
+    beginTrackFrame(this.debugLabel); // @audit
   }
 }
 
@@ -315,7 +315,7 @@ export class EndTrackFrameOpcode implements UpdatingOpcode {
   constructor(private target: JumpIfNotModifiedOpcode) {}
 
   evaluate() {
-    let tag = endTrackFrame();
+    let tag = endTrackFrame(); // @audit
     this.target.didModify(tag);
   }
 }

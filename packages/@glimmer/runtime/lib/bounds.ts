@@ -69,7 +69,15 @@ export function clear(bounds: Bounds): Nullable<SimpleNode> {
   let first = bounds.firstNode();
   let last = bounds.lastNode();
 
-  let current: SimpleNode = first;
+  return clearRange(parent, first, last.nextSibling);
+}
+
+export function clearRange(
+  parent: SimpleElement,
+  from: SimpleNode,
+  nextSibling: Nullable<SimpleNode>
+): Nullable<SimpleNode> {
+  let current: SimpleNode = from;
 
   // eslint-disable-next-line no-constant-condition
   while (true) {
@@ -77,7 +85,7 @@ export function clear(bounds: Bounds): Nullable<SimpleNode> {
 
     parent.removeChild(current);
 
-    if (current === last) {
+    if (next === nextSibling) {
       return next;
     }
 

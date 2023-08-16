@@ -17,7 +17,7 @@ import type {
   Owner,
   UpdatingOpcode,
   UpdatingVM,
-} from "@glimmer/interfaces";
+} from '@glimmer/interfaces';
 import { createComputeRef, isConstRef, type Reference, valueForRef } from '@glimmer/reference';
 import { assign, debugToString, expect, isObject } from '@glimmer/util';
 import {
@@ -96,6 +96,7 @@ APPEND_OPCODES.add(Op.CloseElement, (vm) => {
 
   if (modifiers) {
     modifiers.forEach((modifier) => {
+      // @audit unwind
       vm.env.scheduleInstallModifier(modifier);
       let { manager, state } = modifier;
       let d = manager.getDestroyable(state);
