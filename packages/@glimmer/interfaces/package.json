@@ -3,9 +3,11 @@
   "type": "module",
   "version": "0.85.13",
   "repository": "https://github.com/glimmerjs/glimmer-vm/tree/master/packages/@glimmer/interfaces",
+  "main": "index.d.ts",
   "types": "index.d.ts",
   "exports": {
-    "types": "./index.d.ts"
+    "types": "./index.d.ts",
+    "default": "./index.d.ts"
   },
   "files": [
     "lib",

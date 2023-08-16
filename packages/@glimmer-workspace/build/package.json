@@ -3,13 +3,13 @@
   "name": "@glimmer-workspace/build-support",
   "type": "module",
   "version": "1.0.0",
-  "main": "index.mjs",
-  "types": "index.d.mts",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
   "engines": {
     "node": ">=16"
   },
   "exports": {
-    "default": "./index.js"
+    "default": "./lib/index.js"
   },
   "starbeam": {
     "source": "js:typed",
@@ -20,28 +20,28 @@
     "test:types": "tsc --noEmit -p ../tsconfig.json"
   },
   "dependencies": {
-    "@rollup/plugin-commonjs": "^24.1.0",
-    "@rollup/plugin-node-resolve": "^15.0.2",
+    "@rollup/plugin-commonjs": "^25.0.4",
+    "@rollup/plugin-node-resolve": "^15.2.0",
     "@rollup/plugin-replace": "^5.0.4",
     "@rollup/plugin-terser": "^0.4.4",
-    "eslint": "^8.52.0",
+    "eslint": "^8.40.0",
     "eslint-plugin-import": "^2.29.0",
     "eslint-plugin-json": "^3.1.0",
     "eslint-plugin-prettier": "^5.0.1",
     "eslint-plugin-simple-import-sort": "^10.0.0",
     "eslint-plugin-unused-imports": "^3.0.0",
-    "magic-string": "^0.30.0",
+    "magic-string": "^0.30.3",
     "postcss": "^8.4.31",
-    "rollup": "^3.21.6",
+    "rollup": "^3.28.0",
     "rollup-plugin-insert": "^1.3.2",
     "rollup-plugin-polyfill-node": "^0.12.0",
     "rollup-plugin-postcss": "^4.0.2",
-    "rollup-plugin-ts": "^3.2.0",
+    "rollup-plugin-ts": "^3.4.5",
     "unplugin-fonts": "^1.0.3",
-    "vite": "4.3.9"
+    "vite": "4.4.9"
   },
   "devDependencies": {
-    "@types/node": "^18.16.6",
+    "@types/node": "*",
     "eslint": "^8.52.0",
     "typescript": "*"
   }

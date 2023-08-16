@@ -1,4 +1,3 @@
-import { associateDestroyableChild } from '@glimmer/destroyable';
 import type {
   Helper,
   HelperCapabilities,
@@ -9,12 +8,14 @@ import type {
   HelperManagerWithValue,
   InternalHelperManager,
   Owner,
-} from "@glimmer/interfaces";
-import { createComputeRef, createConstRef, UNDEFINED_REFERENCE } from '@glimmer/reference';
+} from '@glimmer/interfaces';
+import { associateDestroyableChild } from '@glimmer/destroyable';
+import { Formula, ReadonlyCell, UNDEFINED_REFERENCE } from '@glimmer/reference';
+
+import type { ManagerFactory } from './index';
 
 import { argsProxyFor } from '../util/args-proxy';
 import { buildCapabilities, FROM_CAPABILITIES } from '../util/capabilities';
-import type { ManagerFactory } from './index';
 
 export function helperCapabilities<Version extends keyof HelperCapabilitiesVersions>(
   managerAPI: Version,
@@ -77,10 +78,12 @@ export class CustomHelperManager<O extends Owner = Owner> implements InternalHel
       delegate = factory(owner);
 
       if (import.meta.env.DEV && !FROM_CAPABILITIES!.has(delegate.capabilities)) {
-        // TODO: This error message should make sense in both Ember and Glimmer https://github.com/glimmerjs/glimmer-vm/issues/1200
+        // TODO: This error message should make sense in both Ember and Glimmer
+        // https://github.com/glimmerjs/glimmer-vm/issues/1200
         throw new Error(
           `Custom helper managers must have a \`capabilities\` property that is the result of calling the \`capabilities('3.23')\` (imported via \`import { capabilities } from '@ember/helper';\`). Received: \`${JSON.stringify(
             delegate.capabilities
+            // eslint-disable-next-line @typescript-eslint/no-base-to-string -- @todo
           )}\` for: \`${delegate}\``
         );
       }
@@ -114,9 +117,8 @@ export class CustomHelperManager<O extends Owner = Owner> implements InternalHel
       const bucket = manager.createHelper(definition, args);
 
       if (hasValue(manager)) {
-        let cache = createComputeRef(
+        let cache = Formula(
           () => (manager as HelperManagerWithValue<unknown>).getValue(bucket),
-          null,
           import.meta.env.DEV && manager.getDebugName && manager.getDebugName(definition)
         );
 
@@ -126,7 +128,7 @@ export class CustomHelperManager<O extends Owner = Owner> implements InternalHel
 
         return cache;
       } else if (hasDestroyable(manager)) {
-        let ref = createConstRef(
+        let ref = ReadonlyCell(
           undefined,
           import.meta.env.DEV && (manager.getDebugName?.(definition) ?? 'unknown helper')
         );

@@ -1,31 +1,41 @@
 import type {
+  BlockMetadata,
   BuilderOp,
   CompilableProgram,
-  CompileTimeCompilationContext,
   HandleResult,
   HighLevelOp,
+  JitContext,
   LayoutWithContext,
   Nullable,
   ProgramSymbolTable,
-} from "@glimmer/interfaces";
-import { LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
+} from '@glimmer/interfaces';
+import { LOCAL_TRACE_LOGGING } from '@glimmer/local-debug-flags';
+import { IS_COMPILABLE_TEMPLATE } from '@glimmer/util';
+
+import type {HighLevelStatementOp} from './syntax/compilers';
 
 import { debugCompiler } from './compiler';
 import { templateCompilationContext } from './opcode-builder/context';
 import { encodeOp } from './opcode-builder/encoder';
 import { ATTRS_BLOCK, WrappedComponent } from './opcode-builder/helpers/components';
 import { meta } from './opcode-builder/helpers/shared';
-import type { HighLevelStatementOp } from './syntax/compilers';
+import { definePushOp  } from './syntax/compilers';
 
 export class WrappedBuilder implements CompilableProgram {
   public symbolTable: ProgramSymbolTable;
   private compiled: Nullable<number> = null;
   private attrsBlockNumber: number;
+  readonly meta: BlockMetadata;
+  readonly [IS_COMPILABLE_TEMPLATE] = true;
 
-  constructor(private layout: LayoutWithContext, public moduleName: string) {
+  constructor(
+    private layout: LayoutWithContext,
+    public moduleName: string
+  ) {
     let { block } = layout;
-    let [, symbols, hasEval] = block;
+    let [, symbols, hasDebug] = block;
 
+    this.meta = meta(layout);
     symbols = symbols.slice();
 
     // ensure ATTRS_BLOCK is always included (only once) in the list of symbols
@@ -37,12 +47,12 @@ export class WrappedBuilder implements CompilableProgram {
     }
 
     this.symbolTable = {
-      hasEval,
+      hasDebug,
       symbols,
     };
   }
 
-  compile(syntax: CompileTimeCompilationContext): HandleResult {
+  compile(syntax: JitContext): HandleResult {
     if (this.compiled !== null) return this.compiled;
 
     let m = meta(this.layout);
@@ -57,7 +67,7 @@ export class WrappedBuilder implements CompilableProgram {
       encodeOp(encoder, constants, resolver, m, op as BuilderOp | HighLevelOp);
     }
 
-    WrappedComponent(pushOp, this.layout, this.attrsBlockNumber);
+    WrappedComponent(definePushOp(pushOp), this.layout, this.attrsBlockNumber);
 
     let handle = context.encoder.commit(m.size);
 
@@ -67,7 +77,7 @@ export class WrappedBuilder implements CompilableProgram {
 
     this.compiled = handle;
 
-    if (LOCAL_SHOULD_LOG) {
+    if (LOCAL_TRACE_LOGGING) {
       debugCompiler(context, handle);
     }
 

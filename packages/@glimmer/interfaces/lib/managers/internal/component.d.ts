@@ -1,8 +1,8 @@
 import type { ComponentInstanceState, PreparedArguments } from '../../components';
 import type { Destroyable, Nullable } from '../../core';
-import type { Bounds } from '../../dom/bounds';
+import type { BlockBounds } from '../../dom/bounds';
 import type { SimpleElement } from '../../dom/simple';
-import type { Reference } from '../../references';
+import type { Reactive } from '../../references';
 import type { Owner } from '../../runtime';
 import type { CapturedArguments, VMArguments } from '../../runtime/arguments';
 import type { RenderNode } from '../../runtime/debug-render-tree';
@@ -10,7 +10,7 @@ import type { ElementOperations } from '../../runtime/element';
 import type { Environment } from '../../runtime/environment';
 import type { DynamicScope } from '../../runtime/scope';
 import type { RuntimeResolver } from '../../serialize';
-import type { CompilableProgram } from '../../template';
+import type { BlockMetadata,CompilableProgram } from '../../template';
 import type { ProgramSymbolTable } from '../../tier1/symbol-table';
 
 /**
@@ -147,10 +147,10 @@ export type InternalComponentCapability =
 
 export interface InternalComponentManager<
   TComponentStateBucket = unknown,
-  TComponentDefinition = object
+  TComponentDefinition = object,
 > {
   getCapabilities(state: TComponentDefinition): InternalComponentCapabilities;
-  getSelf(state: TComponentStateBucket): Reference;
+  getSelf(state: TComponentStateBucket): Reactive;
   getDestroyable(state: TComponentStateBucket): Nullable<Destroyable>;
   getDebugName(state: TComponentDefinition): string;
 }
@@ -161,7 +161,7 @@ export interface CustomRenderNode extends RenderNode {
 
 export interface WithCustomDebugRenderTree<
   ComponentInstanceState = unknown,
-  ComponentDefinitionState = unknown
+  ComponentDefinitionState = unknown,
 > extends InternalComponentManager<ComponentInstanceState, ComponentDefinitionState> {
   // APIs for hooking into the debug render tree, used by components that
   // represent multiple logical components. Specifically, {{mount}} and {{outlet}}
@@ -175,7 +175,7 @@ export interface WithCustomDebugRenderTree<
 
 export interface WithPrepareArgs<
   ComponentInstanceState = unknown,
-  ComponentDefinitionState = unknown
+  ComponentDefinitionState = unknown,
 > extends InternalComponentManager<ComponentInstanceState, ComponentDefinitionState> {
   // The component manager is asked to prepare the arguments needed
   // for `create`. This allows for things like closure> components where the
@@ -192,7 +192,7 @@ export interface WithSubOwner<ComponentInstanceState = unknown, ComponentDefinit
 export interface WithCreateInstance<
   ComponentInstanceState = unknown,
   ComponentDefinitionState = unknown,
-  O extends Owner = Owner
+  O extends Owner = Owner,
 > extends InternalComponentManager<ComponentInstanceState, ComponentDefinitionState> {
   // The component manager is asked to create a bucket of state for
   // the supplied arguments. From the perspective of Glimmer, this is
@@ -203,7 +203,7 @@ export interface WithCreateInstance<
     args: Nullable<VMArguments>,
     env: Environment,
     dynamicScope: Nullable<DynamicScope>,
-    caller: Nullable<Reference>,
+    caller: Nullable<Reactive>,
     hasDefaultBlock: boolean
   ): ComponentInstanceState;
 
@@ -211,13 +211,13 @@ export interface WithCreateInstance<
   //
   // Hosts should use `didCreate`, which runs asynchronously after the rendering
   // process, to provide hooks for user code.
-  didRenderLayout(state: ComponentInstanceState, bounds: Bounds): void;
+  didRenderLayout(state: ComponentInstanceState, bounds: BlockBounds): void;
 
   // This hook is run after the entire layout has been updated.
   //
   // Hosts should use `didUpdate`, which runs asynchronously after the rendering
   // process, to provide hooks for user code.
-  didUpdateLayout(state: ComponentInstanceState, bounds: Bounds): void;
+  didUpdateLayout(state: ComponentInstanceState, bounds: BlockBounds): void;
 
   // Once the whole top-down rendering process is complete, Glimmer invokes
   // the `didCreate` callbacks.
@@ -237,7 +237,7 @@ export interface WithUpdateHook<ComponentInstanceState = unknown>
 
 export interface WithDynamicLayout<
   I = ComponentInstanceState,
-  R extends RuntimeResolver = RuntimeResolver
+  R extends RuntimeResolver = RuntimeResolver,
 > extends InternalComponentManager<I> {
   // Return the compiled layout to use for this component. This is called
   // *after* the component instance has been created, because you might
@@ -281,4 +281,5 @@ export interface WithElementHook<ComponentInstanceState>
 export interface Invocation {
   handle: number;
   symbolTable: ProgramSymbolTable;
+  meta: BlockMetadata | null;
 }

@@ -1,8 +1,9 @@
 /**
  * @deprecated use RichIteratorResult<Tick, Return> or TemplateIterator instead
  */
-import type { RichIteratorResult } from '@glimmer/interfaces';
 import './lib/bootstrap';
+
+import type { RichIteratorResult } from '@glimmer/interfaces';
 
 export { clear, ConcreteBounds, CursorImpl } from './lib/bounds';
 export {
@@ -55,6 +56,7 @@ export {
   dynamicAttribute,
   SimpleDynamicAttribute,
 } from './lib/vm/attributes/dynamic';
+export { AbstractElementBuilder } from './lib/vm/element-builder';
 export {
   clientBuilder,
   NewElementBuilder,
@@ -67,6 +69,7 @@ export {
   rehydrationBuilder,
   SERIALIZATION_FIRST_NODE_STRING,
 } from './lib/vm/rehydrate-builder';
+export * from './lib/vm/unwind';
 
 // Currently we need to re-export these values for @glimmer/component
 // https://github.com/glimmerjs/glimmer.js/issues/319

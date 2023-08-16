@@ -1,7 +1,7 @@
 import type {
+  BlockMetadata,
   CompileTimeConstants,
   CompileTimeResolver,
-  ContainingMetadata,
   Expressions,
   Owner,
   ResolutionTimeConstants,
@@ -62,12 +62,12 @@ export const isGetFreeOptionalComponentOrHelper = makeResolutionTypeVerifier(
   SexpOpcodes.GetFreeAsComponentOrHelperHeadOrThisFallback
 );
 
-interface ResolvedContainingMetadata extends ContainingMetadata {
+interface ResolvedContainingMetadata extends BlockMetadata {
   owner: Owner;
   upvars: string[];
 }
 
-function assertResolverInvariants(meta: ContainingMetadata): ResolvedContainingMetadata {
+function assertResolverInvariants(meta: BlockMetadata): ResolvedContainingMetadata {
   if (import.meta.env.DEV) {
     if (!meta.upvars) {
       throw new Error(
@@ -93,7 +93,7 @@ function assertResolverInvariants(meta: ContainingMetadata): ResolvedContainingM
 export function resolveComponent(
   resolver: CompileTimeResolver,
   constants: CompileTimeConstants & ResolutionTimeConstants,
-  meta: ContainingMetadata,
+  meta: BlockMetadata,
   [, expr, then]: ResolveComponentOp
 ): void {
   assert(isGetFreeComponent(expr), 'Attempted to resolve a component with incorrect opcode');
@@ -143,7 +143,7 @@ export function resolveComponent(
 export function resolveHelper(
   resolver: CompileTimeResolver,
   constants: CompileTimeConstants & ResolutionTimeConstants,
-  meta: ContainingMetadata,
+  meta: BlockMetadata,
   [, expr, then]: ResolveHelperOp
 ): void {
   assert(isGetFreeHelper(expr), 'Attempted to resolve a helper with incorrect opcode');
@@ -185,7 +185,7 @@ export function resolveHelper(
 export function resolveModifier(
   resolver: CompileTimeResolver,
   constants: CompileTimeConstants & ResolutionTimeConstants,
-  meta: ContainingMetadata,
+  meta: BlockMetadata,
   [, expr, then]: ResolveModifierOp
 ): void {
   assert(isGetFreeModifier(expr), 'Attempted to resolve a modifier with incorrect opcode');
@@ -232,7 +232,7 @@ export function resolveModifier(
 export function resolveComponentOrHelper(
   resolver: CompileTimeResolver,
   constants: CompileTimeConstants & ResolutionTimeConstants,
-  meta: ContainingMetadata,
+  meta: BlockMetadata,
   [, expr, { ifComponent, ifHelper }]: ResolveComponentOrHelperOp
 ): void {
   assert(
@@ -308,7 +308,7 @@ export function resolveComponentOrHelper(
 export function resolveOptionalHelper(
   resolver: CompileTimeResolver,
   constants: CompileTimeConstants & ResolutionTimeConstants,
-  meta: ContainingMetadata,
+  meta: BlockMetadata,
   [, expr, { ifHelper }]: ResolveOptionalHelperOp
 ): void {
   assert(
@@ -331,7 +331,7 @@ export function resolveOptionalHelper(
 export function resolveOptionalComponentOrHelper(
   resolver: CompileTimeResolver,
   constants: CompileTimeConstants & ResolutionTimeConstants,
-  meta: ContainingMetadata,
+  meta: BlockMetadata,
   [, expr, { ifComponent, ifHelper, ifValue }]: ResolveOptionalComponentOrHelperOp
 ): void {
   assert(
@@ -401,7 +401,7 @@ export function resolveOptionalComponentOrHelper(
 function lookupBuiltInHelper(
   expr: Expressions.GetStrictFree,
   resolver: CompileTimeResolver,
-  meta: ContainingMetadata,
+  meta: BlockMetadata,
   constants: ResolutionTimeConstants,
   type: string
 ): number {

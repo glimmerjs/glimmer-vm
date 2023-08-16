@@ -1,7 +1,8 @@
 {
   "name": "@glimmer-workspace/eslint-plugin",
   "private": true,
-  "main": "index.js",
+  "type": "commonjs",
+  "main": "lib/index.cjs",
   "dependencies": {
     "@typescript-eslint/eslint-plugin": "^6.9.0",
     "@typescript-eslint/parser": "^6.9.0",
@@ -13,13 +14,17 @@
     "eslint-plugin-qunit": "^8.0.1",
     "eslint-plugin-regexp": "^2.1.1",
     "eslint-plugin-simple-import-sort": "^10.0.0",
-    "eslint-plugin-unused-imports": "^3.0.0"
+    "eslint-plugin-unused-imports": "^3.0.0",
+    "ignore": "^5.2.4"
   },
   "peerDependencies": {
     "eslint": "^8.47.0"
   },
   "devDependencies": {
     "@types/eslint": "^8.44.6",
-    "eslint": "^8.52.0"
+    "eslint": "^8.52.0",
+    "eslint-utils": "^3.0.0",
+    "@types/eslint-utils": "^3.0.4",
+    "@types/node": "^20.8.10"
   }
 }

@@ -1,15 +1,16 @@
-import { type GlobalContext, testOverrideGlobalContext } from '@glimmer/global-context';
+import type {GlobalContext} from '@glimmer/global-context';
+import {  testOverrideGlobalContext } from '@glimmer/global-context';
+import { jitSuite, RenderTestContext, test } from '@glimmer-workspace/integration-tests';
 
-import { jitSuite, RenderTest, test } from '..';
 import { assert } from './support';
 
 let warnings = 0;
 let originalContext: GlobalContext | null;
 
-class StyleWarningsTest extends RenderTest {
+class StyleWarningsTest extends RenderTestContext {
   static suiteName = 'Style attributes';
 
-  beforeEach() {
+  override readonly beforeEach = () => {
     warnings = 0;
     originalContext =
       testOverrideGlobalContext?.({
@@ -21,24 +22,24 @@ class StyleWarningsTest extends RenderTest {
           return (obj as Record<string, unknown>)[key];
         },
       }) ?? null;
-  }
+  };
 
-  afterEach() {
+  override readonly afterEach = () => {
     testOverrideGlobalContext?.(originalContext);
-  }
+  };
 
   @test
   'Standard element with static style and element modifier does not give you a warning'() {
-    this.registerModifier('foo', class {});
-    this.render('<button style="display: flex" {{foo}}>click me</button>', {});
+    this.register.modifier('foo', class {});
+    this.render.template('<button style="display: flex" {{foo}}>click me</button>', {});
 
     assert.strictEqual(warnings, 0);
   }
 
   @test
   'Standard element with dynamic style and element modifier gives you 1 warning'() {
-    this.registerModifier('foo', class {});
-    this.render('<button style={{this.dynAttr}} {{foo}}>click me</button>', {
+    this.register.modifier('foo', class {});
+    this.render.template('<button style={{this.dynAttr}} {{foo}}>click me</button>', {
       dynAttr: 'display:flex',
     });
 
@@ -47,7 +48,7 @@ class StyleWarningsTest extends RenderTest {
 
   @test
   'using a static inline style on an element does not give you a warning'() {
-    this.render(`<div style="background: red">Thing</div>`, {});
+    this.render.template(`<div style="background: red">Thing</div>`, {});
 
     assert.strictEqual(warnings, 0);
     this.assertHTML('<div style="background: red">Thing</div>', 'initial render');
@@ -55,7 +56,7 @@ class StyleWarningsTest extends RenderTest {
 
   @test
   'triple curlies are trusted'() {
-    this.render(`<div foo={{this.foo}} style={{{this.styles}}}>Thing</div>`, {
+    this.render.template(`<div foo={{this.foo}} style={{{this.styles}}}>Thing</div>`, {
       styles: 'background: red',
     });
 
@@ -65,7 +66,10 @@ class StyleWarningsTest extends RenderTest {
 
   @test
   'using a static inline style on an namespaced element does not give you a warning'() {
-    this.render(`<svg xmlns:svg="http://www.w3.org/2000/svg" style="background: red" />`, {});
+    this.render.template(
+      `<svg xmlns:svg="http://www.w3.org/2000/svg" style="background: red" />`,
+      {}
+    );
 
     assert.strictEqual(warnings, 0);
 

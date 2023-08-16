@@ -1,6 +1,6 @@
 import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
 
-import { debugAssert as assert } from './assert';
+import { assert } from './devmode/assert';
 
 /*
   Encoding notes
@@ -38,30 +38,33 @@ import { debugAssert as assert } from './assert';
   strategy.
 */
 
-export enum ImmediateConstants {
-  MAX_SMI = 2 ** 30 - 1,
-  MIN_SMI = ~MAX_SMI,
-  SIGN_BIT = ~(2 ** 29),
-  MAX_INT = ~SIGN_BIT - 1,
-  MIN_INT = ~MAX_INT,
+export const MAX_SMI = 2 ** 30 - 1;
+export const MIN_SMI = ~MAX_SMI;
+const SIGN_BIT = ~(2 ** 29);
+export const MAX_INT = ~SIGN_BIT - 1;
+export const MIN_INT = ~MAX_INT;
 
-  FALSE_HANDLE = 0,
-  TRUE_HANDLE = 1,
-  NULL_HANDLE = 2,
-  UNDEFINED_HANDLE = 3,
+export const FALSE_HANDLE = 0;
+export const TRUE_HANDLE = 1;
+export const NULL_HANDLE = 2;
+export const UNDEFINED_HANDLE = 3;
 
-  ENCODED_FALSE_HANDLE = FALSE_HANDLE,
-  ENCODED_TRUE_HANDLE = TRUE_HANDLE,
-  ENCODED_NULL_HANDLE = NULL_HANDLE,
-  ENCODED_UNDEFINED_HANDLE = UNDEFINED_HANDLE,
-}
+// @premerge do we need these?
+// eslint-disable-next-line unused-imports/no-unused-vars
+const ENCODED_FALSE_HANDLE = FALSE_HANDLE;
+// eslint-disable-next-line unused-imports/no-unused-vars
+const ENCODED_TRUE_HANDLE = TRUE_HANDLE;
+// eslint-disable-next-line unused-imports/no-unused-vars
+const ENCODED_NULL_HANDLE = NULL_HANDLE;
+
+const ENCODED_UNDEFINED_HANDLE = UNDEFINED_HANDLE;
 
 export function isHandle(value: number) {
   return value >= 0;
 }
 
 export function isNonPrimitiveHandle(value: number) {
-  return value > ImmediateConstants.ENCODED_UNDEFINED_HANDLE;
+  return value > ENCODED_UNDEFINED_HANDLE;
 }
 
 export function constants(...values: unknown[]): unknown[] {
@@ -69,39 +72,28 @@ export function constants(...values: unknown[]): unknown[] {
 }
 
 export function isSmallInt(value: number) {
-  return (
-    value % 1 === 0 && value <= ImmediateConstants.MAX_INT && value >= ImmediateConstants.MIN_INT
-  );
+  return value % 1 === 0 && value <= MAX_INT && value >= MIN_INT;
 }
 
 export function encodeNegative(num: number) {
   if (LOCAL_DEBUG) {
-    assert(
-      num % 1 === 0 && num >= ImmediateConstants.MIN_INT && num < 0,
-      `Could not encode negative: ${num}`
-    );
+    assert(num % 1 === 0 && num >= MIN_INT && num < 0, `Could not encode negative: ${num}`);
   }
 
-  return num & ImmediateConstants.SIGN_BIT;
+  return num & SIGN_BIT;
 }
 
 export function decodeNegative(num: number) {
   if (LOCAL_DEBUG) {
-    assert(
-      num % 1 === 0 && num < ~ImmediateConstants.MAX_INT && num >= ImmediateConstants.MIN_SMI,
-      `Could not decode negative: ${num}`
-    );
+    assert(num % 1 === 0 && num < ~MAX_INT && num >= MIN_SMI, `Could not decode negative: ${num}`);
   }
 
-  return num | ~ImmediateConstants.SIGN_BIT;
+  return num | ~SIGN_BIT;
 }
 
 export function encodePositive(num: number) {
   if (LOCAL_DEBUG) {
-    assert(
-      num % 1 === 0 && num >= 0 && num <= ImmediateConstants.MAX_INT,
-      `Could not encode positive: ${num}`
-    );
+    assert(num % 1 === 0 && num >= 0 && num <= MAX_INT, `Could not encode positive: ${num}`);
   }
 
   return ~num;
@@ -109,21 +101,23 @@ export function encodePositive(num: number) {
 
 export function decodePositive(num: number) {
   if (LOCAL_DEBUG) {
-    assert(
-      num % 1 === 0 && num <= 0 && num >= ~ImmediateConstants.MAX_INT,
-      `Could not decode positive: ${num}`
-    );
+    assert(num % 1 === 0 && num <= 0 && num >= ~MAX_INT, `Could not decode positive: ${num}`);
   }
 
   return ~num;
 }
 
+export function encodeBoolean(bool: boolean): number {
+  return (bool as never) | 0;
+}
+
+export function decodeBoolean(num: number): boolean {
+  return !!num;
+}
+
 export function encodeHandle(num: number) {
   if (LOCAL_DEBUG) {
-    assert(
-      num % 1 === 0 && num >= 0 && num <= ImmediateConstants.MAX_SMI,
-      `Could not encode handle: ${num}`
-    );
+    assert(num % 1 === 0 && num >= 0 && num <= MAX_SMI, `Could not encode handle: ${num}`);
   }
 
   return num;
@@ -131,10 +125,7 @@ export function encodeHandle(num: number) {
 
 export function decodeHandle(num: number) {
   if (LOCAL_DEBUG) {
-    assert(
-      num % 1 === 0 && num <= ImmediateConstants.MAX_SMI && num >= 0,
-      `Could not decode handle: ${num}`
-    );
+    assert(num % 1 === 0 && num <= MAX_SMI && num >= 0, `Could not decode handle: ${num}`);
   }
 
   return num;
@@ -147,7 +138,7 @@ export function encodeImmediate(num: number) {
 
 export function decodeImmediate(num: number) {
   num |= 0;
-  return num > ImmediateConstants.SIGN_BIT ? decodePositive(num) : decodeNegative(num);
+  return num > SIGN_BIT ? decodePositive(num) : decodeNegative(num);
 }
 
 // Warm

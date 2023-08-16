@@ -1,4 +1,4 @@
-export { compilable, compileStatements } from './lib/compilable-template';
+export { compilable, compileStatements, isCompilable } from './lib/compilable-template';
 export { debugCompiler } from './lib/compiler';
 export * from './lib/opcode-builder/context';
 export * from './lib/opcode-builder/delegate';

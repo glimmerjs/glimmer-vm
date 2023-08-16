@@ -1,5 +1,5 @@
 import type {
-  Bounds,
+  BlockBounds,
   Nullable,
   SimpleDocument,
   SimpleElement,
@@ -15,7 +15,9 @@ import {
   unwrap,
 } from '@glimmer/util';
 
-import { type DOMOperations, moveNodesBefore } from '../dom/operations';
+import type {DOMOperations} from '../dom/operations';
+
+import {  moveNodesBefore } from '../dom/operations';
 
 export enum InsertPosition {
   beforebegin = 'beforebegin',
@@ -53,7 +55,7 @@ export function applySVGInnerHTMLFix(
       parent: SimpleElement,
       nextSibling: Nullable<SimpleNode>,
       html: string
-    ): Bounds {
+    ): BlockBounds {
       if (html === '') {
         return super.insertHTMLBefore(parent, nextSibling, html);
       }
@@ -72,7 +74,7 @@ function fixSVG(
   div: SimpleElement,
   html: string,
   reference: Nullable<SimpleNode>
-): Bounds {
+): BlockBounds {
   assert(html !== '', 'html cannot be empty');
 
   let source: SimpleNode;

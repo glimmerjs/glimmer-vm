@@ -1,4 +1,3 @@
-import { check, CheckBlockSymbolTable, CheckHandle, CheckOption, CheckOr } from '@glimmer/debug';
 import type {
   BlockArguments,
   BlockSymbolTable,
@@ -15,20 +14,17 @@ import type {
   Scope,
   ScopeBlock,
   VMArguments,
-} from "@glimmer/interfaces";
-import {
-  createDebugAliasRef,
-  type Reference,
-  UNDEFINED_REFERENCE,
-  valueForRef,
-} from '@glimmer/reference';
+} from '@glimmer/interfaces';
+import type { Reactive } from '@glimmer/reference';
+import type { Tag } from '@glimmer/validator';
+import { check, CheckBlockSymbolTable, CheckHandle, CheckNullable, CheckOr } from '@glimmer/debug';
+import { createDebugAliasRef, UNDEFINED_REFERENCE, unwrapReactive } from '@glimmer/reference';
 import { dict, EMPTY_STRING_ARRAY, emptyArray, enumerate, unwrap } from '@glimmer/util';
-import { CONSTANT_TAG, type Tag } from '@glimmer/validator';
-import { $sp } from '@glimmer/vm';
+import { CONSTANT_TAG } from '@glimmer/validator';
 
-import { CheckCompilableBlock, CheckReference, CheckScope } from '../compiled/opcodes/-debug-strip';
-import { REGISTERS } from '../symbols';
-import type { EvaluationStack } from './stack';
+import type { ArgumentsStack } from './low-level';
+
+import { CheckCompilableBlock, CheckReactive, CheckScope } from '../compiled/opcodes/-debug-strip';
 
 /*
   The calling convention is:
@@ -39,13 +35,13 @@ import type { EvaluationStack } from './stack';
 */
 
 export class VMArgumentsImpl implements VMArguments {
-  private stack: Nullable<EvaluationStack> = null;
+  private stack: Nullable<ArgumentsStack> = null;
   public positional = new PositionalArgumentsImpl();
   public named = new NamedArgumentsImpl();
   public blocks = new BlockArgumentsImpl();
 
-  empty(stack: EvaluationStack): this {
-    let base = stack[REGISTERS][$sp] + 1;
+  empty(stack: ArgumentsStack): this {
+    let base = stack.registers.sp + 1;
 
     this.named.empty(stack, base);
     this.positional.empty(stack, base);
@@ -55,7 +51,7 @@ export class VMArgumentsImpl implements VMArguments {
   }
 
   setup(
-    stack: EvaluationStack,
+    stack: ArgumentsStack,
     names: readonly string[],
     blockNames: readonly string[],
     positionalCount: number,
@@ -73,7 +69,7 @@ export class VMArgumentsImpl implements VMArguments {
 
     let named = this.named;
     let namedCount = names.length;
-    let namedBase = stack[REGISTERS][$sp] - namedCount + 1;
+    let namedBase = stack.registers.sp - namedCount + 1;
 
     named.setup(stack, namedBase, namedCount, names, atNames);
 
@@ -97,7 +93,7 @@ export class VMArgumentsImpl implements VMArguments {
     return this.positional.length + this.named.length + this.blocks.length * 3;
   }
 
-  at(pos: number): Reference {
+  at(pos: number): Reactive {
     return this.positional.at(pos);
   }
 
@@ -114,7 +110,7 @@ export class VMArgumentsImpl implements VMArguments {
 
       positional.base += offset;
       named.base += offset;
-      stack[REGISTERS][$sp] += offset;
+      stack.registers.advanceSp(offset);
     }
   }
 
@@ -131,17 +127,18 @@ export class VMArgumentsImpl implements VMArguments {
   }
 }
 
-const EMPTY_REFERENCES = emptyArray<Reference>();
+const EMPTY_REFERENCES = emptyArray<Reactive>();
 
 export class PositionalArgumentsImpl implements PositionalArguments {
   public base = 0;
   public length = 0;
 
-  private stack: EvaluationStack = null as any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private stack: ArgumentsStack = null as any;
 
-  private _references: Nullable<readonly Reference[]> = null;
+  private _references: Nullable<readonly Reactive[]> = null;
 
-  empty(stack: EvaluationStack, base: number) {
+  empty(stack: ArgumentsStack, base: number) {
     this.stack = stack;
     this.base = base;
     this.length = 0;
@@ -149,7 +146,7 @@ export class PositionalArgumentsImpl implements PositionalArguments {
     this._references = EMPTY_REFERENCES;
   }
 
-  setup(stack: EvaluationStack, base: number, length: number) {
+  setup(stack: ArgumentsStack, base: number, length: number) {
     this.stack = stack;
     this.base = base;
     this.length = length;
@@ -161,21 +158,21 @@ export class PositionalArgumentsImpl implements PositionalArguments {
     }
   }
 
-  at(position: number): Reference {
+  at(position: number): Reactive {
     let { base, length, stack } = this;
 
     if (position < 0 || position >= length) {
       return UNDEFINED_REFERENCE;
     }
 
-    return check(stack.get(position, base), CheckReference);
+    return check(stack.get(position, base), CheckReactive);
   }
 
   capture(): CapturedPositionalArguments {
     return this.references as CapturedPositionalArguments;
   }
 
-  prepend(other: Reference[]) {
+  prepend(other: Reactive[]) {
     let additions = other.length;
 
     if (additions > 0) {
@@ -192,12 +189,12 @@ export class PositionalArgumentsImpl implements PositionalArguments {
     }
   }
 
-  private get references(): readonly Reference[] {
+  private get references(): readonly Reactive[] {
     let references = this._references;
 
     if (!references) {
       let { stack, base, length } = this;
-      references = this._references = stack.slice<Reference>(base, base + length);
+      references = this._references = stack.slice<Reactive>(base, base + length);
     }
 
     return references;
@@ -208,14 +205,14 @@ export class NamedArgumentsImpl implements NamedArguments {
   public base = 0;
   public length = 0;
 
-  private declare stack: EvaluationStack;
+  private declare stack: ArgumentsStack;
 
-  private _references: Nullable<readonly Reference[]> = null;
+  private _references: Nullable<readonly Reactive[]> = null;
 
   private _names: Nullable<readonly string[]> = EMPTY_STRING_ARRAY;
   private _atNames: Nullable<readonly string[]> = EMPTY_STRING_ARRAY;
 
-  empty(stack: EvaluationStack, base: number) {
+  empty(stack: ArgumentsStack, base: number) {
     this.stack = stack;
     this.base = base;
     this.length = 0;
@@ -226,7 +223,7 @@ export class NamedArgumentsImpl implements NamedArguments {
   }
 
   setup(
-    stack: EvaluationStack,
+    stack: ArgumentsStack,
     base: number,
     length: number,
     names: readonly string[],
@@ -277,7 +274,7 @@ export class NamedArgumentsImpl implements NamedArguments {
     return this.names.indexOf(name) !== -1;
   }
 
-  get(name: string, atNames = false): Reference {
+  get(name: string, atNames = false): Reactive {
     let { base, stack } = this;
 
     let names = atNames ? this.atNames : this.names;
@@ -288,22 +285,18 @@ export class NamedArgumentsImpl implements NamedArguments {
       return UNDEFINED_REFERENCE;
     }
 
-    let ref = stack.get<Reference>(idx, base);
+    let ref = stack.get<Reactive>(idx, base);
 
-    if (import.meta.env.DEV) {
-      return createDebugAliasRef!(atNames ? name : `@${name}`, ref);
-    } else {
-      return ref;
-    }
+    return createDebugAliasRef(ref, () => (atNames ? name : `@${name}`));
   }
 
   capture(): CapturedNamedArguments {
     let { names, references } = this;
-    let map = dict<Reference>();
+    let map = dict<Reactive>();
 
     for (const [i, name] of enumerate(names)) {
       if (import.meta.env.DEV) {
-        map[name] = createDebugAliasRef!(`@${name}`, unwrap(references[i]));
+        map[name] = createDebugAliasRef(unwrap(references[i]), () => `@${name}`);
       } else {
         map[name] = unwrap(references[i]);
       }
@@ -312,7 +305,7 @@ export class NamedArgumentsImpl implements NamedArguments {
     return map as CapturedNamedArguments;
   }
 
-  merge(other: Record<string, Reference>) {
+  merge(other: Record<string, Reactive>) {
     let keys = Object.keys(other);
 
     if (keys.length > 0) {
@@ -335,12 +328,12 @@ export class NamedArgumentsImpl implements NamedArguments {
     }
   }
 
-  private get references(): readonly Reference[] {
+  private get references(): readonly Reactive[] {
     let references = this._references;
 
     if (!references) {
       let { base, length, stack } = this;
-      references = this._references = stack.slice<Reference>(base, base + length);
+      references = this._references = stack.slice<Reactive>(base, base + length);
     }
 
     return references;
@@ -362,7 +355,7 @@ function toSymbolName(name: string): string {
 const EMPTY_BLOCK_VALUES = emptyArray<BlockValue>();
 
 export class BlockArgumentsImpl implements BlockArguments {
-  private declare stack: EvaluationStack;
+  private declare stack: ArgumentsStack;
   private internalValues: Nullable<readonly BlockValue[]> = null;
   private _symbolNames: Nullable<readonly string[]> = null;
 
@@ -372,7 +365,7 @@ export class BlockArgumentsImpl implements BlockArguments {
   public length = 0;
   public base = 0;
 
-  empty(stack: EvaluationStack, base: number) {
+  empty(stack: ArgumentsStack, base: number) {
     this.stack = stack;
     this.names = EMPTY_STRING_ARRAY;
     this.base = base;
@@ -383,7 +376,7 @@ export class BlockArgumentsImpl implements BlockArguments {
     this.internalValues = EMPTY_BLOCK_VALUES;
   }
 
-  setup(stack: EvaluationStack, base: number, length: number, names: readonly string[]) {
+  setup(stack: ArgumentsStack, base: number, length: number, names: readonly string[]) {
     this.stack = stack;
     this.names = names;
     this.base = base;
@@ -423,11 +416,11 @@ export class BlockArgumentsImpl implements BlockArguments {
 
     let { base, stack } = this;
 
-    let table = check(stack.get(idx * 3, base), CheckOption(CheckBlockSymbolTable));
-    let scope = check(stack.get(idx * 3 + 1, base), CheckOption(CheckScope));
+    let table = check(stack.get(idx * 3, base), CheckNullable(CheckBlockSymbolTable));
+    let scope = check(stack.get(idx * 3 + 1, base), CheckNullable(CheckScope));
     let handle = check(
       stack.get(idx * 3 + 2, base),
-      CheckOption(CheckOr(CheckHandle, CheckCompilableBlock))
+      CheckNullable(CheckOr(CheckHandle, CheckCompilableBlock))
     );
 
     return handle === null ? null : ([handle, scope!, table!] as ScopeBlock);
@@ -451,7 +444,10 @@ export class BlockArgumentsImpl implements BlockArguments {
 class CapturedBlockArgumentsImpl implements CapturedBlockArguments {
   public length: number;
 
-  constructor(public names: readonly string[], public values: readonly Nullable<BlockValue>[]) {
+  constructor(
+    public names: readonly string[],
+    public values: readonly Nullable<BlockValue>[]
+  ) {
     this.length = names.length;
   }
 
@@ -472,28 +468,34 @@ class CapturedBlockArgumentsImpl implements CapturedBlockArguments {
   }
 }
 
-export function createCapturedArgs(named: Dict<Reference>, positional: Reference[]) {
+export function createCapturedArgs(
+  named: Dict<Reactive>,
+  positional: Reactive[]
+): CapturedArguments {
   return {
     named,
     positional,
   } as CapturedArguments;
 }
 
-export function reifyNamed(named: CapturedNamedArguments) {
+export function reifyNamed(named: CapturedNamedArguments): Dict<unknown> {
   let reified = dict();
 
   for (const [key, value] of Object.entries(named)) {
-    reified[key] = valueForRef(value);
+    reified[key] = unwrapReactive(value);
   }
 
   return reified;
 }
 
-export function reifyPositional(positional: CapturedPositionalArguments) {
-  return positional.map(valueForRef);
+export function reifyPositional(positional: CapturedPositionalArguments): unknown[] {
+  return positional.map(unwrapReactive);
 }
 
-export function reifyArgs(args: CapturedArguments) {
+export function reifyArgs(args: CapturedArguments): {
+  named: Dict<unknown>;
+  positional: unknown[];
+} {
   return {
     named: reifyNamed(args.named),
     positional: reifyPositional(args.positional),

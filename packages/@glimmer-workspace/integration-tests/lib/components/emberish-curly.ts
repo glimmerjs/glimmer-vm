@@ -1,6 +1,5 @@
-import { registerDestructor } from '@glimmer/destroyable';
 import type {
-  Bounds,
+  BlockBounds,
   CapturedNamedArguments,
   CompilableProgram,
   Destroyable,
@@ -12,30 +11,27 @@ import type {
   Nullable,
   Owner,
   PreparedArguments,
-  Reference,
+  Reactive,
+  TagDescription,
   Template,
   VMArguments,
   WithCreateInstance,
   WithDynamicLayout,
   WithDynamicTagName,
 } from '@glimmer/interfaces';
+import type { DirtyableTag } from '@glimmer/validator';
+import { registerDestructor } from '@glimmer/destroyable';
 import { setInternalComponentManager } from '@glimmer/manager';
 import {
-  childRefFor,
-  createComputeRef,
-  createConstRef,
-  createPrimitiveRef,
-  valueForRef,
+  createPrimitiveCell,
+  Formula,
+  getReactiveProperty,
+  ReadonlyCell,
+  unwrapReactive,
 } from '@glimmer/reference';
 import { reifyNamed, reifyPositional } from '@glimmer/runtime';
-import { assign, EMPTY_ARRAY, keys, unwrapTemplate } from '@glimmer/util';
-import {
-  consumeTag,
-  createTag,
-  type DirtyableTag,
-  dirtyTag,
-  dirtyTagFor,
-} from '@glimmer/validator';
+import { assign, devmode, EMPTY_ARRAY, keys, unwrapTemplate } from '@glimmer/util';
+import { consumeTag, createTag, dirtyTag, dirtyTagFor } from '@glimmer/validator';
 
 import type { TestJitRuntimeResolver } from '../modes/jit/resolver';
 import type { TestComponentConstructor } from './types';
@@ -56,14 +52,22 @@ let GUID = 1;
 export class EmberishCurlyComponent {
   public static positionalParams: string[] | string = [];
 
-  public dirtinessTag: DirtyableTag = createTag();
+  public dirtinessTag: DirtyableTag = createTag(
+    devmode(
+      () =>
+        ({
+          reason: 'component',
+          label: ['(emberish)'],
+        }) satisfies TagDescription
+    )
+  );
   public declare layout: Template;
   public declare name: string;
   public tagName: Nullable<string> = null;
   public attributeBindings: Nullable<string[]> = null;
   public declare attrs: Attrs;
   public declare element: Element;
-  public declare bounds: Bounds;
+  public declare bounds: BlockBounds;
   public parentView: Nullable<EmberishCurlyComponent> = null;
   public declare args: CapturedNamedArguments;
 
@@ -119,7 +123,7 @@ export class EmberishCurlyComponent {
 
 export interface EmberishCurlyComponentState {
   component: EmberishCurlyComponent;
-  selfRef: Reference;
+  selfRef: Reactive;
 }
 
 const EMBERISH_CURLY_CAPABILITIES: InternalComponentCapabilities = {
@@ -180,7 +184,7 @@ export class EmberishCurlyComponentManager
 
       let named = args.named.capture();
       let positional = args.positional.capture();
-      named[positionalParams] = createComputeRef(() => reifyPositional(positional));
+      named[positionalParams] = Formula(() => reifyPositional(positional));
 
       return { positional: EMPTY_ARRAY, named } as PreparedArguments;
     } else if (Array.isArray(positionalParams)) {
@@ -211,11 +215,11 @@ export class EmberishCurlyComponentManager
     _args: VMArguments,
     _env: Environment,
     dynamicScope: DynamicScope,
-    callerSelf: Reference,
+    callerSelf: Reactive,
     hasDefaultBlock: boolean
   ): EmberishCurlyComponentState {
     let klass = definition || EmberishCurlyComponent;
-    let self = valueForRef(callerSelf);
+    let self = unwrapReactive(callerSelf);
     let args = _args.named.capture();
     let attrs = reifyNamed(args);
     let merged = assign(
@@ -235,7 +239,7 @@ export class EmberishCurlyComponentManager
     if (dyn) {
       for (let i = 0; i < dyn.length; i++) {
         let name = dyn[i] as string;
-        component.set(name, valueForRef(dynamicScope.get(name)));
+        component.set(name, unwrapReactive(dynamicScope.get(name)));
       }
     }
 
@@ -248,12 +252,12 @@ export class EmberishCurlyComponentManager
 
     registerDestructor(component, () => component.destroy());
 
-    const selfRef = createConstRef(component, 'this');
+    const selfRef = ReadonlyCell(component, 'this');
 
     return { component, selfRef };
   }
 
-  getSelf({ selfRef }: EmberishCurlyComponentState): Reference<unknown> {
+  getSelf({ selfRef }: EmberishCurlyComponentState): Reactive<unknown> {
     return selfRef;
   }
 
@@ -274,21 +278,21 @@ export class EmberishCurlyComponentManager
   ): void {
     component.element = element;
 
-    operations.setAttribute('id', createPrimitiveRef(`ember${component._guid}`), false, null);
-    operations.setAttribute('class', createPrimitiveRef('ember-view'), false, null);
+    operations.setAttribute('id', createPrimitiveCell(`ember${component._guid}`), false, null);
+    operations.setAttribute('class', createPrimitiveCell('ember-view'), false, null);
 
     let bindings = component.attributeBindings;
 
     if (bindings) {
       for (const attribute of bindings) {
-        let reference = childRefFor(selfRef, attribute);
+        let reference = getReactiveProperty(selfRef, attribute);
 
         operations.setAttribute(attribute, reference, false, null);
       }
     }
   }
 
-  didRenderLayout({ component }: EmberishCurlyComponentState, bounds: Bounds): void {
+  didRenderLayout({ component }: EmberishCurlyComponentState, bounds: BlockBounds): void {
     component.bounds = bounds;
   }
 

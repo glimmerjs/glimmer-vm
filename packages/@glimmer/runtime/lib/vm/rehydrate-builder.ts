@@ -1,6 +1,7 @@
+/* eslint-disable @typescript-eslint/no-unsafe-enum-comparison */
 import type {
   AttrNamespace,
-  Bounds,
+  BlockBounds,
   ElementBuilder,
   Environment,
   Maybe,
@@ -10,19 +11,12 @@ import type {
   SimpleElement,
   SimpleNode,
   SimpleText,
-} from "@glimmer/interfaces";
-import {
-  assert,
-  castToBrowser,
-  castToSimple,
-  COMMENT_NODE,
-  expect,
-  NS_SVG,
-  type Stack,
-} from '@glimmer/util';
+} from '@glimmer/interfaces';
+import type { PresentStack } from '@glimmer/util';
+import { assert, castToBrowser, castToSimple, COMMENT_NODE, expect, NS_SVG } from '@glimmer/util';
 
 import { ConcreteBounds, CursorImpl } from '../bounds';
-import { CURSOR_STACK, NewElementBuilder, RemoteLiveBlock } from './element-builder';
+import { AbstractElementBuilder, RemoteLiveBlock } from './element-builder';
 
 export const SERIALIZATION_FIRST_NODE_STRING = '%+b:0%';
 
@@ -44,9 +38,10 @@ export class RehydratingCursor extends CursorImpl {
   }
 }
 
-export class RehydrateBuilder extends NewElementBuilder implements ElementBuilder {
+export class RehydrateBuilder extends AbstractElementBuilder implements ElementBuilder {
+  declare readonly cursors: PresentStack<RehydratingCursor>;
+
   private unmatchedAttributes: Nullable<SimpleAttr[]> = null;
-  declare [CURSOR_STACK]: Stack<RehydratingCursor>; // Hides property on base class
   blockDepth = 0;
   startingBlockOffset: number;
 
@@ -54,7 +49,7 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
     super(env, parentNode, nextSibling);
     if (nextSibling) throw new Error('Rehydration with nextSibling not supported');
 
-    let node = this.currentCursor!.element.firstChild;
+    let node = this.currentCursor.element.firstChild;
 
     while (node !== null) {
       if (isOpenBlock(node)) {
@@ -92,8 +87,11 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
     }
   }
 
-  get currentCursor(): Nullable<RehydratingCursor> {
-    return this[CURSOR_STACK].current;
+  override createCursor(
+    element: SimpleElement,
+    nextSibling: Nullable<SimpleNode>
+  ): RehydratingCursor {
+    return new RehydratingCursor(element, nextSibling, this.blockDepth || 0);
   }
 
   get candidate(): Nullable<SimpleNode> {
@@ -105,13 +103,13 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
   }
 
   set candidate(node: Nullable<SimpleNode>) {
-    const currentCursor = this.currentCursor!;
+    const currentCursor = this.currentCursor;
 
     currentCursor.candidate = node;
   }
 
   disableRehydration(nextSibling: Nullable<SimpleNode>) {
-    const currentCursor = this.currentCursor!;
+    const currentCursor = this.currentCursor;
 
     // rehydration will be disabled until we either:
     // * hit popElement (and return to using the parent elements cursor)
@@ -122,21 +120,15 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
   }
 
   enableRehydration(candidate: Nullable<SimpleNode>) {
-    const currentCursor = this.currentCursor!;
+    const currentCursor = this.currentCursor;
 
     currentCursor.candidate = candidate;
     currentCursor.nextSibling = null;
   }
 
-  override pushElement(
-    /** called from parent constructor before we initialize this */
-    this:
-      | RehydrateBuilder
-      | (NewElementBuilder & Partial<Pick<RehydrateBuilder, 'blockDepth' | 'candidate'>>),
-    element: SimpleElement,
-    nextSibling: Maybe<SimpleNode> = null
-  ) {
-    const cursor = new RehydratingCursor(element, nextSibling, this.blockDepth || 0);
+  /** WARNING: called from parent constructor before we initialize this */
+  override pushElement(element: SimpleElement, nextSibling: Maybe<SimpleNode> = null) {
+    const cursor = this.createCursor(element, nextSibling);
 
     /**
      * <div>   <---------------  currentCursor.element
@@ -153,7 +145,7 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
       this.candidate = element.nextSibling;
     }
 
-    this[CURSOR_STACK].push(cursor);
+    this.pushCursor(cursor as ReturnType<this['createCursor']>);
   }
 
   // clears until the end of the current container
@@ -277,7 +269,7 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
     }
   }
 
-  override __appendHTML(html: string): Bounds {
+  override __appendHTML(html: string): BlockBounds {
     const candidateBounds = this.markerBounds();
 
     if (candidateBounds) {
@@ -310,7 +302,7 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
     return next;
   }
 
-  private markerBounds(): Nullable<Bounds> {
+  private markerBounds(): Nullable<BlockBounds> {
     const _candidate = this.candidate;
 
     if (_candidate && isMarker(_candidate)) {
@@ -381,7 +373,7 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
     } else if (_candidate) {
       if (isElement(_candidate) && _candidate.tagName === 'TBODY') {
         this.pushElement(_candidate, null);
-        this.currentCursor!.injectedOmittedNode = true;
+        this.currentCursor.injectedOmittedNode = true;
         return this.__openElement(tag);
       }
       this.clearMismatch(_candidate);
@@ -479,7 +471,7 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
     }
 
     const cursor = new RehydratingCursor(element, null, this.blockDepth);
-    this[CURSOR_STACK].push(cursor);
+    this.pushCursor(cursor as ReturnType<this['createCursor']>);
 
     if (marker === null) {
       this.disableRehydration(insertBefore);
@@ -491,7 +483,7 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
     return this.pushLiveBlock(block, true);
   }
 
-  override didAppendBounds(bounds: Bounds): Bounds {
+  override didAppendBounds(bounds: BlockBounds): BlockBounds {
     super.didAppendBounds(bounds);
     if (this.candidate) {
       const last = bounds.lastNode();

@@ -2,7 +2,17 @@
   "name": "@glimmer-workspace/integration-tests",
   "version": "0.84.3",
   "private": true,
-  "main": "index.ts",
+  "main": "lib/index.ts",
+  "types": "lib/index.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.ts",
+      "default": "./lib/index.ts"
+    }
+  },
+  "files": [
+    "lib"
+  ],
   "repository": "https://github.com/glimmerjs/glimmer-vm/tree/master/packages/@glimmer-workspace/integration-tests",
   "dependencies": {
     "@glimmer/destroyable": "workspace:^",
@@ -32,7 +42,7 @@
   "devDependencies": {
     "eslint": "^8.52.0",
     "@glimmer/local-debug-flags": "workspace:^",
-    "@types/qunit": "^2.19.7",
+    "@types/qunit": "workspace:^",
     "@types/js-reporters": "workspace:^"
   },
   "scripts": {

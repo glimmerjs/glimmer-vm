@@ -1,8 +1,10 @@
-export { ContentType } from './lib/content';
+export * from './lib/content';
 export {
   ARG_SHIFT,
-  /** @deprecated */
-  CurriedTypes as CurriedType,
+  CURRIED_COMPONENT,
+  CURRIED_HELPER,
+  CURRIED_MODIFIER,
+  type CurriedInvokable,
   CurriedTypes,
   InternalComponentCapabilities,
   /** @deprecated */
@@ -13,7 +15,7 @@ export {
   TYPE_MASK,
   TYPE_SIZE,
 } from './lib/flags';
-export { isMachineOp, isOp, MachineOp, Op } from './lib/opcodes';
+export * from './lib/opcodes';
 export {
   $fp,
   $pc,
@@ -23,9 +25,10 @@ export {
   $sp,
   $t0,
   $t1,
+  $up,
   $v0,
   isLowLevelRegister,
-  MachineRegister,
+  type MachineRegister,
   type Register,
   SavedRegister,
   type SyscallRegister,

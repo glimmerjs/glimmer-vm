@@ -1,18 +1,18 @@
-import { precompile } from '@glimmer/compiler';
 import type { Cursor, ElementBuilder, Environment } from '@glimmer/interfaces';
+import { precompile } from '@glimmer/compiler';
 import { NodeDOMTreeConstruction, serializeBuilder } from '@glimmer/node';
+import { RenderTestContext } from '@glimmer-workspace/integration-tests';
 
 import { blockStack } from '../dom/blocks';
 import { toInnerHTML } from '../dom/simple-utils';
-import { AbstractNodeTest, NodeJitRenderDelegate } from '../modes/node/env';
-import { RenderTest } from '../render-test';
-import { test } from '../test-decorator';
+import { NodeJitRenderDelegate, NodeRenderTest } from '../modes/node/env';
+import { render } from '../test-decorator';
 import { strip } from '../test-helpers/strings';
 
-export class DOMHelperTests extends AbstractNodeTest {
+export class DOMHelperTests extends NodeRenderTest {
   static suiteName = 'Server-side rendering in Node.js (normal)';
 
-  @test
+  @render
   'can instantiate NodeDOMTreeConstruction without a document'() {
     // this emulates what happens in Ember when using `App.visit('/', { shouldRender: false });`
 
@@ -22,10 +22,10 @@ export class DOMHelperTests extends AbstractNodeTest {
   }
 }
 
-export class CompilationTests extends RenderTest {
+export class CompilationTests extends RenderTestContext {
   static suiteName = 'Id generation';
 
-  @test
+  @render
   'generates id in node'() {
     let template = precompile('hello');
     let obj = JSON.parse(template);
@@ -47,9 +47,9 @@ export class JitSerializationDelegate extends NodeJitRenderDelegate {
 export class SerializedDOMHelperTests extends DOMHelperTests {
   static override suiteName = 'Server-side rendering in Node.js (serialize)';
 
-  @test
+  @render
   'The compiler can handle unescaped HTML'() {
-    this.render('<div>{{{this.title}}}</div>', { title: '<strong>hello</strong>' });
+    this.render.template('<div>{{{this.title}}}</div>', { title: '<strong>hello</strong>' });
     let b = blockStack();
     this.assertHTML(strip`
       <div>
@@ -62,10 +62,10 @@ export class SerializedDOMHelperTests extends DOMHelperTests {
     `);
   }
 
-  @test
+  @render
   'Unescaped helpers render correctly'() {
-    this.registerHelper('testing-unescaped', (params) => params[0]);
-    this.render('{{{testing-unescaped "<span>hi</span>"}}}');
+    this.register.helper('testing-unescaped', (params) => params[0]);
+    this.render.template('{{{testing-unescaped "<span>hi</span>"}}}');
     let b = blockStack();
     this.assertHTML(strip`
       ${b(1)}
@@ -76,15 +76,15 @@ export class SerializedDOMHelperTests extends DOMHelperTests {
     `);
   }
 
-  @test
+  @render
   'Null literals do not have representation in DOM'() {
-    this.render('{{null}}');
+    this.render.template('{{null}}');
     this.assertHTML(strip`<!--% %-->`);
   }
 
-  @test
+  @render
   'Elements inside a yielded block'() {
-    this.render('{{#if true}}<div id="test">123</div>{{/if}}');
+    this.render.template('{{#if true}}<div id="test">123</div>{{/if}}');
     let b = blockStack();
     this.assertHTML(strip`
       ${b(1)}
@@ -93,9 +93,9 @@ export class SerializedDOMHelperTests extends DOMHelperTests {
     `);
   }
 
-  @test
+  @render
   'A simple block helper can return text'() {
-    this.render('{{#if true}}test{{else}}not shown{{/if}}');
+    this.render.template('{{#if true}}test{{else}}not shown{{/if}}');
     let b = blockStack();
     this.assertHTML(strip`
       ${b(1)}

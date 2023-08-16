@@ -9,14 +9,16 @@ import type {
   WellKnownAttrName,
   WireFormat,
 } from '@glimmer/interfaces';
-import { LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
+import { LOCAL_TRACE_LOGGING } from '@glimmer/local-debug-flags';
+import { ASTv2, SourceSpan } from '@glimmer/syntax';
 import { exhausted, LOCAL_LOGGER } from '@glimmer/util';
 import { SexpOpcodes } from '@glimmer/wire-format';
 
 import type { OptionalList } from '../../shared/list';
+import type * as mir from './mir';
+
 import { deflateAttrName, deflateTagName } from '../../utils';
 import { EXPR } from './expressions';
-import type * as mir from './mir';
 
 class WireStatements<S extends WireFormat.Statement = WireFormat.Statement> {
   constructor(private statements: readonly S[]) {}
@@ -44,8 +46,8 @@ export class ContentEncoder {
   }
 
   content(stmt: mir.Statement): WireFormat.Statement | WireStatements {
-    if (LOCAL_SHOULD_LOG) {
-      LOCAL_LOGGER.log(`encoding`, stmt);
+    if (LOCAL_TRACE_LOGGING) {
+      LOCAL_LOGGER.debug(`encoding`, stmt);
     }
 
     return this.visitContent(stmt);
@@ -73,6 +75,8 @@ export class ContentEncoder {
         return this.InvokeBlock(stmt);
       case 'If':
         return this.If(stmt);
+      case 'HandleError':
+        return this.HandleError(stmt);
       case 'Each':
         return this.Each(stmt);
       case 'With':
@@ -201,6 +205,22 @@ export class ContentEncoder {
     ];
   }
 
+  HandleError({ handler, block, inverse }: mir.HandleError): WireFormat.Statements.HandleError {
+    return [
+      SexpOpcodes.HandleError,
+      handler
+        ? EXPR.expr(handler)
+        : EXPR.Literal(
+            new ASTv2.LiteralExpression({
+              value: null,
+              loc: SourceSpan.synthetic('null'),
+            })
+          ),
+      CONTENT.NamedBlock(block)[1],
+      inverse ? CONTENT.NamedBlock(inverse)[1] : null,
+    ];
+  }
+
   Each({ value, key, block, inverse }: mir.Each): WireFormat.Statements.Each {
     return [
       SexpOpcodes.Each,
@@ -260,7 +280,7 @@ function staticAttr({ name, value, namespace }: mir.StaticAttr): StaticAttrArgs 
 export type DynamicAttrArgs = [
   name: string | WellKnownAttrName,
   value: WireFormat.Expression,
-  namespace?: string
+  namespace?: string,
 ];
 
 function dynamicAttr({ name, value, namespace }: mir.DynamicAttr): DynamicAttrArgs {

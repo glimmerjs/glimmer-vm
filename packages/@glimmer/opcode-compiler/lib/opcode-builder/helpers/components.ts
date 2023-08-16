@@ -6,20 +6,14 @@ import type {
   NamedBlocks,
   Nullable,
   WireFormat,
-} from "@glimmer/interfaces";
+} from '@glimmer/interfaces';
+import type { SavedRegister } from '@glimmer/vm';
 import { hasCapability } from '@glimmer/manager';
-import { EMPTY_STRING_ARRAY, reverse, unwrap } from '@glimmer/util';
-import {
-  $s0,
-  $s1,
-  $sp,
-  InternalComponentCapabilities,
-  MachineOp,
-  Op,
-  type SavedRegister,
-} from '@glimmer/vm';
+import { EMPTY_STRING_ARRAY, encodeBoolean, reverse, unwrap } from '@glimmer/util';
+import { $s0, $s1, $sp, InternalComponentCapabilities, Op } from '@glimmer/vm';
 
 import type { PushExpressionOp, PushStatementOp } from '../../syntax/compilers';
+
 import { namedBlocks } from '../../utils';
 import { HighLevelBuilderOpcodes } from '../opcodes';
 import { isStrictMode, labelOperand, layoutOperand, symbolTableOperand } from '../operands';
@@ -119,31 +113,33 @@ export function InvokeDynamicComponent(
   Replayable(
     op,
 
-    () => {
-      expr(op, definition);
-      op(Op.Dup, $sp, 0);
-      return 2;
-    },
+    {
+      args: () => {
+        expr(op, definition);
+        op(Op.Dup, $sp, 0);
+        return 2;
+      },
 
-    () => {
-      op(Op.JumpUnless, labelOperand('ELSE'));
+      body: () => {
+        op(Op.JumpUnless, labelOperand('ELSE'));
 
-      if (curried) {
-        op(Op.ResolveCurriedComponent);
-      } else {
-        op(Op.ResolveDynamicComponent, isStrictMode());
-      }
+        if (curried) {
+          op(Op.ResolveCurriedComponent);
+        } else {
+          op(Op.ResolveDynamicComponent, isStrictMode());
+        }
 
-      op(Op.PushDynamicComponentInstance);
-      InvokeNonStaticComponent(op, {
-        capabilities: true,
-        elementBlock,
-        positional,
-        named,
-        atNames,
-        blocks,
-      });
-      op(HighLevelBuilderOpcodes.Label, 'ELSE');
+        op(Op.PushDynamicComponentInstance);
+        InvokeNonStaticComponent(op, {
+          capabilities: true,
+          elementBlock,
+          positional,
+          named,
+          atNames,
+          blocks,
+        });
+        op(HighLevelBuilderOpcodes.Label, 'ELSE');
+      },
     }
   );
 }
@@ -155,7 +151,7 @@ function InvokeStaticComponent(
   let { symbolTable } = layout;
 
   let bailOut =
-    symbolTable.hasEval || hasCapability(capabilities, InternalComponentCapabilities.prepareArgs);
+    symbolTable.hasDebug || hasCapability(capabilities, InternalComponentCapabilities.prepareArgs);
 
   if (bailOut) {
     InvokeNonStaticComponent(op, {
@@ -174,7 +170,7 @@ function InvokeStaticComponent(
   op(Op.Fetch, $s0);
   op(Op.Dup, $sp, 1);
   op(Op.Load, $s0);
-  op(MachineOp.PushFrame);
+  op(Op.PushFrame);
 
   // Setup arguments
   let { symbols } = symbolTable;
@@ -273,13 +269,13 @@ function InvokeStaticComponent(
   }
 
   if (hasCapability(capabilities, InternalComponentCapabilities.createInstance)) {
-    op(Op.CreateComponent, (blocks.has('default') as any) | 0, $s0);
+    op(Op.CreateComponent, encodeBoolean(blocks.has('default')) | 0, $s0);
   }
 
   op(Op.RegisterComponentDestructor, $s0);
 
   if (hasCapability(capabilities, InternalComponentCapabilities.createArgs)) {
-    op(Op.GetComponentSelf, $s0);
+    op(Op.GetComponentSelf, $s0, null);
   } else {
     op(Op.GetComponentSelf, $s0, argNames);
   }
@@ -318,10 +314,10 @@ function InvokeStaticComponent(
 
   op(Op.Constant, layoutOperand(layout));
   op(Op.CompileBlock);
-  op(MachineOp.InvokeVirtual);
+  op(Op.InvokeVirtual);
   op(Op.DidRenderLayout, $s0);
 
-  op(MachineOp.PopFrame);
+  op(Op.PopFrame);
   op(Op.PopScope);
 
   if (hasCapability(capabilities, InternalComponentCapabilities.dynamicScope)) {
@@ -348,7 +344,7 @@ export function InvokeNonStaticComponent(
   op(Op.Dup, $sp, 1);
   op(Op.Load, $s0);
 
-  op(MachineOp.PushFrame);
+  op(Op.PushFrame);
   CompileArgs(op, positional, named, blocks, atNames);
   op(Op.PrepareArgs, $s0);
 
@@ -405,7 +401,7 @@ export function invokePreparedComponent(
   op(Op.BeginComponentTransaction, $s0);
   op(Op.PushDynamicScope);
 
-  op(Op.CreateComponent, (hasBlock as any) | 0, $s0);
+  op(Op.CreateComponent, encodeBoolean(hasBlock), $s0);
 
   // this has to run after createComponent to allow
   // for late-bound layouts, but a caller is free
@@ -416,7 +412,7 @@ export function invokePreparedComponent(
   }
 
   op(Op.RegisterComponentDestructor, $s0);
-  op(Op.GetComponentSelf, $s0);
+  op(Op.GetComponentSelf, $s0, null);
 
   op(Op.VirtualRootScope, $s0);
   op(Op.SetVariable, 0);
@@ -428,7 +424,7 @@ export function invokePreparedComponent(
   op(Op.Pop, 1);
   op(Op.InvokeComponentLayout, $s0);
   op(Op.DidRenderLayout, $s0);
-  op(MachineOp.PopFrame);
+  op(Op.PopFrame);
 
   op(Op.PopScope);
   op(Op.PopDynamicScope);
@@ -440,7 +436,7 @@ export function InvokeBareComponent(op: PushStatementOp): void {
   op(Op.Dup, $sp, 1);
   op(Op.Load, $s0);
 
-  op(MachineOp.PushFrame);
+  op(Op.PushFrame);
   op(Op.PushEmptyArgs);
   op(Op.PrepareArgs, $s0);
   invokePreparedComponent(op, false, false, true, () => {

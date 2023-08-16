@@ -1,0 +1,6 @@
+{
+  "name": "@types/qunit",
+  "version": "2.19.7",
+  "type": "module",
+  "types": "index.d.ts"
+}

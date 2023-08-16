@@ -1,10 +1,10 @@
-import { precompile } from '@glimmer/compiler';
 import type { WireFormat } from '@glimmer/interfaces';
 import type { TemplateWithIdAndReferrer } from '@glimmer/opcode-compiler';
+import { precompile } from '@glimmer/compiler';
 import { assert as glimmerAssert, unwrapTemplate } from '@glimmer/util';
 import { SexpOpcodes } from '@glimmer/wire-format';
 
-import { preprocess } from '../..';
+import { preprocess } from '../../lib';
 import { module } from '../support';
 
 module('[glimmer-compiler] Compile options', ({ test }) => {
@@ -46,17 +46,15 @@ module('[glimmer-compiler] precompile', ({ test }) => {
   }
 
   test('lexicalScope is used if present', (assert) => {
-     
     let wire = compile(`<hello /><div />`, ['hello'], (source) => eval(source));
 
     const hello = { varname: 'hello' };
     assert.ok(hello, 'avoid unused variable lint');
 
-     
     let [statements] = wire.block;
     let [[, componentNameExpr], ...divExpr] = statements as [
       WireFormat.Statements.Component,
-      ...WireFormat.Statement[]
+      ...WireFormat.Statement[],
     ];
 
     assert.deepEqual(wire.scope?.(), [hello]);
@@ -75,17 +73,15 @@ module('[glimmer-compiler] precompile', ({ test }) => {
   });
 
   test('lexicalScope works if the component name is a path', (assert) => {
-     
     let wire = compile(`<f.hello /><div />`, ['f'], (source) => eval(source));
 
     const f = {};
     assert.ok(f, 'avoid unused variable lint');
 
-     
     let [statements] = wire.block;
     let [[, componentNameExpr], ...divExpr] = statements as [
       WireFormat.Statements.Component,
-      ...WireFormat.Statement[]
+      ...WireFormat.Statement[],
     ];
 
     assert.deepEqual(wire.scope?.(), [f]);
@@ -102,7 +98,7 @@ module('[glimmer-compiler] precompile', ({ test }) => {
     ]);
   });
 
-  test('customizeComponentName is used if present', function (assert) {
+  test('customizeComponentName is used if present', (assert) => {
     let wire = JSON.parse(
       precompile('<XFoo />', {
         customizeComponentName(input: string) {
@@ -124,7 +120,7 @@ module('[glimmer-compiler] precompile', ({ test }) => {
     assert.strictEqual(componentName, 'ooFX', 'customized component name was used');
   });
 
-  test('customizeComponentName does not cause components to conflict with existing symbols', function (assert) {
+  test('customizeComponentName does not cause components to conflict with existing symbols', (assert) => {
     let wire = JSON.parse(
       precompile('{{#let @model as |rental|}}<Rental @renter={{rental}} />{{/let}}', {
         customizeComponentName(input: string) {
@@ -148,7 +144,7 @@ module('[glimmer-compiler] precompile', ({ test }) => {
     assert.strictEqual(componentName, 'rental', 'customized component name was used');
   });
 
-  test('customizeComponentName is not invoked on curly components', function (assert) {
+  test('customizeComponentName is not invoked on curly components', (assert) => {
     let wire = JSON.parse(
       precompile('{{#my-component}}hello{{/my-component}}', {
         customizeComponentName(input: string) {
@@ -171,7 +167,7 @@ module('[glimmer-compiler] precompile', ({ test }) => {
     assert.strictEqual(componentName, 'my-component', 'original component name was used');
   });
 
-  test('customizeComponentName is not invoked on angle-bracket-like name invoked with curlies', function (assert) {
+  test('customizeComponentName is not invoked on angle-bracket-like name invoked with curlies', (assert) => {
     let wire = JSON.parse(
       precompile('{{#MyComponent}}hello{{/MyComponent}}', {
         customizeComponentName(input: string) {

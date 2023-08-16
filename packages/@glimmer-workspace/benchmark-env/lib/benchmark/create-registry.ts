@@ -17,6 +17,7 @@ import { programCompilationContext } from '@glimmer/opcode-compiler';
 import { artifacts, RuntimeOpImpl } from '@glimmer/program';
 
 import type { UpdateBenchmark } from '../interfaces';
+
 import renderBenchmark from './render-benchmark';
 
 export interface Registry {

@@ -1,11 +1,10 @@
-import { InstructionEncoderImpl } from '@glimmer/encoder';
 import type {
+  BlockMetadata,
   BuilderOp,
   BuilderOpcode,
   CompileTimeConstants,
   CompileTimeHeap,
   CompileTimeResolver,
-  ContainingMetadata,
   Dict,
   Encoder,
   EncoderError,
@@ -17,6 +16,7 @@ import type {
   SingleBuilderOperand,
   STDLib,
 } from '@glimmer/interfaces';
+import { InstructionEncoderImpl } from '@glimmer/encoder';
 import {
   assert,
   dict,
@@ -26,7 +26,7 @@ import {
   isPresentArray,
   Stack,
 } from '@glimmer/util';
-import { ARG_SHIFT, isMachineOp, MACHINE_MASK, MachineOp, Op, TYPE_SIZE } from '@glimmer/vm';
+import { ARG_SHIFT, isMachineOp, MACHINE_MASK, Op, TYPE_SIZE } from '@glimmer/vm';
 
 import { compilableBlock } from '../compilable-template';
 import {
@@ -69,7 +69,7 @@ export function encodeOp(
   encoder: Encoder,
   constants: CompileTimeConstants & ResolutionTimeConstants,
   resolver: CompileTimeResolver,
-  meta: ContainingMetadata,
+  meta: BlockMetadata,
   op: BuilderOp | HighLevelOp
 ): void {
   if (isBuilderOpcode(op[0])) {
@@ -141,14 +141,14 @@ export function encodeOp(
 }
 
 export class EncoderImpl implements Encoder {
-  private labelsStack = new Stack<Labels>();
+  private labelsStack = Stack.empty<Labels>();
   private encoder: InstructionEncoder = new InstructionEncoderImpl([]);
   private errors: EncoderError[] = [];
   private handle: number;
 
   constructor(
     private heap: CompileTimeHeap,
-    private meta: ContainingMetadata,
+    private meta: BlockMetadata,
     private stdlib?: STDLib
   ) {
     this.handle = heap.malloc();
@@ -162,7 +162,7 @@ export class EncoderImpl implements Encoder {
   commit(size: number): HandleResult {
     let handle = this.handle;
 
-    this.heap.pushMachine(MachineOp.Return);
+    this.heap.pushOp(Op.Return);
     this.heap.finishMalloc(handle, size);
 
     if (isPresentArray(this.errors)) {
@@ -212,7 +212,7 @@ export class EncoderImpl implements Encoder {
             return encodeHandle(constants.value(this.meta.isStrictMode));
 
           case HighLevelOperands.DebugSymbols:
-            return encodeHandle(constants.array(this.meta.evalSymbols || EMPTY_STRING_ARRAY));
+            return encodeHandle(constants.array(this.meta.debugSymbols || EMPTY_STRING_ARRAY));
 
           case HighLevelOperands.Block:
             return encodeHandle(constants.value(compilableBlock(operand.value, this.meta)));

@@ -1,25 +1,35 @@
-import type { Dict, Maybe } from "@glimmer/interfaces";
-import { createComputeRef, type Reference, valueForRef } from '@glimmer/reference';
-import { enumerate } from '@glimmer/util';
+import type { Dict, Maybe } from '@glimmer/interfaces';
+import type {Reactive} from '@glimmer/reference';
+import { readReactive, ResultFormula  } from '@glimmer/reference';
+import { enumerate, Ok, stringifyDebugLabel } from '@glimmer/util';
 
-export function createConcatRef(partsRefs: Reference[]) {
-  return createComputeRef(() => {
-    let parts = new Array<string>();
+export function createConcatRef(partsRefs: Reactive[]) {
+  return ResultFormula(
+    () => {
+      let parts = new Array<string>();
 
-    for (const [i, ref] of enumerate(partsRefs)) {
-      let value = valueForRef(ref) as Maybe<Dict>;
+      for (const [i, ref] of enumerate(partsRefs)) {
+        let result = readReactive(ref);
 
-      if (value !== null && value !== undefined) {
-        parts[i] = castToString(value);
+        if (result.type === 'err') {
+          return result;
+        }
+
+        const value = result.value as Maybe<Dict>;
+        if (value !== null && value !== undefined) {
+          parts[i] = castToString(value);
+        }
       }
-    }
 
-    if (parts.length > 0) {
-      return parts.join('');
-    }
+      return Ok(parts.length > 0 ? parts.join('') : null);
+    },
+    import.meta.env.DEV ? concatLabel(partsRefs) : undefined
+  );
+}
 
-    return null;
-  });
+function concatLabel(parts: Reactive[]) {
+  const body = parts.map((reactive) => `{${stringifyDebugLabel(reactive)}}`).join(' + ');
+  return `(concat ${body})`;
 }
 
 function castToString(value: Dict) {

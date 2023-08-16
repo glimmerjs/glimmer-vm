@@ -8,25 +8,24 @@ import type {
   SimpleElement,
   SimpleNode,
 } from '@glimmer/interfaces';
+import type {TemplateOnlyComponent} from '@glimmer/runtime';
+import type {EmberishCurlyComponent} from '@glimmer-workspace/integration-tests';
 import { setComponentTemplate } from '@glimmer/manager';
 import {
   EMPTY_ARGS,
-  type TemplateOnlyComponent,
   templateOnlyComponent,
-  TemplateOnlyComponentManager,
+  TemplateOnlyComponentManager
 } from '@glimmer/runtime';
 import { assign, expect } from '@glimmer/util';
-
 import {
   BaseEnv,
+  ClientSideRenderDelegate,
   createTemplate,
-  type EmberishCurlyComponent,
   GlimmerishComponent,
-  JitRenderDelegate,
-  RenderTest,
-  suite,
+  RenderTestContext,
   test,
-} from '..';
+  testSuite
+} from '@glimmer-workspace/integration-tests';
 
 interface CapturedBounds {
   parentElement: SimpleElement;
@@ -50,7 +49,7 @@ interface ExpectedRenderNode {
   children: Expected<CapturedRenderNode['children']> | ExpectedRenderNode[];
 }
 
-class DebugRenderTreeDelegate extends JitRenderDelegate {
+class DebugRenderTreeDelegate extends ClientSideRenderDelegate {
   registerCustomComponent(
     name: string,
     template: string,
@@ -71,15 +70,15 @@ class DebugRenderTreeDelegate extends JitRenderDelegate {
   }
 }
 
-class DebugRenderTreeTest extends RenderTest {
+class DebugRenderTreeTest extends RenderTestContext {
   static suiteName = 'Application test: debug render tree';
 
   declare delegate: DebugRenderTreeDelegate;
 
   @test 'template-only components'() {
-    this.registerComponent('TemplateOnly', 'HelloWorld', '{{@arg}}');
+    this.register.component('TemplateOnly', 'HelloWorld', '{{@arg}}');
 
-    this.render(
+    this.render.template(
       `<HelloWorld @arg="first"/>{{#if this.showSecond}}<HelloWorld @arg="second"/>{{/if}}`,
       {
         showSecond: false,
@@ -93,7 +92,7 @@ class DebugRenderTreeTest extends RenderTest {
         args: { positional: [], named: { arg: 'first' } },
         instance: null,
         template: '(unknown template module)',
-        bounds: this.nodeBounds(this.delegate.getInitialElement().firstChild),
+        bounds: this.nodeBounds(this.getInitialElement().firstChild),
         children: [],
       },
     ]);
@@ -107,7 +106,7 @@ class DebugRenderTreeTest extends RenderTest {
         args: { positional: [], named: { arg: 'first' } },
         instance: null,
         template: '(unknown template module)',
-        bounds: this.nodeBounds(this.delegate.getInitialElement().firstChild),
+        bounds: this.nodeBounds(this.getInitialElement().firstChild),
         children: [],
       },
       {
@@ -116,7 +115,7 @@ class DebugRenderTreeTest extends RenderTest {
         args: { positional: [], named: { arg: 'second' } },
         instance: null,
         template: '(unknown template module)',
-        bounds: this.nodeBounds(this.delegate.getInitialElement().lastChild),
+        bounds: this.nodeBounds(this.getInitialElement().lastChild),
         children: [],
       },
     ]);
@@ -130,16 +129,16 @@ class DebugRenderTreeTest extends RenderTest {
         args: { positional: [], named: { arg: 'first' } },
         instance: null,
         template: '(unknown template module)',
-        bounds: this.nodeBounds(this.delegate.getInitialElement().firstChild),
+        bounds: this.nodeBounds(this.getInitialElement().firstChild),
         children: [],
       },
     ]);
   }
 
   @test 'emberish curly components'() {
-    this.registerComponent('Curly', 'HelloWorld', 'Hello World');
+    this.register.component('Curly', 'HelloWorld', 'Hello World');
 
-    this.render(
+    this.render.template(
       `<HelloWorld @arg="first"/>{{#if this.showSecond}}<HelloWorld @arg="second"/>{{/if}}`,
       {
         showSecond: false,
@@ -153,7 +152,7 @@ class DebugRenderTreeTest extends RenderTest {
         args: { positional: [], named: { arg: 'first' } },
         instance: (instance: EmberishCurlyComponent) => (instance as any).arg === 'first',
         template: '(unknown template module)',
-        bounds: this.nodeBounds(this.delegate.getInitialElement().firstChild),
+        bounds: this.nodeBounds(this.getInitialElement().firstChild),
         children: [],
       },
     ]);
@@ -197,9 +196,9 @@ class DebugRenderTreeTest extends RenderTest {
   }
 
   @test 'glimmerish components'() {
-    this.registerComponent('Glimmer', 'HelloWorld', 'Hello World');
+    this.register.component('Glimmer', 'HelloWorld', 'Hello World');
 
-    this.render(
+    this.render.template(
       `<HelloWorld @arg="first"/>{{#if this.showSecond}}<HelloWorld @arg="second"/>{{/if}}`,
       {
         showSecond: false,
@@ -213,7 +212,7 @@ class DebugRenderTreeTest extends RenderTest {
         args: { positional: [], named: { arg: 'first' } },
         instance: (instance: GlimmerishComponent) => instance.args['arg'] === 'first',
         template: '(unknown template module)',
-        bounds: this.nodeBounds(this.delegate.getInitialElement().firstChild),
+        bounds: this.nodeBounds(this.getInitialElement().firstChild),
         children: [],
       },
     ]);
@@ -294,9 +293,9 @@ class DebugRenderTreeTest extends RenderTest {
       }
     );
 
-    this.registerComponent('TemplateOnly', 'HelloWorld2', '{{@arg}}');
+    this.register.component('TemplateOnly', 'HelloWorld2', '{{@arg}}');
 
-    this.render(
+    this.render.template(
       `<HelloWorld2 @arg="first"/>{{#if this.showSecond}}<HelloWorld @arg="second"/>{{/if}}`,
       {
         showSecond: false,
@@ -310,7 +309,7 @@ class DebugRenderTreeTest extends RenderTest {
         args: { positional: [], named: { arg: 'first' } },
         instance: null,
         template: '(unknown template module)',
-        bounds: this.nodeBounds(this.delegate.getInitialElement().firstChild),
+        bounds: this.nodeBounds(this.getInitialElement().firstChild),
         children: [],
       },
     ]);
@@ -374,9 +373,9 @@ class DebugRenderTreeTest extends RenderTest {
       }
     );
 
-    this.registerComponent('TemplateOnly', 'HelloWorld2', '{{@arg}}');
+    this.register.component('TemplateOnly', 'HelloWorld2', '{{@arg}}');
 
-    this.render(
+    this.render.template(
       `<HelloWorld2 @arg="first"/>{{#if this.showSecond}}<HelloWorld @arg="second"/>{{/if}}`,
       {
         showSecond: false,
@@ -390,7 +389,7 @@ class DebugRenderTreeTest extends RenderTest {
         args: { positional: [], named: { arg: 'first' } },
         instance: null,
         template: '(unknown template module)',
-        bounds: this.nodeBounds(this.delegate.getInitialElement().firstChild),
+        bounds: this.nodeBounds(this.getInitialElement().firstChild),
         children: [],
       },
     ]);
@@ -425,7 +424,7 @@ class DebugRenderTreeTest extends RenderTest {
   }
 
   @test 'cleans up correctly after errors'(assert: Assert) {
-    this.registerComponent(
+    this.register.component(
       'Glimmer',
       'HelloWorld',
       'Hello World',
@@ -438,7 +437,7 @@ class DebugRenderTreeTest extends RenderTest {
     );
 
     assert.throws(() => {
-      this.render('<HelloWorld @arg="first"/>');
+      this.render.template('<HelloWorld @arg="first"/>');
     }, /oops!/u);
 
     assert.deepEqual(this.delegate.getCapturedRenderTree(), [], 'there was no output');
@@ -535,7 +534,7 @@ class DebugRenderTreeTest extends RenderTest {
   }
 }
 
-suite(DebugRenderTreeTest, DebugRenderTreeDelegate, {
+testSuite(DebugRenderTreeTest, DebugRenderTreeDelegate, {
   env: assign({}, BaseEnv, {
     enableDebugTooling: true,
   }),

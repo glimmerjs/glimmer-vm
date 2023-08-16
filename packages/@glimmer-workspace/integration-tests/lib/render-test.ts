@@ -1,48 +1,72 @@
-import { destroy } from '@glimmer/destroyable';
 import type {
-  ComponentDefinitionState,
   Dict,
   DynamicScope,
   Helper,
   Maybe,
   Nullable,
+  Reactive,
   RenderResult,
   SimpleElement,
   SimpleNode,
 } from '@glimmer/interfaces';
-import { inTransaction } from '@glimmer/runtime';
 import type { ASTPluginBuilder } from '@glimmer/syntax';
-import { assert, clearElement, dict, expect, isPresent, unwrap } from '@glimmer/util';
-import { dirtyTagFor } from '@glimmer/validator';
 import type { NTuple } from '@glimmer-workspace/test-utils';
+import { destroy } from '@glimmer/destroyable';
+import { hasFlagWith } from '@glimmer/local-debug-flags';
+import { ReadonlyCell } from '@glimmer/reference';
+import { inTransaction, renderComponent, renderSync } from '@glimmer/runtime';
+import { clearElement, dict, expect, isPresent, LOCAL_LOGGER, unwrap } from '@glimmer/util';
+import { dirtyTagFor } from '@glimmer/validator';
 
-import {
-  type ComponentBlueprint,
-  type ComponentKind,
-  type ComponentTypes,
-  CURLY_TEST_COMPONENT,
-  GLIMMER_TEST_COMPONENT,
-} from './components';
-import { assertElementShape, assertEmberishElement } from './dom/assertions';
-import { assertingElement, toInnerHTML } from './dom/simple-utils';
+import type { ComponentBlueprint, ComponentKind, ComponentTypes } from './components';
+import type { ComponentDelegate } from './components/delegate';
 import type { UserHelper } from './helpers';
 import type { TestModifierConstructor } from './modifiers';
-import type RenderDelegate from './render-delegate';
-import { equalTokens, isServerMarker, type NodesSnapshot, normalizeSnapshot } from './snapshot';
+import type { DomDelegate, LogRender, RenderDelegate } from './render-delegate';
+import type { NodesSnapshot } from './snapshot';
+import type { DeclaredComponentType, TypeFor } from './test-helpers/constants';
+import type { RenderTestState } from './test-helpers/module';
+
+import { GLIMMER_TEST_COMPONENT } from './components';
+import {
+  buildInvoke,
+  buildTemplate,
+  CurlyDelegate,
+  DynamicDelegate,
+  getDelegate,
+  GlimmerDelegate,
+} from './components/delegate';
+import { assertingElement, toInnerHTML } from './dom/simple-utils';
+import { BuildDomDelegate } from './modes/jit/dom';
+import {
+  registerComponent,
+  registerHelper,
+  registerInternalHelper,
+  registerModifier,
+} from './modes/jit/register';
+import { equalTokens, isServerMarker, normalizeSnapshot } from './snapshot';
+import { KIND_FOR, TYPE_FOR } from './test-helpers/constants';
+import { Woops } from './test-helpers/error';
+import { RecordedEvents } from './test-helpers/recorded';
 
 type Expand<T> = T extends infer O ? { [K in keyof O]: O[K] } : never;
 type Present<T> = Exclude<T, null | undefined>;
 
 export interface IRenderTest {
-  readonly count: Count;
-  testType: ComponentKind;
-  beforeEach?(): void;
-  afterEach?(): void;
+  readonly testType: ComponentKind;
+  readonly context: RenderTestState;
+  readonly beforeEach?: () => void;
+  readonly afterEach?: () => void;
 }
 
 export class Count {
   private expected: Record<string, number> = {};
   private actual: Record<string, number> = {};
+  readonly #events: RecordedEvents;
+
+  constructor(events: RecordedEvents) {
+    this.#events = events;
+  }
 
   expect(name: string, count = 1) {
     this.expected[name] = count;
@@ -51,23 +75,130 @@ export class Count {
   }
 
   assert() {
-    QUnit.assert.deepEqual(this.actual, this.expected, 'TODO');
+    this.#events.finalize();
+
+    // don't print anything if the counts match
+    if (QUnit.equiv(this.expected, this.actual)) return;
+
+    QUnit.assert.deepEqual(this.actual, this.expected, "Expected and actual counts don't match");
   }
 }
 
-export class RenderTest implements IRenderTest {
-  testType: ComponentKind = 'unknown';
+export class Self {
+  #properties: Dict;
+  readonly ref: Reactive<Dict>;
 
-  protected element: SimpleElement;
-  protected assert = QUnit.assert;
-  protected context: Dict = dict();
+  constructor(properties: Dict) {
+    this.#properties = properties;
+    this.ref = ReadonlyCell(this.#properties, 'this');
+  }
+
+  get inner(): Dict {
+    return this.#properties;
+  }
+
+  set(key: string, value: unknown): void {
+    this.#properties[key] = value;
+    dirtyTagFor(this.#properties, key);
+  }
+
+  delete(key: string): void {
+    delete this.#properties[key];
+    dirtyTagFor(this.#properties, key);
+  }
+
+  initialize(properties: Dict): void {
+    for (const [key, value] of Object.entries(properties)) {
+      this.set(key, value);
+    }
+
+    for (const key of Object.keys(this.#properties)) {
+      if (!(key in properties)) {
+        this.delete(key);
+      }
+    }
+  }
+
+  update(properties: Dict): void {
+    for (const [key, value] of Object.entries(properties)) {
+      this.set(key, value);
+    }
+  }
+}
+
+export class RenderTestContext implements IRenderTest {
+  readonly events = new RecordedEvents();
+  readonly name?: string;
+
+  readonly self = new Self({});
+  #element: SimpleElement;
+  readonly assert = QUnit.assert;
   protected renderResult: Nullable<RenderResult> = null;
   protected helpers = dict<UserHelper>();
   protected snapshot: NodesSnapshot = [];
-  readonly count = new Count();
+  readonly dom: DomDelegate;
+  readonly context: RenderTestState;
 
-  constructor(protected delegate: RenderDelegate) {
-    this.element = delegate.getInitialElement();
+  readonly plugins: ASTPluginBuilder[] = [];
+  readonly #delegate: ComponentDelegate<DeclaredComponentType>;
+
+  constructor(
+    protected delegate: RenderDelegate,
+    context: RenderTestState
+  ) {
+    this.#element = delegate.dom.getInitialElement(delegate.dom.document);
+    this.context = context;
+    this.dom = new BuildDomDelegate(delegate.dom);
+
+    this.#delegate = getDelegate(context.types.template);
+  }
+
+  get element() {
+    return this.#element;
+  }
+
+  set element(element: SimpleElement) {
+    this.#element = element;
+  }
+
+  declare readonly beforeEach?: () => void;
+  declare readonly afterEach?: () => void;
+
+  get testType(): ComponentKind {
+    return KIND_FOR[this.context.types.template];
+  }
+
+  get invoker(): ComponentDelegate {
+    return getDelegate(this.context.types.invoker);
+  }
+
+  get invokeAs(): DeclaredComponentType {
+    return this.context.types.invoker;
+  }
+
+  getInitialElement(): SimpleElement {
+    return this.element;
+  }
+
+  getClearedElement(): SimpleElement {
+    (this.element as unknown as HTMLElement).innerHTML = '';
+    return this.element;
+  }
+
+  clearElement() {
+    (this.element as unknown as HTMLElement).innerHTML = '';
+  }
+
+  get assertingElement() {
+    return assertingElement(this.element.firstChild);
+  }
+
+  escape(text: string): string {
+    const textNode = this.dom.createTextNode(text);
+    const div = this.dom.createElement('div');
+    div.appendChild(textNode);
+
+    return toInnerHTML(div);
   }
 
   capture<T>() {
@@ -80,275 +211,106 @@ export class RenderTest implements IRenderTest {
     };
   }
 
-  registerPlugin(plugin: ASTPluginBuilder): void {
-    this.delegate.registerPlugin(plugin);
-  }
+  readonly register = {
+    plugin: (plugin: ASTPluginBuilder) => {
+      this.plugins.push(plugin);
+    },
 
-  registerHelper(name: string, helper: UserHelper): void {
-    this.delegate.registerHelper(name, helper);
-  }
+    helper: (name: string, helper: UserHelper) => {
+      for (const registry of this.delegate.registries) {
+        registerHelper(registry, name, helper);
+      }
+    },
 
-  registerInternalHelper(name: string, helper: Helper): void {
-    this.delegate.registerInternalHelper(name, helper);
-  }
+    internalHelper: (name: string, helper: Helper) => {
+      for (const registry of this.delegate.registries) {
+        registerInternalHelper(registry, name, helper);
+      }
+    },
 
-  registerModifier(name: string, ModifierClass: TestModifierConstructor): void {
-    this.delegate.registerModifier(name, ModifierClass);
-  }
+    modifier: (name: string, ModifierClass: TestModifierConstructor) => {
+      for (const registry of this.delegate.registries) {
+        registerModifier(registry, name, ModifierClass);
+      }
+    },
 
-  registerComponent<K extends ComponentKind>(
-    type: K,
-    name: string,
-    layout: string,
-    Class?: ComponentTypes[K]
-  ): void {
-    this.delegate.registerComponent(type, this.testType, name, layout, Class);
-  }
+    component: <K extends ComponentKind>(
+      kind: K,
+      name: string,
+      layout: Nullable<string>,
+      Class?: ComponentTypes[TypeFor<K>]
+    ): void => {
+      for (const registry of this.delegate.registries) {
+        registerComponent(registry, TYPE_FOR[kind], name, layout, Class);
+      }
+    },
+  };
+
+  readonly build = {
+    glimmer: (blueprint: ComponentBlueprint) => this.buildGlimmerComponent(blueprint),
+    curly: (blueprint: ComponentBlueprint) => this.buildCurlyComponent(blueprint),
+    dynamic: (blueprint: ComponentBlueprint) => this.buildDynamicComponent(blueprint),
+    templateOnly: (blueprint: ComponentBlueprint) => this.buildTemplateOnlyComponent(blueprint),
+  };
 
   buildComponent(blueprint: ComponentBlueprint): string {
-    let invocation = '';
     switch (this.testType) {
       case 'Glimmer':
-        invocation = this.buildGlimmerComponent(blueprint);
-        break;
+        return this.buildGlimmerComponent(blueprint);
       case 'Curly':
-        invocation = this.buildCurlyComponent(blueprint);
-        break;
+        return this.buildCurlyComponent(blueprint);
       case 'Dynamic':
-        invocation = this.buildDynamicComponent(blueprint);
-        break;
+        return this.buildDynamicComponent(blueprint);
       case 'TemplateOnly':
-        invocation = this.buildTemplateOnlyComponent(blueprint);
-        break;
+        return this.buildTemplateOnlyComponent(blueprint);
 
       default:
         throw new Error(`Invalid test type ${this.testType}`);
     }
+  }
 
+  #buildInvoke(blueprint: ComponentBlueprint): { name: string; invocation: string } {
+    return buildInvoke(getDelegate(this.context.types.invoker), blueprint);
+  }
+
+  #buildComponent(templateDelegate: ComponentDelegate<any>, blueprint: ComponentBlueprint): string {
+    const template = buildTemplate(templateDelegate, blueprint);
+    const { name, invocation } = this.#buildInvoke(blueprint);
+
+    this.register.component(this.testType, name, template);
     return invocation;
-  }
-
-  private buildArgs(args: Dict): string {
-    let { testType } = this;
-    let sigil = '';
-    let needsCurlies = false;
-
-    if (testType === 'Glimmer' || testType === 'TemplateOnly') {
-      sigil = '@';
-      needsCurlies = true;
-    }
-
-    return `${Object.keys(args)
-      .map((arg) => {
-        let rightSide: string;
-
-        let value = args[arg] as Maybe<string[]>;
-        if (needsCurlies) {
-          let isString = value && (value[0] === "'" || value[0] === '"');
-          if (isString) {
-            rightSide = `${value}`;
-          } else {
-            rightSide = `{{${value}}}`;
-          }
-        } else {
-          rightSide = `${value}`;
-        }
-
-        return `${sigil}${arg}=${rightSide}`;
-      })
-      .join(' ')}`;
-  }
-
-  private buildBlockParams(blockParams: string[]): string {
-    return `${blockParams.length > 0 ? ` as |${blockParams.join(' ')}|` : ''}`;
-  }
-
-  private buildElse(elseBlock: string | undefined): string {
-    return `${elseBlock ? `{{else}}${elseBlock}` : ''}`;
-  }
-
-  private buildAttributes(attrs: Dict = {}): string {
-    return Object.keys(attrs)
-      .map((attr) => `${attr}=${attrs[attr]}`)
-      .join(' ');
-  }
-
-  private buildAngleBracketComponent(blueprint: ComponentBlueprint): string {
-    let {
-      args = {},
-      attributes = {},
-      template,
-      name = GLIMMER_TEST_COMPONENT,
-      blockParams = [],
-    } = blueprint;
-
-    let invocation: string | string[] = [];
-
-    invocation.push(`<${name}`);
-
-    let componentArgs = this.buildArgs(args);
-
-    if (componentArgs !== '') {
-      invocation.push(componentArgs);
-    }
-
-    let attrs = this.buildAttributes(attributes);
-    if (attrs !== '') {
-      invocation.push(attrs);
-    }
-
-    let open = invocation.join(' ');
-    invocation = [open];
-
-    if (template) {
-      let block: string | string[] = [];
-      let params = this.buildBlockParams(blockParams);
-      if (params !== '') {
-        block.push(params);
-      }
-      block.push(`>`);
-      block.push(template);
-      block.push(`</${name}>`);
-      invocation.push(block.join(''));
-    } else {
-      invocation.push(' ');
-      invocation.push(`/>`);
-    }
-
-    return invocation.join('');
   }
 
   private buildGlimmerComponent(blueprint: ComponentBlueprint): string {
-    let { tag = 'div', layout, name = GLIMMER_TEST_COMPONENT } = blueprint;
-    let invocation = this.buildAngleBracketComponent(blueprint);
-    let layoutAttrs = this.buildAttributes(blueprint.layoutAttributes);
-    this.assert.ok(
-      true,
-      `generated glimmer layout as ${`<${tag} ${layoutAttrs} ...attributes>${layout}</${tag}>`}`
-    );
-    this.delegate.registerComponent(
-      'Glimmer',
-      this.testType,
-      name,
-      `<${tag} ${layoutAttrs} ...attributes>${layout}</${tag}>`
-    );
-    this.assert.ok(true, `generated glimmer invocation as ${invocation}`);
-    return invocation;
-  }
-
-  private buildCurlyBlockTemplate(
-    name: string,
-    template: string,
-    blockParams: string[],
-    elseBlock?: string
-  ): string {
-    let block: string[] = [];
-    block.push(this.buildBlockParams(blockParams));
-    block.push('}}');
-    block.push(template);
-    block.push(this.buildElse(elseBlock));
-    block.push(`{{/${name}}}`);
-    return block.join('');
+    return this.#buildComponent(GlimmerDelegate, blueprint);
   }
 
   private buildCurlyComponent(blueprint: ComponentBlueprint): string {
-    let {
-      args = {},
-      layout,
-      template,
-      attributes,
-      else: elseBlock,
-      name = CURLY_TEST_COMPONENT,
-      blockParams = [],
-    } = blueprint;
-
-    if (attributes) {
-      throw new Error('Cannot pass attributes to curly components');
-    }
-
-    let invocation: string[] | string = [];
-
-    if (template) {
-      invocation.push(`{{#${name}`);
-    } else {
-      invocation.push(`{{${name}`);
-    }
-
-    let componentArgs = this.buildArgs(args);
-
-    if (componentArgs !== '') {
-      invocation.push(' ');
-      invocation.push(componentArgs);
-    }
-
-    if (template) {
-      invocation.push(this.buildCurlyBlockTemplate(name, template, blockParams, elseBlock));
-    } else {
-      invocation.push('}}');
-    }
-    this.assert.ok(true, `generated curly layout as ${layout}`);
-    this.delegate.registerComponent('Curly', this.testType, name, layout);
-    invocation = invocation.join('');
-    this.assert.ok(true, `generated curly invocation as ${invocation}`);
-    return invocation;
+    return this.#buildComponent(CurlyDelegate, blueprint);
   }
 
   private buildTemplateOnlyComponent(blueprint: ComponentBlueprint): string {
-    let { layout, name = GLIMMER_TEST_COMPONENT } = blueprint;
-    let invocation = this.buildAngleBracketComponent(blueprint);
-    this.assert.ok(true, `generated fragment layout as ${layout}`);
-    this.delegate.registerComponent('TemplateOnly', this.testType, name, `${layout}`);
-    this.assert.ok(true, `generated fragment invocation as ${invocation}`);
-    return invocation;
+    return this.buildGlimmerComponent(blueprint);
+    // let { layout, name = GLIMMER_TEST_COMPONENT } = blueprint; let invocation =
+    // this.buildAngleBracketComponent(blueprint); this.assert.ok(true, `generated fragment layout
+    // as ${layout}`); this.register.component('TemplateOnly', name, `${layout}`);
+    // this.assert.ok(true, `generated fragment invocation as ${invocation}`); return invocation;
   }
 
   private buildDynamicComponent(blueprint: ComponentBlueprint): string {
-    let {
-      args = {},
-      layout,
-      template,
-      attributes,
-      else: elseBlock,
-      name = GLIMMER_TEST_COMPONENT,
-      blockParams = [],
-    } = blueprint;
-
-    if (attributes) {
-      throw new Error('Cannot pass attributes to curly components');
-    }
-
-    let invocation: string | string[] = [];
-    if (template) {
-      invocation.push('{{#component this.componentName');
-    } else {
-      invocation.push('{{component this.componentName');
-    }
-
-    let componentArgs = this.buildArgs(args);
-
-    if (componentArgs !== '') {
-      invocation.push(' ');
-      invocation.push(componentArgs);
-    }
-
-    if (template) {
-      invocation.push(this.buildCurlyBlockTemplate('component', template, blockParams, elseBlock));
-    } else {
-      invocation.push('}}');
-    }
-
-    this.assert.ok(true, `generated dynamic layout as ${layout}`);
-    this.delegate.registerComponent('Curly', this.testType, name, layout);
-    invocation = invocation.join('');
-    this.assert.ok(true, `generated dynamic invocation as ${invocation}`);
-
-    return invocation;
+    return this.#buildComponent(DynamicDelegate, blueprint);
   }
 
   shouldBeVoid(tagName: string) {
     clearElement(this.element);
     let html = '<' + tagName + " data-foo='bar'><p>hello</p>";
-    this.delegate.renderTemplate(html, this.context, this.element, () => this.takeSnapshot());
+    this.delegate.renderTemplate(
+      html,
+      this.self,
+      this.element,
+      () => this.takeSnapshot(),
+      this.plugins
+    );
 
     let tag = '<' + tagName + ' data-foo="bar">';
     let closing = '</' + tagName + '>';
@@ -363,13 +325,29 @@ export class RenderTest implements IRenderTest {
     });
   }
 
-  render(template: string | ComponentBlueprint, properties: Dict<unknown> = {}): void {
-    try {
-      QUnit.assert.ok(true, `Rendering ${template} with ${JSON.stringify(properties)}`);
-    } catch {
-      // couldn't stringify, possibly has a circular dependency
-    }
+  readonly render = {
+    template: (template: string | ComponentBlueprint, properties: Dict<unknown> = {}) =>
+      this.#renderTemplate(template, properties),
 
+    component: (
+      component: object,
+      args: Record<string, unknown> = {},
+      {
+        into: element = this.element,
+        dynamicScope,
+      }: { into?: SimpleElement; dynamicScope?: DynamicScope } = {}
+    ): void => {
+      let cursor = { element, nextSibling: null };
+
+      let { program, runtime } = this.delegate.context;
+      let builder = this.delegate.getElementBuilder(runtime.env, cursor);
+      let iterator = renderComponent(runtime, builder, program, {}, component, args, dynamicScope);
+
+      this.renderResult = renderSync(runtime.env, iterator);
+    },
+  };
+
+  #renderTemplate(template: string | ComponentBlueprint, properties: Dict<unknown> = {}): void {
     if (typeof template === 'object') {
       let blueprint = template;
       template = this.buildComponent(blueprint);
@@ -379,48 +357,63 @@ export class RenderTest implements IRenderTest {
       }
     }
 
-    this.setProperties(properties);
+    this.self.initialize(properties);
 
-    this.renderResult = this.delegate.renderTemplate(template, this.context, this.element, () =>
-      this.takeSnapshot()
+    this.#log({
+      template,
+      self: this.self,
+      element: this.element,
+    });
+
+    this.renderResult = this.delegate.renderTemplate(
+      template,
+      this.self,
+      this.element,
+      () => this.takeSnapshot(),
+      this.plugins
     );
   }
 
-  renderComponent(
-    component: ComponentDefinitionState,
-    args: Dict<unknown> = {},
-    dynamicScope?: DynamicScope
-  ): void {
+  rerender(updates?: Dict<unknown> | string): void {
+    const properties = typeof updates === 'string' ? {} : updates ?? {};
+    const message =
+      typeof updates === 'string'
+        ? updates
+        : updates === undefined
+        ? ''
+        : ` ${JSON.stringify(updates)}`;
+
     try {
-      QUnit.assert.ok(true, `Rendering ${String(component)} with ${JSON.stringify(args)}`);
+      QUnit.assert.ok(true, `rerender ${message}`);
     } catch {
       // couldn't stringify, possibly has a circular dependency
     }
 
-    assert(
-      !!this.delegate.renderComponent,
-      'Attempted to render a component, but the delegate did not implement renderComponent'
-    );
-
-    this.renderResult = this.delegate.renderComponent(component, args, this.element, dynamicScope);
-  }
-
-  rerender(properties: Dict<unknown> = {}): void {
-    try {
-      QUnit.assert.ok(true, `rerender ${JSON.stringify(properties)}`);
-    } catch {
-      // couldn't stringify, possibly has a circular dependency
-    }
-
-    this.setProperties(properties);
+    this.self.update(properties);
 
     let result = expect(this.renderResult, 'the test should call render() before rerender()');
 
     try {
+      this.events.record('env:begin');
       result.env.begin();
       result.rerender();
     } finally {
       result.env.commit();
+      this.events.record('env:commit');
+    }
+  }
+
+  #log(render: LogRender) {
+    const { template, properties: addedProperties } = this.delegate.wrap(render.template);
+
+    QUnit.assert.ok(true, `Rendering ${String(template)}`);
+
+    if (hasFlagWith('enable_internals_logging', 'render')) {
+      const properties = { ...render.self.inner, ...addedProperties };
+      LOCAL_LOGGER.groupCollapsed(`%c[render] Rendering ${template}`, 'font-weight: normal');
+      LOCAL_LOGGER.debug('element   ', render.element);
+      LOCAL_LOGGER.debug('properties', { ...render.self.inner, ...properties });
+      LOCAL_LOGGER.groupEnd();
     }
   }
 
@@ -428,17 +421,6 @@ export class RenderTest implements IRenderTest {
     let result = expect(this.renderResult, 'the test should call render() before destroy()');
 
     inTransaction(result.env, () => destroy(result));
-  }
-
-  protected set(key: string, value: unknown): void {
-    this.context[key] = value;
-    dirtyTagFor(this.context, key);
-  }
-
-  protected setProperties(properties: Dict<unknown>): void {
-    for (let key in properties) {
-      this.set(key, properties[key]);
-    }
   }
 
   protected takeSnapshot(): NodesSnapshot {
@@ -475,7 +457,70 @@ export class RenderTest implements IRenderTest {
     return snapshot;
   }
 
-  protected assertStableRerender() {
+  assertError<This extends RenderTestContext>(
+    this: This,
+    spec: {
+      template: string;
+      value: string;
+      empty?: string;
+      attribute?: boolean;
+    }
+  ) {
+    const { template, expected, error } = distill(spec);
+
+    QUnit.assert.ok(true, `> template: ${template} <`);
+    QUnit.assert.ok(true, `> expected: ${expected(`contents`, this)} <`);
+    QUnit.assert.ok(true, `> error   : ${error} <`);
+
+    const woops = Woops.error(spec.value);
+
+    this.render.template(template, { result: woops, handleError: woops.handleError });
+
+    this.assertStableHTML(error);
+
+    this.assertUpdate('after recovering', () => woops.recover(), expected(spec.value, this));
+    this.assertUpdate(
+      'after emptying',
+      () => (woops.value = spec.empty ?? ''),
+      expected(spec.empty ?? '', this)
+    );
+    this.assertUpdate('after erroring', () => (woops.isError = true), error);
+    this.assertUpdate(
+      'after recovering directly to empty',
+      () => {
+        woops.recover();
+        woops.value = spec.empty ?? '';
+      },
+      expected(spec.empty ?? '', this)
+    );
+  }
+
+  assertOk<This extends RenderTestContext>(
+    this: This,
+    spec: {
+      template: string;
+      value: string;
+      empty?: string;
+      attribute?: boolean;
+    }
+  ) {
+    const { template, expected, error } = distill(spec);
+
+    const woops = Woops.noop(spec.value);
+    this.render.template(template, { result: woops, handleError: woops.handleError });
+
+    this.assertStableHTML(expected(spec.value, this));
+
+    this.assertUpdate('after erroring', () => (woops.isError = true), error);
+    this.assertUpdate('after recovering', () => woops.recover(), expected(spec.value, this));
+    this.assertUpdate(
+      'after emptying',
+      () => (woops.value = spec.empty ?? ''),
+      expected(spec.empty ?? '', this)
+    );
+  }
+
+  assertStableRerender() {
     this.takeSnapshot();
     this.runTask(() => this.rerender());
     this.assertStableNodes();
@@ -522,30 +567,30 @@ export class RenderTest implements IRenderTest {
     return value as Present<T>;
   }
 
-  protected guardArray<T extends Maybe<unknown>[], K extends string>(desc: { [P in K]: T }): {
+  guardArray<T extends Maybe<unknown>[], K extends string>(desc: { [P in K]: T }): {
     [K in keyof T]: Present<T[K]>;
   };
-  protected guardArray<T, K extends string, N extends number>(
+  guardArray<T, K extends string, N extends number>(
     desc: { [P in K]: Iterable<T> | ArrayLike<T> },
     options: { min: N }
   ): Expand<NTuple<N, Present<T>>>;
-  protected guardArray<T, U extends T, K extends string, N extends number>(
+  guardArray<T, U extends T, K extends string, N extends number>(
     desc: { [P in K]: Iterable<T> | ArrayLike<T> },
     options: { min: N; condition: (value: T) => value is U }
   ): Expand<NTuple<N, U>>;
-  protected guardArray<T, K extends string, A extends ArrayLike<T>>(desc: { [P in K]: A }): Expand<
+  guardArray<T, K extends string, A extends ArrayLike<T>>(desc: { [P in K]: A }): Expand<
     NTuple<A['length'], Present<T>>
   >;
-  protected guardArray<T, K extends string>(desc: {
+  guardArray<T, K extends string>(desc: {
     [P in K]: Iterable<T> | ArrayLike<T>;
   }): Present<T>[];
-  protected guardArray<T, K extends string, U extends T>(
+  guardArray<T, K extends string, U extends T>(
     desc: {
       [P in K]: Iterable<T> | ArrayLike<T>;
     },
     options: { condition: (value: T) => value is U; min?: number }
   ): U[];
-  protected guardArray(
+  guardArray(
     desc: Record<string, Iterable<unknown> | ArrayLike<unknown>>,
     options?: {
       min?: Maybe<number>;
@@ -585,7 +630,7 @@ export class RenderTest implements IRenderTest {
     return array;
   }
 
-  protected assertHTML(html: string, elementOrMessage?: SimpleElement | string, message?: string) {
+  assertHTML(html: string, elementOrMessage?: SimpleElement | string, message?: string) {
     if (typeof elementOrMessage === 'object') {
       equalTokens(elementOrMessage || this.element, html, message ? `${html} (${message})` : html);
     } else {
@@ -594,16 +639,19 @@ export class RenderTest implements IRenderTest {
     this.takeSnapshot();
   }
 
-  protected assertComponent(content: string, attrs: Object = {}) {
-    let element = assertingElement(this.element.firstChild);
+  assertStableHTML(html: string, message?: string) {
+    equalTokens(this.element, { expected: html, ignore: 'comments' }, message);
+    this.assertStableRerender();
+  }
 
-    switch (this.testType) {
-      case 'Glimmer':
-        assertElementShape(element, 'div', attrs, content);
-        break;
-      default:
-        assertEmberishElement(element, 'div', attrs, content);
-    }
+  assertUpdate(explanation: string, update: () => void, html: string, message?: string) {
+    update();
+    this.rerender(explanation);
+    this.assertStableHTML(html, message);
+  }
+
+  assertComponent(content: string, attrs: Dict = {}) {
+    this.#delegate.assert(this.assertingElement, 'div', attrs, content);
 
     this.takeSnapshot();
   }
@@ -612,7 +660,7 @@ export class RenderTest implements IRenderTest {
     return callback();
   }
 
-  protected assertStableNodes(
+  assertStableNodes(
     { except: _except }: { except: SimpleNode | SimpleNode[] } = {
       except: [],
     }
@@ -640,4 +688,43 @@ function uniq(arr: any[]) {
     if (accum.indexOf(val) === -1) accum.push(val);
     return accum;
   }, []);
+}
+
+export function distill({ template }: { template: string; attribute?: boolean }) {
+  return {
+    template: createTemplate(template),
+    expected: createExpected(template),
+    error: createError(template),
+  };
+}
+
+/**
+ * "<p>{{#-try}}before<img src='{{value}}'>after{{/-try}}</p>"
+ *
+ * ->
+ *
+ * "<p>{{#-try this.handleError}}before<img src='{{this.result.value}}'>after{{/-try}}</p>"
+ */
+function createTemplate(template: string): string {
+  return template
+    .replaceAll('{{#-try}}', '{{#-try this.handleError}}')
+    .replaceAll('{{/-try}}', '{{/-try}}')
+    .replaceAll('{{{value}}}', '{{{this.result.value}}}')
+    .replaceAll('{{value}}', '{{this.result.value}}');
+}
+
+function createExpected(template: string): (value: string, ctx: RenderTestContext) => string {
+  return (value: string, ctx: RenderTestContext) => {
+    const result = template
+      .replaceAll('{{#-try}}', '')
+      .replaceAll('{{/-try}}', '')
+      .replaceAll('{{{value}}}', value)
+      .replaceAll('{{value}}', ctx.escape(value));
+
+    return result;
+  };
+}
+
+function createError(template: string): string {
+  return template.replaceAll(/\{\{#-try\}\}.*?\{\{\/-try\}\}/gu, '');
 }

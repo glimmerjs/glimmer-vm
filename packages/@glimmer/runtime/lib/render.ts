@@ -1,36 +1,48 @@
 import type {
   CompilableProgram,
-  CompileTimeCompilationContext,
   ComponentDefinitionState,
+  Description,
   DynamicScope,
   ElementBuilder,
   Environment,
+  Invocation,
+  JitContext,
   Owner,
   RenderResult,
   RichIteratorResult,
   RuntimeContext,
   TemplateIterator,
 } from '@glimmer/interfaces';
-import { childRefFor, createConstRef, type Reference } from '@glimmer/reference';
+import type { Reactive } from '@glimmer/reference';
+import { getReactiveProperty, ReadonlyCell } from '@glimmer/reference';
 import { expect, unwrapHandle } from '@glimmer/util';
 import { debug } from '@glimmer/validator';
 
+import type { InternalVM } from './vm/append';
+
 import { inTransaction } from './environment';
 import { DynamicScopeImpl } from './scope';
-import { ARGS, CONSTANTS } from './symbols';
-import { VM, type InternalVM } from './vm/append';
+import { VM } from './vm/append';
 
 class TemplateIteratorImpl implements TemplateIterator {
-  constructor(private vm: InternalVM) {}
+  readonly #vm: InternalVM;
+
+  constructor(vm: InternalVM) {
+    this.#vm = vm;
+  }
+
   next(): RichIteratorResult<null, RenderResult> {
-    return this.vm.next();
+    return this.#vm.next();
   }
 
   sync(): RenderResult {
     if (import.meta.env.DEV) {
-      return debug.runInTrackingTransaction!(() => this.vm.execute(), '- While rendering:');
+      return debug.runInTrackingTransaction!(() => this.#vm.execute(), {
+        reason: 'template',
+        label: ['- While rendering:'],
+      } satisfies Description);
     } else {
-      return this.vm.execute();
+      return this.#vm.execute();
     }
   }
 }
@@ -45,9 +57,9 @@ export function renderSync(env: Environment, iterator: TemplateIterator): Render
 
 export function renderMain(
   runtime: RuntimeContext,
-  context: CompileTimeCompilationContext,
+  context: JitContext,
   owner: Owner,
-  self: Reference,
+  self: Reactive,
   treeBuilder: ElementBuilder,
   layout: CompilableProgram,
   dynamicScope: DynamicScope = new DynamicScopeImpl()
@@ -67,20 +79,20 @@ export function renderMain(
 
 function renderInvocation(
   vm: InternalVM,
-  context: CompileTimeCompilationContext,
+  _context: JitContext,
   owner: Owner,
   definition: ComponentDefinitionState,
-  args: Record<string, Reference>
+  args: Record<string, Reactive>
 ): TemplateIterator {
-  // Get a list of tuples of argument names and references, like
-  // [['title', reference], ['name', reference]]
+  // Get a list of tuples of argument names and references, like [['title', reference], ['name',
+  // reference]]
   const argList = Object.keys(args).map((key) => [key, args[key]] as const);
 
   const blockNames = ['main', 'else', 'attrs'];
   // Prefix argument names with `@` symbol
   const argNames = argList.map(([name]) => `@${name}`);
 
-  let reified = vm[CONSTANTS].component(definition, owner);
+  let reified = vm.constants.component(definition, owner);
 
   vm.pushFrame();
 
@@ -97,20 +109,26 @@ function renderInvocation(
   });
 
   // Configure VM based on blocks and args just pushed on to the stack.
-  vm[ARGS].setup(vm.stack, argNames, blockNames, 0, true);
+  vm.args.setup(vm.argumentsStack, argNames, blockNames, 0, true);
 
   const compilable = expect(
     reified.compilable,
     'BUG: Expected the root component rendered with renderComponent to have an associated template, set with setComponentTemplate'
   );
-  const layoutHandle = unwrapHandle(compilable.compile(context));
-  const invocation = { handle: layoutHandle, symbolTable: compilable.symbolTable };
+  const layoutHandle = unwrapHandle(vm.compile(compilable));
+  const invocation: Invocation = {
+    handle: layoutHandle,
+    symbolTable: compilable.symbolTable,
+    meta: compilable.meta,
+  };
 
-  // Needed for the Op.Main opcode: arguments, component invocation object, and
-  // component definition.
-  vm.stack.push(vm[ARGS]);
+  // Needed for the Op.Main opcode: arguments, component invocation object, and component
+  // definition.
+  vm.stack.push(vm.args);
   vm.stack.push(invocation);
   vm.stack.push(reified);
+
+  vm.debugWillCall?.(invocation.handle);
 
   return new TemplateIteratorImpl(vm);
 }
@@ -118,25 +136,30 @@ function renderInvocation(
 export function renderComponent(
   runtime: RuntimeContext,
   treeBuilder: ElementBuilder,
-  context: CompileTimeCompilationContext,
+  context: JitContext,
   owner: Owner,
   definition: ComponentDefinitionState,
   args: Record<string, unknown> = {},
   dynamicScope: DynamicScope = new DynamicScopeImpl()
 ): TemplateIterator {
-  let vm = VM.empty(
-    runtime,
-    { treeBuilder, handle: context.stdlib.main, dynamicScope, owner },
-    context
-  );
+  let vm = VM.initial(runtime, context, {
+    treeBuilder,
+    self: undefined,
+    handle: context.stdlib.main,
+    dynamicScope,
+    owner,
+  });
   return renderInvocation(vm, context, owner, definition, recordToReference(args));
 }
 
-function recordToReference(record: Record<string, unknown>): Record<string, Reference> {
-  const root = createConstRef(record, 'args');
+function recordToReference(record: Record<string, unknown>): Record<string, Reactive> {
+  const root = ReadonlyCell(record, 'args');
 
-  return Object.keys(record).reduce((acc, key) => {
-    acc[key] = childRefFor(root, key);
-    return acc;
-  }, {} as Record<string, Reference>);
+  return Object.keys(record).reduce(
+    (acc, key) => {
+      acc[key] = getReactiveProperty(root, key);
+      return acc;
+    },
+    {} as Record<string, Reactive>
+  );
 }

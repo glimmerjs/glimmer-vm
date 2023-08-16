@@ -1,22 +1,32 @@
-import { registerDestructor } from '@glimmer/destroyable';
 import type {
   Arguments,
   CapturedArguments,
+  DevMode,
   InternalModifierManager,
   ModifierCapabilities,
   ModifierCapabilitiesVersions,
   ModifierManager,
   Owner,
   SimpleElement,
+  TagDescription,
   UpdatableTag,
 } from '@glimmer/interfaces';
-import { valueForRef } from '@glimmer/reference';
-import { castToBrowser, dict } from '@glimmer/util';
+import { registerDestructor } from '@glimmer/destroyable';
+import { unwrapReactive } from '@glimmer/reference';
+import {
+  castToBrowser,
+  devmode,
+  devmodeOr,
+  dict,
+  setDescription,
+  stringifyDebugLabel,
+} from '@glimmer/util';
 import { createUpdatableTag, untrack } from '@glimmer/validator';
+
+import type { ManagerFactory } from '.';
 
 import { argsProxyFor } from '../util/args-proxy';
 import { buildCapabilities, FROM_CAPABILITIES } from '../util/capabilities';
-import type { ManagerFactory } from '.';
 
 export function modifierCapabilities<Version extends keyof ModifierCapabilitiesVersions>(
   managerAPI: Version,
@@ -37,7 +47,7 @@ export interface CustomModifierState<ModifierInstance> {
   modifier: ModifierInstance;
   delegate: ModifierManager<ModifierInstance>;
   args: Arguments;
-  debugName?: string;
+  description: DevMode<TagDescription>;
 }
 
 /**
@@ -84,6 +94,7 @@ export class CustomModifierManager<O extends Owner, ModifierInstance>
         throw new Error(
           `Custom modifier managers must have a \`capabilities\` property that is the result of calling the \`capabilities('3.22')\` (imported via \`import { capabilities } from '@ember/modifier';\`). Received: \`${JSON.stringify(
             delegate.capabilities
+            // eslint-disable-next-line @typescript-eslint/no-base-to-string -- @todo
           )}\` for: \`${delegate}\``
         );
       }
@@ -100,10 +111,19 @@ export class CustomModifierManager<O extends Owner, ModifierInstance>
     let args = argsProxyFor(capturedArgs, 'modifier');
     let instance: ModifierInstance = delegate.createModifier(definition, args);
 
-    let tag = createUpdatableTag();
-    let state: CustomModifierState<ModifierInstance>;
+    const description = devmode(
+      () =>
+        ({
+          reason: 'modifier',
+          // eslint-disable-next-line @typescript-eslint/no-base-to-string -- @todo
+          label: typeof definition === 'function' ? [definition.name] : [`${definition}`],
+        }) satisfies TagDescription
+    );
 
-    state = {
+    let tag = createUpdatableTag(description);
+    // let state: CustomModifierState<ModifierInstance>;
+
+    const state = {
       tag,
       element,
       delegate,
@@ -111,17 +131,15 @@ export class CustomModifierManager<O extends Owner, ModifierInstance>
       modifier: instance,
     };
 
-    if (import.meta.env.DEV) {
-      state.debugName = typeof definition === 'function' ? definition.name : definition.toString();
-    }
+    setDescription(state, description);
 
     registerDestructor(state, () => delegate.destroyModifier(instance, args));
 
     return state;
   }
 
-  getDebugName({ debugName }: CustomModifierState<ModifierInstance>) {
-    return debugName!;
+  getDebugName(state: CustomModifierState<ModifierInstance>) {
+    return devmodeOr(() => stringifyDebugLabel(state), 'modifier');
   }
 
   getTag({ tag }: CustomModifierState<ModifierInstance>) {
@@ -160,10 +178,10 @@ export function reifyArgs({ named, positional }: CapturedArguments): {
   let reifiedNamed = dict();
 
   for (const [key, value] of Object.entries(named)) {
-    reifiedNamed[key] = valueForRef(value);
+    reifiedNamed[key] = unwrapReactive(value);
   }
 
-  let reifiedPositional = positional.map(valueForRef);
+  let reifiedPositional = positional.map(unwrapReactive);
 
   return {
     named: reifiedNamed,

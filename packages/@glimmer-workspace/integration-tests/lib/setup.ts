@@ -1,11 +1,11 @@
-import setGlobalContext from '@glimmer/global-context';
 import type { Destroyable, Destructor, Dict, Nullable } from '@glimmer/interfaces';
 import type { IteratorDelegate } from '@glimmer/reference';
+import type { TestBase } from 'qunit';
+import setGlobalContext from '@glimmer/global-context';
 import { consumeTag, dirtyTagFor, tagFor } from '@glimmer/validator';
 
 import { scheduleDidDestroy, scheduleWillDestroy } from './base-env';
 import { NativeIteratorDelegate } from './modes/env';
-import type { TestBase } from 'qunit';
 
 let actualDeprecations: string[] = [];
 
@@ -91,7 +91,7 @@ setGlobalContext({
 
   getProp(obj: unknown, key: string): unknown {
     if (typeof obj === 'object' && obj !== null) {
-      consumeTag(tagFor(obj, key));
+      consumeTag(tagFor(obj, key, undefined));
     }
 
     return (obj as Dict)[key];

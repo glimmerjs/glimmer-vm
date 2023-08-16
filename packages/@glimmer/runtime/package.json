@@ -43,10 +43,12 @@
     "@glimmer/debug": "workspace:^",
     "@glimmer/local-debug-flags": "workspace:^",
     "@glimmer/opcode-compiler": "workspace:^",
+    "@glimmer/debug": "workspace:^",
     "@types/qunit": "^2.19.7",
     "eslint": "^8.52.0",
     "publint": "^0.2.5",
     "rollup": "^3.21.6",
+    "@glimmer-workspace/build-support": "workspace:^",
     "typescript": "*"
   },
   "scripts": {

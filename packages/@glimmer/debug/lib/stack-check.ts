@@ -7,16 +7,19 @@ import type {
   SimpleDocumentFragment,
   SimpleElement,
   SimpleNode,
-} from "@glimmer/interfaces";
+} from '@glimmer/interfaces';
+import type { SyscallRegister } from '@glimmer/vm';
+import { $s0, $s1, $t0, $t1, $v0 } from '@glimmer/vm';
 
 export interface Checker<T> {
   type: T;
 
   validate(value: unknown): value is T;
   expected(): string;
+  got?: (value: unknown, expected?: string) => string | undefined;
 }
 
-export function wrap<T>(checker: () => Checker<T>): Checker<T> {
+export function WrapCheck<T>(checker: () => Checker<T>): Checker<T> {
   class Wrapped {
     declare type: T;
 
@@ -47,6 +50,20 @@ class TypeofChecker<T> implements Checker<T> {
 
   expected(): string {
     return `typeof ${this.expectedType}`;
+  }
+}
+
+class NumberChecker extends TypeofChecker<number> {
+  constructor() {
+    super('number');
+  }
+
+  override validate(value: unknown): value is number {
+    return super.validate(value) && Number.isFinite(value);
+  }
+
+  override expected(): string {
+    return `a finite number`;
   }
 }
 
@@ -82,6 +99,27 @@ class NullChecker implements Checker<null> {
   }
 }
 
+class SyscallRegisterChecker implements Checker<SyscallRegister> {
+  declare type: SyscallRegister;
+
+  validate(value: unknown): value is SyscallRegister {
+    switch (value) {
+      case $s0:
+      case $s1:
+      case $t0:
+      case $t1:
+      case $v0:
+        return true;
+      default:
+        return false;
+    }
+  }
+
+  expected(): string {
+    return `a syscall register ($s0, $s1, $t0, $t1, or $v0)`;
+  }
+}
+
 class InstanceofChecker<T> implements Checker<T> {
   declare type: T;
 
@@ -96,13 +134,16 @@ class InstanceofChecker<T> implements Checker<T> {
   }
 }
 
-class OptionChecker<T> implements Checker<Nullable<T>> {
-  declare type: Nullable<T>;
+class MaybeChecker<T, Empty extends null | undefined> implements Checker<T | Empty> {
+  declare type: T | Empty;
 
-  constructor(private checker: Checker<T>, private emptyValue: null | undefined) {}
+  constructor(
+    private checker: Checker<T>,
+    private emptyValue: Empty[]
+  ) {}
 
-  validate(value: unknown): value is Nullable<T> {
-    if (value === this.emptyValue) return true;
+  validate(value: unknown): value is T | Empty {
+    if ((this.emptyValue as unknown[]).includes(value)) return true;
     return this.checker.validate(value);
   }
 
@@ -111,25 +152,13 @@ class OptionChecker<T> implements Checker<Nullable<T>> {
   }
 }
 
-class MaybeChecker<T> implements Checker<Maybe<T>> {
-  declare type: Maybe<T>;
-
-  constructor(private checker: Checker<T>) {}
-
-  validate(value: unknown): value is Maybe<T> {
-    if (value === null || value === undefined) return true;
-    return this.checker.validate(value);
-  }
-
-  expected(): string {
-    return `${this.checker.expected()} or null or undefined`;
-  }
-}
-
 class OrChecker<T, U> implements Checker<T | U> {
   declare type: T | U;
 
-  constructor(private left: Checker<T>, private right: Checker<U>) {}
+  constructor(
+    private left: Checker<T>,
+    private right: Checker<U>
+  ) {}
 
   validate(value: unknown): value is T | U {
     return this.left.validate(value) || this.right.validate(value);
@@ -143,7 +172,10 @@ class OrChecker<T, U> implements Checker<T | U> {
 class ExactValueChecker<T> implements Checker<T> {
   declare type: T;
 
-  constructor(private value: T, private desc: string) {}
+  constructor(
+    private value: T,
+    private desc: string
+  ) {}
 
   validate(obj: unknown): obj is T {
     return obj === this.value;
@@ -254,6 +286,7 @@ class SafeStringChecker implements Checker<SafeString> {
 
   validate(value: unknown): value is SafeString {
     return (
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- @todo
       typeof value === 'object' && value !== null && typeof (value as any).toHTML === 'function'
     );
   }
@@ -267,17 +300,21 @@ export function CheckInstanceof<T>(Class: Constructor<T>): Checker<T> {
   return new InstanceofChecker<T>(Class);
 }
 
-export function CheckOption<T>(checker: Checker<T>): Checker<Nullable<T>> {
-  return new OptionChecker(checker, null);
+export function CheckNullable<T>(checker: Checker<T>): Checker<Nullable<T>> {
+  return new MaybeChecker(checker, [null]);
+}
+
+export function CheckOptional<T>(checker: Checker<T>): Checker<Maybe<T>> {
+  return new MaybeChecker(checker, [undefined]);
 }
 
 export function CheckMaybe<T>(checker: Checker<T>): Checker<Maybe<T>> {
-  return new MaybeChecker(checker);
+  return new MaybeChecker(checker, [null, undefined]);
 }
 
 export function CheckInterface<
   I extends { [P in keyof O]: O[P]['type'] },
-  O extends Dict<Checker<unknown>>
+  O extends Dict<Checker<unknown>>,
 >(obj: O): Checker<I> {
   return new PropertyChecker(obj);
 }
@@ -290,8 +327,12 @@ export function CheckDict<T>(obj: Checker<T>): Checker<Dict<T>> {
   return new DictChecker(obj);
 }
 
+export const CheckSyscallRegister = new SyscallRegisterChecker();
+
 function defaultMessage(value: unknown, expected: string): string {
-  return `Got ${value}, expected:\n${expected}`;
+  const actual =
+    value === null ? `null` : typeof value === 'string' ? value : `some ${typeof value}`;
+  return `Got ${actual}, expected:${expected.includes('\n') ? `\n${expected}` : ` ${expected}`}`;
 }
 
 export function check<T>(
@@ -303,8 +344,23 @@ export function check<T, U extends T>(value: T, checker: (value: T) => asserts v
 export function check<T>(
   value: unknown,
   checker: Checker<T> | ((value: unknown) => void),
-  message: (value: unknown, expected: string) => string = defaultMessage
+  message?: (value: unknown, expected: string) => string
 ): T {
+  if (!message) {
+    if (typeof checker === 'function') {
+      message = defaultMessage;
+    } else {
+      const got = checker.got;
+      if (!got) {
+        message = defaultMessage;
+      } else {
+        message = (value: unknown, expected: string) => {
+          return defaultMessage(got(value) ?? value, expected);
+        };
+      }
+    }
+  }
+
   if (typeof checker === 'function') {
     checker(value);
     return value as T;
@@ -334,7 +390,7 @@ export function expectStackChange(stack: { sp: number }, expected: number, name:
 
 export const CheckPrimitive: Checker<Primitive> = new PrimitiveChecker();
 export const CheckFunction: Checker<Function> = new TypeofChecker<Function>('function');
-export const CheckNumber: Checker<number> = new TypeofChecker<number>('number');
+export const CheckNumber: Checker<number> = new NumberChecker();
 export const CheckBoolean: Checker<boolean> = new TypeofChecker<boolean>('boolean');
 export const CheckHandle: Checker<number> = CheckNumber;
 export const CheckString: Checker<string> = new TypeofChecker<string>('string');
@@ -356,7 +412,7 @@ export const CheckBlockSymbolTable: Checker<BlockSymbolTable> = CheckInterface({
 });
 
 export const CheckProgramSymbolTable: Checker<ProgramSymbolTable> = CheckInterface({
-  hasEval: CheckBoolean,
+  hasDebug: CheckBoolean,
   symbols: CheckArray(CheckString),
 });
 

@@ -1,6 +1,7 @@
 import type { InternalComponentCapabilities, InternalComponentManager } from "@glimmer/interfaces";
+import type {Reactive} from '@glimmer/reference';
 import { setInternalComponentManager } from '@glimmer/manager';
-import { NULL_REFERENCE, type Reference } from '@glimmer/reference';
+import { NULL_REFERENCE  } from '@glimmer/reference';
 
 const CAPABILITIES: InternalComponentCapabilities = {
   dynamicLayout: false,
@@ -27,7 +28,7 @@ export class TemplateOnlyComponentManager implements InternalComponentManager {
     return name;
   }
 
-  getSelf(): Reference {
+  getSelf(): Reactive {
     return NULL_REFERENCE;
   }
 

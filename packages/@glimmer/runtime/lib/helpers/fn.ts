@@ -1,13 +1,13 @@
+import type { CapturedArguments } from '@glimmer/interfaces';
+import type {Reactive} from '@glimmer/reference';
 import { check } from '@glimmer/debug';
-import type { CapturedArguments } from "@glimmer/interfaces";
 import {
-  createComputeRef,
-  isInvokableRef,
-  type Reference,
-  updateRef,
-  valueForRef,
+  Formula,
+  isAccessor,
+  unwrapReactive,
+  updateReactive
 } from '@glimmer/reference';
-import { buildUntouchableThis } from '@glimmer/util';
+import { buildUntouchableThis, stringifyDebugLabel } from '@glimmer/util';
 
 import { reifyPositional } from '../vm/arguments';
 import { internalHelper } from './internal-helper';
@@ -81,37 +81,32 @@ const context = buildUntouchableThis('`fn` helper');
 export const fn = internalHelper(({ positional }: CapturedArguments) => {
   let callbackRef = check(positional[0], assertCallbackIsFn);
 
-  return createComputeRef(
-    () => {
-      return (...invocationArgs: unknown[]) => {
-        let [fn, ...args] = reifyPositional(positional);
+  return Formula(() => {
+    return (...invocationArgs: unknown[]) => {
+      let [fn, ...args] = reifyPositional(positional);
 
-        if (import.meta.env.DEV) assertCallbackIsFn(callbackRef);
+      if (import.meta.env.DEV) assertCallbackIsFn(callbackRef);
 
-        if (isInvokableRef(callbackRef)) {
-          let value = args.length > 0 ? args[0] : invocationArgs[0];
-          return updateRef(callbackRef, value);
-        } else {
-          return (fn as Function).call(context, ...args, ...invocationArgs);
-        }
-      };
-    },
-    null,
-    'fn'
-  );
+      if (isAccessor(callbackRef)) {
+        let value = args.length > 0 ? args[0] : invocationArgs[0];
+        return updateReactive(callbackRef, value);
+      } else {
+        return (fn as Function).call(context, ...args, ...invocationArgs);
+      }
+    };
+  }, 'fn');
 });
 
-function assertCallbackIsFn(callbackRef: Reference | undefined): asserts callbackRef is Reference {
+function assertCallbackIsFn(
+  callbackRef: Reactive | undefined
+): asserts callbackRef is Reactive {
   if (
-    !(
-      callbackRef &&
-      (isInvokableRef(callbackRef) || typeof valueForRef(callbackRef) === 'function')
-    )
+    !(callbackRef && (isAccessor(callbackRef) || typeof unwrapReactive(callbackRef) === 'function'))
   ) {
     throw new Error(
       `You must pass a function as the \`fn\` helper's first argument, you passed ${
-        callbackRef ? valueForRef(callbackRef) : callbackRef
-      }. While rendering:\n\n${callbackRef?.debugLabel}`
+        callbackRef ? unwrapReactive(callbackRef) : callbackRef
+      }. While rendering${callbackRef ? ':\n\n' + stringifyDebugLabel(callbackRef) : ''}`
     );
   }
 }

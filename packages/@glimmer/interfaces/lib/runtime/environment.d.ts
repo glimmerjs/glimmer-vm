@@ -7,9 +7,9 @@ import type {
 } from '../components';
 import type { Nullable } from '../core';
 import type { GlimmerTreeChanges, GlimmerTreeConstruction } from '../dom/changes';
+import type { WithCreateInstance } from '../managers';
 import type { DebugRenderTree } from './debug-render-tree';
 import type { ModifierInstance } from './modifier';
-import type { WithCreateInstance } from '../managers';
 
 export interface EnvironmentOptions {
   document?: SimpleDocument;
@@ -36,6 +36,7 @@ export interface Environment {
 
   scheduleInstallModifier(modifier: ModifierInstance): void;
   scheduleUpdateModifier(modifier: ModifierInstance): void;
+  scheduleAfterRender(callback: () => void): void;
 
   begin(): void;
   commit(): void;
@@ -44,5 +45,7 @@ export interface Environment {
   getAppendOperations(): GlimmerTreeConstruction;
 
   isInteractive: boolean;
-  debugRenderTree?: DebugRenderTree | undefined;
+  debugRenderTree: DebugRenderTree | undefined;
+
+  withDebug(debug: (tree: DebugRenderTree) => void): void;
 }

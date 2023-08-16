@@ -14,6 +14,7 @@ export {
   type TemplateIdFn,
 } from './lib/parser/tokenizer-event-handlers';
 export * as src from './lib/source/api';
+export { SourceSpan } from './lib/source/loc/span';
 export { SourceSlice } from './lib/source/slice';
 export {
   type HasSourceSpan,

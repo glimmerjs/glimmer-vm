@@ -1,47 +1,41 @@
 import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
-import { $fp, $sp, type MachineRegister } from '@glimmer/vm';
 
-import { REGISTERS } from '../symbols';
-import { initializeRegistersWithSP, type LowLevelRegisters } from './low-level';
+import type { ArgumentsStack } from './low-level';
+import type { UnwindTarget } from './unwind';
 
-export interface EvaluationStack {
-  [REGISTERS]: LowLevelRegisters;
+import { PackedRegisters, Registers } from './low-level';
 
-  push(value: unknown): void;
-  dup(position?: MachineRegister): void;
-  copy(from: number, to: number): void;
-  pop<T>(n?: number): T;
-  peek<T>(offset?: number): T;
-  get<T>(offset: number, base?: number): T;
-  set(value: unknown, offset: number, base?: number): void;
-  slice<T = unknown>(start: number, end: number): T[];
-  capture(items: number): unknown[];
-  reset(): void;
-  toArray(): unknown[];
-}
-
-export default class EvaluationStackImpl implements EvaluationStack {
-  static restore(snapshot: unknown[]): EvaluationStackImpl {
-    return new this(snapshot.slice(), initializeRegistersWithSP(snapshot.length - 1));
+export default class EvaluationStackImpl implements ArgumentsStack {
+  static restore(snapshot: unknown[], pc: number, unwind: UnwindTarget): EvaluationStackImpl {
+    return new this(snapshot.slice(), PackedRegisters(pc, -1, -1, snapshot.length - 1, unwind));
   }
 
-  readonly [REGISTERS]: LowLevelRegisters;
+  readonly registers: Registers;
 
   // fp -> sp
-  constructor(private stack: unknown[] = [], registers: LowLevelRegisters) {
-    this[REGISTERS] = registers;
+  private constructor(
+    private stack: unknown[] = [],
+    registers: PackedRegisters
+  ) {
+    this.registers = new Registers(registers);
 
     if (LOCAL_DEBUG) {
       Object.seal(this);
     }
   }
 
-  push(value: unknown): void {
-    this.stack[++this[REGISTERS][$sp]] = value;
+  get size(): number {
+    return this.stack.length;
   }
 
-  dup(position = this[REGISTERS][$sp]): void {
-    this.stack[++this[REGISTERS][$sp]] = this.stack[position];
+  push(...values: unknown[]): void {
+    for (let value of values) {
+      this.stack[this.registers.push()] = value;
+    }
+  }
+
+  dup(position = this.registers.sp): void {
+    this.stack[this.registers.push()] = this.stack[position];
   }
 
   copy(from: number, to: number): void {
@@ -49,20 +43,20 @@ export default class EvaluationStackImpl implements EvaluationStack {
   }
 
   pop<T>(n = 1): T {
-    let top = this.stack[this[REGISTERS][$sp]] as T;
-    this[REGISTERS][$sp] -= n;
+    let top = this.stack[this.registers.sp] as T;
+    this.registers.pop(n);
     return top;
   }
 
-  peek<T>(offset = 0): T {
-    return this.stack[this[REGISTERS][$sp] - offset] as T;
+  top<T>(offset = 0): T {
+    return this.stack[this.registers.peek(offset)] as T;
   }
 
-  get<T>(offset: number, base = this[REGISTERS][$fp]): T {
+  get<T>(offset: number, base = this.registers.fp): T {
     return this.stack[base + offset] as T;
   }
 
-  set(value: unknown, offset: number, base = this[REGISTERS][$fp]) {
+  set(value: unknown, offset: number, base = this.registers.fp) {
     this.stack[base + offset] = value;
   }
 
@@ -71,7 +65,7 @@ export default class EvaluationStackImpl implements EvaluationStack {
   }
 
   capture(items: number): unknown[] {
-    let end = this[REGISTERS][$sp] + 1;
+    let end = this.registers.sp + 1;
     let start = end - items;
     return this.stack.slice(start, end);
   }
@@ -80,7 +74,21 @@ export default class EvaluationStackImpl implements EvaluationStack {
     this.stack.length = 0;
   }
 
-  toArray() {
-    return this.stack.slice(this[REGISTERS][$fp], this[REGISTERS][$sp] + 1);
+  /**
+   * @snapshots
+   */
+  frame() {
+    return this.stack.slice(
+      this.registers.fp === -1 ? 0 : this.registers.fp,
+      this.registers.sp + 1
+    );
+  }
+
+  /**
+   * @snapshots
+   */
+  all(): { before: unknown[]; frame: unknown[] } {
+    let before = this.stack.slice(0, this.registers.fp === -1 ? 0 : this.registers.fp);
+    return { before, frame: this.frame() };
   }
 }

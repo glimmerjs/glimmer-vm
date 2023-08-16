@@ -1,6 +1,6 @@
-import { jitSuite, RenderTest, test } from '..';
+import { jitSuite, RenderTestContext, test } from '@glimmer-workspace/integration-tests';
 
-class SmokeTests extends RenderTest {
+class SmokeTests extends RenderTestContext {
   static suiteName = 'Smoke Tests';
 
   @test
@@ -13,7 +13,7 @@ class SmokeTests extends RenderTest {
       output += '<div id="test">HelloBye</div>';
     }
 
-    this.render(input);
+    this.render.template(input);
     this.assertHTML(output);
   }
 }

@@ -1,32 +1,36 @@
+import type { TagDescription } from '@glimmer/interfaces/index';
 import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
-import { beginTestSteps, endTestSteps, verifySteps } from '@glimmer/util';
+import { beginTestSteps, devmode, endTestSteps, verifySteps } from '@glimmer/util';
 import { consumeTag, createTag, dirtyTag } from '@glimmer/validator';
 
-import { RenderTest } from '../render-test';
-import { test } from '../test-decorator';
+import { RenderTestContext } from '../render-test';
+import { render } from '../test-decorator';
 import { tracked } from '../test-helpers/tracked';
 
-export class EachSuite extends RenderTest {
+export class EachSuite extends RenderTestContext {
   static suiteName = '#each';
 
-  beforeEach() {
+  override readonly beforeEach = () => {
     if (LOCAL_DEBUG) {
       beginTestSteps?.();
     }
-  }
+  };
 
-  afterEach() {
+  override readonly afterEach = () => {
     if (LOCAL_DEBUG) {
       endTestSteps?.();
     }
-  }
+  };
 
-  @test
+  @render
   'basic #each'() {
     let list = [1, 2, 3, 4];
-    this.render('{{#each this.list key="@index" as |item|}}{{item}}{{else}}Empty{{/each}}', {
-      list,
-    });
+    this.render.template(
+      '{{#each this.list key="@index" as |item|}}{{item}}{{else}}Empty{{/each}}',
+      {
+        list,
+      }
+    );
     this.assertHTML('1234');
     this.assertStableRerender();
 
@@ -46,7 +50,7 @@ export class EachSuite extends RenderTest {
     this.assertStableNodes();
   }
 
-  @test
+  @render
   'autotracked custom iterable'() {
     if (typeof Symbol !== 'function') {
       QUnit.assert.ok(true, 'skipping platform without iterable');
@@ -55,7 +59,15 @@ export class EachSuite extends RenderTest {
 
     let list = {
       arr: [1, 2, 3, 4],
-      tag: createTag(),
+      tag: createTag(
+        devmode(
+          () =>
+            ({
+              reason: 'cell',
+              label: ['list'],
+            }) satisfies TagDescription
+        )
+      ),
 
       [Symbol.iterator]() {
         consumeTag(this.tag);
@@ -72,9 +84,12 @@ export class EachSuite extends RenderTest {
         this.arr.splice(0, this.arr.length);
       },
     };
-    this.render('{{#each this.list key="@index" as |item|}}{{item}}{{else}}Empty{{/each}}', {
-      list,
-    });
+    this.render.template(
+      '{{#each this.list key="@index" as |item|}}{{item}}{{else}}Empty{{/each}}',
+      {
+        list,
+      }
+    );
     this.assertHTML('1234');
     this.assertStableRerender();
 
@@ -94,12 +109,15 @@ export class EachSuite extends RenderTest {
     this.assertStableNodes();
   }
 
-  @test
+  @render
   'keyed #each'() {
     let list = [{ text: 'hello' }];
-    this.render('{{#each this.list key="text" as |item|}}{{item.text}}{{else}}Empty{{/each}}', {
-      list,
-    });
+    this.render.template(
+      '{{#each this.list key="text" as |item|}}{{item.text}}{{else}}Empty{{/each}}',
+      {
+        list,
+      }
+    );
     this.assertHTML('hello');
     this.assertStableRerender();
 
@@ -120,10 +138,21 @@ export class EachSuite extends RenderTest {
     this.assertStableNodes();
   }
 
-  @test
+  @render
+  'an empty list'() {
+    let list: number[] = [];
+    this.render.template(
+      '{{#each this.list key="@index" as |item|}}{{item}}{{else}}Empty{{/each}}',
+      { list }
+    );
+    this.assertHTML('Empty');
+    this.assertStableRerender();
+  }
+
+  @render
   'receives the index as the second parameter'() {
     let list = [1, 2, 3, 4];
-    this.render(
+    this.render.template(
       '{{#each this.list key="@index" as |item i|}}{{item}}-{{i}}:{{else}}Empty{{/each}}',
       {
         list,
@@ -148,7 +177,7 @@ export class EachSuite extends RenderTest {
     this.assertStableNodes();
   }
 
-  @test
+  @render
   'receives the index as the second parameter (when key=@identity)'() {
     let v1 = val(1);
     let v2 = val(2);
@@ -158,7 +187,7 @@ export class EachSuite extends RenderTest {
     let v6 = val(6);
 
     let list = [v1, v2, v3, v4];
-    this.render(
+    this.render.template(
       '{{#each this.list key="@identity" as |item i|}}{{item.val}}-{{i}}{{else}}Empty{{/each}}',
       {
         list,
@@ -188,10 +217,10 @@ export class EachSuite extends RenderTest {
     this.assertStableNodes();
   }
 
-  @test
+  @render
   'it can render duplicate primitive items'() {
     let list = ['a', 'a', 'a'];
-    this.render('{{#each this.list key="@index" as |item|}}{{item}}{{/each}}', {
+    this.render.template('{{#each this.list key="@index" as |item|}}{{item}}{{/each}}', {
       list,
     });
     this.assertHTML('aaa');
@@ -208,11 +237,11 @@ export class EachSuite extends RenderTest {
     this.assertStableNodes();
   }
 
-  @test
+  @render
   'it can render duplicate objects'() {
     let dup = { text: 'dup' };
     let list = [dup, dup, { text: 'uniq' }];
-    this.render('{{#each this.list key="@index" as |item|}}{{item.text}}{{/each}}', {
+    this.render.template('{{#each this.list key="@index" as |item|}}{{item.text}}{{/each}}', {
       list,
     });
     this.assertHTML('dupdupuniq');
@@ -229,7 +258,7 @@ export class EachSuite extends RenderTest {
     this.assertStableNodes();
   }
 
-  @test
+  @render
   'it renders all items with duplicate key values'() {
     class Item {
       @tracked text: string;
@@ -241,7 +270,7 @@ export class EachSuite extends RenderTest {
 
     let list = [new Item('Hello'), new Item('Hello'), new Item('Hello')];
 
-    this.render(`{{#each this.list key="text" as |item|}}{{item.text}}{{/each}}`, {
+    this.render.template(`{{#each this.list key="text" as |item|}}{{item.text}}{{/each}}`, {
       list,
     });
 
@@ -261,7 +290,7 @@ export class EachSuite extends RenderTest {
     this.assertStableNodes();
   }
 
-  @test
+  @render
   'it updates items if their key has not changed, and the items are tracked'() {
     class Item {
       @tracked public text: string;
@@ -273,7 +302,7 @@ export class EachSuite extends RenderTest {
 
     let list = [new Item('Hello'), new Item('Hello'), new Item('Hello')];
 
-    this.render(`{{#each this.list key="@identity" as |item|}}{{item.text}}{{/each}}`, {
+    this.render.template(`{{#each this.list key="@identity" as |item|}}{{item.text}}{{/each}}`, {
       list,
     });
 
@@ -293,11 +322,11 @@ export class EachSuite extends RenderTest {
     this.assertStableNodes();
   }
 
-  @test
+  @render
   'it does not update items if their key has not changed, and the items are not tracked'() {
     let list = [{ text: 'Hello' }, { text: 'Hello' }, { text: 'Hello' }];
 
-    this.render(`{{#each this.list key="@identity" as |item|}}{{item.text}}{{/each}}`, {
+    this.render.template(`{{#each this.list key="@identity" as |item|}}{{item.text}}{{/each}}`, {
       list,
     });
 
@@ -311,11 +340,11 @@ export class EachSuite extends RenderTest {
     this.assertStableNodes();
   }
 
-  @test
+  @render
   'scoped variable not available outside list'() {
     let list = ['Wycats'];
 
-    this.render(
+    this.render.template(
       `{{this.name}}-{{#each this.list key="@index" as |name|}}{{name}}{{/each}}-{{this.name}}`,
       {
         list,
@@ -342,11 +371,11 @@ export class EachSuite extends RenderTest {
     this.assertStableNodes();
   }
 
-  @test
+  @render
   'else template is displayed with context'() {
     let list: string[] = [];
 
-    this.render(
+    this.render.template(
       `{{#each this.list key="@index" as |name|}}Has thing{{else}}No thing {{this.otherThing}}{{/each}}`,
       {
         list,
@@ -371,12 +400,12 @@ export class EachSuite extends RenderTest {
     this.assertStableNodes();
   }
 
-  @test
+  @render
   'When re-iterated via swap #1, the original references are updated'() {
     if (!LOCAL_DEBUG) return;
 
     let arr = numbers();
-    this.render(`{{#each this.arr as |item|}}{{item}}{{/each}}`, { arr });
+    this.render.template(`{{#each this.arr as |item|}}{{item}}{{/each}}`, { arr });
 
     let a = arr[1];
     let b = arr[7];
@@ -401,12 +430,12 @@ export class EachSuite extends RenderTest {
     );
   }
 
-  @test
+  @render
   'When re-iterated via swap #2, the original references are updated'() {
     if (!LOCAL_DEBUG) return;
 
     let arr = numbers();
-    this.render(`{{#each this.arr as |item|}}{{item}}{{/each}}`, { arr });
+    this.render.template(`{{#each this.arr as |item|}}{{item}}{{/each}}`, { arr });
 
     let a = arr[0];
     let b = arr[7];
@@ -431,12 +460,12 @@ export class EachSuite extends RenderTest {
     );
   }
 
-  @test
+  @render
   'When re-iterated via swap #3, the original references are updated'() {
     if (!LOCAL_DEBUG) return;
 
     let arr = numbers();
-    this.render(`{{#each this.arr as |item|}}{{item}}{{/each}}`, { arr });
+    this.render.template(`{{#each this.arr as |item|}}{{item}}{{/each}}`, { arr });
 
     let a = arr[0];
     let b = arr[6];
@@ -461,12 +490,12 @@ export class EachSuite extends RenderTest {
     );
   }
 
-  @test
+  @render
   'When re-iterated via swap #4, the original references are updated'() {
     if (!LOCAL_DEBUG) return;
 
     let arr = numbers();
-    this.render(`{{#each this.arr as |item|}}{{item}}{{/each}}`, { arr });
+    this.render.template(`{{#each this.arr as |item|}}{{item}}{{/each}}`, { arr });
 
     let a = arr[1];
     let b = arr[3];
@@ -495,12 +524,12 @@ export class EachSuite extends RenderTest {
     );
   }
 
-  @test
+  @render
   'When re-iterated via swap #5, the original references are updated'() {
     if (!LOCAL_DEBUG) return;
 
     let arr = numbers();
-    this.render(`{{#each this.arr as |item|}}{{item}}{{/each}}`, { arr });
+    this.render.template(`{{#each this.arr as |item|}}{{item}}{{/each}}`, { arr });
 
     let a = arr[1];
     let b = arr[3];
@@ -527,12 +556,12 @@ export class EachSuite extends RenderTest {
     );
   }
 
-  @test
+  @render
   'When re-iterated via swap #6, the original references are updated'() {
     if (!LOCAL_DEBUG) return;
 
     let arr = numbers();
-    this.render(`{{#each this.arr as |item|}}{{item}}{{/each}}`, { arr });
+    this.render.template(`{{#each this.arr as |item|}}{{item}}{{/each}}`, { arr });
 
     let a = arr[1];
     let b = arr[6];
@@ -560,12 +589,12 @@ export class EachSuite extends RenderTest {
     );
   }
 
-  @test
+  @render
   'When re-iterated via swap #7, the original references are updated'() {
     if (!LOCAL_DEBUG) return;
 
     let arr = [1, 2, 3, 4, 5, 6, 7, 8];
-    this.render(`{{#each this.arr as |item|}}{{item}}{{/each}}`, { arr });
+    this.render.template(`{{#each this.arr as |item|}}{{item}}{{/each}}`, { arr });
 
     arr.shift();
     arr.splice(2, 0, 9);
@@ -589,12 +618,12 @@ export class EachSuite extends RenderTest {
     );
   }
 
-  @test
+  @render
   'When re-iterated via swap #8, the original references are updated'() {
     if (!LOCAL_DEBUG) return;
 
     let arr = [1, 2, 3, 4, 5, 6, 7, 8];
-    this.render(`{{#each this.arr as |item|}}{{item}}{{/each}}`, { arr });
+    this.render.template(`{{#each this.arr as |item|}}{{item}}{{/each}}`, { arr });
 
     let shifted = [8, 1, 2, 3, 4, 5, 6, 7];
 
@@ -616,12 +645,12 @@ export class EachSuite extends RenderTest {
     );
   }
 
-  @test
+  @render
   'When re-iterated via swap #9, the original references are updated'() {
     if (!LOCAL_DEBUG) return;
 
     let arr = [1, 2, 3, 4, 5, 6, 7, 8];
-    this.render(`{{#each this.arr as |item|}}{{item}}{{/each}}`, { arr });
+    this.render.template(`{{#each this.arr as |item|}}{{item}}{{/each}}`, { arr });
 
     let shifted = [2, 3, 4, 5, 6, 7, 8, 1];
 
@@ -643,18 +672,17 @@ export class EachSuite extends RenderTest {
     );
   }
 
-  @test
+  @render
   'When re-iterated via swap #10, the original references are updated'(assert: Assert) {
     if (!LOCAL_DEBUG) return;
 
     let arr = [1, 2, 3, 4, 5, 6, 7, 8];
-    this.render(`{{#each this.arr as |item|}}{{item}}{{/each}}`, { arr });
+    this.render.template(`{{#each this.arr as |item|}}{{item}}{{/each}}`, { arr });
 
     for (let i = 0; i < 100; i++) {
       shuffleArray(arr);
       this.rerender({ arr });
 
-       
       verifySteps?.('list-updates', (steps) => {
         let stats = getStepStats(steps as ListStep[]);
 
@@ -668,12 +696,12 @@ export class EachSuite extends RenderTest {
     }
   }
 
-  @test
+  @render
   'When re-iterated via swap #11, the original references are updated'(assert: Assert) {
     if (!LOCAL_DEBUG) return;
 
     let arr = [1, 2, 3, 4, 5, 6, 7, 8];
-    this.render(`{{#each this.arr as |item|}}{{item}}{{/each}}`, { arr });
+    this.render.template(`{{#each this.arr as |item|}}{{item}}{{/each}}`, { arr });
 
     for (let i = 0; i < 100; i++) {
       let newArr = arr.slice();
@@ -681,7 +709,6 @@ export class EachSuite extends RenderTest {
       let semiArr = newArr.slice(0, 5);
       this.rerender({ arr: semiArr });
 
-       
       verifySteps?.('list-updates', (steps) => {
         let stats = getStepStats(steps as ListStep[]);
 
@@ -695,12 +722,12 @@ export class EachSuite extends RenderTest {
     }
   }
 
-  @test
+  @render
   'When re-iterated via swap #12, the original references are updated'(assert: Assert) {
     if (!LOCAL_DEBUG) return;
 
     let arr = [1, 2, 3, 4, 5, 6, 7, 8];
-    this.render(`{{#each this.arr as |item|}}{{item}}{{/each}}`, { arr });
+    this.render.template(`{{#each this.arr as |item|}}{{item}}{{/each}}`, { arr });
 
     for (let i = 0; i < 100; i++) {
       let newArr = arr.slice();
@@ -708,7 +735,6 @@ export class EachSuite extends RenderTest {
       let semiArr = newArr.slice(0, 5).concat([11, 12]);
       this.rerender({ arr: semiArr });
 
-       
       verifySteps?.('list-updates', (steps) => {
         let stats = getStepStats(steps as ListStep[]);
 
@@ -722,16 +748,19 @@ export class EachSuite extends RenderTest {
     }
   }
 
-  @test
+  @render
   're-iterating nested arrays works'() {
     let arr = [
       [1, 2, 3, 4, 5],
       [4, 5, 6, 7, 8],
       [5, 6, 7, 8, 9],
     ];
-    this.render(`{{#each this.arr as |sub|}}{{#each sub as |item|}}{{item}}{{/each}}{{/each}}`, {
-      arr,
-    });
+    this.render.template(
+      `{{#each this.arr as |sub|}}{{#each sub as |item|}}{{item}}{{/each}}{{/each}}`,
+      {
+        arr,
+      }
+    );
 
     for (let i = 0; i < 100; i++) {
       for (let sub of arr) {
@@ -791,6 +820,6 @@ function numbers() {
     number,
     number,
     number,
-    number
+    number,
   ];
 }

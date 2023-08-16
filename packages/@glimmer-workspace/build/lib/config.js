@@ -5,13 +5,14 @@ import { existsSync, readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import replace from '@rollup/plugin-replace';
+import terser from '@rollup/plugin-terser';
+import * as insert from 'rollup-plugin-insert';
 import rollupTS from 'rollup-plugin-ts';
 import ts from 'typescript';
-import replace from '@rollup/plugin-replace';
-import * as insert from 'rollup-plugin-insert';
+
 import importMeta from './import-meta.js';
 import inline from './inline.js';
-import terser from '@rollup/plugin-terser';
 
 // eslint-disable-next-line import/no-named-as-default-member
 const { ModuleKind, ModuleResolutionKind, ScriptTarget, ImportsNotUsedAsValues } = ts;
@@ -65,7 +66,6 @@ export function tsconfig(updates) {
     verbatimModuleSyntax: true,
     module: ModuleKind.NodeNext,
     moduleResolution: ModuleResolutionKind.NodeNext,
-    experimentalDecorators: true,
     ...updates,
   };
 }
@@ -334,7 +334,7 @@ export class Package {
         typescript(this.#package, {
           target: ScriptTarget.ES2021,
           module: ModuleKind.CommonJS,
-          moduleResolution: ModuleResolutionKind.NodeJs,
+          moduleResolution: ModuleResolutionKind.Bundler,
         }),
       ],
     }));

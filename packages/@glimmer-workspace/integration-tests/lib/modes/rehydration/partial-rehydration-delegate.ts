@@ -2,12 +2,11 @@ import type { Dict, RenderResult, SimpleElement } from '@glimmer/interfaces';
 import { renderComponent, renderSync } from '@glimmer/runtime';
 
 import type { DebugRehydrationBuilder } from './builder';
+
 import { RehydrationDelegate } from './delegate';
 
 export class PartialRehydrationDelegate extends RehydrationDelegate {
-  registerTemplateOnlyComponent(name: string, layout: string) {
-    this.registerComponent('TemplateOnly', 'TemplateOnly', name, layout);
-  }
+  override readonly style = 'partial rehydration';
 
   renderComponentClientSide(
     name: string,

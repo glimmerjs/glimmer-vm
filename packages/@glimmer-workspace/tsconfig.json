@@ -3,13 +3,17 @@
     "composite": true,
     "baseUrl": "..",
 
+    "allowJs": true,
+    "checkJs": true,
+
     "target": "esnext",
     "module": "esnext",
     "moduleResolution": "bundler",
     "allowSyntheticDefaultImports": true,
-    "experimentalDecorators": true,
+    "esModuleInterop": true,
     "verbatimModuleSyntax": true,
 
+    "experimentalDecorators": true,
     "outDir": "../../ts-dist/@glimmer-workspace",
 
     "strict": true,
@@ -22,10 +26,13 @@
     "skipLibCheck": true,
     "types": ["qunit", "node", "vite/client"]
   },
-  "include": ["./*/index.*", "./*/lib/**/*", "./*/test/**/*"],
+  "include": ["./*/index.*", "./*/lib/**/*.*", "./*/test/**/*.*"],
   "references": [
     {
       "path": "../@glimmer/tsconfig.json"
+    },
+    {
+      "path": "./build/tsconfig.json"
     }
   ]
 }
