@@ -1,42 +1,27 @@
 import type {
   Cursor,
-  Dict,
   ElementBuilder,
-  ElementNamespace,
   Environment,
-  Helper,
-  Nullable,
   RenderResult,
   SimpleDocument,
-  SimpleDocumentFragment,
   SimpleElement,
   SimpleNode,
-  SimpleText,
 } from '@glimmer/interfaces';
-import type { Reference } from '@glimmer/reference';
-import type { ASTPluginBuilder, PrecompileOptions } from '@glimmer/syntax';
+import type { Reactive } from '@glimmer/reference';
+import type { ASTPluginBuilder } from '@glimmer/syntax';
 import { serializeBuilder } from '@glimmer/node';
-import { createConstRef } from '@glimmer/reference';
 import { assign, castToSimple } from '@glimmer/util';
 import createHTMLDocument from '@simple-dom/document';
 
-import type { ComponentKind } from '../../components';
-import type { UserHelper } from '../../helpers';
-import type { TestModifierConstructor } from '../../modifiers';
 import type RenderDelegate from '../../render-delegate';
-import type { RenderDelegateOptions } from '../../render-delegate';
-import type { JitTestDelegateContext } from '../jit/delegate';
+import type { RenderDelegateOptions, WrappedTemplate } from '../../render-delegate';
+import type { Self } from '../../render-test';
+import type { TestJitContext } from '../jit/delegate';
 import type { DebugRehydrationBuilder } from './builder';
 
 import { BaseEnv } from '../../base-env';
 import { replaceHTML, toInnerHTML } from '../../dom/simple-utils';
 import { JitDelegateContext } from '../jit/delegate';
-import {
-  registerComponent,
-  registerHelper,
-  registerInternalHelper,
-  registerModifier,
-} from '../jit/register';
 import { TestJitRegistry } from '../jit/registry';
 import { renderTemplate } from '../jit/render';
 import { TestJitRuntimeResolver } from '../jit/resolver';
@@ -50,10 +35,10 @@ export class RehydrationDelegate implements RenderDelegate {
   static readonly isEager = false;
   static readonly style = 'rehydration';
 
-  private plugins: ASTPluginBuilder[] = [];
+  readonly style: string = 'rehydration';
 
-  public clientEnv: JitTestDelegateContext;
-  public serverEnv: JitTestDelegateContext;
+  public clientEnv: TestJitContext;
+  public serverEnv: TestJitContext;
 
   private clientResolver: TestJitRuntimeResolver;
   private serverResolver: TestJitRuntimeResolver;
@@ -64,42 +49,31 @@ export class RehydrationDelegate implements RenderDelegate {
   public clientDoc: SimpleDocument;
   public serverDoc: SimpleDocument;
 
+  readonly context: TestJitContext;
+  readonly dom: RenderDelegate['dom'];
+
   public declare rehydrationStats: RehydrationStats;
 
-  private self: Nullable<Reference> = null;
-
   constructor(options?: RenderDelegateOptions) {
-    let delegate = assign(options?.env ?? {}, BaseEnv);
+    let envDelegate = assign(options?.env ?? {}, BaseEnv);
 
-    this.clientDoc = castToSimple(document);
+    const clientDoc = castToSimple(document);
+
+    this.clientDoc = clientDoc;
     this.clientRegistry = new TestJitRegistry();
     this.clientResolver = new TestJitRuntimeResolver(this.clientRegistry);
-    this.clientEnv = JitDelegateContext(this.clientDoc, this.clientResolver, delegate);
+    this.clientEnv = JitDelegateContext(this.clientDoc, this.clientResolver, envDelegate);
+
+    this.dom = {
+      document: this.clientDoc,
+      getInitialElement: () => this.clientDoc.createElement('div'),
+    };
+    this.context = JitDelegateContext(clientDoc, this.clientResolver, envDelegate);
 
     this.serverDoc = createHTMLDocument();
     this.serverRegistry = new TestJitRegistry();
     this.serverResolver = new TestJitRuntimeResolver(this.serverRegistry);
-    this.serverEnv = JitDelegateContext(this.serverDoc, this.serverResolver, delegate);
-  }
-
-  getInitialElement(): SimpleElement {
-    return this.clientDoc.createElement('div');
-  }
-
-  createElement(tagName: string): SimpleElement {
-    return this.clientDoc.createElement(tagName);
-  }
-
-  createTextNode(content: string): SimpleText {
-    return this.clientDoc.createTextNode(content);
-  }
-
-  createElementNS(namespace: ElementNamespace, tagName: string): SimpleElement {
-    return this.clientDoc.createElementNS(namespace, tagName);
-  }
-
-  createDocumentFragment(): SimpleDocumentFragment {
-    return this.clientDoc.createDocumentFragment();
+    this.serverEnv = JitDelegateContext(this.serverDoc, this.serverResolver, envDelegate);
   }
 
   getElementBuilder(env: Environment, cursor: Cursor): ElementBuilder {
@@ -110,55 +84,52 @@ export class RehydrationDelegate implements RenderDelegate {
     return serializeBuilder(env, cursor);
   }
 
+  wrap(template: string): WrappedTemplate {
+    return { template };
+  }
+
   renderServerSide(
     template: string,
-    context: Dict<unknown>,
+    self: Reactive,
     takeSnapshot: () => void,
-    element: SimpleElement | undefined = undefined
+    element: SimpleElement | undefined = undefined,
+    plugins: ASTPluginBuilder[]
   ): string {
     element = element || this.serverDoc.createElement('div');
     let cursor = { element, nextSibling: null };
     let { env } = this.serverEnv.runtime;
 
     // Emulate server-side render
-    renderTemplate(
-      template,
-      this.serverEnv,
-      this.getSelf(env, context),
-      this.getElementBuilder(env, cursor),
-      this.precompileOptions
-    );
+    renderTemplate(template, this.serverEnv, self, this.getElementBuilder(env, cursor), {
+      plugins: {
+        ast: plugins,
+      },
+    });
 
     takeSnapshot();
     return this.serialize(element);
-  }
-
-  getSelf(_env: Environment, context: unknown): Reference {
-    if (!this.self) {
-      this.self = createConstRef(context, 'this');
-    }
-
-    return this.self;
   }
 
   serialize(element: SimpleElement): string {
     return toInnerHTML(element);
   }
 
-  renderClientSide(template: string, context: Dict<unknown>, element: SimpleElement): RenderResult {
+  renderClientSide(
+    template: string,
+    self: Reactive,
+    element: SimpleElement,
+    plugins: ASTPluginBuilder[]
+  ): RenderResult {
     let env = this.clientEnv.runtime.env;
-    this.self = null;
 
     // Client-side rehydration
     let cursor = { element, nextSibling: null };
     let builder = this.getElementBuilder(env, cursor) as DebugRehydrationBuilder;
-    let result = renderTemplate(
-      template,
-      this.clientEnv,
-      this.getSelf(env, context),
-      builder,
-      this.precompileOptions
-    );
+    let result = renderTemplate(template, this.clientEnv, self, builder, {
+      plugins: {
+        ast: plugins,
+      },
+    });
 
     this.rehydrationStats = {
       clearedNodes: builder['clearedNodes'],
@@ -169,47 +140,20 @@ export class RehydrationDelegate implements RenderDelegate {
 
   renderTemplate(
     template: string,
-    context: Dict<unknown>,
+    self: Self,
     element: SimpleElement,
-    snapshot: () => void
+    snapshot: () => void,
+    plugins: ASTPluginBuilder[]
   ): RenderResult {
-    let serialized = this.renderServerSide(template, context, snapshot);
+    let serialized = this.renderServerSide(template, self.ref, snapshot, undefined, plugins);
     replaceHTML(element, serialized);
     qunitFixture().appendChild(element);
 
-    return this.renderClientSide(template, context, element);
+    return this.renderClientSide(template, self.ref, element, plugins);
   }
 
-  registerPlugin(plugin: ASTPluginBuilder): void {
-    this.plugins.push(plugin);
-  }
-
-  registerComponent(type: ComponentKind, _testType: string, name: string, layout: string): void {
-    registerComponent(this.clientRegistry, type, name, layout);
-    registerComponent(this.serverRegistry, type, name, layout);
-  }
-
-  registerHelper(name: string, helper: UserHelper): void {
-    registerHelper(this.clientRegistry, name, helper);
-    registerHelper(this.serverRegistry, name, helper);
-  }
-
-  registerInternalHelper(name: string, helper: Helper) {
-    registerInternalHelper(this.clientRegistry, name, helper);
-    registerInternalHelper(this.serverRegistry, name, helper);
-  }
-
-  registerModifier(name: string, ModifierClass: TestModifierConstructor): void {
-    registerModifier(this.clientRegistry, name, ModifierClass);
-    registerModifier(this.serverRegistry, name, ModifierClass);
-  }
-
-  private get precompileOptions(): PrecompileOptions {
-    return {
-      plugins: {
-        ast: this.plugins,
-      },
-    };
+  get registries() {
+    return [this.clientRegistry, this.serverRegistry];
   }
 }
 

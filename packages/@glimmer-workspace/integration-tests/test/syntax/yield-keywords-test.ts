@@ -1,6 +1,12 @@
-import { jitSuite, preprocess, RenderTest, syntaxErrorFor, test } from '../..';
+import {
+  jitSuite,
+  preprocess,
+  RenderTestContext,
+  syntaxErrorFor,
+  test,
+} from '@glimmer-workspace/integration-tests';
 
-class NamedBlocksSyntaxErrors extends RenderTest {
+class NamedBlocksSyntaxErrors extends RenderTestContext {
   static suiteName = 'yield keywords syntax errors';
 
   @test

@@ -1,5 +1,5 @@
 import type { Nullable, SimpleElement, SimpleNode } from '@glimmer/interfaces';
-import type { EndTag, Token } from 'simple-html-tokenizer';
+import type { EndTag, Token, TokenType } from 'simple-html-tokenizer';
 import { castToSimple, COMMENT_NODE, TEXT_NODE, unwrap } from '@glimmer/util';
 import { tokenize } from 'simple-html-tokenizer';
 
@@ -8,38 +8,51 @@ import { replaceHTML, toInnerHTML } from './dom/simple-utils';
 export type IndividualSnapshot = 'up' | 'down' | SimpleNode;
 export type NodesSnapshot = IndividualSnapshot[];
 
+export const DOCTYPE_TOKEN = 'Doctype' as TokenType.Doctype;
+export const START_TAG_TOKEN = 'StartTag' as TokenType.StartTag;
+export const END_TAG_TOKEN = 'EndTag' as TokenType.EndTag;
+export const CHARS_TOKEN = 'Chars' as TokenType.Chars;
+export const COMMENT_TOKEN = 'Comment' as TokenType.Comment;
+
 export function snapshotIsNode(snapshot: IndividualSnapshot): snapshot is SimpleNode {
   return snapshot !== 'up' && snapshot !== 'down';
 }
 
 export function equalTokens(
-  testFragment: SimpleElement | string | null,
-  testHTML: SimpleElement | string,
+  actual: SimpleElement | string | null,
+  expected:
+    | SimpleElement
+    | string
+    | {
+        expected: string | SimpleElement;
+        ignore: 'comments';
+      },
   message: Nullable<string> = null
 ) {
-  if (testFragment === null) {
+  if (actual === null) {
     throw new Error(`Unexpectedly passed null to equalTokens`);
   }
 
-  const fragTokens = generateTokens(testFragment);
-  const htmlTokens = generateTokens(testHTML);
+  const { element: expectedElement, ignoreComments } = extract(expected);
+  const expectedTokens = generateTokens(expectedElement, ignoreComments);
+  const fragTokens = generateTokens(extract(actual).element, ignoreComments);
 
   cleanEmberIds(fragTokens.tokens);
-  cleanEmberIds(htmlTokens.tokens);
+  cleanEmberIds(expectedTokens.tokens);
 
-  const equiv = QUnit.equiv(fragTokens.tokens, htmlTokens.tokens);
+  const equiv = QUnit.equiv(fragTokens.tokens, expectedTokens.tokens);
 
-  if (equiv && fragTokens.html !== htmlTokens.html) {
+  if (equiv && fragTokens.html !== expectedTokens.html) {
     QUnit.assert.deepEqual(
       fragTokens.tokens,
-      htmlTokens.tokens,
+      expectedTokens.tokens,
       message || 'expected tokens to match'
     );
   } else {
     QUnit.assert.pushResult({
-      result: QUnit.equiv(fragTokens.tokens, htmlTokens.tokens),
+      result: QUnit.equiv(fragTokens.tokens, expectedTokens.tokens),
       actual: fragTokens.html,
-      expected: htmlTokens.html,
+      expected: expectedTokens.html,
       message: message || 'expected tokens to match',
     });
   }
@@ -85,19 +98,43 @@ export function generateSnapshot(element: SimpleElement): SimpleNode[] {
   return snapshot;
 }
 
-function generateTokens(divOrHTML: SimpleElement | string): { tokens: Token[]; html: string } {
-  let div: SimpleElement;
-  if (typeof divOrHTML === 'string') {
-    div = castToSimple(document.createElement('div'));
-    replaceHTML(div, divOrHTML);
+function extract(
+  expected: SimpleElement | string | { expected: string | SimpleElement; ignore: 'comments' }
+): {
+  ignoreComments: boolean;
+  element: SimpleElement;
+} {
+  if (typeof expected === 'string') {
+    const div = castToSimple(document.createElement('div'));
+    replaceHTML(div, expected);
+    return {
+      ignoreComments: false,
+      element: div,
+    };
+  } else if ('nodeType' in expected) {
+    return {
+      ignoreComments: false,
+      element: expected,
+    };
   } else {
-    div = divOrHTML;
+    return {
+      ignoreComments: true,
+      element: extract(expected.expected).element,
+    };
   }
+}
 
-  let tokens = tokenize(toInnerHTML(div), {});
+function generateTokens(
+  element: SimpleElement,
+  ignoreComments: boolean
+): {
+  tokens: Token[];
+  html: string;
+} {
+  let tokens = tokenize(toInnerHTML(element), {});
 
   tokens = tokens.reduce((tokens, token) => {
-    if (token.type === 'StartTag') {
+    if (token.type === START_TAG_TOKEN) {
       if (token.attributes) {
         token.attributes.sort((a, b) => {
           if (a[0] > b[0]) {
@@ -117,14 +154,14 @@ function generateTokens(divOrHTML: SimpleElement | string): { tokens: Token[]; h
       } else {
         tokens.push(token);
       }
-    } else {
+    } else if (!ignoreComments || token.type !== COMMENT_TOKEN) {
       tokens.push(token);
     }
 
     return tokens;
   }, new Array<Token>());
 
-  return { tokens, html: toInnerHTML(div) };
+  return { tokens, html: toInnerHTML(element) };
 }
 
 export function equalSnapshots(a: SimpleNode[], b: SimpleNode[]) {

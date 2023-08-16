@@ -66,7 +66,6 @@ export function tsconfig(updates) {
     verbatimModuleSyntax: true,
     module: ModuleKind.NodeNext,
     moduleResolution: ModuleResolutionKind.NodeNext,
-    experimentalDecorators: true,
     ...updates,
   };
 }
@@ -343,7 +342,7 @@ export class Package {
         typescript(this.#package, {
           target: ScriptTarget.ES2021,
           module: ModuleKind.CommonJS,
-          moduleResolution: ModuleResolutionKind.NodeJs,
+          moduleResolution: ModuleResolutionKind.Bundler,
         }),
       ],
     }));

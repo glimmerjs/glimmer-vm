@@ -1,4 +1,20 @@
-import type { Tag } from '@glimmer/interfaces';
+import type {
+  DefaultDescriptionFields,
+  Described,
+  Description,
+  DescriptionSpec,
+  DevMode,
+  Tag,
+  TagDescription,
+  ValidatableDescription,
+} from '@glimmer/interfaces';
+import {
+  devmode,
+  getDescription,
+  inDevmode,
+  setDescription,
+  toValidatableDescription,
+} from '@glimmer/util';
 
 import type { Revision } from './validators';
 
@@ -9,9 +25,10 @@ import { combine, CONSTANT_TAG, isConstTag, validateTag, valueForTag } from './v
 /**
  * An object that that tracks @tracked properties that were consumed.
  */
-class Tracker {
+class Tracker implements Described<Description> {
   private tags = new Set<Tag>();
   private last: Tag | null = null;
+  declare description: DevMode<Description>;
 
   add(tag: Tag) {
     if (tag === CONSTANT_TAG) return;
@@ -30,10 +47,10 @@ class Tracker {
 
     if (tags.size === 0) {
       return CONSTANT_TAG;
-    } else if (tags.size === 1) {
+    } else if (!import.meta.env.DEV && tags.size === 1) {
       return this.last as Tag;
     } else {
-      return combine(Array.from(this.tags));
+      return combine(Array.from(tags));
     }
   }
 }
@@ -55,13 +72,22 @@ let CURRENT_TRACKER: Tracker | null = null;
 
 const OPEN_TRACK_FRAMES: (Tracker | null)[] = [];
 
-export function beginTrackFrame(debuggingContext?: string | false): void {
+export function beginTrackFrame(
+  context: DevMode<Description> = devmode(
+    () =>
+      ({
+        reason: 'formula',
+        label: ['(tracking frame)'],
+      }) satisfies Description
+  )
+): void {
   OPEN_TRACK_FRAMES.push(CURRENT_TRACKER);
 
   CURRENT_TRACKER = new Tracker();
+  setDescription(CURRENT_TRACKER, context);
 
   if (import.meta.env.DEV) {
-    unwrap(debug.beginTrackingTransaction)(debuggingContext);
+    unwrap(debug.beginTrackingTransaction)(inDevmode(context));
   }
 }
 
@@ -122,7 +148,7 @@ export function consumeTag(tag: Tag): void {
 const CACHE_KEY = Symbol('CACHE_KEY');
 
 // public interface
-export interface Cache<T = unknown> {
+export interface Cache<T = unknown> extends Described<Description> {
   [CACHE_KEY]: T;
 }
 
@@ -132,7 +158,7 @@ const TAG = Symbol('TAG');
 const SNAPSHOT = Symbol('SNAPSHOT');
 const DEBUG_LABEL = Symbol('DEBUG_LABEL');
 
-interface InternalCache<T = unknown> {
+interface InternalCache<T = unknown> extends Described<TagDescription> {
   [FN]: (...args: unknown[]) => T;
   [LAST_VALUE]: T | undefined;
   [TAG]: Tag | undefined;
@@ -140,23 +166,32 @@ interface InternalCache<T = unknown> {
   [DEBUG_LABEL]?: string | false | undefined;
 }
 
-export function createCache<T>(fn: () => T, debuggingLabel?: string | false): Cache<T> {
+const CACHE_DEFAULTS = devmode(
+  () =>
+    ({
+      reason: 'cache',
+      label: ['(cache)'],
+    }) satisfies DefaultDescriptionFields<ValidatableDescription>
+);
+
+export function createCache<T>(fn: () => T, debuggingLabel?: DescriptionSpec): Cache<T> {
   if (import.meta.env.DEV && !(typeof fn === 'function')) {
     throw new Error(
       `createCache() must be passed a function as its first parameter. Called with: ${String(fn)}`
     );
   }
 
-  let cache: InternalCache<T> = {
+  let cache: Omit<InternalCache<T>, 'description'> = {
     [FN]: fn,
     [LAST_VALUE]: undefined,
     [TAG]: undefined,
     [SNAPSHOT]: -1,
   };
 
-  if (import.meta.env.DEV) {
-    cache[DEBUG_LABEL] = debuggingLabel;
-  }
+  setDescription(
+    cache,
+    devmode(() => toValidatableDescription(debuggingLabel, CACHE_DEFAULTS))
+  );
 
   return cache as unknown as Cache<T>;
 }
@@ -169,7 +204,7 @@ export function getValue<T>(cache: Cache<T>): T | undefined {
   let snapshot = cache[SNAPSHOT];
 
   if (tag === undefined || !validateTag(tag, snapshot)) {
-    beginTrackFrame();
+    beginTrackFrame(getDescription(cache));
 
     try {
       cache[LAST_VALUE] = fn();
@@ -228,8 +263,13 @@ function assertTag(tag: Tag | undefined, cache: InternalCache): asserts tag is T
 // refactors are merged, and we should generally be moving away from it. It may
 // be necessary in Ember for a while longer, but I think we'll be able to drop
 // it in favor of cache sooner rather than later.
-export function track(block: () => void, debugLabel?: string | false): Tag {
-  beginTrackFrame(debugLabel);
+export function track(
+  block: () => void,
+  description: DevMode<Description> = devmode(
+    () => ({ reason: 'tracking', label: ['(track)'] }) satisfies Description
+  )
+): Tag {
+  beginTrackFrame(description);
 
   let tag;
 

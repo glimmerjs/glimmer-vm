@@ -1,4 +1,4 @@
-import type { Bounds, Cursor, Nullable, SimpleElement, SimpleNode } from '@glimmer/interfaces';
+import type { BlockBounds, Cursor, Nullable, SimpleElement, SimpleNode } from '@glimmer/interfaces';
 import { expect } from '@glimmer/util';
 
 export class CursorImpl implements Cursor {
@@ -8,13 +8,13 @@ export class CursorImpl implements Cursor {
   ) {}
 }
 
-export type DestroyableBounds = Bounds;
+export type DestroyableBounds = BlockBounds;
 
-export class ConcreteBounds implements Bounds {
+export class ConcreteBounds implements BlockBounds {
   constructor(
     public parentNode: SimpleElement,
-    private first: SimpleNode,
-    private last: SimpleNode
+    readonly first: SimpleNode,
+    readonly last: SimpleNode
   ) {}
 
   parentElement(): SimpleElement {
@@ -30,7 +30,7 @@ export class ConcreteBounds implements Bounds {
   }
 }
 
-export function move(bounds: Bounds, reference: Nullable<SimpleNode>): Nullable<SimpleNode> {
+export function move(bounds: BlockBounds, reference: Nullable<SimpleNode>): Nullable<SimpleNode> {
   let parent = bounds.parentElement();
   let first = bounds.firstNode();
   let last = bounds.lastNode();
@@ -51,16 +51,31 @@ export function move(bounds: Bounds, reference: Nullable<SimpleNode>): Nullable<
   }
 }
 
-export function clear(bounds: Bounds): Nullable<SimpleNode> {
+export function clear(bounds: BlockBounds): Nullable<SimpleNode> {
   let parent = bounds.parentElement();
   let first = bounds.firstNode();
   let last = bounds.lastNode();
 
-  let current: SimpleNode = first;
+  return clearRange({ parent, first, last });
+}
 
-  // eslint-disable-next-line no-constant-condition
-  while (true) {
-    let next = current.nextSibling;
+export function clearRange({
+  parent,
+  first,
+  last,
+}: {
+  parent: SimpleElement;
+  first: Nullable<SimpleNode>;
+  last: Nullable<SimpleNode>;
+}): Nullable<SimpleNode> {
+  let current: Nullable<SimpleNode> = first ?? parent.firstChild;
+
+  if (!current) {
+    return null;
+  }
+
+  while (current) {
+    const next: Nullable<SimpleNode> = current.nextSibling;
 
     parent.removeChild(current);
 
@@ -68,6 +83,8 @@ export function clear(bounds: Bounds): Nullable<SimpleNode> {
       return next;
     }
 
-    current = expect(next, 'invalid bounds');
+    current = next;
   }
+
+  return null;
 }

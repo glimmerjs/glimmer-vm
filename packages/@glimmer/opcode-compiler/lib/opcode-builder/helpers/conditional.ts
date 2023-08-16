@@ -1,5 +1,5 @@
 import { unwrap } from '@glimmer/util';
-import { MachineOp, Op } from '@glimmer/vm';
+import { Op } from '@glimmer/vm';
 
 import type { PushStatementOp } from '../../syntax/compilers';
 
@@ -26,7 +26,7 @@ export function SwitchCases(
   matcher(when);
 
   // Emit the opcodes for the switch
-  op(Op.Enter, 1);
+  op(Op.Enter, 1, false);
   bootstrap();
   op(HighLevelBuilderOpcodes.StartLabels);
 
@@ -48,7 +48,7 @@ export function SwitchCases(
     // The first match is special: it is placed directly before the END
     // label, so no additional jump is needed at the end of it.
     if (i !== 0) {
-      op(MachineOp.Jump, labelOperand('END'));
+      op(Op.Jump, labelOperand('END'));
     }
   }
 
@@ -118,16 +118,19 @@ export function SwitchCases(
  * encountered, the program jumps to -1 rather than the END label,
  * and the PopFrame opcode is not needed.
  */
-export function Replayable(op: PushStatementOp, args: () => number, body: () => void): void {
+export function Replayable(
+  op: PushStatementOp,
+  { begin = false, args, body }: { begin?: boolean; args: () => number; body: () => void }
+): void {
   // Start a new label frame, to give END and RETURN
   // a unique meaning.
 
   op(HighLevelBuilderOpcodes.StartLabels);
-  op(MachineOp.PushFrame);
+  op(Op.PushFrame);
 
   // If the body invokes a block, its return will return to
   // END. Otherwise, the return in RETURN will return to END.
-  op(MachineOp.ReturnTo, labelOperand('ENDINITIAL'));
+  op(Op.ReturnTo, labelOperand('ENDINITIAL'));
 
   // Push the arguments onto the stack. The args() function
   // tells us how many stack elements to retain for re-execution
@@ -144,7 +147,7 @@ export function Replayable(op: PushStatementOp, args: () => number, body: () => 
   // in an #if), the DOM is cleared and the program is re-executed,
   // restoring `count` elements to the stack and executing the
   // instructions between the enter and exit.
-  op(Op.Enter, count);
+  op(Op.Enter, count, begin);
 
   // Evaluate the body of the block. The body of the block may
   // return, which will jump execution to END during initial
@@ -162,12 +165,12 @@ export function Replayable(op: PushStatementOp, args: () => number, body: () => 
   // In initial execution, this is a noop: it returns to the
   // immediately following opcode. In updating execution, this
   // exits the updating routine.
-  op(MachineOp.Return);
+  op(Op.Return);
 
   // Cleanup code for the block. Runs on initial execution
   // but not on updating.
   op(HighLevelBuilderOpcodes.Label, 'ENDINITIAL');
-  op(MachineOp.PopFrame);
+  op(Op.PopFrame);
   op(HighLevelBuilderOpcodes.StopLabels);
 }
 
@@ -192,23 +195,26 @@ export function ReplayableIf(
   ifTrue: () => void,
   ifFalse?: () => void
 ): void {
-  return Replayable(op, args, () => {
-    // If the conditional is false, jump to the ELSE label.
-    op(Op.JumpUnless, labelOperand('ELSE'));
-    // Otherwise, execute the code associated with the true branch.
-    ifTrue();
-    // We're done, so return. In the initial execution, this runs
-    // the cleanup code. In the updating VM, it exits the updating
-    // routine.
-    op(MachineOp.Jump, labelOperand('FINALLY'));
-    op(HighLevelBuilderOpcodes.Label, 'ELSE');
+  return Replayable(op, {
+    args,
+    body: () => {
+      // If the conditional is false, jump to the ELSE label.
+      op(Op.JumpUnless, labelOperand('ELSE'));
+      // Otherwise, execute the code associated with the true branch.
+      ifTrue();
+      // We're done, so return. In the initial execution, this runs
+      // the cleanup code. In the updating VM, it exits the updating
+      // routine.
+      op(Op.Jump, labelOperand('FINALLY'));
+      op(HighLevelBuilderOpcodes.Label, 'ELSE');
 
-    // If the conditional is false, and code associatied ith the
-    // false branch was provided, execute it. If there was no code
-    // associated with the false branch, jumping to the else statement
-    // has no other behavior.
-    if (ifFalse !== undefined) {
-      ifFalse();
-    }
+      // If the conditional is false, and code associatied ith the
+      // false branch was provided, execute it. If there was no code
+      // associated with the false branch, jumping to the else statement
+      // has no other behavior.
+      if (ifFalse !== undefined) {
+        ifFalse();
+      }
+    },
   });
 }

@@ -1,5 +1,5 @@
 import type {
-  Bounds,
+  BlockBounds,
   Nullable,
   SimpleComment,
   SimpleDocument,
@@ -44,7 +44,7 @@ export function applyTextNodeMergingFix(
       parent: SimpleElement,
       nextSibling: Nullable<SimpleNode>,
       html: string
-    ): Bounds {
+    ): BlockBounds {
       if (html === '') {
         return super.insertHTMLBefore(parent, nextSibling, html);
       }

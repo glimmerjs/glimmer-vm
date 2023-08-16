@@ -1,4 +1,4 @@
-import type { OpcodeHeap, RuntimeOp, SomeVmOp } from '@glimmer/interfaces';
+import type { OpcodeHeap, RuntimeOp, VmOp } from '@glimmer/interfaces';
 import { ARG_SHIFT, MACHINE_MASK, OPERAND_LEN_MASK, TYPE_MASK } from '@glimmer/vm';
 
 export class RuntimeOpImpl implements RuntimeOp {
@@ -15,8 +15,8 @@ export class RuntimeOpImpl implements RuntimeOp {
     return rawType & MACHINE_MASK ? 1 : 0;
   }
 
-  get type(): SomeVmOp {
-    return (this.heap.getbyaddr(this.offset) & TYPE_MASK) as SomeVmOp;
+  get type(): VmOp {
+    return (this.heap.getbyaddr(this.offset) & TYPE_MASK) as VmOp;
   }
 
   get op1() {

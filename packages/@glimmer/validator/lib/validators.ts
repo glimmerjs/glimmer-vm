@@ -3,17 +3,29 @@ import type {
   CONSTANT_TAG_ID as ICONSTANT_TAG_ID,
   ConstantTag,
   CURRENT_TAG_ID as ICURRENT_TAG_ID,
+  Description,
+  DevMode,
   DIRTYABLE_TAG_ID as IDIRTYABLE_TAG_ID,
   DirtyableTag,
   MonomorphicTagId,
   Tag,
   TagComputeSymbol,
+  TagDescription,
+  TagForId,
   TagTypeSymbol,
   UPDATABLE_TAG_ID as IUPDATABLE_TAG_ID,
   UpdatableTag,
   VOLATILE_TAG_ID as IVOLATILE_TAG_ID,
 } from '@glimmer/interfaces';
 import { scheduleRevalidate } from '@glimmer/global-context';
+import {
+  createWithDescription,
+  devmode,
+  expect,
+  inDevmode,
+  mapDevmode,
+  setDescription,
+} from '@glimmer/util';
 
 import { debug } from './debug';
 import { unwrap } from './utils';
@@ -22,6 +34,13 @@ import { unwrap } from './utils';
 
 export type Revision = number;
 
+/**
+ * The INVALID revision is guaranteed to be invalid, even if the tag is CONSTANT. This makes it
+ * possible for a reference to become invalid temporarily and then become valid again.
+ *
+ * It's meant to be used in cached revisions, so there is no `INVALID_TAG`.
+ */
+export const INVALID_REVISION: Revision = -1;
 export const CONSTANT: Revision = 0;
 export const INITIAL: Revision = 1;
 export const VOLATILE: Revision = NaN;
@@ -34,10 +53,14 @@ export function bump(): void {
 
 //////////
 
-const DIRYTABLE_TAG_ID: IDIRTYABLE_TAG_ID = 0;
-const UPDATABLE_TAG_ID: IUPDATABLE_TAG_ID = 1;
-const COMBINATOR_TAG_ID: ICOMBINATOR_TAG_ID = 2;
-const CONSTANT_TAG_ID: ICONSTANT_TAG_ID = 3;
+/** @internal */
+export const DIRYTABLE_TAG_ID: IDIRTYABLE_TAG_ID = 0;
+/** @internal */
+export const UPDATABLE_TAG_ID: IUPDATABLE_TAG_ID = 1;
+/** @internal */
+export const COMBINATOR_TAG_ID: ICOMBINATOR_TAG_ID = 2;
+/** @internal */
+export const CONSTANT_TAG_ID: ICONSTANT_TAG_ID = 3;
 
 //////////
 
@@ -90,17 +113,27 @@ function allowsCycles(tag: Tag): boolean {
   }
 }
 
-class MonomorphicTagImpl<T extends MonomorphicTagId = MonomorphicTagId> {
-  static combine(this: void, tags: Tag[]): Tag {
+class MonomorphicTagImpl<T extends MonomorphicTagId = MonomorphicTagId> implements Tag {
+  static combine(
+    this: void,
+    tags: Tag[],
+    description: DevMode<Description> = devmode(() => ({ kind: 'tag', label: ['(combine)'] }))
+  ): Tag {
     switch (tags.length) {
       case 0:
         return CONSTANT_TAG;
       case 1:
-        return tags[0] as Tag;
+        if (!import.meta.env.DEV) {
+          return tags[0] as Tag;
+        }
       default: {
-        let tag: MonomorphicTagImpl = new MonomorphicTagImpl(COMBINATOR_TAG_ID);
-        tag.subtag = tags;
-        return tag;
+        let tag: MonomorphicTagImpl = createWithDescription(
+          () => new MonomorphicTagImpl(COMBINATOR_TAG_ID),
+          description
+        );
+
+        updateSubtags(tag, tags);
+        return tag as Tag;
       }
     }
   }
@@ -110,10 +143,12 @@ class MonomorphicTagImpl<T extends MonomorphicTagId = MonomorphicTagId> {
   private lastValue = INITIAL;
 
   private isUpdating = false;
-  public subtag: Tag | Tag[] | null = null;
+  public subtags: Tag | Tag[] | null = null;
   private subtagBufferCache: Revision | null = null;
 
   [TYPE]: T;
+
+  declare description: DevMode<TagDescription>;
 
   constructor(type: T) {
     this[TYPE] = type;
@@ -133,16 +168,16 @@ class MonomorphicTagImpl<T extends MonomorphicTagId = MonomorphicTagId> {
       this.lastChecked = $REVISION;
 
       try {
-        let { subtag, revision } = this;
+        let { subtags, revision } = this;
 
-        if (subtag !== null) {
-          if (Array.isArray(subtag)) {
-            revision = subtag.reduce((prev, currentTag: Tag) => {
+        if (subtags !== null) {
+          if (Array.isArray(subtags)) {
+            revision = subtags.reduce((prev, currentTag: Tag) => {
               let current = currentTag[COMPUTE]();
               return current > prev ? current : prev;
             }, revision);
           } else {
-            let subtagValue = subtag[COMPUTE]();
+            let subtagValue = subtags[COMPUTE]();
 
             if (subtagValue === this.subtagBufferCache) {
               revision = revision > this.lastValue ? revision : this.lastValue;
@@ -173,7 +208,7 @@ class MonomorphicTagImpl<T extends MonomorphicTagId = MonomorphicTagId> {
     let subtag = _subtag as MonomorphicTagImpl;
 
     if (subtag === CONSTANT_TAG) {
-      tag.subtag = null;
+      emptySubtag(tag);
     } else {
       // There are two different possibilities when updating a subtag:
       //
@@ -194,7 +229,7 @@ class MonomorphicTagImpl<T extends MonomorphicTagId = MonomorphicTagId> {
       // parent's previous value. Once the subtag changes for the first time,
       // we clear the cache and everything is finally in sync with the parent.
       tag.subtagBufferCache = subtag[COMPUTE]();
-      tag.subtag = subtag;
+      updateSubtag(tag, subtag);
     }
   }
 
@@ -227,12 +262,97 @@ export const UPDATE_TAG = MonomorphicTagImpl.updateTag;
 
 //////////
 
-export function createTag(): DirtyableTag {
-  return new MonomorphicTagImpl(DIRYTABLE_TAG_ID);
+export function createTag(label?: DevMode<TagDescription>): DirtyableTag {
+  return createTagWithId(
+    DIRYTABLE_TAG_ID,
+    label ??
+    devmode(
+      () =>
+        ({
+          reason: 'cell',
+          label: ['(dirtyable)'],
+        }) satisfies TagDescription
+    )
+  );
 }
 
-export function createUpdatableTag(): UpdatableTag {
-  return new MonomorphicTagImpl(UPDATABLE_TAG_ID);
+export function createUpdatableTag(label?: DevMode<TagDescription>): UpdatableTag {
+  return createTagWithId(
+    UPDATABLE_TAG_ID,
+    label ??
+    devmode(
+      () =>
+        ({
+          reason: 'cell',
+          label: ['(updatable)'],
+        }) satisfies TagDescription
+    )
+  );
+}
+
+function updateSubtag(tag: MonomorphicTagImpl, subtag: Tag) {
+  tag.subtags = subtag;
+
+  setDescription(
+    tag,
+    devmode(() =>
+      mapDevmode(
+        () => tag.description,
+        (desc) =>
+          ({
+            ...desc,
+            subtags: [inDevmode(subtag.description)],
+          }) satisfies TagDescription
+      )
+    )
+  );
+}
+
+function updateSubtags(tag: MonomorphicTagImpl, subtags: Tag[]) {
+  tag.subtags = subtags;
+
+  if (import.meta.env.DEV) {
+    applyComboLabel(tag, subtags);
+  }
+}
+
+function emptySubtag(tag: MonomorphicTagImpl) {
+  tag.subtags = null;
+
+  if (import.meta.env.DEV) {
+    delete inDevmode(tag.description).subtags;
+  }
+}
+
+function createTagWithId<Id extends MonomorphicTagId>(
+  id: Id,
+  label: DevMode<TagDescription>
+): TagForId<Id> {
+  expect(label, `Expected a tag description`);
+
+  if (import.meta.env.DEV && label) {
+    const tag = new MonomorphicTagImpl(id);
+    setDescription(tag, label);
+    return tag as unknown as TagForId<Id>;
+  } else {
+    return new MonomorphicTagImpl(id) as unknown as TagForId<Id>;
+  }
+}
+
+/**
+ * @category devmode
+ */
+function applyComboLabel(parent: MonomorphicTagImpl, tags: Tag | Tag[]) {
+  const debug = inDevmode(parent.description);
+
+  if (Array.isArray(tags)) {
+    parent.description = devmode(() => ({
+      ...debug,
+      subtags: tags.map((tag) => inDevmode(tag.description)),
+    }));
+  } else {
+    parent.description = devmode(() => ({ ...debug, subtags: [inDevmode(tags.description)] }));
+  }
 }
 
 //////////
@@ -248,6 +368,8 @@ export function isConstTag(tag: Tag): tag is ConstantTag {
 const VOLATILE_TAG_ID: IVOLATILE_TAG_ID = 100;
 
 export class VolatileTag implements Tag {
+  subtag?: Tag | Tag[] | null | undefined;
+  declare description: DevMode<TagDescription>;
   readonly [TYPE] = VOLATILE_TAG_ID;
   [COMPUTE](): Revision {
     return VOLATILE;
@@ -255,12 +377,24 @@ export class VolatileTag implements Tag {
 }
 
 export const VOLATILE_TAG = new VolatileTag();
+setDescription(
+  VOLATILE_TAG,
+  devmode(
+    () =>
+      ({
+        reason: 'cell',
+        label: ['(volatile)'],
+      }) satisfies TagDescription
+  )
+);
 
 //////////
 
 const CURRENT_TAG_ID: ICURRENT_TAG_ID = 101;
 
 export class CurrentTag implements Tag {
+  subtag?: Tag | Tag[] | null | undefined;
+  declare description: DevMode<TagDescription>;
   readonly [TYPE] = CURRENT_TAG_ID;
   [COMPUTE](): Revision {
     return $REVISION;
@@ -268,27 +402,24 @@ export class CurrentTag implements Tag {
 }
 
 export const CURRENT_TAG = new CurrentTag();
+setDescription(
+  CURRENT_TAG,
+  devmode(
+    () =>
+      ({
+        reason: 'cell',
+        label: ['(current)'],
+      }) satisfies TagDescription
+  )
+);
 
 //////////
 
 export const combine = MonomorphicTagImpl.combine;
 
-// Warm
+//////////
 
-let tag1 = createUpdatableTag();
-let tag2 = createUpdatableTag();
-let tag3 = createUpdatableTag();
-
-valueForTag(tag1);
-DIRTY_TAG(tag1);
-valueForTag(tag1);
-UPDATE_TAG(tag1, combine([tag2, tag3]));
-valueForTag(tag1);
-DIRTY_TAG(tag2);
-valueForTag(tag1);
-DIRTY_TAG(tag3);
-valueForTag(tag1);
-UPDATE_TAG(tag1, tag3);
-valueForTag(tag1);
-DIRTY_TAG(tag3);
-valueForTag(tag1);
+/**
+ * @internal
+ */
+export const TAG_TYPE: TagTypeSymbol = TYPE;

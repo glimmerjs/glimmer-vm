@@ -1,11 +1,12 @@
 import type { SimpleElement, SimpleNode } from '@glimmer/interfaces';
-import type { SafeString } from '@glimmer/runtime';
+import type { RenderTestConstructor } from '@glimmer-workspace/integration-tests';
+import type { RenderDelegate } from '@glimmer-workspace/integration-tests/lib/render-delegate';
 import { NS_SVG } from '@glimmer/util';
+import { jitSuite, RenderTestContext } from '@glimmer-workspace/integration-tests';
 
-import type { RenderTestConstructor } from '..';
-import type RenderDelegate from '../lib/render-delegate';
-
-import { jitSuite, RenderTest } from '..';
+export interface SafeString {
+  toHTML(): string;
+}
 
 function makeSafeString(value: string): SafeString {
   return new SafeStringImpl(value);
@@ -21,23 +22,23 @@ class SafeStringImpl implements SafeString {
   }
 }
 
-class ContentTest extends RenderTest {
+class ContentTest extends RenderTestContext {
   static suiteName = 'Updating - Content';
 
   makeElement(tag: string, content: string): SimpleElement {
-    const el = this.delegate.createElement(tag);
-    el.appendChild(this.delegate.createTextNode(content));
+    const el = this.dom.createElement(tag);
+    el.appendChild(this.dom.createTextNode(content));
     return el;
   }
 
   makeSVGElement(tag: string, content: string): SimpleElement {
-    const el = this.delegate.createElementNS(NS_SVG, tag);
-    el.appendChild(this.delegate.createTextNode(content));
+    const el = this.dom.createElementNS(NS_SVG, tag);
+    el.appendChild(this.dom.createTextNode(content));
     return el;
   }
 
   makeFragment(nodes: SimpleNode[]) {
-    const frag = this.delegate.createDocumentFragment();
+    const frag = this.dom.createDocumentFragment();
     nodes.forEach((node) => frag.appendChild(node));
     return frag;
   }
@@ -75,7 +76,7 @@ interface ContentTestCase {
 }
 
 function generateContentTestCase(
-  suite: RenderTestConstructor<RenderDelegate, RenderTest>,
+  suite: RenderTestConstructor<RenderDelegate, RenderTestContext>,
   tc: ContentTestCase
 ): void {
   [
@@ -153,7 +154,7 @@ function generateContentTestCase(
         }
 
         if (index === 0) {
-          this.render(template, { value: input });
+          this.render.template(template, { value: input });
           this.assertHTML(
             wrapper.before + expected + wrapper.after,
             `expected initial render (${description})`

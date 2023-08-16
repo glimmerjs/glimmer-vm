@@ -9,7 +9,8 @@ import type {
   WellKnownAttrName,
   WireFormat,
 } from '@glimmer/interfaces';
-import { LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
+import { LOCAL_TRACE_LOGGING } from '@glimmer/local-debug-flags';
+import { ASTv2, SourceSpan } from '@glimmer/syntax';
 import { exhausted, LOCAL_LOGGER } from '@glimmer/util';
 import { SexpOpcodes } from '@glimmer/wire-format';
 
@@ -45,8 +46,8 @@ export class ContentEncoder {
   }
 
   content(stmt: mir.Statement): WireFormat.Statement | WireStatements {
-    if (LOCAL_SHOULD_LOG) {
-      LOCAL_LOGGER.log(`encoding`, stmt);
+    if (LOCAL_TRACE_LOGGING) {
+      LOCAL_LOGGER.debug(`encoding`, stmt);
     }
 
     return this.visitContent(stmt);
@@ -74,6 +75,8 @@ export class ContentEncoder {
         return this.InvokeBlock(stmt);
       case 'If':
         return this.If(stmt);
+      case 'HandleError':
+        return this.HandleError(stmt);
       case 'Each':
         return this.Each(stmt);
       case 'With':
@@ -197,6 +200,22 @@ export class ContentEncoder {
     return [
       SexpOpcodes.If,
       EXPR.expr(condition),
+      CONTENT.NamedBlock(block)[1],
+      inverse ? CONTENT.NamedBlock(inverse)[1] : null,
+    ];
+  }
+
+  HandleError({ handler, block, inverse }: mir.HandleError): WireFormat.Statements.HandleError {
+    return [
+      SexpOpcodes.HandleError,
+      handler
+        ? EXPR.expr(handler)
+        : EXPR.Literal(
+            new ASTv2.LiteralExpression({
+              value: null,
+              loc: SourceSpan.synthetic('null'),
+            })
+          ),
       CONTENT.NamedBlock(block)[1],
       inverse ? CONTENT.NamedBlock(inverse)[1] : null,
     ];

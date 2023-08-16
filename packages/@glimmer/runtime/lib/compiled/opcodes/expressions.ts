@@ -7,33 +7,44 @@ import type {
   ScopeBlock,
   VM as PublicVM,
 } from '@glimmer/interfaces';
-import type { Reference } from '@glimmer/reference';
+import type { Reactive } from '@glimmer/reference';
 import {
   check,
   CheckBlockSymbolTable,
   CheckHandle,
   CheckMaybe,
-  CheckOption,
+  CheckNullable,
   CheckOr,
+  CheckString,
 } from '@glimmer/debug';
 import { _hasDestroyableChildren, associateDestroyableChild, destroy } from '@glimmer/destroyable';
 import { toBool } from '@glimmer/global-context';
 import { getInternalHelperManager } from '@glimmer/manager';
 import {
-  childRefFor,
-  createComputeRef,
   FALSE_REFERENCE,
+  Formula,
+  getReactiveProperty,
+  readReactive,
+  ResultFormula,
   TRUE_REFERENCE,
   UNDEFINED_REFERENCE,
-  valueForRef,
+  unwrapReactive,
 } from '@glimmer/reference';
-import { assert, assign, debugToString, decodeHandle, isObject } from '@glimmer/util';
+import {
+  assert,
+  assign,
+  chainResult,
+  debugToString,
+  decodeHandle,
+  isObject,
+  mapResult,
+  stringifyDebugLabel,
+} from '@glimmer/util';
 import { $v0, CurriedTypes, Op } from '@glimmer/vm';
 
-import { isCurriedType, resolveCurriedValue } from '../../curried-value';
+import { isCurried, resolveCurriedValue } from '../../curried-value';
 import { APPEND_OPCODES } from '../../opcodes';
 import createCurryRef from '../../references/curry-value';
-import { CONSTANTS } from '../../symbols';
 import { reifyPositional } from '../../vm/arguments';
 import { createConcatRef } from '../expressions/concat';
 import {
@@ -41,18 +52,18 @@ import {
   CheckCapturedArguments,
   CheckCompilableBlock,
   CheckHelper,
-  CheckReference,
+  CheckReactive,
   CheckScope,
   CheckScopeBlock,
   CheckUndefinedReference,
 } from './-debug-strip';
 
-export type FunctionExpression<T> = (vm: PublicVM) => Reference<T>;
+export type FunctionExpression<T> = (vm: PublicVM) => Reactive<T>;
 
 APPEND_OPCODES.add(Op.Curry, (vm, { op1: type, op2: _isStrict }) => {
   let stack = vm.stack;
 
-  let definition = check(stack.pop(), CheckReference);
+  let definition = check(stack.pop(), CheckReactive);
   let capturedArgs = check(stack.pop(), CheckCapturedArguments);
 
   let owner = vm.getOwner();
@@ -62,7 +73,7 @@ APPEND_OPCODES.add(Op.Curry, (vm, { op1: type, op2: _isStrict }) => {
 
   if (import.meta.env.DEV) {
     // strict check only happens in import.meta.env.DEV builds, no reason to load it otherwise
-    isStrict = vm[CONSTANTS].getValue<boolean>(decodeHandle(_isStrict));
+    isStrict = vm.constants.getValue<boolean>(decodeHandle(_isStrict));
   }
 
   vm.loadValue(
@@ -73,20 +84,20 @@ APPEND_OPCODES.add(Op.Curry, (vm, { op1: type, op2: _isStrict }) => {
 
 APPEND_OPCODES.add(Op.DynamicHelper, (vm) => {
   let stack = vm.stack;
-  let ref = check(stack.pop(), CheckReference);
+  let ref = check(stack.pop(), CheckReactive);
   let args = check(stack.pop(), CheckArguments).capture();
 
-  let helperRef: Reference;
+  let helperRef: Reactive;
   let initialOwner: Owner = vm.getOwner();
 
-  let helperInstanceRef = createComputeRef(() => {
+  let helperInstanceRef = Formula(() => {
     if (helperRef !== undefined) {
       destroy(helperRef);
     }
 
-    let definition = valueForRef(ref);
+    let definition = unwrapReactive(ref);
 
-    if (isCurriedType(definition, CurriedTypes.Helper)) {
+    if (isCurried(definition, CurriedTypes.Helper)) {
       let { definition: resolvedDef, owner, positional, named } = resolveCurriedValue(definition);
 
       let helper = resolveHelper(resolvedDef, ref);
@@ -114,16 +125,15 @@ APPEND_OPCODES.add(Op.DynamicHelper, (vm) => {
     }
   });
 
-  let helperValueRef = createComputeRef(() => {
-    valueForRef(helperInstanceRef);
-    return valueForRef(helperRef);
+  let helperValueRef = Formula(() => {
+    unwrapReactive(helperInstanceRef);
   });
 
   vm.associateDestroyable(helperInstanceRef);
   vm.loadValue($v0, helperValueRef);
 });
 
-function resolveHelper(definition: HelperDefinitionState, ref: Reference): Helper {
+function resolveHelper(definition: HelperDefinitionState, ref: Reactive): Helper {
   let managerOrHelper = getInternalHelperManager(definition, true);
   let helper;
   if (managerOrHelper === null) {
@@ -137,23 +147,30 @@ function resolveHelper(definition: HelperDefinitionState, ref: Reference): Helpe
   }
 
   if (import.meta.env.DEV && helper === null) {
+    const label = stringifyDebugLabel(ref);
+
     throw new Error(
-      `Expected a dynamic helper definition, but received an object or function that did not have a helper manager associated with it. The dynamic invocation was \`{{${
-        ref.debugLabel
-      }}}\` or \`(${ref.debugLabel})\`, and the incorrect definition is the value at the path \`${
-        ref.debugLabel
-      }\`, which was: ${debugToString!(definition)}`
+      `Expected a dynamic helper definition, but received an object or function that did not have a helper manager associated with it. The dynamic invocation was \`{{${String(
+        label
+      )}}}\` or \`(${label})\`, and the incorrect definition is the value at the path \`${label}\`, which was: ${debugToString!(
+        definition
+      )}`
     );
   }
 
+  // SAFETY: we only throw in dev. This likely means that we're letting bugs escape to production
+  // TODO: _allow_ this to be | null, (without the !), and let the error-recovery work handle the situation
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
   return helper!;
 }
 
 APPEND_OPCODES.add(Op.Helper, (vm, { op1: handle }) => {
   let stack = vm.stack;
-  let helper = check(vm[CONSTANTS].getValue(handle), CheckHelper);
+  let helper = check(vm.constants.getValue(handle), CheckHelper);
   let args = check(stack.pop(), CheckArguments);
-  let value = helper(args.capture(), vm.getOwner(), vm.dynamicScope());
+
+  // @premerge throws but isn't a deref
+  let value = helper(args.capture(), vm.getOwner(), vm.dynamicScope);
 
   if (_hasDestroyableChildren(value)) {
     vm.associateDestroyable(value);
@@ -169,8 +186,8 @@ APPEND_OPCODES.add(Op.GetVariable, (vm, { op1: symbol }) => {
 });
 
 APPEND_OPCODES.add(Op.SetVariable, (vm, { op1: symbol }) => {
-  let expr = check(vm.stack.pop(), CheckReference);
-  vm.scope().bindSymbol(symbol, expr);
+  let expr = check(vm.stack.pop(), CheckReactive);
+  vm.scope.bindSymbol(symbol, expr);
 });
 
 APPEND_OPCODES.add(Op.SetBlock, (vm, { op1: symbol }) => {
@@ -178,19 +195,7 @@ APPEND_OPCODES.add(Op.SetBlock, (vm, { op1: symbol }) => {
   let scope = check(vm.stack.pop(), CheckScope);
   let table = check(vm.stack.pop(), CheckBlockSymbolTable);
 
-  vm.scope().bindBlock(symbol, [handle, scope, table]);
-});
-
-APPEND_OPCODES.add(Op.ResolveMaybeLocal, (vm, { op1: _name }) => {
-  let name = vm[CONSTANTS].getValue<string>(_name);
-  let locals = vm.scope().getPartialMap()!;
-
-  let ref = locals[name];
-  if (ref === undefined) {
-    ref = childRefFor(vm.getSelf(), name);
-  }
-
-  vm.stack.push(ref);
+  vm.scope.bindBlock(symbol, [handle, scope, table]);
 });
 
 APPEND_OPCODES.add(Op.RootScope, (vm, { op1: symbols }) => {
@@ -198,21 +203,21 @@ APPEND_OPCODES.add(Op.RootScope, (vm, { op1: symbols }) => {
 });
 
 APPEND_OPCODES.add(Op.GetProperty, (vm, { op1: _key }) => {
-  let key = vm[CONSTANTS].getValue<string>(_key);
-  let expr = check(vm.stack.pop(), CheckReference);
-  vm.stack.push(childRefFor(expr, key));
+  let key = vm.constants.getValue<string>(_key);
+  let expr = check(vm.stack.pop(), CheckReactive);
+  vm.stack.push(getReactiveProperty(expr, key));
 });
 
 APPEND_OPCODES.add(Op.GetBlock, (vm, { op1: _block }) => {
   let { stack } = vm;
-  let block = vm.scope().getBlock(_block);
+  let block = vm.scope.getBlock(_block);
 
   stack.push(block);
 });
 
 APPEND_OPCODES.add(Op.SpreadBlock, (vm) => {
   let { stack } = vm;
-  let block = check(stack.pop(), CheckOption(CheckOr(CheckScopeBlock, CheckUndefinedReference)));
+  let block = check(stack.pop(), CheckNullable(CheckOr(CheckScopeBlock, CheckUndefinedReference)));
 
   if (block && !isUndefinedReference(block)) {
     let [handleOrCompilable, scope, table] = block;
@@ -227,7 +232,7 @@ APPEND_OPCODES.add(Op.SpreadBlock, (vm) => {
   }
 });
 
-function isUndefinedReference(input: ScopeBlock | Reference): input is Reference {
+function isUndefinedReference(input: ScopeBlock | Reactive): input is Reactive {
   assert(
     Array.isArray(input) || input === UNDEFINED_REFERENCE,
     'a reference other than UNDEFINED_REFERENCE is illegal here'
@@ -237,7 +242,7 @@ function isUndefinedReference(input: ScopeBlock | Reference): input is Reference
 
 APPEND_OPCODES.add(Op.HasBlock, (vm) => {
   let { stack } = vm;
-  let block = check(stack.pop(), CheckOption(CheckOr(CheckScopeBlock, CheckUndefinedReference)));
+  let block = check(stack.pop(), CheckNullable(CheckOr(CheckScopeBlock, CheckUndefinedReference)));
 
   if (block && !isUndefinedReference(block)) {
     stack.push(TRUE_REFERENCE);
@@ -260,51 +265,48 @@ APPEND_OPCODES.add(Op.HasBlockParams, (vm) => {
 });
 
 APPEND_OPCODES.add(Op.Concat, (vm, { op1: count }) => {
-  let out: Array<Reference<unknown>> = new Array(count);
+  let out: Array<Reactive<unknown>> = new Array(count);
 
   for (let i = count; i > 0; i--) {
     let offset = i - 1;
-    out[offset] = check(vm.stack.pop(), CheckReference);
+    out[offset] = check(vm.stack.pop(), CheckReactive);
   }
 
   vm.stack.push(createConcatRef(out));
 });
 
 APPEND_OPCODES.add(Op.IfInline, (vm) => {
-  let condition = check(vm.stack.pop(), CheckReference);
-  let truthy = check(vm.stack.pop(), CheckReference);
-  let falsy = check(vm.stack.pop(), CheckReference);
+  let condition = check(vm.stack.pop(), CheckReactive);
+  let truthy = check(vm.stack.pop(), CheckReactive);
+  let falsy = check(vm.stack.pop(), CheckReactive);
 
-  vm.stack.push(
-    createComputeRef(() => {
-      if (toBool(valueForRef(condition)) === true) {
-        return valueForRef(truthy);
-      } else {
-        return valueForRef(falsy);
-      }
-    })
-  );
+  return ResultFormula(() => {
+    return chainResult(readReactive(condition), (condition) => {
+      return toBool(condition) ? readReactive(truthy) : readReactive(falsy);
+    });
+  });
 });
 
 APPEND_OPCODES.add(Op.Not, (vm) => {
-  let ref = check(vm.stack.pop(), CheckReference);
+  let ref = check(vm.stack.pop(), CheckReactive);
 
   vm.stack.push(
-    createComputeRef(() => {
-      return !toBool(valueForRef(ref));
+    ResultFormula(() => {
+      return mapResult(readReactive(ref), (value) => !toBool(value));
     })
   );
 });
 
 APPEND_OPCODES.add(Op.GetDynamicVar, (vm) => {
-  let scope = vm.dynamicScope();
+  let scope = vm.dynamicScope;
   let stack = vm.stack;
-  let nameRef = check(stack.pop(), CheckReference);
+  let nameRef = check(stack.pop(), CheckReactive);
 
   stack.push(
-    createComputeRef(() => {
-      let name = String(valueForRef(nameRef));
-      return valueForRef(scope.get(name));
+    ResultFormula(() => {
+      return chainResult(readReactive(nameRef), (name) => {
+        return readReactive(scope.get(check(name, CheckString)));
+      });
     })
   );
 });
@@ -314,7 +316,7 @@ APPEND_OPCODES.add(Op.Log, (vm) => {
 
   vm.loadValue(
     $v0,
-    createComputeRef(() => {
+    Formula(() => {
       // eslint-disable-next-line no-console
       console.log(...reifyPositional(positional));
     })

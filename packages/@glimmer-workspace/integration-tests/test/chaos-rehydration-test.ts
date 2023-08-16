@@ -1,4 +1,7 @@
-import type { Dict, Nullable, SimpleElement } from '@glimmer/interfaces';
+/* eslint-disable qunit/no-identical-names */
+import type { Dict, Nullable, Reactive, SimpleElement } from '@glimmer/interfaces';
+import type { ComponentBlueprint, Content } from '@glimmer-workspace/integration-tests';
+import { ReadonlyCell, unwrapReactive } from '@glimmer/reference';
 import {
   castToBrowser,
   castToSimple,
@@ -8,26 +11,22 @@ import {
   isObject,
   LOCAL_LOGGER,
 } from '@glimmer/util';
-
-import type { ComponentBlueprint, Content } from '..';
-
 import {
   blockStack,
   CLOSE,
   content,
   equalTokens,
+  matrix,
   OPEN,
   PartialRehydrationDelegate,
   qunitFixture,
   RehydrationDelegate,
-  RenderTest,
+  RenderTestContext,
   replaceHTML,
-  suite,
-  test,
-} from '..';
+} from '@glimmer-workspace/integration-tests';
 
-abstract class AbstractChaosMonkeyTest extends RenderTest {
-  abstract renderClientSide(template: string | ComponentBlueprint, context: Dict<unknown>): void;
+abstract class ChaosMonkeyContext extends RenderTestContext {
+  abstract renderClientSide(template: string | ComponentBlueprint, self: Reactive): void;
 
   getRandomForIteration(iteration: number) {
     const { seed } = QUnit.config;
@@ -82,7 +81,8 @@ abstract class AbstractChaosMonkeyTest extends RenderTest {
     // gather all the nodes recursively
     let nodes: Node[] = collectChildNodes([], element);
 
-    // cannot remove the first opening block node and last closing block node, that is what makes it rehydrateable
+    // cannot remove the first opening block node and last closing block node, that is what makes it
+    // rehydrateable
     nodes = nodes.slice(1, -1);
 
     // select a random node to remove
@@ -107,7 +107,7 @@ abstract class AbstractChaosMonkeyTest extends RenderTest {
     }
 
     if (shouldLog) {
-      LOCAL_LOGGER.log(
+      LOCAL_LOGGER.debug(
         `${removedNodeDisplay} was removed;\noriginal: ${original}\nupdated:  ${element.innerHTML}`
       );
     }
@@ -119,7 +119,7 @@ abstract class AbstractChaosMonkeyTest extends RenderTest {
     );
   }
 
-  runIterations(template: string, context: Dict<unknown>, expectedHTML: string, count: number) {
+  runIterations(template: string, self: Reactive<Dict>, expectedHTML: string, count: number) {
     const element = castToBrowser(this.element, 'HTML');
     const elementResetValue = element.innerHTML;
 
@@ -129,7 +129,7 @@ abstract class AbstractChaosMonkeyTest extends RenderTest {
       const iteration = parseInt(urlParams['iteration'], 10);
       this.wreakHavoc(iteration, true);
 
-      this.renderClientSide(template, context);
+      this.renderClientSide(template, self);
 
       const element = castToBrowser(this.element, 'HTML');
       this.assert.strictEqual(element.innerHTML, expectedHTML);
@@ -141,7 +141,7 @@ abstract class AbstractChaosMonkeyTest extends RenderTest {
         try {
           this.wreakHavoc(i);
 
-          this.renderClientSide(template, context);
+          this.renderClientSide(template, self);
 
           const element = castToBrowser(this.element, 'HTML');
           this.assert.strictEqual(
@@ -181,7 +181,7 @@ function getErrorMessage(assert: Assert, error: unknown): string {
   }
 }
 
-class ChaosMonkeyRehydration extends AbstractChaosMonkeyTest {
+class ChaosMonkeyRehydration extends ChaosMonkeyContext {
   static suiteName = 'chaos-rehydration';
 
   protected declare delegate: RehydrationDelegate;
@@ -189,21 +189,26 @@ class ChaosMonkeyRehydration extends AbstractChaosMonkeyTest {
 
   renderServerSide(
     template: string | ComponentBlueprint,
-    context: Dict<unknown>,
+    self: Reactive,
     element: SimpleElement | undefined = undefined
   ): void {
     this.serverOutput = this.delegate.renderServerSide(
       template as string,
-      context,
+      self,
       () => this.takeSnapshot(),
-      element
+      element,
+      this.plugins
     );
     replaceHTML(this.element, this.serverOutput);
   }
 
-  renderClientSide(template: string | ComponentBlueprint, context: Dict<unknown>): void {
-    this.context = context;
-    this.renderResult = this.delegate.renderClientSide(template as string, context, this.element);
+  renderClientSide(template: string | ComponentBlueprint, self: Reactive): void {
+    this.renderResult = this.delegate.renderClientSide(
+      template as string,
+      self,
+      this.element,
+      this.plugins
+    );
   }
 
   assertExactServerOutput(_expected: string) {
@@ -217,122 +222,140 @@ class ChaosMonkeyRehydration extends AbstractChaosMonkeyTest {
   assertServerOutput(..._expected: Content[]) {
     this.assertExactServerOutput(content([OPEN, ..._expected, CLOSE]));
   }
-
-  @test
-  'adjacent text nodes'() {
-    const template = '<div>a {{this.b}}{{this.c}}{{this.d}}</div>';
-    const context = { b: '', c: '', d: '' };
-
-    this.renderServerSide(template, context);
-
-    const b = blockStack();
-    this.assertServerOutput(
-      `<div>a ${b(1)}<!--% %-->${b(1)}${b(1)}<!--% %-->${b(1)}${b(1)}<!--% %-->${b(1)}</div>`
-    );
-
-    this.runIterations(template, context, '<div>a </div>', 100);
-  }
-
-  @test
-  '<p> invoking a block which emits a <div>'() {
-    const template = '<p>hello {{#if this.show}}<div>world!</div>{{/if}}</p>';
-    const context = { show: true };
-
-    this.renderServerSide(template, context);
-    const b = blockStack();
-
-    // assert that we are in a "browser corrected" state (note the `</p>` before the `<div>world!</div>`)
-    this.assertServerOutput(`<p>hello ${b(1)}</p><div>world!</div>${b(1)}<p></p>`);
-    this.runIterations(template, context, '<p>hello <div>world!</div></p>', 100);
-  }
 }
 
-class ChaosMonkeyPartialRehydration extends AbstractChaosMonkeyTest {
+export const ChaosMonkeyTests = matrix(
+  { context: ChaosMonkeyRehydration },
+  'chaos rehydration',
+  (test) => {
+    test('adjacent text nodes', (ctx) => {
+      const template = '<div>a {{this.b}}{{this.c}}{{this.d}}</div>';
+
+      ctx.self.initialize({ b: '', c: '', d: '' });
+      ctx.renderServerSide(template, ctx.self.ref);
+
+      const b = blockStack();
+      ctx.assertServerOutput(
+        `<div>a ${b(1)}<!--% %-->${b(1)}${b(1)}<!--% %-->${b(1)}${b(1)}<!--% %-->${b(1)}</div>`
+      );
+
+      ctx.runIterations(template, ctx.self.ref, '<div>a </div>', 100);
+    });
+
+    test('<p> invoking a block which emits a <div>', (ctx) => {
+      const template = '<p>hello {{#if this.show}}<div>world!</div>{{/if}}</p>';
+
+      ctx.self.update({ show: true });
+      ctx.renderServerSide(template, ctx.self.ref);
+      const b = blockStack();
+
+      ctx.assertServerOutput(`<p>hello ${b(1)}</p><div>world!</div>${b(1)}<p></p>`);
+      ctx.runIterations(template, ctx.self.ref, '<p>hello <div>world!</div></p>', 100);
+    });
+  }
+).test(RehydrationDelegate);
+
+class ChaosMonkeyPartialRehydrationContext extends ChaosMonkeyContext {
   static suiteName = 'chaos-partial-rehydration';
-  protected declare delegate: PartialRehydrationDelegate;
+  declare delegate: PartialRehydrationDelegate;
 
-  renderClientSide(componentName: string, args: Dict<unknown>): void {
-    this.renderResult = this.delegate.renderComponentClientSide(componentName, args, this.element);
-  }
-
-  @test
-  'adjacent text nodes'() {
-    const args = { b: 'b', c: 'c', d: 'd' };
-
-    this.delegate.registerTemplateOnlyComponent('RehydratingComponent', 'a {{@b}}{{@c}}{{@d}}');
-    this.delegate.registerTemplateOnlyComponent(
-      'Root',
-      '<div><RehydratingComponent @b={{@b}} @c={{@c}} @d={{@d}}/></div>'
+  renderClientSide(componentName: string, args: Reactive<Dict>): void {
+    this.renderResult = this.delegate.renderComponentClientSide(
+      componentName,
+      unwrapReactive(args),
+      this.element
     );
-    const html = this.delegate.renderComponentServerSide('Root', args);
-
-    this.assert.strictEqual(
-      html,
-      content([
-        OPEN,
-        OPEN,
-        '<div>',
-        OPEN,
-        'a ',
-        OPEN,
-        'b',
-        CLOSE,
-        OPEN,
-        'c',
-        CLOSE,
-        OPEN,
-        'd',
-        CLOSE,
-        CLOSE,
-        '</div>',
-        CLOSE,
-        CLOSE,
-      ]),
-      'server html is correct'
-    );
-    replaceHTML(qunitFixture(), html);
-    this.element = castToSimple(castToBrowser(qunitFixture(), 'HTML').querySelector('div')!);
-    this.runIterations('RehydratingComponent', args, 'a bcd', 100);
-  }
-
-  @test
-  '<p> invoking a block which emits a <div>'() {
-    const args = { show: true };
-
-    this.delegate.registerTemplateOnlyComponent(
-      'RehydratingComponent',
-      '<p>hello {{#if @show}}<div>world!</div>{{/if}}</p>'
-    );
-
-    this.delegate.registerTemplateOnlyComponent(
-      'Root',
-      '<div><RehydratingComponent @show={{@show}}/></div>'
-    );
-    const html = this.delegate.renderComponentServerSide('Root', args);
-    this.assert.strictEqual(
-      html,
-      content([
-        OPEN,
-        OPEN,
-        '<div>',
-        OPEN,
-        '<p>hello ',
-        OPEN,
-        '<div>world!</div>',
-        CLOSE,
-        '</p>',
-        CLOSE,
-        '</div>',
-        CLOSE,
-        CLOSE,
-      ])
-    );
-
-    replaceHTML(qunitFixture(), html);
-    this.element = castToSimple(castToBrowser(qunitFixture(), 'HTML').querySelector('div')!);
-    this.runIterations('RehydratingComponent', args, '<p>hello <div>world!</div></p>', 100);
   }
 }
 
-suite(ChaosMonkeyRehydration, RehydrationDelegate);
-suite(ChaosMonkeyPartialRehydration, PartialRehydrationDelegate);
+matrix(
+  {
+    context: ChaosMonkeyPartialRehydrationContext,
+  },
+  'chaos partial rehydration',
+  (test) => {
+    test('adjacent text nodes', (ctx) => {
+      const args = { b: 'b', c: 'c', d: 'd' };
+
+      ctx.register.component('TemplateOnly', 'RehydratingComponent', 'a {{@b}}{{@c}}{{@d}}');
+      ctx.register.component(
+        'TemplateOnly',
+        'Root',
+        '<div><RehydratingComponent @b={{@b}} @c={{@c}} @d={{@d}}/></div>'
+      );
+      const html = ctx.delegate.renderComponentServerSide('Root', args);
+
+      ctx.assert.strictEqual(
+        html,
+        content([
+          OPEN,
+          OPEN,
+          '<div>',
+          OPEN,
+          'a ',
+          OPEN,
+          'b',
+          CLOSE,
+          OPEN,
+          'c',
+          CLOSE,
+          OPEN,
+          'd',
+          CLOSE,
+          CLOSE,
+          '</div>',
+          CLOSE,
+          CLOSE,
+        ]),
+        'server html is correct'
+      );
+      replaceHTML(qunitFixture(), html);
+      ctx.element = castToSimple(castToBrowser(qunitFixture(), 'HTML').querySelector('div')!);
+      ctx.runIterations('RehydratingComponent', ReadonlyCell(args, 'args'), 'a bcd', 100);
+    });
+
+    test('<p> invoking a block which emits a <div>', (ctx) => {
+      const args = { show: true };
+
+      ctx.register.component(
+        'TemplateOnly',
+        'RehydratingComponent',
+        '<p>hello {{#if @show}}<div>world!</div>{{/if}}</p>'
+      );
+
+      ctx.register.component(
+        'TemplateOnly',
+        'Root',
+        '<div><RehydratingComponent @show={{@show}}/></div>'
+      );
+      const html = ctx.delegate.renderComponentServerSide('Root', args);
+      ctx.assert.strictEqual(
+        html,
+        content([
+          OPEN,
+          OPEN,
+          '<div>',
+          OPEN,
+          '<p>hello ',
+          OPEN,
+          '<div>world!</div>',
+          CLOSE,
+          '</p>',
+          CLOSE,
+          '</div>',
+          CLOSE,
+          CLOSE,
+        ])
+      );
+
+      replaceHTML(qunitFixture(), html);
+      ctx.element = castToSimple(castToBrowser(qunitFixture(), 'HTML').querySelector('div')!);
+      ctx.runIterations(
+        'RehydratingComponent',
+        ReadonlyCell(args, 'args'),
+        '<p>hello <div>world!</div></p>',
+        100
+      );
+    });
+  }
+).test(PartialRehydrationDelegate);

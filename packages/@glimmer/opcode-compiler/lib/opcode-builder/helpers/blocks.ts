@@ -1,5 +1,5 @@
 import type { Nullable, WireFormat } from '@glimmer/interfaces';
-import { $fp, MachineOp, Op } from '@glimmer/vm';
+import { $fp, Op } from '@glimmer/vm';
 
 import type { PushExpressionOp, PushStatementOp } from '../../syntax/compilers';
 
@@ -24,7 +24,7 @@ export function YieldBlock(
   op(Op.CompileBlock);
   op(Op.InvokeYield);
   op(Op.PopScope);
-  op(MachineOp.PopFrame);
+  op(Op.PopFrame);
 }
 
 /**
@@ -51,11 +51,11 @@ export function InvokeStaticBlock(
   op: PushStatementOp,
   block: WireFormat.SerializedInlineBlock
 ): void {
-  op(MachineOp.PushFrame);
+  op(Op.PushFrame);
   PushCompilable(op, block);
   op(Op.CompileBlock);
-  op(MachineOp.InvokeVirtual);
-  op(MachineOp.PopFrame);
+  op(Op.InvokeVirtual);
+  op(Op.PopFrame);
 }
 
 /**
@@ -79,7 +79,7 @@ export function InvokeStaticBlockWithStack(
     return;
   }
 
-  op(MachineOp.PushFrame);
+  op(Op.PushFrame);
 
   if (count) {
     op(Op.ChildScope);
@@ -92,13 +92,13 @@ export function InvokeStaticBlockWithStack(
 
   PushCompilable(op, block);
   op(Op.CompileBlock);
-  op(MachineOp.InvokeVirtual);
+  op(Op.InvokeVirtual);
 
   if (count) {
     op(Op.PopScope);
   }
 
-  op(MachineOp.PopFrame);
+  op(Op.PopFrame);
 }
 
 export function PushSymbolTable(op: PushExpressionOp, parameters: number[] | null): void {

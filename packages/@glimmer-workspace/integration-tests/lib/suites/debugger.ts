@@ -1,16 +1,16 @@
 import { resetDebuggerCallback, setDebuggerCallback } from '@glimmer/runtime';
 
-import { RenderTest } from '../render-test';
-import { test } from '../test-decorator';
+import { RenderTestContext } from '../render-test';
+import { render } from '../test-decorator';
 
-export class DebuggerSuite extends RenderTest {
+export class DebuggerSuite extends RenderTestContext {
   static suiteName = 'Debugger';
 
-  afterEach() {
+  override readonly afterEach = () => {
     resetDebuggerCallback();
-  }
+  };
 
-  @test
+  @render
   'basic debugger statement'() {
     let expectedContext = {
       foo: 'bar',
@@ -26,7 +26,7 @@ export class DebuggerSuite extends RenderTest {
       this.assert.strictEqual(get('foo'), expectedContext.foo);
     });
 
-    this.render(
+    this.render.template(
       '{{#if this.a.b}}true{{debugger}}{{else}}false{{debugger}}{{/if}}',
       expectedContext
     );
@@ -57,7 +57,7 @@ export class DebuggerSuite extends RenderTest {
     this.assertStableNodes();
   }
 
-  @test
+  @render
   'can get locals'() {
     let expectedContext = {
       foo: 'bar',
@@ -74,7 +74,7 @@ export class DebuggerSuite extends RenderTest {
       this.assert.deepEqual(get('this'), context);
     });
 
-    this.render(
+    this.render.template(
       '{{#with this.foo as |bar|}}{{#if this.a.b}}true{{debugger}}{{else}}false{{debugger}}{{/if}}{{/with}}',
       expectedContext
     );

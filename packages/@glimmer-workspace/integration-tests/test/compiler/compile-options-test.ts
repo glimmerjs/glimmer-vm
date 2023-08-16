@@ -3,8 +3,8 @@ import type { TemplateWithIdAndReferrer } from '@glimmer/opcode-compiler';
 import { precompile } from '@glimmer/compiler';
 import { assert as glimmerAssert, unwrapTemplate } from '@glimmer/util';
 import { SexpOpcodes } from '@glimmer/wire-format';
+import { preprocess } from '@glimmer-workspace/integration-tests';
 
-import { preprocess } from '../..';
 import { module } from '../support';
 
 module('[glimmer-compiler] Compile options', ({ test }) => {

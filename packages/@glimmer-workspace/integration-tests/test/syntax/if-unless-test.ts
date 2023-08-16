@@ -1,9 +1,15 @@
-import { jitSuite, preprocess, RenderTest, syntaxErrorFor, test } from '../..';
+import {
+  jitSuite,
+  preprocess,
+  RenderTestContext,
+  syntaxErrorFor,
+  test,
+} from '@glimmer-workspace/integration-tests';
 
 let types = ['if', 'unless'];
 
 for (let type of types) {
-  class SyntaxErrors extends RenderTest {
+  class SyntaxErrors extends RenderTestContext {
     static suiteName = `if/unless (${type}) keyword syntax errors`;
 
     @test

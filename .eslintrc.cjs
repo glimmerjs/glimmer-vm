@@ -19,32 +19,32 @@ module.exports = {
     '**/fixtures',
     '!**/.eslintrc.cjs',
   ],
-  parser: '@typescript-eslint/parser',
-  parserOptions: {
-    ecmaVersion: 'latest',
-    project: [],
-  },
-  settings: {
-    'import/parsers': {
-      '@typescript-eslint/parser': ['.js', '.cjs', '.mjs', '.mts', '.ts', '.d.ts'],
-    },
-    'import/resolver': {
-      typescript: {},
-    },
-    node: {
-      allowModules: ['@glimmer/debug', '@glimmer/local-debug-flags'],
-      tryExtensions: ['.js', '.ts', '.d.ts', '.json'],
-    },
-  },
-  plugins: [
-    '@typescript-eslint',
-    'prettier',
-    'qunit',
-    'simple-import-sort',
-    'unused-imports',
-    'prettier',
-    'n',
-  ],
+  // parser: '@typescript-eslint/parser',
+  // parserOptions: {
+  //   ecmaVersion: 'latest',
+  //   project: [],
+  // },
+  // settings: {
+  //   'import/parsers': {
+  //     '@typescript-eslint/parser': ['.js', '.cjs', '.mjs', '.mts', '.ts', '.d.ts'],
+  //   },
+  //   'import/resolver': {
+  //     typescript: {},
+  //   },
+  //   node: {
+  //     allowModules: ['@glimmer/debug', '@glimmer/local-debug-flags'],
+  //     tryExtensions: ['.js', '.ts', '.d.ts', '.json'],
+  //   },
+  // },
+  // plugins: [
+  //   '@typescript-eslint',
+  //   'prettier',
+  //   'qunit',
+  //   'simple-import-sort',
+  //   'unused-imports',
+  //   'prettier',
+  //   'n',
+  // ],
 
   rules: {},
   overrides: [

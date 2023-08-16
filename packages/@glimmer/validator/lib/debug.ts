@@ -1,21 +1,21 @@
-import type { Tag } from '@glimmer/interfaces';
+import type { Description, DevMode, Tag } from '@glimmer/interfaces';
 import { assert } from '@glimmer/global-context';
-import { asPresentArray, getLast } from '@glimmer/util';
+import { asPresentArray, devmode, getLast, inDevmode, stringifyDebugLabel } from '@glimmer/util';
 
 interface DebugTransaction {
   beginTrackingTransaction?:
-    | undefined
-    | ((debuggingContext?: string | false, deprecate?: boolean) => void);
+  | undefined
+  | ((debuggingContext: Description, deprecate?: boolean) => void);
   endTrackingTransaction?: undefined | (() => void);
-  runInTrackingTransaction?: undefined | (<T>(fn: () => T, debuggingContext?: string | false) => T);
+  runInTrackingTransaction?: undefined | (<T>(fn: () => T, debuggingContext?: Description) => T);
 
   resetTrackingTransaction?: undefined | (() => string);
   setTrackingTransactionEnv?:
-    | undefined
-    | ((env: { debugMessage?(obj?: unknown, keyName?: string): string }) => void);
+  | undefined
+  | ((env: { debugMessage?(obj?: unknown, keyName?: string): string }) => void);
   assertTagNotConsumed?:
-    | undefined
-    | (<T>(tag: Tag, obj?: T, keyName?: keyof T | string | symbol) => void);
+  | undefined
+  | (<T>(tag: Tag, obj?: T, keyName?: keyof T | string | symbol) => void);
 
   markTagAsConsumed?: undefined | ((_tag: Tag) => void);
 
@@ -25,8 +25,8 @@ interface DebugTransaction {
 export const debug: DebugTransaction = {};
 
 interface Transaction {
-  parent: Transaction | null;
-  debugLabel?: string | undefined;
+  readonly parent: Transaction | null;
+  readonly description: DevMode<Description>;
 }
 
 if (import.meta.env.DEV) {
@@ -60,16 +60,14 @@ if (import.meta.env.DEV) {
 
   debug.setTrackingTransactionEnv = (env) => Object.assign(TRANSACTION_ENV, env);
 
-  debug.beginTrackingTransaction = (_debugLabel?: string | false) => {
+  debug.beginTrackingTransaction = (description: Description) => {
     CONSUMED_TAGS = CONSUMED_TAGS || new WeakMap();
-
-    let debugLabel = _debugLabel || undefined;
 
     let parent = TRANSACTION_STACK[TRANSACTION_STACK.length - 1] ?? null;
 
     TRANSACTION_STACK.push({
       parent,
-      debugLabel,
+      description: devmode(() => description),
     });
   };
 
@@ -108,8 +106,11 @@ if (import.meta.env.DEV) {
    *
    * TODO: Only throw an error if the `track` is consumed.
    */
-  debug.runInTrackingTransaction = <T>(fn: () => T, debugLabel?: string | false) => {
-    debug.beginTrackingTransaction!(debugLabel);
+  debug.runInTrackingTransaction = <T>(
+    fn: () => T,
+    description: Description = { reason: 'tracking', label: ['(tracking)'] }
+  ) => {
+    debug.beginTrackingTransaction!(description);
     let didError = true;
 
     try {
@@ -164,14 +165,13 @@ if (import.meta.env.DEV) {
     if (current === undefined) return '';
 
     while (current) {
-      if (current.debugLabel) {
-        trackingStack.unshift(current.debugLabel);
-      }
-
+      trackingStack.unshift(current);
       current = current.parent;
     }
 
-    return trackingStack.map((label, index) => ' '.repeat(2 * index) + label).join('\n');
+    return trackingStack
+      .map((label, index) => ' '.repeat(2 * index + 1) +
+        inDevmode(stringifyDebugLabel(label))).join('\n');
   };
 
   debug.markTagAsConsumed = (_tag: Tag) => {
@@ -212,6 +212,7 @@ if (import.meta.env.DEV) {
         if (updateStackBegin !== -1) {
           let start = nthIndex(e.stack, '\n', 1, updateStackBegin);
           let end = nthIndex(e.stack, '\n', 4, updateStackBegin);
+          // eslint-disable-next-line deprecation/deprecation
           e.stack = e.stack.substr(0, start) + e.stack.substr(end);
         }
       }

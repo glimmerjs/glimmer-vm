@@ -1,65 +1,91 @@
 import type {
   AttrNamespace,
-  Bounds,
+  BlockBounds,
+  BlockBoundsDebug,
   Cursor,
-  CursorStackSymbol,
+  DebugStackAspectFrame,
   ElementBuilder,
   ElementOperations,
   Environment,
+  FirstNode,
   GlimmerTreeChanges,
   GlimmerTreeConstruction,
+  LastNode,
   LiveBlock,
   Maybe,
   ModifierInstance,
   Nullable,
+  PartialBoundsDebug,
   SimpleComment,
   SimpleDocumentFragment,
   SimpleElement,
   SimpleNode,
   SimpleText,
+  SomeBoundsDebug,
   UpdatableBlock,
+  VmStackAspect,
 } from '@glimmer/interfaces';
+import type { Stack } from '@glimmer/util';
 import { destroy, registerDestructor } from '@glimmer/destroyable';
-import { assert, expect, Stack } from '@glimmer/util';
+import { assert, BalancedStack, expect, parentDebugFrames, PresentStack } from '@glimmer/util';
 
 import type { DynamicAttribute } from './attributes/dynamic';
 
-import { clear, ConcreteBounds, CursorImpl } from '../bounds';
+import { clear, clearRange, ConcreteBounds, CursorImpl } from '../bounds';
 import { dynamicAttribute } from './attributes/dynamic';
 
-export interface FirstNode {
-  firstNode(): SimpleNode;
-}
+class First implements FirstNode {
+  readonly first: SimpleNode;
+  readonly debug?: () => PartialBoundsDebug;
 
-export interface LastNode {
-  lastNode(): SimpleNode;
-}
+  constructor(node: SimpleNode) {
+    this.first = node;
 
-class First {
-  constructor(private node: SimpleNode) {}
+    if (import.meta.env.DEV) {
+      this.debug = () => ({ type: 'first', node: this.first });
+    }
+  }
 
   firstNode(): SimpleNode {
-    return this.node;
+    return this.first;
   }
 }
 
-class Last {
-  constructor(private node: SimpleNode) {}
+class Last implements LastNode {
+  readonly last: SimpleNode;
+  readonly debug?: () => PartialBoundsDebug;
+
+  constructor(node: SimpleNode) {
+    this.last = node;
+
+    if (import.meta.env.DEV) {
+      this.debug = () => ({ type: 'last', node: this.last });
+    }
+  }
 
   lastNode(): SimpleNode {
-    return this.node;
+    return this.last;
   }
 }
 
-export class Fragment implements Bounds {
-  private bounds: Bounds;
+export class Fragment implements BlockBounds {
+  private bounds: BlockBounds;
 
-  constructor(bounds: Bounds) {
+  constructor(bounds: BlockBounds) {
     this.bounds = bounds;
   }
+  debug?: () => SomeBoundsDebug;
 
   parentElement(): SimpleElement {
     return this.bounds.parentElement();
+  }
+
+  get first(): Nullable<SimpleNode> {
+    return this.bounds.first;
+  }
+
+  get last(): Nullable<SimpleNode> {
+    return this.bounds.last;
   }
 
   firstNode(): SimpleNode {
@@ -71,69 +97,188 @@ export class Fragment implements Bounds {
   }
 }
 
-export const CURSOR_STACK: CursorStackSymbol = Symbol('CURSOR_STACK') as CursorStackSymbol;
+class ElementBuilderState implements VmStackAspect {
+  static initial(cursor: Cursor) {
+    return new ElementBuilderState({
+      inserting: PresentStack.initial(cursor, 'cursor stack'),
+      modifiers: BalancedStack.empty('modifier stack'),
+      blocks: BalancedStack.empty('block stack'),
+      constructing: BalancedStack.empty('constructing stack'),
+    });
+  }
 
-export class NewElementBuilder implements ElementBuilder {
+  readonly debug?: { frames: DebugStackAspectFrame[] };
+
+  #inserting: PresentStack<Cursor>;
+  #modifiers: BalancedStack<ModifierInstance[]>;
+  #blocks: BalancedStack<LiveBlock>;
+  #constructing: BalancedStack<SimpleElement>;
+
+  constructor({
+    inserting,
+    modifiers,
+    blocks,
+    constructing,
+  }: {
+    inserting: PresentStack<Cursor>;
+    modifiers: BalancedStack<ModifierInstance[]>;
+    blocks: BalancedStack<LiveBlock>;
+    constructing: BalancedStack<SimpleElement>;
+  }) {
+    this.#inserting = inserting;
+    this.#modifiers = modifiers;
+    this.#blocks = blocks;
+    this.#constructing = constructing;
+
+    if (import.meta.env.DEV) {
+      Object.defineProperty(this, 'debug', {
+        configurable: true,
+        get: function (this: ElementBuilderState): { frames: DebugStackAspectFrame[] } {
+          return parentDebugFrames('element builder', {
+            inserting: this.#inserting,
+            modifiers: this.#modifiers,
+            blocks: this.#blocks,
+            constructing: this.#constructing,
+          });
+        },
+      });
+    }
+  }
+
+  get inserting(): PresentStack<Cursor> {
+    return this.#inserting;
+  }
+
+  get modifiers(): Stack<Nullable<ModifierInstance[]>> {
+    return this.#modifiers;
+  }
+
+  get blocks(): BalancedStack<LiveBlock> {
+    return this.#blocks;
+  }
+
+  get block() {
+    return this.#blocks.present;
+  }
+
+  get cursor(): Cursor {
+    return this.#inserting.current;
+  }
+
+  begin(): this {
+    this.#inserting = this.#inserting.begin();
+    this.#modifiers = this.#modifiers.begin();
+    this.#blocks = this.#blocks.begin();
+    this.#constructing = this.#constructing.begin();
+    return this;
+  }
+
+  catch(): this {
+    this.#inserting = this.#inserting.catch();
+    this.#modifiers = this.#modifiers.catch();
+    this.#blocks = this.#blocks.catch();
+    this.#constructing = this.#constructing.catch();
+    return this;
+  }
+
+  finally(): this {
+    this.#inserting = this.#inserting.finally();
+    this.#modifiers = this.#modifiers.finally();
+    this.#blocks = this.#blocks.finally();
+    this.#constructing = this.#constructing.finally();
+    return this;
+  }
+}
+
+export abstract class AbstractElementBuilder implements ElementBuilder {
+  static forInitialRender<
+    This extends new (
+      env: Environment,
+      element: SimpleElement,
+      nextSibling: Nullable<SimpleNode>
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ) => any,
+  >(this: This, env: Environment, cursor: Cursor): InstanceType<This> {
+    return new this(env, cursor.element, cursor.nextSibling).initialize() as InstanceType<This>;
+  }
+
+  readonly #state: ElementBuilderState;
   public dom: GlimmerTreeConstruction;
   public updateOperations: GlimmerTreeChanges;
   public constructing: Nullable<SimpleElement> = null;
   public operations: Nullable<ElementOperations> = null;
   private env: Environment;
 
-  [CURSOR_STACK] = new Stack<Cursor>();
-  private modifierStack = new Stack<Nullable<ModifierInstance[]>>();
-  private blockStack = new Stack<LiveBlock>();
-
-  static forInitialRender(env: Environment, cursor: CursorImpl) {
-    return new this(env, cursor.element, cursor.nextSibling).initialize();
-  }
-
-  static resume(env: Environment, block: UpdatableBlock): NewElementBuilder {
-    let parentNode = block.parentElement();
-    let nextSibling = block.reset(env);
-
-    let stack = new this(env, parentNode, nextSibling).initialize();
-    stack.pushLiveBlock(block);
-
-    return stack;
-  }
-
   constructor(env: Environment, parentNode: SimpleElement, nextSibling: Nullable<SimpleNode>) {
-    this.pushElement(parentNode, nextSibling);
+    this.#state = ElementBuilderState.initial(this.createCursor(parentNode, nextSibling));
 
     this.env = env;
     this.dom = env.getAppendOperations();
     this.updateOperations = env.getDOM();
   }
+  abstract createCursor(element: SimpleElement, nextSibling: Nullable<SimpleNode>): Cursor;
+
+  debugBlocks(): LiveBlock[] {
+    throw new Error('Method not implemented.');
+  }
+
+  get currentCursor(): ReturnType<this['createCursor']> {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return this.#state.cursor as any;
+  }
+
+  begin(): LiveBlock {
+    const block = this.pushUpdatableBlock();
+    this.#state.begin();
+    return block;
+  }
+
+  finally(): LiveBlock {
+    this.#state.finally();
+    return this.popBlock();
+  }
+
+  catch(): LiveBlock {
+    this.#state.catch();
+    return this.catchBlock();
+  }
+
+  pushCursor(cursor: ReturnType<this['createCursor']>): void {
+    this.#state.inserting.push(cursor);
+  }
 
   protected initialize(): this {
     this.pushSimpleBlock();
+
     return this;
   }
 
-  debugBlocks(): LiveBlock[] {
-    return this.blockStack.toArray();
+  get debug(): ElementBuilder['debug'] {
+    return {
+      blocks: this.#state.blocks.toArray(),
+      constructing: this.constructing,
+      inserting: this.#state.inserting.toArray(),
+    };
   }
 
   get element(): SimpleElement {
-    return this[CURSOR_STACK].current!.element;
+    return this.#state.cursor.element;
   }
 
   get nextSibling(): Nullable<SimpleNode> {
-    return this[CURSOR_STACK].current!.nextSibling;
+    return this.#state.cursor.nextSibling;
   }
 
   get hasBlocks() {
-    return this.blockStack.size > 0;
+    return this.#state.blocks.size > 0;
   }
 
-  protected block(): LiveBlock {
-    return expect(this.blockStack.current, 'Expected a current live block');
+  get block(): LiveBlock {
+    return this.#state.block;
   }
 
   popElement() {
-    this[CURSOR_STACK].pop();
-    expect(this[CURSOR_STACK].current, "can't pop past the last element");
+    this.#state.inserting.pop();
   }
 
   pushSimpleBlock(): LiveBlock {
@@ -148,24 +293,39 @@ export class NewElementBuilder implements ElementBuilder {
     return this.pushLiveBlock(new LiveBlockList(this.element, list));
   }
 
-  protected pushLiveBlock<T extends LiveBlock>(block: T, isRemote = false): T {
-    let current = this.blockStack.current;
+  protected pushLiveBlock<T extends LiveBlock>(block: T, _isRemote?: boolean): T {
+    this.__openBlock();
+    this.#state.blocks.push(block);
+    return block;
+  }
 
+  catchBlock(): LiveBlock {
+    this.block.catch(this);
+    const block = this.#closeBlock();
+
+    const current = this.#state.blocks.current;
     if (current !== null) {
-      if (!isRemote) {
-        current.didAppendBounds(block);
-      }
+      current.didAppendBounds(block);
     }
 
-    this.__openBlock();
-    this.blockStack.push(block);
     return block;
   }
 
   popBlock(): LiveBlock {
-    this.block().finalize(this);
+    this.block.finalize(this);
+    const block = this.#closeBlock();
+
+    const current = this.#state.blocks.current;
+    if (current !== null && !block.isRemote) {
+      current.didAppendBounds(block);
+    }
+
+    return block;
+  }
+
+  #closeBlock(): LiveBlock {
     this.__closeBlock();
-    return expect(this.blockStack.pop(), 'Expected popBlock to return a block');
+    return this.#state.blocks.pop();
   }
 
   __openBlock(): void {}
@@ -242,34 +402,34 @@ export class NewElementBuilder implements ElementBuilder {
   }
 
   protected pushElement(element: SimpleElement, nextSibling: Maybe<SimpleNode> = null) {
-    this[CURSOR_STACK].push(new CursorImpl(element, nextSibling));
+    this.#state.inserting.push(this.createCursor(element, nextSibling));
   }
 
   private pushModifiers(modifiers: Nullable<ModifierInstance[]>): void {
-    this.modifierStack.push(modifiers);
+    this.#state.modifiers.push(modifiers);
   }
 
   private popModifiers(): Nullable<ModifierInstance[]> {
-    return this.modifierStack.pop();
+    return this.#state.modifiers.pop();
   }
 
-  didAppendBounds(bounds: Bounds): Bounds {
-    this.block().didAppendBounds(bounds);
+  didAppendBounds(bounds: BlockBounds): BlockBounds {
+    this.block.didAppendBounds(bounds);
     return bounds;
   }
 
   didAppendNode<T extends SimpleNode>(node: T): T {
-    this.block().didAppendNode(node);
+    this.block.didAppendNode(node);
     return node;
   }
 
   didOpenElement(element: SimpleElement): SimpleElement {
-    this.block().openElement(element);
+    this.block.openElement(element);
     return element;
   }
 
   willCloseElement() {
-    this.block().closeElement();
+    this.block.closeElement();
   }
 
   appendText(string: string): SimpleText {
@@ -288,7 +448,7 @@ export class NewElementBuilder implements ElementBuilder {
     return node;
   }
 
-  __appendFragment(fragment: SimpleDocumentFragment): Bounds {
+  __appendFragment(fragment: SimpleDocumentFragment): BlockBounds {
     let first = fragment.firstChild;
 
     if (first) {
@@ -301,7 +461,7 @@ export class NewElementBuilder implements ElementBuilder {
     }
   }
 
-  __appendHTML(html: string): Bounds {
+  __appendHTML(html: string): BlockBounds {
     return this.dom.insertHTMLBefore(this.element, this.nextSibling, html);
   }
 
@@ -327,7 +487,7 @@ export class NewElementBuilder implements ElementBuilder {
     this.didAppendBounds(bounds);
   }
 
-  private trustedContent(value: string): Bounds {
+  private trustedContent(value: string): BlockBounds {
     return this.__appendHTML(value);
   }
 
@@ -351,7 +511,7 @@ export class NewElementBuilder implements ElementBuilder {
   }
 
   __setProperty(name: string, value: unknown): void {
-    (this.constructing! as any)[name] = value;
+    Reflect.set(this.constructing!, name, value);
   }
 
   setStaticAttribute(name: string, value: string, namespace: Nullable<AttrNamespace>): void {
@@ -371,15 +531,62 @@ export class NewElementBuilder implements ElementBuilder {
   }
 }
 
-export class SimpleLiveBlock implements LiveBlock {
-  protected first: Nullable<FirstNode> = null;
-  protected last: Nullable<LastNode> = null;
-  protected nesting = 0;
+export class NewElementBuilder extends AbstractElementBuilder {
+  static resume(env: Environment, block: UpdatableBlock): NewElementBuilder {
+    let parentNode = block.parentElement();
+    let nextSibling = block.reset(env);
 
-  constructor(private parent: SimpleElement) {}
+    let stack = new this(env, parentNode, nextSibling).initialize();
+    stack.pushLiveBlock(block);
+
+    return stack;
+  }
+
+  createCursor(element: SimpleElement, nextSibling: Nullable<SimpleNode>): Cursor {
+    return new CursorImpl(element, nextSibling);
+  }
+}
+
+export class SimpleLiveBlock implements LiveBlock {
+  #first: Nullable<FirstNode> = null;
+  #last: Nullable<LastNode> = null;
+
+  protected nesting = 0;
+  declare debug?: () => BlockBoundsDebug;
+
+  constructor(
+    private parent: SimpleElement,
+    readonly isRemote = false
+  ) {
+    ifDev(() => {
+      this.debug = (): BlockBoundsDebug => {
+        return liveBlockDebug('SimpleLiveBlock', this.first, this.last, parent);
+      };
+    });
+  }
+
+  get first(): Nullable<SimpleNode> {
+    return this.#first?.first ?? null;
+  }
+
+  set first(first: Nullable<SimpleNode>) {
+    this.#first = first ? new First(first) : null;
+  }
+
+  get last(): Nullable<SimpleNode> {
+    return this.#last?.last ?? null;
+  }
+
+  set last(last: Nullable<SimpleNode>) {
+    this.#last = last ? new Last(last) : null;
+  }
 
   parentElement() {
     return this.parent;
+  }
+
+  isEmpty(): boolean {
+    return this.first === null;
   }
 
   firstNode(): SimpleNode {
@@ -388,7 +595,7 @@ export class SimpleLiveBlock implements LiveBlock {
       'cannot call `firstNode()` while `SimpleLiveBlock` is still initializing'
     );
 
-    return first.firstNode();
+    return first;
   }
 
   lastNode(): SimpleNode {
@@ -397,7 +604,7 @@ export class SimpleLiveBlock implements LiveBlock {
       'cannot call `lastNode()` while `SimpleLiveBlock` is still initializing'
     );
 
-    return last.lastNode();
+    return last;
   }
 
   openElement(element: SimpleElement) {
@@ -413,20 +620,32 @@ export class SimpleLiveBlock implements LiveBlock {
     if (this.nesting !== 0) return;
 
     if (!this.first) {
-      this.first = new First(node);
+      this.#first = new First(node);
     }
 
-    this.last = new Last(node);
+    this.#last = new Last(node);
   }
 
-  didAppendBounds(bounds: Bounds) {
+  didAppendBounds(bounds: BlockBounds) {
     if (this.nesting !== 0) return;
 
+    assert(bounds.last !== null, `only append bounds with content`);
+
     if (!this.first) {
-      this.first = bounds;
+      this.#first = bounds;
     }
 
-    this.last = bounds;
+    this.#last = bounds;
+  }
+
+  catch(stack: ElementBuilder) {
+    const { first, last, parent } = this;
+
+    if (first && last) {
+      clearRange({ parent, first, last });
+    }
+
+    this.first = this.last = stack.appendComment('');
   }
 
   finalize(stack: ElementBuilder) {
@@ -437,42 +656,58 @@ export class SimpleLiveBlock implements LiveBlock {
 }
 
 export class RemoteLiveBlock extends SimpleLiveBlock {
+  override readonly isRemote = true;
+
   constructor(parent: SimpleElement) {
-    super(parent);
+    super(parent, true);
 
     registerDestructor(this, () => {
-      // In general, you only need to clear the root of a hierarchy, and should never
-      // need to clear any child nodes. This is an important constraint that gives us
-      // a strong guarantee that clearing a subtree is a single DOM operation.
+      // In general, you only need to clear the root of a hierarchy, and should never need to clear
+      // any child nodes. This is an important constraint that gives us a strong guarantee that
+      // clearing a subtree is a single DOM operation.
       //
-      // Because remote blocks are not normally physically nested inside of the tree
-      // that they are logically nested inside, we manually clear remote blocks when
-      // a logical parent is cleared.
+      // Because remote blocks are not normally physically nested inside of the tree that they are
+      // logically nested inside, we manually clear remote blocks when a logical parent is cleared.
       //
-      // HOWEVER, it is currently possible for a remote block to be physically nested
-      // inside of the block it is logically contained inside of. This happens when
-      // the remote block is appended to the end of the application's entire element.
+      // HOWEVER, it is currently possible for a remote block to be physically nested inside of the
+      // block it is logically contained inside of. This happens when the remote block is appended
+      // to the end of the application's entire element.
       //
-      // The problem with that scenario is that Glimmer believes that it owns more of
-      // the DOM than it actually does. The code is attempting to write past the end
-      // of the Glimmer-managed root, but Glimmer isn't aware of that.
+      // The problem with that scenario is that Glimmer believes that it owns more of the DOM than
+      // it actually does. The code is attempting to write past the end of the Glimmer-managed root,
+      // but Glimmer isn't aware of that.
       //
-      // The correct solution to that problem is for Glimmer to be aware of the end
-      // of the bounds that it owns, and once we make that change, this check could
-      // be removed.
+      // The correct solution to that problem is for Glimmer to be aware of the end of the bounds
+      // that it owns, and once we make that change, this check could be removed.
       //
-      // For now, a more targeted fix is to check whether the node was already removed
-      // and avoid clearing the node if it was. In most cases this shouldn't happen,
-      // so this might hide bugs where the code clears nested nodes unnecessarily,
-      // so we should eventually try to do the correct fix.
+      // For now, a more targeted fix is to check whether the node was already removed and avoid
+      // clearing the node if it was. In most cases this shouldn't happen, so this might hide bugs
+      // where the code clears nested nodes unnecessarily, so we should eventually try to do the
+      // correct fix.
       if (this.parentElement() === this.firstNode().parentNode) {
         clear(this);
       }
+    });
+
+    ifDev(() => {
+      this.debug = () => {
+        return liveBlockDebug('RemoteLiveBlock', this.first, this.last, parent);
+      };
     });
   }
 }
 
 export class UpdatableBlockImpl extends SimpleLiveBlock implements UpdatableBlock {
+  constructor(parent: SimpleElement) {
+    super(parent);
+
+    ifDev(() => {
+      this.debug = () => {
+        return liveBlockDebug('UpdatableBlock', this.first, this.last, parent);
+      };
+    });
+  }
+
   reset(): Nullable<SimpleNode> {
     destroy(this);
     let nextSibling = clear(this);
@@ -487,12 +722,50 @@ export class UpdatableBlockImpl extends SimpleLiveBlock implements UpdatableBloc
 
 // FIXME: All the noops in here indicate a modelling problem
 export class LiveBlockList implements LiveBlock {
+  readonly isRemote = false;
+  readonly debug?: () => BlockBoundsDebug;
+
   constructor(
     private readonly parent: SimpleElement,
-    public boundList: LiveBlock[]
+    public boundList: BlockBounds[]
   ) {
     this.parent = parent;
     this.boundList = boundList;
+
+    if (import.meta.env.DEV) {
+      this.debug = () => {
+        const bounds = this.boundList;
+        const parent = this.parent;
+
+        return joinRange(
+          'LiveBlockList',
+          this.boundList.at(0)?.debug?.(),
+          bounds.at(-1)?.debug?.(),
+          parent
+        );
+      };
+    }
+  }
+
+  get first(): Nullable<SimpleNode> {
+    const [first] = this.boundList;
+    return first?.first ?? null;
+  }
+
+  get last(): Nullable<SimpleNode> {
+    const last = this.boundList.at(-1);
+    return last?.last ?? null;
+  }
+
+  catch(stack: ElementBuilder): void {
+    let { first, last } = this;
+
+    if (first && last) {
+      clearRange({ parent: this.parent, first, last });
+    }
+
+    const comment = stack.appendComment('');
+    this.boundList = [new ConcreteBounds(this.parent, comment, comment)];
   }
 
   parentElement() {
@@ -531,7 +804,7 @@ export class LiveBlockList implements LiveBlock {
     assert(false, 'Cannot create a new node directly inside a block list');
   }
 
-  didAppendBounds(_bounds: Bounds) {}
+  didAppendBounds(_bounds: BlockBounds) {}
 
   finalize(_stack: ElementBuilder) {
     assert(this.boundList.length > 0, 'boundsList cannot be empty');
@@ -540,4 +813,75 @@ export class LiveBlockList implements LiveBlock {
 
 export function clientBuilder(env: Environment, cursor: CursorImpl): ElementBuilder {
   return NewElementBuilder.forInitialRender(env, cursor);
+}
+
+function ifDev<T>(callback: () => T): void {
+  if (import.meta.env.DEV) {
+    callback();
+  }
+}
+
+function getFirstNodeFromDebug(debug: SomeBoundsDebug | undefined): SimpleNode | undefined {
+  switch (debug?.type) {
+    case undefined:
+    case 'empty':
+    case 'last':
+      return;
+    case 'range':
+      return debug.range[0];
+    case 'first':
+      return debug.node;
+  }
+}
+
+function getLastNodeFromDebug(debug: SomeBoundsDebug | undefined): SimpleNode | undefined {
+  switch (debug?.type) {
+    case undefined:
+    case 'empty':
+    case 'first':
+      return;
+    case 'range':
+      return debug.range[1];
+  }
+}
+
+function joinRange(
+  kind: string,
+  firstBlock: SomeBoundsDebug | undefined,
+  lastBlock: SomeBoundsDebug | undefined,
+  parent: SimpleElement
+): BlockBoundsDebug {
+  const firstNode = getFirstNodeFromDebug(firstBlock);
+  const lastNode = getLastNodeFromDebug(lastBlock);
+
+  if (firstNode && lastNode) {
+    return debugRange(kind, [firstNode, lastNode]);
+  } else if (firstBlock?.type === 'range') {
+    return firstBlock;
+  } else if (lastBlock?.type === 'range') {
+    return lastBlock;
+  } else {
+    return empty(kind, parent);
+  }
+}
+
+function empty(kind: string, parent: SimpleElement): BlockBoundsDebug {
+  return { type: 'empty', kind, parent };
+}
+
+function debugRange(kind: string, [first, last]: [SimpleNode, SimpleNode]): BlockBoundsDebug {
+  return { type: 'range', kind, range: [first, last], collapsed: first === last };
+}
+
+function liveBlockDebug(
+  kind: string,
+  first: Nullable<SimpleNode>,
+  last: Nullable<SimpleNode>,
+  parent: SimpleElement
+): BlockBoundsDebug {
+  if (first && last) {
+    return { type: 'range', kind, range: [first, last], collapsed: first === last };
+  } else {
+    return { type: 'empty', kind, parent };
+  }
 }

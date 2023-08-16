@@ -10,7 +10,7 @@ import type {
   Owner,
 } from '@glimmer/interfaces';
 import { associateDestroyableChild } from '@glimmer/destroyable';
-import { createComputeRef, createConstRef, UNDEFINED_REFERENCE } from '@glimmer/reference';
+import { Formula, ReadonlyCell, UNDEFINED_REFERENCE } from '@glimmer/reference';
 
 import type { ManagerFactory } from './index';
 
@@ -78,10 +78,12 @@ export class CustomHelperManager<O extends Owner = Owner> implements InternalHel
       delegate = factory(owner);
 
       if (import.meta.env.DEV && !FROM_CAPABILITIES!.has(delegate.capabilities)) {
-        // TODO: This error message should make sense in both Ember and Glimmer https://github.com/glimmerjs/glimmer-vm/issues/1200
+        // TODO: This error message should make sense in both Ember and Glimmer
+        // https://github.com/glimmerjs/glimmer-vm/issues/1200
         throw new Error(
           `Custom helper managers must have a \`capabilities\` property that is the result of calling the \`capabilities('3.23')\` (imported via \`import { capabilities } from '@ember/helper';\`). Received: \`${JSON.stringify(
             delegate.capabilities
+            // eslint-disable-next-line @typescript-eslint/no-base-to-string -- @todo
           )}\` for: \`${delegate}\``
         );
       }
@@ -115,9 +117,8 @@ export class CustomHelperManager<O extends Owner = Owner> implements InternalHel
       const bucket = manager.createHelper(definition, args);
 
       if (hasValue(manager)) {
-        let cache = createComputeRef(
+        let cache = Formula(
           () => (manager as HelperManagerWithValue<unknown>).getValue(bucket),
-          null,
           import.meta.env.DEV && manager.getDebugName && manager.getDebugName(definition)
         );
 
@@ -127,7 +128,7 @@ export class CustomHelperManager<O extends Owner = Owner> implements InternalHel
 
         return cache;
       } else if (hasDestroyable(manager)) {
-        let ref = createConstRef(
+        let ref = ReadonlyCell(
           undefined,
           import.meta.env.DEV && (manager.getDebugName?.(definition) ?? 'unknown helper')
         );

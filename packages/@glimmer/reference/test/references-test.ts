@@ -1,17 +1,20 @@
 import type { GlobalContext } from '@glimmer/global-context';
+import type { Reactive } from '@glimmer/reference';
 import { testOverrideGlobalContext } from '@glimmer/global-context';
 import {
-  childRefFor,
-  createComputeRef,
-  createConstRef,
+  Accessor,
   createDebugAliasRef,
-  createInvokableRef,
-  createReadOnlyRef,
-  createUnboundRef,
-  isInvokableRef,
+  DeeplyReadonlyCell,
+  Formula,
+  getReactiveProperty,
+  isAccessor,
   isUpdatableRef,
-  updateRef,
-  valueForRef,
+  MutableCell,
+  ReadonlyCell,
+  toMut,
+  toReadonly,
+  unwrapReactive,
+  updateReactive,
 } from '@glimmer/reference';
 import { dict, unwrap } from '@glimmer/util';
 import { consumeTag, createTag, dirtyTag } from '@glimmer/validator';
@@ -35,379 +38,514 @@ class TrackedDict<T> {
   }
 }
 
-module('References', (hooks) => {
-  let originalContext: GlobalContext | null;
-  let getCount = 0;
-  let setCount = 0;
+module('@glimmer/reference', () => {
+  module('References', (hooks) => {
+    let originalContext: GlobalContext | null;
+    let getCount = 0;
+    let setCount = 0;
 
-  hooks.beforeEach(() => {
-    originalContext = unwrap(testOverrideGlobalContext)({
-      getProp(obj: object, key: string): unknown {
-        getCount++;
-        return (obj as Record<string, unknown>)[key];
-      },
+    hooks.beforeEach(() => {
+      originalContext = unwrap(testOverrideGlobalContext)({
+        getProp(obj: object, key: string): unknown {
+          getCount++;
+          return (obj as Record<string, unknown>)[key];
+        },
 
-      setProp(obj: object, key: string, value: unknown) {
-        setCount++;
-        (obj as Record<string, unknown>)[key] = value;
-      },
+        setProp(obj: object, key: string, value: unknown) {
+          setCount++;
+          (obj as Record<string, unknown>)[key] = value;
+        },
 
-      scheduleRevalidate() {},
-    });
-  });
-
-  hooks.afterEach(() => {
-    unwrap(testOverrideGlobalContext)(originalContext);
-  });
-
-  hooks.beforeEach(() => {
-    getCount = 0;
-    setCount = 0;
-  });
-
-  module('const ref', () => {
-    test('it works', (assert) => {
-      let value = {};
-      let constRef = createConstRef(value, 'test');
-
-      assert.strictEqual(valueForRef(constRef), value, 'value is correct');
-      assert.notOk(isUpdatableRef(constRef), 'value is not updatable');
+        scheduleRevalidate() {},
+      });
     });
 
-    test('can create children of const refs', (assert) => {
-      class Parent {
-        @tracked child = 123;
+    hooks.afterEach(() => {
+      unwrap(testOverrideGlobalContext)(originalContext);
+    });
+
+    hooks.beforeEach(() => {
+      getCount = 0;
+      setCount = 0;
+    });
+
+    class Validatable<T> {
+      readonly #reactive: Reactive<T>;
+
+      constructor(reactive: Reactive<T>) {
+        this.#reactive = reactive;
       }
 
-      let parent = new Parent();
+      token(): {
+        fresh: () => void;
+        stale: (value: T, message?: string) => void;
+        updated: (value: T, message?: string) => void;
+      } {
+        let lastGetCount = getCount;
+        let lastSetCount = setCount;
+        let lastValue = unwrapReactive(this.#reactive);
+        return {
+          fresh: () => {
+            const actual = unwrapReactive(this.#reactive);
 
-      let constRef = createConstRef(parent, 'test');
-      let childRef = childRefFor(constRef, 'child');
+            if (actual === lastValue && getCount === lastGetCount) {
+              QUnit.assert.ok(true, `fresh: the reactive value hasn't changed`);
+              lastValue = actual;
+              this.#noop(actual);
+            } else {
+              if (actual !== lastValue && getCount !== lastGetCount) {
+                QUnit.assert.ok(false, `fresh: the reactive value is not fresh`);
+              } else {
+                QUnit.assert.strictEqual(
+                  actual,
+                  lastValue,
+                  `fresh: the reactive value hasn't changed`
+                );
+                QUnit.assert.strictEqual(
+                  getCount,
+                  lastGetCount,
+                  `fresh: the counter hasn't changed`
+                );
+              }
 
-      assert.strictEqual(valueForRef(childRef), 123, 'value is correct');
-      assert.strictEqual(valueForRef(childRef), 123, 'value is correct');
-      assert.strictEqual(getCount, 1, 'get called correct number of times');
+              lastGetCount = getCount;
+              lastSetCount = setCount;
+            }
+          },
+          updated: (value: T, message?: string) => {
+            const actual = unwrapReactive(this.#reactive);
 
-      parent.child = 456;
+            if (getCount !== lastGetCount && lastSetCount === setCount + 1) {
+              QUnit.assert.strictEqual(
+                actual,
+                value,
+                `updated: ${message ?? 'the new reactive value'}`
+              );
+            } else {
+              QUnit.assert.deepEqual(
+                { get: getCount, set: setCount },
+                { get: lastGetCount + 1, set: lastSetCount + 1 },
+                `stale: ${message} (get and set were called)`
+              );
+              lastValue = actual;
+              this.#noop(actual);
+            }
 
-      assert.strictEqual(valueForRef(childRef), 456, 'value updated correctly');
-      assert.strictEqual(valueForRef(childRef), 456, 'value is correct');
-      assert.strictEqual(getCount, 2, 'get called correct number of times');
+            lastGetCount = getCount;
+            lastSetCount = setCount;
+          },
+          stale: (value: T, message?: string) => {
+            const actual = unwrapReactive(this.#reactive);
 
-      assert.true(isUpdatableRef(childRef), 'childRef is updatable');
+            if (getCount !== lastGetCount && lastSetCount === setCount) {
+              QUnit.assert.strictEqual(
+                actual,
+                value,
+                `stale: ${message ?? 'the new reactive value'}`
+              );
+              lastValue = actual;
+              this.#noop(actual);
+            } else {
+              QUnit.assert.deepEqual(
+                { get: getCount, set: setCount },
+                { get: lastGetCount + 1, set: lastSetCount },
+                `stale: ${message} (get was called, but set was not)`
+              );
+            }
 
-      updateRef(childRef, 789);
+            lastGetCount = getCount;
+            lastSetCount = setCount;
+          },
+        };
+      }
 
-      assert.strictEqual(valueForRef(childRef), 789, 'value updated correctly');
-      assert.strictEqual(getCount, 3, 'get called correct number of times');
-      assert.strictEqual(setCount, 1, 'set called correct number of times');
-    });
-  });
+      #noop(lastValue: T) {
+        const lastGetCount = getCount;
+        const lastSetCount = setCount;
 
-  module('compute ref', () => {
-    test('compute reference caches computation', (assert) => {
-      let count = 0;
+        const value = unwrapReactive(this.#reactive);
 
-      let dict = new TrackedDict<string>();
-      let ref = createComputeRef(() => {
-        count++;
-        return dict.get('foo');
+        if (value === lastValue && getCount === lastGetCount && setCount === lastSetCount) {
+          return;
+        } else {
+          QUnit.assert.deepEqual(
+            { get: getCount, set: setCount },
+            { get: lastGetCount, set: lastSetCount },
+            `Expected a second read to the reactive value to make 0 calls and 0 sets`
+          );
+        }
+      }
+    }
+
+    module('const ref', () => {
+      test('it works', (assert) => {
+        let value = {};
+        let constRef = ReadonlyCell(value, 'test');
+
+        assert.strictEqual(unwrapReactive(constRef), value, 'value is correct');
+        assert.notOk(isUpdatableRef(constRef), 'value is not updatable');
       });
 
-      dict.set('foo', 'bar');
+      test('can create children of const refs', (assert) => {
+        class Parent {
+          @tracked child = 123;
+        }
 
-      assert.strictEqual(count, 0, 'precond');
+        let parent = new Parent();
 
-      assert.strictEqual(valueForRef(ref), 'bar');
-      assert.strictEqual(valueForRef(ref), 'bar');
-      assert.strictEqual(valueForRef(ref), 'bar');
+        let constRef = ReadonlyCell(parent, 'test');
+        let childRef = getReactiveProperty(constRef, 'child');
+        const validChild = new Validatable(childRef).token();
 
-      assert.strictEqual(count, 1, 'computed');
+        assert.strictEqual(unwrapReactive(childRef), 123, 'value is correct');
+        assert.strictEqual(unwrapReactive(childRef), 123, 'value is correct');
+        assert.strictEqual(getCount, 1, 'get called correct number of times');
 
-      dict.set('foo', 'BAR');
+        parent.child = 456;
+        validChild.stale(456, 'value updated correctly');
 
-      assert.strictEqual(valueForRef(ref), 'BAR');
-      assert.strictEqual(valueForRef(ref), 'BAR');
-      assert.strictEqual(valueForRef(ref), 'BAR');
+        assert.true(isUpdatableRef(childRef), 'childRef is updatable');
 
-      assert.strictEqual(count, 2, 'computed');
-
-      dict.set('baz', 'bat');
-
-      assert.strictEqual(valueForRef(ref), 'BAR');
-      assert.strictEqual(valueForRef(ref), 'BAR');
-      assert.strictEqual(valueForRef(ref), 'BAR');
-
-      assert.strictEqual(count, 3, 'computed');
-
-      dict.set('foo', 'bar');
-
-      assert.strictEqual(valueForRef(ref), 'bar');
-      assert.strictEqual(valueForRef(ref), 'bar');
-      assert.strictEqual(valueForRef(ref), 'bar');
-
-      assert.strictEqual(count, 4, 'computed');
-    });
-
-    test('compute refs cache nested computation correctly', (assert) => {
-      let count = 0;
-
-      let first = new TrackedDict<string>();
-      let second = new TrackedDict<string>();
-
-      let innerRef = createComputeRef(() => {
-        count++;
-        return first.get('foo');
+        updateReactive(childRef, 789);
+        validChild.updated(789, 'value updated correctly');
       });
-      let outerRef = createComputeRef(() => valueForRef(innerRef));
-
-      first.set('foo', 'bar');
-
-      assert.strictEqual(count, 0, 'precond');
-
-      assert.strictEqual(valueForRef(outerRef), 'bar');
-      assert.strictEqual(valueForRef(outerRef), 'bar');
-      assert.strictEqual(valueForRef(outerRef), 'bar');
-
-      assert.strictEqual(count, 1, 'computed');
-
-      second.set('foo', 'BAR');
-
-      assert.strictEqual(valueForRef(outerRef), 'bar');
-      assert.strictEqual(valueForRef(outerRef), 'bar');
-      assert.strictEqual(valueForRef(outerRef), 'bar');
-
-      assert.strictEqual(count, 1, 'computed');
-
-      first.set('foo', 'BAR');
-
-      assert.strictEqual(valueForRef(outerRef), 'BAR');
-      assert.strictEqual(valueForRef(outerRef), 'BAR');
-      assert.strictEqual(valueForRef(outerRef), 'BAR');
-
-      assert.strictEqual(count, 2, 'computed');
     });
 
-    test('can create children of compute refs', (assert) => {
-      class Child {
-        @tracked value = 123;
-      }
+    module('compute ref', () => {
+      test('compute reference caches computation', (assert) => {
+        let count = 0;
 
-      class Parent {
-        @tracked child = new Child();
-      }
+        let dict = new TrackedDict<string>();
+        let ref = Formula(() => {
+          count++;
+          return dict.get('foo');
+        });
 
-      let parent = new Parent();
+        dict.set('foo', 'bar');
 
-      let computeRef = createComputeRef(() => parent.child);
-      let valueRef = childRefFor(computeRef, 'value');
+        assert.strictEqual(count, 0, 'precond');
 
-      assert.strictEqual(valueForRef(valueRef), 123, 'value is correct');
-      assert.strictEqual(valueForRef(valueRef), 123, 'value is correct');
-      assert.strictEqual(getCount, 1, 'get called correct number of times');
+        assert.strictEqual(unwrapReactive(ref), 'bar');
+        assert.strictEqual(unwrapReactive(ref), 'bar');
+        assert.strictEqual(unwrapReactive(ref), 'bar');
 
-      parent.child.value = 456;
+        assert.strictEqual(count, 1, 'computed');
 
-      assert.strictEqual(valueForRef(valueRef), 456, 'value updated correctly');
-      assert.strictEqual(valueForRef(valueRef), 456, 'value is correct');
-      assert.strictEqual(getCount, 2, 'get called correct number of times');
+        dict.set('foo', 'BAR');
 
-      assert.true(isUpdatableRef(valueRef), 'childRef is updatable');
+        assert.strictEqual(unwrapReactive(ref), 'BAR');
+        assert.strictEqual(unwrapReactive(ref), 'BAR');
+        assert.strictEqual(unwrapReactive(ref), 'BAR');
 
-      updateRef(valueRef, 789);
+        assert.strictEqual(count, 2, 'computed');
 
-      assert.strictEqual(valueForRef(valueRef), 789, 'value updated correctly');
-      assert.strictEqual(getCount, 3, 'get called correct number of times');
-      assert.strictEqual(setCount, 1, 'set called correct number of times');
+        dict.set('baz', 'bat');
 
-      parent.child = new Child();
+        assert.strictEqual(unwrapReactive(ref), 'BAR');
+        assert.strictEqual(unwrapReactive(ref), 'BAR');
+        assert.strictEqual(unwrapReactive(ref), 'BAR');
 
-      assert.strictEqual(valueForRef(valueRef), 123, 'value updated correctly when parent changes');
-      assert.strictEqual(getCount, 4, 'get called correct number of times');
-    });
-  });
+        assert.strictEqual(count, 3, 'computed');
 
-  module('unbound ref', () => {
-    test('it works', (assert) => {
-      let value = {};
-      let constRef = createUnboundRef(value, 'test');
+        dict.set('foo', 'bar');
 
-      assert.strictEqual(valueForRef(constRef), value, 'value is correct');
-      assert.notOk(isUpdatableRef(constRef), 'value is not updatable');
-    });
+        assert.strictEqual(unwrapReactive(ref), 'bar');
+        assert.strictEqual(unwrapReactive(ref), 'bar');
+        assert.strictEqual(unwrapReactive(ref), 'bar');
 
-    test('children of unbound refs are not reactive', (assert) => {
-      class Parent {
-        @tracked child = 123;
-      }
+        assert.strictEqual(count, 4, 'computed');
+      });
 
-      let parent = new Parent();
+      test('compute refs cache nested computation correctly', (assert) => {
+        let count = 0;
 
-      let constRef = createUnboundRef(parent, 'test');
-      let childRef = childRefFor(constRef, 'child');
+        let first = new TrackedDict<string>();
+        let second = new TrackedDict<string>();
 
-      assert.strictEqual(valueForRef(childRef), 123, 'value is correct');
+        let innerRef = Formula(() => {
+          count++;
+          return first.get('foo');
+        });
+        let outerRef = Formula(() => unwrapReactive(innerRef));
 
-      parent.child = 456;
+        first.set('foo', 'bar');
 
-      assert.strictEqual(valueForRef(childRef), 123, 'value updated correctly');
-    });
-  });
+        assert.strictEqual(count, 0, 'precond');
 
-  module('invokable ref', () => {
-    test('can create invokable refs', (assert) => {
-      let ref = createComputeRef(
-        () => {},
-        () => {}
-      );
+        assert.strictEqual(unwrapReactive(outerRef), 'bar');
+        assert.strictEqual(unwrapReactive(outerRef), 'bar');
+        assert.strictEqual(unwrapReactive(outerRef), 'bar');
 
-      let invokableRef = createInvokableRef(ref);
+        assert.strictEqual(count, 1, 'computed');
 
-      assert.ok(isInvokableRef(invokableRef));
-    });
+        second.set('foo', 'BAR');
 
-    test('can create children of invokable refs', (assert) => {
-      class Child {
-        @tracked value = 123;
-      }
+        assert.strictEqual(unwrapReactive(outerRef), 'bar');
+        assert.strictEqual(unwrapReactive(outerRef), 'bar');
+        assert.strictEqual(unwrapReactive(outerRef), 'bar');
 
-      class Parent {
-        @tracked child = new Child();
-      }
+        assert.strictEqual(count, 1, 'computed');
 
-      let parent = new Parent();
+        first.set('foo', 'BAR');
 
-      let computeRef = createComputeRef(
-        () => parent.child,
-        (value) => (parent.child = value)
-      );
-      let invokableRef = createInvokableRef(computeRef);
-      let valueRef = childRefFor(invokableRef, 'value');
+        assert.strictEqual(unwrapReactive(outerRef), 'BAR');
+        assert.strictEqual(unwrapReactive(outerRef), 'BAR');
+        assert.strictEqual(unwrapReactive(outerRef), 'BAR');
 
-      assert.strictEqual(valueForRef(valueRef), 123, 'value is correct');
-      assert.strictEqual(valueForRef(valueRef), 123, 'value is correct');
-      assert.strictEqual(getCount, 1, 'get called correct number of times');
+        assert.strictEqual(count, 2, 'computed');
+      });
 
-      parent.child.value = 456;
-
-      assert.strictEqual(valueForRef(valueRef), 456, 'value updated correctly');
-      assert.strictEqual(valueForRef(valueRef), 456, 'value is correct');
-      assert.strictEqual(getCount, 2, 'get called correct number of times');
-
-      assert.true(isUpdatableRef(valueRef), 'childRef is updatable');
-
-      updateRef(valueRef, 789);
-
-      assert.strictEqual(valueForRef(valueRef), 789, 'value updated correctly');
-      assert.strictEqual(getCount, 3, 'get called correct number of times');
-      assert.strictEqual(setCount, 1, 'set called correct number of times');
-
-      parent.child = new Child();
-
-      assert.strictEqual(valueForRef(valueRef), 123, 'value updated correctly when parent changes');
-      assert.strictEqual(getCount, 4, 'get called correct number of times');
-    });
-  });
-
-  module('read only ref', () => {
-    test('can convert an updatable ref to read only', (assert) => {
-      class Parent {
-        @tracked child = 123;
-      }
-
-      let parent = new Parent();
-
-      let computeRef = createComputeRef(
-        () => parent.child,
-        (value) => (parent.child = value)
-      );
-
-      let readOnlyRef = createReadOnlyRef(computeRef);
-
-      assert.ok(isUpdatableRef(computeRef), 'original ref is updatable');
-      assert.notOk(isUpdatableRef(readOnlyRef), 'read only ref is not updatable');
-    });
-
-    test('can create children of read only refs', (assert) => {
-      class Child {
-        @tracked value = 123;
-      }
-
-      class Parent {
-        @tracked child = new Child();
-      }
-
-      let parent = new Parent();
-
-      let computeRef = createComputeRef(
-        () => parent.child,
-        (value) => (parent.child = value)
-      );
-      let readOnlyRef = createReadOnlyRef(computeRef);
-      let valueRef = childRefFor(readOnlyRef, 'value');
-
-      assert.strictEqual(valueForRef(valueRef), 123, 'value is correct');
-      assert.strictEqual(valueForRef(valueRef), 123, 'value is correct');
-      assert.strictEqual(getCount, 1, 'get called correct number of times');
-
-      parent.child.value = 456;
-
-      assert.strictEqual(valueForRef(valueRef), 456, 'value updated correctly');
-      assert.strictEqual(valueForRef(valueRef), 456, 'value is correct');
-      assert.strictEqual(getCount, 2, 'get called correct number of times');
-
-      assert.true(isUpdatableRef(valueRef), 'childRef is updatable');
-
-      updateRef(valueRef, 789);
-
-      assert.strictEqual(valueForRef(valueRef), 789, 'value updated correctly');
-      assert.strictEqual(getCount, 3, 'get called correct number of times');
-      assert.strictEqual(setCount, 1, 'set called correct number of times');
-
-      parent.child = new Child();
-
-      assert.strictEqual(valueForRef(valueRef), 123, 'value updated correctly when parent changes');
-      assert.strictEqual(getCount, 4, 'get called correct number of times');
-    });
-  });
-
-  if (import.meta.env.DEV) {
-    module('debugAliasRef', () => {
-      test('debug alias refs are transparent', (assert) => {
-        class Foo {
+      test('can create children of compute refs', (assert) => {
+        class Child {
           @tracked value = 123;
         }
 
-        let foo = new Foo();
+        class Parent {
+          @tracked child = new Child();
+        }
 
-        let original = createComputeRef(
-          () => foo.value,
-          (newValue) => (foo.value = newValue)
+        let parent = new Parent();
+
+        let computeRef = Formula(() => parent.child);
+        let valueRef = getReactiveProperty(computeRef, 'value');
+
+        assert.strictEqual(unwrapReactive(valueRef), 123, 'value is correct');
+        assert.strictEqual(unwrapReactive(valueRef), 123, 'value is correct');
+        assert.strictEqual(getCount, 1, 'get called correct number of times');
+
+        parent.child.value = 456;
+
+        assert.strictEqual(unwrapReactive(valueRef), 456, 'value updated correctly');
+        assert.strictEqual(unwrapReactive(valueRef), 456, 'value is correct');
+        assert.strictEqual(getCount, 2, 'get called correct number of times');
+
+        assert.true(isUpdatableRef(valueRef), 'childRef is updatable');
+
+        updateReactive(valueRef, 789);
+
+        assert.strictEqual(unwrapReactive(valueRef), 789, 'value updated correctly');
+        assert.strictEqual(getCount, 3, 'get called correct number of times');
+        assert.strictEqual(setCount, 1, 'set called correct number of times');
+
+        parent.child = new Child();
+
+        assert.strictEqual(
+          unwrapReactive(valueRef),
+          123,
+          'value updated correctly when parent changes'
         );
-
-        let alias = unwrap(createDebugAliasRef)('@test', original);
-
-        assert.strictEqual(valueForRef(original), 123, 'alias returns correct value');
-        assert.strictEqual(valueForRef(alias), 123, 'alias returns correct value');
-        assert.ok(isUpdatableRef(alias), 'alias is updatable');
-
-        updateRef(alias, 456);
-
-        assert.strictEqual(valueForRef(original), 456, 'alias returns correct value');
-        assert.strictEqual(valueForRef(alias), 456, 'alias returns correct value');
-
-        let readOnly = createReadOnlyRef(original);
-        let readOnlyAlias = unwrap(createDebugAliasRef)('@test', readOnly);
-
-        assert.strictEqual(valueForRef(readOnly), 456, 'alias returns correct value');
-        assert.strictEqual(valueForRef(readOnlyAlias), 456, 'alias returns correct value');
-        assert.notOk(isUpdatableRef(readOnly), 'alias is not updatable');
-
-        let invokable = createInvokableRef(original);
-        let invokableAlias = unwrap(createDebugAliasRef)('@test', invokable);
-
-        assert.ok(isInvokableRef(invokableAlias), 'alias is invokable');
+        assert.strictEqual(getCount, 4, 'get called correct number of times');
       });
     });
-  }
+
+    module('deeply constant', () => {
+      test('it works', (assert) => {
+        let value = {};
+        let constRef = DeeplyReadonlyCell(value, 'test');
+
+        assert.strictEqual(unwrapReactive(constRef), value, 'value is correct');
+        assert.notOk(isUpdatableRef(constRef), 'value is not updatable');
+      });
+
+      test('children of deeply constant values are deeply constant', (assert) => {
+        class Parent {
+          @tracked child = 123;
+        }
+
+        let parent = new Parent();
+
+        let constRef = DeeplyReadonlyCell(parent, 'test');
+        let childRef = getReactiveProperty(constRef, 'child');
+
+        assert.strictEqual(unwrapReactive(childRef), 123, 'value is correct');
+
+        parent.child = 456;
+
+        assert.strictEqual(unwrapReactive(childRef), 123, 'value updated correctly');
+      });
+    });
+
+    module('accessor', () => {
+      test('can create accessors', (assert) => {
+        // let ref = FallibleFormula(() => {});
+
+        let accessor = Accessor({
+          get: () => {},
+          set: () => {},
+        });
+
+        assert.ok(isAccessor(accessor));
+      });
+
+      test('can create children of invokable refs', (assert) => {
+        class Child {
+          @tracked value = 123;
+        }
+
+        class Parent {
+          @tracked child = new Child();
+        }
+
+        let parent = new Parent();
+
+        let invokableRef = Accessor({
+          get: () => parent.child,
+          set: (value: Child) => (parent.child = value),
+        });
+        // let invokableRef = formulaToAccessor(computeRef);
+        let valueRef = getReactiveProperty(invokableRef, 'value');
+
+        assert.strictEqual(unwrapReactive(valueRef), 123, 'value is correct');
+        assert.strictEqual(unwrapReactive(valueRef), 123, 'value is correct');
+        assert.strictEqual(getCount, 1, 'get called correct number of times');
+
+        parent.child.value = 456;
+
+        assert.strictEqual(unwrapReactive(valueRef), 456, 'value updated correctly');
+        assert.strictEqual(unwrapReactive(valueRef), 456, 'value is correct');
+        assert.strictEqual(getCount, 2, 'get called correct number of times');
+
+        assert.true(isUpdatableRef(valueRef), 'childRef is updatable');
+
+        updateReactive(valueRef, 789);
+
+        assert.strictEqual(unwrapReactive(valueRef), 789, 'value updated correctly');
+        assert.strictEqual(getCount, 3, 'get called correct number of times');
+        assert.strictEqual(setCount, 1, 'set called correct number of times');
+
+        parent.child = new Child();
+
+        assert.strictEqual(
+          unwrapReactive(valueRef),
+          123,
+          'value updated correctly when parent changes'
+        );
+        assert.strictEqual(getCount, 4, 'get called correct number of times');
+      });
+    });
+
+    module('mut ref', () => {
+      test('can convert a readonly ref to mut', (assert) => {
+        const ref = ReadonlyCell(123);
+        const mutable = toMut(ref);
+        assert.notOk(isUpdatableRef(ref), 'original ref is not updatable');
+
+        assert.ok(isUpdatableRef(mutable), 'mutable ref is updatable');
+      });
+
+      test("can mutate a mut ref's value", (assert) => {
+        const ref = MutableCell(123);
+        const mutable = toMut(ref);
+
+        updateReactive(mutable, 456);
+        assert.strictEqual(unwrapReactive(mutable), 456, 'mut wrapper was updated');
+        assert.strictEqual(unwrapReactive(ref), 456, 'original reactive was updated');
+      });
+    });
+
+    module('read only ref', () => {
+      test('can convert an updatable ref to read only', (assert) => {
+        class Parent {
+          @tracked child = 123;
+        }
+
+        let parent = new Parent();
+
+        let computeRef = Accessor({
+          get: () => parent.child,
+          set: (value: number) => (parent.child = value),
+        });
+
+        let readOnlyRef = toReadonly(computeRef);
+
+        assert.ok(isUpdatableRef(computeRef), 'original ref is updatable');
+        assert.notOk(isUpdatableRef(readOnlyRef), 'read only ref is not updatable');
+      });
+
+      test('can create children of read only refs', (assert) => {
+        class Child {
+          @tracked value = 123;
+        }
+
+        class Parent {
+          @tracked child = new Child();
+        }
+
+        let parent = new Parent();
+
+        let computeRef = Accessor({
+          get: () => parent.child,
+          set: (value: Child) => (parent.child = value),
+        });
+        let readOnlyRef = toReadonly(computeRef);
+        let valueRef = getReactiveProperty(readOnlyRef, 'value');
+
+        assert.strictEqual(unwrapReactive(valueRef), 123, 'value is correct');
+        assert.strictEqual(unwrapReactive(valueRef), 123, 'value is correct');
+        assert.strictEqual(getCount, 1, 'get called correct number of times');
+
+        parent.child.value = 456;
+
+        assert.strictEqual(unwrapReactive(valueRef), 456, 'value updated correctly');
+        assert.strictEqual(unwrapReactive(valueRef), 456, 'value is correct');
+        assert.strictEqual(getCount, 2, 'get called correct number of times');
+
+        assert.true(isUpdatableRef(valueRef), 'childRef is updatable');
+
+        updateReactive(valueRef, 789);
+
+        assert.strictEqual(unwrapReactive(valueRef), 789, 'value updated correctly');
+        assert.strictEqual(getCount, 3, 'get called correct number of times');
+        assert.strictEqual(setCount, 1, 'set called correct number of times');
+
+        parent.child = new Child();
+
+        assert.strictEqual(
+          unwrapReactive(valueRef),
+          123,
+          'value updated correctly when parent changes'
+        );
+        assert.strictEqual(getCount, 4, 'get called correct number of times');
+      });
+    });
+
+    if (import.meta.env.DEV) {
+      module('debugAliasRef', () => {
+        test('debug alias refs are transparent', (assert) => {
+          class Foo {
+            @tracked value = 123;
+          }
+
+          let foo = new Foo();
+
+          let original = Accessor({
+            get: () => foo.value,
+            set: (newValue) => (foo.value = newValue),
+          });
+
+          let alias = createDebugAliasRef(original, () => '@test');
+
+          assert.strictEqual(unwrapReactive(original), 123, 'alias returns correct value');
+          assert.strictEqual(unwrapReactive(alias), 123, 'alias returns correct value');
+          assert.ok(isUpdatableRef(alias), 'alias is updatable');
+
+          updateReactive(alias, 456);
+
+          assert.strictEqual(unwrapReactive(original), 456, 'alias returns correct value');
+          assert.strictEqual(unwrapReactive(alias), 456, 'alias returns correct value');
+
+          let readOnly = toReadonly(original);
+          let readOnlyAlias = createDebugAliasRef(readOnly, () => '@test');
+
+          assert.strictEqual(unwrapReactive(readOnly), 456, 'alias returns correct value');
+          assert.strictEqual(unwrapReactive(readOnlyAlias), 456, 'alias returns correct value');
+          assert.notOk(isUpdatableRef(readOnly), 'alias is not updatable');
+
+          let invokableAlias = createDebugAliasRef(original, () => '@test');
+
+          assert.ok(isAccessor(invokableAlias), 'alias is invokable');
+        });
+      });
+    }
+  });
 });

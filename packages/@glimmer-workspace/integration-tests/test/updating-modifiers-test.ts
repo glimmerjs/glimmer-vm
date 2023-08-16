@@ -1,6 +1,6 @@
 import type { SimpleElement } from '@glimmer/interfaces';
+import { jitSuite, RenderTestContext, test } from '@glimmer-workspace/integration-tests';
 
-import { jitSuite, RenderTest, test } from '..';
 import { assert } from './support';
 
 function makeSyncDataAttrModifier(hooks: string[]) {
@@ -22,16 +22,16 @@ function makeSyncDataAttrModifier(hooks: string[]) {
   };
 }
 
-class UpdatingModifiers extends RenderTest {
+class UpdatingModifiers extends RenderTestContext {
   static suiteName = 'Updating Element Modifier';
 
   @test
   'Updating a element modifier'() {
     let hooks: string[] = [];
 
-    this.registerModifier('foo', makeSyncDataAttrModifier(hooks));
+    this.register.modifier('foo', makeSyncDataAttrModifier(hooks));
 
-    this.render('<div><div {{foo this.bar baz=this.fizz}}></div></div>', {
+    this.render.template('<div><div {{foo this.bar baz=this.fizz}}></div></div>', {
       bar: 'Super Metroid',
     });
 
@@ -58,9 +58,9 @@ class UpdatingModifiers extends RenderTest {
   "Const input doesn't trigger update in a element modifier"() {
     let hooks: string[] = [];
 
-    this.registerModifier('foo', makeSyncDataAttrModifier(hooks));
+    this.register.modifier('foo', makeSyncDataAttrModifier(hooks));
 
-    this.render('<div><div {{foo "bar"}}></div></div>', {});
+    this.render.template('<div><div {{foo "bar"}}></div></div>', {});
     this.assertHTML('<div><div data-modifier="installed - bar"></div></div>', 'initial render');
     assert.deepEqual(hooks, ['didInsertElement'], 'hooks fired correctly on initial render');
 
@@ -74,9 +74,9 @@ class UpdatingModifiers extends RenderTest {
   'Destructor is triggered on element modifiers'() {
     let hooks: string[] = [];
 
-    this.registerModifier('foo', makeSyncDataAttrModifier(hooks));
+    this.register.modifier('foo', makeSyncDataAttrModifier(hooks));
 
-    this.render('{{#if this.bar}}<div {{foo this.bar}}></div>{{else}}<div></div>{{/if}}', {
+    this.render.template('{{#if this.bar}}<div {{foo this.bar}}></div>{{else}}<div></div>{{/if}}', {
       bar: true,
     });
 

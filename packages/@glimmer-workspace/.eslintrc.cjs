@@ -122,7 +122,7 @@ module.exports = {
     // - https://github.com/qunitjs/qunit/issues/1727
     // - https://github.com/qunitjs/qunit/issues/1724
     {
-      files: ['*/test/**/*.{js,ts,d.ts}'],
+      files: ['**/*.{js,ts,d.ts}'],
       parserOptions: {
         project: tests,
       },

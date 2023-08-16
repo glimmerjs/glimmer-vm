@@ -1,5 +1,6 @@
 export * from './runtime/arguments';
 export * from './runtime/debug-render-tree';
+export * from './runtime/debug-vm';
 export * from './runtime/element';
 export * from './runtime/environment';
 export * from './runtime/helper';
