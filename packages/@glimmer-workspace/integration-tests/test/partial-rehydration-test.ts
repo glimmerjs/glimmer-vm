@@ -1,27 +1,27 @@
 import { castToSimple } from '@glimmer/util';
-
 import {
   CLOSE,
   content,
   OPEN,
   PartialRehydrationDelegate,
   qunitFixture,
-  RenderTest,
+  RenderTestContext,
   replaceHTML,
   stripTight,
-  suite,
   test,
-} from '..';
+  testSuite,
+} from '@glimmer-workspace/integration-tests';
 
-export class PartialRehydrationTest extends RenderTest {
+export class PartialRehydrationTest extends RenderTestContext {
   static suiteName = 'partial rehydration';
   declare delegate: PartialRehydrationDelegate;
 
   @test
   'can rehydrate from non starting blocks'() {
-    this.delegate.registerTemplateOnlyComponent('RehydratingComponent', '{{@a}}{{@b}}{{@c}}');
+    this.register.component('TemplateOnly', 'RehydratingComponent', '{{@a}}{{@b}}{{@c}}');
 
-    this.delegate.registerTemplateOnlyComponent(
+    this.register.component(
+      'TemplateOnly',
       'Root',
       '<div id="placeholder"><RehydratingComponent @a={{@a}} @b={{@b}} @c={{@c}}/></div>'
     );
@@ -75,11 +75,12 @@ export class PartialRehydrationTest extends RenderTest {
 
   @test
   'can rehydrate multiple call sites'() {
-    this.delegate.registerTemplateOnlyComponent('Nav', '{{@title}}');
-    this.delegate.registerTemplateOnlyComponent('Carousel', '{{@name}}');
-    this.delegate.registerTemplateOnlyComponent('Header', '<h1>I am a test</h1>');
+    this.register.component('TemplateOnly', 'Nav', '{{@title}}');
+    this.register.component('TemplateOnly', 'Carousel', '{{@name}}');
+    this.register.component('TemplateOnly', 'Header', '<h1>I am a test</h1>');
 
-    this.delegate.registerTemplateOnlyComponent(
+    this.register.component(
+      'TemplateOnly',
       'Root',
       stripTight`
         <div class="nav-container">
@@ -192,4 +193,4 @@ export class PartialRehydrationTest extends RenderTest {
   }
 }
 
-suite(PartialRehydrationTest, PartialRehydrationDelegate);
+testSuite(PartialRehydrationTest, PartialRehydrationDelegate);

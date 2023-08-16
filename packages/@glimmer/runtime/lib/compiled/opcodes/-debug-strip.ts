@@ -1,5 +1,6 @@
 import type { Checker } from '@glimmer/debug';
 import type {
+  BlockMetadata,
   CapabilityMask,
   CapturedArguments,
   CompilableBlock,
@@ -14,7 +15,7 @@ import type {
   Scope,
   ScopeBlock,
 } from '@glimmer/interfaces';
-import type { OpaqueIterator, Reference } from '@glimmer/reference';
+import type { OpaqueIterator, Reactive } from '@glimmer/reference';
 import type { Tag } from '@glimmer/validator';
 import {
   CheckArray,
@@ -24,16 +25,16 @@ import {
   CheckHandle,
   CheckInstanceof,
   CheckInterface,
+  CheckNullable,
   CheckNumber,
   CheckObject,
-  CheckOption,
   CheckOr,
   CheckProgramSymbolTable,
   CheckString,
   CheckUnknown,
-  wrap,
+  WrapCheck,
 } from '@glimmer/debug';
-import { REFERENCE, UNDEFINED_REFERENCE } from '@glimmer/reference';
+import { INTERNAL_REFERENCE, UNDEFINED_REFERENCE } from '@glimmer/reference';
 import { COMPUTE } from '@glimmer/validator';
 
 import { PartialScopeImpl } from '../../scope';
@@ -44,15 +45,13 @@ export const CheckTag: Checker<Tag> = CheckInterface({
   [COMPUTE]: CheckFunction,
 });
 
-export const CheckOperations: Checker<Nullable<ComponentElementOperations>> = wrap(() =>
-  CheckOption(CheckInstanceof(ComponentElementOperations))
+export const CheckOperations: Checker<Nullable<ComponentElementOperations>> = WrapCheck(() =>
+  CheckNullable(CheckInstanceof(ComponentElementOperations))
 );
 
 class ReferenceChecker {
-  declare type: Reference;
-
-  validate(value: unknown): value is Reference {
-    return typeof value === 'object' && value !== null && REFERENCE in value;
+  validate(value: unknown): value is Reactive {
+    return typeof value === 'object' || value !== null || INTERNAL_REFERENCE in value;
   }
 
   expected(): string {
@@ -60,23 +59,23 @@ class ReferenceChecker {
   }
 }
 
-export const CheckReference: Checker<Reference> = new ReferenceChecker();
+export const CheckReactive = new ReferenceChecker() as Checker<Reactive>;
 
 export const CheckIterator: Checker<OpaqueIterator> = CheckInterface({
   next: CheckFunction,
   isEmpty: CheckFunction,
 });
 
-export const CheckArguments: Checker<VMArgumentsImpl> = wrap(() =>
+export const CheckArguments: Checker<VMArgumentsImpl> = WrapCheck(() =>
   CheckInstanceof(VMArgumentsImpl)
 );
 
 export const CheckHelper: Checker<Helper> = CheckFunction as Checker<Helper>;
 
-export class UndefinedReferenceChecker implements Checker<Reference> {
-  declare type: Reference;
+export class UndefinedReferenceChecker implements Checker<Reactive> {
+  declare type: Reactive;
 
-  validate(value: unknown): value is Reference {
+  validate(value: unknown): value is Reactive {
     return value === UNDEFINED_REFERENCE;
   }
 
@@ -88,11 +87,11 @@ export class UndefinedReferenceChecker implements Checker<Reference> {
 export const CheckUndefinedReference = new UndefinedReferenceChecker();
 
 export const CheckCapturedArguments: Checker<CapturedArguments> = CheckInterface({
-  positional: wrap(() => CheckArray(CheckReference)),
-  named: wrap(() => CheckDict(CheckReference)),
+  positional: WrapCheck(() => CheckArray(CheckReactive)),
+  named: WrapCheck(() => CheckDict(CheckReactive)),
 });
 
-export const CheckScope: Checker<Scope> = wrap(() => CheckInstanceof(PartialScopeImpl));
+export const CheckScope: Checker<Scope> = WrapCheck(() => CheckInstanceof(PartialScopeImpl));
 
 export const CheckComponentManager: Checker<InternalComponentManager<unknown>> = CheckInterface({
   getCapabilities: CheckFunction,
@@ -109,9 +108,15 @@ export const CheckComponentInstance: Checker<ComponentInstance> = CheckInterface
 
 export const CheckCurriedComponentDefinition = CheckOr(CheckObject, CheckFunction);
 
+export const CheckContainingMetadata: Checker<BlockMetadata> = CheckInterface({
+  debugSymbols: CheckNullable(CheckArray(CheckString)),
+  moduleName: CheckString,
+});
+
 export const CheckInvocation: Checker<Invocation> = CheckInterface({
   handle: CheckNumber,
   symbolTable: CheckProgramSymbolTable,
+  meta: CheckNullable(CheckContainingMetadata),
 });
 
 export const CheckElementOperations: Checker<ElementOperations> = CheckInterface({
@@ -142,7 +147,7 @@ export const CheckScopeBlock: Checker<ScopeBlock> = CheckInterface({
 });
 
 export const CheckComponentDefinition: Checker<ComponentDefinition> = CheckInterface({
-  resolvedName: CheckOption(CheckString),
+  resolvedName: CheckNullable(CheckString),
   handle: CheckNumber,
   state: CheckOr(CheckObject, CheckFunction),
   manager: CheckComponentManager,

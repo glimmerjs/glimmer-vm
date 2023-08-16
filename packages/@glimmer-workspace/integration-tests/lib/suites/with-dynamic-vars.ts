@@ -1,11 +1,11 @@
-import { RenderTest } from '../render-test';
-import { test } from '../test-decorator';
+import { RenderTestContext } from '../render-test';
+import { render } from '../test-decorator';
 
-export class WithDynamicVarsSuite extends RenderTest {
+export class WithDynamicVarsSuite extends RenderTestContext {
   static suiteName = '-with-dynamic-vars and -get-dynamic-var';
-  @test
+  @render
   'Can get and set dynamic variable'() {
-    this.render(
+    this.render.template(
       {
         layout: '{{#-with-dynamic-vars myKeyword=@value}}{{yield}}{{/-with-dynamic-vars}}',
         template: '{{-get-dynamic-var "myKeyword"}}',
@@ -26,9 +26,9 @@ export class WithDynamicVarsSuite extends RenderTest {
     this.assertStableNodes();
   }
 
-  @test
+  @render
   'Can get and set dynamic variable with bound names'() {
-    this.render(
+    this.render.template(
       {
         layout:
           '{{#-with-dynamic-vars myKeyword=@value1 secondKeyword=@value2}}{{yield}}{{/-with-dynamic-vars}}',
@@ -54,9 +54,9 @@ export class WithDynamicVarsSuite extends RenderTest {
     this.assertStableNodes();
   }
 
-  @test
+  @render
   'Can shadow existing dynamic variable'() {
-    this.render(
+    this.render.template(
       {
         layout:
           '{{#-with-dynamic-vars myKeyword=@outer}}<div>{{-get-dynamic-var "myKeyword"}}</div>{{#-with-dynamic-vars myKeyword=@inner}}{{yield}}{{/-with-dynamic-vars}}<div>{{-get-dynamic-var "myKeyword"}}</div>{{/-with-dynamic-vars}}',

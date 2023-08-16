@@ -1,13 +1,17 @@
-import type {
-  BuilderOp,
-  CompileTimeCompilationContext,
-  ContainingMetadata,
-  HighLevelOp,
-} from '@glimmer/interfaces';
-import { $s0, ContentType, MachineOp, Op } from '@glimmer/vm';
+import type { BlockMetadata, BuilderOp, HighLevelOp, JitContext } from '@glimmer/interfaces';
+import { $s0, Op } from '@glimmer/vm';
+import {
+  COMPONENT_CONTENT,
+  FRAGMENT_CONTENT,
+  HELPER_CONTENT,
+  NODE_CONTENT,
+  SAFE_STRING_CONTENT,
+  STRING_CONTENT,
+} from '@glimmer/vm/lib/content';
 
 import type { HighLevelStatementOp, PushStatementOp } from '../../syntax/compilers';
 
+import { definePushOp } from '../../syntax/compilers';
 import { encodeOp, EncoderImpl } from '../encoder';
 import { StdLib } from '../stdlib';
 import { InvokeBareComponent, invokePreparedComponent } from './components';
@@ -36,7 +40,7 @@ export function StdAppend(
     op,
     () => op(Op.ContentType),
     (when) => {
-      when(ContentType.String, () => {
+      when(STRING_CONTENT, () => {
         if (trusting) {
           op(Op.AssertSame);
           op(Op.AppendHTML);
@@ -46,40 +50,40 @@ export function StdAppend(
       });
 
       if (typeof nonDynamicAppend === 'number') {
-        when(ContentType.Component, () => {
+        when(COMPONENT_CONTENT, () => {
           op(Op.ResolveCurriedComponent);
           op(Op.PushDynamicComponentInstance);
           InvokeBareComponent(op);
         });
 
-        when(ContentType.Helper, () => {
+        when(HELPER_CONTENT, () => {
           CallDynamic(op, null, null, () => {
-            op(MachineOp.InvokeStatic, nonDynamicAppend);
+            op(Op.InvokeStatic, nonDynamicAppend);
           });
         });
       } else {
         // when non-dynamic, we can no longer call the value (potentially because we've already called it)
         // this prevents infinite loops. We instead coerce the value, whatever it is, into the DOM.
-        when(ContentType.Component, () => {
+        when(COMPONENT_CONTENT, () => {
           op(Op.AppendText);
         });
 
-        when(ContentType.Helper, () => {
+        when(HELPER_CONTENT, () => {
           op(Op.AppendText);
         });
       }
 
-      when(ContentType.SafeString, () => {
+      when(SAFE_STRING_CONTENT, () => {
         op(Op.AssertSame);
         op(Op.AppendSafeHTML);
       });
 
-      when(ContentType.Fragment, () => {
+      when(FRAGMENT_CONTENT, () => {
         op(Op.AssertSame);
         op(Op.AppendDocumentFragment);
       });
 
-      when(ContentType.Node, () => {
+      when(NODE_CONTENT, () => {
         op(Op.AssertSame);
         op(Op.AppendNode);
       });
@@ -87,7 +91,7 @@ export function StdAppend(
   );
 }
 
-export function compileStd(context: CompileTimeCompilationContext): StdLib {
+export function compileStd(context: JitContext): StdLib {
   let mainHandle = build(context, (op) => main(op));
   let trustingGuardedNonDynamicAppend = build(context, (op) => StdAppend(op, true, null));
   let cautiousGuardedNonDynamicAppend = build(context, (op) => StdAppend(op, false, null));
@@ -108,8 +112,8 @@ export function compileStd(context: CompileTimeCompilationContext): StdLib {
   );
 }
 
-export const STDLIB_META: ContainingMetadata = {
-  evalSymbols: null,
+export const STDLIB_META: BlockMetadata = {
+  debugSymbols: null,
   upvars: null,
   moduleName: 'stdlib',
 
@@ -120,10 +124,7 @@ export const STDLIB_META: ContainingMetadata = {
   size: 0,
 };
 
-function build(
-  program: CompileTimeCompilationContext,
-  builder: (op: PushStatementOp) => void
-): number {
+function build(program: JitContext, builder: (op: PushStatementOp) => void): number {
   let { constants, heap, resolver } = program;
   let encoder = new EncoderImpl(heap, STDLIB_META);
 
@@ -131,7 +132,7 @@ function build(
     encodeOp(encoder, constants, resolver, STDLIB_META, op as BuilderOp | HighLevelOp);
   }
 
-  builder(pushOp);
+  builder(definePushOp(pushOp));
 
   let result = encoder.commit(0);
 

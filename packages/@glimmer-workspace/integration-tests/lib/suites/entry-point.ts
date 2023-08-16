@@ -1,86 +1,61 @@
-import { createPrimitiveRef } from '@glimmer/reference';
+import { createPrimitiveCell } from '@glimmer/reference';
 import { DynamicScopeImpl } from '@glimmer/runtime';
 import { castToBrowser } from '@glimmer/util';
+import { ClientSideRenderDelegate, matrix } from '@glimmer-workspace/integration-tests';
 
-import type { ComponentKind } from '../components/types';
-
-import { JitRenderDelegate } from '../modes/jit/delegate';
-import { Count, RenderTest } from '../render-test';
-import { test } from '../test-decorator';
 import { defineComponent } from '../test-helpers/define';
 
-export class EntryPointTest extends RenderTest {
-  static suiteName = 'entry points';
-
-  declare readonly testType: ComponentKind;
-
-  override readonly count = new Count();
-
-  @test
-  'an entry point'() {
-    let delegate = new JitRenderDelegate();
+matrix('entry points', (spec) => {
+  spec('an entry point', (ctx) => {
     let Title = defineComponent({}, `<h1>hello {{@title}}</h1>`);
 
-    let element = delegate.getInitialElement();
-    let title = createPrimitiveRef('renderComponent');
-    delegate.renderComponent(Title, { title }, element);
+    ctx.render.component(Title, { title: 'renderComponent' }, { into: ctx.element });
 
     QUnit.assert.strictEqual(
-      castToBrowser(element, 'HTML').innerHTML,
+      castToBrowser(ctx.element, 'HTML').innerHTML,
       '<h1>hello renderComponent</h1>'
     );
-  }
+  });
 
-  @test
-  'does not leak args between invocations'() {
-    let delegate = new JitRenderDelegate();
+  spec('does not leak args between invocations', (ctx) => {
+    let delegate = new ClientSideRenderDelegate();
     let Title = defineComponent({}, `<h1>hello {{@title}}</h1>`);
 
-    let element = delegate.getInitialElement();
-    let title = createPrimitiveRef('renderComponent');
-    delegate.renderComponent(Title, { title }, element);
+    let element = delegate.dom.getInitialElement(delegate.dom.document);
+    ctx.render.component(Title, { title: 'renderComponent' }, { into: element });
     QUnit.assert.strictEqual(
       castToBrowser(element, 'HTML').innerHTML,
       '<h1>hello renderComponent</h1>'
     );
 
-    element = delegate.getInitialElement();
-    let newTitle = createPrimitiveRef('new title');
-    delegate.renderComponent(Title, { title: newTitle }, element);
+    element = ctx.getClearedElement();
+    ctx.render.component(Title, { title: 'new title' }, { into: element });
     QUnit.assert.strictEqual(castToBrowser(element, 'HTML').innerHTML, '<h1>hello new title</h1>');
-  }
+  });
 
-  @test
-  'can render different components per call'() {
-    let delegate = new JitRenderDelegate();
+  spec('can render different components per call', (ctx) => {
     let Title = defineComponent({}, `<h1>hello {{@title}}</h1>`);
     let Body = defineComponent({}, `<p>body {{@body}}</p>`);
 
-    let element = delegate.getInitialElement();
-    let title = createPrimitiveRef('renderComponent');
-    delegate.renderComponent(Title, { title }, element);
+    ctx.render.component(Title, { title: 'renderComponent' });
     QUnit.assert.strictEqual(
-      castToBrowser(element, 'HTML').innerHTML,
+      castToBrowser(ctx.element, 'HTML').innerHTML,
       '<h1>hello renderComponent</h1>'
     );
 
-    element = delegate.getInitialElement();
-    let body = createPrimitiveRef('text');
-    delegate.renderComponent(Body, { body }, element);
+    const element = ctx.getClearedElement();
+    ctx.render.component(Body, { body: 'text' }, { into: element });
     QUnit.assert.strictEqual(castToBrowser(element, 'HTML').innerHTML, '<p>body text</p>');
-  }
+  });
 
-  @test
-  'supports passing in an initial dynamic context'() {
-    let delegate = new JitRenderDelegate();
+  spec('supports passing in an initial dynamic context', (ctx) => {
     let Locale = defineComponent({}, `{{-get-dynamic-var "locale"}}`);
 
-    let element = delegate.getInitialElement();
     let dynamicScope = new DynamicScopeImpl({
-      locale: createPrimitiveRef('en_US'),
+      locale: createPrimitiveCell('en_US'),
     });
-    delegate.renderComponent(Locale, {}, element, dynamicScope);
+    ctx.render.component(Locale, {}, { dynamicScope });
 
-    QUnit.assert.strictEqual(castToBrowser(element, 'HTML').innerHTML, 'en_US');
-  }
-}
+    QUnit.assert.strictEqual(castToBrowser(ctx.element, 'HTML').innerHTML, 'en_US');
+  });
+}).client();

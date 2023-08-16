@@ -13,6 +13,7 @@
   "types": "index.ts",
   "publishConfig": {
     "access": "public",
+    "main": null,
     "types": "dist/dev/index.d.ts",
     "exports": {
       ".": {
@@ -25,7 +26,6 @@
         "import": "./dist/prod/index.js"
       }
     },
-    "main": null,
     "module": "dist/dev/index.js"
   },
   "files": [

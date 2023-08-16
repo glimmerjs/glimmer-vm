@@ -1,5 +1,6 @@
 import type {
   ComponentInstanceWithCreate,
+  Description,
   Environment,
   EnvironmentOptions,
   GlimmerTreeChanges,
@@ -13,7 +14,7 @@ import type {
   TransactionSymbol,
 } from '@glimmer/interfaces';
 import { RuntimeProgramImpl } from '@glimmer/program';
-import { assert, expect } from '@glimmer/util';
+import { assert, devmode, expect } from '@glimmer/util';
 import { track, updateTag } from '@glimmer/validator';
 
 import DebugRenderTree from './debug-render-tree';
@@ -24,6 +25,7 @@ export const TRANSACTION: TransactionSymbol = Symbol('TRANSACTION') as Transacti
 class TransactionImpl implements Transaction {
   public scheduledInstallModifiers: ModifierInstance[] = [];
   public scheduledUpdateModifiers: ModifierInstance[] = [];
+  public scheduledAfterRender: (() => void)[] = [];
   public createdComponents: ComponentInstanceWithCreate[] = [];
   public updatedComponents: ComponentInstanceWithCreate[] = [];
 
@@ -41,6 +43,10 @@ class TransactionImpl implements Transaction {
 
   scheduleUpdateModifier(modifier: ModifierInstance) {
     this.scheduledUpdateModifiers.push(modifier);
+  }
+
+  scheduleAfterRender(callback: () => void) {
+    this.scheduledAfterRender.push(callback);
   }
 
   commit() {
@@ -62,10 +68,16 @@ class TransactionImpl implements Transaction {
       if (modifierTag !== null) {
         let tag = track(
           () => manager.install(state),
-          import.meta.env.DEV &&
-            `- While rendering:\n  (instance of a \`${
-              definition.resolvedName || manager.getDebugName(definition.state)
-            }\` modifier)`
+          devmode(() => {
+            return {
+              reason: 'modifier',
+              label: [
+                `- While rendering:\n  (instance of a \`${
+                  definition.resolvedName || manager.getDebugName(definition.state)
+                }\` modifier)`,
+              ],
+            } satisfies Description;
+          })
         );
         updateTag(modifierTag, tag);
       } else {
@@ -79,15 +91,23 @@ class TransactionImpl implements Transaction {
       if (modifierTag !== null) {
         let tag = track(
           () => manager.update(state),
-          import.meta.env.DEV &&
-            `- While rendering:\n  (instance of a \`${
-              definition.resolvedName || manager.getDebugName(definition.state)
-            }\` modifier)`
+          devmode(() => ({
+            kind: 'modifier',
+            label: [
+              `- While rendering:\n  (instance of a \`${
+                definition.resolvedName || manager.getDebugName(definition.state)
+              }\` modifier)`,
+            ],
+          }))
         );
         updateTag(modifierTag, tag);
       } else {
         manager.update(state);
       }
+    }
+
+    for (const callback of this.scheduledAfterRender) {
+      callback();
     }
   }
 }
@@ -101,7 +121,7 @@ export class EnvironmentImpl implements Environment {
   // Delegate methods and values
   public isInteractive: boolean;
 
-  debugRenderTree: DebugRenderTree<object> | undefined;
+  readonly debugRenderTree: DebugRenderTree<object> | undefined;
 
   constructor(
     options: EnvironmentOptions,
@@ -117,6 +137,12 @@ export class EnvironmentImpl implements Environment {
       this.updateOperations = new DOMChangesImpl(options.document);
     } else if (import.meta.env.DEV) {
       throw new Error('you must pass document or appendOperations to a new runtime');
+    }
+  }
+
+  withDebug(debug: (tree: DebugRenderTree<object>) => void): void {
+    if (this.debugRenderTree) {
+      debug(this.debugRenderTree);
     }
   }
 
@@ -164,6 +190,10 @@ export class EnvironmentImpl implements Environment {
     if (this.isInteractive) {
       this.transaction.scheduleUpdateModifier(modifier);
     }
+  }
+
+  scheduleAfterRender(callback: () => void) {
+    this.transaction.scheduleAfterRender(callback);
   }
 
   commit() {

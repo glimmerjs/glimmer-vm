@@ -7,8 +7,8 @@
     "url": "https://github.com/glimmerjs/glimmer-vm.git",
     "directory": "packages/@glimmer/local-debug-flags"
   },
-  "type": "module",
   "private": true,
+  "type": "module",
   "main": "index.ts",
   "types": "index.ts",
   "scripts": {

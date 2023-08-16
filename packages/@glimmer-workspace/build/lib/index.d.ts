@@ -3,5 +3,5 @@ export {
   type PackageInfo,
   type PackageJSON,
   type ViteConfig as ViteExport,
-} from './lib/config.js';
-export { default as importMeta } from './lib/import-meta.js';
+} from './config.js';
+export { default as importMeta } from './import-meta.js';

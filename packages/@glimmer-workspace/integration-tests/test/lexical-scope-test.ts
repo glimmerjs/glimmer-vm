@@ -1,6 +1,11 @@
-import { defineComponent, jitSuite, RenderTest, test } from '..';
+import {
+  defineComponent,
+  jitSuite,
+  RenderTestContext,
+  test,
+} from '@glimmer-workspace/integration-tests';
 
-class LexicalScopeTest extends RenderTest {
+class LexicalScopeTest extends RenderTestContext {
   static suiteName = 'loose mode: lexical scope';
 
   @test
@@ -8,7 +13,7 @@ class LexicalScopeTest extends RenderTest {
     const Foo = defineComponent({}, 'Hello, world!', { strictMode: false });
     const Bar = defineComponent({ Foo }, '<Foo/>', { strictMode: false });
 
-    this.renderComponent(Bar);
+    this.render.component(Bar);
     this.assertHTML('Hello, world!');
     this.assertStableRerender();
   }

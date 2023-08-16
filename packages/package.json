@@ -3,5 +3,9 @@
   "dependencies": {
     "@types/qunit": "^2.19.9",
     "vite": "^4.3.9"
+  },
+  "devDependencies": {
+    "@types/qunit": "^2.19.9",
+    "vite": "^4.3.9"
   }
 }

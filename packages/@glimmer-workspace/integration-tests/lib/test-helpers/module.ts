@@ -1,56 +1,65 @@
 import type { EnvironmentDelegate } from '@glimmer/runtime';
-import { keys } from '@glimmer/util';
 
-import type { ComponentKind } from '../components';
-import type RenderDelegate from '../render-delegate';
-import type { RenderDelegateOptions } from '../render-delegate';
-import type { Count, IRenderTest, RenderTest } from '../render-test';
-import type { DeclaredComponentKind } from '../test-decorator';
+import type { RenderDelegate, RenderDelegateOptions } from '../render-delegate';
+import type { IRenderTest, RenderTestContext } from '../render-test';
+import type { ComponentTestFunction, ComponentTestMeta, RenderSuiteMeta } from '../test-decorator';
+import type { DeclaredComponentType } from './constants';
 
-import { JitRenderDelegate } from '../modes/jit/delegate';
+import { ClientSideRenderDelegate, ErrorRecoveryRenderDelegate } from '../modes/jit/delegate';
 import { NodeJitRenderDelegate } from '../modes/node/env';
+import { Count } from '../render-test';
 import { JitSerializationDelegate } from '../suites/custom-dom-helper';
+import {
+  getComponentTestMeta,
+  getSuiteMetadata,
+  isComponentTest,
+  isSuite,
+} from '../test-decorator';
+import { RecordedEvents } from './recorded';
 
 export interface RenderTestConstructor<D extends RenderDelegate, T extends IRenderTest> {
-  suiteName: string;
-  new (delegate: D): T;
+  suiteName?: string;
+  new (delegate: D, context: RenderTestState): T;
 }
 
 export function jitSuite<T extends IRenderTest>(
   klass: RenderTestConstructor<RenderDelegate, T>,
-  options?: { componentModule?: boolean; env?: EnvironmentDelegate }
+  options?: { componentModule?: boolean; test?: ['error-recovery']; env?: EnvironmentDelegate }
 ): void {
-  return suite(klass, JitRenderDelegate, options);
+  testSuite(klass, ClientSideRenderDelegate, options);
+
+  if (options?.test?.includes('error-recovery')) {
+    testSuite(klass, ErrorRecoveryRenderDelegate);
+  }
 }
 
 export function nodeSuite<T extends IRenderTest>(
   klass: RenderTestConstructor<RenderDelegate, T>,
   options = { componentModule: false }
 ): void {
-  return suite(klass, NodeJitRenderDelegate, options);
+  return testSuite(klass, NodeJitRenderDelegate, options);
 }
 
 export function nodeComponentSuite<T extends IRenderTest>(
   klass: RenderTestConstructor<RenderDelegate, T>
 ): void {
-  return suite(klass, NodeJitRenderDelegate, { componentModule: true });
+  return testSuite(klass, NodeJitRenderDelegate, { componentModule: true });
 }
 
 export function jitComponentSuite<T extends IRenderTest>(
   klass: RenderTestConstructor<RenderDelegate, T>
 ): void {
-  return suite(klass, JitRenderDelegate, { componentModule: true });
+  return testSuite(klass, ClientSideRenderDelegate, { componentModule: true });
 }
 
 export function jitSerializeSuite<T extends IRenderTest>(
   klass: RenderTestConstructor<RenderDelegate, T>,
   options = { componentModule: false }
 ): void {
-  return suite(klass, JitSerializationDelegate, options);
+  return testSuite(klass, JitSerializationDelegate, options);
 }
 
 export interface RenderDelegateConstructor<Delegate extends RenderDelegate> {
-  readonly isEager: boolean;
   readonly style: string;
   new (options?: RenderDelegateOptions): Delegate;
 }
@@ -59,214 +68,269 @@ export function componentSuite<D extends RenderDelegate>(
   klass: RenderTestConstructor<D, IRenderTest>,
   Delegate: RenderDelegateConstructor<D>
 ): void {
-  return suite(klass, Delegate, { componentModule: true });
+  return testSuite(klass, Delegate, { componentModule: true });
 }
 
-export function suite<D extends RenderDelegate>(
-  klass: RenderTestConstructor<D, IRenderTest>,
+export function testSuite<D extends RenderDelegate>(
+  Class: RenderTestConstructor<D, IRenderTest>,
   Delegate: RenderDelegateConstructor<D>,
   options: { componentModule?: boolean; env?: EnvironmentDelegate } = {}
 ): void {
-  let suiteName = klass.suiteName;
-
   if (options.componentModule) {
-    if (shouldRunTest<D>(Delegate)) {
-      componentModule(
-        `${Delegate.style} :: Components :: ${suiteName}`,
-        klass as any as RenderTestConstructor<D, RenderTest>,
-        Delegate
-      );
-    }
+    componentModule(
+      `${Delegate.style} :: Components :: ${TestBlueprint.suiteName(Class)}`,
+      Class as any as RenderTestConstructor<D, RenderTestContext>,
+      Delegate
+    );
   } else {
-    let instance: IRenderTest | null = null;
-    QUnit.module(`[integration] ${Delegate.style} :: ${suiteName}`, {
-      beforeEach() {
-        instance = new klass(new Delegate({ env: options.env }));
-        if (instance.beforeEach) instance.beforeEach();
-      },
+    QUnit.module(`[integration] ${Delegate.style} :: ${TestBlueprint.suiteName(Class)}`);
 
-      afterEach() {
-        if (instance!.afterEach) instance!.afterEach();
-        instance = null;
-      },
-    });
+    for (let prop in Class.prototype) {
+      const test = Class.prototype[prop];
+      const blueprint = TestBlueprint.for(Class, Delegate);
 
-    for (let prop in klass.prototype) {
-      const test = klass.prototype[prop];
+      if (isComponentTest(test)) {
+        const meta = getComponentTestMeta(test);
 
-      if (isTestFunction(test) && shouldRunTest<D>(Delegate)) {
-        if (isSkippedTest(test)) {
-          // eslint-disable-next-line no-loop-func
-          QUnit.skip(prop, (assert) => {
-            test.call(instance!, assert, instance!.count);
-            instance!.count.assert();
-          });
-        } else {
-          // eslint-disable-next-line no-loop-func
-          QUnit.test(prop, (assert) => {
-            let result = test.call(instance!, assert, instance!.count);
-            instance!.count.assert();
-            return result;
-          });
+        const CASES = blueprint.filtered(meta).map((types) => {
+          return {
+            types,
+            test: blueprint.createTestFn(test, types),
+          };
+        });
+
+        for (const { types, test: testCase } of CASES) {
+          if (meta.skip) {
+            QUnit.skip(`${formatTypes(types)}: ${prop}`, testCase);
+          } else {
+            QUnit.test(`${formatTypes(types)}: ${prop}`, testCase);
+          }
         }
       }
     }
+  }
+}
+
+function formatTypes(types: RenderTestTypes): string {
+  if (types.invoker === types.template) {
+    return types.invoker;
+  } else {
+    return `${types.template} (invoked by ${types.invoker})`;
+  }
+}
+
+export interface RenderTestState<
+  Template extends DeclaredComponentType = DeclaredComponentType,
+  Invoker extends DeclaredComponentType = Template,
+> extends Assert {
+  readonly count: Count;
+  readonly events: RecordedEvents;
+  readonly types: {
+    readonly template: Template;
+    readonly invoker: Invoker;
+  };
+}
+
+export interface RenderTestTypes {
+  readonly template: DeclaredComponentType;
+  readonly invoker: DeclaredComponentType;
+}
+
+export function RenderTestState(
+  assert: Assert,
+  specifiedTypes: RenderTestTypes | DeclaredComponentType
+): RenderTestState {
+  const events = new RecordedEvents();
+
+  const types =
+    typeof specifiedTypes === 'string'
+      ? { template: specifiedTypes, invoker: specifiedTypes }
+      : specifiedTypes;
+
+  return new Proxy(
+    { assert, count: new Count(events), events, types },
+    {
+      get({ assert, count, types }, prop, receiver) {
+        switch (prop) {
+          case 'count':
+            return count;
+          case 'events':
+            return events;
+          case 'types':
+            return types;
+          default:
+            return Reflect.get(assert, prop, receiver);
+        }
+      },
+    }
+  ) as unknown as RenderTestState;
+}
+
+type TestFn = () => void;
+
+export class TestBlueprint<D extends RenderDelegate, T extends IRenderTest> {
+  static for<D extends RenderDelegate, T extends IRenderTest>(
+    Class: RenderTestConstructor<D, T>,
+    Delegate: RenderDelegateConstructor<D>
+  ) {
+    return new TestBlueprint(Class, Delegate);
+  }
+
+  static suiteName<D extends RenderDelegate, T extends IRenderTest>(
+    Class: RenderTestConstructor<D, T>
+  ) {
+    if (isSuite(Class)) {
+      return getSuiteMetadata(Class).description;
+    } else if (Class.suiteName) {
+      return Class.suiteName;
+    } else {
+      throw Error(`Could not find suite name for ${Class.name}`);
+    }
+  }
+
+  #Class: RenderTestConstructor<D, T>;
+  #Delegate: RenderDelegateConstructor<D>;
+  #suite: RenderSuiteMeta;
+
+  private constructor(Class: RenderTestConstructor<D, T>, Delegate: RenderDelegateConstructor<D>) {
+    this.#Class = Class;
+    this.#Delegate = Delegate;
+
+    if (isSuite(Class)) {
+      this.#suite = getSuiteMetadata(Class);
+    } else {
+      this.#suite = { description: Class.suiteName ?? Class.name };
+    }
+  }
+
+  get suiteName() {
+    return this.#suite.description;
+  }
+
+  filtered(meta: ComponentTestMeta): readonly RenderTestTypes[] {
+    const included = EXPANSIONS[meta.kind ?? this.#suite.kind ?? 'all'];
+    const excluded = new Set(expandSkip(meta.skip));
+
+    return included
+      .filter((kind) => !excluded.has(kind))
+      .map((kind) => ({ invoker: meta.invokeAs ?? kind, template: kind }));
+  }
+
+  createTestFn(
+    test: ComponentTestFunction,
+    types: RenderTestTypes
+  ): (assert: Assert) => void | Promise<void> {
+    return (assert) => {
+      const instance = new this.#Class(new this.#Delegate(), RenderTestState(assert, types));
+      instance.beforeEach?.();
+
+      try {
+        const result = test.call(instance, instance.context);
+
+        if (result === undefined) {
+          instance.context.count.assert();
+        } else {
+          return result.then(() => {
+            instance.context.count.assert();
+          });
+        }
+      } finally {
+        instance.afterEach?.();
+      }
+    };
+  }
+
+  createTest(types: RenderTestTypes, description: string, test: unknown): TestFn | undefined {
+    if (!isComponentTest(test)) return;
+
+    return () => {
+      QUnit.test(
+        `${types.invoker !== types.template ? formatTypes(types) : ''} ${description}`,
+        this.createTestFn(test, types)
+      );
+    };
+  }
+}
+
+class ComponentTests<D extends RenderDelegate, T extends IRenderTest> {
+  readonly #blueprint: TestBlueprint<D, T>;
+  readonly #tests: { types: RenderTestTypes; test: TestFn }[] = [];
+
+  constructor(blueprint: TestBlueprint<D, T>) {
+    this.#blueprint = blueprint;
+  }
+
+  *[Symbol.iterator](): IterableIterator<readonly [DeclaredComponentType, TestFn[]]> {
+    for (const type of ['curly', 'glimmer', 'dynamic', 'templateOnly'] as const) {
+      yield [
+        type,
+        this.#tests.filter((t) => t.types.template === type).map((t) => t.test),
+      ] as const;
+    }
+  }
+
+  add(kinds: readonly RenderTestTypes[], { prop, test }: { prop: string; test: unknown }) {
+    for (const types of kinds) {
+      const testFn = this.#blueprint.createTest(types, prop, test);
+      if (testFn) {
+        this.#tests.push({ types, test: testFn });
+      }
+    }
+  }
+}
+
+export type ExpandType<K extends DeclaredComponentType | 'all'> = EXPANSIONS[K][number];
+
+const EXPANSIONS = {
+  curly: ['curly', 'dynamic'],
+  glimmer: ['glimmer', 'templateOnly'],
+  dynamic: ['dynamic'],
+  templateOnly: ['templateOnly'],
+  all: ['curly', 'glimmer', 'dynamic', 'templateOnly'],
+} as const;
+type EXPANSIONS = typeof EXPANSIONS;
+
+function expandSkip(
+  kind: DeclaredComponentType | boolean | undefined
+): readonly DeclaredComponentType[] {
+  if (kind === false || kind === undefined) {
+    return [];
+  } else if (kind === true) {
+    return ['glimmer', 'curly', 'dynamic'];
+  } else {
+    return EXPANSIONS[kind];
   }
 }
 
 function componentModule<D extends RenderDelegate, T extends IRenderTest>(
   name: string,
-  klass: RenderTestConstructor<D, T>,
+  Class: RenderTestConstructor<D, T>,
   Delegate: RenderDelegateConstructor<D>
 ) {
-  let tests: ComponentTests = {
-    glimmer: [],
-    curly: [],
-    dynamic: [],
-    templateOnly: [],
-  };
+  const blueprint = TestBlueprint.for(Class, Delegate);
+  const tests = new ComponentTests(blueprint);
 
-  function createTest(prop: string, test: any, skip?: boolean) {
-    let shouldSkip: boolean;
-    if (skip === true || test.skip === true) {
-      shouldSkip = true;
-    }
-
-    return (type: ComponentKind, klass: RenderTestConstructor<D, T>) => {
-      if (!shouldSkip) {
-        QUnit.test(prop, (assert) => {
-          let instance = new klass(new Delegate());
-          instance.testType = type;
-          return test.call(instance, assert, instance.count);
-        });
-      }
-    };
-  }
-
-  for (let prop in klass.prototype) {
-    const test = klass.prototype[prop];
-    if (isTestFunction(test)) {
-      if (test['kind'] === undefined) {
-        let skip = test['skip'];
-        switch (skip) {
-          case 'glimmer':
-            tests.curly.push(createTest(prop, test));
-            tests.dynamic.push(createTest(prop, test));
-            tests.glimmer.push(createTest(prop, test, true));
-            break;
-          case 'curly':
-            tests.glimmer.push(createTest(prop, test));
-            tests.dynamic.push(createTest(prop, test));
-            tests.curly.push(createTest(prop, test, true));
-            break;
-          case 'dynamic':
-            tests.glimmer.push(createTest(prop, test));
-            tests.curly.push(createTest(prop, test));
-            tests.dynamic.push(createTest(prop, test, true));
-            break;
-          case true:
-            if (test['kind'] === 'templateOnly') {
-              tests.templateOnly.push(createTest(prop, test, true));
-            } else {
-              ['glimmer', 'curly', 'dynamic'].forEach((kind) => {
-                tests[kind as DeclaredComponentKind].push(createTest(prop, test, true));
-              });
-            }
-          default:
-            tests.glimmer.push(createTest(prop, test));
-            tests.curly.push(createTest(prop, test));
-            tests.dynamic.push(createTest(prop, test));
-        }
-        continue;
-      }
-
-      let kind = test['kind'];
-
-      if (kind === 'curly') {
-        tests.curly.push(createTest(prop, test));
-        tests.dynamic.push(createTest(prop, test));
-      }
-
-      if (kind === 'glimmer') {
-        tests.glimmer.push(createTest(prop, test));
-      }
-
-      if (kind === 'dynamic') {
-        tests.curly.push(createTest(prop, test));
-        tests.dynamic.push(createTest(prop, test));
-      }
-
-      if (kind === 'templateOnly') {
-        tests.templateOnly.push(createTest(prop, test));
-      }
+  for (let prop in Class.prototype) {
+    const test = Class.prototype[prop];
+    if (isComponentTest(test)) {
+      const meta = getComponentTestMeta(test);
+      const filtered = blueprint.filtered(meta);
+      tests.add(filtered, { prop, test });
     }
   }
   QUnit.module(`[integration] ${name}`, () => {
-    nestedComponentModules(klass, tests);
+    nestedComponentModules(tests);
   });
-}
-
-interface ComponentTests {
-  glimmer: Function[];
-  curly: Function[];
-  dynamic: Function[];
-  templateOnly: Function[];
 }
 
 function nestedComponentModules<D extends RenderDelegate, T extends IRenderTest>(
-  klass: RenderTestConstructor<D, T>,
-  tests: ComponentTests
+  modules: ComponentTests<D, T>
 ): void {
-  keys(tests).forEach((type) => {
-    let formattedType = upperFirst(type);
-
-    QUnit.module(`[integration] ${formattedType}`, () => {
-      const allTests = [...tests[type]].reverse();
-
-      for (const t of allTests) {
-        t(formattedType, klass);
+  for (const [type, tests] of modules) {
+    QUnit.module(`[integration] ${type}`, () => {
+      for (const test of tests) {
+        test();
       }
-
-      tests[type] = [];
     });
-  });
-}
-
-function upperFirst<T extends string>(
-  str: T extends '' ? `upperFirst only takes (statically) non-empty strings` : T
-): string {
-  let first = str[0] as string;
-  let rest = str.slice(1);
-
-  return `${first.toUpperCase()}${rest}`;
-}
-
-const HAS_TYPED_ARRAYS = typeof Uint16Array !== 'undefined';
-
-function shouldRunTest<T extends RenderDelegate>(Delegate: RenderDelegateConstructor<T>) {
-  let isEagerDelegate = Delegate['isEager'];
-
-  if (HAS_TYPED_ARRAYS) {
-    return true;
   }
-
-  if (!HAS_TYPED_ARRAYS && !isEagerDelegate) {
-    return true;
-  }
-
-  return false;
-}
-
-interface TestFunction {
-  (this: IRenderTest, assert: typeof QUnit.assert, count?: Count): void;
-  kind?: DeclaredComponentKind;
-  skip?: boolean | DeclaredComponentKind;
-}
-
-function isTestFunction(value: any): value is TestFunction {
-  return typeof value === 'function' && value.isTest;
-}
-
-function isSkippedTest(value: any): boolean {
-  return typeof value === 'function' && value.skip;
 }

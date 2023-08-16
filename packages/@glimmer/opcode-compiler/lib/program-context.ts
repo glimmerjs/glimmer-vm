@@ -1,18 +1,19 @@
 import type {
   CompileTimeArtifacts,
-  CompileTimeCompilationContext,
   CompileTimeConstants,
   CompileTimeHeap,
   CompileTimeResolver,
   CreateRuntimeOp,
+  DebugConstants,
+  JitContext,
   ResolutionTimeConstants,
   STDLib,
 } from '@glimmer/interfaces';
 
 import { compileStd } from './opcode-builder/helpers/stdlib';
 
-export class CompileTimeCompilationContextImpl implements CompileTimeCompilationContext {
-  readonly constants: CompileTimeConstants & ResolutionTimeConstants;
+export class CompileTimeCompilationContextImpl implements JitContext {
+  readonly constants: CompileTimeConstants & ResolutionTimeConstants & DebugConstants;
   readonly heap: CompileTimeHeap;
   readonly stdlib: STDLib;
 

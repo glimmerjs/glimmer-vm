@@ -15,9 +15,10 @@ import {
 import { curry, templateOnlyComponent } from '@glimmer/runtime';
 import { CurriedTypes } from '@glimmer/vm';
 
-import type { ComponentKind, ComponentTypes } from '../../components';
+import type { ComponentTypes } from '../../components';
 import type { UserHelper } from '../../helpers';
 import type { TestModifierConstructor } from '../../modifiers';
+import type { DeclaredComponentType } from '../../test-helpers/constants';
 import type { TestJitRegistry } from './registry';
 
 import { createTemplate } from '../../compile';
@@ -42,7 +43,7 @@ export function registerTemplateOnlyComponent(
 export function registerEmberishCurlyComponent(
   registry: TestJitRegistry,
   name: string,
-  Component: Nullable<ComponentTypes['Curly']>,
+  Component: Nullable<ComponentTypes['curly']>,
   layoutSource: Nullable<string>
 ): void {
   let ComponentClass = Component || class extends EmberishCurlyComponent {};
@@ -58,7 +59,7 @@ export function registerEmberishCurlyComponent(
 export function registerGlimmerishComponent(
   registry: TestJitRegistry,
   name: string,
-  Component: Nullable<ComponentTypes['Glimmer']>,
+  Component: Nullable<ComponentTypes['glimmer']>,
   layoutSource: Nullable<string>
 ): void {
   if (name.indexOf('-') !== -1) {
@@ -107,7 +108,7 @@ export function registerModifier(
   registry.register('modifier', name, state);
 }
 
-export function registerComponent<K extends ComponentKind>(
+export function registerComponent<K extends DeclaredComponentType>(
   registry: TestJitRegistry,
   type: K,
   name: string,
@@ -115,22 +116,17 @@ export function registerComponent<K extends ComponentKind>(
   Class?: ComponentTypes[K]
 ): void {
   switch (type) {
-    case 'Glimmer':
-      registerGlimmerishComponent(registry, name, Class as ComponentTypes['Glimmer'], layout);
+    case 'glimmer':
+      registerGlimmerishComponent(registry, name, Class as ComponentTypes['glimmer'], layout);
       break;
-    case 'Curly':
-      registerEmberishCurlyComponent(registry, name, Class as ComponentTypes['Curly'], layout);
+    case 'curly':
+      registerEmberishCurlyComponent(registry, name, Class as ComponentTypes['curly'], layout);
       break;
 
-    case 'Dynamic':
-      registerEmberishCurlyComponent(
-        registry,
-        name,
-        Class as any as typeof EmberishCurlyComponent,
-        layout
-      );
+    case 'dynamic':
+      registerEmberishCurlyComponent(registry, name, Class as ComponentTypes['dynamic'], layout);
       break;
-    case 'TemplateOnly':
+    case 'templateOnly':
       registerTemplateOnlyComponent(registry, name, layout ?? '');
       break;
   }
@@ -163,7 +159,7 @@ export function componentHelper(
   registry: TestJitRegistry,
   name: string,
   constants: ResolutionTimeConstants
-): CurriedValue | null {
+): Nullable<CurriedValue> {
   let definition = registry.lookupComponent(name);
 
   if (definition === null) return null;

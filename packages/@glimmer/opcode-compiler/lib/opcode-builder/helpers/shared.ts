@@ -1,5 +1,5 @@
 import type {
-  ContainingMetadata,
+  BlockMetadata,
   LayoutWithContext,
   NamedBlocks,
   Nullable,
@@ -105,11 +105,11 @@ export function CompilePositional(
   return positional.length;
 }
 
-export function meta(layout: LayoutWithContext): ContainingMetadata {
+export function meta(layout: LayoutWithContext): BlockMetadata {
   let [, symbols, , upvars] = layout.block;
 
   return {
-    evalSymbols: evalSymbols(layout),
+    debugSymbols: debugSymbols(layout),
     upvars: upvars,
     scopeValues: layout.scope?.() ?? null,
     isStrictMode: layout.isStrictMode,
@@ -119,9 +119,10 @@ export function meta(layout: LayoutWithContext): ContainingMetadata {
   };
 }
 
-export function evalSymbols(layout: LayoutWithContext): Nullable<string[]> {
+export function debugSymbols(layout: LayoutWithContext): Nullable<string[]> {
   let { block } = layout;
-  let [, symbols, hasEval] = block;
+  let [, symbols, hasDebug] = block;
 
-  return hasEval ? symbols : null;
+  // include debug symbols in dev mode, or if the template using `debugger`.
+  return import.meta.env.DEV || hasDebug ? symbols : null;
 }

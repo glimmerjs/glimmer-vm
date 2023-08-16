@@ -16,11 +16,13 @@ export interface RuntimeContext {
 }
 
 export interface RuntimeProgram {
-  readonly constants: RuntimeConstants & ResolutionTimeConstants;
+  readonly constants: ProgramConstants;
   readonly heap: RuntimeHeap;
 
   opcode(offset: number): RuntimeOp;
 }
+
+export type ProgramConstants = RuntimeConstants & ResolutionTimeConstants;
 
 export interface RuntimeArtifacts {
   readonly constants: RuntimeConstants & ResolutionTimeConstants;

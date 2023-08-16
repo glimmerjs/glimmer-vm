@@ -31,4 +31,5 @@ export const KEYWORDS_TYPES = {
   unless: ['Call', 'Append', 'Block'],
   with: ['Block'],
   yield: ['Append'],
+  '-try': ['Block'],
 } satisfies Record<string, readonly KeywordType[]>;

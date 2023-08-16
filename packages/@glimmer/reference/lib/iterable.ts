@@ -1,11 +1,11 @@
-import type { Dict, Nullable } from '@glimmer/interfaces';
+import type { Dict, Nullable, Reactive, TagDescription } from '@glimmer/interfaces';
 import { getPath, toIterator } from '@glimmer/global-context';
-import { EMPTY_ARRAY, isObject } from '@glimmer/util';
+import { devmode, EMPTY_ARRAY, isObject } from '@glimmer/util';
 import { consumeTag, createTag, dirtyTag } from '@glimmer/validator';
 
-import type { Reference, ReferenceEnvironment } from './reference';
+import type { ReferenceEnvironment } from './api/internal/reactive';
 
-import { createComputeRef, valueForRef } from './reference';
+import { Accessor, Formula, unwrapReactive } from './api';
 
 export interface IterationItem<T, U> {
   key: unknown;
@@ -48,8 +48,12 @@ const IDENTITY: KeyFor = (item) => {
 };
 
 function keyForPath(path: string): KeyFor {
-  if (import.meta.env.DEV && path[0] === '@') {
-    throw new Error(`invalid keypath: '${path}', valid keys: @index, @identity, or a path`);
+  if (import.meta.env.DEV) {
+    if (path[0] === '@') {
+      throw new Error(`invalid keypath: '${path}', valid keys: @index, @identity, or a path`);
+    } else if (typeof path !== 'string') {
+      throw new Error(`invalid non-string keypath: valid keys: @index, @identity, or a path`);
+    }
   }
   return uniqueKeyFor((item) => getPath(item as object, path));
 }
@@ -156,9 +160,9 @@ function uniqueKeyFor(keyFor: KeyFor) {
   };
 }
 
-export function createIteratorRef(listRef: Reference, key: string) {
-  return createComputeRef(() => {
-    let iterable = valueForRef(listRef) as { [Symbol.iterator]: any } | null | false;
+export function createIteratorRef(listRef: Reactive, key: string) {
+  return Formula(() => {
+    let iterable = unwrapReactive(listRef) as { [Symbol.iterator]: any } | null | false;
 
     let keyFor = makeKeyFor(key);
 
@@ -178,20 +182,28 @@ export function createIteratorRef(listRef: Reference, key: string) {
 
 export function createIteratorItemRef(_value: unknown) {
   let value = _value;
-  let tag = createTag();
+  let tag = createTag(
+    devmode(
+      () =>
+        ({
+          reason: 'formula',
+          label: ['(iterator)'],
+        }) satisfies TagDescription
+    )
+  );
 
-  return createComputeRef(
-    () => {
+  return Accessor({
+    get: () => {
       consumeTag(tag);
       return value;
     },
-    (newValue) => {
+    set: (newValue) => {
       if (value !== newValue) {
         value = newValue;
         dirtyTag(tag);
       }
-    }
-  );
+    },
+  });
 }
 
 class IteratorWrapper implements OpaqueIterator {

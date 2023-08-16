@@ -1,45 +1,22 @@
-import type { Dict, Nullable, PresentArray } from '@glimmer/interfaces';
+import type { DebugVmSnapshot, Dict, PresentArray } from '@glimmer/interfaces';
 
-// TODO: How do these map onto constant and machine types?
-export const OPERAND_TYPES = [
-  'u32',
-  'i32',
-  'owner',
-  'handle',
-  'str',
-  'option-str',
-  'array',
-  'str-array',
-  'bool',
-  'primitive',
-  'register',
-  'unknown',
-  'symbol-table',
-  'scope',
-];
+import type { UNCHANGED } from './stack/params';
+import type { Op, OperandList, ShorthandStackReturn } from './utils';
 
-function isOperandType(s: string): s is OperandType {
-  return OPERAND_TYPES.indexOf(s as any) !== -1;
+export type UncheckedStack = { type: 'unchecked'; reason: string };
+export type StackCheck = DynamicStackFn | UncheckedStack;
+
+export function isUnchecked(check: StackCheck): check is UncheckedStack {
+  return typeof check !== 'function';
 }
 
-export type OperandType = (typeof OPERAND_TYPES)[number];
-
-export interface Operand {
-  type: OperandType;
-  name: string;
-}
-
-export type OperandList = ([] | [Operand] | [Operand, Operand] | [Operand, Operand, Operand]) &
-  Operand[];
-
-export interface NormalizedMetadata {
+export interface OpcodeMetadata {
   name: string;
   mnemonic: string;
   before: null;
-  stackChange: Nullable<number>;
+  stack: DynamicStackFn;
   ops: OperandList;
   operands: number;
-  check: boolean;
 }
 
 export type Stack = [string[], string[]];
@@ -56,133 +33,9 @@ export interface RawOperandMetadata {
 export type OperandName = `${string}:${string}`;
 export type RawOperandFormat = OperandName | PresentArray<OperandName>;
 
-export function normalize(key: string, input: RawOperandMetadata): NormalizedMetadata {
-  let name: string;
-
-  if (input.format === undefined) {
-    throw new Error(`Missing format in ${JSON.stringify(input)}`);
-  }
-
-  if (Array.isArray(input.format)) {
-    name = input.format[0];
-  } else {
-    name = input.format;
-  }
-
-  let ops: OperandList = Array.isArray(input.format) ? operands(input.format.slice(1)) : [];
-
-  return {
-    name,
-    mnemonic: key,
-    before: null,
-    stackChange: stackChange(input['operand-stack']),
-    ops,
-    operands: ops.length,
-    check: input.skip === true ? false : true,
-  };
-}
-
-function stackChange(stack?: Stack): Nullable<number> {
-  if (stack === undefined) {
-    return 0;
-  }
-
-  let before = stack[0];
-  let after = stack[1];
-
-  if (hasRest(before) || hasRest(after)) {
-    return null;
-  }
-
-  return after.length - before.length;
-}
-
-function hasRest(input: string[]): boolean {
-  if (!Array.isArray(input)) {
-    throw new Error(`Unexpected stack entry: ${JSON.stringify(input)}`);
-  }
-  return input.some((s) => s.slice(-3) === '...');
-}
-
-function operands(input: `${string}:${string}`[]): OperandList {
-  if (!Array.isArray(input)) {
-    throw new Error(`Expected operands array, got ${JSON.stringify(input)}`);
-  }
-  return input.map(op) as OperandList;
-}
-
-function op(input: `${string}:${string}`): Operand {
-  let [name, type] = input.split(':') as [string, string];
-
-  if (isOperandType(type)) {
-    return { name, type };
-  } else {
-    throw new Error(`Expected operand, found ${JSON.stringify(input)}`);
-  }
-}
-
 export interface NormalizedOpcodes {
-  readonly machine: Dict<NormalizedMetadata>;
-  readonly syscall: Dict<NormalizedMetadata>;
-}
-
-export function normalizeAll(parsed: {
-  machine: Dict<RawOperandMetadata>;
-  syscall: Dict<RawOperandMetadata>;
-}): NormalizedOpcodes {
-  let machine = normalizeParsed(parsed.machine);
-  let syscall = normalizeParsed(parsed.syscall);
-
-  return { machine, syscall };
-}
-
-export function normalizeParsed(parsed: Dict<RawOperandMetadata>): Dict<NormalizedMetadata> {
-  let out = Object.create(null) as Dict<NormalizedMetadata>;
-
-  for (const [key, value] of Object.entries(parsed)) {
-    out[key] = normalize(key, value);
-  }
-
-  return out;
-}
-
-export function buildEnum(
-  name: string,
-  parsed: Dict<NormalizedMetadata>,
-  offset: number,
-  max?: number
-): { enumString: string; predicate: string } {
-  let e = [`export enum ${name} {`];
-
-  let last: number;
-
-  Object.values(parsed).forEach((value, i) => {
-    e.push(`  ${value.name} = ${offset + i},`);
-    last = i;
-  });
-
-  e.push(`  Size = ${last! + offset + 1},`);
-  e.push('}');
-
-  let enumString = e.join('\n');
-
-  let predicate;
-
-  if (max) {
-    predicate = strip`
-      export function is${name}(value: number): value is ${name} {
-        return value >= ${offset} && value <= ${max};
-      }
-    `;
-  } else {
-    predicate = strip`
-      export function is${name}(value: number): value is ${name} {
-        return value >= ${offset};
-      }
-    `;
-  }
-
-  return { enumString, predicate };
+  readonly machine: Dict<OpcodeMetadata>;
+  readonly syscall: Dict<OpcodeMetadata>;
 }
 
 export function strip(strings: TemplateStringsArray, ...args: unknown[]) {
@@ -217,7 +70,7 @@ export function strip(strings: TemplateStringsArray, ...args: unknown[]) {
 export const META_KIND = ['METADATA', 'MACHINE_METADATA'];
 export type META_KIND = (typeof META_KIND)[number];
 
-export function buildSingleMeta<D extends Dict<NormalizedMetadata>>(
+export function buildSingleMeta<D extends Dict<OpcodeMetadata>>(
   kind: META_KIND,
   all: D,
   key: keyof D
@@ -249,7 +102,7 @@ function stringify(o: unknown, pad: number): string {
   return out.join('\n');
 }
 
-export function buildMetas(kind: META_KIND, all: Dict<NormalizedMetadata>): string {
+export function buildMetas(kind: META_KIND, all: Dict<OpcodeMetadata>): string {
   let out = [];
 
   for (let key of Object.keys(all)) {
@@ -258,3 +111,27 @@ export function buildMetas(kind: META_KIND, all: Dict<NormalizedMetadata>): stri
 
   return out.join('\n\n');
 }
+
+/**
+ * Takes an operand and dynamically computes the stack change.
+ *
+ * If the function returns a number, that number is used as the stack change
+ * (and stack parameters are ignored).
+ *
+ * If the return value is an array:
+ *
+ * - If the first value is `UNCHANGED`, the stack change is the length of the
+ *   return values after `UNCHANGED`.
+ * - Otherwise, the stack change is the length of the return values minus
+ *   the length of the parameters.
+ */
+export type DynamicStackFnSpec = (
+  op: Op,
+  state: DebugVmSnapshot
+) => [typeof UNCHANGED, ...ShorthandStackReturn[]] | ShorthandStackReturn[] | number;
+export type DynamicStackFn = (op: Op, state: DebugVmSnapshot) => StackSpec;
+
+export type StackSpec =
+  | { type: 'delta'; delta: number }
+  | { type: 'operations'; pop: number; push: number; peek: number; delta: number }
+  | { type: 'unchecked'; reason: string; delta?: undefined };

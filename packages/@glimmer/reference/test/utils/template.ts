@@ -1,3 +1,4 @@
+import type { GlobalContext } from '@glimmer/global-context';
 import type { IteratorDelegate } from '@glimmer/reference';
 
 import objectValues from './platform';
@@ -81,4 +82,4 @@ export const TestContext = {
 
     return null;
   },
-};
+} satisfies Partial<GlobalContext>;

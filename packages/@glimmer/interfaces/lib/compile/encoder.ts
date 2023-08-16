@@ -2,7 +2,7 @@ import type { CompileTimeComponent } from '../..';
 import type { Nullable } from '../core';
 import type { CompileTimeConstants } from '../program';
 import type { HandleResult, NamedBlocks } from '../template';
-import type { VmMachineOp as MachineOp, VmOp as Op } from '../vm-opcodes';
+import type { VmMachineOp as MachineOp, VmSyscallOp as SyscallOp } from '../vm-opcodes';
 import type { SingleBuilderOperand } from './operands';
 import type * as WireFormat from './wire-format/api';
 
@@ -130,7 +130,7 @@ export type HighLevelResolutionOp =
 
 export type HighLevelOp = HighLevelBuilderOp | HighLevelResolutionOp;
 
-export type BuilderOpcode = Op | MachineOp;
+export type BuilderOpcode = SyscallOp | MachineOp;
 
 export type BuilderOp = [
   op: BuilderOpcode,

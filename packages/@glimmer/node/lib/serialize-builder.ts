@@ -1,5 +1,6 @@
 import type {
-  Bounds,
+  BlockBounds,
+  Cursor,
   ElementBuilder,
   Environment,
   Maybe,
@@ -10,7 +11,7 @@ import type {
   SimpleText,
 } from '@glimmer/interfaces';
 import type { RemoteLiveBlock } from '@glimmer/runtime';
-import { ConcreteBounds, NewElementBuilder } from '@glimmer/runtime';
+import { AbstractElementBuilder, ConcreteBounds, CursorImpl } from '@glimmer/runtime';
 
 const TEXT_NODE = 3;
 
@@ -28,8 +29,12 @@ function currentNode(
   }
 }
 
-class SerializeBuilder extends NewElementBuilder implements ElementBuilder {
+class SerializeBuilder extends AbstractElementBuilder implements ElementBuilder {
   private serializeBlockDepth = 0;
+
+  createCursor(element: SimpleElement, nextSibling: Maybe<SimpleNode> = null): Cursor {
+    return new CursorImpl(element, nextSibling);
+  }
 
   override __openBlock(): void {
     let { tagName } = this.element;
@@ -53,7 +58,7 @@ class SerializeBuilder extends NewElementBuilder implements ElementBuilder {
     }
   }
 
-  override __appendHTML(html: string): Bounds {
+  override __appendHTML(html: string): BlockBounds {
     let { tagName } = this.element;
 
     if (tagName === 'TITLE' || tagName === 'SCRIPT' || tagName === 'STYLE') {
@@ -88,7 +93,8 @@ class SerializeBuilder extends NewElementBuilder implements ElementBuilder {
     if (tagName === 'TITLE' || tagName === 'SCRIPT' || tagName === 'STYLE') {
       return super.__appendText(string);
     } else if (string === '') {
-      return this.__appendComment('% %') as any as SimpleText;
+      return this.__appendComment('% %') as unknown as SimpleText;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
     } else if (current && current.nodeType === TEXT_NODE) {
       this.__appendComment('%|%');
     }
