@@ -75,7 +75,17 @@ export function clear(bounds: Bounds): Nullable<SimpleNode> {
   while (true) {
     let next = current.nextSibling;
 
-    parent.removeChild(current);
+    if (parent === current.parentNode) {
+      current.parentNode.removeChild(current);
+    } else if (import.meta.env.DEV) {
+      if (current.parentNode === null) {
+        // eslint-disable-next-line no-console
+        console.warn("Attempted to clear a child node that doesn't have a parent node.");
+      } else {
+        // eslint-disable-next-line no-console
+        console.warn('Attempted to clear a child node that has been moved.');
+      }
+    }
 
     if (current === last) {
       return next;
