@@ -13,6 +13,7 @@
   },
   "editor.formatOnSave": true,
   "eslint.enable": true,
+  "eslint.packageManager": "npm",
   "eslint.codeAction.showDocumentation": {
     "enable": true
   },
@@ -33,6 +34,10 @@
   },
   "files.insertFinalNewline": true,
   "files.trimTrailingWhitespace": true,
+  "files.watcherExclude": {
+    "**/.git/objects/**": true,
+    "**/.git/subtree-cache/**": true
+  },
   "javascript.updateImportsOnFileMove.enabled": "always",
   "typescript.updateImportsOnFileMove.enabled": "always",
 
@@ -41,13 +46,10 @@
 
   "typescript.preferences.importModuleSpecifierEnding": "minimal",
   "typescript.preferences.useAliasesForRenames": false,
+
+  "typescript.tsc.autoDetect": "on",
   "typescript.tsdk": "node_modules/typescript/lib",
   "typescript.tsserver.experimental.enableProjectDiagnostics": false,
   "typescript.workspaceSymbols.scope": "currentProject",
-  "eslint.problems.shortenToSingleLine": true,
-  "inline-bookmarks.expert.custom.words.mapping": {
-    "red": ["@fixme(?=\\s|$)", "@audit(?=\\s|$)"]
-  },
-  "inline-bookmarks.view.exclude.gitIgnore": true,
-  "inline-bookmarks.enable": true
+  "eslint.problems.shortenToSingleLine": true
 }

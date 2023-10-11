@@ -1,11 +1,11 @@
 import {
-  beginTrackFrame, // @audit these tests
+  beginTrackFrame,
   consumeTag,
   createCache,
   createTag,
   debug,
   dirtyTag,
-  endTrackFrame, // @audit these tests
+  endTrackFrame,
   getValue,
   isConst,
   isTracking,
@@ -161,7 +161,7 @@ module('@glimmer/validator: tracking', () => {
       consumeTag(tag1);
       consumeTag(tag2);
 
-      let combined = endTrackFrame(); // @audit
+      let combined = endTrackFrame();
 
       let snapshot = valueForTag(combined);
       dirtyTag(tag1);
@@ -184,7 +184,7 @@ module('@glimmer/validator: tracking', () => {
         consumeTag(tag2);
       });
 
-      let combined = endTrackFrame(); // @audit
+      let combined = endTrackFrame();
 
       let snapshot = valueForTag(combined);
       dirtyTag(tag1);
@@ -211,7 +211,7 @@ module('@glimmer/validator: tracking', () => {
       // end inner track frame
       endTrackFrame();
 
-      let combined = endTrackFrame(); // @audit
+      let combined = endTrackFrame();
 
       let snapshot = valueForTag(combined);
       dirtyTag(tag1);
@@ -236,11 +236,11 @@ module('@glimmer/validator: tracking', () => {
       consumeTag(tag2);
 
       // end inner track frame
-      let tag3 = endTrackFrame(); // @audit
+      let tag3 = endTrackFrame();
 
       consumeTag(tag3);
 
-      let combined = endTrackFrame(); // @audit
+      let combined = endTrackFrame();
 
       let snapshot = valueForTag(combined);
       dirtyTag(tag1);
@@ -258,12 +258,12 @@ module('@glimmer/validator: tracking', () => {
 
       assert.ok(isTracking());
 
-      endTrackFrame(); // @audit
+      endTrackFrame();
     });
 
     test('asserts if track frame was ended without one existing', (assert) => {
       assert.throws(
-        () => endTrackFrame(), // @audit
+        () => endTrackFrame(),
         /attempted to close a tracking frame, but one was not open/u
       );
     });

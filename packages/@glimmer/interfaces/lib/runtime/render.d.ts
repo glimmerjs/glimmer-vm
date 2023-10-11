@@ -1,6 +1,6 @@
 import type { SimpleElement, SimpleNode } from '@simple-dom/interface';
 
-import type { Nullable, RichIteratorResult } from '../core';
+import type { RichIteratorResult } from '../core';
 import type { Bounds } from '../dom/bounds';
 import type { Environment } from './environment';
 
@@ -11,7 +11,6 @@ export interface ExceptionHandler {
 export interface RenderResult extends Bounds, ExceptionHandler {
   readonly env: Environment;
   readonly drop: object;
-  readonly error: Nullable<{ error: unknown }>;
 
   rerender(options?: { alwaysRevalidate: false }): void;
 

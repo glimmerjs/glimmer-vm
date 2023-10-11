@@ -1,3 +1,0 @@
-- [ ] Investigate the tracking stack
-- [ ] Investigate other paired opcodes
-- [ ] Where should the recovery logic go?

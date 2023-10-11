@@ -386,14 +386,14 @@ export class VM implements PublicVM, InternalVM {
     opcodes.push(new BeginTrackFrameOpcode(name));
     this[STACKS].cache.push(guard);
 
-    beginTrackFrame(name); // @audit
+    beginTrackFrame(name);
   }
 
   commitCacheGroup() {
     let opcodes = this.updating();
     let guard = expect(this[STACKS].cache.pop(), 'VM BUG: Expected a cache group');
 
-    let tag = endTrackFrame(); // @audit
+    let tag = endTrackFrame();
     opcodes.push(new EndTrackFrameOpcode(guard));
 
     guard.finalize(tag, opcodes.length);
@@ -604,7 +604,10 @@ export class VM implements PublicVM, InternalVM {
     let { env, elementStack } = this;
     let opcode = this[INNER_VM].nextStatement();
     let result: RichIteratorResult<null, RenderResult>;
-    if (opcode === null) {
+    if (opcode !== null) {
+      this[INNER_VM].evaluateOuter(opcode, this);
+      result = { done: false, value: null };
+    } else {
       // Unload the stack
       this.stack.reset();
 
@@ -614,23 +617,10 @@ export class VM implements PublicVM, InternalVM {
           env,
           this.popUpdating(),
           elementStack.popBlock(),
-          this.destructor,
-          null
+          this.destructor
         ),
       };
-    } else {
-      try {
-        this[INNER_VM].evaluateOuter(opcode, this);
-        result = { done: false, value: null };
-      } catch (error) {
-        // @todo run cleanup
-        result = {
-          done: true,
-          value: new RenderResultImpl(env, [], elementStack.unwind(), {}, { error }),
-        };
-      }
     }
-
     return result;
   }
 

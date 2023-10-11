@@ -2,7 +2,6 @@ import { associateDestroyableChild, registerDestructor } from '@glimmer/destroya
 import type {
   Environment,
   LiveBlock,
-  Nullable,
   RenderResult,
   SimpleElement,
   SimpleNode,
@@ -17,8 +16,7 @@ export default class RenderResultImpl implements RenderResult {
     public env: Environment,
     private updating: UpdatingOpcode[],
     private bounds: LiveBlock,
-    readonly drop: object,
-    readonly error: Nullable<{ error: unknown }>
+    readonly drop: object
   ) {
     associateDestroyableChild(this, drop);
     registerDestructor(this, () => clear(this.bounds));

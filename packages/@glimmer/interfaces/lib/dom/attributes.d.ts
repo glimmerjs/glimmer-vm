@@ -18,7 +18,6 @@ export interface LiveBlock extends Bounds {
   didAppendNode(node: SimpleNode): void;
   didAppendBounds(bounds: Bounds): void;
   finalize(stack: ElementBuilder): void;
-  clear?(stack: ElementBuilder): void;
 }
 
 export interface SimpleLiveBlock extends LiveBlock {
@@ -27,7 +26,7 @@ export interface SimpleLiveBlock extends LiveBlock {
   lastNode(): SimpleNode;
 }
 
-export type RemoteLiveBlock = SimpleLiveBlock;
+export type RemoteLiveBlock = SimpleLiveBlock
 
 export interface UpdatableBlock extends SimpleLiveBlock {
   reset(env: Environment): Nullable<SimpleNode>;
@@ -94,8 +93,6 @@ export interface ElementBuilder extends Cursor, DOMStack, TreeOperations {
   pushUpdatableBlock(): UpdatableBlock;
   pushBlockList(list: Bounds[]): LiveBlock;
   popBlock(): LiveBlock;
-
-  unwind(): LiveBlock;
 
   didAppendBounds(bounds: Bounds): void;
 }

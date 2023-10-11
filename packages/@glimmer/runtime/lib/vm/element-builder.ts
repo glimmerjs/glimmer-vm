@@ -19,10 +19,10 @@ import type {
   SimpleNode,
   SimpleText,
   UpdatableBlock,
-} from '@glimmer/interfaces';
+} from "@glimmer/interfaces";
 import { assert, expect, Stack } from '@glimmer/util';
 
-import { clear, clearRange, ConcreteBounds, CursorImpl, SingleNodeBounds } from '../bounds';
+import { clear, ConcreteBounds, CursorImpl, SingleNodeBounds } from '../bounds';
 import { type DynamicAttribute, dynamicAttribute } from './attributes/dynamic';
 
 export interface FirstNode {
@@ -105,7 +105,7 @@ export class NewElementBuilder implements ElementBuilder {
   }
 
   protected initialize(): this {
-    this.pushLiveBlock(new ClearableBlock(this.element, this.nextSibling));
+    this.pushSimpleBlock();
     return this;
   }
 
@@ -158,23 +158,6 @@ export class NewElementBuilder implements ElementBuilder {
     this.__openBlock();
     this.blockStack.push(block);
     return block;
-  }
-
-  unwind(): LiveBlock {
-    let block = this.blockStack.current;
-    expect(block, 'Expected popBlock to return a block');
-
-    while (block) {
-      if (block.clear) {
-        block.clear(this);
-        return block;
-      }
-
-      this.blockStack.pop();
-      block = this.blockStack.current;
-    }
-
-    throw new Error(`code reached unreachable`);
   }
 
   popBlock(): LiveBlock {
@@ -447,22 +430,6 @@ export class SimpleLiveBlock implements LiveBlock {
     if (this.first === null) {
       stack.appendComment('');
     }
-  }
-}
-
-export class ClearableBlock extends SimpleLiveBlock {
-  constructor(parent: SimpleElement, readonly nextSibling: Nullable<SimpleNode>) {
-    super(parent);
-  }
-
-  clear(stack: ElementBuilder) {
-    let first = this.first?.firstNode();
-
-    if (first) {
-      clearRange(this.parentElement(), first, this.nextSibling);
-    }
-    this.first = this.last = null;
-    this.finalize(stack);
   }
 }
 

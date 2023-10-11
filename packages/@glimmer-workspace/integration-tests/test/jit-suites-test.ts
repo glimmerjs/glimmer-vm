@@ -14,10 +14,8 @@ import {
   WithDynamicVarsSuite,
   YieldSuite,
 } from '..';
-import { ErrorRecoverySuite } from '../lib/suites/error-recovery';
 
 jitSuite(DebuggerSuite);
-jitSuite(ErrorRecoverySuite);
 jitSuite(EachSuite);
 jitSuite(InElementSuite);
 

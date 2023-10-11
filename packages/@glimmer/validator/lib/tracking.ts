@@ -176,12 +176,12 @@ export function getValue<T>(cache: Cache<T>): T | undefined {
   let snapshot = cache[SNAPSHOT];
 
   if (tag === undefined || !validateTag(tag, snapshot)) {
-    beginTrackFrame(); // @audit
+    beginTrackFrame();
 
     try {
       cache[LAST_VALUE] = fn();
     } finally {
-      tag = endTrackFrame(); // @audit
+      tag = endTrackFrame();
       cache[TAG] = tag;
       cache[SNAPSHOT] = valueForTag(tag);
       consumeTag(tag);
@@ -236,14 +236,14 @@ function assertTag(tag: Tag | undefined, cache: InternalCache): asserts tag is T
 // be necessary in Ember for a while longer, but I think we'll be able to drop
 // it in favor of cache sooner rather than later.
 export function track(block: () => void, debugLabel?: string | false): Tag {
-  beginTrackFrame(debugLabel); // @audit
+  beginTrackFrame(debugLabel);
 
   let tag;
 
   try {
     block();
   } finally {
-    tag = endTrackFrame(); // @audit
+    tag = endTrackFrame();
   }
 
   return tag;
