@@ -7,7 +7,10 @@ export type VmMachineInvokeStatic = 3;
 export type VmMachineJump = 4;
 export type VmMachineReturn = 5;
 export type VmMachineReturnTo = 6;
-export type VmMachineSize = 7;
+export type VmMachinePushTryFrame = 7;
+export type VmMachinePopTryFrame = 8;
+export type VmMachineUnwindTypeFrame = 9;
+export type VmMachineSize = 10;
 
 export type VmMachineOp =
   | VmMachinePushFrame
@@ -17,6 +20,9 @@ export type VmMachineOp =
   | VmMachineJump
   | VmMachineReturn
   | VmMachineReturnTo
+  | VmMachinePushTryFrame
+  | VmMachinePopTryFrame
+  | VmMachineUnwindTypeFrame
   | VmMachineSize;
 
 export type VmHelper = 16;

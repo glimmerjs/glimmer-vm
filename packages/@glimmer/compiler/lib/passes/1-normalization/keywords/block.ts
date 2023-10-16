@@ -8,6 +8,7 @@ import { VISIT_EXPRS } from '../visitors/expressions';
 import { VISIT_STMTS } from '../visitors/statements';
 import { keywords } from './impl';
 import { assertCurryKeyword } from './utils/curry';
+import type { Nullable } from '@glimmer/interfaces';
 
 export const BLOCK_KEYWORDS = keywords('Block')
   .kw('in-element', {
@@ -85,6 +86,59 @@ export const BLOCK_KEYWORDS = keywords('Block')
               destination,
             })
         );
+    },
+  })
+  .kw('-try', {
+    assert(node: ASTv2.InvokeBlock): Result<{
+      handler: Nullable<ASTv2.ExpressionNode>;
+    }> {
+      let { args } = node;
+
+      if (!args.named.isEmpty()) {
+        return Err(
+          generateSyntaxError(
+            `{{#-try}} cannot receive named parameters, received ${args.named.entries
+              .map((e) => e.name.chars)
+              .join(', ')}`,
+            node.loc
+          )
+        );
+      }
+
+      if (args.positional.size > 1) {
+        return Err(
+          generateSyntaxError(
+            `{{#-try}} can only receive one positional parameter in block form, the handler. Received ${args.positional.size} parameters`,
+            node.loc
+          )
+        );
+      }
+
+      let handler = args.nth(0);
+
+      return Ok({ handler });
+    },
+
+    translate(
+      { node, state }: { node: ASTv2.InvokeBlock; state: NormalizationState },
+      { handler }: { handler: ASTv2.ExpressionNode }
+    ): Result<mir.HandleError> {
+      let block = node.blocks.get('default');
+      let inverse = node.blocks.get('else');
+
+      let handlerResult = handler ? VISIT_EXPRS.visit(handler, state) : Ok(null);
+      let blockResult = VISIT_STMTS.NamedBlock(block, state);
+      let inverseResult = inverse ? VISIT_STMTS.NamedBlock(inverse, state) : Ok(null);
+
+      return Result.all(handlerResult, blockResult, inverseResult).mapOk(
+        ([handler, block, inverse]) =>
+          new mir.HandleError({
+            loc: node.loc,
+            handler,
+            block,
+            inverse,
+          })
+      );
     },
   })
   .kw('if', {

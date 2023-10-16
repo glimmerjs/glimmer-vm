@@ -25,7 +25,7 @@ export {
   $t1,
   $v0,
   isLowLevelRegister,
-  MachineRegister,
+  type MachineRegister,
   type Register,
   SavedRegister,
   type SyscallRegister,

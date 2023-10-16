@@ -11,6 +11,7 @@ export interface ExceptionHandler {
 export interface RenderResult extends Bounds, ExceptionHandler {
   readonly env: Environment;
   readonly drop: object;
+  readonly error?: unknown;
 
   rerender(options?: { alwaysRevalidate: false }): void;
 

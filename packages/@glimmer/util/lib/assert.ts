@@ -11,6 +11,7 @@ export function debugAssert(test: any, msg: string): asserts test {
   // }
 
   if (!test) {
+    debugger;
     throw new Error(msg || 'assertion failure');
   }
 }

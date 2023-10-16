@@ -21,6 +21,7 @@ import {
 } from '@glimmer-workspace/integration-tests';
 
 import { assert } from './support';
+import { ErrorRecoverySuite } from '../lib/suites/error-recovery';
 
 interface ComponentHooks {
   didInitAttrs: number;
@@ -2230,6 +2231,7 @@ class CurlyBoundsTrackingTest extends CurlyTest {
   }
 }
 
+jitSuite(ErrorRecoverySuite);
 jitSuite(CurlyCreateTest);
 jitSuite(CurlyDynamicComponentTest);
 jitSuite(CurlyDynamicCustomizationTest);

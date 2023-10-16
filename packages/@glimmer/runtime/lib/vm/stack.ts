@@ -1,5 +1,5 @@
 import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
-import { $fp, $sp, type MachineRegister } from '@glimmer/vm';
+import { $fp, $sp } from '@glimmer/vm';
 
 import { REGISTERS } from '../symbols';
 import { initializeRegistersWithSP, type LowLevelRegisters } from './low-level';
@@ -8,7 +8,10 @@ export interface EvaluationStack {
   [REGISTERS]: LowLevelRegisters;
 
   push(value: unknown): void;
-  dup(position?: MachineRegister): void;
+  /**
+   * Duplicate the value at the specified position (defaults to the top of the stack).
+   */
+  dup(position?: number): void;
   copy(from: number, to: number): void;
   pop<T>(n?: number): T;
   peek<T>(offset?: number): T;
@@ -28,7 +31,10 @@ export default class EvaluationStackImpl implements EvaluationStack {
   readonly [REGISTERS]: LowLevelRegisters;
 
   // fp -> sp
-  constructor(private stack: unknown[] = [], registers: LowLevelRegisters) {
+  constructor(
+    private stack: unknown[] = [],
+    registers: LowLevelRegisters
+  ) {
     this[REGISTERS] = registers;
 
     if (LOCAL_DEBUG) {

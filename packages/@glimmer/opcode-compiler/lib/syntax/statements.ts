@@ -4,7 +4,7 @@ import type {
   WellKnownAttrName,
   WellKnownTagName,
   WireFormat,
-} from "@glimmer/interfaces";
+} from '@glimmer/interfaces';
 import { $fp, $sp, ContentType, MachineOp, Op } from '@glimmer/vm';
 import { SexpOpcodes } from '@glimmer/wire-format';
 
@@ -256,6 +256,17 @@ STATEMENTS.add(SexpOpcodes.InElement, (op, [, block, guid, destination, insertBe
       op(Op.PopRemoteElement);
     }
   );
+});
+
+STATEMENTS.add(SexpOpcodes.HandleError, (op, [, handler, block, inverse]) => {
+  return [
+    op(HighLevelBuilderOpcodes.StartLabels),
+    op(MachineOp.PushTryFrame, labelOperand('FINALLY')),
+    InvokeStaticBlock(op, block),
+    op(MachineOp.PopTryFrame),
+    op(HighLevelBuilderOpcodes.Label, 'FINALLY'),
+    op(HighLevelBuilderOpcodes.StopLabels),
+  ];
 });
 
 STATEMENTS.add(SexpOpcodes.If, (op, [, condition, block, inverse]) =>

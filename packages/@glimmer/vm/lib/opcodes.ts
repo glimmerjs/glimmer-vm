@@ -59,10 +59,13 @@ import type {
   VmMachineJump,
   VmMachineOp,
   VmMachinePopFrame,
+  VmMachinePopTryFrame,
   VmMachinePushFrame,
+  VmMachinePushTryFrame,
   VmMachineReturn,
   VmMachineReturnTo,
   VmMachineSize,
+  VmMachineUnwindTypeFrame,
   VmMain,
   VmModifier,
   VmNot,
@@ -115,7 +118,10 @@ export const MachineOp = {
   Jump: 4 satisfies VmMachineJump,
   Return: 5 satisfies VmMachineReturn,
   ReturnTo: 6 satisfies VmMachineReturnTo,
-  Size: 7 satisfies VmMachineSize,
+  PushTryFrame: 7 satisfies VmMachinePushTryFrame,
+  PopTryFrame: 8 satisfies VmMachinePopTryFrame,
+  UnwindTypeFrame: 9 satisfies VmMachineUnwindTypeFrame,
+  Size: 10 satisfies VmMachineSize,
 } as const;
 
 export const Op = {

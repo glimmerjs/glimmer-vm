@@ -7,7 +7,7 @@ import type {
   SomeVmOp,
   VmMachineOp,
   VmOp,
-} from "@glimmer/interfaces";
+} from '@glimmer/interfaces';
 import { LOCAL_DEBUG, LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
 import { valueForRef } from '@glimmer/reference';
 import { assert, fillNulls, LOCAL_LOGGER, unwrap } from '@glimmer/util';

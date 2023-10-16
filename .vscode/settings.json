@@ -13,7 +13,6 @@
   },
   "editor.formatOnSave": true,
   "eslint.enable": true,
-  "eslint.packageManager": "npm",
   "eslint.codeAction.showDocumentation": {
     "enable": true
   },
@@ -41,15 +40,18 @@
   "javascript.updateImportsOnFileMove.enabled": "always",
   "typescript.updateImportsOnFileMove.enabled": "always",
 
-  "typescript.preferences.importModuleSpecifier": "project-relative",
   "javascript.preferences.importModuleSpecifier": "project-relative",
+  "typescript.preferences.importModuleSpecifier": "project-relative",
 
   "typescript.preferences.importModuleSpecifierEnding": "minimal",
   "typescript.preferences.useAliasesForRenames": false,
 
   "typescript.tsc.autoDetect": "on",
   "typescript.tsdk": "node_modules/typescript/lib",
-  "typescript.tsserver.experimental.enableProjectDiagnostics": false,
+  "typescript.tsserver.experimental.enableProjectDiagnostics": true,
   "typescript.workspaceSymbols.scope": "currentProject",
-  "eslint.problems.shortenToSingleLine": true
+  "eslint.problems.shortenToSingleLine": true,
+  "inline-bookmarks.expert.custom.words.mapping": {
+    "red": ["@premerge(\\s|$)"]
+  }
 }

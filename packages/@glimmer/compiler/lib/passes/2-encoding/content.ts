@@ -9,6 +9,7 @@ import type {
   WellKnownAttrName,
   WireFormat,
 } from '@glimmer/interfaces';
+import { ASTv2 } from '@glimmer/syntax';
 import { LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
 import { exhausted, LOCAL_LOGGER } from '@glimmer/util';
 import { SexpOpcodes } from '@glimmer/wire-format';
@@ -17,6 +18,7 @@ import type { OptionalList } from '../../shared/list';
 import { deflateAttrName, deflateTagName } from '../../utils';
 import { EXPR } from './expressions';
 import type * as mir from './mir';
+import { SourceSpan } from '@glimmer/syntax/lib/source/span';
 
 class WireStatements<S extends WireFormat.Statement = WireFormat.Statement> {
   constructor(private statements: readonly S[]) {}
@@ -73,6 +75,8 @@ export class ContentEncoder {
         return this.InvokeBlock(stmt);
       case 'If':
         return this.If(stmt);
+      case 'HandleError':
+        return this.HandleError(stmt);
       case 'Each':
         return this.Each(stmt);
       case 'With':
@@ -196,6 +200,20 @@ export class ContentEncoder {
     return [
       SexpOpcodes.If,
       EXPR.expr(condition),
+      CONTENT.NamedBlock(block)[1],
+      inverse ? CONTENT.NamedBlock(inverse)[1] : null,
+    ];
+  }
+
+  HandleError({ handler, block, inverse }: mir.HandleError): WireFormat.Statements.HandleError {
+    return [
+      SexpOpcodes.HandleError,
+      EXPR.Literal(
+        new ASTv2.LiteralExpression({
+          value: null,
+          loc: handler?.loc ?? SourceSpan.synthetic('null'),
+        })
+      ),
       CONTENT.NamedBlock(block)[1],
       inverse ? CONTENT.NamedBlock(inverse)[1] : null,
     ];

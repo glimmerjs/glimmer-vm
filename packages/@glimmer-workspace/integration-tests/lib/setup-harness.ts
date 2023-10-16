@@ -23,6 +23,12 @@ export async function setupQunit() {
     tooltip: 'CI mode makes tests run faster by sacrificing UI responsiveness',
   });
 
+  QUnit.config.urlConfig.push({
+    id: 'enable_local_should_log',
+    label: 'Enable Trace Logging',
+    tooltip: 'Trace logs emit information about the internal VM state',
+  });
+
   await Promise.resolve();
 
   const qunitDiv = document.createElement('div');

@@ -7,10 +7,10 @@ import { APPEND_OPCODES } from '../opcodes';
 import type { VM } from './append';
 
 export interface LowLevelRegisters {
-  [MachineRegister.pc]: number;
-  [MachineRegister.ra]: number;
-  [MachineRegister.sp]: number;
-  [MachineRegister.fp]: number;
+  [$pc]: number;
+  [$ra]: number;
+  [$sp]: number;
+  [$fp]: number;
 }
 
 export function initializeRegisters(): LowLevelRegisters {

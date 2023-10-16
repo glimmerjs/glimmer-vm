@@ -25,6 +25,7 @@ import type {
   GetLexicalSymbolOpcode,
   GetStrictKeywordOpcode,
   GetSymbolOpcode,
+  HandleErrorOpcode,
   HasBlockOpcode,
   HasBlockParamsOpcode,
   IfInlineOpcode,
@@ -104,4 +105,5 @@ export const opcodes = {
   IfInline: 52 satisfies IfInlineOpcode,
   GetDynamicVar: 53 satisfies GetDynamicVarOpcode,
   Log: 54 satisfies LogOpcode,
+  HandleError: 55 satisfies HandleErrorOpcode,
 } as const;

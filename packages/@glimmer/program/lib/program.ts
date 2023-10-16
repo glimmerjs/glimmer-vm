@@ -6,7 +6,7 @@ import type {
   RuntimeProgram,
   SerializedHeap,
   StdLibOperand,
-} from "@glimmer/interfaces";
+} from '@glimmer/interfaces';
 import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
 import { expect, unwrap } from '@glimmer/util';
 import { MACHINE_MASK } from '@glimmer/vm';
@@ -126,12 +126,13 @@ export class HeapImpl implements CompileTimeHeap, RuntimeHeap {
     return this.handleTable.length - 1;
   }
 
-  finishMalloc(handle: number): void {
+  finishMalloc(handle: number, size: number): void {
     // @TODO: At the moment, garbage collection isn't actually used, so this is
     // wrapped to prevent us from allocating extra space in prod. In the future,
     // if we start using the compact API, we should change this.
     if (LOCAL_DEBUG) {
       this.handleState[handle] = TableSlotState.Allocated;
+      this.handleTable[handle + 1] = size;
     }
   }
 
