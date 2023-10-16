@@ -287,7 +287,7 @@ export class VM implements PublicVM, InternalVM {
     this[STACKS].scope.push(scope);
     this[STACKS].dynamicScope.push(dynamicScope);
     this[ARGS] = new VMArgumentsImpl();
-    this[INNER_VM] = new LowLevelVM(
+    this[INNER_VM] = LowLevelVM.create(
       evalStack,
       this[HEAP],
       runtime.program,

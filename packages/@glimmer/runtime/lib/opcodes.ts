@@ -11,7 +11,7 @@ import type {
 import { LOCAL_DEBUG, LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
 import { valueForRef } from '@glimmer/reference';
 import { assert, fillNulls, LOCAL_LOGGER, unwrap } from '@glimmer/util';
-import { $fp, $pc, $ra, $sp, Op } from '@glimmer/vm';
+import { $pc, $sp, Op } from '@glimmer/vm';
 
 import { isScopeReference } from './scope';
 import { CONSTANTS, DESTROYABLE_STACK, INNER_VM, STACKS } from './symbols';
@@ -129,10 +129,10 @@ export class AppendOpcodes {
         LOCAL_LOGGER.log(
           '%c -> pc: %d, ra: %d, fp: %d, sp: %d, s0: %O, s1: %O, t0: %O, t1: %O, v0: %O',
           'color: orange',
-          vm[INNER_VM].registers[$pc],
-          vm[INNER_VM].registers[$ra],
-          vm[INNER_VM].registers[$fp],
-          vm[INNER_VM].registers[$sp],
+          vm[INNER_VM].debug.registers.pc,
+          vm[INNER_VM].debug.registers.ra,
+          vm[INNER_VM].debug.registers.fp,
+          vm[INNER_VM].debug.registers.sp,
           vm['s0'],
           vm['s1'],
           vm['t0'],

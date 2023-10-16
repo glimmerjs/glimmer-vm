@@ -6,29 +6,89 @@ import { $fp, $pc, $ra, $sp, MachineOp, type MachineRegister } from '@glimmer/vm
 import { APPEND_OPCODES } from '../opcodes';
 import type { VM } from './append';
 
-export interface LowLevelRegisters {
+export interface PackedRegisters {
   [$pc]: number;
   [$ra]: number;
   [$sp]: number;
   [$fp]: number;
 }
 
-export function initializeRegisters(): LowLevelRegisters {
+export class Registers {
+  readonly #packed: PackedRegisters;
+
+  constructor(packed: PackedRegisters) {
+    this.#packed = packed;
+  }
+
+  // @premerge consolidate
+  goto(pc: number): void {
+    this.#packed[$pc] = pc;
+  }
+
+  // @premerge consolidate
+  call(pc: number): void {
+    this.#packed[$ra] = this.#packed[$pc];
+    this.goto(pc);
+  }
+
+  // @premerge consolidate
+  returnTo(pc: number): void {
+    this.#packed[$ra] = pc;
+  }
+
+  // @premerge consolidate
+  return() {
+    this.#packed[$pc] = this.#packed[$ra];
+  }
+
+  // @premerge consolidate
+  advance(size: number) {
+    this.#packed[$pc] += size;
+    return size;
+  }
+
+  /**
+   * @deprecated Direct access to .packed will be removed once all use-cases are handled via
+   * semantic methods.
+   */
+  get packed(): PackedRegisters {
+    return this.#packed;
+  }
+
+  get pc(): number {
+    return this.#packed[$pc];
+  }
+
+  get ra(): number {
+    return this.#packed[$ra];
+  }
+
+  get sp(): number {
+    return this.#packed[$sp];
+  }
+
+  get fp(): number {
+    return this.#packed[$fp];
+  }
+}
+
+export function initializeRegisters(): PackedRegisters {
   return [0, -1, 0, 0];
 }
 
-export function initializeRegistersWithSP(sp: number): LowLevelRegisters {
+export function initializeRegistersWithSP(sp: number): PackedRegisters {
   return [0, -1, sp, 0];
 }
 
-export function initializeRegistersWithPC(pc: number): LowLevelRegisters {
+export function initializeRegistersWithPC(pc: number): PackedRegisters {
   return [pc, -1, 0, 0];
 }
 
 export interface Stack {
+  readonly registers: Registers;
   push(value: unknown): void;
-  get(position: number): number;
-  pop<T>(): T;
+  get<T = number>(position: number, base?: number): T;
+  pop<T>(count?: number): T;
 }
 
 export interface Externs {
@@ -36,50 +96,77 @@ export interface Externs {
   debugAfter(state: unknown): void;
 }
 
-export class LowLevelVM {
-  public currentOpSize = 0;
+export interface VmDebugState {
+  registers: Registers;
+}
 
-  constructor(
-    public stack: Stack,
-    public heap: RuntimeHeap,
-    public program: RuntimeProgram,
-    public externs: Externs,
-    readonly registers: LowLevelRegisters
-  ) {}
+export class LowLevelVM {
+  static create(
+    stack: Stack,
+    heap: RuntimeHeap,
+    program: RuntimeProgram,
+    externs: Externs,
+    registers: PackedRegisters
+  ): LowLevelVM {
+    return new LowLevelVM(stack, heap, program, externs, new Registers(registers));
+  }
+
+  #currentOpSize = 0;
+  readonly #registers: Registers;
+  readonly #heap: RuntimeHeap;
+  readonly #program: RuntimeProgram;
+
+  private constructor(
+    readonly stack: Stack,
+    heap: RuntimeHeap,
+    program: RuntimeProgram,
+    readonly externs: Externs,
+    registers: Registers
+  ) {
+    this.#heap = heap;
+    this.#program = program;
+    this.#registers = registers;
+  }
+
+  get debug(): VmDebugState {
+    return {
+      registers: this.#registers,
+    };
+  }
 
   fetchRegister(register: MachineRegister): number {
-    return this.registers[register];
+    return this.#registers.packed[register];
   }
 
   loadRegister(register: MachineRegister, value: number) {
-    this.registers[register] = value;
+    this.#registers.packed[register] = value;
   }
 
   setPc(pc: number): void {
     assert(typeof pc === 'number' && !isNaN(pc), 'pc is set to a number');
-    this.registers[$pc] = pc;
+    this.#registers.goto(pc);
   }
 
   // Start a new frame and save $ra and $fp on the stack
   pushFrame() {
-    this.stack.push(this.registers[$ra]);
-    this.stack.push(this.registers[$fp]);
-    this.registers[$fp] = this.registers[$sp] - 1;
+    this.stack.push(this.#registers.ra);
+    this.stack.push(this.#registers.fp);
+    this.#registers.packed[$fp] = this.#registers.packed[$sp] - 1;
   }
 
   // Restore $ra, $sp and $fp
   popFrame() {
-    this.registers[$sp] = this.registers[$fp] - 1;
-    this.registers[$ra] = this.stack.get(0);
-    this.registers[$fp] = this.stack.get(1);
+    this.#registers.packed[$sp] = this.#registers.packed[$fp] - 1;
+    this.#registers.packed[$ra] = this.stack.get(0);
+    this.#registers.packed[$fp] = this.stack.get(1);
   }
 
   pushSmallFrame() {
-    this.stack.push(this.registers[$ra]);
+    this.stack.push(this.#registers.ra);
   }
 
   popSmallFrame() {
-    this.registers[$ra] = this.stack.pop();
+    this.#registers.packed[$ra] = this.stack.pop();
   }
 
   // Jump to an address in `program`
@@ -88,31 +175,31 @@ export class LowLevelVM {
   }
 
   target(offset: number) {
-    return this.registers[$pc] + offset - this.currentOpSize;
+    return this.#registers.pc + offset - this.#currentOpSize;
   }
 
   // Save $pc into $ra, then jump to a new address in `program` (jal in MIPS)
   call(handle: number) {
     assert(handle < 0xffffffff, `Jumping to placeholder address`);
 
-    this.registers[$ra] = this.registers[$pc];
-    this.setPc(this.heap.getaddr(handle));
+    this.#registers.call(this.#heap.getaddr(handle));
   }
 
   // Put a specific `program` address in $ra
   returnTo(offset: number) {
-    this.registers[$ra] = this.target(offset);
+    this.#registers.returnTo(this.target(offset));
   }
 
   // Return to the `program` address stored in $ra
   return() {
-    this.setPc(this.registers[$ra]);
+    this.#registers.return();
   }
 
   nextStatement(): Nullable<RuntimeOp> {
-    let { registers, program } = this;
+    let program = this.#program;
+    let registers = this.#registers;
 
-    let pc = registers[$pc];
+    let pc = registers.pc;
 
     assert(typeof pc === 'number', 'pc is a number');
 
@@ -126,8 +213,7 @@ export class LowLevelVM {
     // in a jump because we have have already incremented the
     // program counter to the next instruction prior to executing.
     let opcode = program.opcode(pc);
-    let operationSize = (this.currentOpSize = opcode.size);
-    this.registers[$pc] += operationSize;
+    this.#currentOpSize = this.#registers.advance(opcode.size);
 
     return opcode;
   }

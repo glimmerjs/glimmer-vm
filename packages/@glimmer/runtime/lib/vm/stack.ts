@@ -2,20 +2,19 @@ import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
 import { $fp, $sp } from '@glimmer/vm';
 
 import { REGISTERS } from '../symbols';
-import { initializeRegistersWithSP, type LowLevelRegisters } from './low-level';
+import {
+  initializeRegistersWithSP,
+  Registers,
+  type PackedRegisters,
+  type Stack,
+} from './low-level';
 
-export interface EvaluationStack {
-  [REGISTERS]: LowLevelRegisters;
+export interface EvaluationStack extends Stack {
+  readonly [REGISTERS]: PackedRegisters;
 
-  push(value: unknown): void;
-  /**
-   * Duplicate the value at the specified position (defaults to the top of the stack).
-   */
   dup(position?: number): void;
   copy(from: number, to: number): void;
-  pop<T>(n?: number): T;
   peek<T>(offset?: number): T;
-  get<T>(offset: number, base?: number): T;
   set(value: unknown, offset: number, base?: number): void;
   slice<T = unknown>(start: number, end: number): T[];
   capture(items: number): unknown[];
@@ -28,14 +27,16 @@ export default class EvaluationStackImpl implements EvaluationStack {
     return new this(snapshot.slice(), initializeRegistersWithSP(snapshot.length - 1));
   }
 
-  readonly [REGISTERS]: LowLevelRegisters;
+  readonly [REGISTERS]: PackedRegisters;
+  readonly registers: Registers;
 
   // fp -> sp
   constructor(
     private stack: unknown[] = [],
-    registers: LowLevelRegisters
+    registers: PackedRegisters
   ) {
     this[REGISTERS] = registers;
+    this.registers = new Registers(registers);
 
     if (LOCAL_DEBUG) {
       Object.seal(this);

@@ -52,6 +52,21 @@
   "typescript.workspaceSymbols.scope": "currentProject",
   "eslint.problems.shortenToSingleLine": true,
   "inline-bookmarks.expert.custom.words.mapping": {
-    "red": ["@premerge(\\s|$)"]
+    "warn": ["@premerge(\\s|$)"]
+  },
+  "inline-bookmarks.expert.custom.styles": {
+    "warn": {
+      // yellow
+      "gutterIconColor": "#999900",
+      "overviewRulerColor": "rgba(150, 150, 0, 0.7)",
+      "light": {
+        "fontWeight": "bold",
+        "color": "#999900"
+      },
+      "dark": {
+        "fontWeight": "bold",
+        "color": "#ffff00"
+      }
+    }
   }
 }
