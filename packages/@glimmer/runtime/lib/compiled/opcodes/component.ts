@@ -34,7 +34,7 @@ import type {
   WithDynamicTagName,
   WithElementHook,
   WithUpdateHook,
-} from "@glimmer/interfaces";
+} from '@glimmer/interfaces';
 import { managerHasCapability } from '@glimmer/manager';
 import { isConstRef, type Reference, valueForRef } from '@glimmer/reference';
 import {
@@ -217,7 +217,7 @@ APPEND_OPCODES.add(Op.PushDynamicComponentInstance, (vm) => {
 });
 
 APPEND_OPCODES.add(Op.PushArgs, (vm, { op1: _names, op2: _blockNames, op3: flags }) => {
-  let stack = vm.stack;
+  let stack = vm.internalStack;
   let names = vm[CONSTANTS].getArray<string>(_names);
 
   let positionalCount = flags >> 4;
@@ -230,9 +230,9 @@ APPEND_OPCODES.add(Op.PushArgs, (vm, { op1: _names, op2: _blockNames, op3: flags
 });
 
 APPEND_OPCODES.add(Op.PushEmptyArgs, (vm) => {
-  let { stack } = vm;
+  let { internalStack } = vm;
 
-  stack.push(vm[ARGS].empty(stack));
+  internalStack.push(vm[ARGS].empty(internalStack));
 });
 
 APPEND_OPCODES.add(Op.CaptureArgs, (vm) => {
@@ -244,7 +244,7 @@ APPEND_OPCODES.add(Op.CaptureArgs, (vm) => {
 });
 
 APPEND_OPCODES.add(Op.PrepareArgs, (vm, { op1: _state }) => {
-  let stack = vm.stack;
+  let stack = vm.internalStack;
   let instance = vm.fetchValue<ComponentInstance>(_state);
   let args = check(stack.pop(), CheckInstanceof(VMArgumentsImpl));
 
@@ -591,7 +591,7 @@ APPEND_OPCODES.add(Op.GetComponentSelf, (vm, { op1: _state, op2: _names }) => {
       args = vm[ARGS].capture();
     } else {
       let names = vm[CONSTANTS].getArray<string>(_names);
-      vm[ARGS].setup(vm.stack, names, [], 0, true);
+      vm[ARGS].setup(vm.internalStack, names, [], 0, true);
       args = vm[ARGS].capture();
     }
 
@@ -879,7 +879,10 @@ export class UpdateComponentOpcode implements UpdatingOpcode {
 }
 
 export class DidUpdateLayoutOpcode implements UpdatingOpcode {
-  constructor(private component: ComponentInstanceWithCreate, private bounds: Bounds) {}
+  constructor(
+    private component: ComponentInstanceWithCreate,
+    private bounds: Bounds
+  ) {}
 
   evaluate(vm: UpdatingVM) {
     let { component, bounds } = this;
@@ -900,7 +903,10 @@ class DebugRenderTreeUpdateOpcode implements UpdatingOpcode {
 }
 
 class DebugRenderTreeDidRenderOpcode implements UpdatingOpcode {
-  constructor(private bucket: object, private bounds: Bounds) {}
+  constructor(
+    private bucket: object,
+    private bounds: Bounds
+  ) {}
 
   evaluate(vm: UpdatingVM) {
     vm.env.debugRenderTree?.didRender(this.bucket, this.bounds);

@@ -8,11 +8,11 @@ export const LOCAL_DEBUG: true | false =
     return true;
   })();
 
-export const LOCAL_SHOULD_LOG: true | false =
+export const LOCAL_TRACE_LOGGING: true | false =
   import.meta.env.DEV &&
   (() => {
     let location = typeof window !== 'undefined' && window.location;
-    if (location && /[&?]enable_local_should_log/u.test(window.location.search)) {
+    if (location && /[&?]enable_trace_logging/u.test(window.location.search)) {
       return true;
     }
     return false;

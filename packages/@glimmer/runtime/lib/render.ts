@@ -97,7 +97,7 @@ function renderInvocation(
   });
 
   // Configure VM based on blocks and args just pushed on to the stack.
-  vm[ARGS].setup(vm.stack, argNames, blockNames, 0, true);
+  vm[ARGS].setup(vm.internalStack, argNames, blockNames, 0, true);
 
   const compilable = expect(
     reified.compilable,
@@ -135,8 +135,11 @@ export function renderComponent(
 function recordToReference(record: Record<string, unknown>): Record<string, Reference> {
   const root = createConstRef(record, 'args');
 
-  return Object.keys(record).reduce((acc, key) => {
-    acc[key] = childRefFor(root, key);
-    return acc;
-  }, {} as Record<string, Reference>);
+  return Object.keys(record).reduce(
+    (acc, key) => {
+      acc[key] = childRefFor(root, key);
+      return acc;
+    },
+    {} as Record<string, Reference>
+  );
 }

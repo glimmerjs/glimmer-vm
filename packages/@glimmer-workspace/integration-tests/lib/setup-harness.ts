@@ -24,7 +24,7 @@ export async function setupQunit() {
   });
 
   QUnit.config.urlConfig.push({
-    id: 'enable_local_should_log',
+    id: 'enable_trace_logging',
     label: 'Enable Trace Logging',
     tooltip: 'Trace logs emit information about the internal VM state',
   });

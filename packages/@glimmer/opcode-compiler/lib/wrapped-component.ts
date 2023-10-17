@@ -8,7 +8,7 @@ import type {
   Nullable,
   ProgramSymbolTable,
 } from "@glimmer/interfaces";
-import { LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
+import { LOCAL_TRACE_LOGGING } from '@glimmer/local-debug-flags';
 
 import { debugCompiler } from './compiler';
 import { templateCompilationContext } from './opcode-builder/context';
@@ -67,7 +67,7 @@ export class WrappedBuilder implements CompilableProgram {
 
     this.compiled = handle;
 
-    if (LOCAL_SHOULD_LOG) {
+    if (LOCAL_TRACE_LOGGING) {
       debugCompiler(context, handle);
     }
 

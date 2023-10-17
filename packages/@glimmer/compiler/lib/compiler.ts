@@ -4,7 +4,7 @@ import type {
   SerializedTemplateWithLazyBlock,
   TemplateJavascript,
 } from '@glimmer/interfaces';
-import { LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
+import { LOCAL_TRACE_LOGGING } from '@glimmer/local-debug-flags';
 import {
   normalize,
   type PrecompileOptions,
@@ -85,8 +85,8 @@ export function precompileJSON(
     return pass2(pass2In);
   });
 
-  if (LOCAL_SHOULD_LOG) {
-    LOCAL_LOGGER.log(`Template ->`, block);
+  if (LOCAL_TRACE_LOGGING) {
+    LOCAL_LOGGER.debug(`Template ->`, block);
   }
 
   if (block.isOk) {

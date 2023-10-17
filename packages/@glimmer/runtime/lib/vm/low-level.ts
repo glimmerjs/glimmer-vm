@@ -1,4 +1,4 @@
-import type { Nullable, RuntimeHeap, RuntimeOp, RuntimeProgram } from '@glimmer/interfaces';
+import type { Expand, Nullable, RuntimeHeap, RuntimeOp, RuntimeProgram } from '@glimmer/interfaces';
 import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
 import { assert } from '@glimmer/util';
 import { $fp, $pc, $ra, $sp, MachineOp, type MachineRegister } from '@glimmer/vm';
@@ -12,6 +12,8 @@ export interface PackedRegisters {
   [$sp]: number;
   [$fp]: number;
 }
+
+export type FrameInfo = Expand<[$ra: number, $fp: number]>;
 
 export class Registers {
   readonly #packed: PackedRegisters;
@@ -45,6 +47,46 @@ export class Registers {
   advance(size: number) {
     this.#packed[$pc] += size;
     return size;
+  }
+
+  // @premerge consolidate
+  push(): number {
+    return ++this.#packed[$sp];
+  }
+
+  // @premerge consolidate
+  pop(n = 1): number {
+    return (this.#packed[$sp] -= n);
+  }
+
+  // @premerge consolidate
+  peek(offset = 0): number {
+    return this.#packed[$sp] - offset;
+  }
+
+  // @premerge consolidate
+  /**
+   * Remember the previous $fp, then update $fp to point to $sp. Return the previous $fp so it can
+   * be pushed onto the stack.
+   *
+   * This creates a linked list of $fps on the stack.
+   */
+  pushFp() {
+    let prevFp = this.#packed[$fp];
+    // the current $sp contains the $ra we already pushed, so the $fp will point to the tuple of
+    // $ra and $fp
+    this.#packed[$fp] = this.#packed[$sp];
+    return prevFp;
+  }
+
+  // @premerge consolidate
+  popTo(ra: number, fp: number): void {
+    // when popping a frame, we want to restore the $sp to the position immediately before we pushed
+    // the $ra and $fp onto the stack, which will effectively continue execution at that point.
+    let to = this.#packed[$fp] - 1;
+    this.#packed[$ra] = ra;
+    this.#packed[$fp] = fp;
+    this.#packed[$sp] = to;
   }
 
   /**
@@ -84,11 +126,35 @@ export function initializeRegistersWithPC(pc: number): PackedRegisters {
   return [pc, -1, 0, 0];
 }
 
-export interface Stack {
-  readonly registers: Registers;
-  push(value: unknown): void;
+export interface CleanStack {
+  push(...values: unknown[]): void;
   get<T = number>(position: number, base?: number): T;
   pop<T>(count?: number): T;
+
+  // @premerge consolidate
+  peek<T>(offset?: number): T;
+  // @premerge consolidate
+  dup(position?: number): void;
+}
+
+export interface InternalStack {
+  readonly registers: Registers;
+  push(...values: unknown[]): void;
+  get<T = number>(position: number, base?: number): T;
+  pop<T>(count?: number): T;
+
+  // @premerge consolidate
+  peek<T>(offset?: number): T;
+  // @premerge consolidate
+  dup(position?: number): void;
+
+  // @premerge consolidate (these are only used in Arguments)
+  copy(from: number, to: number): void;
+  set(value: unknown, offset: number, base?: number): void;
+  slice<T = unknown>(start: number, end: number): T[];
+  capture(items: number): unknown[];
+  reset(): void;
+  toArray(): unknown[];
 }
 
 export interface Externs {
@@ -102,7 +168,7 @@ export interface VmDebugState {
 
 export class LowLevelVM {
   static create(
-    stack: Stack,
+    stack: InternalStack,
     heap: RuntimeHeap,
     program: RuntimeProgram,
     externs: Externs,
@@ -115,17 +181,29 @@ export class LowLevelVM {
   readonly #registers: Registers;
   readonly #heap: RuntimeHeap;
   readonly #program: RuntimeProgram;
+  readonly #stack: InternalStack;
 
   private constructor(
-    readonly stack: Stack,
+    stack: InternalStack,
     heap: RuntimeHeap,
     program: RuntimeProgram,
     readonly externs: Externs,
     registers: Registers
   ) {
+    this.#stack = stack;
     this.#heap = heap;
     this.#program = program;
     this.#registers = registers;
+  }
+
+  // @premerge consolidate
+  get stack(): CleanStack {
+    return this.#stack;
+  }
+
+  // @premerge consolidate
+  get internalStack(): InternalStack {
+    return this.#stack;
   }
 
   get debug(): VmDebugState {
@@ -138,40 +216,26 @@ export class LowLevelVM {
     return this.#registers.packed[register];
   }
 
-  loadRegister(register: MachineRegister, value: number) {
-    this.#registers.packed[register] = value;
-  }
-
-  setPc(pc: number): void {
-    assert(typeof pc === 'number' && !isNaN(pc), 'pc is set to a number');
-    this.#registers.goto(pc);
-  }
-
   // Start a new frame and save $ra and $fp on the stack
   pushFrame() {
-    this.stack.push(this.#registers.ra);
-    this.stack.push(this.#registers.fp);
-    this.#registers.packed[$fp] = this.#registers.packed[$sp] - 1;
+    this.#stack.push(this.#registers.ra);
+    this.#stack.push(this.#registers.pushFp());
   }
 
   // Restore $ra, $sp and $fp
   popFrame() {
-    this.#registers.packed[$sp] = this.#registers.packed[$fp] - 1;
-    this.#registers.packed[$ra] = this.stack.get(0);
-    this.#registers.packed[$fp] = this.stack.get(1);
-  }
-
-  pushSmallFrame() {
-    this.stack.push(this.#registers.ra);
-  }
-
-  popSmallFrame() {
-    this.#registers.packed[$ra] = this.stack.pop();
+    let fp = this.#registers.fp;
+    // get the previous $ra and $fp from the stack (relative to the *current* $fp), and restore them
+    // to the registers.
+    this.#registers.popTo(this.#stack.get(0, fp), this.#stack.get(1, fp));
   }
 
   // Jump to an address in `program`
   goto(offset: number) {
-    this.setPc(this.target(offset));
+    let pc = this.target(offset);
+    assert(typeof pc === 'number', `expected pc to be a number, but it was ${typeof pc}`);
+    assert(!isNaN(pc), 'expected pc to not be NaN, but it was');
+    this.#registers.goto(pc);
   }
 
   target(offset: number) {
@@ -248,7 +312,7 @@ export class LowLevelVM {
       case MachineOp.InvokeStatic:
         return this.call(opcode.op1);
       case MachineOp.InvokeVirtual:
-        return this.call(this.stack.pop());
+        return this.call(this.#stack.pop());
       case MachineOp.Jump:
         return this.goto(opcode.op1);
       case MachineOp.Return:

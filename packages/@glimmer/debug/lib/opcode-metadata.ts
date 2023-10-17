@@ -1056,6 +1056,16 @@ METADATA[Op.ResolveDynamicComponent] = {
   check: true,
 };
 
+METADATA[Op.ResolveCurriedComponent] = {
+  name: 'VmResolveCurriedComponent',
+  mnemonic: 'vmcdload',
+  before: null,
+  stackChange: 0,
+  ops: [],
+  operands: 0,
+  check: false,
+};
+
 METADATA[Op.PushArgs] = {
   name: 'PushArgs',
   mnemonic: 'argsload',
@@ -1356,3 +1366,27 @@ METADATA[Op.Debugger] = {
   operands: 2,
   check: true,
 };
+
+METADATA[Op.StaticComponentAttr] = {
+  name: 'StaticComponentAttr',
+  mnemonic: 'comp_attr',
+  before: null,
+  stackChange: 0,
+  ops: [
+    {
+      name: 'name',
+      type: 'str',
+    },
+    {
+      name: 'value',
+      type: 'str',
+    },
+    {
+      name: 'namespace',
+      type: 'option-str',
+    },
+  ],
+  operands: 3,
+  check: true,
+};
+

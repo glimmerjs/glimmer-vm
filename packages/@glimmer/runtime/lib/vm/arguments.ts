@@ -15,7 +15,7 @@ import type {
   Scope,
   ScopeBlock,
   VMArguments,
-} from "@glimmer/interfaces";
+} from '@glimmer/interfaces';
 import {
   createDebugAliasRef,
   type Reference,
@@ -27,8 +27,7 @@ import { CONSTANT_TAG, type Tag } from '@glimmer/validator';
 import { $sp } from '@glimmer/vm';
 
 import { CheckCompilableBlock, CheckReference, CheckScope } from '../compiled/opcodes/-debug-strip';
-import { REGISTERS } from '../symbols';
-import type { EvaluationStack } from './stack';
+import type { InternalStack } from './low-level';
 
 /*
   The calling convention is:
@@ -39,13 +38,13 @@ import type { EvaluationStack } from './stack';
 */
 
 export class VMArgumentsImpl implements VMArguments {
-  private stack: Nullable<EvaluationStack> = null;
+  private stack: Nullable<InternalStack> = null;
   public positional = new PositionalArgumentsImpl();
   public named = new NamedArgumentsImpl();
   public blocks = new BlockArgumentsImpl();
 
-  empty(stack: EvaluationStack): this {
-    let base = stack[REGISTERS][$sp] + 1;
+  empty(stack: InternalStack): this {
+    let base = stack.registers.packed[$sp] + 1;
 
     this.named.empty(stack, base);
     this.positional.empty(stack, base);
@@ -55,7 +54,7 @@ export class VMArgumentsImpl implements VMArguments {
   }
 
   setup(
-    stack: EvaluationStack,
+    stack: InternalStack,
     names: readonly string[],
     blockNames: readonly string[],
     positionalCount: number,
@@ -73,7 +72,7 @@ export class VMArgumentsImpl implements VMArguments {
 
     let named = this.named;
     let namedCount = names.length;
-    let namedBase = stack[REGISTERS][$sp] - namedCount + 1;
+    let namedBase = stack.registers.sp - namedCount + 1;
 
     named.setup(stack, namedBase, namedCount, names, atNames);
 
@@ -114,7 +113,7 @@ export class VMArgumentsImpl implements VMArguments {
 
       positional.base += offset;
       named.base += offset;
-      stack[REGISTERS][$sp] += offset;
+      stack.registers.packed[$sp] += offset;
     }
   }
 
@@ -137,11 +136,11 @@ export class PositionalArgumentsImpl implements PositionalArguments {
   public base = 0;
   public length = 0;
 
-  private stack: EvaluationStack = null as any;
+  private stack: InternalStack = null as any;
 
   private _references: Nullable<readonly Reference[]> = null;
 
-  empty(stack: EvaluationStack, base: number) {
+  empty(stack: InternalStack, base: number) {
     this.stack = stack;
     this.base = base;
     this.length = 0;
@@ -149,7 +148,7 @@ export class PositionalArgumentsImpl implements PositionalArguments {
     this._references = EMPTY_REFERENCES;
   }
 
-  setup(stack: EvaluationStack, base: number, length: number) {
+  setup(stack: InternalStack, base: number, length: number) {
     this.stack = stack;
     this.base = base;
     this.length = length;
@@ -208,14 +207,14 @@ export class NamedArgumentsImpl implements NamedArguments {
   public base = 0;
   public length = 0;
 
-  private declare stack: EvaluationStack;
+  private declare stack: InternalStack;
 
   private _references: Nullable<readonly Reference[]> = null;
 
   private _names: Nullable<readonly string[]> = EMPTY_STRING_ARRAY;
   private _atNames: Nullable<readonly string[]> = EMPTY_STRING_ARRAY;
 
-  empty(stack: EvaluationStack, base: number) {
+  empty(stack: InternalStack, base: number) {
     this.stack = stack;
     this.base = base;
     this.length = 0;
@@ -225,13 +224,7 @@ export class NamedArgumentsImpl implements NamedArguments {
     this._atNames = EMPTY_STRING_ARRAY;
   }
 
-  setup(
-    stack: EvaluationStack,
-    base: number,
-    length: number,
-    names: readonly string[],
-    atNames: boolean
-  ) {
+  setup(stack: InternalStack, base: number, length: number, names: readonly string[], atNames: boolean) {
     this.stack = stack;
     this.base = base;
     this.length = length;
@@ -362,7 +355,7 @@ function toSymbolName(name: string): string {
 const EMPTY_BLOCK_VALUES = emptyArray<BlockValue>();
 
 export class BlockArgumentsImpl implements BlockArguments {
-  private declare stack: EvaluationStack;
+  private declare stack: InternalStack;
   private internalValues: Nullable<readonly BlockValue[]> = null;
   private _symbolNames: Nullable<readonly string[]> = null;
 
@@ -372,7 +365,7 @@ export class BlockArgumentsImpl implements BlockArguments {
   public length = 0;
   public base = 0;
 
-  empty(stack: EvaluationStack, base: number) {
+  empty(stack: InternalStack, base: number) {
     this.stack = stack;
     this.names = EMPTY_STRING_ARRAY;
     this.base = base;
@@ -383,7 +376,7 @@ export class BlockArgumentsImpl implements BlockArguments {
     this.internalValues = EMPTY_BLOCK_VALUES;
   }
 
-  setup(stack: EvaluationStack, base: number, length: number, names: readonly string[]) {
+  setup(stack: InternalStack, base: number, length: number, names: readonly string[]) {
     this.stack = stack;
     this.names = names;
     this.base = base;
@@ -451,7 +444,10 @@ export class BlockArgumentsImpl implements BlockArguments {
 class CapturedBlockArgumentsImpl implements CapturedBlockArguments {
   public length: number;
 
-  constructor(public names: readonly string[], public values: readonly Nullable<BlockValue>[]) {
+  constructor(
+    public names: readonly string[],
+    public values: readonly Nullable<BlockValue>[]
+  ) {
     this.length = names.length;
   }
 

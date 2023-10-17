@@ -21,7 +21,7 @@ import type {
   UpdatingOpcode,
   VM as PublicVM,
 } from '@glimmer/interfaces';
-import { LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
+import { LOCAL_TRACE_LOGGING } from '@glimmer/local-debug-flags';
 import type { RuntimeOpImpl } from '@glimmer/program';
 import {
   createIteratorItemRef,
@@ -30,7 +30,15 @@ import {
   type Reference,
   UNDEFINED_REFERENCE,
 } from '@glimmer/reference';
-import { assert, expect, LOCAL_LOGGER, reverse, Stack, unwrapHandle } from '@glimmer/util';
+import {
+  assert,
+  expect,
+  LOCAL_LOGGER,
+  reverse,
+  Stack,
+  unreachable,
+  unwrapHandle,
+} from '@glimmer/util';
 import { beginTrackFrame, endTrackFrame, resetTracking } from '@glimmer/validator';
 import { $fp, $pc, $s0, $s1, $sp, $t0, $t1, $v0, isLowLevelRegister } from '@glimmer/vm';
 import type { $ra, MachineRegister, Register, SyscallRegister } from '@glimmer/vm';
@@ -42,12 +50,12 @@ import {
 } from '../compiled/opcodes/vm';
 import { APPEND_OPCODES, type DebugState } from '../opcodes';
 import { PartialScopeImpl } from '../scope';
-import { ARGS, CONSTANTS, DESTROYABLE_STACK, HEAP, INNER_VM, REGISTERS, STACKS } from '../symbols';
+import { ARGS, CONSTANTS, DESTROYABLE_STACK, HEAP, STACKS } from '../symbols';
 import { VMArgumentsImpl } from './arguments';
 import type { LiveBlockList } from './element-builder';
-import { LowLevelVM } from './low-level';
+import { LowLevelVM, type CleanStack, type InternalStack } from './low-level';
 import RenderResultImpl from './render-result';
-import EvaluationStackImpl, { type EvaluationStack } from './stack';
+import EvaluationStackImpl from './stack';
 import {
   type BlockOpcode,
   ListBlockOpcode,
@@ -67,7 +75,23 @@ export interface InternalVM {
   readonly [ARGS]: VMArgumentsImpl;
 
   readonly env: Environment;
-  readonly stack: EvaluationStack;
+  readonly stack: CleanStack;
+
+  /**
+   * This stack is used for:
+   *
+   * - internal debugging infrastructure
+   * - the implementation of `Args`
+   * - the implementation of the VM's `next` method
+   *
+   * It should not be used for other purposes, as it exposes internal implementation details that
+   * are not "stacky" behavior, which is not the dominant use-case for the stack (even internally),
+   * and causes confusion.
+   *
+   * @premerge verify that this distinction is useful
+   * @internal
+   */
+  readonly internalStack: InternalStack;
   readonly runtime: RuntimeContext;
   readonly context: CompileTimeCompilationContext;
 
@@ -137,6 +161,10 @@ class Stacks {
   readonly list = new Stack<ListBlockOpcode>();
 }
 
+export interface VmDebugState {
+  readonly inner: LowLevelVM;
+}
+
 export class VM implements PublicVM, InternalVM {
   private readonly [STACKS] = new Stacks();
   private readonly [HEAP]: RuntimeHeap;
@@ -144,16 +172,30 @@ export class VM implements PublicVM, InternalVM {
   private readonly [DESTROYABLE_STACK] = new Stack<object>();
   readonly [CONSTANTS]: RuntimeConstants & ResolutionTimeConstants;
   readonly [ARGS]: VMArgumentsImpl;
-  readonly [INNER_VM]: LowLevelVM;
+  readonly #inner: LowLevelVM;
 
-  get stack(): EvaluationStack {
-    return this[INNER_VM].stack as EvaluationStack;
+  get stack(): CleanStack {
+    return this.#inner.stack;
+  }
+
+  get internalStack(): InternalStack {
+    return this.#inner.internalStack;
   }
 
   /* Registers */
 
   get pc(): number {
-    return this[INNER_VM].fetchRegister($pc);
+    return this.#inner.fetchRegister($pc);
+  }
+
+  get debug(): VmDebugState {
+    if (import.meta.env.DEV) {
+      return {
+        inner: this.#inner,
+      };
+    }
+
+    unreachable(`BUG: Don't call 'vm.debug' without checking import.meta.env.DEV`);
   }
 
   public s0: unknown = null;
@@ -181,7 +223,7 @@ export class VM implements PublicVM, InternalVM {
   fetchValue<T>(register: Register): T;
   fetchValue(register: Register | MachineRegister): unknown {
     if (isLowLevelRegister(register)) {
-      return this[INNER_VM].fetchRegister(register);
+      return this.#inner.fetchRegister(register);
     }
 
     switch (register) {
@@ -201,9 +243,7 @@ export class VM implements PublicVM, InternalVM {
   // Load a value into a register
 
   loadValue<T>(register: Register | MachineRegister, value: T): void {
-    if (isLowLevelRegister(register)) {
-      this[INNER_VM].loadRegister(register, value as any as number);
-    }
+    assert(!isLowLevelRegister(register), `BUG: Cannot load into a low-level register`);
 
     switch (register) {
       case $s0:
@@ -230,32 +270,32 @@ export class VM implements PublicVM, InternalVM {
 
   // Start a new frame and save $ra and $fp on the stack
   pushFrame() {
-    this[INNER_VM].pushFrame();
+    this.#inner.pushFrame();
   }
 
   // Restore $ra, $sp and $fp
   popFrame() {
-    this[INNER_VM].popFrame();
+    this.#inner.popFrame();
   }
 
   // Jump to an address in `program`
   goto(offset: number) {
-    this[INNER_VM].goto(offset);
+    this.#inner.goto(offset);
   }
 
   // Save $pc into $ra, then jump to a new address in `program` (jal in MIPS)
   call(handle: number) {
-    this[INNER_VM].call(handle);
+    this.#inner.call(handle);
   }
 
   // Put a specific `program` address in $ra
   returnTo(offset: number) {
-    this[INNER_VM].returnTo(offset);
+    this.#inner.returnTo(offset);
   }
 
   // Return to the `program` address stored in $ra
   return() {
-    this[INNER_VM].return();
+    this.#inner.return();
   }
 
   /**
@@ -277,9 +317,9 @@ export class VM implements PublicVM, InternalVM {
 
     assert(typeof pc === 'number', 'pc is a number');
 
-    evalStack[REGISTERS][$pc] = pc;
-    evalStack[REGISTERS][$sp] = stack.length - 1;
-    evalStack[REGISTERS][$fp] = -1;
+    evalStack.registers.packed[$pc] = pc;
+    evalStack.registers.packed[$sp] = stack.length - 1;
+    evalStack.registers.packed[$fp] = -1;
 
     this[HEAP] = this.program.heap;
     this[CONSTANTS] = this.program.constants;
@@ -287,7 +327,7 @@ export class VM implements PublicVM, InternalVM {
     this[STACKS].scope.push(scope);
     this[STACKS].dynamicScope.push(dynamicScope);
     this[ARGS] = new VMArgumentsImpl();
-    this[INNER_VM] = LowLevelVM.create(
+    this.#inner = LowLevelVM.create(
       evalStack,
       this[HEAP],
       runtime.program,
@@ -300,7 +340,7 @@ export class VM implements PublicVM, InternalVM {
           APPEND_OPCODES.debugAfter(this, state);
         },
       },
-      evalStack[REGISTERS]
+      evalStack.registers.packed
     );
 
     this.destructor = {};
@@ -353,16 +393,16 @@ export class VM implements PublicVM, InternalVM {
     return this.runtime.env;
   }
 
-  captureState(args: number, pc = this[INNER_VM].fetchRegister($pc)): VMState {
+  captureState(args: number, pc = this.#inner.fetchRegister($pc)): VMState {
     return {
       pc,
       scope: this.scope(),
       dynamicScope: this.dynamicScope(),
-      stack: this.stack.capture(args),
+      stack: this.internalStack.capture(args),
     };
   }
 
-  capture(args: number, pc = this[INNER_VM].fetchRegister($pc)): ResumableVMState {
+  capture(args: number, pc = this.#inner.fetchRegister($pc)): ResumableVMState {
     return new ResumableVMStateImpl(this.captureState(args, pc), this.resume);
   }
 
@@ -420,10 +460,10 @@ export class VM implements PublicVM, InternalVM {
     this.listBlock().initializeChild(opcode);
   }
 
-  enterList(iterableRef: Reference<OpaqueIterator>, offset: number) {
+  enterList(iterableRef: Reference<OpaqueIterator>, relativeStart: number) {
     let updating: ListItemOpcode[] = [];
 
-    let addr = this[INNER_VM].target(offset);
+    let addr = this.#inner.target(relativeStart);
     let state = this.capture(0, addr);
     let list = this.elements().pushBlockList(updating) as LiveBlockList;
 
@@ -574,8 +614,8 @@ export class VM implements PublicVM, InternalVM {
   }
 
   private _execute(initialize?: (vm: this) => void): RenderResult {
-    if (LOCAL_SHOULD_LOG) {
-      LOCAL_LOGGER.log(`EXECUTING FROM ${this[INNER_VM].fetchRegister($pc)}`);
+    if (LOCAL_TRACE_LOGGING) {
+      LOCAL_LOGGER.debug(`EXECUTING FROM ${this.#inner.fetchRegister($pc)}`);
     }
 
     if (initialize) initialize(this);
@@ -590,14 +630,14 @@ export class VM implements PublicVM, InternalVM {
 
   next(): RichIteratorResult<null, RenderResult> {
     let { env, elementStack } = this;
-    let opcode = this[INNER_VM].nextStatement();
+    let opcode = this.#inner.nextStatement();
     let result: RichIteratorResult<null, RenderResult>;
     if (opcode !== null) {
-      this[INNER_VM].evaluateOuter(opcode, this);
+      this.#inner.evaluateOuter(opcode, this);
       result = { done: false, value: null };
     } else {
       // Unload the stack
-      this.stack.reset();
+      this.internalStack.reset();
 
       result = {
         done: true,

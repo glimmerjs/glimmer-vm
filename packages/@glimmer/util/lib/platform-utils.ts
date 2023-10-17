@@ -16,8 +16,8 @@ export function expect<T>(val: T, message: string): Present<T> {
   return val as Present<T>;
 }
 
-export function unreachable(message = 'unreachable'): Error {
-  return new Error(message);
+export function unreachable(message = 'unreachable'): never {
+  throw new Error(message);
 }
 
 export function exhausted(value: never): never {

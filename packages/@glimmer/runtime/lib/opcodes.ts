@@ -8,13 +8,13 @@ import type {
   VmMachineOp,
   VmOp,
 } from '@glimmer/interfaces';
-import { LOCAL_DEBUG, LOCAL_SHOULD_LOG } from '@glimmer/local-debug-flags';
+import { LOCAL_DEBUG, LOCAL_TRACE_LOGGING } from '@glimmer/local-debug-flags';
 import { valueForRef } from '@glimmer/reference';
 import { assert, fillNulls, LOCAL_LOGGER, unwrap } from '@glimmer/util';
 import { $pc, $sp, Op } from '@glimmer/vm';
 
 import { isScopeReference } from './scope';
-import { CONSTANTS, DESTROYABLE_STACK, INNER_VM, STACKS } from './symbols';
+import { CONSTANTS, DESTROYABLE_STACK, STACKS } from './symbols';
 import type { LowLevelVM, VM } from './vm';
 import type { InternalVM } from './vm/append';
 import { CURSOR_STACK } from './vm/element-builder';
@@ -70,20 +70,20 @@ export class AppendOpcodes {
     let params: Maybe<Dict> = undefined;
     let opName: string | undefined = undefined;
 
-    if (LOCAL_SHOULD_LOG) {
-      let pos = vm[INNER_VM].fetchRegister($pc) - opcode.size;
+    if (LOCAL_TRACE_LOGGING) {
+      let pos = vm.debug?.inner.fetchRegister($pc) - opcode.size;
 
       [opName, params] = debug(vm[CONSTANTS], opcode, opcode.isMachine)!;
 
       // console.log(`${typePos(vm['pc'])}.`);
-      LOCAL_LOGGER.log(`${pos}. ${logOpcode(opName, params)}`);
+      LOCAL_LOGGER.debug(`${pos}. ${logOpcode(opName, params)}`);
 
       let debugParams = [];
       for (let prop in params) {
         debugParams.push(prop, '=', params[prop]);
       }
 
-      LOCAL_LOGGER.log(...debugParams);
+      LOCAL_LOGGER.debug(...debugParams);
     }
 
     let sp: number;
@@ -125,44 +125,44 @@ export class AppendOpcodes {
         );
       }
 
-      if (LOCAL_SHOULD_LOG) {
-        LOCAL_LOGGER.log(
+      if (LOCAL_TRACE_LOGGING) {
+        LOCAL_LOGGER.debug(
           '%c -> pc: %d, ra: %d, fp: %d, sp: %d, s0: %O, s1: %O, t0: %O, t1: %O, v0: %O',
           'color: orange',
-          vm[INNER_VM].debug.registers.pc,
-          vm[INNER_VM].debug.registers.ra,
-          vm[INNER_VM].debug.registers.fp,
-          vm[INNER_VM].debug.registers.sp,
+          vm.debug.inner.debug.registers.pc,
+          vm.debug.inner.debug.registers.ra,
+          vm.debug.inner.debug.registers.fp,
+          vm.debug.inner.debug.registers.sp,
           vm['s0'],
           vm['s1'],
           vm['t0'],
           vm['t1'],
           vm['v0']
         );
-        LOCAL_LOGGER.log('%c -> eval stack', 'color: red', vm.stack.toArray());
-        LOCAL_LOGGER.log('%c -> block stack', 'color: magenta', vm.elements().debugBlocks());
-        LOCAL_LOGGER.log(
+        LOCAL_LOGGER.debug('%c -> eval stack', 'color: red', vm.internalStack.toArray());
+        LOCAL_LOGGER.debug('%c -> block stack', 'color: magenta', vm.elements().debugBlocks());
+        LOCAL_LOGGER.debug(
           '%c -> destructor stack',
           'color: violet',
           vm[DESTROYABLE_STACK].toArray()
         );
         if (vm[STACKS].scope.current === null) {
-          LOCAL_LOGGER.log('%c -> scope', 'color: green', 'null');
+          LOCAL_LOGGER.debug('%c -> scope', 'color: green', 'null');
         } else {
-          LOCAL_LOGGER.log(
+          LOCAL_LOGGER.debug(
             '%c -> scope',
             'color: green',
             vm.scope().slots.map((s) => (isScopeReference(s) ? valueForRef(s) : s))
           );
         }
 
-        LOCAL_LOGGER.log(
+        LOCAL_LOGGER.debug(
           '%c -> elements',
           'color: blue',
           vm.elements()[CURSOR_STACK].current!.element
         );
 
-        LOCAL_LOGGER.log('%c -> constructing', 'color: aqua', vm.elements()['constructing']);
+        LOCAL_LOGGER.debug('%c -> constructing', 'color: aqua', vm.elements()['constructing']);
       }
     }
   }
@@ -181,7 +181,7 @@ export class AppendOpcodes {
         opcode.isMachine,
         `BUG: Mismatch between operation.syscall (${operation.syscall}) and opcode.isMachine (${opcode.isMachine}) for ${opcode.type}`
       );
-      operation.evaluate(vm[INNER_VM], opcode);
+      operation.evaluate(vm.debug.inner, opcode);
     }
   }
 }

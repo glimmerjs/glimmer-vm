@@ -1,3 +1,4 @@
+import { LOCAL_TRACE_LOGGING } from '@glimmer/local-debug-flags';
 import { GlimmerishComponent, jitSuite, RenderTest, test, tracked } from '../..';
 
 class HashTest extends RenderTest {
@@ -167,7 +168,12 @@ class HashTest extends RenderTest {
       firstName = 'Godfrey';
 
       get lastName() {
-        assert.ok(false, 'lastName was accessed');
+        // trace logging eagerly evaluates the arguments in order to print
+        // them, so we can't verify that they are accessed lazily while trace
+        // logging is on.
+        if (!LOCAL_TRACE_LOGGING) {
+          assert.ok(false, 'lastName was unexpectedly accessed');
+        }
 
         return;
       }
