@@ -15,12 +15,13 @@ export {
 } from './lib/flags';
 export { isMachineOp, isOp, MachineOp, Op } from './lib/opcodes';
 export {
-  $fp,
   $pc,
   $ra,
+  $fp,
+  $sp,
+  $up,
   $s0,
   $s1,
-  $sp,
   $t0,
   $t1,
   $v0,

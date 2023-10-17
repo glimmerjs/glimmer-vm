@@ -6,6 +6,7 @@ import {
   CheckNumber,
   CheckOption,
   CheckPrimitive,
+  CheckSyscallRegister,
 } from '@glimmer/debug';
 import { toBool } from '@glimmer/global-context';
 import type { CompilableTemplate, Nullable, UpdatingOpcode } from '@glimmer/interfaces';
@@ -102,11 +103,11 @@ APPEND_OPCODES.add(Op.Pop, (vm, { op1: count }) => {
 });
 
 APPEND_OPCODES.add(Op.Load, (vm, { op1: register }) => {
-  vm.load(register);
+  vm.load(check(register, CheckSyscallRegister));
 });
 
 APPEND_OPCODES.add(Op.Fetch, (vm, { op1: register }) => {
-  vm.fetch(register);
+  vm.fetch(check(register, CheckSyscallRegister));
 });
 
 APPEND_OPCODES.add(Op.BindDynamicScope, (vm, { op1: _names }) => {
@@ -221,7 +222,7 @@ APPEND_OPCODES.add(Op.JumpUnless, (vm, { op1: target }) => {
 });
 
 APPEND_OPCODES.add(Op.JumpEq, (vm, { op1: target, op2: comparison }) => {
-  let other = check(vm.stack.peek(), CheckNumber);
+  let other = check(vm.stack.top(), CheckNumber);
 
   if (other === comparison) {
     vm.goto(target);
@@ -229,7 +230,7 @@ APPEND_OPCODES.add(Op.JumpEq, (vm, { op1: target, op2: comparison }) => {
 });
 
 APPEND_OPCODES.add(Op.AssertSame, (vm) => {
-  let reference = check(vm.stack.peek(), CheckReference);
+  let reference = check(vm.stack.top(), CheckReference);
 
   if (isConstRef(reference) === false) {
     vm.updateWith(new Assert(reference));

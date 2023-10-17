@@ -1,3 +1,4 @@
+import type { DebugConstants } from '@glimmer/debug';
 import type { Encoder } from './compile';
 import type { ComponentDefinition, ComponentDefinitionState } from './components';
 import type { HelperDefinitionState } from './runtime';
@@ -132,7 +133,7 @@ export interface ResolutionTimeConstants {
   ): ComponentDefinition;
 }
 
-export interface RuntimeConstants {
+export interface RuntimeConstants extends DebugConstants {
   getValue<T>(handle: number): T;
   getArray<T>(handle: number): T[];
 }

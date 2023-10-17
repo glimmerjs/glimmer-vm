@@ -23,7 +23,7 @@
     "lint:files": "dotenv -- turbo lint",
     "force:lint:files": "eslint .",
     "lint:types": "tsc -b",
-    "start": "ember serve --port=7357",
+    "start": "vite",
     "test": "node bin/run-tests.mjs",
     "test:browserstack": "ember test --test-port=7774 --host 127.0.0.1 --config-file=testem-browserstack.js",
     "test:node": "node bin/run-node-tests.mjs",

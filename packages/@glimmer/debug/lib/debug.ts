@@ -1,15 +1,15 @@
 import type {
   CompileTimeConstants,
   Dict,
-  Maybe,
+  Nullable,
   Recast,
   ResolutionTimeConstants,
   RuntimeOp,
   TemplateCompilationContext,
 } from '@glimmer/interfaces';
 import { LOCAL_TRACE_LOGGING } from '@glimmer/local-debug-flags';
-import { decodeHandle, decodeImmediate, enumerate, LOCAL_LOGGER } from '@glimmer/util';
-import { $fp, $pc, $ra, $s0, $s1, $sp, $t0, $t1, $v0, type Register } from '@glimmer/vm';
+import { decodeHandle, decodeImmediate, enumerate, LOCAL_LOGGER, unreachable } from '@glimmer/util';
+import { $fp, $pc, $ra, $s0, $s1, $sp, $t0, $t1, $v0 } from '@glimmer/vm';
 
 import { opcodeMetadata } from './opcode-metadata';
 import type { Primitive } from './stack-check';
@@ -37,7 +37,9 @@ export function debugSlice(context: TemplateCompilationContext, start: number, e
         opcode,
         opcode.isMachine
       )!;
+
       LOCAL_LOGGER.debug(`${i}. ${logOpcode(name, params)}`);
+
       _size = opcode.size;
     }
     opcode.offset = -_size;
@@ -45,13 +47,13 @@ export function debugSlice(context: TemplateCompilationContext, start: number, e
   }
 }
 
-export function logOpcode(type: string, params: Maybe<Dict>): string | void {
+export function logOpcode(type: string, params: Dict<DebugOperand>): string | void {
   if (LOCAL_TRACE_LOGGING) {
     let out = type;
 
     if (params) {
-      let args = Object.keys(params)
-        .map((p) => ` ${p}=${json(params[p])}`)
+      let args = Object.entries(params)
+        .map(([p, v]) => ` ${p}=${json(v)}`)
         .join('');
       out += args;
     }
@@ -59,92 +61,184 @@ export function logOpcode(type: string, params: Maybe<Dict>): string | void {
   }
 }
 
-function json(param: unknown) {
-  if (LOCAL_TRACE_LOGGING) {
-    if (typeof param === 'function') {
-      return '<function>';
-    }
+function stringify(value: number, type: 'constant'): string;
+function stringify(value: RegisterName, type: 'register'): string;
+function stringify(value: number, type: 'variable'): string;
+function stringify(value: DebugOperand['value'], type: 'stringify' | 'unknown'): string;
+function stringify(
+  value: unknown,
+  type: 'stringify' | 'constant' | 'register' | 'variable' | 'unknown'
+) {
+  switch (type) {
+    case 'stringify':
+      return JSON.stringify(value);
+    case 'constant':
+      return `${stringify(value, 'unknown')}`;
+    case 'register':
+      return value;
+    case 'variable':
+      return `{$fp+${value}}`;
+    case 'unknown':
+      if (typeof value === 'function') {
+        return '<function>';
+      }
 
-    let string;
-    try {
-      string = JSON.stringify(param);
-    } catch (e) {
-      return '<object>';
-    }
+      let string;
+      try {
+        string = JSON.stringify(value);
+      } catch (e) {
+        return '<object>';
+      }
 
-    if (string === undefined) {
-      return 'undefined';
-    }
+      if (string === undefined) {
+        return 'undefined';
+      }
 
-    let debug = JSON.parse(string);
-    if (typeof debug === 'object' && debug !== null && debug.GlimmerDebug !== undefined) {
-      return debug.GlimmerDebug;
-    }
+      let debug = JSON.parse(string);
+      if (typeof debug === 'object' && debug !== null && debug.GlimmerDebug !== undefined) {
+        return debug.GlimmerDebug;
+      }
 
-    return string;
+      return string;
   }
 }
+
+function json(param: DebugOperand): string | string[] {
+  switch (param.type) {
+    case 'number':
+    case 'boolean':
+    case 'string':
+    case 'primitive':
+      return stringify(param.value, 'stringify');
+    case 'array':
+      if ('kind' in param) {
+        return param.value;
+      } else {
+        return param.value.map((value) => stringify(value, 'unknown'));
+      }
+    case 'dynamic':
+      return stringify(param.value, 'unknown');
+    case 'constant':
+      return stringify(param.value, 'constant');
+    case 'register':
+      return stringify(param.value, 'register');
+    case 'variable':
+      return stringify(param.value, 'variable');
+    case 'error:opcode':
+      return `{raw:${param.value}}`;
+    case 'error:operand':
+      return `{err:${param.kind}=${param.value}}`;
+  }
+}
+
+export type RegisterName =
+  | '$pc'
+  | '$ra'
+  | '$fp'
+  | '$sp'
+  | '$s0'
+  | '$s1'
+  | '$t0'
+  | '$t1'
+  | '$v0'
+  | `$bug${number}`;
+
+export type DebugOperand =
+  | { type: 'error:operand'; kind: string; value: number }
+  | { type: 'error:opcode'; kind: number; value: number }
+  | { type: 'number'; value: number }
+  | { type: 'boolean'; value: boolean }
+  | { type: 'primitive'; value: Primitive }
+  | { type: 'register'; value: RegisterName }
+  /**
+   * A variable is a numeric offset into the stack (relative to the $fp register).
+   */
+  | { type: 'variable'; value: number }
+  | { type: 'dynamic'; value: unknown }
+  | { type: 'constant'; value: number }
+  | { type: 'string'; value: string; nullable?: false }
+  | { type: 'string'; value: Nullable<string>; nullable: true }
+  | { type: 'array'; value: unknown[] }
+  | {
+      type: 'array';
+      value: string[];
+      kind: typeof String;
+    };
 
 export function debug(
   c: DebugConstants,
   op: RuntimeOp,
   isMachine: 0 | 1
-): [string, Dict] | undefined {
+): [string, Dict<DebugOperand>] {
   if (LOCAL_TRACE_LOGGING) {
     let metadata = opcodeMetadata(op.type, isMachine);
 
+    let out: Dict<DebugOperand> = Object.create(null);
     if (!metadata) {
-      return [`Unknown Opcode ${op.type}`, {}];
-      throw new Error(`Missing Opcode Metadata for ${op.type}`);
-    }
-
-    let out = Object.create(null);
-
-    for (const [index, operand] of enumerate(metadata.ops)) {
-      let actualOperand = opcodeOperand(op, index);
-
-      switch (operand.type) {
-        case 'u32':
-        case 'i32':
-        case 'owner':
-          out[operand.name] = actualOperand;
-          break;
-        case 'handle':
-          out[operand.name] = c.getValue(actualOperand);
-          break;
-        case 'str':
-        case 'option-str':
-        case 'array':
-          out[operand.name] = c.getValue(actualOperand);
-          break;
-        case 'str-array':
-          out[operand.name] = c.getArray(actualOperand);
-          break;
-        case 'bool':
-          out[operand.name] = !!actualOperand;
-          break;
-        case 'primitive':
-          out[operand.name] = decodePrimitive(actualOperand, c);
-          break;
-        case 'register':
-          out[operand.name] = decodeRegister(actualOperand);
-          break;
-        case 'unknown':
-          out[operand.name] = c.getValue(actualOperand);
-          break;
-        case 'symbol-table':
-        case 'scope':
-          out[operand.name] = `<scope ${actualOperand}>`;
-          break;
-        default:
-          throw new Error(`Unexpected operand type ${operand.type} for debug output`);
+      for (let i = 0; i < op.size; i++) {
+        out[i] = { type: 'error:opcode', kind: op.type, value: i };
       }
-    }
 
-    return [metadata.name, out];
+      return [`{unknown ${op.type}}`, out];
+    } else {
+      for (const [index, operand] of enumerate(metadata.ops)) {
+        let actualOperand = opcodeOperand(op, index);
+
+        switch (operand.type) {
+          case 'u32':
+          case 'i32':
+          case 'owner':
+            out[operand.name] = { type: 'number', value: actualOperand };
+            break;
+          case 'handle':
+            out[operand.name] = { type: 'constant', value: c.getValue(actualOperand) };
+            break;
+          case 'str':
+            out[operand.name] = { type: 'string', value: c.getValue<string>(actualOperand) };
+          case 'option-str':
+            out[operand.name] = {
+              type: 'string',
+              value: c.getValue(actualOperand),
+              nullable: true,
+            };
+            break;
+          case 'array':
+            out[operand.name] = {
+              type: 'array',
+              value: c.getArray<unknown>(actualOperand),
+            };
+          case 'str-array':
+            out[operand.name] = {
+              type: 'array',
+              value: c.getArray<string>(actualOperand),
+              kind: String,
+            };
+            break;
+          case 'bool':
+            out[operand.name] = { type: 'boolean', value: !!actualOperand };
+            break;
+          case 'primitive':
+            out[operand.name] = { type: 'primitive', value: decodePrimitive(actualOperand, c) };
+            break;
+          case 'register':
+            out[operand.name] = { type: 'register', value: decodeRegister(actualOperand) };
+            break;
+          case 'unknown':
+            out[operand.name] = { type: 'dynamic', value: c.getValue(actualOperand) };
+            break;
+          case 'symbol-table':
+          case 'scope':
+            out[operand.name] = { type: 'variable', value: actualOperand };
+            break;
+          default:
+            out[operand.name] = { type: 'error:operand', kind: operand.type, value: actualOperand };
+        }
+      }
+      return [metadata.name, out];
+    }
   }
 
-  return undefined;
+  unreachable(`BUG: Don't try to debug opcodes while trace is disabled`);
 }
 
 function opcodeOperand(opcode: RuntimeOp, index: number): number {
@@ -160,26 +254,28 @@ function opcodeOperand(opcode: RuntimeOp, index: number): number {
   }
 }
 
-function decodeRegister(register: Register): string {
+function decodeRegister(register: number): RegisterName {
   switch (register) {
     case $pc:
-      return 'pc';
+      return '$pc';
     case $ra:
-      return 'ra';
+      return '$ra';
     case $fp:
-      return 'fp';
+      return '$fp';
     case $sp:
-      return 'sp';
+      return '$sp';
     case $s0:
-      return 's0';
+      return '$s0';
     case $s1:
-      return 's1';
+      return '$s1';
     case $t0:
-      return 't0';
+      return '$t0';
     case $t1:
-      return 't1';
+      return '$t1';
     case $v0:
-      return 'v0';
+      return '$v0';
+    default:
+      return `$bug${register}`;
   }
 }
 

@@ -97,7 +97,7 @@ function renderInvocation(
   });
 
   // Configure VM based on blocks and args just pushed on to the stack.
-  vm[ARGS].setup(vm.internalStack, argNames, blockNames, 0, true);
+  vm[ARGS].setup(vm.argumentsStack, argNames, blockNames, 0, true);
 
   const compilable = expect(
     reified.compilable,

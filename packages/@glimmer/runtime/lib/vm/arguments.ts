@@ -24,10 +24,9 @@ import {
 } from '@glimmer/reference';
 import { dict, EMPTY_STRING_ARRAY, emptyArray, enumerate, unwrap } from '@glimmer/util';
 import { CONSTANT_TAG, type Tag } from '@glimmer/validator';
-import { $sp } from '@glimmer/vm';
 
 import { CheckCompilableBlock, CheckReference, CheckScope } from '../compiled/opcodes/-debug-strip';
-import type { InternalStack } from './low-level';
+import type { ArgumentsStack } from './low-level';
 
 /*
   The calling convention is:
@@ -38,13 +37,13 @@ import type { InternalStack } from './low-level';
 */
 
 export class VMArgumentsImpl implements VMArguments {
-  private stack: Nullable<InternalStack> = null;
+  private stack: Nullable<ArgumentsStack> = null;
   public positional = new PositionalArgumentsImpl();
   public named = new NamedArgumentsImpl();
   public blocks = new BlockArgumentsImpl();
 
-  empty(stack: InternalStack): this {
-    let base = stack.registers.packed[$sp] + 1;
+  empty(stack: ArgumentsStack): this {
+    let base = stack.registers.sp + 1;
 
     this.named.empty(stack, base);
     this.positional.empty(stack, base);
@@ -54,7 +53,7 @@ export class VMArgumentsImpl implements VMArguments {
   }
 
   setup(
-    stack: InternalStack,
+    stack: ArgumentsStack,
     names: readonly string[],
     blockNames: readonly string[],
     positionalCount: number,
@@ -113,7 +112,7 @@ export class VMArgumentsImpl implements VMArguments {
 
       positional.base += offset;
       named.base += offset;
-      stack.registers.packed[$sp] += offset;
+      stack.registers.advanceSp(offset);
     }
   }
 
@@ -136,11 +135,11 @@ export class PositionalArgumentsImpl implements PositionalArguments {
   public base = 0;
   public length = 0;
 
-  private stack: InternalStack = null as any;
+  private stack: ArgumentsStack = null as any;
 
   private _references: Nullable<readonly Reference[]> = null;
 
-  empty(stack: InternalStack, base: number) {
+  empty(stack: ArgumentsStack, base: number) {
     this.stack = stack;
     this.base = base;
     this.length = 0;
@@ -148,7 +147,7 @@ export class PositionalArgumentsImpl implements PositionalArguments {
     this._references = EMPTY_REFERENCES;
   }
 
-  setup(stack: InternalStack, base: number, length: number) {
+  setup(stack: ArgumentsStack, base: number, length: number) {
     this.stack = stack;
     this.base = base;
     this.length = length;
@@ -207,14 +206,14 @@ export class NamedArgumentsImpl implements NamedArguments {
   public base = 0;
   public length = 0;
 
-  private declare stack: InternalStack;
+  private declare stack: ArgumentsStack;
 
   private _references: Nullable<readonly Reference[]> = null;
 
   private _names: Nullable<readonly string[]> = EMPTY_STRING_ARRAY;
   private _atNames: Nullable<readonly string[]> = EMPTY_STRING_ARRAY;
 
-  empty(stack: InternalStack, base: number) {
+  empty(stack: ArgumentsStack, base: number) {
     this.stack = stack;
     this.base = base;
     this.length = 0;
@@ -224,7 +223,13 @@ export class NamedArgumentsImpl implements NamedArguments {
     this._atNames = EMPTY_STRING_ARRAY;
   }
 
-  setup(stack: InternalStack, base: number, length: number, names: readonly string[], atNames: boolean) {
+  setup(
+    stack: ArgumentsStack,
+    base: number,
+    length: number,
+    names: readonly string[],
+    atNames: boolean
+  ) {
     this.stack = stack;
     this.base = base;
     this.length = length;
@@ -355,7 +360,7 @@ function toSymbolName(name: string): string {
 const EMPTY_BLOCK_VALUES = emptyArray<BlockValue>();
 
 export class BlockArgumentsImpl implements BlockArguments {
-  private declare stack: InternalStack;
+  private declare stack: ArgumentsStack;
   private internalValues: Nullable<readonly BlockValue[]> = null;
   private _symbolNames: Nullable<readonly string[]> = null;
 
@@ -365,7 +370,7 @@ export class BlockArgumentsImpl implements BlockArguments {
   public length = 0;
   public base = 0;
 
-  empty(stack: InternalStack, base: number) {
+  empty(stack: ArgumentsStack, base: number) {
     this.stack = stack;
     this.names = EMPTY_STRING_ARRAY;
     this.base = base;
@@ -376,7 +381,7 @@ export class BlockArgumentsImpl implements BlockArguments {
     this.internalValues = EMPTY_BLOCK_VALUES;
   }
 
-  setup(stack: InternalStack, base: number, length: number, names: readonly string[]) {
+  setup(stack: ArgumentsStack, base: number, length: number, names: readonly string[]) {
     this.stack = stack;
     this.names = names;
     this.base = base;

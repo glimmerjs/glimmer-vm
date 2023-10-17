@@ -40,7 +40,7 @@ import {
   unwrapHandle,
 } from '@glimmer/util';
 import { beginTrackFrame, endTrackFrame, resetTracking } from '@glimmer/validator';
-import { $fp, $pc, $s0, $s1, $sp, $t0, $t1, $v0, isLowLevelRegister } from '@glimmer/vm';
+import { $s0, $s1, $t0, $t1, $v0, isLowLevelRegister } from '@glimmer/vm';
 import type { MachineRegister, Register, SyscallRegister } from '@glimmer/vm';
 
 import {
@@ -53,7 +53,13 @@ import { PartialScopeImpl } from '../scope';
 import { ARGS, CONSTANTS, DESTROYABLE_STACK, HEAP, STACKS } from '../symbols';
 import { VMArgumentsImpl } from './arguments';
 import type { LiveBlockList } from './element-builder';
-import { LowLevelVM, type CleanStack, type InternalStack } from './low-level';
+import {
+  LowLevelVM,
+  type CleanStack,
+  type InternalStack,
+  type ArgumentsStack,
+  type DebugStack,
+} from './low-level';
 import RenderResultImpl from './render-result';
 import EvaluationStackImpl from './stack';
 import {
@@ -92,15 +98,14 @@ export interface InternalVM {
    * @internal
    */
   readonly internalStack: InternalStack;
+  readonly argumentsStack: ArgumentsStack;
   readonly runtime: RuntimeContext;
   readonly context: CompileTimeCompilationContext;
 
   readonly fp: number;
   readonly sp: number;
 
-  loadValue(register: MachineRegister, value: number): void;
-  loadValue(register: Register, value: unknown): void;
-  loadValue(register: Register | MachineRegister, value: unknown): void;
+  loadValue(register: SyscallRegister, value: unknown): void;
 
   // TODO: Something better than a type assertion?
   fetchValue<T>(register: SyscallRegister): T;
@@ -163,11 +168,11 @@ class Stacks {
 }
 
 export interface VmDebugState {
-  readonly inner: LowLevelVM;
   readonly fp: number;
   readonly ra: number;
   readonly pc: number;
   readonly sp: number;
+  readonly stack: DebugStack;
 }
 
 export class VM implements PublicVM, InternalVM {
@@ -179,12 +184,20 @@ export class VM implements PublicVM, InternalVM {
   readonly [ARGS]: VMArgumentsImpl;
   readonly #inner: LowLevelVM;
 
+  get lowLevel(): LowLevelVM {
+    return this.#inner;
+  }
+
   get stack(): CleanStack {
     return this.#inner.stack;
   }
 
   get internalStack(): InternalStack {
     return this.#inner.internalStack;
+  }
+
+  get argumentsStack(): ArgumentsStack {
+    return this.#inner.forArguments;
   }
 
   /* Registers */
@@ -202,7 +215,9 @@ export class VM implements PublicVM, InternalVM {
       let inner = this.#inner;
 
       return {
-        inner,
+        get stack() {
+          return inner.debug.stack;
+        },
         get fp() {
           return inner.debug.registers.fp;
         },
@@ -334,13 +349,8 @@ export class VM implements PublicVM, InternalVM {
     }
 
     this.resume = initVM(context);
-    let evalStack = EvaluationStackImpl.restore(stack);
-
     assert(typeof pc === 'number', 'pc is a number');
-
-    evalStack.registers.packed[$pc] = pc;
-    evalStack.registers.packed[$sp] = stack.length - 1;
-    evalStack.registers.packed[$fp] = -1;
+    let evalStack = EvaluationStackImpl.restore(stack, pc);
 
     this[HEAP] = this.program.heap;
     this[CONSTANTS] = this.program.constants;
@@ -361,7 +371,7 @@ export class VM implements PublicVM, InternalVM {
           APPEND_OPCODES.debugAfter(this, state);
         },
       },
-      evalStack.registers.packed
+      evalStack.registers
     );
 
     this.destructor = {};
@@ -419,7 +429,7 @@ export class VM implements PublicVM, InternalVM {
       pc,
       scope: this.scope(),
       dynamicScope: this.dynamicScope(),
-      stack: this.internalStack.capture(args),
+      stack: this.argumentsStack.capture(args),
     };
   }
 

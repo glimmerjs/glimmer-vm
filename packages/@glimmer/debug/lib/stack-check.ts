@@ -7,7 +7,8 @@ import type {
   SimpleDocumentFragment,
   SimpleElement,
   SimpleNode,
-} from "@glimmer/interfaces";
+} from '@glimmer/interfaces';
+import { $s0, $s1, $t0, $t1, $v0, type SyscallRegister } from '@glimmer/vm';
 
 export interface Checker<T> {
   type: T;
@@ -82,6 +83,27 @@ class NullChecker implements Checker<null> {
   }
 }
 
+class SyscallRegisterChecker implements Checker<SyscallRegister> {
+  declare type: SyscallRegister;
+
+  validate(value: unknown): value is SyscallRegister {
+    switch (value) {
+      case $s0:
+      case $s1:
+      case $t0:
+      case $t1:
+      case $v0:
+        return true;
+      default:
+        return false;
+    }
+  }
+
+  expected(): string {
+    return `a syscall register ($s0, $s1, $t0, $t1, or $v0)`;
+  }
+}
+
 class InstanceofChecker<T> implements Checker<T> {
   declare type: T;
 
@@ -99,7 +121,10 @@ class InstanceofChecker<T> implements Checker<T> {
 class OptionChecker<T> implements Checker<Nullable<T>> {
   declare type: Nullable<T>;
 
-  constructor(private checker: Checker<T>, private emptyValue: null | undefined) {}
+  constructor(
+    private checker: Checker<T>,
+    private emptyValue: null | undefined
+  ) {}
 
   validate(value: unknown): value is Nullable<T> {
     if (value === this.emptyValue) return true;
@@ -129,7 +154,10 @@ class MaybeChecker<T> implements Checker<Maybe<T>> {
 class OrChecker<T, U> implements Checker<T | U> {
   declare type: T | U;
 
-  constructor(private left: Checker<T>, private right: Checker<U>) {}
+  constructor(
+    private left: Checker<T>,
+    private right: Checker<U>
+  ) {}
 
   validate(value: unknown): value is T | U {
     return this.left.validate(value) || this.right.validate(value);
@@ -143,7 +171,10 @@ class OrChecker<T, U> implements Checker<T | U> {
 class ExactValueChecker<T> implements Checker<T> {
   declare type: T;
 
-  constructor(private value: T, private desc: string) {}
+  constructor(
+    private value: T,
+    private desc: string
+  ) {}
 
   validate(obj: unknown): obj is T {
     return obj === this.value;
@@ -277,7 +308,7 @@ export function CheckMaybe<T>(checker: Checker<T>): Checker<Maybe<T>> {
 
 export function CheckInterface<
   I extends { [P in keyof O]: O[P]['type'] },
-  O extends Dict<Checker<unknown>>
+  O extends Dict<Checker<unknown>>,
 >(obj: O): Checker<I> {
   return new PropertyChecker(obj);
 }
@@ -289,6 +320,8 @@ export function CheckArray<T>(obj: Checker<T>): Checker<T[]> {
 export function CheckDict<T>(obj: Checker<T>): Checker<Dict<T>> {
   return new DictChecker(obj);
 }
+
+export const CheckSyscallRegister = new SyscallRegisterChecker();
 
 function defaultMessage(value: unknown, expected: string): string {
   return `Got ${value}, expected:\n${expected}`;

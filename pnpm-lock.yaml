@@ -440,6 +440,9 @@ importers:
       eslint-import-resolver-typescript:
         specifier: ^3.6.0
         version: 3.6.0(@typescript-eslint/parser@6.9.0)(eslint-plugin-import@2.28.1)(eslint@8.47.0)
+      eslint-plugin-deprecation:
+        specifier: ^1.5.0
+        version: 1.6.0(eslint@8.47.0)(typescript@5.1.6)
       eslint-plugin-import:
         specifier: ^2.28.0
         version: 2.28.1(@typescript-eslint/parser@6.9.0)(eslint-import-resolver-typescript@3.6.0)(eslint@8.47.0)
@@ -5972,6 +5975,22 @@ packages:
       pkg-dir: 5.0.0
       resolve-from: 5.0.0
     dev: true
+
+  /eslint-plugin-deprecation@1.6.0(eslint@8.47.0)(typescript@5.1.6):
+    resolution: {integrity: sha512-rld+Vrneh/NXRtDB0vQifOvgUy0HJYoejaxWlVnsk/LK7iij2tCWQIFcCKG4uzQb+Ef86bDke39w1lh4wnon4Q==}
+    deprecated: this package has been deprecated, please use v2.0.0
+    peerDependencies:
+      eslint: ^7.0.0 || ^8.0.0
+      typescript: ^5.1.6 || 5
+    dependencies:
+      '@typescript-eslint/utils': 6.9.0(eslint@8.47.0)(typescript@5.1.6)
+      eslint: 8.47.0
+      tslib: 2.6.2
+      tsutils: 3.21.0(typescript@5.1.6)
+      typescript: 5.1.6
+    transitivePeerDependencies:
+      - supports-color
+    dev: false
 
   /eslint-plugin-es-x@7.2.0(eslint@8.47.0):
     resolution: {integrity: sha512-9dvv5CcvNjSJPqnS5uZkqb3xmbeqRLnvXKK7iI5+oK/yTusyc46zbBZKENGsOfojm/mKfszyZb+wNqNPAPeGXA==}
@@ -11631,8 +11650,22 @@ packages:
       minimist: 1.2.8
       strip-bom: 3.0.0
 
+  /tslib@1.14.1:
+    resolution: {integrity: sha512-Xni35NKzjgMrwevysHTCArtLDpPvye8zV/0E4EyYn43P7/7qvQwPh9BGkHewbMulVntbigmcT7rdX3BNo9wRJg==}
+    dev: false
+
   /tslib@2.6.2:
     resolution: {integrity: sha512-AEYxH93jGFPn/a2iVAwW87VuUIkR1FVUKB77NwMF7nBTDkDrrT/Hpt/IrCJ0QXhW27jTBDcf5ZY7w6RiqTMw2Q==}
+
+  /tsutils@3.21.0(typescript@5.1.6):
+    resolution: {integrity: sha512-mHKK3iUXL+3UF6xL5k0PEhKRUBKPBCv/+RkEOpjRWxxx27KKRBmmA60A9pgOUvMi8GKhRMPEmjBRPzs2W7O1OA==}
+    engines: {node: '>= 6'}
+    peerDependencies:
+      typescript: ^5.1.6 || 5
+    dependencies:
+      tslib: 1.14.1
+      typescript: 5.1.6
+    dev: false
 
   /tsx@3.12.7:
     resolution: {integrity: sha512-C2Ip+jPmqKd1GWVQDvz/Eyc6QJbGfE7NrR3fx5BpEHMZsEHoIxHL1j+lKdGobr8ovEyqeNkPLSKp6SCSOt7gmw==}

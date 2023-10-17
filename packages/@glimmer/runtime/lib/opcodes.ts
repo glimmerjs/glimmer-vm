@@ -1,8 +1,14 @@
-import { debug, logOpcode, opcodeMetadata, recordStackSize } from '@glimmer/debug';
+import {
+  debug,
+  logOpcode,
+  opcodeMetadata,
+  recordStackSize,
+  type DebugOperand,
+} from '@glimmer/debug';
 import type {
   Dict,
-  Maybe,
   Nullable,
+  Optional,
   RuntimeOp,
   SomeVmOp,
   VmMachineOp,
@@ -15,7 +21,7 @@ import { Op } from '@glimmer/vm';
 
 import { isScopeReference } from './scope';
 import { CONSTANTS, DESTROYABLE_STACK, STACKS } from './symbols';
-import type { LowLevelVM, VM } from './vm';
+import type { VM, LowLevelVM } from './vm';
 import type { InternalVM } from './vm/append';
 import { CURSOR_STACK } from './vm/element-builder';
 
@@ -45,8 +51,8 @@ export type DebugState = {
   type: VmMachineOp | VmOp;
   isMachine: 0 | 1;
   size: number;
-  params?: Maybe<Dict> | undefined;
-  name?: string | undefined;
+  params?: Optional<Dict<DebugOperand>>;
+  name?: Optional<string>;
   state: unknown;
 };
 
@@ -67,21 +73,20 @@ export class AppendOpcodes {
   }
 
   debugBefore(vm: VM, opcode: RuntimeOp): DebugState {
-    let params: Maybe<Dict> = undefined;
+    let params: Optional<Dict<DebugOperand>> = undefined;
     let opName: string | undefined = undefined;
 
     if (LOCAL_TRACE_LOGGING) {
-      let pos = vm.debug?.inner.debug.registers.pc - opcode.size;
+      let pos = vm.debug.pc - opcode.size;
 
       [opName, params] = debug(vm[CONSTANTS], opcode, opcode.isMachine)!;
 
       // console.log(`${typePos(vm['pc'])}.`);
       LOCAL_LOGGER.debug(`${pos}. ${logOpcode(opName, params)}`);
 
-      let debugParams = [];
-      for (let prop in params) {
-        debugParams.push(prop, '=', params[prop]);
-      }
+      let debugParams = Object.entries(params).flatMap(([k, v]) =>
+        hasDynamicValue(v) ? [k, '=', v.value, '\n'] : []
+      );
 
       LOCAL_LOGGER.debug(...debugParams);
     }
@@ -117,12 +122,18 @@ export class AppendOpcodes {
         typeof meta.stackChange! === 'number' &&
         meta.stackChange !== actualChange
       ) {
-        throw new Error(
-          `Error in ${pre.name}:\n\n${pc}. ${logOpcode(
-            pre.name!,
-            pre.params
-          )}\n\nStack changed by ${actualChange}, expected ${meta.stackChange}`
-        );
+        if (pre.params) {
+          throw new Error(
+            `Error in ${pre.name}:\n\n${pc}. ${logOpcode(
+              pre.name!,
+              pre.params
+            )}\n\nStack changed by ${actualChange}, expected ${meta.stackChange}`
+          );
+        } else {
+          throw new Error(
+            `Error in ${pre.name}:\n\n${pc}. ${pre.name}\n\nStack changed by ${actualChange}, expected ${meta.stackChange}`
+          );
+        }
       }
 
       if (LOCAL_TRACE_LOGGING) {
@@ -139,7 +150,7 @@ export class AppendOpcodes {
           vm['t1'],
           vm['v0']
         );
-        LOCAL_LOGGER.debug('%c -> eval stack', 'color: red', vm.internalStack.toArray());
+        LOCAL_LOGGER.debug('%c -> eval stack', 'color: red', vm.debug.stack.toArray());
         LOCAL_LOGGER.debug('%c -> block stack', 'color: magenta', vm.elements().debugBlocks());
         LOCAL_LOGGER.debug(
           '%c -> destructor stack',
@@ -149,11 +160,11 @@ export class AppendOpcodes {
         if (vm[STACKS].scope.current === null) {
           LOCAL_LOGGER.debug('%c -> scope', 'color: green', 'null');
         } else {
-          LOCAL_LOGGER.debug(
-            '%c -> scope',
-            'color: green',
-            vm.scope().slots.map((s) => (isScopeReference(s) ? valueForRef(s) : s))
-          );
+          LOCAL_LOGGER.group('%c -> scope', 'color: green');
+          for (let slot of vm.scope().slots) {
+            LOCAL_LOGGER.debug(isScopeReference(slot) ? valueForRef(slot) : slot);
+          }
+          LOCAL_LOGGER.groupEnd();
         }
 
         LOCAL_LOGGER.debug(
@@ -181,8 +192,20 @@ export class AppendOpcodes {
         opcode.isMachine,
         `BUG: Mismatch between operation.syscall (${operation.syscall}) and opcode.isMachine (${opcode.isMachine}) for ${opcode.type}`
       );
-      operation.evaluate(vm.debug.inner, opcode);
+      operation.evaluate(vm.lowLevel, opcode);
     }
+  }
+}
+
+function hasDynamicValue(operand: DebugOperand) {
+  switch (operand.type) {
+    case 'constant':
+    case 'dynamic':
+      return true;
+    case 'array':
+      return !('kind' in operand);
+    default:
+      return false;
   }
 }
 

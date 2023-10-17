@@ -71,7 +71,7 @@ function toDynamicContentType(value: unknown) {
 }
 
 APPEND_OPCODES.add(Op.ContentType, (vm) => {
-  let reference = check(vm.stack.peek(), CheckReference);
+  let reference = check(vm.stack.top(), CheckReference);
 
   vm.stack.push(toContentType(valueForRef(reference)));
 
@@ -81,7 +81,7 @@ APPEND_OPCODES.add(Op.ContentType, (vm) => {
 });
 
 APPEND_OPCODES.add(Op.DynamicContentType, (vm) => {
-  let reference = check(vm.stack.peek(), CheckReference);
+  let reference = check(vm.stack.top(), CheckReference);
 
   vm.stack.push(toDynamicContentType(valueForRef(reference)));
 

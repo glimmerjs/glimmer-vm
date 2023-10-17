@@ -25,6 +25,7 @@ module.exports = {
         'plugin:import/recommended',
         'plugin:qunit/recommended',
         'plugin:regexp/recommended',
+        'plugin:deprecation/recommended',
         'prettier',
       ],
       rules: {

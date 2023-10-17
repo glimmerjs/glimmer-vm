@@ -1,16 +1,15 @@
 import type { Expand, Nullable, RuntimeHeap, RuntimeOp, RuntimeProgram } from '@glimmer/interfaces';
 import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
 import { assert } from '@glimmer/util';
-import { $fp, $pc, $ra, $sp, MachineOp, type MachineRegister } from '@glimmer/vm';
+import { $fp, $pc, $ra, $sp, MachineOp } from '@glimmer/vm';
 
 import { APPEND_OPCODES } from '../opcodes';
 import type { VM } from './append';
 
-export interface PackedRegisters {
-  [$pc]: number;
-  [$ra]: number;
-  [$sp]: number;
-  [$fp]: number;
+export type PackedRegisters = Expand<[$pc: number, $ra: number, $fp: number, $sp: number]>;
+
+export function PackedRegisters(...registers: PackedRegisters): PackedRegisters {
+  return registers;
 }
 
 export type FrameInfo = Expand<[$ra: number, $fp: number]>;
@@ -46,6 +45,12 @@ export class Registers {
   // @premerge consolidate
   advance(size: number) {
     this.#packed[$pc] += size;
+    return size;
+  }
+
+  // @premerge consolidate
+  advanceSp(size: number) {
+    this.#packed[$sp] += size;
     return size;
   }
 
@@ -119,41 +124,40 @@ export function initializeRegisters(): PackedRegisters {
 }
 
 export function initializeRegistersWithSP(sp: number): PackedRegisters {
-  return [0, -1, sp, 0];
+  return [0, -1, 0, sp];
 }
 
 export function initializeRegistersWithPC(pc: number): PackedRegisters {
   return [pc, -1, 0, 0];
 }
 
-export interface CleanStack {
-  push(...values: unknown[]): void;
+export interface ReadonlyStack {
   get<T = number>(position: number, base?: number): T;
-  pop<T>(count?: number): T;
+  top<T>(offset?: number): T;
+}
 
-  // @premerge consolidate
-  peek<T>(offset?: number): T;
-  // @premerge consolidate
+export interface CleanStack extends ReadonlyStack {
+  push(...values: unknown[]): void;
+  pop<T>(count?: number): T;
   dup(position?: number): void;
 }
 
-export interface InternalStack {
-  readonly registers: Registers;
-  push(...values: unknown[]): void;
-  get<T = number>(position: number, base?: number): T;
-  pop<T>(count?: number): T;
+export interface InternalStack extends CleanStack {
+  reset(): void;
+}
 
-  // @premerge consolidate
-  peek<T>(offset?: number): T;
-  // @premerge consolidate
-  dup(position?: number): void;
+export interface DebugStack extends InternalStack {
+  toArray(): unknown[];
+}
+
+export interface ArgumentsStack extends InternalStack {
+  readonly registers: Registers;
 
   // @premerge consolidate (these are only used in Arguments)
   copy(from: number, to: number): void;
   set(value: unknown, offset: number, base?: number): void;
   slice<T = unknown>(start: number, end: number): T[];
   capture(items: number): unknown[];
-  reset(): void;
   toArray(): unknown[];
 }
 
@@ -163,28 +167,29 @@ export interface Externs {
 }
 
 export interface VmDebugState {
-  registers: Registers;
+  readonly registers: Registers;
+  readonly stack: DebugStack;
 }
 
 export class LowLevelVM {
   static create(
-    stack: InternalStack,
+    stack: ArgumentsStack,
     heap: RuntimeHeap,
     program: RuntimeProgram,
     externs: Externs,
-    registers: PackedRegisters
+    registers: Registers
   ): LowLevelVM {
-    return new LowLevelVM(stack, heap, program, externs, new Registers(registers));
+    return new LowLevelVM(stack, heap, program, externs, registers);
   }
 
   #currentOpSize = 0;
   readonly #registers: Registers;
   readonly #heap: RuntimeHeap;
   readonly #program: RuntimeProgram;
-  readonly #stack: InternalStack;
+  readonly #stack: ArgumentsStack;
 
   private constructor(
-    stack: InternalStack,
+    stack: ArgumentsStack,
     heap: RuntimeHeap,
     program: RuntimeProgram,
     readonly externs: Externs,
@@ -206,9 +211,14 @@ export class LowLevelVM {
     return this.#stack;
   }
 
+  get forArguments(): ArgumentsStack {
+    return this.#stack;
+  }
+
   get debug(): VmDebugState {
     return {
       registers: this.#registers,
+      stack: this.#stack,
     };
   }
 
@@ -222,10 +232,6 @@ export class LowLevelVM {
 
   get fp(): number {
     return this.#registers.fp;
-  }
-
-  fetchRegister(register: MachineRegister): number {
-    return this.#registers.packed[register];
   }
 
   // Start a new frame and save $ra and $fp on the stack

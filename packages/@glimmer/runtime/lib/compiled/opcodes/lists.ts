@@ -34,7 +34,7 @@ APPEND_OPCODES.add(Op.ExitList, (vm) => {
 
 APPEND_OPCODES.add(Op.Iterate, (vm, { op1: breaks }) => {
   let stack = vm.stack;
-  let iterator = check(stack.peek(), CheckIterator);
+  let iterator = check(stack.top(), CheckIterator);
   let item = iterator.next();
 
   if (item !== null) {

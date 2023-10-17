@@ -1,15 +1,10 @@
 import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
 
-import {
-  initializeRegistersWithSP,
-  Registers,
-  type PackedRegisters,
-  type InternalStack,
-} from './low-level';
+import { Registers, PackedRegisters, type ArgumentsStack } from './low-level';
 
-export default class EvaluationStackImpl implements InternalStack {
-  static restore(snapshot: unknown[]): EvaluationStackImpl {
-    return new this(snapshot.slice(), initializeRegistersWithSP(snapshot.length - 1));
+export default class EvaluationStackImpl implements ArgumentsStack {
+  static restore(snapshot: unknown[], pc: number): EvaluationStackImpl {
+    return new this(snapshot.slice(), PackedRegisters(pc, -1, -1, snapshot.length - 1));
   }
 
   readonly registers: Registers;
@@ -46,7 +41,7 @@ export default class EvaluationStackImpl implements InternalStack {
     return top;
   }
 
-  peek<T>(offset = 0): T {
+  top<T>(offset = 0): T {
     return this.stack[this.registers.peek(offset)] as T;
   }
 
