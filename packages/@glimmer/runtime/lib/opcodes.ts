@@ -11,7 +11,7 @@ import type {
 import { LOCAL_DEBUG, LOCAL_TRACE_LOGGING } from '@glimmer/local-debug-flags';
 import { valueForRef } from '@glimmer/reference';
 import { assert, fillNulls, LOCAL_LOGGER, unwrap } from '@glimmer/util';
-import { $pc, $sp, Op } from '@glimmer/vm';
+import { Op } from '@glimmer/vm';
 
 import { isScopeReference } from './scope';
 import { CONSTANTS, DESTROYABLE_STACK, STACKS } from './symbols';
@@ -71,7 +71,7 @@ export class AppendOpcodes {
     let opName: string | undefined = undefined;
 
     if (LOCAL_TRACE_LOGGING) {
-      let pos = vm.debug?.inner.fetchRegister($pc) - opcode.size;
+      let pos = vm.debug?.inner.debug.registers.pc - opcode.size;
 
       [opName, params] = debug(vm[CONSTANTS], opcode, opcode.isMachine)!;
 
@@ -89,13 +89,13 @@ export class AppendOpcodes {
     let sp: number;
 
     if (LOCAL_DEBUG) {
-      sp = vm.fetchValue($sp);
+      sp = vm.debug.sp;
     }
 
-    recordStackSize(vm.fetchValue($sp));
+    recordStackSize(vm.sp);
     return {
       sp: sp!,
-      pc: vm.fetchValue($pc),
+      pc: vm.debug.pc,
       name: opName,
       params,
       type: opcode.type,
@@ -110,7 +110,7 @@ export class AppendOpcodes {
 
     if (LOCAL_DEBUG) {
       let meta = opcodeMetadata(type, isMachine);
-      let actualChange = vm.fetchValue($sp) - sp;
+      let actualChange = vm.debug.sp - sp;
       if (
         meta &&
         meta.check &&
@@ -129,10 +129,10 @@ export class AppendOpcodes {
         LOCAL_LOGGER.debug(
           '%c -> pc: %d, ra: %d, fp: %d, sp: %d, s0: %O, s1: %O, t0: %O, t1: %O, v0: %O',
           'color: orange',
-          vm.debug.inner.debug.registers.pc,
-          vm.debug.inner.debug.registers.ra,
-          vm.debug.inner.debug.registers.fp,
-          vm.debug.inner.debug.registers.sp,
+          vm.debug.pc,
+          vm.debug.ra,
+          vm.debug.fp,
+          vm.debug.sp,
           vm['s0'],
           vm['s1'],
           vm['t0'],

@@ -7,8 +7,8 @@ import {
 } from '@glimmer/debug';
 import { hasInternalComponentManager, hasInternalHelperManager } from '@glimmer/manager';
 import { isConstRef, valueForRef } from '@glimmer/reference';
-import { isObject } from '@glimmer/util';
-import { ContentType, CurriedType, Op } from '@glimmer/vm';
+import { isObject, LOCAL_LOGGER } from '@glimmer/util';
+import { ContentType, CurriedType, CurriedTypes, Op } from '@glimmer/vm';
 
 import { isCurriedType } from '../../curried-value';
 import { isEmpty, isFragment, isNode, isSafeString, shouldCoerce } from '../../dom/normalize';
@@ -16,6 +16,7 @@ import { APPEND_OPCODES } from '../../opcodes';
 import DynamicTextContent from '../../vm/content/text';
 import { CheckReference } from './-debug-strip';
 import { AssertFilter } from './vm';
+import { LOCAL_TRACE_LOGGING } from '@glimmer/local-debug-flags';
 
 function toContentType(value: unknown) {
   if (shouldCoerce(value)) {
@@ -46,16 +47,22 @@ function toDynamicContentType(value: unknown) {
     return ContentType.String;
   }
 
-  if (isCurriedType(value, CurriedType.Component) || hasInternalComponentManager(value)) {
+  if (isCurriedType(value, CurriedTypes.Component) || hasInternalComponentManager(value)) {
     return ContentType.Component;
   } else {
     if (
       import.meta.env.DEV &&
-      !isCurriedType(value, CurriedType.Helper) &&
+      !isCurriedType(value, CurriedTypes.Helper) &&
       !hasInternalHelperManager(value)
     ) {
+      if (LOCAL_TRACE_LOGGING) {
+        LOCAL_LOGGER.error(
+          `Attempted use a dynamic value as a component or helper, but that value did not have an associated component or helper manager. The value was:`,
+          value
+        );
+      }
       throw new Error(
-        `Attempted use a dynamic value as a component or helper, but that value did not have an associated component or helper manager. The value was: ${value}`
+        `Attempted use a dynamic value as a component or helper, but that value did not have an associated component or helper manager.`
       );
     }
 

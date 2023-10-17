@@ -8,7 +8,7 @@ import {
   CheckPrimitive,
 } from '@glimmer/debug';
 import { toBool } from '@glimmer/global-context';
-import type { CompilableTemplate, Nullable, UpdatingOpcode } from "@glimmer/interfaces";
+import type { CompilableTemplate, Nullable, UpdatingOpcode } from '@glimmer/interfaces';
 import {
   createComputeRef,
   createConstRef,
@@ -33,7 +33,7 @@ import {
   validateTag,
   valueForTag,
 } from '@glimmer/validator';
-import { Op } from '@glimmer/vm';
+import { $sp, Op } from '@glimmer/vm';
 
 import { APPEND_OPCODES } from '../../opcodes';
 import { CONSTANTS } from '../../symbols';
@@ -93,7 +93,7 @@ APPEND_OPCODES.add(Op.PrimitiveReference, (vm) => {
 });
 
 APPEND_OPCODES.add(Op.Dup, (vm, { op1: register, op2: offset }) => {
-  let position = check(vm.fetchValue(register), CheckNumber) - offset;
+  let position = check(register === $sp ? vm.sp : vm.fp, CheckNumber) - offset;
   vm.stack.dup(position);
 });
 
@@ -263,7 +263,10 @@ export class Assert implements UpdatingOpcode {
 export class AssertFilter<T, U> implements UpdatingOpcode {
   private last: U;
 
-  constructor(private ref: Reference<T>, private filter: (from: T) => U) {
+  constructor(
+    private ref: Reference<T>,
+    private filter: (from: T) => U
+  ) {
     this.last = filter(valueForRef(ref));
   }
 

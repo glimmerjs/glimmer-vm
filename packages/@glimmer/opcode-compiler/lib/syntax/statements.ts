@@ -258,7 +258,7 @@ STATEMENTS.add(SexpOpcodes.InElement, (op, [, block, guid, destination, insertBe
   );
 });
 
-STATEMENTS.add(SexpOpcodes.HandleError, (op, [, handler, block, inverse]) => {
+STATEMENTS.add(SexpOpcodes.HandleError, (op, [, _handler, block, _inverse]) => {
   return [
     op(HighLevelBuilderOpcodes.StartLabels),
     op(MachineOp.PushTryFrame, labelOperand('FINALLY')),

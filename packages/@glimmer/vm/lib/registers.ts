@@ -45,4 +45,8 @@ export enum TemporaryRegister {
 }
 
 export type Register = MachineRegister | SavedRegister | TemporaryRegister | typeof $v0;
+
+/**
+ * All of the registers except the machine registers.
+ */
 export type SyscallRegister = SavedRegister | TemporaryRegister | typeof $v0;

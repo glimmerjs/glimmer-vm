@@ -41,7 +41,7 @@ import {
 } from '@glimmer/util';
 import { beginTrackFrame, endTrackFrame, resetTracking } from '@glimmer/validator';
 import { $fp, $pc, $s0, $s1, $sp, $t0, $t1, $v0, isLowLevelRegister } from '@glimmer/vm';
-import type { $ra, MachineRegister, Register, SyscallRegister } from '@glimmer/vm';
+import type { MachineRegister, Register, SyscallRegister } from '@glimmer/vm';
 
 import {
   BeginTrackFrameOpcode,
@@ -95,14 +95,15 @@ export interface InternalVM {
   readonly runtime: RuntimeContext;
   readonly context: CompileTimeCompilationContext;
 
+  readonly fp: number;
+  readonly sp: number;
+
   loadValue(register: MachineRegister, value: number): void;
   loadValue(register: Register, value: unknown): void;
   loadValue(register: Register | MachineRegister, value: unknown): void;
 
-  fetchValue(register: $ra | $pc): number;
   // TODO: Something better than a type assertion?
-  fetchValue<T>(register: Register): T;
-  fetchValue(register: Register): unknown;
+  fetchValue<T>(register: SyscallRegister): T;
 
   load(register: Register): void;
   fetch(register: Register): void;
@@ -163,6 +164,10 @@ class Stacks {
 
 export interface VmDebugState {
   readonly inner: LowLevelVM;
+  readonly fp: number;
+  readonly ra: number;
+  readonly pc: number;
+  readonly sp: number;
 }
 
 export class VM implements PublicVM, InternalVM {
@@ -184,14 +189,32 @@ export class VM implements PublicVM, InternalVM {
 
   /* Registers */
 
-  get pc(): number {
-    return this.#inner.fetchRegister($pc);
+  get sp(): number {
+    return this.#inner.sp;
+  }
+
+  get fp(): number {
+    return this.#inner.fp;
   }
 
   get debug(): VmDebugState {
     if (import.meta.env.DEV) {
+      let inner = this.#inner;
+
       return {
-        inner: this.#inner,
+        inner,
+        get fp() {
+          return inner.debug.registers.fp;
+        },
+        get ra() {
+          return inner.debug.registers.ra;
+        },
+        get pc() {
+          return inner.debug.registers.pc;
+        },
+        get sp() {
+          return inner.debug.registers.sp;
+        },
       };
     }
 
@@ -218,25 +241,23 @@ export class VM implements PublicVM, InternalVM {
     this.loadValue(register, value);
   }
 
-  // Fetch a value from a register
-  fetchValue(register: MachineRegister): number;
-  fetchValue<T>(register: Register): T;
-  fetchValue(register: Register | MachineRegister): unknown {
-    if (isLowLevelRegister(register)) {
-      return this.#inner.fetchRegister(register);
-    }
-
+  /**
+   * Fetch a value from a high-level register
+   */
+  fetchValue<T>(register: SyscallRegister): T {
     switch (register) {
       case $s0:
-        return this.s0;
+        return this.s0 as T;
       case $s1:
-        return this.s1;
+        return this.s1 as T;
       case $t0:
-        return this.t0;
+        return this.t0 as T;
       case $t1:
-        return this.t1;
+        return this.t1 as T;
       case $v0:
-        return this.v0;
+        return this.v0 as T;
+      default:
+        unreachable(`BUG: Cannot fetch from register ${register}`);
     }
   }
 
@@ -393,7 +414,7 @@ export class VM implements PublicVM, InternalVM {
     return this.runtime.env;
   }
 
-  captureState(args: number, pc = this.#inner.fetchRegister($pc)): VMState {
+  captureState(args: number, pc = this.#inner.pc): VMState {
     return {
       pc,
       scope: this.scope(),
@@ -402,7 +423,7 @@ export class VM implements PublicVM, InternalVM {
     };
   }
 
-  capture(args: number, pc = this.#inner.fetchRegister($pc)): ResumableVMState {
+  capture(args: number, pc = this.#inner.pc): ResumableVMState {
     return new ResumableVMStateImpl(this.captureState(args, pc), this.resume);
   }
 
@@ -615,7 +636,7 @@ export class VM implements PublicVM, InternalVM {
 
   private _execute(initialize?: (vm: this) => void): RenderResult {
     if (LOCAL_TRACE_LOGGING) {
-      LOCAL_LOGGER.debug(`EXECUTING FROM ${this.#inner.fetchRegister($pc)}`);
+      LOCAL_LOGGER.debug(`EXECUTING FROM ${this.#inner.debug.registers.pc}`);
     }
 
     if (initialize) initialize(this);

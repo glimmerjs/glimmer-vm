@@ -212,6 +212,18 @@ export class LowLevelVM {
     };
   }
 
+  get pc(): number {
+    return this.#registers.pc;
+  }
+
+  get sp(): number {
+    return this.#registers.sp;
+  }
+
+  get fp(): number {
+    return this.#registers.fp;
+  }
+
   fetchRegister(register: MachineRegister): number {
     return this.#registers.packed[register];
   }
