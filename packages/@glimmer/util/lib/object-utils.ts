@@ -1,14 +1,34 @@
+import type { Expand } from '@glimmer/interfaces';
+
 export let assign = Object.assign;
 
-export function fillNulls<T>(count: number): T[] {
+export function fillNulls<T, A = T[]>(count: number): A {
   let arr = new Array(count);
 
   for (let i = 0; i < count; i++) {
     arr[i] = null;
   }
 
-  return arr;
+  return arr as A;
 }
+
+export function array<T>(): {
+  allocate: <N extends number>(size: N) => Expand<FixedArray<T | null, N>>;
+} {
+  return {
+    allocate: <N extends number>(size: N) => fillNulls<T, Expand<FixedArray<T, N>>>(size),
+  };
+}
+
+type Grow<T, A extends Array<T>> = ((x: T, ...xs: A) => void) extends (...a: infer X) => void
+  ? X
+  : never;
+type GrowToSize<T, A extends Array<T>, N extends number> = {
+  0: A;
+  1: GrowToSize<T, Grow<T, A>, N>;
+}[A['length'] extends N ? 0 : 1];
+
+export type FixedArray<T, N extends number> = GrowToSize<T, [], N>;
 
 export function values<T>(obj: { [s: string]: T }): T[] {
   return Object.values(obj);

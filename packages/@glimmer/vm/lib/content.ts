@@ -8,3 +8,5 @@ export const ContentType = {
   Node: 6,
   Other: 8,
 } as const;
+
+export type ContentType = (typeof ContentType)[keyof typeof ContentType];

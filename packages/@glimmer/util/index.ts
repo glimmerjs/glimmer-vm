@@ -11,7 +11,7 @@ export {
   isSerializationFirstNode,
   SERIALIZATION_FIRST_NODE_STRING,
 } from './lib/is-serialization-first-node';
-export { assign, entries, fillNulls, values } from './lib/object-utils';
+export { assign, entries, fillNulls, array, values, type FixedArray } from './lib/object-utils';
 export * from './lib/platform-utils';
 export * from './lib/present';
 export {

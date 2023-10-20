@@ -7,7 +7,7 @@ import type {
   LayoutWithContext,
   Nullable,
   ProgramSymbolTable,
-} from "@glimmer/interfaces";
+} from '@glimmer/interfaces';
 import { LOCAL_TRACE_LOGGING } from '@glimmer/local-debug-flags';
 
 import { debugCompiler } from './compiler';
@@ -15,14 +15,17 @@ import { templateCompilationContext } from './opcode-builder/context';
 import { encodeOp } from './opcode-builder/encoder';
 import { ATTRS_BLOCK, WrappedComponent } from './opcode-builder/helpers/components';
 import { meta } from './opcode-builder/helpers/shared';
-import type { HighLevelStatementOp } from './syntax/compilers';
+import { definePushOp, type HighLevelStatementOp } from './syntax/compilers';
 
 export class WrappedBuilder implements CompilableProgram {
   public symbolTable: ProgramSymbolTable;
   private compiled: Nullable<number> = null;
   private attrsBlockNumber: number;
 
-  constructor(private layout: LayoutWithContext, public moduleName: string) {
+  constructor(
+    private layout: LayoutWithContext,
+    public moduleName: string
+  ) {
     let { block } = layout;
     let [, symbols, hasEval] = block;
 
@@ -57,7 +60,7 @@ export class WrappedBuilder implements CompilableProgram {
       encodeOp(encoder, constants, resolver, m, op as BuilderOp | HighLevelOp);
     }
 
-    WrappedComponent(pushOp, this.layout, this.attrsBlockNumber);
+    WrappedComponent(definePushOp(pushOp), this.layout, this.attrsBlockNumber);
 
     let handle = context.encoder.commit(m.size);
 

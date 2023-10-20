@@ -73,7 +73,11 @@ function toDynamicContentType(value: unknown) {
 APPEND_OPCODES.add(Op.ContentType, (vm) => {
   let reference = check(vm.stack.top(), CheckReference);
 
-  vm.stack.push(toContentType(valueForRef(reference)));
+  try {
+    vm.stack.push(toContentType(valueForRef(reference)));
+  } catch (e) {
+    vm.unwind(e);
+  }
 
   if (!isConstRef(reference)) {
     vm.updateWith(new AssertFilter(reference, toContentType));

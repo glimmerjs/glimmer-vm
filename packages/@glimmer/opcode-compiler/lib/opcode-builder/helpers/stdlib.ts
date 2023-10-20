@@ -3,10 +3,14 @@ import type {
   CompileTimeCompilationContext,
   ContainingMetadata,
   HighLevelOp,
-} from "@glimmer/interfaces";
+} from '@glimmer/interfaces';
 import { $s0, ContentType, MachineOp, Op } from '@glimmer/vm';
 
-import type { HighLevelStatementOp, PushStatementOp } from '../../syntax/compilers';
+import {
+  definePushOp,
+  type HighLevelStatementOp,
+  type PushStatementOp,
+} from '../../syntax/compilers';
 import { encodeOp, EncoderImpl } from '../encoder';
 import { StdLib } from '../stdlib';
 import { InvokeBareComponent, invokePreparedComponent } from './components';
@@ -130,7 +134,7 @@ function build(
     encodeOp(encoder, constants, resolver, STDLIB_META, op as BuilderOp | HighLevelOp);
   }
 
-  builder(pushOp);
+  builder(definePushOp(pushOp));
 
   let result = encoder.commit(0);
 

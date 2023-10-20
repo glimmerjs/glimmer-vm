@@ -15,7 +15,7 @@ import type {
   Statement,
   SymbolTable,
   WireFormat,
-} from "@glimmer/interfaces";
+} from '@glimmer/interfaces';
 import { LOCAL_TRACE_LOGGING } from '@glimmer/local-debug-flags';
 import { EMPTY_ARRAY } from '@glimmer/util';
 
@@ -23,7 +23,7 @@ import { debugCompiler } from './compiler';
 import { templateCompilationContext } from './opcode-builder/context';
 import { encodeOp } from './opcode-builder/encoder';
 import { meta } from './opcode-builder/helpers/shared';
-import type { HighLevelStatementOp } from './syntax/compilers';
+import { definePushOp, type HighLevelStatementOp } from './syntax/compilers';
 import { STATEMENTS } from './syntax/statements';
 
 export const PLACEHOLDER_HANDLE = -1;
@@ -92,8 +92,10 @@ export function compileStatements(
     encodeOp(encoder, constants, resolver, meta, op as BuilderOp | HighLevelOp);
   }
 
+  const op = definePushOp(pushOp);
+
   for (const statement of statements) {
-    sCompiler.compile(pushOp, statement);
+    sCompiler.compile(op, statement);
   }
 
   let handle = context.encoder.commit(meta.size);

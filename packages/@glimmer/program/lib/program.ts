@@ -47,7 +47,7 @@ export class RuntimeHeapImpl implements RuntimeHeap {
   }
 
   sizeof(handle: number): number {
-    return sizeof(this.table, handle);
+    return sizeof(this.table, handle, this.heap.length);
   }
 }
 
@@ -148,7 +148,7 @@ export class HeapImpl implements CompileTimeHeap, RuntimeHeap {
   }
 
   sizeof(handle: number): number {
-    return sizeof(this.handleTable, handle);
+    return sizeof(this.handleTable, handle, this.offset - 1);
   }
 
   free(handle: number): void {
@@ -236,9 +236,11 @@ function slice(arr: Int32Array, start: number, end: number): Int32Array {
   return ret;
 }
 
-function sizeof(table: number[], handle: number) {
+function sizeof(table: number[], handle: number, endHeap: number) {
   if (LOCAL_DEBUG) {
-    return unwrap(table[handle + 1]) - unwrap(table[handle]);
+    let end = handle + 2 < table.length ? unwrap(table[handle + 2]) : endHeap;
+    let start = unwrap(table[handle]);
+    return end - start;
   } else {
     return -1;
   }

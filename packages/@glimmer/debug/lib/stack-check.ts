@@ -51,6 +51,20 @@ class TypeofChecker<T> implements Checker<T> {
   }
 }
 
+class NumberChecker extends TypeofChecker<number> {
+  constructor() {
+    super('number');
+  }
+
+  override validate(value: unknown): value is number {
+    return super.validate(value) && Number.isFinite(value);
+  }
+
+  override expected(): string {
+    return `a finite number`;
+  }
+}
+
 export type Primitive = undefined | null | boolean | number | string;
 
 class PrimitiveChecker implements Checker<Primitive> {
@@ -367,7 +381,7 @@ export function expectStackChange(stack: { sp: number }, expected: number, name:
 
 export const CheckPrimitive: Checker<Primitive> = new PrimitiveChecker();
 export const CheckFunction: Checker<Function> = new TypeofChecker<Function>('function');
-export const CheckNumber: Checker<number> = new TypeofChecker<number>('number');
+export const CheckNumber: Checker<number> = new NumberChecker();
 export const CheckBoolean: Checker<boolean> = new TypeofChecker<boolean>('boolean');
 export const CheckHandle: Checker<number> = CheckNumber;
 export const CheckString: Checker<string> = new TypeofChecker<string>('string');

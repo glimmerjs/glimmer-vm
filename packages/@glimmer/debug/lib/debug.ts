@@ -63,11 +63,11 @@ export function logOpcode(type: string, params: Dict<DebugOperand>): string | vo
 
 function stringify(value: number, type: 'constant'): string;
 function stringify(value: RegisterName, type: 'register'): string;
-function stringify(value: number, type: 'variable'): string;
+function stringify(value: number, type: 'variable' | 'pc'): string;
 function stringify(value: DebugOperand['value'], type: 'stringify' | 'unknown'): string;
 function stringify(
   value: unknown,
-  type: 'stringify' | 'constant' | 'register' | 'variable' | 'unknown'
+  type: 'stringify' | 'constant' | 'register' | 'variable' | 'pc' | 'unknown'
 ) {
   switch (type) {
     case 'stringify':
@@ -78,28 +78,50 @@ function stringify(
       return value;
     case 'variable':
       return `{$fp+${value}}`;
-    case 'unknown':
-      if (typeof value === 'function') {
-        return '<function>';
-      }
+    case 'pc':
+      return `@${value}`;
+    case 'unknown': {
+      switch (typeof value) {
+        case 'function':
+          return '<function>';
+        case 'number':
+        case 'string':
+        case 'bigint':
+        case 'boolean':
+          return JSON.stringify(value);
+        case 'symbol':
+          return `${String(value)}`;
+        case 'undefined':
+          return 'undefined';
+        case 'object': {
+          if (value === null) return 'null';
+          if (Array.isArray(value)) return `<array[${value.length}]>`;
 
-      let string;
-      try {
-        string = JSON.stringify(value);
-      } catch (e) {
-        return '<object>';
-      }
+          let name = value.constructor.name;
 
-      if (string === undefined) {
-        return 'undefined';
-      }
+          switch (name) {
+            case 'Error':
+            case 'RangeError':
+            case 'ReferenceError':
+            case 'SyntaxError':
+            case 'TypeError':
+            case 'WeakMap':
+            case 'WeakSet':
+              return `<${name}>`;
+            case 'Object':
+              return `<${name}>`;
+          }
 
-      let debug = JSON.parse(string);
-      if (typeof debug === 'object' && debug !== null && debug.GlimmerDebug !== undefined) {
-        return debug.GlimmerDebug;
+          if (value instanceof Map) {
+            return `<Map[${value.size}]>`;
+          } else if (value instanceof Set) {
+            return `<Set[${value.size}]>`;
+          } else {
+            return `<${name}>`;
+          }
+        }
       }
-
-      return string;
+    }
   }
 }
 
@@ -122,6 +144,8 @@ function json(param: DebugOperand): string | string[] {
       return stringify(param.value, 'constant');
     case 'register':
       return stringify(param.value, 'register');
+    case 'pc':
+      return stringify(param.value, 'pc');
     case 'variable':
       return stringify(param.value, 'variable');
     case 'error:opcode':
@@ -150,6 +174,7 @@ export type DebugOperand =
   | { type: 'boolean'; value: boolean }
   | { type: 'primitive'; value: Primitive }
   | { type: 'register'; value: RegisterName }
+  | { type: 'pc'; value: number }
   /**
    * A variable is a numeric offset into the stack (relative to the $fp register).
    */
@@ -229,6 +254,9 @@ export function debug(
           case 'symbol-table':
           case 'scope':
             out[operand.name] = { type: 'variable', value: actualOperand };
+            break;
+          case 'pc':
+            out[operand.name] = { type: 'pc', value: actualOperand };
             break;
           default:
             out[operand.name] = { type: 'error:operand', kind: operand.type, value: actualOperand };

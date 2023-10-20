@@ -82,7 +82,7 @@ export class AppendOpcodes {
       [opName, params] = debug(vm[CONSTANTS], opcode, opcode.isMachine)!;
 
       // console.log(`${typePos(vm['pc'])}.`);
-      LOCAL_LOGGER.debug(`${pos}. ${logOpcode(opName, params)}`);
+      LOCAL_LOGGER.group(`${pos}. ${logOpcode(opName, params)}`);
 
       let debugParams = Object.entries(params).flatMap(([k, v]) =>
         hasDynamicValue(v) ? [k, '=', v.value, '\n'] : []
@@ -138,12 +138,13 @@ export class AppendOpcodes {
 
       if (LOCAL_TRACE_LOGGING) {
         LOCAL_LOGGER.debug(
-          '%c -> pc: %d, ra: %d, fp: %d, sp: %d, s0: %O, s1: %O, t0: %O, t1: %O, v0: %O',
+          '%c -> pc: %d, ra: %d, fp: %d, sp: %d, up: %d, s0: %O, s1: %O, t0: %O, t1: %O, v0: %O',
           'color: orange',
           vm.debug.pc,
           vm.debug.ra,
           vm.debug.fp,
           vm.debug.sp,
+          vm.debug.up,
           vm['s0'],
           vm['s1'],
           vm['t0'],
@@ -151,6 +152,14 @@ export class AppendOpcodes {
           vm['v0']
         );
         LOCAL_LOGGER.debug('%c -> eval stack', 'color: red', vm.debug.stack.toArray());
+        {
+          LOCAL_LOGGER.groupCollapsed('%c -> eval stack internals', 'color: #999');
+          let { before, frame } = vm.debug.stack.all();
+          LOCAL_LOGGER.debug('%c -> before', 'color: #999', before);
+          LOCAL_LOGGER.debug('%c -> frame', 'color: #red', frame);
+          LOCAL_LOGGER.groupEnd();
+        }
+        LOCAL_LOGGER.debug('%c -> internals', 'color: #999', vm.debug.stack.all());
         LOCAL_LOGGER.debug('%c -> block stack', 'color: magenta', vm.elements().debugBlocks());
         LOCAL_LOGGER.debug(
           '%c -> destructor stack',
@@ -174,6 +183,7 @@ export class AppendOpcodes {
         );
 
         LOCAL_LOGGER.debug('%c -> constructing', 'color: aqua', vm.elements()['constructing']);
+        LOCAL_LOGGER.groupEnd();
       }
     }
   }

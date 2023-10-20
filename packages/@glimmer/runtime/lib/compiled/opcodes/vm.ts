@@ -262,22 +262,29 @@ export class Assert implements UpdatingOpcode {
 }
 
 export class AssertFilter<T, U> implements UpdatingOpcode {
-  private last: U;
+  private last: ['ok', U] | ['err', unknown];
 
   constructor(
     private ref: Reference<T>,
     private filter: (from: T) => U
   ) {
-    this.last = filter(valueForRef(ref));
+    try {
+      this.last = ['ok', filter(valueForRef(ref))];
+    } catch (e) {
+      this.last = ['err', e];
+    }
   }
 
   evaluate(vm: UpdatingVM) {
     let { last, ref, filter } = this;
     let current = filter(valueForRef(ref));
 
-    if (last !== current) {
+    if (last[0] === 'ok' && current !== last[1]) {
       vm.throw();
     }
+    // if (last !== current) {
+    //   vm.throw();
+    // }
   }
 }
 

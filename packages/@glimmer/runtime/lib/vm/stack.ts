@@ -4,13 +4,13 @@ import { Registers, PackedRegisters, type ArgumentsStack } from './low-level';
 
 export default class EvaluationStackImpl implements ArgumentsStack {
   static restore(snapshot: unknown[], pc: number): EvaluationStackImpl {
-    return new this(snapshot.slice(), PackedRegisters(pc, -1, -1, snapshot.length - 1));
+    return new this(snapshot.slice(), PackedRegisters(pc, -1, -1, snapshot.length - 1, -1));
   }
 
   readonly registers: Registers;
 
   // fp -> sp
-  constructor(
+  private constructor(
     private stack: unknown[] = [],
     registers: PackedRegisters
   ) {
@@ -68,6 +68,14 @@ export default class EvaluationStackImpl implements ArgumentsStack {
   }
 
   toArray() {
-    return this.stack.slice(this.registers.fp, this.registers.sp + 1);
+    return this.stack.slice(
+      this.registers.fp === -1 ? 0 : this.registers.fp,
+      this.registers.sp + 1
+    );
+  }
+
+  all(): { before: unknown[]; frame: unknown[] } {
+    let before = this.stack.slice(0, this.registers.fp === -1 ? 0 : this.registers.fp);
+    return { before, frame: this.toArray() };
   }
 }

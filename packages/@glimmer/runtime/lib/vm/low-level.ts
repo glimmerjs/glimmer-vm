@@ -1,14 +1,24 @@
 import type { Expand, Nullable, RuntimeHeap, RuntimeOp, RuntimeProgram } from '@glimmer/interfaces';
 import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
 import { assert } from '@glimmer/util';
-import { $fp, $pc, $ra, $sp, MachineOp } from '@glimmer/vm';
+import { $fp, $pc, $ra, $sp, $up, MachineOp } from '@glimmer/vm';
 
 import { APPEND_OPCODES } from '../opcodes';
 import type { VM } from './append';
+import { CheckNumber, check } from '@glimmer/debug';
+import { createTag } from '@glimmer/validator';
 
-export type PackedRegisters = Expand<[$pc: number, $ra: number, $fp: number, $sp: number]>;
+export type PackedRegisters = Expand<
+  [$pc: number, $ra: number, $fp: number, $sp: number, $up: number]
+>;
 
 export function PackedRegisters(...registers: PackedRegisters): PackedRegisters {
+  assert(registers.length === 5, `Invalid registers: ${JSON.stringify(registers)}`);
+  assert(
+    registers.every((register) => typeof register === 'number'),
+    `Invalid registers: ${JSON.stringify(registers)}`
+  );
+
   return registers;
 }
 
@@ -18,11 +28,14 @@ export class Registers {
   readonly #packed: PackedRegisters;
 
   constructor(packed: PackedRegisters) {
-    this.#packed = packed;
+    this.#packed = PackedRegisters(...packed);
   }
 
   // @premerge consolidate
   goto(pc: number): void {
+    assert(typeof pc === 'number', `Invalid pc: ${typeof pc}`);
+    assert(!isNaN(pc), `Invalid pc: NaN`);
+
     this.#packed[$pc] = pc;
   }
 
@@ -34,7 +47,7 @@ export class Registers {
 
   // @premerge consolidate
   returnTo(pc: number): void {
-    this.#packed[$ra] = pc;
+    this.#packed[$ra] = check(pc, CheckNumber);
   }
 
   // @premerge consolidate
@@ -45,12 +58,14 @@ export class Registers {
   // @premerge consolidate
   advance(size: number) {
     this.#packed[$pc] += size;
+    check(this.#packed[$pc], CheckNumber);
     return size;
   }
 
   // @premerge consolidate
   advanceSp(size: number) {
     this.#packed[$sp] += size;
+    check(this.#packed[$sp], CheckNumber);
     return size;
   }
 
@@ -61,12 +76,12 @@ export class Registers {
 
   // @premerge consolidate
   pop(n = 1): number {
-    return (this.#packed[$sp] -= n);
+    return (this.#packed[$sp] -= check(n, CheckNumber));
   }
 
   // @premerge consolidate
   peek(offset = 0): number {
-    return this.#packed[$sp] - offset;
+    return this.#packed[$sp] - check(offset, CheckNumber);
   }
 
   // @premerge consolidate
@@ -89,8 +104,16 @@ export class Registers {
     // when popping a frame, we want to restore the $sp to the position immediately before we pushed
     // the $ra and $fp onto the stack, which will effectively continue execution at that point.
     let to = this.#packed[$fp] - 1;
-    this.#packed[$ra] = ra;
-    this.#packed[$fp] = fp;
+    this.#packed[$ra] = check(ra, CheckNumber);
+    this.#packed[$fp] = check(fp, CheckNumber);
+    this.#packed[$sp] = check(to, CheckNumber);
+  }
+
+  catchUnwindFrame(up: number, ra: number, fp: number) {
+    let to = this.#packed[$up] - 1;
+    this.#packed[$up] = check(up, CheckNumber);
+    this.#packed[$ra] = check(ra, CheckNumber);
+    this.#packed[$fp] = check(fp, CheckNumber);
     this.#packed[$sp] = to;
   }
 
@@ -117,18 +140,10 @@ export class Registers {
   get fp(): number {
     return this.#packed[$fp];
   }
-}
 
-export function initializeRegisters(): PackedRegisters {
-  return [0, -1, 0, 0];
-}
-
-export function initializeRegistersWithSP(sp: number): PackedRegisters {
-  return [0, -1, 0, sp];
-}
-
-export function initializeRegistersWithPC(pc: number): PackedRegisters {
-  return [pc, -1, 0, 0];
+  get up(): number {
+    return this.#packed[$up];
+  }
 }
 
 export interface ReadonlyStack {
@@ -148,9 +163,10 @@ export interface InternalStack extends CleanStack {
 
 export interface DebugStack extends InternalStack {
   toArray(): unknown[];
+  all(): { before: unknown[]; frame: unknown[] };
 }
 
-export interface ArgumentsStack extends InternalStack {
+export interface ArgumentsStack extends InternalStack, DebugStack {
   readonly registers: Registers;
 
   // @premerge consolidate (these are only used in Arguments)
@@ -211,6 +227,7 @@ export class LowLevelVM {
     return this.#stack;
   }
 
+  // @premerge consolidate
   get forArguments(): ArgumentsStack {
     return this.#stack;
   }
@@ -232,6 +249,44 @@ export class LowLevelVM {
 
   get fp(): number {
     return this.#registers.fp;
+  }
+
+  beginTry(catchPc: number) {
+    let tag = createTag();
+
+    // push the current $up onto the stack;
+    // this makes the chain of $ups a linked list
+    this.#stack.push(this.#registers.up);
+    // save off the $sp of the beginning of the unwind frame
+    let sp = this.#registers.sp;
+
+    this.#stack.push(this.target(catchPc));
+    this.#registers.packed[$up] = sp;
+    // push the current $ra onto the stack
+    this.#stack.push(this.#registers.ra);
+    this.#stack.push(this.#registers.fp);
+  }
+
+  catch(e: unknown) {
+    let up = this.#registers.up;
+    let catchPc = this.#stack.get(1, up);
+
+    this.#registers.catchUnwindFrame(
+      this.#stack.get(0, up),
+      this.#stack.get(2, up),
+      this.#stack.get(3, up)
+    );
+    this.#registers.goto(catchPc);
+  }
+
+  finally() {
+    let up = this.#registers.up;
+
+    this.#registers.catchUnwindFrame(
+      this.#stack.get(0, up),
+      this.#stack.get(2, up),
+      this.#stack.get(3, up)
+    );
   }
 
   // Start a new frame and save $ra and $fp on the stack
@@ -337,6 +392,10 @@ export class LowLevelVM {
         return this.return();
       case MachineOp.ReturnTo:
         return this.returnTo(opcode.op1);
+      case MachineOp.PushTryFrame:
+        return this.beginTry(opcode.op1);
+      case MachineOp.PopTryFrame:
+        return this.finally();
     }
   }
 

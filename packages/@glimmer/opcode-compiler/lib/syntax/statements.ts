@@ -259,14 +259,25 @@ STATEMENTS.add(SexpOpcodes.InElement, (op, [, block, guid, destination, insertBe
 });
 
 STATEMENTS.add(SexpOpcodes.HandleError, (op, [, _handler, block, _inverse]) => {
-  return [
-    op(HighLevelBuilderOpcodes.StartLabels),
-    op(MachineOp.PushTryFrame, labelOperand('FINALLY')),
-    InvokeStaticBlock(op, block),
-    op(MachineOp.PopTryFrame),
-    op(HighLevelBuilderOpcodes.Label, 'FINALLY'),
-    op(HighLevelBuilderOpcodes.StopLabels),
-  ];
+  return op.labels(() => [
+    // If there's an error inside `block`, jump to the catch block
+
+    op(MachineOp.PushTryFrame, op.target('CATCH')),
+    op(Op.PushUnwindTarget),
+
+    ReplayableIf(
+      op,
+      () => 1,
+      () => {
+        InvokeStaticBlock(op, block);
+        op(MachineOp.PopTryFrame);
+        // Jump over the catch block
+        op(MachineOp.Jump, op.target('FINALLY'));
+        op.label('CATCH');
+        op.label('FINALLY');
+      }
+    ),
+  ]);
 });
 
 STATEMENTS.add(SexpOpcodes.If, (op, [, condition, block, inverse]) =>

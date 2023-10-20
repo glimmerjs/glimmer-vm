@@ -1,36 +1,7 @@
 import type { Dict, Nullable, PresentArray } from '@glimmer/interfaces';
+import type { Operand, OperandList } from './utils';
 
-// TODO: How do these map onto constant and machine types?
-export const OPERAND_TYPES = [
-  'u32',
-  'i32',
-  'owner',
-  'handle',
-  'str',
-  'option-str',
-  'array',
-  'str-array',
-  'bool',
-  'primitive',
-  'register',
-  'unknown',
-  'symbol-table',
-  'scope',
-];
-
-function isOperandType(s: string): s is OperandType {
-  return OPERAND_TYPES.indexOf(s as any) !== -1;
-}
-
-export type OperandType = (typeof OPERAND_TYPES)[number];
-
-export interface Operand {
-  type: OperandType;
-  name: string;
-}
-
-export type OperandList = ([] | [Operand] | [Operand, Operand] | [Operand, Operand, Operand]) &
-  Operand[];
+export type ShouldCheckOpcode = { type: 'checked' } | { type: 'unchecked'; reason: string };
 
 export interface NormalizedMetadata {
   name: string;
@@ -39,7 +10,7 @@ export interface NormalizedMetadata {
   stackChange: Nullable<number>;
   ops: OperandList;
   operands: number;
-  check: boolean;
+  check: ShouldCheckOpcode;
 }
 
 export type Stack = [string[], string[]];
@@ -56,31 +27,31 @@ export interface RawOperandMetadata {
 export type OperandName = `${string}:${string}`;
 export type RawOperandFormat = OperandName | PresentArray<OperandName>;
 
-export function normalize(key: string, input: RawOperandMetadata): NormalizedMetadata {
-  let name: string;
+// export function normalize(key: string, input: RawOperandMetadata): NormalizedMetadata {
+//   let name: string;
 
-  if (input.format === undefined) {
-    throw new Error(`Missing format in ${JSON.stringify(input)}`);
-  }
+//   if (input.format === undefined) {
+//     throw new Error(`Missing format in ${JSON.stringify(input)}`);
+//   }
 
-  if (Array.isArray(input.format)) {
-    name = input.format[0];
-  } else {
-    name = input.format;
-  }
+//   if (Array.isArray(input.format)) {
+//     name = input.format[0];
+//   } else {
+//     name = input.format;
+//   }
 
-  let ops: OperandList = Array.isArray(input.format) ? operands(input.format.slice(1)) : [];
+//   let ops: OperandList = Array.isArray(input.format) ? operands(input.format.slice(1)) : [];
 
-  return {
-    name,
-    mnemonic: key,
-    before: null,
-    stackChange: stackChange(input['operand-stack']),
-    ops,
-    operands: ops.length,
-    check: input.skip === true ? false : true,
-  };
-}
+//   return {
+//     name,
+//     mnemonic: key,
+//     before: null,
+//     stackChange: stackChange(input['operand-stack']),
+//     ops,
+//     operands: ops.length,
+//     check: input.skip === true ? false : true,
+//   };
+// }
 
 function stackChange(stack?: Stack): Nullable<number> {
   if (stack === undefined) {
@@ -104,86 +75,69 @@ function hasRest(input: string[]): boolean {
   return input.some((s) => s.slice(-3) === '...');
 }
 
-function operands(input: `${string}:${string}`[]): OperandList {
-  if (!Array.isArray(input)) {
-    throw new Error(`Expected operands array, got ${JSON.stringify(input)}`);
-  }
-  return input.map(op) as OperandList;
-}
-
-function op(input: `${string}:${string}`): Operand {
-  let [name, type] = input.split(':') as [string, string];
-
-  if (isOperandType(type)) {
-    return { name, type };
-  } else {
-    throw new Error(`Expected operand, found ${JSON.stringify(input)}`);
-  }
-}
-
 export interface NormalizedOpcodes {
   readonly machine: Dict<NormalizedMetadata>;
   readonly syscall: Dict<NormalizedMetadata>;
 }
 
-export function normalizeAll(parsed: {
-  machine: Dict<RawOperandMetadata>;
-  syscall: Dict<RawOperandMetadata>;
-}): NormalizedOpcodes {
-  let machine = normalizeParsed(parsed.machine);
-  let syscall = normalizeParsed(parsed.syscall);
+// export function normalizeAll(parsed: {
+//   machine: Dict<RawOperandMetadata>;
+//   syscall: Dict<RawOperandMetadata>;
+// }): NormalizedOpcodes {
+//   let machine = normalizeParsed(parsed.machine);
+//   let syscall = normalizeParsed(parsed.syscall);
 
-  return { machine, syscall };
-}
+//   return { machine, syscall };
+// }
 
-export function normalizeParsed(parsed: Dict<RawOperandMetadata>): Dict<NormalizedMetadata> {
-  let out = Object.create(null) as Dict<NormalizedMetadata>;
+// export function normalizeParsed(parsed: Dict<RawOperandMetadata>): Dict<NormalizedMetadata> {
+//   let out = Object.create(null) as Dict<NormalizedMetadata>;
 
-  for (const [key, value] of Object.entries(parsed)) {
-    out[key] = normalize(key, value);
-  }
+//   for (const [key, value] of Object.entries(parsed)) {
+//     out[key] = normalize(key, value);
+//   }
 
-  return out;
-}
+//   return out;
+// }
 
-export function buildEnum(
-  name: string,
-  parsed: Dict<NormalizedMetadata>,
-  offset: number,
-  max?: number
-): { enumString: string; predicate: string } {
-  let e = [`export enum ${name} {`];
+// export function buildEnum(
+//   name: string,
+//   parsed: Dict<NormalizedMetadata>,
+//   offset: number,
+//   max?: number
+// ): { enumString: string; predicate: string } {
+//   let e = [`export enum ${name} {`];
 
-  let last: number;
+//   let last: number;
 
-  Object.values(parsed).forEach((value, i) => {
-    e.push(`  ${value.name} = ${offset + i},`);
-    last = i;
-  });
+//   Object.values(parsed).forEach((value, i) => {
+//     e.push(`  ${value.name} = ${offset + i},`);
+//     last = i;
+//   });
 
-  e.push(`  Size = ${last! + offset + 1},`);
-  e.push('}');
+//   e.push(`  Size = ${last! + offset + 1},`);
+//   e.push('}');
 
-  let enumString = e.join('\n');
+//   let enumString = e.join('\n');
 
-  let predicate;
+//   let predicate;
 
-  if (max) {
-    predicate = strip`
-      export function is${name}(value: number): value is ${name} {
-        return value >= ${offset} && value <= ${max};
-      }
-    `;
-  } else {
-    predicate = strip`
-      export function is${name}(value: number): value is ${name} {
-        return value >= ${offset};
-      }
-    `;
-  }
+//   if (max) {
+//     predicate = strip`
+//       export function is${name}(value: number): value is ${name} {
+//         return value >= ${offset} && value <= ${max};
+//       }
+//     `;
+//   } else {
+//     predicate = strip`
+//       export function is${name}(value: number): value is ${name} {
+//         return value >= ${offset};
+//       }
+//     `;
+//   }
 
-  return { enumString, predicate };
-}
+//   return { enumString, predicate };
+// }
 
 export function strip(strings: TemplateStringsArray, ...args: unknown[]) {
   let out = '';
@@ -257,4 +211,7 @@ export function buildMetas(kind: META_KIND, all: Dict<NormalizedMetadata>): stri
   }
 
   return out.join('\n\n');
+}
+function op(value: `${string}:${string}`, index: number, array: `${string}:${string}`[]): Operand {
+  throw new Error('Function not implemented.');
 }

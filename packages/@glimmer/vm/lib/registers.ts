@@ -18,6 +18,11 @@ export type $fp = 2;
 export const $sp = 3;
 export type $sp = 3;
 // $4 or $up (unwind pointer): pointer into the `evalStack` for the unwind base of the stack
+// The layout of the stack after the $up is:
+// - the previous $up
+// - the 'catch' pc
+// - the previous $ra
+// - the previous $fp
 export const $up = 4;
 export type $up = 4;
 

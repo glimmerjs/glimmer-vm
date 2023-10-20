@@ -151,6 +151,7 @@ export interface InternalVM {
   goto(pc: number): void;
   call(handle: number): void;
   pushFrame(): void;
+  unwind(e: unknown): void;
 
   referenceForSymbol(symbol: number): Reference;
 
@@ -172,6 +173,7 @@ export interface VmDebugState {
   readonly ra: number;
   readonly pc: number;
   readonly sp: number;
+  readonly up: number;
   readonly stack: DebugStack;
 }
 
@@ -229,6 +231,9 @@ export class VM implements PublicVM, InternalVM {
         },
         get sp() {
           return inner.debug.registers.sp;
+        },
+        get up() {
+          return inner.debug.registers.up;
         },
       };
     }
@@ -422,6 +427,10 @@ export class VM implements PublicVM, InternalVM {
 
   get env(): Environment {
     return this.runtime.env;
+  }
+
+  unwind(e: unknown) {
+    this.#inner.catch(e);
   }
 
   captureState(args: number, pc = this.#inner.pc): VMState {
