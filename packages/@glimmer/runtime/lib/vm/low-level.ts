@@ -1,7 +1,7 @@
 import type { Expand, Nullable, RuntimeHeap, RuntimeOp, RuntimeProgram } from '@glimmer/interfaces';
 import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
 import { assert } from '@glimmer/util';
-import { $fp, $pc, $ra, $sp, $up, MachineOp } from '@glimmer/vm';
+import { $fp, $pc, $ra, $sp, $up, Op } from '@glimmer/vm';
 
 import { APPEND_OPCODES } from '../opcodes';
 import type { VM } from './append';
@@ -109,12 +109,23 @@ export class Registers {
     this.#packed[$sp] = check(to, CheckNumber);
   }
 
-  catchUnwindFrame(up: number, ra: number, fp: number) {
+  /**
+   * Attempt to catch a stack unwind. Returns true if the unwind was successful, false otherwise.
+   *
+   * @param up
+   * @param ra
+   * @param fp
+   * @returns
+   */
+  catchUnwindFrame(up: number, ra: number, fp: number): boolean {
     let to = this.#packed[$up] - 1;
-    this.#packed[$up] = check(up, CheckNumber);
+    this.#packed[$up] = up;
+
     this.#packed[$ra] = check(ra, CheckNumber);
     this.#packed[$fp] = check(fp, CheckNumber);
     this.#packed[$sp] = to;
+
+    return true;
   }
 
   /**
@@ -252,6 +263,7 @@ export class LowLevelVM {
   }
 
   beginTry(catchPc: number) {
+    // @active create error cell
     let tag = createTag();
 
     // push the current $up onto the stack;
@@ -269,6 +281,11 @@ export class LowLevelVM {
 
   catch(e: unknown) {
     let up = this.#registers.up;
+
+    if (up === -1) {
+      throw e;
+    }
+
     let catchPc = this.#stack.get(1, up);
 
     this.#registers.catchUnwindFrame(
@@ -276,6 +293,7 @@ export class LowLevelVM {
       this.#stack.get(2, up),
       this.#stack.get(3, up)
     );
+
     this.#registers.goto(catchPc);
   }
 
@@ -378,23 +396,23 @@ export class LowLevelVM {
 
   evaluateMachine(opcode: RuntimeOp) {
     switch (opcode.type) {
-      case MachineOp.PushFrame:
+      case Op.PushFrame:
         return this.pushFrame();
-      case MachineOp.PopFrame:
+      case Op.PopFrame:
         return this.popFrame();
-      case MachineOp.InvokeStatic:
+      case Op.InvokeStatic:
         return this.call(opcode.op1);
-      case MachineOp.InvokeVirtual:
+      case Op.InvokeVirtual:
         return this.call(this.#stack.pop());
-      case MachineOp.Jump:
+      case Op.Jump:
         return this.goto(opcode.op1);
-      case MachineOp.Return:
+      case Op.Return:
         return this.return();
-      case MachineOp.ReturnTo:
+      case Op.ReturnTo:
         return this.returnTo(opcode.op1);
-      case MachineOp.PushTryFrame:
+      case Op.PushTryFrame:
         return this.beginTry(opcode.op1);
-      case MachineOp.PopTryFrame:
+      case Op.PopTryFrame:
         return this.finally();
     }
   }

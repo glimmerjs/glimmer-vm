@@ -1,15 +1,6 @@
-import type {
-  VmMachineOp,
-  VmMachineOpMap,
-  VmMachineOpName,
-  VmOp,
-  VmOpMap,
-  VmOpName,
-} from '@glimmer/interfaces';
-import { array } from '@glimmer/util';
-import type { FixedArray } from '@glimmer/util';
+import type { TupleIndices, VmMachineOp, VmOp, VmOpMap, VmOpName } from '@glimmer/interfaces';
 
-export const MachineOpNames = [
+export const OpNames: VmOpMap = [
   'PushFrame',
   'PopFrame',
   'InvokeVirtual',
@@ -20,19 +11,12 @@ export const MachineOpNames = [
   'PushTryFrame',
   'PopTryFrame',
   'UnwindTypeFrame',
-] as const satisfies readonly VmMachineOpName[];
-
-export const MachineOpSize = MachineOpNames.length;
-
-export const MachineOp = MachineOpNames.reduce(
-  (acc, name, i) => {
-    acc[name] = i;
-    return acc;
-  },
-  {} as Record<VmMachineOpName, number>
-) as VmMachineOpMap;
-
-export const JustOpNames = [
+  null,
+  null,
+  null,
+  null,
+  null,
+  null,
   'Helper',
   'SetNamedVariables',
   'SetBlocks',
@@ -101,7 +85,6 @@ export const JustOpNames = [
   'ResolveCurriedComponent',
   'PushArgs',
   'PushEmptyArgs',
-  'PopArgs',
   'PrepareArgs',
   'CaptureArgs',
   'CreateComponent',
@@ -110,7 +93,6 @@ export const JustOpNames = [
   'GetComponentSelf',
   'GetComponentTagName',
   'GetComponentLayout',
-  'BindEvalScope',
   'SetupForEval',
   'PopulateLayout',
   'InvokeComponentLayout',
@@ -118,7 +100,6 @@ export const JustOpNames = [
   'CommitComponentTransaction',
   'DidCreateElement',
   'DidRenderLayout',
-  'ResolveMaybeLocal',
   'Debugger',
   'StaticComponentAttr',
   'DynamicContentType',
@@ -130,20 +111,17 @@ export const JustOpNames = [
   'Log',
   'PushUnwindTarget',
 ] as const;
-
-export const OpNames = [...array<null>().allocate(16), ...JustOpNames] as const satisfies readonly [
-  ...FixedArray<null, 16>,
-  ...VmOpName[],
-];
 export const OpSize = OpNames.length;
 
-export const Op = JustOpNames.reduce(
+type OpMapKey<P> = P extends TupleIndices<VmOpMap> ? NonNullable<VmOpMap[P]> : never;
+
+export const Op = OpNames.reduce(
   (acc, name, i) => {
-    acc[name] = i + 16;
+    if (name !== null) acc[name] = i;
     return acc;
   },
-  {} as Record<VmOpName, number>
-) as VmOpMap;
+  {} as Record<string, number>
+) as { [P in TupleIndices<VmOpMap> as OpMapKey<P>]: P };
 
 export function isMachineOp(value: number): value is VmMachineOp {
   return value >= 0 && value <= 15;

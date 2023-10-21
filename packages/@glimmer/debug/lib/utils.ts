@@ -1,16 +1,17 @@
-import type { Nullable, Optional, VmMachineOpName, VmOpName } from '@glimmer/interfaces';
+import type { Nullable, Optional, VmOpName } from '@glimmer/interfaces';
 import type { NormalizedMetadata } from './metadata';
 import { assertNever, fillNulls } from '@glimmer/util';
-import type { JustOpNames, MachineOpNames } from '@glimmer/vm';
-import { MachineOpSize } from '@glimmer/vm';
+import { OpSize, type OpNames } from '@glimmer/vm';
 
-type NameDef = `${VmMachineOpName | VmOpName} as ${string}`;
+type NameDef<Name extends Nullable<VmOpName> = VmOpName> = Name extends null
+  ? null
+  : `${Name} as ${string}`;
 
 export function define(
   nameDef: NameDef,
   ops: ShorthandOperandList,
   { stackChange, unchecked }: MetadataDefinition = {}
-): NormalizedMetadata {
+): Nullable<NormalizedMetadata> {
   let [name, mnemonic] = nameDef.split(' as ') as [string, string];
   return {
     name,
@@ -37,17 +38,25 @@ export const UNCHANGED = Symbol('UNCHANGED');
 // @note STACK_TYPES
 export const STACK_TYPES = [
   'block/template',
-  'block/handle',
   'block/invocation',
+  // a block is a pair of [block/table, block/handle]
+  'block/table',
+  'block/handle',
+  'block/table?',
 
   'component/definition',
+  'component/%definition',
+  'component/%value',
+  'component/instance',
 
-  'scope',
+  // either a block or program table
   'table',
-  'table?',
-  'table/block',
+  'scope',
   'bool',
+
   'args',
+  'args/captured',
+
   // $pc or $ra
   'register/instruction',
   // $sp or $fp
@@ -56,15 +65,20 @@ export const STACK_TYPES = [
   'reference/bool',
   'reference/any',
   'reference/fn',
+  'reference/definition',
 
   'i32',
+  'i32/todo',
 
   /**
    * {@linkcode ContentType | Content Type Enum}
    */
-  'i32/ctype',
+  'enum/ctype',
 
   'glimmer/iterator',
+
+  'value/dynamic',
+  'value/str',
 
   UNCHANGED,
 ] as const;
@@ -73,20 +87,33 @@ export type StackType = (typeof STACK_TYPES)[number];
 
 // @note OPERAND_TYPES
 export const OPERAND_TYPES = [
-  'u32',
-  'i32',
+  // imm means immediate
+  'imm/u32',
+  'imm/i32',
+  // encoded as 0 or 1
+  'imm/bool',
+  // the operand is an i32 or u32, but it has a more specific meaning that should be captured here
+  'imm/u32{todo}',
+  'imm/i32{todo}',
 
-  'pc',
-  'owner',
+  'imm/enum<curry>',
+  'imm/block:handle',
+
+  'imm/pc',
   'handle',
+
+  'const/i32[]',
   'const/str',
   'const/str?',
-  'const/array/any',
-  'const/array/str',
+  'const/any[]',
+  'const/str[]',
   'const/bool',
   'const/fn',
   'const/any',
+
+  // could be an immediate
   'const/primitive',
+  'const/definition',
 
   'register',
   // $pc, $ra
@@ -94,9 +121,12 @@ export const OPERAND_TYPES = [
   // $sp, $fp
   'register/stack',
   // $s0, $s1, $t0, $t1, $v0
-  'register/syscall',
+  'register/sN',
+  'register/tN',
+  'register/v0',
 
   'variable',
+
   'instruction/relative',
   'instruction/absolute',
 ] as const;
@@ -136,7 +166,7 @@ function op(input: ShorthandOp): Operand {
   }
 }
 
-type OpName = VmOpName | VmMachineOpName;
+type OpName = VmOpName;
 
 interface Op {
   readonly op1: number;
@@ -189,6 +219,7 @@ function stackDynamic(dynamic?: DynamicStackFn): MetadataOption {
 }
 
 function toOptions(
+  op: string,
   options: MetadataOption[]
 ): [operands: ShorthandOperandList, options: MetadataDefinition] {
   let operands: ShorthandOperandList = [];
@@ -228,24 +259,36 @@ function toOptions(
     }
   }
 
-  if (stackInfo.params && stackInfo.returns) {
+  if (stackInfo.params) {
     if (definition.stackChange) {
       throw new Error(
-        `IF stack params or stack returns are specified, stack change must not be (found ${JSON.stringify(
+        `ERROR in ${op}: IF stack params or stack returns are specified, stack change must not be (found ${JSON.stringify(
           options
         )})`
       );
     }
 
-    definition.stackChange = stackReturns.length - stackParams.length;
-  } else if (stackInfo.params || stackInfo.returns) {
+    if (stackInfo.returns) {
+      definition.stackChange = stackReturns.length - stackParams.length;
+    } else if (dynamicStack) {
+      definition.stackChange = null;
+    } else {
+      throw new Error(
+        `ERROR in ${op}: IF stack params are specified, stack returns must be specified (found ${JSON.stringify(
+          options
+        )})`
+      );
+    }
+  } else if (stackInfo.returns) {
     throw new Error(
-      `IF stack params or stack returns are specified, both must be specified (found ${JSON.stringify(
+      `ERROR in ${op}: IF stack stack returns are specified, stack params must be specified (found ${JSON.stringify(
         options
       )})`
     );
   } else if (dynamicStack) {
     definition.stackChange = null;
+  } else {
+    definition.stackChange = 0;
   }
 
   return [operands, definition];
@@ -259,32 +302,28 @@ type Mutable<T> = {
   -readonly [P in keyof T]: T[P];
 };
 
-export class MetadataBuilder<out Op, in out SoFar extends OpName[], in out Rest extends OpName[]> {
-  static machine<T extends OpName[]>(
+export const RESERVED = Symbol('RESERVED');
+export type RESERVED = typeof RESERVED;
+
+export class MetadataBuilder<
+  out Op,
+  in out SoFar extends Nullable<OpName>[],
+  in out Rest extends Nullable<OpName>[],
+> {
+  static build<T extends Nullable<OpName>[]>(
     build: (
-      builder: MetadataBuilder<typeof MachineOpNames, [], Mutable<typeof MachineOpNames>>
-    ) => MetadataBuilder<typeof MachineOpNames, T, any>
-  ): { [P in keyof T]: NormalizedMetadata } {
-    let builder = new MetadataBuilder<typeof MachineOpNames, [], Mutable<typeof MachineOpNames>>(
-      fillNulls(MachineOpSize)
+      builder: MetadataBuilder<typeof OpNames, [], Mutable<typeof OpNames>>
+    ) => MetadataBuilder<typeof OpNames, T, any>
+  ): NormalizedMetadataArray<T> {
+    let builder = new MetadataBuilder<typeof OpNames, [], Mutable<typeof OpNames>>(
+      fillNulls(OpSize)
     );
     return build(builder).#done() as any;
   }
 
-  static syscall<T extends OpName[]>(
-    build: (
-      builder: MetadataBuilder<typeof JustOpNames, [], Mutable<typeof JustOpNames>>
-    ) => MetadataBuilder<typeof JustOpNames, T, any>
-  ): { [P in keyof T]: NormalizedMetadata } {
-    let builder = new MetadataBuilder<typeof JustOpNames, [], Mutable<typeof JustOpNames>>(
-      fillNulls(MachineOpSize)
-    );
-    return build(builder).#done() as any;
-  }
+  #metadata: Nullable<NormalizedMetadata>[];
 
-  #metadata: NormalizedMetadata[];
-
-  private constructor(metadata: NormalizedMetadata[]) {
+  private constructor(metadata: Nullable<NormalizedMetadata>[]) {
     this.#metadata = metadata;
   }
 
@@ -295,10 +334,17 @@ export class MetadataBuilder<out Op, in out SoFar extends OpName[], in out Rest 
   readonly to = stackReturns;
 
   readonly add = (
-    name: `${Rest[0]} as ${string}`,
+    name: Rest[0] extends null ? RESERVED : NameDef<NonNullable<Rest[0]>>,
     ...options: MetadataOption[]
   ): MetadataBuilder<Op, [...SoFar, Rest[0]], Slice<Rest>> => {
-    this.#metadata.push(define(name, ...toOptions(options)));
+    if (name === RESERVED) {
+      this.#metadata.push(null);
+    } else {
+      const normalizedOptions: Slice<Parameters<typeof define>> =
+        name === RESERVED ? [[]] : toOptions(name.split(' as ')[0] as string, options);
+      this.#metadata.push(define(name, ...normalizedOptions));
+    }
+
     return this as any;
   };
 

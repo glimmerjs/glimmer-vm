@@ -14,7 +14,6 @@ import {
   $s1,
   $sp,
   InternalComponentCapabilities,
-  MachineOp,
   Op,
   type SavedRegister,
 } from '@glimmer/vm';
@@ -174,7 +173,7 @@ function InvokeStaticComponent(
   op(Op.Fetch, $s0);
   op(Op.Dup, $sp, 1);
   op(Op.Load, $s0);
-  op(MachineOp.PushFrame);
+  op(Op.PushFrame);
 
   // Setup arguments
   let { symbols } = symbolTable;
@@ -318,10 +317,10 @@ function InvokeStaticComponent(
 
   op(Op.Constant, layoutOperand(layout));
   op(Op.CompileBlock);
-  op(MachineOp.InvokeVirtual);
+  op(Op.InvokeVirtual);
   op(Op.DidRenderLayout, $s0);
 
-  op(MachineOp.PopFrame);
+  op(Op.PopFrame);
   op(Op.PopScope);
 
   if (hasCapability(capabilities, InternalComponentCapabilities.dynamicScope)) {
@@ -348,7 +347,7 @@ export function InvokeNonStaticComponent(
   op(Op.Dup, $sp, 1);
   op(Op.Load, $s0);
 
-  op(MachineOp.PushFrame);
+  op(Op.PushFrame);
   CompileArgs(op, positional, named, blocks, atNames);
   op(Op.PrepareArgs, $s0);
 
@@ -428,7 +427,7 @@ export function invokePreparedComponent(
   op(Op.Pop, 1);
   op(Op.InvokeComponentLayout, $s0);
   op(Op.DidRenderLayout, $s0);
-  op(MachineOp.PopFrame);
+  op(Op.PopFrame);
 
   op(Op.PopScope);
   op(Op.PopDynamicScope);
@@ -440,7 +439,7 @@ export function InvokeBareComponent(op: PushStatementOp): void {
   op(Op.Dup, $sp, 1);
   op(Op.Load, $s0);
 
-  op(MachineOp.PushFrame);
+  op(Op.PushFrame);
   op(Op.PushEmptyArgs);
   op(Op.PrepareArgs, $s0);
   invokePreparedComponent(op, false, false, true, () => {

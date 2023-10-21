@@ -26,7 +26,7 @@ import {
   isPresentArray,
   Stack,
 } from '@glimmer/util';
-import { ARG_SHIFT, isMachineOp, MACHINE_MASK, MachineOp, Op, TYPE_SIZE } from '@glimmer/vm';
+import { ARG_SHIFT, isMachineOp, MACHINE_MASK, Op, TYPE_SIZE } from '@glimmer/vm';
 
 import { compilableBlock } from '../compilable-template';
 import {
@@ -162,7 +162,7 @@ export class EncoderImpl implements Encoder {
   commit(size: number): HandleResult {
     let handle = this.handle;
 
-    this.heap.pushMachine(MachineOp.Return);
+    this.heap.pushMachine(Op.Return);
     this.heap.finishMalloc(handle, size);
 
     if (isPresentArray(this.errors)) {

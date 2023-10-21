@@ -3,8 +3,6 @@ import type {
   InstructionEncoder,
   MACHINE_MASK,
   Operand,
-  SomeVmOp,
-  VmMachineOp,
   VmOp,
 } from '@glimmer/interfaces';
 import { ARG_SHIFT, MAX_SIZE, TYPE_SIZE } from '@glimmer/vm';
@@ -14,9 +12,9 @@ export class InstructionEncoderImpl implements InstructionEncoder {
 
   size = 0;
 
-  encode(type: VmMachineOp, machine: MACHINE_MASK, ...operands: Operand[]): void;
+  encode(type: VmOp, machine: MACHINE_MASK, ...operands: Operand[]): void;
   encode(type: VmOp, machine: 0, ...operands: Operand[]): void;
-  encode(type: SomeVmOp, machine: 0 | MACHINE_MASK, ...args: Operand[]) {
+  encode(type: VmOp, machine: 0 | MACHINE_MASK, ...args: Operand[]) {
     if ((type as number) > TYPE_SIZE) {
       throw new Error(`Opcode type over 8-bits. Got ${type}.`);
     }

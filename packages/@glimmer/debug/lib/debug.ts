@@ -7,8 +7,15 @@ import type {
   RuntimeOp,
   TemplateCompilationContext,
 } from '@glimmer/interfaces';
-import { LOCAL_TRACE_LOGGING } from '@glimmer/local-debug-flags';
-import { decodeHandle, decodeImmediate, enumerate, LOCAL_LOGGER, unreachable } from '@glimmer/util';
+import { LOCAL_DEBUG, LOCAL_TRACE_LOGGING } from '@glimmer/local-debug-flags';
+import {
+  decodeHandle,
+  decodeImmediate,
+  enumerate,
+  exhausted,
+  LOCAL_LOGGER,
+  unreachable,
+} from '@glimmer/util';
 import { $fp, $pc, $ra, $s0, $s1, $sp, $t0, $t1, $v0 } from '@glimmer/vm';
 
 import { opcodeMetadata } from './opcode-metadata';
@@ -19,7 +26,7 @@ export interface DebugConstants {
   getArray<T>(value: number): T[];
 }
 
-export function debugSlice(context: TemplateCompilationContext, start: number, end: number) {
+export function logOpcodeSlice(context: TemplateCompilationContext, start: number, end: number) {
   if (LOCAL_TRACE_LOGGING) {
     LOCAL_LOGGER.group(`%c${start}:${end}`, 'color: #999');
 
@@ -34,11 +41,10 @@ export function debugSlice(context: TemplateCompilationContext, start: number, e
           CompileTimeConstants & ResolutionTimeConstants,
           DebugConstants
         >,
-        opcode,
-        opcode.isMachine
+        opcode
       )!;
 
-      LOCAL_LOGGER.debug(`${i}. ${logOpcode(name, params)}`);
+      LOCAL_LOGGER.debug(`${i}. ${debugOpcode(name, params)}`);
 
       _size = opcode.size;
     }
@@ -47,8 +53,8 @@ export function debugSlice(context: TemplateCompilationContext, start: number, e
   }
 }
 
-export function logOpcode(type: string, params: Dict<DebugOperand>): string | void {
-  if (LOCAL_TRACE_LOGGING) {
+export function debugOpcode(type: string, params: Dict<DebugOperand>): string | void {
+  if (LOCAL_DEBUG) {
     let out = type;
 
     if (params) {
@@ -144,7 +150,7 @@ function json(param: DebugOperand): string | string[] {
       return stringify(param.value, 'constant');
     case 'register':
       return stringify(param.value, 'register');
-    case 'pc':
+    case 'instruction':
       return stringify(param.value, 'pc');
     case 'variable':
       return stringify(param.value, 'variable');
@@ -152,6 +158,11 @@ function json(param: DebugOperand): string | string[] {
       return `{raw:${param.value}}`;
     case 'error:operand':
       return `{err:${param.kind}=${param.value}}`;
+    case 'enum<curry>':
+      return `<curry:${param.value}>`;
+
+    default:
+      exhausted(param);
   }
 }
 
@@ -174,7 +185,8 @@ export type DebugOperand =
   | { type: 'boolean'; value: boolean }
   | { type: 'primitive'; value: Primitive }
   | { type: 'register'; value: RegisterName }
-  | { type: 'pc'; value: number }
+  | { type: 'instruction'; value: number }
+  | { type: 'enum<curry>'; value: 'component' | 'helper' | 'modifier' }
   /**
    * A variable is a numeric offset into the stack (relative to the $fp register).
    */
@@ -190,13 +202,9 @@ export type DebugOperand =
       kind: typeof String;
     };
 
-export function debug(
-  c: DebugConstants,
-  op: RuntimeOp,
-  isMachine: 0 | 1
-): [string, Dict<DebugOperand>] {
-  if (LOCAL_TRACE_LOGGING) {
-    let metadata = opcodeMetadata(op.type, isMachine);
+export function debug(c: DebugConstants, op: RuntimeOp): [string, Dict<DebugOperand>] {
+  if (LOCAL_DEBUG) {
+    let metadata = opcodeMetadata(op.type);
 
     let out: Dict<DebugOperand> = Object.create(null);
     if (!metadata) {
@@ -210,54 +218,57 @@ export function debug(
         let actualOperand = opcodeOperand(op, index);
 
         switch (operand.type) {
-          case 'u32':
-          case 'i32':
-          case 'owner':
+          case 'imm/u32':
+          case 'imm/i32':
+          case 'imm/i32{todo}':
+          case 'imm/u32{todo}':
             out[operand.name] = { type: 'number', value: actualOperand };
+            break;
+          case 'imm/bool':
+            out[operand.name] = { type: 'boolean', value: !!actualOperand };
             break;
           case 'handle':
             out[operand.name] = { type: 'constant', value: c.getValue(actualOperand) };
             break;
-          case 'str':
+          case 'const/str':
             out[operand.name] = { type: 'string', value: c.getValue<string>(actualOperand) };
-          case 'option-str':
+          case 'const/str?':
             out[operand.name] = {
               type: 'string',
               value: c.getValue(actualOperand),
               nullable: true,
             };
             break;
-          case 'array':
+          case 'const/any[]':
             out[operand.name] = {
               type: 'array',
               value: c.getArray<unknown>(actualOperand),
             };
-          case 'str-array':
+            break;
+          case 'const/str[]':
             out[operand.name] = {
               type: 'array',
               value: c.getArray<string>(actualOperand),
               kind: String,
             };
             break;
-          case 'bool':
-            out[operand.name] = { type: 'boolean', value: !!actualOperand };
-            break;
-          case 'primitive':
+
+          case 'const/primitive':
             out[operand.name] = { type: 'primitive', value: decodePrimitive(actualOperand, c) };
             break;
           case 'register':
             out[operand.name] = { type: 'register', value: decodeRegister(actualOperand) };
             break;
-          case 'unknown':
+          case 'const/any':
             out[operand.name] = { type: 'dynamic', value: c.getValue(actualOperand) };
             break;
-          case 'symbol-table':
-          case 'scope':
+          case 'variable':
             out[operand.name] = { type: 'variable', value: actualOperand };
             break;
-          case 'pc':
-            out[operand.name] = { type: 'pc', value: actualOperand };
+          case 'register/instruction':
+            out[operand.name] = { type: 'instruction', value: actualOperand };
             break;
+          case 'imm/enum<curry>':
           default:
             out[operand.name] = { type: 'error:operand', kind: operand.type, value: actualOperand };
         }

@@ -5,7 +5,7 @@ import type {
   WellKnownTagName,
   WireFormat,
 } from '@glimmer/interfaces';
-import { $fp, $sp, ContentType, MachineOp, Op } from '@glimmer/vm';
+import { $fp, $sp, ContentType, Op } from '@glimmer/vm';
 import { SexpOpcodes } from '@glimmer/wire-format';
 
 import {
@@ -62,18 +62,18 @@ STATEMENTS.add(SexpOpcodes.FlushElement, (op) => op(Op.FlushElement));
 STATEMENTS.add(SexpOpcodes.Modifier, (op, [, expression, positional, named]) => {
   if (isGetFreeModifier(expression)) {
     op(HighLevelResolutionOpcodes.Modifier, expression, (handle: number) => {
-      op(MachineOp.PushFrame);
+      op(Op.PushFrame);
       SimpleArgs(op, positional, named, false);
       op(Op.Modifier, handle);
-      op(MachineOp.PopFrame);
+      op(Op.PopFrame);
     });
   } else {
     expr(op, expression);
-    op(MachineOp.PushFrame);
+    op(Op.PushFrame);
     SimpleArgs(op, positional, named, false);
     op(Op.Dup, $fp, 1);
     op(Op.DynamicModifier);
-    op(MachineOp.PopFrame);
+    op(Op.PopFrame);
   }
 });
 
@@ -145,17 +145,17 @@ STATEMENTS.add(SexpOpcodes.Append, (op, [, value]) => {
       },
 
       ifHelper(handle: number) {
-        op(MachineOp.PushFrame);
+        op(Op.PushFrame);
         Call(op, handle, null, null);
-        op(MachineOp.InvokeStatic, stdlibOperand('cautious-non-dynamic-append'));
-        op(MachineOp.PopFrame);
+        op(Op.InvokeStatic, stdlibOperand('cautious-non-dynamic-append'));
+        op(Op.PopFrame);
       },
 
       ifValue(handle: number) {
-        op(MachineOp.PushFrame);
+        op(Op.PushFrame);
         op(Op.ConstantReference, handle);
-        op(MachineOp.InvokeStatic, stdlibOperand('cautious-non-dynamic-append'));
-        op(MachineOp.PopFrame);
+        op(Op.InvokeStatic, stdlibOperand('cautious-non-dynamic-append'));
+        op(Op.PopFrame);
       },
     });
   } else if (value[0] === SexpOpcodes.Call) {
@@ -167,10 +167,10 @@ STATEMENTS.add(SexpOpcodes.Append, (op, [, value]) => {
           InvokeComponent(op, component, null, positional, hashToArgs(named), null);
         },
         ifHelper(handle: number) {
-          op(MachineOp.PushFrame);
+          op(Op.PushFrame);
           Call(op, handle, positional, named);
-          op(MachineOp.InvokeStatic, stdlibOperand('cautious-non-dynamic-append'));
-          op(MachineOp.PopFrame);
+          op(Op.InvokeStatic, stdlibOperand('cautious-non-dynamic-append'));
+          op(Op.PopFrame);
         },
       });
     } else {
@@ -196,17 +196,17 @@ STATEMENTS.add(SexpOpcodes.Append, (op, [, value]) => {
 
           when(ContentType.Helper, () => {
             CallDynamic(op, positional, named, () => {
-              op(MachineOp.InvokeStatic, stdlibOperand('cautious-non-dynamic-append'));
+              op(Op.InvokeStatic, stdlibOperand('cautious-non-dynamic-append'));
             });
           });
         }
       );
     }
   } else {
-    op(MachineOp.PushFrame);
+    op(Op.PushFrame);
     expr(op, value);
-    op(MachineOp.InvokeStatic, stdlibOperand('cautious-append'));
-    op(MachineOp.PopFrame);
+    op(Op.InvokeStatic, stdlibOperand('cautious-append'));
+    op(Op.PopFrame);
   }
 });
 
@@ -214,10 +214,10 @@ STATEMENTS.add(SexpOpcodes.TrustingAppend, (op, [, value]) => {
   if (!Array.isArray(value)) {
     op(Op.Text, value === null || value === undefined ? '' : String(value));
   } else {
-    op(MachineOp.PushFrame);
+    op(Op.PushFrame);
     expr(op, value);
-    op(MachineOp.InvokeStatic, stdlibOperand('trusting-append'));
-    op(MachineOp.PopFrame);
+    op(Op.InvokeStatic, stdlibOperand('trusting-append'));
+    op(Op.PopFrame);
   }
 });
 
@@ -262,7 +262,7 @@ STATEMENTS.add(SexpOpcodes.HandleError, (op, [, _handler, block, _inverse]) => {
   return op.labels(() => [
     // If there's an error inside `block`, jump to the catch block
 
-    op(MachineOp.PushTryFrame, op.target('CATCH')),
+    op(Op.PushTryFrame, op.target('CATCH')),
     op(Op.PushUnwindTarget),
 
     ReplayableIf(
@@ -270,9 +270,9 @@ STATEMENTS.add(SexpOpcodes.HandleError, (op, [, _handler, block, _inverse]) => {
       () => 1,
       () => {
         InvokeStaticBlock(op, block);
-        op(MachineOp.PopTryFrame);
+        op(Op.PopTryFrame);
         // Jump over the catch block
-        op(MachineOp.Jump, op.target('FINALLY'));
+        op(Op.Jump, op.target('FINALLY'));
         op.label('CATCH');
         op.label('FINALLY');
       }
@@ -320,19 +320,19 @@ STATEMENTS.add(SexpOpcodes.Each, (op, [, value, key, block, inverse]) =>
 
     () => {
       op(Op.EnterList, labelOperand('BODY'), labelOperand('ELSE'));
-      op(MachineOp.PushFrame);
+      op(Op.PushFrame);
       op(Op.Dup, $fp, 1);
-      op(MachineOp.ReturnTo, labelOperand('ITER'));
+      op(Op.ReturnTo, labelOperand('ITER'));
       op(HighLevelBuilderOpcodes.Label, 'ITER');
       op(Op.Iterate, labelOperand('BREAK'));
       op(HighLevelBuilderOpcodes.Label, 'BODY');
       InvokeStaticBlockWithStack(op, block, 2);
       op(Op.Pop, 2);
-      op(MachineOp.Jump, labelOperand('FINALLY'));
+      op(Op.Jump, labelOperand('FINALLY'));
       op(HighLevelBuilderOpcodes.Label, 'BREAK');
-      op(MachineOp.PopFrame);
+      op(Op.PopFrame);
       op(Op.ExitList);
-      op(MachineOp.Jump, labelOperand('FINALLY'));
+      op(Op.Jump, labelOperand('FINALLY'));
       op(HighLevelBuilderOpcodes.Label, 'ELSE');
 
       if (inverse) {

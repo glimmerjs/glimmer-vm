@@ -18,7 +18,7 @@ import type {
   RuntimeConstants,
   ScopeBlock,
   VM as PublicVM,
-} from "@glimmer/interfaces";
+} from '@glimmer/interfaces';
 import {
   childRefFor,
   createComputeRef,
@@ -174,18 +174,6 @@ APPEND_OPCODES.add(Op.SetBlock, (vm, { op1: symbol }) => {
   let table = check(vm.stack.pop(), CheckBlockSymbolTable);
 
   vm.scope().bindBlock(symbol, [handle, scope, table]);
-});
-
-APPEND_OPCODES.add(Op.ResolveMaybeLocal, (vm, { op1: _name }) => {
-  let name = vm[CONSTANTS].getValue<string>(_name);
-  let locals = vm.scope().getPartialMap()!;
-
-  let ref = locals[name];
-  if (ref === undefined) {
-    ref = childRefFor(vm.getSelf(), name);
-  }
-
-  vm.stack.push(ref);
 });
 
 APPEND_OPCODES.add(Op.RootScope, (vm, { op1: symbols }) => {

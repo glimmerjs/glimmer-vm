@@ -52,9 +52,23 @@
   "typescript.workspaceSymbols.scope": "currentProject",
   "eslint.problems.shortenToSingleLine": true,
   "inline-bookmarks.expert.custom.words.mapping": {
-    "warn": ["@premerge(\\s|$)"]
+    "warn": ["@premerge(\\s|$)"],
+    "active": ["@active(\\s|$)"]
   },
   "inline-bookmarks.expert.custom.styles": {
+    "active": {
+      // teal
+      "gutterIconColor": "#009999",
+      "overviewRulerColor": "rgba(0, 150, 150, 0.7)",
+      "light": {
+        "fontWeight": "bold",
+        "color": "#009999"
+      },
+      "dark": {
+        "fontWeight": "bold",
+        "color": "#00ffff"
+      }
+    },
     "warn": {
       // yellow
       "gutterIconColor": "#999900",
@@ -68,5 +82,6 @@
         "color": "#ffff00"
       }
     }
-  }
+  },
+  "inline-bookmarks.view.showVisibleFilesOnly": false
 }

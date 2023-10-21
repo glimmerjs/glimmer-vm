@@ -1,4 +1,4 @@
-import { debugSlice } from '@glimmer/debug';
+import { logOpcodeSlice } from '@glimmer/debug';
 import type { HandleResult, TemplateCompilationContext } from "@glimmer/interfaces";
 import { LOCAL_TRACE_LOGGING } from '@glimmer/local-debug-flags';
 import { extractHandle } from '@glimmer/util';
@@ -12,6 +12,6 @@ if (LOCAL_TRACE_LOGGING) {
     let start = heap.getaddr(handle);
     let end = start + heap.sizeof(handle);
 
-    debugSlice(context, start, end);
+    logOpcodeSlice(context, start, end);
   };
 }

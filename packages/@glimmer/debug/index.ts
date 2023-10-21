@@ -1,7 +1,7 @@
 export {
   debug,
-  debugSlice,
-  logOpcode,
+  logOpcodeSlice,
+  debugOpcode,
   type DebugConstants,
   type DebugOperand,
   type RegisterName,

@@ -1,23 +1,15 @@
 import {
   debug,
-  logOpcode,
+  debugOpcode,
   opcodeMetadata,
   recordStackSize,
   type DebugOperand,
 } from '@glimmer/debug';
-import type {
-  Dict,
-  Nullable,
-  Optional,
-  RuntimeOp,
-  SomeVmOp,
-  VmMachineOp,
-  VmOp,
-} from '@glimmer/interfaces';
+import type { Dict, Nullable, Optional, RuntimeOp, VmMachineOp, VmOp } from '@glimmer/interfaces';
 import { LOCAL_DEBUG, LOCAL_TRACE_LOGGING } from '@glimmer/local-debug-flags';
 import { valueForRef } from '@glimmer/reference';
 import { assert, fillNulls, LOCAL_LOGGER, unwrap } from '@glimmer/util';
-import { Op } from '@glimmer/vm';
+import { OpNames, OpSize } from '@glimmer/vm';
 
 import { isScopeReference } from './scope';
 import { CONSTANTS, DESTROYABLE_STACK, STACKS } from './symbols';
@@ -57,15 +49,12 @@ export type DebugState = {
 };
 
 export class AppendOpcodes {
-  private evaluateOpcode: Evaluate[] = fillNulls<Evaluate>(Op.Size).slice();
+  private evaluateOpcode: Evaluate[] = fillNulls<Evaluate>(OpSize).slice();
 
   add<Name extends VmOp>(name: Name, evaluate: Syscall): void;
   add<Name extends VmMachineOp>(name: Name, evaluate: MachineOpcode, kind: 'machine'): void;
-  add<Name extends SomeVmOp>(
-    name: Name,
-    evaluate: Syscall | MachineOpcode,
-    kind = 'syscall'
-  ): void {
+  add<Name extends VmOp>(name: Name, evaluate: Syscall | MachineOpcode, kind = 'syscall'): void {
+    console.log(name, OpNames[name], evaluate);
     this.evaluateOpcode[name as number] = {
       syscall: kind !== 'machine',
       evaluate,
@@ -76,19 +65,21 @@ export class AppendOpcodes {
     let params: Optional<Dict<DebugOperand>> = undefined;
     let opName: string | undefined = undefined;
 
-    if (LOCAL_TRACE_LOGGING) {
+    if (LOCAL_DEBUG) {
       let pos = vm.debug.pc - opcode.size;
 
-      [opName, params] = debug(vm[CONSTANTS], opcode, opcode.isMachine)!;
+      [opName, params] = debug(vm[CONSTANTS], opcode)!;
 
-      // console.log(`${typePos(vm['pc'])}.`);
-      LOCAL_LOGGER.group(`${pos}. ${logOpcode(opName, params)}`);
+      if (LOCAL_TRACE_LOGGING) {
+        // console.log(`${typePos(vm['pc'])}.`);
+        LOCAL_LOGGER.group(`${pos}. ${debugOpcode(opName, params)}`);
 
-      let debugParams = Object.entries(params).flatMap(([k, v]) =>
-        hasDynamicValue(v) ? [k, '=', v.value, '\n'] : []
-      );
+        let debugParams = Object.entries(params).flatMap(([k, v]) =>
+          hasDynamicValue(v) ? [k, '=', v.value, '\n'] : []
+        );
 
-      LOCAL_LOGGER.debug(...debugParams);
+        LOCAL_LOGGER.debug(...debugParams);
+      }
     }
 
     let sp: number;
@@ -114,7 +105,7 @@ export class AppendOpcodes {
     let { sp, type, isMachine, pc } = pre;
 
     if (LOCAL_DEBUG) {
-      let meta = opcodeMetadata(type, isMachine);
+      let meta = opcodeMetadata(type);
       let actualChange = vm.debug.sp - sp;
       if (
         meta &&
@@ -124,7 +115,7 @@ export class AppendOpcodes {
       ) {
         if (pre.params) {
           throw new Error(
-            `Error in ${pre.name}:\n\n${pc}. ${logOpcode(
+            `Error in ${pre.name} (${type}):\n\n${pc}. ${debugOpcode(
               pre.name!,
               pre.params
             )}\n\nStack changed by ${actualChange}, expected ${meta.stackChange}`

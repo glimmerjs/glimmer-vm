@@ -61,6 +61,7 @@ class NumberChecker extends TypeofChecker<number> {
   }
 
   override expected(): string {
+    debugger;
     return `a finite number`;
   }
 }
