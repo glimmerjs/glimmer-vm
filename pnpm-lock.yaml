@@ -608,6 +608,9 @@ importers:
       '@glimmer/interfaces':
         specifier: workspace:^
         version: link:../interfaces
+      '@glimmer/reference':
+        specifier: workspace:^
+        version: link:../reference
       '@glimmer/util':
         specifier: workspace:^
         version: link:../util

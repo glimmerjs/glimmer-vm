@@ -1,7 +1,5 @@
-import type { Dict, Expand } from '@glimmer/interfaces';
+import type { Dict, Expand, VM } from '@glimmer/interfaces';
 import { REFERENCE, type Reference } from '@glimmer/reference';
-import type { VM } from '@glimmer/runtime/lib/vm';
-import { VMArgumentsImpl } from '@glimmer/runtime/lib/vm/arguments';
 import { enumerate, isObject } from '@glimmer/util';
 
 export const UNCHANGED = Symbol('UNCHANGED');
@@ -62,7 +60,7 @@ const types = define({
   'imm/bool': pipe(isBool, (value) => !!value),
   'imm/i32': coerce(isI32),
 
-  args: instance(VMArgumentsImpl),
+  args: instance(Object),
   'args/captured': IsInterface({
     positional: IsArray(IsReference),
     named: IsDict(IsReference),

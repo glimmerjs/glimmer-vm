@@ -1,7 +1,8 @@
 import type { Nullable, VmOp } from '@glimmer/interfaces';
 
 import type { NormalizedMetadata } from './metadata';
-import { MetadataBuilder, UNCHANGED, RESERVED } from './utils';
+import { MetadataBuilder, RESERVED } from './utils';
+import { UNCHANGED } from './stack/params';
 
 export function opcodeMetadata(op: VmOp): Nullable<NormalizedMetadata> {
   let value = METADATA[op];

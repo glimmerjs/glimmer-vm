@@ -20,6 +20,7 @@
   },
   "dependencies": {
     "@glimmer/interfaces": "workspace:^",
+    "@glimmer/reference": "workspace:^",
     "@glimmer/util": "workspace:^",
     "@glimmer/vm": "workspace:^"
   },
