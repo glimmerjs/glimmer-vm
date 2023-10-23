@@ -2,6 +2,7 @@ import type { Nullable, Optional, VmOpName } from '@glimmer/interfaces';
 import type { NormalizedMetadata } from './metadata';
 import { assertNever, fillNulls } from '@glimmer/util';
 import { OpSize, type OpNames } from '@glimmer/vm';
+import type { STACK_TYPES } from './stack/params';
 
 type NameDef<Name extends Nullable<VmOpName> = VmOpName> = Name extends null
   ? null
@@ -32,56 +33,6 @@ export interface MetadataDefinition {
     reason: string;
   }>;
 }
-
-export const UNCHANGED = Symbol('UNCHANGED');
-
-// @note STACK_TYPES
-export const STACK_TYPES = [
-  'block/template',
-  'block/invocation',
-  // a block is a pair of [block/table, block/handle]
-  'block/table',
-  'block/handle',
-  'block/table?',
-
-  'component/definition',
-  'component/%definition',
-  'component/%value',
-  'component/instance',
-
-  // either a block or program table
-  'table',
-  'scope',
-  'bool',
-
-  'args',
-  'args/captured',
-
-  // $pc or $ra
-  'register/instruction',
-  // $sp or $fp
-  'register/stack',
-
-  'reference/bool',
-  'reference/any',
-  'reference/fn',
-  'reference/definition',
-
-  'i32',
-  'i32/todo',
-
-  /**
-   * {@linkcode ContentType | Content Type Enum}
-   */
-  'enum/ctype',
-
-  'glimmer/iterator',
-
-  'value/dynamic',
-  'value/str',
-
-  UNCHANGED,
-] as const;
 
 export type StackType = (typeof STACK_TYPES)[number];
 

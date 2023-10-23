@@ -7,6 +7,7 @@ export interface NormalizedMetadata {
   name: string;
   mnemonic: string;
   before: null;
+  stack: StackSpec;
   stackChange: Nullable<number>;
   ops: OperandList;
   operands: number;
@@ -26,32 +27,6 @@ export interface RawOperandMetadata {
 
 export type OperandName = `${string}:${string}`;
 export type RawOperandFormat = OperandName | PresentArray<OperandName>;
-
-// export function normalize(key: string, input: RawOperandMetadata): NormalizedMetadata {
-//   let name: string;
-
-//   if (input.format === undefined) {
-//     throw new Error(`Missing format in ${JSON.stringify(input)}`);
-//   }
-
-//   if (Array.isArray(input.format)) {
-//     name = input.format[0];
-//   } else {
-//     name = input.format;
-//   }
-
-//   let ops: OperandList = Array.isArray(input.format) ? operands(input.format.slice(1)) : [];
-
-//   return {
-//     name,
-//     mnemonic: key,
-//     before: null,
-//     stackChange: stackChange(input['operand-stack']),
-//     ops,
-//     operands: ops.length,
-//     check: input.skip === true ? false : true,
-//   };
-// }
 
 function stackChange(stack?: Stack): Nullable<number> {
   if (stack === undefined) {
@@ -79,65 +54,6 @@ export interface NormalizedOpcodes {
   readonly machine: Dict<NormalizedMetadata>;
   readonly syscall: Dict<NormalizedMetadata>;
 }
-
-// export function normalizeAll(parsed: {
-//   machine: Dict<RawOperandMetadata>;
-//   syscall: Dict<RawOperandMetadata>;
-// }): NormalizedOpcodes {
-//   let machine = normalizeParsed(parsed.machine);
-//   let syscall = normalizeParsed(parsed.syscall);
-
-//   return { machine, syscall };
-// }
-
-// export function normalizeParsed(parsed: Dict<RawOperandMetadata>): Dict<NormalizedMetadata> {
-//   let out = Object.create(null) as Dict<NormalizedMetadata>;
-
-//   for (const [key, value] of Object.entries(parsed)) {
-//     out[key] = normalize(key, value);
-//   }
-
-//   return out;
-// }
-
-// export function buildEnum(
-//   name: string,
-//   parsed: Dict<NormalizedMetadata>,
-//   offset: number,
-//   max?: number
-// ): { enumString: string; predicate: string } {
-//   let e = [`export enum ${name} {`];
-
-//   let last: number;
-
-//   Object.values(parsed).forEach((value, i) => {
-//     e.push(`  ${value.name} = ${offset + i},`);
-//     last = i;
-//   });
-
-//   e.push(`  Size = ${last! + offset + 1},`);
-//   e.push('}');
-
-//   let enumString = e.join('\n');
-
-//   let predicate;
-
-//   if (max) {
-//     predicate = strip`
-//       export function is${name}(value: number): value is ${name} {
-//         return value >= ${offset} && value <= ${max};
-//       }
-//     `;
-//   } else {
-//     predicate = strip`
-//       export function is${name}(value: number): value is ${name} {
-//         return value >= ${offset};
-//       }
-//     `;
-//   }
-
-//   return { enumString, predicate };
-// }
 
 export function strip(strings: TemplateStringsArray, ...args: unknown[]) {
   let out = '';
