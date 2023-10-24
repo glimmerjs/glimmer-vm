@@ -22,7 +22,6 @@ import type {
   VM as PublicVM,
 } from '@glimmer/interfaces';
 import { LOCAL_TRACE_LOGGING } from '@glimmer/local-debug-flags';
-import type { RuntimeOpImpl } from '@glimmer/program';
 import {
   createIteratorItemRef,
   type OpaqueIterationItem,
@@ -48,18 +47,18 @@ import {
   EndTrackFrameOpcode,
   JumpIfNotModifiedOpcode,
 } from '../compiled/opcodes/vm';
-import { APPEND_OPCODES, type DebugState } from '../opcodes';
 import { PartialScopeImpl } from '../scope';
 import { ARGS, CONSTANTS, DESTROYABLE_STACK, HEAP, STACKS } from '../symbols';
 import { VMArgumentsImpl } from './arguments';
 import type { LiveBlockList } from './element-builder';
 import {
   LowLevelVM,
-  type CleanStack,
-  type InternalStack,
   type ArgumentsStack,
-  type DebugStack,
 } from './low-level';
+import type {
+  CleanStack,
+  InternalStack, DebugStack
+} from '@glimmer/interfaces/lib/runtime/debug-vm';
 import RenderResultImpl from './render-result';
 import EvaluationStackImpl from './stack';
 import {

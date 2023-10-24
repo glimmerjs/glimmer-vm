@@ -1,17 +1,16 @@
-import type { Dict, Nullable, PresentArray } from '@glimmer/interfaces';
-import type { Operand, OperandList } from './utils';
+import type { DebugVmState, Dict, PresentArray } from '@glimmer/interfaces';
+import type { OperandList, Op, ShorthandStackReturn } from './utils';
+import type { UNCHANGED } from './stack/params';
 
-export type ShouldCheckOpcode = { type: 'checked' } | { type: 'unchecked'; reason: string };
+export type StackCheck = DynamicStackFn | { type: 'unchecked'; reason: string };
 
 export interface NormalizedMetadata {
   name: string;
   mnemonic: string;
   before: null;
-  stack: StackSpec;
-  stackChange: Nullable<number>;
+  stackCheck: StackCheck;
   ops: OperandList;
   operands: number;
-  check: ShouldCheckOpcode;
 }
 
 export type Stack = [string[], string[]];
@@ -27,28 +26,6 @@ export interface RawOperandMetadata {
 
 export type OperandName = `${string}:${string}`;
 export type RawOperandFormat = OperandName | PresentArray<OperandName>;
-
-function stackChange(stack?: Stack): Nullable<number> {
-  if (stack === undefined) {
-    return 0;
-  }
-
-  let before = stack[0];
-  let after = stack[1];
-
-  if (hasRest(before) || hasRest(after)) {
-    return null;
-  }
-
-  return after.length - before.length;
-}
-
-function hasRest(input: string[]): boolean {
-  if (!Array.isArray(input)) {
-    throw new Error(`Unexpected stack entry: ${JSON.stringify(input)}`);
-  }
-  return input.some((s) => s.slice(-3) === '...');
-}
 
 export interface NormalizedOpcodes {
   readonly machine: Dict<NormalizedMetadata>;
@@ -128,6 +105,22 @@ export function buildMetas(kind: META_KIND, all: Dict<NormalizedMetadata>): stri
 
   return out.join('\n\n');
 }
-function op(value: `${string}:${string}`, index: number, array: `${string}:${string}`[]): Operand {
-  throw new Error('Function not implemented.');
-}
+
+/**
+ * Takes an operand and dynamically computes the stack change.
+ *
+ * If the function returns a number, that number is used as the stack change
+ * (and stack parameters are ignored).
+ *
+ * If the return value is an array:
+ *
+ * - If the first value is `UNCHANGED`, the stack change is the length of the
+ *   return values after `UNCHANGED`.
+ * - Otherwise, the stack change is the length of the return values minus
+ *   the length of the parameters.
+ */
+export type DynamicStackFnSpec = (
+  op: Op,
+  state: DebugVmState
+) => [typeof UNCHANGED, ...ShorthandStackReturn[]] | ShorthandStackReturn[] | number;
+export type DynamicStackFn = (op: Op, state: DebugVmState) => number;

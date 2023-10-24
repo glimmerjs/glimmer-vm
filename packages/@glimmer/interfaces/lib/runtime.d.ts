@@ -8,3 +8,4 @@ export * from './runtime/owner';
 export * from './runtime/render';
 export * from './runtime/runtime';
 export * from './runtime/scope';
+export * from './runtime/debug-vm';

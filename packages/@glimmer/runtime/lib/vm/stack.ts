@@ -67,7 +67,7 @@ export default class EvaluationStackImpl implements ArgumentsStack {
     this.stack.length = 0;
   }
 
-  toArray() {
+  frame() {
     return this.stack.slice(
       this.registers.fp === -1 ? 0 : this.registers.fp,
       this.registers.sp + 1
@@ -76,6 +76,6 @@ export default class EvaluationStackImpl implements ArgumentsStack {
 
   all(): { before: unknown[]; frame: unknown[] } {
     let before = this.stack.slice(0, this.registers.fp === -1 ? 0 : this.registers.fp);
-    return { before, frame: this.toArray() };
+    return { before, frame: this.frame() };
   }
 }

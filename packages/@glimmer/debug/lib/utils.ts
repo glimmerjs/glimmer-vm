@@ -1,8 +1,9 @@
 import type { Nullable, Optional, VmOpName } from '@glimmer/interfaces';
-import type { NormalizedMetadata } from './metadata';
-import { assertNever, fillNulls } from '@glimmer/util';
+import type { NormalizedMetadata, DynamicStackFnSpec, StackCheck } from './metadata';
+import { LOCAL_LOGGER, assertNever, fillNulls } from '@glimmer/util';
+import { UNCHANGED, type STACK_TYPES } from './stack/params';
 import { OpSize, type OpNames } from '@glimmer/vm';
-import type { STACK_TYPES } from './stack/params';
+import { LOCAL_DEBUG, LOCAL_TRACE_LOGGING } from '@glimmer/local-debug-flags';
 
 type NameDef<Name extends Nullable<VmOpName> = VmOpName> = Name extends null
   ? null
@@ -11,28 +12,28 @@ type NameDef<Name extends Nullable<VmOpName> = VmOpName> = Name extends null
 export function define(
   nameDef: NameDef,
   ops: ShorthandOperandList,
-  { stackChange, unchecked }: MetadataDefinition = {}
+  stackCheck: StackCheck
 ): Nullable<NormalizedMetadata> {
   let [name, mnemonic] = nameDef.split(' as ') as [string, string];
   return {
     name,
     mnemonic,
     before: null,
-    stackChange: stackChange ?? null,
+    stackCheck,
     ops: ops.map(op) as OperandList,
     operands: ops.length,
-    check: unchecked ? { type: 'unchecked', reason: unchecked.reason } : { type: 'checked' },
   };
 }
 
-export interface MetadataDefinition {
-  // @premerge consolidate unchecked
-  // null means unchecked stack change
-  stackChange?: number | null;
-  unchecked?: Optional<{
-    reason: string;
-  }>;
+export interface CheckedMetadata {
+  stackChange: number;
 }
+
+export interface UncheckedMetadata {
+  reason: string;
+}
+
+export type MetadataDefinition = CheckedMetadata | UncheckedMetadata;
 
 export type StackType = (typeof STACK_TYPES)[number];
 
@@ -106,7 +107,7 @@ export type ShorthandOperandList =
 type ShorthandOp = `${string}:${OperandType}`;
 
 type ShorthandStackParam = `${string}:${Exclude<StackType, symbol>}`;
-type ShorthandStackReturn = StackType;
+export type ShorthandStackReturn<T extends StackType = StackType> = Extract<StackType, T>;
 
 function op(input: ShorthandOp): Operand {
   let [name, type] = input.split(':') as [string, string];
@@ -120,21 +121,18 @@ function op(input: ShorthandOp): Operand {
 
 type OpName = VmOpName;
 
-interface Op {
+export interface Op {
   readonly op1: number;
   readonly op2: number;
   readonly op3: number;
 }
-type DynamicStackFn = (op: Op) => number;
-
-type MetadataOption =
-  | ShorthandOperandList
+type StackOption =
   | {
-      type: 'unchecked';
+      type: 'stack:unchecked';
       reason: string;
     }
   | {
-      type: 'stack:change';
+      type: 'stack:delta';
       value: number;
     }
   | {
@@ -147,42 +145,72 @@ type MetadataOption =
     }
   | {
       type: 'stack:dynamic';
-      value: Nullable<DynamicStackFn>;
+      value: DynamicStackFnSpec | { reason: string };
     };
 
-function stack(change: number): MetadataOption {
-  return { type: 'stack:change', value: change };
+type MetadataOption =
+  | ShorthandOperandList
+  | {
+      type: 'multi';
+      options: StackOption[];
+    }
+  | StackOption;
+
+function stackDelta(change: number): MetadataOption {
+  return { type: 'stack:delta', value: change };
 }
 
-stack.params = stackParams;
-stack.returns = stackReturns;
-stack.dynamic = stackDynamic;
+export const stack = {
+  params: stackParams,
+  dynamic: stackDynamic,
+  delta: stackDelta,
+} as const;
 
-function stackParams(params: ShorthandStackParam[]): MetadataOption {
-  return { type: 'stack:params', value: params };
+type IntoReturnType<T = ShorthandStackReturn> =
+  | Extract<ShorthandStackReturn, T>
+  | Extract<ShorthandStackReturn, T>[];
+
+function intoReturnType(from: IntoReturnType): ShorthandStackReturn[] {
+  return Array.isArray(from) ? from : [from];
 }
 
-function stackReturns(returns: ShorthandStackReturn[]): MetadataOption {
-  return { type: 'stack:returns', value: returns };
+function stackParams(params: ShorthandStackParam[]): {
+  returns: (returns: IntoReturnType) => MetadataOption;
+  pushes: (params: IntoReturnType<string>) => MetadataOption;
+  dynamic: (dynamic: DynamicStackFnSpec | { reason: string }) => MetadataOption;
+} {
+  const paramsOption = { type: 'stack:params', value: params } as const;
+
+  return {
+    returns: (returns) => ({
+      type: 'multi',
+      options: [paramsOption, { type: 'stack:returns', value: intoReturnType(returns) }],
+    }),
+
+    pushes: (returns) => ({
+      type: 'multi',
+      options: [
+        paramsOption,
+        { type: 'stack:returns', value: [UNCHANGED, ...intoReturnType(returns)] },
+      ],
+    }),
+
+    dynamic: (dynamic: DynamicStackFnSpec | { reason: string }): MetadataOption => ({
+      type: 'multi',
+      options: [paramsOption, { type: 'stack:dynamic', value: dynamic }],
+    }),
+  };
 }
 
-function stackDynamic(dynamic?: DynamicStackFn): MetadataOption {
+function stackDynamic(dynamic: DynamicStackFnSpec | { reason: string }): MetadataOption {
   return { type: 'stack:dynamic', value: dynamic ?? null };
 }
 
-function toOptions(
-  op: string,
-  options: MetadataOption[]
-): [operands: ShorthandOperandList, options: MetadataDefinition] {
+// @active
+function toOptions(options: MetadataOption[]): NormalizedOptions {
   let operands: ShorthandOperandList = [];
-  let definition: MetadataDefinition = {};
 
-  let stackInfo = {
-    params: undefined as ShorthandStackParam[] | undefined,
-    returns: undefined as ShorthandStackReturn[] | undefined,
-  };
-
-  let dynamicStack = false;
+  const stackInfo = new StackInfo();
 
   for (let option of options) {
     if (Array.isArray(option)) {
@@ -191,59 +219,114 @@ function toOptions(
     }
 
     switch (option.type) {
-      case 'stack:change':
-        definition.stackChange = option.value;
-        break;
-      case 'unchecked':
-        definition.unchecked = option;
-        break;
-      case 'stack:params':
-        stackInfo.params = option.value;
-        break;
-      case 'stack:returns':
-        stackInfo.returns = option.value;
-        break;
-      case 'stack:dynamic':
-        dynamicStack = true;
+      case 'multi':
+        stackInfo.add(...option.options);
         break;
       default:
-        assertNever(option);
+        stackInfo.add(option);
     }
   }
 
-  if (stackInfo.params) {
-    if (definition.stackChange) {
-      throw new Error(
-        `ERROR in ${op}: IF stack params or stack returns are specified, stack change must not be (found ${JSON.stringify(
-          options
-        )})`
-      );
+  stackInfo.validate();
+
+  return [operands, stackInfo.toStackCheck()];
+}
+
+class StackInfo {
+  #params: ShorthandStackParam[] | undefined;
+  #returns: ShorthandStackReturn[] | undefined;
+  #delta: number | undefined;
+  #dynamic: Optional<DynamicStackFnSpec | { reason: string }> = undefined;
+
+  #validateNotContradictory(): void {
+    if (this.#params || this.#returns) {
+      if (this.#delta !== undefined) {
+        throw new Error(
+          `ERROR: IF stack params or stack returns are specified, stack delta must not be specified`
+        );
+      }
+    } else if (this.#dynamic !== undefined) {
+      if (this.#delta !== undefined) {
+        throw new Error(
+          `ERROR: IF opcode has a dynamic stack change, stack delta must not be specified`
+        );
+      }
+    }
+  }
+
+  validate(): void {
+    this.#validateNotContradictory();
+
+    // also validate mutually required options
+    if (this.#params || this.#returns) {
+      if (!this.#returns && !this.#dynamic) {
+        throw new Error(`ERROR: IF stack params are specified, stack returns must be specified`);
+      }
+
+      if (!this.#params && !this.#dynamic) {
+        throw new Error(`ERROR: IF stack returns are specified, stack params must be specified`);
+      }
+    }
+  }
+
+  add(...options: StackOption[]): void {
+    for (const option of options) {
+      switch (option.type) {
+        case 'stack:unchecked':
+          this.#dynamic = { reason: option.reason };
+          break;
+        case 'stack:params':
+          this.#params = option.value;
+          break;
+        case 'stack:returns':
+          this.#returns = option.value;
+          break;
+        case 'stack:delta':
+          this.#delta = option.value;
+          break;
+        case 'stack:dynamic':
+          this.#dynamic = option.value;
+          break;
+        default:
+          assertNever(option);
+      }
+    }
+  }
+
+  toStackCheck(): StackCheck {
+    const dynamic = this.#dynamic;
+
+    if (dynamic === undefined) {
+      return () => this.delta;
     }
 
-    if (stackInfo.returns) {
-      definition.stackChange = stackReturns.length - stackParams.length;
-    } else if (dynamicStack) {
-      definition.stackChange = null;
+    if (typeof dynamic === 'function') {
+      const staticParams = this.#params?.length ?? 0;
+
+      return (op, state) => {
+        const diff = dynamic(op, state);
+        if (typeof diff === 'number') return diff;
+
+        const [first, ...rest] = diff;
+
+        if (first === UNCHANGED) {
+          return rest.length;
+        } else {
+          return diff.length - staticParams;
+        }
+      };
     } else {
-      throw new Error(
-        `ERROR in ${op}: IF stack params are specified, stack returns must be specified (found ${JSON.stringify(
-          options
-        )})`
-      );
+      return { type: 'unchecked', ...dynamic };
     }
-  } else if (stackInfo.returns) {
-    throw new Error(
-      `ERROR in ${op}: IF stack stack returns are specified, stack params must be specified (found ${JSON.stringify(
-        options
-      )})`
-    );
-  } else if (dynamicStack) {
-    definition.stackChange = null;
-  } else {
-    definition.stackChange = 0;
   }
 
-  return [operands, definition];
+  get delta(): number {
+    if (this.#delta) {
+      return this.#delta;
+    } else {
+      return (this.#returns?.length ?? 0) - (this.#params?.length ?? 0);
+    }
+  }
 }
 
 export type NormalizedMetadataArray<O> = {
@@ -256,6 +339,8 @@ type Mutable<T> = {
 
 export const RESERVED = Symbol('RESERVED');
 export type RESERVED = typeof RESERVED;
+
+type NormalizedOptions = [ops: ShorthandOperandList, check: StackCheck];
 
 export class MetadataBuilder<
   out Op,
@@ -273,6 +358,7 @@ export class MetadataBuilder<
     return build(builder).#done() as any;
   }
 
+  #inserting = 0;
   #metadata: Nullable<NormalizedMetadata>[];
 
   private constructor(metadata: Nullable<NormalizedMetadata>[]) {
@@ -283,22 +369,42 @@ export class MetadataBuilder<
 
   readonly stack = stack;
   readonly from = stackParams;
-  readonly to = stackReturns;
 
   readonly add = (
     name: Rest[0] extends null ? RESERVED : NameDef<NonNullable<Rest[0]>>,
     ...options: MetadataOption[]
   ): MetadataBuilder<Op, [...SoFar, Rest[0]], Slice<Rest>> => {
+    // @fixme restore LOCAL_TRACE_LOGGING
+    if (LOCAL_TRACE_LOGGING) {
+      LOCAL_LOGGER.log('adding opcode', name, options);
+    }
+
     if (name === RESERVED) {
-      this.#metadata.push(null);
+      // @fixme restore LOCAL_TRACE_LOGGING
+      if (LOCAL_TRACE_LOGGING) {
+        LOCAL_LOGGER.log('reserving opcode', this.#inserting);
+      }
+
+      this.#inserting++;
     } else {
-      const normalizedOptions: Slice<Parameters<typeof define>> =
-        name === RESERVED ? [[]] : toOptions(name.split(' as ')[0] as string, options);
-      this.#metadata.push(define(name, ...normalizedOptions));
+      const normalizedOptions =
+        name === RESERVED
+          ? ([[], { type: 'unchecked', reason: 'reserved' }] satisfies NormalizedOptions)
+          : toOptions(options);
+
+      this.#push(name, normalizedOptions);
     }
 
     return this as any;
   };
+
+  #push(name: NameDef, options: NormalizedOptions): void {
+    if (LOCAL_DEBUG) {
+      LOCAL_LOGGER.log('adding opcode', this.#inserting, name, options);
+    }
+
+    this.#metadata[this.#inserting++] = name === null ? null : define(name, ...options);
+  }
 
   #done(): NormalizedMetadataArray<Op> {
     return this.#metadata as NormalizedMetadataArray<Op>;

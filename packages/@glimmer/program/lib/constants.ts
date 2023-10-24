@@ -5,6 +5,7 @@ import type {
   ConstantPool,
   HelperDefinitionState,
   ModifierDefinitionState,
+  Nullable,
   ResolutionTimeConstants,
   ResolvedComponentDefinition,
   RuntimeConstants,
