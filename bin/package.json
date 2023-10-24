@@ -18,6 +18,9 @@
   "engines": {
     "node": ">=18.0.0"
   },
+  "volta": {
+    "extends": "../package.json"
+  },
   "config": {
     "tsconfig": "./tsconfig.json"
   },
