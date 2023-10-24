@@ -26,7 +26,7 @@ jobs:
       - run: pnpm build
 
       # > This is not interactive right?
-# correct
+      # correct
       #
       # > This doesn't bump the version, just publish right?
       # correct
@@ -36,13 +36,6 @@ jobs:
       #
       # > It will skip the private packages, presumably?
       # yes
-      #
-      # > --force
-      #   Packages are proceeded to be published even if their current version is already in the
-      #   registry.
-      #
-      # > --no-git-checks
-      #   we publish from tags, and default behavior is to only allow publishing on main/master
       - run: |
           npm whoami --registry=https://registry.npmjs.org/
 
