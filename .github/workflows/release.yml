@@ -46,6 +46,7 @@ jobs:
       - run: |
           npm whoami --registry=https://registry.npmjs.org/
 
-          node ./bin/pnpm-publish.mjs
+          cd ./bin
+          pnpm esyes ./pnpm-publish.mts
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
