@@ -22,6 +22,10 @@ export async function setupQunit() {
       id: 'enable_trace_logging',
       label: 'Enable Trace Logging',
       tooltip: 'Trace logs emit information about the internal VM state',
+      value: {
+        trace: 'trace level logs (default)',
+        explain: 'also include explanations',
+      },
     },
     {
       id: 'enable_tap',
@@ -35,9 +39,6 @@ export async function setupQunit() {
   );
 
   const runner = autoRegister();
-  // @ts-expect-error qunit types don't expose "reporters"
-  const tap = qunit.reporters.tap;
-  tap.init(runner, { log: console.info });
 
   testing.begin(() => {
     function isTapEnabled() {
@@ -109,6 +110,20 @@ export async function setupQunit() {
     smokeTest: hasFlag('smoke_test'),
   };
 }
+function isTapEnabled() {
+  const tap = getSpecificFlag('enable_tap');
+  const ci = hasSpecificFlag('ci');
+
+  switch (tap) {
+    case 'in_ci':
+    case undefined:
+      return !!ci;
+    case 'never':
+      return false;
+    case 'always':
+      return true;
+  }
+}
 
 class Testing<Q extends typeof QUnit> {
   static withConfig<const C extends readonly UrlConfig[]>(...configs: C): Testing<WithConfig<C>> {
@@ -148,6 +163,16 @@ function hasFlag(flag: string): boolean {
 function hasSpecificFlag(flag: string): boolean {
   let location = typeof window !== 'undefined' && window.location;
   return location && new RegExp(`[?&]${flag}`).test(location.search);
+}
+
+function getSpecificFlag(flag: string): string | undefined {
+  let location = typeof window !== 'undefined' && window.location;
+  if (!location) {
+    return undefined;
+  }
+
+  const matches = new RegExp(`[?&]${flag}=([^&]*)`).exec(location.search);
+  return matches ? matches[1] : undefined;
 }
 
 interface UrlConfig {
