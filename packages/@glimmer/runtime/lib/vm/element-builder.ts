@@ -10,6 +10,7 @@ import type {
   GlimmerTreeChanges,
   GlimmerTreeConstruction,
   LiveBlock,
+  LiveBlockDebug,
   Maybe,
   ModifierInstance,
   Nullable,
@@ -19,33 +20,57 @@ import type {
   SimpleNode,
   SimpleText,
   UpdatableBlock,
-} from "@glimmer/interfaces";
+} from '@glimmer/interfaces';
 import { assert, expect, Stack } from '@glimmer/util';
 
 import { clear, ConcreteBounds, CursorImpl, SingleNodeBounds } from '../bounds';
 import { type DynamicAttribute, dynamicAttribute } from './attributes/dynamic';
 
 export interface FirstNode {
+  // `firstNode()` is allowed to throw during construction
+  debug?: { readonly firstNode: SimpleNode };
+
   firstNode(): SimpleNode;
 }
 
 export interface LastNode {
+  // `lastNode()` is allowed to throw during construction
+  debug?: { readonly lastNode: SimpleNode };
+
   lastNode(): SimpleNode;
 }
 
-class First {
-  constructor(private node: SimpleNode) {}
+class First implements FirstNode {
+  readonly #node: SimpleNode;
+  declare debug?: { readonly firstNode: SimpleNode };
+
+  constructor(node: SimpleNode) {
+    this.#node = node;
+
+    ifDev(() => {
+      this.debug = { firstNode: this.#node };
+    });
+  }
 
   firstNode(): SimpleNode {
-    return this.node;
+    return this.#node;
   }
 }
 
 class Last {
-  constructor(private node: SimpleNode) {}
+  readonly #node: SimpleNode;
+  declare debug?: { readonly lastNode: SimpleNode };
+
+  constructor(node: SimpleNode) {
+    this.#node = node;
+
+    ifDev(() => {
+      this.debug = { lastNode: this.#node };
+    });
+  }
 
   lastNode(): SimpleNode {
-    return this.node;
+    return this.#node;
   }
 }
 
@@ -372,8 +397,15 @@ export class SimpleLiveBlock implements LiveBlock {
   protected first: Nullable<FirstNode> = null;
   protected last: Nullable<LastNode> = null;
   protected nesting = 0;
+  declare debug?: () => LiveBlockDebug;
 
-  constructor(private parent: SimpleElement) {}
+  constructor(private parent: SimpleElement) {
+    ifDev(() => {
+      this.debug = () => {
+        return debugBlock('SimpleLiveBlock', this.first, this.last, parent);
+      };
+    });
+  }
 
   parentElement() {
     return this.parent;
@@ -466,10 +498,32 @@ export class RemoteLiveBlock extends SimpleLiveBlock {
         clear(this);
       }
     });
+
+    ifDev(() => {
+      this.debug = () => {
+        const props = debugProps(this.first, this.last, parent) as NonNullable<DebugProps>;
+
+        return new (class RemoteLiveBlock {
+          constructor() {
+            Object.assign(this, props);
+          }
+        })();
+      };
+    });
   }
 }
 
 export class UpdatableBlockImpl extends SimpleLiveBlock implements UpdatableBlock {
+  constructor(parent: SimpleElement) {
+    super(parent);
+
+    ifDev(() => {
+      this.debug = () => {
+        return debugBlock('UpdatableBlock', this.first, this.last, parent);
+      };
+    });
+  }
+
   reset(): Nullable<SimpleNode> {
     destroy(this);
     let nextSibling = clear(this);
@@ -484,9 +538,39 @@ export class UpdatableBlockImpl extends SimpleLiveBlock implements UpdatableBloc
 
 // FIXME: All the noops in here indicate a modelling problem
 export class LiveBlockList implements LiveBlock {
-  constructor(private readonly parent: SimpleElement, public boundList: LiveBlock[]) {
+  readonly debug?: () => LiveBlockDebug;
+
+  constructor(
+    private readonly parent: SimpleElement,
+    public boundList: LiveBlock[]
+  ) {
     this.parent = parent;
     this.boundList = boundList;
+
+    if (import.meta.env.DEV) {
+      this.debug = () => {
+        const bounds = this.boundList;
+        const parent = this.parent;
+
+        return new (class implements LiveBlockDebug {
+          declare parent?: NonNullable<LiveBlockDebug['parent']>;
+          declare range?: NonNullable<LiveBlockDebug['range']>;
+          readonly [Symbol.toStringTag] = 'LiveBlockList';
+
+          constructor() {
+            if (bounds.length === 0) {
+              this.parent = parent;
+              this.range = 'empty';
+            } else {
+              const firstRange = getNodesFromRange(bounds.at(0)?.debug?.().range);
+              const lastRange = getNodesFromRange(bounds.at(-1)?.debug?.().range);
+
+              this.range = joinRange(firstRange, lastRange);
+            }
+          }
+        })();
+      };
+    }
   }
 
   parentElement() {
@@ -534,4 +618,88 @@ export class LiveBlockList implements LiveBlock {
 
 export function clientBuilder(env: Environment, cursor: CursorImpl): ElementBuilder {
   return NewElementBuilder.forInitialRender(env, cursor);
+}
+
+type DebugProps =
+  | { node: SimpleNode }
+  | { first: SimpleNode; last: SimpleNode }
+  | { status: 'empty'; parent: SimpleElement };
+
+function ifDev<T>(callback: () => T): void {
+  if (import.meta.env.DEV) {
+    callback();
+  }
+}
+
+function debugProps(
+  ...args:
+    | [
+        first: Nullable<FirstNode> | undefined,
+        last: Nullable<LastNode> | undefined,
+        parent: SimpleElement,
+      ]
+    | [first: FirstNode, last: LastNode]
+): LiveBlockDebug {
+  const [firstNode, lastNode, parent] = args;
+  const first = firstNode?.debug?.firstNode;
+  const last = lastNode?.debug?.lastNode;
+
+  if (first && last) {
+    return first === last ? { range: first } : { range: [first, last] };
+  } else {
+    return { parent: parent as SimpleElement, range: 'empty' };
+  }
+}
+
+function debugBlock(
+  name: string,
+  ...args:
+    | [
+        first: Nullable<FirstNode> | undefined,
+        last: Nullable<LastNode> | undefined,
+        parent: SimpleElement,
+      ]
+    | [first: FirstNode, last: LastNode]
+): LiveBlockDebug {
+  const props = debugProps(...args);
+
+  return new (class implements LiveBlockDebug {
+    declare parent?: NonNullable<LiveBlockDebug['parent']>;
+    declare range?: NonNullable<LiveBlockDebug['range']>;
+
+    constructor() {
+      Object.assign(this, props);
+    }
+
+    readonly [Symbol.toStringTag] = name;
+  })();
+}
+
+interface DebugRange {
+  first: SimpleNode;
+  last: SimpleNode;
+}
+
+function getNodesFromRange(
+  range: LiveBlockDebug['range']
+): { first: SimpleNode; last: SimpleNode } | undefined {
+  if (range === 'empty') return undefined;
+  if (Array.isArray(range)) return { first: range[0], last: range[1] };
+
+  return range && { first: range, last: range };
+}
+
+function joinRange(
+  first: DebugRange | undefined,
+  last: DebugRange | undefined
+): NonNullable<LiveBlockDebug['range']> {
+  if (first && last) {
+    return [first.first, last.last];
+  } else if (first) {
+    return [first.first, first.last];
+  } else if (last) {
+    return [last.first, last.last];
+  } else {
+    return 'empty';
+  }
 }

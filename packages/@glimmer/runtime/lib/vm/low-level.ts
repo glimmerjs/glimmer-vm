@@ -1,4 +1,13 @@
-import type { Expand, Nullable, RuntimeHeap, RuntimeOp, RuntimeProgram } from '@glimmer/interfaces';
+import type {
+  Expand,
+  Nullable,
+  RuntimeHeap,
+  RuntimeOp,
+  RuntimeProgram,
+  InternalStack,
+  DebugStack,
+  CleanStack,
+} from '@glimmer/interfaces';
 import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
 import { assert } from '@glimmer/util';
 import { $fp, $pc, $ra, $sp, $up, Op } from '@glimmer/vm';
@@ -7,6 +16,7 @@ import { APPEND_OPCODES } from '../opcodes';
 import type { VM } from './append';
 import { CheckNumber, check } from '@glimmer/debug';
 import { createTag } from '@glimmer/validator';
+import { debugAround } from './debug';
 
 export type PackedRegisters = Expand<
   [$pc: number, $ra: number, $fp: number, $sp: number, $up: number]
@@ -157,26 +167,6 @@ export class Registers {
   }
 }
 
-export interface ReadonlyStack {
-  get<T = number>(position: number, base?: number): T;
-  top<T>(offset?: number): T;
-}
-
-export interface CleanStack extends ReadonlyStack {
-  push(...values: unknown[]): void;
-  pop<T>(count?: number): T;
-  dup(position?: number): void;
-}
-
-export interface InternalStack extends CleanStack {
-  reset(): void;
-}
-
-export interface DebugStack extends InternalStack {
-  toArray(): unknown[];
-  all(): { before: unknown[]; frame: unknown[] };
-}
-
 export interface ArgumentsStack extends InternalStack, DebugStack {
   readonly registers: Registers;
 
@@ -185,12 +175,11 @@ export interface ArgumentsStack extends InternalStack, DebugStack {
   set(value: unknown, offset: number, base?: number): void;
   slice<T = unknown>(start: number, end: number): T[];
   capture(items: number): unknown[];
-  toArray(): unknown[];
+  frame(): unknown[];
 }
 
 export interface Externs {
-  debugBefore(opcode: RuntimeOp): unknown;
-  debugAfter(state: unknown): void;
+  debug: VM;
 }
 
 export interface VmDebugState {
@@ -375,26 +364,21 @@ export class LowLevelVM {
 
   evaluateOuter(opcode: RuntimeOp, vm: VM) {
     if (LOCAL_DEBUG) {
-      let {
-        externs: { debugBefore, debugAfter },
-      } = this;
-      let state = debugBefore(opcode);
-      this.evaluateInner(opcode, vm);
-      debugAfter(state);
+      debugAround(vm, opcode, () => this.#evaluateInner(opcode, vm));
     } else {
-      this.evaluateInner(opcode, vm);
+      this.#evaluateInner(opcode, vm);
     }
   }
 
-  evaluateInner(opcode: RuntimeOp, vm: VM) {
+  #evaluateInner(opcode: RuntimeOp, vm: VM) {
     if (opcode.isMachine) {
-      this.evaluateMachine(opcode);
+      this.#evaluateMachine(opcode);
     } else {
-      this.evaluateSyscall(opcode, vm);
+      this.#evaluateSyscall(opcode, vm);
     }
   }
 
-  evaluateMachine(opcode: RuntimeOp) {
+  #evaluateMachine(opcode: RuntimeOp) {
     switch (opcode.type) {
       case Op.PushFrame:
         return this.pushFrame();
@@ -417,7 +401,7 @@ export class LowLevelVM {
     }
   }
 
-  evaluateSyscall(opcode: RuntimeOp, vm: VM) {
+  #evaluateSyscall(opcode: RuntimeOp, vm: VM) {
     APPEND_OPCODES.evaluate(vm, opcode, opcode.type);
   }
 }

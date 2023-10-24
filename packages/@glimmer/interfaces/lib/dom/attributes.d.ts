@@ -12,7 +12,14 @@ import type {
   SimpleText,
 } from './simple';
 
+export interface LiveBlockDebug {
+  parent?: SimpleElement;
+  range?: [SimpleNode, SimpleNode] | SimpleNode | 'empty';
+}
+
 export interface LiveBlock extends Bounds {
+  debug?: () => LiveBlockDebug;
+
   openElement(element: SimpleElement): void;
   closeElement(): void;
   didAppendNode(node: SimpleNode): void;
@@ -26,7 +33,7 @@ export interface SimpleLiveBlock extends LiveBlock {
   lastNode(): SimpleNode;
 }
 
-export type RemoteLiveBlock = SimpleLiveBlock
+export type RemoteLiveBlock = SimpleLiveBlock;
 
 export interface UpdatableBlock extends SimpleLiveBlock {
   reset(env: Environment): Nullable<SimpleNode>;

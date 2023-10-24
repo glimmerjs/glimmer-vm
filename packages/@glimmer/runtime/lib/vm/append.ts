@@ -367,15 +367,7 @@ export class VM implements PublicVM, InternalVM {
       evalStack,
       this[HEAP],
       runtime.program,
-      {
-        debugBefore: (opcode: RuntimeOpImpl): DebugState => {
-          return APPEND_OPCODES.debugBefore(this, opcode);
-        },
-
-        debugAfter: (state: DebugState): void => {
-          APPEND_OPCODES.debugAfter(this, state);
-        },
-      },
+      { debug: this },
       evalStack.registers
     );
 
