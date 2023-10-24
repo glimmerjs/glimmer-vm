@@ -184,7 +184,7 @@ APPEND_OPCODES.add(Op.InvokeYield, (vm) => {
 
   vm.pushFrame();
   vm.pushScope(invokingScope);
-  vm.call(handle!);
+  vm.call(handle);
 });
 
 APPEND_OPCODES.add(Op.JumpIf, (vm, { op1: target }) => {
@@ -243,6 +243,8 @@ APPEND_OPCODES.add(Op.ToBoolean, (vm) => {
 
   stack.push(createComputeRef(() => toBool(valueForRef(valueRef))));
 });
+
+APPEND_OPCODES.add(Op.PushUnwindTarget, (vm) => {});
 
 export class Assert implements UpdatingOpcode {
   private last: unknown;

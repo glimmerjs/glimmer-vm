@@ -17,3 +17,13 @@ export const LOCAL_TRACE_LOGGING: true | false =
     }
     return false;
   })();
+
+export const LOCAL_EXPLAIN_LOGGING: true | false =
+  import.meta.env.DEV &&
+  (() => {
+    let location = typeof window !== 'undefined' && window.location;
+    if (location && /[&?]enable_trace_logging=explain/u.test(window.location.search)) {
+      return true;
+    }
+    return false;
+  })();

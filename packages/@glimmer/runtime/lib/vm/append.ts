@@ -148,7 +148,7 @@ export interface InternalVM {
   exit(): void;
 
   goto(pc: number): void;
-  call(handle: number): void;
+  call(handle: number | null): void;
   pushFrame(): void;
   unwind(e: unknown): void;
 
@@ -324,8 +324,10 @@ export class VM implements PublicVM, InternalVM {
   }
 
   // Save $pc into $ra, then jump to a new address in `program` (jal in MIPS)
-  call(handle: number) {
-    this.#inner.call(handle);
+  call(handle: number | null) {
+    if (handle !== null) {
+      this.#inner.call(handle);
+    }
   }
 
   // Put a specific `program` address in $ra

@@ -6,17 +6,10 @@ import type {
   NamedBlocks,
   Nullable,
   WireFormat,
-} from "@glimmer/interfaces";
+} from '@glimmer/interfaces';
 import { hasCapability } from '@glimmer/manager';
 import { EMPTY_STRING_ARRAY, reverse, unwrap } from '@glimmer/util';
-import {
-  $s0,
-  $s1,
-  $sp,
-  InternalComponentCapabilities,
-  Op,
-  type SavedRegister,
-} from '@glimmer/vm';
+import { $s0, $s1, $sp, InternalComponentCapabilities, Op, type SavedRegister } from '@glimmer/vm';
 
 import type { PushExpressionOp, PushStatementOp } from '../../syntax/compilers';
 import { namedBlocks } from '../../utils';
