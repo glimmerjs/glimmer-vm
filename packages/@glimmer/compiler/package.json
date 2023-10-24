@@ -22,13 +22,13 @@
   },
   "dependencies": {
     "@glimmer/interfaces": "workspace:^",
+    "@glimmer/local-debug-flags": "workspace:^",
     "@glimmer/util": "workspace:^",
     "@glimmer/syntax": "workspace:^",
     "@glimmer/vm": "workspace:^",
     "@glimmer/wire-format": "workspace:^"
   },
   "devDependencies": {
-    "@glimmer/local-debug-flags": "workspace:^",
     "@glimmer-workspace/build-support": "workspace:^",
     "@types/node": "^18.16.6"
   },

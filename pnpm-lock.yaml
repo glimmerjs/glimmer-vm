@@ -567,6 +567,9 @@ importers:
       '@glimmer/interfaces':
         specifier: workspace:^
         version: link:../interfaces
+      '@glimmer/local-debug-flags':
+        specifier: workspace:^
+        version: link:../local-debug-flags
       '@glimmer/syntax':
         specifier: workspace:^
         version: link:../syntax
@@ -583,9 +586,6 @@ importers:
       '@glimmer-workspace/build-support':
         specifier: workspace:^
         version: link:../../@glimmer-workspace/build
-      '@glimmer/local-debug-flags':
-        specifier: workspace:^
-        version: link:../local-debug-flags
       '@types/node':
         specifier: ^18.16.6
         version: 18.16.6
