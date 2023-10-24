@@ -1,4 +1,4 @@
-import type { TupleIndices, VmMachineOp, VmOp, VmOpMap, VmOpName } from '@glimmer/interfaces';
+import type { TupleIndices, VmMachineOp, VmOp, VmOpMap } from '@glimmer/interfaces';
 
 export const OpNames: VmOpMap = [
   'PushFrame',

@@ -23,13 +23,6 @@ interface StackType<N extends string, T> {
   coerce: Coerce<T>;
 }
 
-function def<N extends string, T>(name: N, coerce: Coerce<T>): StackType<N, T> {
-  return {
-    name,
-    coerce,
-  };
-}
-
 type Coerce<T> = (item: unknown, vm: VM) => CoerceResult<T>;
 
 function define<const T extends Record<string, <N extends string>(name: N) => StackType<N, any>>>(
@@ -56,7 +49,7 @@ const IsReference = {
   },
 } satisfies StackType<'reference', Reference>;
 
-const types = define({
+export const types = define({
   'imm/bool': pipe(isBool, (value) => !!value),
   'imm/i32': coerce(isI32),
 
@@ -189,8 +182,6 @@ function IsInterface<R extends Record<string, LazyStackType<any, any>>>(
       return result === 'ok';
     });
   }
-
-  return check as any;
 }
 
 function isBool(value: unknown): value is boolean {

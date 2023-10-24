@@ -42,7 +42,7 @@ function toContentType(value: unknown) {
   }
 }
 
-function toDynamicContentType(value: unknown) {
+function toDynamicContentType(value: unknown): 0 | 1 | 2 {
   if (!isObject(value)) {
     return ContentType.String;
   }
