@@ -209,6 +209,7 @@ export const STACK_TYPES = [
   'block/table',
   'block/handle',
   'block/table?',
+  'block/handle?',
 
   'component/definition',
   'component/%definition',

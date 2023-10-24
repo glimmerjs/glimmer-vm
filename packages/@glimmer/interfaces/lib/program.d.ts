@@ -6,6 +6,7 @@ import type { ModifierDefinitionState } from './runtime/modifier';
 import type { CompileTimeResolver, ResolvedComponentDefinition } from './serialize';
 import type { ContainingMetadata, STDLib, Template } from './template';
 import type { VmMachineOp, VmOp } from './vm-opcodes';
+import type { Nullable } from './core';
 
 export type CreateRuntimeOp = (heap: CompileTimeHeap) => RuntimeOp;
 
@@ -135,7 +136,7 @@ export interface ResolutionTimeConstants {
 
 export interface RuntimeConstants extends DebugConstants {
   getValue<T>(handle: number): T;
-  getArray<T>(handle: number): T[];
+  getArray<T extends Nullable<unknown[]>>(handle: number): T;
 }
 
 export interface CompileTimeArtifacts {

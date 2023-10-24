@@ -219,12 +219,12 @@ APPEND_OPCODES.add(Op.PushDynamicComponentInstance, (vm) => {
 
 APPEND_OPCODES.add(Op.PushArgs, (vm, { op1: _names, op2: _blockNames, op3: flags }) => {
   let stack = vm.argumentsStack;
-  let names = vm[CONSTANTS].getArray<string>(_names);
+  let names = vm[CONSTANTS].getArray<string[]>(_names);
 
   let positionalCount = flags >> 4;
   let atNames = flags & 0b1000;
   let blockNames =
-    flags & 0b0111 ? vm[CONSTANTS].getArray<string>(_blockNames) : EMPTY_STRING_ARRAY;
+    flags & 0b0111 ? vm[CONSTANTS].getArray<string[]>(_blockNames) : EMPTY_STRING_ARRAY;
 
   vm[ARGS].setup(stack, names, blockNames, positionalCount, !!atNames);
   stack.push(vm[ARGS]);
@@ -603,7 +603,7 @@ APPEND_OPCODES.add(Op.GetComponentSelf, (vm, { op1: _state, op2: _names }) => {
     if (vm.stack.top() === vm[ARGS]) {
       args = vm[ARGS].capture();
     } else {
-      let names = vm[CONSTANTS].getArray<string>(_names);
+      let names = vm[CONSTANTS].getArray<string[]>(_names);
       vm[ARGS].setup(vm.argumentsStack, names, [], 0, true);
       args = vm[ARGS].capture();
     }

@@ -23,7 +23,7 @@ import type { Primitive } from './stack-check';
 
 export interface DebugConstants {
   getValue<T>(handle: number): T;
-  getArray<T>(value: number): T[];
+  getArray<T extends Nullable<unknown[]>>(value: number): T;
 }
 
 export function logOpcodeSlice(context: TemplateCompilationContext, start: number, end: number) {
@@ -131,7 +131,7 @@ function stringify(
   }
 }
 
-function json(param: DebugOperand): string | string[] {
+function json(param: DebugOperand): string | string[] | null {
   switch (param.type) {
     case 'number':
     case 'boolean':
@@ -142,7 +142,7 @@ function json(param: DebugOperand): string | string[] {
       if ('kind' in param) {
         return param.value;
       } else {
-        return param.value.map((value) => stringify(value, 'unknown'));
+        return param.value?.map((value) => stringify(value, 'unknown')) ?? null;
       }
     case 'dynamic':
       return stringify(param.value, 'unknown');
@@ -196,6 +196,13 @@ export type DebugOperand =
   | { type: 'string'; value: string; nullable?: false }
   | { type: 'string'; value: Nullable<string>; nullable: true }
   | { type: 'array'; value: unknown[] }
+  | { type: 'array'; value: Nullable<unknown[]>; nullable: true }
+  | {
+      type: 'array';
+      value: Nullable<string[]>;
+      kind: typeof String;
+      nullable: true;
+    }
   | {
       type: 'array';
       value: string[];
@@ -242,14 +249,22 @@ export function debug(c: DebugConstants, op: RuntimeOp): [string, Dict<DebugOper
           case 'const/any[]':
             out[operand.name] = {
               type: 'array',
-              value: c.getArray<unknown>(actualOperand),
+              value: c.getArray<unknown[]>(actualOperand),
             };
             break;
           case 'const/str[]':
             out[operand.name] = {
               type: 'array',
-              value: c.getArray<string>(actualOperand),
+              value: c.getArray<string[]>(actualOperand),
               kind: String,
+            };
+            break;
+          case 'const/str[]?':
+            out[operand.name] = {
+              type: 'array',
+              value: c.getArray<Nullable<string[]>>(actualOperand),
+              kind: String,
+              nullable: true,
             };
             break;
 

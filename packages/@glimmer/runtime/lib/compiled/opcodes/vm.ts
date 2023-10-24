@@ -111,7 +111,7 @@ APPEND_OPCODES.add(Op.Fetch, (vm, { op1: register }) => {
 });
 
 APPEND_OPCODES.add(Op.BindDynamicScope, (vm, { op1: _names }) => {
-  let names = vm[CONSTANTS].getArray<string>(_names);
+  let names = vm[CONSTANTS].getArray<string[]>(_names);
   vm.bindDynamicScope(names);
 });
 

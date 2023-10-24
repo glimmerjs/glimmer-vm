@@ -278,7 +278,7 @@ function InvokeStaticComponent(
   op(Op.RegisterComponentDestructor, $s0);
 
   if (hasCapability(capabilities, InternalComponentCapabilities.createArgs)) {
-    op(Op.GetComponentSelf, $s0);
+    op(Op.GetComponentSelf, $s0, null);
   } else {
     op(Op.GetComponentSelf, $s0, argNames);
   }
@@ -415,7 +415,7 @@ export function invokePreparedComponent(
   }
 
   op(Op.RegisterComponentDestructor, $s0);
-  op(Op.GetComponentSelf, $s0);
+  op(Op.GetComponentSelf, $s0, null);
 
   op(Op.VirtualRootScope, $s0);
   op(Op.SetVariable, 0);

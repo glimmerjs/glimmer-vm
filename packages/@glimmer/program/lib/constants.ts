@@ -78,9 +78,11 @@ export class RuntimeConstantsImpl implements RuntimeConstants {
     return this.values[handle] as T;
   }
 
-  getArray<T>(value: number): T[] {
+  getArray<T extends Nullable<unknown[]>>(value: number): T {
     let handles = this.getValue<number[]>(value);
-    let reified: T[] = new Array(handles.length);
+    if (handles === undefined) return null as T;
+
+    let reified = new Array(handles.length) as NonNullable<T>;
 
     for (const [i, n] of enumerate(handles)) {
       reified[i] = this.getValue(n);
@@ -312,21 +314,25 @@ export class ConstantsImpl
     return this.values[index] as T;
   }
 
-  getArray<T>(index: number): T[] {
+  getArray<T extends Nullable<unknown[]>>(index: number): T {
     let reifiedArrs = this.reifiedArrs;
-    let reified = reifiedArrs[index] as T[];
+    const reified = reifiedArrs[index] as T;
 
-    if (reified === undefined) {
-      let names: number[] = this.getValue(index);
-      reified = new Array(names.length);
+    if (reified !== undefined) return reified;
+
+    {
+      let names: Nullable<number[]> = this.getValue(index);
+      if (names === null) return null as T;
+
+      const reified = new Array(names.length) as NonNullable<T>;
 
       for (const [i, name] of enumerate(names)) {
         reified[i] = this.getValue(name);
       }
 
       reifiedArrs[index] = reified;
-    }
 
     return reified;
+    }
   }
 }

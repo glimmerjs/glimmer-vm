@@ -58,6 +58,7 @@ export const OPERAND_TYPES = [
   'const/str?',
   'const/any[]',
   'const/str[]',
+  'const/str[]?',
   'const/bool',
   'const/fn',
   'const/any',
