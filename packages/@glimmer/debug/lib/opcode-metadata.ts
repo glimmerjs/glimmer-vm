@@ -23,7 +23,7 @@ const METADATA = MetadataBuilder.build(({ add, stack }) =>
     .add(`Jump as goto`, ['to:imm/u32'])
     .add(`Return as ret`)
     .add(`ReturnTo as setra`, ['offset:imm/pc'])
-    .add(`PushTryFrame as try`, ['catch:imm/pc'], stack.delta(+4))
+    .add(`PushTryFrame as try`, ['catch:imm/pc'])
     .add(`PopTryFrame as finally`)
     .add(`UnwindTypeFrame as unwind`)
     .add(RESERVED)
@@ -265,5 +265,8 @@ const METADATA = MetadataBuilder.build(({ add, stack }) =>
       stack.params(['name:reference/any']).returns(['reference/any'])
     )
     .add(`Log as v0<-log_ref[pop1]`, stack.params(['args:args']).returns([]))
-    .add(`PushUnwindTarget as push<-unwind`, stack.params([]).returns(['i32']))
+    .add(
+      `PushUnwindTarget as push<-target`,
+      stack.params(['target:register/instruction']).returns([])
+    )
 );

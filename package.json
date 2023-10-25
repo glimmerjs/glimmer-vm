@@ -10,6 +10,7 @@
   "license": "MIT",
   "author": "Tilde, Inc.",
   "scripts": {
+    "generate:opcodes": "esyes bin/opcodes.mts all",
     "benchmark:build": "node benchmark/bin/build.js",
     "benchmark:control": "node benchmark/bin/control.js",
     "benchmark:experiment": "node benchmark/bin/experiment.js",
@@ -90,6 +91,7 @@
     "eslint-plugin-qunit": "^8.0.1",
     "eslint-plugin-simple-import-sort": "^10.0.0",
     "eslint-plugin-unused-imports": "^3.0.0",
+    "esyes": "^1.0.1",
     "execa": "^8.0.1",
     "fast-glob": "^3.3.1",
     "glob": "^10.3.10",
@@ -153,7 +155,7 @@
     "node": ">=16.0.0"
   },
   "volta": {
-    "node": "20.5.1",
+    "node": "21.1.0",
     "pnpm": "8.6.12"
   }
 }

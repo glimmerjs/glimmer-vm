@@ -2,8 +2,10 @@ import type { Nullable, Optional, VmOpName } from '@glimmer/interfaces';
 import type { NormalizedMetadata, DynamicStackFnSpec, StackCheck } from './metadata';
 import { LOCAL_LOGGER, assertNever, fillNulls } from '@glimmer/util';
 import { UNCHANGED, type STACK_TYPES } from './stack/params';
-import { OpSize, type OpNames } from '@glimmer/vm';
+import { OpSize } from '@glimmer/vm';
 import { LOCAL_DEBUG, LOCAL_TRACE_LOGGING } from '@glimmer/local-debug-flags';
+// eslint-disable-next-line @typescript-eslint/no-restricted-imports
+import type { DebugOpList } from './generated/op-list';
 
 type NameDef<Name extends Nullable<VmOpName> = VmOpName> = Name extends null
   ? null
@@ -333,10 +335,6 @@ export type NormalizedMetadataArray<O> = {
   [K in keyof O]: O[K] extends null ? null : NormalizedMetadata;
 };
 
-type Mutable<T> = {
-  -readonly [P in keyof T]: T[P];
-};
-
 export const RESERVED = Symbol('RESERVED');
 export type RESERVED = typeof RESERVED;
 
@@ -349,12 +347,10 @@ export class MetadataBuilder<
 > {
   static build<T extends Nullable<OpName>[]>(
     build: (
-      builder: MetadataBuilder<typeof OpNames, [], Mutable<typeof OpNames>>
-    ) => MetadataBuilder<typeof OpNames, T, any>
+      builder: MetadataBuilder<DebugOpList, [], DebugOpList>
+    ) => MetadataBuilder<DebugOpList, T, []>
   ): NormalizedMetadataArray<T> {
-    let builder = new MetadataBuilder<typeof OpNames, [], Mutable<typeof OpNames>>(
-      fillNulls(OpSize)
-    );
+    let builder = new MetadataBuilder<DebugOpList, [], DebugOpList>(fillNulls(OpSize));
     return build(builder).#done() as any;
   }
 
