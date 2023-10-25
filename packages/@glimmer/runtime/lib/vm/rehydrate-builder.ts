@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-enum-comparison */
 import type {
   AttrNamespace,
   Bounds,
@@ -10,7 +11,7 @@ import type {
   SimpleElement,
   SimpleNode,
   SimpleText,
-} from "@glimmer/interfaces";
+} from '@glimmer/interfaces';
 import {
   assert,
   castToBrowser,

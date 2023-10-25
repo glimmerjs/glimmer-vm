@@ -51,13 +51,11 @@ import { PartialScopeImpl } from '../scope';
 import { ARGS, CONSTANTS, DESTROYABLE_STACK, HEAP, STACKS } from '../symbols';
 import { VMArgumentsImpl } from './arguments';
 import type { LiveBlockList } from './element-builder';
-import {
-  LowLevelVM,
-  type ArgumentsStack,
-} from './low-level';
+import { LowLevelVM, type ArgumentsStack } from './low-level';
 import type {
   CleanStack,
-  InternalStack, DebugStack
+  InternalStack,
+  DebugStack,
 } from '@glimmer/interfaces/lib/runtime/debug-vm';
 import RenderResultImpl from './render-result';
 import EvaluationStackImpl from './stack';
