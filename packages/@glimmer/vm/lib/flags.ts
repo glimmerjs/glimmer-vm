@@ -24,11 +24,20 @@ import type {
   WrappedCapability,
 } from '@glimmer/interfaces';
 
+export const CURRIED_COMPONENT = 0 satisfies CurriedComponent;
+export type CURRIED_COMPONENT = typeof CURRIED_COMPONENT;
+export const CURRIED_HELPER = 1 satisfies CurriedHelper;
+export type CURRIED_HELPER = typeof CURRIED_HELPER;
+export const CURRIED_MODIFIER = 2 satisfies CurriedModifier;
+export type CURRIED_MODIFIER = typeof CURRIED_MODIFIER;
+
 export const CurriedTypes = {
-  Component: 0 satisfies CurriedComponent,
-  Helper: 1 satisfies CurriedHelper,
-  Modifier: 2 satisfies CurriedModifier,
+  Component: CURRIED_COMPONENT,
+  Helper: CURRIED_HELPER,
+  Modifier: CURRIED_MODIFIER,
 } as const;
+
+export type CurriedInvokable = CURRIED_COMPONENT | CURRIED_HELPER | CURRIED_MODIFIER;
 
 export const InternalComponentCapabilities = {
   Empty: 0 satisfies EmptyCapability,

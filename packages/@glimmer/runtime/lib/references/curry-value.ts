@@ -11,7 +11,7 @@ import { createComputeRef, type Reference, valueForRef } from '@glimmer/referenc
 import { expect, isObject } from '@glimmer/util';
 import { CurriedTypes } from '@glimmer/vm';
 
-import { curry, isCurriedType } from '../curried-value';
+import { curry, isCurried } from '../curried-value';
 
 export default function createCurryRef(
   type: CurriedType,
@@ -30,7 +30,7 @@ export default function createCurryRef(
       return curriedDefinition;
     }
 
-    if (isCurriedType(value, type)) {
+    if (isCurried(value, type)) {
       curriedDefinition = args ? curry(type, value, owner, args) : args;
     } else if (type === CurriedTypes.Component && typeof value === 'string' && value) {
       // Only components should enter this path, as helpers and modifiers do not

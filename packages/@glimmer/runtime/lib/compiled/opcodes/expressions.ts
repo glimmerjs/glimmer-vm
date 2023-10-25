@@ -31,7 +31,7 @@ import {
 import { assert, assign, debugToString, decodeHandle, isObject } from '@glimmer/util';
 import { $v0, CurriedTypes, Op } from '@glimmer/vm';
 
-import { isCurriedType, resolveCurriedValue } from '../../curried-value';
+import { isCurried, resolveCurriedValue } from '../../curried-value';
 import { APPEND_OPCODES } from '../../opcodes';
 import createCurryRef from '../../references/curry-value';
 import { CONSTANTS } from '../../symbols';
@@ -87,7 +87,7 @@ APPEND_OPCODES.add(Op.DynamicHelper, (vm) => {
 
     let definition = valueForRef(ref);
 
-    if (isCurriedType(definition, CurriedTypes.Helper)) {
+    if (isCurried(definition, CurriedTypes.Helper)) {
       let { definition: resolvedDef, owner, positional, named } = resolveCurriedValue(definition);
 
       let helper = resolveHelper(vm[CONSTANTS], resolvedDef, ref);

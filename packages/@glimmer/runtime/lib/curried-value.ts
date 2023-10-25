@@ -20,7 +20,7 @@ export function isCurriedValue(value: unknown): value is CurriedValue<CurriedTyp
   return CURRIED_VALUES.has(value as object);
 }
 
-export function isCurriedType<T extends CurriedType>(
+export function isCurried<T extends CurriedType>(
   value: unknown,
   type: T
 ): value is CurriedValue<T> {

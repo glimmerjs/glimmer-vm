@@ -5,7 +5,7 @@ import type {
   WellKnownTagName,
   WireFormat,
 } from '@glimmer/interfaces';
-import { $fp, $sp, ContentType, Op } from '@glimmer/vm';
+import { $fp, $sp, Op, COMPONENT_CONTENT, HELPER_CONTENT } from '@glimmer/vm';
 import { SexpOpcodes } from '@glimmer/wire-format';
 
 import {
@@ -32,6 +32,7 @@ import {
   CallDynamic,
   DynamicScope,
   PushPrimitiveReference,
+  PushPrimitive,
 } from '../opcode-builder/helpers/vm';
 import { HighLevelBuilderOpcodes, HighLevelResolutionOpcodes } from '../opcode-builder/opcodes';
 import { debugSymbolsOperand, labelOperand, stdlibOperand } from '../opcode-builder/operands';
@@ -181,7 +182,7 @@ STATEMENTS.add(SexpOpcodes.Append, (op, [, value]) => {
           op(Op.DynamicContentType);
         },
         (when) => {
-          when(ContentType.Component, () => {
+          when(COMPONENT_CONTENT, () => {
             op(Op.ResolveCurriedComponent);
             op(Op.PushDynamicComponentInstance);
             InvokeNonStaticComponent(op, {
@@ -194,7 +195,7 @@ STATEMENTS.add(SexpOpcodes.Append, (op, [, value]) => {
             });
           });
 
-          when(ContentType.Helper, () => {
+          when(HELPER_CONTENT, () => {
             CallDynamic(op, positional, named, () => {
               op(Op.InvokeStatic, stdlibOperand('cautious-non-dynamic-append'));
             });
@@ -263,11 +264,14 @@ STATEMENTS.add(SexpOpcodes.HandleError, (op, [, _handler, block, _inverse]) => {
     // If there's an error inside `block`, jump to the catch block
 
     op(Op.PushTryFrame, op.target('CATCH')),
-    op(Op.PushUnwindTarget),
 
     ReplayableIf(
       op,
-      () => 1,
+      () => {
+        PushPrimitive(op, true);
+        op(Op.PrimitiveReference);
+        return 1;
+      },
       () => {
         InvokeStaticBlock(op, block);
         op(Op.PopTryFrame);

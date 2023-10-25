@@ -4,7 +4,7 @@ import type {
   ContainingMetadata,
   HighLevelOp,
 } from '@glimmer/interfaces';
-import { $s0, ContentType, Op } from '@glimmer/vm';
+import { $s0, Op } from '@glimmer/vm';
 
 import {
   definePushOp,
@@ -16,6 +16,14 @@ import { StdLib } from '../stdlib';
 import { InvokeBareComponent, invokePreparedComponent } from './components';
 import { SwitchCases } from './conditional';
 import { CallDynamic } from './vm';
+import {
+  COMPONENT_CONTENT,
+  FRAGMENT_CONTENT,
+  HELPER_CONTENT,
+  NODE_CONTENT,
+  SAFE_STRING_CONTENT,
+  STRING_CONTENT,
+} from '@glimmer/vm/lib/content';
 
 export function main(op: PushStatementOp): void {
   op(Op.Main, $s0);
@@ -39,7 +47,7 @@ export function StdAppend(
     op,
     () => op(Op.ContentType),
     (when) => {
-      when(ContentType.String, () => {
+      when(STRING_CONTENT, () => {
         if (trusting) {
           op(Op.AssertSame);
           op(Op.AppendHTML);
@@ -49,13 +57,13 @@ export function StdAppend(
       });
 
       if (typeof nonDynamicAppend === 'number') {
-        when(ContentType.Component, () => {
+        when(COMPONENT_CONTENT, () => {
           op(Op.ResolveCurriedComponent);
           op(Op.PushDynamicComponentInstance);
           InvokeBareComponent(op);
         });
 
-        when(ContentType.Helper, () => {
+        when(HELPER_CONTENT, () => {
           CallDynamic(op, null, null, () => {
             op(Op.InvokeStatic, nonDynamicAppend);
           });
@@ -63,26 +71,26 @@ export function StdAppend(
       } else {
         // when non-dynamic, we can no longer call the value (potentially because we've already called it)
         // this prevents infinite loops. We instead coerce the value, whatever it is, into the DOM.
-        when(ContentType.Component, () => {
+        when(COMPONENT_CONTENT, () => {
           op(Op.AppendText);
         });
 
-        when(ContentType.Helper, () => {
+        when(HELPER_CONTENT, () => {
           op(Op.AppendText);
         });
       }
 
-      when(ContentType.SafeString, () => {
+      when(SAFE_STRING_CONTENT, () => {
         op(Op.AssertSame);
         op(Op.AppendSafeHTML);
       });
 
-      when(ContentType.Fragment, () => {
+      when(FRAGMENT_CONTENT, () => {
         op(Op.AssertSame);
         op(Op.AppendDocumentFragment);
       });
 
-      when(ContentType.Node, () => {
+      when(NODE_CONTENT, () => {
         op(Op.AssertSame);
         op(Op.AppendNode);
       });

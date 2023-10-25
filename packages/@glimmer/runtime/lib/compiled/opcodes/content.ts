@@ -8,51 +8,54 @@ import {
 import { hasInternalComponentManager, hasInternalHelperManager } from '@glimmer/manager';
 import { isConstRef, valueForRef } from '@glimmer/reference';
 import { isObject, LOCAL_LOGGER } from '@glimmer/util';
-import { ContentType, CurriedType, CurriedTypes, Op } from '@glimmer/vm';
+import { CURRIED_COMPONENT, CURRIED_HELPER, CurriedTypes, Op } from '@glimmer/vm';
 
-import { isCurriedType } from '../../curried-value';
+import { isCurried } from '../../curried-value';
 import { isEmpty, isFragment, isNode, isSafeString, shouldCoerce } from '../../dom/normalize';
 import { APPEND_OPCODES } from '../../opcodes';
 import DynamicTextContent from '../../vm/content/text';
 import { CheckReference } from './-debug-strip';
 import { AssertFilter } from './vm';
 import { LOCAL_TRACE_LOGGING } from '@glimmer/local-debug-flags';
+import {
+  COMPONENT_CONTENT,
+  HELPER_CONTENT,
+  type DynamicContentType,
+  STRING_CONTENT,
+  SAFE_STRING_CONTENT,
+  FRAGMENT_CONTENT,
+  NODE_CONTENT,
+} from '@glimmer/vm/lib/content';
 
 function toContentType(value: unknown) {
   if (shouldCoerce(value)) {
-    return ContentType.String;
-  } else if (
-    isCurriedType(value, CurriedType.Component) ||
-    hasInternalComponentManager(value as object)
-  ) {
-    return ContentType.Component;
-  } else if (
-    isCurriedType(value, CurriedType.Helper) ||
-    hasInternalHelperManager(value as object)
-  ) {
-    return ContentType.Helper;
+    return STRING_CONTENT;
+  } else if (isCurried(value, CURRIED_COMPONENT) || hasInternalComponentManager(value as object)) {
+    return COMPONENT_CONTENT;
+  } else if (isCurried(value, CURRIED_HELPER) || hasInternalHelperManager(value as object)) {
+    return HELPER_CONTENT;
   } else if (isSafeString(value)) {
-    return ContentType.SafeString;
+    return SAFE_STRING_CONTENT;
   } else if (isFragment(value)) {
-    return ContentType.Fragment;
+    return FRAGMENT_CONTENT;
   } else if (isNode(value)) {
-    return ContentType.Node;
+    return NODE_CONTENT;
   } else {
-    return ContentType.String;
+    return STRING_CONTENT;
   }
 }
 
-function toDynamicContentType(value: unknown): 0 | 1 | 2 {
+function toDynamicContentType(value: unknown): DynamicContentType {
   if (!isObject(value)) {
-    return ContentType.String;
+    return STRING_CONTENT;
   }
 
-  if (isCurriedType(value, CurriedTypes.Component) || hasInternalComponentManager(value)) {
-    return ContentType.Component;
+  if (isCurried(value, CurriedTypes.Component) || hasInternalComponentManager(value)) {
+    return COMPONENT_CONTENT;
   } else {
     if (
       import.meta.env.DEV &&
-      !isCurriedType(value, CurriedTypes.Helper) &&
+      !isCurried(value, CurriedTypes.Helper) &&
       !hasInternalHelperManager(value)
     ) {
       if (LOCAL_TRACE_LOGGING) {
@@ -66,7 +69,7 @@ function toDynamicContentType(value: unknown): 0 | 1 | 2 {
       );
     }
 
-    return ContentType.Helper;
+    return HELPER_CONTENT;
   }
 }
 

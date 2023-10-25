@@ -55,7 +55,7 @@ import { hasCustomDebugRenderTreeLifecycle } from '../../component/interfaces';
 import { resolveComponent } from '../../component/resolve';
 import {
   type CurriedValue,
-  isCurriedType,
+  isCurried,
   isCurriedValue,
   resolveCurriedValue,
 } from '../../curried-value';
@@ -251,7 +251,7 @@ APPEND_OPCODES.add(Op.PrepareArgs, (vm, { op1: _state }) => {
 
   let { definition } = instance;
 
-  if (isCurriedType(definition, CurriedTypes.Component)) {
+  if (isCurried(definition, CurriedTypes.Component)) {
     assert(
       !definition.manager,
       "If the component definition was curried, we don't yet have a manager"

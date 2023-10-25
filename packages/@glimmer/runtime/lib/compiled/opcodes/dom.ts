@@ -30,7 +30,7 @@ import {
 } from '@glimmer/validator';
 import { $t0, CurriedTypes, Op } from '@glimmer/vm';
 
-import { type CurriedValue, isCurriedType, resolveCurriedValue } from '../../curried-value';
+import { type CurriedValue, isCurried, resolveCurriedValue } from '../../curried-value';
 import { APPEND_OPCODES } from '../../opcodes';
 import { CONSTANTS } from '../../symbols';
 import type { DynamicAttribute } from '../../vm/attributes/dynamic';
@@ -169,7 +169,7 @@ APPEND_OPCODES.add(Op.DynamicModifier, (vm) => {
 
     let hostDefinition: CurriedValue | ModifierDefinitionState;
 
-    if (isCurriedType(value, CurriedTypes.Modifier)) {
+    if (isCurried(value, CurriedTypes.Modifier)) {
       let {
         definition: resolvedDefinition,
         owner: curriedOwner,
