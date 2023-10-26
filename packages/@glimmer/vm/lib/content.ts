@@ -14,6 +14,8 @@ export const NODE_CONTENT = 6;
 export type NODE_CONTENT = typeof NODE_CONTENT;
 export const OTHER_CONTENT = 8;
 export type OTHER_CONTENT = typeof OTHER_CONTENT;
+export const ERROR_CONTENT = 9;
+export type ERROR_CONTENT = typeof ERROR_CONTENT;
 
 interface ContentTypeMap {
   Component: COMPONENT_CONTENT;
@@ -24,6 +26,7 @@ interface ContentTypeMap {
   Fragment: FRAGMENT_CONTENT;
   Node: NODE_CONTENT;
   Other: OTHER_CONTENT;
+  Error: ERROR_CONTENT;
 }
 
 export type ContentTypeName = keyof ContentTypeMap;

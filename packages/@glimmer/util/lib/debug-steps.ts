@@ -1,9 +1,10 @@
 /// <reference types="qunit" />
 
-import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
+import { LOCAL_DEBUG, LOCAL_TRACE_LOGGING } from '@glimmer/local-debug-flags';
 
 import assert from './assert';
 import { expect } from './platform-utils';
+import { LOCAL_LOGGER } from '..';
 
 export let beginTestSteps: (() => void) | undefined;
 export let endTestSteps: (() => void) | undefined;
@@ -29,6 +30,10 @@ if (LOCAL_DEBUG) {
   };
 
   logStep = (type: string, step: unknown) => {
+    if (LOCAL_TRACE_LOGGING) {
+      LOCAL_LOGGER.log('STEP', type, step);
+    }
+
     if (LOGGED_STEPS === null) return;
 
     let steps = LOGGED_STEPS[type];

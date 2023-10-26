@@ -208,12 +208,14 @@ export class ContentEncoder {
   HandleError({ handler, block, inverse }: mir.HandleError): WireFormat.Statements.HandleError {
     return [
       SexpOpcodes.HandleError,
-      EXPR.Literal(
-        new ASTv2.LiteralExpression({
-          value: null,
-          loc: handler?.loc ?? SourceSpan.synthetic('null'),
-        })
-      ),
+      handler
+        ? EXPR.expr(handler)
+        : EXPR.Literal(
+            new ASTv2.LiteralExpression({
+              value: null,
+              loc: SourceSpan.synthetic('null'),
+            })
+          ),
       CONTENT.NamedBlock(block)[1],
       inverse ? CONTENT.NamedBlock(inverse)[1] : null,
     ];

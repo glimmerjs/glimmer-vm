@@ -3,7 +3,7 @@ import {
   CheckElement,
   CheckMaybe,
   CheckNode,
-  CheckOption,
+  CheckNullable,
   CheckString,
 } from '@glimmer/debug';
 import { associateDestroyableChild, destroy } from '@glimmer/destroyable';
@@ -17,7 +17,7 @@ import type {
   Owner,
   UpdatingOpcode,
   UpdatingVM,
-} from "@glimmer/interfaces";
+} from '@glimmer/interfaces';
 import { createComputeRef, isConstRef, type Reference, valueForRef } from '@glimmer/reference';
 import { assign, debugToString, expect, isObject } from '@glimmer/util';
 import {
@@ -60,7 +60,7 @@ APPEND_OPCODES.add(Op.PushRemoteElement, (vm) => {
   let guidRef = check(vm.stack.pop(), CheckReference);
 
   let element = check(valueForRef(elementRef), CheckElement);
-  let insertBefore = check(valueForRef(insertBeforeRef), CheckMaybe(CheckOption(CheckNode)));
+  let insertBefore = check(valueForRef(insertBeforeRef), CheckMaybe(CheckNullable(CheckNode)));
   let guid = valueForRef(guidRef) as string;
 
   if (!isConstRef(elementRef)) {
@@ -250,7 +250,10 @@ APPEND_OPCODES.add(Op.DynamicModifier, (vm) => {
 export class UpdateModifierOpcode implements UpdatingOpcode {
   private lastUpdated: Revision;
 
-  constructor(private tag: Tag, private modifier: ModifierInstance) {
+  constructor(
+    private tag: Tag,
+    private modifier: ModifierInstance
+  ) {
     this.lastUpdated = valueForTag(tag);
   }
 

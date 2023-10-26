@@ -32,7 +32,6 @@ import {
   CallDynamic,
   DynamicScope,
   PushPrimitiveReference,
-  PushPrimitive,
 } from '../opcode-builder/helpers/vm';
 import { HighLevelBuilderOpcodes, HighLevelResolutionOpcodes } from '../opcode-builder/opcodes';
 import { debugSymbolsOperand, labelOperand, stdlibOperand } from '../opcode-builder/operands';
@@ -259,29 +258,31 @@ STATEMENTS.add(SexpOpcodes.InElement, (op, [, block, guid, destination, insertBe
   );
 });
 
-STATEMENTS.add(SexpOpcodes.HandleError, (op, [, _handler, block, _inverse]) => {
-  return op.labels(() => [
-    // If there's an error inside `block`, jump to the catch block
+STATEMENTS.add(SexpOpcodes.HandleError, (op, [, handler, block, _inverse]) => {
+  op.labels(() => {
+    expr(op, handler);
+    op(Op.PushTryFrame, op.target('CATCH'));
+    // ReplayableIf(
+    //   op,
+    //   () => {
+    //     PushPrimitive(op, true);
+    //     op(Op.PrimitiveReference);
+    //     return 1;
+    //   },
+    //   () => {
+    //     InvokeStaticBlock(op, block);
+    //     op(Op.PopTryFrame);
+    //     // Jump over the catch block
+    //     op(Op.Jump, op.target('FINALLY'));
+    //   }
+    // );
+    InvokeStaticBlock(op, block);
+    op(Op.Jump, op.target('FINALLY'));
+    op.label('CATCH');
 
-    op(Op.PushTryFrame, op.target('CATCH')),
-
-    ReplayableIf(
-      op,
-      () => {
-        PushPrimitive(op, true);
-        op(Op.PrimitiveReference);
-        return 1;
-      },
-      () => {
-        InvokeStaticBlock(op, block);
-        op(Op.PopTryFrame);
-        // Jump over the catch block
-        op(Op.Jump, op.target('FINALLY'));
-        op.label('CATCH');
-        op.label('FINALLY');
-      }
-    ),
-  ]);
+    op.label('FINALLY');
+    op(Op.PopTryFrame);
+  });
 });
 
 STATEMENTS.add(SexpOpcodes.If, (op, [, condition, block, inverse]) =>

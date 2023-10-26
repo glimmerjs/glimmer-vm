@@ -97,7 +97,7 @@
       }
     }
   },
-  "inline-bookmarks.view.showVisibleFilesOnly": false,
+  "inline-bookmarks.view.showVisibleFilesOnly": true,
   "commit-message-editor.staticTemplate": [
     "feat: Short description",
     "",

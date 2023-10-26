@@ -7,26 +7,31 @@ import type {
   InternalStack,
   DebugStack,
   CleanStack,
+  Result,
 } from '@glimmer/interfaces';
 import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
-import { assert } from '@glimmer/util';
+import { assert, expect } from '@glimmer/util';
 import { $fp, $pc, $ra, $sp, $up, Op } from '@glimmer/vm';
 
 import { APPEND_OPCODES } from '../opcodes';
 import type { VM } from './append';
 import { CheckNumber, check } from '@glimmer/debug';
-import { createTag } from '@glimmer/validator';
 import { debugAround } from './debug';
+import { UnwindTarget, type TargetState, type ErrorHandler } from './unwind';
 
 export type PackedRegisters = Expand<
-  [$pc: number, $ra: number, $fp: number, $sp: number, $up: number]
+  [$pc: number, $ra: number, $fp: number, $sp: number, $up: UnwindTarget]
 >;
 
 export function PackedRegisters(...registers: PackedRegisters): PackedRegisters {
   assert(registers.length === 5, `Invalid registers: ${JSON.stringify(registers)}`);
   assert(
-    registers.every((register) => typeof register === 'number'),
-    `Invalid registers: ${JSON.stringify(registers)}`
+    registers.slice(0, -1).every((register) => typeof register === 'number'),
+    `Invalid registers: ${JSON.stringify(registers)} ($pc, $ra, $fp, and $sp should be numbers)`
+  );
+  assert(
+    registers.at(-1) instanceof UnwindTarget,
+    `Invalid $up register: Should be a UnwindTarget`
   );
 
   return registers;
@@ -120,25 +125,6 @@ export class Registers {
   }
 
   /**
-   * Attempt to catch a stack unwind. Returns true if the unwind was successful, false otherwise.
-   *
-   * @param up
-   * @param ra
-   * @param fp
-   * @returns
-   */
-  catchUnwindFrame(up: number, ra: number, fp: number): boolean {
-    let to = this.#packed[$up] - 1;
-    this.#packed[$up] = up;
-
-    this.#packed[$ra] = check(ra, CheckNumber);
-    this.#packed[$fp] = check(fp, CheckNumber);
-    this.#packed[$sp] = to;
-
-    return true;
-  }
-
-  /**
    * @deprecated Direct access to .packed will be removed once all use-cases are handled via
    * semantic methods.
    */
@@ -162,8 +148,28 @@ export class Registers {
     return this.#packed[$fp];
   }
 
-  get up(): number {
+  get up(): UnwindTarget {
     return this.#packed[$up];
+  }
+
+  try(catchPc: number, handler: ErrorHandler | null) {
+    this.#packed[$up] = this.#packed[$up].child({
+      ip: catchPc,
+      ra: this.#packed[$sp],
+      fp: this.#packed[$fp],
+      handler,
+    });
+  }
+
+  catch(error: unknown): TargetState {
+    return this.#packed[$up].catch(error);
+  }
+
+  finally() {
+    this.#packed[$up] = expect(
+      this.#packed[$up].finally(),
+      "Since the $up starts initialized, and finally() is always paired with try(), it shouldn't be possible to pop the last $up."
+    );
   }
 }
 
@@ -185,6 +191,21 @@ export interface Externs {
 export interface VmDebugState {
   readonly registers: Registers;
   readonly stack: DebugStack;
+  readonly threw: boolean;
+}
+
+let THROWN: { set: (value: boolean) => void; check: () => boolean } | undefined;
+
+if (import.meta.env.DEV) {
+  let MARKER = false;
+
+  THROWN = {
+    set: (value: boolean) => {
+      MARKER = value;
+    },
+
+    check: () => MARKER,
+  };
 }
 
 export class LowLevelVM {
@@ -204,6 +225,8 @@ export class LowLevelVM {
   readonly #program: RuntimeProgram;
   readonly #stack: ArgumentsStack;
 
+  declare threw?: () => boolean;
+
   private constructor(
     stack: ArgumentsStack,
     heap: RuntimeHeap,
@@ -215,6 +238,18 @@ export class LowLevelVM {
     this.#heap = heap;
     this.#program = program;
     this.#registers = registers;
+
+    if (import.meta.env.DEV) {
+      Object.defineProperty(this, 'threw', () => THROWN?.check());
+    }
+  }
+
+  get result(): Result<void> {
+    return this.#registers.up.error;
+  }
+
+  capture(): { unwind: UnwindTarget } {
+    return { unwind: this.#registers.up };
   }
 
   // @premerge consolidate
@@ -236,6 +271,7 @@ export class LowLevelVM {
     return {
       registers: this.#registers,
       stack: this.#stack,
+      threw: THROWN?.check() ?? false,
     };
   }
 
@@ -251,49 +287,38 @@ export class LowLevelVM {
     return this.#registers.fp;
   }
 
-  beginTry(catchPc: number) {
-    // @active create error cell
-    let tag = createTag();
-
-    // push the current $up onto the stack;
-    // this makes the chain of $ups a linked list
-    this.#stack.push(this.#registers.up);
-    // save off the $sp of the beginning of the unwind frame
-    let sp = this.#registers.sp;
-
-    this.#stack.push(this.target(catchPc));
-    this.#registers.packed[$up] = sp;
-    // push the current $ra onto the stack
-    this.#stack.push(this.#registers.ra);
-    this.#stack.push(this.#registers.fp);
+  beginTry(catchPc: number, handler: Nullable<ErrorHandler>) {
+    // resolve the catchPc to a specific instruction pointer immediately.
+    this.#registers.try(this.target(catchPc), handler);
   }
 
-  catch(e: unknown) {
-    let up = this.#registers.up;
-
-    if (up === -1) {
-      throw e;
+  userException(error: unknown): TargetState {
+    if (import.meta.env.DEV) {
+      THROWN?.set(true);
     }
 
-    let catchPc = this.#stack.get(1, up);
+    const target = this.#registers.catch(error);
+    this.#registers.popTo(target.ra, target.fp);
+    this.#registers.goto(target.ip);
 
-    this.#registers.catchUnwindFrame(
-      this.#stack.get(0, up),
-      this.#stack.get(2, up),
-      this.#stack.get(3, up)
-    );
-
-    this.#registers.goto(catchPc);
+    return target;
   }
 
   finally() {
+    this.#registers.finally();
+  }
+
+  catch(error: unknown) {
     let up = this.#registers.up;
 
-    this.#registers.catchUnwindFrame(
-      this.#stack.get(0, up),
-      this.#stack.get(2, up),
-      this.#stack.get(3, up)
-    );
+    if (import.meta.env.DEV) {
+      THROWN?.set(true);
+    }
+
+    // @fixme
+    const target = up.catch(error);
+    this.#registers.popTo(target.ra, target.fp);
+    this.#registers.goto(target.ip);
   }
 
   // Start a new frame and save $ra and $fp on the stack
@@ -340,6 +365,10 @@ export class LowLevelVM {
   }
 
   nextStatement(): Nullable<RuntimeOp> {
+    if (import.meta.env.DEV) {
+      THROWN?.set(false);
+    }
+
     let program = this.#program;
     let registers = this.#registers;
 
@@ -394,8 +423,6 @@ export class LowLevelVM {
         return this.return();
       case Op.ReturnTo:
         return this.returnTo(opcode.op1);
-      case Op.PushTryFrame:
-        return this.beginTry(opcode.op1);
       case Op.PopTryFrame:
         return this.finally();
     }

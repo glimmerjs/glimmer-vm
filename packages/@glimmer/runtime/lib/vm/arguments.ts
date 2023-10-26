@@ -1,4 +1,4 @@
-import { check, CheckBlockSymbolTable, CheckHandle, CheckOption, CheckOr } from '@glimmer/debug';
+import { check, CheckBlockSymbolTable, CheckHandle, CheckNullable, CheckOr } from '@glimmer/debug';
 import type {
   BlockArguments,
   BlockSymbolTable,
@@ -421,11 +421,11 @@ export class BlockArgumentsImpl implements BlockArguments {
 
     let { base, stack } = this;
 
-    let table = check(stack.get(idx * 3, base), CheckOption(CheckBlockSymbolTable));
-    let scope = check(stack.get(idx * 3 + 1, base), CheckOption(CheckScope));
+    let table = check(stack.get(idx * 3, base), CheckNullable(CheckBlockSymbolTable));
+    let scope = check(stack.get(idx * 3 + 1, base), CheckNullable(CheckScope));
     let handle = check(
       stack.get(idx * 3 + 2, base),
-      CheckOption(CheckOr(CheckHandle, CheckCompilableBlock))
+      CheckNullable(CheckOr(CheckHandle, CheckCompilableBlock))
     );
 
     return handle === null ? null : ([handle, scope!, table!] as ScopeBlock);

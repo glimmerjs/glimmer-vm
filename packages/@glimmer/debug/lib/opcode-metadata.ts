@@ -23,7 +23,6 @@ const METADATA = MetadataBuilder.build(({ add, stack }) =>
     .add(`Jump as goto`, ['to:imm/u32'])
     .add(`Return as ret`)
     .add(`ReturnTo as setra`, ['offset:imm/pc'])
-    .add(`PushTryFrame as try`, ['catch:imm/pc'])
     .add(`PopTryFrame as finally`)
     .add(`UnwindTypeFrame as unwind`)
     .add(RESERVED)
@@ -32,7 +31,13 @@ const METADATA = MetadataBuilder.build(({ add, stack }) =>
     .add(RESERVED)
     .add(RESERVED)
     .add(RESERVED)
+    .add(RESERVED)
 
+    .add(
+      `PushTryFrame as try`,
+      ['catch:imm/pc'],
+      stack.params(['handler:reference/any']).returns([])
+    )
     .add(`Helper as ncall`, [`helper:handle`], stack.params(['args:args']).returns([]))
     .add(`SetNamedVariables as vsargs`, [`register:register`])
     .add(`SetBlocks as vbblocks`, [`register:register`])

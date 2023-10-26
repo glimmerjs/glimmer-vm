@@ -10,53 +10,38 @@ export async function setupQunit() {
   const testing = Testing.withConfig(
     {
       id: 'smoke_tests',
-      label: 'Enable Smoke Tests',
+      label: 'Smoke Tests',
       tooltip: 'Enable Smoke Tests',
     },
     {
       id: 'ci',
-      label: 'Enable CI Mode',
-      tooltip: 'CI mode makes tests run faster by sacrificing UI responsiveness',
+      label: 'CI Mode',
+      tooltip:
+        'CI mode emits tap output and makes tests run faster by sacrificing UI responsiveness',
     },
+    {
+      id: 'enable_internals_logging',
+      label: 'Log Deep Internals',
+      tooltip: 'Logs internals that are used in the development of the trace logs',
+    },
+
     {
       id: 'enable_trace_logging',
-      label: 'Enable Trace Logging',
+      label: 'Trace Logs',
       tooltip: 'Trace logs emit information about the internal VM state',
-      value: {
-        trace: 'trace level logs (default)',
-        explain: 'also include explanations',
-      },
     },
+
     {
-      id: 'enable_tap',
-      label: 'Enable Tap',
-      value: {
-        in_ci: 'only in CI (default)',
-        never: 'never',
-        always: 'always',
-      },
+      id: 'enable_trace_explanations',
+      label: '+ Explanations',
+      tooltip: 'Also explain the trace logs',
     }
   );
 
   const runner = autoRegister();
 
   testing.begin(() => {
-    function isTapEnabled() {
-      let tap = testing.config.enable_tap;
-      let ci = testing.config.ci;
-
-      switch (tap) {
-        case 'in_ci':
-        case undefined:
-          return !!ci;
-        case 'never':
-          return false;
-        case 'always':
-          return true;
-      }
-    }
-
-    if (isTapEnabled()) {
+    if (testing.config.ci) {
       const tap = qunitLib.reporters.tap;
       tap.init(runner, { log: console.info });
     }
@@ -110,20 +95,6 @@ export async function setupQunit() {
     smokeTest: hasFlag('smoke_test'),
   };
 }
-function isTapEnabled() {
-  const tap = getSpecificFlag('enable_tap');
-  const ci = hasSpecificFlag('ci');
-
-  switch (tap) {
-    case 'in_ci':
-    case undefined:
-      return !!ci;
-    case 'never':
-      return false;
-    case 'always':
-      return true;
-  }
-}
 
 class Testing<Q extends typeof QUnit> {
   static withConfig<const C extends readonly UrlConfig[]>(...configs: C): Testing<WithConfig<C>> {
@@ -152,12 +123,7 @@ class Testing<Q extends typeof QUnit> {
 }
 
 function hasFlag(flag: string): boolean {
-  switch (flag) {
-    case 'enable_tap':
-      return hasSpecificFlag('enable_tap') || hasSpecificFlag('ci');
-    default:
-      return hasSpecificFlag(flag);
-  }
+  return hasSpecificFlag(flag);
 }
 
 function hasSpecificFlag(flag: string): boolean {
@@ -165,6 +131,7 @@ function hasSpecificFlag(flag: string): boolean {
   return location && new RegExp(`[?&]${flag}`).test(location.search);
 }
 
+// eslint-disable-next-line unused-imports/no-unused-vars
 function getSpecificFlag(flag: string): string | undefined {
   let location = typeof window !== 'undefined' && window.location;
   if (!location) {
@@ -191,6 +158,11 @@ type WithConfig<C extends readonly UrlConfig[]> = typeof QUnit & {
 function withConfig<const C extends readonly UrlConfig[]>(...configs: C): Expand<WithConfig<C>> {
   for (let config of configs) {
     QUnit.config.urlConfig.push(config);
+  }
+
+  const index = QUnit.config.urlConfig.findIndex((c) => c.id === 'noglobals');
+  if (index !== -1) {
+    QUnit.config.urlConfig.splice(index, 1);
   }
 
   return QUnit as any;

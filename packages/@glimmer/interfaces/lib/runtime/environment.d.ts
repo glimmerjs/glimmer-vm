@@ -36,6 +36,7 @@ export interface Environment {
 
   scheduleInstallModifier(modifier: ModifierInstance): void;
   scheduleUpdateModifier(modifier: ModifierInstance): void;
+  scheduleAfterRender(callback: () => void): void;
 
   begin(): void;
   commit(): void;

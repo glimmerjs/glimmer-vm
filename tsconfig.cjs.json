@@ -4,7 +4,7 @@
     "checkJs": true,
     "target": "esnext",
     "moduleResolution": "nodenext",
-    "module": "esnext",
+    "module": "NodeNext",
     "skipLibCheck": true,
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,

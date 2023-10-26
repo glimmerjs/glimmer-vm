@@ -35,17 +35,14 @@ export class ErrorRecoverySuite extends RenderTest {
       }
     }
 
-    this.render('{{#-try}}message: [{{this.woops.woops}}]{{/-try}}', {
+    this.render('{{#-try this.handler}}message: [{{this.woops.woops}}]{{/-try}}', {
       woops: new Woops(),
+      handler: (_err: unknown, _retry: () => void) => {
+        actions.record('error handled');
+      },
     });
 
-    actions.expect(['get woops']);
-    this.#assertRenderError('woops');
-
-    // this.rerender();
-
-    // actions.expect(['get woops']);
-    // this.assertRenderError('woops');
+    actions.expect(['get woops', 'error handled']);
   }
 
   // @test
@@ -133,30 +130,6 @@ export class ErrorRecoverySuite extends RenderTest {
   // 'the tracking frame is cleared when an error was thrown'(assert: Assert) {
   //   assert.false(true, 'TODO');
   // }
-
-  #assertRenderError(message: string) {
-    if (this.renderResult === null) {
-      this.assert.ok(
-        null,
-        `expecting a RenderResult but didn't have one. Did you call this.render()`
-      );
-      return;
-    }
-
-    if (this.renderResult.error === null) {
-      this.assert.ok(null, `expecting a render error, but none was found`);
-      return;
-    }
-
-    let error = this.renderResult.error?.error;
-
-    if (error instanceof Error) {
-      this.assertHTML('<!---->');
-      this.assert.equal(error.message, message);
-    } else {
-      this.assert.ok(error, `expecting the render error to be a Error object`);
-    }
-  }
 }
 
 class Actions {

@@ -3,7 +3,7 @@ import {
   CheckBlockSymbolTable,
   CheckHandle,
   CheckMaybe,
-  CheckOption,
+  CheckNullable,
   CheckOr,
 } from '@glimmer/debug';
 import { _hasDestroyableChildren, associateDestroyableChild, destroy } from '@glimmer/destroyable';
@@ -195,7 +195,7 @@ APPEND_OPCODES.add(Op.GetBlock, (vm, { op1: _block }) => {
 
 APPEND_OPCODES.add(Op.SpreadBlock, (vm) => {
   let { stack } = vm;
-  let block = check(stack.pop(), CheckOption(CheckOr(CheckScopeBlock, CheckUndefinedReference)));
+  let block = check(stack.pop(), CheckNullable(CheckOr(CheckScopeBlock, CheckUndefinedReference)));
 
   if (block && !isUndefinedReference(block)) {
     let [handleOrCompilable, scope, table] = block;
@@ -220,7 +220,7 @@ function isUndefinedReference(input: ScopeBlock | Reference): input is Reference
 
 APPEND_OPCODES.add(Op.HasBlock, (vm) => {
   let { stack } = vm;
-  let block = check(stack.pop(), CheckOption(CheckOr(CheckScopeBlock, CheckUndefinedReference)));
+  let block = check(stack.pop(), CheckNullable(CheckOr(CheckScopeBlock, CheckUndefinedReference)));
 
   if (block && !isUndefinedReference(block)) {
     stack.push(TRUE_REFERENCE);

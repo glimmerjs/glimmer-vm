@@ -1,4 +1,5 @@
 import type {
+  TransactionSymbol,
   ComponentInstanceWithCreate,
   Environment,
   EnvironmentOptions,
@@ -10,7 +11,6 @@ import type {
   RuntimeContext,
   RuntimeResolver,
   Transaction,
-  TransactionSymbol,
 } from '@glimmer/interfaces';
 import { RuntimeProgramImpl } from '@glimmer/program';
 import { assert, expect } from '@glimmer/util';
@@ -24,6 +24,7 @@ export const TRANSACTION: TransactionSymbol = Symbol('TRANSACTION') as Transacti
 class TransactionImpl implements Transaction {
   public scheduledInstallModifiers: ModifierInstance[] = [];
   public scheduledUpdateModifiers: ModifierInstance[] = [];
+  public scheduledAfterRender: (() => void)[] = [];
   public createdComponents: ComponentInstanceWithCreate[] = [];
   public updatedComponents: ComponentInstanceWithCreate[] = [];
 
@@ -41,6 +42,10 @@ class TransactionImpl implements Transaction {
 
   scheduleUpdateModifier(modifier: ModifierInstance) {
     this.scheduledUpdateModifiers.push(modifier);
+  }
+
+  scheduleAfterRender(callback: () => void) {
+    this.scheduledAfterRender.push(callback);
   }
 
   commit() {
@@ -89,6 +94,10 @@ class TransactionImpl implements Transaction {
         manager.update(state);
       }
     }
+
+    for (const callback of this.scheduledAfterRender) {
+      callback();
+    }
   }
 }
 
@@ -103,7 +112,10 @@ export class EnvironmentImpl implements Environment {
 
   debugRenderTree: DebugRenderTree<object> | undefined;
 
-  constructor(options: EnvironmentOptions, private delegate: EnvironmentDelegate) {
+  constructor(
+    options: EnvironmentOptions,
+    private delegate: EnvironmentDelegate
+  ) {
     this.isInteractive = delegate.isInteractive;
     this.debugRenderTree = this.delegate.enableDebugTooling ? new DebugRenderTree() : undefined;
     if (options.appendOperations) {
@@ -161,6 +173,10 @@ export class EnvironmentImpl implements Environment {
     if (this.isInteractive) {
       this.transaction.scheduleUpdateModifier(modifier);
     }
+  }
+
+  scheduleAfterRender(callback: () => void) {
+    this.transaction.scheduleAfterRender(callback);
   }
 
   commit() {

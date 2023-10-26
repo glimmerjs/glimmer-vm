@@ -1,30 +1,38 @@
 import { check } from '@glimmer/debug';
-import { createIteratorRef, valueForRef } from '@glimmer/reference';
+import { createIteratorRef } from '@glimmer/reference';
 import { Op } from '@glimmer/vm';
 
 import { APPEND_OPCODES } from '../../opcodes';
 import { CheckIterator, CheckReference } from './-debug-strip';
 import { AssertFilter } from './vm';
+import { Results, mapResult } from '@glimmer/util';
 
 APPEND_OPCODES.add(Op.EnterList, (vm, { op1: relativeStart, op2: elseTarget }) => {
-  let stack = vm.stack;
-  let listRef = check(stack.pop(), CheckReference);
-  let keyRef = check(stack.pop(), CheckReference);
+  const stack = vm.stack;
+  const listRef = check(stack.pop(), CheckReference);
+  const keyRef = check(stack.pop(), CheckReference);
 
-  let keyValue = valueForRef(keyRef);
-  let key = keyValue === null ? '@identity' : String(keyValue);
+  const keyValue = vm.deref(keyRef);
 
-  let iteratorRef = createIteratorRef(listRef, key);
-  let iterator = valueForRef(iteratorRef);
+  if (vm.unwrap(keyValue)) {
+    const key = keyValue.value === null ? '@identity' : String(keyValue.value);
 
-  vm.updateWith(new AssertFilter(iteratorRef, (iterator) => iterator.isEmpty()));
+    const iteratorRef = createIteratorRef(listRef, key);
+    const iterator = vm.deref(iteratorRef);
+    const isEmptyResult = mapResult(iterator, (iterator) => iterator.isEmpty());
 
-  if (iterator.isEmpty() === true) {
-    // TODO: Fix this offset, should be accurate
-    vm.goto(elseTarget + 1);
-  } else {
-    vm.enterList(iteratorRef, relativeStart);
-    vm.stack.push(iterator);
+    vm.updateWith(new AssertFilter(isEmptyResult, iteratorRef, (iterator) => iterator.isEmpty()));
+
+    vm.unwrap(
+      mapResult(Results([isEmptyResult, iterator]), ([isEmpty, iterator]) => {
+        if (isEmpty) {
+          vm.goto(elseTarget + 1);
+        } else {
+          vm.enterList(iteratorRef, relativeStart);
+          vm.stack.push(iterator);
+        }
+      })
+    );
   }
 });
 

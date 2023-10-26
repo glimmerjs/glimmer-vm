@@ -6,18 +6,20 @@ import type {
   SimpleElement,
   SimpleNode,
 } from '@glimmer/interfaces';
+import type { UnwindTarget } from '@glimmer/runtime/lib/vm/unwind';
 
 export interface DebugVmState {
   pc: number;
   sp: number;
   ra: number;
   fp: number;
-  up: number;
+  up: UnwindTarget;
   s0: unknown;
   s1: unknown;
   t0: unknown;
   t1: unknown;
   v0: unknown;
+  threw: boolean;
   scope: ScopeSlot[] | null;
   constructing: SimpleElement | null;
 

@@ -1,9 +1,8 @@
 import type { Nullable, Optional, VmOpName } from '@glimmer/interfaces';
 import type { NormalizedMetadata, DynamicStackFnSpec, StackCheck } from './metadata';
-import { LOCAL_LOGGER, assertNever, fillNulls } from '@glimmer/util';
+import { assertNever, fillNulls } from '@glimmer/util';
 import { UNCHANGED, type STACK_TYPES } from './stack/params';
 import { OpSize } from '@glimmer/vm';
-import { LOCAL_DEBUG, LOCAL_TRACE_LOGGING } from '@glimmer/local-debug-flags';
 // eslint-disable-next-line @typescript-eslint/no-restricted-imports
 import type { DebugOpList } from './generated/op-list';
 
@@ -370,17 +369,7 @@ export class MetadataBuilder<
     name: Rest[0] extends null ? RESERVED : NameDef<NonNullable<Rest[0]>>,
     ...options: MetadataOption[]
   ): MetadataBuilder<Op, [...SoFar, Rest[0]], Slice<Rest>> => {
-    // @fixme restore LOCAL_TRACE_LOGGING
-    if (LOCAL_TRACE_LOGGING) {
-      LOCAL_LOGGER.log('adding opcode', name, options);
-    }
-
     if (name === RESERVED) {
-      // @fixme restore LOCAL_TRACE_LOGGING
-      if (LOCAL_TRACE_LOGGING) {
-        LOCAL_LOGGER.log('reserving opcode', this.#inserting);
-      }
-
       this.#inserting++;
     } else {
       const normalizedOptions =
@@ -395,10 +384,6 @@ export class MetadataBuilder<
   };
 
   #push(name: NameDef, options: NormalizedOptions): void {
-    if (LOCAL_DEBUG) {
-      LOCAL_LOGGER.log('adding opcode', this.#inserting, name, options);
-    }
-
     this.#metadata[this.#inserting++] = name === null ? null : define(name, ...options);
   }
 

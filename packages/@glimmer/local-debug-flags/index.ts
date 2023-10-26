@@ -12,7 +12,7 @@ export const LOCAL_TRACE_LOGGING: true | false =
   import.meta.env.DEV &&
   (() => {
     let location = typeof window !== 'undefined' && window.location;
-    if (location && /[&?]enable_trace_logging/u.test(window.location.search)) {
+    if (location && /[&?]enable_trace_logging(?:&|#|$)/u.test(window.location.search)) {
       return true;
     }
     return false;
@@ -22,7 +22,17 @@ export const LOCAL_EXPLAIN_LOGGING: true | false =
   import.meta.env.DEV &&
   (() => {
     let location = typeof window !== 'undefined' && window.location;
-    if (location && /[&?]enable_trace_logging=explain/u.test(window.location.search)) {
+    if (location && /[&?]enable_trace_explanations(?:&|#|$)/u.test(window.location.search)) {
+      return true;
+    }
+    return false;
+  })();
+
+export const LOCAL_INTERNALS_LOGGING: true | false =
+  import.meta.env.DEV &&
+  (() => {
+    let location = typeof window !== 'undefined' && window.location;
+    if (location && /[&?]enable_internals_logging(?:&|#|$)/u.test(window.location.search)) {
       return true;
     }
     return false;

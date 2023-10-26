@@ -20,6 +20,8 @@ import type {
   Scope,
   UpdatingOpcode,
   VM as PublicVM,
+  Result,
+  OkResult,
 } from '@glimmer/interfaces';
 import { LOCAL_TRACE_LOGGING } from '@glimmer/local-debug-flags';
 import {
@@ -28,6 +30,7 @@ import {
   type OpaqueIterator,
   type Reference,
   UNDEFINED_REFERENCE,
+  valueForRef,
 } from '@glimmer/reference';
 import {
   assert,
@@ -68,6 +71,7 @@ import {
   TryOpcode,
   type VMState,
 } from './update';
+import { UnwindTarget, type ErrorHandler } from './unwind';
 
 /**
  * This interface is used by internal opcodes, and is more stable than
@@ -148,9 +152,16 @@ export interface InternalVM {
   goto(pc: number): void;
   call(handle: number | null): void;
   pushFrame(): void;
-  unwind(e: unknown): void;
+  pushTryFrame(catchPc: number, handler: Nullable<ErrorHandler>): void;
 
   referenceForSymbol(symbol: number): Reference;
+  deref<T>(reference: Reference<T>): Result<T>;
+  /**
+   * If a map function is passed to `deref`, it must be infallible.
+   */
+  deref<T, U>(reference: Reference<T>, map: (value: T) => U): Result<U>;
+
+  unwrap<T>(result: Result<T>): result is OkResult<T>;
 
   execute(initialize?: (vm: this) => void): RenderResult;
   pushUpdating(list?: UpdatingOpcode[]): void;
@@ -170,8 +181,9 @@ export interface VmDebugState {
   readonly ra: number;
   readonly pc: number;
   readonly sp: number;
-  readonly up: number;
+  readonly up: UnwindTarget;
   readonly stack: DebugStack;
+  readonly threw: boolean;
 }
 
 export class VM implements PublicVM, InternalVM {
@@ -231,6 +243,9 @@ export class VM implements PublicVM, InternalVM {
         },
         get up() {
           return inner.debug.registers.up;
+        },
+        get threw() {
+          return inner.debug.threw;
         },
       };
     }
@@ -316,6 +331,13 @@ export class VM implements PublicVM, InternalVM {
     this.#inner.popFrame();
   }
 
+  /**
+   * Open an error recovery boundary.
+   */
+  pushTryFrame(catchPc: number, handler: Nullable<ErrorHandler>) {
+    this.#inner.beginTry(catchPc, handler);
+  }
+
   // Jump to an address in `program`
   goto(offset: number) {
     this.#inner.goto(offset);
@@ -344,7 +366,7 @@ export class VM implements PublicVM, InternalVM {
 
   constructor(
     readonly runtime: RuntimeContext,
-    { pc, scope, dynamicScope, stack }: VMState,
+    { pc, scope, dynamicScope, stack, unwind }: VMState,
     private readonly elementStack: ElementBuilder,
     readonly context: CompileTimeCompilationContext
   ) {
@@ -354,7 +376,7 @@ export class VM implements PublicVM, InternalVM {
 
     this.resume = initVM(context);
     assert(typeof pc === 'number', 'pc is a number');
-    let evalStack = EvaluationStackImpl.restore(stack, pc);
+    let evalStack = EvaluationStackImpl.restore(stack, pc, unwind);
 
     this[HEAP] = this.program.heap;
     this[CONSTANTS] = this.program.constants;
@@ -380,7 +402,12 @@ export class VM implements PublicVM, InternalVM {
     { handle, self, dynamicScope, treeBuilder, numSymbols, owner }: InitOptions
   ) {
     let scope = PartialScopeImpl.root(self, numSymbols, owner);
-    let state = vmState(runtime.program.heap.getaddr(handle), scope, dynamicScope);
+    let state = vmState(
+      runtime.program.heap.getaddr(handle),
+      scope,
+      dynamicScope,
+      UnwindTarget.root()
+    );
     let vm = initVM(context)(runtime, state, treeBuilder);
     vm.pushUpdating();
     return vm;
@@ -396,7 +423,8 @@ export class VM implements PublicVM, InternalVM {
       vmState(
         runtime.program.heap.getaddr(handle),
         PartialScopeImpl.root(UNDEFINED_REFERENCE, 0, owner),
-        dynamicScope
+        dynamicScope,
+        UnwindTarget.root()
       ),
       treeBuilder
     );
@@ -420,16 +448,13 @@ export class VM implements PublicVM, InternalVM {
     return this.runtime.env;
   }
 
-  unwind(e: unknown) {
-    this.#inner.catch(e);
-  }
-
   captureState(args: number, pc = this.#inner.pc): VMState {
     return {
       pc,
       scope: this.scope(),
       dynamicScope: this.dynamicScope(),
       stack: this.argumentsStack.capture(args),
+      ...this.#inner.capture(),
     };
   }
 
@@ -612,6 +637,58 @@ export class VM implements PublicVM, InternalVM {
     return this.scope().getSymbol(symbol);
   }
 
+  deref<T>(reference: Reference<T>): Result<T>;
+  deref<T, U>(reference: Reference<T>, map: (value: T) => U): Result<U>;
+  deref(reference: Reference<unknown>, map?: (value: unknown) => unknown): Result<unknown> {
+    return this.#deref(reference, map);
+  }
+
+  #deref(
+    reference: Reference<unknown>,
+    map?: undefined | ((value: unknown) => unknown)
+  ): Result<unknown> {
+    try {
+      const value = valueForRef(reference);
+      return { type: 'ok', value: map ? map(value) : value };
+    } catch (e) {
+      return { type: 'err', value: e };
+    }
+  }
+
+  derefN<T>(reference: Reference<T>[]): Result<T[]>;
+  derefN<T, U>(reference: Reference<T>[], map: (value: T[]) => U): Result<U>;
+  derefN(references: Reference<unknown>[], map?: (value: unknown[]) => unknown): Result<unknown> {
+    const results: unknown[] = [];
+
+    for (const reference of references) {
+      const result = this.#deref(reference);
+
+      if (result.type === 'err') {
+        return result;
+      } else {
+        results.push(result.value);
+      }
+    }
+
+    return { type: 'ok', value: map ? map(results) : results };
+  }
+
+  unwrap<T>(result: Result<T>): result is OkResult<T> {
+    if (result.type === 'ok') {
+      return true;
+    }
+
+    const { handler } = this.#inner.userException(result.value);
+
+    if (handler) {
+      this.env.scheduleAfterRender(() => {
+        handler(result.value, () => {});
+      });
+    }
+
+    return false;
+  }
+
   /// EXECUTION
 
   execute(initialize?: (vm: this) => void): RenderResult {
@@ -656,6 +733,10 @@ export class VM implements PublicVM, InternalVM {
     do result = this.next();
     while (!result.done);
 
+    if (this.#inner.result.type === 'err') {
+      throw this.#inner.result.value;
+    }
+
     return result.value;
   }
 
@@ -692,12 +773,13 @@ export class VM implements PublicVM, InternalVM {
   }
 }
 
-function vmState(pc: number, scope: Scope, dynamicScope: DynamicScope) {
+function vmState(pc: number, scope: Scope, dynamicScope: DynamicScope, unwind: UnwindTarget) {
   return {
     pc,
     scope,
     dynamicScope,
     stack: [],
+    unwind,
   };
 }
 

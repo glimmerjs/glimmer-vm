@@ -7,6 +7,7 @@ export * from './lib/dom';
 export * from './lib/dom-utils';
 export * from './lib/immediate';
 export { default as intern } from './lib/intern';
+export * from './lib/result';
 export {
   isSerializationFirstNode,
   SERIALIZATION_FIRST_NODE_STRING,

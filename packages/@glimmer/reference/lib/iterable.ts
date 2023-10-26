@@ -1,5 +1,5 @@
 import { getPath, toIterator } from '@glimmer/global-context';
-import type { Dict, Nullable } from "@glimmer/interfaces";
+import type { Dict, Nullable } from '@glimmer/interfaces';
 import { EMPTY_ARRAY, isObject } from '@glimmer/util';
 import { consumeTag, createTag, dirtyTag } from '@glimmer/validator';
 
@@ -51,8 +51,12 @@ const IDENTITY: KeyFor = (item) => {
 };
 
 function keyForPath(path: string): KeyFor {
-  if (import.meta.env.DEV && path[0] === '@') {
-    throw new Error(`invalid keypath: '${path}', valid keys: @index, @identity, or a path`);
+  if (import.meta.env.DEV) {
+    if (path[0] === '@') {
+      throw new Error(`invalid keypath: '${path}', valid keys: @index, @identity, or a path`);
+    } else if (typeof path !== 'string') {
+      throw new Error(`invalid non-string keypath: valid keys: @index, @identity, or a path`);
+    }
   }
   return uniqueKeyFor((item) => getPath(item as object, path));
 }
@@ -198,7 +202,10 @@ export function createIteratorItemRef(_value: unknown) {
 }
 
 class IteratorWrapper implements OpaqueIterator {
-  constructor(private inner: IteratorDelegate, private keyFor: KeyFor) {}
+  constructor(
+    private inner: IteratorDelegate,
+    private keyFor: KeyFor
+  ) {}
 
   isEmpty() {
     return this.inner.isEmpty();
@@ -219,7 +226,10 @@ class ArrayIterator implements OpaqueIterator {
   private current: { kind: 'empty' } | { kind: 'first'; value: unknown } | { kind: 'progress' };
   private pos = 0;
 
-  constructor(private iterator: unknown[] | readonly unknown[], private keyFor: KeyFor) {
+  constructor(
+    private iterator: unknown[] | readonly unknown[],
+    private keyFor: KeyFor
+  ) {
     if (iterator.length === 0) {
       this.current = { kind: 'empty' };
     } else {

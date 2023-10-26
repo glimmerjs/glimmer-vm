@@ -14,6 +14,7 @@ import type {
   UpdatableBlock,
   UpdatingOpcode,
   UpdatingVM as IUpdatingVM,
+  Result,
 } from '@glimmer/interfaces';
 import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
 import {
@@ -29,6 +30,7 @@ import { debug, resetTracking } from '@glimmer/validator';
 import { clear, move as moveBounds } from '../bounds';
 import type { InternalVM, VmInitCallback } from './append';
 import { type LiveBlockList, NewElementBuilder } from './element-builder';
+import type { UnwindTarget } from './unwind';
 
 export class UpdatingVM implements IUpdatingVM {
   public env: Environment;
@@ -87,6 +89,14 @@ export class UpdatingVM implements IUpdatingVM {
     return expect(this.frameStack.current, 'bug: expected a frame');
   }
 
+  deref<T>(reference: Reference<T>): Result<T> {
+    try {
+      return { type: 'ok', value: valueForRef(reference) };
+    } catch (e) {
+      return { type: 'err', value: e };
+    }
+  }
+
   goto(index: number) {
     this.frame.goto(index);
   }
@@ -106,6 +116,7 @@ export interface VMState {
   readonly scope: Scope;
   readonly dynamicScope: DynamicScope;
   readonly stack: unknown[];
+  readonly unwind: UnwindTarget;
 }
 
 export interface ResumableVMState {
@@ -188,22 +199,24 @@ export class TryOpcode extends BlockOpcode implements ExceptionHandler {
 export class ListItemOpcode extends TryOpcode {
   public retained = false;
   public index = -1;
+  #memo: Reference;
 
   constructor(
     state: ResumableVMState,
     runtime: RuntimeContext,
     bounds: UpdatableBlock,
     public key: unknown,
-    public memo: Reference,
+    memo: Reference,
     public value: Reference
   ) {
     super(state, runtime, bounds, []);
+    this.#memo = memo;
   }
 
   updateReferences(item: OpaqueIterationItem) {
     this.retained = true;
     updateRef(this.value, item.value);
-    updateRef(this.memo, item.memo);
+    updateRef(this.#memo, item.memo);
   }
 
   shouldRemove(): boolean {
@@ -348,9 +361,7 @@ export class ListBlockOpcode extends BlockOpcode {
 
     let { children } = this;
 
-    updateRef(opcode.memo, item.memo);
-    updateRef(opcode.value, item.value);
-    opcode.retained = true;
+    opcode.updateReferences(item);
 
     opcode.index = children.length;
     children.push(opcode);
@@ -390,9 +401,7 @@ export class ListBlockOpcode extends BlockOpcode {
   ) {
     let { children } = this;
 
-    updateRef(opcode.memo, item.memo);
-    updateRef(opcode.value, item.value);
-    opcode.retained = true;
+    opcode.updateReferences(item);
 
     let currentSibling, nextSibling;
 

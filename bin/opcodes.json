@@ -13,11 +13,11 @@
     "Jump",
     "Return",
     "ReturnTo",
-    "PushTryFrame",
     "PopTryFrame",
     "UnwindTypeFrame"
   ],
   "syscall": [
+    "PushTryFrame",
     "Helper",
     "SetNamedVariables",
     "SetBlocks",

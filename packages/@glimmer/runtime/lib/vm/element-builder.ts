@@ -1,5 +1,6 @@
 import { destroy, registerDestructor } from '@glimmer/destroyable';
 import type {
+  LiveBlock,
   AttrNamespace,
   Bounds,
   Cursor,
@@ -9,7 +10,6 @@ import type {
   Environment,
   GlimmerTreeChanges,
   GlimmerTreeConstruction,
-  LiveBlock,
   LiveBlockDebug,
   Maybe,
   ModifierInstance,
@@ -402,7 +402,13 @@ export class SimpleLiveBlock implements LiveBlock {
   constructor(private parent: SimpleElement) {
     ifDev(() => {
       this.debug = () => {
-        return debugBlock('SimpleLiveBlock', this.first, this.last, parent);
+        const props = debugProps(this.first, this.last, parent) as NonNullable<DebugProps>;
+
+        return new (class SimpleLiveBlock {
+          constructor() {
+            Object.assign(this, { ...props, [Symbol.toStringTag]: 'SimpleLiveBlock' });
+          }
+        })();
       };
     });
   }
@@ -505,7 +511,7 @@ export class RemoteLiveBlock extends SimpleLiveBlock {
 
         return new (class RemoteLiveBlock {
           constructor() {
-            Object.assign(this, props);
+            Object.assign(this, { ...props, [Symbol.toStringTag]: 'RemoteLiveBlock' });
           }
         })();
       };
@@ -519,7 +525,13 @@ export class UpdatableBlockImpl extends SimpleLiveBlock implements UpdatableBloc
 
     ifDev(() => {
       this.debug = () => {
-        return debugBlock('UpdatableBlock', this.first, this.last, parent);
+        const props = debugProps(this.first, this.last, parent) as NonNullable<DebugProps>;
+
+        return new (class UpdatableBlock {
+          constructor() {
+            Object.assign(this, { ...props, [Symbol.toStringTag]: 'UpdatableBlock' });
+          }
+        })();
       };
     });
   }
@@ -649,30 +661,6 @@ function debugProps(
   } else {
     return { parent: parent as SimpleElement, range: 'empty' };
   }
-}
-
-function debugBlock(
-  name: string,
-  ...args:
-    | [
-        first: Nullable<FirstNode> | undefined,
-        last: Nullable<LastNode> | undefined,
-        parent: SimpleElement,
-      ]
-    | [first: FirstNode, last: LastNode]
-): LiveBlockDebug {
-  const props = debugProps(...args);
-
-  return new (class implements LiveBlockDebug {
-    declare parent?: NonNullable<LiveBlockDebug['parent']>;
-    declare range?: NonNullable<LiveBlockDebug['range']>;
-
-    constructor() {
-      Object.assign(this, props);
-    }
-
-    readonly [Symbol.toStringTag] = name;
-  })();
 }
 
 interface DebugRange {

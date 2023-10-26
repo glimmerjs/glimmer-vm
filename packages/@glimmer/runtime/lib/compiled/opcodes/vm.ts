@@ -4,12 +4,14 @@ import {
   CheckHandle,
   CheckInstanceof,
   CheckNumber,
-  CheckOption,
+  CheckNullable,
   CheckPrimitive,
   CheckSyscallRegister,
+  CheckFunction,
+  type Checker,
 } from '@glimmer/debug';
 import { toBool } from '@glimmer/global-context';
-import type { CompilableTemplate, Nullable, UpdatingOpcode } from '@glimmer/interfaces';
+import type { CompilableTemplate, Nullable, Result, UpdatingOpcode } from '@glimmer/interfaces';
 import {
   createComputeRef,
   createConstRef,
@@ -43,6 +45,26 @@ import type { InternalVM } from '../../vm/append';
 import { VMArgumentsImpl } from '../../vm/arguments';
 import { CheckReference, CheckScope } from './-debug-strip';
 import { stackAssert } from './assert';
+import type { ErrorHandler } from '../../vm/unwind';
+
+APPEND_OPCODES.add(Op.PushTryFrame, (vm, { op1: catchPc }) => {
+  const handler = check(vm.stack.pop(), CheckNullable(CheckReference));
+
+  if (handler === null) {
+    vm.pushTryFrame(catchPc, null);
+  } else {
+    const result = vm.deref(handler);
+
+    // if the handler itself throws an error, propagate the error
+    // up to the next frame (and possibly the top level)
+    if (vm.unwrap(result)) {
+      vm.pushTryFrame(
+        catchPc,
+        check(result.value, CheckNullable(CheckFunction as Checker<ErrorHandler>))
+      );
+    }
+  }
+});
 
 APPEND_OPCODES.add(Op.ChildScope, (vm) => vm.pushChildScope());
 
@@ -147,9 +169,9 @@ APPEND_OPCODES.add(Op.CompileBlock, (vm: InternalVM) => {
 APPEND_OPCODES.add(Op.InvokeYield, (vm) => {
   let { stack } = vm;
 
-  let handle = check(stack.pop(), CheckOption(CheckHandle));
-  let scope = check(stack.pop(), CheckOption(CheckScope));
-  let table = check(stack.pop(), CheckOption(CheckBlockSymbolTable));
+  let handle = check(stack.pop(), CheckNullable(CheckHandle));
+  let scope = check(stack.pop(), CheckNullable(CheckScope));
+  let table = check(stack.pop(), CheckNullable(CheckBlockSymbolTable));
 
   assert(
     table === null || (table && typeof table === 'object' && Array.isArray(table.parameters)),
@@ -244,8 +266,6 @@ APPEND_OPCODES.add(Op.ToBoolean, (vm) => {
   stack.push(createComputeRef(() => toBool(valueForRef(valueRef))));
 });
 
-APPEND_OPCODES.add(Op.PushUnwindTarget, (vm) => {});
-
 export class Assert implements UpdatingOpcode {
   private last: unknown;
 
@@ -264,29 +284,29 @@ export class Assert implements UpdatingOpcode {
 }
 
 export class AssertFilter<T, U> implements UpdatingOpcode {
-  private last: ['ok', U] | ['err', unknown];
+  #last: Result<U>;
+  readonly #ref: Reference<T>;
+  readonly #filter: (from: T) => U;
 
-  constructor(
-    private ref: Reference<T>,
-    private filter: (from: T) => U
-  ) {
-    try {
-      this.last = ['ok', filter(valueForRef(ref))];
-    } catch (e) {
-      this.last = ['err', e];
-    }
+  constructor(current: Result<U>, ref: Reference<T>, filter: (from: T) => U) {
+    this.#last = current;
+    this.#ref = ref;
+    this.#filter = filter;
   }
 
   evaluate(vm: UpdatingVM) {
-    let { last, ref, filter } = this;
-    let current = filter(valueForRef(ref));
+    const result = vm.deref(this.#ref);
 
-    if (last[0] === 'ok' && current !== last[1]) {
+    if (result.type === 'err') {
+      this.#last = { type: 'err', value: result.value };
       vm.throw();
+    } else {
+      const update = this.#filter(result.value);
+      if (this.#last.type !== 'ok' || this.#last.value !== update) {
+        vm.throw();
+      }
+      this.#last = { type: 'ok', value: update };
     }
-    // if (last !== current) {
-    //   vm.throw();
-    // }
   }
 }
 

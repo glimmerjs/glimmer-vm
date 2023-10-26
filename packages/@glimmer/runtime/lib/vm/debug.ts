@@ -10,7 +10,11 @@ import type {
   RuntimeOp,
   DebugVmState,
 } from '@glimmer/interfaces';
-import { LOCAL_DEBUG, LOCAL_TRACE_LOGGING } from '@glimmer/local-debug-flags';
+import {
+  LOCAL_DEBUG,
+  LOCAL_INTERNALS_LOGGING,
+  LOCAL_TRACE_LOGGING,
+} from '@glimmer/local-debug-flags';
 import { LOCAL_LOGGER } from '@glimmer/util';
 
 import type { VM } from '../vm';
@@ -27,12 +31,12 @@ import type { DebugCursor } from '@glimmer/interfaces/lib/runtime/debug-vm';
 export function debugAround(vm: VM, opcode: RuntimeOp, perform: () => void): void {
   if (LOCAL_DEBUG) {
     const after = debugBefore(debugState(vm), opcode);
+
     try {
       perform();
       after(debugState(vm));
-    } catch (e) {
+    } finally {
       LOCAL_LOGGER.groupEnd();
-      throw e;
     }
   } else {
     perform();
@@ -57,6 +61,7 @@ function debugState(vm: VM): DebugVmState {
     t0: vm.t0,
     t1: vm.t1,
     v0: vm.v0,
+    threw: vm.debug.threw,
     scope: vm[STACKS].scope.current ? [...vm.scope().slots] : null,
     constructing: vm.elements().constructing,
     stacks: {
@@ -108,21 +113,26 @@ export function debugBefore(state: DebugVmState, opcode: RuntimeOp): (state: Deb
     return function debugAfter(state: DebugVmState) {
       if (LOCAL_DEBUG) {
         let meta = opcodeMetadata(type);
-        let actualChange = state.sp - sp;
-        const expectedChange = getStackChange(meta, opcode, originalState);
 
-        if (expectedChange !== undefined && expectedChange !== actualChange) {
-          if (params) {
-            throw new Error(
-              `Error in ${opName} (${type}):\n\n${pc}. ${debugOpcode(
-                name!,
-                params
-              )}\n\nStack changed by ${actualChange}, expected ${expectedChange}`
-            );
-          } else {
-            throw new Error(
-              `Error in ${name}:\n\n${pc}. ${name}\n\nStack changed by ${actualChange}, expected ${expectedChange}`
-            );
+        if (state.threw) {
+          LOCAL_LOGGER.debug('%c -> vm threw', 'color: red');
+        } else {
+          let actualChange = state.sp - sp;
+          const expectedChange = getStackChange(meta, opcode, originalState);
+
+          if (expectedChange !== undefined && expectedChange !== actualChange) {
+            if (params) {
+              throw new Error(
+                `Error in ${opName} (${type}):\n\n${pc}. ${debugOpcode(
+                  name!,
+                  params
+                )}\n\nStack changed by ${actualChange}, expected ${expectedChange}`
+              );
+            } else {
+              throw new Error(
+                `Error in ${name}:\n\n${pc}. ${name}\n\nStack changed by ${actualChange}, expected ${expectedChange}`
+              );
+            }
           }
         }
 
@@ -143,7 +153,7 @@ export function debugBefore(state: DebugVmState, opcode: RuntimeOp): (state: Deb
           );
           LOCAL_LOGGER.debug('%c -> current frame', 'color: red', state.stacks.eval.frame);
           {
-            if (LOCAL_TRACE_LOGGING) {
+            if (LOCAL_INTERNALS_LOGGING) {
               LOCAL_LOGGER.groupCollapsed('%c -> eval stack internals', 'color: #999');
               try {
                 let { before, frame } = state.stacks.eval;

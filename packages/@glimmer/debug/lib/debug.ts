@@ -237,8 +237,12 @@ export function debug(c: DebugConstants, op: RuntimeOp): [string, Dict<DebugOper
           case 'handle':
             out[operand.name] = { type: 'constant', value: c.getValue(actualOperand) };
             break;
+          case 'imm/pc':
+            out[operand.name] = { type: 'instruction', value: actualOperand };
+            break;
           case 'const/str':
             out[operand.name] = { type: 'string', value: c.getValue<string>(actualOperand) };
+            break;
           case 'const/str?':
             out[operand.name] = {
               type: 'string',

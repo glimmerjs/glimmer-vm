@@ -132,36 +132,21 @@ class InstanceofChecker<T> implements Checker<T> {
   }
 }
 
-class OptionChecker<T> implements Checker<Nullable<T>> {
-  declare type: Nullable<T>;
+class MaybeChecker<T, Empty extends null | undefined> implements Checker<T | Empty> {
+  declare type: T | Empty;
 
   constructor(
     private checker: Checker<T>,
-    private emptyValue: null | undefined
+    private emptyValue: Empty[]
   ) {}
 
-  validate(value: unknown): value is Nullable<T> {
-    if (value === this.emptyValue) return true;
+  validate(value: unknown): value is T | Empty {
+    if ((this.emptyValue as unknown[]).includes(value)) return true;
     return this.checker.validate(value);
   }
 
   expected(): string {
     return `${this.checker.expected()} or null`;
-  }
-}
-
-class MaybeChecker<T> implements Checker<Maybe<T>> {
-  declare type: Maybe<T>;
-
-  constructor(private checker: Checker<T>) {}
-
-  validate(value: unknown): value is Maybe<T> {
-    if (value === null || value === undefined) return true;
-    return this.checker.validate(value);
-  }
-
-  expected(): string {
-    return `${this.checker.expected()} or null or undefined`;
   }
 }
 
@@ -312,12 +297,16 @@ export function CheckInstanceof<T>(Class: Constructor<T>): Checker<T> {
   return new InstanceofChecker<T>(Class);
 }
 
-export function CheckOption<T>(checker: Checker<T>): Checker<Nullable<T>> {
-  return new OptionChecker(checker, null);
+export function CheckNullable<T>(checker: Checker<T>): Checker<Nullable<T>> {
+  return new MaybeChecker(checker, [null]);
+}
+
+export function CheckOptional<T>(checker: Checker<T>): Checker<Maybe<T>> {
+  return new MaybeChecker(checker, [undefined]);
 }
 
 export function CheckMaybe<T>(checker: Checker<T>): Checker<Maybe<T>> {
-  return new MaybeChecker(checker);
+  return new MaybeChecker(checker, [null, undefined]);
 }
 
 export function CheckInterface<
