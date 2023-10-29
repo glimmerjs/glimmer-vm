@@ -22,6 +22,9 @@ import type {
   VM as PublicVM,
   Result,
   OkResult,
+  CleanStack,
+  InternalStack,
+  BlockMetadata,
 } from '@glimmer/interfaces';
 import { LOCAL_TRACE_LOGGING } from '@glimmer/local-debug-flags';
 import {
@@ -51,15 +54,10 @@ import {
   JumpIfNotModifiedOpcode,
 } from '../compiled/opcodes/vm';
 import { PartialScopeImpl } from '../scope';
-import { ARGS, CONSTANTS, DESTROYABLE_STACK, HEAP, STACKS } from '../symbols';
+import { ARGS, CONSTANTS, HEAP, STACKS } from '../symbols';
 import { VMArgumentsImpl } from './arguments';
 import type { LiveBlockList } from './element-builder';
 import { LowLevelVM, type ArgumentsStack } from './low-level';
-import type {
-  CleanStack,
-  InternalStack,
-  DebugStack,
-} from '@glimmer/interfaces/lib/runtime/debug-vm';
 import RenderResultImpl from './render-result';
 import EvaluationStackImpl from './stack';
 import {
@@ -72,6 +70,8 @@ import {
   type VMState,
 } from './update';
 import { UnwindTarget, type ErrorHandler } from './unwind';
+import { debugInit } from './debug/debug';
+import type { SnapshottableVM, VmDebugState } from '@glimmer/debug';
 
 /**
  * This interface is used by internal opcodes, and is more stable than
@@ -149,8 +149,12 @@ export interface InternalVM {
   enter(args: number): void;
   exit(): void;
 
+  debugWillCall?(handle: Handle): void;
+  debugDidReturn?(): void;
+
   goto(pc: number): void;
   call(handle: number | null): void;
+  return(): void;
   pushFrame(): void;
   pushTryFrame(catchPc: number, handler: Nullable<ErrorHandler>): void;
 
@@ -176,24 +180,61 @@ class Stacks {
   readonly list = new Stack<ListBlockOpcode>();
 }
 
-export interface VmDebugState {
-  readonly fp: number;
-  readonly ra: number;
-  readonly pc: number;
-  readonly sp: number;
-  readonly up: UnwindTarget;
-  readonly stack: DebugStack;
-  readonly threw: boolean;
+type Handle = number;
+
+class TemplateDebug {
+  readonly #templates: Map<Handle, BlockMetadata> = new Map();
+  #active: Handle[] = [];
+
+  willCall(handle: Handle): void {
+    this.#active.push(handle);
+  }
+
+  return(): void {
+    this.#active.pop();
+  }
+
+  get active(): BlockMetadata | null {
+    const current = this.#active.at(-1);
+    return current ? this.#templates.get(current) ?? null : null;
+  }
+
+  register(handle: Handle, metadata: BlockMetadata): void {
+    this.#templates.set(handle, metadata);
+  }
 }
 
-export class VM implements PublicVM, InternalVM {
+export class VM implements PublicVM, InternalVM, SnapshottableVM {
+  static {
+    if (import.meta.env.DEV) {
+      Object.defineProperties(VM.prototype, {
+        debugWillCall: {
+          configurable: true,
+          value: function (this: VM, handle: number) {
+            this.#templates?.willCall(handle);
+          },
+        },
+        debugDidReturn: {
+          enumerable: true,
+          value: function (this: VM) {
+            this.#templates?.return();
+          },
+        },
+      });
+    }
+  }
+
   private readonly [STACKS] = new Stacks();
   private readonly [HEAP]: RuntimeHeap;
   private readonly destructor: object;
-  private readonly [DESTROYABLE_STACK] = new Stack<object>();
+  readonly #destroyables = new Stack<object>();
   readonly [CONSTANTS]: RuntimeConstants & ResolutionTimeConstants;
   readonly [ARGS]: VMArgumentsImpl;
   readonly #inner: LowLevelVM;
+  readonly #templates?: TemplateDebug;
+
+  declare debugWillCall?: (handle: number) => void;
+  declare debugDidReturn?: () => void;
 
   get lowLevel(): LowLevelVM {
     return this.#inner;
@@ -224,30 +265,37 @@ export class VM implements PublicVM, InternalVM {
   get debug(): VmDebugState {
     if (import.meta.env.DEV) {
       let inner = this.#inner;
+      // eslint-disable-next-line @typescript-eslint/no-this-alias
+      const vm = this;
+      const allStacks = this[STACKS];
+      const templates = this.#templates!;
+      const currentSlots = allStacks.scope.current?.slots;
+      const slots = currentSlots ? [...currentSlots] : [];
+      const registers = inner.debug.registers.debug;
+      const dom = this.elements();
+      // const blocks = this.block
+
+      const evalStack = inner.debug.stack;
 
       return {
-        get stack() {
-          return inner.debug.stack;
+        ...registers,
+        currentPc: inner.debug.currentPc,
+        constant: {
+          constants: vm[CONSTANTS],
+          heap: vm[HEAP],
         },
-        get fp() {
-          return inner.debug.registers.fp;
+
+        dom: dom.debug,
+
+        block: {
+          metadata: templates.active,
         },
-        get ra() {
-          return inner.debug.registers.ra;
-        },
-        get pc() {
-          return inner.debug.registers.pc;
-        },
-        get sp() {
-          return inner.debug.registers.sp;
-        },
-        get up() {
-          return inner.debug.registers.up;
-        },
-        get threw() {
-          return inner.debug.threw;
-        },
-      };
+
+        stack: evalStack,
+        scope: slots,
+        destroyable: this.#destroyables.toArray(),
+        threw: inner.debug.threw,
+      } satisfies VmDebugState;
     }
 
     unreachable(`BUG: Don't call 'vm.debug' without checking import.meta.env.DEV`);
@@ -346,17 +394,20 @@ export class VM implements PublicVM, InternalVM {
   // Save $pc into $ra, then jump to a new address in `program` (jal in MIPS)
   call(handle: number | null) {
     if (handle !== null) {
+      if (import.meta.env.DEV) {
+        this.#templates?.willCall(handle);
+      }
+
       this.#inner.call(handle);
     }
   }
 
-  // Put a specific `program` address in $ra
-  returnTo(offset: number) {
-    this.#inner.returnTo(offset);
-  }
-
   // Return to the `program` address stored in $ra
   return() {
+    if (import.meta.env.DEV) {
+      this.#templates?.return();
+    }
+
     this.#inner.return();
   }
 
@@ -393,7 +444,11 @@ export class VM implements PublicVM, InternalVM {
     );
 
     this.destructor = {};
-    this[DESTROYABLE_STACK].push(this.destructor);
+    this.#destroyables.push(this.destructor);
+
+    if (import.meta.env.DEV) {
+      this.#templates = new TemplateDebug();
+    }
   }
 
   static initial(
@@ -436,6 +491,10 @@ export class VM implements PublicVM, InternalVM {
 
   compile(block: CompilableTemplate): number {
     let handle = unwrapHandle(block.compile(this.context));
+
+    if (import.meta.env.DEV) {
+      this.#templates?.register(handle, block.meta);
+    }
 
     return handle;
   }
@@ -532,13 +591,13 @@ export class VM implements PublicVM, InternalVM {
 
   private didEnter(opcode: BlockOpcode) {
     this.associateDestroyable(opcode);
-    this[DESTROYABLE_STACK].push(opcode);
+    this.#destroyables.push(opcode);
     this.updateWith(opcode);
     this.pushUpdating(opcode.children);
   }
 
   exit() {
-    this[DESTROYABLE_STACK].pop();
+    this.#destroyables.pop();
     this.elements().popBlock();
     this.popUpdating();
   }
@@ -565,7 +624,7 @@ export class VM implements PublicVM, InternalVM {
   }
 
   associateDestroyable(child: Destroyable): void {
-    let parent = expect(this[DESTROYABLE_STACK].current, 'Expected destructor parent');
+    let parent = expect(this.#destroyables.current, 'Expected destructor parent');
     associateDestroyableChild(parent, child);
   }
 
@@ -729,6 +788,8 @@ export class VM implements PublicVM, InternalVM {
     if (initialize) initialize(this);
 
     let result: RichIteratorResult<null, RenderResult>;
+
+    debugInit(this);
 
     do result = this.next();
     while (!result.done);

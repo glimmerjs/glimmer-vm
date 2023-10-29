@@ -4,122 +4,122 @@
 export interface VmOpMap {
   PushFrame: 0;
   PopFrame: 1;
-  InvokeVirtual: 2;
-  InvokeStatic: 3;
-  Jump: 4;
-  Return: 5;
-  ReturnTo: 6;
-  PopTryFrame: 7;
-  UnwindTypeFrame: 8;
+  Jump: 2;
+  ReturnTo: 3;
+  PopTryFrame: 4;
+  UnwindTypeFrame: 5;
   PushTryFrame: 16;
-  Helper: 17;
-  SetNamedVariables: 18;
-  SetBlocks: 19;
-  SetVariable: 20;
-  SetBlock: 21;
-  GetVariable: 22;
-  GetProperty: 23;
-  GetBlock: 24;
-  SpreadBlock: 25;
-  HasBlock: 26;
-  HasBlockParams: 27;
-  Concat: 28;
-  Constant: 29;
-  ConstantReference: 30;
-  Primitive: 31;
-  PrimitiveReference: 32;
-  ReifyU32: 33;
-  Dup: 34;
-  Pop: 35;
-  Load: 36;
-  Fetch: 37;
-  RootScope: 38;
-  VirtualRootScope: 39;
-  ChildScope: 40;
-  PopScope: 41;
-  Text: 42;
-  Comment: 43;
-  AppendHTML: 44;
-  AppendSafeHTML: 45;
-  AppendDocumentFragment: 46;
-  AppendNode: 47;
-  AppendText: 48;
-  OpenElement: 49;
-  OpenDynamicElement: 50;
-  PushRemoteElement: 51;
-  StaticAttr: 52;
-  DynamicAttr: 53;
-  ComponentAttr: 54;
-  FlushElement: 55;
-  CloseElement: 56;
-  PopRemoteElement: 57;
-  Modifier: 58;
-  BindDynamicScope: 59;
-  PushDynamicScope: 60;
-  PopDynamicScope: 61;
-  CompileBlock: 62;
-  PushBlockScope: 63;
-  PushSymbolTable: 64;
-  InvokeYield: 65;
-  JumpIf: 66;
-  JumpUnless: 67;
-  JumpEq: 68;
-  AssertSame: 69;
-  Enter: 70;
-  Exit: 71;
-  ToBoolean: 72;
-  EnterList: 73;
-  ExitList: 74;
-  Iterate: 75;
-  Main: 76;
-  ContentType: 77;
-  Curry: 78;
-  PushComponentDefinition: 79;
-  PushDynamicComponentInstance: 80;
-  ResolveDynamicComponent: 81;
-  ResolveCurriedComponent: 82;
-  PushArgs: 83;
-  PushEmptyArgs: 84;
-  PrepareArgs: 85;
-  CaptureArgs: 86;
-  CreateComponent: 87;
-  RegisterComponentDestructor: 88;
-  PutComponentOperations: 89;
-  GetComponentSelf: 90;
-  GetComponentTagName: 91;
-  GetComponentLayout: 92;
-  SetupForEval: 93;
-  PopulateLayout: 94;
-  InvokeComponentLayout: 95;
-  BeginComponentTransaction: 96;
-  CommitComponentTransaction: 97;
-  DidCreateElement: 98;
-  DidRenderLayout: 99;
-  Debugger: 100;
-  StaticComponentAttr: 101;
-  DynamicContentType: 102;
-  DynamicHelper: 103;
-  DynamicModifier: 104;
-  IfInline: 105;
-  Not: 106;
-  GetDynamicVar: 107;
-  Log: 108;
-  PushUnwindTarget: 109;
+  InvokeVirtual: 17;
+  InvokeStatic: 18;
+  Return: 19;
+  Helper: 20;
+  SetNamedVariables: 21;
+  SetBlocks: 22;
+  SetVariable: 23;
+  SetBlock: 24;
+  GetVariable: 25;
+  GetProperty: 26;
+  GetBlock: 27;
+  SpreadBlock: 28;
+  HasBlock: 29;
+  HasBlockParams: 30;
+  Concat: 31;
+  Constant: 32;
+  ConstantReference: 33;
+  Primitive: 34;
+  PrimitiveReference: 35;
+  ReifyU32: 36;
+  Dup: 37;
+  Pop: 38;
+  Load: 39;
+  Fetch: 40;
+  RootScope: 41;
+  VirtualRootScope: 42;
+  ChildScope: 43;
+  PopScope: 44;
+  Text: 45;
+  Comment: 46;
+  AppendHTML: 47;
+  AppendSafeHTML: 48;
+  AppendDocumentFragment: 49;
+  AppendNode: 50;
+  AppendText: 51;
+  OpenElement: 52;
+  OpenDynamicElement: 53;
+  PushRemoteElement: 54;
+  StaticAttr: 55;
+  DynamicAttr: 56;
+  ComponentAttr: 57;
+  FlushElement: 58;
+  CloseElement: 59;
+  PopRemoteElement: 60;
+  Modifier: 61;
+  BindDynamicScope: 62;
+  PushDynamicScope: 63;
+  PopDynamicScope: 64;
+  CompileBlock: 65;
+  PushBlockScope: 66;
+  PushSymbolTable: 67;
+  InvokeYield: 68;
+  JumpIf: 69;
+  JumpUnless: 70;
+  JumpEq: 71;
+  AssertSame: 72;
+  Enter: 73;
+  Exit: 74;
+  ToBoolean: 75;
+  EnterList: 76;
+  ExitList: 77;
+  Iterate: 78;
+  Main: 79;
+  ContentType: 80;
+  Curry: 81;
+  PushComponentDefinition: 82;
+  PushDynamicComponentInstance: 83;
+  ResolveDynamicComponent: 84;
+  ResolveCurriedComponent: 85;
+  PushArgs: 86;
+  PushEmptyArgs: 87;
+  PrepareArgs: 88;
+  CaptureArgs: 89;
+  CreateComponent: 90;
+  RegisterComponentDestructor: 91;
+  PutComponentOperations: 92;
+  GetComponentSelf: 93;
+  GetComponentTagName: 94;
+  GetComponentLayout: 95;
+  SetupForEval: 96;
+  PopulateLayout: 97;
+  InvokeComponentLayout: 98;
+  BeginComponentTransaction: 99;
+  CommitComponentTransaction: 100;
+  DidCreateElement: 101;
+  DidRenderLayout: 102;
+  Debugger: 103;
+  StaticComponentAttr: 104;
+  DynamicContentType: 105;
+  DynamicHelper: 106;
+  DynamicModifier: 107;
+  IfInline: 108;
+  Not: 109;
+  GetDynamicVar: 110;
+  Log: 111;
+  PushUnwindTarget: 112;
 }
 
 export type VmMachineOp =
   | VmOpMap['PushFrame']
   | VmOpMap['PopFrame']
-  | VmOpMap['InvokeVirtual']
-  | VmOpMap['InvokeStatic']
   | VmOpMap['Jump']
-  | VmOpMap['Return']
   | VmOpMap['ReturnTo']
   | VmOpMap['PopTryFrame']
   | VmOpMap['UnwindTypeFrame'];
 
 export type VmSyscallOp =
   | VmOpMap['PushTryFrame']
+  | VmOpMap['InvokeVirtual']
+  | VmOpMap['InvokeStatic']
+  | VmOpMap['Return']
   | VmOpMap['Helper']
   | VmOpMap['SetNamedVariables']
   | VmOpMap['SetBlocks']
@@ -214,4 +214,4 @@ export type VmSyscallOp =
   | VmOpMap['Log']
   | VmOpMap['PushUnwindTarget'];
 
-export type OpSize = 110;
+export type OpSize = 113;

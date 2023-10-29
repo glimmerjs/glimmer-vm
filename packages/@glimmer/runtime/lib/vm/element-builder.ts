@@ -4,7 +4,6 @@ import type {
   AttrNamespace,
   Bounds,
   Cursor,
-  CursorStackSymbol,
   ElementBuilder,
   ElementOperations,
   Environment,
@@ -94,32 +93,27 @@ export class Fragment implements Bounds {
   }
 }
 
-export const CURSOR_STACK: CursorStackSymbol = Symbol('CURSOR_STACK') as CursorStackSymbol;
+export abstract class AbstractElementBuilder<C extends Cursor> implements ElementBuilder {
+  static forInitialRender<
+    This extends new (
+      env: Environment,
+      element: SimpleElement,
+      nextSibling: Nullable<SimpleNode>
+    ) => AbstractElementBuilder<C>,
+    C extends Cursor,
+  >(this: This, env: Environment, cursor: CursorImpl): InstanceType<This> {
+    return new this(env, cursor.element, cursor.nextSibling).initialize() as InstanceType<This>;
+  }
 
-export class NewElementBuilder implements ElementBuilder {
   public dom: GlimmerTreeConstruction;
   public updateOperations: GlimmerTreeChanges;
   public constructing: Nullable<SimpleElement> = null;
   public operations: Nullable<ElementOperations> = null;
   private env: Environment;
 
-  [CURSOR_STACK] = new Stack<Cursor>();
+  readonly #cursors = new Stack<C>();
   private modifierStack = new Stack<Nullable<ModifierInstance[]>>();
   private blockStack = new Stack<LiveBlock>();
-
-  static forInitialRender(env: Environment, cursor: CursorImpl) {
-    return new this(env, cursor.element, cursor.nextSibling).initialize();
-  }
-
-  static resume(env: Environment, block: UpdatableBlock): NewElementBuilder {
-    let parentNode = block.parentElement();
-    let nextSibling = block.reset(env);
-
-    let stack = new this(env, parentNode, nextSibling).initialize();
-    stack.pushLiveBlock(block);
-
-    return stack;
-  }
 
   constructor(env: Environment, parentNode: SimpleElement, nextSibling: Nullable<SimpleNode>) {
     this.pushElement(parentNode, nextSibling);
@@ -129,21 +123,39 @@ export class NewElementBuilder implements ElementBuilder {
     this.updateOperations = env.getDOM();
   }
 
+  protected abstract createCursor(element: SimpleElement, nextSibling: Nullable<SimpleNode>): C;
+
+  debugBlocks(): LiveBlock[] {
+    throw new Error('Method not implemented.');
+  }
+
+  get currentCursor(): Nullable<C> {
+    return this.#cursors.current;
+  }
+
+  pushCursor(cursor: C): void {
+    this.#cursors.push(cursor);
+  }
+
   protected initialize(): this {
     this.pushSimpleBlock();
     return this;
   }
 
-  debugBlocks(): LiveBlock[] {
-    return this.blockStack.toArray();
+  get debug(): ElementBuilder['debug'] {
+    return {
+      blocks: this.blockStack.toArray(),
+      constructing: this.constructing,
+      inserting: this.#cursors.toArray(),
+    };
   }
 
   get element(): SimpleElement {
-    return this[CURSOR_STACK].current!.element;
+    return this.#cursors.current!.element;
   }
 
   get nextSibling(): Nullable<SimpleNode> {
-    return this[CURSOR_STACK].current!.nextSibling;
+    return this.#cursors.current!.nextSibling;
   }
 
   get hasBlocks() {
@@ -155,8 +167,8 @@ export class NewElementBuilder implements ElementBuilder {
   }
 
   popElement() {
-    this[CURSOR_STACK].pop();
-    expect(this[CURSOR_STACK].current, "can't pop past the last element");
+    this.#cursors.pop();
+    expect(this.#cursors.current, "can't pop past the last element");
   }
 
   pushSimpleBlock(): LiveBlock {
@@ -265,7 +277,7 @@ export class NewElementBuilder implements ElementBuilder {
   }
 
   protected pushElement(element: SimpleElement, nextSibling: Maybe<SimpleNode> = null) {
-    this[CURSOR_STACK].push(new CursorImpl(element, nextSibling));
+    this.#cursors.push(this.createCursor(element, nextSibling));
   }
 
   private pushModifiers(modifiers: Nullable<ModifierInstance[]>): void {
@@ -393,6 +405,22 @@ export class NewElementBuilder implements ElementBuilder {
   }
 }
 
+export class NewElementBuilder extends AbstractElementBuilder<Cursor> {
+  static resume(env: Environment, block: UpdatableBlock): NewElementBuilder {
+    let parentNode = block.parentElement();
+    let nextSibling = block.reset(env);
+
+    let stack = new this(env, parentNode, nextSibling).initialize();
+    stack.pushLiveBlock(block);
+
+    return stack;
+  }
+
+  protected createCursor(element: SimpleElement, nextSibling: Nullable<SimpleNode>): Cursor {
+    return new CursorImpl(element, nextSibling);
+  }
+}
+
 export class SimpleLiveBlock implements LiveBlock {
   protected first: Nullable<FirstNode> = null;
   protected last: Nullable<LastNode> = null;
@@ -401,14 +429,8 @@ export class SimpleLiveBlock implements LiveBlock {
 
   constructor(private parent: SimpleElement) {
     ifDev(() => {
-      this.debug = () => {
-        const props = debugProps(this.first, this.last, parent) as NonNullable<DebugProps>;
-
-        return new (class SimpleLiveBlock {
-          constructor() {
-            Object.assign(this, { ...props, [Symbol.toStringTag]: 'SimpleLiveBlock' });
-          }
-        })();
+      this.debug = (): LiveBlockDebug => {
+        return liveBlockDebug('SimpleLiveBlock', this.first, this.last, parent);
       };
     });
   }
@@ -507,13 +529,7 @@ export class RemoteLiveBlock extends SimpleLiveBlock {
 
     ifDev(() => {
       this.debug = () => {
-        const props = debugProps(this.first, this.last, parent) as NonNullable<DebugProps>;
-
-        return new (class RemoteLiveBlock {
-          constructor() {
-            Object.assign(this, { ...props, [Symbol.toStringTag]: 'RemoteLiveBlock' });
-          }
-        })();
+        return liveBlockDebug('RemoteLiveBlock', this.first, this.last, parent);
       };
     });
   }
@@ -525,13 +541,7 @@ export class UpdatableBlockImpl extends SimpleLiveBlock implements UpdatableBloc
 
     ifDev(() => {
       this.debug = () => {
-        const props = debugProps(this.first, this.last, parent) as NonNullable<DebugProps>;
-
-        return new (class UpdatableBlock {
-          constructor() {
-            Object.assign(this, { ...props, [Symbol.toStringTag]: 'UpdatableBlock' });
-          }
-        })();
+        return liveBlockDebug('UpdatableBlock', this.first, this.last, parent);
       };
     });
   }
@@ -564,23 +574,12 @@ export class LiveBlockList implements LiveBlock {
         const bounds = this.boundList;
         const parent = this.parent;
 
-        return new (class implements LiveBlockDebug {
-          declare parent?: NonNullable<LiveBlockDebug['parent']>;
-          declare range?: NonNullable<LiveBlockDebug['range']>;
-          readonly [Symbol.toStringTag] = 'LiveBlockList';
-
-          constructor() {
-            if (bounds.length === 0) {
-              this.parent = parent;
-              this.range = 'empty';
-            } else {
-              const firstRange = getNodesFromRange(bounds.at(0)?.debug?.().range);
-              const lastRange = getNodesFromRange(bounds.at(-1)?.debug?.().range);
-
-              this.range = joinRange(firstRange, lastRange);
-            }
-          }
-        })();
+        return joinRange(
+          'LiveBlockList',
+          this.boundList.at(0)?.debug?.(),
+          bounds.at(-1)?.debug?.(),
+          parent
+        );
       };
     }
   }
@@ -632,62 +631,59 @@ export function clientBuilder(env: Environment, cursor: CursorImpl): ElementBuil
   return NewElementBuilder.forInitialRender(env, cursor);
 }
 
-type DebugProps =
-  | { node: SimpleNode }
-  | { first: SimpleNode; last: SimpleNode }
-  | { status: 'empty'; parent: SimpleElement };
-
 function ifDev<T>(callback: () => T): void {
   if (import.meta.env.DEV) {
     callback();
   }
 }
 
-function debugProps(
-  ...args:
-    | [
-        first: Nullable<FirstNode> | undefined,
-        last: Nullable<LastNode> | undefined,
-        parent: SimpleElement,
-      ]
-    | [first: FirstNode, last: LastNode]
+function getNodesFromDebug(
+  debug: LiveBlockDebug | undefined
+): [SimpleNode, SimpleNode] | undefined {
+  if (debug === undefined || debug.type === 'empty') return;
+  return debug.range;
+}
+
+function joinRange(
+  kind: string,
+  firstBlock: LiveBlockDebug | undefined,
+  lastBlock: LiveBlockDebug | undefined,
+  parent: SimpleElement
 ): LiveBlockDebug {
-  const [firstNode, lastNode, parent] = args;
+  const firstNodes = getNodesFromDebug(firstBlock);
+  const lastNodes = getNodesFromDebug(lastBlock);
+
+  if (firstNodes && lastNodes) {
+    return debugRange(kind, [firstNodes[0], lastNodes[1]]);
+  } else if (firstBlock) {
+    return firstBlock;
+  } else if (lastBlock) {
+    return lastBlock;
+  } else {
+    return empty(kind, parent);
+  }
+}
+
+function empty(kind: string, parent: SimpleElement): LiveBlockDebug {
+  return { type: 'empty', kind, parent };
+}
+
+function debugRange(kind: string, [first, last]: [SimpleNode, SimpleNode]): LiveBlockDebug {
+  return { type: 'range', kind, range: [first, last], collapsed: first === last };
+}
+
+function liveBlockDebug(
+  kind: string,
+  firstNode: Nullable<FirstNode> | undefined,
+  lastNode: Nullable<LastNode> | undefined,
+  parent: SimpleElement
+): LiveBlockDebug {
   const first = firstNode?.debug?.firstNode;
   const last = lastNode?.debug?.lastNode;
 
   if (first && last) {
-    return first === last ? { range: first } : { range: [first, last] };
+    return { type: 'range', kind, range: [first, last], collapsed: first === last };
   } else {
-    return { parent: parent as SimpleElement, range: 'empty' };
-  }
-}
-
-interface DebugRange {
-  first: SimpleNode;
-  last: SimpleNode;
-}
-
-function getNodesFromRange(
-  range: LiveBlockDebug['range']
-): { first: SimpleNode; last: SimpleNode } | undefined {
-  if (range === 'empty') return undefined;
-  if (Array.isArray(range)) return { first: range[0], last: range[1] };
-
-  return range && { first: range, last: range };
-}
-
-function joinRange(
-  first: DebugRange | undefined,
-  last: DebugRange | undefined
-): NonNullable<LiveBlockDebug['range']> {
-  if (first && last) {
-    return [first.first, last.last];
-  } else if (first) {
-    return [first.first, first.last];
-  } else if (last) {
-    return [last.first, last.last];
-  } else {
-    return 'empty';
+    return { type: 'empty', kind, parent };
   }
 }

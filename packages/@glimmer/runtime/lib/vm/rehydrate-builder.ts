@@ -12,18 +12,10 @@ import type {
   SimpleNode,
   SimpleText,
 } from '@glimmer/interfaces';
-import {
-  assert,
-  castToBrowser,
-  castToSimple,
-  COMMENT_NODE,
-  expect,
-  NS_SVG,
-  type Stack,
-} from '@glimmer/util';
+import { assert, castToBrowser, castToSimple, COMMENT_NODE, expect, NS_SVG } from '@glimmer/util';
 
 import { ConcreteBounds, CursorImpl } from '../bounds';
-import { CURSOR_STACK, NewElementBuilder, RemoteLiveBlock } from './element-builder';
+import { AbstractElementBuilder, RemoteLiveBlock } from './element-builder';
 
 export const SERIALIZATION_FIRST_NODE_STRING = '%+b:0%';
 
@@ -45,9 +37,11 @@ export class RehydratingCursor extends CursorImpl {
   }
 }
 
-export class RehydrateBuilder extends NewElementBuilder implements ElementBuilder {
+export class RehydrateBuilder
+  extends AbstractElementBuilder<RehydratingCursor>
+  implements ElementBuilder
+{
   private unmatchedAttributes: Nullable<SimpleAttr[]> = null;
-  declare [CURSOR_STACK]: Stack<RehydratingCursor>; // Hides property on base class
   blockDepth = 0;
   startingBlockOffset: number;
 
@@ -93,8 +87,11 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
     }
   }
 
-  get currentCursor(): Nullable<RehydratingCursor> {
-    return this[CURSOR_STACK].current;
+  protected override createCursor(
+    element: SimpleElement,
+    nextSibling: Nullable<SimpleNode>
+  ): RehydratingCursor {
+    return new RehydratingCursor(element, nextSibling, this.blockDepth || 0);
   }
 
   get candidate(): Nullable<SimpleNode> {
@@ -129,15 +126,9 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
     currentCursor.nextSibling = null;
   }
 
-  override pushElement(
-    /** called from parent constructor before we initialize this */
-    this:
-      | RehydrateBuilder
-      | (NewElementBuilder & Partial<Pick<RehydrateBuilder, 'blockDepth' | 'candidate'>>),
-    element: SimpleElement,
-    nextSibling: Maybe<SimpleNode> = null
-  ) {
-    const cursor = new RehydratingCursor(element, nextSibling, this.blockDepth || 0);
+  /** WARNING: called from parent constructor before we initialize this */
+  override pushElement(element: SimpleElement, nextSibling: Maybe<SimpleNode> = null) {
+    const cursor = this.createCursor(element, nextSibling);
 
     /**
      * <div>   <---------------  currentCursor.element
@@ -154,7 +145,7 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
       this.candidate = element.nextSibling;
     }
 
-    this[CURSOR_STACK].push(cursor);
+    this.pushCursor(cursor);
   }
 
   // clears until the end of the current container
@@ -480,7 +471,7 @@ export class RehydrateBuilder extends NewElementBuilder implements ElementBuilde
     }
 
     const cursor = new RehydratingCursor(element, null, this.blockDepth);
-    this[CURSOR_STACK].push(cursor);
+    this.pushCursor(cursor);
 
     if (marker === null) {
       this.disableRehydration(insertBefore);

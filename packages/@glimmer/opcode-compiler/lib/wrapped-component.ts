@@ -2,6 +2,7 @@ import type {
   BuilderOp,
   CompilableProgram,
   CompileTimeCompilationContext,
+  BlockMetadata,
   HandleResult,
   HighLevelOp,
   LayoutWithContext,
@@ -16,19 +17,23 @@ import { encodeOp } from './opcode-builder/encoder';
 import { ATTRS_BLOCK, WrappedComponent } from './opcode-builder/helpers/components';
 import { meta } from './opcode-builder/helpers/shared';
 import { definePushOp, type HighLevelStatementOp } from './syntax/compilers';
+import { IS_COMPILABLE_TEMPLATE } from '@glimmer/util';
 
 export class WrappedBuilder implements CompilableProgram {
   public symbolTable: ProgramSymbolTable;
   private compiled: Nullable<number> = null;
   private attrsBlockNumber: number;
+  readonly meta: BlockMetadata;
+  readonly [IS_COMPILABLE_TEMPLATE] = true;
 
   constructor(
     private layout: LayoutWithContext,
     public moduleName: string
   ) {
     let { block } = layout;
-    let [, symbols, hasEval] = block;
+    let [, symbols, hasDebug] = block;
 
+    this.meta = meta(layout);
     symbols = symbols.slice();
 
     // ensure ATTRS_BLOCK is always included (only once) in the list of symbols
@@ -40,7 +45,7 @@ export class WrappedBuilder implements CompilableProgram {
     }
 
     this.symbolTable = {
-      hasEval,
+      hasDebug,
       symbols,
     };
   }

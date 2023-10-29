@@ -1,4 +1,4 @@
-import type { DebugOperand } from '@glimmer/debug';
+import type { DisassembledOperand } from '@glimmer/debug';
 import type { Dict, Nullable, Optional, RuntimeOp, VmMachineOp, VmOp } from '@glimmer/interfaces';
 import { assert, expect, fillNulls } from '@glimmer/util';
 import { OpSize } from '@glimmer/vm';
@@ -32,7 +32,7 @@ export type DebugState = {
   type: VmMachineOp | VmOp;
   isMachine: 0 | 1;
   size: number;
-  params?: Optional<Dict<DebugOperand>>;
+  params?: Optional<Dict<DisassembledOperand>>;
   name?: Optional<string>;
   state: unknown;
 };

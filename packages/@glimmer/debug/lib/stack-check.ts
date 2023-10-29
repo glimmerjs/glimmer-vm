@@ -392,7 +392,7 @@ export const CheckBlockSymbolTable: Checker<BlockSymbolTable> = CheckInterface({
 });
 
 export const CheckProgramSymbolTable: Checker<ProgramSymbolTable> = CheckInterface({
-  hasEval: CheckBoolean,
+  hasDebug: CheckBoolean,
   symbols: CheckArray(CheckString),
 });
 

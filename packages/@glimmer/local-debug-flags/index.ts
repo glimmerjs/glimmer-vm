@@ -1,39 +1,20 @@
-export const LOCAL_DEBUG: true | false =
-  import.meta.env.DEV &&
-  (() => {
-    let location = typeof window !== 'undefined' && window.location;
-    if (location && /[&?]disable_local_debug/u.test(window.location.search)) {
-      return false;
-    }
-    return true;
-  })();
+export const LOCAL_DEBUG = import.meta.env.DEV && !hasFlag('disable_local_debug');
+export const LOCAL_TRACE_LOGGING = hasFlag('enable_trace_logging');
+export const LOCAL_EXPLAIN_LOGGING = hasFlag('enable_trace_explanations');
+export const LOCAL_INTERNALS_LOGGING = hasFlag('enable_internals_logging');
+export const LOCAL_SUBTLE_LOGGING = hasFlag('enable_subtle_logging');
 
-export const LOCAL_TRACE_LOGGING: true | false =
-  import.meta.env.DEV &&
-  (() => {
+// This function should turn into a constant `return false` in `import.meta.env.PROD`,
+// which should inline properly via terser, swc and esbuild.
+//
+// https://tiny.katz.zone/BNqN3F
+function hasFlag(flag: string): true | false {
+  if (import.meta.env.DEV) {
     let location = typeof window !== 'undefined' && window.location;
-    if (location && /[&?]enable_trace_logging(?:&|#|$)/u.test(window.location.search)) {
-      return true;
-    }
-    return false;
-  })();
+    const pattern = new RegExp(`[&?]${flag}(?:&|$|%)`, 'u');
 
-export const LOCAL_EXPLAIN_LOGGING: true | false =
-  import.meta.env.DEV &&
-  (() => {
-    let location = typeof window !== 'undefined' && window.location;
-    if (location && /[&?]enable_trace_explanations(?:&|#|$)/u.test(window.location.search)) {
-      return true;
-    }
+    return !!(location && pattern.test(window.location.search));
+  } else {
     return false;
-  })();
-
-export const LOCAL_INTERNALS_LOGGING: true | false =
-  import.meta.env.DEV &&
-  (() => {
-    let location = typeof window !== 'undefined' && window.location;
-    if (location && /[&?]enable_internals_logging(?:&|#|$)/u.test(window.location.search)) {
-      return true;
-    }
-    return false;
-  })();
+  }
+}

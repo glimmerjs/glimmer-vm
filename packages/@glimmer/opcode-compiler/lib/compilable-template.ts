@@ -5,7 +5,7 @@ import type {
   CompilableProgram,
   CompilableTemplate,
   CompileTimeCompilationContext,
-  ContainingMetadata,
+  BlockMetadata,
   HandleResult,
   HighLevelOp,
   LayoutWithContext,
@@ -17,7 +17,7 @@ import type {
   WireFormat,
 } from '@glimmer/interfaces';
 import { LOCAL_TRACE_LOGGING } from '@glimmer/local-debug-flags';
-import { EMPTY_ARRAY } from '@glimmer/util';
+import { EMPTY_ARRAY, IS_COMPILABLE_TEMPLATE } from '@glimmer/util';
 
 import { debugCompiler } from './compiler';
 import { templateCompilationContext } from './opcode-builder/context';
@@ -30,10 +30,11 @@ export const PLACEHOLDER_HANDLE = -1;
 
 class CompilableTemplateImpl<S extends SymbolTable> implements CompilableTemplate<S> {
   compiled: Nullable<HandleResult> = null;
+  readonly [IS_COMPILABLE_TEMPLATE] = true;
 
   constructor(
     readonly statements: WireFormat.Statement[],
-    readonly meta: ContainingMetadata,
+    readonly meta: BlockMetadata,
     // Part of CompilableTemplate
     readonly symbolTable: S,
     // Used for debugging
@@ -46,14 +47,18 @@ class CompilableTemplateImpl<S extends SymbolTable> implements CompilableTemplat
   }
 }
 
+export function isCompilable(value: unknown): value is CompilableTemplate {
+  return !!(value && value instanceof CompilableTemplateImpl);
+}
+
 export function compilable(layout: LayoutWithContext, moduleName: string): CompilableProgram {
-  let [statements, symbols, hasEval] = layout.block;
+  let [statements, symbols, hasDebug] = layout.block;
   return new CompilableTemplateImpl(
     statements,
     meta(layout),
     {
       symbols,
-      hasEval,
+      hasDebug,
     },
     moduleName
   );
@@ -77,7 +82,7 @@ function maybeCompile(
 
 export function compileStatements(
   statements: Statement[],
-  meta: ContainingMetadata,
+  meta: BlockMetadata,
   syntaxContext: CompileTimeCompilationContext
 ): HandleResult {
   let sCompiler = STATEMENTS;
@@ -109,7 +114,7 @@ export function compileStatements(
 
 export function compilableBlock(
   block: SerializedInlineBlock | SerializedBlock,
-  containing: ContainingMetadata
+  containing: BlockMetadata
 ): CompilableBlock {
   return new CompilableTemplateImpl<BlockSymbolTable>(block[0], containing, {
     parameters: block[1] || (EMPTY_ARRAY as number[]),

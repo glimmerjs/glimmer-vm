@@ -5,6 +5,7 @@ import type {
   DynamicScope,
   ElementBuilder,
   Environment,
+  Invocation,
   Owner,
   RenderResult,
   RichIteratorResult,
@@ -103,14 +104,20 @@ function renderInvocation(
     reified.compilable,
     'BUG: Expected the root component rendered with renderComponent to have an associated template, set with setComponentTemplate'
   );
-  const layoutHandle = unwrapHandle(compilable.compile(context));
-  const invocation = { handle: layoutHandle, symbolTable: compilable.symbolTable };
+  const layoutHandle = unwrapHandle(vm.compile(compilable));
+  const invocation: Invocation = {
+    handle: layoutHandle,
+    symbolTable: compilable.symbolTable,
+    meta: compilable.meta,
+  };
 
   // Needed for the Op.Main opcode: arguments, component invocation object, and
   // component definition.
   vm.stack.push(vm[ARGS]);
   vm.stack.push(invocation);
   vm.stack.push(reified);
+
+  vm.debugWillCall?.(invocation.handle);
 
   return new TemplateIteratorImpl(vm);
 }

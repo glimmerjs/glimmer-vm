@@ -175,13 +175,6 @@ function IsInterface<R extends Record<string, LazyStackType<any, any>>>(
       }
     },
   });
-
-  function check(item: unknown, vm: VM): item is GetInterface<R> {
-    return Object.entries(record).every(([name, type]) => {
-      const [result] = type(name).coerce(item, vm);
-      return result === 'ok';
-    });
-  }
 }
 
 function isBool(value: unknown): value is boolean {

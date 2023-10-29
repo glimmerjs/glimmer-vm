@@ -21,9 +21,30 @@ export function* reverse<T>(input: T[]): IterableIterator<T> {
   }
 }
 
+export function enumerate<const T extends unknown[] | readonly unknown[]>(
+  input: T
+): IterableIterator<
+  { [P in keyof T]: P extends `${infer N extends number}` ? [N, T[P]] : [number, T[P]] }[number]
+>;
+export function enumerate<T>(input: Iterable<T>): IterableIterator<[number, T]>;
 export function* enumerate<T>(input: Iterable<T>): IterableIterator<[number, T]> {
   let i = 0;
   for (const item of input) {
     yield [i++, item];
+  }
+}
+
+export function* zip<const T>(
+  left: readonly T[],
+  right: readonly T[]
+): IterableIterator<[T, T] | [T | undefined, T] | [T, T | undefined]> {
+  for (const [i, item] of enumerate(left)) {
+    yield [item, right[i]];
+  }
+
+  const excessStart = left.length;
+
+  for (const item of right.slice(excessStart)) {
+    yield [undefined, item];
   }
 }

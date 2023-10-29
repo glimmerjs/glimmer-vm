@@ -2,7 +2,6 @@ import {
   check,
   CheckBlockSymbolTable,
   CheckHandle,
-  CheckInstanceof,
   CheckNumber,
   CheckNullable,
   CheckPrimitive,
@@ -42,8 +41,7 @@ import { APPEND_OPCODES } from '../../opcodes';
 import { CONSTANTS } from '../../symbols';
 import type { UpdatingVM } from '../../vm';
 import type { InternalVM } from '../../vm/append';
-import { VMArgumentsImpl } from '../../vm/arguments';
-import { CheckReference, CheckScope } from './-debug-strip';
+import { CheckArguments, CheckReference, CheckScope } from './-debug-strip';
 import { stackAssert } from './assert';
 import type { ErrorHandler } from '../../vm/unwind';
 
@@ -115,6 +113,10 @@ APPEND_OPCODES.add(Op.PrimitiveReference, (vm) => {
   stack.push(ref);
 });
 
+APPEND_OPCODES.add(Op.InvokeStatic, (vm, { op1: handle }) => vm.call(handle));
+APPEND_OPCODES.add(Op.InvokeVirtual, (vm) => vm.call(vm.stack.pop()));
+APPEND_OPCODES.add(Op.Return, (vm) => vm.return());
+
 APPEND_OPCODES.add(Op.Dup, (vm, { op1: register, op2: offset }) => {
   let position = check(register === $sp ? vm.sp : vm.fp, CheckNumber) - offset;
   vm.stack.dup(position);
@@ -169,6 +171,7 @@ APPEND_OPCODES.add(Op.CompileBlock, (vm: InternalVM) => {
 APPEND_OPCODES.add(Op.InvokeYield, (vm) => {
   let { stack } = vm;
 
+  // pop 3
   let handle = check(stack.pop(), CheckNullable(CheckHandle));
   let scope = check(stack.pop(), CheckNullable(CheckScope));
   let table = check(stack.pop(), CheckNullable(CheckBlockSymbolTable));
@@ -178,11 +181,14 @@ APPEND_OPCODES.add(Op.InvokeYield, (vm) => {
     stackAssert('Option<BlockSymbolTable>', table)
   );
 
-  let args = check(stack.pop(), CheckInstanceof(VMArgumentsImpl));
+  // pop 1
+  const args = check(vm.stack.pop(), CheckArguments);
 
+  // To balance the pop{Frame,Scope}
   if (table === null) {
-    // To balance the pop{Frame,Scope}
+    // push 2
     vm.pushFrame();
+    // push 0
     vm.pushScope(scope ?? vm.scope());
 
     return;
@@ -204,7 +210,9 @@ APPEND_OPCODES.add(Op.InvokeYield, (vm) => {
     }
   }
 
+  // push 2
   vm.pushFrame();
+  // push 0
   vm.pushScope(invokingScope);
   vm.call(handle);
 });

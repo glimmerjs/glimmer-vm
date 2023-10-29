@@ -2,7 +2,6 @@ import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
 
 import { Registers, PackedRegisters, type ArgumentsStack } from './low-level';
 import type { UnwindTarget } from './unwind';
-import type { Result } from '@glimmer/interfaces';
 
 export default class EvaluationStackImpl implements ArgumentsStack {
   static restore(snapshot: unknown[], pc: number, unwind: UnwindTarget): EvaluationStackImpl {
@@ -22,8 +21,6 @@ export default class EvaluationStackImpl implements ArgumentsStack {
       Object.seal(this);
     }
   }
-
-  pushResult<T>(value: Result<T>) {}
 
   push(...values: unknown[]): void {
     for (let value of values) {
@@ -71,13 +68,18 @@ export default class EvaluationStackImpl implements ArgumentsStack {
     this.stack.length = 0;
   }
 
+  /**
+   * @snapshots
+   */
   frame() {
     return this.stack.slice(
       this.registers.fp === -1 ? 0 : this.registers.fp,
       this.registers.sp + 1
     );
   }
-
+  /**
+   * @snapshots
+   */
   all(): { before: unknown[]; frame: unknown[] } {
     let before = this.stack.slice(0, this.registers.fp === -1 ? 0 : this.registers.fp);
     return { before, frame: this.frame() };

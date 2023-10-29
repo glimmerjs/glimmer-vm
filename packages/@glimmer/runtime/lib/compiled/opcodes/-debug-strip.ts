@@ -23,6 +23,7 @@ import type {
   CompilableProgram,
   ComponentDefinition,
   ComponentInstance,
+  BlockMetadata,
   ElementOperations,
   Helper,
   InternalComponentManager,
@@ -30,7 +31,7 @@ import type {
   Nullable,
   Scope,
   ScopeBlock,
-} from "@glimmer/interfaces";
+} from '@glimmer/interfaces';
 import {
   type OpaqueIterator,
   REFERENCE,
@@ -112,9 +113,15 @@ export const CheckComponentInstance: Checker<ComponentInstance> = CheckInterface
 
 export const CheckCurriedComponentDefinition = CheckOr(CheckObject, CheckFunction);
 
+export const CheckContainingMetadata: Checker<BlockMetadata> = CheckInterface({
+  debugSymbols: CheckNullable(CheckArray(CheckString)),
+  moduleName: CheckString,
+});
+
 export const CheckInvocation: Checker<Invocation> = CheckInterface({
   handle: CheckNumber,
   symbolTable: CheckProgramSymbolTable,
+  meta: CheckNullable(CheckContainingMetadata),
 });
 
 export const CheckElementOperations: Checker<ElementOperations> = CheckInterface({

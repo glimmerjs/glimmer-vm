@@ -32,6 +32,13 @@ export async function setupQunit() {
     },
 
     {
+      id: 'enable_subtle_logging',
+      label: '+ Subtle',
+      tooltip:
+        'Subtle logs include unchanged information and other details not necessary for normal debugging',
+    },
+
+    {
       id: 'enable_trace_explanations',
       label: '+ Explanations',
       tooltip: 'Also explain the trace logs',

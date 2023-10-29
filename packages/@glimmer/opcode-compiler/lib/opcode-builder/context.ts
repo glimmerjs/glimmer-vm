@@ -2,7 +2,7 @@ import type {
   CompileTimeArtifacts,
   CompileTimeCompilationContext,
   CompileTimeResolver,
-  ContainingMetadata,
+  BlockMetadata,
   CreateRuntimeOp,
   TemplateCompilationContext,
 } from "@glimmer/interfaces";
@@ -20,7 +20,7 @@ export function programCompilationContext(
 
 export function templateCompilationContext(
   program: CompileTimeCompilationContext,
-  meta: ContainingMetadata
+  meta: BlockMetadata
 ): TemplateCompilationContext {
   let encoder = new EncoderImpl(program.heap, meta, program.stdlib);
 

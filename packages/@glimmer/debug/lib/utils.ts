@@ -1,10 +1,11 @@
-import type { Nullable, Optional, VmOpName } from '@glimmer/interfaces';
-import type { NormalizedMetadata, DynamicStackFnSpec, StackCheck } from './metadata';
+import type { Nullable, Optional, Reference, VmOpName } from '@glimmer/interfaces';
+import type { OpcodeMetadata, DynamicStackFn } from './metadata';
 import { assertNever, fillNulls } from '@glimmer/util';
 import { UNCHANGED, type STACK_TYPES } from './stack/params';
 import { OpSize } from '@glimmer/vm';
 // eslint-disable-next-line @typescript-eslint/no-restricted-imports
 import type { DebugOpList } from './generated/op-list';
+import { REFERENCE } from '@glimmer/reference';
 
 type NameDef<Name extends Nullable<VmOpName> = VmOpName> = Name extends null
   ? null
@@ -13,14 +14,14 @@ type NameDef<Name extends Nullable<VmOpName> = VmOpName> = Name extends null
 export function define(
   nameDef: NameDef,
   ops: ShorthandOperandList,
-  stackCheck: StackCheck
-): Nullable<NormalizedMetadata> {
+  stackCheck: DynamicStackFn
+): Nullable<OpcodeMetadata> {
   let [name, mnemonic] = nameDef.split(' as ') as [string, string];
   return {
     name,
     mnemonic,
     before: null,
-    stackCheck,
+    stack: stackCheck,
     ops: ops.map(op) as OperandList,
     operands: ops.length,
   };
@@ -56,10 +57,8 @@ export const OPERAND_TYPES = [
   'handle',
 
   'const/i32[]',
-  'const/str',
   'const/str?',
   'const/any[]',
-  'const/str[]',
   'const/str[]?',
   'const/bool',
   'const/fn',
@@ -86,18 +85,26 @@ export const OPERAND_TYPES = [
 ] as const;
 
 export function isOperandType(s: string): s is OperandType {
-  return OPERAND_TYPES.indexOf(s as any) !== -1;
+  return OPERAND_TYPES.includes(s as any) || OPERAND_TYPES.includes(`${s}?` as any);
 }
 
-export type OperandType = (typeof OPERAND_TYPES)[number];
+export type OPERAND_TYPE = (typeof OPERAND_TYPES)[number];
+export type NonNullableOperandType = Exclude<OPERAND_TYPE, `${string}?`>;
+export type NullableOperandType = Extract<OPERAND_TYPE, `${string}?`> extends `${infer S}?`
+  ? S
+  : never;
+export type OperandType = NonNullableOperandType | NullableOperandType | `${NullableOperandType}?`;
 
-export interface Operand {
+export interface OperandLabel {
   type: OperandType;
   name: string;
 }
 
-export type OperandList = ([] | [Operand] | [Operand, Operand] | [Operand, Operand, Operand]) &
-  Operand[];
+export type OperandList =
+  | []
+  | [OperandLabel]
+  | [OperandLabel, OperandLabel]
+  | [OperandLabel, OperandLabel, OperandLabel];
 
 export type ShorthandOperandList =
   | []
@@ -110,7 +117,7 @@ type ShorthandOp = `${string}:${OperandType}`;
 type ShorthandStackParam = `${string}:${Exclude<StackType, symbol>}`;
 export type ShorthandStackReturn<T extends StackType = StackType> = Extract<StackType, T>;
 
-function op(input: ShorthandOp): Operand {
+function op(input: ShorthandOp): OperandLabel {
   let [name, type] = input.split(':') as [string, string];
 
   if (isOperandType(type)) {
@@ -141,12 +148,16 @@ type StackOption =
       value: ShorthandStackParam[];
     }
   | {
+      type: 'stack:peeks';
+      value: ShorthandStackParam[];
+    }
+  | {
       type: 'stack:returns';
       value: ShorthandStackReturn[];
     }
   | {
       type: 'stack:dynamic';
-      value: DynamicStackFnSpec | { reason: string };
+      value: DynamicStackFn | { reason: string };
     };
 
 type MetadataOption =
@@ -162,6 +173,7 @@ function stackDelta(change: number): MetadataOption {
 }
 
 export const stack = {
+  peeks: stackPeeks,
   params: stackParams,
   dynamic: stackDynamic,
   delta: stackDelta,
@@ -175,10 +187,29 @@ function intoReturnType(from: IntoReturnType): ShorthandStackReturn[] {
   return Array.isArray(from) ? from : [from];
 }
 
+function stackPeeks(
+  params: ShorthandStackParam[]
+): MetadataOption & { pushes: (returns: IntoReturnType) => MetadataOption } {
+  return {
+    type: 'stack:peeks',
+    value: params,
+    pushes: (returns) => ({
+      type: 'multi',
+      options: [
+        { type: 'stack:peeks', value: params },
+        { type: 'stack:returns', value: intoReturnType(returns) },
+      ],
+    }),
+  };
+}
+
 function stackParams(params: ShorthandStackParam[]): {
+  /**
+   * Multiple returns mean multiple choices
+   */
   returns: (returns: IntoReturnType) => MetadataOption;
   pushes: (params: IntoReturnType<string>) => MetadataOption;
-  dynamic: (dynamic: DynamicStackFnSpec | { reason: string }) => MetadataOption;
+  dynamic: (dynamic: DynamicStackFn | { reason: string }) => MetadataOption;
 } {
   const paramsOption = { type: 'stack:params', value: params } as const;
 
@@ -196,14 +227,14 @@ function stackParams(params: ShorthandStackParam[]): {
       ],
     }),
 
-    dynamic: (dynamic: DynamicStackFnSpec | { reason: string }): MetadataOption => ({
+    dynamic: (dynamic: DynamicStackFn | { reason: string }): MetadataOption => ({
       type: 'multi',
       options: [paramsOption, { type: 'stack:dynamic', value: dynamic }],
     }),
   };
 }
 
-function stackDynamic(dynamic: DynamicStackFnSpec | { reason: string }): MetadataOption {
+function stackDynamic(dynamic: DynamicStackFn | { reason: string }): MetadataOption {
   return { type: 'stack:dynamic', value: dynamic ?? null };
 }
 
@@ -228,47 +259,18 @@ function toOptions(options: MetadataOption[]): NormalizedOptions {
     }
   }
 
-  stackInfo.validate();
-
   return [operands, stackInfo.toStackCheck()];
 }
 
+type StackParam =
+  | { type: 'pop'; value: ShorthandStackParam }
+  | { type: 'peek'; value: ShorthandStackParam };
+
 class StackInfo {
-  #params: ShorthandStackParam[] | undefined;
-  #returns: ShorthandStackReturn[] | undefined;
+  #params: StackParam[] = [];
+  #returns: ShorthandStackReturn[] = [];
   #delta: number | undefined;
-  #dynamic: Optional<DynamicStackFnSpec | { reason: string }> = undefined;
-
-  #validateNotContradictory(): void {
-    if (this.#params || this.#returns) {
-      if (this.#delta !== undefined) {
-        throw new Error(
-          `ERROR: IF stack params or stack returns are specified, stack delta must not be specified`
-        );
-      }
-    } else if (this.#dynamic !== undefined) {
-      if (this.#delta !== undefined) {
-        throw new Error(
-          `ERROR: IF opcode has a dynamic stack change, stack delta must not be specified`
-        );
-      }
-    }
-  }
-
-  validate(): void {
-    this.#validateNotContradictory();
-
-    // also validate mutually required options
-    if (this.#params || this.#returns) {
-      if (!this.#returns && !this.#dynamic) {
-        throw new Error(`ERROR: IF stack params are specified, stack returns must be specified`);
-      }
-
-      if (!this.#params && !this.#dynamic) {
-        throw new Error(`ERROR: IF stack returns are specified, stack params must be specified`);
-      }
-    }
-  }
+  #dynamic: Optional<DynamicStackFn | { reason: string }> = undefined;
 
   add(...options: StackOption[]): void {
     for (const option of options) {
@@ -277,7 +279,14 @@ class StackInfo {
           this.#dynamic = { reason: option.reason };
           break;
         case 'stack:params':
-          this.#params = option.value;
+          this.#params.push(
+            ...option.value.map((param) => ({ type: 'pop', value: param }) as const)
+          );
+          break;
+        case 'stack:peeks':
+          this.#params.push(
+            ...option.value.map((param) => ({ type: 'peek', value: param }) as const)
+          );
           break;
         case 'stack:returns':
           this.#returns = option.value;
@@ -294,50 +303,55 @@ class StackInfo {
     }
   }
 
-  toStackCheck(): StackCheck {
+  toStackCheck(): DynamicStackFn {
     const dynamic = this.#dynamic;
 
     if (dynamic === undefined) {
-      return () => this.delta;
+      if (this.#delta) {
+        return () => ({ type: 'delta', delta: this.delta });
+      } else {
+        return () => ({
+          type: 'operations',
+          peek: this.#peeks.length,
+          pop: this.#pops.length,
+          push: this.#returns.length,
+          delta: this.delta,
+        });
+      }
     }
 
     if (typeof dynamic === 'function') {
-      const staticParams = this.#params?.length ?? 0;
-
-      return (op, state) => {
-        const diff = dynamic(op, state);
-        if (typeof diff === 'number') return diff;
-
-        const [first, ...rest] = diff;
-
-        if (first === UNCHANGED) {
-          return rest.length;
-        } else {
-          return diff.length - staticParams;
-        }
-      };
+      return dynamic;
     } else {
-      return { type: 'unchecked', ...dynamic };
+      return () => ({ type: 'unchecked', delta: undefined, ...dynamic });
     }
+  }
+
+  get #pops(): ShorthandStackParam[] {
+    return this.#params.filter((p) => p.type === 'pop').map((p) => p.value);
+  }
+
+  get #peeks(): ShorthandStackParam[] {
+    return this.#params.filter((p) => p.type === 'peek').map((p) => p.value);
   }
 
   get delta(): number {
     if (this.#delta) {
       return this.#delta;
     } else {
-      return (this.#returns?.length ?? 0) - (this.#params?.length ?? 0);
+      return this.#returns.length - this.#pops.length;
     }
   }
 }
 
 export type NormalizedMetadataArray<O> = {
-  [K in keyof O]: O[K] extends null ? null : NormalizedMetadata;
+  [K in keyof O]: O[K] extends null ? null : OpcodeMetadata;
 };
 
 export const RESERVED = Symbol('RESERVED');
 export type RESERVED = typeof RESERVED;
 
-type NormalizedOptions = [ops: ShorthandOperandList, check: StackCheck];
+type NormalizedOptions = [ops: ShorthandOperandList, check: DynamicStackFn];
 
 export class MetadataBuilder<
   out Op,
@@ -354,9 +368,9 @@ export class MetadataBuilder<
   }
 
   #inserting = 0;
-  #metadata: Nullable<NormalizedMetadata>[];
+  #metadata: Nullable<OpcodeMetadata>[];
 
-  private constructor(metadata: Nullable<NormalizedMetadata>[]) {
+  private constructor(metadata: Nullable<OpcodeMetadata>[]) {
     this.#metadata = metadata;
   }
 
@@ -372,9 +386,12 @@ export class MetadataBuilder<
     if (name === RESERVED) {
       this.#inserting++;
     } else {
-      const normalizedOptions =
+      const normalizedOptions: NormalizedOptions =
         name === RESERVED
-          ? ([[], { type: 'unchecked', reason: 'reserved' }] satisfies NormalizedOptions)
+          ? ([
+              [],
+              () => ({ type: 'unchecked', reason: 'reserved', delta: undefined }),
+            ] satisfies NormalizedOptions)
           : toOptions(options);
 
       this.#push(name, normalizedOptions);
@@ -395,4 +412,7 @@ export class MetadataBuilder<
 type TupleToParams<T extends unknown[]> = (...args: T) => void;
 type Slice<T extends unknown[]> = TupleToParams<T> extends (first: any, ...rest: infer Rest) => void
   ? Rest
-  : never;
+  : never;export function isReference(value: unknown): value is Reference {
+  return !!(value && typeof value === 'object' && REFERENCE in value);
+}
+

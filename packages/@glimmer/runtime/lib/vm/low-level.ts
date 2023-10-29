@@ -16,7 +16,7 @@ import { $fp, $pc, $ra, $sp, $up, Op } from '@glimmer/vm';
 import { APPEND_OPCODES } from '../opcodes';
 import type { VM } from './append';
 import { CheckNumber, check } from '@glimmer/debug';
-import { debugAround } from './debug';
+import { debugAround } from './debug/debug';
 import { UnwindTarget, type TargetState, type ErrorHandler } from './unwind';
 
 export type PackedRegisters = Expand<
@@ -44,6 +44,16 @@ export class Registers {
 
   constructor(packed: PackedRegisters) {
     this.#packed = PackedRegisters(...packed);
+  }
+
+  get debug() {
+    return {
+      pc: this.#packed[$pc],
+      ra: this.#packed[$ra],
+      fp: this.#packed[$fp],
+      sp: this.#packed[$sp],
+      up: this.#packed[$up],
+    };
   }
 
   // @premerge consolidate
@@ -190,6 +200,7 @@ export interface Externs {
 
 export interface VmDebugState {
   readonly registers: Registers;
+  readonly currentPc: number;
   readonly stack: DebugStack;
   readonly threw: boolean;
 }
@@ -267,8 +278,12 @@ export class LowLevelVM {
     return this.#stack;
   }
 
+  /**
+   * @mutable
+   */
   get debug(): VmDebugState {
     return {
+      currentPc: this.#registers.pc - this.#currentOpSize,
       registers: this.#registers,
       stack: this.#stack,
       threw: THROWN?.check() ?? false,
@@ -413,14 +428,8 @@ export class LowLevelVM {
         return this.pushFrame();
       case Op.PopFrame:
         return this.popFrame();
-      case Op.InvokeStatic:
-        return this.call(opcode.op1);
-      case Op.InvokeVirtual:
-        return this.call(this.#stack.pop());
       case Op.Jump:
         return this.goto(opcode.op1);
-      case Op.Return:
-        return this.return();
       case Op.ReturnTo:
         return this.returnTo(opcode.op1);
       case Op.PopTryFrame:

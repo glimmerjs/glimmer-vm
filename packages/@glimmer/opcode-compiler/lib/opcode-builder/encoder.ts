@@ -5,7 +5,7 @@ import type {
   CompileTimeConstants,
   CompileTimeHeap,
   CompileTimeResolver,
-  ContainingMetadata,
+  BlockMetadata,
   Dict,
   Encoder,
   EncoderError,
@@ -69,7 +69,7 @@ export function encodeOp(
   encoder: Encoder,
   constants: CompileTimeConstants & ResolutionTimeConstants,
   resolver: CompileTimeResolver,
-  meta: ContainingMetadata,
+  meta: BlockMetadata,
   op: BuilderOp | HighLevelOp
 ): void {
   if (isBuilderOpcode(op[0])) {
@@ -148,7 +148,7 @@ export class EncoderImpl implements Encoder {
 
   constructor(
     private heap: CompileTimeHeap,
-    private meta: ContainingMetadata,
+    private meta: BlockMetadata,
     private stdlib?: STDLib
   ) {
     this.handle = heap.malloc();
@@ -162,7 +162,7 @@ export class EncoderImpl implements Encoder {
   commit(size: number): HandleResult {
     let handle = this.handle;
 
-    this.heap.pushMachine(Op.Return);
+    this.heap.pushOp(Op.Return);
     this.heap.finishMalloc(handle, size);
 
     if (isPresentArray(this.errors)) {
@@ -212,7 +212,7 @@ export class EncoderImpl implements Encoder {
             return encodeHandle(constants.value(this.meta.isStrictMode));
 
           case HighLevelOperands.DebugSymbols:
-            return encodeHandle(constants.array(this.meta.evalSymbols || EMPTY_STRING_ARRAY));
+            return encodeHandle(constants.array(this.meta.debugSymbols || EMPTY_STRING_ARRAY));
 
           case HighLevelOperands.Block:
             return encodeHandle(constants.value(compilableBlock(operand.value, this.meta)));

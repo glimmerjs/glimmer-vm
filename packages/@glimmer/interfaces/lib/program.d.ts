@@ -4,7 +4,7 @@ import type { ComponentDefinition, ComponentDefinitionState } from './components
 import type { HelperDefinitionState } from './runtime';
 import type { ModifierDefinitionState } from './runtime/modifier';
 import type { CompileTimeResolver, ResolvedComponentDefinition } from './serialize';
-import type { ContainingMetadata, STDLib, Template } from './template';
+import type { BlockMetadata, STDLib, Template } from './template';
 import type { VmMachineOp, VmOp } from './vm-opcodes';
 import type { Nullable } from './core';
 
@@ -58,7 +58,7 @@ export interface CompileTimeCompilationContext {
   readonly createOp: CreateRuntimeOp;
 
   // Interned constants
-  readonly constants: CompileTimeConstants & ResolutionTimeConstants;
+  readonly constants: CompileTimeConstants & ResolutionTimeConstants & DebugConstants;
 
   // The mechanism of resolving names to values at compile-time
   readonly resolver: CompileTimeResolver;
@@ -75,7 +75,7 @@ export interface CompileTimeCompilationContext {
 export interface TemplateCompilationContext {
   readonly program: CompileTimeCompilationContext;
   readonly encoder: Encoder;
-  readonly meta: ContainingMetadata;
+  readonly meta: BlockMetadata;
 }
 
 export type EMPTY_ARRAY = Array<ReadonlyArray<never>>;
@@ -141,5 +141,5 @@ export interface RuntimeConstants extends DebugConstants {
 
 export interface CompileTimeArtifacts {
   heap: CompileTimeHeap;
-  constants: CompileTimeConstants & ResolutionTimeConstants;
+  constants: CompileTimeConstants & ResolutionTimeConstants & DebugConstants;
 }

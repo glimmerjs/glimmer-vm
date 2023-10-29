@@ -148,6 +148,8 @@ APPEND_OPCODES.add(Op.Helper, (vm, { op1: handle }) => {
   let stack = vm.stack;
   let helper = check(vm[CONSTANTS].getValue(handle), CheckHelper);
   let args = check(stack.pop(), CheckArguments);
+
+  // @premerge throws but isn't a deref
   let value = helper(args.capture(), vm.getOwner(), vm.dynamicScope());
 
   if (_hasDestroyableChildren(value)) {

@@ -52,7 +52,7 @@ export class VMArgumentsImpl implements VMArguments {
     return this;
   }
 
-  setup(
+   setup(
     stack: ArgumentsStack,
     names: readonly string[],
     blockNames: readonly string[],

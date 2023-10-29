@@ -1,25 +1,42 @@
 import type {
-  CompileTimeConstants,
+  BlockMetadata,
   Dict,
   Nullable,
-  Recast,
-  ResolutionTimeConstants,
   RuntimeOp,
   TemplateCompilationContext,
+  RuntimeConstants,
 } from '@glimmer/interfaces';
-import { LOCAL_DEBUG, LOCAL_TRACE_LOGGING } from '@glimmer/local-debug-flags';
+import { LOCAL_DEBUG, LOCAL_SUBTLE_LOGGING, LOCAL_TRACE_LOGGING } from '@glimmer/local-debug-flags';
 import {
   decodeHandle,
   decodeImmediate,
   enumerate,
   exhausted,
+  expect,
   LOCAL_LOGGER,
   unreachable,
 } from '@glimmer/util';
-import { $fp, $pc, $ra, $s0, $s1, $sp, $t0, $t1, $v0 } from '@glimmer/vm';
+import {
+  $fp,
+  $pc,
+  $ra,
+  $s0,
+  $s1,
+  $sp,
+  $t0,
+  $t1,
+  $v0,
+  CURRIED_COMPONENT,
+  CURRIED_HELPER,
+  CURRIED_MODIFIER,
+} from '@glimmer/vm';
 
 import { opcodeMetadata } from './opcode-metadata';
 import type { Primitive } from './stack-check';
+import type { OperandLabel } from './utils';
+import { OPERANDS } from './dism/operands';
+import { DebugOpState } from './render/state';
+import { DebugLogger, frag } from '..';
 
 export interface DebugConstants {
   getValue<T>(handle: number): T;
@@ -28,7 +45,10 @@ export interface DebugConstants {
 
 export function logOpcodeSlice(context: TemplateCompilationContext, start: number, end: number) {
   if (LOCAL_TRACE_LOGGING) {
+    const logger = new DebugLogger(LOCAL_LOGGER, { showSubtle: LOCAL_SUBTLE_LOGGING });
     LOCAL_LOGGER.group(`%c${start}:${end}`, 'color: #999');
+
+    const constants = context.program.constants;
 
     let heap = context.program.heap;
     let opcode = context.program.createOp(heap);
@@ -36,15 +56,9 @@ export function logOpcodeSlice(context: TemplateCompilationContext, start: numbe
     let _size = 0;
     for (let i = start; i < end; i = i + _size) {
       opcode.offset = i;
-      let [name, params] = debug(
-        context.program.constants as Recast<
-          CompileTimeConstants & ResolutionTimeConstants,
-          DebugConstants
-        >,
-        opcode
-      )!;
+      const op = new DebugOpState(constants, getOpSnapshot(opcode), context.meta);
 
-      LOCAL_LOGGER.debug(`${i}. ${debugOpcode(name, params)}`);
+      logger.log(frag`${i}. ${op.describe()}`);
 
       _size = opcode.size;
     }
@@ -53,7 +67,7 @@ export function logOpcodeSlice(context: TemplateCompilationContext, start: numbe
   }
 }
 
-export function debugOpcode(type: string, params: Dict<DebugOperand>): string | void {
+export function describeOpcode(type: string, params: Dict<SomeDisassembledOperand>): string | void {
   if (LOCAL_DEBUG) {
     let out = type;
 
@@ -70,7 +84,7 @@ export function debugOpcode(type: string, params: Dict<DebugOperand>): string | 
 function stringify(value: number, type: 'constant'): string;
 function stringify(value: RegisterName, type: 'register'): string;
 function stringify(value: number, type: 'variable' | 'pc'): string;
-function stringify(value: DebugOperand['value'], type: 'stringify' | 'unknown'): string;
+function stringify(value: DisassembledOperand['value'], type: 'stringify' | 'unknown'): string;
 function stringify(
   value: unknown,
   type: 'stringify' | 'constant' | 'register' | 'variable' | 'pc' | 'unknown'
@@ -131,7 +145,7 @@ function stringify(
   }
 }
 
-function json(param: DebugOperand): string | string[] | null {
+function json(param: SomeDisassembledOperand): string | string[] | null {
   switch (param.type) {
     case 'number':
     case 'boolean':
@@ -139,11 +153,7 @@ function json(param: DebugOperand): string | string[] | null {
     case 'primitive':
       return stringify(param.value, 'stringify');
     case 'array':
-      if ('kind' in param) {
-        return param.value;
-      } else {
-        return param.value?.map((value) => stringify(value, 'unknown')) ?? null;
-      }
+      return param.value?.map((value) => stringify(value, 'unknown')) ?? null;
     case 'dynamic':
       return stringify(param.value, 'unknown');
     case 'constant':
@@ -157,7 +167,7 @@ function json(param: DebugOperand): string | string[] | null {
     case 'error:opcode':
       return `{raw:${param.value}}`;
     case 'error:operand':
-      return `{err:${param.kind}=${param.value}}`;
+      return `{err:${param.options.label.name}=${param.value}}`;
     case 'enum<curry>':
       return `<curry:${param.value}>`;
 
@@ -178,141 +188,237 @@ export type RegisterName =
   | '$v0'
   | `$bug${number}`;
 
-export type DebugOperand =
-  | { type: 'error:operand'; kind: string; value: number }
-  | { type: 'error:opcode'; kind: number; value: number }
-  | { type: 'number'; value: number }
-  | { type: 'boolean'; value: boolean }
-  | { type: 'primitive'; value: Primitive }
-  | { type: 'register'; value: RegisterName }
-  | { type: 'instruction'; value: number }
-  | { type: 'enum<curry>'; value: 'component' | 'helper' | 'modifier' }
+export type AnyOperand = [type: string, value: any, options?: object];
+export type OperandType<O extends AnyOperand> = O[0];
+export type OperandValue<O extends AnyOperand> = O[1];
+export type OperandOptions<O extends AnyOperand> = O extends [
+  type: string,
+  value: any,
+  options: infer Options,
+]
+  ? Options
+  : void;
+export type OperandOptionsA<O extends AnyOperand> = O extends [
+  type: string,
+  value: any,
+  options: infer Options,
+]
+  ? Options
+  : {};
+
+type ExtractA<O> = O extends { a: infer A } ? A : never;
+type ExpandUnion<U> = U extends infer O ? ExtractA<{ a: O }> : never;
+
+export type NullableOperand<O extends AnyOperand> =
+  | [OperandType<O>, OperandValue<O>, Expand<OperandOptionsA<O> & { nullable?: false }>]
+  | [OperandType<O>, Nullable<OperandValue<O>>, Expand<OperandOptionsA<O> & { nullable: true }>];
+
+export type NullableName<T extends string> = T extends `${infer N}?` ? N : never;
+
+export type WithOptions<O extends AnyOperand, Options> = ExpandUnion<
+  [OperandType<O>, OperandValue<O>, Expand<OperandOptionsA<O> & Options>]
+>;
+
+// expands object types one level deep
+type Expand<T> = T extends infer O ? { [K in keyof O]: O[K] } : never;
+
+type DefineOperand<T extends string, V, Options = undefined> = undefined extends Options
+  ? readonly [type: T, value: V]
+  : readonly [type: T, value: V, options: Options];
+
+type DefineNullableOperand<T extends string, V, Options = undefined> = Options extends undefined
+  ?
+      | readonly [type: T, value: V]
+      | readonly [type: T, value: Nullable<V>, options: { nullable: true }]
+      | readonly [type: T, value: V, options: { nullable?: false }]
+  :
+      | readonly [type: T, value: Nullable<V>, options: Expand<Options & { nullable: true }>]
+      | readonly [type: T, value: V, options: Expand<Options & { nullable?: false }>]
+      | readonly [type: T, value: V, options: Options];
+
+/**
+ * A dynamic operand has a value that can't be easily represented as an embedded string.
+ */
+export type RawDynamicDisassembledOperand =
+  | DefineOperand<'dynamic', unknown>
+  | DefineOperand<'constant', number>
+  | DefineNullableOperand<'array', unknown[]>
+  | DefineOperand<'variable', number, { name?: string | null }>;
+
+export type RawStaticDisassembledOperand =
+  | DefineOperand<'error:operand', number, { label: OperandLabel }>
+  | DefineOperand<'error:opcode', number, { kind: number }>
+  | DefineOperand<'number', number>
+  | DefineOperand<'boolean', boolean>
+  | DefineOperand<'primitive', Primitive>
+  | DefineOperand<'register', RegisterName>
+  | DefineOperand<'instruction', number>
+  | DefineOperand<'enum<curry>', 'component' | 'helper' | 'modifier'>
+  | DefineOperand<'array', number[], { kind: typeof Number }>
+  | DefineNullableOperand<'array', string[], { kind: typeof String }>
   /**
    * A variable is a numeric offset into the stack (relative to the $fp register).
    */
-  | { type: 'variable'; value: number }
-  | { type: 'dynamic'; value: unknown }
-  | { type: 'constant'; value: number }
-  | { type: 'string'; value: string; nullable?: false }
-  | { type: 'string'; value: Nullable<string>; nullable: true }
-  | { type: 'array'; value: unknown[] }
-  | { type: 'array'; value: Nullable<unknown[]>; nullable: true }
-  | {
-      type: 'array';
-      value: Nullable<string[]>;
-      kind: typeof String;
-      nullable: true;
-    }
-  | {
-      type: 'array';
-      value: string[];
-      kind: typeof String;
-    };
+  | DefineNullableOperand<'string', string>;
 
-export function debug(c: DebugConstants, op: RuntimeOp): [string, Dict<DebugOperand>] {
+export type RawDisassembledOperand = RawStaticDisassembledOperand | RawDynamicDisassembledOperand;
+
+type ObjectForRaw<R> = R extends RawDisassembledOperand
+  ? R[2] extends undefined
+    ? {
+        type: R[0];
+        value: R[1];
+        options?: R[2];
+      }
+    : {
+        type: R[0];
+        value: R[1];
+        options: R[2];
+      }
+  : never;
+
+export class DisassembledOperand<R extends RawDisassembledOperand = RawDisassembledOperand> {
+  static of(raw: RawDisassembledOperand): SomeDisassembledOperand {
+    return new DisassembledOperand(raw) as any;
+  }
+
+  readonly #raw: R;
+
+  private constructor(raw: R) {
+    this.#raw = raw;
+  }
+
+  get type(): R[0] {
+    return this.#raw[0];
+  }
+
+  get value(): R[1] {
+    return this.#raw[1];
+  }
+
+  get options(): R[2] {
+    return this.#raw[2];
+  }
+}
+
+export type StaticDisassembledOperand = ObjectForRaw<RawStaticDisassembledOperand> & {
+  isDynamic: false;
+};
+export type DynamicDisassembledOperand = ObjectForRaw<RawDynamicDisassembledOperand> & {
+  isDynamic: true;
+};
+
+export type SomeDisassembledOperand = StaticDisassembledOperand | DynamicDisassembledOperand;
+
+export interface DebugOp {
+  name: string;
+  params: Dict<SomeDisassembledOperand>;
+  meta: BlockMetadata | null;
+}
+
+export type OpSnapshot = Pick<RuntimeOp, 'size' | 'type' | 'op1' | 'op2' | 'op3'>;
+
+export function getOpSnapshot(op: RuntimeOp): OpSnapshot {
+  return {
+    size: op.size,
+    type: op.type,
+    op1: op.op1,
+    op2: op.op2,
+    op3: op.op3,
+  };
+}
+
+class DebugOperandInfo {
+  readonly #operand: OperandLabel;
+  readonly #value: number;
+  readonly #constants: DebugConstants;
+  readonly #metadata: BlockMetadata | null;
+
+  constructor(
+    operand: OperandLabel,
+    value: number,
+    constants: DebugConstants,
+    metadata: BlockMetadata | null
+  ) {
+    this.#operand = operand;
+    this.#value = value;
+    this.#constants = constants;
+    this.#metadata = metadata;
+  }
+
+  toDebug(): RawDisassembledOperand {
+    const spec = expect(
+      OPERANDS[this.#operand.type],
+      `Unknown operand type: ${this.#operand.type}`
+    );
+
+    return spec({
+      label: this.#operand,
+      value: this.#value,
+      constants: this.#constants,
+      meta: this.#metadata,
+    });
+  }
+}
+
+export function debug(
+  constants: RuntimeConstants,
+  op: OpSnapshot,
+  meta: BlockMetadata | null
+): DebugOp {
   if (LOCAL_DEBUG) {
     let metadata = opcodeMetadata(op.type);
 
-    let out: Dict<DebugOperand> = Object.create(null);
+    let out: Dict<RawDisassembledOperand> = Object.create(null);
     if (!metadata) {
       for (let i = 0; i < op.size; i++) {
-        out[i] = { type: 'error:opcode', kind: op.type, value: i };
+        out[i] = ['error:opcode', i, { kind: op.type }];
       }
 
-      return [`{unknown ${op.type}}`, out];
+      return { name: `{unknown ${op.type}}`, params: fromRaw(out), meta };
     } else {
       for (const [index, operand] of enumerate(metadata.ops)) {
-        let actualOperand = opcodeOperand(op, index);
-
-        switch (operand.type) {
-          case 'imm/u32':
-          case 'imm/i32':
-          case 'imm/i32{todo}':
-          case 'imm/u32{todo}':
-            out[operand.name] = { type: 'number', value: actualOperand };
-            break;
-          case 'imm/bool':
-            out[operand.name] = { type: 'boolean', value: !!actualOperand };
-            break;
-          case 'handle':
-            out[operand.name] = { type: 'constant', value: c.getValue(actualOperand) };
-            break;
-          case 'imm/pc':
-            out[operand.name] = { type: 'instruction', value: actualOperand };
-            break;
-          case 'const/str':
-            out[operand.name] = { type: 'string', value: c.getValue<string>(actualOperand) };
-            break;
-          case 'const/str?':
-            out[operand.name] = {
-              type: 'string',
-              value: c.getValue(actualOperand),
-              nullable: true,
-            };
-            break;
-          case 'const/any[]':
-            out[operand.name] = {
-              type: 'array',
-              value: c.getArray<unknown[]>(actualOperand),
-            };
-            break;
-          case 'const/str[]':
-            out[operand.name] = {
-              type: 'array',
-              value: c.getArray<string[]>(actualOperand),
-              kind: String,
-            };
-            break;
-          case 'const/str[]?':
-            out[operand.name] = {
-              type: 'array',
-              value: c.getArray<Nullable<string[]>>(actualOperand),
-              kind: String,
-              nullable: true,
-            };
-            break;
-
-          case 'const/primitive':
-            out[operand.name] = { type: 'primitive', value: decodePrimitive(actualOperand, c) };
-            break;
-          case 'register':
-            out[operand.name] = { type: 'register', value: decodeRegister(actualOperand) };
-            break;
-          case 'const/any':
-            out[operand.name] = { type: 'dynamic', value: c.getValue(actualOperand) };
-            break;
-          case 'variable':
-            out[operand.name] = { type: 'variable', value: actualOperand };
-            break;
-          case 'register/instruction':
-            out[operand.name] = { type: 'instruction', value: actualOperand };
-            break;
-          case 'imm/enum<curry>':
-          default:
-            out[operand.name] = { type: 'error:operand', kind: operand.type, value: actualOperand };
-        }
+        const info = new DebugOperandInfo(operand, getOperand(op, index), constants, meta);
+        out[operand.name] = info.toDebug();
       }
-      return [metadata.name, out];
+      return { name: metadata.name, params: fromRaw(out), meta };
     }
   }
 
   unreachable(`BUG: Don't try to debug opcodes while trace is disabled`);
 }
 
-function opcodeOperand(opcode: RuntimeOp, index: number): number {
+function getOperand(op: OpSnapshot, index: 0 | 1 | 2): number {
   switch (index) {
     case 0:
-      return opcode.op1;
+      return op.op1;
     case 1:
-      return opcode.op2;
+      return op.op2;
     case 2:
-      return opcode.op3;
-    default:
-      throw new Error(`Unexpected operand index (must be 0-2)`);
+      return op.op3;
   }
 }
 
-function decodeRegister(register: number): RegisterName {
+function fromRaw(operands: Dict<RawDisassembledOperand>): Dict<SomeDisassembledOperand> {
+  return Object.fromEntries(
+    Object.entries(operands).map(([name, raw]) => [name, DisassembledOperand.of(raw)])
+  );
+}
+
+export function decodeCurry(curry: number): 'component' | 'helper' | 'modifier' {
+  switch (curry) {
+    case CURRIED_COMPONENT:
+      return 'component';
+    case CURRIED_HELPER:
+      return 'helper';
+    case CURRIED_MODIFIER:
+      return 'modifier';
+    default:
+      throw Error(`Unexpected curry value: ${curry}`);
+  }
+}
+
+export function decodeRegister(register: number): RegisterName {
   switch (register) {
     case $pc:
       return '$pc';
@@ -337,7 +443,7 @@ function decodeRegister(register: number): RegisterName {
   }
 }
 
-function decodePrimitive(primitive: number, constants: DebugConstants): Primitive {
+export function decodePrimitive(primitive: number, constants: DebugConstants): Primitive {
   if (primitive >= 0) {
     return constants.getValue(decodeHandle(primitive));
   }

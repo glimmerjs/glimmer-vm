@@ -93,8 +93,8 @@ export interface NamedBlocks {
   names: string[];
 }
 
-export interface ContainingMetadata {
-  evalSymbols: Nullable<string[]>;
+export interface BlockMetadata {
+  debugSymbols: Nullable<string[]>;
   upvars: Nullable<string[]>;
   scopeValues: unknown[] | null;
   isStrictMode: boolean;
@@ -108,7 +108,12 @@ export interface CompilerArtifacts {
   constants: ConstantPool;
 }
 
+export declare const IS_COMPILABLE_TEMPLATE_BRAND: unique symbol;
+export type IS_COMPILABLE_TEMPLATE_BRAND = typeof IS_COMPILABLE_TEMPLATE_BRAND;
+
 export interface CompilableTemplate<S extends SymbolTable = SymbolTable> {
+  readonly [IS_COMPILABLE_TEMPLATE_BRAND]: true;
   symbolTable: S;
+  meta: BlockMetadata;
   compile(context: CompileTimeCompilationContext): HandleResult;
 }

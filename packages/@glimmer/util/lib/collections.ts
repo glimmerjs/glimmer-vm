@@ -48,6 +48,12 @@ export class StackImpl<T> implements Stack<T> {
     return this.stack.length === 0;
   }
 
+  /**
+   * `toArray` does not snapshot. If you want to snapshot
+   * the stack, spread the return value of this function.
+   *
+   * @mutable
+   */
   toArray(): T[] {
     return this.stack;
   }

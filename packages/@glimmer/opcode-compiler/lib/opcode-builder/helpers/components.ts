@@ -147,7 +147,7 @@ function InvokeStaticComponent(
   let { symbolTable } = layout;
 
   let bailOut =
-    symbolTable.hasEval || hasCapability(capabilities, InternalComponentCapabilities.prepareArgs);
+    symbolTable.hasDebug || hasCapability(capabilities, InternalComponentCapabilities.prepareArgs);
 
   if (bailOut) {
     InvokeNonStaticComponent(op, {

@@ -1,6 +1,5 @@
 import type { Maybe, Nullable } from '../core';
 import type { ElementOperations, Environment, ModifierInstance } from '../runtime';
-import type { Stack } from '../stack';
 import type { Bounds, Cursor } from './bounds';
 import type { GlimmerTreeChanges, GlimmerTreeConstruction } from './changes';
 import type {
@@ -12,10 +11,18 @@ import type {
   SimpleText,
 } from './simple';
 
-export interface LiveBlockDebug {
-  parent?: SimpleElement;
-  range?: [SimpleNode, SimpleNode] | SimpleNode | 'empty';
-}
+export type LiveBlockDebug =
+  | {
+      type: 'empty';
+      kind: string;
+      parent: SimpleElement;
+    }
+  | {
+      type: 'range';
+      kind: string;
+      range: [SimpleNode, SimpleNode];
+      collapsed: boolean;
+    };
 
 export interface LiveBlock extends Bounds {
   debug?: () => LiveBlockDebug;
@@ -81,20 +88,19 @@ export interface TreeOperations {
   __setProperty(name: string, value: unknown): void;
 }
 
-declare const CURSOR_STACK: unique symbol;
-export type CursorStackSymbol = typeof CURSOR_STACK;
-
 export interface ElementBuilder extends Cursor, DOMStack, TreeOperations {
-  [CURSOR_STACK]: Stack<Cursor>;
+  readonly debug: {
+    readonly /** @mutable */ blocks: LiveBlock[];
+    readonly /** @mutable */ inserting: Cursor[];
+    readonly constructing: SimpleElement | null;
+  };
+  readonly nextSibling: Nullable<SimpleNode>;
+  readonly dom: GlimmerTreeConstruction;
+  readonly updateOperations: GlimmerTreeChanges;
+  readonly constructing: Nullable<SimpleElement>;
+  readonly element: SimpleElement;
 
-  nextSibling: Nullable<SimpleNode>;
-  dom: GlimmerTreeConstruction;
-  updateOperations: GlimmerTreeChanges;
-  constructing: Nullable<SimpleElement>;
-  element: SimpleElement;
-
-  hasBlocks: boolean;
-  debugBlocks(): LiveBlock[];
+  readonly hasBlocks: boolean;
 
   pushSimpleBlock(): LiveBlock;
   pushUpdatableBlock(): UpdatableBlock;

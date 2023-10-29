@@ -24,6 +24,7 @@ export {
 } from './lib/simple-cast';
 export * from './lib/string';
 export * from './lib/template';
+export * from './lib/constants';
 export { default as buildUntouchableThis } from './lib/untouchable-this';
 
 export type FIXME<T, S extends string> = (T & S) | T;

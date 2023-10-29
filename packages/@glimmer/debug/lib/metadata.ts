@@ -1,14 +1,19 @@
-import type { DebugVmState, Dict, PresentArray } from '@glimmer/interfaces';
+import type { DebugVmSnapshot, Dict, PresentArray } from '@glimmer/interfaces';
 import type { OperandList, Op, ShorthandStackReturn } from './utils';
 import type { UNCHANGED } from './stack/params';
 
-export type StackCheck = DynamicStackFn | { type: 'unchecked'; reason: string };
+export type UncheckedStack = { type: 'unchecked'; reason: string };
+export type StackCheck = DynamicStackFn | UncheckedStack;
 
-export interface NormalizedMetadata {
+export function isUnchecked(check: StackCheck): check is UncheckedStack {
+  return typeof check !== 'function';
+}
+
+export interface OpcodeMetadata {
   name: string;
   mnemonic: string;
   before: null;
-  stackCheck: StackCheck;
+  stack: DynamicStackFn;
   ops: OperandList;
   operands: number;
 }
@@ -28,8 +33,8 @@ export type OperandName = `${string}:${string}`;
 export type RawOperandFormat = OperandName | PresentArray<OperandName>;
 
 export interface NormalizedOpcodes {
-  readonly machine: Dict<NormalizedMetadata>;
-  readonly syscall: Dict<NormalizedMetadata>;
+  readonly machine: Dict<OpcodeMetadata>;
+  readonly syscall: Dict<OpcodeMetadata>;
 }
 
 export function strip(strings: TemplateStringsArray, ...args: unknown[]) {
@@ -64,7 +69,7 @@ export function strip(strings: TemplateStringsArray, ...args: unknown[]) {
 export const META_KIND = ['METADATA', 'MACHINE_METADATA'];
 export type META_KIND = (typeof META_KIND)[number];
 
-export function buildSingleMeta<D extends Dict<NormalizedMetadata>>(
+export function buildSingleMeta<D extends Dict<OpcodeMetadata>>(
   kind: META_KIND,
   all: D,
   key: keyof D
@@ -96,7 +101,7 @@ function stringify(o: unknown, pad: number): string {
   return out.join('\n');
 }
 
-export function buildMetas(kind: META_KIND, all: Dict<NormalizedMetadata>): string {
+export function buildMetas(kind: META_KIND, all: Dict<OpcodeMetadata>): string {
   let out = [];
 
   for (let key of Object.keys(all)) {
@@ -121,6 +126,11 @@ export function buildMetas(kind: META_KIND, all: Dict<NormalizedMetadata>): stri
  */
 export type DynamicStackFnSpec = (
   op: Op,
-  state: DebugVmState
+  state: DebugVmSnapshot
 ) => [typeof UNCHANGED, ...ShorthandStackReturn[]] | ShorthandStackReturn[] | number;
-export type DynamicStackFn = (op: Op, state: DebugVmState) => number;
+export type DynamicStackFn = (op: Op, state: DebugVmSnapshot) => StackSpec;
+
+export type StackSpec =
+  | { type: 'delta'; delta: number }
+  | { type: 'operations'; pop: number; push: number; peek: number; delta: number }
+  | { type: 'unchecked'; reason: string; delta?: undefined };

@@ -1,5 +1,6 @@
 import type {
   Bounds,
+  Cursor,
   ElementBuilder,
   Environment,
   Maybe,
@@ -9,7 +10,8 @@ import type {
   SimpleNode,
   SimpleText,
 } from '@glimmer/interfaces';
-import { ConcreteBounds, NewElementBuilder, type RemoteLiveBlock } from '@glimmer/runtime';
+import { ConcreteBounds, CursorImpl, type RemoteLiveBlock } from '@glimmer/runtime';
+import { AbstractElementBuilder } from '@glimmer/runtime/lib/vm/element-builder';
 
 const TEXT_NODE = 3;
 
@@ -27,8 +29,12 @@ function currentNode(
   }
 }
 
-class SerializeBuilder extends NewElementBuilder implements ElementBuilder {
+class SerializeBuilder extends AbstractElementBuilder<Cursor> implements ElementBuilder {
   private serializeBlockDepth = 0;
+
+  createCursor(element: SimpleElement, nextSibling: Maybe<SimpleNode> = null): Cursor {
+    return new CursorImpl(element, nextSibling);
+  }
 
   override __openBlock(): void {
     let { tagName } = this.element;
@@ -88,6 +94,7 @@ class SerializeBuilder extends NewElementBuilder implements ElementBuilder {
       return super.__appendText(string);
     } else if (string === '') {
       return this.__appendComment('% %') as any as SimpleText;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
     } else if (current && current.nodeType === TEXT_NODE) {
       this.__appendComment('%|%');
     }

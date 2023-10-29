@@ -794,7 +794,7 @@ APPEND_OPCODES.add(Op.SetupForEval, (vm, { op1: register }) => {
     CheckFinishedComponentInstance
   );
 
-  if (state.table.hasEval) {
+  if (state.table.hasDebug) {
     let lookup = (state.lookup = dict<ScopeSlot>());
     vm.scope().bindEvalScope(lookup);
   }
@@ -845,7 +845,6 @@ APPEND_OPCODES.add(Op.SetBlocks, (vm, { op1: register }) => {
     bindBlock(unwrap(blocks.symbolNames[i]), unwrap(blocks.names[i]), state, blocks, vm);
   }
 });
-
 // Dynamic Invocation Only
 APPEND_OPCODES.add(Op.InvokeComponentLayout, (vm, { op1: register }) => {
   let state = check(

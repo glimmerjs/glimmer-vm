@@ -8,7 +8,7 @@ import type {
   ReferenceSymbol,
   ReferenceType,
   UnboundReference,
-} from "@glimmer/interfaces";
+} from '@glimmer/interfaces';
 import { expect, isDict } from '@glimmer/util';
 import {
   CONSTANT_TAG,
@@ -50,6 +50,9 @@ class ReferenceImpl<T = unknown> implements Reference<T> {
   public update: Nullable<(val: T) => void> = null;
 
   public debugLabel?: string;
+  public debug?: {
+    isPrimitive: boolean;
+  };
 
   constructor(type: ReferenceType) {
     this[REFERENCE] = type;
@@ -63,7 +66,8 @@ export function createPrimitiveRef(value: unknown): Reference {
   ref.lastValue = value;
 
   if (import.meta.env.DEV) {
-    ref.debugLabel = String(value);
+    ref.debugLabel = `{primitive:${value}}`;
+    ref.debug = { isPrimitive: true };
   }
 
   return ref;
@@ -165,9 +169,12 @@ export function valueForRef<T>(_ref: Reference<T>): T {
   if (tag === null || !validateTag(tag, lastRevision)) {
     const { compute } = ref;
 
-    const newTag = track(() => {
-      lastValue = ref.lastValue = compute!();
-    }, import.meta.env.DEV && ref.debugLabel);
+    const newTag = track(
+      () => {
+        lastValue = ref.lastValue = compute!();
+      },
+      import.meta.env.DEV && ref.debugLabel
+    );
 
     tag = ref.tag = newTag;
 

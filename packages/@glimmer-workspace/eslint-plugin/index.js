@@ -45,6 +45,8 @@ module.exports = {
         'no-fallthrough': 'off',
         'import/no-relative-packages': 'error',
         'import/default': 'off',
+        'import/no-unresolved': 'error',
+        'import/no-extraneous-dependencies': 'error',
         'qunit/require-expect': ['error', 'never-except-zero'],
         // we're using assert.step instead of this sort of thing
         'qunit/no-conditional-assertions': 'off',

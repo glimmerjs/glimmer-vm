@@ -1,30 +1,133 @@
-import type { Nullable, VmOp } from '@glimmer/interfaces';
+import type { VmOp } from '@glimmer/interfaces';
 
-import type { NormalizedMetadata } from './metadata';
+import type { OpcodeMetadata } from './metadata';
 import { MetadataBuilder, RESERVED } from './utils';
 import { UNCHANGED } from './stack/params';
-import { NULL_HANDLE } from '@glimmer/util';
+import { define } from './stack/define-metadata';
 
-export function opcodeMetadata(op: VmOp): Nullable<NormalizedMetadata> {
-  let value = METADATA[op];
-
-  return value || null;
+export function opcodeMetadata(op: VmOp): OpcodeMetadata {
+  return METADATA[op];
 }
+
+export const PushFrame = define('PushFrame', (d) =>
+  d.ops().pushes('register/ra', 'register/fp').reads('$fp', '$sp').changes('$fp')
+);
+
+export const PopFrame = define('PopFrame', (d) =>
+  d
+    .peeks('ra', 'register/ra', { from: '$fp' })
+    .peeks('fp', 'register/fp', { from: '$fp' })
+    .changesFrame()
+    .reads('$fp')
+    .changes('$ra', '$sp', '$fp')
+);
+
+export const Jump = define('Jump', (d) =>
+  d.ops(['to', 'instruction/relative']).unchanged().reads('$pc').changes('$pc')
+);
+
+export const ReturnTo = define('ReturnTo', (d) =>
+  d.ops(['to', 'instruction/relative']).unchanged().reads('$pc').changes('$ra')
+);
+
+export const PopTryFrame = define('PopTryFrame', (d) =>
+  d
+    .ops(['catchPc', 'instruction/relative'])
+    .pops('handler', 'ref/function?')
+    .reads('$pc', '$sp', '$fp')
+    .changes('$up')
+);
+
+export const PushTryFrame = define.throws('PushTryFrame', (d) =>
+  d
+    .ops(['catchPc', 'instruction/relative'])
+    .pops('handler', 'ref/function?')
+    .reads('$pc', '$sp', '$fp')
+    .changes('$up')
+);
+
+export const InvokeVirtual = define('InvokeVirtual', (d) =>
+  d.pops('block', 'handle/block').reads('$pc').changes('$ra', '$pc')
+);
+
+export const InvokeStatic = define('InvokeStatic', (d) =>
+  d.ops(['handle', 'handle/block']).unchanged().reads('$pc').changes('$ra', '$pc')
+);
+
+export const Return = define('Return', (d) => d.unchanged().reads('$ra').changes('$pc'));
+
+export const Helper = define.throws('Helper', (d) =>
+  d
+    .ops(['helper', 'const/function'])
+    .pops('args', 'args')
+    .peeks('args', 'stack/args')
+    .reads('owner', 'dynamic-scope/value')
+    .changes('destroyable', ['$v0', 'ref/any'])
+);
+
+export const GetVariable = define('GetVariable', (d) =>
+  d.ops(['symbol', 'variable']).pushes('ref/any').reads(['lexical-scope/value', 'variable'])
+);
+
+export const SetVariable = define('SetVariable', (d) =>
+  d.ops(['symbol', 'variable']).pops('expr', 'ref/any').changes(['lexical-scope/value', 'variable'])
+);
+
+export const SetBlock = define('SetBlock', (d) =>
+  d
+    .ops(['symbol', 'variable/block'])
+    .pops('handle', 'block/compilable')
+    .pops('scope', 'scope')
+    .pops('table', 'table/block')
+    .changes(['lexical-scope/block', 'variable/block'])
+);
+
+export const PushRootScope = define('RootScope', (d) =>
+  d.ops(['symbols', 'unsigned']).reads('owner').changes('scope')
+);
+
+export const GetProperty = define('GetProperty', (d) =>
+  d.ops(['key', 'const/string']).pops('expr', 'ref/any').pushes('ref/any')
+);
+
+export const GetBlock = define('GetBlock', (d) =>
+  d
+    .ops(['block', 'variable/block'])
+    .pushes('block/scope?')
+    .reads(['lexical-scope/block', 'block/scope?'])
+);
+
+export const SpreadBlock = define('SpreadBlock', (d) =>
+  // @todo this could be an undefined reference
+  d.pops('block', 'block/scope?').pushes('table/block?', 'block/scope?', 'block/compilable?')
+);
+
+export const HasBlock = define('HasBlock', (d) =>
+  d.pops('block', 'block/scope?').pushes('ref/boolean')
+);
+
+export const HasBlockParams = define('HasBlockParams', (d) =>
+  d
+    .pops('block', 'block/compilable?')
+    .pops('scope', 'block/scope?')
+    .pops('table', 'table/block?')
+    .pushes('ref/boolean')
+);
 
 // @active
 const METADATA = MetadataBuilder.build(({ add, stack }) =>
-  add(`PushFrame as pushf`, stack.delta(2))
+  add(`PushFrame as pushf`, stack.params([]).returns(['register/instruction', 'register/stack']))
     .add(
       `PopFrame as popf`,
       stack.dynamic({ reason: 'frames pop an arbitrary number of stack elements' })
     )
-    .add(`InvokeVirtual as vcall`, stack.delta(-1))
-    .add(`InvokeStatic as scall`, ['offset:imm/u32'])
     .add(`Jump as goto`, ['to:imm/u32'])
-    .add(`Return as ret`)
     .add(`ReturnTo as setra`, ['offset:imm/pc'])
     .add(`PopTryFrame as finally`)
     .add(`UnwindTypeFrame as unwind`)
+    .add(RESERVED)
+    .add(RESERVED)
+    .add(RESERVED)
     .add(RESERVED)
     .add(RESERVED)
     .add(RESERVED)
@@ -38,14 +141,21 @@ const METADATA = MetadataBuilder.build(({ add, stack }) =>
       ['catch:imm/pc'],
       stack.params(['handler:reference/any']).returns([])
     )
+    .add(`InvokeVirtual as vcall`, stack.delta(-1))
+    .add(`InvokeStatic as scall`, ['offset:imm/u32'])
+    .add(`Return as ret`)
     .add(`Helper as ncall`, [`helper:handle`], stack.params(['args:args']).returns([]))
     .add(`SetNamedVariables as vsargs`, [`register:register`])
     .add(`SetBlocks as vbblocks`, [`register:register`])
     .add(`SetVariable as sbvar`, [`symbol:variable`], stack.delta(-1))
     .add(`SetBlock as sbblock`, [`symbol:variable`], stack.delta(-3))
-    .add(`GetVariable as symload`, [`symbol:variable`], stack.delta(+1))
+    .add(`GetVariable as symload`, [`symbol:variable`], stack.params([]).returns(['reference/any']))
 
-    .add(`GetProperty as replace<-prop`, [`property:const/str`])
+    .add(
+      `GetProperty as replace<-prop`,
+      [`property:const/str`],
+      stack.params(['obj:reference/any']).returns(['reference/any'])
+    )
     .add(`GetBlock as push<-scope`, [`block:variable`], stack.delta(+1))
     .add(`SpreadBlock as push2<-block`, stack.delta(+2))
     .add(`HasBlock as store<-hasblock`)
@@ -56,7 +166,13 @@ const METADATA = MetadataBuilder.build(({ add, stack }) =>
     .add(
       `Concat as concat`,
       ['count:imm/u32'],
-      stack.dynamic(({ op1 }) => -op1 + 1)
+      stack.dynamic(({ op1 }) => ({
+        type: 'operations',
+        peek: 0,
+        pop: op1,
+        push: 1,
+        delta: -op1 + 1,
+      }))
     )
     .add(`Constant as rconstload`, ['constant:const/any'], stack.delta(+1))
     .add(`ConstantReference as rconstrefload`, ['constant:const/any'], stack.delta(+1))
@@ -67,7 +183,7 @@ const METADATA = MetadataBuilder.build(({ add, stack }) =>
     .add(
       `Pop as pop`,
       ['count:imm/u32'],
-      stack.dynamic(({ op1 }) => -op1)
+      stack.dynamic(({ op1 }) => ({ type: 'operations', pop: op1, push: 0, peek: 0, delta: -op1 }))
     )
     .add(`Load as stack->store`, ['register:register'], stack.delta(-1))
     .add(`Fetch as load->stack`, ['register:register'], stack.delta(+1))
@@ -109,8 +225,8 @@ const METADATA = MetadataBuilder.build(({ add, stack }) =>
       `BindDynamicScope as setdynscope`,
       ['names:const/str[]'],
       stack.dynamic(({ op1 }, state) => {
-        const names = state.constants.getArray<string[]>(op1);
-        return -names.length;
+        const names = state.constant.constants.getArray<string[]>(op1);
+        return { type: 'operations', pop: names.length, push: 0, peek: 0, delta: -names.length };
       })
     )
     .add(`PushDynamicScope as dynscopepush`)
@@ -124,10 +240,9 @@ const METADATA = MetadataBuilder.build(({ add, stack }) =>
     .add(
       `InvokeYield as invoke`,
       stack
-        .params(['args:args', 'table:block/table', 'scope:scope', 'block:block/handle?'])
-        .dynamic((ops) => {
-          return ops.op3 === NULL_HANDLE ? ['block/table', 'scope'] : ['block/table', 'scope'];
-        })
+        .params(['table:block/table', 'scope:scope', 'block:block/handle?', 'args:args'])
+        // ra, fp
+        .returns(['register/stack', 'register/stack'])
     )
     .add(
       `JumpIf as pop->cgoto`,
@@ -141,8 +256,8 @@ const METADATA = MetadataBuilder.build(({ add, stack }) =>
     )
     .add(
       `JumpEq as gotoeq`,
-      ['target:register/instruction', 'comparison:imm/i32'],
-      stack.params(['other:i32']).returns(UNCHANGED)
+      ['target:register/instruction', 'comparison:instruction/relative'],
+      stack.peeks(['other:i32'])
     )
     .add(`AssertSame as assert_eq`, stack.params(['reference:reference/any']).returns(UNCHANGED))
     .add(`Enter as enter1`)
@@ -172,7 +287,7 @@ const METADATA = MetadataBuilder.build(({ add, stack }) =>
       stack.params(['invocation:block/invocation', 'component:component/definition']).returns([])
       // @todo characterize loading into $s0
     )
-    .add(`ContentType as push<-ctype`, stack.params(['value:reference/any']).pushes(['enum/ctype']))
+    .add(`ContentType as push<-ctype`, stack.peeks(['value:reference/any']).pushes(['enum/ctype']))
     .add(
       `Curry as v0<-curryref[pop2]`,
       ['type:imm/enum<curry>', 'strict?:const/bool'],

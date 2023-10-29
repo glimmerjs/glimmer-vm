@@ -1,7 +1,7 @@
 import type {
   BuilderOp,
   CompileTimeCompilationContext,
-  ContainingMetadata,
+  BlockMetadata,
   HighLevelOp,
 } from '@glimmer/interfaces';
 import { $s0, Op } from '@glimmer/vm';
@@ -119,8 +119,8 @@ export function compileStd(context: CompileTimeCompilationContext): StdLib {
   );
 }
 
-export const STDLIB_META: ContainingMetadata = {
-  evalSymbols: null,
+export const STDLIB_META: BlockMetadata = {
+  debugSymbols: null,
   upvars: null,
   moduleName: 'stdlib',
 

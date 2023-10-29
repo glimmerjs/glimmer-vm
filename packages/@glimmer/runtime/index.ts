@@ -50,6 +50,7 @@ export {
   reifyNamed,
   reifyPositional,
 } from './lib/vm/arguments';
+export * from './lib/vm/unwind';
 export {
   DynamicAttribute,
   dynamicAttribute,

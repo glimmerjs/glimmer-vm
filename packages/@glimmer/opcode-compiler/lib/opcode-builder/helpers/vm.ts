@@ -1,4 +1,4 @@
-import type { CurriedType, NonSmallIntOperand, Nullable, WireFormat } from "@glimmer/interfaces";
+import type { CurriedType, NonSmallIntOperand, Nullable, WireFormat } from '@glimmer/interfaces';
 import { encodeImmediate, isSmallInt } from '@glimmer/util';
 import { $fp, $v0, Op } from '@glimmer/vm';
 

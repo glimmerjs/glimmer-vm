@@ -4,6 +4,7 @@
   "repository": "https://github.com/glimmerjs/glimmer-vm/tree/master/packages/@glimmer/debug",
   "main": "index.ts",
   "types": "index.ts",
+  "type": "module",
   "exports": {
     "types": "./index.ts",
     "development": "./index.ts"

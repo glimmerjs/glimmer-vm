@@ -103,13 +103,13 @@ export namespace Expressions {
   export type GetStrictFree = [GetStrictKeywordOpcode, number];
   export type GetFreeAsComponentOrHelperHeadOrThisFallback = [
     GetFreeAsComponentOrHelperHeadOrThisFallbackOpcode,
-    number
+    number,
   ];
   export type GetFreeAsComponentOrHelperHead = [GetFreeAsComponentOrHelperHeadOpcode, number];
   export type GetFreeAsHelperHeadOrThisFallback = [GetFreeAsHelperHeadOrThisFallbackOpcode, number];
   export type GetFreeAsDeprecatedHelperHeadOrThisFallback = [
     GetFreeAsDeprecatedHelperHeadOrThisFallbackOpcode,
-    number
+    number,
   ];
   export type GetFreeAsHelperHead = [GetFreeAsHelperHeadOpcode, number];
   export type GetFreeAsModifierHead = [GetFreeAsModifierHeadOpcode, number];
@@ -132,22 +132,22 @@ export namespace Expressions {
   export type GetPathFreeAsComponentOrHelperHeadOrThisFallback = [
     GetFreeAsComponentOrHelperHeadOrThisFallbackOpcode,
     number,
-    Path
+    Path,
   ];
   export type GetPathFreeAsComponentOrHelperHead = [
     GetFreeAsComponentOrHelperHeadOpcode,
     number,
-    Path
+    Path,
   ];
   export type GetPathFreeAsHelperHeadOrThisFallback = [
     GetFreeAsHelperHeadOrThisFallbackOpcode,
     number,
-    Path
+    Path,
   ];
   export type GetPathFreeAsDeprecatedHelperHeadOrThisFallback = [
     GetFreeAsDeprecatedHelperHeadOrThisFallbackOpcode,
     number,
-    Path
+    Path,
   ];
   export type GetPathFreeAsHelperHead = [GetFreeAsHelperHeadOpcode, number, Path];
   export type GetPathFreeAsModifierHead = [GetFreeAsModifierHeadOpcode, number, Path];
@@ -200,7 +200,7 @@ export namespace Expressions {
     op: IfInlineOpcode,
     condition: Expression,
     truthyValue: Expression,
-    falsyValue?: Nullable<Expression>
+    falsyValue?: Nullable<Expression>,
   ];
 
   export type Not = [op: NotOpcode, value: Expression];
@@ -256,7 +256,7 @@ export namespace Statements {
     tag: Expression,
     parameters: Core.ElementParameters,
     args: Hash,
-    blocks: Blocks
+    blocks: Blocks,
   ];
   export type OpenElement = [OpenElementOpcode, string | WellKnownTagName];
   export type OpenElementWithSplat = [OpenElementWithSplatOpcode, string | WellKnownTagName];
@@ -267,7 +267,7 @@ export namespace Statements {
     op: Op,
     name: string | WellKnownAttrName,
     value: Expression,
-    namespace?: string | undefined
+    namespace?: string | undefined,
   ];
 
   export type StaticAttr = Attr<StaticAttrOpcode>;
@@ -297,21 +297,21 @@ export namespace Statements {
     block: SerializedInlineBlock,
     guid: string,
     destination: Expression,
-    insertBefore?: Expression
+    insertBefore?: Expression,
   ];
 
   export type If = [
     op: IfOpcode,
     condition: Expression,
     block: SerializedInlineBlock,
-    inverse: Nullable<SerializedInlineBlock>
+    inverse: Nullable<SerializedInlineBlock>,
   ];
 
   export type HandleError = [
     op: HandleErrorOpcode,
     handler: Expression,
     block: SerializedInlineBlock,
-    inverse: Nullable<SerializedInlineBlock>
+    inverse: Nullable<SerializedInlineBlock>,
   ];
 
   export type Each = [
@@ -319,14 +319,14 @@ export namespace Statements {
     condition: Expression,
     key: Nullable<Expression>,
     block: SerializedInlineBlock,
-    inverse: Nullable<SerializedInlineBlock>
+    inverse: Nullable<SerializedInlineBlock>,
   ];
 
   export type With = [
     op: WithOpcode,
     value: Expression,
     block: SerializedInlineBlock,
-    inverse: Nullable<SerializedInlineBlock>
+    inverse: Nullable<SerializedInlineBlock>,
   ];
 
   export type Let = [op: LetOpcode, positional: Core.Params, block: SerializedInlineBlock];
@@ -334,7 +334,7 @@ export namespace Statements {
   export type WithDynamicVars = [
     op: WithDynamicVarsOpcode,
     args: Core.Hash,
-    block: SerializedInlineBlock
+    block: SerializedInlineBlock,
   ];
 
   export type InvokeComponent = [
@@ -342,7 +342,7 @@ export namespace Statements {
     definition: Expression,
     positional: Core.Params,
     named: Core.Hash,
-    blocks: Blocks | null
+    blocks: Blocks | null,
   ];
 
   /**
@@ -411,7 +411,11 @@ export type SyntaxWithInternal =
  */
 export type SerializedBlock = [statements: Statements.Statement[]];
 
-export type SerializedInlineBlock = [statements: Statements.Statement[], parameters: number[]];
+export type SerializedInlineBlock = [
+  statements: Statements.Statement[],
+  parameters: number[],
+  names?: string[],
+];
 
 /**
  * A JSON object that the compiled TemplateBlock was serialized into.
@@ -424,7 +428,7 @@ export type SerializedTemplateBlock = [
   // hasDebug
   boolean,
   // upvars
-  string[]
+  string[],
 ];
 
 /**
