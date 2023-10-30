@@ -15,8 +15,8 @@ import createHTMLDocument from '@simple-dom/document';
 import { BaseEnv } from '../../base-env';
 import { replaceHTML, toInnerHTML } from '../../dom/simple-utils';
 import type RenderDelegate from '../../render-delegate';
-import type { BuildDom, RenderDelegateOptions } from '../../render-delegate';
-import { BuildDomWithDocument, JitDelegateContext, type JitContext } from '../jit/delegate';
+import type { RenderDelegateOptions } from '../../render-delegate';
+import { JitDelegateContext, type JitContext } from '../jit/delegate';
 import { TestJitRegistry } from '../jit/registry';
 import { renderTemplate } from '../jit/render';
 import { TestJitRuntimeResolver } from '../jit/resolver';
@@ -43,8 +43,8 @@ export class RehydrationDelegate implements RenderDelegate {
   public clientDoc: SimpleDocument;
   public serverDoc: SimpleDocument;
 
-  readonly dom: BuildDom;
   readonly context: JitContext;
+  readonly dom: RenderDelegate['dom'];
 
   public declare rehydrationStats: RehydrationStats;
 
@@ -58,7 +58,10 @@ export class RehydrationDelegate implements RenderDelegate {
     this.clientResolver = new TestJitRuntimeResolver(this.clientRegistry);
     this.clientEnv = JitDelegateContext(this.clientDoc, this.clientResolver, envDelegate);
 
-    this.dom = BuildDomWithDocument.intoDiv(clientDoc);
+    this.dom = {
+      document: this.clientDoc,
+      getInitialElement: () => this.clientDoc.createElement('div'),
+    };
     this.context = JitDelegateContext(clientDoc, this.clientResolver, envDelegate);
 
     this.serverDoc = createHTMLDocument();

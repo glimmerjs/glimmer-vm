@@ -302,7 +302,9 @@ export class GlimmerishComponents extends RenderTest {
   })
   'invoking dynamic component (local) via angle brackets supports attributes'() {
     this.register.component('Glimmer', 'Foo', '<div ...attributes>hello world!</div>');
-    this.render.template(`{{#with (component 'Foo') as |Other|}}<Other data-test="foo" />{{/with}}`);
+    this.render.template(
+      `{{#with (component 'Foo') as |Other|}}<Other data-test="foo" />{{/with}}`
+    );
 
     this.assertHTML(`<div data-test="foo">hello world!</div>`);
     this.assertStableRerender();
@@ -720,7 +722,7 @@ export class GlimmerishComponents extends RenderTest {
     this.register.component('Glimmer', 'Foo', '<Bar data-bar={{@childName}} @data={{@data}} />');
     this.register.component('Glimmer', 'Bar', '<div ...attributes>Hello World</div>');
 
-    let el = this.delegate.dom.getInitialElement();
+    let el = this.getInitialElement();
 
     this.render.template(
       strip`

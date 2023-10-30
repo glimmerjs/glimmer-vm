@@ -36,8 +36,9 @@ import {
   registerModifier,
 } from './modes/jit/register';
 import { RecordedEvents } from './test-helpers/recorded';
-import type { BuildDom } from './render-delegate';
 import { createConstRef } from '@glimmer/reference';
+import type { DomDelegate } from './render-delegate';
+import { BuildDomDelegate } from './modes/jit/dom';
 
 type Expand<T> = T extends infer O ? { [K in keyof O]: O[K] } : never;
 type Present<T> = Exclude<T, null | undefined>;
@@ -123,16 +124,14 @@ export class RenderTest implements IRenderTest {
   protected helpers = dict<UserHelper>();
   protected snapshot: NodesSnapshot = [];
   readonly count: Count;
+  readonly dom: DomDelegate;
 
   readonly plugins: ASTPluginBuilder[] = [];
 
   constructor(protected delegate: RenderDelegate) {
-    this.element = delegate.dom.getInitialElement();
+    this.element = delegate.dom.getInitialElement(delegate.dom.document);
     this.count = new Count(this.events);
-  }
-
-  get dom(): BuildDom {
-    return this.delegate.dom;
+    this.dom = new BuildDomDelegate(delegate.dom);
   }
 
   getInitialElement(): SimpleElement {
@@ -495,8 +494,6 @@ export class RenderTest implements IRenderTest {
       this.plugins
     );
   }
-
-
 
   rerender(properties: Dict<unknown> = {}): void {
     try {

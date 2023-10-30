@@ -1,4 +1,10 @@
-import type { Maybe, SimpleDocument, SimpleElement, SimpleNode } from '@glimmer/interfaces';
+import type {
+  Maybe,
+  Nullable,
+  SimpleDocument,
+  SimpleElement,
+  SimpleNode,
+} from '@glimmer/interfaces';
 
 import { DOCUMENT_NODE, ELEMENT_NODE } from './dom-utils';
 import { unreachable } from './platform-utils';
@@ -34,11 +40,16 @@ type NodeForSugaryCheck<S extends SugaryNodeCheck<BrowserTag>> = S extends NodeC
 type BrowserNode = Element | Document | DocumentFragment | Text | Comment | Node;
 
 export function castToSimple(doc: Document | SimpleDocument): SimpleDocument;
+export function castToSimple(doc: Nullable<Document | SimpleDocument>): Nullable<SimpleDocument>;
 export function castToSimple(elem: Element | SimpleElement): SimpleElement;
+export function castToSimple(elem: Nullable<Element | SimpleElement>): Nullable<SimpleElement>;
 export function castToSimple(node: Node | SimpleNode): SimpleNode;
+export function castToSimple(node: Nullable<Node | SimpleNode>): Nullable<SimpleNode>;
 export function castToSimple(
-  node: Document | Element | Node | SimpleDocument | SimpleElement | SimpleNode
+  node: Nullable<Document | Element | Node | SimpleDocument | SimpleElement | SimpleNode>
 ) {
+  if (node === null) return null;
+
   if (isDocument(node)) {
     return node as SimpleDocument;
   } else if (isSimpleElement(node)) {
@@ -74,7 +85,7 @@ export function castToBrowser<S extends SugaryNodeCheck>(
     return null;
   }
 
-  if (typeof document === undefined) {
+  if (typeof document === 'undefined') {
     throw new Error('Attempted to cast to a browser node in a non-browser context');
   }
 

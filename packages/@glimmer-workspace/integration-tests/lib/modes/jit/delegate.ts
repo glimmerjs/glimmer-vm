@@ -3,16 +3,13 @@ import type {
   CompileTimeCompilationContext,
   Cursor,
   ElementBuilder,
-  ElementNamespace,
   Environment,
   HandleResult,
   Nullable,
   RenderResult,
   RuntimeContext,
   SimpleDocument,
-  SimpleDocumentFragment,
   SimpleElement,
-  SimpleText,
 } from '@glimmer/interfaces';
 import { programCompilationContext } from '@glimmer/opcode-compiler';
 import { artifacts, RuntimeOpImpl } from '@glimmer/program';
@@ -35,7 +32,7 @@ import { assign, castToSimple, expect, unwrapTemplate } from '@glimmer/util';
 import { BaseEnv } from '../../base-env';
 import { preprocess } from '../../compile';
 import type RenderDelegate from '../../render-delegate';
-import type { BuildDom, RenderDelegateOptions } from '../../render-delegate';
+import type { RenderDelegateOptions } from '../../render-delegate';
 import JitCompileTimeLookup from './compilation-context';
 import { componentHelper } from './register';
 import { TestJitRegistry } from './registry';
@@ -62,53 +59,6 @@ export function JitDelegateContext(
   return { runtime, program: context };
 }
 
-export class BuildDomWithDocument implements BuildDom {
-  static intoDiv(doc: Document | SimpleDocument): BuildDom {
-    return new BuildDomWithDocument(doc, () => castToSimple(doc.createElement('div')));
-  }
-
-  static intoTestFixture(doc: Document): BuildDom {
-    return new BuildDomWithDocument(castToSimple(doc), () =>
-      castToSimple(doc.querySelector('#qunit-fixture')!)
-    );
-  }
-
-  readonly #document: SimpleDocument | Document;
-  readonly #getInitial: (doc: SimpleDocument | Document) => SimpleElement;
-
-  private constructor(
-    doc: SimpleDocument | Document,
-    getInitial: (doc: SimpleDocument | Document) => SimpleElement
-  ) {
-    this.#document = doc;
-    this.#getInitial = getInitial;
-  }
-
-  getInitialElement(): SimpleElement {
-    return this.#getInitial(this.#document);
-  }
-
-  get doc() {
-    return castToSimple(this.#document);
-  }
-
-  createElement(tagName: string): SimpleElement {
-    return this.doc.createElement(tagName);
-  }
-
-  createTextNode(content: string): SimpleText {
-    return this.doc.createTextNode(content);
-  }
-
-  createElementNS(namespace: ElementNamespace, tagName: string): SimpleElement {
-    return this.doc.createElementNS(namespace, tagName);
-  }
-
-  createDocumentFragment(): SimpleDocumentFragment {
-    return this.doc.createDocumentFragment();
-  }
-}
-
 export class JitRenderDelegate implements RenderDelegate {
   static readonly isEager = false;
   static style = 'jit';
@@ -121,7 +71,6 @@ export class JitRenderDelegate implements RenderDelegate {
 
   readonly registries: TestJitRegistry[];
   readonly context: JitContext;
-  readonly dom: BuildDom;
 
   constructor({
     doc: specifiedDoc,
@@ -133,9 +82,15 @@ export class JitRenderDelegate implements RenderDelegate {
     this.registry = new TestJitRegistry();
     this.resolver = resolver(this.registry);
     this.doc = castToSimple(doc);
-    this.dom = isBrowserTestDocument(doc)
-      ? BuildDomWithDocument.intoTestFixture(doc)
-      : BuildDomWithDocument.intoDiv(doc);
+    this.dom = {
+      document: this.doc,
+      getInitialElement: (doc) =>
+        isBrowserTestDocument(doc)
+          ? castToSimple(
+              expect(doc.querySelector('#qunit-fixture'), 'expected #qunit-fixture to exist')
+            )
+          : doc.createElement('div'),
+    } satisfies RenderDelegate['dom'];
     this.env = assign({}, env ?? BaseEnv);
     this.registry.register('modifier', 'on', on);
     this.registry.register('helper', 'fn', fn);
@@ -148,6 +103,10 @@ export class JitRenderDelegate implements RenderDelegate {
 
     this.context = JitDelegateContext(this.doc, this.resolver, this.env);
   }
+  dom: {
+    document: SimpleDocument | Document;
+    getInitialElement: (doc: SimpleDocument | Document) => SimpleElement;
+  };
 
   getCapturedRenderTree(): CapturedRenderNode[] {
     return expect(

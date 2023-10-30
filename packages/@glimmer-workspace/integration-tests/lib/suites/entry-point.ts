@@ -31,7 +31,7 @@ export class EntryPointTest extends RenderTest {
     let delegate = new JitRenderDelegate();
     let Title = defineComponent({}, `<h1>hello {{@title}}</h1>`);
 
-    let element = delegate.dom.getInitialElement();
+    let element = delegate.dom.getInitialElement(delegate.dom.document);
     let title = createPrimitiveRef('renderComponent');
     this.render.component(Title, { title }, { into: element });
     QUnit.assert.strictEqual(
@@ -39,7 +39,7 @@ export class EntryPointTest extends RenderTest {
       '<h1>hello renderComponent</h1>'
     );
 
-    element = delegate.dom.getInitialElement();
+    element = this.getInitialElement();
     let newTitle = createPrimitiveRef('new title');
     this.render.component(Title, { title: newTitle }, { into: element });
     QUnit.assert.strictEqual(castToBrowser(element, 'HTML').innerHTML, '<h1>hello new title</h1>');
@@ -58,7 +58,7 @@ export class EntryPointTest extends RenderTest {
     );
 
     const delegate = new JitRenderDelegate();
-    const element = delegate.dom.getInitialElement();
+    const element = delegate.dom.getInitialElement(delegate.dom.document);
     let body = createPrimitiveRef('text');
     this.render.component(Body, { body }, { into: element });
     QUnit.assert.strictEqual(castToBrowser(element, 'HTML').innerHTML, '<p>body text</p>');

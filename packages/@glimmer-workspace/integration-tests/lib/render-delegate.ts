@@ -24,7 +24,7 @@ export interface RenderDelegateOptions {
   resolver?: (registry: TestJitRegistry) => TestJitRuntimeResolver;
 }
 
-export interface BuildDom {
+export interface DomDelegate {
   getInitialElement(): SimpleElement;
 
   createElement(tagName: string): SimpleElement;
@@ -42,8 +42,10 @@ export default interface RenderDelegate {
   // The compilation and runtime contexts for the current testing environment.
   readonly context: JitContext;
 
-  // Helpers for building the DOM.
-  readonly dom: BuildDom;
+  readonly dom: {
+    document: SimpleDocument | Document;
+    getInitialElement: (doc: SimpleDocument | Document) => SimpleElement;
+  };
 
   // Render the template into the given element. Rehydration delegates will emulate
   // rendering on the server and having the contents already present in the DOM.
