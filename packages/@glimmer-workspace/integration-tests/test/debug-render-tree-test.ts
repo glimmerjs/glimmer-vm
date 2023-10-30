@@ -93,7 +93,7 @@ class DebugRenderTreeTest extends RenderTest {
         args: { positional: [], named: { arg: 'first' } },
         instance: null,
         template: '(unknown template module)',
-        bounds: this.nodeBounds(this.delegate.getInitialElement().firstChild),
+        bounds: this.nodeBounds(this.delegate.dom.getInitialElement().firstChild),
         children: [],
       },
     ]);
@@ -107,7 +107,7 @@ class DebugRenderTreeTest extends RenderTest {
         args: { positional: [], named: { arg: 'first' } },
         instance: null,
         template: '(unknown template module)',
-        bounds: this.nodeBounds(this.delegate.getInitialElement().firstChild),
+        bounds: this.nodeBounds(this.delegate.dom.getInitialElement().firstChild),
         children: [],
       },
       {
@@ -116,7 +116,7 @@ class DebugRenderTreeTest extends RenderTest {
         args: { positional: [], named: { arg: 'second' } },
         instance: null,
         template: '(unknown template module)',
-        bounds: this.nodeBounds(this.delegate.getInitialElement().lastChild),
+        bounds: this.nodeBounds(this.delegate.dom.getInitialElement().lastChild),
         children: [],
       },
     ]);
@@ -130,7 +130,7 @@ class DebugRenderTreeTest extends RenderTest {
         args: { positional: [], named: { arg: 'first' } },
         instance: null,
         template: '(unknown template module)',
-        bounds: this.nodeBounds(this.delegate.getInitialElement().firstChild),
+        bounds: this.nodeBounds(this.delegate.dom.getInitialElement().firstChild),
         children: [],
       },
     ]);
@@ -153,7 +153,7 @@ class DebugRenderTreeTest extends RenderTest {
         args: { positional: [], named: { arg: 'first' } },
         instance: (instance: EmberishCurlyComponent) => (instance as any).arg === 'first',
         template: '(unknown template module)',
-        bounds: this.nodeBounds(this.delegate.getInitialElement().firstChild),
+        bounds: this.nodeBounds(this.delegate.dom.getInitialElement().firstChild),
         children: [],
       },
     ]);
@@ -213,7 +213,7 @@ class DebugRenderTreeTest extends RenderTest {
         args: { positional: [], named: { arg: 'first' } },
         instance: (instance: GlimmerishComponent) => instance.args['arg'] === 'first',
         template: '(unknown template module)',
-        bounds: this.nodeBounds(this.delegate.getInitialElement().firstChild),
+        bounds: this.nodeBounds(this.delegate.dom.getInitialElement().firstChild),
         children: [],
       },
     ]);
@@ -310,7 +310,7 @@ class DebugRenderTreeTest extends RenderTest {
         args: { positional: [], named: { arg: 'first' } },
         instance: null,
         template: '(unknown template module)',
-        bounds: this.nodeBounds(this.delegate.getInitialElement().firstChild),
+        bounds: this.nodeBounds(this.delegate.dom.getInitialElement().firstChild),
         children: [],
       },
     ]);
@@ -390,7 +390,7 @@ class DebugRenderTreeTest extends RenderTest {
         args: { positional: [], named: { arg: 'first' } },
         instance: null,
         template: '(unknown template module)',
-        bounds: this.nodeBounds(this.delegate.getInitialElement().firstChild),
+        bounds: this.nodeBounds(this.delegate.dom.getInitialElement().firstChild),
         children: [],
       },
     ]);

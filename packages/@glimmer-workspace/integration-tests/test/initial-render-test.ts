@@ -46,21 +46,28 @@ class AbstractRehydrationTests extends InitialRenderSuite {
 
   renderServerSide(
     template: string | ComponentBlueprint,
-    context: Dict<unknown>,
+    self: Dict,
     element: SimpleElement | undefined = undefined
   ): void {
+    this.self.initialize(self);
     this.serverOutput = this.delegate.renderServerSide(
       template as string,
-      context,
+      this.self.ref,
       () => this.takeSnapshot(),
-      element
+      element,
+      this.plugins
     );
     replaceHTML(this.element, this.serverOutput);
   }
 
-  renderClientSide(template: string | ComponentBlueprint, context: Dict<unknown>): void {
-    this.context = context;
-    this.renderResult = this.delegate.renderClientSide(template as string, context, this.element);
+  renderClientSide(template: string | ComponentBlueprint, self: Dict): void {
+    this.self.initialize(self);
+    this.renderResult = this.delegate.renderClientSide(
+      template as string,
+      this.self.ref,
+      this.element,
+      this.plugins
+    );
   }
 
   assertRehydrationStats({ nodesRemoved: nodes }: { nodesRemoved: number }) {
@@ -403,7 +410,6 @@ class Rehydration extends AbstractRehydrationTests {
     this.assertServerOutput('<div>', OPEN, 'hello', CLOSE, '</div>');
     doc = this.delegate.clientDoc;
     let clientNode = doc.createTextNode('hello');
-    this.context = { node: clientNode };
     this.renderClientSide(template, { node: clientNode });
     this.assertHTML('<div>hello</div>', 'first clean rerender');
     // Just repairs the value of the text node

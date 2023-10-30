@@ -30,11 +30,14 @@ export class InElementSuite extends RenderTest {
       },
     }));
 
-    let externalElement = this.delegate.createElement('div');
-    this.render.template('{{#maybe-in-element this.externalElement}}[{{this.foo}}]{{/maybe-in-element}}', {
-      externalElement,
-      foo: 'Yippie!',
-    });
+    let externalElement = this.dom.createElement('div');
+    this.render.template(
+      '{{#maybe-in-element this.externalElement}}[{{this.foo}}]{{/maybe-in-element}}',
+      {
+        externalElement,
+        foo: 'Yippie!',
+      }
+    );
 
     equalsElement(externalElement, 'div', {}, '[Yippie!]');
     this.assertStableRerender();
@@ -50,7 +53,7 @@ export class InElementSuite extends RenderTest {
 
   @test
   'Renders curlies into external element'() {
-    let externalElement = this.delegate.createElement('div');
+    let externalElement = this.dom.createElement('div');
     this.render.template('{{#in-element this.externalElement}}[{{this.foo}}]{{/in-element}}', {
       externalElement,
       foo: 'Yippie!',
@@ -70,7 +73,7 @@ export class InElementSuite extends RenderTest {
 
   @test
   'clears existing content'() {
-    let externalElement = this.delegate.createElement('div');
+    let externalElement = this.dom.createElement('div');
     let initialContent = '<p>Hello there!</p>';
     replaceHTML(externalElement, initialContent);
 
@@ -93,8 +96,8 @@ export class InElementSuite extends RenderTest {
 
   @test
   'Changing to falsey'() {
-    let first = this.delegate.createElement('div');
-    let second = this.delegate.createElement('div');
+    let first = this.dom.createElement('div');
+    let second = this.dom.createElement('div');
 
     this.render.template(
       stripTight`
@@ -137,7 +140,7 @@ export class InElementSuite extends RenderTest {
 
   @test
   'With pre-existing content'() {
-    let externalElement = this.delegate.createElement('div');
+    let externalElement = this.dom.createElement('div');
     let initialContent = '<p>Hello there!</p>';
     replaceHTML(externalElement, initialContent);
 
@@ -171,7 +174,7 @@ export class InElementSuite extends RenderTest {
 
   @test
   'With insertBefore'() {
-    let externalElement = this.delegate.createElement('div');
+    let externalElement = this.dom.createElement('div');
     replaceHTML(externalElement, '<b>Hello</b><em>there!</em>');
 
     this.render.template(
@@ -206,13 +209,16 @@ export class InElementSuite extends RenderTest {
 
   @test
   'Updating remote element'() {
-    let first = this.delegate.createElement('div');
-    let second = this.delegate.createElement('div');
+    let first = this.dom.createElement('div');
+    let second = this.dom.createElement('div');
 
-    this.render.template(stripTight`{{#in-element this.externalElement}}[{{this.foo}}]{{/in-element}}`, {
-      externalElement: first,
-      foo: 'Yippie!',
-    });
+    this.render.template(
+      stripTight`{{#in-element this.externalElement}}[{{this.foo}}]{{/in-element}}`,
+      {
+        externalElement: first,
+        foo: 'Yippie!',
+      }
+    );
 
     equalsElement(first, 'div', {}, '[Yippie!]');
     equalsElement(second, 'div', {}, '');
@@ -258,8 +264,8 @@ export class InElementSuite extends RenderTest {
 
   @test
   "Inside an '{{if}}'"() {
-    let first = { element: this.delegate.createElement('div'), description: 'first' };
-    let second = { element: this.delegate.createElement('div'), description: 'second' };
+    let first = { element: this.dom.createElement('div'), description: 'first' };
+    let second = { element: this.dom.createElement('div'), description: 'second' };
 
     this.render.template(
       stripTight`
@@ -345,8 +351,8 @@ export class InElementSuite extends RenderTest {
 
   @test
   Multiple() {
-    let firstElement = this.delegate.createElement('div');
-    let secondElement = this.delegate.createElement('div');
+    let firstElement = this.dom.createElement('div');
+    let secondElement = this.dom.createElement('div');
 
     this.render.template(
       stripTight`
@@ -391,10 +397,10 @@ export class InElementSuite extends RenderTest {
 
   @test
   'Inside a loop'() {
-    let { delegate } = this;
+    let { dom } = this;
 
     class Item {
-      element = delegate.createElement('div');
+      element = dom.createElement('div');
 
       @tracked value: string;
 
@@ -406,7 +412,7 @@ export class InElementSuite extends RenderTest {
     this.testType = 'Dynamic';
     this.register.component('TemplateOnly', 'FooBar', '<p>{{@value}}</p>');
 
-    this.register.helper('log', () => {} );
+    this.register.helper('log', () => {});
 
     let roots = [new Item('foo'), new Item('bar'), new Item('baz')];
 
@@ -463,8 +469,8 @@ export class InElementSuite extends RenderTest {
 
   @test
   Nesting() {
-    let firstElement = this.delegate.createElement('div');
-    let secondElement = this.delegate.createElement('div');
+    let firstElement = this.dom.createElement('div');
+    let secondElement = this.dom.createElement('div');
 
     this.render.template(
       stripTight`
@@ -525,7 +531,7 @@ export class InElementSuite extends RenderTest {
     }
 
     this.register.component('Glimmer', 'DestroyMe', 'destroy me!', DestroyMeComponent as any);
-    let externalElement = this.delegate.createElement('div');
+    let externalElement = this.dom.createElement('div');
 
     this.render.template(
       stripTight`

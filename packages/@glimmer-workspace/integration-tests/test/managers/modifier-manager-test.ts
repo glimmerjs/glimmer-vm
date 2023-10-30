@@ -168,7 +168,7 @@ abstract class ModifierManagerTest extends RenderTest {
     const Main = defineComponent({ foo }, '<h1 {{foo @truthy}}>hello world</h1>');
     let args = trackedObj({ truthy: true });
 
-    this.renderComponent(Main, args);
+    this.render.component(Main, args);
 
     events.expect(['install', 'didInsertElement']);
     this.assertHTML(`<h1>hello world</h1>`);

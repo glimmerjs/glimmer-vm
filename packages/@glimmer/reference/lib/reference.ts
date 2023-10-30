@@ -78,7 +78,7 @@ export const NULL_REFERENCE = createPrimitiveRef(null);
 export const TRUE_REFERENCE = createPrimitiveRef(true);
 export const FALSE_REFERENCE = createPrimitiveRef(false);
 
-export function createConstRef(value: unknown, debugLabel: false | string): Reference {
+export function createConstRef<T>(value: T, debugLabel: false | string): Reference<T> {
   const ref = new ReferenceImpl(CONSTANT);
 
   ref.lastValue = value;
@@ -88,7 +88,7 @@ export function createConstRef(value: unknown, debugLabel: false | string): Refe
     ref.debugLabel = debugLabel as string;
   }
 
-  return ref;
+  return ref as Reference<T>;
 }
 
 export function createUnboundRef(value: unknown, debugLabel: false | string): Reference {

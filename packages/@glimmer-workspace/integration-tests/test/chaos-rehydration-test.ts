@@ -1,4 +1,4 @@
-import type { Dict, Nullable, SimpleElement } from '@glimmer/interfaces';
+import type { Dict, Nullable, Reference, SimpleElement } from '@glimmer/interfaces';
 import {
   castToBrowser,
   castToSimple,
@@ -25,6 +25,7 @@ import {
   suite,
   test,
 } from '..';
+import { createConstRef, valueForRef } from '@glimmer/reference';
 
 // `window.ActiveXObject` is "falsey" in IE11 (but not `undefined` or `false`)
 // `"ActiveXObject" in window` returns `true` in all IE versions
@@ -32,7 +33,7 @@ import {
 const isIE11 = !(window as any).ActiveXObject && 'ActiveXObject' in window;
 
 abstract class AbstractChaosMonkeyTest extends RenderTest {
-  abstract renderClientSide(template: string | ComponentBlueprint, context: Dict<unknown>): void;
+  abstract renderClientSide(template: string | ComponentBlueprint, self: Reference): void;
 
   getRandomForIteration(iteration: number) {
     const { seed } = QUnit.config;
@@ -124,7 +125,7 @@ abstract class AbstractChaosMonkeyTest extends RenderTest {
     );
   }
 
-  runIterations(template: string, context: Dict<unknown>, expectedHTML: string, count: number) {
+  runIterations(template: string, self: Reference<Dict>, expectedHTML: string, count: number) {
     const element = castToBrowser(this.element, 'HTML');
     const elementResetValue = element.innerHTML;
 
@@ -134,7 +135,7 @@ abstract class AbstractChaosMonkeyTest extends RenderTest {
       const iteration = parseInt(urlParams['iteration'], 10);
       this.wreakHavoc(iteration, true);
 
-      this.renderClientSide(template, context);
+      this.renderClientSide(template, self);
 
       const element = castToBrowser(this.element, 'HTML');
       this.assert.strictEqual(element.innerHTML, expectedHTML);
@@ -146,7 +147,7 @@ abstract class AbstractChaosMonkeyTest extends RenderTest {
         try {
           this.wreakHavoc(i);
 
-          this.renderClientSide(template, context);
+          this.renderClientSide(template, self);
 
           const element = castToBrowser(this.element, 'HTML');
           this.assert.strictEqual(
@@ -194,21 +195,26 @@ class ChaosMonkeyRehydration extends AbstractChaosMonkeyTest {
 
   renderServerSide(
     template: string | ComponentBlueprint,
-    context: Dict<unknown>,
+    self: Reference,
     element: SimpleElement | undefined = undefined
   ): void {
     this.serverOutput = this.delegate.renderServerSide(
       template as string,
-      context,
+      self,
       () => this.takeSnapshot(),
-      element
+      element,
+      this.plugins
     );
     replaceHTML(this.element, this.serverOutput);
   }
 
-  renderClientSide(template: string | ComponentBlueprint, context: Dict<unknown>): void {
-    this.context = context;
-    this.renderResult = this.delegate.renderClientSide(template as string, context, this.element);
+  renderClientSide(template: string | ComponentBlueprint, self: Reference): void {
+    this.renderResult = this.delegate.renderClientSide(
+      template as string,
+      self,
+      this.element,
+      this.plugins
+    );
   }
 
   assertExactServerOutput(_expected: string) {
@@ -226,24 +232,24 @@ class ChaosMonkeyRehydration extends AbstractChaosMonkeyTest {
   @test
   'adjacent text nodes'() {
     const template = '<div>a {{this.b}}{{this.c}}{{this.d}}</div>';
-    const context = { b: '', c: '', d: '' };
 
-    this.renderServerSide(template, context);
+    this.self.initialize({ b: '', c: '', d: '' });
+    this.renderServerSide(template, this.self.ref);
 
     const b = blockStack();
     this.assertServerOutput(
       `<div>a ${b(1)}<!--% %-->${b(1)}${b(1)}<!--% %-->${b(1)}${b(1)}<!--% %-->${b(1)}</div>`
     );
 
-    this.runIterations(template, context, '<div>a </div>', 100);
+    this.runIterations(template, this.self.ref, '<div>a </div>', 100);
   }
 
   @test
   '<p> invoking a block which emits a <div>'() {
     const template = '<p>hello {{#if this.show}}<div>world!</div>{{/if}}</p>';
-    const context = { show: true };
 
-    this.renderServerSide(template, context);
+    this.self.update({ show: true });
+    this.renderServerSide(template, this.self.ref);
     const b = blockStack();
 
     // assert that we are in a "browser corrected" state (note the `</p>` before the `<div>world!</div>`)
@@ -254,7 +260,7 @@ class ChaosMonkeyRehydration extends AbstractChaosMonkeyTest {
       this.assertServerOutput(`<p>hello ${b(1)}</p><div>world!</div>${b(1)}<p></p>`);
     }
 
-    this.runIterations(template, context, '<p>hello <div>world!</div></p>', 100);
+    this.runIterations(template, this.self.ref, '<p>hello <div>world!</div></p>', 100);
   }
 }
 
@@ -262,8 +268,12 @@ class ChaosMonkeyPartialRehydration extends AbstractChaosMonkeyTest {
   static suiteName = 'chaos-partial-rehydration';
   protected declare delegate: PartialRehydrationDelegate;
 
-  renderClientSide(componentName: string, args: Dict<unknown>): void {
-    this.renderResult = this.delegate.renderComponentClientSide(componentName, args, this.element);
+  renderClientSide(componentName: string, args: Reference<Dict>): void {
+    this.renderResult = this.delegate.renderComponentClientSide(
+      componentName,
+      valueForRef(args),
+      this.element
+    );
   }
 
   @test
@@ -304,7 +314,7 @@ class ChaosMonkeyPartialRehydration extends AbstractChaosMonkeyTest {
     );
     replaceHTML(qunitFixture(), html);
     this.element = castToSimple(castToBrowser(qunitFixture(), 'HTML').querySelector('div')!);
-    this.runIterations('RehydratingComponent', args, 'a bcd', 100);
+    this.runIterations('RehydratingComponent', createConstRef(args, 'args'), 'a bcd', 100);
   }
 
   @test
@@ -344,7 +354,12 @@ class ChaosMonkeyPartialRehydration extends AbstractChaosMonkeyTest {
 
     replaceHTML(qunitFixture(), html);
     this.element = castToSimple(castToBrowser(qunitFixture(), 'HTML').querySelector('div')!);
-    this.runIterations('RehydratingComponent', args, '<p>hello <div>world!</div></p>', 100);
+    this.runIterations(
+      'RehydratingComponent',
+      createConstRef(args, 'args'),
+      '<p>hello <div>world!</div></p>',
+      100
+    );
   }
 }
 

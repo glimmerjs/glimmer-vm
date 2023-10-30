@@ -36,7 +36,7 @@ class UpdatingSvgTest extends RenderTest {
   @test
   'context.root <foreignObject> tag is SVG namespaced'() {
     const parent = this.element;
-    const svg = this.delegate.createElementNS(NS_SVG, 'svg');
+    const svg = this.dom.createElementNS(NS_SVG, 'svg');
     this.element.appendChild(svg);
     this.element = svg;
 
@@ -49,9 +49,12 @@ class UpdatingSvgTest extends RenderTest {
       }
     };
 
-    this.render.template('{{#if this.hasForeignObject}}<foreignObject><div></div></foreignObject>{{/if}}', {
-      hasForeignObject: true,
-    });
+    this.render.template(
+      '{{#if this.hasForeignObject}}<foreignObject><div></div></foreignObject>{{/if}}',
+      {
+        hasForeignObject: true,
+      }
+    );
 
     this.assertHTML('<svg><foreignObject><div></div></foreignObject></svg>', parent);
     assertNamespaces();
@@ -69,9 +72,12 @@ class UpdatingSvgTest extends RenderTest {
 
   @test
   'elements nested inside <foreignObject> have an XHTML namespace'() {
-    this.render.template('<svg><foreignObject>{{#if this.hasDiv}}<div></div>{{/if}}</foreignObject></svg>', {
-      hasDiv: true,
-    });
+    this.render.template(
+      '<svg><foreignObject>{{#if this.hasDiv}}<div></div>{{/if}}</foreignObject></svg>',
+      {
+        hasDiv: true,
+      }
+    );
 
     const assertNamespaces = () => {
       if (assertNodeTagName(this.element.firstChild, 'svg')) {
@@ -367,7 +373,9 @@ class UpdatingSvgTest extends RenderTest {
 
   @test
   'HTML namespace is continued to child templates'() {
-    this.render.template('<div><svg>{{#if this.isTrue}}<circle />{{/if}}</svg></div>', { isTrue: true });
+    this.render.template('<div><svg>{{#if this.isTrue}}<circle />{{/if}}</svg></div>', {
+      isTrue: true,
+    });
 
     const assertNamespaces = (isTrue: boolean) => {
       if (assertNodeTagName(this.element.firstChild, 'div')) {

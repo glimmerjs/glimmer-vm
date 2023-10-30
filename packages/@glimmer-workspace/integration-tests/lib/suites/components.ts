@@ -720,7 +720,7 @@ export class GlimmerishComponents extends RenderTest {
     this.register.component('Glimmer', 'Foo', '<Bar data-bar={{@childName}} @data={{@data}} />');
     this.register.component('Glimmer', 'Bar', '<div ...attributes>Hello World</div>');
 
-    let el = this.delegate.getInitialElement();
+    let el = this.delegate.dom.getInitialElement();
 
     this.render.template(
       strip`

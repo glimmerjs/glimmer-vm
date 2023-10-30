@@ -2,8 +2,6 @@ import type {
   CapturedRenderNode,
   CompileTimeCompilationContext,
   Cursor,
-  Dict,
-  DynamicScope,
   ElementBuilder,
   ElementNamespace,
   Environment,
@@ -18,7 +16,7 @@ import type {
 } from '@glimmer/interfaces';
 import { programCompilationContext } from '@glimmer/opcode-compiler';
 import { artifacts, RuntimeOpImpl } from '@glimmer/program';
-import { createConstRef, type Reference } from '@glimmer/reference';
+import type { Reference } from '@glimmer/reference';
 import {
   array,
   clientBuilder,
@@ -29,24 +27,22 @@ import {
   get,
   hash,
   on,
-  renderComponent,
-  renderSync,
   runtimeContext,
 } from '@glimmer/runtime';
-import type { ASTPluginBuilder, PrecompileOptions } from '@glimmer/syntax';
-import { assign, castToBrowser, castToSimple, expect, unwrapTemplate } from '@glimmer/util';
+import type { ASTPluginBuilder } from '@glimmer/syntax';
+import { assign, castToSimple, expect, unwrapTemplate } from '@glimmer/util';
 
 import { BaseEnv } from '../../base-env';
 import { preprocess } from '../../compile';
 import type RenderDelegate from '../../render-delegate';
-import type { RenderDelegateOptions } from '../../render-delegate';
+import type { BuildDom, RenderDelegateOptions } from '../../render-delegate';
 import JitCompileTimeLookup from './compilation-context';
 import { componentHelper } from './register';
 import { TestJitRegistry } from './registry';
 import { renderTemplate } from './render';
 import { TestJitRuntimeResolver } from './resolver';
 
-export interface JitTestDelegateContext {
+export interface JitContext {
   runtime: RuntimeContext;
   program: CompileTimeCompilationContext;
 }
@@ -55,7 +51,7 @@ export function JitDelegateContext(
   doc: SimpleDocument,
   resolver: TestJitRuntimeResolver,
   env: EnvironmentDelegate
-): JitTestDelegateContext {
+): JitContext {
   let sharedArtifacts = artifacts();
   let context = programCompilationContext(
     sharedArtifacts,
@@ -66,61 +62,34 @@ export function JitDelegateContext(
   return { runtime, program: context };
 }
 
-export class JitRenderDelegate implements RenderDelegate {
-  static readonly isEager = false;
-  static style = 'jit';
-
-  protected registry: TestJitRegistry;
-  protected resolver: TestJitRuntimeResolver;
-
-  private plugins: ASTPluginBuilder[] = [];
-  private _context: JitTestDelegateContext | null = null;
-  private self: Nullable<Reference> = null;
-  private doc: SimpleDocument;
-  private env: EnvironmentDelegate;
-
-  readonly registries: TestJitRegistry[];
-
-  constructor({
-    doc,
-    env,
-    resolver = (registry) => new TestJitRuntimeResolver(registry),
-  }: RenderDelegateOptions = {}) {
-    this.registry = new TestJitRegistry();
-    this.resolver = resolver(this.registry);
-    this.doc = castToSimple(doc ?? document);
-    this.env = assign({}, env ?? BaseEnv);
-    this.registry.register('modifier', 'on', on);
-    this.registry.register('helper', 'fn', fn);
-    this.registry.register('helper', 'hash', hash);
-    this.registry.register('helper', 'array', array);
-    this.registry.register('helper', 'get', get);
-    this.registry.register('helper', 'concat', concat);
-
-    this.registries = [this.registry];
+export class BuildDomWithDocument implements BuildDom {
+  static intoDiv(doc: Document | SimpleDocument): BuildDom {
+    return new BuildDomWithDocument(doc, () => castToSimple(doc.createElement('div')));
   }
 
-  get context(): JitTestDelegateContext {
-    if (this._context === null) {
-      this._context = JitDelegateContext(this.doc, this.resolver, this.env);
-    }
-
-    return this._context;
+  static intoTestFixture(doc: Document): BuildDom {
+    return new BuildDomWithDocument(castToSimple(doc), () =>
+      castToSimple(doc.querySelector('#qunit-fixture')!)
+    );
   }
 
-  getCapturedRenderTree(): CapturedRenderNode[] {
-    return expect(
-      this.context.runtime.env.debugRenderTree,
-      'Attempted to capture the DebugRenderTree during tests, but it was not created. Did you enable it in the environment?'
-    ).capture();
+  readonly #document: SimpleDocument | Document;
+  readonly #getInitial: (doc: SimpleDocument | Document) => SimpleElement;
+
+  private constructor(
+    doc: SimpleDocument | Document,
+    getInitial: (doc: SimpleDocument | Document) => SimpleElement
+  ) {
+    this.#document = doc;
+    this.#getInitial = getInitial;
   }
 
   getInitialElement(): SimpleElement {
-    if (isBrowserTestDocument(this.doc)) {
-      return castToSimple(castToBrowser(this.doc).getElementById('qunit-fixture')!);
-    } else {
-      return this.createElement('div');
-    }
+    return this.#getInitial(this.#document);
+  }
+
+  get doc() {
+    return castToSimple(this.#document);
   }
 
   createElement(tagName: string): SimpleElement {
@@ -138,67 +107,89 @@ export class JitRenderDelegate implements RenderDelegate {
   createDocumentFragment(): SimpleDocumentFragment {
     return this.doc.createDocumentFragment();
   }
+}
+
+export class JitRenderDelegate implements RenderDelegate {
+  static readonly isEager = false;
+  static style = 'jit';
+
+  protected registry: TestJitRegistry;
+  protected resolver: TestJitRuntimeResolver;
+
+  private doc: SimpleDocument;
+  private env: EnvironmentDelegate;
+
+  readonly registries: TestJitRegistry[];
+  readonly context: JitContext;
+  readonly dom: BuildDom;
+
+  constructor({
+    doc: specifiedDoc,
+    env,
+    resolver = (registry) => new TestJitRuntimeResolver(registry),
+  }: RenderDelegateOptions = {}) {
+    const doc = specifiedDoc ?? document;
+
+    this.registry = new TestJitRegistry();
+    this.resolver = resolver(this.registry);
+    this.doc = castToSimple(doc);
+    this.dom = isBrowserTestDocument(doc)
+      ? BuildDomWithDocument.intoTestFixture(doc)
+      : BuildDomWithDocument.intoDiv(doc);
+    this.env = assign({}, env ?? BaseEnv);
+    this.registry.register('modifier', 'on', on);
+    this.registry.register('helper', 'fn', fn);
+    this.registry.register('helper', 'hash', hash);
+    this.registry.register('helper', 'array', array);
+    this.registry.register('helper', 'get', get);
+    this.registry.register('helper', 'concat', concat);
+
+    this.registries = [this.registry];
+
+    this.context = JitDelegateContext(this.doc, this.resolver, this.env);
+  }
+
+  getCapturedRenderTree(): CapturedRenderNode[] {
+    return expect(
+      this.context.runtime.env.debugRenderTree,
+      'Attempted to capture the DebugRenderTree during tests, but it was not created. Did you enable it in the environment?'
+    ).capture();
+  }
 
   createCurriedComponent(name: string): Nullable<CurriedValue> {
     return componentHelper(this.registry, name, this.context.program.constants);
-  }
-
-  registerPlugin(plugin: ASTPluginBuilder): void {
-    this.plugins.push(plugin);
   }
 
   getElementBuilder(env: Environment, cursor: Cursor): ElementBuilder {
     return clientBuilder(env, cursor);
   }
 
-  getSelf(_env: Environment, context: unknown): Reference {
-    if (!this.self) {
-      this.self = createConstRef(context, 'this');
-    }
-
-    return this.self;
-  }
-
-  compileTemplate(template: string): HandleResult {
-    let compiled = preprocess(template, this.precompileOptions);
+  compileTemplate(template: string, plugins: ASTPluginBuilder[]): HandleResult {
+    let compiled = preprocess(template, {
+      plugins: {
+        ast: plugins,
+      },
+    });
 
     return unwrapTemplate(compiled).asLayout().compile(this.context.program);
   }
 
-  renderTemplate(template: string, context: Dict<unknown>, element: SimpleElement): RenderResult {
+  renderTemplate(
+    template: string,
+    self: Reference,
+    element: SimpleElement,
+    _: () => void,
+    plugins: ASTPluginBuilder[]
+  ): RenderResult {
     let cursor = { element, nextSibling: null };
 
     let { env } = this.context.runtime;
 
-    return renderTemplate(
-      template,
-      this.context,
-      this.getSelf(env, context),
-      this.getElementBuilder(env, cursor),
-      this.precompileOptions
-    );
-  }
-
-  renderComponent(
-    component: object,
-    args: Record<string, unknown>,
-    element: SimpleElement,
-    dynamicScope?: DynamicScope
-  ): RenderResult {
-    let cursor = { element, nextSibling: null };
-    let { program, runtime } = this.context;
-    let builder = this.getElementBuilder(runtime.env, cursor);
-    let iterator = renderComponent(runtime, builder, program, {}, component, args, dynamicScope);
-
-    return renderSync(runtime.env, iterator);
-  }
-
-  private get precompileOptions(): PrecompileOptions {
-    return {
+    return renderTemplate(template, this.context, self, this.getElementBuilder(env, cursor), {
       plugins: {
-        ast: this.plugins,
+        ast: plugins,
       },
-    };
+    });
   }
 }
 

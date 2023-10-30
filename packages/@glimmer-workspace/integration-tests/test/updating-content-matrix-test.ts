@@ -23,19 +23,19 @@ class ContentTest extends RenderTest {
   static suiteName = 'Updating - Content';
 
   makeElement(tag: string, content: string): SimpleElement {
-    const el = this.delegate.createElement(tag);
-    el.appendChild(this.delegate.createTextNode(content));
+    const el = this.dom.createElement(tag);
+    el.appendChild(this.dom.createTextNode(content));
     return el;
   }
 
   makeSVGElement(tag: string, content: string): SimpleElement {
-    const el = this.delegate.createElementNS(NS_SVG, tag);
-    el.appendChild(this.delegate.createTextNode(content));
+    const el = this.dom.createElementNS(NS_SVG, tag);
+    el.appendChild(this.dom.createTextNode(content));
     return el;
   }
 
   makeFragment(nodes: SimpleNode[]) {
-    const frag = this.delegate.createDocumentFragment();
+    const frag = this.dom.createDocumentFragment();
     nodes.forEach((node) => frag.appendChild(node));
     return frag;
   }

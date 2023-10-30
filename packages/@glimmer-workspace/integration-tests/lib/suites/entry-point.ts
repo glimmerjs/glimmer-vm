@@ -15,15 +15,13 @@ export class EntryPointTest extends RenderTest {
 
   @test
   'an entry point'() {
-    let delegate = new JitRenderDelegate();
     let Title = defineComponent({}, `<h1>hello {{@title}}</h1>`);
 
-    let element = delegate.getInitialElement();
     let title = createPrimitiveRef('renderComponent');
-    delegate.renderComponent(Title, { title }, element);
+    this.render.component(Title, { title }, { into: this.element });
 
     QUnit.assert.strictEqual(
-      castToBrowser(element, 'HTML').innerHTML,
+      castToBrowser(this.element, 'HTML').innerHTML,
       '<h1>hello renderComponent</h1>'
     );
   }
@@ -33,51 +31,48 @@ export class EntryPointTest extends RenderTest {
     let delegate = new JitRenderDelegate();
     let Title = defineComponent({}, `<h1>hello {{@title}}</h1>`);
 
-    let element = delegate.getInitialElement();
+    let element = delegate.dom.getInitialElement();
     let title = createPrimitiveRef('renderComponent');
-    delegate.renderComponent(Title, { title }, element);
+    this.render.component(Title, { title }, { into: element });
     QUnit.assert.strictEqual(
       castToBrowser(element, 'HTML').innerHTML,
       '<h1>hello renderComponent</h1>'
     );
 
-    element = delegate.getInitialElement();
+    element = delegate.dom.getInitialElement();
     let newTitle = createPrimitiveRef('new title');
-    delegate.renderComponent(Title, { title: newTitle }, element);
+    this.render.component(Title, { title: newTitle }, { into: element });
     QUnit.assert.strictEqual(castToBrowser(element, 'HTML').innerHTML, '<h1>hello new title</h1>');
   }
 
   @test
   'can render different components per call'() {
-    let delegate = new JitRenderDelegate();
     let Title = defineComponent({}, `<h1>hello {{@title}}</h1>`);
     let Body = defineComponent({}, `<p>body {{@body}}</p>`);
 
-    let element = delegate.getInitialElement();
     let title = createPrimitiveRef('renderComponent');
-    delegate.renderComponent(Title, { title }, element);
+    this.render.component(Title, { title });
     QUnit.assert.strictEqual(
-      castToBrowser(element, 'HTML').innerHTML,
+      castToBrowser(this.element, 'HTML').innerHTML,
       '<h1>hello renderComponent</h1>'
     );
 
-    element = delegate.getInitialElement();
+    const delegate = new JitRenderDelegate();
+    const element = delegate.dom.getInitialElement();
     let body = createPrimitiveRef('text');
-    delegate.renderComponent(Body, { body }, element);
+    this.render.component(Body, { body }, { into: element });
     QUnit.assert.strictEqual(castToBrowser(element, 'HTML').innerHTML, '<p>body text</p>');
   }
 
   @test
   'supports passing in an initial dynamic context'() {
-    let delegate = new JitRenderDelegate();
     let Locale = defineComponent({}, `{{-get-dynamic-var "locale"}}`);
 
-    let element = delegate.getInitialElement();
     let dynamicScope = new DynamicScopeImpl({
       locale: createPrimitiveRef('en_US'),
     });
-    delegate.renderComponent(Locale, {}, element, dynamicScope);
+    this.render.component(Locale, {}, { dynamicScope });
 
-    QUnit.assert.strictEqual(castToBrowser(element, 'HTML').innerHTML, 'en_US');
+    QUnit.assert.strictEqual(castToBrowser(this.element, 'HTML').innerHTML, 'en_US');
   }
 }

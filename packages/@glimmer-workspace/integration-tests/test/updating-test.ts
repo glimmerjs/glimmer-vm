@@ -405,7 +405,7 @@ class UpdatingTest extends RenderTest {
     let rawString = '<b>bold</b> and spicy';
 
     this.register.internalHelper('const-foobar', () => {
-      return createConstRef(this.delegate.createTextNode(rawString), 'text-node');
+      return createConstRef(this.dom.createTextNode(rawString), 'text-node');
     });
 
     this.render.template('<div>{{const-foobar}}</div>');
@@ -431,7 +431,7 @@ class UpdatingTest extends RenderTest {
     let rawString = '<b>bold</b> and spicy';
 
     this.register.internalHelper('const-foobar', () => {
-      return createConstRef(this.delegate.createTextNode(rawString), 'text-node');
+      return createConstRef(this.dom.createTextNode(rawString), 'text-node');
     });
 
     this.render.template('<div>{{{const-foobar}}}</div>');
@@ -596,7 +596,7 @@ class UpdatingTest extends RenderTest {
 
   @test
   'helpers passed as arguments to {{#in-element}} are not torn down when switching between blocks'() {
-    let externalElement = this.delegate.createElement('div');
+    let externalElement = this.dom.createElement('div');
 
     let options = {
       template: '{{#in-element (stateful-foo)}}Yes{{/in-element}}',
@@ -748,7 +748,7 @@ class UpdatingTest extends RenderTest {
 
   @test
   'if keyword in SubExpression without falsey value returns undefined [GH emberjs/ember.js#19409]'() {
-    this.register.helper('to-string', (args) => `${args[0]}` );
+    this.register.helper('to-string', (args) => `${args[0]}`);
 
     this.render.template('{{to-string (if this.condition "truthy")}}', {
       condition: false,
@@ -917,19 +917,19 @@ class UpdatingTest extends RenderTest {
 
   @test
   'missing helper'(assert: Assert) {
-    this.register.helper('hello', () => 'hello' );
+    this.register.helper('hello', () => 'hello');
 
     assert.throws(() => {
-      this.delegate.compileTemplate('{{helo world}}');
+      this.delegate.compileTemplate('{{helo world}}', this.plugins);
     }, /Error: Attempted to resolve `helo`, which was expected to be a component or helper, but nothing was found./u);
   }
 
   @test
   'block arguments should have higher precedence than helpers'() {
     // Note: This test intentionally tests property fallback
-    this.register.helper('foo', () => 'foo-helper' );
-    this.register.helper('bar', () => 'bar-helper' );
-    this.register.helper('echo', (args) => args[0] );
+    this.register.helper('foo', () => 'foo-helper');
+    this.register.helper('bar', () => 'bar-helper');
+    this.register.helper('echo', (args) => args[0]);
 
     let template = trimLines`
       <div>
@@ -1107,10 +1107,13 @@ class UpdatingTest extends RenderTest {
   @test
   'block arguments (ensure balanced push/pop)'() {
     let person = { name: { first: 'Godfrey', last: 'Chan' } };
-    this.render.template('<div>{{#with this.person.name.first as |f|}}{{f}}{{/with}}{{this.f}}</div>', {
-      person,
-      f: 'Outer',
-    });
+    this.render.template(
+      '<div>{{#with this.person.name.first as |f|}}{{f}}{{/with}}{{this.f}}</div>',
+      {
+        person,
+        f: 'Outer',
+      }
+    );
 
     this.assertHTML('<div>GodfreyOuter</div>', 'Initial render');
 
@@ -1122,7 +1125,7 @@ class UpdatingTest extends RenderTest {
 
   @test
   'block arguments cannot be accessed through {{this}}'() {
-    this.register.helper('noop', (params) => params[0] );
+    this.register.helper('noop', (params) => params[0]);
 
     this.render.template(
       stripTight`
@@ -1206,13 +1209,12 @@ class UpdatingTest extends RenderTest {
   @test
   'helper calls follow the normal dirtying rules'() {
     this.register.helper('capitalize', (params) => {
-        let value = params[0];
-        if (value !== null && value !== undefined && typeof value === 'string') {
-          return value.toUpperCase();
-        }
-        return;
-      },
-    );
+      let value = params[0];
+      if (value !== null && value !== undefined && typeof value === 'string') {
+        return value.toUpperCase();
+      }
+      return;
+    });
 
     this.render.template('<div>{{capitalize this.value}}</div>', { value: 'hello' });
     this.assertHTML('<div>HELLO</div>');
@@ -1396,7 +1398,9 @@ class UpdatingTest extends RenderTest {
 
   @test
   'non-standard namespaced attribute nodes w/ concat follow the normal dirtying rules'() {
-    this.render.template("<div epub:type='dedication {{this.type}}'>hello</div>", { type: 'backmatter' });
+    this.render.template("<div epub:type='dedication {{this.type}}'>hello</div>", {
+      type: 'backmatter',
+    });
 
     this.assertHTML("<div epub:type='dedication backmatter'>hello</div>", 'Initial render');
     this.assertStableRerender();

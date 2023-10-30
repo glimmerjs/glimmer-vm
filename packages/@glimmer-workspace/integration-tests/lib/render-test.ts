@@ -1,18 +1,18 @@
 import { destroy } from '@glimmer/destroyable';
 import type {
-  ComponentDefinitionState,
   Dict,
   DynamicScope,
   Helper,
   Maybe,
   Nullable,
+  Reference,
   RenderResult,
   SimpleElement,
   SimpleNode,
 } from '@glimmer/interfaces';
 import { inTransaction, renderComponent, renderSync } from '@glimmer/runtime';
 import type { ASTPluginBuilder } from '@glimmer/syntax';
-import { assert, clearElement, dict, expect, isPresent, unwrap } from '@glimmer/util';
+import { clearElement, dict, expect, isPresent, unwrap } from '@glimmer/util';
 import { dirtyTagFor } from '@glimmer/validator';
 import type { NTuple } from '@glimmer-workspace/test-utils';
 
@@ -36,6 +36,8 @@ import {
   registerModifier,
 } from './modes/jit/register';
 import { RecordedEvents } from './test-helpers/recorded';
+import type { BuildDom } from './render-delegate';
+import { createConstRef } from '@glimmer/reference';
 
 type Expand<T> = T extends infer O ? { [K in keyof O]: O[K] } : never;
 type Present<T> = Exclude<T, null | undefined>;
@@ -68,21 +70,73 @@ export class Count {
   }
 }
 
+class Self {
+  #properties: Dict;
+  readonly ref: Reference<Dict>;
+
+  constructor(properties: Dict) {
+    this.#properties = properties;
+    this.ref = createConstRef(this.#properties, 'this');
+  }
+
+  get inner(): Dict {
+    return this.#properties;
+  }
+
+  set(key: string, value: unknown): void {
+    this.#properties[key] = value;
+    dirtyTagFor(this.#properties, key);
+  }
+
+  delete(key: string): void {
+    delete this.#properties[key];
+    dirtyTagFor(this.#properties, key);
+  }
+
+  initialize(properties: Dict): void {
+    for (const [key, value] of Object.entries(properties)) {
+      this.set(key, value);
+    }
+
+    for (const key of Object.keys(this.#properties)) {
+      if (!(key in properties)) {
+        this.delete(key);
+      }
+    }
+  }
+
+  update(properties: Dict): void {
+    for (const [key, value] of Object.entries(properties)) {
+      this.set(key, value);
+    }
+  }
+}
+
 export class RenderTest implements IRenderTest {
   testType: ComponentKind = 'unknown';
   readonly events = new RecordedEvents();
 
+  readonly self = new Self({});
   protected element: SimpleElement;
   protected assert = QUnit.assert;
-  protected context: Dict = dict();
   protected renderResult: Nullable<RenderResult> = null;
   protected helpers = dict<UserHelper>();
   protected snapshot: NodesSnapshot = [];
   readonly count: Count;
 
+  readonly plugins: ASTPluginBuilder[] = [];
+
   constructor(protected delegate: RenderDelegate) {
-    this.element = delegate.getInitialElement();
+    this.element = delegate.dom.getInitialElement();
     this.count = new Count(this.events);
+  }
+
+  get dom(): BuildDom {
+    return this.delegate.dom;
+  }
+
+  getInitialElement(): SimpleElement {
+    return this.element;
   }
 
   capture<T>() {
@@ -96,7 +150,7 @@ export class RenderTest implements IRenderTest {
   }
 
   registerPlugin(plugin: ASTPluginBuilder): void {
-    this.delegate.registerPlugin(plugin);
+    this.plugins.push(plugin);
   }
 
   readonly register = {
@@ -372,7 +426,13 @@ export class RenderTest implements IRenderTest {
   shouldBeVoid(tagName: string) {
     clearElement(this.element);
     let html = '<' + tagName + " data-foo='bar'><p>hello</p>";
-    this.delegate.renderTemplate(html, this.context, this.element, () => this.takeSnapshot());
+    this.delegate.renderTemplate(
+      html,
+      this.self.ref,
+      this.element,
+      () => this.takeSnapshot(),
+      this.plugins
+    );
 
     let tag = '<' + tagName + ' data-foo="bar">';
     let closing = '</' + tagName + '>';
@@ -394,13 +454,12 @@ export class RenderTest implements IRenderTest {
     component: (
       component: object,
       args: Record<string, unknown> = {},
-      dynamicScope?: DynamicScope
+      {
+        into: element = this.element,
+        dynamicScope,
+      }: { into?: SimpleElement; dynamicScope?: DynamicScope } = {}
     ): void => {
-      let cursor = { element: this.element, nextSibling: null };
-
-      if (this.delegate.context === undefined) {
-        throw Error(`renderIt requires a context`);
-      }
+      let cursor = { element, nextSibling: null };
 
       let { program, runtime } = this.delegate.context;
       let builder = this.delegate.getElementBuilder(runtime.env, cursor);
@@ -426,49 +485,18 @@ export class RenderTest implements IRenderTest {
       }
     }
 
-    this.setProperties(properties);
+    this.self.initialize(properties);
 
-    this.renderResult = this.delegate.renderTemplate(template, this.context, this.element, () =>
-      this.takeSnapshot()
+    this.renderResult = this.delegate.renderTemplate(
+      template,
+      this.self.ref,
+      this.element,
+      () => this.takeSnapshot(),
+      this.plugins
     );
   }
 
-  renderIt(
-    component: object,
-    args: Record<string, unknown> = {},
-    dynamicScope?: DynamicScope
-  ): void {
-    let cursor = { element: this.element, nextSibling: null };
 
-    if (this.delegate.context === undefined) {
-      throw Error(`renderIt requires a context`);
-    }
-
-    let { program, runtime } = this.delegate.context;
-    let builder = this.delegate.getElementBuilder(runtime.env, cursor);
-    let iterator = renderComponent(runtime, builder, program, {}, component, args, dynamicScope);
-
-    this.renderResult = renderSync(runtime.env, iterator);
-  }
-
-  renderComponent(
-    component: ComponentDefinitionState,
-    args: Dict<unknown> = {},
-    dynamicScope?: DynamicScope
-  ): void {
-    try {
-      QUnit.assert.ok(true, `Rendering ${String(component)} with ${JSON.stringify(args)}`);
-    } catch {
-      // couldn't stringify, possibly has a circular dependency
-    }
-
-    assert(
-      !!this.delegate.renderComponent,
-      'Attempted to render a component, but the delegate did not implement renderComponent'
-    );
-
-    this.renderResult = this.delegate.renderComponent(component, args, this.element, dynamicScope);
-  }
 
   rerender(properties: Dict<unknown> = {}): void {
     try {
@@ -477,7 +505,7 @@ export class RenderTest implements IRenderTest {
       // couldn't stringify, possibly has a circular dependency
     }
 
-    this.setProperties(properties);
+    this.self.update(properties);
 
     let result = expect(this.renderResult, 'the test should call render() before rerender()');
 
@@ -495,17 +523,6 @@ export class RenderTest implements IRenderTest {
     let result = expect(this.renderResult, 'the test should call render() before destroy()');
 
     inTransaction(result.env, () => destroy(result));
-  }
-
-  protected set(key: string, value: unknown): void {
-    this.context[key] = value;
-    dirtyTagFor(this.context, key);
-  }
-
-  protected setProperties(properties: Dict<unknown>): void {
-    for (let key in properties) {
-      this.set(key, properties[key]);
-    }
   }
 
   protected takeSnapshot(): NodesSnapshot {

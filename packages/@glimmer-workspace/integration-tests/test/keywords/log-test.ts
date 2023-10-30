@@ -59,7 +59,7 @@ class LogTest extends RenderTest {
   'correctly logs `this`'() {
     this.render.template(`{{log this}}`);
 
-    this.assertLog([this.context]);
+    this.assertLog([this.self.inner]);
   }
 
   @test
