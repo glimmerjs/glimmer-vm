@@ -215,5 +215,11 @@
       "type": "text",
       "multiline": true
     }
-  ]
+  ],
+  "surround.custom": {
+    "register": {
+      "label": "register helper",
+      "snippet": "{ ${1:helper}: $TM_SELECTED_TEXT }"
+    }
+  }
 }

@@ -31,7 +31,7 @@ export class InElementSuite extends RenderTest {
     }));
 
     let externalElement = this.delegate.createElement('div');
-    this.render('{{#maybe-in-element this.externalElement}}[{{this.foo}}]{{/maybe-in-element}}', {
+    this.render.template('{{#maybe-in-element this.externalElement}}[{{this.foo}}]{{/maybe-in-element}}', {
       externalElement,
       foo: 'Yippie!',
     });
@@ -51,7 +51,7 @@ export class InElementSuite extends RenderTest {
   @test
   'Renders curlies into external element'() {
     let externalElement = this.delegate.createElement('div');
-    this.render('{{#in-element this.externalElement}}[{{this.foo}}]{{/in-element}}', {
+    this.render.template('{{#in-element this.externalElement}}[{{this.foo}}]{{/in-element}}', {
       externalElement,
       foo: 'Yippie!',
     });
@@ -74,7 +74,7 @@ export class InElementSuite extends RenderTest {
     let initialContent = '<p>Hello there!</p>';
     replaceHTML(externalElement, initialContent);
 
-    this.render('{{#in-element this.externalElement}}[{{this.foo}}]{{/in-element}}', {
+    this.render.template('{{#in-element this.externalElement}}[{{this.foo}}]{{/in-element}}', {
       externalElement,
       foo: 'Yippie!',
     });
@@ -96,7 +96,7 @@ export class InElementSuite extends RenderTest {
     let first = this.delegate.createElement('div');
     let second = this.delegate.createElement('div');
 
-    this.render(
+    this.render.template(
       stripTight`
         |{{this.foo}}|
         {{#in-element this.first}}[1{{this.foo}}]{{/in-element}}
@@ -141,7 +141,7 @@ export class InElementSuite extends RenderTest {
     let initialContent = '<p>Hello there!</p>';
     replaceHTML(externalElement, initialContent);
 
-    this.render(
+    this.render.template(
       stripTight`{{#in-element this.externalElement insertBefore=null}}[{{this.foo}}]{{/in-element}}`,
       {
         externalElement,
@@ -174,7 +174,7 @@ export class InElementSuite extends RenderTest {
     let externalElement = this.delegate.createElement('div');
     replaceHTML(externalElement, '<b>Hello</b><em>there!</em>');
 
-    this.render(
+    this.render.template(
       stripTight`{{#in-element this.externalElement insertBefore=this.insertBefore}}[{{this.foo}}]{{/in-element}}`,
       { externalElement, insertBefore: externalElement.lastChild, foo: 'Yippie!' }
     );
@@ -209,7 +209,7 @@ export class InElementSuite extends RenderTest {
     let first = this.delegate.createElement('div');
     let second = this.delegate.createElement('div');
 
-    this.render(stripTight`{{#in-element this.externalElement}}[{{this.foo}}]{{/in-element}}`, {
+    this.render.template(stripTight`{{#in-element this.externalElement}}[{{this.foo}}]{{/in-element}}`, {
       externalElement: first,
       foo: 'Yippie!',
     });
@@ -261,7 +261,7 @@ export class InElementSuite extends RenderTest {
     let first = { element: this.delegate.createElement('div'), description: 'first' };
     let second = { element: this.delegate.createElement('div'), description: 'second' };
 
-    this.render(
+    this.render.template(
       stripTight`
         {{#if this.showFirst}}
           {{#in-element this.first}}[{{this.foo}}]{{/in-element}}
@@ -323,7 +323,7 @@ export class InElementSuite extends RenderTest {
 
   @test
   'Inside the current constructing element'() {
-    this.render(
+    this.render.template(
       stripTight`
         Before
         {{#in-element this.element insertBefore=null}}
@@ -348,7 +348,7 @@ export class InElementSuite extends RenderTest {
     let firstElement = this.delegate.createElement('div');
     let secondElement = this.delegate.createElement('div');
 
-    this.render(
+    this.render.template(
       stripTight`
         {{#in-element this.firstElement}}
           [{{this.foo}}]
@@ -404,13 +404,13 @@ export class InElementSuite extends RenderTest {
     }
 
     this.testType = 'Dynamic';
-    this.registerComponent('TemplateOnly', 'FooBar', '<p>{{@value}}</p>');
+    this.register.component('TemplateOnly', 'FooBar', '<p>{{@value}}</p>');
 
-    this.registerHelper('log', () => {});
+    this.register.helper('log', () => {} );
 
     let roots = [new Item('foo'), new Item('bar'), new Item('baz')];
 
-    this.render(
+    this.render.template(
       stripTight`
         {{~#each this.roots as |root|~}}
           {{~log root~}}
@@ -466,7 +466,7 @@ export class InElementSuite extends RenderTest {
     let firstElement = this.delegate.createElement('div');
     let secondElement = this.delegate.createElement('div');
 
-    this.render(
+    this.render.template(
       stripTight`
         {{#in-element this.firstElement}}
           [{{this.foo}}]
@@ -524,10 +524,10 @@ export class InElementSuite extends RenderTest {
       }
     }
 
-    this.registerComponent('Glimmer', 'DestroyMe', 'destroy me!', DestroyMeComponent as any);
+    this.register.component('Glimmer', 'DestroyMe', 'destroy me!', DestroyMeComponent as any);
     let externalElement = this.delegate.createElement('div');
 
-    this.render(
+    this.render.template(
       stripTight`
         {{#if this.showExternal}}
           {{#in-element this.externalElement}}[<DestroyMe />]{{/in-element}}

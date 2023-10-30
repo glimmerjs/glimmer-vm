@@ -24,7 +24,7 @@ export class EachSuite extends RenderTest {
   @test
   'basic #each'() {
     let list = [1, 2, 3, 4];
-    this.render('{{#each this.list key="@index" as |item|}}{{item}}{{else}}Empty{{/each}}', {
+    this.render.template('{{#each this.list key="@index" as |item|}}{{item}}{{else}}Empty{{/each}}', {
       list,
     });
     this.assertHTML('1234');
@@ -72,7 +72,7 @@ export class EachSuite extends RenderTest {
         this.arr.splice(0, this.arr.length);
       },
     };
-    this.render('{{#each this.list key="@index" as |item|}}{{item}}{{else}}Empty{{/each}}', {
+    this.render.template('{{#each this.list key="@index" as |item|}}{{item}}{{else}}Empty{{/each}}', {
       list,
     });
     this.assertHTML('1234');
@@ -97,7 +97,7 @@ export class EachSuite extends RenderTest {
   @test
   'keyed #each'() {
     let list = [{ text: 'hello' }];
-    this.render('{{#each this.list key="text" as |item|}}{{item.text}}{{else}}Empty{{/each}}', {
+    this.render.template('{{#each this.list key="text" as |item|}}{{item.text}}{{else}}Empty{{/each}}', {
       list,
     });
     this.assertHTML('hello');
@@ -123,7 +123,7 @@ export class EachSuite extends RenderTest {
   @test
   'receives the index as the second parameter'() {
     let list = [1, 2, 3, 4];
-    this.render(
+    this.render.template(
       '{{#each this.list key="@index" as |item i|}}{{item}}-{{i}}:{{else}}Empty{{/each}}',
       {
         list,
@@ -158,7 +158,7 @@ export class EachSuite extends RenderTest {
     let v6 = val(6);
 
     let list = [v1, v2, v3, v4];
-    this.render(
+    this.render.template(
       '{{#each this.list key="@identity" as |item i|}}{{item.val}}-{{i}}{{else}}Empty{{/each}}',
       {
         list,
@@ -191,7 +191,7 @@ export class EachSuite extends RenderTest {
   @test
   'it can render duplicate primitive items'() {
     let list = ['a', 'a', 'a'];
-    this.render('{{#each this.list key="@index" as |item|}}{{item}}{{/each}}', {
+    this.render.template('{{#each this.list key="@index" as |item|}}{{item}}{{/each}}', {
       list,
     });
     this.assertHTML('aaa');
@@ -212,7 +212,7 @@ export class EachSuite extends RenderTest {
   'it can render duplicate objects'() {
     let dup = { text: 'dup' };
     let list = [dup, dup, { text: 'uniq' }];
-    this.render('{{#each this.list key="@index" as |item|}}{{item.text}}{{/each}}', {
+    this.render.template('{{#each this.list key="@index" as |item|}}{{item.text}}{{/each}}', {
       list,
     });
     this.assertHTML('dupdupuniq');
@@ -241,7 +241,7 @@ export class EachSuite extends RenderTest {
 
     let list = [new Item('Hello'), new Item('Hello'), new Item('Hello')];
 
-    this.render(`{{#each this.list key="text" as |item|}}{{item.text}}{{/each}}`, {
+    this.render.template(`{{#each this.list key="text" as |item|}}{{item.text}}{{/each}}`, {
       list,
     });
 
@@ -273,7 +273,7 @@ export class EachSuite extends RenderTest {
 
     let list = [new Item('Hello'), new Item('Hello'), new Item('Hello')];
 
-    this.render(`{{#each this.list key="@identity" as |item|}}{{item.text}}{{/each}}`, {
+    this.render.template(`{{#each this.list key="@identity" as |item|}}{{item.text}}{{/each}}`, {
       list,
     });
 
@@ -297,7 +297,7 @@ export class EachSuite extends RenderTest {
   'it does not update items if their key has not changed, and the items are not tracked'() {
     let list = [{ text: 'Hello' }, { text: 'Hello' }, { text: 'Hello' }];
 
-    this.render(`{{#each this.list key="@identity" as |item|}}{{item.text}}{{/each}}`, {
+    this.render.template(`{{#each this.list key="@identity" as |item|}}{{item.text}}{{/each}}`, {
       list,
     });
 
@@ -315,7 +315,7 @@ export class EachSuite extends RenderTest {
   'scoped variable not available outside list'() {
     let list = ['Wycats'];
 
-    this.render(
+    this.render.template(
       `{{this.name}}-{{#each this.list key="@index" as |name|}}{{name}}{{/each}}-{{this.name}}`,
       {
         list,
@@ -346,7 +346,7 @@ export class EachSuite extends RenderTest {
   'else template is displayed with context'() {
     let list: string[] = [];
 
-    this.render(
+    this.render.template(
       `{{#each this.list key="@index" as |name|}}Has thing{{else}}No thing {{this.otherThing}}{{/each}}`,
       {
         list,
@@ -376,7 +376,7 @@ export class EachSuite extends RenderTest {
     if (!LOCAL_DEBUG) return;
 
     let arr = numbers();
-    this.render(`{{#each this.arr as |item|}}{{item}}{{/each}}`, { arr });
+    this.render.template(`{{#each this.arr as |item|}}{{item}}{{/each}}`, { arr });
 
     let a = arr[1];
     let b = arr[7];
@@ -406,7 +406,7 @@ export class EachSuite extends RenderTest {
     if (!LOCAL_DEBUG) return;
 
     let arr = numbers();
-    this.render(`{{#each this.arr as |item|}}{{item}}{{/each}}`, { arr });
+    this.render.template(`{{#each this.arr as |item|}}{{item}}{{/each}}`, { arr });
 
     let a = arr[0];
     let b = arr[7];
@@ -436,7 +436,7 @@ export class EachSuite extends RenderTest {
     if (!LOCAL_DEBUG) return;
 
     let arr = numbers();
-    this.render(`{{#each this.arr as |item|}}{{item}}{{/each}}`, { arr });
+    this.render.template(`{{#each this.arr as |item|}}{{item}}{{/each}}`, { arr });
 
     let a = arr[0];
     let b = arr[6];
@@ -466,7 +466,7 @@ export class EachSuite extends RenderTest {
     if (!LOCAL_DEBUG) return;
 
     let arr = numbers();
-    this.render(`{{#each this.arr as |item|}}{{item}}{{/each}}`, { arr });
+    this.render.template(`{{#each this.arr as |item|}}{{item}}{{/each}}`, { arr });
 
     let a = arr[1];
     let b = arr[3];
@@ -500,7 +500,7 @@ export class EachSuite extends RenderTest {
     if (!LOCAL_DEBUG) return;
 
     let arr = numbers();
-    this.render(`{{#each this.arr as |item|}}{{item}}{{/each}}`, { arr });
+    this.render.template(`{{#each this.arr as |item|}}{{item}}{{/each}}`, { arr });
 
     let a = arr[1];
     let b = arr[3];
@@ -532,7 +532,7 @@ export class EachSuite extends RenderTest {
     if (!LOCAL_DEBUG) return;
 
     let arr = numbers();
-    this.render(`{{#each this.arr as |item|}}{{item}}{{/each}}`, { arr });
+    this.render.template(`{{#each this.arr as |item|}}{{item}}{{/each}}`, { arr });
 
     let a = arr[1];
     let b = arr[6];
@@ -565,7 +565,7 @@ export class EachSuite extends RenderTest {
     if (!LOCAL_DEBUG) return;
 
     let arr = [1, 2, 3, 4, 5, 6, 7, 8];
-    this.render(`{{#each this.arr as |item|}}{{item}}{{/each}}`, { arr });
+    this.render.template(`{{#each this.arr as |item|}}{{item}}{{/each}}`, { arr });
 
     arr.shift();
     arr.splice(2, 0, 9);
@@ -594,7 +594,7 @@ export class EachSuite extends RenderTest {
     if (!LOCAL_DEBUG) return;
 
     let arr = [1, 2, 3, 4, 5, 6, 7, 8];
-    this.render(`{{#each this.arr as |item|}}{{item}}{{/each}}`, { arr });
+    this.render.template(`{{#each this.arr as |item|}}{{item}}{{/each}}`, { arr });
 
     let shifted = [8, 1, 2, 3, 4, 5, 6, 7];
 
@@ -621,7 +621,7 @@ export class EachSuite extends RenderTest {
     if (!LOCAL_DEBUG) return;
 
     let arr = [1, 2, 3, 4, 5, 6, 7, 8];
-    this.render(`{{#each this.arr as |item|}}{{item}}{{/each}}`, { arr });
+    this.render.template(`{{#each this.arr as |item|}}{{item}}{{/each}}`, { arr });
 
     let shifted = [2, 3, 4, 5, 6, 7, 8, 1];
 
@@ -648,13 +648,13 @@ export class EachSuite extends RenderTest {
     if (!LOCAL_DEBUG) return;
 
     let arr = [1, 2, 3, 4, 5, 6, 7, 8];
-    this.render(`{{#each this.arr as |item|}}{{item}}{{/each}}`, { arr });
+    this.render.template(`{{#each this.arr as |item|}}{{item}}{{/each}}`, { arr });
 
     for (let i = 0; i < 100; i++) {
       shuffleArray(arr);
       this.rerender({ arr });
 
-       
+
       verifySteps?.('list-updates', (steps) => {
         let stats = getStepStats(steps as ListStep[]);
 
@@ -673,7 +673,7 @@ export class EachSuite extends RenderTest {
     if (!LOCAL_DEBUG) return;
 
     let arr = [1, 2, 3, 4, 5, 6, 7, 8];
-    this.render(`{{#each this.arr as |item|}}{{item}}{{/each}}`, { arr });
+    this.render.template(`{{#each this.arr as |item|}}{{item}}{{/each}}`, { arr });
 
     for (let i = 0; i < 100; i++) {
       let newArr = arr.slice();
@@ -681,7 +681,7 @@ export class EachSuite extends RenderTest {
       let semiArr = newArr.slice(0, 5);
       this.rerender({ arr: semiArr });
 
-       
+
       verifySteps?.('list-updates', (steps) => {
         let stats = getStepStats(steps as ListStep[]);
 
@@ -700,7 +700,7 @@ export class EachSuite extends RenderTest {
     if (!LOCAL_DEBUG) return;
 
     let arr = [1, 2, 3, 4, 5, 6, 7, 8];
-    this.render(`{{#each this.arr as |item|}}{{item}}{{/each}}`, { arr });
+    this.render.template(`{{#each this.arr as |item|}}{{item}}{{/each}}`, { arr });
 
     for (let i = 0; i < 100; i++) {
       let newArr = arr.slice();
@@ -708,7 +708,7 @@ export class EachSuite extends RenderTest {
       let semiArr = newArr.slice(0, 5).concat([11, 12]);
       this.rerender({ arr: semiArr });
 
-       
+
       verifySteps?.('list-updates', (steps) => {
         let stats = getStepStats(steps as ListStep[]);
 
@@ -729,7 +729,7 @@ export class EachSuite extends RenderTest {
       [4, 5, 6, 7, 8],
       [5, 6, 7, 8, 9],
     ];
-    this.render(`{{#each this.arr as |sub|}}{{#each sub as |item|}}{{item}}{{/each}}{{/each}}`, {
+    this.render.template(`{{#each this.arr as |sub|}}{{#each sub as |item|}}{{item}}{{/each}}{{/each}}`, {
       arr,
     });
 

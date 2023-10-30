@@ -8,7 +8,6 @@ import type {
   ElementNamespace,
   Environment,
   HandleResult,
-  Helper,
   Nullable,
   RenderResult,
   RuntimeContext,
@@ -39,19 +38,10 @@ import { assign, castToBrowser, castToSimple, expect, unwrapTemplate } from '@gl
 
 import { BaseEnv } from '../../base-env';
 import { preprocess } from '../../compile';
-import type { ComponentKind, ComponentTypes } from '../../components';
-import type { UserHelper } from '../../helpers';
-import type { TestModifierConstructor } from '../../modifiers';
 import type RenderDelegate from '../../render-delegate';
 import type { RenderDelegateOptions } from '../../render-delegate';
 import JitCompileTimeLookup from './compilation-context';
-import {
-  componentHelper,
-  registerComponent,
-  registerHelper,
-  registerInternalHelper,
-  registerModifier,
-} from './register';
+import { componentHelper } from './register';
 import { TestJitRegistry } from './registry';
 import { renderTemplate } from './render';
 import { TestJitRuntimeResolver } from './resolver';
@@ -89,6 +79,8 @@ export class JitRenderDelegate implements RenderDelegate {
   private doc: SimpleDocument;
   private env: EnvironmentDelegate;
 
+  readonly registries: TestJitRegistry[];
+
   constructor({
     doc,
     env,
@@ -104,6 +96,8 @@ export class JitRenderDelegate implements RenderDelegate {
     this.registry.register('helper', 'array', array);
     this.registry.register('helper', 'get', get);
     this.registry.register('helper', 'concat', concat);
+
+    this.registries = [this.registry];
   }
 
   get context(): JitTestDelegateContext {
@@ -145,48 +139,12 @@ export class JitRenderDelegate implements RenderDelegate {
     return this.doc.createDocumentFragment();
   }
 
-  createCurriedComponent(name: string): CurriedValue | null {
+  createCurriedComponent(name: string): Nullable<CurriedValue> {
     return componentHelper(this.registry, name, this.context.program.constants);
   }
 
   registerPlugin(plugin: ASTPluginBuilder): void {
     this.plugins.push(plugin);
-  }
-
-  registerComponent<K extends 'TemplateOnly' | 'Glimmer', L extends ComponentKind>(
-    type: K,
-    _testType: L,
-    name: string,
-    layout: string,
-    Class?: ComponentTypes[K]
-  ): void;
-  registerComponent<K extends 'Curly' | 'Dynamic', L extends ComponentKind>(
-    type: K,
-    _testType: L,
-    name: string,
-    layout: Nullable<string>,
-    Class?: ComponentTypes[K]
-  ): void;
-  registerComponent<K extends ComponentKind, L extends ComponentKind>(
-    type: K,
-    _testType: L,
-    name: string,
-    layout: Nullable<string>,
-    Class?: ComponentTypes[K]
-  ) {
-    registerComponent(this.registry, type, name, layout, Class);
-  }
-
-  registerModifier(name: string, ModifierClass: TestModifierConstructor): void {
-    registerModifier(this.registry, name, ModifierClass);
-  }
-
-  registerHelper(name: string, helper: UserHelper): void {
-    registerHelper(this.registry, name, helper);
-  }
-
-  registerInternalHelper(name: string, helper: Helper) {
-    registerInternalHelper(this.registry, name, helper);
   }
 
   getElementBuilder(env: Environment, cursor: Cursor): ElementBuilder {

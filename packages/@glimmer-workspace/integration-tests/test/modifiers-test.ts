@@ -22,7 +22,7 @@ class ModifierTests extends RenderTest {
 
   @test
   'Element modifier with hooks'(assert: Assert, count: Count) {
-    this.registerModifier(
+    this.register.modifier(
       'foo',
       class {
         element?: SimpleElement;
@@ -44,7 +44,7 @@ class ModifierTests extends RenderTest {
       }
     );
 
-    this.render('{{#if this.ok}}<div data-ok=true {{foo this.bar}}></div>{{/if}}', {
+    this.render.template('{{#if this.ok}}<div data-ok=true {{foo this.bar}}></div>{{/if}}', {
       bar: 'bar',
       ok: true,
     });
@@ -55,7 +55,7 @@ class ModifierTests extends RenderTest {
 
   @test
   'didUpdate is not called when params are constants'(assert: Assert, count: Count) {
-    this.registerModifier(
+    this.register.modifier(
       'foo',
       class {
         element?: SimpleElement;
@@ -73,7 +73,7 @@ class ModifierTests extends RenderTest {
       }
     );
 
-    this.render('{{#if this.ok}}<div {{foo "foo" bar="baz"}}></div>{{/if}}{{this.ok}}', {
+    this.render.template('{{#if this.ok}}<div {{foo "foo" bar="baz"}}></div>{{/if}}{{this.ok}}', {
       ok: true,
       data: 'ok',
     });
@@ -95,9 +95,9 @@ class ModifierTests extends RenderTest {
         modifiedElement = this.element;
       }
     }
-    this.registerComponent('Glimmer', 'TheFoo', '<div id="inner-div" ...attributes>Foo</div>');
-    this.registerModifier('bar', Bar);
-    this.render('<TheFoo {{bar "something" foo="else"}}/>');
+    this.register.component('Glimmer', 'TheFoo', '<div id="inner-div" ...attributes>Foo</div>');
+    this.register.modifier('bar', Bar);
+    this.render.template('<TheFoo {{bar "something" foo="else"}}/>');
     assert.deepEqual(modifierParams, ['something']);
     assert.deepEqual(modifierNamedArgs, { foo: 'else' });
     assert.strictEqual(
@@ -121,13 +121,13 @@ class ModifierTests extends RenderTest {
         }
       }
     }
-    this.registerComponent(
+    this.register.component(
       'Glimmer',
       'TheFoo',
       '<div id="inner-one" ...attributes>Foo</div><div id="inner-two" ...attributes>Bar</div>'
     );
-    this.registerModifier('bar', Bar);
-    this.render('<TheFoo {{bar "something" foo="else"}}/>');
+    this.register.modifier('bar', Bar);
+    this.render.template('<TheFoo {{bar "something" foo="else"}}/>');
     assert.deepEqual(
       elementIds,
       ['inner-one', 'inner-two'],
@@ -152,9 +152,9 @@ class ModifierTests extends RenderTest {
         modifiedElement = this.element;
       }
     }
-    this.registerComponent('Glimmer', 'TheFoo', '<div id="inner-div" ...attributes>Foo</div>');
-    this.registerModifier('bar', Bar);
-    this.render('<TheFoo {{bar this.something foo=this.foo}}/>', {
+    this.register.component('Glimmer', 'TheFoo', '<div id="inner-div" ...attributes>Foo</div>');
+    this.register.modifier('bar', Bar);
+    this.render.template('<TheFoo {{bar this.something foo=this.foo}}/>', {
       something: 'something',
       foo: 'else',
     });
@@ -196,9 +196,9 @@ class ModifierTests extends RenderTest {
     }
     let context = { id: 1 };
     let context2 = { id: 2 };
-    this.registerComponent('Glimmer', 'TheFoo', '<div id="inner-div" ...attributes>Foo</div>');
-    this.registerModifier('bar', Bar);
-    this.render('<TheFoo {{bar "name" this foo=this}}/>', context);
+    this.register.component('Glimmer', 'TheFoo', '<div id="inner-div" ...attributes>Foo</div>');
+    this.register.modifier('bar', Bar);
+    this.render.template('<TheFoo {{bar "name" this foo=this}}/>', context);
     assert.deepEqual(modifierParams, ['name', context]);
     assert.deepEqual(modifierNamedArgs, { foo: context });
     assert.strictEqual(
@@ -235,9 +235,9 @@ class ModifierTests extends RenderTest {
         modifiedElement = this.element;
       }
     }
-    this.registerComponent('Glimmer', 'TheFoo', '<div id="inner-div" ...attributes>Foo</div>');
-    this.registerModifier('bar', Bar);
-    this.render(
+    this.register.component('Glimmer', 'TheFoo', '<div id="inner-div" ...attributes>Foo</div>');
+    this.register.modifier('bar', Bar);
+    this.render.template(
       `
       {{#let this.foo as |v|}}
         <TheFoo {{bar v foo=v}}/>
@@ -277,18 +277,18 @@ class ModifierTests extends RenderTest {
         }
       }
     }
-    this.registerComponent(
+    this.register.component(
       'Glimmer',
       'TheInner',
       '<div id="inner-div" ...attributes>{{yield}}</div>'
     );
-    this.registerComponent(
+    this.register.component(
       'Glimmer',
       'TheFoo',
       '<div id="outer-div" ...attributes>Outer</div><TheInner ...attributes>Hello</TheInner>'
     );
-    this.registerModifier('bar', Bar);
-    this.render(
+    this.register.modifier('bar', Bar);
+    this.render.template(
       `
       {{#let this.foo as |v|}}
         <TheFoo {{bar v foo=v}}/>
@@ -316,10 +316,10 @@ class ModifierTests extends RenderTest {
         insertionOrder.push('bar');
       }
     }
-    this.registerModifier('bar', Bar);
-    this.registerModifier('foo', Foo);
+    this.register.modifier('bar', Bar);
+    this.register.modifier('foo', Foo);
 
-    this.render('<div {{foo}} {{bar}}></div>');
+    this.render.template('<div {{foo}} {{bar}}></div>');
     assert.deepEqual(insertionOrder, ['foo', 'bar']);
   }
 
@@ -338,10 +338,10 @@ class ModifierTests extends RenderTest {
         destructionOrder.push('bar');
       }
     }
-    this.registerModifier('bar', Bar);
-    this.registerModifier('foo', Foo);
+    this.register.modifier('bar', Bar);
+    this.register.modifier('foo', Foo);
 
-    this.render('{{#if this.nuke}}<div {{foo}} {{bar}}></div>{{/if}}', { nuke: true });
+    this.render.template('{{#if this.nuke}}<div {{foo}} {{bar}}></div>{{/if}}', { nuke: true });
     assert.deepEqual(destructionOrder, []);
     this.rerender({ nuke: false });
     assert.deepEqual(destructionOrder, ['foo', 'bar']);
@@ -362,10 +362,10 @@ class ModifierTests extends RenderTest {
         insertionOrder.push('bar');
       }
     }
-    this.registerModifier('bar', Bar);
-    this.registerModifier('foo', Foo);
+    this.register.modifier('bar', Bar);
+    this.register.modifier('foo', Foo);
 
-    this.render('<div {{foo}}><div {{bar}}></div></div>');
+    this.render.template('<div {{foo}}><div {{bar}}></div></div>');
     assert.deepEqual(insertionOrder, ['bar', 'foo']);
   }
 
@@ -384,10 +384,10 @@ class ModifierTests extends RenderTest {
         destructionOrder.push('bar');
       }
     }
-    this.registerModifier('bar', Bar);
-    this.registerModifier('foo', Foo);
+    this.register.modifier('bar', Bar);
+    this.register.modifier('foo', Foo);
 
-    this.render('{{#if this.nuke}}<div {{foo}}><div {{bar}}></div></div>{{/if}}', { nuke: true });
+    this.render.template('{{#if this.nuke}}<div {{foo}}><div {{bar}}></div></div>{{/if}}', { nuke: true });
     assert.deepEqual(destructionOrder, []);
     this.rerender({ nuke: false });
     assert.deepEqual(destructionOrder, ['bar', 'foo']);
@@ -414,11 +414,11 @@ class ModifierTests extends RenderTest {
         insertionOrder.push('baz');
       }
     }
-    this.registerModifier('bar', Bar);
-    this.registerModifier('foo', Foo);
-    this.registerModifier('baz', Baz);
+    this.register.modifier('bar', Bar);
+    this.register.modifier('foo', Foo);
+    this.register.modifier('baz', Baz);
 
-    this.render('<div {{foo}}><div {{bar}}></div><div {{baz}}></div></div>');
+    this.render.template('<div {{foo}}><div {{bar}}></div><div {{baz}}></div></div>');
     assert.deepEqual(insertionOrder, ['bar', 'baz', 'foo']);
   }
 
@@ -443,11 +443,11 @@ class ModifierTests extends RenderTest {
         destructionOrder.push('baz');
       }
     }
-    this.registerModifier('bar', Bar);
-    this.registerModifier('foo', Foo);
-    this.registerModifier('baz', Baz);
+    this.register.modifier('bar', Bar);
+    this.register.modifier('foo', Foo);
+    this.register.modifier('baz', Baz);
 
-    this.render(
+    this.render.template(
       '{{#if this.nuke}}<div {{foo}}><div {{bar}}></div><div {{baz}}></div></div>{{/if}}',
       {
         nuke: true,
@@ -470,8 +470,8 @@ class ModifierTests extends RenderTest {
         assert.strictEqual(foo, 'foo');
       }
     }
-    this.registerModifier('foo', Foo);
-    this.render('<div {{foo this.bar}}></div>', { bar: 'bar' });
+    this.register.modifier('foo', Foo);
+    this.render.template('<div {{foo this.bar}}></div>', { bar: 'bar' });
     this.rerender({ bar: 'foo' });
   }
 
@@ -487,8 +487,8 @@ class ModifierTests extends RenderTest {
         assert.strictEqual(bar, 'foo');
       }
     }
-    this.registerModifier('foo', Foo);
-    this.render('<div {{foo bar=this.bar}}></div>', { bar: 'bar' });
+    this.register.modifier('foo', Foo);
+    this.render.template('<div {{foo bar=this.bar}}></div>', { bar: 'bar' });
     this.rerender({ bar: 'foo' });
   }
 
@@ -506,8 +506,8 @@ class ModifierTests extends RenderTest {
         assert.strictEqual(foo, 'foo');
       }
     }
-    this.registerModifier('foo', Foo);
-    this.render('<div {{foo this.baz bar=this.bar}}></div>', { bar: 'bar', baz: 'baz' });
+    this.register.modifier('foo', Foo);
+    this.render.template('<div {{foo this.baz bar=this.bar}}></div>', { bar: 'bar', baz: 'baz' });
     this.rerender({ bar: 'foo', baz: 'foo' });
   }
 }

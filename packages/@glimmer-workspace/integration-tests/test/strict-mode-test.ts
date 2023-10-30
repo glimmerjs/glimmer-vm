@@ -22,7 +22,7 @@ class GeneralStrictModeTest extends RenderTest {
     const plusOne = defineSimpleHelper((value = 0) => value + 1);
     const Bar = defineComponent({ plusOne }, '{{(plusOne)}}');
 
-    this.renderComponent(Bar);
+    this.render.component(Bar);
     this.assertHTML('1');
     this.assertStableRerender();
   }
@@ -33,18 +33,18 @@ class GeneralStrictModeTest extends RenderTest {
     const Foo = defineComponent({}, '{{@value}}');
     const Bar = defineComponent({ plusOne, Foo }, '<Foo @value={{(plusOne)}}/>');
 
-    this.renderComponent(Bar);
+    this.render.component(Bar);
     this.assertHTML('1');
     this.assertStableRerender();
   }
 
   @test
   'Can call helper in argument position as subexpression in non-strict template (cross-compat test)'() {
-    this.registerHelper('plusOne', () => 'Hello, world!');
-    this.registerComponent('TemplateOnly', 'Foo', '{{@value}}');
-    this.registerComponent('TemplateOnly', 'Bar', '<Foo @value={{(plusOne)}}/>');
+    this.register.helper('plusOne', () => 'Hello, world!');
+    this.register.component('TemplateOnly', 'Foo', '{{@value}}');
+    this.register.component('TemplateOnly', 'Bar', '<Foo @value={{(plusOne)}}/>');
 
-    this.render('<Bar/>');
+    this.render.template('<Bar/>');
     this.assertHTML('Hello, world!');
     this.assertStableRerender();
   }
@@ -55,7 +55,7 @@ class GeneralStrictModeTest extends RenderTest {
     const Foo = defineComponent({}, '{{@value}}');
     const Bar = defineComponent({ plusOne, Foo }, '<Foo @value={{(plusOne 1)}}/>');
 
-    this.renderComponent(Bar);
+    this.render.component(Bar);
     this.assertHTML('2');
     this.assertStableRerender();
   }
@@ -66,7 +66,7 @@ class GeneralStrictModeTest extends RenderTest {
     const Foo = defineComponent({}, '{{@value}}');
     const Bar = defineComponent({ plusOne, Foo }, '<Foo @value={{plusOne 1}}/>');
 
-    this.renderComponent(Bar);
+    this.render.component(Bar);
     this.assertHTML('2');
     this.assertStableRerender();
   }
@@ -80,7 +80,7 @@ class GeneralStrictModeTest extends RenderTest {
     });
 
     this.assert.throws(() => {
-      this.renderComponent(Foo);
+      this.render.component(Foo);
     }, /Attempted to resolve a value in a strict mode template, but that value was not in scope: bar/u);
   }
 
@@ -100,7 +100,7 @@ class GeneralStrictModeTest extends RenderTest {
     });
 
     this.assert.throws(() => {
-      this.renderComponent(Foo);
+      this.render.component(Foo);
     }, /Error: Attempted to resolve a dynamic component with a string definition, `bar` in a strict mode template. In strict mode, using strings to resolve component definitions is prohibited. You can instead import the component definition and use it directly./u);
   }
 
@@ -121,7 +121,7 @@ class GeneralStrictModeTest extends RenderTest {
 
     let args = trackedObj({ Bar });
 
-    this.renderComponent(Foo, args);
+    this.render.component(Foo, args);
     this.assertHTML('Hello, world!');
     this.assertStableRerender();
 
@@ -148,7 +148,7 @@ class GeneralStrictModeTest extends RenderTest {
     });
 
     this.assert.throws(() => {
-      this.renderComponent(Foo);
+      this.render.component(Foo);
     }, /Error: Attempted to resolve a dynamic component with a string definition, `bar` in a strict mode template. In strict mode, using strings to resolve component definitions is prohibited. You can instead import the component definition and use it directly./u);
   }
 
@@ -160,7 +160,7 @@ class GeneralStrictModeTest extends RenderTest {
 
     let args = trackedObj({ Bar });
 
-    this.renderComponent(Foo, args);
+    this.render.component(Foo, args);
     this.assertHTML('Hello, world!');
     this.assertStableRerender();
 
@@ -187,7 +187,7 @@ class GeneralStrictModeTest extends RenderTest {
     });
 
     this.assert.throws(() => {
-      this.renderComponent(Bar);
+      this.render.component(Bar);
     }, /Error: Attempted to resolve a dynamic component with a string definition, `bar` in a strict mode template. In strict mode, using strings to resolve component definitions is prohibited. You can instead import the component definition and use it directly./u);
   }
 
@@ -199,7 +199,7 @@ class GeneralStrictModeTest extends RenderTest {
 
     let args = trackedObj({ Bar });
 
-    this.renderComponent(Foo, args);
+    this.render.component(Foo, args);
     this.assertHTML('Hello, world!');
     this.assertStableRerender();
 
@@ -212,12 +212,12 @@ class GeneralStrictModeTest extends RenderTest {
 
   @test
   'works with a curried string component defined in a resolution mode component'() {
-    this.registerComponent('TemplateOnly', 'Hello', 'Hello, world!');
+    this.register.component('TemplateOnly', 'Hello', 'Hello, world!');
 
     const Foo = defineComponent(null, '{{component "Hello"}}');
     const Bar = defineComponent({ Foo }, '<Foo/>');
 
-    this.renderComponent(Bar);
+    this.render.component(Bar);
     this.assertHTML('Hello, world!');
     this.assertStableRerender();
   }
@@ -231,7 +231,7 @@ class StaticStrictModeTest extends RenderTest {
     const Foo = defineComponent({}, 'Hello, world!');
     const Bar = defineComponent({ Foo }, '<Foo/>');
 
-    this.renderComponent(Bar);
+    this.render.component(Bar);
     this.assertHTML('Hello, world!');
     this.assertStableRerender();
   }
@@ -241,7 +241,7 @@ class StaticStrictModeTest extends RenderTest {
     const foo = defineSimpleHelper(() => 'Hello, world!');
     const Bar = defineComponent({ foo }, '{{foo}}');
 
-    this.renderComponent(Bar);
+    this.render.component(Bar);
     this.assertHTML('Hello, world!');
     this.assertStableRerender();
   }
@@ -251,7 +251,7 @@ class StaticStrictModeTest extends RenderTest {
     const foo = defineSimpleHelper((value: string) => value);
     const Bar = defineComponent({ foo }, '{{foo "Hello, world!"}}');
 
-    this.renderComponent(Bar);
+    this.render.component(Bar);
     this.assertHTML('Hello, world!');
     this.assertStableRerender();
   }
@@ -262,7 +262,7 @@ class StaticStrictModeTest extends RenderTest {
     const bar = defineSimpleHelper((value: string) => value);
     const Baz = defineComponent({ foo, bar }, '{{bar (foo)}}');
 
-    this.renderComponent(Baz);
+    this.render.component(Baz);
     this.assertHTML('Hello, world!');
     this.assertStableRerender();
   }
@@ -272,7 +272,7 @@ class StaticStrictModeTest extends RenderTest {
     const foo = defineSimpleModifier((element: Element) => (element.innerHTML = 'Hello, world!'));
     const Bar = defineComponent({ foo }, '<div {{foo}}></div>');
 
-    this.renderComponent(Bar);
+    this.render.component(Bar);
     this.assertHTML('<div>Hello, world!</div>');
     this.assertStableRerender();
   }
@@ -282,7 +282,7 @@ class StaticStrictModeTest extends RenderTest {
     const ifComponent = defineComponent({}, 'Hello, world!');
     const Bar = defineComponent({ if: ifComponent }, '{{#if}}{{/if}}');
 
-    this.renderComponent(Bar);
+    this.render.component(Bar);
     this.assertHTML('Hello, world!');
     this.assertStableRerender();
   }
@@ -293,7 +293,7 @@ class StaticStrictModeTest extends RenderTest {
     const Foo = defineComponent({}, '{{yield "Hello"}}');
     const Bar = defineComponent({ Foo, place }, '<Foo as |hi|>{{hi}}, {{place}}!</Foo>');
 
-    this.renderComponent(Bar);
+    this.render.component(Bar);
     this.assertHTML('Hello, world!');
     this.assertStableRerender();
   }
@@ -303,7 +303,7 @@ class StaticStrictModeTest extends RenderTest {
     const foo = defineComponent({}, 'Hello, world!');
     const bar = defineComponent({ foo }, '{{foo}}');
 
-    this.renderComponent(bar);
+    this.render.component(bar);
     this.assertHTML('Hello, world!');
     this.assertStableRerender();
   }
@@ -313,7 +313,7 @@ class StaticStrictModeTest extends RenderTest {
     const foo = defineComponent({}, '{{@value}}');
     const bar = defineComponent({ foo }, '{{foo value="Hello, world!"}}');
 
-    this.renderComponent(bar);
+    this.render.component(bar);
     this.assertHTML('Hello, world!');
     this.assertStableRerender();
   }
@@ -324,7 +324,7 @@ class StaticStrictModeTest extends RenderTest {
 
     const Foo = defineComponent({ value }, '{{value}}');
 
-    this.renderComponent(Foo);
+    this.render.component(Foo);
     this.assertHTML('Hello, world!');
     this.assertStableRerender();
   }
@@ -336,7 +336,7 @@ class StaticStrictModeTest extends RenderTest {
     const foo = defineSimpleHelper((value: unknown) => value);
     const Bar = defineComponent({ foo, value }, '{{foo value}}');
 
-    this.renderComponent(Bar);
+    this.render.component(Bar);
     this.assertHTML('Hello, world!');
     this.assertStableRerender();
   }
@@ -348,7 +348,7 @@ class StaticStrictModeTest extends RenderTest {
     const Foo = defineComponent({}, '{{@value}}');
     const Bar = defineComponent({ Foo, value }, '<Foo @value={{value}}/>');
 
-    this.renderComponent(Bar);
+    this.render.component(Bar);
     this.assertHTML('Hello, world!');
     this.assertStableRerender();
   }
@@ -358,7 +358,7 @@ class StaticStrictModeTest extends RenderTest {
     const Foo = defineComponent({}, '{{@value}}');
     const Bar = defineComponent({ Foo }, '{{component Foo value="Hello, world!"}}');
 
-    this.renderComponent(Bar);
+    this.render.component(Bar);
     this.assertHTML('Hello, world!');
     this.assertStableRerender();
   }
@@ -372,16 +372,25 @@ class StaticStrictModeTest extends RenderTest {
       '<Bar @Baz={{component Foo value="Hello, world!"}}/>'
     );
 
-    this.renderComponent(Baz);
+    this.render.component(Baz);
     this.assertHTML('Hello, world!');
     this.assertStableRerender();
   }
 
   @test
   'Throws an error if component is not in scope'() {
-    this.assert.throws(() => {
-      defineComponent({}, '<Foo/>');
-    }, syntaxErrorFor('Attempted to invoke a component that was not in scope in a strict mode template, `<Foo>`. If you wanted to create an element with that name, convert it to lowercase - `<foo>`', '<Foo/>', 'an unknown module', 1, 0));
+    this.assert.throws(
+      () => {
+        defineComponent({}, '<Foo/>');
+      },
+      syntaxErrorFor(
+        'Attempted to invoke a component that was not in scope in a strict mode template, `<Foo>`. If you wanted to create an element with that name, convert it to lowercase - `<foo>`',
+        '<Foo/>',
+        'an unknown module',
+        1,
+        0
+      )
+    );
   }
 
   @test
@@ -389,7 +398,7 @@ class StaticStrictModeTest extends RenderTest {
     const Bar = defineComponent({}, '{{foo}}');
 
     this.assert.throws(() => {
-      this.renderComponent(Bar);
+      this.render.component(Bar);
     }, /Attempted to resolve a value in a strict mode template, but that value was not in scope: foo/u);
   }
 
@@ -398,7 +407,7 @@ class StaticStrictModeTest extends RenderTest {
     const Bar = defineComponent({}, '{{foo "bar"}}');
 
     this.assert.throws(() => {
-      this.renderComponent(Bar);
+      this.render.component(Bar);
     }, /Attempted to resolve a component or helper in a strict mode template, but that value was not in scope: foo/u);
   }
 
@@ -408,7 +417,7 @@ class StaticStrictModeTest extends RenderTest {
     const Bar = defineComponent({ Foo }, '<Foo @foo={{bar}}/>');
 
     this.assert.throws(() => {
-      this.renderComponent(Bar);
+      this.render.component(Bar);
     }, /Attempted to resolve a value in a strict mode template, but that value was not in scope: bar/u);
   }
 
@@ -418,7 +427,7 @@ class StaticStrictModeTest extends RenderTest {
     const Bar = defineComponent({ Foo }, '<Foo @foo={{bar "aoeu"}}/>');
 
     this.assert.throws(() => {
-      this.renderComponent(Bar);
+      this.render.component(Bar);
     }, /Attempted to resolve a helper in a strict mode template, but that value was not in scope: bar/u);
   }
 
@@ -428,70 +437,70 @@ class StaticStrictModeTest extends RenderTest {
     const Bar = defineComponent({ foo }, '{{foo (bar)}}');
 
     this.assert.throws(() => {
-      this.renderComponent(Bar);
+      this.render.component(Bar);
     }, /Attempted to resolve a helper in a strict mode template, but that value was not in scope: bar/u);
   }
 
   @test
   'Throws an error if value in append position is not in scope, and component is registered'() {
-    this.registerComponent('TemplateOnly', 'foo', 'Hello, world!');
+    this.register.component('TemplateOnly', 'foo', 'Hello, world!');
     const Bar = defineComponent({}, '{{foo}}');
 
     this.assert.throws(() => {
-      this.renderComponent(Bar);
+      this.render.component(Bar);
     }, /Attempted to resolve a value in a strict mode template, but that value was not in scope: foo/u);
   }
 
   @test
   'Throws an error if value in append position is not in scope, and helper is registered'() {
-    this.registerHelper('foo', () => 'Hello, world!');
+    this.register.helper('foo', () => 'Hello, world!');
     const Bar = defineComponent({}, '{{foo}}');
 
     this.assert.throws(() => {
-      this.renderComponent(Bar);
+      this.render.component(Bar);
     }, /Attempted to resolve a value in a strict mode template, but that value was not in scope: foo/u);
   }
 
   @test
   'Throws an error if component or helper in append position is not in scope, and helper is registered'() {
-    this.registerHelper('foo', () => 'Hello, world!');
+    this.register.helper('foo', () => 'Hello, world!');
     const Bar = defineComponent({}, '{{foo "bar"}}');
 
     this.assert.throws(() => {
-      this.renderComponent(Bar);
+      this.render.component(Bar);
     }, /Attempted to resolve a component or helper in a strict mode template, but that value was not in scope: foo/u);
   }
 
   @test
   'Throws an error if a value in argument position is not in scope, and helper is registered'() {
-    this.registerHelper('bar', () => 'Hello, world!');
+    this.register.helper('bar', () => 'Hello, world!');
     const Foo = defineComponent({}, '{{@foo}}');
     const Bar = defineComponent({ Foo }, '<Foo @foo={{bar}}/>');
 
     this.assert.throws(() => {
-      this.renderComponent(Bar);
+      this.render.component(Bar);
     }, /Attempted to resolve a value in a strict mode template, but that value was not in scope: bar/u);
   }
 
   @test
   'Throws an error if helper in argument position (with args) is not in scope, and helper is registered'() {
-    this.registerHelper('bar', () => 'Hello, world!');
+    this.register.helper('bar', () => 'Hello, world!');
     const Foo = defineComponent({}, '{{@foo}}');
     const Bar = defineComponent({ Foo }, '<Foo @foo={{bar "aoeu"}}/>');
 
     this.assert.throws(() => {
-      this.renderComponent(Bar);
+      this.render.component(Bar);
     }, /Attempted to resolve a helper in a strict mode template, but that value was not in scope: bar/u);
   }
 
   @test
   'Throws an error if helper in subexpression position is not in scope, and helper is registered'() {
-    this.registerHelper('bar', () => 'Hello, world!');
+    this.register.helper('bar', () => 'Hello, world!');
     const foo = defineSimpleHelper((value: string) => value);
     const Bar = defineComponent({ foo }, '{{foo (bar)}}');
 
     this.assert.throws(() => {
-      this.renderComponent(Bar);
+      this.render.component(Bar);
     }, /Attempted to resolve a helper in a strict mode template, but that value was not in scope: bar/u);
   }
 
@@ -500,17 +509,17 @@ class StaticStrictModeTest extends RenderTest {
     const Bar = defineComponent({}, '<div {{foo}}></div>');
 
     this.assert.throws(() => {
-      this.renderComponent(Bar);
+      this.render.component(Bar);
     }, /Attempted to resolve a modifier in a strict mode template, but it was not in scope: foo/u);
   }
 
   @test
   'Throws an error if modifier is not in scope, and modifier is registred'() {
-    this.registerModifier('name', class {});
+    this.register.modifier('name', class {});
     const Bar = defineComponent({}, '<div {{foo}}></div>');
 
     this.assert.throws(() => {
-      this.renderComponent(Bar);
+      this.render.component(Bar);
     }, /Attempted to resolve a modifier in a strict mode template, but it was not in scope: foo/u);
   }
 
@@ -520,7 +529,7 @@ class StaticStrictModeTest extends RenderTest {
     const Bar = defineComponent({ Foo }, '<Foo/>');
 
     this.assert.throws(() => {
-      this.renderComponent(Bar);
+      this.render.component(Bar);
     }, /Attempted to load a component, but there wasn't a component manager associated with the definition. The definition was:/u);
   }
 
@@ -530,7 +539,7 @@ class StaticStrictModeTest extends RenderTest {
     const Bar = defineComponent({ foo }, '{{#if (foo)}}{{/if}}');
 
     this.assert.throws(() => {
-      this.renderComponent(Bar);
+      this.render.component(Bar);
     }, /Attempted to load a helper, but there wasn't a helper manager associated with the definition. The definition was:/u);
   }
 
@@ -540,7 +549,7 @@ class StaticStrictModeTest extends RenderTest {
     const Bar = defineComponent({ foo }, '<div {{foo}}></div>');
 
     this.assert.throws(() => {
-      this.renderComponent(Bar);
+      this.render.component(Bar);
     }, /Attempted to load a modifier, but there wasn't a modifier manager associated with the definition. The definition was:/u);
   }
 }
@@ -557,7 +566,7 @@ class DynamicStrictModeTest extends RenderTest {
       },
     });
 
-    this.renderComponent(Bar);
+    this.render.component(Bar);
     this.assertHTML('Hello, world!');
     this.assertStableRerender();
   }
@@ -571,7 +580,7 @@ class DynamicStrictModeTest extends RenderTest {
       },
     });
 
-    this.renderComponent(Bar);
+    this.render.component(Bar);
     this.assertHTML('Hello, world!');
     this.assertStableRerender();
   }
@@ -585,7 +594,7 @@ class DynamicStrictModeTest extends RenderTest {
       },
     });
 
-    this.renderComponent(Bar);
+    this.render.component(Bar);
     this.assertHTML('Hello, world!');
     this.assertStableRerender();
   }
@@ -599,7 +608,7 @@ class DynamicStrictModeTest extends RenderTest {
       },
     });
 
-    this.renderComponent(Bar);
+    this.render.component(Bar);
     this.assertHTML('Hello, world!');
     this.assertStableRerender();
   }
@@ -613,7 +622,7 @@ class DynamicStrictModeTest extends RenderTest {
       },
     });
 
-    this.renderComponent(Bar);
+    this.render.component(Bar);
     this.assertHTML('Hello, world!');
     this.assertStableRerender();
   }
@@ -627,7 +636,7 @@ class DynamicStrictModeTest extends RenderTest {
       },
     });
 
-    this.renderComponent(Bar);
+    this.render.component(Bar);
     this.assertHTML('Hello, world!');
     this.assertStableRerender();
   }
@@ -641,7 +650,7 @@ class DynamicStrictModeTest extends RenderTest {
       },
     });
 
-    this.renderComponent(Bar);
+    this.render.component(Bar);
     this.assertHTML('Hello, world!');
     this.assertStableRerender();
   }
@@ -655,7 +664,7 @@ class DynamicStrictModeTest extends RenderTest {
       },
     });
 
-    this.renderComponent(Bar);
+    this.render.component(Bar);
     this.assertHTML('Hello, world!');
     this.assertStableRerender();
   }
@@ -670,7 +679,7 @@ class DynamicStrictModeTest extends RenderTest {
       },
     });
 
-    this.renderComponent(Bar);
+    this.render.component(Bar);
     this.assertHTML('Hello, world!');
     this.assertStableRerender();
   }
@@ -685,7 +694,7 @@ class DynamicStrictModeTest extends RenderTest {
       },
     });
 
-    this.renderComponent(Bar);
+    this.render.component(Bar);
     this.assertHTML('Hello, world!');
     this.assertStableRerender();
   }
@@ -696,7 +705,7 @@ class DynamicStrictModeTest extends RenderTest {
       definition: class extends GlimmerishComponent {},
     });
 
-    this.renderComponent(Bar);
+    this.render.component(Bar);
     this.assertHTML('');
     this.assertStableRerender();
   }
@@ -726,7 +735,7 @@ class DynamicStrictModeTest extends RenderTest {
     const Foo = defineComponent({}, '{{@helper}}');
     let args = trackedObj({ helper: Helper1 });
 
-    this.renderComponent(Foo, args);
+    this.render.component(Foo, args);
     this.assertHTML('Hello, world!');
     this.assertStableRerender();
 
@@ -771,7 +780,7 @@ class DynamicStrictModeTest extends RenderTest {
     const Bar = defineComponent({ Foo }, '<Foo @helper={{helper @helper "world"}}/>');
     let args = trackedObj({ helper: Helper1 });
 
-    this.renderComponent(Bar, args);
+    this.render.component(Bar, args);
     this.assertHTML('Hello, world!');
     this.assertStableRerender();
 
@@ -799,7 +808,7 @@ class DynamicStrictModeTest extends RenderTest {
       },
     });
 
-    this.renderComponent(Bar);
+    this.render.component(Bar);
     this.assertHTML('<div>Hello, world!</div>');
     this.assertStableRerender();
   }
@@ -810,7 +819,7 @@ class DynamicStrictModeTest extends RenderTest {
     const Foo = defineComponent({}, '<div {{@value}}></div>');
     const Bar = defineComponent({ foo, Foo }, '<Foo @value={{foo}}/>');
 
-    this.renderComponent(Bar);
+    this.render.component(Bar);
     this.assertHTML('<div>Hello, world!</div>');
     this.assertStableRerender();
   }
@@ -823,7 +832,7 @@ class DynamicStrictModeTest extends RenderTest {
     const Foo = defineComponent({}, '<div {{@value "Hello, world!"}}></div>');
     const Bar = defineComponent({ foo, Foo }, '<Foo @value={{foo}}/>');
 
-    this.renderComponent(Bar);
+    this.render.component(Bar);
     this.assertHTML('<div>Hello, world!</div>');
     this.assertStableRerender();
   }
@@ -837,7 +846,7 @@ class DynamicStrictModeTest extends RenderTest {
     const Foo = defineComponent({}, '<div {{@value greeting="Hello, world!"}}></div>');
     const Bar = defineComponent({ foo, Foo }, '<Foo @value={{foo}}/>');
 
-    this.renderComponent(Bar);
+    this.render.component(Bar);
     this.assertHTML('<div>Hello, world!</div>');
     this.assertStableRerender();
   }
@@ -850,7 +859,7 @@ class DynamicStrictModeTest extends RenderTest {
     const Foo = defineComponent({}, '<div {{@value}}></div>');
     const Bar = defineComponent({ foo, Foo }, '<Foo @value={{modifier foo "Hello, world!"}}/>');
 
-    this.renderComponent(Bar);
+    this.render.component(Bar);
     this.assertHTML('<div>Hello, world!</div>');
     this.assertStableRerender();
   }
@@ -863,7 +872,7 @@ class DynamicStrictModeTest extends RenderTest {
     const Foo = defineComponent({}, '<div {{@value "world!"}}></div>');
     const Bar = defineComponent({ foo, Foo }, '<Foo @value={{modifier foo "Hello,"}}/>');
 
-    this.renderComponent(Bar);
+    this.render.component(Bar);
     this.assertHTML('<div>Hello, world!</div>');
     this.assertStableRerender();
   }
@@ -877,7 +886,7 @@ class DynamicStrictModeTest extends RenderTest {
     const Bar = defineComponent({ Foo }, '<Foo @value={{modifier @value "two"}}/>');
     const Baz = defineComponent({ foo, Bar }, '<Bar @value={{modifier foo "one"}}/>');
 
-    this.renderComponent(Baz);
+    this.render.component(Baz);
     this.assertHTML('<div>one two three</div>');
     this.assertStableRerender();
   }
@@ -894,7 +903,7 @@ class DynamicStrictModeTest extends RenderTest {
       '<Foo @value={{modifier foo greeting="Hello, world!"}}/>'
     );
 
-    this.renderComponent(Bar);
+    this.render.component(Bar);
     this.assertHTML('<div>Hello, Nebula!</div>');
     this.assertStableRerender();
   }
@@ -913,7 +922,7 @@ class DynamicStrictModeTest extends RenderTest {
     );
     const Baz = defineComponent({ foo, Bar }, '<Bar @value={{modifier foo greeting="Hola,"}}/>');
 
-    this.renderComponent(Baz);
+    this.render.component(Baz);
     this.assertHTML('<div>Hello, Nebula!</div>');
     this.assertStableRerender();
   }
@@ -925,7 +934,7 @@ class DynamicStrictModeTest extends RenderTest {
     const Foo = defineComponent({}, '<div {{@x.foo}}></div>');
     const Bar = defineComponent({ Foo, x }, '<Foo @x={{x}}/>');
 
-    this.renderComponent(Bar);
+    this.render.component(Bar);
     this.assertHTML('<div>Hello, world!</div>');
     this.assertStableRerender();
   }
@@ -936,7 +945,7 @@ class DynamicStrictModeTest extends RenderTest {
       definition: class extends GlimmerishComponent {},
     });
 
-    this.renderComponent(Bar);
+    this.render.component(Bar);
     this.assertHTML('<div></div>');
     this.assertStableRerender();
   }
@@ -962,7 +971,7 @@ class DynamicStrictModeTest extends RenderTest {
     const Foo = defineComponent({}, '<div {{@modifier}}></div>');
     let args = trackedObj({ modifier: modifier1 });
 
-    this.renderComponent(Foo, args);
+    this.render.component(Foo, args);
     this.assertHTML('<div>Hello, world!</div>');
     this.assertStableRerender();
 
@@ -1003,7 +1012,7 @@ class DynamicStrictModeTest extends RenderTest {
     const Bar = defineComponent({ Foo }, '<Foo @modifier={{modifier @modifier "world"}}/>');
     let args = trackedObj({ modifier: modifier1 });
 
-    this.renderComponent(Bar, args);
+    this.render.component(Bar, args);
     this.assertHTML('<div>Hello, world!</div>');
     this.assertStableRerender();
 
@@ -1023,14 +1032,15 @@ class DynamicStrictModeTest extends RenderTest {
   }
 
   @test
-  'Calling a dynamic modifier using if helper'(assert: Assert) {
-    // Make sure the destructor gets called
-    assert.expect(14);
+  'Calling a dynamic modifier using if helper'() {
+    const events = this.events;
 
     const world = defineSimpleModifier((element: Element) => {
       element.innerHTML = `Hello, world!`;
 
-      return () => assert.ok(true, 'destructor called');
+      return () => {
+        events.record('destructor');
+      };
     });
     const nebula = defineSimpleModifier(
       (element: Element, [name]: string[]) => (element.innerHTML = `Hello, ${name}!`)
@@ -1043,19 +1053,22 @@ class DynamicStrictModeTest extends RenderTest {
 
     let args = trackedObj({ inSpace: false, name: 'Nebula' });
 
-    this.renderComponent(Bar, args);
+    this.render.component(Bar, args);
     this.assertHTML('<div>Hello, world!</div>');
     this.assertStableRerender();
+    this.events.expect([]);
 
     args['inSpace'] = true;
     this.rerender();
     this.assertHTML('<div>Hello, Nebula!</div>');
     this.assertStableRerender();
+    this.events.expect(['destructor']);
 
     args['name'] = 'Luna';
     this.rerender();
     this.assertHTML('<div>Hello, Luna!</div>');
     this.assertStableRerender();
+    this.events.expect([]);
   }
 
   @test
@@ -1068,7 +1081,7 @@ class DynamicStrictModeTest extends RenderTest {
     });
 
     this.assert.throws(() => {
-      this.renderComponent(Bar);
+      this.render.component(Bar);
     }, /Expected a dynamic modifier definition, but received an object or function that did not have a modifier manager associated with it. The dynamic invocation was `\{\{this.foo\}\}`, and the incorrect definition is the value at the path `this.foo`, which was:/u);
   }
 
@@ -1078,7 +1091,7 @@ class DynamicStrictModeTest extends RenderTest {
     const x = { Foo };
     const Bar = defineComponent({ x }, '<x.Foo/>');
 
-    this.renderComponent(Bar);
+    this.render.component(Bar);
     this.assertHTML('Hello, world!');
     this.assertStableRerender();
   }
@@ -1089,7 +1102,7 @@ class DynamicStrictModeTest extends RenderTest {
     const x = { foo };
     const Bar = defineComponent({ x }, '{{x.foo}}');
 
-    this.renderComponent(Bar);
+    this.render.component(Bar);
     this.assertHTML('Hello, world!');
     this.assertStableRerender();
   }
@@ -1100,7 +1113,7 @@ class DynamicStrictModeTest extends RenderTest {
     const x = { foo };
     const Bar = defineComponent({ x }, '<div {{x.foo}}></div>');
 
-    this.renderComponent(Bar);
+    this.render.component(Bar);
     this.assertHTML('<div>Hello, world!</div>');
     this.assertStableRerender();
   }
@@ -1111,7 +1124,7 @@ class DynamicStrictModeTest extends RenderTest {
     const Foo = defineComponent({}, '{{@value}}');
     const Bar = defineComponent({ Foo, x }, '<Foo @value={{x.value}}/>');
 
-    this.renderComponent(Bar);
+    this.render.component(Bar);
     this.assertHTML('Hello, world!');
     this.assertStableRerender();
   }
@@ -1121,7 +1134,7 @@ class DynamicStrictModeTest extends RenderTest {
     const x = { value: 'Hello, world!' };
     const Bar = defineComponent({ x }, '{{x.value}}');
 
-    this.renderComponent(Bar);
+    this.render.component(Bar);
     this.assertHTML('Hello, world!');
     this.assertStableRerender();
   }
@@ -1135,7 +1148,7 @@ class DynamicStrictModeTest extends RenderTest {
       },
     });
 
-    this.renderComponent(Bar);
+    this.render.component(Bar);
     this.assertHTML('Hello, world!');
     this.assertStableRerender();
   }
@@ -1154,7 +1167,7 @@ class DynamicStrictModeTest extends RenderTest {
       }
     );
 
-    this.renderComponent(Baz);
+    this.render.component(Baz);
     this.assertHTML('Hello, world!');
     this.assertStableRerender();
   }
@@ -1169,7 +1182,7 @@ class DynamicStrictModeTest extends RenderTest {
     });
 
     this.assert.throws(() => {
-      this.renderComponent(Bar);
+      this.render.component(Bar);
     }, /Expected a dynamic component definition, but received an object or function that did not have a component manager associated with it. The dynamic invocation was `<this.Foo>` or `\{\{this.Foo\}\}`, and the incorrect definition is the value at the path `this.Foo`, which was:/u);
   }
 
@@ -1179,7 +1192,7 @@ class DynamicStrictModeTest extends RenderTest {
     const Foo = defineComponent({}, '{{@value}}');
     const Bar = defineComponent({ plusOne, Foo }, '<Foo @value={{plusOne}}/>');
 
-    this.renderComponent(Bar);
+    this.render.component(Bar);
     this.assertHTML('Hello, world!');
     this.assertStableRerender();
   }
@@ -1190,7 +1203,7 @@ class DynamicStrictModeTest extends RenderTest {
     const Foo = defineComponent({}, '{{@value 123}}');
     const Bar = defineComponent({ plusOne, Foo }, '<Foo @value={{plusOne}}/>');
 
-    this.renderComponent(Bar);
+    this.render.component(Bar);
     this.assertHTML('124');
     this.assertStableRerender();
   }
@@ -1201,7 +1214,7 @@ class DynamicStrictModeTest extends RenderTest {
     const Foo = defineComponent({}, '{{@value}}');
     const Bar = defineComponent({ plusOne, Foo }, '<Foo @value={{helper plusOne 123}}/>');
 
-    this.renderComponent(Bar);
+    this.render.component(Bar);
     this.assertHTML('124');
     this.assertStableRerender();
   }
@@ -1212,7 +1225,7 @@ class DynamicStrictModeTest extends RenderTest {
     const Foo = defineComponent({}, '{{@value 2}}');
     const Bar = defineComponent({ add, Foo }, '<Foo @value={{helper add 1}}/>');
 
-    this.renderComponent(Bar);
+    this.render.component(Bar);
     this.assertHTML('3');
     this.assertStableRerender();
   }
@@ -1222,7 +1235,7 @@ class DynamicStrictModeTest extends RenderTest {
     const Foo = defineComponent({}, '{{@value 2}}');
     const Bar = defineComponent({ Foo }, '<Foo @value={{helper @foo 1}}/>');
 
-    this.renderComponent(Bar);
+    this.render.component(Bar);
     this.assertHTML('');
     this.assertStableRerender();
   }
@@ -1237,7 +1250,7 @@ class DynamicStrictModeTest extends RenderTest {
     });
 
     this.assert.throws(() => {
-      this.renderComponent(Bar);
+      this.render.component(Bar);
     }, /Expected a dynamic helper definition, but received an object or function that did not have a helper manager associated with it. The dynamic invocation was `\{\{this.foo\}\}` or `\(this.foo\)`, and the incorrect definition is the value at the path `this.foo`, which was:/u);
   }
 }
@@ -1252,7 +1265,7 @@ class BuiltInsStrictModeTest extends RenderTest {
       '{{#let (hash value="Hello, world!") as |hash|}}{{hash.value}}{{/let}}'
     );
 
-    this.renderComponent(Foo);
+    this.render.component(Foo);
     this.assertHTML('Hello, world!');
     this.assertStableRerender();
   }
@@ -1264,7 +1277,7 @@ class BuiltInsStrictModeTest extends RenderTest {
       '{{#each (array "Hello, world!") as |value|}}{{value}}{{/each}}'
     );
 
-    this.renderComponent(Foo);
+    this.render.component(Foo);
     this.assertHTML('Hello, world!');
     this.assertStableRerender();
   }
@@ -1273,7 +1286,7 @@ class BuiltInsStrictModeTest extends RenderTest {
   'Can use concat'() {
     let Foo = defineComponent({ concat }, '{{(concat "Hello" ", " "world!")}}');
 
-    this.renderComponent(Foo);
+    this.render.component(Foo);
     this.assertHTML('Hello, world!');
     this.assertStableRerender();
   }
@@ -1285,16 +1298,15 @@ class BuiltInsStrictModeTest extends RenderTest {
       '{{#let (hash value="Hello, world!") as |hash|}}{{(get hash "value")}}{{/let}}'
     );
 
-    this.renderComponent(Foo);
+    this.render.component(Foo);
     this.assertHTML('Hello, world!');
     this.assertStableRerender();
   }
 
   @test
   'Can use on and fn'(assert: Assert) {
-    assert.expect(3);
-
     let handleClick = (value: number) => {
+      this.events.record('handleClick');
       assert.strictEqual(value, 123, 'handler called with correct value');
     };
 
@@ -1303,9 +1315,10 @@ class BuiltInsStrictModeTest extends RenderTest {
       '<button {{on "click" (fn handleClick 123)}}>Click</button>'
     );
 
-    this.renderComponent(Foo);
+    this.render.component(Foo);
 
     castToBrowser(this.element, 'div').querySelector('button')!.click();
+    this.events.expect(['handleClick']);
   }
 }
 

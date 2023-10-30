@@ -163,7 +163,7 @@ export function componentHelper(
   registry: TestJitRegistry,
   name: string,
   constants: ResolutionTimeConstants
-): CurriedValue | null {
+): Nullable<CurriedValue> {
   let definition = registry.lookupComponent(name);
 
   if (definition === null) return null;

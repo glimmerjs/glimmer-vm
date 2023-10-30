@@ -5,7 +5,7 @@ class ArrayTest extends RenderTest {
 
   @test
   'returns an array'() {
-    this.render(strip`
+    this.render.template(strip`
     {{#with (array "Sergio") as |people|}}
       {{#each people as |personName|}}
         {{personName}}
@@ -19,7 +19,7 @@ class ArrayTest extends RenderTest {
 
   @test
   'can have more than one value'() {
-    this.render(strip`
+    this.render.template(strip`
     {{#with (array "Sergio" "Robert") as |people|}}
       {{#each people as |personName|}}
         {{personName}},
@@ -33,7 +33,7 @@ class ArrayTest extends RenderTest {
 
   @test
   'binds values when variables are used'() {
-    this.render(
+    this.render.template(
       strip`{{#with (array this.personOne) as |people|}}
             {{#each people as |personName|}}
               {{personName}}
@@ -57,7 +57,7 @@ class ArrayTest extends RenderTest {
 
   @test
   'binds multiple values when variables are used'() {
-    this.render(
+    this.render.template(
       strip`{{#with (array this.personOne this.personTwo) as |people|}}
             {{#each people as |personName|}}
               {{personName}},
@@ -87,7 +87,7 @@ class ArrayTest extends RenderTest {
 
   @test
   'array helpers can be nested'() {
-    this.render(
+    this.render.template(
       strip`
         {{#let (array (array this.personOne this.personTwo)) as |listOfPeople|}}
           {{#each listOfPeople as |people|}}
@@ -137,14 +137,14 @@ class ArrayTest extends RenderTest {
       }
     }
 
-    this.registerComponent(
+    this.register.component(
       'Glimmer',
       'FooBar',
       '{{yield (hash people=(array this.personOne))}}',
       FooBar
     );
 
-    this.render(
+    this.render.template(
       strip`
         <FooBar as |values|>
           {{#each values.people as |personName|}}
@@ -184,14 +184,14 @@ class ArrayTest extends RenderTest {
       }
     }
 
-    this.registerComponent(
+    this.register.component(
       'Glimmer',
       'FooBar',
       `{{yield (hash people=(array this.personOne @personTwo))}}`,
       FooBar
     );
 
-    this.render(
+    this.render.template(
       strip`
         <FooBar @personTwo={{this.model.personTwo}} as |values|>
           {{#each values.people as |personName|}}
@@ -221,7 +221,7 @@ class ArrayTest extends RenderTest {
 
   @test
   'should render when passing as argument to a component invocation'() {
-    this.registerComponent(
+    this.register.component(
       'TemplateOnly',
       'FooBar',
       strip`
@@ -231,7 +231,7 @@ class ArrayTest extends RenderTest {
       `
     );
 
-    this.render(strip`<FooBar @people={{array "Tom" this.personTwo}}/>`, { personTwo: 'Chad' });
+    this.render.template(strip`<FooBar @people={{array "Tom" this.personTwo}}/>`, { personTwo: 'Chad' });
 
     this.assertHTML('Tom,Chad,');
 
@@ -261,7 +261,7 @@ class ArrayTest extends RenderTest {
       }
     }
 
-    this.registerComponent(
+    this.register.component(
       'Glimmer',
       'FooBar',
       strip`
@@ -272,7 +272,7 @@ class ArrayTest extends RenderTest {
       FooBar
     );
 
-    this.render(strip`<FooBar @people={{array "Tom" this.personTwo}}/>`, { personTwo: 'Chad' });
+    this.render.template(strip`<FooBar @people={{array "Tom" this.personTwo}}/>`, { personTwo: 'Chad' });
 
     let firstArray = fooBarInstance!.args['people'];
 
@@ -288,12 +288,13 @@ class ArrayTest extends RenderTest {
   'capture array values in JS to assert deep equal'() {
     let captured;
 
-    this.registerHelper('capture', function ([array]) {
-      captured = array;
-      return 'captured';
-    });
+    this.register.helper('capture', ([array]) => {
+        captured = array;
+        return 'captured';
+      },
+    );
 
-    this.render(`{{capture (array 'Tom' this.personTwo)}}`, { personTwo: 'Godfrey' });
+    this.render.template(`{{capture (array 'Tom' this.personTwo)}}`, { personTwo: 'Godfrey' });
 
     this.assert.deepEqual(captured, ['Tom', 'Godfrey']);
 
@@ -308,7 +309,7 @@ class ArrayTest extends RenderTest {
 
   @test
   'GH18693 properties in hash can be accessed from the array'() {
-    this.render(strip`
+    this.render.template(strip`
       {{#each (array (hash some="thing")) as |item|}}
         {{item.some}}
       {{/each}}

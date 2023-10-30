@@ -5,13 +5,13 @@ class ConcatTest extends RenderTest {
 
   @test
   'it concats static arguments'() {
-    this.render(`{{concat "foo" " " "bar" " " "baz"}}`);
+    this.render.template(`{{concat "foo" " " "bar" " " "baz"}}`);
     this.assertHTML('foo bar baz');
   }
 
   @test
   'it updates for bound arguments'() {
-    this.render(`{{concat this.model.first this.model.second}}`, {
+    this.render.template(`{{concat this.model.first this.model.second}}`, {
       model: { first: 'one', second: 'two' },
     });
 
@@ -30,7 +30,7 @@ class ConcatTest extends RenderTest {
 
   @test
   'it can be used as a sub-expression'() {
-    this.render(
+    this.render.template(
       `{{concat (concat this.model.first this.model.second) (concat this.model.third this.model.fourth)}}`,
       {
         model: {
@@ -78,9 +78,9 @@ class ConcatTest extends RenderTest {
 
   @test
   'it can be used as input for other helpers'() {
-    this.registerHelper('x-eq', ([actual, expected]) => actual === expected);
+    this.register.helper('x-eq', ([actual, expected]) => actual === expected );
 
-    this.render(
+    this.render.template(
       `{{#if (x-eq (concat this.model.first this.model.second) "onetwo")}}Truthy!{{else}}False{{/if}}`,
       {
         model: {

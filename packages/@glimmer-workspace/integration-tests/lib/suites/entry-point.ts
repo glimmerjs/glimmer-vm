@@ -4,7 +4,7 @@ import { castToBrowser } from '@glimmer/util';
 
 import type { ComponentKind } from '../components/types';
 import { JitRenderDelegate } from '../modes/jit/delegate';
-import { Count, RenderTest } from '../render-test';
+import { RenderTest } from '../render-test';
 import { test } from '../test-decorator';
 import { defineComponent } from '../test-helpers/define';
 
@@ -12,8 +12,6 @@ export class EntryPointTest extends RenderTest {
   static suiteName = 'entry points';
 
   declare readonly testType: ComponentKind;
-
-  override readonly count = new Count();
 
   @test
   'an entry point'() {

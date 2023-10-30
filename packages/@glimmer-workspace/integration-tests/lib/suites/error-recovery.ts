@@ -10,7 +10,7 @@ export class ErrorRecoverySuite extends RenderTest {
   'if no error is thrown, everything works as expected'() {
     const actions = new Actions();
 
-    this.render('{{#-try}}message: {{this.message}}{{/-try}}', {
+    this.render.template('{{#-try}}message: {{this.message}}{{/-try}}', {
       message: 'hello',
     });
 
@@ -19,9 +19,9 @@ export class ErrorRecoverySuite extends RenderTest {
 
   @test({ kind: 'templateOnly' })
   'if no error is thrown and a component is rendered, everything works as expected'() {
-    this.delegate.registerComponent('Glimmer', 'TemplateOnly', 'Message', '{{yield}}');
+    this.register.component('TemplateOnly', 'Message', '{{yield}}');
 
-    this.render('{{#-try}}message: <Message />>{{/-try}}', {});
+    this.render.template('{{#-try}}message: <Message />>{{/-try}}', {});
   }
 
   @test
@@ -35,7 +35,7 @@ export class ErrorRecoverySuite extends RenderTest {
       }
     }
 
-    this.render('{{#-try this.handler}}message: [{{this.woops.woops}}]{{/-try}}', {
+    this.render.template('{{#-try this.handler}}message: [{{this.woops.woops}}]{{/-try}}', {
       woops: new Woops(),
       handler: (_err: unknown, _retry: () => void) => {
         actions.record('error handled');

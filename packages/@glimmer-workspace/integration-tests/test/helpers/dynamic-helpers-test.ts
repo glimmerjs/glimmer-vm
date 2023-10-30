@@ -13,9 +13,9 @@ class DynamicHelpersResolutionModeTest extends RenderTest {
   @test
   'Can invoke a yielded nested helper in resolution mode'() {
     const foo = defineSimpleHelper(() => 'Hello, world!');
-    this.registerComponent('TemplateOnly', 'Bar', '{{#let @x as |x|}}{{x.foo}}{{/let}}');
+    this.register.component('TemplateOnly', 'Bar', '{{#let @x as |x|}}{{x.foo}}{{/let}}');
 
-    this.render('<Bar @x={{this.x}} />', { x: { foo } });
+    this.render.template('<Bar @x={{this.x}} />', { x: { foo } });
     this.assertHTML('Hello, world!');
     this.assertStableRerender();
   }
@@ -30,7 +30,7 @@ class DynamicHelpersResolutionModeTest extends RenderTest {
       },
     });
 
-    this.renderComponent(Bar);
+    this.render.component(Bar);
     this.assertHTML('Hello, world!');
     this.assertStableRerender();
   }
@@ -46,7 +46,7 @@ class DynamicHelpersResolutionModeTest extends RenderTest {
       },
     });
 
-    this.renderComponent(Bar);
+    this.render.component(Bar);
     this.assertHTML('Hello, world!');
     this.assertStableRerender();
   }

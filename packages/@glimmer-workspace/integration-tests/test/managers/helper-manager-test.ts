@@ -25,7 +25,7 @@ class HelperManagerTest extends RenderTest {
 
     const Main = defineComponent({ hello: Hello }, '{{hello}}');
 
-    this.renderComponent(Main);
+    this.render.component(Main);
 
     this.assertHTML('hello');
 
@@ -45,7 +45,7 @@ class HelperManagerTest extends RenderTest {
 
     const Main = defineComponent({ hello }, '{{hello}}');
 
-    this.renderComponent(Main);
+    this.render.component(Main);
 
     assert.strictEqual(count, 1, 'rendered once');
     this.assertHTML('plain function');
@@ -69,7 +69,7 @@ class HelperManagerTest extends RenderTest {
 
     const Main = defineComponent({}, '{{(@hello)}}');
 
-    this.renderComponent(Main, {
+    this.render.component(Main, {
       hello,
     });
 
@@ -97,7 +97,7 @@ class HelperManagerTest extends RenderTest {
       },
     });
 
-    this.renderComponent(Main);
+    this.render.component(Main);
 
     assert.strictEqual(count, 1, 'rendered once');
     this.assertHTML('plain function');
@@ -118,7 +118,7 @@ class HelperManagerTest extends RenderTest {
     };
     let args = trackedObj({ value: 'hello', unused: 'unused' });
 
-    this.renderComponent(defineComponent({ obj }, '{{obj @value @unused}}'), args);
+    this.render.component(defineComponent({ obj }, '{{obj @value @unused}}'), args);
 
     assert.strictEqual(count, 1, 'rendered once');
     this.assertHTML('hello');
@@ -146,7 +146,7 @@ class HelperManagerTest extends RenderTest {
       return trackedState['value'];
     };
 
-    this.renderComponent(defineComponent({ obj }, '{{obj}}'));
+    this.render.component(defineComponent({ obj }, '{{obj}}'));
 
     assert.strictEqual(count, 1, 'rendered once');
     this.assertHTML('hello');
@@ -167,7 +167,7 @@ class HelperManagerTest extends RenderTest {
     };
     let args = trackedObj({ value: 'hello', unused: 'unused' });
 
-    this.renderComponent(defineComponent({ obj }, '{{obj @value namedOpt=@unused}}'), args);
+    this.render.component(defineComponent({ obj }, '{{obj @value namedOpt=@unused}}'), args);
     assert.strictEqual(count, 1, 'rendered once');
     this.assertHTML('hello');
 
@@ -189,7 +189,7 @@ class HelperManagerTest extends RenderTest {
 
     let args = trackedObj({ value: 'hello', used: 'used' });
 
-    this.renderComponent(defineComponent({ obj }, '{{obj @value namedOpt=@used}}'), args);
+    this.render.component(defineComponent({ obj }, '{{obj @value namedOpt=@used}}'), args);
     assert.strictEqual(count, 1, 'rendered once');
     this.assertHTML('used');
 
@@ -212,7 +212,7 @@ class HelperManagerTest extends RenderTest {
 
     let args = trackedObj({});
 
-    this.renderComponent(defineComponent({ obj }, 'result: {{obj}}'), args);
+    this.render.component(defineComponent({ obj }, 'result: {{obj}}'), args);
     this.assertHTML('result: default value');
     assert.strictEqual(count, 1, 'rendered once');
   }
@@ -229,7 +229,7 @@ class HelperManagerTest extends RenderTest {
 
     let args = trackedObj({ value: undefined });
 
-    this.renderComponent(defineComponent({ obj }, 'result: {{obj @value}}'), args);
+    this.render.component(defineComponent({ obj }, 'result: {{obj @value}}'), args);
     this.assertHTML('result: default value');
     assert.strictEqual(count, 1, 'rendered once');
 
@@ -252,7 +252,7 @@ class HelperManagerTest extends RenderTest {
 
     let args = trackedObj({ foo: 123 });
 
-    this.renderComponent(defineComponent({ hello: Hello }, '{{hello foo=@foo}}'), args);
+    this.render.component(defineComponent({ hello: Hello }, '{{hello foo=@foo}}'), args);
 
     assert.strictEqual(count, 1, 'rendered once');
     this.assertHTML('123');
@@ -281,7 +281,7 @@ class HelperManagerTest extends RenderTest {
 
     let args = trackedObj({ foo: 123 });
 
-    this.renderComponent(defineComponent({ hello: Hello }, '{{hello @foo}}'), args);
+    this.render.component(defineComponent({ hello: Hello }, '{{hello @foo}}'), args);
 
     assert.strictEqual(count, 1, 'rendered once');
     this.assertHTML('123');
@@ -317,7 +317,7 @@ class HelperManagerTest extends RenderTest {
         return this.foo;
       }
     }
-    this.renderComponent(defineComponent({ hello: Hello }, '{{hello}}'));
+    this.render.component(defineComponent({ hello: Hello }, '{{hello}}'));
 
     assert.strictEqual(count, 1, 'rendered once');
     this.assertHTML('123');
@@ -345,7 +345,7 @@ class HelperManagerTest extends RenderTest {
       }
     }
 
-    this.renderComponent(defineComponent({ hello: Hello }, '{{hello}}'));
+    this.render.component(defineComponent({ hello: Hello }, '{{hello}}'));
 
     this.assertHTML('hello');
   }
@@ -361,7 +361,7 @@ class HelperManagerTest extends RenderTest {
     }
 
     assert.throws(() => {
-      this.renderComponent(defineComponent({ hello: Hello }, '{{hello}}'));
+      this.render.component(defineComponent({ hello: Hello }, '{{hello}}'));
     }, /You attempted to update `foo` on/u);
   }
 
@@ -399,7 +399,7 @@ class HelperManagerTest extends RenderTest {
   @test 'helper manager and modifier manager can be associated with the same value'() {
     abstract class TestModifierHelper extends TestHelper {}
 
-    setModifierManager(() => ({} as any), TestHelper);
+    setModifierManager(() => ({}) as any, TestHelper);
 
     class Hello extends TestModifierHelper {
       value() {
@@ -407,7 +407,7 @@ class HelperManagerTest extends RenderTest {
       }
     }
 
-    this.renderComponent(defineComponent({ hello: Hello }, '{{hello}}'));
+    this.render.component(defineComponent({ hello: Hello }, '{{hello}}'));
 
     this.assertHTML('hello');
 
@@ -436,7 +436,7 @@ class HelperManagerTest extends RenderTest {
     }
 
     assert.throws(() => {
-      this.renderComponent(defineComponent({ hello: Hello }, '{{hello}}'));
+      this.render.component(defineComponent({ hello: Hello }, '{{hello}}'));
     }, /Custom helper managers must have a `capabilities` property that is the result of calling the `capabilities\('3.23'\)` \(imported via `import \{ capabilities \} from '@ember\/helper';`\). /u);
   }
 
@@ -464,7 +464,7 @@ class HelperManagerTest extends RenderTest {
     }
 
     assert.throws(() => {
-      this.renderComponent(defineComponent({ hello: Hello }, '{{hello}}'));
+      this.render.component(defineComponent({ hello: Hello }, '{{hello}}'));
     }, /You attempted to update `foo` on /u);
   }
 
@@ -486,7 +486,7 @@ class HelperManagerTest extends RenderTest {
     }
 
     assert.throws(() => {
-      this.renderComponent(defineComponent({ hello: Hello }, '{{hello}}'));
+      this.render.component(defineComponent({ hello: Hello }, '{{hello}}'));
     }, /You attempted to update `foo` on /u);
   }
 }

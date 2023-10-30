@@ -49,7 +49,7 @@ export class SerializedDOMHelperTests extends DOMHelperTests {
 
   @test
   'The compiler can handle unescaped HTML'() {
-    this.render('<div>{{{this.title}}}</div>', { title: '<strong>hello</strong>' });
+    this.render.template('<div>{{{this.title}}}</div>', { title: '<strong>hello</strong>' });
     let b = blockStack();
     this.assertHTML(strip`
       <div>
@@ -64,8 +64,8 @@ export class SerializedDOMHelperTests extends DOMHelperTests {
 
   @test
   'Unescaped helpers render correctly'() {
-    this.registerHelper('testing-unescaped', (params) => params[0]);
-    this.render('{{{testing-unescaped "<span>hi</span>"}}}');
+    this.register.helper('testing-unescaped', (params) => params[0] );
+    this.render.template('{{{testing-unescaped "<span>hi</span>"}}}');
     let b = blockStack();
     this.assertHTML(strip`
       ${b(1)}
@@ -78,13 +78,13 @@ export class SerializedDOMHelperTests extends DOMHelperTests {
 
   @test
   'Null literals do not have representation in DOM'() {
-    this.render('{{null}}');
+    this.render.template('{{null}}');
     this.assertHTML(strip`<!--% %-->`);
   }
 
   @test
   'Elements inside a yielded block'() {
-    this.render('{{#if true}}<div id="test">123</div>{{/if}}');
+    this.render.template('{{#if true}}<div id="test">123</div>{{/if}}');
     let b = blockStack();
     this.assertHTML(strip`
       ${b(1)}
@@ -95,7 +95,7 @@ export class SerializedDOMHelperTests extends DOMHelperTests {
 
   @test
   'A simple block helper can return text'() {
-    this.render('{{#if true}}test{{else}}not shown{{/if}}');
+    this.render.template('{{#if true}}test{{else}}not shown{{/if}}');
     let b = blockStack();
     this.assertHTML(strip`
       ${b(1)}

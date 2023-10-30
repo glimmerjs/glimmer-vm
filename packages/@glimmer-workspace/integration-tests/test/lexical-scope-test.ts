@@ -8,7 +8,7 @@ class LexicalScopeTest extends RenderTest {
     const Foo = defineComponent({}, 'Hello, world!', { strictMode: false });
     const Bar = defineComponent({ Foo }, '<Foo/>', { strictMode: false });
 
-    this.renderComponent(Bar);
+    this.render.component(Bar);
     this.assertHTML('Hello, world!');
     this.assertStableRerender();
   }

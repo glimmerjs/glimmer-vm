@@ -13,7 +13,7 @@ export class EmberishComponentTests extends RenderTest {
 
   @test
   'Element modifier with hooks'(assert: Assert, count: Count) {
-    this.registerModifier(
+    this.register.modifier(
       'foo',
       class {
         element?: SimpleElement;
@@ -39,7 +39,7 @@ export class EmberishComponentTests extends RenderTest {
       }
     );
 
-    this.render('{{#if this.ok}}<div data-ok=true {{foo this.bar}}></div>{{/if}}', {
+    this.render.template('{{#if this.ok}}<div data-ok=true {{foo this.bar}}></div>{{/if}}', {
       bar: 'bar',
       ok: true,
     });
@@ -50,7 +50,7 @@ export class EmberishComponentTests extends RenderTest {
 
   @test
   'non-block without properties'() {
-    this.render({
+    this.render.template({
       layout: 'In layout',
     });
 
@@ -60,7 +60,7 @@ export class EmberishComponentTests extends RenderTest {
 
   @test
   'block without properties'() {
-    this.render({
+    this.render.template({
       layout: 'In layout -- {{yield}}',
       template: 'In template',
     });
@@ -71,7 +71,7 @@ export class EmberishComponentTests extends RenderTest {
 
   @test
   'yield inside a conditional on the component'() {
-    this.render(
+    this.render.template(
       {
         layout: 'In layout -- {{#if @predicate}}{{yield}}{{/if}}',
         template: 'In template',
@@ -94,7 +94,7 @@ export class EmberishComponentTests extends RenderTest {
 
   @test
   'non-block with properties on attrs'() {
-    this.render({
+    this.render.template({
       layout: 'In layout - someProp: {{@someProp}}',
       args: { someProp: '"something here"' },
     });
@@ -105,7 +105,7 @@ export class EmberishComponentTests extends RenderTest {
 
   @test
   'block with properties on attrs'() {
-    this.render({
+    this.render.template({
       layout: 'In layout - someProp: {{@someProp}} - {{yield}}',
       template: 'In template',
       args: { someProp: '"something here"' },
@@ -117,7 +117,7 @@ export class EmberishComponentTests extends RenderTest {
 
   @test({ skip: true, kind: 'curly' })
   'with ariaRole specified'() {
-    this.render({
+    this.render.template({
       layout: 'Here!',
       attributes: { id: '"aria-test"', ariaRole: '"main"' },
     });
@@ -128,7 +128,7 @@ export class EmberishComponentTests extends RenderTest {
 
   @test({ skip: true, kind: 'curly' })
   'with ariaRole and class specified'() {
-    this.render({
+    this.render.template({
       layout: 'Here!',
       attributes: { id: '"aria-test"', class: '"foo"', ariaRole: '"main"' },
     });
@@ -143,7 +143,7 @@ export class EmberishComponentTests extends RenderTest {
 
   @test({ skip: true, kind: 'curly' })
   'with ariaRole specified as an outer binding'() {
-    this.render(
+    this.render.template(
       {
         layout: 'Here!',
         attributes: { id: '"aria-test"', class: '"foo"', ariaRole: 'ariaRole' },
@@ -161,7 +161,7 @@ export class EmberishComponentTests extends RenderTest {
 
   @test({ skip: true, kind: 'glimmer' })
   'glimmer component with role specified as an outer binding and copied'() {
-    this.render(
+    this.render.template(
       {
         layout: 'Here!',
         attributes: { id: '"aria-test"', role: 'myRole' },
@@ -175,9 +175,9 @@ export class EmberishComponentTests extends RenderTest {
 
   @test({ kind: 'curly' })
   'invoking wrapped layout via angle brackets applies ...attributes'() {
-    this.registerComponent('Curly', 'FooBar', 'Hello world!');
+    this.register.component('Curly', 'FooBar', 'Hello world!');
 
-    this.render(`<FooBar data-foo="bar" />`);
+    this.render.template(`<FooBar data-foo="bar" />`);
 
     this.assertComponent('Hello world!', { 'data-foo': 'bar' });
     this.assertStableRerender();
@@ -194,9 +194,9 @@ export class EmberishComponentTests extends RenderTest {
         this['data-foo'] = 'inner';
       }
     }
-    this.registerComponent('Curly', 'FooBar', 'Hello world!', FooBar);
+    this.register.component('Curly', 'FooBar', 'Hello world!', FooBar);
 
-    this.render(`<FooBar data-foo="outer" />`);
+    this.render.template(`<FooBar data-foo="outer" />`);
 
     this.assertComponent('Hello world!', { 'data-foo': 'outer' });
     this.assertStableRerender();
@@ -212,9 +212,9 @@ export class EmberishComponentTests extends RenderTest {
         super();
       }
     }
-    this.registerComponent('Curly', 'FooBar', 'Hello{{yield to="baz"}}world!', FooBar);
+    this.register.component('Curly', 'FooBar', 'Hello{{yield to="baz"}}world!', FooBar);
 
-    this.render(`<FooBar><:baz> my </:baz></FooBar>`);
+    this.render.template(`<FooBar><:baz> my </:baz></FooBar>`);
 
     this.assertComponent('Hello my world!');
     this.assertStableRerender();
@@ -230,9 +230,9 @@ export class EmberishComponentTests extends RenderTest {
         super();
       }
     }
-    this.registerComponent('Curly', 'FooBar', 'Hello{{yield}}world!', FooBar);
+    this.register.component('Curly', 'FooBar', 'Hello{{yield}}world!', FooBar);
 
-    this.render(`<FooBar> my </FooBar>`);
+    this.render.template(`<FooBar> my </FooBar>`);
 
     this.assertComponent('Hello my world!');
     this.assertStableRerender();
@@ -248,9 +248,9 @@ export class EmberishComponentTests extends RenderTest {
         super();
       }
     }
-    this.registerComponent('Curly', 'FooBar', 'Hello{{yield to="default"}}world!', FooBar);
+    this.register.component('Curly', 'FooBar', 'Hello{{yield to="default"}}world!', FooBar);
 
-    this.render(`<FooBar><:default> my </:default></FooBar>`);
+    this.render.template(`<FooBar><:default> my </:default></FooBar>`);
 
     this.assertComponent('Hello my world!');
     this.assertStableRerender();
@@ -266,9 +266,9 @@ export class EmberishComponentTests extends RenderTest {
         super();
       }
     }
-    this.registerComponent('Curly', 'FooBar', 'Hello{{yield "my" to="inverse"}}world!', FooBar);
+    this.register.component('Curly', 'FooBar', 'Hello{{yield "my" to="inverse"}}world!', FooBar);
 
-    this.render(`<FooBar><:else as |value|> {{value}} </:else></FooBar>`);
+    this.render.template(`<FooBar><:else as |value|> {{value}} </:else></FooBar>`);
 
     this.assertComponent('Hello my world!');
     this.assertStableRerender();
@@ -283,9 +283,9 @@ export class EmberishComponentTests extends RenderTest {
         super();
       }
     }
-    this.registerComponent('Curly', 'FooBar', 'Hello{{yield "my" to="inverse"}}world!', FooBar);
+    this.register.component('Curly', 'FooBar', 'Hello{{yield "my" to="inverse"}}world!', FooBar);
 
-    this.render(`<FooBar><:inverse as |value|> {{value}} </:inverse></FooBar>`);
+    this.render.template(`<FooBar><:inverse as |value|> {{value}} </:inverse></FooBar>`);
 
     this.assertComponent('Hello my world!');
     this.assertStableRerender();
@@ -302,9 +302,9 @@ export class EmberishComponentTests extends RenderTest {
         this['class'] = 'inner';
       }
     }
-    this.registerComponent('Curly', 'FooBar', 'Hello world!', FooBar);
+    this.register.component('Curly', 'FooBar', 'Hello world!', FooBar);
 
-    this.render(`<FooBar class="outer" />`);
+    this.render.template(`<FooBar class="outer" />`);
 
     this.assertComponent('Hello world!', { class: classes('ember-view inner outer') });
     this.assertStableRerender();
@@ -312,9 +312,9 @@ export class EmberishComponentTests extends RenderTest {
 
   @test({ kind: 'curly' })
   'invoking wrapped layout via angle brackets also applies explicit ...attributes'() {
-    this.registerComponent('Curly', 'FooBar', '<h1 ...attributes>Hello world!</h1>');
+    this.register.component('Curly', 'FooBar', '<h1 ...attributes>Hello world!</h1>');
 
-    this.render(`<FooBar data-foo="bar" />`);
+    this.render.template(`<FooBar data-foo="bar" />`);
 
     let wrapperElement = assertingElement(this.element.firstChild);
     assertEmberishElement(wrapperElement, 'div', { 'data-foo': 'bar' });

@@ -77,9 +77,9 @@ class DebugRenderTreeTest extends RenderTest {
   declare delegate: DebugRenderTreeDelegate;
 
   @test 'template-only components'() {
-    this.registerComponent('TemplateOnly', 'HelloWorld', '{{@arg}}');
+    this.register.component('TemplateOnly', 'HelloWorld', '{{@arg}}');
 
-    this.render(
+    this.render.template(
       `<HelloWorld @arg="first"/>{{#if this.showSecond}}<HelloWorld @arg="second"/>{{/if}}`,
       {
         showSecond: false,
@@ -137,9 +137,9 @@ class DebugRenderTreeTest extends RenderTest {
   }
 
   @test 'emberish curly components'() {
-    this.registerComponent('Curly', 'HelloWorld', 'Hello World');
+    this.register.component('Curly', 'HelloWorld', 'Hello World');
 
-    this.render(
+    this.render.template(
       `<HelloWorld @arg="first"/>{{#if this.showSecond}}<HelloWorld @arg="second"/>{{/if}}`,
       {
         showSecond: false,
@@ -197,9 +197,9 @@ class DebugRenderTreeTest extends RenderTest {
   }
 
   @test 'glimmerish components'() {
-    this.registerComponent('Glimmer', 'HelloWorld', 'Hello World');
+    this.register.component('Glimmer', 'HelloWorld', 'Hello World');
 
-    this.render(
+    this.render.template(
       `<HelloWorld @arg="first"/>{{#if this.showSecond}}<HelloWorld @arg="second"/>{{/if}}`,
       {
         showSecond: false,
@@ -294,9 +294,9 @@ class DebugRenderTreeTest extends RenderTest {
       }
     );
 
-    this.registerComponent('TemplateOnly', 'HelloWorld2', '{{@arg}}');
+    this.register.component('TemplateOnly', 'HelloWorld2', '{{@arg}}');
 
-    this.render(
+    this.render.template(
       `<HelloWorld2 @arg="first"/>{{#if this.showSecond}}<HelloWorld @arg="second"/>{{/if}}`,
       {
         showSecond: false,
@@ -374,9 +374,9 @@ class DebugRenderTreeTest extends RenderTest {
       }
     );
 
-    this.registerComponent('TemplateOnly', 'HelloWorld2', '{{@arg}}');
+    this.register.component('TemplateOnly', 'HelloWorld2', '{{@arg}}');
 
-    this.render(
+    this.render.template(
       `<HelloWorld2 @arg="first"/>{{#if this.showSecond}}<HelloWorld @arg="second"/>{{/if}}`,
       {
         showSecond: false,
@@ -425,7 +425,7 @@ class DebugRenderTreeTest extends RenderTest {
   }
 
   @test 'cleans up correctly after errors'(assert: Assert) {
-    this.registerComponent(
+    this.register.component(
       'Glimmer',
       'HelloWorld',
       'Hello World',
@@ -438,7 +438,7 @@ class DebugRenderTreeTest extends RenderTest {
     );
 
     assert.throws(() => {
-      this.render('<HelloWorld @arg="first"/>');
+      this.render.template('<HelloWorld @arg="first"/>');
     }, /oops!/u);
 
     assert.deepEqual(this.delegate.getCapturedRenderTree(), [], 'there was no output');

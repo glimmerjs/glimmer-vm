@@ -30,6 +30,7 @@ module.exports = {
       ],
       rules: {
         'no-restricted-imports': 'off',
+        'prefer-arrow-callback': 'error',
         '@typescript-eslint/no-restricted-imports': [
           'error',
           {

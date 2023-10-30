@@ -13,7 +13,7 @@ class SmokeTests extends RenderTest {
       output += '<div id="test">HelloBye</div>';
     }
 
-    this.render(input);
+    this.render.template(input);
     this.assertHTML(output);
   }
 }

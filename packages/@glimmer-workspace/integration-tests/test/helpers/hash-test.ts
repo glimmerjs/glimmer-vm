@@ -6,7 +6,7 @@ class HashTest extends RenderTest {
 
   @test
   'returns a hash with the right key-value'() {
-    this.render(`{{#let (hash name="Sergio") as |person|}}{{person.name}}{{/let}}`);
+    this.render.template(`{{#let (hash name="Sergio") as |person|}}{{person.name}}{{/let}}`);
 
     this.assertHTML('Sergio');
     this.assertStableRerender();
@@ -14,7 +14,7 @@ class HashTest extends RenderTest {
 
   @test
   'can have more than one key-value'() {
-    this.render(
+    this.render.template(
       `{{#let (hash name="Sergio" lastName="Arbeo") as |person|}}{{person.name}} {{person.lastName}}{{/let}}`
     );
 
@@ -24,7 +24,7 @@ class HashTest extends RenderTest {
 
   @test
   'binds values when variables are used'() {
-    this.render(
+    this.render.template(
       `{{#let (hash name=this.firstName lastName="Arbeo") as |person|}}{{person.name}} {{person.lastName}}{{/let}}`,
       {
         firstName: 'Marisa',
@@ -43,7 +43,7 @@ class HashTest extends RenderTest {
 
   @test
   'binds multiple values when variables are used'() {
-    this.render(
+    this.render.template(
       `{{#let (hash name=this.firstName lastName=this.lastName) as |person|}}{{person.name}} {{person.lastName}}{{/let}}`,
       {
         firstName: 'Marisa',
@@ -66,7 +66,7 @@ class HashTest extends RenderTest {
 
   @test
   'hash helpers can be nested'() {
-    this.render(
+    this.render.template(
       `{{#let (hash person=(hash name=this.firstName)) as |ctx|}}{{ctx.person.name}}{{/let}}`,
       {
         firstName: 'Balint',
@@ -98,14 +98,14 @@ class HashTest extends RenderTest {
       }
     }
 
-    this.registerComponent(
+    this.register.component(
       'Glimmer',
       'FooBar',
       `{{yield (hash firstName=this.firstName)}}`,
       FooBar
     );
 
-    this.render(`<FooBar as |values|>{{values.firstName}}</FooBar>`);
+    this.render.template(`<FooBar as |values|>{{values.firstName}}</FooBar>`);
 
     this.assertHTML('Chad');
     this.assertStableRerender();
@@ -134,14 +134,14 @@ class HashTest extends RenderTest {
       }
     }
 
-    this.registerComponent(
+    this.register.component(
       'Glimmer',
       'FooBar',
       `{{yield (hash firstName=this.firstName lastName=@lastName)}}`,
       FooBar
     );
 
-    this.render(
+    this.render.template(
       `<FooBar @lastName={{this.lastName}} as |values|>{{values.firstName}} {{values.lastName}}</FooBar>`,
       {
         lastName: 'Hietala',
@@ -179,14 +179,14 @@ class HashTest extends RenderTest {
       }
     }
 
-    this.registerComponent(
+    this.register.component(
       'Glimmer',
       'FooBar',
       `{{yield (hash firstName=@firstName lastName=this.lastName)}}`,
       FooBar
     );
 
-    this.render(`<FooBar @firstName="Godfrey" as |values|>{{values.firstName}}</FooBar>`);
+    this.render.template(`<FooBar @firstName="Godfrey" as |values|>{{values.firstName}}</FooBar>`);
 
     this.assertHTML('Godfrey');
     this.assertStableRerender();
@@ -203,9 +203,9 @@ class HashTest extends RenderTest {
       }
     }
 
-    this.registerComponent('Glimmer', 'FooBar', `{{yield @hash}}`, FooBar);
+    this.register.component('Glimmer', 'FooBar', `{{yield @hash}}`, FooBar);
 
-    this.render(
+    this.render.template(
       `<FooBar @hash={{hash firstName="Godfrey" lastName="Hietala"}} as |values|>{{values.firstName}} {{values.lastName}}</FooBar>`
     );
 
@@ -232,9 +232,9 @@ class HashTest extends RenderTest {
       }
     }
 
-    this.registerComponent('Glimmer', 'FooBar', `{{yield @hash this.alias}}`, FooBar);
+    this.register.component('Glimmer', 'FooBar', `{{yield @hash this.alias}}`, FooBar);
 
-    this.render(
+    this.render.template(
       `<FooBar @hash={{hash name=this.name}} as |values alias|>{{values.name}} {{alias}}</FooBar>`,
       {
         name: 'Godfrey',
@@ -265,9 +265,9 @@ class HashTest extends RenderTest {
       }
     }
 
-    this.registerComponent('Glimmer', 'FooBar', `{{yield @hash}}`, FooBar);
+    this.register.component('Glimmer', 'FooBar', `{{yield @hash}}`, FooBar);
 
-    this.render(
+    this.render.template(
       `<FooBar @hash={{hash firstName="Godfrey"}} as |values|>{{values.firstName}} {{values.lastName}}</FooBar>`
     );
 

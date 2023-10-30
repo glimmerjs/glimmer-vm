@@ -1219,7 +1219,7 @@ class RehydratingComponents extends AbstractRehydrationTests {
       template = '<FooBar>World</FooBar>';
     }
 
-    this.registerComponent(this.testType, name, 'Hello {{yield}}');
+    this.register.component(this.testType, name, 'Hello {{yield}}');
     let layout = `{{yield}}`;
     this.renderServerSide({
       layout,
@@ -1261,7 +1261,7 @@ class RehydratingComponents extends AbstractRehydrationTests {
       template = '<FooBar>World</FooBar>';
     }
 
-    this.registerComponent(this.testType, name, 'Hello {{yield}}');
+    this.register.component(this.testType, name, 'Hello {{yield}}');
     let layout = `{{yield}}`;
     this.renderServerSide({
       layout,
@@ -1304,12 +1304,12 @@ class RehydratingComponents extends AbstractRehydrationTests {
           {{/if}}
         {{/each}}
       </ul>`;
-    this.registerHelper(
+    this.register.helper(
       'even',
       (params: ReadonlyArray<unknown>) => (params[0] as number) % 2 === 0
     );
     let template = '{{#if (even i)}}<FooBar @count={{i}} />{{/if}}';
-    this.registerComponent('TemplateOnly', 'FooBar', '<li>{{@count}}</li>');
+    this.register.component('TemplateOnly', 'FooBar', '<li>{{@count}}</li>');
     let blockParams = ['i'];
     let args = { items: 'this.items' };
 
@@ -1404,12 +1404,12 @@ class RehydratingComponents extends AbstractRehydrationTests {
           {{/if}}
         {{/each}}
       </ul>`;
-    this.registerHelper(
+    this.register.helper(
       'even',
       (params: ReadonlyArray<unknown>) => (params[0] as number) % 2 === 0
     );
     let template = '{{#if (even i)}}<FooBar @count={{i}} />{{/if}}';
-    this.registerComponent('TemplateOnly', 'FooBar', '<li>{{@count}}</li>');
+    this.register.component('TemplateOnly', 'FooBar', '<li>{{@count}}</li>');
     let blockParams = ['i'];
     let args = { items: 'this.items' };
 
@@ -1513,12 +1513,12 @@ class RehydratingComponents extends AbstractRehydrationTests {
         {{/each}}
       </ul>
     `;
-    this.registerHelper(
+    this.register.helper(
       'even',
       (params: ReadonlyArray<unknown>) => (params[0] as number) % 2 === 0
     );
     let template = '{{#if (even i)}}<FooBar @count={{i}} />{{/if}}';
-    this.registerComponent('TemplateOnly', 'FooBar', '<li>{{@count}}</li>');
+    this.register.component('TemplateOnly', 'FooBar', '<li>{{@count}}</li>');
     let blockParams = ['i'];
     let args = { items: 'this.items', things: 'this.things' };
 

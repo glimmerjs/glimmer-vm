@@ -270,8 +270,9 @@ class ChaosMonkeyPartialRehydration extends AbstractChaosMonkeyTest {
   'adjacent text nodes'() {
     const args = { b: 'b', c: 'c', d: 'd' };
 
-    this.delegate.registerTemplateOnlyComponent('RehydratingComponent', 'a {{@b}}{{@c}}{{@d}}');
-    this.delegate.registerTemplateOnlyComponent(
+    this.register.component('TemplateOnly', 'RehydratingComponent', 'a {{@b}}{{@c}}{{@d}}');
+    this.register.component(
+      'TemplateOnly',
       'Root',
       '<div><RehydratingComponent @b={{@b}} @c={{@c}} @d={{@d}}/></div>'
     );
@@ -310,12 +311,14 @@ class ChaosMonkeyPartialRehydration extends AbstractChaosMonkeyTest {
   '<p> invoking a block which emits a <div>'() {
     const args = { show: true };
 
-    this.delegate.registerTemplateOnlyComponent(
+    this.register.component(
+      'TemplateOnly',
       'RehydratingComponent',
       '<p>hello {{#if @show}}<div>world!</div>{{/if}}</p>'
     );
 
-    this.delegate.registerTemplateOnlyComponent(
+    this.register.component(
+      'TemplateOnly',
       'Root',
       '<div><RehydratingComponent @show={{@show}}/></div>'
     );

@@ -29,16 +29,16 @@ class StyleWarningsTest extends RenderTest {
 
   @test
   'Standard element with static style and element modifier does not give you a warning'() {
-    this.registerModifier('foo', class {});
-    this.render('<button style="display: flex" {{foo}}>click me</button>', {});
+    this.register.modifier('foo', class {});
+    this.render.template('<button style="display: flex" {{foo}}>click me</button>', {});
 
     assert.strictEqual(warnings, 0);
   }
 
   @test
   'Standard element with dynamic style and element modifier gives you 1 warning'() {
-    this.registerModifier('foo', class {});
-    this.render('<button style={{this.dynAttr}} {{foo}}>click me</button>', {
+    this.register.modifier('foo', class {});
+    this.render.template('<button style={{this.dynAttr}} {{foo}}>click me</button>', {
       dynAttr: 'display:flex',
     });
 
@@ -47,7 +47,7 @@ class StyleWarningsTest extends RenderTest {
 
   @test
   'using a static inline style on an element does not give you a warning'() {
-    this.render(`<div style="background: red">Thing</div>`, {});
+    this.render.template(`<div style="background: red">Thing</div>`, {});
 
     assert.strictEqual(warnings, 0);
     this.assertHTML('<div style="background: red">Thing</div>', 'initial render');
@@ -55,7 +55,7 @@ class StyleWarningsTest extends RenderTest {
 
   @test
   'triple curlies are trusted'() {
-    this.render(`<div foo={{this.foo}} style={{{this.styles}}}>Thing</div>`, {
+    this.render.template(`<div foo={{this.foo}} style={{{this.styles}}}>Thing</div>`, {
       styles: 'background: red',
     });
 
@@ -65,7 +65,7 @@ class StyleWarningsTest extends RenderTest {
 
   @test
   'using a static inline style on an namespaced element does not give you a warning'() {
-    this.render(`<svg xmlns:svg="http://www.w3.org/2000/svg" style="background: red" />`, {});
+    this.render.template(`<svg xmlns:svg="http://www.w3.org/2000/svg" style="background: red" />`, {});
 
     assert.strictEqual(warnings, 0);
 

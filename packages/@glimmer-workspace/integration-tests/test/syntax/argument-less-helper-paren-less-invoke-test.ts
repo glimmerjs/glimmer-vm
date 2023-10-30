@@ -7,12 +7,13 @@ class ArgumentLessHelperParenLessInvokeTest extends RenderTest {
   'invoking an argument-less helper without parens in named argument position is deprecated'(
     assert: Assert
   ) {
-    this.registerHelper('is-string', ([value]: readonly unknown[]) => typeof value === 'string');
+    this.register.helper('is-string', ([value]: readonly unknown[]) => typeof value === 'string',
+    );
 
-    this.registerHelper('foo', () => 'Hello, world!');
-    this.registerComponent('TemplateOnly', 'Bar', '[{{is-string @content}}][{{@content}}]');
+    this.register.helper('foo', () => 'Hello, world!' );
+    this.register.component('TemplateOnly', 'Bar', '[{{is-string @content}}][{{@content}}]');
 
-    this.render('<Bar @content={{foo}} />', { foo: 'Not it!' });
+    this.render.template('<Bar @content={{foo}} />', { foo: 'Not it!' });
     this.assertHTML('[true][Hello, world!]');
     this.assertStableRerender();
 
@@ -30,50 +31,54 @@ class ArgumentLessHelperParenLessInvokeTest extends RenderTest {
 
   @test
   'invoking an argument-less helper with parens in named argument position is not deprecated'() {
-    this.registerHelper('is-string', ([value]: readonly unknown[]) => typeof value === 'string');
+    this.register.helper('is-string', ([value]: readonly unknown[]) => typeof value === 'string',
+    );
 
-    this.registerHelper('foo', () => 'Hello, world!');
-    this.registerComponent('TemplateOnly', 'Bar', '[{{is-string @content}}][{{@content}}]');
+    this.register.helper('foo', () => 'Hello, world!' );
+    this.register.component('TemplateOnly', 'Bar', '[{{is-string @content}}][{{@content}}]');
 
-    this.render('<Bar @content={{(foo)}} />');
+    this.render.template('<Bar @content={{(foo)}} />');
     this.assertHTML('[true][Hello, world!]');
     this.assertStableRerender();
   }
 
   @test
   'invoking an argument-less helper with quotes in named argument position is not deprecated'() {
-    this.registerHelper('is-string', ([value]: readonly unknown[]) => typeof value === 'string');
+    this.register.helper('is-string', ([value]: readonly unknown[]) => typeof value === 'string',
+    );
 
-    this.registerHelper('foo', () => 'Hello, world!');
-    this.registerComponent('TemplateOnly', 'Bar', '[{{is-string @content}}][{{@content}}]');
+    this.register.helper('foo', () => 'Hello, world!' );
+    this.register.component('TemplateOnly', 'Bar', '[{{is-string @content}}][{{@content}}]');
 
-    this.render('<Bar @content="{{foo}}" />');
+    this.render.template('<Bar @content="{{foo}}" />');
     this.assertHTML('[true][Hello, world!]');
     this.assertStableRerender();
   }
 
   @test
   'passing a local helper in named argument position is not deprecated'() {
-    this.registerHelper('is-string', ([value]: readonly unknown[]) => typeof value === 'string');
+    this.register.helper('is-string', ([value]: readonly unknown[]) => typeof value === 'string',
+    );
 
     const foo = defineSimpleHelper(() => 'Hello, world!');
 
-    this.registerComponent('TemplateOnly', 'Bar', '[{{is-string @content}}][{{@content}}]');
+    this.register.component('TemplateOnly', 'Bar', '[{{is-string @content}}][{{@content}}]');
 
-    this.render('{{#let this.foo as |foo|}}<Bar @content={{foo}} />{{/let}}', { foo });
+    this.render.template('{{#let this.foo as |foo|}}<Bar @content={{foo}} />{{/let}}', { foo });
     this.assertHTML('[false][Hello, world!]');
     this.assertStableRerender();
   }
 
   @test
   'invoking a local helper with parens in named argument position is not deprecated'() {
-    this.registerHelper('is-string', ([value]: readonly unknown[]) => typeof value === 'string');
+    this.register.helper('is-string', ([value]: readonly unknown[]) => typeof value === 'string',
+    );
 
     const foo = defineSimpleHelper(() => 'Hello, world!');
 
-    this.registerComponent('TemplateOnly', 'Bar', '[{{is-string @content}}][{{@content}}]');
+    this.register.component('TemplateOnly', 'Bar', '[{{is-string @content}}][{{@content}}]');
 
-    this.render('{{#let this.foo as |foo|}}<Bar @content={{(foo)}} />{{/let}}', { foo });
+    this.render.template('{{#let this.foo as |foo|}}<Bar @content={{(foo)}} />{{/let}}', { foo });
     this.assertHTML('[true][Hello, world!]');
     this.assertStableRerender();
   }
@@ -82,11 +87,11 @@ class ArgumentLessHelperParenLessInvokeTest extends RenderTest {
 
   // @test
   // 'invoking a helper with quotes in named argument position is not deprecated'() {
-  //   this.registerHelper('is-string', ([value]: readonly unknown[]) => typeof value === 'string');
+  //   this.register.helper('is-string', ([value]: readonly unknown[]) => typeof value === 'string' );
 
   //   const foo = defineSimpleHelper(() => 'Hello, world!');
 
-  //   this.registerComponent('TemplateOnly', 'Bar', '[{{is-string @content}}][{{@content}}]');
+  //   this.register.component('TemplateOnly', 'Bar', '[{{is-string @content}}][{{@content}}]');
 
   //   this.render('{{#let this.foo as |foo|}}<Bar @content="{{foo}}" />{{/let}}', { foo });
   //   this.assertHTML('[true][Hello, world!]');

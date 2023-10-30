@@ -151,7 +151,7 @@ function generateContentTestCase(
         }
 
         if (index === 0) {
-          this.render(template, { value: input });
+          this.render.template(template, { value: input });
           this.assertHTML(
             wrapper.before + expected + wrapper.after,
             `expected initial render (${description})`

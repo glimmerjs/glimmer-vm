@@ -6,7 +6,7 @@ export class ShadowingSuite extends RenderTest {
 
   @test({ kind: 'glimmer' })
   'normal outer attributes are reflected'() {
-    this.render({
+    this.render.template({
       layout: 'In layout - someProp: {{@someProp}}',
       args: { someProp: '"something here"' },
     });
@@ -17,7 +17,7 @@ export class ShadowingSuite extends RenderTest {
 
   @test({ kind: 'glimmer' })
   'shadowing - normal outer attributes clobber inner attributes'() {
-    this.render({
+    this.render.template({
       layout: 'Hello!',
       layoutAttributes: { 'data-name': '"Godfrey"', 'data-foo': '"foo"' },
       attributes: { 'data-name': '"Godfrey"', 'data-foo': '"bar"' },
@@ -30,7 +30,7 @@ export class ShadowingSuite extends RenderTest {
 
   @test({ kind: 'glimmer' })
   'outer attributes with concat are reflected'() {
-    this.render(
+    this.render.template(
       {
         layout: 'In layout - someProp: {{@someProp}}',
         args: { someProp: 'this.someProp' },
@@ -56,7 +56,7 @@ export class ShadowingSuite extends RenderTest {
 
   @test({ kind: 'glimmer' })
   'outer attributes with concat clobber inner attributes'() {
-    this.render(
+    this.render.template(
       {
         layoutAttributes: { 'data-name': 'Godfrey', 'data-foo': 'foo' },
         layout: 'Hello!',
@@ -83,7 +83,7 @@ export class ShadowingSuite extends RenderTest {
 
   @test({ kind: 'glimmer' })
   'outer attributes clobber inner attributes with concat'() {
-    this.render(
+    this.render.template(
       {
         layoutAttributes: { 'data-name': '{{@name}}', 'data-foo': '"{{@foo}}-bar"' },
         layout: 'Hello!',

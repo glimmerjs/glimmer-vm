@@ -7,7 +7,7 @@ export class ScopeSuite extends RenderTest {
 
   @test
   'correct scope - conflicting local names'() {
-    this.render({
+    this.render.template({
       layout: stripTight`
         {{#with @a as |item|}}{{@a}}: {{item}},
           {{#with @b as |item|}} {{@b}}: {{item}},
@@ -23,7 +23,7 @@ export class ScopeSuite extends RenderTest {
 
   @test
   'correct scope - conflicting block param and attr names'() {
-    this.render({
+    this.render.template({
       layout:
         'Outer: {{@conflict}} {{#with @item as |conflict|}}Inner: {{@conflict}} Block: {{conflict}}{{/with}}',
       args: { item: '"from block"', conflict: '"from attr"' },

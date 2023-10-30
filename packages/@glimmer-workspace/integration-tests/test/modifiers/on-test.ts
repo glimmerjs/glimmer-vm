@@ -91,7 +91,7 @@ if (hasDom) {
     'it adds an event listener'(assert: Assert) {
       let count = 0;
 
-      this.render('<button {{on "click" this.callback}}>Click Me</button>', {
+      this.render.template('<button {{on "click" this.callback}}>Click Me</button>', {
         callback() {
           count++;
         },
@@ -118,7 +118,7 @@ if (hasDom) {
     'passes the event to the listener'(assert: Assert) {
       let event: UIEvent;
 
-      this.render('<button {{on "click" this.callback}}>Click Me</button>', {
+      this.render.template('<button {{on "click" this.callback}}>Click Me</button>', {
         callback(evt: UIEvent) {
           event = evt;
         },
@@ -140,7 +140,7 @@ if (hasDom) {
       let firstCallback = () => first++;
       let secondCallback = () => second++;
 
-      this.render('<button {{on "click" this.callback}}>Click Me</button>', {
+      this.render.template('<button {{on "click" this.callback}}>Click Me</button>', {
         callback: firstCallback,
       });
 
@@ -168,7 +168,7 @@ if (hasDom) {
     'setting once named argument ensures the callback is only called once'(assert: Assert) {
       let count = 0;
 
-      this.render('<button {{on "click" this.callback once=true}}>Click Me</button>', {
+      this.render.template('<button {{on "click" this.callback once=true}}>Click Me</button>', {
         callback() {
           count++;
         },
@@ -202,7 +202,7 @@ if (hasDom) {
     ) {
       let count = 0;
 
-      this.render('<button {{on "click" this.callback once=this.once}}>Click Me</button>', {
+      this.render.template('<button {{on "click" this.callback once=this.once}}>Click Me</button>', {
         callback() {
           count++;
         },
@@ -238,7 +238,7 @@ if (hasDom) {
       let matcher =
         /You marked this listener as 'passive', meaning that you must not call 'event.preventDefault\(\)'/u;
 
-      this.render('<button {{on "click" this.callback passive=true}}>Click Me</button>', {
+      this.render.template('<button {{on "click" this.callback passive=true}}>Click Me</button>', {
         callback(event: UIEvent) {
           assert.throws(() => {
             event.preventDefault();
@@ -251,7 +251,7 @@ if (hasDom) {
 
     @test
     'by default bubbling is used (capture: false)'(assert: Assert) {
-      this.render(
+      this.render.template(
         `
           <button class="outer" {{on 'click' this.handleOuterClick}}>
             <button class="inner" {{on 'click' this.handleInnerClick}}></button>
@@ -274,7 +274,7 @@ if (hasDom) {
 
     @test
     'specifying capture named argument uses capture semantics'(assert: Assert) {
-      this.render(
+      this.render.template(
         `
           <button class="outer" {{on 'click' this.handleOuterClick capture=true}}>
             <button class="inner" {{on 'click' this.handleInnerClick}}></button>
@@ -297,7 +297,7 @@ if (hasDom) {
 
     @test
     'can use capture and once together'(assert: Assert) {
-      this.render(
+      this.render.template(
         `
           <button class="outer" {{on 'click' this.handleOuterClick once=true capture=true}}>
             <button class="inner" {{on 'click' this.handleInnerClick}}></button>
@@ -326,7 +326,7 @@ if (hasDom) {
     'unrelated updates to `this` context does not result in removing + re-adding'(assert: Assert) {
       let called = false;
 
-      this.render('<button {{on "click" this.callback}}>Click Me</button>', {
+      this.render.template('<button {{on "click" this.callback}}>Click Me</button>', {
         callback() {
           called = true;
         },
@@ -346,7 +346,7 @@ if (hasDom) {
     @test
     'asserts when eventName is missing'(assert: Assert) {
       assert.throws(() => {
-        this.render(`<button {{on undefined this.callback}}>Click Me</button>`, {
+        this.render.template(`<button {{on undefined this.callback}}>Click Me</button>`, {
           callback() {},
         });
       }, /You must pass a valid DOM event name as the first argument to the `on` modifier/u);
@@ -355,7 +355,7 @@ if (hasDom) {
     @test
     'asserts when eventName is a bound undefined value'(assert: Assert) {
       assert.throws(() => {
-        this.render(`<button {{on this.someUndefinedThing this.callback}}>Click Me</button>`, {
+        this.render.template(`<button {{on this.someUndefinedThing this.callback}}>Click Me</button>`, {
           callback() {},
         });
       }, /You must pass a valid DOM event name as the first argument to the `on` modifier/u);
@@ -364,7 +364,7 @@ if (hasDom) {
     @test
     'asserts when eventName is a function'(assert: Assert) {
       assert.throws(() => {
-        this.render(`<button {{on this.callback}}>Click Me</button>`, {
+        this.render.template(`<button {{on this.callback}}>Click Me</button>`, {
           callback() {},
         });
       }, /You must pass a valid DOM event name as the first argument to the `on` modifier/u);
@@ -373,21 +373,21 @@ if (hasDom) {
     @test
     'asserts when callback is missing'(assert: Assert) {
       assert.throws(() => {
-        this.render(`<button {{on 'click'}}>Click Me</button>`);
+        this.render.template(`<button {{on 'click'}}>Click Me</button>`);
       }, /You must pass a function as the second argument to the `on` modifier/u);
     }
 
     @test
     'asserts when callback is undefined'(assert: Assert) {
       assert.throws(() => {
-        this.render(`<button {{on 'click' this.foo}}>Click Me</button>`);
+        this.render.template(`<button {{on 'click' this.foo}}>Click Me</button>`);
       }, /You must pass a function as the second argument to the `on` modifier; you passed undefined. While rendering:\n{2}this.foo/u);
     }
 
     @test
     'asserts when callback is null'(assert: Assert) {
       assert.throws(() => {
-        this.render(`<button {{on 'click' this.foo}}>Click Me</button>`, { foo: null });
+        this.render.template(`<button {{on 'click' this.foo}}>Click Me</button>`, { foo: null });
       }, /You must pass a function as the second argument to the `on` modifier; you passed null. While rendering:\n{2}this.foo/u);
     }
 
@@ -395,7 +395,7 @@ if (hasDom) {
     'asserts if the provided callback accesses `this` without being bound prior to passing to on'(
       assert: Assert
     ) {
-      this.render(`<button {{on 'click' this.myFunc}}>Click Me</button>`, {
+      this.render.template(`<button {{on 'click' this.myFunc}}>Click Me</button>`, {
         myFunc(this: any) {
           assert.throws(() => {
             this.arg1;
@@ -411,7 +411,7 @@ if (hasDom) {
     @test
     'asserts if more than 2 positional parameters are provided'(assert: Assert) {
       assert.throws(() => {
-        this.render(`<button {{on 'click' this.callback this.someArg}}>Click Me</button>`, {
+        this.render.template(`<button {{on 'click' this.callback this.someArg}}>Click Me</button>`, {
           callback() {},
           someArg: 'foo',
         });
@@ -422,7 +422,7 @@ if (hasDom) {
     'it removes the modifier when the element is removed'(assert: Assert) {
       let count = 0;
 
-      this.render(
+      this.render.template(
         '{{#if this.showButton}}<button {{on "click" this.callback}}>Click Me</button>{{/if}}',
         {
           callback() {

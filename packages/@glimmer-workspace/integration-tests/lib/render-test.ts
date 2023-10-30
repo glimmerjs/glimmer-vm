@@ -10,7 +10,7 @@ import type {
   SimpleElement,
   SimpleNode,
 } from '@glimmer/interfaces';
-import { inTransaction } from '@glimmer/runtime';
+import { inTransaction, renderComponent, renderSync } from '@glimmer/runtime';
 import type { ASTPluginBuilder } from '@glimmer/syntax';
 import { assert, clearElement, dict, expect, isPresent, unwrap } from '@glimmer/util';
 import { dirtyTagFor } from '@glimmer/validator';
@@ -29,6 +29,13 @@ import type { UserHelper } from './helpers';
 import type { TestModifierConstructor } from './modifiers';
 import type RenderDelegate from './render-delegate';
 import { equalTokens, isServerMarker, type NodesSnapshot, normalizeSnapshot } from './snapshot';
+import {
+  registerComponent,
+  registerHelper,
+  registerInternalHelper,
+  registerModifier,
+} from './modes/jit/register';
+import { RecordedEvents } from './test-helpers/recorded';
 
 type Expand<T> = T extends infer O ? { [K in keyof O]: O[K] } : never;
 type Present<T> = Exclude<T, null | undefined>;
@@ -43,6 +50,11 @@ export interface IRenderTest {
 export class Count {
   private expected: Record<string, number> = {};
   private actual: Record<string, number> = {};
+  readonly #events: RecordedEvents;
+
+  constructor(events: RecordedEvents) {
+    this.#events = events;
+  }
 
   expect(name: string, count = 1) {
     this.expected[name] = count;
@@ -52,11 +64,13 @@ export class Count {
 
   assert() {
     QUnit.assert.deepEqual(this.actual, this.expected, 'TODO');
+    this.#events.finalize();
   }
 }
 
 export class RenderTest implements IRenderTest {
   testType: ComponentKind = 'unknown';
+  readonly events = new RecordedEvents();
 
   protected element: SimpleElement;
   protected assert = QUnit.assert;
@@ -64,10 +78,11 @@ export class RenderTest implements IRenderTest {
   protected renderResult: Nullable<RenderResult> = null;
   protected helpers = dict<UserHelper>();
   protected snapshot: NodesSnapshot = [];
-  readonly count = new Count();
+  readonly count: Count;
 
   constructor(protected delegate: RenderDelegate) {
     this.element = delegate.getInitialElement();
+    this.count = new Count(this.events);
   }
 
   capture<T>() {
@@ -84,26 +99,36 @@ export class RenderTest implements IRenderTest {
     this.delegate.registerPlugin(plugin);
   }
 
-  registerHelper(name: string, helper: UserHelper): void {
-    this.delegate.registerHelper(name, helper);
-  }
+  readonly register = {
+    helper: (name: string, helper: UserHelper) => {
+      for (const registry of this.delegate.registries) {
+        registerHelper(registry, name, helper);
+      }
+    },
 
-  registerInternalHelper(name: string, helper: Helper): void {
-    this.delegate.registerInternalHelper(name, helper);
-  }
+    internalHelper: (name: string, helper: Helper) => {
+      for (const registry of this.delegate.registries) {
+        registerInternalHelper(registry, name, helper);
+      }
+    },
 
-  registerModifier(name: string, ModifierClass: TestModifierConstructor): void {
-    this.delegate.registerModifier(name, ModifierClass);
-  }
+    modifier: (name: string, ModifierClass: TestModifierConstructor) => {
+      for (const registry of this.delegate.registries) {
+        registerModifier(registry, name, ModifierClass);
+      }
+    },
 
-  registerComponent<K extends ComponentKind>(
-    type: K,
-    name: string,
-    layout: string,
-    Class?: ComponentTypes[K]
-  ): void {
-    this.delegate.registerComponent(type, this.testType, name, layout, Class);
-  }
+    component: <K extends ComponentKind>(
+      type: K,
+      name: string,
+      layout: Nullable<string>,
+      Class?: ComponentTypes[K]
+    ): void => {
+      for (const registry of this.delegate.registries) {
+        registerComponent(registry, type, name, layout, Class);
+      }
+    },
+  };
 
   buildComponent(blueprint: ComponentBlueprint): string {
     let invocation = '';
@@ -226,9 +251,8 @@ export class RenderTest implements IRenderTest {
       true,
       `generated glimmer layout as ${`<${tag} ${layoutAttrs} ...attributes>${layout}</${tag}>`}`
     );
-    this.delegate.registerComponent(
+    this.register.component(
       'Glimmer',
-      this.testType,
       name,
       `<${tag} ${layoutAttrs} ...attributes>${layout}</${tag}>`
     );
@@ -287,7 +311,7 @@ export class RenderTest implements IRenderTest {
       invocation.push('}}');
     }
     this.assert.ok(true, `generated curly layout as ${layout}`);
-    this.delegate.registerComponent('Curly', this.testType, name, layout);
+    this.register.component('Curly', name, layout);
     invocation = invocation.join('');
     this.assert.ok(true, `generated curly invocation as ${invocation}`);
     return invocation;
@@ -297,7 +321,7 @@ export class RenderTest implements IRenderTest {
     let { layout, name = GLIMMER_TEST_COMPONENT } = blueprint;
     let invocation = this.buildAngleBracketComponent(blueprint);
     this.assert.ok(true, `generated fragment layout as ${layout}`);
-    this.delegate.registerComponent('TemplateOnly', this.testType, name, `${layout}`);
+    this.register.component('TemplateOnly', name, `${layout}`);
     this.assert.ok(true, `generated fragment invocation as ${invocation}`);
     return invocation;
   }
@@ -338,7 +362,7 @@ export class RenderTest implements IRenderTest {
     }
 
     this.assert.ok(true, `generated dynamic layout as ${layout}`);
-    this.delegate.registerComponent('Curly', this.testType, name, layout);
+    this.register.component('Curly', name, layout);
     invocation = invocation.join('');
     this.assert.ok(true, `generated dynamic invocation as ${invocation}`);
 
@@ -363,9 +387,32 @@ export class RenderTest implements IRenderTest {
     });
   }
 
-  render(template: string | ComponentBlueprint, properties: Dict<unknown> = {}): void {
+  readonly render = {
+    template: (template: string | ComponentBlueprint, properties: Dict<unknown> = {}) =>
+      this.#renderTemplate(template, properties),
+
+    component: (
+      component: object,
+      args: Record<string, unknown> = {},
+      dynamicScope?: DynamicScope
+    ): void => {
+      let cursor = { element: this.element, nextSibling: null };
+
+      if (this.delegate.context === undefined) {
+        throw Error(`renderIt requires a context`);
+      }
+
+      let { program, runtime } = this.delegate.context;
+      let builder = this.delegate.getElementBuilder(runtime.env, cursor);
+      let iterator = renderComponent(runtime, builder, program, {}, component, args, dynamicScope);
+
+      this.renderResult = renderSync(runtime.env, iterator);
+    },
+  };
+
+  #renderTemplate(template: string | ComponentBlueprint, properties: Dict<unknown> = {}): void {
     try {
-      QUnit.assert.ok(true, `Rendering ${template} with ${JSON.stringify(properties)}`);
+      QUnit.assert.ok(true, `Rendering ${String(template)} with ${JSON.stringify(properties)}`);
     } catch {
       // couldn't stringify, possibly has a circular dependency
     }
@@ -384,6 +431,24 @@ export class RenderTest implements IRenderTest {
     this.renderResult = this.delegate.renderTemplate(template, this.context, this.element, () =>
       this.takeSnapshot()
     );
+  }
+
+  renderIt(
+    component: object,
+    args: Record<string, unknown> = {},
+    dynamicScope?: DynamicScope
+  ): void {
+    let cursor = { element: this.element, nextSibling: null };
+
+    if (this.delegate.context === undefined) {
+      throw Error(`renderIt requires a context`);
+    }
+
+    let { program, runtime } = this.delegate.context;
+    let builder = this.delegate.getElementBuilder(runtime.env, cursor);
+    let iterator = renderComponent(runtime, builder, program, {}, component, args, dynamicScope);
+
+    this.renderResult = renderSync(runtime.env, iterator);
   }
 
   renderComponent(
@@ -417,10 +482,12 @@ export class RenderTest implements IRenderTest {
     let result = expect(this.renderResult, 'the test should call render() before rerender()');
 
     try {
+      this.events.record('env:begin');
       result.env.begin();
       result.rerender();
     } finally {
       result.env.commit();
+      this.events.record('env:commit');
     }
   }
 

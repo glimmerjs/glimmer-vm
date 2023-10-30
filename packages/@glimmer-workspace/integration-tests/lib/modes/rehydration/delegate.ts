@@ -4,7 +4,6 @@ import type {
   ElementBuilder,
   ElementNamespace,
   Environment,
-  Helper,
   Nullable,
   RenderResult,
   SimpleDocument,
@@ -20,19 +19,10 @@ import { assign, castToSimple } from '@glimmer/util';
 import createHTMLDocument from '@simple-dom/document';
 
 import { BaseEnv } from '../../base-env';
-import type { ComponentKind } from '../../components';
 import { replaceHTML, toInnerHTML } from '../../dom/simple-utils';
-import type { UserHelper } from '../../helpers';
-import type { TestModifierConstructor } from '../../modifiers';
 import type RenderDelegate from '../../render-delegate';
 import type { RenderDelegateOptions } from '../../render-delegate';
 import { JitDelegateContext, type JitTestDelegateContext } from '../jit/delegate';
-import {
-  registerComponent,
-  registerHelper,
-  registerInternalHelper,
-  registerModifier,
-} from '../jit/register';
 import { TestJitRegistry } from '../jit/registry';
 import { renderTemplate } from '../jit/render';
 import { TestJitRuntimeResolver } from '../jit/resolver';
@@ -180,24 +170,8 @@ export class RehydrationDelegate implements RenderDelegate {
     this.plugins.push(plugin);
   }
 
-  registerComponent(type: ComponentKind, _testType: string, name: string, layout: string): void {
-    registerComponent(this.clientRegistry, type, name, layout);
-    registerComponent(this.serverRegistry, type, name, layout);
-  }
-
-  registerHelper(name: string, helper: UserHelper): void {
-    registerHelper(this.clientRegistry, name, helper);
-    registerHelper(this.serverRegistry, name, helper);
-  }
-
-  registerInternalHelper(name: string, helper: Helper) {
-    registerInternalHelper(this.clientRegistry, name, helper);
-    registerInternalHelper(this.serverRegistry, name, helper);
-  }
-
-  registerModifier(name: string, ModifierClass: TestModifierConstructor): void {
-    registerModifier(this.clientRegistry, name, ModifierClass);
-    registerModifier(this.serverRegistry, name, ModifierClass);
+  get registries() {
+    return [this.clientRegistry, this.serverRegistry];
   }
 
   private get precompileOptions(): PrecompileOptions {

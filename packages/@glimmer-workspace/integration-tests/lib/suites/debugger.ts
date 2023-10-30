@@ -26,7 +26,7 @@ export class DebuggerSuite extends RenderTest {
       this.assert.strictEqual(get('foo'), expectedContext.foo);
     });
 
-    this.render(
+    this.render.template(
       '{{#if this.a.b}}true{{debugger}}{{else}}false{{debugger}}{{/if}}',
       expectedContext
     );
@@ -74,7 +74,7 @@ export class DebuggerSuite extends RenderTest {
       this.assert.deepEqual(get('this'), context);
     });
 
-    this.render(
+    this.render.template(
       '{{#with this.foo as |bar|}}{{#if this.a.b}}true{{debugger}}{{else}}false{{debugger}}{{/if}}{{/with}}',
       expectedContext
     );

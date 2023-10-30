@@ -9,7 +9,7 @@ class UpdatingSvgTest extends RenderTest {
 
   @test
   'HTML namespace from root element is continued to child templates'() {
-    this.render('<svg>{{#if this.hasCircle}}<circle />{{/if}}</svg>', { hasCircle: true });
+    this.render.template('<svg>{{#if this.hasCircle}}<circle />{{/if}}</svg>', { hasCircle: true });
 
     const assertNamespaces = () => {
       if (assertNodeTagName(this.element.firstChild, 'svg')) {
@@ -49,7 +49,7 @@ class UpdatingSvgTest extends RenderTest {
       }
     };
 
-    this.render('{{#if this.hasForeignObject}}<foreignObject><div></div></foreignObject>{{/if}}', {
+    this.render.template('{{#if this.hasForeignObject}}<foreignObject><div></div></foreignObject>{{/if}}', {
       hasForeignObject: true,
     });
 
@@ -69,7 +69,7 @@ class UpdatingSvgTest extends RenderTest {
 
   @test
   'elements nested inside <foreignObject> have an XHTML namespace'() {
-    this.render('<svg><foreignObject>{{#if this.hasDiv}}<div></div>{{/if}}</foreignObject></svg>', {
+    this.render.template('<svg><foreignObject>{{#if this.hasDiv}}<div></div>{{/if}}</foreignObject></svg>', {
       hasDiv: true,
     });
 
@@ -101,7 +101,7 @@ class UpdatingSvgTest extends RenderTest {
 
   @test
   'Namespaced attribute with a quoted expression'() {
-    this.render('<svg xlink:title="{{this.title}}">content</svg>', { title: 'svg-title' });
+    this.render.template('<svg xlink:title="{{this.title}}">content</svg>', { title: 'svg-title' });
 
     const assertNamespaces = () => {
       if (assertNodeTagName(this.element.firstChild, 'svg')) {
@@ -131,7 +131,7 @@ class UpdatingSvgTest extends RenderTest {
 
   @test
   '<svg> tag and expression as sibling'() {
-    this.render('<svg></svg>{{this.name}}', { name: 'svg-title' });
+    this.render.template('<svg></svg>{{this.name}}', { name: 'svg-title' });
 
     const assertNamespace = () => {
       if (assertNodeTagName(this.element.firstChild, 'svg')) {
@@ -156,7 +156,7 @@ class UpdatingSvgTest extends RenderTest {
 
   @test
   '<svg> tag and unsafe expression as sibling'() {
-    this.render('<svg></svg>{{{this.name}}}', { name: '<i>Biff</i>' });
+    this.render.template('<svg></svg>{{{this.name}}}', { name: '<i>Biff</i>' });
 
     const assertNamespaces = (isUnsafe: boolean) => {
       if (assertNodeTagName(this.element.firstChild, 'svg')) {
@@ -184,7 +184,7 @@ class UpdatingSvgTest extends RenderTest {
 
   @test
   'unsafe expression nested inside a namespace'() {
-    this.render('<svg>{{{this.content}}}</svg><div></div>', {
+    this.render.template('<svg>{{{this.content}}}</svg><div></div>', {
       content: '<path></path>',
     });
 
@@ -274,7 +274,7 @@ class UpdatingSvgTest extends RenderTest {
 
   @test
   'expression nested inside a namespace'() {
-    this.render('<div><svg>{{this.content}}</svg></div>', {
+    this.render.template('<div><svg>{{this.content}}</svg></div>', {
       content: 'Milly',
     });
 
@@ -304,7 +304,7 @@ class UpdatingSvgTest extends RenderTest {
 
   @test
   'expression nested inside a namespaced context.root element'() {
-    this.render('<svg>{{this.content}}</svg>', { content: 'Maurice' });
+    this.render.template('<svg>{{this.content}}</svg>', { content: 'Maurice' });
 
     const assertSvg = (withSVG?: (svg: SVGSVGElement) => void) => {
       if (assertNodeTagName(this.element.firstChild, 'svg')) {
@@ -331,7 +331,7 @@ class UpdatingSvgTest extends RenderTest {
 
   @test
   'HTML namespace is created in child templates'() {
-    this.render('{{#if this.isTrue}}<svg></svg>{{else}}<div><svg></svg></div>{{/if}}', {
+    this.render.template('{{#if this.isTrue}}<svg></svg>{{else}}<div><svg></svg></div>{{/if}}', {
       isTrue: true,
     });
 
@@ -367,7 +367,7 @@ class UpdatingSvgTest extends RenderTest {
 
   @test
   'HTML namespace is continued to child templates'() {
-    this.render('<div><svg>{{#if this.isTrue}}<circle />{{/if}}</svg></div>', { isTrue: true });
+    this.render.template('<div><svg>{{#if this.isTrue}}<circle />{{/if}}</svg></div>', { isTrue: true });
 
     const assertNamespaces = (isTrue: boolean) => {
       if (assertNodeTagName(this.element.firstChild, 'div')) {
