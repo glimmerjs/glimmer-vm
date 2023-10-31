@@ -15,7 +15,7 @@ export class ErrorRecoverySuite extends RenderTest {
     actions.expect([]);
   }
 
-  @test({ kind: 'templateOnly' })
+  @test('templateOnly')
   'if no error is thrown and a component is rendered, everything works as expected'() {
     this.register.component('TemplateOnly', 'Message', '{{yield}}');
 

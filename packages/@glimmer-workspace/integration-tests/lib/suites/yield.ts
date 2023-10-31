@@ -1,9 +1,8 @@
 import { RenderTest } from '../render-test';
-import { test } from '../test-decorator';
+import { test, suite } from '../test-decorator';
 
+@suite('yield')
 export class YieldSuite extends RenderTest {
-  static suiteName = 'yield';
-
   @test
   yield() {
     this.render.template(
@@ -22,9 +21,7 @@ export class YieldSuite extends RenderTest {
     this.assertStableRerender();
   }
 
-  @test({
-    skip: 'glimmer',
-  })
+  @test
   'yield to "inverse"'() {
     this.render.template(
       {
@@ -42,9 +39,7 @@ export class YieldSuite extends RenderTest {
     this.assertStableRerender();
   }
 
-  @test({
-    skip: 'glimmer',
-  })
+  @test
   'yield to "else"'() {
     this.render.template(
       {
@@ -83,12 +78,10 @@ export class YieldSuite extends RenderTest {
     this.assertStableRerender();
   }
 
-  @test({
-    skip: 'glimmer',
-  })
+  @test
   'use a non-existent block param'() {
     this.render.template({
-      layout: '{{yield this.someValue}}',
+      layout: '{{yield @someValue}}',
       args: { someValue: '42' },
       blockParams: ['val1', 'val2'],
       template: '{{val1}} - {{val2}}',

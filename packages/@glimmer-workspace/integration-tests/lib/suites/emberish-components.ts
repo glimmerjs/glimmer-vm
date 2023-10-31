@@ -190,7 +190,7 @@ export class EmberishComponentTests extends RenderTest {
     this.assertStableRerender();
   }
 
-  @test({ kind: 'curly' })
+  @test('curly')
   'invoking wrapped layout via angle brackets applies ...attributes'() {
     this.register.component('Curly', 'FooBar', 'Hello world!');
 
@@ -200,7 +200,7 @@ export class EmberishComponentTests extends RenderTest {
     this.assertStableRerender();
   }
 
-  @test({ kind: 'curly' })
+  @test('curly')
   'invoking wrapped layout via angle brackets - invocation attributes clobber internal attributes'() {
     class FooBar extends EmberishCurlyComponent {
       [index: string]: unknown;
@@ -220,7 +220,7 @@ export class EmberishComponentTests extends RenderTest {
   }
 
   // LOCKS
-  @test({ kind: 'curly' })
+  @test('curly')
   'yields named block'() {
     class FooBar extends EmberishCurlyComponent {
       [index: string]: unknown;
@@ -238,7 +238,7 @@ export class EmberishComponentTests extends RenderTest {
   }
 
   // LOCKS
-  @test({ kind: 'curly' })
+  @test('curly')
   'implicit default named block'() {
     class FooBar extends EmberishCurlyComponent {
       [index: string]: unknown;
@@ -257,7 +257,7 @@ export class EmberishComponentTests extends RenderTest {
   }
 
   // LOCKS
-  @test({ kind: 'curly' })
+  @test('curly')
   'explicit default named block'() {
     class FooBar extends EmberishCurlyComponent {
       [index: string]: unknown;
@@ -275,7 +275,7 @@ export class EmberishComponentTests extends RenderTest {
   }
 
   // LOCKS
-  @test({ kind: 'curly' })
+  @test('curly')
   'else named block'() {
     class FooBar extends EmberishCurlyComponent {
       [index: string]: unknown;
@@ -292,7 +292,7 @@ export class EmberishComponentTests extends RenderTest {
     this.assertStableRerender();
   }
 
-  @test({ kind: 'curly' })
+  @test('curly')
   'inverse named block'() {
     class FooBar extends EmberishCurlyComponent {
       [index: string]: unknown;
@@ -309,7 +309,7 @@ export class EmberishComponentTests extends RenderTest {
     this.assertStableRerender();
   }
 
-  @test({ kind: 'curly' })
+  @test('curly')
   'invoking wrapped layout via angle brackets - invocation attributes merges classes'() {
     class FooBar extends EmberishCurlyComponent {
       [index: string]: unknown;

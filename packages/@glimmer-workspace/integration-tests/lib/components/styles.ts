@@ -14,6 +14,7 @@ const AngleBracketStyle = (blueprint: ComponentBlueprint) => {
     attributes = {},
     template,
     name = GLIMMER_TEST_COMPONENT,
+    else: elseBlock,
     blockParams = [],
   } = blueprint;
 
@@ -40,11 +41,13 @@ const AngleBracketStyle = (blueprint: ComponentBlueprint) => {
   if (template) {
     let block: string | string[] = [];
     let params = builder.blockParams(blockParams);
-    if (params !== '') {
-      block.push(params);
+
+    if (elseBlock) {
+      block.push(`><:default${params}>${template}</:default><:else>${elseBlock}</:else>`);
+    } else {
+      block.push(`${params}>${template}`);
     }
-    block.push(`>`);
-    block.push(template);
+
     block.push(`</${name}>`);
     invocation.push(block.join(''));
   } else {

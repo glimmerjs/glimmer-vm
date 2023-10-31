@@ -717,7 +717,7 @@ export class GlimmerishComponents extends RenderTest {
     this.assertHTML('123<!---->');
   }
 
-  @test({ kind: 'templateOnly' })
+  @test('templateOnly')
   'throwing an error during component construction does not put result into a bad state'() {
     this.register.component(
       'Glimmer',
@@ -745,7 +745,7 @@ export class GlimmerishComponents extends RenderTest {
     this.assertHTML('', 'destroys correctly');
   }
 
-  @test({ kind: 'templateOnly' })
+  @test('templateOnly')
   'throwing an error during component construction does not put result into a bad state with multiple prior nodes'() {
     this.register.component(
       'Glimmer',
@@ -779,7 +779,7 @@ export class GlimmerishComponents extends RenderTest {
     this.assertHTML('', 'destroys correctly');
   }
 
-  @test({ kind: 'templateOnly' })
+  @test('templateOnly')
   'throwing an error during component construction does not put result into a bad state with nested components'() {
     this.register.component(
       'Glimmer',
@@ -812,7 +812,7 @@ export class GlimmerishComponents extends RenderTest {
     this.assertHTML('', 'destroys correctly');
   }
 
-  @test({ kind: 'templateOnly' })
+  @test('templateOnly')
   'throwing an error during rendering gives a readable error stack'(assert: Assert) {
     // eslint-disable-next-line no-console
     let originalConsoleError = console.error;
