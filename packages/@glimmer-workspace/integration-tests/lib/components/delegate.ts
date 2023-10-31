@@ -1,48 +1,58 @@
 import type { Dict, Nullable, SimpleElement } from '@glimmer/interfaces';
-import type { TestJitRegistry } from '../modes/jit/registry';
-import {
-  BuildCurlyComponent,
-  BuildDynamicComponent,
-  BuildGlimmerComponent,
-  type ComponentStyle,
-} from './styles';
-import type { ComponentBlueprint, ComponentKind, ComponentTypes } from './types';
+import { assertElementShape, assertEmberishElement } from '../dom/assertions';
 import {
   registerEmberishCurlyComponent,
   registerGlimmerishComponent,
   registerTemplateOnlyComponent,
 } from '../modes/jit/register';
-import { assertElementShape, assertEmberishElement } from '../dom/assertions';
+import type { TestJitRegistry } from '../modes/jit/registry';
+import { type DeclaredComponentType } from '../test-helpers/constants';
+import {
+  BuildCurlyInvoke,
+  BuildCurlyTemplate,
+  BuildDynamicInvoke,
+  BuildDynamicTemplate,
+  BuildGlimmerInvoke,
+  BuildGlimmerTemplate,
+  type BuildInvocation,
+  type BuildTemplate,
+} from './styles';
+import { type ComponentBlueprint, type ComponentTypes } from './types';
 
-type Register<K extends ComponentKind> = (
-  type: K,
-  name: string,
-  layout: Nullable<string>,
-  Class?: ComponentTypes[K]
-) => void;
-
-export function build<K extends ComponentKind>(
+export function buildTemplate<K extends DeclaredComponentType>(
   delegate: ComponentDelegate<K>,
-  component: ComponentBlueprint,
-  register: Register<K>
+  component: ComponentBlueprint
 ): string {
   const build = delegate.build;
 
-  const { name, invocation, template } = build.component(component);
+  const template = build.template(component);
   QUnit.assert.ok(true, `generated ${delegate.type} layout as ${template}`);
-  QUnit.assert.ok(true, `generated ${delegate.type} invocation as ${invocation}`);
 
-  register(delegate.type, name, template);
+  return template;
+}
+
+export function buildInvoke<K extends DeclaredComponentType>(
+  delegate: ComponentDelegate<K>,
+  component: ComponentBlueprint
+): { name: string; invocation: string } {
+  const build = delegate.build;
+
+  const invocation = build.invoke(component);
+  QUnit.assert.ok(
+    true,
+    `generated ${delegate.type} invocation as ${invocation.invocation} (name=${invocation.name})`
+  );
 
   return invocation;
 }
 
 export interface BuildDelegate {
   style: BuildStyle;
-  component: ComponentStyle;
+  template: BuildTemplate;
+  invoke: BuildInvocation;
 }
 
-export interface ComponentDelegate<K extends ComponentKind = ComponentKind> {
+export interface ComponentDelegate<K extends DeclaredComponentType = DeclaredComponentType> {
   readonly type: K;
 
   register: (
@@ -59,8 +69,8 @@ export interface ComponentDelegate<K extends ComponentKind = ComponentKind> {
 
 export type BuildStyle = 'angle' | 'curlies';
 
-export const GlimmerDelegate: ComponentDelegate<'Glimmer'> = {
-  type: 'Glimmer',
+export const GlimmerDelegate: ComponentDelegate<'glimmer'> = {
+  type: 'glimmer',
   register: (registry, name, layout, Class) => {
     registerGlimmerishComponent(registry, name, Class ?? null, layout);
   },
@@ -69,12 +79,13 @@ export const GlimmerDelegate: ComponentDelegate<'Glimmer'> = {
 
   build: {
     style: 'angle',
-    component: BuildGlimmerComponent,
+    template: BuildGlimmerTemplate,
+    invoke: BuildGlimmerInvoke,
   },
 };
 
-export const CurlyDelegate: ComponentDelegate<'Curly'> = {
-  type: 'Curly',
+export const CurlyDelegate: ComponentDelegate<'curly'> = {
+  type: 'curly',
   register: (registry, name, layout, Class) => {
     registerEmberishCurlyComponent(registry, name, Class ?? null, layout);
   },
@@ -83,12 +94,13 @@ export const CurlyDelegate: ComponentDelegate<'Curly'> = {
 
   build: {
     style: 'curlies',
-    component: BuildCurlyComponent,
+    template: BuildCurlyTemplate,
+    invoke: BuildCurlyInvoke,
   },
 };
 
-export const DynamicDelegate: ComponentDelegate<'Dynamic'> = {
-  type: 'Dynamic',
+export const DynamicDelegate: ComponentDelegate<'dynamic'> = {
+  type: 'dynamic',
   register: (registry, name, layout, Class) => {
     registerEmberishCurlyComponent(registry, name, Class ?? null, layout);
   },
@@ -97,12 +109,13 @@ export const DynamicDelegate: ComponentDelegate<'Dynamic'> = {
 
   build: {
     style: 'curlies',
-    component: BuildDynamicComponent,
+    invoke: BuildDynamicInvoke,
+    template: BuildDynamicTemplate,
   },
 };
 
-export const TemplateOnlyDelegate: ComponentDelegate<'TemplateOnly'> = {
-  type: 'TemplateOnly',
+export const TemplateOnlyDelegate: ComponentDelegate<'templateOnly'> = {
+  type: 'templateOnly',
   register: (registry, name, layout) => {
     registerTemplateOnlyComponent(registry, name, layout ?? '');
   },
@@ -111,18 +124,19 @@ export const TemplateOnlyDelegate: ComponentDelegate<'TemplateOnly'> = {
 
   build: {
     style: 'angle',
-    component: BuildGlimmerComponent,
+    template: BuildGlimmerTemplate,
+    invoke: BuildGlimmerInvoke,
   },
 };
 
 const DELEGATES = {
-  Glimmer: GlimmerDelegate,
-  Curly: CurlyDelegate,
-  Dynamic: DynamicDelegate,
-  TemplateOnly: TemplateOnlyDelegate,
-} as const satisfies { [K in ComponentKind]: ComponentDelegate<K> };
+  glimmer: GlimmerDelegate,
+  curly: CurlyDelegate,
+  dynamic: DynamicDelegate,
+  templateOnly: TemplateOnlyDelegate,
+} as const satisfies { [K in DeclaredComponentType]: ComponentDelegate<K> };
 type DELEGATES = typeof DELEGATES;
 
-export const getDelegate = <K extends ComponentKind>(type: K): ComponentDelegate<K> => {
+export const getDelegate = <K extends DeclaredComponentType>(type: K): ComponentDelegate<K> => {
   return DELEGATES[type] as ComponentDelegate<K>;
 };

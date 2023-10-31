@@ -1,5 +1,4 @@
 import type { EnvironmentDelegate } from '@glimmer/runtime';
-import { entries } from '@glimmer/util';
 
 import type { ComponentKind } from '../components';
 import { JitRenderDelegate } from '../modes/jit/delegate';
@@ -9,15 +8,15 @@ import type { RenderDelegateOptions } from '../render-delegate';
 import { Count, type IRenderTest, type RenderTest } from '../render-test';
 import { JitSerializationDelegate } from '../suites/custom-dom-helper';
 import {
-  isComponentTest,
-  type DeclaredComponentKind,
   getComponentTestMeta,
-  type RenderSuiteMeta,
-  isSuite,
   getSuiteMetadata,
-  type ComponentTestMeta,
+  isComponentTest,
+  isSuite,
   type ComponentTestFunction,
+  type ComponentTestMeta,
+  type RenderSuiteMeta,
 } from '../test-decorator';
+import { type DeclaredComponentType } from './constants';
 import { RecordedEvents } from './recorded';
 
 export interface RenderTestConstructor<D extends RenderDelegate, T extends IRenderTest> {
@@ -108,18 +107,18 @@ export function suite<D extends RenderDelegate>(
       if (isComponentTest(test)) {
         const meta = getComponentTestMeta(test);
 
-        const CASES = blueprint.filtered(meta).map((kind) => {
+        const CASES = blueprint.filtered(meta).map((types) => {
           return {
-            kind,
-            test: blueprint.createTestFn(test, KIND_FOR[kind]),
+            types,
+            test: blueprint.createTestFn(test, types),
           };
         });
 
-        for (const { kind, test: testCase } of CASES) {
+        for (const { types, test: testCase } of CASES) {
           if (meta.skip) {
-            QUnit.skip(`${kind}: ${prop}`, testCase);
+            QUnit.skip(`${formatTypes(types)}: ${prop}`, testCase);
           } else {
-            QUnit.test(`${kind}: ${prop}`, testCase);
+            QUnit.test(`${formatTypes(types)}: ${prop}`, testCase);
           }
         }
       }
@@ -127,28 +126,53 @@ export function suite<D extends RenderDelegate>(
   }
 }
 
-export interface RenderTestContext<
-  K extends DeclaredComponentKind | 'all' = DeclaredComponentKind | 'all',
-> extends Assert {
-  count: Count;
-  events: RecordedEvents;
-  testType: KindFor<ExpandType<K>>;
+function formatTypes(types: RenderTestTypes): string {
+  if (types.invoker === types.template) {
+    return types.invoker;
+  } else {
+    return `${types.template} (invoked by ${types.invoker})`;
+  }
 }
 
-export function RenderTestContext(assert: Assert, testType: ComponentKind): RenderTestContext {
+export interface RenderTestContext<
+  Template extends DeclaredComponentType = DeclaredComponentType,
+  Invoker extends DeclaredComponentType = Template,
+> extends Assert {
+  readonly count: Count;
+  readonly events: RecordedEvents;
+  readonly types: {
+    readonly template: Template;
+    readonly invoker: Invoker;
+  };
+}
+
+export interface RenderTestTypes {
+  readonly template: DeclaredComponentType;
+  readonly invoker: DeclaredComponentType;
+}
+
+export function RenderTestContext(
+  assert: Assert,
+  specifiedTypes: RenderTestTypes | DeclaredComponentType
+): RenderTestContext {
   const events = new RecordedEvents();
 
+  const types =
+    typeof specifiedTypes === 'string'
+      ? { template: specifiedTypes, invoker: specifiedTypes }
+      : specifiedTypes;
+
   return new Proxy(
-    { assert, count: new Count(events), events, testType },
+    { assert, count: new Count(events), events, types },
     {
-      get({ assert, count, testType }, prop, receiver) {
+      get({ assert, count, types }, prop, receiver) {
         switch (prop) {
           case 'count':
             return count;
           case 'events':
             return events;
-          case 'testType':
-            return testType;
+          case 'types':
+            return types;
           default:
             return Reflect.get(assert, prop, receiver);
         }
@@ -157,16 +181,7 @@ export function RenderTestContext(assert: Assert, testType: ComponentKind): Rend
   ) as unknown as RenderTestContext;
 }
 
-const KIND_FOR = {
-  glimmer: 'Glimmer',
-  curly: 'Curly',
-  dynamic: 'Dynamic',
-  templateOnly: 'TemplateOnly',
-} as const;
-
-export type KindFor<K extends DeclaredComponentKind> = (typeof KIND_FOR)[K];
-
-type TestFn = (type: ComponentKind) => void;
+type TestFn = () => void;
 
 export class TestBlueprint<D extends RenderDelegate, T extends IRenderTest> {
   static for<D extends RenderDelegate, T extends IRenderTest>(
@@ -207,19 +222,21 @@ export class TestBlueprint<D extends RenderDelegate, T extends IRenderTest> {
     return this.#suite.description;
   }
 
-  filtered(meta: ComponentTestMeta): readonly DeclaredComponentKind[] {
+  filtered(meta: ComponentTestMeta): readonly RenderTestTypes[] {
     const included = EXPANSIONS[meta.kind ?? this.#suite.kind ?? 'all'];
     const excluded = new Set(expandSkip(meta.skip));
 
-    return included.filter((kind) => !excluded.has(kind));
+    return included
+      .filter((kind) => !excluded.has(kind))
+      .map((kind) => ({ invoker: meta.invokeAs ?? kind, template: kind }));
   }
 
   createTestFn(
     test: ComponentTestFunction,
-    type: ComponentKind
+    types: RenderTestTypes
   ): (assert: Assert) => void | Promise<void> {
     return (assert) => {
-      const instance = new this.#Class(new this.#Delegate(), RenderTestContext(assert, type));
+      const instance = new this.#Class(new this.#Delegate(), RenderTestContext(assert, types));
       instance.beforeEach?.();
 
       try {
@@ -238,21 +255,24 @@ export class TestBlueprint<D extends RenderDelegate, T extends IRenderTest> {
     };
   }
 
-  createTest(description: string, test: unknown): TestFn | undefined {
+  createTest(types: RenderTestTypes, description: string, test: unknown): TestFn | undefined {
     if (!isComponentTest(test)) return;
 
-    return (type: ComponentKind) => {
-      QUnit.test(description, this.createTestFn(test, type));
+    return () => {
+      QUnit.test(
+        `${types.invoker !== types.template ? formatTypes(types) : ''} ${description}`,
+        this.createTestFn(test, types)
+      );
     };
   }
 }
 
 class ComponentModule {
-  readonly #type: DeclaredComponentKind;
+  readonly #types: RenderTestTypes;
   readonly #tests: readonly TestFn[];
 
-  constructor(type: DeclaredComponentKind, tests: readonly TestFn[]) {
-    this.#type = type;
+  constructor(types: RenderTestTypes, tests: readonly TestFn[]) {
+    this.#types = types;
     this.#tests = tests;
   }
 
@@ -260,47 +280,43 @@ class ComponentModule {
     yield* this.#tests;
   }
 
-  get type() {
-    return this.#type;
+  get types() {
+    return this.#types;
   }
 
   get formatted(): string {
-    return upperFirst(this.#type);
+    return formatTypes(this.#types);
   }
 }
 
 class ComponentTests<D extends RenderDelegate, T extends IRenderTest> {
   readonly #blueprint: TestBlueprint<D, T>;
-  readonly #tests: ComponentTestFunctions = {
-    glimmer: [],
-    curly: [],
-    dynamic: [],
-    templateOnly: [],
-  };
+  readonly #tests: { types: RenderTestTypes; test: TestFn }[] = [];
 
   constructor(blueprint: TestBlueprint<D, T>) {
     this.#blueprint = blueprint;
   }
 
-  *[Symbol.iterator](): IterableIterator<ComponentModule> {
-    for (let [type, tests] of entries(this.#tests)) {
-      yield new ComponentModule(type, [...tests].reverse());
+  *[Symbol.iterator](): IterableIterator<readonly [DeclaredComponentType, TestFn[]]> {
+    for (const type of ['curly', 'glimmer', 'dynamic', 'templateOnly'] as const) {
+      yield [
+        type,
+        this.#tests.filter((t) => t.types.template === type).map((t) => t.test),
+      ] as const;
     }
   }
 
-  get(type: DeclaredComponentKind): TestFn[] {
-    return this.#tests[type];
-  }
-
-  add(kinds: readonly DeclaredComponentKind[], { prop, test }: { prop: string; test: unknown }) {
-    for (const kind of kinds) {
-      const testFn = this.#blueprint.createTest(prop, test);
-      if (testFn) this.#tests[kind].push(testFn);
+  add(kinds: readonly RenderTestTypes[], { prop, test }: { prop: string; test: unknown }) {
+    for (const types of kinds) {
+      const testFn = this.#blueprint.createTest(types, prop, test);
+      if (testFn) {
+        this.#tests.push({ types, test: testFn });
+      }
     }
   }
 }
 
-export type ExpandType<K extends DeclaredComponentKind | 'all'> = EXPANSIONS[K][number];
+export type ExpandType<K extends DeclaredComponentType | 'all'> = EXPANSIONS[K][number];
 
 const EXPANSIONS = {
   curly: ['curly', 'dynamic'],
@@ -312,8 +328,8 @@ const EXPANSIONS = {
 type EXPANSIONS = typeof EXPANSIONS;
 
 function expandSkip(
-  kind: DeclaredComponentKind | boolean | undefined
-): readonly DeclaredComponentKind[] {
+  kind: DeclaredComponentType | boolean | undefined
+): readonly DeclaredComponentType[] {
   if (kind === false || kind === undefined) {
     return [];
   } else if (kind === true) {
@@ -351,13 +367,20 @@ interface ComponentTestFunctions {
   readonly templateOnly: TestFn[];
 }
 
+interface InvokerKinds {
+  glimmer?: undefined | DeclaredComponentType;
+  curly?: undefined | DeclaredComponentType;
+  dynamic?: undefined | DeclaredComponentType;
+  templateOnly?: undefined | DeclaredComponentType;
+}
+
 function nestedComponentModules<D extends RenderDelegate, T extends IRenderTest>(
-  tests: ComponentTests<D, T>
+  modules: ComponentTests<D, T>
 ): void {
-  for (const module of tests) {
-    QUnit.module(`[integration] ${module.formatted}`, () => {
-      for (const test of module) {
-        test(KIND_FOR[module.type]);
+  for (const [type, tests] of modules) {
+    QUnit.module(`[integration] ${type}`, () => {
+      for (const test of tests) {
+        test();
       }
     });
   }

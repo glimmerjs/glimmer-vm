@@ -1,11 +1,7 @@
 import { RenderTest } from '../lib/render-test';
-import {
-  RenderTestContext,
-  jitSuite,
-  type ExpandType,
-  type KindFor,
-} from '../lib/test-helpers/module';
-import { test, suite, type ComponentKind } from '../lib/test-decorator';
+import { suite, test } from '../lib/test-decorator';
+import { type DeclaredComponentType } from '../lib/test-helpers/constants';
+import { RenderTestContext, jitSuite, type ExpandType } from '../lib/test-helpers/module';
 
 @suite('buildComponent')
 class BuildComponentTest extends RenderTest {
@@ -94,8 +90,8 @@ class BuildComponentTest extends RenderTest {
     });
 
     assertInvocation(assert, invocation, {
-      Curly: '{{test-component}}',
-      Dynamic: '{{component this.componentName}}',
+      curly: '{{test-component}}',
+      dynamic: '{{component this.componentName}}',
     });
   }
 
@@ -106,8 +102,8 @@ class BuildComponentTest extends RenderTest {
     });
 
     assertInvocation(assert, invocation, {
-      Curly: '{{#test-component}}World{{/test-component}}',
-      Dynamic: '{{#component this.componentName}}World{{/component}}',
+      curly: '{{#test-component}}World{{/test-component}}',
+      dynamic: '{{#component this.componentName}}World{{/component}}',
     });
   }
 
@@ -119,8 +115,8 @@ class BuildComponentTest extends RenderTest {
     });
 
     assertInvocation(assert, invocation, {
-      Curly: '{{#test-component foo=bar baz=1 bar=null}}World{{/test-component}}',
-      Dynamic: '{{#component this.componentName foo=bar baz=1 bar=null}}World{{/component}}',
+      curly: '{{#test-component foo=bar baz=1 bar=null}}World{{/test-component}}',
+      dynamic: '{{#component this.componentName foo=bar baz=1 bar=null}}World{{/component}}',
     });
   }
 
@@ -145,9 +141,9 @@ class BuildComponentTest extends RenderTest {
     });
 
     assertInvocation(assert, invocation, {
-      Curly:
+      curly:
         '{{#test-component foo=bar baz=1 bar=null data-foo="bar" id="wat"}}World{{/test-component}}',
-      Dynamic:
+      dynamic:
         '{{#component this.componentName foo=bar baz=1 bar=null data-foo="bar" id="wat"}}World{{/component}}',
     });
   }
@@ -163,8 +159,8 @@ class BuildComponentTest extends RenderTest {
     });
 
     assertInvocation(assert, invocation, {
-      Curly: '{{#lol-wat foo=bar baz=1 bar=null data-foo="bar" id="wat"}}World{{/lol-wat}}',
-      Dynamic:
+      curly: '{{#lol-wat foo=bar baz=1 bar=null data-foo="bar" id="wat"}}World{{/lol-wat}}',
+      dynamic:
         '{{#component this.componentName foo=bar baz=1 bar=null data-foo="bar" id="wat"}}World{{/component}}',
     });
   }
@@ -181,9 +177,9 @@ class BuildComponentTest extends RenderTest {
     });
 
     assertInvocation(assert, invocation, {
-      Curly:
+      curly:
         '{{#lol-wat foo=bar baz=1 bar=null data-foo="bar" id="wat" as |a b c|}}World{{/lol-wat}}',
-      Dynamic:
+      dynamic:
         '{{#component this.componentName foo=bar baz=1 bar=null data-foo="bar" id="wat" as |a b c|}}World{{/component}}',
     });
   }
@@ -199,9 +195,9 @@ class BuildComponentTest extends RenderTest {
     });
 
     assertInvocation(assert, invocation, {
-      Curly:
+      curly:
         '{{#lol-wat foo=bar baz=1 bar=null data-foo="bar" id="wat" as |a b c|}}World{{else}}ELSE{{/lol-wat}}',
-      Dynamic:
+      dynamic:
         '{{#component this.componentName foo=bar baz=1 bar=null data-foo="bar" id="wat" as |a b c|}}World{{else}}ELSE{{/component}}',
     });
   }
@@ -212,7 +208,7 @@ class BuildComponentTest extends RenderTest {
     });
 
     assertInvocation(assert, invocation, {
-      Dynamic: '{{component this.componentName}}',
+      dynamic: '{{component this.componentName}}',
     });
   }
 
@@ -225,7 +221,7 @@ class BuildComponentTest extends RenderTest {
     });
 
     assertInvocation(assert, invocation, {
-      Dynamic: '{{#component this.componentName}}World{{/component}}',
+      dynamic: '{{#component this.componentName}}World{{/component}}',
     });
   }
 
@@ -375,12 +371,12 @@ class BuildComponentTest extends RenderTest {
 
 jitSuite(BuildComponentTest);
 
-function assertInvocation<K extends Exclude<ComponentKind, 'glimmer'>>(
-  context: RenderTestContext<K>,
+function assertInvocation<K extends Exclude<DeclaredComponentType, 'glimmer'>>(
+  context: RenderTestContext<K, K>,
   invocation: string,
-  all: Record<KindFor<ExpandType<K>>, string>
+  all: Record<ExpandType<K>, string>
 ) {
-  context.strictEqual(invocation, all[context.testType]);
+  context.strictEqual(invocation, all[context.types.invoker]);
 }
 
 function assertGlimmerInvocation(

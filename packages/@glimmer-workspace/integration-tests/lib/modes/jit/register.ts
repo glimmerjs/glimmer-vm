@@ -25,6 +25,7 @@ import {
   TestModifierManager,
 } from '../../modifiers';
 import type { TestJitRegistry } from './registry';
+import type { DeclaredComponentType } from '../../test-helpers/constants';
 
 export function registerTemplateOnlyComponent(
   registry: TestJitRegistry,
@@ -42,7 +43,7 @@ export function registerTemplateOnlyComponent(
 export function registerEmberishCurlyComponent(
   registry: TestJitRegistry,
   name: string,
-  Component: Nullable<ComponentTypes['Curly']>,
+  Component: Nullable<ComponentTypes['curly']>,
   layoutSource: Nullable<string>
 ): void {
   let ComponentClass = Component || class extends EmberishCurlyComponent {};
@@ -58,7 +59,7 @@ export function registerEmberishCurlyComponent(
 export function registerGlimmerishComponent(
   registry: TestJitRegistry,
   name: string,
-  Component: Nullable<ComponentTypes['Glimmer']>,
+  Component: Nullable<ComponentTypes['glimmer']>,
   layoutSource: Nullable<string>
 ): void {
   if (name.indexOf('-') !== -1) {
@@ -107,7 +108,7 @@ export function registerModifier(
   registry.register('modifier', name, state);
 }
 
-export function registerComponent<K extends ComponentKind>(
+export function registerComponent<K extends DeclaredComponentType>(
   registry: TestJitRegistry,
   type: K,
   name: string,
@@ -115,17 +116,17 @@ export function registerComponent<K extends ComponentKind>(
   Class?: ComponentTypes[K]
 ): void {
   switch (type) {
-    case 'Glimmer':
-      registerGlimmerishComponent(registry, name, Class as ComponentTypes['Glimmer'], layout);
+    case 'glimmer':
+      registerGlimmerishComponent(registry, name, Class as ComponentTypes['glimmer'], layout);
       break;
-    case 'Curly':
-      registerEmberishCurlyComponent(registry, name, Class as ComponentTypes['Curly'], layout);
+    case 'curly':
+      registerEmberishCurlyComponent(registry, name, Class as ComponentTypes['curly'], layout);
       break;
 
-    case 'Dynamic':
-      registerEmberishCurlyComponent(registry, name, Class as ComponentTypes['Dynamic'], layout);
+    case 'dynamic':
+      registerEmberishCurlyComponent(registry, name, Class as ComponentTypes['dynamic'], layout);
       break;
-    case 'TemplateOnly':
+    case 'templateOnly':
       registerTemplateOnlyComponent(registry, name, layout ?? '');
       break;
   }

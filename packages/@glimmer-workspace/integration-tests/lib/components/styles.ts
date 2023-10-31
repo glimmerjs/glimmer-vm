@@ -8,7 +8,14 @@ export type ComponentStyle = (blueprint: ComponentBlueprint) => {
   invocation: string;
 };
 
-const AngleBracketStyle = (blueprint: ComponentBlueprint) => {
+export type BuildTemplate = (blueprint: ComponentBlueprint) => string;
+
+export type BuildInvocation = (blueprint: ComponentBlueprint) => {
+  invocation: string;
+  name: string;
+};
+
+const AngleBracketStyle = ((blueprint: ComponentBlueprint) => {
   let {
     args = {},
     attributes = {},
@@ -55,10 +62,25 @@ const AngleBracketStyle = (blueprint: ComponentBlueprint) => {
     invocation.push(`/>`);
   }
 
-  return invocation.join('');
+  return { name, invocation: invocation.join('') };
+}) satisfies BuildInvocation;
+
+export const BuildGlimmerInvoke = (blueprint: ComponentBlueprint) => {
+  return AngleBracketStyle(blueprint);
 };
 
-export const BuildGlimmerComponent = ((blueprint: ComponentBlueprint) => {
+export const BuildGlimmerTemplate = (blueprint: ComponentBlueprint) => {
+  let { tag = 'div', layout } = blueprint;
+  const builder = InvocationBuilder.ANGLE;
+
+  let layoutAttrs = builder.attributes(blueprint.layoutAttributes);
+
+  return layout.includes(`...attributes`)
+    ? `<${tag} ${layoutAttrs}>${layout}</${tag}>`
+    : `<${tag} ${layoutAttrs} ...attributes>${layout}</${tag}>`;
+};
+
+export const BuildGlimmerComponent = (blueprint: ComponentBlueprint) => {
   let { tag = 'div', layout, name = GLIMMER_TEST_COMPONENT } = blueprint;
   const builder = InvocationBuilder.ANGLE;
 
@@ -72,7 +94,7 @@ export const BuildGlimmerComponent = ((blueprint: ComponentBlueprint) => {
       ? `<${tag} ${layoutAttrs}>${layout}</${tag}>`
       : `<${tag} ${layoutAttrs} ...attributes>${layout}</${tag}>`,
   };
-}) satisfies ComponentStyle;
+};
 
 const CurlyTemplate = (
   builder: InvocationBuilder,
@@ -92,12 +114,11 @@ const CurlyTemplate = (
   return block.join('');
 };
 
-export const BuildCurlyComponent = ((blueprint: ComponentBlueprint) => {
+export const BuildCurlyInvoke = ((blueprint: ComponentBlueprint) => {
   const builder = InvocationBuilder.CURLIES;
 
   let {
     args = {},
-    layout,
     template,
     attributes,
     else: elseBlock,
@@ -130,12 +151,57 @@ export const BuildCurlyComponent = ((blueprint: ComponentBlueprint) => {
     invocation.push('}}');
   }
 
-  return {
-    name,
-    template: layout,
-    invocation: invocation.join(''),
-  };
-}) satisfies ComponentStyle;
+  return { name, invocation: invocation.join('') };
+}) satisfies BuildInvocation;
+
+export const BuildCurlyTemplate = (blueprint: ComponentBlueprint) => {
+  return blueprint.layout;
+};
+
+export const BuildDynamicInvoke = ((blueprint: ComponentBlueprint) => {
+  const builder = InvocationBuilder.CURLIES;
+
+  let {
+    args = {},
+    name = GLIMMER_TEST_COMPONENT,
+    template,
+    attributes,
+    else: elseBlock,
+    blockParams = [],
+  } = blueprint;
+
+  if (attributes) {
+    throw new Error('Cannot pass attributes to curly components');
+  }
+
+  let invocation: string | string[] = [];
+  if (template) {
+    invocation.push('{{#component this.componentName');
+  } else {
+    invocation.push('{{component this.componentName');
+  }
+
+  let componentArgs = builder.args(args);
+
+  if (componentArgs !== '') {
+    invocation.push(' ');
+    invocation.push(componentArgs);
+  }
+
+  if (template) {
+    invocation.push(
+      CurlyTemplate(builder, { name: 'component', template, blockParams, else: elseBlock })
+    );
+  } else {
+    invocation.push('}}');
+  }
+
+  return { name, invocation: invocation.join('') };
+}) satisfies BuildInvocation;
+
+export const BuildDynamicTemplate = (blueprint: ComponentBlueprint) => {
+  return blueprint.layout;
+};
 
 export const BuildDynamicComponent = ((blueprint: ComponentBlueprint) => {
   const builder = InvocationBuilder.CURLIES;

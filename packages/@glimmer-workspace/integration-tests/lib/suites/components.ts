@@ -187,7 +187,6 @@ export class GlimmerishComponents extends RenderTest {
 
   @test
   'invoking dynamic component (named arg) via angle brackets supports args and attributes'() {
-    debugger;
     let instance = this.capture<Foo>();
 
     class Foo extends GlimmerishComponent {

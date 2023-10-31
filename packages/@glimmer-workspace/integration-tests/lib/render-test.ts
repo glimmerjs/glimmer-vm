@@ -17,23 +17,21 @@ import { clearElement, dict, expect, isPresent, unwrap } from '@glimmer/util';
 import { dirtyTagFor } from '@glimmer/validator';
 
 import { createConstRef } from '@glimmer/reference';
-import type { RenderTestContext } from '..';
 import {
   GLIMMER_TEST_COMPONENT,
   type ComponentBlueprint,
   type ComponentKind,
   type ComponentTypes,
 } from './components';
-import { InvocationBuilder } from './components/build';
 import {
+  CurlyDelegate,
+  DynamicDelegate,
   GlimmerDelegate,
-  build,
-  type BuildStyle,
-  type ComponentDelegate,
+  buildInvoke,
+  buildTemplate,
   getDelegate,
+  type ComponentDelegate,
 } from './components/delegate';
-import { BuildCurlyComponent, BuildDynamicComponent } from './components/styles';
-import { assertElementShape, assertEmberishElement } from './dom/assertions';
 import { assertingElement, toInnerHTML } from './dom/simple-utils';
 import type { UserHelper } from './helpers';
 import { BuildDomDelegate } from './modes/jit/dom';
@@ -47,6 +45,13 @@ import type { TestModifierConstructor } from './modifiers';
 import type RenderDelegate from './render-delegate';
 import type { DomDelegate } from './render-delegate';
 import { equalTokens, isServerMarker, normalizeSnapshot, type NodesSnapshot } from './snapshot';
+import {
+  KIND_FOR,
+  TYPE_FOR,
+  type DeclaredComponentType,
+  type TypeFor,
+} from './test-helpers/constants';
+import type { RenderTestContext } from './test-helpers/module';
 import { RecordedEvents } from './test-helpers/recorded';
 
 type Expand<T> = T extends infer O ? { [K in keyof O]: O[K] } : never;
@@ -139,7 +144,7 @@ export class RenderTest implements IRenderTest {
   readonly context: RenderTestContext;
 
   readonly plugins: ASTPluginBuilder[] = [];
-  readonly #delegate: ComponentDelegate<ComponentKind>;
+  readonly #delegate: ComponentDelegate<DeclaredComponentType>;
 
   constructor(
     protected delegate: RenderDelegate,
@@ -149,14 +154,22 @@ export class RenderTest implements IRenderTest {
     this.context = context;
     this.dom = new BuildDomDelegate(delegate.dom);
 
-    this.#delegate = getDelegate(this.testType);
+    this.#delegate = getDelegate(context.types.template);
   }
 
   declare readonly beforeEach?: () => void;
   declare readonly afterEach?: () => void;
 
   get testType(): ComponentKind {
-    return this.context.testType;
+    return KIND_FOR[this.context.types.template];
+  }
+
+  get invoker(): ComponentDelegate {
+    return getDelegate(this.context.types.invoker);
+  }
+
+  get invokeAs(): DeclaredComponentType {
+    return this.context.types.invoker;
   }
 
   getInitialElement(): SimpleElement {
@@ -201,13 +214,13 @@ export class RenderTest implements IRenderTest {
     },
 
     component: <K extends ComponentKind>(
-      type: K,
+      kind: K,
       name: string,
       layout: Nullable<string>,
-      Class?: ComponentTypes[K]
+      Class?: ComponentTypes[TypeFor<K>]
     ): void => {
       for (const registry of this.delegate.registries) {
-        registerComponent(registry, type, name, layout, Class);
+        registerComponent(registry, TYPE_FOR[kind], name, layout, Class);
       }
     },
   };
@@ -235,16 +248,25 @@ export class RenderTest implements IRenderTest {
     }
   }
 
+  #buildInvoke(blueprint: ComponentBlueprint): { name: string; invocation: string } {
+    return buildInvoke(getDelegate(this.context.types.invoker), blueprint);
+  }
+
+  #buildComponent(templateDelegate: ComponentDelegate<any>, blueprint: ComponentBlueprint): string {
+    const template = buildTemplate(templateDelegate, blueprint);
+    const { name, invocation } = this.#buildInvoke(blueprint);
+
+    debugger;
+    this.register.component(this.testType, name, template);
+    return invocation;
+  }
+
   private buildGlimmerComponent(blueprint: ComponentBlueprint): string {
-    return build(GlimmerDelegate, blueprint, this.register.component);
+    return this.#buildComponent(GlimmerDelegate, blueprint);
   }
 
   private buildCurlyComponent(blueprint: ComponentBlueprint): string {
-    const { name, template, invocation } = BuildCurlyComponent(blueprint);
-
-    this.register.component('Curly', name, template);
-    this.assert.ok(true, `generated curly invocation as ${invocation}`);
-    return invocation;
+    return this.#buildComponent(CurlyDelegate, blueprint);
   }
 
   private buildTemplateOnlyComponent(blueprint: ComponentBlueprint): string {
@@ -258,12 +280,7 @@ export class RenderTest implements IRenderTest {
   }
 
   private buildDynamicComponent(blueprint: ComponentBlueprint): string {
-    const { name, template, invocation } = BuildDynamicComponent(blueprint);
-
-    this.register.component('Curly', name, template);
-    this.assert.ok(true, `generated dynamic invocation as ${invocation}`);
-
-    return invocation;
+    return this.#buildComponent(DynamicDelegate, blueprint);
   }
 
   shouldBeVoid(tagName: string) {

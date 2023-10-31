@@ -1,20 +1,22 @@
-import { type RenderTestContext, type RenderTestConstructor } from '..';
 import type { IRenderTest } from './render-test';
-import { isTest, TEST_META } from './test-helpers/test';
-
-export type DeclaredComponentKind = 'glimmer' | 'curly' | 'dynamic' | 'templateOnly';
-export type ComponentKind = DeclaredComponentKind | 'all';
+import type { DeclaredComponentType, EveryComponentType } from './test-helpers/constants';
+import type { RenderTestConstructor, RenderTestContext } from './test-helpers/module';
+import { TEST_META, isTest } from './test-helpers/test';
 
 type ComponentTestOptions =
-  | Partial<Pick<ComponentTestMeta, 'skip' | 'kind'>>
+  | Partial<Pick<ComponentTestMeta, 'skip' | 'kind' | 'invokeAs'>>
   | ComponentTestMeta['kind'];
 
-type NormalizedComponentTestOptions = Pick<ComponentTestMeta, 'skip' | 'kind'>;
+type NormalizedComponentTestOptions = Pick<ComponentTestMeta, 'skip' | 'kind' | 'invokeAs'>;
 
 export interface ComponentTestMeta {
   type: 'component';
-  kind: DeclaredComponentKind | 'all' | undefined;
-  skip: boolean | DeclaredComponentKind | undefined;
+  kind: EveryComponentType | undefined;
+  // Normally, any invoking code is built using the same style as the target template. But sometimes
+  // you need to invoke a component with a different style for full coverage (in particular, you
+  // need a Glimmer invoker to pass attributes, but curly components can accept attributes).
+  invokeAs: DeclaredComponentType | undefined;
+  skip: boolean | DeclaredComponentType | undefined;
 }
 
 export interface ComponentTestFunction {
@@ -31,7 +33,11 @@ export function getComponentTestMeta(value: ComponentTestFunction) {
   return value[TEST_META];
 }
 
-export function test(meta: ComponentTestOptions): MethodDecorator;
+export function test(
+  kind: DeclaredComponentType,
+  options: Omit<ComponentTestOptions, 'type' | 'kind'>
+): MethodDecorator;
+export function test(meta: Omit<ComponentTestOptions, 'type'>): MethodDecorator;
 export function test<T>(
   target: object,
   name: string,
@@ -44,7 +50,8 @@ export function test<T, C extends Assert>(
 ): void;
 export function test(
   ...args:
-    | [meta: ComponentTestOptions]
+    | [meta: Omit<ComponentTestOptions, 'type'>]
+    | [kind: DeclaredComponentType, options: Omit<ComponentTestOptions, 'type' | 'kind'>]
     | [target: object, name: string, descriptor: PropertyDescriptor]
 ): MethodDecorator | PropertyDescriptor {
   if (args.length === 1) {
@@ -55,6 +62,16 @@ export function test(
       descriptor: TypedPropertyDescriptor<T>
     ) => {
       setTestingDescriptor(descriptor, normalizeOptions(options));
+      return descriptor;
+    }) satisfies MethodDecorator;
+  } else if (args.length === 2) {
+    const [kind, options] = args;
+    return (<T>(
+      _target: object,
+      _name: string | symbol,
+      descriptor: TypedPropertyDescriptor<T>
+    ) => {
+      setTestingDescriptor(descriptor, normalizeOptions({ kind, ...options }));
       return descriptor;
     }) satisfies MethodDecorator;
   } else {
@@ -91,9 +108,13 @@ function normalizeOptions(
   options: ComponentTestOptions | undefined
 ): NormalizedComponentTestOptions {
   if (typeof options === 'string') {
-    return { kind: options, skip: false };
+    return { kind: options, invokeAs: options === 'all' ? undefined : options, skip: false };
   } else {
-    return { kind: undefined, skip: false, ...options };
+    return {
+      kind: options?.kind,
+      invokeAs: options?.invokeAs,
+      skip: false,
+    };
   }
 }
 
@@ -118,7 +139,7 @@ export function getSuiteMetadata(suite: RenderSuite): RenderSuiteMeta {
 
 export function suite(
   description: string,
-  options?: Partial<RenderSuiteMeta> | ComponentKind
+  options?: Partial<RenderSuiteMeta> | EveryComponentType
 ): <Class extends RenderTestConstructor<any, any>>(Class: Class) => Class {
   return (Class) => {
     Object.defineProperty(Class, RENDER_SUITE_META, {

@@ -123,46 +123,49 @@ export class EmberishComponentTests extends RenderTest {
     this.assertStableRerender();
   }
 
-  @test({ skip: true, kind: 'curly' })
+  @test({ invokeAs: 'glimmer' })
   'with ariaRole specified'() {
     this.render.template({
       layout: 'Here!',
-      attributes: { id: 'aria-test', ariaRole: '"main"' },
+      attributes: { id: '"aria-test"', role: '"main"' },
     });
 
-    this.assertComponent('Here!', { id: '"aria-test"', role: '"main"' });
+    this.assertComponent('Here!', { id: 'aria-test', role: 'main' });
     this.assertStableRerender();
   }
 
-  @test({ skip: true, kind: 'curly' })
+  @test({ invokeAs: 'glimmer' })
   'with ariaRole and class specified'() {
-    this.render.template({
-      layout: 'Here!',
-      attributes: { id: '"aria-test"', class: '"foo"', ariaRole: '"main"' },
-    });
-
-    this.assertComponent('Here!', {
-      id: '"aria-test"',
-      class: classes('ember-view foo'),
-      role: '"main"',
-    });
-    this.assertStableRerender();
-  }
-
-  @test({ skip: true, kind: 'curly' })
-  'with ariaRole specified as an outer binding'() {
     this.render.template(
       {
         layout: 'Here!',
-        attributes: { id: '"aria-test"', class: '"foo"', ariaRole: 'ariaRole' },
+        attributes: { id: '"aria-test"', class: '"foo"', role: 'this.ariaRole' },
       },
       { ariaRole: 'main' }
     );
 
     this.assertComponent('Here!', {
-      id: '"aria-test"',
+      id: 'aria-test',
       class: classes('ember-view foo'),
-      role: '"main"',
+      role: 'main',
+    });
+    this.assertStableRerender();
+  }
+
+  @test({ invokeAs: 'glimmer' })
+  'with ariaRole specified as an outer binding'() {
+    this.render.template(
+      {
+        layout: 'Here!',
+        attributes: { id: '"aria-test"', class: '"foo"', role: 'this.ariaRole' },
+      },
+      { ariaRole: 'main' }
+    );
+
+    this.assertComponent('Here!', {
+      id: 'aria-test',
+      class: classes('ember-view foo'),
+      role: 'main',
     });
     this.assertStableRerender();
   }
@@ -251,7 +254,6 @@ export class EmberishComponentTests extends RenderTest {
 
     this.render.template(`<FooBar> my </FooBar>`);
 
-    debugger;
     this.assertComponent('Hello my world!');
     this.assertStableRerender();
   }

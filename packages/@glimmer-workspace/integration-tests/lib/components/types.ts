@@ -12,11 +12,11 @@ export interface TestComponentConstructor<T> {
 }
 
 export interface ComponentTypes {
-  Glimmer: typeof GlimmerishComponent;
-  Curly: TestComponentConstructor<EmberishCurlyComponent>;
-  Dynamic: TestComponentConstructor<EmberishCurlyComponent>;
-  TemplateOnly: TemplateOnlyComponent;
-  Custom: unknown;
+  glimmer: typeof GlimmerishComponent;
+  curly: TestComponentConstructor<EmberishCurlyComponent>;
+  dynamic: TestComponentConstructor<EmberishCurlyComponent>;
+  templateOnly: TemplateOnlyComponent;
+  custom: unknown;
   unknown: unknown;
 }
 

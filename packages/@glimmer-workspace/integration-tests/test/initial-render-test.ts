@@ -992,7 +992,6 @@ class RehydratingComponents extends AbstractRehydrationTests {
 
     switch (this.testType) {
       case 'TemplateOnly':
-        debugger;
         assertElementShape(
           element,
           'div',
