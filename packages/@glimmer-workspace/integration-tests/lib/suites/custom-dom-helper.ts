@@ -4,12 +4,12 @@ import { NodeDOMTreeConstruction, serializeBuilder } from '@glimmer/node';
 
 import { blockStack } from '../dom/blocks';
 import { toInnerHTML } from '../dom/simple-utils';
-import { AbstractNodeTest, NodeJitRenderDelegate } from '../modes/node/env';
+import { NodeRenderTest, NodeJitRenderDelegate } from '../modes/node/env';
 import { RenderTest } from '../render-test';
 import { test } from '../test-decorator';
 import { strip } from '../test-helpers/strings';
 
-export class DOMHelperTests extends AbstractNodeTest {
+export class DOMHelperTests extends NodeRenderTest {
   static suiteName = 'Server-side rendering in Node.js (normal)';
 
   @test

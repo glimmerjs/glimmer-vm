@@ -84,8 +84,8 @@ export function createConstRef<T>(value: T, debugLabel: false | string): Referen
   ref.lastValue = value;
   ref.tag = CONSTANT_TAG;
 
-  if (import.meta.env.DEV) {
-    ref.debugLabel = debugLabel as string;
+  if (import.meta.env.DEV && debugLabel) {
+    ref.debugLabel = debugLabel;
   }
 
   return ref as Reference<T>;
@@ -97,8 +97,8 @@ export function createUnboundRef(value: unknown, debugLabel: false | string): Re
   ref.lastValue = value;
   ref.tag = CONSTANT_TAG;
 
-  if (import.meta.env.DEV) {
-    ref.debugLabel = debugLabel as string;
+  if (import.meta.env.DEV && debugLabel) {
+    ref.debugLabel = debugLabel;
   }
 
   return ref;
@@ -114,7 +114,7 @@ export function createComputeRef<T = unknown>(
   ref.compute = compute;
   ref.update = update;
 
-  if (import.meta.env.DEV) {
+  if (import.meta.env.DEV && debugLabel) {
     ref.debugLabel = `(result of a \`${debugLabel}\` helper)`;
   }
 

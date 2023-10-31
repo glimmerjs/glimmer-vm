@@ -1,7 +1,7 @@
-import { AbstractNodeTest } from '../modes/node/env';
+import { NodeRenderTest } from '../modes/node/env';
 import { test } from '../test-decorator';
 
-export class ServerSideSuite extends AbstractNodeTest {
+export class ServerSideSuite extends NodeRenderTest {
   static suiteName = 'Server Side Rendering';
 
   @test
@@ -190,7 +190,7 @@ export class ServerSideSuite extends AbstractNodeTest {
   }
 }
 
-export class ServerSideComponentSuite extends AbstractNodeTest {
+export class ServerSideComponentSuite extends NodeRenderTest {
   static suiteName = 'Server Side Components';
 
   @test

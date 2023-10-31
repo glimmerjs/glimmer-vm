@@ -60,10 +60,10 @@ if (hasDom) {
       );
     }
 
-    beforeEach() {
+    override readonly beforeEach = () => {
       // might error if getOnManagerInstance fails
       this.startingCounters = getOnManager().counters;
-    }
+    };
 
     assertCounts(expected: Counters) {
       this.assert.deepEqual(
@@ -202,13 +202,16 @@ if (hasDom) {
     ) {
       let count = 0;
 
-      this.render.template('<button {{on "click" this.callback once=this.once}}>Click Me</button>', {
-        callback() {
-          count++;
-        },
+      this.render.template(
+        '<button {{on "click" this.callback once=this.once}}>Click Me</button>',
+        {
+          callback() {
+            count++;
+          },
 
-        once: false,
-      });
+          once: false,
+        }
+      );
 
       let button = this.findButton();
 
@@ -355,9 +358,12 @@ if (hasDom) {
     @test
     'asserts when eventName is a bound undefined value'(assert: Assert) {
       assert.throws(() => {
-        this.render.template(`<button {{on this.someUndefinedThing this.callback}}>Click Me</button>`, {
-          callback() {},
-        });
+        this.render.template(
+          `<button {{on this.someUndefinedThing this.callback}}>Click Me</button>`,
+          {
+            callback() {},
+          }
+        );
       }, /You must pass a valid DOM event name as the first argument to the `on` modifier/u);
     }
 
@@ -411,10 +417,13 @@ if (hasDom) {
     @test
     'asserts if more than 2 positional parameters are provided'(assert: Assert) {
       assert.throws(() => {
-        this.render.template(`<button {{on 'click' this.callback this.someArg}}>Click Me</button>`, {
-          callback() {},
-          someArg: 'foo',
-        });
+        this.render.template(
+          `<button {{on 'click' this.callback this.someArg}}>Click Me</button>`,
+          {
+            callback() {},
+            someArg: 'foo',
+          }
+        );
       }, /You can only pass two positional arguments \(event name and callback\) to the `on` modifier, but you provided 3. Consider using the `fn` helper to provide additional arguments to the `on` callback./u);
     }
 

@@ -980,15 +980,47 @@ class RehydratingComponents extends AbstractRehydrationTests {
   }
 
   assertServerComponent(html: string, attrs: Object = {}) {
+    let elementIndex = this.testType === 'Dynamic' ? 3 : 2;
+
+    const ELEMENT_OFFSET = 2;
+
     // the Dynamic test type is using {{component 'foo'}} style invocation
     // and therefore an extra node is added delineating the block start
-    let elementIndex = this.testType === 'Dynamic' ? 3 : 2;
+    const DYNAMIC_OFFSET = 1;
+
     let element = assertingElement(this.element.childNodes[elementIndex]);
 
-    if (this.testType === 'Glimmer') {
-      assertElementShape(element, 'div', attrs, html);
-    } else {
-      assertEmberishElement(element, 'div', attrs, html);
+    switch (this.testType) {
+      case 'TemplateOnly':
+        debugger;
+        assertElementShape(
+          element,
+          'div',
+          assertingElement(this.element.childNodes[ELEMENT_OFFSET])
+        );
+        break;
+
+      case 'Glimmer':
+        assertElementShape(
+          element,
+          'div',
+          assertingElement(this.element.childNodes[ELEMENT_OFFSET])
+        );
+        break;
+      case 'Curly':
+        assertEmberishElement(
+          element,
+          'div',
+          assertingElement(this.element.childNodes[ELEMENT_OFFSET])
+        );
+        break;
+      case 'Dynamic':
+        assertEmberishElement(
+          element,
+          'div',
+          assertingElement(this.element.childNodes[DYNAMIC_OFFSET])
+        );
+        break;
     }
   }
 

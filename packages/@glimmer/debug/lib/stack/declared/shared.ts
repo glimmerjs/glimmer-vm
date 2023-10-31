@@ -1,7 +1,8 @@
 import type { OperandSpec, OperandSpecName } from './operands';
 import type { RuntimeValueSpec, RuntimeValueSpecName } from './runtime-value';
 
-export type AnyFunction = (...args: any[]) => any;
+/** @deprecated import directly from `@glimmer/util` */
+export type { AnyFunction } from '@glimmer/util';
 
 export interface ErrorSpec {
   readonly expected: string;

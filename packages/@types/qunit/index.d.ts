@@ -1,4 +1,4 @@
-import type { Runner } from "js-reporters";
+import type { Runner } from 'js-reporters';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 declare global {

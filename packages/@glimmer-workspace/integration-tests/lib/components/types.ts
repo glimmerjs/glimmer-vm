@@ -4,7 +4,8 @@ import type { TemplateOnlyComponent } from '@glimmer/runtime';
 import type { EmberishCurlyComponent } from './emberish-curly';
 import type { GlimmerishComponent } from './emberish-glimmer';
 
-export type ComponentKind = 'Glimmer' | 'Curly' | 'Dynamic' | 'TemplateOnly' | 'Custom' | 'unknown';
+export type EveryComponentKind = ComponentKind | 'Custom';
+export type ComponentKind = 'Glimmer' | 'Curly' | 'Dynamic' | 'TemplateOnly';
 
 export interface TestComponentConstructor<T> {
   new (): T;

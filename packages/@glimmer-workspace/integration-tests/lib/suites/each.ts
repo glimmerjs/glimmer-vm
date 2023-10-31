@@ -9,24 +9,27 @@ import { tracked } from '../test-helpers/tracked';
 export class EachSuite extends RenderTest {
   static suiteName = '#each';
 
-  beforeEach() {
+  override readonly beforeEach = () => {
     if (LOCAL_DEBUG) {
       beginTestSteps?.();
     }
-  }
+  };
 
-  afterEach() {
+  override readonly afterEach = () => {
     if (LOCAL_DEBUG) {
       endTestSteps?.();
     }
-  }
+  };
 
   @test
   'basic #each'() {
     let list = [1, 2, 3, 4];
-    this.render.template('{{#each this.list key="@index" as |item|}}{{item}}{{else}}Empty{{/each}}', {
-      list,
-    });
+    this.render.template(
+      '{{#each this.list key="@index" as |item|}}{{item}}{{else}}Empty{{/each}}',
+      {
+        list,
+      }
+    );
     this.assertHTML('1234');
     this.assertStableRerender();
 
@@ -72,9 +75,12 @@ export class EachSuite extends RenderTest {
         this.arr.splice(0, this.arr.length);
       },
     };
-    this.render.template('{{#each this.list key="@index" as |item|}}{{item}}{{else}}Empty{{/each}}', {
-      list,
-    });
+    this.render.template(
+      '{{#each this.list key="@index" as |item|}}{{item}}{{else}}Empty{{/each}}',
+      {
+        list,
+      }
+    );
     this.assertHTML('1234');
     this.assertStableRerender();
 
@@ -97,9 +103,12 @@ export class EachSuite extends RenderTest {
   @test
   'keyed #each'() {
     let list = [{ text: 'hello' }];
-    this.render.template('{{#each this.list key="text" as |item|}}{{item.text}}{{else}}Empty{{/each}}', {
-      list,
-    });
+    this.render.template(
+      '{{#each this.list key="text" as |item|}}{{item.text}}{{else}}Empty{{/each}}',
+      {
+        list,
+      }
+    );
     this.assertHTML('hello');
     this.assertStableRerender();
 
@@ -654,7 +663,6 @@ export class EachSuite extends RenderTest {
       shuffleArray(arr);
       this.rerender({ arr });
 
-
       verifySteps?.('list-updates', (steps) => {
         let stats = getStepStats(steps as ListStep[]);
 
@@ -680,7 +688,6 @@ export class EachSuite extends RenderTest {
       shuffleArray(newArr);
       let semiArr = newArr.slice(0, 5);
       this.rerender({ arr: semiArr });
-
 
       verifySteps?.('list-updates', (steps) => {
         let stats = getStepStats(steps as ListStep[]);
@@ -708,7 +715,6 @@ export class EachSuite extends RenderTest {
       let semiArr = newArr.slice(0, 5).concat([11, 12]);
       this.rerender({ arr: semiArr });
 
-
       verifySteps?.('list-updates', (steps) => {
         let stats = getStepStats(steps as ListStep[]);
 
@@ -729,9 +735,12 @@ export class EachSuite extends RenderTest {
       [4, 5, 6, 7, 8],
       [5, 6, 7, 8, 9],
     ];
-    this.render.template(`{{#each this.arr as |sub|}}{{#each sub as |item|}}{{item}}{{/each}}{{/each}}`, {
-      arr,
-    });
+    this.render.template(
+      `{{#each this.arr as |sub|}}{{#each sub as |item|}}{{item}}{{/each}}{{/each}}`,
+      {
+        arr,
+      }
+    );
 
     for (let i = 0; i < 100; i++) {
       for (let sub of arr) {
@@ -791,6 +800,6 @@ function numbers() {
     number,
     number,
     number,
-    number
+    number,
   ];
 }

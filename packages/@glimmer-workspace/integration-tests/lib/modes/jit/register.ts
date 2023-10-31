@@ -123,12 +123,7 @@ export function registerComponent<K extends ComponentKind>(
       break;
 
     case 'Dynamic':
-      registerEmberishCurlyComponent(
-        registry,
-        name,
-        Class as any as typeof EmberishCurlyComponent,
-        layout
-      );
+      registerEmberishCurlyComponent(registry, name, Class as ComponentTypes['Dynamic'], layout);
       break;
     case 'TemplateOnly':
       registerTemplateOnlyComponent(registry, name, layout ?? '');

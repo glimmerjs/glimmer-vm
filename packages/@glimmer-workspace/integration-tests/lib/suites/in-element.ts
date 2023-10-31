@@ -15,7 +15,7 @@ export class InElementSuite extends RenderTest {
 
   @test
   'It works with AST transforms'() {
-    this.registerPlugin((env) => ({
+    this.register.plugin((env) => ({
       name: 'maybe-in-element',
       visitor: {
         BlockStatement(node: AST.BlockStatement) {
@@ -409,7 +409,6 @@ export class InElementSuite extends RenderTest {
       }
     }
 
-    this.testType = 'Dynamic';
     this.register.component('TemplateOnly', 'FooBar', '<p>{{@value}}</p>');
 
     this.register.helper('log', () => {});
@@ -464,7 +463,6 @@ export class InElementSuite extends RenderTest {
     equalsElement(third.element, 'div', {}, '<p>baz</p>');
     this.assertHTML('<!----><!----><!--->');
     this.assertStableRerender();
-    this.testType = 'TemplateOnly';
   }
 
   @test

@@ -94,7 +94,7 @@ export function array(
   }
 }
 function describeRef(ref: Reference): Fragment {
-  const label = as.type(ref.debugLabel ?? '');
+  const label = as.type(String(ref.debugLabel) ?? '');
 
   try {
     const val = ref.debug?.isPrimitive ? empty() : value(valueForRef(ref));

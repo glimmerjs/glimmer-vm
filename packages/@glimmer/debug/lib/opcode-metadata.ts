@@ -213,7 +213,7 @@ const METADATA = MetadataBuilder.build(({ add, stack }) =>
     )
     .add(
       `ComponentAttr as apnd_compattr`,
-      ['name:const/str', 'value:const/str'],
+      ['name:const/str', 'value:const/str', 'namespace:const/str?'],
       stack.params(['value:reference/any']).returns([])
     )
     .add(`FlushElement as apnd_flush`, [])

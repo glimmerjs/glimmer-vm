@@ -58,7 +58,7 @@ export class ShadowingSuite extends RenderTest {
   'outer attributes with concat clobber inner attributes'() {
     this.render.template(
       {
-        layoutAttributes: { 'data-name': 'Godfrey', 'data-foo': 'foo' },
+        layoutAttributes: { 'data-name': '"Godfrey"', 'data-foo': '"foo"' },
         layout: 'Hello!',
         attributes: { 'data-name': '"{{this.name}}"', 'data-foo': '"{{this.foo}}-bar"' },
       },
@@ -85,7 +85,7 @@ export class ShadowingSuite extends RenderTest {
   'outer attributes clobber inner attributes with concat'() {
     this.render.template(
       {
-        layoutAttributes: { 'data-name': '{{@name}}', 'data-foo': '"{{@foo}}-bar"' },
+        layoutAttributes: { 'data-name': '@name', 'data-foo': '"{{@foo}}-bar"' },
         layout: 'Hello!',
         args: { name: 'this.name', foo: 'this.foo' },
         attributes: { 'data-name': '"Godhuda"', 'data-foo': '"foo-bar"' },

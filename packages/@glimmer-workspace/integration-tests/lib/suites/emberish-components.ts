@@ -1,24 +1,27 @@
 import type { SimpleElement } from '@glimmer/interfaces';
 
-import { EmberishCurlyComponent } from '../components';
+import { unwrap } from '@glimmer/util';
+import { EmberishCurlyComponent, GLIMMER_TEST_COMPONENT } from '../components';
 import { assertEmberishElement, classes } from '../dom/assertions';
 import { assertingElement, toInnerHTML } from '../dom/simple-utils';
-import { type Count, RenderTest } from '../render-test';
+import { RenderTest } from '../render-test';
 import { equalTokens } from '../snapshot';
-import { test } from '../test-decorator';
-import { unwrap } from '@glimmer/util';
+import { suite, test } from '../test-decorator';
+import type { RenderTestContext } from '../test-helpers/module';
+import { defineComponent } from '../..';
 
+@suite('Emberish', 'curly')
 export class EmberishComponentTests extends RenderTest {
-  static suiteName = 'Emberish';
-
   @test
-  'Element modifier with hooks'(assert: Assert, count: Count) {
+  'Element modifier with hooks'(assert: RenderTestContext) {
+    const { events } = assert;
+
     this.register.modifier(
       'foo',
       class {
         element?: SimpleElement;
         didInsertElement() {
-          count.expect('didInsertElement');
+          events.record('didInsertElement');
           assert.ok(this.element, 'didInsertElement');
           assert.strictEqual(
             unwrap(this.element).getAttribute('data-ok'),
@@ -28,12 +31,12 @@ export class EmberishComponentTests extends RenderTest {
         }
 
         didUpdate() {
-          count.expect('didUpdate');
+          events.record('didUpdate');
           assert.ok(true, 'didUpdate');
         }
 
         willDestroyElement() {
-          count.expect('willDestroyElement');
+          events.record('willDestroyElement');
           assert.ok(true, 'willDestroyElement');
         }
       }
@@ -44,8 +47,13 @@ export class EmberishComponentTests extends RenderTest {
       ok: true,
     });
 
+    events.expect(['didInsertElement']);
+
     this.rerender({ bar: 'foo' });
+    events.expect(['didUpdate']);
+
     this.rerender({ ok: false });
+    events.expect(['willDestroyElement']);
   }
 
   @test
@@ -119,7 +127,7 @@ export class EmberishComponentTests extends RenderTest {
   'with ariaRole specified'() {
     this.render.template({
       layout: 'Here!',
-      attributes: { id: '"aria-test"', ariaRole: '"main"' },
+      attributes: { id: 'aria-test', ariaRole: '"main"' },
     });
 
     this.assertComponent('Here!', { id: '"aria-test"', role: '"main"' });
@@ -159,17 +167,26 @@ export class EmberishComponentTests extends RenderTest {
     this.assertStableRerender();
   }
 
-  @test({ skip: true, kind: 'glimmer' })
+  @test('glimmer')
   'glimmer component with role specified as an outer binding and copied'() {
-    this.render.template(
-      {
-        layout: 'Here!',
-        attributes: { id: '"aria-test"', role: 'myRole' },
-      },
-      { myRole: 'main' }
+    const TestComponent = defineComponent({}, `<div ...attributes>Here!</div>`);
+
+    const component = defineComponent(
+      { myRole: 'main', TestComponent },
+      `<TestComponent id="aria-test" role={{myRole}}></TestComponent>`
     );
 
-    this.assertComponent('Here!', { id: '"aria-test"', role: '"main"' });
+    this.render.component(component);
+
+    // this.render.template(
+    //   {
+    //     layout: 'Here!',
+    //     attributes: { id: '"aria-test"', role: 'this.myRole' },
+    //   },
+    //   { myRole: 'main' }
+    // );
+
+    this.assertComponent('Here!', { id: 'aria-test', role: 'main' });
     this.assertStableRerender();
   }
 
@@ -234,6 +251,7 @@ export class EmberishComponentTests extends RenderTest {
 
     this.render.template(`<FooBar> my </FooBar>`);
 
+    debugger;
     this.assertComponent('Hello my world!');
     this.assertStableRerender();
   }
@@ -310,7 +328,7 @@ export class EmberishComponentTests extends RenderTest {
     this.assertStableRerender();
   }
 
-  @test({ kind: 'curly' })
+  @test('curly')
   'invoking wrapped layout via angle brackets also applies explicit ...attributes'() {
     this.register.component('Curly', 'FooBar', '<h1 ...attributes>Hello world!</h1>');
 

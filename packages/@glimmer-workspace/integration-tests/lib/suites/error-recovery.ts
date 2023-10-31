@@ -4,8 +4,6 @@ import { test } from '../test-decorator';
 export class ErrorRecoverySuite extends RenderTest {
   static suiteName = 'ErrorRecovery';
 
-  afterEach() {}
-
   @test
   'if no error is thrown, everything works as expected'() {
     const actions = new Actions();

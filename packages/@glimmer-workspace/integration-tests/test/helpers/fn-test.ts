@@ -8,11 +8,10 @@ class FnTest extends RenderTest {
 
   stashedFn?: () => unknown;
 
-  beforeEach() {
+  override readonly beforeEach = () => {
     this.register.helper('invoke', ([fn]) => {
-        return (fn as () => unknown)();
-      },
-    );
+      return (fn as () => unknown)();
+    });
 
     const setStashedFn = (value: unknown) => (this.stashedFn = value as () => unknown);
 
@@ -27,7 +26,7 @@ class FnTest extends RenderTest {
         }
       }
     );
-  }
+  };
 
   @test
   'updates when arguments change'() {

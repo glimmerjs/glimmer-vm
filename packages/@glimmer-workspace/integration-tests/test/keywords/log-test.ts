@@ -6,20 +6,20 @@ class LogTest extends RenderTest {
   originalLog?: () => void;
   logCalls: unknown[] = [];
 
-  beforeEach() {
+  override readonly beforeEach = () => {
     /* eslint-disable no-console */
     this.originalLog = console.log;
     console.log = (...args: unknown[]) => {
       this.logCalls.push(...args);
       /* eslint-enable no-console */
     };
-  }
+  };
 
-  afterEach() {
+  override readonly afterEach = () => {
     /* eslint-disable no-console */
     console.log = this.originalLog!;
     /* eslint-enable no-console */
-  }
+  };
 
   assertLog(values: unknown[]) {
     this.assertHTML('');

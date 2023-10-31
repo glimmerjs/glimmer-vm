@@ -11,7 +11,6 @@ import { defineComponent } from '../test-helpers/define';
 export class EntryPointTest extends RenderTest {
   static suiteName = 'entry points';
 
-  declare readonly testType: ComponentKind;
 
   @test
   'an entry point'() {

@@ -6,6 +6,7 @@ import { define } from './define-runtime-value';
 import { MISMATCH, ok } from './shared';
 import { isReference } from '../../utils';
 import type { FallibleCheckResult } from '../types';
+import type { AnyFunction } from '@glimmer/util';
 
 export const RegisterRa = define(
   'register/ra',
@@ -44,7 +45,6 @@ function deref<const T, const U extends T>(
 }
 
 export type DebugTypeName = RuntimeValueSpec[0];
-export type AnyFunction = (...args: any[]) => any;
 export interface ErrorSpec {
   readonly expected: string;
   readonly got: number;

@@ -1,7 +1,9 @@
 import { castToSimple } from '@glimmer/util';
 
-import { JitRenderDelegate, RenderTest } from '..';
 import { module } from './support';
+import { RenderTestContext } from '../lib/test-helpers/module';
+import { JitRenderDelegate } from '../lib/modes/jit/delegate';
+import { RenderTest } from '../lib/render-test';
 
 // "I-N-U-R" cycle
 // initial render -> no-op rerender -> update(s) via mutation(s) -> reset via replacement
@@ -15,12 +17,12 @@ module('Render Tests: I-N-U-R', ({ test }) => {
 
     new (class extends RenderTest {
       override element = div;
-      constructor(delegate: JitRenderDelegate) {
-        super(delegate);
+      constructor(...args: ConstructorParameters<typeof RenderTest>) {
+        super(...args);
         let snapShot = this.takeSnapshot();
         assert.deepEqual(snapShot, [text, 'up']);
       }
-    })(new JitRenderDelegate());
+    })(new JitRenderDelegate(), RenderTestContext(assert, 'Glimmer'));
   });
 
   test('Can take nested snapshots', (assert) => {
@@ -32,12 +34,12 @@ module('Render Tests: I-N-U-R', ({ test }) => {
 
     new (class extends RenderTest {
       override element = div;
-      constructor(delegate: JitRenderDelegate) {
-        super(delegate);
+      constructor(...args: ConstructorParameters<typeof RenderTest>) {
+        super(...args);
         let snapShot = this.takeSnapshot();
         assert.deepEqual(snapShot, [p, 'down', text, 'up', 'up']);
       }
-    })(new JitRenderDelegate());
+    })(new JitRenderDelegate(), RenderTestContext(assert, 'Glimmer'));
   });
 
   test('Can take nested snapshots of serialized blocks', (assert) => {
@@ -51,11 +53,11 @@ module('Render Tests: I-N-U-R', ({ test }) => {
 
     new (class extends RenderTest {
       override element = div;
-      constructor(delegate: JitRenderDelegate) {
-        super(delegate);
+      constructor(...args: ConstructorParameters<typeof RenderTest>) {
+        super(...args);
         let snapShot = this.takeSnapshot();
         assert.deepEqual(snapShot, [open, text, close, 'up']);
       }
-    })(new JitRenderDelegate());
+    })(new JitRenderDelegate(), RenderTestContext(assert, 'Glimmer'));
   });
 });

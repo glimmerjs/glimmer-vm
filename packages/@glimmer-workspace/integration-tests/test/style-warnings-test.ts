@@ -9,7 +9,7 @@ let originalContext: GlobalContext | null;
 class StyleWarningsTest extends RenderTest {
   static suiteName = 'Style attributes';
 
-  beforeEach() {
+  override readonly beforeEach = () => {
     warnings = 0;
     originalContext =
       testOverrideGlobalContext?.({
@@ -21,11 +21,11 @@ class StyleWarningsTest extends RenderTest {
           return (obj as Record<string, unknown>)[key];
         },
       }) ?? null;
-  }
+  };
 
-  afterEach() {
+  override readonly afterEach = () => {
     testOverrideGlobalContext?.(originalContext);
-  }
+  };
 
   @test
   'Standard element with static style and element modifier does not give you a warning'() {
@@ -65,7 +65,10 @@ class StyleWarningsTest extends RenderTest {
 
   @test
   'using a static inline style on an namespaced element does not give you a warning'() {
-    this.render.template(`<svg xmlns:svg="http://www.w3.org/2000/svg" style="background: red" />`, {});
+    this.render.template(
+      `<svg xmlns:svg="http://www.w3.org/2000/svg" style="background: red" />`,
+      {}
+    );
 
     assert.strictEqual(warnings, 0);
 

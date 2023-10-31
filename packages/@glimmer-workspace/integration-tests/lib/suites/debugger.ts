@@ -6,9 +6,9 @@ import { test } from '../test-decorator';
 export class DebuggerSuite extends RenderTest {
   static suiteName = 'Debugger';
 
-  afterEach() {
+  override readonly afterEach = () => {
     resetDebuggerCallback();
-  }
+  };
 
   @test
   'basic debugger statement'() {

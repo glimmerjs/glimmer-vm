@@ -1,3 +1,4 @@
+import type { NTuple } from '@glimmer-workspace/test-utils';
 import { destroy } from '@glimmer/destroyable';
 import type {
   Dict,
@@ -14,40 +15,48 @@ import { inTransaction, renderComponent, renderSync } from '@glimmer/runtime';
 import type { ASTPluginBuilder } from '@glimmer/syntax';
 import { clearElement, dict, expect, isPresent, unwrap } from '@glimmer/util';
 import { dirtyTagFor } from '@glimmer/validator';
-import type { NTuple } from '@glimmer-workspace/test-utils';
 
+import { createConstRef } from '@glimmer/reference';
+import type { RenderTestContext } from '..';
 import {
+  GLIMMER_TEST_COMPONENT,
   type ComponentBlueprint,
   type ComponentKind,
   type ComponentTypes,
-  CURLY_TEST_COMPONENT,
-  GLIMMER_TEST_COMPONENT,
 } from './components';
+import { InvocationBuilder } from './components/build';
+import {
+  GlimmerDelegate,
+  build,
+  type BuildStyle,
+  type ComponentDelegate,
+  getDelegate,
+} from './components/delegate';
+import { BuildCurlyComponent, BuildDynamicComponent } from './components/styles';
 import { assertElementShape, assertEmberishElement } from './dom/assertions';
 import { assertingElement, toInnerHTML } from './dom/simple-utils';
 import type { UserHelper } from './helpers';
-import type { TestModifierConstructor } from './modifiers';
-import type RenderDelegate from './render-delegate';
-import { equalTokens, isServerMarker, type NodesSnapshot, normalizeSnapshot } from './snapshot';
+import { BuildDomDelegate } from './modes/jit/dom';
 import {
   registerComponent,
   registerHelper,
   registerInternalHelper,
   registerModifier,
 } from './modes/jit/register';
-import { RecordedEvents } from './test-helpers/recorded';
-import { createConstRef } from '@glimmer/reference';
+import type { TestModifierConstructor } from './modifiers';
+import type RenderDelegate from './render-delegate';
 import type { DomDelegate } from './render-delegate';
-import { BuildDomDelegate } from './modes/jit/dom';
+import { equalTokens, isServerMarker, normalizeSnapshot, type NodesSnapshot } from './snapshot';
+import { RecordedEvents } from './test-helpers/recorded';
 
 type Expand<T> = T extends infer O ? { [K in keyof O]: O[K] } : never;
 type Present<T> = Exclude<T, null | undefined>;
 
 export interface IRenderTest {
-  readonly count: Count;
-  testType: ComponentKind;
-  beforeEach?(): void;
-  afterEach?(): void;
+  readonly testType: ComponentKind;
+  readonly context: RenderTestContext;
+  readonly beforeEach?: () => void;
+  readonly afterEach?: () => void;
 }
 
 export class Count {
@@ -66,8 +75,12 @@ export class Count {
   }
 
   assert() {
-    QUnit.assert.deepEqual(this.actual, this.expected, 'TODO');
     this.#events.finalize();
+
+    // don't print anything if the counts match
+    if (QUnit.equiv(this.expected, this.actual)) return;
+
+    QUnit.assert.deepEqual(this.actual, this.expected, "Expected and actual counts don't match");
   }
 }
 
@@ -114,7 +127,6 @@ class Self {
 }
 
 export class RenderTest implements IRenderTest {
-  testType: ComponentKind = 'unknown';
   readonly events = new RecordedEvents();
 
   readonly self = new Self({});
@@ -123,19 +135,36 @@ export class RenderTest implements IRenderTest {
   protected renderResult: Nullable<RenderResult> = null;
   protected helpers = dict<UserHelper>();
   protected snapshot: NodesSnapshot = [];
-  readonly count: Count;
   readonly dom: DomDelegate;
+  readonly context: RenderTestContext;
 
   readonly plugins: ASTPluginBuilder[] = [];
+  readonly #delegate: ComponentDelegate<ComponentKind>;
 
-  constructor(protected delegate: RenderDelegate) {
+  constructor(
+    protected delegate: RenderDelegate,
+    context: RenderTestContext
+  ) {
     this.element = delegate.dom.getInitialElement(delegate.dom.document);
-    this.count = new Count(this.events);
+    this.context = context;
     this.dom = new BuildDomDelegate(delegate.dom);
+
+    this.#delegate = getDelegate(this.testType);
+  }
+
+  declare readonly beforeEach?: () => void;
+  declare readonly afterEach?: () => void;
+
+  get testType(): ComponentKind {
+    return this.context.testType;
   }
 
   getInitialElement(): SimpleElement {
     return this.element;
+  }
+
+  get assertingElement() {
+    return assertingElement(this.element.firstChild);
   }
 
   capture<T>() {
@@ -148,11 +177,11 @@ export class RenderTest implements IRenderTest {
     };
   }
 
-  registerPlugin(plugin: ASTPluginBuilder): void {
-    this.plugins.push(plugin);
-  }
-
   readonly register = {
+    plugin: (plugin: ASTPluginBuilder) => {
+      this.plugins.push(plugin);
+    },
+
     helper: (name: string, helper: UserHelper) => {
       for (const registry of this.delegate.registries) {
         registerHelper(registry, name, helper);
@@ -183,240 +212,55 @@ export class RenderTest implements IRenderTest {
     },
   };
 
+  readonly build = {
+    glimmer: (blueprint: ComponentBlueprint) => this.buildGlimmerComponent(blueprint),
+    curly: (blueprint: ComponentBlueprint) => this.buildCurlyComponent(blueprint),
+    dynamic: (blueprint: ComponentBlueprint) => this.buildDynamicComponent(blueprint),
+    templateOnly: (blueprint: ComponentBlueprint) => this.buildTemplateOnlyComponent(blueprint),
+  };
+
   buildComponent(blueprint: ComponentBlueprint): string {
-    let invocation = '';
     switch (this.testType) {
       case 'Glimmer':
-        invocation = this.buildGlimmerComponent(blueprint);
-        break;
+        return this.buildGlimmerComponent(blueprint);
       case 'Curly':
-        invocation = this.buildCurlyComponent(blueprint);
-        break;
+        return this.buildCurlyComponent(blueprint);
       case 'Dynamic':
-        invocation = this.buildDynamicComponent(blueprint);
-        break;
+        return this.buildDynamicComponent(blueprint);
       case 'TemplateOnly':
-        invocation = this.buildTemplateOnlyComponent(blueprint);
-        break;
+        return this.buildTemplateOnlyComponent(blueprint);
 
       default:
         throw new Error(`Invalid test type ${this.testType}`);
     }
-
-    return invocation;
-  }
-
-  private buildArgs(args: Dict): string {
-    let { testType } = this;
-    let sigil = '';
-    let needsCurlies = false;
-
-    if (testType === 'Glimmer' || testType === 'TemplateOnly') {
-      sigil = '@';
-      needsCurlies = true;
-    }
-
-    return `${Object.keys(args)
-      .map((arg) => {
-        let rightSide: string;
-
-        let value = args[arg] as Maybe<string[]>;
-        if (needsCurlies) {
-          let isString = value && (value[0] === "'" || value[0] === '"');
-          if (isString) {
-            rightSide = `${value}`;
-          } else {
-            rightSide = `{{${value}}}`;
-          }
-        } else {
-          rightSide = `${value}`;
-        }
-
-        return `${sigil}${arg}=${rightSide}`;
-      })
-      .join(' ')}`;
-  }
-
-  private buildBlockParams(blockParams: string[]): string {
-    return `${blockParams.length > 0 ? ` as |${blockParams.join(' ')}|` : ''}`;
-  }
-
-  private buildElse(elseBlock: string | undefined): string {
-    return `${elseBlock ? `{{else}}${elseBlock}` : ''}`;
-  }
-
-  private buildAttributes(attrs: Dict = {}): string {
-    return Object.keys(attrs)
-      .map((attr) => `${attr}=${attrs[attr]}`)
-      .join(' ');
-  }
-
-  private buildAngleBracketComponent(blueprint: ComponentBlueprint): string {
-    let {
-      args = {},
-      attributes = {},
-      template,
-      name = GLIMMER_TEST_COMPONENT,
-      blockParams = [],
-    } = blueprint;
-
-    let invocation: string | string[] = [];
-
-    invocation.push(`<${name}`);
-
-    let componentArgs = this.buildArgs(args);
-
-    if (componentArgs !== '') {
-      invocation.push(componentArgs);
-    }
-
-    let attrs = this.buildAttributes(attributes);
-    if (attrs !== '') {
-      invocation.push(attrs);
-    }
-
-    let open = invocation.join(' ');
-    invocation = [open];
-
-    if (template) {
-      let block: string | string[] = [];
-      let params = this.buildBlockParams(blockParams);
-      if (params !== '') {
-        block.push(params);
-      }
-      block.push(`>`);
-      block.push(template);
-      block.push(`</${name}>`);
-      invocation.push(block.join(''));
-    } else {
-      invocation.push(' ');
-      invocation.push(`/>`);
-    }
-
-    return invocation.join('');
   }
 
   private buildGlimmerComponent(blueprint: ComponentBlueprint): string {
-    let { tag = 'div', layout, name = GLIMMER_TEST_COMPONENT } = blueprint;
-    let invocation = this.buildAngleBracketComponent(blueprint);
-    let layoutAttrs = this.buildAttributes(blueprint.layoutAttributes);
-    this.assert.ok(
-      true,
-      `generated glimmer layout as ${`<${tag} ${layoutAttrs} ...attributes>${layout}</${tag}>`}`
-    );
-    this.register.component(
-      'Glimmer',
-      name,
-      `<${tag} ${layoutAttrs} ...attributes>${layout}</${tag}>`
-    );
-    this.assert.ok(true, `generated glimmer invocation as ${invocation}`);
-    return invocation;
-  }
-
-  private buildCurlyBlockTemplate(
-    name: string,
-    template: string,
-    blockParams: string[],
-    elseBlock?: string
-  ): string {
-    let block: string[] = [];
-    block.push(this.buildBlockParams(blockParams));
-    block.push('}}');
-    block.push(template);
-    block.push(this.buildElse(elseBlock));
-    block.push(`{{/${name}}}`);
-    return block.join('');
+    return build(GlimmerDelegate, blueprint, this.register.component);
   }
 
   private buildCurlyComponent(blueprint: ComponentBlueprint): string {
-    let {
-      args = {},
-      layout,
-      template,
-      attributes,
-      else: elseBlock,
-      name = CURLY_TEST_COMPONENT,
-      blockParams = [],
-    } = blueprint;
+    const { name, template, invocation } = BuildCurlyComponent(blueprint);
 
-    if (attributes) {
-      throw new Error('Cannot pass attributes to curly components');
-    }
-
-    let invocation: string[] | string = [];
-
-    if (template) {
-      invocation.push(`{{#${name}`);
-    } else {
-      invocation.push(`{{${name}`);
-    }
-
-    let componentArgs = this.buildArgs(args);
-
-    if (componentArgs !== '') {
-      invocation.push(' ');
-      invocation.push(componentArgs);
-    }
-
-    if (template) {
-      invocation.push(this.buildCurlyBlockTemplate(name, template, blockParams, elseBlock));
-    } else {
-      invocation.push('}}');
-    }
-    this.assert.ok(true, `generated curly layout as ${layout}`);
-    this.register.component('Curly', name, layout);
-    invocation = invocation.join('');
+    this.register.component('Curly', name, template);
     this.assert.ok(true, `generated curly invocation as ${invocation}`);
     return invocation;
   }
 
   private buildTemplateOnlyComponent(blueprint: ComponentBlueprint): string {
-    let { layout, name = GLIMMER_TEST_COMPONENT } = blueprint;
-    let invocation = this.buildAngleBracketComponent(blueprint);
-    this.assert.ok(true, `generated fragment layout as ${layout}`);
-    this.register.component('TemplateOnly', name, `${layout}`);
-    this.assert.ok(true, `generated fragment invocation as ${invocation}`);
-    return invocation;
+    return this.buildGlimmerComponent(blueprint);
+    // let { layout, name = GLIMMER_TEST_COMPONENT } = blueprint;
+    // let invocation = this.buildAngleBracketComponent(blueprint);
+    // this.assert.ok(true, `generated fragment layout as ${layout}`);
+    // this.register.component('TemplateOnly', name, `${layout}`);
+    // this.assert.ok(true, `generated fragment invocation as ${invocation}`);
+    // return invocation;
   }
 
   private buildDynamicComponent(blueprint: ComponentBlueprint): string {
-    let {
-      args = {},
-      layout,
-      template,
-      attributes,
-      else: elseBlock,
-      name = GLIMMER_TEST_COMPONENT,
-      blockParams = [],
-    } = blueprint;
+    const { name, template, invocation } = BuildDynamicComponent(blueprint);
 
-    if (attributes) {
-      throw new Error('Cannot pass attributes to curly components');
-    }
-
-    let invocation: string | string[] = [];
-    if (template) {
-      invocation.push('{{#component this.componentName');
-    } else {
-      invocation.push('{{component this.componentName');
-    }
-
-    let componentArgs = this.buildArgs(args);
-
-    if (componentArgs !== '') {
-      invocation.push(' ');
-      invocation.push(componentArgs);
-    }
-
-    if (template) {
-      invocation.push(this.buildCurlyBlockTemplate('component', template, blockParams, elseBlock));
-    } else {
-      invocation.push('}}');
-    }
-
-    this.assert.ok(true, `generated dynamic layout as ${layout}`);
-    this.register.component('Curly', name, layout);
-    invocation = invocation.join('');
+    this.register.component('Curly', name, template);
     this.assert.ok(true, `generated dynamic invocation as ${invocation}`);
 
     return invocation;
@@ -675,16 +519,8 @@ export class RenderTest implements IRenderTest {
     this.takeSnapshot();
   }
 
-  protected assertComponent(content: string, attrs: Object = {}) {
-    let element = assertingElement(this.element.firstChild);
-
-    switch (this.testType) {
-      case 'Glimmer':
-        assertElementShape(element, 'div', attrs, content);
-        break;
-      default:
-        assertEmberishElement(element, 'div', attrs, content);
-    }
+  protected assertComponent(content: string, attrs: Dict = {}) {
+    this.#delegate.assert(this.assertingElement, 'div', attrs, content);
 
     this.takeSnapshot();
   }
