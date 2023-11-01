@@ -43,7 +43,7 @@ import {
 } from './modes/jit/register';
 import type { TestModifierConstructor } from './modifiers';
 import type RenderDelegate from './render-delegate';
-import type { DomDelegate } from './render-delegate';
+import type { DomDelegate, LogRender } from './render-delegate';
 import { equalTokens, isServerMarker, normalizeSnapshot, type NodesSnapshot } from './snapshot';
 import {
   KIND_FOR,
@@ -53,6 +53,7 @@ import {
 } from './test-helpers/constants';
 import type { RenderTestContext } from './test-helpers/module';
 import { RecordedEvents } from './test-helpers/recorded';
+import { hasFlagWith } from '@glimmer/local-debug-flags';
 
 type Expand<T> = T extends infer O ? { [K in keyof O]: O[K] } : never;
 type Present<T> = Exclude<T, null | undefined>;
@@ -89,7 +90,7 @@ export class Count {
   }
 }
 
-class Self {
+export class Self {
   #properties: Dict;
   readonly ref: Reference<Dict>;
 
@@ -256,7 +257,6 @@ export class RenderTest implements IRenderTest {
     const template = buildTemplate(templateDelegate, blueprint);
     const { name, invocation } = this.#buildInvoke(blueprint);
 
-    debugger;
     this.register.component(this.testType, name, template);
     return invocation;
   }
@@ -288,7 +288,7 @@ export class RenderTest implements IRenderTest {
     let html = '<' + tagName + " data-foo='bar'><p>hello</p>";
     this.delegate.renderTemplate(
       html,
-      this.self.ref,
+      this.self,
       this.element,
       () => this.takeSnapshot(),
       this.plugins
@@ -330,12 +330,6 @@ export class RenderTest implements IRenderTest {
   };
 
   #renderTemplate(template: string | ComponentBlueprint, properties: Dict<unknown> = {}): void {
-    try {
-      QUnit.assert.ok(true, `Rendering ${String(template)} with ${JSON.stringify(properties)}`);
-    } catch {
-      // couldn't stringify, possibly has a circular dependency
-    }
-
     if (typeof template === 'object') {
       let blueprint = template;
       template = this.buildComponent(blueprint);
@@ -347,9 +341,15 @@ export class RenderTest implements IRenderTest {
 
     this.self.initialize(properties);
 
+    this.#log({
+      template,
+      self: this.self,
+      element: this.element,
+    });
+
     this.renderResult = this.delegate.renderTemplate(
       template,
-      this.self.ref,
+      this.self,
       this.element,
       () => this.takeSnapshot(),
       this.plugins
@@ -374,6 +374,20 @@ export class RenderTest implements IRenderTest {
     } finally {
       result.env.commit();
       this.events.record('env:commit');
+    }
+  }
+
+  #log(render: LogRender) {
+    const { template, properties: addedProperties } = this.delegate.wrap(render.template);
+
+    QUnit.assert.ok(true, `Rendering ${String(template)}`);
+
+    if (hasFlagWith('enable_internals_logging', 'render')) {
+      const properties = { ...render.self.inner, ...addedProperties };
+      console.groupCollapsed(`%c[render] Rendering ${template}`, 'font-weight: normal');
+      console.log('element   ', render.element);
+      console.log('properties', { ...render.self.inner, ...properties });
+      console.groupEnd();
     }
   }
 

@@ -27,6 +27,7 @@ import {
   test,
   toInnerHTML,
   toTextContent,
+  ErrorRecoveryRenderDelegate,
 } from '..';
 
 // `window.ActiveXObject` is "falsey" in IE11 (but not `undefined` or `false`)
@@ -1645,4 +1646,5 @@ class RehydratingComponents extends AbstractRehydrationTests {
 
 suite(Rehydration, RehydrationDelegate);
 jitSuite(RenderTests);
+suite(RenderTests, ErrorRecoveryRenderDelegate);
 componentSuite(RehydratingComponents, RehydrationDelegate);

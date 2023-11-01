@@ -15,13 +15,14 @@ import createHTMLDocument from '@simple-dom/document';
 import { BaseEnv } from '../../base-env';
 import { replaceHTML, toInnerHTML } from '../../dom/simple-utils';
 import type RenderDelegate from '../../render-delegate';
-import type { RenderDelegateOptions } from '../../render-delegate';
+import type { RenderDelegateOptions, WrappedTemplate } from '../../render-delegate';
 import { JitDelegateContext, type JitContext } from '../jit/delegate';
 import { TestJitRegistry } from '../jit/registry';
 import { renderTemplate } from '../jit/render';
 import { TestJitRuntimeResolver } from '../jit/resolver';
 import { debugRehydration, type DebugRehydrationBuilder } from './builder';
 import type { ASTPluginBuilder } from '@glimmer/syntax';
+import type { Self } from '../../render-test';
 
 export interface RehydrationStats {
   clearedNodes: SimpleNode[];
@@ -78,6 +79,10 @@ export class RehydrationDelegate implements RenderDelegate {
     return serializeBuilder(env, cursor);
   }
 
+  wrap(template: string): WrappedTemplate {
+    return { template };
+  }
+
   renderServerSide(
     template: string,
     self: Reference,
@@ -130,16 +135,16 @@ export class RehydrationDelegate implements RenderDelegate {
 
   renderTemplate(
     template: string,
-    self: Reference,
+    self: Self,
     element: SimpleElement,
     snapshot: () => void,
     plugins: ASTPluginBuilder[]
   ): RenderResult {
-    let serialized = this.renderServerSide(template, self, snapshot, undefined, plugins);
+    let serialized = this.renderServerSide(template, self.ref, snapshot, undefined, plugins);
     replaceHTML(element, serialized);
     qunitFixture().appendChild(element);
 
-    return this.renderClientSide(template, self, element, plugins);
+    return this.renderClientSide(template, self.ref, element, plugins);
   }
 
   get registries() {

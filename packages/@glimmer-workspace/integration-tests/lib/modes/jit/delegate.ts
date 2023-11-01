@@ -32,12 +32,14 @@ import { assign, castToSimple, expect, unwrapTemplate } from '@glimmer/util';
 import { BaseEnv } from '../../base-env';
 import { preprocess } from '../../compile';
 import type RenderDelegate from '../../render-delegate';
-import type { RenderDelegateOptions } from '../../render-delegate';
+import type { LogRender, RenderDelegateOptions, WrappedTemplate } from '../../render-delegate';
 import JitCompileTimeLookup from './compilation-context';
 import { componentHelper } from './register';
 import { TestJitRegistry } from './registry';
 import { renderTemplate } from './render';
 import { TestJitRuntimeResolver } from './resolver';
+import type { Self } from '../../render-test';
+import { LOCAL_INTERNALS_LOGGING } from '@glimmer/local-debug-flags';
 
 export interface JitContext {
   runtime: RuntimeContext;
@@ -123,8 +125,12 @@ export class JitRenderDelegate implements RenderDelegate {
     return clientBuilder(env, cursor);
   }
 
+  wrap(template: string): WrappedTemplate {
+    return { template };
+  }
+
   compileTemplate(template: string, plugins: ASTPluginBuilder[]): HandleResult {
-    let compiled = preprocess(template, {
+    let compiled = preprocess(this.wrap(template).template, {
       plugins: {
         ast: plugins,
       },
@@ -133,9 +139,10 @@ export class JitRenderDelegate implements RenderDelegate {
     return unwrapTemplate(compiled).asLayout().compile(this.context.program);
   }
 
+
   renderTemplate(
-    template: string,
-    self: Reference,
+    rawTemplate: string,
+    self: Self,
     element: SimpleElement,
     _: () => void,
     plugins: ASTPluginBuilder[]
@@ -144,11 +151,25 @@ export class JitRenderDelegate implements RenderDelegate {
 
     let { env } = this.context.runtime;
 
-    return renderTemplate(template, this.context, self, this.getElementBuilder(env, cursor), {
+    const { template, properties } = this.wrap(rawTemplate);
+
+    if (properties) self.update(properties);
+
+    return renderTemplate(template, this.context, self.ref, this.getElementBuilder(env, cursor), {
       plugins: {
         ast: plugins,
       },
     });
+  }
+}
+
+export class ErrorRecoveryRenderDelegate extends JitRenderDelegate {
+  static override style = 'error recovery';
+  override wrap(template: string): WrappedTemplate {
+    return {
+      template: `{{#-try this.errorRecoveryHandle}}${template}{{/-try}}`,
+      properties: { errorRecoveryHandle: () => {} },
+    };
   }
 }
 
