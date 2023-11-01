@@ -1,10 +1,10 @@
 import { RenderTest } from '../render-test';
-import { test } from '../test-decorator';
+import { render } from '../test-decorator';
 
 export class ShadowingSuite extends RenderTest {
   static suiteName = 'Shadowing';
 
-  @test('glimmer')
+  @render('glimmer')
   'normal outer attributes are reflected'() {
     this.render.template({
       layout: 'In layout - someProp: {{@someProp}}',
@@ -15,7 +15,7 @@ export class ShadowingSuite extends RenderTest {
     this.assertStableRerender();
   }
 
-  @test('glimmer')
+  @render('glimmer')
   'shadowing - normal outer attributes clobber inner attributes'() {
     this.render.template({
       layout: 'Hello!',
@@ -28,7 +28,7 @@ export class ShadowingSuite extends RenderTest {
     this.assertStableRerender();
   }
 
-  @test('glimmer')
+  @render('glimmer')
   'outer attributes with concat are reflected'() {
     this.render.template(
       {
@@ -54,7 +54,7 @@ export class ShadowingSuite extends RenderTest {
     this.assertStableNodes();
   }
 
-  @test('glimmer')
+  @render('glimmer')
   'outer attributes with concat clobber inner attributes'() {
     this.render.template(
       {
@@ -81,7 +81,7 @@ export class ShadowingSuite extends RenderTest {
     this.assertStableNodes();
   }
 
-  @test('glimmer')
+  @render('glimmer')
   'outer attributes clobber inner attributes with concat'() {
     this.render.template(
       {

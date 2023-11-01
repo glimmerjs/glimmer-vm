@@ -8,12 +8,27 @@ module.exports = {
   },
   configs: {
     recommended: {
+      settings: {
+        'import/parsers': {
+          '@typescript-eslint/parser': ['.js', '.cjs', '.mjs', '.mts', '.ts', '.d.ts'],
+        },
+        'import/resolver': {
+          typescript: {
+            alwaysTryTypes: true,
+          },
+        },
+        node: {
+          allowModules: ['@glimmer/debug', '@glimmer/local-debug-flags'],
+          tryExtensions: ['.cjs', '.js', '.ts', '.d.ts', '.json'],
+        },
+      },
       plugins: [
         '@typescript-eslint',
         'prettier',
         'qunit',
         'simple-import-sort',
         'unused-imports',
+        'import',
         'prettier',
         'n',
       ],
@@ -21,7 +36,7 @@ module.exports = {
         'eslint:recommended',
         'plugin:@typescript-eslint/recommended',
         'plugin:@typescript-eslint/recommended-requiring-type-checking',
-        'plugin:n/recommended',
+        'plugin:n/recommended-module',
         'plugin:import/recommended',
         'plugin:qunit/recommended',
         'plugin:regexp/recommended',
@@ -29,8 +44,8 @@ module.exports = {
         'prettier',
       ],
       rules: {
-        'no-restricted-imports': 'off',
         'prefer-arrow-callback': 'error',
+        'no-restricted-imports': 'off',
         '@typescript-eslint/no-restricted-imports': [
           'error',
           {
@@ -39,15 +54,13 @@ module.exports = {
             ],
           },
         ],
+        '@typescript-eslint/no-redundant-type-constituents': 'off',
         'no-console': 'error',
         'no-debugger': 'error',
         'no-loop-func': 'error',
         'prefer-const': 'off',
         'no-fallthrough': 'off',
-        'import/no-relative-packages': 'error',
-        'import/default': 'off',
-        'import/no-unresolved': 'error',
-        'import/no-extraneous-dependencies': 'error',
+
         'qunit/require-expect': ['error', 'never-except-zero'],
         // we're using assert.step instead of this sort of thing
         'qunit/no-conditional-assertions': 'off',
@@ -63,13 +76,7 @@ module.exports = {
         'regexp/prefer-regexp-exec': 'error',
         'regexp/prefer-quantifier': 'error',
         'require-unicode-regexp': 'off',
-        'unused-imports/no-unused-imports': 'error',
-        'unused-imports/no-unused-vars': [
-          'warn',
-          { vars: 'all', varsIgnorePattern: '^_', args: 'after-used', argsIgnorePattern: '^_' },
-        ],
-        'n/no-unpublished-require': 'off',
-        '@typescript-eslint/no-explicit-any': 'off',
+        '@typescript-eslint/no-explicit-any': 'warn',
         '@typescript-eslint/ban-types': 'off',
         '@typescript-eslint/no-non-null-assertion': 'off',
         '@typescript-eslint/consistent-type-imports': [
@@ -81,7 +88,7 @@ module.exports = {
         '@typescript-eslint/consistent-type-exports': [
           'error',
           {
-            fixMixedExportsWithInlineTypeSpecifier: true,
+            fixMixedExportsWithInlineTypeSpecifier: false,
           },
         ],
         '@typescript-eslint/no-import-type-side-effects': 'error',
@@ -118,7 +125,25 @@ module.exports = {
         '@typescript-eslint/no-unsafe-member-access': 'off',
         '@typescript-eslint/no-unsafe-call': 'off',
         '@typescript-eslint/restrict-template-expressions': 'off',
+
         'n/no-missing-import': 'off',
+        'unused-imports/no-unused-imports': 'error',
+        'unused-imports/no-unused-vars': [
+          'error',
+          { vars: 'all', varsIgnorePattern: '^_', args: 'after-used', argsIgnorePattern: '^_' },
+        ],
+        'n/no-unpublished-require': 'off',
+        'import/no-relative-packages': 'error',
+        'import/default': 'off',
+        'import/no-unresolved': 'error',
+        'import/no-extraneous-dependencies': 'error',
+        'simple-import-sort/imports': 'error',
+        'simple-import-sort/exports': 'error',
+        'no-unused-private-class-members': 'error',
+        'import/first': 'error',
+        'import/newline-after-import': 'error',
+        'import/no-duplicates': 'error',
+
         'n/no-unsupported-features/es-syntax': 'off',
         'n/no-unsupported-features/node-builtins': 'off',
       },

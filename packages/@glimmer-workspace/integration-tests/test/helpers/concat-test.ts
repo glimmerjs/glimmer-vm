@@ -1,4 +1,4 @@
-import { jitSuite, RenderTest, test } from '../..';
+import { jitSuite, RenderTest, test } from '@glimmer-workspace/integration-tests';
 
 class ConcatTest extends RenderTest {
   static suiteName = 'Helpers test: {{concat}}';
@@ -78,7 +78,7 @@ class ConcatTest extends RenderTest {
 
   @test
   'it can be used as input for other helpers'() {
-    this.register.helper('x-eq', ([actual, expected]) => actual === expected );
+    this.register.helper('x-eq', ([actual, expected]) => actual === expected);
 
     this.render.template(
       `{{#if (x-eq (concat this.model.first this.model.second) "onetwo")}}Truthy!{{else}}False{{/if}}`,

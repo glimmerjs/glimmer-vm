@@ -2,17 +2,16 @@ import { createPrimitiveRef } from '@glimmer/reference';
 import { DynamicScopeImpl } from '@glimmer/runtime';
 import { castToBrowser } from '@glimmer/util';
 
-import type { ComponentKind } from '../components/types';
 import { JitRenderDelegate } from '../modes/jit/delegate';
 import { RenderTest } from '../render-test';
-import { test } from '../test-decorator';
+import { render } from '../test-decorator';
 import { defineComponent } from '../test-helpers/define';
 
 export class EntryPointTest extends RenderTest {
   static suiteName = 'entry points';
 
 
-  @test
+  @render
   'an entry point'() {
     let Title = defineComponent({}, `<h1>hello {{@title}}</h1>`);
 
@@ -25,7 +24,7 @@ export class EntryPointTest extends RenderTest {
     );
   }
 
-  @test
+  @render
   'does not leak args between invocations'() {
     let delegate = new JitRenderDelegate();
     let Title = defineComponent({}, `<h1>hello {{@title}}</h1>`);
@@ -44,7 +43,7 @@ export class EntryPointTest extends RenderTest {
     QUnit.assert.strictEqual(castToBrowser(element, 'HTML').innerHTML, '<h1>hello new title</h1>');
   }
 
-  @test
+  @render
   'can render different components per call'() {
     let Title = defineComponent({}, `<h1>hello {{@title}}</h1>`);
     let Body = defineComponent({}, `<p>body {{@body}}</p>`);
@@ -63,7 +62,7 @@ export class EntryPointTest extends RenderTest {
     QUnit.assert.strictEqual(castToBrowser(element, 'HTML').innerHTML, '<p>body text</p>');
   }
 
-  @test
+  @render
   'supports passing in an initial dynamic context'() {
     let Locale = defineComponent({}, `{{-get-dynamic-var "locale"}}`);
 

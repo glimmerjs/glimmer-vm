@@ -1,6 +1,8 @@
 import type { SimpleElement, SimpleNode } from '@glimmer/interfaces';
 import { assign, castToSimple, unwrap } from '@glimmer/util';
 import {
+  type Attrs,
+  type AttrsDiff,
   classes,
   createTemplate,
   elementId,
@@ -16,12 +18,10 @@ import {
   RenderTest,
   stripTight,
   test,
-  type AttrsDiff,
-  type Attrs,
 } from '@glimmer-workspace/integration-tests';
 
-import { assert } from './support';
 import { ErrorRecoverySuite } from '../lib/suites/error-recovery';
+import { assert } from './support';
 
 interface ComponentHooks {
   didInitAttrs: number;

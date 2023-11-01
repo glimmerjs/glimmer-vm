@@ -1,9 +1,9 @@
+import { destroy, registerDestructor } from '@glimmer/destroyable';
 import type { Arguments, ModifierManager, Owner } from '@glimmer/interfaces';
 import { modifierCapabilities, setModifierManager } from '@glimmer/manager';
 
-import { defineComponent, jitSuite, RenderTest, test, tracked, trackedObj } from '../..';
+import { defineComponent, jitSuite, RenderTest, test, tracked, trackedObj } from '../../lib';
 import type { RecordedEvents } from '../../lib/test-helpers/recorded';
-import { destroy, registerDestructor } from '@glimmer/destroyable';
 
 type CreateCustomModifier = (options: {
   owner: Owner;

@@ -1,11 +1,12 @@
 import type { Nullable, Optional, Reference, VmOpName } from '@glimmer/interfaces';
-import type { OpcodeMetadata, DynamicStackFn } from './metadata';
+import { REFERENCE } from '@glimmer/reference';
 import { assertNever, fillNulls } from '@glimmer/util';
-import { UNCHANGED, type STACK_TYPES } from './stack/params';
 import { OpSize } from '@glimmer/vm';
+
 // eslint-disable-next-line @typescript-eslint/no-restricted-imports
 import type { DebugOpList } from './generated/op-list';
-import { REFERENCE } from '@glimmer/reference';
+import type { DynamicStackFn, OpcodeMetadata } from './metadata';
+import { type STACK_TYPES, UNCHANGED } from './stack/params';
 
 type NameDef<Name extends Nullable<VmOpName> = VmOpName> = Name extends null
   ? null
@@ -412,7 +413,7 @@ export class MetadataBuilder<
 type TupleToParams<T extends unknown[]> = (...args: T) => void;
 type Slice<T extends unknown[]> = TupleToParams<T> extends (first: any, ...rest: infer Rest) => void
   ? Rest
-  : never;export function isReference(value: unknown): value is Reference {
+  : never;
+export function isReference(value: unknown): value is Reference {
   return !!(value && typeof value === 'object' && REFERENCE in value);
 }
-

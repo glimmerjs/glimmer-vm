@@ -1,9 +1,9 @@
 import { RenderTest } from '../render-test';
-import { test, suite } from '../test-decorator';
+import { render, suite } from '../test-decorator';
 
 @suite('yield')
 export class YieldSuite extends RenderTest {
-  @test
+  @render
   yield() {
     this.render.template(
       {
@@ -21,7 +21,7 @@ export class YieldSuite extends RenderTest {
     this.assertStableRerender();
   }
 
-  @test
+  @render
   'yield to "inverse"'() {
     this.render.template(
       {
@@ -39,7 +39,7 @@ export class YieldSuite extends RenderTest {
     this.assertStableRerender();
   }
 
-  @test
+  @render
   'yield to "else"'() {
     this.render.template(
       {
@@ -56,7 +56,7 @@ export class YieldSuite extends RenderTest {
     this.assertStableRerender();
   }
 
-  @test
+  @render
   'yielding to an non-existent block'() {
     this.render.template({
       layout: 'Before-{{yield}}-After',
@@ -66,7 +66,7 @@ export class YieldSuite extends RenderTest {
     this.assertStableRerender();
   }
 
-  @test
+  @render
   'yielding a string and rendering its length'() {
     this.render.template({
       layout: `{{yield "foo"}}-{{yield ""}}`,
@@ -78,7 +78,7 @@ export class YieldSuite extends RenderTest {
     this.assertStableRerender();
   }
 
-  @test
+  @render
   'use a non-existent block param'() {
     this.render.template({
       layout: '{{yield @someValue}}',
@@ -91,7 +91,7 @@ export class YieldSuite extends RenderTest {
     this.assertStableRerender();
   }
 
-  @test
+  @render
   'block without properties'() {
     this.render.template({
       layout: 'In layout -- {{yield}}',
@@ -102,7 +102,7 @@ export class YieldSuite extends RenderTest {
     this.assertStableRerender();
   }
 
-  @test
+  @render
   'yielding true'() {
     this.render.template({
       layout: `{{yield true}}`,
@@ -114,7 +114,7 @@ export class YieldSuite extends RenderTest {
     this.assertStableRerender();
   }
 
-  @test
+  @render
   'yielding false'() {
     this.render.template({
       layout: `{{yield false}}`,
@@ -126,7 +126,7 @@ export class YieldSuite extends RenderTest {
     this.assertStableRerender();
   }
 
-  @test
+  @render
   'yielding null'() {
     this.render.template({
       layout: `{{yield null}}`,
@@ -138,7 +138,7 @@ export class YieldSuite extends RenderTest {
     this.assertStableRerender();
   }
 
-  @test
+  @render
   'yielding undefined'() {
     this.render.template({
       layout: `{{yield undefined}}`,
@@ -150,7 +150,7 @@ export class YieldSuite extends RenderTest {
     this.assertStableRerender();
   }
 
-  @test
+  @render
   'yielding integers'() {
     this.render.template({
       layout: `{{yield 123}}`,
@@ -162,7 +162,7 @@ export class YieldSuite extends RenderTest {
     this.assertStableRerender();
   }
 
-  @test
+  @render
   'yielding floats'() {
     this.render.template({
       layout: `{{yield 123.45}}`,
@@ -174,7 +174,7 @@ export class YieldSuite extends RenderTest {
     this.assertStableRerender();
   }
 
-  @test
+  @render
   'yielding strings'() {
     this.render.template({
       layout: `{{yield "hello"}}`,
@@ -186,7 +186,7 @@ export class YieldSuite extends RenderTest {
     this.assertStableRerender();
   }
 
-  @test
+  @render
   'yield inside a conditional on the component'() {
     this.render.template(
       {

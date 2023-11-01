@@ -1,9 +1,9 @@
 import { RenderTest } from '../render-test';
-import { test } from '../test-decorator';
+import { render } from '../test-decorator';
 
 export class WithDynamicVarsSuite extends RenderTest {
   static suiteName = '-with-dynamic-vars and -get-dynamic-var';
-  @test
+  @render
   'Can get and set dynamic variable'() {
     this.render.template(
       {
@@ -26,7 +26,7 @@ export class WithDynamicVarsSuite extends RenderTest {
     this.assertStableNodes();
   }
 
-  @test
+  @render
   'Can get and set dynamic variable with bound names'() {
     this.render.template(
       {
@@ -54,7 +54,7 @@ export class WithDynamicVarsSuite extends RenderTest {
     this.assertStableNodes();
   }
 
-  @test
+  @render
   'Can shadow existing dynamic variable'() {
     this.render.template(
       {

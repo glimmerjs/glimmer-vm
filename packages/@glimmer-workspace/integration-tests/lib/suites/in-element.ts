@@ -6,14 +6,14 @@ import { GlimmerishComponent } from '../components/emberish-glimmer';
 import { equalsElement } from '../dom/assertions';
 import { replaceHTML } from '../dom/simple-utils';
 import { RenderTest } from '../render-test';
-import { test } from '../test-decorator';
+import { render } from '../test-decorator';
 import { stripTight } from '../test-helpers/strings';
 import { tracked } from '../test-helpers/tracked';
 
 export class InElementSuite extends RenderTest {
   static suiteName = '#in-element';
 
-  @test
+  @render
   'It works with AST transforms'() {
     this.register.plugin((env) => ({
       name: 'maybe-in-element',
@@ -51,7 +51,7 @@ export class InElementSuite extends RenderTest {
     this.assertStableNodes();
   }
 
-  @test
+  @render
   'Renders curlies into external element'() {
     let externalElement = this.dom.createElement('div');
     this.render.template('{{#in-element this.externalElement}}[{{this.foo}}]{{/in-element}}', {
@@ -71,7 +71,7 @@ export class InElementSuite extends RenderTest {
     this.assertStableNodes();
   }
 
-  @test
+  @render
   'clears existing content'() {
     let externalElement = this.dom.createElement('div');
     let initialContent = '<p>Hello there!</p>';
@@ -94,7 +94,7 @@ export class InElementSuite extends RenderTest {
     this.assertStableNodes();
   }
 
-  @test
+  @render
   'Changing to falsey'() {
     let first = this.dom.createElement('div');
     let second = this.dom.createElement('div');
@@ -138,7 +138,7 @@ export class InElementSuite extends RenderTest {
     this.assertStableRerender();
   }
 
-  @test
+  @render
   'With pre-existing content'() {
     let externalElement = this.dom.createElement('div');
     let initialContent = '<p>Hello there!</p>';
@@ -172,7 +172,7 @@ export class InElementSuite extends RenderTest {
     this.assertStableRerender();
   }
 
-  @test
+  @render
   'With insertBefore'() {
     let externalElement = this.dom.createElement('div');
     replaceHTML(externalElement, '<b>Hello</b><em>there!</em>');
@@ -207,7 +207,7 @@ export class InElementSuite extends RenderTest {
     this.assertStableRerender();
   }
 
-  @test
+  @render
   'Updating remote element'() {
     let first = this.dom.createElement('div');
     let second = this.dom.createElement('div');
@@ -262,7 +262,7 @@ export class InElementSuite extends RenderTest {
     this.assertStableRerender();
   }
 
-  @test
+  @render
   "Inside an '{{if}}'"() {
     let first = { element: this.dom.createElement('div'), description: 'first' };
     let second = { element: this.dom.createElement('div'), description: 'second' };
@@ -327,7 +327,7 @@ export class InElementSuite extends RenderTest {
     this.assertStableRerender();
   }
 
-  @test
+  @render
   'Inside the current constructing element'() {
     this.render.template(
       stripTight`
@@ -349,7 +349,7 @@ export class InElementSuite extends RenderTest {
     destroy(unwrap(this.renderResult));
   }
 
-  @test
+  @render
   Multiple() {
     let firstElement = this.dom.createElement('div');
     let secondElement = this.dom.createElement('div');
@@ -395,7 +395,7 @@ export class InElementSuite extends RenderTest {
     this.assertStableRerender();
   }
 
-  @test
+  @render
   'Inside a loop'() {
     let { dom } = this;
 
@@ -465,7 +465,7 @@ export class InElementSuite extends RenderTest {
     this.assertStableRerender();
   }
 
-  @test
+  @render
   Nesting() {
     let firstElement = this.dom.createElement('div');
     let secondElement = this.dom.createElement('div');
@@ -517,7 +517,7 @@ export class InElementSuite extends RenderTest {
     this.assertStableRerender();
   }
 
-  @test
+  @render
   'Components are destroyed'() {
     let destroyed = 0;
 

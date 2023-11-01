@@ -13,7 +13,7 @@ import {
   TemplateOnlyComponents,
   WithDynamicVarsSuite,
   YieldSuite,
-} from '..';
+} from '../lib';
 
 jitSuite(DebuggerSuite);
 jitSuite(EachSuite);

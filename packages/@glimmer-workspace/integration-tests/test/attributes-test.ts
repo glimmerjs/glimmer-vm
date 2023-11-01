@@ -1,8 +1,14 @@
 import type { SimpleElement } from '@glimmer/interfaces';
 import { normalizeProperty } from '@glimmer/runtime';
 import { castToBrowser, expect, NS_SVG } from '@glimmer/util';
-
-import { assertingElement, hasAttribute, jitSuite, RenderTest, test, tracked } from '..';
+import {
+  assertingElement,
+  hasAttribute,
+  jitSuite,
+  RenderTest,
+  test,
+  tracked,
+} from '@glimmer-workspace/integration-tests';
 
 export class AttributesTests extends RenderTest {
   static suiteName = 'Attributes';
@@ -34,9 +40,8 @@ export class AttributesTests extends RenderTest {
   @test
   'helpers shadow self'() {
     this.register.helper('foo', () => {
-        return 'hello';
-      },
-    );
+      return 'hello';
+    });
 
     this.render.template('<div data-test="{{foo}}"></div>', { foo: 'bye' });
     this.assertHTML('<div data-test="hello"></div>');
@@ -185,7 +190,9 @@ export class AttributesTests extends RenderTest {
 
   @test
   'can set attributes on form properties'() {
-    this.render.template('<form id={{this.foo}}></form><output form={{this.foo}}></output>', { foo: 'bar' });
+    this.render.template('<form id={{this.foo}}></form><output form={{this.foo}}></output>', {
+      foo: 'bar',
+    });
 
     const outputElement = assertingElement(this.element.lastChild);
 
@@ -279,13 +286,12 @@ export class AttributesTests extends RenderTest {
   @test
   'input[checked] prop updates when set to undefined'() {
     this.register.helper('if', (params) => {
-        if (params[0]) {
-          return params[1];
-        } else {
-          return params[2];
-        }
-      },
-    );
+      if (params[0]) {
+        return params[1];
+      } else {
+        return params[2];
+      }
+    });
 
     this.render.template('<input checked={{if this.foo true undefined}} />', { foo: true });
     this.assert.strictEqual(this.readDOMAttr('checked'), true);
@@ -376,10 +382,13 @@ export class AttributesTests extends RenderTest {
 
   @test
   'does not set undefined attributes'() {
-    this.render.template('<div data-foo={{this.isUndefined}} /><div data-foo={{this.isNotUndefined}} />', {
-      isUndefined: undefined,
-      isNotUndefined: 'hello',
-    });
+    this.render.template(
+      '<div data-foo={{this.isUndefined}} /><div data-foo={{this.isNotUndefined}} />',
+      {
+        isUndefined: undefined,
+        isNotUndefined: 'hello',
+      }
+    );
 
     const firstElement = assertingElement(this.element.firstChild);
     const secondElement = assertingElement(this.element.lastChild);
@@ -452,10 +461,13 @@ export class AttributesTests extends RenderTest {
 
   @test
   'does not set undefined properties initially'() {
-    this.render.template('<div title={{this.isUndefined}} /><div title={{this.isNotUndefined}} />', {
-      isUndefined: undefined,
-      isNotUndefined: 'hello',
-    });
+    this.render.template(
+      '<div title={{this.isUndefined}} /><div title={{this.isNotUndefined}} />',
+      {
+        isUndefined: undefined,
+        isNotUndefined: 'hello',
+      }
+    );
 
     const firstElement = assertingElement(this.element.firstChild);
     const secondElement = assertingElement(this.element.lastChild);

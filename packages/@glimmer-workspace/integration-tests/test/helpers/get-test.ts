@@ -1,4 +1,10 @@
-import { GlimmerishComponent, jitSuite, RenderTest, test, tracked } from '../..';
+import {
+  GlimmerishComponent,
+  jitSuite,
+  RenderTest,
+  test,
+  tracked,
+} from '@glimmer-workspace/integration-tests';
 
 class GetTest extends RenderTest {
   static suiteName = 'Helpers test: {{get}}';
@@ -20,13 +26,16 @@ class GetTest extends RenderTest {
 
   @test
   'should be able to get an object value with nested static key'() {
-    this.render.template(`[{{get this.colors "apple.gala"}}] [{{if true (get this.colors "apple.gala")}}]`, {
-      colors: {
-        apple: {
-          gala: 'red and yellow',
+    this.render.template(
+      `[{{get this.colors "apple.gala"}}] [{{if true (get this.colors "apple.gala")}}]`,
+      {
+        colors: {
+          apple: {
+            gala: 'red and yellow',
+          },
         },
-      },
-    });
+      }
+    );
 
     this.assertHTML('[red and yellow] [red and yellow]');
     this.assertStableRerender();
@@ -72,9 +81,12 @@ class GetTest extends RenderTest {
 
   @test
   'should be able to get an array value with a number'() {
-    this.render.template(`[{{get this.numbers 0}}][{{get this.numbers 1}}][{{get this.numbers 2}}]`, {
-      numbers: [1, 2, 3],
-    });
+    this.render.template(
+      `[{{get this.numbers 0}}][{{get this.numbers 1}}][{{get this.numbers 2}}]`,
+      {
+        numbers: [1, 2, 3],
+      }
+    );
 
     this.assertHTML('[1][2][3]');
     this.assertStableRerender();
@@ -109,9 +121,12 @@ class GetTest extends RenderTest {
 
   @test
   'should be able to get an array value with a path evaluating to a number'() {
-    this.render.template(`{{#each this.numbers as |num index|}}[{{get this.numbers index}}]{{/each}}`, {
-      numbers: [1, 2, 3],
-    });
+    this.render.template(
+      `{{#each this.numbers as |num index|}}[{{get this.numbers index}}]{{/each}}`,
+      {
+        numbers: [1, 2, 3],
+      }
+    );
 
     this.assertHTML('[1][2][3]');
     this.assertStableRerender();
@@ -122,10 +137,13 @@ class GetTest extends RenderTest {
 
   @test
   'should be able to get an object value with a bound/dynamic key'() {
-    this.render.template(`[{{get this.colors this.key}}] [{{if true (get this.colors this.key)}}]`, {
-      colors: { apple: 'red', banana: 'yellow' },
-      key: 'apple',
-    });
+    this.render.template(
+      `[{{get this.colors this.key}}] [{{if true (get this.colors this.key)}}]`,
+      {
+        colors: { apple: 'red', banana: 'yellow' },
+        key: 'apple',
+      }
+    );
 
     this.assertHTML('[red] [red]');
     this.assertStableRerender();
@@ -142,16 +160,19 @@ class GetTest extends RenderTest {
 
   @test
   'should be able to get an object value with nested dynamic key'() {
-    this.render.template(`[{{get this.colors this.key}}] [{{if true (get this.colors this.key)}}]`, {
-      colors: {
-        apple: {
-          gala: 'red and yellow',
-          mcintosh: 'red',
+    this.render.template(
+      `[{{get this.colors this.key}}] [{{if true (get this.colors this.key)}}]`,
+      {
+        colors: {
+          apple: {
+            gala: 'red and yellow',
+            mcintosh: 'red',
+          },
+          banana: 'yellow',
         },
-        banana: 'yellow',
-      },
-      key: 'apple.gala',
-    });
+        key: 'apple.gala',
+      }
+    );
 
     this.assertHTML('[red and yellow] [red and yellow]');
     this.assertStableRerender();
@@ -356,13 +377,16 @@ class GetTest extends RenderTest {
 
   @test
   'should handle object keys as nulls'() {
-    this.render.template(`[{{get this.colors this.key}}] [{{if true (get this.colors this.key)}}]`, {
-      colors: {
-        apple: 'red',
-        banana: 'yellow',
-      },
-      key: null,
-    });
+    this.render.template(
+      `[{{get this.colors this.key}}] [{{if true (get this.colors this.key)}}]`,
+      {
+        colors: {
+          apple: 'red',
+          banana: 'yellow',
+        },
+        key: null,
+      }
+    );
 
     this.assertHTML('[] []');
     this.assertStableRerender();
@@ -397,10 +421,13 @@ class GetTest extends RenderTest {
       PersonComponent
     );
 
-    this.render.template('<PersonWrapper @first={{this.first}} @last={{this.last}} @age={{this.age}}/>', {
-      first: 'miguel',
-      last: 'andrade',
-    });
+    this.render.template(
+      '<PersonWrapper @first={{this.first}} @last={{this.last}} @age={{this.age}}/>',
+      {
+        first: 'miguel',
+        last: 'andrade',
+      }
+    );
 
     this.assertHTML('miguelandrade');
     this.assertStableRerender();

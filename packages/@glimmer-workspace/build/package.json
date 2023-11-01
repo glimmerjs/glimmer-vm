@@ -3,13 +3,13 @@
   "name": "@glimmer-workspace/build-support",
   "type": "module",
   "version": "1.0.0",
-  "main": "index.mjs",
-  "types": "index.d.mts",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
   "engines": {
     "node": ">=16"
   },
   "exports": {
-    "default": "./index.js"
+    "default": "./lib/index.js"
   },
   "starbeam": {
     "source": "js:typed",

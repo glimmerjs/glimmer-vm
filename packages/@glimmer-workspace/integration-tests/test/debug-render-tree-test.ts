@@ -16,7 +16,6 @@ import {
   TemplateOnlyComponentManager,
 } from '@glimmer/runtime';
 import { assign, expect } from '@glimmer/util';
-
 import {
   BaseEnv,
   createTemplate,
@@ -24,9 +23,9 @@ import {
   GlimmerishComponent,
   JitRenderDelegate,
   RenderTest,
-  suite,
   test,
-} from '..';
+  testSuite,
+} from '@glimmer-workspace/integration-tests';
 
 interface CapturedBounds {
   parentElement: SimpleElement;
@@ -535,7 +534,7 @@ class DebugRenderTreeTest extends RenderTest {
   }
 }
 
-suite(DebugRenderTreeTest, DebugRenderTreeDelegate, {
+testSuite(DebugRenderTreeTest, DebugRenderTreeDelegate, {
   env: assign({}, BaseEnv, {
     enableDebugTooling: true,
   }),

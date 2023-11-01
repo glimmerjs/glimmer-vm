@@ -1,22 +1,22 @@
 import { NodeRenderTest } from '../modes/node/env';
-import { test } from '../test-decorator';
+import { render } from '../test-decorator';
 
 export class ServerSideSuite extends NodeRenderTest {
   static suiteName = 'Server Side Rendering';
 
-  @test
+  @render
   'HTML text content'() {
     this.render.template('content');
     this.assertHTML('content');
   }
 
-  @test
+  @render
   'HTML tags'() {
     this.render.template('<h1>hello!</h1><div>content</div>');
     this.assertHTML('<h1>hello!</h1><div>content</div>');
   }
 
-  @test
+  @render
   'HTML tags re-rendered'() {
     this.render.template('<h1>hello!</h1><div>content</div>');
     this.assertHTML('<h1>hello!</h1><div>content</div>');
@@ -24,49 +24,49 @@ export class ServerSideSuite extends NodeRenderTest {
     this.assertHTML('<h1>hello!</h1><div>content</div>');
   }
 
-  @test
+  @render
   'HTML attributes'() {
     this.render.template("<div id='bar' class='foo'>content</div>");
     this.assertHTML('<div id="bar" class="foo">content</div>');
   }
 
-  @test
+  @render
   'HTML tag with empty attribute'() {
     this.render.template("<div class=''>content</div>");
     this.assertHTML('<div class>content</div>');
   }
 
-  @test
+  @render
   "HTML boolean attribute 'disabled'"() {
     this.render.template('<input disabled>');
     this.assertHTML('<input disabled>');
   }
 
-  @test
+  @render
   'Quoted attribute expression is removed when null'() {
     this.render.template('<input disabled="{{this.isDisabled}}">', { isDisabled: null });
     this.assertHTML('<input>');
   }
 
-  @test
+  @render
   'Unquoted attribute expression with null value is not coerced'() {
     this.render.template('<input disabled={{this.isDisabled}}>', { isDisabled: null });
     this.assertHTML('<input>');
   }
 
-  @test
+  @render
   'Attribute expression can be followed by another attribute'() {
     this.render.template('<div foo="{{this.funstuff}}" name="Alice"></div>', { funstuff: 'oh my' });
     this.assertHTML('<div foo="oh my" name="Alice"></div>');
   }
 
-  @test
+  @render
   'HTML tag with data- attribute'() {
     this.render.template("<div data-some-data='foo'>content</div>");
     this.assertHTML('<div data-some-data="foo">content</div>');
   }
 
-  @test
+  @render
   'The compiler can handle nesting'() {
     this.render.template(
       '<div class="foo"><p><span id="bar" data-foo="bar">hi!</span></p></div>&nbsp;More content'
@@ -78,69 +78,69 @@ export class ServerSideSuite extends NodeRenderTest {
     );
   }
 
-  @test
+  @render
   'The compiler can handle comments'() {
     this.render.template('<div><!-- Just passing through --></div>');
     this.assertHTML('<div><!-- Just passing through --></div>');
   }
 
-  @test
+  @render
   'The compiler can handle HTML comments with mustaches in them'() {
     this.render.template('<div><!-- {{foo}} --></div>', { foo: 'bar' });
     this.assertHTML('<div><!-- {{foo}} --></div>');
   }
 
-  @test
+  @render
   'The compiler can handle HTML comments with complex mustaches in them'() {
     this.render.template('<div><!-- {{foo bar baz}} --></div>', { foo: 'bar' });
     this.assertHTML('<div><!-- {{foo bar baz}} --></div>');
   }
 
-  @test
+  @render
   'The compiler can handle HTML comments with multi-line mustaches in them'() {
     this.render.template('<div><!-- {{#each foo as |bar|}}\n{{bar}}\n\n{{/each}} --></div>', { foo: 'bar' });
 
     this.assertHTML('<div><!-- {{#each foo as |bar|}}\n{{bar}}\n\n{{/each}} --></div>');
   }
 
-  @test
+  @render
   'The compiler can handle comments with no parent element'() {
     this.render.template('<!-- {{foo}} -->', { foo: 'bar' });
     this.assertHTML('<!-- {{foo}} -->');
   }
 
-  @test
+  @render
   'The compiler can handle simple handlebars'() {
     this.render.template('<div>{{this.title}}</div>', { title: 'hello' });
     this.assertHTML('<div>hello</div>');
   }
 
-  @test
+  @render
   'The compiler can handle escaping HTML'() {
     this.render.template('<div>{{this.title}}</div>', { title: '<strong>hello</strong>' });
     this.assertHTML('<div>&lt;strong&gt;hello&lt;/strong&gt;</div>');
   }
 
-  @test
+  @render
   'The compiler can handle unescaped HTML'() {
     this.render.template('<div>{{{this.title}}}</div>', { title: '<strong>hello</strong>' });
     this.assertHTML('<div><strong>hello</strong></div>');
   }
 
-  @test
+  @render
   'Unescaped helpers render correctly'() {
     this.register.helper('testing-unescaped', (params) => params[0] );
     this.render.template('{{{testing-unescaped "<span>hi</span>"}}}');
     this.assertHTML('<span>hi</span>');
   }
 
-  @test
+  @render
   'Null literals do not have representation in DOM'() {
     this.render.template('{{null}}');
     this.assertHTML('');
   }
 
-  @test
+  @render
   'Attributes can be populated with helpers that generate a string'() {
     this.register.helper('testing', (params) => {
         return params[0];
@@ -151,19 +151,19 @@ export class ServerSideSuite extends NodeRenderTest {
     this.assertHTML('<a href="linky.html">linky</a>');
   }
 
-  @test
+  @render
   'Elements inside a yielded block'() {
     this.render.template('{{#if true}}<div id="test">123</div>{{/if}}');
     this.assertHTML('<div id="test">123</div>');
   }
 
-  @test
+  @render
   'A simple block helper can return text'() {
     this.render.template('{{#if true}}test{{else}}not shown{{/if}}');
     this.assertHTML('test');
   }
 
-  @test
+  @render
   'SVG: basic element'() {
     let template = `
       <svg xmlns="http://www.w3.org/2000/svg">
@@ -174,7 +174,7 @@ export class ServerSideSuite extends NodeRenderTest {
     this.assertHTML(template);
   }
 
-  @test
+  @render
   'SVG: element with xlink:href'() {
     let template = `
       <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
@@ -193,7 +193,7 @@ export class ServerSideSuite extends NodeRenderTest {
 export class ServerSideComponentSuite extends NodeRenderTest {
   static suiteName = 'Server Side Components';
 
-  @test
+  @render
   'can render components'() {
     this.render.template({
       layout: '<h1>Hello World!</h1>',
@@ -201,7 +201,7 @@ export class ServerSideComponentSuite extends NodeRenderTest {
     this.assertComponent('<h1>Hello World!</h1>');
   }
 
-  @test
+  @render
   'can render components with yield'() {
     this.render.template({
       layout: '<h1>Hello {{yield}}!</h1>',
@@ -210,7 +210,7 @@ export class ServerSideComponentSuite extends NodeRenderTest {
     this.assertComponent('<h1>Hello World!</h1>');
   }
 
-  @test
+  @render
   'can render components with args'() {
     this.render.template(
       {
@@ -223,7 +223,7 @@ export class ServerSideComponentSuite extends NodeRenderTest {
     this.assertComponent('<h1>Hello World!</h1>');
   }
 
-  @test
+  @render
   'can render components with block params'() {
     this.render.template(
       {

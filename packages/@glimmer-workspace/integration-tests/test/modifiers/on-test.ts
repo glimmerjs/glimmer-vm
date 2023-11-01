@@ -2,7 +2,7 @@ import { getInternalModifierManager } from '@glimmer/manager';
 import { on } from '@glimmer/runtime';
 import { castToBrowser, expect } from '@glimmer/util';
 
-import { jitSuite, RenderTest, test } from '../..';
+import { jitSuite, RenderTest, test } from '../../lib';
 
 // check if window exists and actually is the global
 const hasDom =

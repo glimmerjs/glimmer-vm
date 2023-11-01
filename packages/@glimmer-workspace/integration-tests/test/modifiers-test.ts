@@ -1,6 +1,5 @@
 import type { Dict, Nullable, SimpleElement } from '@glimmer/interfaces';
-
-import { type Count, jitSuite, RenderTest, test } from '..';
+import { type Count, jitSuite, RenderTest, test } from '@glimmer-workspace/integration-tests';
 
 class BaseModifier {
   element?: SimpleElement;
@@ -387,7 +386,9 @@ class ModifierTests extends RenderTest {
     this.register.modifier('bar', Bar);
     this.register.modifier('foo', Foo);
 
-    this.render.template('{{#if this.nuke}}<div {{foo}}><div {{bar}}></div></div>{{/if}}', { nuke: true });
+    this.render.template('{{#if this.nuke}}<div {{foo}}><div {{bar}}></div></div>{{/if}}', {
+      nuke: true,
+    });
     assert.deepEqual(destructionOrder, []);
     this.rerender({ nuke: false });
     assert.deepEqual(destructionOrder, ['bar', 'foo']);

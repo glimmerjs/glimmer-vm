@@ -1,10 +1,9 @@
-import { RenderTest } from '../render-test';
-import { test } from '../test-decorator';
+import { render, RenderTest } from '@glimmer-workspace/integration-tests';
 
 export class ErrorRecoverySuite extends RenderTest {
   static suiteName = 'ErrorRecovery';
 
-  @test
+  @render
   'if no error is thrown, everything works as expected'() {
     const actions = new Actions();
 
@@ -15,14 +14,14 @@ export class ErrorRecoverySuite extends RenderTest {
     actions.expect([]);
   }
 
-  @test('templateOnly')
+  @render('templateOnly')
   'if no error is thrown and a component is rendered, everything works as expected'() {
     this.register.component('TemplateOnly', 'Message', '{{yield}}');
 
     this.render.template('{{#-try}}message: <Message />>{{/-try}}', {});
   }
 
-  @test
+  @render
   'by default, errors are rethrown and DOM is cleaned up'() {
     const actions = new Actions();
 
@@ -41,6 +40,28 @@ export class ErrorRecoverySuite extends RenderTest {
     });
 
     actions.expect(['get woops', 'error handled']);
+  }
+
+  @render
+  'error boundaries can happen in nested context'() {
+    const actions = new Actions();
+
+    class Woops {
+      get woops() {
+        actions.record('get woops');
+        throw Error('woops');
+      }
+    }
+
+    this.render.template('<p>{{#-try this.handler}}message: [{{this.woops.woops}}]{{/-try}}</p>', {
+      woops: new Woops(),
+      handler: (_err: unknown, _retry: () => void) => {
+        actions.record('error handled');
+      },
+    });
+
+    actions.expect(['get woops', 'error handled']);
+    this.assertHTML('<p></p>');
   }
 
   // @test

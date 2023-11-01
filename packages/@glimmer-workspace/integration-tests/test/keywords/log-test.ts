@@ -1,4 +1,4 @@
-import { jitSuite, RenderTest, test } from '../..';
+import { jitSuite, RenderTest, test } from '../../lib';
 
 class LogTest extends RenderTest {
   static suiteName = '{{log}} keyword';

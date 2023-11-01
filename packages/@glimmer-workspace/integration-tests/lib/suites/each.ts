@@ -3,7 +3,7 @@ import { beginTestSteps, endTestSteps, verifySteps } from '@glimmer/util';
 import { consumeTag, createTag, dirtyTag } from '@glimmer/validator';
 
 import { RenderTest } from '../render-test';
-import { test } from '../test-decorator';
+import { render } from '../test-decorator';
 import { tracked } from '../test-helpers/tracked';
 
 export class EachSuite extends RenderTest {
@@ -21,7 +21,7 @@ export class EachSuite extends RenderTest {
     }
   };
 
-  @test
+  @render
   'basic #each'() {
     let list = [1, 2, 3, 4];
     this.render.template(
@@ -49,7 +49,7 @@ export class EachSuite extends RenderTest {
     this.assertStableNodes();
   }
 
-  @test
+  @render
   'autotracked custom iterable'() {
     if (typeof Symbol !== 'function') {
       QUnit.assert.ok(true, 'skipping platform without iterable');
@@ -100,7 +100,7 @@ export class EachSuite extends RenderTest {
     this.assertStableNodes();
   }
 
-  @test
+  @render
   'keyed #each'() {
     let list = [{ text: 'hello' }];
     this.render.template(
@@ -129,7 +129,7 @@ export class EachSuite extends RenderTest {
     this.assertStableNodes();
   }
 
-  @test
+  @render
   'receives the index as the second parameter'() {
     let list = [1, 2, 3, 4];
     this.render.template(
@@ -157,7 +157,7 @@ export class EachSuite extends RenderTest {
     this.assertStableNodes();
   }
 
-  @test
+  @render
   'receives the index as the second parameter (when key=@identity)'() {
     let v1 = val(1);
     let v2 = val(2);
@@ -197,7 +197,7 @@ export class EachSuite extends RenderTest {
     this.assertStableNodes();
   }
 
-  @test
+  @render
   'it can render duplicate primitive items'() {
     let list = ['a', 'a', 'a'];
     this.render.template('{{#each this.list key="@index" as |item|}}{{item}}{{/each}}', {
@@ -217,7 +217,7 @@ export class EachSuite extends RenderTest {
     this.assertStableNodes();
   }
 
-  @test
+  @render
   'it can render duplicate objects'() {
     let dup = { text: 'dup' };
     let list = [dup, dup, { text: 'uniq' }];
@@ -238,7 +238,7 @@ export class EachSuite extends RenderTest {
     this.assertStableNodes();
   }
 
-  @test
+  @render
   'it renders all items with duplicate key values'() {
     class Item {
       @tracked text: string;
@@ -270,7 +270,7 @@ export class EachSuite extends RenderTest {
     this.assertStableNodes();
   }
 
-  @test
+  @render
   'it updates items if their key has not changed, and the items are tracked'() {
     class Item {
       @tracked public text: string;
@@ -302,7 +302,7 @@ export class EachSuite extends RenderTest {
     this.assertStableNodes();
   }
 
-  @test
+  @render
   'it does not update items if their key has not changed, and the items are not tracked'() {
     let list = [{ text: 'Hello' }, { text: 'Hello' }, { text: 'Hello' }];
 
@@ -320,7 +320,7 @@ export class EachSuite extends RenderTest {
     this.assertStableNodes();
   }
 
-  @test
+  @render
   'scoped variable not available outside list'() {
     let list = ['Wycats'];
 
@@ -351,7 +351,7 @@ export class EachSuite extends RenderTest {
     this.assertStableNodes();
   }
 
-  @test
+  @render
   'else template is displayed with context'() {
     let list: string[] = [];
 
@@ -380,7 +380,7 @@ export class EachSuite extends RenderTest {
     this.assertStableNodes();
   }
 
-  @test
+  @render
   'When re-iterated via swap #1, the original references are updated'() {
     if (!LOCAL_DEBUG) return;
 
@@ -410,7 +410,7 @@ export class EachSuite extends RenderTest {
     );
   }
 
-  @test
+  @render
   'When re-iterated via swap #2, the original references are updated'() {
     if (!LOCAL_DEBUG) return;
 
@@ -440,7 +440,7 @@ export class EachSuite extends RenderTest {
     );
   }
 
-  @test
+  @render
   'When re-iterated via swap #3, the original references are updated'() {
     if (!LOCAL_DEBUG) return;
 
@@ -470,7 +470,7 @@ export class EachSuite extends RenderTest {
     );
   }
 
-  @test
+  @render
   'When re-iterated via swap #4, the original references are updated'() {
     if (!LOCAL_DEBUG) return;
 
@@ -504,7 +504,7 @@ export class EachSuite extends RenderTest {
     );
   }
 
-  @test
+  @render
   'When re-iterated via swap #5, the original references are updated'() {
     if (!LOCAL_DEBUG) return;
 
@@ -536,7 +536,7 @@ export class EachSuite extends RenderTest {
     );
   }
 
-  @test
+  @render
   'When re-iterated via swap #6, the original references are updated'() {
     if (!LOCAL_DEBUG) return;
 
@@ -569,7 +569,7 @@ export class EachSuite extends RenderTest {
     );
   }
 
-  @test
+  @render
   'When re-iterated via swap #7, the original references are updated'() {
     if (!LOCAL_DEBUG) return;
 
@@ -598,7 +598,7 @@ export class EachSuite extends RenderTest {
     );
   }
 
-  @test
+  @render
   'When re-iterated via swap #8, the original references are updated'() {
     if (!LOCAL_DEBUG) return;
 
@@ -625,7 +625,7 @@ export class EachSuite extends RenderTest {
     );
   }
 
-  @test
+  @render
   'When re-iterated via swap #9, the original references are updated'() {
     if (!LOCAL_DEBUG) return;
 
@@ -652,7 +652,7 @@ export class EachSuite extends RenderTest {
     );
   }
 
-  @test
+  @render
   'When re-iterated via swap #10, the original references are updated'(assert: Assert) {
     if (!LOCAL_DEBUG) return;
 
@@ -676,7 +676,7 @@ export class EachSuite extends RenderTest {
     }
   }
 
-  @test
+  @render
   'When re-iterated via swap #11, the original references are updated'(assert: Assert) {
     if (!LOCAL_DEBUG) return;
 
@@ -702,7 +702,7 @@ export class EachSuite extends RenderTest {
     }
   }
 
-  @test
+  @render
   'When re-iterated via swap #12, the original references are updated'(assert: Assert) {
     if (!LOCAL_DEBUG) return;
 
@@ -728,7 +728,7 @@ export class EachSuite extends RenderTest {
     }
   }
 
-  @test
+  @render
   're-iterating nested arrays works'() {
     let arr = [
       [1, 2, 3, 4, 5],

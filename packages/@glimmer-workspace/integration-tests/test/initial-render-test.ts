@@ -1,7 +1,6 @@
 import type { Dict, Nullable, SimpleElement } from '@glimmer/interfaces';
 import type { SafeString } from '@glimmer/runtime';
 import { castToBrowser, expect } from '@glimmer/util';
-
 import {
   assertElementShape,
   assertEmberishElement,
@@ -23,12 +22,11 @@ import {
   RehydrationDelegate,
   replaceHTML,
   strip,
-  suite,
   test,
+  testSuite,
   toInnerHTML,
   toTextContent,
-  ErrorRecoveryRenderDelegate,
-} from '..';
+} from '@glimmer-workspace/integration-tests';
 
 // `window.ActiveXObject` is "falsey" in IE11 (but not `undefined` or `false`)
 // `"ActiveXObject" in window` returns `true` in all IE versions
@@ -980,7 +978,7 @@ class RehydratingComponents extends AbstractRehydrationTests {
     return template;
   }
 
-  assertServerComponent(html: string, attrs: Object = {}) {
+  assertServerComponent(html: string, _attrs: Object = {}) {
     let elementIndex = this.testType === 'Dynamic' ? 3 : 2;
 
     const ELEMENT_OFFSET = 2;
@@ -1644,7 +1642,6 @@ class RehydratingComponents extends AbstractRehydrationTests {
   }
 }
 
-suite(Rehydration, RehydrationDelegate);
-jitSuite(RenderTests);
-suite(RenderTests, ErrorRecoveryRenderDelegate);
+testSuite(Rehydration, RehydrationDelegate);
+jitSuite(RenderTests, { test: ['error-recovery'] });
 componentSuite(RehydratingComponents, RehydrationDelegate);

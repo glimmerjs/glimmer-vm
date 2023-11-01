@@ -12,7 +12,7 @@ import {
   test,
   TestHelper,
   trackedObj,
-} from '..';
+} from '../lib';
 
 class GeneralStrictModeTest extends RenderTest {
   static suiteName = 'strict mode: general properties';

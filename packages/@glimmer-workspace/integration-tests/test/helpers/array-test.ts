@@ -1,4 +1,11 @@
-import { GlimmerishComponent, jitSuite, RenderTest, strip, test, tracked } from '../..';
+import {
+  GlimmerishComponent,
+  jitSuite,
+  RenderTest,
+  strip,
+  test,
+  tracked,
+} from '@glimmer-workspace/integration-tests';
 
 class ArrayTest extends RenderTest {
   static suiteName = 'Helpers test: {{array}}';
@@ -231,7 +238,9 @@ class ArrayTest extends RenderTest {
       `
     );
 
-    this.render.template(strip`<FooBar @people={{array "Tom" this.personTwo}}/>`, { personTwo: 'Chad' });
+    this.render.template(strip`<FooBar @people={{array "Tom" this.personTwo}}/>`, {
+      personTwo: 'Chad',
+    });
 
     this.assertHTML('Tom,Chad,');
 
@@ -272,7 +281,9 @@ class ArrayTest extends RenderTest {
       FooBar
     );
 
-    this.render.template(strip`<FooBar @people={{array "Tom" this.personTwo}}/>`, { personTwo: 'Chad' });
+    this.render.template(strip`<FooBar @people={{array "Tom" this.personTwo}}/>`, {
+      personTwo: 'Chad',
+    });
 
     let firstArray = fooBarInstance!.args['people'];
 
@@ -289,10 +300,9 @@ class ArrayTest extends RenderTest {
     let captured;
 
     this.register.helper('capture', ([array]) => {
-        captured = array;
-        return 'captured';
-      },
-    );
+      captured = array;
+      return 'captured';
+    });
 
     this.render.template(`{{capture (array 'Tom' this.personTwo)}}`, { personTwo: 'Godfrey' });
 

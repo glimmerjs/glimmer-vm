@@ -1,7 +1,7 @@
 import { resetDebuggerCallback, setDebuggerCallback } from '@glimmer/runtime';
 
 import { RenderTest } from '../render-test';
-import { test } from '../test-decorator';
+import { render } from '../test-decorator';
 
 export class DebuggerSuite extends RenderTest {
   static suiteName = 'Debugger';
@@ -10,7 +10,7 @@ export class DebuggerSuite extends RenderTest {
     resetDebuggerCallback();
   };
 
-  @test
+  @render
   'basic debugger statement'() {
     let expectedContext = {
       foo: 'bar',
@@ -57,7 +57,7 @@ export class DebuggerSuite extends RenderTest {
     this.assertStableNodes();
   }
 
-  @test
+  @render
   'can get locals'() {
     let expectedContext = {
       foo: 'bar',

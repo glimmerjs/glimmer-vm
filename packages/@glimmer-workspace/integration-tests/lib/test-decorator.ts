@@ -1,7 +1,7 @@
 import type { IRenderTest } from './render-test';
 import type { DeclaredComponentType, EveryComponentType } from './test-helpers/constants';
 import type { RenderTestConstructor, RenderTestContext } from './test-helpers/module';
-import { TEST_META, isTest } from './test-helpers/test';
+import { isTest, TEST_META } from './test-helpers/test';
 
 type ComponentTestOptions =
   | Partial<Pick<ComponentTestMeta, 'skip' | 'kind' | 'invokeAs'>>
@@ -33,22 +33,22 @@ export function getComponentTestMeta(value: ComponentTestFunction) {
   return value[TEST_META];
 }
 
-export function test(
+export function render(
   kind: DeclaredComponentType,
   options: Omit<ComponentTestOptions, 'type' | 'kind'>
 ): MethodDecorator;
-export function test(meta: Omit<ComponentTestOptions, 'type'>): MethodDecorator;
-export function test<T>(
+export function render(meta: Omit<ComponentTestOptions, 'type'>): MethodDecorator;
+export function render(
   target: object,
   name: string,
   descriptor: TypedPropertyDescriptor<() => void | Promise<void>>
 ): void;
-export function test<T, C extends Assert>(
+export function render<C extends Assert>(
   target: object,
   name: string,
   descriptor: TypedPropertyDescriptor<(context: C) => void | Promise<void>>
 ): void;
-export function test(
+export function render(
   ...args:
     | [meta: Omit<ComponentTestOptions, 'type'>]
     | [kind: DeclaredComponentType, options: Omit<ComponentTestOptions, 'type' | 'kind'>]

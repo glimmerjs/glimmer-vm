@@ -9,6 +9,7 @@ import type {
 } from '@glimmer/interfaces';
 import { serializeBuilder } from '@glimmer/node';
 import type { Reference } from '@glimmer/reference';
+import type { ASTPluginBuilder } from '@glimmer/syntax';
 import { assign, castToSimple } from '@glimmer/util';
 import createHTMLDocument from '@simple-dom/document';
 
@@ -16,13 +17,12 @@ import { BaseEnv } from '../../base-env';
 import { replaceHTML, toInnerHTML } from '../../dom/simple-utils';
 import type RenderDelegate from '../../render-delegate';
 import type { RenderDelegateOptions, WrappedTemplate } from '../../render-delegate';
-import { JitDelegateContext, type JitContext } from '../jit/delegate';
+import type { Self } from '../../render-test';
+import { type JitContext, JitDelegateContext } from '../jit/delegate';
 import { TestJitRegistry } from '../jit/registry';
 import { renderTemplate } from '../jit/render';
 import { TestJitRuntimeResolver } from '../jit/resolver';
 import { debugRehydration, type DebugRehydrationBuilder } from './builder';
-import type { ASTPluginBuilder } from '@glimmer/syntax';
-import type { Self } from '../../render-test';
 
 export interface RehydrationStats {
   clearedNodes: SimpleNode[];

@@ -1,0 +1,19 @@
+{
+  "type": "module",
+  "private": true,
+  "dependencies": {
+    "@glimmer-workspace/integration-tests": "workspace:^",
+    "@glimmer/manager": "workspace:^",
+    "@glimmer/compiler": "workspace:^",
+    "@glimmer/destroyable": "workspace:^",
+    "@glimmer/reference": "workspace:^",
+    "@glimmer/runtime": "workspace:^",
+    "@glimmer/util": "workspace:^",
+    "@glimmer/validator": "workspace:^",
+    "@glimmer/syntax": "workspace:^",
+    "@glimmer/local-debug-flags": "workspace:^",
+    "@glimmer/opcode-compiler": "workspace:^",
+    "@glimmer/global-context": "workspace:^",
+    "@glimmer/wire-format": "workspace:^"
+  }
+}

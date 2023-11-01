@@ -1,20 +1,23 @@
+import type { NodeType } from '@glimmer/interfaces';
+
 export * from './lib/array-utils';
 export { default as assert, deprecate } from './lib/assert';
 export { dict, isDict, isObject, StackImpl as Stack } from './lib/collections';
+export * from './lib/constants';
 export { beginTestSteps, endTestSteps, logStep, verifySteps } from './lib/debug-steps';
 export { default as debugToString } from './lib/debug-to-string';
 export * from './lib/dom';
 export * from './lib/dom-utils';
 export * from './lib/immediate';
 export { default as intern } from './lib/intern';
-export * from './lib/result';
 export {
   isSerializationFirstNode,
   SERIALIZATION_FIRST_NODE_STRING,
 } from './lib/is-serialization-first-node';
-export { assign, entries, fillNulls, array, values, type FixedArray } from './lib/object-utils';
+export { array, assign, entries, fillNulls, type FixedArray, values } from './lib/object-utils';
 export * from './lib/platform-utils';
 export * from './lib/present';
+export * from './lib/result';
 export {
   castToBrowser,
   castToSimple,
@@ -24,9 +27,8 @@ export {
 } from './lib/simple-cast';
 export * from './lib/string';
 export * from './lib/template';
-export * from './lib/constants';
-export { default as buildUntouchableThis } from './lib/untouchable-this';
 export * from './lib/types';
+export { default as buildUntouchableThis } from './lib/untouchable-this';
 
 export type FIXME<T, S extends string> = (T & S) | T;
 
@@ -54,3 +56,13 @@ export function assertNever(value: never, desc = 'unexpected unreachable branch'
 
   throw new Error(`code reached unreachable`);
 }
+
+export const NODE_TYPE = {
+  ELEMENT: 1 as NodeType.ELEMENT_NODE,
+  RAW: -1 as NodeType.RAW_NODE,
+  TEXT: 3 as NodeType.TEXT_NODE,
+  COMMENT: 8 as NodeType.COMMENT_NODE,
+  DOCUMENT: 9 as NodeType.DOCUMENT_NODE,
+  DOCUMENT_TYPE: 10 as NodeType.DOCUMENT_TYPE_NODE,
+  DOCUMENT_FRAGMENT: 11 as NodeType.DOCUMENT_FRAGMENT_NODE,
+} as const;

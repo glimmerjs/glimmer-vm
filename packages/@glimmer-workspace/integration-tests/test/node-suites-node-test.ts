@@ -8,15 +8,15 @@ import {
   SerializedDOMHelperTests,
   ServerSideComponentSuite,
   ServerSideSuite,
-  suite,
-} from '..';
+  testSuite,
+} from '../lib';
 
 nodeSuite(ServerSideSuite);
 nodeComponentSuite(ServerSideComponentSuite);
 
-suite(DOMHelperTests, NodeJitRenderDelegate);
-suite(SerializedDOMHelperTests, JitSerializationDelegate);
+testSuite(DOMHelperTests, NodeJitRenderDelegate);
+testSuite(SerializedDOMHelperTests, JitSerializationDelegate);
 
 if (typeof process !== 'undefined') {
-  suite(CompilationTests, NodeJitRenderDelegate);
+  testSuite(CompilationTests, NodeJitRenderDelegate);
 }

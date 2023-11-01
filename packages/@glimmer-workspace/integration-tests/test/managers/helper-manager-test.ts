@@ -11,7 +11,7 @@ import {
   TestHelperManager,
   tracked,
   trackedObj,
-} from '../..';
+} from '../../lib';
 
 class HelperManagerTest extends RenderTest {
   static suiteName = 'Helper Managers';

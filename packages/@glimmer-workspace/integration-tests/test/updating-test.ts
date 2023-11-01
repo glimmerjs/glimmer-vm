@@ -4,7 +4,6 @@ import { createComputeRef, createConstRef, createPrimitiveRef } from '@glimmer/r
 import type { SafeString } from '@glimmer/runtime';
 import { expect } from '@glimmer/util';
 import { consumeTag, createTag, dirtyTag } from '@glimmer/validator';
-
 import {
   assertNodeTagName,
   getElementByClassName,
@@ -17,7 +16,8 @@ import {
   test,
   tracked,
   trimLines,
-} from '..';
+} from '@glimmer-workspace/integration-tests';
+
 import { assert } from './support';
 
 function makeSafeString(value: string): SafeString {

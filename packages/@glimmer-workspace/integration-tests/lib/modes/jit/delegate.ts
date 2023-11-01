@@ -13,7 +13,6 @@ import type {
 } from '@glimmer/interfaces';
 import { programCompilationContext } from '@glimmer/opcode-compiler';
 import { artifacts, RuntimeOpImpl } from '@glimmer/program';
-import type { Reference } from '@glimmer/reference';
 import {
   array,
   clientBuilder,
@@ -32,14 +31,13 @@ import { assign, castToSimple, expect, unwrapTemplate } from '@glimmer/util';
 import { BaseEnv } from '../../base-env';
 import { preprocess } from '../../compile';
 import type RenderDelegate from '../../render-delegate';
-import type { LogRender, RenderDelegateOptions, WrappedTemplate } from '../../render-delegate';
+import type { RenderDelegateOptions, WrappedTemplate } from '../../render-delegate';
+import type { Self } from '../../render-test';
 import JitCompileTimeLookup from './compilation-context';
 import { componentHelper } from './register';
 import { TestJitRegistry } from './registry';
 import { renderTemplate } from './render';
 import { TestJitRuntimeResolver } from './resolver';
-import type { Self } from '../../render-test';
-import { LOCAL_INTERNALS_LOGGING } from '@glimmer/local-debug-flags';
 
 export interface JitContext {
   runtime: RuntimeContext;
@@ -138,7 +136,6 @@ export class JitRenderDelegate implements RenderDelegate {
 
     return unwrapTemplate(compiled).asLayout().compile(this.context.program);
   }
-
 
   renderTemplate(
     rawTemplate: string,

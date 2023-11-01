@@ -310,7 +310,7 @@ export class Package {
         typescript(this.#package, {
           target: ScriptTarget.ES2021,
           module: ModuleKind.CommonJS,
-          moduleResolution: ModuleResolutionKind.NodeJs,
+          moduleResolution: ModuleResolutionKind.Bundler,
         }),
       ],
     }));

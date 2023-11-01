@@ -1,4 +1,4 @@
-import { jitSuite, preprocess, RenderTest, syntaxErrorFor, test } from '..';
+import { jitSuite, preprocess, RenderTest, syntaxErrorFor, test } from '../lib';
 
 class CompileErrorTests extends RenderTest {
   static suiteName = 'compile errors';

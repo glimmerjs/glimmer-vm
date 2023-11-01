@@ -4,13 +4,13 @@ import { GlimmerishComponent } from '../components';
 import { assertElementShape } from '../dom/assertions';
 import { assertingElement } from '../dom/simple-utils';
 import { RenderTest } from '../render-test';
-import { test, suite } from '../test-decorator';
+import { render, suite } from '../test-decorator';
 import { strip, stripTight } from '../test-helpers/strings';
 import { tracked } from '../test-helpers/tracked';
 
 @suite('TemplateOnly', { kind: 'templateOnly' })
 export class TemplateOnlyComponents extends RenderTest {
-  @test
+  @render
   'creating a new component'() {
     this.render.template(
       {
@@ -34,7 +34,7 @@ export class TemplateOnlyComponents extends RenderTest {
     this.assertStableNodes();
   }
 
-  @test
+  @render
   'inner ...attributes'() {
     this.render.template(
       {
@@ -62,7 +62,7 @@ export class TemplateOnlyComponents extends RenderTest {
 
 @suite('Glimmerish', { kind: 'glimmer' })
 export class GlimmerishComponents extends RenderTest {
-  @test
+  @render
   'invoking dynamic component (named arg) via angle brackets'() {
     this.register.component('Glimmer', 'Foo', 'hello world!');
     this.render.template({
@@ -76,7 +76,7 @@ export class GlimmerishComponents extends RenderTest {
     this.assertStableRerender();
   }
 
-  @test
+  @render
   'invoking dynamic component (named arg path) via angle brackets'() {
     this.register.helper('hash', (_positional, named) => named);
     this.register.component('Glimmer', 'Foo', 'hello world!');
@@ -91,7 +91,7 @@ export class GlimmerishComponents extends RenderTest {
     this.assertStableRerender();
   }
 
-  @test
+  @render
   'invoking curried component with attributes via angle brackets (invocation attributes clobber)'() {
     this.register.helper('hash', (_positional, named) => named);
     this.register.component(
@@ -110,7 +110,7 @@ export class GlimmerishComponents extends RenderTest {
     this.assertStableRerender();
   }
 
-  @test
+  @render
   'invoking curried component with attributes via angle brackets (invocation classes merge)'() {
     this.register.helper('hash', (_positional, named) => named);
     this.register.component('Glimmer', 'Foo', '<p class="default" ...attributes>hello world!</p>');
@@ -125,7 +125,7 @@ export class GlimmerishComponents extends RenderTest {
     this.assertStableRerender();
   }
 
-  @test
+  @render
   'invoking dynamic component (named arg) via angle brackets supports attributes (invocation attributes clobber)'() {
     this.register.component(
       'Glimmer',
@@ -143,7 +143,7 @@ export class GlimmerishComponents extends RenderTest {
     this.assertStableRerender();
   }
 
-  @test
+  @render
   'invoking dynamic component (named arg) via angle brackets supports attributes'() {
     this.register.component('Glimmer', 'Foo', '<div ...attributes>hello world!</div>');
     this.render.template({
@@ -157,7 +157,7 @@ export class GlimmerishComponents extends RenderTest {
     this.assertStableRerender();
   }
 
-  @test
+  @render
   'invoking dynamic component (named arg) via angle brackets supports args'() {
     this.register.component('Glimmer', 'Foo', 'hello {{@name}}!');
     this.render.template({
@@ -171,7 +171,7 @@ export class GlimmerishComponents extends RenderTest {
     this.assertStableRerender();
   }
 
-  @test
+  @render
   'invoking dynamic component (named arg) via angle brackets supports passing a block'() {
     this.register.component('Glimmer', 'Foo', 'hello {{yield}}!');
     this.render.template({
@@ -185,7 +185,7 @@ export class GlimmerishComponents extends RenderTest {
     this.assertStableRerender();
   }
 
-  @test
+  @render
   'invoking dynamic component (named arg) via angle brackets supports args and attributes'() {
     let instance = this.capture<Foo>();
 
@@ -239,7 +239,7 @@ export class GlimmerishComponents extends RenderTest {
     );
   }
 
-  @test
+  @render
   'invoking dynamic component (local) via angle brackets'() {
     this.register.component('Glimmer', 'Foo', 'hello world!');
     this.render.template(`{{#with (component 'Foo') as |Other|}}<Other />{{/with}}`);
@@ -248,7 +248,7 @@ export class GlimmerishComponents extends RenderTest {
     this.assertStableRerender();
   }
 
-  @test
+  @render
   'invoking dynamic component (local path) via angle brackets'() {
     this.register.helper('hash', (_positional, named) => named);
     this.register.component('Glimmer', 'Foo', 'hello world!');
@@ -258,7 +258,7 @@ export class GlimmerishComponents extends RenderTest {
     this.assertStableRerender();
   }
 
-  @test
+  @render
   'invoking dynamic component (local) via angle brackets (ill-advised "htmlish element name" but supported)'() {
     this.register.component('Glimmer', 'Foo', 'hello world!');
     this.render.template(`{{#with (component 'Foo') as |div|}}<div />{{/with}}`);
@@ -267,7 +267,7 @@ export class GlimmerishComponents extends RenderTest {
     this.assertStableRerender();
   }
 
-  @test
+  @render
   'invoking dynamic component (local) via angle brackets supports attributes'() {
     this.register.component('Glimmer', 'Foo', '<div ...attributes>hello world!</div>');
     this.render.template(
@@ -278,7 +278,7 @@ export class GlimmerishComponents extends RenderTest {
     this.assertStableRerender();
   }
 
-  @test
+  @render
   'invoking dynamic component (local) via angle brackets supports args'() {
     this.register.component('Glimmer', 'Foo', 'hello {{@name}}!');
     this.render.template(`{{#with (component 'Foo') as |Other|}}<Other @name="world" />{{/with}}`);
@@ -287,7 +287,7 @@ export class GlimmerishComponents extends RenderTest {
     this.assertStableRerender();
   }
 
-  @test
+  @render
   'invoking dynamic component (local) via angle brackets supports passing a block'() {
     this.register.component('Glimmer', 'Foo', 'hello {{yield}}!');
     this.render.template(`{{#with (component 'Foo') as |Other|}}<Other>world</Other>{{/with}}`);
@@ -296,7 +296,7 @@ export class GlimmerishComponents extends RenderTest {
     this.assertStableRerender();
   }
 
-  @test
+  @render
   'invoking dynamic component (local) via angle brackets supports args, attributes, and blocks'() {
     let instance = this.capture<Foo>();
     class Foo extends GlimmerishComponent {
@@ -342,7 +342,7 @@ export class GlimmerishComponents extends RenderTest {
     );
   }
 
-  @test
+  @render
   'invoking dynamic component (path) via angle brackets'() {
     this.register.component('Glimmer', 'TestHarness', '<this.args.Foo />');
     this.register.component('Glimmer', 'Foo', 'hello world!');
@@ -353,7 +353,7 @@ export class GlimmerishComponents extends RenderTest {
     this.assertStableRerender();
   }
 
-  @test
+  @render
   'invoking dynamic component (path) via angle brackets does not work for string'() {
     this.register.component('Glimmer', 'TestHarness', '<this.args.Foo />');
     this.register.component('Glimmer', 'Foo', 'hello world!');
@@ -363,7 +363,7 @@ export class GlimmerishComponents extends RenderTest {
     }, /Expected a component definition, but received Foo. You may have accidentally done <this.args.Foo>, where "this.args.Foo" was a string instead of a curried component definition. You must either use the component definition directly, or use the \{\{component\}\} helper to create a curried component definition when invoking dynamically/u);
   }
 
-  @test
+  @render
   'invoking dynamic component (path) via angle brackets with named block'() {
     this.register.component(
       'Glimmer',
@@ -378,14 +378,14 @@ export class GlimmerishComponents extends RenderTest {
     this.assertStableRerender();
   }
 
-  @test
+  @render
   'invoking dynamic component (path) via angle brackets does not support implicit `this` fallback'() {
     this.assert.throws(() => {
       this.register.component('TemplateOnly', 'Test', '<stuff.Foo />');
     }, /stuff is not in scope/u);
   }
 
-  @test
+  @render
   'invoking dynamic component (path) via angle brackets supports attributes'() {
     class TestHarness extends GlimmerishComponent {
       public Foo: any;
@@ -403,7 +403,7 @@ export class GlimmerishComponents extends RenderTest {
     this.assertStableRerender();
   }
 
-  @test
+  @render
   'invoking dynamic component (path) via angle brackets supports args'() {
     class TestHarness extends GlimmerishComponent {
       public Foo: any;
@@ -421,7 +421,7 @@ export class GlimmerishComponents extends RenderTest {
     this.assertStableRerender();
   }
 
-  @test
+  @render
   'invoking dynamic component (path) via angle brackets supports passing a block'() {
     class TestHarness extends GlimmerishComponent {
       public Foo: any;
@@ -439,7 +439,7 @@ export class GlimmerishComponents extends RenderTest {
     this.assertStableRerender();
   }
 
-  @test
+  @render
   'invoking dynamic component (path) via angle brackets supports args, attributes, and blocks'() {
     let instance = this.capture<Foo>();
 
@@ -500,7 +500,7 @@ export class GlimmerishComponents extends RenderTest {
     );
   }
 
-  @test
+  @render
   'angle bracket invocation can pass forward ...attributes to a nested component'() {
     this.register.component('Glimmer', 'Qux', '<div data-from-qux ...attributes></div>');
     this.register.component('Glimmer', 'Bar', '<Qux data-from-bar ...attributes />');
@@ -510,7 +510,7 @@ export class GlimmerishComponents extends RenderTest {
     this.assertHTML('<div data-from-qux data-from-bar data-from-foo data-from-top></div>');
   }
 
-  @test
+  @render
   'angle bracket invocation can allow invocation side to override attributes with ...attributes'() {
     this.register.component('Glimmer', 'Qux', '<div id="qux" ...attributes />');
     this.register.component('Glimmer', 'Bar', '<Qux id="bar" ...attributes />');
@@ -520,7 +520,7 @@ export class GlimmerishComponents extends RenderTest {
     this.assertHTML('<div id="top"></div>');
   }
 
-  @test
+  @render
   'angle bracket invocation can allow invocation side to override the type attribute with ...attributes'() {
     this.register.component('Glimmer', 'Qux', '<div type="qux" ...attributes />');
     this.register.component('Glimmer', 'Bar', '<Qux type="bar" ...attributes />');
@@ -530,7 +530,7 @@ export class GlimmerishComponents extends RenderTest {
     this.assertHTML('<div type="top"></div>');
   }
 
-  @test
+  @render
   'angle bracket invocation can override invocation side attributes with ...attributes'() {
     this.register.component('Glimmer', 'Qux', '<div ...attributes id="qux" />');
     this.register.component('Glimmer', 'Bar', '<Qux ...attributes id="bar" />');
@@ -540,7 +540,7 @@ export class GlimmerishComponents extends RenderTest {
     this.assertHTML('<div id="qux"></div>');
   }
 
-  @test
+  @render
   'angle bracket invocation can override invocation side type attribute with ...attributes'() {
     this.register.component('Glimmer', 'Qux', '<div ...attributes type="qux" />');
     this.register.component('Glimmer', 'Bar', '<Qux ...attributes type="bar" />');
@@ -550,7 +550,7 @@ export class GlimmerishComponents extends RenderTest {
     this.assertHTML('<div type="qux"></div>');
   }
 
-  @test
+  @render
   'angle bracket invocation can forward classes before ...attributes to a nested component'() {
     this.register.component('Glimmer', 'Qux', '<div class="qux" ...attributes />');
     this.register.component('Glimmer', 'Bar', '<Qux class="bar" ...attributes />');
@@ -560,7 +560,7 @@ export class GlimmerishComponents extends RenderTest {
     this.assertHTML('<div class="qux bar foo top"></div>');
   }
 
-  @test
+  @render
   'angle bracket invocation can forward classes after ...attributes to a nested component'() {
     this.register.component('Glimmer', 'Qux', '<div ...attributes class="qux" />');
     this.register.component('Glimmer', 'Bar', '<Qux ...attributes class="bar" />');
@@ -570,7 +570,7 @@ export class GlimmerishComponents extends RenderTest {
     this.assertHTML('<div class="top foo bar qux"></div>');
   }
 
-  @test
+  @render
   '[BUG: #644 popping args should be balanced]'() {
     class MainComponent extends GlimmerishComponent {
       salutation = 'Glimmer';
@@ -586,7 +586,7 @@ export class GlimmerishComponents extends RenderTest {
     this.assertHTML('<div><h1>Hello Glimmer!</h1></div>');
   }
 
-  @test
+  @render
   'Only one arg reference is created per argument'() {
     let count = 0;
 
@@ -606,7 +606,7 @@ export class GlimmerishComponents extends RenderTest {
     this.assertHTML('<div>0 0</div>');
   }
 
-  @test
+  @render
   '[BUG] Gracefully handles application of curried args when invoke starts with 0 args'() {
     class MainComponent extends GlimmerishComponent {
       salutation = 'Glimmer';
@@ -627,7 +627,7 @@ export class GlimmerishComponents extends RenderTest {
     this.assertStableNodes();
   }
 
-  @test
+  @render
   'Static block component helper'() {
     this.register.component(
       'Glimmer',
@@ -647,7 +647,7 @@ export class GlimmerishComponents extends RenderTest {
     this.assertStableNodes();
   }
 
-  @test
+  @render
   'Static inline component helper'() {
     this.register.component('Glimmer', 'A', 'A {{component "B" arg1=@one arg2=@two arg3=@three}}');
     this.register.component('Glimmer', 'B', 'B {{@arg1}} {{@arg2}} {{@arg3}}');
@@ -663,7 +663,7 @@ export class GlimmerishComponents extends RenderTest {
     this.assertStableNodes();
   }
 
-  @test
+  @render
   'top level in-element'() {
     this.register.component('Glimmer', 'Foo', '<Bar data-bar={{@childName}} @data={{@data}} />');
     this.register.component('Glimmer', 'Bar', '<div ...attributes>Hello World</div>');
@@ -688,7 +688,7 @@ export class GlimmerishComponents extends RenderTest {
     assertElementShape(first, 'div', { 'data-bar': 'Bar' }, 'Hello World');
   }
 
-  @test
+  @render
   'recursive component invocation'() {
     let counter = 0;
 
@@ -716,7 +716,7 @@ export class GlimmerishComponents extends RenderTest {
     this.assertHTML('123<!---->');
   }
 
-  @test('templateOnly')
+  @render('templateOnly')
   'throwing an error during component construction does not put result into a bad state'() {
     this.register.component(
       'Glimmer',
@@ -744,7 +744,7 @@ export class GlimmerishComponents extends RenderTest {
     this.assertHTML('', 'destroys correctly');
   }
 
-  @test('templateOnly')
+  @render('templateOnly')
   'throwing an error during component construction does not put result into a bad state with multiple prior nodes'() {
     this.register.component(
       'Glimmer',
@@ -778,7 +778,7 @@ export class GlimmerishComponents extends RenderTest {
     this.assertHTML('', 'destroys correctly');
   }
 
-  @test('templateOnly')
+  @render('templateOnly')
   'throwing an error during component construction does not put result into a bad state with nested components'() {
     this.register.component(
       'Glimmer',
@@ -811,7 +811,7 @@ export class GlimmerishComponents extends RenderTest {
     this.assertHTML('', 'destroys correctly');
   }
 
-  @test('templateOnly')
+  @render('templateOnly')
   'throwing an error during rendering gives a readable error stack'(assert: Assert) {
     // eslint-disable-next-line no-console
     let originalConsoleError = console.error;

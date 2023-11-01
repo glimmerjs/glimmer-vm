@@ -1,6 +1,6 @@
 import { KEYWORDS_TYPES, type KeywordType } from '@glimmer/syntax';
 
-import { jitSuite, preprocess, RenderTest, test } from '../..';
+import { jitSuite, preprocess, RenderTest, test } from '../../lib';
 
 type KeywordName = keyof typeof KEYWORDS_TYPES;
 const TYPES: Record<KeywordName, readonly KeywordType[]> = KEYWORDS_TYPES;

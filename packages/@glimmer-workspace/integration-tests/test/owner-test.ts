@@ -16,10 +16,10 @@ import {
   JitRenderDelegate,
   type RenderDelegateOptions,
   RenderTest,
-  suite,
   test,
   TestJitRuntimeResolver,
-} from '..';
+  testSuite,
+} from '../lib';
 
 class OwnerJitRuntimeResolver extends TestJitRuntimeResolver {
   override lookupComponent(name: string, owner: () => void): ResolvedComponentDefinition | null {
@@ -239,4 +239,4 @@ class OwnerTest extends RenderTest {
   }
 }
 
-suite(OwnerTest, OwnerJitRenderDelegate);
+testSuite(OwnerTest, OwnerJitRenderDelegate);

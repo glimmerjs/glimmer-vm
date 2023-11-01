@@ -1,4 +1,4 @@
-import { jitSuite, RenderTest, test } from '..';
+import { jitSuite, RenderTest, test } from '../lib';
 
 class SmokeTests extends RenderTest {
   static suiteName = 'Smoke Tests';

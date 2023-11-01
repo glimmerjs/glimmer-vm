@@ -1,11 +1,18 @@
 import type { Nullable, SimpleElement, SimpleNode } from '@glimmer/interfaces';
 import { castToSimple, COMMENT_NODE, TEXT_NODE, unwrap } from '@glimmer/util';
-import { type EndTag, type Token, tokenize } from 'simple-html-tokenizer';
+import type { EndTag, Token,TokenType } from 'simple-html-tokenizer';
+import { tokenize } from 'simple-html-tokenizer';
 
 import { replaceHTML, toInnerHTML } from './dom/simple-utils';
 
 export type IndividualSnapshot = 'up' | 'down' | SimpleNode;
 export type NodesSnapshot = IndividualSnapshot[];
+
+export const DOCTYPE_TOKEN = 'Doctype' as TokenType.Doctype;
+export const START_TAG_TOKEN = 'StartTag' as TokenType.StartTag;
+export const END_TAG_TOKEN = 'EndTag' as TokenType.EndTag;
+export const CHARS_TOKEN = 'Chars' as TokenType.Chars;
+export const COMMENT_TOKEN = 'Comment' as TokenType.Comment;
 
 export function snapshotIsNode(snapshot: IndividualSnapshot): snapshot is SimpleNode {
   return snapshot !== 'up' && snapshot !== 'down';
@@ -96,7 +103,7 @@ function generateTokens(divOrHTML: SimpleElement | string): { tokens: Token[]; h
   let tokens = tokenize(toInnerHTML(div), {});
 
   tokens = tokens.reduce((tokens, token) => {
-    if (token.type === 'StartTag') {
+    if (token.type === START_TAG_TOKEN) {
       if (token.attributes) {
         token.attributes.sort((a, b) => {
           if (a[0] > b[0]) {

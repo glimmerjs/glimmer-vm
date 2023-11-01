@@ -1,7 +1,11 @@
 import type { CapturedArguments } from '@glimmer/interfaces';
 import { createInvokableRef } from '@glimmer/reference';
-
-import { GlimmerishComponent, jitSuite, RenderTest, test } from '../..';
+import {
+  GlimmerishComponent,
+  jitSuite,
+  RenderTest,
+  test,
+} from '@glimmer-workspace/integration-tests';
 
 class FnTest extends RenderTest {
   static suiteName = 'Helpers test: {{fn}}';

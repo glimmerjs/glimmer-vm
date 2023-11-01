@@ -1,4 +1,5 @@
 import type { Dict, Nullable, Reference, SimpleElement } from '@glimmer/interfaces';
+import { createConstRef, valueForRef } from '@glimmer/reference';
 import {
   castToBrowser,
   castToSimple,
@@ -8,7 +9,6 @@ import {
   isObject,
   LOCAL_LOGGER,
 } from '@glimmer/util';
-
 import {
   blockStack,
   CLOSE,
@@ -22,10 +22,9 @@ import {
   RehydrationDelegate,
   RenderTest,
   replaceHTML,
-  suite,
   test,
-} from '..';
-import { createConstRef, valueForRef } from '@glimmer/reference';
+  testSuite,
+} from '@glimmer-workspace/integration-tests';
 
 // `window.ActiveXObject` is "falsey" in IE11 (but not `undefined` or `false`)
 // `"ActiveXObject" in window` returns `true` in all IE versions
@@ -363,5 +362,5 @@ class ChaosMonkeyPartialRehydration extends AbstractChaosMonkeyTest {
   }
 }
 
-suite(ChaosMonkeyRehydration, RehydrationDelegate);
-suite(ChaosMonkeyPartialRehydration, PartialRehydrationDelegate);
+testSuite(ChaosMonkeyRehydration, RehydrationDelegate);
+testSuite(ChaosMonkeyPartialRehydration, PartialRehydrationDelegate);

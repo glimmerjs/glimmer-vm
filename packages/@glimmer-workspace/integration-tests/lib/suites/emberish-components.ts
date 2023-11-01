@@ -1,18 +1,18 @@
 import type { SimpleElement } from '@glimmer/interfaces';
-
 import { unwrap } from '@glimmer/util';
-import { EmberishCurlyComponent, GLIMMER_TEST_COMPONENT } from '../components';
+
+import { defineComponent } from '..';
+import { EmberishCurlyComponent } from '../components';
 import { assertEmberishElement, classes } from '../dom/assertions';
 import { assertingElement, toInnerHTML } from '../dom/simple-utils';
 import { RenderTest } from '../render-test';
 import { equalTokens } from '../snapshot';
-import { suite, test } from '../test-decorator';
+import { render, suite } from '../test-decorator';
 import type { RenderTestContext } from '../test-helpers/module';
-import { defineComponent } from '../..';
 
 @suite('Emberish', 'curly')
 export class EmberishComponentTests extends RenderTest {
-  @test
+  @render
   'Element modifier with hooks'(assert: RenderTestContext) {
     const { events } = assert;
 
@@ -56,7 +56,7 @@ export class EmberishComponentTests extends RenderTest {
     events.expect(['willDestroyElement']);
   }
 
-  @test
+  @render
   'non-block without properties'() {
     this.render.template({
       layout: 'In layout',
@@ -66,7 +66,7 @@ export class EmberishComponentTests extends RenderTest {
     this.assertStableRerender();
   }
 
-  @test
+  @render
   'block without properties'() {
     this.render.template({
       layout: 'In layout -- {{yield}}',
@@ -77,7 +77,7 @@ export class EmberishComponentTests extends RenderTest {
     this.assertStableRerender();
   }
 
-  @test
+  @render
   'yield inside a conditional on the component'() {
     this.render.template(
       {
@@ -100,7 +100,7 @@ export class EmberishComponentTests extends RenderTest {
     this.assertStableNodes();
   }
 
-  @test
+  @render
   'non-block with properties on attrs'() {
     this.render.template({
       layout: 'In layout - someProp: {{@someProp}}',
@@ -111,7 +111,7 @@ export class EmberishComponentTests extends RenderTest {
     this.assertStableRerender();
   }
 
-  @test
+  @render
   'block with properties on attrs'() {
     this.render.template({
       layout: 'In layout - someProp: {{@someProp}} - {{yield}}',
@@ -123,7 +123,7 @@ export class EmberishComponentTests extends RenderTest {
     this.assertStableRerender();
   }
 
-  @test({ invokeAs: 'glimmer' })
+  @render({ invokeAs: 'glimmer' })
   'with ariaRole specified'() {
     this.render.template({
       layout: 'Here!',
@@ -134,7 +134,7 @@ export class EmberishComponentTests extends RenderTest {
     this.assertStableRerender();
   }
 
-  @test({ invokeAs: 'glimmer' })
+  @render({ invokeAs: 'glimmer' })
   'with ariaRole and class specified'() {
     this.render.template(
       {
@@ -152,7 +152,7 @@ export class EmberishComponentTests extends RenderTest {
     this.assertStableRerender();
   }
 
-  @test({ invokeAs: 'glimmer' })
+  @render({ invokeAs: 'glimmer' })
   'with ariaRole specified as an outer binding'() {
     this.render.template(
       {
@@ -170,7 +170,7 @@ export class EmberishComponentTests extends RenderTest {
     this.assertStableRerender();
   }
 
-  @test('glimmer')
+  @render('glimmer')
   'glimmer component with role specified as an outer binding and copied'() {
     const TestComponent = defineComponent({}, `<div ...attributes>Here!</div>`);
 
@@ -193,7 +193,7 @@ export class EmberishComponentTests extends RenderTest {
     this.assertStableRerender();
   }
 
-  @test('curly')
+  @render('curly')
   'invoking wrapped layout via angle brackets applies ...attributes'() {
     this.register.component('Curly', 'FooBar', 'Hello world!');
 
@@ -203,7 +203,7 @@ export class EmberishComponentTests extends RenderTest {
     this.assertStableRerender();
   }
 
-  @test('curly')
+  @render('curly')
   'invoking wrapped layout via angle brackets - invocation attributes clobber internal attributes'() {
     class FooBar extends EmberishCurlyComponent {
       [index: string]: unknown;
@@ -223,7 +223,7 @@ export class EmberishComponentTests extends RenderTest {
   }
 
   // LOCKS
-  @test('curly')
+  @render('curly')
   'yields named block'() {
     class FooBar extends EmberishCurlyComponent {
       [index: string]: unknown;
@@ -241,7 +241,7 @@ export class EmberishComponentTests extends RenderTest {
   }
 
   // LOCKS
-  @test('curly')
+  @render('curly')
   'implicit default named block'() {
     class FooBar extends EmberishCurlyComponent {
       [index: string]: unknown;
@@ -259,7 +259,7 @@ export class EmberishComponentTests extends RenderTest {
   }
 
   // LOCKS
-  @test('curly')
+  @render('curly')
   'explicit default named block'() {
     class FooBar extends EmberishCurlyComponent {
       [index: string]: unknown;
@@ -277,7 +277,7 @@ export class EmberishComponentTests extends RenderTest {
   }
 
   // LOCKS
-  @test('curly')
+  @render('curly')
   'else named block'() {
     class FooBar extends EmberishCurlyComponent {
       [index: string]: unknown;
@@ -294,7 +294,7 @@ export class EmberishComponentTests extends RenderTest {
     this.assertStableRerender();
   }
 
-  @test('curly')
+  @render('curly')
   'inverse named block'() {
     class FooBar extends EmberishCurlyComponent {
       [index: string]: unknown;
@@ -311,7 +311,7 @@ export class EmberishComponentTests extends RenderTest {
     this.assertStableRerender();
   }
 
-  @test('curly')
+  @render('curly')
   'invoking wrapped layout via angle brackets - invocation attributes merges classes'() {
     class FooBar extends EmberishCurlyComponent {
       [index: string]: unknown;
@@ -330,7 +330,7 @@ export class EmberishComponentTests extends RenderTest {
     this.assertStableRerender();
   }
 
-  @test('curly')
+  @render('curly')
   'invoking wrapped layout via angle brackets also applies explicit ...attributes'() {
     this.register.component('Curly', 'FooBar', '<h1 ...attributes>Hello world!</h1>');
 

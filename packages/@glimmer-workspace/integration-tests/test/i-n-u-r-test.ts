@@ -1,9 +1,9 @@
 import { castToSimple } from '@glimmer/util';
 
-import { module } from './support';
-import { RenderTestContext } from '../lib/test-helpers/module';
 import { JitRenderDelegate } from '../lib/modes/jit/delegate';
 import { RenderTest } from '../lib/render-test';
+import { RenderTestContext } from '../lib/test-helpers/module';
+import { module } from './support';
 
 // "I-N-U-R" cycle
 // initial render -> no-op rerender -> update(s) via mutation(s) -> reset via replacement

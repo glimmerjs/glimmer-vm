@@ -1,11 +1,11 @@
 import { RenderTest } from '../render-test';
-import { test } from '../test-decorator';
+import { render } from '../test-decorator';
 import { stripTight } from '../test-helpers/strings';
 
 export class ScopeSuite extends RenderTest {
   static suiteName = 'Scope';
 
-  @test
+  @render
   'correct scope - conflicting local names'() {
     this.render.template({
       layout: stripTight`
@@ -21,7 +21,7 @@ export class ScopeSuite extends RenderTest {
     this.assertStableRerender();
   }
 
-  @test
+  @render
   'correct scope - conflicting block param and attr names'() {
     this.render.template({
       layout:

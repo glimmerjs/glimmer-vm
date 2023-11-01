@@ -15,7 +15,7 @@ import { type CurriedValue, curry, templateOnlyComponent } from '@glimmer/runtim
 import { CurriedTypes } from '@glimmer/vm';
 
 import { createTemplate } from '../../compile';
-import type { ComponentKind, ComponentTypes } from '../../components';
+import type { ComponentTypes } from '../../components';
 import { EmberishCurlyComponent } from '../../components/emberish-curly';
 import { GlimmerishComponent } from '../../components/emberish-glimmer';
 import { createHelperRef, type UserHelper } from '../../helpers';
@@ -24,8 +24,8 @@ import {
   TestModifierDefinitionState,
   TestModifierManager,
 } from '../../modifiers';
-import type { TestJitRegistry } from './registry';
 import type { DeclaredComponentType } from '../../test-helpers/constants';
+import type { TestJitRegistry } from './registry';
 
 export function registerTemplateOnlyComponent(
   registry: TestJitRegistry,

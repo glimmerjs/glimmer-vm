@@ -1,5 +1,5 @@
 import { InvocationBuilder } from './build';
-import { GLIMMER_TEST_COMPONENT, type ComponentBlueprint, CURLY_TEST_COMPONENT } from './types';
+import { type ComponentBlueprint, CURLY_TEST_COMPONENT, GLIMMER_TEST_COMPONENT } from './types';
 
 export type ComponentStyle = (blueprint: ComponentBlueprint) => {
   // the name of the template

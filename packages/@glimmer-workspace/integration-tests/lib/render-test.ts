@@ -1,4 +1,3 @@
-import type { NTuple } from '@glimmer-workspace/test-utils';
 import { destroy } from '@glimmer/destroyable';
 import type {
   Dict,
@@ -11,26 +10,28 @@ import type {
   SimpleElement,
   SimpleNode,
 } from '@glimmer/interfaces';
+import { hasFlagWith } from '@glimmer/local-debug-flags';
+import { createConstRef } from '@glimmer/reference';
 import { inTransaction, renderComponent, renderSync } from '@glimmer/runtime';
 import type { ASTPluginBuilder } from '@glimmer/syntax';
-import { clearElement, dict, expect, isPresent, unwrap } from '@glimmer/util';
+import { clearElement, dict, expect, isPresent, LOCAL_LOGGER, unwrap } from '@glimmer/util';
 import { dirtyTagFor } from '@glimmer/validator';
+import type { NTuple } from '@glimmer-workspace/test-utils';
 
-import { createConstRef } from '@glimmer/reference';
 import {
-  GLIMMER_TEST_COMPONENT,
   type ComponentBlueprint,
   type ComponentKind,
   type ComponentTypes,
+  GLIMMER_TEST_COMPONENT,
 } from './components';
 import {
-  CurlyDelegate,
-  DynamicDelegate,
-  GlimmerDelegate,
   buildInvoke,
   buildTemplate,
-  getDelegate,
   type ComponentDelegate,
+  CurlyDelegate,
+  DynamicDelegate,
+  getDelegate,
+  GlimmerDelegate,
 } from './components/delegate';
 import { assertingElement, toInnerHTML } from './dom/simple-utils';
 import type { UserHelper } from './helpers';
@@ -44,16 +45,15 @@ import {
 import type { TestModifierConstructor } from './modifiers';
 import type RenderDelegate from './render-delegate';
 import type { DomDelegate, LogRender } from './render-delegate';
-import { equalTokens, isServerMarker, normalizeSnapshot, type NodesSnapshot } from './snapshot';
+import { equalTokens, isServerMarker, type NodesSnapshot,normalizeSnapshot } from './snapshot';
 import {
+  type DeclaredComponentType,
   KIND_FOR,
   TYPE_FOR,
-  type DeclaredComponentType,
   type TypeFor,
 } from './test-helpers/constants';
 import type { RenderTestContext } from './test-helpers/module';
 import { RecordedEvents } from './test-helpers/recorded';
-import { hasFlagWith } from '@glimmer/local-debug-flags';
 
 type Expand<T> = T extends infer O ? { [K in keyof O]: O[K] } : never;
 type Present<T> = Exclude<T, null | undefined>;
@@ -384,10 +384,10 @@ export class RenderTest implements IRenderTest {
 
     if (hasFlagWith('enable_internals_logging', 'render')) {
       const properties = { ...render.self.inner, ...addedProperties };
-      console.groupCollapsed(`%c[render] Rendering ${template}`, 'font-weight: normal');
-      console.log('element   ', render.element);
-      console.log('properties', { ...render.self.inner, ...properties });
-      console.groupEnd();
+      LOCAL_LOGGER.groupCollapsed(`%c[render] Rendering ${template}`, 'font-weight: normal');
+      LOCAL_LOGGER.debug('element   ', render.element);
+      LOCAL_LOGGER.debug('properties', { ...render.self.inner, ...properties });
+      LOCAL_LOGGER.groupEnd();
     }
   }
 

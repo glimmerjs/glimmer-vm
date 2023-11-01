@@ -1,22 +1,21 @@
 import type { EnvironmentDelegate } from '@glimmer/runtime';
 
-import type { ComponentKind } from '../components';
-import { JitRenderDelegate } from '../modes/jit/delegate';
+import { ErrorRecoveryRenderDelegate, JitRenderDelegate } from '../modes/jit/delegate';
 import { NodeJitRenderDelegate } from '../modes/node/env';
 import type RenderDelegate from '../render-delegate';
 import type { RenderDelegateOptions } from '../render-delegate';
 import { Count, type IRenderTest, type RenderTest } from '../render-test';
 import { JitSerializationDelegate } from '../suites/custom-dom-helper';
 import {
+  type ComponentTestFunction,
+  type ComponentTestMeta,
   getComponentTestMeta,
   getSuiteMetadata,
   isComponentTest,
   isSuite,
-  type ComponentTestFunction,
-  type ComponentTestMeta,
   type RenderSuiteMeta,
 } from '../test-decorator';
-import { type DeclaredComponentType } from './constants';
+import type { DeclaredComponentType } from './constants';
 import { RecordedEvents } from './recorded';
 
 export interface RenderTestConstructor<D extends RenderDelegate, T extends IRenderTest> {
@@ -26,35 +25,39 @@ export interface RenderTestConstructor<D extends RenderDelegate, T extends IRend
 
 export function jitSuite<T extends IRenderTest>(
   klass: RenderTestConstructor<RenderDelegate, T>,
-  options?: { componentModule?: boolean; env?: EnvironmentDelegate }
+  options?: { componentModule?: boolean; test?: ['error-recovery']; env?: EnvironmentDelegate }
 ): void {
-  return suite(klass, JitRenderDelegate, options);
+  testSuite(klass, JitRenderDelegate, options);
+
+  if (options?.test?.includes('error-recovery')) {
+    testSuite(klass, ErrorRecoveryRenderDelegate);
+  }
 }
 
 export function nodeSuite<T extends IRenderTest>(
   klass: RenderTestConstructor<RenderDelegate, T>,
   options = { componentModule: false }
 ): void {
-  return suite(klass, NodeJitRenderDelegate, options);
+  return testSuite(klass, NodeJitRenderDelegate, options);
 }
 
 export function nodeComponentSuite<T extends IRenderTest>(
   klass: RenderTestConstructor<RenderDelegate, T>
 ): void {
-  return suite(klass, NodeJitRenderDelegate, { componentModule: true });
+  return testSuite(klass, NodeJitRenderDelegate, { componentModule: true });
 }
 
 export function jitComponentSuite<T extends IRenderTest>(
   klass: RenderTestConstructor<RenderDelegate, T>
 ): void {
-  return suite(klass, JitRenderDelegate, { componentModule: true });
+  return testSuite(klass, JitRenderDelegate, { componentModule: true });
 }
 
 export function jitSerializeSuite<T extends IRenderTest>(
   klass: RenderTestConstructor<RenderDelegate, T>,
   options = { componentModule: false }
 ): void {
-  return suite(klass, JitSerializationDelegate, options);
+  return testSuite(klass, JitSerializationDelegate, options);
 }
 
 export interface RenderDelegateConstructor<Delegate extends RenderDelegate> {
@@ -66,12 +69,10 @@ export function componentSuite<D extends RenderDelegate>(
   klass: RenderTestConstructor<D, IRenderTest>,
   Delegate: RenderDelegateConstructor<D>
 ): void {
-  return suite(klass, Delegate, { componentModule: true });
+  return testSuite(klass, Delegate, { componentModule: true });
 }
 
-const INSTANCES = new Map<string, Map<ComponentKind, IRenderTest>>();
-
-export function suite<D extends RenderDelegate>(
+export function testSuite<D extends RenderDelegate>(
   Class: RenderTestConstructor<D, IRenderTest>,
   Delegate: RenderDelegateConstructor<D>,
   options: { componentModule?: boolean; env?: EnvironmentDelegate } = {}
@@ -83,22 +84,7 @@ export function suite<D extends RenderDelegate>(
       Delegate
     );
   } else {
-    QUnit.module(`[integration] ${Delegate.style} :: ${TestBlueprint.suiteName(Class)}`, {
-      // beforeEach(assert) {
-      //   const instance = new Class(
-      //     new Delegate({ env: options.env }),
-      //     RenderTestContext(assert, 'Glimmer')
-      //   );
-      //   setInstance('Glimmer', instance);
-      //   QUnit.config.current['instance'] = instance;
-      //   if (instance.beforeEach) instance.beforeEach();
-      // },
-      // afterEach() {
-      //   const instance = getInstance('Glimmer');
-      //   if (instance?.afterEach) instance?.afterEach();
-      //   deleteInstance('Glimmer');
-      // },
-    });
+    QUnit.module(`[integration] ${Delegate.style} :: ${TestBlueprint.suiteName(Class)}`);
 
     for (let prop in Class.prototype) {
       const test = Class.prototype[prop];
@@ -267,28 +253,6 @@ export class TestBlueprint<D extends RenderDelegate, T extends IRenderTest> {
   }
 }
 
-class ComponentModule {
-  readonly #types: RenderTestTypes;
-  readonly #tests: readonly TestFn[];
-
-  constructor(types: RenderTestTypes, tests: readonly TestFn[]) {
-    this.#types = types;
-    this.#tests = tests;
-  }
-
-  *[Symbol.iterator]() {
-    yield* this.#tests;
-  }
-
-  get types() {
-    return this.#types;
-  }
-
-  get formatted(): string {
-    return formatTypes(this.#types);
-  }
-}
-
 class ComponentTests<D extends RenderDelegate, T extends IRenderTest> {
   readonly #blueprint: TestBlueprint<D, T>;
   readonly #tests: { types: RenderTestTypes; test: TestFn }[] = [];
@@ -360,20 +324,6 @@ function componentModule<D extends RenderDelegate, T extends IRenderTest>(
   });
 }
 
-interface ComponentTestFunctions {
-  readonly glimmer: TestFn[];
-  readonly curly: TestFn[];
-  readonly dynamic: TestFn[];
-  readonly templateOnly: TestFn[];
-}
-
-interface InvokerKinds {
-  glimmer?: undefined | DeclaredComponentType;
-  curly?: undefined | DeclaredComponentType;
-  dynamic?: undefined | DeclaredComponentType;
-  templateOnly?: undefined | DeclaredComponentType;
-}
-
 function nestedComponentModules<D extends RenderDelegate, T extends IRenderTest>(
   modules: ComponentTests<D, T>
 ): void {
@@ -384,13 +334,4 @@ function nestedComponentModules<D extends RenderDelegate, T extends IRenderTest>
       }
     });
   }
-}
-
-function upperFirst<T extends string>(
-  str: T extends '' ? `upperFirst only takes (statically) non-empty strings` : T
-): string {
-  let first = str[0] as string;
-  let rest = str.slice(1);
-
-  return `${first.toUpperCase()}${rest}`;
 }

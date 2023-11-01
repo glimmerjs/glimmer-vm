@@ -5,7 +5,6 @@ import type {
   ElementNamespace,
   Environment,
   Optional,
-  Reference,
   RenderResult,
   SimpleDocument,
   SimpleDocumentFragment,
@@ -13,11 +12,11 @@ import type {
   SimpleText,
 } from '@glimmer/interfaces';
 import type { EnvironmentDelegate } from '@glimmer/runtime';
+import type { ASTPluginBuilder } from '@glimmer/syntax';
 
+import type { JitContext } from './modes/jit/delegate';
 import type { TestJitRegistry } from './modes/jit/registry';
 import type { TestJitRuntimeResolver } from './modes/jit/resolver';
-import type { ASTPluginBuilder } from '@glimmer/syntax';
-import type { JitContext } from './modes/jit/delegate';
 import type { Self } from './render-test';
 
 export interface RenderDelegateOptions {
