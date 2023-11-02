@@ -1,9 +1,9 @@
 import type { VmOp } from '@glimmer/interfaces';
 
 import type { OpcodeMetadata } from './metadata';
-import { MetadataBuilder, RESERVED } from './utils';
-import { UNCHANGED } from './stack/params';
 import { define } from './stack/define-metadata';
+import { UNCHANGED } from './stack/params';
+import { MetadataBuilder, RESERVED } from './utils';
 
 export function opcodeMetadata(op: VmOp): OpcodeMetadata {
   return METADATA[op];
@@ -123,8 +123,8 @@ const METADATA = MetadataBuilder.build(({ add, stack }) =>
     )
     .add(`Jump as goto`, ['to:imm/u32'])
     .add(`ReturnTo as setra`, ['offset:imm/pc'])
-    .add(`PopTryFrame as finally`)
     .add(`UnwindTypeFrame as unwind`)
+    .add(RESERVED)
     .add(RESERVED)
     .add(RESERVED)
     .add(RESERVED)
@@ -141,6 +141,7 @@ const METADATA = MetadataBuilder.build(({ add, stack }) =>
       ['catch:imm/pc'],
       stack.params(['handler:reference/any']).returns([])
     )
+    .add(`PopTryFrame as finally`)
     .add(`InvokeVirtual as vcall`, stack.delta(-1))
     .add(`InvokeStatic as scall`, ['offset:imm/u32'])
     .add(`Return as ret`)

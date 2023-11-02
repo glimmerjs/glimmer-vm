@@ -1,4 +1,5 @@
 import type { SimpleNode } from '@glimmer/interfaces';
+
 import { Fragment, type LeafFragment } from './fragment';
 
 // inspired by https://github.com/ChromeDevTools/devtools-frontend/blob/c2c17396c9e0da3f1ce6514c3a946f88a06b17f2/front_end/ui/legacy/themeColors.css#L65
@@ -29,13 +30,17 @@ export const STYLES = {
   subtle: 'color: lightgrey',
   internals: 'color: lightgrey; font-style: italic',
 
-  label: 'text-decoration: underline',
   sublabel: 'font-style: italic; color: grey',
   error: 'color: red',
+  label: 'text-decoration: underline',
+  errorLabel: 'color: darkred; font-style: italic',
+  errorMessage: 'color: darkred; text-decoration: underline',
+  stack: 'color: grey; font-style: italic',
   unbold: 'font-weight: normal',
   pointer: 'background-color: lavender; color: indigo',
   pointee: 'background-color: lavender; color: indigo',
 } as const;
+
 
 export const as = Object.fromEntries(
   Object.entries(STYLES).map(([k, v]) => [

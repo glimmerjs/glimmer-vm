@@ -1,23 +1,23 @@
+import { check, CheckNumber } from '@glimmer/debug';
 import type {
+  CleanStack,
+  DebugStack,
   Expand,
+  InternalStack,
   Nullable,
+  Result,
   RuntimeHeap,
   RuntimeOp,
   RuntimeProgram,
-  InternalStack,
-  DebugStack,
-  CleanStack,
-  Result,
 } from '@glimmer/interfaces';
 import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
-import { assert, expect } from '@glimmer/util';
+import { assert, expect, UserException } from '@glimmer/util';
 import { $fp, $pc, $ra, $sp, $up, Op } from '@glimmer/vm';
 
 import { APPEND_OPCODES } from '../opcodes';
 import type { VM } from './append';
-import { CheckNumber, check } from '@glimmer/debug';
 import { debugAround } from './debug/debug';
-import { UnwindTarget, type TargetState, type ErrorHandler } from './unwind';
+import { type ErrorHandler, type TargetState, UnwindTarget } from './unwind';
 
 export type PackedRegisters = Expand<
   [$pc: number, $ra: number, $fp: number, $sp: number, $up: UnwindTarget]
@@ -202,17 +202,23 @@ export interface VmDebugState {
   readonly registers: Registers;
   readonly currentPc: number;
   readonly stack: DebugStack;
-  readonly threw: boolean;
+  readonly threw: Error | undefined;
 }
 
-let THROWN: { set: (value: boolean) => void; check: () => boolean } | undefined;
+let THROWN:
+  | { unset: () => void; set: (value: Error) => void; check: () => Error | undefined }
+  | undefined;
 
 if (import.meta.env.DEV) {
-  let MARKER = false;
+  let MARKER: Error | undefined = undefined;
 
   THROWN = {
-    set: (value: boolean) => {
-      MARKER = value;
+    unset: () => {
+      MARKER = undefined;
+    },
+
+    set: (error: Error) => {
+      MARKER = error;
     },
 
     check: () => MARKER,
@@ -256,7 +262,7 @@ export class LowLevelVM {
   }
 
   get result(): Result<void> {
-    return this.#registers.up.error;
+    return this.#registers.up.unhandled;
   }
 
   capture(): { unwind: UnwindTarget } {
@@ -286,7 +292,7 @@ export class LowLevelVM {
       currentPc: this.#registers.pc - this.#currentOpSize,
       registers: this.#registers,
       stack: this.#stack,
-      threw: THROWN?.check() ?? false,
+      threw: THROWN?.check(),
     };
   }
 
@@ -309,7 +315,7 @@ export class LowLevelVM {
 
   userException(error: unknown): TargetState {
     if (import.meta.env.DEV) {
-      THROWN?.set(true);
+      THROWN?.set(new UserException(error, `A user exception occurred`));
     }
 
     const target = this.#registers.catch(error);
@@ -319,21 +325,8 @@ export class LowLevelVM {
     return target;
   }
 
-  finally() {
+  popTryFrame() {
     this.#registers.finally();
-  }
-
-  catch(error: unknown) {
-    let up = this.#registers.up;
-
-    if (import.meta.env.DEV) {
-      THROWN?.set(true);
-    }
-
-    // @fixme
-    const target = up.catch(error);
-    this.#registers.popTo(target.ra, target.fp);
-    this.#registers.goto(target.ip);
   }
 
   // Start a new frame and save $ra and $fp on the stack
@@ -381,7 +374,7 @@ export class LowLevelVM {
 
   nextStatement(): Nullable<RuntimeOp> {
     if (import.meta.env.DEV) {
-      THROWN?.set(false);
+      THROWN?.unset();
     }
 
     let program = this.#program;
@@ -432,8 +425,6 @@ export class LowLevelVM {
         return this.goto(opcode.op1);
       case Op.ReturnTo:
         return this.returnTo(opcode.op1);
-      case Op.PopTryFrame:
-        return this.finally();
     }
   }
 

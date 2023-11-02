@@ -1,21 +1,21 @@
+import type { OpSnapshot } from '@glimmer/debug';
 import {
-  recordStackSize,
-  getOpSnapshot,
-  snapshotVM,
-  frag,
-  intoFragment,
   as,
   DebugLogger,
-  value,
-  prepend,
-  tuple,
-  record,
+  DebugOpState,
   DebugState,
   DiffState,
-  DebugOpState,
+  frag,
+  getOpSnapshot,
+  intoFragment,
+  prepend,
+  record,
+  recordStackSize,
+  snapshotVM,
+  tuple,
+  value,
 } from '@glimmer/debug';
-import type { OpSnapshot } from '@glimmer/debug';
-import type { RuntimeOp, DebugVmSnapshot, BlockMetadata } from '@glimmer/interfaces';
+import type { BlockMetadata, DebugVmSnapshot, RuntimeOp } from '@glimmer/interfaces';
 import {
   LOCAL_DEBUG,
   LOCAL_INTERNALS_LOGGING,
@@ -112,19 +112,21 @@ export function debugBefore(
         const diff = new DiffState(prevState, beforeState, afterState);
 
         if (debugState.threw) {
-          logger.log(frag`${as.error('vm threw')}`);
-        }
+          logger.log(frag`${as.error('vm threw')}: ${value(debugState.threw)}`);
+        } else {
+          let actualChange = afterState.sp - beforeState.sp;
+          const expectedChange = op.expectedStackDelta(beforeState);
 
-        let actualChange = afterState.sp - beforeState.sp;
-        const expectedChange = op.expectedStackDelta(beforeState);
-
-        if (expectedChange !== undefined && expectedChange !== actualChange) {
-          done?.();
-          throw new Error(
-            `Error in ${op.name} (${opSnapshot.type}):\n\n${afterState.nextPc}. ${op
-              .describe()
-              .stringify(options)}\n\nStack changed by ${actualChange}, expected ${expectedChange}`
-          );
+          if (expectedChange !== undefined && expectedChange !== actualChange) {
+            done?.();
+            throw new Error(
+              `Error in ${op.name} (${opSnapshot.type}):\n\n${afterState.nextPc}. ${op
+                .describe()
+                .stringify(
+                  options
+                )}\n\nStack changed by ${actualChange}, expected ${expectedChange}`
+            );
+          }
         }
 
         if (LOCAL_TRACE_LOGGING) {

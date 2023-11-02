@@ -1,4 +1,4 @@
-import { render, RenderTest } from '@glimmer-workspace/integration-tests';
+import { render, RenderTest, stripTight } from '@glimmer-workspace/integration-tests';
 
 export class ErrorRecoverySuite extends RenderTest {
   static suiteName = 'ErrorRecovery';
@@ -22,7 +22,7 @@ export class ErrorRecoverySuite extends RenderTest {
   }
 
   @render
-  'by default, errors are rethrown and DOM is cleaned up'() {
+  'if the error is handled, the DOM is cleaned up'() {
     const actions = new Actions();
 
     class Woops {
@@ -35,11 +35,34 @@ export class ErrorRecoverySuite extends RenderTest {
     this.render.template('{{#-try this.handler}}message: [{{this.woops.woops}}]{{/-try}}', {
       woops: new Woops(),
       handler: (_err: unknown, _retry: () => void) => {
+        // it only runs once
         actions.record('error handled');
       },
     });
 
     actions.expect(['get woops', 'error handled']);
+    this.assertHTML('<!---->');
+  }
+
+  @render
+  'if the error is unhandled, the DOM is cleaned up'(assert: Assert) {
+    const actions = new Actions();
+
+    class Woops {
+      get woops() {
+        actions.record('get woops');
+        throw Error('woops');
+      }
+    }
+
+    assert.throws(() => {
+      this.render.template('{{#-try}}message: [{{this.woops.woops}}]{{/-try}}', {
+        woops: new Woops(),
+      });
+    });
+
+    actions.expect(['get woops']);
+    this.assertHTML('<!---->');
   }
 
   @render
@@ -53,15 +76,34 @@ export class ErrorRecoverySuite extends RenderTest {
       }
     }
 
-    this.render.template('<p>{{#-try this.handler}}message: [{{this.woops.woops}}]{{/-try}}</p>', {
-      woops: new Woops(),
-      handler: (_err: unknown, _retry: () => void) => {
-        actions.record('error handled');
-      },
-    });
+    this.render.template(
+      stripTight`
+        <p>
+          {{this.outer.before}}|
+          {{#-try this.handler}}
+            {{this.inner.before}}|message: [{{this.woops.woops}}]|{{this.inner.after}}
+          {{/-try}}
+          |{{this.outer.after}}
+        </p>
+      `,
+      {
+        woops: new Woops(),
+        outer: {
+          before: 'outer:before',
+          after: 'outer:after',
+        },
+        inner: {
+          before: 'inner:before',
+          after: 'inner:after',
+        },
+        handler: (_err: unknown, _retry: () => void) => {
+          actions.record('error handled');
+        },
+      }
+    );
 
     actions.expect(['get woops', 'error handled']);
-    this.assertHTML('<p></p>');
+    this.assertHTML('<p>outer:before||outer:after</p>');
   }
 
   // @test

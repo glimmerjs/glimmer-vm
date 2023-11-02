@@ -1,6 +1,7 @@
 import type { SimpleNode } from '@glimmer/interfaces';
-import { intoFormat, STYLES, type IntoFormat } from './presets';
-import { assertNever } from '@glimmer/util';
+import { assertNever, isObject, isUserException } from '@glimmer/util';
+
+import { type IntoFormat, intoFormat, STYLES } from './presets';
 
 interface AbstractLeafFragment {
   readonly value: unknown;
@@ -162,7 +163,7 @@ export class Fragment<T extends FragmentType = FragmentType> {
     });
   }
 
-  toLog(options: DisplayFragmentOptions): LogLine[] {
+  toLog(options: DisplayFragmentOptions): [LogLine, ...LogEntry[]] {
     const buffer = new LogFragmentBuffer(options);
 
     for (const leaf of this.leaves()) {
@@ -202,24 +203,50 @@ export class Fragment<T extends FragmentType = FragmentType> {
           break;
         case 'dom':
         case 'value': {
-          const annotation = fragment.kind === 'value' ? fragment.annotation : undefined;
+          const error = getErrorInstance(fragment.value);
+          const annotation = fragment.kind === 'value' && !error ? fragment.annotation : undefined;
           const index = buffer.nextFootnote;
           const style = ANNOTATION_STYLES[index % ANNOTATION_STYLES.length] as string;
 
           if (annotation) {
             annotation.full.subtle(this.isSubtle()).styleAll({ style }).appendTo(buffer);
+          } else if (error) {
+            buffer.append(fragment.subtle ?? false, `%c${error.message}`, style);
+            buffer.append(true, `%c(${error.name})`, styles('specialVar'));
           } else {
             buffer.append(fragment.subtle ?? false, `%c[${buffer.nextFootnote}]`, style);
           }
 
-          buffer.enqueue(
-            fragment.subtle ?? false,
-            `%c[${annotation?.compact ?? buffer.nextFootnote}]%c %c${FORMATTERS[fragment.kind]}`,
-            style,
-            '',
-            mergeStyle(fragment.style, style),
-            fragment.value
-          );
+          if (error) {
+            buffer.enqueue.group(
+              ['%cStack', mergeStyle(STYLES.unbold, style)],
+              [`%c${error.stack}`, styles('stack')],
+              { collapsed: true }
+            );
+
+            let cause = error.cause;
+
+            while (cause) {
+              if (isErrorInstance(cause)) {
+                buffer.enqueue.group(
+                  [`%cCaused by`, styles('unbold', 'errorLabel')],
+                  [`%c${cause.message}`, styles('errorMessage')],
+                  [`%c${cause.stack}`, styles('stack')],
+                  { subtle: fragment.subtle ?? false, collapsed: true }
+                );
+                cause = cause.cause;
+              }
+            }
+          } else {
+            buffer.enqueue.line(
+              fragment.subtle ?? false,
+              `%c[${annotation?.compact ?? buffer.nextFootnote}]%c %c${FORMATTERS[fragment.kind]}`,
+              style,
+              '',
+              error ? STYLES.errorMessage : mergeStyle(fragment.style, style),
+              fragment.value
+            );
+          }
           break;
         }
         default:
@@ -239,20 +266,44 @@ export class Fragment<T extends FragmentType = FragmentType> {
 }
 
 export interface LogLine {
+  readonly type: 'line';
   readonly line: unknown[];
 }
 
+export interface LogGroup {
+  type: 'group';
+  collapsed: boolean;
+  heading: unknown[];
+  children: LogEntry[];
+}
+
+export type LogEntry = LogLine | LogGroup;
+
+type RawLine = [template: string, ...substitutions: unknown[]];
+
 interface QueuedLine {
+  type: 'line';
   subtle: boolean;
   template: string;
   substitutions: unknown[];
 }
 
+interface QueuedGroup {
+  type: 'group';
+  collapsed: boolean;
+  heading: QueuedLine;
+  children: QueuedEntry[];
+}
+
+type QueuedEntry = QueuedLine | QueuedGroup;
+
+export type FlushedLines = [LogLine, ...LogEntry[]];
+
 export class LogFragmentBuffer {
   #template = '';
   readonly #options: DisplayFragmentOptions;
   readonly #substitutions: unknown[] = [];
-  readonly #queued: QueuedLine[] = [];
+  readonly #queued: QueuedEntry[] = [];
 
   constructor(options: DisplayFragmentOptions) {
     this.#options = options;
@@ -262,9 +313,39 @@ export class LogFragmentBuffer {
     return this.#queued.length;
   }
 
-  enqueue(subtle: boolean, template: string, ...substitutions: unknown[]): void {
-    this.#queued.push({ subtle, template, substitutions });
-  }
+  readonly enqueue = {
+    line: (subtle: boolean, template: string, ...substitutions: unknown[]): void => {
+      this.#queued.push({ type: 'line', subtle, template, substitutions });
+    },
+
+    group: (
+      ...args:
+        | [RawLine, ...RawLine[], { collapsed?: boolean; subtle?: boolean; bold?: boolean }]
+        | [RawLine, ...RawLine[]]
+    ): void => {
+      const { collapsed, subtle } = !Array.isArray(args.at(-1))
+        ? { collapsed: false, subtle: false, ...args.pop() }
+        : { collapsed: false, subtle: false };
+      const [heading, ...children] = args as [RawLine, ...RawLine[]];
+
+      this.#queued.push({
+        type: 'group',
+        collapsed,
+        heading: {
+          type: 'line',
+          subtle,
+          template: heading[0],
+          substitutions: heading.slice(1),
+        },
+        children: children.map((line) => ({
+          type: 'line',
+          subtle,
+          template: line[0],
+          substitutions: line.slice(1),
+        })),
+      });
+    },
+  };
 
   append(subtle: boolean, template: string, ...substitutions: unknown[]) {
     if (subtle && !this.#options.showSubtle) return;
@@ -273,15 +354,38 @@ export class LogFragmentBuffer {
     this.#substitutions.push(...substitutions);
   }
 
-  flush(): LogLine[] {
+  #mapLine(line: QueuedLine): LogLine[] {
+    if (line.subtle && !this.#options.showSubtle) return [];
+    return [{ type: 'line', line: [line.template, ...line.substitutions] }];
+  }
+
+  #mapGroup(group: QueuedGroup): LogGroup {
+    return {
+      type: 'group',
+      collapsed: group.collapsed,
+      heading: [group.heading.template, ...group.heading.substitutions],
+      children: group.children.flatMap((queued) => this.#mapEntry(queued)),
+    } satisfies LogGroup;
+  }
+
+  #mapEntry(entry: QueuedEntry): LogEntry[] {
+    if (entry.type === 'line') {
+      return this.#mapLine(entry);
+    } else {
+      return [this.#mapGroup(entry)];
+    }
+  }
+
+  flush(): FlushedLines {
     return [
-      { line: [this.#template, ...this.#substitutions] },
-      ...this.#queued.flatMap((f) => {
-        if (f.subtle && !this.#options.showSubtle) return [];
-        return [{ line: [f.template, ...f.substitutions] }];
-      }),
+      { type: 'line', line: [this.#template, ...this.#substitutions] },
+      ...this.#queued.flatMap((queued) => this.#mapEntry(queued)),
     ];
   }
+}
+
+function styles(...styles: (keyof typeof STYLES)[]) {
+  return styles.map((c) => STYLES[c]).join('; ');
 }
 
 function mergeStyle(a?: string | undefined, b?: string | undefined): string | undefined {
@@ -301,3 +405,17 @@ const ANNOTATION_STYLES = [
   'background-color: oklch(93% 0.03 50); color: oklch(34% 0.18 50)',
   'background-color: oklch(93% 0.03 0); color: oklch(34% 0.18 0)',
 ] as const;
+
+function isErrorInstance(value: unknown): value is Error {
+  return isObject(value) && value instanceof Error;
+}
+
+function getErrorInstance(value: unknown): Error | undefined {
+  if (isErrorInstance(value)) {
+    if (isUserException(value)) {
+      return isErrorInstance(value.cause) ? value.cause : value;
+    } else {
+      return value;
+    }
+  }
+}

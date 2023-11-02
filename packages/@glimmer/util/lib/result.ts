@@ -1,5 +1,13 @@
 import type { Result } from '@glimmer/interfaces';
 
+export function Ok<const T>(value: T): Result<T> {
+  return { type: 'ok', value };
+}
+
+export function Err(value: unknown): Result<never> {
+  return { type: 'err', value };
+}
+
 export function Results<const T extends readonly Result<unknown>[]>(
   results: T
 ): Result<Results<T>> {

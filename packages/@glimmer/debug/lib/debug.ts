@@ -2,9 +2,9 @@ import type {
   BlockMetadata,
   Dict,
   Nullable,
+  RuntimeConstants,
   RuntimeOp,
   TemplateCompilationContext,
-  RuntimeConstants,
 } from '@glimmer/interfaces';
 import { LOCAL_DEBUG, LOCAL_SUBTLE_LOGGING, LOCAL_TRACE_LOGGING } from '@glimmer/local-debug-flags';
 import {
@@ -31,12 +31,12 @@ import {
   CURRIED_MODIFIER,
 } from '@glimmer/vm';
 
+import { DebugLogger, frag } from '..';
+import { OPERANDS } from './dism/operands';
 import { opcodeMetadata } from './opcode-metadata';
+import { DebugOpState } from './render/state';
 import type { Primitive } from './stack-check';
 import type { OperandLabel } from './utils';
-import { OPERANDS } from './dism/operands';
-import { DebugOpState } from './render/state';
-import { DebugLogger, frag } from '..';
 
 export interface DebugConstants {
   getValue<T>(handle: number): T;

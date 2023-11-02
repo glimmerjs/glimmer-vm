@@ -84,6 +84,7 @@ export class CustomModifierManager<O extends Owner, ModifierInstance>
         throw new Error(
           `Custom modifier managers must have a \`capabilities\` property that is the result of calling the \`capabilities('3.22')\` (imported via \`import { capabilities } from '@ember/modifier';\`). Received: \`${JSON.stringify(
             delegate.capabilities
+            // eslint-disable-next-line @typescript-eslint/no-base-to-string -- @todo
           )}\` for: \`${delegate}\``
         );
       }
@@ -112,7 +113,8 @@ export class CustomModifierManager<O extends Owner, ModifierInstance>
     };
 
     if (import.meta.env.DEV) {
-      state.debugName = typeof definition === 'function' ? definition.name : definition.toString();
+      // eslint-disable-next-line @typescript-eslint/no-base-to-string -- @todo
+      state.debugName = typeof definition === 'function' ? definition.name : `${definition}`;
     }
 
     registerDestructor(state, () => delegate.destroyModifier(instance, args));

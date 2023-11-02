@@ -1,9 +1,10 @@
 import type { Dict, LiveBlockDebug, Maybe, Reference, ScopeSlot } from '@glimmer/interfaces';
+import { tryValueForRef } from '@glimmer/reference/lib/reference';
 import { isCompilable, zip } from '@glimmer/util';
-import { valueForRef } from '@glimmer/reference';
-import type { Fragment } from './fragment';
-import { intoFragment, type IntoFragment, join, frag, as, empty, value, dom } from './presets';
+
 import { isReference } from '../utils';
+import type { Fragment } from './fragment';
+import { as, dom, empty, frag, type IntoFragment, intoFragment, join, value } from './presets';
 
 export function pick<const T extends object, const K extends keyof T>(
   obj: T,
@@ -93,14 +94,22 @@ export function array(
     return wrap('[ ', join(contents, ', '), ' ]');
   }
 }
+
 function describeRef(ref: Reference): Fragment {
   const label = as.type(String(ref.debugLabel) ?? '');
 
-  try {
-    const val = ref.debug?.isPrimitive ? empty() : value(valueForRef(ref));
-    return frag`<${as.kw('ref')} ${join([label, val], ' ')}>`;
-  } catch (e) {
-    return frag`<${as.error('ref')} ${label}${as.error('error')} ${value(e)}>`;
+  if (ref.debug?.isPrimitive) {
+    return frag`<${as.kw('ref')} ${label}>`;
+  }
+
+  const result = tryValueForRef(ref);
+
+  switch (result.type) {
+    case 'err':
+      return frag`<${as.error('ref')} ${label} ${as.error('error')}=${value(result.value)}>`;
+    case 'ok': {
+      return frag`<${as.kw('ref')} ${join([label, value(result.value)], ' ')}>`;
+    }
   }
 }
 

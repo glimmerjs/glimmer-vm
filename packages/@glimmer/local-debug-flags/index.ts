@@ -1,8 +1,88 @@
+/* eslint-disable no-console */
 export const LOCAL_DEBUG = import.meta.env.DEV && !hasFlag('disable_local_debug');
 export const LOCAL_TRACE_LOGGING = hasFlag('enable_trace_logging');
 export const LOCAL_EXPLAIN_LOGGING = hasFlag('enable_trace_explanations');
 export const LOCAL_INTERNALS_LOGGING = hasFlag('enable_internals_logging');
 export const LOCAL_SUBTLE_LOGGING = hasFlag('enable_subtle_logging');
+
+if (LOCAL_INTERNALS_LOGGING || LOCAL_EXPLAIN_LOGGING) {
+  console.group('%cLogger Flags:', 'font-weight: normal; color: teal');
+  log(
+    'LOCAL_DEBUG',
+    LOCAL_DEBUG,
+    'Enables debug logging for people working on this repository. If this is off, none of the other flags will do anything.'
+  );
+  log(
+    'LOCAL_TRACE_LOGGING',
+    LOCAL_TRACE_LOGGING,
+    `Enables trace logging. This is most useful if you're working on the internals, and includes a trace of compiled templates and a trace of VM execution that includes state changes. If you want to see all of the state, enable LOCAL_SUBTLE_LOGGING.`
+  );
+  log(
+    'LOCAL_EXPLAIN_LOGGING',
+    LOCAL_EXPLAIN_LOGGING,
+    'Enables trace explanations (like this one!)'
+  );
+  log(
+    'LOCAL_INTERNALS_LOGGING',
+    LOCAL_INTERNALS_LOGGING,
+    `Enables logging of internal state. This is most useful if you're working on the debug infrastructure itself.`
+  );
+  log(
+    'LOCAL_SUBTLE_LOGGING',
+    LOCAL_SUBTLE_LOGGING,
+    'Enables more complete logging, even when the result would be extremely verbose and not usually necessary. Subtle logs are dimmed when enabled.'
+  );
+  log(
+    'audit_logging',
+    getFlag('audit_logging'),
+    'Enables specific audit logs. These logs are useful during an internal refactor and can help pinpoint exactly where legacy code is being used (e.g. infallible_deref and throwing_deref).'
+  );
+  console.log();
+  console.groupEnd();
+
+  function log(flag: string, value: boolean | string | string[] | undefined, explanation: string) {
+    const { formatted, style } = format(value);
+
+    const header = [
+      `%c[${flag}]%c %c${formatted}`,
+      `font-weight: normal; background-color: ${style}; color: white`,
+      ``,
+      `font-weight: normal; color: ${style}`,
+    ];
+
+    if (LOCAL_EXPLAIN_LOGGING) {
+      console.group(...header);
+      console.log(`%c${explanation}`, 'color: grey');
+      console.groupEnd();
+    } else {
+      console.log(...header);
+    }
+  }
+
+  function format(flagValue: boolean | string | string[] | undefined): {
+    formatted: string;
+    style: string;
+  } {
+    if (flagValue === undefined || flagValue === false) {
+      return { formatted: 'off', style: 'grey' };
+    } else if (flagValue === true) {
+      return { formatted: 'on', style: 'green' };
+    } else if (typeof flagValue === 'string') {
+      return { formatted: flagValue, style: 'blue' };
+    } else if (Array.isArray(flagValue)) {
+      if (flagValue.length === 0) {
+        return { formatted: 'none', style: 'grey' };
+      }
+      return { formatted: `[${flagValue.join(', ')}]`, style: 'teal' };
+    } else {
+      assertNever(flagValue);
+    }
+  }
+
+  function assertNever(_never: never): never {
+    throw new Error('unreachable');
+  }
+}
 
 // This function should turn into a constant `return false` in `import.meta.env.PROD`,
 // which should inline properly via terser, swc and esbuild.
@@ -10,13 +90,17 @@ export const LOCAL_SUBTLE_LOGGING = hasFlag('enable_subtle_logging');
 // https://tiny.katz.zone/BNqN3F
 function hasFlag(flag: string): true | false {
   if (import.meta.env.DEV) {
-    let location = typeof window !== 'undefined' && window.location;
-    const pattern = new RegExp(`[&?]${flag}(?:&|$|%)`, 'u');
+    const url =
+      typeof window !== 'undefined' && window.location ? new URL(window.location.href) : null;
 
-    return !!(location && pattern.test(window.location.search));
+    return url?.searchParams.has(flag) ?? false;
   } else {
     return false;
   }
+}
+
+if (import.meta.env.DEV) {
+  Error.stackTraceLimit = Infinity;
 }
 
 /**
@@ -28,23 +112,32 @@ function hasFlag(flag: string): true | false {
  */
 export function hasFlagWith(flag: string, value: string): boolean {
   if (import.meta.env.DEV) {
-    let location = typeof window !== 'undefined' && window.location;
-    const pattern = new RegExp(`[&?]${flag}(?:=(.*?))?(?:&|$|%)?(?:&|$|%)`, 'u');
+    const url =
+      typeof window !== 'undefined' && window.location ? new URL(window.location.href) : null;
 
-    const match = location && pattern.exec(window.location.search);
+    const pattern = new RegExp(`^${value.replace(/\*/gu, '.*')}$`, 'u');
 
-    const capture = match && match[1];
-
-    if (match && !capture) {
-      return true;
-    } else if (capture) {
-      // convert the capture into a pattern (where `*` is replaced with `.*`)
-      const capturePattern = new RegExp(`^${capture.replace(/\*/g, '.*')}$`, 'u');
-      return !!capturePattern.test(value);
-    } else {
-      return false;
-    }
+    return url?.searchParams.getAll(flag).some((param) => pattern.test(param)) ?? false;
   } else {
     return false;
+  }
+}
+
+export function getFlag(flag: string): boolean | string | string[] | undefined {
+  if (import.meta.env.DEV) {
+    const url =
+      typeof window !== 'undefined' && window.location ? new URL(window.location.href) : null;
+
+    const all = url?.searchParams.getAll(flag);
+
+    if (all) {
+      if (all.length === 1) {
+        return all[0] === '' ? true : all[0];
+      } else {
+        return all;
+      }
+    }
+  } else {
+    return undefined;
   }
 }

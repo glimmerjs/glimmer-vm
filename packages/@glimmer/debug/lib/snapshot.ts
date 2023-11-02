@@ -11,8 +11,9 @@ import type {
   ScopeSlot,
   SimpleElement,
 } from '@glimmer/interfaces';
-import type { DebugConstants } from '..';
 import type { UnwindTarget } from '@glimmer/runtime/lib/vm/unwind';
+
+import type { DebugConstants } from '..';
 
 /**
  * Snapshot the current state of the VM for debugging. This function should
@@ -108,7 +109,7 @@ export interface VmDebugState {
 
   /** @mutable */
   readonly stack: DebugStack;
-  readonly threw: boolean;
+  readonly threw: Error | undefined;
 }
 
 export interface SnapshottableVM {

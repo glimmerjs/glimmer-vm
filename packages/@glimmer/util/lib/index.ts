@@ -1,34 +1,35 @@
 import type { NodeType } from '@glimmer/interfaces';
 
-export * from './lib/array-utils';
-export { default as assert, deprecate } from './lib/assert';
-export { dict, isDict, isObject, StackImpl as Stack } from './lib/collections';
-export * from './lib/constants';
-export { beginTestSteps, endTestSteps, logStep, verifySteps } from './lib/debug-steps';
-export { default as debugToString } from './lib/debug-to-string';
-export * from './lib/dom';
-export * from './lib/dom-utils';
-export * from './lib/immediate';
-export { default as intern } from './lib/intern';
+export * from './array-utils';
+export { default as assert, deprecate } from './assert';
+export { dict, isDict, isObject, StackImpl as Stack } from './collections';
+export * from './constants';
+export { beginTestSteps, endTestSteps, logStep, verifySteps } from './debug-steps';
+export { default as debugToString } from './debug-to-string';
+export * from './dom';
+export * from './dom-utils';
+export * from './error';
+export * from './immediate';
+export { default as intern } from './intern';
 export {
   isSerializationFirstNode,
   SERIALIZATION_FIRST_NODE_STRING,
-} from './lib/is-serialization-first-node';
-export { array, assign, entries, fillNulls, type FixedArray, values } from './lib/object-utils';
-export * from './lib/platform-utils';
-export * from './lib/present';
-export * from './lib/result';
+} from './is-serialization-first-node';
+export { array, assign, entries, fillNulls, type FixedArray, values } from './object-utils';
+export * from './platform-utils';
+export * from './present';
+export * from './result';
 export {
   castToBrowser,
   castToSimple,
   checkBrowserNode as checkNode,
   isElement,
   isSimpleElement,
-} from './lib/simple-cast';
-export * from './lib/string';
-export * from './lib/template';
-export * from './lib/types';
-export { default as buildUntouchableThis } from './lib/untouchable-this';
+} from './simple-cast';
+export * from './string';
+export * from './template';
+export * from './types';
+export { default as buildUntouchableThis } from './untouchable-this';
 
 export type FIXME<T, S extends string> = (T & S) | T;
 

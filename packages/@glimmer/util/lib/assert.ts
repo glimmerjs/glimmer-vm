@@ -1,6 +1,6 @@
 // import Logger from './logger';
 
-import { LOCAL_LOGGER } from '../index';
+import { LOCAL_LOGGER } from './index';
 
 // let alreadyWarned = false;
 

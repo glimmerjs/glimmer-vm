@@ -1,4 +1,4 @@
- 
+
 
 import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
 import { assertNever } from '@glimmer/util';

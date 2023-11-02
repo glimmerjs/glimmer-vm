@@ -1,3 +1,5 @@
+import type { UserException } from '@glimmer/util/lib';
+
 import type { Nullable } from './core';
 
 export type ConstantReference = 0;
@@ -23,6 +25,7 @@ export type ReferenceSymbol = typeof REFERENCE;
 
 export interface Reference<T = unknown> {
   [REFERENCE]: ReferenceType;
+  error: UserException | null;
   debugLabel?: string | undefined;
   debug?: { isPrimitive: boolean } | undefined;
   compute: Nullable<() => T>;

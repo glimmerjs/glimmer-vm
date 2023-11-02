@@ -177,7 +177,7 @@ class Matcher<Out, M extends Matches = Matches> {
   when(
     left: Pattern,
     right: Pattern,
-     
+
     callback: (left: any, right: any) => Out
   ): Matcher<Out, Matches> | ExhaustiveMatcher<Out> {
     this._whens.get(left, () => new When()).add(right, callback);

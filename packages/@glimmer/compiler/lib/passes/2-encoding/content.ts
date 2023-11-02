@@ -9,8 +9,9 @@ import type {
   WellKnownAttrName,
   WireFormat,
 } from '@glimmer/interfaces';
-import { ASTv2 } from '@glimmer/syntax';
 import { LOCAL_TRACE_LOGGING } from '@glimmer/local-debug-flags';
+import { ASTv2 } from '@glimmer/syntax';
+import { SourceSpan } from '@glimmer/syntax/lib/source/span';
 import { exhausted, LOCAL_LOGGER } from '@glimmer/util';
 import { SexpOpcodes } from '@glimmer/wire-format';
 
@@ -18,7 +19,6 @@ import type { OptionalList } from '../../shared/list';
 import { deflateAttrName, deflateTagName } from '../../utils';
 import { EXPR } from './expressions';
 import type * as mir from './mir';
-import { SourceSpan } from '@glimmer/syntax/lib/source/span';
 
 class WireStatements<S extends WireFormat.Statement = WireFormat.Statement> {
   constructor(private statements: readonly S[]) {}

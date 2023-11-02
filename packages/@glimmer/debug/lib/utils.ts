@@ -86,7 +86,7 @@ export const OPERAND_TYPES = [
 ] as const;
 
 export function isOperandType(s: string): s is OperandType {
-  return OPERAND_TYPES.includes(s as any) || OPERAND_TYPES.includes(`${s}?` as any);
+  return OPERAND_TYPES.includes(s as never) || OPERAND_TYPES.includes(`${s}?` as never);
 }
 
 export type OPERAND_TYPE = (typeof OPERAND_TYPES)[number];
@@ -365,7 +365,7 @@ export class MetadataBuilder<
     ) => MetadataBuilder<DebugOpList, T, []>
   ): NormalizedMetadataArray<T> {
     let builder = new MetadataBuilder<DebugOpList, [], DebugOpList>(fillNulls(OpSize));
-    return build(builder).#done() as any;
+    return build(builder).#done() as NormalizedMetadataArray<T>;
   }
 
   #inserting = 0;
@@ -398,7 +398,7 @@ export class MetadataBuilder<
       this.#push(name, normalizedOptions);
     }
 
-    return this as any;
+    return this as never;
   };
 
   #push(name: NameDef, options: NormalizedOptions): void {
@@ -411,6 +411,7 @@ export class MetadataBuilder<
 }
 
 type TupleToParams<T extends unknown[]> = (...args: T) => void;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Slice<T extends unknown[]> = TupleToParams<T> extends (first: any, ...rest: infer Rest) => void
   ? Rest
   : never;

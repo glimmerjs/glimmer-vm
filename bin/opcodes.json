@@ -5,9 +5,10 @@
     "code": "@glimmer/vm/lib/generated/opcodes.ts",
     "debug": "@glimmer/debug/lib/generated/op-list.ts"
   },
-  "machine": ["PushFrame", "PopFrame", "Jump", "ReturnTo", "PopTryFrame", "UnwindTypeFrame"],
+  "machine": ["PushFrame", "PopFrame", "Jump", "ReturnTo", "UnwindTypeFrame"],
   "syscall": [
     "PushTryFrame",
+    "PopTryFrame",
     "InvokeVirtual",
     "InvokeStatic",
     "Return",

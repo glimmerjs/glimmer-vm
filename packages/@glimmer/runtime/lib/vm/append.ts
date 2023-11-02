@@ -1,17 +1,23 @@
+import type { SnapshottableVM, VmDebugState } from '@glimmer/debug';
 import { associateDestroyableChild } from '@glimmer/destroyable';
 import { assertGlobalContextWasSet } from '@glimmer/global-context';
 import type {
+  BlockMetadata,
+  CleanStack,
   CompilableTemplate,
   CompileTimeCompilationContext,
   Destroyable,
   DynamicScope,
   ElementBuilder,
   Environment,
+  InternalStack,
   Nullable,
+  OkResult,
   Owner,
   PartialScope,
   RenderResult,
   ResolutionTimeConstants,
+  Result,
   RichIteratorResult,
   RuntimeConstants,
   RuntimeContext,
@@ -20,11 +26,6 @@ import type {
   Scope,
   UpdatingOpcode,
   VM as PublicVM,
-  Result,
-  OkResult,
-  CleanStack,
-  InternalStack,
-  BlockMetadata,
 } from '@glimmer/interfaces';
 import { LOCAL_TRACE_LOGGING } from '@glimmer/local-debug-flags';
 import {
@@ -33,8 +34,8 @@ import {
   type OpaqueIterator,
   type Reference,
   UNDEFINED_REFERENCE,
-  valueForRef,
 } from '@glimmer/reference';
+import { tryValueForRef } from '@glimmer/reference/lib/reference';
 import {
   assert,
   expect,
@@ -45,8 +46,8 @@ import {
   unwrapHandle,
 } from '@glimmer/util';
 import { beginTrackFrame, endTrackFrame, resetTracking } from '@glimmer/validator';
-import { $s0, $s1, $t0, $t1, $v0, isLowLevelRegister } from '@glimmer/vm';
 import type { MachineRegister, Register, SyscallRegister } from '@glimmer/vm';
+import { $s0, $s1, $t0, $t1, $v0, isLowLevelRegister } from '@glimmer/vm';
 
 import {
   BeginTrackFrameOpcode,
@@ -56,10 +57,12 @@ import {
 import { PartialScopeImpl } from '../scope';
 import { ARGS, CONSTANTS, HEAP, STACKS } from '../symbols';
 import { VMArgumentsImpl } from './arguments';
+import { debugInit } from './debug/debug';
 import type { LiveBlockList } from './element-builder';
-import { LowLevelVM, type ArgumentsStack } from './low-level';
+import { type ArgumentsStack, LowLevelVM } from './low-level';
 import RenderResultImpl from './render-result';
 import EvaluationStackImpl from './stack';
+import { type ErrorHandler, type TargetState, UnwindTarget } from './unwind';
 import {
   type BlockOpcode,
   ListBlockOpcode,
@@ -69,9 +72,6 @@ import {
   TryOpcode,
   type VMState,
 } from './update';
-import { UnwindTarget, type ErrorHandler } from './unwind';
-import { debugInit } from './debug/debug';
-import type { SnapshottableVM, VmDebugState } from '@glimmer/debug';
 
 /**
  * This interface is used by internal opcodes, and is more stable than
@@ -157,6 +157,7 @@ export interface InternalVM {
   return(): void;
   pushFrame(): void;
   pushTryFrame(catchPc: number, handler: Nullable<ErrorHandler>): void;
+  popTryFrame(): void;
 
   referenceForSymbol(symbol: number): Reference;
   deref<T>(reference: Reference<T>): Result<T>;
@@ -383,7 +384,18 @@ export class VM implements PublicVM, InternalVM, SnapshottableVM {
    * Open an error recovery boundary.
    */
   pushTryFrame(catchPc: number, handler: Nullable<ErrorHandler>) {
+    this.elements().pushTryFrame();
     this.#inner.beginTry(catchPc, handler);
+  }
+
+  popTryFrame(): void {
+    this.elements().popTryFrame();
+    this.#inner.popTryFrame();
+  }
+
+  userException(error: unknown): TargetState {
+    this.elements().catch();
+    return this.#inner.userException(error);
   }
 
   // Jump to an address in `program`
@@ -688,7 +700,7 @@ export class VM implements PublicVM, InternalVM, SnapshottableVM {
     return this.scope().owner;
   }
 
-  getSelf(): Reference<any> {
+  getSelf(): Reference<unknown> {
     return this.scope().getSelf();
   }
 
@@ -706,11 +718,12 @@ export class VM implements PublicVM, InternalVM, SnapshottableVM {
     reference: Reference<unknown>,
     map?: undefined | ((value: unknown) => unknown)
   ): Result<unknown> {
-    try {
-      const value = valueForRef(reference);
-      return { type: 'ok', value: map ? map(value) : value };
-    } catch (e) {
-      return { type: 'err', value: e };
+    const result = tryValueForRef(reference);
+
+    if (map && result.type === 'ok') {
+      return { type: 'ok', value: map(result.value) };
+    } else {
+      return result;
     }
   }
 
@@ -737,7 +750,7 @@ export class VM implements PublicVM, InternalVM, SnapshottableVM {
       return true;
     }
 
-    const { handler } = this.#inner.userException(result.value);
+    const { handler } = this.userException(result.value);
 
     if (handler) {
       this.env.scheduleAfterRender(() => {

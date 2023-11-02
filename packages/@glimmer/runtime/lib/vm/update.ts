@@ -8,13 +8,13 @@ import type {
   GlimmerTreeChanges,
   LiveBlock,
   Nullable,
+  Result,
   RuntimeContext,
   Scope,
   SimpleComment,
   UpdatableBlock,
   UpdatingOpcode,
   UpdatingVM as IUpdatingVM,
-  Result,
 } from '@glimmer/interfaces';
 import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
 import {

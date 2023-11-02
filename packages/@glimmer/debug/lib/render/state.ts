@@ -1,32 +1,34 @@
 import type {
-  Dict,
-  DebugVmSnapshot,
   BlockMetadata,
+  DebugVmSnapshot,
+  Dict,
   RuntimeConstants,
   RuntimeHeap,
+  SnapshotArray,
 } from '@glimmer/interfaces';
-import {
-  array,
-  liveBlock,
-  pick,
-  scopeValue,
-  describeDiff,
-  diffStacks,
-  eqStack,
-  stackValue,
-} from './combinators';
+import { decodeHandle } from '@glimmer/util';
+
 import {
   debug,
   type DebugConstants,
   type OpSnapshot,
   type SomeDisassembledOperand,
 } from '../debug';
-import type { Fragment } from './fragment';
 import type { OpcodeMetadata, StackSpec } from '../metadata';
 import { opcodeMetadata } from '../opcode-metadata';
-import { type IntoFragment, frag, as, join, value, intoFragment } from './presets';
+import {
+  array,
+  describeDiff,
+  diffStacks,
+  eqStack,
+  liveBlock,
+  pick,
+  scopeValue,
+  stackValue,
+} from './combinators';
+import type { Fragment } from './fragment';
+import { as, frag, type IntoFragment, intoFragment, join, value } from './presets';
 import { SerializeBlockContext } from './serialize';
-import { decodeHandle } from '@glimmer/util';
 
 const HEADER_SIZE = 2;
 
@@ -49,11 +51,11 @@ export class DebugState {
     return this.constants.getArray<T>(decodeHandle(handle));
   }
 
-  get stack() {
-    return this.rawStack.slice(HEADER_SIZE);
+  get stack(): SnapshotArray<unknown> {
+    return this.rawStack;
   }
 
-  get rawStack() {
+  get rawStack(): SnapshotArray<unknown> {
     return this.#state.frame.stack;
   }
 
@@ -267,8 +269,8 @@ export class DiffState {
   }
 
   frame(spec: StackSpec): Fragment {
-    const before = this.#before?.stack ?? [];
-    const after = this.#after?.stack ?? [];
+    const before: SnapshotArray<unknown> = this.#before?.stack ?? ([] as const);
+    const after: SnapshotArray<unknown> = this.#after?.stack ?? ([] as const);
 
     if (spec.type === 'delta' || spec.type === 'unchecked') {
       if (eqStack(before, after)) {
@@ -318,7 +320,10 @@ export class DiffState {
   }
 }
 
-function partitionFromEnd<T>(array: T[], position: number): { before: T[]; after: T[] } {
+function partitionFromEnd<T>(
+  array: readonly T[],
+  position: number
+): { before: readonly T[]; after: readonly T[] } {
   if (position === 0) {
     return { before: array, after: [] };
   } else {

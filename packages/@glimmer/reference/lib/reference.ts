@@ -7,9 +7,11 @@ import type {
   Reference,
   ReferenceSymbol,
   ReferenceType,
+  Result,
   UnboundReference,
 } from '@glimmer/interfaces';
-import { expect, isDict } from '@glimmer/util';
+import { hasFlagWith } from '@glimmer/local-debug-flags';
+import { Err, expect, isDict, LOCAL_LOGGER, Ok, UserException } from '@glimmer/util';
 import {
   CONSTANT_TAG,
   consumeTag,
@@ -40,6 +42,9 @@ export interface ReferenceEnvironment {
 
 class ReferenceImpl<T = unknown> implements Reference<T> {
   [REFERENCE]: ReferenceType;
+
+  public error: UserException | null = null;
+
   public tag: Nullable<Tag> = null;
   public lastRevision: Revision = INITIAL;
   public lastValue?: T;
@@ -154,7 +159,57 @@ export function isUpdatableRef(_ref: Reference) {
   return ref.update !== null;
 }
 
+export function tryValueForRef<T>(_ref: Reference<T>): Result<T> {
+  if (_ref.error) {
+    return Err(_ref.error);
+  }
+
+  try {
+    return Ok(throwingValueForRef(_ref));
+  } catch (e) {
+    _ref.error = new UserException(e, 'Error in tryValueForRef');
+    return Err(e);
+  }
+}
+
+export function clearRefError(_ref: Reference) {
+  _ref.error = null;
+}
+
+/**
+ * This function returns the value of a reference, throwing if the reference throws.
+ *
+ * In general, you want to use `tryValueForRef` instead of this function. If you want to see where this function is
+ * getting called, you can enable `audit_logging` flags:
+ *
+ * 1. `audit_logging=infallible_deref`: this will log a trace every time `valueForRef` is called, whether or not the
+ *    reference throws.
+ * 2. `audit_logging=throwing_deref`: this will log a trace every time `valueForRef` is called, but only if the
+ *    reference throws.
+ */
 export function valueForRef<T>(_ref: Reference<T>): T {
+  if (hasFlagWith('audit_logging', 'infallible_deref')) {
+    LOCAL_LOGGER.trace('infallible deref ', _ref);
+  }
+
+  if (hasFlagWith('audit_logging', 'throwing_deref')) {
+    let succeeded = false;
+
+    try {
+      const result = throwingValueForRef(_ref);
+      succeeded = true;
+      return result;
+    } finally {
+      if (succeeded === false) {
+        LOCAL_LOGGER.trace('deref threw', _ref);
+      }
+    }
+  } else {
+    return throwingValueForRef(_ref);
+  }
+}
+
+function throwingValueForRef<T>(_ref: Reference<T>): T {
   const ref = _ref as ReferenceImpl<T>;
 
   let { tag } = ref;

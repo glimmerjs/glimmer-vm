@@ -10,7 +10,7 @@ import type {
 } from '@glimmer/interfaces';
 
 // Make assignment fail in both directions (univariant).
-type SnapshotArray<T = unknown> = readonly T[] & { push? :never };
+type SnapshotArray<T = unknown> = readonly T[] & { push?: never };
 
 export interface DebugVmSnapshot {
   $pc: number;
@@ -50,7 +50,7 @@ export interface DebugVmSnapshot {
     before: SnapshotArray;
   };
 
-  readonly threw: boolean;
+  readonly threw: Error | undefined;
   readonly destroyable: SnapshotArray<object>;
 }
 

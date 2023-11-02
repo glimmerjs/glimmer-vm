@@ -1,12 +1,13 @@
-import type { DebugState } from '../../render/state';
-import { valueForRef, type Reference } from '@glimmer/reference';
 import type { CompilableBlock, Nullable, Scope, ScopeBlock } from '@glimmer/interfaces';
+import { type Reference,valueForRef } from '@glimmer/reference';
 import type { BlockSymbolTable } from '@glimmer/syntax';
-import { define } from './define-runtime-value';
-import { MISMATCH, ok } from './shared';
+import type { AnyFunction } from '@glimmer/util';
+
+import type { DebugState } from '../../render/state';
 import { isReference } from '../../utils';
 import type { FallibleCheckResult } from '../types';
-import type { AnyFunction } from '@glimmer/util';
+import { define } from './define-runtime-value';
+import { MISMATCH, ok } from './shared';
 
 export const RegisterRa = define(
   'register/ra',

@@ -1,13 +1,13 @@
 import {
   check,
   CheckBlockSymbolTable,
+  type Checker,
+  CheckFunction,
   CheckHandle,
-  CheckNumber,
   CheckNullable,
+  CheckNumber,
   CheckPrimitive,
   CheckSyscallRegister,
-  CheckFunction,
-  type Checker,
 } from '@glimmer/debug';
 import { toBool } from '@glimmer/global-context';
 import type { CompilableTemplate, Nullable, Result, UpdatingOpcode } from '@glimmer/interfaces';
@@ -41,9 +41,9 @@ import { APPEND_OPCODES } from '../../opcodes';
 import { CONSTANTS } from '../../symbols';
 import type { UpdatingVM } from '../../vm';
 import type { InternalVM } from '../../vm/append';
+import type { ErrorHandler } from '../../vm/unwind';
 import { CheckArguments, CheckReference, CheckScope } from './-debug-strip';
 import { stackAssert } from './assert';
-import type { ErrorHandler } from '../../vm/unwind';
 
 APPEND_OPCODES.add(Op.PushTryFrame, (vm, { op1: catchPc }) => {
   const handler = check(vm.stack.pop(), CheckNullable(CheckReference));
@@ -62,6 +62,10 @@ APPEND_OPCODES.add(Op.PushTryFrame, (vm, { op1: catchPc }) => {
       );
     }
   }
+});
+
+APPEND_OPCODES.add(Op.PopTryFrame, (vm) => {
+  vm.popTryFrame();
 });
 
 APPEND_OPCODES.add(Op.ChildScope, (vm) => vm.pushChildScope());

@@ -102,6 +102,10 @@ export interface ElementBuilder extends Cursor, DOMStack, TreeOperations {
 
   readonly hasBlocks: boolean;
 
+  pushTryFrame(): void;
+  popTryFrame(): void;
+  catch(): void;
+
   pushSimpleBlock(): LiveBlock;
   pushUpdatableBlock(): UpdatableBlock;
   pushBlockList(list: Bounds[]): LiveBlock;

@@ -1,5 +1,4 @@
 import type {
-  TransactionSymbol,
   ComponentInstanceWithCreate,
   Environment,
   EnvironmentOptions,
@@ -11,6 +10,7 @@ import type {
   RuntimeContext,
   RuntimeResolver,
   Transaction,
+  TransactionSymbol,
 } from '@glimmer/interfaces';
 import { RuntimeProgramImpl } from '@glimmer/program';
 import { assert, expect } from '@glimmer/util';

@@ -1,4 +1,4 @@
- 
+
 import type { PresentArray } from '@glimmer/interfaces';
 import { getFirst, getLast, isPresentArray } from '@glimmer/util';
 

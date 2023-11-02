@@ -3,7 +3,7 @@ import type { Dict, Nullable, Optional, RuntimeOp, VmMachineOp, VmOp } from '@gl
 import { assert, expect, fillNulls } from '@glimmer/util';
 import { OpSize } from '@glimmer/vm';
 
-import type { VM, LowLevelVM } from './vm';
+import type { LowLevelVM,VM } from './vm';
 import type { InternalVM } from './vm/append';
 
 export interface OpcodeJSON {

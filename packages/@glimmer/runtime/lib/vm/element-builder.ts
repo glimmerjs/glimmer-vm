@@ -1,6 +1,5 @@
 import { destroy, registerDestructor } from '@glimmer/destroyable';
 import type {
-  LiveBlock,
   AttrNamespace,
   Bounds,
   Cursor,
@@ -9,6 +8,7 @@ import type {
   Environment,
   GlimmerTreeChanges,
   GlimmerTreeConstruction,
+  LiveBlock,
   LiveBlockDebug,
   Maybe,
   ModifierInstance,
@@ -93,6 +93,37 @@ export class Fragment implements Bounds {
   }
 }
 
+class TryState {
+  static root(element: SimpleElement) {
+    return new TryState(new SimpleLiveBlock(element), null);
+  }
+
+  #block: SimpleLiveBlock;
+  #parent: TryState | null;
+
+  constructor(block: SimpleLiveBlock, parent: TryState | null) {
+    this.#parent = parent;
+    this.#block = block;
+  }
+
+  get block(): SimpleLiveBlock {
+    return this.#block;
+  }
+
+  child(element: SimpleElement) {
+    return new TryState(new SimpleLiveBlock(element), this);
+  }
+
+  catch() {
+    clear(this.#block);
+    return this.#parent;
+  }
+
+  finally() {
+    return this.#parent;
+  }
+}
+
 export abstract class AbstractElementBuilder<C extends Cursor> implements ElementBuilder {
   static forInitialRender<
     This extends new (
@@ -114,6 +145,7 @@ export abstract class AbstractElementBuilder<C extends Cursor> implements Elemen
   readonly #cursors = new Stack<C>();
   private modifierStack = new Stack<Nullable<ModifierInstance[]>>();
   private blockStack = new Stack<LiveBlock>();
+  #try: TryState;
 
   constructor(env: Environment, parentNode: SimpleElement, nextSibling: Nullable<SimpleNode>) {
     this.pushElement(parentNode, nextSibling);
@@ -121,6 +153,7 @@ export abstract class AbstractElementBuilder<C extends Cursor> implements Elemen
     this.env = env;
     this.dom = env.getAppendOperations();
     this.updateOperations = env.getDOM();
+    this.#try = TryState.root(parentNode);
   }
 
   protected abstract createCursor(element: SimpleElement, nextSibling: Nullable<SimpleNode>): C;
@@ -131,6 +164,24 @@ export abstract class AbstractElementBuilder<C extends Cursor> implements Elemen
 
   get currentCursor(): Nullable<C> {
     return this.#cursors.current;
+  }
+
+  pushTryFrame(): void {
+    this.#try = this.#try.child(this.element);
+  }
+
+  popTryFrame(): void {
+    this.#try = expect(
+      this.#try.finally(),
+      `BUG: The element builder is initialized with a root try block, so it should be impossible to pop the last try frame.`
+    );
+  }
+
+  catch(): void {
+    this.#try = expect(
+      this.#try.catch(),
+      `BUG: The element builder is initialized with a root try block, so it should be impossible to pop the last try frame.`
+    );
   }
 
   pushCursor(cursor: C): void {
@@ -289,21 +340,25 @@ export abstract class AbstractElementBuilder<C extends Cursor> implements Elemen
   }
 
   didAppendBounds(bounds: Bounds): Bounds {
+    this.#try.block.didAppendBounds(bounds);
     this.block().didAppendBounds(bounds);
     return bounds;
   }
 
   didAppendNode<T extends SimpleNode>(node: T): T {
+    this.#try.block.didAppendNode(node);
     this.block().didAppendNode(node);
     return node;
   }
 
   didOpenElement(element: SimpleElement): SimpleElement {
+    this.#try.block.openElement(element);
     this.block().openElement(element);
     return element;
   }
 
   willCloseElement() {
+    this.#try.block.closeElement();
     this.block().closeElement();
   }
 
@@ -385,7 +440,7 @@ export abstract class AbstractElementBuilder<C extends Cursor> implements Elemen
   }
 
   __setProperty(name: string, value: unknown): void {
-    (this.constructing! as any)[name] = value;
+    Reflect.set(this.constructing!, name, value);
   }
 
   setStaticAttribute(name: string, value: string, namespace: Nullable<AttrNamespace>): void {

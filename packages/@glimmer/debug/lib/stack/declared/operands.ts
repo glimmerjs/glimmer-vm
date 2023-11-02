@@ -1,21 +1,22 @@
-import type { Primitive } from '../../stack-check';
+import type { ComponentDefinition, Nullable } from '@glimmer/interfaces';
 import { decodeHandle, decodeImmediate, isHandle } from '@glimmer/util';
 import {
-  $s0,
   $fp,
+  $s0,
   $s1,
+  $sp,
   $t0,
   $t1,
   $v0,
-  $sp,
   CURRIED_COMPONENT,
   CURRIED_HELPER,
   CURRIED_MODIFIER,
 } from '@glimmer/vm';
-import type { ComponentDefinition, Nullable } from '@glimmer/interfaces';
-import { MISMATCH, ok } from './shared';
-import type { AnyFunction } from './shared';
+
+import type { Primitive } from '../../stack-check';
 import { define, nullable } from './define-operand';
+import type { AnyFunction } from './shared';
+import { MISMATCH, ok } from './shared';
 
 export const ImmU32 = define('unsigned', (value) => {
   return value;

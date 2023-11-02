@@ -1,4 +1,5 @@
 import type { Result } from '@glimmer/interfaces';
+import { Ok } from '@glimmer/util';
 
 export interface TargetState {
   ip: number;
@@ -44,7 +45,12 @@ export class UnwindTarget {
     return this.#target;
   }
 
-  get error(): Result<void> {
+  /**
+   * Returns the error caught by the VM, but only if it hasn't been handled.
+   */
+  get unhandled(): Result<void> {
+    // If the error is already handled, don't return it.
+    if (this.#target.handler) return Ok(undefined);
     return this.#error;
   }
 }

@@ -15,6 +15,9 @@ module.exports = {
       },
       plugins: ['@glimmer-workspace'],
       extends: ['plugin:@glimmer-workspace/recommended'],
+      rules: {
+        'n/no-unpublished-import': 'off',
+      },
     },
     // QUnit is a weird package, and there are some issues open about fixing it
     // - https://github.com/qunitjs/qunit/issues/1729

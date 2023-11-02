@@ -20,9 +20,10 @@ import {
   jitSuite,
   OPEN,
   RehydrationDelegate,
+  render,
   replaceHTML,
   strip,
-  test,
+  suite,
   testSuite,
   toInnerHTML,
   toTextContent,
@@ -87,10 +88,9 @@ class AbstractRehydrationTests extends InitialRenderSuite {
   }
 }
 
+@suite('Rehydration')
 class Rehydration extends AbstractRehydrationTests {
-  static override suiteName = 'rehydration';
-
-  @test
+  @render
   'rehydrates into element with pre-existing content'() {
     let rootElement = this.delegate.serverDoc.createElement('div');
     let extraContent = this.delegate.serverDoc.createElement('noscript');
@@ -106,7 +106,7 @@ class Rehydration extends AbstractRehydrationTests {
     this.assertStableNodes();
   }
 
-  @test
+  @render
   'handles non-empty trusted content (triple-curlies)'() {
     let template = '<div>{{{this.value}}}</div>';
     let obj: { value: string } = { value: 'foo' };
@@ -115,7 +115,7 @@ class Rehydration extends AbstractRehydrationTests {
     this.assertHTML('<div>foo</div>');
   }
 
-  @test
+  @render
   'handles empty trusted content (triple-curlies)'() {
     let template = '<div>{{{this.value}}}</div>';
     let obj: { value: string } = { value: '' };
@@ -124,7 +124,7 @@ class Rehydration extends AbstractRehydrationTests {
     this.assertHTML('<div></div>');
   }
 
-  @test
+  @render
   'handles empty trusted content (html safe string)'() {
     let template = '<div>{{this.value}}</div>';
 
@@ -140,7 +140,7 @@ class Rehydration extends AbstractRehydrationTests {
     this.assertHTML('<div></div>');
   }
 
-  @test
+  @render
   'table with omitted tbody'() {
     let template = '<table><tr><td>standards</td></tr></table>';
     this.renderServerSide(template, {});
@@ -151,7 +151,7 @@ class Rehydration extends AbstractRehydrationTests {
     this.assertStableNodes();
   }
 
-  @test
+  @render
   'table with thead'() {
     let template = '<table><thead><tr><th>standards</th></tr></thead></table>';
     this.renderServerSide(template, {});
@@ -162,7 +162,7 @@ class Rehydration extends AbstractRehydrationTests {
     this.assertStableNodes();
   }
 
-  @test
+  @render
   'table with tfoot'() {
     let template = '<table><tfoot><tr><th>standards</th></tr></tfoot></table>';
     this.renderServerSide(template, {});
@@ -173,7 +173,7 @@ class Rehydration extends AbstractRehydrationTests {
     this.assertStableNodes();
   }
 
-  @test
+  @render
   'mismatched text nodes'() {
     let template = '{{this.content}}';
     this.renderServerSide(template, { content: 'hello' });
@@ -186,7 +186,7 @@ class Rehydration extends AbstractRehydrationTests {
     this.assertStableRerender();
   }
 
-  @test
+  @render
   'mismatched text nodes (server-render empty)'() {
     let template = '{{this.content}} world';
     this.renderServerSide(template, { content: '' });
@@ -202,7 +202,7 @@ class Rehydration extends AbstractRehydrationTests {
     this.assertStableRerender();
   }
 
-  @test
+  @render
   'missing closing block within multiple text nodes'() {
     let template = '<div>a {{this.b}}{{this.c}}{{this.d}}</div>';
     let context = { b: '', c: '', d: '' };
@@ -229,7 +229,7 @@ class Rehydration extends AbstractRehydrationTests {
     this.assertStableRerender();
   }
 
-  @test
+  @render
   'resumes correct block after reenabling rehydration'() {
     let template = strip`
       <div>
@@ -263,7 +263,7 @@ class Rehydration extends AbstractRehydrationTests {
     this.assertStableRerender();
   }
 
-  @test
+  @render
   'mismatched elements'() {
     let template = '{{#if this.admin}}<div>hi admin</div>{{else}}<p>HAXOR</p>{{/if}}';
     this.renderServerSide(template, { admin: true });
@@ -275,7 +275,7 @@ class Rehydration extends AbstractRehydrationTests {
     this.assertStableRerender();
   }
 
-  @test
+  @render
   'text nodes surrounding single line handlebars comments'() {
     let template = 'hello{{! hmm, why is this here?! }} world';
     this.renderServerSide(template, {});
@@ -287,7 +287,7 @@ class Rehydration extends AbstractRehydrationTests {
     this.assertStableRerender();
   }
 
-  @test
+  @render
   'text nodes surrounding multi line handlebars comments'() {
     let template = 'hello{{!-- hmm, why is this here?! --}} world';
     this.renderServerSide(template, {});
@@ -299,7 +299,7 @@ class Rehydration extends AbstractRehydrationTests {
     this.assertStableRerender();
   }
 
-  @test
+  @render
   'text nodes surrounding "stand alone" handlebars comment'() {
     let template = '<div></div>\n{{! hmm, why is this here?! }}\n<div></div>';
     this.renderServerSide(template, {});
@@ -311,7 +311,7 @@ class Rehydration extends AbstractRehydrationTests {
     this.assertStableRerender();
   }
 
-  @test
+  @render
   'extra nodes at the end'() {
     let template =
       '{{#if this.admin}}<div>hi admin</div>{{else}}<div>HAXOR{{this.stopHaxing}}</div>{{/if}}';
@@ -324,7 +324,7 @@ class Rehydration extends AbstractRehydrationTests {
     this.assertStableRerender();
   }
 
-  @test
+  @render
   'missing attributes'() {
     let template = '<div data-foo="true"></div>';
     this.renderServerSide(template, {});
@@ -341,7 +341,7 @@ class Rehydration extends AbstractRehydrationTests {
     this.assertStableRerender();
   }
 
-  @test
+  @render
   'remove extra attributes'() {
     let template = '<div data-foo="true"></div>';
     this.renderServerSide(template, {});
@@ -358,7 +358,7 @@ class Rehydration extends AbstractRehydrationTests {
     this.assertStableRerender();
   }
 
-  @test
+  @render
   'updates attribute to current value'() {
     let template = '<div class="always-present show-me"></div>';
     this.renderServerSide(template, {});
@@ -375,7 +375,7 @@ class Rehydration extends AbstractRehydrationTests {
     this.assertStableRerender();
   }
 
-  @test
+  @render
   'does not mutate attributes that already match'() {
     let observer = new MutationObserver((mutationList) => {
       mutationList.forEach((mutation) => {
@@ -399,7 +399,7 @@ class Rehydration extends AbstractRehydrationTests {
     this.assertStableRerender();
   }
 
-  @test
+  @render
   'Node curlies'() {
     let template = '<div>{{this.node}}</div>';
 
@@ -425,7 +425,7 @@ class Rehydration extends AbstractRehydrationTests {
     this.assertStableNodes({ except: clientNode2 });
   }
 
-  @test
+  @render
   'in-element can rehydrate'() {
     let template = strip`
       <outer><prefix></prefix>
@@ -464,7 +464,7 @@ class Rehydration extends AbstractRehydrationTests {
     this.assert.strictEqual(toInnerHTML(clientRemote), '<inner>Wat Wat</inner>');
   }
 
-  @test
+  @render
   'in-element with insertBefore=null can rehydrate'() {
     let template = strip`
       <outer><prefix></prefix>
@@ -506,7 +506,7 @@ class Rehydration extends AbstractRehydrationTests {
     );
   }
 
-  @test
+  @render
   'in-element with insertBefore=element can rehydrate'() {
     let template = strip`
       <outer><prefix></prefix>
@@ -551,7 +551,7 @@ class Rehydration extends AbstractRehydrationTests {
     );
   }
 
-  @test
+  @render
   'in-element can rehydrate into pre-existing content'() {
     let template = strip`
       <outer>
@@ -577,7 +577,7 @@ class Rehydration extends AbstractRehydrationTests {
     this.assert.strictEqual(toInnerHTML(clientRemote), '<inner>Wat Wat</inner>');
   }
 
-  @test
+  @render
   'in-element with insertBefore=null can rehydrate into pre-existing content'() {
     let template = strip`
       <outer>
@@ -608,7 +608,7 @@ class Rehydration extends AbstractRehydrationTests {
     );
   }
 
-  @test
+  @render
   'in-element with insertBefore=element can rehydrate into pre-existing content'() {
     let template = strip`
       <outer>
@@ -646,7 +646,7 @@ class Rehydration extends AbstractRehydrationTests {
     );
   }
 
-  @test
+  @render
   'nested in-element can rehydrate'() {
     let template = strip`
     <outer>
@@ -701,7 +701,7 @@ class Rehydration extends AbstractRehydrationTests {
     this.assert.strictEqual(toInnerHTML(clientRemoteChild), 'Wat Wat');
   }
 
-  @test
+  @render
   'svg elements'() {
     let template = '<svg>{{#if this.isTrue}}<circle />{{/if}}</svg><p>Hello</p>';
     this.renderServerSide(template, { isTrue: true });
@@ -727,7 +727,7 @@ class Rehydration extends AbstractRehydrationTests {
     this.assertStableRerender();
   }
 
-  @test
+  @render
   'title tag'() {
     let template =
       '<title>{{this.pageTitle}} some {{{this.other}}}{{this.thing}} <b>hey!</b></title>';
@@ -750,7 +750,7 @@ class Rehydration extends AbstractRehydrationTests {
     this.assertStableRerender();
   }
 
-  @test
+  @render
   'script tag'() {
     let template = strip`
       <script type="application/ld+json">{{this.data}}</script>
@@ -783,7 +783,7 @@ class Rehydration extends AbstractRehydrationTests {
     this.assertStableRerender();
   }
 
-  @test
+  @render
   'style tag'() {
     let template = '<style>{{this.selector}} { color: #fff; }</style>';
     this.renderServerSide(template, { selector: 'div' });
@@ -805,7 +805,7 @@ class Rehydration extends AbstractRehydrationTests {
     this.assertStableRerender();
   }
 
-  @test
+  @render
   'clearing bounds'() {
     let template = strip`
       {{#if this.isTrue}}
@@ -856,7 +856,7 @@ class Rehydration extends AbstractRehydrationTests {
     this.assertStableRerender();
   }
 
-  @test
+  @render
   'top-level clearing bounds'() {
     let template = strip`
       <top>
@@ -923,7 +923,7 @@ class Rehydration extends AbstractRehydrationTests {
     this.assertStableRerender();
   }
 
-  @test
+  @render
   '#each rehydration'() {
     let template = "{{#each this.items key='id' as |item|}}<p>{{item}}</p>{{/each}}";
     this.renderServerSide(template, { items: [1, 2, 3] });
@@ -969,6 +969,14 @@ class Rehydration extends AbstractRehydrationTests {
   }
 }
 
+// On the server, elements come after block start boundaries.
+const SERVER_ELEMENT_OFFSET = 2;
+
+// the Dynamic test type is using {{component 'foo'}} style invocation
+// and therefore an extra node is added delineating the block start
+const SERVER_DYNAMIC_OFFSET = 3;
+
+@suite('Rehydrating components')
 class RehydratingComponents extends AbstractRehydrationTests {
   _buildComponent(blueprint: ComponentBlueprint, properties: Dict<unknown> = {}) {
     let template = this.buildComponent(blueprint);
@@ -978,46 +986,24 @@ class RehydratingComponents extends AbstractRehydrationTests {
     return template;
   }
 
-  assertServerComponent(html: string, _attrs: Object = {}) {
-    let elementIndex = this.testType === 'Dynamic' ? 3 : 2;
-
-    const ELEMENT_OFFSET = 2;
-
-    // the Dynamic test type is using {{component 'foo'}} style invocation
-    // and therefore an extra node is added delineating the block start
-    const DYNAMIC_OFFSET = 1;
+  assertServerComponent(html: string, attrs?: Dict) {
+    let elementIndex = this.testType === 'Dynamic' ? SERVER_DYNAMIC_OFFSET : SERVER_ELEMENT_OFFSET;
 
     let element = assertingElement(this.element.childNodes[elementIndex]);
 
     switch (this.testType) {
       case 'TemplateOnly':
-        assertElementShape(
-          element,
-          'div',
-          assertingElement(this.element.childNodes[ELEMENT_OFFSET])
-        );
+        assertElementShape(element, 'div', attrs ?? {}, html);
         break;
 
       case 'Glimmer':
-        assertElementShape(
-          element,
-          'div',
-          assertingElement(this.element.childNodes[ELEMENT_OFFSET])
-        );
+        assertElementShape(element, 'div', attrs ?? {}, html);
         break;
       case 'Curly':
-        assertEmberishElement(
-          element,
-          'div',
-          assertingElement(this.element.childNodes[ELEMENT_OFFSET])
-        );
+        assertEmberishElement(element, 'div', attrs, html);
         break;
       case 'Dynamic':
-        assertEmberishElement(
-          element,
-          'div',
-          assertingElement(this.element.childNodes[DYNAMIC_OFFSET])
-        );
+        assertEmberishElement(element, 'div', attrs, html);
         break;
     }
   }
@@ -1032,7 +1018,7 @@ class RehydratingComponents extends AbstractRehydrationTests {
     super.renderClientSide(template, properties);
   }
 
-  @test
+  @render
   'Component invocations'() {
     let layout = 'Hello {{@name}}';
     let args = { name: 'this.name' };
@@ -1059,7 +1045,7 @@ class RehydratingComponents extends AbstractRehydrationTests {
     this.assertStableRerender();
   }
 
-  @test
+  @render
   'Mismatched Component invocations'() {
     let layout = 'Hello {{@name}}';
     let args = { name: 'this.name' };
@@ -1086,7 +1072,7 @@ class RehydratingComponents extends AbstractRehydrationTests {
     this.assertStableRerender();
   }
 
-  @test
+  @render
   '<p> invoking a block which emits a <div>'() {
     let componentToRender = {
       layout: '<p>hello {{#if @show}}<div>world!</div>{{/if}}</p>',
@@ -1113,7 +1099,7 @@ class RehydratingComponents extends AbstractRehydrationTests {
     this.assertStableNodes();
   }
 
-  @test
+  @render
   'Component invocations with block params'() {
     let layout = 'Hello {{yield @name}}';
     let template = '{{this.name}}';
@@ -1147,7 +1133,7 @@ class RehydratingComponents extends AbstractRehydrationTests {
     this.assertStableRerender();
   }
 
-  @test
+  @render
   'Mismatched Component invocations with block params'() {
     let layout = 'Hello {{yield @name}}';
     let template = '{{this.name}}';
@@ -1181,7 +1167,7 @@ class RehydratingComponents extends AbstractRehydrationTests {
     this.assertStableRerender();
   }
 
-  @test
+  @render
   'Component invocations with template'() {
     let layout = 'Hello {{yield}}';
     let template = 'Filewatcher';
@@ -1203,7 +1189,7 @@ class RehydratingComponents extends AbstractRehydrationTests {
     this.assertStableRerender();
   }
 
-  @test
+  @render
   'Mismatched Component invocations with template'() {
     let layout = 'Hello {{yield}}';
     let template = 'Filewatcher';
@@ -1222,7 +1208,7 @@ class RehydratingComponents extends AbstractRehydrationTests {
     this.assertStableRerender();
   }
 
-  @test
+  @render
   'Component invocations with empty args'() {
     let layout = 'Hello {{@foo}}';
     this.renderServerSide({
@@ -1240,7 +1226,7 @@ class RehydratingComponents extends AbstractRehydrationTests {
     this.assertStableRerender();
   }
 
-  @test
+  @render
   'Multiple invocations'() {
     let name;
     let template;
@@ -1282,7 +1268,7 @@ class RehydratingComponents extends AbstractRehydrationTests {
     this.assertStableRerender();
   }
 
-  @test
+  @render
   'Mismatched Multiple invocations'() {
     let name;
     let template;
@@ -1328,7 +1314,7 @@ class RehydratingComponents extends AbstractRehydrationTests {
     this.assertStableRerender();
   }
 
-  @test
+  @render
   'interacting with builtins'() {
     let layout = strip`
       <ul>
@@ -1428,7 +1414,7 @@ class RehydratingComponents extends AbstractRehydrationTests {
     this.assertStableRerender();
   }
 
-  @test
+  @render
   'mismatched interacting with builtins'() {
     let layout = strip`
       <ul>
@@ -1527,7 +1513,7 @@ class RehydratingComponents extends AbstractRehydrationTests {
     this.assertComponent('<ul><li>Industry</li><li>Standard</li><li>Components</li></ul>');
   }
 
-  @test
+  @render
   'mismatched blocks interacting with builtins'() {
     let layout = strip`
       <ul>
@@ -1644,4 +1630,5 @@ class RehydratingComponents extends AbstractRehydrationTests {
 
 testSuite(Rehydration, RehydrationDelegate);
 jitSuite(RenderTests, { test: ['error-recovery'] });
+
 componentSuite(RehydratingComponents, RehydrationDelegate);

@@ -22,6 +22,9 @@ module.exports = {
           tryExtensions: ['.cjs', '.js', '.ts', '.d.ts', '.json'],
         },
       },
+      env: {
+        es6: true,
+      },
       plugins: [
         '@typescript-eslint',
         'prettier',
@@ -46,6 +49,7 @@ module.exports = {
       rules: {
         'prefer-arrow-callback': 'error',
         'no-restricted-imports': 'off',
+        'no-inner-declarations': 'off',
         '@typescript-eslint/no-restricted-imports': [
           'error',
           {

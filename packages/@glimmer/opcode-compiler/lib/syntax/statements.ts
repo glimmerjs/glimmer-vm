@@ -5,7 +5,7 @@ import type {
   WellKnownTagName,
   WireFormat,
 } from '@glimmer/interfaces';
-import { $fp, $sp, Op, COMPONENT_CONTENT, HELPER_CONTENT } from '@glimmer/vm';
+import { $fp, $sp, COMPONENT_CONTENT, HELPER_CONTENT, Op } from '@glimmer/vm';
 import { SexpOpcodes } from '@glimmer/wire-format';
 
 import {
@@ -278,10 +278,9 @@ STATEMENTS.add(SexpOpcodes.HandleError, (op, [, handler, block, _inverse]) => {
     // );
     InvokeStaticBlock(op, block);
     op(Op.Jump, op.target('FINALLY'));
-    op.label('CATCH');
-
-    op.label('FINALLY');
     op(Op.PopTryFrame);
+    op.label('CATCH');
+    op.label('FINALLY');
   });
 });
 

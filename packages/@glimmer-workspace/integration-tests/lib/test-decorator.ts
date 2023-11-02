@@ -1,3 +1,5 @@
+import { LOCAL_LOGGER } from '@glimmer/util';
+
 import type { IRenderTest } from './render-test';
 import type { DeclaredComponentType, EveryComponentType } from './test-helpers/constants';
 import type { RenderTestConstructor, RenderTestContext } from './test-helpers/module';
@@ -151,8 +153,9 @@ export function suite(
     });
 
     if ('suiteName' in Class) {
-      throw Error(
-        `Don't use 'static suiteName =' and @suite together. Please remove the static property and migrate to @suite.`
+      LOCAL_LOGGER.warn(
+        `Don't use 'static suiteName =' and @suite together. Please remove the static property and migrate to @suite.`,
+        { Class }
       );
     }
 

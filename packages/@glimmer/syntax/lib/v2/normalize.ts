@@ -43,7 +43,7 @@ export function normalize(
 
   let top = SymbolTable.top(
     normalizeOptions.locals,
-     
+
     {
       customizeComponentName: options.customizeComponentName ?? ((name) => name),
       lexicalScope: options.lexicalScope,

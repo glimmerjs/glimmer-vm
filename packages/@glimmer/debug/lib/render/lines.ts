@@ -1,6 +1,7 @@
 import type { LOCAL_LOGGER } from '@glimmer/util';
-import type { DisplayFragmentOptions, Fragment, LogLine } from './fragment';
-import { frag, intoFragment, type IntoFragment } from './presets';
+
+import type { DisplayFragmentOptions, FlushedLines, Fragment, LogEntry } from './fragment';
+import { frag, type IntoFragment, intoFragment } from './presets';
 
 type FlatOp =
   | Atom
@@ -180,14 +181,37 @@ export class DebugLogger {
     this.#options = options;
   }
 
-  #lines(type: 'log' | 'debug' | 'group' | 'groupCollapsed', lines: LogLine[]): void {
+  #logEntry(entry: LogEntry) {
+    switch (entry.type) {
+      case 'line': {
+        this.#logger.debug(...entry.line);
+        break;
+      }
+
+      case 'group': {
+        if (entry.collapsed) {
+          this.#logger.groupCollapsed(...entry.heading);
+        } else {
+          this.#logger.group(...entry.heading);
+        }
+
+        for (const line of entry.children) {
+          this.#logEntry(line);
+        }
+
+        this.#logger.groupEnd();
+      }
+    }
+  }
+
+  #lines(type: 'log' | 'debug' | 'group' | 'groupCollapsed', lines: FlushedLines): void {
     const [first, ...rest] = lines;
 
     if (first) {
       this.#logger[type](...first.line);
 
-      for (const { line } of rest) {
-        this.#logger.log(...line);
+      for (const entry of rest) {
+        this.#logEntry(entry);
       }
     }
   }
