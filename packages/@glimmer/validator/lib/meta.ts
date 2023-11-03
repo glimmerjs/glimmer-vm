@@ -1,4 +1,4 @@
-import type { ConstantTag, UpdatableTag } from '@glimmer/interfaces';
+import type { ConstantTag, Tag, UpdatableTag } from '@glimmer/interfaces';
 
 import type { Indexable } from './utils';
 
@@ -15,6 +15,7 @@ function isObjectLike<T>(u: T): u is Indexable & T {
 export type TagMeta = Map<PropertyKey, UpdatableTag>;
 
 const TRACKED_TAGS = new WeakMap<object, TagMeta>();
+const TAG_META = Symbol('TAG_META');
 
 export function dirtyTagFor<T extends object>(
   obj: T,
@@ -65,7 +66,16 @@ export function tagFor<T extends object>(
   if (tag === undefined) {
     tag = createUpdatableTag();
     tags.set(key, tag);
+
+    (tag as any)[TAG_META] = {
+      propertyKey: key,
+      object: obj,
+    };
   }
 
   return tag;
+}
+
+export function infoForTag(tag: Tag) {
+  return (tag as any)[TAG_META];
 }
