@@ -1,4 +1,4 @@
-import { dirtyTagFor, tagFor, validateTag, valueForTag } from '@glimmer/validator';
+import { dirtyTagFor, infoForTag, tagFor, validateTag, valueForTag } from '@glimmer/validator';
 
 import { module, test } from './-utils';
 
@@ -17,5 +17,14 @@ module('@glimmer/validator: meta', () => {
     dirtyTagFor(obj, 'foo');
 
     assert.notOk(validateTag(tag, snapshot));
+  });
+
+  test('it can provide the object and property for the tag given object', (assert) => {
+    let obj = {};
+    let tag = tagFor(obj, 'foo');
+
+    let info = infoForTag(tag)!;
+    assert.strictEqual(info.object, obj);
+    assert.strictEqual(info.propertyKey, 'foo');
   });
 });
