@@ -5,9 +5,9 @@ import type {
   InternalModifierManager,
   Owner,
   SimpleElement,
-} from "@glimmer/interfaces";
+} from '@glimmer/interfaces';
 import { setInternalModifierManager } from '@glimmer/manager';
-import { valueForRef } from '@glimmer/reference';
+import { unwrapReactive } from '@glimmer/reference';
 import { buildUntouchableThis, expect } from '@glimmer/util';
 import { createUpdatableTag, type UpdatableTag } from '@glimmer/validator';
 
@@ -102,7 +102,7 @@ export class OnModifierState {
     );
 
     let eventName = check(
-      valueForRef(first),
+      unwrapReactive(first),
       CheckString,
       () => 'You must pass a valid DOM event name as the first argument to the `on` modifier'
     );
@@ -118,7 +118,7 @@ export class OnModifierState {
     );
 
     const userProvidedCallback = check(
-      valueForRef(userProvidedCallbackReference),
+      unwrapReactive(userProvidedCallbackReference),
       CheckFunction,
       (actual) => {
         return `You must pass a function as the second argument to the \`on\` modifier; you passed ${

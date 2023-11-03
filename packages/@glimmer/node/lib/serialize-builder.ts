@@ -1,5 +1,5 @@
 import type {
-  Bounds,
+  BlockBounds,
   Cursor,
   ElementBuilder,
   Environment,
@@ -58,7 +58,7 @@ class SerializeBuilder extends AbstractElementBuilder<Cursor> implements Element
     }
   }
 
-  override __appendHTML(html: string): Bounds {
+  override __appendHTML(html: string): BlockBounds {
     let { tagName } = this.element;
 
     if (tagName === 'TITLE' || tagName === 'SCRIPT' || tagName === 'STYLE') {

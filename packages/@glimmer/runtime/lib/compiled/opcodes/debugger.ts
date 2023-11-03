@@ -1,5 +1,5 @@
 import type { Scope } from '@glimmer/interfaces';
-import { childRefFor, type Reference, valueForRef } from '@glimmer/reference';
+import { getReactiveProperty, type SomeReactive, unwrapReactive } from '@glimmer/reference';
 import { decodeHandle, dict, unwrap } from '@glimmer/util';
 import { Op } from '@glimmer/vm';
 
@@ -33,7 +33,7 @@ export function resetDebuggerCallback() {
 }
 
 class ScopeInspector {
-  private locals = dict<Reference>();
+  private locals = dict<SomeReactive>();
 
   constructor(
     private scope: Scope,
@@ -47,26 +47,26 @@ class ScopeInspector {
     }
   }
 
-  get(path: string): Reference {
+  get(path: string): SomeReactive {
     let { scope, locals } = this;
     let parts = path.split('.');
     let [head, ...tail] = path.split('.') as [string, ...string[]];
 
     let evalScope = scope.getEvalScope()!;
-    let ref: Reference;
+    let ref: SomeReactive;
 
     if (head === 'this') {
       ref = scope.getSelf();
     } else if (locals[head]) {
       ref = unwrap(locals[head]);
     } else if (head.indexOf('@') === 0 && evalScope[head]) {
-      ref = evalScope[head] as Reference;
+      ref = evalScope[head] as SomeReactive;
     } else {
       ref = this.scope.getSelf();
       tail = parts;
     }
 
-    return tail.reduce((r, part) => childRefFor(r, part), ref);
+    return tail.reduce((r, part) => getReactiveProperty(r, part), ref);
   }
 }
 
@@ -74,5 +74,7 @@ APPEND_OPCODES.add(Op.Debugger, (vm, { op1: _symbols, op2: _debugInfo }) => {
   let symbols = vm[CONSTANTS].getArray<string[]>(_symbols);
   let debugInfo = vm[CONSTANTS].getArray<number[]>(decodeHandle(_debugInfo));
   let inspector = new ScopeInspector(vm.scope(), symbols, debugInfo);
-  callback(valueForRef(vm.getSelf()), (path) => valueForRef(inspector.get(path)));
+
+  // @todo how should {{debugger}} handle errors?
+  callback(unwrapReactive(vm.getSelf()), (path) => unwrapReactive(inspector.get(path)));
 });

@@ -1,5 +1,5 @@
 import type { Dict, Expand, VM } from '@glimmer/interfaces';
-import { REFERENCE, type Reference } from '@glimmer/reference';
+import { REFERENCE, type SomeReactive } from '@glimmer/reference';
 import { enumerate, isObject } from '@glimmer/util';
 
 export const UNCHANGED = Symbol('UNCHANGED');
@@ -45,9 +45,9 @@ function define<const T extends Record<string, <N extends string>(name: N) => St
 const IsReference = {
   name: 'reference',
   coerce: (value) => {
-    return isObject(value) && REFERENCE in value ? Ok(value as Reference) : Fail('reference');
+    return isObject(value) && REFERENCE in value ? Ok(value as SomeReactive) : Fail('reference');
   },
-} satisfies StackType<'reference', Reference>;
+} satisfies StackType<'reference', SomeReactive>;
 
 export const types = define({
   'imm/bool': pipe(isBool, (value) => !!value),

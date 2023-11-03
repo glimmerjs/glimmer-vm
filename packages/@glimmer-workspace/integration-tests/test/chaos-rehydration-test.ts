@@ -1,5 +1,5 @@
-import type { Dict, Nullable, Reference, SimpleElement } from '@glimmer/interfaces';
-import { createConstRef, valueForRef } from '@glimmer/reference';
+import type { Dict, Nullable, SimpleElement, SomeReactive } from '@glimmer/interfaces';
+import { ReadonlyCell } from '@glimmer/reference';
 import {
   castToBrowser,
   castToSimple,
@@ -26,13 +26,12 @@ import {
   testSuite,
 } from '@glimmer-workspace/integration-tests';
 
-// `window.ActiveXObject` is "falsey" in IE11 (but not `undefined` or `false`)
-// `"ActiveXObject" in window` returns `true` in all IE versions
-// only IE11 will pass _both_ of these conditions
+// `window.ActiveXObject` is "falsey" in IE11 (but not `undefined` or `false`) `"ActiveXObject" in
+// window` returns `true` in all IE versions only IE11 will pass _both_ of these conditions
 const isIE11 = !(window as any).ActiveXObject && 'ActiveXObject' in window;
 
 abstract class AbstractChaosMonkeyTest extends RenderTest {
-  abstract renderClientSide(template: string | ComponentBlueprint, self: Reference): void;
+  abstract renderClientSide(template: string | ComponentBlueprint, self: SomeReactive): void;
 
   getRandomForIteration(iteration: number) {
     const { seed } = QUnit.config;
@@ -87,7 +86,8 @@ abstract class AbstractChaosMonkeyTest extends RenderTest {
     // gather all the nodes recursively
     let nodes: Node[] = collectChildNodes([], element);
 
-    // cannot remove the first opening block node and last closing block node, that is what makes it rehydrateable
+    // cannot remove the first opening block node and last closing block node, that is what makes it
+    // rehydrateable
     nodes = nodes.slice(1, -1);
 
     // select a random node to remove
@@ -124,7 +124,7 @@ abstract class AbstractChaosMonkeyTest extends RenderTest {
     );
   }
 
-  runIterations(template: string, self: Reference<Dict>, expectedHTML: string, count: number) {
+  runIterations(template: string, self: SomeReactive<Dict>, expectedHTML: string, count: number) {
     const element = castToBrowser(this.element, 'HTML');
     const elementResetValue = element.innerHTML;
 
@@ -194,7 +194,7 @@ class ChaosMonkeyRehydration extends AbstractChaosMonkeyTest {
 
   renderServerSide(
     template: string | ComponentBlueprint,
-    self: Reference,
+    self: SomeReactive,
     element: SimpleElement | undefined = undefined
   ): void {
     this.serverOutput = this.delegate.renderServerSide(
@@ -207,7 +207,7 @@ class ChaosMonkeyRehydration extends AbstractChaosMonkeyTest {
     replaceHTML(this.element, this.serverOutput);
   }
 
-  renderClientSide(template: string | ComponentBlueprint, self: Reference): void {
+  renderClientSide(template: string | ComponentBlueprint, self: SomeReactive): void {
     this.renderResult = this.delegate.renderClientSide(
       template as string,
       self,
@@ -251,7 +251,8 @@ class ChaosMonkeyRehydration extends AbstractChaosMonkeyTest {
     this.renderServerSide(template, this.self.ref);
     const b = blockStack();
 
-    // assert that we are in a "browser corrected" state (note the `</p>` before the `<div>world!</div>`)
+    // assert that we are in a "browser corrected" state (note the `</p>` before the
+    // `<div>world!</div>`)
     if (isIE11) {
       // IE11 doesn't behave the same as modern browsers
       this.assertServerOutput(`<p>hello ${b(1)}<div>world!</div>${b(1)}<p></p>`);
@@ -267,7 +268,7 @@ class ChaosMonkeyPartialRehydration extends AbstractChaosMonkeyTest {
   static suiteName = 'chaos-partial-rehydration';
   protected declare delegate: PartialRehydrationDelegate;
 
-  renderClientSide(componentName: string, args: Reference<Dict>): void {
+  renderClientSide(componentName: string, args: SomeReactive<Dict>): void {
     this.renderResult = this.delegate.renderComponentClientSide(
       componentName,
       valueForRef(args),
@@ -313,7 +314,7 @@ class ChaosMonkeyPartialRehydration extends AbstractChaosMonkeyTest {
     );
     replaceHTML(qunitFixture(), html);
     this.element = castToSimple(castToBrowser(qunitFixture(), 'HTML').querySelector('div')!);
-    this.runIterations('RehydratingComponent', createConstRef(args, 'args'), 'a bcd', 100);
+    this.runIterations('RehydratingComponent', ReadonlyCell(args, 'args'), 'a bcd', 100);
   }
 
   @test
@@ -355,7 +356,7 @@ class ChaosMonkeyPartialRehydration extends AbstractChaosMonkeyTest {
     this.element = castToSimple(castToBrowser(qunitFixture(), 'HTML').querySelector('div')!);
     this.runIterations(
       'RehydratingComponent',
-      createConstRef(args, 'args'),
+      ReadonlyCell(args, 'args'),
       '<p>hello <div>world!</div></p>',
       100
     );

@@ -1,6 +1,6 @@
 import { associateDestroyableChild, registerDestructor } from '@glimmer/destroyable';
 import type { Nullable, SimpleElement, SimpleNode } from '@glimmer/interfaces';
-import { createComputeRef, createConstRef, createPrimitiveRef } from '@glimmer/reference';
+import { createPrimitiveCell, FallibleFormula, ReadonlyCell } from '@glimmer/reference';
 import type { SafeString } from '@glimmer/runtime';
 import { expect } from '@glimmer/util';
 import { consumeTag, createTag, dirtyTag } from '@glimmer/validator';
@@ -392,7 +392,7 @@ class UpdatingTest extends RenderTest {
     let rawString = '<b>bold</b> and spicy';
 
     this.register.internalHelper('const-foobar', () => {
-      return createConstRef(makeSafeString(rawString), 'safe-string');
+      return ReadonlyCell(makeSafeString(rawString), 'safe-string');
     });
 
     this.render.template('<div>{{const-foobar}}</div>', {});
@@ -405,7 +405,7 @@ class UpdatingTest extends RenderTest {
     let rawString = '<b>bold</b> and spicy';
 
     this.register.internalHelper('const-foobar', () => {
-      return createConstRef(this.dom.createTextNode(rawString), 'text-node');
+      return ReadonlyCell(this.dom.createTextNode(rawString), 'text-node');
     });
 
     this.render.template('<div>{{const-foobar}}</div>');
@@ -418,7 +418,7 @@ class UpdatingTest extends RenderTest {
     let rawString = '<b>bold</b> and spicy';
 
     this.register.internalHelper('const-foobar', () => {
-      return createConstRef(makeSafeString(rawString), 'safe-string');
+      return ReadonlyCell(makeSafeString(rawString), 'safe-string');
     });
 
     this.render.template('<div>{{{const-foobar}}}</div>');
@@ -431,7 +431,7 @@ class UpdatingTest extends RenderTest {
     let rawString = '<b>bold</b> and spicy';
 
     this.register.internalHelper('const-foobar', () => {
-      return createConstRef(this.dom.createTextNode(rawString), 'text-node');
+      return ReadonlyCell(this.dom.createTextNode(rawString), 'text-node');
     });
 
     this.render.template('<div>{{{const-foobar}}}</div>');
@@ -450,7 +450,7 @@ class UpdatingTest extends RenderTest {
     });
 
     this.register.internalHelper('destroy-me', (_args) => {
-      let ref = createPrimitiveRef('destroy me!');
+      let ref = createPrimitiveCell('destroy me!');
 
       associateDestroyableChild(ref, destroyable);
 
@@ -492,7 +492,7 @@ class UpdatingTest extends RenderTest {
     this.register.internalHelper('stateful-foo', (_args) => {
       didCreate++;
 
-      let ref = createComputeRef(() => {
+      let ref = FallibleFormula(() => {
         consumeTag(tag);
         return currentValue;
       });
@@ -1422,8 +1422,7 @@ class UpdatingTest extends RenderTest {
       let actualSelected = [];
 
       for (const option of options) {
-        // TODO: these type errors reflect real incompatibility with
-        // SimpleDOM
+        // TODO: these type errors reflect real incompatibility with SimpleDOM
 
         if (!('selected' in option) || !('value' in option)) {
           assert.notOk(

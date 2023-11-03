@@ -580,6 +580,9 @@ importers:
       '@glimmer/global-context':
         specifier: workspace:^
         version: link:../../../@glimmer/global-context
+      '@glimmer/interfaces':
+        specifier: workspace:^
+        version: link:../../../@glimmer/interfaces
       '@glimmer/local-debug-flags':
         specifier: workspace:^
         version: link:../../../@glimmer/local-debug-flags

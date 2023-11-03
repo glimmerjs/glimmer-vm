@@ -5,12 +5,12 @@ import type {
   CompileTimeHeap,
   CompileTimeResolver,
   CreateRuntimeOp,
+  DebugConstants,
   ResolutionTimeConstants,
   STDLib,
 } from '@glimmer/interfaces';
 
 import { compileStd } from './opcode-builder/helpers/stdlib';
-import type { DebugConstants } from '@glimmer/debug';
 
 export class CompileTimeCompilationContextImpl implements CompileTimeCompilationContext {
   readonly constants: CompileTimeConstants & ResolutionTimeConstants & DebugConstants;

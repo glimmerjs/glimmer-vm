@@ -1,3 +1,4 @@
+import type { GlobalContext } from '@glimmer/global-context';
 import type { IteratorDelegate } from '@glimmer/reference';
 
 import objectValues from './platform';
@@ -45,7 +46,10 @@ class ObjectIterator extends BoundedIterator {
     return new this(keys, values);
   }
 
-  constructor(private keys: unknown[], private values: unknown[]) {
+  constructor(
+    private keys: unknown[],
+    private values: unknown[]
+  ) {
     super(values.length);
   }
 
@@ -78,4 +82,4 @@ export const TestContext = {
 
     return null;
   },
-};
+} satisfies Partial<GlobalContext>;

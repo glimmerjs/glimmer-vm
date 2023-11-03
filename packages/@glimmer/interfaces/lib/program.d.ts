@@ -1,12 +1,11 @@
-import type { DebugConstants } from '@glimmer/debug';
 import type { Encoder } from './compile';
 import type { ComponentDefinition, ComponentDefinitionState } from './components';
+import type { Nullable } from './core';
 import type { HelperDefinitionState } from './runtime';
 import type { ModifierDefinitionState } from './runtime/modifier';
 import type { CompileTimeResolver, ResolvedComponentDefinition } from './serialize';
 import type { BlockMetadata, STDLib, Template } from './template';
 import type { VmMachineOp, VmOp } from './vm-opcodes';
-import type { Nullable } from './core';
 
 export type CreateRuntimeOp = (heap: CompileTimeHeap) => RuntimeOp;
 
@@ -49,6 +48,11 @@ export interface CompileTimeHeap extends OpcodeHeap {
 export interface RuntimeHeap extends OpcodeHeap {
   getaddr(handle: number): number;
   sizeof(handle: number): number;
+}
+
+export interface DebugConstants {
+  getValue<T>(handle: number): T;
+  getArray<T extends Nullable<unknown[]>>(value: number): T;
 }
 
 export interface CompileTimeCompilationContext {

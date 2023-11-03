@@ -1,24 +1,26 @@
-import type { Dict, Maybe } from "@glimmer/interfaces";
-import { createComputeRef, type Reference, valueForRef } from '@glimmer/reference';
+import type { Dict, Maybe } from '@glimmer/interfaces';
+import { FallibleFormula, readReactive, type SomeReactive } from '@glimmer/reference';
 import { enumerate } from '@glimmer/util';
 
-export function createConcatRef(partsRefs: Reference[]) {
-  return createComputeRef(() => {
+export function createConcatRef(partsRefs: SomeReactive[]) {
+  return FallibleFormula(() => {
     let parts = new Array<string>();
 
     for (const [i, ref] of enumerate(partsRefs)) {
-      let value = valueForRef(ref) as Maybe<Dict>;
+      let result = readReactive(ref);
 
+      if (result.type === 'err') {
+        // @fixme a version of FallibleFormula that you can directly return results to
+        throw result.value;
+      }
+
+      const value = result.value as Maybe<Dict>;
       if (value !== null && value !== undefined) {
         parts[i] = castToString(value);
       }
     }
 
-    if (parts.length > 0) {
-      return parts.join('');
-    }
-
-    return null;
+    return parts.length > 0 ? parts.join('') : null;
   });
 }
 

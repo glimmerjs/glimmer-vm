@@ -1,5 +1,5 @@
 import type {
-  Bounds,
+  BlockBounds,
   Nullable,
   SimpleDocument,
   SimpleElement,
@@ -21,7 +21,7 @@ export default class NodeDOMTreeConstruction extends DOMTreeConstruction {
     parent: SimpleElement,
     reference: Nullable<SimpleNode>,
     html: string
-  ): Bounds {
+  ): BlockBounds {
     let raw = this.document.createRawHTMLSection!(html);
     parent.insertBefore(raw, reference);
     return new ConcreteBounds(parent, raw, raw);

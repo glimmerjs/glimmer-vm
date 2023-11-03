@@ -1,25 +1,23 @@
 import type {
+  BlockBoundsDebug,
   BlockMetadata,
   Cursor,
+  DebugConstants,
   DebugCursor,
   DebugStack,
   DebugVmSnapshot,
   LiveBlock,
-  LiveBlockDebug,
   Nullable,
   RuntimeHeap,
   ScopeSlot,
   SimpleElement,
+  UnwindTarget,
 } from '@glimmer/interfaces';
-import type { UnwindTarget } from '@glimmer/runtime/lib/vm/unwind';
-
-import type { DebugConstants } from '..';
 
 /**
- * Snapshot the current state of the VM for debugging. This function should
- * **never** save off live references to objects managed by the VM, as the state
- * from the `before` debug stage can be used in the `after` debug stage (for
- * example, to perform stack verification).
+ * Snapshot the current state of the VM for debugging. This function should **never** save off live
+ * references to objects managed by the VM, as the state from the `before` debug stage can be used
+ * in the `after` debug stage (for example, to perform stack verification).
  */
 export function snapshotVM(vm: SnapshottableVM): DebugVmSnapshot {
   const debug = vm.debug;
@@ -39,8 +37,7 @@ export function snapshotVM(vm: SnapshottableVM): DebugVmSnapshot {
     $v0: vm.v0,
     currentPc: debug.currentPc,
 
-    // these values don't need to be snapshotted since they (by definition)
-    // can't change.
+    // these values don't need to be snapshotted since they (by definition) can't change.
     constant: {
       ...debug.constant,
       block: debug.block.metadata,
@@ -70,8 +67,7 @@ export interface VmDebugState {
   readonly sp: number;
   readonly up: UnwindTarget;
   /**
-   * even though the scope object itself doesn't change, its
-   * current scope values do.
+   * even though the scope object itself doesn't change, its current scope values do.
    *
    * @mutable
    */
@@ -80,9 +76,8 @@ export interface VmDebugState {
   /** @mutable */
   readonly destroyable: object[];
 
-  // The value of $pc minus the size of the current op. Since
-  // $pc represents the *next* op, this produces the position
-  // of the current op.
+  // The value of $pc minus the size of the current op. Since $pc represents the *next* op, this
+  // produces the position of the current op.
   readonly currentPc: number;
 
   readonly dom: {
@@ -93,15 +88,14 @@ export interface VmDebugState {
     readonly blocks: LiveBlock[];
   };
 
-  // these values change only when the current block changes,
-  // so they can be cached and reused whenever a block change
-  // occurs.
+  // these values change only when the current block changes, so they can be cached and reused
+  // whenever a block change occurs.
   readonly block: {
     metadata: BlockMetadata | null;
   };
 
-  // these values don't ever need to be snapshotted and
-  // this object can be cached up front when the VM is created.
+  // these values don't ever need to be snapshotted and this object can be cached up front when the
+  // VM is created.
   readonly constant: {
     readonly constants: DebugConstants;
     readonly heap: RuntimeHeap;
@@ -137,6 +131,6 @@ function snapshotCursors(cursors: readonly Cursor[]): readonly DebugCursor[] {
   });
 }
 
-function snapshotBlocks(cursors: LiveBlock[]): readonly LiveBlockDebug[] {
-  return cursors.map((c) => c.debug?.()).filter((c): c is LiveBlockDebug => c !== undefined);
+function snapshotBlocks(cursors: LiveBlock[]): readonly BlockBoundsDebug[] {
+  return cursors.map((c) => c.debug?.()).filter((c): c is BlockBoundsDebug => c !== undefined);
 }

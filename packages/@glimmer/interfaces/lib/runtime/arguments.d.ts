@@ -1,5 +1,5 @@
 import type { Nullable } from '../core';
-import type { Reference } from '../references';
+import type { SomeReactive } from '../references';
 import type { ScopeBlock } from './scope';
 
 declare const CAPTURED_ARGS: unique symbol;
@@ -9,7 +9,7 @@ export interface VMArguments {
   positional: PositionalArguments;
   named: NamedArguments;
 
-  at(pos: number): Reference;
+  at(pos: number): SomeReactive;
   capture(): CapturedArguments;
 }
 
@@ -21,11 +21,11 @@ export interface CapturedArguments {
 
 export interface PositionalArguments {
   length: number;
-  at(position: number): Reference;
+  at(position: number): SomeReactive;
   capture(): CapturedPositionalArguments;
 }
 
-export interface CapturedPositionalArguments extends Array<Reference> {
+export interface CapturedPositionalArguments extends Array<SomeReactive> {
   [CAPTURED_ARGS]: true;
 }
 
@@ -33,7 +33,7 @@ export interface NamedArguments {
   names: readonly string[];
   length: number;
   has(name: string): boolean;
-  get(name: string): Reference;
+  get(name: string): SomeReactive;
   capture(): CapturedNamedArguments;
 }
 
@@ -52,7 +52,7 @@ export interface CapturedBlockArguments {
   get(name: string): Nullable<ScopeBlock>;
 }
 
-export interface CapturedNamedArguments extends Record<string, Reference> {
+export interface CapturedNamedArguments extends Record<string, SomeReactive> {
   [CAPTURED_ARGS]: true;
 }
 

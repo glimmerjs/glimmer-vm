@@ -1,11 +1,11 @@
 import type {
+  BlockMetadata,
   BlockSymbolTable,
   BuilderOp,
   CompilableBlock,
   CompilableProgram,
   CompilableTemplate,
   CompileTimeCompilationContext,
-  BlockMetadata,
   HandleResult,
   HighLevelOp,
   LayoutWithContext,

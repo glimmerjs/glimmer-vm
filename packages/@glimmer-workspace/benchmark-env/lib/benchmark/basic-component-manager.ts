@@ -1,12 +1,6 @@
-import type {
-  Dict,
-  Owner,
-  Template,
-  VMArguments,
-  WithCreateInstance,
-} from "@glimmer/interfaces";
+import type { Dict, Owner, Template, VMArguments, WithCreateInstance } from '@glimmer/interfaces';
 import { getComponentTemplate } from '@glimmer/manager';
-import { createConstRef, type Reference } from '@glimmer/reference';
+import { ReadonlyCell, type SomeReactive } from '@glimmer/reference';
 import { EMPTY_ARGS } from '@glimmer/runtime';
 
 import type { ComponentArgs } from '../interfaces';
@@ -29,7 +23,7 @@ const BASIC_COMPONENT_CAPABILITIES = {
 };
 
 interface BasicState {
-  self: Reference<unknown>;
+  self: SomeReactive<unknown>;
   instance: object;
 }
 
@@ -42,7 +36,7 @@ class BasicComponentManager
     args: VMArguments | null
   ) {
     const instance = new Component(argsProxy(args === null ? EMPTY_ARGS : args.capture()));
-    const self = createConstRef(instance, 'this');
+    const self = ReadonlyCell(instance, 'this');
     return { instance, self };
   }
 

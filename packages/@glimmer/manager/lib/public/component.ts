@@ -15,8 +15,8 @@ import type {
   Nullable,
   Owner,
   VMArguments,
-} from "@glimmer/interfaces";
-import { createConstRef, type Reference } from '@glimmer/reference';
+} from '@glimmer/interfaces';
+import { ReadonlyCell, type SomeReactive } from '@glimmer/reference';
 
 import { argsProxyFor } from '../util/args-proxy';
 import { buildCapabilities, FROM_CAPABILITIES } from '../util/capabilities';
@@ -80,13 +80,12 @@ export function hasDestructors<ComponentInstance>(
 }
 
 /**
-  The CustomComponentManager allows addons to provide custom component
-  implementations that integrate seamlessly into Ember. This is accomplished
-  through a delegate, registered with the custom component manager, which
-  implements a set of hooks that determine component behavior.
+  The CustomComponentManager allows addons to provide custom component implementations that
+  integrate seamlessly into Ember. This is accomplished through a delegate, registered with the
+  custom component manager, which implements a set of hooks that determine component behavior.
 
-  To create a custom component manager, instantiate a new CustomComponentManager
-  class and pass the delegate as the first argument:
+  To create a custom component manager, instantiate a new CustomComponentManager class and pass the
+  delegate as the first argument:
 
   ```js
   let manager = new CustomComponentManager({
@@ -96,9 +95,8 @@ export function hasDestructors<ComponentInstance>(
 
   ## Delegate Hooks
 
-  Throughout the lifecycle of a component, the component manager will invoke
-  delegate hooks that are responsible for surfacing those lifecycle changes to
-  the end developer.
+  Throughout the lifecycle of a component, the component manager will invoke delegate hooks that are
+  responsible for surfacing those lifecycle changes to the end developer.
 
   * `create()` - invoked when a new instance of a component should be created
   * `update()` - invoked when the arguments passed to a component change
@@ -120,10 +118,12 @@ export class CustomComponentManager<O extends Owner, ComponentInstance>
       delegate = factory(owner);
 
       if (import.meta.env.DEV && !FROM_CAPABILITIES!.has(delegate.capabilities)) {
-        // TODO: This error message should make sense in both Ember and Glimmer https://github.com/glimmerjs/glimmer-vm/issues/1200
+        // TODO: This error message should make sense in both Ember and Glimmer
+        // https://github.com/glimmerjs/glimmer-vm/issues/1200
         throw new Error(
           `Custom component managers must have a \`capabilities\` property that is the result of calling the \`capabilities('3.13')\` (imported via \`import { capabilities } from '@ember/component';\`). Received: \`${JSON.stringify(
             delegate.capabilities
+            // eslint-disable-next-line @typescript-eslint/no-base-to-string -- @todo
           )}\` for: \`${delegate}\``
         );
       }
@@ -148,6 +148,7 @@ export class CustomComponentManager<O extends Owner, ComponentInstance>
   }
 
   getDebugName(definition: ComponentDefinitionState): string {
+    // eslint-disable-next-line @typescript-eslint/no-base-to-string -- @todo
     return typeof definition === 'function' ? definition.name : definition.toString();
   }
 
@@ -176,8 +177,8 @@ export class CustomComponentManager<O extends Owner, ComponentInstance>
 
   didUpdateLayout(): void {}
 
-  getSelf({ component, delegate }: CustomComponentState<ComponentInstance>): Reference {
-    return createConstRef(delegate.getContext(component), 'this');
+  getSelf({ component, delegate }: CustomComponentState<ComponentInstance>): SomeReactive {
+    return ReadonlyCell(delegate.getContext(component), 'this');
   }
 
   getDestroyable(bucket: CustomComponentState<ComponentInstance>): Nullable<Destroyable> {

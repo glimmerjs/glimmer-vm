@@ -34,10 +34,14 @@ export function bump(): void {
 
 //////////
 
-const DIRYTABLE_TAG_ID: IDIRTYABLE_TAG_ID = 0;
-const UPDATABLE_TAG_ID: IUPDATABLE_TAG_ID = 1;
-const COMBINATOR_TAG_ID: ICOMBINATOR_TAG_ID = 2;
-const CONSTANT_TAG_ID: ICONSTANT_TAG_ID = 3;
+/** @internal */
+export const DIRYTABLE_TAG_ID: IDIRTYABLE_TAG_ID = 0;
+/** @internal */
+export const UPDATABLE_TAG_ID: IUPDATABLE_TAG_ID = 1;
+/** @internal */
+export const COMBINATOR_TAG_ID: ICOMBINATOR_TAG_ID = 2;
+/** @internal */
+export const CONSTANT_TAG_ID: ICONSTANT_TAG_ID = 3;
 
 //////////
 
@@ -272,6 +276,13 @@ export const CURRENT_TAG = new CurrentTag();
 //////////
 
 export const combine = MonomorphicTagImpl.combine;
+
+//////////
+
+/**
+ * @internal
+ */
+export const TAG_TYPE: TagTypeSymbol = TYPE;
 
 // Warm
 

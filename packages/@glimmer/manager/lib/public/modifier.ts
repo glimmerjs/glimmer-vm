@@ -10,7 +10,7 @@ import type {
   SimpleElement,
   UpdatableTag,
 } from '@glimmer/interfaces';
-import { valueForRef } from '@glimmer/reference';
+import { unwrapReactive } from '@glimmer/reference';
 import { castToBrowser, dict } from '@glimmer/util';
 import { createUpdatableTag, untrack } from '@glimmer/validator';
 
@@ -162,10 +162,10 @@ export function reifyArgs({ named, positional }: CapturedArguments): {
   let reifiedNamed = dict();
 
   for (const [key, value] of Object.entries(named)) {
-    reifiedNamed[key] = valueForRef(value);
+    reifiedNamed[key] = unwrapReactive(value);
   }
 
-  let reifiedPositional = positional.map(valueForRef);
+  let reifiedPositional = positional.map(unwrapReactive);
 
   return {
     named: reifiedNamed,

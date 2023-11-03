@@ -33,18 +33,23 @@ export {
 export {
   ALLOW_CYCLES,
   bump,
+  COMBINATOR_TAG_ID,
   combine,
   COMPUTE,
   CONSTANT,
   CONSTANT_TAG,
+  CONSTANT_TAG_ID,
   createTag,
   createUpdatableTag,
   CURRENT_TAG,
   CurrentTag,
   DIRTY_TAG as dirtyTag,
+  DIRYTABLE_TAG_ID,
   INITIAL,
   isConstTag,
   type Revision,
+  TAG_TYPE,
+  UPDATABLE_TAG_ID,
   UPDATE_TAG as updateTag,
   validateTag,
   valueForTag,
@@ -52,4 +57,10 @@ export {
   VOLATILE_TAG,
   VolatileTag,
 } from './lib/validators';
-export type { CombinatorTag, ConstantTag, DirtyableTag, Tag, UpdatableTag } from "@glimmer/interfaces";
+export type {
+  CombinatorTag,
+  ConstantTag,
+  DirtyableTag,
+  Tag,
+  UpdatableTag,
+} from '@glimmer/interfaces';

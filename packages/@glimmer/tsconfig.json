@@ -9,7 +9,6 @@
     "declaration": true,
     "declarationMap": true,
     "outDir": "../../ts-dist/packages",
-    "baseUrl": "..",
 
     "verbatimModuleSyntax": true,
 
@@ -30,6 +29,11 @@
 
     "types": ["qunit", "node", "vite/client"]
   },
-  "include": ["*/index.ts", "*/lib/**/*.ts"],
-  "exclude": ["*/dist", "*/node_modules", "**/fixtures", "*/test"]
+  "include": ["./*/index.ts", "./*/lib/**/*.ts"],
+  "exclude": ["./*/dist", "./*/node_modules", "./**/fixtures", "./*/test"],
+  "references": [
+    {
+      "path": "./tsconfig.test.json"
+    }
+  ]
 }

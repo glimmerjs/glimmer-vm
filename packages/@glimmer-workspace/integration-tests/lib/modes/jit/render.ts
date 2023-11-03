@@ -1,5 +1,5 @@
 import type { ElementBuilder, RenderResult } from '@glimmer/interfaces';
-import type { Reference } from '@glimmer/reference';
+import type { SomeReactive } from '@glimmer/reference';
 import { renderMain, renderSync } from '@glimmer/runtime';
 import type { PrecompileOptions } from '@glimmer/syntax';
 import { unwrapTemplate } from '@glimmer/util';
@@ -10,7 +10,7 @@ import type { JitContext } from './delegate';
 export function renderTemplate(
   src: string,
   { runtime, program }: JitContext,
-  self: Reference,
+  self: SomeReactive,
   builder: ElementBuilder,
   options?: PrecompileOptions
 ): RenderResult {

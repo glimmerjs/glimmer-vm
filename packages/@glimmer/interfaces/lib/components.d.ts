@@ -1,6 +1,6 @@
 import type { Dict } from './core';
 import type { InternalComponentManager } from './managers';
-import type { Reference } from './references';
+import type { SomeReactive } from './references';
 import type { ScopeSlot } from './runtime';
 import type { CompilableProgram } from './template';
 import type { ProgramSymbolTable } from './tier1/symbol-table';
@@ -41,6 +41,6 @@ export interface ComponentInstance<
 }
 
 export interface PreparedArguments {
-  positional: ReadonlyArray<Reference>;
-  named: Dict<Reference>;
+  positional: ReadonlyArray<SomeReactive>;
+  named: Dict<SomeReactive>;
 }

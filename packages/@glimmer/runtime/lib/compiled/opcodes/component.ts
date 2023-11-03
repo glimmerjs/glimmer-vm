@@ -11,7 +11,7 @@ import {
 } from '@glimmer/debug';
 import { registerDestructor } from '@glimmer/destroyable';
 import type {
-  Bounds,
+  BlockBounds,
   CapabilityMask,
   CapturedArguments,
   CompilableProgram,
@@ -37,7 +37,8 @@ import type {
   WithUpdateHook,
 } from '@glimmer/interfaces';
 import { managerHasCapability } from '@glimmer/manager';
-import { isConstRef, type Reference, valueForRef } from '@glimmer/reference';
+import { type SomeReactive, unwrapReactive } from '@glimmer/reference';
+import { isConstant } from '@glimmer/reference';
 import {
   assert,
   assign,
@@ -72,7 +73,7 @@ import {
   CheckCurriedComponentDefinition,
   CheckFinishedComponentInstance,
   CheckInvocation,
-  CheckReference,
+  CheckReactive,
 } from './-debug-strip';
 import { UpdateDynamicAttributeOpcode } from './dom';
 
@@ -133,7 +134,7 @@ APPEND_OPCODES.add(Op.PushComponentDefinition, (vm, { op1: handle }) => {
 APPEND_OPCODES.add(Op.ResolveDynamicComponent, (vm, { op1: _isStrict }) => {
   let stack = vm.stack;
   let component = check(
-    valueForRef(check(stack.pop(), CheckReference)),
+    unwrapReactive(check(stack.pop(), CheckReactive)),
     CheckOr(CheckString, CheckCurriedComponentDefinition)
   );
   let constants = vm[CONSTANTS];
@@ -165,8 +166,8 @@ APPEND_OPCODES.add(Op.ResolveDynamicComponent, (vm, { op1: _isStrict }) => {
 
 APPEND_OPCODES.add(Op.ResolveCurriedComponent, (vm) => {
   let stack = vm.stack;
-  let ref = check(stack.pop(), CheckReference);
-  let value = valueForRef(ref);
+  let ref = check(stack.pop(), CheckReactive);
+  let value = unwrapReactive(ref);
   let constants = vm[CONSTANTS];
 
   let definition: CurriedValue | ComponentDefinition | null;
@@ -369,7 +370,7 @@ APPEND_OPCODES.add(Op.CreateComponent, (vm, { op1: flags, op2: _state }) => {
     args = check(vm.stack.top(), CheckArguments);
   }
 
-  let self: Nullable<Reference> = null;
+  let self: Nullable<SomeReactive> = null;
   if (managerHasCapability(manager, capabilities, InternalComponentCapabilities.createCaller)) {
     self = vm.getSelf();
   }
@@ -438,7 +439,7 @@ APPEND_OPCODES.add(Op.PutComponentOperations, (vm) => {
 APPEND_OPCODES.add(Op.ComponentAttr, (vm, { op1: _name, op2: _trusting, op3: _namespace }) => {
   let name = vm[CONSTANTS].getValue<string>(_name);
   let trusting = vm[CONSTANTS].getValue<boolean>(_trusting);
-  let reference = check(vm.stack.pop(), CheckReference);
+  let reference = check(vm.stack.pop(), CheckReactive);
   let namespace = _namespace ? vm[CONSTANTS].getValue<string>(_namespace) : null;
 
   check(vm.fetchValue($t0), CheckInstanceof(ComponentElementOperations)).setAttribute(
@@ -462,19 +463,19 @@ APPEND_OPCODES.add(Op.StaticComponentAttr, (vm, { op1: _name, op2: _value, op3: 
 });
 
 type DeferredAttribute = {
-  value: string | Reference<unknown>;
+  value: string | SomeReactive<unknown>;
   namespace: Nullable<string>;
   trusting?: boolean;
 };
 
 export class ComponentElementOperations implements ElementOperations {
   private attributes = dict<DeferredAttribute>();
-  private classes: (string | Reference<unknown>)[] = [];
+  private classes: (string | SomeReactive<unknown>)[] = [];
   private modifiers: ModifierInstance[] = [];
 
   setAttribute(
     name: string,
-    value: Reference<unknown>,
+    value: SomeReactive<unknown>,
     trusting: boolean,
     namespace: Nullable<string>
   ) {
@@ -527,7 +528,7 @@ export class ComponentElementOperations implements ElementOperations {
   }
 }
 
-function mergeClasses(classes: (string | Reference)[]): string | Reference<unknown> {
+function mergeClasses(classes: (string | SomeReactive)[]): string | SomeReactive<unknown> {
   if (classes.length === 0) {
     return '';
   }
@@ -538,10 +539,10 @@ function mergeClasses(classes: (string | Reference)[]): string | Reference<unkno
     return classes.join(' ');
   }
 
-  return createClassListRef(classes as Reference[]);
+  return createClassListRef(classes as SomeReactive[]);
 }
 
-function allStringClasses(classes: (string | Reference<unknown>)[]): classes is string[] {
+function allStringClasses(classes: (string | SomeReactive<unknown>)[]): classes is string[] {
   for (let i = 0; i < classes.length; i++) {
     if (typeof classes[i] !== 'string') {
       return false;
@@ -553,7 +554,7 @@ function allStringClasses(classes: (string | Reference<unknown>)[]): classes is 
 function setDeferredAttr(
   vm: InternalVM,
   name: string,
-  value: string | Reference<unknown>,
+  value: string | SomeReactive<unknown>,
   namespace: Nullable<string>,
   trusting = false
 ) {
@@ -562,8 +563,8 @@ function setDeferredAttr(
   } else {
     let attribute = vm
       .elements()
-      .setDynamicAttribute(name, valueForRef(value), trusting, namespace);
-    if (!isConstRef(value)) {
+      .setDynamicAttribute(name, unwrapReactive(value), trusting, namespace);
+    if (!isConstant(value)) {
       vm.updateWith(new UpdateDynamicAttributeOpcode(value, attribute, vm.env));
     }
   }
@@ -661,7 +662,7 @@ APPEND_OPCODES.add(Op.GetComponentSelf, (vm, { op1: _state, op2: _names }) => {
         name,
         args,
         template: moduleName,
-        instance: valueForRef(selfRef),
+        instance: unwrapReactive(selfRef),
       });
 
       vm.associateDestroyable(instance);
@@ -911,7 +912,7 @@ export class UpdateComponentOpcode implements UpdatingOpcode {
 export class DidUpdateLayoutOpcode implements UpdatingOpcode {
   constructor(
     private component: ComponentInstanceWithCreate,
-    private bounds: Bounds
+    private bounds: BlockBounds
   ) {}
 
   evaluate(vm: UpdatingVM) {
@@ -935,7 +936,7 @@ class DebugRenderTreeUpdateOpcode implements UpdatingOpcode {
 class DebugRenderTreeDidRenderOpcode implements UpdatingOpcode {
   constructor(
     private bucket: object,
-    private bounds: Bounds
+    private bounds: BlockBounds
   ) {}
 
   evaluate(vm: UpdatingVM) {

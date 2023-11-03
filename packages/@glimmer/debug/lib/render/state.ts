@@ -1,5 +1,6 @@
 import type {
   BlockMetadata,
+  DebugConstants,
   DebugVmSnapshot,
   Dict,
   RuntimeConstants,
@@ -8,12 +9,7 @@ import type {
 } from '@glimmer/interfaces';
 import { decodeHandle } from '@glimmer/util';
 
-import {
-  debug,
-  type DebugConstants,
-  type OpSnapshot,
-  type SomeDisassembledOperand,
-} from '../debug';
+import { debug, type OpSnapshot, type SomeDisassembledOperand } from '../debug';
 import type { OpcodeMetadata, StackSpec } from '../metadata';
 import { opcodeMetadata } from '../opcode-metadata';
 import {
@@ -29,8 +25,6 @@ import {
 import type { Fragment } from './fragment';
 import { as, frag, type IntoFragment, intoFragment, join, value } from './presets';
 import { SerializeBlockContext } from './serialize';
-
-const HEADER_SIZE = 2;
 
 export class DebugState {
   readonly #state: DebugVmSnapshot;
@@ -136,8 +130,8 @@ export class DebugOpState {
   }
 
   /**
-   * The current instruction, computed by subtracting the size of the opcode
-   * from the next instruction.
+   * The current instruction, computed by subtracting the size of the opcode from the next
+   * instruction.
    */
 
   pos(before: DebugState): number {
@@ -280,10 +274,7 @@ export class DiffState {
       return describeDiff(diffStacks(before, after), { as: stackValue });
     }
 
-    // from end of before:
-    // popped: spec.pop
-    // peeked: spec.peek
-    // same: rest
+    // from end of before: popped: spec.pop peeked: spec.peek same: rest
 
     // const popped =
 
@@ -291,11 +282,10 @@ export class DiffState {
     const { before: unused, after: peeked } = partitionFromEnd(beforePopped, spec.peek);
     const pushed = partitionFromEnd(after, spec.push).after;
 
-    // const paramSize = spec.peek + spec.pop;
-    // const same = paramSize === 0 ? before : before.slice(0, -paramSize);
-    // const peeked = spec.peek === 0 ? [] : before.slice(spec.peek, -spec.pop);
-    // const popped = spec.pops === 0 ? [] : before.slice(-spec.pops);
-    // const pushed = spec.pushes === 0 ? [] : after.slice(-spec.pushes);
+    // const paramSize = spec.peek + spec.pop; const same = paramSize === 0 ? before :
+    // before.slice(0, -paramSize); const peeked = spec.peek === 0 ? [] : before.slice(spec.peek,
+    // -spec.pop); const popped = spec.pops === 0 ? [] : before.slice(-spec.pops); const pushed =
+    // spec.pushes === 0 ? [] : after.slice(-spec.pushes);
 
     return describeDiff({ unused, peeked, pushed, popped }, { as: stackValue });
   }

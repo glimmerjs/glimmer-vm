@@ -5,27 +5,27 @@ import {
   CheckSafeString,
   CheckString,
 } from '@glimmer/debug';
+import { LOCAL_TRACE_LOGGING } from '@glimmer/local-debug-flags';
 import { hasInternalComponentManager, hasInternalHelperManager } from '@glimmer/manager';
-import { isConstRef } from '@glimmer/reference';
+import { isConstant } from '@glimmer/reference';
 import { isObject, LOCAL_LOGGER } from '@glimmer/util';
 import { CURRIED_COMPONENT, CURRIED_HELPER, CurriedTypes, Op } from '@glimmer/vm';
+import {
+  COMPONENT_CONTENT,
+  type DynamicContentType,
+  FRAGMENT_CONTENT,
+  HELPER_CONTENT,
+  NODE_CONTENT,
+  SAFE_STRING_CONTENT,
+  STRING_CONTENT,
+} from '@glimmer/vm/lib/content';
 
 import { isCurried } from '../../curried-value';
 import { isEmpty, isFragment, isNode, isSafeString, shouldCoerce } from '../../dom/normalize';
 import { APPEND_OPCODES } from '../../opcodes';
 import DynamicTextContent from '../../vm/content/text';
-import { CheckReference } from './-debug-strip';
+import { CheckReactive } from './-debug-strip';
 import { AssertFilter } from './vm';
-import { LOCAL_TRACE_LOGGING } from '@glimmer/local-debug-flags';
-import {
-  COMPONENT_CONTENT,
-  HELPER_CONTENT,
-  type DynamicContentType,
-  STRING_CONTENT,
-  SAFE_STRING_CONTENT,
-  FRAGMENT_CONTENT,
-  NODE_CONTENT,
-} from '@glimmer/vm/lib/content';
 
 function toContentType(value: unknown) {
   if (shouldCoerce(value)) {
@@ -74,7 +74,7 @@ function toDynamicContentType(value: unknown): DynamicContentType {
 }
 
 APPEND_OPCODES.add(Op.ContentType, (vm) => {
-  let reference = check(vm.stack.top(), CheckReference);
+  let reference = check(vm.stack.top(), CheckReactive);
 
   const contentType = vm.deref(reference, toContentType);
 
@@ -82,39 +82,39 @@ APPEND_OPCODES.add(Op.ContentType, (vm) => {
     vm.stack.push(contentType.value);
   }
 
-  if (!isConstRef(reference)) {
+  if (!isConstant(reference)) {
     vm.updateWith(new AssertFilter(contentType, reference, toContentType));
   }
 });
 
 APPEND_OPCODES.add(Op.DynamicContentType, (vm) => {
-  let reference = check(vm.stack.top(), CheckReference);
+  let reference = check(vm.stack.top(), CheckReactive);
 
   const result = vm.deref(reference, toDynamicContentType);
 
   if (vm.unwrap(result)) {
     vm.stack.push(result.value);
 
-    if (!isConstRef(reference)) {
+    if (!isConstant(reference)) {
       vm.updateWith(new AssertFilter(result, reference, toDynamicContentType));
     }
   }
 });
 
 APPEND_OPCODES.add(Op.AppendHTML, (vm) => {
-  let reference = check(vm.stack.pop(), CheckReference);
+  let reference = check(vm.stack.pop(), CheckReactive);
 
   const html = vm.deref(reference, (value) => {
     return isEmpty(value) ? '' : String(value);
   });
 
   if (vm.unwrap(html)) {
-    vm.elements().appendDynamicHTML(html.value);
+    vm.elements().appendDynamicHTML(check(html.value, CheckString));
   }
 });
 
 APPEND_OPCODES.add(Op.AppendSafeHTML, (vm) => {
-  let reference = check(vm.stack.pop(), CheckReference);
+  let reference = check(vm.stack.pop(), CheckReactive);
 
   const html = vm.deref(reference, (value) => {
     const html = check(value, CheckSafeString).toHTML();
@@ -127,21 +127,21 @@ APPEND_OPCODES.add(Op.AppendSafeHTML, (vm) => {
 });
 
 APPEND_OPCODES.add(Op.AppendText, (vm) => {
-  let reference = check(vm.stack.pop(), CheckReference);
+  let reference = check(vm.stack.pop(), CheckReactive);
 
   let result = vm.deref(reference, (value) => (isEmpty(value) ? '' : String(value)));
 
   if (vm.unwrap(result)) {
     let node = vm.elements().appendDynamicText(result.value);
 
-    if (!isConstRef(reference)) {
+    if (!isConstant(reference)) {
       vm.updateWith(new DynamicTextContent(node, reference, result.value));
     }
   }
 });
 
 APPEND_OPCODES.add(Op.AppendDocumentFragment, (vm) => {
-  let reference = check(vm.stack.pop(), CheckReference);
+  let reference = check(vm.stack.pop(), CheckReactive);
   const result = vm.deref(reference);
 
   if (vm.unwrap(result)) {
@@ -150,7 +150,7 @@ APPEND_OPCODES.add(Op.AppendDocumentFragment, (vm) => {
 });
 
 APPEND_OPCODES.add(Op.AppendNode, (vm) => {
-  let reference = check(vm.stack.pop(), CheckReference);
+  let reference = check(vm.stack.pop(), CheckReactive);
   const result = vm.deref(reference);
 
   if (vm.unwrap(result)) {

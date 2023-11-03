@@ -1,13 +1,13 @@
-import { createComputeRef, type Reference, valueForRef } from '@glimmer/reference';
+import { FallibleFormula, type SomeReactive, unwrapReactive } from '@glimmer/reference';
 
 import { normalizeStringValue } from '../dom/normalize';
 
-export default function createClassListRef(list: Reference[]) {
-  return createComputeRef(() => {
+export default function createClassListRef(list: SomeReactive[]) {
+  return FallibleFormula(() => {
     let ret: string[] = [];
 
     for (const ref of list) {
-      let value = normalizeStringValue(typeof ref === 'string' ? ref : valueForRef(ref));
+      let value = normalizeStringValue(typeof ref === 'string' ? ref : unwrapReactive(ref));
       if (value) ret.push(value);
     }
 

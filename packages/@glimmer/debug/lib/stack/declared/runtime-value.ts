@@ -1,6 +1,11 @@
-import type { CompilableBlock, Nullable, Scope, ScopeBlock } from '@glimmer/interfaces';
-import { type Reference,valueForRef } from '@glimmer/reference';
-import type { BlockSymbolTable } from '@glimmer/syntax';
+import type {
+  BlockSymbolTable,
+  CompilableBlock,
+  Nullable,
+  Scope,
+  ScopeBlock,
+} from '@glimmer/interfaces';
+import { readReactive, type SomeReactive } from '@glimmer/reference';
 import type { AnyFunction } from '@glimmer/util';
 
 import type { DebugState } from '../../render/state';
@@ -26,15 +31,21 @@ export const RefFunction = define('ref/function', 'a function ref', (reference) 
 });
 
 function deref<const T, const U extends T>(
-  reference: Reference<T>,
+  reference: SomeReactive<T>,
   check: (value: T) => value is U
 ): FallibleCheckResult<Deref<U>> {
   try {
-    const value = valueForRef(reference);
+    const result = readReactive(reference);
+
+    if (result.type === 'err') {
+      return { error: 'deref', threw: result.value };
+    }
+
+    const value = result.value;
 
     if (check(value)) {
       return ok({
-        reference: reference as unknown as Reference<U>,
+        reference: reference as unknown as SomeReactive<U>,
         value,
       } satisfies Deref<U>);
     } else {
@@ -56,7 +67,7 @@ export interface ErrorSpec {
 type TODO = unknown;
 
 interface Deref<T> {
-  readonly reference: Reference<T>;
+  readonly reference: SomeReactive<T>;
   readonly value: T;
 }
 

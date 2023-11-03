@@ -2,6 +2,7 @@ import { check, CheckNumber } from '@glimmer/debug';
 import type {
   CleanStack,
   DebugStack,
+  ErrorHandler,
   Expand,
   InternalStack,
   Nullable,
@@ -9,6 +10,7 @@ import type {
   RuntimeHeap,
   RuntimeOp,
   RuntimeProgram,
+  TargetState,
 } from '@glimmer/interfaces';
 import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
 import { assert, expect, UserException } from '@glimmer/util';
@@ -17,7 +19,7 @@ import { $fp, $pc, $ra, $sp, $up, Op } from '@glimmer/vm';
 import { APPEND_OPCODES } from '../opcodes';
 import type { VM } from './append';
 import { debugAround } from './debug/debug';
-import { type ErrorHandler, type TargetState, UnwindTarget } from './unwind';
+import { UnwindTarget } from './unwind';
 
 export type PackedRegisters = Expand<
   [$pc: number, $ra: number, $fp: number, $sp: number, $up: UnwindTarget]
@@ -315,7 +317,7 @@ export class LowLevelVM {
 
   userException(error: unknown): TargetState {
     if (import.meta.env.DEV) {
-      THROWN?.set(new UserException(error, `A user exception occurred`));
+      THROWN?.set(UserException.from(error, `A user exception occurred`));
     }
 
     const target = this.#registers.catch(error);

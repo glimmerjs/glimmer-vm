@@ -1,14 +1,14 @@
 import type { SimpleElement, SimpleNode } from '@simple-dom/interface';
 
 import type { RichIteratorResult } from '../core';
-import type { Bounds } from '../dom/bounds';
+import type { BlockBounds } from '../dom/bounds';
 import type { Environment } from './environment';
 
 export interface ExceptionHandler {
   handleException(): void;
 }
 
-export interface RenderResult extends Bounds, ExceptionHandler {
+export interface RenderResult extends BlockBounds, ExceptionHandler {
   readonly env: Environment;
   readonly drop: object;
   readonly error?: unknown;

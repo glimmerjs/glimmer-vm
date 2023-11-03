@@ -7,9 +7,9 @@ import {
   CheckHandle,
   CheckInstanceof,
   CheckInterface,
+  CheckNullable,
   CheckNumber,
   CheckObject,
-  CheckNullable,
   CheckOr,
   CheckProgramSymbolTable,
   CheckString,
@@ -17,13 +17,13 @@ import {
   wrap,
 } from '@glimmer/debug';
 import type {
+  BlockMetadata,
   CapabilityMask,
   CapturedArguments,
   CompilableBlock,
   CompilableProgram,
   ComponentDefinition,
   ComponentInstance,
-  BlockMetadata,
   ElementOperations,
   Helper,
   InternalComponentManager,
@@ -35,7 +35,7 @@ import type {
 import {
   type OpaqueIterator,
   REFERENCE,
-  type Reference,
+  type SomeReactive,
   UNDEFINED_REFERENCE,
 } from '@glimmer/reference';
 import { COMPUTE, type Tag } from '@glimmer/validator';
@@ -53,10 +53,8 @@ export const CheckOperations: Checker<Nullable<ComponentElementOperations>> = wr
 );
 
 class ReferenceChecker {
-  declare type: Reference;
-
-  validate(value: unknown): value is Reference {
-    return typeof value === 'object' && value !== null && REFERENCE in value;
+  validate(value: unknown): value is SomeReactive {
+    return typeof value === 'object' || value !== null || REFERENCE in value;
   }
 
   expected(): string {
@@ -64,7 +62,7 @@ class ReferenceChecker {
   }
 }
 
-export const CheckReference: Checker<Reference> = new ReferenceChecker();
+export const CheckReactive = new ReferenceChecker() as Checker<SomeReactive>;
 
 export const CheckIterator: Checker<OpaqueIterator> = CheckInterface({
   next: CheckFunction,
@@ -77,10 +75,10 @@ export const CheckArguments: Checker<VMArgumentsImpl> = wrap(() =>
 
 export const CheckHelper: Checker<Helper> = CheckFunction as Checker<Helper>;
 
-export class UndefinedReferenceChecker implements Checker<Reference> {
-  declare type: Reference;
+export class UndefinedReferenceChecker implements Checker<SomeReactive> {
+  declare type: SomeReactive;
 
-  validate(value: unknown): value is Reference {
+  validate(value: unknown): value is SomeReactive {
     return value === UNDEFINED_REFERENCE;
   }
 
@@ -92,8 +90,8 @@ export class UndefinedReferenceChecker implements Checker<Reference> {
 export const CheckUndefinedReference = new UndefinedReferenceChecker();
 
 export const CheckCapturedArguments: Checker<CapturedArguments> = CheckInterface({
-  positional: wrap(() => CheckArray(CheckReference)),
-  named: wrap(() => CheckDict(CheckReference)),
+  positional: wrap(() => CheckArray(CheckReactive)),
+  named: wrap(() => CheckDict(CheckReactive)),
 });
 
 export const CheckScope: Checker<Scope> = wrap(() => CheckInstanceof(PartialScopeImpl));

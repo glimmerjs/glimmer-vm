@@ -1,8 +1,7 @@
-import type { BlockMetadata } from '@glimmer/interfaces';
+import type { BlockMetadata, DebugConstants } from '@glimmer/interfaces';
 import { decodeHandle } from '@glimmer/util';
 
 import {
-  type DebugConstants,
   decodeCurry,
   decodePrimitive,
   decodeRegister,
@@ -26,6 +25,7 @@ export type OperandDisassembler = (options: DisassemblyState) => RawDisassembled
 
 const todo: OperandDisassembler = ({ label, value }) => ['error:operand', value, { label }];
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Left<D extends Disassembler<any>> = D extends Disassembler<infer Added>
   ? Exclude<OperandType, Added>
   : never;

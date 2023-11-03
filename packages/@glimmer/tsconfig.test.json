@@ -8,7 +8,6 @@
     "declaration": true,
     "declarationMap": true,
     "outDir": "../../ts-dist/packages",
-    "baseUrl": "..",
 
     "verbatimModuleSyntax": true,
 
@@ -27,11 +26,6 @@
 
     "types": ["qunit", "node", "vite/client"]
   },
-  "include": ["*/test/**/*"],
-  "exclude": ["*/test/node_modules", "**/fixtures"],
-  "references": [
-    {
-      "path": "../@glimmer-workspace/tsconfig.json"
-    }
-  ]
+  "include": ["./*/test/**/*"],
+  "exclude": ["./*/test/node_modules", "./**/fixtures"]
 }

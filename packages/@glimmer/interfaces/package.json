@@ -2,9 +2,11 @@
   "name": "@glimmer/interfaces",
   "version": "0.85.3",
   "repository": "https://github.com/glimmerjs/glimmer-vm/tree/master/packages/@glimmer/interfaces",
-  "types": "index.ts",
+  "main": "index.d.ts",
+  "types": "index.d.ts",
   "exports": {
-    "types": "./index.d.ts"
+    "types": "./index.d.ts",
+    "default": "./index.d.ts"
   },
   "scripts": {
     "test:lint": "eslint .",

@@ -6,6 +6,7 @@
     "@glimmer/manager": "workspace:^",
     "@glimmer/compiler": "workspace:^",
     "@glimmer/destroyable": "workspace:^",
+    "@glimmer/interfaces": "workspace:^",
     "@glimmer/reference": "workspace:^",
     "@glimmer/runtime": "workspace:^",
     "@glimmer/util": "workspace:^",

@@ -20,13 +20,13 @@ import type {
   VM as PublicVM,
 } from '@glimmer/interfaces';
 import {
-  childRefFor,
-  createComputeRef,
+  FallibleFormula,
   FALSE_REFERENCE,
-  type Reference,
+  getReactiveProperty,
+  type SomeReactive,
   TRUE_REFERENCE,
   UNDEFINED_REFERENCE,
-  valueForRef,
+  unwrapReactive,
 } from '@glimmer/reference';
 import { assert, assign, debugToString, decodeHandle, isObject } from '@glimmer/util';
 import { $v0, CurriedTypes, Op } from '@glimmer/vm';
@@ -42,18 +42,18 @@ import {
   CheckCapturedArguments,
   CheckCompilableBlock,
   CheckHelper,
-  CheckReference,
+  CheckReactive,
   CheckScope,
   CheckScopeBlock,
   CheckUndefinedReference,
 } from './-debug-strip';
 
-export type FunctionExpression<T> = (vm: PublicVM) => Reference<T>;
+export type FunctionExpression<T> = (vm: PublicVM) => SomeReactive<T>;
 
 APPEND_OPCODES.add(Op.Curry, (vm, { op1: type, op2: _isStrict }) => {
   let stack = vm.stack;
 
-  let definition = check(stack.pop(), CheckReference);
+  let definition = check(stack.pop(), CheckReactive);
   let capturedArgs = check(stack.pop(), CheckCapturedArguments);
 
   let owner = vm.getOwner();
@@ -74,18 +74,18 @@ APPEND_OPCODES.add(Op.Curry, (vm, { op1: type, op2: _isStrict }) => {
 
 APPEND_OPCODES.add(Op.DynamicHelper, (vm) => {
   let stack = vm.stack;
-  let ref = check(stack.pop(), CheckReference);
+  let ref = check(stack.pop(), CheckReactive);
   let args = check(stack.pop(), CheckArguments).capture();
 
-  let helperRef: Reference;
+  let helperRef: SomeReactive;
   let initialOwner: Owner = vm.getOwner();
 
-  let helperInstanceRef = createComputeRef(() => {
+  let helperInstanceRef = FallibleFormula(() => {
     if (helperRef !== undefined) {
       destroy(helperRef);
     }
 
-    let definition = valueForRef(ref);
+    let definition = unwrapReactive(ref);
 
     if (isCurried(definition, CurriedTypes.Helper)) {
       let { definition: resolvedDef, owner, positional, named } = resolveCurriedValue(definition);
@@ -115,9 +115,8 @@ APPEND_OPCODES.add(Op.DynamicHelper, (vm) => {
     }
   });
 
-  let helperValueRef = createComputeRef(() => {
-    valueForRef(helperInstanceRef);
-    return valueForRef(helperRef);
+  let helperValueRef = FallibleFormula(() => {
+    unwrapReactive(helperInstanceRef);
   });
 
   vm.associateDestroyable(helperInstanceRef);
@@ -127,7 +126,7 @@ APPEND_OPCODES.add(Op.DynamicHelper, (vm) => {
 function resolveHelper(
   constants: RuntimeConstants & ResolutionTimeConstants,
   definition: HelperDefinitionState,
-  ref: Reference
+  ref: SomeReactive
 ): Helper {
   let handle = constants.helper(definition, null, true)!;
 
@@ -166,7 +165,7 @@ APPEND_OPCODES.add(Op.GetVariable, (vm, { op1: symbol }) => {
 });
 
 APPEND_OPCODES.add(Op.SetVariable, (vm, { op1: symbol }) => {
-  let expr = check(vm.stack.pop(), CheckReference);
+  let expr = check(vm.stack.pop(), CheckReactive);
   vm.scope().bindSymbol(symbol, expr);
 });
 
@@ -184,8 +183,8 @@ APPEND_OPCODES.add(Op.RootScope, (vm, { op1: symbols }) => {
 
 APPEND_OPCODES.add(Op.GetProperty, (vm, { op1: _key }) => {
   let key = vm[CONSTANTS].getValue<string>(_key);
-  let expr = check(vm.stack.pop(), CheckReference);
-  vm.stack.push(childRefFor(expr, key));
+  let expr = check(vm.stack.pop(), CheckReactive);
+  vm.stack.push(getReactiveProperty(expr, key));
 });
 
 APPEND_OPCODES.add(Op.GetBlock, (vm, { op1: _block }) => {
@@ -212,7 +211,7 @@ APPEND_OPCODES.add(Op.SpreadBlock, (vm) => {
   }
 });
 
-function isUndefinedReference(input: ScopeBlock | Reference): input is Reference {
+function isUndefinedReference(input: ScopeBlock | SomeReactive): input is SomeReactive {
   assert(
     Array.isArray(input) || input === UNDEFINED_REFERENCE,
     'a reference other than UNDEFINED_REFERENCE is illegal here'
@@ -245,38 +244,38 @@ APPEND_OPCODES.add(Op.HasBlockParams, (vm) => {
 });
 
 APPEND_OPCODES.add(Op.Concat, (vm, { op1: count }) => {
-  let out: Array<Reference<unknown>> = new Array(count);
+  let out: Array<SomeReactive<unknown>> = new Array(count);
 
   for (let i = count; i > 0; i--) {
     let offset = i - 1;
-    out[offset] = check(vm.stack.pop(), CheckReference);
+    out[offset] = check(vm.stack.pop(), CheckReactive);
   }
 
   vm.stack.push(createConcatRef(out));
 });
 
 APPEND_OPCODES.add(Op.IfInline, (vm) => {
-  let condition = check(vm.stack.pop(), CheckReference);
-  let truthy = check(vm.stack.pop(), CheckReference);
-  let falsy = check(vm.stack.pop(), CheckReference);
+  let condition = check(vm.stack.pop(), CheckReactive);
+  let truthy = check(vm.stack.pop(), CheckReactive);
+  let falsy = check(vm.stack.pop(), CheckReactive);
 
   vm.stack.push(
-    createComputeRef(() => {
-      if (toBool(valueForRef(condition)) === true) {
-        return valueForRef(truthy);
+    FallibleFormula(() => {
+      if (toBool(unwrapReactive(condition)) === true) {
+        return unwrapReactive(truthy);
       } else {
-        return valueForRef(falsy);
+        return unwrapReactive(falsy);
       }
     })
   );
 });
 
 APPEND_OPCODES.add(Op.Not, (vm) => {
-  let ref = check(vm.stack.pop(), CheckReference);
+  let ref = check(vm.stack.pop(), CheckReactive);
 
   vm.stack.push(
-    createComputeRef(() => {
-      return !toBool(valueForRef(ref));
+    FallibleFormula(() => {
+      return !toBool(unwrapReactive(ref));
     })
   );
 });
@@ -284,12 +283,12 @@ APPEND_OPCODES.add(Op.Not, (vm) => {
 APPEND_OPCODES.add(Op.GetDynamicVar, (vm) => {
   let scope = vm.dynamicScope();
   let stack = vm.stack;
-  let nameRef = check(stack.pop(), CheckReference);
+  let nameRef = check(stack.pop(), CheckReactive);
 
   stack.push(
-    createComputeRef(() => {
-      let name = String(valueForRef(nameRef));
-      return valueForRef(scope.get(name));
+    FallibleFormula(() => {
+      let name = String(unwrapReactive(nameRef));
+      return unwrapReactive(scope.get(name));
     })
   );
 });
@@ -299,7 +298,7 @@ APPEND_OPCODES.add(Op.Log, (vm) => {
 
   vm.loadValue(
     $v0,
-    createComputeRef(() => {
+    FallibleFormula(() => {
       // eslint-disable-next-line no-console
       console.log(...reifyPositional(positional));
     })

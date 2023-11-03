@@ -1,6 +1,6 @@
 import { associateDestroyableChild, destroy, destroyChildren } from '@glimmer/destroyable';
 import type {
-  Bounds,
+  BlockBounds,
   DynamicScope,
   ElementBuilder,
   Environment,
@@ -20,9 +20,9 @@ import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
 import {
   type OpaqueIterationItem,
   type OpaqueIterator,
-  type Reference,
+  readReactive,
+  type SomeReactive,
   updateRef,
-  valueForRef,
 } from '@glimmer/reference';
 import { expect, logStep, Stack, unwrap } from '@glimmer/util';
 import { debug, resetTracking } from '@glimmer/validator';
@@ -54,8 +54,8 @@ export class UpdatingVM implements IUpdatingVM {
           '- While rendering:'
         );
 
-        // using a boolean here to avoid breaking ergonomics of "pause on uncaught exceptions"
-        // which would happen with a `catch` + `throw`
+        // using a boolean here to avoid breaking ergonomics of "pause on uncaught exceptions" which
+        // would happen with a `catch` + `throw`
         hasErrored = false;
       } finally {
         if (hasErrored) {
@@ -89,12 +89,8 @@ export class UpdatingVM implements IUpdatingVM {
     return expect(this.frameStack.current, 'bug: expected a frame');
   }
 
-  deref<T>(reference: Reference<T>): Result<T> {
-    try {
-      return { type: 'ok', value: valueForRef(reference) };
-    } catch (e) {
-      return { type: 'err', value: e };
-    }
+  deref<T>(reference: SomeReactive<T>): Result<T> {
+    return readReactive(reference);
   }
 
   goto(index: number) {
@@ -134,8 +130,10 @@ export class ResumableVMStateImpl implements ResumableVMState {
   }
 }
 
-export abstract class BlockOpcode implements UpdatingOpcode, Bounds {
-  public children: UpdatingOpcode[];
+export abstract class BlockOpcode<Child extends UpdatingOpcode = UpdatingOpcode>
+  implements UpdatingOpcode, BlockBounds
+{
+  #children: Child[];
 
   protected readonly bounds: LiveBlock;
 
@@ -143,10 +141,19 @@ export abstract class BlockOpcode implements UpdatingOpcode, Bounds {
     protected state: ResumableVMState,
     protected runtime: RuntimeContext,
     bounds: LiveBlock,
-    children: UpdatingOpcode[]
+    children: Child[]
   ) {
-    this.children = children;
+    this.#children = children;
     this.bounds = bounds;
+  }
+
+  get children() {
+    return this.#children;
+  }
+
+  protected updateChildren(children: Child[]): Child[] {
+    this.#children = children;
+    return children;
   }
 
   parentElement() {
@@ -180,11 +187,11 @@ export class TryOpcode extends BlockOpcode implements ExceptionHandler {
 
     destroyChildren(this);
 
-    let elementStack = NewElementBuilder.resume(runtime.env, bounds);
+      let elementStack = NewElementBuilder.resume(runtime.env, bounds);
     let vm = state.resume(runtime, elementStack);
 
     let updating: UpdatingOpcode[] = [];
-    let children = (this.children = []);
+    let children = this.updateChildren([]);
 
     let result = vm.execute((vm) => {
       vm.pushUpdating(updating);
@@ -199,15 +206,15 @@ export class TryOpcode extends BlockOpcode implements ExceptionHandler {
 export class ListItemOpcode extends TryOpcode {
   public retained = false;
   public index = -1;
-  #memo: Reference;
+  #memo: SomeReactive;
 
   constructor(
     state: ResumableVMState,
     runtime: RuntimeContext,
     bounds: UpdatableBlock,
     public key: unknown,
-    memo: Reference,
-    public value: Reference
+    memo: SomeReactive,
+    public value: SomeReactive
   ) {
     super(state, runtime, bounds, []);
     this.#memo = memo;
@@ -228,13 +235,12 @@ export class ListItemOpcode extends TryOpcode {
   }
 }
 
-export class ListBlockOpcode extends BlockOpcode {
-  public type = 'list-block';
-  public declare children: ListItemOpcode[];
+export class ListBlockOpcode extends BlockOpcode<ListItemOpcode> {
+  readonly type = 'list-block';
 
-  private opcodeMap = new Map<unknown, ListItemOpcode>();
-  private marker: SimpleComment | null = null;
-  private lastIterator: OpaqueIterator;
+  #opcodeMap = new Map<unknown, ListItemOpcode>();
+  #marker: SimpleComment | null = null;
+  #lastIterator: Result<OpaqueIterator>;
 
   protected declare readonly bounds: LiveBlockList;
 
@@ -243,49 +249,55 @@ export class ListBlockOpcode extends BlockOpcode {
     runtime: RuntimeContext,
     bounds: LiveBlockList,
     children: ListItemOpcode[],
-    private iterableRef: Reference<OpaqueIterator>
+    private iterableRef: SomeReactive<OpaqueIterator>
   ) {
     super(state, runtime, bounds, children);
-    this.lastIterator = valueForRef(iterableRef);
+    this.#lastIterator = readReactive(iterableRef);
   }
 
   initializeChild(opcode: ListItemOpcode) {
     opcode.index = this.children.length - 1;
-    this.opcodeMap.set(opcode.key, opcode);
+    this.#opcodeMap.set(opcode.key, opcode);
   }
 
   override evaluate(vm: UpdatingVM) {
-    let iterator = valueForRef(this.iterableRef);
+    let iterator = readReactive(this.iterableRef);
 
-    if (this.lastIterator !== iterator) {
+    if (this.#lastIterator.type !== iterator.type || this.#lastIterator.value !== iterator.value) {
       let { bounds } = this;
       let { dom } = vm;
 
-      let marker = (this.marker = dom.createComment(''));
+      let marker = (this.#marker = dom.createComment(''));
       dom.insertAfter(
         bounds.parentElement(),
         marker,
         expect(bounds.lastNode(), "can't insert after an empty bounds")
       );
 
-      this.sync(iterator);
+      if (iterator.type === 'err') {
+        // @fixme
+        throw Error('unimplemented: list block iterator error');
+      }
+
+      this.#sync(iterator.value);
 
       this.parentElement().removeChild(marker);
-      this.marker = null;
-      this.lastIterator = iterator;
+      this.#marker = null;
+      this.#lastIterator = iterator;
     }
 
     // Run now-updated updating opcodes
     super.evaluate(vm);
   }
 
-  private sync(iterator: OpaqueIterator) {
-    let { opcodeMap: itemMap, children } = this;
+  #sync(iterator: OpaqueIterator) {
+    const itemMap = this.#opcodeMap;
 
     let currentOpcodeIndex = 0;
     let seenIndex = 0;
 
-    this.children = this.bounds.boundList = [];
+    const children = this.children;
+    this.bounds.boundList = this.updateChildren([]);
 
     // eslint-disable-next-line no-constant-condition
     while (true) {
@@ -296,8 +308,8 @@ export class ListBlockOpcode extends BlockOpcode {
       let opcode = children[currentOpcodeIndex];
       let { key } = item;
 
-      // Items that have already been found and moved will already be retained,
-      // we can continue until we find the next unretained item
+      // Items that have already been found and moved will already be retained, we can continue
+      // until we find the next unretained item
       while (opcode !== undefined && opcode.retained === true) {
         opcode = children[++currentOpcodeIndex];
       }
@@ -312,16 +324,14 @@ export class ListBlockOpcode extends BlockOpcode {
         if (itemOpcode.index < seenIndex) {
           this.moveItem(itemOpcode, item, opcode);
         } else {
-          // Update the seen index, we are going to be moving this item around
-          // so any other items that come before it will likely need to move as
-          // well.
+          // Update the seen index, we are going to be moving this item around so any other items
+          // that come before it will likely need to move as well.
           seenIndex = itemOpcode.index;
 
           let seenUnretained = false;
 
-          // iterate through all of the opcodes between the current position and
-          // the position of the item's opcode, and determine if they are all
-          // retained.
+          // iterate through all of the opcodes between the current position and the position of the
+          // item's opcode, and determine if they are all retained.
           for (let i = currentOpcodeIndex + 1; i < seenIndex; i++) {
             if (unwrap(children[i]).retained === false) {
               seenUnretained = true;
@@ -329,9 +339,9 @@ export class ListBlockOpcode extends BlockOpcode {
             }
           }
 
-          // If we have seen only retained opcodes between this and the matching
-          // opcode, it means that all the opcodes in between have been moved
-          // already, and we can safely retain this item's opcode.
+          // If we have seen only retained opcodes between this and the matching opcode, it means
+          // that all the opcodes in between have been moved already, and we can safely retain this
+          // item's opcode.
           if (seenUnretained === false) {
             this.retainItem(itemOpcode, item);
             currentOpcodeIndex = seenIndex + 1;
@@ -372,9 +382,10 @@ export class ListBlockOpcode extends BlockOpcode {
       logStep!('list-updates', ['insert', item.key]);
     }
 
-    let { opcodeMap, bounds, state, runtime, children } = this;
+    const opcodeMap = this.#opcodeMap;
+    let { bounds, state, runtime, children } = this;
     let { key } = item;
-    let nextSibling = before === undefined ? this.marker : before.firstNode();
+    let nextSibling = before === undefined ? this.#marker : before.firstNode();
 
     let elementStack = NewElementBuilder.forInitialRender(runtime.env, {
       element: bounds.parentElement(),
@@ -406,15 +417,14 @@ export class ListBlockOpcode extends BlockOpcode {
     let currentSibling, nextSibling;
 
     if (before === undefined) {
-      moveBounds(opcode, this.marker);
+      moveBounds(opcode, this.#marker);
     } else {
       currentSibling = opcode.lastNode().nextSibling;
       nextSibling = before.firstNode();
 
-      // Items are moved throughout the algorithm, so there are cases where the
-      // the items already happen to be siblings (e.g. an item in between was
-      // moved before this move happened). Check to see if they are siblings
-      // first before doing the move.
+      // Items are moved throughout the algorithm, so there are cases where the the items already
+      // happen to be siblings (e.g. an item in between was moved before this move happened). Check
+      // to see if they are siblings first before doing the move.
       if (currentSibling !== nextSibling) {
         moveBounds(opcode, nextSibling);
       }
@@ -436,7 +446,7 @@ export class ListBlockOpcode extends BlockOpcode {
 
     destroy(opcode);
     clear(opcode);
-    this.opcodeMap.delete(opcode.key);
+    this.#opcodeMap.delete(opcode.key);
   }
 }
 

@@ -1,5 +1,5 @@
 import type {
-  Bounds,
+  BlockBounds,
   Nullable,
   SimpleDocument,
   SimpleElement,
@@ -53,7 +53,7 @@ export function applySVGInnerHTMLFix(
       parent: SimpleElement,
       nextSibling: Nullable<SimpleNode>,
       html: string
-    ): Bounds {
+    ): BlockBounds {
       if (html === '') {
         return super.insertHTMLBefore(parent, nextSibling, html);
       }
@@ -72,7 +72,7 @@ function fixSVG(
   div: SimpleElement,
   html: string,
   reference: Nullable<SimpleNode>
-): Bounds {
+): BlockBounds {
   assert(html !== '', 'html cannot be empty');
 
   let source: SimpleNode;

@@ -15,6 +15,7 @@ export interface Checker<T> {
 
   validate(value: unknown): value is T;
   expected(): string;
+  got?: (value: unknown, expected?: string) => string | undefined;
 }
 
 export function wrap<T>(checker: () => Checker<T>): Checker<T> {
@@ -284,6 +285,7 @@ class SafeStringChecker implements Checker<SafeString> {
 
   validate(value: unknown): value is SafeString {
     return (
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- @todo
       typeof value === 'object' && value !== null && typeof (value as any).toHTML === 'function'
     );
   }
@@ -327,7 +329,9 @@ export function CheckDict<T>(obj: Checker<T>): Checker<Dict<T>> {
 export const CheckSyscallRegister = new SyscallRegisterChecker();
 
 function defaultMessage(value: unknown, expected: string): string {
-  return `Got ${value}, expected:\n${expected}`;
+  const actual =
+    value === null ? `null` : typeof value === 'string' ? value : `some ${typeof value}`;
+  return `Got ${actual}, expected:${expected.includes('\n') ? `\n${expected}` : ` ${expected}`}`;
 }
 
 export function check<T>(
@@ -339,8 +343,23 @@ export function check<T, U extends T>(value: T, checker: (value: T) => asserts v
 export function check<T>(
   value: unknown,
   checker: Checker<T> | ((value: unknown) => void),
-  message: (value: unknown, expected: string) => string = defaultMessage
+  message?: (value: unknown, expected: string) => string
 ): T {
+  if (!message) {
+    if (typeof checker === 'function') {
+      message = defaultMessage;
+    } else {
+      const got = checker.got;
+      if (!got) {
+        message = defaultMessage;
+      } else {
+        message = (value: unknown, expected: string) => {
+          return defaultMessage(got(value) ?? value, expected);
+        };
+      }
+    }
+  }
+
   if (typeof checker === 'function') {
     checker(value);
     return value as T;

@@ -1,23 +1,27 @@
 import { destroy, registerDestructor } from '@glimmer/destroyable';
 import type {
   AttrNamespace,
-  Bounds,
+  BlockBounds,
+  BlockBoundsDebug,
   Cursor,
   ElementBuilder,
   ElementOperations,
   Environment,
+  FirstNode,
   GlimmerTreeChanges,
   GlimmerTreeConstruction,
+  LastNode,
   LiveBlock,
-  LiveBlockDebug,
   Maybe,
   ModifierInstance,
   Nullable,
+  PartialBoundsDebug,
   SimpleComment,
   SimpleDocumentFragment,
   SimpleElement,
   SimpleNode,
   SimpleText,
+  SomeBoundsDebug,
   UpdatableBlock,
 } from '@glimmer/interfaces';
 import { assert, expect, Stack } from '@glimmer/util';
@@ -25,30 +29,16 @@ import { assert, expect, Stack } from '@glimmer/util';
 import { clear, ConcreteBounds, CursorImpl, SingleNodeBounds } from '../bounds';
 import { type DynamicAttribute, dynamicAttribute } from './attributes/dynamic';
 
-export interface FirstNode {
-  // `firstNode()` is allowed to throw during construction
-  debug?: { readonly firstNode: SimpleNode };
-
-  firstNode(): SimpleNode;
-}
-
-export interface LastNode {
-  // `lastNode()` is allowed to throw during construction
-  debug?: { readonly lastNode: SimpleNode };
-
-  lastNode(): SimpleNode;
-}
-
 class First implements FirstNode {
   readonly #node: SimpleNode;
-  declare debug?: { readonly firstNode: SimpleNode };
+  readonly debug?: () => PartialBoundsDebug;
 
   constructor(node: SimpleNode) {
     this.#node = node;
 
-    ifDev(() => {
-      this.debug = { firstNode: this.#node };
-    });
+    if (import.meta.env.DEV) {
+      this.debug = () => ({ type: 'first', node: this.#node });
+    }
   }
 
   firstNode(): SimpleNode {
@@ -56,16 +46,16 @@ class First implements FirstNode {
   }
 }
 
-class Last {
+class Last implements LastNode {
   readonly #node: SimpleNode;
-  declare debug?: { readonly lastNode: SimpleNode };
+  readonly debug?: () => PartialBoundsDebug;
 
   constructor(node: SimpleNode) {
     this.#node = node;
 
-    ifDev(() => {
-      this.debug = { lastNode: this.#node };
-    });
+    if (import.meta.env.DEV) {
+      this.debug = () => ({ type: 'last', node: this.#node });
+    }
   }
 
   lastNode(): SimpleNode {
@@ -73,10 +63,10 @@ class Last {
   }
 }
 
-export class Fragment implements Bounds {
-  private bounds: Bounds;
+export class Fragment implements BlockBounds {
+  private bounds: BlockBounds;
 
-  constructor(bounds: Bounds) {
+  constructor(bounds: BlockBounds) {
     this.bounds = bounds;
   }
 
@@ -339,7 +329,7 @@ export abstract class AbstractElementBuilder<C extends Cursor> implements Elemen
     return this.modifierStack.pop();
   }
 
-  didAppendBounds(bounds: Bounds): Bounds {
+  didAppendBounds(bounds: BlockBounds): BlockBounds {
     this.#try.block.didAppendBounds(bounds);
     this.block().didAppendBounds(bounds);
     return bounds;
@@ -378,7 +368,7 @@ export abstract class AbstractElementBuilder<C extends Cursor> implements Elemen
     return node;
   }
 
-  __appendFragment(fragment: SimpleDocumentFragment): Bounds {
+  __appendFragment(fragment: SimpleDocumentFragment): BlockBounds {
     let first = fragment.firstChild;
 
     if (first) {
@@ -390,7 +380,7 @@ export abstract class AbstractElementBuilder<C extends Cursor> implements Elemen
     }
   }
 
-  __appendHTML(html: string): Bounds {
+  __appendHTML(html: string): BlockBounds {
     return this.dom.insertHTMLBefore(this.element, this.nextSibling, html);
   }
 
@@ -416,7 +406,7 @@ export abstract class AbstractElementBuilder<C extends Cursor> implements Elemen
     this.didAppendBounds(bounds);
   }
 
-  private trustedContent(value: string): Bounds {
+  private trustedContent(value: string): BlockBounds {
     return this.__appendHTML(value);
   }
 
@@ -480,11 +470,11 @@ export class SimpleLiveBlock implements LiveBlock {
   protected first: Nullable<FirstNode> = null;
   protected last: Nullable<LastNode> = null;
   protected nesting = 0;
-  declare debug?: () => LiveBlockDebug;
+  declare debug?: () => BlockBoundsDebug;
 
   constructor(private parent: SimpleElement) {
     ifDev(() => {
-      this.debug = (): LiveBlockDebug => {
+      this.debug = (): BlockBoundsDebug => {
         return liveBlockDebug('SimpleLiveBlock', this.first, this.last, parent);
       };
     });
@@ -531,7 +521,7 @@ export class SimpleLiveBlock implements LiveBlock {
     this.last = new Last(node);
   }
 
-  didAppendBounds(bounds: Bounds) {
+  didAppendBounds(bounds: BlockBounds) {
     if (this.nesting !== 0) return;
 
     if (!this.first) {
@@ -553,30 +543,28 @@ export class RemoteLiveBlock extends SimpleLiveBlock {
     super(parent);
 
     registerDestructor(this, () => {
-      // In general, you only need to clear the root of a hierarchy, and should never
-      // need to clear any child nodes. This is an important constraint that gives us
-      // a strong guarantee that clearing a subtree is a single DOM operation.
+      // In general, you only need to clear the root of a hierarchy, and should never need to clear
+      // any child nodes. This is an important constraint that gives us a strong guarantee that
+      // clearing a subtree is a single DOM operation.
       //
-      // Because remote blocks are not normally physically nested inside of the tree
-      // that they are logically nested inside, we manually clear remote blocks when
-      // a logical parent is cleared.
+      // Because remote blocks are not normally physically nested inside of the tree that they are
+      // logically nested inside, we manually clear remote blocks when a logical parent is cleared.
       //
-      // HOWEVER, it is currently possible for a remote block to be physically nested
-      // inside of the block it is logically contained inside of. This happens when
-      // the remote block is appended to the end of the application's entire element.
+      // HOWEVER, it is currently possible for a remote block to be physically nested inside of the
+      // block it is logically contained inside of. This happens when the remote block is appended
+      // to the end of the application's entire element.
       //
-      // The problem with that scenario is that Glimmer believes that it owns more of
-      // the DOM than it actually does. The code is attempting to write past the end
-      // of the Glimmer-managed root, but Glimmer isn't aware of that.
+      // The problem with that scenario is that Glimmer believes that it owns more of the DOM than
+      // it actually does. The code is attempting to write past the end of the Glimmer-managed root,
+      // but Glimmer isn't aware of that.
       //
-      // The correct solution to that problem is for Glimmer to be aware of the end
-      // of the bounds that it owns, and once we make that change, this check could
-      // be removed.
+      // The correct solution to that problem is for Glimmer to be aware of the end of the bounds
+      // that it owns, and once we make that change, this check could be removed.
       //
-      // For now, a more targeted fix is to check whether the node was already removed
-      // and avoid clearing the node if it was. In most cases this shouldn't happen,
-      // so this might hide bugs where the code clears nested nodes unnecessarily,
-      // so we should eventually try to do the correct fix.
+      // For now, a more targeted fix is to check whether the node was already removed and avoid
+      // clearing the node if it was. In most cases this shouldn't happen, so this might hide bugs
+      // where the code clears nested nodes unnecessarily, so we should eventually try to do the
+      // correct fix.
       if (this.parentElement() === this.firstNode().parentNode) {
         clear(this);
       }
@@ -615,11 +603,11 @@ export class UpdatableBlockImpl extends SimpleLiveBlock implements UpdatableBloc
 
 // FIXME: All the noops in here indicate a modelling problem
 export class LiveBlockList implements LiveBlock {
-  readonly debug?: () => LiveBlockDebug;
+  readonly debug?: () => BlockBoundsDebug;
 
   constructor(
     private readonly parent: SimpleElement,
-    public boundList: LiveBlock[]
+    public boundList: BlockBounds[]
   ) {
     this.parent = parent;
     this.boundList = boundList;
@@ -675,7 +663,7 @@ export class LiveBlockList implements LiveBlock {
     assert(false, 'Cannot create a new node directly inside a block list');
   }
 
-  didAppendBounds(_bounds: Bounds) {}
+  didAppendBounds(_bounds: BlockBounds) {}
 
   finalize(_stack: ElementBuilder) {
     assert(this.boundList.length > 0, 'boundsList cannot be empty');
@@ -692,38 +680,55 @@ function ifDev<T>(callback: () => T): void {
   }
 }
 
-function getNodesFromDebug(
-  debug: LiveBlockDebug | undefined
-): [SimpleNode, SimpleNode] | undefined {
-  if (debug === undefined || debug.type === 'empty') return;
-  return debug.range;
+function getFirstNodeFromDebug(debug: SomeBoundsDebug | undefined): SimpleNode | undefined {
+  switch (debug?.type) {
+    case undefined:
+    case 'empty':
+    case 'last':
+      return;
+    case 'range':
+      return debug.range[0];
+    case 'first':
+      return debug.node;
+  }
+}
+
+function getLastNodeFromDebug(debug: SomeBoundsDebug | undefined): SimpleNode | undefined {
+  switch (debug?.type) {
+    case undefined:
+    case 'empty':
+    case 'first':
+      return;
+    case 'range':
+      return debug.range[1];
+  }
 }
 
 function joinRange(
   kind: string,
-  firstBlock: LiveBlockDebug | undefined,
-  lastBlock: LiveBlockDebug | undefined,
+  firstBlock: SomeBoundsDebug | undefined,
+  lastBlock: SomeBoundsDebug | undefined,
   parent: SimpleElement
-): LiveBlockDebug {
-  const firstNodes = getNodesFromDebug(firstBlock);
-  const lastNodes = getNodesFromDebug(lastBlock);
+): BlockBoundsDebug {
+  const firstNode = getFirstNodeFromDebug(firstBlock);
+  const lastNode = getLastNodeFromDebug(lastBlock);
 
-  if (firstNodes && lastNodes) {
-    return debugRange(kind, [firstNodes[0], lastNodes[1]]);
-  } else if (firstBlock) {
+  if (firstNode && lastNode) {
+    return debugRange(kind, [firstNode, lastNode]);
+  } else if (firstBlock?.type === 'range') {
     return firstBlock;
-  } else if (lastBlock) {
+  } else if (lastBlock?.type === 'range') {
     return lastBlock;
   } else {
     return empty(kind, parent);
   }
 }
 
-function empty(kind: string, parent: SimpleElement): LiveBlockDebug {
+function empty(kind: string, parent: SimpleElement): BlockBoundsDebug {
   return { type: 'empty', kind, parent };
 }
 
-function debugRange(kind: string, [first, last]: [SimpleNode, SimpleNode]): LiveBlockDebug {
+function debugRange(kind: string, [first, last]: [SimpleNode, SimpleNode]): BlockBoundsDebug {
   return { type: 'range', kind, range: [first, last], collapsed: first === last };
 }
 
@@ -732,9 +737,9 @@ function liveBlockDebug(
   firstNode: Nullable<FirstNode> | undefined,
   lastNode: Nullable<LastNode> | undefined,
   parent: SimpleElement
-): LiveBlockDebug {
-  const first = firstNode?.debug?.firstNode;
-  const last = lastNode?.debug?.lastNode;
+): BlockBoundsDebug {
+  const first = getFirstNodeFromDebug(firstNode?.debug?.());
+  const last = getLastNodeFromDebug(lastNode?.debug?.());
 
   if (first && last) {
     return { type: 'range', kind, range: [first, last], collapsed: first === last };

@@ -1,6 +1,6 @@
 import type { Maybe, Nullable } from '../core';
 import type { ElementOperations, Environment, ModifierInstance } from '../runtime';
-import type { Bounds, Cursor } from './bounds';
+import type { BlockBounds, Cursor } from './bounds';
 import type { GlimmerTreeChanges, GlimmerTreeConstruction } from './changes';
 import type {
   AttrNamespace,
@@ -11,7 +11,15 @@ import type {
   SimpleText,
 } from './simple';
 
-export type LiveBlockDebug =
+export type PartialBoundsDebug = {
+  type: 'first';
+  node: SimpleNode;
+} | {
+  type: 'last';
+  node: SimpleNode;
+}
+
+export type BlockBoundsDebug =
   | {
       type: 'empty';
       kind: string;
@@ -24,13 +32,15 @@ export type LiveBlockDebug =
       collapsed: boolean;
     };
 
-export interface LiveBlock extends Bounds {
-  debug?: () => LiveBlockDebug;
+export type SomeBoundsDebug = BlockBoundsDebug | PartialBoundsDebug;
+
+export interface LiveBlock extends BlockBounds {
+  debug?: () => BlockBoundsDebug;
 
   openElement(element: SimpleElement): void;
   closeElement(): void;
   didAppendNode(node: SimpleNode): void;
-  didAppendBounds(bounds: Bounds): void;
+  didAppendBounds(bounds: BlockBounds): void;
   finalize(stack: ElementBuilder): void;
 }
 
@@ -83,7 +93,7 @@ export interface TreeOperations {
   __appendText(text: string): SimpleText;
   __appendComment(string: string): SimpleComment;
   __appendNode(node: SimpleNode): SimpleNode;
-  __appendHTML(html: string): Bounds;
+  __appendHTML(html: string): BlockBounds;
   __setAttribute(name: string, value: string, namespace: Nullable<string>): void;
   __setProperty(name: string, value: unknown): void;
 }
@@ -108,10 +118,10 @@ export interface ElementBuilder extends Cursor, DOMStack, TreeOperations {
 
   pushSimpleBlock(): LiveBlock;
   pushUpdatableBlock(): UpdatableBlock;
-  pushBlockList(list: Bounds[]): LiveBlock;
+  pushBlockList(list: BlockBounds[]): LiveBlock;
   popBlock(): LiveBlock;
 
-  didAppendBounds(bounds: Bounds): void;
+  didAppendBounds(bounds: BlockBounds): void;
 }
 
 export interface AttributeCursor {

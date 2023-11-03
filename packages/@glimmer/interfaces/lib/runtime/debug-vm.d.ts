@@ -1,7 +1,7 @@
-import type { DebugConstants } from '@glimmer/debug';
 import type {
+  BlockBoundsDebug,
   BlockMetadata,
-  LiveBlockDebug,
+  DebugConstants,
   Nullable,
   RuntimeHeap,
   ScopeSlot,
@@ -25,23 +25,22 @@ export interface DebugVmSnapshot {
   $v0: unknown;
   currentPc: number;
 
-  // these values don't need to be snapshotted since they (by definition) can't
-  // change.
+  // these values don't need to be snapshotted since they (by definition) can't change.
   readonly constant: {
     // The runtime heap is append-only, so it's safe to cache.
     readonly heap: RuntimeHeap;
-    // Constants are created by deserializing the wire format.
-    // The `DebugConstants` value is readonly.
+    // Constants are created by deserializing the wire format. The `DebugConstants` value is
+    // readonly.
     readonly constants: DebugConstants;
-    // The VM's meta pointer changes when the block changes, but
-    // the internals of `BlockMetadata` never change.
+    // The VM's meta pointer changes when the block changes, but the internals of `BlockMetadata`
+    // never change.
     readonly block: BlockMetadata | null;
   };
 
   readonly dom: {
     readonly constructing: SimpleElement | null;
     readonly inserting: SnapshotArray<DebugCursor>;
-    readonly blocks: SnapshotArray<LiveBlockDebug>;
+    readonly blocks: SnapshotArray<BlockBoundsDebug>;
   };
 
   readonly frame: {

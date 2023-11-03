@@ -1,14 +1,9 @@
 import { getPath, toIterator } from '@glimmer/global-context';
-import type { Dict, Nullable } from '@glimmer/interfaces';
+import type { Dict, Nullable, SomeReactive } from '@glimmer/interfaces';
 import { EMPTY_ARRAY, isObject } from '@glimmer/util';
 import { consumeTag, createTag, dirtyTag } from '@glimmer/validator';
 
-import {
-  createComputeRef,
-  type Reference,
-  type ReferenceEnvironment,
-  valueForRef,
-} from './reference';
+import { Accessor, FallibleFormula, type ReferenceEnvironment, unwrapReactive } from './reference';
 
 export interface IterationItem<T, U> {
   key: unknown;
@@ -163,9 +158,9 @@ function uniqueKeyFor(keyFor: KeyFor) {
   };
 }
 
-export function createIteratorRef(listRef: Reference, key: string) {
-  return createComputeRef(() => {
-    let iterable = valueForRef(listRef) as { [Symbol.iterator]: any } | null | false;
+export function createIteratorRef(listRef: SomeReactive, key: string) {
+  return FallibleFormula(() => {
+    let iterable = unwrapReactive(listRef) as { [Symbol.iterator]: any } | null | false;
 
     let keyFor = makeKeyFor(key);
 
@@ -187,18 +182,18 @@ export function createIteratorItemRef(_value: unknown) {
   let value = _value;
   let tag = createTag();
 
-  return createComputeRef(
-    () => {
+  return Accessor({
+    get: () => {
       consumeTag(tag);
       return value;
     },
-    (newValue) => {
+    set: (newValue) => {
       if (value !== newValue) {
         value = newValue;
         dirtyTag(tag);
       }
-    }
-  );
+    },
+  });
 }
 
 class IteratorWrapper implements OpaqueIterator {

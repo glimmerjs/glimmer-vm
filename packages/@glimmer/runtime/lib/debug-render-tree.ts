@@ -1,5 +1,5 @@
 import type {
-  Bounds,
+  BlockBounds,
   CapturedRenderNode,
   DebugRenderTree,
   Nullable,
@@ -10,7 +10,7 @@ import { assign, expect, Stack } from '@glimmer/util';
 import { reifyArgs } from './vm/arguments';
 
 interface InternalRenderNode<T extends object> extends RenderNode {
-  bounds: Nullable<Bounds>;
+  bounds: Nullable<BlockBounds>;
   refs: Set<Ref<T>>;
   parent?: InternalRenderNode<T>;
 }
@@ -80,7 +80,7 @@ export default class DebugRenderTreeImpl<TBucket extends object>
     this.enter(state);
   }
 
-  didRender(state: TBucket, bounds: Bounds): void {
+  didRender(state: TBucket, bounds: BlockBounds): void {
     if (import.meta.env.DEV && this.stack.current !== state) {
       // @todo
       // eslint-disable-next-line @typescript-eslint/no-base-to-string

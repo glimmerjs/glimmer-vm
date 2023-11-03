@@ -5,13 +5,13 @@ import type {
   Helper,
   Maybe,
   Nullable,
-  Reference,
   RenderResult,
   SimpleElement,
   SimpleNode,
+  SomeReactive,
 } from '@glimmer/interfaces';
 import { hasFlagWith } from '@glimmer/local-debug-flags';
-import { createConstRef } from '@glimmer/reference';
+import { ReadonlyCell } from '@glimmer/reference';
 import { inTransaction, renderComponent, renderSync } from '@glimmer/runtime';
 import type { ASTPluginBuilder } from '@glimmer/syntax';
 import { clearElement, dict, expect, isPresent, LOCAL_LOGGER, unwrap } from '@glimmer/util';
@@ -45,7 +45,7 @@ import {
 import type { TestModifierConstructor } from './modifiers';
 import type RenderDelegate from './render-delegate';
 import type { DomDelegate, LogRender } from './render-delegate';
-import { equalTokens, isServerMarker, type NodesSnapshot,normalizeSnapshot } from './snapshot';
+import { equalTokens, isServerMarker, type NodesSnapshot, normalizeSnapshot } from './snapshot';
 import {
   type DeclaredComponentType,
   KIND_FOR,
@@ -92,11 +92,11 @@ export class Count {
 
 export class Self {
   #properties: Dict;
-  readonly ref: Reference<Dict>;
+  readonly ref: SomeReactive<Dict>;
 
   constructor(properties: Dict) {
     this.#properties = properties;
-    this.ref = createConstRef(this.#properties, 'this');
+    this.ref = ReadonlyCell(this.#properties, 'this');
   }
 
   get inner(): Dict {
@@ -271,12 +271,10 @@ export class RenderTest implements IRenderTest {
 
   private buildTemplateOnlyComponent(blueprint: ComponentBlueprint): string {
     return this.buildGlimmerComponent(blueprint);
-    // let { layout, name = GLIMMER_TEST_COMPONENT } = blueprint;
-    // let invocation = this.buildAngleBracketComponent(blueprint);
-    // this.assert.ok(true, `generated fragment layout as ${layout}`);
-    // this.register.component('TemplateOnly', name, `${layout}`);
-    // this.assert.ok(true, `generated fragment invocation as ${invocation}`);
-    // return invocation;
+    // let { layout, name = GLIMMER_TEST_COMPONENT } = blueprint; let invocation =
+    // this.buildAngleBracketComponent(blueprint); this.assert.ok(true, `generated fragment layout
+    // as ${layout}`); this.register.component('TemplateOnly', name, `${layout}`);
+    // this.assert.ok(true, `generated fragment invocation as ${invocation}`); return invocation;
   }
 
   private buildDynamicComponent(blueprint: ComponentBlueprint): string {

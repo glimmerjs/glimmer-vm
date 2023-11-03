@@ -1,6 +1,6 @@
 import { deprecate } from '@glimmer/global-context';
 import type { CapturedArguments, Dict } from '@glimmer/interfaces';
-import { createComputeRef, type Reference } from '@glimmer/reference';
+import { FallibleFormula, type SomeReactive } from '@glimmer/reference';
 
 import { reifyNamed } from '../vm/arguments';
 import { internalHelper } from './internal-helper';
@@ -63,8 +63,8 @@ if (import.meta.env.DEV) {
    @return {Object} Hash
    @public
  */
-export const hash = internalHelper(({ named }: CapturedArguments): Reference<Dict<unknown>> => {
-  let ref = createComputeRef(
+export const hash = internalHelper(({ named }: CapturedArguments): SomeReactive<Dict<unknown>> => {
+  let ref = FallibleFormula(
     () => {
       let hash = reifyNamed(named);
 
@@ -74,7 +74,7 @@ export const hash = internalHelper(({ named }: CapturedArguments): Reference<Dic
 
       return hash;
     },
-    null,
+
     'hash'
   );
 

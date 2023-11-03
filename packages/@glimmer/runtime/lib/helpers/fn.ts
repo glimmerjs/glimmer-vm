@@ -1,11 +1,11 @@
 import { check } from '@glimmer/debug';
-import type { CapturedArguments } from "@glimmer/interfaces";
+import type { CapturedArguments } from '@glimmer/interfaces';
 import {
-  createComputeRef,
-  isInvokableRef,
-  type Reference,
+  FallibleFormula,
+  isAccessor,
+  type SomeReactive,
+  unwrapReactive,
   updateRef,
-  valueForRef,
 } from '@glimmer/reference';
 import { buildUntouchableThis } from '@glimmer/util';
 
@@ -81,36 +81,31 @@ const context = buildUntouchableThis('`fn` helper');
 export const fn = internalHelper(({ positional }: CapturedArguments) => {
   let callbackRef = check(positional[0], assertCallbackIsFn);
 
-  return createComputeRef(
-    () => {
-      return (...invocationArgs: unknown[]) => {
-        let [fn, ...args] = reifyPositional(positional);
+  return FallibleFormula(() => {
+    return (...invocationArgs: unknown[]) => {
+      let [fn, ...args] = reifyPositional(positional);
 
-        if (import.meta.env.DEV) assertCallbackIsFn(callbackRef);
+      if (import.meta.env.DEV) assertCallbackIsFn(callbackRef);
 
-        if (isInvokableRef(callbackRef)) {
-          let value = args.length > 0 ? args[0] : invocationArgs[0];
-          return updateRef(callbackRef, value);
-        } else {
-          return (fn as Function).call(context, ...args, ...invocationArgs);
-        }
-      };
-    },
-    null,
-    'fn'
-  );
+      if (isAccessor(callbackRef)) {
+        let value = args.length > 0 ? args[0] : invocationArgs[0];
+        return updateRef(callbackRef, value);
+      } else {
+        return (fn as Function).call(context, ...args, ...invocationArgs);
+      }
+    };
+  }, 'fn');
 });
 
-function assertCallbackIsFn(callbackRef: Reference | undefined): asserts callbackRef is Reference {
+function assertCallbackIsFn(
+  callbackRef: SomeReactive | undefined
+): asserts callbackRef is SomeReactive {
   if (
-    !(
-      callbackRef &&
-      (isInvokableRef(callbackRef) || typeof valueForRef(callbackRef) === 'function')
-    )
+    !(callbackRef && (isAccessor(callbackRef) || typeof unwrapReactive(callbackRef) === 'function'))
   ) {
     throw new Error(
       `You must pass a function as the \`fn\` helper's first argument, you passed ${
-        callbackRef ? valueForRef(callbackRef) : callbackRef
+        callbackRef ? unwrapReactive(callbackRef) : callbackRef
       }. While rendering:\n\n${callbackRef?.debugLabel}`
     );
   }

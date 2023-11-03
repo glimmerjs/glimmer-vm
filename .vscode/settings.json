@@ -43,7 +43,7 @@
   "javascript.preferences.importModuleSpecifier": "project-relative",
   "typescript.preferences.importModuleSpecifier": "project-relative",
 
-  "typescript.preferences.importModuleSpecifierEnding": "minimal",
+  "typescript.preferences.importModuleSpecifierEnding": "auto",
   "typescript.preferences.useAliasesForRenames": false,
 
   "typescript.tsc.autoDetect": "on",
@@ -221,5 +221,22 @@
       "label": "register helper",
       "snippet": "{ ${1:helper}: $TM_SELECTED_TEXT }"
     }
-  }
+  },
+  "rewrap.wrappingColumn": 100,
+  "rewrap.onSave": false,
+  "rewrap.autoWrap.enabled": true,
+  "typescript.experimental.aiCodeActions": {
+    "addNameToNamelessParameter": true,
+    "addTypeToNamelessParameter": true,
+    "classDoesntImplementInheritedAbstractMember": true,
+    "classIncorrectlyImplementsInterface": true,
+    "extractConstant": true,
+    "extractFunction": true,
+    "extractInterface": true,
+    "extractType": true,
+    "inferAndAddTypes": true,
+    "missingFunctionDeclaration": true
+  },
+  "rewrap.reformat": true,
+  "rewrap.wholeComment": false
 }

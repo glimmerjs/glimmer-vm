@@ -1,6 +1,6 @@
-import type { MISMATCH, NamedSpecValue, SpecName, TypedSpecName } from './declared/shared';
 import type { DebugState } from '../render/state';
 import type { OperandSpecValue } from './declared/operands';
+import type { MISMATCH, NamedSpecValue, SpecName, TypedSpecName } from './declared/shared';
 
 export type StackParamSpec<T = unknown> =
   | readonly [op: `peek:${string}`, name: TypedSpecName<T>, options?: { from: '$fp' }]

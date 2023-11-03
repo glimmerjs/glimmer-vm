@@ -10,6 +10,7 @@ import type {
   DynamicScope,
   ElementBuilder,
   Environment,
+  ErrorHandler,
   InternalStack,
   Nullable,
   OkResult,
@@ -24,6 +25,7 @@ import type {
   RuntimeHeap,
   RuntimeProgram,
   Scope,
+  TargetState,
   UpdatingOpcode,
   VM as PublicVM,
 } from '@glimmer/interfaces';
@@ -32,14 +34,15 @@ import {
   createIteratorItemRef,
   type OpaqueIterationItem,
   type OpaqueIterator,
-  type Reference,
+  type SomeReactive,
   UNDEFINED_REFERENCE,
 } from '@glimmer/reference';
-import { tryValueForRef } from '@glimmer/reference/lib/reference';
+import { readReactive } from '@glimmer/reference/lib/reference';
 import {
   assert,
   expect,
   LOCAL_LOGGER,
+  mapResult,
   reverse,
   Stack,
   unreachable,
@@ -62,7 +65,7 @@ import type { LiveBlockList } from './element-builder';
 import { type ArgumentsStack, LowLevelVM } from './low-level';
 import RenderResultImpl from './render-result';
 import EvaluationStackImpl from './stack';
-import { type ErrorHandler, type TargetState, UnwindTarget } from './unwind';
+import { UnwindTarget } from './unwind';
 import {
   type BlockOpcode,
   ListBlockOpcode,
@@ -74,8 +77,8 @@ import {
 } from './update';
 
 /**
- * This interface is used by internal opcodes, and is more stable than
- * the implementation of the Append VM itself.
+ * This interface is used by internal opcodes, and is more stable than the implementation of the
+ * Append VM itself.
  */
 export interface InternalVM {
   readonly [CONSTANTS]: RuntimeConstants & ResolutionTimeConstants;
@@ -120,7 +123,7 @@ export interface InternalVM {
   elements(): ElementBuilder;
 
   getOwner(): Owner;
-  getSelf(): Reference;
+  getSelf(): SomeReactive;
 
   updateWith(opcode: UpdatingOpcode): void;
 
@@ -131,7 +134,7 @@ export interface InternalVM {
 
   /// Iteration ///
 
-  enterList(iterableRef: Reference<OpaqueIterator>, offset: number): void;
+  enterList(iterableRef: SomeReactive<OpaqueIterator>, offset: number): void;
   exitList(): void;
   enterItem(item: OpaqueIterationItem): ListItemOpcode;
   registerItem(item: ListItemOpcode): void;
@@ -159,12 +162,10 @@ export interface InternalVM {
   pushTryFrame(catchPc: number, handler: Nullable<ErrorHandler>): void;
   popTryFrame(): void;
 
-  referenceForSymbol(symbol: number): Reference;
-  deref<T>(reference: Reference<T>): Result<T>;
-  /**
-   * If a map function is passed to `deref`, it must be infallible.
-   */
-  deref<T, U>(reference: Reference<T>, map: (value: T) => U): Result<U>;
+  referenceForSymbol(symbol: number): SomeReactive;
+
+  deref<T>(reactive: SomeReactive<T>): Result<T>;
+  deref<T, U>(reference: SomeReactive<T>, map: (value: T) => U): Result<U>;
 
   unwrap<T>(result: Result<T>): result is OkResult<T>;
 
@@ -587,7 +588,7 @@ export class VM implements PublicVM, InternalVM, SnapshottableVM {
     this.listBlock().initializeChild(opcode);
   }
 
-  enterList(iterableRef: Reference<OpaqueIterator>, relativeStart: number) {
+  enterList(iterableRef: SomeReactive<OpaqueIterator>, relativeStart: number) {
     let updating: ListItemOpcode[] = [];
 
     let addr = this.#inner.target(relativeStart);
@@ -700,36 +701,30 @@ export class VM implements PublicVM, InternalVM, SnapshottableVM {
     return this.scope().owner;
   }
 
-  getSelf(): Reference<unknown> {
+  getSelf(): SomeReactive<unknown> {
     return this.scope().getSelf();
   }
 
-  referenceForSymbol(symbol: number): Reference {
+  referenceForSymbol(symbol: number): SomeReactive {
     return this.scope().getSymbol(symbol);
   }
 
-  deref<T>(reference: Reference<T>): Result<T>;
-  deref<T, U>(reference: Reference<T>, map: (value: T) => U): Result<U>;
-  deref(reference: Reference<unknown>, map?: (value: unknown) => unknown): Result<unknown> {
+  deref<T>(reference: SomeReactive<T>): Result<T>;
+  deref<T, U>(reference: SomeReactive<T>, map: (value: T) => U): Result<U>;
+  deref(reference: SomeReactive<unknown>, map?: (value: unknown) => unknown): Result<unknown> {
     return this.#deref(reference, map);
   }
 
-  #deref(
-    reference: Reference<unknown>,
-    map?: undefined | ((value: unknown) => unknown)
-  ): Result<unknown> {
-    const result = tryValueForRef(reference);
-
-    if (map && result.type === 'ok') {
-      return { type: 'ok', value: map(result.value) };
-    } else {
-      return result;
-    }
+  #deref(reactive: SomeReactive, map?: undefined | ((value: unknown) => unknown)): Result<unknown> {
+    const result = readReactive(reactive);
+    return map ? mapResult(result, map) : result;
   }
 
-  derefN<T>(reference: Reference<T>[]): Result<T[]>;
-  derefN<T, U>(reference: Reference<T>[], map: (value: T[]) => U): Result<U>;
-  derefN(references: Reference<unknown>[], map?: (value: unknown[]) => unknown): Result<unknown> {
+  derefN<T extends SomeReactive[]>(
+    reference: T
+  ): Result<{ [P in keyof T]: T[P] extends SomeReactive<infer U> ? U : T[P] }>;
+  derefN<T, U>(reference: SomeReactive<T>[], map: (value: T[]) => U): Result<U[]>;
+  derefN(references: SomeReactive[], map?: (value: unknown[]) => unknown): Result<unknown> {
     const results: unknown[] = [];
 
     for (const reference of references) {
@@ -769,15 +764,15 @@ export class VM implements PublicVM, InternalVM, SnapshottableVM {
       try {
         let value = this._execute(initialize);
 
-        // using a boolean here to avoid breaking ergonomics of "pause on uncaught exceptions"
-        // which would happen with a `catch` + `throw`
+        // using a boolean here to avoid breaking ergonomics of "pause on uncaught exceptions" which
+        // would happen with a `catch` + `throw`
         hasErrored = false;
 
         return value;
       } finally {
         if (hasErrored) {
-          // If any existing blocks are open, due to an error or something like
-          // that, we need to close them all and clean things up properly.
+          // If any existing blocks are open, due to an error or something like that, we need to
+          // close them all and clean things up properly.
           let elements = this.elements();
 
           while (elements.hasBlocks) {
@@ -842,7 +837,7 @@ export class VM implements PublicVM, InternalVM, SnapshottableVM {
     let scope = this.dynamicScope();
 
     for (const name of reverse(names)) {
-      scope.set(name, this.stack.pop<Reference<unknown>>());
+      scope.set(name, this.stack.pop<SomeReactive<unknown>>());
     }
   }
 }
@@ -865,7 +860,7 @@ export interface MinimalInitOptions {
 }
 
 export interface InitOptions extends MinimalInitOptions {
-  self: Reference;
+  self: SomeReactive;
   numSymbols: number;
 }
 

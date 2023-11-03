@@ -1,24 +1,26 @@
 // import Logger from './logger';
 
+import type { Maybe } from '@glimmer/interfaces';
+
 import { LOCAL_LOGGER } from './index';
 
 // let alreadyWarned = false;
 
-export function debugAssert(test: any, msg: string): asserts test {
-  // if (!alreadyWarned) {
-  //   alreadyWarned = true;
-  //   Logger.warn("Don't leave debug assertions on in public builds");
-  // }
-
-  if (!test) {
-    throw new Error(msg || 'assertion failure');
-  }
+export function unwrap<T>(value: Maybe<T>): T {
+  assert(value !== null && value !== undefined, 'value is null or undefined');
+  return value;
 }
 
-export function prodAssert() {}
+export function assert(condition: unknown, msg: string): asserts condition {
+  if (import.meta.env.DEV) {
+    if (!condition) {
+      throw new Error(msg || 'assertion failure');
+    }
+  }
+}
 
 export function deprecate(desc: string) {
   LOCAL_LOGGER.warn(`DEPRECATION: ${desc}`);
 }
 
-export default debugAssert;
+export default assert;

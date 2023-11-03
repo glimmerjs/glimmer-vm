@@ -1,37 +1,82 @@
-import { getProp, setProp } from '@glimmer/global-context';
+import { getProperty, setProperty } from '@glimmer/global-context';
 import type {
-  ComputeReference,
-  ConstantReference,
-  InvokableReference,
+  AccessorType,
+  ConstantErrorType,
+  ConstantReactiveError,
+  DeeplyConstantReactive,
+  DeeplyConstantType,
+  DirtyableTag,
+  FallibleFormulaType,
+  FallibleReactiveFormula,
+  InfallibleFormulaType,
+  InfallibleReactiveFormula,
+  MutableCellType,
+  MutableReactiveCell,
   Nullable,
-  Reference,
+  Optional,
+  RawReactive,
+  ReactiveAccessor,
+  ReactiveCell,
+  ReactiveResult,
+  ReactiveType,
+  ReadonlyCellType,
+  ReadonlyReactiveCell,
   ReferenceSymbol,
-  ReferenceType,
-  Result,
-  UnboundReference,
+  SomeReactive,
+  UpdatableTag,
+  UserException as UserExceptionInterface,
 } from '@glimmer/interfaces';
-import { hasFlagWith } from '@glimmer/local-debug-flags';
-import { Err, expect, isDict, LOCAL_LOGGER, Ok, UserException } from '@glimmer/util';
+import {
+  assert,
+  Err,
+  expect,
+  isDict,
+  isObject,
+  Ok,
+  unwrapResult,
+  UserException,
+} from '@glimmer/util';
 import {
   CONSTANT_TAG,
   consumeTag,
+  createTag,
+  createUpdatableTag,
+  dirtyTag,
+  dirtyTagFor,
+  DIRYTABLE_TAG_ID,
   INITIAL,
   type Revision,
   type Tag,
+  TAG_TYPE,
+  tagFor,
   track,
+  UPDATABLE_TAG_ID,
   validateTag,
   valueForTag,
 } from '@glimmer/validator';
 
 export const REFERENCE: ReferenceSymbol = Symbol('REFERENCE') as ReferenceSymbol;
 
-const CONSTANT: ConstantReference = 0;
-const COMPUTE: ComputeReference = 1;
-const UNBOUND: UnboundReference = 2;
-const INVOKABLE: InvokableReference = 3;
+export const MUTABLE_CELL: MutableCellType = 0;
+export const READONLY_CELL: ReadonlyCellType = 1;
+export const DEEPLY_CONSTANT: DeeplyConstantType = 2;
+export const FALLIBLE_FORMULA: FallibleFormulaType = 3;
+export const INFALLIBLE_FORMULA: InfallibleFormulaType = 4;
+export const ACCESSOR: AccessorType = 5;
+export const CONSTANT_ERROR: ConstantErrorType = 6;
 
-export type { Reference as default };
-export type { Reference };
+export const REACTIVE_DESCRIPTIONS = [
+  'mutable',
+  'readonly',
+  'deeply constant',
+  'fallible formula',
+  'infallible formula',
+  'accessor',
+  'constant error',
+];
+
+export type { SomeReactive as default };
+export type { SomeReactive };
 
 //////////
 
@@ -40,290 +85,634 @@ export interface ReferenceEnvironment {
   setProp(obj: unknown, path: string, value: unknown): unknown;
 }
 
-class ReferenceImpl<T = unknown> implements Reference<T> {
-  [REFERENCE]: ReferenceType;
-
-  public error: UserException | null = null;
+class Reactive<T = unknown, K extends ReactiveType = ReactiveType> implements RawReactive<T, K> {
+  readonly [REFERENCE]: K;
 
   public tag: Nullable<Tag> = null;
   public lastRevision: Revision = INITIAL;
-  public lastValue?: T;
 
-  public children: Nullable<Map<string | Reference, Reference>> = null;
+  public error: Nullable<UserExceptionInterface> = null;
 
-  public compute: Nullable<() => T> = null;
+  /**
+   * In a data cell, lastValue is the value of the cell, and `lastValue` or `error` is always set.
+   * In a formula cell, lastValue is the cached result of the formula. If lastValue is null and
+   * error is null, the formula is uninitialized.
+   */
+  public lastValue?: Nullable<T>;
+
+  /**
+   * In a data cell, compute is always null.
+   */
+  public compute: Nullable<() => Optional<T>> = null;
+
+  /**
+   * In an accessor, `update` is the mutator function. Otherwise, `update` is always null.
+   */
   public update: Nullable<(val: T) => void> = null;
 
-  public debugLabel?: string;
-  public debug?: {
-    isPrimitive: boolean;
-  };
+  public children: Nullable<Map<PropertyKey | RawReactive, RawReactive>> = null;
 
-  constructor(type: ReferenceType) {
+  public debugLabel?: string | undefined;
+  public debug?:
+    | {
+        isPrimitive: boolean;
+      }
+    | undefined;
+
+  constructor(type: K) {
     this[REFERENCE] = type;
   }
 }
 
-export function createPrimitiveRef(value: unknown): Reference {
-  const ref = new ReferenceImpl(UNBOUND);
+function updateReactive(reactive: Reactive, value: unknown): ReactiveResult<void> {
+  if (reactive.update) {
+    reactive.update(value);
+  } else {
+    if (reactive.tag === CONSTANT_TAG) {
+      return Err(
+        UserException.from(
+          Error(`Cannot update a constant value (${describeRef(reactive as SomeReactive)})`),
+          `Cannot update a constant value (${describeRef(reactive as SomeReactive)})`
+        )
+      );
+    }
+
+    let tag = reactive.tag as DirtyableTag | UpdatableTag | null;
+
+    if (import.meta.env.DEV) {
+      assert(
+        tag === null || tag[TAG_TYPE] === DIRYTABLE_TAG_ID || tag[TAG_TYPE] === UPDATABLE_TAG_ID,
+        `Expected a dirtyable or updatable tag (${describeRef(reactive as SomeReactive)})`
+      );
+    }
+
+    reactive.lastValue = value;
+
+    if (tag === null) {
+      reactive.tag = createTag();
+    } else {
+      dirtyTag(tag);
+    }
+  }
+
+  return Ok(undefined);
+}
+
+/*
+  eslint-disable-next-line @typescript-eslint/no-explicit-any -- inferred from the return type
+ */
+type RETURN_TYPE = any;
+
+export function DeeplyConstant<T>(
+  value: T,
+  debugLabel?: false | string
+): DeeplyConstantReactive<T> {
+  const ref = new Reactive(DEEPLY_CONSTANT);
 
   ref.tag = CONSTANT_TAG;
   ref.lastValue = value;
+
+  if (import.meta.env.DEV && debugLabel) {
+    ref.debugLabel = debugLabel;
+  }
+
+  return ref as RETURN_TYPE;
+}
+
+export function ConstantError(
+  error: UserExceptionInterface,
+  debugLabel?: false | string
+): ConstantReactiveError {
+  const ref = new Reactive(CONSTANT_ERROR);
+
+  ref.tag = CONSTANT_TAG;
+  ref.error = error;
+
+  if (import.meta.env.DEV && debugLabel) {
+    ref.debugLabel = debugLabel;
+  }
+
+  return ref as RETURN_TYPE;
+}
+
+export function MutableCell<T>(value: T, debugLabel?: false | string): MutableReactiveCell<T> {
+  const ref = new Reactive(MUTABLE_CELL);
+
+  const tag = (ref.tag = createUpdatableTag());
+  ref.lastValue = value;
+
+  ref.update = (value) => {
+    ref.lastValue = value;
+    dirtyTag(tag);
+  };
+
+  if (import.meta.env.DEV && debugLabel) {
+    ref.debugLabel = debugLabel;
+  }
+
+  return ref as RETURN_TYPE;
+}
+
+export function ReadonlyCell<T>(value: T, debugLabel?: false | string): ReactiveCell<T> {
+  const ref = new Reactive(READONLY_CELL);
+
+  ref.tag = CONSTANT_TAG;
+  ref.lastValue = value;
+
+  if (import.meta.env.DEV && debugLabel) {
+    ref.debugLabel = debugLabel;
+  }
+
+  return ref as RETURN_TYPE;
+}
+
+/**
+ * A fallible formula invokes user code. If the user code throws an exception, the formula returns
+ * an error {@linkcode Result}. Otherwise, it returns an ok {@linkcode Result}.
+ */
+export function FallibleFormula<T = unknown>(
+  compute: () => T,
+  debugLabel?: false | string
+): FallibleReactiveFormula<T> {
+  const ref = new Reactive<T>(FALLIBLE_FORMULA);
+
+  ref.compute = () => {
+    try {
+      return compute();
+    } catch (e) {
+      ref.error = UserException.from(e, `An error occured in ${ref.debugLabel}`);
+    }
+  };
+
+  if (import.meta.env.DEV && debugLabel) {
+    ref.debugLabel = `(result of a \`${debugLabel}\` helper)`;
+  }
+
+  return ref as RETURN_TYPE;
+}
+
+/**
+ * The `compute` function must be infallible and convert any errors to results.
+ */
+export function ResultFormula<T = unknown>(
+  compute: () => ReactiveResult<T>,
+  debugLabel?: false | string
+) {
+  const ref = new Reactive<T>(FALLIBLE_FORMULA);
+
+  ref.compute = () => {
+    const result = compute();
+
+    switch (result.type) {
+      case 'ok':
+        return result.value;
+      case 'err':
+        ref.error = result.value;
+    }
+  };
+
+  if (import.meta.env.DEV && debugLabel) {
+    ref.debugLabel = `(result of a \`${debugLabel}\` helper)`;
+  }
+
+  return ref as RETURN_TYPE;
+}
+
+export function ResultAccessor<T = unknown>(
+  options: {
+    get: () => ReactiveResult<T | undefined>;
+    set: (val: T) => ReactiveResult<void>;
+  },
+  debugLabel?: false | string
+): SomeReactive<T> {
+  const { get, set } = options;
+
+  const ref = new Reactive<T>(ACCESSOR);
+
+  ref.compute = () => {
+    const result = get();
+
+    switch (result.type) {
+      case 'ok':
+        return result.value;
+      case 'err':
+        ref.error = result.value;
+        ref.lastValue = null;
+    }
+  };
+
+  ref.update = (value: T) => {
+    const setResult = set(value);
+
+    if (setResult.type === 'ok') {
+      ref.lastValue = value;
+    } else {
+      ref.error = setResult.value;
+      ref.lastValue = null;
+    }
+  };
+
+  if (import.meta.env.DEV) {
+    ref.debugLabel = debugLabel ? `(${debugLabel} accessor)` : `(accessor)`;
+  }
+
+  return ref as RETURN_TYPE;
+}
+
+export function Accessor<T = unknown>(
+  options: { get: () => T; set: (val: T) => void },
+  debugLabel?: false | string
+): SomeReactive<T> {
+  const { get, set } = options;
+
+  const ref = new Reactive<T>(ACCESSOR);
+
+  ref.compute = () => {
+    try {
+      return get();
+    } catch (e) {
+      ref.error = UserException.from(e, `An error occured getting ${ref.debugLabel}`);
+    }
+  };
+
+  ref.update = (value: T) => {
+    try {
+      set(value);
+      return value;
+    } catch (e) {
+      ref.error = UserException.from(e, `An error occured setting ${ref.debugLabel}`);
+    }
+  };
+
+  if (import.meta.env.DEV) {
+    ref.debugLabel = debugLabel ? `(${debugLabel} accessor)` : `(accessor)`;
+  }
+
+  return ref as RETURN_TYPE;
+}
+
+function rawValueForRef<T>(ref: Reactive<T>): T {
+  const { tag, compute, lastRevision } = ref;
+
+  if (ref.tag === CONSTANT_TAG) {
+    return ref.lastValue as T;
+  }
+
+  if (compute === null) {
+    if (tag) consumeTag(tag);
+    return ref.lastValue as T;
+  }
+
+  if (tag !== null && validateTag(tag, lastRevision)) {
+    consumeTag(tag);
+    return ref.lastValue as T;
+  }
+
+  // a data cell
+  if (!compute) {
+    ref.tag ??= createTag();
+    consumeTag(ref.tag);
+    return ref.lastValue as T;
+  }
+
+  // a formula
+  const newTag = track(
+    () => {
+      const result = compute();
+      ref.lastValue = ref.error ? null : (result as T);
+    },
+    import.meta.env.DEV && ref.debugLabel
+  );
+
+  ref.tag = newTag;
+  ref.lastRevision = valueForTag(newTag);
+  consumeTag(newTag);
+  return ref.lastValue as T;
+}
+
+/**
+ * An infallible formula does not invoke user code. If an infallible formula's compute function
+ * throws an error, it's a bug and there is no error recovery.
+ */
+export function InfallibleFormula<T = unknown>(
+  compute: () => T,
+  debugLabel?: false | string
+): InfallibleReactiveFormula<T> {
+  const ref = new Reactive<T>(INFALLIBLE_FORMULA);
+
+  ref.compute = compute;
+
+  if (import.meta.env.DEV && debugLabel) {
+    ref.debugLabel = `(result of a \`${debugLabel}\` helper)`;
+  }
+
+  return ref as RETURN_TYPE;
+}
+
+// export function FallibleFormula<T = unknown>( compute: () => Result<T>, update: Nullable<(value:
+//   T) => void> = null, debugLabel: false | string = 'unknown' ): FallibleReference<T> { const ref
+//   = new Reactive<Result<T>>(FALLIBLE) as FallibleReferenceImpl<T>;
+
+//   ref.compute = compute; ref.update = (value: Result<T>) => { switch (value.type) { case 'err': {
+//   ref.error = UserException.from(value.value, `An error occured in ${describeRef(ref)}`); break;
+//     }
+
+//       case 'ok': { if (update) { update(value.value); } }
+//     }
+//   };
+
+//   if (import.meta.env.DEV && debugLabel) { ref.debugLabel = `(fallible result of a
+//     \`${debugLabel}\` helper)`; }
+
+//   return ref;
+// }
+
+export function createPrimitiveCell<T>(value: T): ReadonlyReactiveCell<T> {
+  const ref = ReadonlyCell(value);
 
   if (import.meta.env.DEV) {
     ref.debugLabel = `{primitive:${value}}`;
     ref.debug = { isPrimitive: true };
   }
 
-  return ref;
+  return ref as RETURN_TYPE;
 }
 
-export const UNDEFINED_REFERENCE = createPrimitiveRef(undefined);
-export const NULL_REFERENCE = createPrimitiveRef(null);
-export const TRUE_REFERENCE = createPrimitiveRef(true);
-export const FALSE_REFERENCE = createPrimitiveRef(false);
+function initializeChildren(parent: SomeReactive) {
+  let children = parent.children;
 
-export function createConstRef<T>(value: T, debugLabel: false | string): Reference<T> {
-  const ref = new ReferenceImpl(CONSTANT);
-
-  ref.lastValue = value;
-  ref.tag = CONSTANT_TAG;
-
-  if (import.meta.env.DEV && debugLabel) {
-    ref.debugLabel = debugLabel;
+  if (children === null) {
+    children = parent.children = new Map();
   }
 
-  return ref as Reference<T>;
+  return children;
 }
 
-export function createUnboundRef(value: unknown, debugLabel: false | string): Reference {
-  const ref = new ReferenceImpl(UNBOUND);
+export function toReadonly<T>(reactive: SomeReactive<T>): FallibleReactiveFormula<T> {
+  return FallibleFormula(() => unwrapReactive(reactive));
+}
 
-  ref.lastValue = value;
-  ref.tag = CONSTANT_TAG;
+export function toMut<T>(maybeMut: SomeReactive<T>): SomeReactive<T> {
+  const reactive = maybeMut as Reactive;
 
-  if (import.meta.env.DEV && debugLabel) {
-    ref.debugLabel = debugLabel;
+  return ResultAccessor({
+    get: () => readReactive(maybeMut),
+    set: (value: unknown) => updateReactive(reactive, value),
+  });
+}
+
+export function getReactivePath(reactive: SomeReactive, path: string[]): SomeReactive {
+  let current: SomeReactive = reactive;
+
+  for (const part of path) {
+    current = getReactiveProperty(current, part);
   }
 
-  return ref;
+  return current;
 }
 
-export function createComputeRef<T = unknown>(
-  compute: () => T,
-  update: Nullable<(value: T) => void> = null,
-  debugLabel: false | string = 'unknown'
-): Reference<T> {
-  const ref = new ReferenceImpl<T>(COMPUTE);
+export function getReactiveProperty(
+  parentReactive: SomeReactive,
+  property: PropertyKey
+): SomeReactive {
+  const type = parentReactive[REFERENCE];
 
-  ref.compute = compute;
-  ref.update = update;
+  const children = initializeChildren(parentReactive);
 
-  if (import.meta.env.DEV && debugLabel) {
-    ref.debugLabel = `(result of a \`${debugLabel}\` helper)`;
+  {
+    const child = children.get(property);
+
+    if (child !== undefined) {
+      return child as RETURN_TYPE;
+    }
   }
 
-  return ref;
+  const initialize = (child: SomeReactive): SomeReactive => {
+    if (import.meta.env.DEV) {
+      child.debugLabel = childDebug(parentReactive, property);
+    }
+
+    children.set(property, child);
+    return child as RETURN_TYPE;
+  };
+
+  if (type === DEEPLY_CONSTANT) {
+    // We need an extra try/catch here because any reactive value can be turned into a deeply
+    // constant value.
+    try {
+      const parent = readReactive(parentReactive);
+
+      if (parent.type === 'err') {
+        return initialize(ConstantError(parent.value));
+      } else {
+        return initialize(DeeplyConstant(parent.value[property]));
+      }
+    } catch (e) {
+      return initialize(
+        ConstantError(
+          UserException.from(
+            e,
+            `An error occured when getting a property from a deeply constant reactive (${childDebug(
+              parentReactive,
+              property
+            )})`
+          )
+        )
+      );
+    }
+  }
+
+  const child = Accessor({
+    get: () => {
+      const parent = unwrapReactive(parentReactive);
+      if (isDict(parent)) {
+        if (isObject(parent)) consumeTag(tagFor(parent, property));
+
+        return getProperty(parent, property);
+      }
+    },
+    set: (value: unknown): ReactiveResult<void> => {
+      const parentResult = readReactive(parentReactive);
+
+      if (parentResult.type === 'err') {
+        return parentResult;
+      } else {
+        if (isDict(parentResult.value)) {
+          try {
+            setProperty(parentResult.value, property as any, value);
+
+            if (isObject(parentResult.value)) dirtyTagFor(parentResult.value, property);
+          } catch (e) {
+            return Err(
+              UserException.from(
+                e,
+                `An error occured when setting a property on a deeply constant reactive (${childDebug(
+                  parentReactive,
+                  property
+                )})`
+              )
+            );
+          }
+        }
+
+        return Ok(undefined);
+      }
+    },
+  });
+
+  // @fixme updates
+
+  if (import.meta.env.DEV) {
+    child.debugLabel = childDebug(parentReactive, property);
+  }
+
+  return initialize(child);
 }
 
-export function createReadOnlyRef(ref: Reference): Reference {
-  if (!isUpdatableRef(ref)) return ref;
+/**
+ * @category devmode
+ */
+function childDebug(parentReactive: SomeReactive, path: PropertyKey) {
+  if (typeof path === 'symbol') {
+    return `${parentReactive.debugLabel}[${String(path)}]`;
+  }
 
-  return createComputeRef(() => valueForRef(ref), null, ref.debugLabel);
+  const IDENT = /^\p{XID_Start}\p{XID_Continue}*$/u;
+
+  if (IDENT.test(String(path))) {
+    return `${parentReactive.debugLabel}.${path}`;
+  } else {
+    return `${parentReactive.debugLabel}[${JSON.stringify(path)}]`;
+  }
 }
 
-export function isInvokableRef(ref: Reference) {
-  return ref[REFERENCE] === INVOKABLE;
+export const UNDEFINED_REFERENCE = createPrimitiveCell(undefined);
+export const NULL_REFERENCE = createPrimitiveCell(null);
+export const TRUE_REFERENCE = createPrimitiveCell(true);
+export const FALSE_REFERENCE = createPrimitiveCell(false);
+
+export function isConstant(reactive: SomeReactive) {
+  switch (reactive[REFERENCE]) {
+    case READONLY_CELL:
+    case DEEPLY_CONSTANT:
+      return true;
+    default:
+      return (reactive as Reactive).tag === CONSTANT_TAG;
+  }
 }
 
-export function createInvokableRef(inner: Reference): Reference {
-  const ref = createComputeRef(
-    () => valueForRef(inner),
-    (value) => updateRef(inner, value)
-  );
-  ref.debugLabel = inner.debugLabel;
-  ref[REFERENCE] = INVOKABLE;
-
-  return ref;
-}
-
-export function isConstRef(_ref: Reference) {
-  const ref = _ref as ReferenceImpl;
-
-  return ref.tag === CONSTANT_TAG;
-}
-
-export function isUpdatableRef(_ref: Reference) {
-  const ref = _ref as ReferenceImpl;
+export function isUpdatableRef(_ref: SomeReactive) {
+  const ref = _ref as Reactive;
 
   return ref.update !== null;
 }
 
-export function tryValueForRef<T>(_ref: Reference<T>): Result<T> {
-  if (_ref.error) {
-    return Err(_ref.error);
-  }
-
-  try {
-    return Ok(throwingValueForRef(_ref));
-  } catch (e) {
-    _ref.error = new UserException(e, 'Error in tryValueForRef');
-    return Err(e);
-  }
+export function isFallibleFormula<T>(_ref: SomeReactive<T>): _ref is FallibleReactiveFormula<T> {
+  return _ref[REFERENCE] === FALLIBLE_FORMULA;
 }
 
-export function clearRefError(_ref: Reference) {
+export function isAccessor<T>(_ref: SomeReactive<T>): _ref is ReactiveAccessor<T> {
+  return _ref[REFERENCE] === ACCESSOR;
+}
+
+export function isConstantError<T>(_ref: SomeReactive<T>): _ref is ConstantReactiveError {
+  return _ref[REFERENCE] === CONSTANT_ERROR;
+}
+
+export function clearRefError(_ref: SomeReactive) {
   _ref.error = null;
 }
 
 /**
- * This function returns the value of a reference, throwing if the reference throws.
- *
- * In general, you want to use `tryValueForRef` instead of this function. If you want to see where this function is
- * getting called, you can enable `audit_logging` flags:
- *
- * 1. `audit_logging=infallible_deref`: this will log a trace every time `valueForRef` is called, whether or not the
- *    reference throws.
- * 2. `audit_logging=throwing_deref`: this will log a trace every time `valueForRef` is called, but only if the
- *    reference throws.
+ * This is generally not what you want, as it rethrows errors. It's useful in testing and console
+ * situations, and as a transitional mechanism away from valueForRef.
  */
-export function valueForRef<T>(_ref: Reference<T>): T {
-  if (hasFlagWith('audit_logging', 'infallible_deref')) {
-    LOCAL_LOGGER.trace('infallible deref ', _ref);
-  }
+export function unwrapReactive<T>(reactive: SomeReactive<T>): T {
+  return unwrapResult(readReactive(reactive));
+}
 
-  if (hasFlagWith('audit_logging', 'throwing_deref')) {
-    let succeeded = false;
-
-    try {
-      const result = throwingValueForRef(_ref);
-      succeeded = true;
-      return result;
-    } finally {
-      if (succeeded === false) {
-        LOCAL_LOGGER.trace('deref threw', _ref);
-      }
-    }
+export function readReactive<T>(reactive: SomeReactive<T>): ReactiveResult<T> {
+  if (reactive.error) {
+    return Err(reactive.error);
   } else {
-    return throwingValueForRef(_ref);
+    return Ok(rawValueForRef(reactive as Reactive<T>));
   }
 }
 
-function throwingValueForRef<T>(_ref: Reference<T>): T {
-  const ref = _ref as ReferenceImpl<T>;
-
-  let { tag } = ref;
-
-  if (tag === CONSTANT_TAG) {
-    return ref.lastValue as T;
+export function updateRefWithResult<T>(ref: SomeReactive<T>, value: ReactiveResult<T>) {
+  switch (value.type) {
+    case 'err':
+      ref.error = value.value;
+      break;
+    case 'ok':
+      updateRef(ref, value.value);
+      break;
   }
-
-  const { lastRevision } = ref;
-  let lastValue;
-
-  if (tag === null || !validateTag(tag, lastRevision)) {
-    const { compute } = ref;
-
-    const newTag = track(
-      () => {
-        lastValue = ref.lastValue = compute!();
-      },
-      import.meta.env.DEV && ref.debugLabel
-    );
-
-    tag = ref.tag = newTag;
-
-    ref.lastRevision = valueForTag(newTag);
-  } else {
-    lastValue = ref.lastValue;
-  }
-
-  consumeTag(tag);
-
-  return lastValue as T;
 }
 
-export function updateRef(_ref: Reference, value: unknown) {
-  const ref = _ref as ReferenceImpl;
+export function updateRef(_ref: SomeReactive, value: unknown) {
+  const ref = _ref as Reactive;
 
   const update = expect(ref.update, 'called update on a non-updatable reference');
 
   update(value);
 }
 
-export function childRefFor(_parentRef: Reference, path: string): Reference {
-  const parentRef = _parentRef as ReferenceImpl;
+/**
+ * This should inline to nothing in prod mode: https://tiny.katz.zone/IkhJV5
+ */
+const TYPES = [
+  'mutable cell',
+  'readonly cell',
+  'deeply constant',
+  'fallible formula',
+  'infallible formula',
+  'invokable',
+  'constant error',
+] as const satisfies {
+  // verify that the union is exhaustive
+  [P in ReactiveType]: P extends MutableCellType
+    ? 'mutable cell'
+    : P extends DeeplyConstantType
+    ? 'deeply constant'
+    : P extends ReadonlyCellType
+    ? 'readonly cell'
+    : P extends AccessorType
+    ? 'invokable'
+    : P extends InfallibleFormulaType
+    ? 'infallible formula'
+    : P extends FallibleFormulaType
+    ? 'fallible formula'
+    : P extends ConstantErrorType
+    ? 'constant error'
+    : P extends never
+    ? never
+    : { value: 'not exhaustive'; reason: `you're missing types in the conditional` };
+};
 
-  const type = parentRef[REFERENCE];
+function describeRef(ref: SomeReactive): string | undefined {
+  if (import.meta.env.DEV) {
+    if (ref.debugLabel) {
+      return ref.debugLabel;
+    }
 
-  let children = parentRef.children;
-  let child: Reference;
-
-  if (children === null) {
-    children = parentRef.children = new Map();
+    return `{${TYPES[ref[REFERENCE]]} reference}`;
   } else {
-    child = children.get(path)!;
-
-    if (child !== undefined) {
-      return child;
-    }
+    return ref.debugLabel;
   }
-
-  if (type === UNBOUND) {
-    const parent = valueForRef(parentRef);
-
-    if (isDict(parent)) {
-      child = createUnboundRef(
-        (parent as Record<string, unknown>)[path],
-        import.meta.env.DEV && `${parentRef.debugLabel}.${path}`
-      );
-    } else {
-      child = UNDEFINED_REFERENCE;
-    }
-  } else {
-    child = createComputeRef(
-      () => {
-        const parent = valueForRef(parentRef);
-
-        if (isDict(parent)) {
-          return getProp(parent, path);
-        }
-      },
-      (val) => {
-        const parent = valueForRef(parentRef);
-
-        if (isDict(parent)) {
-          return setProp(parent, path, val);
-        }
-      }
-    );
-
-    if (import.meta.env.DEV) {
-      child.debugLabel = `${parentRef.debugLabel}.${path}`;
-    }
-  }
-
-  children.set(path, child);
-
-  return child;
 }
 
-export function childRefFromParts(root: Reference, parts: string[]): Reference {
-  let reference = root;
-
-  for (const part of parts) {
-    reference = childRefFor(reference, part);
-  }
-
-  return reference;
-}
-
-export let createDebugAliasRef: undefined | ((debugLabel: string, inner: Reference) => Reference);
+export let createDebugAliasRef:
+  | undefined
+  | ((debugLabel: string, inner: SomeReactive) => SomeReactive);
 
 if (import.meta.env.DEV) {
-  createDebugAliasRef = (debugLabel: string, inner: Reference) => {
+  createDebugAliasRef = (debugLabel: string, inner: SomeReactive) => {
     const update = isUpdatableRef(inner) ? (value: unknown) => updateRef(inner, value) : null;
-    const ref = createComputeRef(() => valueForRef(inner), update);
+
+    const ref = update
+      ? Accessor({ get: () => unwrapReactive(inner), set: update }, debugLabel)
+      : FallibleFormula(() => unwrapReactive(inner), debugLabel);
 
     ref[REFERENCE] = inner[REFERENCE];
 

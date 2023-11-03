@@ -4,7 +4,7 @@ export type Optional<T> = T | undefined;
 export type Maybe<T> = Nullable<T> | Optional<T>;
 export type FIXME<T, _S extends string> = T;
 
-export type Dict<T = unknown> = Record<string, T>;
+export type Dict<T = unknown> = object & Record<string, T>;
 
 export type DictValue<D extends Dict> = D extends Dict<infer V> ? V : never;
 

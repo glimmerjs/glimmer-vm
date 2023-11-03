@@ -1,5 +1,13 @@
-import type { Dict, LiveBlockDebug, Maybe, Reference, ScopeSlot } from '@glimmer/interfaces';
-import { tryValueForRef } from '@glimmer/reference/lib/reference';
+import type {
+  BlockBoundsDebug,
+  Dict,
+  Maybe,
+  PartialBoundsDebug,
+  ScopeSlot,
+  SomeBoundsDebug,
+  SomeReactive,
+} from '@glimmer/interfaces';
+import { readReactive } from '@glimmer/reference';
 import { isCompilable, zip } from '@glimmer/util';
 
 import { isReference } from '../utils';
@@ -95,14 +103,14 @@ export function array(
   }
 }
 
-function describeRef(ref: Reference): Fragment {
+function describeRef(ref: SomeReactive): Fragment {
   const label = as.type(String(ref.debugLabel) ?? '');
 
   if (ref.debug?.isPrimitive) {
     return frag`<${as.kw('ref')} ${label}>`;
   }
 
-  const result = tryValueForRef(ref);
+  const result = readReactive(ref);
 
   switch (result.type) {
     case 'err':
@@ -149,7 +157,17 @@ export function scopeValue(element: ScopeSlot): Fragment {
   }
 }
 
-export function liveBlock(element: LiveBlockDebug): Fragment {
+export function bounds(bounds: SomeBoundsDebug): Fragment {
+  return bounds.type === 'first' || bounds.type === 'last'
+    ? partialBounds(bounds)
+    : liveBlock(bounds);
+}
+
+export function partialBounds(bounds: PartialBoundsDebug): Fragment {
+  return frag`<${as.kw('partial')}:${as.sublabel(bounds.type)} ${dom(bounds.node)}>`;
+}
+
+export function liveBlock(element: BlockBoundsDebug): Fragment {
   switch (element.type) {
     case 'empty':
       return frag`<${as.kw('block')} ${as.subtle('(empty)')} ${dom(element.parent)}>`;
@@ -205,8 +223,7 @@ export function diffStacks<T>(before: readonly T[], after: readonly T[]): Diffs<
 }
 interface Diffs<T> {
   unused: readonly T[];
-  // peeks can only be determined from a spec -- diffs will
-  // never produce them.
+  // peeks can only be determined from a spec -- diffs will never produce them.
   peeked: readonly T[];
   popped: readonly T[];
   pushed: readonly T[];

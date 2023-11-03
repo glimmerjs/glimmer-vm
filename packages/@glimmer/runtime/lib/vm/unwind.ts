@@ -1,16 +1,11 @@
-import type { Result } from '@glimmer/interfaces';
+import type {
+  Result,
+  TargetState,
+  UnwindTarget as UnwindTargetInterface,
+} from '@glimmer/interfaces';
 import { Ok } from '@glimmer/util';
 
-export interface TargetState {
-  ip: number;
-  ra: number;
-  fp: number;
-  handler: ErrorHandler | null;
-}
-
-export type ErrorHandler = (error: unknown, retry: () => void) => Result<void>;
-
-export class UnwindTarget {
+export class UnwindTarget implements UnwindTargetInterface {
   static root(): UnwindTarget {
     return new UnwindTarget(null, {
       // initial ra

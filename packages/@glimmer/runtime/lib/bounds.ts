@@ -1,13 +1,13 @@
-import type { Bounds, Cursor, Nullable, SimpleElement, SimpleNode } from '@glimmer/interfaces';
+import type { BlockBounds, Cursor, Nullable, SimpleElement, SimpleNode } from '@glimmer/interfaces';
 import { expect } from '@glimmer/util';
 
 export class CursorImpl implements Cursor {
   constructor(public element: SimpleElement, public nextSibling: Nullable<SimpleNode>) {}
 }
 
-export type DestroyableBounds = Bounds;
+export type DestroyableBounds = BlockBounds;
 
-export class ConcreteBounds implements Bounds {
+export class ConcreteBounds implements BlockBounds {
   constructor(
     public parentNode: SimpleElement,
     private first: SimpleNode,
@@ -27,7 +27,7 @@ export class ConcreteBounds implements Bounds {
   }
 }
 
-export class SingleNodeBounds implements Bounds {
+export class SingleNodeBounds implements BlockBounds {
   constructor(private parentNode: SimpleElement, private node: SimpleNode) {}
 
   parentElement(): SimpleElement {
@@ -43,7 +43,7 @@ export class SingleNodeBounds implements Bounds {
   }
 }
 
-export function move(bounds: Bounds, reference: Nullable<SimpleNode>): Nullable<SimpleNode> {
+export function move(bounds: BlockBounds, reference: Nullable<SimpleNode>): Nullable<SimpleNode> {
   let parent = bounds.parentElement();
   let first = bounds.firstNode();
   let last = bounds.lastNode();
@@ -64,7 +64,7 @@ export function move(bounds: Bounds, reference: Nullable<SimpleNode>): Nullable<
   }
 }
 
-export function clear(bounds: Bounds): Nullable<SimpleNode> {
+export function clear(bounds: BlockBounds): Nullable<SimpleNode> {
   let parent = bounds.parentElement();
   let first = bounds.firstNode();
   let last = bounds.lastNode();

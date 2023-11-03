@@ -1,17 +1,17 @@
-import type { SimpleText, UpdatingOpcode } from "@glimmer/interfaces";
-import { type Reference, valueForRef } from '@glimmer/reference';
+import type { SimpleText, UpdatingOpcode } from '@glimmer/interfaces';
+import { type SomeReactive, unwrapReactive } from '@glimmer/reference';
 
 import { isEmpty, isString } from '../../dom/normalize';
 
 export default class DynamicTextContent implements UpdatingOpcode {
   constructor(
     public node: SimpleText,
-    private reference: Reference<unknown>,
+    private reference: SomeReactive<unknown>,
     private lastValue: string
   ) {}
 
   evaluate() {
-    let value = valueForRef(this.reference);
+    let value = unwrapReactive(this.reference);
 
     let { lastValue } = this;
 

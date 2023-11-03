@@ -1,5 +1,6 @@
 import type {
   BlockMetadata,
+  DebugConstants,
   Dict,
   Nullable,
   RuntimeConstants,
@@ -37,11 +38,6 @@ import { opcodeMetadata } from './opcode-metadata';
 import { DebugOpState } from './render/state';
 import type { Primitive } from './stack-check';
 import type { OperandLabel } from './utils';
-
-export interface DebugConstants {
-  getValue<T>(handle: number): T;
-  getArray<T extends Nullable<unknown[]>>(value: number): T;
-}
 
 export function logOpcodeSlice(context: TemplateCompilationContext, start: number, end: number) {
   if (LOCAL_TRACE_LOGGING) {
@@ -188,19 +184,19 @@ export type RegisterName =
   | '$v0'
   | `$bug${number}`;
 
-export type AnyOperand = [type: string, value: any, options?: object];
+export type AnyOperand = [type: string, value: never, options?: object];
 export type OperandType<O extends AnyOperand> = O[0];
 export type OperandValue<O extends AnyOperand> = O[1];
 export type OperandOptions<O extends AnyOperand> = O extends [
   type: string,
-  value: any,
+  value: never,
   options: infer Options,
 ]
   ? Options
   : void;
 export type OperandOptionsA<O extends AnyOperand> = O extends [
   type: string,
-  value: any,
+  value: never,
   options: infer Options,
 ]
   ? Options
@@ -279,7 +275,7 @@ type ObjectForRaw<R> = R extends RawDisassembledOperand
 
 export class DisassembledOperand<R extends RawDisassembledOperand = RawDisassembledOperand> {
   static of(raw: RawDisassembledOperand): SomeDisassembledOperand {
-    return new DisassembledOperand(raw) as any;
+    return new DisassembledOperand(raw) as never;
   }
 
   readonly #raw: R;

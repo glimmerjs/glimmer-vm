@@ -3,15 +3,15 @@ import type {
   InternalModifierManager,
   Owner,
   SimpleElement,
-} from "@glimmer/interfaces";
-import { type Reference, valueForRef } from '@glimmer/reference';
+} from '@glimmer/interfaces';
+import { type SomeReactive, unwrapReactive } from '@glimmer/reference';
 import { castToBrowser } from '@glimmer/util';
 import { createUpdatableTag } from '@glimmer/validator';
 
 interface OnModifierState {
   element: SimpleElement;
-  nameRef: Reference<string>;
-  listenerRef: Reference<EventListener>;
+  nameRef: SomeReactive<string>;
+  listenerRef: SomeReactive<EventListener>;
   name: string | null;
   listener: EventListener | null;
 }
@@ -20,8 +20,8 @@ class OnModifierManager implements InternalModifierManager<OnModifierState, obje
   create(_owner: Owner, element: SimpleElement, _: {}, args: CapturedArguments) {
     return {
       element,
-      nameRef: args.positional[0] as Reference<string>,
-      listenerRef: args.positional[1] as Reference<EventListener>,
+      nameRef: args.positional[0] as SomeReactive<string>,
+      listenerRef: args.positional[1] as SomeReactive<EventListener>,
       name: null,
       listener: null,
     };
@@ -32,8 +32,8 @@ class OnModifierManager implements InternalModifierManager<OnModifierState, obje
   }
 
   install(state: OnModifierState) {
-    const name = valueForRef(state.nameRef);
-    const listener = valueForRef(state.listenerRef);
+    const name = unwrapReactive(state.nameRef);
+    const listener = unwrapReactive(state.listenerRef);
     castToBrowser(state.element, 'ELEMENT').addEventListener(name, listener);
     state.listener = listener;
     state.name = name;
@@ -41,8 +41,8 @@ class OnModifierManager implements InternalModifierManager<OnModifierState, obje
 
   update(state: OnModifierState) {
     const element = castToBrowser(state.element, 'ELEMENT');
-    const name = valueForRef(state.nameRef);
-    const listener = valueForRef(state.listenerRef);
+    const name = unwrapReactive(state.nameRef);
+    const listener = unwrapReactive(state.listenerRef);
     if (name !== state.name || listener !== state.listener) {
       element.removeEventListener(state.name!, state.listener!);
       element.addEventListener(name, listener);

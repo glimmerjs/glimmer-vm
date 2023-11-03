@@ -1,5 +1,5 @@
 import type { CapturedArguments } from '@glimmer/interfaces';
-import { createInvokableRef } from '@glimmer/reference';
+import { toMut } from '@glimmer/reference';
 import {
   GlimmerishComponent,
   jitSuite,
@@ -240,7 +240,7 @@ class FnTest extends RenderTest {
   'can be used on the result of `mut`'() {
     this.register.internalHelper('mut', (args: CapturedArguments) => {
       let [first] = this.guardArray({ positional: args.positional }, { min: 1 });
-      return createInvokableRef(first);
+      return toMut(first);
     });
 
     this.render.template(`{{this.arg1}}<Stash @stashedFn={{fn (mut this.arg1) this.arg2}}/>`, {
@@ -260,7 +260,7 @@ class FnTest extends RenderTest {
   'can be used on the result of `mut` with a falsy value'() {
     this.register.internalHelper('mut', (args: CapturedArguments) => {
       let [first] = this.guardArray({ positional: args.positional }, { min: 1 });
-      return createInvokableRef(first);
+      return toMut(first);
     });
 
     this.render.template(`{{this.arg1}}<Stash @stashedFn={{fn (mut this.arg1) this.arg2}}/>`, {

@@ -12,14 +12,14 @@ import type {
   RuntimeContext,
   TemplateIterator,
 } from '@glimmer/interfaces';
-import { childRefFor, createConstRef, type Reference } from '@glimmer/reference';
+import { getReactiveProperty, ReadonlyCell, type SomeReactive } from '@glimmer/reference';
 import { expect, unwrapHandle } from '@glimmer/util';
 import { debug } from '@glimmer/validator';
 
 import { inTransaction } from './environment';
 import { DynamicScopeImpl } from './scope';
 import { ARGS, CONSTANTS } from './symbols';
-import { type InternalVM,VM } from './vm/append';
+import { type InternalVM, VM } from './vm/append';
 
 class TemplateIteratorImpl implements TemplateIterator {
   constructor(private vm: InternalVM) {}
@@ -48,7 +48,7 @@ export function renderMain(
   runtime: RuntimeContext,
   context: CompileTimeCompilationContext,
   owner: Owner,
-  self: Reference,
+  self: SomeReactive,
   treeBuilder: ElementBuilder,
   layout: CompilableProgram,
   dynamicScope: DynamicScope = new DynamicScopeImpl()
@@ -71,10 +71,10 @@ function renderInvocation(
   context: CompileTimeCompilationContext,
   owner: Owner,
   definition: ComponentDefinitionState,
-  args: Record<string, Reference>
+  args: Record<string, SomeReactive>
 ): TemplateIterator {
-  // Get a list of tuples of argument names and references, like
-  // [['title', reference], ['name', reference]]
+  // Get a list of tuples of argument names and references, like [['title', reference], ['name',
+  // reference]]
   const argList = Object.keys(args).map((key) => [key, args[key]] as const);
 
   const blockNames = ['main', 'else', 'attrs'];
@@ -111,8 +111,8 @@ function renderInvocation(
     meta: compilable.meta,
   };
 
-  // Needed for the Op.Main opcode: arguments, component invocation object, and
-  // component definition.
+  // Needed for the Op.Main opcode: arguments, component invocation object, and component
+  // definition.
   vm.stack.push(vm[ARGS]);
   vm.stack.push(invocation);
   vm.stack.push(reified);
@@ -139,14 +139,14 @@ export function renderComponent(
   return renderInvocation(vm, context, owner, definition, recordToReference(args));
 }
 
-function recordToReference(record: Record<string, unknown>): Record<string, Reference> {
-  const root = createConstRef(record, 'args');
+function recordToReference(record: Record<string, unknown>): Record<string, SomeReactive> {
+  const root = ReadonlyCell(record, 'args');
 
   return Object.keys(record).reduce(
     (acc, key) => {
-      acc[key] = childRefFor(root, key);
+      acc[key] = getReactiveProperty(root, key);
       return acc;
     },
-    {} as Record<string, Reference>
+    {} as Record<string, SomeReactive>
   );
 }

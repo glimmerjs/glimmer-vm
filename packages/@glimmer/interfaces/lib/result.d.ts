@@ -3,9 +3,9 @@ export interface OkResult<T> {
   value: T;
 }
 
-export interface ErrResult {
+export interface ErrResult<E = unknown> {
   type: 'err';
-  value: unknown;
+  value: E;
 }
 
-export type Result<T> = OkResult<T> | ErrResult;
+export type Result<T, E = unknown> = { type: 'ok'; value: T } | { type: 'err'; value: E };

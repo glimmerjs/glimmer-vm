@@ -1,34 +1,33 @@
 export {
+  type AnyOperand,
   debug,
-  logOpcodeSlice,
-  getOpSnapshot,
-  type OpSnapshot,
-  type DebugConstants,
-  type RegisterName,
   type DebugOp,
   DisassembledOperand,
-  type AnyOperand,
-  type RawDisassembledOperand,
   type DynamicDisassembledOperand,
+  getOpSnapshot,
+  logOpcodeSlice,
+  type OpSnapshot,
+  type RawDisassembledOperand,
+  type RegisterName,
   type SomeDisassembledOperand,
   type StaticDisassembledOperand,
 } from './lib/debug';
 export * from './lib/metadata';
 export { opcodeMetadata } from './lib/opcode-metadata';
-export * from './lib/stack-check';
-export * from './lib/snapshot';
-export {
-  frag,
-  as,
-  type IntoFragment,
-  join,
-  intoFragment,
-  value,
-  dom,
-  empty,
-} from './lib/render/presets';
+export * from './lib/render/combinators';
 export type { Fragment } from './lib/render/fragment';
 export { DebugLogger } from './lib/render/lines';
+export {
+  as,
+  dom,
+  empty,
+  frag,
+  type IntoFragment,
+  intoFragment,
+  join,
+  value,
+} from './lib/render/presets';
 export { SerializeBlockContext } from './lib/render/serialize';
-export * from './lib/render/combinators';
 export * from './lib/render/state';
+export * from './lib/snapshot';
+export * from './lib/stack-check';

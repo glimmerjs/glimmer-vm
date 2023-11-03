@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-enum-comparison */
 import type {
   AttrNamespace,
-  Bounds,
+  BlockBounds,
   ElementBuilder,
   Environment,
   Maybe,
@@ -269,7 +269,7 @@ export class RehydrateBuilder
     }
   }
 
-  override __appendHTML(html: string): Bounds {
+  override __appendHTML(html: string): BlockBounds {
     const candidateBounds = this.markerBounds();
 
     if (candidateBounds) {
@@ -302,7 +302,7 @@ export class RehydrateBuilder
     return next;
   }
 
-  private markerBounds(): Nullable<Bounds> {
+  private markerBounds(): Nullable<BlockBounds> {
     const _candidate = this.candidate;
 
     if (_candidate && isMarker(_candidate)) {
@@ -483,7 +483,7 @@ export class RehydrateBuilder
     return this.pushLiveBlock(block, true);
   }
 
-  override didAppendBounds(bounds: Bounds): Bounds {
+  override didAppendBounds(bounds: BlockBounds): BlockBounds {
     super.didAppendBounds(bounds);
     if (this.candidate) {
       const last = bounds.lastNode();

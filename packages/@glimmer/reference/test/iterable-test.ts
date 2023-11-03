@@ -1,23 +1,23 @@
 import { type GlobalContext, testOverrideGlobalContext } from '@glimmer/global-context';
 import {
-  createComputeRef,
   createIteratorRef,
+  FallibleFormula,
   type OpaqueIterationItem,
-  type Reference,
-  valueForRef,
+  type SomeReactive,
+  unwrapReactive,
 } from '@glimmer/reference';
+import { unwrap } from '@glimmer/util';
 import { consumeTag, VOLATILE_TAG } from '@glimmer/validator';
 
 import objectValues from './utils/platform';
 import { module, test } from './utils/qunit';
 import { TestContext } from './utils/template';
-import { unwrap } from '@glimmer/util';
 
 class IterableWrapper {
-  private iterable: Reference<{ next(): OpaqueIterationItem | null }>;
+  private iterable: SomeReactive<{ next(): OpaqueIterationItem | null }>;
 
   constructor(obj: unknown, key = '@identity') {
-    let valueRef = createComputeRef(() => {
+    let valueRef = FallibleFormula(() => {
       consumeTag(VOLATILE_TAG);
       return obj;
     });
@@ -28,7 +28,7 @@ class IterableWrapper {
     let result: OpaqueIterationItem[] = [];
 
     // bootstrap
-    let iterator = valueForRef(this.iterable);
+    let iterator = unwrapReactive(this.iterable);
     let item = iterator.next();
 
     while (item !== null) {

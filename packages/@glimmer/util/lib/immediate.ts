@@ -1,6 +1,6 @@
 import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
 
-import { debugAssert as assert } from './assert';
+import { assert } from './assert';
 
 /*
   Encoding notes

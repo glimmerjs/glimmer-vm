@@ -10,20 +10,35 @@ import {
   CheckSyscallRegister,
 } from '@glimmer/debug';
 import { toBool } from '@glimmer/global-context';
-import type { CompilableTemplate, Nullable, Result, UpdatingOpcode } from '@glimmer/interfaces';
+import type {
+  CompilableTemplate,
+  ErrorHandler,
+  Nullable,
+  Result,
+  UpdatingOpcode,
+} from '@glimmer/interfaces';
 import {
-  createComputeRef,
-  createConstRef,
-  createPrimitiveRef,
+  createPrimitiveCell,
+  FallibleFormula,
   FALSE_REFERENCE,
-  isConstRef,
+  isConstant,
   NULL_REFERENCE,
-  type Reference,
+  ReadonlyCell,
+  readReactive,
+  type SomeReactive,
   TRUE_REFERENCE,
   UNDEFINED_REFERENCE,
-  valueForRef,
+  unwrapReactive,
 } from '@glimmer/reference';
-import { assert, decodeHandle, decodeImmediate, expect, isHandle, unwrap } from '@glimmer/util';
+import {
+  assert,
+  decodeHandle,
+  decodeImmediate,
+  expect,
+  isHandle,
+  mapResult,
+  unwrap,
+} from '@glimmer/util';
 import {
   beginTrackFrame,
   CONSTANT_TAG,
@@ -41,20 +56,19 @@ import { APPEND_OPCODES } from '../../opcodes';
 import { CONSTANTS } from '../../symbols';
 import type { UpdatingVM } from '../../vm';
 import type { InternalVM } from '../../vm/append';
-import type { ErrorHandler } from '../../vm/unwind';
-import { CheckArguments, CheckReference, CheckScope } from './-debug-strip';
+import { CheckArguments, CheckReactive, CheckScope } from './-debug-strip';
 import { stackAssert } from './assert';
 
 APPEND_OPCODES.add(Op.PushTryFrame, (vm, { op1: catchPc }) => {
-  const handler = check(vm.stack.pop(), CheckNullable(CheckReference));
+  const handler = check(vm.stack.pop(), CheckNullable(CheckReactive));
 
   if (handler === null) {
     vm.pushTryFrame(catchPc, null);
   } else {
     const result = vm.deref(handler);
 
-    // if the handler itself throws an error, propagate the error
-    // up to the next frame (and possibly the top level)
+    // if the handler itself throws an error, propagate the error up to the next frame (and possibly
+    // the top level)
     if (vm.unwrap(result)) {
       vm.pushTryFrame(
         catchPc,
@@ -81,7 +95,7 @@ APPEND_OPCODES.add(Op.Constant, (vm, { op1: other }) => {
 });
 
 APPEND_OPCODES.add(Op.ConstantReference, (vm, { op1: other }) => {
-  vm.stack.push(createConstRef(vm[CONSTANTS].getValue(decodeHandle(other)), false));
+  vm.stack.push(ReadonlyCell(vm[CONSTANTS].getValue(decodeHandle(other)), false));
 });
 
 APPEND_OPCODES.add(Op.Primitive, (vm, { op1: primitive }) => {
@@ -111,7 +125,7 @@ APPEND_OPCODES.add(Op.PrimitiveReference, (vm) => {
   } else if (value === false) {
     ref = FALSE_REFERENCE;
   } else {
-    ref = createPrimitiveRef(value);
+    ref = createPrimitiveCell(value);
   }
 
   stack.push(ref);
@@ -222,10 +236,10 @@ APPEND_OPCODES.add(Op.InvokeYield, (vm) => {
 });
 
 APPEND_OPCODES.add(Op.JumpIf, (vm, { op1: target }) => {
-  let reference = check(vm.stack.pop(), CheckReference);
-  let value = Boolean(valueForRef(reference));
+  let reference = check(vm.stack.pop(), CheckReactive);
+  let value = Boolean(unwrapReactive(reference));
 
-  if (isConstRef(reference)) {
+  if (isConstant(reference)) {
     if (value === true) {
       vm.goto(target);
     }
@@ -239,10 +253,10 @@ APPEND_OPCODES.add(Op.JumpIf, (vm, { op1: target }) => {
 });
 
 APPEND_OPCODES.add(Op.JumpUnless, (vm, { op1: target }) => {
-  let reference = check(vm.stack.pop(), CheckReference);
-  let value = Boolean(valueForRef(reference));
+  let reference = check(vm.stack.pop(), CheckReactive);
+  let value = Boolean(unwrapReactive(reference));
 
-  if (isConstRef(reference)) {
+  if (isConstant(reference)) {
     if (value === false) {
       vm.goto(target);
     }
@@ -264,30 +278,30 @@ APPEND_OPCODES.add(Op.JumpEq, (vm, { op1: target, op2: comparison }) => {
 });
 
 APPEND_OPCODES.add(Op.AssertSame, (vm) => {
-  let reference = check(vm.stack.top(), CheckReference);
+  let reference = check(vm.stack.top(), CheckReactive);
 
-  if (isConstRef(reference) === false) {
+  if (isConstant(reference) === false) {
     vm.updateWith(new Assert(reference));
   }
 });
 
 APPEND_OPCODES.add(Op.ToBoolean, (vm) => {
   let { stack } = vm;
-  let valueRef = check(stack.pop(), CheckReference);
+  let valueRef = check(stack.pop(), CheckReactive);
 
-  stack.push(createComputeRef(() => toBool(valueForRef(valueRef))));
+  stack.push(FallibleFormula(() => toBool(unwrapReactive(valueRef))));
 });
 
 export class Assert implements UpdatingOpcode {
   private last: unknown;
 
-  constructor(private ref: Reference) {
-    this.last = valueForRef(ref);
+  constructor(private ref: SomeReactive) {
+    this.last = unwrapReactive(ref);
   }
 
   evaluate(vm: UpdatingVM) {
     let { last, ref } = this;
-    let current = valueForRef(ref);
+    let current = unwrapReactive(ref);
 
     if (last !== current) {
       vm.throw();
@@ -297,27 +311,35 @@ export class Assert implements UpdatingOpcode {
 
 export class AssertFilter<T, U> implements UpdatingOpcode {
   #last: Result<U>;
-  readonly #ref: Reference<T>;
+  readonly #ref: SomeReactive<T>;
+  /**
+   * @fixme fallible filters
+   */
   readonly #filter: (from: T) => U;
 
-  constructor(current: Result<U>, ref: Reference<T>, filter: (from: T) => U) {
+  constructor(current: Result<U>, ref: SomeReactive<T>, filter: (from: T) => U) {
     this.#last = current;
     this.#ref = ref;
     this.#filter = filter;
   }
 
   evaluate(vm: UpdatingVM) {
-    const result = vm.deref(this.#ref);
+    const result = readReactive(this.#ref);
 
     if (result.type === 'err') {
       this.#last = { type: 'err', value: result.value };
       vm.throw();
     } else {
-      const update = this.#filter(result.value);
-      if (this.#last.type !== 'ok' || this.#last.value !== update) {
+      const update = mapResult(result, (value) => this.#filter(value));
+      if (this.#last.type !== update.type) {
         vm.throw();
       }
-      this.#last = { type: 'ok', value: update };
+
+      if (this.#last.type === 'ok' && this.#last.value !== update.value) {
+        vm.throw();
+      }
+
+      this.#last = update;
     }
   }
 }

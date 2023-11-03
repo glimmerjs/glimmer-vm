@@ -1,16 +1,16 @@
 import { check } from '@glimmer/debug';
 import { createIteratorRef } from '@glimmer/reference';
-import { mapResult,Results } from '@glimmer/util';
+import { mapResult, Results } from '@glimmer/util';
 import { Op } from '@glimmer/vm';
 
 import { APPEND_OPCODES } from '../../opcodes';
-import { CheckIterator, CheckReference } from './-debug-strip';
+import { CheckIterator, CheckReactive } from './-debug-strip';
 import { AssertFilter } from './vm';
 
 APPEND_OPCODES.add(Op.EnterList, (vm, { op1: relativeStart, op2: elseTarget }) => {
   const stack = vm.stack;
-  const listRef = check(stack.pop(), CheckReference);
-  const keyRef = check(stack.pop(), CheckReference);
+  const listRef = check(stack.pop(), CheckReactive);
+  const keyRef = check(stack.pop(), CheckReactive);
 
   const keyValue = vm.deref(keyRef);
 
@@ -19,8 +19,10 @@ APPEND_OPCODES.add(Op.EnterList, (vm, { op1: relativeStart, op2: elseTarget }) =
 
     const iteratorRef = createIteratorRef(listRef, key);
     const iterator = vm.deref(iteratorRef);
+
     const isEmptyResult = mapResult(iterator, (iterator) => iterator.isEmpty());
 
+    // @fixme updating
     vm.updateWith(new AssertFilter(isEmptyResult, iteratorRef, (iterator) => iterator.isEmpty()));
 
     vm.unwrap(

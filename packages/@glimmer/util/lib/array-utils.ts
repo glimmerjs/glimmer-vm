@@ -1,4 +1,12 @@
-export const EMPTY_ARRAY: readonly unknown[] = Object.freeze([]) as readonly unknown[];
+export const EMPTY_ARRAY: readonly unknown[] = readonly([]);
+
+function readonly<T>(value: T): Readonly<T> {
+  if (import.meta.env.DEV) {
+    return Object.freeze(value);
+  }
+
+  return value as Readonly<T>;
+}
 
 export function emptyArray<T>(): T[] {
   return EMPTY_ARRAY as T[];

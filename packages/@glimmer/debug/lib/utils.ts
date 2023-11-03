@@ -1,4 +1,4 @@
-import type { Nullable, Optional, Reference, VmOpName } from '@glimmer/interfaces';
+import type { Nullable, Optional, SomeReactive, VmOpName } from '@glimmer/interfaces';
 import { REFERENCE } from '@glimmer/reference';
 import { assertNever, fillNulls } from '@glimmer/util';
 import { OpSize } from '@glimmer/vm';
@@ -415,6 +415,6 @@ type TupleToParams<T extends unknown[]> = (...args: T) => void;
 type Slice<T extends unknown[]> = TupleToParams<T> extends (first: any, ...rest: infer Rest) => void
   ? Rest
   : never;
-export function isReference(value: unknown): value is Reference {
+export function isReference(value: unknown): value is SomeReactive {
   return !!(value && typeof value === 'object' && REFERENCE in value);
 }
