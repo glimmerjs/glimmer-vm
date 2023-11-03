@@ -1,5 +1,10 @@
 import type { Dict, Nullable, SimpleElement } from '@glimmer/interfaces';
-import { type Count, jitSuite, RenderTest, test } from '@glimmer-workspace/integration-tests';
+import {
+  type Count,
+  jitSuite,
+  RenderTestContext,
+  test,
+} from '@glimmer-workspace/integration-tests';
 
 class BaseModifier {
   element?: SimpleElement;
@@ -16,7 +21,7 @@ abstract class AbstractDestroyable extends BaseModifier {
   abstract override willDestroyElement(): void;
 }
 
-class ModifierTests extends RenderTest {
+class ModifierTests extends RenderTestContext {
   static suiteName = 'modifiers';
 
   @test

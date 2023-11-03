@@ -823,7 +823,7 @@ declare global {
      * @param {string} Title of unit being tested
      * @param callback Function to close over assertions
      */
-    test(name: string, callback: (assert: Assert) => void | Promise<void>): void;
+    test(this: void, name: string, callback: (assert: Assert) => void | Promise<void>): void;
 
     /**
      * Register a callback to fire whenever a test ends.

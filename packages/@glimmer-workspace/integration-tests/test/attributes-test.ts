@@ -5,12 +5,12 @@ import {
   assertingElement,
   hasAttribute,
   jitSuite,
-  RenderTest,
+  RenderTestContext,
   test,
   tracked,
 } from '@glimmer-workspace/integration-tests';
 
-export class AttributesTests extends RenderTest {
+export class AttributesTests extends RenderTestContext {
   static suiteName = 'Attributes';
 
   protected readDOMAttr(attr: string, element = this.element.firstChild as SimpleElement) {
@@ -584,7 +584,7 @@ export class AttributesTests extends RenderTest {
 
 jitSuite(AttributesTests);
 
-abstract class BoundValuesToSpecialAttributeTests extends RenderTest {
+abstract class BoundValuesToSpecialAttributeTests extends RenderTestContext {
   protected abstract tag: string;
   protected abstract attr: string;
   protected isEmptyElement = false;

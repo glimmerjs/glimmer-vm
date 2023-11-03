@@ -3,11 +3,11 @@ import { toMut } from '@glimmer/reference';
 import {
   GlimmerishComponent,
   jitSuite,
-  RenderTest,
+  RenderTestContext,
   test,
 } from '@glimmer-workspace/integration-tests';
 
-class FnTest extends RenderTest {
+class FnTest extends RenderTestContext {
   static suiteName = 'Helpers test: {{fn}}';
 
   stashedFn?: () => unknown;

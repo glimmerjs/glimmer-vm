@@ -1,19 +1,19 @@
 import type { SimpleElement } from '@glimmer/interfaces';
 import { unwrap } from '@glimmer/util';
 
-import { defineComponent } from '..';
 import { EmberishCurlyComponent } from '../components';
 import { assertEmberishElement, classes } from '../dom/assertions';
 import { assertingElement, toInnerHTML } from '../dom/simple-utils';
-import { RenderTest } from '../render-test';
+import { RenderTestContext } from '../render-test';
 import { equalTokens } from '../snapshot';
 import { render, suite } from '../test-decorator';
-import type { RenderTestContext } from '../test-helpers/module';
+import { defineComponent } from '../test-helpers/define';
+import type { RenderTestState } from '../test-helpers/module';
 
 @suite('Emberish', 'curly')
-export class EmberishComponentTests extends RenderTest {
+export class EmberishComponentTests extends RenderTestContext {
   @render
-  'Element modifier with hooks'(assert: RenderTestContext) {
+  'Element modifier with hooks'(assert: RenderTestState) {
     const { events } = assert;
 
     this.register.modifier(

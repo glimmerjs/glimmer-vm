@@ -1,11 +1,11 @@
 import { precompile } from '@glimmer/compiler';
 import type { Cursor, ElementBuilder, Environment } from '@glimmer/interfaces';
 import { NodeDOMTreeConstruction, serializeBuilder } from '@glimmer/node';
+import { RenderTestContext } from '@glimmer-workspace/integration-tests';
 
 import { blockStack } from '../dom/blocks';
 import { toInnerHTML } from '../dom/simple-utils';
-import { NodeJitRenderDelegate,NodeRenderTest } from '../modes/node/env';
-import { RenderTest } from '../render-test';
+import { NodeJitRenderDelegate, NodeRenderTest } from '../modes/node/env';
 import { render } from '../test-decorator';
 import { strip } from '../test-helpers/strings';
 
@@ -22,7 +22,7 @@ export class DOMHelperTests extends NodeRenderTest {
   }
 }
 
-export class CompilationTests extends RenderTest {
+export class CompilationTests extends RenderTestContext {
   static suiteName = 'Id generation';
 
   @render
@@ -64,7 +64,7 @@ export class SerializedDOMHelperTests extends DOMHelperTests {
 
   @render
   'Unescaped helpers render correctly'() {
-    this.register.helper('testing-unescaped', (params) => params[0] );
+    this.register.helper('testing-unescaped', (params) => params[0]);
     this.render.template('{{{testing-unescaped "<span>hi</span>"}}}');
     let b = blockStack();
     this.assertHTML(strip`

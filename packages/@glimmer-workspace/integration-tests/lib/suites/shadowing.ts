@@ -1,7 +1,7 @@
-import { RenderTest } from '../render-test';
+import { RenderTestContext } from '../render-test';
 import { render } from '../test-decorator';
 
-export class ShadowingSuite extends RenderTest {
+export class ShadowingSuite extends RenderTestContext {
   static suiteName = 'Shadowing';
 
   @render('glimmer')

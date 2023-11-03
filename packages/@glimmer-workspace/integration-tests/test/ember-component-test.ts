@@ -15,9 +15,10 @@ import {
   type JitRenderDelegate,
   jitSuite,
   regex,
-  RenderTest,
+  render,
+  RenderTestContext,
   stripTight,
-  test,
+  suite,
 } from '@glimmer-workspace/integration-tests';
 
 import { ErrorRecoverySuite } from '../lib/suites/error-recovery';
@@ -165,7 +166,7 @@ export function assertElementIsEmberishElement(
 //   view.rerender();
 // }
 
-class CurlyTest extends RenderTest {
+class CurlyTest extends RenderTestContext {
   assertEmberishElement(tagName: string, attrs: Object, contents: string): void;
   assertEmberishElement(tagName: string, attrs: Object): void;
   assertEmberishElement(tagName: string, contents: string): void;
@@ -189,7 +190,7 @@ class CurlyTest extends RenderTest {
 class CurlyCreateTest extends CurlyTest {
   static suiteName = '[curly components] Manager#create - hasBlock';
 
-  @test
+  @render
   'when no block present'() {
     class FooBar extends EmberishCurlyComponent {
       override tagName = 'div';
@@ -202,7 +203,7 @@ class CurlyCreateTest extends CurlyTest {
     this.assertEmberishElement('div', {}, `false`);
   }
 
-  @test
+  @render
   'when block present'() {
     class FooBar extends EmberishCurlyComponent {
       override tagName = 'div';
@@ -216,18 +217,41 @@ class CurlyCreateTest extends CurlyTest {
   }
 }
 
-class CurlyDynamicComponentTest extends CurlyTest {
-  static suiteName = '[curly components] dynamic components';
+class Context {
+  readonly handler = () => {};
 
-  @test
+  get arg1() {
+    throw Error('woops');
+  }
+}
+
+@suite('(component dynamic)')
+class CurlyDynamicComponentTest extends CurlyTest {
+  override beforeEach = () => {
+    this.register.component('TemplateOnly', 'Target', `<p>{{@arg1}}</p>`);
+  };
+
+  @render
+  'error recovery'() {
+    this.render.template(
+      stripTight`
+        <div>{{#-try this.context.handler}}{{component this.context.component arg1="hello"}}{{/-try}}</div>
+      `,
+      { context: new Context() }
+    );
+
+    this.assertHTML('<div><!----></div>');
+  }
+
+  @render
   'initially missing, then present, then missing'() {
     this.register.component('Curly', 'FooBar', `<p>{{@arg1}}</p>`);
 
     this.render.template(
       stripTight`
-        <div>
-          {{component this.something arg1="hello"}}
-        </div>
+      <div>
+      {{component this.something arg1="hello"}}
+      </div>
       `,
       {
         something: undefined,
@@ -242,7 +266,7 @@ class CurlyDynamicComponentTest extends CurlyTest {
     this.assertHTML('<div><!----></div>');
   }
 
-  @test
+  @render
   'initially present, then missing, then present'() {
     this.register.component('Curly', 'FooBar', `<p>foo bar baz</p>`);
 
@@ -268,7 +292,7 @@ class CurlyDynamicComponentTest extends CurlyTest {
 class CurlyDynamicCustomizationTest extends CurlyTest {
   static suiteName = '[curly components] dynamic customizations';
 
-  @test
+  @render
   'dynamic tagName'() {
     class FooBar extends EmberishCurlyComponent {
       override tagName = 'aside';
@@ -281,7 +305,7 @@ class CurlyDynamicCustomizationTest extends CurlyTest {
     this.assertStableRerender();
   }
 
-  @test
+  @render
   'dynamic tagless component'() {
     class FooBar extends EmberishCurlyComponent {
       override tagName = '';
@@ -294,7 +318,7 @@ class CurlyDynamicCustomizationTest extends CurlyTest {
     this.assertStableRerender();
   }
 
-  @test
+  @render
   'dynamic attribute bindings'() {
     let fooBarInstance: FooBar | undefined;
 
@@ -341,7 +365,7 @@ class CurlyDynamicCustomizationTest extends CurlyTest {
 class CurlyArgsTest extends CurlyTest {
   static suiteName = '[curly components] args';
 
-  @test
+  @render
   'using @value from emberish curly component'() {
     class FooBar extends EmberishCurlyComponent {
       static override positionalParams = ['foo'];
@@ -359,7 +383,7 @@ class CurlyArgsTest extends CurlyTest {
 class CurlyScopeTest extends CurlyTest {
   static suiteName = '[curly components] scope';
 
-  @test
+  @render
   'correct scope - accessing local variable in yielded block (glimmer component)'() {
     this.register.component(
       'TemplateOnly',
@@ -401,7 +425,7 @@ class CurlyScopeTest extends CurlyTest {
     );
   }
 
-  @test
+  @render
   'correct scope - accessing local variable in yielded block (curly component)'() {
     class FooBar extends EmberishCurlyComponent {
       public override tagName = '';
@@ -446,7 +470,7 @@ class CurlyScopeTest extends CurlyTest {
     );
   }
 
-  @test
+  @render
   'correct scope - caller self can be threaded through (curly component)'() {
     // demonstrates ability for Ember to know the target object of curly component actions
     class Base extends EmberishCurlyComponent {
@@ -496,19 +520,19 @@ class CurlyScopeTest extends CurlyTest {
     );
   }
 
-  @test
+  @render
   '`false` class name do not render'() {
     this.render.template('<div class={{this.isFalse}}>FALSE</div>', { isFalse: false });
     this.assertHTML('<div>FALSE</div>');
   }
 
-  @test
+  @render
   '`null` class name do not render'() {
     this.render.template('<div class={{this.isNull}}>NULL</div>', { isNull: null });
     this.assertHTML('<div>NULL</div>');
   }
 
-  @test
+  @render
   '`undefined` class name do not render'() {
     this.render.template('<div class={{this.isUndefined}}>UNDEFINED</div>', {
       isUndefined: undefined,
@@ -516,13 +540,13 @@ class CurlyScopeTest extends CurlyTest {
     this.assertHTML('<div>UNDEFINED</div>');
   }
 
-  @test
+  @render
   '`0` class names do render'() {
     this.render.template('<div class={{this.isZero}}>ZERO</div>', { isZero: 0 });
     this.assertHTML('<div class="0">ZERO</div>');
   }
 
-  @test
+  @render
   'component with slashed name'() {
     this.register.component('Curly', 'fizz-bar/baz-bar', '{{@hey}}');
     this.render.template('{{fizz-bar/baz-bar hey="hello"}}');
@@ -530,7 +554,7 @@ class CurlyScopeTest extends CurlyTest {
     this.assertHTML('<div id="ember*" class="ember-view">hello</div>');
   }
 
-  @test
+  @render
   'correct scope - simple'() {
     this.register.component('TemplateOnly', 'SubItem', `<p>{{@name}}</p>`);
 
@@ -549,7 +573,7 @@ class CurlyScopeTest extends CurlyTest {
     this.assertHTML('<div><p>0</p><p>1</p><p>42</p></div>');
   }
 
-  @test
+  @render
   'correct scope - self lookup inside #each'() {
     this.register.component('TemplateOnly', 'SubItem', `<p>{{@name}}</p>`);
 
@@ -578,7 +602,7 @@ class CurlyScopeTest extends CurlyTest {
     );
   }
 
-  @test
+  @render
   'correct scope - complex'() {
     this.register.component('TemplateOnly', 'SubItem', `<p>{{@name}}</p>`);
 
@@ -637,7 +661,7 @@ class CurlyScopeTest extends CurlyTest {
     );
   }
 
-  @test
+  @render
   'correct scope - complex yield'() {
     this.register.component(
       'Curly',
@@ -690,7 +714,7 @@ class CurlyScopeTest extends CurlyTest {
     );
   }
 
-  @test
+  @render
   'correct scope - self'() {
     class FooBar extends GlimmerishComponent {
       public foo = 'foo';
@@ -727,7 +751,7 @@ class CurlyScopeTest extends CurlyTest {
 class CurlyDynamicScopeSmokeTest extends CurlyTest {
   static suiteName = '[curly components] dynamicScope access smoke test';
 
-  @test
+  @render
   'component has access to dynamic scope'() {
     class SampleComponent extends EmberishCurlyComponent {
       static fromDynamicScope = ['theme'];
@@ -746,7 +770,7 @@ class CurlyDynamicScopeSmokeTest extends CurlyTest {
 class CurlyPositionalArgsTest extends CurlyTest {
   static suiteName = '[curly components] positional arguments';
 
-  @test
+  @render
   'static named positional parameters'() {
     class SampleComponent extends EmberishCurlyComponent {
       static override positionalParams = ['person', 'age'];
@@ -764,7 +788,7 @@ class CurlyPositionalArgsTest extends CurlyTest {
     this.assertEmberishElement('div', 'Quint4');
   }
 
-  @test
+  @render
   'dynamic named positional parameters'() {
     class SampleComponent extends EmberishCurlyComponent {
       static override positionalParams = ['person', 'age'];
@@ -792,7 +816,7 @@ class CurlyPositionalArgsTest extends CurlyTest {
     this.assertEmberishElement('div', 'Edward5');
   }
 
-  @test
+  @render
   'if a value is passed as a non-positional parameter, it takes precedence over the named one'() {
     class SampleComponent extends EmberishCurlyComponent {
       static override positionalParams = ['name'];
@@ -808,7 +832,7 @@ class CurlyPositionalArgsTest extends CurlyTest {
     }, 'You cannot specify both a positional param (at position 0) and the hash argument `name`.');
   }
 
-  @test
+  @render
   'static arbitrary number of positional parameters'() {
     class SampleComponent extends EmberishCurlyComponent {
       static override positionalParams = 'names';
@@ -841,7 +865,7 @@ class CurlyPositionalArgsTest extends CurlyTest {
     assertElementIsEmberishElement(second, 'div', 'Foo4Bar5Baz');
   }
 
-  @test
+  @render
   'arbitrary positional parameter conflict with hash parameter is reported'() {
     class SampleComponent extends EmberishCurlyComponent {
       static override positionalParams = ['names'];
@@ -861,7 +885,7 @@ class CurlyPositionalArgsTest extends CurlyTest {
     }, `You cannot specify positional parameters and the hash argument \`names\`.`);
   }
 
-  @test
+  @render
   'can use hash parameter instead of arbitrary positional param [GH #12444]'() {
     class SampleComponent extends EmberishCurlyComponent {
       static override positionalParams = ['names'];
@@ -881,7 +905,7 @@ class CurlyPositionalArgsTest extends CurlyTest {
     this.assertEmberishElement('div', 'Foo4Bar');
   }
 
-  @test
+  @render
   'can use hash parameter instead of positional param'() {
     class SampleComponent extends EmberishCurlyComponent {
       static override positionalParams = ['first', 'second'];
@@ -914,7 +938,7 @@ class CurlyPositionalArgsTest extends CurlyTest {
     );
   }
 
-  @test
+  @render
   'dynamic arbitrary number of positional parameters'() {
     class SampleComponent extends EmberishCurlyComponent {
       static override positionalParams = 'n';
@@ -948,7 +972,7 @@ class CurlyPositionalArgsTest extends CurlyTest {
     this.assertEmberishElement('div', 'Bar6');
   }
 
-  @test
+  @render
   '{{component}} helper works with positional params'() {
     class SampleComponent extends EmberishCurlyComponent {
       static override positionalParams = ['name', 'age'];
@@ -987,7 +1011,7 @@ class CurlyPositionalArgsTest extends CurlyTest {
 class CurlyClosureComponentsTest extends CurlyTest {
   static suiteName = '[curly components] closure components';
 
-  @test
+  @render
   'component helper can handle aliased block components with args'() {
     this.register.helper('hash', (_positional, named) => named);
     this.register.component('Curly', 'foo-bar', 'Hello {{this.arg1}} {{yield}}');
@@ -1003,7 +1027,7 @@ class CurlyClosureComponentsTest extends CurlyTest {
     this.assertHTML('<div id="ember1" class="ember-view">Hello World! Test1</div> Test2');
   }
 
-  @test
+  @render
   'component helper can handle aliased block components without args'() {
     this.register.helper('hash', (_positional, named) => named);
     this.register.component('Curly', 'foo-bar', 'Hello {{yield}}');
@@ -1019,7 +1043,7 @@ class CurlyClosureComponentsTest extends CurlyTest {
     this.assertHTML('<div id="ember1" class="ember-view">Hello World!</div> Test');
   }
 
-  @test
+  @render
   'component helper can handle aliased inline components with args'() {
     this.register.helper('hash', (_positional, named) => named);
     this.register.component('Curly', 'foo-bar', 'Hello {{this.arg1}}');
@@ -1035,7 +1059,7 @@ class CurlyClosureComponentsTest extends CurlyTest {
     this.assertHTML('<div id="ember1" class="ember-view">Hello World!</div> Test');
   }
 
-  @test
+  @render
   'component helper can handle aliased inline components without args'() {
     this.register.helper('hash', (_positional, named) => named);
     this.register.component('Curly', 'foo-bar', 'Hello');
@@ -1051,7 +1075,7 @@ class CurlyClosureComponentsTest extends CurlyTest {
     this.assertHTML('<div id="ember2" class="ember-view">Hello</div> World!');
   }
 
-  @test
+  @render
   'component helper can handle higher order inline components with args'() {
     this.register.helper('hash', (_positional, named) => named);
     this.register.component('Curly', 'foo-bar', '{{yield (hash comp=(component "baz-bar"))}}');
@@ -1070,7 +1094,7 @@ class CurlyClosureComponentsTest extends CurlyTest {
     );
   }
 
-  @test
+  @render
   'component helper can handle higher order inline components without args'() {
     this.register.helper('hash', (_positional, named) => named);
     this.register.component('Curly', 'foo-bar', '{{yield (hash comp=(component "baz-bar"))}}');
@@ -1089,7 +1113,7 @@ class CurlyClosureComponentsTest extends CurlyTest {
     );
   }
 
-  @test
+  @render
   'component helper can handle higher order block components with args'() {
     this.register.helper('hash', (_positional, named) => named);
     this.register.component('Curly', 'foo-bar', '{{yield (hash comp=(component "baz-bar"))}}');
@@ -1108,7 +1132,7 @@ class CurlyClosureComponentsTest extends CurlyTest {
     );
   }
 
-  @test
+  @render
   'component helper can handle higher order block components without args'() {
     this.register.helper('hash', (_positional, named) => named);
     this.register.component('Curly', 'foo-bar', '{{yield (hash comp=(component "baz-bar"))}}');
@@ -1127,7 +1151,7 @@ class CurlyClosureComponentsTest extends CurlyTest {
     );
   }
 
-  @test
+  @render
   'component deopt can handle aliased inline components without args'() {
     this.register.helper('hash', (_positional, named) => named);
     this.register.component('Curly', 'foo-bar', 'Hello');
@@ -1143,7 +1167,7 @@ class CurlyClosureComponentsTest extends CurlyTest {
     this.assertHTML('<div id="ember1" class="ember-view">Hello</div> World!');
   }
 
-  @test
+  @render
   'component deopt can handle higher order inline components without args'() {
     this.register.helper('hash', (_positional, named) => named);
     this.register.component('Curly', 'foo-bar', '{{yield (hash comp=(component "baz-bar"))}}');
@@ -1162,7 +1186,7 @@ class CurlyClosureComponentsTest extends CurlyTest {
     );
   }
 
-  @test
+  @render
   'component helper can curry arguments'() {
     class FooBarComponent extends EmberishCurlyComponent {
       static override positionalParams = ['one', 'two', 'three', 'four', 'five', 'six'];
@@ -1222,7 +1246,7 @@ class CurlyClosureComponentsTest extends CurlyTest {
     `);
   }
 
-  @test
+  @render
   'component helper: currying works inline'() {
     class FooBarComponent extends EmberishCurlyComponent {
       static override positionalParams = ['one', 'two', 'three', 'four', 'five', 'six'];
@@ -1270,7 +1294,7 @@ class CurlyClosureComponentsTest extends CurlyTest {
 class CurlyIdsTest extends CurlyTest {
   static suiteName = '[curly components] ids';
 
-  @test
+  @render
   'emberish curly component should have unique IDs'() {
     this.register.component('Curly', 'x-curly', '');
 
@@ -1340,7 +1364,7 @@ class CurlyIdsTest extends CurlyTest {
 class CurlyGlimmerComponentTest extends CurlyTest {
   static suiteName = '[curly components] glimmer components';
 
-  @test
+  @render
   'NonBlock without attributes replaced with a div'() {
     this.register.component('Glimmer', 'NonBlock', '<div ...attributes>In layout</div>');
 
@@ -1349,7 +1373,7 @@ class CurlyGlimmerComponentTest extends CurlyTest {
     this.assertStableRerender();
   }
 
-  @test
+  @render
   'NonBlock with attributes replaced with a div'() {
     this.register.component(
       'Glimmer',
@@ -1368,7 +1392,7 @@ class CurlyGlimmerComponentTest extends CurlyTest {
     this.assertStableNodes();
   }
 
-  @test
+  @render
   'NonBlock without attributes replaced with a web component'() {
     this.register.component(
       'Glimmer',
@@ -1382,7 +1406,7 @@ class CurlyGlimmerComponentTest extends CurlyTest {
     this.assertStableRerender();
   }
 
-  @test
+  @render
   'NonBlock with attributes replaced with a web component'() {
     this.register.component(
       'Glimmer',
@@ -1401,7 +1425,7 @@ class CurlyGlimmerComponentTest extends CurlyTest {
     this.assertStableNodes();
   }
 
-  @test
+  @render
   'Ensure components can be invoked'() {
     this.register.component('Glimmer', 'Outer', `<Inner></Inner>`);
     this.register.component('Glimmer', 'Inner', `<div ...attributes>hi!</div>`);
@@ -1410,7 +1434,7 @@ class CurlyGlimmerComponentTest extends CurlyTest {
     this.assertHTML('<div>hi!</div>');
   }
 
-  @test
+  @render
   'Custom element with element modifier'() {
     this.register.modifier('foo', class {});
 
@@ -1418,7 +1442,7 @@ class CurlyGlimmerComponentTest extends CurlyTest {
     this.assertHTML('<some-custom-element></some-custom-element>');
   }
 
-  @test
+  @render
   'Curly component hooks (with attrs)'() {
     let instance: (NonBlock & HookedComponent) | undefined;
 
@@ -1471,7 +1495,7 @@ class CurlyGlimmerComponentTest extends CurlyTest {
     assertFired(instance, 'didRender', 3);
   }
 
-  @test
+  @render
   'Curly component hooks (attrs as self props)'() {
     let instance: (NonBlock & HookedComponent) | undefined;
 
@@ -1524,7 +1548,7 @@ class CurlyGlimmerComponentTest extends CurlyTest {
     assertFired(instance, 'didRender', 3);
   }
 
-  @test
+  @render
   'Setting value attributeBinding to null results in empty string value'() {
     let instance: InputComponent | undefined;
 
@@ -1570,7 +1594,7 @@ class CurlyGlimmerComponentTest extends CurlyTest {
     assert.strictEqual(element.value, '');
   }
 
-  @test
+  @render
   'Setting class attributeBinding does not clobber ember-view'() {
     let instance: FooBarComponent | undefined;
 
@@ -1612,7 +1636,7 @@ class CurlyGlimmerComponentTest extends CurlyTest {
     this.assertEmberishElement('div', { class: classes('ember-view foo bar') }, 'FOO BAR');
   }
 
-  @test
+  @render
   'Curly component hooks (force recompute)'() {
     let instance: (NonBlock & HookedComponent) | undefined;
 
@@ -1664,7 +1688,7 @@ class CurlyGlimmerComponentTest extends CurlyTest {
     assertFired(instance, 'didRender', 2);
   }
 
-  @test
+  @render
   'Can use named argument @component (e.g. `{{@component.name}}`) emberjs/ember.js#19313'() {
     this.register.component('Glimmer', 'Outer', '{{@component.name}}');
 
@@ -1681,7 +1705,7 @@ class CurlyGlimmerComponentTest extends CurlyTest {
 class CurlyTeardownTest extends CurlyTest {
   static suiteName = '[curly components] teardown';
 
-  @test
+  @render
   'curly components are destroyed'() {
     let willDestroy = 0;
     let destroyed = 0;
@@ -1711,7 +1735,7 @@ class CurlyTeardownTest extends CurlyTest {
     assert.strictEqual(destroyed, 1, 'destroy should be called exactly one');
   }
 
-  @test
+  @render
   'glimmer components are destroyed'() {
     let destroyed = 0;
 
@@ -1738,7 +1762,7 @@ class CurlyTeardownTest extends CurlyTest {
     assert.strictEqual(destroyed, 1, 'destroy should be called exactly one');
   }
 
-  @test
+  @render
   'component helpers component are destroyed'() {
     let destroyed = 0;
 
@@ -1764,7 +1788,7 @@ class CurlyTeardownTest extends CurlyTest {
     assert.strictEqual(destroyed, 1, 'destroy should be called exactly one');
   }
 
-  @test
+  @render
   'components inside a list are destroyed'() {
     let destroyed: unknown[] = [];
 
@@ -1796,7 +1820,7 @@ class CurlyTeardownTest extends CurlyTest {
     assert.deepEqual(destroyed, [4, 5, 1, 2, 3], 'destroy should be called for each item');
   }
 
-  @test
+  @render
   'components inside a list are destroyed (when key is @identity)'() {
     let destroyed: unknown[] = [];
 
@@ -1841,7 +1865,7 @@ class CurlyTeardownTest extends CurlyTest {
     );
   }
 
-  @test
+  @render
   'components that are "destroyed twice" are destroyed once'() {
     let destroyed: string[] = [];
 
@@ -1886,7 +1910,7 @@ class CurlyTeardownTest extends CurlyTest {
     );
   }
 
-  @test
+  @render
   'deeply nested destructions'() {
     let destroyed: string[] = [];
 
@@ -1959,7 +1983,7 @@ class CurlyTeardownTest extends CurlyTest {
     );
   }
 
-  @test
+  @render
   'components inside the root are destroyed when the render result is destroyed'() {
     let glimmerDestroyed = false;
     let curlyDestroyed = false;
@@ -2009,7 +2033,7 @@ class CurlyTeardownTest extends CurlyTest {
     );
   }
 
-  @test
+  @render
   'tagless components render properly'() {
     this.register.component('TemplateOnly', 'foo-bar', `Michael Jordan says "Go Tagless"`);
 
@@ -2024,7 +2048,7 @@ class CurlyLateLayoutTest extends CurlyTest {
 
   declare delegate: JitRenderDelegate;
 
-  @test
+  @render
   'can bind the layout late'() {
     class FooBar extends EmberishCurlyComponent {
       override layout = createTemplate('Swap - {{yield}}')(undefined);
@@ -2052,7 +2076,7 @@ class CurlyAppendableTest extends CurlyTest {
 
   declare delegate: JitRenderDelegate;
 
-  @test
+  @render
   'it does not work on optimized appends'() {
     this.register.component('Curly', 'foo-bar', 'foo bar');
 
@@ -2069,7 +2093,7 @@ class CurlyAppendableTest extends CurlyTest {
     this.assertEmberishElement('div', {}, 'foo bar');
   }
 
-  @test
+  @render
   'it works on unoptimized appends (dot paths)'() {
     this.register.component('Curly', 'foo-bar', 'foo bar');
 
@@ -2090,7 +2114,7 @@ class CurlyAppendableTest extends CurlyTest {
     this.assertEmberishElement('div', {}, 'foo bar');
   }
 
-  @test
+  @render
   'it works on unoptimized appends (this paths)'() {
     this.register.component('Curly', 'foo-bar', 'foo bar');
 
@@ -2111,7 +2135,7 @@ class CurlyAppendableTest extends CurlyTest {
     this.assertEmberishElement('div', {}, 'foo bar');
   }
 
-  @test
+  @render
   'it works on unoptimized appends when initially not a component (dot paths)'() {
     this.register.component('Curly', 'foo-bar', 'foo bar');
 
@@ -2129,7 +2153,7 @@ class CurlyAppendableTest extends CurlyTest {
     this.assertHTML('lol');
   }
 
-  @test
+  @render
   'it works on unoptimized appends when initially not a component (this paths)'() {
     this.register.component('Curly', 'foo-bar', 'foo bar');
 
@@ -2151,7 +2175,7 @@ class CurlyAppendableTest extends CurlyTest {
 class CurlyBoundsTrackingTest extends CurlyTest {
   static suiteName = '[curly components] bounds tracking';
 
-  @test
+  @render
   'it works for wrapped (curly) components'() {
     let instance = this.capture<FooBar>();
 
@@ -2186,7 +2210,7 @@ class CurlyBoundsTrackingTest extends CurlyTest {
     assert.strictEqual(bounds.lastNode(), castToSimple(element));
   }
 
-  @test
+  @render
   'it works for tagless components'() {
     let instance = this.capture<FooBar>();
 
@@ -2228,7 +2252,7 @@ class CurlyBoundsTrackingTest extends CurlyTest {
     );
   }
 
-  @test
+  @render
   'A curly component can have an else block'() {
     this.register.component('Curly', 'render-else', `{{yield to="inverse"}}`);
 

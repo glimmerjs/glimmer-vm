@@ -7,7 +7,6 @@ import type {
 } from '@glimmer/interfaces';
 import { setInternalComponentManager } from '@glimmer/manager';
 import { NULL_REFERENCE, type SomeReactive } from '@glimmer/reference';
-
 import {
   createTemplate,
   defineComponent,
@@ -15,11 +14,11 @@ import {
   GlimmerishComponent,
   JitRenderDelegate,
   type RenderDelegateOptions,
-  RenderTest,
+  RenderTestContext,
   test,
   TestJitRuntimeResolver,
   testSuite,
-} from '../lib';
+} from '@glimmer-workspace/integration-tests';
 
 class OwnerJitRuntimeResolver extends TestJitRuntimeResolver {
   override lookupComponent(name: string, owner: () => void): ResolvedComponentDefinition | null {
@@ -112,7 +111,7 @@ function defineCheckOwnerComponent(ownerToCheck: object | undefined, assert: Ass
   });
 }
 
-class OwnerTest extends RenderTest {
+class OwnerTest extends RenderTestContext {
   static suiteName = '[owner]';
 
   declare delegate: OwnerJitRenderDelegate;

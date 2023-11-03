@@ -7,7 +7,7 @@ import createHTMLDocument from '@simple-dom/document';
 
 import { toInnerHTML } from '../../dom/simple-utils';
 import type { RenderDelegateOptions } from '../../render-delegate';
-import { RenderTest } from '../../render-test';
+import { RenderTestContext } from '../../render-test';
 import { JitRenderDelegate } from '../jit/delegate';
 
 export interface NodeEnvironmentOptions {
@@ -25,7 +25,7 @@ export class NodeJitRenderDelegate extends JitRenderDelegate {
   }
 }
 
-export abstract class NodeRenderTest extends RenderTest {
+export abstract class NodeRenderTest extends RenderTestContext {
   override assertHTML(html: string) {
     let serialized = toInnerHTML(this.element);
     this.assert.strictEqual(serialized, html);

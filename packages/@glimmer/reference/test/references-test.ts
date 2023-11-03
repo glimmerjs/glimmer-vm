@@ -20,7 +20,7 @@ import { consumeTag, createTag, dirtyTag } from '@glimmer/validator';
 
 import { tracked } from './support';
 
-const { module, test, todo } = QUnit;
+const { module, test } = QUnit;
 
 class TrackedDict<T> {
   private tag = createTag();

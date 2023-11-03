@@ -5,14 +5,14 @@ import {
   OPEN,
   PartialRehydrationDelegate,
   qunitFixture,
-  RenderTest,
+  RenderTestContext,
   replaceHTML,
   stripTight,
   test,
   testSuite,
 } from '@glimmer-workspace/integration-tests';
 
-export class PartialRehydrationTest extends RenderTest {
+export class PartialRehydrationTest extends RenderTestContext {
   static suiteName = 'partial rehydration';
   declare delegate: PartialRehydrationDelegate;
 

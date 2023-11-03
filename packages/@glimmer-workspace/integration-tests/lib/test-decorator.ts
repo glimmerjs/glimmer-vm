@@ -2,7 +2,7 @@ import { LOCAL_LOGGER } from '@glimmer/util';
 
 import type { IRenderTest } from './render-test';
 import type { DeclaredComponentType, EveryComponentType } from './test-helpers/constants';
-import type { RenderTestConstructor, RenderTestContext } from './test-helpers/module';
+import type { RenderTestConstructor, RenderTestState } from './test-helpers/module';
 import { isTest, TEST_META } from './test-helpers/test';
 
 type ComponentTestOptions =
@@ -22,7 +22,7 @@ export interface ComponentTestMeta {
 }
 
 export interface ComponentTestFunction {
-  (this: IRenderTest, assert: RenderTestContext): void | Promise<void>;
+  (this: IRenderTest, assert: RenderTestState): void | Promise<void>;
 
   readonly [TEST_META]: ComponentTestMeta;
 }

@@ -1,8 +1,8 @@
-import { RenderTest } from '../render-test';
+import { RenderTestContext } from '../render-test';
 import { render } from '../test-decorator';
 import { stripTight } from '../test-helpers/strings';
 
-export class ScopeSuite extends RenderTest {
+export class ScopeSuite extends RenderTestContext {
   static suiteName = 'Scope';
 
   @render

@@ -1,7 +1,7 @@
-import { RenderTest } from '../render-test';
+import { RenderTestContext } from '../render-test';
 import { render } from '../test-decorator';
 
-export class HasBlockSuite extends RenderTest {
+export class HasBlockSuite extends RenderTestContext {
   static suiteName = 'has-block';
 
   @render('curly')

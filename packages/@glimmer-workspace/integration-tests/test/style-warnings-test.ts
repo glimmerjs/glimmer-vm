@@ -1,12 +1,12 @@
 import { type GlobalContext, testOverrideGlobalContext } from '@glimmer/global-context';
+import { jitSuite, RenderTestContext, test } from '@glimmer-workspace/integration-tests';
 
-import { jitSuite, RenderTest, test } from '../lib';
 import { assert } from './support';
 
 let warnings = 0;
 let originalContext: GlobalContext | null;
 
-class StyleWarningsTest extends RenderTest {
+class StyleWarningsTest extends RenderTestContext {
   static suiteName = 'Style attributes';
 
   override readonly beforeEach = () => {

@@ -1,12 +1,14 @@
-import { RenderTest } from '../lib/render-test';
-import { render,suite } from '../lib/test-decorator';
+import type { RenderTestState } from '@glimmer-workspace/integration-tests';
+import { RenderTestContext } from '@glimmer-workspace/integration-tests';
+
+import { render, suite } from '../lib/test-decorator';
 import type { DeclaredComponentType } from '../lib/test-helpers/constants';
-import type { ExpandType,RenderTestContext } from '../lib/test-helpers/module';
+import type { ExpandType } from '../lib/test-helpers/module';
 import { jitSuite } from '../lib/test-helpers/module';
 
 @suite('buildComponent')
-class BuildComponentTest extends RenderTest {
-  @render('glimmer') 'Can build basic glimmer invocation'(assert: RenderTestContext) {
+class BuildComponentTest extends RenderTestContext {
+  @render('glimmer') 'Can build basic glimmer invocation'(assert: RenderTestState) {
     let invocation = this.buildComponent({
       layout: 'Hello',
     });
@@ -15,7 +17,7 @@ class BuildComponentTest extends RenderTest {
   }
 
   @render('glimmer') 'Can build glimmer invocation with template'(
-    assert: RenderTestContext<'glimmer'>
+    assert: RenderTestState<'glimmer'>
   ) {
     // renderTests['testType'] = 'Glimmer';
     let invocation = this.buildComponent({
@@ -26,9 +28,7 @@ class BuildComponentTest extends RenderTest {
     assertGlimmerInvocation(assert, invocation, '<TestComponent>World</TestComponent>');
   }
 
-  @render('glimmer') 'Can build glimmer invocation with args'(
-    assert: RenderTestContext<'glimmer'>
-  ) {
+  @render('glimmer') 'Can build glimmer invocation with args'(assert: RenderTestState<'glimmer'>) {
     let invocation = this.buildComponent({
       layout: 'Hello {{yield}}',
       template: 'World',
@@ -42,7 +42,7 @@ class BuildComponentTest extends RenderTest {
     );
   }
 
-  @render('glimmer') 'Can build glimmer invocation with attributes'(assert: RenderTestContext) {
+  @render('glimmer') 'Can build glimmer invocation with attributes'(assert: RenderTestState) {
     let invocation = this.buildComponent({
       layout: 'Hello {{yield}}',
       template: 'World',
@@ -56,9 +56,7 @@ class BuildComponentTest extends RenderTest {
     );
   }
 
-  @render('glimmer') 'Can build glimmer invocation with custom tag name'(
-    assert: RenderTestContext
-  ) {
+  @render('glimmer') 'Can build glimmer invocation with custom tag name'(assert: RenderTestState) {
     let invocation = this.buildComponent({
       name: 'LolWat',
       layout: 'Hello {{yield}}',
@@ -73,7 +71,7 @@ class BuildComponentTest extends RenderTest {
     );
   }
 
-  @render('glimmer') 'Can build glimmer invocation with block params'(assert: RenderTestContext) {
+  @render('glimmer') 'Can build glimmer invocation with block params'(assert: RenderTestState) {
     let invocation = this.buildComponent({
       name: 'Lol',
       layout: 'Hello {{yield}}',
@@ -89,7 +87,7 @@ class BuildComponentTest extends RenderTest {
     );
   }
 
-  @render('curly') 'Can build basic curly invocation'(assert: RenderTestContext<'curly'>) {
+  @render('curly') 'Can build basic curly invocation'(assert: RenderTestState<'curly'>) {
     let invocation = this.buildComponent({
       layout: 'Hello',
     });
@@ -100,7 +98,7 @@ class BuildComponentTest extends RenderTest {
     });
   }
 
-  @render('curly') 'Can build curly invocation with template'(assert: RenderTestContext<'curly'>) {
+  @render('curly') 'Can build curly invocation with template'(assert: RenderTestState<'curly'>) {
     let invocation = this.buildComponent({
       layout: 'Hello {{yield}}',
       template: 'World',
@@ -112,7 +110,7 @@ class BuildComponentTest extends RenderTest {
     });
   }
 
-  @render('curly') 'Can build curly invocation with args'(assert: RenderTestContext<'curly'>) {
+  @render('curly') 'Can build curly invocation with args'(assert: RenderTestState<'curly'>) {
     let invocation = this.buildComponent({
       layout: 'Hello {{yield}}',
       template: 'World',
@@ -125,7 +123,7 @@ class BuildComponentTest extends RenderTest {
     });
   }
 
-  @render('curly') 'Can build curly invocation with attributes throws'(assert: RenderTestContext) {
+  @render('curly') 'Can build curly invocation with attributes throws'(assert: RenderTestState) {
     assert.throws(() => {
       this.buildComponent({
         layout: 'Hello {{yield}}',
@@ -137,7 +135,7 @@ class BuildComponentTest extends RenderTest {
   }
 
   @render('curly') "Can build curly invocation with 'attributes' in args"(
-    assert: RenderTestContext<'curly'>
+    assert: RenderTestState<'curly'>
   ) {
     let invocation = this.buildComponent({
       layout: 'Hello {{yield}}',
@@ -154,7 +152,7 @@ class BuildComponentTest extends RenderTest {
   }
 
   @render('curly') 'Can build curly invocation with custom tag name'(
-    assert: RenderTestContext<'curly'>
+    assert: RenderTestState<'curly'>
   ) {
     let invocation = this.buildComponent({
       name: 'lol-wat',
@@ -171,7 +169,7 @@ class BuildComponentTest extends RenderTest {
   }
 
   @render('curly') 'Can build curly invocation with block params'(
-    assert: RenderTestContext<'curly'>
+    assert: RenderTestState<'curly'>
   ) {
     let invocation = this.buildComponent({
       name: 'lol-wat',
@@ -189,7 +187,7 @@ class BuildComponentTest extends RenderTest {
     });
   }
 
-  @render('curly') 'Can build curly invocation with else'(assert: RenderTestContext<'curly'>) {
+  @render('curly') 'Can build curly invocation with else'(assert: RenderTestState<'curly'>) {
     let invocation = this.buildComponent({
       name: 'lol-wat',
       layout: 'Hello {{yield}}',
@@ -207,7 +205,7 @@ class BuildComponentTest extends RenderTest {
     });
   }
 
-  @render('dynamic') 'Can build basic dynamic invocation'(assert: RenderTestContext<'dynamic'>) {
+  @render('dynamic') 'Can build basic dynamic invocation'(assert: RenderTestState<'dynamic'>) {
     let invocation = this.buildComponent({
       layout: 'Hello',
     });
@@ -218,7 +216,7 @@ class BuildComponentTest extends RenderTest {
   }
 
   @render('dynamic') 'Can build dynamic invocation with template'(
-    assert: RenderTestContext<'dynamic'>
+    assert: RenderTestState<'dynamic'>
   ) {
     let invocation = this.buildComponent({
       layout: 'Hello {{yield}}',
@@ -230,7 +228,7 @@ class BuildComponentTest extends RenderTest {
     });
   }
 
-  @render('dynamic') 'Can build dynamic invocation with args'(assert: RenderTestContext) {
+  @render('dynamic') 'Can build dynamic invocation with args'(assert: RenderTestState) {
     let invocation = this.buildComponent({
       layout: 'Hello {{yield}}',
       template: 'World',
@@ -243,9 +241,7 @@ class BuildComponentTest extends RenderTest {
     );
   }
 
-  @render('dynamic') 'Can build dynamic invocation with custom tag name'(
-    assert: RenderTestContext
-  ) {
+  @render('dynamic') 'Can build dynamic invocation with custom tag name'(assert: RenderTestState) {
     let invocation = this.buildComponent({
       name: 'lol-wat',
       layout: 'Hello {{yield}}',
@@ -259,7 +255,7 @@ class BuildComponentTest extends RenderTest {
     );
   }
 
-  @render('dynamic') 'Can build dynamic invocation with block params'(assert: RenderTestContext) {
+  @render('dynamic') 'Can build dynamic invocation with block params'(assert: RenderTestState) {
     let invocation = this.buildComponent({
       name: 'lol-wat',
       layout: 'Hello {{yield}}',
@@ -274,7 +270,7 @@ class BuildComponentTest extends RenderTest {
     );
   }
 
-  @render('dynamic') 'Can build dynamic invocation with else'(assert: RenderTestContext) {
+  @render('dynamic') 'Can build dynamic invocation with else'(assert: RenderTestState) {
     let invocation = this.buildComponent({
       name: 'lol-wat',
       layout: 'Hello {{yield}}',
@@ -290,7 +286,7 @@ class BuildComponentTest extends RenderTest {
     );
   }
 
-  @render('templateOnly') 'Can build basic component invocation'(assert: RenderTestContext) {
+  @render('templateOnly') 'Can build basic component invocation'(assert: RenderTestState) {
     let invocation = this.buildComponent({
       layout: 'Hello',
     });
@@ -299,7 +295,7 @@ class BuildComponentTest extends RenderTest {
   }
 
   @render('templateOnly') 'Can build basic component invocation with template'(
-    assert: RenderTestContext
+    assert: RenderTestState
   ) {
     let invocation = this.buildComponent({
       layout: 'Hello {{yield}}',
@@ -310,7 +306,7 @@ class BuildComponentTest extends RenderTest {
   }
 
   @render('templateOnly') 'Can build basic component invocation with args'(
-    assert: RenderTestContext
+    assert: RenderTestState
   ) {
     let invocation = this.buildComponent({
       layout: 'Hello {{yield}}',
@@ -325,7 +321,7 @@ class BuildComponentTest extends RenderTest {
   }
 
   @render('templateOnly') 'Can build basic component invocation with attributes'(
-    assert: RenderTestContext
+    assert: RenderTestState
   ) {
     let invocation = this.buildComponent({
       layout: 'Hello {{yield}}',
@@ -341,7 +337,7 @@ class BuildComponentTest extends RenderTest {
   }
 
   @render('templateOnly') 'Can build basic component invocation with custom tag name'(
-    assert: RenderTestContext
+    assert: RenderTestState
   ) {
     let invocation = this.buildComponent({
       name: 'Lol',
@@ -358,7 +354,7 @@ class BuildComponentTest extends RenderTest {
   }
 
   @render('templateOnly') 'Can build basic component invocation with block params'(
-    assert: RenderTestContext
+    assert: RenderTestState
   ) {
     let invocation = this.buildComponent({
       name: 'Lol',
@@ -379,7 +375,7 @@ class BuildComponentTest extends RenderTest {
 jitSuite(BuildComponentTest);
 
 function assertInvocation<K extends Exclude<DeclaredComponentType, 'glimmer'>>(
-  context: RenderTestContext<K, K>,
+  context: RenderTestState<K, K>,
   invocation: string,
   all: Record<ExpandType<K>, string>
 ) {
@@ -387,7 +383,7 @@ function assertInvocation<K extends Exclude<DeclaredComponentType, 'glimmer'>>(
 }
 
 function assertGlimmerInvocation(
-  context: RenderTestContext<'glimmer'>,
+  context: RenderTestState<'glimmer'>,
   actual: string,
   expected: string
 ) {

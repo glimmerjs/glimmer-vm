@@ -1,8 +1,10 @@
 import { castToSimple } from '@glimmer/util';
+import {
+  JitRenderDelegate,
+  RenderTestContext,
+  RenderTestState,
+} from '@glimmer-workspace/integration-tests';
 
-import { JitRenderDelegate } from '../lib/modes/jit/delegate';
-import { RenderTest } from '../lib/render-test';
-import { RenderTestContext } from '../lib/test-helpers/module';
 import { module } from './support';
 
 // "I-N-U-R" cycle
@@ -15,14 +17,14 @@ module('Render Tests: I-N-U-R', ({ test }) => {
     let text = doc.createTextNode('Foo');
     div.appendChild(text);
 
-    new (class extends RenderTest {
-      override element = div;
-      constructor(...args: ConstructorParameters<typeof RenderTest>) {
+    new (class extends RenderTestContext {
+      constructor(...args: ConstructorParameters<typeof RenderTestContext>) {
         super(...args);
+        this.element = div;
         let snapShot = this.takeSnapshot();
         assert.deepEqual(snapShot, [text, 'up']);
       }
-    })(new JitRenderDelegate(), RenderTestContext(assert, 'glimmer'));
+    })(new JitRenderDelegate(), RenderTestState(assert, 'glimmer'));
   });
 
   test('Can take nested snapshots', (assert) => {
@@ -32,14 +34,14 @@ module('Render Tests: I-N-U-R', ({ test }) => {
     p.appendChild(text);
     div.appendChild(p);
 
-    new (class extends RenderTest {
-      override element = div;
-      constructor(...args: ConstructorParameters<typeof RenderTest>) {
+    new (class extends RenderTestContext {
+      constructor(...args: ConstructorParameters<typeof RenderTestContext>) {
         super(...args);
+        this.element = div;
         let snapShot = this.takeSnapshot();
         assert.deepEqual(snapShot, [p, 'down', text, 'up', 'up']);
       }
-    })(new JitRenderDelegate(), RenderTestContext(assert, 'glimmer'));
+    })(new JitRenderDelegate(), RenderTestState(assert, 'glimmer'));
   });
 
   test('Can take nested snapshots of serialized blocks', (assert) => {
@@ -51,13 +53,13 @@ module('Render Tests: I-N-U-R', ({ test }) => {
     div.appendChild(text);
     div.appendChild(close);
 
-    new (class extends RenderTest {
-      override element = div;
-      constructor(...args: ConstructorParameters<typeof RenderTest>) {
+    new (class extends RenderTestContext {
+      constructor(...args: ConstructorParameters<typeof RenderTestContext>) {
         super(...args);
+        this.element = div;
         let snapShot = this.takeSnapshot();
         assert.deepEqual(snapShot, [open, text, close, 'up']);
       }
-    })(new JitRenderDelegate(), RenderTestContext(assert, 'glimmer'));
+    })(new JitRenderDelegate(), RenderTestState(assert, 'glimmer'));
   });
 });

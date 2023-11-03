@@ -1,7 +1,7 @@
-import { RenderTest } from '../render-test';
+import { RenderTestContext } from '../render-test';
 import { render } from '../test-decorator';
 
-export class WithDynamicVarsSuite extends RenderTest {
+export class WithDynamicVarsSuite extends RenderTestContext {
   static suiteName = '-with-dynamic-vars and -get-dynamic-var';
   @render
   'Can get and set dynamic variable'() {

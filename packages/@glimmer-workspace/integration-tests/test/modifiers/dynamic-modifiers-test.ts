@@ -4,12 +4,12 @@ import {
   defineSimpleModifier,
   GlimmerishComponent,
   jitSuite,
-  RenderTest,
+  RenderTestContext,
   syntaxErrorFor,
   test,
 } from '@glimmer-workspace/integration-tests';
 
-class DynamicModifiersResolutionModeTest extends RenderTest {
+class DynamicModifiersResolutionModeTest extends RenderTestContext {
   static suiteName = 'dynamic modifiers in resolution mode';
 
   @test

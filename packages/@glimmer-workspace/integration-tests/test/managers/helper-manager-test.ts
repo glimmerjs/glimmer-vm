@@ -1,19 +1,18 @@
 import type { Arguments, Owner } from '@glimmer/interfaces';
 import { helperCapabilities, setHelperManager, setModifierManager } from '@glimmer/manager';
-
 import {
   defineComponent,
   GlimmerishComponent,
   jitSuite,
-  RenderTest,
+  RenderTestContext,
   test,
   TestHelper,
   TestHelperManager,
   tracked,
   trackedObj,
-} from '../../lib';
+} from '@glimmer-workspace/integration-tests';
 
-class HelperManagerTest extends RenderTest {
+class HelperManagerTest extends RenderTestContext {
   static suiteName = 'Helper Managers';
 
   @test 'it works'() {

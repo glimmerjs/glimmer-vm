@@ -1,20 +1,19 @@
 import { array, concat, fn, get, hash, on } from '@glimmer/runtime';
 import { castToBrowser } from '@glimmer/util';
-
 import {
   defineComponent,
   defineSimpleHelper,
   defineSimpleModifier,
   GlimmerishComponent,
   jitSuite,
-  RenderTest,
+  RenderTestContext,
   syntaxErrorFor,
   test,
   TestHelper,
   trackedObj,
-} from '../lib';
+} from '@glimmer-workspace/integration-tests';
 
-class GeneralStrictModeTest extends RenderTest {
+class GeneralStrictModeTest extends RenderTestContext {
   static suiteName = 'strict mode: general properties';
 
   @test
@@ -223,7 +222,7 @@ class GeneralStrictModeTest extends RenderTest {
   }
 }
 
-class StaticStrictModeTest extends RenderTest {
+class StaticStrictModeTest extends RenderTestContext {
   static suiteName = 'strict mode: static template values';
 
   @test
@@ -554,7 +553,7 @@ class StaticStrictModeTest extends RenderTest {
   }
 }
 
-class DynamicStrictModeTest extends RenderTest {
+class DynamicStrictModeTest extends RenderTestContext {
   static suiteName = 'strict mode: dynamic template values';
 
   @test
@@ -1255,7 +1254,7 @@ class DynamicStrictModeTest extends RenderTest {
   }
 }
 
-class BuiltInsStrictModeTest extends RenderTest {
+class BuiltInsStrictModeTest extends RenderTestContext {
   static suiteName = 'strict mode: built in modifiers and helpers';
 
   @test

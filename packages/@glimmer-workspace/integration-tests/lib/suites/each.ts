@@ -2,11 +2,11 @@ import { LOCAL_DEBUG } from '@glimmer/local-debug-flags';
 import { beginTestSteps, endTestSteps, verifySteps } from '@glimmer/util';
 import { consumeTag, createTag, dirtyTag } from '@glimmer/validator';
 
-import { RenderTest } from '../render-test';
+import { RenderTestContext } from '../render-test';
 import { render } from '../test-decorator';
 import { tracked } from '../test-helpers/tracked';
 
-export class EachSuite extends RenderTest {
+export class EachSuite extends RenderTestContext {
   static suiteName = '#each';
 
   override readonly beforeEach = () => {

@@ -2,9 +2,9 @@ import type { EnvironmentDelegate } from '@glimmer/runtime';
 
 import { ErrorRecoveryRenderDelegate, JitRenderDelegate } from '../modes/jit/delegate';
 import { NodeJitRenderDelegate } from '../modes/node/env';
-import type RenderDelegate from '../render-delegate';
-import type { RenderDelegateOptions } from '../render-delegate';
-import { Count, type IRenderTest, type RenderTest } from '../render-test';
+import type { RenderDelegate, RenderDelegateOptions } from '../render-delegate';
+import type { IRenderTest, RenderTestContext } from '../render-test';
+import { Count } from '../render-test';
 import { JitSerializationDelegate } from '../suites/custom-dom-helper';
 import {
   type ComponentTestFunction,
@@ -20,7 +20,7 @@ import { RecordedEvents } from './recorded';
 
 export interface RenderTestConstructor<D extends RenderDelegate, T extends IRenderTest> {
   suiteName?: string;
-  new (delegate: D, context: RenderTestContext): T;
+  new (delegate: D, context: RenderTestState): T;
 }
 
 export function jitSuite<T extends IRenderTest>(
@@ -80,7 +80,7 @@ export function testSuite<D extends RenderDelegate>(
   if (options.componentModule) {
     componentModule(
       `${Delegate.style} :: Components :: ${TestBlueprint.suiteName(Class)}`,
-      Class as any as RenderTestConstructor<D, RenderTest>,
+      Class as any as RenderTestConstructor<D, RenderTestContext>,
       Delegate
     );
   } else {
@@ -120,7 +120,7 @@ function formatTypes(types: RenderTestTypes): string {
   }
 }
 
-export interface RenderTestContext<
+export interface RenderTestState<
   Template extends DeclaredComponentType = DeclaredComponentType,
   Invoker extends DeclaredComponentType = Template,
 > extends Assert {
@@ -137,10 +137,10 @@ export interface RenderTestTypes {
   readonly invoker: DeclaredComponentType;
 }
 
-export function RenderTestContext(
+export function RenderTestState(
   assert: Assert,
   specifiedTypes: RenderTestTypes | DeclaredComponentType
-): RenderTestContext {
+): RenderTestState {
   const events = new RecordedEvents();
 
   const types =
@@ -164,7 +164,7 @@ export function RenderTestContext(
         }
       },
     }
-  ) as unknown as RenderTestContext;
+  ) as unknown as RenderTestState;
 }
 
 type TestFn = () => void;
@@ -222,7 +222,7 @@ export class TestBlueprint<D extends RenderDelegate, T extends IRenderTest> {
     types: RenderTestTypes
   ): (assert: Assert) => void | Promise<void> {
     return (assert) => {
-      const instance = new this.#Class(new this.#Delegate(), RenderTestContext(assert, types));
+      const instance = new this.#Class(new this.#Delegate(), RenderTestState(assert, types));
       instance.beforeEach?.();
 
       try {

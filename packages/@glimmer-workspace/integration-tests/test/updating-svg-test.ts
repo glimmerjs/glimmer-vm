@@ -3,13 +3,13 @@ import { NS_HTML, NS_SVG, NS_XLINK } from '@glimmer/util';
 import {
   assertNodeTagName,
   jitSuite,
-  RenderTest,
+  RenderTestContext,
   test,
 } from '@glimmer-workspace/integration-tests';
 
 import { assert } from './support';
 
-class UpdatingSvgTest extends RenderTest {
+class UpdatingSvgTest extends RenderTestContext {
   static suiteName = 'Updating SVG';
 
   @test

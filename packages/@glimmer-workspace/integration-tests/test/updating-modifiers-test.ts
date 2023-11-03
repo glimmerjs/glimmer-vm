@@ -1,6 +1,6 @@
 import type { SimpleElement } from '@glimmer/interfaces';
+import { jitSuite, RenderTestContext, test } from '@glimmer-workspace/integration-tests';
 
-import { jitSuite, RenderTest, test } from '../lib';
 import { assert } from './support';
 
 function makeSyncDataAttrModifier(hooks: string[]) {
@@ -22,7 +22,7 @@ function makeSyncDataAttrModifier(hooks: string[]) {
   };
 }
 
-class UpdatingModifiers extends RenderTest {
+class UpdatingModifiers extends RenderTestContext {
   static suiteName = 'Updating Element Modifier';
 
   @test

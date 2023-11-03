@@ -1,9 +1,9 @@
 import { resetDebuggerCallback, setDebuggerCallback } from '@glimmer/runtime';
 
-import { RenderTest } from '../render-test';
+import { RenderTestContext } from '../render-test';
 import { render } from '../test-decorator';
 
-export class DebuggerSuite extends RenderTest {
+export class DebuggerSuite extends RenderTestContext {
   static suiteName = 'Debugger';
 
   override readonly afterEach = () => {

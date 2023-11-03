@@ -3,13 +3,13 @@ import type { Dict, Owner } from '@glimmer/interfaces';
 import { GlimmerishComponent } from '../components';
 import { assertElementShape } from '../dom/assertions';
 import { assertingElement } from '../dom/simple-utils';
-import { RenderTest } from '../render-test';
+import { RenderTestContext } from '../render-test';
 import { render, suite } from '../test-decorator';
 import { strip, stripTight } from '../test-helpers/strings';
 import { tracked } from '../test-helpers/tracked';
 
 @suite('TemplateOnly', { kind: 'templateOnly' })
-export class TemplateOnlyComponents extends RenderTest {
+export class TemplateOnlyComponents extends RenderTestContext {
   @render
   'creating a new component'() {
     this.render.template(
@@ -61,7 +61,7 @@ export class TemplateOnlyComponents extends RenderTest {
 }
 
 @suite('Glimmerish', { kind: 'glimmer' })
-export class GlimmerishComponents extends RenderTest {
+export class GlimmerishComponents extends RenderTestContext {
   @render
   'invoking dynamic component (named arg) via angle brackets'() {
     this.register.component('Glimmer', 'Foo', 'hello world!');

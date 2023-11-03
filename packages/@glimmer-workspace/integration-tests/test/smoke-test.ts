@@ -1,6 +1,6 @@
-import { jitSuite, RenderTest, test } from '../lib';
+import { jitSuite, RenderTestContext, test } from '@glimmer-workspace/integration-tests';
 
-class SmokeTests extends RenderTest {
+class SmokeTests extends RenderTestContext {
   static suiteName = 'Smoke Tests';
 
   @test

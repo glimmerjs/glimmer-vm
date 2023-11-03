@@ -12,36 +12,32 @@ import {
   componentSuite,
   type Content,
   content,
+  DynamicInitialRenderSuite,
   EMPTY,
   equalTokens,
   firstElementChild,
   GLIMMER_TEST_COMPONENT,
-  InitialRenderSuite,
+  InitialRenderTests,
   jitSuite,
   OPEN,
   RehydrationDelegate,
   render,
+  RenderTestContext,
   replaceHTML,
   strip,
   suite,
-  testSuite,
   toInnerHTML,
   toTextContent,
 } from '@glimmer-workspace/integration-tests';
+import { matrix } from '@glimmer-workspace/integration-tests';
 
 // `window.ActiveXObject` is "falsey" in IE11 (but not `undefined` or `false`)
 // `"ActiveXObject" in window` returns `true` in all IE versions
 // only IE11 will pass _both_ of these conditions
 const isIE11 = !(window as any).ActiveXObject && 'ActiveXObject' in window;
 
-class RenderTests extends InitialRenderSuite {
-  static override suiteName = 'initial render (client)';
-  override name = 'client';
-}
-
-class AbstractRehydrationTests extends InitialRenderSuite {
-  override name = 'rehydration';
-  protected declare delegate: RehydrationDelegate;
+class RehydrationContext extends RenderTestContext {
+  declare delegate: RehydrationDelegate;
   protected declare serverOutput: Nullable<string>;
 
   renderServerSide(
@@ -88,150 +84,141 @@ class AbstractRehydrationTests extends InitialRenderSuite {
   }
 }
 
-@suite('Rehydration')
-class Rehydration extends AbstractRehydrationTests {
-  @render
-  'rehydrates into element with pre-existing content'() {
-    let rootElement = this.delegate.serverDoc.createElement('div');
-    let extraContent = this.delegate.serverDoc.createElement('noscript');
-    rootElement.appendChild(extraContent);
+const RehydrationTests = matrix(
+  { context: RehydrationContext, extends: InitialRenderTests },
+  'rehydration2',
+  (test) => {
+    test('rehydrates into element with pre-existing content', (ctx) => {
+      let rootElement = ctx.delegate.serverDoc.createElement('div');
+      let extraContent = ctx.delegate.serverDoc.createElement('noscript');
+      rootElement.appendChild(extraContent);
 
-    let noScriptString = '<noscript></noscript>';
-    let template = '<div>Hi!</div>';
-    this.renderServerSide(template, {}, rootElement);
-    this.assertExactServerOutput(content([noScriptString, OPEN, ...template, CLOSE]));
-    this.renderClientSide(template, {});
-    this.assertHTML('<noscript></noscript><div>Hi!</div>');
-    this.assertRehydrationStats({ nodesRemoved: 0 });
-    this.assertStableNodes();
-  }
+      let noScriptString = '<noscript></noscript>';
+      let template = '<div>Hi!</div>';
+      ctx.renderServerSide(template, {}, rootElement);
+      ctx.assertExactServerOutput(content([noScriptString, OPEN, ...template, CLOSE]));
+      ctx.renderClientSide(template, {});
+      ctx.assertHTML('<noscript></noscript><div>Hi!</div>');
+      ctx.assertRehydrationStats({ nodesRemoved: 0 });
+      ctx.assertStableNodes();
+    });
 
-  @render
-  'handles non-empty trusted content (triple-curlies)'() {
-    let template = '<div>{{{this.value}}}</div>';
-    let obj: { value: string } = { value: 'foo' };
-    this.renderServerSide(template, obj);
-    this.renderClientSide(template, obj);
-    this.assertHTML('<div>foo</div>');
-  }
+    test('handles non-empty trusted content (triple-curlies)', (ctx) => {
+      let template = '<div>{{{this.value}}}</div>';
+      let obj: { value: string } = { value: 'foo' };
+      ctx.renderServerSide(template, obj);
+      ctx.renderClientSide(template, obj);
+      ctx.assertHTML('<div>foo</div>');
+    });
 
-  @render
-  'handles empty trusted content (triple-curlies)'() {
-    let template = '<div>{{{this.value}}}</div>';
-    let obj: { value: string } = { value: '' };
-    this.renderServerSide(template, obj);
-    this.renderClientSide(template, obj);
-    this.assertHTML('<div></div>');
-  }
+    test('handles empty trusted content (triple-curlies)', (ctx) => {
+      let template = '<div>{{{this.value}}}</div>';
+      let obj: { value: string } = { value: '' };
+      ctx.renderServerSide(template, obj);
+      ctx.renderClientSide(template, obj);
+      ctx.assertHTML('<div></div>');
+    });
 
-  @render
-  'handles empty trusted content (html safe string)'() {
-    let template = '<div>{{this.value}}</div>';
+    test('handles empty trusted content (html safe string)', (ctx) => {
+      let template = '<div>{{this.value}}</div>';
 
-    let safeString: SafeString = {
-      toHTML() {
-        return '';
-      },
-    };
-    let obj = { value: safeString };
+      let safeString: SafeString = {
+        toHTML() {
+          return '';
+        },
+      };
+      let obj = { value: safeString };
 
-    this.renderServerSide(template, obj);
-    this.renderClientSide(template, obj);
-    this.assertHTML('<div></div>');
-  }
+      ctx.renderServerSide(template, obj);
+      ctx.renderClientSide(template, obj);
+      ctx.assertHTML('<div></div>');
+    });
 
-  @render
-  'table with omitted tbody'() {
-    let template = '<table><tr><td>standards</td></tr></table>';
-    this.renderServerSide(template, {});
-    this.assertServerOutput('<table><tbody><tr><td>standards</td></tr></tbody></table>');
-    this.renderClientSide(template, {});
-    this.assertHTML('<table><tbody><tr><td>standards</td></tr></tbody></table>');
-    this.assertRehydrationStats({ nodesRemoved: 0 });
-    this.assertStableNodes();
-  }
+    test('table with omitted tbody', (ctx) => {
+      let template = '<table><tr><td>standards</td></tr></table>';
+      ctx.renderServerSide(template, {});
+      ctx.assertServerOutput('<table><tbody><tr><td>standards</td></tr></tbody></table>');
+      ctx.renderClientSide(template, {});
+      ctx.assertHTML('<table><tbody><tr><td>standards</td></tr></tbody></table>');
+      ctx.assertRehydrationStats({ nodesRemoved: 0 });
+      ctx.assertStableNodes();
+    });
 
-  @render
-  'table with thead'() {
-    let template = '<table><thead><tr><th>standards</th></tr></thead></table>';
-    this.renderServerSide(template, {});
-    this.assertServerOutput('<table><thead><tr><th>standards</th></tr></thead></table>');
-    this.renderClientSide(template, {});
-    this.assertHTML('<table><thead><tr><th>standards</th></tr></thead></table>');
-    this.assertRehydrationStats({ nodesRemoved: 0 });
-    this.assertStableNodes();
-  }
+    test('table with thead', (ctx) => {
+      let template = '<table><thead><tr><th>standards</th></tr></thead></table>';
+      ctx.renderServerSide(template, {});
+      ctx.assertServerOutput('<table><thead><tr><th>standards</th></tr></thead></table>');
+      ctx.renderClientSide(template, {});
+      ctx.assertHTML('<table><thead><tr><th>standards</th></tr></thead></table>');
+      ctx.assertRehydrationStats({ nodesRemoved: 0 });
+      ctx.assertStableNodes();
+    });
 
-  @render
-  'table with tfoot'() {
-    let template = '<table><tfoot><tr><th>standards</th></tr></tfoot></table>';
-    this.renderServerSide(template, {});
-    this.assertServerOutput('<table><tfoot><tr><th>standards</th></tr></tfoot></table>');
-    this.renderClientSide(template, {});
-    this.assertHTML('<table><tfoot><tr><th>standards</th></tr></tfoot></table>');
-    this.assertRehydrationStats({ nodesRemoved: 0 });
-    this.assertStableNodes();
-  }
+    test('table with tfoot', (ctx) => {
+      let template = '<table><tfoot><tr><th>standards</th></tr></tfoot></table>';
+      ctx.renderServerSide(template, {});
+      ctx.assertServerOutput('<table><tfoot><tr><th>standards</th></tr></tfoot></table>');
+      ctx.renderClientSide(template, {});
+      ctx.assertHTML('<table><tfoot><tr><th>standards</th></tr></tfoot></table>');
+      ctx.assertRehydrationStats({ nodesRemoved: 0 });
+      ctx.assertStableNodes();
+    });
 
-  @render
-  'mismatched text nodes'() {
-    let template = '{{this.content}}';
-    this.renderServerSide(template, { content: 'hello' });
-    this.assertServerOutput(OPEN, 'hello', CLOSE);
+    test('mismatched text nodes', (ctx) => {
+      let template = '{{this.content}}';
+      ctx.renderServerSide(template, { content: 'hello' });
+      ctx.assertServerOutput(OPEN, 'hello', CLOSE);
 
-    this.renderClientSide(template, { content: 'goodbye' });
-    this.assertHTML('goodbye');
-    // Just repairs the value of the text node
-    this.assertRehydrationStats({ nodesRemoved: 0 });
-    this.assertStableRerender();
-  }
+      ctx.renderClientSide(template, { content: 'goodbye' });
+      ctx.assertHTML('goodbye');
+      // Just repairs the value of the text node
+      ctx.assertRehydrationStats({ nodesRemoved: 0 });
+      ctx.assertStableRerender();
+    });
 
-  @render
-  'mismatched text nodes (server-render empty)'() {
-    let template = '{{this.content}} world';
-    this.renderServerSide(template, { content: '' });
-    this.assertServerOutput(OPEN, EMPTY, CLOSE, ' world');
+    test('mismatched text nodes (server-render empty)', (ctx) => {
+      let template = '{{this.content}} world';
+      ctx.renderServerSide(template, { content: '' });
+      ctx.assertServerOutput(OPEN, EMPTY, CLOSE, ' world');
 
-    this.renderClientSide(template, { content: 'hello' });
-    this.assertHTML('hello world');
-    // Just repairs the value of the text node
-    this.assertRehydrationStats({ nodesRemoved: 0 });
+      ctx.renderClientSide(template, { content: 'hello' });
+      ctx.assertHTML('hello world');
+      // Just repairs the value of the text node
+      ctx.assertRehydrationStats({ nodesRemoved: 0 });
 
-    // TODO handle % % in the testing DSL
-    // this.assertStableNodes();
-    this.assertStableRerender();
-  }
+      // TODO handle % % in the testing DSL
+      // this.assertStableNodes();
+      ctx.assertStableRerender();
+    });
 
-  @render
-  'missing closing block within multiple text nodes'() {
-    let template = '<div>a {{this.b}}{{this.c}}{{this.d}}</div>';
-    let context = { b: '', c: '', d: '' };
+    test('missing closing block within multiple text nodes', (ctx) => {
+      let template = '<div>a {{this.b}}{{this.c}}{{this.d}}</div>';
+      let context = { b: '', c: '', d: '' };
 
-    this.renderServerSide(template, context);
+      ctx.renderServerSide(template, context);
 
-    let b = blockStack();
-    this.assertServerOutput(
-      `<div>a ${b(1)}<!--% %-->${b(1)}${b(1)}<!--% %-->${b(1)}${b(1)}<!--% %-->${b(1)}</div>`
-    );
+      let b = blockStack();
+      ctx.assertServerOutput(
+        `<div>a ${b(1)}<!--% %-->${b(1)}${b(1)}<!--% %-->${b(1)}${b(1)}<!--% %-->${b(1)}</div>`
+      );
 
-    // remove the first `<!--%-b:1%-->`
-    let element = castToBrowser(this.element, 'HTML');
-    let [div] = this.guardArray({ children: element.children }, { min: 1 });
-    let commentToRemove = this.guardArray({ children: div.childNodes }, { min: 4 })[3];
-    div.removeChild(commentToRemove);
+      // remove the first `<!--%-b:1%-->`
+      let element = castToBrowser(ctx.element, 'HTML');
+      let [div] = ctx.guardArray({ children: element.children }, { min: 1 });
+      let commentToRemove = ctx.guardArray({ children: div.childNodes }, { min: 4 })[3];
+      div.removeChild(commentToRemove);
 
-    this.renderClientSide(template, context);
-    this.assertHTML('<div>a </div>');
-    this.assertRehydrationStats({ nodesRemoved: 0 });
+      ctx.renderClientSide(template, context);
+      ctx.assertHTML('<div>a </div>');
+      ctx.assertRehydrationStats({ nodesRemoved: 0 });
 
-    // TODO: handle % % in the testing DSL
-    // this.assertStableNodes();
-    this.assertStableRerender();
-  }
+      // TODO: handle % % in the testing DSL
+      // this.assertStableNodes();
+      ctx.assertStableRerender();
+    });
 
-  @render
-  'resumes correct block after reenabling rehydration'() {
-    let template = strip`
+    test('resumes correct block after reenabling rehydration', (ctx) => {
+      let template = strip`
       <div>
         {{#if this.a}}
           {{#if this.b}}
@@ -245,468 +232,450 @@ class Rehydration extends AbstractRehydrationTests {
         <after-a></after-a>
       </div>
     `;
-    let context = { a: false, b: false, c: false };
+      let context = { a: false, b: false, c: false };
 
-    this.renderServerSide(template, context);
+      ctx.renderServerSide(template, context);
 
-    let b = blockStack();
-    this.assertServerOutput(`<div>${b(1)}<!---->${b(1)}<after-a></after-a></div>`);
+      let b = blockStack();
+      ctx.assertServerOutput(`<div>${b(1)}<!---->${b(1)}<after-a></after-a></div>`);
 
-    this.renderClientSide(template, { a: true, b: true, c: true });
-    this.assertHTML(
-      '<div><inside-c></inside-c><after-c></after-c><after-b></after-b><after-a></after-a></div>'
-    );
-    this.assertRehydrationStats({ nodesRemoved: 0 });
+      ctx.renderClientSide(template, { a: true, b: true, c: true });
+      ctx.assertHTML(
+        '<div><inside-c></inside-c><after-c></after-c><after-b></after-b><after-a></after-a></div>'
+      );
+      ctx.assertRehydrationStats({ nodesRemoved: 0 });
 
-    // TODO: handle % % in the testing DSL
-    // this.assertStableNodes();
-    this.assertStableRerender();
-  }
-
-  @render
-  'mismatched elements'() {
-    let template = '{{#if this.admin}}<div>hi admin</div>{{else}}<p>HAXOR</p>{{/if}}';
-    this.renderServerSide(template, { admin: true });
-    this.assertServerOutput(OPEN, '<div>hi admin</div>', CLOSE);
-
-    this.renderClientSide(template, { admin: false });
-    this.assertRehydrationStats({ nodesRemoved: 1 });
-    this.assertHTML('<p>HAXOR</p>');
-    this.assertStableRerender();
-  }
-
-  @render
-  'text nodes surrounding single line handlebars comments'() {
-    let template = 'hello{{! hmm, why is this here?! }} world';
-    this.renderServerSide(template, {});
-    this.assertServerOutput('hello', '<!--%|%-->', ' world');
-
-    this.renderClientSide(template, {});
-    this.assertRehydrationStats({ nodesRemoved: 0 });
-    this.assertHTML('hello world');
-    this.assertStableRerender();
-  }
-
-  @render
-  'text nodes surrounding multi line handlebars comments'() {
-    let template = 'hello{{!-- hmm, why is this here?! --}} world';
-    this.renderServerSide(template, {});
-    this.assertServerOutput('hello', '<!--%|%-->', ' world');
-
-    this.renderClientSide(template, {});
-    this.assertRehydrationStats({ nodesRemoved: 0 });
-    this.assertHTML('hello world');
-    this.assertStableRerender();
-  }
-
-  @render
-  'text nodes surrounding "stand alone" handlebars comment'() {
-    let template = '<div></div>\n{{! hmm, why is this here?! }}\n<div></div>';
-    this.renderServerSide(template, {});
-    this.assertServerOutput('<div></div>', '\n', '<div></div>');
-
-    this.renderClientSide(template, {});
-    this.assertRehydrationStats({ nodesRemoved: 0 });
-    this.assertHTML('<div></div>\n<div></div>');
-    this.assertStableRerender();
-  }
-
-  @render
-  'extra nodes at the end'() {
-    let template =
-      '{{#if this.admin}}<div>hi admin</div>{{else}}<div>HAXOR{{this.stopHaxing}}</div>{{/if}}';
-    this.renderServerSide(template, { admin: false, stopHaxing: 'stahp' });
-    this.assertServerOutput(OPEN, '<div>HAXOR', OPEN, 'stahp', CLOSE, '</div>', CLOSE);
-
-    this.renderClientSide(template, { admin: true });
-    this.assertRehydrationStats({ nodesRemoved: 1 });
-    this.assertHTML('<div>hi admin</div>');
-    this.assertStableRerender();
-  }
-
-  @render
-  'missing attributes'() {
-    let template = '<div data-foo="true"></div>';
-    this.renderServerSide(template, {});
-    this.assertServerOutput('<div data-foo="true"></div>');
-
-    // remove the attribute
-    let element = castToBrowser(this.element, 'HTML');
-    let [div] = this.guardArray({ children: element.children }, { min: 1 });
-    div.removeAttribute('data-foo');
-
-    this.renderClientSide(template, {});
-    this.assertRehydrationStats({ nodesRemoved: 0 });
-    this.assertHTML('<div data-foo="true"></div>');
-    this.assertStableRerender();
-  }
-
-  @render
-  'remove extra attributes'() {
-    let template = '<div data-foo="true"></div>';
-    this.renderServerSide(template, {});
-    this.assertServerOutput('<div data-foo="true"></div>');
-
-    // add an extra attribute
-    let element = castToBrowser(this.element, 'HTML');
-    let [div] = this.guardArray({ children: element.children }, { min: 1 });
-    div.setAttribute('data-bar', 'oops');
-
-    this.renderClientSide(template, {});
-    this.assertRehydrationStats({ nodesRemoved: 0 });
-    this.assertHTML('<div data-foo="true"></div>');
-    this.assertStableRerender();
-  }
-
-  @render
-  'updates attribute to current value'() {
-    let template = '<div class="always-present show-me"></div>';
-    this.renderServerSide(template, {});
-    this.assertServerOutput('<div class="always-present show-me"></div>');
-
-    // mutate the attribute
-    let element = castToBrowser(this.element, 'HTML');
-    let [div] = this.guardArray({ children: element.children }, { min: 1 });
-    div.setAttribute('class', 'zomg');
-
-    this.renderClientSide(template, {});
-    this.assertRehydrationStats({ nodesRemoved: 0 });
-    this.assertHTML('<div class="always-present show-me"></div>');
-    this.assertStableRerender();
-  }
-
-  @render
-  'does not mutate attributes that already match'() {
-    let observer = new MutationObserver((mutationList) => {
-      mutationList.forEach((mutation) => {
-        let target = castToBrowser(mutation.target, 'HTML');
-        this.assert.ok(
-          false,
-          `should not have updated ${mutation.attributeName} on ${target.outerHTML}`
-        );
-      });
+      // TODO: handle % % in the testing DSL
+      // this.assertStableNodes();
+      ctx.assertStableRerender();
     });
 
-    let template = '<div data-foo="whatever"></div>';
-    this.renderServerSide(template, {});
-    this.assertServerOutput('<div data-foo="whatever"></div>');
+    test('mismatched elements', (ctx) => {
+      let template = '{{#if this.admin}}<div>hi admin</div>{{else}}<p>HAXOR</p>{{/if}}';
+      ctx.renderServerSide(template, { admin: true });
+      ctx.assertServerOutput(OPEN, '<div>hi admin</div>', CLOSE);
 
-    observer.observe(castToBrowser(this.element, 'HTML'), { attributes: true, subtree: true });
+      ctx.renderClientSide(template, { admin: false });
+      ctx.assertRehydrationStats({ nodesRemoved: 1 });
+      ctx.assertHTML('<p>HAXOR</p>');
+      ctx.assertStableRerender();
+    });
 
-    this.renderClientSide(template, {});
-    this.assertRehydrationStats({ nodesRemoved: 0 });
-    this.assertHTML('<div data-foo="whatever"></div>');
-    this.assertStableRerender();
-  }
+    test('text nodes surrounding single line handlebars comments', (ctx) => {
+      let template = 'hello{{! hmm, why is this here?! }} world';
+      ctx.renderServerSide(template, {});
+      ctx.assertServerOutput('hello', '<!--%|%-->', ' world');
 
-  @render
-  'Node curlies'() {
-    let template = '<div>{{this.node}}</div>';
+      ctx.renderClientSide(template, {});
+      ctx.assertRehydrationStats({ nodesRemoved: 0 });
+      ctx.assertHTML('hello world');
+      ctx.assertStableRerender();
+    });
 
-    let doc = this.delegate.serverDoc;
-    let node = doc.createTextNode('hello');
-    this.renderServerSide(template, { node });
-    this.assertServerOutput('<div>', OPEN, 'hello', CLOSE, '</div>');
-    doc = this.delegate.clientDoc;
-    let clientNode = doc.createTextNode('hello');
-    this.renderClientSide(template, { node: clientNode });
-    this.assertHTML('<div>hello</div>', 'first clean rerender');
-    // Just repairs the value of the text node
-    this.assertRehydrationStats({ nodesRemoved: 0 });
-    this.assertStableRerender();
+    test('text nodes surrounding multi line handlebars comments', (ctx) => {
+      let template = 'hello{{!-- hmm, why is this here?! --}} world';
+      ctx.renderServerSide(template, {});
+      ctx.assertServerOutput('hello', '<!--%|%-->', ' world');
 
-    let clientNode2 = doc.createTextNode('goodbye');
-    this.rerender({ node: clientNode2 });
-    this.assertHTML('<div>goodbye</div>', 'rerender after node update');
-    this.assertStableNodes({ except: clientNode });
+      ctx.renderClientSide(template, {});
+      ctx.assertRehydrationStats({ nodesRemoved: 0 });
+      ctx.assertHTML('hello world');
+      ctx.assertStableRerender();
+    });
 
-    this.rerender({ node: clientNode });
-    this.assertHTML('<div>hello</div>', 'back to the beginning');
-    this.assertStableNodes({ except: clientNode2 });
-  }
+    test('text nodes surrounding "stand alone" handlebars comment', (ctx) => {
+      let template = '<div></div>\n{{! hmm, why is this here?! }}\n<div></div>';
+      ctx.renderServerSide(template, {});
+      ctx.assertServerOutput('<div></div>', '\n', '<div></div>');
 
-  @render
-  'in-element can rehydrate'() {
-    let template = strip`
+      ctx.renderClientSide(template, {});
+      ctx.assertRehydrationStats({ nodesRemoved: 0 });
+      ctx.assertHTML('<div></div>\n<div></div>');
+      ctx.assertStableRerender();
+    });
+
+    test('extra nodes at the end', (ctx) => {
+      let template =
+        '{{#if this.admin}}<div>hi admin</div>{{else}}<div>HAXOR{{this.stopHaxing}}</div>{{/if}}';
+      ctx.renderServerSide(template, { admin: false, stopHaxing: 'stahp' });
+      ctx.assertServerOutput(OPEN, '<div>HAXOR', OPEN, 'stahp', CLOSE, '</div>', CLOSE);
+
+      ctx.renderClientSide(template, { admin: true });
+      ctx.assertRehydrationStats({ nodesRemoved: 1 });
+      ctx.assertHTML('<div>hi admin</div>');
+      ctx.assertStableRerender();
+    });
+
+    test('missing attributes', (ctx) => {
+      let template = '<div data-foo="true"></div>';
+      ctx.renderServerSide(template, {});
+      ctx.assertServerOutput('<div data-foo="true"></div>');
+
+      // remove the attribute
+      let element = castToBrowser(ctx.element, 'HTML');
+      let [div] = ctx.guardArray({ children: element.children }, { min: 1 });
+      div.removeAttribute('data-foo');
+
+      ctx.renderClientSide(template, {});
+      ctx.assertRehydrationStats({ nodesRemoved: 0 });
+      ctx.assertHTML('<div data-foo="true"></div>');
+      ctx.assertStableRerender();
+    });
+
+    test('remove extra attributes', (ctx) => {
+      let template = '<div data-foo="true"></div>';
+      ctx.renderServerSide(template, {});
+      ctx.assertServerOutput('<div data-foo="true"></div>');
+
+      // add an extra attribute
+      let element = castToBrowser(ctx.element, 'HTML');
+      let [div] = ctx.guardArray({ children: element.children }, { min: 1 });
+      div.setAttribute('data-bar', 'oops');
+
+      ctx.renderClientSide(template, {});
+      ctx.assertRehydrationStats({ nodesRemoved: 0 });
+      ctx.assertHTML('<div data-foo="true"></div>');
+      ctx.assertStableRerender();
+    });
+
+    test('updates attribute to current value', (ctx) => {
+      let template = '<div class="always-present show-me"></div>';
+      ctx.renderServerSide(template, {});
+      ctx.assertServerOutput('<div class="always-present show-me"></div>');
+
+      // mutate the attribute
+      let element = castToBrowser(ctx.element, 'HTML');
+      let [div] = ctx.guardArray({ children: element.children }, { min: 1 });
+      div.setAttribute('class', 'zomg');
+
+      ctx.renderClientSide(template, {});
+      ctx.assertRehydrationStats({ nodesRemoved: 0 });
+      ctx.assertHTML('<div class="always-present show-me"></div>');
+      ctx.assertStableRerender();
+    });
+
+    test('does not mutate attributes that already match', (ctx) => {
+      let observer = new MutationObserver((mutationList) => {
+        mutationList.forEach((mutation) => {
+          let target = castToBrowser(mutation.target, 'HTML');
+          ctx.assert.ok(
+            false,
+            `should not have updated ${mutation.attributeName} on ${target.outerHTML}`
+          );
+        });
+      });
+
+      let template = '<div data-foo="whatever"></div>';
+      ctx.renderServerSide(template, {});
+      ctx.assertServerOutput('<div data-foo="whatever"></div>');
+
+      observer.observe(castToBrowser(ctx.element, 'HTML'), { attributes: true, subtree: true });
+
+      ctx.renderClientSide(template, {});
+      ctx.assertRehydrationStats({ nodesRemoved: 0 });
+      ctx.assertHTML('<div data-foo="whatever"></div>');
+      ctx.assertStableRerender();
+    });
+
+    test('Node curlies', (ctx) => {
+      let template = '<div>{{this.node}}</div>';
+
+      let doc = ctx.delegate.serverDoc;
+      let node = doc.createTextNode('hello');
+      ctx.renderServerSide(template, { node });
+      ctx.assertServerOutput('<div>', OPEN, 'hello', CLOSE, '</div>');
+      doc = ctx.delegate.clientDoc;
+      let clientNode = doc.createTextNode('hello');
+      ctx.renderClientSide(template, { node: clientNode });
+      ctx.assertHTML('<div>hello</div>', 'first clean rerender');
+      // Just repairs the value of the text node
+      ctx.assertRehydrationStats({ nodesRemoved: 0 });
+      ctx.assertStableRerender();
+
+      let clientNode2 = doc.createTextNode('goodbye');
+      ctx.rerender({ node: clientNode2 });
+      ctx.assertHTML('<div>goodbye</div>', 'rerender after node update');
+      ctx.assertStableNodes({ except: clientNode });
+
+      ctx.rerender({ node: clientNode });
+      ctx.assertHTML('<div>hello</div>', 'back to the beginning');
+      ctx.assertStableNodes({ except: clientNode2 });
+    });
+
+    test('in-element can rehydrate', (ctx) => {
+      let template = strip`
       <outer><prefix></prefix>
       {{#in-element this.remote}}<inner>Wat Wat</inner>{{/in-element}}
       <suffix></suffix></outer>
       `;
-    let doc = this.delegate.serverDoc;
-    let remote = doc.createElement('remote');
-    let prefix = doc.createElement('prefix');
-    let suffix = doc.createElement('suffix');
-    remote.appendChild(prefix);
-    remote.appendChild(suffix);
+      let doc = ctx.delegate.serverDoc;
+      let remote = doc.createElement('remote');
+      let prefix = doc.createElement('prefix');
+      let suffix = doc.createElement('suffix');
+      remote.appendChild(prefix);
+      remote.appendChild(suffix);
 
-    this.renderServerSide(template, { remote });
-    let serializedRemote = this.delegate.serialize(remote);
-    let b = blockStack();
-    assertSerializedInElement(
-      serializedRemote,
-      strip`
+      ctx.renderServerSide(template, { remote });
+      let serializedRemote = ctx.delegate.serialize(remote);
+      let b = blockStack();
+      assertSerializedInElement(
+        serializedRemote,
+        strip`
       ${b(2)}
       <inner>Wat Wat</inner>
       ${b(2)}
     `
-    );
+      );
 
-    doc = this.delegate.clientDoc;
-    let clientRemote = (remote = doc.createElement('remote'));
-    let host = doc.createElement('div');
-    host.appendChild(this.element);
-    host.appendChild(clientRemote);
-    replaceHTML(clientRemote, serializedRemote);
-    this.element = assertingElement(host.firstChild);
+      doc = ctx.delegate.clientDoc;
+      let clientRemote = (remote = doc.createElement('remote'));
+      let host = doc.createElement('div');
+      host.appendChild(ctx.element);
+      host.appendChild(clientRemote);
+      replaceHTML(clientRemote, serializedRemote);
+      ctx.element = assertingElement(host.firstChild);
 
-    this.renderClientSide(template, { remote: clientRemote });
-    this.assertRehydrationStats({ nodesRemoved: 2 });
-    this.assert.strictEqual(toInnerHTML(clientRemote), '<inner>Wat Wat</inner>');
-  }
+      ctx.renderClientSide(template, { remote: clientRemote });
+      ctx.assertRehydrationStats({ nodesRemoved: 2 });
+      ctx.assert.strictEqual(toInnerHTML(clientRemote), '<inner>Wat Wat</inner>');
+    });
 
-  @render
-  'in-element with insertBefore=null can rehydrate'() {
-    let template = strip`
+    test('in-element with insertBefore=null can rehydrate', (ctx) => {
+      let template = strip`
       <outer><prefix></prefix>
       {{#in-element this.remote insertBefore=null}}<inner>Wat Wat</inner>{{/in-element}}
       <suffix></suffix></outer>
       `;
-    let doc = this.delegate.serverDoc;
-    let remote = doc.createElement('remote');
-    let prefix = doc.createElement('prefix');
-    let suffix = doc.createElement('suffix');
-    remote.appendChild(prefix);
-    remote.appendChild(suffix);
+      let doc = ctx.delegate.serverDoc;
+      let remote = doc.createElement('remote');
+      let prefix = doc.createElement('prefix');
+      let suffix = doc.createElement('suffix');
+      remote.appendChild(prefix);
+      remote.appendChild(suffix);
 
-    this.renderServerSide(template, { remote });
-    let serializedRemote = this.delegate.serialize(remote);
-    let b = blockStack();
-    assertSerializedInElement(
-      serializedRemote,
-      strip`
+      ctx.renderServerSide(template, { remote });
+      let serializedRemote = ctx.delegate.serialize(remote);
+      let b = blockStack();
+      assertSerializedInElement(
+        serializedRemote,
+        strip`
       ${b(2)}
       <inner>Wat Wat</inner>
       ${b(2)}
     `
-    );
+      );
 
-    doc = this.delegate.clientDoc;
-    let clientRemote = (remote = doc.createElement('remote'));
-    let host = doc.createElement('div');
-    host.appendChild(this.element);
-    host.appendChild(clientRemote);
-    replaceHTML(clientRemote, serializedRemote);
-    this.element = assertingElement(host.firstChild);
+      doc = ctx.delegate.clientDoc;
+      let clientRemote = (remote = doc.createElement('remote'));
+      let host = doc.createElement('div');
+      host.appendChild(ctx.element);
+      host.appendChild(clientRemote);
+      replaceHTML(clientRemote, serializedRemote);
+      ctx.element = assertingElement(host.firstChild);
 
-    this.renderClientSide(template, { remote: clientRemote });
-    this.assertRehydrationStats({ nodesRemoved: 0 });
-    this.assert.strictEqual(
-      toInnerHTML(clientRemote),
-      '<prefix></prefix><suffix></suffix><inner>Wat Wat</inner>'
-    );
-  }
+      ctx.renderClientSide(template, { remote: clientRemote });
+      ctx.assertRehydrationStats({ nodesRemoved: 0 });
+      ctx.assert.strictEqual(
+        toInnerHTML(clientRemote),
+        '<prefix></prefix><suffix></suffix><inner>Wat Wat</inner>'
+      );
+    });
 
-  @render
-  'in-element with insertBefore=element can rehydrate'() {
-    let template = strip`
+    test('in-element with insertBefore=element can rehydrate', (ctx) => {
+      let template = strip`
       <outer><prefix></prefix>
       {{#in-element this.remote insertBefore=this.prefix}}<inner>Wat Wat</inner>{{/in-element}}
       <suffix></suffix></outer>
       `;
-    let doc = this.delegate.serverDoc;
-    let remote = doc.createElement('remote');
-    let prefix = doc.createElement('prefix');
-    let suffix = doc.createElement('suffix');
-    remote.appendChild(prefix);
-    remote.appendChild(suffix);
+      let doc = ctx.delegate.serverDoc;
+      let remote = doc.createElement('remote');
+      let prefix = doc.createElement('prefix');
+      let suffix = doc.createElement('suffix');
+      remote.appendChild(prefix);
+      remote.appendChild(suffix);
 
-    this.renderServerSide(template, { remote, prefix, suffix });
-    let serializedRemote = this.delegate.serialize(remote);
-    let b = blockStack();
-    assertSerializedInElement(
-      serializedRemote,
-      strip`
+      ctx.renderServerSide(template, { remote, prefix, suffix });
+      let serializedRemote = ctx.delegate.serialize(remote);
+      let b = blockStack();
+      assertSerializedInElement(
+        serializedRemote,
+        strip`
       ${b(2)}
       <inner>Wat Wat</inner>
       ${b(2)}
       <prefix></prefix>
       <suffix></suffix>
     `
-    );
+      );
 
-    doc = this.delegate.clientDoc;
-    let clientRemote = (remote = doc.createElement('remote'));
-    let host = doc.createElement('div');
-    host.appendChild(this.element);
-    host.appendChild(clientRemote);
-    replaceHTML(clientRemote, serializedRemote);
-    this.element = assertingElement(host.firstChild);
-    let clientPrefix = clientRemote.childNodes[4];
+      doc = ctx.delegate.clientDoc;
+      let clientRemote = (remote = doc.createElement('remote'));
+      let host = doc.createElement('div');
+      host.appendChild(ctx.element);
+      host.appendChild(clientRemote);
+      replaceHTML(clientRemote, serializedRemote);
+      ctx.element = assertingElement(host.firstChild);
+      let clientPrefix = clientRemote.childNodes[4];
 
-    this.renderClientSide(template, { remote: clientRemote, prefix: clientPrefix });
-    this.assertRehydrationStats({ nodesRemoved: 0 });
-    this.assert.strictEqual(
-      toInnerHTML(clientRemote),
-      '<inner>Wat Wat</inner><prefix></prefix><suffix></suffix>'
-    );
-  }
+      ctx.renderClientSide(template, { remote: clientRemote, prefix: clientPrefix });
+      ctx.assertRehydrationStats({ nodesRemoved: 0 });
+      ctx.assert.strictEqual(
+        toInnerHTML(clientRemote),
+        '<inner>Wat Wat</inner><prefix></prefix><suffix></suffix>'
+      );
+    });
 
-  @render
-  'in-element can rehydrate into pre-existing content'() {
-    let template = strip`
+    test('in-element can rehydrate into pre-existing content', (ctx) => {
+      let template = strip`
       <outer>
       {{#in-element this.remote insertBefore=undefined}}<inner>Wat Wat</inner>{{/in-element}}
       </outer>
       `;
-    let doc = this.delegate.serverDoc;
-    let remote = doc.createElement('remote');
+      let doc = ctx.delegate.serverDoc;
+      let remote = doc.createElement('remote');
 
-    this.renderServerSide(template, { remote });
-    let serializedRemote = '<preexisting><preexisting>';
+      ctx.renderServerSide(template, { remote });
+      let serializedRemote = '<preexisting><preexisting>';
 
-    doc = this.delegate.clientDoc;
-    let clientRemote = (remote = doc.createElement('remote'));
-    let host = doc.createElement('div');
-    host.appendChild(this.element);
-    host.appendChild(clientRemote);
-    replaceHTML(clientRemote, serializedRemote);
-    this.element = assertingElement(host.firstChild);
+      doc = ctx.delegate.clientDoc;
+      let clientRemote = (remote = doc.createElement('remote'));
+      let host = doc.createElement('div');
+      host.appendChild(ctx.element);
+      host.appendChild(clientRemote);
+      replaceHTML(clientRemote, serializedRemote);
+      ctx.element = assertingElement(host.firstChild);
 
-    this.renderClientSide(template, { remote: clientRemote });
-    this.assertRehydrationStats({ nodesRemoved: 1 });
-    this.assert.strictEqual(toInnerHTML(clientRemote), '<inner>Wat Wat</inner>');
-  }
+      ctx.renderClientSide(template, { remote: clientRemote });
+      ctx.assertRehydrationStats({ nodesRemoved: 1 });
+      ctx.assert.strictEqual(toInnerHTML(clientRemote), '<inner>Wat Wat</inner>');
+    });
 
-  @render
-  'in-element with insertBefore=null can rehydrate into pre-existing content'() {
-    let template = strip`
+    test('in-element with insertBefore=null can rehydrate into pre-existing content', (ctx) => {
+      let template = strip`
       <outer>
       {{#in-element this.remote insertBefore=null}}<inner>Wat Wat</inner>{{/in-element}}
       </outer>
       `;
-    let doc = this.delegate.serverDoc;
-    let remote = doc.createElement('remote');
-    let preexisting = doc.createElement('preexisting');
-    remote.appendChild(preexisting);
+      let doc = ctx.delegate.serverDoc;
+      let remote = doc.createElement('remote');
+      let preexisting = doc.createElement('preexisting');
+      remote.appendChild(preexisting);
 
-    this.renderServerSide(template, { remote, preexisting });
-    let serializedRemote = '<preexisting></preexisting>';
+      ctx.renderServerSide(template, { remote, preexisting });
+      let serializedRemote = '<preexisting></preexisting>';
 
-    doc = this.delegate.clientDoc;
-    let clientRemote = (remote = doc.createElement('remote'));
-    let host = doc.createElement('div');
-    host.appendChild(this.element);
-    host.appendChild(clientRemote);
-    replaceHTML(clientRemote, serializedRemote);
-    this.element = assertingElement(host.firstChild);
+      doc = ctx.delegate.clientDoc;
+      let clientRemote = (remote = doc.createElement('remote'));
+      let host = doc.createElement('div');
+      host.appendChild(ctx.element);
+      host.appendChild(clientRemote);
+      replaceHTML(clientRemote, serializedRemote);
+      ctx.element = assertingElement(host.firstChild);
 
-    this.renderClientSide(template, { remote: clientRemote });
-    this.assertRehydrationStats({ nodesRemoved: 0 });
-    this.assert.strictEqual(
-      toInnerHTML(clientRemote),
-      '<preexisting></preexisting><inner>Wat Wat</inner>'
-    );
-  }
+      ctx.renderClientSide(template, { remote: clientRemote });
+      ctx.assertRehydrationStats({ nodesRemoved: 0 });
+      ctx.assert.strictEqual(
+        toInnerHTML(clientRemote),
+        '<preexisting></preexisting><inner>Wat Wat</inner>'
+      );
+    });
 
-  @render
-  'in-element with insertBefore=element can rehydrate into pre-existing content'() {
-    let template = strip`
+    test('in-element with insertBefore=element can rehydrate into pre-existing content', (ctx) => {
+      let template = strip`
       <outer>
       {{#in-element this.remote insertBefore=this.preexisting}}<inner>Wat Wat</inner>{{/in-element}}
       </outer>
       `;
-    let doc = this.delegate.serverDoc;
-    let remote = doc.createElement('remote');
-    let prefix = doc.createElement('prefix');
-    let preexisting = doc.createElement('preexisting');
-    remote.appendChild(prefix);
-    remote.appendChild(preexisting);
+      let doc = ctx.delegate.serverDoc;
+      let remote = doc.createElement('remote');
+      let prefix = doc.createElement('prefix');
+      let preexisting = doc.createElement('preexisting');
+      remote.appendChild(prefix);
+      remote.appendChild(preexisting);
 
-    this.renderServerSide(template, { remote, prefix, preexisting });
-    let serializedRemote = '<prefix></prefix><preexisting></preexisting>';
+      ctx.renderServerSide(template, { remote, prefix, preexisting });
+      let serializedRemote = '<prefix></prefix><preexisting></preexisting>';
 
-    doc = this.delegate.clientDoc;
-    let clientRemote = (remote = doc.createElement('remote'));
-    let host = doc.createElement('div');
-    host.appendChild(this.element);
-    host.appendChild(clientRemote);
-    replaceHTML(clientRemote, serializedRemote);
-    let clientPreexisting = clientRemote.childNodes[1];
-    this.element = assertingElement(host.firstChild);
+      doc = ctx.delegate.clientDoc;
+      let clientRemote = (remote = doc.createElement('remote'));
+      let host = doc.createElement('div');
+      host.appendChild(ctx.element);
+      host.appendChild(clientRemote);
+      replaceHTML(clientRemote, serializedRemote);
+      let clientPreexisting = clientRemote.childNodes[1];
+      ctx.element = assertingElement(host.firstChild);
 
-    this.renderClientSide(template, {
-      remote: clientRemote,
-      prefix,
-      preexisting: clientPreexisting,
+      ctx.renderClientSide(template, {
+        remote: clientRemote,
+        prefix,
+        preexisting: clientPreexisting,
+      });
+      ctx.assertRehydrationStats({ nodesRemoved: 0 });
+      ctx.assert.strictEqual(
+        toInnerHTML(clientRemote),
+        '<prefix></prefix><inner>Wat Wat</inner><preexisting></preexisting>'
+      );
     });
-    this.assertRehydrationStats({ nodesRemoved: 0 });
-    this.assert.strictEqual(
-      toInnerHTML(clientRemote),
-      '<prefix></prefix><inner>Wat Wat</inner><preexisting></preexisting>'
-    );
-  }
 
-  @render
-  'nested in-element can rehydrate'() {
-    let template = strip`
+    test('nested in-element can rehydrate', (ctx) => {
+      let template = strip`
     <outer>
       {{#in-element this.remoteParent}}
         <inner>{{#in-element this.remoteChild}}Wat Wat{{/in-element}}</inner>
       {{/in-element}}
     </outer>
     `;
-    let doc = this.delegate.serverDoc;
-    let remoteParent = doc.createElement('remote');
-    let remoteChild = doc.createElement('other');
+      let doc = ctx.delegate.serverDoc;
+      let remoteParent = doc.createElement('remote');
+      let remoteChild = doc.createElement('other');
 
-    this.renderServerSide(template, { remoteParent, remoteChild });
-    let serializedParentRemote = this.delegate.serialize(remoteParent);
-    let serializedRemoteChild = this.delegate.serialize(remoteChild);
-    let b = blockStack();
-    assertSerializedInElement(
-      serializedParentRemote,
-      strip`
+      ctx.renderServerSide(template, { remoteParent, remoteChild });
+      let serializedParentRemote = ctx.delegate.serialize(remoteParent);
+      let serializedRemoteChild = ctx.delegate.serialize(remoteChild);
+      let b = blockStack();
+      assertSerializedInElement(
+        serializedParentRemote,
+        strip`
       ${b(2)}
         <inner>
           ${b(3)}<!---->${b(3)}
         </inner>
       ${b(2)}
     `,
-      'Serialized parent remote'
-    );
-    assertSerializedInElement(
-      serializedRemoteChild,
-      strip`
+        'Serialized parent remote'
+      );
+      assertSerializedInElement(
+        serializedRemoteChild,
+        strip`
       ${b(4)}Wat Wat${b(4)}
     `,
-      'Serialized nested remote'
-    );
-    doc = this.delegate.clientDoc;
-    let clientRemoteParent = doc.createElement('remote');
-    let clientRemoteChild = doc.createElement('other');
-    let host = doc.createElement('div');
-    host.appendChild(this.element);
-    host.appendChild(clientRemoteParent);
-    host.appendChild(clientRemoteChild);
+        'Serialized nested remote'
+      );
+      doc = ctx.delegate.clientDoc;
+      let clientRemoteParent = doc.createElement('remote');
+      let clientRemoteChild = doc.createElement('other');
+      let host = doc.createElement('div');
+      host.appendChild(ctx.element);
+      host.appendChild(clientRemoteParent);
+      host.appendChild(clientRemoteChild);
 
-    replaceHTML(clientRemoteParent, serializedParentRemote);
-    replaceHTML(clientRemoteChild, serializedRemoteChild);
-    this.element = assertingElement(host.firstChild);
-    this.renderClientSide(template, {
-      remoteParent: clientRemoteParent,
-      remoteChild: clientRemoteChild,
+      replaceHTML(clientRemoteParent, serializedParentRemote);
+      replaceHTML(clientRemoteChild, serializedRemoteChild);
+      ctx.element = assertingElement(host.firstChild);
+      ctx.renderClientSide(template, {
+        remoteParent: clientRemoteParent,
+        remoteChild: clientRemoteChild,
+      });
+      ctx.assertRehydrationStats({ nodesRemoved: 0 });
+      ctx.assert.strictEqual(toInnerHTML(clientRemoteParent), '<inner><!----></inner>');
+      ctx.assert.strictEqual(toInnerHTML(clientRemoteChild), 'Wat Wat');
     });
-    this.assertRehydrationStats({ nodesRemoved: 0 });
-    this.assert.strictEqual(toInnerHTML(clientRemoteParent), '<inner><!----></inner>');
-    this.assert.strictEqual(toInnerHTML(clientRemoteChild), 'Wat Wat');
-  }
 
-  @render
-  'svg elements'() {
-    let template = '<svg>{{#if this.isTrue}}<circle />{{/if}}</svg><p>Hello</p>';
-    this.renderServerSide(template, { isTrue: true });
-    let b = blockStack();
-    this.assertHTML(strip`
+    test('svg elements', (ctx) => {
+      let template = '<svg>{{#if this.isTrue}}<circle />{{/if}}</svg><p>Hello</p>';
+      ctx.renderServerSide(template, { isTrue: true });
+      let b = blockStack();
+      ctx.assertHTML(strip`
       ${b(0)}
       <svg>
         ${b(1)}
@@ -716,49 +685,47 @@ class Rehydration extends AbstractRehydrationTests {
       <p>Hello</p>
       ${b(0)}
     `);
-    this.renderClientSide(template, { isTrue: true });
-    this.assertRehydrationStats({ nodesRemoved: 0 });
-    this.assertHTML(strip`
+      ctx.renderClientSide(template, { isTrue: true });
+      ctx.assertRehydrationStats({ nodesRemoved: 0 });
+      ctx.assertHTML(strip`
       <svg>
       <circle />
       </svg>
       <p>Hello</p>
     `);
-    this.assertStableRerender();
-  }
+      ctx.assertStableRerender();
+    });
 
-  @render
-  'title tag'() {
-    let template =
-      '<title>{{this.pageTitle}} some {{{this.other}}}{{this.thing}} <b>hey!</b></title>';
-    this.renderServerSide(template, { pageTitle: 'kiwi', other: 'other', thing: 'thing' });
-    let b = blockStack();
-    this.assertHTML(strip`
+    test('title tag', (ctx) => {
+      let template =
+        '<title>{{this.pageTitle}} some {{{this.other}}}{{this.thing}} <b>hey!</b></title>';
+      ctx.renderServerSide(template, { pageTitle: 'kiwi', other: 'other', thing: 'thing' });
+      let b = blockStack();
+      ctx.assertHTML(strip`
       ${b(0)}
       <title>
         kiwi some otherthing <b>hey!</b>
       </title>
       ${b(0)}
     `);
-    this.renderClientSide(template, { pageTitle: 'kiwi', other: 'other', thing: 'thing' });
-    this.assertRehydrationStats({ nodesRemoved: 0 });
-    this.assertHTML(strip`
+      ctx.renderClientSide(template, { pageTitle: 'kiwi', other: 'other', thing: 'thing' });
+      ctx.assertRehydrationStats({ nodesRemoved: 0 });
+      ctx.assertHTML(strip`
       <title>
         kiwi some otherthing <b>hey!</b>
       </title>
     `);
-    this.assertStableRerender();
-  }
+      ctx.assertStableRerender();
+    });
 
-  @render
-  'script tag'() {
-    let template = strip`
+    test('script tag', (ctx) => {
+      let template = strip`
       <script type="application/ld+json">{{this.data}}</script>
       <script type="application/ld+json">{{this.otherData}}</script>
     `;
-    this.renderServerSide(template, { data: '{ "status": "ok" }', otherData: '{ "code": 200 }' });
-    let b = blockStack();
-    this.assertHTML(strip`
+      ctx.renderServerSide(template, { data: '{ "status": "ok" }', otherData: '{ "code": 200 }' });
+      let b = blockStack();
+      ctx.assertHTML(strip`
       ${b(0)}
       <script type="application/ld+json">
         { "status": "ok" }
@@ -769,9 +736,9 @@ class Rehydration extends AbstractRehydrationTests {
       </script>
       ${b(0)}
     `);
-    this.renderClientSide(template, { data: '{ "status": "ok" }', otherData: '{ "code": 200 }' });
-    this.assertRehydrationStats({ nodesRemoved: 0 });
-    this.assertHTML(strip`
+      ctx.renderClientSide(template, { data: '{ "status": "ok" }', otherData: '{ "code": 200 }' });
+      ctx.assertRehydrationStats({ nodesRemoved: 0 });
+      ctx.assertHTML(strip`
       <script type="application/ld+json">
         { "status": "ok" }
       </script>
@@ -780,43 +747,41 @@ class Rehydration extends AbstractRehydrationTests {
         { "code": 200 }
       </script>
     `);
-    this.assertStableRerender();
-  }
+      ctx.assertStableRerender();
+    });
 
-  @render
-  'style tag'() {
-    let template = '<style>{{this.selector}} { color: #fff; }</style>';
-    this.renderServerSide(template, { selector: 'div' });
-    let b = blockStack();
-    this.assertHTML(strip`
+    test('style tag', (ctx) => {
+      let template = '<style>{{this.selector}} { color: #fff; }</style>';
+      ctx.renderServerSide(template, { selector: 'div' });
+      let b = blockStack();
+      ctx.assertHTML(strip`
       ${b(0)}
       <style>
         div { color: #fff; }
       </style>
       ${b(0)}
     `);
-    this.renderClientSide(template, { selector: 'div' });
-    this.assertRehydrationStats({ nodesRemoved: 0 });
-    this.assertHTML(strip`
+      ctx.renderClientSide(template, { selector: 'div' });
+      ctx.assertRehydrationStats({ nodesRemoved: 0 });
+      ctx.assertHTML(strip`
       <style>
         div { color: #fff; }
       </style>
     `);
-    this.assertStableRerender();
-  }
+      ctx.assertStableRerender();
+    });
 
-  @render
-  'clearing bounds'() {
-    let template = strip`
+    test('clearing bounds', (ctx) => {
+      let template = strip`
       {{#if this.isTrue}}
         {{#each this.items key="id" as |item i|}}
           <p>{{item}}-{{i}}</p>
         {{/each}}
       {{/if}}
     `;
-    this.renderServerSide(template, { isTrue: true, items: [1, 2] });
-    let b = blockStack();
-    this.assertHTML(strip`
+      ctx.renderServerSide(template, { isTrue: true, items: [1, 2] });
+      let b = blockStack();
+      ctx.assertHTML(strip`
       ${b(0)}
       ${b(1)}
       ${b(2)}
@@ -849,16 +814,15 @@ class Rehydration extends AbstractRehydrationTests {
       ${b(0)}
     `);
 
-    this.renderClientSide(template, { isTrue: false, items: [3, 4] });
-    // Removes the block and each <p>
-    this.assertRehydrationStats({ nodesRemoved: 2 });
-    this.assertHTML('<!---->');
-    this.assertStableRerender();
-  }
+      ctx.renderClientSide(template, { isTrue: false, items: [3, 4] });
+      // Removes the block and each <p>
+      ctx.assertRehydrationStats({ nodesRemoved: 2 });
+      ctx.assertHTML('<!---->');
+      ctx.assertStableRerender();
+    });
 
-  @render
-  'top-level clearing bounds'() {
-    let template = strip`
+    test('top-level clearing bounds', (ctx) => {
+      let template = strip`
       <top>
       {{#if this.isTrue}}
         <inside>
@@ -874,9 +838,9 @@ class Rehydration extends AbstractRehydrationTests {
         {{/each}}
       {{/if}}
     `;
-    this.renderServerSide(template, { isTrue: true, items: [1, 2], isFalse: false });
-    let b = blockStack();
-    this.assertHTML(strip`
+      ctx.renderServerSide(template, { isTrue: true, items: [1, 2], isFalse: false });
+      let b = blockStack();
+      ctx.assertHTML(strip`
       ${b(0)}
       <top>
         ${b(1)}
@@ -916,19 +880,18 @@ class Rehydration extends AbstractRehydrationTests {
       ${b(0)}
     `);
 
-    this.renderClientSide(template, { isTrue: false, items: [3, 4], isFalse: true });
-    // Clears block markers for both and removes `inside`
-    this.assertRehydrationStats({ nodesRemoved: 1 });
-    this.assertHTML('<top><!----></top><p>3-0</p><p>4-1</p>');
-    this.assertStableRerender();
-  }
+      ctx.renderClientSide(template, { isTrue: false, items: [3, 4], isFalse: true });
+      // Clears block markers for both and removes `inside`
+      ctx.assertRehydrationStats({ nodesRemoved: 1 });
+      ctx.assertHTML('<top><!----></top><p>3-0</p><p>4-1</p>');
+      ctx.assertStableRerender();
+    });
 
-  @render
-  '#each rehydration'() {
-    let template = "{{#each this.items key='id' as |item|}}<p>{{item}}</p>{{/each}}";
-    this.renderServerSide(template, { items: [1, 2, 3] });
-    let b = blockStack();
-    this.assertHTML(strip`
+    test('#each rehydration', (ctx) => {
+      let template = "{{#each this.items key='id' as |item|}}<p>{{item}}</p>{{/each}}";
+      ctx.renderServerSide(template, { items: [1, 2, 3] });
+      let b = blockStack();
+      ctx.assertHTML(strip`
       ${b(0)}
       ${b(1)}
       ${b(2)}
@@ -958,16 +921,22 @@ class Rehydration extends AbstractRehydrationTests {
       ${b(0)}
     `);
 
-    this.renderClientSide(template, { items: [1, 2, 4] });
-    this.assertRehydrationStats({ nodesRemoved: 0 });
-    this.assertHTML(strip`
+      ctx.renderClientSide(template, { items: [1, 2, 4] });
+      ctx.assertRehydrationStats({ nodesRemoved: 0 });
+      ctx.assertHTML(strip`
       <p>1</p>
       <p>2</p>
       <p>4</p>
     `);
-    this.assertStableRerender();
+      ctx.assertStableRerender();
+    });
   }
-}
+);
+
+RehydrationTests({
+  delegate: RehydrationDelegate,
+  template: 'all',
+});
 
 // On the server, elements come after block start boundaries.
 const SERVER_ELEMENT_OFFSET = 2;
@@ -977,7 +946,7 @@ const SERVER_ELEMENT_OFFSET = 2;
 const SERVER_DYNAMIC_OFFSET = 3;
 
 @suite('Rehydrating components')
-class RehydratingComponents extends AbstractRehydrationTests {
+class RehydratingComponents extends RehydrationContext {
   _buildComponent(blueprint: ComponentBlueprint, properties: Dict<unknown> = {}) {
     let template = this.buildComponent(blueprint);
     if (this.testType === 'Dynamic' && properties['componentName'] === undefined) {
@@ -1628,7 +1597,8 @@ class RehydratingComponents extends AbstractRehydrationTests {
   }
 }
 
-testSuite(Rehydration, RehydrationDelegate);
-jitSuite(RenderTests, { test: ['error-recovery'] });
+jitSuite(DynamicInitialRenderSuite, {
+  test: ['error-recovery'],
+});
 
 componentSuite(RehydratingComponents, RehydrationDelegate);

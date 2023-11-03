@@ -1,16 +1,20 @@
-import { defineSimpleHelper, jitSuite, RenderTest, test } from '../../lib';
+import {
+  defineSimpleHelper,
+  jitSuite,
+  RenderTestContext,
+  test,
+} from '@glimmer-workspace/integration-tests';
 
-class ArgumentLessHelperParenLessInvokeTest extends RenderTest {
+class ArgumentLessHelperParenLessInvokeTest extends RenderTestContext {
   static suiteName = 'argument-less helper paren-less invoke';
 
   @test
   'invoking an argument-less helper without parens in named argument position is deprecated'(
     assert: Assert
   ) {
-    this.register.helper('is-string', ([value]: readonly unknown[]) => typeof value === 'string',
-    );
+    this.register.helper('is-string', ([value]: readonly unknown[]) => typeof value === 'string');
 
-    this.register.helper('foo', () => 'Hello, world!' );
+    this.register.helper('foo', () => 'Hello, world!');
     this.register.component('TemplateOnly', 'Bar', '[{{is-string @content}}][{{@content}}]');
 
     this.render.template('<Bar @content={{foo}} />', { foo: 'Not it!' });
@@ -31,10 +35,9 @@ class ArgumentLessHelperParenLessInvokeTest extends RenderTest {
 
   @test
   'invoking an argument-less helper with parens in named argument position is not deprecated'() {
-    this.register.helper('is-string', ([value]: readonly unknown[]) => typeof value === 'string',
-    );
+    this.register.helper('is-string', ([value]: readonly unknown[]) => typeof value === 'string');
 
-    this.register.helper('foo', () => 'Hello, world!' );
+    this.register.helper('foo', () => 'Hello, world!');
     this.register.component('TemplateOnly', 'Bar', '[{{is-string @content}}][{{@content}}]');
 
     this.render.template('<Bar @content={{(foo)}} />');
@@ -44,10 +47,9 @@ class ArgumentLessHelperParenLessInvokeTest extends RenderTest {
 
   @test
   'invoking an argument-less helper with quotes in named argument position is not deprecated'() {
-    this.register.helper('is-string', ([value]: readonly unknown[]) => typeof value === 'string',
-    );
+    this.register.helper('is-string', ([value]: readonly unknown[]) => typeof value === 'string');
 
-    this.register.helper('foo', () => 'Hello, world!' );
+    this.register.helper('foo', () => 'Hello, world!');
     this.register.component('TemplateOnly', 'Bar', '[{{is-string @content}}][{{@content}}]');
 
     this.render.template('<Bar @content="{{foo}}" />');
@@ -57,8 +59,7 @@ class ArgumentLessHelperParenLessInvokeTest extends RenderTest {
 
   @test
   'passing a local helper in named argument position is not deprecated'() {
-    this.register.helper('is-string', ([value]: readonly unknown[]) => typeof value === 'string',
-    );
+    this.register.helper('is-string', ([value]: readonly unknown[]) => typeof value === 'string');
 
     const foo = defineSimpleHelper(() => 'Hello, world!');
 
@@ -71,8 +72,7 @@ class ArgumentLessHelperParenLessInvokeTest extends RenderTest {
 
   @test
   'invoking a local helper with parens in named argument position is not deprecated'() {
-    this.register.helper('is-string', ([value]: readonly unknown[]) => typeof value === 'string',
-    );
+    this.register.helper('is-string', ([value]: readonly unknown[]) => typeof value === 'string');
 
     const foo = defineSimpleHelper(() => 'Hello, world!');
 

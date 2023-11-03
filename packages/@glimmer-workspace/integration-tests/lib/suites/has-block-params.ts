@@ -1,8 +1,8 @@
 import { GlimmerishComponent } from '../components';
-import { RenderTest } from '../render-test';
+import { RenderTestContext } from '../render-test';
 import { render } from '../test-decorator';
 
-export class HasBlockParamsHelperSuite extends RenderTest {
+export class HasBlockParamsHelperSuite extends RenderTestContext {
   static suiteName = 'has-block-params';
 
   @render('curly')

@@ -1,6 +1,6 @@
-import { render, RenderTest, stripTight } from '@glimmer-workspace/integration-tests';
+import { render, RenderTestContext, stripTight } from '@glimmer-workspace/integration-tests';
 
-export class ErrorRecoverySuite extends RenderTest {
+export class ErrorRecoverySuite extends RenderTestContext {
   static suiteName = 'ErrorRecovery';
 
   @render

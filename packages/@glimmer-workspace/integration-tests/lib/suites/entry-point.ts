@@ -3,11 +3,11 @@ import { DynamicScopeImpl } from '@glimmer/runtime';
 import { castToBrowser } from '@glimmer/util';
 
 import { JitRenderDelegate } from '../modes/jit/delegate';
-import { RenderTest } from '../render-test';
+import { RenderTestContext } from '../render-test';
 import { render } from '../test-decorator';
 import { defineComponent } from '../test-helpers/define';
 
-export class EntryPointTest extends RenderTest {
+export class EntryPointTest extends RenderTestContext {
   static suiteName = 'entry points';
 
   @render

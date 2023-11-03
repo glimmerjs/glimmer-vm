@@ -1,9 +1,15 @@
 import { destroy, registerDestructor } from '@glimmer/destroyable';
 import type { Arguments, ModifierManager, Owner } from '@glimmer/interfaces';
 import { modifierCapabilities, setModifierManager } from '@glimmer/manager';
-
-import { defineComponent, jitSuite, RenderTest, test, tracked, trackedObj } from '../../lib';
-import type { RecordedEvents } from '../../lib/test-helpers/recorded';
+import type { RecordedEvents } from '@glimmer-workspace/integration-tests';
+import {
+  defineComponent,
+  jitSuite,
+  RenderTestContext,
+  test,
+  tracked,
+  trackedObj,
+} from '@glimmer-workspace/integration-tests';
 
 type CreateCustomModifier = (options: {
   owner: Owner;
@@ -25,7 +31,7 @@ type CustomModifier = (element: Element, args: Arguments) => DidInsert | void;
 type DidInsert = (args: Arguments) => DidUpdate | void;
 type DidUpdate = (args: Arguments) => DidUpdate | void;
 
-abstract class ModifierManagerTest extends RenderTest {
+abstract class ModifierManagerTest extends RenderTestContext {
   abstract CustomModifierManager: {
     new (owner: Owner, events: RecordedEvents): ModifierManager<CustomModifierInstance>;
   };

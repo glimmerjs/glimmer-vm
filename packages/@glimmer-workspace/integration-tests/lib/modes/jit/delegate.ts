@@ -63,6 +63,8 @@ export class JitRenderDelegate implements RenderDelegate {
   static readonly isEager = false;
   static style = 'jit';
 
+  readonly style: string = 'jit';
+
   protected registry: TestJitRegistry;
   protected resolver: TestJitRuntimeResolver;
 
@@ -162,6 +164,8 @@ export class JitRenderDelegate implements RenderDelegate {
 
 export class ErrorRecoveryRenderDelegate extends JitRenderDelegate {
   static override style = 'error recovery';
+  override style = 'error recovery';
+
   override wrap(template: string): WrappedTemplate {
     return {
       template: `{{#-try this.errorRecoveryHandle}}${template}{{/-try}}`,

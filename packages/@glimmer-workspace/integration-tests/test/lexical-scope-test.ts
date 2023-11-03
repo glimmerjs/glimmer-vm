@@ -1,6 +1,11 @@
-import { defineComponent, jitSuite, RenderTest, test } from '../lib';
+import {
+  defineComponent,
+  jitSuite,
+  RenderTestContext,
+  test,
+} from '@glimmer-workspace/integration-tests';
 
-class LexicalScopeTest extends RenderTest {
+class LexicalScopeTest extends RenderTestContext {
   static suiteName = 'loose mode: lexical scope';
 
   @test

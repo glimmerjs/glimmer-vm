@@ -1,8 +1,9 @@
 import type { SimpleElement, SimpleNode } from '@glimmer/interfaces';
 import { NS_SVG } from '@glimmer/util';
+import type { RenderTestConstructor } from '@glimmer-workspace/integration-tests';
+import { jitSuite, RenderTestContext } from '@glimmer-workspace/integration-tests';
 
-import { jitSuite, RenderTest, type RenderTestConstructor } from '../lib';
-import type RenderDelegate from '../lib/render-delegate';
+import type { RenderDelegate } from '../lib/render-delegate';
 
 export interface SafeString {
   toHTML(): string;
@@ -22,7 +23,7 @@ class SafeStringImpl implements SafeString {
   }
 }
 
-class ContentTest extends RenderTest {
+class ContentTest extends RenderTestContext {
   static suiteName = 'Updating - Content';
 
   makeElement(tag: string, content: string): SimpleElement {
@@ -76,7 +77,7 @@ interface ContentTestCase {
 }
 
 function generateContentTestCase(
-  suite: RenderTestConstructor<RenderDelegate, RenderTest>,
+  suite: RenderTestConstructor<RenderDelegate, RenderTestContext>,
   tc: ContentTestCase
 ): void {
   [

@@ -11,7 +11,7 @@ import {
   GlimmerishComponent,
   type JitRenderDelegate,
   jitSuite,
-  RenderTest,
+  RenderTestContext,
   stripTight,
   test,
   tracked,
@@ -34,7 +34,7 @@ class SafeStringImpl implements SafeString {
   }
 }
 
-class UpdatingTest extends RenderTest {
+class UpdatingTest extends RenderTestContext {
   static suiteName = 'Updating';
 
   declare delegate: JitRenderDelegate;

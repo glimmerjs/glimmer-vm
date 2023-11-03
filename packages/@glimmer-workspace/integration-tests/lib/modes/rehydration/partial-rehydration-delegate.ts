@@ -5,6 +5,8 @@ import type { DebugRehydrationBuilder } from './builder';
 import { RehydrationDelegate } from './delegate';
 
 export class PartialRehydrationDelegate extends RehydrationDelegate {
+  override readonly style = 'partial rehydration';
+
   renderComponentClientSide(
     name: string,
     args: Dict<unknown>,

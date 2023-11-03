@@ -1,8 +1,8 @@
-import { RenderTest } from '../render-test';
+import { RenderTestContext } from '../render-test';
 import { render, suite } from '../test-decorator';
 
 @suite('yield')
-export class YieldSuite extends RenderTest {
+export class YieldSuite extends RenderTestContext {
   @render
   yield() {
     this.render.template(

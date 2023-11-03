@@ -22,7 +22,7 @@ import {
   type EmberishCurlyComponent,
   GlimmerishComponent,
   JitRenderDelegate,
-  RenderTest,
+  RenderTestContext,
   test,
   testSuite,
 } from '@glimmer-workspace/integration-tests';
@@ -70,7 +70,7 @@ class DebugRenderTreeDelegate extends JitRenderDelegate {
   }
 }
 
-class DebugRenderTreeTest extends RenderTest {
+class DebugRenderTreeTest extends RenderTestContext {
   static suiteName = 'Application test: debug render tree';
 
   declare delegate: DebugRenderTreeDelegate;

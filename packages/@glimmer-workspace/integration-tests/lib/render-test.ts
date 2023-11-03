@@ -52,7 +52,7 @@ import {
   TYPE_FOR,
   type TypeFor,
 } from './test-helpers/constants';
-import type { RenderTestContext } from './test-helpers/module';
+import type { RenderTestState } from './test-helpers/module';
 import { RecordedEvents } from './test-helpers/recorded';
 
 type Expand<T> = T extends infer O ? { [K in keyof O]: O[K] } : never;
@@ -60,7 +60,7 @@ type Present<T> = Exclude<T, null | undefined>;
 
 export interface IRenderTest {
   readonly testType: ComponentKind;
-  readonly context: RenderTestContext;
+  readonly context: RenderTestState;
   readonly beforeEach?: () => void;
   readonly afterEach?: () => void;
 }
@@ -132,30 +132,38 @@ export class Self {
   }
 }
 
-export class RenderTest implements IRenderTest {
+export class RenderTestContext implements IRenderTest {
   readonly events = new RecordedEvents();
 
   readonly self = new Self({});
-  protected element: SimpleElement;
-  protected assert = QUnit.assert;
+  #element: SimpleElement;
+  readonly assert = QUnit.assert;
   protected renderResult: Nullable<RenderResult> = null;
   protected helpers = dict<UserHelper>();
   protected snapshot: NodesSnapshot = [];
   readonly dom: DomDelegate;
-  readonly context: RenderTestContext;
+  readonly context: RenderTestState;
 
   readonly plugins: ASTPluginBuilder[] = [];
   readonly #delegate: ComponentDelegate<DeclaredComponentType>;
 
   constructor(
     protected delegate: RenderDelegate,
-    context: RenderTestContext
+    context: RenderTestState
   ) {
-    this.element = delegate.dom.getInitialElement(delegate.dom.document);
+    this.#element = delegate.dom.getInitialElement(delegate.dom.document);
     this.context = context;
     this.dom = new BuildDomDelegate(delegate.dom);
 
     this.#delegate = getDelegate(context.types.template);
+  }
+
+  get element() {
+    return this.#element;
+  }
+
+  set element(element: SimpleElement) {
+    this.#element = element;
   }
 
   declare readonly beforeEach?: () => void;
@@ -429,7 +437,7 @@ export class RenderTest implements IRenderTest {
     return snapshot;
   }
 
-  protected assertStableRerender() {
+  assertStableRerender() {
     this.takeSnapshot();
     this.runTask(() => this.rerender());
     this.assertStableNodes();
@@ -476,30 +484,30 @@ export class RenderTest implements IRenderTest {
     return value as Present<T>;
   }
 
-  protected guardArray<T extends Maybe<unknown>[], K extends string>(desc: { [P in K]: T }): {
+  guardArray<T extends Maybe<unknown>[], K extends string>(desc: { [P in K]: T }): {
     [K in keyof T]: Present<T[K]>;
   };
-  protected guardArray<T, K extends string, N extends number>(
+  guardArray<T, K extends string, N extends number>(
     desc: { [P in K]: Iterable<T> | ArrayLike<T> },
     options: { min: N }
   ): Expand<NTuple<N, Present<T>>>;
-  protected guardArray<T, U extends T, K extends string, N extends number>(
+  guardArray<T, U extends T, K extends string, N extends number>(
     desc: { [P in K]: Iterable<T> | ArrayLike<T> },
     options: { min: N; condition: (value: T) => value is U }
   ): Expand<NTuple<N, U>>;
-  protected guardArray<T, K extends string, A extends ArrayLike<T>>(desc: { [P in K]: A }): Expand<
+  guardArray<T, K extends string, A extends ArrayLike<T>>(desc: { [P in K]: A }): Expand<
     NTuple<A['length'], Present<T>>
   >;
-  protected guardArray<T, K extends string>(desc: {
+  guardArray<T, K extends string>(desc: {
     [P in K]: Iterable<T> | ArrayLike<T>;
   }): Present<T>[];
-  protected guardArray<T, K extends string, U extends T>(
+  guardArray<T, K extends string, U extends T>(
     desc: {
       [P in K]: Iterable<T> | ArrayLike<T>;
     },
     options: { condition: (value: T) => value is U; min?: number }
   ): U[];
-  protected guardArray(
+  guardArray(
     desc: Record<string, Iterable<unknown> | ArrayLike<unknown>>,
     options?: {
       min?: Maybe<number>;
@@ -539,7 +547,7 @@ export class RenderTest implements IRenderTest {
     return array;
   }
 
-  protected assertHTML(html: string, elementOrMessage?: SimpleElement | string, message?: string) {
+  assertHTML(html: string, elementOrMessage?: SimpleElement | string, message?: string) {
     if (typeof elementOrMessage === 'object') {
       equalTokens(elementOrMessage || this.element, html, message ? `${html} (${message})` : html);
     } else {
@@ -558,7 +566,7 @@ export class RenderTest implements IRenderTest {
     return callback();
   }
 
-  protected assertStableNodes(
+  assertStableNodes(
     { except: _except }: { except: SimpleNode | SimpleNode[] } = {
       except: [],
     }

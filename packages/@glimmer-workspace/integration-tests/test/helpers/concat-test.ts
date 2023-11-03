@@ -1,6 +1,6 @@
-import { jitSuite, RenderTest, test } from '@glimmer-workspace/integration-tests';
+import { jitSuite, RenderTestContext, test } from '@glimmer-workspace/integration-tests';
 
-class ConcatTest extends RenderTest {
+class ConcatTest extends RenderTestContext {
   static suiteName = 'Helpers test: {{concat}}';
 
   @test

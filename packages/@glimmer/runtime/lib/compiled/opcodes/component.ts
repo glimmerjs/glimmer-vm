@@ -133,35 +133,44 @@ APPEND_OPCODES.add(Op.PushComponentDefinition, (vm, { op1: handle }) => {
 
 APPEND_OPCODES.add(Op.ResolveDynamicComponent, (vm, { op1: _isStrict }) => {
   let stack = vm.stack;
-  let component = check(
-    unwrapReactive(check(stack.pop(), CheckReactive)),
-    CheckOr(CheckString, CheckCurriedComponentDefinition)
-  );
-  let constants = vm[CONSTANTS];
-  let owner = vm.getOwner();
-  let isStrict = constants.getValue<boolean>(_isStrict);
 
-  vm.loadValue($t1, null); // Clear the temp register
+  const reactive = check(stack.pop(), CheckReactive);
 
-  let definition: ComponentDefinition | CurriedValue;
+  const result = vm.deref(reactive);
 
-  if (typeof component === 'string') {
-    if (import.meta.env.DEV && isStrict) {
-      throw new Error(
-        `Attempted to resolve a dynamic component with a string definition, \`${component}\` in a strict mode template. In strict mode, using strings to resolve component definitions is prohibited. You can instead import the component definition and use it directly.`
-      );
+  if (vm.unwrap(result)) {
+    const component = check(result.value, CheckOr(CheckString, CheckCurriedComponentDefinition));
+    let constants = vm[CONSTANTS];
+    let owner = vm.getOwner();
+    let isStrict = constants.getValue<boolean>(_isStrict);
+
+    vm.loadValue($t1, null); // Clear the temp register
+
+    let definition: ComponentDefinition | CurriedValue;
+
+    if (typeof component === 'string') {
+      if (import.meta.env.DEV && isStrict) {
+        throw new Error(
+          `Attempted to resolve a dynamic component with a string definition, \`${component}\` in a strict mode template. In strict mode, using strings to resolve component definitions is prohibited. You can instead import the component definition and use it directly.`
+        );
+      }
+
+      let resolvedDefinition = resolveComponent(vm.runtime.resolver, constants, component, owner);
+
+      definition = expect(resolvedDefinition, `Could not find a component named "${component}"`);
+    } else if (isCurriedValue(component)) {
+      definition = component;
+    } else {
+      definition = constants.component(component, owner);
     }
 
-    let resolvedDefinition = resolveComponent(vm.runtime.resolver, constants, component, owner);
-
-    definition = expect(resolvedDefinition, `Could not find a component named "${component}"`);
-  } else if (isCurriedValue(component)) {
-    definition = component;
-  } else {
-    definition = constants.component(component, owner);
+    stack.push(definition);
   }
 
-  stack.push(definition);
+  // let component = check(
+  //   unwrapReactive(check(stack.pop(), CheckReactive)),
+  //   CheckOr(CheckString, CheckCurriedComponentDefinition)
+  // );
 });
 
 APPEND_OPCODES.add(Op.ResolveCurriedComponent, (vm) => {

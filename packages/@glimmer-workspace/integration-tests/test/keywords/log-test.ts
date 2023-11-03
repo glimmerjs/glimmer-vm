@@ -1,6 +1,6 @@
-import { jitSuite, RenderTest, test } from '../../lib';
+import { jitSuite, RenderTestContext, test } from '@glimmer-workspace/integration-tests';
 
-class LogTest extends RenderTest {
+class LogTest extends RenderTestContext {
   static suiteName = '{{log}} keyword';
 
   originalLog?: () => void;

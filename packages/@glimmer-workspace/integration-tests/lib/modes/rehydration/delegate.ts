@@ -32,6 +32,8 @@ export class RehydrationDelegate implements RenderDelegate {
   static readonly isEager = false;
   static readonly style = 'rehydration';
 
+  readonly style: string = 'rehydration';
+
   public clientEnv: JitContext;
   public serverEnv: JitContext;
 

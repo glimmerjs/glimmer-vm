@@ -3,11 +3,11 @@ import {
   defineSimpleHelper,
   GlimmerishComponent,
   jitSuite,
-  RenderTest,
+  RenderTestContext,
   test,
 } from '@glimmer-workspace/integration-tests';
 
-class DynamicHelpersResolutionModeTest extends RenderTest {
+class DynamicHelpersResolutionModeTest extends RenderTestContext {
   static suiteName = 'dynamic helpers in resolution mode';
 
   @test

@@ -1,12 +1,12 @@
 import {
   GlimmerishComponent,
   jitSuite,
-  RenderTest,
+  RenderTestContext,
   test,
   tracked,
 } from '@glimmer-workspace/integration-tests';
 
-class GetTest extends RenderTest {
+class GetTest extends RenderTestContext {
   static suiteName = 'Helpers test: {{get}}';
   @test
   'should be able to get an object value with a static key'() {

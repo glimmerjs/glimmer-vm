@@ -5,12 +5,12 @@ import { assign, unwrap } from '@glimmer/util';
 import { GlimmerishComponent } from '../components/emberish-glimmer';
 import { equalsElement } from '../dom/assertions';
 import { replaceHTML } from '../dom/simple-utils';
-import { RenderTest } from '../render-test';
+import { RenderTestContext } from '../render-test';
 import { render } from '../test-decorator';
 import { stripTight } from '../test-helpers/strings';
 import { tracked } from '../test-helpers/tracked';
 
-export class InElementSuite extends RenderTest {
+export class InElementSuite extends RenderTestContext {
   static suiteName = '#in-element';
 
   @render
